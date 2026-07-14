@@ -1,0 +1,4 @@
+# 实际数据不入库；仅 schema 与文档进版本控制
+data/
+*.sqlite
+*.db
