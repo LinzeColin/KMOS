@@ -1,7 +1,7 @@
 [
   {
     "id": "KMDB-001",
-    "name": "KM 系列共享数据 schema 契约层",
+    "name": "KM 系列共享数据结构契约层",
     "status": "planned",
     "evidence": "declared"
   }

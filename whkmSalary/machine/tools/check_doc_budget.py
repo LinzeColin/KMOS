@@ -45,6 +45,9 @@ ALLOW = {
     "streamlit", "fastapi", "flask", "django", "react", "vue", "node",
     "npm", "pip", "docker", "sqlite", "postgres", "redis", "excel", "word",
     "ppt", "xlsx", "docx", "pptx", "app", "cli", "sdk", "sql", "db",
+    "and", "or", "with", "for", "by", "raw", "live", "board", "top", "public",
+    "the", "a", "of", "to", "in", "on", "in_progress", "blocked", "active",
+    "done", "pending", "planned", "provider", "candidate", "comparison",
 }
 
 CODE_BLOCK = re.compile(r"```.*?```", re.S)
