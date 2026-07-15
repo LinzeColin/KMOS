@@ -1,0 +1,32 @@
+[
+  {
+    "id": "FEAT-WHKM-001",
+    "name": "季度绩效工资总额与税后保留计算",
+    "status": "active",
+    "evidence": "extracted"
+  },
+  {
+    "id": "FEAT-WHKM-002",
+    "name": "业绩与毛利率评分函数",
+    "status": "active",
+    "evidence": "extracted"
+  },
+  {
+    "id": "FEAT-WHKM-003",
+    "name": "结算、开票与回款时间评分边界",
+    "status": "active",
+    "evidence": "extracted"
+  },
+  {
+    "id": "FEAT-WHKM-004",
+    "name": "审计偏差、客情成本与省份权重",
+    "status": "active",
+    "evidence": "extracted"
+  },
+  {
+    "id": "FEAT-WHKM-005",
+    "name": "Streamlit 输入约束与默认值",
+    "status": "active",
+    "evidence": "extracted"
+  }
+]
