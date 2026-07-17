@@ -6,7 +6,7 @@
     "12 月报表期间差重验",
     "银行流水窗口延展后行级匹配 v3"
   ],
-  "quality_blockers_open": 3,
+  "quality_blockers_open": 2,
   "quality_grade_current": "Q3（机器候选结构化；对账收敛进行中）",
   "raw_assets_registered": 53,
   "raw_domains": [

@@ -21,10 +21,10 @@ project_id: "KMFA"
 # ============================================================================
 total_estimated_hours: 401   # 54（v0.1.4 历史线，已完成）+ 347（打通线 DT1-DT9 估时，含 09 修订新增任务）
 completed_estimated_hours: 54
-current_stage_id: "DT1"
-current_phase_id: "DT1PB"
-current_task_id: "TSK.KMFA.OPS.0006"
-next_gate_id: "G0"
+current_stage_id: "DT5"
+current_phase_id: "DT5PE"
+current_task_id: "TSK.KMFA.DATA.0022"
+next_gate_id: "G4"
 stages:
   - stage_id: "S1"
     name: "只读启动与项目治理基线"

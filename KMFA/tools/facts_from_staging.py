@@ -19,7 +19,11 @@ DB_PATH = REPO / "KMFA" / ".codex_private_runtime" / "duckdb" / "kmfa_staging.du
 def main() -> int:
     import duckdb
     kmdb = [json.loads(l) for l in (REPO / "KMDatabase/data/manifest.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
-    quality = json.loads((REPO / "KMFA/stage_artifacts/DT5_DATA0010_quality_initial/machine/quality_report.json").read_text(encoding="utf-8"))
+    # 质量报告取最新版（v2 重裁于 2026-07-18：回款重复项经权威视图消解闭案，open 阻断 3→2）
+    quality_path = REPO / "KMFA/stage_artifacts/DT5_DATA0010_quality_v2/machine/quality_report.json"
+    if not quality_path.exists():
+        quality_path = REPO / "KMFA/stage_artifacts/DT5_DATA0010_quality_initial/machine/quality_report.json"
+    quality = json.loads(quality_path.read_text(encoding="utf-8"))
     con = duckdb.connect(str(DB_PATH), read_only=True)
     tbl = {}
     for (name,) in con.execute(
