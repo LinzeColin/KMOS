@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # 容器入口：校验 secrets 权限 → 装载 crontab → 前台 cron。
+# 带参数时透传执行（调试/验收用，如 docker run <img> sh -c '…'），不进 cron。
 set -euo pipefail
+
+if [ "$#" -gt 0 ]; then
+  exec "$@"
+fi
 
 SECRETS=/opt/kmfa/secrets/skills.env
 if [ -f "$SECRETS" ]; then

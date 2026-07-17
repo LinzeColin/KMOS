@@ -25,6 +25,10 @@ Mac 采集端（保留）                     Oracle 运行端（本基座）
   2. 运行环境注入 `KMFA_DINGTALK_ATTENDANCE_ALLOW_DWS_COMMANDS=1`
 - 备选方案（仅当官方 CLI 在 arm64 上不可用时启用）：Python 直连钉钉开放 API 的兼容 shim——调用面已锁定（chat message send / send-by-webhook / contact user search|get / attendance report 系列），暂不实现。
 
+## 本机预检结论（2026-07-17，实例日风险已消除）
+
+镜像与运行栈已在本机 `arm64`（与 Oracle A1 同架构）Docker **真构建 + 容器内真跑**验收：`dws v1.0.52` 可执行、SKL.0005 OCR 双引擎自检 PASS、crontab 8 条装载、健康检查 `healthy`、compose 校验通过。四颗构建期地雷（`flock` 假包名、`dws` 资产名、锁文件首次信任、`libGL` 缺失）已排掉——详见 `KMFA/stage_artifacts/DT9_SKL0002_deploy_precheck/预检记录.md`。实例日按下节步骤执行即可，无已知构建风险。
+
 ## 部署步骤（实例就绪后执行）
 
 ```bash
