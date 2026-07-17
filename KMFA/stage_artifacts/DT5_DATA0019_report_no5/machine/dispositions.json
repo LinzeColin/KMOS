@@ -1,0 +1,32 @@
+{
+  "report_id": "KMFA-RECON-REPORT-0005",
+  "date": "2026-07-18",
+  "domains": ["loan", "material"],
+  "new_closures": [
+    "loan_window_disbursements_three_banks_zero_diff",
+    "loan_legacy_four_banks_opening_backsolve_selfconsistent",
+    "loan_zhongli_monthly_payment_exact_match",
+    "loan_weizhong_settlement_before_snapshot_selfconsistent",
+    "material_subject_map_finalized",
+    "material_voucher_match_117of190"
+  ],
+  "analyzed_open": [
+    "liability_opening_balances_systematically_zero_in_export",
+    "hbzh_boc_residual_9916_67_single_voucher",
+    "register_missing_rows_landan_weizhong_and_shareholder_loan",
+    "material_unresolved_73_groups_271214_39"
+  ],
+  "owner_actions_required": 0,
+  "assertions_snapshot": {"total": 27, "closed_family": 16, "analyzed_open": 11},
+  "evidence_refs": [
+    "KMFA/stage_artifacts/DT5_DATA0026_loan_register",
+    "KMFA/stage_artifacts/DT5_DATA0027_loan_drill",
+    "KMFA/stage_artifacts/DT5_DATA0028_goods_movement",
+    "KMFA/stage_artifacts/DT5_DATA0029_material_axis",
+    "KMFA/stage_artifacts/DT5_DATA0030_material_matcher"
+  ],
+  "methodology_additions": [
+    "register_snapshot_backsolves_export_openings",
+    "hypothesis_testing_for_unexplained_residuals"
+  ]
+}
