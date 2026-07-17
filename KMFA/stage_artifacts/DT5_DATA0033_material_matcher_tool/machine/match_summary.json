@@ -1,0 +1,22 @@
+{
+  "task_id": "TSK.KMFA.DATA.0007",
+  "phase": "material_matcher",
+  "edition": "d46f77b0",
+  "window": [
+    "2025-01-01",
+    "2025-11-01"
+  ],
+  "voucher_groups": 190,
+  "matched": 125,
+  "match_rate": "125/190",
+  "stats": {
+    "L1_全额等": 98,
+    "L2_子集和": 19,
+    "L3_双向差额": 8,
+    "超限未试": 0,
+    "同月异号": 1,
+    "他科目命中": 2,
+    "未解": 62
+  },
+  "unresolved_amount_cents": 24739227
+}
