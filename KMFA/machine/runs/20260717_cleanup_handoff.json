@@ -1,7 +1,7 @@
 {
   "run_id": "清理交接-20260717",
   "action": "迁移 KMFA 公开安全源码与技能包，并为本机清理建立可校验私有恢复点",
-  "result": "私有备份已验证；公开源码验证通过；远端推送待完成",
+  "result": "完成：公开源码已推送；私有备份与旧工作区覆盖层已校验；稳定检出、技能、自动化和考勤冻结运行版已接管",
   "scope": {
     "repository": "LinzeColin/KMOS",
     "branch": "main",
@@ -22,6 +22,12 @@
     "fund_weekly_analysis": {"file_count": 7505, "logical_bytes": 170007660},
     "restored_fund_template_sha256": "59fd598636c1392bac92ecc9e5622cf2515978ff797498200f4e0804589da9f0"
   },
+  "legacy_worktree_overlays": {
+    "root": "OneDrive/KMFA/cleanup_handoff_20260717/legacy_worktrees",
+    "checksum_parity": "PASS",
+    "CodexProject_KMFA_overlay": {"file_count": 15241, "logical_bytes": 354215642},
+    "CodexProject_KMFA_S19_overlay": {"file_count": 1158, "logical_bytes": 11024502}
+  },
   "public_packages": [
     "KMFA/daily_routine_check_skill",
     "KMFA/fund-weekly-analysis-skill",
@@ -29,11 +35,22 @@
     "KMFA/mgmt-monthly-report-skill",
     "KMFA/dingtalk-dws-archive-skill"
   ],
-  "open_gates": [
-    "commit_and_push_origin_main",
-    "create_or_refresh_stable_checkout",
-    "repoint_installed_skill_symlinks",
-    "update_local_automation_cwds_and_prompt_mirrors",
-    "verify_post_push_remote_parity"
-  ]
+  "handoff_source_commit": "64a4d7083be08ed6ef9169e585306464c2d06ec5",
+  "stable_checkout": "/Users/linzezhang/Documents/Codex/KMOS",
+  "installed_skill_aliases_verified": 6,
+  "automations": {
+    "project": "/Users/linzezhang/Documents/Codex/KMOS",
+    "updated_existing_ids": ["dws-auth-keepalive-2", "kmfa", "kmfa-3", "kmfa-4", "kmfa-5", "kmfa-dws"],
+    "prompt_mirror_parity": "PASS_NORMALIZED_TRAILING_NEWLINE",
+    "attendance_live_prompt_verification": "PASS",
+    "attendance_runtime_fingerprint": "eeb36084adcd39507597f5df6b273de4e8f1b18212234e2226eb3edb9d71255a"
+  },
+  "validation": {
+    "relevant_tests_passed": 260,
+    "secret_scan": "PASS",
+    "large_public_files": "NONE_OVER_5_MIB",
+    "remote_push": "PASS",
+    "remote_parity": "PASS_AT_HANDOFF_SOURCE_COMMIT"
+  },
+  "open_gates": []
 }

@@ -39,6 +39,13 @@
 
 该目录包含真实运行状态，禁止提交 Git。DWS SQLite 已在源端和备份端执行 `PRAGMA quick_check`；最终文件数、hash 和验证结果以本次 GitHub 提交的 `machine/runs/20260717_cleanup_handoff.json` 为准。
 
+旧脏工作区未直接合并到当前主线；其完整 KMFA 覆盖层已私有保存并通过 checksum 零差异验证：
+
+```text
+cleanup_handoff_20260717/legacy_worktrees/CodexProject_KMFA_overlay/
+cleanup_handoff_20260717/legacy_worktrees/CodexProject-KMFA-S19_overlay/
+```
+
 考勤自然 automation 使用 immutable runtime：
 
 ```text
@@ -47,9 +54,18 @@ $HOME/Library/Application Support/Codex/KMFA/attendance-production/current
 
 仓库状态只作诊断，不得替代 immutable release fingerprint 门禁。
 
+## 本机接管结果
+
+- 首轮公开接管提交：`64a4d7083be08ed6ef9169e585306464c2d06ec5`，已推送至 `origin/main`。
+- Codex 已登记稳定项目 `/Users/linzezhang/Documents/Codex/KMOS`；6 张既有 automation 均已原位迁移到该项目，未创建重复任务。
+- `kmfa` 10:35、`kmfa-3` 20:05、`kmfa-4` 13:35/19:05、`kmfa-dws` 每日 11:00、DWS auth 每 4 小时 20 分的计划保持不变；`kmfa-5` 已恢复技能合同规定的周一和周六 11:00。
+- attendance immutable release 已原子切换至 fingerprint `eeb36084adcd39507597f5df6b273de4e8f1b18212234e2226eb3edb9d71255a`，source commit 为上述首轮接管提交；晨晚 live prompt 均通过只读一致性校验。
+- 6 个本机 skill 名称均指向稳定 KMOS checkout；历史独立 DWS skill 已私有备份后由兼容别名接管。
+- 未运行 live DWS、未发送钉钉消息、未把原始业务数据提交 Git。
+
 ## 清理保护清单
 
-在远端 parity、OneDrive 快照校验和本机 automation cwd 更新全部完成前，不得删除：
+远端 parity、OneDrive 快照和本机 automation cwd 已完成校验。大清理时仍不得删除：
 
 - 推荐稳定 checkout `/Users/linzezhang/Documents/Codex/KMOS`；
 - 上述 OneDrive `cleanup_handoff_20260717/`；
@@ -58,7 +74,7 @@ $HOME/Library/Application Support/Codex/KMFA/attendance-production/current
 - `~/.codex/automations/`、`~/.codex/skills/`、DWS 认证 profile 与自动化 memory/state；
 - `~/Downloads/KMFA_MetaData`。
 
-旧 checkout 可否删除必须以本 handoff 的最新 run result 为准；本文件本身不授权删除。
+旧 checkout 的 KMFA 内容已有私有覆盖层恢复点；删除旧 checkout 前仍应再次确认上述保护项存在且稳定 checkout 与 `origin/main` parity。本文不授权删除保护项。
 
 ## 验证与停止条件
 
