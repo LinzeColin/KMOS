@@ -8,13 +8,18 @@ covered_categories:
   - "receivable_aging"
   - "journal"
 raw_assets: 53
-raw_with_staging_edges: 6
+raw_with_staging_edges: 9
 raw_deferred_all_sheets: 2
-raw_not_yet_extracted: 45
+raw_not_yet_extracted: 42
 staging_tables:
   - "_staging.bank_journal"
   - "_staging.collection"
+  - "_staging.expense_lines"
+  - "_staging.invoice_lines"
+  - "_staging.op_key_indicators"
+  - "_staging.op_monthly"
   - "_staging.receivable_aging"
+  - "_staging.tax_composition"
 lineage_complete_v1: true
 lineage_complete_note: "v1 口径=账实闭合（每个 raw 资产状态可判定）；全量 lineage_complete 待全类别接入后由本工具自动翻真"
 nodes:
@@ -37,7 +42,6 @@ nodes:
     domain: "财务"
     batch: "2026-07-16"
     size_bytes: 7525691
-    status: "not_yet_extracted"
   - asset: "raw:bb8258f13cf9"
     domain: "财务"
     batch: "2026-07-16"
@@ -46,7 +50,6 @@ nodes:
     domain: "财务"
     batch: "2026-07-16"
     size_bytes: 6472730
-    status: "not_yet_extracted"
   - asset: "raw:3da141a8d79c"
     domain: "财务"
     batch: "2026-07-16"
@@ -101,7 +104,6 @@ nodes:
     domain: "财务"
     batch: "2026-07-16"
     size_bytes: 17347846
-    status: "not_yet_extracted"
   - asset: "raw:71a4084c31f0"
     domain: "财务"
     batch: "2026-07-16"
@@ -278,6 +280,21 @@ nodes:
     size_bytes: 79085
     status: "not_yet_extracted"
 edges:
+  - from: "raw:cc3963bcdfa0"
+    to: "_staging.expense_lines"
+    sheet_hash: "ff224d7bc431"
+    rows: 4364
+    version: "expense-v1"
+  - from: "raw:cc3963bcdfa0"
+    to: "_staging.expense_lines"
+    sheet_hash: "d0b5e079cedf"
+    rows: 359
+    version: "expense-v1"
+  - from: "raw:cc3963bcdfa0"
+    to: "_staging.tax_composition"
+    sheet_hash: "1d2fc60e3efe"
+    rows: 377
+    version: "tax-composition-v2"
   - from: "raw:bb8258f13cf9"
     to: "_staging.bank_journal"
     sheet_hash: "4a8a9ea7df84"
@@ -288,6 +305,41 @@ edges:
     sheet_hash: "400483c29647"
     rows: 1
     version: "journal-v1"
+  - from: "raw:d46f77b0c90d"
+    to: "_staging.expense_lines"
+    sheet_hash: "ff224d7bc431"
+    rows: 3183
+    version: "expense-v1"
+  - from: "raw:d46f77b0c90d"
+    to: "_staging.expense_lines"
+    sheet_hash: "d0b5e079cedf"
+    rows: 421
+    version: "expense-v1"
+  - from: "raw:d46f77b0c90d"
+    to: "_staging.tax_composition"
+    sheet_hash: "8d62f8f41f5c"
+    rows: 421
+    version: "tax-composition-v2"
+  - from: "raw:958c7918da5d"
+    to: "_staging.op_key_indicators"
+    sheet_hash: "5ea177f304eb"
+    rows: 36
+    version: "op-indicators-v3"
+  - from: "raw:958c7918da5d"
+    to: "_staging.op_monthly"
+    sheet_hash: "c7e933f6e9b3"
+    rows: 357
+    version: "op-monthly-v1"
+  - from: "raw:958c7918da5d"
+    to: "_staging.invoice_lines"
+    sheet_hash: "7103e4588a33"
+    rows: 287
+    version: "invoice-lines-v2"
+  - from: "raw:958c7918da5d"
+    to: "_staging.invoice_lines"
+    sheet_hash: "3990d9bb3e18"
+    rows: 261
+    version: "invoice-lines-v2"
   - from: "raw:ccbc28590c2f"
     to: "_staging.collection"
     sheet_hash: "3e750612b150"
