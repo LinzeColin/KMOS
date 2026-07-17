@@ -1,0 +1,37 @@
+{
+  "report_id": "KMFA-RECON-REPORT-0008",
+  "date": "2026-07-18",
+  "domains": ["invoicing", "deploy", "governance"],
+  "new_closures": [
+    "invoice_per_ticket_three_layer_126_of_134",
+    "in_period_eight_groups_six_closed",
+    "dual_copy_cross_proof_4339_exact",
+    "instance_day_full_chain_one_command_verified",
+    "dst_drift_eliminated_beijing_anchor",
+    "readonly_mount_rerender_shadowed",
+    "https_clone_and_bootstrap",
+    "broken_dimension_tag_reset"
+  ],
+  "analyzed_open": [
+    "two_omission_candidates_zhongcai_7200_ganfeng_446600_await_december"
+  ],
+  "self_corrections_recorded": [
+    "material_axis_lead_downgraded_sales_side_subset",
+    "xcheck_figures_corrected_pre_merge_27_of_35"
+  ],
+  "owner_actions_required": 0,
+  "assertions_snapshot": {"total": 30, "closed_family": 19, "analyzed_open": 11},
+  "evidence_refs": [
+    "KMFA/stage_artifacts/DT5_DATA0047_invoice_raw",
+    "KMFA/stage_artifacts/DT5_DATA0048_invoice_xcheck",
+    "KMFA/stage_artifacts/DT5_DATA0049_inv8_closure",
+    "KMFA/stage_artifacts/DT8_GOVX0005_self_audit",
+    "KMFA/stage_artifacts/DT9_SKL0002_testsend_drill",
+    "KMFA/stage_artifacts/DT9_SKL0003_guard_drill",
+    "KMFA/stage_artifacts/DT6_PROD_app_container_precheck"
+  ],
+  "methodology_additions": [
+    "loosen_date_semantics_before_declaring_absence",
+    "entity_alias_layer_same_day_same_amount_loose_name"
+  ]
+}
