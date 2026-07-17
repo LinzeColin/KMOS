@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KMFA 经营分析</title>
+<style>
+  :root { color-scheme: light dark; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  body { margin: 0; padding: 2rem; max-width: 60rem; margin-inline: auto; }
+  header { display: flex; gap: .75rem; align-items: baseline; flex-wrap: wrap; }
+  h1 { font-size: 1.4rem; margin: 0; }
+  .badge { padding: .15rem .6rem; border-radius: 999px; font-size: .85rem; border: 1px solid currentColor; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+  .card { border: 1px solid color-mix(in srgb, currentColor 25%, transparent); border-radius: .75rem; padding: 1rem; }
+  .num { font-size: 1.8rem; font-weight: 700; }
+  .muted { opacity: .65; font-size: .85rem; }
+  table { width: 100%; border-collapse: collapse; margin-top: .5rem; font-size: .85rem; }
+  td, th { padding: .3rem .4rem; border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent); text-align: left; }
+</style>
+</head>
+<body>
+<header>
+  <h1>KMFA 经营分析</h1>
+  <span class="badge" id="质量">质量 …</span>
+  <span class="badge" id="报告">报告 …</span>
+  <span class="badge" id="GO">GO …</span>
+</header>
+<div class="grid">
+  <div class="card"><div class="muted">对账断言</div><div class="num" id="断言数">…</div><div class="muted" id="断言明细"></div></div>
+  <div class="card"><div class="muted">staging 数据行</div><div class="num" id="行数">…</div><div class="muted" id="批次"></div></div>
+  <div class="card"><div class="muted">技能</div><div class="num" id="技能数">…</div><div class="muted">全部迁云计划中</div></div>
+</div>
+<div class="card" style="margin-top:1rem">
+  <div class="muted">断言清单（closed 在前）</div>
+  <table id="断言表"><thead><tr><th>断言</th><th>期间</th><th>状态</th></tr></thead><tbody></tbody></table>
+</div>
+<script>
+async function 加载() {
+  const [s, a, d, k] = await Promise.all([
+    fetch('/api/状态').then(r => r.json()),
+    fetch('/api/断言').then(r => r.json()),
+    fetch('/api/数据管线').then(r => r.json()),
+    fetch('/api/技能').then(r => r.json()),
+  ]);
+  document.getElementById('质量').textContent = '质量 ' + s.页眉.质量等级;
+  document.getElementById('报告').textContent = '报告 ' + s.页眉.报告等级;
+  document.getElementById('GO').textContent = s.页眉.GO状态;
+  document.getElementById('断言数').textContent = a.closed + ' / ' + a.total;
+  document.getElementById('断言明细').textContent = 'closed / 总数（open ' + a.analyzed_open + '）';
+  document.getElementById('行数').textContent = (d.staging_rows_total ?? 0).toLocaleString('zh');
+  document.getElementById('批次').textContent = '截止批次 ' + (d.data_as_of_batch ?? '—');
+  document.getElementById('技能数').textContent = k.count;
+  const tb = document.querySelector('#断言表 tbody');
+  a.items.sort((x, y) => String(x.status).localeCompare(String(y.status)))
+    .forEach(it => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${it.metric ?? it.assertion_id}</td><td>${it.period ?? ''}</td><td>${it.status}</td>`;
+      tb.appendChild(tr);
+    });
+}
+加载();
+</script>
+</body>
+</html>

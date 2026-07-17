@@ -27,3 +27,8 @@ def test_assertions_counts():
 def test_skills_registry():
     r = client.get("/api/技能")
     assert r.status_code == 200 and r.json()["count"] == 8
+
+
+def test_index_serves_dashboard():
+    r = client.get("/")
+    assert r.status_code == 200 and "KMFA 经营分析" in r.text

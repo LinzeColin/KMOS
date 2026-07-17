@@ -11,12 +11,19 @@ import json
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 
 REPO = Path(__file__).resolve().parents[4]
 KMFA = REPO / "KMFA"
 FACTS = KMFA / "machine" / "facts"
 
 app = FastAPI(title="KMFA App", version="0.1.0-prod0001")
+STATIC = Path(__file__).resolve().parent / "static"
+
+
+@app.get("/")
+def index():
+    return FileResponse(STATIC / "index.html")
 
 
 def load_json(path: Path):
