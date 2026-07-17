@@ -1,0 +1,39 @@
+{
+  "run_id": "清理交接-20260717",
+  "action": "迁移 KMFA 公开安全源码与技能包，并为本机清理建立可校验私有恢复点",
+  "result": "私有备份已验证；公开源码验证通过；远端推送待完成",
+  "scope": {
+    "repository": "LinzeColin/KMOS",
+    "branch": "main",
+    "project": "KMFA",
+    "live_dws_called": false,
+    "dingtalk_message_sent": false,
+    "raw_data_committed": false
+  },
+  "private_backup": {
+    "root": "OneDrive/KMFA/cleanup_handoff_20260717",
+    "file_count": 10346,
+    "logical_bytes": 1097845744,
+    "checksum_parity": "PASS",
+    "dws_sqlite_quick_check": "PASS",
+    "dws": {"file_count": 1276, "logical_bytes": 808842945},
+    "daily_routine_check": {"file_count": 2, "logical_bytes": 631},
+    "dingtalk_attendance": {"file_count": 1563, "logical_bytes": 118994508},
+    "fund_weekly_analysis": {"file_count": 7505, "logical_bytes": 170007660},
+    "restored_fund_template_sha256": "59fd598636c1392bac92ecc9e5622cf2515978ff797498200f4e0804589da9f0"
+  },
+  "public_packages": [
+    "KMFA/daily_routine_check_skill",
+    "KMFA/fund-weekly-analysis-skill",
+    "KMFA/kmfa-dingtalk-attendance-skill",
+    "KMFA/mgmt-monthly-report-skill",
+    "KMFA/dingtalk-dws-archive-skill"
+  ],
+  "open_gates": [
+    "commit_and_push_origin_main",
+    "create_or_refresh_stable_checkout",
+    "repoint_installed_skill_symlinks",
+    "update_local_automation_cwds_and_prompt_mirrors",
+    "verify_post_push_remote_parity"
+  ]
+}

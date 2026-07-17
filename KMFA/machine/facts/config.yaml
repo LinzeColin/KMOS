@@ -1,5 +1,20 @@
 {
   "parameters": {
+    "GitHub 源码仓库": {
+      "value": "`LinzeColin/KMOS`",
+      "intent": "KMFA 已从旧主仓拆出；唯一公开源码归属必须明确，否则执行者会把修复写回禁推送的历史检出目录。",
+      "where": "`AGENTS.md`、`HANDOFF.md`"
+    },
+    "稳定本机入口": {
+      "value": "`/Users/linzezhang/Documents/Codex/KMOS`",
+      "intent": "自动化和已安装技能链接需要一个不随日期任务目录变化的检出目录；其他机器可使用任意克隆路径并从仓库根发现。",
+      "where": "`HANDOFF.md`"
+    },
+    "清理快照根": {
+      "value": "`OneDrive/KMFA/cleanup_handoff_20260717`",
+      "intent": "真实运行数据不进公开仓库；清理前以逐字节一致性通过的私有快照保留 DWS、考勤、日常检查和资金周报状态。",
+      "where": "`HANDOFF.md`、`machine/runs/20260717_cleanup_handoff.json`"
+    },
     "零差异分": {
       "value": 0,
       "intent": "项目成本是对外口径，一分差异就是错，没有容忍带。调大等于放弃零差异，报告等级封顶 B。",

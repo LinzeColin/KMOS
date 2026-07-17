@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd /Users/linzezhang/Documents/Codex/main_worktree/CodexProject/kmfa
+cd /Users/linzezhang/Documents/Codex/KMOS
 export KMFA_RUN_SLOT=evening
 codex exec --sandbox workspace-write --json \
   "$(cat KMFA/kmfa-dingtalk-attendance-skill/automation/evening_prompt.md)" \

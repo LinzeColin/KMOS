@@ -1,0 +1,13 @@
+config/
+data/
+archive/
+snapshots/
+reports/
+logs/
+outputs/
+probe/
+work/
+*.sqlite
+*.sqlite3
+*.zip
+.env*

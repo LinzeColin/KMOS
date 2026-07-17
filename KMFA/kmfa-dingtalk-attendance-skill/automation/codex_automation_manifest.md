@@ -6,7 +6,7 @@ files are the portable source for another agent or computer.
 
 ## Canonical Repo
 
-- Repository: `LinzeColin/CodexProject`
+- Repository: `LinzeColin/KMOS`
 - Branch: `main`
 - Skill path: `KMFA/kmfa-dingtalk-attendance-skill/`
 - Public metadata/config path: `KMFA/metadata/`
@@ -30,10 +30,10 @@ when the host UTC offset or daylight-saving state changes.
 Current local Codex cwd list for both automations:
 
 ```text
-/Users/linzezhang/CodexProject
+/Users/linzezhang/Documents/Codex/KMOS
 ```
 
-Run KMFA git, skill, tests, and scripts from `/Users/linzezhang/CodexProject`.
+Run KMFA git, skill, tests, and scripts from `/Users/linzezhang/Documents/Codex/KMOS`.
 The upstream DWS archive has its own separate automation and is not part of the
 KMFA attendance automation cwd list.
 

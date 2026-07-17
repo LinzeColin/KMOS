@@ -8,7 +8,7 @@
   "scheduler_policy": "pure_rrule_local_wall_clock_no_explicit_timezone",
   "host_clock_snapshot": "Australia/Sydney AEST UTC+10",
   "execution_environment": "local",
-  "cwd": "/Users/linzezhang/CodexProject",
+  "cwd": "/Users/linzezhang/Documents/Codex/KMOS",
   "skill_path": "KMFA/daily_routine_check_skill/SKILL.md",
   "rrule": "RRULE:FREQ=DAILY;BYHOUR=13,19;BYMINUTE=5,35;BYSETPOS=2,3",
   "rrule_policy": "One pure local-wall-clock RRULE. BYSETPOS selects the paired 13:35 and 19:05 runs. No DTSTART, TZID, explicit scheduler timezone, or multiple RRULE lines.",

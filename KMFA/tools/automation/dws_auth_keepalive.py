@@ -26,8 +26,7 @@ DEFAULT_STATE_PATH = AUTOMATION_DIR / "state.json"
 LEDGER_HEADER = "# DWS Auth Keepalive Memory v2\n"
 MAX_LEDGER_RUNS = 24
 MANUAL_AUTH_COMMAND = (
-    "cd /Users/linzezhang/Documents/Codex/2026-07-04/"
-    "392b1a986ba680338068ddc1c2a0fd0e-https-app-notion-com-p "
+    "cd /Users/linzezhang/Documents/Codex/KMOS "
     "&& DWS_KEEPALIVE_PROFILE=$(python3 -c 'import json; "
     "print(json.load(open(\"/Users/linzezhang/.codex/automations/"
     "dws-auth-keepalive-2/expected_profile.json\"))[\"profile\"])') "

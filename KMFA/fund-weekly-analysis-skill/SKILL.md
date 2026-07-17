@@ -1,11 +1,11 @@
 name: fund-weekly-analysis-skill
-description: Use when operating, reviewing, automating, modifying, or handing off KMFA fund weekly/monthly analysis, DingTalk finance screenshot evidence, cash-flow净化, tax/loan/project-cost risk analysis, company-bank account matrix, Excel fund dashboard generation, local Codex automation, or GitHub main governance under LinzeColin/CodexProject/KMFA.
+description: Use when operating, reviewing, automating, modifying, or handing off KMFA fund weekly/monthly analysis, DingTalk finance screenshot evidence, cash-flow净化, tax/loan/project-cost risk analysis, company-bank account matrix, Excel fund dashboard generation, local Codex automation, or GitHub main governance under LinzeColin/KMOS/KMFA.
 
 # KMFA Fund Weekly Analysis Skill
 
 ## Use First
 
-This skill is the portable operating entry for KMFA资金与税费管理自动化. Use it only with a clone of `LinzeColin/CodexProject` and start from `main`.
+This skill is the portable operating entry for KMFA资金与税费管理自动化. Use it only with a clone of `LinzeColin/KMOS` and start from `main`.
 
 Canonical GitHub path:
 

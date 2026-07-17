@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="${KMFA_REPO_ROOT:-/Users/linzezhang/CodexProject/KMFA}"
+REPO_ROOT="${KMFA_REPO_ROOT:-/Users/linzezhang/Documents/Codex/KMOS/KMFA}"
 SKILL_DIR="${KMFA_SKILL_DIR:-$REPO_ROOT/kmfa-dingtalk-attendance-skill}"
 PRIVATE_RUNTIME="${KMFA_PRIVATE_RUNTIME:-$REPO_ROOT/metadata/dingtalk_attendance/private_runtime}"
 OUT="${KMFA_VALIDATE_OUT:-$PRIVATE_RUNTIME/offline_validate_manifest.json}"

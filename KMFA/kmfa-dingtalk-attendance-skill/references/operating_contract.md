@@ -8,7 +8,7 @@ Create one stable operating contract for KMFA DingTalk attendance so any agent o
 
 | Invariant | Requirement |
 |---|---|
-| Repo identity | `/Users/linzezhang/CodexProject` is the configured cwd and private-state location; repo state is diagnostic only. |
+| Repo identity | `/Users/linzezhang/Documents/Codex/KMOS` is the configured cwd and private-state location; repo state is diagnostic only. |
 | Production release | Natural attendance runs only the verified immutable `attendance-production/current` release. |
 | Repository diagnostics | Branch, HEAD, origin HEAD, and dirty paths are recorded but never block attendance. |
 | Target month | Stage-2 target month is always the previous natural month when local date is day 1-5. |

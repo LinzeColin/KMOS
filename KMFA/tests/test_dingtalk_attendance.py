@@ -1673,7 +1673,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                                 "payload": {
                                     "id": f"task-{source}",
                                     "timestamp": "2026-07-15T02:45:00Z",
-                                    "cwd": "/Users/linzezhang/CodexProject",
+                                    "cwd": "/Users/linzezhang/Documents/Codex/KMOS",
                                     "thread_source": source,
                                 },
                             },
@@ -1694,13 +1694,13 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                 automation_path,
                 expected_automation_id="kmfa",
                 expected_prompt_sha256=prompt_sha,
-                expected_cwd=Path("/Users/linzezhang/CodexProject"),
+                expected_cwd=Path("/Users/linzezhang/Documents/Codex/KMOS"),
             )
             rejected = read_automation_task_evidence(
                 manual_path,
                 expected_automation_id="kmfa",
                 expected_prompt_sha256=prompt_sha,
-                expected_cwd=Path("/Users/linzezhang/CodexProject"),
+                expected_cwd=Path("/Users/linzezhang/Documents/Codex/KMOS"),
             )
 
         self.assertTrue(verified["verified"])
@@ -1727,7 +1727,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                             "payload": {
                                 "id": "natural-task-id",
                                 "timestamp": "2026-07-15T02:45:00Z",
-                                "cwd": "/Users/linzezhang/CodexProject",
+                                "cwd": "/Users/linzezhang/Documents/Codex/KMOS",
                                 "thread_source": "automation",
                             },
                         },

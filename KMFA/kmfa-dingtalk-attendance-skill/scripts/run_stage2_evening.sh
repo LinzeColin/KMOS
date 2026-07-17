@@ -5,7 +5,7 @@ set -euo pipefail
 # if eligible, expects the repo-specific adapter to produce run artifacts.
 # Integrate the TODO adapter command with the existing KMFA attendance pipeline.
 
-REPO_ROOT="${KMFA_REPO_ROOT:-/Users/linzezhang/CodexProject/KMFA}"
+REPO_ROOT="${KMFA_REPO_ROOT:-/Users/linzezhang/Documents/Codex/KMOS/KMFA}"
 PRIVATE_RUNTIME="${KMFA_PRIVATE_RUNTIME:-$REPO_ROOT/metadata/dingtalk_attendance/private_runtime}"
 SKILL_DIR="${KMFA_SKILL_DIR:-$REPO_ROOT/kmfa-dingtalk-attendance-skill}"
 export KMFA_RUN_SLOT="${KMFA_RUN_SLOT:-evening}"

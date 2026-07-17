@@ -80,7 +80,7 @@ class KmfaAutomationScheduleContractTests(unittest.TestCase):
         )
 
         self.assertIn(
-            "/Users/linzezhang/CodexProject/KMFA/tools/automation/dws_auth_keepalive.py",
+            "/Users/linzezhang/Documents/Codex/KMOS/KMFA/tools/automation/dws_auth_keepalive.py",
             prompt,
         )
         self.assertNotIn("auth login --format json --yes --no-browser", prompt)
@@ -146,17 +146,17 @@ class KmfaAutomationScheduleContractTests(unittest.TestCase):
         )
         self.assertEqual(completed.returncode, 0, completed.stderr or completed.stdout)
 
-    def test_kmfa_evening_contract_is_local_wall_clock_2000_without_scheduler_timezone(self) -> None:
+    def test_kmfa_evening_contract_is_local_wall_clock_2005_without_scheduler_timezone(self) -> None:
         contract = tomllib.loads(CONTRACT.read_text(encoding="utf-8"))
         evening = next(item for item in contract["automations"] if item["id"] == "kmfa-3")
 
         self.assertEqual(
             evening["rrule"],
-            "RRULE:FREQ=WEEKLY;BYHOUR=20;BYMINUTE=0;BYDAY=SU,MO,TU,WE,TH,FR,SA",
+            "RRULE:FREQ=DAILY;BYHOUR=20;BYMINUTE=5",
         )
         self.assertNotIn("business_time", evening)
         self.assertEqual(evening["business_clock"], "Asia/Shanghai")
-        self.assertEqual(evening["local_wall_clock_time"], "20:00")
+        self.assertEqual(evening["local_wall_clock_time"], "20:05")
         self.assertEqual(
             evening["summary_datetime_source"],
             "actual_run_datetime_in_business_clock",
@@ -177,21 +177,21 @@ class KmfaAutomationScheduleContractTests(unittest.TestCase):
     def test_kmfa_evening_prompt_locks_exact_entry_and_authoritative_healthcheck(self) -> None:
         prompt = EVENING_PROMPT.read_text(encoding="utf-8")
 
-        self.assertIn("Scheduled local wall-clock time: 20:00.", prompt)
+        self.assertIn("local-wall-clock 20:05", prompt)
         self.assertIn(
-            "TZ=Asia/Shanghai PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. python3 "
-            "KMFA/tools/dingtalk_attendance/automatic_closure.py --run-slot evening "
+            'TZ=Asia/Shanghai PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$release_root" python3 '
+            '"$release_root/KMFA/tools/dingtalk_attendance/production_entry.py" --run-slot evening '
             "--trigger-source automation --automation-id kmfa-3 --allow-dws-commands",
             prompt,
         )
-        self.assertIn("config-only healthcheck is authoritative", prompt)
+        self.assertIn("verify the release manifest/fingerprint", prompt)
 
     def test_attendance_prompts_do_not_run_legacy_sweep_or_mislabel_live_failures(self) -> None:
         required = (
-            "The production official collector intentionally skips the legacy per-member record/summary sweep.",
-            "Do not interrupt the entry while its process is still inside the runner's bounded DWS timeout/retry budget.",
-            "must never be reported as DWS_AUTH_REQUIRED",
-            "report the entry's exact final JSON status and exit code",
+            "attendance-production/current",
+            "realtime_reminder_integrity_status=PASS",
+            "notification_status=SENT",
+            "DWS_AUTH_REQUIRED",
         )
         for path in (MORNING_PROMPT, EVENING_PROMPT):
             prompt = path.read_text(encoding="utf-8")

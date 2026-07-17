@@ -12,13 +12,13 @@ This skill is the portable, public-safe operating entry for the KMFA DingTalk da
 Use it only with a clone of:
 
 ```text
-LinzeColin/CodexProject
+LinzeColin/KMOS
 ```
 
 Work from:
 
 ```text
-/Users/linzezhang/CodexProject
+/Users/linzezhang/Documents/Codex/KMOS
 ```
 
 Project root:

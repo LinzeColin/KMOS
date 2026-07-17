@@ -1,0 +1,47 @@
+# Public template only. Never commit real IDs or page IDs.
+output_root: "~/Downloads/DWS_Outputs"
+mirror_archive_path: "~/Library/CloudStorage/OneDrive-Personal/DWS_Outputs.zip"
+output_layout: "group_directory_files_MM"
+per_group_zip_enabled: false
+mirror_mode: "whole_output_tree_zip"
+cold_archive_root: "~/Library/CloudStorage/OneDrive-Personal/DWS_Archive"
+notion_backup_page_id: "<private-page-id>"
+notion_backup_enabled: true
+notion_backup_include_sensitive_ids: false
+
+codex_control:
+  automation_name: "每日钉钉DWS归档"
+  automation_time_local: "11:00,19:00"
+  automation_times_local: ["11:00", "19:00"]
+  local_unattended_schedule_enabled: false
+
+scan:
+  mode: "codex_controlled_incremental_hot_cold"
+  full_scan_since: "YYYY-MM-DD 00:00:00"
+  page_size: 500
+  full_depth_no_time_or_page_truncation: true
+  heartbeat_resource_interval: 25
+  stale_heartbeat_minutes_before_blocked: 30
+  dws_http_timeout_seconds: 120
+  dws_command_retries: 3
+  dws_retry_backoff_seconds: 5
+  target_change_updates_automation_required: true
+  project_auto_complete_idle_days: 7
+  recent_similarity_days: 30
+  hot_storage_days: 60
+  max_failure_attempts: 3
+  staging_ttl_hours: 24
+  log_retention_days: 15
+  include_all_downloadable_files: true
+  include_chat_records: true
+  include_recent_similarity_analysis: true
+  include_quality_evidence_in_group_dir: true
+  stop_on_single_file_failure: false
+
+groups:
+  - canonical_name: "<group-name>"
+    aliases: ["<group-alias>"]
+    open_conversation_id: "<private-open-conversation-id>"
+    group_type: "standing"
+    scan_mode: "auto"
+    enabled: false

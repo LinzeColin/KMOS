@@ -3,7 +3,7 @@
 Run locally from:
 
 ```text
-/Users/linzezhang/CodexProject
+/Users/linzezhang/Documents/Codex/KMOS
 ```
 
 Automation:

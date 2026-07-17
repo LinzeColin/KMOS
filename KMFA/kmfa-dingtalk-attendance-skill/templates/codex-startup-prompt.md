@@ -1,6 +1,6 @@
 # KMFA DingTalk Attendance Startup Prompt
 
-You are taking over KMFA 钉钉考勤 skill in `LinzeColin/CodexProject`.
+You are taking over KMFA 钉钉考勤 skill in `LinzeColin/KMOS`.
 
 Work from repo root and stay on `main`. Do not create branches, PRs, issues, or worktrees.
 

@@ -1,14 +1,14 @@
 # 每日钉钉 DWS 归档 automation prompt
 
-Read and follow `/Users/linzezhang/.codex/skills/dingtalk-dws-archive/SKILL.md` before acting.
+Read and follow `/Users/linzezhang/.codex/skills/dingtalk-dws-archive-skill/SKILL.md` before acting.
 
 Operate only the existing DWS archive workflow. Do not create a replacement automation.
 
 Hard boundaries:
 
 - Do not change the automation RRULE or schedule. The user owns all run times.
-- The DWS working directory is `/Users/linzezhang/Documents/Codex/2026-07-04/392b1a986ba680338068ddc1c2a0fd0e-https-app-notion-com-p` and is intentionally not a Git repository.
-- The Git repository is `/Users/linzezhang/CodexProject`; every Git operation must use that explicit repository root.
+- The DWS private working directory is `/Users/linzezhang/Library/CloudStorage/OneDrive-Personal/KMFA/cleanup_handoff_20260717/dws_archive_project` and is intentionally not a Git repository.
+- The Git repository is `/Users/linzezhang/Documents/Codex/KMOS`; every Git operation must use that explicit repository root.
 - The only source package is `/Users/linzezhang/onedrive/DWS_Outputs.zip` (use the documented OneDrive alias only when the primary path is absent).
 - Never commit the ZIP, expanded DWS files, message bodies, private IDs, tokens, cookies, credentials, or browser/session data.
 - Never create a branch, pull request, issue, worktree, merge commit, rebase, or force push.
@@ -24,12 +24,12 @@ Run contract:
 7. Invoke the deterministic manifest publisher from any working directory:
 
    ```bash
-   python3 /Users/linzezhang/CodexProject/KMFA/tools/automation/backup_dws_output_manifest.py \
-     --dws-project /Users/linzezhang/Documents/Codex/2026-07-04/392b1a986ba680338068ddc1c2a0fd0e-https-app-notion-com-p \
-     --repo-root /Users/linzezhang/CodexProject \
+   python3 /Users/linzezhang/Documents/Codex/KMOS/KMFA/tools/automation/backup_dws_output_manifest.py \
+     --dws-project /Users/linzezhang/Library/CloudStorage/OneDrive-Personal/KMFA/cleanup_handoff_20260717/dws_archive_project \
+     --repo-root /Users/linzezhang/Documents/Codex/KMOS \
      --source-package /Users/linzezhang/onedrive/DWS_Outputs.zip \
-     --summary-json /Users/linzezhang/Documents/Codex/2026-07-04/392b1a986ba680338068ddc1c2a0fd0e-https-app-notion-com-p/reports/daily_summary.json \
-     --validation-json /Users/linzezhang/Documents/Codex/2026-07-04/392b1a986ba680338068ddc1c2a0fd0e-https-app-notion-com-p/reports/dws_output_validation_latest.json \
+     --summary-json /Users/linzezhang/Library/CloudStorage/OneDrive-Personal/KMFA/cleanup_handoff_20260717/dws_archive_project/reports/daily_summary.json \
+     --validation-json /Users/linzezhang/Library/CloudStorage/OneDrive-Personal/KMFA/cleanup_handoff_20260717/dws_archive_project/reports/dws_output_validation_latest.json \
      --notion-status pending \
      --push
    ```

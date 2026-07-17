@@ -23,7 +23,7 @@ The skill does not collect DingTalk messages by itself. It depends on an existin
 
 ## GitHub Policy
 
-- Destination: `LinzeColin/CodexProject/KMFA/daily_routine_check_skill`
+- Destination: `LinzeColin/KMOS/KMFA/daily_routine_check_skill`
 - Branch: `main` only
 - No open branch
 - No open PR

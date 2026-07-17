@@ -402,7 +402,7 @@ class FundWeeklyAnalysisSkillContractTest(unittest.TestCase):
         self.assertEqual(
             contract["cwds"],
             [
-                "/Users/linzezhang/Documents/Codex/main_worktree/CodexProject/kmfa",
+                "/Users/linzezhang/Documents/Codex/KMOS",
             ],
         )
         self.assertEqual(contract["live_parity_phase"], "V014_APP_REINSTALL_AND_PARITY")
@@ -414,7 +414,7 @@ class FundWeeklyAnalysisSkillContractTest(unittest.TestCase):
         )
         prompt = (SKILL_ROOT / contract["prompt_file"]).read_text(encoding="utf-8")
         self.assertIn("统一工作区规则", prompt)
-        self.assertIn("/Users/linzezhang/Documents/Codex/main_worktree/CodexProject/kmfa", prompt)
+        self.assertIn("/Users/linzezhang/Documents/Codex/KMOS", prompt)
         self.assertIn("DWS 归档是独立上游 automation", prompt)
 
     def test_codex_app_automation_check_passes_when_local_state_matches_contract(self) -> None:

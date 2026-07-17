@@ -7,7 +7,7 @@ other business workflows.
 Run exactly one deterministic entrypoint from any working directory:
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 python3 /Users/linzezhang/CodexProject/KMFA/tools/automation/dws_auth_keepalive.py --attempts 3 --backoff-seconds 5 --dws-timeout-seconds 20 --command-timeout-seconds 25 --profile-config /Users/linzezhang/.codex/automations/dws-auth-keepalive-2/expected_profile.json --ledger-path /Users/linzezhang/.codex/automations/dws-auth-keepalive-2/memory.md --state-path /Users/linzezhang/.codex/automations/dws-auth-keepalive-2/state.json
+PYTHONDONTWRITEBYTECODE=1 python3 /Users/linzezhang/Documents/Codex/KMOS/KMFA/tools/automation/dws_auth_keepalive.py --attempts 3 --backoff-seconds 5 --dws-timeout-seconds 20 --command-timeout-seconds 25 --profile-config /Users/linzezhang/.codex/automations/dws-auth-keepalive-2/expected_profile.json --ledger-path /Users/linzezhang/.codex/automations/dws-auth-keepalive-2/memory.md --state-path /Users/linzezhang/.codex/automations/dws-auth-keepalive-2/state.json
 ```
 
 Execution contract:

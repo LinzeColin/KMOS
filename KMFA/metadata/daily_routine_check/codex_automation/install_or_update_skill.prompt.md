@@ -5,7 +5,7 @@ You are working locally in Codex Desktop, not Codex Cloud.
 Repository:
 
 ```text
-/Users/linzezhang/CodexProject
+/Users/linzezhang/Documents/Codex/KMOS
 ```
 
 Target branch policy:

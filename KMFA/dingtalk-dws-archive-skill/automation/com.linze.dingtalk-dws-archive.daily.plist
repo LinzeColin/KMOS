@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.linze.dingtalk-dws-archive.daily</string>
+  <key>Disabled</key>
+  <true/>
+  <key>DeprecatedReason</key>
+  <string>Disabled on 2026-07-05: DWS archive must run only through Codex automation or Codex manual control.</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>__PRIVATE_DWS_ARCHIVE_ROOT__/scripts/run_daily.sh</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>2</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>__PRIVATE_DWS_ARCHIVE_ROOT__/logs/daily_launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>__PRIVATE_DWS_ARCHIVE_ROOT__/logs/daily_launchd.err.log</string>
+</dict>
+</plist>

@@ -4,8 +4,8 @@
 
 Canonical GitHub destination:
 
-- Repository: `LinzeColin/CodexProject`
-- Local root on this machine: `/Users/linzezhang/CodexProject`
+- Repository: `LinzeColin/KMOS`
+- Local root on this machine: `/Users/linzezhang/Documents/Codex/KMOS`
 - Project root in repo: `KMFA/`
 - Attendance module: `KMFA/tools/dingtalk_attendance/`
 - Public metadata: `KMFA/metadata/dingtalk_attendance/`

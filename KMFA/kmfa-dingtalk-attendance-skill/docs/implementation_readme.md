@@ -5,7 +5,7 @@ legacy_classification: `historical_identifier`; retained legacy archive examples
 ## Install
 
 ```bash
-cd /Users/linzezhang/CodexProject/KMFA
+cd /Users/linzezhang/Documents/Codex/KMOS/KMFA
 mkdir -p .agents/skills
 cp -R /path/to/kmfa-dingtalk-attendance_task_pack/KMFA/kmfa-dingtalk-attendance-skill .agents/skills/
 chmod +x KMFA/kmfa-dingtalk-attendance-skill/scripts/*.sh

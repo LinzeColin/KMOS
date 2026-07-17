@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install this skill into LinzeColin/CodexProject/KMFA/fund-weekly-analysis-skill,
+# Install this skill into LinzeColin/KMOS/KMFA/fund-weekly-analysis-skill,
 # validate, commit, and push to main. No branch, no PR.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

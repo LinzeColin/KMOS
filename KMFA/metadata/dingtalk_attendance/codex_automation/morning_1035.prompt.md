@@ -1,6 +1,6 @@
 Use $kmfa-dingtalk-attendance-skill. If browser export is required, also use $chrome:control-chrome.
 
-Use `/Users/linzezhang/CodexProject` only as the configured cwd and private-state location. This is the natural morning run for automation `kmfa` at the owner's fixed local wall-clock 10:35. Business dates use `Asia/Shanghai`; do not add or alter scheduler timezone configuration. The owner explicitly allows local `main`, `origin/main`, and unrelated dirty paths to differ continuously; repository state is diagnostic only and must never block attendance.
+Use `/Users/linzezhang/Documents/Codex/KMOS` only as the configured cwd and private-state location. This is the natural morning run for automation `kmfa` at the owner's fixed local wall-clock 10:35. Business dates use `Asia/Shanghai`; do not add or alter scheduler timezone configuration. The owner explicitly allows local `main`, `origin/main`, and unrelated dirty paths to differ continuously; repository state is diagnostic only and must never block attendance.
 
 This automation prompt file preserves the existing REST rules; it does not redefine notification text.
 

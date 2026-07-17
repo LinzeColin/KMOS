@@ -1,6 +1,6 @@
 ---
 name: kmfa-dingtalk-attendance-skill
-description: Use when operating, reviewing, migrating, automating, or modifying KMFA 钉钉考勤 skill, DWS attendance, OneDrive/private runtime attendance archives, repo-scoped attendance skill files, stage-2 shadow payroll consensus, PostgreSQL attendance schema, payroll-baseline preparation, or Codex automation prompts in LinzeColin/CodexProject.
+description: Use when operating, reviewing, migrating, automating, or modifying KMFA 钉钉考勤 skill, DWS attendance, OneDrive/private runtime attendance archives, repo-scoped attendance skill files, stage-2 shadow payroll consensus, PostgreSQL attendance schema, payroll-baseline preparation, or Codex automation prompts in LinzeColin/KMOS.
 ---
 
 # KMFA DingTalk Attendance Skill
@@ -8,7 +8,7 @@ description: Use when operating, reviewing, migrating, automating, or modifying 
 ## Use First
 
 This skill is the portable, public-safe operating entry for KMFA 钉钉考勤 skill.
-Use it only with a clone of `LinzeColin/CodexProject` and start from `main`.
+Use it only with a clone of `LinzeColin/KMOS` and start from `main`.
 
 Canonical GitHub path:
 

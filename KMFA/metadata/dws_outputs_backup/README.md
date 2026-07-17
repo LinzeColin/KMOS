@@ -21,7 +21,7 @@ Automation contract:
   best-effort: a recorded `pending` state does not block the manifest backup.
 - Publishing is performed by
   `KMFA/tools/automation/backup_dws_output_manifest.py` with an explicit
-  `/Users/linzezhang/CodexProject` repository root, because the upstream DWS
+  `/Users/linzezhang/Documents/Codex/KMOS` repository root, because the upstream DWS
   project directory is intentionally not a Git checkout.
 - Updates must commit and push directly to `main`.
 - No branch, pull request, issue, or extra worktree is allowed.

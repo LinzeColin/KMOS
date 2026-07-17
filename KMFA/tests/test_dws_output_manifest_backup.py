@@ -231,7 +231,7 @@ class DwsOutputManifestBackupTests(unittest.TestCase):
 
         self.assertIn("Notion pending must not block the GitHub manifest-only backup", prompt)
         self.assertIn("backup_dws_output_manifest.py", prompt)
-        self.assertIn("--repo-root /Users/linzezhang/CodexProject", prompt)
+        self.assertIn("--repo-root /Users/linzezhang/Documents/Codex/KMOS", prompt)
         self.assertIn("Do not change the automation RRULE or schedule", prompt)
         self.assertNotIn("Only after archive, validation, and sync goals are complete", prompt)
 

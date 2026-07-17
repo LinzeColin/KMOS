@@ -5,8 +5,8 @@
 Canonical GitHub destination:
 
 ```text
-Repository: LinzeColin/CodexProject
-Local root: /Users/linzezhang/CodexProject
+Repository: LinzeColin/KMOS
+Local root: /Users/linzezhang/Documents/Codex/KMOS
 Project root: KMFA/
 Skill folder: KMFA/daily_routine_check_skill/
 Automation module: KMFA/tools/daily_routine_check/

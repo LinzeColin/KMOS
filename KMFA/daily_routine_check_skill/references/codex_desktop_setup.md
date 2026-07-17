@@ -5,12 +5,12 @@
 Use Codex Desktop locally, not Codex Cloud, to install and maintain the `daily_routine_check_skill` under:
 
 ```text
-/Users/linzezhang/CodexProject/KMFA/daily_routine_check_skill
+/Users/linzezhang/Documents/Codex/KMOS/KMFA/daily_routine_check_skill
 ```
 
 ## What Codex Must Do
 
-1. Clone or open `/Users/linzezhang/CodexProject`.
+1. Clone or open `/Users/linzezhang/Documents/Codex/KMOS`.
 2. Confirm current branch is `main`.
 3. Confirm `HEAD == origin/main` or fast-forward pull.
 4. Create/update:
@@ -42,14 +42,14 @@ The automation must treat this complete zip as the only read-only upstream input
 11:35 Beijing:
 
 ```bash
-cd /Users/linzezhang/CodexProject
+cd /Users/linzezhang/Documents/Codex/KMOS
 python3 -m KMFA.tools.daily_routine_check.main --date today --timezone Asia/Shanghai --trigger-window morning_1135 --input-zip /Users/linzezhang/Library/CloudStorage/OneDrive-Personal/DWS_Outputs.zip --send
 ```
 
 17:05 Beijing:
 
 ```bash
-cd /Users/linzezhang/CodexProject
+cd /Users/linzezhang/Documents/Codex/KMOS
 python3 -m KMFA.tools.daily_routine_check.main --date today --timezone Asia/Shanghai --trigger-window evening_1705 --input-zip /Users/linzezhang/Library/CloudStorage/OneDrive-Personal/DWS_Outputs.zip --send
 ```
 
@@ -67,7 +67,7 @@ commands. Cleanup remains a separate manual maintenance action.
 ## Git Autosync Command
 
 ```bash
-cd /Users/linzezhang/CodexProject
+cd /Users/linzezhang/Documents/Codex/KMOS
 python3 KMFA/tools/daily_routine_check/git_autosync.py --once
 ```
 

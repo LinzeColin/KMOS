@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="${KMFA_REPO_ROOT:-/Users/linzezhang/CodexProject/KMFA}"
+REPO_ROOT="${KMFA_REPO_ROOT:-/Users/linzezhang/Documents/Codex/KMOS/KMFA}"
 PRIVATE_RUNTIME="${KMFA_PRIVATE_RUNTIME:-$REPO_ROOT/metadata/dingtalk_attendance/private_runtime}"
 ENV_FILE="${KMFA_ENV_FILE:-$PRIVATE_RUNTIME/.env.local}"
 TARGETS_FILE="${KMFA_TARGETS_FILE:-$PRIVATE_RUNTIME/notification_targets.local.json}"

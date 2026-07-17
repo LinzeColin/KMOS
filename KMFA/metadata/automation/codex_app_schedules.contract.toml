@@ -9,11 +9,11 @@ name = "DWS Auth Keepalive｜钉钉认证自动保活"
 kind = "cron"
 status = "ACTIVE"
 rrule = "RRULE:FREQ=DAILY;BYHOUR=0,4,8,12,16,20;BYMINUTE=20"
-prompt_sha256 = "ea7aa7cea3eb95a5ff43044bdda80b6eb7b57ee15a9f83c0c9a43d3ecc6048be"
+prompt_sha256 = "784a07b0bbc84b02037f7a9f03cd505b25468f7caa9e0e38dea492e3cd8971d8"
 project_id = "cbf3c45e-f4ad-47d7-b397-faf7e3dea35e"
 local_wall_clock_times = ["00:20", "04:20", "08:20", "12:20", "16:20", "20:20"]
 execution_environment = "local"
-cwds = ["/Users/linzezhang/Documents/Codex/2026-07-04/392b1a986ba680338068ddc1c2a0fd0e-https-app-notion-com-p"]
+cwds = ["/Users/linzezhang/Documents/Codex/KMOS"]
 model = "gpt-5.3-codex-spark"
 reasoning_effort = "xhigh"
 profile_selection = "machine_private_pinned_profile"
@@ -28,13 +28,13 @@ id = "kmfa"
 name = "KMFA｜每日钉钉考勤检查｜晨报"
 kind = "cron"
 status = "ACTIVE"
-rrule = "RRULE:FREQ=DAILY;BYHOUR=12;BYMINUTE=35"
-prompt_sha256 = "3257b41aa5a64cc6323caa33df0cc1646d679d13f426833e29b94edf01f95a4a"
+rrule = "RRULE:FREQ=DAILY;BYHOUR=10;BYMINUTE=35"
+prompt_sha256 = "4f026e65a2b920b9f9967f70b12745440609030d94eea9ca4581e45966f3f15e"
 business_clock = "Asia/Shanghai"
 business_time = "10:35"
-local_wall_clock_time = "12:35"
+local_wall_clock_time = "10:35"
 execution_environment = "local"
-cwds = ["/Users/linzezhang/Documents/Codex/main_worktree/CodexProject/kmfa"]
+cwds = ["/Users/linzezhang/Documents/Codex/KMOS"]
 model = "gpt-5.3-codex-spark"
 reasoning_effort = "xhigh"
 
@@ -43,16 +43,16 @@ id = "kmfa-3"
 name = "KMFA｜每日钉钉考勤检查｜晚报"
 kind = "cron"
 status = "ACTIVE"
-rrule = "RRULE:FREQ=WEEKLY;BYHOUR=20;BYMINUTE=0;BYDAY=SU,MO,TU,WE,TH,FR,SA"
-prompt_sha256 = "550ace42ec612e88e05fb705592cfedbd403e4e0a8b479422f504258db68be26"
+rrule = "RRULE:FREQ=DAILY;BYHOUR=20;BYMINUTE=5"
+prompt_sha256 = "ce2108eda974f404dc7862f1977049a96c6b3f863501529aa8366a477c077d83"
 project_id = "40dd52a0-b6eb-4528-9577-0cb5f4f86e3e"
 business_clock = "Asia/Shanghai"
-local_wall_clock_time = "20:00"
+local_wall_clock_time = "20:05"
 summary_datetime_source = "actual_run_datetime_in_business_clock"
 fixed_local_wall_clock = true
 offset_conversion_allowed = false
 execution_environment = "local"
-cwds = ["/Users/linzezhang/Documents/Codex/main_worktree/CodexProject/kmfa"]
+cwds = ["/Users/linzezhang/Documents/Codex/KMOS"]
 model = "gpt-5.3-codex-spark"
 reasoning_effort = "xhigh"
 
@@ -62,13 +62,13 @@ name = "KMFA｜钉钉工作检查"
 kind = "cron"
 status = "ACTIVE"
 rrule = "RRULE:FREQ=DAILY;BYHOUR=13,19;BYMINUTE=5,35;BYSETPOS=2,3"
-prompt_sha256 = "2686367acd2661fd5f38e57f60039f62d2dd52945504b59e9bc452780b022a19"
+prompt_sha256 = "ed9b7fdae0dce3fd1c471428255a8bacfc452afcb62a1927484891fa611ef255"
 project_id = "40dd52a0-b6eb-4528-9577-0cb5f4f86e3e"
 business_clock = "Asia/Shanghai"
 business_times = ["11:35", "17:05"]
 local_wall_clock_times = ["13:35", "19:05"]
 execution_environment = "local"
-cwds = ["/Users/linzezhang/Documents/Codex/main_worktree/CodexProject/kmfa"]
+cwds = ["/Users/linzezhang/Documents/Codex/KMOS"]
 model = "gpt-5.3-codex-spark"
 reasoning_effort = "xhigh"
 
@@ -82,7 +82,7 @@ business_clock = "Australia/Sydney"
 business_times = ["Monday 11:00", "Saturday 11:00"]
 local_wall_clock_times = ["Monday 11:00", "Saturday 11:00"]
 execution_environment = "local"
-cwds = ["/Users/linzezhang/Documents/Codex/main_worktree/CodexProject/kmfa"]
+cwds = ["/Users/linzezhang/Documents/Codex/KMOS"]
 model = "gpt-5.3-codex-spark"
 reasoning_effort = "xhigh"
 
@@ -92,13 +92,13 @@ name = "KMFA｜上游每日钉钉DWS归档"
 kind = "cron"
 status = "ACTIVE"
 rrule = "RRULE:FREQ=WEEKLY;BYHOUR=11;BYMINUTE=0;BYDAY=SU,MO,TU,WE,TH,FR,SA"
-prompt_sha256 = "f1746f7551d640ede455475c391b2c4d60e1b44f20f0bd0eab07e34bc20c7e79"
+prompt_sha256 = "65f2848b5f9e99451e1295b8b5213a9a60daa2f0fafd7a889ea2a96f0bb002ca"
 schedule_owner = "user"
 schedule_management_scope = "readback_only"
 business_clock = "Australia/Sydney"
 business_times = ["11:00"]
 local_wall_clock_times = ["11:00"]
 execution_environment = "local"
-cwds = ["/Users/linzezhang/Documents/Codex/2026-07-04/392b1a986ba680338068ddc1c2a0fd0e-https-app-notion-com-p"]
+cwds = ["/Users/linzezhang/Library/CloudStorage/OneDrive-Personal/KMFA/cleanup_handoff_20260717/dws_archive_project"]
 model = "gpt-5.3-codex-spark"
 reasoning_effort = "xhigh"
