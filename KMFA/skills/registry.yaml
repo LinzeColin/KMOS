@@ -58,6 +58,7 @@ skills:
   - id: kmfa-dingtalk-attendance-skill
     name_zh: 钉钉考勤
     path: KMFA/skills/钉钉考勤
+    purpose_zh: 抓取钉钉 DWS 考勤数据做早晚两窗口检查与推送；含考勤档案归档与工资基线影子共识
     status: MOVED_RENAMED_2026_07_17
     previous_path: KMFA/kmfa-dingtalk-attendance-skill
     moved_note: "含生产代码在内的活引用已全部改写；source_checksums 已重算；验证器绿"
@@ -68,6 +69,7 @@ skills:
   - id: dingtalk-dws-archive-skill
     name_zh: 上游归档（钉钉 DWS 全量归档）
     path: KMFA/skills/上游归档
+    purpose_zh: 每日全量归档上游钉钉 DWS 工作区文件到私有运行时，带产出校验
     status: MOVED_RENAMED_2026_07_17
     previous_path: KMFA/dingtalk-dws-archive-skill
     external_deps: ["dws (DingTalk Workspace CLI)"]
@@ -76,6 +78,7 @@ skills:
   - id: fund-weekly-analysis-skill
     name_zh: 付款申请群资金周报
     path: KMFA/skills/资金周报
+    purpose_zh: 从付款申请群财务截图提取资金数据，生成资金周报/月报与公司-银行账户矩阵 Excel 看板
     status: MOVED_RENAMED_2026_07_17
     previous_path: KMFA/fund-weekly-analysis-skill
     external_deps: []
@@ -84,6 +87,7 @@ skills:
   - id: daily_routine_check_skill
     name_zh: 每日工作检查
     path: KMFA/skills/每日工作检查
+    purpose_zh: 每日例行工作检查：付款、生产管理、例行交付物与现金 OCR 监控汇总推送
     status: MOVED_RENAMED_2026_07_17
     previous_path: KMFA/daily_routine_check_skill
     external_deps: []
@@ -92,6 +96,7 @@ skills:
   - id: mgmt-monthly-report-skill
     name_zh: 经营管理月报
     path: KMFA/skills/经营月报
+    purpose_zh: 把七个受治理输入槽位转换为 v6 口径经营月报 Excel 与董事会 PDF
     status: MOVED_RENAMED_2026_07_17
     previous_path: KMFA/mgmt-monthly-report-skill
     external_deps: []
