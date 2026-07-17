@@ -1,0 +1,10 @@
+gate_id: GATE-KD-VOUCHER-BALANCE
+名称: 金蝶凭证级借贷平衡（五账套）
+assertion_ref: AST-KD-BALANCE-ALL5
+source_sql: >-
+  SELECT count(*) AS 违例 FROM (
+    SELECT book, voucher_date, voucher_no,
+           sum(coalesce(debit_cents,0)) d, sum(coalesce(credit_cents,0)) c
+    FROM _staging.kingdee_voucher WHERE voucher_no IS NOT NULL
+    GROUP BY 1,2,3 HAVING d != c)
+expect: {列: 违例, 等于: 0}

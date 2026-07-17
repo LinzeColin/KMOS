@@ -1,0 +1,9 @@
+gate_id: GATE-AGING-IDENTITY
+名称: 应收台账 合同额-已收款=剩余金额
+assertion_ref: AST-AGING-IDENTITY
+source_sql: >-
+  SELECT count(*) AS 违例 FROM _staging.receivable_aging
+  WHERE contract_amount_cents IS NOT NULL AND received_amount_cents IS NOT NULL
+    AND remaining_amount_cents IS NOT NULL
+    AND contract_amount_cents - received_amount_cents != remaining_amount_cents
+expect: {列: 违例, 等于: 0}
