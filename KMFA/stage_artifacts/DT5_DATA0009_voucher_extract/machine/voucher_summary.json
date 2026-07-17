@@ -1,0 +1,32 @@
+{
+  "task_id": "TSK.KMFA.DATA.0009",
+  "phase": "3_voucher",
+  "version": "kingdee-voucher-v1",
+  "books": [
+    {
+      "book": "武汉开明",
+      "rows": 18322,
+      "unbalanced_vouchers": 0,
+      "total_debit_cents": 57834912322,
+      "total_credit_cents": 57834912322,
+      "delta": 0
+    },
+    {
+      "book": "湖北岚丹",
+      "rows": 1708,
+      "unbalanced_vouchers": 0,
+      "total_debit_cents": 8790770464,
+      "total_credit_cents": 8790770464,
+      "delta": 0
+    },
+    {
+      "book": "湖北开明",
+      "rows": 583,
+      "unbalanced_vouchers": 0,
+      "total_debit_cents": 612360749,
+      "total_credit_cents": 612360749,
+      "delta": 0
+    }
+  ],
+  "table_total_rows": 20613
+}
