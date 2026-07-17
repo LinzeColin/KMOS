@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE041",
-  "phase": "IDS-STAGE041-P2",
-  "task": "IDS-V0_1-STAGE041-P2",
-  "real_progress": "Stage041 已完成 2/4 个步骤；v0.1 总进度未重新校准",
-  "report_grade": "本地 Phase 2 证据已通过 761/761 全量回归与双平面收口",
-  "business_verdict": "只完成非生产进程内锁决策切片；生产锁运行时仍禁用",
-  "evidence_status": "LOCAL_PHASE2_VALIDATED",
+  "phase": "IDS-STAGE041-P3",
+  "task": "IDS-V0_1-STAGE041-P3",
+  "real_progress": "Stage041 已完成 3/4 个步骤；v0.1 总进度未重新校准",
+  "report_grade": "本地步骤三合同 17/17、场景 11/11、全量回归 777/777 与双平面门通过",
+  "business_verdict": "只完成非生产锁竞态场景验证；物理故障、恢复、清理和生产锁运行时仍禁用",
+  "evidence_status": "LOCAL_PHASE3_VALIDATED",
   "rendered_at": "2026-07-17",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE041-P3-GATE",
+  "next_gate": "IDS-STAGE041-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

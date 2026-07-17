@@ -1,5 +1,14 @@
 # Changelog
 
+## IDS v0.1 STAGE-041 Phase 3 - 2026-07-17
+
+- Added an exact-hash-bound eleven-scenario contract and stdout-only checker for duplicate replay, the five-operation same-source exclusion matrix, renewal, expiry-plus-grace takeover, stale CAS, an actual isolated exception, resource pauses, release tombstones, and protected-cleanup denial.
+- Verified five primary acquisitions, five exact replays, and all `25` same-source contender combinations without invoking an operation, creating a queue record, retaining a partial lock, or consuming retry budget.
+- Replayed reviewed drive/disk/API pressure gates before lock acquisition, observed project-filesystem free space read-only, and verified five Git-tracked protected artifact classes without physical removal, disk allocation, API calls, cleanup, or deletion.
+- Rebased onto `origin/main` after confirming eleven remote KMFA commits changed zero `KM_IDSystem` paths; rebound Phase 3 to Phase 2 commit `22bd9263e38b697dfb681886a97c1b8ba0f4b5e9` and unchanged tree `c3e96185d5fe185fc9a8c27e8fa57a6279bc4e6d`.
+- Passed contract checks `17/17`, scenarios `11/11`, focused tests `15/15`, Stage005 `157/157`, Stage040-041 aggregate `97/97`, full IDS v0.1 discovery `777/777`, and the project-scoped dual-plane gate. The unstaged first runs failed closed only on `17` Git-index-bound historical review assertions; after staging, a `776/777` run exposed one stale Stage039 route map, repaired only by adding the current P3→P4 compatibility mapping.
+- Kept Phase 4, whole-stage review, persistence, database, raw metadata, fake business data, queue/worker/retry/resume/recovery/cleanup runtime, physical fault actions, production activation, GitHub upload, merge, and app reinstall disabled.
+
 ## IDS v0.1 STAGE-041 Phase 2 - 2026-07-17
 
 - Added `ids.lock_registry_policy.v0_1.stage041.p2`, seven sourced `PROPOSED` parameters, `MOD-010` / `FORM-010` / `PARAM-065..071`, and a deterministic process-local checker over one real Git-tracked control reference; production calibration remains open under `TASK-OPME-B-001`.
