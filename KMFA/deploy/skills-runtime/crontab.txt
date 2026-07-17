@@ -1,29 +1,30 @@
-# KMFA skills 排程（钟面 = 容器 TZ，Asia/Shanghai——业务事件全部锚定北京时间，中国无夏令时，全年零漂移。
-# 修订 2026-07-18：原 TZ=悉尼 + 固定钟面在悉尼夏令时会相对北京提前 1 小时（业务窗错位、误报源缺失）；
-# Debian vixie-cron 对 CRON_TZ 只收不认（静默无效），故整容器改锚北京。各时刻按 2026-07（AEST=UTC+10）
-# 现行为等值换算，投产表现与演练期一致。）
+# KMFA skills 排程（钟面 = 容器 TZ，Asia/Shanghai——业务事件锚定北京时间，中国无夏令时，全年零漂移。
+# 时刻权威 = 排程契约 codex_app_schedules.contract.toml 的 business_clock/business_times 声明
+# （契约 kmfa-4 条自带双钟对照：北京 11:35/17:05 ↔ 悉尼 13:35/19:05，坐实 business_times=北京意图）。
+# 修订 2026-07-18 二稿：一稿曾按「悉尼实发等值」折算（如晨报 08:35）——与契约业务锚冲突，现改按锚定值。
+# 双跑期间云端（北京锚）与旧排程（悉尼钟）触发时刻不同属预期：双跑比对的是各窗口产物与投递对象，非同刻触发。）
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# 钉钉考勤（在产，最谨慎——SKL.0003 双跑一刀切换）：原悉尼 10:35/20:05 ≡ 北京 08:35/18:05
-35 8  * * *   root /opt/runtime/run_skill.sh attendance-morning  >> /var/log/kmfa/cron.log 2>&1
-5  18 * * *   root /opt/runtime/run_skill.sh attendance-evening  >> /var/log/kmfa/cron.log 2>&1
+# 钉钉考勤（在产，最谨慎——SKL.0003 双跑一刀切换）：契约业务锚 北京 10:35 / 20:05
+35 10 * * *   root /opt/runtime/run_skill.sh attendance-morning  >> /var/log/kmfa/cron.log 2>&1
+5  20 * * *   root /opt/runtime/run_skill.sh attendance-evening  >> /var/log/kmfa/cron.log 2>&1
 
-# 钉钉工作检查 = 每日工作检查技能（业务窗 11:35/17:05 北京——本表即窗口原生钟面）
+# 钉钉工作检查 = 每日工作检查技能（契约业务锚 北京 11:35 / 17:05，窗口原生钟面）
 35 11 * * *   root /opt/runtime/run_skill.sh work-check-morning  >> /var/log/kmfa/cron.log 2>&1
 5  17 * * *   root /opt/runtime/run_skill.sh work-check-evening  >> /var/log/kmfa/cron.log 2>&1
 
-# 资金周报（周一/周六；原悉尼 11:00 ≡ 北京 09:00）
-0  9  * * 1,6 root /opt/runtime/run_skill.sh fund-weekly         >> /var/log/kmfa/cron.log 2>&1
+# 资金周报（契约业务锚 北京 周一/周六 11:00）
+0  11 * * 1,6 root /opt/runtime/run_skill.sh fund-weekly         >> /var/log/kmfa/cron.log 2>&1
 
-# 经营月报（每月 1 日；原悉尼 09:00 ≡ 北京 07:00；按需触发走 DT6 App 面板）
-0  7  1 * *   root /opt/runtime/run_skill.sh mgmt-monthly        >> /var/log/kmfa/cron.log 2>&1
+# 经营月报（每月 1 日 北京 09:00；无契约排程条目——按需触发走 DT6 App 面板，此为云端兜底）
+0  9  1 * *   root /opt/runtime/run_skill.sh mgmt-monthly        >> /var/log/kmfa/cron.log 2>&1
 
-# 上游归档（每日；原悉尼 11:00 ≡ 北京 09:00）
-0  9  * * *   root /opt/runtime/run_skill.sh upstream-archive    >> /var/log/kmfa/cron.log 2>&1
+# 上游归档（契约业务锚 北京 每日 11:00）
+0  11 * * *   root /opt/runtime/run_skill.sh upstream-archive    >> /var/log/kmfa/cron.log 2>&1
 
-# 健康周检（DT8；原悉尼周日 03:00 ≡ 北京周日 01:00）
+# 健康周检（DT8 运维任务，无业务锚；北京周日 01:00）
 0  1  * * 0   root /opt/runtime/run_skill.sh self-audit          >> /var/log/kmfa/cron.log 2>&1
 
-# 数据卷日备份（原悉尼 02:30 ≡ 北京 00:30）
+# 数据卷日备份（运维任务；北京 00:30）
 30 0  * * *   root /opt/runtime/run_skill.sh daily-backup        >> /var/log/kmfa/cron.log 2>&1
