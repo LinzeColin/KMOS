@@ -1,0 +1,49 @@
+{
+  "report_id": "KMFA-RECON-REPORT-0003",
+  "date": "2026-07-17",
+  "domains": [
+    "expense"
+  ],
+  "new_closures": [
+    "expense_axis_all7_codes_explained",
+    "code_6201_zero_diff",
+    "code_6301_zero_diff_direction_and_carryforward",
+    "code_6403_zero_diff",
+    "code_6602_63of63_vouchers",
+    "code_6603_zero_diff",
+    "code_6601_residual_attributed_wuhan_book",
+    "code_6711_residual_attributed_wuhan_book",
+    "normalize_voucher_no_layer",
+    "normalize_subject_code_layer"
+  ],
+  "analyzed_open": [],
+  "owner_actions_required": 0,
+  "assertions_snapshot": {
+    "total": 22,
+    "closed_family": 14,
+    "analyzed_open": 8
+  },
+  "evidence_refs": [
+    "KMFA/stage_artifacts/DT5_DATA0018_expense_recon",
+    "KMFA/stage_artifacts/DT5_DATA0021_6301_closure",
+    "KMFA/tools/recon_common.py"
+  ],
+  "cross_book_attributions": [
+    {
+      "voucher": "记-2",
+      "date": "2025-06-23",
+      "amount_cents": 134300,
+      "expense_sheet_company": "湖北开明",
+      "actual_book": "武汉开明",
+      "kingdee_subject": "6601009"
+    },
+    {
+      "voucher": "记-38",
+      "date": "2025-06-05",
+      "amount_cents": 190000,
+      "expense_sheet_company": "湖北开明",
+      "actual_book": "武汉开明",
+      "kingdee_subject": "6711001"
+    }
+  ]
+}
