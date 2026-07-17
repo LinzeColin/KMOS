@@ -155,17 +155,21 @@ schedules:
 
 open_issues:
   - id: DWS_BIN_MISSING
-    severity: blocking
+    severity: resolution_decided   # 2026-07-17 定案，云端安装后关闭
     detail: >-
       考勤与上游归档 skill 都通过 subprocess 调 dws（DingTalk Workspace CLI，取环境变量
-      DWS_BIN，回落到 "dws"）。Owner 本机 command -v dws 找不到、~/.dws/ 不存在 ——
-      所以这两个 skill 目前在本机就跑不起来，与 cwd 失效是【两个独立故障】。
-      dws 是 DingTalk Workspace，GitHub 上有开源实现，不绑 Codex。需选定实现并固化版本。
+      DWS_BIN，回落到 "dws"）。Owner 本机 command -v dws 找不到、~/.dws/ 不存在。
+      【定案 2026-07-17】dws = 钉钉官方开源 CLI（DingTalk-Real-AI/dingtalk-workspace-cli，
+      支持 linux-arm64），固化版本 v1.0.52，无人值守走 `dws auth login --device`；
+      安装与验收见 KMFA/deploy/skills-runtime/（TSK.KMFA.SKL.0008 / 审计
+      stage_artifacts/DT9_SKL0001_portability_audit）。云主机安装完成即关闭本条。
   - id: SCHEDULES_ALL_BROKEN
-    severity: blocking
+    severity: superseded_by_cloud   # 2026-07-17 Owner 云端优先指令后改性质
     detail: >-
       6 条 ACTIVE 排程 cwd 全部指向 2026-07-17 清理时删除的 main_worktree 路径，正在空跑失败。
-      只能 Owner 在 Codex 应用界面改。KMFA 已迁至本仓（KMOS），新 cwd 需按本仓 clone 位置确定。
+      【处置变更 2026-07-17】Owner 指令：本地未运行的 skill 全部依赖云端运行——本地排程
+      不再重绑 cwd，改由 KMFA/deploy/skills-runtime/ 的云端 cron 接管（DT9 双跑一刀切换）。
+      Owner 侧唯一动作变为：切换完成日在 Codex 应用里【停用】这 6 条旧排程（防双发），而非修复。
   - id: HARDCODED_PATHS
     severity: normal
     detail: hongquan-main-contract-dws 与 info-fee-update 各有 1 处写死 Owner 本机绝对路径，换机/上云即失效。

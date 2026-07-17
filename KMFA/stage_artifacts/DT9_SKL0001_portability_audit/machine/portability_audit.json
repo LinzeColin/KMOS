@@ -1,0 +1,34 @@
+{
+  "task_id": "TSK.KMFA.SKL.0001",
+  "stage_id": "DT9",
+  "audit_date": "2026-07-17",
+  "conclusion": "all_skills_cloud_portable_no_hard_blockers",
+  "dws_decision": {
+    "task_id": "TSK.KMFA.SKL.0008",
+    "resolution": "adopt_official_cli",
+    "upstream": "DingTalk-Real-AI/dingtalk-workspace-cli",
+    "pinned_version": "v1.0.52",
+    "linux_arm64_supported": true,
+    "headless_auth": ["auth login --device", "client-id/client-secret", "auth export/import"],
+    "guard_preconditions": [
+      "dws pat browser-policy --enabled=false --format json --yes",
+      "KMFA_DINGTALK_ATTENDANCE_ALLOW_DWS_COMMANDS=1"
+    ],
+    "fallback": "python_dingtalk_api_shim_not_implemented_call_surface_documented"
+  },
+  "skills": [
+    {"id": "kmfa-dingtalk-attendance-skill", "macos_deps": [], "disposition": "migrate_direct", "entry": "KMFA/tools/dingtalk_attendance/run_attendance.py --run-type morning|evening", "prereq": ["dws_ready"]},
+    {"id": "daily_routine_check_skill", "macos_deps": [], "disposition": "migrate_with_input_reroute_onedrive_to_kmdatabase_data", "prereq": ["DT5_data_ingest"]},
+    {"id": "fund-weekly-analysis-skill", "macos_deps": ["swift_ocr:tools/generate_screenshot_ocr_sidecars.py"], "disposition": "migrate_after_ocr_replacement", "prereq": ["TSK.KMFA.SKL.0005"]},
+    {"id": "mgmt-monthly-report-skill", "macos_deps": [], "disposition": "migrate_direct", "entry": "KMFA/mgmt-monthly-report-skill/scripts/mgmt_monthly_report.py", "prereq": ["DT5_data_ingest"]},
+    {"id": "dingtalk-dws-archive-skill", "macos_deps": ["launchd_docs_only"], "disposition": "migrate_after_dws_drive_surface_verification", "prereq": ["dws_ready"]},
+    {"id": "hongquan-main-contract-dws", "macos_deps": ["chrome_browser_automation"], "disposition": "exception_stay_on_mac_collector", "prereq": []}
+  ],
+  "timezone": {"cron_wall_clock": "Australia/Sydney", "dingtalk_data_tz": "Asia/Shanghai", "owner_confirmation_required": true},
+  "test_delivery": {"recipient": "张霖泽", "authorized_by": "owner_goal_20260717", "tool": "KMFA/deploy/skills-runtime/test_send.sh", "default": "dry_run"},
+  "evidence_refs": [
+    "KMFA/deploy/skills-runtime/README.md",
+    "KMFA/skills/registry.yaml",
+    "KMFA/tools/dingtalk_attendance/dws_auth_guard.py"
+  ]
+}

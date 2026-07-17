@@ -1,0 +1,28 @@
+# KMFA skills 排程（钟面 = 容器 TZ，Australia/Sydney，与原 Codex 排程一致；投产前 Owner 确认一次时区口径）
+# 全部经 run_skill.sh 包装：flock 防重入、统一日志、台账、失败告警。
+# 双跑纪律：KMFA_DELIVERY_ENABLED=0 时任何技能都不真实投递（dry-run）。
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# 钉钉考勤（在产，最谨慎——SKL.0003 双跑一刀切换）
+35 10 * * *   root /opt/runtime/run_skill.sh attendance-morning  >> /var/log/kmfa/cron.log 2>&1
+5  20 * * *   root /opt/runtime/run_skill.sh attendance-evening  >> /var/log/kmfa/cron.log 2>&1
+
+# 钉钉工作检查（同一技能栈的午晚检查位）
+35 13 * * *   root /opt/runtime/run_skill.sh work-check          >> /var/log/kmfa/cron.log 2>&1
+5  19 * * *   root /opt/runtime/run_skill.sh work-check          >> /var/log/kmfa/cron.log 2>&1
+
+# 每日工作检查（日检，SKL.0004）
+30 11 * * *   root /opt/runtime/run_skill.sh daily-routine       >> /var/log/kmfa/cron.log 2>&1
+
+# 资金周报（周一/周六，SKL.0005：swift OCR 替换完成前保持 dry-run）
+0  11 * * 1,6 root /opt/runtime/run_skill.sh fund-weekly         >> /var/log/kmfa/cron.log 2>&1
+
+# 经营月报（每月 1 日；按需触发走 DT6 App 面板）
+0  9  1 * *   root /opt/runtime/run_skill.sh mgmt-monthly        >> /var/log/kmfa/cron.log 2>&1
+
+# 上游归档（每日；dws v1.0.52 drive 命令面核对通过后启用真实运行）
+0  11 * * *   root /opt/runtime/run_skill.sh upstream-archive    >> /var/log/kmfa/cron.log 2>&1
+
+# 数据卷日备份回 KMDatabase/data（可回收设计的一部分）
+30 2  * * *   root /opt/runtime/run_skill.sh daily-backup        >> /var/log/kmfa/cron.log 2>&1
