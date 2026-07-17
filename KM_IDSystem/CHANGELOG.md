@@ -1,5 +1,13 @@
 # Changelog
 
+## IDS v0.1 STAGE-041 Phase 4 - 2026-07-17
+
+- Added an exact-hash-bound Phase 4 delivery contract and stdout-only checker that compose the five-family Stage041 lock lifecycle with the reviewed 8-type/11-state/4-terminal/21-transition graph, three-attempt/two-retry dead-letter log, seven pressure signals and two-class cleanup allowlist.
+- Performed one deterministic process-local acquire, renew and matching-holder release over the real Git-tracked control reference. Release left zero active locks and two monotonic tombstone versions; the old evidence returned `STALE_FENCING_TOKEN`; no persistent lock write occurred.
+- Classified exact replay, matching renewal and matching release as lock decisions rather than recovery. Automatic-recovery eligibility and observed success remain empty; stale CAS, active conflict, owner resource revalidation, process crash, protected cleanup, invalid contract, uncalibrated policy and missing process-local state remain manual.
+- Added explicit shutdown, evidence-only rebuild, no-memory-state restoration, P4-only rollback and known-limit instructions. Whole-stage review, Stage042, persistence, database, raw metadata, fake business data, physical fault, cleanup, production, GitHub upload/merge and app reinstall remain disabled.
+- Passed contract checks 16/16, delivery checks 6/6, focused tests 12/12, Stage005 157/157, Stage040-041 aggregate 109/109, full IDS v0.1 discovery 789/789, event integrity and the project-scoped dual-plane gate. The first index-bound runs exposed only a stale P3 current-state assertion and its consequent P4 hash drift; both were repaired without weakening review.
+
 ## IDS v0.1 STAGE-041 Phase 3 - 2026-07-17
 
 - Added an exact-hash-bound eleven-scenario contract and stdout-only checker for duplicate replay, the five-operation same-source exclusion matrix, renewal, expiry-plus-grace takeover, stale CAS, an actual isolated exception, resource pauses, release tombstones, and protected-cleanup denial.

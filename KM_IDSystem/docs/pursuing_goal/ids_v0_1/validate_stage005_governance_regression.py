@@ -669,6 +669,13 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE041-P4-GATE"
                     )
+                    or (
+                        roadmap.get("current_phase_id") == "IDS-STAGE041-P4"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE041-P4"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE041-REVIEW-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -956,6 +963,10 @@ REQUIRED_FILES = (
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_scenarios.json",
     "KM_IDSystem/scripts/check_lock_registry_scenarios.py",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_scenarios.py",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE4_CLOSEOUT.md",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_delivery_contract.json",
+    "KM_IDSystem/scripts/check_lock_registry_delivery.py",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_delivery.py",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/database_quality_constraints/stage036_database_quality_constraints_index.json",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/database_quality_constraints/002_database_quality_constraints.sql",
@@ -1154,6 +1165,7 @@ REQUIRED_EVENT_IDS = (
     "EVT-IDS-V0_1-STAGE041-P1-20260714-001",
     "EVT-IDS-V0_1-STAGE041-P2-20260717-001",
     "EVT-IDS-V0_1-STAGE041-P3-20260717-001",
+    "EVT-IDS-V0_1-STAGE041-P4-20260717-001",
 )
 
 FORBIDDEN_RUNTIME_PREFIXES = (
@@ -1273,6 +1285,7 @@ ALLOWED_CHANGED_PATHS = {
     "KM_IDSystem/scripts/check_lock_registry.py",
     "KM_IDSystem/scripts/check_lock_registry_runtime.py",
     "KM_IDSystem/scripts/check_lock_registry_scenarios.py",
+    "KM_IDSystem/scripts/check_lock_registry_delivery.py",
     "KM_IDSystem/docs/governance/project.yaml",
     "KM_IDSystem/docs/governance/model_registry.yaml",
     "KM_IDSystem/docs/governance/formula_registry.yaml",
@@ -2411,6 +2424,82 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
                 "next_gate": "IDS-STAGE041-P4-GATE",
             },
         },
+        "EVT-IDS-V0_1-STAGE041-P4-20260717-001": {
+            "event_type": "phase_completed",
+            "allow_stage_gate": True,
+            "task_id": "IDS-V0_1-STAGE041-P4",
+            "acceptance_id": "ACC-STAGE-041",
+            "required_changed_files": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE4_CLOSEOUT.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_delivery_contract.json",
+                "KM_IDSystem/scripts/check_lock_registry_delivery.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_delivery.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml",
+                "KM_IDSystem/docs/governance/roadmap.yaml",
+                "KM_IDSystem/docs/governance/events.jsonl",
+            },
+            "required_refs": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE4_CLOSEOUT.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_delivery_contract.json",
+                "KM_IDSystem/scripts/check_lock_registry_delivery.py#build_stage041_phase4_delivery_report",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_delivery.py",
+            },
+            "required_note_assignments": {
+                "source_verification_status": "SOURCE_VERIFIED",
+                "source_member_match_count": "1",
+                "source_member_sha256": "2258a7b57c6c2881f208f43fbe2862c7815a2794c908d6fef108a1a4b5a2ad36",
+                "delivery_contract_schema": "ids.stage041.lock_registry.phase4.delivery.v1",
+                "contract_state": "PHASE4_CLOSEOUT_EVIDENCE_REVIEW_PENDING",
+                "delivery_contract_valid": "true",
+                "delivery_result": "PASS_ISOLATED_CLOSEOUT_PRODUCTION_DISABLED",
+                "stage_review_status": "pending_next_run",
+                "operation_family_count": "5",
+                "primary_acquisition_count": "5",
+                "exact_replay_count": "5",
+                "resource_conflict_count": "25",
+                "required_job_type_count": "8",
+                "required_job_state_count": "11",
+                "required_terminal_state_count": "4",
+                "required_transition_count": "21",
+                "required_pressure_signal_count": "7",
+                "failure_retry_log_attempt_count": "3",
+                "failure_retry_log_retry_count": "2",
+                "automatic_recovery_eligible_case_count": "0",
+                "successful_automatic_recovery_case_count": "0",
+                "actual_isolated_orderly_release_performed": "true",
+                "active_lock_count_after_release": "0",
+                "tombstone_version_count": "2",
+                "reviewed_stage040_delivery_replayed": "true",
+                "taskpack_source_read_performed": "true",
+                "ids_business_source_read_performed": "false",
+                "raw_metadata_content_accessed": "false",
+                "fake_ids_business_data_used": "false",
+                "real_ids_business_job_created": "false",
+                "queue_runtime_performed": "false",
+                "worker_runtime_performed": "false",
+                "retry_scheduler_performed": "false",
+                "process_termination_performed": "false",
+                "physical_drive_removal_performed": "false",
+                "disk_allocation_performed": "false",
+                "external_api_call_performed": "false",
+                "cleanup_runtime_performed": "false",
+                "protected_ref_delete_performed": "false",
+                "automatic_resume_performed": "false",
+                "process_crash_recovery_performed": "false",
+                "persistent_lock_write_performed": "false",
+                "state_registry_write_performed": "false",
+                "database_connection_performed": "false",
+                "runtime_output_written": "false",
+                "production_runtime_activation_performed": "false",
+                "whole_stage_review_performed": "false",
+                "batch_review_performed": "false",
+                "stage042_entry_allowed": "false",
+                "github_upload_allowed": "false",
+                "app_reinstall_allowed": "false",
+                "push_allowed": "false",
+                "next_gate": "IDS-STAGE041-REVIEW-GATE",
+            },
+        },
         "EVT-IDS-V0_1-STAGE040-P2-20260713-001": {
             "event_type": "phase_completed",
             "task_id": "IDS-V0_1-STAGE040-P2",
@@ -3078,6 +3167,11 @@ def evaluate_current_state_consistency(
                 and roadmap.get("current_task_id") == "IDS-V0_1-STAGE041-P3"
                 and roadmap.get("next_gate_id") == "IDS-STAGE041-P4-GATE"
             )
+            or (
+                roadmap_phase == "IDS-STAGE041-P4"
+                and roadmap.get("current_task_id") == "IDS-V0_1-STAGE041-P4"
+                and roadmap.get("next_gate_id") == "IDS-STAGE041-REVIEW-GATE"
+            )
         )
         and batch.get("batch_id") == "IDS-V0_1-BATCH-031-040"
         and batch.get("status") == "uploaded_to_github_main"
@@ -3168,6 +3262,10 @@ def evaluate_current_state_consistency(
         current_stage_id == "IDS-STAGE041"
         and roadmap_phase == "IDS-STAGE041-P3"
     )
+    stage041_phase4_current = (
+        current_stage_id == "IDS-STAGE041"
+        and roadmap_phase == "IDS-STAGE041-P4"
+    )
     governed_current = (
         stage037_current
         or stage038_phase1_current
@@ -3185,6 +3283,7 @@ def evaluate_current_state_consistency(
         or stage041_phase1_current
         or stage041_phase2_current
         or stage041_phase3_current
+        or stage041_phase4_current
     )
 
     completed_phases = stage_node.get("completed_phases")
@@ -3208,6 +3307,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE041-P1": "Phase 1",
         "IDS-STAGE041-P2": "Phase 2",
         "IDS-STAGE041-P3": "Phase 3",
+        "IDS-STAGE041-P4": "Phase 4",
     }.get(roadmap_phase)
     batch_current_phase_completed = (
         not governed_current
@@ -3735,6 +3835,21 @@ def evaluate_current_state_consistency(
         "evidence. No physical fault, delete, persistence, database, raw metadata, "
         "business job, production, GitHub or app action ran; Phase4 did not run."
     )
+    expected_stage041_phase4_result_block = (
+        "TDD RED: 12 focused tests produced 15 expected failures because the "
+        "Phase4 checker, contract, closeout evidence and governance route were "
+        "absent. GREEN: checker 16/16 contract checks and 6/6 delivery checks; "
+        "focused 12/12; Stage005 157/157; Stage040-041 aggregate 109/109; full "
+        "IDS v0.1 discovery 789/789; project-scoped dual-plane PASS. The first "
+        "unstaged aggregate failed only two Git-index-bound Stage040 review "
+        "checks plus one stale Phase3 current-state assertion. After staging, "
+        "the repaired Phase3 compatibility test correctly invalidated its bound "
+        "P4 upstream hash; rebinding that single hash restored every check "
+        "without weakening review or changing runtime logic. No whole-stage "
+        "review, Stage042 entry, physical fault, delete, persistence, database, "
+        "raw metadata, business job, automatic recovery, production, GitHub or "
+        "app action ran."
+    )
     expected_governed_result_block = {
         "IDS-STAGE037-P1": expected_stage037_phase1_result_block,
         "IDS-STAGE037-P2": expected_stage037_phase2_result_block,
@@ -3755,6 +3870,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE041-P1": expected_stage041_phase1_result_block,
         "IDS-STAGE041-P2": expected_stage041_phase2_result_block,
         "IDS-STAGE041-P3": expected_stage041_phase3_result_block,
+        "IDS-STAGE041-P4": expected_stage041_phase4_result_block,
     }.get(roadmap_phase)
     if roadmap_task == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY":
         expected_governed_result_block = (
@@ -3962,6 +4078,17 @@ def evaluate_current_state_consistency(
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml",
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md",
     }
+    required_stage041_phase4_evidence = {
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE1_LOCK_REGISTRY_SCOPE_BOUNDARY.md",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE2_LOCK_REGISTRY_SLICE.md",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE3_SCENARIO_VALIDATION.md",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE4_CLOSEOUT.md",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_delivery_contract.json",
+        "KM_IDSystem/scripts/check_lock_registry_delivery.py",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_delivery.py",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md",
+    }
     required_governed_evidence = {
         "IDS-STAGE037-P1": required_stage037_phase1_evidence,
         "IDS-STAGE037-P2": required_stage037_phase2_evidence,
@@ -3982,6 +4109,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE041-P1": required_stage041_phase1_evidence,
         "IDS-STAGE041-P2": required_stage041_phase2_evidence,
         "IDS-STAGE041-P3": required_stage041_phase3_evidence,
+        "IDS-STAGE041-P4": required_stage041_phase4_evidence,
     }.get(roadmap_phase, set())
     if roadmap_task == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY":
         required_governed_evidence = (
@@ -6347,6 +6475,19 @@ def evaluate_phase_state(
         if isinstance(roadmap_stage041_phase3, dict)
         else {}
     )
+    roadmap_stage041_phase4 = next(
+        (
+            item
+            for item in roadmap_stage041_phases
+            if isinstance(item, dict) and item.get("phase_id") == "IDS-STAGE041-P4"
+        ),
+        {},
+    )
+    roadmap_stage041_phase4 = (
+        roadmap_stage041_phase4
+        if isinstance(roadmap_stage041_phase4, dict)
+        else {}
+    )
     stage041_phase1_active = (
         batch_document.get("batch_id") == "IDS-V0_1-BATCH-041-050"
         and batch_document.get("status") == "stage041_phase1_completed"
@@ -6493,6 +6634,91 @@ def evaluate_phase_state(
         and roadmap_stage041_phase2.get("status")
         == "passed_with_local_evidence"
         and roadmap_stage041_phase3.get("status")
+        == "passed_with_local_evidence"
+    )
+    stage041_phase4_active = (
+        batch_document.get("batch_id") == "IDS-V0_1-BATCH-041-050"
+        and batch_document.get("status")
+        == "stage041_phase4_completed_review_pending"
+        and upload_gate.get("push_allowed") is False
+        and stage041_node.get("status")
+        == "stage041_phase4_completed_review_pending"
+        and stage041_node.get("completed_phases")
+        == ["Phase 1", "Phase 2", "Phase 3", "Phase 4"]
+        and stage041_node.get("review_status") == "pending"
+        and stage041_node.get("next_phase") == "stage_review"
+        and stage041_node.get("next_gate") == "IDS-STAGE041-REVIEW-GATE"
+        and stage041_node.get("current_task_id") == "IDS-V0_1-STAGE041-P4"
+        and stage041_node.get("acceptance_id") == "ACC-STAGE-041"
+        and stage041_node.get("acceptance_status")
+        == "phase4_delivery_complete_review_pending"
+        and stage041_node.get("source_verification_status") == "SOURCE_VERIFIED"
+        and stage041_node.get("source_member_match_count") == 1
+        and stage041_node.get("source_member_sha256")
+        == "2258a7b57c6c2881f208f43fbe2862c7815a2794c908d6fef108a1a4b5a2ad36"
+        and stage041_node.get("delivery_contract_schema")
+        == "ids.stage041.lock_registry.phase4.delivery.v1"
+        and stage041_node.get("delivery_contract_valid") is True
+        and stage041_node.get("delivery_result")
+        == "PASS_ISOLATED_CLOSEOUT_PRODUCTION_DISABLED"
+        and stage041_node.get("stage_review_status") == "pending_next_run"
+        and stage041_node.get("contract_state")
+        == "PHASE4_CLOSEOUT_EVIDENCE_REVIEW_PENDING"
+        and stage041_node.get("required_job_type_count") == 8
+        and stage041_node.get("required_job_state_count") == 11
+        and stage041_node.get("required_terminal_state_count") == 4
+        and stage041_node.get("required_transition_count") == 21
+        and stage041_node.get("required_pressure_signal_count") == 7
+        and stage041_node.get("failure_retry_log_attempt_count") == 3
+        and stage041_node.get("failure_retry_log_retry_count") == 2
+        and stage041_node.get("lock_operation_family_count") == 5
+        and stage041_node.get("primary_acquisition_count") == 5
+        and stage041_node.get("exact_replay_count") == 5
+        and stage041_node.get("resource_conflict_count") == 25
+        and stage041_node.get("automatic_recovery_eligible_case_count") == 0
+        and stage041_node.get("successful_automatic_recovery_case_count") == 0
+        and stage041_node.get("actual_isolated_orderly_release_performed") is True
+        and stage041_node.get("active_lock_count_after_release") == 0
+        and stage041_node.get("tombstone_version_count") == 2
+        and stage041_node.get("reviewed_stage040_delivery_replayed") is True
+        and stage041_node.get("process_termination_performed") is False
+        and stage041_node.get("physical_drive_removal_performed") is False
+        and stage041_node.get("disk_allocation_performed") is False
+        and stage041_node.get("external_api_call_performed") is False
+        and stage041_node.get("production_lock_runtime_performed") is False
+        and stage041_node.get("database_connection_performed") is False
+        and stage041_node.get("persistent_lock_write_performed") is False
+        and stage041_node.get("state_registry_write_performed") is False
+        and stage041_node.get("queue_runtime_performed") is False
+        and stage041_node.get("worker_runtime_performed") is False
+        and stage041_node.get("retry_scheduler_performed") is False
+        and stage041_node.get("automatic_resume_performed") is False
+        and stage041_node.get("cleanup_runtime_performed") is False
+        and stage041_node.get("whole_stage_review_performed") is False
+        and stage041_node.get("batch_review_performed") is False
+        and stage041_node.get("stage042_entry_allowed") is False
+        and stage041_node.get("raw_metadata_content_accessed") is False
+        and stage041_node.get("fake_ids_business_data_used") is False
+        and decision_node.get("current_task_id") == "IDS-V0_1-STAGE041-P4"
+        and decision_node.get("next_allowed_task_id")
+        == "IDS-V0_1-STAGE041-REVIEW"
+        and decision_node.get("github_upload_allowed") is False
+        and roadmap_document.get("current_stage_id") == "IDS-STAGE041"
+        and roadmap_document.get("current_phase_id") == "IDS-STAGE041-P4"
+        and roadmap_document.get("current_task_id") == "IDS-V0_1-STAGE041-P4"
+        and roadmap_document.get("next_gate_id")
+        == "IDS-STAGE041-REVIEW-GATE"
+        and roadmap_stage041.get("status")
+        == "phase4_completed_review_pending"
+        and roadmap_stage041.get("stop_gate", {}).get("status")
+        == "passed_with_local_evidence"
+        and roadmap_stage041_phase1.get("status")
+        == "passed_with_local_evidence"
+        and roadmap_stage041_phase2.get("status")
+        == "passed_with_local_evidence"
+        and roadmap_stage041_phase3.get("status")
+        == "passed_with_local_evidence"
+        and roadmap_stage041_phase4.get("status")
         == "passed_with_local_evidence"
     )
     batch031_040_reviewed_pending_upload = (
@@ -6720,6 +6946,7 @@ def evaluate_phase_state(
         or stage041_phase1_active
         or stage041_phase2_active
         or stage041_phase3_active
+        or stage041_phase4_active
     )
     phase2_completed = '      - "Phase 2"' in batch_text or later_stage_state
     stage005_active_or_complete = (

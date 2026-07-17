@@ -283,7 +283,7 @@ class Stage041LockRegistryScenarioTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertFalse(report[name])
 
-    def test_phase2_remains_valid_and_governance_routes_only_to_phase4(self):
+    def test_phase2_remains_valid_and_phase3_route_is_preserved_in_history(self):
         phase2 = _load(PHASE2_CHECKER, "stage041_phase2_for_phase3_test")
         self.assertTrue(phase2.build_stage041_phase2_report()["phase2_slice_valid"])
         batch = BATCH.read_text(encoding="utf-8")
@@ -296,8 +296,10 @@ class Stage041LockRegistryScenarioTests(unittest.TestCase):
         self.assertIn('current_phase_id: "IDS-STAGE041-P3"', roadmap)
         self.assertIn('next_gate_id: "IDS-STAGE041-P4-GATE"', roadmap)
         self.assertIn("IDS-V0_1-STAGE041-P3", handoff)
-        self.assertEqual("IDS-STAGE041-P3", status["phase"])
-        self.assertEqual("IDS-STAGE041-P4-GATE", status["next_gate"])
+        self.assertIn('current_phase_id: "IDS-STAGE041-P4"', roadmap)
+        self.assertIn('next_gate_id: "IDS-STAGE041-REVIEW-GATE"', roadmap)
+        self.assertEqual("IDS-STAGE041-P4", status["phase"])
+        self.assertEqual("IDS-STAGE041-REVIEW-GATE", status["next_gate"])
         matching = [
             json.loads(line)
             for line in EVENTS.read_text(encoding="utf-8").splitlines()

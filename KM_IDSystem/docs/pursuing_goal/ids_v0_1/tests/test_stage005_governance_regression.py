@@ -9503,7 +9503,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_current_state_consistency(unlocked, roadmap_text)
         self.assertFalse(blocked["push_locked_structurally"], blocked)
 
-    def test_stage041_phase3_current_state_and_event_are_governed(self):
+    def test_stage041_phase4_current_state_and_event_are_governed(self):
         module = self._load_module()
         batch_path = (
             ROOT
@@ -9530,22 +9530,39 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
             ROOT / "docs" / "governance" / "events.jsonl"
         )
         self.assertEqual([], parse_errors)
-        stage_event = [
+        phase3_event = [
             event
             for event in events
             if event.get("event_id")
             == "EVT-IDS-V0_1-STAGE041-P3-20260717-001"
         ]
-        self.assertEqual(1, len(stage_event))
-        self.assertEqual([], module.evaluate_required_event_semantics(stage_event))
+        self.assertEqual(1, len(phase3_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase3_event))
+        phase4_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE041-P4-20260717-001"
+        ]
+        self.assertEqual(1, len(phase4_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase4_event))
 
         self.assertIn(
             "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
-            "STAGE041_PHASE3_SCENARIO_VALIDATION.md",
+            "STAGE041_PHASE4_CLOSEOUT.md",
             module.REQUIRED_FILES,
         )
         self.assertIn(
-            "EVT-IDS-V0_1-STAGE041-P3-20260717-001",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/"
+            "stage041_lock_registry_delivery_contract.json",
+            module.REQUIRED_FILES,
+        )
+        self.assertIn(
+            "KM_IDSystem/scripts/check_lock_registry_delivery.py",
+            module.REQUIRED_FILES,
+        )
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE041-P4-20260717-001",
             module.REQUIRED_EVENT_IDS,
         )
 
