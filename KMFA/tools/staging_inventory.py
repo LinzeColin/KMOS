@@ -24,7 +24,8 @@ PRIVATE_DIR = REPO / "KMFA" / ".codex_private_runtime" / "imports" / "excel_shee
 # 与 wps_file_adapter.WPS_EXPORT_SPECS 的类别名；kingdee_ledger/tax/loan/performance 为 DT5 新增待建规格。
 CATEGORY_KEYWORDS = [
     ("journal", "finance", ("日记账",)),
-    ("operating_analysis", "finance", ("报表系列一", "费用", "税金", "资产", "经营分析", "经营情况")),
+    ("expense_lines", "finance", ("报表系列一",)),
+    ("operating_analysis", "finance", ("费用", "税金", "资产", "经营分析", "经营情况")),
     ("collection", "wps", ("回款",)),
     ("receivable_aging", "wps", ("账龄", "应收")),
     ("invoicing", "wps", ("开票",)),
