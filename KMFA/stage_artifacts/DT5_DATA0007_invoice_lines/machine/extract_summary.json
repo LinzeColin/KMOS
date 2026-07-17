@@ -1,17 +1,17 @@
 {
   "task_id": "TSK.KMFA.DATA.0007",
   "phase": "invoice_lines",
-  "version": "invoice-lines-v1",
+  "version": "invoice-lines-v2",
   "sheets": [
     {
       "sheet_hash": "7103e458",
-      "rows": 0
+      "rows": 287
     },
     {
       "sheet_hash": "3990d9bb",
-      "rows": 0
+      "rows": 261
     }
   ],
-  "table_total_rows": 0,
-  "amount_incl_tax_total_cents": 0
+  "table_total_rows": 548,
+  "amount_incl_tax_total_cents": 12118629903
 }
