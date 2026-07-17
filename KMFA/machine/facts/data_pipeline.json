@@ -16,7 +16,7 @@
   ],
   "reconciliation_status": "报告第1号已交付：报表vs权威台账 7/11 月 0 分差；五账套凭证视角借贷全等（0 不平凭证）；analyzed-open 差异 4 条见断言表",
   "schema": "kmfa.facts.data_pipeline.v1",
-  "staging_rows_total": 207916,
+  "staging_rows_total": 205984,
   "staging_tables": {
     "bank_journal": {
       "rows": 6536
@@ -25,7 +25,7 @@
       "rows": 3726
     },
     "invoice_lines": {
-      "rows": 0
+      "rows": 548
     },
     "kingdee_ledger": {
       "rows": 162979
@@ -46,10 +46,7 @@
       "rows": 425
     },
     "v_collection_authoritative": {
-      "rows": 880
-    },
-    "v_collection_dedup": {
-      "rows": 2462
+      "rows": 862
     }
   }
 }
