@@ -31,10 +31,14 @@ Mac 采集端（保留）                     Oracle 运行端（本基座）
 
 镜像与运行栈已在本机 `arm64`（与 Oracle A1 同架构）Docker **真构建 + 容器内真跑**验收：`dws v1.0.52` 可执行、SKL.0005 OCR 双引擎自检 PASS、crontab 8 条装载、健康检查 `healthy`、compose 校验通过。四颗构建期地雷（`flock` 假包名、`dws` 资产名、锁文件首次信任、`libGL` 缺失）已排掉——详见 `KMFA/stage_artifacts/DT9_SKL0002_deploy_precheck/预检记录.md`。实例日按下节步骤执行即可，无已知构建风险。
 
+## amd64（OVH 目标架构）端到端复证（2026-07-18，上云目标改 OVH）
+
+上云目标由 Oracle A1（arm64）改为 **OVH VPS（amd64）**后，已在本机 buildx `linux/amd64` 目标架构上真构建 + 容器内真跑复证：x86_64 依赖轮子（含 onnxruntime）齐备、`dws-linux-amd64` 下载 + SHA-256 校验 + 可执行、对账三自检全过、`self-audit` 技能端到端 rc=0（证据链 30/30、血缘 FRESH、双平面四项目全绿、台账时间戳 +08:00）。本轮并抓获修复一个 **TZ 覆盖 bug**：`docker-compose.yml` 遗留 `TZ=Australia/Sydney` 会在运行时盖掉镜像的 `Asia/Shanghai`、让 cron 按悉尼评估排程——已改回上海并在 `entrypoint.sh` 加 `+0800` 快速失败守卫（正反实测：悉尼注入即拒启 exit 1）。详见 `KMFA/stage_artifacts/DT9_SKL0002_amd64_e2e/amd64端到端记录.md`。部署链 amd64/arm64 通用，无已知架构风险。
+
 ## 部署步骤（实例就绪后执行；下列 0-3 步可用同目录 `bootstrap.sh` 一键完成）
 
 ```bash
-# 0) 前置：Ubuntu 22.04+ ARM（Oracle A1）。docker 未装则一行装齐：
+# 0) 前置：Ubuntu 22.04+（amd64/arm64 通用；OVH VPS=amd64，Oracle A1=arm64）。docker 未装则一行装齐：
 sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2 git && sudo usermod -aG docker "$USER"
 # （usermod 后重新登录一次 shell 使组生效）
 # 1) 拉仓（公开仓走 HTTPS，免密钥——alpha_oracle 私钥只用于登录实例，不是 GitHub deploy key）

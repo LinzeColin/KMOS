@@ -5,7 +5,11 @@ services:
     container_name: kmfa-skills
     restart: always
     environment:
-      TZ: Australia/Sydney
+      # 业务锚定北京时间（中国无夏令时，全年零漂移）。切勿覆盖为其他时区：
+      # cron 按容器 TZ 评估排程、技能按容器 TZ 打报表日期。曾误设 Australia/Sydney
+      # 会把晨报 10:35 变成悉尼时刻（≈北京 07:35-08:35），静默抵消排程契约（#100/#108）；
+      # 须与 Dockerfile ENV 一致，entrypoint 另有 +0800 守卫兜底。
+      TZ: Asia/Shanghai
       # 双跑纪律：默认不投递；双跑比对通过并经 Owner 同意后逐技能置 1。
       KMFA_DELIVERY_ENABLED: "0"
     env_file:

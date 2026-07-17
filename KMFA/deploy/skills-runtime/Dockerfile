@@ -1,4 +1,4 @@
-# KMFA skills 云端运行容器（Oracle A1 arm64 / 本地 amd64 通用）
+# KMFA skills 云端运行容器（多架构：amd64=OVH/通用 VPS，arm64=Oracle A1；本机两架构均实测）
 FROM python:3.12-slim-bookworm
 
 ENV TZ=Asia/Shanghai \
