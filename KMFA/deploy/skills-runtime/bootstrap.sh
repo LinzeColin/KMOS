@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# KMFA 实例日一键引导（Ubuntu 22.04+ ARM，幂等可重跑）。
+# KMFA 实例日一键引导（Ubuntu 22.04+，amd64/arm64 通用——OVH 标准 VPS 为 amd64；幂等可重跑）。
 # 用法（实例上）：
 #   curl -fsSL https://raw.githubusercontent.com/LinzeColin/KMOS/main/KMFA/deploy/skills-runtime/bootstrap.sh | bash
 # 完成：装 docker → HTTPS 克隆/更新仓库 → 起 skills 栈 + App 栈 → 健康自检。
