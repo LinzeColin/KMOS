@@ -57,7 +57,7 @@ docker compose exec skills /opt/runtime/test_send.sh "张霖泽"
 1. **双跑切换**：钉钉考勤先 dry-run 与现运行端并行比对 ≥3 天，一致后一刀切换发送权；**任一时刻只允许一个发送端存活**（防真实群双发）。切换前本容器内所有投递默认 `KMFA_DELIVERY_ENABLED=0`。
 2. **凭据不入仓**：`/opt/kmfa/secrets/` 600 权限；本目录只有 `secrets.env.example`（仅键名）。
 3. **可回收设计**（Owner 不开 PAYG，Always Free 闲置实例可能被 Oracle 回收）：本基座全部状态 = 仓库 + secrets 一个文件 + 数据卷日备份回 `KMOS/KMDatabase/data`——实例丢失后按「部署步骤」10 分钟内可原样重建，除 dws 重新登录外无其他手工步骤。
-4. **时区**：容器 cron 钟面 = `Australia/Sydney`（与原 Codex 排程钟面一致；考勤代码内部对钉钉数据自会使用 Asia/Shanghai）。投产前时区口径需 Owner 确认一次。
+4. **时区（2026-07-18 修订）**：容器 cron 钟面 = `Asia/Shanghai`——业务事件全部锚定北京时间且中国无夏令时，**全年零漂移**。原 `Australia/Sydney` 固定钟面在悉尼夏令时会相对北京提前 1 小时（业务窗错位、误报源缺失）；Debian vixie-cron 对 `CRON_TZ` 只收不认（静默无效），故整容器改锚北京，各时刻按 2026-07 现行为等值换算（表见 crontab.txt 头注）。
 
 ## 排程表（crontab.txt，与原在产排程对表）
 
