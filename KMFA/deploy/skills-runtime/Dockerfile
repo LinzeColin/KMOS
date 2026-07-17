@@ -1,7 +1,7 @@
 # KMFA skills 云端运行容器（Oracle A1 arm64 / 本地 amd64 通用）
 FROM python:3.12-slim-bookworm
 
-ENV TZ=Australia/Sydney \
+ENV TZ=Asia/Shanghai \
     PYTHONUNBUFFERED=1 \
     DWS_BIN=/usr/local/bin/dws
 
