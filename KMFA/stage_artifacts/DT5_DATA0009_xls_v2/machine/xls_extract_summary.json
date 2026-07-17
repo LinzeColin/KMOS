@@ -1,0 +1,45 @@
+{
+  "task_id": "TSK.KMFA.DATA.0009",
+  "phase": "v2_xls",
+  "version": "kingdee-xls-v2",
+  "files": [
+    {
+      "file": "彤烨",
+      "status": "idempotent_skip"
+    },
+    {
+      "file": "彤烨",
+      "status": "idempotent_skip"
+    },
+    {
+      "file": "曦悦",
+      "status": "idempotent_skip"
+    },
+    {
+      "file": "曦悦",
+      "status": "idempotent_skip"
+    }
+  ],
+  "balance_checks": [
+    {
+      "book": "彤烨",
+      "ledger_debit": 6875332829,
+      "ledger_credit": 5342866372,
+      "ledger_delta": 1532466457,
+      "voucher_debit": 7639710136,
+      "voucher_credit": 7639710136,
+      "voucher_delta": 0,
+      "unbalanced_vouchers": 0
+    },
+    {
+      "book": "曦悦",
+      "ledger_debit": 412341227,
+      "ledger_credit": 420192257,
+      "ledger_delta": -7851030,
+      "voucher_debit": 560396476,
+      "voucher_credit": 560396476,
+      "voucher_delta": 0,
+      "unbalanced_vouchers": 0
+    }
+  ]
+}
