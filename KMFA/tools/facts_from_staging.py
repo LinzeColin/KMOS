@@ -56,7 +56,7 @@ def main() -> int:
     if not any(e.get("version") == "v1.5.8" for e in chlog):
         chlog.insert(0, {
             "version": "v1.5.8", "date": "2026-07-18",
-            "summary": "会话终章：报告第 6-8 号交付（零候选收官/实例日加固/开票逐票层）；派生层至 17 表 263,758 行（+个人借支/编码母表/项目开票原件）；八颗实例日地雷全排（含 DST 年漂移改锚北京）；`bootstrap.sh` 一键引导+`cloudflared` 上线件+DT8 健康周检+语义门入 CI；证据链 30/30 零悬空；证据档索引 76 档一表可查；Owner 两张一页纸（三件套/下批数据需求单）。",
+            "summary": "会话终章：报告第 6-8 号交付（零候选收官/实例日加固/开票逐票层）；派生层至 17 表 263,758 行（+个人借支/编码母表/项目开票原件）；八颗实例日地雷全排（含夏令时年漂移改锚北京）；`bootstrap.sh` 一键引导+`cloudflared` 上线件+`DT8` 健康周检+语义门入 CI；证据链 30/30 零悬空；证据档索引 76 档一表可查；Owner 两张一页纸（三件套/下批数据需求单）。",
         })
         chlog_path.write_text(json.dumps(chlog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if not any(e.get("version") == "v1.5.7" for e in chlog):
