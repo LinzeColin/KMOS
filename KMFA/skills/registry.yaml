@@ -1,0 +1,174 @@
+# KMFA Skills 登记表（机器可读）
+#
+# 为什么有这个文件：2026-07-17 清点发现两个洞
+#   1. 有 3 个 skill 从来不在任何版本控制下（只活在本机 ~/.codex/skills/，那不是 git 仓库）。
+#      丢了就没了 —— KMFA v1.5 正是这么没的：分支没 push，连同工作树被删。
+#   2. skill 与其定时任务分家：skill 在仓库，排程配在 Codex 应用内，两边零交叉引用。
+#      结果 2026-07-17 清理删掉 main_worktree/ 后，6 条 ACTIVE 排程集体空跑失败，
+#      而【没有任何地方能查到"谁依赖那个目录"】。
+#
+# 本表就是那个"能查到"的地方：谁依赖哪个目录、哪个外部命令、哪条排程。
+# 人读索引见同目录 登记册.md。运维故障已登记进 machine/facts/ops.json（会渲染进 06_运维手册.md）。
+schema_version: 1
+registry_id: KMFA-skills-registry-v1
+generated_at: "2026-07-17"
+repo: LinzeColin/KMOS
+
+skills:
+  # ---- 2026-07-17 抢救迁入：迁入前无任何版本控制 ----
+  - id: gongzi-fafang-biaozhun
+    name_zh: 工资发放标准
+    path: KMFA/skills/gongzi-fafang-biaozhun
+    status: MIGRATED_2026_07_17
+    previous_location: "~/.codex/skills/gongzi-fafang-biaozhun"
+    version_controlled_before: false
+    purpose_zh: 按上月模板生成当月工资发放表；AB Excel 校验、差异报告、金额分校验、B公司/报销路由
+    external_deps: []
+    schedules: []
+    hardcoded_local_paths: 0
+    contains_secrets: false      # 迁入前扫描：无密钥/手机号/身份证/真实金额/真实姓名
+
+  - id: hongquan-main-contract-dws
+    name_zh: 红圈主合同
+    path: KMFA/skills/hongquan-main-contract-dws
+    status: MIGRATED_2026_07_17
+    previous_location: "~/.codex/skills/hongquan-main-contract-dws"
+    version_controlled_before: false
+    purpose_zh: 从红圈 cloud.hecom.cn 导出、下载并归档主合同 DWS/Excel 原始数据
+    external_deps: ["红圈 cloud.hecom.cn 网页"]
+    schedules: ["dws-weekly-archive-local"]
+    hardcoded_local_paths: 1     # 待办：改成配置项，否则换机/上云即失效
+    contains_secrets: false
+
+  - id: info-fee-update
+    name_zh: 信息费更新
+    path: KMFA/skills/info-fee-update
+    status: MIGRATED_2026_07_17
+    previous_location: "~/.codex/skills/info-fee-update"
+    version_controlled_before: false
+    purpose_zh: 填写更新信息费申请表与 2023-2025 信息费明细表；据甲方去红圈查合同号/合同额
+    external_deps: ["红圈 cloud.hecom.cn 网页", "WPS"]
+    schedules: []
+    hardcoded_local_paths: 1     # 待办：同上；且引用 Downloads/KMFA_MetaData
+    contains_secrets: false
+
+  # ---- 已在仓库，本次仅登记，未物理移入 KMFA/skills/ ----
+  - id: kmfa-dingtalk-attendance-skill
+    name_zh: 钉钉考勤
+    path: KMFA/kmfa-dingtalk-attendance-skill
+    status: REGISTERED_IN_PLACE
+    move_blocked_by: "27 处外部引用，含每天在跑的 KMFA/tools/dingtalk_attendance/ 生产代码"
+    external_deps: ["dws (DingTalk Workspace CLI)"]
+    external_deps_available_on_owner_mac: false   # ⚠️ command -v dws 找不到、~/.dws/ 不存在
+    schedules: ["kmfa-attendance-morning", "kmfa-attendance-evening", "kmfa-work-check"]
+
+  - id: dingtalk-dws-archive-skill
+    name_zh: 上游归档（钉钉 DWS 全量归档）
+    path: KMFA/dingtalk-dws-archive-skill
+    status: REGISTERED_IN_PLACE
+    move_blocked_by: "3 处外部引用"
+    external_deps: ["dws (DingTalk Workspace CLI)"]
+    schedules: ["kmfa-upstream-dws-archive"]
+
+  - id: fund-weekly-analysis-skill
+    name_zh: 付款申请群资金周报
+    path: KMFA/fund-weekly-analysis-skill
+    status: REGISTERED_IN_PLACE
+    move_blocked_by: "9 处外部引用"
+    external_deps: []
+    schedules: ["kmfa-fund-weekly"]
+
+  - id: daily_routine_check_skill
+    name_zh: 每日工作检查
+    path: KMFA/daily_routine_check_skill
+    status: REGISTERED_IN_PLACE
+    move_blocked_by: "12 处外部引用"
+    external_deps: []
+    schedules: []
+
+  - id: mgmt-monthly-report-skill
+    name_zh: 经营管理月报
+    path: KMFA/mgmt-monthly-report-skill
+    status: REGISTERED_IN_PLACE
+    move_blocked_by: "6 处外部引用"
+    external_deps: []
+    schedules: []
+
+# 排程配在 Codex 应用内部，不在本仓库、也不在 ~/.codex/automations/。
+# 源仓 CodexProject 迁出前的契约记录：KMFA/metadata/automation/codex_app_schedules.contract.toml
+schedules:
+  - id: kmfa-attendance-morning
+    name_zh: 考勤早
+    skill: kmfa-dingtalk-attendance-skill
+    configured_in: codex_app
+    cwd_declared: "/Users/linzezhang/Documents/Codex/main_worktree/CodexProject/kmfa"
+    cwd_exists: false            # 🔴 2026-07-17 大清理已删除该路径 → 正在空跑失败
+    fixable_by_agent: false      # 只能 Owner 在 Codex 应用界面改
+
+  - id: kmfa-attendance-evening
+    name_zh: 考勤晚
+    skill: kmfa-dingtalk-attendance-skill
+    configured_in: codex_app
+    cwd_exists: false
+    fixable_by_agent: false
+
+  - id: kmfa-work-check
+    name_zh: 工作检查
+    skill: kmfa-dingtalk-attendance-skill
+    configured_in: codex_app
+    local_wall_clock_times: ["13:35", "19:05"]
+    cwd_exists: false
+    fixable_by_agent: false
+
+  - id: kmfa-fund-weekly
+    name_zh: 付款申请群资金周报
+    skill: fund-weekly-analysis-skill
+    configured_in: codex_app
+    local_wall_clock_times: ["Monday 11:00", "Saturday 11:00"]
+    cwd_exists: false
+    fixable_by_agent: false
+
+  - id: kmfa-upstream-dws-archive
+    name_zh: 上游归档
+    skill: dingtalk-dws-archive-skill
+    configured_in: codex_app
+    local_wall_clock_times: ["11:00"]
+    cwd_declared: "/Users/linzezhang/Documents/Codex/2026-07-04/392b1a98…-https-app-notion-com-p"
+    cwd_exists: false            # 🔴 该临时目录已随清理消失
+    fixable_by_agent: false
+
+  - id: dws-auth-keepalive-2
+    name_zh: dws 保活
+    skill: null                  # 认证底座，全部 DWS 类共用
+    configured_in: codex_app
+    local_wall_clock_times: ["00:20", "04:20", "08:20", "12:20", "16:20", "20:20"]
+    cwd_exists: false
+    fixable_by_agent: false
+
+  - id: dws-weekly-archive-local
+    name_zh: 红圈主合同DWS 每周六自动归档
+    skill: hongquan-main-contract-dws
+    configured_in: "~/.codex/automations/dws/automation.toml"   # 这条在本机文件里
+    cwd_declared: "/Users/linzezhang/Documents/Codex"
+    cwd_exists: true             # ✅ 未失效
+    fixable_by_agent: true
+
+open_issues:
+  - id: DWS_BIN_MISSING
+    severity: blocking
+    detail: >-
+      考勤与上游归档 skill 都通过 subprocess 调 dws（DingTalk Workspace CLI，取环境变量
+      DWS_BIN，回落到 "dws"）。Owner 本机 command -v dws 找不到、~/.dws/ 不存在 ——
+      所以这两个 skill 目前在本机就跑不起来，与 cwd 失效是【两个独立故障】。
+      dws 是 DingTalk Workspace，GitHub 上有开源实现，不绑 Codex。需选定实现并固化版本。
+  - id: SCHEDULES_ALL_BROKEN
+    severity: blocking
+    detail: >-
+      6 条 ACTIVE 排程 cwd 全部指向 2026-07-17 清理时删除的 main_worktree 路径，正在空跑失败。
+      只能 Owner 在 Codex 应用界面改。KMFA 已迁至本仓（KMOS），新 cwd 需按本仓 clone 位置确定。
+  - id: HARDCODED_PATHS
+    severity: normal
+    detail: hongquan-main-contract-dws 与 info-fee-update 各有 1 处写死 Owner 本机绝对路径，换机/上云即失效。
+  - id: FIVE_SKILLS_NOT_MOVED
+    severity: normal
+    detail: 5 个在仓 skill 共 57 处外部引用，物理移入 KMFA/skills/ 需同步改引用 + 回归测试，属独立重构。
