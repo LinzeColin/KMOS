@@ -38,8 +38,8 @@ def main() -> int:
         "staging_rows_total": sum(tbl.values()),
         "lineage": "machine/lineage.yaml（raw→staging 机械生成，stale 判定可用）",
         "quality_blockers_open": len(quality["blockers"]),
-        "reconciliation_status": "报告第1号已交付：报表vs权威台账 7/11 月 0 分差；五账套凭证视角借贷全等（0 不平凭证）；analyzed-open 差异 4 条见断言表",
-        "next_gates": ["operating_analysis/金蝶zip 抽取", "facts 八件套全量重生成", "渲染门真绿（DATA.0013）"],
+        "reconciliation_status": "报告第1/2/3号已交付：回款 7/11 月 0 分差；开票三角差 3 分；五账套凭证 0 不平；费用轴七码全解释（两笔跨账套逐分定位）；税费轴 36/39 格逐分全等；open 项全部挂明确触发条件",
+        "next_gates": ["下批数据（曦悦明细账/湖北开明凭证重导）", "12 月报表期间差重验", "银行流水窗口延展后行级匹配 v3"],
     }
     out = FACTS / "data_pipeline.json"
     new_text = json.dumps(facts, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
@@ -49,6 +49,12 @@ def main() -> int:
 
     chlog_path = FACTS / "changelog.json"
     chlog = json.loads(chlog_path.read_text(encoding="utf-8"))
+    if not any(e.get("version") == "v1.5.6" for e in chlog):
+        chlog.insert(0, {
+            "version": "v1.5.6", "date": "2026-07-17",
+            "summary": "税费轴开张即闭合：税负率明细板表带状解析入 `_staging.tax_composition`（798 行、亚分舍入 71 处全登记、带内脚验 90/94 平）；对费用表 6403 计提逐月逐税种 36/39 格 0 分差，余 3 格为跨月对冲对（±67.57 元）与 1 分舍入；费用轴七码全解释（报告第 3 号）；App 四页签成形。",
+        })
+        chlog_path.write_text(json.dumps(chlog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if not any(e.get("version") == "v1.5.4" for e in chlog):
         chlog.insert(0, {
             "version": "v1.5.4", "date": "2026-07-17",
