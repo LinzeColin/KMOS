@@ -1,0 +1,110 @@
+{
+  "task_id": "TSK.KMFA.DATA.0018",
+  "batch": 1,
+  "collection_rows": 3726,
+  "collection_dedup_rows": 2462,
+  "dedup_removed": 1264,
+  "months": 11,
+  "matched_report_vs_bank": 1,
+  "monthly": [
+    {
+      "month": "2025-01",
+      "report_cents": 487049314,
+      "collection_auth_cents": 487049314,
+      "bank_cents": 487049314,
+      "report_vs_bank": 0,
+      "report_vs_collection": 0,
+      "status": "matched"
+    },
+    {
+      "month": "2025-02",
+      "report_cents": 196161827,
+      "collection_auth_cents": 196161827,
+      "bank_cents": 196261827,
+      "report_vs_bank": -100000,
+      "report_vs_collection": 0,
+      "status": "two_way_gap"
+    },
+    {
+      "month": "2025-03",
+      "report_cents": 222298815,
+      "collection_auth_cents": 221658815,
+      "bank_cents": 211463253,
+      "report_vs_bank": 10835562,
+      "report_vs_collection": 640000,
+      "status": "two_way_gap"
+    },
+    {
+      "month": "2025-04",
+      "report_cents": 260616810,
+      "collection_auth_cents": 260646810,
+      "bank_cents": 260603170,
+      "report_vs_bank": 13640,
+      "report_vs_collection": -30000,
+      "status": "two_way_gap"
+    },
+    {
+      "month": "2025-05",
+      "report_cents": 244664769,
+      "collection_auth_cents": 244664769,
+      "bank_cents": 245214769,
+      "report_vs_bank": -550000,
+      "report_vs_collection": 0,
+      "status": "two_way_gap"
+    },
+    {
+      "month": "2025-06",
+      "report_cents": 101162346,
+      "collection_auth_cents": 101162346,
+      "bank_cents": 105372346,
+      "report_vs_bank": -4210000,
+      "report_vs_collection": 0,
+      "status": "two_way_gap"
+    },
+    {
+      "month": "2025-07",
+      "report_cents": 202249849,
+      "collection_auth_cents": 195070849,
+      "bank_cents": 207300168,
+      "report_vs_bank": -5050319,
+      "report_vs_collection": 7179000,
+      "status": "two_way_gap"
+    },
+    {
+      "month": "2025-08",
+      "report_cents": 128789939,
+      "collection_auth_cents": 128789939,
+      "bank_cents": 140123239,
+      "report_vs_bank": -11333300,
+      "report_vs_collection": 0,
+      "status": "two_way_gap"
+    },
+    {
+      "month": "2025-09",
+      "report_cents": 201737270,
+      "collection_auth_cents": 201667813,
+      "bank_cents": 210610878,
+      "report_vs_bank": -8873608,
+      "report_vs_collection": 69457,
+      "status": "two_way_gap"
+    },
+    {
+      "month": "2025-10",
+      "report_cents": 299455610,
+      "collection_auth_cents": 299455610,
+      "bank_cents": 315965610,
+      "report_vs_bank": -16510000,
+      "report_vs_collection": 0,
+      "status": "two_way_gap"
+    },
+    {
+      "month": "2025-11",
+      "report_cents": 13227762,
+      "collection_auth_cents": 159508052,
+      "bank_cents": 23527762,
+      "report_vs_bank": -10300000,
+      "report_vs_collection": -146280290,
+      "status": "two_way_gap"
+    }
+  ]
+}
