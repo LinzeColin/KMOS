@@ -11,6 +11,8 @@ check_dual_plane_ci.py —— 仓库级双平面合规校验（CI 入口）
   2. 渲染一致门：重新渲染后 5 个渲染文件无变化（人类平面确由机器平面生成，
      未被手工篡改）；手写区 01/03 存在且非空
   3. 三道门：check_doc_budget + check_blocker_stop
+  4. 语义门：facts/changelog.json 最新条目的 version 必须可见于 文档/06_运维手册.md
+     （防「渲染器缺陷两侧一致、一致门恒绿」型潜伏——2026-07-18 切片缺陷教训）
 
 任何项目任一门 FAIL -> 整体 FAIL（退出码 1）。
 
@@ -76,6 +78,22 @@ def check_project(proj: Path, failures: list):
             failures.append(
                 f"[{name}] 渲染一致门: 文档/{f} 与机器平面不一致"
                 f"（人类平面被手工篡改，或事实源已变但未重渲染）")
+
+    # 4. 语义门：最新 changelog 条目必须真实渲染进运维手册（一致门测不出渲染器自身缺陷）
+    chlog_path = proj / "machine" / "facts" / "changelog.json"
+    manual_path = docs / "06_运维手册.md"
+    if chlog_path.is_file() and manual_path.is_file():
+        try:
+            import json
+            chlog = json.loads(chlog_path.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            chlog = []
+        if isinstance(chlog, list) and chlog:
+            latest = str(chlog[0].get("version", "")).strip()
+            if latest and latest not in manual_path.read_text(encoding="utf-8"):
+                failures.append(
+                    f"[{name}] 语义门: changelog 最新条目 {latest} 未出现在 文档/06_运维手册.md"
+                    f"（渲染器截断/切片缺陷，或条目顺序约定被破坏）")
 
     # 3. 三道门
     for tool, arg in [("check_doc_budget.py", ["--docs", "文档"]),
