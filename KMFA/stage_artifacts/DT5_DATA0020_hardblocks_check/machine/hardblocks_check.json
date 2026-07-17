@@ -1,0 +1,23 @@
+{
+  "task_id": "TSK.KMFA.DATA.0020",
+  "date": "2026-07-17",
+  "gate_hard_blocks": {
+    "unresolved_critical_difference": "converging(assertions 10 closed/7 open)",
+    "zero_delta_failed": "pending_DATA0021_prereqs_ready",
+    "missing_required_lineage": "v1_established_raw_to_staging",
+    "missing_human_confirmation_for_A": "owner_gate_BLK001_273_fields",
+    "stale_or_expired_input": "mechanism_established_sop_plus_stale_check",
+    "raw_data_mutation_detected": "zero_violations_readonly_chain"
+  },
+  "s09_reconciliation_records": {
+    "count": 12,
+    "disposition": "rerun_track_via_assertion_engine_full(report_no2)"
+  },
+  "remaining_to_q5": [
+    "row_level_matcher",
+    "DATA.0021_zero_delta",
+    "BLK-001_owner",
+    "2_source_reexports",
+    "DATA.0012_full+render_gate"
+  ]
+}
