@@ -1,0 +1,9 @@
+{
+  "task_id": "TSK.KMFA.DATA.0007",
+  "phase": "2_extract_op_key_indicators",
+  "version": "op-indicators-v3",
+  "status": "EXTRACTED",
+  "rows": 36,
+  "bands": 3,
+  "indicators": 3
+}
