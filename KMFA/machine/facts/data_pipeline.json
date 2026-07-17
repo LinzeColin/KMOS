@@ -1,0 +1,33 @@
+{
+  "data_as_of_batch": "2026-07-16",
+  "lineage": "machine/lineage.yaml（raw→staging 机械生成，stale 判定可用）",
+  "next_gates": [
+    "operating_analysis/金蝶zip 抽取",
+    "facts 八件套全量重生成",
+    "渲染门真绿（DATA.0013）"
+  ],
+  "quality_blockers_open": 3,
+  "raw_assets_registered": 53,
+  "raw_domains": [
+    "WPS钉钉红圈",
+    "绩效",
+    "财务"
+  ],
+  "reconciliation_leads": "已收款>合同额 28 行（差异队列首批候选）",
+  "schema": "kmfa.facts.data_pipeline.v1",
+  "staging_rows_total": 19443,
+  "staging_tables": {
+    "bank_journal": {
+      "grade": "Q3",
+      "rows": 6536
+    },
+    "collection": {
+      "grade": "Q3",
+      "rows": 3726
+    },
+    "receivable_aging": {
+      "grade": "Q3",
+      "rows": 9181
+    }
+  }
+}
