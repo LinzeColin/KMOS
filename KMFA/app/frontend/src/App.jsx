@@ -1,4 +1,23 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import * as echarts from 'echarts/core'
+import { BarChart, PieChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
+import { SVGRenderer } from 'echarts/renderers'
+
+echarts.use([BarChart, PieChart, GridComponent, TooltipComponent, LegendComponent, SVGRenderer])
+
+function Chart({ option, height = '16rem' }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!ref.current || !option) return
+    const chart = echarts.init(ref.current, null, { renderer: 'svg' })
+    chart.setOption(option)
+    const onResize = () => chart.resize()
+    window.addEventListener('resize', onResize)
+    return () => { window.removeEventListener('resize', onResize); chart.dispose() }
+  }, [option])
+  return <div ref={ref} style={{ width: '100%', height }} />
+}
 
 const S = {
   body: { fontFamily: '-apple-system, "PingFang SC", sans-serif', maxWidth: '64rem', margin: '0 auto', padding: '2rem' },
@@ -32,6 +51,39 @@ function 概览({ 断言, 管线, 技能 }) {
         <div style={{ ...S.card, marginTop: '1rem' }}>
           <div style={S.muted}>对账现状</div>
           <div style={{ marginTop: '.4rem' }}>{管线.reconciliation_status}</div>
+        </div>
+      )}
+      {断言?.items?.length > 0 && (
+        <div style={S.grid}>
+          <div style={S.card}>
+            <div style={S.muted}>断言状态分布</div>
+            <Chart height="14rem" option={{
+              tooltip: { trigger: 'item' },
+              series: [{
+                type: 'pie', radius: ['45%', '72%'],
+                label: { formatter: '{b}\n{c}' },
+                data: Object.entries(断言.items.reduce((m, i) => ((m[i.status] = (m[i.status] ?? 0) + 1), m), {}))
+                  .map(([name, value]) => ({ name, value })),
+              }],
+            }} />
+          </div>
+          <div style={S.card}>
+            <div style={S.muted}>断言按域 × 状态</div>
+            <Chart height="14rem" option={(() => {
+              const 域 = [...new Set(断言.items.map(i => i.domain ?? '未标域'))]
+              const 态 = [...new Set(断言.items.map(i => i.status))]
+              return {
+                tooltip: {}, legend: { top: 0, textStyle: { fontSize: 10 } },
+                grid: { left: 8, right: 8, bottom: 0, top: 44, containLabel: true },
+                xAxis: { type: 'category', data: 域 },
+                yAxis: { type: 'value', minInterval: 1 },
+                series: 态.map(s => ({
+                  name: s, type: 'bar', stack: '断言',
+                  data: 域.map(d => 断言.items.filter(i => (i.domain ?? '未标域') === d && i.status === s).length),
+                })),
+              }
+            })()} />
+          </div>
         </div>
       )}
     </>
@@ -97,7 +149,17 @@ function 数据管线({ 管线 }) {
           <div style={S.muted}>未决质量卡点 {管线.quality_blockers_open ?? 0} 项</div></div>
       </div>
       <div style={{ ...S.card, marginTop: '1rem' }}>
-        <div style={S.muted}>派生层十表（私有 DuckDB，可由工具链零重建）</div>
+        <div style={S.muted}>派生层各表行数（对数轴）</div>
+        <Chart height={`${Math.max(表.length * 1.7, 10)}rem`} option={{
+          tooltip: {}, grid: { left: 8, right: 48, top: 8, bottom: 8, containLabel: true },
+          xAxis: { type: 'log', minorSplitLine: { show: false } },
+          yAxis: { type: 'category', data: 表.map(([名]) => 名).reverse(), axisLabel: { fontSize: 10 } },
+          series: [{ type: 'bar', data: 表.map(([, 值]) => 值.rows ?? 0).reverse(),
+            label: { show: true, position: 'right', formatter: p => p.value.toLocaleString('zh') } }],
+        }} />
+      </div>
+      <div style={{ ...S.card, marginTop: '1rem' }}>
+        <div style={S.muted}>派生层各表（私有 DuckDB，可由工具链零重建）</div>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '.6rem', fontSize: '.85rem' }}>
           <thead><tr><th style={S.td}>表</th><th style={{ ...S.td, textAlign: 'right' }}>行数</th></tr></thead>
           <tbody>
