@@ -1,0 +1,56 @@
+{
+  "task_id": "TSK.KMFA.DATA.0007",
+  "phase": "2_extract_collection",
+  "extractor_version": "collection-v1",
+  "files": 6,
+  "sheets_loaded": 43,
+  "sheets_deferred": 31,
+  "rows_loaded_this_run": 3726,
+  "table_total_rows": 3726,
+  "amount_parse_rejections": 227,
+  "amounts_integer_cents": true,
+  "per_file": [
+    {
+      "sha8": "0364f0b7",
+      "domain": "财务",
+      "sheets": 3,
+      "rows_loaded": 0,
+      "sheets_deferred_in_file": 3
+    },
+    {
+      "sha8": "5e5f46b6",
+      "domain": "WPS钉钉红圈",
+      "sheets": 14,
+      "rows_loaded": 190,
+      "sheets_deferred_in_file": 1
+    },
+    {
+      "sha8": "65da0afa",
+      "domain": "WPS钉钉红圈",
+      "sheets": 18,
+      "rows_loaded": 1050,
+      "sheets_deferred_in_file": 3
+    },
+    {
+      "sha8": "c409a545",
+      "domain": "财务",
+      "sheets": 5,
+      "rows_loaded": 0,
+      "sheets_deferred_in_file": 5
+    },
+    {
+      "sha8": "ccbc2859",
+      "domain": "WPS钉钉红圈",
+      "sheets": 14,
+      "rows_loaded": 554,
+      "sheets_deferred_in_file": 1
+    },
+    {
+      "sha8": "d45324b4",
+      "domain": "WPS钉钉红圈",
+      "sheets": 20,
+      "rows_loaded": 1932,
+      "sheets_deferred_in_file": 18
+    }
+  ]
+}
