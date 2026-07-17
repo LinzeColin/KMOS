@@ -21,9 +21,27 @@ app = FastAPI(title="KMFA App", version="0.1.0-prod0001")
 STATIC = Path(__file__).resolve().parent / "static"
 
 
+FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+
+
 @app.get("/")
 def index():
     return FileResponse(STATIC / "index.html")
+
+
+@app.get("/ui/")
+def ui_index():
+    if not (FRONTEND_DIST / "index.html").exists():
+        raise HTTPException(status_code=503, detail="前端未构建（KMFA/app/frontend: npm run build）")
+    return FileResponse(FRONTEND_DIST / "index.html")
+
+
+@app.get("/ui/assets/{asset_path:path}")
+def ui_assets(asset_path: str):
+    target = (FRONTEND_DIST / "assets" / asset_path).resolve()
+    if not str(target).startswith(str(FRONTEND_DIST.resolve())) or not target.is_file():
+        raise HTTPException(status_code=404)
+    return FileResponse(target)
 
 
 def load_json(path: Path):

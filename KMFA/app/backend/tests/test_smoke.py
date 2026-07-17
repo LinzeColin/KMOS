@@ -32,3 +32,8 @@ def test_skills_registry():
 def test_index_serves_dashboard():
     r = client.get("/")
     assert r.status_code == 200 and "KMFA 经营分析" in r.text
+
+
+def test_react_ui_served():
+    r = client.get("/ui/")
+    assert r.status_code == 200 and "root" in r.text
