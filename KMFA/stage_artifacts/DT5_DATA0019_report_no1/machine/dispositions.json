@@ -1,0 +1,16 @@
+{
+  "report_id": "KMFA-RECON-REPORT-0001",
+  "date": "2026-07-17",
+  "domain": "collection",
+  "contract": "owner_20260717_no_meeting_reconciliation(taskpack09)",
+  "dispositions": [
+    {"item": "2025-01..2025-10 six months", "status": "closed_matched", "delta_cents": 0},
+    {"item": "2025-04", "status": "closed_matched_tolerance", "delta_cents": -30000},
+    {"item": "2025-09", "status": "closed_matched_tolerance", "delta_cents": 69457},
+    {"item": "2025-03", "status": "analyzed_open", "delta_cents": 640000, "finding": "unique_single_row_equal_amount_located_private"},
+    {"item": "2025-07", "status": "analyzed_open", "delta_cents": 7179000, "finding": "composite_no_1or2_row_match; voucher_cross_check_pending"},
+    {"item": "2025-11", "status": "analyzed_open", "delta_cents": -146280290, "finding": "snapshot_timing_proven(11-19 vs 11-28)+49000_round_residual"},
+    {"item": "report_vs_bank_axis", "status": "analyzed_open", "finding": "category_split_direction_consistent; mapping_table_pending(DATA.0015)"}
+  ],
+  "evidence_refs": ["KMFA/stage_artifacts/DT5_DATA0018_recon_batch1/machine/recon_batch1.json"]
+}
