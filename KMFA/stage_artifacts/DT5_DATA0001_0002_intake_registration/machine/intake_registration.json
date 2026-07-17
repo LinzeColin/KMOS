@@ -1,0 +1,45 @@
+{
+  "task_ids": [
+    "TSK.KMFA.DATA.0001",
+    "TSK.KMFA.DATA.0002",
+    "TSK.KMFA.DATA.0003"
+  ],
+  "stage_id": "DT5",
+  "date": "2026-07-17",
+  "batch_cutoff": "2026-07-16",
+  "files_total": 53,
+  "format_counts": {
+    "xlsx": 31,
+    "xls": 9,
+    "pdf": 8,
+    "zip": 3,
+    "doc": 2
+  },
+  "grade_counts": {
+    "A0": 29,
+    "A1": 13,
+    "A2": 1,
+    "B": 10
+  },
+  "import_run_id": "IMP-20260717-193000-kmdb-batch-8142e3dc",
+  "registered": 51,
+  "quarantined_doc": 2,
+  "idempotent_rerun": "NOOP",
+  "zip_precheck": {
+    "zips": 3,
+    "suspicious_members": 0,
+    "member_lists_private": true
+  },
+  "raw_bytes_under_kmfa": false,
+  "owner_async_review": {
+    "scope_default": "excel_and_zip_full_intake_pdf_doc_grade_b_manual_fields",
+    "objection_window_hours": 48,
+    "starts": "2026-07-17T19:30+10:00"
+  },
+  "sop_ref": "KMFA/metadata/imports/新批次接收SOP.md",
+  "evidence_refs": [
+    "KMFA/metadata/imports/raw_file_manifest.jsonl",
+    "KMFA/metadata/imports/import_runs.jsonl",
+    "KMDatabase/data/manifest.jsonl"
+  ]
+}
