@@ -1,0 +1,29 @@
+{
+  "schema": "kmfa.recon.material_subject_map.v1",
+  "derived": "2026-07-18",
+  "method": "三键（月+规范化凭证号+金额）行级全等命中 183 行反推；两账套分布一致",
+  "map": {
+    "01": {
+      "subject_root": "1403001",
+      "subject_name": "主要材料（焊材类）"
+    },
+    "02": {
+      "subject_root": "1403002",
+      "subject_name": "辅助材料",
+      "transit_also": "1401 材料采购（在途/暂估过渡）"
+    },
+    "03": {
+      "subject_root": "1403003",
+      "subject_name": "修理备件"
+    },
+    "04": {
+      "subject_root": "1403004",
+      "subject_name": "工具/劳保/其他（140300401 工具、140300402 劳保、140300499 其他）"
+    }
+  },
+  "books": [
+    "湖北开明",
+    "武汉开明"
+  ],
+  "note": "收发明细为两账套混编；账套归属以凭证级金额全等判定（见 DT5_DATA0029）"
+}
