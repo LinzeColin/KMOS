@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bid_lifecycle.schema.json",
+  "title": "BidLifecycle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "record_id", "opportunity_id", "team_status", "not_submitted_reason", "outcome_status", "versions", "official_outcome_evidence"],
+  "properties": {
+    "contract_version": {"const": "0.4.1"},
+    "record_id": {"type": "string", "minLength": 1},
+    "opportunity_id": {"type": "string", "minLength": 1},
+    "team_status": {"enum": ["unknown", "planned", "submitted", "not_submitted", "withdrawn"]},
+    "not_submitted_reason": {"type": ["string", "null"]},
+    "outcome_status": {"enum": ["OUTCOME_PENDING", "QUALIFICATION_PASSED", "QUALIFICATION_REJECTED", "CANDIDATE_WINNER", "FINAL_WIN", "FINAL_LOSS", "CANCELLED", "FAILED", "REOPENED"]},
+    "versions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["version_id", "message_id", "file_sha256", "sheet", "row_locator", "formula", "displayed_value", "observed_at_raw"],
+        "properties": {
+          "version_id": {"type": "string"},
+          "message_id": {"type": "string"},
+          "file_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "sheet": {"type": "string"},
+          "row_locator": {"type": "string"},
+          "formula": {"type": ["string", "null"]},
+          "displayed_value": {"type": ["string", "number", "boolean", "null"]},
+          "observed_at_raw": {"type": "string"}
+        }
+      }
+    },
+    "official_outcome_evidence": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+  }
+}

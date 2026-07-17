@@ -1,0 +1,7 @@
+{
+  "contract_version": "0.4.1",
+  "router": "km-bid-scout",
+  "skills": ["discover", "evidence", "adjudicate", "qualify", "audit", "brief", "lifecycle", "evolve"],
+  "layers": ["SIGNAL", "NOTICE", "LOT", "OPPORTUNITY", "CAPTURE_HANDOFF"],
+  "integration": "KMIDS optional via KMDatabase schema/API after G0"
+}

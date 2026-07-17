@@ -1,5 +1,14 @@
 # IDS / Industrial Data System Handoff
 
+## Canonical Repository Override - 2026-07-18
+
+- Canonical GitHub repository is `LinzeColin/KMOS`; KMIDS is stored in `KM_IDSystem/`.
+- The local main tree `/Users/linzezhang/Documents/Codex/GithubProject/KMOS` is read-only. Development must use an isolated worktree under `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/`.
+- Older `LinzeColin/CodexProject`, `main_worktree/CodexProject/KM_IDS`, and `KM_IDS/KM_IDSystem` references below are historical evidence only and must not route new commits or pushes.
+- This override changes repository routing only. It does not authorize STAGE-041, production activation, enterprise DWS access, external writes, or raw-data access.
+- `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
+- Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
+
 ## Current Gate - 2026-07-14
 
 - Completed task: `IDS-V0_1-BATCH-031-040-UPLOAD-GATE`; this run contains no STAGE-041 work.

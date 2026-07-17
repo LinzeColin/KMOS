@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "capture_handoff.schema.json",
+  "title": "CaptureHandoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "handoff_id", "opportunity_id", "owner_accepted", "deadline", "legal_entity_id", "evidence_checklist", "gaps", "next_action", "forbidden_actions"],
+  "properties": {
+    "contract_version": {"const": "0.4.1"},
+    "handoff_id": {"type": "string"},
+    "opportunity_id": {"type": "string"},
+    "owner_accepted": {"const": true},
+    "deadline": {"type": ["string", "null"]},
+    "legal_entity_id": {"type": "string"},
+    "evidence_checklist": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "gaps": {"type": "array", "items": {"type": "string"}},
+    "next_action": {"type": "string", "minLength": 1},
+    "forbidden_actions": {
+      "type": "array",
+      "items": {"enum": ["auto_write_proposal", "auto_price", "auto_register", "auto_pay", "auto_sign", "auto_submit", "auto_message"]},
+      "minItems": 7,
+      "uniqueItems": true
+    }
+  }
+}

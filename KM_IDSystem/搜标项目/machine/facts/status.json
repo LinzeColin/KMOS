@@ -1,0 +1,10 @@
+{
+  "contract_version": "0.4.1",
+  "current_gate": "G0",
+  "state": "SKILL_CONTRACT_READY_PRODUCT_NOT_IMPLEMENTED",
+  "blockers": [
+    "source adapters, real-data integration and production performance baselines are not implemented",
+    "enterprise DWS authentication, exact profile and target conversation remain Owner-gated",
+    "external writes remain denied and require a separate authorized Run Contract"
+  ]
+}

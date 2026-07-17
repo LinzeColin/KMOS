@@ -1,0 +1,7 @@
+{
+  "contract_version": "0.4.1",
+  "project_id": "KM_BidScout",
+  "name": "搜标项目",
+  "goal": "只读发现、官方取证、标包决策、独立审计、Owner简报与结果闭环",
+  "status": "skill_contract_ready_product_not_implemented"
+}
