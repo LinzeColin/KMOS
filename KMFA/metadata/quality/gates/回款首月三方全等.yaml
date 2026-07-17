@@ -1,0 +1,13 @@
+gate_id: GATE-COLL-202501-TRIPLE
+名称: 2025-01 报表=权威台账=银行营业回款
+assertion_ref: AST-COLL-202501
+source_sql: >-
+  WITH rep AS (SELECT value_cents v FROM _staging.op_monthly
+               WHERE table_tag='cash_flow' AND metric='财务应收回款' AND month='2025-01'),
+  led AS (SELECT sum(collection_amount_cents) v FROM _staging.v_collection_authoritative
+          WHERE strftime(collection_date,'%Y-%m')='2025-01'),
+  bank AS (SELECT sum(receipt_amount_cents) v FROM _staging.bank_journal
+           WHERE flow_category='营业回款' AND strftime(journal_date,'%Y-%m')='2025-01')
+  SELECT (SELECT v FROM rep)-(SELECT v FROM led) AS 报表减台账,
+         (SELECT v FROM rep)-(SELECT v FROM bank) AS 报表减银行
+expect: {列: 报表减台账, 等于: 0, 且列: 报表减银行, 且等于: 0}

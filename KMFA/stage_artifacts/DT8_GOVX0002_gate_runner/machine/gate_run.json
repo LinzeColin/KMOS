@@ -1,0 +1,36 @@
+{
+  "task_id": "TSK.KMFA.GOVX.0002",
+  "gates": 3,
+  "pass": 3,
+  "fail": 0,
+  "results": [
+    {
+      "gate_id": "GATE-KD-VOUCHER-BALANCE",
+      "名称": "金蝶凭证级借贷平衡（五账套）",
+      "assertion_ref": "AST-KD-BALANCE-ALL5",
+      "values": {
+        "违例": 0
+      },
+      "result": "PASS"
+    },
+    {
+      "gate_id": "GATE-AGING-IDENTITY",
+      "名称": "应收台账 合同额-已收款=剩余金额",
+      "assertion_ref": "AST-AGING-IDENTITY",
+      "values": {
+        "违例": 0
+      },
+      "result": "PASS"
+    },
+    {
+      "gate_id": "GATE-COLL-202501-TRIPLE",
+      "名称": "2025-01 报表=权威台账=银行营业回款",
+      "assertion_ref": "AST-COLL-202501",
+      "values": {
+        "报表减台账": 0,
+        "报表减银行": 0
+      },
+      "result": "PASS"
+    }
+  ]
+}
