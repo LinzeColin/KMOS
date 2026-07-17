@@ -1,0 +1,87 @@
+{
+  "task_id": "TSK.KMFA.DATA.0007/0016",
+  "phase": "op_monthly+recon_probe",
+  "version": "op-monthly-v1",
+  "op_monthly_rows": 357,
+  "recon_months": 11,
+  "report_vs_bank_exact_months": 1,
+  "monthly": [
+    {
+      "month": "2025-01",
+      "report_cents": 487049314,
+      "collection_cents": 978898628,
+      "bank_yyhk_cents": 487049314,
+      "report_vs_bank_delta_cents": 0
+    },
+    {
+      "month": "2025-02",
+      "report_cents": 196161827,
+      "collection_cents": 394423654,
+      "bank_yyhk_cents": 196261827,
+      "report_vs_bank_delta_cents": -100000
+    },
+    {
+      "month": "2025-03",
+      "report_cents": 222298815,
+      "collection_cents": 459687630,
+      "bank_yyhk_cents": 211463253,
+      "report_vs_bank_delta_cents": 10835562
+    },
+    {
+      "month": "2025-04",
+      "report_cents": 260616810,
+      "collection_cents": 530463647,
+      "bank_yyhk_cents": 260603170,
+      "report_vs_bank_delta_cents": 13640
+    },
+    {
+      "month": "2025-05",
+      "report_cents": 244664769,
+      "collection_cents": 503989538,
+      "bank_yyhk_cents": 245214769,
+      "report_vs_bank_delta_cents": -550000
+    },
+    {
+      "month": "2025-06",
+      "report_cents": 101162346,
+      "collection_cents": 306274492,
+      "bank_yyhk_cents": 105372346,
+      "report_vs_bank_delta_cents": -4210000
+    },
+    {
+      "month": "2025-07",
+      "report_cents": 202249849,
+      "collection_cents": 421800698,
+      "bank_yyhk_cents": 207300168,
+      "report_vs_bank_delta_cents": -5050319
+    },
+    {
+      "month": "2025-08",
+      "report_cents": 128789939,
+      "collection_cents": 271079878,
+      "bank_yyhk_cents": 140123239,
+      "report_vs_bank_delta_cents": -11333300
+    },
+    {
+      "month": "2025-09",
+      "report_cents": 201737270,
+      "collection_cents": 433137413,
+      "bank_yyhk_cents": 210610878,
+      "report_vs_bank_delta_cents": -8873608
+    },
+    {
+      "month": "2025-10",
+      "report_cents": 299455610,
+      "collection_cents": 625021220,
+      "bank_yyhk_cents": 315965610,
+      "report_vs_bank_delta_cents": -16510000
+    },
+    {
+      "month": "2025-11",
+      "report_cents": 13227762,
+      "collection_cents": 345796304,
+      "bank_yyhk_cents": 23527762,
+      "report_vs_bank_delta_cents": -10300000
+    }
+  ]
+}
