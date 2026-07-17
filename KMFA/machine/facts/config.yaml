@@ -1,0 +1,34 @@
+{
+  "parameters": {
+    "零差异分": {
+      "value": 0,
+      "intent": "项目成本是对外口径，一分差异就是错，没有容忍带。调大等于放弃零差异，报告等级封顶 B。",
+      "where": "`machine/facts/config.yaml`"
+    },
+    "失败阈值分": {
+      "value": 1,
+      "intent": "1 分即失败；比 0 大是为了让 0 有意义（0 表示必须完全相等）。调大等于小额差异被静默吞掉。",
+      "where": "`machine/facts/config.yaml`"
+    },
+    "强自动匹配阈值": {
+      "value": 0.85,
+      "intent": "低于此值自动匹配会把不同项目并成一个，代价远大于人工复核。调低会误合并项目，调高会让人工队列暴涨。",
+      "where": "`machine/facts/config.yaml`"
+    },
+    "人工复核阈值": {
+      "value": 0.7,
+      "intent": "0.70 到 0.85 是「像但不确定」，交给人判断。",
+      "where": "`machine/facts/config.yaml`"
+    },
+    "拒绝阈值": {
+      "value": 0.5,
+      "intent": "低于 0.50 连候选都不算，避免垃圾候选污染队列。",
+      "where": "`machine/facts/config.yaml`"
+    },
+    "允许浮点": {
+      "value": false,
+      "intent": "浮点在累加万级行时必然产生分级误差，与零差异互斥。不要改——改了零差异在数学上不可能成立。",
+      "where": "`machine/facts/config.yaml`"
+    }
+  }
+}

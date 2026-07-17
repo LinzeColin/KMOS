@@ -1,0 +1,11 @@
+{
+  "version": "0.1.4",
+  "stage": "S05　A0 权威项目成本黄金基准",
+  "phase": "S05-P3　权威基准锁定",
+  "task": "S05-P3-T1　人工确认后将 Q4 字段升级为 Q5 计算基准",
+  "real_progress": "4/18 —— 结构上 18 个阶段校验器全部通过，但 S05 起的每一个阶段都依赖 A0 黄金基准，而 A0 从未从真实 PDF 生成。校验器只检查结构，不检查数字，所以「18/18」是假的。",
+  "report_grade": "D —— 缺失、过期、失败或关键差异未闭合",
+  "business_verdict": "Q4 / D / NO_GO / 3-9-2-1",
+  "evidence_status": "源优先级链第 1 环（原始授权导出）从未接通，lineage_complete 恒为 false",
+  "rendered_at": "2026-07-17"
+}

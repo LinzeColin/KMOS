@@ -34,10 +34,27 @@ LOG_WORDS = ["phase", "gate", "review", "remediation", "replay",
 ALLOW = {
     "kmfa", "github", "codex", "claude", "chatgpt", "python3", "python",
     "sha256", "hash", "csv", "json", "yaml", "html", "pdf", "xlsx", "xls",
-    "md", "id", "ok", "ui", "ux", "api", "wps", "http", "https", "url",
+    "md", "id", "ok", "ui", "ux", "api", "wps", "http", "https", "url", "py",
     "gitignore", "git", "pytest", "asia", "shanghai", "linzezhang",
     "documents", "downloads", "users", "metadata", "local", "runtime",
     "tools", "machine", "facts", "config", "docs", "true", "false", "v",
+    "render", "human", "render_human", "check", "budget", "blocker", "stop",
+    "dual", "plane", "install", "ci", "unknown", "features", "status",
+    "roadmap", "blockers", "plan", "acceptance", "runs", "ops", "changelog",
+    "data", "contract", "flows", "legacy", "gitkeep",
+    "streamlit", "fastapi", "flask", "django", "react", "vue", "node",
+    "npm", "pip", "docker", "sqlite", "postgres", "redis", "excel", "word",
+    "ppt", "xlsx", "docx", "pptx", "app", "cli", "sdk", "sql", "db",
+    "and", "or", "with", "for", "by", "raw", "live", "board", "top", "public",
+    "the", "a", "of", "to", "in", "on", "in_progress", "blocked", "active",
+    "done", "pending", "planned", "provider", "candidate", "comparison",
+    "goal", "non_goals", "users", "numbers", "data_shapes", "invariants",
+    "terms", "product", "glossary",
+    "agent", "agents", "codex", "schema", "release", "token", "tokens",
+    "linzecolin", "codexproject", "kmos", "metadatabase", "agentdatabase",
+    "governance", "kmfa", "kmids", "whkmsalary", "kmdatabase", "linzedatabase",
+    "serenity", "alipay", "alpha", "fifa", "qbvs", "eei", "pfi", "adp",
+    "openaidatabase", "atlas", "memory", "claude", "chatgpt",
 }
 
 CODE_BLOCK = re.compile(r"```.*?```", re.S)
@@ -60,7 +77,7 @@ def load_glossary(docs: Path) -> set:
     if not f.exists():
         return set()
     body = f.read_text(encoding="utf-8")
-    m = re.search(r"##\s*六、术语对照.*?(?=\n##\s|\Z)", body, re.S)
+    m = re.search(r"##\s*[一二三四五六七八九十]*、?\s*术语对照.*?(?=\n##\s|\Z)", body, re.S)
     if not m:
         return set()
     return {w.lower() for w in ENGLISH_WORD.findall(m.group(0))}
