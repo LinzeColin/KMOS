@@ -1,0 +1,27 @@
+# KMFA skills 云端运行基座。实例可随时回收：状态 = 本仓 + /opt/kmfa/secrets + 数据卷（每日备份回 KMDatabase/data）。
+services:
+  skills:
+    build: .
+    container_name: kmfa-skills
+    restart: always
+    environment:
+      TZ: Australia/Sydney
+      # 双跑纪律：默认不投递；双跑比对通过并经 Owner 同意后逐技能置 1。
+      KMFA_DELIVERY_ENABLED: "0"
+    env_file:
+      - /opt/kmfa/secrets/skills.env        # 600 权限，不入仓；键位见 secrets.env.example
+    volumes:
+      - /opt/kmfa/KMOS:/opt/kmfa/KMOS       # 仓库 checkout（技能代码 + gitignored 私有运行时路径）
+      - /opt/kmfa/secrets:/opt/kmfa/secrets:ro
+      - /opt/kmfa/logs:/var/log/kmfa
+      - dws-auth:/root/.dws                 # dws 登录态（加密存储），实例内持久
+      - dws-keyring:/root/.local/share/dws-cli
+    healthcheck:
+      test: ["CMD", "/opt/runtime/healthcheck.sh"]
+      interval: 5m
+      timeout: 20s
+      start_period: 1m
+
+volumes:
+  dws-auth:
+  dws-keyring:
