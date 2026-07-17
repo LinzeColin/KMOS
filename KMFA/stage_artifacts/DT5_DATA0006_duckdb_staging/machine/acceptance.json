@@ -1,0 +1,15 @@
+{
+  "task_id": "TSK.KMFA.DATA.0006",
+  "stage_id": "DT5",
+  "date": "2026-07-17",
+  "decision_basis": "D5=C 双引擎（DuckDB 分析派生层；SQLite 应用状态层留 DT6/PROD.0001）",
+  "db_location": "KMFA/.codex_private_runtime/duckdb/kmfa_staging.duckdb（gitignore 整目录，永不 tracked）",
+  "acceptance": {
+    "create_and_query": "PASS（_staging schema + extraction_manifest 表；information_schema 查询正常）",
+    "permission_check": "PASS（目录 0o700；git check-ignore 确认忽略）",
+    "write_benchmark": "PASS（1,000,000 行写入 0.369s；聚合 0.0033s；金额列为 BIGINT 整数分）"
+  },
+  "idempotency_design": "extraction_manifest.idempotency_key UNIQUE = hash(源文件指纹+sheet+抽取器版本)，为 DATA.0007 幂等抽取预留",
+  "runtime_deps": "duckdb（本地 venv 已验 1.5.4；容器侧随 DT6 数据栈镜像固化）",
+  "next": "DATA.0007 复用 v0.1.4 S07 文件适配器做 40 Excel 抽取（20-60 sheet/文件的报表型结构，通用表头法不适用——已实测确认）"
+}
