@@ -9,12 +9,15 @@
 - 旧 `/Users/linzezhang/CodexProject` 是事故隔离中的历史 checkout，push URL 已禁用；不要解锁、不要从其他旧 clone 绕过。
 - 迁移前 736 行 handoff 保存在 `machine/legacy/HANDOFF_PRE_KMOS_20260717.md`，仅供历史取证，不是当前执行合同。
 
-## 当前项目状态
+## 当前项目状态（2026-07-17 深夜刷新：打通线执行态）
 
-- 机器事实源：`machine/facts/`；人类入口：`文档/`。
-- 当前有效进度：`4/18`；当前业务任务 `S05-P3-T1`。
-- 当前状态：`Q4 / D / NO_GO / 3-9-2-1`，源优先级链未接通，`lineage_complete=false`。
-- Owner blocker `BLK-001`：8 份 PDF 加 1 份电子表格约 273 行字段尚未逐条确认。未解决前，不得把结构校验解释为业务完成。
+- 机器事实源：`machine/facts/`；人类入口：`文档/`（渲染产物，勿手写）。
+- **打通线（DT1-DT9）**：canonical roadmap 见 `docs/governance/roadmap.yaml`；DT1 收官、DT4 吸收、DT5 主体实弹运转、DT8 门禁引擎试点、DT9 前置与基座齐备、DT6 App 可部署。
+- **真实数据**：53 原始文件入 `KMOS/KMDatabase/data`（内容寻址）；私有派生层十表 204,697 行（`KMFA/tools/` 全链零重建可复现，实证过）。
+- **对账**：《一致性证明与差异分析报告》第 1/2 号已交付（`stage_artifacts/DT5_DATA0019_report_no*`）；断言表 `metadata/quality/assertions.jsonl` 20 条（closed 12）；回款轴 7/11 月 0 分差、开票轴集团口径差 3 分、五账套凭证 0 不平；声明式门禁 `tools/gate_runner.py` 三门全绿。
+- 旧口径提示：`4/18 / S05-P3-T1 / Q4 / D / NO_GO` 为 v1.5 业务线（S 系）状态，受 BLK-001 门控，与 DT 线并行存在；当前数据质量按 Q3（机器候选结构化）执行。
+- Owner blocker `BLK-001`：8 份 PDF + 1 份电子表格约 273 行字段尚未逐条确认——**A 级报告的唯一人门**。未解决前，不得把结构校验解释为业务完成。
+- **云端**：skills 运行基座与 App 部署件在 `KMFA/deploy/skills-runtime/` 与 `KMFA/app/`；等 Oracle ARM 实例 + `dws auth login --device` 一次 + Codex 应用停用 6 条旧排程（路线 B 已拍板）。实例日 runbook 见 deploy README。
 
 ## Repo 内 portable skills
 
