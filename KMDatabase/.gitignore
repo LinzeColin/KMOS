@@ -1,4 +1,5 @@
-# 实际数据不入库；仅 schema 与文档进版本控制
-data/
+# D11（Owner 2026-07-17）：原始数据经内容寻址入库（见 data/README.md）；数据库文件仍不入库
+data/**/.DS_Store
+data/**/*.part
 *.sqlite
 *.db
