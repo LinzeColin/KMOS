@@ -16,7 +16,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 DB_PATH = REPO / "KMFA" / ".codex_private_runtime" / "duckdb" / "kmfa_staging.duckdb"
-VERSION = "invoice-lines-v1"
+VERSION = "invoice-lines-v2"
 WANT = {"开票日期": "invoice_date", "发票单位": "counterparty", "税率": "tax_rate_raw",
         "含税合计": "amount_incl_tax_cents", "公司": "company_ref"}
 
@@ -67,11 +67,22 @@ def main() -> int:
             report.append({"sheet_hash": hashlib.sha256(sn.encode()).hexdigest()[:8], "status": "skip"})
             continue
         ws = wb[sn]
-        rows_iter = ws.iter_rows(values_only=True)
-        header = {norm(h): i for i, h in enumerate(next(rows_iter)) if h not in (None, "")}
+        rows_all = ws.iter_rows(values_only=True)
+        header, header_row = None, 0
+        for probe_i in range(1, 6):
+            r = next(rows_all, None)
+            if r is None:
+                break
+            cand = {norm(h): i for i, h in enumerate(r) if h not in (None, "")}
+            if "开票日期" in cand and "含税合计" in cand:
+                header, header_row = cand, probe_i
+                break
+        if header is None:
+            continue
+        rows_iter = rows_all
         cols = {canon: header.get(zh) for zh, canon in WANT.items()}
         inserted, empty_streak = 0, 0
-        for r_i, r in enumerate(rows_iter, 2):
+        for r_i, r in enumerate(rows_iter, header_row + 1):
             vals = {c: (r[i] if i is not None and i < len(r) else None) for c, i in cols.items()}
             if all(v in (None, "") for v in vals.values()):
                 empty_streak += 1

@@ -52,7 +52,7 @@ def main() -> int:
     if not any(e.get("version") == "v1.5.4" for e in chlog):
         chlog.insert(0, {
             "version": "v1.5.4", "date": "2026-07-17",
-            "summary": "对账工程化：行级匹配引擎 v2 达 72.9%（批量入账 57 笔确证）；声明式门禁引擎试点三门全绿（校验即配置生效）；App 后端骨架+中文仪表首页+部署件就位（页眉三元组 API）；开票明细入 staging；硬阻断六项逐项对证据，距 Q5 剩五项清单固化。",
+            "summary": "对账工程化：行级匹配引擎 v2 达 72.9%（批量入账 57 笔确证）；声明式门禁引擎试点三门全绿（校验即配置生效）；App 后端骨架+中文仪表首页+部署件就位（页眉三元组 API）；开票明细入 `_staging`；硬阻断六项逐项对证据，距 Q5 剩五项清单固化。",
         })
         chlog_path.write_text(json.dumps(chlog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if not any(e.get("version") == "v1.5.3" for e in chlog):
