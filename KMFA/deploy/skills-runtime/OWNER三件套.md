@@ -7,7 +7,8 @@
 
 1. Oracle Cloud 控制台 → Compute → **Always Free ARM（A1.Flex）**：Ubuntu 22.04 或 24.04，**4 OCPU / 24GB**（Always Free 顶配，不花钱、不开 PAYG）。
 2. SSH 公钥粘贴这一个（本机已备好私钥）：`~/.ssh/alpha_oracle_ed25519.pub` 的内容。
-3. 建好后把**公网 IP** 发我一句。后面全部由我来（拉仓、构建、起容器、Cloudflare Tunnel）。
+3. 建好后把**公网 IP** 发我一句。后面全部由我来——实例上一条命令引导到位：
+   `curl -fsSL https://raw.githubusercontent.com/LinzeColin/KMOS/main/KMFA/deploy/skills-runtime/bootstrap.sh | bash`
 
 ## ② dws 设备码登录（手机点一次）
 
