@@ -8,7 +8,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 ALLOWED_PREFIXES = [
-    "KMFA/daily_routine_check_skill/",
+    "KMFA/skills/每日工作检查/",
     "KMFA/metadata/daily_routine_check/",
     "KMFA/tools/daily_routine_check/",
     "KMFA/tests/test_daily_routine_check.py",
@@ -16,7 +16,7 @@ ALLOWED_PREFIXES = [
 BLOCKED_SUFFIXES = (".sqlite", ".db", ".jsonl", ".gz")
 BLOCKED_PARTS = ("private_runtime", ".env.local", "DWS_Outputs")
 VALIDATION_COMMANDS = [
-    ["python3", "KMFA/daily_routine_check_skill/tools/validate_skill_package.py"],
+    ["python3", "KMFA/skills/每日工作检查/tools/validate_skill_package.py"],
     ["python3", "-m", "unittest", "KMFA.tests.test_daily_routine_check", "-q"],
     ["git", "diff", "--check"],
 ]

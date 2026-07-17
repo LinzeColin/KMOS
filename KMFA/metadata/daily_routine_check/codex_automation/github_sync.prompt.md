@@ -21,7 +21,7 @@ python3 KMFA/tools/daily_routine_check/git_autosync.py --watch --interval-second
 Allowed paths:
 
 ```text
-KMFA/daily_routine_check_skill/
+KMFA/skills/每日工作检查/
 KMFA/metadata/daily_routine_check/
 KMFA/tools/daily_routine_check/
 KMFA/tests/test_daily_routine_check.py

@@ -15,13 +15,13 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CHECKER = REPO_ROOT / "KMFA" / "tools" / "automation" / "check_kmfa_automation_schedules.py"
 CONTRACT = REPO_ROOT / "KMFA" / "metadata" / "automation" / "codex_app_schedules.contract.toml"
-EVENING_PROMPT = REPO_ROOT / "KMFA" / "kmfa-dingtalk-attendance-skill" / "automation" / "evening_prompt.md"
-MORNING_PROMPT = REPO_ROOT / "KMFA" / "kmfa-dingtalk-attendance-skill" / "automation" / "morning_prompt.md"
+EVENING_PROMPT = REPO_ROOT / "KMFA" / "skills" / "钉钉考勤" / "automation" / "evening_prompt.md"
+MORNING_PROMPT = REPO_ROOT / "KMFA" / "skills" / "钉钉考勤" / "automation" / "morning_prompt.md"
 DWS_AUTH_KEEPALIVE_PROMPT = (
     REPO_ROOT / "KMFA" / "metadata" / "automation" / "dws_auth_keepalive.prompt.md"
 )
 DAILY_ROUTINE_VALIDATOR = (
-    REPO_ROOT / "KMFA" / "daily_routine_check_skill" / "tools" / "validate_skill_package.py"
+    REPO_ROOT / "KMFA" / "skills" / "每日工作检查" / "tools" / "validate_skill_package.py"
 )
 DAILY_ROUTINE_MANIFEST = (
     REPO_ROOT
@@ -40,15 +40,15 @@ DAILY_ROUTINE_PROMPT = (
     / "daily_routine_check.prompt.md"
 )
 DAILY_ROUTINE_CONTRACT_FILES = (
-    REPO_ROOT / "KMFA" / "daily_routine_check_skill" / "SKILL.md",
-    REPO_ROOT / "KMFA" / "daily_routine_check_skill" / "README.md",
-    REPO_ROOT / "KMFA" / "daily_routine_check_skill" / "功能清单.md",
-    REPO_ROOT / "KMFA" / "daily_routine_check_skill" / "references" / "codex_desktop_setup.md",
-    REPO_ROOT / "KMFA" / "daily_routine_check_skill" / "references" / "configuration.md",
-    REPO_ROOT / "KMFA" / "daily_routine_check_skill" / "references" / "data_contract.md",
-    REPO_ROOT / "KMFA" / "daily_routine_check_skill" / "references" / "runbook.md",
-    REPO_ROOT / "KMFA" / "daily_routine_check_skill" / "references" / "rules.md",
-    REPO_ROOT / "KMFA" / "daily_routine_check_skill" / "templates" / "env.local.example",
+    REPO_ROOT / "KMFA" / "skills" / "每日工作检查" / "SKILL.md",
+    REPO_ROOT / "KMFA" / "skills" / "每日工作检查" / "README.md",
+    REPO_ROOT / "KMFA" / "skills" / "每日工作检查" / "功能清单.md",
+    REPO_ROOT / "KMFA" / "skills" / "每日工作检查" / "references" / "codex_desktop_setup.md",
+    REPO_ROOT / "KMFA" / "skills" / "每日工作检查" / "references" / "configuration.md",
+    REPO_ROOT / "KMFA" / "skills" / "每日工作检查" / "references" / "data_contract.md",
+    REPO_ROOT / "KMFA" / "skills" / "每日工作检查" / "references" / "runbook.md",
+    REPO_ROOT / "KMFA" / "skills" / "每日工作检查" / "references" / "rules.md",
+    REPO_ROOT / "KMFA" / "skills" / "每日工作检查" / "templates" / "env.local.example",
     REPO_ROOT / "KMFA" / "metadata" / "daily_routine_check" / "README.md",
     REPO_ROOT / "KMFA" / "metadata" / "daily_routine_check" / "routine_rules.public.yaml",
     REPO_ROOT / "KMFA" / "metadata" / "daily_routine_check" / "onedrive_storage_manifest.yaml",

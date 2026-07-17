@@ -18,7 +18,7 @@ mkdir -p "$LOG_DIR"
 # 双跑纪律：未开启投递时强制 dry-run 语义（各技能读该变量；考勤守卫另有 ALLOW_DWS_COMMANDS）
 export KMFA_DELIVERY_ENABLED="${KMFA_DELIVERY_ENABLED:-0}"
 # SKL.0005：cron 环境不继承容器 ENV，这里显式钉死 OCR 引擎替换（swift Vision → Python 链）
-export KMFA_FUND_VISION_OCR_COMMAND="${KMFA_FUND_VISION_OCR_COMMAND:-python3 $ROOT/KMFA/fund-weekly-analysis-skill/tools/ocr_with_python.py}"
+export KMFA_FUND_VISION_OCR_COMMAND="${KMFA_FUND_VISION_OCR_COMMAND:-python3 $ROOT/KMFA/skills/资金周报/tools/ocr_with_python.py}"
 
 cd "$ROOT"
 export PYTHONPATH="$ROOT"
@@ -27,10 +27,10 @@ case "$SKILL" in
   attendance-morning)  CMD=(python3 KMFA/tools/dingtalk_attendance/run_attendance.py --run-type morning) ;;
   attendance-evening)  CMD=(python3 KMFA/tools/dingtalk_attendance/run_attendance.py --run-type evening) ;;
   work-check)          CMD=(python3 KMFA/tools/dingtalk_attendance/run_attendance.py --run-type evening --send-latest-report-only) ;;  # SKL.0003 演练时按契约核定
-  daily-routine)       CMD=(python3 KMFA/daily_routine_check_skill/tools/validate_skill_package.py) ;;   # SKL.0004 演练时替换为业务入口
-  fund-weekly)         CMD=(python3 KMFA/fund-weekly-analysis-skill/tools/validate_taskpack.py) ;;       # SKL.0005 OCR 替换后接业务入口
-  mgmt-monthly)        CMD=(python3 KMFA/mgmt-monthly-report-skill/tools/validate_skill_package.py) ;;   # SKL.0004 演练时替换为业务入口
-  upstream-archive)    CMD=(python3 KMFA/dingtalk-dws-archive-skill/tools/validate_skill_package.py) ;;  # dws drive 命令面核对后接业务入口
+  daily-routine)       CMD=(python3 KMFA/skills/每日工作检查/tools/validate_skill_package.py) ;;   # SKL.0004 演练时替换为业务入口
+  fund-weekly)         CMD=(python3 KMFA/skills/资金周报/tools/validate_taskpack.py) ;;       # SKL.0005 OCR 替换后接业务入口
+  mgmt-monthly)        CMD=(python3 KMFA/skills/经营月报/tools/validate_skill_package.py) ;;   # SKL.0004 演练时替换为业务入口
+  upstream-archive)    CMD=(python3 KMFA/skills/上游归档/tools/validate_skill_package.py) ;;  # dws drive 命令面核对后接业务入口
   daily-backup)        CMD=(bash -c 'cd /opt/kmfa/KMOS && git -C . pull --ff-only -q || true') ;;         # DATA 线入仓机制就绪后改为真备份
   *) echo "未知技能: $SKILL" >&2; exit 2 ;;
 esac

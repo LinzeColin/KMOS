@@ -20,7 +20,7 @@ from xml.etree import ElementTree as ET
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SKILL_ROOT = REPO_ROOT / "KMFA" / "fund-weekly-analysis-skill"
+SKILL_ROOT = REPO_ROOT / "KMFA" / "skills" / "资金周报"
 TEMPLATE = (
     REPO_ROOT
     / "KMFA"
@@ -421,7 +421,7 @@ class FundWeeklyAnalysisSkillContractTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
             repo_root = temp_root / "repo"
-            contract_dir = repo_root / "KMFA/fund-weekly-analysis-skill/automation"
+            contract_dir = repo_root / "KMFA/skills/资金周报/automation"
             contract_dir.mkdir(parents=True)
             contract = (SKILL_ROOT / "automation" / "codex_app_automation.contract.toml").read_text(encoding="utf-8")
             (contract_dir / "codex_app_automation.contract.toml").write_text(contract, encoding="utf-8")
@@ -450,7 +450,7 @@ class FundWeeklyAnalysisSkillContractTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
             repo_root = temp_root / "repo"
-            contract_dir = repo_root / "KMFA/fund-weekly-analysis-skill/automation"
+            contract_dir = repo_root / "KMFA/skills/资金周报/automation"
             contract_dir.mkdir(parents=True)
             contract = (SKILL_ROOT / "automation" / "codex_app_automation.contract.toml").read_text(encoding="utf-8")
             (contract_dir / "codex_app_automation.contract.toml").write_text(contract, encoding="utf-8")
@@ -476,7 +476,7 @@ class FundWeeklyAnalysisSkillContractTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
             repo_root = temp_root / "repo"
-            contract_dir = repo_root / "KMFA/fund-weekly-analysis-skill/automation"
+            contract_dir = repo_root / "KMFA/skills/资金周报/automation"
             contract_dir.mkdir(parents=True)
             contract = (SKILL_ROOT / "automation" / "codex_app_automation.contract.toml").read_text(encoding="utf-8")
             (contract_dir / "codex_app_automation.contract.toml").write_text(contract, encoding="utf-8")
@@ -508,7 +508,7 @@ class FundWeeklyAnalysisSkillContractTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
             repo_root = temp_root / "repo"
-            contract_dir = repo_root / "KMFA/fund-weekly-analysis-skill/automation"
+            contract_dir = repo_root / "KMFA/skills/资金周报/automation"
             contract_dir.mkdir(parents=True)
             stale_contract = (
                 (SKILL_ROOT / "automation" / "codex_app_automation.contract.toml")
@@ -698,7 +698,7 @@ class FundWeeklyAnalysisSkillContractTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = Path(temp_dir) / "repo"
             input_dir = Path(temp_dir) / "OneDrive-Personal" / "DWS_Outputs" / "付款请示群"
-            contract_dir = repo_root / "KMFA/fund-weekly-analysis-skill/automation"
+            contract_dir = repo_root / "KMFA/skills/资金周报/automation"
             contract_dir.mkdir(parents=True)
             contract = (SKILL_ROOT / "automation" / "codex_app_automation.contract.toml").read_text(encoding="utf-8")
             prompt = (SKILL_ROOT / "automation" / "weekly_mon_sat_1100_sydney.prompt.md").read_text(encoding="utf-8")
@@ -5045,7 +5045,7 @@ class FundWeeklyAnalysisSkillContractTest(unittest.TestCase):
                 repo_root
                 / "KMFA/metadata/fund_weekly_analysis/private_runtime/fact_promotion_execution_authorizations"
             )
-            contract_dir = repo_root / "KMFA/fund-weekly-analysis-skill/automation"
+            contract_dir = repo_root / "KMFA/skills/资金周报/automation"
             source_day.mkdir(parents=True)
             auth_dir.mkdir(parents=True)
             execution_auth_dir.mkdir(parents=True)

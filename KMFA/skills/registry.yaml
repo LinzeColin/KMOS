@@ -18,7 +18,7 @@ skills:
   # ---- 2026-07-17 抢救迁入：迁入前无任何版本控制 ----
   - id: gongzi-fafang-biaozhun
     name_zh: 工资发放标准
-    path: KMFA/skills/gongzi-fafang-biaozhun
+    path: KMFA/skills/工资发放标准
     status: MIGRATED_2026_07_17
     previous_location: "~/.codex/skills/gongzi-fafang-biaozhun"
     version_controlled_before: false
@@ -30,7 +30,7 @@ skills:
 
   - id: hongquan-main-contract-dws
     name_zh: 红圈主合同
-    path: KMFA/skills/hongquan-main-contract-dws
+    path: KMFA/skills/红圈主合同
     status: MIGRATED_2026_07_17
     previous_location: "~/.codex/skills/hongquan-main-contract-dws"
     version_controlled_before: false
@@ -42,7 +42,7 @@ skills:
 
   - id: info-fee-update
     name_zh: 信息费更新
-    path: KMFA/skills/info-fee-update
+    path: KMFA/skills/信息费更新
     status: MIGRATED_2026_07_17
     previous_location: "~/.codex/skills/info-fee-update"
     version_controlled_before: false
@@ -52,45 +52,48 @@ skills:
     hardcoded_local_paths: 1     # 待办：同上；且引用 Downloads/KMFA_MetaData
     contains_secrets: false
 
-  # ---- 已在仓库，本次仅登记，未物理移入 KMFA/skills/ ----
+  # ---- 2026-07-17 晚：五技能物理移入 KMFA/skills/ 并按 Owner 指令改中文目录名 ----
+  # 命名铁律：目录名给人看（中文），id 给机器看（保持稳定——SKILL.md 的 name、$调用、
+  # skill_id、排程映射全部继续用 id）。历史证据/append-only 账本保留旧路径原文。
   - id: kmfa-dingtalk-attendance-skill
     name_zh: 钉钉考勤
-    path: KMFA/kmfa-dingtalk-attendance-skill
-    status: REGISTERED_IN_PLACE
-    move_blocked_by: "27 处外部引用，含每天在跑的 KMFA/tools/dingtalk_attendance/ 生产代码"
+    path: KMFA/skills/钉钉考勤
+    status: MOVED_RENAMED_2026_07_17
+    previous_path: KMFA/kmfa-dingtalk-attendance-skill
+    moved_note: "含生产代码在内的活引用已全部改写；source_checksums 已重算；验证器绿"
     external_deps: ["dws (DingTalk Workspace CLI)"]
     external_deps_available_on_owner_mac: false   # ⚠️ command -v dws 找不到、~/.dws/ 不存在
     schedules: ["kmfa-attendance-morning", "kmfa-attendance-evening", "kmfa-work-check"]
 
   - id: dingtalk-dws-archive-skill
     name_zh: 上游归档（钉钉 DWS 全量归档）
-    path: KMFA/dingtalk-dws-archive-skill
-    status: REGISTERED_IN_PLACE
-    move_blocked_by: "3 处外部引用"
+    path: KMFA/skills/上游归档
+    status: MOVED_RENAMED_2026_07_17
+    previous_path: KMFA/dingtalk-dws-archive-skill
     external_deps: ["dws (DingTalk Workspace CLI)"]
     schedules: ["kmfa-upstream-dws-archive"]
 
   - id: fund-weekly-analysis-skill
     name_zh: 付款申请群资金周报
-    path: KMFA/fund-weekly-analysis-skill
-    status: REGISTERED_IN_PLACE
-    move_blocked_by: "9 处外部引用"
+    path: KMFA/skills/资金周报
+    status: MOVED_RENAMED_2026_07_17
+    previous_path: KMFA/fund-weekly-analysis-skill
     external_deps: []
     schedules: ["kmfa-fund-weekly"]
 
   - id: daily_routine_check_skill
     name_zh: 每日工作检查
-    path: KMFA/daily_routine_check_skill
-    status: REGISTERED_IN_PLACE
-    move_blocked_by: "12 处外部引用"
+    path: KMFA/skills/每日工作检查
+    status: MOVED_RENAMED_2026_07_17
+    previous_path: KMFA/daily_routine_check_skill
     external_deps: []
     schedules: []
 
   - id: mgmt-monthly-report-skill
     name_zh: 经营管理月报
-    path: KMFA/mgmt-monthly-report-skill
-    status: REGISTERED_IN_PLACE
-    move_blocked_by: "6 处外部引用"
+    path: KMFA/skills/经营月报
+    status: MOVED_RENAMED_2026_07_17
+    previous_path: KMFA/mgmt-monthly-report-skill
     external_deps: []
     schedules: []
 
@@ -169,10 +172,15 @@ open_issues:
       6 条 ACTIVE 排程 cwd 全部指向 2026-07-17 清理时删除的 main_worktree 路径，正在空跑失败。
       【处置变更 2026-07-17】Owner 指令：本地未运行的 skill 全部依赖云端运行——本地排程
       不再重绑 cwd，改由 KMFA/deploy/skills-runtime/ 的云端 cron 接管（DT9 双跑一刀切换）。
-      Owner 侧唯一动作变为：切换完成日在 Codex 应用里【停用】这 6 条旧排程（防双发），而非修复。
+      【Owner 拍板 2026-07-17 晚：路线 B】Owner 将在 Codex 应用里直接【停用】这 6 条
+      （处置清单已交付）；停用完成后本表 status 同步改 DISABLED，契约 toml 一并更新。
   - id: HARDCODED_PATHS
     severity: normal
-    detail: hongquan-main-contract-dws 与 info-fee-update 各有 1 处写死 Owner 本机绝对路径，换机/上云即失效。
+    detail: 红圈主合同 与 信息费更新 各有 1 处写死 Owner 本机绝对路径，换机/上云即失效。
   - id: FIVE_SKILLS_NOT_MOVED
-    severity: normal
-    detail: 5 个在仓 skill 共 57 处外部引用，物理移入 KMFA/skills/ 需同步改引用 + 回归测试，属独立重构。
+    severity: resolved_2026_07_17   # 本轮完成：全部移入 KMFA/skills/ 并改中文名
+    detail: >-
+      【已完成 2026-07-17 晚】5 个在仓 skill 已全部物理移入 KMFA/skills/ 并按 Owner 指令
+      改为中文目录名（钉钉考勤/每日工作检查/资金周报/经营月报/上游归档）；51+ 处活引用改写、
+      深度差一修复 ×8、考勤 source_checksums 重算、五验证器全绿；历史证据与 append-only
+      账本按不可篡改原则保留旧路径原文（rename map 见 登记册.md）。

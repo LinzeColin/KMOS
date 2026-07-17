@@ -23,8 +23,8 @@ from KMFA.tools.dingtalk_attendance.production_release import ProductionReleaseE
 
 AUTOMATION_IDS = {"morning": "kmfa", "evening": "kmfa-3"}
 PROMPT_PATHS = {
-    "morning": Path("KMFA/kmfa-dingtalk-attendance-skill/automation/morning_prompt.md"),
-    "evening": Path("KMFA/kmfa-dingtalk-attendance-skill/automation/evening_prompt.md"),
+    "morning": Path("KMFA/skills/钉钉考勤/automation/morning_prompt.md"),
+    "evening": Path("KMFA/skills/钉钉考勤/automation/evening_prompt.md"),
 }
 PRIVATE_DIAGNOSTIC_PATH = Path(
     "KMFA/metadata/dingtalk_attendance/private_runtime/production_release/latest_repository_diagnostic.json"

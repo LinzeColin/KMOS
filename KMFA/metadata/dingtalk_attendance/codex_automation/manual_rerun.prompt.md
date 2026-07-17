@@ -5,18 +5,18 @@ Use $kmfa-dingtalk-attendance-skill.
 如果当前 Codex agent 不能自动解析 repo-scoped skill，读取并遵守：
 
 ```text
-KMFA/kmfa-dingtalk-attendance-skill/SKILL.md
+KMFA/skills/钉钉考勤/SKILL.md
 ```
 
 手动补跑时只允许选择 `morning` 或 `evening`，所有业务日期和 run slot 都按北京时间 `Asia/Shanghai`。当前部署 cwd 为 `/Users/linzezhang/Documents/Codex/KMOS`；迁移到新电脑时使用同一 GitHub repo 的 `main` checkout。
 
 运行约束：
 1. cwd 只作为私有状态位置；branch、HEAD、origin HEAD 和 dirty paths 仅作诊断，不得阻断。不得为补跑执行 stash、reset、checkout、clean 或覆盖 owner 开发内容。
-2. 确认 `KMFA/kmfa-dingtalk-attendance-skill/SKILL.md` 存在。
+2. 确认 `KMFA/skills/钉钉考勤/SKILL.md` 存在。
 3. 设置 `TZ=Asia/Shanghai`，并按补跑目标设置 `KMFA_RUN_SLOT=morning` 或 `KMFA_RUN_SLOT=evening`。
 4. 只从已验证的 immutable production release 运行；固定入口为 `$HOME/Library/Application Support/Codex/KMFA/attendance-production/current` 下的 `KMFA/tools/dingtalk_attendance/production_entry.py`。repo preflight 只记录诊断，不得要求与 `origin/main` 同步或 clean。
-5. 运行 `KMFA/kmfa-dingtalk-attendance-skill/scripts/inspect_runtime.sh`。
-6. 运行 `KMFA/kmfa-dingtalk-attendance-skill/scripts/validate_offline.sh`。
+5. 运行 `KMFA/skills/钉钉考勤/scripts/inspect_runtime.sh`。
+6. 运行 `KMFA/skills/钉钉考勤/scripts/validate_offline.sh`。
 7. 运行 `python3 KMFA/tools/dingtalk_attendance/healthcheck.py --config-only`。
 8. 只有在本机授权允许时才执行补跑入口；否则 fail closed，报告 `DWS_AUTH_REQUIRED` 或配置 blocker。Do not fabricate data。入口必须以当前钉钉考勤组成员为统计范围，并以精确的 `attendance report columns/query-data` 官方列值作为唯一业务统计源。
 9. 发送任何结论前必须满足 `official_report_parity_status=PASS`、北京时间目标业务日完全覆盖且 `official_report_coverage_count == member_count`。出现 `OFFICIAL_ATTENDANCE_PARITY_FAILED` 时停止且不发送，禁止回退到 record/summary、两卡数量或个人 summary child 猜数。

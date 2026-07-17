@@ -1036,7 +1036,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
             root = Path(tmpdir)
             release = root / "release"
             home = root / "home"
-            prompt_path = release / "KMFA/kmfa-dingtalk-attendance-skill/automation/evening_prompt.md"
+            prompt_path = release / "KMFA/skills/钉钉考勤/automation/evening_prompt.md"
             config_path = home / ".codex/automations/kmfa-3/automation.toml"
             prompt_path.parent.mkdir(parents=True, exist_ok=True)
             config_path.parent.mkdir(parents=True, exist_ok=True)

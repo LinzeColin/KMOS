@@ -229,7 +229,7 @@ def validate_dingtalk_attendance_files(root: Path) -> dict[str, Any]:
         errors.append("prompt count drift")
     prompt_contracts, prompt_errors = validate_prompt_contracts(prompt_files)
     errors.extend(prompt_errors)
-    package_prompt_root = root / "kmfa-dingtalk-attendance-skill" / "automation"
+    package_prompt_root = root / "skills" / "钉钉考勤" / "automation"
     prompt_mirror_pairs = (
         (package_prompt_root / "morning_prompt.md", metadata_root / "codex_automation" / "morning_1035.prompt.md"),
         (package_prompt_root / "evening_prompt.md", metadata_root / "codex_automation" / "evening_2000.prompt.md"),
