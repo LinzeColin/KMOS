@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Excel → DuckDB _staging 抽取管线（TSK.KMFA.DATA.0007 阶段二，规格注册表驱动）。
 
-已接类别：collection（回款流水）｜receivable_aging（合同级应收台账）｜journal（银行日记账合并流水——签名含公司+资金户名，只取合并表防逐账户 sheet 重复）。
+已接类别：collection｜receivable_aging｜journal｜expense_lines（报表系列一·费用类明细，跨公司科目级流水）。
 逐 sheet 决策：类别签名列全命中才抽取，否则如实 deferred。金额 Decimal→整数分（float 拒）；
 比率类字段保留原文字符串（不引入 float）。幂等键=源指纹+sheet名+类别版本，重跑同指纹零 diff。
 库与明细永在 .codex_private_runtime（不 tracked）；公开面只出聚合计数。
@@ -49,6 +49,35 @@ CATEGORY_SPECS = {
             project_ref VARCHAR, note VARCHAR, row_seq VARCHAR)""",
         "columns": ["collection_date", "customer_ref", "contract_ref", "collection_amount_cents",
                      "receipt_method", "owner_ref", "project_ref", "note", "row_seq"],
+    },
+    "expense_lines": {
+        "version": "expense-v1",
+        "table": "expense_lines",
+        "signature": ("company_ref", "period_label", "subject_code", "amount_cents"),
+        "aliases": {
+            "company_ref": ("公司",),
+            "period_label": ("月份",),
+            "subject_code": ("科目代码",),
+            "subject_name": ("科目名称",),
+            "category_ref": ("大类",),
+            "voucher_date": ("凭证日期",),
+            "voucher_no": ("凭证号",),
+            "summary_text": ("摘要",),
+            "book_subject_code": ("账套代码",),
+            "book_subject_name": ("账套科目名称",),
+            "amount_cents": ("金额",),
+            "note": ("备注",),
+        },
+        "types": {"voucher_date": "date", "amount_cents": "cents"},
+        "require_value": "amount_cents",
+        "ddl": """CREATE TABLE IF NOT EXISTS _staging.expense_lines (
+            source_sha8 VARCHAR NOT NULL, sheet_hash VARCHAR NOT NULL, row_index INTEGER NOT NULL,
+            company_ref VARCHAR, period_label VARCHAR, subject_code VARCHAR, subject_name VARCHAR,
+            category_ref VARCHAR, voucher_date DATE, voucher_no VARCHAR, summary_text VARCHAR,
+            book_subject_code VARCHAR, book_subject_name VARCHAR, amount_cents BIGINT, note VARCHAR)""",
+        "columns": ["company_ref", "period_label", "subject_code", "subject_name", "category_ref",
+                     "voucher_date", "voucher_no", "summary_text", "book_subject_code",
+                     "book_subject_name", "amount_cents", "note"],
     },
     "journal": {
         "version": "journal-v1",
