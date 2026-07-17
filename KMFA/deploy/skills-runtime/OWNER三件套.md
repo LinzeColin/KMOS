@@ -4,22 +4,25 @@
 > 治理原则（你 2026-07-18 定）：统一治理、降复杂度、不加第四件——**Coolify**（唯一部署面板）+ **Cloudflare**（域名/TLS）+ **OVH VPS**（主机）。
 > 运行栈已在本机容器全量实证（arm64 + **amd64 目标架构端到端**六面全绿，见 `stage_artifacts/DT9_SKL0002_*`）；amd64 = OVH 同架构。云端部署件见 `KMFA/deploy/coolify/`。
 
-## 基建线已/将做（不用你管）
+## 基建线（operate 线）已/将做（不用你管）
 
-- ✅ OVH Singapore VPS-1（amd64、Ubuntu 24.04、2vCore/3.7GB）已采购 + 接管 + 基线。
-- ⏳ 主机装 Docker + Coolify（下一阶段）。
-- 之后我在 Coolify 登记 KMFA 两栈、按容量分批起（先 skills 只 dry-run，后 app）。
+- ✅ OVH Singapore VPS-1（amd64、Ubuntu 24.04、2vCore/3.7GB + 2G swap）已采购 + 接管 + 基线。
+- ✅ **Docker 已就绪**（29.6.2，amd64）；Coolify 待就位。
+- 连好下方 GitHub App 后，operate 线在 Coolify 建 project、登记 `KMFA/deploy/coolify/docker-compose.yml`、过容量 Gate、发 "P1-GO" → 我起 skills（dry-run），后按容量上 app。
 
-## 👤 只有你本人能做的两步
+## 👤 只有你本人能做的（都是点一下的小事）
 
-### ① dws 设备码登录（钉钉手机点一次）
+### ① 点连 Coolify 的 GitHub App（一次，约 1 分钟）——现在就能做
+在 Coolify 里授权连接你的 GitHub（`LinzeColin/KMOS`）；连好 operate 线才能登记资源。不依赖其它，随时可做。
+
+### ② dws 设备码登录（钉钉手机点一次）——P1-GO 起容器后
 skills 容器起来后，在 **Coolify → skills → Terminal** 我会跑：
 ```
 dws auth login --device      # 你钉钉手机弹一次确认 → 点同意
 ```
 之后无人值守（PAT 策略 + 保活由基座处理）。
 
-### ② Codex 应用停用 6 条旧排程（6 次点击）
+### ③ Codex 应用停用 6 条旧排程（6 次点击）——现在就能做
 这 6 条工作目录已删、每天空跑失败；**直接停用**，云端一刀接管：
 
 | id | 名称 |

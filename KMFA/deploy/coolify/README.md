@@ -8,9 +8,11 @@
 
 ---
 
-## 前置（基建线负责，一次）
+## 前置（operate 线拍板 2026-07-18；Coolify 资源类型 = Docker-Compose 指向本仓）
 
-主机装好 **Docker + Coolify**；Coolify 已能连本仓 `LinzeColin/KMOS`（公开仓，只读即可）。
+- ✅ **Docker 已就绪**（29.6.2 + compose + buildx，amd64）。
+- ⏳ **Owner 一次点连 Coolify 的 GitHub App**（STAGE-06.3）——连好后由 operate 线在 Coolify 建 project + 连 GitHub 源、登记本 `docker-compose.yml` 为 Docker-Compose 资源。分工：我维护仓内部署件（真相源），operate 线在 Coolify 登记指向它。
+- ⏳ **容量 Gate**（operate 线做）：Coolify+PG+Redis 常驻 ~1.3G，主机 3.7G + 2G swap，资金周报 OCR 峰值 ~1G 需错峰确认。过闸后 operate 线发 **"P1-GO"** 方动主机——在此之前只改仓、不碰主机。
 
 ## P1 —— 起 skills 栈（dry-run，不投递）
 
@@ -18,8 +20,9 @@
    `KMFA/deploy/coolify/docker-compose.yml`
    （默认只含 `skills` 服务；`app` 在 `full` profile 后置，P1 不起。）
 2. **Environment Variables**（Coolify 面板设，键位见同目录 `.env.example`）：
-   - `KMFA_DELIVERY_ENABLED=0`（务必 0——双跑期只记日志不投递）
-   - 其余 dws/webhook 键：有值填、暂无可留空（缺值按既有设计告警空跑，不阻塞起容器）。
+   - `KMFA_DELIVERY_ENABLED=0`（务必 0——双跑期只记日志不投递）。
+   - 敏感项（`DINGTALK_ROBOT_URL/SIGNING_KEY`、`DINGTALK_DING_ROBOT_CODE`、`KMFA_ALERT_WEBHOOK_TOKEN`）**勾 "Is Secret"**（Coolify 以 APP_KEY 加密；compose 内只有 `${KEY}` 占位、值不入仓）。键名以代码实读为准（勿把 `KMFA_ALERT_WEBHOOK_TOKEN` 简写）。有值填、暂无可留空（缺值告警空跑，不阻塞起容器）。
+   - dws 登录态**不是 env**：由托管 named volume `kmfa-dws-auth` 持久，Owner 首启 `dws auth login --device` 写一次即可。
 3. **Deploy**。起来后 Coolify 里 `kmfa-skills` 应为 healthy（cron 存活 + 台账）。
    - 自检：Coolify → skills → Terminal → `/opt/runtime/run_skill.sh self-audit` → 应 rc=0（证据链/血缘/双平面全绿）。
    - 时区自证：Terminal → `date +%z` 应为 `+0800`（entrypoint 守卫已挡任何非北京时区启动）。
