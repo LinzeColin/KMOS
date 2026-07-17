@@ -1,0 +1,32 @@
+{
+  "task_id": "TSK.KMFA.DATA.0009",
+  "phase": "kis_ledger_reclass",
+  "checks": [
+    {
+      "book": "彤烨",
+      "detail_debit": 3819855068,
+      "detail_credit": 3819855068,
+      "delta": 0,
+      "row_kinds": {
+        "年初余额": 544,
+        "本期合计": 688,
+        "detail": 569,
+        "parent_rollup": 553,
+        "本年累计": 688
+      }
+    },
+    {
+      "book": "曦悦",
+      "detail_debit": 412341227,
+      "detail_credit": 420192257,
+      "delta": -7851030,
+      "row_kinds": {
+        "本年累计": 209,
+        "年初余额": 150,
+        "本期合计": 209,
+        "detail": 195
+      }
+    }
+  ],
+  "authority_note": "KIS 账套权威视角=凭证列表（0 不平已证）；明细账视角供科目下钻"
+}
