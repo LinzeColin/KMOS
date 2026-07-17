@@ -1,5 +1,7 @@
 # KMFA Skills 云端运行基座（Oracle）
 
+> **Owner 看这里** → 上云前只差你三件事，全部步骤见 [OWNER三件套.md](OWNER三件套.md)（实例/设备码/停排程，约 15 分钟）。
+>
 > 任务：`TSK.KMFA.SKL.0002`（含 `SKL.0008` dws 采用决定）｜建立：2026-07-17
 > 目标：在产 skill 全部在 Oracle 云端运行——定时走容器内 cron，按需将来走 KMFA App 触发（DT6 之后）。
 > 本目录全部为代码与模板，**不含任何凭据**；凭据只存在云主机 `/opt/kmfa/secrets/`（600 权限）。
