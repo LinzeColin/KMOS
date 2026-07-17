@@ -20,6 +20,7 @@ staging_tables:
   - "_staging.loan_register"
   - "_staging.op_key_indicators"
   - "_staging.op_monthly"
+  - "_staging.personal_advance"
   - "_staging.receivable_aging"
   - "_staging.tax_composition"
 lineage_complete_v1: true
@@ -330,6 +331,11 @@ edges:
     sheet_hash: "8176b19d2558"
     rows: 17764
     version: "goods-movement-v1"
+  - from: "raw:d46f77b0c90d"
+    to: "_staging.personal_advance"
+    sheet_hash: "0b1c56a9cb05"
+    rows: 37
+    version: "personal-advance-v1"
   - from: "raw:958c7918da5d"
     to: "_staging.op_key_indicators"
     sheet_hash: "5ea177f304eb"

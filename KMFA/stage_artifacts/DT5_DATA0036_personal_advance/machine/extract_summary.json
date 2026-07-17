@@ -1,0 +1,15 @@
+{
+  "task_id": "TSK.KMFA.DATA.0007",
+  "phase": "2_extract_personal_advance",
+  "extractor_version": "personal-advance-v1",
+  "sheets_loaded": 1,
+  "rows_loaded_this_run": 37,
+  "table_total_rows": 37,
+  "amount_parse_rejections": 0,
+  "subcent_roundings": 0,
+  "amounts_integer_cents": true,
+  "empty_templates": [
+    "cc3963bc:12个人借支"
+  ],
+  "note": "右侧透视汇总块不入库（展示层，可由行块复算）"
+}

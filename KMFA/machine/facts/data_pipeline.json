@@ -16,7 +16,7 @@
   ],
   "reconciliation_status": "报告第1-5号已交付、七域并立：回款 7/11 月 0 分差；开票三角差 3 分；五账套凭证 0 不平；费用轴两账套全窗口收口；税费轴 36/39 格全等；借款轴流量级闭合（期初缺失具名）；材料轴 125/190 且可检假设穷尽；open 项全部挂具名触发",
   "schema": "kmfa.facts.data_pipeline.v1",
-  "staging_rows_total": 253864,
+  "staging_rows_total": 253901,
   "staging_tables": {
     "bank_journal": {
       "rows": 6536
@@ -47,6 +47,9 @@
     },
     "op_monthly": {
       "rows": 357
+    },
+    "personal_advance": {
+      "rows": 37
     },
     "receivable_aging": {
       "rows": 9181
