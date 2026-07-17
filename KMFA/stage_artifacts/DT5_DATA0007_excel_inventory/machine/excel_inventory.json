@@ -1,0 +1,427 @@
+{
+  "task_id": "TSK.KMFA.DATA.0007",
+  "phase": "1_inventory_and_adapter_mapping",
+  "excel_total": 40,
+  "inventoried": 40,
+  "open_errors": [],
+  "category_counts": {
+    "collection": 6,
+    "contract": 1,
+    "invoicing": 4,
+    "journal": 1,
+    "loan": 4,
+    "operating_analysis": 11,
+    "receivable_aging": 1,
+    "tax_filing": 1,
+    "unknown_deferred": 11
+  },
+  "spec_coverage": {
+    "finance_or_wps_spec_ready": 24,
+    "pending_new_spec": 5,
+    "unknown_deferred": 11
+  },
+  "sheet_total": 372,
+  "private_full_inventory_ref": "KMFA/.codex_private_runtime/imports/excel_sheet_inventory/full_inventory.json",
+  "files": [
+    {
+      "sha8": "e43ce6c5",
+      "domain": "财务",
+      "format": "xls",
+      "size_bytes": 28672,
+      "sheet_count": 3,
+      "max_rows": 16,
+      "matched_category": "invoicing",
+      "spec_source": "wps"
+    },
+    {
+      "sha8": "71a4084c",
+      "domain": "财务",
+      "format": "xls",
+      "size_bytes": 124928,
+      "sheet_count": 5,
+      "max_rows": 79,
+      "matched_category": "tax_filing",
+      "spec_source": "pending_spec"
+    },
+    {
+      "sha8": "14091286",
+      "domain": "财务",
+      "format": "xls",
+      "size_bytes": 4575232,
+      "sheet_count": 15,
+      "max_rows": 5481,
+      "matched_category": "operating_analysis",
+      "spec_source": "finance"
+    },
+    {
+      "sha8": "7bee02d0",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 1337578,
+      "sheet_count": 13,
+      "max_rows": 65516,
+      "matched_category": "operating_analysis",
+      "spec_source": "finance"
+    },
+    {
+      "sha8": "cc3963bc",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 7525691,
+      "sheet_count": 20,
+      "max_rows": 20969,
+      "matched_category": "operating_analysis",
+      "spec_source": "finance"
+    },
+    {
+      "sha8": "bb8258f1",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 2105079,
+      "sheet_count": 60,
+      "max_rows": 6920,
+      "matched_category": "journal",
+      "spec_source": "finance"
+    },
+    {
+      "sha8": "d46f77b0",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 6472730,
+      "sheet_count": 20,
+      "max_rows": 17766,
+      "matched_category": "operating_analysis",
+      "spec_source": "finance"
+    },
+    {
+      "sha8": "ccbc2859",
+      "domain": "WPS钉钉红圈",
+      "format": "xlsx",
+      "size_bytes": 68809,
+      "sheet_count": 14,
+      "max_rows": 138,
+      "matched_category": "collection",
+      "spec_source": "wps"
+    },
+    {
+      "sha8": "4f2a79de",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 23675,
+      "sheet_count": 3,
+      "max_rows": 14,
+      "matched_category": "unknown_deferred",
+      "spec_source": "none"
+    },
+    {
+      "sha8": "1d052b63",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 29063,
+      "sheet_count": 3,
+      "max_rows": 13,
+      "matched_category": "operating_analysis",
+      "spec_source": "finance"
+    },
+    {
+      "sha8": "3da141a8",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 24428,
+      "sheet_count": 6,
+      "max_rows": 43,
+      "matched_category": "unknown_deferred",
+      "spec_source": "none"
+    },
+    {
+      "sha8": "0cb6cbee",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 571638,
+      "sheet_count": 16,
+      "max_rows": 65436,
+      "matched_category": "operating_analysis",
+      "spec_source": "finance"
+    },
+    {
+      "sha8": "ed4b8ac9",
+      "domain": "财务",
+      "format": "xls",
+      "size_bytes": 3007488,
+      "sheet_count": 17,
+      "max_rows": 823,
+      "matched_category": "operating_analysis",
+      "spec_source": "finance"
+    },
+    {
+      "sha8": "0f39b9f2",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 29561,
+      "sheet_count": 3,
+      "max_rows": 93,
+      "matched_category": "unknown_deferred",
+      "spec_source": "none"
+    },
+    {
+      "sha8": "65da0afa",
+      "domain": "WPS钉钉红圈",
+      "format": "xlsx",
+      "size_bytes": 244404,
+      "sheet_count": 18,
+      "max_rows": 700,
+      "matched_category": "collection",
+      "spec_source": "wps"
+    },
+    {
+      "sha8": "5e5f46b6",
+      "domain": "WPS钉钉红圈",
+      "format": "xlsx",
+      "size_bytes": 54650,
+      "sheet_count": 14,
+      "max_rows": 65,
+      "matched_category": "collection",
+      "spec_source": "wps"
+    },
+    {
+      "sha8": "9911db0a",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 23796,
+      "sheet_count": 6,
+      "max_rows": 43,
+      "matched_category": "unknown_deferred",
+      "spec_source": "none"
+    },
+    {
+      "sha8": "1053e64a",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 17127,
+      "sheet_count": 3,
+      "max_rows": 31,
+      "matched_category": "invoicing",
+      "spec_source": "wps"
+    },
+    {
+      "sha8": "c730c205",
+      "domain": "WPS钉钉红圈",
+      "format": "xlsx",
+      "size_bytes": 47357,
+      "sheet_count": 3,
+      "max_rows": 63,
+      "matched_category": "unknown_deferred",
+      "spec_source": "none"
+    },
+    {
+      "sha8": "e2c0e634",
+      "domain": "WPS钉钉红圈",
+      "format": "xlsx",
+      "size_bytes": 144903,
+      "sheet_count": 1,
+      "max_rows": 1,
+      "matched_category": "operating_analysis",
+      "spec_source": "finance"
+    },
+    {
+      "sha8": "221ecc05",
+      "domain": "绩效",
+      "format": "xlsx",
+      "size_bytes": 869113,
+      "sheet_count": 3,
+      "max_rows": 25,
+      "matched_category": "unknown_deferred",
+      "spec_source": "none"
+    },
+    {
+      "sha8": "89a94a46",
+      "domain": "WPS钉钉红圈",
+      "format": "xlsx",
+      "size_bytes": 811612,
+      "sheet_count": 9,
+      "max_rows": 1117,
+      "matched_category": "unknown_deferred",
+      "spec_source": "none"
+    },
+    {
+      "sha8": "f1774dd2",
+      "domain": "财务",
+      "format": "xls",
+      "size_bytes": 23552,
+      "sheet_count": 3,
+      "max_rows": 12,
+      "matched_category": "unknown_deferred",
+      "spec_source": "none"
+    },
+    {
+      "sha8": "f6550002",
+      "domain": "财务",
+      "format": "xls",
+      "size_bytes": 171008,
+      "sheet_count": 3,
+      "max_rows": 338,
+      "matched_category": "operating_analysis",
+      "spec_source": "finance"
+    },
+    {
+      "sha8": "0364f0b7",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 77544,
+      "sheet_count": 3,
+      "max_rows": 274,
+      "matched_category": "collection",
+      "spec_source": "wps"
+    },
+    {
+      "sha8": "c409a545",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 235339,
+      "sheet_count": 5,
+      "max_rows": 1232,
+      "matched_category": "collection",
+      "spec_source": "wps"
+    },
+    {
+      "sha8": "1c497dc2",
+      "domain": "WPS钉钉红圈",
+      "format": "xlsx",
+      "size_bytes": 7765246,
+      "sheet_count": 5,
+      "max_rows": 4597,
+      "matched_category": "receivable_aging",
+      "spec_source": "wps"
+    },
+    {
+      "sha8": "d45324b4",
+      "domain": "WPS钉钉红圈",
+      "format": "xlsx",
+      "size_bytes": 10774066,
+      "sheet_count": 20,
+      "max_rows": 4561,
+      "matched_category": "collection",
+      "spec_source": "wps"
+    },
+    {
+      "sha8": "4c2e9f5a",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 7493281,
+      "sheet_count": 17,
+      "max_rows": 59,
+      "matched_category": "loan",
+      "spec_source": "pending_spec"
+    },
+    {
+      "sha8": "466f4a68",
+      "domain": "WPS钉钉红圈",
+      "format": "xlsx",
+      "size_bytes": 36607,
+      "sheet_count": 2,
+      "max_rows": 45,
+      "matched_category": "unknown_deferred",
+      "spec_source": "none"
+    },
+    {
+      "sha8": "eab03362",
+      "domain": "财务",
+      "format": "xls",
+      "size_bytes": 102400,
+      "sheet_count": 3,
+      "max_rows": 210,
+      "matched_category": "operating_analysis",
+      "spec_source": "finance"
+    },
+    {
+      "sha8": "fd9189bf",
+      "domain": "WPS钉钉红圈",
+      "format": "xlsx",
+      "size_bytes": 747031,
+      "sheet_count": 1,
+      "max_rows": 1,
+      "matched_category": "contract",
+      "spec_source": "wps"
+    },
+    {
+      "sha8": "958c7918",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 17347846,
+      "sheet_count": 12,
+      "max_rows": 1047700,
+      "matched_category": "operating_analysis",
+      "spec_source": "finance"
+    },
+    {
+      "sha8": "65740a0c",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 243100,
+      "sheet_count": 11,
+      "max_rows": 78,
+      "matched_category": "unknown_deferred",
+      "spec_source": "none"
+    },
+    {
+      "sha8": "5679255e",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 246552,
+      "sheet_count": 11,
+      "max_rows": 79,
+      "matched_category": "unknown_deferred",
+      "spec_source": "none"
+    },
+    {
+      "sha8": "10d09646",
+      "domain": "财务",
+      "format": "xls",
+      "size_bytes": 31232,
+      "sheet_count": 3,
+      "max_rows": 13,
+      "matched_category": "loan",
+      "spec_source": "pending_spec"
+    },
+    {
+      "sha8": "82c1d2b1",
+      "domain": "财务",
+      "format": "xls",
+      "size_bytes": 32256,
+      "sheet_count": 3,
+      "max_rows": 13,
+      "matched_category": "loan",
+      "spec_source": "pending_spec"
+    },
+    {
+      "sha8": "72aa8ee6",
+      "domain": "财务",
+      "format": "xlsx",
+      "size_bytes": 9169506,
+      "sheet_count": 13,
+      "max_rows": 63,
+      "matched_category": "loan",
+      "spec_source": "pending_spec"
+    },
+    {
+      "sha8": "dd7241ab",
+      "domain": "WPS钉钉红圈",
+      "format": "xlsx",
+      "size_bytes": 651624,
+      "sheet_count": 1,
+      "max_rows": 1,
+      "matched_category": "invoicing",
+      "spec_source": "wps"
+    },
+    {
+      "sha8": "464a7f25",
+      "domain": "WPS钉钉红圈",
+      "format": "xlsx",
+      "size_bytes": 651636,
+      "sheet_count": 1,
+      "max_rows": 1,
+      "matched_category": "invoicing",
+      "spec_source": "wps"
+    }
+  ]
+}
