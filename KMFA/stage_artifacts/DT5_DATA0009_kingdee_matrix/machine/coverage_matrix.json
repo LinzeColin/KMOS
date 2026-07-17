@@ -1,0 +1,124 @@
+{
+  "task_id": "TSK.KMFA.DATA.0009",
+  "phase": "1_unpack_and_matrix",
+  "source_sha8": "235a94d9",
+  "members": 10,
+  "books": [
+    "彤烨",
+    "曦悦",
+    "武汉开明",
+    "湖北岚丹",
+    "湖北开明"
+  ],
+  "coverage": [
+    {
+      "book": "彤烨",
+      "detail_ledger": true,
+      "voucher_list": true
+    },
+    {
+      "book": "曦悦",
+      "detail_ledger": true,
+      "voucher_list": true
+    },
+    {
+      "book": "武汉开明",
+      "detail_ledger": true,
+      "voucher_list": true
+    },
+    {
+      "book": "湖北岚丹",
+      "detail_ledger": true,
+      "voucher_list": true
+    },
+    {
+      "book": "湖北开明",
+      "detail_ledger": true,
+      "voucher_list": true
+    }
+  ],
+  "entries": [
+    {
+      "book": "彤烨",
+      "kind": "voucher_list",
+      "format": "xls",
+      "period_label": "26.1-26.5月",
+      "sheet_count": 1,
+      "size_bytes": 127488
+    },
+    {
+      "book": "彤烨",
+      "kind": "detail_ledger",
+      "format": "xls",
+      "period_label": "26.1-26.5月.",
+      "sheet_count": 1,
+      "size_bytes": 388608
+    },
+    {
+      "book": "曦悦",
+      "kind": "voucher_list",
+      "format": "xls",
+      "period_label": "2025.1-2026.5.",
+      "sheet_count": 1,
+      "size_bytes": 40960
+    },
+    {
+      "book": "曦悦",
+      "kind": "detail_ledger",
+      "format": "xls",
+      "period_label": "25.1-26.5",
+      "sheet_count": 1,
+      "size_bytes": 98304
+    },
+    {
+      "book": "武汉开明",
+      "kind": "detail_ledger",
+      "format": "xlsx",
+      "period_label": "2025年第1期 至 2026年第5期",
+      "sheet_count": 2811,
+      "size_bytes": 9818345
+    },
+    {
+      "book": "武汉开明",
+      "kind": "voucher_list",
+      "format": "xlsx",
+      "period_label": "2025年第1期 至 第2026年第5期",
+      "sheet_count": 1,
+      "size_bytes": 1263918
+    },
+    {
+      "book": "湖北岚丹",
+      "kind": "detail_ledger",
+      "format": "xlsx",
+      "period_label": "2025年第1期 至 2026年第5期",
+      "sheet_count": 137,
+      "size_bytes": 424192
+    },
+    {
+      "book": "湖北岚丹",
+      "kind": "voucher_list",
+      "format": "xlsx",
+      "period_label": "2025年第1期 至 第2026年第5期",
+      "sheet_count": 1,
+      "size_bytes": 130989
+    },
+    {
+      "book": "湖北开明",
+      "kind": "detail_ledger",
+      "format": "xlsx",
+      "period_label": "2025年第1期 至 2026年第5期",
+      "sheet_count": 1019,
+      "size_bytes": 3478999
+    },
+    {
+      "book": "湖北开明",
+      "kind": "voucher_list",
+      "format": "xlsx",
+      "period_label": "2025年第1期 至 第2026年第5期",
+      "sheet_count": 1,
+      "size_bytes": 54789
+    }
+  ],
+  "structure_note": "明细账=每科目一 sheet（单账套 2,811 sheet 实测）；表头固定第 3 行：科目/客户/职员/供应商/部门/销售合同号/研发项目/往来/日期/凭证字号/摘要/借方/贷方/方向/余额（以侦察记录为准）",
+  "next": "阶段二：kingdee 规格接入 staging_extract（海量 sheet 流式抽取）+ 借贷平衡初检 + 与 bank_journal 交叉盘点"
+}
