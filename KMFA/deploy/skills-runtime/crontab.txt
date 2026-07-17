@@ -8,12 +8,9 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 35 10 * * *   root /opt/runtime/run_skill.sh attendance-morning  >> /var/log/kmfa/cron.log 2>&1
 5  20 * * *   root /opt/runtime/run_skill.sh attendance-evening  >> /var/log/kmfa/cron.log 2>&1
 
-# 钉钉工作检查（同一技能栈的午晚检查位）
-35 13 * * *   root /opt/runtime/run_skill.sh work-check          >> /var/log/kmfa/cron.log 2>&1
-5  19 * * *   root /opt/runtime/run_skill.sh work-check          >> /var/log/kmfa/cron.log 2>&1
-
-# 每日工作检查（日检，SKL.0004）
-30 11 * * *   root /opt/runtime/run_skill.sh daily-routine       >> /var/log/kmfa/cron.log 2>&1
+# 钉钉工作检查 = 每日工作检查技能（业务窗 11:35/17:05 沪 = 13:35/19:05 悉尼；SKL.0004 已演练）
+35 13 * * *   root /opt/runtime/run_skill.sh work-check-morning  >> /var/log/kmfa/cron.log 2>&1
+5  19 * * *   root /opt/runtime/run_skill.sh work-check-evening  >> /var/log/kmfa/cron.log 2>&1
 
 # 资金周报（周一/周六，SKL.0005：swift OCR 替换完成前保持 dry-run）
 0  11 * * 1,6 root /opt/runtime/run_skill.sh fund-weekly         >> /var/log/kmfa/cron.log 2>&1
