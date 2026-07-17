@@ -8,15 +8,16 @@ covered_categories:
   - "receivable_aging"
   - "journal"
 raw_assets: 53
-raw_with_staging_edges: 11
+raw_with_staging_edges: 13
 raw_deferred_all_sheets: 2
-raw_not_yet_extracted: 40
+raw_not_yet_extracted: 38
 staging_tables:
   - "_staging.bank_journal"
   - "_staging.collection"
   - "_staging.expense_lines"
   - "_staging.goods_movement"
   - "_staging.invoice_lines"
+  - "_staging.invoice_raw"
   - "_staging.loan_register"
   - "_staging.op_key_indicators"
   - "_staging.op_monthly"
@@ -225,12 +226,10 @@ nodes:
     domain: "WPS钉钉红圈"
     batch: "2026-07-16"
     size_bytes: 651624
-    status: "not_yet_extracted"
   - asset: "raw:464a7f2509ba"
     domain: "WPS钉钉红圈"
     batch: "2026-07-16"
     size_bytes: 651636
-    status: "not_yet_extracted"
   - asset: "raw:babc62c160db"
     domain: "WPS钉钉红圈"
     batch: "2026-07-16"
@@ -617,3 +616,13 @@ edges:
     sheet_hash: "e2ce0e2e684e"
     rows: 520
     version: "collection-v1"
+  - from: "raw:dd7241ab1b85"
+    to: "_staging.invoice_raw"
+    sheet_hash: "e87e377676fc"
+    rows: 4346
+    version: "invoice-raw-v1"
+  - from: "raw:464a7f2509ba"
+    to: "_staging.invoice_raw"
+    sheet_hash: "e87e377676fc"
+    rows: 4346
+    version: "invoice-raw-v1"
