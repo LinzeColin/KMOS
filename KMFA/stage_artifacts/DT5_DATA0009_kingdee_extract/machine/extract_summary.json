@@ -1,0 +1,48 @@
+{
+  "task_id": "TSK.KMFA.DATA.0009",
+  "phase": "2_extract",
+  "version": "kingdee-v1",
+  "books_extracted": [
+    {
+      "book": "武汉开明",
+      "rows": 116936,
+      "detail_rows": 18322,
+      "subject_sheets": 2811,
+      "period": [
+        "2025-01-01",
+        "2026-06-30"
+      ],
+      "detail_debit_cents": 57834912322,
+      "detail_credit_cents": 57834912322,
+      "balance_delta_cents": 0
+    },
+    {
+      "book": "湖北岚丹",
+      "rows": 4467,
+      "detail_rows": 1708,
+      "subject_sheets": 137,
+      "period": [
+        "2025-01-01",
+        "2026-05-31"
+      ],
+      "detail_debit_cents": 8790770464,
+      "detail_credit_cents": 8790770464,
+      "balance_delta_cents": 0
+    },
+    {
+      "book": "湖北开明",
+      "rows": 37771,
+      "detail_rows": 10781,
+      "subject_sheets": 1019,
+      "period": [
+        "2025-01-01",
+        "2026-05-31"
+      ],
+      "detail_debit_cents": 33011614490,
+      "detail_credit_cents": 33011614490,
+      "balance_delta_cents": 0
+    }
+  ],
+  "table_total_rows": 159174,
+  "open_issue": "彤烨/曦悦（.xls 导出）表头变体未命中：0 行，manifest 已记；kingdee-v2 探明变体后版本升号重抽"
+}
