@@ -1,0 +1,55 @@
+{
+  "task_id": "TSK.KMFA.DATA.0010",
+  "date": "2026-07-17",
+  "grading_contract": "kmfa.quality_grade_policy.v1",
+  "staging_tables": [
+    {
+      "table": "collection",
+      "rows": 3726,
+      "grade": "Q3",
+      "period": [
+        "2024-01-03",
+        "2026-06-30"
+      ],
+      "hard_dup_rows": 0,
+      "business_dup_groups": 844,
+      "null_key_rates": {
+        "collection_date": 0.0158
+      }
+    },
+    {
+      "table": "receivable_aging",
+      "rows": 9181,
+      "grade": "Q3",
+      "period": [
+        "2006-12-11",
+        "2025-07-22"
+      ],
+      "contract_ref_dup_rows": 4585,
+      "received_gt_contract_rows": 28,
+      "identity_mismatch_rows": 0,
+      "null_key_rates": {
+        "contract_amount_cents": 0.0312
+      }
+    },
+    {
+      "table": "bank_journal",
+      "rows": 6536,
+      "grade": "Q3",
+      "period": [
+        "2023-10-01",
+        "2025-11-19"
+      ],
+      "negative_amount_rows": 0,
+      "net_flow_cents": 68151738,
+      "balance_check": "净流可计算；逐账户期末余额核对留给金蝶明细账交叉盘点（DATA.0009）"
+    }
+  ],
+  "unextracted_assets_grade": "Q1（已登记未解析：45 个资产，见 machine/lineage.yaml）",
+  "overall": "三表 Q3（机器候选结构化，preview_allowed=true，decision_use=false）；Q4 需人工确认黄金字段（BLK-001 族），Q5 需零差异全量验证（DATA.0021）",
+  "blockers": [
+    "collection: 业务四元组疑似重复 844 组（日期+客户+合同+金额），需 DATA.0021 零差异前处置",
+    "receivable_aging: 合同号重复行 4585（同合同多轮快照/多 sheet），facts 层需按最新快照归并",
+    "receivable_aging: 累计已收款>合同确定金额 28 行（可能含税差/变更单），进差异队列候选"
+  ]
+}
