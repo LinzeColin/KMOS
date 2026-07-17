@@ -3,73 +3,75 @@
   "date": "2026-07-17",
   "scope": "collection↔bank 2025",
   "ledger_rows": 583,
-  "matched": 289,
-  "match_rate": 0.4957,
+  "matched": 425,
+  "match_rate": 0.729,
   "matched_same_day": 269,
   "matched_window": 20,
+  "matched_aggregate_rows": 136,
+  "aggregate_deposits_explained": 57,
   "matched_bank_category_dist": {
-    "营业回款": 260,
-    "他行转入或存现": 20,
+    "营业回款": 382,
+    "他行转入或存现": 32,
     "投标保证金回款": 6,
-    "其他收款": 3
+    "其他收款": 5
   },
-  "unmatched_ledger_rows": 294,
+  "unmatched_ledger_rows": 158,
   "unmatched_bank_receipt_rows": 967,
   "monthly_match_rate": {
     "2025-01": {
-      "matched": 30,
+      "matched": 53,
       "ledger": 65,
-      "rate": 0.462
+      "rate": 0.815
     },
     "2025-02": {
-      "matched": 20,
+      "matched": 26,
       "ledger": 36,
-      "rate": 0.556
+      "rate": 0.722
     },
     "2025-03": {
-      "matched": 20,
+      "matched": 24,
       "ledger": 33,
-      "rate": 0.606
+      "rate": 0.727
     },
     "2025-04": {
-      "matched": 32,
+      "matched": 38,
       "ledger": 54,
-      "rate": 0.593
+      "rate": 0.704
     },
     "2025-05": {
-      "matched": 21,
+      "matched": 36,
       "ledger": 41,
-      "rate": 0.512
+      "rate": 0.878
     },
     "2025-06": {
-      "matched": 23,
+      "matched": 28,
       "ledger": 28,
-      "rate": 0.821
+      "rate": 1.0
     },
     "2025-07": {
-      "matched": 27,
+      "matched": 36,
       "ledger": 40,
-      "rate": 0.675
+      "rate": 0.9
     },
     "2025-08": {
-      "matched": 38,
+      "matched": 57,
       "ledger": 66,
-      "rate": 0.576
+      "rate": 0.864
     },
     "2025-09": {
-      "matched": 48,
+      "matched": 77,
       "ledger": 79,
-      "rate": 0.608
+      "rate": 0.975
     },
     "2025-10": {
-      "matched": 24,
+      "matched": 42,
       "ledger": 58,
-      "rate": 0.414
+      "rate": 0.724
     },
     "2025-11": {
-      "matched": 6,
+      "matched": 8,
       "ledger": 44,
-      "rate": 0.136
+      "rate": 0.182
     },
     "2025-12": {
       "matched": 0,
