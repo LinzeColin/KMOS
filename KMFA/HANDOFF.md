@@ -14,7 +14,7 @@
 - 机器事实源：`machine/facts/`；人类入口：`文档/`（渲染产物，勿手写）。
 - **打通线（DT1-DT9）**：canonical roadmap 见 `docs/governance/roadmap.yaml`；DT1 收官、DT4 吸收、DT5 主体实弹运转、DT8 门禁引擎试点、DT9 前置与基座齐备、DT6 App 可部署。
 - **真实数据**：53 原始文件入 `KMOS/KMDatabase/data`（内容寻址）；私有派生层十一表 215,109 行（`KMFA/tools/` 全链零重建可复现，实证过；板表族首件税负率明细已入 `_staging.tax_composition`）。
-- **对账**：《一致性证明与差异分析报告》第 1/2/3 号已交付（`stage_artifacts/DT5_DATA0019_report_no*`）；断言表 `metadata/quality/assertions.jsonl` 25 条（closed 族 16）；五轴并立——回款 7/11 月 0 分差、开票集团口径差 3 分、五账套凭证 0 不平、费用轴两大账套全窗口收口（湖北开明 2025-01..10 全解释含 07..10 段 8/8 根码 0 分差、武汉开明 01..10 十根码差额逐分归因零残留）、税费轴 36/39 格 0 分差；对账基础设施 `tools/recon_common.py`（凭证号/科目双写法归一）；声明式门禁 `tools/gate_runner.py` 三门全绿。
+- **对账**：《一致性证明与差异分析报告》第 1-5 号已交付（`stage_artifacts/DT5_DATA0019_report_no*`）；断言表 `metadata/quality/assertions.jsonl` 27 条（closed 族 16）；**七域并立**（回款/开票/凭证/费用/税费/借款/材料）——回款 7/11 月 0 分差、开票集团口径差 3 分、五账套凭证 0 不平、费用轴两大账套全窗口收口（湖北开明 2025-01..10 全解释含 07..10 段 8/8 根码 0 分差、武汉开明 01..10 十根码差额逐分归因零残留）、税费轴 36/39 格 0 分差、借款轴流量级闭合（窗口内新贷 0 分差+存量反推期初自洽，期初系统性缺失具名）、材料轴 117/190 凭证匹配（映射表 `metadata/quality/material_subject_map.json` 定稿）；对账基础设施 `tools/recon_common.py`（凭证号/科目双写法归一）；声明式门禁 `tools/gate_runner.py` 三门全绿。
 - 旧口径提示：`4/18 / S05-P3-T1 / Q4 / D / NO_GO` 为 v1.5 业务线（S 系）状态，受 BLK-001 门控，与 DT 线并行存在；当前数据质量按 Q3（机器候选结构化）执行。
 - Owner blocker `BLK-001`：8 份 PDF + 1 份电子表格约 273 行字段尚未逐条确认——**A 级报告的唯一人门**。未解决前，不得把结构校验解释为业务完成。
 - **云端**：skills 运行基座与 App 部署件在 `KMFA/deploy/skills-runtime/` 与 `KMFA/app/`；等 Oracle ARM 实例 + `dws auth login --device` 一次 + Codex 应用停用 6 条旧排程（路线 B 已拍板）。实例日 runbook 见 deploy README。
