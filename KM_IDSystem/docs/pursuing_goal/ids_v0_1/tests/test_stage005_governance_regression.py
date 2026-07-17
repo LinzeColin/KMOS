@@ -9503,7 +9503,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_current_state_consistency(unlocked, roadmap_text)
         self.assertFalse(blocked["push_locked_structurally"], blocked)
 
-    def test_stage041_phase4_current_state_and_event_are_governed(self):
+    def test_stage041_review_current_state_and_events_are_governed(self):
         module = self._load_module()
         batch_path = (
             ROOT
@@ -9546,6 +9546,14 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         ]
         self.assertEqual(1, len(phase4_event))
         self.assertEqual([], module.evaluate_required_event_semantics(phase4_event))
+        review_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE041-REVIEW-20260718-001"
+        ]
+        self.assertEqual(1, len(review_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(review_event))
 
         self.assertIn(
             "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
@@ -9562,7 +9570,25 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
             module.REQUIRED_FILES,
         )
         self.assertIn(
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE041_STAGE_REVIEW.md",
+            module.REQUIRED_FILES,
+        )
+        self.assertIn(
+            "KM_IDSystem/scripts/check_lock_registry_stage_review.py",
+            module.REQUIRED_FILES,
+        )
+        self.assertIn(
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage041_lock_registry_review.py",
+            module.REQUIRED_FILES,
+        )
+        self.assertIn(
             "EVT-IDS-V0_1-STAGE041-P4-20260717-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE041-REVIEW-20260718-001",
             module.REQUIRED_EVENT_IDS,
         )
 

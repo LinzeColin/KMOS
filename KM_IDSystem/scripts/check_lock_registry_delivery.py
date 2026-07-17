@@ -108,6 +108,7 @@ ROLLBACK_STEPS = [
 ]
 KNOWN_LIMITS = [
     "NO_PERSISTENT_LOCK_REGISTRY",
+    "NO_TRUSTED_PRODUCTION_CLOCK_SOURCE",
     "NO_PRODUCTION_QUEUE_OR_WORKER_RUNTIME",
     "NO_PRODUCTION_CALIBRATION",
     "NO_AUTOMATIC_RESUME_OR_LIFECYCLE_RUNTIME",
@@ -171,11 +172,11 @@ EXPECTED_UPSTREAM = {
     "stage041_phase3_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/"
         "stage041_lock_registry_scenarios.json",
-        "3fb5155970d44d5345782f6c4fece2d5583a0d13b9205e367a52933a5d9f6113",
+        "e18a4ffdac11b6f51f689b125a2dea38a0ae912f995fbfd44c37763723a828e3",
     ),
     "stage041_phase3_checker": (
         "KM_IDSystem/scripts/check_lock_registry_scenarios.py",
-        "c90d1cb668898b472af700c05b730629f52f032e6cf1213dc2f8673c86681fc3",
+        "d4d28ff0298341d098921cd16d379550e4b2707ea4db3017852528ffc6156205",
     ),
     "stage041_phase3_evidence": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
@@ -185,7 +186,7 @@ EXPECTED_UPSTREAM = {
     "stage041_phase3_tests": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
         "test_stage041_lock_registry_scenarios.py",
-        "d782097bbd589de7737a6b969c1c32979c8e8bc165035ad2dc243ce54ab091fd",
+        "bce4fcc7943a7ff6cbf7997335f4ddce738b35e41fc89ceb5441f9a5e953feb0",
     ),
 }
 

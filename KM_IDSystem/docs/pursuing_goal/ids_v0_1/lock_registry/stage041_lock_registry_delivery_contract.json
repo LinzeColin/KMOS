@@ -45,11 +45,11 @@
     },
     "stage041_phase3_contract": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_scenarios.json",
-      "sha256": "3fb5155970d44d5345782f6c4fece2d5583a0d13b9205e367a52933a5d9f6113"
+      "sha256": "e18a4ffdac11b6f51f689b125a2dea38a0ae912f995fbfd44c37763723a828e3"
     },
     "stage041_phase3_checker": {
       "ref": "KM_IDSystem/scripts/check_lock_registry_scenarios.py",
-      "sha256": "c90d1cb668898b472af700c05b730629f52f032e6cf1213dc2f8673c86681fc3"
+      "sha256": "d4d28ff0298341d098921cd16d379550e4b2707ea4db3017852528ffc6156205"
     },
     "stage041_phase3_evidence": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE3_SCENARIO_VALIDATION.md",
@@ -57,7 +57,7 @@
     },
     "stage041_phase3_tests": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_scenarios.py",
-      "sha256": "d782097bbd589de7737a6b969c1c32979c8e8bc165035ad2dc243ce54ab091fd"
+      "sha256": "bce4fcc7943a7ff6cbf7997335f4ddce738b35e41fc89ceb5441f9a5e953feb0"
     }
   },
   "delivery_contract": {
@@ -186,6 +186,7 @@
   },
   "known_limits": [
     "NO_PERSISTENT_LOCK_REGISTRY",
+    "NO_TRUSTED_PRODUCTION_CLOCK_SOURCE",
     "NO_PRODUCTION_QUEUE_OR_WORKER_RUNTIME",
     "NO_PRODUCTION_CALIBRATION",
     "NO_AUTOMATIC_RESUME_OR_LIFECYCLE_RUNTIME",
@@ -199,7 +200,7 @@
     "status_zh": "Stage 41 四个 Phase 的本地锁注册交付证据已齐备，当前仅允许进入独立整阶段复审。",
     "automatic_eligibility_zh": "已验证精确幂等重放、匹配 holder 续租和匹配 holder 释放；本轮未观察到自动恢复成功，自动恢复仍不允许。",
     "manual_action_zh": "陈旧或不完整 CAS、活动同源冲突、资源门禁复核、worker 进程崩溃、受保护资料清理、无效合同、未校准策略及进程退出后的内存态缺失均需人工处理。",
-    "limit_zh": "当前不是生产运行或生产就绪证明，不提供持久锁注册、自动恢复、崩溃恢复或清理运行时。"
+    "limit_zh": "当前不是生产运行或生产就绪证明，不提供可信生产时钟、持久锁注册、自动恢复、崩溃恢复或清理运行时。"
   },
   "review_gate": {
     "next_task_id": "IDS-V0_1-STAGE041-REVIEW",

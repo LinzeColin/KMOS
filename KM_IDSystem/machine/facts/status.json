@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE041",
-  "phase": "IDS-STAGE041-P4",
-  "task": "IDS-V0_1-STAGE041-P4",
-  "real_progress": "Stage041 已完成 4/4 个步骤，整阶段复审仍待独立 run；v0.1 总进度未重新校准",
-  "report_grade": "本地步骤四合同 16/16、交付检查 6/6、聚焦 12/12、全量 789/789 与双平面门通过",
-  "business_verdict": "只完成非生产锁注册交付关闭；整阶段复审、持久锁、自动恢复和生产运行时仍禁用",
-  "evidence_status": "LOCAL_PHASE4_VALIDATED_REVIEW_PENDING",
-  "rendered_at": "2026-07-17",
+  "phase": "IDS-STAGE041-REVIEW",
+  "task": "IDS-V0_1-STAGE041-REVIEW",
+  "real_progress": "Stage041 四个步骤与整阶段复审已完成，四项发现均已修复；v0.1 总进度未重新校准",
+  "report_grade": "Stage041 63/63、Stage005 157/157、Stage040-041 118/118、全量 798/798；事件、双平面与 Git 索引绑定均通过",
+  "business_verdict": "仅本地复审通过；持久锁、可信生产时钟、自动恢复、Stage042 和生产运行时仍禁用",
+  "evidence_status": "LOCAL_STAGE_REVIEWED",
+  "rendered_at": "2026-07-18",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE041-REVIEW-GATE",
+  "next_gate": "IDS-STAGE042-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

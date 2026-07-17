@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE041"
-current_phase_id: "IDS-STAGE041-P4"
-current_task_id: "IDS-V0_1-STAGE041-P4"
-next_gate_id: "IDS-STAGE041-REVIEW-GATE"
+current_phase_id: "IDS-STAGE041-REVIEW"
+current_task_id: "IDS-V0_1-STAGE041-REVIEW"
+next_gate_id: "IDS-STAGE042-P1-GATE"
 current_transition_history:
+  stage041_review_state:
+    current_stage_id: "IDS-STAGE041"
+    current_phase_id: "IDS-STAGE041-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE041-REVIEW"
+    next_gate_id: "IDS-STAGE042-P1-GATE"
   stage041_phase4_state:
     current_stage_id: "IDS-STAGE041"
     current_phase_id: "IDS-STAGE041-P4"
@@ -10354,7 +10359,7 @@ stages:
     stage_id: "IDS-STAGE041"
     name: "STAGE-041 · 锁注册与竞态控制"
     person_goal: "为文件处理、归档解包、索引构建、索引切换与报告生成建立可审计、可恢复且可防止陈旧 worker 写入的锁注册、租约与 fencing 控制。"
-    status: "phase4_completed_review_pending"
+    status: "completed_reviewed_local"
     stop_conditions:
       - "一次 run 试图完成多个 phase"
       - "缩窄 STAGE-038 ARCHIVE、PARSE、INDEX、REPORT 同源互斥基线"
@@ -10365,21 +10370,25 @@ stages:
       - "连接 PostgreSQL、修改 schema/state registry、启动 worker 或写真实 job/lock row"
       - "读取、列出、hash、打开、复制、移动、删除、修改、dump 或扫描 /Users/linzezhang/Downloads/IDS_MetaData 内容"
       - "使用虚构 IDS 业务数据、数据库行、jobs、locks、evidence 或 placeholder corpus"
-      - "进入 whole-stage review、STAGE-042、batch gate、GitHub 或 app reinstall"
+      - "复审 run 进入 STAGE-042、batch gate、GitHub 或 app reinstall"
     stop_gate:
-      gate_id: "IDS-STAGE041-P4-GATE"
-      status: "passed_with_local_evidence"
+      gate_id: "IDS-STAGE041-REVIEW-GATE"
+      status: "passed"
       pass_conditions:
         - "Phase 1 through Phase 4 each pass in separate runs"
         - "Lock lifecycle, state/retry/backpressure, cleanup, shutdown, recovery and rollback evidence is fail-closed"
         - "One actual isolated acquire-renew-release sequence leaves zero active locks and monotonic tombstones"
         - "Automatic recovery eligibility and observed success remain empty; production stays disabled"
-        - "Whole-stage review is the only next task and must run separately"
+        - "Whole-stage review repairs all Critical and Important findings and binds every review source to the Git index"
+        - "The next task is only a separate STAGE-042 Phase 1 run; GitHub upload remains disabled"
       evidence_refs:
         - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE4_CLOSEOUT.md"
         - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_delivery_contract.json"
         - "KM_IDSystem/scripts/check_lock_registry_delivery.py"
         - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_delivery.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_STAGE_REVIEW.md"
+        - "KM_IDSystem/scripts/check_lock_registry_stage_review.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_review.py"
         - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
     phases:
       -
@@ -10633,7 +10642,13 @@ stages:
     review:
       review_id: "IDS-STAGE041-REVIEW"
       task_id: "IDS-V0_1-STAGE041-REVIEW"
-      status: "planned_next_run"
+      status: "completed"
       acceptance_ids:
         - "ACC-STAGE-041"
-      decision: "Whole-stage review must run only after Phase 4 and repair all findings before STAGE-042."
+      evidence_refs:
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_STAGE_REVIEW.md"
+        - "KM_IDSystem/scripts/check_lock_registry_stage_review.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_review.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+      test_results: "TDD review RED produced 9 failures and 2 errors across 9 tests. Review repaired one Critical and three Important findings covering strict integer CAS versions, monotonic logical time and live-lease mutation rules, exact runtime-contract semantics, and stale handoff/governance truth. Final validation passed review 9/9, Stage041 63/63, Stage005 157/157, Stage040-041 118/118, full IDS v0.1 798/798 in 555.092s, 200 clean events, exact event/index 34/34, idempotent render and the project dual-plane gate. Latest-origin reconciliation reproduced only the KM_IDS renderer fix from dec58884 without merging unrelated commits or rewriting the phase lineage."
+      decision: "ACC-STAGE-041 completed_reviewed_local after all four findings were repaired; next gate is IDS-STAGE042-P1-GATE, push_allowed=false, and this run did not enter STAGE-042."

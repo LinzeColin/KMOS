@@ -64,16 +64,16 @@ EXPECTED_UPSTREAM = {
     "stage041_phase2_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/"
         "stage041_lock_registry_runtime_contract.json",
-        "7758e1b69fbf3d2722d7dc8cff9db90a2e964e40aabeff429581948720dfd669",
+        "80f87c789c6fc834b13eaec3d14d9444417ee7313ff8f88f6893bbda15e1f464",
     ),
     "stage041_phase2_checker": (
         "KM_IDSystem/scripts/check_lock_registry_runtime.py",
-        "4c0d498b9124fc0292d57882f18d6d2efcddbfe9fe79610b3ee1e869f3943be2",
+        "931d0c39630a9a7353766524d072c0a8269fd2eb4bcbd896afa87609b285e5ef",
     ),
     "stage041_phase2_evidence": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
         "STAGE041_PHASE2_LOCK_REGISTRY_SLICE.md",
-        "c0b834f9e2d55a33d7c4bfd9abc10f70653e57214a324136f397830db0949d90",
+        "c4981bf6d990f197162841d1a8b8b5b506cb93a70d9b9c9584ee83822ad8f46f",
     ),
     "stage041_phase2_tests": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"

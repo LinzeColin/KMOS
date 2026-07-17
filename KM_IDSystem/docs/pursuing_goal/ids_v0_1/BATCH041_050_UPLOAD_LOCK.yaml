@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-17T13:47:43Z"
-status: "stage041_phase4_completed_review_pending"
+updated_at_utc: "2026-07-17T14:47:59Z"
+status: "stage041_completed_reviewed_local"
 
 transition_history:
+  stage041_review_state:
+    status: "stage041_completed_reviewed_local"
+    current_task_id: "IDS-V0_1-STAGE041-REVIEW"
+    next_gate: "IDS-STAGE042-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE042-P1"
+    github_upload_allowed: false
   stage041_phase4_state:
     status: "stage041_phase4_completed_review_pending"
     current_task_id: "IDS-V0_1-STAGE041-P4"
@@ -66,18 +72,18 @@ upload_gate:
 
 stage_progress:
   STAGE-041:
-    status: "stage041_phase4_completed_review_pending"
+    status: "stage041_completed_reviewed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_phase: "stage_review"
-    next_gate: "IDS-STAGE041-REVIEW-GATE"
-    current_task_id: "IDS-V0_1-STAGE041-P4"
+    next_stage: "STAGE-042"
+    next_gate: "IDS-STAGE042-P1-GATE"
+    current_task_id: "IDS-V0_1-STAGE041-REVIEW"
     acceptance_id: "ACC-STAGE-041"
-    acceptance_status: "phase4_delivery_complete_review_pending"
-    review_status: "pending"
+    acceptance_status: "reviewed_local_passed"
+    review_status: "passed"
     phase3_entry_authorized: true
     phase4_entry_authorized: true
     source_verification_status: "SOURCE_VERIFIED"
@@ -89,8 +95,20 @@ stage_progress:
     delivery_contract_schema: "ids.stage041.lock_registry.phase4.delivery.v1"
     delivery_contract_valid: true
     delivery_result: "PASS_ISOLATED_CLOSEOUT_PRODUCTION_DISABLED"
-    stage_review_status: "pending_next_run"
-    contract_state: "PHASE4_CLOSEOUT_EVIDENCE_REVIEW_PENDING"
+    stage_review_schema: "ids.stage041.lock_registry.stage_review.v1"
+    stage_review_status: "completed_reviewed_local"
+    stage_review_result: "PASS_REVIEWED_LOCAL_PRODUCTION_DISABLED"
+    review_finding_count: 4
+    review_critical_finding_count: 1
+    review_important_finding_count: 3
+    review_minor_finding_count: 0
+    review_findings_repaired: true
+    source_integrity_valid: true
+    phase1_contract_valid: true
+    phase2_slice_valid: true
+    phase3_scenarios_valid: true
+    phase4_delivery_valid: true
+    contract_state: "STAGE041_REVIEWED_LOCAL_PRODUCTION_DISABLED"
     parameter_fact_level: "PROPOSED"
     production_calibrated: false
     production_calibration_task_id: "TASK-OPME-B-001"
@@ -144,9 +162,12 @@ stage_progress:
     real_ids_business_job_created: false
     raw_metadata_content_accessed: false
     fake_ids_business_data_used: false
-    whole_stage_review_performed: false
+    whole_stage_review_performed: true
     batch_review_performed: false
     stage042_entry_allowed: false
+    production_runtime_activation_performed: false
+    github_upload_allowed: false
+    app_reinstall_allowed: false
     evidence_refs:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_ENTRY_CONTRACT.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE1_LOCK_REGISTRY_SCOPE_BOUNDARY.md"
@@ -165,12 +186,15 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_delivery_contract.json"
       - "KM_IDSystem/scripts/check_lock_registry_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_delivery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_STAGE_REVIEW.md"
+      - "KM_IDSystem/scripts/check_lock_registry_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_review.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE041-P4"
-  next_allowed_task_id: "IDS-V0_1-STAGE041-REVIEW"
+  current_task_id: "IDS-V0_1-STAGE041-REVIEW"
+  next_allowed_task_id: "IDS-V0_1-STAGE042-P1"
   github_upload_allowed: false
-  current_run: "STAGE-041 Phase 4 binds the reviewed state/retry/backpressure evidence and Phase 3 lock lifecycle into a fail-closed closeout report, then proves one isolated orderly release; no whole-stage review, Stage 42 entry, persistence, business job, raw metadata access, GitHub upload, or app reinstall is performed."
-  no_upload_reason: "BATCH041_050 has only STAGE-041 Phase 1-4 local evidence and Stage041 whole-stage review is still pending; upload is blocked until STAGE-041..050 are completed, reviewed, repaired, and a separate batch upload gate runs."
+  current_run: "STAGE-041 whole-stage review reverified the exact approved source and Phase 1-4 chain, repaired one Critical and three Important findings, and closed ACC-STAGE-041 only as reviewed-local; Stage 42, production runtime, raw metadata access, GitHub upload, and app reinstall did not run."
+  no_upload_reason: "BATCH041_050 has only one completed and reviewed Stage; upload remains blocked until STAGE-041..050 are completed, individually reviewed and repaired, then a separate ten-stage review and upload gate run."

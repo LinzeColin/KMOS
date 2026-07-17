@@ -1,22 +1,19 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - 2026-07-17
+## Current Gate - 2026-07-18
 
-- Completed task in this run: `IDS-V0_1-STAGE041-P3`; eleven isolated lock-registry scenarios were validated against the committed Phase 2 engine.
-- Current acceptance state: Phases 1-3 have local evidence; `ACC-STAGE-041` remains `in_progress`, while Phase 4 and the whole-stage review remain planned and unexecuted.
-- Workspace rule: `/Users/linzezhang/Documents/Codex/GithubProject/KMOS` remains the clean read-only `main` checkout. All work is isolated in `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041` on `codex/kmids-recovery-stage041-p1`, with zero outside-scope paths and zero owner-dirty overlap.
-- Ancestry/source rebind: after confirming eleven new remote KMFA commits changed zero `KM_IDSystem` paths, the branch was rebased onto `4b0d564122541a024585ca69fb9b990edb27486f`; Phase 3 binds Phase 2 commit `22bd9263e38b697dfb681886a97c1b8ba0f4b5e9` and unchanged `KM_IDSystem` tree `c3e96185d5fe185fc9a8c27e8fa57a6279bc4e6d`.
-- Current validation: contract checks `17/17`, scenarios `11/11`, focused tests `15/15`, Stage005 `157/157`, Stage040-041 aggregate `97/97`, full IDS v0.1 discovery `777/777`, and the project-scoped dual-plane gate pass. The unstaged first runs reached `95/97` and `762/777`; all `17` expected Git-index-bound historical review failures passed after staging the complete P3 set. The next full run reached `776/777` and exposed one stale Stage039 compatibility map; adding only P3→P4 repaired it without changing historical evidence or weakening a checker.
-- Phase 2 handoff SHA-256 remains: runtime contract `7758e1b69fbf3d2722d7dc8cff9db90a2e964e40aabeff429581948720dfd669`, checker `4c0d498b9124fc0292d57882f18d6d2efcddbfe9fe79610b3ee1e869f3943be2`, and controlled-evidence document `c0b834f9e2d55a33d7c4bfd9abc10f70653e57214a324136f397830db0949d90`.
-- Approved source: the unique archive member `IDS_v0_1_Final_Chinese_Revised/stages/STAGE-041_锁注册与竞态控制.md` has SHA-256 `2258a7b57c6c2881f208f43fbe2862c7815a2794c908d6fef108a1a4b5a2ad36` inside archive SHA-256 `55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3`.
-- Phase 3 verified duplicate replay, five-operation same-source exclusion (`5` primary + `5` replay + `25` conflicts), renewal, expiry-plus-grace takeover, stale CAS rejection, release tombstones, reacquisition, one bounded `RuntimeError`, three pre-lock resource pauses, and five protected artifact classes.
-- The exception is not a process crash; drive/API cases are control metadata; disk is a read-only project-filesystem observation. No physical fault, delete, retry, persistence, database, business job, raw-data, recovery, cleanup, or production action occurred.
-- State exists only in `IsolatedLockRegistry` process memory with caller-supplied logical time. No sleep, queue, worker, retry scheduling, persistence, database, runtime output, business job, raw-data, automatic resume, crash recovery, cleanup, or production activation occurred.
-- Previous batch terminal state remains `uploaded_to_github_main`; PR #276 merged with SHA `565babef3a610f289fed0da38b58e550b5707e3e`, with zero residual open PRs or issues at that completed gate.
-- Current batch gate: `BATCH041_050` is locally locked with `push_allowed=false`; no GitHub, PR, issue, merge, app reinstall, or production action is authorized by this run.
-- Next allowed task: `IDS-V0_1-STAGE041-P4`, in a separate future run only.
-- Preserve owner dirty paths (`backend/requirements.txt`, `frontend/package.json`, `scripts/run_local_services.sh`, `frontend/pnpm-workspace.yaml`) and root `.DS_Store`; do not stage or commit them.
-- `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only read-only real-data boundary. Do not read, list, hash, open, scan, copy, move, delete, modify, dump, or normalize its contents.
+- Completed task in this run: `IDS-V0_1-STAGE041-REVIEW`; `ACC-STAGE-041` is closed only as `completed_reviewed_local` after all four review findings were repaired.
+- Next allowed task: `IDS-V0_1-STAGE042-P1`, in a separate future run behind `IDS-STAGE042-P1-GATE`; `NO_STAGE042_THIS_RUN` remains true.
+- Workspace rule: `/Users/linzezhang/Documents/Codex/GithubProject/KMOS` remains the clean read-only `main` checkout. All work is isolated in `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041` on `codex/kmids-recovery-stage041-p1`, with scope limited to `KM_IDSystem/`.
+- Approved source: the unique archive member `IDS_v0_1_Final_Chinese_Revised/stages/STAGE-041_锁注册与竞态控制.md` has SHA-256 `2258a7b57c6c2881f208f43fbe2862c7815a2794c908d6fef108a1a4b5a2ad36` inside archive SHA-256 `55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3`; roadmap and instruction hashes were also reverified.
+- Review finding `STAGE041-REVIEW-F1` (Critical) now rejects Python `bool` and float values from CAS lock-version evidence; versions must be strict positive integers.
+- Review findings `F2..F4` (Important) now reject negative/backward logical time and expired-lease mutations, require exact operation/provenance/parameter semantics, and replace stale current-gate handoff/governance truth.
+- The review test first failed `9` tests with `9` failures and `2` errors. Final staged validation passed Stage041 `63/63`, Stage005 `157/157`, Stage040–041 `118/118`, full IDS v0.1 `798/798` in `555.092s`, `200` clean events, exact event/index `34/34`, and the project dual-plane gate.
+- Latest-origin reconciliation reproduced only the KM_IDS renderer fix from `dec58884`; the renderer now matches `origin/main` without merging unrelated remote commits or rewriting the Phase 1–4 lineage.
+- State remains only in `IsolatedLockRegistry` process memory with caller-supplied logical time. There is no trusted production clock source, persistence, database, queue/worker, automatic resume, crash recovery, cleanup execution, or production activation.
+- Current batch gate: `BATCH041_050` remains locally locked with `push_allowed=false`; no GitHub, PR, issue, merge, app reinstall, batch review, or production action is authorized.
+- Preserve owner-controlled dependency/service paths (`backend/requirements.txt`, `frontend/package.json`, `frontend/pnpm-workspace.yaml`, `scripts/run_local_services.sh`); this review does not modify them.
+- `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only governance boundary and was not touched. Do not read, list, hash, open, scan, copy, move, delete, modify, dump, or normalize its contents.
 
 ## Purpose
 
@@ -118,8 +115,10 @@ Commit/PR summaries must include:
 - Read-only main checkout: `/Users/linzezhang/Documents/Codex/GithubProject/KMOS` (must remain on clean `main`).
 - Active task worktree: `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041`.
 - Project scope: `KM_IDSystem/` only.
-- Current local state: `STAGE-031..STAGE-040` and their independent batch review are merged to GitHub `main`; `STAGE-041` Phases 1-4 are locally complete under active `ACC-STAGE-041` and have not been uploaded or whole-stage reviewed.
-- Current task: `IDS-V0_1-STAGE041-P4`; the only next task is `IDS-V0_1-STAGE041-REVIEW` in a separate run. Whole-stage review, Stage042, ten-stage batch review, upload, merge and app reinstall remain separate gates.
+- Current local state: `STAGE-031..STAGE-040` and their independent batch review are merged to GitHub `main`; `STAGE-041` Phases 1-4 plus whole-stage review are locally complete under closed `ACC-STAGE-041` and have not been uploaded.
+- Current task: `IDS-V0_1-STAGE041-REVIEW`; the only next task is `IDS-V0_1-STAGE042-P1` in a separate run. Stage042 execution, ten-stage batch review, upload, merge and app reinstall remain separate gates.
+- Stage041 review repaired `1 Critical / 3 Important / 0 Minor`: strict-integer CAS evidence, monotonic logical time/live-lease mutations, exact runtime contract semantics, and current handoff/governance truth are now machine checked and fail closed.
+- `check_lock_registry_stage_review.py` reverifies the approved external source, reruns all four Stage041 phase checkers, machine-checks every repair, validates reviewed-local governance, and requires every review source to match the Git index.
 - Stage041 Phase 4 binds the committed Phase 3 commit/tree and reviewed upstream hashes into an exact-shaped closeout contract plus stdout-only checker; no candidate commit or Stage42-43 review state was activated.
 - The Phase 4 report composes the five-family lock lifecycle with the reviewed 8-type/11-state/4-terminal/21-transition graph, 3-attempt/2-retry dead-letter evidence, seven pressure signals and a two-class cleanup allowlist.
 - One actual isolated acquire-renew-release sequence leaves zero active locks, two monotonic tombstone versions and a rejected stale commit. It is process-local orderly-shutdown evidence, not persistence, crash recovery or production readiness.
@@ -143,7 +142,7 @@ Commit/PR summaries must include:
 - The Phase 4 delivery checker returns `PASS_ISOLATED_CLOSEOUT_PRODUCTION_DISABLED`; this is closeout evidence, not production readiness or whole-stage acceptance.
 - Stage040 whole-stage review repaired one Critical and two Important findings: malformed/non-JSON control metadata now returns structured fail-closed output without echoing invalid refs; active resource pauses project `暂停中` until `PAUSED`; and Stage040 explicitly records that scheduler-level starvation prevention is unproved and unimplemented.
 - The Stage040 review checker independently rehashes the approved archive, unique ZIP member, roadmap, and instructions; revalidates the Phase 1-4 chain; and requires all review sources to match the Git index before returning `PASS_REVIEWED_LOCAL_PRODUCTION_DISABLED`.
-- The previous batch upload is complete. For the current Stage041 state, GitHub/PR/issue/merge, app reinstall, production runtime, raw metadata content access, Stage042, batch review and whole-stage review execution remain disabled; only `IDS-V0_1-STAGE041-REVIEW` may run next in a separate run.
+- The previous batch upload is complete. For the current reviewed Stage041 state, GitHub/PR/issue/merge, app reinstall, production runtime, raw metadata content access, Stage042 execution and batch review remain disabled; only `IDS-V0_1-STAGE042-P1` may run next in a separate run.
 - Whole-stage review repaired exact contract shapes, the missing API-budget pause proof, and the false same-operation resubmission instruction; all review sources must match the Git index before `completed_reviewed_local` is valid.
 - Stage039 Phase 1 publishes `ids.retry_dead_letter.v0_1.p1`. It keeps `FAILED`, `DEAD_LETTERED`, `SUCCEEDED`, and `CANCELLED` immutable; retryable failure uses `RUNNING -> RETRY_WAIT`, exhaustion uses only `RETRY_WAIT -> DEAD_LETTERED`, and permanent failure uses `RUNNING -> FAILED`.
 - Retry reservation does not consume budget; only atomic eligible admission increments `retry_count`. Resource pauses consume no retry budget. Duplicate transition replay cannot consume twice.
@@ -176,7 +175,7 @@ Commit/PR summaries must include:
 - Safe shutdown replays reviewed isolated transport closure and records fresh-observation recovery plus P4-only rollback. There is no persistent pressure state, automatic resume, process recovery, production runtime, or production-readiness claim.
 - Final Phase 4 validation: checker `14/14` contract and `8/8` delivery checks; focused `10/10`; Stage040 `46/46`; Stage005 `149/149`; Stage031-039 `254/254`; Stage026-030 `75/75`; full IDS v0.1 discovery `710/710`; changed-only governance `0` errors / `0` warnings; `191` events with no duplicate ID; owner render drift/reference issues `0/0`.
 - STAGE-038 retains queue/worker transport; STAGE-039 retry/dead-letter; STAGE-041 locks/leases/fencing; STAGE-042 automatic resume; STAGE-043 crash recovery; STAGE-044 cleanup execution. Phase 1 executed none of these runtimes.
-- `BATCH031_040` remains immutable in its terminal uploaded state. `BATCH041_050` is the current lock and remains `push_allowed=false`; do not upload, merge, mutate issues, reinstall app entries, enter Stage042, or execute Stage041 review in this Phase 4 run.
+- `BATCH031_040` remains immutable in its terminal uploaded state. `BATCH041_050` is the current lock and remains `push_allowed=false`; do not upload, merge, mutate issues, reinstall app entries, or enter Stage042 in this review run.
 - Current Phase 4 evidence adds `STAGE041_PHASE4_CLOSEOUT.md`, `lock_registry/stage041_lock_registry_delivery_contract.json`, `scripts/check_lock_registry_delivery.py`, and `tests/test_stage041_lock_registry_delivery.py`.
 - The real metadata root `/Users/linzezhang/Downloads/IDS_MetaData` is path-only governance context. Do not read, list, hash, open, copy, move, delete, modify, dump, scan, normalize, or commit its contents.
 - Do not use fake IDS business data, fake database rows, placeholder corpus, fabricated profiles, dumps, execution logs, or evidence.

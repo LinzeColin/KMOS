@@ -109,6 +109,7 @@ history, activate an archived candidate, or touch the raw metadata root.
 ## Known limits and stop condition
 
 - no persistent lock registry;
+- no trusted production clock source; caller-supplied logical time is isolated control evidence only;
 - no production queue, worker or lock runtime;
 - no production calibration;
 - no automatic resume or lifecycle runtime;

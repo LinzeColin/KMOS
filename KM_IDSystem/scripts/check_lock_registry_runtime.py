@@ -40,6 +40,35 @@ EXPECTED_PARAMETERS = {
     "retry_jitter_seconds": 0,
     "deadlock_timeout_seconds": 1,
 }
+EXPECTED_PARAMETER_RELATIONSHIPS = [
+    "lease_duration_seconds == 3 * renewal_interval_seconds",
+    "0 < expiry_grace_seconds < renewal_interval_seconds < lease_duration_seconds",
+    "acquisition_timeout_seconds == deadlock_timeout_seconds",
+    "maximum_wait_seconds == 0",
+    "retry_jitter_seconds == 0",
+]
+EXPECTED_OPERATION_SCOPES = {
+    "FILE_PROCESSING": {
+        "job_types": ["PARSE"],
+        "required_lock_namespaces": ["SOURCE_PIPELINE", "FILE_PROCESSING"],
+    },
+    "ARCHIVE_EXTRACTION": {
+        "job_types": ["ARCHIVE"],
+        "required_lock_namespaces": ["SOURCE_PIPELINE", "ARCHIVE_EXTRACTION"],
+    },
+    "INDEX_BUILD": {
+        "job_types": ["INDEX"],
+        "required_lock_namespaces": ["SOURCE_PIPELINE", "INDEX_BUILD"],
+    },
+    "INDEX_SWITCH": {
+        "job_types": ["INDEX"],
+        "required_lock_namespaces": ["SOURCE_PIPELINE", "INDEX_SWITCH"],
+    },
+    "REPORT_GENERATION": {
+        "job_types": ["REPORT"],
+        "required_lock_namespaces": ["SOURCE_PIPELINE", "REPORT_GENERATION"],
+    },
+}
 EXPECTED_UPSTREAM = {
     "phase1_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/"
@@ -178,6 +207,14 @@ def _keys_exact(value: Any, expected: set[str]) -> bool:
     return isinstance(value, dict) and set(value) == expected
 
 
+def _version_map_exact(value: Any, lock_keys: list[str]) -> bool:
+    return (
+        isinstance(value, dict)
+        and set(value) == set(lock_keys)
+        and all(type(value[key]) is int and value[key] > 0 for key in lock_keys)
+    )
+
+
 def _git_tracked(relative: str) -> bool:
     result = subprocess.run(
         ["git", "ls-files", "--error-unmatch", "--", relative],
@@ -291,25 +328,7 @@ def evaluate_contract(contract: Any) -> dict[str, bool]:
         "validation_evidence",
         "rollback",
     }
-    scope_keys = {
-        "FILE_PROCESSING",
-        "ARCHIVE_EXTRACTION",
-        "INDEX_BUILD",
-        "INDEX_SWITCH",
-        "REPORT_GENERATION",
-    }
-    scope_valid = isinstance(scope, dict) and set(scope) == scope_keys
-    if scope_valid:
-        scope_valid = all(
-            _keys_exact(value, {"job_types", "required_lock_namespaces"})
-            and isinstance(value["job_types"], list)
-            and len(value["job_types"]) == 1
-            and value["required_lock_namespaces"] == [
-                "SOURCE_PIPELINE",
-                name,
-            ]
-            for name, value in scope.items()
-        )
+    scope_valid = scope == EXPECTED_OPERATION_SCOPES
     parameters = policy.get("parameters") if isinstance(policy, dict) else None
     provenance = (
         policy.get("parameter_provenance") if isinstance(policy, dict) else None
@@ -321,7 +340,16 @@ def evaluate_contract(contract: Any) -> dict[str, bool]:
         and all(_keys_exact(item, provenance_keys) for item in provenance.values())
         and all(item["unit"] == "seconds" for item in provenance.values())
         and all(item["policy_version"] == POLICY_VERSION for item in provenance.values())
-        and all(item["rationale"] for item in provenance.values())
+        and all(
+            isinstance(item[field], str) and bool(item[field].strip())
+            for item in provenance.values()
+            for field in ("source", "rationale", "validation_evidence", "rollback")
+        )
+        and all(
+            item["rollback"]
+            == "DISABLE_ISOLATED_LOCK_RUNTIME_REQUIRE_MANUAL_REVIEW"
+            for item in provenance.values()
+        )
     )
     projections = {
         "ACQUIRED",
@@ -364,6 +392,18 @@ def evaluate_contract(contract: Any) -> dict[str, bool]:
         "policy_schema_exact": _keys_exact(policy, expected_policy_keys),
         "parameters_exact": parameters_valid,
         "parameter_provenance_complete": provenance_valid,
+        "parameter_relationships_exact": (
+            isinstance(policy, dict)
+            and policy.get("parameter_relationships")
+            == EXPECTED_PARAMETER_RELATIONSHIPS
+        ),
+        "parameter_policy_metadata_exact": (
+            isinstance(policy, dict)
+            and policy.get("parameter_source")
+            == "STAGE041_PHASE2_LOCAL_ENGINEERING_SAFETY_BOUNDARY"
+            and policy.get("rollback_policy")
+            == "DISABLE_ISOLATED_LOCK_RUNTIME_REQUIRE_MANUAL_REVIEW"
+        ),
         "parameter_bounds_valid": (
             parameters_valid
             and parameters["lease_duration_seconds"]
@@ -405,6 +445,10 @@ def evaluate_contract(contract: Any) -> dict[str, bool]:
             "reference_only": True,
             "raw_path_allowed": False,
             "raw_payload_allowed": False,
+            "requested_at_must_be_non_negative": True,
+            "logical_time_regression_action": "REQUIRE_MANUAL_REVIEW",
+            "renewal_must_strictly_extend_expiry": True,
+            "release_requires_live_lease": True,
             "unknown_field_action": "REQUIRE_MANUAL_REVIEW",
         },
         "decision_contract_exact": decision
@@ -593,6 +637,8 @@ class IsolatedLockRegistry:
             return False
         if isinstance(request.get("requested_at_epoch_seconds"), bool):
             return False
+        if request["requested_at_epoch_seconds"] < 0:
+            return False
         for name in (
             "holder_job_id",
             "holder_attempt_id",
@@ -752,8 +798,7 @@ class IsolatedLockRegistry:
             return False
         expected_versions = evidence.get("lock_versions")
         if (
-            not isinstance(expected_versions, dict)
-            or set(expected_versions) != set(lock_keys)
+            not _version_map_exact(expected_versions, lock_keys)
             or evidence.get("lock_keys") != lock_keys
             or not isinstance(evidence.get("fencing_token"), int)
             or isinstance(evidence.get("fencing_token"), bool)
@@ -782,8 +827,7 @@ class IsolatedLockRegistry:
             return False
         expected_versions = evidence.get("lock_versions")
         if (
-            not isinstance(expected_versions, dict)
-            or set(expected_versions) != set(lock_keys)
+            not _version_map_exact(expected_versions, lock_keys)
             or evidence.get("lock_keys") != lock_keys
             or not isinstance(evidence.get("fencing_token"), int)
             or isinstance(evidence.get("fencing_token"), bool)
@@ -795,6 +839,18 @@ class IsolatedLockRegistry:
             and record["fencing_token"] == evidence["fencing_token"]
             and record["lock_version"] == expected_versions[key]
             for key in lock_keys
+        )
+
+    def _latest_record_time(self, lock_keys: list[str]) -> int:
+        return max(
+            max(
+                record["acquired_at"],
+                record["renewed_at"]
+                if isinstance(record["renewed_at"], int)
+                else record["acquired_at"],
+            )
+            for key in lock_keys
+            if (record := self._locks.get(key)) is not None
         )
 
     def acquire(self, request: Mapping[str, Any]) -> dict[str, Any]:
@@ -886,7 +942,16 @@ class IsolatedLockRegistry:
         else:
             now = request["requested_at_epoch_seconds"]
             current_expiry = min(self._locks[key]["lease_expires_at"] for key in lock_keys)
-            if now >= current_expiry:
+            if now < self._latest_record_time(lock_keys):
+                result = self._result(
+                    operation,
+                    request,
+                    result_code="NON_MONOTONIC_LOGICAL_TIME",
+                    decision_action="REQUIRE_MANUAL_REVIEW",
+                    lock_keys=lock_keys,
+                    error_code="NON_MONOTONIC_LOGICAL_TIME",
+                )
+            elif now >= current_expiry:
                 result = self._result(
                     operation,
                     request,
@@ -897,26 +962,37 @@ class IsolatedLockRegistry:
                 )
             else:
                 expiry = now + self.parameters["lease_duration_seconds"]
-                versions = {
-                    key: self._locks[key]["lock_version"] + 1 for key in lock_keys
-                }
-                fence = self._locks[lock_keys[0]]["fencing_token"]
-                result = self._result(
-                    operation,
-                    request,
-                    result_code="LEASE_RENEWED",
-                    decision_action="RENEWED",
-                    lock_keys=lock_keys,
-                    fencing_token=fence,
-                    lock_versions=versions,
-                    lease_expires_at=expiry,
-                )
-                for key in lock_keys:
-                    self._lock_versions[key] = versions[key]
-                    self._locks[key]["lock_version"] = versions[key]
-                    self._locks[key]["lease_expires_at"] = expiry
-                    self._locks[key]["renewed_at"] = now
-                    self._locks[key]["checkpoint_ref"] = result["checkpoint_ref"]
+                if expiry <= current_expiry:
+                    result = self._result(
+                        operation,
+                        request,
+                        result_code="LEASE_NOT_EXTENDED",
+                        decision_action="REQUIRE_MANUAL_REVIEW",
+                        lock_keys=lock_keys,
+                        error_code="LEASE_NOT_EXTENDED",
+                    )
+                else:
+                    versions = {
+                        key: self._locks[key]["lock_version"] + 1
+                        for key in lock_keys
+                    }
+                    fence = self._locks[lock_keys[0]]["fencing_token"]
+                    result = self._result(
+                        operation,
+                        request,
+                        result_code="LEASE_RENEWED",
+                        decision_action="RENEWED",
+                        lock_keys=lock_keys,
+                        fencing_token=fence,
+                        lock_versions=versions,
+                        lease_expires_at=expiry,
+                    )
+                    for key in lock_keys:
+                        self._lock_versions[key] = versions[key]
+                        self._locks[key]["lock_version"] = versions[key]
+                        self._locks[key]["lease_expires_at"] = expiry
+                        self._locks[key]["renewed_at"] = now
+                        self._locks[key]["checkpoint_ref"] = result["checkpoint_ref"]
         self._record_operation(ledger_key, fingerprint, result)
         return result
 
@@ -1026,6 +1102,15 @@ class IsolatedLockRegistry:
                 error_code="STALE_FENCING_TOKEN",
             )
         now = request["requested_at_epoch_seconds"]
+        if now < self._latest_record_time(lock_keys):
+            return self._result(
+                operation,
+                request,
+                result_code="NON_MONOTONIC_LOGICAL_TIME",
+                decision_action="REJECT_COMMIT",
+                lock_keys=lock_keys,
+                error_code="NON_MONOTONIC_LOGICAL_TIME",
+            )
         if any(now >= self._locks[key]["lease_expires_at"] for key in lock_keys):
             return self._result(
                 operation,
@@ -1072,23 +1157,47 @@ class IsolatedLockRegistry:
                 error_code="STALE_FENCING_TOKEN",
             )
         else:
-            versions = {
-                key: self._locks[key]["lock_version"] + 1 for key in lock_keys
-            }
-            fence = self._locks[lock_keys[0]]["fencing_token"]
-            result = self._result(
-                operation,
-                request,
-                result_code="LOCK_SET_RELEASED",
-                decision_action="RELEASED",
-                lock_keys=lock_keys,
-                fencing_token=fence,
-                lock_versions=versions,
-                lease_expires_at=None,
+            now = request["requested_at_epoch_seconds"]
+            current_expiry = min(
+                self._locks[key]["lease_expires_at"] for key in lock_keys
             )
-            for key in lock_keys:
-                self._lock_versions[key] = versions[key]
-                del self._locks[key]
+            if now < self._latest_record_time(lock_keys):
+                result = self._result(
+                    operation,
+                    request,
+                    result_code="NON_MONOTONIC_LOGICAL_TIME",
+                    decision_action="REQUIRE_MANUAL_REVIEW",
+                    lock_keys=lock_keys,
+                    error_code="NON_MONOTONIC_LOGICAL_TIME",
+                )
+            elif now >= current_expiry:
+                result = self._result(
+                    operation,
+                    request,
+                    result_code="LEASE_EXPIRED",
+                    decision_action="REQUIRE_MANUAL_REVIEW",
+                    lock_keys=lock_keys,
+                    error_code="LEASE_EXPIRED",
+                )
+            else:
+                versions = {
+                    key: self._locks[key]["lock_version"] + 1
+                    for key in lock_keys
+                }
+                fence = self._locks[lock_keys[0]]["fencing_token"]
+                result = self._result(
+                    operation,
+                    request,
+                    result_code="LOCK_SET_RELEASED",
+                    decision_action="RELEASED",
+                    lock_keys=lock_keys,
+                    fencing_token=fence,
+                    lock_versions=versions,
+                    lease_expires_at=None,
+                )
+                for key in lock_keys:
+                    self._lock_versions[key] = versions[key]
+                    del self._locks[key]
         self._record_operation(ledger_key, fingerprint, result)
         return result
 

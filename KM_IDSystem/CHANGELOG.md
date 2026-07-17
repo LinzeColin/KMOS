@@ -1,5 +1,14 @@
 # Changelog
 
+## IDS v0.1 STAGE-041 Review - 2026-07-18
+
+- Completed the independent whole-stage review under `ACC-STAGE-041` and repaired one Critical and three Important findings: strict positive-integer CAS evidence, monotonic logical time/live-lease mutations, exact operation/provenance/parameter contract semantics, and stale handoff/governance truth.
+- Hardened the process-local lock engine so boolean/float version evidence, negative or backward time, non-extending renewal, expired commit/release and semantic contract tampering fail closed. Added `NO_TRUSTED_PRODUCTION_CLOCK_SOURCE` as an explicit production limit and rebound the dependent Phase 2→4 hash chain.
+- Added the fail-closed Stage041 review checker/tests, reviewed-local batch/roadmap/event evidence and dual-plane facts. Every review source must match the Git index before `PASS_REVIEWED_LOCAL_PRODUCTION_DISABLED` is possible.
+- Final review validation passed Stage041 `63/63`, Stage005 `157/157`, Stage040–041 `118/118`, full IDS v0.1 `798/798` in `555.092s`, `200` clean governance events, exact event/index `34/34`, idempotent rendering and the project-scoped dual-plane gate.
+- Reconciled the KM_IDS portion of latest `origin/main` renderer fix `dec58884` so newest-first changelog facts render the latest ten entries; no unrelated remote commit was merged and the Phase 1–4 ancestry was not rewritten.
+- Routed the only next task to the separate `IDS-V0_1-STAGE042-P1` while preserving `push_allowed=false` and `stage042_entry_allowed=false`. Stage042 execution, batch review, GitHub upload/merge, app reinstall, raw metadata access, persistence and production runtime did not run.
+
 ## IDS v0.1 STAGE-041 Phase 4 - 2026-07-17
 
 - Added an exact-hash-bound Phase 4 delivery contract and stdout-only checker that compose the five-family Stage041 lock lifecycle with the reviewed 8-type/11-state/4-terminal/21-transition graph, three-attempt/two-retry dead-letter log, seven pressure signals and two-class cleanup allowlist.

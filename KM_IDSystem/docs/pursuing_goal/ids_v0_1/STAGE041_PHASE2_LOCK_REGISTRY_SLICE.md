@@ -53,6 +53,21 @@ Machine evidence:
 - `KM_IDSystem/scripts/check_lock_registry_runtime.py`
 - `KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py`
 
+## Whole-stage review repair note
+
+The separate Stage041 review hardened this isolated slice without changing its
+non-production scope:
+
+- CAS lock-version evidence now accepts only strict positive integers; Python
+  `bool` and numerically equal `float` values fail closed.
+- Request timestamps must be non-negative. Commit, renewal and release reject
+  logical-time regression; renewal must strictly extend expiry; release
+  requires a live lease.
+- Operation-family/job-type mappings, parameter relationships, provenance and
+  rollback metadata are machine checked exactly instead of shape-only.
+- Caller-supplied logical time is not a trusted production clock and remains an
+  explicit production-readiness limit.
+
 ## Runtime Boundary
 
 State exists only in `IsolatedLockRegistry` process memory. The checker uses

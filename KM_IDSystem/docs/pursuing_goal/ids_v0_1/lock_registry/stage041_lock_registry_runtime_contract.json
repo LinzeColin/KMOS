@@ -166,6 +166,10 @@
     "reference_only": true,
     "raw_path_allowed": false,
     "raw_payload_allowed": false,
+    "requested_at_must_be_non_negative": true,
+    "logical_time_regression_action": "REQUIRE_MANUAL_REVIEW",
+    "renewal_must_strictly_extend_expiry": true,
+    "release_requires_live_lease": true,
     "unknown_field_action": "REQUIRE_MANUAL_REVIEW"
   },
   "decision_contract": {

@@ -291,6 +291,9 @@ class Stage041LockRegistryDeliveryTests(unittest.TestCase):
         self.assertGreaterEqual(len(report["rollback_steps"]), 6)
         self.assertIn("REVERT_PHASE4_FILES_ONLY", report["rollback_steps"])
         self.assertIn("NO_PERSISTENT_LOCK_REGISTRY", report["known_limits"])
+        self.assertIn(
+            "NO_TRUSTED_PRODUCTION_CLOCK_SOURCE", report["known_limits"]
+        )
         self.assertIn("STATIC_CLOSEOUT_IS_NOT_PRODUCTION_READINESS", report["known_limits"])
 
     def test_truth_feedback_and_next_gate_stop_at_review(self):
@@ -307,7 +310,7 @@ class Stage041LockRegistryDeliveryTests(unittest.TestCase):
         self.assertIn("未观察到自动恢复成功", report["owner_feedback_zh"])
         self.assertIn("不是生产运行或生产就绪证明", report["owner_feedback_zh"])
 
-    def test_phase4_governance_routes_only_to_whole_stage_review(self):
+    def test_phase4_history_is_preserved_after_whole_stage_review(self):
         self.assertTrue(EVIDENCE.is_file(), f"missing closeout: {EVIDENCE}")
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
@@ -318,9 +321,10 @@ class Stage041LockRegistryDeliveryTests(unittest.TestCase):
         self.assertIn('next_allowed_task_id: "IDS-V0_1-STAGE041-REVIEW"', batch)
         self.assertIn('current_phase_id: "IDS-STAGE041-P4"', roadmap)
         self.assertIn('next_gate_id: "IDS-STAGE041-REVIEW-GATE"', roadmap)
-        self.assertIn("IDS-V0_1-STAGE041-P4", handoff)
-        self.assertEqual("IDS-STAGE041-P4", status["phase"])
-        self.assertEqual("IDS-STAGE041-REVIEW-GATE", status["next_gate"])
+        self.assertIn("IDS-V0_1-STAGE041-REVIEW", handoff)
+        self.assertIn("IDS-V0_1-STAGE042-P1", handoff)
+        self.assertEqual("IDS-STAGE041-REVIEW", status["phase"])
+        self.assertEqual("IDS-STAGE042-P1-GATE", status["next_gate"])
         events = [
             json.loads(line)
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
