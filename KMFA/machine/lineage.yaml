@@ -22,6 +22,7 @@ staging_tables:
   - "_staging.op_monthly"
   - "_staging.personal_advance"
   - "_staging.receivable_aging"
+  - "_staging.subject_code_map"
   - "_staging.tax_composition"
 lineage_complete_v1: true
 lineage_complete_note: "v1 口径=账实闭合（每个 raw 资产状态可判定）；全量 lineage_complete 待全类别接入后由本工具自动翻真"
@@ -301,6 +302,16 @@ edges:
     sheet_hash: "8176b19d2558"
     rows: 20968
     version: "goods-movement-v1"
+  - from: "raw:cc3963bcdfa0"
+    to: "_staging.subject_code_map"
+    sheet_hash: "d7b91f45e0cc"
+    rows: 325
+    version: "subject-code-map-v2"
+  - from: "raw:cc3963bcdfa0"
+    to: "_staging.subject_code_map"
+    sheet_hash: "c24aa5341413"
+    rows: 255
+    version: "subject-code-map-v2"
   - from: "raw:bb8258f13cf9"
     to: "_staging.bank_journal"
     sheet_hash: "4a8a9ea7df84"
@@ -336,6 +347,16 @@ edges:
     sheet_hash: "0b1c56a9cb05"
     rows: 37
     version: "personal-advance-v1"
+  - from: "raw:d46f77b0c90d"
+    to: "_staging.subject_code_map"
+    sheet_hash: "d7b91f45e0cc"
+    rows: 330
+    version: "subject-code-map-v2"
+  - from: "raw:d46f77b0c90d"
+    to: "_staging.subject_code_map"
+    sheet_hash: "c24aa5341413"
+    rows: 255
+    version: "subject-code-map-v2"
   - from: "raw:958c7918da5d"
     to: "_staging.op_key_indicators"
     sheet_hash: "5ea177f304eb"
