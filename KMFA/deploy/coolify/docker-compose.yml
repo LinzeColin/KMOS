@@ -1,0 +1,65 @@
+# KMFA 统一云端部署（Coolify 资源）——单一治理平面。
+#
+# 治理原则（Owner 2026-07-18）：统一治理、降复杂度、不加第四件——
+#   Coolify = 唯一部署/编排面板，Cloudflare = DNS/边缘 TLS，OVH = 主机；不引入独立 bootstrap/Tunnel。
+#
+# 用法：Coolify → New Resource → Docker Compose → 指向本仓 `KMFA/deploy/coolify/docker-compose.yml`。
+#   · env/secrets 在 Coolify 面板设（键位见同目录 `.env.example`；`KMFA_DELIVERY_ENABLED` 初始 0）。
+#   · 域名在 Coolify 给 app 服务设 `kmfa.linzezhang.com`（Coolify Traefik + Cloudflare 代理）。
+#
+# 分批（3.7GB 容量 Gate）：默认只起 skills（app 在 `full` profile 后置）；观测内存无碍后再启 app。
+#
+# 路径说明：相对路径以本 compose 所在目录（KMFA/deploy/coolify）为基准。
+#   Coolify 会 clone 本仓，故 `../../..` = 仓根，技能代码经只读绑定挂载进容器（与本机 #109 同构，零重打包）。
+
+services:
+  skills:
+    build:
+      context: ../skills-runtime      # 复用 #109 已端到端出证的 Dockerfile（amd64/arm64 通用）
+    image: kmfa-skills:coolify
+    container_name: kmfa-skills
+    restart: always
+    environment:
+      # 业务锚北京时间——entrypoint 有 +0800 守卫，切勿覆盖为他时区（否则 cron 按错钟评估排程）
+      TZ: Asia/Shanghai
+      # 双跑纪律：默认 0 只 dry-run；比对通过 + Owner 同意后于 Coolify 面板置 1
+      KMFA_DELIVERY_ENABLED: "${KMFA_DELIVERY_ENABLED:-0}"
+      # 考勤 dws 双闸之一：dws 登录 + browser-policy 完成后于 Coolify 置 1
+      KMFA_DINGTALK_ATTENDANCE_ALLOW_DWS_COMMANDS: "${KMFA_DINGTALK_ATTENDANCE_ALLOW_DWS_COMMANDS:-0}"
+      DINGTALK_ROBOT_URL: "${DINGTALK_ROBOT_URL:-}"
+      DINGTALK_ROBOT_SIGNING_KEY: "${DINGTALK_ROBOT_SIGNING_KEY:-}"
+      DINGTALK_DING_ROBOT_CODE: "${DINGTALK_DING_ROBOT_CODE:-}"
+      KMFA_ALERT_WEBHOOK_TOKEN: "${KMFA_ALERT_WEBHOOK_TOKEN:-}"
+    volumes:
+      - ../../..:/opt/kmfa/KMOS:ro                # 技能代码（Coolify checkout / 仓根），只读
+      - kmfa-dws-auth:/root/.dws                  # dws 登录态持久（实例内加密存储）
+      - kmfa-dws-keyring:/root/.local/share/dws-cli
+      - kmfa-logs:/var/log/kmfa                   # 台账/日志持久
+    healthcheck:
+      test: ["CMD", "/opt/runtime/healthcheck.sh"]
+      interval: 5m
+      timeout: 20s
+      start_period: 1m
+
+  app:
+    profiles: ["full"]                            # P2：容量确认后于 Coolify 启用 full profile 再起
+    build:
+      context: ../../app/backend
+    image: kmfa-app:coolify
+    container_name: kmfa-app
+    restart: always
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ../../..:/opt/kmfa/KMOS:ro                # 只读挂仓：facts/断言/registry
+    expose:
+      - "8000"                                    # 经 Coolify Traefik 暴露；域名在 Coolify 面板设，无需开放主机端口
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 2m
+      timeout: 10s
+
+volumes:
+  kmfa-dws-auth:
+  kmfa-dws-keyring:
+  kmfa-logs:

@@ -1,5 +1,7 @@
 # 上线段：Cloudflare Tunnel + Access（kmfa.linzezhang.com）
 
+> **注：此为 fallback 路径（无 Coolify 时）。** 云端主路径＝Coolify Traefik + Cloudflare 代理 DNS，见 `../coolify/README.md`；同一节点二选一，勿并用。
+>
 > 设计（任务包 09 第七节 + 修订 R5）：实例**零开放端口**（安全组只留 SSH），出网全走 Tunnel；
 > 域名强制 Cloudflare Access 鉴权。App 容器仅监听 `127.0.0.1:8000`，`cloudflared` 以 host 网络直达回环。
 
