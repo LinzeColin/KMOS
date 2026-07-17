@@ -1,0 +1,80 @@
+{
+  "task_id": "GOVX.0003-full/row-matcher-v1",
+  "date": "2026-07-17",
+  "scope": "collection↔bank 2025",
+  "ledger_rows": 583,
+  "matched": 289,
+  "match_rate": 0.4957,
+  "matched_same_day": 269,
+  "matched_window": 20,
+  "matched_bank_category_dist": {
+    "营业回款": 260,
+    "他行转入或存现": 20,
+    "投标保证金回款": 6,
+    "其他收款": 3
+  },
+  "unmatched_ledger_rows": 294,
+  "unmatched_bank_receipt_rows": 967,
+  "monthly_match_rate": {
+    "2025-01": {
+      "matched": 30,
+      "ledger": 65,
+      "rate": 0.462
+    },
+    "2025-02": {
+      "matched": 20,
+      "ledger": 36,
+      "rate": 0.556
+    },
+    "2025-03": {
+      "matched": 20,
+      "ledger": 33,
+      "rate": 0.606
+    },
+    "2025-04": {
+      "matched": 32,
+      "ledger": 54,
+      "rate": 0.593
+    },
+    "2025-05": {
+      "matched": 21,
+      "ledger": 41,
+      "rate": 0.512
+    },
+    "2025-06": {
+      "matched": 23,
+      "ledger": 28,
+      "rate": 0.821
+    },
+    "2025-07": {
+      "matched": 27,
+      "ledger": 40,
+      "rate": 0.675
+    },
+    "2025-08": {
+      "matched": 38,
+      "ledger": 66,
+      "rate": 0.576
+    },
+    "2025-09": {
+      "matched": 48,
+      "ledger": 79,
+      "rate": 0.608
+    },
+    "2025-10": {
+      "matched": 24,
+      "ledger": 58,
+      "rate": 0.414
+    },
+    "2025-11": {
+      "matched": 6,
+      "ledger": 44,
+      "rate": 0.136
+    },
+    "2025-12": {
+      "matched": 0,
+      "ledger": 39,
+      "rate": 0.0
+    }
+  }
+}
