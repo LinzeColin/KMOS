@@ -1,0 +1,20 @@
+{
+  "task_id": "TSK.KMFA.DATA.0007",
+  "phase": "2_extract_receivable_aging",
+  "extractor_version": "aging-v1",
+  "files": 1,
+  "sheets_loaded": 3,
+  "sheets_deferred": 2,
+  "rows_loaded_this_run": 9181,
+  "table_total_rows": 9181,
+  "amount_parse_rejections": 575,
+  "amounts_integer_cents": true,
+  "per_file": [
+    {
+      "sha8": "1c497dc2",
+      "domain": "WPS钉钉红圈",
+      "sheets": 5,
+      "rows_loaded": 9181
+    }
+  ]
+}
