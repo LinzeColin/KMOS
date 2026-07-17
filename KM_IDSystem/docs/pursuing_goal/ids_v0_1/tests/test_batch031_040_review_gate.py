@@ -14,6 +14,7 @@ CHECKER = ROOT / "scripts" / "check_batch031_040_review.py"
 CONTRACT = PURSUE_ROOT / "batch_review" / "stage031_040_batch_review_contract.json"
 REVIEW = PURSUE_ROOT / "BATCH031_040_REVIEW_GATE.md"
 BATCH = PURSUE_ROOT / "BATCH031_040_UPLOAD_LOCK.yaml"
+CURRENT_BATCH = PURSUE_ROOT / "BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 
@@ -142,12 +143,15 @@ class Batch031040ReviewGateTests(unittest.TestCase):
 
     def test_governance_routes_to_separate_upload_gate_without_enabling_push(self):
         batch = BATCH.read_text(encoding="utf-8")
+        current_batch = CURRENT_BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         self.assertIn('status: "reviewed_ready_for_upload_no_github_upload"', batch)
+        self.assertIn('status: "uploaded_to_github_main"', batch)
         self.assertIn(
             'review_task_id: "IDS-V0_1-BATCH-031-040-REVIEW-GATE"', batch
         )
-        self.assertIn('push_allowed: false', batch)
+        self.assertIn('push_allowed: true', batch)
+        self.assertIn('push_allowed: false', current_batch)
         self.assertIn(
             'next_allowed_task_id: "IDS-V0_1-BATCH-031-040-UPLOAD-GATE"',
             batch,

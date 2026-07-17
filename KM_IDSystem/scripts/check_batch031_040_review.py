@@ -643,6 +643,12 @@ def _governance_checks(contract: Mapping[str, Any]) -> dict[str, bool]:
     stage_progress = _as_object(batch.get("stage_progress"))
     upload_gate = _as_object(batch.get("upload_gate"))
     decision = _as_object(batch.get("decision"))
+    batch_history = _as_object(batch.get("transition_history"))
+    batch_review_state = _as_object(batch_history.get("batch_review_state"))
+    roadmap_history = _as_object(roadmap.get("current_transition_history"))
+    roadmap_review_state = _as_object(
+        roadmap_history.get("batch031_040_review_state")
+    )
     stages = _as_list(roadmap.get("stages"))
     stage040 = _find_by_id(stages, "stage_id", "IDS-STAGE040")
     batch_phase = _find_by_id(
@@ -664,6 +670,19 @@ def _governance_checks(contract: Mapping[str, Any]) -> dict[str, bool]:
             EXPECTED_STAGE_IDS, EXPECTED_ACCEPTANCE_IDS
         )
     )
+    historical_batch_review_exact = (
+        batch_review_state.get("status")
+        == "reviewed_ready_for_upload_no_github_upload"
+        and batch_review_state.get("current_task_id") == TASK_ID
+        and batch_review_state.get("next_allowed_task_id") == NEXT_GATE
+        and batch_review_state.get("github_upload_allowed") is False
+    )
+    historical_roadmap_review_exact = (
+        roadmap_review_state.get("current_stage_id") == "IDS-STAGE040"
+        and roadmap_review_state.get("current_phase_id") == TASK_ID
+        and roadmap_review_state.get("current_task_id") == TASK_ID
+        and roadmap_review_state.get("next_gate_id") == NEXT_GATE
+    )
     return {
         "contract_gate_truth_exact": (
             expected.get("review_status")
@@ -679,25 +698,38 @@ def _governance_checks(contract: Mapping[str, Any]) -> dict[str, bool]:
         "batch_state_reviewed_no_upload": (
             batch.get("batch_id") == "IDS-V0_1-BATCH-031-040"
             and batch.get("status")
-            == "reviewed_ready_for_upload_no_github_upload"
+            in {
+                "reviewed_ready_for_upload_no_github_upload",
+                "uploaded_to_github_main",
+            }
             and batch.get("review_task_id") == TASK_ID
             and batch.get("review_evidence_ref")
             == "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH031_040_REVIEW_GATE.md"
-            and upload_gate.get("push_allowed") is False
+            and historical_batch_review_exact
             and upload_gate.get("review_gate") == "BATCH031_040_REVIEW_GATE"
             and upload_gate.get("gate_task_id") == NEXT_GATE
         ),
         "all_ten_stage_nodes_reviewed": stage_nodes_valid,
         "batch_decision_routes_only_to_upload_gate": (
-            decision.get("current_task_id") == TASK_ID
-            and decision.get("next_allowed_task_id") == NEXT_GATE
-            and decision.get("github_upload_allowed") is False
+            historical_batch_review_exact
+            and (
+                (
+                    decision.get("current_task_id") == TASK_ID
+                    and decision.get("next_allowed_task_id") == NEXT_GATE
+                    and decision.get("github_upload_allowed") is False
+                )
+                or (
+                    batch.get("status") == "uploaded_to_github_main"
+                    and decision.get("current_task_id")
+                    == "IDS-V0_1-BATCH-031-040-MAIN-MERGED"
+                    and decision.get("next_allowed_task_id")
+                    == "IDS-STAGE041-P1-GATE"
+                    and decision.get("github_upload_allowed") is True
+                )
+            )
         ),
         "roadmap_routes_only_to_upload_gate": (
-            roadmap.get("current_stage_id") == "IDS-STAGE040"
-            and roadmap.get("current_phase_id") == TASK_ID
-            and roadmap.get("current_task_id") == TASK_ID
-            and roadmap.get("next_gate_id") == NEXT_GATE
+            historical_roadmap_review_exact
             and batch_phase.get("status") == "completed"
         ),
         "batch_review_event_exact": (

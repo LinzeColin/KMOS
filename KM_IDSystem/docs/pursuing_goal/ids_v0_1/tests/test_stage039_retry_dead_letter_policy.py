@@ -13,6 +13,7 @@ CONTRACT = BASE / "retry_dead_letter" / "stage039_retry_dead_letter_policy_contr
 ENTRY = BASE / "STAGE039_ENTRY_CONTRACT.md"
 BOUNDARY = BASE / "STAGE039_PHASE1_RETRY_DEAD_LETTER_SCOPE_BOUNDARY.md"
 BATCH = BASE / "BATCH031_040_UPLOAD_LOCK.yaml"
+CURRENT_BATCH = BASE / "BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 CHECKER = ROOT / "scripts" / "check_retry_dead_letter_policy.py"
 
@@ -276,7 +277,12 @@ class Stage039RetryDeadLetterPolicyTests(unittest.TestCase):
     def test_governance_routes_only_to_separate_phase2(self):
         entry = ENTRY.read_text(encoding="utf-8")
         boundary = BOUNDARY.read_text(encoding="utf-8")
-        batch = BATCH.read_text(encoding="utf-8")
+        batch = "\n".join(
+            (
+                BATCH.read_text(encoding="utf-8"),
+                CURRENT_BATCH.read_text(encoding="utf-8"),
+            )
+        )
         roadmap = ROADMAP.read_text(encoding="utf-8")
         combined = "\n".join((entry, boundary))
         for term in (

@@ -1,5 +1,20 @@
 # Changelog
 
+## IDS v0.1 STAGE-041 Phase 1 KMOS Rebind - 2026-07-17
+
+- Applied only the first archived candidate patch's file content in the dedicated `kmos-kmids-stage041` worktree; no candidate commit identity was restored and no cherry-pick, Stage 42-43 activation, upload, or merge occurred.
+- Rebound four historical CodexProject evidence commits to their KMOS equivalents after verifying commit-message equality, current-KMOS ancestry, and exact blob equality at `18/18`, `14/14`, `24/24`, and `15/15`; repaired the dependent Stage039-041 SHA-256 chain without changing the immutable `BATCH031_040` terminal hash.
+- Passed the Stage041 checker `20/20`, focused tests `10/10`, Stage005 governance regression `156/156`, batch index review `8/8`, full IDS v0.1 discovery `744/744` in `356.105s`, and the project-scoped dual-plane gate.
+- Moved all 63 `KM_IDSystem` change paths from the KMOS main checkout into `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041`; the main checkout is back on `main` with zero `KM_IDSystem` changes. Phase 2, production runtime, raw metadata access, app activation, push, PR, and merge remain disabled.
+
+## IDS v0.1 STAGE-041 Phase 1 - 2026-07-14
+
+- Bound the unique approved Stage041 taskpack member, approved archive/roadmap/instruction hashes, and terminal `BATCH031_040` lock hash into `ids.lock_registry.v0_1.p1`, an exact-shaped metadata-only contract with a stdout-only fail-closed checker under `ACC-STAGE-041`.
+- Defined five governed operation domains, a shared source-pipeline guard plus operation lock, reference-only SHA-256 keys, lexicographic all-or-none compare-and-set acquisition, one-live-holder lease rules, atomic fencing/version takeover, stale-holder write denial, and matching-token idempotent release.
+- Preserved the Stage038 same-source conflict baseline and specified that contention creates no queue record, executes no operation, and consumes no retry budget. All numeric lease/renewal/timeout/contention parameters remain deferred to Phase 2 with no implicit defaults.
+- Routed automatic resume to STAGE-042, crash recovery to STAGE-043, cleanup execution to STAGE-044, and the only next task to a separate `IDS-V0_1-STAGE041-P2` run. No lock runtime, queue/worker, persistence, database, raw metadata, fake IDS business data, GitHub/PR/issue/merge, app reinstall, or production action ran.
+- Added current `BATCH041_050` and governance/event routing with `push_allowed=false`; historical `BATCH031_040` remains immutable in its terminal uploaded state. Final validation passed Stage041 checker `20/20`, focused tests `10/10`, Stage005 `156/156`, Stage037-040 `179/179`, historical Stage001-036 plus BATCH031-040 review compatibility `555/555`, and full IDS v0.1 discovery `744/744` after repairing 32 stale historical governance assertions without changing the old batch hash. Pre-commit self-review repaired one additional Important exact-shape gap so unknown nested fields and incomplete human-status projections fail closed.
+
 ## IDS v0.1 BATCH-031-040 Upload Gate - 2026-07-14
 
 - Opened the separate upload gate only after the ten-stage independent review and repairs passed; TDD RED captured the missing gate plus pending/terminal state contracts.

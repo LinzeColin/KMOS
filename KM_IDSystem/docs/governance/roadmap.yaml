@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE040"
-current_phase_id: "IDS-V0_1-BATCH-031-040-MAIN-MERGED"
-current_task_id: "IDS-V0_1-BATCH-031-040-MAIN-MERGED"
-next_gate_id: "IDS-STAGE041-P1-GATE"
+current_stage_id: "IDS-STAGE041"
+current_phase_id: "IDS-STAGE041-P1"
+current_task_id: "IDS-V0_1-STAGE041-P1"
+next_gate_id: "IDS-STAGE041-P2-GATE"
 current_transition_history:
+  stage041_phase1_state:
+    current_stage_id: "IDS-STAGE041"
+    current_phase_id: "IDS-STAGE041-P1"
+    current_task_id: "IDS-V0_1-STAGE041-P1"
+    next_gate_id: "IDS-STAGE041-P2-GATE"
   batch031_040_main_merged_state:
     current_stage_id: "IDS-STAGE040"
     current_phase_id: "IDS-V0_1-BATCH-031-040-MAIN-MERGED"
@@ -10330,3 +10335,129 @@ stages:
         - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH031_040_UPLOAD_LOCK.yaml"
       test_results: "TDD review RED produced 6 failures and 2 errors across 8 tests. Review repaired one Critical and two Important findings covering malformed control metadata fail-closed behavior, state-aware pause status, and unsupported scheduler fairness claims. Final layered validation is recorded in STAGE040_STAGE_REVIEW.md and the review event."
       decision: "ACC-STAGE-040 completed_reviewed_local after all three findings were repaired; next gate is the separate IDS-V0_1-BATCH-031-040-REVIEW-GATE, push_allowed=false, and this run did not enter batch review or STAGE-041."
+  -
+    stage_id: "IDS-STAGE041"
+    name: "STAGE-041 · 锁注册与竞态控制"
+    person_goal: "为文件处理、归档解包、索引构建、索引切换与报告生成建立可审计、可恢复且可防止陈旧 worker 写入的锁注册、租约与 fencing 控制。"
+    status: "in_progress"
+    stop_conditions:
+      - "一次 run 试图完成多个 phase"
+      - "缩窄 STAGE-038 ARCHIVE、PARSE、INDEX、REPORT 同源互斥基线"
+      - "多锁不按 canonical key 顺序或失败后保留部分锁"
+      - "过期观察直接授予锁、fencing token 回退或陈旧 holder 仍可提交、续约或释放"
+      - "使用隐式、无来源、无版本或冒充生产校准的 lease、renewal、grace、timeout、wait 或 jitter 参数"
+      - "吸收 STAGE-042 automatic resume、STAGE-043 crash recovery 或 STAGE-044 cleanup runtime"
+      - "连接 PostgreSQL、修改 schema/state registry、启动 worker 或写真实 job/lock row"
+      - "读取、列出、hash、打开、复制、移动、删除、修改、dump 或扫描 /Users/linzezhang/Downloads/IDS_MetaData 内容"
+      - "使用虚构 IDS 业务数据、数据库行、jobs、locks、evidence 或 placeholder corpus"
+      - "进入 Phase 2、whole-stage review、batch gate、GitHub 或 app reinstall"
+    stop_gate:
+      gate_id: "IDS-STAGE041-P1-GATE"
+      status: "passed_with_local_evidence"
+      pass_conditions:
+        - "Exact Stage041 source tuple and reviewed upstream hashes are recorded and machine checked"
+        - "Five operation families preserve the Stage038 same-source conflict baseline"
+        - "Multi-lock acquisition is canonical all-or-none and stale holders cannot commit or release"
+        - "All numeric lock parameters and later-stage runtimes remain deferred"
+        - "Phase 2 is the only next task and must run separately"
+      evidence_refs:
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_ENTRY_CONTRACT.md"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE1_LOCK_REGISTRY_SCOPE_BOUNDARY.md"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_contract.json"
+        - "KM_IDSystem/scripts/check_lock_registry.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+    phases:
+      -
+        phase_id: "IDS-STAGE041-P1"
+        name: "锁注册与竞态控制 范围、输入输出与边界确认"
+        objective: "基于唯一批准的 Stage041 taskpack 与 STAGE-037..040 reviewed contracts，定义五类操作的 lock key、registry、CAS、lease、fencing、release、idempotency、冲突、参数与跨 Stage ownership；不执行 runtime。"
+        status: "passed_with_local_evidence"
+        stop_conditions:
+          - "实现或执行 Phase 2 lock decision runtime"
+          - "为 lease、renewal、grace、timeout、wait、jitter 或 deadlock timeout 编造无来源值"
+          - "弱化 Stage038 同源互斥、terminal immutability、retry budget、audit 或 protected evidence"
+          - "连接数据库、读取 raw metadata、写 runtime output 或创建真实/虚构 IDS lock/job"
+          - "进入 Phase 2、stage review、batch gate、GitHub 或 app reinstall"
+        stop_gate:
+          gate_id: "IDS-STAGE041-P1-GATE"
+          status: "passed_with_local_evidence"
+          pass_conditions:
+            - "Source and upstream bindings match exact tracked content"
+            - "Registry and key material are reference-only and fail closed"
+            - "Lease takeover atomically advances fence and lock version"
+            - "Conflict consumes no retry, creates no queue record and retains no partial lock"
+            - "The only next gate is IDS-STAGE041-P2-GATE"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_ENTRY_CONTRACT.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE1_LOCK_REGISTRY_SCOPE_BOUNDARY.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_contract.json"
+            - "KM_IDSystem/scripts/check_lock_registry.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry.py"
+        tasks:
+          -
+            task_id: "IDS-V0_1-STAGE041-P1"
+            name: "定义锁注册与竞态控制 Phase 1 工程合同"
+            objective: "定义可执行、可测试、可回滚的 lock/lease/fencing 元数据与安全边界，同时不执行锁、队列、worker、resume、recovery 或 cleanup runtime。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-BATCH-031-040-MAIN-MERGED"
+              - "ids.job_state.v1"
+              - "ids.stage038.worker_queue_baseline.stage_review.v1"
+              - "ids.stage039.retry_dead_letter.stage_review.v1"
+              - "ids.stage040.backpressure.stage_review.v1"
+            acceptance_ids:
+              - "ACC-STAGE-041"
+            test_commands:
+              - "python3 -B KM_IDSystem/scripts/check_lock_registry.py"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage041_lock_registry"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage005_governance_regression"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage03[7-9]*.py' -q"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage04[0-1]*.py' -q"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -q"
+              - "python3 -B scripts/lean_governance.py check-render --project KM_IDSystem"
+              - "events.jsonl parse and duplicate-id check"
+              - "git diff --check"
+              - "python3 -B scripts/validate_governance_sync.py --changed-only --base-ref HEAD --semantic --drift-report"
+            test_results: "TDD RED: 10 tests produced 13 assertion failures and 1 missing-file error because the Stage041 Phase1 artifacts and governance route did not exist. GREEN: checker 20/20 contract checks true; Stage041 10/10; Stage005 156/156; Stage037-040 aggregate 179/179; historical Stage001-036 plus BATCH031-040 review compatibility 555/555; full IDS v0.1 discovery 744/744. The first full run exposed 32 stale historical governance assertions; repairs preserve the immutable BATCH031_040 hash, revalidate its review state through transition history, and bind current no-upload assertions to BATCH041_050. Pre-commit self-review repaired one Important exact-shape gap by rejecting unknown nested contract fields and validating the complete human-status projection. No lock/lease/fencing, queue/worker, retry, resume, crash-recovery, cleanup, persistence, database, raw metadata, fake IDS business data, GitHub, PR, issue, merge, app reinstall, production, Phase2, or whole-stage review action ran."
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_ENTRY_CONTRACT.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE1_LOCK_REGISTRY_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_contract.json"
+              - "KM_IDSystem/scripts/check_lock_registry.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+            risk: "错误的 lock granularity、非原子多锁、过期租约授予或 fencing 回退会允许重复处理、死锁或陈旧 worker 覆盖有效结果。"
+            rollback: "只回滚 Stage041 Phase1 contract/checker/tests/governance/event/handoff/changelog/owner-view 变更；保留先前 stages、owner dirty files、raw data、database、runtime outputs、GitHub 与 app 状态。"
+      -
+        phase_id: "IDS-STAGE041-P2"
+        name: "锁注册与竞态控制 实现、接入与最小可运行切片"
+        objective: "在单独 run 中为全部数值参数建立来源与回滚，并实现 isolated non-production acquire/renew/release/takeover/fencing decision slice。"
+        status: "planned"
+        entry_authorized: true
+        dependencies:
+          - "IDS-V0_1-STAGE041-P1"
+      -
+        phase_id: "IDS-STAGE041-P3"
+        name: "锁注册与竞态控制 场景验证"
+        objective: "在单独 run 中验证并发、重复提交、锁竞争、续租、过期 takeover、陈旧 fencing、drive/disk/API pause 与受保护 cleanup 边界。"
+        status: "planned"
+        dependencies:
+          - "IDS-V0_1-STAGE041-P2"
+      -
+        phase_id: "IDS-STAGE041-P4"
+        name: "锁注册与竞态控制 关闭与交付"
+        objective: "在单独 run 中收口可重放证据、回滚、已知限制和 whole-stage review 前置条件。"
+        status: "planned"
+        dependencies:
+          - "IDS-V0_1-STAGE041-P3"
+    review:
+      review_id: "IDS-STAGE041-REVIEW"
+      task_id: "IDS-V0_1-STAGE041-REVIEW"
+      status: "planned_after_phase4"
+      acceptance_ids:
+        - "ACC-STAGE-041"
+      decision: "Whole-stage review must run only after Phase 4 and repair all findings before STAGE-042."

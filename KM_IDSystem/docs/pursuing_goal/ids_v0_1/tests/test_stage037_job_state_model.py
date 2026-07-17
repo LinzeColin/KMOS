@@ -21,6 +21,7 @@ MODEL_ROOT = PURSUE_ROOT / "job_state_model"
 MODEL_INDEX = MODEL_ROOT / "stage037_job_state_model_index.json"
 CHECKER = ROOT / "scripts" / "check_job_state_model.py"
 BATCH_LOCK = PURSUE_ROOT / "BATCH031_040_UPLOAD_LOCK.yaml"
+CURRENT_BATCH_LOCK = PURSUE_ROOT / "BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 
@@ -302,7 +303,12 @@ class Stage037JobStateModelPhase1Tests(unittest.TestCase):
                 self.assertIn(term, combined)
 
     def test_batch_lock_roadmap_and_event_track_stage037_phase1_without_upload(self):
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = "\n".join(
+            (
+                BATCH_LOCK.read_text(encoding="utf-8"),
+                CURRENT_BATCH_LOCK.read_text(encoding="utf-8"),
+            )
+        )
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events = [
             json.loads(line)
@@ -1277,7 +1283,12 @@ class Stage037JobStateModelPhase2Tests(unittest.TestCase):
         self.assertTrue(PHASE2.is_file(), f"missing Phase 2 evidence: {PHASE2}")
         document = PHASE2.read_text(encoding="utf-8")
         index = self._load_index()
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = "\n".join(
+            (
+                BATCH_LOCK.read_text(encoding="utf-8"),
+                CURRENT_BATCH_LOCK.read_text(encoding="utf-8"),
+            )
+        )
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events = [
             json.loads(line)
@@ -1694,7 +1705,12 @@ class Stage037JobStateModelPhase3Tests(unittest.TestCase):
 
     def test_phase3_governance_advances_only_to_phase4_gate_without_upload(self):
         self.assertTrue(PHASE3.is_file(), f"missing Phase 3 evidence: {PHASE3}")
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = "\n".join(
+            (
+                BATCH_LOCK.read_text(encoding="utf-8"),
+                CURRENT_BATCH_LOCK.read_text(encoding="utf-8"),
+            )
+        )
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events = [
             json.loads(line)
@@ -2111,7 +2127,12 @@ class Stage037JobStateModelPhase4Tests(unittest.TestCase):
         self.assertEqual("pending_next_run", phase4_contract["stage_review_status"])
         self.assertEqual("IDS-STAGE037-REVIEW-GATE", phase4_contract["next_gate"])
         self.assertFalse(phase4_contract["github_upload_allowed"])
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = "\n".join(
+            (
+                BATCH_LOCK.read_text(encoding="utf-8"),
+                CURRENT_BATCH_LOCK.read_text(encoding="utf-8"),
+            )
+        )
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events = [
             json.loads(line)
@@ -2229,7 +2250,12 @@ class Stage037JobStateModelReviewTests(unittest.TestCase):
         self.assertEqual("IDS-STAGE037-REVIEW-GATE", blocked["next_gate"])
 
     def test_review_governance_and_event_sequence_are_exact(self):
-        batch_text = BATCH_LOCK.read_text(encoding="utf-8")
+        batch_text = "\n".join(
+            (
+                BATCH_LOCK.read_text(encoding="utf-8"),
+                CURRENT_BATCH_LOCK.read_text(encoding="utf-8"),
+            )
+        )
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         for term in (
             'status: "stage037_completed_reviewed_local"',

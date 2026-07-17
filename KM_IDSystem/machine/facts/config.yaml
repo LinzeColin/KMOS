@@ -1,0 +1,46 @@
+{
+  "parameters": {
+    "租约持续时间": {
+      "canonical_name": "lease_duration",
+      "value": "未赋值（步骤一明确禁止）",
+      "intent": "必须先取得来源、单位、理由、验证证据与回滚方案，禁止隐式默认值。",
+      "where": "`docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_contract.json`"
+    },
+    "续租间隔": {
+      "canonical_name": "renewal_interval",
+      "value": "未赋值（步骤一明确禁止）",
+      "intent": "必须小于已裁定的租约持续时间，并经独立步骤验证后才能使用。",
+      "where": "`docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_contract.json`"
+    },
+    "过期宽限": {
+      "canonical_name": "expiry_grace",
+      "value": "未赋值（步骤一明确禁止）",
+      "intent": "只能用于处理可证明的时钟与观测误差，不能凭过期时间直接授予所有权。",
+      "where": "`docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_contract.json`"
+    },
+    "获取超时": {
+      "canonical_name": "acquisition_timeout",
+      "value": "未赋值（步骤一明确禁止）",
+      "intent": "必须在独立步骤中结合资源类型与失败关闭策略定源。",
+      "where": "`docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_contract.json`"
+    },
+    "最大等待": {
+      "canonical_name": "maximum_wait",
+      "value": "未赋值（步骤一明确禁止）",
+      "intent": "不得让锁等待绕过反压、重试预算或人工复核边界。",
+      "where": "`docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_contract.json`"
+    },
+    "重试抖动": {
+      "canonical_name": "retry_jitter",
+      "value": "未赋值（步骤一明确禁止）",
+      "intent": "归属重试策略；锁竞争本身不消耗重试预算，也不创建队列记录。",
+      "where": "`docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_contract.json`"
+    },
+    "死锁超时": {
+      "canonical_name": "deadlock_timeout",
+      "value": "未赋值（步骤一明确禁止）",
+      "intent": "多锁按规范顺序全有或全无获取；任何超时值仍须独立定源与验证。",
+      "where": "`docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_contract.json`"
+    }
+  }
+}

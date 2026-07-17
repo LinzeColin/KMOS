@@ -1,12 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE040",
-  "phase": "IDS-V0_1-BATCH-031-040-MAIN-MERGED",
-  "task": "IDS-V0_1-BATCH-031-040-MAIN-MERGED",
+  "stage": "IDS-STAGE041",
+  "phase": "IDS-STAGE041-P1",
+  "task": "IDS-V0_1-STAGE041-P1",
   "real_progress": "98.14%（这是走完了多少道结构关卡；离真正做完还差多少，要对着真实数据核一遍才知道）",
-  "report_grade": "",
-  "business_verdict": "",
-  "evidence_status": "EXTRACTED",
-  "rendered_at": "2026-07-15",
-  "migrated_from_legacy": "功能清单.md"
+  "report_grade": "本地 Phase 1 契约证据已通过全量回归与双平面收口",
+  "business_verdict": "只完成锁注册步骤一契约；运行时未启用",
+  "evidence_status": "LOCAL_PHASE1_REBIND_VALIDATED",
+  "rendered_at": "2026-07-17",
+  "migrated_from_legacy": "功能清单.md",
+  "next_gate": "IDS-STAGE041-P2-GATE",
+  "runtime_enabled": false,
+  "push_allowed": false
 }

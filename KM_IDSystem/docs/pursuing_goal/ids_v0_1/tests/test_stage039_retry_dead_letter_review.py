@@ -11,6 +11,7 @@ PURSUE_ROOT = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
 CHECKER = ROOT / "scripts" / "check_retry_dead_letter_stage_review.py"
 REVIEW = PURSUE_ROOT / "STAGE039_STAGE_REVIEW.md"
 BATCH_LOCK = PURSUE_ROOT / "BATCH031_040_UPLOAD_LOCK.yaml"
+CURRENT_BATCH_LOCK = PURSUE_ROOT / "BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 
@@ -106,22 +107,27 @@ class Stage039RetryDeadLetterStageReviewTests(unittest.TestCase):
                 self.assertIn(term, review_text)
 
         batch = module._parse_yaml_text(BATCH_LOCK.read_text(encoding="utf-8"))
+        current_batch = module._parse_yaml_text(
+            CURRENT_BATCH_LOCK.read_text(encoding="utf-8")
+        )
         roadmap = module._parse_yaml_text(ROADMAP.read_text(encoding="utf-8"))
         stage = batch["stage_progress"]["STAGE-039"]
         self.assertTrue(
             batch["status"] == "stage039_completed_reviewed_local"
             or batch["status"].startswith("stage040_")
-            or batch["status"] == "reviewed_ready_for_upload_no_github_upload",
+            or batch["status"] == "reviewed_ready_for_upload_no_github_upload"
+            or batch["status"] == "uploaded_to_github_main",
             batch["status"],
         )
         self.assertEqual("completed_reviewed_local", stage["status"])
         self.assertEqual("passed", stage["review_status"])
         self.assertEqual("STAGE-040", stage["next_stage"])
         self.assertEqual("IDS-STAGE040-P1-GATE", stage["next_gate"])
-        self.assertFalse(batch["upload_gate"]["push_allowed"])
+        self.assertTrue(batch["upload_gate"]["push_allowed"])
+        self.assertFalse(current_batch["upload_gate"]["push_allowed"])
         self.assertIn(
             roadmap["current_stage_id"],
-            {"IDS-STAGE039", "IDS-STAGE040"},
+            {"IDS-STAGE039", "IDS-STAGE040", "IDS-STAGE041"},
         )
         if roadmap["current_stage_id"] == "IDS-STAGE039":
             self.assertEqual("IDS-STAGE039-REVIEW", roadmap["current_phase_id"])
@@ -138,6 +144,7 @@ class Stage039RetryDeadLetterStageReviewTests(unittest.TestCase):
                 "IDS-V0_1-BATCH-031-040-REVIEW-GATE": (
                     "IDS-V0_1-BATCH-031-040-UPLOAD-GATE"
                 ),
+                "IDS-STAGE041-P1": "IDS-STAGE041-P2-GATE",
             }
             self.assertIn(roadmap["current_phase_id"], expected_gate_by_phase)
             self.assertEqual(

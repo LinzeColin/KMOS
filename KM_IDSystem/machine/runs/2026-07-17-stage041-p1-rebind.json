@@ -1,0 +1,40 @@
+{
+  "run_id": "`RUN-IDS-STAGE041-P1-REBIND-20260717-001`",
+  "action": "将归档候选的步骤一契约按现行双平面治理重新绑定并复核",
+  "result": "通过（仅限本地步骤一重绑定）：744/744；未进入步骤二，未上传或合并",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "base_head": "2076e54c8fd3102b9a88b2cfd46e5ba67e8d2eeb",
+  "origin_main_at_validation": "e849f0c84b29d16654698ee6513668b1ef811bb7",
+  "origin_main_kmids_drift_paths": 0,
+  "archive_candidate": "KM_IDS-main-integration-candidate.mbox.gz 的第一项补丁内容",
+  "transport": "只应用文件内容，未恢复提交身份，未拣选候选提交",
+  "governance_rebind": "现行双平面机器事实及渲染文档",
+  "ancestry_rebind": [
+    "27368f8e42522725dc97c76ea1a90481380d5d24 -> aeddad7e450b1983f42c802bd0e566cdcf52a0db（18/18 blobs）",
+    "75fc7c896e1403ae6865164f1a36c5c85bb2a956 -> 92b1fe60e07d0af049d64c8840a0899d26c2cc2b（14/14 blobs）",
+    "647445f9e0bb5cfcbfbfaa0f8180df872c3ece5f -> ce8dbc9901a6017eeb099757caf7ec15b762fab3（24/24 blobs）",
+    "e3509e932ce3b67e85f20cb18ca703e8b3a19f24 -> 007a31ff2773d60c5f2ddd01acf573fd608ffc20（15/15 blobs）"
+  ],
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "restored_kmids_paths": 63,
+    "outside_scope_paths": 0,
+    "conflicts": 0
+  },
+  "verified_results": [
+    "锁注册检查二十项全部为真",
+    "步骤一聚焦测试十项通过",
+    "治理回归一百五十六项通过",
+    "批次索引复核八项通过",
+    "IDS v0.1 全量回归七百四十四项通过",
+    "机器事实、七份渲染文档与三道门一致"
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未进入步骤二",
+    "未执行锁或租约运行时",
+    "未触碰原始元数据",
+    "未上传、合并或重装应用"
+  ]
+}

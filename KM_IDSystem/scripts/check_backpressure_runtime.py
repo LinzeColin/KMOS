@@ -46,11 +46,11 @@ EXPECTED_UPSTREAM = {
     "phase1_policy_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/"
         "stage040_backpressure_policy_contract.json",
-        "fe7110d0338de3fcb603e267ecf8995ef93e8db58f401612f322ff06166bd25a",
+        "fe1b0f7da92dd238efd9bed6c96cf6ee6d503962bcf3ec6c48591234f5f0026b",
     ),
     "phase1_checker": (
         "KM_IDSystem/scripts/check_backpressure_policy.py",
-        "debf37652e23f4b618739a7eb22ed63fd9fa5dd508dad931ec772031049298d0",
+        "77d761d3c2d73d1cc7ba977eaa988c1c81445f5978b01401625228747571d3c3",
     ),
     "phase1_scope_boundary": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"

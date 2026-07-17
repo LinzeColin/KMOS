@@ -22,8 +22,15 @@ INDEX = (
 )
 SCRIPT = ROOT / "scripts" / "check_database_recovery_smoke.py"
 BATCH_LOCK = PURSUE_ROOT / "BATCH031_040_UPLOAD_LOCK.yaml"
+CURRENT_BATCH_LOCK = PURSUE_ROOT / "BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
+
+
+def _batch_lock_history_and_current():
+    return BATCH_LOCK.read_text(encoding="utf-8") + "\n" + CURRENT_BATCH_LOCK.read_text(
+        encoding="utf-8"
+    )
 
 
 class Stage035DatabaseRecoverySmokePhase1Tests(unittest.TestCase):
@@ -134,7 +141,7 @@ class Stage035DatabaseRecoverySmokePhase1Tests(unittest.TestCase):
         self.assertTrue(ROADMAP.is_file(), f"missing roadmap: {ROADMAP}")
         self.assertTrue(EVENTS.is_file(), f"missing events: {EVENTS}")
 
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
 
@@ -426,7 +433,7 @@ class Stage035DatabaseRecoverySmokePhase2Tests(unittest.TestCase):
         self.assertTrue(EVENTS.is_file(), f"missing events: {EVENTS}")
 
         phase2_text = PHASE2.read_text(encoding="utf-8")
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
 
@@ -681,7 +688,7 @@ class Stage035DatabaseRecoverySmokePhase3Tests(unittest.TestCase):
     def test_phase3_doc_and_governance_record_static_validation_without_upload(self):
         self.assertTrue(PHASE3.is_file(), f"missing Phase 3 evidence: {PHASE3}")
         phase3_text = PHASE3.read_text(encoding="utf-8")
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
 
@@ -918,7 +925,7 @@ class Stage035DatabaseRecoverySmokePhase4Tests(unittest.TestCase):
     def test_phase4_doc_and_governance_stop_at_separate_review_gate(self):
         self.assertTrue(PHASE4.is_file(), f"missing Phase 4 evidence: {PHASE4}")
         phase4_text = PHASE4.read_text(encoding="utf-8")
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
 
@@ -1064,7 +1071,7 @@ class Stage035DatabaseRecoverySmokeReviewTests(unittest.TestCase):
 
     def test_stage_review_gate_batch_roadmap_and_event_track_reviewed_local_no_upload(self):
         self.assertTrue(STAGE_REVIEW.is_file(), f"missing stage review: {STAGE_REVIEW}")
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
 
@@ -1206,49 +1213,19 @@ class Stage035DatabaseRecoverySmokeReviewTests(unittest.TestCase):
         )
         self.assertEqual("FAIL_CLOSED", tampered_report["recovery_test_log"]["result"])
 
-    def test_owner_render_uses_singular_risk_field(self):
-        scripts_dir = ROOT.parent / "scripts"
-        spec = importlib.util.spec_from_file_location(
-            "stage035_lean_governance_review", scripts_dir / "lean_governance.py"
-        )
-        self.assertIsNotNone(spec)
-        self.assertIsNotNone(spec.loader)
-        sys.path.insert(0, str(scripts_dir))
-        try:
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-        finally:
-            sys.path.remove(str(scripts_dir))
+    def test_dual_plane_replaces_retired_owner_renderer(self):
+        self.assertFalse((ROOT.parent / "scripts" / "lean_governance.py").exists())
+        self.assertTrue((ROOT / "machine" / "tools" / "render_human.py").is_file())
 
-        roadmap = {
-            "project_id": "KM_IDSystem",
-            "stages": [
-                {
-                    "stage_id": "IDS-STAGE035",
-                    "name": "review fixture",
-                    "phases": [
-                        {
-                            "phase_id": "IDS-STAGE035-P4",
-                            "name": "review fixture",
-                            "tasks": [
-                                {
-                                    "task_id": "IDS-V0_1-STAGE035-P4",
-                                    "name": "review fixture",
-                                    "status": "completed",
-                                    "estimated_hours": 1,
-                                    "risk": "phase4 risk must remain owner-visible",
-                                }
-                            ],
-                        }
-                    ],
-                }
-            ],
-        }
-        rendered = "\n".join(module.render_roadmap_body(roadmap))
-        self.assertIn(
-            "IDS-V0_1-STAGE035-P4 risks: `phase4 risk must remain owner-visible`",
-            rendered,
-        )
+        plan = json.loads((ROOT / "machine" / "facts" / "plan.json").read_text())
+        self.assertEqual("`IDS-STAGE041-P1`", plan["phase"])
+        self.assertTrue(plan["scope"])
+        self.assertTrue(plan["non_goals"])
+        self.assertTrue(plan["stop_condition"])
+
+        rendered = (ROOT / "文档" / "05_执行与验收.md").read_text(encoding="utf-8")
+        self.assertIn("machine/tools/render_human.py", rendered)
+        self.assertIn("IDS-STAGE041-P1", rendered)
 
 
 if __name__ == "__main__":

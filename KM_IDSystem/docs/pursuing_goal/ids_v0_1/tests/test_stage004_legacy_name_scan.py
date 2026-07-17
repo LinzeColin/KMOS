@@ -63,6 +63,30 @@ class Stage004LegacyNameScanTests(unittest.TestCase):
                 "legacy_opme_word",
             ),
         )
+        self.assertEqual(
+            "allowed_legacy_context",
+            module.classify_hit(
+                "KM_IDSystem/governance/archive/local_handoff/README.md",
+                "legacy source: opme-system",
+                "legacy_path_kebab",
+            ),
+        )
+        self.assertEqual(
+            "allowed_legacy_context",
+            module.classify_hit(
+                "KM_IDSystem/machine/facts/features.json",
+                '  "id": "FEAT-OPME-008",',
+                "legacy_opme_word",
+            ),
+        )
+        self.assertEqual(
+            "active_display_debt",
+            module.classify_hit(
+                "KM_IDSystem/machine/facts/features.json",
+                '  "name": "OpMe",',
+                "legacy_opme_word",
+            ),
+        )
 
 
 if __name__ == "__main__":

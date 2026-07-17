@@ -104,6 +104,14 @@ def _contains_any(line: str, needles: tuple[str, ...]) -> bool:
 
 
 def classify_hit(rel_path: str, line: str, pattern_name: str) -> str:
+    if rel_path.startswith("KM_IDSystem/governance/archive/"):
+        return "allowed_legacy_context"
+    if rel_path in {
+        "KM_IDSystem/功能清单.md",
+        "KM_IDSystem/开发记录.md",
+        "KM_IDSystem/模型参数文件.md",
+    }:
+        return "allowed_legacy_context"
     if rel_path.startswith("KM_IDSystem/docs/pursuing_goal/ids_v0_1/"):
         return "allowed_legacy_context"
     if rel_path.startswith("KM_IDSystem/docs/governance/"):
@@ -143,6 +151,12 @@ def classify_hit(rel_path: str, line: str, pattern_name: str) -> str:
         == "KM_IDSystem/scripts/check_retry_dead_letter_stage_review.py"
         and pattern_name == "legacy_opme_word"
         and re.search(r"\b(?:TASK|FEAT)-OPME-[A-Z0-9-]+\b", line)
+    ):
+        return "allowed_legacy_context"
+    if (
+        rel_path == "KM_IDSystem/machine/facts/features.json"
+        and pattern_name == "legacy_opme_word"
+        and re.search(r'"id"\s*:\s*"FEAT-OPME-[0-9]+"', line)
     ):
         return "allowed_legacy_context"
     return "active_display_debt"

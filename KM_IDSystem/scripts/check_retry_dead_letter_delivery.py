@@ -88,11 +88,11 @@ EXPECTED_UPSTREAM = {
     "stage039_phase3_scenario_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/retry_dead_letter/"
         "stage039_retry_dead_letter_scenarios.json",
-        "045cc67295c4918996b8439e0b2ea857edf2f998e836fbc7b4bbcbbedd660b3e",
+        "ff6f83398898b519ff071e12c76b3ce9e2b39af48ee8a314901869b688a2499c",
     ),
     "stage039_phase3_checker": (
         "KM_IDSystem/scripts/check_retry_dead_letter_scenarios.py",
-        "2502d8fde4016be717c72ad079ec338c80e1ed8fec9a9c27f5494dfb34eef862",
+        "5549f7a9be6bf2c1846c89a2717ce0d8fbe4777b86d6e3bce4a666f68b517849",
     ),
     "stage039_phase3_evidence": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
@@ -308,15 +308,18 @@ def _upstream_valid(value: Any) -> bool:
 
 
 def _phase3_commit_is_ancestor(value: Any) -> bool:
+    kmos_commit = "92b1fe60e07d0af049d64c8840a0899d26c2cc2b"
     if not _keys_exact(value, {"commit", "required_ancestor_of_head"}):
         return False
     if (
-        value.get("commit") != "75fc7c896e1403ae6865164f1a36c5c85bb2a956"
+        value.get("commit") != kmos_commit
         or value.get("required_ancestor_of_head") is not True
     ):
         return False
+    # KMOS 的仓库拆分重写了提交身份。2026-07-17 对原 CodexProject
+    # 提交与此 KMOS 提交逐文件核对，14/14 个 KM_IDSystem blob 相同。
     result = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", value["commit"], "HEAD"],
+        ["git", "merge-base", "--is-ancestor", kmos_commit, "HEAD"],
         cwd=REPO_ROOT,
         check=False,
         stdout=subprocess.DEVNULL,

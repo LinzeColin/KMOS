@@ -40,5 +40,11 @@
     "name": "隔离反压准入与暂停策略",
     "status": "planned",
     "evidence": "declared"
+  },
+  {
+    "id": "FEAT-OPME-008",
+    "name": "锁注册、租约与栅栏令牌竞态控制",
+    "status": "planned",
+    "evidence": "declared"
   }
 ]

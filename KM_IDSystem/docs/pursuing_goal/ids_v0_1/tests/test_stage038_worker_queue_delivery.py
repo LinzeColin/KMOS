@@ -16,6 +16,7 @@ INDEX = (
 )
 PHASE4 = PURSUE_ROOT / "STAGE038_PHASE4_CLOSEOUT.md"
 BATCH_LOCK = PURSUE_ROOT / "BATCH031_040_UPLOAD_LOCK.yaml"
+CURRENT_BATCH_LOCK = PURSUE_ROOT / "BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 
@@ -281,13 +282,17 @@ class Stage038WorkerQueuePhase4DeliveryTests(unittest.TestCase):
 
         module = self._load_checker()
         batch = module._parse_yaml_text(BATCH_LOCK.read_text(encoding="utf-8"))
+        current_batch = module._parse_yaml_text(
+            CURRENT_BATCH_LOCK.read_text(encoding="utf-8")
+        )
         roadmap = module._parse_yaml_text(ROADMAP.read_text(encoding="utf-8"))
         stage = batch["stage_progress"]["STAGE-038"]
         self.assertTrue(
             batch["status"] == "stage038_completed_reviewed_local"
             or batch["status"].startswith("stage039_")
             or batch["status"].startswith("stage040_")
-            or batch["status"] == "reviewed_ready_for_upload_no_github_upload",
+            or batch["status"] == "reviewed_ready_for_upload_no_github_upload"
+            or batch["status"] == "uploaded_to_github_main",
             batch["status"],
         )
         self.assertEqual(
@@ -298,8 +303,10 @@ class Stage038WorkerQueuePhase4DeliveryTests(unittest.TestCase):
         self.assertEqual("STAGE-039", stage["next_stage"])
         self.assertEqual("IDS-STAGE039-P1-GATE", stage["next_gate"])
         self.assertEqual("IDS-V0_1-STAGE038-REVIEW", stage["current_task_id"])
-        self.assertFalse(batch["upload_gate"]["push_allowed"])
-        self.assertFalse(batch["decision"]["github_upload_allowed"])
+        self.assertTrue(batch["upload_gate"]["push_allowed"])
+        self.assertTrue(batch["decision"]["github_upload_allowed"])
+        self.assertFalse(current_batch["upload_gate"]["push_allowed"])
+        self.assertFalse(current_batch["decision"]["github_upload_allowed"])
 
         roadmap_stage = next(
             item for item in roadmap["stages"] if item.get("stage_id") == "IDS-STAGE038"
@@ -312,6 +319,7 @@ class Stage038WorkerQueuePhase4DeliveryTests(unittest.TestCase):
         self.assertTrue(
             roadmap["next_gate_id"].startswith("IDS-STAGE039-")
             or roadmap["next_gate_id"].startswith("IDS-STAGE040-")
+            or roadmap["next_gate_id"].startswith("IDS-STAGE041-")
             or roadmap["next_gate_id"]
             == "IDS-V0_1-BATCH-031-040-REVIEW-GATE"
             or roadmap["next_gate_id"]

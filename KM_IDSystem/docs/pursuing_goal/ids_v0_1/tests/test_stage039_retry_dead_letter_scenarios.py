@@ -12,6 +12,7 @@ CONTRACT = BASE / "retry_dead_letter" / "stage039_retry_dead_letter_scenarios.js
 EVIDENCE = BASE / "STAGE039_PHASE3_SCENARIO_VALIDATION.md"
 CHECKER = ROOT / "scripts" / "check_retry_dead_letter_scenarios.py"
 BATCH = BASE / "BATCH031_040_UPLOAD_LOCK.yaml"
+CURRENT_BATCH = BASE / "BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 POLICY_VERSION = "ids.retry_policy.v0_1.stage039.p2"
 CONTROL_EPOCH = 1_720_000_000
@@ -225,7 +226,12 @@ class Stage039RetryDeadLetterScenarioTests(unittest.TestCase):
         self.assertEqual("IDS-STAGE039-P4-GATE", report["next_gate"])
 
     def test_governance_preserves_phase3_and_routes_only_to_review(self):
-        batch = BATCH.read_text(encoding="utf-8")
+        batch = "\n".join(
+            (
+                BATCH.read_text(encoding="utf-8"),
+                CURRENT_BATCH.read_text(encoding="utf-8"),
+            )
+        )
         roadmap = ROADMAP.read_text(encoding="utf-8")
         pending_review = (
             'status: "stage039_phase4_completed_review_pending"' in batch

@@ -1,0 +1,88 @@
+schema_version: "ids.v0_1.batch_upload_lock.v1"
+batch_id: "IDS-V0_1-BATCH-041-050"
+created_at_utc: "2026-07-14T12:04:41Z"
+updated_at_utc: "2026-07-14T12:04:41Z"
+status: "stage041_phase1_completed"
+
+transition_history:
+  stage041_phase1_state:
+    status: "stage041_phase1_completed"
+    current_task_id: "IDS-V0_1-STAGE041-P1"
+    next_allowed_task_id: "IDS-V0_1-STAGE041-P2"
+    github_upload_allowed: false
+  previous_batch_main_state:
+    status: "uploaded_to_github_main"
+    evidence_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH031_040_UPLOAD_LOCK.yaml"
+    current_task_id: "IDS-V0_1-BATCH-031-040-MAIN-MERGED"
+    next_allowed_task_id: "IDS-STAGE041-P1-GATE"
+
+repository:
+  owner_repo: "LinzeColin/CodexProject"
+  worktree_path: "/Users/linzezhang/Documents/Codex/main_worktree/CodexProject/KM_IDS"
+  target_project_path: "KM_IDSystem"
+  local_branch: "codex/ids-v0-1-stages-001-010"
+  upstream_policy: "do_not_push_until_batch_complete_reviewed_and_repaired"
+
+scope:
+  version: "v0.1"
+  stage_range: "STAGE-041..STAGE-050"
+  acceptance_range: "ACC-STAGE-041..ACC-STAGE-050"
+  source_index: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/V0_1_STAGE_EXECUTION_INDEX.csv"
+  previous_batch_evidence_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH031_040_UPLOAD_LOCK.yaml"
+
+data_boundary:
+  ids_metadata_raw_root: "/Users/linzezhang/Downloads/IDS_MetaData"
+  boundary_record: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+  raw_root_policy: "read-only path-only boundary; do not modify, delete, move, scan, dump, hash, list, open, or copy raw database content"
+  real_data_only_policy: "All IDS runtime corpus, database-backed content, analytics inputs, reports, indexes, manifests, and committed examples must use real user-approved data; fake business data and fabricated evidence are forbidden."
+
+upload_gate:
+  push_allowed: false
+  blocked_until:
+    - "STAGE-041 through STAGE-050 all completed."
+    - "Every completed Stage has durable local evidence and a whole-stage review."
+    - "The independent ten-stage review completes and repairs all findings."
+    - "A separate batch upload gate runs; no single-stage GitHub upload gate."
+    - "App entries are reinstalled only after the whole batch is merged to GitHub main."
+  github_target: "main"
+  next_batch_review_gate: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+  next_batch_upload_gate: "IDS-V0_1-BATCH-041-050-UPLOAD-GATE"
+
+stage_progress:
+  STAGE-041:
+    status: "stage041_phase1_completed"
+    completed_phases:
+      - "Phase 1"
+    next_phase: "Phase 2"
+    next_gate: "IDS-STAGE041-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE041-P1"
+    acceptance_id: "ACC-STAGE-041"
+    acceptance_status: "phase1_engineering_contract_complete"
+    review_status: "pending"
+    phase2_entry_authorized: true
+    source_verification_status: "SOURCE_VERIFIED"
+    source_member_match_count: 1
+    source_member_sha256: "2258a7b57c6c2881f208f43fbe2862c7815a2794c908d6fef108a1a4b5a2ad36"
+    lock_registry_contract_id: "ids.lock_registry.v0_1.p1"
+    contract_state: "PHASE1_ENGINEERING_CONTRACT_RUNTIME_DISABLED"
+    numeric_policy_values_assigned: false
+    lock_runtime_performed: false
+    lease_runtime_performed: false
+    fencing_runtime_performed: false
+    raw_metadata_content_accessed: false
+    fake_ids_business_data_used: false
+    evidence_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_ENTRY_CONTRACT.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE1_LOCK_REGISTRY_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_contract.json"
+      - "KM_IDSystem/scripts/check_lock_registry.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+
+decision:
+  current_task_id: "IDS-V0_1-STAGE041-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE041-P2"
+  github_upload_allowed: false
+  current_run: "STAGE-041 Phase 1 defines source-bound lock registration, lease, fencing, idempotency, conflict, parameter and cross-stage ownership contracts only; no lock runtime, raw metadata access, GitHub upload, or app reinstall is performed."
+  no_upload_reason: "BATCH041_050 has only STAGE-041 Phase 1 local evidence; upload is blocked until STAGE-041..050 are completed, reviewed, repaired, and a separate batch upload gate runs."

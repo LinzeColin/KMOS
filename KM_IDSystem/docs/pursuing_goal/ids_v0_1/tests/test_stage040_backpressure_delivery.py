@@ -18,6 +18,7 @@ CONTRACT = (
 EVIDENCE = BASE / "STAGE040_PHASE4_CLOSEOUT.md"
 CHECKER = ROOT / "scripts" / "check_backpressure_delivery.py"
 BATCH = BASE / "BATCH031_040_UPLOAD_LOCK.yaml"
+CURRENT_BATCH = BASE / "BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 
@@ -283,6 +284,7 @@ class Stage040BackpressureDeliveryTests(unittest.TestCase):
     def test_phase4_governance_routes_only_to_whole_stage_review(self):
         self.assertTrue(EVIDENCE.is_file(), f"missing closeout: {EVIDENCE}")
         batch = BATCH.read_text(encoding="utf-8")
+        current_batch = CURRENT_BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         self.assertIn('status: "stage040_phase4_completed_review_pending"', batch)
         self.assertIn('next_gate: "IDS-STAGE040-REVIEW-GATE"', batch)
@@ -291,7 +293,9 @@ class Stage040BackpressureDeliveryTests(unittest.TestCase):
         )
         self.assertIn('current_phase_id: "IDS-STAGE040-P4"', roadmap)
         self.assertIn('next_gate_id: "IDS-STAGE040-REVIEW-GATE"', roadmap)
-        self.assertIn('push_allowed: false', batch)
+        self.assertIn('status: "uploaded_to_github_main"', batch)
+        self.assertIn('push_allowed: false', current_batch)
+        self.assertIn('next_allowed_task_id: "IDS-V0_1-STAGE041-P2"', current_batch)
 
         events = [
             json.loads(line)
