@@ -1,0 +1,38 @@
+{
+  "report_id": "KMFA-RECON-REPORT-0004",
+  "date": "2026-07-17",
+  "domains": [
+    "expense",
+    "tax"
+  ],
+  "new_closures": [
+    "hbkm_expense_ext_2025h2_all8_zero_diff",
+    "whkm_expense_axis_all10_codes_fully_attributed",
+    "tax_axis_36of39_zero_diff",
+    "cross_book_mirror_symmetric_proof_324300",
+    "tax_board_extraction_798rows_zero_reject"
+  ],
+  "analyzed_open": [
+    "whkm_sheet_missing_nonop_credits_140350",
+    "whkm_penalty_net_presentation_570000",
+    "whkm_aug_surtax_stale_draft_25173",
+    "whkm_micro_attribution_86",
+    "tongye_axis_awaiting_2025_book"
+  ],
+  "owner_actions_required": 0,
+  "assertions_snapshot": {
+    "total": 25,
+    "closed_family": 16,
+    "analyzed_open": 9
+  },
+  "evidence_refs": [
+    "KMFA/stage_artifacts/DT5_DATA0022_tax_composition",
+    "KMFA/stage_artifacts/DT5_DATA0023_expense_axis_whkm",
+    "KMFA/stage_artifacts/DT5_DATA0024_hbkm_ext"
+  ],
+  "methodology_additions": [
+    "income_class_codes_match_credit_side",
+    "carryforward_exclusion_two_terms",
+    "board_table_as_third_party_adjudicator"
+  ]
+}
