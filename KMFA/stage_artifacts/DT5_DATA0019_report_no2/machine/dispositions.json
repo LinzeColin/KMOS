@@ -1,0 +1,34 @@
+{
+  "report_id": "KMFA-RECON-REPORT-0002",
+  "date": "2026-07-17",
+  "domains": [
+    "invoicing",
+    "kingdee_integrity",
+    "pipeline"
+  ],
+  "new_closures": [
+    "invoice_triangle_3cents",
+    "five_books_voucher_balance",
+    "dual_view_two_books",
+    "tongye_leaf_balance",
+    "zero_rebuild_certification"
+  ],
+  "analyzed_open": [
+    "invoice_period_gap_356953_92",
+    "xiyue_export_inconsistency",
+    "hbkm_voucher_partial_export",
+    "matcher_residual_158rows"
+  ],
+  "owner_actions_required": 0,
+  "assertions_snapshot": {
+    "total": 20,
+    "closed": 12,
+    "analyzed_open": 8
+  },
+  "evidence_refs": [
+    "KMFA/stage_artifacts/DT5_DATA0018_invoice_triangle",
+    "KMFA/stage_artifacts/DT5_DATA0009_xls_v2",
+    "KMFA/stage_artifacts/DT5_DATA0009_kis_reclass",
+    "KMFA/stage_artifacts/DT5_GOVX0003_row_matcher_v1"
+  ]
+}
