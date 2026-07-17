@@ -17,6 +17,8 @@ mkdir -p "$LOG_DIR"
 
 # 双跑纪律：未开启投递时强制 dry-run 语义（各技能读该变量；考勤守卫另有 ALLOW_DWS_COMMANDS）
 export KMFA_DELIVERY_ENABLED="${KMFA_DELIVERY_ENABLED:-0}"
+# SKL.0005：cron 环境不继承容器 ENV，这里显式钉死 OCR 引擎替换（swift Vision → Python 链）
+export KMFA_FUND_VISION_OCR_COMMAND="${KMFA_FUND_VISION_OCR_COMMAND:-python3 $ROOT/KMFA/fund-weekly-analysis-skill/tools/ocr_with_python.py}"
 
 cd "$ROOT"
 export PYTHONPATH="$ROOT"
