@@ -42,7 +42,7 @@ def main() -> int:
         "staging_rows_total": sum(tbl.values()),
         "lineage": "machine/lineage.yaml（raw→staging 机械生成，stale 判定可用）",
         "quality_blockers_open": len(quality["blockers"]),
-        "reconciliation_status": "报告第1-5号已交付、七域并立：回款 7/11 月 0 分差；开票三角差 3 分；五账套凭证 0 不平；费用轴两账套全窗口收口；税费轴 36/39 格全等；借款轴流量级闭合（期初缺失具名）；材料轴 125/190 且可检假设穷尽；open 项全部挂具名触发",
+        "reconciliation_status": "报告第1-8号已交付、八切面零候选：回款 7/11 月 0 分差；开票三角差 3 分+逐票层 126/134 闭案；五账套凭证 0 不平；费用轴两账套收口零候选；税费轴 36/39 格；借款轴流量级闭合+仲利三方履约逐分；材料轴 125/190 假设穷尽；个人借支 27/30 在位；open 项全部收敛为下批数据四类依赖",
         "next_gates": ["下批数据（曦悦明细账/湖北开明凭证重导）", "12 月报表期间差重验", "银行流水窗口延展后行级匹配 v3"],
     }
     out = FACTS / "data_pipeline.json"
@@ -53,6 +53,12 @@ def main() -> int:
 
     chlog_path = FACTS / "changelog.json"
     chlog = json.loads(chlog_path.read_text(encoding="utf-8"))
+    if not any(e.get("version") == "v1.5.8" for e in chlog):
+        chlog.insert(0, {
+            "version": "v1.5.8", "date": "2026-07-18",
+            "summary": "会话终章：报告第 6-8 号交付（零候选收官/实例日加固/开票逐票层）；派生层至 17 表 263,758 行（+个人借支/编码母表/项目开票原件）；八颗实例日地雷全排（含 DST 年漂移改锚北京）；`bootstrap.sh` 一键引导+`cloudflared` 上线件+DT8 健康周检+语义门入 CI；证据链 30/30 零悬空；证据档索引 76 档一表可查；Owner 两张一页纸（三件套/下批数据需求单）。",
+        })
+        chlog_path.write_text(json.dumps(chlog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if not any(e.get("version") == "v1.5.7" for e in chlog):
         chlog.insert(0, {
             "version": "v1.5.7", "date": "2026-07-18",
