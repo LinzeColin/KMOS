@@ -8,14 +8,15 @@ covered_categories:
   - "receivable_aging"
   - "journal"
 raw_assets: 53
-raw_with_staging_edges: 9
+raw_with_staging_edges: 11
 raw_deferred_all_sheets: 2
-raw_not_yet_extracted: 42
+raw_not_yet_extracted: 40
 staging_tables:
   - "_staging.bank_journal"
   - "_staging.collection"
   - "_staging.expense_lines"
   - "_staging.invoice_lines"
+  - "_staging.loan_register"
   - "_staging.op_key_indicators"
   - "_staging.op_monthly"
   - "_staging.receivable_aging"
@@ -158,7 +159,6 @@ nodes:
     domain: "财务"
     batch: "2026-07-16"
     size_bytes: 7493281
-    status: "not_yet_extracted"
   - asset: "raw:10d09646725b"
     domain: "财务"
     batch: "2026-07-16"
@@ -173,7 +173,6 @@ nodes:
     domain: "财务"
     batch: "2026-07-16"
     size_bytes: 9169506
-    status: "not_yet_extracted"
   - asset: "raw:ccbc28590c2f"
     domain: "WPS钉钉红圈"
     batch: "2026-07-16"
@@ -340,6 +339,16 @@ edges:
     sheet_hash: "3990d9bb3e18"
     rows: 261
     version: "invoice-lines-v2"
+  - from: "raw:4c2e9f5a4ff3"
+    to: "_staging.loan_register"
+    sheet_hash: "df61aa374991"
+    rows: 14
+    version: "loan-register-v2"
+  - from: "raw:72aa8ee6d4c1"
+    to: "_staging.loan_register"
+    sheet_hash: "5d056ae40390"
+    rows: 9
+    version: "loan-register-v2"
   - from: "raw:ccbc28590c2f"
     to: "_staging.collection"
     sheet_hash: "3e750612b150"
