@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Excel → DuckDB _staging 抽取管线（TSK.KMFA.DATA.0007 阶段二，规格注册表驱动）。
 
-已接类别：collection（回款流水，collection-v1）｜receivable_aging（合同级应收台账，aging-v1）。
+已接类别：collection（回款流水）｜receivable_aging（合同级应收台账）｜journal（银行日记账合并流水——签名含公司+资金户名，只取合并表防逐账户 sheet 重复）。
 逐 sheet 决策：类别签名列全命中才抽取，否则如实 deferred。金额 Decimal→整数分（float 拒）；
 比率类字段保留原文字符串（不引入 float）。幂等键=源指纹+sheet名+类别版本，重跑同指纹零 diff。
 库与明细永在 .codex_private_runtime（不 tracked）；公开面只出聚合计数。
@@ -49,6 +49,32 @@ CATEGORY_SPECS = {
             project_ref VARCHAR, note VARCHAR, row_seq VARCHAR)""",
         "columns": ["collection_date", "customer_ref", "contract_ref", "collection_amount_cents",
                      "receipt_method", "owner_ref", "project_ref", "note", "row_seq"],
+    },
+    "journal": {
+        "version": "journal-v1",
+        "table": "bank_journal",
+        "signature": ("company_ref", "account_ref", "journal_date", "receipt_amount_cents", "payment_amount_cents"),
+        "aliases": {
+            "company_ref": ("公司", "公司名称"),
+            "account_ref": ("资金户名", "账户", "银行账户"),
+            "journal_date": ("日期", "交易日期"),
+            "summary_text": ("摘要",),
+            "flow_category": ("收支类别",),
+            "receipt_amount_cents": ("收款金额", "收入金额"),
+            "payment_amount_cents": ("付款金额", "支出金额"),
+            "balance_cents": ("余额",),
+            "note": ("备注",),
+        },
+        "types": {"journal_date": "date", "receipt_amount_cents": "cents",
+                   "payment_amount_cents": "cents", "balance_cents": "cents"},
+        "require_value": "journal_date",
+        "ddl": """CREATE TABLE IF NOT EXISTS _staging.bank_journal (
+            source_sha8 VARCHAR NOT NULL, sheet_hash VARCHAR NOT NULL, row_index INTEGER NOT NULL,
+            company_ref VARCHAR, account_ref VARCHAR, journal_date DATE, summary_text VARCHAR,
+            flow_category VARCHAR, receipt_amount_cents BIGINT, payment_amount_cents BIGINT,
+            balance_cents BIGINT, note VARCHAR)""",
+        "columns": ["company_ref", "account_ref", "journal_date", "summary_text", "flow_category",
+                     "receipt_amount_cents", "payment_amount_cents", "balance_cents", "note"],
     },
     "receivable_aging": {
         "version": "aging-v1",

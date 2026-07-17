@@ -1,0 +1,20 @@
+{
+  "task_id": "TSK.KMFA.DATA.0007",
+  "phase": "2_extract_journal",
+  "extractor_version": "journal-v1",
+  "files": 1,
+  "sheets_loaded": 2,
+  "sheets_deferred": 58,
+  "rows_loaded_this_run": 6536,
+  "table_total_rows": 6536,
+  "amount_parse_rejections": 4137,
+  "amounts_integer_cents": true,
+  "per_file": [
+    {
+      "sha8": "bb8258f1",
+      "domain": "财务",
+      "sheets": 60,
+      "rows_loaded": 6536
+    }
+  ]
+}
