@@ -34,10 +34,12 @@ Mac 采集端（保留）                     Oracle 运行端（本基座）
 ## 部署步骤（实例就绪后执行）
 
 ```bash
-# 0) 前置：Ubuntu 22.04+ ARM（Oracle A1），docker + docker compose 已装
-# 1) 拉仓（sparse，遵守工作间规矩）
-sudo mkdir -p /opt/kmfa && cd /opt/kmfa
-git clone --filter=blob:none git@github.com:LinzeColin/KMOS.git
+# 0) 前置：Ubuntu 22.04+ ARM（Oracle A1）。docker 未装则一行装齐：
+sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2 git && sudo usermod -aG docker "$USER"
+# （usermod 后重新登录一次 shell 使组生效）
+# 1) 拉仓（公开仓走 HTTPS，免密钥——alpha_oracle 私钥只用于登录实例，不是 GitHub deploy key）
+sudo mkdir -p /opt/kmfa && sudo chown "$USER" /opt/kmfa && cd /opt/kmfa
+git clone --filter=blob:none https://github.com/LinzeColin/KMOS.git
 # 2) 凭据（600）：按 secrets.env.example 的键位写 /opt/kmfa/secrets/skills.env
 install -m 700 -d /opt/kmfa/secrets && install -m 600 /dev/null /opt/kmfa/secrets/skills.env
 # 3) 构建与启动
