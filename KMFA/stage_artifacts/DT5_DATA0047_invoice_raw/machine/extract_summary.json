@@ -1,0 +1,12 @@
+{
+  "task_id": "TSK.KMFA.DATA.0007",
+  "phase": "2_extract_invoice_raw",
+  "extractor_version": "invoice-raw-v1",
+  "sheets_loaded": 2,
+  "rows_loaded_this_run": 8692,
+  "table_total_rows": 8692,
+  "amount_parse_rejections": 0,
+  "subcent_roundings": 0,
+  "amounts_integer_cents": true,
+  "note": "销项票逐票级；不含税/税额不预计算（舍入歧义留待按票裁定）；维度标签坏须 reset_dimensions"
+}
