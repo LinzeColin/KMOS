@@ -15,6 +15,7 @@ staging_tables:
   - "_staging.bank_journal"
   - "_staging.collection"
   - "_staging.expense_lines"
+  - "_staging.goods_movement"
   - "_staging.invoice_lines"
   - "_staging.loan_register"
   - "_staging.op_key_indicators"
@@ -294,6 +295,11 @@ edges:
     sheet_hash: "1d2fc60e3efe"
     rows: 377
     version: "tax-composition-v2"
+  - from: "raw:cc3963bcdfa0"
+    to: "_staging.goods_movement"
+    sheet_hash: "8176b19d2558"
+    rows: 20968
+    version: "goods-movement-v1"
   - from: "raw:bb8258f13cf9"
     to: "_staging.bank_journal"
     sheet_hash: "4a8a9ea7df84"
@@ -319,6 +325,11 @@ edges:
     sheet_hash: "8d62f8f41f5c"
     rows: 421
     version: "tax-composition-v2"
+  - from: "raw:d46f77b0c90d"
+    to: "_staging.goods_movement"
+    sheet_hash: "8176b19d2558"
+    rows: 17764
+    version: "goods-movement-v1"
   - from: "raw:958c7918da5d"
     to: "_staging.op_key_indicators"
     sheet_hash: "5ea177f304eb"
