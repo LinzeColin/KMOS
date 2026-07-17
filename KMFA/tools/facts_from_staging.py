@@ -42,7 +42,7 @@ def main() -> int:
         "staging_rows_total": sum(tbl.values()),
         "lineage": "machine/lineage.yaml（raw→staging 机械生成，stale 判定可用）",
         "quality_blockers_open": len(quality["blockers"]),
-        "reconciliation_status": "报告第1/2/3号已交付：回款 7/11 月 0 分差；开票三角差 3 分；五账套凭证 0 不平；费用轴七码全解释（两笔跨账套逐分定位）；税费轴 36/39 格逐分全等；open 项全部挂明确触发条件",
+        "reconciliation_status": "报告第1-5号已交付、七域并立：回款 7/11 月 0 分差；开票三角差 3 分；五账套凭证 0 不平；费用轴两账套全窗口收口；税费轴 36/39 格全等；借款轴流量级闭合（期初缺失具名）；材料轴 125/190 且可检假设穷尽；open 项全部挂具名触发",
         "next_gates": ["下批数据（曦悦明细账/湖北开明凭证重导）", "12 月报表期间差重验", "银行流水窗口延展后行级匹配 v3"],
     }
     out = FACTS / "data_pipeline.json"
@@ -53,6 +53,12 @@ def main() -> int:
 
     chlog_path = FACTS / "changelog.json"
     chlog = json.loads(chlog_path.read_text(encoding="utf-8"))
+    if not any(e.get("version") == "v1.5.7" for e in chlog):
+        chlog.insert(0, {
+            "version": "v1.5.7", "date": "2026-07-18",
+            "summary": "借款与材料两域收官+部署实证：贷款一览表/收发明细入仓（第 13/14 表，派生层 253,864 行）；借款轴流量级闭合（负债类期初系统性缺失具名、登记册反推期初互证）；材料轴三层匹配 125/190、七项假设穷尽（映射表定稿、匹配引擎固化带自检）；报告第 4/5 号交付；镜像同架构真构建排掉四颗实例日地雷、`run_skill` 管道五场演练全过；App 四页签+三图；Owner 三件套一页纸落仓。",
+        })
+        chlog_path.write_text(json.dumps(chlog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if not any(e.get("version") == "v1.5.6" for e in chlog):
         chlog.insert(0, {
             "version": "v1.5.6", "date": "2026-07-17",
