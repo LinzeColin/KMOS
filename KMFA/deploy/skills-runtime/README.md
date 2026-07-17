@@ -35,7 +35,9 @@ Mac 采集端（保留）                     Oracle 运行端（本基座）
 
 上云目标由 Oracle A1（arm64）改为 **OVH VPS（amd64）**后，已在本机 buildx `linux/amd64` 目标架构上真构建 + 容器内真跑复证：x86_64 依赖轮子（含 onnxruntime）齐备、`dws-linux-amd64` 下载 + SHA-256 校验 + 可执行、对账三自检全过、`self-audit` 技能端到端 rc=0（证据链 30/30、血缘 FRESH、双平面四项目全绿、台账时间戳 +08:00）。本轮并抓获修复一个 **TZ 覆盖 bug**：`docker-compose.yml` 遗留 `TZ=Australia/Sydney` 会在运行时盖掉镜像的 `Asia/Shanghai`、让 cron 按悉尼评估排程——已改回上海并在 `entrypoint.sh` 加 `+0800` 快速失败守卫（正反实测：悉尼注入即拒启 exit 1）。详见 `KMFA/stage_artifacts/DT9_SKL0002_amd64_e2e/amd64端到端记录.md`。部署链 amd64/arm64 通用，无已知架构风险。
 
-## 部署步骤（实例就绪后执行；下列 0-3 步可用同目录 `bootstrap.sh` 一键完成）
+## 部署步骤（**fallback 裸机路径**——云端主路径＝Coolify，见 `../coolify/README.md`）
+
+> 治理原则（Owner 2026-07-18）：统一走 Coolify + Cloudflare + OVH，不加第四件。本目录的 `bootstrap.sh` + 独立 compose 仅作**无 Coolify 时的 fallback**；同一节点与 Coolify 路径二选一，勿并用。以下为 fallback 的 `bootstrap.sh` 一键路径。
 
 ```bash
 # 0) 前置：Ubuntu 22.04+（amd64/arm64 通用；OVH VPS=amd64，Oracle A1=arm64）。docker 未装则一行装齐：
