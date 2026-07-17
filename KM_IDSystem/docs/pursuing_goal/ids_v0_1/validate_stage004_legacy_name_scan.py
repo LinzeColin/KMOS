@@ -154,9 +154,9 @@ def classify_hit(rel_path: str, line: str, pattern_name: str) -> str:
     ):
         return "allowed_legacy_context"
     if (
-        rel_path == "KM_IDSystem/machine/facts/features.json"
+        rel_path.startswith("KM_IDSystem/machine/facts/")
         and pattern_name == "legacy_opme_word"
-        and re.search(r'"id"\s*:\s*"FEAT-OPME-[0-9]+"', line)
+        and re.search(r"\b(?:TASK|FEAT)-OPME-[A-Z0-9-]+\b", line)
     ):
         return "allowed_legacy_context"
     return "active_display_debt"

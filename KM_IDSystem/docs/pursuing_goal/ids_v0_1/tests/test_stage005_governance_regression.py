@@ -9179,6 +9179,15 @@ next_gate_id: "IDS-STAGE035-REVIEW-GATE"
         self.assertEqual(1, len(stage_event))
         self.assertEqual([], module.evaluate_required_event_semantics(stage_event))
 
+        phase2_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE041-P2-20260717-001"
+        ]
+        self.assertEqual(1, len(phase2_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase2_event))
+
     def test_stage040_phase3_current_state_and_event_are_governed(self):
         module = self._load_module()
         batch_text = (
@@ -9483,6 +9492,10 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
         self.assertIn(
             "EVT-IDS-V0_1-STAGE041-P1-20260714-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE041-P2-20260717-001",
             module.REQUIRED_EVENT_IDS,
         )
 

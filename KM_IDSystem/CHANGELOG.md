@@ -1,5 +1,13 @@
 # Changelog
 
+## IDS v0.1 STAGE-041 Phase 2 - 2026-07-17
+
+- Added `ids.lock_registry_policy.v0_1.stage041.p2`, seven sourced `PROPOSED` parameters, `MOD-010` / `FORM-010` / `PARAM-065..071`, and a deterministic process-local checker over one real Git-tracked control reference; production calibration remains open under `TASK-OPME-B-001`.
+- Implemented canonical all-or-none acquisition, fencing-preserving/version-advancing renewal, tombstone-version-advancing release, expiry-plus-grace takeover bound to current CAS evidence, stale-holder denial, and same-key changed-input idempotency rejection.
+- Rebound the historical second candidate patch to current Phase 1 and Stage038-040 hashes and independently repaired four concurrency gaps; no candidate commit was cherry-picked and no Stage42-43 review claim was activated.
+- Passed P1 checker `20/20`, P2 checker `20/20 + 11/11`, P1 tests `10/10`, P2 focused tests `17/17`, Stage004 `3/3`, Stage005 `156/156`, Stage035 dual-plane compatibility `1/1`, Stage039 review `6/6`, Stage040-041 aggregate `82/82`, full IDS v0.1 discovery `761/761` in `348.250s`, and the project dual-plane gate. The first full run reached `759/761`; both stale current-state compatibility assertions were repaired without changing historical batch evidence.
+- Kept Phase 3, whole-stage review, persistence, database, raw metadata, fake business data, queue/worker/retry/resume/recovery/cleanup runtime, production activation, dependency installation, GitHub upload, merge, and app reinstall disabled.
+
 ## IDS v0.1 STAGE-041 Phase 1 KMOS Rebind - 2026-07-17
 
 - Applied only the first archived candidate patch's file content in the dedicated `kmos-kmids-stage041` worktree; no candidate commit identity was restored and no cherry-pick, Stage 42-43 activation, upload, or merge occurred.

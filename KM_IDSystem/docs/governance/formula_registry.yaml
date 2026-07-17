@@ -261,3 +261,35 @@ formulas:
     implementation_refs: ["KM_IDSystem/scripts/check_backpressure_runtime.py::evaluate_backpressure", "KM_IDSystem/scripts/check_backpressure_runtime.py::build_stage040_phase2_report"]
     semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
     semantic_review_task_ids: ""
+  - formula_id: "FORM-010"
+    model_id: "MOD-010"
+    assumption_ids: ["ASM-006"]
+    status: "planned"
+    expression: "canonical_lock_keys=sort(SOURCE_PIPELINE plus operation namespace); acquire is all-or-none; lease_expires_at=logical_now+lease_duration; renew preserves the fence and increments every lock version; takeover requires current expected fence and lock versions plus logical_now>=lease_expires_at+grace, then atomically increments the global fence and every lock version; release requires current holder/fence/version and increments tombstone versions before deleting active records; same operation/idempotency key with changed input is rejected."
+    variables:
+      - name: "logical_now"
+        data_type: "integer"
+        unit: "logical epoch seconds"
+        input_domain: "non-boolean integer supplied by isolated control metadata"
+      - name: "lease_expires_at"
+        data_type: "integer"
+        unit: "logical epoch seconds"
+        input_domain: "logical_now plus 30 seconds for this proposed policy"
+      - name: "fencing_token"
+        data_type: "integer"
+        unit: "monotonic token"
+        input_domain: "positive process-local integer"
+      - name: "lock_version"
+        data_type: "integer"
+        unit: "per-key version"
+        input_domain: "positive process-local integer"
+    constraints: ["Isolated in-memory non-production control metadata only.", "Canonical lock sets are acquired and released as a whole.", "Renewal and release advance lock versions; takeover requires current CAS evidence.", "Contention creates no queue record and consumes no retry budget.", "Production calibration is required before production activation."]
+    missing_policy: "REQUIRE_MANUAL_REVIEW with no lock-state mutation."
+    output_range: "ACQUIRED, RENEWED, RELEASED, PAUSE_BEFORE_QUEUE_ADMISSION, COMMIT_ALLOWED, REJECT_COMMIT, or REQUIRE_MANUAL_REVIEW; no persistent write."
+    open_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE2_LOCK_REGISTRY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"]
+    implementation_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py::IsolatedLockRegistry", "KM_IDSystem/scripts/check_lock_registry_runtime.py::build_stage041_phase2_report"]
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    semantic_review_task_ids: ""

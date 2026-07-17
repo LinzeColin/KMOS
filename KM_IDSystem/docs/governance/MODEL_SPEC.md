@@ -3,9 +3,9 @@
 Project: `KM_IDSystem`
 Governance spec version: `1.0.0`
 
-- model_count: 9
-- formula_count: 9
-- parameter_count: 64
+- model_count: 10
+- formula_count: 10
+- parameter_count: 71
 - active_model_count: 7
 - active_formula_count: 7
 - active_parameter_count: 49
@@ -32,6 +32,14 @@ bounded control metadata and an actual project-filesystem free-space signal;
 they do not activate a queue, worker, retry scheduler, persistent state, or
 production admission path. Their proposed thresholds require production
 calibration under `TASK-OPME-B-001` before activation.
+
+`MOD-010`, `FORM-010`, and `PARAM-065` through `PARAM-071` are planned,
+non-production Stage041 lock-policy registrations. They operate only on a real
+Git-tracked control-document reference using logical timestamps and process-local
+memory. Acquire, renew, release, takeover, and fencing decisions perform no
+database, persistent lock, queue, worker, retry, business-job, raw-metadata, or
+production action. All seven proposed values require production calibration
+under `TASK-OPME-B-001` before activation.
 
 Technology stack components such as FastAPI, React, SQLite, ECharts, and PDF generation are architecture/output components, not models.
 

@@ -87,6 +87,14 @@ class Stage004LegacyNameScanTests(unittest.TestCase):
                 "legacy_opme_word",
             ),
         )
+        self.assertEqual(
+            "allowed_legacy_context",
+            module.classify_hit(
+                "KM_IDSystem/machine/facts/config.yaml",
+                '  "calibration_task": "TASK-OPME-B-001",',
+                "legacy_opme_word",
+            ),
+        )
 
 
 if __name__ == "__main__":

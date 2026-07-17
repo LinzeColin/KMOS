@@ -1218,14 +1218,15 @@ class Stage035DatabaseRecoverySmokeReviewTests(unittest.TestCase):
         self.assertTrue((ROOT / "machine" / "tools" / "render_human.py").is_file())
 
         plan = json.loads((ROOT / "machine" / "facts" / "plan.json").read_text())
-        self.assertEqual("`IDS-STAGE041-P1`", plan["phase"])
+        status = json.loads((ROOT / "machine" / "facts" / "status.json").read_text())
+        self.assertEqual(f"`{status['phase']}`", plan["phase"])
         self.assertTrue(plan["scope"])
         self.assertTrue(plan["non_goals"])
         self.assertTrue(plan["stop_condition"])
 
         rendered = (ROOT / "文档" / "05_执行与验收.md").read_text(encoding="utf-8")
         self.assertIn("machine/tools/render_human.py", rendered)
-        self.assertIn("IDS-STAGE041-P1", rendered)
+        self.assertIn(status["phase"], rendered)
 
 
 if __name__ == "__main__":

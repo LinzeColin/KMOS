@@ -24,6 +24,11 @@ assumptions:
     fact_level: "PROPOSED"
     unknown_task_ids: ["TASK-OPME-B-001"]
     evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE040_PHASE2_BACKPRESSURE_DECISION_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_runtime_contract.json"]
+  - assumption_id: "ASM-006"
+    statement: "The Stage041 lease and timeout values are a bounded isolated engineering safety selection and are not production calibrated."
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE2_LOCK_REGISTRY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"]
 models:
   - model_id: "MOD-001"
     name: "Dynamic kiln risk rule"
@@ -169,3 +174,19 @@ models:
     code_refs: ["KM_IDSystem/scripts/check_backpressure_runtime.py"]
     test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage040_backpressure_runtime.py"]
     evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE040_PHASE2_BACKPRESSURE_DECISION_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_runtime_contract.json"]
+  - model_id: "MOD-010"
+    name: "Lock registry lease and fencing policy"
+    kind: "deterministic_control_policy"
+    purpose: "Acquire, renew, release, or take over a canonical lock set while fencing stale holders in an isolated non-production process."
+    owner: "KM_IDSystem"
+    status: "planned"
+    fact_level: "PROPOSED"
+    model_version: "ids.lock_registry_policy.v0_1.stage041.p2"
+    assumptions: ["ASM-006"]
+    formula_ids: ["FORM-010"]
+    parameter_ids: ["PARAM-065", "PARAM-066", "PARAM-067", "PARAM-068", "PARAM-069", "PARAM-070", "PARAM-071"]
+    inputs: ["resource_identity_ref", "operation_family", "holder identity refs", "logical requested time", "fencing and lock-version evidence"]
+    outputs: ["decision_action", "lock_keys", "lease_expires_at", "fencing_token", "lock_versions", "checkpoint_ref", "human_status"]
+    code_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE2_LOCK_REGISTRY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"]

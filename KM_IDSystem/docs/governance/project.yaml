@@ -225,6 +225,31 @@ features:
       - "EVID-OPME-MODEL-REGISTRY"
       - "EVID-OPME-FORMULA-REGISTRY"
       - "EVID-OPME-PARAMETER-REGISTRY"
+  -
+    feature_id: "FEAT-OPME-008"
+    name: "隔离锁注册、租约与 fencing 策略"
+    description: "对真实 Git 跟踪控制引用执行 canonical all-or-none acquire、renew、release、takeover 与 stale fencing 拒绝；仅限非生产进程内存。"
+    status: "planned"
+    fact_level: "PROPOSED"
+    model_ids:
+      - "MOD-010"
+    parameter_ids:
+      - "PARAM-065"
+      - "PARAM-066"
+      - "PARAM-067"
+      - "PARAM-068"
+      - "PARAM-069"
+      - "PARAM-070"
+      - "PARAM-071"
+    code_refs:
+      - "KM_IDSystem/scripts/check_lock_registry_runtime.py"
+    test_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"
+    evidence_refs:
+      - "EVID-IDS-STAGE041-P2"
+      - "EVID-OPME-MODEL-REGISTRY"
+      - "EVID-OPME-FORMULA-REGISTRY"
+      - "EVID-OPME-PARAMETER-REGISTRY"
 models:
   -
     model_id: "MOD-001"
@@ -590,6 +615,48 @@ models:
     evidence_refs:
       - "EVID-IDS-STAGE040-P2"
       - "EVID-OPME-MODEL-REGISTRY"
+  -
+    model_id: "MOD-010"
+    name: "Lock registry lease and fencing policy"
+    kind: "deterministic_control_policy"
+    purpose: "Acquire, renew, release, or take over a canonical lock set while fencing stale holders in an isolated non-production process."
+    owner: "KM_IDSystem"
+    status: "planned"
+    fact_level: "PROPOSED"
+    model_version: "ids.lock_registry_policy.v0_1.stage041.p2"
+    assumptions:
+      - "Stage041 lease and timeout values are an isolated engineering safety selection and are not production calibrated."
+    formula_ids:
+      - "FORM-010"
+    parameter_ids:
+      - "PARAM-065"
+      - "PARAM-066"
+      - "PARAM-067"
+      - "PARAM-068"
+      - "PARAM-069"
+      - "PARAM-070"
+      - "PARAM-071"
+    inputs:
+      - "resource_identity_ref"
+      - "operation_family"
+      - "holder identity refs"
+      - "logical requested time"
+      - "fencing and lock-version evidence"
+    outputs:
+      - "decision_action"
+      - "lock_keys"
+      - "lease_expires_at"
+      - "fencing_token"
+      - "lock_versions"
+      - "checkpoint_ref"
+      - "human_status"
+    code_refs:
+      - "KM_IDSystem/scripts/check_lock_registry_runtime.py"
+    test_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"
+    evidence_refs:
+      - "EVID-IDS-STAGE041-P2"
+      - "EVID-OPME-MODEL-REGISTRY"
 formulas:
   -
     formula_id: "FORM-001"
@@ -843,6 +910,32 @@ formulas:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage040_backpressure_runtime.py"
     evidence_refs:
       - "EVID-IDS-STAGE040-P2"
+      - "EVID-OPME-FORMULA-REGISTRY"
+  -
+    formula_id: "FORM-010"
+    model_id: "MOD-010"
+    status: "planned"
+    fact_level: "PROPOSED"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    expression: "canonical keys are sorted and acquired all-or-none; expiry=logical_now+lease; renewal preserves fence and increments versions; takeover requires current expected fence and versions plus expiry and grace, then atomically increments fence and versions; release increments tombstone versions before deleting active records; same operation/idempotency key with changed input is rejected."
+    constraints:
+      - "Unknown or malformed metadata fails closed."
+      - "Renewal and release advance lock versions; takeover requires current CAS evidence."
+      - "Contention creates no queue record and consumes no retry budget."
+      - "Production calibration is required before production activation."
+    missing_policy: "REQUIRE_MANUAL_REVIEW with no lock-state mutation."
+    output_range: "ACQUIRED, RENEWED, RELEASED, PAUSE_BEFORE_QUEUE_ADMISSION, COMMIT_ALLOWED, REJECT_COMMIT, or REQUIRE_MANUAL_REVIEW; no persistent write."
+    open_task_ids:
+      - "TASK-OPME-B-001"
+    implementation_refs:
+      - "KM_IDSystem/scripts/check_lock_registry_runtime.py::IsolatedLockRegistry"
+      - "KM_IDSystem/scripts/check_lock_registry_runtime.py::build_stage041_phase2_report"
+    code_refs:
+      - "KM_IDSystem/scripts/check_lock_registry_runtime.py"
+    test_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"
+    evidence_refs:
+      - "EVID-IDS-STAGE041-P2"
       - "EVID-OPME-FORMULA-REGISTRY"
 parameters:
   -
@@ -2531,6 +2624,153 @@ parameters:
     code_refs: ["KM_IDSystem/scripts/check_backpressure_runtime.py"]
     test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage040_backpressure_runtime.py"]
     evidence_refs: ["EVID-IDS-STAGE040-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-065"
+    model_id: "MOD-010"
+    formula_id: "FORM-010"
+    symbol: "lease_duration_seconds"
+    name: "lease duration"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "30"
+    source: "PROPOSED from Stage041 Phase2 local engineering safety boundary; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage041_lock_registry_runtime_contract.json:policy.parameters.lease_duration_seconds"
+    extracted_value: "30"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE041-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-066"
+    model_id: "MOD-010"
+    formula_id: "FORM-010"
+    symbol: "renewal_interval_seconds"
+    name: "renewal interval"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "10"
+    source: "PROPOSED from Stage041 Phase2 local engineering safety boundary; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage041_lock_registry_runtime_contract.json:policy.parameters.renewal_interval_seconds"
+    extracted_value: "10"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE041-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-067"
+    model_id: "MOD-010"
+    formula_id: "FORM-010"
+    symbol: "expiry_grace_seconds"
+    name: "expiry grace"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "5"
+    source: "PROPOSED from Stage041 Phase2 local engineering safety boundary; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage041_lock_registry_runtime_contract.json:policy.parameters.expiry_grace_seconds"
+    extracted_value: "5"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE041-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-068"
+    model_id: "MOD-010"
+    formula_id: "FORM-010"
+    symbol: "acquisition_timeout_seconds"
+    name: "acquisition timeout"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "1"
+    source: "PROPOSED from Stage041 Phase2 local engineering safety boundary; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage041_lock_registry_runtime_contract.json:policy.parameters.acquisition_timeout_seconds"
+    extracted_value: "1"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE041-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-069"
+    model_id: "MOD-010"
+    formula_id: "FORM-010"
+    symbol: "maximum_wait_seconds"
+    name: "maximum wait"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "0"
+    source: "PROPOSED from Stage041 Phase2 boundary preserving Stage038 pause-before-queue behavior; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage041_lock_registry_runtime_contract.json:policy.parameters.maximum_wait_seconds"
+    extracted_value: "0"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE041-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-070"
+    model_id: "MOD-010"
+    formula_id: "FORM-010"
+    symbol: "retry_jitter_seconds"
+    name: "retry jitter"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "0"
+    source: "PROPOSED from Stage041 Phase2 boundary preserving Stage039 retry ownership; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage041_lock_registry_runtime_contract.json:policy.parameters.retry_jitter_seconds"
+    extracted_value: "0"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE041-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-071"
+    model_id: "MOD-010"
+    formula_id: "FORM-010"
+    symbol: "deadlock_timeout_seconds"
+    name: "deadlock timeout guard"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "1"
+    source: "PROPOSED from Stage041 Phase2 canonical all-or-none boundary; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage041_lock_registry_runtime_contract.json:policy.parameters.deadlock_timeout_seconds"
+    extracted_value: "1"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE041-P2", "EVID-OPME-PARAMETER-REGISTRY"]
 strategies:
   -
     strategy_id: "STRAT-OPME-001"
@@ -2635,6 +2875,11 @@ delivery_readiness:
     - "EVID-OPME-DELIVERY-TASKS"
     - "EVID-OPME-OWNER-STATUS"
 evidence_refs:
+  -
+    evidence_id: "EVID-IDS-STAGE041-P2"
+    kind: "phase_evidence"
+    ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE2_LOCK_REGISTRY_SLICE.md"
+    fact_level: "VERIFIED"
   -
     evidence_id: "EVID-IDS-STAGE040-P2"
     kind: "phase_evidence"
