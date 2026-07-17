@@ -1,0 +1,520 @@
+# 由 KMFA/tools/lineage_graph.py 机械生成，勿手改
+schema: "kmfa.lineage.v1"
+generated_from:
+  - "KMDatabase/data/manifest.jsonl"
+  - "_staging.extraction_manifest"
+covered_categories:
+  - "collection"
+  - "receivable_aging"
+  - "journal"
+raw_assets: 53
+raw_with_staging_edges: 6
+raw_deferred_all_sheets: 2
+raw_not_yet_extracted: 45
+staging_tables:
+  - "_staging.bank_journal"
+  - "_staging.collection"
+  - "_staging.receivable_aging"
+lineage_complete_v1: true
+lineage_complete_note: "v1 口径=账实闭合（每个 raw 资产状态可判定）；全量 lineage_complete 待全类别接入后由本工具自动翻真"
+nodes:
+  - asset: "raw:235a94d9b3a3"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 11639872
+    status: "not_yet_extracted"
+  - asset: "raw:6d15f4c84dfd"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 5272543
+    status: "not_yet_extracted"
+  - asset: "raw:e43ce6c58429"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 28672
+    status: "not_yet_extracted"
+  - asset: "raw:cc3963bcdfa0"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 7525691
+    status: "not_yet_extracted"
+  - asset: "raw:bb8258f13cf9"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 2105079
+  - asset: "raw:d46f77b0c90d"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 6472730
+    status: "not_yet_extracted"
+  - asset: "raw:3da141a8d79c"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 24428
+    status: "not_yet_extracted"
+  - asset: "raw:0f39b9f28aa4"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 29561
+    status: "not_yet_extracted"
+  - asset: "raw:9911db0a5c83"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 23796
+    status: "not_yet_extracted"
+  - asset: "raw:f1774dd2ce9d"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 23552
+    status: "not_yet_extracted"
+  - asset: "raw:f6550002a36c"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 171008
+    status: "not_yet_extracted"
+  - asset: "raw:eab03362e9a3"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 102400
+    status: "not_yet_extracted"
+  - asset: "raw:4f2a79de03f3"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 23675
+    status: "not_yet_extracted"
+  - asset: "raw:1d052b63c2af"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 29063
+    status: "not_yet_extracted"
+  - asset: "raw:0364f0b7e1bd"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 77544
+    status: "deferred_all_sheets"
+  - asset: "raw:c409a545bf54"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 235339
+    status: "deferred_all_sheets"
+  - asset: "raw:958c7918da5d"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 17347846
+    status: "not_yet_extracted"
+  - asset: "raw:71a4084c31f0"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 124928
+    status: "not_yet_extracted"
+  - asset: "raw:14091286da2d"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 4575232
+    status: "not_yet_extracted"
+  - asset: "raw:7bee02d06d9a"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 1337578
+    status: "not_yet_extracted"
+  - asset: "raw:0cb6cbee1dcd"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 571638
+    status: "not_yet_extracted"
+  - asset: "raw:ed4b8ac98249"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 3007488
+    status: "not_yet_extracted"
+  - asset: "raw:1053e64aa6a6"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 17127
+    status: "not_yet_extracted"
+  - asset: "raw:65740a0cef79"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 243100
+    status: "not_yet_extracted"
+  - asset: "raw:5679255e92cb"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 246552
+    status: "not_yet_extracted"
+  - asset: "raw:6b4118ccdb4b"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 14336
+    status: "not_yet_extracted"
+  - asset: "raw:0107f37f4d8f"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 17408
+    status: "not_yet_extracted"
+  - asset: "raw:4c2e9f5a4ff3"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 7493281
+    status: "not_yet_extracted"
+  - asset: "raw:10d09646725b"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 31232
+    status: "not_yet_extracted"
+  - asset: "raw:82c1d2b14ea4"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 32256
+    status: "not_yet_extracted"
+  - asset: "raw:72aa8ee6d4c1"
+    domain: "财务"
+    batch: "2026-07-16"
+    size_bytes: 9169506
+    status: "not_yet_extracted"
+  - asset: "raw:ccbc28590c2f"
+    domain: "WPS钉钉红圈"
+    batch: "2026-07-16"
+    size_bytes: 68809
+  - asset: "raw:65da0afaa145"
+    domain: "WPS钉钉红圈"
+    batch: "2026-07-16"
+    size_bytes: 244404
+  - asset: "raw:5e5f46b602a9"
+    domain: "WPS钉钉红圈"
+    batch: "2026-07-16"
+    size_bytes: 54650
+  - asset: "raw:c730c205ef37"
+    domain: "WPS钉钉红圈"
+    batch: "2026-07-16"
+    size_bytes: 47357
+    status: "not_yet_extracted"
+  - asset: "raw:89a94a46ecf3"
+    domain: "WPS钉钉红圈"
+    batch: "2026-07-16"
+    size_bytes: 811612
+    status: "not_yet_extracted"
+  - asset: "raw:1c497dc29d25"
+    domain: "WPS钉钉红圈"
+    batch: "2026-07-16"
+    size_bytes: 7765246
+  - asset: "raw:d45324b48218"
+    domain: "WPS钉钉红圈"
+    batch: "2026-07-16"
+    size_bytes: 10774066
+  - asset: "raw:466f4a689a5a"
+    domain: "WPS钉钉红圈"
+    batch: "2026-07-16"
+    size_bytes: 36607
+    status: "not_yet_extracted"
+  - asset: "raw:fd9189bf89ba"
+    domain: "WPS钉钉红圈"
+    batch: "2026-07-16"
+    size_bytes: 747031
+    status: "not_yet_extracted"
+  - asset: "raw:e2c0e634fe84"
+    domain: "WPS钉钉红圈"
+    batch: "2026-07-16"
+    size_bytes: 144903
+    status: "not_yet_extracted"
+  - asset: "raw:dd7241ab1b85"
+    domain: "WPS钉钉红圈"
+    batch: "2026-07-16"
+    size_bytes: 651624
+    status: "not_yet_extracted"
+  - asset: "raw:464a7f2509ba"
+    domain: "WPS钉钉红圈"
+    batch: "2026-07-16"
+    size_bytes: 651636
+    status: "not_yet_extracted"
+  - asset: "raw:babc62c160db"
+    domain: "WPS钉钉红圈"
+    batch: "2026-07-16"
+    size_bytes: 23857562
+    status: "not_yet_extracted"
+  - asset: "raw:221ecc051342"
+    domain: "绩效"
+    batch: "2026-07-16"
+    size_bytes: 869113
+    status: "not_yet_extracted"
+  - asset: "raw:26ac21b56100"
+    domain: "绩效"
+    batch: "2026-07-16"
+    size_bytes: 75849
+    status: "not_yet_extracted"
+  - asset: "raw:d1b1248a7d49"
+    domain: "绩效"
+    batch: "2026-07-16"
+    size_bytes: 74688
+    status: "not_yet_extracted"
+  - asset: "raw:5e5514c8ccd0"
+    domain: "绩效"
+    batch: "2026-07-16"
+    size_bytes: 75428
+    status: "not_yet_extracted"
+  - asset: "raw:98475596c92e"
+    domain: "绩效"
+    batch: "2026-07-16"
+    size_bytes: 59630
+    status: "not_yet_extracted"
+  - asset: "raw:52882fac3d9b"
+    domain: "绩效"
+    batch: "2026-07-16"
+    size_bytes: 61469
+    status: "not_yet_extracted"
+  - asset: "raw:fdededd35bfb"
+    domain: "绩效"
+    batch: "2026-07-16"
+    size_bytes: 75078
+    status: "not_yet_extracted"
+  - asset: "raw:654ba87d6a4c"
+    domain: "绩效"
+    batch: "2026-07-16"
+    size_bytes: 137986
+    status: "not_yet_extracted"
+  - asset: "raw:72a07ceaea14"
+    domain: "绩效"
+    batch: "2026-07-16"
+    size_bytes: 79085
+    status: "not_yet_extracted"
+edges:
+  - from: "raw:bb8258f13cf9"
+    to: "_staging.bank_journal"
+    sheet_hash: "4a8a9ea7df84"
+    rows: 6535
+    version: "journal-v1"
+  - from: "raw:bb8258f13cf9"
+    to: "_staging.bank_journal"
+    sheet_hash: "400483c29647"
+    rows: 1
+    version: "journal-v1"
+  - from: "raw:ccbc28590c2f"
+    to: "_staging.collection"
+    sheet_hash: "3e750612b150"
+    rows: 39
+    version: "collection-v1"
+  - from: "raw:ccbc28590c2f"
+    to: "_staging.collection"
+    sheet_hash: "42d5f1ff3cb9"
+    rows: 22
+    version: "collection-v1"
+  - from: "raw:ccbc28590c2f"
+    to: "_staging.collection"
+    sheet_hash: "720a8da4588d"
+    rows: 25
+    version: "collection-v1"
+  - from: "raw:ccbc28590c2f"
+    to: "_staging.collection"
+    sheet_hash: "1b6e21a2413c"
+    rows: 39
+    version: "collection-v1"
+  - from: "raw:ccbc28590c2f"
+    to: "_staging.collection"
+    sheet_hash: "295d12c47765"
+    rows: 25
+    version: "collection-v1"
+  - from: "raw:ccbc28590c2f"
+    to: "_staging.collection"
+    sheet_hash: "bc3e874c55e6"
+    rows: 26
+    version: "collection-v1"
+  - from: "raw:ccbc28590c2f"
+    to: "_staging.collection"
+    sheet_hash: "e610f3af850f"
+    rows: 37
+    version: "collection-v1"
+  - from: "raw:ccbc28590c2f"
+    to: "_staging.collection"
+    sheet_hash: "397be3b50463"
+    rows: 46
+    version: "collection-v1"
+  - from: "raw:ccbc28590c2f"
+    to: "_staging.collection"
+    sheet_hash: "0bc8c1a9a3b8"
+    rows: 63
+    version: "collection-v1"
+  - from: "raw:ccbc28590c2f"
+    to: "_staging.collection"
+    sheet_hash: "fa5042c9a31e"
+    rows: 36
+    version: "collection-v1"
+  - from: "raw:ccbc28590c2f"
+    to: "_staging.collection"
+    sheet_hash: "53c19ce5c76f"
+    rows: 32
+    version: "collection-v1"
+  - from: "raw:ccbc28590c2f"
+    to: "_staging.collection"
+    sheet_hash: "2a3da8a22b97"
+    rows: 30
+    version: "collection-v1"
+  - from: "raw:ccbc28590c2f"
+    to: "_staging.collection"
+    sheet_hash: "b12f7cd01696"
+    rows: 134
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "3e750612b150"
+    rows: 34
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "42d5f1ff3cb9"
+    rows: 38
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "720a8da4588d"
+    rows: 26
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "1b6e21a2413c"
+    rows: 20
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "295d12c47765"
+    rows: 17
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "bc3e874c55e6"
+    rows: 17
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "e610f3af850f"
+    rows: 1
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "397be3b50463"
+    rows: 3
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "0bc8c1a9a3b8"
+    rows: 3
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "fa5042c9a31e"
+    rows: 3
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "53c19ce5c76f"
+    rows: 5
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "2a3da8a22b97"
+    rows: 1
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "b12f7cd01696"
+    rows: 61
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "cdd2375b73a8"
+    rows: 145
+    version: "collection-v1"
+  - from: "raw:65da0afaa145"
+    to: "_staging.collection"
+    sheet_hash: "8b864011e97d"
+    rows: 676
+    version: "collection-v1"
+  - from: "raw:5e5f46b602a9"
+    to: "_staging.collection"
+    sheet_hash: "3e750612b150"
+    rows: 33
+    version: "collection-v1"
+  - from: "raw:5e5f46b602a9"
+    to: "_staging.collection"
+    sheet_hash: "42d5f1ff3cb9"
+    rows: 32
+    version: "collection-v1"
+  - from: "raw:5e5f46b602a9"
+    to: "_staging.collection"
+    sheet_hash: "720a8da4588d"
+    rows: 23
+    version: "collection-v1"
+  - from: "raw:5e5f46b602a9"
+    to: "_staging.collection"
+    sheet_hash: "1b6e21a2413c"
+    rows: 20
+    version: "collection-v1"
+  - from: "raw:5e5f46b602a9"
+    to: "_staging.collection"
+    sheet_hash: "295d12c47765"
+    rows: 14
+    version: "collection-v1"
+  - from: "raw:5e5f46b602a9"
+    to: "_staging.collection"
+    sheet_hash: "bc3e874c55e6"
+    rows: 19
+    version: "collection-v1"
+  - from: "raw:5e5f46b602a9"
+    to: "_staging.collection"
+    sheet_hash: "e610f3af850f"
+    rows: 1
+    version: "collection-v1"
+  - from: "raw:5e5f46b602a9"
+    to: "_staging.collection"
+    sheet_hash: "397be3b50463"
+    rows: 1
+    version: "collection-v1"
+  - from: "raw:5e5f46b602a9"
+    to: "_staging.collection"
+    sheet_hash: "0bc8c1a9a3b8"
+    rows: 1
+    version: "collection-v1"
+  - from: "raw:5e5f46b602a9"
+    to: "_staging.collection"
+    sheet_hash: "fa5042c9a31e"
+    rows: 1
+    version: "collection-v1"
+  - from: "raw:5e5f46b602a9"
+    to: "_staging.collection"
+    sheet_hash: "53c19ce5c76f"
+    rows: 1
+    version: "collection-v1"
+  - from: "raw:5e5f46b602a9"
+    to: "_staging.collection"
+    sheet_hash: "2a3da8a22b97"
+    rows: 1
+    version: "collection-v1"
+  - from: "raw:5e5f46b602a9"
+    to: "_staging.collection"
+    sheet_hash: "b12f7cd01696"
+    rows: 43
+    version: "collection-v1"
+  - from: "raw:1c497dc29d25"
+    to: "_staging.receivable_aging"
+    sheet_hash: "e25e8ce241c9"
+    rows: 4589
+    version: "aging-v1"
+  - from: "raw:1c497dc29d25"
+    to: "_staging.receivable_aging"
+    sheet_hash: "258e9941c193"
+    rows: 450
+    version: "aging-v1"
+  - from: "raw:1c497dc29d25"
+    to: "_staging.receivable_aging"
+    sheet_hash: "81e76c98265e"
+    rows: 4142
+    version: "aging-v1"
+  - from: "raw:d45324b48218"
+    to: "_staging.collection"
+    sheet_hash: "b27426d988e6"
+    rows: 1412
+    version: "collection-v1"
+  - from: "raw:d45324b48218"
+    to: "_staging.collection"
+    sheet_hash: "e2ce0e2e684e"
+    rows: 520
+    version: "collection-v1"
