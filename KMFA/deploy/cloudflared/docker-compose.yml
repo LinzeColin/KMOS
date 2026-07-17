@@ -1,0 +1,13 @@
+# KMFA 上线段（DT6·PROD.0020/0021）：Cloudflare Tunnel 出网，实例零开放端口。
+# 前置：App 栈已起（kmfa-app 容器，见 KMFA/app/docker-compose.yml）。
+# Owner 仅需一个输入：TUNNEL_TOKEN（见同目录 README.md 第①步），放 /opt/kmfa/secrets/cloudflared.env（600）。
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: kmfa-cloudflared
+    restart: always
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    env_file:
+      - path: /opt/kmfa/secrets/cloudflared.env
+        required: true
+    network_mode: "host"   # 直达 127.0.0.1:8000（App 仅回环监听），不改 App 栈网络

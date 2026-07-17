@@ -32,6 +32,7 @@
 
 1. 双栈 `docker compose up` → dws 登录（即②）→ 给**张霖泽**发一条测试消息核收发。
 2. 全部技能 `--dry-run` 双跑 **≥3 天**（`KMFA_DELIVERY_ENABLED=0`，只记日志不投递）。
-3. 双跑无异常 → 切 `KMFA_DELIVERY_ENABLED=1` 正式投递，`kmfa.linzezhang.com` 上线（Cloudflare Tunnel + Access）。
+3. 双跑无异常 → 切 `KMFA_DELIVERY_ENABLED=1` 正式投递。
+4. 上线 `kmfa.linzezhang.com`：到时你在 Cloudflare 面板建一次 Tunnel + Access（约 5 分钟，含贴一个 token）——步骤与部署件已备好：`KMFA/deploy/cloudflared/README.md`。
 
 > 之外还有一件**不挡上云**的事挂在你名下：BLK-001（273 行字段逐条确认）——它只挡 A 级报告，不挡技能上云，不急。
