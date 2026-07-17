@@ -1,0 +1,12 @@
+{
+  "task_id": "TSK.KMFA.DATA.0007",
+  "phase": "2_extract_goods_movement",
+  "extractor_version": "goods-movement-v1",
+  "sheets_loaded": 2,
+  "rows_loaded_this_run": 38732,
+  "table_total_rows": 38732,
+  "amount_parse_rejections": 0,
+  "subcent_roundings": 0,
+  "amounts_integer_cents": true,
+  "column_note": "四金额列入分；数量/单价原文（非货币不转分）；单位组其余 39 列显式缓议"
+}
