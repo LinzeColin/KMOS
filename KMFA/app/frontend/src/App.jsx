@@ -80,6 +80,93 @@ function 差异工作台({ 断言 }) {
   )
 }
 
+function 数据管线({ 管线 }) {
+  if (!管线) return <div style={{ ...S.card, marginTop: '1.2rem' }}>加载中…</div>
+  const 表 = Object.entries(管线.staging_tables ?? {}).sort((a, b) => (b[1].rows ?? 0) - (a[1].rows ?? 0))
+  return (
+    <>
+      <div style={S.grid}>
+        <div style={S.card}><div style={S.muted}>接入原始文件</div>
+          <div style={S.num}>{管线.raw_assets_registered ?? '—'}</div>
+          <div style={S.muted}>内容寻址入仓（KMDatabase/data）</div></div>
+        <div style={S.card}><div style={S.muted}>派生层数据行</div>
+          <div style={S.num}>{(管线.staging_rows_total ?? 0).toLocaleString('zh')}</div>
+          <div style={S.muted}>截止批次 {管线.data_as_of_batch}</div></div>
+        <div style={S.card}><div style={S.muted}>质量档位</div>
+          <div style={{ fontSize: '1.05rem', fontWeight: 700, marginTop: '.3rem' }}>{管线.quality_grade_current ?? '—'}</div>
+          <div style={S.muted}>未决质量卡点 {管线.quality_blockers_open ?? 0} 项</div></div>
+      </div>
+      <div style={{ ...S.card, marginTop: '1rem' }}>
+        <div style={S.muted}>派生层十表（私有 DuckDB，可由工具链零重建）</div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '.6rem', fontSize: '.85rem' }}>
+          <thead><tr><th style={S.td}>表</th><th style={{ ...S.td, textAlign: 'right' }}>行数</th></tr></thead>
+          <tbody>
+            {表.map(([名, 值]) => (
+              <tr key={名}><td style={S.td}>{名}</td>
+                <td style={{ ...S.td, textAlign: 'right' }}>{(值.rows ?? 0).toLocaleString('zh')}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {管线.reconciliation_status && (
+        <div style={{ ...S.card, marginTop: '1rem' }}>
+          <div style={S.muted}>对账现状</div>
+          <div style={{ marginTop: '.4rem' }}>{管线.reconciliation_status}</div>
+        </div>
+      )}
+      {Array.isArray(管线.next_gates) && 管线.next_gates.length > 0 && (
+        <div style={{ ...S.card, marginTop: '1rem' }}>
+          <div style={S.muted}>下一步门禁</div>
+          <ul style={{ margin: '.4rem 0 0 1.1rem', padding: 0 }}>
+            {管线.next_gates.map((g, i) => <li key={i} style={{ marginTop: '.2rem' }}>{typeof g === 'string' ? g : JSON.stringify(g)}</li>)}
+          </ul>
+        </div>
+      )}
+      <div style={{ ...S.muted, marginTop: '.8rem' }}>血缘：{管线.lineage ?? '—'}</div>
+    </>
+  )
+}
+
+function 技能页({ 技能 }) {
+  const [展开, set展开] = useState(null)
+  if (!技能) return <div style={{ ...S.card, marginTop: '1.2rem' }}>加载中…</div>
+  const rows = 技能.skills ?? []
+  return (
+    <>
+      <div style={{ ...S.card, marginTop: '1.2rem' }}>
+        <div style={S.muted}>运行策略</div>
+        <div style={{ marginTop: '.4rem' }}>
+          全部 {技能.count} 项技能依赖云端运行（Oracle 基座 <code>KMFA/deploy/skills-runtime/</code>）；
+          本机不常驻。等待实例开通后按运行手册上云，测试收发对象「张霖泽」。
+        </div>
+      </div>
+      <div style={{ ...S.card, marginTop: '1rem' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.85rem' }}>
+          <thead><tr><th style={S.td}>技能</th><th style={S.td}>排程</th><th style={S.td}>外部依赖</th><th style={S.td}>迁移待办</th></tr></thead>
+          <tbody>
+            {rows.map(it => (
+              <React.Fragment key={it.id}>
+                <tr onClick={() => set展开(展开 === it.id ? null : it.id)} style={{ cursor: 'pointer' }}>
+                  <td style={S.td}>{it.名称 ?? it.id}</td>
+                  <td style={S.td}>{(it.排程 ?? []).length ? it.排程.join('、') : '—'}</td>
+                  <td style={S.td}>{(it.外部依赖 ?? []).length ? it.外部依赖.join('、') : '—'}</td>
+                  <td style={S.td}>{it.本地路径硬编码 > 0 ? `本地路径硬编码 ${it.本地路径硬编码} 处` : '无'}</td>
+                </tr>
+                {展开 === it.id && (
+                  <tr><td style={{ ...S.td, opacity: .8 }} colSpan={4}>
+                    <div>{it.用途 ?? '（登记表无用途描述）'}</div>
+                    <div style={S.muted}>机器 id：{it.id}｜登记状态：{it.登记状态 ?? '—'}</div>
+                  </td></tr>
+                )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )
+}
+
 export default function App() {
   const [页, set页] = useState('概览')
   const [状态, set状态] = useState(null)
@@ -103,11 +190,14 @@ export default function App() {
         </>}
       </header>
       <nav style={S.tabs}>
-        {['概览', '差异工作台'].map(t => (
+        {['概览', '差异工作台', '数据管线', '技能'].map(t => (
           <span key={t} style={S.tab(页 === t)} onClick={() => set页(t)}>{t}</span>
         ))}
       </nav>
-      {页 === '概览' ? <概览 断言={断言} 管线={管线} 技能={技能} /> : <差异工作台 断言={断言} />}
+      {页 === '概览' && <概览 断言={断言} 管线={管线} 技能={技能} />}
+      {页 === '差异工作台' && <差异工作台 断言={断言} />}
+      {页 === '数据管线' && <数据管线 管线={管线} />}
+      {页 === '技能' && <技能页 技能={技能} />}
     </div>
   )
 }

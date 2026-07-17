@@ -83,8 +83,30 @@ def assertions():
 @app.get("/api/技能")
 def skills():
     import re
+
+    def clean(raw: str | None) -> str | None:
+        if raw is None:
+            return None
+        text = re.sub(r"\s+#.*$", "", raw).strip()
+        return text.strip('"') or None
+
     reg = (KMFA / "skills" / "registry.yaml").read_text(encoding="utf-8")
     skills_block = reg.split("\nschedules:")[0]
-    ids = re.findall(r"^  - id: (\S+)", skills_block, re.M)
-    names = re.findall(r"^    name_zh: (.+)$", skills_block, re.M)
-    return {"count": len(ids), "skills": [{"id": i, "名称": n} for i, n in zip(ids, names)]}
+    items = []
+    for chunk in re.split(r"^  - id: ", skills_block, flags=re.M)[1:]:
+        def field(name: str) -> str | None:
+            m = re.search(rf"^    {name}: (.+)$", chunk, re.M)
+            return clean(m.group(1)) if m else None
+
+        deps = field("external_deps") or "[]"
+        scheds = field("schedules") or "[]"
+        items.append({
+            "id": chunk.split("\n", 1)[0].strip(),
+            "名称": field("name_zh"),
+            "用途": field("purpose_zh"),
+            "登记状态": field("status"),
+            "排程": [s.strip(' "') for s in scheds.strip("[]").split(",") if s.strip(' "')],
+            "外部依赖": [s.strip(' "') for s in deps.strip("[]").split(",") if s.strip(' "')],
+            "本地路径硬编码": int(field("hardcoded_local_paths") or 0),
+        })
+    return {"count": len(items), "skills": items}
