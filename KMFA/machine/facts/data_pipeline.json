@@ -16,7 +16,7 @@
   ],
   "reconciliation_status": "报告第1/2/3号已交付：回款 7/11 月 0 分差；开票三角差 3 分；五账套凭证 0 不平；费用轴七码全解释（两笔跨账套逐分定位）；税费轴 36/39 格逐分全等；open 项全部挂明确触发条件",
   "schema": "kmfa.facts.data_pipeline.v1",
-  "staging_rows_total": 215109,
+  "staging_rows_total": 215132,
   "staging_tables": {
     "bank_journal": {
       "rows": 6536
@@ -35,6 +35,9 @@
     },
     "kingdee_voucher": {
       "rows": 21334
+    },
+    "loan_register": {
+      "rows": 23
     },
     "op_key_indicators": {
       "rows": 36
