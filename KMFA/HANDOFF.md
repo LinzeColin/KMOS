@@ -18,11 +18,11 @@
 
 ## Repo 内 portable skills
 
-1. `daily_routine_check_skill/`：钉钉工作检查，OneDrive `DWS_Outputs.zip` 只读输入。
-2. `fund-weekly-analysis-skill/`：资金与税费周报，真实证据、OCR 复核和 no-simulation 门禁。
-3. `kmfa-dingtalk-attendance-skill/`：考勤晨晚提醒与官方报表 final reconciliation。
-4. `mgmt-monthly-report-skill/`：七输入槽位到 Excel/PDF 的月报流程。
-5. `dingtalk-dws-archive-skill/`：DWS 全文件归档 public-safe 源码、模板和验证器。
+1. `skills/每日工作检查/`（id `daily_routine_check_skill`）：钉钉工作检查，OneDrive `DWS_Outputs.zip` 只读输入。
+2. `skills/资金周报/`（id `fund-weekly-analysis-skill`）：资金与税费周报，真实证据、OCR 复核和 no-simulation 门禁。
+3. `skills/钉钉考勤/`（id `kmfa-dingtalk-attendance-skill`）：考勤晨晚提醒与官方报表 final reconciliation。
+4. `skills/经营月报/`（id `mgmt-monthly-report-skill`）：七输入槽位到 Excel/PDF 的月报流程。
+5. `skills/上游归档/`（id `dingtalk-dws-archive-skill`）：DWS 全文件归档 public-safe 源码、模板和验证器。
 
 ## 私有恢复点
 
@@ -96,11 +96,11 @@ git status --short --branch
 git fetch origin main
 test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
 python3 KMFA/machine/tools/check_dual_plane_ci.py --root . --projects KMFA --require-projects
-python3 KMFA/daily_routine_check_skill/tools/validate_skill_package.py
-python3 KMFA/fund-weekly-analysis-skill/tools/validate_taskpack.py
-python3 KMFA/kmfa-dingtalk-attendance-skill/tools/validate_skill_package.py
-python3 KMFA/mgmt-monthly-report-skill/tools/validate_skill_package.py
-python3 KMFA/dingtalk-dws-archive-skill/tools/validate_skill_package.py
+python3 KMFA/skills/每日工作检查/tools/validate_skill_package.py
+python3 KMFA/skills/资金周报/tools/validate_taskpack.py
+python3 KMFA/skills/钉钉考勤/tools/validate_skill_package.py
+python3 KMFA/skills/经营月报/tools/validate_skill_package.py
+python3 KMFA/skills/上游归档/tools/validate_skill_package.py
 ```
 
 遇到 secret/private 命中、远端非预期提交、非 `main`、SQLite 损坏、OneDrive 快照不完整或 automation 指向已删除路径时立即停止，不得伪造接管完成。

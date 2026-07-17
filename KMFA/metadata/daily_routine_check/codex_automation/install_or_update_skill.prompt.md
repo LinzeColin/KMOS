@@ -21,8 +21,8 @@ push directly to origin/main after validation
 
 Task:
 
-1. Read `KMFA/AGENTS.md` and current `KMFA/kmfa-dingtalk-attendance-skill/SKILL.md` to mirror governance style.
-2. Create/update `KMFA/daily_routine_check_skill/`.
+1. Read `KMFA/AGENTS.md` and current `KMFA/skills/钉钉考勤/SKILL.md` to mirror governance style.
+2. Create/update `KMFA/skills/每日工作检查/`.
 3. Create/update `KMFA/metadata/daily_routine_check/`.
 4. Create/update `KMFA/tools/daily_routine_check/`.
 5. Create/update `KMFA/tests/test_daily_routine_check.py`.
@@ -43,7 +43,7 @@ Task:
 Validation required:
 
 ```bash
-python3 KMFA/daily_routine_check_skill/tools/validate_skill_package.py
+python3 KMFA/skills/每日工作检查/tools/validate_skill_package.py
 python3 -m py_compile KMFA/tools/daily_routine_check/*.py
 python3 -m unittest KMFA.tests.test_daily_routine_check -q
 git diff --check
@@ -53,7 +53,7 @@ git status --porcelain
 Push requirements:
 
 ```bash
-git add KMFA/daily_routine_check_skill KMFA/metadata/daily_routine_check KMFA/tools/daily_routine_check KMFA/tests/test_daily_routine_check.py
+git add KMFA/skills/每日工作检查 KMFA/metadata/daily_routine_check KMFA/tools/daily_routine_check KMFA/tests/test_daily_routine_check.py
 git commit -m "daily-routine-check: add skill and local automation contract"
 git pull --ff-only origin main
 git push origin main

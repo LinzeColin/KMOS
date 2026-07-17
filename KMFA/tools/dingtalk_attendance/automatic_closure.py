@@ -51,15 +51,15 @@ TERMINAL_NO_RECOVERY_STATUSES = {"ABORTED_TIMEOUT"}
 PRIVATE_R6_ROOT = Path("KMFA/metadata/dingtalk_attendance/private_runtime/r6")
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PROMPT_PATHS = {
-    "morning": REPO_ROOT / "KMFA/kmfa-dingtalk-attendance-skill/automation/morning_prompt.md",
-    "evening": REPO_ROOT / "KMFA/kmfa-dingtalk-attendance-skill/automation/evening_prompt.md",
+    "morning": REPO_ROOT / "KMFA/skills/钉钉考勤/automation/morning_prompt.md",
+    "evening": REPO_ROOT / "KMFA/skills/钉钉考勤/automation/evening_prompt.md",
 }
 PROMPT_RELATIVE_PATHS = {
-    "morning": Path("KMFA/kmfa-dingtalk-attendance-skill/automation/morning_prompt.md"),
-    "evening": Path("KMFA/kmfa-dingtalk-attendance-skill/automation/evening_prompt.md"),
+    "morning": Path("KMFA/skills/钉钉考勤/automation/morning_prompt.md"),
+    "evening": Path("KMFA/skills/钉钉考勤/automation/evening_prompt.md"),
 }
 ATTENDANCE_RUNTIME_STATIC_PATHS = (
-    Path("KMFA/kmfa-dingtalk-attendance-skill/规则清单.md"),
+    Path("KMFA/skills/钉钉考勤/规则清单.md"),
     PROMPT_RELATIVE_PATHS["morning"],
     PROMPT_RELATIVE_PATHS["evening"],
     Path("KMFA/metadata/dingtalk_attendance/attendance_database_manifest.json"),

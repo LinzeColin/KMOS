@@ -19,10 +19,10 @@ MANIFEST_NAME = "ATTENDANCE_PRODUCTION_RELEASE.json"
 CURRENT_LINK_NAME = "current"
 DEFAULT_RELEASE_ROOT = Path.home() / "Library/Application Support/Codex/KMFA/attendance-production"
 STATIC_RELEASE_PATHS = (
-    Path("KMFA/kmfa-dingtalk-attendance-skill/SKILL.md"),
-    Path("KMFA/kmfa-dingtalk-attendance-skill/规则清单.md"),
-    Path("KMFA/kmfa-dingtalk-attendance-skill/automation/morning_prompt.md"),
-    Path("KMFA/kmfa-dingtalk-attendance-skill/automation/evening_prompt.md"),
+    Path("KMFA/skills/钉钉考勤/SKILL.md"),
+    Path("KMFA/skills/钉钉考勤/规则清单.md"),
+    Path("KMFA/skills/钉钉考勤/automation/morning_prompt.md"),
+    Path("KMFA/skills/钉钉考勤/automation/evening_prompt.md"),
     Path("KMFA/metadata/dingtalk_attendance/attendance_database_manifest.json"),
     Path("KMFA/metadata/dingtalk_attendance/codex_automation/morning_1035.prompt.md"),
     Path("KMFA/metadata/dingtalk_attendance/codex_automation/evening_2000.prompt.md"),
