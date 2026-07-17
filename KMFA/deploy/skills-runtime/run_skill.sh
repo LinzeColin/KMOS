@@ -34,6 +34,16 @@ case "$SKILL" in
   mgmt-monthly)        CMD=(python3 KMFA/skills/经营月报/tools/validate_skill_package.py) ;;   # SKL.0004 演练时替换为业务入口
   upstream-archive)    CMD=(python3 KMFA/skills/上游归档/tools/validate_skill_package.py) ;;  # dws drive 命令面核对后接业务入口
   daily-backup)        CMD=(bash -c 'cd /opt/kmfa/KMOS && git -C . pull --ff-only -q || true') ;;         # DATA 线入仓机制就绪后改为真备份
+  self-audit)          CMD=(bash -c 'set -e; \
+                         rm -rf /tmp/kmfa-audit && mkdir -p /tmp/kmfa-audit; \
+                         tar -C /opt/kmfa/KMOS --exclude=./.git --exclude=./KMDatabase/data/objects \
+                             --exclude=./KMFA/app/frontend/node_modules --exclude=./KMFA/.codex_private_runtime \
+                             -cf - . | tar -C /tmp/kmfa-audit -xf -; \
+                         cd /tmp/kmfa-audit; \
+                         python3 KMFA/tools/evidence_check.py; \
+                         python3 KMFA/tools/lineage_graph.py stale; \
+                         python3 KMDatabase/machine/tools/check_dual_plane_ci.py --root . --require-projects; \
+                         rm -rf /tmp/kmfa-audit') ;;  # DT8 健康周检：tar 影子里跑（仓库挂载只读且双平面门原地重渲染——容器演练抓获；worktree .git 为指针文件故不用克隆），私有库类门禁另跑
   *) echo "未知技能: $SKILL" >&2; exit 2 ;;
 esac
 

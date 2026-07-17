@@ -21,5 +21,8 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # 上游归档（每日；dws v1.0.52 drive 命令面核对通过后启用真实运行）
 0  11 * * *   root /opt/runtime/run_skill.sh upstream-archive    >> /var/log/kmfa/cron.log 2>&1
 
+# 健康周检（DT8：证据链/血缘/双平面自动复跑，周日 03:00；rc≠0 走 run_skill 崩溃告警）
+0  3  * * 0   root /opt/runtime/run_skill.sh self-audit          >> /var/log/kmfa/cron.log 2>&1
+
 # 数据卷日备份回 KMDatabase/data（可回收设计的一部分）
 30 2  * * *   root /opt/runtime/run_skill.sh daily-backup        >> /var/log/kmfa/cron.log 2>&1
