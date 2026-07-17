@@ -22,9 +22,10 @@ def main() -> int:
     quality = json.loads((REPO / "KMFA/stage_artifacts/DT5_DATA0010_quality_initial/machine/quality_report.json").read_text(encoding="utf-8"))
     con = duckdb.connect(str(DB_PATH), read_only=True)
     tbl = {}
-    for t in ("collection", "receivable_aging", "bank_journal"):
-        rows, = con.execute(f"SELECT count(*) FROM _staging.{t}").fetchone()
-        tbl[t] = rows
+    for (name,) in con.execute(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema='_staging' AND table_name NOT IN ('extraction_manifest')").fetchall():
+        rows, = con.execute(f"SELECT count(*) FROM _staging.{name}").fetchone()
+        tbl[name] = rows
     con.close()
 
     facts = {
@@ -32,11 +33,12 @@ def main() -> int:
         "data_as_of_batch": sorted({r["batch"] for r in kmdb})[-1],
         "raw_assets_registered": len(kmdb),
         "raw_domains": sorted({r["domain"] for r in kmdb}),
-        "staging_tables": {t: {"rows": n, "grade": "Q3"} for t, n in sorted(tbl.items())},
+        "staging_tables": {t: {"rows": n} for t, n in sorted(tbl.items())},
+        "quality_grade_current": "Q3（机器候选结构化；对账收敛进行中）",
         "staging_rows_total": sum(tbl.values()),
         "lineage": "machine/lineage.yaml（raw→staging 机械生成，stale 判定可用）",
         "quality_blockers_open": len(quality["blockers"]),
-        "reconciliation_leads": "已收款>合同额 28 行（差异队列首批候选）",
+        "reconciliation_status": "报告第1号已交付：报表vs权威台账 7/11 月 0 分差；五账套凭证视角借贷全等（0 不平凭证）；analyzed-open 差异 4 条见断言表",
         "next_gates": ["operating_analysis/金蝶zip 抽取", "facts 八件套全量重生成", "渲染门真绿（DATA.0013）"],
     }
     out = FACTS / "data_pipeline.json"
@@ -47,6 +49,12 @@ def main() -> int:
 
     chlog_path = FACTS / "changelog.json"
     chlog = json.loads(chlog_path.read_text(encoding="utf-8"))
+    if not any(e.get("version") == "v1.5.3" for e in chlog):
+        chlog.insert(0, {
+            "version": "v1.5.3", "date": "2026-07-17",
+            "summary": "对账收敛实弹开跑：《一致性证明与差异分析报告》第 1 号交付（报表对权威回款台账 7/11 个月分毫不差）；金蝶五账套凭证视角借贷全等（0 不平凭证）；`_staging` 十表约 20 万行；对账断言表 `metadata/quality/assertions.jsonl` 播种。",
+        })
+        chlog_path.write_text(json.dumps(chlog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if not any(e.get("version") == "v1.5.2" for e in chlog):
         chlog.insert(0, {
             "version": "v1.5.2", "date": "2026-07-17",
