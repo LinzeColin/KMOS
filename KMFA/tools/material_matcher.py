@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """材料轴凭证匹配引擎（DT5_DATA0029-0032 的机械化固化，可复跑）。
 
-三层匹配（收发明细收入 vs 金蝶 1401/1403 借方，凭证粒度 = 月 + 规范化凭证号）：
+三层匹配（凭证粒度 = 月 + 规范化凭证号）。`--side receipt`（默认）：收发收入 vs 金蝶 1401/1403 **借方**；
+`--side issue`：收发发出（领料出库）vs 金蝶 1401/1403 **贷方**（他科目探针相应取贷方池）。
   L1 全额等；L2 子集和（金蝶部分行之和 = 收发合计）；L3 双向差额定位（两侧合计差 = 对侧单行/行子集）。
 两项假设探针随跑随记：同月异号金额全等（重编号）、缺口在其他科目（分流——曾定量否定，保留探针防回归）。
 组合穷举上限 18 行（超限如实计数）。输出机器摘要 JSON；自带 --selftest（合成数据覆盖三层与探针）。
-用法：python3 KMFA/tools/material_matcher.py [--edition d46f77b0] [--from 2025-01-01 --to 2025-11-01] [--out <json>]
+用法：python3 KMFA/tools/material_matcher.py [--side receipt|issue] [--edition d46f77b0] [--from 2025-01-01 --to 2025-11-01] [--out <json>]
 """
 from __future__ import annotations
 
@@ -90,26 +91,28 @@ def match_groups(gmap, kmat, kother):
     return stats, verdicts
 
 
-def load_from_db(edition: str, dfrom: str, dto: str):
+def load_from_db(edition: str, dfrom: str, dto: str, side: str = "receipt"):
     import duckdb
     sys.path.insert(0, str(REPO))
     from KMFA.tools.recon_common import normalize_voucher_no
     con = duckdb.connect(str(DB_PATH), read_only=True)
     con.create_function("norm_vno", normalize_voucher_no, ["VARCHAR"], "VARCHAR", null_handling="special")
+    amount_col = "receipt_amount_cents" if side == "receipt" else "issue_amount_cents"
     gmap = {}
     for mo, v, a in con.execute(
-            """SELECT strftime(move_date,'%Y-%m'), norm_vno(voucher_no), receipt_amount_cents
+            f"""SELECT strftime(move_date,'%Y-%m'), norm_vno(voucher_no), {amount_col}
                FROM _staging.goods_movement
                WHERE source_sha8=? AND move_date>=? AND move_date<?
-                 AND coalesce(receipt_amount_cents,0)<>0 AND voucher_no IS NOT NULL""",
+                 AND coalesce({amount_col},0)<>0 AND voucher_no IS NOT NULL""",
             [edition, dfrom, dto]).fetchall():
         gmap.setdefault((mo, v), []).append(a)
+    k_col = "debit_cents" if side == "receipt" else "credit_cents"
     kmat, kother = {}, {}
     for book, mo, v, subj, a in con.execute(
-            """SELECT book, strftime(entry_date,'%Y-%m'), norm_vno(voucher_no),
-                      split_part(subject_sheet,'_',1)[:4], coalesce(debit_cents,0)
+            f"""SELECT book, strftime(entry_date,'%Y-%m'), norm_vno(voucher_no),
+                      split_part(subject_sheet,'_',1)[:4], coalesce({k_col},0)
                FROM _staging.kingdee_ledger
-               WHERE row_kind='detail' AND coalesce(debit_cents,0)>0""").fetchall():
+               WHERE row_kind='detail' AND coalesce({k_col},0)>0""").fetchall():
         key = (book, mo, v)
         if subj in ("1401", "1403"):
             kmat.setdefault(key, []).append(a)
@@ -148,6 +151,7 @@ def _selftest() -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--side", choices=("receipt", "issue"), default="receipt")
     parser.add_argument("--edition", default="d46f77b0")
     parser.add_argument("--from", dest="dfrom", default="2025-01-01")
     parser.add_argument("--to", dest="dto", default="2025-11-01")
@@ -157,19 +161,20 @@ def main() -> int:
     if args.selftest:
         return _selftest()
 
-    gmap, kmat, kother = load_from_db(args.edition, args.dfrom, args.dto)
+    gmap, kmat, kother = load_from_db(args.edition, args.dfrom, args.dto, args.side)
     stats, verdicts = match_groups(gmap, kmat, kother)
     total = len(verdicts)
     matched = stats["L1_全额等"] + stats["L2_子集和"] + stats["L3_双向差额"]
     summary = {
         "task_id": "TSK.KMFA.DATA.0007", "phase": "material_matcher",
-        "edition": args.edition, "window": [args.dfrom, args.dto],
+        "side": args.side, "edition": args.edition, "window": [args.dfrom, args.dto],
         "voucher_groups": total, "matched": matched,
         "match_rate": f"{matched}/{total}",
         "stats": stats,
         "unresolved_amount_cents": sum(v["amount_cents"] for v in verdicts if v["layer"] == "未解"),
     }
-    out = REPO / (args.out or "KMFA/stage_artifacts/DT5_DATA0033_material_matcher_tool/machine/match_summary.json")
+    default_out = f"KMFA/stage_artifacts/DT5_DATA0033_material_matcher_tool/machine/match_summary_{args.side}.json"
+    out = REPO / (args.out or default_out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, ensure_ascii=False))
