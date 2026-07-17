@@ -1,12 +1,30 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KMFA"
-total_estimated_hours: 54
+# ============================================================================
+# 2026-07-17 打通线（DT1-DT9）并入本 canonical roadmap。
+# 授权：Owner D8=C 全案授权 M0-M6（任务包 KMFA_打通_TaskPack_v1_20260717，
+#       决策落档见包内 09 文件；治理事件 EVENT-KMFA-20260717-DATONG-LINE-AUTHORIZED-GOVERNANCE）。
+# S1-S18 为 v0.1.4 历史线（已收官，原文保留不动）；打通线新阶段用 DT 前缀避免 stage_id 冲突。
+# 并入当日的执行修订（依据：任务包 09 + 拆分/清理线程 2026-07-17 实证）：
+#   R1 落点修订：CodexProject main 已墓碑化 KMFA（提交 `718d719d0`），v1.5 恢复收口落点
+#      由 CodexProject main 改为 KMOS/KMFA（影响 DT3 的 REC.0030/0031 语义）。
+#   R2 死路修订：v1.5 阶段产物流水线重跑不可行——95 个硬编码提交号中 94 个随被删分支永久
+#      丢失、88 个 build_v015_*.py 构建器仅 9 个可产出；DT2 的 REC.0016-0018 改为「替代验收」
+#      （恢复报告 + 现存 9 个产物目录 + REC.0019/0020 语法与聚焦测试门）。
+#   R3 云端优先：Owner 2026-07-17 指令——本地未在运行的 skill 全部依赖云端运行；
+#      6 条失效本地排程不再重绑，处置并入 DT9；红圈浏览器导出例外留 Mac 采集端。
+#   R4 dws 前置：dws CLI 本机与云端均不可得，新增 TSK.KMFA.SKL.0008（钉钉开放 API 直连 shim，
+#      兼容既有调用方子命令面）；钉钉测试收发对象按 Owner 指定可用「张霖泽」。
+#   R5 Oracle 约束：不开 PAYG；Always Free 实例按「可随时被回收」设计（幂等重建脚本 +
+#      数据卷每日备份回 KMOS/KMDatabase/data，D11：不新建仓库）。
+# ============================================================================
+total_estimated_hours: 401   # 54（v0.1.4 历史线，已完成）+ 347（打通线 DT1-DT9 估时，含 09 修订新增任务）
 completed_estimated_hours: 54
-current_stage_id: "S18"
-current_phase_id: "S18_GITHUB_UPLOAD"
-current_task_id: "KMFA-S18-GITHUB-UPLOAD-20260701"
-next_gate_id: "KMFA-LINEAGE-REPORT-GATE-PENDING_OWNER_SCOPE"
+current_stage_id: "DT1"
+current_phase_id: "DT1PB"
+current_task_id: "TSK.KMFA.OPS.0006"
+next_gate_id: "G0"
 stages:
   - stage_id: "S1"
     name: "只读启动与项目治理基线"
@@ -1532,3 +1550,220 @@ stages:
             evidence_refs:
               - "KMFA/stage_artifacts/S18_GITHUB_UPLOAD/human/github_upload_record.md"
               - "KMFA/stage_artifacts/S18_GITHUB_UPLOAD/machine/stage18_upload_manifest.json"
+  # ======================= 打通线（2026-07-17 授权并入）=======================
+  # 任务详表见任务包 04-07 与 09（zip 副本 sha256 139bb884c…；细则不在本文件重复）。
+  # 每任务完成按治理纪律 append event（实质变化才记）；每 run 一个 task 一个 acceptance。
+  - stage_id: "DT1"
+    name: "护栏与止血（M0）"
+    person_goal: "在产自动化止血、写入型自动化归零、备份纪律上线、恢复基线核验。"
+    status: "in_progress"
+    estimated_hours: 16.5
+    stop_gate:
+      gate_id: "G0"
+      approver: "owner"
+      failure_action: "remain_in_stage"
+    phases:
+      - phase_id: "DT1PA"
+        name: "运营止血"
+        status: "completed_absorbed_20260717"
+        current_result: "OPS.0001/0002/0004 已由 2026-07-17 审计与技能清点吸收：6 条 Codex 应用排程 cwd 全断已核实登记（KMFA/skills/registry.yaml + 登记册.md）；写入型自动化 autopush/prom2-github 均 PAUSED；按 Owner 云端优先指令，本地排程不再重绑，处置转 DT9。"
+        tasks:
+          - task_id: "TSK.KMFA.OPS.0001"
+            status: "completed_absorbed"
+          - task_id: "TSK.KMFA.OPS.0002"
+            status: "completed_absorbed"
+          - task_id: "TSK.KMFA.OPS.0004"
+            status: "completed_absorbed"
+      - phase_id: "DT1PB"
+        name: "备份与对表"
+        status: "in_progress"
+        current_result: "OPS.0003 完成（264MB bundle 覆盖 268acce79 + GitHub 远端影子分支与 checkpoint tag）；OPS.0005 完成（2026-07-17 与拆分/清理线程跨会话对表，技能搁浅核验并入 PR #1/#2）；OPS.0006 改道为「KMOS CI 绿基线登记」（落点修订 R1 所致），DT3 全量验证前完成；OPS.0007 已转交另一台 Mac 的恢复 agent。"
+        tasks:
+          - task_id: "TSK.KMFA.OPS.0003"
+            status: "completed_absorbed"
+          - task_id: "TSK.KMFA.OPS.0005"
+            status: "completed"
+          - task_id: "TSK.KMFA.OPS.0006"
+            status: "pending"
+          - task_id: "TSK.KMFA.OPS.0007"
+            status: "delegated_external"
+      - phase_id: "DT1PC"
+        name: "恢复基线"
+        status: "in_progress"
+        current_result: "REC.0001 核心保全核验由恢复 agent 完成并经审核（bundle verify + 远端影子）；GOV.0001 立项与 D1=A 落档见 events.jsonl 打通线授权事件。"
+        tasks:
+          - task_id: "TSK.KMFA.REC.0001"
+            status: "completed_absorbed"
+          - task_id: "TSK.KMFA.GOV.0001"
+            status: "completed"
+  - stage_id: "DT2"
+    name: "v1.5 恢复补齐（M1）"
+    person_goal: "以 268acce79 + RECOVERY_REPORT_zh.md 重定基线，余量未决路径全部终局处置（45 无法唯一确认 + 3 需人工 + 6 应删除 + 21 契约排除），治理台账由构建器重建，roadmap 双源归一。"
+    status: "pending"
+    estimated_hours: 48
+    stop_gate:
+      gate_id: "G1"
+      approver: "owner"
+      failure_action: "remain_in_stage"
+    phases:
+      - phase_id: "DT2PA"
+        name: "core53 补齐"
+        tasks: ["TSK.KMFA.REC.0002", "TSK.KMFA.REC.0003", "TSK.KMFA.REC.0004", "TSK.KMFA.REC.0005", "TSK.KMFA.REC.0006", "TSK.KMFA.REC.0007", "TSK.KMFA.REC.0008", "TSK.KMFA.REC.0009"]
+      - phase_id: "DT2PB"
+        name: "确定性重造与重写"
+        tasks: ["TSK.KMFA.REC.0010", "TSK.KMFA.REC.0011"]
+      - phase_id: "DT2PC"
+        name: "治理面重建"
+        tasks: ["TSK.KMFA.REC.0012", "TSK.KMFA.REC.0013", "TSK.KMFA.REC.0014", "TSK.KMFA.REC.0015"]
+      - phase_id: "DT2PD"
+        name: "阶段材料替代验收与预验"
+        current_result: "修订 R2：REC.0016-0018 的「S01-S23 流水线重跑」不可行（94/95 提交号永久丢失、88 构建器仅 9 可产出），验收改为：恢复报告口径复核 + 现存 9 个 V015 产物目录登记 + REC.0019 全库语法/导入扫描 + REC.0020 聚焦单测全绿 + REC.0021 三扫描。"
+        tasks: ["TSK.KMFA.REC.0016", "TSK.KMFA.REC.0017", "TSK.KMFA.REC.0018", "TSK.KMFA.REC.0019", "TSK.KMFA.REC.0020", "TSK.KMFA.REC.0021", "TSK.KMFA.REC.0022"]
+  - stage_id: "DT3"
+    name: "全量验证与收口上 KMOS（M2，落点修订 R1）"
+    person_goal: "全门禁绿、secret/raw/private 三扫描零泄漏；v1.5 恢复成果经受控 PR 序列并入 KMOS/KMFA（不再回 CodexProject main，避免复活墓碑目录）；关闭 V014 遗留 phase（D1=A）。"
+    status: "pending"
+    estimated_hours: 24
+    stop_gate:
+      gate_id: "G2"
+      approver: "owner"
+      failure_action: "rollback"
+    phases:
+      - phase_id: "DT3PA"
+        name: "全量验证"
+        tasks: ["TSK.KMFA.REC.0023", "TSK.KMFA.REC.0024", "TSK.KMFA.REC.0025", "TSK.KMFA.REC.0026", "TSK.KMFA.REC.0027"]
+      - phase_id: "DT3PB"
+        name: "收口上线（KMOS）"
+        current_result: "修订 R1：REC.0030『非破坏整合最新 main』与 REC.0031『push main + remote parity』的目标仓由 CodexProject 改为 KMOS；CodexProject 侧仅保留 recovery/kmfa-v15-fuzzy 分支与 checkpoint tag 作历史证据，不再接收 KMFA 提交。"
+        tasks: ["TSK.KMFA.REC.0028", "TSK.KMFA.REC.0029", "TSK.KMFA.REC.0030", "TSK.KMFA.REC.0031", "TSK.KMFA.REC.0032"]
+  - stage_id: "DT4"
+    name: "KMOS 带历史迁移（M3）"
+    person_goal: "KMFA 全史落位 KMOS、CI 就位、源侧墓碑防复活。"
+    status: "mostly_completed_absorbed_20260717"
+    estimated_hours: 23
+    stop_gate:
+      gate_id: "G3"
+      approver: "owner"
+      failure_action: "rollback"
+    phases:
+      - phase_id: "DT4PA"
+        name: "探针与迁移执行"
+        status: "completed_absorbed_20260717"
+        current_result: "由拆分线程完成：KMFA 带 704 提交历史迁入 KMOS（tree sha 位级一致 e54fa39a，git log -- KMFA 可导航）；源侧删除+墓碑 718d719d0 已并入 CodexProject main；KMOS 双平面 CI（Dual-Plane Governance）已就位且绿。MIG.0001-0005 视为吸收完成。"
+        tasks: ["TSK.KMFA.MIG.0001", "TSK.KMFA.MIG.0002", "TSK.KMFA.MIG.0003", "TSK.KMFA.MIG.0004", "TSK.KMFA.MIG.0005"]
+      - phase_id: "DT4PB"
+        name: "带电搬迁（改道）"
+        status: "superseded_by_DT9"
+        current_result: "修订 R3：原「在产 skill 的本地 launchd/automation cwd 重绑」不再执行——Owner 指令本地未运行的 skill 全部依赖云端运行；投递连续性验证并入 DT9 的双跑切换。"
+        tasks: ["TSK.KMFA.MIG.0006", "TSK.KMFA.MIG.0007"]
+      - phase_id: "DT4PC"
+        name: "源侧收尾"
+        status: "in_progress"
+        current_result: "余量：防复活观察（写入型自动化对已删源路径的触达=0）、projects.yaml/治理登记核对；墓碑本体已完成。"
+        tasks: ["TSK.KMFA.MIG.0008", "TSK.KMFA.MIG.0009", "TSK.KMFA.MIG.0010", "TSK.KMFA.MIG.0011"]
+  - stage_id: "DT5"
+    name: "真实数据打通（M4）"
+    person_goal: "KMDatabase/data 内容寻址增量入仓（D11：不新建仓库）+ KMFA_MetaData 53 业务文件→staging（DuckDB，D5=C 双引擎）→facts→七文件渲染门因真实数据自然变绿（禁 mock）；无会议对账制（09 修订：一致性证明/差异分析报告，残差 analyzed-open 即处置完毕）；3-9-2-1 与 12 hard blocks 全部终局；Q4→Q5；含预算域 DATA.0025（D7=B）。"
+    status: "pending"
+    estimated_hours: 79.5
+    stop_gate:
+      gate_id: "G4"
+      approver: "owner"
+      failure_action: "owner_decision_required"
+    phases:
+      - phase_id: "DT5PA"
+        name: "接入登记"
+        tasks: ["TSK.KMFA.DATA.0001", "TSK.KMFA.DATA.0002", "TSK.KMFA.DATA.0003", "TSK.KMFA.DATA.0004", "TSK.KMFA.DATA.0005", "TSK.KMFA.DATA.0025"]
+      - phase_id: "DT5PB"
+        name: "私有派生层"
+        tasks: ["TSK.KMFA.DATA.0006", "TSK.KMFA.DATA.0007", "TSK.KMFA.DATA.0008", "TSK.KMFA.DATA.0009", "TSK.KMFA.DATA.0010"]
+      - phase_id: "DT5PC"
+        name: "事实与血缘"
+        tasks: ["TSK.KMFA.DATA.0011", "TSK.KMFA.DATA.0012", "TSK.KMFA.DATA.0013", "TSK.KMFA.DATA.0014", "TSK.KMFA.DATA.0015"]
+      - phase_id: "DT5PD"
+        name: "差异收敛（对账制）"
+        current_result: "对账基准：Owner 已发布报告（首选 _protected/2026-07-06 董事会经营分析报表——注意 _protected 存续期，基准文件应先入 KMDatabase/data）；DATA.0017'/0019' 按 09 修订执行，Owner 全程仅两次异步确认。"
+        tasks: ["TSK.KMFA.DATA.0016", "TSK.KMFA.DATA.0017", "TSK.KMFA.DATA.0018", "TSK.KMFA.DATA.0019", "TSK.KMFA.DATA.0020", "TSK.KMFA.DATA.0021"]
+      - phase_id: "DT5PE"
+        name: "质量升级收口"
+        tasks: ["TSK.KMFA.DATA.0022", "TSK.KMFA.DATA.0023", "TSK.KMFA.DATA.0024"]
+  - stage_id: "DT6"
+    name: "产品面收口与部署上线（M5）"
+    person_goal: "S24 收口；KMIDS 同栈真实 App（D2=A：FastAPI+SQLite+React/Vite+ECharts+docker-compose）替换启动器壳；kmfa.linzezhang.com 7×24 上线（Oracle Always Free + Cloudflare Tunnel 零开放端口 + Cloudflare Access 强制鉴权）。修订 R5：不开 PAYG，实例按可随时回收设计（幂等重建 + 数据卷日备份回 KMOS/KMDatabase/data）。"
+    status: "pending"
+    estimated_hours: 87
+    stop_gate:
+      gate_id: "G5"
+      approver: "owner"
+      failure_action: "remain_in_stage"
+    phases:
+      - phase_id: "DT6PA"
+        name: "骨架与后端"
+        tasks: ["TSK.KMFA.PROD.0001", "TSK.KMFA.PROD.0002", "TSK.KMFA.PROD.0003"]
+      - phase_id: "DT6PB"
+        name: "核心页面"
+        tasks: ["TSK.KMFA.PROD.0004", "TSK.KMFA.PROD.0005", "TSK.KMFA.PROD.0006", "TSK.KMFA.PROD.0007", "TSK.KMFA.PROD.0008"]
+      - phase_id: "DT6PC"
+        name: "报告与专题"
+        tasks: ["TSK.KMFA.PROD.0009", "TSK.KMFA.PROD.0010", "TSK.KMFA.PROD.0011", "TSK.KMFA.PROD.0019"]
+      - phase_id: "DT6PD"
+        name: "S24 收口与部署"
+        tasks: ["TSK.KMFA.PROD.0012", "TSK.KMFA.PROD.0013", "TSK.KMFA.PROD.0014", "TSK.KMFA.PROD.0015", "TSK.KMFA.PROD.0016", "TSK.KMFA.PROD.0017", "TSK.KMFA.PROD.0018", "TSK.KMFA.PROD.0020", "TSK.KMFA.PROD.0021"]
+  - stage_id: "DT7"
+    name: "交付解锁与 KMOS 融合准备（M6）"
+    person_goal: "release_gate 六项硬阻断全绿、Owner 签 GO（delivery_allowed=true 治理事件）、首份 A 级正式报告签发、口径原语上提 KMDatabase。"
+    status: "pending"
+    estimated_hours: 30
+    stop_gate:
+      gate_id: "G6"
+      approver: "owner"
+      failure_action: "owner_decision_required"
+    phases:
+      - phase_id: "DT7PA"
+        name: "解锁前核验"
+        tasks: ["TSK.KMFA.REL.0001", "TSK.KMFA.REL.0002", "TSK.KMFA.REL.0003"]
+      - phase_id: "DT7PB"
+        name: "GO 与正式报告"
+        tasks: ["TSK.KMFA.REL.0004", "TSK.KMFA.REL.0005", "TSK.KMFA.REL.0006"]
+      - phase_id: "DT7PC"
+        name: "融合准备与收官"
+        tasks: ["TSK.KMFA.REL.0007", "TSK.KMFA.REL.0008", "TSK.KMFA.REL.0009", "TSK.KMFA.REL.0010"]
+  - stage_id: "DT8"
+    name: "贯穿工作流（W）"
+    person_goal: "声明式门禁引擎与断言引擎供给 DT5/DT6；备份与自动化健康周检。"
+    status: "pending"
+    estimated_hours: 15
+    stop_gate:
+      gate_id: "GW"
+      approver: "owner"
+      failure_action: "remain_in_stage"
+    phases:
+      - phase_id: "DT8PA"
+        name: "声明式治理"
+        tasks: ["TSK.KMFA.GOVX.0001", "TSK.KMFA.GOVX.0002", "TSK.KMFA.GOVX.0003"]
+      - phase_id: "DT8PB"
+        name: "运营周检"
+        tasks: ["TSK.KMFA.GOVX.0004"]
+  - stage_id: "DT9"
+    name: "Skills 全量上 Oracle（SKL，云端优先修订 R3/R4）"
+    person_goal: "在产 skill 全部迁 Oracle（定时 cron + 按需 App 触发）：钉钉考勤（10:35/20:05）、日常检查、资金周报（swift OCR→Python OCR）、经营月报、上游归档；钉钉考勤双跑比对≥3天后一刀切换，任一时刻仅一个发送端存活；红圈浏览器导出例外留 Mac 采集端。测试投递收发对象按 Owner 指定可用「张霖泽」。DT4 实质完成即可与 DT5/DT6 并行。"
+    status: "in_progress"
+    estimated_hours: 30
+    stop_gate:
+      gate_id: "G9"
+      approver: "owner"
+      failure_action: "rollback"
+    phases:
+      - phase_id: "DT9PA"
+        name: "前置：dws 替代（修订 R4 新增）"
+        status: "in_progress"
+        current_result: "dws CLI（DingTalk Workspace）本机 command -v 不可得、~/.dws 不存在，云端亦无可信可获得版本；调用面已实测锁定为：chat message send / send-by-webhook、contact user search / search-mobile / get、chat search、auth，均 --format json。TSK.KMFA.SKL.0008：以钉钉开放 API 直连实现 dws 兼容 shim（DWS_BIN 指向 shim 即插即用），凭据仅走环境变量/600 权限 secrets，支持 dry-run。"
+        tasks:
+          - task_id: "TSK.KMFA.SKL.0008"
+            status: "in_progress"
+      - phase_id: "DT9PB"
+        name: "基座与迁移"
+        tasks: ["TSK.KMFA.SKL.0001", "TSK.KMFA.SKL.0002", "TSK.KMFA.SKL.0003", "TSK.KMFA.SKL.0004", "TSK.KMFA.SKL.0005"]
+      - phase_id: "DT9PC"
+        name: "触发与监控"
+        tasks: ["TSK.KMFA.SKL.0006", "TSK.KMFA.SKL.0007"]
