@@ -9,7 +9,8 @@ services:
       # 双跑纪律：默认不投递；双跑比对通过并经 Owner 同意后逐技能置 1。
       KMFA_DELIVERY_ENABLED: "0"
     env_file:
-      - /opt/kmfa/secrets/skills.env        # 600 权限，不入仓；键位见 secrets.env.example
+      - path: /opt/kmfa/secrets/skills.env  # 600 权限，不入仓；键位见 secrets.env.example
+        required: false                     # 缺失时容器仍可起（entrypoint 会告警空跑），便于本机预检
     volumes:
       - /opt/kmfa/KMOS:/opt/kmfa/KMOS       # 仓库 checkout（技能代码 + gitignored 私有运行时路径）
       - /opt/kmfa/secrets:/opt/kmfa/secrets:ro
