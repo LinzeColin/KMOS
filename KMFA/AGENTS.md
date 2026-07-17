@@ -21,10 +21,10 @@
 
 ## 数据与安全
 
-- `~/Downloads/KMFA_MetaData` 是用户原始财务数据，只读；不得移动、删除、覆盖或写入生成文件。
+- `~/Downloads/KMFA_MetaData` 若存在则是用户原始财务数据，只读；2026-07-17 清理交接盘点时该路径不存在，恢复状态见 `HANDOFF.md`。
 - 公开 GitHub 只保存代码、schema、validator、脱敏 fixture、hash/index、状态和治理证据。
 - 不提交员工/考勤/群聊/财务明文、DWS 包、工作簿、PDF、SQLite、raw JSON/JSONL/GZ、完整账号、token、key、webhook、cookie 或 session。
-- 私有运行态只放 OneDrive 或明确 gitignored 的 runtime；恢复位置与校验见 `HANDOFF.md`。
+- 真实运行/开发现场的 GitHub 接管入口是 PRIVATE `LinzeColin/KMFA-Private-Runtime` 的 `cleanup-handoff-20260717` Release；OneDrive 仅为冗余副本。凭证、token、cookie、session 和 `.env*` 不进入任何 GitHub 仓库或 Release，恢复后重新认证。
 - 金额使用整数分或 `Decimal`；任何 0.01 元差异必须失败或进入差异队列。
 - 数据缺失、过期、血缘不完整或人工确认未完成时 fail closed，不生成正式可信经营结论。
 

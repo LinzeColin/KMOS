@@ -26,7 +26,17 @@
 
 ## 私有恢复点
 
-清理前快照位于 OneDrive：
+agent 的私有恢复入口也在 GitHub：
+
+```text
+PRIVATE repo: LinzeColin/KMFA-Private-Runtime
+Release:      cleanup-handoff-20260717
+Manifest:     manifests/release_manifest.json
+```
+
+Release 包含 3 个经 SHA-256 校验的资产：旧 KMFA 开发/运行现场、DWS 全文件归档项目、6 张 Codex automation 的本机状态与旧 DWS skill 备份。PRIVATE 仓库的 `HANDOFF.md` 是恢复合同；任何 agent 都必须先确认仓库仍为 PRIVATE，再按 manifest 校验 size/hash。凭证、token、cookie、browser session、Keychain 导出和 `.env*` 明确不上传，恢复后重新认证。
+
+OneDrive 同时保留冗余副本，但不是 agent 通信或唯一恢复入口：
 
 ```text
 /Users/linzezhang/Library/CloudStorage/OneDrive-Personal/KMFA/cleanup_handoff_20260717/
@@ -37,7 +47,7 @@
     └── fund_weekly_analysis/
 ```
 
-该目录包含真实运行状态，禁止提交 Git。DWS SQLite 已在源端和备份端执行 `PRAGMA quick_check`；最终文件数、hash 和验证结果以本次 GitHub 提交的 `machine/runs/20260717_cleanup_handoff.json` 为准。
+该目录包含真实运行状态；DWS SQLite 已在源端和备份端执行 `PRAGMA quick_check`。OneDrive 位置、文件数和校验结果已同步写入 public KMOS 与 private runtime repo，不能只依赖本机路径沟通。
 
 旧脏工作区未直接合并到当前主线；其完整 KMFA 覆盖层已私有保存并通过 checksum 零差异验证：
 
@@ -61,18 +71,19 @@ $HOME/Library/Application Support/Codex/KMFA/attendance-production/current
 - `kmfa` 10:35、`kmfa-3` 20:05、`kmfa-4` 13:35/19:05、`kmfa-dws` 每日 11:00、DWS auth 每 4 小时 20 分的计划保持不变；`kmfa-5` 已恢复技能合同规定的周一和周六 11:00。
 - attendance immutable release 已原子切换至 fingerprint `eeb36084adcd39507597f5df6b273de4e8f1b18212234e2226eb3edb9d71255a`，source commit 为上述首轮接管提交；晨晚 live prompt 均通过只读一致性校验。
 - 6 个本机 skill 名称均指向稳定 KMOS checkout；历史独立 DWS skill 已私有备份后由兼容别名接管。
-- 未运行 live DWS、未发送钉钉消息、未把原始业务数据提交 Git。
+- 未运行 live DWS、未发送钉钉消息；真实业务数据只进入 PRIVATE GitHub Release，public KMOS 无原始业务数据。
 
 ## 清理保护清单
 
-远端 parity、OneDrive 快照和本机 automation cwd 已完成校验。大清理时仍不得删除：
+public/private GitHub、OneDrive 冗余快照和本机 automation cwd 已完成校验。大清理时仍不得删除或改为 public：
 
 - 推荐稳定 checkout `/Users/linzezhang/Documents/Codex/KMOS`；
 - 上述 OneDrive `cleanup_handoff_20260717/`；
 - OneDrive `DWS_Outputs.zip`、`DWS_Archive/` 与既有 `KMFA/` 私有目录；
 - attendance immutable runtime；
 - `~/.codex/automations/`、`~/.codex/skills/`、DWS 认证 profile 与自动化 memory/state；
-- `~/Downloads/KMFA_MetaData`。
+- PRIVATE `LinzeColin/KMFA-Private-Runtime` 及 Release `cleanup-handoff-20260717`；
+- `~/Downloads/KMFA_MetaData` 若后续重新出现则先只读核对；本次盘点该路径不存在。
 
 旧 checkout 的 KMFA 内容已有私有覆盖层恢复点；删除旧 checkout 前仍应再次确认上述保护项存在且稳定 checkout 与 `origin/main` parity。本文不授权删除保护项。
 

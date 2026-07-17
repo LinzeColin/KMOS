@@ -1,7 +1,7 @@
 {
   "run_id": "清理交接-20260717",
   "action": "迁移 KMFA 公开安全源码与技能包，并为本机清理建立可校验私有恢复点",
-  "result": "完成：公开源码已推送；私有备份与旧工作区覆盖层已校验；稳定检出、技能、自动化和考勤冻结运行版已接管",
+  "result": "完成：公开源码与私有恢复资产已推送；旧工作区、稳定检出、技能、自动化和考勤冻结运行版均已接管",
   "scope": {
     "repository": "LinzeColin/KMOS",
     "branch": "main",
@@ -10,7 +10,20 @@
     "dingtalk_message_sent": false,
     "raw_data_committed": false
   },
-  "private_backup": {
+  "github_private_runtime": {
+    "repository": "LinzeColin/KMFA-Private-Runtime",
+    "visibility": "PRIVATE",
+    "release_tag": "cleanup-handoff-20260717",
+    "manifest": "manifests/release_manifest.json",
+    "assets": [
+      {"name": "kmfa-local-state-20260717.tar.gz", "bytes": 59680298, "sha256": "0169af55c76609786568cdb1a3b81e5c90bfac88b772a2daf67d70b068f163ab"},
+      {"name": "dws-archive-project-20260717.tar.gz", "bytes": 756761527, "sha256": "289af2fefe69a8a59639c7e0618b5ea5678437ce8936d181a7447c48e91be9dd"},
+      {"name": "codex-automation-state-20260717.tar.gz", "bytes": 30064, "sha256": "54ff66799e67ae46b3140cc26bd595486783d9bc3ffec2a72ecadb2cadbcff07"}
+    ],
+    "credentials_uploaded": false,
+    "release_asset_readback": "PASS_SERVER_SHA256_DIGEST"
+  },
+  "redundant_onedrive_backup": {
     "root": "OneDrive/KMFA/cleanup_handoff_20260717",
     "file_count": 10346,
     "logical_bytes": 1097845744,
@@ -50,7 +63,8 @@
     "secret_scan": "PASS",
     "large_public_files": "NONE_OVER_5_MIB",
     "remote_push": "PASS",
-    "remote_parity": "PASS_AT_HANDOFF_SOURCE_COMMIT"
+    "remote_parity": "PASS_AT_HANDOFF_SOURCE_COMMIT",
+    "private_github_release": "PASS_PRIVATE_VISIBILITY_AND_SERVER_DIGEST"
   },
   "open_gates": []
 }
