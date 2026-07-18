@@ -131,7 +131,7 @@ EXPECTED_UPSTREAM = {
             "lock_registry/stage041_lock_registry_delivery_contract.json"
         ),
         "sha256": (
-            "4154cdbadc2ce3958302d611e82885f734c69f2aa7b971c73304902a6b7daba3"
+            "41995b50fd256eef6addd40fc5d1b1efd81fc7bb3ce9f0d74ce16dda5dc2b840"
         ),
     },
     "stage041_review_ref": {

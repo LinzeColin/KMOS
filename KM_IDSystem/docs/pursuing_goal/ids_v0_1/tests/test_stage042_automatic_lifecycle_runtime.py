@@ -399,8 +399,16 @@ class Stage042AutomaticLifecycleRuntimeTests(unittest.TestCase):
         self.assertIn('push_allowed: false', batch)
         self.assertIn('current_phase_id: "IDS-STAGE042-P2"', roadmap)
         self.assertIn('next_gate_id: "IDS-STAGE042-P3-GATE"', roadmap)
-        self.assertIn("Completed task in this run: `IDS-V0_1-STAGE042-P2`", handoff)
-        self.assertIn("Next allowed task: `IDS-V0_1-STAGE042-P3`", handoff)
+        self.assertTrue(
+            (
+                "Completed task in this run: `IDS-V0_1-STAGE042-P2`" in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE042-P3`" in handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE042-P3`" in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE042-P4`" in handoff
+            )
+        )
         events = [
             json.loads(line)
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
@@ -415,7 +423,11 @@ class Stage042AutomaticLifecycleRuntimeTests(unittest.TestCase):
         self.assertEqual("phase_completed", matching[0]["event_type"])
         self.assertEqual("IDS-V0_1-STAGE042-P2", matching[0]["task_id"])
         self.assertIn(str(CONTRACT.relative_to(REPO_ROOT)), matching[0]["changed_files"])
-        self.assertFalse((PURSUE_ROOT / "STAGE042_PHASE3_SCENARIO_VALIDATION.md").exists())
+        phase3_evidence = PURSUE_ROOT / "STAGE042_PHASE3_SCENARIO_VALIDATION.md"
+        if 'status: "stage042_phase3_completed"' in batch:
+            self.assertTrue(phase3_evidence.is_file())
+        else:
+            self.assertFalse(phase3_evidence.exists())
 
     def test_cli_emits_the_exact_machine_report(self):
         module = self._module()

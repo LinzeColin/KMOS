@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-18T01:53:19Z"
-status: "stage042_phase2_completed"
+updated_at_utc: "2026-07-18T03:30:28Z"
+status: "stage042_phase3_completed"
 
 transition_history:
+  stage042_phase3_state:
+    status: "stage042_phase3_completed"
+    current_task_id: "IDS-V0_1-STAGE042-P3"
+    next_gate: "IDS-STAGE042-P4-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE042-P4"
+    github_upload_allowed: false
   stage042_phase2_state:
     status: "stage042_phase2_completed"
     current_task_id: "IDS-V0_1-STAGE042-P2"
@@ -204,17 +210,19 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
   STAGE-042:
-    status: "stage042_phase2_completed"
+    status: "stage042_phase3_completed"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
-    next_phase: "Phase 3"
-    next_gate: "IDS-STAGE042-P3-GATE"
-    current_task_id: "IDS-V0_1-STAGE042-P2"
+      - "Phase 3"
+    next_phase: "Phase 4"
+    next_gate: "IDS-STAGE042-P4-GATE"
+    current_task_id: "IDS-V0_1-STAGE042-P3"
     acceptance_id: "ACC-STAGE-042"
-    acceptance_status: "phase2_slice_complete"
+    acceptance_status: "phase3_scenario_validation_complete"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
+    phase4_entry_authorized: true
     source_verification_status: "SOURCE_VERIFIED"
     source_member_match_count: 1
     source_member_sha256: "78a4bed1f5348837699bd7dd227898e6d47cc4099ca268ee1600bae84605ec08"
@@ -222,9 +230,11 @@ stage_progress:
     automatic_lifecycle_contract_schema: "ids.stage042.automatic_lifecycle.phase1.v1"
     automatic_lifecycle_policy_contract_id: "ids.automatic_lifecycle_policy.v0_1.stage042.p2"
     automatic_lifecycle_runtime_contract_schema: "ids.stage042.automatic_lifecycle.phase2.v1"
+    automatic_lifecycle_scenario_contract_schema: "ids.stage042.automatic_lifecycle.phase3.scenarios.v1"
     phase1_contract_valid: true
     phase2_slice_valid: true
-    contract_state: "PHASE2_ISOLATED_LIFECYCLE_DECISION_SLICE_ENABLED_PRODUCTION_DISABLED"
+    phase3_scenarios_valid: true
+    contract_state: "PHASE3_SCENARIOS_ENABLED_PRODUCTION_DISABLED"
     parameter_fact_level: "PROPOSED"
     numeric_policy_values_assigned: true
     production_calibration_task_id: "TASK-OPME-B-001"
@@ -241,6 +251,15 @@ stage_progress:
     automatic_resume_candidate_evaluated: true
     safe_shutdown_candidate_evaluated: true
     cleanup_candidate_evaluated: true
+    isolated_lifecycle_scenarios_performed: true
+    scenario_count: 12
+    passed_scenario_count: 12
+    duplicate_and_stale_scenarios_performed: true
+    resource_pause_resume_scenarios_performed: true
+    stage041_lock_scenarios_replayed: true
+    actual_isolated_worker_exception_performed: true
+    actual_project_disk_observation_performed: true
+    protected_refs_verified: true
     automatic_lifecycle_runtime_performed: false
     automatic_start_performed: false
     automatic_pause_performed: false
@@ -253,11 +272,16 @@ stage_progress:
     backpressure_runtime_performed: false
     production_lock_runtime_performed: false
     process_crash_recovery_performed: false
+    crash_recovery_runtime_performed: false
+    process_termination_performed: false
+    physical_drive_removal_performed: false
+    disk_allocation_performed: false
     cleanup_runtime_performed: false
     protected_ref_delete_performed: false
     database_connection_performed: false
     schema_change_performed: false
     state_registry_write_performed: false
+    persistent_decision_write_performed: false
     runtime_output_written: false
     external_api_call_performed: false
     production_runtime_activation_performed: false
@@ -275,12 +299,16 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json"
       - "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE3_SCENARIO_VALIDATION.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_scenarios.json"
+      - "KM_IDSystem/scripts/check_automatic_lifecycle_scenarios.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_scenarios.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE042-P2"
-  next_allowed_task_id: "IDS-V0_1-STAGE042-P3"
+  current_task_id: "IDS-V0_1-STAGE042-P3"
+  next_allowed_task_id: "IDS-V0_1-STAGE042-P4"
   github_upload_allowed: false
-  current_run: "STAGE-042 Phase 2 registered five proposed timing bounds and evaluated deterministic in-memory reference-only start, pause, resume, safe-shutdown and cleanup-scan candidates; no actual lifecycle, state mutation, process termination, delete, persistence, raw metadata, GitHub, app or production action ran."
-  no_upload_reason: "BATCH041_050 has only one completed and reviewed Stage plus STAGE-042 Phases 1-2; upload remains blocked until STAGE-041..050 are completed, individually reviewed and repaired, then a separate ten-stage review and upload gate run."
+  current_run: "STAGE-042 Phase 3 validated twelve isolated lifecycle-control scenarios covering duplicate/stale requests, resource pause/resume, worker exception ownership, same-source exclusion, ordered shutdown and protected cleanup; no actual lifecycle, process crash recovery, termination, delete, persistence, raw metadata, GitHub, app or production action ran."
+  no_upload_reason: "BATCH041_050 has only one completed and reviewed Stage plus STAGE-042 Phases 1-3; upload remains blocked until STAGE-041..050 are completed, individually reviewed and repaired, then a separate ten-stage review and upload gate run."

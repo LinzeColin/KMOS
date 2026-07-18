@@ -1,5 +1,14 @@
 # Changelog
 
+## IDS v0.1 STAGE-042 Phase 3 - 2026-07-18
+
+- Added `ids.stage042.automatic_lifecycle.phase3.scenarios.v1`, an exact Phase 2 and Stage041-bound contract plus stdout-only checker for twelve isolated lifecycle-control scenarios.
+- Verified exact duplicate replay, changed-input conflict rejection, stale-start denial, drive/disk/API pause and owner/stability-gated resume, one actual isolated worker `RuntimeError`, four-operation same-source exclusion, ordered shutdown, timeout denial and protected cleanup.
+- Preserved five protected artifact classes and kept two eligible classes as candidates only. No delete API, physical drive action, disk allocation, external API call, process crash recovery, process termination, state write, persistence or production runtime ran.
+- TDD RED produced two expected failures and fifteen expected errors across 17 focused tests. Final GREEN passed checker `19/19 + 12/12`, focused `17/17`, Stage004 `3/3`, Stage005 `159/159`, Stage037-039 `124/124`, Stage040-042 `162/162`, full IDS v0.1 `844/844` in `618.960s`, `203` clean events and the dual-plane gate.
+- Governance sync repaired two generated-Chinese terminology findings and rebound the exact Stage041 scenario-test → delivery-contract → Stage042 Phase1/2/3 Git-index hash chain without changing historical conclusions.
+- Routed the only next task to separate `IDS-V0_1-STAGE042-P4` with `push_allowed=false`; no Phase 4, whole-stage review, batch review, GitHub upload/merge, issue action or app reinstall ran.
+
 ## IDS v0.1 STAGE-042 Phase 2 - 2026-07-18
 
 - Added `ids.automatic_lifecycle_policy.v0_1.stage042.p2`, an exact-shaped isolated reference-only contract and stdout-only checker for automatic-start, resource-pause, guarded-resume, safe-shutdown and cleanup-scan candidates.

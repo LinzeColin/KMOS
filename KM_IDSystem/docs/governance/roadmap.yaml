@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE042"
-current_phase_id: "IDS-STAGE042-P2"
-current_task_id: "IDS-V0_1-STAGE042-P2"
-next_gate_id: "IDS-STAGE042-P3-GATE"
+current_phase_id: "IDS-STAGE042-P3"
+current_task_id: "IDS-V0_1-STAGE042-P3"
+next_gate_id: "IDS-STAGE042-P4-GATE"
 current_transition_history:
+  stage042_phase3_state:
+    current_stage_id: "IDS-STAGE042"
+    current_phase_id: "IDS-STAGE042-P3"
+    current_task_id: "IDS-V0_1-STAGE042-P3"
+    next_gate_id: "IDS-STAGE042-P4-GATE"
   stage042_phase2_state:
     current_stage_id: "IDS-STAGE042"
     current_phase_id: "IDS-STAGE042-P2"
@@ -10677,17 +10682,17 @@ stages:
       - "连接数据库、修改 schema/state registry、启动或终止 worker、写 runtime output"
       - "读取、列出、hash、打开、复制、移动、删除、修改、dump 或扫描 /Users/linzezhang/Downloads/IDS_MetaData 内容"
       - "使用虚构 IDS 业务数据、jobs、locks、evidence 或 placeholder corpus"
-      - "进入 Phase 3、whole-stage review、batch gate、GitHub 或 app reinstall"
+      - "进入 Phase 4、whole-stage review、batch gate、GitHub 或 app reinstall"
     stop_gate:
-      gate_id: "IDS-STAGE042-P2-GATE"
+      gate_id: "IDS-STAGE042-P3-GATE"
       status: "passed_with_local_evidence"
       pass_conditions:
-        - "Unique approved source and reviewed STAGE-037..041 bindings match exact tracked content"
-        - "Five proposed timing bounds have explicit reviewed upstream derivations, registry bindings and rollback"
-        - "Automatic start, pause, resume, safe-close and cleanup-scan candidates use only the authoritative state graph and fail closed"
-        - "Retry, pressure, lock, process-recovery and cleanup execution ownership remains with STAGE-039..044"
-        - "All decisions are reference-only candidates; actual lifecycle, process termination, persistence and delete flags remain false"
-        - "The only next gate is IDS-STAGE042-P3-GATE"
+        - "Exact duplicate replay, changed-input conflict and stale-start evidence fail closed"
+        - "Drive, disk and API pressure pause/resume scenarios require owner and fresh stability revalidation"
+        - "Processing, extraction, indexing and reporting preserve same-source Stage041 lock exclusion"
+        - "Worker exception remains isolated evidence; process-crash recovery remains owned by STAGE-043"
+        - "Shutdown ordering and protected cleanup deny termination, deletion, persistence and runtime side effects"
+        - "The only next gate is IDS-STAGE042-P4-GATE"
       evidence_refs:
         - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_ENTRY_CONTRACT.md"
         - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE1_AUTOMATIC_LIFECYCLE_SCOPE_BOUNDARY.md"
@@ -10698,6 +10703,10 @@ stages:
         - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json"
         - "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"
         - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE3_SCENARIO_VALIDATION.md"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_scenarios.json"
+        - "KM_IDSystem/scripts/check_automatic_lifecycle_scenarios.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_scenarios.py"
         - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
     phases:
       -
@@ -10829,15 +10838,70 @@ stages:
         phase_id: "IDS-STAGE042-P3"
         name: "自动生命周期 场景验证"
         objective: "在 Phase 2 完成后的单独 run 中验证重复、资源暂停、恢复、关闭和局部输出边界。"
-        status: "pending"
+        status: "passed_with_local_evidence"
         entry_authorized: true
+        stop_conditions:
+          - "执行实际 automatic start、pause、resume、shutdown 或状态写入"
+          - "把隔离 worker exception 声称为 process crash 或执行 crash recovery"
+          - "物理移除 drive、分配磁盘、调用外部 API 或执行 cleanup/delete"
+          - "绕过 Stage041 same-source lock exclusion 或 Stage043/044 ownership"
+          - "读取 raw metadata、创建 IDS business job 或使用虚构业务数据"
+          - "进入 Phase 4、whole-stage review、batch gate、GitHub 或 app reinstall"
+        stop_gate:
+          gate_id: "IDS-STAGE042-P3-GATE"
+          status: "passed_with_local_evidence"
+          pass_conditions:
+            - "Twelve isolated lifecycle-control scenarios pass from exact Phase2 and Stage041 bindings"
+            - "Duplicate/stale requests, resource recovery and shutdown timeout fail closed"
+            - "Four operation families preserve same-source exclusion before operation invocation"
+            - "Five protected artifact classes never become delete candidates"
+            - "All actual lifecycle, crash recovery, termination, delete, persistence and production flags remain false"
+            - "The only next gate is IDS-STAGE042-P4-GATE"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE3_SCENARIO_VALIDATION.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_scenarios.json"
+            - "KM_IDSystem/scripts/check_automatic_lifecycle_scenarios.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_scenarios.py"
+        tasks:
+          -
+            task_id: "IDS-V0_1-STAGE042-P3"
+            name: "验证自动生命周期隔离场景与保护边界"
+            objective: "对重复/冲突/陈旧请求、三类资源暂停恢复、worker exception、四类同源排他、关闭超时和清理保护执行隔离非生产验证。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE042-P2"
+              - "IDS-V0_1-STAGE041-P3"
+            acceptance_ids:
+              - "ACC-STAGE-042"
+            test_commands:
+              - "python3 -B KM_IDSystem/scripts/check_automatic_lifecycle_scenarios.py"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage042_automatic_lifecycle_scenarios"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage005_governance_regression"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage04[0-2]*.py' -q"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -q"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+              - "python3 -B KM_IDSystem/machine/tools/check_dual_plane_ci.py --projects KM_IDSystem --require-projects"
+              - "events.jsonl parse and duplicate-id check"
+              - "git diff --check"
+            test_results: "TDD RED: 17 focused tests produced 2 expected failures and 15 expected errors because the Phase3 artifacts and governance route were absent. The first implementation-state run reached 13/17 and exposed a false-flag naming mismatch, truthful free-space drift in exact CLI comparison, and the still-absent governance/evidence route. GREEN: checker 19/19 contract checks and 12/12 scenarios; focused 17/17; Stage004 legacy-name 3/3; Stage005 159/159; Stage037-039 aggregate 124/124; Stage040-042 aggregate 162/162; full IDS v0.1 discovery 844/844 in 618.960s; 203 events with zero parse, duplicate or semantic errors; idempotent render and project-scoped dual-plane PASS. Governance synchronization exposed only two unregistered English terms in generated Chinese owner views; replacing them with governed Chinese wording restored the document budget without widening the glossary. The exact Stage041 scenario-test -> delivery contract -> Stage042 Phase1/2/3 Git-index hash chain was rebound after preserving historical evidence. No Phase4, actual lifecycle, state mutation, process crash recovery, process termination, physical fault, cleanup delete, persistence, database, raw metadata, fake IDS business data, production, GitHub or app action ran."
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE3_SCENARIO_VALIDATION.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_scenarios.json"
+              - "KM_IDSystem/scripts/check_automatic_lifecycle_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+            risk: "重复处理、陈旧资源观察、错误恢复、锁绕过、超时终止或受保护资料清理会破坏状态与审计证据。"
+            rollback: "只回滚 Stage042 Phase3 scenario contract/checker/tests/evidence/governance/event/handoff/owner-view；保留 Phase1-2、Stage041 review、owner files、raw data、database、GitHub 与 app 状态。"
         dependencies:
           - "IDS-V0_1-STAGE042-P2"
       -
         phase_id: "IDS-STAGE042-P4"
         name: "自动生命周期 关闭与交付"
         objective: "在 Phase 3 完成后的单独 run 中收口证据、关闭、恢复、回滚和限制。"
-        status: "blocked"
-        entry_authorized: false
+        status: "pending"
+        entry_authorized: true
         dependencies:
           - "IDS-V0_1-STAGE042-P3"
