@@ -2,23 +2,22 @@
 
 ## Current Gate - 2026-07-18
 
-- Completed task in this run: `IDS-V0_1-STAGE042-P4`; the automatic-lifecycle closeout contract, delivery checker, rollback guidance and local governance route are complete.
-- Next allowed task: `IDS-V0_1-STAGE042-REVIEW`, in a separate future run behind `IDS-STAGE042-REVIEW-GATE`; `whole_stage_review_performed=false` and Stage043 entry remains blocked.
+- Completed task in this run: `IDS-V0_1-STAGE042-REVIEW`; all five whole-stage findings are repaired and Stage042 is closed only as `completed_reviewed_local`.
+- Next allowed task: `IDS-V0_1-STAGE043-P1`, in a separate future run behind `IDS-STAGE043-P1-GATE`; `stage043_entry_allowed=false` for this review run.
 - Workspace rule: `/Users/linzezhang/Documents/Codex/GithubProject/KMOS` remains the clean read-only `main` checkout. All work is isolated in `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041` on `codex/kmids-recovery-stage041-p1`, with scope limited to `KM_IDSystem/`.
 - Approved source: the unique archive member `IDS_v0_1_Final_Chinese_Revised/stages/STAGE-042_自动运行、暂停、恢复与关闭.md` has SHA-256 `78a4bed1f5348837699bd7dd227898e6d47cc4099ca268ee1600bae84605ec08` inside archive SHA-256 `55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3`; roadmap and instruction hashes are bound exactly.
-- Predecessor binding: Stage042 Phase 3 commit `d8773ac03d10d877b0b9c439bfce91fe85f8fdfe` and `KM_IDSystem` tree `51a990dbb6563197d7a16d97c7cf2af201a7224e`, plus exact Phase 3, reviewed Stage040 backpressure and reviewed Stage041 lock-delivery hashes.
+- Review baseline: Phase 4 commit `2c489d049d73cd632e905c7af1b39ba662a2139b` remains an ancestor and its `KM_IDSystem` tree is exactly `7d77abfd6c00ea3b663d899335d971342ac40384`; Phase 1–4 checkers are replayed by the review gate.
 - Lifecycle authority remains `ids.job_state.v1`: start is `QUEUED -> CLAIMED -> RUNNING`; active pause must pass through `PAUSE_REQUESTED`; resume is only `PAUSED -> QUEUED` followed by a fresh admission/claim/lock cycle; terminal states never reopen.
-- External-drive offline, insufficient disk and insufficient API budget are mandatory pause signals. Owner revalidation, fresh resource evidence, no active claim/lock and fencing rules remain mandatory.
+- New lifecycle requests require an exact canonical SHA-256 request ID, strict positive state version and action-bound reason code. Changed payload under an existing ID remains a conflict; forged IDs never enter the in-memory ledger.
+- Resume requires a temporally consistent stability-start/observation/evaluation window. Cleanup candidates require `PAUSED` state, remain Stage044-owned and expose no delete path.
 - Stage038 owns queue/worker transport, Stage039 retry/dead-letter, Stage040 pressure, Stage041 lock/lease/fencing, Stage043 process-crash recovery and Stage044 cleanup execution. Phase 4 only replays reviewed control evidence and does not absorb downstream runtime ownership.
 - Five timing values are explicitly `PROPOSED`: tick `1 s`, resume stability `60 s`, checkpoint wait `30 s`, graceful shutdown `60 s`, cleanup scan `300 s`. They are registered as `MOD-011` / `FORM-011` / `PARAM-072..076`, linked to `TASK-OPME-B-001`, and are not production calibrated.
-- The closeout report composes the exact 8-job-type/11-state/4-terminal/21-transition graph, the reviewed 3-attempt/2-retry `DEAD_LETTERED` log, seven backpressure signals, twelve passing lifecycle scenarios, four-operation same-source exclusion, two cleanup candidates and five protected artifact classes.
-- Three resource cases are controlled requeue eligibility only: drive restored, disk restored and API budget restored. Every case requires fresh owner/stability/no-active-claim-or-lock validation and a new admission/claim/lock cycle. `successful_automatic_recovery_cases_observed=[]`; no actual automatic resume occurred.
-- Changed-input conflict, stale start evidence, missing owner/stability proof, active claim/lock, shutdown timeout, worker process crash, protected cleanup, terminal-history reopen, invalid contract, uncalibrated policy and missing process-local lifecycle state remain manual-action cases.
-- Safe shutdown is an ordered candidate only. Recovery revalidates current source, resource and ownership evidence instead of restoring missing in-memory state; rollback reverts only Phase 4 files and preserves Phase1-3, reviewed upstreams, raw-data boundaries and durable evidence.
-- Final validation passes contract `18/18`, delivery checks `6/6`, focused `12/12`, Stage005 `159/159`, Stage037-039 `124/124`, Stage040-042 `174/174`, full discovery `856/856` in `673.264s`, `204` clean events, idempotent rendering and the project-scoped dual-plane gate.
-- Preserved transition history: Completed task in this run: `IDS-V0_1-STAGE042-P3`; Next allowed task: `IDS-V0_1-STAGE042-P4`.
-- Current batch gate: `BATCH041_050` remains locally locked with `push_allowed=false`; no GitHub, PR, issue, merge, app reinstall, whole-stage review, Stage043, batch review, or production action is authorized.
-- Preserve owner-controlled dependency/service paths (`backend/requirements.txt`, `frontend/package.json`, `frontend/pnpm-workspace.yaml`, `scripts/run_local_services.sh`); Phase 4 does not modify them.
+- Review finding count is `1 Critical / 4 Important / 0 Minor`: canonical request identity, positive version/reason semantics, temporal resume evidence, paused-only cleanup and stale governance/handoff truth are all machine checked.
+- Final validation: Stage042 review `10/10`, Stage005 `159/159`, Stage040–042 `184/184`, and full IDS v0.1 discovery `866/866`; five review checkers and `205` unique events passed.
+- Project-scoped render and dual-plane checks pass. The root governance runner is absent under this sparse checkout; sparse scope was not expanded and no unrelated project was inspected.
+- The closeout evidence still composes the exact 8-job-type/11-state/4-terminal/21-transition graph, reviewed 3-attempt/2-retry log, seven pressure signals and twelve passing isolated scenarios. Observed automatic recovery remains empty.
+- Current batch gate: `BATCH041_050` has two locally reviewed Stages and remains locked with `push_allowed=false`; no single-stage upload, GitHub action, merge, app reinstall, Stage043, batch review or production action is authorized.
+- Preserve owner-controlled dependency/service paths (`backend/requirements.txt`, `frontend/package.json`, `frontend/pnpm-workspace.yaml`, `scripts/run_local_services.sh`); this review does not modify them.
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only governance boundary and was not touched. Do not read, list, hash, open, scan, copy, move, delete, modify, dump, or normalize its contents.
 
 ## Purpose
@@ -121,10 +120,11 @@ Commit/PR summaries must include:
 - Read-only main checkout: `/Users/linzezhang/Documents/Codex/GithubProject/KMOS` (must remain on clean `main`).
 - Active task worktree: `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041`.
 - Project scope: `KM_IDSystem/` only.
-- Current local state: `STAGE-031..STAGE-040` and their independent batch review are merged to GitHub `main`; `STAGE-041` is locally reviewed, and `STAGE-042` Phases 1–3 are locally complete with Phase 3 layered evidence closed.
-- Current task: `IDS-V0_1-STAGE042-P3`; the only next task is `IDS-V0_1-STAGE042-P4` in a separate run. Whole-stage review, ten-stage batch review, upload, merge and app reinstall remain separate gates.
+- Current local state: `STAGE-031..STAGE-040` and their independent batch review are merged to GitHub `main`; `STAGE-041` is locally reviewed, and `STAGE-042` is locally reviewed.
+- Current task: `IDS-V0_1-STAGE042-REVIEW`; the only next task is `IDS-V0_1-STAGE043-P1` in a separate run behind `IDS-STAGE043-P1-GATE`. Ten-stage batch review, upload, merge and app reinstall remain separate gates.
+- Stage042 review publishes `ids.stage042.automatic_lifecycle.stage_review.v1`, binds the committed Phase4 baseline, reruns all four phase checkers and machine-checks five repaired findings.
 - Stage042 Phase 3 publishes `ids.stage042.automatic_lifecycle.phase3.scenarios.v1`, twelve isolated scenarios with actual lifecycle, process-crash recovery, termination, cleanup/delete, persistence and production effects disabled.
-- Stage042 Phase 2 publishes `ids.automatic_lifecycle_policy.v0_1.stage042.p2`, an isolated reference-only in-memory candidate-decision slice with all actual lifecycle and production side effects disabled.
+- Stage042 Phase 2 publishes `ids.automatic_lifecycle_policy.v0_1.stage042.p2`, an isolated reference-only in-memory candidate-decision slice. Canonical request IDs, positive versions, action-bound reasons, temporal resume evidence and paused-only cleanup now fail closed.
 - `MOD-011`, `FORM-011`, and `PARAM-072..076` remain planned/proposed. The five timing values are derived from reviewed Stage040/041 bounds and require production calibration under `TASK-OPME-B-001`.
 - Stage042 Phase 1 binds the unique approved source, reviewed Stage041 commit/tree and exact Stage037–041 contracts into `ids.stage042.automatic_lifecycle.phase1.v1`.
 - The static contract preserves the authoritative state graph, owner/resource revalidation, Stage038–044 ownership, reference-only evidence, ordered shutdown and candidate-only cleanup while assigning no numeric parameters and performing no runtime.

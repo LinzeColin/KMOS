@@ -408,6 +408,14 @@ class Stage042AutomaticLifecycleRuntimeTests(unittest.TestCase):
                 "Completed task in this run: `IDS-V0_1-STAGE042-P3`" in handoff
                 and "Next allowed task: `IDS-V0_1-STAGE042-P4`" in handoff
             )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE042-P4`" in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE042-REVIEW`" in handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE042-REVIEW`" in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE043-P1`" in handoff
+            )
         )
         events = [
             json.loads(line)

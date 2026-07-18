@@ -286,6 +286,7 @@ class Stage038WorkerQueuePhase3ScenarioTests(unittest.TestCase):
             or roadmap["next_gate_id"].startswith("IDS-STAGE040-")
             or roadmap["next_gate_id"].startswith("IDS-STAGE041-")
             or roadmap["next_gate_id"].startswith("IDS-STAGE042-")
+            or roadmap["next_gate_id"] == "IDS-STAGE043-P1-GATE"
             or roadmap["next_gate_id"]
             == "IDS-V0_1-BATCH-031-040-REVIEW-GATE"
             or roadmap["next_gate_id"]

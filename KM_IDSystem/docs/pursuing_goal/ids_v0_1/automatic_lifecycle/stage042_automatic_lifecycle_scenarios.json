@@ -28,19 +28,19 @@
   "upstream_bindings": {
     "stage042_phase2_contract": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json",
-      "sha256": "27da5276a1f51a6fdf5bcfefd60559d02fa309f509fb5315999536e05b78aa04"
+      "sha256": "f24283a0ab934082b0ceb48c6ca1597ca17d1c6cca6a939e2653fb00ede83e49"
     },
     "stage042_phase2_checker": {
       "ref": "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py",
-      "sha256": "70270f82dc94d3913ef455d494126c3a91fe2e09407f946e5c829db29f9c6c58"
+      "sha256": "d8516b714e5cb71d9a43ddb70a080e8315e0fdc8e654e264cd5f9cb56ae7e2a9"
     },
     "stage042_phase2_tests": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py",
-      "sha256": "acd9e5c1927b44483f97e46666f58bb8580ab1d9bb993b15bfbf62dda281d5b5"
+      "sha256": "60cfb3d89dfb3cf921c3043adfe0ff91718e7442124def950e9a099019d40049"
     },
     "stage042_phase2_evidence": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE2_AUTOMATIC_LIFECYCLE_SLICE.md",
-      "sha256": "9461cfa35935c761966b3641ebc11f594b8b02e92f8ebcbbdc249627727a0cb5"
+      "sha256": "ea7ba6d0411e07e3fa0751ad76ae5d42be6a89a56b57ee10b8c33eadc8fb55b7"
     },
     "stage041_phase3_contract": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_scenarios.json",
@@ -52,7 +52,7 @@
     },
     "stage041_phase3_tests": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_scenarios.py",
-      "sha256": "4fb9ac7418fd81873e5980d4da684894ba7966378a2993ce7d4422d9f1075eac"
+      "sha256": "e84852e59ae5d7b963df242324549729db1f72abadcef7cb4b2ca67211f9be3d"
     }
   },
   "policy_version": "ids.automatic_lifecycle_policy.v0_1.stage042.p2",

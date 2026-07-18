@@ -235,6 +235,18 @@ class Stage041LockRegistryStageReviewTests(unittest.TestCase):
                 and "Next allowed task: `IDS-V0_1-STAGE042-P4`"
                 in handoff_top
             )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE042-P4`"
+                in handoff_top
+                and "Next allowed task: `IDS-V0_1-STAGE042-REVIEW`"
+                in handoff_top
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE042-REVIEW`"
+                in handoff_top
+                and "Next allowed task: `IDS-V0_1-STAGE043-P1`"
+                in handoff_top
+            )
         )
 
         events = [

@@ -1,5 +1,14 @@
 # Changelog
 
+## IDS v0.1 STAGE-042 Review - 2026-07-18
+
+- Completed the independent whole-stage review under `ACC-STAGE-042` and repaired one Critical and four Important findings: unenforced canonical request IDs, zero/invalid versions and unbound reasons, self-reported resume stability, non-paused cleanup candidates, and stale handoff/governance truth.
+- Enforced exact canonical lifecycle IDs for new requests while preserving exact replay and changed-payload conflict semantics. State versions are strict positive integers and every action has one exact reason code.
+- Added stability-start evidence with exact temporal relationships for resume, restricted cleanup candidates to `PAUSED`, and rebound the dependent Phase2-to-Phase4 content-hash chain without enabling any executor.
+- Added the fail-closed Stage042 review checker/tests, Phase4 commit/tree ancestry binding, reviewed-local batch/roadmap/event evidence and dual-plane facts. Every review source must match the Git index before `PASS_REVIEWED_LOCAL_PRODUCTION_DISABLED` is possible.
+- Final GREEN passed Stage042 review `10/10`, Stage005 `159/159`, Stage040–042 `184/184`, full IDS v0.1 discovery `866/866`, five review checkers, `205` clean events, idempotent rendering and the project-scoped dual-plane gate. Three Stage038 historical gate allowlists were bounded only through `IDS-STAGE043-P1-GATE` after the first full run exposed them.
+- Routed the only next task to separate `IDS-V0_1-STAGE043-P1` while preserving `stage043_entry_allowed=false` and `push_allowed=false`. No actual lifecycle, process-crash recovery, termination, cleanup/delete, persistence, raw metadata, production, GitHub or app action ran.
+
 ## IDS v0.1 STAGE-042 Phase 4 - 2026-07-18
 
 - Added `ids.stage042.automatic_lifecycle.phase4.delivery.v1`, an exact source/commit/tree/upstream-bound closeout contract and stdout-only fail-closed checker.

@@ -116,13 +116,13 @@ EXPECTED_UPSTREAM = {
             "stage042_automatic_lifecycle_contract.json"
         ),
         "sha256": (
-            "dc924817e6c2a3694027fcf19ba3458838fe6eb769b90c4cb0e750c71611b2f0"
+            "5c3f7b4a446f14590bae4e6ab4b803d0b79c61e0b5a40de061adbe6c139980ba"
         ),
     },
     "phase1_checker": {
         "ref": "KM_IDSystem/scripts/check_automatic_lifecycle.py",
         "sha256": (
-            "bc8a12f6d3f8006ef44ca1a8e3c87709766eb3e3f8727fcbbf5987779dc47de5"
+            "92fa435e88f3cd861dcde7d9a792021ee9d151d7d467203e746aed52ec9beb8a"
         ),
     },
     "phase1_boundary": {
@@ -211,6 +211,7 @@ EVIDENCE_FIELDS = {
     "resource_observation_refs",
     "observed_at_epoch_seconds",
     "evaluated_at_epoch_seconds",
+    "resource_stability_started_at_epoch_seconds",
     "resource_stable_for_seconds",
     "owner_revalidated",
     "resource_gates_passed",
@@ -236,6 +237,13 @@ ACTIONS = [
     "SAFE_SHUTDOWN",
     "CLEANUP_CANDIDATE_SCAN",
 ]
+EXPECTED_REASON_CODES = {
+    "AUTO_START": "ELIGIBLE_CONTROL_START",
+    "AUTO_PAUSE": "RESOURCE_PAUSE_REQUIRED",
+    "AUTO_RESUME": "RESOURCE_STABILITY_REVALIDATED",
+    "SAFE_SHUTDOWN": "ORDERLY_CONTROL_SHUTDOWN",
+    "CLEANUP_CANDIDATE_SCAN": "CLEANUP_SCAN_DUE",
+}
 JOB_STATES = [
     "CREATED",
     "QUEUED",
@@ -295,6 +303,8 @@ EXPECTED_REQUEST_CONTRACT = {
     "allowed_actions": ACTIONS,
     "control_job_id_prefix": "control:stage042:",
     "request_id_prefix": "lifecycle:stage042:",
+    "expected_state_version_must_be_positive": True,
+    "reason_code_by_action": EXPECTED_REASON_CODES,
     "unknown_field_action": "REJECT_CONTRACT",
     "malformed_request_action": "REQUIRE_MANUAL_REVIEW",
     "raw_payload_allowed": False,
@@ -352,6 +362,7 @@ EXPECTED_DECISION_CONTRACT = {
         "decision_action": "SAFE_SHUTDOWN_CANDIDATE",
     },
     "CLEANUP_CANDIDATE_SCAN": {
+        "eligible_states": ["PAUSED"],
         "eligible_artifact_classes": ELIGIBLE_CLEANUP_CLASSES,
         "protected_artifact_classes": PROTECTED_ARTIFACT_CLASSES,
         "candidate_only": True,
@@ -377,6 +388,7 @@ EXPECTED_IDEMPOTENCY = {
     ),
     "ledger_mode": "IN_MEMORY_DECISION_REPLAY_ONLY",
     "exact_replay_returns_original": True,
+    "request_id_formula_enforced_for_new_requests": True,
     "same_request_id_changed_payload_action": (
         "REJECT_LIFECYCLE_REQUEST_CONFLICT"
     ),
@@ -435,6 +447,11 @@ EXPECTED_HUMAN_STATUS = {
     "REJECT_LIFECYCLE_REQUEST_CONFLICT": {
         "label_zh": "请求冲突",
         "owner_action_zh": "核对幂等键与请求内容",
+        "owner_attention_required": True,
+    },
+    "REJECT_LIFECYCLE_REQUEST_ID_MISMATCH": {
+        "label_zh": "请求身份不一致",
+        "owner_action_zh": "按规范请求内容重新计算请求 ID",
         "owner_attention_required": True,
     },
     "REQUIRE_MANUAL_REVIEW": {
@@ -942,6 +959,20 @@ def build_control_request(
         "CLEANUP_CANDIDATE_SCAN": "PAUSED",
     }.get(lifecycle_action, "CREATED")
     expected_state = overrides.pop("expected_state", default_state)
+    evaluated_at = overrides.get("evaluated_at_epoch_seconds", 1000)
+    stable_for = overrides.get(
+        "resource_stable_for_seconds",
+        EXPECTED_PARAMETERS["resume_stability_window"],
+    )
+    if (
+        isinstance(evaluated_at, int)
+        and not isinstance(evaluated_at, bool)
+        and isinstance(stable_for, int)
+        and not isinstance(stable_for, bool)
+    ):
+        default_stability_started_at = evaluated_at - stable_for
+    else:
+        default_stability_started_at = 940
     control_digest = _canonical_digest(CONTROL_INPUT_REF)
     checkpoint_ref = _checkpoint([CONTROL_INPUT_REF, lifecycle_action, expected_state])
     evidence: dict[str, Any] = {
@@ -949,6 +980,9 @@ def build_control_request(
         "resource_observation_refs": [RESOURCE_OBSERVATION_REF],
         "observed_at_epoch_seconds": 1000,
         "evaluated_at_epoch_seconds": 1000,
+        "resource_stability_started_at_epoch_seconds": (
+            default_stability_started_at
+        ),
         "resource_stable_for_seconds": EXPECTED_PARAMETERS[
             "resume_stability_window"
         ],
@@ -995,11 +1029,7 @@ def build_control_request(
         "lifecycle_request_id": "",
         "policy_version": POLICY_VERSION,
         "reason_code": {
-            "AUTO_START": "ELIGIBLE_CONTROL_START",
-            "AUTO_PAUSE": "RESOURCE_PAUSE_REQUIRED",
-            "AUTO_RESUME": "RESOURCE_STABILITY_REVALIDATED",
-            "SAFE_SHUTDOWN": "ORDERLY_CONTROL_SHUTDOWN",
-            "CLEANUP_CANDIDATE_SCAN": "CLEANUP_SCAN_DUE",
+            **EXPECTED_REASON_CODES,
         }.get(lifecycle_action, "UNKNOWN_LIFECYCLE_ACTION"),
         "audit_ref": AUDIT_REF,
         "evidence": evidence,
@@ -1030,18 +1060,18 @@ def validate_control_request(request: Any) -> bool:
         return False
     if request.get("expected_state") not in JOB_STATES:
         return False
-    if not _strict_int(request.get("expected_state_version")):
+    if not _strict_int(request.get("expected_state_version"), minimum=1):
         return False
     if request.get("lifecycle_action") not in ACTIONS:
         return False
-    if not isinstance(request.get("lifecycle_request_id"), str) or not request[
-        "lifecycle_request_id"
-    ].startswith("lifecycle:stage042:"):
+    if not isinstance(request.get("lifecycle_request_id"), str) or not re.fullmatch(
+        r"lifecycle:stage042:[0-9a-f]{64}", request["lifecycle_request_id"]
+    ):
         return False
     if request.get("policy_version") != POLICY_VERSION:
         return False
-    if not isinstance(request.get("reason_code"), str) or not re.fullmatch(
-        r"[A-Z0-9_]+", request["reason_code"]
+    if request.get("reason_code") != EXPECTED_REASON_CODES.get(
+        request.get("lifecycle_action")
     ):
         return False
     if not _refs_valid([request.get("audit_ref")]):
@@ -1053,6 +1083,7 @@ def validate_control_request(request: Any) -> bool:
     for key in (
         "observed_at_epoch_seconds",
         "evaluated_at_epoch_seconds",
+        "resource_stability_started_at_epoch_seconds",
         "resource_stable_for_seconds",
         "checkpoint_wait_elapsed_seconds",
         "shutdown_elapsed_seconds",
@@ -1099,9 +1130,18 @@ def validate_control_request(request: Any) -> bool:
         ELIGIBLE_CLEANUP_CLASSES + PROTECTED_ARTIFACT_CLASSES
     ):
         return False
-    return evidence["evaluated_at_epoch_seconds"] >= evidence[
-        "observed_at_epoch_seconds"
+    stability_started_at = evidence[
+        "resource_stability_started_at_epoch_seconds"
     ]
+    observed_at = evidence["observed_at_epoch_seconds"]
+    evaluated_at = evidence["evaluated_at_epoch_seconds"]
+    if request["lifecycle_action"] == "AUTO_RESUME":
+        return (
+            stability_started_at <= observed_at <= evaluated_at
+            and evidence["resource_stable_for_seconds"]
+            == evaluated_at - stability_started_at
+        )
+    return evaluated_at >= observed_at
 
 
 class IsolatedLifecycleDecisionLedger:
@@ -1216,12 +1256,11 @@ def evaluate_lifecycle(
     digest_payload = copy.deepcopy(request)
     digest_payload.pop("lifecycle_request_id", None)
     request_digest = _canonical_digest(digest_payload)
+    canonical_request_id = f"lifecycle:stage042:{request_digest}"
     if ledger is not None:
         status, existing = ledger.lookup(
             request["lifecycle_request_id"], request_digest
         )
-        if status == "REPLAY" and existing is not None:
-            return existing
         if status == "CONFLICT":
             return _safe_result(
                 request,
@@ -1229,6 +1268,22 @@ def evaluate_lifecycle(
                 [],
                 error_ref="error:LIFECYCLE_REQUEST_CONFLICT",
             )
+        if request["lifecycle_request_id"] != canonical_request_id:
+            return _safe_result(
+                request,
+                "REJECT_LIFECYCLE_REQUEST_ID_MISMATCH",
+                [],
+                error_ref="error:LIFECYCLE_REQUEST_ID_MISMATCH",
+            )
+        if status == "REPLAY" and existing is not None:
+            return existing
+    elif request["lifecycle_request_id"] != canonical_request_id:
+        return _safe_result(
+            request,
+            "REJECT_LIFECYCLE_REQUEST_ID_MISMATCH",
+            [],
+            error_ref="error:LIFECYCLE_REQUEST_ID_MISMATCH",
+        )
 
     state = request["expected_state"]
     action = request["lifecycle_action"]
@@ -1295,6 +1350,9 @@ def evaluate_lifecycle(
             and evidence["resource_gates_passed"]
             and evidence["resource_stable_for_seconds"]
             >= EXPECTED_PARAMETERS["resume_stability_window"]
+            and evidence["resource_stable_for_seconds"]
+            == evidence["evaluated_at_epoch_seconds"]
+            - evidence["resource_stability_started_at_epoch_seconds"]
             and not evidence["active_claim_or_lock"]
         )
         result = _safe_result(
@@ -1359,7 +1417,8 @@ def evaluate_lifecycle(
             else -1
         )
         guards = (
-            elapsed >= EXPECTED_PARAMETERS["cleanup_scan_interval"]
+            state == "PAUSED"
+            and elapsed >= EXPECTED_PARAMETERS["cleanup_scan_interval"]
             and evidence["cleanup_candidate_class"] in ELIGIBLE_CLEANUP_CLASSES
             and isinstance(evidence["cleanup_candidate_ref"], str)
             and not evidence["active_claim_or_lock"]
@@ -1420,6 +1479,28 @@ def build_stage042_phase2_report() -> dict[str, Any]:
         shutdown_elapsed_seconds=EXPECTED_PARAMETERS["graceful_shutdown_timeout"]
         + 1,
     )
+    forged_request_id = build_control_request("AUTO_START")
+    forged_request_id["lifecycle_request_id"] = (
+        f"lifecycle:stage042:{'f' * 64}"
+    )
+    zero_state_version = build_control_request(
+        "AUTO_START", expected_state_version=0
+    )
+    mismatched_reason = build_control_request(
+        "AUTO_START", reason_code="CLEANUP_SCAN_DUE"
+    )
+    inconsistent_stability = build_control_request("AUTO_RESUME")
+    inconsistent_stability["evidence"][
+        "resource_stability_started_at_epoch_seconds"
+    ] = 1000
+    inconsistent_stability["lifecycle_request_id"] = (
+        derive_lifecycle_request_id(inconsistent_stability)
+    )
+    running_cleanup = build_control_request(
+        "CLEANUP_CANDIDATE_SCAN",
+        expected_state="RUNNING",
+        active_claim_or_lock=False,
+    )
     expected_actions = {
         "automatic_start": "AUTO_START_CANDIDATE",
         "automatic_pause": "AUTO_PAUSE_CANDIDATE",
@@ -1436,6 +1517,36 @@ def build_stage042_phase2_report() -> dict[str, Any]:
         "request_conflict_rejected": (
             conflict_result["decision_action"]
             == "REJECT_LIFECYCLE_REQUEST_CONFLICT"
+        ),
+        "canonical_request_id_enforced": (
+            evaluate_lifecycle(forged_request_id, contract=contract)[
+                "decision_action"
+            ]
+            == "REJECT_LIFECYCLE_REQUEST_ID_MISMATCH"
+        ),
+        "positive_state_version_enforced": (
+            evaluate_lifecycle(zero_state_version, contract=contract)[
+                "decision_action"
+            ]
+            == "REQUIRE_MANUAL_REVIEW"
+        ),
+        "reason_code_action_binding_enforced": (
+            evaluate_lifecycle(mismatched_reason, contract=contract)[
+                "decision_action"
+            ]
+            == "REQUIRE_MANUAL_REVIEW"
+        ),
+        "resume_stability_temporal_evidence_enforced": (
+            evaluate_lifecycle(inconsistent_stability, contract=contract)[
+                "decision_action"
+            ]
+            == "REQUIRE_MANUAL_REVIEW"
+        ),
+        "cleanup_paused_state_enforced": (
+            evaluate_lifecycle(running_cleanup, contract=contract)[
+                "decision_action"
+            ]
+            == "REQUIRE_MANUAL_REVIEW"
         ),
         "terminal_history_immutable": (
             evaluate_lifecycle(terminal, contract=contract)["decision_action"]

@@ -177,16 +177,16 @@ EXPECTED_UPSTREAM = {
     "stage042_phase3_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/"
         "stage042_automatic_lifecycle_scenarios.json",
-        "a773649055baa21f0d61af8214c365d748954b383548340cffb7b45f9b2f3194",
+        "5ce7c014971e5aa708d6081d34a208c7b78c77b7593de119555b39206463db5b",
     ),
     "stage042_phase3_checker": (
         "KM_IDSystem/scripts/check_automatic_lifecycle_scenarios.py",
-        "d581816a3b66c8c1dacbaf644e4ef178dbaf19deca0a0cffaa6bf796b5aa0981",
+        "631a301630544421caa08c4f78105be3ee2035ed5b16aed1b3a8c094f21e66e2",
     ),
     "stage042_phase3_tests": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
         "test_stage042_automatic_lifecycle_scenarios.py",
-        "d317d0ab6175e81d9119f195f409a9027c032b5f71da0bbff66af6aa685b194c",
+        "6e63e4ed21e36f10ce156cd8fd28e45d1bbec78799dc818a9f8a44009e34d14f",
     ),
     "stage042_phase3_evidence": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
@@ -209,11 +209,11 @@ EXPECTED_UPSTREAM = {
     "stage041_delivery_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/"
         "stage041_lock_registry_delivery_contract.json",
-        "9b12bdb60e91006c93f5630123108bfe92187c4220aa7babb71d95e8ae3a1755",
+        "817ffc115bfec9ee29ec4f96f23ec6793ad1121f500eb13301b897ddcbabad84",
     ),
     "stage041_delivery_checker": (
         "KM_IDSystem/scripts/check_lock_registry_delivery.py",
-        "0f0d32ddc3572d9f402ef048249050418d38ce3cd107a0c6a567f109253244ee",
+        "8816e81a015220a8ccc0024e8c3847375b5649123d007e393152e91a76eed18c",
     ),
     "stage041_review_artifact": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_STAGE_REVIEW.md",

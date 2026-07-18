@@ -57,7 +57,7 @@
     },
     "stage041_phase3_tests": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_scenarios.py",
-      "sha256": "4fb9ac7418fd81873e5980d4da684894ba7966378a2993ce7d4422d9f1075eac"
+      "sha256": "e84852e59ae5d7b963df242324549729db1f72abadcef7cb4b2ca67211f9be3d"
     }
   },
   "delivery_contract": {

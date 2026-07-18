@@ -309,7 +309,7 @@ class Stage042AutomaticLifecycleDeliveryTests(unittest.TestCase):
         self.assertIn("未观察到自动恢复成功", report["owner_feedback_zh"])
         self.assertIn("不是生产运行或生产就绪证明", report["owner_feedback_zh"])
 
-    def test_governance_preserves_phase4_and_stops_before_review(self):
+    def test_governance_preserves_phase4_after_review_transition(self):
         for path in (BATCH, ROADMAP, EVENTS, HANDOFF, STATUS):
             with self.subTest(path=path):
                 self.assertTrue(path.is_file(), f"missing {path}")
@@ -324,9 +324,22 @@ class Stage042AutomaticLifecycleDeliveryTests(unittest.TestCase):
         self.assertIn('current_phase_id: "IDS-STAGE042-P4"', roadmap)
         self.assertIn('next_gate_id: "IDS-STAGE042-REVIEW-GATE"', roadmap)
         self.assertIn("IDS-V0_1-STAGE042-P4", events)
-        self.assertIn("IDS-V0_1-STAGE042-P4", handoff)
-        self.assertEqual("IDS-STAGE042-P4", status["phase"])
-        self.assertEqual("IDS-STAGE042-REVIEW-GATE", status["next_gate"])
+        self.assertTrue(
+            (
+                status["phase"] == "IDS-STAGE042-P4"
+                and status["next_gate"] == "IDS-STAGE042-REVIEW-GATE"
+                and "Completed task in this run: `IDS-V0_1-STAGE042-P4`"
+                in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE042-REVIEW`" in handoff
+            )
+            or (
+                status["phase"] == "IDS-STAGE042-REVIEW"
+                and status["next_gate"] == "IDS-STAGE043-P1-GATE"
+                and "Completed task in this run: `IDS-V0_1-STAGE042-REVIEW`"
+                in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE043-P1`" in handoff
+            )
+        )
 
     def test_cli_report_matches_in_process_report(self):
         completed = subprocess.run(

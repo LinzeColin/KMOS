@@ -69,21 +69,21 @@ EXPECTED_HASHES = {
     "stage042_phase2_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/"
         "stage042_automatic_lifecycle_runtime_contract.json",
-        "27da5276a1f51a6fdf5bcfefd60559d02fa309f509fb5315999536e05b78aa04",
+        "f24283a0ab934082b0ceb48c6ca1597ca17d1c6cca6a939e2653fb00ede83e49",
     ),
     "stage042_phase2_checker": (
         "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py",
-        "70270f82dc94d3913ef455d494126c3a91fe2e09407f946e5c829db29f9c6c58",
+        "d8516b714e5cb71d9a43ddb70a080e8315e0fdc8e654e264cd5f9cb56ae7e2a9",
     ),
     "stage042_phase2_tests": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
         "test_stage042_automatic_lifecycle_runtime.py",
-        "acd9e5c1927b44483f97e46666f58bb8580ab1d9bb993b15bfbf62dda281d5b5",
+        "60cfb3d89dfb3cf921c3043adfe0ff91718e7442124def950e9a099019d40049",
     ),
     "stage042_phase2_evidence": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
         "STAGE042_PHASE2_AUTOMATIC_LIFECYCLE_SLICE.md",
-        "9461cfa35935c761966b3641ebc11f594b8b02e92f8ebcbbdc249627727a0cb5",
+        "ea7ba6d0411e07e3fa0751ad76ae5d42be6a89a56b57ee10b8c33eadc8fb55b7",
     ),
     "stage041_phase3_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/"
@@ -97,7 +97,7 @@ EXPECTED_HASHES = {
     "stage041_phase3_tests": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
         "test_stage041_lock_registry_scenarios.py",
-        "4fb9ac7418fd81873e5980d4da684894ba7966378a2993ce7d4422d9f1075eac",
+        "e84852e59ae5d7b963df242324549729db1f72abadcef7cb4b2ca67211f9be3d",
     ),
 }
 
@@ -388,8 +388,20 @@ class Stage042AutomaticLifecycleScenarioTests(unittest.TestCase):
         else:
             self.assertIn('status: "pending"', p4_block)
         self.assertIn('entry_authorized: true', p4_block)
-        self.assertIn("IDS-V0_1-STAGE042-P3", handoff)
-        self.assertIn("IDS-V0_1-STAGE042-P4", handoff)
+        self.assertTrue(
+            (
+                "Completed task in this run: `IDS-V0_1-STAGE042-P3`" in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE042-P4`" in handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE042-P4`" in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE042-REVIEW`" in handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE042-REVIEW`" in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE043-P1`" in handoff
+            )
+        )
         phase3_events = [
             event
             for event in events

@@ -28,11 +28,11 @@
   "upstream_bindings": {
     "phase1_contract": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_contract.json",
-      "sha256": "dc924817e6c2a3694027fcf19ba3458838fe6eb769b90c4cb0e750c71611b2f0"
+      "sha256": "5c3f7b4a446f14590bae4e6ab4b803d0b79c61e0b5a40de061adbe6c139980ba"
     },
     "phase1_checker": {
       "ref": "KM_IDSystem/scripts/check_automatic_lifecycle.py",
-      "sha256": "bc8a12f6d3f8006ef44ca1a8e3c87709766eb3e3f8727fcbbf5987779dc47de5"
+      "sha256": "92fa435e88f3cd861dcde7d9a792021ee9d151d7d467203e746aed52ec9beb8a"
     },
     "phase1_boundary": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE1_AUTOMATIC_LIFECYCLE_SCOPE_BOUNDARY.md",
@@ -164,6 +164,7 @@
       "resource_observation_refs",
       "observed_at_epoch_seconds",
       "evaluated_at_epoch_seconds",
+      "resource_stability_started_at_epoch_seconds",
       "resource_stable_for_seconds",
       "owner_revalidated",
       "resource_gates_passed",
@@ -191,6 +192,14 @@
     ],
     "control_job_id_prefix": "control:stage042:",
     "request_id_prefix": "lifecycle:stage042:",
+    "expected_state_version_must_be_positive": true,
+    "reason_code_by_action": {
+      "AUTO_START": "ELIGIBLE_CONTROL_START",
+      "AUTO_PAUSE": "RESOURCE_PAUSE_REQUIRED",
+      "AUTO_RESUME": "RESOURCE_STABILITY_REVALIDATED",
+      "SAFE_SHUTDOWN": "ORDERLY_CONTROL_SHUTDOWN",
+      "CLEANUP_CANDIDATE_SCAN": "CLEANUP_SCAN_DUE"
+    },
     "unknown_field_action": "REJECT_CONTRACT",
     "malformed_request_action": "REQUIRE_MANUAL_REVIEW",
     "raw_payload_allowed": false,
@@ -232,6 +241,7 @@
       "decision_action": "SAFE_SHUTDOWN_CANDIDATE"
     },
     "CLEANUP_CANDIDATE_SCAN": {
+      "eligible_states": ["PAUSED"],
       "eligible_artifact_classes": ["TEMP_STAGING_OUTPUT", "INCOMPLETE_DERIVATIVE_OUTPUT"],
       "protected_artifact_classes": ["FACT_SOURCE", "MANIFEST", "EVIDENCE_LEDGER", "REPORT_SNAPSHOT", "AUDIT_LOG"],
       "candidate_only": true,
@@ -255,6 +265,7 @@
     "request_key_formula": "sha256(canonical_request_without_lifecycle_request_id)",
     "ledger_mode": "IN_MEMORY_DECISION_REPLAY_ONLY",
     "exact_replay_returns_original": true,
+    "request_id_formula_enforced_for_new_requests": true,
     "same_request_id_changed_payload_action": "REJECT_LIFECYCLE_REQUEST_CONFLICT",
     "persistent_ledger_allowed": false,
     "append_only_audit_required": true
@@ -280,6 +291,7 @@
     "CLEANUP_CANDIDATE_ONLY": {"label_zh": "待清理候选（不执行删除）", "owner_action_zh": "由 Stage 44 独立复核", "owner_attention_required": true},
     "REJECT_TERMINAL_STATE_IMMUTABLE": {"label_zh": "任务已结束", "owner_action_zh": "如需重跑请新建关联任务", "owner_attention_required": true},
     "REJECT_LIFECYCLE_REQUEST_CONFLICT": {"label_zh": "请求冲突", "owner_action_zh": "核对幂等键与请求内容", "owner_attention_required": true},
+    "REJECT_LIFECYCLE_REQUEST_ID_MISMATCH": {"label_zh": "请求身份不一致", "owner_action_zh": "按规范请求内容重新计算请求 ID", "owner_attention_required": true},
     "REQUIRE_MANUAL_REVIEW": {"label_zh": "需要人工处理", "owner_action_zh": "补齐有效控制证据", "owner_attention_required": true}
   },
   "ownership_matrix": {

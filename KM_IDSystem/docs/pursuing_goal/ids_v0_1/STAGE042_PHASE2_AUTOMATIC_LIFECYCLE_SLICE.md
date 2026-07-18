@@ -19,13 +19,18 @@ real Git-tracked Phase 1 control boundary. It evaluates five candidate types:
    `PAUSE_REQUESTED`-mediated active paths. Drive offline, insufficient disk
    and insufficient API budget remain mandatory pause signals.
 3. `AUTO_RESUME`: proposes only `PAUSED -> QUEUED` after owner revalidation,
-   fresh resource gates, a full stability window and zero active claim/lock.
+   fresh resource gates, a temporally consistent full stability window and
+   zero active claim/lock.
 4. `SAFE_SHUTDOWN`: proposes an ordered legal close path without terminating a
    process, releasing a lock or mutating a job.
-5. `CLEANUP_CANDIDATE_SCAN`: emits only an eligible-class candidate for the
-   separate Stage 44 gate and exposes no delete path.
+5. `CLEANUP_CANDIDATE_SCAN`: emits only from the quiescent `PAUSED` state and
+   only as an eligible-class candidate for the separate Stage 44 gate; it
+   exposes no delete path.
 
-Every result records Git-tracked control input references, empty output
+Every new request must use the exact canonical SHA-256 request ID, a positive
+state version and the action-bound reason code. Changed payload under an
+existing request ID remains a conflict. Every result records Git-tracked input
+references, empty output
 references, a safe error reference when blocked, a control checkpoint digest
 and a durable audit reference. IDs use the `control:stage042:` namespace and
 are not IDS business jobs. The checker writes only its JSON report to stdout.
@@ -48,6 +53,11 @@ Invalid source, contract, parameter, request, evidence, state version, owner
 revalidation, timing relationship or upstream hash returns a manual-review or
 explicit rejection result. Rollback is `NO_AUTOMATIC_LIFECYCLE` plus removal of
 Phase 2 files only.
+
+The Stage 42 whole-stage review found and repaired the canonical request-ID,
+positive-version/reason-code, temporal stability, and paused-only cleanup
+guards. These repairs remain isolated decision checks; they do not activate
+any lifecycle executor.
 
 ## Explicit Non-Actions
 
