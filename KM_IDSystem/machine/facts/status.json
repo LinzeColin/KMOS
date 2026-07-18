@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE041",
-  "phase": "IDS-STAGE041-REVIEW",
-  "task": "IDS-V0_1-STAGE041-REVIEW",
-  "real_progress": "Stage041 四个步骤与整阶段复审已完成，四项发现均已修复；v0.1 总进度未重新校准",
-  "report_grade": "Stage041 63/63、Stage005 157/157、Stage040-041 118/118、全量 798/798；事件、双平面与 Git 索引绑定均通过",
-  "business_verdict": "仅本地复审通过；持久锁、可信生产时钟、自动恢复、Stage042 和生产运行时仍禁用",
-  "evidence_status": "LOCAL_STAGE_REVIEWED",
+  "stage": "IDS-STAGE042",
+  "phase": "IDS-STAGE042-P1",
+  "task": "IDS-V0_1-STAGE042-P1",
+  "real_progress": "Stage042 步骤一静态工程合同已完成；步骤二、运行态与整阶段复审未开始，v0.1 总进度未重新校准",
+  "report_grade": "检查器 19/19、聚焦 11/11、Stage005 158/158、Stage037-039 124/124、Stage040-042 129/129、全量 810/810；201 条事件与双平面通过",
+  "business_verdict": "仅本地静态合同通过；自动生命周期、进程恢复、清理删除、持久化和生产运行时均禁用",
+  "evidence_status": "LOCAL_PHASE1_CONTRACT_COMPLETE",
   "rendered_at": "2026-07-18",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE042-P1-GATE",
+  "next_gate": "IDS-STAGE042-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

@@ -303,10 +303,22 @@ def _canonical_finding_checks() -> dict[str, bool]:
             is False
         ),
         "handoff_current_truth_exact": (
-            "IDS-V0_1-STAGE041-REVIEW" in handoff_top
-            and "IDS-V0_1-STAGE041-P3" not in handoff_top
+            "IDS-V0_1-STAGE041-P3" not in handoff_top
             and "IDS-V0_1-STAGE041-P4`" not in handoff_top
-            and "IDS-V0_1-STAGE042-P1" in handoff_top
+            and (
+                (
+                    "Completed task in this run: `IDS-V0_1-STAGE041-REVIEW`"
+                    in handoff_top
+                    and "Next allowed task: `IDS-V0_1-STAGE042-P1`"
+                    in handoff_top
+                )
+                or (
+                    "Completed task in this run: `IDS-V0_1-STAGE042-P1`"
+                    in handoff_top
+                    and "Next allowed task: `IDS-V0_1-STAGE042-P2`"
+                    in handoff_top
+                )
+            )
         ),
     }
 
@@ -384,8 +396,18 @@ def _governance_checks() -> dict[str, bool]:
             )
         ),
         "handoff_current_gate_exact": (
-            "IDS-V0_1-STAGE041-REVIEW" in top_handoff
-            and "IDS-V0_1-STAGE042-P1" in top_handoff
+            (
+                "Completed task in this run: `IDS-V0_1-STAGE041-REVIEW`"
+                in top_handoff
+                and "Next allowed task: `IDS-V0_1-STAGE042-P1`"
+                in top_handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE042-P1`"
+                in top_handoff
+                and "Next allowed task: `IDS-V0_1-STAGE042-P2`"
+                in top_handoff
+            )
         ),
     }
 

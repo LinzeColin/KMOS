@@ -295,12 +295,22 @@ class Stage041LockRegistryScenarioTests(unittest.TestCase):
         self.assertIn('next_allowed_task_id: "IDS-V0_1-STAGE041-P4"', batch)
         self.assertIn('current_phase_id: "IDS-STAGE041-P3"', roadmap)
         self.assertIn('next_gate_id: "IDS-STAGE041-P4-GATE"', roadmap)
-        self.assertIn("IDS-V0_1-STAGE041-REVIEW", handoff)
-        self.assertIn("IDS-V0_1-STAGE042-P1", handoff)
         self.assertIn('current_phase_id: "IDS-STAGE041-P4"', roadmap)
         self.assertIn('next_gate_id: "IDS-STAGE041-REVIEW-GATE"', roadmap)
-        self.assertEqual("IDS-STAGE041-REVIEW", status["phase"])
-        self.assertEqual("IDS-STAGE042-P1-GATE", status["next_gate"])
+        self.assertTrue(
+            (
+                status["phase"] == "IDS-STAGE041-REVIEW"
+                and status["next_gate"] == "IDS-STAGE042-P1-GATE"
+                and "IDS-V0_1-STAGE041-REVIEW" in handoff
+                and "IDS-V0_1-STAGE042-P1" in handoff
+            )
+            or (
+                status["phase"] == "IDS-STAGE042-P1"
+                and status["next_gate"] == "IDS-STAGE042-P2-GATE"
+                and "IDS-V0_1-STAGE042-P1" in handoff
+                and "IDS-V0_1-STAGE042-P2" in handoff
+            )
+        )
         matching = [
             json.loads(line)
             for line in EVENTS.read_text(encoding="utf-8").splitlines()

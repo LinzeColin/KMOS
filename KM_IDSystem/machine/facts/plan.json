@@ -1,18 +1,18 @@
 {
-  "stage": "`IDS-STAGE041`",
-  "phase": "`IDS-STAGE041-REVIEW`",
-  "task": "`IDS-V0_1-STAGE041-REVIEW`",
-  "owner": "Codex 本地复审分支",
-  "objective": "独立复核 Stage041 四个步骤和批准来源，修复全部 Critical/Important 发现，关闭本地验收并停在独立 Stage042 P1 入口前。",
+  "stage": "`IDS-STAGE042`",
+  "phase": "`IDS-STAGE042-P1`",
+  "task": "`IDS-V0_1-STAGE042-P1`",
+  "owner": "Codex 专属 KMOS worktree",
+  "objective": "绑定批准来源和 reviewed Stage037-041 控制链，建立自动启动、暂停、恢复、安全关闭和清理候选的失败关闭工程合同，并停在独立 Phase 2 入口前。",
   "scope": [
-    "批准任务包、路线图和说明哈希，以及步骤一至四合同和检查器链",
-    "严格整数 CAS、单调逻辑时间与有效租约、精确运行合同语义、当前交接与治理路由",
-    "复审检查器、聚焦/聚合/全量测试、事件语义、双平面和 Git 索引绑定"
+    "唯一批准的 Stage042 任务包成员、归档、路线图和说明哈希",
+    "Stage037 状态图及 Stage038-041 queue、retry、backpressure、lock ownership 和哈希绑定",
+    "reference-only lifecycle、幂等、证据、关闭、局部输出隔离、清理候选与治理路由"
   ],
   "non_goals": [
-    "不进入或实现 Stage042",
-    "不执行物理故障、生产锁、持久化、可信生产时钟、队列、工作进程、自动恢复或清理运行时",
-    "不读取原始元数据，不上传、不合并、不重装应用"
+    "不进入或实现 Stage042 Phase 2",
+    "不执行自动启动、暂停、恢复、关闭、队列、工作进程、重试、生产锁、进程恢复或清理删除运行时",
+    "不读取原始元数据，不创建虚构 IDS 业务数据，不持久化、上传、合并或重装应用"
   ],
-  "stop_condition": "四项发现全部修复且最终分层验证通过后，只授权独立 Stage042 P1 即停止；任何来源、合同、治理、索引或安全边界失败均恢复复审门并停止。"
+  "stop_condition": "Phase 1 合同和治理的最终分层验证通过后，只授权独立 Stage042 P2 即停止；任何来源、上游哈希、状态图、ownership、治理或安全边界失败均保持门禁关闭并停止。"
 }

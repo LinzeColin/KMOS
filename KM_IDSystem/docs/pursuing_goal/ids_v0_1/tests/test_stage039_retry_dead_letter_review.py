@@ -127,7 +127,7 @@ class Stage039RetryDeadLetterStageReviewTests(unittest.TestCase):
         self.assertFalse(current_batch["upload_gate"]["push_allowed"])
         self.assertIn(
             roadmap["current_stage_id"],
-            {"IDS-STAGE039", "IDS-STAGE040", "IDS-STAGE041"},
+            {"IDS-STAGE039", "IDS-STAGE040", "IDS-STAGE041", "IDS-STAGE042"},
         )
         if roadmap["current_stage_id"] == "IDS-STAGE039":
             self.assertEqual("IDS-STAGE039-REVIEW", roadmap["current_phase_id"])
@@ -149,6 +149,7 @@ class Stage039RetryDeadLetterStageReviewTests(unittest.TestCase):
                 "IDS-STAGE041-P3": "IDS-STAGE041-P4-GATE",
                 "IDS-STAGE041-P4": "IDS-STAGE041-REVIEW-GATE",
                 "IDS-STAGE041-REVIEW": "IDS-STAGE042-P1-GATE",
+                "IDS-STAGE042-P1": "IDS-STAGE042-P2-GATE",
             }
             self.assertIn(roadmap["current_phase_id"], expected_gate_by_phase)
             self.assertEqual(

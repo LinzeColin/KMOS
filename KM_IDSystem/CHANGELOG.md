@@ -1,5 +1,14 @@
 # Changelog
 
+## IDS v0.1 STAGE-042 Phase 1 - 2026-07-18
+
+- Bound the unique approved Stage042 taskpack member, reviewed Stage041 commit/tree and exact Stage037–041 control contracts into `ids.stage042.automatic_lifecycle.phase1.v1`, an exact-shaped static engineering contract with a stdout-only fail-closed checker.
+- Preserved the authoritative 11-state/4-terminal graph: automatic start uses `QUEUED -> CLAIMED -> RUNNING`, active pause passes through `PAUSE_REQUESTED`, resume returns only to `QUEUED` for a fresh admission/claim/lock cycle, and terminal history never reopens.
+- Required external-drive offline, insufficient disk and insufficient API budget to emit pause candidates; owner revalidation, fresh resource observations, checkpoint/quarantine, lease and fencing evidence remain mandatory.
+- Kept queue/worker, retry/dead-letter, backpressure, lock/fencing, process-crash recovery and cleanup execution with Stage038–044. Lifecycle evidence is reference-only, shutdown is ordered, cleanup is candidate-only, and all five timing parameters remain deferred.
+- TDD RED produced 13 expected assertion failures and one missing-file error across 11 focused tests. Final GREEN passed checker 19/19, focused 11/11, Stage005 158/158, Stage037-039 124/124, Stage040-042 129/129, full IDS v0.1 810/810, 201 clean events and the project dual-plane gate.
+- Routed the only next task to separate `IDS-V0_1-STAGE042-P2` with `push_allowed=false`. No Phase 2, lifecycle runtime, persistence, database, raw metadata, fake business data, cleanup delete, GitHub upload/merge, app reinstall or production action ran.
+
 ## IDS v0.1 STAGE-041 Review - 2026-07-18
 
 - Completed the independent whole-stage review under `ACC-STAGE-041` and repaired one Critical and three Important findings: strict positive-integer CAS evidence, monotonic logical time/live-lease mutations, exact operation/provenance/parameter contract semantics, and stale handoff/governance truth.

@@ -209,7 +209,21 @@ class Stage041LockRegistryStageReviewTests(unittest.TestCase):
         self.assertIn('current_phase_id: "IDS-STAGE041-REVIEW"', roadmap)
         self.assertIn('current_task_id: "IDS-V0_1-STAGE041-REVIEW"', roadmap)
         self.assertIn('next_gate_id: "IDS-STAGE042-P1-GATE"', roadmap)
-        self.assertIn("IDS-V0_1-STAGE041-REVIEW", handoff.splitlines()[4])
+        handoff_top = "\n".join(handoff.splitlines()[:24])
+        self.assertTrue(
+            (
+                "Completed task in this run: `IDS-V0_1-STAGE041-REVIEW`"
+                in handoff_top
+                and "Next allowed task: `IDS-V0_1-STAGE042-P1`"
+                in handoff_top
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE042-P1`"
+                in handoff_top
+                and "Next allowed task: `IDS-V0_1-STAGE042-P2`"
+                in handoff_top
+            )
+        )
 
         events = [
             json.loads(line)

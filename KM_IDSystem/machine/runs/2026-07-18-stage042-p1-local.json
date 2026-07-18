@@ -1,0 +1,36 @@
+{
+  "run_id": "`RUN-IDS-STAGE042-P1-LOCAL-20260718-001`",
+  "action": "绑定批准来源与 reviewed Stage037-041 控制链，定义自动运行、暂停、恢复、安全关闭与清理候选的 Phase 1 工程合同",
+  "result": "通过：核心合同、治理、聚焦与聚合回归、810 项全量回归、201 条事件、双平面、渲染和 Git 索引验证均通过",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "base_stage041_review_commit": "f6b30f8a55d60f1b37b9d57ee55587149ad43876",
+  "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+  "source_member_sha256": "78a4bed1f5348837699bd7dd227898e6d47cc4099ca268ee1600bae84605ec08",
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0
+  },
+  "verified_results": [
+    "批准任务包归档、唯一 Stage042 成员、路线图和使用说明哈希匹配",
+    "Stage041 reviewed predecessor commit、tree、parent 与 Stage037-041 tracked contract hashes 精确绑定",
+    "权威 11-state / 4-terminal 状态图、自动启动、暂停、恢复和安全关闭路径无捷径",
+    "外置盘离线、磁盘不足和 API 预算不足均为强制资源暂停信号",
+    "恢复必须重新验证 owner、资源、admission、claim、lock、lease 与 fencing",
+    "幂等、reference-only 证据、ordered shutdown 与 cleanup candidate 规则失败关闭",
+    "核心检查器 19/19、聚焦 11/11、Stage005 158/158",
+    "Stage037-039 聚合 124/124、Stage040-042 聚合 129/129、全量 810/810",
+    "201 条事件零解析、重复与语义错误，项目级双平面、渲染和 Git 索引绑定通过",
+    "一个 Stage041 scenario-test 兼容变更已精确重绑定 delivery-to-Stage042 哈希链"
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未进入或实现 Stage042 Phase 2",
+    "未执行自动生命周期、队列、工作进程、重试、生产锁、进程恢复、清理删除、持久化或数据库运行时",
+    "未触碰原始元数据或制造虚构 IDS 业务数据",
+    "未上传、合并、变更 issue 或重装应用"
+  ]
+}

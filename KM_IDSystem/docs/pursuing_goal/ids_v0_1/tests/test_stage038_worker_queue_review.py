@@ -116,7 +116,13 @@ class Stage038WorkerQueueStageReviewTests(unittest.TestCase):
         self.assertFalse(current_batch["decision"]["github_upload_allowed"])
         self.assertIn(
             roadmap["current_stage_id"],
-            {"IDS-STAGE038", "IDS-STAGE039", "IDS-STAGE040", "IDS-STAGE041"},
+            {
+                "IDS-STAGE038",
+                "IDS-STAGE039",
+                "IDS-STAGE040",
+                "IDS-STAGE041",
+                "IDS-STAGE042",
+            },
         )
         self.assertTrue(
             roadmap["next_gate_id"].startswith("IDS-STAGE")
