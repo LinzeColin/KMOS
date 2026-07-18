@@ -63,11 +63,11 @@ EXPECTED_UPSTREAM = {
     "stage042_phase2_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/"
         "stage042_automatic_lifecycle_runtime_contract.json",
-        "5becbc7f332ea1001ac4bb2b4945ee9bbf51952c5d894950444b7183333e7c5c",
+        "27da5276a1f51a6fdf5bcfefd60559d02fa309f509fb5315999536e05b78aa04",
     ),
     "stage042_phase2_checker": (
         "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py",
-        "c2107e76b929ed516b7b7021ecf919a9a6277a6f99fb6eba00c0230ef4b12a27",
+        "70270f82dc94d3913ef455d494126c3a91fe2e09407f946e5c829db29f9c6c58",
     ),
     "stage042_phase2_tests": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
@@ -91,7 +91,7 @@ EXPECTED_UPSTREAM = {
     "stage041_phase3_tests": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
         "test_stage041_lock_registry_scenarios.py",
-        "766aacd28398ffaefd16c6c3a00167e3ab317929cf7ff4038f2361f3bb12eb5c",
+        "4fb9ac7418fd81873e5980d4da684894ba7966378a2993ce7d4422d9f1075eac",
     ),
 }
 SCENARIO_CATALOG = [

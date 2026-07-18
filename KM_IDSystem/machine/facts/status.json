@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE042",
-  "phase": "IDS-STAGE042-P3",
-  "task": "IDS-V0_1-STAGE042-P3",
-  "real_progress": "Stage042 步骤三十二项隔离场景与最终分层验证已完成；步骤四与整阶段复审未开始，v0.1 总进度未重新校准",
-  "report_grade": "检查器 19/19 合同与 12/12 场景、聚焦 17/17、Stage004 3/3、Stage005 159/159、Stage037-039 124/124、Stage040-042 162/162、全量 844/844、203 条事件与双平面均通过",
-  "business_verdict": "仅本地隔离场景证据通过；实际自动生命周期、进程崩溃恢复、终止、清理删除、持久化和生产运行时均禁用",
-  "evidence_status": "LOCAL_PHASE3_SCENARIOS_COMPLETE",
+  "phase": "IDS-STAGE042-P4",
+  "task": "IDS-V0_1-STAGE042-P4",
+  "real_progress": "Stage042 已完成 4/4 个步骤，整阶段复审仍待独立 run；v0.1 总进度未重新校准",
+  "report_grade": "步骤四检查器 18/18 合同与 6/6 交付、聚焦 12/12、Stage005 159/159、Stage037-039 124/124、Stage040-042 174/174、全量 856/856、204 条事件与双平面门均通过",
+  "business_verdict": "仅本地隔离关闭合同通过；实际自动生命周期、进程崩溃恢复、终止、清理删除、持久化和生产运行时均禁用",
+  "evidence_status": "LOCAL_PHASE4_VALIDATED_REVIEW_PENDING",
   "rendered_at": "2026-07-18",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE042-P4-GATE",
+  "next_gate": "IDS-STAGE042-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

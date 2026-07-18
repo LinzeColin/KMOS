@@ -86,7 +86,7 @@ UPSTREAM_BINDINGS = {
     "stage041_delivery_contract_ref": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
         "lock_registry/stage041_lock_registry_delivery_contract.json",
-        "41995b50fd256eef6addd40fc5d1b1efd81fc7bb3ce9f0d74ce16dda5dc2b840",
+        "9b12bdb60e91006c93f5630123108bfe92187c4220aa7babb71d95e8ae3a1755",
     ),
     "stage041_review_ref": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_STAGE_REVIEW.md",

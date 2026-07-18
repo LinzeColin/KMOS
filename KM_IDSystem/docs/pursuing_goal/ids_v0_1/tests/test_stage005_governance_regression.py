@@ -9650,9 +9650,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
 
         tampered_batch = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE042-P3"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE042-P4"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE042-P3"\n'
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE042-P4"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE042-REVIEW"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE042-P4"\n'
             '  next_allowed_task_id: "IDS-V0_1-STAGE042-P5"',
         )
         blocked = module.evaluate_current_state_consistency(
@@ -9660,7 +9660,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
         self.assertFalse(all(blocked.values()), blocked)
 
-    def test_stage042_phase2_and_phase3_state_and_events_are_governed(self):
+    def test_stage042_phase2_phase3_phase4_state_and_events_are_governed(self):
         module = self._load_module()
         batch_path = (
             ROOT
@@ -9703,6 +9703,14 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         ]
         self.assertEqual(1, len(phase3_event))
         self.assertEqual([], module.evaluate_required_event_semantics(phase3_event))
+        phase4_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE042-P4-20260718-001"
+        ]
+        self.assertEqual(1, len(phase4_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase4_event))
 
         for required_path in (
             "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
@@ -9719,6 +9727,12 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
             "KM_IDSystem/scripts/check_automatic_lifecycle_scenarios.py",
             "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
             "test_stage042_automatic_lifecycle_scenarios.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE4_CLOSEOUT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/"
+            "stage042_automatic_lifecycle_delivery_contract.json",
+            "KM_IDSystem/scripts/check_automatic_lifecycle_delivery.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage042_automatic_lifecycle_delivery.py",
         ):
             with self.subTest(path=required_path):
                 self.assertIn(required_path, module.REQUIRED_FILES)
@@ -9730,6 +9744,10 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
             "EVT-IDS-V0_1-STAGE042-P3-20260718-001",
             module.REQUIRED_EVENT_IDS,
         )
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE042-P4-20260718-001",
+            module.REQUIRED_EVENT_IDS,
+        )
 
         tampered_batch = batch_text.replace(
             "    phase2_slice_valid: true",
@@ -9737,6 +9755,15 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
         blocked = module.evaluate_phase_state(
             tampered_batch, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_phase4 = batch_text.replace(
+            "    phase4_delivery_valid: true",
+            "    phase4_delivery_valid: false",
+        )
+        blocked = module.evaluate_phase_state(
+            tampered_phase4, roadmap_text, require_structured=True
         )
         self.assertFalse(all(blocked.values()), blocked)
 

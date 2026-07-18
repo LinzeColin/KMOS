@@ -186,7 +186,7 @@ EXPECTED_UPSTREAM = {
     "stage041_phase3_tests": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
         "test_stage041_lock_registry_scenarios.py",
-        "766aacd28398ffaefd16c6c3a00167e3ab317929cf7ff4038f2361f3bb12eb5c",
+        "4fb9ac7418fd81873e5980d4da684894ba7966378a2993ce7d4422d9f1075eac",
     ),
 }
 

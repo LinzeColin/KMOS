@@ -1,5 +1,14 @@
 # Changelog
 
+## IDS v0.1 STAGE-042 Phase 4 - 2026-07-18
+
+- Added `ids.stage042.automatic_lifecycle.phase4.delivery.v1`, an exact source/commit/tree/upstream-bound closeout contract and stdout-only fail-closed checker.
+- Composed the 8-type/11-state/4-terminal/21-transition graph, reviewed 3-attempt/2-retry `DEAD_LETTERED` log, seven pressure signals, twelve lifecycle scenarios, four-operation same-source exclusion, two cleanup candidates and five protected artifact classes.
+- Classified drive, disk and API recovery as three controlled requeue eligibility cases only. Observed automatic recovery remains empty; eleven conflict, stale, ownership, lock, timeout, crash, cleanup, terminal, contract, calibration and lost-memory-state cases require manual handling.
+- Added ordered safe-shutdown, current-evidence recovery, no in-memory state restoration, Phase4-only rollback and explicit downstream ownership. No actual lifecycle, process termination, crash recovery, cleanup/delete, persistence, database, raw metadata or production runtime ran.
+- TDD RED produced 14 expected assertion failures and one missing-checker error across 12 focused tests. Final GREEN passed checker `18/18 + 6/6`, focused `12/12`, Stage005 `159/159`, Stage037-039 `124/124`, Stage040-042 `174/174`, full discovery `856/856` in `673.264s`, `204` clean events, idempotent rendering and the project dual-plane gate.
+- Routed the only next task to separate `IDS-V0_1-STAGE042-REVIEW` with `push_allowed=false`; no whole-stage review, Stage043, batch review, GitHub upload/merge, issue action or app reinstall ran.
+
 ## IDS v0.1 STAGE-042 Phase 3 - 2026-07-18
 
 - Added `ids.stage042.automatic_lifecycle.phase3.scenarios.v1`, an exact Phase 2 and Stage041-bound contract plus stdout-only checker for twelve isolated lifecycle-control scenarios.

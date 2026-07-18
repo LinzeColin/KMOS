@@ -116,13 +116,13 @@ EXPECTED_UPSTREAM = {
             "stage042_automatic_lifecycle_contract.json"
         ),
         "sha256": (
-            "7bf3097c8ec84b6df6bbd9c9c0bd68ef67db9159e28a00a08f8184190ddcd6e7"
+            "dc924817e6c2a3694027fcf19ba3458838fe6eb769b90c4cb0e750c71611b2f0"
         ),
     },
     "phase1_checker": {
         "ref": "KM_IDSystem/scripts/check_automatic_lifecycle.py",
         "sha256": (
-            "9bab6530831592360283c579e346cf75ad7c350d4a33337defcd71a33f24c47b"
+            "bc8a12f6d3f8006ef44ca1a8e3c87709766eb3e3f8727fcbbf5987779dc47de5"
         ),
     },
     "phase1_boundary": {
