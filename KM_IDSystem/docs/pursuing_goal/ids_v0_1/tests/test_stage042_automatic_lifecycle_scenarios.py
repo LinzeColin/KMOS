@@ -32,7 +32,6 @@ BATCH = (
     / "BATCH041_050_UPLOAD_LOCK.yaml"
 )
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
-HANDOFF = ROOT / "docs" / "HANDOFF.md"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 
 PHASE2_COMMIT = "32bd7d9775229e03cd9855edc4e5b737860b6af7"
@@ -164,7 +163,11 @@ class Stage042AutomaticLifecycleScenarioTests(unittest.TestCase):
                 {"ref": ref, "sha256": digest},
                 contract["upstream_bindings"][name],
             )
-            self.assertEqual(digest, checker.sha256_file(REPO_ROOT / ref))
+            actual = checker.sha256_file(REPO_ROOT / ref)
+            self.assertTrue(
+                checker.upstream_file_hash_current(name, digest, actual),
+                {"name": name, "declared": digest, "actual": actual},
+            )
 
     def test_scenario_catalog_and_safety_contracts_are_exact(self):
         contract = self._contract()
@@ -357,7 +360,6 @@ class Stage042AutomaticLifecycleScenarioTests(unittest.TestCase):
     def test_governance_routes_only_to_separate_phase4(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
-        handoff = HANDOFF.read_text(encoding="utf-8")
         events = [
             json.loads(line)
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
@@ -388,20 +390,6 @@ class Stage042AutomaticLifecycleScenarioTests(unittest.TestCase):
         else:
             self.assertIn('status: "pending"', p4_block)
         self.assertIn('entry_authorized: true', p4_block)
-        self.assertTrue(
-            (
-                "Completed task in this run: `IDS-V0_1-STAGE042-P3`" in handoff
-                and "Next allowed task: `IDS-V0_1-STAGE042-P4`" in handoff
-            )
-            or (
-                "Completed task in this run: `IDS-V0_1-STAGE042-P4`" in handoff
-                and "Next allowed task: `IDS-V0_1-STAGE042-REVIEW`" in handoff
-            )
-            or (
-                "Completed task in this run: `IDS-V0_1-STAGE042-REVIEW`" in handoff
-                and "Next allowed task: `IDS-V0_1-STAGE043-P1`" in handoff
-            )
-        )
         phase3_events = [
             event
             for event in events

@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-18T06:21:01Z"
-status: "stage042_completed_reviewed_local"
+updated_at_utc: "2026-07-18T08:22:26Z"
+status: "stage043_phase1_completed"
 
 transition_history:
+  stage043_phase1_state:
+    status: "stage043_phase1_completed"
+    current_task_id: "IDS-V0_1-STAGE043-P1"
+    next_gate: "IDS-STAGE043-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE043-P2"
+    github_upload_allowed: false
   stage042_review_state:
     status: "stage042_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE042-REVIEW"
@@ -355,9 +361,69 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
+  STAGE-043:
+    status: "stage043_phase1_completed"
+    completed_phases:
+      - "Phase 1"
+    next_stage: "STAGE-043"
+    next_gate: "IDS-STAGE043-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE043-P1"
+    acceptance_id: "ACC-STAGE-043"
+    acceptance_status: "phase1_completed"
+    review_status: "not_started"
+    phase2_entry_authorized: true
+    phase3_entry_authorized: false
+    phase4_entry_authorized: false
+    source_verification_status: "SOURCE_VERIFIED"
+    source_member_match_count: 1
+    source_member_sha256: "e1d5169cbc30515930a7224743b860d9b577ccfbf9e0f913ec254d2ea060317b"
+    crash_recovery_contract_id: "ids.worker_crash_recovery.v0_1.p1"
+    crash_recovery_contract_schema: "ids.stage043.worker_crash_recovery.phase1.v1"
+    phase1_contract_valid: true
+    contract_state: "PHASE1_ENGINEERING_CONTRACT_RUNTIME_DISABLED"
+    parameter_fact_level: "DEFERRED"
+    numeric_policy_values_assigned: false
+    taskpack_source_read_performed: true
+    ids_business_source_read_performed: false
+    raw_metadata_content_accessed: false
+    fake_ids_business_data_used: false
+    real_ids_business_job_created: false
+    recovery_candidate_evaluation_performed: false
+    successful_recovery_observed: false
+    queue_runtime_performed: false
+    worker_runtime_performed: false
+    retry_scheduler_performed: false
+    backpressure_runtime_performed: false
+    production_lock_runtime_performed: false
+    automatic_lifecycle_runtime_performed: false
+    process_termination_performed: false
+    process_crash_recovery_performed: false
+    worker_restart_performed: false
+    state_transition_performed: false
+    checkpoint_resume_performed: false
+    cleanup_runtime_performed: false
+    protected_ref_delete_performed: false
+    persistent_state_write_performed: false
+    database_connection_performed: false
+    schema_change_performed: false
+    runtime_output_written: false
+    production_runtime_activation_performed: false
+    whole_stage_review_performed: false
+    batch_review_performed: false
+    github_upload_allowed: false
+    app_reinstall_allowed: false
+    evidence_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_ENTRY_CONTRACT.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE1_WORKER_CRASH_RECOVERY_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_contract.json"
+      - "KM_IDSystem/scripts/check_worker_crash_recovery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+
 decision:
-  current_task_id: "IDS-V0_1-STAGE042-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-STAGE043-P1"
+  current_task_id: "IDS-V0_1-STAGE043-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE043-P2"
   github_upload_allowed: false
-  current_run: "STAGE-042 whole-stage review reverified the approved source, committed Phase4 baseline and all four phase checkers; it repaired canonical request identity, positive version/reason binding, temporal resume evidence, paused-only cleanup and stale governance truth. No Stage043, actual lifecycle, crash recovery, termination, delete, persistence, raw metadata, GitHub, app or production action ran."
-  no_upload_reason: "BATCH041_050 has two completed and individually reviewed Stages, but STAGE-043..050, the separate ten-stage review and the batch upload gate remain incomplete; single-stage upload is forbidden."
+  current_run: "STAGE-043 Phase 1 binds the approved source, reviewed Stage042 predecessor and exact Stage037-042 contracts into a static fail-closed crash-recovery engineering contract. No process crash, recovery, termination, restart, state mutation, delete, persistence, raw metadata, GitHub, app or production action ran."
+  no_upload_reason: "BATCH041_050 has two completed and individually reviewed Stages plus Stage043 Phase 1, but Stage043 Phase 2-4 and review, STAGE-044..050, the separate ten-stage review and the batch upload gate remain incomplete; single-stage upload is forbidden."

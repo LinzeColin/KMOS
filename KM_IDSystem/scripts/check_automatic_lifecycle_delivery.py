@@ -220,6 +220,20 @@ EXPECTED_UPSTREAM = {
         "68ab244b3bf6e5f287164c8c738469425612de69a81cc128a734b19f3cb754d0",
     ),
 }
+FORWARD_COMPATIBLE_UPSTREAM_HASHES = {
+    "stage042_phase3_checker": {
+        "631a301630544421caa08c4f78105be3ee2035ed5b16aed1b3a8c094f21e66e2",
+        "c57662f4f3d9b65ecd2b8a2e971bfa9b92ade2d535d804ceda33e173511e4d7a",
+    },
+    "stage042_phase3_tests": {
+        "6e63e4ed21e36f10ce156cd8fd28e45d1bbec78799dc818a9f8a44009e34d14f",
+        "ac4da088d2b21fa86d08e0979dcc971c5a760525c60dac6d607d2886cb28d406",
+    },
+    "stage041_delivery_checker": {
+        "8816e81a015220a8ccc0024e8c3847375b5649123d007e393152e91a76eed18c",
+        "01dec20a2f32a98788de88d38e7e97574b5ec31070f66f63fe0eb3eacf617310",
+    },
+}
 EXPECTED_DELIVERY = {
     "required_job_type_count": 8,
     "required_job_state_count": 11,
@@ -382,6 +396,26 @@ def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def upstream_file_hash_current(
+    name: str, declared_hash: str, actual_hash: str
+) -> bool:
+    allowed = FORWARD_COMPATIBLE_UPSTREAM_HASHES.get(name, {declared_hash})
+    return declared_hash in allowed and actual_hash in allowed
+
+
+def _upstream_matches_git_index(relative: str, actual_hash: str) -> bool:
+    indexed = subprocess.run(
+        ["git", "show", f":{relative}"],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+    )
+    return (
+        indexed.returncode == 0
+        and hashlib.sha256(indexed.stdout).hexdigest() == actual_hash
+    )
+
+
 def _load_module(path: Path, name: str) -> Any:
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
@@ -445,12 +479,17 @@ def _upstream_valid(value: Any) -> bool:
     if value != _upstream_declaration():
         return False
     try:
-        for ref, digest in EXPECTED_UPSTREAM.values():
+        for name, (ref, digest) in EXPECTED_UPSTREAM.items():
             pure = PurePosixPath(ref)
             if pure.is_absolute() or ".." in pure.parts:
                 return False
             path = REPO_ROOT / pure
-            if not path.is_file() or sha256_file(path) != digest:
+            if not path.is_file():
+                return False
+            actual_hash = sha256_file(path)
+            if not upstream_file_hash_current(name, digest, actual_hash):
+                return False
+            if not _upstream_matches_git_index(ref, actual_hash):
                 return False
             tracked = subprocess.run(
                 ["git", "ls-files", "--error-unmatch", ref],

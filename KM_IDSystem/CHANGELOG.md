@@ -1,5 +1,16 @@
 # Changelog
 
+## IDS v0.1 STAGE-043 Phase 1 - 2026-07-18
+
+- Bound the unique approved Stage043 taskpack member, committed Stage042 review predecessor and exact Stage037–042 control chain into `ids.stage043.worker_crash_recovery.phase1.v1`, an exact-shaped static engineering contract with a stdout-only fail-closed checker.
+- Reused the authoritative 11-state/4-terminal graph. A crashed active job must first use a legal `RETRY_WAIT` candidate, and any checkpoint continuation must pass Stage039 retry admission plus a fresh claim/lock/lease/fencing cycle; direct `RUNNING -> RUNNING`, active-to-queued recovery and terminal reopen remain forbidden.
+- Required current job/attempt/worker-generation/state-version/heartbeat/lease/lock/fencing/checkpoint/quarantine/error/audit evidence. Missing, stale or conflicting evidence requires manual review; exact recovery-request replay is idempotent and changed payload fails closed.
+- Required drive-offline, insufficient-disk and insufficient-API-budget work to pause. Partial output remains quarantined/reference-only, five evidence classes remain protected, and Stage044 alone owns cleanup execution.
+- TDD RED produced 13 expected failures and one missing-file error across 11 focused tests. Phase 1 sets no numeric values and performs no crash injection, process termination/restart, recovery, state mutation, persistence, database, raw metadata, cleanup/delete, GitHub or app action.
+- Routed the only next task to separate `IDS-V0_1-STAGE043-P2` with `push_allowed=false`; Stage043 remains incomplete until its later phases and independent whole-stage review pass.
+- Final GREEN passed checker `19/19`, focused `11/11`, Stage005 `160/160`, Stage041–043 aggregate `140/140`, final full IDS v0.1 discovery `878/878` in `1013.621s`, five historical stage-review checkers, idempotent rendering and the project-scoped dual-plane gate.
+- The first full run exposed seven Stage038/039 current-gate allowlist gaps; each was bounded only through the current `IDS-STAGE043-P1 -> IDS-STAGE043-P2-GATE` route. The second full run exposed one stale generated owner view; rendering repaired it before the final all-green run. Immutable Stage037–042 delivery contracts were not changed.
+
 ## IDS v0.1 STAGE-042 Review - 2026-07-18
 
 - Completed the independent whole-stage review under `ACC-STAGE-042` and repaired one Critical and four Important findings: unenforced canonical request IDs, zero/invalid versions and unbound reasons, self-reported resume stability, non-paused cleanup candidates, and stale handoff/governance truth.

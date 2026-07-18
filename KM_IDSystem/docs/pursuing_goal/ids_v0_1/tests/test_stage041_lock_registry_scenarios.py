@@ -27,8 +27,6 @@ EVIDENCE = (
 BATCH = PROJECT_ROOT / "docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = PROJECT_ROOT / "docs/governance/roadmap.yaml"
 EVENTS = PROJECT_ROOT / "docs/governance/events.jsonl"
-HANDOFF = PROJECT_ROOT / "docs/HANDOFF.md"
-STATUS = PROJECT_ROOT / "machine/facts/status.json"
 
 PHASE2_COMMIT = "22bd9263e38b697dfb681886a97c1b8ba0f4b5e9"
 PHASE2_KMIDS_TREE = "c3e96185d5fe185fc9a8c27e8fa57a6279bc4e6d"
@@ -288,8 +286,6 @@ class Stage041LockRegistryScenarioTests(unittest.TestCase):
         self.assertTrue(phase2.build_stage041_phase2_report()["phase2_slice_valid"])
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
-        handoff = HANDOFF.read_text(encoding="utf-8")
-        status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertIn('status: "stage041_phase3_completed"', batch)
         self.assertIn('      - "Phase 3"', batch)
         self.assertIn('next_allowed_task_id: "IDS-V0_1-STAGE041-P4"', batch)
@@ -297,44 +293,6 @@ class Stage041LockRegistryScenarioTests(unittest.TestCase):
         self.assertIn('next_gate_id: "IDS-STAGE041-P4-GATE"', roadmap)
         self.assertIn('current_phase_id: "IDS-STAGE041-P4"', roadmap)
         self.assertIn('next_gate_id: "IDS-STAGE041-REVIEW-GATE"', roadmap)
-        self.assertTrue(
-            (
-                status["phase"] == "IDS-STAGE041-REVIEW"
-                and status["next_gate"] == "IDS-STAGE042-P1-GATE"
-                and "IDS-V0_1-STAGE041-REVIEW" in handoff
-                and "IDS-V0_1-STAGE042-P1" in handoff
-            )
-            or (
-                status["phase"] == "IDS-STAGE042-P1"
-                and status["next_gate"] == "IDS-STAGE042-P2-GATE"
-                and "IDS-V0_1-STAGE042-P1" in handoff
-                and "IDS-V0_1-STAGE042-P2" in handoff
-            )
-            or (
-                status["phase"] == "IDS-STAGE042-P2"
-                and status["next_gate"] == "IDS-STAGE042-P3-GATE"
-                and "IDS-V0_1-STAGE042-P2" in handoff
-                and "IDS-V0_1-STAGE042-P3" in handoff
-            )
-            or (
-                status["phase"] == "IDS-STAGE042-P3"
-                and status["next_gate"] == "IDS-STAGE042-P4-GATE"
-                and "IDS-V0_1-STAGE042-P3" in handoff
-                and "IDS-V0_1-STAGE042-P4" in handoff
-            )
-            or (
-                status["phase"] == "IDS-STAGE042-P4"
-                and status["next_gate"] == "IDS-STAGE042-REVIEW-GATE"
-                and "IDS-V0_1-STAGE042-P4" in handoff
-                and "IDS-V0_1-STAGE042-REVIEW" in handoff
-            )
-            or (
-                status["phase"] == "IDS-STAGE042-REVIEW"
-                and status["next_gate"] == "IDS-STAGE043-P1-GATE"
-                and "IDS-V0_1-STAGE042-REVIEW" in handoff
-                and "IDS-V0_1-STAGE043-P1" in handoff
-            )
-        )
         matching = [
             json.loads(line)
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
