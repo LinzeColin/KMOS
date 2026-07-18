@@ -1,5 +1,15 @@
 # Changelog
 
+## IDS v0.1 STAGE-043 Phase 4 - 2026-07-19
+
+- Added `ids.stage043.worker_crash_recovery.phase4.delivery.v1`, an exact source/commit/tree/upstream-bound closeout contract and fail-closed checker that compose the reviewed state graph, retry log, pressure, lock, lifecycle and crash-recovery evidence without enabling a runtime.
+- Replayed the 8-job-type/11-state/4-terminal/21-transition graph, 3-attempt/2-retry `DEAD_LETTERED` log, seven pressure signals and all 13 Stage043 scenarios. The isolated control self-exit remains code `73`; no process probe, signal, kill, restart or recovery ran.
+- Classified three paths as conditional engineering candidates only. Current automatic-recovery eligibility and observed success are both empty; all 13 governed cases require manual action because durable recovery state and production calibration are absent.
+- Preserved 25 full and 16 selected same-source conflicts with zero operation/queue/retry effects. Two cleanup classes remain reference-only candidates, five evidence classes remain protected, and Stage044 retains cleanup ownership.
+- Final GREEN passed checker `14/14 + 14/14`, focused `11/11` in `98.108s`, Stage005 `163/163`, Stage041-043 aggregate `185/185` in `660.796s`, full discovery `926/926` in `1024.295s`, five historical Stage038-042 review checkers, 209-event semantics, idempotent rendering and project dual-plane.
+- Layered validation repaired only bounded forward compatibility through `IDS-STAGE043-P4 -> IDS-STAGE043-REVIEW-GATE` and the resulting exact P2-test → P3 → P4 hash chain. No historical review conclusion or runtime safety boundary changed.
+- Routed the only next task to separate `IDS-V0_1-STAGE043-REVIEW` with `push_allowed=false`; no whole-stage review, Stage044, batch review, GitHub upload/merge, issue action, app reinstall or production action ran.
+
 ## IDS v0.1 STAGE-043 Phase 3 - 2026-07-18
 
 - Added `ids.stage043.worker_crash_recovery.phase3.scenarios.v1` and a fail-closed checker for thirteen task-pack-aligned isolated scenarios: duplicate replay, changed-payload conflict, stale evidence, isolated process loss, unfenced generation, three resource pauses, same-source lock exclusion, active conflict, terminal immutability, protected cleanup and partial-output quarantine.

@@ -527,11 +527,11 @@ class Stage043WorkerCrashRecoveryPhase2Tests(unittest.TestCase):
             self.assertIn(marker, roadmap)
         self.assertIn("EVT-IDS-V0_1-STAGE043-P2-20260718-001", events)
         self.assertIn("Phase 2 remains valid at checker `18/18 + 15/15`", handoff)
-        self.assertIn("Completed task in this run: `IDS-V0_1-STAGE043-P3`", handoff)
-        self.assertIn("Next allowed task: `IDS-V0_1-STAGE043-P4`", handoff)
+        self.assertIn("Completed task in this run: `IDS-V0_1-STAGE043-P4`", handoff)
+        self.assertIn("Next allowed task: `IDS-V0_1-STAGE043-REVIEW`", handoff)
         self.assertIn("process_crash_recovery_performed=false", events)
-        self.assertIn('current_phase_id: "IDS-STAGE043-P3"', roadmap)
-        self.assertIn('next_gate_id: "IDS-STAGE043-P4-GATE"', roadmap)
+        self.assertIn('current_phase_id: "IDS-STAGE043-P4"', roadmap)
+        self.assertIn('next_gate_id: "IDS-STAGE043-REVIEW-GATE"', roadmap)
 
     def test_cli_emits_the_exact_machine_report(self):
         module = self._checker()

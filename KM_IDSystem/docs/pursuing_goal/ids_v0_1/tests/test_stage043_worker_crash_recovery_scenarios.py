@@ -80,7 +80,7 @@ EXPECTED_HASHES = {
     "stage043_phase2_tests": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
         "test_stage043_worker_crash_recovery_runtime.py",
-        "a89b950e262f03e046e46f43b5cf2bf75ea6c5c4eb659ce303e822d2a6ec7461",
+        "66241b07cc9a5f6806d8063617c841d2a6549ed3f22d9afba00f940729e3acb0",
     ),
     "stage043_phase2_evidence": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
@@ -373,7 +373,7 @@ class Stage043WorkerCrashRecoveryScenarioTests(unittest.TestCase):
         ):
             self.assertFalse(report[key], key)
 
-    def test_governance_routes_only_to_separate_phase4(self):
+    def test_governance_preserves_phase3_and_routes_after_phase4_to_review(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         handoff = HANDOFF.read_text(encoding="utf-8")
@@ -392,10 +392,13 @@ class Stage043WorkerCrashRecoveryScenarioTests(unittest.TestCase):
         self.assertIn('status: "passed_with_local_evidence"', p3_block)
         self.assertIn('entry_authorized: true', p3_block)
         p4_block = roadmap[p4_start : p4_start + 700]
-        self.assertIn('status: "pending"', p4_block)
+        self.assertIn('status: "passed_with_local_evidence"', p4_block)
         self.assertIn('entry_authorized: true', p4_block)
         self.assertIn("IDS-V0_1-STAGE043-P4", handoff)
-        self.assertIn("NO_PHASE4_THIS_RUN", handoff)
+        self.assertIn("IDS-V0_1-STAGE043-REVIEW", handoff)
+        self.assertIn("NO_STAGE_REVIEW_THIS_RUN", handoff)
+        self.assertIn('current_phase_id: "IDS-STAGE043-P4"', roadmap)
+        self.assertIn('next_gate_id: "IDS-STAGE043-REVIEW-GATE"', roadmap)
         phase3_events = [
             event
             for event in events

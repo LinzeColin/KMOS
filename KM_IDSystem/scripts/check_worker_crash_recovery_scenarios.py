@@ -99,7 +99,7 @@ EXPECTED_UPSTREAM = {
             "test_stage043_worker_crash_recovery_runtime.py"
         ),
         "sha256": (
-            "a89b950e262f03e046e46f43b5cf2bf75ea6c5c4eb659ce303e822d2a6ec7461"
+            "66241b07cc9a5f6806d8063617c841d2a6549ed3f22d9afba00f940729e3acb0"
         ),
     },
     "stage043_phase2_evidence": {

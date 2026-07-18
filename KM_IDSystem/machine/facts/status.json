@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE043",
-  "phase": "IDS-STAGE043-P3",
-  "task": "IDS-V0_1-STAGE043-P3",
-  "real_progress": "Stage043 步骤三十三项隔离异常场景已完成；Stage043 整体未完成或复审",
-  "report_grade": "重复与陈旧请求、隔离子进程自行退出、资源暂停、同源锁冲突和受保护清理由失败关闭检查器绑定",
-  "business_verdict": "仅本地隔离场景通过；真实 Worker 崩溃与恢复、发送进程信号、重启、状态修改、清理删除、持久化与生产运行时均禁用",
-  "evidence_status": "LOCAL_PHASE3_SCENARIOS_VALIDATED_PRODUCTION_DISABLED",
-  "rendered_at": "2026-07-18",
+  "phase": "IDS-STAGE043-P4",
+  "task": "IDS-V0_1-STAGE043-P4",
+  "real_progress": "Stage043 四个步骤已完成；整阶段复审尚未执行，必须在下一独立 run 完成",
+  "report_grade": "状态图、重试日志、七类压力、十三项场景、条件处理、安全关闭、恢复与回滚由失败关闭交付检查器绑定",
+  "business_verdict": "仅本地隔离关闭证据通过；当前自动恢复资格与成功均为空，真实 Worker 崩溃恢复、状态修改、清理删除、持久化与生产运行时均禁用",
+  "evidence_status": "LOCAL_PHASE4_CLOSEOUT_VALIDATED_REVIEW_PENDING_PRODUCTION_DISABLED",
+  "rendered_at": "2026-07-19",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE043-P4-GATE",
+  "next_gate": "IDS-STAGE043-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
