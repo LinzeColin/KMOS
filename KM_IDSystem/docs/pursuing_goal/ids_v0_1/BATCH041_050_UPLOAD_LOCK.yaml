@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-18T14:42:13Z"
-status: "stage043_phase4_completed_review_pending"
+updated_at_utc: "2026-07-18T16:41:14Z"
+status: "stage043_completed_reviewed_local"
 
 transition_history:
+  stage043_review_state:
+    status: "stage043_completed_reviewed_local"
+    current_task_id: "IDS-V0_1-STAGE043-REVIEW"
+    next_gate: "IDS-STAGE044-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE044-P1"
+    github_upload_allowed: false
   stage043_phase4_state:
     status: "stage043_phase4_completed_review_pending"
     current_task_id: "IDS-V0_1-STAGE043-P4"
@@ -380,17 +386,18 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
   STAGE-043:
-    status: "stage043_phase4_completed_review_pending"
+    status: "stage043_completed_reviewed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_gate: "IDS-STAGE043-REVIEW-GATE"
-    current_task_id: "IDS-V0_1-STAGE043-P4"
+    next_stage: "STAGE-044"
+    next_gate: "IDS-STAGE044-P1-GATE"
+    current_task_id: "IDS-V0_1-STAGE043-REVIEW"
     acceptance_id: "ACC-STAGE-043"
-    acceptance_status: "phase4_closeout_complete_review_pending"
-    review_status: "pending"
+    acceptance_status: "reviewed_local_passed"
+    review_status: "passed"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
     phase4_entry_authorized: true
@@ -409,8 +416,16 @@ stage_progress:
     phase3_scenarios_valid: true
     phase4_delivery_valid: true
     delivery_result: "PASS_ISOLATED_CLOSEOUT_PRODUCTION_DISABLED"
-    stage_review_status: "pending_next_run"
-    contract_state: "PHASE4_CLOSEOUT_EVIDENCE_ENABLED_PRODUCTION_DISABLED"
+    stage_review_schema: "ids.stage043.worker_crash_recovery.stage_review.v1"
+    stage_review_status: "completed_reviewed_local"
+    stage_review_result: "PASS_REVIEWED_LOCAL_PRODUCTION_DISABLED"
+    review_finding_count: 6
+    review_critical_finding_count: 1
+    review_important_finding_count: 5
+    review_minor_finding_count: 0
+    review_findings_repaired: true
+    source_integrity_valid: true
+    contract_state: "STAGE043_REVIEWED_LOCAL_PRODUCTION_DISABLED"
     parameter_fact_level: "PROPOSED"
     numeric_policy_values_assigned: true
     production_calibration_task_id: "TASK-OPME-B-001"
@@ -488,8 +503,9 @@ stage_progress:
     schema_change_performed: false
     runtime_output_written: false
     production_runtime_activation_performed: false
-    whole_stage_review_performed: false
+    whole_stage_review_performed: true
     batch_review_performed: false
+    stage044_entry_allowed: false
     github_upload_allowed: false
     app_reinstall_allowed: false
     evidence_refs:
@@ -510,12 +526,15 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_delivery_contract.json"
       - "KM_IDSystem/scripts/check_worker_crash_recovery_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_delivery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_STAGE_REVIEW.md"
+      - "KM_IDSystem/scripts/check_worker_crash_recovery_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_review.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE043-P4"
-  next_allowed_task_id: "IDS-V0_1-STAGE043-REVIEW"
+  current_task_id: "IDS-V0_1-STAGE043-REVIEW"
+  next_allowed_task_id: "IDS-V0_1-STAGE044-P1"
   github_upload_allowed: false
-  current_run: "STAGE-043 Phase 4 composes the reviewed state graph, retry log, seven pressure proofs, thirteen recovery scenarios, same-source exclusion, cleanup allowlist, conditional handling, safe shutdown, recovery and rollback evidence. Current automatic-recovery eligibility and observed success remain empty; no process, recovery, mutation, delete, persistence, raw metadata, GitHub, app or production action ran."
-  no_upload_reason: "BATCH041_050 has two completed and individually reviewed Stages plus Stage043 Phase 1-4, but Stage043 whole-stage review, STAGE-044..050, the separate ten-stage review and the batch upload gate remain incomplete; single-stage upload is forbidden."
+  current_run: "STAGE-043 whole-stage review reverified the approved source, committed Phase4 baseline and all four phase checkers; it repaired recovery identity binding, crash-time consistency, resource-signal consistency, Stage039 error classification, Phase1 structured fail-closed handling and stale governance truth. No Stage044, process recovery, mutation, delete, persistence, raw metadata, GitHub, app or production action ran."
+  no_upload_reason: "BATCH041_050 has three completed and individually reviewed Stages, but STAGE-044..050, the separate ten-stage review and the batch upload gate remain incomplete; single-stage upload is forbidden."

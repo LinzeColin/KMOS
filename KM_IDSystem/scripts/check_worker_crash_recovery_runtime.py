@@ -98,7 +98,7 @@ EXPECTED_UPSTREAM = {
     },
     "phase1_checker": {
         "ref": "KM_IDSystem/scripts/check_worker_crash_recovery.py",
-        "sha256": "27abe895addb64f4280cb1b6c7b9f443e5bd9f3a038cb38ff27aa226271d39a3",
+        "sha256": "ea15a378441e4ce9932daedb093523080936f2fd1b09323c486e5ae48f458f3f",
     },
     "phase1_boundary": {
         "ref": (
@@ -245,6 +245,30 @@ REASON_CODES = {
     "SAFE_FAILURE": "PERMANENT_FAILURE_RECORDED",
     "RESOURCE_PAUSE": "RESOURCE_GATE_BLOCKED",
 }
+ERROR_REFS_BY_INTENT = {
+    "CHECKPOINT_RESUME": [
+        "error:WORKER_PROCESS_LOST",
+        "error:ISOLATED_WORKER_PROCESS_EXIT_73",
+    ],
+    "STAGE039_RETRY": [
+        "error:TRANSIENT_DEPENDENCY_UNAVAILABLE",
+        "error:TRANSIENT_OPERATION_TIMEOUT",
+    ],
+    "SAFE_FAILURE": [
+        "error:INVALID_CONTROL_METADATA",
+        "error:UNSUPPORTED_CONTROL_OPERATION",
+    ],
+    "RESOURCE_PAUSE": ["error:WORKER_PROCESS_LOST"],
+}
+EVIDENCE_IDENTITY_BINDINGS = {
+    "lease_owner_ref_must_equal_worker_instance_id": True,
+    "checkpoint_ref_formula": (
+        "checkpoint:sha256(canonical_json(kind,recovery_request_key))"
+    ),
+    "quarantine_ref_formula": (
+        "quarantine:sha256(canonical_json(kind,recovery_request_key))"
+    ),
+}
 EXPECTED_REQUEST_CONTRACT = {
     "schema_version": "ids.stage043.recovery_decision_request.v1",
     "required_root_fields": REQUEST_ROOT_FIELDS,
@@ -253,8 +277,12 @@ EXPECTED_REQUEST_CONTRACT = {
     "control_job_id_prefix": "control:stage043:",
     "recovery_request_key_fields": KEY_FIELDS,
     "reason_code_by_intent": REASON_CODES,
+    "error_ref_allowlist_by_intent": ERROR_REFS_BY_INTENT,
+    "evidence_identity_bindings": EVIDENCE_IDENTITY_BINDINGS,
     "observed_state_version_must_be_positive": True,
     "worker_generation_must_be_positive": True,
+    "crash_detection_temporal_consistency_required": True,
+    "resource_pressure_consistency_required": True,
     "unknown_field_action": "REJECT_CONTRACT",
     "malformed_request_action": "REQUIRE_MANUAL_REVIEW",
     "raw_payload_allowed": False,
@@ -390,8 +418,12 @@ EXPECTED_METADATA = {
     "input_refs_must_be_git_tracked": True,
     "raw_body_allowed": False,
     "output_refs": [],
-    "checkpoint_ref_format": "checkpoint:sha256:<canonical-decision-digest>",
-    "quarantine_ref_format": "quarantine:sha256:<canonical-decision-digest>",
+    "checkpoint_ref_format": (
+        "checkpoint:sha256:<canonical-kind-and-recovery-request-key-digest>"
+    ),
+    "quarantine_ref_format": (
+        "quarantine:sha256:<canonical-kind-and-recovery-request-key-digest>"
+    ),
     "error_ref_format": "error:<safe-control-reason-code>",
     "audit_ref": AUDIT_REF,
 }
@@ -842,6 +874,13 @@ def _digest_ref(prefix: str, seed: Any) -> str:
     return f"{prefix}:sha256:{_canonical_digest(seed)}"
 
 
+def _bound_evidence_ref(prefix: str, request_key: str) -> str:
+    return _digest_ref(
+        prefix,
+        {"kind": prefix, "recovery_request_key": request_key},
+    )
+
+
 def build_recovery_request(
     recovery_intent: str,
     **overrides: Any,
@@ -864,14 +903,9 @@ def build_recovery_request(
     evidence_overrides = {
         key: value for key, value in overrides.items() if key not in root_fields
     }
-    seed = {
-        "job_id": "control:stage043:job-001",
-        "attempt_id": "control:stage043:attempt-001",
-        "worker_generation": 7,
-        "incident": "control:stage043:incident-001",
-    }
-    checkpoint_ref = _digest_ref("checkpoint", {**seed, "kind": "checkpoint"})
-    quarantine_ref = _digest_ref("quarantine", {**seed, "kind": "quarantine"})
+    default_error_ref = ERROR_REFS_BY_INTENT.get(
+        recovery_intent, ["error:UNKNOWN_RECOVERY_INTENT"]
+    )[0]
     evidence = {
         "input_refs": list(INPUT_REFS),
         "crash_event_ref": "event:stage043:worker-process-lost-001",
@@ -887,7 +921,7 @@ def build_recovery_request(
         "fencing_token": 9,
         "lost_worker_fenced": True,
         "active_lock_or_claim_conflict": False,
-        "checkpoint_ref": checkpoint_ref,
+        "checkpoint_ref": "",
         "checkpoint_integrity_valid": True,
         "checkpoint_idempotency_valid": True,
         "checkpoint_validation_elapsed_seconds": 30,
@@ -899,10 +933,10 @@ def build_recovery_request(
         "retry_budget_available": True,
         "replay_safe": True,
         "recovery_retry_wait_elapsed_seconds": 30,
-        "error_ref": "error:WORKER_PROCESS_LOST",
+        "error_ref": default_error_ref,
         "permanent_failure_recorded": recovery_intent == "SAFE_FAILURE",
         "legal_state_edge_available": True,
-        "quarantine_ref": quarantine_ref,
+        "quarantine_ref": "",
         "writer_quiescence_evidence_ref": "evidence:stage043:writer-quiescent-001",
     }
     if recovery_intent == "RESOURCE_PAUSE":
@@ -927,6 +961,16 @@ def build_recovery_request(
     }
     request.update(root_overrides)
     request["recovery_request_key"] = derive_recovery_request_key(request)
+    if "lease_owner_ref" not in evidence_overrides:
+        request["evidence"]["lease_owner_ref"] = request["worker_instance_id"]
+    if "checkpoint_ref" not in evidence_overrides:
+        request["evidence"]["checkpoint_ref"] = _bound_evidence_ref(
+            "checkpoint", request["recovery_request_key"]
+        )
+    if "quarantine_ref" not in evidence_overrides:
+        request["evidence"]["quarantine_ref"] = _bound_evidence_ref(
+            "quarantine", request["recovery_request_key"]
+        )
     return request
 
 
@@ -991,6 +1035,8 @@ def validate_recovery_request(request: Any) -> bool:
         return False
     if not _safe_scalar_ref(evidence.get("lease_owner_ref"), prefixes=("control:",)):
         return False
+    if evidence.get("lease_owner_ref") != request.get("worker_instance_id"):
+        return False
     if not _safe_scalar_ref(evidence.get("lock_key"), prefixes=("lock:",)):
         return False
     if not _safe_scalar_ref(
@@ -999,6 +1045,10 @@ def validate_recovery_request(request: Any) -> bool:
     ):
         return False
     if not _safe_scalar_ref(evidence.get("error_ref"), prefixes=("error:",)):
+        return False
+    if evidence.get("error_ref") not in ERROR_REFS_BY_INTENT.get(
+        request.get("recovery_intent"), []
+    ):
         return False
     if not _safe_scalar_ref(
         evidence.get("writer_quiescence_evidence_ref"), prefixes=("evidence:",)
@@ -1011,6 +1061,23 @@ def validate_recovery_request(request: Any) -> bool:
     if not isinstance(evidence.get("quarantine_ref"), str) or not DIGEST_REF_PATTERN.fullmatch(
         evidence["quarantine_ref"]
     ):
+        return False
+    if evidence["checkpoint_ref"] != _bound_evidence_ref(
+        "checkpoint", request["recovery_request_key"]
+    ):
+        return False
+    if evidence["quarantine_ref"] != _bound_evidence_ref(
+        "quarantine", request["recovery_request_key"]
+    ):
+        return False
+    resource_consistent = (
+        evidence["resource_gates_passed"] is True
+        and evidence["resource_pressure_signal"] == "NONE"
+    ) or (
+        evidence["resource_gates_passed"] is False
+        and evidence["resource_pressure_signal"] in PRESSURE_SIGNALS
+    )
+    if not resource_consistent:
         return False
     serialized = json.dumps(request, ensure_ascii=False, sort_keys=True)
     lowered = serialized.lower()
@@ -1125,10 +1192,10 @@ def _crash_proven(evidence: Mapping[str, Any]) -> bool:
     lease_expires = evidence["lease_expires_at_epoch_seconds"]
     detected = evidence["crash_detected_at_epoch_seconds"]
     return (
-        evaluated >= heartbeat
-        and evaluated - heartbeat >= EXPECTED_PARAMETERS["heartbeat_stale_window"]
-        and evaluated >= lease_expires
-        and evaluated - lease_expires >= EXPECTED_PARAMETERS["lease_expiry_grace"]
+        detected >= heartbeat
+        and detected - heartbeat >= EXPECTED_PARAMETERS["heartbeat_stale_window"]
+        and detected >= lease_expires
+        and detected - lease_expires >= EXPECTED_PARAMETERS["lease_expiry_grace"]
         and evaluated >= detected
         and evaluated - detected <= EXPECTED_PARAMETERS["crash_detection_interval"]
     )

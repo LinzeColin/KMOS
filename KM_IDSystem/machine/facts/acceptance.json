@@ -1,33 +1,33 @@
 {
   "items": [
     {
-      "id": "`ACC-STAGE043-P4-01`",
-      "criteria": "批准来源、已提交 P3 提交/目录树及 P3 与 Stage038 至 Stage042 已纳入索引的交付证据哈希保持精确绑定",
+      "id": "`ACC-STAGE043-REVIEW-01`",
+      "criteria": "批准来源、唯一 Stage043 成员、路线图、使用说明及已提交步骤四 commit/tree 由独立复审重新验证",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE043-P4-02`",
-      "criteria": "8 类作业、11 个状态、4 个终态、21 条转换、3 次尝试、2 次 retry、7 类压力和 13 项场景全部复验通过",
+      "id": "`ACC-STAGE043-REVIEW-02`",
+      "criteria": "步骤一至四全部重放通过，worker/租约与 checkpoint/quarantine 证据精确绑定到规范恢复身份",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE043-P4-03`",
-      "criteria": "三条路径仅为全部门禁满足后的条件处理候选；当前自动恢复资格与观察成功均为空，十三类情况要求人工处理",
+      "id": "`ACC-STAGE043-REVIEW-03`",
+      "criteria": "崩溃检测时间、资源门与压力信号、Stage039 retry/永久错误分类均内部一致并失败关闭",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE043-P4-04`",
-      "criteria": "安全关闭只复验隔离传输层有序关闭；恢复必须重新验证持久状态、版本、证据、栅栏、owner、资源与任务认领/lock",
+      "id": "`ACC-STAGE043-REVIEW-04`",
+      "criteria": "Phase1 对非对象、损坏或不可读合同返回结构化失败关闭，并实时校验全部四项批准来源",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE043-P4-05`",
-      "criteria": "四类同源操作保持零执行，五类 Git 证据永不删除，两类局部输出仍是 Stage044 reference-only 隔离候选",
+      "id": "`ACC-STAGE043-REVIEW-05`",
+      "criteria": "一项严重和五项重要发现全部修复并由可篡改的独立复审检查器逐项验证",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE043-P4-06`",
-      "criteria": "未进入整阶段复审或 Stage044，未触碰原始元数据，未执行进程动作、恢复、状态修改、删除、持久化、上传或生产激活",
+      "id": "`ACC-STAGE043-REVIEW-06`",
+      "criteria": "仅路由到独立 Stage044 步骤一门；未进入 Stage044、触碰原始元数据或执行进程、恢复、删除、持久化、上传及生产动作",
       "status": "已遵守"
     }
   ]

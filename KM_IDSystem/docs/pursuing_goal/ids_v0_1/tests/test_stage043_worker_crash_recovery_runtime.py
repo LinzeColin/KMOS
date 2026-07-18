@@ -76,7 +76,7 @@ UPSTREAM_BINDINGS = {
     ),
     "phase1_checker": (
         "KM_IDSystem/scripts/check_worker_crash_recovery.py",
-        "27abe895addb64f4280cb1b6c7b9f443e5bd9f3a038cb38ff27aa226271d39a3",
+        "ea15a378441e4ce9932daedb093523080936f2fd1b09323c486e5ae48f458f3f",
     ),
     "phase1_boundary": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
@@ -273,6 +273,86 @@ class Stage043WorkerCrashRecoveryPhase2Tests(unittest.TestCase):
                 self.assertEqual(
                     "REQUIRE_MANUAL_REVIEW",
                     module.evaluate_recovery(blocked)["decision_action"],
+                )
+
+    def test_worker_owner_and_digest_references_are_canonically_bound(self):
+        module = self._checker()
+        request = module.build_recovery_request("CHECKPOINT_RESUME")
+        self.assertEqual(request["worker_instance_id"], request["evidence"]["lease_owner_ref"])
+        self.assertTrue(module.validate_recovery_request(request))
+
+        candidates = [
+            module.build_recovery_request(
+                "CHECKPOINT_RESUME",
+                lease_owner_ref="control:stage043:another-worker",
+            ),
+            module.build_recovery_request(
+                "CHECKPOINT_RESUME",
+                checkpoint_ref="checkpoint:sha256:" + "0" * 64,
+            ),
+            module.build_recovery_request(
+                "CHECKPOINT_RESUME",
+                quarantine_ref="quarantine:sha256:" + "f" * 64,
+            ),
+        ]
+        for candidate in candidates:
+            with self.subTest(candidate=candidate):
+                self.assertFalse(module.validate_recovery_request(candidate))
+                self.assertEqual(
+                    "REQUIRE_MANUAL_REVIEW",
+                    module.evaluate_recovery(candidate)["decision_action"],
+                )
+
+    def test_crash_time_and_resource_signal_relations_fail_closed(self):
+        module = self._checker()
+        early_detection = module.build_recovery_request(
+            "CHECKPOINT_RESUME", crash_detected_at_epoch_seconds=999
+        )
+        contradictory_pressure = module.build_recovery_request(
+            "CHECKPOINT_RESUME",
+            resource_gates_passed=True,
+            resource_pressure_signal="DISK_SPACE_INSUFFICIENT",
+        )
+        self.assertEqual(
+            "CRASH_EVIDENCE_NOT_CURRENT_OR_PROVEN",
+            module.evaluate_recovery(early_detection)["reason_code"],
+        )
+        self.assertFalse(module.validate_recovery_request(contradictory_pressure))
+        self.assertEqual(
+            "REQUIRE_MANUAL_REVIEW",
+            module.evaluate_recovery(contradictory_pressure)["decision_action"],
+        )
+
+    def test_error_refs_follow_stage039_retry_and_permanent_allowlists(self):
+        module = self._checker()
+        retry = module.build_recovery_request("STAGE039_RETRY")
+        failure = module.build_recovery_request("SAFE_FAILURE")
+        self.assertEqual(
+            "error:TRANSIENT_DEPENDENCY_UNAVAILABLE", retry["evidence"]["error_ref"]
+        )
+        self.assertEqual(
+            "error:INVALID_CONTROL_METADATA", failure["evidence"]["error_ref"]
+        )
+        self.assertEqual(
+            "STAGE039_RETRY_CANDIDATE",
+            module.evaluate_recovery(retry)["decision_action"],
+        )
+        self.assertEqual(
+            "SAFE_FAILURE_CANDIDATE",
+            module.evaluate_recovery(failure)["decision_action"],
+        )
+        wrong_retry = module.build_recovery_request(
+            "STAGE039_RETRY", error_ref="error:PERMANENT_DATA_CORRUPTION"
+        )
+        wrong_failure = module.build_recovery_request(
+            "SAFE_FAILURE", error_ref="error:TRANSIENT_OPERATION_TIMEOUT"
+        )
+        for candidate in (wrong_retry, wrong_failure):
+            with self.subTest(candidate=candidate):
+                self.assertFalse(module.validate_recovery_request(candidate))
+                self.assertEqual(
+                    "REQUIRE_MANUAL_REVIEW",
+                    module.evaluate_recovery(candidate)["decision_action"],
                 )
 
     def test_resource_pause_is_mandatory_and_never_auto_resumes(self):
@@ -527,8 +607,17 @@ class Stage043WorkerCrashRecoveryPhase2Tests(unittest.TestCase):
             self.assertIn(marker, roadmap)
         self.assertIn("EVT-IDS-V0_1-STAGE043-P2-20260718-001", events)
         self.assertIn("Phase 2 remains valid at checker `18/18 + 15/15`", handoff)
-        self.assertIn("Completed task in this run: `IDS-V0_1-STAGE043-P4`", handoff)
-        self.assertIn("Next allowed task: `IDS-V0_1-STAGE043-REVIEW`", handoff)
+        self.assertTrue(
+            (
+                "Completed task in this run: `IDS-V0_1-STAGE043-P4`" in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE043-REVIEW`" in handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE043-REVIEW`"
+                in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE044-P1`" in handoff
+            )
+        )
         self.assertIn("process_crash_recovery_performed=false", events)
         self.assertIn('current_phase_id: "IDS-STAGE043-P4"', roadmap)
         self.assertIn('next_gate_id: "IDS-STAGE043-REVIEW-GATE"', roadmap)

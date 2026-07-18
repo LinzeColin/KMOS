@@ -110,13 +110,13 @@ EXPECTED_UPSTREAM = {
             "stage043_worker_crash_recovery_scenarios.json"
         ),
         "sha256": (
-            "5c4c7134b5adb87dbf7790f7e6b9dfe0e237008dcba0a4d4bf3a9d11b0afc8ca"
+            "4dcdcc6cc179c27c824f071fd4b4302ddadcbb54b718998d5629c81d195ab371"
         ),
     },
     "stage043_phase3_checker": {
         "ref": "KM_IDSystem/scripts/check_worker_crash_recovery_scenarios.py",
         "sha256": (
-            "d92e7d1d5a096c11b7db85f140c2f67361a58d2b0c19168ae7c96752fdb30775"
+            "25ac40e266d107b9a1b52f0f94d346245d165b8cfaf628b2b7f5251c63214f5a"
         ),
     },
     "stage043_phase3_tests": {
@@ -125,7 +125,7 @@ EXPECTED_UPSTREAM = {
             "test_stage043_worker_crash_recovery_scenarios.py"
         ),
         "sha256": (
-            "ddf1b0e3c910e158c3d0352c757aa8e0f7ce645149c03d1c1962b332975c83a0"
+            "6eb0b9305b6920967224e546d5372efd2b6844be0f0cfde48f6a029f0d224f1d"
         ),
     },
     "stage043_phase3_evidence": {

@@ -32,7 +32,7 @@
     },
     "phase1_checker": {
       "ref": "KM_IDSystem/scripts/check_worker_crash_recovery.py",
-      "sha256": "27abe895addb64f4280cb1b6c7b9f443e5bd9f3a038cb38ff27aa226271d39a3"
+      "sha256": "ea15a378441e4ce9932daedb093523080936f2fd1b09323c486e5ae48f458f3f"
     },
     "phase1_boundary": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE1_WORKER_CRASH_RECOVERY_SCOPE_BOUNDARY.md",
@@ -218,8 +218,30 @@
       "SAFE_FAILURE": "PERMANENT_FAILURE_RECORDED",
       "RESOURCE_PAUSE": "RESOURCE_GATE_BLOCKED"
     },
+    "error_ref_allowlist_by_intent": {
+      "CHECKPOINT_RESUME": [
+        "error:WORKER_PROCESS_LOST",
+        "error:ISOLATED_WORKER_PROCESS_EXIT_73"
+      ],
+      "STAGE039_RETRY": [
+        "error:TRANSIENT_DEPENDENCY_UNAVAILABLE",
+        "error:TRANSIENT_OPERATION_TIMEOUT"
+      ],
+      "SAFE_FAILURE": [
+        "error:INVALID_CONTROL_METADATA",
+        "error:UNSUPPORTED_CONTROL_OPERATION"
+      ],
+      "RESOURCE_PAUSE": ["error:WORKER_PROCESS_LOST"]
+    },
+    "evidence_identity_bindings": {
+      "lease_owner_ref_must_equal_worker_instance_id": true,
+      "checkpoint_ref_formula": "checkpoint:sha256(canonical_json(kind,recovery_request_key))",
+      "quarantine_ref_formula": "quarantine:sha256(canonical_json(kind,recovery_request_key))"
+    },
     "observed_state_version_must_be_positive": true,
     "worker_generation_must_be_positive": true,
+    "crash_detection_temporal_consistency_required": true,
+    "resource_pressure_consistency_required": true,
     "unknown_field_action": "REJECT_CONTRACT",
     "malformed_request_action": "REQUIRE_MANUAL_REVIEW",
     "raw_payload_allowed": false,
@@ -341,8 +363,8 @@
     "input_refs_must_be_git_tracked": true,
     "raw_body_allowed": false,
     "output_refs": [],
-    "checkpoint_ref_format": "checkpoint:sha256:<canonical-decision-digest>",
-    "quarantine_ref_format": "quarantine:sha256:<canonical-decision-digest>",
+    "checkpoint_ref_format": "checkpoint:sha256:<canonical-kind-and-recovery-request-key-digest>",
+    "quarantine_ref_format": "quarantine:sha256:<canonical-kind-and-recovery-request-key-digest>",
     "error_ref_format": "error:<safe-control-reason-code>",
     "audit_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md#Controlled-Evidence"
   },

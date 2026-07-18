@@ -36,6 +36,11 @@ state version 和 crash incident。精确重放返回同一决定；同 key 不�
 摘要和 audit ref；不回显 raw payload。局部输出只能保留隔离引用，Stage044 仍是
 清理执行唯一所有者，任何删除均未授权。
 
+整阶段复审进一步将 lease owner 精确绑定到 worker instance，并将 checkpoint /
+quarantine digest 绑定到规范 recovery request key；崩溃时间、资源门/压力信号与
+Stage039 retry/permanent error allowlist 也必须内部一致。任一不一致请求只返回人工
+复核，不产生候选转换。
+
 ## Proposed Parameters
 
 五个值全部为 `PROPOSED`，注册为 planned，并继续绑定

@@ -148,6 +148,7 @@ class Stage043WorkerCrashRecoveryPhase1Tests(unittest.TestCase):
 
     def test_source_and_predecessor_bindings_are_exact(self):
         contract = self._contract()
+        self.assertTrue(self._checker()._live_source_valid())
         self.assertEqual(SOURCE_BINDING, contract["source_binding"])
         self.assertEqual(PREDECESSOR_BINDING, contract["predecessor_binding"])
         observed = subprocess.check_output(
@@ -287,6 +288,10 @@ class Stage043WorkerCrashRecoveryPhase1Tests(unittest.TestCase):
         for candidate in mutations:
             with self.subTest(candidate=candidate):
                 self.assertFalse(all(checker.evaluate_contract(candidate).values()))
+        non_mapping = checker.evaluate_contract([])
+        self.assertFalse(non_mapping["root_exact_shape"])
+        self.assertFalse(non_mapping["nested_exact_shapes"])
+        self.assertFalse(all(non_mapping.values()))
 
     def test_checker_report_is_phase1_only(self):
         report = self._checker().build_stage043_phase1_report()

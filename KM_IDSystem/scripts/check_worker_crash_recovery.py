@@ -7,7 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
-from typing import Any, Dict
+from typing import Any, Dict, Mapping
 from zipfile import ZipFile
 
 
@@ -18,6 +18,12 @@ CONTRACT_RELATIVE = (
 STATE_MODEL_RELATIVE = (
     "docs/pursuing_goal/ids_v0_1/job_state_model/"
     "stage037_job_state_model_index.json"
+)
+ROADMAP_SOURCE_PATH = Path(
+    "/Users/linzezhang/Downloads/IDS_Codex开发Roadmap_v0_1_only_中文修订版.txt"
+)
+INSTRUCTIONS_SOURCE_PATH = Path(
+    "/Users/linzezhang/Downloads/IDS_Codex使用说明_v0_1_only_中文修订版.txt"
 )
 
 EXPECTED_ROOT_KEYS = {
@@ -265,18 +271,27 @@ def _strict_false(mapping: Dict[str, Any], names: set) -> bool:
 
 
 def _live_source_valid() -> bool:
-    archive = Path(EXPECTED_SOURCE["source_archive_path"])
-    if not archive.is_file() or _sha256(archive) != EXPECTED_SOURCE["source_archive_sha256"]:
-        return False
-    with ZipFile(archive) as source_zip:
-        matches = [
-            name for name in source_zip.namelist()
-            if name == EXPECTED_SOURCE["source_member"]
-        ]
-        if len(matches) != 1:
+    try:
+        archive = Path(EXPECTED_SOURCE["source_archive_path"])
+        if (
+            not archive.is_file()
+            or _sha256(archive) != EXPECTED_SOURCE["source_archive_sha256"]
+            or _sha256(ROADMAP_SOURCE_PATH) != EXPECTED_SOURCE["roadmap_sha256"]
+            or _sha256(INSTRUCTIONS_SOURCE_PATH)
+            != EXPECTED_SOURCE["instructions_sha256"]
+        ):
             return False
-        member_hash = hashlib.sha256(source_zip.read(matches[0])).hexdigest()
-    return member_hash == EXPECTED_SOURCE["source_member_sha256"]
+        with ZipFile(archive) as source_zip:
+            matches = [
+                name for name in source_zip.namelist()
+                if name == EXPECTED_SOURCE["source_member"]
+            ]
+            if len(matches) != 1:
+                return False
+            member_hash = hashlib.sha256(source_zip.read(matches[0])).hexdigest()
+        return member_hash == EXPECTED_SOURCE["source_member_sha256"]
+    except (OSError, KeyError, ValueError):
+        return False
 
 
 def _predecessor_valid(repo_root: Path) -> bool:
@@ -312,19 +327,25 @@ def _predecessor_valid(repo_root: Path) -> bool:
 def _upstream_valid(repo_root: Path, bindings: Any) -> bool:
     if bindings != EXPECTED_UPSTREAM:
         return False
-    for item in EXPECTED_UPSTREAM.values():
-        path = repo_root / item["ref"]
-        if not path.is_file() or _sha256(path) != item["sha256"]:
-            return False
-    return True
+    try:
+        for item in EXPECTED_UPSTREAM.values():
+            path = repo_root / item["ref"]
+            if not path.is_file() or _sha256(path) != item["sha256"]:
+                return False
+        return True
+    except (OSError, KeyError, TypeError):
+        return False
 
 
 def _state_graph_valid(root: Path, authority: Any) -> bool:
     state_path = root / STATE_MODEL_RELATIVE
     if not state_path.is_file() or not isinstance(authority, dict):
         return False
-    state_model = json.loads(state_path.read_text(encoding="utf-8"))["state_model"]
-    allowed = state_model["allowed_transitions"]
+    try:
+        state_model = json.loads(state_path.read_text(encoding="utf-8"))["state_model"]
+        allowed = state_model["allowed_transitions"]
+    except (OSError, KeyError, TypeError, json.JSONDecodeError, UnicodeDecodeError):
+        return False
     legal_edges = {
         "%s->%s" % (source, target)
         for source, targets in allowed.items()
@@ -346,46 +367,47 @@ def _state_graph_valid(root: Path, authority: Any) -> bool:
     )
 
 
-def evaluate_contract(contract: Dict[str, Any], root: Path = None) -> Dict[str, bool]:
+def evaluate_contract(contract: Any, root: Path = None) -> Dict[str, bool]:
     root = root or Path(__file__).resolve().parents[1]
     repo_root = root.parent
+    value: Mapping[str, Any] = contract if isinstance(contract, Mapping) else {}
     checks: Dict[str, bool] = {}
-    checks["root_exact_shape"] = set(contract) == EXPECTED_ROOT_KEYS
+    checks["root_exact_shape"] = isinstance(contract, Mapping) and set(value) == EXPECTED_ROOT_KEYS
     checks["nested_exact_shapes"] = all(
-        isinstance(contract.get(name), dict)
-        and set(contract[name]) == expected
+        isinstance(value.get(name), dict)
+        and set(value[name]) == expected
         for name, expected in EXPECTED_NESTED_KEYS.items()
     )
     checks["identity"] = (
-        contract.get("schema_version")
+        value.get("schema_version")
         == "ids.stage043.worker_crash_recovery.phase1.v1"
-        and contract.get("stage") == "STAGE-043"
-        and contract.get("phase") == "Phase 1"
-        and contract.get("task_id") == "IDS-V0_1-STAGE043-P1"
-        and contract.get("acceptance_id") == "ACC-STAGE-043"
-        and contract.get("local_code") == "D07-S007"
-        and contract.get("domain") == "D07"
-        and contract.get("entrance") == "IDS_SYSTEM_OPERATIONS"
-        and contract.get("pursuing_goal")
+        and value.get("stage") == "STAGE-043"
+        and value.get("phase") == "Phase 1"
+        and value.get("task_id") == "IDS-V0_1-STAGE043-P1"
+        and value.get("acceptance_id") == "ACC-STAGE-043"
+        and value.get("local_code") == "D07-S007"
+        and value.get("domain") == "D07"
+        and value.get("entrance") == "IDS_SYSTEM_OPERATIONS"
+        and value.get("pursuing_goal")
         == "VERIFY_WORKER_CRASH_PRESERVES_JOB_STATE_AND_SUPPORTS_GUARDED_CONTINUATION_OR_SAFE_FAILURE"
-        and contract.get("crash_recovery_contract_id")
+        and value.get("crash_recovery_contract_id")
         == "ids.worker_crash_recovery.v0_1.p1"
-        and contract.get("contract_state")
+        and value.get("contract_state")
         == "PHASE1_ENGINEERING_CONTRACT_RUNTIME_DISABLED"
-        and contract.get("execution_ready") is False
-        and contract.get("next_gate") == "IDS-STAGE043-P2-GATE"
+        and value.get("execution_ready") is False
+        and value.get("next_gate") == "IDS-STAGE043-P2-GATE"
     )
-    checks["source_binding"] = contract.get("source_binding") == EXPECTED_SOURCE
+    checks["source_binding"] = value.get("source_binding") == EXPECTED_SOURCE
     checks["source_live"] = _live_source_valid()
     checks["predecessor_binding"] = (
-        contract.get("predecessor_binding") == EXPECTED_PREDECESSOR
+        value.get("predecessor_binding") == EXPECTED_PREDECESSOR
         and _predecessor_valid(repo_root)
     )
     checks["upstream_bindings"] = _upstream_valid(
-        repo_root, contract.get("upstream_bindings")
+        repo_root, value.get("upstream_bindings")
     )
-    checks["state_graph"] = _state_graph_valid(root, contract.get("state_authority"))
-    worker = contract.get("worker_boundary", {})
+    checks["state_graph"] = _state_graph_valid(root, value.get("state_authority"))
+    worker = value.get("worker_boundary", {})
     checks["worker_boundary"] = (
         worker.get("event_owners") == {
             "TASK_EXCEPTION": "STAGE-039",
@@ -404,7 +426,7 @@ def evaluate_contract(contract: Dict[str, Any], root: Path = None) -> Dict[str, 
             "worker_restart_allowed", "production_runtime_allowed",
         })
     )
-    detection = contract.get("crash_detection_contract", {})
+    detection = value.get("crash_detection_contract", {})
     checks["crash_detection"] = (
         detection.get("mode") == "STATIC_EVIDENCE_EVALUATION_ONLY"
         and detection.get("required_evidence_fields") == EXPECTED_EVIDENCE_FIELDS
@@ -418,7 +440,7 @@ def evaluate_contract(contract: Dict[str, Any], root: Path = None) -> Dict[str, 
             "state_registry_read_performed",
         })
     )
-    recovery = contract.get("recovery_decision_contract", {})
+    recovery = value.get("recovery_decision_contract", {})
     checks["recovery_decisions"] = (
         recovery.get("decision_mode") == "STATIC_CANDIDATE_ONLY"
         and recovery.get("allowed_outcomes") == [
@@ -438,7 +460,7 @@ def evaluate_contract(contract: Dict[str, Any], root: Path = None) -> Dict[str, 
             "successful_recovery_observed",
         })
     )
-    pause = contract.get("resource_pause_contract", {})
+    pause = value.get("resource_pause_contract", {})
     checks["resource_pause"] = (
         pause.get("mandatory_pause_signals") == EXPECTED_PAUSE_SIGNALS
         and pause.get("crashed_active_resource_blocked_sequence")
@@ -447,7 +469,7 @@ def evaluate_contract(contract: Dict[str, Any], root: Path = None) -> Dict[str, 
         and pause.get("fresh_resource_observation_required") is True
         and _strict_false(pause, {"automatic_resume_allowed", "state_mutation_allowed"})
     )
-    identity = contract.get("idempotency_contract", {})
+    identity = value.get("idempotency_contract", {})
     checks["idempotency"] = (
         identity.get("recovery_request_key_fields") == [
             "job_id", "attempt_id", "worker_generation",
@@ -461,7 +483,7 @@ def evaluate_contract(contract: Dict[str, Any], root: Path = None) -> Dict[str, 
         and identity.get("decision_audit_append_required") is True
         and identity.get("idempotency_registry_write_allowed") is False
     )
-    fencing = contract.get("lock_and_fencing_contract", {})
+    fencing = value.get("lock_and_fencing_contract", {})
     checks["lock_and_fencing"] = (
         fencing.get("owner") == "STAGE-041"
         and all(fencing.get(name) is True for name in {
@@ -474,7 +496,7 @@ def evaluate_contract(contract: Dict[str, Any], root: Path = None) -> Dict[str, 
             "takeover_or_lock_mutation_allowed",
         })
     )
-    partial = contract.get("partial_output_contract", {})
+    partial = value.get("partial_output_contract", {})
     checks["partial_output"] = (
         partial.get("handling_mode") == "QUARANTINE_AND_REFERENCE_ONLY"
         and partial.get("cleanup_candidate_classes")
@@ -485,7 +507,7 @@ def evaluate_contract(contract: Dict[str, Any], root: Path = None) -> Dict[str, 
         and partial.get("cleanup_execution_owner") == "STAGE-044"
         and _strict_false(partial, {"delete_allowed", "output_mutation_allowed"})
     )
-    parameters = contract.get("parameter_contract", {})
+    parameters = value.get("parameter_contract", {})
     checks["parameters"] = (
         parameters.get("deferred_parameter_names") == EXPECTED_PARAMETERS
         and parameters.get("required_future_fields") == [
@@ -498,14 +520,14 @@ def evaluate_contract(contract: Dict[str, Any], root: Path = None) -> Dict[str, 
         })
         and parameters.get("status") == "DEFERRED_TO_SEPARATE_PHASE2"
     )
-    checks["human_status"] = contract.get("human_status_projection") == {
+    checks["human_status"] = value.get("human_status_projection") == {
         "WAITING_CRASH_EVIDENCE": "等待崩溃证据",
         "RECOVERY_CANDIDATE_READY": "恢复候选已就绪",
         "RESOURCE_PAUSED": "资源条件暂停",
         "SAFE_FAILURE_CANDIDATE": "安全失败候选",
         "MANUAL_REVIEW_REQUIRED": "需要人工复核",
     }
-    gate = contract.get("phase2_entry_gate", {})
+    gate = value.get("phase2_entry_gate", {})
     checks["phase2_gate"] = (
         gate.get("required_gate") == "IDS-STAGE043-P2-GATE"
         and gate.get("required_conditions") == [
@@ -520,7 +542,7 @@ def evaluate_contract(contract: Dict[str, Any], root: Path = None) -> Dict[str, 
         and gate.get("phase2_must_run_separately") is True
         and _strict_false(gate, {"execution_ready", "push_allowed"})
     )
-    truth = contract.get("truth_flags", {})
+    truth = value.get("truth_flags", {})
     checks["truth_flags"] = (
         set(truth) == ({"taskpack_source_read_performed"} | FALSE_TRUTH_FLAGS)
         and truth.get("taskpack_source_read_performed") is True
@@ -546,7 +568,10 @@ def build_stage043_phase1_report(root: Path = None) -> Dict[str, Any]:
             "push_allowed": False,
             "checks": {},
         }
-    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    try:
+        contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        contract = {}
     checks = evaluate_contract(contract, root=root)
     valid = bool(checks) and all(checks.values())
     return {

@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE043"
-current_phase_id: "IDS-STAGE043-P4"
-current_task_id: "IDS-V0_1-STAGE043-P4"
-next_gate_id: "IDS-STAGE043-REVIEW-GATE"
+current_phase_id: "IDS-STAGE043-REVIEW"
+current_task_id: "IDS-V0_1-STAGE043-REVIEW"
+next_gate_id: "IDS-STAGE044-P1-GATE"
 current_transition_history:
+  stage043_review_state:
+    current_stage_id: "IDS-STAGE043"
+    current_phase_id: "IDS-STAGE043-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE043-REVIEW"
+    next_gate_id: "IDS-STAGE044-P1-GATE"
   stage043_phase4_state:
     current_stage_id: "IDS-STAGE043"
     current_phase_id: "IDS-STAGE043-P4"
@@ -11016,12 +11021,12 @@ stages:
     task_id: "IDS-V0_1-STAGE043"
     acceptance_ids:
       - "ACC-STAGE-043"
-    status: "in_progress"
+    status: "completed_reviewed_local"
     pursuing_goal: "验证 worker 崩溃后任务状态不丢失，并能继续或安全失败。"
     stop_gate:
-      gate_id: "IDS-STAGE043-P4-GATE"
-      status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE043-REVIEW-GATE"
+      gate_id: "IDS-STAGE043-REVIEW-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE044-P1-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_ENTRY_CONTRACT.md"
@@ -11041,6 +11046,9 @@ stages:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_delivery_contract.json"
       - "KM_IDSystem/scripts/check_worker_crash_recovery_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_delivery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_STAGE_REVIEW.md"
+      - "KM_IDSystem/scripts/check_worker_crash_recovery_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_review.py"
     phases:
       -
         phase_id: "IDS-STAGE043-P1"
@@ -11296,3 +11304,16 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
             risk: "静态交付、条件处理候选或控制子进程自行退出可能被误读为自动恢复资格、进程恢复或生产就绪。"
             rollback: "只回滚 Stage043 Phase4 contract/checker/tests/evidence/governance/event/handoff/owner-view；保留 Phase1-3、Stage042 review、owner files、raw data、database、GitHub 与 app 状态。"
+    review:
+      review_id: "IDS-STAGE043-REVIEW"
+      task_id: "IDS-V0_1-STAGE043-REVIEW"
+      status: "completed"
+      acceptance_ids:
+        - "ACC-STAGE-043"
+      evidence_refs:
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_STAGE_REVIEW.md"
+        - "KM_IDSystem/scripts/check_worker_crash_recovery_stage_review.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_review.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+      test_results: "TDD review RED produced 12 assertion failures and 1 error across 10 tests. Review repaired one Critical and five Important findings covering recovery identity binding, crash-time consistency, resource-signal consistency, Stage039 error classification, Phase1 structured fail-closed source checks and stale governance truth. Final GREEN passed review 10/10, Phase1/2 repair 30/30, Phase3 replay 18/18, Stage005 164/164, Stage041-043 aggregate 198/198 in 988.205s, full IDS v0.1 discovery 940/940 in 1355.634s, six Stage038-043 review checkers, 210 clean events, idempotent rendering and project-scoped dual-plane. Five historical current-gate assertions were extended only through IDS-STAGE043-REVIEW -> IDS-STAGE044-P1-GATE."
+      decision: "ACC-STAGE-043 completed_reviewed_local after all six findings were repaired; next gate is IDS-STAGE044-P1-GATE, push_allowed=false, and this run did not enter STAGE-044."

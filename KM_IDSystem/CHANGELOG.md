@@ -1,5 +1,14 @@
 # Changelog
 
+## IDS v0.1 STAGE-043 Review - 2026-07-19
+
+- Completed the independent whole-stage review under `ACC-STAGE-043` and repaired `1 Critical / 5 Important / 0 Minor` findings: unbound worker/lease/checkpoint/quarantine identities, premature crash detection, contradictory resource signals, unclassified retry/safe-failure errors, non-structured Phase1 failures with incomplete live-source checks, and missing durable reviewed-local governance.
+- Bound lease ownership to the worker instance and checkpoint/quarantine digests to the canonical recovery kind and request key. Cross-worker or forged evidence now returns manual review with no transition candidate.
+- Required heartbeat staleness and lease grace at the recorded detection time, exact resource-gate/signal agreement, and Stage039 transient/permanent error allowlists. Malformed Phase1 contracts now return structured fail-closed checks while rehashing the archive, unique Stage043 member, roadmap and instructions.
+- Added `ids.stage043.worker_crash_recovery.stage_review.v1`, a committed Phase4 commit/tree ancestry binding, reruns of all four phase checkers, six canonical finding checks, Git-index source binding, review tests, reviewed-local batch/roadmap/event state and the Stage044 separate-entry gate.
+- Review RED produced `12` assertion failures and `1` error across `10` tests. Final GREEN passes review `10/10`, Phase1/2 repairs `30/30`, Phase3 replay `18/18`, Stage005 `164/164`, Stage041-043 aggregate `198/198` in `988.205s`, full discovery `940/940` in `1355.634s`, six Stage038-043 review checkers, `210` clean events, idempotent rendering and project dual-plane. The first aggregate/full runs exposed five historical current-gate assertions; repairs were limited to the verified `Stage043 review -> Stage044 P1 gate` route and did not authorize Stage044.
+- Routed the only next task to separate `IDS-V0_1-STAGE044-P1` with `push_allowed=false`. No Stage044 implementation, batch review, GitHub upload/merge, issue action, app reinstall, process recovery, state mutation, cleanup/delete, persistence, raw-data or production action ran.
+
 ## IDS v0.1 STAGE-043 Phase 4 - 2026-07-19
 
 - Added `ids.stage043.worker_crash_recovery.phase4.delivery.v1`, an exact source/commit/tree/upstream-bound closeout contract and fail-closed checker that compose the reviewed state graph, retry log, pressure, lock, lifecycle and crash-recovery evidence without enabling a runtime.

@@ -9650,10 +9650,10 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
 
         tampered_batch = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE043-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE043-P5"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P1"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
         )
         self.assertNotEqual(batch_text, tampered_batch)
         blocked = module.evaluate_current_state_consistency(
@@ -9870,10 +9870,10 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         self.assertFalse(all(blocked.values()), blocked)
 
         tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE043-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE043-P5"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P1"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
         )
         self.assertNotEqual(batch_text, tampered_route)
         blocked = module.evaluate_current_state_consistency(
@@ -9954,10 +9954,10 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         self.assertFalse(all(blocked.values()), blocked)
 
         tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE043-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE043-P5"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P1"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
         )
         self.assertNotEqual(batch_text, tampered_route)
         blocked = module.evaluate_current_state_consistency(
@@ -10051,10 +10051,10 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         self.assertFalse(all(blocked.values()), blocked)
 
         tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE043-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE043-P5"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P1"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
         )
         self.assertNotEqual(batch_text, tampered_route)
         blocked = module.evaluate_current_state_consistency(
@@ -10147,10 +10147,97 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         self.assertFalse(all(blocked.values()), blocked)
 
         tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE043-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE043-P5"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P1"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
+        )
+        self.assertNotEqual(batch_text, tampered_route)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage043_review_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        review_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE043-REVIEW-20260719-001"
+        ]
+        self.assertEqual(1, len(review_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(review_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_STAGE_REVIEW.md",
+            "KM_IDSystem/scripts/check_worker_crash_recovery_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage043_worker_crash_recovery_review.py",
+            "KM_IDSystem/machine/runs/2026-07-19-stage043-review-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE043-REVIEW-20260719-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_findings = batch_text.replace(
+            '    stage_review_schema: '
+            '"ids.stage043.worker_crash_recovery.stage_review.v1"\n'
+            '    stage_review_status: "completed_reviewed_local"\n'
+            '    stage_review_result: "PASS_REVIEWED_LOCAL_PRODUCTION_DISABLED"\n'
+            "    review_finding_count: 6\n"
+            "    review_critical_finding_count: 1\n"
+            "    review_important_finding_count: 5\n"
+            "    review_minor_finding_count: 0\n"
+            "    review_findings_repaired: true",
+            '    stage_review_schema: '
+            '"ids.stage043.worker_crash_recovery.stage_review.v1"\n'
+            '    stage_review_status: "completed_reviewed_local"\n'
+            '    stage_review_result: "PASS_REVIEWED_LOCAL_PRODUCTION_DISABLED"\n'
+            "    review_finding_count: 6\n"
+            "    review_critical_finding_count: 1\n"
+            "    review_important_finding_count: 5\n"
+            "    review_minor_finding_count: 0\n"
+            "    review_findings_repaired: false",
+        )
+        self.assertNotEqual(batch_text, tampered_findings)
+        blocked = module.evaluate_phase_state(
+            tampered_findings, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_route = batch_text.replace(
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P1"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
         )
         self.assertNotEqual(batch_text, tampered_route)
         blocked = module.evaluate_current_state_consistency(

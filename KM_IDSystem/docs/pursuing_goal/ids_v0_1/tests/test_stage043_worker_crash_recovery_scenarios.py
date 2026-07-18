@@ -71,21 +71,21 @@ EXPECTED_HASHES = {
     "stage043_phase2_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/"
         "stage043_worker_crash_recovery_runtime_contract.json",
-        "5cbdb1416b3b3fd2464b53b83655f8c8382f8392bdd0d56ad69b02160b6b5837",
+        "153a451f3e5aef4fef1faa8b4e3035f472ac50298d790731f19ba8701361ab38",
     ),
     "stage043_phase2_checker": (
         "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py",
-        "c8b104c506b3cac374cefca80613855e2d3964116426a70c9c4babff89e269dc",
+        "eea785da3a1fd07ce9fe3a9c43e9a73660e945872b0b4b2ac8b456784ba515e4",
     ),
     "stage043_phase2_tests": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
         "test_stage043_worker_crash_recovery_runtime.py",
-        "66241b07cc9a5f6806d8063617c841d2a6549ed3f22d9afba00f940729e3acb0",
+        "4516f1d43e0cba261d942522c487003b4febae82d03ef25157b4ffe5841d5919",
     ),
     "stage043_phase2_evidence": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
         "STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md",
-        "5eccf7561e384d3f3e8ccab86d1bae7e9e10677943db854b6a09e5b691531cdd",
+        "8cb325a141b7549b569c50ed718193a337d686eaa083c65dbc0d038fefde9aab",
     ),
     "stage041_phase3_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/"
