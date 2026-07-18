@@ -1,5 +1,16 @@
 # Changelog
 
+## IDS v0.1 STAGE-043 Phase 2 - 2026-07-18
+
+- Added `ids.worker_crash_recovery_policy.v0_1.stage043.p2`, an exact-shaped, deterministic, in-memory and reference-only candidate-decision slice; production process and state effects remain disabled.
+- Registered `ASM-008`, `MOD-012`, `FORM-012` and `PARAM-077..081` as `planned` / `PROPOSED`: crash detection `1 s`, heartbeat staleness `30 s`, lease-expiry grace `5 s`, recovery retry backoff `30 s` and checkpoint validation timeout `30 s`. Values are derived from reviewed Stage039-042 isolated bounds and remain uncalibrated under `TASK-OPME-B-001`.
+- Bound each request to canonical job/attempt/worker-generation/state-version/crash-incident identity and evaluated only four outcomes: checkpoint-resume candidate, Stage039 retry candidate, safe-failure candidate, or mandatory resource-pause candidate. Exact replay is idempotent; changed payload, terminal state, fresh heartbeat/live lease, missing fencing, active lock conflict and incomplete checkpoint evidence fail closed.
+- Preserved partial output as quarantine references only and kept cleanup ownership with Stage044. The slice performs no process probe, crash injection, termination, restart, recovery, state transition, checkpoint continuation, queue/retry/lock mutation, persistence, database, raw-data, external-API, delete or runtime-output action.
+- TDD RED produced `19` expected failures across `16` focused tests because the Phase 2 artifacts, registries and route were absent. Final GREEN passed checker `18/18 + 15/15`, focused `16/16`, Stage005 `161/161`, Stage041-043 aggregate `156/156` in `644.177s`, full discovery `895/895` in `1065.039s`, five historical review checkers, `207` clean events, idempotent rendering and project dual-plane.
+- Stage005 first exposed three stale tamper targets, the first aggregate reached `154/156`, the first full discovery reached `891/895`, and dual-plane exposed nine missing glossary entries. Repairs were limited to exact historical registry-count evidence and P2-to-P3 forward compatibility; no historical review conclusion or runtime safety contract changed.
+- Pre-commit self-review repaired one Important identity/evidence gap: unsafe control identifiers fail validation, and invalid requests no longer project untrusted error, checkpoint or quarantine references. The post-fix full discovery is the final `895/895` result above.
+- Routed the only next task to separate `IDS-V0_1-STAGE043-P3` with `push_allowed=false`; no Phase 3, whole-stage review, batch review, GitHub upload/merge, issue action or app reinstall ran.
+
 ## IDS v0.1 STAGE-043 Phase 1 - 2026-07-18
 
 - Bound the unique approved Stage043 taskpack member, committed Stage042 review predecessor and exact Stage037–042 control chain into `ids.stage043.worker_crash_recovery.phase1.v1`, an exact-shaped static engineering contract with a stdout-only fail-closed checker.

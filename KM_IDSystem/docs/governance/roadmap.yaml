@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE043"
-current_phase_id: "IDS-STAGE043-P1"
-current_task_id: "IDS-V0_1-STAGE043-P1"
-next_gate_id: "IDS-STAGE043-P2-GATE"
+current_phase_id: "IDS-STAGE043-P2"
+current_task_id: "IDS-V0_1-STAGE043-P2"
+next_gate_id: "IDS-STAGE043-P3-GATE"
 current_transition_history:
+  stage043_phase2_state:
+    current_stage_id: "IDS-STAGE043"
+    current_phase_id: "IDS-STAGE043-P2"
+    current_task_id: "IDS-V0_1-STAGE043-P2"
+    next_gate_id: "IDS-STAGE043-P3-GATE"
   stage043_phase1_state:
     current_stage_id: "IDS-STAGE043"
     current_phase_id: "IDS-STAGE043-P1"
@@ -11004,9 +11009,9 @@ stages:
     status: "in_progress"
     pursuing_goal: "验证 worker 崩溃后任务状态不丢失，并能继续或安全失败。"
     stop_gate:
-      gate_id: "IDS-STAGE043-P1-GATE"
+      gate_id: "IDS-STAGE043-P2-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE043-P2-GATE"
+      next_gate_id: "IDS-STAGE043-P3-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_ENTRY_CONTRACT.md"
@@ -11014,6 +11019,10 @@ stages:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_contract.json"
       - "KM_IDSystem/scripts/check_worker_crash_recovery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"
+      - "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"
     phases:
       -
         phase_id: "IDS-STAGE043-P1"
@@ -11081,3 +11090,79 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
             risk: "静态恢复候选可能被误读为已执行进程恢复或已实现持久任务状态。"
             rollback: "只回滚 Stage043 Phase1 contract/checker/tests/governance/event/handoff/owner-view；保留 Stage042 review、owner files、raw data、database、GitHub 与 app 状态。"
+      -
+        phase_id: "IDS-STAGE043-P2"
+        name: "Worker 崩溃恢复实现、接入与最小可运行切片"
+        objective: "在单独 run 中为五个时间参数建立来源与回滚，并实现一个隔离、非生产、reference-only crash-recovery candidate decision slice。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        stop_conditions:
+          - "探测、注入、终止、重启或恢复真实 worker 进程"
+          - "写 job state、queue、worker、retry、lock、lease、fence、checkpoint、output、database、schema、registry state 或 runtime output"
+          - "执行 cleanup/delete、读取 raw metadata 或创建 IDS business job"
+          - "把 PROPOSED timing values 声称为 production calibrated"
+          - "进入 Phase 3、whole-stage review、batch gate、GitHub 或 app reinstall"
+        stop_gate:
+          gate_id: "IDS-STAGE043-P2-GATE"
+          status: "passed_with_local_evidence"
+          pass_conditions:
+            - "All five timing parameters are sourced, registered, versioned and rollback-ready"
+            - "The isolated deterministic slice evaluates checkpoint, Stage039 retry, safe-failure and resource-pause candidates"
+            - "Canonical identity, crash timing, state version, terminal immutability, fencing and idempotency fail closed"
+            - "Input/output/error/checkpoint/quarantine/audit metadata is truthful and no raw payload is echoed"
+            - "The only next gate is IDS-STAGE043-P3-GATE"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"
+            - "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"
+        tasks:
+          -
+            task_id: "IDS-V0_1-STAGE043-P2"
+            name: "实现隔离 Worker 崩溃恢复候选决策切片"
+            objective: "注册全部 proposed timing bounds，并对 Git-tracked reference-only 控制元数据执行 deterministic candidate evaluation，不执行进程恢复或状态修改。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE043-P1"
+            acceptance_ids:
+              - "ACC-STAGE-043"
+            test_commands:
+              - "python3 -B KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage043_worker_crash_recovery_runtime"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage005_governance_regression"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage04[1-3]*.py' -q"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -q"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+              - "python3 -B KM_IDSystem/machine/tools/check_dual_plane_ci.py --projects KM_IDSystem --require-projects"
+              - "events.jsonl parse and duplicate-id check"
+              - "git diff --check"
+            test_results: "TDD RED: 16 focused tests produced 19 expected failures because the Phase2 artifacts, checker, registries and governance route were absent. Final GREEN: checker 18/18 contract and 15/15 decision checks; focused 16/16; Stage005 161/161; Stage041-043 aggregate 156/156 in 644.177s; full IDS v0.1 discovery 895/895 in 1065.039s; five historical stage-review checkers; 207 events with zero parse, duplicate or semantic errors; idempotent rendering and project-scoped dual-plane PASS. Validation repairs were limited to glossary registration, exact historical registry-count evidence and P2-to-P3 forward-route compatibility; self-review additionally restricted control identities and invalid-request evidence projection. Historical review conclusions and runtime safety were unchanged."
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"
+              - "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+            risk: "陈旧心跳、未过租约 grace、错误 request key、未栅栏 worker、活动锁冲突或检查点证据不足若被误放行，会造成重复处理或错误续作。"
+            rollback: "只回滚 Stage043 Phase2 contract/checker/tests/registries/governance/event/handoff/owner-view；保留 Phase1、Stage042 review、owner files、raw data、database、GitHub 与 app 状态。"
+        dependencies:
+          - "IDS-V0_1-STAGE043-P1"
+      -
+        phase_id: "IDS-STAGE043-P3"
+        name: "Worker 崩溃恢复场景验证"
+        objective: "在 Phase 2 完成后的单独 run 中验证重复请求、陈旧证据、资源暂停、锁冲突和受保护清理边界。"
+        status: "pending"
+        entry_authorized: true
+        dependencies:
+          - "IDS-V0_1-STAGE043-P2"
+      -
+        phase_id: "IDS-STAGE043-P4"
+        name: "Worker 崩溃恢复关闭与交付"
+        objective: "在 Phase 3 完成后的单独 run 中收口状态图、失败日志、自动/人工处理、安全关闭、恢复、回滚和限制。"
+        status: "blocked"
+        entry_authorized: false
+        dependencies:
+          - "IDS-V0_1-STAGE043-P3"

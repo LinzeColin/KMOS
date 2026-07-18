@@ -325,3 +325,39 @@ formulas:
     implementation_refs: ["KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py::evaluate_lifecycle_request", "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py::InMemoryLifecycleDecisionLedger", "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py::build_stage042_phase2_report"]
     semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
     semantic_review_task_ids: ""
+  - formula_id: "FORM-012"
+    model_id: "MOD-012"
+    assumption_ids: ["ASM-008"]
+    status: "planned"
+    expression: "validate the exact reference-only request and canonical recovery key; require stale heartbeat plus lease expiry grace, current persistent state/version and a fenced lost worker; resource pressure emits only a pause candidate; checkpoint continuation requires integrity, idempotency, owner/resource revalidation and a fresh admission/claim/lock cycle; Stage039 retry requires policy, budget, replay safety and backoff; safe failure requires the legal RUNNING-to-FAILED edge; all outputs remain candidate-only."
+    variables:
+      - name: "observed_state_version"
+        data_type: "integer"
+        unit: "monotonic control version"
+        input_domain: "positive non-boolean integer"
+      - name: "heartbeat_age_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "evaluated_at minus last_heartbeat_observed_at; zero or greater"
+      - name: "lease_expiry_age_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "evaluated_at minus lease_expires_at; zero or greater"
+      - name: "checkpoint_validation_elapsed_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "zero or greater logical duration"
+      - name: "recovery_retry_wait_elapsed_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "zero or greater logical duration"
+    constraints: ["Isolated in-memory reference-only decision metadata.", "All control input refs must be Git tracked and recovery identity is canonical.", "Terminal history is immutable and every transition is candidate-only.", "No process probe, crash injection, termination, restart, recovery, state mutation, cleanup delete, persistence, business job, raw metadata, or production action.", "Production calibration is required before activation."]
+    missing_policy: "REQUIRE_MANUAL_REVIEW with no recovery action or state mutation."
+    output_range: "CHECKPOINT_RESUME_CANDIDATE, STAGE039_RETRY_CANDIDATE, SAFE_FAILURE_CANDIDATE, RESOURCE_PAUSE_CANDIDATE, or REQUIRE_MANUAL_REVIEW; no persistent write."
+    open_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"]
+    implementation_refs: ["KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::derive_recovery_request_key", "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::evaluate_recovery", "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::InMemoryRecoveryDecisionLedger", "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::build_stage043_phase2_report"]
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    semantic_review_task_ids: ""

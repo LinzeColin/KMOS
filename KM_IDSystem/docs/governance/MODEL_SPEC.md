@@ -3,12 +3,24 @@
 Project: `KM_IDSystem`
 Governance spec version: `1.0.0`
 
-- model_count: 11
-- formula_count: 11
-- parameter_count: 76
+- model_count: 12
+- formula_count: 12
+- parameter_count: 81
 - active_model_count: 7
 - active_formula_count: 7
 - active_parameter_count: 49
+
+## Historical Registry Count Checkpoints
+
+Historical phase checkers validate the registry size that existed when their
+contracts were reviewed. These checkpoint values are append-only evidence and
+must not be interpreted as the current totals shown above.
+
+### Stage042 Phase 2 reviewed checkpoint
+
+- model_count: 11
+- formula_count: 11
+- parameter_count: 76
 
 ## Canonical Sources
 
@@ -49,6 +61,15 @@ and audit references. They do not mutate state, terminate processes, delete
 artifacts, persist decisions, or activate production runtime. All five proposed
 timing values require production calibration under `TASK-OPME-B-001` before
 activation.
+
+`MOD-012`, `FORM-012`, and `PARAM-077` through `PARAM-081` are planned,
+non-production Stage043 crash-recovery decision registrations. They evaluate
+only Git-tracked control references plus bounded crash, heartbeat, lease,
+fencing, checkpoint, resource and error metadata. They emit candidate decisions
+without probing, terminating or restarting a process, mutating state, continuing
+a checkpoint, deleting output, persisting a decision, or activating production.
+All five proposed timing values require production calibration under
+`TASK-OPME-B-001` before activation.
 
 Technology stack components such as FastAPI, React, SQLite, ECharts, and PDF generation are architecture/output components, not models.
 

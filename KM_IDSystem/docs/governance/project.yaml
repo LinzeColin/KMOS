@@ -719,6 +719,47 @@ models:
     evidence_refs:
       - "EVID-IDS-STAGE042-P2"
       - "EVID-OPME-MODEL-REGISTRY"
+  -
+    model_id: "MOD-012"
+    name: "Worker crash recovery candidate decision policy"
+    kind: "deterministic_control_policy"
+    purpose: "Evaluate reference-only crash evidence and emit guarded checkpoint, retry, safe-failure, or resource-pause candidates without recovering a process or mutating state."
+    owner: "KM_IDSystem"
+    status: "planned"
+    fact_level: "PROPOSED"
+    model_version: "ids.worker_crash_recovery_policy.v0_1.stage043.p2"
+    assumptions:
+      - "Stage043 timing values are composed from reviewed isolated Stage039 through Stage042 safety boundaries and are not production calibrated."
+    formula_ids:
+      - "FORM-012"
+    parameter_ids:
+      - "PARAM-077"
+      - "PARAM-078"
+      - "PARAM-079"
+      - "PARAM-080"
+      - "PARAM-081"
+    inputs:
+      - "Git-tracked control input refs"
+      - "worker generation and crash incident identity"
+      - "heartbeat, lease, state-version, fencing, resource, checkpoint and error evidence"
+      - "logical evaluation timestamps"
+    outputs:
+      - "decision_action"
+      - "transition_candidates"
+      - "human_status"
+      - "input_refs"
+      - "output_refs"
+      - "error_ref"
+      - "checkpoint_ref"
+      - "quarantine_ref"
+      - "audit_ref"
+    code_refs:
+      - "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"
+    test_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"
+    evidence_refs:
+      - "EVID-IDS-STAGE043-P2"
+      - "EVID-OPME-MODEL-REGISTRY"
 formulas:
   -
     formula_id: "FORM-001"
@@ -1025,6 +1066,34 @@ formulas:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"
     evidence_refs:
       - "EVID-IDS-STAGE042-P2"
+      - "EVID-OPME-FORMULA-REGISTRY"
+  -
+    formula_id: "FORM-012"
+    model_id: "MOD-012"
+    status: "planned"
+    fact_level: "PROPOSED"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    expression: "validate exact reference-only request and canonical recovery key; require stale heartbeat plus lease expiry grace, current persistent state/version and a fenced lost worker; resource pressure emits only a pause candidate; checkpoint continuation requires integrity, idempotency, owner/resource revalidation and a fresh admission/claim/lock cycle; Stage039 retry requires policy, budget, replay safety and backoff; safe failure requires the legal RUNNING-to-FAILED edge; all outputs remain candidate-only."
+    constraints:
+      - "Unknown, malformed, stale, conflicting, or untracked evidence fails closed."
+      - "Terminal history is immutable and all transition paths remain candidate-only."
+      - "No process probe, crash injection, termination, restart, recovery, state mutation, cleanup delete, persistence, business job, raw metadata, or production action."
+      - "Production calibration is required before activation."
+    missing_policy: "REQUIRE_MANUAL_REVIEW with no recovery action or state mutation."
+    output_range: "CHECKPOINT_RESUME_CANDIDATE, STAGE039_RETRY_CANDIDATE, SAFE_FAILURE_CANDIDATE, RESOURCE_PAUSE_CANDIDATE, or REQUIRE_MANUAL_REVIEW; no persistent write."
+    open_task_ids:
+      - "TASK-OPME-B-001"
+    implementation_refs:
+      - "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::derive_recovery_request_key"
+      - "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::evaluate_recovery"
+      - "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::InMemoryRecoveryDecisionLedger"
+      - "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::build_stage043_phase2_report"
+    code_refs:
+      - "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"
+    test_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"
+    evidence_refs:
+      - "EVID-IDS-STAGE043-P2"
       - "EVID-OPME-FORMULA-REGISTRY"
 parameters:
   -
@@ -2965,6 +3034,111 @@ parameters:
     code_refs: ["KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"]
     test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"]
     evidence_refs: ["EVID-IDS-STAGE042-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-077"
+    model_id: "MOD-012"
+    formula_id: "FORM-012"
+    symbol: "crash_detection_interval"
+    name: "crash detection interval"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "1"
+    source: "PROPOSED from Stage043 Phase2 reviewed Stage042 lifecycle tick and Stage041 acquisition timeout; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage043_worker_crash_recovery_runtime_contract.json:policy.parameters.crash_detection_interval"
+    extracted_value: "1"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE043-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-078"
+    model_id: "MOD-012"
+    formula_id: "FORM-012"
+    symbol: "heartbeat_stale_window"
+    name: "heartbeat stale window"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "30"
+    source: "PROPOSED from Stage043 Phase2 reviewed Stage041 lease duration and three renewal intervals; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage043_worker_crash_recovery_runtime_contract.json:policy.parameters.heartbeat_stale_window"
+    extracted_value: "30"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE043-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-079"
+    model_id: "MOD-012"
+    formula_id: "FORM-012"
+    symbol: "lease_expiry_grace"
+    name: "lease expiry grace"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "5"
+    source: "PROPOSED from Stage043 Phase2 reviewed Stage041 expiry grace; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage043_worker_crash_recovery_runtime_contract.json:policy.parameters.lease_expiry_grace"
+    extracted_value: "5"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE043-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-080"
+    model_id: "MOD-012"
+    formula_id: "FORM-012"
+    symbol: "recovery_retry_backoff"
+    name: "recovery retry backoff"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "30"
+    source: "PROPOSED from Stage043 Phase2 reviewed Stage039 second and maximum retry backoff ceiling; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage043_worker_crash_recovery_runtime_contract.json:policy.parameters.recovery_retry_backoff"
+    extracted_value: "30"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE043-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-081"
+    model_id: "MOD-012"
+    formula_id: "FORM-012"
+    symbol: "checkpoint_validation_timeout"
+    name: "checkpoint validation timeout"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "30"
+    source: "PROPOSED from Stage043 Phase2 reviewed Stage042 checkpoint wait and Stage041 lease duration; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage043_worker_crash_recovery_runtime_contract.json:policy.parameters.checkpoint_validation_timeout"
+    extracted_value: "30"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE043-P2", "EVID-OPME-PARAMETER-REGISTRY"]
 strategies:
   -
     strategy_id: "STRAT-OPME-001"

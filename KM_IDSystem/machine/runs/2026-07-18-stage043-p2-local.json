@@ -1,0 +1,76 @@
+{
+  "run_id": "`RUN-IDS-STAGE043-P2-LOCAL-20260718-001`",
+  "action": "注册五个有来源的提议时间边界，并实现仅引用、内存内、非生产的 Worker 崩溃恢复候选决策切片",
+  "result": "`PASS_LOCAL_PHASE2_PRODUCTION_DISABLED`",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "predecessor": {
+    "phase1_commit": "d4b5ec1ef9bff3d2390869b4fd2998bd17d2c671",
+    "phase1_tree": "6d7af7a50506df15f229e35977143ead0f5b3f06",
+    "phase1_parent": "ba248f66ce993a726cb12547ae1c772ab1228bfa"
+  },
+  "source_integrity": {
+    "taskpack_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "stage043_member_sha256": "e1d5169cbc30515930a7224743b860d9b577ccfbf9e0f913ec254d2ea060317b",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8"
+  },
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0
+  },
+  "implementation": {
+    "policy_version": "ids.worker_crash_recovery_policy.v0_1.stage043.p2",
+    "candidate_types": [
+      "CHECKPOINT_RESUME",
+      "STAGE039_RETRY",
+      "SAFE_FAILURE",
+      "RESOURCE_PAUSE"
+    ],
+    "proposed_timing_seconds": {
+      "crash_detection_interval": 1,
+      "heartbeat_stale_window": 30,
+      "lease_expiry_grace": 5,
+      "recovery_retry_backoff": 30,
+      "checkpoint_validation_timeout": 30
+    },
+    "registry_ids": [
+      "ASM-008",
+      "MOD-012",
+      "FORM-012",
+      "PARAM-077",
+      "PARAM-078",
+      "PARAM-079",
+      "PARAM-080",
+      "PARAM-081"
+    ],
+    "production_calibration_task_id": "TASK-OPME-B-001",
+    "actual_process_recovery_performed": false,
+    "state_mutation_performed": false,
+    "checkpoint_resume_performed": false,
+    "cleanup_delete_performed": false,
+    "persistence_performed": false
+  },
+  "verified_results": [
+    "检查器合同 18/18、候选决策 15/15、聚焦测试 16/16",
+    "Stage005 治理回归 161/161、Stage041-043 聚合 156/156（644.177 秒）",
+    "最终完整 IDS v0.1 discovery 895/895（1065.039 秒）",
+    "Stage038 至 Stage042 五个历史整阶段复审检查器全部通过",
+    "207 条治理事件零解析、重复和语义错误",
+    "人类平面二次渲染无差异，项目级双平面 PASS",
+    "历史 Stage042 11/11/76 注册表计数以明确检查点保留；P2-to-P3 前向路线兼容已精确补齐",
+    "提交前自审修复一项 Important：控制身份使用统一安全引用语法，无效请求不得投影不可信错误、检查点或隔离引用"
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未进入 Stage043 Phase 3、整阶段复审或批次复审",
+    "未探测、注入、终止、重启或恢复真实 Worker 进程",
+    "未修改状态、继续检查点、执行清理删除、持久化、数据库、schema 或外部 API 动作",
+    "未读取原始元数据或创建虚构 IDS 业务数据",
+    "未上传、推送、合并、变更 issue 或重装应用"
+  ],
+  "next_gate": "IDS-STAGE043-P3-GATE"
+}

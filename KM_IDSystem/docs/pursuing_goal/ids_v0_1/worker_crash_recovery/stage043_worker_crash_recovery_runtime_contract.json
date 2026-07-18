@@ -1,0 +1,482 @@
+{
+  "schema_version": "ids.stage043.worker_crash_recovery.phase2.v1",
+  "stage": "STAGE-043",
+  "phase": "Phase 2",
+  "task_id": "IDS-V0_1-STAGE043-P2",
+  "acceptance_id": "ACC-STAGE-043",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_REFERENCE_ONLY_CRASH_RECOVERY_DECISION_SLICE",
+  "policy_contract_id": "ids.worker_crash_recovery_policy.v0_1.stage043.p2",
+  "contract_state": "PHASE2_ISOLATED_RECOVERY_DECISION_SLICE_ENABLED_PRODUCTION_DISABLED",
+  "next_gate": "IDS-STAGE043-P3-GATE",
+  "source_binding": {
+    "source_archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "source_member": "IDS_v0_1_Final_Chinese_Revised/stages/STAGE-043_Worker崩溃恢复.md",
+    "source_member_match_count": 1,
+    "source_member_sha256": "e1d5169cbc30515930a7224743b860d9b577ccfbf9e0f913ec254d2ea060317b",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+    "source_verification_status": "SOURCE_VERIFIED"
+  },
+  "phase1_predecessor_binding": {
+    "commit": "d4b5ec1ef9bff3d2390869b4fd2998bd17d2c671",
+    "tree": "6d7af7a50506df15f229e35977143ead0f5b3f06",
+    "parent": "ba248f66ce993a726cb12547ae1c772ab1228bfa",
+    "task_id": "IDS-V0_1-STAGE043-P1",
+    "result": "PASS_LOCAL"
+  },
+  "upstream_bindings": {
+    "phase1_contract": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_contract.json",
+      "sha256": "78cb110cd10f4068b72ceba01752d2771378c7d07b569797bd0efa88f6826ef4"
+    },
+    "phase1_checker": {
+      "ref": "KM_IDSystem/scripts/check_worker_crash_recovery.py",
+      "sha256": "27abe895addb64f4280cb1b6c7b9f443e5bd9f3a038cb38ff27aa226271d39a3"
+    },
+    "phase1_boundary": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE1_WORKER_CRASH_RECOVERY_SCOPE_BOUNDARY.md",
+      "sha256": "50baa3eda8d40317456e566da908b4cb8a69c0096b1725087ac165debf6af23e"
+    },
+    "stage037_state_index": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/job_state_model/stage037_job_state_model_index.json",
+      "sha256": "b70bf72ebe4212f45d380c13fbfe429791e1f4a5c73dccbba81211b7adc1c2d3"
+    },
+    "stage039_retry_runtime": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/retry_dead_letter/stage039_retry_dead_letter_runtime_contract.json",
+      "sha256": "5fc9b49b0ede0fdbc87311f3280ffc69e8ec8e59f219b17a04a2ccae1e9124c0"
+    },
+    "stage040_backpressure_runtime": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_runtime_contract.json",
+      "sha256": "2970ebd143030821d9a8b00e4fdb11342f8f82ef3bcf4d91717ba707b5054e2e"
+    },
+    "stage041_lock_runtime": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json",
+      "sha256": "80f87c789c6fc834b13eaec3d14d9444417ee7313ff8f88f6893bbda15e1f464"
+    },
+    "stage042_lifecycle_runtime": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json",
+      "sha256": "f24283a0ab934082b0ceb48c6ca1597ca17d1c6cca6a939e2653fb00ede83e49"
+    }
+  },
+  "policy": {
+    "policy_version": "ids.worker_crash_recovery_policy.v0_1.stage043.p2",
+    "parameters": {
+      "crash_detection_interval": 1,
+      "heartbeat_stale_window": 30,
+      "lease_expiry_grace": 5,
+      "recovery_retry_backoff": 30,
+      "checkpoint_validation_timeout": 30
+    },
+    "parameter_provenance": {
+      "crash_detection_interval": {
+        "value": 1,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json",
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"
+        ],
+        "derivation": "Equals the reviewed Stage042 lifecycle tick and Stage041 acquisition timeout; the isolated evaluator does not poll or sleep.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.worker_crash_recovery_policy.v0_1.stage043.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py",
+        "rollback": "NO_AUTOMATIC_CRASH_RECOVERY"
+      },
+      "heartbeat_stale_window": {
+        "value": 30,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"
+        ],
+        "derivation": "Equals one reviewed Stage041 lease duration and three 10-second renewal intervals before heartbeat evidence is treated as stale.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.worker_crash_recovery_policy.v0_1.stage043.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py",
+        "rollback": "NO_AUTOMATIC_CRASH_RECOVERY"
+      },
+      "lease_expiry_grace": {
+        "value": 5,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"
+        ],
+        "derivation": "Reuses the reviewed Stage041 expiry grace and never authorizes lock takeover in this slice.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.worker_crash_recovery_policy.v0_1.stage043.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py",
+        "rollback": "NO_AUTOMATIC_CRASH_RECOVERY"
+      },
+      "recovery_retry_backoff": {
+        "value": 30,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/retry_dead_letter/stage039_retry_dead_letter_runtime_contract.json"
+        ],
+        "derivation": "Equals the reviewed Stage039 second and maximum retry backoff ceiling; Stage039 still owns admission and budget consumption.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.worker_crash_recovery_policy.v0_1.stage043.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py",
+        "rollback": "NO_AUTOMATIC_CRASH_RECOVERY"
+      },
+      "checkpoint_validation_timeout": {
+        "value": 30,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json",
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"
+        ],
+        "derivation": "Equals the reviewed Stage042 checkpoint wait and one Stage041 lease duration; validation is metadata-only and does not wait.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.worker_crash_recovery_policy.v0_1.stage043.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py",
+        "rollback": "NO_AUTOMATIC_CRASH_RECOVERY"
+      }
+    },
+    "parameter_relationships": {
+      "crash_detection_equals_stage042_tick": true,
+      "heartbeat_stale_equals_stage041_lease": true,
+      "lease_grace_equals_stage041_expiry_grace": true,
+      "recovery_backoff_equals_stage039_max_backoff": true,
+      "checkpoint_timeout_equals_stage042_checkpoint_wait": true
+    },
+    "parameter_source": "STAGE043_PHASE2_COMPOSED_REVIEWED_UPSTREAM_BOUNDARY",
+    "selection_rationale": "The isolated policy composes only reviewed Stage039-042 proposed safety bounds and performs no polling, waiting, scheduling, process action or production calibration.",
+    "fact_level": "PROPOSED",
+    "production_calibrated": false,
+    "production_calibration_required": true,
+    "production_calibration_task_id": "TASK-OPME-B-001",
+    "rollback_policy": "NO_AUTOMATIC_CRASH_RECOVERY_REQUIRE_MANUAL_REVIEW"
+  },
+  "request_contract": {
+    "schema_version": "ids.stage043.recovery_decision_request.v1",
+    "required_root_fields": [
+      "schema_version",
+      "job_id",
+      "attempt_id",
+      "worker_instance_id",
+      "worker_generation",
+      "observed_state",
+      "observed_state_version",
+      "crash_incident_id",
+      "recovery_request_key",
+      "policy_version",
+      "recovery_intent",
+      "reason_code",
+      "audit_ref",
+      "evidence"
+    ],
+    "required_evidence_fields": [
+      "input_refs",
+      "crash_event_ref",
+      "crash_detected_at_epoch_seconds",
+      "last_heartbeat_observed_at_epoch_seconds",
+      "lease_expires_at_epoch_seconds",
+      "evaluated_at_epoch_seconds",
+      "state_version_current",
+      "persistent_state_available",
+      "lost_worker_generation_confirmed",
+      "lease_owner_ref",
+      "lock_key",
+      "fencing_token",
+      "lost_worker_fenced",
+      "active_lock_or_claim_conflict",
+      "checkpoint_ref",
+      "checkpoint_integrity_valid",
+      "checkpoint_idempotency_valid",
+      "checkpoint_validation_elapsed_seconds",
+      "owner_revalidated",
+      "resource_gates_passed",
+      "resource_pressure_signal",
+      "fresh_admission_claim_lock_cycle_ref",
+      "stage039_policy_eligible",
+      "retry_budget_available",
+      "replay_safe",
+      "recovery_retry_wait_elapsed_seconds",
+      "error_ref",
+      "permanent_failure_recorded",
+      "legal_state_edge_available",
+      "quarantine_ref",
+      "writer_quiescence_evidence_ref"
+    ],
+    "allowed_intents": [
+      "CHECKPOINT_RESUME",
+      "STAGE039_RETRY",
+      "SAFE_FAILURE",
+      "RESOURCE_PAUSE"
+    ],
+    "control_job_id_prefix": "control:stage043:",
+    "recovery_request_key_fields": [
+      "job_id",
+      "attempt_id",
+      "worker_generation",
+      "observed_state_version",
+      "crash_incident_id"
+    ],
+    "reason_code_by_intent": {
+      "CHECKPOINT_RESUME": "CHECKPOINT_CONTINUATION_REVALIDATION",
+      "STAGE039_RETRY": "RETRY_POLICY_REVALIDATION",
+      "SAFE_FAILURE": "PERMANENT_FAILURE_RECORDED",
+      "RESOURCE_PAUSE": "RESOURCE_GATE_BLOCKED"
+    },
+    "observed_state_version_must_be_positive": true,
+    "worker_generation_must_be_positive": true,
+    "unknown_field_action": "REJECT_CONTRACT",
+    "malformed_request_action": "REQUIRE_MANUAL_REVIEW",
+    "raw_payload_allowed": false,
+    "absolute_path_allowed": false,
+    "secret_material_allowed": false
+  },
+  "decision_contract": {
+    "CHECKPOINT_RESUME": {
+      "eligible_states": ["CLAIMED", "RUNNING", "PAUSE_REQUESTED"],
+      "transition_candidates": [
+        ["ACTIVE_STATE", "RETRY_WAIT"],
+        ["RETRY_WAIT", "QUEUED"],
+        ["QUEUED", "CLAIMED"],
+        ["CLAIMED", "RUNNING"]
+      ],
+      "required_guards": [
+        "crash_proven",
+        "persistent_state_available",
+        "state_version_current",
+        "lost_worker_generation_confirmed",
+        "lost_worker_fenced",
+        "no_active_lock_or_claim_conflict",
+        "checkpoint_integrity_valid",
+        "checkpoint_idempotency_valid",
+        "checkpoint_validation_within_timeout",
+        "owner_revalidated",
+        "resource_gates_passed",
+        "fresh_admission_claim_lock_cycle_ref"
+      ],
+      "decision_action": "CHECKPOINT_RESUME_CANDIDATE"
+    },
+    "STAGE039_RETRY": {
+      "eligible_states": ["CLAIMED", "RUNNING", "PAUSE_REQUESTED"],
+      "transition_candidates": [["ACTIVE_STATE", "RETRY_WAIT"]],
+      "required_guards": [
+        "crash_proven",
+        "persistent_state_available",
+        "state_version_current",
+        "lost_worker_fenced",
+        "stage039_policy_eligible",
+        "retry_budget_available",
+        "replay_safe",
+        "error_ref",
+        "resource_gates_passed",
+        "recovery_backoff_elapsed"
+      ],
+      "runtime_owner": "STAGE-039",
+      "decision_action": "STAGE039_RETRY_CANDIDATE"
+    },
+    "SAFE_FAILURE": {
+      "eligible_states": ["RUNNING"],
+      "transition_candidates": [["RUNNING", "FAILED"]],
+      "required_guards": [
+        "crash_proven",
+        "persistent_state_available",
+        "state_version_current",
+        "lost_worker_fenced",
+        "permanent_failure_recorded",
+        "error_ref",
+        "legal_state_edge_available"
+      ],
+      "decision_action": "SAFE_FAILURE_CANDIDATE"
+    },
+    "RESOURCE_PAUSE": {
+      "eligible_states": ["CLAIMED", "RUNNING", "PAUSE_REQUESTED"],
+      "mandatory_pressure_signals": [
+        "EXTERNAL_DRIVE_OFFLINE",
+        "DISK_SPACE_INSUFFICIENT",
+        "EXTERNAL_API_BUDGET_INSUFFICIENT"
+      ],
+      "transition_candidates": [
+        ["ACTIVE_STATE", "RETRY_WAIT"],
+        ["RETRY_WAIT", "PAUSED"]
+      ],
+      "owner_revalidation_required_after_resource_recovery": true,
+      "automatic_resume_allowed": false,
+      "decision_action": "RESOURCE_PAUSE_CANDIDATE"
+    }
+  },
+  "state_transition_contract": {
+    "state_model_version": "ids.job_state.v1",
+    "job_states": [
+      "CREATED",
+      "QUEUED",
+      "CLAIMED",
+      "RUNNING",
+      "PAUSE_REQUESTED",
+      "PAUSED",
+      "RETRY_WAIT",
+      "SUCCEEDED",
+      "FAILED",
+      "DEAD_LETTERED",
+      "CANCELLED"
+    ],
+    "terminal_states": ["SUCCEEDED", "FAILED", "DEAD_LETTERED", "CANCELLED"],
+    "active_execution_states": ["CLAIMED", "RUNNING", "PAUSE_REQUESTED"],
+    "candidate_only": true,
+    "state_mutation_allowed": false,
+    "terminal_history_reopen_allowed": false,
+    "direct_active_to_queued_allowed": false,
+    "direct_running_to_running_allowed": false,
+    "in_memory_state_restoration_allowed": false,
+    "fresh_admission_claim_lock_cycle_required": true
+  },
+  "idempotency_contract": {
+    "request_key_formula": "sha256(canonical_json(job_id,attempt_id,worker_generation,observed_state_version,crash_incident_id))",
+    "ledger_mode": "IN_MEMORY_DECISION_REPLAY_ONLY",
+    "one_incident_one_decision": true,
+    "exact_replay_returns_original": true,
+    "request_key_formula_enforced_for_new_requests": true,
+    "same_request_key_changed_payload_action": "RECOVERY_REQUEST_CONFLICT",
+    "persistent_ledger_allowed": false,
+    "append_only_audit_required": true
+  },
+  "control_metadata_contract": {
+    "input_refs": [
+      "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE1_WORKER_CRASH_RECOVERY_SCOPE_BOUNDARY.md"
+    ],
+    "input_refs_must_be_git_tracked": true,
+    "raw_body_allowed": false,
+    "output_refs": [],
+    "checkpoint_ref_format": "checkpoint:sha256:<canonical-decision-digest>",
+    "quarantine_ref_format": "quarantine:sha256:<canonical-decision-digest>",
+    "error_ref_format": "error:<safe-control-reason-code>",
+    "audit_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md#Controlled-Evidence"
+  },
+  "human_status_projection": {
+    "CHECKPOINT_RESUME_CANDIDATE": {
+      "label_zh": "检查点续作候选已就绪",
+      "owner_action_zh": "等待重新准入、领取、锁与栅栏确认",
+      "owner_attention_required": true
+    },
+    "STAGE039_RETRY_CANDIDATE": {
+      "label_zh": "等待受控重试",
+      "owner_action_zh": "由 Stage 39 复核策略与重试预算",
+      "owner_attention_required": true
+    },
+    "SAFE_FAILURE_CANDIDATE": {
+      "label_zh": "等待安全失败确认",
+      "owner_action_zh": "核对永久错误与审计证据",
+      "owner_attention_required": true
+    },
+    "RESOURCE_PAUSE_CANDIDATE": {
+      "label_zh": "资源条件暂停",
+      "owner_action_zh": "恢复资源后仍需负责人重新确认",
+      "owner_attention_required": true
+    },
+    "REQUIRE_MANUAL_REVIEW": {
+      "label_zh": "需要人工复核",
+      "owner_action_zh": "补齐当前、一致、可审计的崩溃与恢复证据",
+      "owner_attention_required": true
+    }
+  },
+  "ownership_matrix": {
+    "queue_and_worker_transport": "STAGE-038",
+    "retry_and_dead_letter_policy": "STAGE-039",
+    "backpressure_observation_and_pause": "STAGE-040",
+    "lock_lease_and_fencing_runtime": "STAGE-041",
+    "automatic_lifecycle_policy": "STAGE-042",
+    "process_crash_recovery_candidate_policy": "STAGE-043",
+    "cleanup_execution_runtime": "STAGE-044"
+  },
+  "registry_binding": {
+    "model_id": "MOD-012",
+    "formula_id": "FORM-012",
+    "parameter_ids": ["PARAM-077", "PARAM-078", "PARAM-079", "PARAM-080", "PARAM-081"],
+    "production_calibration_task_id": "TASK-OPME-B-001"
+  },
+  "runtime_boundary": {
+    "isolated_recovery_decision_runtime_allowed": true,
+    "reference_only_control_metadata_allowed": true,
+    "process_probe_allowed": false,
+    "crash_injection_allowed": false,
+    "process_crash_recovery_allowed": false,
+    "process_termination_allowed": false,
+    "worker_restart_allowed": false,
+    "state_mutation_allowed": false,
+    "queue_runtime_allowed": false,
+    "worker_runtime_allowed": false,
+    "retry_scheduler_allowed": false,
+    "backpressure_runtime_allowed": false,
+    "production_lock_runtime_allowed": false,
+    "checkpoint_resume_allowed": false,
+    "cleanup_candidate_classes": ["TEMP_STAGING_OUTPUT", "INCOMPLETE_DERIVATIVE_OUTPUT"],
+    "protected_artifact_classes": ["FACT_SOURCE", "MANIFEST", "EVIDENCE_LEDGER", "REPORT_SNAPSHOT", "AUDIT_LOG"],
+    "cleanup_execution_owner": "STAGE-044",
+    "cleanup_runtime_allowed": false,
+    "delete_allowed": false,
+    "database_allowed": false,
+    "schema_change_allowed": false,
+    "persistent_state_write_allowed": false,
+    "runtime_output_write_allowed": false,
+    "external_api_allowed": false,
+    "raw_metadata_access_allowed": false,
+    "ids_business_job_allowed": false,
+    "fake_ids_business_data_allowed": false,
+    "production_activation_allowed": false
+  },
+  "rollback": {
+    "trigger": "INVALID_CONTRACT_PARAMETER_REQUEST_EVIDENCE_OR_UPSTREAM_BINDING",
+    "action": "NO_AUTOMATIC_CRASH_RECOVERY_REQUIRE_MANUAL_REVIEW_AND_REVERT_PHASE2_FILES_ONLY",
+    "preserve_phase1": true,
+    "preserve_stage037_stage042": true,
+    "preserve_source_and_evidence": true,
+    "github_action_allowed": false
+  },
+  "phase3_entry_gate": {
+    "entry_authorized": true,
+    "required_task_id": "IDS-V0_1-STAGE043-P3",
+    "required_gate": "IDS-STAGE043-P3-GATE",
+    "separate_run_required": true,
+    "required_work": [
+      "validate duplicate and changed recovery requests",
+      "validate stale and conflicting crash evidence",
+      "validate mandatory resource pause boundaries",
+      "validate lock and fencing prevent duplicate processing",
+      "validate protected artifacts never enter cleanup execution"
+    ]
+  },
+  "truth_flags": {
+    "taskpack_source_read_performed": true,
+    "parameter_values_assigned": true,
+    "isolated_recovery_decision_runtime_performed": true,
+    "recovery_candidate_evaluation_performed": true,
+    "checkpoint_resume_candidate_evaluated": true,
+    "stage039_retry_candidate_evaluated": true,
+    "safe_failure_candidate_evaluated": true,
+    "resource_pause_candidate_evaluated": true,
+    "successful_recovery_observed": false,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "fake_ids_business_data_used": false,
+    "real_ids_business_job_created": false,
+    "process_probe_performed": false,
+    "crash_injected": false,
+    "process_crash_recovery_performed": false,
+    "process_termination_performed": false,
+    "worker_restart_performed": false,
+    "state_transition_performed": false,
+    "checkpoint_resume_performed": false,
+    "queue_runtime_performed": false,
+    "worker_runtime_performed": false,
+    "retry_scheduler_performed": false,
+    "backpressure_runtime_performed": false,
+    "production_lock_runtime_performed": false,
+    "automatic_lifecycle_runtime_performed": false,
+    "cleanup_runtime_performed": false,
+    "protected_ref_delete_performed": false,
+    "persistent_state_write_performed": false,
+    "database_connection_performed": false,
+    "schema_change_performed": false,
+    "runtime_output_written": false,
+    "external_api_call_performed": false,
+    "production_runtime_activation_performed": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "app_reinstall_allowed": false
+  }
+}

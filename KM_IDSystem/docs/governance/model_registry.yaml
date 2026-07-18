@@ -34,6 +34,11 @@ assumptions:
     fact_level: "PROPOSED"
     unknown_task_ids: ["TASK-OPME-B-001"]
     evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE2_AUTOMATIC_LIFECYCLE_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json"]
+  - assumption_id: "ASM-008"
+    statement: "The Stage043 crash-recovery timing values are composed from reviewed Stage039 through Stage042 isolated safety boundaries and are not production calibrated."
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"]
 models:
   - model_id: "MOD-001"
     name: "Dynamic kiln risk rule"
@@ -211,3 +216,19 @@ models:
     code_refs: ["KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"]
     test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"]
     evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE2_AUTOMATIC_LIFECYCLE_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json"]
+  - model_id: "MOD-012"
+    name: "Worker crash recovery candidate decision policy"
+    kind: "deterministic_control_policy"
+    purpose: "Evaluate reference-only crash evidence and emit guarded checkpoint, retry, safe-failure, or resource-pause candidates without recovering a process or mutating state."
+    owner: "KM_IDSystem"
+    status: "planned"
+    fact_level: "PROPOSED"
+    model_version: "ids.worker_crash_recovery_policy.v0_1.stage043.p2"
+    assumptions: ["ASM-008"]
+    formula_ids: ["FORM-012"]
+    parameter_ids: ["PARAM-077", "PARAM-078", "PARAM-079", "PARAM-080", "PARAM-081"]
+    inputs: ["Git-tracked control input refs", "worker generation and crash incident identity", "heartbeat, lease, state-version, fencing, resource, checkpoint and error evidence", "logical evaluation timestamps"]
+    outputs: ["decision_action", "transition_candidates", "human_status", "input_refs", "output_refs", "error_ref", "checkpoint_ref", "quarantine_ref", "audit_ref"]
+    code_refs: ["KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"]

@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-18T08:22:26Z"
-status: "stage043_phase1_completed"
+updated_at_utc: "2026-07-18T10:45:01Z"
+status: "stage043_phase2_completed"
 
 transition_history:
+  stage043_phase2_state:
+    status: "stage043_phase2_completed"
+    current_task_id: "IDS-V0_1-STAGE043-P2"
+    next_gate: "IDS-STAGE043-P3-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE043-P3"
+    github_upload_allowed: false
   stage043_phase1_state:
     status: "stage043_phase1_completed"
     current_task_id: "IDS-V0_1-STAGE043-P1"
@@ -362,34 +368,47 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
   STAGE-043:
-    status: "stage043_phase1_completed"
+    status: "stage043_phase2_completed"
     completed_phases:
       - "Phase 1"
-    next_stage: "STAGE-043"
-    next_gate: "IDS-STAGE043-P2-GATE"
-    current_task_id: "IDS-V0_1-STAGE043-P1"
+      - "Phase 2"
+    next_phase: "Phase 3"
+    next_gate: "IDS-STAGE043-P3-GATE"
+    current_task_id: "IDS-V0_1-STAGE043-P2"
     acceptance_id: "ACC-STAGE-043"
-    acceptance_status: "phase1_completed"
+    acceptance_status: "phase2_slice_complete"
     review_status: "not_started"
     phase2_entry_authorized: true
-    phase3_entry_authorized: false
+    phase3_entry_authorized: true
     phase4_entry_authorized: false
     source_verification_status: "SOURCE_VERIFIED"
     source_member_match_count: 1
     source_member_sha256: "e1d5169cbc30515930a7224743b860d9b577ccfbf9e0f913ec254d2ea060317b"
     crash_recovery_contract_id: "ids.worker_crash_recovery.v0_1.p1"
     crash_recovery_contract_schema: "ids.stage043.worker_crash_recovery.phase1.v1"
+    crash_recovery_policy_contract_id: "ids.worker_crash_recovery_policy.v0_1.stage043.p2"
+    crash_recovery_runtime_contract_schema: "ids.stage043.worker_crash_recovery.phase2.v1"
     phase1_contract_valid: true
-    contract_state: "PHASE1_ENGINEERING_CONTRACT_RUNTIME_DISABLED"
-    parameter_fact_level: "DEFERRED"
-    numeric_policy_values_assigned: false
+    phase2_slice_valid: true
+    contract_state: "PHASE2_ISOLATED_RECOVERY_DECISION_SLICE_ENABLED_PRODUCTION_DISABLED"
+    parameter_fact_level: "PROPOSED"
+    numeric_policy_values_assigned: true
+    production_calibration_task_id: "TASK-OPME-B-001"
+    production_calibrated: false
     taskpack_source_read_performed: true
     ids_business_source_read_performed: false
     raw_metadata_content_accessed: false
     fake_ids_business_data_used: false
     real_ids_business_job_created: false
-    recovery_candidate_evaluation_performed: false
+    isolated_recovery_decision_runtime_performed: true
+    recovery_candidate_evaluation_performed: true
+    checkpoint_resume_candidate_evaluated: true
+    stage039_retry_candidate_evaluated: true
+    safe_failure_candidate_evaluated: true
+    resource_pause_candidate_evaluated: true
     successful_recovery_observed: false
+    process_probe_performed: false
+    crash_injected: false
     queue_runtime_performed: false
     worker_runtime_performed: false
     retry_scheduler_performed: false
@@ -418,12 +437,16 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_contract.json"
       - "KM_IDSystem/scripts/check_worker_crash_recovery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"
+      - "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE043-P1"
-  next_allowed_task_id: "IDS-V0_1-STAGE043-P2"
+  current_task_id: "IDS-V0_1-STAGE043-P2"
+  next_allowed_task_id: "IDS-V0_1-STAGE043-P3"
   github_upload_allowed: false
-  current_run: "STAGE-043 Phase 1 binds the approved source, reviewed Stage042 predecessor and exact Stage037-042 contracts into a static fail-closed crash-recovery engineering contract. No process crash, recovery, termination, restart, state mutation, delete, persistence, raw metadata, GitHub, app or production action ran."
-  no_upload_reason: "BATCH041_050 has two completed and individually reviewed Stages plus Stage043 Phase 1, but Stage043 Phase 2-4 and review, STAGE-044..050, the separate ten-stage review and the batch upload gate remain incomplete; single-stage upload is forbidden."
+  current_run: "STAGE-043 Phase 2 assigns five sourced PROPOSED timing bounds and evaluates checkpoint, Stage039 retry, safe-failure and resource-pause candidates in an isolated reference-only process. No crash, recovery, termination, restart, state mutation, delete, persistence, raw metadata, GitHub, app or production action ran."
+  no_upload_reason: "BATCH041_050 has two completed and individually reviewed Stages plus Stage043 Phase 1-2, but Stage043 Phase 3-4 and review, STAGE-044..050, the separate ten-stage review and the batch upload gate remain incomplete; single-stage upload is forbidden."

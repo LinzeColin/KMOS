@@ -2,21 +2,24 @@
 
 ## Current Gate - 2026-07-18
 
-- Completed task in this run: `IDS-V0_1-STAGE043-P1`; the static worker-crash-recovery engineering contract is valid with all runtime effects disabled. Stage043 itself is not complete or reviewed.
-- Next allowed task: `IDS-V0_1-STAGE043-P2`, in a separate future run behind `IDS-STAGE043-P2-GATE`; this run must not enter Phase 2.
+- Completed task in this run: `IDS-V0_1-STAGE043-P2`; the isolated reference-only worker-crash-recovery candidate decision slice is valid with all real process and state effects disabled. Stage043 itself is not complete or reviewed.
+- Next allowed task: `IDS-V0_1-STAGE043-P3`, in a separate future run behind `IDS-STAGE043-P3-GATE`; this run must not enter Phase 3.
 - Workspace rule: `/Users/linzezhang/Documents/Codex/GithubProject/KMOS` remains the clean read-only `main` checkout. All work is isolated in `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041` on `codex/kmids-recovery-stage041-p1`, with scope limited to `KM_IDSystem/`.
 - Approved source: the unique archive member `IDS_v0_1_Final_Chinese_Revised/stages/STAGE-043_Worker崩溃恢复.md` has SHA-256 `e1d5169cbc30515930a7224743b860d9b577ccfbf9e0f913ec254d2ea060317b` inside archive SHA-256 `55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3`; roadmap and instruction hashes are bound exactly.
-- Predecessor baseline: Stage042 review commit `ba248f66ce993a726cb12547ae1c772ab1228bfa`, full commit tree `0e13164deeaa491fb98384fad5158a89658a2f77` and parent `2c489d049d73cd632e905c7af1b39ba662a2139b` are exact and remain ancestors of this work.
+- Phase 2 predecessor baseline: Stage043 Phase 1 commit `d4b5ec1ef9bff3d2390869b4fd2998bd17d2c671`, full commit tree `6d7af7a50506df15f229e35977143ead0f5b3f06` and parent `ba248f66ce993a726cb12547ae1c772ab1228bfa` are exact. The Stage042 reviewed predecessor remains an ancestor.
 - Lifecycle authority remains `ids.job_state.v1`: start is `QUEUED -> CLAIMED -> RUNNING`; active pause must pass through `PAUSE_REQUESTED`; resume is only `PAUSED -> QUEUED` followed by a fresh admission/claim/lock cycle; terminal states never reopen.
 - A crash decision requires current job, attempt, worker instance/generation, state version, heartbeat, lease, lock, fencing, checkpoint/quarantine/error and audit evidence. Missing, stale, conflicting or incomplete evidence requires manual review.
 - Checkpoint continuation is candidate-only and requires integrity, idempotency, owner/resource revalidation, lost-worker fencing, current state version and a fresh admission/claim/lock cycle. Blind continuation and in-memory state restoration are forbidden.
 - External-drive offline, insufficient disk and insufficient API budget always pause related work. Partial output is quarantined/reference-only; cleanup candidates remain Stage044-owned and expose no delete path.
 - Stage038 owns queue/worker transport, Stage039 retry/dead-letter, Stage040 pressure, Stage041 lock/lease/fencing, Stage043 process-crash recovery and Stage044 cleanup execution. Phase 4 only replays reviewed control evidence and does not absorb downstream runtime ownership.
-- Stage043 Phase 1 assigns no numeric values. Crash detection, heartbeat staleness, lease grace, recovery backoff and checkpoint validation timing remain deferred to a separately sourced Phase 2.
-- TDD RED produced 13 expected failures and one missing-file error across 11 focused tests. Final GREEN passed checker `19/19`, focused `11/11`, Stage005 `160/160`, Stage041–043 aggregate `140/140`, full discovery `878/878` in `1013.621s`, five historical stage-review checkers, idempotent rendering and project dual-plane.
+- Phase 2 assigns proposed values `1s / 30s / 5s / 30s / 30s` for crash detection, heartbeat staleness, lease grace, recovery backoff and checkpoint validation. They are derived exactly from reviewed Stage039-042 isolated bounds, registered as `MOD-012` / `FORM-012` / `PARAM-077..081`, remain uncalibrated and require `TASK-OPME-B-001` before production activation.
+- The deterministic in-memory slice evaluates checkpoint continuation, Stage039 retry, safe failure and mandatory resource-pause candidates. It performs no process probe/crash/recovery, state transition, checkpoint continuation, queue/retry/lock mutation, persistence or output write.
+- TDD RED produced 19 expected failures across 16 focused tests because the Phase 2 files, registries and route were absent. Final GREEN passed checker `18/18 + 15/15`, focused `16/16`, Stage005 `161/161`, Stage041-043 aggregate `156/156` in `644.177s`, full discovery `895/895` in `1065.039s`, five historical stage-review checkers, `207` clean events, idempotent rendering and project dual-plane.
+- Layered validation repaired only glossary registration, the explicit historical Stage042 `11/11/76` registry-count checkpoint, Stage041/042 current handoff compatibility and P2-to-P3 forward-route allowlists. Historical review conclusions, contracts and runtime safety were not weakened.
+- Pre-commit self-review repaired one Important fail-closed gap: control identities now use the same safe-reference grammar, and invalid requests cannot project untrusted error/checkpoint/quarantine references into results.
 - The first full run exposed seven Stage038/039 current-gate allowlist gaps and the second exposed one stale generated owner view; both were repaired narrowly before the final all-green run. The root governance runner is absent under this sparse checkout; sparse scope was not expanded and no unrelated project was inspected.
 - The closeout evidence still composes the exact 8-job-type/11-state/4-terminal/21-transition graph, reviewed 3-attempt/2-retry log, seven pressure signals and twelve passing isolated scenarios. Observed automatic recovery remains empty.
-- Current batch gate: `BATCH041_050` has two locally reviewed Stages plus Stage043 Phase 1 and remains locked with `push_allowed=false`; no single-stage upload, GitHub action, merge, app reinstall, Stage043 later phase, batch review or production action is authorized.
+- Current batch gate: `BATCH041_050` has two locally reviewed Stages plus Stage043 Phase 1-2 and remains locked with `push_allowed=false`; no single-stage upload, GitHub action, merge, app reinstall, Stage043 later phase, batch review or production action is authorized.
 - Preserve owner-controlled dependency/service paths (`backend/requirements.txt`, `frontend/package.json`, `frontend/pnpm-workspace.yaml`, `scripts/run_local_services.sh`); this phase does not modify them.
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only governance boundary and was not touched. Do not read, list, hash, open, scan, copy, move, delete, modify, dump, or normalize its contents.
 
@@ -121,7 +124,7 @@ Commit/PR summaries must include:
 - Active task worktree: `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041`.
 - Project scope: `KM_IDSystem/` only.
 - Current local state: `STAGE-031..STAGE-040` and their independent batch review are merged to GitHub `main`; `STAGE-041` is locally reviewed, and `STAGE-042` is locally reviewed.
-- Current task: `IDS-V0_1-STAGE043-P1`; the only next task is `IDS-V0_1-STAGE043-P2` in a separate run behind `IDS-STAGE043-P2-GATE`. Ten-stage batch review, upload, merge and app reinstall remain separate gates.
+- Current task: `IDS-V0_1-STAGE043-P2`; the only next task is `IDS-V0_1-STAGE043-P3` in a separate run behind `IDS-STAGE043-P3-GATE`. Ten-stage batch review, upload, merge and app reinstall remain separate gates.
 - Preserved Stage042 review transition: Completed task in this run: `IDS-V0_1-STAGE042-REVIEW`; Next allowed task: `IDS-V0_1-STAGE043-P1`. This is historical evidence, not the current gate.
 - Stage042 review publishes `ids.stage042.automatic_lifecycle.stage_review.v1`, binds the committed Phase4 baseline, reruns all four phase checkers and machine-checks five repaired findings.
 - Stage042 Phase 3 publishes `ids.stage042.automatic_lifecycle.phase3.scenarios.v1`, twelve isolated scenarios with actual lifecycle, process-crash recovery, termination, cleanup/delete, persistence and production effects disabled.
@@ -210,8 +213,8 @@ These are recoverable from source, scripts, and GitHub.
   the Phase 2 policy registry by using `planned` / `PROPOSED` and linking
   production calibration to `TASK-OPME-B-001`. Stage040 added one planned model,
   one planned formula and nine planned parameters; Stage041 and Stage042 Phase 2
-  add two more of each registry type plus twelve planned parameters. Current
-  totals are 11/11/76 while active counts remain 7/7/49. The remaining `29`
+  add three more of each registry type plus seventeen planned parameters. Current
+  totals are 12/12/81 while active counts remain 7/7/49. The remaining `29`
   project-wide diagnostics are expected sparse root or unrelated-project paths
   and must not trigger sparse expansion.
 - Docker was not available on this Mac during validation, so Docker Compose syntax could not be executed locally.

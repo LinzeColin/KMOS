@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE043",
-  "phase": "IDS-STAGE043-P1",
-  "task": "IDS-V0_1-STAGE043-P1",
-  "real_progress": "Stage043 步骤一静态工程合同已完成；Stage043 整体未完成或复审",
-  "report_grade": "批准来源、Stage042 复审祖先与 Stage037-042 精确哈希均由失败关闭检查器绑定",
-  "business_verdict": "仅本地静态合同通过；进程崩溃、恢复、终止、状态修改、清理、持久化与生产运行时均禁用",
-  "evidence_status": "LOCAL_PHASE1_CONTRACT_VALIDATED_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE043-P2",
+  "task": "IDS-V0_1-STAGE043-P2",
+  "real_progress": "Stage043 步骤二隔离候选决策切片已完成；Stage043 整体未完成或复审",
+  "report_grade": "五个提议时间边界、规范恢复身份、崩溃证据与四类候选由失败关闭检查器绑定",
+  "business_verdict": "仅本地 reference-only 候选判断通过；真实进程崩溃、恢复、终止、重启、状态修改、清理、持久化与生产运行时均禁用",
+  "evidence_status": "LOCAL_PHASE2_ISOLATED_DECISION_VALIDATED_PRODUCTION_DISABLED",
   "rendered_at": "2026-07-18",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE043-P2-GATE",
+  "next_gate": "IDS-STAGE043-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
