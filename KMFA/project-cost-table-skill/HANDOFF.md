@@ -48,3 +48,5 @@ This product release is not a current business-result approval. Current calculat
 R12 close requires the staged public-boundary scan, canonical package validator, Git overlap review, commit/push/merge evidence and clean remote/main parity. Those facts are recorded outside the public package in the sealed R12 acceptance evidence; do not infer them from this handoff alone.
 
 After parity is proven, the next and only allowed run is global Skill installation from the clean main repository followed by discoverability and behavioral parity validation. Do not copy private runtime, raw inputs or release evidence into the global Skill package.
+
+A global Skill copy has no `.git` metadata. When it is registered at `$CODEX_HOME/skills/project-cost-table-skill`, `run_input_preflight.py` treats the validated module root as the protected public boundary, permits outputs only outside it or under its local `private_runtime`, and rejects incomplete/tampered or unregistered standalone copies before creating runtime state. Repository checkouts continue to use the discovered Git root.

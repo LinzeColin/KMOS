@@ -335,3 +335,11 @@
 | R0–R11 | complete | Governance through private current expected-block regression |
 | R12 | complete | Security corpus, performance baseline, release governance and Git integration gate |
 | Global install | not_started | Separate post-parity run |
+
+## 2026-07-18 — Post-R12 global-install portability repair
+
+- Contract: Task Pack `1.2.0`, product `0.2.0`, separate global-install Run after R12 and clean-main parity.
+- The first repo-native global copy was byte-exact, but its installed-directory full suite exposed two failures: `run_input_preflight.py` required a Git repository root even though a global Skill intentionally has no `.git` metadata.
+- Added a fail-closed standalone-package fallback. A complete, non-symlinked `$CODEX_HOME/skills/project-cost-table-skill` root becomes the protected output boundary when Git is unavailable; incomplete or unregistered copies fail before `private_runtime` creation.
+- Added subprocess tests for the repo-less success path and incomplete-package rejection. Repository checkout behavior and raw/private containment remain unchanged.
+- Machine-local installation completion is not claimed by this source change; it still requires post-merge reinstall, full installed-directory tests, byte parity, discoverability metadata and a sealed external acceptance record.

@@ -76,6 +76,12 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_skill_package.py \
 
 The validator requires version `0.2.0`, R0–R12 complete, global installation still `NOT_STARTED`, implemented traceability/formulas, exact performance budgets, valid schemas/test matrix, release wording, and zero requested boundary findings.
 
+## Post-R12 standalone-install parity
+
+The global copy is installed without repository metadata. Behavioral parity therefore requires the input-preflight entrypoint to operate from a complete `$CODEX_HOME/skills/project-cost-table-skill` root while preserving the same output-containment rule: public package files cannot receive run outputs, and only the local `private_runtime` subtree is allowed inside the module. If Git metadata is unavailable and the governed package markers are incomplete, symlinked or outside the registered Codex Skills root, preflight fails with `STANDALONE_MODULE_ROOT_INVALID` before runtime directories are created.
+
+Global-install acceptance must run the full suite from the installed directory, execute a real missing-input preflight, verify absolute locators and detached seals, and compare every installed public file byte-for-byte with the selected clean-main commit. A conventional filesystem layout or a successful copy command alone is not behavioral parity.
+
 ## Stop and rollback conditions
 
 Stop release and do not push/merge if any of these occurs:

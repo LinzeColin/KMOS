@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -74,6 +75,45 @@ def resolution_mapping(
 
 
 class InputGateTests(unittest.TestCase):
+    @staticmethod
+    def _copy_standalone_markers(destination: Path) -> None:
+        required_files = (
+            "SKILL.md",
+            "VERSION",
+            "config/input_requirements.yml",
+            "config/metric_catalog.yml",
+            "config/security_limits.yml",
+            "src/project_cost_table/__init__.py",
+            "scripts/run_input_preflight.py",
+        )
+        for relative in required_files:
+            target = destination / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(MODULE_ROOT / relative, target)
+
+    @staticmethod
+    def _run_repo_less_preflight(
+        *, request_path: Path, module_root: Path, cwd: Path, codex_home: Path
+    ) -> subprocess.CompletedProcess[str]:
+        environment = dict(os.environ)
+        environment["PATH"] = ""
+        environment["CODEX_HOME"] = str(codex_home)
+        return subprocess.run(
+            [
+                sys.executable,
+                str(MODULE_ROOT / "scripts" / "run_input_preflight.py"),
+                "--request",
+                str(request_path),
+                "--module-root",
+                str(module_root),
+            ],
+            cwd=str(cwd),
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
     def _sufficient_cost_paid(self, root: Path) -> tuple[OperationRequest, object, tuple, Path]:
         raw = root / "raw"
         raw.mkdir()
@@ -400,6 +440,96 @@ class InputGateTests(unittest.TestCase):
             self.assertIn("OUTPUT_DIR: %s" % canonical_output, result.stdout)
             self.assertTrue((canonical_output / "input_sufficiency_report.json").is_file())
             self.assertTrue(verify_detached_seal(canonical_output))
+
+    def test_script_missing_run_is_portable_without_git_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            codex_home = root / "codex-home"
+            standalone_module = codex_home / "skills" / "project-cost-table-skill"
+            self._copy_standalone_markers(standalone_module)
+            output_dir = root / "standalone-diagnostic-output"
+            request_path = root / "request.json"
+            request_path.write_text(
+                json.dumps(
+                    operation_request_mapping(
+                        run_id="RUN-R3-STANDALONE-MISSING",
+                        mode="calculate",
+                        output_dir=output_dir,
+                        metrics=["COST_PAID"],
+                        basis_ids=["CASH_VERIFIED"],
+                    )
+                ),
+                encoding="utf-8",
+            )
+            result = self._run_repo_less_preflight(
+                request_path=request_path,
+                module_root=standalone_module,
+                cwd=root,
+                codex_home=codex_home,
+            )
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            canonical_output = Path(os.path.realpath(str(output_dir)))
+            self.assertIn("RESULT_STATUS: NEEDS_USER_INPUT", result.stdout)
+            self.assertIn("OUTPUT_DIR: %s" % canonical_output, result.stdout)
+            self.assertTrue((canonical_output / "input_sufficiency_report.json").is_file())
+            self.assertTrue(verify_detached_seal(canonical_output))
+
+    def test_script_rejects_repo_less_copy_outside_codex_skills(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            standalone_module = root / "unregistered-copy" / "project-cost-table-skill"
+            self._copy_standalone_markers(standalone_module)
+            request_path = root / "request.json"
+            request_path.write_text(
+                json.dumps(
+                    operation_request_mapping(
+                        run_id="RUN-R3-UNREGISTERED-STANDALONE",
+                        mode="calculate",
+                        output_dir=root / "must-not-exist",
+                        metrics=["COST_PAID"],
+                        basis_ids=["CASH_VERIFIED"],
+                    )
+                ),
+                encoding="utf-8",
+            )
+            result = self._run_repo_less_preflight(
+                request_path=request_path,
+                module_root=standalone_module,
+                cwd=root,
+                codex_home=root / "codex-home",
+            )
+            self.assertEqual(result.returncode, 4, result.stdout + result.stderr)
+            self.assertIn("STANDALONE_MODULE_ROOT_INVALID", result.stdout)
+            self.assertFalse((standalone_module / "private_runtime").exists())
+
+    def test_script_rejects_incomplete_standalone_module_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            codex_home = root / "codex-home"
+            fake_module = codex_home / "skills" / "project-cost-table-skill"
+            fake_module.mkdir(parents=True)
+            request_path = root / "request.json"
+            request_path.write_text(
+                json.dumps(
+                    operation_request_mapping(
+                        run_id="RUN-R3-INCOMPLETE-STANDALONE",
+                        mode="calculate",
+                        output_dir=root / "must-not-exist",
+                        metrics=["COST_PAID"],
+                        basis_ids=["CASH_VERIFIED"],
+                    )
+                ),
+                encoding="utf-8",
+            )
+            result = self._run_repo_less_preflight(
+                request_path=request_path,
+                module_root=fake_module,
+                cwd=root,
+                codex_home=codex_home,
+            )
+            self.assertEqual(result.returncode, 4, result.stdout + result.stderr)
+            self.assertIn("STANDALONE_MODULE_ROOT_INVALID", result.stdout)
+            self.assertFalse((fake_module / "private_runtime").exists())
 
     def test_script_accepts_only_resolution_bound_to_sealed_prior_incomplete_report(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

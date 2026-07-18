@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import stat
 import subprocess
@@ -111,6 +112,30 @@ def _load_prior_request_hash(path: Path, *, expected_run_id: str) -> str:
     return request_hash
 
 
+def _is_valid_standalone_module_root(module_root: Path) -> bool:
+    codex_home = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))).expanduser()
+    try:
+        skills_root = (codex_home / "skills").resolve(strict=True)
+    except OSError:
+        return False
+    if module_root.parent != skills_root or module_root.name != "project-cost-table-skill":
+        return False
+    required_files = (
+        "SKILL.md",
+        "VERSION",
+        "config/input_requirements.yml",
+        "config/metric_catalog.yml",
+        "config/security_limits.yml",
+        "src/project_cost_table/__init__.py",
+        "scripts/run_input_preflight.py",
+    )
+    for relative in required_files:
+        candidate = module_root / relative
+        if candidate.is_symlink() or not candidate.is_file():
+            return False
+    return True
+
+
 def _discover_repo_root(module_root: Path) -> Path:
     try:
         output = subprocess.check_output(
@@ -120,8 +145,20 @@ def _discover_repo_root(module_root: Path) -> Path:
             text=True,
         ).strip()
     except (OSError, subprocess.CalledProcessError) as exc:
-        raise InputGateError("REPO_ROOT_UNAVAILABLE", "repository root cannot be discovered") from exc
-    return Path(output).resolve(strict=True)
+        if _is_valid_standalone_module_root(module_root):
+            return module_root
+        raise InputGateError(
+            "STANDALONE_MODULE_ROOT_INVALID",
+            "repository metadata is unavailable and the standalone Skill package is incomplete",
+        ) from exc
+    if not output:
+        raise InputGateError("REPO_ROOT_INVALID", "repository root discovery returned an empty path")
+    try:
+        repo_root = Path(output).resolve(strict=True)
+        module_root.relative_to(repo_root)
+    except (OSError, ValueError) as exc:
+        raise InputGateError("REPO_ROOT_INVALID", "module root is outside the discovered repository") from exc
+    return repo_root
 
 
 def main() -> int:
