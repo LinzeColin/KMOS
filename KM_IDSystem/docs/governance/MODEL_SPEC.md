@@ -3,9 +3,9 @@
 Project: `KM_IDSystem`
 Governance spec version: `1.0.0`
 
-- model_count: 10
-- formula_count: 10
-- parameter_count: 71
+- model_count: 11
+- formula_count: 11
+- parameter_count: 76
 - active_model_count: 7
 - active_formula_count: 7
 - active_parameter_count: 49
@@ -40,6 +40,15 @@ memory. Acquire, renew, release, takeover, and fencing decisions perform no
 database, persistent lock, queue, worker, retry, business-job, raw-metadata, or
 production action. All seven proposed values require production calibration
 under `TASK-OPME-B-001` before activation.
+
+`MOD-011`, `FORM-011`, and `PARAM-072` through `PARAM-076` are planned,
+non-production Stage042 automatic-lifecycle decision registrations. They
+evaluate only Git-tracked reference metadata and emit start, pause, resume,
+safe-shutdown, or cleanup-scan candidates plus human status, error, checkpoint,
+and audit references. They do not mutate state, terminate processes, delete
+artifacts, persist decisions, or activate production runtime. All five proposed
+timing values require production calibration under `TASK-OPME-B-001` before
+activation.
 
 Technology stack components such as FastAPI, React, SQLite, ECharts, and PDF generation are architecture/output components, not models.
 

@@ -29,6 +29,11 @@ assumptions:
     fact_level: "PROPOSED"
     unknown_task_ids: ["TASK-OPME-B-001"]
     evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE2_LOCK_REGISTRY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"]
+  - assumption_id: "ASM-007"
+    statement: "The Stage042 automatic lifecycle timing values are composed from reviewed Stage040 and Stage041 isolated safety boundaries and are not production calibrated."
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE2_AUTOMATIC_LIFECYCLE_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json"]
 models:
   - model_id: "MOD-001"
     name: "Dynamic kiln risk rule"
@@ -190,3 +195,19 @@ models:
     code_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py"]
     test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"]
     evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE2_LOCK_REGISTRY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"]
+  - model_id: "MOD-011"
+    name: "Automatic lifecycle candidate decision policy"
+    kind: "deterministic_control_policy"
+    purpose: "Evaluate reference-only start, pause, resume, safe-shutdown, and cleanup-scan candidates without mutating jobs or activating production runtime."
+    owner: "KM_IDSystem"
+    status: "planned"
+    fact_level: "PROPOSED"
+    model_version: "ids.automatic_lifecycle_policy.v0_1.stage042.p2"
+    assumptions: ["ASM-007"]
+    formula_ids: ["FORM-011"]
+    parameter_ids: ["PARAM-072", "PARAM-073", "PARAM-074", "PARAM-075", "PARAM-076"]
+    inputs: ["Git-tracked control input refs", "bounded lifecycle action and state metadata", "resource and lock evidence refs", "logical evaluation timestamps"]
+    outputs: ["decision_action", "human_status", "input_refs", "output_refs", "error_ref", "checkpoint_ref", "audit_ref"]
+    code_refs: ["KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE2_AUTOMATIC_LIFECYCLE_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json"]

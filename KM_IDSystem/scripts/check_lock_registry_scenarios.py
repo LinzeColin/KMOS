@@ -78,7 +78,7 @@ EXPECTED_UPSTREAM = {
     "stage041_phase2_tests": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
         "test_stage041_lock_registry_runtime.py",
-        "449cb7b986d764300f14d3d27d651f615ec1c70a3cdf64f6c8ca788cec5a4e85",
+        "0fb59cf892f5ef0246f1382b646cd3140cd3483d804d8504f252f878a31eb0ab",
     ),
     "stage040_phase3_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/"

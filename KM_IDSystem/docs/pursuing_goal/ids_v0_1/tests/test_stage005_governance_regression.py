@@ -9650,8 +9650,77 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
 
         tampered_batch = batch_text.replace(
-            'next_allowed_task_id: "IDS-V0_1-STAGE042-P2"',
-            'next_allowed_task_id: "IDS-V0_1-STAGE042-P3"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE042-P2"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE042-P3"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE042-P2"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE042-P4"',
+        )
+        blocked = module.evaluate_current_state_consistency(
+            tampered_batch, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage042_phase2_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_path = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        )
+        batch_text = batch_path.read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase2_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE042-P2-20260718-001"
+        ]
+        self.assertEqual(1, len(phase2_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase2_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE042_PHASE2_AUTOMATIC_LIFECYCLE_SLICE.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/"
+            "stage042_automatic_lifecycle_runtime_contract.json",
+            "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage042_automatic_lifecycle_runtime.py",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE042-P2-20260718-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_batch = batch_text.replace(
+            'automatic_lifecycle_runtime_contract_schema: '
+            '"ids.stage042.automatic_lifecycle.phase2.v1"\n'
+            '    phase1_contract_valid: true\n'
+            '    phase2_slice_valid: true',
+            'automatic_lifecycle_runtime_contract_schema: '
+            '"ids.stage042.automatic_lifecycle.phase2.v1"\n'
+            '    phase1_contract_valid: true\n'
+            '    phase2_slice_valid: false',
         )
         blocked = module.evaluate_phase_state(
             tampered_batch, roadmap_text, require_structured=True

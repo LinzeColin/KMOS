@@ -172,11 +172,11 @@ EXPECTED_UPSTREAM = {
     "stage041_phase3_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/"
         "stage041_lock_registry_scenarios.json",
-        "e18a4ffdac11b6f51f689b125a2dea38a0ae912f995fbfd44c37763723a828e3",
+        "0866db20e070d1b93981f4b7b4180977f3221395310f1194ddcaa14556268c19",
     ),
     "stage041_phase3_checker": (
         "KM_IDSystem/scripts/check_lock_registry_scenarios.py",
-        "d4d28ff0298341d098921cd16d379550e4b2707ea4db3017852528ffc6156205",
+        "fa46f374e4708c15b0d3e856e42e55f1c784dd926278ad86a8610878b59d606e",
     ),
     "stage041_phase3_evidence": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
@@ -186,7 +186,7 @@ EXPECTED_UPSTREAM = {
     "stage041_phase3_tests": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
         "test_stage041_lock_registry_scenarios.py",
-        "e316ca0f83902a6754aefad94b5351db387476c5fad8e0047f30e86616577058",
+        "cbb987af3f44540ce9f6a258851dbcad6ac69a1a957760098577f3a4ca26081d",
     ),
 }
 

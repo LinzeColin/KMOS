@@ -293,3 +293,35 @@ formulas:
     implementation_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py::IsolatedLockRegistry", "KM_IDSystem/scripts/check_lock_registry_runtime.py::build_stage041_phase2_report"]
     semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
     semantic_review_task_ids: ""
+  - formula_id: "FORM-011"
+    model_id: "MOD-011"
+    assumption_ids: ["ASM-007"]
+    status: "planned"
+    expression: "validate the exact reference-only request and Git-tracked evidence; reject terminal-state mutation; AUTO_START requires fresh resource, admission, claim, live lease, lock, and fence evidence; AUTO_PAUSE emits only legal pause candidates; AUTO_RESUME requires owner revalidation, a full stability window, no active claim or lock, and a fresh admission/lock cycle; SAFE_SHUTDOWN emits an ordered candidate without process termination; cleanup emits only an eligible Stage044-owned candidate and never deletes."
+    variables:
+      - name: "expected_state_version"
+        data_type: "integer"
+        unit: "monotonic control version"
+        input_domain: "positive non-boolean integer"
+      - name: "resource_stable_for_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "zero or greater logical duration"
+      - name: "checkpoint_wait_elapsed_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "zero or greater logical duration"
+      - name: "shutdown_elapsed_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "zero or greater logical duration"
+    constraints: ["Isolated in-memory reference-only decision metadata.", "All input and observation refs must be Git tracked.", "Terminal states are immutable and legal transition paths are candidate-only.", "No process termination, cleanup delete, persistence, queue, worker, retry, lock, business-job, or production action.", "Production calibration is required before activation."]
+    missing_policy: "REQUIRE_MANUAL_REVIEW with no lifecycle action or state mutation."
+    output_range: "AUTO_START_CANDIDATE, AUTO_PAUSE_CANDIDATE, AUTO_RESUME_CANDIDATE, SAFE_SHUTDOWN_CANDIDATE, CLEANUP_CANDIDATE_ONLY, explicit rejection, or REQUIRE_MANUAL_REVIEW; no persistent write."
+    open_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE2_AUTOMATIC_LIFECYCLE_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json"]
+    implementation_refs: ["KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py::evaluate_lifecycle_request", "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py::InMemoryLifecycleDecisionLedger", "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py::build_stage042_phase2_report"]
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    semantic_review_task_ids: ""

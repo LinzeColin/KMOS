@@ -1,33 +1,33 @@
 {
   "items": [
     {
-      "id": "`ACC-STAGE042-P1-01`",
-      "criteria": "唯一批准任务包成员、归档、路线图和说明哈希匹配，Stage041 reviewed predecessor commit/tree 精确绑定",
+      "id": "`ACC-STAGE042-P2-01`",
+      "criteria": "唯一批准来源、步骤一前置提交与目录树以及 Stage037-041 上游内容精确绑定",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE042-P1-02`",
-      "criteria": "自动启动、暂停、恢复和安全关闭只使用 Stage037 权威状态与 guard，不允许捷径或 terminal reopen",
+      "id": "`ACC-STAGE042-P2-02`",
+      "criteria": "五个时间参数有明确来源、版本、回滚与规划中、提议值治理注册，不声称生产校准",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE042-P1-03`",
-      "criteria": "外置盘离线、磁盘不足和 API 预算不足产生暂停候选；恢复必须重新验证 owner、资源、admission 与 lock",
+      "id": "`ACC-STAGE042-P2-03`",
+      "criteria": "开始、暂停、恢复、安全关闭和清理扫描候选均使用权威状态与保护条件，不允许捷径或重新打开终态",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE042-P1-04`",
-      "criteria": "queue/worker、retry/dead-letter、backpressure、lock/fencing、crash recovery 与 cleanup ownership 未被越权吸收",
+      "id": "`ACC-STAGE042-P2-04`",
+      "criteria": "幂等重放、冲突、负责人复核、资源稳定、关闭超时与受保护清理均失败关闭",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE042-P1-05`",
-      "criteria": "生命周期幂等、reference-only 证据、ordered shutdown、两类 cleanup candidate 和五类保护资料均失败关闭",
+      "id": "`ACC-STAGE042-P2-05`",
+      "criteria": "结果记录已跟踪输入、空输出、安全错误、检查点与审计引用，且不回显原始载荷",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE042-P1-06`",
-      "criteria": "未进入 Phase 2、未触碰原始元数据、未使用虚构业务数据，未执行生命周期、持久化、上传、重装应用或生产运行时",
+      "id": "`ACC-STAGE042-P2-06`",
+      "criteria": "未进入步骤三、未触碰原始元数据、未使用虚构业务数据，未执行实际生命周期、终止、删除、持久化、上传、重装应用或生产运行时",
       "status": "已遵守"
     }
   ]

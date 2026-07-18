@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE042",
-  "phase": "IDS-STAGE042-P1",
-  "task": "IDS-V0_1-STAGE042-P1",
-  "real_progress": "Stage042 步骤一静态工程合同已完成；步骤二、运行态与整阶段复审未开始，v0.1 总进度未重新校准",
-  "report_grade": "检查器 19/19、聚焦 11/11、Stage005 158/158、Stage037-039 124/124、Stage040-042 129/129、全量 810/810；201 条事件与双平面通过",
-  "business_verdict": "仅本地静态合同通过；自动生命周期、进程恢复、清理删除、持久化和生产运行时均禁用",
-  "evidence_status": "LOCAL_PHASE1_CONTRACT_COMPLETE",
+  "phase": "IDS-STAGE042-P2",
+  "task": "IDS-V0_1-STAGE042-P2",
+  "real_progress": "Stage042 步骤二隔离候选决策切片已完成；步骤三、运行态与整阶段复审未开始，v0.1 总进度未重新校准",
+  "report_grade": "检查器 20/20 合同与 13/13 决策、聚焦 16/16、Stage004 3/3、Stage005 159/159、Stage037-039 124/124、Stage040-042 145/145、全量 827/827、202 条事件与双平面均通过",
+  "business_verdict": "仅本地仅供引用候选决策通过；实际自动生命周期、进程终止、清理删除、持久化和生产运行时均禁用",
+  "evidence_status": "LOCAL_PHASE2_SLICE_COMPLETE",
   "rendered_at": "2026-07-18",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE042-P2-GATE",
+  "next_gate": "IDS-STAGE042-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

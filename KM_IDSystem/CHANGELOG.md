@@ -1,5 +1,14 @@
 # Changelog
 
+## IDS v0.1 STAGE-042 Phase 2 - 2026-07-18
+
+- Added `ids.automatic_lifecycle_policy.v0_1.stage042.p2`, an exact-shaped isolated reference-only contract and stdout-only checker for automatic-start, resource-pause, guarded-resume, safe-shutdown and cleanup-scan candidates.
+- Registered `ASM-007`, `MOD-011`, `FORM-011` and `PARAM-072..076` as `planned` / `PROPOSED`; tick `1 s`, stability `60 s`, checkpoint wait `30 s`, shutdown `60 s` and cleanup scan `300 s` are derived from reviewed Stage040/041 boundaries and linked to `TASK-OPME-B-001`.
+- Implemented deterministic in-memory request validation, candidate evaluation and idempotent replay. Terminal history is immutable; active pause uses `PAUSE_REQUESTED`; resume returns only to `QUEUED`; input/output/error/checkpoint/audit refs remain truthful and raw payloads are not echoed.
+- Safe shutdown is an ordered candidate and never terminates a process. Cleanup emits only Stage044-owned eligible candidates and exposes no delete path. No state, queue, worker, retry, lock, database, persistence, business-job, raw metadata, external API or production action ran.
+- TDD RED produced four failures and fifteen errors across 16 focused tests because Phase 2 artifacts and governance were absent. Final GREEN passed checker `20/20 + 13/13`, focused `16/16`, Stage004 `3/3`, Stage005 `159/159`, Stage037-039 `124/124`, Stage040-042 `145/145`, full IDS v0.1 `827/827`, `202` clean events and the dual-plane gate. The first full run reached `826/827`; exact governance-ID compatibility was narrowed without accepting legacy display names.
+- Routed the only next task to separate `IDS-V0_1-STAGE042-P3` with `push_allowed=false`; no Phase 3, whole-stage review, batch review, GitHub upload/merge, issue action or app reinstall ran.
+
 ## IDS v0.1 STAGE-042 Phase 1 - 2026-07-18
 
 - Bound the unique approved Stage042 taskpack member, reviewed Stage041 commit/tree and exact Stage037–041 control contracts into `ids.stage042.automatic_lifecycle.phase1.v1`, an exact-shaped static engineering contract with a stdout-only fail-closed checker.

@@ -1,0 +1,76 @@
+{
+  "run_id": "`RUN-IDS-STAGE042-P2-LOCAL-20260718-001`",
+  "action": "注册五个有来源的提议时间边界，并实现仅引用、内存内、非生产的自动生命周期候选决策切片",
+  "result": "`PASS_LOCAL_PHASE2_PRODUCTION_DISABLED`",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "predecessor": {
+    "phase1_commit": "24972088d901d351ac6b59bdb704fea64121bfc9",
+    "phase1_tree": "8a7f8d7746eb20034a30e09a9b037feb72246896",
+    "phase1_parent": "f6b30f8a55d60f1b37b9d57ee55587149ad43876"
+  },
+  "source_integrity": {
+    "taskpack_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "stage042_member_sha256": "78a4bed1f5348837699bd7dd227898e6d47cc4099ca268ee1600bae84605ec08",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8"
+  },
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0
+  },
+  "implementation": {
+    "policy_version": "ids.automatic_lifecycle_policy.v0_1.stage042.p2",
+    "candidate_types": [
+      "AUTO_START",
+      "AUTO_PAUSE",
+      "AUTO_RESUME",
+      "SAFE_SHUTDOWN",
+      "CLEANUP_CANDIDATE_SCAN"
+    ],
+    "proposed_timing_seconds": {
+      "lifecycle_tick_interval": 1,
+      "resume_stability_window": 60,
+      "checkpoint_wait_timeout": 30,
+      "graceful_shutdown_timeout": 60,
+      "cleanup_scan_interval": 300
+    },
+    "registry_ids": [
+      "ASM-007",
+      "MOD-011",
+      "FORM-011",
+      "PARAM-072",
+      "PARAM-073",
+      "PARAM-074",
+      "PARAM-075",
+      "PARAM-076"
+    ],
+    "production_calibration_task_id": "TASK-OPME-B-001",
+    "actual_lifecycle_performed": false,
+    "state_mutation_performed": false,
+    "process_termination_performed": false,
+    "cleanup_delete_performed": false,
+    "persistence_performed": false
+  },
+  "verified_results": [
+    "检查器合同 20/20、候选决策 13/13、聚焦测试 16/16",
+    "Stage004 legacy-name 3/3、Stage005 治理回归 159/159",
+    "Stage037-039 聚合 124/124、Stage040-042 聚合 145/145",
+    "完整 IDS v0.1 discovery 827/827",
+    "202 条治理事件零解析、重复和语义错误",
+    "人类平面二次渲染哈希一致，项目级双平面 PASS",
+    "Stage041-to-Stage042 Git 索引哈希链精确重绑定且历史证据保持",
+    "首轮全量 826/827 暴露的治理 ID 误分类已收窄修复，legacy display name 仍失败关闭"
+  ],
+  "prohibitions_observed": [
+    "未进入 Stage042 Phase 3、整阶段复审或批次复审",
+    "未执行自动启动、暂停、恢复、关闭或任何状态写入",
+    "未终止进程、执行清理删除、持久化、数据库、schema 或外部 API 动作",
+    "未读取原始元数据或创建虚构 IDS 业务数据",
+    "未上传、推送、合并、变更 issue 或重装应用"
+  ],
+  "next_gate": "IDS-STAGE042-P3-GATE"
+}

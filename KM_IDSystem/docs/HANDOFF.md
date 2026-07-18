@@ -2,16 +2,17 @@
 
 ## Current Gate - 2026-07-18
 
-- Completed task in this run: `IDS-V0_1-STAGE042-P1`; only the static `ACC-STAGE-042` Phase 1 engineering contract is complete.
-- Next allowed task: `IDS-V0_1-STAGE042-P2`, in a separate future run behind `IDS-STAGE042-P2-GATE`; `NO_PHASE2_THIS_RUN` remains true.
+- Completed task in this run: `IDS-V0_1-STAGE042-P2`; the isolated, non-production `ACC-STAGE-042` lifecycle candidate decision slice is complete.
+- Next allowed task: `IDS-V0_1-STAGE042-P3`, in a separate future run behind `IDS-STAGE042-P3-GATE`; `NO_PHASE3_THIS_RUN` remains true.
 - Workspace rule: `/Users/linzezhang/Documents/Codex/GithubProject/KMOS` remains the clean read-only `main` checkout. All work is isolated in `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041` on `codex/kmids-recovery-stage041-p1`, with scope limited to `KM_IDSystem/`.
 - Approved source: the unique archive member `IDS_v0_1_Final_Chinese_Revised/stages/STAGE-042_自动运行、暂停、恢复与关闭.md` has SHA-256 `78a4bed1f5348837699bd7dd227898e6d47cc4099ca268ee1600bae84605ec08` inside archive SHA-256 `55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3`; roadmap and instruction hashes are bound exactly.
-- Predecessor binding: reviewed Stage041 commit `f6b30f8a55d60f1b37b9d57ee55587149ad43876`, tree `af262c4139f652d937534d58e826fe28a236f2a4`, parent `68a89e9c3d1fbb3eae347fe71f1bbbbf7bc9ddc2`, plus the exact Stage037–041 tracked contract hashes.
+- Predecessor binding: Stage042 Phase 1 commit `24972088d901d351ac6b59bdb704fea64121bfc9`, tree `8a7f8d7746eb20034a30e09a9b037feb72246896`, parent `f6b30f8a55d60f1b37b9d57ee55587149ad43876`, plus exact Phase 1 and Stage037–041 tracked contract hashes.
 - Lifecycle authority remains `ids.job_state.v1`: start is `QUEUED -> CLAIMED -> RUNNING`; active pause must pass through `PAUSE_REQUESTED`; resume is only `PAUSED -> QUEUED` followed by a fresh admission/claim/lock cycle; terminal states never reopen.
 - External-drive offline, insufficient disk and insufficient API budget are mandatory pause signals. Owner revalidation, fresh resource evidence, no active claim/lock and fencing rules remain mandatory.
-- Stage038 owns queue/worker transport, Stage039 retry/dead-letter, Stage040 pressure, Stage041 lock/lease/fencing, Stage043 process-crash recovery and Stage044 cleanup execution. Phase 1 emits only reference-only candidates.
-- All five timing parameters remain deferred with no implicit value or production-calibration claim. No lifecycle, queue, worker, retry, lock, recovery, cleanup, persistence, database, external API or runtime-output action ran.
-- Final layered validation passed checker `19/19`, focused `11/11`, Stage005 `158/158`, Stage037–039 `124/124`, Stage040–042 `129/129`, full IDS v0.1 `810/810`, `201` clean events, exact Git-index-bound Stage038–041 review checkers, idempotent rendering and the project dual-plane gate.
+- Stage038 owns queue/worker transport, Stage039 retry/dead-letter, Stage040 pressure, Stage041 lock/lease/fencing, Stage043 process-crash recovery and Stage044 cleanup execution. Phase 2 evaluates only reference-only candidates.
+- Five timing values are explicitly `PROPOSED`: tick `1 s`, resume stability `60 s`, checkpoint wait `30 s`, graceful shutdown `60 s`, cleanup scan `300 s`. They are registered as `MOD-011` / `FORM-011` / `PARAM-072..076`, linked to `TASK-OPME-B-001`, and are not production calibrated.
+- The deterministic in-memory slice evaluates guarded start, legal pause, owner-revalidated resume, ordered safe-shutdown and Stage044-owned cleanup candidates. It records tracked input refs, empty output refs, safe errors, checkpoint and audit refs without mutating state, terminating a process, deleting data, persisting decisions or echoing raw payloads.
+- Final layered validation passed: checker `20/20 + 13/13`, focused `16/16`, Stage004 `3/3`, Stage005 `159/159`, Stage037-039 `124/124`, Stage040-042 `145/145`, full IDS v0.1 `827/827`, `202` clean events, idempotent rendering and project-scoped dual-plane PASS. The first full run reached `826/827`; Stage004 was narrowed so exact `TASK-/FEAT-OPME-*` governance IDs are compatible while actual legacy display names still fail closed.
 - Current batch gate: `BATCH041_050` remains locally locked with `push_allowed=false`; no GitHub, PR, issue, merge, app reinstall, whole-stage review, batch review, or production action is authorized.
 - Preserve owner-controlled dependency/service paths (`backend/requirements.txt`, `frontend/package.json`, `frontend/pnpm-workspace.yaml`, `scripts/run_local_services.sh`); this phase does not modify them.
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only governance boundary and was not touched. Do not read, list, hash, open, scan, copy, move, delete, modify, dump, or normalize its contents.
@@ -116,8 +117,10 @@ Commit/PR summaries must include:
 - Read-only main checkout: `/Users/linzezhang/Documents/Codex/GithubProject/KMOS` (must remain on clean `main`).
 - Active task worktree: `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041`.
 - Project scope: `KM_IDSystem/` only.
-- Current local state: `STAGE-031..STAGE-040` and their independent batch review are merged to GitHub `main`; `STAGE-041` is locally reviewed, and only `STAGE-042` Phase 1 is locally complete.
-- Current task: `IDS-V0_1-STAGE042-P1`; the only next task is `IDS-V0_1-STAGE042-P2` in a separate run. Later phases, whole-stage review, ten-stage batch review, upload, merge and app reinstall remain separate gates.
+- Current local state: `STAGE-031..STAGE-040` and their independent batch review are merged to GitHub `main`; `STAGE-041` is locally reviewed, and `STAGE-042` Phases 1–2 are locally complete.
+- Current task: `IDS-V0_1-STAGE042-P2`; the only next task is `IDS-V0_1-STAGE042-P3` in a separate run. Later phases, whole-stage review, ten-stage batch review, upload, merge and app reinstall remain separate gates.
+- Stage042 Phase 2 publishes `ids.automatic_lifecycle_policy.v0_1.stage042.p2`, an isolated reference-only in-memory candidate-decision slice with all actual lifecycle and production side effects disabled.
+- `MOD-011`, `FORM-011`, and `PARAM-072..076` remain planned/proposed. The five timing values are derived from reviewed Stage040/041 bounds and require production calibration under `TASK-OPME-B-001`.
 - Stage042 Phase 1 binds the unique approved source, reviewed Stage041 commit/tree and exact Stage037–041 contracts into `ids.stage042.automatic_lifecycle.phase1.v1`.
 - The static contract preserves the authoritative state graph, owner/resource revalidation, Stage038–044 ownership, reference-only evidence, ordered shutdown and candidate-only cleanup while assigning no numeric parameters and performing no runtime.
 - Stage041 review repaired `1 Critical / 3 Important / 0 Minor`: strict-integer CAS evidence, monotonic logical time/live-lease mutations, exact runtime contract semantics, and current handoff/governance truth are now machine checked and fail closed.
@@ -164,7 +167,7 @@ Commit/PR summaries must include:
 - Throttle, denial, and resource pause consume no retry budget. Priority cannot bypass a safety gate, terminal states stay immutable, and active jobs must pass through `PAUSE_REQUESTED` before `PAUSED`.
 - Phase 1 assigns no numeric values. Queue thresholds, disk reserve, API budget window, high/low watermarks, observation TTL, per-job-type concurrency, and admission rate limit require separately sourced, versioned, tested, and rollback-ready Phase 2 selection.
 - Stage040 Phase 2 publishes `ids.backpressure_policy.v0_1.stage040.p2` as an isolated non-production decision slice. Its explicit parameters are soft/hard queue thresholds `2/4`, disk free threshold `1 GiB` above a `512 MiB` reserve, API window `60 s`, queue low watermark `1`, observation TTL `30 s`, per-job-type concurrency `1`, and admission rate `4` per window.
-- All nine Phase 2 values are `PROPOSED`, not production calibrated, and linked to `TASK-OPME-B-001`. `MOD-009`, `FORM-009`, and `PARAM-056..064` are planned registrations; current total model/formula/parameter counts are `9/9/64`, while active counts remain `7/7/49`.
+- All nine Phase 2 values are `PROPOSED`, not production calibrated, and linked to `TASK-OPME-B-001`. `MOD-009`, `FORM-009`, and `PARAM-056..064` were the planned registrations at Stage040 Phase 2 completion, when totals were `9/9/64`; after Stage041 and Stage042 Phase 2, current totals are `11/11/76`, while active counts remain `7/7/49`.
 - The decision engine is deterministic and in-memory: healthy observations admit, soft pressure/rate/concurrency throttle, hard capacity denies without a job, and drive/disk/API gates return legal pause candidates. Invalid or stale observations require manual review; terminal states remain immutable; duplicate decisions replay idempotently.
 - Phase 2 observes actual free space only for the project filesystem and writes no runtime output. It performs no queue/worker/retry scheduler/lock/resume/cleanup/database/raw-source/API/production action and creates no IDS business job.
 - Final Phase 2 validation: checker `18/18` contract and `8/8` slice checks; focused `15/15`; Stage040 `25/25`; Stage005 `147/147`; Stage031-039 `254/254`; Stage026-030 `75/75`; full IDS v0.1 discovery `687/687`; changed-only governance `0` errors / `0` warnings; `189` events with no duplicate ID; owner render drift/reference issues `0/0`.
@@ -199,9 +202,10 @@ These are recoverable from source, scripts, and GitHub.
 
 - STAGE-039 review reconciled all `21` project-level semantic diagnostics from
   the Phase 2 policy registry by using `planned` / `PROPOSED` and linking
-  production calibration to `TASK-OPME-B-001`. Stage040 adds one planned model,
-  one planned formula, and nine planned parameters, so current totals are
-  9/9/64 while active counts remain 7/7/49. The remaining `29`
+  production calibration to `TASK-OPME-B-001`. Stage040 added one planned model,
+  one planned formula and nine planned parameters; Stage041 and Stage042 Phase 2
+  add two more of each registry type plus twelve planned parameters. Current
+  totals are 11/11/76 while active counts remain 7/7/49. The remaining `29`
   project-wide diagnostics are expected sparse root or unrelated-project paths
   and must not trigger sparse expansion.
 - Docker was not available on this Mac during validation, so Docker Compose syntax could not be executed locally.

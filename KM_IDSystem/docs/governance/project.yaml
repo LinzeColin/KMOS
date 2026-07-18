@@ -250,6 +250,29 @@ features:
       - "EVID-OPME-MODEL-REGISTRY"
       - "EVID-OPME-FORMULA-REGISTRY"
       - "EVID-OPME-PARAMETER-REGISTRY"
+  -
+    feature_id: "FEAT-OPME-009"
+    name: "隔离自动生命周期候选决策策略"
+    description: "对真实 Git 跟踪控制引用执行开始、暂停、恢复、安全关闭与清理扫描候选决策；仅限非生产进程内存，不执行状态变更、终止或删除。"
+    status: "planned"
+    fact_level: "PROPOSED"
+    model_ids:
+      - "MOD-011"
+    parameter_ids:
+      - "PARAM-072"
+      - "PARAM-073"
+      - "PARAM-074"
+      - "PARAM-075"
+      - "PARAM-076"
+    code_refs:
+      - "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"
+    test_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"
+    evidence_refs:
+      - "EVID-IDS-STAGE042-P2"
+      - "EVID-OPME-MODEL-REGISTRY"
+      - "EVID-OPME-FORMULA-REGISTRY"
+      - "EVID-OPME-PARAMETER-REGISTRY"
 models:
   -
     model_id: "MOD-001"
@@ -657,6 +680,45 @@ models:
     evidence_refs:
       - "EVID-IDS-STAGE041-P2"
       - "EVID-OPME-MODEL-REGISTRY"
+  -
+    model_id: "MOD-011"
+    name: "Automatic lifecycle candidate decision policy"
+    kind: "deterministic_control_policy"
+    purpose: "Evaluate reference-only start, pause, resume, safe-shutdown, and cleanup-scan candidates without mutating jobs or activating production runtime."
+    owner: "KM_IDSystem"
+    status: "planned"
+    fact_level: "PROPOSED"
+    model_version: "ids.automatic_lifecycle_policy.v0_1.stage042.p2"
+    assumptions:
+      - "Stage042 timing values are composed from reviewed isolated Stage040 and Stage041 safety boundaries and are not production calibrated."
+    formula_ids:
+      - "FORM-011"
+    parameter_ids:
+      - "PARAM-072"
+      - "PARAM-073"
+      - "PARAM-074"
+      - "PARAM-075"
+      - "PARAM-076"
+    inputs:
+      - "Git-tracked control input refs"
+      - "bounded lifecycle action and state metadata"
+      - "resource and lock evidence refs"
+      - "logical evaluation timestamps"
+    outputs:
+      - "decision_action"
+      - "human_status"
+      - "input_refs"
+      - "output_refs"
+      - "error_ref"
+      - "checkpoint_ref"
+      - "audit_ref"
+    code_refs:
+      - "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"
+    test_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"
+    evidence_refs:
+      - "EVID-IDS-STAGE042-P2"
+      - "EVID-OPME-MODEL-REGISTRY"
 formulas:
   -
     formula_id: "FORM-001"
@@ -936,6 +998,33 @@ formulas:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"
     evidence_refs:
       - "EVID-IDS-STAGE041-P2"
+      - "EVID-OPME-FORMULA-REGISTRY"
+  -
+    formula_id: "FORM-011"
+    model_id: "MOD-011"
+    status: "planned"
+    fact_level: "PROPOSED"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    expression: "validate exact reference-only request and Git-tracked evidence; reject terminal-state mutation; start requires fresh resource, admission, claim, lease, lock, and fence evidence; pause and resume use only legal candidate paths; shutdown never terminates a process; cleanup emits only a Stage044-owned eligible candidate and never deletes."
+    constraints:
+      - "Unknown, malformed, stale, or untracked evidence fails closed."
+      - "Terminal states are immutable and legal transitions remain candidate-only."
+      - "No process termination, cleanup delete, persistence, queue, worker, retry, lock, business-job, or production action."
+      - "Production calibration is required before activation."
+    missing_policy: "REQUIRE_MANUAL_REVIEW with no lifecycle action or state mutation."
+    output_range: "AUTO_START_CANDIDATE, AUTO_PAUSE_CANDIDATE, AUTO_RESUME_CANDIDATE, SAFE_SHUTDOWN_CANDIDATE, CLEANUP_CANDIDATE_ONLY, explicit rejection, or REQUIRE_MANUAL_REVIEW; no persistent write."
+    open_task_ids:
+      - "TASK-OPME-B-001"
+    implementation_refs:
+      - "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py::evaluate_lifecycle_request"
+      - "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py::InMemoryLifecycleDecisionLedger"
+      - "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py::build_stage042_phase2_report"
+    code_refs:
+      - "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"
+    test_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"
+    evidence_refs:
+      - "EVID-IDS-STAGE042-P2"
       - "EVID-OPME-FORMULA-REGISTRY"
 parameters:
   -
@@ -2771,6 +2860,111 @@ parameters:
     code_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py"]
     test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"]
     evidence_refs: ["EVID-IDS-STAGE041-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-072"
+    model_id: "MOD-011"
+    formula_id: "FORM-011"
+    symbol: "lifecycle_tick_interval"
+    name: "lifecycle tick interval"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "1"
+    source: "PROPOSED from Stage042 Phase2 reviewed Stage041 acquisition timeout; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage042_automatic_lifecycle_runtime_contract.json:policy.parameters.lifecycle_tick_interval"
+    extracted_value: "1"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE042-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-073"
+    model_id: "MOD-011"
+    formula_id: "FORM-011"
+    symbol: "resume_stability_window"
+    name: "resume stability window"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "60"
+    source: "PROPOSED from Stage042 Phase2 two reviewed Stage040 observation TTL windows; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage042_automatic_lifecycle_runtime_contract.json:policy.parameters.resume_stability_window"
+    extracted_value: "60"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE042-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-074"
+    model_id: "MOD-011"
+    formula_id: "FORM-011"
+    symbol: "checkpoint_wait_timeout"
+    name: "checkpoint wait timeout"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "30"
+    source: "PROPOSED from Stage042 Phase2 reviewed Stage041 lease duration; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage042_automatic_lifecycle_runtime_contract.json:policy.parameters.checkpoint_wait_timeout"
+    extracted_value: "30"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE042-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-075"
+    model_id: "MOD-011"
+    formula_id: "FORM-011"
+    symbol: "graceful_shutdown_timeout"
+    name: "graceful shutdown timeout"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "60"
+    source: "PROPOSED from Stage042 Phase2 two reviewed Stage041 lease durations; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage042_automatic_lifecycle_runtime_contract.json:policy.parameters.graceful_shutdown_timeout"
+    extracted_value: "60"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE042-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-076"
+    model_id: "MOD-011"
+    formula_id: "FORM-011"
+    symbol: "cleanup_scan_interval"
+    name: "cleanup scan interval"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "300"
+    source: "PROPOSED from Stage042 Phase2 five reviewed Stage040 API control windows; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage042_automatic_lifecycle_runtime_contract.json:policy.parameters.cleanup_scan_interval"
+    extracted_value: "300"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE042-P2", "EVID-OPME-PARAMETER-REGISTRY"]
 strategies:
   -
     strategy_id: "STRAT-OPME-001"

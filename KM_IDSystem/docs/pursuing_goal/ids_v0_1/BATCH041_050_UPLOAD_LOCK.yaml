@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-18T00:14:56Z"
-status: "stage042_phase1_completed"
+updated_at_utc: "2026-07-18T01:53:19Z"
+status: "stage042_phase2_completed"
 
 transition_history:
+  stage042_phase2_state:
+    status: "stage042_phase2_completed"
+    current_task_id: "IDS-V0_1-STAGE042-P2"
+    next_gate: "IDS-STAGE042-P3-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE042-P3"
+    github_upload_allowed: false
   stage042_phase1_state:
     status: "stage042_phase1_completed"
     current_task_id: "IDS-V0_1-STAGE042-P1"
@@ -198,29 +204,43 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
   STAGE-042:
-    status: "stage042_phase1_completed"
+    status: "stage042_phase2_completed"
     completed_phases:
       - "Phase 1"
-    next_phase: "Phase 2"
-    next_gate: "IDS-STAGE042-P2-GATE"
-    current_task_id: "IDS-V0_1-STAGE042-P1"
+      - "Phase 2"
+    next_phase: "Phase 3"
+    next_gate: "IDS-STAGE042-P3-GATE"
+    current_task_id: "IDS-V0_1-STAGE042-P2"
     acceptance_id: "ACC-STAGE-042"
-    acceptance_status: "phase1_contract_complete"
+    acceptance_status: "phase2_slice_complete"
     phase2_entry_authorized: true
+    phase3_entry_authorized: true
     source_verification_status: "SOURCE_VERIFIED"
     source_member_match_count: 1
     source_member_sha256: "78a4bed1f5348837699bd7dd227898e6d47cc4099ca268ee1600bae84605ec08"
     automatic_lifecycle_contract_id: "ids.automatic_lifecycle.v0_1.p1"
     automatic_lifecycle_contract_schema: "ids.stage042.automatic_lifecycle.phase1.v1"
+    automatic_lifecycle_policy_contract_id: "ids.automatic_lifecycle_policy.v0_1.stage042.p2"
+    automatic_lifecycle_runtime_contract_schema: "ids.stage042.automatic_lifecycle.phase2.v1"
     phase1_contract_valid: true
-    contract_state: "PHASE1_ENGINEERING_CONTRACT_RUNTIME_DISABLED"
-    numeric_policy_values_assigned: false
+    phase2_slice_valid: true
+    contract_state: "PHASE2_ISOLATED_LIFECYCLE_DECISION_SLICE_ENABLED_PRODUCTION_DISABLED"
+    parameter_fact_level: "PROPOSED"
+    numeric_policy_values_assigned: true
+    production_calibration_task_id: "TASK-OPME-B-001"
     production_calibrated: false
     taskpack_source_read_performed: true
     ids_business_source_read_performed: false
     raw_metadata_content_accessed: false
     fake_ids_business_data_used: false
     real_ids_business_job_created: false
+    isolated_lifecycle_decision_runtime_performed: true
+    lifecycle_candidate_evaluation_performed: true
+    automatic_start_candidate_evaluated: true
+    automatic_pause_candidate_evaluated: true
+    automatic_resume_candidate_evaluated: true
+    safe_shutdown_candidate_evaluated: true
+    cleanup_candidate_evaluated: true
     automatic_lifecycle_runtime_performed: false
     automatic_start_performed: false
     automatic_pause_performed: false
@@ -251,12 +271,16 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_contract.json"
       - "KM_IDSystem/scripts/check_automatic_lifecycle.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE2_AUTOMATIC_LIFECYCLE_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json"
+      - "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE042-P1"
-  next_allowed_task_id: "IDS-V0_1-STAGE042-P2"
+  current_task_id: "IDS-V0_1-STAGE042-P2"
+  next_allowed_task_id: "IDS-V0_1-STAGE042-P3"
   github_upload_allowed: false
-  current_run: "STAGE-042 Phase 1 bound the approved source and reviewed STAGE-037..041 control chain into a static automatic-lifecycle engineering contract; no lifecycle, queue, worker, retry, lock, recovery, cleanup, persistence, raw metadata, GitHub, app or production action ran."
-  no_upload_reason: "BATCH041_050 has only one completed and reviewed Stage plus STAGE-042 Phase 1; upload remains blocked until STAGE-041..050 are completed, individually reviewed and repaired, then a separate ten-stage review and upload gate run."
+  current_run: "STAGE-042 Phase 2 registered five proposed timing bounds and evaluated deterministic in-memory reference-only start, pause, resume, safe-shutdown and cleanup-scan candidates; no actual lifecycle, state mutation, process termination, delete, persistence, raw metadata, GitHub, app or production action ran."
+  no_upload_reason: "BATCH041_050 has only one completed and reviewed Stage plus STAGE-042 Phases 1-2; upload remains blocked until STAGE-041..050 are completed, individually reviewed and repaired, then a separate ten-stage review and upload gate run."

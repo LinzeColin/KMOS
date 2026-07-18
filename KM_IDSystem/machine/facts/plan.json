@@ -1,18 +1,18 @@
 {
   "stage": "`IDS-STAGE042`",
-  "phase": "`IDS-STAGE042-P1`",
-  "task": "`IDS-V0_1-STAGE042-P1`",
+  "phase": "`IDS-STAGE042-P2`",
+  "task": "`IDS-V0_1-STAGE042-P2`",
   "owner": "Codex 专属 KMOS worktree",
-  "objective": "绑定批准来源和 reviewed Stage037-041 控制链，建立自动启动、暂停、恢复、安全关闭和清理候选的失败关闭工程合同，并停在独立 Phase 2 入口前。",
+  "objective": "注册五个有来源的提议时间边界，实现自动启动、暂停、恢复、安全关闭和清理扫描的隔离 reference-only 候选决策切片，并停在独立 Phase 3 入口前。",
   "scope": [
-    "唯一批准的 Stage042 任务包成员、归档、路线图和说明哈希",
-    "Stage037 状态图及 Stage038-041 queue、retry、backpressure、lock ownership 和哈希绑定",
-    "reference-only lifecycle、幂等、证据、关闭、局部输出隔离、清理候选与治理路由"
+    "Phase 1 predecessor、唯一批准来源和 Stage037-041 精确上游绑定",
+    "五个 proposed 参数及 MOD-011、FORM-011、PARAM-072..076 治理注册",
+    "reference-only lifecycle request、幂等候选决策、人类状态与 input/output/error/checkpoint/audit 证据"
   ],
   "non_goals": [
-    "不进入或实现 Stage042 Phase 2",
-    "不执行自动启动、暂停、恢复、关闭、队列、工作进程、重试、生产锁、进程恢复或清理删除运行时",
+    "不进入或实现 Stage042 Phase 3",
+    "不执行实际自动启动、暂停、恢复、关闭、队列、工作进程、重试、生产锁、进程恢复或清理删除运行时",
     "不读取原始元数据，不创建虚构 IDS 业务数据，不持久化、上传、合并或重装应用"
   ],
-  "stop_condition": "Phase 1 合同和治理的最终分层验证通过后，只授权独立 Stage042 P2 即停止；任何来源、上游哈希、状态图、ownership、治理或安全边界失败均保持门禁关闭并停止。"
+  "stop_condition": "Phase 2 切片和治理的最终分层验证通过后，只授权独立 Stage042 P3 即停止；任何来源、上游哈希、参数、状态图、ownership、治理或安全边界失败均保持门禁关闭并停止。"
 }
