@@ -1,33 +1,33 @@
 {
   "items": [
     {
-      "id": "`ACC-STAGE043-P2-01`",
-      "criteria": "P1 提交/目录树/父提交与 Stage037、Stage039 至 Stage042 精确上游哈希保持绑定",
+      "id": "`ACC-STAGE043-P3-01`",
+      "criteria": "批准来源、已提交 P2 提交/目录树及 P2 与 Stage041 场景证据哈希保持精确绑定",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE043-P2-02`",
-      "criteria": "五个时间值均有 reviewed 上游来源、版本、验证、回滚和生产校准任务，且只标记为 PROPOSED",
+      "id": "`ACC-STAGE043-P3-02`",
+      "criteria": "十三项场景全部通过；精确重放幂等，负载冲突、陈旧证据、未栅栏代际、活动锁与终态重开均失败关闭",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE043-P2-03`",
-      "criteria": "规范 recovery request、正整数版本、心跳陈旧窗、租约 grace、worker 代际和幂等冲突均失败关闭",
+      "id": "`ACC-STAGE043-P3-03`",
+      "criteria": "无输入输出的隔离控制子进程自行退出码为 73，未发送进程信号、强制终止、探测进程、重启、恢复或修改状态",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE043-P2-04`",
-      "criteria": "检查点、Stage039 重试、安全失败和三类资源暂停只输出合法候选，不修改状态或执行恢复",
+      "id": "`ACC-STAGE043-P3-04`",
+      "criteria": "外接盘、实际项目磁盘观察与 API 预算压力只输出暂停候选，未物理拔盘、分配磁盘或调用外部 API",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE043-P2-05`",
-      "criteria": "结果记录 input/output/error/checkpoint/quarantine/audit 引用，不回显 raw payload，五类受保护证据永不删除",
+      "id": "`ACC-STAGE043-P3-05`",
+      "criteria": "Stage041 四类同源操作矩阵阻止重复执行，五类 Git 证据永不删除且两类局部输出仅形成 Stage044 隔离候选",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE043-P2-06`",
-      "criteria": "未进入步骤三，未触碰原始元数据，未执行崩溃注入、进程探测/恢复/终止/重启、状态修改、删除、持久化、上传或生产激活",
+      "id": "`ACC-STAGE043-P3-06`",
+      "criteria": "未进入步骤四，未触碰原始元数据，未执行真实 Worker 崩溃/恢复、状态修改、删除、持久化、上传或生产激活",
       "status": "已遵守"
     }
   ]

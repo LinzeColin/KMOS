@@ -1,5 +1,14 @@
 # Changelog
 
+## IDS v0.1 STAGE-043 Phase 3 - 2026-07-18
+
+- Added `ids.stage043.worker_crash_recovery.phase3.scenarios.v1` and a fail-closed checker for thirteen task-pack-aligned isolated scenarios: duplicate replay, changed-payload conflict, stale evidence, isolated process loss, unfenced generation, three resource pauses, same-source lock exclusion, active conflict, terminal immutability, protected cleanup and partial-output quarantine.
+- Observed one ephemeral control child self-exit with code `73`, empty stdout/stderr and no IDS input. The checker sends no signal, performs no external process probe, restart or recovery, and does not describe this as a production worker crash or successful recovery.
+- Replayed the reviewed Stage041 same-source exclusion proof for processing, extraction, indexing and reporting. The full source matrix retains `25` conflicts and the selected four-family subset covers `16`; no operation, queue admission, retry-budget consumption or production lock runtime occurs.
+- Verified drive/API control pauses, an actual project-volume free-space observation with a no-allocation low boundary, five protected Git refs and two Stage044-owned quarantine candidates. No physical drive action, API call, cleanup/delete, state mutation, checkpoint continuation, persistence, database, raw data or production action occurs.
+- TDD RED produced `2` expected failures and `16` expected errors across `18` focused tests because the Phase 3 artifacts and governance route were absent. Final GREEN: checker `18/18 + 13/13`, focused `18/18`, Stage005 `162/162`, Stage041-043 aggregate `174/174` in `563.213s`, full discovery `914/914` in `928.016s`, five historical review checkers, 208-event semantics, idempotent render and project dual-plane all pass.
+- Routed the only next task to separate `IDS-V0_1-STAGE043-P4` with `push_allowed=false`; no Phase 4, whole-stage review, batch review, GitHub upload/merge, issue action or app reinstall ran.
+
 ## IDS v0.1 STAGE-043 Phase 2 - 2026-07-18
 
 - Added `ids.worker_crash_recovery_policy.v0_1.stage043.p2`, an exact-shaped, deterministic, in-memory and reference-only candidate-decision slice; production process and state effects remain disabled.

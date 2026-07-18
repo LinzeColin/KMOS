@@ -501,7 +501,7 @@ class Stage043WorkerCrashRecoveryPhase2Tests(unittest.TestCase):
             report["result"],
         )
 
-    def test_governance_event_handoff_and_route_stop_at_phase2(self):
+    def test_governance_event_and_phase2_transition_survive_forward_route(self):
         batch = (BASE / "BATCH041_050_UPLOAD_LOCK.yaml").read_text(encoding="utf-8")
         roadmap = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
             encoding="utf-8"
@@ -526,10 +526,12 @@ class Stage043WorkerCrashRecoveryPhase2Tests(unittest.TestCase):
         ):
             self.assertIn(marker, roadmap)
         self.assertIn("EVT-IDS-V0_1-STAGE043-P2-20260718-001", events)
-        self.assertIn("Completed task in this run: `IDS-V0_1-STAGE043-P2`", handoff)
-        self.assertIn("Next allowed task: `IDS-V0_1-STAGE043-P3`", handoff)
+        self.assertIn("Phase 2 remains valid at checker `18/18 + 15/15`", handoff)
+        self.assertIn("Completed task in this run: `IDS-V0_1-STAGE043-P3`", handoff)
+        self.assertIn("Next allowed task: `IDS-V0_1-STAGE043-P4`", handoff)
         self.assertIn("process_crash_recovery_performed=false", events)
-        self.assertNotIn('current_phase_id: "IDS-STAGE043-P3"', roadmap)
+        self.assertIn('current_phase_id: "IDS-STAGE043-P3"', roadmap)
+        self.assertIn('next_gate_id: "IDS-STAGE043-P4-GATE"', roadmap)
 
     def test_cli_emits_the_exact_machine_report(self):
         module = self._checker()

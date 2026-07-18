@@ -9650,10 +9650,10 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
 
         tampered_batch = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P2"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE043-P3"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P2"\n'
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P3"\n'
             '  next_allowed_task_id: "IDS-V0_1-STAGE043-P4"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P3"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE043-P5"',
         )
         blocked = module.evaluate_current_state_consistency(
             tampered_batch, roadmap_text
@@ -9855,9 +9855,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
 
         tampered_batch = batch_text.replace(
-            '    crash_recovery_runtime_contract_schema: "ids.stage043.worker_crash_recovery.phase2.v1"\n'
+            '    crash_recovery_scenario_contract_schema: "ids.stage043.worker_crash_recovery.phase3.scenarios.v1"\n'
             "    phase1_contract_valid: true",
-            '    crash_recovery_runtime_contract_schema: "ids.stage043.worker_crash_recovery.phase2.v1"\n'
+            '    crash_recovery_scenario_contract_schema: "ids.stage043.worker_crash_recovery.phase3.scenarios.v1"\n'
             "    phase1_contract_valid: false",
         )
         blocked = module.evaluate_phase_state(
@@ -9866,10 +9866,10 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         self.assertFalse(all(blocked.values()), blocked)
 
         tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P2"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE043-P3"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P2"\n'
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P3"\n'
             '  next_allowed_task_id: "IDS-V0_1-STAGE043-P4"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P3"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE043-P5"',
         )
         blocked = module.evaluate_current_state_consistency(
             tampered_route, roadmap_text
@@ -9929,12 +9929,12 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
 
         tampered_slice = batch_text.replace(
-            '    crash_recovery_runtime_contract_schema: '
-            '"ids.stage043.worker_crash_recovery.phase2.v1"\n'
+            '    crash_recovery_scenario_contract_schema: '
+            '"ids.stage043.worker_crash_recovery.phase3.scenarios.v1"\n'
             "    phase1_contract_valid: true\n"
             "    phase2_slice_valid: true",
-            '    crash_recovery_runtime_contract_schema: '
-            '"ids.stage043.worker_crash_recovery.phase2.v1"\n'
+            '    crash_recovery_scenario_contract_schema: '
+            '"ids.stage043.worker_crash_recovery.phase3.scenarios.v1"\n'
             "    phase1_contract_valid: true\n"
             "    phase2_slice_valid: false",
         )
@@ -9944,10 +9944,101 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         self.assertFalse(all(blocked.values()), blocked)
 
         tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P2"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE043-P3"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P2"\n'
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P3"\n'
             '  next_allowed_task_id: "IDS-V0_1-STAGE043-P4"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P3"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE043-P5"',
+        )
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage043_phase3_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase3_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE043-P3-20260718-001"
+        ]
+        self.assertEqual(1, len(phase3_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase3_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE043_PHASE3_SCENARIO_VALIDATION.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/"
+            "stage043_worker_crash_recovery_scenarios.json",
+            "KM_IDSystem/scripts/check_worker_crash_recovery_scenarios.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage043_worker_crash_recovery_scenarios.py",
+            "KM_IDSystem/machine/runs/2026-07-18-stage043-p3-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE043-P3-20260718-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_scenarios = batch_text.replace(
+            '    crash_recovery_scenario_contract_schema: '
+            '"ids.stage043.worker_crash_recovery.phase3.scenarios.v1"\n'
+            "    phase1_contract_valid: true\n"
+            "    phase2_slice_valid: true\n"
+            "    phase3_scenarios_valid: true",
+            '    crash_recovery_scenario_contract_schema: '
+            '"ids.stage043.worker_crash_recovery.phase3.scenarios.v1"\n'
+            "    phase1_contract_valid: true\n"
+            "    phase2_slice_valid: true\n"
+            "    phase3_scenarios_valid: false",
+        )
+        blocked = module.evaluate_phase_state(
+            tampered_scenarios, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_crash_claim = batch_text.replace(
+            "    isolated_worker_process_exit_observed: true\n"
+            "    actual_worker_process_crash_performed: false",
+            "    isolated_worker_process_exit_observed: true\n"
+            "    actual_worker_process_crash_performed: true",
+        )
+        blocked = module.evaluate_phase_state(
+            tampered_crash_claim, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_route = batch_text.replace(
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P3"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE043-P4"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE043-P3"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE043-P5"',
         )
         blocked = module.evaluate_current_state_consistency(
             tampered_route, roadmap_text

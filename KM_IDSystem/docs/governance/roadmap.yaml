@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE043"
-current_phase_id: "IDS-STAGE043-P2"
-current_task_id: "IDS-V0_1-STAGE043-P2"
-next_gate_id: "IDS-STAGE043-P3-GATE"
+current_phase_id: "IDS-STAGE043-P3"
+current_task_id: "IDS-V0_1-STAGE043-P3"
+next_gate_id: "IDS-STAGE043-P4-GATE"
 current_transition_history:
+  stage043_phase3_state:
+    current_stage_id: "IDS-STAGE043"
+    current_phase_id: "IDS-STAGE043-P3"
+    current_task_id: "IDS-V0_1-STAGE043-P3"
+    next_gate_id: "IDS-STAGE043-P4-GATE"
   stage043_phase2_state:
     current_stage_id: "IDS-STAGE043"
     current_phase_id: "IDS-STAGE043-P2"
@@ -11009,9 +11014,9 @@ stages:
     status: "in_progress"
     pursuing_goal: "验证 worker 崩溃后任务状态不丢失，并能继续或安全失败。"
     stop_gate:
-      gate_id: "IDS-STAGE043-P2-GATE"
+      gate_id: "IDS-STAGE043-P3-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE043-P3-GATE"
+      next_gate_id: "IDS-STAGE043-P4-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_ENTRY_CONTRACT.md"
@@ -11023,6 +11028,10 @@ stages:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"
       - "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE3_SCENARIO_VALIDATION.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_scenarios.json"
+      - "KM_IDSystem/scripts/check_worker_crash_recovery_scenarios.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_scenarios.py"
     phases:
       -
         phase_id: "IDS-STAGE043-P1"
@@ -11154,15 +11163,70 @@ stages:
         phase_id: "IDS-STAGE043-P3"
         name: "Worker 崩溃恢复场景验证"
         objective: "在 Phase 2 完成后的单独 run 中验证重复请求、陈旧证据、资源暂停、锁冲突和受保护清理边界。"
-        status: "pending"
+        status: "passed_with_local_evidence"
         entry_authorized: true
+        stop_conditions:
+          - "探测、signal、kill、终止、重启或恢复外部/生产 worker 进程"
+          - "把隔离控制子进程自行退出描述成生产 worker crash 或恢复成功"
+          - "写 job state、queue、retry、lock、lease、fence、checkpoint、output、database、schema 或 runtime output"
+          - "执行 cleanup/delete、物理拔盘、磁盘分配、外部 API、raw metadata 或 IDS business job"
+          - "进入 Phase 4、whole-stage review、batch gate、GitHub 或 app reinstall"
+        stop_gate:
+          gate_id: "IDS-STAGE043-P3-GATE"
+          status: "passed_with_local_evidence"
+          pass_conditions:
+            - "Source, committed Phase2 tree and all upstream hashes are exact"
+            - "Duplicate, changed-payload, stale, unfenced, active-lock and terminal scenarios fail closed"
+            - "One isolated control child self-exit is observed without signal, kill, restart, recovery or state mutation"
+            - "Drive, disk and API pressure produce pause candidates without physical or external effects"
+            - "Stage041 same-source lock evidence blocks process, extract, index and report duplication"
+            - "Protected refs never delete and partial outputs remain Stage044-owned quarantine candidates"
+            - "The only next gate is IDS-STAGE043-P4-GATE"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE3_SCENARIO_VALIDATION.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_scenarios.json"
+            - "KM_IDSystem/scripts/check_worker_crash_recovery_scenarios.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_scenarios.py"
+        tasks:
+          -
+            task_id: "IDS-V0_1-STAGE043-P3"
+            name: "验证 Worker 崩溃恢复隔离异常场景"
+            objective: "执行 task-pack 点名的重复请求、隔离进程丢失、资源暂停、同源锁冲突和受保护清理场景，不执行真实恢复或删除。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE043-P2"
+              - "ids.lock_registry_policy.v0_1.stage041.p3.scenarios"
+            acceptance_ids:
+              - "ACC-STAGE-043"
+            test_commands:
+              - "python3 -B KM_IDSystem/scripts/check_worker_crash_recovery_scenarios.py"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage043_worker_crash_recovery_scenarios"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage005_governance_regression"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage04[1-3]*.py' -q"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -q"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+              - "python3 -B KM_IDSystem/machine/tools/check_dual_plane_ci.py --projects KM_IDSystem --require-projects"
+              - "events.jsonl parse and duplicate-id check"
+              - "git diff --check"
+            test_results: "TDD RED: 18 focused tests produced 2 expected failures and 16 expected errors because the Phase3 contract, checker, evidence and governance route were absent. Final GREEN: checker 18/18 contract and 13/13 scenario checks; focused 18/18; Stage005 162/162; Stage041-043 aggregate 174/174 in 563.213s; full IDS v0.1 discovery 914/914 in 928.016s; five historical Stage038-042 review checkers; 208 events with zero parse, duplicate or semantic errors; idempotent rendering and project-scoped dual-plane PASS. The first aggregate exposed only P3 current-route and Git-index binding drift; after repairing forward compatibility, a second aggregate failed closed on the intentionally changed P2-test hash. Rebinding that single exact hash restored the chain without weakening historical review or runtime safety. No Phase4, whole-stage review, process recovery, state mutation, delete, persistence, raw metadata, production, GitHub or app action ran."
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE3_SCENARIO_VALIDATION.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_scenarios.json"
+              - "KM_IDSystem/scripts/check_worker_crash_recovery_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+            risk: "隔离子进程自行退出若被误读为生产 crash，或活动锁、未栅栏代际、受保护引用被放行，会造成重复处理、错误续作或证据丢失。"
+            rollback: "只回滚 Stage043 Phase3 contract/checker/tests/evidence/governance/event/handoff/owner-view；保留 Phase1-2、Stage042 review、owner files、raw data、database、GitHub 与 app 状态。"
         dependencies:
           - "IDS-V0_1-STAGE043-P2"
       -
         phase_id: "IDS-STAGE043-P4"
         name: "Worker 崩溃恢复关闭与交付"
         objective: "在 Phase 3 完成后的单独 run 中收口状态图、失败日志、自动/人工处理、安全关闭、恢复、回滚和限制。"
-        status: "blocked"
-        entry_authorized: false
+        status: "pending"
+        entry_authorized: true
         dependencies:
           - "IDS-V0_1-STAGE043-P3"
