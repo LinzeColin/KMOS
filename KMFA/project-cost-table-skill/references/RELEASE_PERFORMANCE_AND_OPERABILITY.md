@@ -74,7 +74,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_skill_package.py \
   --output /ABSOLUTE/PRIVATE/NEW_STAGED_VALIDATION.json
 ```
 
-The validator requires version `0.2.0`, R0–R12 complete, global installation still `NOT_STARTED`, implemented traceability/formulas, exact performance budgets, valid schemas/test matrix, release wording, and zero requested boundary findings.
+The validator requires version `0.2.0`, R0–R12 complete, global installation state `MACHINE_LOCAL_EXTERNAL`, implemented traceability/formulas, exact performance budgets, valid schemas/test matrix, release wording, and zero requested boundary findings. The immutable `R12_GLOBAL_INSTALL_ALLOWED=0` boundary proves that R12 itself did not install; a repository cannot truthfully record completion for every machine.
 
 ## Post-R12 standalone-install parity
 

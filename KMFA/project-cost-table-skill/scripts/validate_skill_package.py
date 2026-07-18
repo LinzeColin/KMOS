@@ -111,7 +111,12 @@ def validate_package(*, working_tree: bool, staged: bool, repo_root: Path | None
         "RUN_STATUS_INCOMPLETE",
         "governance.yaml",
     )
-    _add(findings, isinstance(run_status, dict) and run_status.get("GLOBAL_INSTALL") == "NOT_STARTED", "GLOBAL_INSTALL_BOUNDARY", "governance.yaml")
+    _add(
+        findings,
+        isinstance(run_status, dict) and run_status.get("GLOBAL_INSTALL") == "MACHINE_LOCAL_EXTERNAL",
+        "GLOBAL_INSTALL_BOUNDARY",
+        "governance.yaml",
+    )
     model_rows = models.get("models")
     _add(findings, isinstance(model_rows, list) and bool(model_rows), "MODEL_REGISTRY_EMPTY", "model_registry.yaml")
     if isinstance(model_rows, list):
@@ -159,7 +164,7 @@ def validate_package(*, working_tree: bool, staged: bool, repo_root: Path | None
     for token, code in (
         ("product `0.2.0`", "HANDOFF_RELEASE_VERSION"),
         ("R0–R12", "HANDOFF_RUN_STATUS"),
-        ("global installation is deliberately `NOT_STARTED`", "HANDOFF_GLOBAL_INSTALL_BOUNDARY"),
+        ("global installation is `MACHINE_LOCAL_EXTERNAL`", "HANDOFF_GLOBAL_INSTALL_BOUNDARY"),
         ("BLOCKED_SOURCE", "HANDOFF_CURRENT_BLOCK"),
     ):
         _add(findings, token in handoff_text, code, "HANDOFF.md")

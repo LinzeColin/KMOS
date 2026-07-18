@@ -75,7 +75,7 @@ class PackageGovernanceTests(unittest.TestCase):
         self.assertEqual(governance["run_status"]["R10"], "COMPLETE")
         self.assertEqual(governance["run_status"]["R11"], "COMPLETE")
         self.assertEqual(governance["run_status"]["R12"], "COMPLETE")
-        self.assertEqual(governance["run_status"]["GLOBAL_INSTALL"], "NOT_STARTED")
+        self.assertEqual(governance["run_status"]["GLOBAL_INSTALL"], "MACHINE_LOCAL_EXTERNAL")
         models = {item["model_id"]: item for item in model_registry["models"]}
         self.assertIn(governance["model_id"], models)
         self.assertEqual(models[governance["model_id"]]["status"], "RELEASED_R12_FAIL_CLOSED_CURRENT_INPUT_GATED")
@@ -803,7 +803,7 @@ class PackageGovernanceTests(unittest.TestCase):
         governance = yaml.safe_load((MODULE_ROOT / "governance.yaml").read_text(encoding="utf-8"))
         self.assertEqual(governance["product_version"], "0.2.0")
         self.assertTrue(all(governance["run_status"]["R%d" % number] == "COMPLETE" for number in range(13)))
-        self.assertEqual(governance["run_status"]["GLOBAL_INSTALL"], "NOT_STARTED")
+        self.assertEqual(governance["run_status"]["GLOBAL_INSTALL"], "MACHINE_LOCAL_EXTERNAL")
 
         model_registry = yaml.safe_load((MODULE_ROOT / "model_registry.yaml").read_text(encoding="utf-8"))
         models = {item["model_id"]: item for item in model_registry["models"]}
