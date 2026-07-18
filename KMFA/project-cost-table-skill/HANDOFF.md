@@ -2,7 +2,7 @@
 
 ## Current objective and status
 
-Task Pack `1.2.0` Runs R0–R12 are implemented for product `0.2.0`. The fail-closed Skill workflow is release-ready; global installation is deliberately `NOT_STARTED` and belongs to the next separate run after Git remote/main parity is confirmed.
+Task Pack `1.2.0` Runs R0–R12 are implemented for product `0.2.0`. The fail-closed Skill workflow is release-ready; global installation is `MACHINE_LOCAL_EXTERNAL`: R12 did not perform it, and any machine-level completion must be proven after Git remote/main parity by that machine's discovery and sealed install receipt.
 
 This product release is not a current business-result approval. Current calculate remains `NEEDS_USER_INPUT / BLOCKED_NON_WAIVABLE / BLOCKED_SOURCE / BLOCKED_DIAGNOSTICS_GENERATED`, with no final workbook and no internal-process handoff.
 
@@ -23,7 +23,7 @@ This product release is not a current business-result approval. Current calculat
 - Added `scripts/run_release_benchmark.py`. One cold process and three subsequent processes each rescan the bound snapshot and fully hash every selected non-reference source; application digest caching is forbidden.
 - Added `scripts/validate_skill_package.py` for release/version/model/formula/traceability/schema/test-matrix and optional working-tree/staged private-boundary checks.
 - Added `config/release_test_matrix.yml`, adversarial/property/metamorphic release tests and `references/RELEASE_PERFORMANCE_AND_OPERABILITY.md`.
-- Released governance, model/formula/parameter registries and traceability at `0.2.0`; `GLOBAL_INSTALL` remains `NOT_STARTED`.
+- Released governance, model/formula/parameter registries and traceability at `0.2.0`; `GLOBAL_INSTALL` is machine-local external state and was not performed by R12.
 
 ## Verified R12 evidence
 
@@ -47,6 +47,6 @@ This product release is not a current business-result approval. Current calculat
 
 R12 close requires the staged public-boundary scan, canonical package validator, Git overlap review, commit/push/merge evidence and clean remote/main parity. Those facts are recorded outside the public package in the sealed R12 acceptance evidence; do not infer them from this handoff alone.
 
-After parity is proven, the next and only allowed run is global Skill installation from the clean main repository followed by discoverability and behavioral parity validation. Do not copy private runtime, raw inputs or release evidence into the global Skill package.
+On a machine without a valid install receipt, the next and only allowed post-parity run is global Skill installation from the clean main repository followed by discoverability and behavioral parity validation. A machine with a valid receipt verifies it instead of reinstalling. Never copy private runtime, raw inputs or release evidence into the global Skill package.
 
 A global Skill copy has no `.git` metadata. When it is registered at `$CODEX_HOME/skills/project-cost-table-skill`, `run_input_preflight.py` treats the validated module root as the protected public boundary, permits outputs only outside it or under its local `private_runtime`, and rejects incomplete/tampered or unregistered standalone copies before creating runtime state. Repository checkouts continue to use the discovered Git root.
