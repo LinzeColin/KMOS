@@ -202,8 +202,16 @@ class Stage043WorkerCrashRecoveryReviewTests(unittest.TestCase):
             self.assertIn(marker, roadmap)
         self.assertIn(REVIEW_EVENT_ID, events)
         top = "\n".join(handoff.splitlines()[:32])
-        self.assertIn("Completed task in this run: `IDS-V0_1-STAGE043-REVIEW`", top)
-        self.assertIn("Next allowed task: `IDS-V0_1-STAGE044-P1`", top)
+        self.assertTrue(
+            (
+                "Completed task in this run: `IDS-V0_1-STAGE043-REVIEW`" in top
+                and "Next allowed task: `IDS-V0_1-STAGE044-P1`" in top
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE044-P1`" in top
+                and "Next allowed task: `IDS-V0_1-STAGE044-P2`" in top
+            )
+        )
         self.assertIn("NO_STAGE044_THIS_RUN", REVIEW_ARTIFACT.read_text(encoding="utf-8"))
 
     def test_cli_emits_exact_review_report(self):

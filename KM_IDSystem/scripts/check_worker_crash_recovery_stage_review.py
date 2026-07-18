@@ -352,8 +352,20 @@ def _canonical_finding_checks() -> dict[str, bool]:
             and phase1_report.get("valid") is True
         ),
         "current_handoff_and_review_gate_exact": (
-            "Completed task in this run: `IDS-V0_1-STAGE043-REVIEW`" in top_handoff
-            and "Next allowed task: `IDS-V0_1-STAGE044-P1`" in top_handoff
+            (
+                (
+                    "Completed task in this run: `IDS-V0_1-STAGE043-REVIEW`"
+                    in top_handoff
+                    and "Next allowed task: `IDS-V0_1-STAGE044-P1`"
+                    in top_handoff
+                )
+                or (
+                    "Completed task in this run: `IDS-V0_1-STAGE044-P1`"
+                    in top_handoff
+                    and "Next allowed task: `IDS-V0_1-STAGE044-P2`"
+                    in top_handoff
+                )
+            )
             and "NO_STAGE044_THIS_RUN" in REVIEW_ARTIFACT_PATH.read_text(encoding="utf-8")
         ),
     }
@@ -434,8 +446,18 @@ def _governance_checks() -> dict[str, bool]:
             )
         ),
         "handoff_current_gate_exact": (
-            "Completed task in this run: `IDS-V0_1-STAGE043-REVIEW`" in top_handoff
-            and "Next allowed task: `IDS-V0_1-STAGE044-P1`" in top_handoff
+            (
+                "Completed task in this run: `IDS-V0_1-STAGE043-REVIEW`"
+                in top_handoff
+                and "Next allowed task: `IDS-V0_1-STAGE044-P1`"
+                in top_handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE044-P1`"
+                in top_handoff
+                and "Next allowed task: `IDS-V0_1-STAGE044-P2`"
+                in top_handoff
+            )
         ),
     }
 

@@ -1,18 +1,18 @@
 {
-  "stage": "`IDS-STAGE043`",
-  "phase": "`IDS-STAGE043-REVIEW`",
-  "task": "`IDS-V0_1-STAGE043-REVIEW`",
-  "owner": "Codex 专属 KMOS worktree，Stage043 本地复审已关闭",
-  "objective": "独立复核 Worker 崩溃恢复四个步骤，修复恢复证据一致性和治理门问题，并保持真实恢复与生产运行关闭。",
+  "stage": "`IDS-STAGE044`",
+  "phase": "`IDS-STAGE044-P1`",
+  "task": "`IDS-V0_1-STAGE044-P1`",
+  "owner": "Codex 专属 KMOS worktree，Stage044 步骤一",
+  "objective": "定义只允许清理已证明 attempt-owned、可重建半成品且绝不误删事实源或审计证据的可执行、可测试、可回滚静态工程合同。",
   "scope": [
-    "重验唯一批准来源、已提交步骤四基线和步骤一至四检查器",
-    "修复恢复身份、崩溃时间、资源信号、错误分类和 Phase1 结构化失败关闭",
-    "同步 reviewed-local 治理证据并仅路由到独立 Stage044 步骤一门"
+    "绑定批准 Stage044 来源、Stage043 复审祖先和 Stage029/037-043 精确合同",
+    "定义 attempt/root/path/lstat 候选、受保护资料、资源暂停和 writer quiescence",
+    "定义 exclusive namespace lock、dirfd/openat/O_NOFOLLOW/unlinkat、TOCTOU、幂等与 audit 边界"
   ],
   "non_goals": [
-    "不进入或实现 Stage044",
-    "不探测、发送进程信号、强制终止、重启或恢复外部或生产进程，不修改任务、队列、重试、锁、检查点或输出",
+    "不进入或实现 Stage044 步骤二",
+    "不扫描目录、解析真实候选、遍历文件系统、获取生产锁、移动、覆盖或删除文件，不修改任务状态或写 audit",
     "不读取原始元数据，不创建虚构 IDS 业务数据，不持久化、上传、合并或重装应用"
   ],
-  "stop_condition": "六项复审发现、步骤一至四、治理、事件、渲染和双平面验证通过且只授权独立 Stage044 步骤一即停止；任一来源、祖先、合同、修复或索引失配均保持 Stage043 复审门关闭。"
+  "stop_condition": "Stage044 步骤一合同、检查器、治理、事件、渲染和双平面验证通过且只授权单独步骤二即停止；任一来源、祖先、候选保护、锁、路径或索引失配均保持步骤二关闭。"
 }

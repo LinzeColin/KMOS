@@ -133,6 +133,7 @@ class Stage039RetryDeadLetterStageReviewTests(unittest.TestCase):
                 "IDS-STAGE041",
                 "IDS-STAGE042",
                 "IDS-STAGE043",
+                "IDS-STAGE044",
             },
         )
         if roadmap["current_stage_id"] == "IDS-STAGE039":
@@ -165,6 +166,7 @@ class Stage039RetryDeadLetterStageReviewTests(unittest.TestCase):
                 "IDS-STAGE043-P3": "IDS-STAGE043-P4-GATE",
                 "IDS-STAGE043-P4": "IDS-STAGE043-REVIEW-GATE",
                 "IDS-STAGE043-REVIEW": "IDS-STAGE044-P1-GATE",
+                "IDS-STAGE044-P1": "IDS-STAGE044-P2-GATE",
             }
             self.assertIn(roadmap["current_phase_id"], expected_gate_by_phase)
             self.assertEqual(

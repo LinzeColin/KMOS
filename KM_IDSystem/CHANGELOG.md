@@ -1,5 +1,16 @@
 # Changelog
 
+## IDS v0.1 STAGE-044 Phase 1 - 2026-07-19
+
+- Added `ids.stage044.half_product_cleanup.phase1.v1`, an exact-shaped static engineering contract plus stdout-only fail-closed checker bound to the unique approved Stage044 taskpack member, committed Stage043 reviewed-local baseline and reviewed Stage029/037–043 controls.
+- Restricted possible cleanup candidates to `TEMP_STAGING_OUTPUT` and `INCOMPLETE_DERIVATIVE_OUTPUT`; fourteen raw/source/database/fact/evidence/audit/report/index/checkpoint/held/succeeded classes are immutable protected artifacts.
+- Bound every future candidate to governed job/attempt/creator, approved canonical root and relative path, artifact class and rebuildability, retention/legal/owner holds, manifest plus immutable `lstat` identity, durable references, resource observations, exclusive namespace lock and writer quiescence.
+- Specified future `dirfd`/`openat`/`O_NOFOLLOW`/`unlinkat` and immediate identity-revalidation semantics while keeping scan, traversal, candidate evaluation, lock acquisition, move, overwrite, unlink, delete, audit write, state mutation, persistence and production runtime disabled in Phase 1.
+- Preserved exact-replay idempotency, changed-payload conflict, separate audit identity and immutable terminal results. All five policy numbers remain deferred and uncalibrated.
+- TDD RED produced four expected assertion failures and twelve missing-artifact errors across thirteen tests. Final GREEN passes checker `22/22`, focused `13/13`, Stage005 `165/165`, Stage041-44 aggregate `211/211` in `1014.663s`, full discovery `954/954` in `1403.519s`, six historical review checkers, `211` clean events, idempotent rendering and project dual-plane.
+- Layered regression repaired only exact forward compatibility through `IDS-STAGE044-P1 -> IDS-STAGE044-P2-GATE`; one accidental Stage043 hash drift was reverted instead of rebinding historical contracts. Root governance remains a reported sparse-worktree conflict because `scripts/lean_governance.py` is absent.
+- Routed the only next task to separate `IDS-V0_1-STAGE044-P2` with `push_allowed=false`. No Phase 2, Stage045, whole-stage review, batch review, GitHub upload/merge, issue action, app reinstall, dependency installation, raw metadata content access, cleanup/delete or production action ran.
+
 ## IDS v0.1 STAGE-043 Review - 2026-07-19
 
 - Completed the independent whole-stage review under `ACC-STAGE-043` and repaired `1 Critical / 5 Important / 0 Minor` findings: unbound worker/lease/checkpoint/quarantine identities, premature crash detection, contradictory resource signals, unclassified retry/safe-failure errors, non-structured Phase1 failures with incomplete live-source checks, and missing durable reviewed-local governance.

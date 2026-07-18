@@ -345,6 +345,7 @@ class Stage038WorkerQueueBaselinePhase1Tests(unittest.TestCase):
                 "IDS-STAGE041",
                 "IDS-STAGE042",
                 "IDS-STAGE043",
+                "IDS-STAGE044",
             },
         )
         self.assertTrue(
