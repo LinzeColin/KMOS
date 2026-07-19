@@ -445,16 +445,32 @@ class Stage044HalfProductCleanupPhase2Tests(unittest.TestCase):
             'github_upload_allowed: false',
         ):
             self.assertIn(marker, batch)
-        for marker in (
-            'current_stage_id: "IDS-STAGE044"',
-            'current_phase_id: "IDS-STAGE044-P2"',
-            'current_task_id: "IDS-V0_1-STAGE044-P2"',
-            'next_gate_id: "IDS-STAGE044-P3-GATE"',
-        ):
-            self.assertIn(marker, roadmap)
+        current_routes = (
+            (
+                'current_phase_id: "IDS-STAGE044-P2"',
+                'current_task_id: "IDS-V0_1-STAGE044-P2"',
+                'next_gate_id: "IDS-STAGE044-P3-GATE"',
+            ),
+            (
+                'current_phase_id: "IDS-STAGE044-P3"',
+                'current_task_id: "IDS-V0_1-STAGE044-P3"',
+                'next_gate_id: "IDS-STAGE044-P4-GATE"',
+            ),
+        )
+        self.assertIn('current_stage_id: "IDS-STAGE044"', roadmap)
+        self.assertTrue(
+            any(all(marker in roadmap for marker in route) for route in current_routes),
+            roadmap[:500],
+        )
         self.assertIn("EVT-IDS-V0_1-STAGE044-P2-20260719-001", events)
-        self.assertIn("Completed task in this run: `IDS-V0_1-STAGE044-P2`", handoff)
-        self.assertIn("Next allowed task: `IDS-V0_1-STAGE044-P3`", handoff)
+        self.assertTrue(
+            "Completed task in this run: `IDS-V0_1-STAGE044-P2`" in handoff
+            or "`IDS-V0_1-STAGE044-P2` is preserved as completed" in handoff
+        )
+        self.assertTrue(
+            "Next allowed task: `IDS-V0_1-STAGE044-P3`" in handoff
+            or "Next allowed task: `IDS-V0_1-STAGE044-P4`" in handoff
+        )
         self.assertIn("delete_operation_started=false", events)
 
     def test_cli_emits_the_exact_machine_report(self):

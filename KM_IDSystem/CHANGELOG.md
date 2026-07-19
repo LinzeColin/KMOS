@@ -1,5 +1,15 @@
 # Changelog
 
+## IDS v0.1 STAGE-044 Phase 3 - 2026-07-19
+
+- Added `ids.stage044.half_product_cleanup.phase3.scenarios.v1` and `ids.half_product_cleanup_policy.v0_1.stage044.p3.scenarios`, exact source/Phase2/upstream-hash-bound artifacts for fourteen isolated reference-only cleanup scenarios.
+- Verified exact duplicate replay, changed-payload conflict, reviewed isolated child self-exit `73`, controlled drive/disk/API pressure, active or unknown writers, stale identity, same-path lock conflict, four-operation source-pipeline exclusion, five core protected artifacts, all fourteen protected classes and review-only eligible candidates.
+- Replayed the Stage041 full `25`-conflict matrix and selected four-family `16`-conflict matrix with zero operation, queue or retry effects. Replayed Stage043 output-free control-process evidence without signal, kill, production crash, process recovery or worker restart.
+- Kept cleanup scan, real path access, filesystem probe/traversal, production lock, `openat`, `unlinkat`, move, overwrite, delete, state mutation, audit/persistent/runtime/database write and production activation disabled; every candidate has `delete_allowed=false`.
+- TDD RED produced `3` expected failures plus `16` missing-artifact errors across `19` focused tests. Final GREEN passes checker `18/18 + 14/14`, focused `19/19` in `14.295s`, Stage005 `167/167` in `31.893s`, Stage041-044 aggregate `246/246` in `1093.223s`, full discovery `991/991` in `1436.808s`, six Stage038-043 historical review checkers, `213` clean events, idempotent rendering and project dual-plane.
+- The initial aggregate `231/246` and full discovery `990/991` runs failed closed on historical current-route/index bindings and one overbroad automatic-recovery fact. Repairs were limited to the verified P3→P4 forward route, exact upstream hash compatibility and explicit `persistent_recovery_state_available_after_exit=false` / `automatic_recovery_performed=false`; no historical review conclusion or runtime safety boundary was weakened.
+- Routed the only next task to separate `IDS-V0_1-STAGE044-P4` with `push_allowed=false`. No Phase 4, whole-stage review, Stage045, batch review, GitHub upload/merge, issue action, app reinstall, dependency installation, raw metadata content access, cleanup/delete or production action ran.
+
 ## IDS v0.1 STAGE-044 Phase 2 - 2026-07-19
 
 - Added `ids.stage044.half_product_cleanup.phase2.v1` and `ids.half_product_cleanup_policy.v0_1.stage044.p2`, a deterministic in-memory, reference-only cleanup-candidate decision slice with no scanner, traversal, filesystem probe, lock operation, persistence or delete path.

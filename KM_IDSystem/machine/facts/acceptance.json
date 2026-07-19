@@ -1,33 +1,33 @@
 {
   "items": [
     {
-      "id": "`ACC-STAGE044-P2-01`",
-      "criteria": "步骤一提交、目录树、父链、批准来源和 Stage034/037/040-043 上游合同哈希精确且保持祖先",
+      "id": "`ACC-STAGE044-P3-01`",
+      "criteria": "步骤二提交、KM_IDSystem 目录树、批准来源及 Stage041/043 隔离控制证据哈希精确且保持祖先",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P2-02`",
-      "criteria": "五个 PROPOSED 时序值均绑定来源、理由、策略版本、验证和回滚，且明确未生产校准",
+      "id": "`ACC-STAGE044-P3-02`",
+      "criteria": "相同请求精确重放幂等且 changed payload 冲突无副作用；隔离子进程自退出仅形成复核候选",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P2-03`",
-      "criteria": "仅两类可重建半成品和五类受管状态可进入人工复核候选，受保护、持有、被引用、活动、未知或资源受阻输入失败关闭",
+      "id": "`ACC-STAGE044-P3-03`",
+      "criteria": "drive、disk、API 压力及活动或未知 writer、陈旧 identity 和同路径锁冲突全部失败关闭",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P2-04`",
-      "criteria": "批准根目录相对路径、不可变 lstat 身份、保留时间、受管排他锁、生产者栅栏与写入者静止证据全部必需",
+      "id": "`ACC-STAGE044-P3-04`",
+      "criteria": "processing、extraction、index、report 共用 source-pipeline 排他域，完整 25 项与所选四族 16 项冲突无操作副作用",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P2-05`",
-      "criteria": "规范请求重放幂等、相同身份不同载荷冲突，所有正向结果均为人工复核候选且 delete_allowed 永远为 false",
+      "id": "`ACC-STAGE044-P3-05`",
+      "criteria": "事实源、manifest、证据账本、报告快照、审计日志及完整十四类保护资料均拒绝删除；十四项场景全部通过",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P2-06`",
-      "criteria": "仅路由到独立 Stage044 步骤三；未触碰原始元数据，未执行真实路径访问、扫描、探测、遍历、生产锁、移动、覆盖、删除、审计写入、持久化、上传或生产动作",
+      "id": "`ACC-STAGE044-P3-06`",
+      "criteria": "仅路由到独立 Stage044 步骤四；未触碰原始元数据，未执行真实路径访问、扫描、探测、遍历、生产锁、进程恢复、移动、覆盖、删除、审计写入、持久化、上传或生产动作",
       "status": "已遵守"
     }
   ]

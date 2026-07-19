@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE044"
-current_phase_id: "IDS-STAGE044-P2"
-current_task_id: "IDS-V0_1-STAGE044-P2"
-next_gate_id: "IDS-STAGE044-P3-GATE"
+current_phase_id: "IDS-STAGE044-P3"
+current_task_id: "IDS-V0_1-STAGE044-P3"
+next_gate_id: "IDS-STAGE044-P4-GATE"
 current_transition_history:
+  stage044_phase3_state:
+    current_stage_id: "IDS-STAGE044"
+    current_phase_id: "IDS-STAGE044-P3"
+    current_task_id: "IDS-V0_1-STAGE044-P3"
+    next_gate_id: "IDS-STAGE044-P4-GATE"
   stage044_phase2_state:
     current_stage_id: "IDS-STAGE044"
     current_phase_id: "IDS-STAGE044-P2"
@@ -11335,9 +11340,9 @@ stages:
     status: "in_progress"
     pursuing_goal: "清理失败任务产生的临时半成品；不得误删事实源、原始资料或审计证据。"
     stop_gate:
-      gate_id: "IDS-STAGE044-P2-GATE"
+      gate_id: "IDS-STAGE044-P3-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE044-P3-GATE"
+      next_gate_id: "IDS-STAGE044-P4-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_ENTRY_CONTRACT.md"
@@ -11349,6 +11354,10 @@ stages:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_runtime_contract.json"
       - "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_PHASE3_SCENARIO_VALIDATION.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_scenarios.json"
+      - "KM_IDSystem/scripts/check_half_product_cleanup_scenarios.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_scenarios.py"
     phases:
       -
         phase_id: "IDS-STAGE044-P1"
@@ -11483,3 +11492,68 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
             risk: "reference-only candidate 若被误读为删除授权，或 identity/hold/ref/resource/lock/quiescence 任一证据被错误放行，可能损坏事实或审计链。"
             rollback: "只回滚 Stage044 Phase2 doc/contract/checker/tests/registries/governance/event/handoff/owner-view；保留 Phase1、早期 stage、raw/source/database/manifest/evidence/audit/report/checkpoint、GitHub 与 app 状态。"
+      -
+        phase_id: "IDS-STAGE044-P3"
+        name: "半成品清理隔离异常与竞态场景验证"
+        objective: "用 reference-only 控制 metadata 验证重复请求、隔离 worker 自退出、资源压力、writer/身份/锁冲突和受保护资料；复跑已评审 Stage041/043 证据且不执行清理。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        stop_conditions:
+          - "扫描目录、访问真实候选路径、探测 writer 或遍历文件系统"
+          - "物理拔盘、分配磁盘、调用外部 API、signal/kill、恢复或重启生产 worker"
+          - "获取生产 lock/lease/fence，移动、覆盖、删除文件，调用 openat/unlinkat"
+          - "改变 job/terminal state，写 candidate/audit/persistent/runtime/database/schema"
+          - "读取 raw metadata、创建 IDS business job 或使用虚构业务数据"
+          - "进入 Phase 4、stage review、Stage045、batch gate、GitHub 或 app reinstall"
+        stop_gate:
+          gate_id: "IDS-STAGE044-P3-GATE"
+          status: "passed_with_local_evidence"
+          pass_conditions:
+            - "Phase2 commit/tree, approved source and exact upstream hashes remain valid"
+            - "Exact replay is idempotent and changed payload conflicts without effects"
+            - "Reviewed isolated child exit 73 creates only a cleanup-review candidate"
+            - "Drive, disk and API pressure plus active or unknown writers fail closed"
+            - "Stale identity and same-path lock conflict invoke no filesystem or operation"
+            - "Processing, extraction, index and report share the source-pipeline exclusion domain"
+            - "Five core and all fourteen protected artifact classes reject deletion"
+            - "All fourteen scenarios pass with delete_allowed=false and no cleanup runtime"
+            - "The only next gate is IDS-STAGE044-P4-GATE"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_PHASE3_SCENARIO_VALIDATION.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_scenarios.json"
+            - "KM_IDSystem/scripts/check_half_product_cleanup_scenarios.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_scenarios.py"
+        tasks:
+          -
+            task_id: "IDS-V0_1-STAGE044-P3"
+            name: "验证半成品清理隔离异常与竞态场景"
+            objective: "以十四项确定性隔离场景证明重复、worker 丢失、资源、writer、身份、锁与保护边界失败关闭，删除能力保持硬禁用。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE044-P2"
+              - "ids.lock_registry_policy.v0_1.stage041.p3.scenarios"
+              - "ids.worker_crash_recovery_policy.v0_1.stage043.p3.scenarios"
+            acceptance_ids:
+              - "ACC-STAGE-044"
+            test_commands:
+              - "python3 -B KM_IDSystem/scripts/check_half_product_cleanup_scenarios.py"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage044_half_product_cleanup_scenarios"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage005_governance_regression"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage04[1-4]*.py' -q"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -q"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+              - "python3 -B KM_IDSystem/machine/tools/check_dual_plane_ci.py --projects KM_IDSystem --require-projects"
+              - "events.jsonl parse and duplicate-id check"
+              - "git diff --check"
+            test_results: "TDD RED produced three expected failures and sixteen expected missing-artifact errors across nineteen tests. Final layered validation is recorded in the Stage044 Phase3 machine run and changelog."
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_PHASE3_SCENARIO_VALIDATION.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_scenarios.json"
+              - "KM_IDSystem/scripts/check_half_product_cleanup_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+            risk: "若 reference-only 场景被误读为后台清理授权，或 writer、identity、lock、protected-class 证据被绕过，可能误删事实或审计资料。"
+            rollback: "只回滚 Stage044 Phase3 scenario doc/contract/checker/tests/governance/event/handoff/owner-view；保留 Phase1/2、已评审 Stage041/043、所有事实与证据、GitHub 和 app 状态。"

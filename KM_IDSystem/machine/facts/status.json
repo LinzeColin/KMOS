@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE044",
-  "phase": "IDS-STAGE044-P2",
-  "task": "IDS-V0_1-STAGE044-P2",
-  "real_progress": "Stage044 步骤二 reference-only 候选决策切片已完成；Stage044 整体未完成或复审",
-  "report_grade": "五个提议时序边界、两类候选、五类状态及身份、持有、引用、资源、锁和静止证据由失败关闭检查器绑定；最终分层验证见本次机器 run",
-  "business_verdict": "仅本地候选复核决策通过；正向结果仍不授权删除，扫描、文件探测/遍历、生产锁、移动、覆盖、删除、审计写入、持久化与生产运行时均禁用",
-  "evidence_status": "LOCAL_PHASE2_CANDIDATE_DECISION_VALIDATED_DELETE_DISABLED",
+  "phase": "IDS-STAGE044-P3",
+  "task": "IDS-V0_1-STAGE044-P3",
+  "real_progress": "Stage044 步骤三十四项隔离异常与竞态场景已完成；Stage044 整体未完成或复审",
+  "report_grade": "重复请求、隔离 worker 自退出、资源压力、writer/身份/同源锁冲突和十四类受保护资料均由失败关闭检查器验证；最终分层验证见本次机器 run",
+  "business_verdict": "仅本地 reference-only 场景验证通过；所有候选仍不授权删除，扫描、文件探测/遍历、生产锁、恢复、移动、覆盖、删除、审计写入、持久化与生产运行时均禁用",
+  "evidence_status": "LOCAL_PHASE3_SCENARIOS_VALIDATED_DELETE_DISABLED",
   "rendered_at": "2026-07-19",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE044-P3-GATE",
+  "next_gate": "IDS-STAGE044-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
