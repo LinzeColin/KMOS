@@ -1,5 +1,9 @@
 # KMDatabase/data —— 原始数据增量仓（D11）
 
+> 🔴 **2026-07-19 更新：数据已迁往私有仓 `Private-Database/Private-KMDatabase`。**
+> **新数据不要再往本地 `objects/` 落**——用 `machine/tools/private_db_client.py ingest`（免 clone 写入 Private-Database）。
+> 详见同目录 `WHERE_IS_THE_DATA.md`。以下 D11 旧说明（本地内容寻址）为历史记录，本地 `objects/` 待 Phase B 协调移除。
+
 > 授权：Owner 2026-07-17 决策 D11（打通任务包 09 三节 v2）：原始数据直接入本目录，不新建仓库。
 > ⚠️ 推送前置：本仓当前为**公开仓**。首批真实业务数据推送前需 Owner 对「公开可见」再确认一次，
 > 或先把 KMOS 切为 Private（仓库 Settings 一个开关，结构零改动——09 三节第 5 条预留的正是这条路）。
