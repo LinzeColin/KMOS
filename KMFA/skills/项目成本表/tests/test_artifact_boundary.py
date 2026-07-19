@@ -49,7 +49,7 @@ class ArtifactBoundaryTests(unittest.TestCase):
 
             with tempfile.TemporaryDirectory() as temporary:
                 repo = Path(temporary) / "repo"
-                module = repo / "KMFA" / "project-cost-table-skill"
+                module = repo / "KMFA" / "skills" / "项目成本表"
                 public_file = module / "src" / "safe.py"
                 private_file = module / "private_seed" / "reference.json"
                 public_file.parent.mkdir(parents=True)
@@ -57,10 +57,10 @@ class ArtifactBoundaryTests(unittest.TestCase):
                 public_file.write_text("SAFE = True\n", encoding="utf-8")
                 private_file.write_text("{}\n", encoding="utf-8")
                 subprocess.run(["git", "init", str(repo)], check=True, capture_output=True)
-                self._git(repo, "add", "KMFA/project-cost-table-skill/src/safe.py")
-                self.assertEqual(scan_staged(repo, "KMFA/project-cost-table-skill", POLICY), [])
-                self._git(repo, "add", "-f", "KMFA/project-cost-table-skill/private_seed/reference.json")
-                findings = scan_staged(repo, "KMFA/project-cost-table-skill", POLICY)
+                self._git(repo, "add", "KMFA/skills/项目成本表/src/safe.py")
+                self.assertEqual(scan_staged(repo, "KMFA/skills/项目成本表", POLICY), [])
+                self._git(repo, "add", "-f", "KMFA/skills/项目成本表/private_seed/reference.json")
+                findings = scan_staged(repo, "KMFA/skills/项目成本表", POLICY)
                 self.assertTrue(any(finding.code == "NON_PUBLIC_PATH" for finding in findings))
 
     def test_public_symlink_is_blocked(self) -> None:

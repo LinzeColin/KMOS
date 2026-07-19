@@ -6,7 +6,7 @@ acceptance_id: ACC-KMFA-PROJECT-COST-TABLE-SKILL-V2-PROPOSED
 model_id: MODEL-KMFA-PROJECT-COST-002-PROPOSED
 risk_tier: T3
 repository: LinzeColin/KMOS
-project_path: KMFA/project-cost-table-skill
+project_path: KMFA/skills/项目成本表
 run_status:
   R0: COMPLETE
   R1: COMPLETE

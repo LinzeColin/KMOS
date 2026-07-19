@@ -35,7 +35,7 @@ def main() -> int:
     mode.add_argument("--staged", action="store_true", help="scan staged index content (default)")
     parser.add_argument("--module-root", type=Path, default=MODULE_ROOT)
     parser.add_argument("--repo-root", type=Path)
-    parser.add_argument("--module-relative-root", default="KMFA/project-cost-table-skill")
+    parser.add_argument("--module-relative-root", default="KMFA/skills/项目成本表")
     args = parser.parse_args()
 
     module_root = args.module_root.resolve()

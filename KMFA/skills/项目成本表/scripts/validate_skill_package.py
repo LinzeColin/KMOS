@@ -218,7 +218,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--working-tree", action="store_true")
     parser.add_argument("--staged", action="store_true")
     parser.add_argument("--repo-root")
-    parser.add_argument("--module-relative-root", default="KMFA/project-cost-table-skill")
+    parser.add_argument("--module-relative-root", default="KMFA/skills/项目成本表")
     parser.add_argument("--output", help="new absolute JSON evidence path")
     return parser
 
