@@ -73,13 +73,64 @@ def healthz():
     return {"status": "ok", "facts_dir_present": FACTS.is_dir()}
 
 
+def _quality_grade_short() -> str:
+    """页眉质量等级取自 data_pipeline 事实，而非硬编码。
+
+    PROD.0004 要求「数据来自 facts」——原实现把 "Q3" 写死在代码里，
+    facts 一旦升级（如 Q3→Q4）页眉会静默说谎。
+    """
+    pipeline = json.loads((FACTS / "data_pipeline.json").read_text(encoding="utf-8"))
+    full = str(pipeline.get("quality_grade_current") or "").strip()
+    return full.split("（")[0].strip() or full or "未知"
+
+
 @app.get("/api/状态")
 def status():
     s = load_json(FACTS / "status.json")
     return {
         "版本": s.get("version"), "阶段": s.get("stage"), "当前任务": s.get("task"),
         "真实进度": s.get("real_progress"),
-        "页眉": {"质量等级": "Q3", "报告等级": s.get("report_grade"), "GO状态": s.get("business_verdict")},
+        "页眉": {
+            "质量等级": _quality_grade_short(),
+            "报告等级": s.get("report_grade"),
+            "GO状态": s.get("business_verdict"),
+        },
+    }
+
+
+@app.get("/api/我在哪")
+def where_am_i():
+    """首页「我在哪」（PROD.0004）——与 `文档/00_我在哪.md` 渲染件**同源**。
+
+    同吃 machine/facts 的 status.json / blockers.json / roadmap.json（渲染件的事实源
+    在其文件头已声明），确保页面与渲染件字字对得上；验收即以该渲染件为基准。
+    """
+    status_facts = load_json(FACTS / "status.json")
+    blockers = load_json(FACTS / "blockers.json")
+    roadmap = load_json(FACTS / "roadmap.json")
+    pipeline = load_json(FACTS / "data_pipeline.json")
+    stages = roadmap.get("stages", []) if isinstance(roadmap, dict) else []
+    blocker_rows = blockers if isinstance(blockers, list) else []
+    return {
+        "更新于": status_facts.get("rendered_at"),
+        "当前状态": {
+            "版本": status_facts.get("version"),
+            "阶段": status_facts.get("stage"),
+            "分期": status_facts.get("phase"),
+            "任务": status_facts.get("task"),
+            "进度": status_facts.get("real_progress"),
+            "报告可信度": status_facts.get("report_grade"),
+            "业务结论": status_facts.get("business_verdict"),
+            "证据状态": status_facts.get("evidence_status"),
+            "卡住件数": len(blocker_rows),
+        },
+        "卡住的事": blocker_rows,
+        "路线图": {"合计": len(stages), "阶段": stages},
+        "数据面": {
+            "质量等级": pipeline.get("quality_grade_current"),
+            "截止批次": pipeline.get("data_as_of_batch"),
+        },
+        "同源": "machine/facts/{status,blockers,roadmap}.json —— 与 文档/00_我在哪.md 同源",
     }
 
 

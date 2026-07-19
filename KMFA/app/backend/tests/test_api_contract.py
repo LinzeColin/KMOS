@@ -23,7 +23,47 @@ REQUIRED_PATHS = {
     "/api/血缘",
     "/api/报表",
     "/api/源检查",
+    "/api/我在哪",
 }
+
+WHERE_DOC = Path(__file__).resolve().parents[3] / "文档" / "00_我在哪.md"
+
+
+def test_where_am_i_same_source_as_rendered_doc():
+    """PROD.0004 验收：首页须与 `文档/00_我在哪.md` 渲染件**同源一致**。
+
+    把验收标准做成可执行断言——渲染件里的关键值必须逐字出现在 API 返回中；
+    任一侧漂移（页面写死、或 facts 更新未同步）都会在此失败。
+    """
+    payload = client.get("/api/我在哪").json()
+    state = payload["当前状态"]
+    doc = WHERE_DOC.read_text(encoding="utf-8")
+
+    for value in (state["版本"], state["阶段"], state["分期"], state["任务"],
+                  state["进度"], state["报告可信度"], state["业务结论"]):
+        assert value and str(value) in doc, f"渲染件中找不到：{value!r}"
+
+    assert f"{state['卡住件数']} 件" in doc
+    for blocker in payload["卡住的事"]:
+        assert blocker["id"] in doc
+        assert str(blocker["首次登记"]) in doc
+
+
+def test_where_am_i_roadmap_matches_doc_stage_count():
+    payload = client.get("/api/我在哪").json()
+    stages = payload["路线图"]["阶段"]
+    assert payload["路线图"]["合计"] == len(stages) == 18
+    doc = WHERE_DOC.read_text(encoding="utf-8")
+    for stage in stages:
+        assert stage["id"] in doc and stage["name"] in doc
+
+
+def test_header_quality_grade_comes_from_facts_not_hardcoded():
+    """页眉质量等级须取自 data_pipeline 事实——原实现把 "Q3" 写死，facts 升级后会静默说谎。"""
+    header = client.get("/api/状态").json()["页眉"]
+    pipeline = client.get("/api/事实/data_pipeline").json()
+    assert header["质量等级"]
+    assert str(pipeline["quality_grade_current"]).startswith(header["质量等级"])
 
 
 def test_source_check_matrix_protocol_reported_truthfully():

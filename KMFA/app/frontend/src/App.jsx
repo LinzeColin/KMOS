@@ -33,9 +33,62 @@ const S = {
   select: { padding: '.25rem .5rem', borderRadius: '.4rem' },
 }
 
-function 概览({ 断言, 管线, 技能 }) {
+function 我在哪({ 我在哪: 我, 断言, 管线, 技能 }) {
+  // 三块结构与字段刻意对齐 文档/00_我在哪.md 渲染件（同源 machine/facts），验收即以其为基准
+  const 状 = 我?.当前状态
+  const 卡 = 我?.卡住的事 ?? []
+  const 阶段 = 我?.路线图?.阶段 ?? []
   return (
     <>
+      {状 && <>
+        <h3 style={{ marginTop: '1rem' }}>一、当前状态</h3>
+        <table style={表样}><tbody>
+          <tr><td style={格样}>版本</td><td style={格样}><code>{状.版本}</code></td></tr>
+          <tr><td style={格样}>进行到哪</td><td style={格样}>
+            <code>{状.阶段}</code> · <code>{状.分期}</code> · <code>{状.任务}</code></td></tr>
+          <tr><td style={格样}>进度</td><td style={格样}>{状.进度}</td></tr>
+          <tr><td style={格样}>报告可信度</td><td style={格样}>{状.报告可信度}</td></tr>
+          <tr><td style={格样}>业务结论</td><td style={格样}><b>{状.业务结论}</b></td></tr>
+          <tr><td style={格样}>证据状态</td><td style={格样}>{状.证据状态}</td></tr>
+          <tr><td style={格样}>卡住的事</td><td style={格样}>{状.卡住件数} 件</td></tr>
+        </tbody></table>
+
+        <h3 style={{ marginTop: '1.2rem' }}>二、卡住的事</h3>
+        {卡.length === 0 ? <p style={S.muted}>无</p> : (
+          <table style={表样}>
+            <thead><tr>
+              <th style={格样}>编号</th><th style={格样}>什么事</th>
+              <th style={格样}>谁能解</th><th style={格样}>卡了多久</th>
+            </tr></thead>
+            <tbody>{卡.map(b => (
+              <tr key={b.id}>
+                <td style={格样}>{b.id}</td>
+                <td style={格样}>{b.内容}</td>
+                <td style={格样}>{b.owner_only ? <b>只有你能解</b> : '可代办'}</td>
+                <td style={格样}>{b.首次登记}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        )}
+
+        <h3 style={{ marginTop: '1.2rem' }}>三、路线图（{阶段.length} 阶段）</h3>
+        <table style={表样}>
+          <thead><tr>
+            <th style={格样}>阶段</th><th style={格样}>名称</th>
+            <th style={格样}>过关标准</th><th style={格样}>状态</th>
+          </tr></thead>
+          <tbody>{阶段.map(s => (
+            <tr key={s.id}>
+              <td style={格样}>{s.id}</td><td style={格样}>{s.name}</td>
+              <td style={格样}>{s.gate}</td>
+              <td style={{ ...格样, color: s.status === '有效' ? '#1e8449' : '#b9770e' }}>{s.status}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+        <p style={S.muted}>更新于 {我.更新于}｜{我.同源}</p>
+      </>}
+
+      <h3 style={{ marginTop: '1.2rem' }}>数据面快览</h3>
       <div style={S.grid}>
         <div style={S.card}><div style={S.muted}>对账断言（closed / 总数）</div>
           <div style={S.num}>{断言 ? `${断言.closed} / ${断言.total}` : '…'}</div>
@@ -285,18 +338,20 @@ function 源检查板({ 源检查 }) {
 }
 
 export default function App() {
-  const [页, set页] = useState('概览')
+  const [页, set页] = useState('我在哪')
   const [状态, set状态] = useState(null)
   const [断言, set断言] = useState(null)
   const [管线, set管线] = useState(null)
   const [技能, set技能] = useState(null)
   const [源检查, set源检查] = useState(null)
+  const [我在哪数据, set我在哪] = useState(null)
   useEffect(() => {
     fetch('/api/状态').then(r => r.json()).then(set状态)
     fetch('/api/断言').then(r => r.json()).then(set断言)
     fetch('/api/数据管线').then(r => r.json()).then(set管线)
     fetch('/api/技能').then(r => r.json()).then(set技能)
     fetch('/api/源检查').then(r => r.json()).then(set源检查)
+    fetch('/api/我在哪').then(r => r.json()).then(set我在哪)
   }, [])
   return (
     <div style={S.body}>
@@ -311,12 +366,12 @@ export default function App() {
       <nav style={S.tabs}>
         {/* 页签用语义化 button+role=tab：span onClick 既不可键盘操作、也不进可访问性树，
             自动化（含 PROD.0013 Playwright）点不到——本单元真开页面时实测踩到。 */}
-        {['概览', '源检查板', '差异工作台', '数据管线', '技能'].map(t => (
+        {['我在哪', '源检查板', '差异工作台', '数据管线', '技能'].map(t => (
           <button key={t} type="button" role="tab" aria-selected={页 === t}
                   style={{ ...S.tab(页 === t), font: 'inherit' }} onClick={() => set页(t)}>{t}</button>
         ))}
       </nav>
-      {页 === '概览' && <概览 断言={断言} 管线={管线} 技能={技能} />}
+      {页 === '我在哪' && <我在哪 我在哪={我在哪数据} 断言={断言} 管线={管线} 技能={技能} />}
       {页 === '源检查板' && <源检查板 源检查={源检查} />}
       {页 === '差异工作台' && <差异工作台 断言={断言} />}
       {页 === '数据管线' && <数据管线 管线={管线} />}
