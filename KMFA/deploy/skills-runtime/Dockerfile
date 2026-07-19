@@ -21,15 +21,21 @@ RUN pip install --no-cache-dir openpyxl pyyaml requests \
 
 # SKL.0005：资金周报 OCR 用 Python 助手替换 swift Vision（主工具零改动，经此环境变量换引擎；
 # cron 不继承容器 ENV，run_skill.sh 内另有显式 export）。
-# 部署后验收（仓库卷挂载后执行）：
+# 部署后验收（代码已烧进镜像，无需卷挂载）：
 #   docker compose exec skills python3 /opt/kmfa/KMOS/KMFA/skills/资金周报/tools/ocr_with_python.py --selftest
 ENV KMFA_FUND_VISION_OCR_COMMAND="python3 /opt/kmfa/KMOS/KMFA/skills/资金周报/tools/ocr_with_python.py"
 
-COPY install_dws.sh dws.sha256.lock* /opt/runtime/
+# build context = 仓根（compose）。运行脚本按仓根路径 COPY 到 /opt/runtime。
+COPY KMFA/deploy/skills-runtime/install_dws.sh KMFA/deploy/skills-runtime/dws.sha256.lock* /opt/runtime/
 RUN chmod +x /opt/runtime/install_dws.sh && /opt/runtime/install_dws.sh
 
-COPY entrypoint.sh run_skill.sh healthcheck.sh test_send.sh crontab.txt /opt/runtime/
+COPY KMFA/deploy/skills-runtime/entrypoint.sh KMFA/deploy/skills-runtime/run_skill.sh KMFA/deploy/skills-runtime/healthcheck.sh KMFA/deploy/skills-runtime/test_send.sh KMFA/deploy/skills-runtime/crontab.txt /opt/runtime/
 RUN chmod +x /opt/runtime/*.sh
+
+# 自包含：把整个仓烧进镜像（Coolify 的 ./ 运行时挂载只含 compose、无代码——见 DT9 主机核验）。
+# 放在末尾使代码层最后构建（缓存友好）；.dockerignore 已排除 .git/data.objects(120M)/node_modules 等。
+# 每次 push→重 build 即更新代码，不依赖任何运行时卷挂载。
+COPY . /opt/kmfa/KMOS
 
 WORKDIR /opt/kmfa/KMOS
 HEALTHCHECK --interval=5m --timeout=20s --start-period=1m \
