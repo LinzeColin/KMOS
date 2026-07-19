@@ -9,13 +9,14 @@
 #
 # 分批（3.7GB 容量 Gate）：默认只起 skills（app 在 `full` profile 后置）；观测内存无碍后再启 app。
 #
-# 路径说明：相对路径以本 compose 所在目录（KMFA/deploy/coolify）为基准。
-#   Coolify 会 clone 本仓，故 `../../..` = 仓根，技能代码经只读绑定挂载进容器（与本机 #109 同构，零重打包）。
+# 路径说明：build.context 与绑定挂载源均以**仓根**为基准（Coolify Golden Path 的 project-directory = 仓根）。
+#   技能代码经 `./:/opt/kmfa/KMOS:ro` 只读绑定挂载进容器（与本机 #109 同构，零重打包）。
+#   本机验证：docker compose --project-directory <仓根> -f KMFA/deploy/coolify/docker-compose.yml ...
 
 services:
   skills:
     build:
-      context: ../skills-runtime      # 复用 #109 已端到端出证的 Dockerfile（amd64/arm64 通用）
+      context: ./KMFA/deploy/skills-runtime   # 复用 #109 已端到端出证的 Dockerfile（amd64/arm64 通用）；仓根相对
     image: kmfa-skills:coolify
     container_name: kmfa-skills
     restart: always
@@ -31,7 +32,7 @@ services:
       DINGTALK_DING_ROBOT_CODE: "${DINGTALK_DING_ROBOT_CODE:-}"
       KMFA_ALERT_WEBHOOK_TOKEN: "${KMFA_ALERT_WEBHOOK_TOKEN:-}"
     volumes:
-      - ../../..:/opt/kmfa/KMOS:ro                # 技能代码（Coolify checkout / 仓根），只读
+      - ./:/opt/kmfa/KMOS:ro                      # 技能代码（仓根，Coolify project-dir），只读
       - kmfa-dws-auth:/root/.dws                  # dws 登录态持久（实例内加密存储）
       - kmfa-dws-keyring:/root/.local/share/dws-cli
       - kmfa-logs:/var/log/kmfa                   # 台账/日志持久
@@ -44,14 +45,14 @@ services:
   app:
     profiles: ["full"]                            # P2：容量确认后于 Coolify 启用 full profile 再起
     build:
-      context: ../../app/backend
+      context: ./KMFA/app/backend
     image: kmfa-app:coolify
     container_name: kmfa-app
     restart: always
     environment:
       TZ: Asia/Shanghai
     volumes:
-      - ../../..:/opt/kmfa/KMOS:ro                # 只读挂仓：facts/断言/registry
+      - ./:/opt/kmfa/KMOS:ro                      # 只读挂仓（仓根）：facts/断言/registry
     expose:
       - "8000"                                    # 经 Coolify Traefik 暴露；域名在 Coolify 面板设，无需开放主机端口
     healthcheck:

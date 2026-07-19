@@ -1,0 +1,21 @@
+# KMFA → Coolify 自动部署（Golden Path caller）。
+# 治理（Owner 2026-07-18）：统一走 Coolify（OVH 主机）+ Cloudflare，不加第四件。
+#   push main → 经 Coolify API token 触发重部署 KMOS 应用（uuid 由基建线 operate 预建）。
+#   复用工作流 LinzeColin/CodexProject：verify → deploy → home-sync。
+#   skills 默认 KMFA_DELIVERY_ENABLED=0（dry-run，不投递）；无入站端口。
+# secrets COOLIFY_BASE_URL / COOLIFY_API_TOKEN 由基建线在 KMOS 仓预设（最小 deploy+read 权限）。
+name: deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  golden-path:
+    uses: LinzeColin/CodexProject/.github/workflows/linze-golden-path.reusable.yml@main
+    with:
+      service_name: kmfa-kmos
+      coolify_app_uuid: "gz5qao2k0zrx3polpbwgcg51"
+    secrets:
+      COOLIFY_BASE_URL: ${{ secrets.COOLIFY_BASE_URL }}
+      COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
