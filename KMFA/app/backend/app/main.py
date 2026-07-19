@@ -265,6 +265,100 @@ def lineage(include_graph: bool = False, page: int = 1, size: int = 100):
 
 
 SOURCE_MATRIX_PATH = KMFA / "metadata" / "sources" / "source_check_matrix.jsonl"
+AGING_MANIFEST_PATH = KMFA / "metadata" / "reports" / "collection_receivable_aging_manifest.json"
+AGING_LANES_PATH = KMFA / "metadata" / "reports" / "collection_receivable_aging_source_lanes.jsonl"
+AGING_ITEMS_PATH = KMFA / "metadata" / "reports" / "collection_receivable_aging_priority_items.jsonl"
+AGING_STAGING_TABLES = ("receivable_aging", "collection", "v_collection_authoritative")
+
+
+def _cents_to_yuan(cents: Any) -> str | None:
+    """整数分 → 元字符串。**全程整数运算，禁用浮点**（金额纪律：恒整数分）。"""
+    if cents is None:
+        return None
+    value = int(cents)
+    sign = "-" if value < 0 else ""
+    abs_value = abs(value)
+    return f"{sign}{abs_value // 100:,}.{abs_value % 100:02d}"
+
+
+def _read_jsonl(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    return [json.loads(l) for l in path.read_text(encoding="utf-8").splitlines() if l.strip()]
+
+
+@app.get("/api/账龄回款")
+def receivable_aging():
+    """应收账龄与回款视图（PROD.0010）——`collection_receivable_aging` 真数据化。
+
+    数据分两层，**如实区分**：
+    · **对账层（真数字）**：断言表 collection 域逐月 delta_cents 与 receivable_aging 恒等式，
+      皆为已核到分的真实结果，直接呈现。
+    · **v014 账龄结构层（值被阻断）**：source_lanes 全部 `data_status=structure_available_values_blocked`，
+      priority_items 只有 `public_aging_bucket_ref_00x` 匿名指针、`collection_action_allowed=false`
+      ——**故本页不产出账龄分桶金额**，只报结构与阻断状态。
+    """
+    rows = _load_assertions()
+    collection_rows = [r for r in rows if str(r.get("domain")) == "collection"]
+    aging_rows = [r for r in rows if str(r.get("domain")) == "receivable_aging"]
+
+    monthly = []
+    for r in sorted(collection_rows, key=lambda x: str(x.get("period"))):
+        delta = r.get("delta_cents")
+        monthly.append({
+            "断言": r.get("assertion_id"),
+            "口径": r.get("metric"),
+            "期间": r.get("period"),
+            "差异分": delta,
+            "差异元": _cents_to_yuan(delta),
+            "状态": r.get("status"),
+            "证据": r.get("evidence_ref"),
+        })
+    zero = [m for m in monthly if m["差异分"] == 0]
+    open_rows = [m for m in monthly if str(m["状态"]) == "analyzed_open"]
+    with_delta = [m for m in monthly if isinstance(m["差异分"], int) and m["差异分"] != 0]
+    largest = max(with_delta, key=lambda m: abs(m["差异分"]), default=None)
+
+    manifest = json.loads(AGING_MANIFEST_PATH.read_text(encoding="utf-8")) if AGING_MANIFEST_PATH.exists() else {}
+    lanes = _read_jsonl(AGING_LANES_PATH)
+    items = _read_jsonl(AGING_ITEMS_PATH)
+    pipeline = load_json(FACTS / "data_pipeline.json")
+    staging = pipeline.get("staging_tables") or {}
+
+    return {
+        "回款对账": {
+            "月数": len(monthly),
+            "零分差月数": len(zero),
+            "未闭月数": len(open_rows),
+            "最大差异": ({"期间": largest["期间"], "差异分": largest["差异分"], "差异元": largest["差异元"]}
+                         if largest else None),
+            "逐月": monthly,
+        },
+        "账龄恒等式": [
+            {"断言": r.get("assertion_id"), "口径": r.get("metric"), "快照": r.get("period"),
+             "差异分": r.get("delta_cents"), "状态": r.get("status"), "证据": r.get("evidence_ref")}
+            for r in aging_rows
+        ],
+        "账龄结构层": {
+            "公式版本": manifest.get("formula_version"),
+            "报告版本": manifest.get("report_version"),
+            "生成于": manifest.get("generated_at"),
+            "源泳道数": len(lanes),
+            "泳道数据状态": sorted({str(l.get("data_status")) for l in lanes}),
+            "优先事项数": len(items),
+            "允许作经营依据": bool((manifest.get("quality_gate") or {}).get("business_decision_basis_allowed")),
+            "允许催收动作": all(not i.get("collection_action_allowed") for i in items) is False,
+            "限制": manifest.get("limitations", []),
+        },
+        "派生层规模": [
+            {"表": name, "行数": (staging.get(name) or {}).get("rows")}
+            for name in AGING_STAGING_TABLES if name in staging
+        ],
+        "诚实边界": ("对账层为已核到分的真实结果；账龄分桶金额在 v014 结构层仍 values_blocked，"
+                     "本页不产出分桶金额，亦不构成催收依据。"),
+    }
+
+
 COST_MANIFEST_PATH = KMFA / "metadata" / "reports" / "project_cost_fact_layer_manifest.json"
 COST_RECORDS_PATH = KMFA / "metadata" / "lineage" / "project_cost_fact_records.jsonl"
 # 成本归集会吃的派生层表（下钻用；行数取自 data_pipeline 事实）

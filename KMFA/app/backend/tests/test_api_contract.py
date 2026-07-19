@@ -26,7 +26,73 @@ REQUIRED_PATHS = {
     "/api/源检查",
     "/api/我在哪",
     "/api/项目成本",
+    "/api/账龄回款",
 }
+
+
+def test_aging_monthly_rows_match_assertions():
+    """PROD.0010：回款逐月须逐条来自断言表 collection 域，不得另造。"""
+    payload = client.get("/api/账龄回款").json()
+    monthly = payload["回款对账"]["逐月"]
+    src = client.get("/api/断言?domain=collection&size=500").json()
+    assert len(monthly) == src["筛选"]["命中"]
+    by_id = {r["assertion_id"]: r for r in src["items"]}
+    for row in monthly:
+        origin = by_id[row["断言"]]
+        assert row["差异分"] == origin.get("delta_cents")
+        assert row["状态"] == origin.get("status")
+        assert row["期间"] == origin.get("period")
+
+
+def test_aging_cents_to_yuan_is_exact_integer_math():
+    """金额纪律：分→元换算必须整数精确，禁用浮点。
+
+    取真实断言值做定点校验——69457 分必须是 694.57 元、-146280290 分必须是
+    -1,462,802.90 元；任何浮点近似都会在此暴露。
+    """
+    monthly = client.get("/api/账龄回款").json()["回款对账"]["逐月"]
+    for row in monthly:
+        cents = row["差异分"]
+        if cents is None:
+            assert row["差异元"] is None
+            continue
+        sign = "-" if cents < 0 else ""
+        expected = f"{sign}{abs(cents) // 100:,}.{abs(cents) % 100:02d}"
+        assert row["差异元"] == expected, f"{cents} 分换算错：{row['差异元']} != {expected}"
+
+
+def test_aging_zero_diff_count_matches_rows():
+    payload = client.get("/api/账龄回款").json()["回款对账"]
+    assert payload["零分差月数"] == sum(1 for m in payload["逐月"] if m["差异分"] == 0)
+    assert payload["未闭月数"] == sum(1 for m in payload["逐月"] if m["状态"] == "analyzed_open")
+    assert payload["月数"] == len(payload["逐月"])
+
+
+def test_aging_identity_assertion_present_and_closed():
+    rows = client.get("/api/账龄回款").json()["账龄恒等式"]
+    assert rows, "账龄恒等式断言不得缺失"
+    identity = rows[0]
+    assert identity["差异分"] == 0
+    assert identity["状态"].startswith("closed")
+
+
+def test_aging_structure_layer_reported_as_blocked():
+    """v014 账龄结构层值仍被阻断，须如实报出，且本页不得产出分桶金额。"""
+    payload = client.get("/api/账龄回款").json()
+    layer = payload["账龄结构层"]
+    assert "structure_available_values_blocked" in layer["泳道数据状态"]
+    assert layer["允许作经营依据"] is False
+    assert payload["诚实边界"]
+    blob = json.dumps(payload, ensure_ascii=False)
+    assert '"分桶金额"' not in blob and '"bucket_amount"' not in blob
+
+
+def test_aging_staging_rows_match_pipeline_facts():
+    payload = client.get("/api/账龄回款").json()
+    staging = client.get("/api/数据管线").json()["staging_tables"]
+    assert payload["派生层规模"]
+    for item in payload["派生层规模"]:
+        assert item["行数"] == staging[item["表"]]["rows"]
 
 
 def test_project_cost_matches_fact_layer_output():
