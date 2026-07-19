@@ -9,14 +9,15 @@
 #
 # 分批（3.7GB 容量 Gate）：默认只起 skills（app 在 `full` profile 后置）；观测内存无碍后再启 app。
 #
-# 路径说明：build.context 与绑定挂载源均以**仓根**为基准（Coolify Golden Path 的 project-directory = 仓根）。
-#   技能代码经 `./:/opt/kmfa/KMOS:ro` 只读绑定挂载进容器（与本机 #109 同构，零重打包）。
-#   本机验证：docker compose --project-directory <仓根> -f KMFA/deploy/coolify/docker-compose.yml ...
+# 自包含镜像：build.context = 仓根（`.`），Dockerfile 用 `COPY . /opt/kmfa/KMOS` 把代码烧进镜像。
+#   **不挂宿主仓**——真 Coolify 上 `./` 运行时挂载只含 compose、无代码（DT9 主机核验坐实），故弃之。
+#   代码随每次 push 重 build 更新。本机验证：build 后 `docker run`（不挂任何卷）跑 self-audit 应 rc=0。
 
 services:
   skills:
     build:
-      context: ./KMFA/deploy/skills-runtime   # 复用 #109 已端到端出证的 Dockerfile（amd64/arm64 通用）；仓根相对
+      context: .                              # 仓根（Coolify Golden Path project-dir）
+      dockerfile: KMFA/deploy/skills-runtime/Dockerfile   # 复用 #109 Dockerfile，内 COPY . 烧代码进镜像
     image: kmfa-skills:coolify
     container_name: kmfa-skills
     restart: always
@@ -32,7 +33,7 @@ services:
       DINGTALK_DING_ROBOT_CODE: "${DINGTALK_DING_ROBOT_CODE:-}"
       KMFA_ALERT_WEBHOOK_TOKEN: "${KMFA_ALERT_WEBHOOK_TOKEN:-}"
     volumes:
-      - ./:/opt/kmfa/KMOS:ro                      # 技能代码（仓根，Coolify project-dir），只读
+      # 代码已烧进镜像（自包含），不挂宿主仓
       - kmfa-dws-auth:/root/.dws                  # dws 登录态持久（实例内加密存储）
       - kmfa-dws-keyring:/root/.local/share/dws-cli
       - kmfa-logs:/var/log/kmfa                   # 台账/日志持久
@@ -45,14 +46,14 @@ services:
   app:
     profiles: ["full"]                            # P2：容量确认后于 Coolify 启用 full profile 再起
     build:
-      context: ./KMFA/app/backend
+      context: .
+      dockerfile: KMFA/app/backend/Dockerfile
     image: kmfa-app:coolify
     container_name: kmfa-app
     restart: always
     environment:
       TZ: Asia/Shanghai
-    volumes:
-      - ./:/opt/kmfa/KMOS:ro                      # 只读挂仓（仓根）：facts/断言/registry
+    # 代码/facts 已烧进镜像（自包含），不挂宿主仓
     expose:
       - "8000"                                    # 经 Coolify Traefik 暴露；域名在 Coolify 面板设，无需开放主机端口
     healthcheck:
