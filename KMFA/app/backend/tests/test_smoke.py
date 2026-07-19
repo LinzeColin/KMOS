@@ -25,8 +25,22 @@ def test_assertions_counts():
 
 
 def test_skills_registry():
+    """技能数须与 registry.yaml 实际登记数一致。
+
+    原断言硬编码 8，登记册增到 9（#113 项目成本表技能）后即过期误报——
+    改为对齐真实登记册，杜绝再次因新增技能而假失败。
+    """
+    import re
+    from pathlib import Path
+
+    registry = Path(__file__).resolve().parents[3] / "skills" / "registry.yaml"
+    block = registry.read_text(encoding="utf-8").split("\nschedules:")[0]
+    registered = len(re.findall(r"^  - id: (.+)$", block, re.M))
+
     r = client.get("/api/技能")
-    assert r.status_code == 200 and r.json()["count"] == 8
+    assert r.status_code == 200
+    assert r.json()["count"] == registered, f"API {r.json()['count']} != 登记册 {registered}"
+    assert registered >= 8
 
 
 def test_skills_enriched_fields():
