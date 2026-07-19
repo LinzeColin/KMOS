@@ -337,6 +337,78 @@ function 源检查板({ 源检查 }) {
   )
 }
 
+function 账龄回款({ 账龄 }) {
+  if (!账龄) return <p style={S.muted}>加载中…</p>
+  const 对 = 账龄.回款对账, 恒 = 账龄.账龄恒等式, 构 = 账龄.账龄结构层
+  return (
+    <>
+      <div style={S.grid}>
+        <div style={S.card}><div style={S.muted}>回款对账月数</div><div style={S.num}>{对.月数}</div></div>
+        <div style={S.card}><div style={S.muted}>零分差月数</div>
+          <div style={{ ...S.num, color: '#1e8449' }}>{对.零分差月数}</div></div>
+        <div style={S.card}><div style={S.muted}>未闭月数</div>
+          <div style={{ ...S.num, color: 对.未闭月数 ? '#b9770e' : '#1e8449' }}>{对.未闭月数}</div></div>
+        <div style={S.card}><div style={S.muted}>最大差异</div>
+          <div style={S.num}>{对.最大差异 ? `¥${对.最大差异.差异元}` : '—'}</div>
+          <div style={S.muted}>{对.最大差异?.期间 ?? ''}</div></div>
+      </div>
+
+      <h3 style={{ marginTop: '1.2rem' }}>回款逐月对账（真实分差）</h3>
+      <table style={表样}>
+        <thead><tr>
+          <th style={格样}>断言</th><th style={格样}>口径</th><th style={格样}>期间</th>
+          <th style={格样}>差异（元）</th><th style={格样}>差异（分）</th><th style={格样}>状态</th>
+        </tr></thead>
+        <tbody>{对.逐月.map(m => (
+          <tr key={m.断言}>
+            <td style={格样}><code>{m.断言}</code></td>
+            <td style={格样}>{m.口径}</td>
+            <td style={格样}>{m.期间}</td>
+            <td style={{ ...格样, fontWeight: m.差异分 ? 700 : 400,
+                          color: m.差异分 ? '#b9770e' : '#1e8449' }}>
+              {m.差异元 === null ? '—' : `¥${m.差异元}`}</td>
+            <td style={格样}>{m.差异分 ?? '—'}</td>
+            <td style={{ ...格样, color: m.状态 === 'analyzed_open' ? '#b9770e' : '#1e8449' }}>{m.状态}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+
+      <h3 style={{ marginTop: '1.2rem' }}>账龄恒等式</h3>
+      <table style={表样}>
+        <thead><tr><th style={格样}>断言</th><th style={格样}>口径</th><th style={格样}>快照</th>
+          <th style={格样}>差异分</th><th style={格样}>状态</th></tr></thead>
+        <tbody>{恒.map(r => (
+          <tr key={r.断言}>
+            <td style={格样}><code>{r.断言}</code></td><td style={格样}>{r.口径}</td>
+            <td style={格样}>{r.快照}</td>
+            <td style={{ ...格样, color: r.差异分 === 0 ? '#1e8449' : '#b9770e' }}>{r.差异分}</td>
+            <td style={格样}>{r.状态}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+
+      <h3 style={{ marginTop: '1.2rem' }}>账龄结构层（值仍被阻断）</h3>
+      <div style={{ ...S.card, borderLeft: '4px solid #b9770e' }}>
+        <div>{账龄.诚实边界}</div>
+        <div style={{ ...S.muted, marginTop: '.4rem' }}>
+          源泳道 {构.源泳道数} 条，状态 <code>{构.泳道数据状态.join('、')}</code>；
+          优先事项 {构.优先事项数} 条（匿名指针）；允许作经营依据：{构.允许作经营依据 ? '是' : '否'}
+        </div>
+      </div>
+      <ul style={{ ...S.muted, marginTop: '.6rem' }}>{构.限制.map((t, i) => <li key={i}>{t}</li>)}</ul>
+
+      <h3 style={{ marginTop: '1.2rem' }}>派生层规模</h3>
+      <table style={表样}>
+        <thead><tr><th style={格样}>staging 表</th><th style={格样}>真实行数</th></tr></thead>
+        <tbody>{账龄.派生层规模.map(t => (
+          <tr key={t.表}><td style={格样}><code>{t.表}</code></td>
+            <td style={格样}>{(t.行数 ?? 0).toLocaleString('zh')}</td></tr>
+        ))}</tbody>
+      </table>
+    </>
+  )
+}
+
 function 项目成本({ 成本 }) {
   if (!成本) return <p style={S.muted}>加载中…</p>
   const 层 = 成本.事实层, 构 = 成本.必需结构, 阻 = 成本.阻塞链
@@ -415,8 +487,10 @@ export default function App() {
   const [源检查, set源检查] = useState(null)
   const [我在哪数据, set我在哪] = useState(null)
   const [成本, set成本] = useState(null)
+  const [账龄, set账龄] = useState(null)
   useEffect(() => {
     fetch('/api/项目成本').then(r => r.json()).then(set成本)
+    fetch('/api/账龄回款').then(r => r.json()).then(set账龄)
     fetch('/api/状态').then(r => r.json()).then(set状态)
     fetch('/api/断言').then(r => r.json()).then(set断言)
     fetch('/api/数据管线').then(r => r.json()).then(set管线)
@@ -437,7 +511,7 @@ export default function App() {
       <nav style={S.tabs}>
         {/* 页签用语义化 button+role=tab：span onClick 既不可键盘操作、也不进可访问性树，
             自动化（含 PROD.0013 Playwright）点不到——本单元真开页面时实测踩到。 */}
-        {['我在哪', '源检查板', '项目成本', '差异工作台', '数据管线', '技能'].map(t => (
+        {['我在哪', '源检查板', '项目成本', '账龄回款', '差异工作台', '数据管线', '技能'].map(t => (
           <button key={t} type="button" role="tab" aria-selected={页 === t}
                   style={{ ...S.tab(页 === t), font: 'inherit' }} onClick={() => set页(t)}>{t}</button>
         ))}
@@ -445,6 +519,7 @@ export default function App() {
       {页 === '我在哪' && <我在哪 我在哪={我在哪数据} 断言={断言} 管线={管线} 技能={技能} />}
       {页 === '源检查板' && <源检查板 源检查={源检查} />}
       {页 === '项目成本' && <项目成本 成本={成本} />}
+      {页 === '账龄回款' && <账龄回款 账龄={账龄} />}
       {页 === '差异工作台' && <差异工作台 断言={断言} />}
       {页 === '数据管线' && <数据管线 管线={管线} />}
       {页 === '技能' && <技能页 技能={技能} />}
