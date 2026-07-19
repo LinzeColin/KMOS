@@ -43,6 +43,11 @@ secret, credential, unbounded exception, or output body. Synthetic bytes are
 passed directly to the in-memory function and are neither placed in the request
 nor retained in its result.
 
+Independent Stage045 review tightened request canonicalization: case-insensitive
+`unknown` is represented only as `UNKNOWN`, and `requested_at` must be both the
+exact UTC `YYYY-MM-DDTHH:MM:SSZ` shape and a real calendar/time value. An invalid
+month, day or `24:00:00` is rejected before a request ID is created.
+
 `MAX_CONTROL_BYTES=1048576` and `MAX_EVIDENCE_TEXT_CHARS=4096` are isolated
 safety ceilings for this test slice. They are not production parameters,
 performance targets, ingestion limits, or owner-approved thresholds and are not
@@ -58,6 +63,14 @@ The slice recognizes these bounded signatures:
 - little- and big-endian TIFF headers;
 - ZIP container headers followed by OOXML container-name validation.
 
+Magic bytes are necessary but no longer sufficient for `TYPE_CONFIRMED`. The
+reviewed slice also requires a bounded structural invariant: PDF has a valid
+header and terminal `%%EOF`; PNG has a CRC-valid first `IHDR`, at least one
+`IDAT`, and terminal `IEND`; JPEG has SOI and EOI; TIFF has valid byte-order magic
+and an in-bounds IFD table. A recognized magic prefix with invalid/truncated
+structure is blocked as `CORRUPT_OR_UNREADABLE`, never downgraded to a MIME or
+extension guess.
+
 ZIP magic alone never identifies DOCX or XLSX. The detector inspects only ZIP
 entry names in memory:
 
@@ -67,6 +80,14 @@ entry names in memory:
 - corrupt ZIP metadata produces `CORRUPT_OR_UNREADABLE` and
   `TYPE_INPUT_BLOCKED`;
 - ZIP without an OOXML marker remains unknown and requires review.
+
+A valid ZIP that lacks the required OOXML markers stays `UNKNOWN` with
+`OOXML_CONTAINER_MARKERS_MISSING`; matching DOCX/XLSX MIME and extension cannot
+re-enter the candidate route after the container check has failed.
+
+ZIP member names must be canonical relative POSIX names. Absolute, backslash,
+empty, dot, parent-traversal or duplicate names block the input before namespace
+classification, so a lexical `word/../...` entry cannot impersonate DOCX.
 
 The slice does not decompress entry bodies, parse XML, run macros, inspect
 relationships, evaluate archive risk, or perform Stage024-029 extraction work.
@@ -131,7 +152,9 @@ The helper `mark_evidence_text` wraps bounded synthetic source-derived text as:
 This is a mandatory envelope label, not a Stage050 prompt-injection scanner. It
 does not decide whether text is malicious, execute an instruction, authorize a
 tool, override policy, or persist the text. The Phase 2 report retains only the
-boolean marker fact and never includes the synthetic text.
+boolean marker fact and never includes the synthetic text. Length/type bounds are
+validated before signature inspection, so a rejected excerpt cannot be reported
+as though signature or container observation already occurred.
 
 ## Isolated Smoke Slice
 

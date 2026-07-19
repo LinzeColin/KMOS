@@ -11,6 +11,14 @@
 
 ## Current Gate - 2026-07-20
 
+- Stage045 independent review precheck is **not complete**: the three externally
+  bound task-pack/roadmap/instructions files are currently absent from their
+  recorded Downloads paths, so live source rehash is unavailable and
+  `IDS-STAGE045-REVIEW-GATE` remains blocked. The precheck repaired bounded
+  structure validation, OOXML marker/path bypass, MIME/timestamp canonicalization
+  and evidence-check ordering, but it did not create reviewed-local governance.
+  See `STAGE045_STAGE_REVIEW_PRECHECK.md`; the only next task remains
+  `IDS-V0_1-STAGE045-REVIEW` after exact source restoration.
 - Completed task in this run: `IDS-V0_1-STAGE045-P4`; the approved source, committed Phase3 predecessor and five indexed Phase3 artifacts are bound into `ids.stage045.file_type_detection.phase4.delivery.v1`. The checker replays all fourteen Phase3 scenarios and derives six schema-only parser-output samples, seven non-runtime fallback-log samples, exact quality metrics and four fail-closed failure classes without parser or fallback execution.
 - Next allowed task: `IDS-V0_1-STAGE045-REVIEW`, in a separate future run behind `IDS-STAGE045-REVIEW-GATE`; `NO_STAGE_REVIEW_THIS_RUN`, `NO_STAGE046_THIS_RUN`, `NO_BATCH_REVIEW_THIS_RUN`.
 - Preserved Stage045 Phase 3 transition: Completed task in this run: `IDS-V0_1-STAGE045-P3`; Next allowed task: `IDS-V0_1-STAGE045-P4`. This is historical evidence, not the current gate.

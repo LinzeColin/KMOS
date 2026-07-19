@@ -73,13 +73,13 @@ EXPECTED_UPSTREAM = {
             "stage045_file_type_detection_runtime_contract.json"
         ),
         "sha256": (
-            "e3d8cb8408f513eaeaa156a1f43fe7d618736f6830415a48bb40e315e3dae9d7"
+            "026bf6b0a371c2c0f43922e9ec30a72ed22bd0b34a4814baed688a23405db27c"
         ),
     },
     "stage045_phase2_checker": {
         "ref": "KM_IDSystem/scripts/check_file_type_detection_runtime.py",
         "sha256": (
-            "48e0a4cae96f0ed605e0567ee5bdd38b7a0677ca892048d86290de09462a8d93"
+            "42a0d982b5cbe970cade403426ce29632584ff173b71d7a45c4063d24536cd94"
         ),
     },
     "stage045_phase2_tests": {
@@ -88,7 +88,7 @@ EXPECTED_UPSTREAM = {
             "test_stage045_file_type_detection_runtime.py"
         ),
         "sha256": (
-            "14271495dbed4b624973d26b2ae81b49e1578be6e21d3747daed60de8f2a4de7"
+            "bb6ecd9a34957a3d8da94cc1d2f1b9e03a67ab10d2c110e6828c2d0a1b531a6f"
         ),
     },
     "stage045_phase2_evidence": {
@@ -97,7 +97,7 @@ EXPECTED_UPSTREAM = {
             "STAGE045_PHASE2_FILE_TYPE_DETECTION_SLICE.md"
         ),
         "sha256": (
-            "6de20b6c927d76fbad6286e7861a64f903a0c8cccc2c1226860ca6e3e266283c"
+            "b0040b6c33bc76b0a5ad432ee0142c57ffdf2e554a7f49d65ef41f38904db973"
         ),
     },
     "stage045_phase2_run": {

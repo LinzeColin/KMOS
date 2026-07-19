@@ -4,14 +4,17 @@
 from __future__ import annotations
 
 import csv
+from datetime import datetime
 import hashlib
 from io import BytesIO
 import json
 from pathlib import Path
 import re
+import struct
 import subprocess
 from typing import Any, Mapping
 from zipfile import BadZipFile, ZIP_DEFLATED, ZipFile
+import zlib
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,7 +38,7 @@ DETECTOR_VERSION = "ids.file_type_detector.v0_1.stage045.p2"
 MAX_CONTROL_BYTES = 1_048_576
 MAX_EVIDENCE_TEXT_CHARS = 4_096
 EXPECTED_CANONICAL_CONTRACT_SHA256 = (
-    "1105cc6d817a6edbe8b4fc09093bc8553b4a2e25cd8572139f7c78f5381d4a7a"
+    "9ab793088455ea47ee8bd7ff363debcdde54cd4e020674592f4b06c1a81a316b"
 )
 
 SOURCE_BINDING = {
@@ -160,6 +163,21 @@ ROUTE_CANDIDATE_MAP = {
     "UNKNOWN": "UNSUPPORTED",
     "CORRUPT_OR_UNREADABLE": "UNSUPPORTED",
 }
+FORMAT_VALIDATION_RULES = {
+    "PDF": {"header_required": True, "eof_within_last_bytes": 1_024},
+    "PNG": {
+        "crc_required": True,
+        "ihdr_first_required": True,
+        "idat_required": True,
+        "iend_terminal_required": True,
+    },
+    "JPEG": {"soi_required": True, "eoi_required": True},
+    "TIFF": {"byte_order_magic_required": True, "bounded_ifd_required": True},
+    "OOXML": {
+        "canonical_member_paths_required": True,
+        "duplicate_member_names_allowed": False,
+    },
+}
 HUMAN_STATUS = {
     "TYPE_CONFIRMED": "文件类型信号一致，已形成解析器候选路由；尚未执行解析",
     "TYPE_PROVISIONAL": "文件类型仅为低或中置信候选，需要后续验证",
@@ -224,7 +242,8 @@ NESTED_KEYS = {
         "policy_version", "max_control_bytes", "max_evidence_text_chars",
         "ceiling_fact_level", "supported_canonical_types", "signature_rules",
         "extension_type_map", "mime_type_map", "ooxml_container_rules",
-        "text_heuristic_rules", "filename_overrides_signature",
+        "format_validation_rules", "text_heuristic_rules",
+        "filename_overrides_signature",
         "mime_requires_provenance", "extension_only_max_confidence",
         "extension_only_route_state", "unknown_action", "conflict_action",
         "corrupt_action", "route_candidate_map", "parser_dispatch_allowed",
@@ -235,7 +254,8 @@ NESTED_KEYS = {
         "mime_signal_fields", "request_id_formula",
         "bounded_control_bytes_runtime_only", "raw_payload_field_allowed",
         "raw_payload_persistence_allowed", "absolute_source_path_allowed",
-        "request_persistence_allowed",
+        "request_persistence_allowed", "unknown_mime_canonical_value",
+        "requested_at_validation",
     },
     "result_contract": {
         "schema_version", "required_root_fields", "detection_states",
@@ -259,7 +279,9 @@ NESTED_KEYS = {
         "container_inspection_allowed", "text_heuristic_evaluation_allowed",
         "route_candidate_evaluation_allowed", "parser_dispatch_allowed",
         "parser_execution_allowed", "fallback_execution_allowed",
-        "evidence_text_marker_allowed", "prompt_injection_scan_allowed",
+        "evidence_text_marker_allowed",
+        "evidence_text_bounds_checked_before_signature",
+        "prompt_injection_scan_allowed",
         "job_creation_allowed", "state_transition_allowed",
         "manifest_write_allowed", "evidence_ledger_write_allowed",
         "audit_write_allowed", "index_write_allowed",
@@ -314,6 +336,16 @@ def _safe_filename(value: Any) -> bool:
         and "\\" not in value
         and "\x00" not in value
     )
+
+
+def _rfc3339_utc_valid(value: Any) -> bool:
+    if not isinstance(value, str) or not RFC3339_UTC.fullmatch(value):
+        return False
+    try:
+        datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        return False
+    return True
 
 
 def _source_live() -> bool:
@@ -438,6 +470,7 @@ def evaluate_runtime_contract(contract: Any) -> dict[str, bool]:
         and policy.get("supported_canonical_types") == CANONICAL_TYPES
         and policy.get("extension_type_map") == EXTENSION_TYPE_MAP
         and policy.get("mime_type_map") == MIME_TYPE_MAP
+        and policy.get("format_validation_rules") == FORMAT_VALIDATION_RULES
         and policy.get("filename_overrides_signature") is False
         and policy.get("mime_requires_provenance") is True
         and policy.get("extension_only_max_confidence") == "LOW"
@@ -451,6 +484,18 @@ def evaluate_runtime_contract(contract: Any) -> dict[str, bool]:
             "zip_magic_alone_sufficient"
         )
         is False
+        and policy.get("ooxml_container_rules", {}).get(
+            "canonical_member_paths_required"
+        )
+        is True
+        and policy.get("ooxml_container_rules", {}).get(
+            "duplicate_member_names_allowed"
+        )
+        is False
+        and policy.get("ooxml_container_rules", {}).get(
+            "missing_namespace_action"
+        )
+        == "REVIEW_REQUIRED"
         and policy.get("text_heuristic_rules", {}).get(
             "heuristic_is_production_calibrated"
         )
@@ -470,6 +515,9 @@ def evaluate_runtime_contract(contract: Any) -> dict[str, bool]:
         and request.get("raw_payload_persistence_allowed") is False
         and request.get("absolute_source_path_allowed") is False
         and request.get("request_persistence_allowed") is False
+        and request.get("unknown_mime_canonical_value") == "UNKNOWN"
+        and request.get("requested_at_validation")
+        == "RFC3339_UTC_REAL_CALENDAR_VALUE"
     )
     result = value.get("result_contract", {})
     checks["result_contract"] = (
@@ -520,6 +568,7 @@ def evaluate_runtime_contract(contract: Any) -> dict[str, bool]:
         and runtime.get("text_heuristic_evaluation_allowed") is True
         and runtime.get("route_candidate_evaluation_allowed") is True
         and runtime.get("evidence_text_marker_allowed") is True
+        and runtime.get("evidence_text_bounds_checked_before_signature") is True
         and all(
             runtime.get(name) is False
             for name in (
@@ -579,7 +628,8 @@ def build_detection_request(
     """Build a deterministic metadata-only request; no source bytes are retained."""
     if not _safe_filename(filename):
         raise ValueError("filename must be a bounded basename")
-    normalized_mime = observed_mime.strip().lower()
+    raw_mime = observed_mime.strip()
+    normalized_mime = "UNKNOWN" if raw_mime.upper() == "UNKNOWN" else raw_mime.lower()
     if not MIME_VALUE.fullmatch(normalized_mime):
         raise ValueError("observed_mime is invalid")
     if not _safe_ref(mime_provenance_ref):
@@ -588,8 +638,8 @@ def build_detection_request(
         raise ValueError("source_identity_ref is invalid")
     if not FINGERPRINT_REF.fullmatch(source_fingerprint_ref):
         raise ValueError("source_fingerprint_ref is invalid")
-    if not RFC3339_UTC.fullmatch(requested_at):
-        raise ValueError("requested_at must be explicit RFC3339 UTC")
+    if not _rfc3339_utc_valid(requested_at):
+        raise ValueError("requested_at must be a real RFC3339 UTC timestamp")
     body = {
         "schema_version": "ids.stage045.file_type_detection_request.v1",
         "source_identity_ref": source_identity_ref,
@@ -641,7 +691,7 @@ def _request_valid(request: Any) -> bool:
             and mime_signal["provenance_bound"] is True
             and _safe_ref(request["source_identity_ref"])
             and bool(FINGERPRINT_REF.fullmatch(request["source_fingerprint_ref"]))
-            and bool(RFC3339_UTC.fullmatch(request["requested_at"]))
+            and _rfc3339_utc_valid(request["requested_at"])
             and request["detection_request_id"]
             == "detection:sha256:" + _canonical_sha256(body)
         )
@@ -663,6 +713,88 @@ def mark_evidence_text(content: str) -> dict[str, Any]:
     }
 
 
+def _pdf_structure_valid(control_bytes: bytes) -> bool:
+    if re.match(br"%PDF-[0-9]\.[0-9]", control_bytes) is None:
+        return False
+    eof_index = control_bytes.rfind(b"%%EOF")
+    return eof_index >= max(0, len(control_bytes) - 1_024)
+
+
+def _png_structure_valid(control_bytes: bytes) -> bool:
+    if not control_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        return False
+    offset = 8
+    seen_ihdr = False
+    seen_idat = False
+    while offset < len(control_bytes):
+        if len(control_bytes) - offset < 12:
+            return False
+        length = struct.unpack(">I", control_bytes[offset : offset + 4])[0]
+        chunk_end = offset + 12 + length
+        if chunk_end > len(control_bytes):
+            return False
+        kind = control_bytes[offset + 4 : offset + 8]
+        payload = control_bytes[offset + 8 : offset + 8 + length]
+        expected_crc = struct.unpack(">I", control_bytes[offset + 8 + length : chunk_end])[0]
+        if zlib.crc32(kind + payload) & 0xFFFFFFFF != expected_crc:
+            return False
+        if not seen_ihdr:
+            if kind != b"IHDR" or length != 13:
+                return False
+            width, height, bit_depth, colour, compression, filtering, interlace = struct.unpack(
+                ">IIBBBBB", payload
+            )
+            if (
+                width == 0
+                or height == 0
+                or bit_depth not in {1, 2, 4, 8, 16}
+                or colour not in {0, 2, 3, 4, 6}
+                or compression != 0
+                or filtering != 0
+                or interlace not in {0, 1}
+            ):
+                return False
+            seen_ihdr = True
+        elif kind == b"IHDR":
+            return False
+        if kind == b"IDAT":
+            seen_idat = True
+        if kind == b"IEND":
+            return length == 0 and seen_ihdr and seen_idat and chunk_end == len(control_bytes)
+        offset = chunk_end
+    return False
+
+
+def _jpeg_structure_valid(control_bytes: bytes) -> bool:
+    return (
+        len(control_bytes) >= 6
+        and control_bytes.startswith(b"\xff\xd8\xff")
+        and control_bytes.endswith(b"\xff\xd9")
+    )
+
+
+def _tiff_structure_valid(control_bytes: bytes, byteorder: str) -> bool:
+    if len(control_bytes) < 14:
+        return False
+    offset = int.from_bytes(control_bytes[4:8], byteorder=byteorder)
+    if offset < 8 or offset + 2 > len(control_bytes):
+        return False
+    entry_count = int.from_bytes(
+        control_bytes[offset : offset + 2], byteorder=byteorder
+    )
+    return offset + 2 + (entry_count * 12) + 4 <= len(control_bytes)
+
+
+def _canonical_zip_member(name: str) -> bool:
+    if not name or "\\" in name or name.startswith("/") or "\x00" in name:
+        return False
+    lexical = name[:-1] if name.endswith("/") else name
+    if not lexical:
+        return False
+    parts = lexical.split("/")
+    return all(part not in {"", ".", ".."} for part in parts)
+
+
 def _inspect_signature(control_bytes: bytes) -> dict[str, Any]:
     result = {
         "candidate": None,
@@ -670,34 +802,77 @@ def _inspect_signature(control_bytes: bytes) -> dict[str, Any]:
         "container_inspected": False,
         "container_conflict": False,
         "corrupt": False,
+        "invalid_error": None,
+        "review_error": None,
     }
     if control_bytes.startswith(b"%PDF-"):
-        result.update(candidate="PDF", signature_name="PDF_HEADER")
+        if _pdf_structure_valid(control_bytes):
+            result.update(candidate="PDF", signature_name="PDF_BOUNDED_STRUCTURE")
+        else:
+            result.update(
+                signature_name="PDF_HEADER_INVALID_STRUCTURE",
+                invalid_error="PDF_STRUCTURE_INVALID",
+            )
         return result
     if control_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
-        result.update(candidate="PNG", signature_name="PNG_SIGNATURE")
+        if _png_structure_valid(control_bytes):
+            result.update(candidate="PNG", signature_name="PNG_BOUNDED_STRUCTURE")
+        else:
+            result.update(
+                signature_name="PNG_SIGNATURE_INVALID_STRUCTURE",
+                invalid_error="PNG_STRUCTURE_INVALID",
+            )
         return result
     if control_bytes.startswith(b"\xff\xd8\xff"):
-        result.update(candidate="JPEG", signature_name="JPEG_SOI_SIGNATURE")
+        if _jpeg_structure_valid(control_bytes):
+            result.update(candidate="JPEG", signature_name="JPEG_BOUNDED_STRUCTURE")
+        else:
+            result.update(
+                signature_name="JPEG_SOI_INVALID_STRUCTURE",
+                invalid_error="JPEG_STRUCTURE_INVALID",
+            )
         return result
     if control_bytes.startswith(b"II*\x00"):
-        result.update(candidate="TIFF", signature_name="TIFF_LITTLE_ENDIAN")
+        if _tiff_structure_valid(control_bytes, "little"):
+            result.update(candidate="TIFF", signature_name="TIFF_LITTLE_ENDIAN_IFD")
+        else:
+            result.update(
+                signature_name="TIFF_LITTLE_ENDIAN_INVALID_STRUCTURE",
+                invalid_error="TIFF_STRUCTURE_INVALID",
+            )
         return result
     if control_bytes.startswith(b"MM\x00*"):
-        result.update(candidate="TIFF", signature_name="TIFF_BIG_ENDIAN")
+        if _tiff_structure_valid(control_bytes, "big"):
+            result.update(candidate="TIFF", signature_name="TIFF_BIG_ENDIAN_IFD")
+        else:
+            result.update(
+                signature_name="TIFF_BIG_ENDIAN_INVALID_STRUCTURE",
+                invalid_error="TIFF_STRUCTURE_INVALID",
+            )
         return result
     if control_bytes.startswith((b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")):
         result["container_inspected"] = True
         result["signature_name"] = "ZIP_CONTAINER"
         try:
             with ZipFile(BytesIO(control_bytes)) as archive:
-                names = set(archive.namelist())
+                member_names = archive.namelist()
         except (BadZipFile, OSError, ValueError):
             result["corrupt"] = True
             return result
+        if len(member_names) != len(set(member_names)):
+            result["invalid_error"] = "OOXML_DUPLICATE_MEMBER"
+            return result
+        if not all(_canonical_zip_member(name) for name in member_names):
+            result["invalid_error"] = "OOXML_MEMBER_PATH_INVALID"
+            return result
+        names = set(member_names)
         content_types = "[Content_Types].xml" in names
-        has_word = any(name.startswith("word/") for name in names)
-        has_xl = any(name.startswith("xl/") for name in names)
+        has_word = any(
+            name.startswith("word/") and not name.endswith("/") for name in names
+        )
+        has_xl = any(
+            name.startswith("xl/") and not name.endswith("/") for name in names
+        )
         if content_types and has_word and has_xl:
             result["container_conflict"] = True
         elif content_types and has_word:
@@ -706,6 +881,8 @@ def _inspect_signature(control_bytes: bytes) -> dict[str, Any]:
         elif content_types and has_xl:
             result["candidate"] = "XLSX"
             result["signature_name"] = "OOXML_WORKBOOK_CONTAINER"
+        else:
+            result["review_error"] = "OOXML_CONTAINER_MARKERS_MISSING"
         return result
     return result
 
@@ -802,6 +979,11 @@ def detect_control_bytes(
         return _blocked_result(request_id, "EMPTY_CONTROL_BYTES", corrupt=True)
     if len(control_bytes) > MAX_CONTROL_BYTES:
         return _blocked_result(request_id, "CONTROL_BYTES_LIMIT_EXCEEDED")
+    if source_text_excerpt is not None:
+        try:
+            mark_evidence_text(source_text_excerpt)
+        except ValueError:
+            return _blocked_result(request_id, "EVIDENCE_TEXT_LIMIT_EXCEEDED")
 
     result = _base_result(request_id)
     result["file_signature_inspection_performed"] = True
@@ -812,6 +994,15 @@ def detect_control_bytes(
         blocked["file_signature_inspection_performed"] = True
         blocked["container_inspection_performed"] = True
         return blocked
+    if signature["invalid_error"]:
+        blocked = _blocked_result(
+            request_id, signature["invalid_error"], corrupt=True
+        )
+        blocked["file_signature_inspection_performed"] = True
+        blocked["container_inspection_performed"] = signature[
+            "container_inspected"
+        ]
+        return blocked
 
     extension = request["extension_signal"]["value"]
     mime = request["mime_signal"]["value"]
@@ -819,7 +1010,11 @@ def detect_control_bytes(
     mime_type = MIME_TYPE_MAP.get(mime)
     signature_type = signature["candidate"]
     text_type = None
-    if signature_type is None and not signature["container_conflict"]:
+    if (
+        signature_type is None
+        and not signature["container_conflict"]
+        and not signature["container_inspected"]
+    ):
         result["text_heuristic_evaluation_performed"] = True
         text_type = _text_candidate(control_bytes)
 
@@ -845,11 +1040,20 @@ def detect_control_bytes(
     ]
 
     if source_text_excerpt is not None:
-        try:
-            mark_evidence_text(source_text_excerpt)
-        except ValueError:
-            return _blocked_result(request_id, "EVIDENCE_TEXT_LIMIT_EXCEEDED")
         result["evidence_text_marker_applied"] = True
+
+    if signature["review_error"]:
+        result.update(
+            detected_type="UNKNOWN",
+            candidate_types=_unique_types(mime_type, extension_type),
+            detection_state="TYPE_UNKNOWN_REVIEW_REQUIRED",
+            confidence="UNKNOWN",
+            route_candidate="UNSUPPORTED",
+            route_state="ROUTE_REVIEW_REQUIRED",
+            errors=[signature["review_error"]],
+            human_status=HUMAN_STATUS["TYPE_UNKNOWN_REVIEW_REQUIRED"],
+        )
+        return result
 
     candidates = _unique_types(signature_type, text_type, mime_type, extension_type)
     result["candidate_types"] = candidates

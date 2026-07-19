@@ -3,8 +3,10 @@ from io import BytesIO
 import importlib.util
 import json
 from pathlib import Path
+import struct
 import unittest
 from zipfile import ZIP_DEFLATED, ZipFile
+import zlib
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -134,6 +136,25 @@ def _ooxml_bytes(family: str) -> bytes:
     return output.getvalue()
 
 
+def _png_chunk(kind: bytes, payload: bytes) -> bytes:
+    return (
+        struct.pack(">I", len(payload))
+        + kind
+        + payload
+        + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
+    )
+
+
+def _png_bytes() -> bytes:
+    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + _png_chunk(b"IHDR", ihdr)
+        + _png_chunk(b"IDAT", zlib.compress(b"\x00\x00\x00\x00"))
+        + _png_chunk(b"IEND", b"")
+    )
+
+
 class Stage045FileTypeDetectionPhase2Tests(unittest.TestCase):
     def _checker(self):
         self.assertTrue(CHECKER.is_file(), f"missing Phase 2 checker: {CHECKER}")
@@ -243,9 +264,13 @@ class Stage045FileTypeDetectionPhase2Tests(unittest.TestCase):
     def test_image_signatures_are_detected_without_file_io(self):
         module = self._checker()
         samples = {
-            "PNG": ("image.png", "image/png", b"\x89PNG\r\n\x1a\ncontrol"),
+            "PNG": ("image.png", "image/png", _png_bytes()),
             "JPEG": ("image.jpg", "image/jpeg", b"\xff\xd8\xff\xe0control\xff\xd9"),
-            "TIFF": ("image.tiff", "image/tiff", b"II*\x00control"),
+            "TIFF": (
+                "image.tiff",
+                "image/tiff",
+                b"II*\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+            ),
         }
         for expected, (filename, mime, payload) in samples.items():
             with self.subTest(expected=expected):

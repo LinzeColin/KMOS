@@ -1,5 +1,13 @@
 # Changelog
 
+## IDS v0.1 STAGE-045 Review Precheck - 2026-07-20
+
+- Review remains blocked at `IDS-STAGE045-REVIEW-GATE` because the exact approved task-pack ZIP, roadmap and instructions are absent from their bound Downloads paths; historical P4 source hashes were not promoted to live review evidence.
+- Repaired two Critical detector gaps: magic-only/truncated PDF/PNG/JPEG/TIFF can no longer become `TYPE_CONFIRMED/HIGH`, and a ZIP missing OOXML markers can no longer fall back to matching MIME/extension and produce a parser candidate.
+- Repaired four Important gaps: canonical/unique OOXML member names, canonical `UNKNOWN` MIME, real-calendar UTC timestamps, and evidence-excerpt bounds before signature observation.
+- Review RED produced 10 failures plus 1 error across six initial counterexample tests, followed by one failing ZIP-marker counterexample; final repair suite passes 8/8 including contract binding. Phase2→Phase3→Phase4 hashes were rebound to the hardened local snapshot.
+- This is `BLOCKED_SOURCE_UNAVAILABLE_REPAIRS_VERIFIED`, not a completed whole-stage review. No Stage046, governance reviewed-local transition, batch action, GitHub upload, app reinstall, parser/fallback runtime, raw metadata access, persistence or production action occurred.
+
 ## IDS v0.1 STAGE-045 Phase 4 - 2026-07-20
 
 - Added `ids.stage045.file_type_detection.phase4.delivery.v1`, bound to the approved source, exact committed Phase3 predecessor and five indexed Phase3 artifacts.

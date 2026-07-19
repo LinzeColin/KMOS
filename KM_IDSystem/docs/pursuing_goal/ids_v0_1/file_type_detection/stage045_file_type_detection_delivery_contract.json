@@ -31,15 +31,15 @@
   "upstream_bindings": {
     "stage045_phase3_contract": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_scenarios_contract.json",
-      "sha256": "fa023ecebb1e405f983d5125f7808fdcc5523b35d9c4cde1fb85fe34b4fb55a6"
+      "sha256": "3bb5b7e6ebc0a44f6f9b54090c9f382146c8e3c88b1df2d9d0336ca7692c99b6"
     },
     "stage045_phase3_checker": {
       "ref": "KM_IDSystem/scripts/check_file_type_detection_scenarios.py",
-      "sha256": "4c88f0d9aa42523e7ba917526bbfa97da58e0ac00dc2b41bfd4cd02aebbb91a0"
+      "sha256": "ef3cdaf66c235becfaa4458ee2343ba9091d4ee05fa4f0ca36c9afa06d69e349"
     },
     "stage045_phase3_tests": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_scenarios.py",
-      "sha256": "e58389dfc60efa9df7f479d6ff759fbaa79a8c452725a2779d4f522daee0f6fa"
+      "sha256": "8a6cae96dabe32bb34febdfe540ba36b7dd30e78a7bd80bdd0062d47377132c2"
     },
     "stage045_phase3_evidence": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_PHASE3_FILE_TYPE_DETECTION_SCENARIOS.md",

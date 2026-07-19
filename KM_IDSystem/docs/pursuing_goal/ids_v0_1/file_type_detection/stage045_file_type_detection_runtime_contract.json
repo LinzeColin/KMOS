@@ -85,6 +85,30 @@
       "TIFF_BIG_ENDIAN": "4d4d002a",
       "ZIP_CONTAINER": ["504b0304", "504b0506", "504b0708"]
     },
+    "format_validation_rules": {
+      "PDF": {
+        "header_required": true,
+        "eof_within_last_bytes": 1024
+      },
+      "PNG": {
+        "crc_required": true,
+        "ihdr_first_required": true,
+        "idat_required": true,
+        "iend_terminal_required": true
+      },
+      "JPEG": {
+        "soi_required": true,
+        "eoi_required": true
+      },
+      "TIFF": {
+        "byte_order_magic_required": true,
+        "bounded_ifd_required": true
+      },
+      "OOXML": {
+        "canonical_member_paths_required": true,
+        "duplicate_member_names_allowed": false
+      }
+    },
     "extension_type_map": {
       ".pdf": "PDF",
       ".docx": "DOCX",
@@ -114,7 +138,10 @@
       "xlsx_namespace_prefix": "xl/",
       "both_namespaces_action": "REVIEW_REQUIRED",
       "missing_content_types_action": "REVIEW_REQUIRED",
-      "corrupt_zip_action": "BLOCK_AS_CORRUPT_OR_UNREADABLE"
+      "missing_namespace_action": "REVIEW_REQUIRED",
+      "corrupt_zip_action": "BLOCK_AS_CORRUPT_OR_UNREADABLE",
+      "canonical_member_paths_required": true,
+      "duplicate_member_names_allowed": false
     },
     "text_heuristic_rules": {
       "encoding": "UTF-8_OR_UTF-8-SIG_CONTROL_SLICE_ONLY",
@@ -169,7 +196,9 @@
     "raw_payload_field_allowed": false,
     "raw_payload_persistence_allowed": false,
     "absolute_source_path_allowed": false,
-    "request_persistence_allowed": false
+    "request_persistence_allowed": false,
+    "unknown_mime_canonical_value": "UNKNOWN",
+    "requested_at_validation": "RFC3339_UTC_REAL_CALENDAR_VALUE"
   },
   "result_contract": {
     "schema_version": "ids.stage045.file_type_detection_result.v1",
@@ -261,6 +290,7 @@
     "parser_execution_allowed": false,
     "fallback_execution_allowed": false,
     "evidence_text_marker_allowed": true,
+    "evidence_text_bounds_checked_before_signature": true,
     "prompt_injection_scan_allowed": false,
     "job_creation_allowed": false,
     "state_transition_allowed": false,
