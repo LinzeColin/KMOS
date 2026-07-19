@@ -1,7 +1,56 @@
-{
-  "contract_version": "0.4.1",
-  "router": "km-bid-scout",
-  "skills": ["discover", "evidence", "adjudicate", "qualify", "audit", "brief", "lifecycle", "evolve"],
-  "layers": ["SIGNAL", "NOTICE", "LOT", "OPPORTUNITY", "CAPTURE_HANDOFF"],
-  "integration": "KMIDS optional via KMDatabase schema/API after G0"
-}
+[
+  {
+    "id": "KMBS-001",
+    "name": "统一路由、输入充分性预检与停止门",
+    "status": "draft",
+    "evidence": "extracted"
+  },
+  {
+    "id": "KMBS-002",
+    "name": "高召回公开来源发现",
+    "status": "draft",
+    "evidence": "extracted"
+  },
+  {
+    "id": "KMBS-003",
+    "name": "官方公告与附件取证",
+    "status": "draft",
+    "evidence": "extracted"
+  },
+  {
+    "id": "KMBS-004",
+    "name": "采购事件语义裁决",
+    "status": "draft",
+    "evidence": "extracted"
+  },
+  {
+    "id": "KMBS-005",
+    "name": "投标主体、资格与商务核验",
+    "status": "draft",
+    "evidence": "extracted"
+  },
+  {
+    "id": "KMBS-006",
+    "name": "独立反对者审计",
+    "status": "draft",
+    "evidence": "extracted"
+  },
+  {
+    "id": "KMBS-007",
+    "name": "负责人简报与输出定位",
+    "status": "draft",
+    "evidence": "extracted"
+  },
+  {
+    "id": "KMBS-008",
+    "name": "投标结果生命周期只读同步",
+    "status": "draft",
+    "evidence": "extracted"
+  },
+  {
+    "id": "KMBS-009",
+    "name": "质量回放与影子演化",
+    "status": "draft",
+    "evidence": "extracted"
+  }
+]
