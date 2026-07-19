@@ -26,11 +26,10 @@ DEFAULT_STATE_PATH = AUTOMATION_DIR / "state.json"
 LEDGER_HEADER = "# DWS Auth Keepalive Memory v2\n"
 MAX_LEDGER_RUNS = 24
 MANUAL_AUTH_COMMAND = (
-    "cd /Users/linzezhang/Documents/Codex/KMOS "
-    "&& DWS_KEEPALIVE_PROFILE=$(python3 -c 'import json; "
-    "print(json.load(open(\"/Users/linzezhang/.codex/automations/"
-    "dws-auth-keepalive-2/expected_profile.json\"))[\"profile\"])') "
-    "&& dws auth login --device --profile \"$DWS_KEEPALIVE_PROFILE\""
+    "云端主路径：Coolify → skills → Terminal 执行 `dws auth login --device`"
+    "（Owner 钉钉手机确认一次）；如需固定 profile，profile 名见 "
+    "/var/log/kmfa/dws-keepalive/expected_profile.json 的 profile 字段，"
+    "追加 --profile <名>。"
 )
 
 

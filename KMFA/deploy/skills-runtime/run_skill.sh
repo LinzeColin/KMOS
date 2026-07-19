@@ -34,6 +34,11 @@ case "$SKILL" in
   mgmt-monthly)        CMD=(python3 KMFA/skills/经营月报/tools/validate_skill_package.py) ;;   # SKL.0004 演练时替换为业务入口
   upstream-archive)    CMD=(python3 KMFA/skills/上游归档/tools/validate_skill_package.py) ;;  # dws drive 命令面核对后接业务入口
   daily-backup)        CMD=(bash -c 'echo "自包含模型：代码随镜像重建（push→Coolify），容器内无需 git pull（镜像无 .git）；dws-auth/logs 在命名卷持久。数据卷外部备份目标未配置，本次为无害心跳。"') ;;  # 自包含后原 git pull 空转报错→改无害心跳；真备份待外部目标配置
+  dws-keepalive)       CMD=(bash -c 'set -e; \
+                         D=/var/log/kmfa/dws-keepalive; mkdir -p "$D"; \
+                         A="--profile-config $D/expected_profile.json --ledger-path $D/memory.md --state-path $D/state.json"; \
+                         [ -f "$D/expected_profile.json" ] || A="$A --bootstrap-current-profile"; \
+                         python3 KMFA/tools/automation/dws_auth_keepalive.py $A') ;;  # 认证保活：替代已停用的 Codex 排程 dws-auth-keepalive-2；无交互刷新 access-token；profile/state/ledger 落 kmfa-logs 卷（容器重建不丢），首跑自举 profile；失败经 run_skill 告警面上报
   self-audit)          CMD=(bash -c 'set -e; \
                          rm -rf /tmp/kmfa-audit && mkdir -p /tmp/kmfa-audit; \
                          tar -C /opt/kmfa/KMOS --exclude=./.git --exclude=./KMDatabase/data/objects \
