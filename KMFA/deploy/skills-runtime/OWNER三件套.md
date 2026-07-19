@@ -10,7 +10,7 @@
 - **skills 云端运行 + 主机核验全绿**（#119 自包含镜像）：容器 `Up healthy`、完整仓烧进镜像、`date +%z=+0800`、`KMFA_DELIVERY_ENABLED=0`（dry-run 不投递）、`self-audit rc=0`（证据链 30/30、血缘 FRESH、双平面 5 项目、台账 +08:00）。
 - 6 条旧 Codex 排程你已停用、契约同步 DISABLED（#112）。
 - ~~连 Coolify GitHub App~~ **已免除**（KMOS 公开仓 + API 触发，不需要）。
-- ~~一条 DNS~~ skills 无入站、无需域名；App 面板（P2）上线时才需一条 Cloudflare 记录。
+- ~~一条 DNS~~ skills 无入站、无需域名；App 面板（P2）上线时才需一条 Cloudflare 记录 **+ 一条 Cloudflare Access 策略（只放行你的邮箱）**——面板展示财务对账数据，**裸挂公网即泄露**，Access 不可省。
 
 ## 👤 你只剩这一步：dws 设备码登录（钉钉手机点一次）
 
