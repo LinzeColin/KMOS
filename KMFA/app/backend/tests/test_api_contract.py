@@ -22,7 +22,40 @@ REQUIRED_PATHS = {
     "/api/事实/{name}",
     "/api/血缘",
     "/api/报表",
+    "/api/源检查",
 }
+
+
+def test_source_check_matrix_protocol_reported_truthfully():
+    """PROD.0005：正式矩阵当前零已提交源行，必须如实报出，不得编造维度值充数。"""
+    payload = client.get("/api/源检查").json()
+    protocol = payload["矩阵协议"]
+    assert protocol["schema"] == "kmfa.source_check_matrix.v1"
+    assert protocol["阶段"] == "S03-P2"
+    assert protocol["已提交源行"] == 0
+    assert len(protocol["必需维度"]) == 6
+    assert "已就绪" in protocol["允许状态"]
+
+
+def test_source_check_coverage_matrix_matches_lineage_total():
+    """覆盖矩阵各源合计必须等于血缘资产总数——防止漏源或重复计数。"""
+    payload = client.get("/api/源检查").json()
+    coverage = payload["覆盖矩阵"]
+    assert coverage["资产合计"] >= 50
+    assert sum(row["合计"] for row in coverage["行"]) == coverage["资产合计"]
+    assert set(coverage["源"]) >= {"财务", "WPS钉钉红圈", "绩效"}
+    for row in coverage["行"]:
+        assert sum(row[state] for state in coverage["状态列"]) == row["合计"]
+
+
+def test_source_check_freshness_from_generated_facts_only():
+    """新鲜度由 data_as_of_batch 与血缘批次比对得出（皆机器生成面），不读 raw inbox。"""
+    payload = client.get("/api/源检查").json()
+    fresh = payload["新鲜度"]
+    assert fresh["数据批次"]
+    assert isinstance(fresh["stale"], bool)
+    assert fresh["stale"] == bool(fresh["更新的批次"])
+    assert fresh["提示"]
 
 
 def test_openapi_covers_required_paths():

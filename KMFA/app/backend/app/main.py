@@ -213,6 +213,86 @@ def lineage(include_graph: bool = False, page: int = 1, size: int = 100):
     return out
 
 
+SOURCE_MATRIX_PATH = KMFA / "metadata" / "sources" / "source_check_matrix.jsonl"
+
+
+@app.get("/api/源检查")
+def source_check():
+    """源检查板（PROD.0005）：矩阵协议状态 + 真实源覆盖矩阵 + 新鲜度 stale 提示。
+
+    诚实边界：正式源检查矩阵 `metadata/sources/source_check_matrix.jsonl` 目前只有
+    protocol_header、**零已提交源行**（S03-P2 协议定义态，源行由 file_import_register 产出）。
+    本接口如实报出该状态，**不编造 entity_ref / account_ref 等取不到的维度值充数**。
+    覆盖矩阵取自血缘图 + data_pipeline 事实（皆为机械生成面）；新鲜度由
+    `data_as_of_batch` 与血缘节点批次比对得出——全程不读 raw inbox。
+    """
+    if not LINEAGE_PATH.exists():
+        raise HTTPException(status_code=503, detail="血缘图缺失")
+    graph = yaml.safe_load(LINEAGE_PATH.read_text(encoding="utf-8")) or {}
+    pipeline = json.loads((FACTS / "data_pipeline.json").read_text(encoding="utf-8"))
+
+    header: dict[str, Any] = {}
+    committed_rows = 0
+    if SOURCE_MATRIX_PATH.exists():
+        for line in SOURCE_MATRIX_PATH.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if row.get("record_type") == "protocol_header":
+                header = row
+            else:
+                committed_rows += 1
+
+    nodes = graph.get("nodes") or []
+    matrix: dict[str, dict[str, int]] = {}
+    batches: set[str] = set()
+    for node in nodes:
+        source = str(node.get("domain") or "未标注")
+        state = str(node.get("status") or "已抽取")
+        matrix.setdefault(source, {})
+        matrix[source][state] = matrix[source].get(state, 0) + 1
+        if node.get("batch"):
+            batches.add(str(node["batch"]))
+
+    states = sorted({s for row in matrix.values() for s in row})
+    as_of = str(pipeline.get("data_as_of_batch") or "")
+    newer = sorted(b for b in batches if as_of and b > as_of)
+
+    return {
+        "矩阵协议": {
+            "schema": header.get("schema_version"),
+            "阶段": header.get("stage_phase"),
+            "状态": header.get("status"),
+            "必需维度": header.get("required_dimensions", []),
+            "允许状态": header.get("allowed_statuses", []),
+            "已提交源行": committed_rows,
+            "说明": "协议已定义；源行待 file_import_register 产出后提交（当前为零行，如实报出）",
+        },
+        "覆盖矩阵": {
+            "源": sorted(matrix),
+            "状态列": states,
+            "行": [
+                {"源": src, "合计": sum(matrix[src].values()), **{st: matrix[src].get(st, 0) for st in states}}
+                for src in sorted(matrix)
+            ],
+            "资产合计": len(nodes),
+        },
+        "新鲜度": {
+            "数据批次": as_of,
+            "血缘批次": sorted(batches),
+            "stale": bool(newer),
+            "更新的批次": newer,
+            "提示": ("发现比 data_as_of_batch 更新的批次，需重跑抽取→血缘→facts"
+                     if newer else "无更新批次，覆盖面与事实批次一致"),
+        },
+        "派生层": {
+            "表数": len(pipeline.get("staging_tables") or {}),
+            "行合计": pipeline.get("staging_rows_total"),
+            "质量等级": pipeline.get("quality_grade_current"),
+        },
+    }
+
+
 def _report_title(report_dir: Path) -> str | None:
     human = report_dir / "human"
     if not human.is_dir():
