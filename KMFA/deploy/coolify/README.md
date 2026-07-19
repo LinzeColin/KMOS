@@ -53,6 +53,8 @@
 
 6. 观测 P1 内存无碍后，在 Coolify 为本资源**启用 `full` profile**（Compose profiles → 勾 `full`）或设 `COMPOSE_PROFILES=full`，重部署 → `kmfa-app` 起。
 7. **域名**：Coolify 给 `app` 服务设 `kmfa.linzezhang.com`（Coolify Traefik 自动签发/路由）；**Cloudflare** 加一条**代理（橙云）** A 记录 `kmfa` → OVH 公网 IP（或按 Coolify 提示的 CNAME）。App 仅经 Traefik 暴露，主机不额外开放端口。
+8. ⚠️ **Cloudflare Access 强制鉴权（不可省，先于放通）**：App 面板展示的是**财务对账数据**（八份一致性报告、断言表、差异工作台），**裸挂公网＝财务数据对外泄露**。Zero Trust → Access → Applications → Add（Self-hosted，域名同上）→ 策略 Allow 仅 Owner 邮箱（`linzezhang35@gmail.com`）。
+   > **Access 生效后再放通**；若 DNS 先生效而 Access 未就位，先停用该记录或保持灰云。此项承自原 Tunnel 方案的 PROD.0020/0021「域名强制 Access 鉴权」——切 Coolify 路径时一度遗漏，此处补回。
 
 ---
 
