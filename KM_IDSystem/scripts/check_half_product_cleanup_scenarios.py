@@ -149,7 +149,8 @@ EXPECTED_UPSTREAM = {
 # the Phase 2 commit contract.
 FORWARD_COMPATIBLE_UPSTREAM_HASHES: dict[str, set[str]] = {
     "stage044_phase2_tests": {
-        "82a02a9a9802e7a8a0ef68752eb397f915a735582cb5777bdd571734bbdbab29"
+        "82a02a9a9802e7a8a0ef68752eb397f915a735582cb5777bdd571734bbdbab29",
+        "4cfc290fd1aaa5cb659be65fb581f1354ad5439bc9337b9a2b3c82ec953d1466",
     }
 }
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## IDS v0.1 STAGE-044 Phase 4 - 2026-07-19
+
+- Added `ids.stage044.half_product_cleanup.phase4.delivery.v1`, an exact source/Phase3/upstream-hash-bound closeout contract and fail-closed checker that compose the reviewed state graph, retry log, pressure, lock, crash-recovery and cleanup evidence without enabling a runtime.
+- Reverified 8 job types, 11 states, 4 terminals, 21 transitions, 3 attempts, 2 retries ending in `DEAD_LETTERED`, 7 pressure signals, 14/14 isolated scenarios, child exit evidence `73`, 25 full and 16 selected same-source conflicts, and zero operation/queue/retry/delete effects.
+- Preserved only `TEMP_STAGING_OUTPUT` and `INCOMPLETE_DERIVATIVE_OUTPUT` as all-gates-satisfied conditional cleanup candidates. Fourteen original/source/database/fact/manifest/evidence/audit/report/index/checkpoint/held/succeeded classes remain protected; delete attempt and deleted ref counts are zero.
+- Distinguished three upstream recovery candidates and two cleanup candidates from current automatic eligibility. Automatic recovery/cleanup eligibility and observed success are empty; fourteen missing, stale, active, conflicting or uncalibrated conditions require manual action.
+- Added executable safe-shutdown, durable-evidence-only recovery, Phase4-only rollback and known-limit instructions. No filesystem or writer probe, scan/traversal, production lock, process recovery, state mutation, `dirfd`/`openat`/`unlinkat`, move/overwrite/delete, audit/persistence/database or production action ran.
+- TDD RED produced `14` expected assertion failures and `1` expected missing-checker error across `12` focused tests. Final GREEN passes checker `15/15 + 12/12`, focused `12/12`, Stage005 `168/168`, Stage041-044 aggregate `258/258` in `1196.647s`, full discovery `1004/1004` in `1749.795s`, six Stage038-043 historical review checkers, `214` clean events, idempotent rendering and project dual-plane.
+- The initial aggregate reached `257/258` and exposed one Stage044 Phase2 historical handoff assertion ending at P4. Repair extended only the exact P4-to-Review route and rebound the exact Phase2-test -> Phase3-checker -> Phase4-checker hash chain; no historical review conclusion or runtime safety boundary was weakened.
+- Routed the only next task to separate `IDS-V0_1-STAGE044-REVIEW` with `push_allowed=false`. No whole-stage review, Stage045, batch review, GitHub upload/merge, issue action, app reinstall, dependency installation, raw metadata content access, cleanup/delete or production action ran.
+
 ## IDS v0.1 STAGE-044 Phase 3 - 2026-07-19
 
 - Added `ids.stage044.half_product_cleanup.phase3.scenarios.v1` and `ids.half_product_cleanup_policy.v0_1.stage044.p3.scenarios`, exact source/Phase2/upstream-hash-bound artifacts for fourteen isolated reference-only cleanup scenarios.

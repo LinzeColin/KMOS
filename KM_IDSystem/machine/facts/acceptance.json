@@ -1,33 +1,33 @@
 {
   "items": [
     {
-      "id": "`ACC-STAGE044-P3-01`",
-      "criteria": "步骤二提交、KM_IDSystem 目录树、批准来源及 Stage041/043 隔离控制证据哈希精确且保持祖先",
+      "id": "`ACC-STAGE044-P4-01`",
+      "criteria": "步骤三提交、KM_IDSystem 目录树、批准来源及当前 Git 暂存索引上游证据哈希精确且保持祖先",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P3-02`",
-      "criteria": "相同请求精确重放幂等且 changed payload 冲突无副作用；隔离子进程自退出仅形成复核候选",
+      "id": "`ACC-STAGE044-P4-02`",
+      "criteria": "8 类任务、11 个状态、4 个终态、21 条转换、3 次尝试、2 次重试、最终死信终态和 7 类压力证据完整",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P3-03`",
-      "criteria": "drive、disk、API 压力及活动或未知 writer、陈旧 identity 和同路径锁冲突全部失败关闭",
+      "id": "`ACC-STAGE044-P4-03`",
+      "criteria": "十四项隔离场景、25 项完整与 16 项所选四族同源冲突复验通过，操作、队列、重试和删除副作用均为零",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P3-04`",
-      "criteria": "processing、extraction、index、report 共用 source-pipeline 排他域，完整 25 项与所选四族 16 项冲突无操作副作用",
+      "id": "`ACC-STAGE044-P4-04`",
+      "criteria": "只有两类可重建半成品保持条件候选，十四类原始、事实、manifest、证据、审计、报告、索引、检查点、owner 持有和成功输出资料保持保护",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P3-05`",
-      "criteria": "事实源、manifest、证据账本、报告快照、审计日志及完整十四类保护资料均拒绝删除；十四项场景全部通过",
+      "id": "`ACC-STAGE044-P4-05`",
+      "criteria": "三条上游恢复路径和两类清理资料仅为条件候选；当前自动恢复/清理资格与成功为空，十四类情况明确要求人工处理，安全关闭、恢复、回滚和限制可执行且失败关闭",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P3-06`",
-      "criteria": "仅路由到独立 Stage044 步骤四；未触碰原始元数据，未执行真实路径访问、扫描、探测、遍历、生产锁、进程恢复、移动、覆盖、删除、审计写入、持久化、上传或生产动作",
+      "id": "`ACC-STAGE044-P4-06`",
+      "criteria": "只路由到独立 Stage044 整阶段复审；未触碰原始元数据，未执行真实路径访问、扫描、探测、遍历、生产锁、进程恢复、移动、覆盖、删除、审计写入、持久化、Stage045、上传或生产动作",
       "status": "已遵守"
     }
   ]

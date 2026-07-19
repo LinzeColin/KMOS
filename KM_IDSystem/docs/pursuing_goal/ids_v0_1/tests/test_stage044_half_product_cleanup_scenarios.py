@@ -452,30 +452,59 @@ class Stage044HalfProductCleanupScenarioTests(unittest.TestCase):
         self.assertEqual(14, report["passed_scenario_count"])
         self.assertEqual("IDS-STAGE044-P4-GATE", report["next_gate"])
 
-    def test_governance_routes_only_to_phase4_and_keeps_upload_locked(self):
+    def test_governance_routes_forward_without_upload_or_stage045(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         events = EVENTS.read_text(encoding="utf-8")
         handoff = HANDOFF.read_text(encoding="utf-8")
-        for marker in (
-            'current_task_id: "IDS-V0_1-STAGE044-P3"',
-            'next_allowed_task_id: "IDS-V0_1-STAGE044-P4"',
-            'next_gate: "IDS-STAGE044-P4-GATE"',
-            "push_allowed: false",
-        ):
-            self.assertIn(marker, batch)
-        for marker in (
-            'current_phase_id: "IDS-STAGE044-P3"',
-            'current_task_id: "IDS-V0_1-STAGE044-P3"',
-            'next_gate_id: "IDS-STAGE044-P4-GATE"',
-        ):
-            self.assertIn(marker, roadmap)
-        self.assertIn("EVT-IDS-V0_1-STAGE044-P3-20260719-001", events)
-        self.assertIn(
-            "Completed task in this run: `IDS-V0_1-STAGE044-P3`", handoff
+        p3_current = all(
+            marker in batch
+            for marker in (
+                'current_task_id: "IDS-V0_1-STAGE044-P3"',
+                'next_allowed_task_id: "IDS-V0_1-STAGE044-P4"',
+                'next_gate: "IDS-STAGE044-P4-GATE"',
+            )
+        ) and all(
+            marker in roadmap
+            for marker in (
+                'current_phase_id: "IDS-STAGE044-P3"',
+                'current_task_id: "IDS-V0_1-STAGE044-P3"',
+                'next_gate_id: "IDS-STAGE044-P4-GATE"',
+            )
         )
-        self.assertIn("Next allowed task: `IDS-V0_1-STAGE044-P4`", handoff)
+        p4_current = all(
+            marker in batch
+            for marker in (
+                'current_task_id: "IDS-V0_1-STAGE044-P4"',
+                'next_allowed_task_id: "IDS-V0_1-STAGE044-REVIEW"',
+                'next_gate: "IDS-STAGE044-REVIEW-GATE"',
+            )
+        ) and all(
+            marker in roadmap
+            for marker in (
+                'current_phase_id: "IDS-STAGE044-P4"',
+                'current_task_id: "IDS-V0_1-STAGE044-P4"',
+                'next_gate_id: "IDS-STAGE044-REVIEW-GATE"',
+            )
+        )
+        self.assertTrue(p3_current or p4_current)
+        self.assertIn("push_allowed: false", batch)
+        self.assertIn("EVT-IDS-V0_1-STAGE044-P3-20260719-001", events)
+        if p4_current:
+            self.assertIn("EVT-IDS-V0_1-STAGE044-P4-20260719-001", events)
+            self.assertIn(
+                "Completed task in this run: `IDS-V0_1-STAGE044-P4`", handoff
+            )
+            self.assertIn(
+                "Next allowed task: `IDS-V0_1-STAGE044-REVIEW`", handoff
+            )
+        else:
+            self.assertIn(
+                "Completed task in this run: `IDS-V0_1-STAGE044-P3`", handoff
+            )
+            self.assertIn("Next allowed task: `IDS-V0_1-STAGE044-P4`", handoff)
         self.assertNotIn("Stage044 whole-stage review completed", handoff)
+        self.assertNotIn('current_stage_id: "IDS-STAGE045"', roadmap)
 
 
 if __name__ == "__main__":

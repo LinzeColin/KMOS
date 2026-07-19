@@ -456,6 +456,11 @@ class Stage044HalfProductCleanupPhase2Tests(unittest.TestCase):
                 'current_task_id: "IDS-V0_1-STAGE044-P3"',
                 'next_gate_id: "IDS-STAGE044-P4-GATE"',
             ),
+            (
+                'current_phase_id: "IDS-STAGE044-P4"',
+                'current_task_id: "IDS-V0_1-STAGE044-P4"',
+                'next_gate_id: "IDS-STAGE044-REVIEW-GATE"',
+            ),
         )
         self.assertIn('current_stage_id: "IDS-STAGE044"', roadmap)
         self.assertTrue(
@@ -466,10 +471,12 @@ class Stage044HalfProductCleanupPhase2Tests(unittest.TestCase):
         self.assertTrue(
             "Completed task in this run: `IDS-V0_1-STAGE044-P2`" in handoff
             or "`IDS-V0_1-STAGE044-P2` is preserved as completed" in handoff
+            or "Completed task in this run: `IDS-V0_1-STAGE044-P4`" in handoff
         )
         self.assertTrue(
             "Next allowed task: `IDS-V0_1-STAGE044-P3`" in handoff
             or "Next allowed task: `IDS-V0_1-STAGE044-P4`" in handoff
+            or "Next allowed task: `IDS-V0_1-STAGE044-REVIEW`" in handoff
         )
         self.assertIn("delete_operation_started=false", events)
 
