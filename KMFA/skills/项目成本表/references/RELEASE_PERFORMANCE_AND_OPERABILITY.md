@@ -70,7 +70,7 @@ After staging, repeat against the actual index:
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_skill_package.py \
   --staged \
   --repo-root /ABSOLUTE/REPOSITORY_ROOT \
-  --module-relative-root KMFA/project-cost-table-skill \
+  --module-relative-root KMFA/skills/项目成本表 \
   --output /ABSOLUTE/PRIVATE/NEW_STAGED_VALIDATION.json
 ```
 
