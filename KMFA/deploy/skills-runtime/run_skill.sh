@@ -33,7 +33,7 @@ case "$SKILL" in
   fund-weekly)         CMD=(python3 KMFA/skills/资金周报/tools/validate_taskpack.py) ;;       # SKL.0005 OCR 替换后接业务入口
   mgmt-monthly)        CMD=(python3 KMFA/skills/经营月报/tools/validate_skill_package.py) ;;   # SKL.0004 演练时替换为业务入口
   upstream-archive)    CMD=(python3 KMFA/skills/上游归档/tools/validate_skill_package.py) ;;  # dws drive 命令面核对后接业务入口
-  daily-backup)        CMD=(bash -c 'cd /opt/kmfa/KMOS && git -C . pull --ff-only -q || true') ;;         # DATA 线入仓机制就绪后改为真备份
+  daily-backup)        CMD=(bash -c 'echo "自包含模型：代码随镜像重建（push→Coolify），容器内无需 git pull（镜像无 .git）；dws-auth/logs 在命名卷持久。数据卷外部备份目标未配置，本次为无害心跳。"') ;;  # 自包含后原 git pull 空转报错→改无害心跳；真备份待外部目标配置
   self-audit)          CMD=(bash -c 'set -e; \
                          rm -rf /tmp/kmfa-audit && mkdir -p /tmp/kmfa-audit; \
                          tar -C /opt/kmfa/KMOS --exclude=./.git --exclude=./KMDatabase/data/objects \
