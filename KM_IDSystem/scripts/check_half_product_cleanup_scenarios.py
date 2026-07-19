@@ -148,9 +148,19 @@ EXPECTED_UPSTREAM = {
 # governance-only tests may add one exact current digest here without rewriting
 # the Phase 2 commit contract.
 FORWARD_COMPATIBLE_UPSTREAM_HASHES: dict[str, set[str]] = {
+    "stage044_phase2_contract": {
+        "236694e6d8ab984c8cfb62b5c0917cd52cc9b348da2eea7d4d8287cc99206012"
+    },
+    "stage044_phase2_checker": {
+        "7b2a5bf42f651524e15fabd0c313c13175d82abff0c9b2faf3ce711216e35713"
+    },
     "stage044_phase2_tests": {
         "82a02a9a9802e7a8a0ef68752eb397f915a735582cb5777bdd571734bbdbab29",
         "4cfc290fd1aaa5cb659be65fb581f1354ad5439bc9337b9a2b3c82ec953d1466",
+        "1e2f32ac9f761f28c1dafd06285ef600635acef044fe0d74ec37661e9d62d2a4",
+    },
+    "stage044_phase2_evidence": {
+        "9514251241d490d612ac325c90ecca564206d4da21dc3469bdbacfff9f8ec498"
     }
 }
 

@@ -508,6 +508,12 @@ def _governance_checks() -> dict[str, bool]:
                 and "Next allowed task: `IDS-V0_1-STAGE044-REVIEW`"
                 in top_handoff
             )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`"
+                in top_handoff
+                and "Next allowed task: `IDS-V0_1-STAGE045-P1`"
+                in top_handoff
+            )
         ),
     }
 

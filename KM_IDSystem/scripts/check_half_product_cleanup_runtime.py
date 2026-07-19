@@ -70,18 +70,18 @@ UPSTREAM_BINDINGS = {
             "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/"
             "stage044_half_product_cleanup_contract.json"
         ),
-        "sha256": "9630f59c6aa0a5bdfb35651392862e9b1031b460d9892fd7495071094d3d2475",
+        "sha256": "b4dddb7fc2cb840e0ee427b2c137394cc47e1c6b15c7bee7dfe286a3b89adfe7",
     },
     "phase1_checker": {
         "ref": "KM_IDSystem/scripts/check_half_product_cleanup.py",
-        "sha256": "0db8d34b2be1e24abc87b7a3684ca59e800544ccebbd90ff4164a8b64c31c769",
+        "sha256": "a57c6f848a015844591bd92a94f92578f424b52a201c558132fc9544848b777c",
     },
     "phase1_boundary": {
         "ref": (
             "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
             "STAGE044_PHASE1_HALF_PRODUCT_CLEANUP_SCOPE_BOUNDARY.md"
         ),
-        "sha256": "b634d8bdfe60d015c7277c435b65d21fc46e3597bce4bf635889e45175a6b810",
+        "sha256": "a5befb807e2481754e65f602d2abf7a2f4b4cac77b2b67dcc4a2343d6aeca014",
     },
     "stage034_retention_contract": {
         "ref": (
@@ -127,6 +127,60 @@ UPSTREAM_BINDINGS = {
     },
 }
 
+REQUIRED_INPUT_REFS = [
+    UPSTREAM_BINDINGS["phase1_contract"]["ref"],
+    UPSTREAM_BINDINGS["stage034_retention_contract"]["ref"],
+    UPSTREAM_BINDINGS["stage041_lock_runtime"]["ref"],
+    UPSTREAM_BINDINGS["stage042_lifecycle_runtime"]["ref"],
+    UPSTREAM_BINDINGS["stage043_recovery_runtime"]["ref"],
+]
+HUMAN_STATUS_PROJECTION = {
+    "CLEANUP_CANDIDATE_REVIEW_REQUIRED": {
+        "label_zh": "半成品清理候选待复核",
+        "severity": "INFO",
+    },
+    "CLEANUP_BLOCKED_ACTIVE_OR_UNKNOWN": {
+        "label_zh": "任务仍活跃或证据不完整，禁止清理",
+        "severity": "WARNING",
+    },
+    "CLEANUP_BLOCKED_RESOURCE": {
+        "label_zh": "资源条件未满足，清理暂停",
+        "severity": "WARNING",
+    },
+    "CLEANUP_BLOCKED_PROTECTED": {
+        "label_zh": "受保护资料不得清理",
+        "severity": "CRITICAL",
+    },
+    "REQUIRE_MANUAL_REVIEW": {
+        "label_zh": "清理请求无效或冲突，需要人工复核",
+        "severity": "CRITICAL",
+    },
+}
+EVIDENCE_IDENTITY_CONTRACT = {
+    "required_input_refs": REQUIRED_INPUT_REFS,
+    "creator_job_id_must_equal_job_id": True,
+    "retention_policy_ref": "retention:stage034:temporary_file",
+    "approved_root_canonical_identity_formula": (
+        "root:sha256(canonical_json(approved_root_id,candidate_parent_directory))"
+    ),
+    "cleanup_manifest_ref_formula": (
+        "manifest:sha256(canonical_json(candidate_manifest_identity))"
+    ),
+    "writer_quiescence_evidence_ref_formula": (
+        "evidence:stage044:writer:sha256(canonical_json(writer_evidence_identity))"
+    ),
+    "resource_gate_evidence_ref_formula": (
+        "evidence:stage044:resource:sha256(canonical_json(resource_evidence_identity))"
+    ),
+    "canonical_lexical_path_required": True,
+}
+
+# Rebound after the review repair contract is finalized. This digest makes every
+# nested field fail closed, including status labels and path/identity policy.
+EXPECTED_RUNTIME_CONTRACT_CANONICAL_SHA256 = (
+    "99c20a42566b1109a463266d415f5372e8efdd1d81cbb0541c41a84b4b3add45"
+)
+
 PARAMETERS = {
     "cleanup_scan_interval": 300,
     "cleanup_candidate_retention": 600,
@@ -151,8 +205,17 @@ PROTECTED_CLASSES = [
     "OWNER_HELD_ARTIFACT",
     "SUCCEEDED_JOB_OUTPUT",
 ]
-CANDIDATE_STATES = ["PAUSED", "RETRY_WAIT", "FAILED", "DEAD_LETTERED", "CANCELLED"]
-BLOCKED_STATES = ["CREATED", "QUEUED", "CLAIMED", "RUNNING", "PAUSE_REQUESTED", "SUCCEEDED"]
+CANDIDATE_STATES = ["FAILED", "DEAD_LETTERED", "CANCELLED"]
+BLOCKED_STATES = [
+    "CREATED",
+    "QUEUED",
+    "CLAIMED",
+    "RUNNING",
+    "PAUSE_REQUESTED",
+    "PAUSED",
+    "RETRY_WAIT",
+    "SUCCEEDED",
+]
 RESOURCE_SIGNALS = [
     "EXTERNAL_DRIVE_OFFLINE",
     "DISK_SPACE_INSUFFICIENT",
@@ -255,8 +318,11 @@ def _safe_relative_path(value: Any) -> bool:
     if not isinstance(value, str) or not value or value.startswith("/") or "\\" in value:
         return False
     path = PurePosixPath(value)
+    raw_parts = value.split("/")
     return (
         not path.is_absolute()
+        and value == path.as_posix()
+        and all(part not in {"", ".", ".."} for part in raw_parts)
         and all(part not in {"", ".", ".."} for part in path.parts)
         and len(path.parts) >= 2
     )
@@ -275,6 +341,7 @@ def _git_tracked(relative: str) -> bool:
     ).returncode == 0
 
 
+@lru_cache(maxsize=1)
 def _live_source_valid() -> bool:
     try:
         archive = Path(SOURCE_BINDING["source_archive_path"])
@@ -299,6 +366,7 @@ def _live_source_valid() -> bool:
         return False
 
 
+@lru_cache(maxsize=1)
 def _predecessor_valid() -> bool:
     try:
         observed = subprocess.check_output(
@@ -338,11 +406,16 @@ def _predecessor_valid() -> bool:
 def _upstream_valid(bindings: Any) -> bool:
     if bindings != UPSTREAM_BINDINGS:
         return False
+    return _upstream_files_valid()
+
+
+@lru_cache(maxsize=1)
+def _upstream_files_valid() -> bool:
     try:
         return all(
             _sha256(REPO_ROOT / item["ref"]) == item["sha256"]
             and _git_tracked(item["ref"])
-            for item in bindings.values()
+            for item in UPSTREAM_BINDINGS.values()
         )
     except OSError:
         return False
@@ -366,6 +439,7 @@ def _expected_top_keys() -> set[str]:
         "request_contract",
         "decision_contract",
         "path_and_identity_contract",
+        "evidence_identity_contract",
         "idempotency_contract",
         "control_metadata_contract",
         "human_status_projection",
@@ -553,6 +627,10 @@ def evaluate_contract(contract: Any) -> dict[str, bool]:
     phase3 = contract.get("phase3_entry_gate", {})
     return {
         "exact_top_shape": set(contract) == _expected_top_keys(),
+        "canonical_contract_identity": (
+            _canonical_sha256(contract)
+            == EXPECTED_RUNTIME_CONTRACT_CANONICAL_SHA256
+        ),
         "identity": identity,
         "source_binding": contract.get("source_binding") == SOURCE_BINDING,
         "live_source_integrity": _live_source_valid(),
@@ -567,6 +645,10 @@ def evaluate_contract(contract: Any) -> dict[str, bool]:
             and path_contract.get("file_type_allowlist") == ["REGULAR_FILE"]
             and path_contract.get("filesystem_identity_probe_allowed") is False
             and path_contract.get("filesystem_traversal_allowed") is False
+        ),
+        "evidence_identity_bindings": (
+            contract.get("evidence_identity_contract")
+            == EVIDENCE_IDENTITY_CONTRACT
         ),
         "idempotency_no_persistence": (
             isinstance(idempotency, Mapping)
@@ -583,13 +665,9 @@ def evaluate_contract(contract: Any) -> dict[str, bool]:
             and metadata.get("candidate_record_write_allowed") is False
             and metadata.get("runtime_output_write_allowed") is False
         ),
-        "human_status_complete": set(contract.get("human_status_projection", {})) == {
-            "CLEANUP_CANDIDATE_REVIEW_REQUIRED",
-            "CLEANUP_BLOCKED_ACTIVE_OR_UNKNOWN",
-            "CLEANUP_BLOCKED_RESOURCE",
-            "CLEANUP_BLOCKED_PROTECTED",
-            "REQUIRE_MANUAL_REVIEW",
-        },
+        "human_status_exact": (
+            contract.get("human_status_projection") == HUMAN_STATUS_PROJECTION
+        ),
         "ownership_separation": contract.get("ownership_matrix", {}).get("filesystem_cleanup_execution") == "FUTURE_STAGE044_PHASE_NOT_ENABLED",
         "registry_binding": contract.get("registry_binding") == {
             "model_id": "MOD-013",
@@ -639,8 +717,85 @@ def derive_cleanup_idempotency_key(request: Mapping[str, Any]) -> str:
     return _canonical_sha256(payload)
 
 
+def derive_approved_root_canonical_identity(request: Mapping[str, Any]) -> str:
+    payload = {
+        "approved_root_id": request.get("approved_root_id"),
+        "candidate_parent_directory": request.get("candidate_parent_directory"),
+    }
+    return f"root:sha256:{_canonical_sha256(payload)}"
+
+
+def derive_cleanup_manifest_ref(request: Mapping[str, Any]) -> str:
+    payload = {
+        "schema_version": request.get("schema_version"),
+        "job_id": request.get("job_id"),
+        "attempt_id": request.get("attempt_id"),
+        "creator_job_id": request.get("creator_job_id"),
+        "observed_job_state": request.get("observed_job_state"),
+        "expected_state_version": request.get("expected_state_version"),
+        "approved_root_id": request.get("approved_root_id"),
+        "approved_root_canonical_identity": request.get(
+            "approved_root_canonical_identity"
+        ),
+        "candidate_parent_directory": request.get("candidate_parent_directory"),
+        "root_relative_path": request.get("root_relative_path"),
+        "artifact_class": request.get("artifact_class"),
+        "rebuildable": request.get("rebuildable"),
+        "retention_policy_ref": request.get("retention_policy_ref"),
+        "legal_hold_status": request.get("legal_hold_status"),
+        "owner_hold_status": request.get("owner_hold_status"),
+        "immutable_lstat_identity": request.get("immutable_lstat_identity"),
+        "durable_reference_status": request.get("durable_reference_status"),
+    }
+    return f"manifest:sha256:{_canonical_sha256(payload)}"
+
+
+def derive_writer_quiescence_evidence_ref(request: Mapping[str, Any]) -> str:
+    evidence = request.get("evidence", {})
+    payload = {
+        "job_id": request.get("job_id"),
+        "attempt_id": request.get("attempt_id"),
+        "approved_root_id": request.get("approved_root_id"),
+        "root_relative_path": request.get("root_relative_path"),
+        "cleanup_manifest_ref": request.get("cleanup_manifest_ref"),
+        "writer_quiescence_elapsed_seconds": evidence.get(
+            "writer_quiescence_elapsed_seconds"
+        ) if isinstance(evidence, Mapping) else None,
+        "writer_quiescence_proved": evidence.get(
+            "writer_quiescence_proved"
+        ) if isinstance(evidence, Mapping) else None,
+        "exclusive_namespace_lock_proved": evidence.get(
+            "exclusive_namespace_lock_proved"
+        ) if isinstance(evidence, Mapping) else None,
+        "producer_and_cleanup_leases_absent_or_fenced": evidence.get(
+            "producer_and_cleanup_leases_absent_or_fenced"
+        ) if isinstance(evidence, Mapping) else None,
+    }
+    return f"evidence:stage044:writer:sha256:{_canonical_sha256(payload)}"
+
+
+def derive_resource_gate_evidence_ref(request: Mapping[str, Any]) -> str:
+    evidence = request.get("evidence", {})
+    payload = {
+        "job_id": request.get("job_id"),
+        "attempt_id": request.get("attempt_id"),
+        "approved_root_id": request.get("approved_root_id"),
+        "root_relative_path": request.get("root_relative_path"),
+        "cleanup_manifest_ref": request.get("cleanup_manifest_ref"),
+        "resource_gates_passed": evidence.get(
+            "resource_gates_passed"
+        ) if isinstance(evidence, Mapping) else None,
+        "resource_pressure_signal": evidence.get(
+            "resource_pressure_signal"
+        ) if isinstance(evidence, Mapping) else None,
+        "resource_observation_fresh": evidence.get(
+            "resource_observation_fresh"
+        ) if isinstance(evidence, Mapping) else None,
+    }
+    return f"evidence:stage044:resource:sha256:{_canonical_sha256(payload)}"
+
+
 def build_cleanup_request(**overrides: Any) -> dict[str, Any]:
-    control_digest = _canonical_sha256({"stage": "STAGE-044", "slice": "Phase 2"})
     request: dict[str, Any] = {
         "schema_version": "ids.stage044.cleanup_candidate_request.v1",
         "cleanup_request_id": "",
@@ -650,7 +805,7 @@ def build_cleanup_request(**overrides: Any) -> dict[str, Any]:
         "observed_job_state": "FAILED",
         "expected_state_version": 1,
         "approved_root_id": "control:stage044:approved-root:isolated",
-        "approved_root_canonical_identity": f"root:sha256:{control_digest}",
+        "approved_root_canonical_identity": "",
         "candidate_parent_directory": "control/stage044",
         "root_relative_path": "control/stage044/attempt-output.partial",
         "artifact_class": "TEMP_STAGING_OUTPUT",
@@ -658,23 +813,17 @@ def build_cleanup_request(**overrides: Any) -> dict[str, Any]:
         "retention_policy_ref": "retention:stage034:temporary_file",
         "legal_hold_status": "CLEAR",
         "owner_hold_status": "CLEAR",
-        "cleanup_manifest_ref": f"manifest:sha256:{control_digest}",
+        "cleanup_manifest_ref": "",
         "immutable_lstat_identity": {
             "st_dev": 1,
             "st_ino": 1,
             "file_type": "REGULAR_FILE",
         },
         "durable_reference_status": "UNREFERENCED",
-        "writer_quiescence_evidence_ref": "evidence:stage044:writer-quiescence",
-        "resource_gate_evidence_ref": "evidence:stage044:resource-gates",
+        "writer_quiescence_evidence_ref": "",
+        "resource_gate_evidence_ref": "",
         "evidence": {
-            "input_refs": [
-                UPSTREAM_BINDINGS["phase1_contract"]["ref"],
-                UPSTREAM_BINDINGS["stage034_retention_contract"]["ref"],
-                UPSTREAM_BINDINGS["stage041_lock_runtime"]["ref"],
-                UPSTREAM_BINDINGS["stage042_lifecycle_runtime"]["ref"],
-                UPSTREAM_BINDINGS["stage043_recovery_runtime"]["ref"],
-            ],
+            "input_refs": list(REQUIRED_INPUT_REFS),
             "attempt_ownership_proved": True,
             "approved_root_identity_proved": True,
             "root_relative_path_proved": True,
@@ -703,6 +852,20 @@ def build_cleanup_request(**overrides: Any) -> dict[str, Any]:
             request["evidence"][key] = value
         else:
             request[key] = value
+    if "approved_root_canonical_identity" not in overrides:
+        request["approved_root_canonical_identity"] = (
+            derive_approved_root_canonical_identity(request)
+        )
+    if "cleanup_manifest_ref" not in overrides:
+        request["cleanup_manifest_ref"] = derive_cleanup_manifest_ref(request)
+    if "writer_quiescence_evidence_ref" not in overrides:
+        request["writer_quiescence_evidence_ref"] = (
+            derive_writer_quiescence_evidence_ref(request)
+        )
+    if "resource_gate_evidence_ref" not in overrides:
+        request["resource_gate_evidence_ref"] = (
+            derive_resource_gate_evidence_ref(request)
+        )
     request["cleanup_request_id"] = derive_cleanup_request_id(request)
     return request
 
@@ -727,6 +890,7 @@ def _request_identity_valid(request: Mapping[str, Any]) -> bool:
         and _safe_id(request.get("job_id"), "control:stage044:")
         and _safe_id(request.get("attempt_id"), "control:stage044:")
         and _safe_id(request.get("creator_job_id"), "control:stage044:")
+        and request.get("creator_job_id") == request.get("job_id")
         and _positive_int(request.get("expected_state_version"))
         and _safe_id(request.get("approved_root_id"), "control:stage044:")
         and isinstance(request.get("approved_root_canonical_identity"), str)
@@ -735,7 +899,8 @@ def _request_identity_valid(request: Mapping[str, Any]) -> bool:
         and _safe_relative_path(request.get("root_relative_path"))
         and str(PurePosixPath(request["root_relative_path"]).parent)
         == request.get("candidate_parent_directory")
-        and _safe_ref(request.get("retention_policy_ref"))
+        and request.get("retention_policy_ref")
+        == EVIDENCE_IDENTITY_CONTRACT["retention_policy_ref"]
         and isinstance(request.get("cleanup_manifest_ref"), str)
         and bool(SHA_REF.fullmatch(request["cleanup_manifest_ref"]))
         and _safe_ref(request.get("writer_quiescence_evidence_ref"))
@@ -744,7 +909,24 @@ def _request_identity_valid(request: Mapping[str, Any]) -> bool:
         and _positive_int(identity.get("st_dev"))
         and _positive_int(identity.get("st_ino"))
         and identity.get("file_type") == "REGULAR_FILE"
+        and _derived_evidence_identity_valid(request)
     )
+
+
+def _derived_evidence_identity_valid(request: Mapping[str, Any]) -> bool:
+    try:
+        return (
+            request.get("approved_root_canonical_identity")
+            == derive_approved_root_canonical_identity(request)
+            and request.get("cleanup_manifest_ref")
+            == derive_cleanup_manifest_ref(request)
+            and request.get("writer_quiescence_evidence_ref")
+            == derive_writer_quiescence_evidence_ref(request)
+            and request.get("resource_gate_evidence_ref")
+            == derive_resource_gate_evidence_ref(request)
+        )
+    except (TypeError, ValueError):
+        return False
 
 
 def _evidence_structure_valid(evidence: Any) -> bool:
@@ -757,8 +939,7 @@ def _evidence_structure_valid(evidence: Any) -> bool:
         "resource_pressure_signal",
     }
     return (
-        isinstance(evidence.get("input_refs"), list)
-        and bool(evidence["input_refs"])
+        evidence.get("input_refs") == REQUIRED_INPUT_REFS
         and all(isinstance(ref, str) and _git_tracked(ref) for ref in evidence["input_refs"])
         and _nonnegative_int(evidence.get("retention_elapsed_seconds"))
         and _nonnegative_int(evidence.get("writer_quiescence_elapsed_seconds"))
@@ -875,18 +1056,7 @@ def _decision_result(
 
 
 def _contract_fast_valid(contract: Any) -> bool:
-    if not isinstance(contract, Mapping):
-        return False
-    return (
-        set(contract) == _expected_top_keys()
-        and contract.get("schema_version") == "ids.stage044.half_product_cleanup.phase2.v1"
-        and contract.get("policy", {}).get("parameters") == PARAMETERS
-        and contract.get("upstream_bindings") == UPSTREAM_BINDINGS
-        and _request_contract_valid(contract.get("request_contract"))
-        and _decision_contract_valid(contract.get("decision_contract"))
-        and _runtime_boundary_valid(contract.get("runtime_boundary"))
-        and _truth_flags_valid(contract.get("truth_flags"))
-    )
+    return isinstance(contract, Mapping) and all(evaluate_contract(contract).values())
 
 
 def _semantic_identity_valid(request: Mapping[str, Any]) -> bool:

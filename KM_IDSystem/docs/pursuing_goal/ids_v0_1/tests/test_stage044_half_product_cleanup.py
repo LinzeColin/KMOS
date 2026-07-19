@@ -247,11 +247,14 @@ class Stage044HalfProductCleanupTests(unittest.TestCase):
         eligibility = self._contract()["eligibility_contract"]
         self.assertEqual(ELIGIBLE_CLASSES, eligibility["eligible_artifact_classes"])
         self.assertEqual(
-            ["PAUSED", "RETRY_WAIT", "FAILED", "DEAD_LETTERED", "CANCELLED"],
+            ["FAILED", "DEAD_LETTERED", "CANCELLED"],
             eligibility["candidate_job_states"],
         )
         self.assertEqual(
-            ["CREATED", "QUEUED", "CLAIMED", "RUNNING", "PAUSE_REQUESTED", "SUCCEEDED"],
+            [
+                "CREATED", "QUEUED", "CLAIMED", "RUNNING", "PAUSE_REQUESTED",
+                "PAUSED", "RETRY_WAIT", "SUCCEEDED",
+            ],
             eligibility["blocked_job_states"],
         )
         for field in (

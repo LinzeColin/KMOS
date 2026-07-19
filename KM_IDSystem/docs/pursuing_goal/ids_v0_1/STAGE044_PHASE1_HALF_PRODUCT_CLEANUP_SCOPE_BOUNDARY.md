@@ -26,9 +26,10 @@
 
 Phase 1 不新增 job state，不把 cleanup status、resource reason 或 human label
 伪装成 state。活动执行态 `CLAIMED`、`RUNNING`、`PAUSE_REQUESTED` 永远阻断
-清理；`CREATED`、`QUEUED` 也没有足够 attempt 终止证据。`SUCCEEDED` 输出受
-保护。只有 `PAUSED`、`RETRY_WAIT`、`FAILED`、`DEAD_LETTERED`、`CANCELLED`
-中的 attempt-owned 半成品可进入后续候选判断，而且 job state 只是必要条件，
+清理；`CREATED`、`QUEUED` 也没有足够 attempt 终止证据。`PAUSED` 与
+`RETRY_WAIT` 都是可恢复的非终态，必须保留给 resume/retry owner；`SUCCEEDED`
+输出受保护。只有 `FAILED`、`DEAD_LETTERED`、`CANCELLED` 中由失败或取消任务
+产生的 attempt-owned 半成品可进入后续候选判断，而且 job state 只是必要条件，
 不是充分条件。
 
 清理不得重开或改变任何 terminal job 结果。重试、dead letter、resume、crash

@@ -29,6 +29,8 @@ CONTROL_REF = (
 
 
 class Stage041LockRegistryStageReviewTests(unittest.TestCase):
+    _cached_review_checker = None
+
     def _load_module(self, path: Path, name: str):
         self.assertTrue(path.is_file(), f"missing module: {path}")
         spec = importlib.util.spec_from_file_location(name, path)
@@ -43,7 +45,11 @@ class Stage041LockRegistryStageReviewTests(unittest.TestCase):
         return self._load_module(RUNTIME_CHECKER, "stage041_review_runtime")
 
     def _review_checker(self):
-        return self._load_module(REVIEW_CHECKER, "stage041_lock_registry_review")
+        if self.__class__._cached_review_checker is None:
+            self.__class__._cached_review_checker = self._load_module(
+                REVIEW_CHECKER, "stage041_lock_registry_review"
+            )
+        return self.__class__._cached_review_checker
 
     def _contract(self):
         return json.loads(CONTRACT.read_text(encoding="utf-8"))
@@ -299,6 +305,12 @@ class Stage041LockRegistryStageReviewTests(unittest.TestCase):
                 "Completed task in this run: `IDS-V0_1-STAGE044-P4`"
                 in handoff_top
                 and "Next allowed task: `IDS-V0_1-STAGE044-REVIEW`"
+                in handoff_top
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`"
+                in handoff_top
+                and "Next allowed task: `IDS-V0_1-STAGE045-P1`"
                 in handoff_top
             )
         )

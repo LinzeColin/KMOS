@@ -28,15 +28,15 @@
   "upstream_bindings": {
     "phase1_contract": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_contract.json",
-      "sha256": "9630f59c6aa0a5bdfb35651392862e9b1031b460d9892fd7495071094d3d2475"
+      "sha256": "b4dddb7fc2cb840e0ee427b2c137394cc47e1c6b15c7bee7dfe286a3b89adfe7"
     },
     "phase1_checker": {
       "ref": "KM_IDSystem/scripts/check_half_product_cleanup.py",
-      "sha256": "0db8d34b2be1e24abc87b7a3684ca59e800544ccebbd90ff4164a8b64c31c769"
+      "sha256": "a57c6f848a015844591bd92a94f92578f424b52a201c558132fc9544848b777c"
     },
     "phase1_boundary": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_PHASE1_HALF_PRODUCT_CLEANUP_SCOPE_BOUNDARY.md",
-      "sha256": "b634d8bdfe60d015c7277c435b65d21fc46e3597bce4bf635889e45175a6b810"
+      "sha256": "a5befb807e2481754e65f602d2abf7a2f4b4cac77b2b67dcc4a2343d6aeca014"
     },
     "stage034_retention_contract": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/data_retention_table/stage034_data_retention_table_index.json",
@@ -233,8 +233,6 @@
       "SUCCEEDED_JOB_OUTPUT"
     ],
     "candidate_job_states": [
-      "PAUSED",
-      "RETRY_WAIT",
       "FAILED",
       "DEAD_LETTERED",
       "CANCELLED"
@@ -245,6 +243,8 @@
       "CLAIMED",
       "RUNNING",
       "PAUSE_REQUESTED",
+      "PAUSED",
+      "RETRY_WAIT",
       "SUCCEEDED"
     ],
     "mandatory_resource_pause_signals": [
@@ -263,6 +263,7 @@
   },
   "path_and_identity_contract": {
     "root_relative_path_only": true,
+    "canonical_lexical_path_required": true,
     "absolute_path_blocked": true,
     "parent_traversal_blocked": true,
     "symlink_component_blocked": true,
@@ -275,6 +276,22 @@
     "identity_stability_evidence_required": true,
     "filesystem_identity_probe_allowed": false,
     "filesystem_traversal_allowed": false
+  },
+  "evidence_identity_contract": {
+    "required_input_refs": [
+      "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_contract.json",
+      "KM_IDSystem/docs/pursuing_goal/ids_v0_1/data_retention_table/stage034_data_retention_table_index.json",
+      "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json",
+      "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json",
+      "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"
+    ],
+    "creator_job_id_must_equal_job_id": true,
+    "retention_policy_ref": "retention:stage034:temporary_file",
+    "approved_root_canonical_identity_formula": "root:sha256(canonical_json(approved_root_id,candidate_parent_directory))",
+    "cleanup_manifest_ref_formula": "manifest:sha256(canonical_json(candidate_manifest_identity))",
+    "writer_quiescence_evidence_ref_formula": "evidence:stage044:writer:sha256(canonical_json(writer_evidence_identity))",
+    "resource_gate_evidence_ref_formula": "evidence:stage044:resource:sha256(canonical_json(resource_evidence_identity))",
+    "canonical_lexical_path_required": true
   },
   "idempotency_contract": {
     "idempotency_key_fields": [

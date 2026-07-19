@@ -39,9 +39,10 @@ class Stage043WorkerCrashRecoveryReviewTests(unittest.TestCase):
     def setUpClass(cls):
         cls.phase1 = _load(PHASE1_CHECKER, "stage043_review_phase1_tests")
         cls.runtime = _load(RUNTIME_CHECKER, "stage043_review_runtime_tests")
+        cls.review = _load(REVIEW_CHECKER, "stage043_review_checker_tests")
 
     def _review(self):
-        return _load(REVIEW_CHECKER, "stage043_review_checker_tests")
+        return self.review
 
     def test_review_artifacts_and_identity_exist(self):
         self.assertTrue(REVIEW_ARTIFACT.is_file())
@@ -222,6 +223,10 @@ class Stage043WorkerCrashRecoveryReviewTests(unittest.TestCase):
             or (
                 "Completed task in this run: `IDS-V0_1-STAGE044-P4`" in top
                 and "Next allowed task: `IDS-V0_1-STAGE044-REVIEW`" in top
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`" in top
+                and "Next allowed task: `IDS-V0_1-STAGE045-P1`" in top
             )
         )
         self.assertIn("NO_STAGE044_THIS_RUN", REVIEW_ARTIFACT.read_text(encoding="utf-8"))

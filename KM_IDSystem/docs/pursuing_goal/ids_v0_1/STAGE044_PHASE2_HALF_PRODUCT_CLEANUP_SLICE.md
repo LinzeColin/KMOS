@@ -15,11 +15,14 @@
 `unlinkat`、移动、覆盖或删除，也不写候选记录、audit、数据库或运行输出。
 
 只有 `TEMP_STAGING_OUTPUT` 与 `INCOMPLETE_DERIVATIVE_OUTPUT` 两类，并且任务处于
-`PAUSED`、`RETRY_WAIT`、`FAILED`、`DEAD_LETTERED` 或 `CANCELLED` 时，才可能
-返回 `CLEANUP_CANDIDATE_REVIEW_REQUIRED`。它只是待复核候选，不是清理授权。
+`FAILED`、`DEAD_LETTERED` 或 `CANCELLED` 时，才可能返回
+`CLEANUP_CANDIDATE_REVIEW_REQUIRED`。`PAUSED` 与 `RETRY_WAIT` 是可恢复非终态，
+始终返回阻断。候选只是待复核记录，不是清理授权。
 
-候选仍须同时证明：attempt ownership、批准 root identity、root-relative path、
-可重建性、manifest、无 retention/legal/owner hold、无 durable reference、稳定
+候选仍须同时证明：creator/job/attempt ownership、批准 root identity、唯一规范化
+root-relative path、精确 Git-tracked input refs、按候选内容派生的 manifest 与
+writer/resource evidence refs、可重建性、无 retention/legal/owner hold、无 durable
+reference、稳定
 `st_dev`/`st_ino`/`file_type`、writer quiescence、资源门、受管 exclusive namespace
 lock 与 canonical containment。缺失、冲突、未知或不新鲜的证据全部失败关闭。
 

@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE044",
-  "phase": "IDS-STAGE044-P4",
-  "task": "IDS-V0_1-STAGE044-P4",
-  "real_progress": "Stage044 四个步骤已完成本地交付证据；Stage044 整阶段复审尚未执行",
-  "report_grade": "状态图、失败重试、七类反压、十四项场景、两类候选与十四类保护白名单、自动/人工处理、安全关闭、恢复和回滚由失败关闭检查器验证；最终分层验证见本次机器 run",
-  "business_verdict": "仅本地静态关闭证据通过；当前没有自动恢复或自动清理资格，扫描、文件探测/遍历、生产锁、恢复、移动、覆盖、删除、审计写入、持久化与生产运行时均禁用",
-  "evidence_status": "LOCAL_PHASE4_CLOSEOUT_VALIDATED_DELETE_DISABLED_REVIEW_PENDING",
+  "phase": "IDS-STAGE044-REVIEW",
+  "task": "IDS-V0_1-STAGE044-REVIEW",
+  "real_progress": "Stage044 四个步骤与整阶段独立复审已完成本地证据；Stage045 尚未开始",
+  "report_grade": "批准来源、步骤四祖先、四阶段 replay 与六项 review repair 均由失败关闭 checker 验证；最终分层结果见本次机器 run",
+  "business_verdict": "仅本地复审通过；删除与全部真实清理、文件系统、持久化和生产能力仍禁用",
+  "evidence_status": "LOCAL_STAGE_REVIEW_VALIDATED_DELETE_DISABLED",
   "rendered_at": "2026-07-19",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE044-REVIEW-GATE",
+  "next_gate": "IDS-STAGE045-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

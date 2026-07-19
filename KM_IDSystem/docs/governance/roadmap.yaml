@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE044"
-current_phase_id: "IDS-STAGE044-P4"
-current_task_id: "IDS-V0_1-STAGE044-P4"
-next_gate_id: "IDS-STAGE044-REVIEW-GATE"
+current_phase_id: "IDS-STAGE044-REVIEW"
+current_task_id: "IDS-V0_1-STAGE044-REVIEW"
+next_gate_id: "IDS-STAGE045-P1-GATE"
 current_transition_history:
+  stage044_review_state:
+    current_stage_id: "IDS-STAGE044"
+    current_phase_id: "IDS-STAGE044-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE044-REVIEW"
+    next_gate_id: "IDS-STAGE045-P1-GATE"
   stage044_phase4_state:
     current_stage_id: "IDS-STAGE044"
     current_phase_id: "IDS-STAGE044-P4"
@@ -11342,12 +11347,12 @@ stages:
     task_id: "IDS-V0_1-STAGE044"
     acceptance_ids:
       - "ACC-STAGE-044"
-    status: "in_progress"
+    status: "completed_reviewed_local"
     pursuing_goal: "清理失败任务产生的临时半成品；不得误删事实源、原始资料或审计证据。"
     stop_gate:
-      gate_id: "IDS-STAGE044-P4-GATE"
+      gate_id: "IDS-STAGE044-REVIEW-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE044-REVIEW-GATE"
+      next_gate_id: "IDS-STAGE045-P1-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_ENTRY_CONTRACT.md"
@@ -11367,6 +11372,9 @@ stages:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_delivery_contract.json"
       - "KM_IDSystem/scripts/check_half_product_cleanup_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_delivery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_STAGE_REVIEW.md"
+      - "KM_IDSystem/scripts/check_half_product_cleanup_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_review.py"
     phases:
       -
         phase_id: "IDS-STAGE044-P1"
@@ -11452,7 +11460,7 @@ stages:
           pass_conditions:
             - "Phase1 commit/tree, source and exact upstream hashes remain valid"
             - "Five PROPOSED timing bounds have source, rationale, policy version, validation and rollback"
-            - "Only two artifact classes and five governed states can become review candidates"
+            - "Only two artifact classes and failed terminal states can become review candidates; PAUSED and RETRY_WAIT remain blocked"
             - "Protected, held, referenced, active, unknown and resource-blocked inputs fail closed"
             - "Root-relative path, immutable lstat identity, retention, namespace lock and writer-quiescence evidence are mandatory"
             - "Canonical request replay is idempotent and changed payload conflicts"
@@ -11631,3 +11639,16 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
             risk: "静态交付、条件候选或控制子进程自行退出可能被误读为自动清理资格、删除授权或生产就绪。"
             rollback: "只回滚 Stage044 Phase4 contract/checker/tests/evidence/governance/event/handoff/owner-view；保留 Phase1-3、Stage037-043 已审证据、owner files、raw data、database、GitHub 与 app 状态。"
+    review:
+      review_id: "IDS-STAGE044-REVIEW"
+      task_id: "IDS-V0_1-STAGE044-REVIEW"
+      status: "completed"
+      acceptance_ids:
+        - "ACC-STAGE-044"
+      evidence_refs:
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_STAGE_REVIEW.md"
+        - "KM_IDSystem/scripts/check_half_product_cleanup_stage_review.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_review.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+      test_results: "TDD review RED produced 18 expected failures across 10 tests. Review repaired one Critical and five Important findings covering recoverable-state exclusion, complete contract validation, candidate identity/provenance binding, canonical lexical paths, exact human status and durable review routing. Final focused review passed 10/10 in 159.695s, Stage041-044 aggregate passed 268/268 in 1189.358s, full discovery passed 1014/1014 in 1665.517s, Stage005 passed 168/168 in 34.019s, and all seven historical/current review checkers, 215-event semantics, rendering and project dual-plane passed."
+      decision: "ACC-STAGE-044 completed_reviewed_local after all six findings were repaired; next gate is IDS-STAGE045-P1-GATE, push_allowed=false, and this run did not enter STAGE-045."

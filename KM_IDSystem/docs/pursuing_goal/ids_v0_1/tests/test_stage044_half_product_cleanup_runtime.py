@@ -72,16 +72,16 @@ UPSTREAM_BINDINGS = {
     "phase1_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/"
         "stage044_half_product_cleanup_contract.json",
-        "9630f59c6aa0a5bdfb35651392862e9b1031b460d9892fd7495071094d3d2475",
+        "b4dddb7fc2cb840e0ee427b2c137394cc47e1c6b15c7bee7dfe286a3b89adfe7",
     ),
     "phase1_checker": (
         "KM_IDSystem/scripts/check_half_product_cleanup.py",
-        "0db8d34b2be1e24abc87b7a3684ca59e800544ccebbd90ff4164a8b64c31c769",
+        "a57c6f848a015844591bd92a94f92578f424b52a201c558132fc9544848b777c",
     ),
     "phase1_boundary": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
         "STAGE044_PHASE1_HALF_PRODUCT_CLEANUP_SCOPE_BOUNDARY.md",
-        "b634d8bdfe60d015c7277c435b65d21fc46e3597bce4bf635889e45175a6b810",
+        "a5befb807e2481754e65f602d2abf7a2f4b4cac77b2b67dcc4a2343d6aeca014",
     ),
     "stage034_retention_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/data_retention_table/"
@@ -262,10 +262,10 @@ class Stage044HalfProductCleanupPhase2Tests(unittest.TestCase):
         self.assertTrue(result["candidate_ref"].startswith("candidate:sha256:"))
         self.assertTrue(result["audit_ref"].startswith("audit:stage044:sha256:"))
 
-    def test_only_two_classes_and_five_states_can_be_candidates(self):
+    def test_only_two_classes_and_failed_terminal_states_can_be_candidates(self):
         module = self._checker()
         for artifact_class in ("TEMP_STAGING_OUTPUT", "INCOMPLETE_DERIVATIVE_OUTPUT"):
-            for state in ("PAUSED", "RETRY_WAIT", "FAILED", "DEAD_LETTERED", "CANCELLED"):
+            for state in ("FAILED", "DEAD_LETTERED", "CANCELLED"):
                 with self.subTest(artifact_class=artifact_class, state=state):
                     request = module.build_cleanup_request(
                         artifact_class=artifact_class,
@@ -275,7 +275,10 @@ class Stage044HalfProductCleanupPhase2Tests(unittest.TestCase):
                         "CLEANUP_CANDIDATE_REVIEW_REQUIRED",
                         module.evaluate_cleanup_candidate(request)["decision_action"],
                     )
-        for state in ("CREATED", "QUEUED", "CLAIMED", "RUNNING", "PAUSE_REQUESTED", "SUCCEEDED"):
+        for state in (
+            "CREATED", "QUEUED", "CLAIMED", "RUNNING", "PAUSE_REQUESTED",
+            "PAUSED", "RETRY_WAIT", "SUCCEEDED",
+        ):
             with self.subTest(state=state):
                 request = module.build_cleanup_request(observed_job_state=state)
                 self.assertEqual(
@@ -327,11 +330,33 @@ class Stage044HalfProductCleanupPhase2Tests(unittest.TestCase):
         requests = [
             module.build_cleanup_request(root_relative_path="../escape.partial"),
             module.build_cleanup_request(root_relative_path="/absolute.partial"),
+            module.build_cleanup_request(
+                root_relative_path="control/stage044/./attempt-output.partial"
+            ),
+            module.build_cleanup_request(
+                root_relative_path="control//stage044/attempt-output.partial"
+            ),
             module.build_cleanup_request(root_relative_path="control/link.partial", no_symlink_components_proved=False),
             module.build_cleanup_request(attempt_ownership_proved=False),
             module.build_cleanup_request(approved_root_identity_proved=False),
             module.build_cleanup_request(lstat_identity_stable=False),
             module.build_cleanup_request(st_ino=True),
+            module.build_cleanup_request(input_refs=["KM_IDSystem/README.md"]),
+            module.build_cleanup_request(
+                creator_job_id="control:stage044:job:another"
+            ),
+            module.build_cleanup_request(
+                approved_root_canonical_identity="root:sha256:" + "f" * 64
+            ),
+            module.build_cleanup_request(
+                cleanup_manifest_ref="manifest:sha256:" + "0" * 64
+            ),
+            module.build_cleanup_request(
+                writer_quiescence_evidence_ref="evidence:stage044:writer-forged"
+            ),
+            module.build_cleanup_request(
+                resource_gate_evidence_ref="evidence:stage044:resource-forged"
+            ),
         ]
         for request in requests:
             with self.subTest(request=request):
@@ -397,9 +422,20 @@ class Stage044HalfProductCleanupPhase2Tests(unittest.TestCase):
         extra_root = copy.deepcopy(contract)
         extra_root["unexpected"] = True
         mutations.append(extra_root)
+        path_policy_changed = copy.deepcopy(contract)
+        path_policy_changed["path_and_identity_contract"]["file_type_allowlist"] = [
+            "DIRECTORY"
+        ]
+        mutations.append(path_policy_changed)
+        human_status_overclaim = copy.deepcopy(contract)
+        human_status_overclaim["human_status_projection"][
+            "CLEANUP_CANDIDATE_REVIEW_REQUIRED"
+        ]["label_zh"] = "文件已自动删除"
+        mutations.append(human_status_overclaim)
         for candidate in mutations:
             with self.subTest(candidate=candidate):
                 self.assertFalse(all(module.evaluate_contract(candidate).values()))
+                self.assertFalse(module._contract_fast_valid(candidate))
                 result = module.evaluate_cleanup_candidate(
                     module.build_cleanup_request(), contract=candidate
                 )

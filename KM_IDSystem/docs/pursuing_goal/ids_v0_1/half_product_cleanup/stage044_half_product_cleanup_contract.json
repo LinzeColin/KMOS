@@ -136,8 +136,6 @@
       "INCOMPLETE_DERIVATIVE_OUTPUT"
     ],
     "candidate_job_states": [
-      "PAUSED",
-      "RETRY_WAIT",
       "FAILED",
       "DEAD_LETTERED",
       "CANCELLED"
@@ -148,6 +146,8 @@
       "CLAIMED",
       "RUNNING",
       "PAUSE_REQUESTED",
+      "PAUSED",
+      "RETRY_WAIT",
       "SUCCEEDED"
     ],
     "attempt_ownership_proved": true,

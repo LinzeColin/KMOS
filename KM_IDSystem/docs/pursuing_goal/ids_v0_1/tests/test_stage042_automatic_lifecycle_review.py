@@ -27,6 +27,8 @@ PHASE4_KMIDS_TREE = "7d77abfd6c00ea3b663d899335d971342ac40384"
 
 
 class Stage042AutomaticLifecycleStageReviewTests(unittest.TestCase):
+    _cached_review_checker = None
+
     def _load_module(self, path: Path, name: str):
         self.assertTrue(path.is_file(), f"missing module: {path}")
         spec = importlib.util.spec_from_file_location(name, path)
@@ -41,9 +43,11 @@ class Stage042AutomaticLifecycleStageReviewTests(unittest.TestCase):
         return self._load_module(RUNTIME_CHECKER, "stage042_review_runtime")
 
     def _review_checker(self):
-        return self._load_module(
-            REVIEW_CHECKER, "stage042_automatic_lifecycle_review"
-        )
+        if self.__class__._cached_review_checker is None:
+            self.__class__._cached_review_checker = self._load_module(
+                REVIEW_CHECKER, "stage042_automatic_lifecycle_review"
+            )
+        return self.__class__._cached_review_checker
 
     def _contract(self):
         return json.loads(CONTRACT.read_text(encoding="utf-8"))
@@ -283,6 +287,12 @@ class Stage042AutomaticLifecycleStageReviewTests(unittest.TestCase):
                 "Completed task in this run: `IDS-V0_1-STAGE044-P4`"
                 in handoff_top
                 and "Next allowed task: `IDS-V0_1-STAGE044-REVIEW`"
+                in handoff_top
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`"
+                in handoff_top
+                and "Next allowed task: `IDS-V0_1-STAGE045-P1`"
                 in handoff_top
             )
         )

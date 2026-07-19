@@ -1,5 +1,15 @@
 # Changelog
 
+## IDS v0.1 STAGE-044 Review - 2026-07-19
+
+- Completed the independent whole-stage review under `ACC-STAGE-044` and repaired `1 Critical / 5 Important / 0 Minor` findings: recoverable nonterminal states admitted as cleanup candidates, subset-only contract validation, unbound candidate provenance, noncanonical lexical paths, mutable human-status claims, and missing durable reviewed-local governance.
+- Restricted candidate states to `FAILED`, `DEAD_LETTERED`, and `CANCELLED`; `PAUSED` and `RETRY_WAIT` now always return `CLEANUP_BLOCKED_ACTIVE_OR_UNKNOWN` because resume/retry owners may still recover them.
+- Bound creator to job, input refs to the exact five approved Git-tracked sources, and root/manifest/writer/resource refs to canonical candidate payloads. Dot segments, duplicate separators, forged identities and arbitrary tracked refs now fail closed.
+- Replaced the subset fast path with full contract evaluation plus canonical whole-contract SHA-256. Human status action, Chinese label and severity are exact, so an overclaim such as “文件已自动删除” invalidates the contract.
+- Added `ids.stage044.half_product_cleanup.stage_review.v1`, the Phase4 commit/tree ancestry binding, four-phase replay, six canonical finding checks, Git-index source binding, review tests, event, machine run and Stage045 separate-entry gate.
+- Review RED produced `18` expected failures across `10` tests; final focused review passed `10/10` in `159.695s`, Stage041-044 aggregate passed `268/268` in `1189.358s`, and full IDS v0.1 discovery passed `1014/1014` in `1665.517s`. Earlier failed runs exposed and bounded stale historical routes plus one reverted hash-chain edit; none were hidden or treated as PASS. Final short gates passed Stage005 `168/168` in `34.019s`, all seven Stage038-044 review checkers, `215` clean events, idempotent owner rendering and project dual-plane.
+- Routed the only next task to separate `IDS-V0_1-STAGE045-P1` with `push_allowed=false`. No Stage045, batch review, GitHub upload/merge, issue action, app reinstall, dependency installation, raw metadata content access, cleanup/delete, persistence or production action ran.
+
 ## IDS v0.1 STAGE-044 Phase 4 - 2026-07-19
 
 - Added `ids.stage044.half_product_cleanup.phase4.delivery.v1`, an exact source/Phase3/upstream-hash-bound closeout contract and fail-closed checker that compose the reviewed state graph, retry log, pressure, lock, crash-recovery and cleanup evidence without enabling a runtime.

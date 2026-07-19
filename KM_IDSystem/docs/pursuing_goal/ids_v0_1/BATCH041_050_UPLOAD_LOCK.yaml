@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-19T04:10:22Z"
-status: "stage044_phase4_completed_review_pending"
+updated_at_utc: "2026-07-19T06:30:40Z"
+status: "stage044_completed_reviewed_local"
 
 transition_history:
+  stage044_review_state:
+    status: "stage044_completed_reviewed_local"
+    current_task_id: "IDS-V0_1-STAGE044-REVIEW"
+    next_gate: "IDS-STAGE045-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE045-P1"
+    github_upload_allowed: false
   stage044_phase4_state:
     status: "stage044_phase4_completed_review_pending"
     current_task_id: "IDS-V0_1-STAGE044-P4"
@@ -557,17 +563,18 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
   STAGE-044:
-    status: "stage044_phase4_completed_review_pending"
+    status: "stage044_completed_reviewed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_gate: "IDS-STAGE044-REVIEW-GATE"
-    current_task_id: "IDS-V0_1-STAGE044-P4"
+    next_stage: "STAGE-045"
+    next_gate: "IDS-STAGE045-P1-GATE"
+    current_task_id: "IDS-V0_1-STAGE044-REVIEW"
     acceptance_id: "ACC-STAGE-044"
-    acceptance_status: "phase4_closeout_complete_review_pending"
-    review_status: "pending"
+    acceptance_status: "reviewed_local_passed"
+    review_status: "passed"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
     phase4_entry_authorized: true
@@ -586,8 +593,22 @@ stage_progress:
     phase3_scenarios_valid: true
     phase4_delivery_valid: true
     delivery_result: "PASS_ISOLATED_CLEANUP_CLOSEOUT_DELETE_DISABLED"
-    stage_review_status: "pending_next_run"
-    contract_state: "PHASE4_CLOSEOUT_EVIDENCE_ENABLED_DELETE_DISABLED"
+    stage_review_schema: "ids.stage044.half_product_cleanup.stage_review.v1"
+    stage_review_status: "completed_reviewed_local"
+    stage_review_result: "PASS_REVIEWED_LOCAL_DELETE_DISABLED"
+    review_finding_count: 6
+    review_critical_finding_count: 1
+    review_important_finding_count: 5
+    review_minor_finding_count: 0
+    review_findings_repaired: true
+    source_integrity_valid: true
+    phase4_commit_binding_valid: true
+    recoverable_states_excluded: true
+    full_contract_validation_enforced: true
+    candidate_identity_provenance_bound: true
+    canonical_lexical_paths_enforced: true
+    human_status_projection_exact: true
+    contract_state: "STAGE044_REVIEWED_LOCAL_DELETE_DISABLED"
     scenario_count: 14
     passed_scenario_count: 14
     eligible_artifact_class_count: 2
@@ -686,7 +707,7 @@ stage_progress:
     schema_change_performed: false
     runtime_output_written: false
     production_runtime_activation_performed: false
-    whole_stage_review_performed: false
+    whole_stage_review_performed: true
     batch_review_performed: false
     github_upload_allowed: false
     app_reinstall_allowed: false
@@ -709,12 +730,15 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_delivery_contract.json"
       - "KM_IDSystem/scripts/check_half_product_cleanup_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_delivery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_STAGE_REVIEW.md"
+      - "KM_IDSystem/scripts/check_half_product_cleanup_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_review.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE044-P4"
-  next_allowed_task_id: "IDS-V0_1-STAGE044-REVIEW"
+  current_task_id: "IDS-V0_1-STAGE044-REVIEW"
+  next_allowed_task_id: "IDS-V0_1-STAGE045-P1"
   github_upload_allowed: false
-  current_run: "STAGE-044 Phase 4 composes the reviewed state graph, retry log, seven pressure proofs, fourteen cleanup scenarios, same-source exclusion, two-class cleanup allowlist, fourteen protected classes, conditional handling, safe shutdown, recovery and rollback evidence. Current automatic-recovery/cleanup eligibility and observed success remain empty; no filesystem, cleanup, delete, process, mutation, persistence, raw metadata, GitHub, app or production action ran."
-  no_upload_reason: "BATCH041_050 has three completed and individually reviewed Stages plus Stage044 Phase 1-4, but Stage044 whole-stage review, STAGE-045..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."
+  current_run: "STAGE-044 whole-stage independent review repaired one Critical and five Important findings, rebound the Phase1-4 evidence chain and completed ACC-STAGE-044 locally with delete disabled. No cleanup, filesystem, persistence, raw metadata, Stage045, GitHub, app or production action ran."
+  no_upload_reason: "BATCH041_050 has four completed and individually reviewed Stages, but STAGE-045..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."

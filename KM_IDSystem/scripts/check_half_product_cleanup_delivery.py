@@ -148,7 +148,8 @@ EXPECTED_UPSTREAM = {
 
 FORWARD_COMPATIBLE_UPSTREAM_HASHES: dict[str, set[str]] = {
     "stage044_phase3_checker": {
-        "9a9349d7cc622e4038bff0b9062e42fc33b1d6a020eebbb3d10ab6e9c63d5710"
+        "9a9349d7cc622e4038bff0b9062e42fc33b1d6a020eebbb3d10ab6e9c63d5710",
+        "30e5ee91fcfdf058f234bd5f687d8c6abee18cdf684d6e6e773e7e0b68abfb91",
     },
     "stage044_phase3_tests": {
         "bf3d22ae93268ea1d3ad43dcac67b04a8a566ee6bed229a5eb5aee8681cbd032"

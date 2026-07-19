@@ -26,7 +26,7 @@ INSTRUCTIONS_SOURCE_PATH = Path(
     "/Users/linzezhang/Downloads/IDS_Codex使用说明_v0_1_only_中文修订版.txt"
 )
 EXPECTED_CANONICAL_CONTRACT_SHA256 = (
-    "4dd21c7704c66ac54d5db6f31c0868794bde97177902747e29fcfc8de01b79fd"
+    "5cdcf2b0f6d22b44f74330e5fe55541b78141ea8400243a5e44992ef908b5730"
 )
 
 EXPECTED_SOURCE = {
@@ -134,6 +134,11 @@ EXPECTED_JOB_STATES = [
 ]
 EXPECTED_TERMINAL_STATES = ["SUCCEEDED", "FAILED", "DEAD_LETTERED", "CANCELLED"]
 EXPECTED_ACTIVE_STATES = ["CLAIMED", "RUNNING", "PAUSE_REQUESTED"]
+EXPECTED_CANDIDATE_STATES = ["FAILED", "DEAD_LETTERED", "CANCELLED"]
+EXPECTED_BLOCKED_STATES = [
+    "CREATED", "QUEUED", "CLAIMED", "RUNNING", "PAUSE_REQUESTED",
+    "PAUSED", "RETRY_WAIT", "SUCCEEDED",
+]
 EXPECTED_ELIGIBLE_CLASSES = ["TEMP_STAGING_OUTPUT", "INCOMPLETE_DERIVATIVE_OUTPUT"]
 EXPECTED_PROTECTED_CLASSES = [
     "ORIGINAL_RAW_DATA", "SOURCE_FILE", "SOURCE_DATABASE", "RUNTIME_DATABASE",
@@ -441,9 +446,9 @@ def evaluate_contract(contract: Any, root: Path = None) -> Dict[str, bool]:
         isinstance(eligibility, Mapping)
         and eligibility.get("eligible_artifact_classes") == EXPECTED_ELIGIBLE_CLASSES
         and eligibility.get("candidate_job_states")
-        == ["PAUSED", "RETRY_WAIT", "FAILED", "DEAD_LETTERED", "CANCELLED"]
+        == EXPECTED_CANDIDATE_STATES
         and eligibility.get("blocked_job_states")
-        == ["CREATED", "QUEUED", "CLAIMED", "RUNNING", "PAUSE_REQUESTED", "SUCCEEDED"]
+        == EXPECTED_BLOCKED_STATES
         and eligibility.get("unknown_or_missing_evidence_action") == "BLOCK_CLEANUP"
         and eligibility.get("delete_allowed") is False
     )

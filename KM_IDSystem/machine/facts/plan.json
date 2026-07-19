@@ -1,18 +1,18 @@
 {
   "stage": "`IDS-STAGE044`",
-  "phase": "`IDS-STAGE044-P4`",
-  "task": "`IDS-V0_1-STAGE044-P4`",
-  "owner": "Codex 专属 KMOS worktree，Stage044 步骤四",
-  "objective": "收口状态图、失败重试、反压、清理白名单、自动与人工处理、安全关闭、恢复、回滚和限制证据，并停止在独立整阶段复审门前。",
+  "phase": "`IDS-STAGE044-REVIEW`",
+  "task": "`IDS-V0_1-STAGE044-REVIEW`",
+  "owner": "Codex 专属 KMOS worktree，Stage044 独立整阶段复审",
+  "objective": "独立复核 Stage044 步骤一至四，修复全部严重和重要发现，并在删除硬禁用条件下关闭为本地复审完成。",
   "scope": [
-    "绑定步骤三提交、批准 Stage044 来源与当前 Git 暂存索引上游证据",
-    "复验 8 类任务、11 状态、4 终态、21 转换、3 次尝试、2 次重试、7 类压力和 14 项场景",
-    "明确两类清理候选、十四类保护资料、零自动资格/成功、十四类人工处理及安全关闭/恢复/回滚"
+    "重验批准来源、步骤四 commit/tree 与步骤一至四 checker",
+    "验证失败终态边界、完整 contract、身份与 provenance、规范路径和中文状态",
+    "固化 review 文档、checker、测试、事件、machine run 与下一独立 gate"
   ],
   "non_goals": [
-    "不执行 Stage044 整阶段复审，不进入 Stage045",
-    "不访问真实候选路径，不扫描、探测或遍历文件系统，不探测 writer，不获取生产锁，不恢复或重启 worker，不调用 dirfd/openat/unlinkat，不移动、覆盖、删除文件，不修改任务状态或写 audit",
-    "不读取原始元数据，不创建虚构 IDS 业务数据，不持久化、上传、合并或重装应用"
+    "不进入或实现 Stage045，不执行十阶段 batch review 或 upload gate",
+    "不访问真实候选路径，不扫描、探测、遍历、移动、覆盖或删除任何文件，不写 audit、database 或 persistent runtime state",
+    "不读取原始元数据，不创建虚构 IDS 业务数据，不上传、合并或重装应用"
   ],
-  "stop_condition": "Stage044 步骤四合同、检查器、证据、治理、事件、渲染和双平面验证通过且只授权独立整阶段复审即停止；任一来源、祖先、哈希、状态/重试/压力、白名单、人工处理、安全关闭、回滚或无副作用证据失配均保持删除、整阶段复审与 Stage045 关闭。"
+  "stop_condition": "Stage044 六项发现全部修复且分层验证通过后，停止在 IDS-STAGE045-P1-GATE；任一来源、祖先、契约、身份、路径、状态、治理或无副作用证据失配均回到 IDS-STAGE044-REVIEW-GATE。"
 }

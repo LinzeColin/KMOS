@@ -21,6 +21,16 @@ class Stage005GovernanceRegressionTests(unittest.TestCase):
         spec.loader.exec_module(module)
         return module
 
+    def _tamper_current_stage044_review_route(self, batch_text: str) -> str:
+        tampered = batch_text.replace(
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE045-P1"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
+        )
+        self.assertNotEqual(batch_text, tampered)
+        return tampered
+
     def test_app_entry_install_policy_installs_app_and_command_launchers(self):
         self.assertTrue(APP_ENTRY_INSTALLER.is_file(), f"missing installer: {APP_ENTRY_INSTALLER}")
         self.assertTrue(APP_ENTRY_DIAGNOSTIC.is_file(), f"missing diagnostic: {APP_ENTRY_DIAGNOSTIC}")
@@ -9649,13 +9659,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
             module.REQUIRED_EVENT_IDS,
         )
 
-        tampered_batch = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
-        )
-        self.assertNotEqual(batch_text, tampered_batch)
+        tampered_batch = self._tamper_current_stage044_review_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
             tampered_batch, roadmap_text
         )
@@ -9869,13 +9873,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
         self.assertFalse(all(blocked.values()), blocked)
 
-        tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
-        )
-        self.assertNotEqual(batch_text, tampered_route)
+        tampered_route = self._tamper_current_stage044_review_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
             tampered_route, roadmap_text
         )
@@ -9953,13 +9951,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
         self.assertFalse(all(blocked.values()), blocked)
 
-        tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
-        )
-        self.assertNotEqual(batch_text, tampered_route)
+        tampered_route = self._tamper_current_stage044_review_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
             tampered_route, roadmap_text
         )
@@ -10050,13 +10042,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
         self.assertFalse(all(blocked.values()), blocked)
 
-        tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
-        )
-        self.assertNotEqual(batch_text, tampered_route)
+        tampered_route = self._tamper_current_stage044_review_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
             tampered_route, roadmap_text
         )
@@ -10146,13 +10132,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
         self.assertFalse(all(blocked.values()), blocked)
 
-        tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
-        )
-        self.assertNotEqual(batch_text, tampered_route)
+        tampered_route = self._tamper_current_stage044_review_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
             tampered_route, roadmap_text
         )
@@ -10233,13 +10213,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
         self.assertFalse(all(blocked.values()), blocked)
 
-        tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
-        )
-        self.assertNotEqual(batch_text, tampered_route)
+        tampered_route = self._tamper_current_stage044_review_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
             tampered_route, roadmap_text
         )
@@ -10320,13 +10294,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
         self.assertFalse(all(blocked.values()), blocked)
 
-        tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
-        )
-        self.assertNotEqual(batch_text, tampered_route)
+        tampered_route = self._tamper_current_stage044_review_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
             tampered_route, roadmap_text
         )
@@ -10406,13 +10374,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
         self.assertFalse(all(blocked.values()), blocked)
 
-        tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
-        )
-        self.assertNotEqual(batch_text, tampered_route)
+        tampered_route = self._tamper_current_stage044_review_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
             tampered_route, roadmap_text
         )
@@ -10494,13 +10456,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
         self.assertFalse(all(blocked.values()), blocked)
 
-        tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"',
-        )
-        self.assertNotEqual(batch_text, tampered_route)
+        tampered_route = self._tamper_current_stage044_review_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
             tampered_route, roadmap_text
         )
@@ -10582,13 +10538,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
         self.assertFalse(all(blocked.values()), blocked)
 
-        tampered_route = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE044-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE044-P3"',
-        )
-        self.assertNotEqual(batch_text, tampered_route)
+        tampered_route = self._tamper_current_stage044_review_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
             tampered_route, roadmap_text
         )

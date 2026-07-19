@@ -1,33 +1,33 @@
 {
   "items": [
     {
-      "id": "`ACC-STAGE044-P4-01`",
-      "criteria": "步骤三提交、KM_IDSystem 目录树、批准来源及当前 Git 暂存索引上游证据哈希精确且保持祖先",
+      "id": "`ACC-STAGE044-REVIEW-01`",
+      "criteria": "批准来源、步骤四提交与 KM_IDSystem 目录树精确，步骤一至四重新执行通过",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P4-02`",
-      "criteria": "8 类任务、11 个状态、4 个终态、21 条转换、3 次尝试、2 次重试、最终死信终态和 7 类压力证据完整",
+      "id": "`ACC-STAGE044-REVIEW-02`",
+      "criteria": "PAUSED 与 RETRY_WAIT 保持可恢复非终态并始终阻断清理；仅 FAILED、DEAD_LETTERED、CANCELLED 可进入候选判断",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P4-03`",
-      "criteria": "十四项隔离场景、25 项完整与 16 项所选四族同源冲突复验通过，操作、队列、重试和删除副作用均为零",
+      "id": "`ACC-STAGE044-REVIEW-03`",
+      "criteria": "完整 runtime contract、精确中文状态、creator/job、批准 root、manifest、writer/resource evidence 和五个 input refs 均规范绑定",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P4-04`",
-      "criteria": "只有两类可重建半成品保持条件候选，十四类原始、事实、manifest、证据、审计、报告、索引、检查点、owner 持有和成功输出资料保持保护",
+      "id": "`ACC-STAGE044-REVIEW-04`",
+      "criteria": "root-relative path 只接受唯一规范 POSIX 词法表示，点段、重复分隔符、绝对路径与父级穿越均失败关闭",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P4-05`",
-      "criteria": "三条上游恢复路径和两类清理资料仅为条件候选；当前自动恢复/清理资格与成功为空，十四类情况明确要求人工处理，安全关闭、恢复、回滚和限制可执行且失败关闭",
+      "id": "`ACC-STAGE044-REVIEW-05`",
+      "criteria": "一项严重和五项重要发现全部修复，并由独立 review checker、测试、事件和 machine run 固化",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-P4-06`",
-      "criteria": "只路由到独立 Stage044 整阶段复审；未触碰原始元数据，未执行真实路径访问、扫描、探测、遍历、生产锁、进程恢复、移动、覆盖、删除、审计写入、持久化、Stage045、上传或生产动作",
+      "id": "`ACC-STAGE044-REVIEW-06`",
+      "criteria": "Stage044 仅完成本地整阶段复审；未执行真实清理、文件系统动作、Stage045、上传、合并、应用重装或生产激活",
       "status": "已遵守"
     }
   ]
