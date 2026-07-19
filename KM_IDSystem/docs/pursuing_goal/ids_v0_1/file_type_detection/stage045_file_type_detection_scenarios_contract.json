@@ -1,0 +1,248 @@
+{
+  "schema_version": "ids.stage045.file_type_detection.phase3.scenarios.v1",
+  "stage": "STAGE-045",
+  "phase": "Phase 3",
+  "task_id": "IDS-V0_1-STAGE045-P3",
+  "acceptance_id": "ACC-STAGE-045",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_IN_MEMORY_FILE_TYPE_DETECTION_SCENARIOS",
+  "scenario_contract_id": "ids.file_type_detector.v0_1.stage045.p3.scenarios",
+  "detector_version": "ids.file_type_detector.v0_1.stage045.p2",
+  "contract_state": "PHASE3_SCENARIOS_ENABLED_PARSER_AND_FALLBACK_DISABLED",
+  "next_gate": "IDS-STAGE045-P4-GATE",
+  "source_binding": {
+    "source_archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "source_member": "IDS_v0_1_Final_Chinese_Revised/stages/STAGE-045_文件类型检测.md",
+    "source_member_match_count": 1,
+    "source_member_sha256": "4eac237a7f63d764cf71789d4949a5168cbe8fe24e1fe7eb816baabe04bb4d27",
+    "roadmap_path": "/Users/linzezhang/Downloads/IDS_Codex开发Roadmap_v0_1_only_中文修订版.txt",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_path": "/Users/linzezhang/Downloads/IDS_Codex使用说明_v0_1_only_中文修订版.txt",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+    "source_verification_status": "SOURCE_VERIFIED"
+  },
+  "phase2_commit_binding": {
+    "commit": "e61e8f7cbf8795a3f5d2b33be4031f1885948b00",
+    "root_tree": "94f820df60f592c516c61160ce40e059458d7b9f",
+    "kmids_tree": "2daa58d66a496e3b1aede42ed1154de271d80824",
+    "parent": "2f4051b7e9960e10698052b4e3f71fcb093f35e3",
+    "required_ancestor_of_head": true
+  },
+  "integration_baseline": {
+    "commit": "082565a958459fb4b9ad2b951a74982c30311a03",
+    "root_tree": "532d8338fdbbdab89be2cd16ac12a50ad850a5fe",
+    "kmids_tree": "81489b941d9740cc0462d4dc1371481a44ed766d",
+    "parents": [
+      "e61e8f7cbf8795a3f5d2b33be4031f1885948b00",
+      "0495b8482b78ff937a92ee061c92980bcbde173b"
+    ],
+    "required_ancestor_of_head": true,
+    "handoff_resolution": "CURRENT_STAGE045_GATE_PRESERVED_CANONICAL_OVERRIDE_ADDED"
+  },
+  "upstream_bindings": {
+    "stage045_phase2_contract": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_runtime_contract.json",
+      "sha256": "e3d8cb8408f513eaeaa156a1f43fe7d618736f6830415a48bb40e315e3dae9d7"
+    },
+    "stage045_phase2_checker": {
+      "ref": "KM_IDSystem/scripts/check_file_type_detection_runtime.py",
+      "sha256": "48e0a4cae96f0ed605e0567ee5bdd38b7a0677ca892048d86290de09462a8d93"
+    },
+    "stage045_phase2_tests": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_runtime.py",
+      "sha256": "14271495dbed4b624973d26b2ae81b49e1578be6e21d3747daed60de8f2a4de7"
+    },
+    "stage045_phase2_evidence": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_PHASE2_FILE_TYPE_DETECTION_SLICE.md",
+      "sha256": "6de20b6c927d76fbad6286e7861a64f903a0c8cccc2c1226860ca6e3e266283c"
+    },
+    "stage045_phase2_run": {
+      "ref": "KM_IDSystem/machine/runs/2026-07-19-stage045-p2-local.json",
+      "sha256": "4e82dda2b265251eac61806323a04acbce5fb1a7d89f2baf99482e0d29b5f19d"
+    }
+  },
+  "scenario_catalog": [
+    "matching_pdf_signature_route_candidate",
+    "matching_docx_container_route_candidate",
+    "matching_xlsx_container_route_candidate",
+    "matching_csv_text_route_candidate",
+    "matching_txt_text_route_candidate",
+    "matching_png_signature_route_candidate",
+    "matching_jpeg_signature_route_candidate",
+    "matching_tiff_little_endian_route_candidate",
+    "matching_tiff_big_endian_route_candidate",
+    "unknown_binary_requires_owner_review",
+    "corrupt_zip_blocks_with_explicit_error",
+    "conflicting_signature_mime_extension_requires_review",
+    "extension_only_low_confidence_requires_review",
+    "instruction_like_text_cannot_override_system_policy"
+  ],
+  "format_coverage": {
+    "supported_types": [
+      "PDF",
+      "DOCX",
+      "XLSX",
+      "CSV",
+      "TXT",
+      "PNG",
+      "JPEG",
+      "TIFF"
+    ],
+    "failure_types": [
+      "UNKNOWN",
+      "CORRUPT_OR_UNREADABLE"
+    ],
+    "image_types": [
+      "PNG",
+      "JPEG",
+      "TIFF"
+    ],
+    "tiff_endianness_variants": [
+      "LITTLE_ENDIAN",
+      "BIG_ENDIAN"
+    ],
+    "scenario_count": 14,
+    "all_taskpack_formats_covered": true
+  },
+  "scenario_expectations": {
+    "matching_pdf_signature_route_candidate": "PDF_SIGNATURE_MIME_EXTENSION_MATCH_HIGH_CANDIDATE_ONLY",
+    "matching_docx_container_route_candidate": "DOCX_CONTENT_TYPES_AND_WORD_NAMESPACE_HIGH_CANDIDATE_ONLY",
+    "matching_xlsx_container_route_candidate": "XLSX_CONTENT_TYPES_AND_XL_NAMESPACE_HIGH_CANDIDATE_ONLY",
+    "matching_csv_text_route_candidate": "CSV_BOUNDED_TEXT_HEURISTIC_MEDIUM_QUALITY_REVIEW",
+    "matching_txt_text_route_candidate": "TXT_BOUNDED_TEXT_HEURISTIC_MEDIUM_QUALITY_REVIEW",
+    "matching_png_signature_route_candidate": "PNG_SIGNATURE_MATCH_HIGH_IMAGE_CANDIDATE_ONLY",
+    "matching_jpeg_signature_route_candidate": "JPEG_SIGNATURE_MATCH_HIGH_IMAGE_CANDIDATE_ONLY",
+    "matching_tiff_little_endian_route_candidate": "TIFF_LITTLE_ENDIAN_MATCH_HIGH_IMAGE_CANDIDATE_ONLY",
+    "matching_tiff_big_endian_route_candidate": "TIFF_BIG_ENDIAN_MATCH_HIGH_IMAGE_CANDIDATE_ONLY",
+    "unknown_binary_requires_owner_review": "UNKNOWN_BINARY_EXPLICIT_OWNER_REVIEW_NO_SILENT_DROP",
+    "corrupt_zip_blocks_with_explicit_error": "CORRUPT_ZIP_EXPLICIT_ERROR_NO_FALLBACK",
+    "conflicting_signature_mime_extension_requires_review": "SIGNAL_CONFLICT_EXPLICIT_OWNER_REVIEW",
+    "extension_only_low_confidence_requires_review": "EXTENSION_ONLY_LOW_CONFIDENCE_OWNER_REVIEW_NO_DISPATCH",
+    "instruction_like_text_cannot_override_system_policy": "UNTRUSTED_EVIDENCE_TEXT_ROUTE_INVARIANT_POLICY_OVERRIDE_DENIED"
+  },
+  "fallback_quality_contract": {
+    "disposition_by_state_and_confidence": {
+      "TYPE_CONFIRMED:HIGH": "PRIMARY_ROUTE_CANDIDATE_ONLY",
+      "TYPE_PROVISIONAL:MEDIUM": "QUALITY_REVIEW_REQUIRED",
+      "TYPE_PROVISIONAL:LOW": "OWNER_REVIEW_REQUIRED",
+      "TYPE_CONFLICT_REVIEW_REQUIRED:UNKNOWN": "OWNER_REVIEW_REQUIRED",
+      "TYPE_UNKNOWN_REVIEW_REQUIRED:UNKNOWN": "OWNER_REVIEW_REQUIRED",
+      "TYPE_INPUT_BLOCKED:UNKNOWN": "EXPLICIT_ERROR_NO_FALLBACK"
+    },
+    "all_non_high_quality_results_require_review_or_error": true,
+    "silent_drop_allowed_count": 0,
+    "raw_parser_output_allowed": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "fallback_execution_allowed": false,
+    "fallback_attempt_log_required_when_implemented": true,
+    "fallback_runtime_owner": "STAGE-048",
+    "quality_downgrade_is_not_evidence_promotion": true
+  },
+  "instruction_text_contract": {
+    "required_label": "UNTRUSTED_EVIDENCE_TEXT",
+    "interpretation": "EVIDENCE_ONLY",
+    "route_must_match_non_instruction_baseline": true,
+    "system_rule_override_allowed": false,
+    "tool_authorization_allowed": false,
+    "policy_override_allowed": false,
+    "prompt_injection_scan_allowed": false,
+    "scanner_runtime_owner": "STAGE-050",
+    "raw_text_retained_in_scenario_report": false,
+    "marker_is_not_scanner": true
+  },
+  "result_contract": {
+    "scenario_summary_fields": [
+      "status",
+      "detector_version",
+      "detected_type",
+      "detection_state",
+      "confidence",
+      "route_candidate",
+      "route_state",
+      "quality_disposition",
+      "errors",
+      "evidence_text_marker_applied",
+      "container_inspection_performed",
+      "route_matches_non_instruction_baseline",
+      "system_rule_override_performed",
+      "tool_authorization_performed",
+      "prompt_injection_scan_performed",
+      "output_refs",
+      "parser_dispatch_performed",
+      "parser_execution_performed",
+      "fallback_execution_performed"
+    ],
+    "scenario_count": 14,
+    "all_scenarios_must_pass": true,
+    "silent_drop_count_required": 0,
+    "errors_are_bounded_codes_only": true,
+    "raw_control_bytes_retained": false,
+    "raw_source_text_retained": false,
+    "absolute_source_path_allowed": false,
+    "output_refs_must_be_empty": true,
+    "result_persistence_allowed": false,
+    "pass_result": "PASS_ISOLATED_FILE_TYPE_DETECTION_SCENARIOS_PARSER_DISABLED"
+  },
+  "phase4_entry_gate": {
+    "entry_authorized_after_scenario_pass": true,
+    "required_task_id": "IDS-V0_1-STAGE045-P4",
+    "required_acceptance_id": "ACC-STAGE-045",
+    "must_run_separately": true,
+    "whole_stage_review_allowed_in_phase3": false,
+    "github_upload_allowed": false,
+    "app_reinstall_allowed": false,
+    "next_gate": "IDS-STAGE045-P4-GATE"
+  },
+  "rollback_contract": {
+    "steps": [
+      "STOP_ON_INVALID_PHASE3_CONTRACT_OR_SCENARIO",
+      "REVERT_STAGE045_PHASE3_FILES_ONLY",
+      "PRESERVE_STAGE045_PHASE1_PHASE2_AND_INTEGRATION_BASELINE",
+      "PRESERVE_ORIGINAL_MANIFEST_EVIDENCE_AUDIT_REPORT_AND_INDEX_ARTIFACTS",
+      "DO_NOT_OPEN_SCAN_HASH_PARSE_MOVE_OVERWRITE_OR_DELETE_REAL_SOURCE_PATHS"
+    ],
+    "destructive_rollback_allowed": false
+  },
+  "truth_flags": {
+    "taskpack_source_read_performed": true,
+    "phase2_detector_reexecuted": true,
+    "isolated_file_type_scenarios_performed": true,
+    "all_taskpack_format_scenarios_performed": true,
+    "signature_scenarios_performed": true,
+    "container_scenarios_performed": true,
+    "text_heuristic_scenarios_performed": true,
+    "unknown_and_corrupt_scenarios_performed": true,
+    "fallback_quality_disposition_evaluated": true,
+    "instruction_route_invariance_evaluated": true,
+    "source_file_open_performed": false,
+    "filesystem_scan_performed": false,
+    "file_hash_performed": false,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "fake_ids_business_data_used": false,
+    "real_ids_business_job_created": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "fallback_execution_performed": false,
+    "prompt_injection_scan_performed": false,
+    "system_rule_override_performed": false,
+    "tool_authorization_performed": false,
+    "high_confidence_evidence_write_performed": false,
+    "manifest_write_performed": false,
+    "evidence_ledger_write_performed": false,
+    "audit_write_performed": false,
+    "job_creation_performed": false,
+    "state_transition_performed": false,
+    "persistent_state_write_performed": false,
+    "database_connection_performed": false,
+    "schema_change_performed": false,
+    "runtime_output_written": false,
+    "production_runtime_activation_performed": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  }
+}

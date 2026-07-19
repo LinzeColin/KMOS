@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE045",
-  "phase": "IDS-STAGE045-P2",
-  "task": "IDS-V0_1-STAGE045-P2",
-  "real_progress": "Stage045 步骤二隔离文件类型检测切片及分层回归已完成；步骤三至四与整阶段复审尚未开始",
-  "report_grade": "批准来源和 Phase1 前序绑定、三个合成内存控制、296 项聚合及 1044 项全量回归均通过；最终证据见本次机器运行记录",
-  "business_verdict": "仅启用非生产内存检测切片与解析器候选路由；真实源文件读取、解析器分派、证据写入、持久化和生产能力均禁用",
-  "evidence_status": "LOCAL_PHASE2_VALIDATED_PARSER_DISABLED",
-  "rendered_at": "2026-07-19",
+  "phase": "IDS-STAGE045-P3",
+  "task": "IDS-V0_1-STAGE045-P3",
+  "real_progress": "Stage045 步骤三的十四个文件类型与失败路径场景及分层回归已完成；步骤四与整阶段复审尚未开始",
+  "report_grade": "批准来源、Phase2 前序与集成基线已绑定；十四个场景、314 项聚合、1063 项全量、七个历史复审检查器、事件与双平面均通过",
+  "business_verdict": "仅验证非生产内存检测候选与质量处置；真实源文件读取、解析器分派、回退、证据写入、持久化和生产能力均禁用",
+  "evidence_status": "LOCAL_PHASE3_VALIDATED_PARSER_AND_FALLBACK_DISABLED",
+  "rendered_at": "2026-07-20",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE045-P3-GATE",
+  "next_gate": "IDS-STAGE045-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

@@ -1,6 +1,31 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE045-P3-01`",
+      "criteria": "步骤三场景合同精确绑定批准来源、步骤二前序提交和目录树、集成基线与五项上游哈希",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P3-02`",
+      "criteria": "十四个有界合成内存场景覆盖全部治理格式、未知、损坏、冲突、仅扩展名信号与指令样文本输入",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P3-03`",
+      "criteria": "十四个场景全部通过且静默丢弃计数为零；所有非高质量结果均显式进入质量复核、负责人复核或错误",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P3-04`",
+      "criteria": "指令样文本与基线保持同一路由，并且不能覆盖系统规则、授权工具或冒充 Stage050 提示注入扫描器",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P3-05`",
+      "criteria": "未打开业务源文件，未保留样本内容，未执行解析器、回退、持久化、Stage045 步骤四、上传、合并、应用重装或生产激活",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE045-P2-01`",
       "criteria": "Phase2 runtime contract 精确绑定批准来源、Phase1 predecessor commit/tree 与权威上游哈希",
       "status": "已通过"

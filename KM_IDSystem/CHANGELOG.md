@@ -1,5 +1,16 @@
 # Changelog
 
+## IDS v0.1 STAGE-045 Phase 3 - 2026-07-20
+
+- Added `ids.stage045.file_type_detection.phase3.scenarios.v1`, exact source/Phase2/integration/upstream-bound scenario evidence, and a checker that imports rather than duplicates the committed Phase2 detector.
+- Replayed fourteen bounded synthetic in-memory scenarios across PDF, DOCX, XLSX, CSV, TXT, PNG, JPEG, both TIFF endiannesses, unknown binary, corrupt ZIP, conflicting signals, extension-only evidence and instruction-like text. All fourteen return the exact governed type/state/confidence/route tuple.
+- Enforced explicit quality dispositions: high-confidence results are route candidates only; medium results require quality review; low, conflict and unknown results require owner review; corrupt input returns an explicit no-fallback error. `silent_drop_count=0`.
+- Proved instruction-route invariance without retaining the instruction text: the result remains `UNTRUSTED_EVIDENCE_TEXT`, cannot override system rules or authorize tools, and does not claim the Stage050 scanner.
+- Valid TDD RED produced two governance failures and sixteen missing-artifact errors across eighteen tests. Final GREEN passed focused `18/18` in `1.069s`, Phase1-3 compatibility `46/46` in `2.069s`, Stage005 final evidence recheck `171/171` in `38.633s`, Stage041-045 aggregate `314/314` in `1083.079s`, and full discovery `1063/1063` in `1540.095s`; seven historical review checkers, `218` events, idempotent owner rendering and project dual-plane also pass.
+- The first aggregate failed closed `14/314` on stale current-route/index assertions; the first full discovery failed closed `5/1063` on four P3-to-P4 route assertions and one stale owner render. A final-evidence Stage005 run also failed closed `22/171` until its exact roadmap result binding was synchronized. Repairs were limited to exact forward-route compatibility, existing historical safety invariants, generated owner views and that exact result binding; the invalid wrong-workdir targeted command was interrupted and is explicitly not counted as PASS.
+- Pre-commit self-review repaired one Important fail-closed gap: instruction control flags are now derived from the bounded Phase2 evidence wrapper and participate in scenario status instead of being hard-coded in the summary. The existing instruction test now proves an unsafe wrapper forces `FAIL_CLOSED`, without changing the eighteen-test count or entering Phase4.
+- Routed the only next task to separate `IDS-V0_1-STAGE045-P4` with `push_allowed=false`. No business source-file access, parser dispatch/execution, fallback, prompt-injection scan, evidence promotion, persistence, Phase4, whole-stage review, batch review, GitHub action, app reinstall, dependency installation, raw metadata access or production action ran.
+
 ## IDS v0.1 STAGE-045 Phase 2 - 2026-07-19
 
 - Added `ids.stage045.file_type_detection.phase2.v1` and `ids.file_type_detector.v0_1.stage045.p2`, exact source/Phase1/upstream-bound artifacts for a bounded synthetic in-memory detection slice.
