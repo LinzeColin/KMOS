@@ -229,17 +229,74 @@ function 技能页({ 技能 }) {
   )
 }
 
+const 表样 = { width: '100%', borderCollapse: 'collapse', marginTop: '.6rem', fontSize: '.85rem' }
+const 格样 = { border: '1px solid rgba(127,127,127,.3)', padding: '.35rem .5rem', textAlign: 'left' }
+
+function 源检查板({ 源检查 }) {
+  if (!源检查) return <p style={S.muted}>加载中…</p>
+  const 协议 = 源检查.矩阵协议, 覆盖 = 源检查.覆盖矩阵, 鲜 = 源检查.新鲜度, 派生 = 源检查.派生层
+  return (
+    <>
+      <div style={{ display: 'flex', gap: '.8rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+        <div style={S.card}><div style={S.muted}>登记资产</div><div style={S.num}>{覆盖.资产合计}</div></div>
+        <div style={S.card}><div style={S.muted}>数据批次</div><div style={S.num}>{鲜.数据批次 || '—'}</div></div>
+        <div style={S.card}><div style={S.muted}>派生表 / 行</div>
+          <div style={S.num}>{派生.表数} / {(派生.行合计 ?? 0).toLocaleString('zh')}</div></div>
+        <div style={S.card}><div style={S.muted}>新鲜度</div>
+          <div style={{ ...S.num, color: 鲜.stale ? '#c0392b' : '#1e8449' }}>{鲜.stale ? 'STALE' : 'FRESH'}</div></div>
+      </div>
+      <p style={S.muted}>{鲜.提示}｜血缘批次：{(鲜.血缘批次 || []).join('、') || '—'}</p>
+
+      <h3 style={{ marginTop: '1.2rem' }}>源 × 登记状态 矩阵</h3>
+      <table style={表样}>
+        <thead>
+          <tr>
+            <th style={格样}>源</th>
+            {覆盖.状态列.map(s => <th key={s} style={格样}>{s}</th>)}
+            <th style={格样}>合计</th>
+          </tr>
+        </thead>
+        <tbody>
+          {覆盖.行.map(r => (
+            <tr key={r.源}>
+              <td style={格样}>{r.源}</td>
+              {覆盖.状态列.map(s => <td key={s} style={格样}>{r[s] ?? 0}</td>)}
+              <td style={{ ...格样, fontWeight: 700 }}>{r.合计}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <h3 style={{ marginTop: '1.2rem' }}>正式源检查矩阵（协议态）</h3>
+      <table style={表样}>
+        <tbody>
+          <tr><td style={格样}>schema</td><td style={格样}>{协议.schema || '—'}</td></tr>
+          <tr><td style={格样}>阶段</td><td style={格样}>{协议.阶段 || '—'}</td></tr>
+          <tr><td style={格样}>状态</td><td style={格样}>{协议.状态 || '—'}</td></tr>
+          <tr><td style={格样}>已提交源行</td>
+            <td style={{ ...格样, fontWeight: 700, color: 协议.已提交源行 ? 'inherit' : '#b9770e' }}>{协议.已提交源行}</td></tr>
+          <tr><td style={格样}>必需维度</td><td style={格样}>{(协议.必需维度 || []).join('、')}</td></tr>
+          <tr><td style={格样}>允许状态</td><td style={格样}>{(协议.允许状态 || []).join('、')}</td></tr>
+        </tbody>
+      </table>
+      <p style={S.muted}>{协议.说明}</p>
+    </>
+  )
+}
+
 export default function App() {
   const [页, set页] = useState('概览')
   const [状态, set状态] = useState(null)
   const [断言, set断言] = useState(null)
   const [管线, set管线] = useState(null)
   const [技能, set技能] = useState(null)
+  const [源检查, set源检查] = useState(null)
   useEffect(() => {
     fetch('/api/状态').then(r => r.json()).then(set状态)
     fetch('/api/断言').then(r => r.json()).then(set断言)
     fetch('/api/数据管线').then(r => r.json()).then(set管线)
     fetch('/api/技能').then(r => r.json()).then(set技能)
+    fetch('/api/源检查').then(r => r.json()).then(set源检查)
   }, [])
   return (
     <div style={S.body}>
@@ -252,11 +309,15 @@ export default function App() {
         </>}
       </header>
       <nav style={S.tabs}>
-        {['概览', '差异工作台', '数据管线', '技能'].map(t => (
-          <span key={t} style={S.tab(页 === t)} onClick={() => set页(t)}>{t}</span>
+        {/* 页签用语义化 button+role=tab：span onClick 既不可键盘操作、也不进可访问性树，
+            自动化（含 PROD.0013 Playwright）点不到——本单元真开页面时实测踩到。 */}
+        {['概览', '源检查板', '差异工作台', '数据管线', '技能'].map(t => (
+          <button key={t} type="button" role="tab" aria-selected={页 === t}
+                  style={{ ...S.tab(页 === t), font: 'inherit' }} onClick={() => set页(t)}>{t}</button>
         ))}
       </nav>
       {页 === '概览' && <概览 断言={断言} 管线={管线} 技能={技能} />}
+      {页 === '源检查板' && <源检查板 源检查={源检查} />}
       {页 === '差异工作台' && <差异工作台 断言={断言} />}
       {页 === '数据管线' && <数据管线 管线={管线} />}
       {页 === '技能' && <技能页 技能={技能} />}
