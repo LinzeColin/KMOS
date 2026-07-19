@@ -337,6 +337,75 @@ function 源检查板({ 源检查 }) {
   )
 }
 
+function 项目成本({ 成本 }) {
+  if (!成本) return <p style={S.muted}>加载中…</p>
+  const 层 = 成本.事实层, 构 = 成本.必需结构, 阻 = 成本.阻塞链
+  const 阻塞中 = 层.已算金额记录数 === 0
+  return (
+    <>
+      {阻塞中 && (
+        <div style={{ ...S.card, marginTop: '1rem', borderLeft: '4px solid #b9770e' }}>
+          <b>金额尚不可计算——本页不产出任何毛利数字</b>
+          <div style={{ marginTop: '.4rem' }}>{成本.诚实边界}</div>
+        </div>
+      )}
+      <div style={S.grid}>
+        <div style={S.card}><div style={S.muted}>事实层记录</div><div style={S.num}>{层.记录数}</div>
+          <div style={S.muted}>已算金额 {层.已算金额记录数}</div></div>
+        <div style={S.card}><div style={S.muted}>成本类别槽位</div><div style={S.num}>{构.成本类别.length}</div></div>
+        <div style={S.card}><div style={S.muted}>事实指标槽位</div><div style={S.num}>{构.事实指标.length}</div></div>
+      </div>
+      <p style={S.muted}>状态 <code>{层.状态}</code>｜公式 {层.公式版本}｜映射 {层.映射版本}｜生成于 {层.生成于}</p>
+
+      <h3 style={{ marginTop: '1.2rem' }}>成本类别 × 事实指标（结构骨架）</h3>
+      <p style={S.muted}>成本类别：{构.成本类别.join('、')}</p>
+      <p style={S.muted}>事实指标：{构.事实指标.join('、')}</p>
+
+      <h3 style={{ marginTop: '1.2rem' }}>事实记录</h3>
+      <table style={表样}>
+        <thead><tr>
+          <th style={格样}>记录号</th><th style={格样}>项目实体</th><th style={格样}>计算状态</th>
+          <th style={格样}>金额已计算</th><th style={格样}>成本/指标槽位</th><th style={格样}>已登记哈希</th>
+          <th style={格样}>明文已公开</th>
+        </tr></thead>
+        <tbody>{成本.记录.map(r => (
+          <tr key={r.记录号}>
+            <td style={格样}><code>{r.记录号}</code></td>
+            <td style={格样}><code>{r.项目实体}</code></td>
+            <td style={{ ...格样, color: '#b9770e' }}>{r.计算状态}</td>
+            <td style={格样}>{r.金额已计算 ? '是' : '否'}</td>
+            <td style={格样}>{r.成本槽位} / {r.指标槽位}</td>
+            <td style={格样}>{r.已登记哈希}</td>
+            <td style={格样}>{r.明文已公开 ? '是' : '否（仅私有面）'}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+
+      <h3 style={{ marginTop: '1.2rem' }}>阻塞链</h3>
+      <p style={S.muted}>{阻.直接原因}｜基准 <code>{阻.基准引用}</code></p>
+      <table style={表样}>
+        <thead><tr><th style={格样}>编号</th><th style={格样}>根阻塞</th><th style={格样}>谁能解</th><th style={格样}>已卡</th></tr></thead>
+        <tbody>{阻.根阻塞.map(b => (
+          <tr key={b.编号}>
+            <td style={格样}>{b.编号}</td><td style={格样}>{b.内容}</td>
+            <td style={格样}>{b.只有Owner可解 ? <b>只有你能解</b> : '可代办'}</td>
+            <td style={格样}>{b.已卡}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+
+      <h3 style={{ marginTop: '1.2rem' }}>可下钻派生层（A0 就位后据此归集）</h3>
+      <table style={表样}>
+        <thead><tr><th style={格样}>staging 表</th><th style={格样}>真实行数</th></tr></thead>
+        <tbody>{成本.可下钻派生层.map(t => (
+          <tr key={t.表}><td style={格样}><code>{t.表}</code></td>
+            <td style={格样}>{(t.行数 ?? 0).toLocaleString('zh')}</td></tr>
+        ))}</tbody>
+      </table>
+    </>
+  )
+}
+
 export default function App() {
   const [页, set页] = useState('我在哪')
   const [状态, set状态] = useState(null)
@@ -345,7 +414,9 @@ export default function App() {
   const [技能, set技能] = useState(null)
   const [源检查, set源检查] = useState(null)
   const [我在哪数据, set我在哪] = useState(null)
+  const [成本, set成本] = useState(null)
   useEffect(() => {
+    fetch('/api/项目成本').then(r => r.json()).then(set成本)
     fetch('/api/状态').then(r => r.json()).then(set状态)
     fetch('/api/断言').then(r => r.json()).then(set断言)
     fetch('/api/数据管线').then(r => r.json()).then(set管线)
@@ -366,13 +437,14 @@ export default function App() {
       <nav style={S.tabs}>
         {/* 页签用语义化 button+role=tab：span onClick 既不可键盘操作、也不进可访问性树，
             自动化（含 PROD.0013 Playwright）点不到——本单元真开页面时实测踩到。 */}
-        {['我在哪', '源检查板', '差异工作台', '数据管线', '技能'].map(t => (
+        {['我在哪', '源检查板', '项目成本', '差异工作台', '数据管线', '技能'].map(t => (
           <button key={t} type="button" role="tab" aria-selected={页 === t}
                   style={{ ...S.tab(页 === t), font: 'inherit' }} onClick={() => set页(t)}>{t}</button>
         ))}
       </nav>
       {页 === '我在哪' && <我在哪 我在哪={我在哪数据} 断言={断言} 管线={管线} 技能={技能} />}
       {页 === '源检查板' && <源检查板 源检查={源检查} />}
+      {页 === '项目成本' && <项目成本 成本={成本} />}
       {页 === '差异工作台' && <差异工作台 断言={断言} />}
       {页 === '数据管线' && <数据管线 管线={管线} />}
       {页 === '技能' && <技能页 技能={技能} />}
