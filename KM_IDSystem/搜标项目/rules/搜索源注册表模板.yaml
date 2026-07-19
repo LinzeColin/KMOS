@@ -1,0 +1,35 @@
+version: 0.4.1
+sources:
+  - contract_version: 0.4.1
+    source_id: example_official_platform
+    authority: official
+    enabled: false
+    base_url: https://example.invalid
+    access_mode: api
+    terms_review: unknown
+    robots_review: unknown
+    auth_class: public
+    data_classes: [public_notice]
+    owner: unassigned
+    retention_policy_id: public-notice-v1
+    adapter: to_be_selected_in_G3
+    cursor_strategy: none
+    rate_limit_policy: source_declared
+    budgets:
+      max_queries: 0
+      max_pages: 0
+      max_bytes: 0
+      concurrency: 1
+      timeout_seconds: 1
+      max_retries: 0
+    capabilities: [search, detail]
+    health:
+      contract_hash_required: true
+      zero_result_guard: true
+      dlq_owner_required: true
+rules:
+  - enabled_requires_approved_terms_and_allowed_or_not_applicable_robots
+  - each_source_has_independent_query_page_byte_concurrency_timeout_retry_budgets
+  - login_captcha_subscription_or_contract_failure_is_visible_not_run_or_degraded
+  - aggregator_is_discovery_only_until_official_resolution
+  - source_failure_never_means_zero_opportunity

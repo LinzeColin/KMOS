@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "opportunity.schema.json",
+  "title": "Opportunity",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "opportunity_id", "lot_id", "business_direction", "readiness", "official_url", "deadline", "legal_entity_id", "matched_evidence", "gaps", "next_action", "audit_status", "coverage_degraded"],
+  "properties": {
+    "contract_version": {"const": "0.4.1"},
+    "opportunity_id": {"type": "string", "minLength": 1},
+    "lot_id": {"type": "string", "minLength": 1},
+    "business_direction": {"enum": ["A", "B", "A+B", "UNKNOWN"]},
+    "readiness": {"enum": ["P0_DIRECT", "P1_RESOLVABLE", "P2_EVIDENCE", "X_EXCLUDE", "DISAGREEMENT_REVIEW"]},
+    "official_url": {"type": "string", "format": "uri"},
+    "deadline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["raw", "evidence_status", "parsed_rfc3339", "remaining_seconds"],
+      "properties": {
+        "raw": {"type": ["string", "null"]},
+        "evidence_status": {"enum": ["EXACT_OFFSET", "SOURCE_ZONE", "DATE_ONLY", "AMBIGUOUS", "MISSING", "SUPERSEDED"]},
+        "parsed_rfc3339": {"type": ["string", "null"], "format": "date-time"},
+        "remaining_seconds": {"type": ["integer", "null"]}
+      }
+    },
+    "legal_entity_id": {"type": ["string", "null"]},
+    "matched_evidence": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["requirement_id", "reason_code", "next_action"],
+        "properties": {
+          "requirement_id": {"type": "string"},
+          "reason_code": {"type": "string"},
+          "next_action": {"type": "string"}
+        }
+      }
+    },
+    "next_action": {"type": "string", "minLength": 1},
+    "audit_status": {"enum": ["passed", "conflict", "pending"]},
+    "coverage_degraded": {"type": "boolean"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "deadline": {
+            "properties": {
+              "evidence_status": {"enum": ["DATE_ONLY", "AMBIGUOUS", "MISSING", "SUPERSEDED"]}
+            },
+            "required": ["evidence_status"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "deadline": {
+            "properties": {"remaining_seconds": {"const": null}}
+          }
+        }
+      }
+    }
+  ]
+}
