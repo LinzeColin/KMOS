@@ -28,3 +28,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # 数据卷日备份（运维任务；北京 00:30）
 30 0  * * *   root /opt/runtime/run_skill.sh daily-backup        >> /var/log/kmfa/cron.log 2>&1
+
+# dws 认证保活（运维任务，无业务锚；每 4 小时 :20）——替代已停用的 Codex 排程 dws-auth-keepalive-2。
+# 缺它 access-token 到期即静默失效、投递全断；失败会经 run_skill 告警面上报。
+20 */4 * * *  root /opt/runtime/run_skill.sh dws-keepalive       >> /var/log/kmfa/cron.log 2>&1
