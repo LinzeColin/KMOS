@@ -4,6 +4,7 @@
 metadata/quality/assertions.jsonl、stage_artifacts 八份报告），不使用 mock/占位——
 本线曾犯「用健康检查冒充完备性」的错，契约测试必须咬住真实内容。
 """
+import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -24,7 +25,56 @@ REQUIRED_PATHS = {
     "/api/报表",
     "/api/源检查",
     "/api/我在哪",
+    "/api/项目成本",
 }
+
+
+def test_project_cost_matches_fact_layer_output():
+    """PROD.0006 验收：须与 project_cost_fact_layer 输出一致（不得自造记录）。"""
+    payload = client.get("/api/项目成本").json()
+    layer = payload["事实层"]
+    assert layer["状态"] == "structural_fact_layer_blocked_for_formal_calculation"
+    assert layer["记录数"] == len(payload["记录"]) == 4
+    assert len(payload["必需结构"]["成本类别"]) == 9
+    assert len(payload["必需结构"]["事实指标"]) == 6
+    for row in payload["记录"]:
+        assert row["记录号"].startswith("PCF-S09P1-")
+        assert row["计算状态"] == "blocked_pending_quality_resolution"
+        assert row["金额已计算"] is False and row["允许正式计算"] is False
+        assert row["明文已公开"] is False
+
+
+def test_project_cost_emits_no_money_numbers_while_blocked():
+    """核心诚实保证：A0 未就位时，本接口**不得**出现任何毛利/金额数字。
+
+    事实层全部 amount_calculation_performed=false，若响应里冒出金额字段，
+    只可能是编造——本测试即为此设。
+    """
+    payload = client.get("/api/项目成本").json()
+    assert payload["事实层"]["已算金额记录数"] == 0
+    forbidden = ("毛利", "现金毛利", "cost_total_amount", "revenue_amount", "gross_margin")
+    blob = json.dumps(payload, ensure_ascii=False)
+    for key in forbidden:
+        assert f'"{key}":' not in blob, f"阻塞期不应出现金额字段 {key}"
+    assert payload["诚实边界"]
+
+
+def test_project_cost_blocking_chain_points_to_owner_blocker():
+    payload = client.get("/api/项目成本").json()
+    chain = payload["阻塞链"]
+    assert "A0" in chain["直接原因"]
+    assert chain["根阻塞"], "根阻塞不得为空"
+    assert any(b["编号"] == "BLK-001" and b["只有Owner可解"] for b in chain["根阻塞"])
+
+
+def test_project_cost_drilldown_rows_match_pipeline_facts():
+    """下钻表行数须等于 data_pipeline 事实，不得另编一套数。"""
+    payload = client.get("/api/项目成本").json()
+    pipeline = client.get("/api/数据管线").json()
+    staging = pipeline["staging_tables"]
+    assert payload["可下钻派生层"], "下钻表不得为空"
+    for item in payload["可下钻派生层"]:
+        assert item["行数"] == staging[item["表"]]["rows"]
 
 WHERE_DOC = Path(__file__).resolve().parents[3] / "文档" / "00_我在哪.md"
 

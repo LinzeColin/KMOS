@@ -265,6 +265,82 @@ def lineage(include_graph: bool = False, page: int = 1, size: int = 100):
 
 
 SOURCE_MATRIX_PATH = KMFA / "metadata" / "sources" / "source_check_matrix.jsonl"
+COST_MANIFEST_PATH = KMFA / "metadata" / "reports" / "project_cost_fact_layer_manifest.json"
+COST_RECORDS_PATH = KMFA / "metadata" / "lineage" / "project_cost_fact_records.jsonl"
+# 成本归集会吃的派生层表（下钻用；行数取自 data_pipeline 事实）
+COST_STAGING_TABLES = ("expense_lines", "kingdee_ledger", "kingdee_voucher", "goods_movement",
+                       "invoice_lines", "collection", "receivable_aging")
+
+
+@app.get("/api/项目成本")
+def project_cost():
+    """项目成本页（PROD.0006）——与 `project_cost_fact_layer` 输出一致。
+
+    **诚实边界（务必保留）**：事实层当前
+    `fact_layer_status = structural_fact_layer_blocked_for_formal_calculation`，
+    全部记录 `amount_calculation_performed=false`、`calculation_status=blocked_pending_quality_resolution`
+    ——**金额从未计算**，因其依赖 A0 权威基准，而 A0 被 BLK-001（Owner 约 273 行字段确认）阻塞。
+    故本接口**不产出任何毛利/现金毛利数字**，只如实报结构、槽位与阻塞链。
+
+    公开面只出 sha256 与 `private_ref://` 指针：明文值不在本仓
+    （`metric_values_public_committed=false`），符合任务包「私面数据只在本机 App 显示、不入导出默认」。
+    """
+    if not COST_MANIFEST_PATH.exists() or not COST_RECORDS_PATH.exists():
+        raise HTTPException(status_code=503, detail="项目成本事实层产物缺失")
+    manifest = json.loads(COST_MANIFEST_PATH.read_text(encoding="utf-8"))
+    records = [json.loads(l) for l in COST_RECORDS_PATH.read_text(encoding="utf-8").splitlines() if l.strip()]
+    blockers = load_json(FACTS / "blockers.json")
+    pipeline = load_json(FACTS / "data_pipeline.json")
+    staging = pipeline.get("staging_tables") or {}
+
+    rows = []
+    for rec in records:
+        cost_slots = rec.get("cost_category_slots") or []
+        metric_slots = rec.get("metric_slots") or []
+        rows.append({
+            "记录号": rec.get("fact_record_id"),
+            "项目实体": rec.get("project_entity_ref"),
+            "计算状态": rec.get("calculation_status"),
+            "金额已计算": bool(rec.get("amount_calculation_performed")),
+            "允许正式计算": bool(rec.get("formal_calculation_allowed")),
+            "成本槽位": len(cost_slots),
+            "指标槽位": len(metric_slots),
+            "已登记哈希": len(rec.get("cost_category_hash_refs") or {}) + len(rec.get("metric_hash_refs") or {}),
+            "明文已公开": bool(rec.get("metric_values_public_committed")),
+            "证据": rec.get("evidence_ref"),
+        })
+
+    calculated = sum(1 for r in rows if r["金额已计算"])
+    return {
+        "事实层": {
+            "状态": manifest.get("fact_layer_status"),
+            "公式版本": manifest.get("formula_version"),
+            "映射版本": manifest.get("mapping_version"),
+            "生成于": manifest.get("generated_at"),
+            "记录数": len(rows),
+            "已算金额记录数": calculated,
+        },
+        "必需结构": {
+            "成本类别": manifest.get("required_cost_categories", []),
+            "事实指标": manifest.get("required_fact_metrics", []),
+        },
+        "记录": rows,
+        "阻塞链": {
+            "直接原因": "A0 权威基准未从真实来源生成 → 事实层不允许正式计算",
+            "基准引用": (records[0].get("authority_baseline_ref") if records else None),
+            "根阻塞": [
+                {"编号": b.get("id"), "内容": b.get("内容"), "只有Owner可解": b.get("owner_only"),
+                 "已卡": b.get("首次登记")}
+                for b in (blockers if isinstance(blockers, list) else [])
+            ],
+        },
+        "可下钻派生层": [
+            {"表": name, "行数": (staging.get(name) or {}).get("rows")}
+            for name in COST_STAGING_TABLES if name in staging
+        ],
+        "诚实边界": ("毛利/现金毛利在 A0 就位前无法计算，本页不产出任何金额数字；"
+                     "明文值仅存私有面（private_ref），公开面只有 sha256 指纹。"),
+    }
 
 
 @app.get("/api/源检查")
