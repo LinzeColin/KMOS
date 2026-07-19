@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-19T10:47:10Z"
-status: "stage045_phase1_completed"
+updated_at_utc: "2026-07-19T13:47:14Z"
+status: "stage045_phase2_completed"
 
 transition_history:
+  stage045_phase2_state:
+    status: "stage045_phase2_completed"
+    current_task_id: "IDS-V0_1-STAGE045-P2"
+    next_gate: "IDS-STAGE045-P3-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE045-P3"
+    github_upload_allowed: false
   stage045_phase1_state:
     status: "stage045_phase1_completed"
     current_task_id: "IDS-V0_1-STAGE045-P1"
@@ -743,28 +749,34 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
   STAGE-045:
-    status: "stage045_phase1_completed"
+    status: "stage045_phase2_completed"
     completed_phases:
       - "Phase 1"
-    next_phase: "Phase 2"
-    next_gate: "IDS-STAGE045-P2-GATE"
-    current_task_id: "IDS-V0_1-STAGE045-P1"
+      - "Phase 2"
+    next_phase: "Phase 3"
+    next_gate: "IDS-STAGE045-P3-GATE"
+    current_task_id: "IDS-V0_1-STAGE045-P2"
     acceptance_id: "ACC-STAGE-045"
-    acceptance_status: "phase1_completed"
+    acceptance_status: "phase2_completed"
     review_status: "not_started"
     phase2_entry_authorized: true
-    phase3_entry_authorized: false
+    phase3_entry_authorized: true
     phase4_entry_authorized: false
     source_verification_status: "SOURCE_VERIFIED"
     source_member_match_count: 1
     source_member_sha256: "4eac237a7f63d764cf71789d4949a5168cbe8fe24e1fe7eb816baabe04bb4d27"
     file_type_contract_id: "ids.file_type_detection.v0_1.p1"
     file_type_contract_schema: "ids.stage045.file_type_detection.phase1.v1"
+    file_type_detector_contract_id: "ids.file_type_detector.v0_1.stage045.p2"
+    file_type_runtime_contract_schema: "ids.stage045.file_type_detection.phase2.v1"
     phase1_contract_valid: true
-    contract_state: "PHASE1_ENGINEERING_CONTRACT_DETECTION_RUNTIME_DISABLED"
+    phase2_slice_valid: true
+    contract_state: "PHASE2_ISOLATED_DETECTION_SLICE_ENABLED_PARSER_DISABLED"
+    detector_version: "ids.file_type_detector.v0_1.stage045.p2"
     canonical_type_count: 10
     detection_state_count: 6
     required_parser_output_field_count: 6
+    isolated_detection_count: 3
     taskpack_source_read_performed: true
     ids_business_source_read_performed: false
     raw_metadata_content_accessed: false
@@ -773,17 +785,20 @@ stage_progress:
     source_file_open_performed: false
     file_scan_performed: false
     file_hash_performed: false
-    extension_detection_performed: false
-    mime_detection_performed: false
-    file_signature_inspection_performed: false
-    container_inspection_performed: false
-    type_classification_runtime_performed: false
-    parser_route_evaluation_performed: false
+    isolated_control_bytes_evaluated: true
+    extension_detection_performed: true
+    mime_detection_performed: true
+    file_signature_inspection_performed: true
+    container_inspection_performed: true
+    text_heuristic_evaluation_performed: true
+    type_classification_runtime_performed: true
+    parser_route_evaluation_performed: true
     parser_dispatch_performed: false
     parser_execution_performed: false
     fallback_execution_performed: false
     prompt_injection_scan_performed: false
-    prompt_injection_marker_applied: false
+    prompt_injection_marker_applied: true
+    evidence_text_marker_applied: true
     parser_output_produced: false
     high_confidence_evidence_write_performed: false
     manifest_write_performed: false
@@ -806,12 +821,16 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_contract.json"
       - "KM_IDSystem/scripts/check_file_type_detection.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_PHASE2_FILE_TYPE_DETECTION_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_runtime_contract.json"
+      - "KM_IDSystem/scripts/check_file_type_detection_runtime.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_runtime.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE045-P1"
-  next_allowed_task_id: "IDS-V0_1-STAGE045-P2"
+  current_task_id: "IDS-V0_1-STAGE045-P2"
+  next_allowed_task_id: "IDS-V0_1-STAGE045-P3"
   github_upload_allowed: false
-  current_run: "STAGE-045 Phase 1 bound the approved source and Stage044 reviewed-local baseline, then defined reference-only extension/MIME/signature detection, parser route/output/fallback and untrusted-evidence-text contracts. No source file, detector, parser, persistence, raw metadata, GitHub, app or production action ran."
-  no_upload_reason: "BATCH041_050 has four completed and individually reviewed Stages plus STAGE-045 Phase 1 only; STAGE-045 Phase 2-4 and review, STAGE-046..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."
+  current_run: "STAGE-045 Phase 2 evaluated three bounded synthetic in-memory controls with extension, MIME, signature, OOXML-container and provisional text heuristics; it emitted detector version, confidence and parser-route candidates, marked source-derived instruction-like text as untrusted evidence, and did not dispatch a parser or touch a source file."
+  no_upload_reason: "BATCH041_050 has four completed and individually reviewed Stages plus STAGE-045 Phase 1-2 only; STAGE-045 Phase 3-4 and review, STAGE-046..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."

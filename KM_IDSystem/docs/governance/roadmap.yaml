@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE045"
-current_phase_id: "IDS-STAGE045-P1"
-current_task_id: "IDS-V0_1-STAGE045-P1"
-next_gate_id: "IDS-STAGE045-P2-GATE"
+current_phase_id: "IDS-STAGE045-P2"
+current_task_id: "IDS-V0_1-STAGE045-P2"
+next_gate_id: "IDS-STAGE045-P3-GATE"
 current_transition_history:
+  stage045_phase2_state:
+    current_stage_id: "IDS-STAGE045"
+    current_phase_id: "IDS-STAGE045-P2"
+    current_task_id: "IDS-V0_1-STAGE045-P2"
+    next_gate_id: "IDS-STAGE045-P3-GATE"
   stage045_phase1_state:
     current_stage_id: "IDS-STAGE045"
     current_phase_id: "IDS-STAGE045-P1"
@@ -11665,9 +11670,9 @@ stages:
     status: "in_progress"
     pursuing_goal: "基于扩展名、MIME、文件签名识别文件类型，不盲目信任文件名。"
     stop_gate:
-      gate_id: "IDS-STAGE045-P1-GATE"
+      gate_id: "IDS-STAGE045-P2-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE045-P2-GATE"
+      next_gate_id: "IDS-STAGE045-P3-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_ENTRY_CONTRACT.md"
@@ -11675,6 +11680,10 @@ stages:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_contract.json"
       - "KM_IDSystem/scripts/check_file_type_detection.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_PHASE2_FILE_TYPE_DETECTION_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_runtime_contract.json"
+      - "KM_IDSystem/scripts/check_file_type_detection_runtime.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_runtime.py"
     phases:
       - phase_id: "IDS-STAGE045-P1"
         name: "文件类型检测范围、输入输出与边界确认"
@@ -11739,3 +11748,64 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
             risk: "若 filename/MIME advisory 被当成可靠类型、OOXML ZIP magic 被误判，或 parser output 被直接提升为证据，可能错误路由并污染证据链。"
             rollback: "只回滚 Stage045 Phase1 contract/checker/tests/docs/governance/event/handoff/owner-view；保留 Stage044 review、全部原始/事实/审计资料、GitHub 与 app 状态。"
+      - phase_id: "IDS-STAGE045-P2"
+        name: "隔离文件类型检测切片"
+        objective: "仅对有界合成内存字节评估 extension、MIME、signature、OOXML container 与 provisional text heuristic，记录 detector version、confidence 和 parser route candidate；不打开源文件、不 dispatch parser、不持久化。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        stop_conditions:
+          - "打开、stat、hash、扫描、遍历或读取任何 IDS 业务文件或 raw metadata"
+          - "将隔离安全上限宣称为生产参数或使用虚构 IDS 业务数据"
+          - "dispatch 或执行 parser、fallback、Stage050 prompt-injection scanner"
+          - "写 manifest、evidence ledger、audit、index、report、database、job、state 或 runtime output"
+          - "进入 Phase 3、Phase 4、stage review、batch review、GitHub upload 或 app reinstall"
+        stop_gate:
+          gate_id: "IDS-STAGE045-P2-GATE"
+          status: "passed_with_local_evidence"
+          pass_conditions:
+            - "Runtime contract and checker are bound to the approved source, exact Phase1 predecessor commit and upstream artifacts"
+            - "Three bounded synthetic in-memory controls cover PDF signature, DOCX container and conflicting filename/content signals"
+            - "The detector records exact version, confidence, candidate types and parser-route candidate without dispatch"
+            - "OOXML requires canonical container markers and conflict or unknown results fail closed"
+            - "Instruction-like source-derived content is wrapped as UNTRUSTED_EVIDENCE_TEXT and cannot authorize tools or override policy"
+            - "No source file I/O, parser/fallback execution, persistence, business job, raw metadata or production action occurs"
+            - "The only next gate is IDS-STAGE045-P3-GATE"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_PHASE2_FILE_TYPE_DETECTION_SLICE.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_runtime_contract.json"
+            - "KM_IDSystem/scripts/check_file_type_detection_runtime.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_runtime.py"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE045-P2"
+            name: "实现隔离文件类型检测切片"
+            objective: "用纯内存合成控制样本验证 detector contract、置信度、路由候选与非可信证据文本标记，并维持 parser 与持久化禁用。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE045-P1"
+              - "ids.file_type_detection.v0_1.p1"
+              - "ids.stage013.file_fingerprint.v1"
+            acceptance_ids:
+              - "ACC-STAGE-045"
+            test_commands:
+              - "python3 -B KM_IDSystem/scripts/check_file_type_detection_runtime.py"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage045_file_type_detection_runtime"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage045_file_type_detection"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage005_governance_regression"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage04[1-5]*.py' -q"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -q"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+              - "python3 -B KM_IDSystem/machine/tools/check_dual_plane_ci.py --projects KM_IDSystem --require-projects"
+              - "events.jsonl parse, duplicate-id and semantic checks"
+              - "git diff --check"
+            test_results: "TDD valid RED ran 15 tests with 18 expected failures while Phase2 artifacts were absent. After the isolated detector implementation, 14/15 focused tests passed; the remaining governance-state RED is repaired in this run and final layered results are recorded in the Stage045 Phase2 machine run and changelog."
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_PHASE2_FILE_TYPE_DETECTION_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_runtime_contract.json"
+              - "KM_IDSystem/scripts/check_file_type_detection_runtime.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_runtime.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+            risk: "启发式误判、OOXML ZIP 冒充、冲突信号被强行路由，或把来源文本当系统指令，都会污染后续 parser 与证据链。"
+            rollback: "只回滚 Stage045 Phase2 runtime contract/checker/tests/docs/governance/event/handoff/owner-view；保留 Phase1、Stage044 review、原始/事实/审计资料、GitHub 与 app 状态。"

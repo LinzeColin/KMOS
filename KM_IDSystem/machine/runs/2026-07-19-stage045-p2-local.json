@@ -1,0 +1,204 @@
+{
+  "run_id": "`RUN-IDS-STAGE045-P2-LOCAL-20260719-001`",
+  "task_id": "IDS-V0_1-STAGE045-P2",
+  "action": "实现有界合成内存字节的文件类型检测切片，记录检测器版本、置信度、解析器候选路由与非可信证据文本标记",
+  "result": "`PASS_ISOLATED_FILE_TYPE_DETECTION_SLICE_PARSER_DISABLED`",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "base_stage045_phase1_commit": "2f4051b7e9960e10698052b4e3f71fcb093f35e3",
+  "base_stage045_phase1_tree": "462ff8112f8f59913a5822c67816c9247da0293e",
+  "base_stage045_phase1_kmids_tree": "5bb8cf7b5812276cb14f3c94983f237e46b4b404",
+  "base_stage045_phase1_parent": "97044d0b6475ebf41b4f79311164a392979305a0",
+  "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+  "source_member_sha256": "4eac237a7f63d764cf71789d4949a5168cbe8fe24e1fe7eb816baabe04bb4d27",
+  "detector": {
+    "detector_version": "ids.file_type_detector.v0_1.stage045.p2",
+    "execution_mode": "ISOLATED_NON_PRODUCTION_IN_MEMORY_FILE_TYPE_DETECTION_SLICE",
+    "isolated_detection_count": 3,
+    "file_signature_inspection_performed": true,
+    "container_inspection_performed": true,
+    "text_heuristic_evaluation_performed": true,
+    "route_candidate_evaluation_performed": true,
+    "evidence_text_marker_applied": true,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "fallback_execution_performed": false
+  },
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0,
+    "sparse_root_governance_conflict": "scripts/lean_governance.py 缺失；仅报告 SPARSE_CONFLICT，未展开其他项目"
+  },
+  "verified_results": [
+    "批准任务包归档、唯一 Stage045 成员、路线图和使用说明哈希均匹配",
+    "Stage045 Phase1 提交、根目录树、KM_IDSystem 目录树和父提交精确",
+    "有效 TDD RED 在十五项测试中产生十八项预期失败，因为步骤二产物尚不存在；此前一次测试根目录计算缺陷不计为有效 RED",
+    "步骤二独立检查器返回 valid=true，三个隔离控制分别验证 PDF 文件签名、DOCX 容器和冲突信号失败关闭",
+    "步骤二聚焦测试 15/15 通过；Phase1 聚焦测试 13/13 保持通过",
+    "Stage005 governance regression 170/170 通过，事件治理共 217 条且无重复、解析或语义错误",
+    "Stage041-045 最终聚合 296/296 在 1157.221 秒通过；两轮失败均保留在 validation_iterations",
+    "IDS v0.1 最终全量发现 1044/1044 在 1524.911 秒通过；首轮四项历史路由失败与一次错误根目录的零测试探测均未计为 PASS",
+    "Stage038-044 七个历史整阶段 review checker 全部通过，review_valid 与 Git index source binding 均为 true",
+    "owner 文档二次渲染幂等，KM_IDSystem 项目双平面通过；根级 scripts/lean_governance.py 因 sparse 缺失仅记录 SPARSE_CONFLICT"
+  ],
+  "validation_iterations": [
+    {
+      "gate": "stage045_phase2_focused_red",
+      "result": "EXPECTED_FAIL",
+      "tests": 15,
+      "failures": 18,
+      "errors": 0,
+      "reason": "Phase2 runtime contract、checker、document 与 governance state 尚不存在"
+    },
+    {
+      "gate": "stage045_phase2_focused_green",
+      "result": "PASS",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 0.559
+    },
+    {
+      "gate": "stage045_phase1_compatibility",
+      "result": "PASS",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 0.505
+    },
+    {
+      "gate": "stage005_governance_regression",
+      "result": "PASS",
+      "tests": 170,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 37.209
+    },
+    {
+      "gate": "stage041_045_aggregate_initial",
+      "result": "FAIL_CLOSED",
+      "tests": 296,
+      "failures": 12,
+      "errors": 0,
+      "seconds": 1113.138,
+      "reason": "四项历史 current-route allowlist 停在 Stage045 P1，八项 review source 尚未匹配 Git index"
+    },
+    {
+      "gate": "historical_route_and_index_targeted_repair",
+      "result": "FAIL_CLOSED",
+      "tests": 12,
+      "failures": 2,
+      "errors": 0,
+      "seconds": 425.679,
+      "reason": "Stage042 review checker 尚有两项 current handoff route 断言"
+    },
+    {
+      "gate": "stage042_current_handoff_targeted",
+      "result": "PASS",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 93.114
+    },
+    {
+      "gate": "stage041_045_aggregate_second",
+      "result": "FAIL_CLOSED",
+      "tests": 296,
+      "failures": 1,
+      "errors": 0,
+      "seconds": 1140.278,
+      "reason": "Stage042 review test 尚有一项 current route allowlist"
+    },
+    {
+      "gate": "stage042_review_route_targeted",
+      "result": "PASS",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 94.424
+    },
+    {
+      "gate": "stage041_045_aggregate_final",
+      "result": "PASS",
+      "tests": 296,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 1157.221
+    },
+    {
+      "gate": "ids_v0_1_full_discovery_initial",
+      "result": "FAIL_CLOSED",
+      "tests": 1044,
+      "failures": 4,
+      "errors": 0,
+      "seconds": 1596.395,
+      "reason": "Stage038 三项与 Stage039 一项历史 current-route assertion 尚未接受 P2 到 P3 的精确前向路由"
+    },
+    {
+      "gate": "historical_route_targeted_final",
+      "result": "PASS",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 12.369
+    },
+    {
+      "gate": "ids_v0_1_full_discovery_wrong_root_probe",
+      "result": "INVALID_NOT_COUNTED",
+      "tests": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 0.0,
+      "reason": "发现入口错误指向 KM_IDSystem 根目录；立即排除并改用仓库记录的 pursuing-goal tests 标准入口"
+    },
+    {
+      "gate": "ids_v0_1_full_discovery_final",
+      "result": "PASS",
+      "tests": 1044,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 1524.911
+    },
+    {
+      "gate": "historical_stage038_044_review_checkers",
+      "result": "PASS",
+      "checks": 7,
+      "failures": 0,
+      "review_valid": true,
+      "sources_match_git_index": true
+    },
+    {
+      "gate": "event_governance",
+      "result": "PASS",
+      "events": 217,
+      "duplicates": 0,
+      "parse_errors": 0,
+      "semantic_errors": 0
+    },
+    {
+      "gate": "owner_render_and_project_dual_plane",
+      "result": "PASS",
+      "render_idempotent": true,
+      "project_count": 1,
+      "sparse_root_governance": "SPARSE_CONFLICT"
+    }
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未进入或实现 Stage045 步骤三、步骤四或整阶段复审",
+    "未打开、stat、hash、扫描、遍历或读取任何 IDS 业务文件",
+    "未执行解析器分派、解析器、回退、Stage050 扫描器、证据提升、清单、审计、状态、持久化、数据库或生产运行时",
+    "未触碰原始元数据或创建虚构 IDS 业务数据",
+    "未安装依赖，未上传、合并、变更 issue 或重装应用"
+  ],
+  "source_file_open_performed": false,
+  "ids_business_source_read_performed": false,
+  "raw_metadata_content_accessed": false,
+  "persistent_state_write_performed": false,
+  "github_upload_allowed": false,
+  "app_reinstall_allowed": false,
+  "next_gate": "IDS-STAGE045-P3-GATE"
+}

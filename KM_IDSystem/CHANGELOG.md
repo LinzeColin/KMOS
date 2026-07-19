@@ -1,5 +1,15 @@
 # Changelog
 
+## IDS v0.1 STAGE-045 Phase 2 - 2026-07-19
+
+- Added `ids.stage045.file_type_detection.phase2.v1` and `ids.file_type_detector.v0_1.stage045.p2`, exact source/Phase1/upstream-bound artifacts for a bounded synthetic in-memory detection slice.
+- Evaluated three controls: PDF signature, DOCX ZIP container with canonical markers, and misleading `.pdf` text content. The first two emit high-confidence parser-route candidates without dispatch; the conflict returns owner review with `UNKNOWN` confidence.
+- Recorded detector version, candidate types, confidence, bounded signal evidence and route state. OOXML requires `[Content_Types].xml` plus exactly one governed namespace; extension alone remains low-confidence review-only evidence.
+- Wrapped instruction-like source-derived text as `UNTRUSTED_EVIDENCE_TEXT` with system-instruction, tool-authorization and policy-override permissions all false. This is not the Stage050 scanner.
+- Valid TDD RED produced eighteen expected failures across fifteen tests while Phase2 artifacts were absent. Final GREEN passes the isolated checker, focused `15/15`, Phase1 compatibility `13/13`, Stage005 `170/170` in `37.209s`, Stage041-045 aggregate `296/296` in `1157.221s`, and full IDS v0.1 discovery `1044/1044` in `1524.911s`.
+- The first aggregate ran `296` tests in `1113.138s` and failed twelve checks because four historical current-route allowlists ended at Stage045 P1 and eight review assertions rejected unstaged modified review sources. A second aggregate failed one remaining Stage042 route assertion, and the first full discovery failed four Stage038/039 route assertions. Repairs were bounded to the exact P2-to-P3 route and one staged validation snapshot; all failed runs remain recorded and are not counted as PASS.
+- Routed the only next task to separate `IDS-V0_1-STAGE045-P3` with `push_allowed=false`. No business source-file access, parser dispatch/execution, fallback, Stage050 scanner, evidence promotion, persistence, Phase3, whole-stage review, batch review, GitHub action, app reinstall, dependency installation, raw metadata access or production action ran.
+
 ## IDS v0.1 STAGE-045 Phase 1 - 2026-07-19
 
 - Added `ids.stage045.file_type_detection.phase1.v1`, an exact-shaped static engineering contract plus stdout-only fail-closed checker bound to the unique approved Stage045 taskpack member, reviewed Stage044 commit/tree/parent and exact Stage013/027/037/044 authority hashes.

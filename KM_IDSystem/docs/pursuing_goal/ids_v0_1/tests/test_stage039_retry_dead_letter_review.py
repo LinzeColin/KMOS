@@ -173,6 +173,7 @@ class Stage039RetryDeadLetterStageReviewTests(unittest.TestCase):
                 "IDS-STAGE044-P4": "IDS-STAGE044-REVIEW-GATE",
                 "IDS-STAGE044-REVIEW": "IDS-STAGE045-P1-GATE",
                 "IDS-STAGE045-P1": "IDS-STAGE045-P2-GATE",
+                "IDS-STAGE045-P2": "IDS-STAGE045-P3-GATE",
             }
             self.assertIn(roadmap["current_phase_id"], expected_gate_by_phase)
             self.assertEqual(

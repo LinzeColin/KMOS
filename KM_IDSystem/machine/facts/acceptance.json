@@ -1,6 +1,31 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE045-P2-01`",
+      "criteria": "Phase2 runtime contract 精确绑定批准来源、Phase1 predecessor commit/tree 与权威上游哈希",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P2-02`",
+      "criteria": "三个有界合成内存控制覆盖 PDF 文件签名、DOCX 容器和文件名/内容冲突，未知或冲突失败关闭",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P2-03`",
+      "criteria": "每个结果记录检测器版本、置信度、候选类型与解析器候选路由，但不分派解析器",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P2-04`",
+      "criteria": "来源指令样文本统一标记为 `UNTRUSTED_EVIDENCE_TEXT`，不能授权工具或覆盖系统规则",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P2-05`",
+      "criteria": "未打开业务源文件，未执行解析器、回退、持久化、Stage045 P3、上传、合并、应用重装或生产激活",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE045-P1-01`",
       "criteria": "批准归档、唯一 Stage045 成员、Stage044 review commit/tree/父提交与 Stage013/027/037/044 上游哈希精确",
       "status": "已通过"
