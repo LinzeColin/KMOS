@@ -1690,7 +1690,7 @@ stages:
   - stage_id: "DT6"
     name: "产品面收口与部署上线（M5）"
     person_goal: "S24 收口；KMIDS 同栈真实 App（D2=A：FastAPI+SQLite+React/Vite+ECharts+docker-compose）替换启动器壳；kmfa.linzezhang.com 7×24 上线（Oracle Always Free + Cloudflare Tunnel 零开放端口 + Cloudflare Access 强制鉴权）。修订 R5：不开 PAYG，实例按可随时回收设计（幂等重建 + 数据卷日备份回 KMOS/KMDatabase/data）。"
-    status: "in_progress_20260720_M5按任务包18项审计仅约2成完成(禁止再以可部署/healthz冒充完备)；已完成PROD.0002后端数据API与PROD.0005源检查板(均真起服务+真开页面实测，pytest 23绿)；PROD.0005验收章依赖G4故标已建待验收；App已上线kmfa.linzezhang.com含Cloudflare-Access鉴权；剩PROD.0003/0004/0006-0018待建，G5未过"
+    status: "in_progress_20260720_M5按任务包18项逐条建设中；已完成PROD.0002后端API/PROD.0005源检查板(已建待验收,依赖G4)/PROD.0004首页我在哪(与00_我在哪.md逐字段同源比对通过)；均真起服务+真开页面实测，pytest 26绿；App已上线kmfa.linzezhang.com含Access鉴权；剩PROD.0003/0006-0018待建，G5未过；禁止以可部署或healthz冒充完备"
     estimated_hours: 87
     stop_gate:
       gate_id: "G5"
