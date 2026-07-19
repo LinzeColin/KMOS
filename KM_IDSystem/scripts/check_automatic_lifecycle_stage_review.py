@@ -356,6 +356,7 @@ def _canonical_finding_checks() -> dict[str, bool]:
                     "`STAGE-041`, `STAGE-042` and `STAGE-043` are locally reviewed"
                     in staged_head
                 )
+                or "`STAGE-041..STAGE-044` are locally reviewed" in staged_head
             )
             and (
                 "Current task: `IDS-V0_1-STAGE043-P1`" in staged_head
@@ -368,6 +369,7 @@ def _canonical_finding_checks() -> dict[str, bool]:
                 or "Current task: `IDS-V0_1-STAGE044-P3`" in staged_head
                 or "Current task: `IDS-V0_1-STAGE044-P4`" in staged_head
                 or "Current task: `IDS-V0_1-STAGE044-REVIEW`" in staged_head
+                or "Current task: `IDS-V0_1-STAGE045-P1`" in staged_head
             )
             and "IDS-V0_1-STAGE042-P3" not in staged_head
         ),

@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-19T06:30:40Z"
-status: "stage044_completed_reviewed_local"
+updated_at_utc: "2026-07-19T10:47:10Z"
+status: "stage045_phase1_completed"
 
 transition_history:
+  stage045_phase1_state:
+    status: "stage045_phase1_completed"
+    current_task_id: "IDS-V0_1-STAGE045-P1"
+    next_gate: "IDS-STAGE045-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE045-P2"
+    github_upload_allowed: false
   stage044_review_state:
     status: "stage044_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE044-REVIEW"
@@ -736,9 +742,76 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
+  STAGE-045:
+    status: "stage045_phase1_completed"
+    completed_phases:
+      - "Phase 1"
+    next_phase: "Phase 2"
+    next_gate: "IDS-STAGE045-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE045-P1"
+    acceptance_id: "ACC-STAGE-045"
+    acceptance_status: "phase1_completed"
+    review_status: "not_started"
+    phase2_entry_authorized: true
+    phase3_entry_authorized: false
+    phase4_entry_authorized: false
+    source_verification_status: "SOURCE_VERIFIED"
+    source_member_match_count: 1
+    source_member_sha256: "4eac237a7f63d764cf71789d4949a5168cbe8fe24e1fe7eb816baabe04bb4d27"
+    file_type_contract_id: "ids.file_type_detection.v0_1.p1"
+    file_type_contract_schema: "ids.stage045.file_type_detection.phase1.v1"
+    phase1_contract_valid: true
+    contract_state: "PHASE1_ENGINEERING_CONTRACT_DETECTION_RUNTIME_DISABLED"
+    canonical_type_count: 10
+    detection_state_count: 6
+    required_parser_output_field_count: 6
+    taskpack_source_read_performed: true
+    ids_business_source_read_performed: false
+    raw_metadata_content_accessed: false
+    fake_ids_business_data_used: false
+    real_ids_business_job_created: false
+    source_file_open_performed: false
+    file_scan_performed: false
+    file_hash_performed: false
+    extension_detection_performed: false
+    mime_detection_performed: false
+    file_signature_inspection_performed: false
+    container_inspection_performed: false
+    type_classification_runtime_performed: false
+    parser_route_evaluation_performed: false
+    parser_dispatch_performed: false
+    parser_execution_performed: false
+    fallback_execution_performed: false
+    prompt_injection_scan_performed: false
+    prompt_injection_marker_applied: false
+    parser_output_produced: false
+    high_confidence_evidence_write_performed: false
+    manifest_write_performed: false
+    evidence_ledger_write_performed: false
+    audit_write_performed: false
+    job_creation_performed: false
+    state_transition_performed: false
+    persistent_state_write_performed: false
+    database_connection_performed: false
+    schema_change_performed: false
+    runtime_output_written: false
+    production_runtime_activation_performed: false
+    whole_stage_review_performed: false
+    batch_review_performed: false
+    github_upload_allowed: false
+    app_reinstall_allowed: false
+    evidence_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_ENTRY_CONTRACT.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_PHASE1_FILE_TYPE_DETECTION_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_contract.json"
+      - "KM_IDSystem/scripts/check_file_type_detection.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+
 decision:
-  current_task_id: "IDS-V0_1-STAGE044-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-STAGE045-P1"
+  current_task_id: "IDS-V0_1-STAGE045-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE045-P2"
   github_upload_allowed: false
-  current_run: "STAGE-044 whole-stage independent review repaired one Critical and five Important findings, rebound the Phase1-4 evidence chain and completed ACC-STAGE-044 locally with delete disabled. No cleanup, filesystem, persistence, raw metadata, Stage045, GitHub, app or production action ran."
-  no_upload_reason: "BATCH041_050 has four completed and individually reviewed Stages, but STAGE-045..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."
+  current_run: "STAGE-045 Phase 1 bound the approved source and Stage044 reviewed-local baseline, then defined reference-only extension/MIME/signature detection, parser route/output/fallback and untrusted-evidence-text contracts. No source file, detector, parser, persistence, raw metadata, GitHub, app or production action ran."
+  no_upload_reason: "BATCH041_050 has four completed and individually reviewed Stages plus STAGE-045 Phase 1 only; STAGE-045 Phase 2-4 and review, STAGE-046..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."

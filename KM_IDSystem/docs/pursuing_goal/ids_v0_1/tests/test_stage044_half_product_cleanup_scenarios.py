@@ -504,7 +504,16 @@ class Stage044HalfProductCleanupScenarioTests(unittest.TestCase):
             )
             self.assertIn("Next allowed task: `IDS-V0_1-STAGE044-P4`", handoff)
         self.assertNotIn("Stage044 whole-stage review completed", handoff)
-        self.assertNotIn('current_stage_id: "IDS-STAGE045"', roadmap)
+        if 'current_stage_id: "IDS-STAGE045"' in roadmap:
+            self.assertIn('current_phase_id: "IDS-STAGE045-P1"', roadmap)
+            self.assertIn('current_task_id: "IDS-V0_1-STAGE045-P1"', roadmap)
+            self.assertIn('next_gate_id: "IDS-STAGE045-P2-GATE"', roadmap)
+            self.assertIn(
+                "Completed task in this run: `IDS-V0_1-STAGE045-P1`", handoff
+            )
+            self.assertIn(
+                "Next allowed task: `IDS-V0_1-STAGE045-P2`", handoff
+            )
 
 
 if __name__ == "__main__":

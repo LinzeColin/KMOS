@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE044"
-current_phase_id: "IDS-STAGE044-REVIEW"
-current_task_id: "IDS-V0_1-STAGE044-REVIEW"
-next_gate_id: "IDS-STAGE045-P1-GATE"
+current_stage_id: "IDS-STAGE045"
+current_phase_id: "IDS-STAGE045-P1"
+current_task_id: "IDS-V0_1-STAGE045-P1"
+next_gate_id: "IDS-STAGE045-P2-GATE"
 current_transition_history:
+  stage045_phase1_state:
+    current_stage_id: "IDS-STAGE045"
+    current_phase_id: "IDS-STAGE045-P1"
+    current_task_id: "IDS-V0_1-STAGE045-P1"
+    next_gate_id: "IDS-STAGE045-P2-GATE"
   stage044_review_state:
     current_stage_id: "IDS-STAGE044"
     current_phase_id: "IDS-STAGE044-REVIEW"
@@ -11652,3 +11657,85 @@ stages:
         - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       test_results: "TDD review RED produced 18 expected failures across 10 tests. Review repaired one Critical and five Important findings covering recoverable-state exclusion, complete contract validation, candidate identity/provenance binding, canonical lexical paths, exact human status and durable review routing. Final focused review passed 10/10 in 159.695s, Stage041-044 aggregate passed 268/268 in 1189.358s, full discovery passed 1014/1014 in 1665.517s, Stage005 passed 168/168 in 34.019s, and all seven historical/current review checkers, 215-event semantics, rendering and project dual-plane passed."
       decision: "ACC-STAGE-044 completed_reviewed_local after all six findings were repaired; next gate is IDS-STAGE045-P1-GATE, push_allowed=false, and this run did not enter STAGE-045."
+  - stage_id: "IDS-STAGE045"
+    name: "STAGE-045 · 文件类型检测"
+    task_id: "IDS-V0_1-STAGE045"
+    acceptance_ids:
+      - "ACC-STAGE-045"
+    status: "in_progress"
+    pursuing_goal: "基于扩展名、MIME、文件签名识别文件类型，不盲目信任文件名。"
+    stop_gate:
+      gate_id: "IDS-STAGE045-P1-GATE"
+      status: "passed_with_local_evidence"
+      next_gate_id: "IDS-STAGE045-P2-GATE"
+      github_upload_allowed: false
+    artifacts:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_ENTRY_CONTRACT.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_PHASE1_FILE_TYPE_DETECTION_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_contract.json"
+      - "KM_IDSystem/scripts/check_file_type_detection.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection.py"
+    phases:
+      - phase_id: "IDS-STAGE045-P1"
+        name: "文件类型检测范围、输入输出与边界确认"
+        objective: "绑定批准来源、Stage044 reviewed-local 与 Stage013/027/037 权威，定义 extension/MIME/signature 信号、候选类型与置信度、parser route/output/fallback 和非可信证据文本边界；不读取文件或执行解析。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        stop_conditions:
+          - "打开、扫描、hash、sniff、解码、解压、stat 或遍历任何 IDS 业务文件"
+          - "执行 extension/MIME/signature/container/type detection runtime"
+          - "执行 parser route、parser、fallback、prompt-injection scan 或 marker runtime"
+          - "写 manifest、evidence、audit、index、report、database、job、state 或 runtime output"
+          - "读取 raw metadata、使用虚构业务数据、进入 Phase 2、stage review、batch gate、GitHub 或 app reinstall"
+        stop_gate:
+          gate_id: "IDS-STAGE045-P1-GATE"
+          status: "passed_with_local_evidence"
+          pass_conditions:
+            - "Approved source, Stage044 predecessor and Stage013/027/037/044 upstream hashes are exact"
+            - "Input is bounded reference-only metadata and the raw-data boundary stays blocked"
+            - "Signature outranks MIME and extension, but OOXML requires container markers and extension alone never routes"
+            - "Unknown, conflict, unsupported and corrupt inputs fail closed with explicit owner review or error"
+            - "Parser route, output, fallback and prompt-injection responsibilities remain with Stage046-050"
+            - "text/tables/pages/sections/confidence/errors are defined as untrusted parser-output candidates"
+            - "No direct evidence promotion, source read, parser, persistence, job/state or production action is allowed"
+            - "The only next gate is IDS-STAGE045-P2-GATE"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_ENTRY_CONTRACT.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_PHASE1_FILE_TYPE_DETECTION_SCOPE_BOUNDARY.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_contract.json"
+            - "KM_IDSystem/scripts/check_file_type_detection.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection.py"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE045-P1"
+            name: "定义文件类型检测 Phase 1 工程合同"
+            objective: "定义可测试、可回滚的三信号类型检测与 parser pipeline 安全边界，不读取源文件或执行任何 detector/parser。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE044-REVIEW"
+              - "ids.stage013.file_fingerprint.v1"
+              - "ids.job_state.v1"
+            acceptance_ids:
+              - "ACC-STAGE-045"
+            test_commands:
+              - "python3 -B KM_IDSystem/scripts/check_file_type_detection.py"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage045_file_type_detection"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage005_governance_regression"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage04[1-5]*.py' -q"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -q"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+              - "python3 -B KM_IDSystem/machine/tools/check_dual_plane_ci.py --projects KM_IDSystem --require-projects"
+              - "events.jsonl parse, duplicate-id and semantic checks"
+              - "git diff --check"
+            test_results: "TDD RED: 13 focused tests produced 4 expected failures and 12 expected missing-artifact errors because Phase1 artifacts were absent. Core contract checker passes 22/22; final layered results are recorded in the Stage045 Phase1 machine run and changelog."
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_ENTRY_CONTRACT.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_PHASE1_FILE_TYPE_DETECTION_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_contract.json"
+              - "KM_IDSystem/scripts/check_file_type_detection.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+            risk: "若 filename/MIME advisory 被当成可靠类型、OOXML ZIP magic 被误判，或 parser output 被直接提升为证据，可能错误路由并污染证据链。"
+            rollback: "只回滚 Stage045 Phase1 contract/checker/tests/docs/governance/event/handoff/owner-view；保留 Stage044 review、全部原始/事实/审计资料、GitHub 与 app 状态。"

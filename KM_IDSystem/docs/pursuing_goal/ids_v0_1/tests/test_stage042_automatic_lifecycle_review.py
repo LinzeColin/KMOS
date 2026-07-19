@@ -295,17 +295,26 @@ class Stage042AutomaticLifecycleStageReviewTests(unittest.TestCase):
                 and "Next allowed task: `IDS-V0_1-STAGE045-P1`"
                 in handoff_top
             )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE045-P1`"
+                in handoff_top
+                and "Next allowed task: `IDS-V0_1-STAGE045-P2`"
+                in handoff_top
+            )
         )
         staged_section = handoff.split("## IDS v0.1 Staged Development", 1)[1]
         staged_head = "\n".join(staged_section.splitlines()[:18])
-        self.assertIn(
-            "`STAGE-041`, `STAGE-042` and `STAGE-043` are locally reviewed",
+        self.assertTrue(
+            "`STAGE-041`, `STAGE-042` and `STAGE-043` are locally reviewed"
+            in staged_head
+            or "`STAGE-041..STAGE-044` are locally reviewed" in staged_head,
             staged_head,
         )
         self.assertTrue(
             "Current task: `IDS-V0_1-STAGE044-P3`" in staged_head
             or "Current task: `IDS-V0_1-STAGE044-P4`" in staged_head
             or "Current task: `IDS-V0_1-STAGE044-REVIEW`" in staged_head
+            or "Current task: `IDS-V0_1-STAGE045-P1`" in staged_head
         )
 
         events = [

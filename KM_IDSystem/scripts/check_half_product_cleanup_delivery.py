@@ -152,7 +152,8 @@ FORWARD_COMPATIBLE_UPSTREAM_HASHES: dict[str, set[str]] = {
         "30e5ee91fcfdf058f234bd5f687d8c6abee18cdf684d6e6e773e7e0b68abfb91",
     },
     "stage044_phase3_tests": {
-        "bf3d22ae93268ea1d3ad43dcac67b04a8a566ee6bed229a5eb5aee8681cbd032"
+        "bf3d22ae93268ea1d3ad43dcac67b04a8a566ee6bed229a5eb5aee8681cbd032",
+        "af7c82db99fa3f49e9393ffc0ed6d1ec81689f5c32ec30d0d66093b5543f26c5",
     }
 }
 

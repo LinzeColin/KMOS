@@ -1,33 +1,33 @@
 {
   "items": [
     {
-      "id": "`ACC-STAGE044-REVIEW-01`",
-      "criteria": "批准来源、步骤四提交与 KM_IDSystem 目录树精确，步骤一至四重新执行通过",
+      "id": "`ACC-STAGE045-P1-01`",
+      "criteria": "批准归档、唯一 Stage045 成员、Stage044 review commit/tree/父提交与 Stage013/027/037/044 上游哈希精确",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-REVIEW-02`",
-      "criteria": "PAUSED 与 RETRY_WAIT 保持可恢复非终态并始终阻断清理；仅 FAILED、DEAD_LETTERED、CANCELLED 可进入候选判断",
+      "id": "`ACC-STAGE045-P1-02`",
+      "criteria": "文件签名优先于 `MIME` 和扩展名，扩展名仅作辅助提示；DOCX/XLSX 还必须绑定 `OOXML` 容器标记",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-REVIEW-03`",
-      "criteria": "完整 runtime contract、精确中文状态、creator/job、批准 root、manifest、writer/resource evidence 和五个 input refs 均规范绑定",
+      "id": "`ACC-STAGE045-P1-03`",
+      "criteria": "十类规范文件类型、六类检测状态与冲突、未知、损坏的显式失败关闭行为完整",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-REVIEW-04`",
-      "criteria": "root-relative path 只接受唯一规范 POSIX 词法表示，点段、重复分隔符、绝对路径与父级穿越均失败关闭",
+      "id": "`ACC-STAGE045-P1-04`",
+      "criteria": "解析器路由、输出、回退与提示注入职责分别保留给 Stage046-050，解析器候选产物不得直接提升为高置信证据",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-REVIEW-05`",
-      "criteria": "一项严重和五项重要发现全部修复，并由独立 review checker、测试、事件和 machine run 固化",
+      "id": "`ACC-STAGE045-P1-05`",
+      "criteria": "`text`、`tables`、`pages`、`sections`、`confidence`、`errors` 六个输出字段定义为非可信候选，未知或冲突必须进入 owner review 或显式错误",
       "status": "已通过"
     },
     {
-      "id": "`ACC-STAGE044-REVIEW-06`",
-      "criteria": "Stage044 仅完成本地整阶段复审；未执行真实清理、文件系统动作、Stage045、上传、合并、应用重装或生产激活",
+      "id": "`ACC-STAGE045-P1-06`",
+      "criteria": "未读取业务源文件，未执行检测、解析、回退、证据写入、持久化、Stage045 P2、上传、合并、应用重装或生产激活",
       "status": "已遵守"
     }
   ]

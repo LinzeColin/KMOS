@@ -1,5 +1,15 @@
 # Changelog
 
+## IDS v0.1 STAGE-045 Phase 1 - 2026-07-19
+
+- Added `ids.stage045.file_type_detection.phase1.v1`, an exact-shaped static engineering contract plus stdout-only fail-closed checker bound to the unique approved Stage045 taskpack member, reviewed Stage044 commit/tree/parent and exact Stage013/027/037/044 authority hashes.
+- Defined signal precedence as `signature > MIME > filename extension`; filename extension remains advisory and can never route alone. ZIP magic is insufficient for OOXML: DOCX requires `[Content_Types].xml` plus `word/`, while XLSX requires `[Content_Types].xml` plus `xl/`.
+- Defined ten canonical types, six detection states and explicit conflict/unknown/unsupported/corrupt outcomes. Silent fallback is forbidden; unresolved cases require owner review or an explicit error.
+- Reserved parser route, normalized output, fallback and prompt-injection implementation for Stage046-050. `text`, `tables`, `pages`, `sections`, `confidence` and `errors` are untrusted candidate artifacts and cannot bypass the quality gate into high-confidence evidence.
+- TDD RED produced four expected failures and twelve missing-artifact errors across thirteen focused tests. Final GREEN passed core checker `22/22`, focused `13/13`, Stage005 `169/169` in `35.381s`, Stage041-045 aggregate `281/281` in `1152.681s`, full discovery `1028/1028` in `1583.104s`, all seven Stage038-044 review checkers, `216` clean events, idempotent owner rendering and project dual-plane.
+- The first two aggregate runs (`272/281`, `270/281`) and first full run (`1022/1028`) failed closed on stale historical current-route assertions and one exact Stage044 scenario-test hash binding. Repairs were limited to the exact `IDS-STAGE045-P1 -> IDS-STAGE045-P2-GATE` forward route and one narrowly enumerated Git-index hash; historical review conclusions and runtime safety boundaries were not relaxed.
+- Routed the only next task to separate `IDS-V0_1-STAGE045-P2` with `push_allowed=false`. No source file open/scan/hash/sniff, detector/parser/fallback execution, evidence promotion, manifest/audit/state/persistence/database write, Phase 2-4/review, Stage046-050, batch review, GitHub action, app reinstall, dependency installation, raw metadata access or production action ran.
+
 ## IDS v0.1 STAGE-044 Review - 2026-07-19
 
 - Completed the independent whole-stage review under `ACC-STAGE-044` and repaired `1 Critical / 5 Important / 0 Minor` findings: recoverable nonterminal states admitted as cleanup candidates, subset-only contract validation, unbound candidate provenance, noncanonical lexical paths, mutable human-status claims, and missing durable reviewed-local governance.
