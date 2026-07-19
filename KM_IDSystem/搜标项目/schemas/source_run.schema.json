@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "source_run.schema.json",
+  "title": "SourceRun",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "run_id", "triggered_at_raw", "mode", "ruleset_hash", "registry_hash", "query_lattice_hash", "source_coverage", "coverage_degraded"],
+  "properties": {
+    "contract_version": {"const": "0.4.1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "triggered_at_raw": {"type": "string", "minLength": 1},
+    "mode": {"enum": ["FULL_DISCOVERY", "INCREMENTAL_DISCOVERY", "DEADLINE_WATCH"]},
+    "ruleset_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "registry_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "query_lattice_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "source_coverage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_id", "status", "queries", "pages", "bytes", "items_seen", "retries", "dlq_count", "error"],
+        "properties": {
+          "source_id": {"type": "string"},
+          "status": {"enum": ["ok", "degraded", "failed", "not_run"]},
+          "queries": {"type": "integer", "minimum": 0},
+          "pages": {"type": "integer", "minimum": 0},
+          "bytes": {"type": "integer", "minimum": 0},
+          "items_seen": {"type": "integer", "minimum": 0},
+          "retries": {"type": "integer", "minimum": 0},
+          "dlq_count": {"type": "integer", "minimum": 0},
+          "cursor": {"type": ["string", "null"]},
+          "error": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "coverage_degraded": {"type": "boolean"}
+  }
+}

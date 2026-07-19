@@ -1,0 +1,23 @@
+version: 0.4.1
+negative_query_terms_forbidden: true
+cartesian_product_execution_forbidden: true
+selection_policy:
+  rank_by:
+    - marginal_golden_coverage
+    - historical_unique_yield
+    - source_cost
+    - owner_attention_cost
+  require_query_id: true
+  record_skipped_query_ids_and_reason: true
+  per_source_budget_required: true
+dimensions:
+  asset: [回转窑, 煅烧炉, 磨机, 减速机, 泵, 风机, 锅炉, 烟道, 管道, 齿轮, 轴承座]
+  action: [检修, 大修, 维修, 修复, 再制造, 改造, 安装, 更换, 调试, 运维, 抢修, 加工]
+  failure: [磨损, 裂纹, 点蚀, 断齿, 振动, 泄漏, 跑偏, 偏磨, 精度下降]
+  result: [性能恢复, 延寿, 隐患治理, 安全提升, 节能, 稳定运行]
+  contract: [外委, 框架, 年度, 专项, 施工, 技术服务, 询比, 谈判, 招标]
+  industry: [水泥, 钢铁, 化工, 电力, 环保, 危废, 固废, 矿山]
+expansion_policy:
+  recall_expansion: proposal_then_shadow
+  narrowing_or_negative_filter: owner_approval_required
+  active_mutation_by_daily_run: forbidden

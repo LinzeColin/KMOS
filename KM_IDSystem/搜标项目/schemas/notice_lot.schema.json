@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "notice_lot.schema.json",
+  "title": "NoticeLot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "notice_id", "notice_version_id", "lot_id", "source_id", "source_url", "authority", "title", "worksite", "status", "identity_strength", "deadline", "supersedes", "related_process", "evidence_refs"],
+  "properties": {
+    "contract_version": {"const": "0.4.1"},
+    "notice_id": {"type": "string", "minLength": 1},
+    "notice_version_id": {"type": "string", "minLength": 1},
+    "lot_id": {"type": "string", "minLength": 1},
+    "source_id": {"type": "string", "minLength": 1},
+    "source_url": {"type": "string", "format": "uri"},
+    "authority": {"enum": ["official", "authorized_aggregator", "discovery_only"]},
+    "project_number": {"type": ["string", "null"]},
+    "lot_code": {"type": ["string", "null"]},
+    "title": {"type": "string", "minLength": 1},
+    "buyer": {"type": ["string", "null"]},
+    "worksite": {"type": ["string", "null"]},
+    "status": {"enum": ["planned", "open", "closed", "terminated", "result_published", "unknown"]},
+    "identity_strength": {"enum": ["strong", "weak"]},
+    "deadline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["raw", "evidence_status", "offset_or_zone_evidence", "parsed_rfc3339", "remaining_seconds"],
+      "properties": {
+        "raw": {"type": ["string", "null"]},
+        "evidence_status": {"enum": ["EXACT_OFFSET", "SOURCE_ZONE", "DATE_ONLY", "AMBIGUOUS", "MISSING", "SUPERSEDED"]},
+        "offset_or_zone_evidence": {"type": ["string", "null"]},
+        "parsed_rfc3339": {"type": ["string", "null"], "format": "date-time"},
+        "remaining_seconds": {"type": ["integer", "null"]}
+      }
+    },
+    "supersedes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "related_process": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "evidence_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "deadline": {
+            "properties": {
+              "evidence_status": {"enum": ["DATE_ONLY", "AMBIGUOUS", "MISSING", "SUPERSEDED"]}
+            },
+            "required": ["evidence_status"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "deadline": {
+            "properties": {"remaining_seconds": {"const": null}}
+          }
+        }
+      }
+    }
+  ]
+}

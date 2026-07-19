@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "source_policy.schema.json",
+  "title": "SourcePolicy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "source_id", "authority", "access_mode", "terms_review", "robots_review", "auth_class", "data_classes", "capabilities", "budgets", "cursor_strategy", "retention_policy_id", "owner", "enabled"],
+  "properties": {
+    "contract_version": {"const": "0.4.1"},
+    "source_id": {"type": "string", "minLength": 1},
+    "authority": {"enum": ["official", "authorized_aggregator", "discovery_only"]},
+    "access_mode": {"enum": ["api", "html", "feed", "manual_snapshot"]},
+    "terms_review": {"enum": ["approved", "blocked", "unknown"]},
+    "robots_review": {"enum": ["allowed", "blocked", "not_applicable", "unknown"]},
+    "auth_class": {"enum": ["public", "subscribed", "enterprise"]},
+    "data_classes": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "capabilities": {"type": "array", "items": {"enum": ["search", "detail", "attachments", "amendments", "outcomes", "history"]}, "uniqueItems": true},
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_queries", "max_pages", "max_bytes", "concurrency", "timeout_seconds", "max_retries"],
+      "properties": {
+        "max_queries": {"type": "integer", "minimum": 0},
+        "max_pages": {"type": "integer", "minimum": 0},
+        "max_bytes": {"type": "integer", "minimum": 0},
+        "concurrency": {"type": "integer", "minimum": 1},
+        "timeout_seconds": {"type": "integer", "minimum": 1},
+        "max_retries": {"type": "integer", "minimum": 0}
+      }
+    },
+    "cursor_strategy": {"enum": ["source_native", "time_window", "content_hash", "none"]},
+    "retention_policy_id": {"type": "string"},
+    "owner": {"type": "string", "minLength": 1},
+    "enabled": {"type": "boolean"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"enabled": {"const": true}}},
+      "then": {
+        "properties": {
+          "terms_review": {"const": "approved"},
+          "robots_review": {"enum": ["allowed", "not_applicable"]}
+        }
+      }
+    }
+  ]
+}

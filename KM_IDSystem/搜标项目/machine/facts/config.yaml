@@ -1,0 +1,19 @@
+{
+  "parameters": {
+    "输入充分性预检": {
+      "value": "每次运行必需",
+      "intent": "防止缺字段时静默推断或伪造结论",
+      "where": "`.agents/skills/km-bid-scout/references/input_preflight_and_output_locator.md`"
+    },
+    "外部效应": {
+      "value": "默认拒绝",
+      "intent": "把只读研究与报名、支付、签章、提交、发消息严格分离",
+      "where": "`.agents/skills/km-bid-scout/SKILL.md`"
+    },
+    "输出定位": {
+      "value": "每次最终回复必需",
+      "intent": "让负责人无需猜测文件在哪里",
+      "where": "`.agents/skills/km-bid-scout/references/input_preflight_and_output_locator.md`"
+    }
+  }
+}

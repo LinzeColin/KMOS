@@ -1,0 +1,11 @@
+# 镜像 build context 精简（Coolify build context = 仓根）。
+# 自包含镜像用 `COPY . /opt/kmfa/KMOS` 烧代码进镜像；以下不进镜像。
+.git
+.github
+**/node_modules
+**/__pycache__
+**/*.pyc
+# 内容寻址大对象（~120M）——技能与 self-audit 均不需要（self-audit 的 tar 影子亦排除之）
+KMDatabase/data/objects
+# 私有运行时（gitignored；本地若存在也不入镜像）
+**/.codex_private_runtime

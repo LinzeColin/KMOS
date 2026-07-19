@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "run_manifest.schema.json",
+  "title": "RunManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "run_id", "trigger_id", "triggered_at_raw", "mode", "status", "version_hashes", "steps", "coverage_degraded", "external_effects", "artifacts"],
+  "properties": {
+    "contract_version": {"const": "0.4.1"},
+    "run_id": {"type": "string"},
+    "trigger_id": {"type": "string"},
+    "triggered_at_raw": {"type": "string"},
+    "mode": {"type": "string"},
+    "status": {"enum": ["PASS", "PARTIAL", "BLOCKED", "FAIL"]},
+    "version_hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "schemas", "rules", "source_registry", "query_lattice"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^[0-9a-f]{40,64}$"},
+        "schemas": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "rules": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "source_registry": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "query_lattice": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "model": {"type": ["string", "null"]},
+        "prompt": {"type": ["string", "null"]}
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "status", "input_hash", "output_hash", "duration_ms"],
+        "properties": {
+          "name": {"type": "string"},
+          "status": {"enum": ["PASS", "PARTIAL", "BLOCKED", "FAIL", "SKIPPED"]},
+          "input_hash": {"type": ["string", "null"]},
+          "output_hash": {"type": ["string", "null"]},
+          "duration_ms": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "coverage_degraded": {"type": "boolean"},
+    "external_effects": {"const": "deny"},
+    "artifacts": {"type": "array", "items": {"type": "string"}}
+  }
+}

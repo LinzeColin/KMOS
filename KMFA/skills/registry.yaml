@@ -11,7 +11,7 @@
 # 人读索引见同目录 登记册.md。运维故障已登记进 machine/facts/ops.json（会渲染进 06_运维手册.md）。
 schema_version: 1
 registry_id: KMFA-skills-registry-v1
-generated_at: "2026-07-17"
+generated_at: "2026-07-19"
 repo: LinzeColin/KMOS
 
 skills:
@@ -101,6 +101,19 @@ skills:
     previous_path: KMFA/mgmt-monthly-report-skill
     external_deps: []
     schedules: []
+
+  # ---- 2026-07-19：最后一个仓内 Skill 归入统一目录 ----
+  - id: project-cost-table-skill
+    name_zh: 项目成本表
+    path: KMFA/skills/项目成本表
+    purpose_zh: 项目成本表输入充分性预检、双成本口径、工资分配、fail-closed 校验与最终工作簿生成
+    status: MOVED_RENAMED_2026_07_19
+    previous_path: KMFA/project-cost-table-skill
+    moved_note: "仅移动公开安全源码并更新路径契约；机器 id 与 $project-cost-table-skill 调用保持不变"
+    external_deps: []
+    schedules: []
+    hardcoded_local_paths: 0
+    contains_secrets: false
 
 # 排程配在 Codex 应用内部，不在本仓库、也不在 ~/.codex/automations/。
 # 源仓 CodexProject 迁出前的契约记录：KMFA/metadata/automation/codex_app_schedules.contract.toml

@@ -21,13 +21,17 @@
 - Owner blocker `BLK-001`：8 份 PDF + 1 份电子表格约 273 行字段尚未逐条确认——**A 级报告的唯一人门**。未解决前，不得把结构校验解释为业务完成。
 - **云端**：skills 运行基座与 App 部署件在 `KMFA/deploy/skills-runtime/` 与 `KMFA/app/`；等 Oracle ARM 实例 + `dws auth login --device` 一次 + Codex 应用停用 6 条旧排程（路线 B 已拍板）。实例日 runbook 见 deploy README。
 
-## Repo 内 portable skills
+## Repo 内 Skills（9 个，统一位于 `KMFA/skills/`）
 
 1. `skills/每日工作检查/`（id `daily_routine_check_skill`）：钉钉工作检查，OneDrive `DWS_Outputs.zip` 只读输入。
 2. `skills/资金周报/`（id `fund-weekly-analysis-skill`）：资金与税费周报，真实证据、OCR 复核和 no-simulation 门禁。
 3. `skills/钉钉考勤/`（id `kmfa-dingtalk-attendance-skill`）：考勤晨晚提醒与官方报表 final reconciliation。
 4. `skills/经营月报/`（id `mgmt-monthly-report-skill`）：七输入槽位到 Excel/PDF 的月报流程。
 5. `skills/上游归档/`（id `dingtalk-dws-archive-skill`）：DWS 全文件归档 public-safe 源码、模板和验证器。
+6. `skills/工资发放标准/`（id `gongzi-fafang-biaozhun`）：工资发放表模板复用与金额分校验。
+7. `skills/红圈主合同/`（id `hongquan-main-contract-dws`）：红圈主合同导出、下载与归档。
+8. `skills/信息费更新/`（id `info-fee-update`）：信息费申请表与历史明细更新。
+9. `skills/项目成本表/`（id `project-cost-table-skill`）：项目成本输入门禁、双口径计算与工作簿生成。
 
 ## 私有恢复点
 
@@ -106,6 +110,7 @@ python3 KMFA/skills/资金周报/tools/validate_taskpack.py
 python3 KMFA/skills/钉钉考勤/tools/validate_skill_package.py
 python3 KMFA/skills/经营月报/tools/validate_skill_package.py
 python3 KMFA/skills/上游归档/tools/validate_skill_package.py
+python3 KMFA/skills/项目成本表/scripts/validate_skill_package.py
 ```
 
 遇到 secret/private 命中、远端非预期提交、非 `main`、SQLite 损坏、OneDrive 快照不完整或 automation 指向已删除路径时立即停止，不得伪造接管完成。

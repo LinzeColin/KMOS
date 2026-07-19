@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rule_proposal.schema.json",
+  "title": "RuleProposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "proposal_id", "change_type", "scope", "evidence_refs", "counterexample_refs", "shadow_metrics", "affected_items", "requires_owner_approval", "rollback_version", "published"],
+  "properties": {
+    "contract_version": {"const": "0.4.1"},
+    "proposal_id": {"type": "string", "minLength": 1},
+    "change_type": {"enum": ["recall_expand", "source_fix", "parser_fix", "ranking_change", "exclusion_change", "business_boundary_change"]},
+    "scope": {"type": "string", "minLength": 1},
+    "evidence_refs": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "counterexample_refs": {"type": "array", "items": {"type": "string"}},
+    "shadow_metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "active_value", "shadow_value", "sample_size"],
+        "properties": {
+          "name": {"type": "string"},
+          "active_value": {"type": ["number", "null"]},
+          "shadow_value": {"type": ["number", "null"]},
+          "sample_size": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "affected_items": {"type": "array", "items": {"type": "string"}},
+    "requires_owner_approval": {"type": "boolean"},
+    "rollback_version": {"type": ["string", "null"]},
+    "published": {"const": false}
+  }
+}
