@@ -1,0 +1,35 @@
+{
+  "report_id": "KMFA-RECON-REPORT-0006",
+  "date": "2026-07-18",
+  "domains": ["material", "advance", "governance"],
+  "new_closures": [
+    "material_three_layer_match_125of190_tool_hardened",
+    "material_issue_side_month_grain_202506_zero_diff",
+    "goods_movement_identity_failures_fully_classified_zero_distortion",
+    "personal_advance_presence_27of30",
+    "renderer_defect_fixed_four_projects_semantic_gate_in_ci"
+  ],
+  "analyzed_open": [
+    "material_unresolved_62_groups_awaiting_invoice_level_data",
+    "issue_side_mixed_monthly_vouchers_awaiting_entry_pairing_data",
+    "advance_pseudo_voucher_labels_2_rows",
+    "advance_unmatched_minyang_10000"
+  ],
+  "owner_actions_required": 0,
+  "assertions_snapshot": {"total": 29, "closed_family": 18, "analyzed_open": 11},
+  "evidence_refs": [
+    "KMFA/stage_artifacts/DT5_DATA0030_material_matcher",
+    "KMFA/stage_artifacts/DT5_DATA0031_material_bidir",
+    "KMFA/stage_artifacts/DT5_DATA0032_material_split_test",
+    "KMFA/stage_artifacts/DT5_DATA0033_material_matcher_tool",
+    "KMFA/stage_artifacts/DT5_DATA0034_1403_credit_split",
+    "KMFA/stage_artifacts/DT5_DATA0035_gm_identity",
+    "KMFA/stage_artifacts/DT5_DATA0036_personal_advance"
+  ],
+  "methodology_additions": [
+    "hardened_tool_with_selftest_as_reproducible_evidence",
+    "semantic_assertion_backstops_consistency_gate",
+    "dual_edition_cross_proof_for_distortion_attribution"
+  ],
+  "dataset_endstate": "eight_slices_evidence_exhausted_dependencies_named"
+}

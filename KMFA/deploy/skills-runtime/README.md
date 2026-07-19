@@ -1,5 +1,7 @@
 # KMFA Skills 云端运行基座（Oracle）
 
+> **Owner 看这里** → 上云前只差你三件事，全部步骤见 [OWNER三件套.md](OWNER三件套.md)（实例/设备码/停排程，约 15 分钟）。
+>
 > 任务：`TSK.KMFA.SKL.0002`（含 `SKL.0008` dws 采用决定）｜建立：2026-07-17
 > 目标：在产 skill 全部在 Oracle 云端运行——定时走容器内 cron，按需将来走 KMFA App 触发（DT6 之后）。
 > 本目录全部为代码与模板，**不含任何凭据**；凭据只存在云主机 `/opt/kmfa/secrets/`（600 权限）。
@@ -25,13 +27,25 @@ Mac 采集端（保留）                     Oracle 运行端（本基座）
   2. 运行环境注入 `KMFA_DINGTALK_ATTENDANCE_ALLOW_DWS_COMMANDS=1`
 - 备选方案（仅当官方 CLI 在 arm64 上不可用时启用）：Python 直连钉钉开放 API 的兼容 shim——调用面已锁定（chat message send / send-by-webhook / contact user search|get / attendance report 系列），暂不实现。
 
-## 部署步骤（实例就绪后执行）
+## 本机预检结论（2026-07-17，实例日风险已消除）
+
+镜像与运行栈已在本机 `arm64`（与 Oracle A1 同架构）Docker **真构建 + 容器内真跑**验收：`dws v1.0.52` 可执行、SKL.0005 OCR 双引擎自检 PASS、crontab 8 条装载、健康检查 `healthy`、compose 校验通过。四颗构建期地雷（`flock` 假包名、`dws` 资产名、锁文件首次信任、`libGL` 缺失）已排掉——详见 `KMFA/stage_artifacts/DT9_SKL0002_deploy_precheck/预检记录.md`。实例日按下节步骤执行即可，无已知构建风险。
+
+## amd64（OVH 目标架构）端到端复证（2026-07-18，上云目标改 OVH）
+
+上云目标由 Oracle A1（arm64）改为 **OVH VPS（amd64）**后，已在本机 buildx `linux/amd64` 目标架构上真构建 + 容器内真跑复证：x86_64 依赖轮子（含 onnxruntime）齐备、`dws-linux-amd64` 下载 + SHA-256 校验 + 可执行、对账三自检全过、`self-audit` 技能端到端 rc=0（证据链 30/30、血缘 FRESH、双平面四项目全绿、台账时间戳 +08:00）。本轮并抓获修复一个 **TZ 覆盖 bug**：`docker-compose.yml` 遗留 `TZ=Australia/Sydney` 会在运行时盖掉镜像的 `Asia/Shanghai`、让 cron 按悉尼评估排程——已改回上海并在 `entrypoint.sh` 加 `+0800` 快速失败守卫（正反实测：悉尼注入即拒启 exit 1）。详见 `KMFA/stage_artifacts/DT9_SKL0002_amd64_e2e/amd64端到端记录.md`。部署链 amd64/arm64 通用，无已知架构风险。
+
+## 部署步骤（**fallback 裸机路径**——云端主路径＝Coolify，见 `../coolify/README.md`）
+
+> 治理原则（Owner 2026-07-18）：统一走 Coolify + Cloudflare + OVH，不加第四件。本目录的 `bootstrap.sh` + 独立 compose 仅作**无 Coolify 时的 fallback**；同一节点与 Coolify 路径二选一，勿并用。以下为 fallback 的 `bootstrap.sh` 一键路径。
 
 ```bash
-# 0) 前置：Ubuntu 22.04+ ARM（Oracle A1），docker + docker compose 已装
-# 1) 拉仓（sparse，遵守工作间规矩）
-sudo mkdir -p /opt/kmfa && cd /opt/kmfa
-git clone --filter=blob:none git@github.com:LinzeColin/KMOS.git
+# 0) 前置：Ubuntu 22.04+（amd64/arm64 通用；OVH VPS=amd64，Oracle A1=arm64）。docker 未装则一行装齐：
+sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2 git && sudo usermod -aG docker "$USER"
+# （usermod 后重新登录一次 shell 使组生效）
+# 1) 拉仓（公开仓走 HTTPS，免密钥——alpha_oracle 私钥只用于登录实例，不是 GitHub deploy key）
+sudo mkdir -p /opt/kmfa && sudo chown "$USER" /opt/kmfa && cd /opt/kmfa
+git clone --filter=blob:none https://github.com/LinzeColin/KMOS.git
 # 2) 凭据（600）：按 secrets.env.example 的键位写 /opt/kmfa/secrets/skills.env
 install -m 700 -d /opt/kmfa/secrets && install -m 600 /dev/null /opt/kmfa/secrets/skills.env
 # 3) 构建与启动
@@ -49,7 +63,7 @@ docker compose exec skills /opt/runtime/test_send.sh "张霖泽"
 1. **双跑切换**：钉钉考勤先 dry-run 与现运行端并行比对 ≥3 天，一致后一刀切换发送权；**任一时刻只允许一个发送端存活**（防真实群双发）。切换前本容器内所有投递默认 `KMFA_DELIVERY_ENABLED=0`。
 2. **凭据不入仓**：`/opt/kmfa/secrets/` 600 权限；本目录只有 `secrets.env.example`（仅键名）。
 3. **可回收设计**（Owner 不开 PAYG，Always Free 闲置实例可能被 Oracle 回收）：本基座全部状态 = 仓库 + secrets 一个文件 + 数据卷日备份回 `KMOS/KMDatabase/data`——实例丢失后按「部署步骤」10 分钟内可原样重建，除 dws 重新登录外无其他手工步骤。
-4. **时区**：容器 cron 钟面 = `Australia/Sydney`（与原 Codex 排程钟面一致；考勤代码内部对钉钉数据自会使用 Asia/Shanghai）。投产前时区口径需 Owner 确认一次。
+4. **时区（2026-07-18 修订）**：容器 cron 钟面 = `Asia/Shanghai`——业务事件全部锚定北京时间且中国无夏令时，**全年零漂移**。原 `Australia/Sydney` 固定钟面在悉尼夏令时会相对北京提前 1 小时（业务窗错位、误报源缺失）；Debian vixie-cron 对 `CRON_TZ` 只收不认（静默无效），故整容器改锚北京，各时刻以**排程契约的 `business_clock/business_times` 声明为权威**（契约 `kmfa-4` 条自带北京↔悉尼双钟对照坐实锚向；一稿曾按悉尼实发等值折算，二稿已改锚定值，见 crontab.txt 头注）。
 
 ## 排程表（crontab.txt，与原在产排程对表）
 

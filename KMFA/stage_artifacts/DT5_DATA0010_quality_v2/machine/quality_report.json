@@ -1,0 +1,56 @@
+{
+  "task_id": "TSK.KMFA.DATA.0022",
+  "phase": "quality_v2_readjudication",
+  "date": "2026-07-18",
+  "grade": "Q3（机器候选结构化；五轴对账凭证级闭合）",
+  "tables": {
+    "bank_journal": {
+      "rows": 6536
+    },
+    "collection": {
+      "rows": 3726
+    },
+    "expense_lines": {
+      "rows": 8327
+    },
+    "invoice_lines": {
+      "rows": 548
+    },
+    "kingdee_ledger": {
+      "rows": 162979
+    },
+    "kingdee_voucher": {
+      "rows": 21334
+    },
+    "op_key_indicators": {
+      "rows": 36
+    },
+    "op_monthly": {
+      "rows": 357
+    },
+    "receivable_aging": {
+      "rows": 9181
+    },
+    "row_matches": {
+      "rows": 425
+    },
+    "tax_composition": {
+      "rows": 798
+    },
+    "v_collection_authoritative": {
+      "rows": 862
+    }
+  },
+  "amounts_integer_cents": true,
+  "blockers": [
+    "receivable_aging: 合同号重复行 4585（单一源文件内多轮快照）——aging 进 facts 层时按最新快照归并；触发=facts 建模该域",
+    "receivable_aging: 累计已收款>合同确定金额 28 行（可能含税差/变更单）——差异队列候选；触发=下批数据或 BLK-001 字段确认"
+  ],
+  "closed_blockers": [
+    {
+      "blocker": "collection: 业务四元组疑似重复 844 组",
+      "resolution": "权威视图 v_collection_authoritative 消解（双批次快照重复定案于报告第1号）：3726 行→862 行、冗余 1533→6；余 6 行同四元组为同日同额分笔（对报表 7/11 月 0 分差实证为真实业务）",
+      "evidence": "KMFA/stage_artifacts/DT5_DATA0019_report_no1"
+    }
+  ]
+}

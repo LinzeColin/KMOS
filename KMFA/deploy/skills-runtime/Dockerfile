@@ -1,16 +1,18 @@
-# KMFA skills 云端运行容器（Oracle A1 arm64 / 本地 amd64 通用）
+# KMFA skills 云端运行容器（多架构：amd64=OVH/通用 VPS，arm64=Oracle A1；本机两架构均实测）
 FROM python:3.12-slim-bookworm
 
-ENV TZ=Australia/Sydney \
+ENV TZ=Asia/Shanghai \
     PYTHONUNBUFFERED=1 \
     DWS_BIN=/usr/local/bin/dws
 
+# flock 不是独立包（属基础镜像自带的 util-linux）——构建尾部有存在性断言
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      cron curl ca-certificates git tzdata flock procps \
-      tesseract-ocr tesseract-ocr-chi-sim libgomp1 \
+      cron curl ca-certificates git tzdata procps \
+      tesseract-ocr tesseract-ocr-chi-sim libgomp1 libgl1 libglib2.0-0 \
  && rm -rf /var/lib/apt/lists/* \
- && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+ && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
+ && command -v flock
 
 # 技能公共 Python 依赖（各技能自带 requirements 时在此汇总固定）
 # OCR（SKL.0005）：rapidocr(PP-OCRv4/onnxruntime) 为主，tesseract 兜底 —— 均有 linux-arm64 轮子

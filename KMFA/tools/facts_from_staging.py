@@ -19,7 +19,11 @@ DB_PATH = REPO / "KMFA" / ".codex_private_runtime" / "duckdb" / "kmfa_staging.du
 def main() -> int:
     import duckdb
     kmdb = [json.loads(l) for l in (REPO / "KMDatabase/data/manifest.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
-    quality = json.loads((REPO / "KMFA/stage_artifacts/DT5_DATA0010_quality_initial/machine/quality_report.json").read_text(encoding="utf-8"))
+    # 质量报告取最新版（v2 重裁于 2026-07-18：回款重复项经权威视图消解闭案，open 阻断 3→2）
+    quality_path = REPO / "KMFA/stage_artifacts/DT5_DATA0010_quality_v2/machine/quality_report.json"
+    if not quality_path.exists():
+        quality_path = REPO / "KMFA/stage_artifacts/DT5_DATA0010_quality_initial/machine/quality_report.json"
+    quality = json.loads(quality_path.read_text(encoding="utf-8"))
     con = duckdb.connect(str(DB_PATH), read_only=True)
     tbl = {}
     for (name,) in con.execute(
@@ -38,8 +42,8 @@ def main() -> int:
         "staging_rows_total": sum(tbl.values()),
         "lineage": "machine/lineage.yaml（raw→staging 机械生成，stale 判定可用）",
         "quality_blockers_open": len(quality["blockers"]),
-        "reconciliation_status": "报告第1号已交付：报表vs权威台账 7/11 月 0 分差；五账套凭证视角借贷全等（0 不平凭证）；analyzed-open 差异 4 条见断言表",
-        "next_gates": ["operating_analysis/金蝶zip 抽取", "facts 八件套全量重生成", "渲染门真绿（DATA.0013）"],
+        "reconciliation_status": "报告第1-8号已交付、八切面零候选：回款 7/11 月 0 分差；开票三角差 3 分+逐票层 126/134 闭案；五账套凭证 0 不平；费用轴两账套收口零候选；税费轴 36/39 格；借款轴流量级闭合+仲利三方履约逐分；材料轴 125/190 假设穷尽；个人借支 27/30 在位；open 项全部收敛为下批数据四类依赖",
+        "next_gates": ["下批数据（曦悦明细账/湖北开明凭证重导）", "12 月报表期间差重验", "银行流水窗口延展后行级匹配 v3"],
     }
     out = FACTS / "data_pipeline.json"
     new_text = json.dumps(facts, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
@@ -49,6 +53,24 @@ def main() -> int:
 
     chlog_path = FACTS / "changelog.json"
     chlog = json.loads(chlog_path.read_text(encoding="utf-8"))
+    if not any(e.get("version") == "v1.5.8" for e in chlog):
+        chlog.insert(0, {
+            "version": "v1.5.8", "date": "2026-07-18",
+            "summary": "会话终章：报告第 6-8 号交付（零候选收官/实例日加固/开票逐票层）；派生层至 17 表 263,758 行（+个人借支/编码母表/项目开票原件）；八颗实例日地雷全排（含夏令时年漂移改锚北京）；`bootstrap.sh` 一键引导+`cloudflared` 上线件+`DT8` 健康周检+语义门入 CI；证据链 30/30 零悬空；证据档索引 76 档一表可查；Owner 两张一页纸（三件套/下批数据需求单）。",
+        })
+        chlog_path.write_text(json.dumps(chlog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    if not any(e.get("version") == "v1.5.7" for e in chlog):
+        chlog.insert(0, {
+            "version": "v1.5.7", "date": "2026-07-18",
+            "summary": "借款与材料两域收官+部署实证：贷款一览表/收发明细入仓（第 13/14 表，派生层 253,864 行）；借款轴流量级闭合（负债类期初系统性缺失具名、登记册反推期初互证）；材料轴三层匹配 125/190、七项假设穷尽（映射表定稿、匹配引擎固化带自检）；报告第 4/5 号交付；镜像同架构真构建排掉四颗实例日地雷、`run_skill` 管道五场演练全过；App 四页签+三图；Owner 三件套一页纸落仓。",
+        })
+        chlog_path.write_text(json.dumps(chlog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    if not any(e.get("version") == "v1.5.6" for e in chlog):
+        chlog.insert(0, {
+            "version": "v1.5.6", "date": "2026-07-17",
+            "summary": "税费轴开张即闭合：税负率明细板表带状解析入 `_staging.tax_composition`（798 行、亚分舍入 71 处全登记、带内脚验 90/94 平）；对费用表 6403 计提逐月逐税种 36/39 格 0 分差，余 3 格为跨月对冲对（±67.57 元）与 1 分舍入；费用轴七码全解释（报告第 3 号）；App 四页签成形。",
+        })
+        chlog_path.write_text(json.dumps(chlog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if not any(e.get("version") == "v1.5.4" for e in chlog):
         chlog.insert(0, {
             "version": "v1.5.4", "date": "2026-07-17",

@@ -6,6 +6,10 @@ exports/private/
 data/private/
 data/raw/
 .codex_private_runtime/
+project-cost-table-skill/private_runtime/
+project-cost-table-skill/private_seed/
+project-cost-table-skill/.pytest_cache/
+project-cost-table-skill/**/__pycache__/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal

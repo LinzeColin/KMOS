@@ -20,9 +20,9 @@ esac
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-# 资产命名以 release 页为准；两种常见命名都尝试。
+# 资产命名以 release 页为准（v1.0.52 实测：dws-<os>-<arch>.tar.gz）；保留旧候选以防上游改名。
 BASE="https://github.com/${REPO}/releases/download/${DWS_VERSION}"
-for NAME in "dws-${ASSET_ARCH}" "dws_${DWS_VERSION#v}_${ASSET_ARCH}.tar.gz" "dws-${DWS_VERSION}-${ASSET_ARCH}.tar.gz"; do
+for NAME in "dws-${ASSET_ARCH}.tar.gz" "dws-${ASSET_ARCH}" "dws_${DWS_VERSION#v}_${ASSET_ARCH}.tar.gz"; do
   if curl -fsSL -o "$TMP_DIR/$NAME" "$BASE/$NAME" 2>/dev/null; then
     ASSET="$NAME"
     break

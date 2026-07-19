@@ -5,7 +5,7 @@ set -euo pipefail
 
 RECIPIENT="${1:-张霖泽}"
 TITLE="${2:-KMFA 云端基座连通性测试}"
-TEXT="${3:-这是一条来自 Oracle 云端 KMFA skills 基座的测试消息（可忽略）。}"
+TEXT="${3:-这是一条来自云端 KMFA skills 基座的测试消息（可忽略）。}"
 
 echo "① 解析收件人：$RECIPIENT"
 SEARCH_JSON="$(dws contact user search --query "$RECIPIENT" --format json)"

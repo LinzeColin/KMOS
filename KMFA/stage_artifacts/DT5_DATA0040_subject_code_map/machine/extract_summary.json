@@ -1,0 +1,10 @@
+{
+  "task_id": "TSK.KMFA.DATA.0007",
+  "phase": "2_extract_subject_code_map",
+  "extractor_version": "subject-code-map-v2",
+  "sheets_loaded": 4,
+  "rows_loaded_this_run": 1165,
+  "table_total_rows": 1165,
+  "deferred_sheets": [],
+  "note": "纯文本对照表，无金额列"
+}

@@ -1,0 +1,43 @@
+{
+  "task_id": "TSK.KMFA.DATA.0007",
+  "phase": "2_extract_tax_composition",
+  "extractor_version": "tax-composition-v2",
+  "sheets_loaded": 2,
+  "rows_loaded_this_run": 798,
+  "table_total_rows": 798,
+  "amount_parse_rejections": 0,
+  "amounts_integer_cents": true,
+  "subcent_roundings": 71,
+  "crossfoot_bands_exact": 90,
+  "crossfoot_bands_total": 94,
+  "crossfoot_mismatches": [
+    {
+      "company": "彤烨",
+      "kind": "印花税",
+      "months_sum_cents": 106544,
+      "sheet_total_cents": 106546,
+      "delta_cents": -2
+    },
+    {
+      "company": "湖北",
+      "kind": "城建税",
+      "months_sum_cents": 1659285,
+      "sheet_total_cents": 1659286,
+      "delta_cents": -1
+    },
+    {
+      "company": "湖北",
+      "kind": "教育费附加",
+      "months_sum_cents": 711121,
+      "sheet_total_cents": 711123,
+      "delta_cents": -2
+    },
+    {
+      "company": "湖北",
+      "kind": "印花税",
+      "months_sum_cents": 213374,
+      "sheet_total_cents": 213375,
+      "delta_cents": -1
+    }
+  ]
+}

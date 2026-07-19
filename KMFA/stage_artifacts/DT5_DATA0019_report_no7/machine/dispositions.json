@@ -1,0 +1,40 @@
+{
+  "report_id": "KMFA-RECON-REPORT-0007",
+  "date": "2026-07-18",
+  "domains": ["loan", "expense", "material", "governance"],
+  "new_closures": [
+    "zhongli_amortization_three_way_17_principal_15_interest_exact",
+    "subject_code_map_ingested_272_nontrivial",
+    "dualcode_conformance_153_of_154",
+    "ji49_direction_entry_error_expense_axis_zero_candidates",
+    "tax_inclusive_row_pattern_two_exact_proofs",
+    "landan_weizhong_flow_rebuilt_scope_difference",
+    "evidence_chain_30_of_30_zero_dangling"
+  ],
+  "analyzed_open": [
+    "source_na_row_ji275_out_of_window",
+    "shareholder_loan_500k_survey_negative_awaiting_balance_sheet",
+    "material_62_groups_awaiting_invoice_split_data"
+  ],
+  "self_corrections_recorded": [
+    "ji45_renumber_weak_signal_withdrawn",
+    "na_to_ji49_misattribution_reverted_before_merge"
+  ],
+  "owner_actions_required": 0,
+  "assertions_snapshot": {"total": 30, "closed_family": 19, "analyzed_open": 11},
+  "open_dependencies": [
+    "subject_balance_sheet_with_openings",
+    "invoice_level_price_tax_split",
+    "voucher_entry_pairing_export",
+    "source_sheet_four_row_fixes"
+  ],
+  "evidence_refs": [
+    "KMFA/stage_artifacts/DT5_DATA0037_zhongli_adherence",
+    "KMFA/stage_artifacts/DT5_DATA0040_subject_code_map",
+    "KMFA/stage_artifacts/DT5_DATA0041_dualcode_conformance",
+    "KMFA/stage_artifacts/DT5_DATA0042_ji49_closure",
+    "KMFA/stage_artifacts/DT5_DATA0043_probe5_closure",
+    "KMFA/stage_artifacts/DT5_DATA0044_loan_tails",
+    "KMFA/stage_artifacts/DT5_GOVX0004_evidence_chain"
+  ]
+}

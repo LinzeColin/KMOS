@@ -1,0 +1,13 @@
+{
+  "task_id": "TSK.KMFA.DATA.0007",
+  "phase": "2_extract_loan_register",
+  "extractor_version": "loan-register-v2",
+  "sheets_loaded": 2,
+  "rows_loaded_this_run": 23,
+  "table_total_rows": 23,
+  "amount_parse_rejections": 0,
+  "subcent_roundings": 0,
+  "amounts_integer_cents": true,
+  "deferred_sheets": [],
+  "unit_note": "贷款金额/结存=万元(×1e6)，费用/月还款=元(×100)"
+}
