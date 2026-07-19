@@ -372,6 +372,7 @@ def _canonical_finding_checks() -> dict[str, bool]:
                 or "Current task: `IDS-V0_1-STAGE045-P1`" in staged_head
                 or "Current task: `IDS-V0_1-STAGE045-P2`" in staged_head
                 or "Current task: `IDS-V0_1-STAGE045-P3`" in staged_head
+                or "Current task: `IDS-V0_1-STAGE045-P4`" in staged_head
             )
             and "IDS-V0_1-STAGE042-P3" not in staged_head
         ),

@@ -1,0 +1,370 @@
+{
+  "schema_version": "ids.stage045.file_type_detection.phase4.delivery.v1",
+  "stage": "STAGE-045",
+  "phase": "Phase 4",
+  "task_id": "IDS-V0_1-STAGE045-P4",
+  "acceptance_id": "ACC-STAGE-045",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_FILE_TYPE_DETECTION_CLOSEOUT",
+  "valid_result": "PASS_ISOLATED_FILE_TYPE_DETECTION_CLOSEOUT_PARSER_DISABLED",
+  "contract_state": "PHASE4_CLOSEOUT_EVIDENCE_ENABLED_PARSER_AND_FALLBACK_DISABLED",
+  "stage_review_status": "pending_next_run",
+  "next_gate": "IDS-STAGE045-REVIEW-GATE",
+  "source_binding": {
+    "source_archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "source_member": "IDS_v0_1_Final_Chinese_Revised/stages/STAGE-045_文件类型检测.md",
+    "source_member_match_count": 1,
+    "source_member_sha256": "4eac237a7f63d764cf71789d4949a5168cbe8fe24e1fe7eb816baabe04bb4d27",
+    "roadmap_path": "/Users/linzezhang/Downloads/IDS_Codex开发Roadmap_v0_1_only_中文修订版.txt",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_path": "/Users/linzezhang/Downloads/IDS_Codex使用说明_v0_1_only_中文修订版.txt",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+    "source_verification_status": "SOURCE_VERIFIED"
+  },
+  "phase3_commit_binding": {
+    "commit": "dea3c486aceaaa34837aa4a6c9262a907e8dccba",
+    "root_tree": "ae1dfb9d1135cf578857fda9d6368ef0e2b4a4e7",
+    "kmids_tree": "2a95d14bee023d2c1a3f4965a3206d0299c4b74d",
+    "parent": "082565a958459fb4b9ad2b951a74982c30311a03",
+    "required_ancestor_of_head": true
+  },
+  "upstream_bindings": {
+    "stage045_phase3_contract": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_scenarios_contract.json",
+      "sha256": "fa023ecebb1e405f983d5125f7808fdcc5523b35d9c4cde1fb85fe34b4fb55a6"
+    },
+    "stage045_phase3_checker": {
+      "ref": "KM_IDSystem/scripts/check_file_type_detection_scenarios.py",
+      "sha256": "4c88f0d9aa42523e7ba917526bbfa97da58e0ac00dc2b41bfd4cd02aebbb91a0"
+    },
+    "stage045_phase3_tests": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_scenarios.py",
+      "sha256": "e58389dfc60efa9df7f479d6ff759fbaa79a8c452725a2779d4f522daee0f6fa"
+    },
+    "stage045_phase3_evidence": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_PHASE3_FILE_TYPE_DETECTION_SCENARIOS.md",
+      "sha256": "e47906c732ac4136128dc839943ae2002cc8daff83b28feed3e04ad21400cea1"
+    },
+    "stage045_phase3_run": {
+      "ref": "KM_IDSystem/machine/runs/2026-07-20-stage045-p3-local.json",
+      "sha256": "a0e348b09d072d45eef57ac1dfe5953ff812b1f7463b76428af251061bd22384"
+    }
+  },
+  "parser_output_samples_contract": {
+    "sample_status": "SCHEMA_ONLY_NOT_EXECUTED",
+    "required_output_fields": [
+      "text",
+      "tables",
+      "pages",
+      "sections",
+      "confidence",
+      "errors"
+    ],
+    "route_candidates": [
+      "PDF_PARSER",
+      "OOXML_WORD_PARSER",
+      "OOXML_WORKBOOK_PARSER",
+      "DELIMITED_TEXT_PARSER",
+      "PLAIN_TEXT_PARSER",
+      "IMAGE_PARSER"
+    ],
+    "parser_version_placeholder": "UNASSIGNED_STAGE046",
+    "default_output": {
+      "text": null,
+      "tables": [],
+      "pages": [],
+      "sections": [],
+      "confidence": "UNKNOWN",
+      "errors": []
+    },
+    "content_fields_are_untrusted_evidence": true,
+    "schema_sample_is_runtime_output": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "parser_output_write_allowed": false,
+    "high_confidence_evidence_write_allowed": false,
+    "empty_runtime_output_silent_success_allowed": false
+  },
+  "fallback_log_contract": {
+    "sample_status": "DERIVED_CONTROL_LOG_SAMPLE_NOT_RUNTIME",
+    "runtime_owner": "STAGE-048",
+    "required_log_fields": [
+      "scenario_id",
+      "sample_status",
+      "detected_type",
+      "detection_state",
+      "confidence",
+      "route_candidate",
+      "fallback_state",
+      "quality_disposition",
+      "error_codes",
+      "attempted",
+      "attempt_count",
+      "silent_drop",
+      "parser_switch_performed",
+      "runtime_owner"
+    ],
+    "log_samples": [
+      {
+        "scenario_id": "matching_csv_text_route_candidate",
+        "fallback_state": "FALLBACK_REVIEW_REQUIRED",
+        "quality_disposition": "QUALITY_REVIEW_REQUIRED",
+        "attempted": false,
+        "attempt_count": 0,
+        "silent_drop": false,
+        "parser_switch_performed": false
+      },
+      {
+        "scenario_id": "matching_txt_text_route_candidate",
+        "fallback_state": "FALLBACK_REVIEW_REQUIRED",
+        "quality_disposition": "QUALITY_REVIEW_REQUIRED",
+        "attempted": false,
+        "attempt_count": 0,
+        "silent_drop": false,
+        "parser_switch_performed": false
+      },
+      {
+        "scenario_id": "instruction_like_text_cannot_override_system_policy",
+        "fallback_state": "FALLBACK_REVIEW_REQUIRED",
+        "quality_disposition": "QUALITY_REVIEW_REQUIRED",
+        "attempted": false,
+        "attempt_count": 0,
+        "silent_drop": false,
+        "parser_switch_performed": false
+      },
+      {
+        "scenario_id": "unknown_binary_requires_owner_review",
+        "fallback_state": "FALLBACK_UNSUPPORTED",
+        "quality_disposition": "OWNER_REVIEW_REQUIRED",
+        "attempted": false,
+        "attempt_count": 0,
+        "silent_drop": false,
+        "parser_switch_performed": false
+      },
+      {
+        "scenario_id": "corrupt_zip_blocks_with_explicit_error",
+        "fallback_state": "FALLBACK_FAILED_EXPLICITLY",
+        "quality_disposition": "EXPLICIT_ERROR_NO_FALLBACK",
+        "attempted": false,
+        "attempt_count": 0,
+        "silent_drop": false,
+        "parser_switch_performed": false
+      },
+      {
+        "scenario_id": "conflicting_signature_mime_extension_requires_review",
+        "fallback_state": "FALLBACK_REVIEW_REQUIRED",
+        "quality_disposition": "OWNER_REVIEW_REQUIRED",
+        "attempted": false,
+        "attempt_count": 0,
+        "silent_drop": false,
+        "parser_switch_performed": false
+      },
+      {
+        "scenario_id": "extension_only_low_confidence_requires_review",
+        "fallback_state": "FALLBACK_REVIEW_REQUIRED",
+        "quality_disposition": "OWNER_REVIEW_REQUIRED",
+        "attempted": false,
+        "attempt_count": 0,
+        "silent_drop": false,
+        "parser_switch_performed": false
+      }
+    ],
+    "required_log_sample_count": 7,
+    "runtime_log_available": false,
+    "fallback_execution_allowed": false,
+    "silent_drop_allowed_count": 0,
+    "silent_parser_switch_allowed": false
+  },
+  "quality_metrics_contract": {
+    "required_scenario_count": 14,
+    "required_passed_scenario_count": 14,
+    "required_scenario_pass_rate": 1.0,
+    "required_supported_format_count": 8,
+    "required_supported_format_coverage_ratio": 1.0,
+    "required_confidence_counts": {
+      "HIGH": 7,
+      "MEDIUM": 3,
+      "LOW": 1,
+      "UNKNOWN": 3
+    },
+    "required_quality_disposition_counts": {
+      "PRIMARY_ROUTE_CANDIDATE_ONLY": 7,
+      "QUALITY_REVIEW_REQUIRED": 3,
+      "OWNER_REVIEW_REQUIRED": 3,
+      "EXPLICIT_ERROR_NO_FALLBACK": 1
+    },
+    "required_non_high_quality_result_count": 7,
+    "required_explicitly_disposed_non_high_quality_count": 7,
+    "required_results_with_error_codes": 3,
+    "required_silent_drop_count": 0,
+    "required_parser_output_produced_count": 0
+  },
+  "failure_classification_contract": {
+    "UNKNOWN_BINARY": {
+      "scenario_id": "unknown_binary_requires_owner_review",
+      "detection_state": "TYPE_UNKNOWN_REVIEW_REQUIRED",
+      "error_codes": ["NO_RELIABLE_TYPE_SIGNAL"],
+      "disposition": "OWNER_REVIEW_REQUIRED",
+      "fallback_state": "FALLBACK_UNSUPPORTED",
+      "fail_closed": true
+    },
+    "CORRUPT_ZIP_CONTAINER": {
+      "scenario_id": "corrupt_zip_blocks_with_explicit_error",
+      "detection_state": "TYPE_INPUT_BLOCKED",
+      "error_codes": ["CORRUPT_ZIP_CONTAINER"],
+      "disposition": "EXPLICIT_ERROR_NO_FALLBACK",
+      "fallback_state": "FALLBACK_FAILED_EXPLICITLY",
+      "fail_closed": true
+    },
+    "SIGNAL_TYPE_CONFLICT": {
+      "scenario_id": "conflicting_signature_mime_extension_requires_review",
+      "detection_state": "TYPE_CONFLICT_REVIEW_REQUIRED",
+      "error_codes": ["SIGNAL_TYPE_CONFLICT"],
+      "disposition": "OWNER_REVIEW_REQUIRED",
+      "fallback_state": "FALLBACK_REVIEW_REQUIRED",
+      "fail_closed": true
+    },
+    "EXTENSION_ONLY_LOW_CONFIDENCE": {
+      "scenario_id": "extension_only_low_confidence_requires_review",
+      "detection_state": "TYPE_PROVISIONAL",
+      "error_codes": [],
+      "disposition": "OWNER_REVIEW_REQUIRED",
+      "fallback_state": "FALLBACK_REVIEW_REQUIRED",
+      "fail_closed": true
+    }
+  },
+  "support_boundary": {
+    "detection_candidate_formats": [
+      "PDF",
+      "DOCX",
+      "XLSX",
+      "CSV",
+      "TXT",
+      "PNG",
+      "JPEG",
+      "TIFF"
+    ],
+    "failure_sentinel_types": ["UNKNOWN", "CORRUPT_OR_UNREADABLE"],
+    "candidate_only_parser_routes": [
+      "PDF_PARSER",
+      "OOXML_WORD_PARSER",
+      "OOXML_WORKBOOK_PARSER",
+      "DELIMITED_TEXT_PARSER",
+      "PLAIN_TEXT_PARSER",
+      "IMAGE_PARSER"
+    ],
+    "available_parser_routes": [],
+    "not_claimed_format_classes": [
+      "LEGACY_BINARY_OFFICE",
+      "GENERIC_ARCHIVE",
+      "AUDIO",
+      "VIDEO",
+      "EXECUTABLE",
+      "UNRECOGNIZED_BINARY"
+    ],
+    "parser_runtime_available": false,
+    "fallback_runtime_available": false,
+    "detection_support_does_not_imply_parser_support": true,
+    "unknown_unlisted_or_ambiguous_input_action": "OWNER_REVIEW_OR_EXPLICIT_ERROR"
+  },
+  "version_evidence_contract": {
+    "detector_version": "ids.file_type_detector.v0_1.stage045.p2",
+    "parser_contract_owner": "STAGE-046",
+    "parser_output_contract_owner": "STAGE-047",
+    "fallback_runtime_owner": "STAGE-048",
+    "parser_versions": {
+      "PDF_PARSER": "UNASSIGNED_NOT_IMPLEMENTED",
+      "OOXML_WORD_PARSER": "UNASSIGNED_NOT_IMPLEMENTED",
+      "OOXML_WORKBOOK_PARSER": "UNASSIGNED_NOT_IMPLEMENTED",
+      "DELIMITED_TEXT_PARSER": "UNASSIGNED_NOT_IMPLEMENTED",
+      "PLAIN_TEXT_PARSER": "UNASSIGNED_NOT_IMPLEMENTED",
+      "IMAGE_PARSER": "UNASSIGNED_NOT_IMPLEMENTED"
+    }
+  },
+  "configuration_rollback": {
+    "rollback_target_commit": "dea3c486aceaaa34837aa4a6c9262a907e8dccba",
+    "rollback_target_kmids_tree": "2a95d14bee023d2c1a3f4965a3206d0299c4b74d",
+    "rollback_target_state": "PHASE3_SCENARIOS_ENABLED_PARSER_AND_FALLBACK_DISABLED",
+    "configuration_change_performed": false,
+    "parser_configuration_file_created": false,
+    "steps": [
+      "STOP_ON_INVALID_DELIVERY_CONTRACT",
+      "RESTORE_PHASE3_SCENARIO_ONLY_STATE",
+      "DISCARD_PHASE4_SCHEMA_SAMPLES_AND_DERIVED_LOGS",
+      "PRESERVE_STAGE045_PHASE1_PHASE3_EVIDENCE",
+      "KEEP_PARSER_FALLBACK_AND_PERSISTENCE_DISABLED",
+      "PRESERVE_ORIGINAL_MANIFEST_EVIDENCE_AUDIT_REPORT_AND_INDEX_ARTIFACTS",
+      "DO_NOT_OPEN_SCAN_HASH_PARSE_MOVE_OVERWRITE_OR_DELETE_REAL_SOURCE_PATHS"
+    ],
+    "destructive_rollback_allowed": false
+  },
+  "review_gate": {
+    "next_task_id": "IDS-V0_1-STAGE045-REVIEW",
+    "must_run_separately": true,
+    "phase4_may_mark_stage_reviewed": false,
+    "stage046_entry_allowed": false,
+    "batch_review_allowed": false,
+    "github_upload_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "known_limits": [
+    "PARSER_OUTPUT_SAMPLES_ARE_SCHEMA_ONLY_NOT_RUNTIME_OUTPUT",
+    "FALLBACK_LOG_SAMPLES_ARE_DERIVED_CONTROL_EVIDENCE_NOT_RUNTIME_LOGS",
+    "NO_PARSER_VERSION_ASSIGNED_OR_IMPLEMENTED",
+    "NO_PARSER_DISPATCH_EXECUTION_OR_OUTPUT",
+    "NO_FALLBACK_EXECUTION_OR_RUNTIME_LOG",
+    "NO_REAL_SOURCE_FILE_ACCESS_OR_FORMAT_PROBE",
+    "NO_PRODUCTION_QUALITY_CALIBRATION",
+    "NO_EVIDENCE_PROMOTION_OR_PERSISTENCE",
+    "NO_STAGE045_WHOLE_STAGE_REVIEW_IN_THIS_RUN",
+    "NO_STAGE046_ENTRY_IN_THIS_RUN",
+    "STATIC_CLOSEOUT_IS_NOT_PRODUCTION_READINESS"
+  ],
+  "owner_feedback_contract": {
+    "status_zh": "Stage045 步骤四隔离交付证据已收口；检测场景通过，但未执行解析器或回退。",
+    "quality_zh": "十四个场景全部通过、支持格式覆盖为八类且静默丢弃为零；七个非高质量结果均有明确复核或错误处置。",
+    "boundary_zh": "六类 parser route 仍只是候选，parser 版本尚未分配；样例仅说明输出结构，fallback 日志仅由步骤三控制证据派生。",
+    "limit_zh": "下一步只能在独立 run 进行整阶段复审；本证据不是生产就绪证明。"
+  },
+  "truth_flags": {
+    "taskpack_source_read_performed": true,
+    "phase3_checker_replayed": true,
+    "parser_output_schema_samples_composed": true,
+    "fallback_log_samples_derived": true,
+    "quality_metrics_derived": true,
+    "failure_classification_composed": true,
+    "support_boundary_documented": true,
+    "configuration_rollback_documented": true,
+    "source_file_open_performed": false,
+    "filesystem_scan_performed": false,
+    "file_hash_performed": false,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "fake_ids_business_data_used": false,
+    "real_ids_business_job_created": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "parser_output_produced": false,
+    "fallback_execution_performed": false,
+    "fallback_attempt_performed": false,
+    "runtime_fallback_log_produced": false,
+    "parser_configuration_mutated": false,
+    "high_confidence_evidence_write_performed": false,
+    "manifest_write_performed": false,
+    "evidence_ledger_write_performed": false,
+    "audit_write_performed": false,
+    "job_creation_performed": false,
+    "state_transition_performed": false,
+    "persistent_state_write_performed": false,
+    "database_connection_performed": false,
+    "schema_change_performed": false,
+    "runtime_output_written": false,
+    "production_runtime_activation_performed": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false,
+    "stage046_entry_allowed": false
+  }
+}

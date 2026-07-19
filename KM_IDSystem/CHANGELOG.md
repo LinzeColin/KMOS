@@ -1,5 +1,16 @@
 # Changelog
 
+## IDS v0.1 STAGE-045 Phase 4 - 2026-07-20
+
+- Added `ids.stage045.file_type_detection.phase4.delivery.v1`, bound to the approved source, exact committed Phase3 predecessor and five indexed Phase3 artifacts.
+- The stdout-only checker replays the fourteen Phase3 scenarios, derives six schema-only parser-output samples and seven non-runtime fallback-log samples, and recomputes format coverage, confidence/disposition metrics and four fail-closed failure classes.
+- Parser-output samples contain only `text/tables/pages/sections/confidence/errors`, no business content, and are explicitly `SCHEMA_ONLY_NOT_EXECUTED`; all parser versions remain `UNASSIGNED_NOT_IMPLEMENTED` and available parser routes remain empty.
+- Fallback samples are derived control evidence with zero attempts, zero silent drops and zero parser switches. They are not Stage048 runtime logs; no parser, fallback, configuration mutation, persistence or evidence promotion ran.
+- Valid TDD RED produced fifteen expected assertion failures and one expected missing-checker error across thirteen tests. Final GREEN passed checker `16/16 + 9/9`, focused `13/13`, Phase1-4 compatibility `59/59`, Stage005 `172/172`, Stage041-045 aggregate `327/327` in `1138.506s`, and full discovery `1077/1077` in `1566.023s`; seven historical review checkers, `219` clean events, exact 30-path event coverage, idempotent owner rendering and project dual-plane also pass.
+- The first aggregate reached `323/327` and the first full discovery reached `1073/1077`; all eight failures were stale historical forward-route assertions ending at Stage045 P3. Repairs add only the exact `Stage045 P4 -> Stage045 Review` route and preserve every historical evidence and safety assertion.
+- Final-evidence synchronization then failed closed only the Stage042 review checker's staged-Handoff allowlist; adding the same exact P4 current task restored the checker and its review tests `10/10` in `253.879s`.
+- Routed the only next task to separate `IDS-V0_1-STAGE045-REVIEW` with `push_allowed=false`. No business source-file access, whole-stage review, Stage046, batch review, GitHub action, app reinstall, dependency installation, raw metadata access or production action ran.
+
 ## IDS v0.1 STAGE-045 Phase 3 - 2026-07-20
 
 - Added `ids.stage045.file_type_detection.phase3.scenarios.v1`, exact source/Phase2/integration/upstream-bound scenario evidence, and a checker that imports rather than duplicates the committed Phase2 detector.

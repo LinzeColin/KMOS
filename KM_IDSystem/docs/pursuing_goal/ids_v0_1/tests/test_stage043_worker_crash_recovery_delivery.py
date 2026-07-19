@@ -399,6 +399,13 @@ class Stage043WorkerCrashRecoveryDeliveryTests(unittest.TestCase):
                 in handoff
                 and "Next allowed task: `IDS-V0_1-STAGE045-P4`" in handoff
             )
+            or (
+                status["phase"] == "IDS-STAGE045-P4"
+                and status["next_gate"] == "IDS-STAGE045-REVIEW-GATE"
+                and "Completed task in this run: `IDS-V0_1-STAGE045-P4`"
+                in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE045-REVIEW`" in handoff
+            )
         )
 
     def test_cli_report_matches_in_process_report(self):
