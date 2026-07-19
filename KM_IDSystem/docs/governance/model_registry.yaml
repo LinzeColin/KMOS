@@ -39,6 +39,11 @@ assumptions:
     fact_level: "PROPOSED"
     unknown_task_ids: ["TASK-OPME-B-001"]
     evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"]
+  - assumption_id: "ASM-009"
+    statement: "The Stage044 cleanup candidate timing values compose reviewed Stage034 and Stage041 through Stage043 control boundaries and are not production calibrated."
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_PHASE2_HALF_PRODUCT_CLEANUP_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_runtime_contract.json"]
 models:
   - model_id: "MOD-001"
     name: "Dynamic kiln risk rule"
@@ -232,3 +237,19 @@ models:
     code_refs: ["KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"]
     test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"]
     evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"]
+  - model_id: "MOD-013"
+    name: "Half-product cleanup candidate decision policy"
+    kind: "deterministic_control_policy"
+    purpose: "Evaluate reference-only ownership, retention, identity, hold, resource, lock and quiescence evidence and emit a guarded cleanup-review candidate without scanning or deleting files."
+    owner: "KM_IDSystem"
+    status: "planned"
+    fact_level: "PROPOSED"
+    model_version: "ids.half_product_cleanup_policy.v0_1.stage044.p2"
+    assumptions: ["ASM-009"]
+    formula_ids: ["FORM-013"]
+    parameter_ids: ["PARAM-082", "PARAM-083", "PARAM-084", "PARAM-085", "PARAM-086"]
+    inputs: ["Git-tracked control input refs", "bounded attempt, root-relative path and immutable lstat identity metadata", "retention, hold, durable-reference, resource, namespace-lock and writer-quiescence evidence"]
+    outputs: ["decision_action", "human_status", "input_refs", "output_refs", "candidate_ref", "error_ref", "audit_ref"]
+    code_refs: ["KM_IDSystem/scripts/check_half_product_cleanup_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_PHASE2_HALF_PRODUCT_CLEANUP_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_runtime_contract.json"]

@@ -1,5 +1,15 @@
 # Changelog
 
+## IDS v0.1 STAGE-044 Phase 2 - 2026-07-19
+
+- Added `ids.stage044.half_product_cleanup.phase2.v1` and `ids.half_product_cleanup_policy.v0_1.stage044.p2`, a deterministic in-memory, reference-only cleanup-candidate decision slice with no scanner, traversal, filesystem probe, lock operation, persistence or delete path.
+- Registered `ASM-009`, `MOD-013`, `FORM-013` and `PARAM-082..086` as planned / `PROPOSED`: scan `300 s`, retention `600 s`, lock lease `30 s`, writer quiescence `60 s` and attempt timeout `30 s`. They remain uncalibrated under `TASK-OPME-B-001` and do not start timers or runtime work.
+- Restricted positive decisions to two governed classes in five non-active states. Fourteen protected classes plus any hold, durable reference, resource block, unknown identity, missing exclusive lock or missing quiescence fail closed; every result keeps `delete_allowed=false` and requires human review.
+- Exact canonical request replay is idempotent and changed-payload reuse conflicts. The slice emits no absolute path or raw payload and performs no read, stat, `lstat`, walk, `dirfd`, `openat`, `unlinkat`, move, overwrite, audit write, database, queue, process, API or production action.
+- TDD RED produced `19` expected failures across `16` focused tests. Final GREEN passes checker `20/20 + 15/15`, focused `16/16` in `1.891s`, Stage005 `166/166` in `29.280s`, Stage041-44 aggregate `227/227` in `1018.985s`, full discovery `971/971` in `1415.789s`, six historical review checkers, `212` clean events, idempotent rendering and project dual-plane.
+- Layered regression exposed stale historical current-route allowlists and exact upstream-hash drift. Repairs were bounded to verified Stage042/043 hash sets plus the exact `IDS-STAGE044-P2 -> IDS-STAGE044-P3-GATE` route while retaining Git-index binding; no historical contract, review conclusion or runtime safety boundary was relaxed.
+- Routed the only next task to separate `IDS-V0_1-STAGE044-P3` with `push_allowed=false`. No Phase 3, Phase 4, whole-stage review, Stage045, batch review, GitHub upload/merge, issue action, app reinstall, dependency installation, raw metadata content access, cleanup/delete or production action ran.
+
 ## IDS v0.1 STAGE-044 Phase 1 - 2026-07-19
 
 - Added `ids.stage044.half_product_cleanup.phase1.v1`, an exact-shaped static engineering contract plus stdout-only fail-closed checker bound to the unique approved Stage044 taskpack member, committed Stage043 reviewed-local baseline and reviewed Stage029/037–043 controls.

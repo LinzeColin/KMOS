@@ -835,12 +835,17 @@ def _registry_valid(binding: Any) -> bool:
         and all(
             line in spec
             for line in (
-                "- model_count: 11",
-                "- formula_count: 11",
-                "- parameter_count: 76",
                 "- active_model_count: 7",
                 "- active_formula_count: 7",
                 "- active_parameter_count: 49",
+            )
+        )
+        and any(
+            all(line in spec for line in count_markers)
+            for count_markers in (
+                ("- model_count: 11", "- formula_count: 11", "- parameter_count: 76"),
+                ("- model_count: 12", "- formula_count: 12", "- parameter_count: 81"),
+                ("- model_count: 13", "- formula_count: 13", "- parameter_count: 86"),
             )
         )
     )

@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE044",
-  "phase": "IDS-STAGE044-P1",
-  "task": "IDS-V0_1-STAGE044-P1",
-  "real_progress": "Stage044 步骤一静态工程合同已完成；Stage044 整体未完成或复审",
-  "report_grade": "批准来源、Stage043 复审祖先与 Stage029/037-043 精确哈希均由失败关闭检查器绑定；最终分层验证见本次机器 run",
-  "business_verdict": "仅本地静态合同通过；清理扫描、候选运行评估、文件系统遍历、生产锁、删除、持久化与生产运行时均禁用",
-  "evidence_status": "LOCAL_PHASE1_CONTRACT_VALIDATED_DELETE_DISABLED",
+  "phase": "IDS-STAGE044-P2",
+  "task": "IDS-V0_1-STAGE044-P2",
+  "real_progress": "Stage044 步骤二 reference-only 候选决策切片已完成；Stage044 整体未完成或复审",
+  "report_grade": "五个提议时序边界、两类候选、五类状态及身份、持有、引用、资源、锁和静止证据由失败关闭检查器绑定；最终分层验证见本次机器 run",
+  "business_verdict": "仅本地候选复核决策通过；正向结果仍不授权删除，扫描、文件探测/遍历、生产锁、移动、覆盖、删除、审计写入、持久化与生产运行时均禁用",
+  "evidence_status": "LOCAL_PHASE2_CANDIDATE_DECISION_VALIDATED_DELETE_DISABLED",
   "rendered_at": "2026-07-19",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE044-P2-GATE",
+  "next_gate": "IDS-STAGE044-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

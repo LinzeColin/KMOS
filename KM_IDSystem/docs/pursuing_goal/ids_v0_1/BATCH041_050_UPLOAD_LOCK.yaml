@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-18T20:00:00Z"
-status: "stage044_phase1_completed"
+updated_at_utc: "2026-07-18T22:52:30Z"
+status: "stage044_phase2_completed"
 
 transition_history:
+  stage044_phase2_state:
+    status: "stage044_phase2_completed"
+    current_task_id: "IDS-V0_1-STAGE044-P2"
+    next_gate: "IDS-STAGE044-P3-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE044-P3"
+    github_upload_allowed: false
   stage044_phase1_state:
     status: "stage044_phase1_completed"
     current_task_id: "IDS-V0_1-STAGE044-P1"
@@ -539,30 +545,36 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
   STAGE-044:
-    status: "stage044_phase1_completed"
+    status: "stage044_phase2_completed"
     completed_phases:
       - "Phase 1"
-    next_phase: "Phase 2"
-    next_gate: "IDS-STAGE044-P2-GATE"
-    current_task_id: "IDS-V0_1-STAGE044-P1"
+      - "Phase 2"
+    next_phase: "Phase 3"
+    next_gate: "IDS-STAGE044-P3-GATE"
+    current_task_id: "IDS-V0_1-STAGE044-P2"
     acceptance_id: "ACC-STAGE-044"
-    acceptance_status: "phase1_completed"
+    acceptance_status: "phase2_completed"
     review_status: "not_started"
     phase2_entry_authorized: true
-    phase3_entry_authorized: false
+    phase3_entry_authorized: true
     phase4_entry_authorized: false
     source_verification_status: "SOURCE_VERIFIED"
     source_member_match_count: 1
     source_member_sha256: "e7e98eb5497aa33124b944dfc1d00e15588a672c0f9accc4cda4a66fe1f72a53"
     cleanup_contract_id: "ids.half_product_cleanup.v0_1.p1"
     cleanup_contract_schema: "ids.stage044.half_product_cleanup.phase1.v1"
+    cleanup_policy_contract_id: "ids.half_product_cleanup_policy.v0_1.stage044.p2"
+    cleanup_runtime_contract_schema: "ids.stage044.half_product_cleanup.phase2.v1"
     phase1_contract_valid: true
-    contract_state: "PHASE1_ENGINEERING_CONTRACT_DELETE_DISABLED"
+    phase2_slice_valid: true
+    contract_state: "PHASE2_ISOLATED_CANDIDATE_DECISION_SLICE_ENABLED_DELETE_DISABLED"
     required_job_state_count: 11
     required_terminal_state_count: 4
     eligible_artifact_class_count: 2
     protected_artifact_class_count: 14
-    numeric_policy_values_assigned: false
+    numeric_policy_values_assigned: true
+    parameter_fact_level: "PROPOSED"
+    production_calibration_task_id: "TASK-OPME-B-001"
     production_calibrated: false
     taskpack_source_read_performed: true
     ids_business_source_read_performed: false
@@ -570,11 +582,16 @@ stage_progress:
     fake_ids_business_data_used: false
     real_ids_business_job_created: false
     cleanup_scan_performed: false
-    cleanup_candidate_evaluation_performed: false
+    isolated_candidate_decision_runtime_performed: true
+    cleanup_candidate_evaluation_performed: true
+    candidate_only_decision_emitted: true
     writer_quiescence_probe_performed: false
+    filesystem_probe_performed: false
     filesystem_traversal_performed: false
+    openat_called: false
     delete_operation_started: false
     unlinkat_called: false
+    move_or_overwrite_performed: false
     cleanup_runtime_performed: false
     protected_ref_delete_performed: false
     queue_runtime_performed: false
@@ -587,6 +604,7 @@ stage_progress:
     state_transition_performed: false
     terminal_result_changed: false
     persistent_state_write_performed: false
+    audit_write_performed: false
     database_connection_performed: false
     schema_change_performed: false
     runtime_output_written: false
@@ -601,12 +619,16 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_contract.json"
       - "KM_IDSystem/scripts/check_half_product_cleanup.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_PHASE2_HALF_PRODUCT_CLEANUP_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_runtime_contract.json"
+      - "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE044-P1"
-  next_allowed_task_id: "IDS-V0_1-STAGE044-P2"
+  current_task_id: "IDS-V0_1-STAGE044-P2"
+  next_allowed_task_id: "IDS-V0_1-STAGE044-P3"
   github_upload_allowed: false
-  current_run: "STAGE-044 Phase 1 bound the approved source, reviewed Stage043 predecessor and prior cleanup/control contracts into an exact static half-product cleanup contract. Candidate ownership, protected artifacts, resource pauses, namespace locking, writer quiescence, dirfd/nofollow/unlinkat safety and idempotent audit rules are defined; no scan, traversal, lock runtime, delete, mutation, persistence, raw metadata, GitHub, app or production action ran."
-  no_upload_reason: "BATCH041_050 has three completed and individually reviewed Stages plus Stage044 Phase 1, but Stage044 Phase 2-4 and review, STAGE-045..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."
+  current_run: "STAGE-044 Phase 2 registered five proposed timing bounds and evaluated deterministic reference-only cleanup candidates. Positive output is review-only; no scan, filesystem probe/traversal, production lock, move, overwrite, delete, audit/persistent write, raw metadata, GitHub, app or production action ran."
+  no_upload_reason: "BATCH041_050 has three completed and individually reviewed Stages plus Stage044 Phase 1-2, but Stage044 Phase 3-4 and review, STAGE-045..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."

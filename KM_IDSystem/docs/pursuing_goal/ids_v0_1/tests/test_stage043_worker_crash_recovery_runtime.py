@@ -214,9 +214,9 @@ class Stage043WorkerCrashRecoveryPhase2Tests(unittest.TestCase):
         self.assertIn('model_id: "MOD-012"', model_text)
         self.assertIn('formula_id: "FORM-012"', formula_text)
         for marker in (
-            "- model_count: 12",
-            "- formula_count: 12",
-            "- parameter_count: 81",
+            "- model_count: 13",
+            "- formula_count: 13",
+            "- parameter_count: 86",
             "- active_model_count: 7",
             "- active_formula_count: 7",
             "- active_parameter_count: 49",
@@ -616,6 +616,16 @@ class Stage043WorkerCrashRecoveryPhase2Tests(unittest.TestCase):
                 "Completed task in this run: `IDS-V0_1-STAGE043-REVIEW`"
                 in handoff
                 and "Next allowed task: `IDS-V0_1-STAGE044-P1`" in handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE044-P1`"
+                in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE044-P2`" in handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE044-P2`"
+                in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE044-P3`" in handoff
             )
         )
         self.assertIn("process_crash_recovery_performed=false", events)

@@ -1,0 +1,53 @@
+{
+  "run_id": "`RUN-IDS-STAGE044-P2-LOCAL-20260719-001`",
+  "action": "注册五个提议时序边界并实现 reference-only 半成品清理候选人工复核决策切片",
+  "result": "`PASS_ISOLATED_CLEANUP_CANDIDATE_DECISION_DELETE_DISABLED`",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "base_stage044_phase1_commit": "0eabde291fc54328e6fbc76df4f9dc5af894b770",
+  "base_stage044_phase1_tree": "53a8e0388ba3a2f6551c43b6dc07ee22ff90505c",
+  "base_stage044_phase1_parent": "e7835134550e2776f0949870fcaf7d7b9a54bd01",
+  "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+  "source_member_sha256": "e7e98eb5497aa33124b944dfc1d00e15588a672c0f9accc4cda4a66fe1f72a53",
+  "policy": {
+    "policy_version": "ids.half_product_cleanup_policy.v0_1.stage044.p2",
+    "fact_level": "PROPOSED",
+    "production_calibrated": false,
+    "cleanup_scan_interval_seconds": 300,
+    "cleanup_candidate_retention_seconds": 600,
+    "cleanup_lock_lease_seconds": 30,
+    "writer_quiescence_window_seconds": 60,
+    "cleanup_attempt_timeout_seconds": 30,
+    "delete_allowed": false
+  },
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0,
+    "sparse_root_governance_conflict": "scripts/lean_governance.py 缺失；仅报告 SPARSE_CONFLICT，未展开其他项目"
+  },
+  "verified_results": [
+    "批准任务包归档、唯一 Stage044 成员、路线图和使用说明哈希均匹配",
+    "Stage044 Phase1 提交、目录树和父提交精确且保持当前分支祖先",
+    "Stage034/037/040-043 上游合同哈希精确",
+    "TDD RED 在十六项测试中产生十九项预期失败，因为步骤二产物、注册表和当前路由尚不存在",
+    "步骤二检查器 20/20 合同检查和 15/15 候选决策检查通过",
+    "步骤二最终聚焦测试 16/16 通过，耗时 1.891 秒",
+    "Stage005 166/166 通过，耗时 29.280 秒；事件共 212 条，解析、重复和语义错误均为零",
+    "Stage041-044 最终聚合 227/227 通过，耗时 1018.985 秒；前序运行暴露的历史精确路由与哈希漂移均有界修复",
+    "IDS v0.1 最终全量 discovery 971/971 通过，耗时 1415.789 秒；首轮 967/971 的四个失败均为历史当前门禁白名单停在 Stage044 P1",
+    "Stage038-043 六个整阶段复审检查器通过，所有复审源均保持 Git 跟踪与 index 一致",
+    "七文件连续渲染幂等，补齐 delete_allowed 与 lstat 中文术语后项目级双平面门禁通过",
+    "规范重放幂等，相同身份不同载荷冲突；所有正向结果仍为人工复核候选且 delete_allowed=false"
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未进入或实现 Stage044 步骤三",
+    "未访问真实候选路径，未执行 cleanup scan、文件系统探测/遍历、生产锁获取、移动、覆盖、删除、audit write、状态修改、持久化、数据库或生产运行时",
+    "未触碰原始元数据或创建虚构 IDS 业务数据",
+    "未安装依赖，未上传、合并、变更 issue 或重装应用"
+  ],
+  "next_gate": "IDS-STAGE044-P3-GATE"
+}

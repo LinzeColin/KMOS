@@ -797,12 +797,15 @@ def _registry_valid(binding: Any) -> bool:
         ) and 'formula_id: "FORM-012"' in formula_text and all(
             marker in spec_text
             for marker in (
-                "- model_count: 12",
-                "- formula_count: 12",
-                "- parameter_count: 81",
                 "- active_model_count: 7",
                 "- active_formula_count: 7",
                 "- active_parameter_count: 49",
+            )
+        ) and any(
+            all(marker in spec_text for marker in count_markers)
+            for count_markers in (
+                ("- model_count: 12", "- formula_count: 12", "- parameter_count: 81"),
+                ("- model_count: 13", "- formula_count: 13", "- parameter_count: 86"),
             )
         )
     except (OSError, csv.Error):

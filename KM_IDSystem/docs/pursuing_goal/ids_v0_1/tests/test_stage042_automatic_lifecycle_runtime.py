@@ -167,9 +167,9 @@ class Stage042AutomaticLifecycleRuntimeTests(unittest.TestCase):
         self.assertIn('formula_id: "FORM-011"', FORMULA_REGISTRY.read_text(encoding="utf-8"))
         spec = MODEL_SPEC.read_text(encoding="utf-8")
         for line in (
-            "- model_count: 11",
-            "- formula_count: 11",
-            "- parameter_count: 76",
+            "- model_count: 13",
+            "- formula_count: 13",
+            "- parameter_count: 86",
             "- active_model_count: 7",
             "- active_formula_count: 7",
             "- active_parameter_count: 49",

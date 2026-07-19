@@ -760,6 +760,44 @@ models:
     evidence_refs:
       - "EVID-IDS-STAGE043-P2"
       - "EVID-OPME-MODEL-REGISTRY"
+  -
+    model_id: "MOD-013"
+    name: "Half-product cleanup candidate decision policy"
+    kind: "deterministic_control_policy"
+    purpose: "Evaluate reference-only ownership, retention, identity, hold, resource, lock and quiescence evidence and emit a guarded cleanup-review candidate without scanning or deleting files."
+    owner: "KM_IDSystem"
+    status: "planned"
+    fact_level: "PROPOSED"
+    model_version: "ids.half_product_cleanup_policy.v0_1.stage044.p2"
+    assumptions:
+      - "Stage044 timing values are composed from reviewed isolated Stage034 and Stage041 through Stage043 safety boundaries and are not production calibrated."
+    formula_ids:
+      - "FORM-013"
+    parameter_ids:
+      - "PARAM-082"
+      - "PARAM-083"
+      - "PARAM-084"
+      - "PARAM-085"
+      - "PARAM-086"
+    inputs:
+      - "Git-tracked control input refs"
+      - "bounded attempt, root-relative path and immutable lstat identity metadata"
+      - "retention, hold, durable-reference, resource, namespace-lock and writer-quiescence evidence"
+    outputs:
+      - "decision_action"
+      - "human_status"
+      - "input_refs"
+      - "output_refs"
+      - "candidate_ref"
+      - "error_ref"
+      - "audit_ref"
+    code_refs:
+      - "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py"
+    test_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py"
+    evidence_refs:
+      - "EVID-IDS-STAGE044-P2"
+      - "EVID-OPME-MODEL-REGISTRY"
 formulas:
   -
     formula_id: "FORM-001"
@@ -1094,6 +1132,35 @@ formulas:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"
     evidence_refs:
       - "EVID-IDS-STAGE043-P2"
+      - "EVID-OPME-FORMULA-REGISTRY"
+  -
+    formula_id: "FORM-013"
+    model_id: "MOD-013"
+    status: "planned"
+    fact_level: "PROPOSED"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    expression: "validate the canonical reference-only cleanup request and Git-tracked evidence; protected, held, referenced, active, unknown or resource-blocked artifacts fail closed; only two rebuildable classes in five eligible states with stable identity, elapsed retention, managed exclusive namespace lock, fenced or absent producers, fresh resource gates and full writer quiescence emit CLEANUP_CANDIDATE_REVIEW_REQUIRED; no scan, traversal, mutation or delete occurs."
+    constraints:
+      - "Unknown, malformed, stale, conflicting, or untracked evidence fails closed."
+      - "Only TEMP_STAGING_OUTPUT and INCOMPLETE_DERIVATIVE_OUTPUT can become review candidates."
+      - "Protected, held, referenced, active, unknown, stale, unlocked or non-quiescent artifacts fail closed."
+      - "No filesystem probe, scan, traversal, production lock, audit write, persistence, move, overwrite, unlink or production action."
+      - "Production calibration is required before activation."
+    missing_policy: "REQUIRE_MANUAL_REVIEW or an explicit blocked status with no cleanup action."
+    output_range: "CLEANUP_CANDIDATE_REVIEW_REQUIRED, CLEANUP_BLOCKED_ACTIVE_OR_UNKNOWN, CLEANUP_BLOCKED_RESOURCE, CLEANUP_BLOCKED_PROTECTED, or REQUIRE_MANUAL_REVIEW; delete_allowed is always false."
+    open_task_ids:
+      - "TASK-OPME-B-001"
+    implementation_refs:
+      - "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py::derive_cleanup_request_id"
+      - "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py::evaluate_cleanup_candidate"
+      - "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py::InMemoryCleanupDecisionLedger"
+      - "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py::build_stage044_phase2_report"
+    code_refs:
+      - "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py"
+    test_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py"
+    evidence_refs:
+      - "EVID-IDS-STAGE044-P2"
       - "EVID-OPME-FORMULA-REGISTRY"
 parameters:
   -
@@ -3139,6 +3206,111 @@ parameters:
     code_refs: ["KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"]
     test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"]
     evidence_refs: ["EVID-IDS-STAGE043-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-082"
+    model_id: "MOD-013"
+    formula_id: "FORM-013"
+    symbol: "cleanup_scan_interval"
+    name: "cleanup scan interval"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "300"
+    source: "PROPOSED from Stage044 Phase2 reviewed Stage042 cleanup candidate scan interval; no scan and not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage044_half_product_cleanup_runtime_contract.json:policy.parameters.cleanup_scan_interval"
+    extracted_value: "300"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_half_product_cleanup_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE044-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-083"
+    model_id: "MOD-013"
+    formula_id: "FORM-013"
+    symbol: "cleanup_candidate_retention"
+    name: "cleanup candidate retention"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "600"
+    source: "PROPOSED from Stage044 Phase2 two reviewed Stage042 cleanup scan intervals plus Stage034 retention guards; not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage044_half_product_cleanup_runtime_contract.json:policy.parameters.cleanup_candidate_retention"
+    extracted_value: "600"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_half_product_cleanup_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE044-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-084"
+    model_id: "MOD-013"
+    formula_id: "FORM-013"
+    symbol: "cleanup_lock_lease"
+    name: "cleanup lock lease"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "30"
+    source: "PROPOSED from Stage044 Phase2 reviewed Stage041 lease duration; no lock acquisition and not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage044_half_product_cleanup_runtime_contract.json:policy.parameters.cleanup_lock_lease"
+    extracted_value: "30"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_half_product_cleanup_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE044-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-085"
+    model_id: "MOD-013"
+    formula_id: "FORM-013"
+    symbol: "writer_quiescence_window"
+    name: "writer quiescence window"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "60"
+    source: "PROPOSED from Stage044 Phase2 reviewed Stage042 stability window and two Stage041 leases; no probe and not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage044_half_product_cleanup_runtime_contract.json:policy.parameters.writer_quiescence_window"
+    extracted_value: "60"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_half_product_cleanup_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE044-P2", "EVID-OPME-PARAMETER-REGISTRY"]
+  -
+    parameter_id: "PARAM-086"
+    model_id: "MOD-013"
+    formula_id: "FORM-013"
+    symbol: "cleanup_attempt_timeout"
+    name: "cleanup attempt timeout"
+    category: "control_policy_parameter"
+    data_type: "integer"
+    unit: "seconds"
+    value: "30"
+    source: "PROPOSED from Stage044 Phase2 reviewed Stage041 lease and Stage043 checkpoint timeout; no wait or cleanup and not production calibrated"
+    calibration_method: "Required before production activation"
+    source_selector: "json_path:stage044_half_product_cleanup_runtime_contract.json:policy.parameters.cleanup_attempt_timeout"
+    extracted_value: "30"
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    status: "planned"
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_half_product_cleanup_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py"]
+    evidence_refs: ["EVID-IDS-STAGE044-P2", "EVID-OPME-PARAMETER-REGISTRY"]
 strategies:
   -
     strategy_id: "STRAT-OPME-001"

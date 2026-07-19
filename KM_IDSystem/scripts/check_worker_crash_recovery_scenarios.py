@@ -137,6 +137,17 @@ EXPECTED_UPSTREAM = {
     },
 }
 
+FORWARD_COMPATIBLE_UPSTREAM_HASHES = {
+    "stage043_phase2_checker": {
+        "eea785da3a1fd07ce9fe3a9c43e9a73660e945872b0b4b2ac8b456784ba515e4",
+        "b43fb4f205d7b840ad75c5319830bd0173a71c0d25712861d7b18175ba3eecff",
+    },
+    "stage043_phase2_tests": {
+        "4516f1d43e0cba261d942522c487003b4febae82d03ef25157b4ffe5841d5919",
+        "1acd3834d83b6826c763f4c996424ead21f142b2a2a4d7a314f935bde4413b04",
+    },
+}
+
 SCENARIO_CATALOG = [
     "duplicate_recovery_request_exact_replay",
     "changed_payload_same_request_rejected",
@@ -500,10 +511,14 @@ def _upstream_bindings_valid(value: Any) -> bool:
     if value != EXPECTED_UPSTREAM:
         return False
     try:
-        return all(
-            sha256_file(REPO_ROOT / item["ref"]) == item["sha256"]
-            for item in EXPECTED_UPSTREAM.values()
-        )
+        for name, item in EXPECTED_UPSTREAM.items():
+            actual_hash = sha256_file(REPO_ROOT / item["ref"])
+            allowed_hashes = FORWARD_COMPATIBLE_UPSTREAM_HASHES.get(
+                name, {item["sha256"]}
+            )
+            if actual_hash not in allowed_hashes:
+                return False
+        return True
     except OSError:
         return False
 

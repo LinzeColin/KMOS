@@ -223,6 +223,7 @@ EXPECTED_UPSTREAM = {
 FORWARD_COMPATIBLE_UPSTREAM_HASHES = {
     "stage042_phase3_checker": {
         "631a301630544421caa08c4f78105be3ee2035ed5b16aed1b3a8c094f21e66e2",
+        "1014b6d5cfd33c918dc4ef1250615ac39a190c30a74db4931c285293e3ef903c",
         "c57662f4f3d9b65ecd2b8a2e971bfa9b92ade2d535d804ceda33e173511e4d7a",
     },
     "stage042_phase3_tests": {

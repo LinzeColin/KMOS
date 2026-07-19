@@ -3,9 +3,9 @@
 Project: `KM_IDSystem`
 Governance spec version: `1.0.0`
 
-- model_count: 12
-- formula_count: 12
-- parameter_count: 81
+- model_count: 13
+- formula_count: 13
+- parameter_count: 86
 - active_model_count: 7
 - active_formula_count: 7
 - active_parameter_count: 49
@@ -70,6 +70,15 @@ without probing, terminating or restarting a process, mutating state, continuing
 a checkpoint, deleting output, persisting a decision, or activating production.
 All five proposed timing values require production calibration under
 `TASK-OPME-B-001` before activation.
+
+`MOD-013`, `FORM-013`, and `PARAM-082` through `PARAM-086` are planned,
+non-production Stage044 cleanup-candidate decision registrations. They evaluate
+only Git-tracked control references plus bounded ownership, retention, identity,
+hold, resource, namespace-lock and writer-quiescence metadata. A passing decision
+is only a review candidate; the slice does not probe, scan, traverse, lock, move,
+overwrite, delete, write audit or persistence, or activate production. All five
+proposed timing values require production calibration under `TASK-OPME-B-001`
+before activation.
 
 Technology stack components such as FastAPI, React, SQLite, ECharts, and PDF generation are architecture/output components, not models.
 

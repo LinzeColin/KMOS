@@ -168,7 +168,11 @@ class Stage043WorkerCrashRecoveryScenarioTests(unittest.TestCase):
                 {"ref": ref, "sha256": digest},
                 contract["upstream_bindings"][name],
             )
-            self.assertEqual(digest, checker.sha256_file(REPO_ROOT / ref))
+            actual_hash = checker.sha256_file(REPO_ROOT / ref)
+            allowed_hashes = checker.FORWARD_COMPATIBLE_UPSTREAM_HASHES.get(
+                name, {digest}
+            )
+            self.assertIn(actual_hash, allowed_hashes)
 
     def test_scenario_catalog_and_safety_contracts_are_exact(self):
         contract = self._contract()

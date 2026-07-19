@@ -95,6 +95,14 @@ EXPECTED_UPSTREAM = {
     ),
 }
 FORWARD_COMPATIBLE_UPSTREAM_HASHES = {
+    "stage042_phase2_checker": {
+        "d8516b714e5cb71d9a43ddb70a080e8315e0fdc8e654e264cd5f9cb56ae7e2a9",
+        "c7dca5a15d6d80f91b33affb3cb0f9ee9885b67e7e418009a1529158454ad93a",
+    },
+    "stage042_phase2_tests": {
+        "60cfb3d89dfb3cf921c3043adfe0ff91718e7442124def950e9a099019d40049",
+        "f11aa875c60ee46a301b78749371cda65f5bc8f6df45d0865d4befc81163f961",
+    },
     "stage041_phase3_tests": {
         "e84852e59ae5d7b963df242324549729db1f72abadcef7cb4b2ca67211f9be3d",
         "6b235e04b64ba09278821abaf0bd5258e40f8b5f03f56c395dba68ab8177e088",

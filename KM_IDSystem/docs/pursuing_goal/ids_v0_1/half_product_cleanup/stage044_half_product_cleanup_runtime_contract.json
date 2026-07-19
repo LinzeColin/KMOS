@@ -1,0 +1,427 @@
+{
+  "schema_version": "ids.stage044.half_product_cleanup.phase2.v1",
+  "stage": "STAGE-044",
+  "phase": "Phase 2",
+  "task_id": "IDS-V0_1-STAGE044-P2",
+  "acceptance_id": "ACC-STAGE-044",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_REFERENCE_ONLY_CLEANUP_CANDIDATE_DECISION_SLICE",
+  "policy_contract_id": "ids.half_product_cleanup_policy.v0_1.stage044.p2",
+  "contract_state": "PHASE2_ISOLATED_CANDIDATE_DECISION_SLICE_ENABLED_DELETE_DISABLED",
+  "next_gate": "IDS-STAGE044-P3-GATE",
+  "source_binding": {
+    "source_archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "source_member": "IDS_v0_1_Final_Chinese_Revised/stages/STAGE-044_半成品输出清理.md",
+    "source_member_match_count": 1,
+    "source_member_sha256": "e7e98eb5497aa33124b944dfc1d00e15588a672c0f9accc4cda4a66fe1f72a53",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+    "source_verification_status": "SOURCE_VERIFIED"
+  },
+  "phase1_predecessor_binding": {
+    "commit": "0eabde291fc54328e6fbc76df4f9dc5af894b770",
+    "tree": "53a8e0388ba3a2f6551c43b6dc07ee22ff90505c",
+    "parent": "e7835134550e2776f0949870fcaf7d7b9a54bd01",
+    "task_id": "IDS-V0_1-STAGE044-P1",
+    "result": "PASS_PHASE1_CONTRACT_DELETE_DISABLED"
+  },
+  "upstream_bindings": {
+    "phase1_contract": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_contract.json",
+      "sha256": "9630f59c6aa0a5bdfb35651392862e9b1031b460d9892fd7495071094d3d2475"
+    },
+    "phase1_checker": {
+      "ref": "KM_IDSystem/scripts/check_half_product_cleanup.py",
+      "sha256": "0db8d34b2be1e24abc87b7a3684ca59e800544ccebbd90ff4164a8b64c31c769"
+    },
+    "phase1_boundary": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_PHASE1_HALF_PRODUCT_CLEANUP_SCOPE_BOUNDARY.md",
+      "sha256": "b634d8bdfe60d015c7277c435b65d21fc46e3597bce4bf635889e45175a6b810"
+    },
+    "stage034_retention_contract": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/data_retention_table/stage034_data_retention_table_index.json",
+      "sha256": "0b579f93c623cd20e99752c9801f5c9bb14757e531697d687f87fe5c7c6c8504"
+    },
+    "stage037_state_index": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/job_state_model/stage037_job_state_model_index.json",
+      "sha256": "b70bf72ebe4212f45d380c13fbfe429791e1f4a5c73dccbba81211b7adc1c2d3"
+    },
+    "stage040_backpressure_runtime": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_runtime_contract.json",
+      "sha256": "2970ebd143030821d9a8b00e4fdb11342f8f82ef3bcf4d91717ba707b5054e2e"
+    },
+    "stage041_lock_runtime": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json",
+      "sha256": "80f87c789c6fc834b13eaec3d14d9444417ee7313ff8f88f6893bbda15e1f464"
+    },
+    "stage042_lifecycle_runtime": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json",
+      "sha256": "f24283a0ab934082b0ceb48c6ca1597ca17d1c6cca6a939e2653fb00ede83e49"
+    },
+    "stage043_recovery_runtime": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json",
+      "sha256": "153a451f3e5aef4fef1faa8b4e3035f472ac50298d790731f19ba8701361ab38"
+    }
+  },
+  "policy": {
+    "policy_version": "ids.half_product_cleanup_policy.v0_1.stage044.p2",
+    "parameters": {
+      "cleanup_scan_interval": 300,
+      "cleanup_candidate_retention": 600,
+      "cleanup_lock_lease": 30,
+      "writer_quiescence_window": 60,
+      "cleanup_attempt_timeout": 30
+    },
+    "parameter_provenance": {
+      "cleanup_scan_interval": {
+        "value": 300,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json"
+        ],
+        "derivation": "Reuses the reviewed Stage042 five-control-window cleanup candidate scan interval; this slice does not schedule or scan.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.half_product_cleanup_policy.v0_1.stage044.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py",
+        "rollback": "NO_AUTOMATIC_HALF_PRODUCT_CLEANUP"
+      },
+      "cleanup_candidate_retention": {
+        "value": 600,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/data_retention_table/stage034_data_retention_table_index.json",
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json"
+        ],
+        "derivation": "Two proposed Stage042 cleanup scan intervals provide one complete additional review interval after first eligibility; Stage034 still requires policy, keep-until, reason and owner hold evidence.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.half_product_cleanup_policy.v0_1.stage044.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py",
+        "rollback": "NO_AUTOMATIC_HALF_PRODUCT_CLEANUP"
+      },
+      "cleanup_lock_lease": {
+        "value": 30,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"
+        ],
+        "derivation": "Equals the reviewed Stage041 lease duration and does not acquire or extend a lock in this slice.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.half_product_cleanup_policy.v0_1.stage044.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py",
+        "rollback": "NO_AUTOMATIC_HALF_PRODUCT_CLEANUP"
+      },
+      "writer_quiescence_window": {
+        "value": 60,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json",
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"
+        ],
+        "derivation": "Equals the reviewed Stage042 stability window and two Stage041 lease durations before a reference-only candidate may be proposed.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.half_product_cleanup_policy.v0_1.stage044.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py",
+        "rollback": "NO_AUTOMATIC_HALF_PRODUCT_CLEANUP"
+      },
+      "cleanup_attempt_timeout": {
+        "value": 30,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json",
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"
+        ],
+        "derivation": "Equals one reviewed Stage041 lease and the Stage043 checkpoint validation timeout; it is a future ceiling and this slice never waits or executes cleanup.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.half_product_cleanup_policy.v0_1.stage044.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py",
+        "rollback": "NO_AUTOMATIC_HALF_PRODUCT_CLEANUP"
+      }
+    },
+    "parameter_relationships": [
+      "cleanup_candidate_retention >= 2 * cleanup_scan_interval",
+      "writer_quiescence_window >= 2 * cleanup_lock_lease",
+      "cleanup_attempt_timeout <= cleanup_lock_lease"
+    ],
+    "parameter_source": "REVIEWED_STAGE034_STAGE041_STAGE042_STAGE043_CONTROL_BOUNDARIES",
+    "selection_rationale": "Conservative logical evidence bounds for isolated candidate evaluation only; no timer, scanner, lock or cleanup executor is enabled.",
+    "fact_level": "PROPOSED",
+    "production_calibrated": false,
+    "production_calibration_required": true,
+    "production_calibration_task_id": "TASK-OPME-B-001",
+    "rollback_policy": "NO_AUTOMATIC_HALF_PRODUCT_CLEANUP"
+  },
+  "request_contract": {
+    "schema_version": "ids.stage044.cleanup_candidate_request.v1",
+    "required_root_fields": [
+      "schema_version",
+      "cleanup_request_id",
+      "job_id",
+      "attempt_id",
+      "creator_job_id",
+      "observed_job_state",
+      "expected_state_version",
+      "approved_root_id",
+      "approved_root_canonical_identity",
+      "candidate_parent_directory",
+      "root_relative_path",
+      "artifact_class",
+      "rebuildable",
+      "retention_policy_ref",
+      "legal_hold_status",
+      "owner_hold_status",
+      "cleanup_manifest_ref",
+      "immutable_lstat_identity",
+      "durable_reference_status",
+      "writer_quiescence_evidence_ref",
+      "resource_gate_evidence_ref",
+      "evidence"
+    ],
+    "required_lstat_identity_fields": [
+      "st_dev",
+      "st_ino",
+      "file_type"
+    ],
+    "required_evidence_fields": [
+      "input_refs",
+      "attempt_ownership_proved",
+      "approved_root_identity_proved",
+      "root_relative_path_proved",
+      "cleanup_manifest_valid",
+      "retention_elapsed_seconds",
+      "writer_quiescence_elapsed_seconds",
+      "writer_quiescence_proved",
+      "exclusive_namespace_lock_proved",
+      "namespace_lock_managed",
+      "namespace_lock_exclusive",
+      "producer_and_cleanup_leases_absent_or_fenced",
+      "resource_gates_passed",
+      "resource_pressure_signal",
+      "resource_observation_fresh",
+      "lstat_identity_stable",
+      "no_symlink_components_proved",
+      "canonical_containment_proved"
+    ],
+    "control_job_id_prefix": "control:stage044:",
+    "cleanup_request_id_prefix": "control:stage044:cleanup:",
+    "cleanup_request_id_formula": "prefix + sha256(canonical_json(request_without_cleanup_request_id))",
+    "expected_state_version_must_be_positive": true,
+    "unknown_field_action": "REQUIRE_MANUAL_REVIEW",
+    "malformed_request_action": "REQUIRE_MANUAL_REVIEW",
+    "raw_payload_allowed": false,
+    "absolute_path_allowed": false,
+    "secret_material_allowed": false
+  },
+  "decision_contract": {
+    "eligible_artifact_classes": [
+      "TEMP_STAGING_OUTPUT",
+      "INCOMPLETE_DERIVATIVE_OUTPUT"
+    ],
+    "protected_artifact_classes": [
+      "ORIGINAL_RAW_DATA",
+      "SOURCE_FILE",
+      "SOURCE_DATABASE",
+      "RUNTIME_DATABASE",
+      "FACT_SOURCE",
+      "MANIFEST",
+      "EVIDENCE_LEDGER",
+      "AUDIT_LOG",
+      "REPORT_SNAPSHOT",
+      "DELIVERED_REPORT",
+      "ACTIVE_INDEX",
+      "VALIDATED_RETRY_CHECKPOINT",
+      "OWNER_HELD_ARTIFACT",
+      "SUCCEEDED_JOB_OUTPUT"
+    ],
+    "candidate_job_states": [
+      "PAUSED",
+      "RETRY_WAIT",
+      "FAILED",
+      "DEAD_LETTERED",
+      "CANCELLED"
+    ],
+    "blocked_job_states": [
+      "CREATED",
+      "QUEUED",
+      "CLAIMED",
+      "RUNNING",
+      "PAUSE_REQUESTED",
+      "SUCCEEDED"
+    ],
+    "mandatory_resource_pause_signals": [
+      "EXTERNAL_DRIVE_OFFLINE",
+      "DISK_SPACE_INSUFFICIENT",
+      "EXTERNAL_API_BUDGET_INSUFFICIENT"
+    ],
+    "candidate_action": "CLEANUP_CANDIDATE_REVIEW_REQUIRED",
+    "protected_action": "CLEANUP_BLOCKED_PROTECTED",
+    "resource_action": "CLEANUP_BLOCKED_RESOURCE",
+    "unknown_or_active_action": "CLEANUP_BLOCKED_ACTIVE_OR_UNKNOWN",
+    "candidate_only": true,
+    "automatic_cleanup_allowed": false,
+    "delete_allowed": false,
+    "override_allowed": false
+  },
+  "path_and_identity_contract": {
+    "root_relative_path_only": true,
+    "absolute_path_blocked": true,
+    "parent_traversal_blocked": true,
+    "symlink_component_blocked": true,
+    "file_type_allowlist": [
+      "REGULAR_FILE"
+    ],
+    "positive_non_boolean_st_dev_required": true,
+    "positive_non_boolean_st_ino_required": true,
+    "canonical_containment_evidence_required": true,
+    "identity_stability_evidence_required": true,
+    "filesystem_identity_probe_allowed": false,
+    "filesystem_traversal_allowed": false
+  },
+  "idempotency_contract": {
+    "idempotency_key_fields": [
+      "cleanup_request_id",
+      "job_id",
+      "attempt_id",
+      "approved_root_id",
+      "root_relative_path",
+      "st_dev",
+      "st_ino",
+      "cleanup_manifest_ref"
+    ],
+    "request_id_formula_enforced_for_new_requests": true,
+    "ledger_mode": "PROCESS_LOCAL_IN_MEMORY_DECISION_ONLY",
+    "exact_replay_returns_original": true,
+    "same_request_id_changed_payload_action": "CLEANUP_REQUEST_CONFLICT",
+    "persistent_ledger_allowed": false,
+    "append_only_audit_required_for_future_cleanup": true,
+    "audit_write_allowed": false
+  },
+  "control_metadata_contract": {
+    "input_refs_must_be_git_tracked": true,
+    "raw_body_allowed": false,
+    "output_refs": [],
+    "candidate_ref_format": "candidate:sha256:<64 lowercase hex>",
+    "error_ref_format": "error:<bounded safe code>",
+    "audit_ref_format": "audit:stage044:sha256:<64 lowercase hex>",
+    "candidate_record_write_allowed": false,
+    "runtime_output_write_allowed": false
+  },
+  "human_status_projection": {
+    "CLEANUP_CANDIDATE_REVIEW_REQUIRED": {
+      "label_zh": "半成品清理候选待复核",
+      "severity": "INFO"
+    },
+    "CLEANUP_BLOCKED_ACTIVE_OR_UNKNOWN": {
+      "label_zh": "任务仍活跃或证据不完整，禁止清理",
+      "severity": "WARNING"
+    },
+    "CLEANUP_BLOCKED_RESOURCE": {
+      "label_zh": "资源条件未满足，清理暂停",
+      "severity": "WARNING"
+    },
+    "CLEANUP_BLOCKED_PROTECTED": {
+      "label_zh": "受保护资料不得清理",
+      "severity": "CRITICAL"
+    },
+    "REQUIRE_MANUAL_REVIEW": {
+      "label_zh": "清理请求无效或冲突，需要人工复核",
+      "severity": "CRITICAL"
+    }
+  },
+  "ownership_matrix": {
+    "retention_policy_metadata": "STAGE-034",
+    "job_state_and_attempt_manifest": "STAGE-037",
+    "backpressure_and_resource_observation": "STAGE-040",
+    "namespace_lock_lease_and_fencing": "STAGE-041",
+    "automatic_lifecycle_candidate_scan": "STAGE-042",
+    "worker_crash_recovery": "STAGE-043",
+    "half_product_candidate_policy": "STAGE-044",
+    "filesystem_cleanup_execution": "FUTURE_STAGE044_PHASE_NOT_ENABLED"
+  },
+  "registry_binding": {
+    "model_id": "MOD-013",
+    "formula_id": "FORM-013",
+    "parameter_ids": [
+      "PARAM-082",
+      "PARAM-083",
+      "PARAM-084",
+      "PARAM-085",
+      "PARAM-086"
+    ],
+    "production_calibration_task_id": "TASK-OPME-B-001"
+  },
+  "runtime_boundary": {
+    "isolated_candidate_decision_runtime_allowed": true,
+    "reference_only_control_metadata_allowed": true,
+    "cleanup_scan_allowed": false,
+    "filesystem_probe_allowed": false,
+    "filesystem_traversal_allowed": false,
+    "production_lock_runtime_allowed": false,
+    "writer_quiescence_probe_allowed": false,
+    "openat_allowed": false,
+    "unlinkat_allowed": false,
+    "delete_allowed": false,
+    "move_or_overwrite_allowed": false,
+    "cleanup_runtime_allowed": false,
+    "audit_write_allowed": false,
+    "database_allowed": false,
+    "schema_change_allowed": false,
+    "persistent_state_write_allowed": false,
+    "runtime_output_write_allowed": false,
+    "external_api_allowed": false,
+    "raw_metadata_access_allowed": false,
+    "ids_business_job_allowed": false,
+    "fake_ids_business_data_allowed": false,
+    "production_activation_allowed": false
+  },
+  "rollback": {
+    "trigger": "ANY_CONTRACT_SOURCE_REQUEST_IDENTITY_HOLD_REFERENCE_RESOURCE_LOCK_OR_QUIESCENCE_CHECK_FAILS",
+    "action": "NO_AUTOMATIC_HALF_PRODUCT_CLEANUP",
+    "preserve_phase1": true,
+    "preserve_stage034_stage043": true,
+    "preserve_source_manifest_evidence_audit_report_and_checkpoint": true,
+    "destructive_rollback_allowed": false,
+    "github_action_allowed": false
+  },
+  "phase3_entry_gate": {
+    "entry_authorized": false,
+    "required_task_id": "IDS-V0_1-STAGE044-P3",
+    "required_gate": "IDS-STAGE044-P3-GATE",
+    "separate_run_required": true,
+    "required_work": "Validate duplicate request, active writer, stale identity, resource pressure, lock conflict, protected artifact and no-delete scenarios without real filesystem cleanup."
+  },
+  "truth_flags": {
+    "taskpack_source_read_performed": true,
+    "parameter_values_assigned": true,
+    "isolated_candidate_decision_runtime_performed": true,
+    "cleanup_candidate_evaluation_performed": true,
+    "candidate_only_decision_emitted": true,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "fake_ids_business_data_used": false,
+    "real_ids_business_job_created": false,
+    "cleanup_scan_performed": false,
+    "writer_quiescence_probe_performed": false,
+    "filesystem_probe_performed": false,
+    "filesystem_traversal_performed": false,
+    "production_lock_runtime_performed": false,
+    "openat_called": false,
+    "delete_operation_started": false,
+    "unlinkat_called": false,
+    "move_or_overwrite_performed": false,
+    "cleanup_runtime_performed": false,
+    "protected_ref_delete_performed": false,
+    "state_transition_performed": false,
+    "terminal_result_changed": false,
+    "persistent_state_write_performed": false,
+    "audit_write_performed": false,
+    "database_connection_performed": false,
+    "schema_change_performed": false,
+    "runtime_output_written": false,
+    "external_api_call_performed": false,
+    "production_runtime_activation_performed": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "app_reinstall_allowed": false
+  }
+}

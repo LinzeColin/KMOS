@@ -361,3 +361,35 @@ formulas:
     implementation_refs: ["KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::derive_recovery_request_key", "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::evaluate_recovery", "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::InMemoryRecoveryDecisionLedger", "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::build_stage043_phase2_report"]
     semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
     semantic_review_task_ids: ""
+  - formula_id: "FORM-013"
+    model_id: "MOD-013"
+    assumption_ids: ["ASM-009"]
+    status: "planned"
+    expression: "validate the canonical reference-only cleanup request and Git-tracked evidence; protected, held, referenced, active, unknown or resource-blocked artifacts fail closed; only two rebuildable classes in five eligible states with stable identity, elapsed retention, managed exclusive namespace lock, fenced or absent producers, fresh resource gates and full writer quiescence emit CLEANUP_CANDIDATE_REVIEW_REQUIRED; no scan, traversal, mutation or delete occurs."
+    variables:
+      - name: "expected_state_version"
+        data_type: "integer"
+        unit: "monotonic control version"
+        input_domain: "positive non-boolean integer"
+      - name: "retention_elapsed_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "zero or greater logical duration"
+      - name: "writer_quiescence_elapsed_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "zero or greater logical duration"
+      - name: "immutable_lstat_identity"
+        data_type: "reference-only object"
+        unit: "st_dev, st_ino, file_type"
+        input_domain: "positive non-boolean identities and REGULAR_FILE type"
+    constraints: ["Isolated in-memory reference-only decision metadata.", "All control input refs must be Git tracked and candidate paths remain unvisited.", "Only TEMP_STAGING_OUTPUT and INCOMPLETE_DERIVATIVE_OUTPUT can become review candidates.", "Protected, held, referenced, active, unknown, stale, unlocked or non-quiescent artifacts fail closed.", "No filesystem probe, scan, traversal, production lock, audit write, persistence, move, overwrite, unlink or production action.", "Production calibration is required before activation."]
+    missing_policy: "REQUIRE_MANUAL_REVIEW or an explicit blocked status with no cleanup action."
+    output_range: "CLEANUP_CANDIDATE_REVIEW_REQUIRED, CLEANUP_BLOCKED_ACTIVE_OR_UNKNOWN, CLEANUP_BLOCKED_RESOURCE, CLEANUP_BLOCKED_PROTECTED, or REQUIRE_MANUAL_REVIEW; delete_allowed is always false."
+    open_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_half_product_cleanup_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_PHASE2_HALF_PRODUCT_CLEANUP_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_runtime_contract.json"]
+    implementation_refs: ["KM_IDSystem/scripts/check_half_product_cleanup_runtime.py::derive_cleanup_request_id", "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py::evaluate_cleanup_candidate", "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py::InMemoryCleanupDecisionLedger", "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py::build_stage044_phase2_report"]
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    semantic_review_task_ids: ""
