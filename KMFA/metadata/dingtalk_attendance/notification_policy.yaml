@@ -6,7 +6,7 @@ delivery_disabled_status: NOT_SENT_OWNER_DISABLED
 scheduled_delivery_target_filter: group
 duplicate_guard_key: work_date_plus_run_slot
 recipient_policy:
-  zhang_linze_dingtalk_user_id: 1iv-1t2oesv2yd
+  zhang_linze_dingtalk_user_id: 01256723246324629191
   boss_dingtalk_user_id: CONFIG_REQUIRED
 channel_priority:
   - dingtalk_group_robot

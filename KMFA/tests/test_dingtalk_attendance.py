@@ -2009,7 +2009,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
         )
         self.assertEqual(plan["onedrive_root"], "/Users/linzezhang/OneDrive/dingtalk_attendance")
         self.assertEqual(plan["onedrive_month_folder_pattern"], "YYYYMM")
-        self.assertEqual(plan["known_recipients"]["zhang_linze"]["dingtalk_user_id"], "1iv-1t2oesv2yd")
+        self.assertEqual(plan["known_recipients"]["zhang_linze"]["dingtalk_user_id"], "01256723246324629191")
         self.assertFalse(plan["public_repo_safety"]["employee_plaintext_committed"])
         self.assertFalse(plan["public_repo_safety"]["sqlite_committed"])
         self.assertFalse(plan["public_repo_safety"]["credential_committed"])
@@ -2494,7 +2494,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                                 "type": "personal",
                                 "enabled": True,
                                 "reports": ["management", "hr"],
-                                "user_id": "1iv-1t2oesv2yd",
+                                "user_id": "01256723246324629191",
                             }
                         ],
                     },
@@ -2511,7 +2511,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                         "enabled": True,
                         "reports": ["management", "hr"],
                         "resolved_channel": "dws_open_dingtalk_id_chat",
-                        "user_id": "1iv-1t2oesv2yd",
+                        "user_id": "01256723246324629191",
                         "open_dingtalk_id": "open-secret-id",
                         "last_probe_status": "SENT",
                     }
@@ -4816,14 +4816,14 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
 
         result = send_dws_chat_message(
             recipient_flag="--user",
-            recipient_value="1iv-1t2oesv2yd",
+            recipient_value="01256723246324629191",
             title="开明考勤个人通知验证",
             text="开明考勤个人通知验证",
             help_text="Flags:\n      --user string\n      --text string\n",
             runner=fake_runner,
         )
 
-        self.assertEqual(calls[0][:7], ["dws", "chat", "message", "send", "--user", "1iv-1t2oesv2yd", "--title"])
+        self.assertEqual(calls[0][:7], ["dws", "chat", "message", "send", "--user", "01256723246324629191", "--title"])
         self.assertIn("--text", calls[0])
         self.assertEqual(result["status"], "FAILED")
         self.assertEqual(result["channel"], "dws_userid_chat")
@@ -4842,13 +4842,13 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                 if args[:5] == ["dws", "chat", "message", "send", "--user"]:
                     return {"returncode": 1, "payload": {"error": {"server_key": "chat", "reason": "business_error", "message": "系统错误"}}}
                 if args[:5] == ["dws", "contact", "user", "get", "--ids"]:
-                    return {"returncode": 0, "payload": {"success": True, "result": [{"name": "张霖泽", "userId": "1iv-1t2oesv2yd"}]}}
+                    return {"returncode": 0, "payload": {"success": True, "result": [{"name": "张霖泽", "userId": "01256723246324629191"}]}}
                 if args[:5] == ["dws", "contact", "user", "search", "--query"]:
                     return {
                         "returncode": 0,
                         "payload": {
                             "success": True,
-                            "result": [{"name": "张霖泽", "userId": "1iv-1t2oesv2yd", "openDingTalkId": "open-ding-id"}],
+                            "result": [{"name": "张霖泽", "userId": "01256723246324629191", "openDingTalkId": "open-ding-id"}],
                         },
                     }
                 if args[:5] == ["dws", "chat", "message", "send", "--open-dingtalk-id"]:
@@ -4856,7 +4856,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                 raise AssertionError(f"unexpected args: {args}")
 
             result = probe_notification_channels(
-                recipient="1iv-1t2oesv2yd",
+                recipient="01256723246324629191",
                 recipient_name="张霖泽",
                 runtime_dir=runtime_dir,
                 public_manifest_path=manifest_path,
@@ -4891,7 +4891,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                         "status": "SENT",
                         "channel": "dws_userid_chat",
                         "channel_type": "personal",
-                        "recipient_user_id": "1iv-1t2oesv2yd",
+                        "recipient_user_id": "01256723246324629191",
                     },
                     ensure_ascii=False,
                 ),
@@ -4983,7 +4983,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                         "status": "SENT",
                         "channel": "dws_userid_chat",
                         "channel_type": "personal",
-                        "recipient_user_id": "1iv-1t2oesv2yd",
+                        "recipient_user_id": "01256723246324629191",
                     },
                     ensure_ascii=False,
                 ),
@@ -5130,7 +5130,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                         "recipient_name": "张霖泽",
                         "channel": "dws_open_dingtalk_id_chat",
                         "channel_type": "personal",
-                        "recipient_user_id": "1iv-1t2oesv2yd",
+                        "recipient_user_id": "01256723246324629191",
                         "open_dingtalk_id": "open-secret-id",
                     },
                     ensure_ascii=False,
@@ -5175,7 +5175,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                                 "enabled": True,
                                 "reports": ["management"],
                                 "resolved_channel": "dws_userid_chat",
-                                "user_id": "1iv-1t2oesv2yd",
+                                "user_id": "01256723246324629191",
                                 "last_probe_status": "SENT",
                             },
                             {
@@ -5456,7 +5456,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                                 "type": "personal",
                                 "enabled": True,
                                 "reports": ["management", "hr"],
-                                "user_id": "1iv-1t2oesv2yd",
+                                "user_id": "01256723246324629191",
                             }
                         ],
                     },
@@ -5473,7 +5473,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                         "returncode": 0,
                         "payload": {
                             "success": True,
-                            "result": [{"name": "张霖泽", "userId": "1iv-1t2oesv2yd", "openDingTalkId": "open-secret-id"}],
+                            "result": [{"name": "张霖泽", "userId": "01256723246324629191", "openDingTalkId": "open-secret-id"}],
                         },
                     }
                 if args[:5] == ["dws", "chat", "message", "send", "--open-dingtalk-id"]:
@@ -5516,7 +5516,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                                 "type": "personal",
                                 "enabled": True,
                                 "reports": ["management", "hr"],
-                                "user_id": "1iv-1t2oesv2yd",
+                                "user_id": "01256723246324629191",
                             }
                         ],
                     },
@@ -5529,13 +5529,13 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
             def fake_runner(args: list[str], timeout: int = 30) -> dict:
                 calls.append(args)
                 if args[:5] == ["dws", "contact", "user", "get", "--ids"]:
-                    return {"returncode": 0, "payload": {"success": True, "result": [{"name": "张霖泽", "userId": "1iv-1t2oesv2yd"}]}}
+                    return {"returncode": 0, "payload": {"success": True, "result": [{"name": "张霖泽", "userId": "01256723246324629191"}]}}
                 if args[:5] == ["dws", "contact", "user", "search", "--query"]:
                     return {
                         "returncode": 0,
                         "payload": {
                             "success": True,
-                            "result": [{"name": "张霖泽", "userId": "1iv-1t2oesv2yd", "openDingTalkId": "open-secret-id"}],
+                            "result": [{"name": "张霖泽", "userId": "01256723246324629191", "openDingTalkId": "open-secret-id"}],
                         },
                     }
                 if args[:5] == ["dws", "chat", "message", "send", "--open-dingtalk-id"]:
@@ -5574,7 +5574,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                                 "type": "personal",
                                 "enabled": True,
                                 "reports": ["management", "hr"],
-                                "user_id": "1iv-1t2oesv2yd",
+                                "user_id": "01256723246324629191",
                             },
                             {
                                 "label": "考勤小群",
@@ -5600,7 +5600,7 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                                 "enabled": True,
                                 "reports": ["management", "hr"],
                                 "resolved_channel": "dws_open_dingtalk_id_chat",
-                                "user_id": "1iv-1t2oesv2yd",
+                                "user_id": "01256723246324629191",
                                 "open_dingtalk_id": "open-secret-id",
                                 "last_probe_status": "SENT",
                             }
