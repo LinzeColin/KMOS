@@ -1747,7 +1747,7 @@ stages:
   - stage_id: "DT9"
     name: "Skills 全量上 Oracle（SKL，云端优先修订 R3/R4）"
     person_goal: "在产 skill 全部迁 Oracle（定时 cron + 按需 App 触发）：钉钉考勤（10:35/20:05）、日常检查、资金周报（swift OCR→Python OCR）、经营月报、上游归档；钉钉考勤双跑比对≥3天后一刀切换，任一时刻仅一个发送端存活；红圈浏览器导出例外留 Mac 采集端。测试投递收发对象按 Owner 指定可用「张霖泽」。DT4 实质完成即可与 DT5/DT6 并行。"
-    status: "in_progress_20260719_skills云端Coolify运行_dws设备码已授权(张霖泽@武汉开明)_主机self-audit-rc0_投递KMFA_DELIVERY_ENABLED=0-dry-run_等考勤双跑≥3天+G9切换；fund-weekly/mgmt-monthly/upstream-archive 真业务入口仍待数据/Owner复核/红圈Mac采集(故云端接校验器)"
+    status: "in_progress_20260719_skills云端Coolify运行_dws设备码已授权(张霖泽@武汉开明)_主机self-audit-rc0_张霖泽测试投递已实证(Owner本人钉钉收到)_投递KMFA_DELIVERY_ENABLED=0-dry-run_等考勤双跑≥3天+G9切换；fund-weekly/mgmt-monthly/upstream-archive 真业务入口仍待数据/Owner复核/红圈Mac采集(故云端接校验器)"
     estimated_hours: 30
     stop_gate:
       gate_id: "G9"
