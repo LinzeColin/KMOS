@@ -541,6 +541,55 @@ function 审计日志({ 审计 }) {
   )
 }
 
+function 排程健康({ 排程 }) {
+  if (!排程) return <p style={S.muted}>加载中…</p>
+  if (!排程.可读) return (
+    <div style={{ ...S.card, marginTop: '1rem', borderLeft: '4px solid #c0392b' }}>
+      <b>读不到排程日志</b>
+      <div style={{ ...S.muted, marginTop: '.4rem' }}>{排程.原因}</div>
+      <div style={{ ...S.muted, marginTop: '.4rem' }}>{排程.诚实边界}</div>
+    </div>
+  )
+  const 好 = 排程.失败数 === 0 && 排程.仍在空跑数 === 0
+  return (
+    <>
+      <div style={S.grid}>
+        <div style={S.card}><div style={S.muted}>有记录的技能</div>
+          <div style={S.num}>{排程.有记录的技能数}</div></div>
+        <div style={S.card}><div style={S.muted}>最近一次失败</div>
+          <div style={{ ...S.num, color: 排程.失败数 ? '#c0392b' : '#1e8449' }}>{排程.失败数}</div></div>
+        <div style={S.card}><div style={S.muted}>仍在空跑</div>
+          <div style={{ ...S.num, color: 排程.仍在空跑数 ? '#b9770e' : '#1e8449' }}>{排程.仍在空跑数}</div>
+          <div style={S.muted}>投递开关=0</div></div>
+        <div style={S.card}><div style={S.muted}>总执行次数</div>
+          <div style={S.num}>{排程.总执行次数}</div></div>
+      </div>
+      <div style={{ ...S.card, marginTop: '1rem', borderLeft: `4px solid ${好 ? '#1e8449' : '#b9770e'}` }}>
+        <b>{排程.结论}</b>
+        <div style={{ ...S.muted, marginTop: '.3rem' }}>{排程.诚实边界}</div>
+      </div>
+      <table style={表样}>
+        <thead><tr>
+          <th style={格样}>技能</th><th style={格样}>约定时刻</th><th style={格样}>最近一次</th>
+          <th style={格样}>距今</th><th style={格样}>结果</th><th style={格样}>投递</th>
+        </tr></thead>
+        <tbody>{排程.逐项.map(x => (
+          <tr key={x.技能}>
+            <td style={格样}><code>{x.技能}</code></td>
+            <td style={格样}>{x.约定时刻}</td>
+            <td style={格样}>{x.最近一次 ?? <span style={{ color: '#c0392b' }}>从未跑过</span>}</td>
+            <td style={格样}>{x.距今小时 == null ? '—' : `${x.距今小时} 小时前`}</td>
+            <td style={{ ...格样, color: x.成功 === true ? '#1e8449' : x.成功 === false ? '#c0392b' : '#999' }}>
+              {x.成功 === true ? `成功 (rc=0)` : x.成功 === false ? `失败 (rc=${x.退出码})` : '—'}</td>
+            <td style={{ ...格样, color: String(x.投递开关) === '1' ? '#1e8449' : '#b9770e' }}>
+              {x.投递开关 == null ? '—' : String(x.投递开关) === '1' ? '已开' : '空跑'}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </>
+  )
+}
+
 function 数据管线({ 管线 }) {
   if (!管线) return <div style={{ ...S.card, marginTop: '1.2rem' }}>加载中…</div>
   const 表 = Object.entries(管线.staging_tables ?? {}).sort((a, b) => (b[1].rows ?? 0) - (a[1].rows ?? 0))
@@ -986,6 +1035,7 @@ export default function App() {
   const [影响, set影响] = useState(null)
   const [选中资产, set选中资产] = useState('')
   const [审计, set审计] = useState(null)
+  const [排程, set排程] = useState(null)
   const 取审计 = () => fetch('/api/审计日志').then(r => r.json()).then(set审计)
   const 取影响 = (a) => fetch('/api/影响重跑' + (a ? `?asset=${encodeURIComponent(a)}` : ''))
     .then(r => r.json()).then(set影响)
@@ -998,6 +1048,7 @@ export default function App() {
     fetch('/api/报告中心').then(r => r.json()).then(set中心)
     取影响()
     取审计()
+    fetch('/api/排程健康').then(r => r.json()).then(set排程)
     fetch('/api/状态').then(r => r.json()).then(set状态)
     fetch('/api/断言').then(r => r.json()).then(set断言)
     fetch('/api/数据管线').then(r => r.json()).then(set管线)
@@ -1018,7 +1069,7 @@ export default function App() {
       <nav style={S.tabs}>
         {/* 页签用语义化 button+role=tab：span onClick 既不可键盘操作、也不进可访问性树，
             自动化（含 PROD.0013 Playwright）点不到——本单元真开页面时实测踩到。 */}
-        {['我在哪', '源检查板', '项目成本', '账龄回款', '开票纳税', '差异工作台', '报告中心', '影响重跑', '审计日志', '数据管线', '技能'].map(t => (
+        {['我在哪', '源检查板', '项目成本', '账龄回款', '开票纳税', '差异工作台', '报告中心', '影响重跑', '排程健康', '审计日志', '数据管线', '技能'].map(t => (
           <button key={t} type="button" role="tab" aria-selected={页 === t}
                   style={{ ...S.tab(页 === t), font: 'inherit' }} onClick={() => set页(t)}>{t}</button>
         ))}
@@ -1032,6 +1083,7 @@ export default function App() {
       {页 === '报告中心' && <报告中心 中心={中心} />}
       {页 === '影响重跑' && <影响重跑 图={影响} 选中资产={选中资产}
         选资产={a => { set选中资产(a); 取影响(a) }} 刷新={取影响} />}
+      {页 === '排程健康' && <排程健康 排程={排程} />}
       {页 === '审计日志' && <审计日志 审计={审计} />}
       {页 === '数据管线' && <数据管线 管线={管线} />}
       {页 === '技能' && <技能页 技能={技能} />}
