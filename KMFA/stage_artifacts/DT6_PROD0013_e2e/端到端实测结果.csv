@@ -1,0 +1,11 @@
+﻿file,title,control_type,index,label,action,status,reason,console
+app,登录,flow,0,单用户模式（鉴权由 Cloudflare Access 前置）,goto http://host.docker.internal:18098/ui/,PASS,页眉三元组: KMFA 经营分析 质量 Q3 报告 D —— 缺失、过期、失败或关键差异未闭合 Q4 / D / NO_GO / 3-,
+app,首页,flow,1,我在哪,click tab,PASS,含 BLK-001 / S18 / 版本 0.1.4,
+app,检查板,flow,2,源检查板,click tab,PASS,覆盖矩阵含真实资产数,
+app,成本页,flow,3,项目成本,click tab,PASS,阻塞如实呈现且无编造毛利,
+app,差异处理,flow,4,三选一决策 闭案,fill+click,PASS,事件已写入（写入前: App 写入 1｜已冲正 1）,
+app,影响预览,flow,5,raw:d46f77b0c90d,select_option,PASS,"下游影响面含真实派生表与行数（goods_movement 17,764）",
+app,重跑,flow,6,四层链,fill+click,PASS,四层全完成、链完整、旧版本保留（命中 4/4 层）,
+app,报告导出,flow,7,第1号 HTML,click download,PASS,3735 字节，魔数 b'<!do'，水印在,
+app,报告导出,flow,7,第1号 CSV,click download,PASS,763 字节，魔数 b'\xef\xbb\xbf\xe6'，水印在,
+app,报告导出,flow,7,第1号 PDF,click download,PASS,4875 字节，魔数 b'%PDF'，水印在,
