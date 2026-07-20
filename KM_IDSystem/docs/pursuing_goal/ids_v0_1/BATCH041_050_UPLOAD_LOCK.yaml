@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-19T20:00:59Z"
-status: "stage045_phase4_completed_review_pending"
+updated_at_utc: "2026-07-19T23:48:07Z"
+status: "stage045_completed_reviewed_local"
 
 transition_history:
+  stage045_review_state:
+    status: "stage045_completed_reviewed_local"
+    current_task_id: "IDS-V0_1-STAGE045-REVIEW"
+    next_gate: "IDS-STAGE046-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE046-P1"
+    github_upload_allowed: false
   stage045_phase4_state:
     status: "stage045_phase4_completed_review_pending"
     current_task_id: "IDS-V0_1-STAGE045-P4"
@@ -761,17 +767,18 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
   STAGE-045:
-    status: "stage045_phase4_completed_review_pending"
+    status: "stage045_completed_reviewed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_gate: "IDS-STAGE045-REVIEW-GATE"
-    current_task_id: "IDS-V0_1-STAGE045-P4"
+    next_stage: "STAGE-046"
+    next_gate: "IDS-STAGE046-P1-GATE"
+    current_task_id: "IDS-V0_1-STAGE045-REVIEW"
     acceptance_id: "ACC-STAGE-045"
-    acceptance_status: "phase4_closeout_complete_review_pending"
-    review_status: "pending"
+    acceptance_status: "reviewed_local_passed"
+    review_status: "passed"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
     phase4_entry_authorized: true
@@ -790,8 +797,24 @@ stage_progress:
     phase3_scenarios_valid: true
     phase4_delivery_valid: true
     delivery_result: "PASS_ISOLATED_FILE_TYPE_DETECTION_CLOSEOUT_PARSER_DISABLED"
-    stage_review_status: "pending_next_run"
-    contract_state: "PHASE4_CLOSEOUT_EVIDENCE_ENABLED_PARSER_AND_FALLBACK_DISABLED"
+    stage_review_schema: "ids.stage045.file_type_detection.stage_review.v1"
+    stage_review_status: "completed_reviewed_local"
+    stage_review_result: "PASS_REVIEWED_LOCAL_PARSER_AND_FALLBACK_DISABLED"
+    review_finding_count: 7
+    review_critical_finding_count: 3
+    review_important_finding_count: 4
+    review_minor_finding_count: 0
+    review_findings_repaired: true
+    source_integrity_valid: true
+    phase4_commit_binding_valid: true
+    approved_sources_live_exact: true
+    bounded_format_structure_validation: true
+    ooxml_marker_fallback_fail_closed: true
+    ooxml_member_identity_canonical: true
+    unknown_mime_canonical: true
+    utc_timestamp_semantic: true
+    evidence_prevalidated_before_signature: true
+    contract_state: "STAGE045_REVIEWED_LOCAL_PARSER_AND_FALLBACK_DISABLED"
     detector_version: "ids.file_type_detector.v0_1.stage045.p2"
     canonical_type_count: 10
     detection_state_count: 6
@@ -860,10 +883,11 @@ stage_progress:
     schema_change_performed: false
     runtime_output_written: false
     production_runtime_activation_performed: false
-    whole_stage_review_performed: false
+    whole_stage_review_performed: true
     batch_review_performed: false
     github_upload_allowed: false
     app_reinstall_allowed: false
+    stage046_entry_allowed: false
     evidence_refs:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_ENTRY_CONTRACT.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_PHASE1_FILE_TYPE_DETECTION_SCOPE_BOUNDARY.md"
@@ -882,12 +906,17 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_delivery_contract.json"
       - "KM_IDSystem/scripts/check_file_type_detection_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_delivery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_STAGE_REVIEW_PRECHECK.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_STAGE_REVIEW.md"
+      - "KM_IDSystem/scripts/check_file_type_detection_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_review_repairs.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_stage_review.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE045-P4"
-  next_allowed_task_id: "IDS-V0_1-STAGE045-REVIEW"
+  current_task_id: "IDS-V0_1-STAGE045-REVIEW"
+  next_allowed_task_id: "IDS-V0_1-STAGE046-P1"
   github_upload_allowed: false
-  current_run: "STAGE-045 Phase 4 derived six schema-only parser-output samples, seven non-runtime fallback-log samples, exact quality metrics and four fail-closed failure classes from the fourteen committed Phase 3 scenarios; no parser or fallback ran."
-  no_upload_reason: "BATCH041_050 has four completed and individually reviewed Stages plus STAGE-045 Phase 1-4 only; STAGE-045 whole-stage review, STAGE-046..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."
+  current_run: "STAGE-045 whole-stage independent review live-rehashed all approved sources, rebound the Phase1-4 evidence chain and verified seven repaired findings before completing ACC-STAGE-045 locally. No IDS business source, parser, fallback, persistence, Stage046, GitHub, app or production action ran."
+  no_upload_reason: "BATCH041_050 has five completed and individually reviewed Stages, but STAGE-046..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."

@@ -1,6 +1,31 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE045-REVIEW-01`",
+      "criteria": "批准 task-pack、唯一 Stage045 成员、roadmap 与 instructions 已恢复到精确绑定路径并由最终复审重新计算四项哈希",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-REVIEW-02`",
+      "criteria": "Phase4 commit 与 KM_IDSystem tree 仍为当前 HEAD 祖先，Phase1-4 checker 均由最终复审重新执行",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-REVIEW-03`",
+      "criteria": "三项严重与四项重要发现全部由可执行反例验证，截断格式、OOXML 绕过、MIME、UTC 和 evidence 顺序均失败关闭",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-REVIEW-04`",
+      "criteria": "最终 review 文档、checker、tests、事件、治理和机器记录形成 durable completed_reviewed_local 证据并绑定 Git index",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-REVIEW-05`",
+      "criteria": "未读取 IDS 业务源或原始元数据，未执行解析器、回退、持久化、Stage046、批次复审、GitHub 或应用重装",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE045-P4-01`",
       "criteria": "步骤四交付合同精确绑定批准来源、已提交步骤三前序与五项 Git 索引上游证据",
       "status": "已通过"

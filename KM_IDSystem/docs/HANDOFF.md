@@ -11,16 +11,37 @@
 
 ## Current Gate - 2026-07-20
 
-- Stage045 independent review precheck is **not complete**: the three externally
-  bound task-pack/roadmap/instructions files are currently absent from their
-  recorded Downloads paths, so live source rehash is unavailable and
-  `IDS-STAGE045-REVIEW-GATE` remains blocked. The precheck repaired bounded
-  structure validation, OOXML marker/path bypass, MIME/timestamp canonicalization
-  and evidence-check ordering, but it did not create reviewed-local governance.
-  See `STAGE045_STAGE_REVIEW_PRECHECK.md`; the only next task remains
-  `IDS-V0_1-STAGE045-REVIEW` after exact source restoration.
+- Completed task in this run: `IDS-V0_1-STAGE045-REVIEW`. The three exact approved
+  source files were restored through their original conversation attachments and
+  live-rehashed against the existing archive/member/roadmap/instructions bindings.
+  Final review replays Phase1-4, Phase4 ancestry and all seven findings; all
+  `3 Critical / 4 Important / 0 Minor` findings are resolved and Stage045 is
+  `completed_reviewed_local` with parser and fallback disabled. The blocked
+  precheck remains preserved as historical fail-closed evidence.
+- Next allowed task: `IDS-V0_1-STAGE046-P1`, in a separate future run behind
+  `IDS-STAGE046-P1-GATE`; `NO_STAGE046_THIS_RUN`, `NO_BATCH_REVIEW_THIS_RUN`,
+  `NO_GITHUB_UPLOAD_THIS_RUN`, `NO_APP_REINSTALL_THIS_RUN`.
+- Preserved predecessor gate evidence: Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`;
+  Next allowed task: `IDS-V0_1-STAGE045-P1`.
+  This is historical evidence only; the current gate remains Stage046 P1.
+- Current source hashes: archive
+  `55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3`,
+  unique Stage045 member
+  `4eac237a7f63d764cf71789d4949a5168cbe8fe24e1fe7eb816baabe04bb4d27`,
+  roadmap `a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6`,
+  instructions `ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8`.
+- Final review evidence: `STAGE045_STAGE_REVIEW.md`,
+  `scripts/check_file_type_detection_stage_review.py`, focused review tests and
+  `machine/runs/2026-07-20-stage045-review-local.json`. Any live source,
+  Phase4 ancestry, phase replay, finding, governance or Git-index mismatch returns
+  `FAIL_CLOSED` to `IDS-STAGE045-REVIEW-GATE`.
+- Final review validation: focused `8/8` in `24.465s`, Stage005 `172/172` in
+  `41.976s`, Stage041–045 aggregate `343/343` in `1171.188s`, full discovery
+  `1093/1093` in `1548.501s`, and historical/current review checkers `8/8`.
+  The repaired compatibility route is exactly Stage045 review → Stage046 P1 gate;
+  Stage044 checker remains at its Phase1-bound hash.
 - Completed task in this run: `IDS-V0_1-STAGE045-P4`; the approved source, committed Phase3 predecessor and five indexed Phase3 artifacts are bound into `ids.stage045.file_type_detection.phase4.delivery.v1`. The checker replays all fourteen Phase3 scenarios and derives six schema-only parser-output samples, seven non-runtime fallback-log samples, exact quality metrics and four fail-closed failure classes without parser or fallback execution.
-- Next allowed task: `IDS-V0_1-STAGE045-REVIEW`, in a separate future run behind `IDS-STAGE045-REVIEW-GATE`; `NO_STAGE_REVIEW_THIS_RUN`, `NO_STAGE046_THIS_RUN`, `NO_BATCH_REVIEW_THIS_RUN`.
+- Preserved Stage045 Phase 4 transition: Completed task in this run: `IDS-V0_1-STAGE045-P4`; Next allowed task: `IDS-V0_1-STAGE045-REVIEW`. This is historical evidence, not the current gate.
 - Preserved Stage045 Phase 3 transition: Completed task in this run: `IDS-V0_1-STAGE045-P3`; Next allowed task: `IDS-V0_1-STAGE045-P4`. This is historical evidence, not the current gate.
 - Preserved Stage045 Phase 2 transition: Completed task in this run: `IDS-V0_1-STAGE045-P2`; Next allowed task: `IDS-V0_1-STAGE045-P3`. This is historical evidence, not the current gate.
 - Preserved Stage045 Phase 1 transition: Completed task in this run: `IDS-V0_1-STAGE045-P1`; Next allowed task: `IDS-V0_1-STAGE045-P2`. This is historical evidence, not the current gate.
@@ -44,7 +65,7 @@
 - The first aggregate failed closed on fourteen historical current-route/index assertions and the first full discovery failed closed on four P3-to-P4 routes plus one stale owner render. A final-evidence Stage005 run failed closed on twenty-two exact result-binding checks before synchronization. Repairs were restricted to exact forward-route compatibility, preservation of existing historical safety invariants, generated owner views and the exact roadmap result binding; one wrong-workdir targeted command was interrupted and not counted as PASS.
 - Pre-commit self-review repaired one Important fail-closed gap: the three instruction-control flags now derive from the bounded Phase2 evidence wrapper and are included in scenario PASS evaluation instead of being hard-coded false. The same existing test proves an unsafe wrapper forces `FAIL_CLOSED`; the test count remains eighteen.
 - Project governance note: the sparse worktree does not contain root `scripts/lean_governance.py`, so the repository-wide command reports `SPARSE_CONFLICT`; no sparse expansion or unrelated-project inspection was performed.
-- Current batch gate: `BATCH041_050` has four locally reviewed Stages plus Stage045 Phase 1-4 and remains locked with `push_allowed=false`; Stage045 review, Stage046-050, single-stage upload, GitHub action, merge, app reinstall, batch review and production action are not authorized.
+- Current batch gate: `BATCH041_050` has five locally reviewed Stages and remains locked with `push_allowed=false`; Stage046-050, single-stage upload, GitHub action, merge, app reinstall, batch review and production action are not authorized.
 - Preserve owner-controlled dependency/service paths (`backend/requirements.txt`, `frontend/package.json`, `frontend/pnpm-workspace.yaml`, `scripts/run_local_services.sh`); this phase does not modify them.
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only governance boundary and was not touched. Do not read, list, hash, open, scan, copy, move, delete, modify, dump, or normalize its contents.
 

@@ -344,8 +344,8 @@ class Stage045FileTypeDetectionDeliveryTests(unittest.TestCase):
         self.assertIn('current_phase_id: "IDS-STAGE045-P4"', roadmap)
         self.assertIn('next_gate_id: "IDS-STAGE045-REVIEW-GATE"', roadmap)
         self.assertIn("IDS-V0_1-STAGE045-P4", events)
-        self.assertEqual("IDS-STAGE045-P4", status["phase"])
-        self.assertEqual("IDS-STAGE045-REVIEW-GATE", status["next_gate"])
+        self.assertEqual("IDS-STAGE045-REVIEW", status["phase"])
+        self.assertEqual("IDS-STAGE046-P1-GATE", status["next_gate"])
         self.assertIn(
             "Completed task in this run: `IDS-V0_1-STAGE045-P4`", handoff
         )

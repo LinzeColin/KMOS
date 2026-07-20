@@ -319,6 +319,12 @@ class Stage042AutomaticLifecycleStageReviewTests(unittest.TestCase):
                 and "Next allowed task: `IDS-V0_1-STAGE045-REVIEW`"
                 in handoff_top
             )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE045-REVIEW`"
+                in handoff_top
+                and "Next allowed task: `IDS-V0_1-STAGE046-P1`"
+                in handoff_top
+            )
         )
         staged_section = handoff.split("## IDS v0.1 Staged Development", 1)[1]
         staged_head = "\n".join(staged_section.splitlines()[:18])
@@ -336,6 +342,7 @@ class Stage042AutomaticLifecycleStageReviewTests(unittest.TestCase):
             or "Current task: `IDS-V0_1-STAGE045-P2`" in staged_head
             or "Current task: `IDS-V0_1-STAGE045-P3`" in staged_head
             or "Current task: `IDS-V0_1-STAGE045-P4`" in staged_head
+            or "Current task: `IDS-V0_1-STAGE045-REVIEW`" in staged_head
         )
 
         events = [

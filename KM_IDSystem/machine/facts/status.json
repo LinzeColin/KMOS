@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE045",
-  "phase": "IDS-STAGE045-P4",
-  "task": "IDS-V0_1-STAGE045-P4",
-  "real_progress": "Stage045 四个步骤的本地交付证据已完成；整阶段独立复审尚未开始",
-  "report_grade": "批准来源和步骤三前序已绑定；六类结构样例、七项派生日志、十四项质量指标来源与四类失败处置已机器复验",
-  "business_verdict": "仅完成非生产检测交付收口；样例不是实际解析结果，未执行解析器、回退、持久化或生产能力",
-  "evidence_status": "LOCAL_PHASE4_CLOSEOUT_PARSER_AND_FALLBACK_DISABLED",
+  "phase": "IDS-STAGE045-REVIEW",
+  "task": "IDS-V0_1-STAGE045-REVIEW",
+  "real_progress": "Stage045 四个步骤与独立整阶段复审已在本地完成；Stage046 尚未开始",
+  "report_grade": "四项批准来源哈希、Phase1-4、Phase4 提交与树的祖先关系及七项发现反例已由最终复审重验",
+  "business_verdict": "仅完成非生产文件类型检测本地复审；未证明或执行真实解析器、回退、持久化或生产能力",
+  "evidence_status": "LOCAL_STAGE_REVIEWED_PARSER_AND_FALLBACK_DISABLED",
   "rendered_at": "2026-07-20",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE045-REVIEW-GATE",
+  "next_gate": "IDS-STAGE046-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

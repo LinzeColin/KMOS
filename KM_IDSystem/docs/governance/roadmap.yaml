@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE045"
-current_phase_id: "IDS-STAGE045-P4"
-current_task_id: "IDS-V0_1-STAGE045-P4"
-next_gate_id: "IDS-STAGE045-REVIEW-GATE"
+current_phase_id: "IDS-STAGE045-REVIEW"
+current_task_id: "IDS-V0_1-STAGE045-REVIEW"
+next_gate_id: "IDS-STAGE046-P1-GATE"
 current_transition_history:
+  stage045_review_state:
+    current_stage_id: "IDS-STAGE045"
+    current_phase_id: "IDS-STAGE045-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE045-REVIEW"
+    next_gate_id: "IDS-STAGE046-P1-GATE"
   stage045_phase4_state:
     current_stage_id: "IDS-STAGE045"
     current_phase_id: "IDS-STAGE045-P4"
@@ -11677,12 +11682,12 @@ stages:
     task_id: "IDS-V0_1-STAGE045"
     acceptance_ids:
       - "ACC-STAGE-045"
-    status: "in_progress"
+    status: "completed_reviewed_local"
     pursuing_goal: "基于扩展名、MIME、文件签名识别文件类型，不盲目信任文件名。"
     stop_gate:
-      gate_id: "IDS-STAGE045-P4-GATE"
+      gate_id: "IDS-STAGE045-REVIEW-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE045-REVIEW-GATE"
+      next_gate_id: "IDS-STAGE046-P1-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_ENTRY_CONTRACT.md"
@@ -11702,6 +11707,11 @@ stages:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_delivery_contract.json"
       - "KM_IDSystem/scripts/check_file_type_detection_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_delivery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_STAGE_REVIEW_PRECHECK.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_STAGE_REVIEW.md"
+      - "KM_IDSystem/scripts/check_file_type_detection_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_review_repairs.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_stage_review.py"
     phases:
       - phase_id: "IDS-STAGE045-P1"
         name: "文件类型检测范围、输入输出与边界确认"
@@ -11949,3 +11959,18 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
             risk: "schema-only 样例、派生日志或格式检测候选若被误读为 parser 可用、真实解析质量或 fallback runtime，会形成错误生产结论。"
             rollback: "只回滚 Stage045 Phase4 contract/checker/tests/evidence/governance/event/handoff/owner-view；保留 Phase1-3、Stage044 review、原始/事实/审计资料、GitHub 与 app 状态。"
+    review:
+      review_id: "IDS-STAGE045-REVIEW"
+      task_id: "IDS-V0_1-STAGE045-REVIEW"
+      status: "completed"
+      acceptance_ids:
+        - "ACC-STAGE-045"
+      evidence_refs:
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_STAGE_REVIEW_PRECHECK.md"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_STAGE_REVIEW.md"
+        - "KM_IDSystem/scripts/check_file_type_detection_stage_review.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_review_repairs.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_stage_review.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+      test_results: "Review precheck found seven findings (3 Critical / 4 Important) and repaired six, while fail-closing the review because approved source files were absent. Exact source recovery restored all three bound files and their four recorded SHA-256 values. Final review replays Phase1-4, the seven counterexamples, Phase4 ancestry, governance and Git-index bindings; Stage046 remains a separate-run gate and all parser/fallback/external effects remain disabled."
+      decision: "ACC-STAGE-045 completed_reviewed_local after all seven findings were resolved; next gate is IDS-STAGE046-P1-GATE, push_allowed=false, and this run did not enter STAGE-046."

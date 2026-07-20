@@ -1,5 +1,14 @@
 # Changelog
 
+## IDS v0.1 STAGE-045 Review - 2026-07-20
+
+- Completed the independent whole-stage review under `ACC-STAGE-045` after restoring the three exact approved source files and live-rehashing the archive, unique Stage045 member, roadmap and instructions against all four recorded SHA-256 values.
+- Resolved `3 Critical / 4 Important / 0 Minor` findings. The precheck had already repaired bounded PDF/PNG/JPEG/TIFF structure validation, OOXML missing-marker fallback, canonical unique OOXML member names, canonical `UNKNOWN` MIME, real UTC timestamps and evidence validation ordering; final review closed the remaining source blocker without weakening any binding.
+- Added `ids.stage045.file_type_detection.stage_review.v1`, Phase4 commit/tree ancestry verification, Phase1-4 replay, seven executable counterexample checks, durable governance/event/machine evidence and Git-index binding for all review sources.
+- The initial final-review RED failed as expected because the review checker did not yet exist. After source recovery, the existing P1-P4 plus repair suite passed `67/67`; focused review passed `8/8` in `24.465s`, Stage005 passed `172/172` in `41.976s`, Stage041-045 aggregate passed `343/343` in `1171.188s`, full discovery passed `1093/1093` in `1548.501s`, and eight historical/current review checkers passed.
+- A focused historical compatibility run failed `3/39` on stale current-HANDOFF routes. The repair admits only the exact `Stage045 REVIEW -> Stage046 P1 gate` route and keeps the Stage044 checker at its Phase1-bound hash; the Stage044 focused retest passed `10/10` in `160.408s`. Failed runs were not counted as PASS.
+- Routed the only next task to separate `IDS-V0_1-STAGE046-P1` with `stage046_entry_allowed=false` and `push_allowed=false`. No IDS business source, raw metadata, parser, fallback, persistence, Stage046, batch review, GitHub upload/merge, app reinstall, dependency installation or production action ran.
+
 ## IDS v0.1 STAGE-045 Review Precheck - 2026-07-20
 
 - Review remains blocked at `IDS-STAGE045-REVIEW-GATE` because the exact approved task-pack ZIP, roadmap and instructions are absent from their bound Downloads paths; historical P4 source hashes were not promoted to live review evidence.

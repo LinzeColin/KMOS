@@ -350,7 +350,7 @@ def _canonical_finding_checks() -> dict[str, bool]:
             )
         ),
         "current_handoff_and_review_gate_exact": (
-            (
+            ((
                 "`STAGE-042` is locally reviewed" in staged_head
                 or (
                     "`STAGE-041`, `STAGE-042` and `STAGE-043` are locally reviewed"
@@ -373,8 +373,16 @@ def _canonical_finding_checks() -> dict[str, bool]:
                 or "Current task: `IDS-V0_1-STAGE045-P2`" in staged_head
                 or "Current task: `IDS-V0_1-STAGE045-P3`" in staged_head
                 or "Current task: `IDS-V0_1-STAGE045-P4`" in staged_head
+                or "Current task: `IDS-V0_1-STAGE045-REVIEW`" in staged_head
             )
             and "IDS-V0_1-STAGE042-P3" not in staged_head
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE045-REVIEW`"
+                in top_handoff
+                and "Next allowed task: `IDS-V0_1-STAGE046-P1`"
+                in top_handoff
+            )
         ),
     }
 
@@ -517,6 +525,12 @@ def _governance_checks() -> dict[str, bool]:
                 "Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`"
                 in top_handoff
                 and "Next allowed task: `IDS-V0_1-STAGE045-P1`"
+                in top_handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE045-REVIEW`"
+                in top_handoff
+                and "Next allowed task: `IDS-V0_1-STAGE046-P1`"
                 in top_handoff
             )
         ),
