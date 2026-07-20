@@ -354,6 +354,135 @@ function 报告中心({ 中心 }) {
   )
 }
 
+function 影响重跑({ 图, 选中资产, 选资产, 刷新 }) {
+  const [理由, set理由] = useState('')
+  const [忙, set忙] = useState(false)
+  const [结果, set结果] = useState(null)
+  const [提示, set提示] = useState(null)
+  if (!图) return <p style={S.muted}>加载中…</p>
+  const 下 = 图.选中
+
+  async function 重跑() {
+    if (!理由.trim()) { set提示({ 好: false, 文: '必须写明重跑理由' }); return }
+    set忙(true); set提示(null)
+    try {
+      const r = await fetch('/api/影响重跑/重跑', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 资产: 选中资产, 理由: 理由.trim() }) })
+      const j = await r.json()
+      if (!r.ok) { set提示({ 好: false, 文: j.detail ?? '重跑失败' }); return }
+      set结果(j); set理由('')
+      set提示({ 好: true, 文: `轮次 ${j.轮次号} 完成：${j.步骤数} 层，耗时 ${j.耗时秒}s，旧版本全保留=${j.旧版本全保留}` })
+      await 刷新(选中资产)
+    } catch (e) { set提示({ 好: false, 文: String(e) }) } finally { set忙(false) }
+  }
+
+  return (
+    <>
+      <div style={S.grid}>
+        <div style={S.card}><div style={S.muted}>血缘节点 / 边</div>
+          <div style={S.num}>{图.血缘.节点数} / {图.血缘.边数}</div></div>
+        <div style={S.card}><div style={S.muted}>可选资产</div>
+          <div style={S.num}>{图.血缘.可选资产数}</div></div>
+        <div style={S.card}><div style={S.muted}>本机重跑轮次</div>
+          <div style={S.num}>{图.本机重跑记录.轮次}</div>
+          <div style={S.muted}>{图.本机重跑记录.步骤数} 步留痕</div></div>
+        <div style={S.card}><div style={S.muted}>仓内既有留痕</div>
+          <div style={S.num}>{图.既有仓内留痕.重跑步骤}</div>
+          <div style={S.muted}>影响预览 {图.既有仓内留痕.影响预览}</div></div>
+      </div>
+
+      <div style={{ ...S.card, marginTop: '1rem', borderLeft: '4px solid #1e8449' }}>
+        <b>重跑纪律</b>
+        <div style={{ ...S.muted, marginTop: '.3rem' }}>
+          覆盖旧版本：{图.重跑纪律.覆盖旧版本 ? '是' : '否'}｜旧版本处置：<code>{图.重跑纪律.旧版本处置}</code>｜
+          raw 层可写：{图.重跑纪律.raw层可写 ? '是' : '否'}｜
+          允许借重跑升报告等级：{图.重跑纪律.允许借重跑升报告等级 ? '是' : '否'}
+        </div>
+        <div style={{ ...S.muted, marginTop: '.2rem' }}>{图.重跑纪律.留痕}</div>
+      </div>
+
+      <h3 style={{ marginTop: '1.2rem' }}>① 选中资产</h3>
+      <select style={{ ...S.select, minWidth: '22rem' }} value={选中资产 ?? ''}
+              onChange={e => { 选资产(e.target.value); set结果(null); set提示(null) }}>
+        <option value="">— 选一个原始资产 —</option>
+        {图.血缘.资产.map(a => (
+          <option key={a.资产} value={a.资产}>{a.资产}（{a.域}，{a.派生表数} 张派生表）</option>
+        ))}
+      </select>
+
+      {下 && (
+        <>
+          <h3 style={{ marginTop: '1.2rem' }}>② 下游影响面（由血缘边算出）</h3>
+          <table style={表样}>
+            <thead><tr><th style={格样}>派生表</th><th style={格样}>行数</th><th style={格样}>版本</th></tr></thead>
+            <tbody>{下.派生表.map(t => (
+              <tr key={t.表}><td style={格样}><code>{t.表}</code></td>
+                <td style={格样}>{(t.行数 ?? 0).toLocaleString('zh')}</td>
+                <td style={格样}>{t.版本 ?? '—'}</td></tr>
+            ))}</tbody>
+          </table>
+          <div style={{ ...S.card, marginTop: '.6rem' }}>
+            <div>受影响视图：{下.受影响视图.length ? 下.受影响视图.join('、') : '—'}</div>
+            <div style={{ marginTop: '.2rem' }}>受影响断言域：{下.受影响断言域.join('、') || '—'}</div>
+            <div style={{ marginTop: '.2rem' }}>受影响报告：{下.受影响报告.join('、') || '—'}</div>
+          </div>
+
+          <h3 style={{ marginTop: '1.2rem' }}>③ 发起重跑</h3>
+          <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <input style={{ ...S.select, flex: '1 1 22rem' }} placeholder="重跑理由（必填，会连同每层留痕）"
+                   value={理由} onChange={e => set理由(e.target.value)} />
+            <button type="button" disabled={忙}
+                    style={{ ...S.tab(true), font: 'inherit', cursor: 'pointer' }}
+                    onClick={重跑}>{忙 ? '重跑中…' : '发起重跑（四层链）'}</button>
+          </div>
+          {提示 && <div style={{ marginTop: '.5rem', color: 提示.好 ? '#1e8449' : '#c0392b' }}>{提示.文}</div>}
+        </>
+      )}
+
+      {结果 && (
+        <>
+          <h3 style={{ marginTop: '1.2rem' }}>④ 本次重跑结果（轮次 {结果.轮次号}）</h3>
+          <table style={表样}>
+            <thead><tr><th style={格样}>序</th><th style={格样}>层</th>
+              <th style={格样}>内容哈希</th><th style={格样}>新版本</th></tr></thead>
+            <tbody>{结果.各层.map(s => (
+              <tr key={s.序}>
+                <td style={格样}>{s.序}</td>
+                <td style={格样}>{s.名称}<br /><code style={{ fontSize: '.72rem', opacity: .65 }}>{s.层}</code></td>
+                <td style={格样}><code style={{ fontSize: '.72rem' }}>{String(s.哈希).slice(7, 27)}…</code></td>
+                <td style={格样}><code style={{ fontSize: '.7rem' }}>{String(s.新版本).split('/').pop()}</code></td>
+              </tr>
+            ))}</tbody>
+          </table>
+          <div style={{ ...S.card, marginTop: '.6rem' }}>
+            链完整：{结果.链完整 ? '是 ✅' : '否 ⚠️'}｜旧版本全保留：{结果.旧版本全保留 ? '是 ✅' : '否 ⚠️'}｜
+            耗时 {结果.耗时秒}s｜留痕：<code>{结果.留痕位置}</code>
+          </div>
+        </>
+      )}
+
+      {图.本机重跑记录.最近.length > 0 && (
+        <>
+          <h3 style={{ marginTop: '1.2rem' }}>历史重跑</h3>
+          <table style={表样}>
+            <thead><tr><th style={格样}>轮次号</th><th style={格样}>步骤</th>
+              <th style={格样}>状态</th><th style={格样}>起止</th></tr></thead>
+            <tbody>{图.本机重跑记录.最近.slice().reverse().map(r => (
+              <tr key={r.轮次号}>
+                <td style={格样}><code>{r.轮次号}</code></td>
+                <td style={格样}>{r.步骤}</td>
+                <td style={{ ...格样, color: r.状态 === 'completed' ? '#1e8449' : '#b9770e' }}>{r.状态}</td>
+                <td style={格样}>{r.起于} → {r.止于}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </>
+      )}
+    </>
+  )
+}
+
 function 数据管线({ 管线 }) {
   if (!管线) return <div style={{ ...S.card, marginTop: '1.2rem' }}>加载中…</div>
   const 表 = Object.entries(管线.staging_tables ?? {}).sort((a, b) => (b[1].rows ?? 0) - (a[1].rows ?? 0))
@@ -796,6 +925,10 @@ export default function App() {
   const [开票, set开票] = useState(null)
   const [工作台, set工作台] = useState(null)
   const [中心, set中心] = useState(null)
+  const [影响, set影响] = useState(null)
+  const [选中资产, set选中资产] = useState('')
+  const 取影响 = (a) => fetch('/api/影响重跑' + (a ? `?asset=${encodeURIComponent(a)}` : ''))
+    .then(r => r.json()).then(set影响)
   const 取工作台 = () => fetch('/api/差异工作台').then(r => r.json()).then(set工作台)
   useEffect(() => {
     fetch('/api/项目成本').then(r => r.json()).then(set成本)
@@ -803,6 +936,7 @@ export default function App() {
     fetch('/api/开票纳税').then(r => r.json()).then(set开票)
     取工作台()
     fetch('/api/报告中心').then(r => r.json()).then(set中心)
+    取影响()
     fetch('/api/状态').then(r => r.json()).then(set状态)
     fetch('/api/断言').then(r => r.json()).then(set断言)
     fetch('/api/数据管线').then(r => r.json()).then(set管线)
@@ -823,7 +957,7 @@ export default function App() {
       <nav style={S.tabs}>
         {/* 页签用语义化 button+role=tab：span onClick 既不可键盘操作、也不进可访问性树，
             自动化（含 PROD.0013 Playwright）点不到——本单元真开页面时实测踩到。 */}
-        {['我在哪', '源检查板', '项目成本', '账龄回款', '开票纳税', '差异工作台', '报告中心', '数据管线', '技能'].map(t => (
+        {['我在哪', '源检查板', '项目成本', '账龄回款', '开票纳税', '差异工作台', '报告中心', '影响重跑', '数据管线', '技能'].map(t => (
           <button key={t} type="button" role="tab" aria-selected={页 === t}
                   style={{ ...S.tab(页 === t), font: 'inherit' }} onClick={() => set页(t)}>{t}</button>
         ))}
@@ -835,6 +969,8 @@ export default function App() {
       {页 === '开票纳税' && <开票纳税 开票={开票} />}
       {页 === '差异工作台' && <差异工作台 台={工作台} 刷新={取工作台} />}
       {页 === '报告中心' && <报告中心 中心={中心} />}
+      {页 === '影响重跑' && <影响重跑 图={影响} 选中资产={选中资产}
+        选资产={a => { set选中资产(a); 取影响(a) }} 刷新={取影响} />}
       {页 === '数据管线' && <数据管线 管线={管线} />}
       {页 === '技能' && <技能页 技能={技能} />}
     </div>
