@@ -41,11 +41,32 @@ mkdir -p /var/log/kmfa
 # 教训：别拿命令的返回码去猜它是否理解了输入格式。
 CRON_D=/etc/cron.d/kmfa-skills
 crontab -r 2>/dev/null || true   # 清掉可能残留的用户 crontab，杜绝两种格式并存重复触发
-install -m 0644 -o root -g root /opt/runtime/crontab.txt "$CRON_D"
+
+# cron **不继承容器环境**，必须把值写进 cron.d 文件头；且 cron.d **不做变量展开**，
+# 所以这里用实际值渲染，不能照抄 "${VAR:-0}" 字面量。
+# 每一行都是实测出来的坑：
+#   HOME     —— 缺了 dws 找不到 /root/.dws，首跑直接 DWS_AUTH_REQUIRED rc=2
+#   TZ       —— 缺了 cron 按 UTC 评估排程，晨报会在错误时刻触发（#100/#108 的锚定被绕开）
+#   DELIVERY —— 缺了任务按 dry-run 跑，ledger 记 delivery_enabled:"0"，消息永远发不出去
+{
+  echo "SHELL=/bin/bash"
+  echo "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  echo "HOME=/root"
+  echo "TZ=${TZ}"
+  echo "KMFA_DELIVERY_ENABLED=${KMFA_DELIVERY_ENABLED:-0}"
+  echo "KMFA_DINGTALK_ATTENDANCE_ALLOW_DWS_COMMANDS=${KMFA_DINGTALK_ATTENDANCE_ALLOW_DWS_COMMANDS:-0}"
+  echo "KMFA_ATTENDANCE_ARCHIVE_ROOT=${KMFA_ATTENDANCE_ARCHIVE_ROOT:-/var/lib/kmfa/attendance}"
+  echo
+  # 源文件自带的 SHELL/PATH 去掉，避免与上面重复
+  grep -vE '^(SHELL|PATH)=' /opt/runtime/crontab.txt
+} > "$CRON_D"
+chmod 0644 "$CRON_D"; chown root:root "$CRON_D"
 # cron.d 硬性要求：文件名不含点（kmfa-skills 合规）、末尾必须有换行
 if [ -n "$(tail -c1 "$CRON_D")" ]; then
   echo >> "$CRON_D"
 fi
+# 归档根必须存在且可写——否则考勤报告写不出去
+mkdir -p "${KMFA_ATTENDANCE_ARCHIVE_ROOT:-/var/lib/kmfa/attendance}"
 
 # 装完自检——**装不上就不许启动**。静默失效比起不来危险得多：上一版就是这样
 # 安安静静一个月不发消息，还得靠 Owner 说"我没收到"才被发现。
@@ -65,6 +86,13 @@ if crontab -l >/dev/null 2>&1; then
   echo "拒绝启动：仍存在用户 crontab，与 cron.d 并存会重复触发" >&2
   exit 1
 fi
+# 环境行也要自检：少一行就是一整类静默失效（认证失败/时刻错乱/永远 dry-run）
+for KEY in HOME TZ KMFA_DELIVERY_ENABLED KMFA_ATTENDANCE_ARCHIVE_ROOT; do
+  grep -qE "^${KEY}=" "$CRON_D" || {
+    echo "拒绝启动：$CRON_D 缺环境行 ${KEY}=（cron 不继承容器环境）" >&2
+    exit 1
+  }
+done
 echo "$(date -Is) entrypoint: 排程已装入 $CRON_D（$GOT_JOBS 条）" >> /var/log/kmfa/cron.log
 touch /var/log/kmfa/cron.log /var/log/kmfa/ledger.jsonl
 echo "$(date -Is) entrypoint: cron 启动（TZ=$TZ，KMFA_DELIVERY_ENABLED=${KMFA_DELIVERY_ENABLED:-0}）" >> /var/log/kmfa/cron.log
