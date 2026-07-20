@@ -32,14 +32,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 构建前端（dist 入镜像）
-        run: |
-          set -euo pipefail
-          cd KMFA/app/frontend
-          npm ci
-          npm run build          # 构建失败必须红：曾拿仓里旧 dist 打镜像而不自知
-
-      - name: 起 App（零挂载，代码烧在镜像里）
+      # 前端不再在 runner 上预构建：Dockerfile 已改多阶段，镜像内由当次源码现建 dist
+      # （「曾拿仓里旧 dist 打镜像而不自知」的教训由 Dockerfile 结构性根治，兜底退役）。
+      # 前端构建失败会红在 docker build 这一步，红的语义不变。
+      - name: 起 App（零挂载，代码烧在镜像里，前端镜像内现建）
         run: |
           set -euo pipefail
           docker build -f KMFA/app/backend/Dockerfile -t kmfa-app:e2e .
