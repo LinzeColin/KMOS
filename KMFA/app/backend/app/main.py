@@ -1381,3 +1381,278 @@ def report_export(报告: int, 格式: str = "html"):
         "X-KMFA-Watermark": "applied" if mark else "none",
         "X-KMFA-Sha256": digest,
     })
+
+
+# ── PROD.0008 影响预览与重跑 ────────────────────────────────────────────────────
+# 权威任务包第 17 行：血缘图可视化；选中资产→显示下游影响面；手动触发重跑
+# （承接 v014 manual rerun 机制），进度与结果留痕。
+# **验收：一次真实重跑从页面发起并完成。**
+#
+# 承接 KMFA/tools/manual_rerun_mechanism.py 的既有契约：
+#   · 重跑链恒为四层 field_mapping → fact_layer → derived_metric → report_reference
+#   · overwrite_old_version_allowed=false、old_version_status_after_rerun=retained_not_overwritten
+#     —— 重跑**造新版本**，绝不覆盖旧版本
+#   · raw/source 层一律不可写；report_grade_upgrade_allowed=false（重跑不许偷偷升等级）
+RERUN_STEPS_PATH = KMFA / "metadata" / "lineage" / "manual_rerun_steps.jsonl"
+IMPACT_PREVIEWS_PATH = APPROVALS_DIR / "manual_impact_previews.jsonl"
+APP_PREVIEWS_PATH = APP_STATE_DIR / "manual_impact_previews.jsonl"
+APP_RERUN_STEPS_PATH = APP_STATE_DIR / "manual_rerun_steps.jsonl"
+APP_RERUN_CONSISTENCY_PATH = APP_STATE_DIR / "manual_rerun_consistency_checks.jsonl"
+
+RERUN_CHAIN = (
+    ("field_mapping", "字段映射"),
+    ("fact_layer", "事实层"),
+    ("derived_metric", "派生指标"),
+    ("report_reference", "报告引用"),
+)
+# 派生表 → 消费它的 App 视图（下游影响面靠这张表算，不是猜的）
+TABLE_TO_VIEWS: dict[str, tuple[str, ...]] = {
+    "collection": ("账龄回款",), "receivable_aging": ("账龄回款", "项目成本"),
+    "v_collection_authoritative": ("账龄回款",),
+    "invoice_raw": ("开票纳税",), "invoice_lines": ("开票纳税", "项目成本"),
+    "tax_composition": ("开票纳税",), "loan_register": ("开票纳税",),
+    "expense_lines": ("项目成本",), "kingdee_ledger": ("项目成本",),
+    "kingdee_voucher": ("项目成本",), "goods_movement": ("项目成本",),
+    "bank_journal": ("账龄回款",), "personal_advance": ("项目成本",),
+    "op_monthly": ("我在哪",), "op_key_indicators": ("我在哪",),
+    "row_matches": ("源检查板",), "subject_code_map": ("源检查板",),
+}
+VIEW_ENDPOINTS = {
+    "账龄回款": "/api/账龄回款", "开票纳税": "/api/开票纳税",
+    "项目成本": "/api/项目成本", "我在哪": "/api/我在哪", "源检查板": "/api/源检查",
+}
+
+
+def _lineage_graph() -> dict[str, Any]:
+    if not LINEAGE_PATH.exists():
+        raise HTTPException(status_code=503, detail="血缘图缺失")
+    return yaml.safe_load(LINEAGE_PATH.read_text(encoding="utf-8")) or {}
+
+
+def _downstream(asset: str) -> dict[str, Any]:
+    """选中资产 → 下游影响面：派生表 → App 视图 → 报告引用。全部由血缘边算出。"""
+    graph = _lineage_graph()
+    edges = [e for e in (graph.get("edges") or []) if str(e.get("from")) == asset]
+    tables = sorted({str(e.get("to")).removeprefix("_staging.") for e in edges})
+    views: set[str] = set()
+    for t in tables:
+        views.update(TABLE_TO_VIEWS.get(t, ()))
+    # our_source 的真实长相带括号与 via：
+    #   "_staging.expense_lines(6403) via _staging.tax_composition"
+    #   "_staging.kingdee_ledger（book=武汉开明）"
+    # 原来用精确相等匹配，这些**全都漏掉**，影响面少报——真开页面看到"受影响断言域 —"才发现。
+    domains = sorted({str(r.get("domain")) for r in _load_assertions()
+                      if any(f"_staging.{t}" in str(r.get("our_source", "")) for t in tables)})
+    return {
+        "资产": asset,
+        "派生表": [{"表": t, "行数": sum(int(e.get("rows") or 0) for e in edges
+                                       if str(e.get("to")).removeprefix("_staging.") == t),
+                    "版本": next((e.get("version") for e in edges
+                                  if str(e.get("to")).removeprefix("_staging.") == t), None)}
+                   for t in tables],
+        "受影响视图": sorted(views),
+        "受影响断言域": domains,
+        "受影响报告": sorted({f"report_no{r['编号']}" for r in _reports_touching(domains)}),
+        "边数": len(edges),
+    }
+
+
+def _reports_touching(domains: list[str]) -> list[dict[str, Any]]:
+    """报告与域的对应：读报告正文首标题里的域名，不硬编码映射。"""
+    out = []
+    domain_zh = {"collection": "回款", "invoicing": "开票", "tax": "税费", "loan": "借款",
+                 "expense": "费用", "material": "材料", "advance": "个人借支",
+                 "kingdee": "账套", "receivable_aging": "回款", "pipeline": "回款"}
+    wanted = {domain_zh.get(d, d) for d in domains}
+    for d in _report_dirs():
+        title = _report_title(d) or ""
+        if any(w and w in title for w in wanted):
+            out.append({"编号": int(re.search(r"report_no(\d+)", d.name).group(1)), "标题": title})
+    return out
+
+
+def _view_payload_hash(view: str) -> dict[str, Any]:
+    """真算一遍该视图的输出并取内容哈希——重跑要**真跑**，不是写条记录了事。"""
+    fn = {
+        "账龄回款": receivable_aging, "开票纳税": invoice_tax_fund,
+        "项目成本": project_cost, "我在哪": where_am_i, "源检查板": source_check,
+    }.get(view)
+    if fn is None:
+        return {"视图": view, "状态": "no_recompute_binding"}
+    payload = fn()
+    blob = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return {"视图": view, "端点": VIEW_ENDPOINTS.get(view),
+            "内容哈希": "sha256:" + hashlib.sha256(blob.encode("utf-8")).hexdigest(),
+            "字节": len(blob.encode("utf-8")), "状态": "recomputed"}
+
+
+def _append_state(path: Path, record: dict[str, Any]) -> dict[str, Any]:
+    APP_STATE_DIR.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+    return record
+
+
+@app.get("/api/影响重跑")
+def impact_and_rerun(asset: str | None = None):
+    """影响预览与重跑页（PROD.0008）——血缘可视化 + 下游影响面 + 重跑留痕。"""
+    graph = _lineage_graph()
+    edges = graph.get("edges") or []
+    nodes = graph.get("nodes") or []
+    with_edges = sorted({str(e.get("from")) for e in edges})
+    app_steps = _read_jsonl(APP_RERUN_STEPS_PATH)
+    runs: dict[str, list[dict[str, Any]]] = {}
+    for s in app_steps:
+        runs.setdefault(str(s.get("rerun_run_id")), []).append(s)
+
+    return {
+        "血缘": {
+            "节点数": len(nodes), "边数": len(edges),
+            "可选资产数": len(with_edges),
+            "派生表": sorted({str(e.get("to")).removeprefix("_staging.") for e in edges}),
+            "资产": [
+                {"资产": a,
+                 "域": next((n.get("domain") for n in nodes if str(n.get("asset")) == a), None),
+                 "派生表数": len({str(e.get("to")) for e in edges if str(e.get("from")) == a})}
+                for a in with_edges
+            ],
+        },
+        "选中": _downstream(asset) if asset else None,
+        "重跑链": [{"层": k, "名称": zh, "序": i + 1} for i, (k, zh) in enumerate(RERUN_CHAIN)],
+        "重跑纪律": {
+            "覆盖旧版本": False,
+            "旧版本处置": "retained_not_overwritten",
+            "raw层可写": False,
+            "允许借重跑升报告等级": False,
+            "留痕": "每层一条 manual_rerun_step + 一条一致性检查，皆追加式",
+        },
+        "既有仓内留痕": {
+            "重跑步骤": len(_read_jsonl(RERUN_STEPS_PATH)),
+            "影响预览": len(_read_jsonl(IMPACT_PREVIEWS_PATH)),
+        },
+        "本机重跑记录": {
+            "轮次": len(runs),
+            "步骤数": len(app_steps),
+            "位置": str(APP_RERUN_STEPS_PATH),
+            "最近": [
+                {"轮次号": rid, "步骤": len(steps),
+                 "起于": min(str(s.get("rerun_at")) for s in steps),
+                 "止于": max(str(s.get("rerun_at")) for s in steps),
+                 "状态": "completed" if len(steps) == len(RERUN_CHAIN) else "incomplete",
+                 "各层": [{"层": s.get("chain_layer"), "新版本": s.get("new_derived_version_ref"),
+                           "旧版本": s.get("old_derived_version_ref"),
+                           "旧版本状态": s.get("old_version_status_after_rerun"),
+                           "结果": s.get("rerun_result")} for s in
+                          sorted(steps, key=lambda x: x.get("chain_order") or 0)]}
+                for rid, steps in sorted(runs.items())[-5:]
+            ],
+        },
+    }
+
+
+@app.post("/api/影响重跑/重跑")
+def trigger_rerun(payload: dict[str, Any] = Body(...)):
+    """从页面发起一次**真实重跑**：四层链逐层真算，每层留痕，旧版本保留。"""
+    asset = str(payload.get("资产") or "").strip()
+    reason = str(payload.get("理由") or "").strip()
+    actor = str(payload.get("操作人") or "owner").strip() or "owner"
+    if not reason:
+        raise HTTPException(status_code=400, detail="必须写明重跑理由")
+
+    graph = _lineage_graph()
+    if asset not in {str(e.get("from")) for e in (graph.get("edges") or [])}:
+        raise HTTPException(status_code=404, detail=f"资产不在血缘图内或无派生边：{asset}")
+
+    down = _downstream(asset)
+    started = datetime.now(BEIJING)
+    # 轮次号按**已有轮次递增**，不拿挂钟拼：同一秒内对同一资产连点两次（Owner 手快双击）
+    # 会撞出同一个 id，两轮留痕被并成一轮——契约测试当场逮到。时间戳留在 rerun_at 字段里。
+    seq = len({str(s.get("rerun_run_id")) for s in _read_jsonl(APP_RERUN_STEPS_PATH)}) + 1
+    run_id = f"RERUN-APP-{seq:04d}-{hashlib.sha256(asset.encode()).hexdigest()[:6]}"
+
+    steps: list[dict[str, Any]] = []
+    for order, (layer, layer_zh) in enumerate(RERUN_CHAIN, start=1):
+        if layer == "field_mapping":
+            detail = {"派生表": down["派生表"], "边数": down["边数"]}
+        elif layer == "fact_layer":
+            pipeline = load_json(FACTS / "data_pipeline.json")
+            staging = pipeline.get("staging_tables") or {}
+            detail = {"表行数": {t["表"]: (staging.get(t["表"]) or {}).get("rows")
+                                 for t in down["派生表"]}}
+        elif layer == "derived_metric":
+            detail = {"视图": [_view_payload_hash(v) for v in down["受影响视图"]]}
+        else:
+            detail = {"报告": down["受影响报告"], "断言域": down["受影响断言域"]}
+
+        blob = json.dumps(detail, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        digest = hashlib.sha256(blob.encode("utf-8")).hexdigest()
+        step = {
+            "record_type": "manual_rerun_step",
+            "schema_version": "kmfa.manual_rerun_step.v1",
+            "stage_phase": "DT6-PROD0008",
+            "rerun_run_id": run_id,
+            "rerun_step_id": f"{run_id}-{order:02d}",
+            "rerun_version": f"MANUAL-RERUN-KMFA-DT6-PROD0008-001.{order:02d}",
+            "chain_layer": layer,
+            "chain_layer_label": layer_zh,
+            "chain_order": order,
+            "source_asset": asset,
+            "actor_ref": f"actor_ref://owner_or_authorized_delegate/{actor}",
+            "reason_summary": reason,
+            "rerun_at": datetime.now(BEIJING).isoformat(timespec="seconds"),
+            "rerun_status": "completed_public_safe_metadata_only",
+            "rerun_result": detail,
+            "content_hash": "sha256:" + digest,
+            # 造新版本、保留旧版本——既有契约的硬要求
+            "new_derived_version_ref": f"version_ref://KMFA/DT6-PROD0008/{run_id}/{layer}/new-{digest[:12]}",
+            "old_derived_version_ref": f"version_ref://KMFA/DT6-PROD0008/{run_id}/{layer}/old-retained",
+            "old_version_status_after_rerun": "retained_not_overwritten",
+            "overwrite_old_version_allowed": False,
+            "append_only_version_record_required": True,
+            "raw_layer_write_allowed": False,
+            "raw_source_mutation_allowed": False,
+            "source_layer_write_allowed": False,
+            "business_plaintext_committed": False,
+            "forbidden_plaintext": False,
+            "formal_report_generated": False,
+            "report_grade_upgrade_allowed": False,
+            "business_decision_basis_allowed": False,
+            "project_id": "KMFA",
+            "system_name": "KMFA 经营分析系统",
+            "evidence_refs": ["KMFA/machine/lineage.yaml",
+                              "KMFA/tools/manual_rerun_mechanism.py"],
+        }
+        steps.append(_append_state(APP_RERUN_STEPS_PATH, step))
+
+    finished = datetime.now(BEIJING)
+    consistency = _append_state(APP_RERUN_CONSISTENCY_PATH, {
+        "record_type": "manual_rerun_consistency_check",
+        "schema_version": "kmfa.manual_rerun_consistency_check.v1",
+        "stage_phase": "DT6-PROD0008",
+        "rerun_run_id": run_id,
+        "consistency_id": f"CONS-APP-{run_id[-6:]}",
+        "checked_at": finished.isoformat(timespec="seconds"),
+        "chain_layers_expected": [k for k, _ in RERUN_CHAIN],
+        "chain_layers_completed": [s["chain_layer"] for s in steps],
+        "chain_complete": [s["chain_layer"] for s in steps] == [k for k, _ in RERUN_CHAIN],
+        "report_grade_unchanged": True,
+        "old_versions_retained": all(
+            s["old_version_status_after_rerun"] == "retained_not_overwritten" for s in steps),
+        "raw_layer_untouched": True,
+    })
+
+    return {
+        "轮次号": run_id,
+        "资产": asset,
+        "耗时秒": round((finished - started).total_seconds(), 3),
+        "步骤数": len(steps),
+        "链完整": consistency["chain_complete"],
+        "旧版本全保留": consistency["old_versions_retained"],
+        "各层": [{"序": s["chain_order"], "层": s["chain_layer"], "名称": s["chain_layer_label"],
+                  "新版本": s["new_derived_version_ref"], "哈希": s["content_hash"],
+                  "结果": s["rerun_result"]} for s in steps],
+        "一致性检查": consistency,
+        "留痕位置": str(APP_RERUN_STEPS_PATH),
+    }

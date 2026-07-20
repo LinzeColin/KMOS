@@ -859,3 +859,167 @@ def test_pdf_line_wrap_never_splits_amounts(净导出):
     for line in lines:
         assert pdfmetrics.stringWidth(line, "STSong-Light", size) <= usable + 0.5, \
             f"折行超出可用宽度：{line[:20]}…"
+
+
+# ── PROD.0008 影响预览与重跑 ────────────────────────────────────────────────────
+@_pytest.fixture
+def 净重跑(monkeypatch, tmp_path):
+    from app import main as m
+
+    state = tmp_path / "state"
+    monkeypatch.setattr(m, "APP_STATE_DIR", state)
+    monkeypatch.setattr(m, "APP_RERUN_STEPS_PATH", state / "manual_rerun_steps.jsonl")
+    monkeypatch.setattr(m, "APP_RERUN_CONSISTENCY_PATH", state / "manual_rerun_consistency_checks.jsonl")
+    return state
+
+
+def _an_asset():
+    return client.get("/api/影响重跑").json()["血缘"]["资产"][0]["资产"]
+
+
+def test_lineage_assets_and_chain_exposed(净重跑):
+    payload = client.get("/api/影响重跑").json()
+    assert payload["血缘"]["节点数"] == 53 and payload["血缘"]["边数"] == 69
+    assert payload["血缘"]["可选资产数"] >= 1
+    assert [c["层"] for c in payload["重跑链"]] == [
+        "field_mapping", "fact_layer", "derived_metric", "report_reference"]
+    assert payload["重跑纪律"]["覆盖旧版本"] is False
+    assert payload["重跑纪律"]["允许借重跑升报告等级"] is False
+
+
+def test_downstream_impact_is_computed_from_lineage_edges(净重跑):
+    """下游影响面须由血缘边算出，不是硬编码——换资产结果必须跟着变。"""
+    import yaml as _yaml
+
+    from app.main import LINEAGE_PATH
+
+    graph = _yaml.safe_load(LINEAGE_PATH.read_text(encoding="utf-8"))
+    edges = graph["edges"]
+    asset = _an_asset()
+    got = client.get(f"/api/影响重跑?asset={asset}").json()["选中"]
+    expect_tables = sorted({str(e["to"]).removeprefix("_staging.")
+                            for e in edges if str(e["from"]) == asset})
+    assert [t["表"] for t in got["派生表"]] == expect_tables
+    assert got["边数"] == len([e for e in edges if str(e["from"]) == asset])
+    assert got["受影响视图"], "有派生表就该有下游视图"
+
+    others = [a["资产"] for a in client.get("/api/影响重跑").json()["血缘"]["资产"]]
+    varied = {tuple(client.get(f"/api/影响重跑?asset={a}").json()["选中"]["派生表表名"]
+                    if False else
+                    tuple(t["表"] for t in client.get(f"/api/影响重跑?asset={a}").json()["选中"]["派生表"]))
+              for a in others[:6]}
+    assert len(varied) > 1, "不同资产的下游影响面必须不同，否则就是写死的"
+
+
+def test_rerun_really_runs_all_four_layers(净重跑):
+    """**本单元核心验收**：一次真实重跑从页面发起并完成。"""
+    asset = _an_asset()
+    r = client.post("/api/影响重跑/重跑", json={"资产": asset, "理由": "字段映射调整后重算下游"})
+    assert r.status_code == 200, r.text
+    out = r.json()
+    assert out["步骤数"] == 4 and out["链完整"] is True
+    assert [s["层"] for s in out["各层"]] == [
+        "field_mapping", "fact_layer", "derived_metric", "report_reference"]
+    assert out["旧版本全保留"] is True
+    assert out["耗时秒"] >= 0
+
+    # derived_metric 层必须**真算过视图**并给出内容哈希，不是空壳
+    derived = next(s for s in out["各层"] if s["层"] == "derived_metric")
+    views = derived["结果"]["视图"]
+    assert views, "受影响视图不得为空"
+    for v in views:
+        assert v["状态"] == "recomputed"
+        assert v["内容哈希"].startswith("sha256:") and v["字节"] > 100
+
+    # fact_layer 层的行数须等于 data_pipeline 事实
+    staging = client.get("/api/数据管线").json()["staging_tables"]
+    for tbl, rows in next(s for s in out["各层"] if s["层"] == "fact_layer")["结果"]["表行数"].items():
+        assert rows == staging[tbl]["rows"]
+
+
+def test_rerun_leaves_append_only_trail(净重跑):
+    steps_path = 净重跑 / "manual_rerun_steps.jsonl"
+    asset = _an_asset()
+    client.post("/api/影响重跑/重跑", json={"资产": asset, "理由": "第一次"})
+    first = steps_path.read_text(encoding="utf-8")
+    assert len(first.strip().splitlines()) == 4
+
+    client.post("/api/影响重跑/重跑", json={"资产": asset, "理由": "第二次"})
+    second = steps_path.read_text(encoding="utf-8")
+    assert second.startswith(first), "第二轮必须追加，不得改写第一轮"
+    assert len(second.strip().splitlines()) == 8
+
+    listing = client.get("/api/影响重跑").json()["本机重跑记录"]
+    assert listing["轮次"] == 2 and listing["步骤数"] == 8
+    assert all(r["状态"] == "completed" for r in listing["最近"])
+
+
+def test_rerun_never_overwrites_or_touches_raw(净重跑):
+    """重跑造新版本、保留旧版本；raw 层与断言表全程不动。"""
+    from app.main import ASSERTIONS_PATH, FACTS, LINEAGE_PATH
+
+    before = {p: p.read_bytes() for p in
+              (ASSERTIONS_PATH, LINEAGE_PATH, FACTS / "data_pipeline.json")}
+    out = client.post("/api/影响重跑/重跑",
+                      json={"资产": _an_asset(), "理由": "校验只读"}).json()
+    for p, blob in before.items():
+        assert p.read_bytes() == blob, f"{p.name} 被重跑改动了"
+
+    steps = [json.loads(l) for l in
+             (净重跑 / "manual_rerun_steps.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+    for s in steps:
+        assert s["overwrite_old_version_allowed"] is False
+        assert s["old_version_status_after_rerun"] == "retained_not_overwritten"
+        assert s["raw_layer_write_allowed"] is False
+        assert s["source_layer_write_allowed"] is False
+        assert s["report_grade_upgrade_allowed"] is False
+        assert s["new_derived_version_ref"] != s["old_derived_version_ref"]
+    assert out["一致性检查"]["old_versions_retained"] is True
+    assert out["一致性检查"]["raw_layer_untouched"] is True
+
+    # 重跑不得改变报告等级
+    assert client.get("/api/报告中心").json()["页眉"]["报告等级"] == "D"
+
+
+def test_rerun_rejects_bad_input(净重跑):
+    asset = _an_asset()
+    assert client.post("/api/影响重跑/重跑", json={"资产": asset, "理由": " "}).status_code == 400
+    assert client.post("/api/影响重跑/重跑",
+                       json={"资产": "raw:不存在", "理由": "x"}).status_code == 404
+    assert not (净重跑 / "manual_rerun_steps.jsonl").exists(), "被拒的重跑不该留痕"
+
+
+def test_rerun_recompute_is_reproducible(净重跑):
+    """同样的事实重跑两次，派生指标哈希须一致——否则"重算"结果不可信。"""
+    asset = _an_asset()
+    a = client.post("/api/影响重跑/重跑", json={"资产": asset, "理由": "一"}).json()
+    b = client.post("/api/影响重跑/重跑", json={"资产": asset, "理由": "二"}).json()
+
+    def hashes(out):
+        return {v["视图"]: v["内容哈希"]
+                for v in next(s for s in out["各层"] if s["层"] == "derived_metric")["结果"]["视图"]}
+
+    assert hashes(a) == hashes(b), "事实没变，两次重算的视图哈希必须相同"
+    # 轮次号必须唯一：原实现用「秒级时间戳+资产哈希」，同一秒连点两次会撞车，
+    # 两轮留痕被并成一轮——账就记错了。改为按已有轮次递增。
+    assert a["轮次号"] != b["轮次号"], "轮次号须唯一（同秒连点也不能撞）"
+
+
+def test_downstream_impact_matches_assertions_with_qualified_sources(净重跑):
+    """断言的 our_source 带括号/带 via，影响面不得因精确匹配而少报。
+
+    `_staging.expense_lines(6403) via _staging.tax_composition` 与
+    `_staging.kingdee_ledger（book=武汉开明）` 都必须能命中——真开页面看到
+    「受影响断言域 —」才发现原实现用精确相等把它们全漏了。
+    """
+    got = client.get("/api/影响重跑?asset=raw:d46f77b0c90d").json()["选中"]
+    tables = {t["表"] for t in got["派生表"]}
+    assert {"expense_lines", "tax_composition"} <= tables
+    assert "tax" in got["受影响断言域"], "税费轴断言取自 expense_lines/tax_composition，必须命中"
+    assert got["受影响报告"], "命中断言域就该带出对应报告"
+
+    # 交叉校验：逐条按表名子串重算一遍，结果须与接口一致
+    raw = client.get("/api/断言?size=500").json()["items"]
+    expect = sorted({r["domain"] for r in raw
+                     if any(f"_staging.{t}" in str(r.get("our_source", "")) for t in tables)})
+    assert got["受影响断言域"] == expect
