@@ -1024,3 +1024,360 @@ def workbench_reverse(payload: dict[str, Any] = Body(...)):
         "reverses_event_id": target_event_id,
     })
     return {"已写入": _append_event(event), "被冲正": target_event_id}
+
+
+# ── PROD.0009 报告中心：HTML/CSV/PDF 三格式导出 + 不可去除的 D 级水印 ──────────
+# 权威任务包第 18 行：HTML/CSV 导出承接既有 runtime；新增 PDF（复用 KMIDS PDF 管线）；
+# 报告页眉强制显示等级/Q 级/delivery 状态。
+# 验收：**三格式导出 hash 登记；D 级水印在解锁前不可去除**。
+#
+# 既有 runtime 契约（KMFA/tools/report_export_runtime.py）：
+#   · HTML/CSV = public-safe 可提交；PDF = enabled_private_runtime_only，
+#     committed_artifact_path 恒为 null——**公开仓永不提交 PDF 文件**。
+#   · FORBIDDEN_PUBLIC_SUFFIXES 含 .pdf，故 PDF 只在运行时生成、只走响应流。
+# KMIDS 管线本机不可得（按需 clone 铁律，未 clone），故 PDF 用 reportlab 内置
+# STSong-Light CID 字体渲染中文——不装任何字体文件，策略与既有契约完全一致。
+GRADE_RECORDS_PATH = KMFA / "metadata" / "reports" / "report_grade_runtime_records.jsonl"
+DELIVERY_GATE_PATH = KMFA / "metadata" / "quality" / "v014_s18_p2_go_no_go_report.json"
+EXPORT_REGISTRY_PATH = APP_STATE_DIR / "report_export_records.jsonl"
+EXPORT_FORMATS = ("html", "csv", "pdf")
+
+
+def _delivery_state() -> dict[str, Any]:
+    """页眉三元组 + 水印判据——**全部取自事实**，没有任何请求参数能左右它。"""
+    grade_rows = _read_jsonl(GRADE_RECORDS_PATH)
+    grade_row = grade_rows[0] if grade_rows else {}
+    inputs = grade_row.get("grade_inputs") or {}
+    gate = load_json(DELIVERY_GATE_PATH) if DELIVERY_GATE_PATH.exists() else {}
+    delivery_allowed = bool(gate.get("delivery_allowed"))
+    return {
+        "报告等级": grade_row.get("computed_report_grade") or "未知",
+        "质量等级": inputs.get("source_quality_grade") or _quality_grade_short(),
+        "delivery_allowed": delivery_allowed,
+        "delivery状态": "已解锁" if delivery_allowed else "未解锁（NO_GO）",
+        "正式报告可出": bool(grade_row.get("formal_report_allowed")),
+        "可作经营依据": bool(grade_row.get("business_decision_basis_allowed")),
+        "等级政策版本": grade_row.get("grade_policy_version"),
+        "判据来源": [
+            "KMFA/metadata/reports/report_grade_runtime_records.jsonl",
+            "KMFA/metadata/quality/v014_s18_p2_go_no_go_report.json",
+        ],
+    }
+
+
+def _watermark_text() -> str | None:
+    """水印文案由事实推出。delivery 解锁前**恒非空**，且无参数可关。"""
+    state = _delivery_state()
+    if state["delivery_allowed"]:
+        return None
+    # 分隔符用全角竖线：U+00B7（·）不在 STSong-Light 的 UniGB-UCS2-H 映射里，
+    # PDF 里会渲成黑三角豆腐块——真把 PDF 渲成图看才发现的。
+    return (f"{state['报告等级']} 级 ｜ 未解锁不可作经营依据 ｜ "
+            f"质量 {state['质量等级']} ｜ delivery_allowed=false")
+
+
+def _report_dirs() -> list[Path]:
+    return sorted((d for d in STAGE_ARTIFACTS.glob("DT5_DATA0019_report_no*") if d.is_dir()),
+                  key=lambda d: int(re.search(r"report_no(\d+)", d.name).group(1)))
+
+
+def _report_dir(no: int) -> Path:
+    for d in _report_dirs():
+        if int(re.search(r"report_no(\d+)", d.name).group(1)) == no:
+            return d
+    raise HTTPException(status_code=404, detail=f"报告不存在：第 {no} 号")
+
+
+def _report_body(d: Path) -> str:
+    docs = sorted((d / "human").glob("*.md"))
+    if not docs:
+        raise HTTPException(status_code=503, detail=f"{d.name} 缺 human 正文")
+    return docs[0].read_text(encoding="utf-8")
+
+
+def _export_html(no: int, title: str, body: str, header: dict[str, Any], mark: str | None) -> bytes:
+    import html as _html
+
+    # 水印用 ::before 伪元素 + 固定定位铺满，**不提供任何开关**；
+    # 页眉三元组同样硬渲染进文档，不是可选装饰。
+    band = "" if mark is None else f"""
+  <div class="wm" aria-label="水印">{_html.escape(mark)}</div>
+  <style>
+    .wm {{ position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+          transform: rotate(-28deg); font-size: 2.2rem; font-weight: 800; color: rgba(192,57,43,.18);
+          pointer-events: none; z-index: 9999; white-space: pre-wrap; text-align: center; }}
+    @media print {{ .wm {{ display: flex !important; }} }}
+  </style>"""
+    rows = "\n".join(
+        f"<tr><td>{_html.escape(str(k))}</td><td><b>{_html.escape(str(v))}</b></td></tr>"
+        for k, v in (("报告等级", header["报告等级"]), ("质量等级", header["质量等级"]),
+                     ("delivery 状态", header["delivery状态"]))
+    )
+    esc_body = _html.escape(body)
+    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>{_html.escape(title)}</title>
+<style>
+ body{{font-family:-apple-system,"PingFang SC",sans-serif;max-width:60rem;margin:0 auto;padding:2rem;line-height:1.7}}
+ table{{border-collapse:collapse;margin:.8rem 0}} td{{border:1px solid #ccc;padding:.35rem .6rem}}
+ pre{{white-space:pre-wrap;word-wrap:break-word}}
+ header{{border-bottom:2px solid #174a7c;padding-bottom:.6rem}}
+</style></head><body>{band}
+<header><h1>{_html.escape(title)}</h1><table><tbody>{rows}</tbody></table></header>
+<pre>{esc_body}</pre>
+</body></html>""".encode("utf-8")
+
+
+def _export_csv(no: int, d: Path, header: dict[str, Any], mark: str | None) -> bytes:
+    import csv as _csv
+    import io as _io
+
+    disp_path = d / "machine" / "dispositions.json"
+    disp = json.loads(disp_path.read_text(encoding="utf-8")) if disp_path.exists() else {}
+    buf = _io.StringIO()
+    w = _csv.writer(buf)
+    # 水印与页眉三元组写成 CSV 前置行——任何打开方式都看得到，删不掉才算不可去除
+    if mark:
+        w.writerow(["水印", mark])
+    w.writerow(["报告等级", header["报告等级"]])
+    w.writerow(["质量等级", header["质量等级"]])
+    w.writerow(["delivery 状态", header["delivery状态"]])
+    w.writerow([])
+    w.writerow(["条目", "状态", "差异分", "差异元", "结论"])
+    for item in (disp.get("dispositions") or []):
+        cents = item.get("delta_cents")
+        w.writerow([item.get("item"), item.get("status"), cents,
+                    _cents_to_yuan(cents) or "", item.get("finding") or ""])
+    return buf.getvalue().encode("utf-8-sig")  # BOM：Excel 直接双击不乱码
+
+
+# STSong-Light（UniGB-UCS2-H）渲不出的字符 → 可渲替身。
+# 表是**实测出来的**：扫 8 份报告正文找 GBK 编不出的字符，再加上 U+00B7——
+# 它 GBK 能编但实测仍渲成黑三角（把 PDF 渲成 PNG 看才发现）。
+PDF_GLYPH_FALLBACKS = {
+    "\u2705": "\u221a",   # ✅ → √
+    "\u00a5": "\uffe5",   # ¥ → ￥（半角日元符渲不出，全角人民币符可以）
+    "\u2194": "<->",      # ↔
+    "\u2212": "-",        # − 数学减号
+    "\u2213": "-/+",      # ∓
+    "\u00b7": " - ",      # · 间隔号
+    "\u2022": "-",        # •
+    "\u2013": "-", "\u2014": "-",
+}
+
+
+def _pdf_safe(text: str) -> str:
+    """把渲不出的字符换成可渲替身。**PDF 里所有落笔的文字都要过这一道。**"""
+    for bad, good in PDF_GLYPH_FALLBACKS.items():
+        text = text.replace(bad, good)
+    return text
+
+
+def _markdown_to_plain(body: str) -> list[str]:
+    """把报告 markdown 压成可读纯文本行——PDF 里倒 `###`/`**`/`|---|` 原文没法看。
+
+    表格保留内容、去掉分隔线；标题降为「N、」式；强调标记剥掉。数字一律不动。
+    """
+    lines: list[str] = []
+    for raw in body.splitlines():
+        line = raw.rstrip()
+        if re.fullmatch(r"\s*\|?[\s\|:–—-]*\|[\s\|:–—-]*\|?\s*", line) and "-" in line:
+            continue  # 表格分隔线
+        line = re.sub(r"^\s{0,3}(#{1,6})\s*", "", line)
+        line = re.sub(r"^\s{0,3}>\s?", "", line)
+        line = line.replace("**", "").replace("`", "")
+        if line.startswith("|"):
+            cells = [c.strip() for c in line.strip("|").split("|")]
+            line = "    ".join(c for c in cells if c)
+        lines.append(line)
+    return lines
+
+
+def _export_pdf(no: int, title: str, body: str, header: dict[str, Any], mark: str | None) -> bytes:
+    import io as _io
+
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+        from reportlab.pdfgen import canvas as _canvas
+    except ImportError as exc:  # 缺依赖就明说，绝不悄悄产出一个假 PDF
+        raise HTTPException(status_code=503, detail=f"PDF 管线不可用：{exc}") from exc
+
+    pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))
+    buf = _io.BytesIO()
+    # invariant=1：固定 /CreationDate 与文档 ID。默认会写入挂钟时间，导致同一份报告
+    # 每次导出字节都不同——那样登记的 hash 事后验不了任何东西（契约测试当场逮到）。
+    c = _canvas.Canvas(buf, pagesize=A4, invariant=1)
+    width, height = A4
+
+    def stamp() -> None:
+        """每一页都盖水印——翻页删不掉、抽页也删不掉。"""
+        if not mark:
+            return
+        c.saveState()
+        c.setFont("STSong-Light", 20)
+        c.setFillColorRGB(0.75, 0.22, 0.17, alpha=0.18)
+        c.translate(width / 2, height / 2)
+        c.rotate(28)
+        c.drawCentredString(0, 0, _pdf_safe(mark))
+        c.restoreState()
+
+    safe_title = _pdf_safe(title)
+    c.setTitle(safe_title)
+
+    def head(y: float) -> float:
+        c.setFont("STSong-Light", 15)
+        c.drawString(45, y, safe_title)
+        c.setFont("STSong-Light", 9.5)
+        c.drawString(45, y - 18, _pdf_safe(
+            f"报告等级 {header['报告等级']} ｜ 质量等级 {header['质量等级']} "
+            f"｜ delivery {header['delivery状态']}"))
+        c.line(45, y - 26, width - 45, y - 26)
+        return y - 44
+
+    stamp()
+    y = head(height - 50)
+    body_size, usable = 9, width - 90
+    c.setFont("STSong-Light", body_size)
+
+    def wrap(text: str) -> list[str]:
+        """按**实际字宽**折行。原来按字数切 46，会把 1,462,802.90 劈成两截——
+        财务报告折断金额是硬伤，真把 PDF 渲成图看才发现。"""
+        out, cur = [], ""
+        for ch in text:
+            trial = cur + ch
+            if pdfmetrics.stringWidth(trial, "STSong-Light", body_size) > usable:
+                out.append(cur)
+                cur = ch
+            else:
+                cur = trial
+        out.append(cur)
+        return out or [""]
+
+    for raw in (_pdf_safe(l) for l in _markdown_to_plain(body)):
+        for chunk in wrap(raw):
+            c.drawString(45, y, chunk)
+            y -= 13
+            if y < 50:
+                c.showPage()
+                stamp()
+                y = head(height - 50)
+                c.setFont("STSong-Light", body_size)
+    c.save()
+    return buf.getvalue()
+
+
+def _register_export(record: dict[str, Any]) -> dict[str, Any]:
+    """导出 hash 登记——与 PROD.0007 同一条纪律：只追加，不改写。"""
+    APP_STATE_DIR.mkdir(parents=True, exist_ok=True)
+    with EXPORT_REGISTRY_PATH.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+    return record
+
+
+@app.get("/api/报告中心")
+def report_center():
+    """报告中心（PROD.0009）——八份报告 × 三格式，页眉三元组与水印状态如实呈现。"""
+    header = _delivery_state()
+    mark = _watermark_text()
+    registered = _read_jsonl(EXPORT_REGISTRY_PATH)
+    by_key: dict[str, dict[str, Any]] = {}
+    for r in registered:
+        by_key[f"{r.get('报告')}|{r.get('格式')}"] = r
+
+    items = []
+    for d in _report_dirs():
+        no = int(re.search(r"report_no(\d+)", d.name).group(1))
+        docs = sorted((d / "human").glob("*.md"))
+        items.append({
+            "编号": no,
+            "标题": _report_title(d),
+            "目录": d.name,
+            "正文字数": len(docs[0].read_text(encoding="utf-8")) if docs else 0,
+            "格式": [
+                {
+                    "格式": fmt,
+                    "下载": f"/api/报告中心/导出?报告={no}&格式={fmt}",
+                    "可提交公开仓": fmt != "pdf",
+                    "已登记": by_key.get(f"{no}|{fmt}", {}).get("sha256"),
+                }
+                for fmt in EXPORT_FORMATS
+            ],
+        })
+
+    return {
+        "页眉": {"报告等级": header["报告等级"], "质量等级": header["质量等级"],
+                 "delivery状态": header["delivery状态"]},
+        "交付判据": header,
+        "水印": {
+            "文案": mark,
+            "生效中": mark is not None,
+            "可关闭": False,
+            "去除条件": "delivery_allowed 由 false 转 true（Owner 签 GO），非任何前端/参数开关",
+            "覆盖格式": list(EXPORT_FORMATS),
+        },
+        "报告": items,
+        "导出登记": {
+            "条数": len(registered),
+            "位置": str(EXPORT_REGISTRY_PATH),
+            "追加式": True,
+            "记录": registered[-20:],
+        },
+        "PDF策略": {
+            "运行时生成": True,
+            "提交进公开仓": False,
+            "说明": ("既有 runtime 契约 committed_artifact_path 恒 null、"
+                     "FORBIDDEN_PUBLIC_SUFFIXES 含 .pdf；本 App 只走响应流，不落仓。"),
+            "中文渲染": "reportlab 内置 STSong-Light CID 字体，不依赖系统字体文件",
+        },
+    }
+
+
+@app.get("/api/报告中心/导出")
+def report_export(报告: int, 格式: str = "html"):
+    """三格式导出 + hash 登记。**水印不接受任何参数控制**——只认 delivery 事实。"""
+    fmt = str(格式).lower().strip()
+    if fmt not in EXPORT_FORMATS:
+        raise HTTPException(status_code=400, detail=f"格式须为 {list(EXPORT_FORMATS)}")
+
+    d = _report_dir(int(报告))
+    title = _report_title(d) or f"一致性证明与差异分析报告 第 {报告} 号"
+    header = _delivery_state()
+    mark = _watermark_text()
+    body = _report_body(d)
+
+    if fmt == "html":
+        data, media = _export_html(报告, title, body, header, mark), "text/html; charset=utf-8"
+    elif fmt == "csv":
+        data, media = _export_csv(报告, d, header, mark), "text/csv; charset=utf-8"
+    else:
+        data, media = _export_pdf(报告, title, body, header, mark), "application/pdf"
+
+    digest = "sha256:" + hashlib.sha256(data).hexdigest()
+    _register_export({
+        "报告": int(报告),
+        "标题": title,
+        "格式": fmt,
+        "sha256": digest,
+        "字节": len(data),
+        "水印已加": mark is not None,
+        "水印文案": mark,
+        "报告等级": header["报告等级"],
+        "质量等级": header["质量等级"],
+        "delivery_allowed": header["delivery_allowed"],
+        "提交进公开仓": False if fmt == "pdf" else True,
+        "导出时间": datetime.now(BEIJING).isoformat(timespec="seconds"),
+    })
+
+    from fastapi.responses import Response
+
+    return Response(content=data, media_type=media, headers={
+        "Content-Disposition": f'attachment; filename="kmfa_report_{报告}.{fmt}"',
+        "X-KMFA-Report-Grade": header["报告等级"],
+        "X-KMFA-Quality-Grade": header["质量等级"],
+        "X-KMFA-Delivery-Allowed": str(header["delivery_allowed"]).lower(),
+        "X-KMFA-Watermark": "applied" if mark else "none",
+        "X-KMFA-Sha256": digest,
+    })

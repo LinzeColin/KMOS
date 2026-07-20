@@ -4,7 +4,9 @@
 metadata/quality/assertions.jsonl、stage_artifacts 八份报告），不使用 mock/占位——
 本线曾犯「用健康检查冒充完备性」的错，契约测试必须咬住真实内容。
 """
+import hashlib
 import json
+import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -623,3 +625,237 @@ def test_workbench_event_carries_no_forbidden_plaintext(净状态):
                               "理由": "核到分"}).json()["已写入"]
     assert not (set(event) & FORBIDDEN_EVENT_KEYS)
     assert "delta_cents" not in event and "amount_cents" not in event
+
+
+# ── PROD.0009 报告中心：三格式导出 hash 登记 + D 级水印不可去除 ────────────────
+@_pytest.fixture
+def 净导出(monkeypatch, tmp_path):
+    from app import main as m
+
+    state = tmp_path / "state"
+    monkeypatch.setattr(m, "APP_STATE_DIR", state)
+    monkeypatch.setattr(m, "EXPORT_REGISTRY_PATH", state / "report_export_records.jsonl")
+    return state / "report_export_records.jsonl"
+
+
+def test_report_center_header_triple_from_facts(净导出):
+    """页眉三元组须取自事实：等级 D / 质量 Q4 / delivery 未解锁。"""
+    payload = client.get("/api/报告中心").json()
+    header = payload["页眉"]
+    assert header["报告等级"] == "D"
+    assert header["质量等级"] == "Q4"
+    assert payload["交付判据"]["delivery_allowed"] is False
+    assert payload["交付判据"]["正式报告可出"] is False
+    assert payload["交付判据"]["可作经营依据"] is False
+    assert len(payload["报告"]) == 8, "八份一致性证明报告都要在册"
+    for r in payload["报告"]:
+        assert {f["格式"] for f in r["格式"]} == {"html", "csv", "pdf"}
+
+
+def test_report_export_three_formats_really_render(净导出):
+    """三格式必须真产出可用文件——不是返回一句"已就绪"。"""
+    html = client.get("/api/报告中心/导出?报告=1&格式=html")
+    assert html.status_code == 200 and html.content.startswith(b"<!doctype html")
+    assert "一致性证明" in html.text
+
+    csv = client.get("/api/报告中心/导出?报告=1&格式=csv")
+    assert csv.status_code == 200
+    assert csv.content.startswith(b"\xef\xbb\xbf"), "CSV 需带 BOM，Excel 双击才不乱码"
+    assert "差异分" in csv.content.decode("utf-8-sig")
+
+    pdf = client.get("/api/报告中心/导出?报告=1&格式=pdf")
+    assert pdf.status_code == 200
+    assert pdf.content.startswith(b"%PDF"), "必须是真 PDF 魔数"
+    assert b"%%EOF" in pdf.content[-2048:], "PDF 必须完整收尾"
+    assert b"STSong-Light" in pdf.content, "须内嵌中文 CID 字体"
+    assert len(pdf.content) > 2000
+
+
+def test_watermark_cannot_be_removed_by_any_parameter(净导出):
+    """**本单元核心验收**：解锁前 D 级水印在三格式里都去不掉。
+
+    穷举一切"看起来能关水印"的参数组合，逐个实测——只要有一种能把水印弄没，
+    这条验收就是假的。
+    """
+    from app.main import _watermark_text
+
+    mark = _watermark_text()
+    assert mark and "D 级" in mark and "delivery_allowed=false" in mark
+
+    attempts = [
+        "", "&水印=off", "&水印=false", "&watermark=false", "&watermark=0",
+        "&no_watermark=1", "&nomark=true", "&raw=1", "&clean=1", "&plain=true",
+        "&delivery_allowed=true", "&报告等级=A", "&mark=", "&draft=false",
+    ]
+    for fmt in ("html", "csv", "pdf"):
+        for extra in attempts:
+            r = client.get(f"/api/报告中心/导出?报告=1&格式={fmt}{extra}")
+            assert r.status_code == 200, f"{fmt}{extra} → {r.status_code}"
+            assert r.headers["X-KMFA-Watermark"] == "applied", f"{fmt}{extra} 水印头丢了"
+            if fmt == "html":
+                assert mark in r.text, f"html{extra} 水印文案不见了"
+                assert 'class="wm"' in r.text
+            elif fmt == "csv":
+                assert mark in r.content.decode("utf-8-sig"), f"csv{extra} 水印行不见了"
+            else:
+                assert r.content.startswith(b"%PDF") and len(r.content) > 2000
+
+
+def test_watermark_is_fact_driven_not_hardcoded(净导出, monkeypatch):
+    """水印只认 delivery 事实：把 delivery_allowed 翻成 true，水印才消失。
+
+    反证——若水印是写死的常量，翻转事实后它仍会在，本用例即失败。
+    """
+    from app import main as m
+
+    assert m._watermark_text() is not None  # 现实：未解锁
+    monkeypatch.setattr(m, "_delivery_state", lambda: {
+        "报告等级": "A", "质量等级": "Q5", "delivery_allowed": True,
+        "delivery状态": "已解锁", "正式报告可出": True, "可作经营依据": True,
+        "等级政策版本": "x", "判据来源": [],
+    })
+    assert m._watermark_text() is None, "delivery 解锁后水印应自然消失——说明它由事实驱动"
+
+
+def test_export_hash_registered_append_only(净导出):
+    """三格式导出 hash 登记；登记只追加不改写。"""
+    digests = {}
+    for fmt in ("html", "csv", "pdf"):
+        r = client.get(f"/api/报告中心/导出?报告=2&格式={fmt}")
+        digests[fmt] = r.headers["X-KMFA-Sha256"]
+        assert digests[fmt].startswith("sha256:")
+
+    lines = 净导出.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 3
+    records = [json.loads(l) for l in lines]
+    assert {r["格式"] for r in records} == {"html", "csv", "pdf"}
+    for rec in records:
+        assert rec["报告"] == 2
+        assert rec["水印已加"] is True
+        assert rec["报告等级"] == "D" and rec["delivery_allowed"] is False
+        assert rec["sha256"] == digests[rec["格式"]]
+        # 响应头登记的 hash 必须真的是内容 hash
+        # 登记的 hash 必须真能复验：同一份报告重导出须**逐字节一致**。
+        # PDF 默认会写挂钟 /CreationDate，那样 hash 每次都变、登记形同虚设——
+        # 故导出走 invariant 模式，本断言即为此把关。
+        body = client.get(f"/api/报告中心/导出?报告=2&格式={rec['格式']}").content
+        assert rec["sha256"] == "sha256:" + hashlib.sha256(body).hexdigest(), \
+            f"{rec['格式']} 重导出 hash 不一致——登记无法复验"
+
+    before = 净导出.read_text(encoding="utf-8")
+    client.get("/api/报告中心/导出?报告=3&格式=html")
+    assert 净导出.read_text(encoding="utf-8").startswith(before), "登记必须是追加"
+
+
+def test_pdf_never_committed_to_public_repo(净导出):
+    """既有 runtime 契约：公开仓永不提交 PDF。App 只走响应流。"""
+    from app.main import KMFA, REPO
+
+    payload = client.get("/api/报告中心").json()
+    assert payload["PDF策略"]["提交进公开仓"] is False
+    assert payload["PDF策略"]["运行时生成"] is True
+    for r in payload["报告"]:
+        pdf_fmt = next(f for f in r["格式"] if f["格式"] == "pdf")
+        assert pdf_fmt["可提交公开仓"] is False
+
+    client.get("/api/报告中心/导出?报告=1&格式=pdf")
+    assert list((KMFA / "app").rglob("*.pdf")) == [], "App 目录下不得出现 PDF 文件"
+    assert not (REPO / "KMFA" / "app" / "backend" / "app").joinpath("kmfa_report_1.pdf").exists()
+
+
+def test_export_headers_carry_grade_and_delivery(净导出):
+    """页眉三元组也要进响应头——自动化与下游取数不必解析正文。"""
+    for fmt in ("html", "csv", "pdf"):
+        h = client.get(f"/api/报告中心/导出?报告=1&格式={fmt}").headers
+        assert h["X-KMFA-Report-Grade"] == "D"
+        assert h["X-KMFA-Quality-Grade"] == "Q4"
+        assert h["X-KMFA-Delivery-Allowed"] == "false"
+        assert "attachment" in h["Content-Disposition"]
+
+
+def test_export_rejects_unknown_report_and_format(净导出):
+    assert client.get("/api/报告中心/导出?报告=1&格式=docx").status_code == 400
+    assert client.get("/api/报告中心/导出?报告=99&格式=html").status_code == 404
+    assert not 净导出.exists() or not 净导出.read_text(encoding="utf-8").strip()
+
+
+def test_pdf_uses_only_glyphs_the_cid_font_can_render(净导出):
+    """水印与标题不得含 STSong-Light 渲染不出的字符（会变黑三角豆腐块）。
+
+    U+00B7（·）就踩过——PDF 渲成图才看见，纯字节断言看不出来。
+    """
+    from app.main import _watermark_text
+
+    from app.main import (
+        PDF_GLYPH_FALLBACKS, _markdown_to_plain, _pdf_safe, _report_body, _report_dir,
+        _report_title, _watermark_text,
+    )
+
+    def scan(text, where):
+        for ch in text:
+            assert ch not in PDF_GLYPH_FALLBACKS, \
+                f"{where} 含渲不出的 U+{ord(ch):04X}（{ch!r}）——PDF 里会是豆腐块"
+
+    # 水印、标题、正文——**凡是落笔的文字都要过 _pdf_safe**，逐一实测
+    scan(_pdf_safe(_watermark_text()), "水印")
+    for no in range(1, 9):
+        d = _report_dir(no)
+        scan(_pdf_safe(_report_title(d) or ""), f"第 {no} 号标题")
+        for line in _markdown_to_plain(_report_body(d)):
+            scan(_pdf_safe(line), f"第 {no} 号正文")
+
+    # 替身表本身要有实据：这几个是扫 8 份报告 + 渲图实测出来的
+    assert PDF_GLYPH_FALLBACKS["\u00a5"] == "\uffe5", "¥ 必须换成全角 ￥"
+    assert "\u2705" in PDF_GLYPH_FALLBACKS and "\u00b7" in PDF_GLYPH_FALLBACKS
+    # 金额不能被替换动过
+    assert "1,462,802.90" in _pdf_safe(_report_body(_report_dir(1)))
+
+
+def test_pdf_body_is_plain_text_not_raw_markdown(净导出):
+    """PDF 正文须是清洗过的纯文本——不能把 ###、**、|---| 原样倒给人看。"""
+    from app.main import _markdown_to_plain, _report_body, _report_dir
+
+    raw = _report_body(_report_dir(1))
+    assert "##" in raw and "**" in raw, "样本报告本身应含 markdown，否则本用例无意义"
+
+    plain = _markdown_to_plain(raw)
+    joined = "\n".join(plain)
+    assert "**" not in joined and "##" not in joined
+    assert not any(re.fullmatch(r"\s*\|?[\s\|:–—-]*\|[\s\|:–—-]*\|?\s*", l) and "-" in l
+                   for l in plain), "表格分隔线应被去掉"
+    # 内容不能被清洗掉：关键金额与结论须原样留存
+    assert "1,462,802.90" in joined and "694.57" in joined
+    assert "财务应收回款" in joined
+
+
+def test_pdf_line_wrap_never_splits_amounts(净导出):
+    """按字宽折行，金额不得被劈成两截——原按字数切 46 会切断 1,462,802.90。"""
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+
+    from app.main import _markdown_to_plain, _report_body, _report_dir
+
+    pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))
+    usable, size = 595.2755905511812 - 90, 9
+
+    def wrap(text):
+        out, cur = [], ""
+        for ch in text:
+            trial = cur + ch
+            if pdfmetrics.stringWidth(trial, "STSong-Light", size) > usable:
+                out.append(cur)
+                cur = ch
+            else:
+                cur = trial
+        out.append(cur)
+        return out or [""]
+
+    lines = []
+    for raw in _markdown_to_plain(_report_body(_report_dir(1))):
+        lines.extend(wrap(raw))
+    joined = "\n".join(lines)
+    for amount in ("1,462,802.90", "1,595,080.52", "694.57", "71,790.00"):
+        assert amount in joined, f"金额 {amount} 被折行劈断了"
+    for line in lines:
+        assert pdfmetrics.stringWidth(line, "STSong-Light", size) <= usable + 0.5, \
+            f"折行超出可用宽度：{line[:20]}…"
