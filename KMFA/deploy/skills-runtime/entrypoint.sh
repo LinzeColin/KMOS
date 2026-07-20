@@ -29,7 +29,43 @@ else
 fi
 
 mkdir -p /var/log/kmfa
-crontab /opt/runtime/crontab.txt 2>/dev/null || cp /opt/runtime/crontab.txt /etc/cron.d/kmfa-skills
+
+# 排程只走 /etc/cron.d，不碰用户 crontab。
+#
+# 原实现是 `crontab <file> 2>/dev/null || cp <file> /etc/cron.d/kmfa-skills`，
+# 指望 crontab 对系统格式文件报错后走 || 右边。**实测它退出码 0**：crontab.txt 带
+# user 字段（`root /opt/runtime/run_skill.sh ...`），`crontab` 把 "root ..." 整体
+# 当成命令原样收下，于是排程被静默装成用户 crontab，每次触发只吐
+# "root: command not found"——10 条排程从上线起一次都没执行过（含 dws-keepalive，
+# 即 #123 补回的认证保活，因此那个"修复"实际从未生效）。
+# 教训：别拿命令的返回码去猜它是否理解了输入格式。
+CRON_D=/etc/cron.d/kmfa-skills
+crontab -r 2>/dev/null || true   # 清掉可能残留的用户 crontab，杜绝两种格式并存重复触发
+install -m 0644 -o root -g root /opt/runtime/crontab.txt "$CRON_D"
+# cron.d 硬性要求：文件名不含点（kmfa-skills 合规）、末尾必须有换行
+if [ -n "$(tail -c1 "$CRON_D")" ]; then
+  echo >> "$CRON_D"
+fi
+
+# 装完自检——**装不上就不许启动**。静默失效比起不来危险得多：上一版就是这样
+# 安安静静一个月不发消息，还得靠 Owner 说"我没收到"才被发现。
+#
+# 注意两处 `|| true`：本脚本开了 set -e，而 `grep -c` 数到 0 条时**退出码是 1**，
+# 不加就会在这里静默打死脚本、连下面的拒绝理由都打不出来——第一版就这么写的，
+# 负例测试里容器确实退出了却不说为什么，等于把"静默失败"又造了一遍。
+EXPECT_JOBS="$(grep -cE '^[0-9*].*run_skill' /opt/runtime/crontab.txt || true)"
+GOT_JOBS="$(grep -cE '^[0-9*].*run_skill' "$CRON_D" 2>/dev/null || true)"
+EXPECT_JOBS="${EXPECT_JOBS:-0}"
+GOT_JOBS="${GOT_JOBS:-0}"
+if [ "$GOT_JOBS" -ne "$EXPECT_JOBS" ] || [ "$EXPECT_JOBS" -eq 0 ]; then
+  echo "拒绝启动：排程装入 $CRON_D 失败（期望 $EXPECT_JOBS 条，实得 $GOT_JOBS 条）" >&2
+  exit 1
+fi
+if crontab -l >/dev/null 2>&1; then
+  echo "拒绝启动：仍存在用户 crontab，与 cron.d 并存会重复触发" >&2
+  exit 1
+fi
+echo "$(date -Is) entrypoint: 排程已装入 $CRON_D（$GOT_JOBS 条）" >> /var/log/kmfa/cron.log
 touch /var/log/kmfa/cron.log /var/log/kmfa/ledger.jsonl
 echo "$(date -Is) entrypoint: cron 启动（TZ=$TZ，KMFA_DELIVERY_ENABLED=${KMFA_DELIVERY_ENABLED:-0}）" >> /var/log/kmfa/cron.log
 exec cron -f
