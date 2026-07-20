@@ -994,7 +994,11 @@ def workbench_decide(payload: dict[str, Any] = Body(...)):
         "status": "recorded_pending_approval",
         "approval_state": "draft",
     })
-    return {"已写入": _append_event(event), "写入位置": str(APP_EVENTS_PATH)}
+    written = _append_event(event)
+    _audit("processing", subject_ref=assertion_id, result_status="OK",
+           evidence_ref=str(APP_EVENTS_PATH), event_ref=written["event_id"],
+           decision=decision)
+    return {"已写入": written, "写入位置": str(APP_EVENTS_PATH)}
 
 
 @app.post("/api/差异工作台/冲正")
@@ -1023,7 +1027,11 @@ def workbench_reverse(payload: dict[str, Any] = Body(...)):
         "approval_state": "reversal_recorded",
         "reverses_event_id": target_event_id,
     })
-    return {"已写入": _append_event(event), "被冲正": target_event_id}
+    written = _append_event(event)
+    _audit("processing", subject_ref=str(origin.get("target_ref")), result_status="REVERSED",
+           evidence_ref=str(APP_EVENTS_PATH), event_ref=written["event_id"],
+           reverses=target_event_id)
+    return {"已写入": written, "被冲正": target_event_id}
 
 
 # ── PROD.0009 报告中心：HTML/CSV/PDF 三格式导出 + 不可去除的 D 级水印 ──────────
@@ -1371,6 +1379,11 @@ def report_export(报告: int, 格式: str = "html"):
         "导出时间": datetime.now(BEIJING).isoformat(timespec="seconds"),
     })
 
+    _audit("export", subject_ref=f"report_no{报告}:{fmt}", result_status="OK",
+           evidence_ref=str(EXPORT_REGISTRY_PATH), sha256=digest, bytes=len(data),
+           report_grade=header["报告等级"], quality_grade=header["质量等级"],
+           delivery_allowed=header["delivery_allowed"], watermark_applied=mark is not None)
+
     from fastapi.responses import Response
 
     return Response(content=data, media_type=media, headers={
@@ -1643,6 +1656,10 @@ def trigger_rerun(payload: dict[str, Any] = Body(...)):
         "raw_layer_untouched": True,
     })
 
+    _audit("processing", subject_ref=asset, result_status="COMPLETED",
+           evidence_ref=str(APP_RERUN_STEPS_PATH), run_id=run_id,
+           layers=len(steps), chain_complete=consistency["chain_complete"])
+
     return {
         "轮次号": run_id,
         "资产": asset,
@@ -1655,4 +1672,110 @@ def trigger_rerun(payload: dict[str, Any] = Body(...)):
                   "结果": s["rerun_result"]} for s in steps],
         "一致性检查": consistency,
         "留痕位置": str(APP_RERUN_STEPS_PATH),
+    }
+
+
+# ── PROD.0003 访问安全承接 S17：审计日志 append-only ──────────────────────────
+# 权威任务包第 12 行：本机单用户模式；导出水印（等级/Q 级/delivery 永远印在页眉）；
+# 审计日志 append-only。验收＝安全走查单过（承接 v014 S17 access security 口径）。
+#
+# 契约取自既有 KMFA/metadata/security/：
+#   audit_log_policy.jsonl —— 7 个必填字段、append_only、五种 action_type、
+#     raw_payload_allowed=false / business_value_plaintext_allowed=false
+#   v014_s17_p1_..._audit_event_contract.jsonl —— persistent_event_write_enabled=false
+#     （S17-P1 只定契约不落盘）；**本单元即是把它真正落盘的那一步**
+SECURITY_DIR = KMFA / "metadata" / "security"
+AUDIT_POLICY_PATH = SECURITY_DIR / "audit_log_policy.jsonl"
+ACCESS_POLICY_PATH = SECURITY_DIR / "access_security_policy_manifest.json"
+APP_AUDIT_PATH = APP_STATE_DIR / "audit_events.jsonl"
+
+AUDIT_REQUIRED_FIELDS = (
+    "event_id", "event_time", "actor_role", "action_type",
+    "subject_ref", "evidence_ref", "result_status",
+)
+AUDIT_ACTION_TYPES = ("import", "processing", "report", "export", "notification")
+# 审计事件里绝不允许出现的东西——记「谁在什么时候对什么做了什么」，
+# 不记业务明文与原始载荷（契约：raw_payload_allowed=false）
+AUDIT_FORBIDDEN_KEYS = FORBIDDEN_EVENT_KEYS | frozenset({
+    "payload", "raw_payload", "body", "report_body", "text", "content",
+})
+
+
+def _audit(action_type: str, subject_ref: str, result_status: str,
+           evidence_ref: str, actor_role: str = "management",
+           **extra: Any) -> dict[str, Any]:
+    """写一条审计事件。**只追加，且写失败不能拖垮业务动作**。
+
+    审计是旁证不是主流程：日志写不进去时业务不该跟着挂，但也不能悄悄吞掉——
+    失败会以 audit_write_failed 记进返回值，调用方可见。
+    """
+    if action_type not in AUDIT_ACTION_TYPES:
+        raise HTTPException(status_code=500, detail=f"非法 action_type：{action_type}")
+    event = {
+        "event_id": f"AUD-APP-{hashlib.sha256(f'{action_type}{subject_ref}{datetime.now(BEIJING).isoformat()}'.encode()).hexdigest()[:16]}",
+        "event_time": datetime.now(BEIJING).isoformat(timespec="seconds"),
+        "actor_role": actor_role,
+        "action_type": action_type,
+        "subject_ref": subject_ref,
+        "evidence_ref": evidence_ref,
+        "result_status": result_status,
+        "record_type": "audit_event",
+        "policy_version": "AUD-KMFA-S17P1-ACTION-LOG-001",
+        "stage_phase": "DT6-PROD0003",
+        "append_only": True,
+        "raw_payload_committed": False,
+        "business_value_plaintext_committed": False,
+        **extra,
+    }
+    leaked = sorted(set(event) & AUDIT_FORBIDDEN_KEYS)
+    if leaked:
+        raise HTTPException(status_code=500, detail=f"审计事件含禁写字段：{leaked}")
+    try:
+        APP_STATE_DIR.mkdir(parents=True, exist_ok=True)
+        with APP_AUDIT_PATH.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+    except OSError as exc:
+        event["audit_write_failed"] = str(exc)
+    return event
+
+
+@app.get("/api/审计日志")
+def audit_log(action_type: str | None = None, page: int = 1, size: int = 50):
+    """审计日志（PROD.0003）——append-only，只记动作不记业务明文。"""
+    rows = _read_jsonl(APP_AUDIT_PATH)
+    selected = [r for r in rows if not action_type or r.get("action_type") == action_type]
+    items, meta = _paginate(list(reversed(selected)), page, size)
+    policy = _read_jsonl(AUDIT_POLICY_PATH)
+    access = load_json(ACCESS_POLICY_PATH) if ACCESS_POLICY_PATH.exists() else {}
+    by_type: dict[str, int] = {}
+    for r in rows:
+        key = str(r.get("action_type"))
+        by_type[key] = by_type.get(key, 0) + 1
+    return {
+        "总数": len(rows),
+        "按动作": by_type,
+        "分页": meta,
+        "事件": items,
+        "契约": {
+            "必填字段": list(AUDIT_REQUIRED_FIELDS),
+            "动作类型": list(AUDIT_ACTION_TYPES),
+            "append_only": True,
+            "允许记原始载荷": False,
+            "允许记业务明文": False,
+            "政策版本": (policy[0].get("policy_version") if policy else None),
+            "落盘位置": str(APP_AUDIT_PATH),
+            "契约来源": [
+                "KMFA/metadata/security/audit_log_policy.jsonl",
+                "KMFA/metadata/security/access_security_policy_manifest.json",
+            ],
+        },
+        "访问模式": {
+            "模式": "本机单用户",
+            "应用内登录": False,
+            "生产鉴权": "Cloudflare Access 前置（DNS 之前）",
+            "角色口径": (access.get("required_roles") or []),
+            "说明": "本机不做多用户与角色分权；角色口径承接 S17 供云端与导出留痕使用",
+        },
     }
