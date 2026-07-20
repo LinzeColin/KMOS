@@ -460,3 +460,166 @@ def test_invoice_tax_staging_rows_match_pipeline_facts():
     got = {t["表"]: t["行数"] for t in _invoice_payload()["派生层规模"]}
     assert got == {n: staging[n]["rows"] for n in ("invoice_raw", "invoice_lines",
                                                    "tax_composition", "loan_register")}
+
+
+# ── PROD.0007 差异工作台：三选一决策 + append-only 回写 ────────────────────────
+import os as _os
+import tempfile as _tempfile
+
+import pytest as _pytest
+
+
+@_pytest.fixture
+def 净状态(monkeypatch, tmp_path):
+    """每个用例用独立的应用状态目录——不污染仓内治理面，也不互相串。"""
+    from app import main as m
+
+    state = tmp_path / "state"
+    monkeypatch.setattr(m, "APP_STATE_DIR", state)
+    monkeypatch.setattr(m, "APP_EVENTS_PATH", state / "manual_resolution_events.jsonl")
+    return state / "manual_resolution_events.jsonl"
+
+
+def _first_assertion_id():
+    return client.get("/api/断言?size=1").json()["items"][0]["assertion_id"]
+
+
+def test_workbench_groups_assertions_by_open_closed_excluded(净状态):
+    """任务包要求的三态可视化：分组计数须与断言表逐条自洽。"""
+    payload = client.get("/api/差异工作台").json()
+    groups = payload["分组计数"]
+    assert set(groups) == {"open", "closed", "excluded"}
+    assert sum(groups.values()) == payload["断言总数"] == len(payload["断言明细"])
+    raw = client.get("/api/断言?size=500").json()["items"]
+    expect_closed = len([r for r in raw if str(r["status"]).startswith("closed")])
+    assert groups["closed"] == expect_closed
+    assert len(payload["决策入口"]) == 3, "必须是三选一决策入口"
+    assert {d["决策"] for d in payload["决策入口"]} == {"闭案", "排除", "保持未闭"}
+
+
+def test_workbench_decision_appends_contract_conform_event(净状态):
+    """决策回写须落一条 24 字段齐全、difference_handling 的 resolution_event。"""
+    from app.main import REQUIRED_EVENT_FIELDS
+
+    aid = _first_assertion_id()
+    r = client.post("/api/差异工作台/决策",
+                    json={"断言": aid, "决策": "闭案", "理由": "回款域已核到分，按容差闭案"})
+    assert r.status_code == 200, r.text
+    event = r.json()["已写入"]
+    for field in REQUIRED_EVENT_FIELDS:
+        assert field in event, f"缺必填字段 {field}"
+    assert event["event_type"] == "resolution_event"
+    assert event["manual_action_kind"] == "difference_handling"
+    assert event["target_ref"] == aid and event["target_layer"] == "quality"
+    assert event["append_only"] is True
+    assert event["silent_update_allowed"] is False
+    assert event["reversal_required_for_change"] is True
+    for flag in ("raw_layer_write_allowed", "raw_source_mutation_allowed",
+                 "source_layer_write_allowed", "business_plaintext_committed",
+                 "forbidden_plaintext"):
+        assert event[flag] is False
+    assert event["content_hash"].startswith("sha256:")
+    assert 净状态.exists() and len(净状态.read_text(encoding="utf-8").strip().splitlines()) == 1
+
+
+def test_workbench_write_is_append_only_never_rewrites(净状态):
+    """连写三条：前两行必须**逐字节不变**——append-only 的实测口径。"""
+    aid = _first_assertion_id()
+    lines = []
+    for i, decision in enumerate(("闭案", "保持未闭", "排除"), start=1):
+        client.post("/api/差异工作台/决策",
+                    json={"断言": aid, "决策": decision, "理由": f"第 {i} 次决策"})
+        lines.append(净状态.read_text(encoding="utf-8").splitlines())
+    assert len(lines[0]) == 1 and len(lines[1]) == 2 and len(lines[2]) == 3
+    assert lines[2][0] == lines[0][0], "首行被改写了——违反 append-only"
+    assert lines[2][1] == lines[1][1], "第二行被改写了——违反 append-only"
+    ids = [json.loads(l)["event_id"] for l in lines[2]]
+    assert ids == sorted(set(ids)), "事件号须单调且不重复"
+
+
+def test_workbench_never_mutates_assertions_jsonl(净状态):
+    """断言表是治理数据面：决策写入前后必须**逐字节相同**。"""
+    from app.main import ASSERTIONS_PATH
+
+    before = ASSERTIONS_PATH.read_bytes()
+    client.post("/api/差异工作台/决策",
+                json={"断言": _first_assertion_id(), "决策": "排除", "理由": "口径外，排除"})
+    assert ASSERTIONS_PATH.read_bytes() == before, "assertions.jsonl 被改动了"
+    assert client.get("/api/差异工作台").json()["写入纪律"]["断言表可写"] is False
+
+
+def test_workbench_rejects_bad_decisions(净状态):
+    aid = _first_assertion_id()
+    assert client.post("/api/差异工作台/决策",
+                       json={"断言": aid, "决策": "随便改改", "理由": "x"}).status_code == 400
+    assert client.post("/api/差异工作台/决策",
+                       json={"断言": aid, "决策": "闭案", "理由": "  "}).status_code == 400
+    assert client.post("/api/差异工作台/决策",
+                       json={"断言": "AST-不存在", "决策": "闭案", "理由": "y"}).status_code == 404
+    assert not 净状态.exists() or not 净状态.read_text(encoding="utf-8").strip(), "被拒的请求不该落盘"
+
+
+def test_workbench_change_of_mind_requires_reversal_event(净状态):
+    """改主意＝追加冲正事件，不是编辑既有行；且同一事件不得重复冲正。"""
+    aid = _first_assertion_id()
+    first = client.post("/api/差异工作台/决策",
+                        json={"断言": aid, "决策": "闭案", "理由": "先按闭案处理"}).json()["已写入"]
+    before = 净状态.read_text(encoding="utf-8")
+
+    rev = client.post("/api/差异工作台/冲正",
+                      json={"冲正事件号": first["event_id"], "理由": "复核后认为不该闭"})
+    assert rev.status_code == 200, rev.text
+    rev_event = rev.json()["已写入"]
+    assert rev_event["reverses_event_id"] == first["event_id"]
+    assert rev_event["status"] == "reverse_event_recorded"
+
+    after = 净状态.read_text(encoding="utf-8")
+    assert after.startswith(before), "冲正必须是追加，原行不得变动"
+
+    dup = client.post("/api/差异工作台/冲正",
+                      json={"冲正事件号": first["event_id"], "理由": "再冲一次"})
+    assert dup.status_code == 409, "同一事件重复冲正必须被拒"
+    assert client.post("/api/差异工作台/冲正",
+                       json={"冲正事件号": "MANEVT-APP-9999", "理由": "z"}).status_code == 404
+
+
+def test_workbench_reversed_decision_no_longer_current(净状态):
+    """被冲正的决策不得再算作现行决策——状态流转要全程留痕且读得出来。"""
+    aid = _first_assertion_id()
+    first = client.post("/api/差异工作台/决策",
+                        json={"断言": aid, "决策": "闭案", "理由": "先闭"}).json()["已写入"]
+    row = next(i for i in client.get("/api/差异工作台").json()["断言明细"] if i["断言"] == aid)
+    assert row["现行决策"]["事件号"] == first["event_id"]
+
+    client.post("/api/差异工作台/冲正", json={"冲正事件号": first["event_id"], "理由": "撤回"})
+    after = next(i for i in client.get("/api/差异工作台").json()["断言明细"] if i["断言"] == aid)
+    assert after["现行决策"] is None, "冲正后不该还有现行决策"
+    assert len(after["决策事件"]) == 2, "两条事件都要留痕，不能删"
+    assert after["决策事件"][0]["已被冲正"] is True
+
+
+def test_workbench_bidirectional_consistency_no_orphan_events(净状态):
+    """反向一致：事件的 target_ref 必须解析到真实断言，孤儿计数为 0。"""
+    payload = client.get("/api/差异工作台").json()
+    一致 = payload["双向一致"]
+    assert 一致["本台孤儿事件数"] == 0 and 一致["一致"] is True
+    # 仓内既有 S12-P1 事件指向治理记录号（S09P3-REC-001 等）而非断言号——如实单列，
+    # 不冒充成 0；这四条真实存在，把它们算成"孤儿"或藏起来都是不诚实。
+    assert 一致["仓内未挂载事件数"] == 4
+    assert "S09P3-REC-001" in 一致["仓内未挂载事件"]
+
+    client.post("/api/差异工作台/决策",
+                json={"断言": _first_assertion_id(), "决策": "保持未闭", "理由": "等下批数据"})
+    after = client.get("/api/差异工作台").json()["双向一致"]
+    assert after["本台孤儿事件数"] == 0, "本台写入必须条条挂得上断言"
+
+
+def test_workbench_event_carries_no_forbidden_plaintext(净状态):
+    """事件里只准放断言号与理由，金额/明文字段一律不得出现。"""
+    from app.main import FORBIDDEN_EVENT_KEYS
+
+    event = client.post("/api/差异工作台/决策",
+                        json={"断言": _first_assertion_id(), "决策": "闭案",
+                              "理由": "核到分"}).json()["已写入"]
+    assert not (set(event) & FORBIDDEN_EVENT_KEYS)
+    assert "delta_cents" not in event and "amount_cents" not in event

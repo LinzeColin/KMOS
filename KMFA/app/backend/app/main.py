@@ -7,13 +7,16 @@
 """
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import re
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 import yaml
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
 REPO = Path(__file__).resolve().parents[4]
@@ -716,3 +719,308 @@ def reports(q: str | None = None, page: int = 1, size: int = 50):
         items = [r for r in items if q in (r["标题"] or "") or q in r["目录"]]
     page_items, meta = _paginate(items, page, size)
     return {"count": len(items), "分页": meta, "items": page_items}
+
+
+# ── PROD.0007 差异工作台：三选一决策 + append-only 回写 ────────────────────────
+# 契约来自既有 KMFA/tools/manual_resolution_events.py（任务包原文：「走既有
+# manual_resolution_events 契约」），不另造一套：
+#   · 24 个必填字段、event_type=resolution_event、manual_action_kind=difference_handling
+#   · append_only=true；**改主意不是改记录**——silent_update_allowed=false、
+#     reversal_required_for_change=true，要改就追加一条 reverses_event_id 的冲正事件
+#     （既有 MANEVT-S12P1-005 冲正 -003 即此模式）
+#   · raw/source 层一律不可写：断言表 assertions.jsonl 是治理数据面，App 只读不改
+APPROVALS_DIR = KMFA / "metadata" / "approvals"
+REPO_EVENTS_PATH = APPROVALS_DIR / "manual_resolution_events.jsonl"
+# 应用状态面与数据面分离（PROD.0001 的 D2=A 约定）：App 写的事件落**可写状态目录**，
+# 绝不写进治理数据面。SQLite 状态面待 PROD.0001 建成后接管，契约与此处完全一致。
+APP_STATE_DIR = Path(os.environ.get("KMFA_APP_STATE_DIR", "/var/lib/kmfa/state"))
+APP_EVENTS_PATH = APP_STATE_DIR / "manual_resolution_events.jsonl"
+
+BEIJING = timezone(timedelta(hours=8))  # 业务锚 +0800，与技能容器挂钟一致
+
+# 三选一决策 → 断言状态流转（open / closed / excluded）
+DECISIONS: dict[str, dict[str, str]] = {
+    "闭案": {"到状态": "closed", "reason_code": "DIFF_ACCEPTED_CLOSED",
+             "event_action": "close_difference"},
+    "排除": {"到状态": "excluded", "reason_code": "DIFF_OUT_OF_SCOPE_EXCLUDED",
+             "event_action": "exclude_difference"},
+    "保持未闭": {"到状态": "open", "reason_code": "DIFF_REMAIN_OPEN_PENDING_INPUT",
+                 "event_action": "keep_difference_open"},
+}
+REQUIRED_EVENT_FIELDS = (
+    "event_id", "schema_version", "record_type", "stage_phase", "event_type",
+    "manual_action_kind", "actor_ref", "actor_role", "event_time", "reason_code",
+    "reason_summary", "impact_scope", "event_version", "target_layer", "target_ref",
+    "status", "append_only", "raw_layer_write_allowed", "raw_source_mutation_allowed",
+    "source_layer_write_allowed", "business_plaintext_committed", "forbidden_plaintext",
+    "evidence_refs",
+)
+# 公开面禁词（取自既有契约 FORBIDDEN_PUBLIC_KEYS 的金额/明文子集）——事件里只准放
+# 断言号与理由，绝不准把金额或业务明文塞进来
+FORBIDDEN_EVENT_KEYS = frozenset({
+    "amount_cents", "amount_yuan", "raw_value", "normalized_value", "original_value",
+    "plaintext_value", "source_header_text", "bank_account_number", "account_number",
+    "identity_document_number", "project_name_plaintext", "customer_name_plaintext",
+    "counterparty_plaintext",
+})
+APP_EVENT_ID_RE = re.compile(r"^MANEVT-APP-[0-9]{4}$")
+
+
+def _read_events(path: Path) -> list[dict[str, Any]]:
+    rows = _read_jsonl(path)
+    return [r for r in rows if r.get("record_type") != "protocol_header"]
+
+
+def _all_events() -> list[dict[str, Any]]:
+    """仓内既有事件（只读）+ App 写的事件（应用状态面）。"""
+    return _read_events(REPO_EVENTS_PATH) + _read_events(APP_EVENTS_PATH)
+
+
+def _assertion_state(row: dict[str, Any]) -> str:
+    """断言原始三态：open / closed / excluded（任务包要求的可视化分组）。"""
+    status = str(row.get("status") or "")
+    if status.startswith("closed"):
+        return "closed"
+    if "exclud" in status:
+        return "excluded"
+    return "open"
+
+
+def _scan_forbidden(node: Any) -> list[str]:
+    hits: list[str] = []
+    if isinstance(node, dict):
+        for k, v in node.items():
+            if str(k) in FORBIDDEN_EVENT_KEYS:
+                hits.append(str(k))
+            hits.extend(_scan_forbidden(v))
+    elif isinstance(node, list):
+        for v in node:
+            hits.extend(_scan_forbidden(v))
+    return hits
+
+
+def _content_hash(event: dict[str, Any]) -> str:
+    payload = {k: v for k, v in event.items() if k != "content_hash"}
+    blob = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def _append_event(event: dict[str, Any]) -> dict[str, Any]:
+    """写前全量校验，**只以追加方式落盘**，绝不改写既有行。"""
+    missing = [f for f in REQUIRED_EVENT_FIELDS if f not in event]
+    if missing:
+        raise HTTPException(status_code=500, detail=f"事件缺必填字段：{missing}")
+    forbidden = _scan_forbidden(event)
+    if forbidden:
+        raise HTTPException(status_code=400, detail=f"事件含禁写字段：{sorted(set(forbidden))}")
+    for flag in ("raw_layer_write_allowed", "raw_source_mutation_allowed",
+                 "source_layer_write_allowed", "business_plaintext_committed",
+                 "forbidden_plaintext", "silent_update_allowed"):
+        if event.get(flag) is not False:
+            raise HTTPException(status_code=500, detail=f"{flag} 必须为 false")
+    if event.get("append_only") is not True:
+        raise HTTPException(status_code=500, detail="append_only 必须为 true")
+    event["content_hash"] = _content_hash(event)
+
+    APP_STATE_DIR.mkdir(parents=True, exist_ok=True)
+    line = json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n"
+    with APP_EVENTS_PATH.open("a", encoding="utf-8") as fh:  # "a" —— 只追加
+        fh.write(line)
+        fh.flush()
+        os.fsync(fh.fileno())
+    return event
+
+
+def _next_app_event_id() -> str:
+    existing = [e.get("event_id", "") for e in _read_events(APP_EVENTS_PATH)]
+    nums = [int(e.rsplit("-", 1)[1]) for e in existing if APP_EVENT_ID_RE.match(str(e))]
+    return f"MANEVT-APP-{max(nums, default=0) + 1:04d}"
+
+
+def _base_event(assertion_id: str, reason: str, actor: str) -> dict[str, Any]:
+    return {
+        "event_id": _next_app_event_id(),
+        "schema_version": "kmfa.manual_resolution_event.v1",
+        "record_type": "manual_resolution_event",
+        "stage_phase": "DT6-PROD0007",
+        "event_type": "resolution_event",
+        "manual_action_kind": "difference_handling",
+        "actor_ref": f"actor_ref://owner_or_authorized_delegate/{actor}",
+        "actor_role": "owner_or_authorized_delegate",
+        "event_time": datetime.now(BEIJING).isoformat(timespec="seconds"),
+        "reason_summary": reason,
+        "impact_scope": ["assertion_status_flow", "difference_workbench"],
+        "event_version": "MANUAL-EVENT-KMFA-DT6-PROD0007-001",
+        "target_layer": "quality",
+        "target_ref": assertion_id,
+        "project_id": "KMFA",
+        "system_name": "KMFA 经营分析系统",
+        "append_only": True,
+        "raw_layer_write_allowed": False,
+        "raw_source_mutation_allowed": False,
+        "source_layer_write_allowed": False,
+        "business_plaintext_committed": False,
+        "forbidden_plaintext": False,
+        "silent_update_allowed": False,
+        "reversal_required_for_change": True,
+        "approved_event_immutable": True,
+        "evidence_refs": [
+            "KMFA/metadata/quality/assertions.jsonl",
+            "KMFA/tools/manual_resolution_events.py",
+        ],
+    }
+
+
+@app.get("/api/差异工作台")
+def difference_workbench():
+    """差异工作台（PROD.0007）——断言 open/closed/excluded 可视化 + 决策留痕。
+
+    「与 assertions.jsonl 双向一致」的落法：
+    · 正向——每条断言挂出针对它的全部决策事件（含冲正）；
+    · 反向——每条事件的 target_ref 必须能解析到真实断言，孤儿事件计数须为 0。
+    断言表本身**只读**：状态流转由事件表达，App 绝不改写治理数据面。
+    """
+    rows = _load_assertions()
+    events = _all_events()
+    by_target: dict[str, list[dict[str, Any]]] = {}
+    for e in events:
+        by_target.setdefault(str(e.get("target_ref")), []).append(e)
+
+    reversed_ids = {str(e.get("reverses_event_id")) for e in events if e.get("reverses_event_id")}
+
+    def view(e: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "事件号": e.get("event_id"),
+            "动作": e.get("event_action"),
+            "决策": e.get("decision_label"),
+            "到状态": e.get("target_state"),
+            "理由": e.get("reason_summary"),
+            "理由码": e.get("reason_code"),
+            "时间": e.get("event_time"),
+            "操作人": e.get("actor_ref"),
+            "已被冲正": e.get("event_id") in reversed_ids,
+            "冲正的是": e.get("reverses_event_id"),
+            "内容哈希": e.get("content_hash"),
+            "来源": "仓内治理面（只读）" if e.get("stage_phase") != "DT6-PROD0007" else "App 应用状态面",
+        }
+
+    items = []
+    for r in sorted(rows, key=lambda x: str(x.get("assertion_id"))):
+        aid = str(r.get("assertion_id"))
+        evs = sorted(by_target.get(aid, []), key=lambda e: str(e.get("event_time")))
+        live = [e for e in evs if e.get("event_id") not in reversed_ids
+                and not e.get("reverses_event_id")]
+        items.append({
+            "断言": aid,
+            "域": r.get("domain"),
+            "口径": r.get("metric"),
+            "期间": r.get("period"),
+            "原始状态": r.get("status"),
+            "分组": _assertion_state(r),
+            "差异分": r.get("delta_cents"),
+            "差异元": _cents_to_yuan(r.get("delta_cents")),
+            "结论": r.get("finding"),
+            "决策事件": [view(e) for e in evs],
+            "现行决策": view(live[-1]) if live else None,
+        })
+
+    known = {str(r.get("assertion_id")) for r in rows}
+    # 「双向一致」的诚实口径：本台写入的事件**必须**条条解析到真实断言（写入时已 404 拦住）；
+    # 仓内既有的 S12-P1 事件指向 S09P3-REC-001 等**治理记录号**而非断言号，它们不是孤儿、
+    # 也不该被算成一致性缺陷——如实单列为「未挂载到断言层」。
+    app_events = _read_events(APP_EVENTS_PATH)
+    app_orphans = sorted({str(e.get("target_ref")) for e in app_events
+                          if str(e.get("target_ref")) not in known})
+    unmounted = sorted({str(e.get("target_ref")) for e in _read_events(REPO_EVENTS_PATH)
+                        if str(e.get("target_ref")) not in known})
+    groups = {g: len([i for i in items if i["分组"] == g]) for g in ("open", "closed", "excluded")}
+
+    return {
+        "分组计数": groups,
+        "断言总数": len(items),
+        "断言明细": items,
+        "决策入口": [
+            {"决策": k, "到状态": v["到状态"], "理由码": v["reason_code"]} for k, v in DECISIONS.items()
+        ],
+        "事件": {
+            "总数": len(events),
+            "仓内既有": len(_read_events(REPO_EVENTS_PATH)),
+            "App 写入": len(_read_events(APP_EVENTS_PATH)),
+            "已被冲正": len(reversed_ids),
+            "写入位置": str(APP_EVENTS_PATH),
+        },
+        "双向一致": {
+            "本台孤儿事件数": len(app_orphans),
+            "本台孤儿事件": app_orphans,
+            "一致": not app_orphans,
+            "仓内未挂载事件数": len(unmounted),
+            "仓内未挂载事件": unmounted,
+            "说明": ("正向：每条断言挂出针对它的全部决策事件；反向：本台写入的事件条条解析到"
+                     "真实断言（写入时即 404 拦截孤儿）。仓内既有 S12-P1 事件指向 "
+                     "S09P3-REC-001 等治理记录号而非断言号，如实单列为未挂载，不算一致性缺陷。"),
+        },
+        "写入纪律": {
+            "append_only": True,
+            "允许静默改写": False,
+            "改主意的做法": "追加一条 reverses_event_id 的冲正事件，绝不编辑既有行",
+            "断言表可写": False,
+        },
+    }
+
+
+@app.post("/api/差异工作台/决策")
+def workbench_decide(payload: dict[str, Any] = Body(...)):
+    """三选一决策入口——append-only 回写一条 difference_handling 事件。"""
+    assertion_id = str(payload.get("断言") or "").strip()
+    decision = str(payload.get("决策") or "").strip()
+    reason = str(payload.get("理由") or "").strip()
+    actor = str(payload.get("操作人") or "owner").strip() or "owner"
+
+    if decision not in DECISIONS:
+        raise HTTPException(status_code=400, detail=f"决策须为三选一：{list(DECISIONS)}")
+    if not reason:
+        raise HTTPException(status_code=400, detail="必须写明理由——无理由的决策不留痕等于没决策")
+    known = {str(r.get("assertion_id")) for r in _load_assertions()}
+    if assertion_id not in known:
+        raise HTTPException(status_code=404, detail=f"断言不存在：{assertion_id}（拒绝写孤儿事件）")
+
+    spec = DECISIONS[decision]
+    event = _base_event(assertion_id, reason, actor)
+    event.update({
+        "event_action": spec["event_action"],
+        "reason_code": spec["reason_code"],
+        "decision_label": decision,
+        "target_state": spec["到状态"],
+        "status": "recorded_pending_approval",
+        "approval_state": "draft",
+    })
+    return {"已写入": _append_event(event), "写入位置": str(APP_EVENTS_PATH)}
+
+
+@app.post("/api/差异工作台/冲正")
+def workbench_reverse(payload: dict[str, Any] = Body(...)):
+    """改主意的唯一合法做法：追加冲正事件（silent_update_allowed=false）。"""
+    target_event_id = str(payload.get("冲正事件号") or "").strip()
+    reason = str(payload.get("理由") or "").strip()
+    actor = str(payload.get("操作人") or "owner").strip() or "owner"
+    if not reason:
+        raise HTTPException(status_code=400, detail="冲正必须写明理由")
+
+    events = {str(e.get("event_id")): e for e in _all_events()}
+    origin = events.get(target_event_id)
+    if origin is None:
+        raise HTTPException(status_code=404, detail=f"被冲正事件不存在：{target_event_id}")
+    if any(str(e.get("reverses_event_id")) == target_event_id for e in events.values()):
+        raise HTTPException(status_code=409, detail=f"{target_event_id} 已被冲正过，不得重复冲正")
+
+    event = _base_event(str(origin.get("target_ref")), reason, actor)
+    event.update({
+        "event_action": "reverse_difference_decision",
+        "reason_code": "DECISION_REVERSED_BY_HUMAN",
+        "decision_label": "冲正",
+        "target_state": None,
+        "status": "reverse_event_recorded",
+        "approval_state": "reversal_recorded",
+        "reverses_event_id": target_event_id,
+    })
+    return {"已写入": _append_event(event), "被冲正": target_event_id}

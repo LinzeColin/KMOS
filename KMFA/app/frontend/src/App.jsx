@@ -143,45 +143,134 @@ function 我在哪({ 我在哪: 我, 断言, 管线, 技能 }) {
   )
 }
 
-function 差异工作台({ 断言 }) {
+function 差异工作台({ 台, 刷新 }) {
+  const [分组, set分组] = useState('全部')
   const [域, set域] = useState('全部')
-  const [态, set态] = useState('全部')
   const [展开, set展开] = useState(null)
-  const items = 断言?.items ?? []
-  const 域列表 = useMemo(() => ['全部', ...new Set(items.map(i => i.domain).filter(Boolean))], [items])
-  const 态列表 = useMemo(() => ['全部', ...new Set(items.map(i => i.status).filter(Boolean))], [items])
-  const rows = items.filter(i => (域 === '全部' || i.domain === 域) && (态 === '全部' || i.status === 态))
+  const [理由, set理由] = useState('')
+  const [忙, set忙] = useState(null)
+  const [提示, set提示] = useState(null)
+  if (!台) return <p style={S.muted}>加载中…</p>
+  const items = 台.断言明细 ?? []
+  const 域列表 = ['全部', ...new Set(items.map(i => i.域).filter(Boolean))]
+  const rows = items.filter(i => (分组 === '全部' || i.分组 === 分组) && (域 === '全部' || i.域 === 域))
+
+  async function 提交(路径, body, 键) {
+    if (!理由.trim()) { set提示({ 好: false, 文: '必须写明理由——无理由的决策不留痕等于没决策' }); return }
+    set忙(键); set提示(null)
+    try {
+      const r = await fetch(路径, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ ...body, 理由: 理由.trim() }) })
+      const j = await r.json()
+      if (!r.ok) { set提示({ 好: false, 文: j.detail ?? '写入失败' }); return }
+      set提示({ 好: true, 文: `已追加事件 ${j.已写入?.event_id}（哈希 ${String(j.已写入?.content_hash).slice(7, 19)}…）` })
+      set理由(''); await 刷新()
+    } catch (e) { set提示({ 好: false, 文: String(e) }) } finally { set忙(null) }
+  }
+
   return (
-    <div style={{ ...S.card, marginTop: '1.2rem' }}>
-      <div style={{ display: 'flex', gap: '.8rem', alignItems: 'center' }}>
+    <>
+      <div style={S.grid}>
+        {['open', 'closed', 'excluded'].map(g => (
+          <div key={g} style={S.card}><div style={S.muted}>{g}</div>
+            <div style={{ ...S.num, color: g === 'open' ? '#b9770e' : '#1e8449' }}>{台.分组计数[g]}</div></div>
+        ))}
+        <div style={S.card}><div style={S.muted}>决策事件</div>
+          <div style={S.num}>{台.事件.总数}</div>
+          <div style={S.muted}>App 写入 {台.事件['App 写入']}｜已冲正 {台.事件.已被冲正}</div></div>
+      </div>
+
+      <div style={{ ...S.card, marginTop: '1rem', borderLeft: '4px solid #1e8449' }}>
+        <b>写入纪律</b>
+        <div style={{ ...S.muted, marginTop: '.3rem' }}>
+          append-only：{台.写入纪律.append_only ? '是' : '否'}｜允许静默改写：{台.写入纪律['允许静默改写'] ? '是' : '否'}｜
+          断言表可写：{台.写入纪律['断言表可写'] ? '是' : '否'}
+        </div>
+        <div style={{ ...S.muted, marginTop: '.2rem' }}>改主意的做法：{台.写入纪律['改主意的做法']}</div>
+        <div style={{ ...S.muted, marginTop: '.2rem' }}>
+          双向一致：本台孤儿事件 {台.双向一致.本台孤儿事件数} 条 → {台.双向一致.一致 ? '一致 ✅' : '不一致 ⚠️'}
+          ｜仓内未挂载 {台.双向一致.仓内未挂载事件数} 条（指向治理记录号，非断言号）
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '.8rem', alignItems: 'center', marginTop: '1rem', flexWrap: 'wrap' }}>
+        <span style={S.muted}>分组</span>
+        <select style={S.select} value={分组} onChange={e => set分组(e.target.value)}>
+          {['全部', 'open', 'closed', 'excluded'].map(d => <option key={d}>{d}</option>)}</select>
         <span style={S.muted}>域</span>
-        <select style={S.select} value={域} onChange={e => set域(e.target.value)}>{域列表.map(d => <option key={d}>{d}</option>)}</select>
-        <span style={S.muted}>状态</span>
-        <select style={S.select} value={态} onChange={e => set态(e.target.value)}>{态列表.map(d => <option key={d}>{d}</option>)}</select>
+        <select style={S.select} value={域} onChange={e => set域(e.target.value)}>
+          {域列表.map(d => <option key={d}>{d}</option>)}</select>
         <span style={S.muted}>{rows.length} 条</span>
       </div>
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '.6rem', fontSize: '.85rem' }}>
-        <thead><tr><th style={S.td}>断言</th><th style={S.td}>期间</th><th style={S.td}>差值(分)</th><th style={S.td}>状态</th></tr></thead>
-        <tbody>
-          {rows.map(it => (
-            <React.Fragment key={it.assertion_id}>
-              <tr onClick={() => set展开(展开 === it.assertion_id ? null : it.assertion_id)} style={{ cursor: 'pointer' }}>
-                <td style={S.td}>{it.metric ?? it.assertion_id}</td>
-                <td style={S.td}>{it.period ?? ''}</td>
-                <td style={S.td}>{it.delta_cents ?? '—'}</td>
-                <td style={S.td}>{it.status}</td>
-              </tr>
-              {展开 === it.assertion_id && (
-                <tr><td style={{ ...S.td, opacity: .8 }} colSpan={4}>
-                  <div>{it.finding ?? '（无 finding）'}</div>
-                  <div style={S.muted}>证据：{it.evidence_ref ?? '—'}｜来源：{it.expect_source ?? '—'} vs {it.our_source ?? '—'}</div>
-                </td></tr>
-              )}
-            </React.Fragment>
-          ))}
-        </tbody>
+
+      <table style={表样}>
+        <thead><tr>
+          <th style={格样}>断言</th><th style={格样}>口径</th><th style={格样}>期间</th>
+          <th style={格样}>差异（元）</th><th style={格样}>分组</th><th style={格样}>现行决策</th>
+        </tr></thead>
+        <tbody>{rows.map(it => (
+          <React.Fragment key={it.断言}>
+            <tr onClick={() => { set展开(展开 === it.断言 ? null : it.断言); set提示(null) }}
+                style={{ cursor: 'pointer' }}>
+              <td style={格样}><code>{it.断言}</code></td>
+              <td style={格样}>{it.口径}</td>
+              <td style={格样}>{it.期间}</td>
+              <td style={格样}>{it.差异元 === null ? '—' : `¥${it.差异元}`}</td>
+              <td style={{ ...格样, color: it.分组 === 'open' ? '#b9770e' : '#1e8449' }}>{it.分组}</td>
+              <td style={格样}>{it.现行决策
+                ? <span><b>{it.现行决策.决策}</b> → {it.现行决策.到状态}</span>
+                : <span style={S.muted}>未决策</span>}</td>
+            </tr>
+            {展开 === it.断言 && (
+              <tr><td style={格样} colSpan={6}>
+                <div style={{ marginBottom: '.5rem' }}>{it.结论 ?? '（无 finding）'}</div>
+                <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input style={{ ...S.select, flex: '1 1 22rem', minWidth: '14rem' }}
+                         placeholder="决策理由（必填，会连同事件一起留痕）"
+                         value={理由} onChange={e => set理由(e.target.value)} />
+                  {台.决策入口.map(d => (
+                    <button key={d.决策} type="button" disabled={忙 !== null}
+                            style={{ ...S.tab(false), font: 'inherit', cursor: 'pointer' }}
+                            onClick={() => 提交('/api/差异工作台/决策',
+                              { 断言: it.断言, 决策: d.决策 }, `${it.断言}-${d.决策}`)}>
+                      {忙 === `${it.断言}-${d.决策}` ? '写入中…' : `${d.决策} → ${d.到状态}`}
+                    </button>
+                  ))}
+                </div>
+                {提示 && (
+                  <div style={{ marginTop: '.5rem', color: 提示.好 ? '#1e8449' : '#c0392b' }}>{提示.文}</div>
+                )}
+                {it.决策事件.length > 0 && (
+                  <table style={表样}>
+                    <thead><tr>
+                      <th style={格样}>事件号</th><th style={格样}>决策</th><th style={格样}>理由</th>
+                      <th style={格样}>时间</th><th style={格样}>来源</th><th style={格样}>操作</th>
+                    </tr></thead>
+                    <tbody>{it.决策事件.map(e => (
+                      <tr key={e.事件号} style={{ opacity: e.已被冲正 ? .5 : 1 }}>
+                        <td style={格样}><code>{e.事件号}</code></td>
+                        <td style={格样}>{e.决策 ?? e.动作}{e.已被冲正 && ' （已冲正）'}
+                          {e.冲正的是 && <span style={S.muted}> 冲正 {e.冲正的是}</span>}</td>
+                        <td style={格样}>{e.理由}</td>
+                        <td style={格样}>{e.时间}</td>
+                        <td style={格样}>{e.来源}</td>
+                        <td style={格样}>{(!e.已被冲正 && !e.冲正的是 && e.来源 !== '仓内治理面（只读）') ? (
+                          <button type="button" disabled={忙 !== null}
+                                  style={{ ...S.tab(false), font: 'inherit', cursor: 'pointer' }}
+                                  onClick={() => 提交('/api/差异工作台/冲正',
+                                    { 冲正事件号: e.事件号 }, `rev-${e.事件号}`)}>
+                            {忙 === `rev-${e.事件号}` ? '写入中…' : '冲正'}
+                          </button>) : <span style={S.muted}>—</span>}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                )}
+              </td></tr>
+            )}
+          </React.Fragment>
+        ))}</tbody>
       </table>
-    </div>
+    </>
   )
 }
 
@@ -625,10 +714,13 @@ export default function App() {
   const [成本, set成本] = useState(null)
   const [账龄, set账龄] = useState(null)
   const [开票, set开票] = useState(null)
+  const [工作台, set工作台] = useState(null)
+  const 取工作台 = () => fetch('/api/差异工作台').then(r => r.json()).then(set工作台)
   useEffect(() => {
     fetch('/api/项目成本').then(r => r.json()).then(set成本)
     fetch('/api/账龄回款').then(r => r.json()).then(set账龄)
     fetch('/api/开票纳税').then(r => r.json()).then(set开票)
+    取工作台()
     fetch('/api/状态').then(r => r.json()).then(set状态)
     fetch('/api/断言').then(r => r.json()).then(set断言)
     fetch('/api/数据管线').then(r => r.json()).then(set管线)
@@ -659,7 +751,7 @@ export default function App() {
       {页 === '项目成本' && <项目成本 成本={成本} />}
       {页 === '账龄回款' && <账龄回款 账龄={账龄} />}
       {页 === '开票纳税' && <开票纳税 开票={开票} />}
-      {页 === '差异工作台' && <差异工作台 断言={断言} />}
+      {页 === '差异工作台' && <差异工作台 台={工作台} 刷新={取工作台} />}
       {页 === '数据管线' && <数据管线 管线={管线} />}
       {页 === '技能' && <技能页 技能={技能} />}
     </div>
