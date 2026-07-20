@@ -23,12 +23,13 @@ function Chart({ option, height = '16rem' }) {
 
 /* ---------- 通用小件 ---------- */
 
-function Kpi({ 标, 值, 注, 色, 小, 点 }) {
+function Kpi({ 标, 值, 注, 色, 小, 点, 图 }) {
   return (
     <div className={`card kpi${点 ? ' click' : ''}`} onClick={点}>
       <div className="lab">{标}</div>
       <div className={`val${小 ? ' sm' : ''}${色 ? ` ${色}` : ''}`}>{值}</div>
       {注 != null && 注 !== '' && <div className="hint">{注}</div>}
+      {图 ?? null}
     </div>
   )
 }
@@ -83,6 +84,125 @@ const 金额数 = s => {
   if (s == null) return null
   const n = Number(String(s).replace(/[^0-9.-]/g, ''))
   return Number.isFinite(n) ? n : null
+}
+
+// 顶级财务盘惯例（Stripe/Ramp/金蝶云同款）：摘要处金额用 万/亿 说人话，明细表保留分位精确值
+const 人话金额 = s => {
+  const n = 金额数(s)
+  if (n == null) return null
+  const a = Math.abs(n)
+  const 全 = `¥${s}`
+  if (a >= 1e8) return { 文: `¥${(n / 1e8).toLocaleString('zh', { maximumFractionDigits: 2 })} 亿`, 全 }
+  if (a >= 1e4) return { 文: `¥${(n / 1e4).toLocaleString('zh', { maximumFractionDigits: 2 })} 万`, 全 }
+  return { 文: 全, 全 }
+}
+
+const 图色 = 名 => getComputedStyle(document.documentElement).getPropertyValue(名).trim() || undefined
+
+// 零轴差异柱图：对平=绿、未闭=琥珀，零线加重——FRM 对账工具的标准画法
+function 逐月差异图({ 逐月, height = '180px' }) {
+  const option = useMemo(() => {
+    const rows = (逐月 ?? []).filter(m => typeof m.差异分 === 'number')
+    if (!rows.length) return null
+    return {
+      tooltip: { trigger: 'axis', formatter: ps => {
+        const m = rows[ps[0].dataIndex]
+        return `${m.期间}<br/>差异 ¥${m.差异元 ?? 0}<br/>${m.状态 === 'analyzed_open' ? '已查明·待拍板' : '已对平'}`
+      } },
+      grid: { left: 8, right: 8, top: 10, bottom: 0, containLabel: true },
+      xAxis: { type: 'category', data: rows.map(m => String(m.期间).slice(2)), axisLabel: { fontSize: 10 } },
+      yAxis: { type: 'value', axisLabel: { fontSize: 10,
+        formatter: v => Math.abs(v) >= 1e4 ? `${v / 1e4}万` : v },
+        splitLine: { show: true } },
+      series: [{
+        type: 'bar', barMaxWidth: 26,
+        data: rows.map(m => ({
+          value: Math.round(m.差异分) / 100,
+          itemStyle: { color: m.差异分 === 0 ? 图色('--okc') : 图色('--warnc'), borderRadius: [3, 3, 0, 0] },
+        })),
+        markLine: { symbol: 'none', label: { show: false },
+          lineStyle: { color: 图色('--text-2'), width: 1 },
+          data: [{ yAxis: 0 }] },
+      }],
+    }
+  }, [逐月])
+  if (!option) return null
+  return <Chart option={option} height={height} />
+}
+
+// KPI 卡内迷你柱（无轴、无网格——只给趋势轮廓）
+function 迷你柱({ 逐月 }) {
+  const option = useMemo(() => {
+    const rows = (逐月 ?? []).filter(m => typeof m.差异分 === 'number')
+    if (!rows.length) return null
+    return {
+      grid: { left: 0, right: 0, top: 2, bottom: 0 },
+      xAxis: { type: 'category', show: false, data: rows.map(m => m.期间) },
+      yAxis: { type: 'value', show: false },
+      series: [{ type: 'bar', barMaxWidth: 8, silent: true,
+        data: rows.map(m => ({ value: Math.abs(Math.round(m.差异分)) / 100 || 0.01,
+          itemStyle: { color: m.差异分 === 0 ? 图色('--okc') : 图色('--warnc'), borderRadius: 2 } })) }],
+    }
+  }, [逐月])
+  if (!option) return null
+  return <div className="spark"><Chart option={option} height="34px" /></div>
+}
+
+// 决策逻辑链：五步状态由该核对项的真实字段推导，不装进度
+function 决策链({ it }) {
+  const 已查明 = Boolean(it.结论)
+  const 已拍板 = Boolean(it.现行决策)
+  const 有留痕 = (it.决策事件?.length ?? 0) > 0
+  const 步 = [
+    { 名: '数据接入', 态: 'done', 注: '' },
+    { 名: '自动核对', 态: 'done', 注: it.差异元 != null ? `差 ¥${it.差异元}` : '' },
+    { 名: '查明原因', 态: 已查明 ? 'done' : 'now', 注: '' },
+    { 名: '你拍板', 态: 已拍板 ? 'done' : (已查明 ? 'now' : ''), 注: 已拍板 ? it.现行决策.决策 : '三选一' },
+    { 名: '留痕归档', 态: 有留痕 ? 'done' : '', 注: 有留痕 ? `${it.决策事件.length} 条` : '' },
+  ]
+  return (
+    <div className="chain" aria-label="决策逻辑链">
+      {步.map((x, i) => (
+        <React.Fragment key={x.名}>
+          {i > 0 && <span className={`cbar${步[i - 1].态 === 'done' ? ' done' : ''}`} />}
+          <span className={`cnode ${x.态}`}>
+            <span className="cdot">{x.态 === 'done' ? '✓' : i + 1}</span>
+            <span className="clab">{x.名}</span>
+            {x.注 && <span className="csub">{x.注}</span>}
+          </span>
+        </React.Fragment>
+      ))}
+    </div>
+  )
+}
+
+// 域×状态热力矩阵（ERM 惯例）：差异集中在哪个业务域，一眼定位
+function 风险热力({ items }) {
+  const 域s = [...new Set((items ?? []).map(i => i.域).filter(Boolean))]
+  if (域s.length < 2) return null
+  const 列 = ['open', 'closed', 'excluded']
+  const 数 = (d, g) => (items ?? []).filter(i => i.域 === d && i.分组 === g).length
+  const 最大 = Math.max(1, ...域s.map(d => 数(d, 'open')))
+  return (
+    <>
+      <h3 className="sec">差异集中在哪（域 × 状态）</h3>
+      <div className="tblwrap"><table className="tbl heat">
+        <thead><tr><th>业务域</th>{列.map(g => <th key={g}>{人话状态[g]}</th>)}</tr></thead>
+        <tbody>{域s.map(d => (
+          <tr key={d}>
+            <td style={{ textAlign: 'left', fontWeight: 400 }}>{d}</td>
+            {列.map(g => {
+              const n = 数(d, g)
+              const 底 = g === 'open' && n > 0
+                ? `color-mix(in srgb, var(--warn-bg) ${Math.round(40 + 60 * n / 最大)}%, transparent)` : undefined
+              return <td key={g} className={n === 0 ? 'h0' : ''}
+                         style={底 ? { background: 底 } : undefined}>{n || '—'}</td>
+            })}
+          </tr>
+        ))}</tbody>
+      </table></div>
+    </>
+  )
 }
 
 /* ---------- 今天（首页：先答问题，再给证据） ---------- */
@@ -140,9 +260,9 @@ function 今天({ 状态, 工作台, 账龄, 开票, 成本, 管线, 排程, 断
                 <div className="qname">{it.口径}</div>
                 <div className="qsub"><code>{it.断言}</code>　{it.期间}</div>
               </div>
-              <div className="qamt">
-                {it.差异元 != null ? `¥${it.差异元}` : '金额待定'}
-                <small>差异金额</small>
+              <div className="qamt" title={it.差异元 != null ? `精确值 ¥${it.差异元}` : undefined}>
+                {it.差异元 != null ? (人话金额(it.差异元)?.文 ?? `¥${it.差异元}`) : '金额待定'}
+                <small>{it.差异元 != null ? `精确 ¥${it.差异元}` : '差异金额'}</small>
               </div>
               <button type="button" className="btn pri" onClick={() => 去('待拍板', it.断言)}>去拍板</button>
             </div>
@@ -161,7 +281,8 @@ function 今天({ 状态, 工作台, 账龄, 开票, 成本, 管线, 排程, 断
         <Kpi 标="回款核对" 点={() => 去('回款与账龄')}
              值={对 ? `${对.零分差月数}/${对.月数} 月已对平` : '…'} 小
              色={对 && 对.未闭月数 ? 'warn' : 'ok'}
-             注={对 ? (对.未闭月数 ? `未闭 ${对.未闭月数} 月${对.最大差异 ? `·最大差异 ¥${对.最大差异.差异元}` : ''}` : '全部对平') : ''} />
+             注={对 ? (对.未闭月数 ? `未闭 ${对.未闭月数} 月${对.最大差异 ? `·最大差异 ${人话金额(对.最大差异.差异元)?.文 ?? ''}` : ''}` : '全部对平') : ''}
+             图={对 ? <迷你柱 逐月={账龄.回款对账.逐月} /> : null} />
         <Kpi 标="开票与税务" 点={() => 去('开票与税务')}
              值={票 ? `待处理 ${(票.开票对账?.未闭条数 ?? 0) + (票.税务对账?.未闭条数 ?? 0)} 项` : '…'} 小
              色={票 && ((票.开票对账?.未闭条数 ?? 0) + (票.税务对账?.未闭条数 ?? 0)) ? 'warn' : 'ok'}
@@ -243,6 +364,8 @@ function 待拍板({ 台, 刷新, 初始展开 }) {
         </div>
       </div>
 
+      <风险热力 items={items} />
+
       <div className="formrow" style={{ marginTop: 16 }}>
         <span className="muted">状态</span>
         <select className="select" value={分组} onChange={e => set分组(e.target.value)}>
@@ -274,6 +397,7 @@ function 待拍板({ 台, 刷新, 初始展开 }) {
             </tr>
             {展开 === it.断言 && (
               <tr className="detail"><td colSpan={6}>
+                <决策链 it={it} />
                 <div style={{ marginBottom: 10 }}>{it.结论 ?? '（无 finding）'}</div>
                 <div className="formrow" style={{ marginTop: 0 }}>
                   <input className="input" style={{ flex: '1 1 22rem', minWidth: '14rem' }}
@@ -799,7 +923,13 @@ function 回款与账龄({ 账龄 }) {
         <Kpi 标="核对月数" 值={对.月数} />
         <Kpi 标="已对平月数" 值={对.零分差月数} 色="ok" />
         <Kpi 标="未闭月数" 值={对.未闭月数} 色={对.未闭月数 ? 'warn' : 'ok'} />
-        <Kpi 标="最大差异" 值={对.最大差异 ? `¥${对.最大差异.差异元}` : '—'} 注={对.最大差异?.期间 ?? ''} />
+        <Kpi 标="最大差异" 值={对.最大差异 ? (人话金额(对.最大差异.差异元)?.文 ?? `¥${对.最大差异.差异元}`) : '—'}
+             注={对.最大差异 ? `${对.最大差异.期间}·精确 ¥${对.最大差异.差异元}` : ''} />
+      </div>
+
+      <div className="card" style={{ marginTop: 14 }}>
+        <div className="muted">逐月差异走势（零线即对平；柱色：绿=对平、琥珀=待拍板）</div>
+        <逐月差异图 逐月={对.逐月} />
       </div>
 
       <h3 className="sec">回款逐月核对（真实分差）</h3>
@@ -1094,7 +1224,7 @@ export default function App() {
     <div className="shell">
       <aside className="side">
         <div className="brand">
-          <h1>KMFA 经营分析</h1>
+          <h1><span className="mark" aria-hidden="true" />KMFA 经营分析</h1>
           <small>先答问题，再给证据·不装健康</small>
         </div>
         {/* 页签用语义化 button+role=tab：span onClick 既不可键盘操作、也不进可访问性树，

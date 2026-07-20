@@ -359,3 +359,50 @@ ul.muted li { margin-top: 4px; }
 
 .card.click { cursor: pointer; transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease; }
 .card.click:hover { box-shadow: var(--shadow-2); transform: translateY(-1px); border-color: var(--accent); }
+
+/* ---------- v3 世界级升级：排版、决策链、热力、迷你图 ---------- */
+
+.kpi .val { font-size: 30px; font-weight: 800; letter-spacing: -.015em; }
+.kpi .val.sm { font-size: 18px; }
+.qrow .qamt { font-size: 17px; font-weight: 800; }
+.verdict .vtitle { font-size: 18px; }
+
+.brand h1 { display: flex; align-items: center; gap: 8px; }
+.brand .mark {
+  width: 18px; height: 18px; border-radius: 5px; flex: none;
+  background: linear-gradient(135deg, var(--accent), #7b5cf0);
+  box-shadow: 0 2px 6px rgba(48, 86, 211, .35);
+}
+.nav button[role="tab"] { position: relative; }
+.nav button[role="tab"][aria-selected="true"]::before {
+  content: ""; position: absolute; left: -12px; top: 20%; bottom: 20%;
+  width: 3px; border-radius: 2px; background: var(--accent);
+}
+
+/* 决策逻辑链：接入→核对→查明→拍板→留痕（状态由真实字段推导） */
+.chain {
+  display: flex; align-items: flex-start; gap: 0;
+  margin: 4px 0 14px; overflow-x: auto; padding: 10px 2px 2px;
+}
+.cnode { display: flex; flex-direction: column; align-items: center; min-width: 74px; flex: 1; }
+.cnode .cdot {
+  width: 22px; height: 22px; border-radius: 99px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: #fff;
+  background: var(--line); position: relative; z-index: 1;
+  transition: background .2s ease;
+}
+.cnode.done .cdot { background: var(--okc); }
+.cnode.now .cdot { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-weak); }
+.cnode .clab { margin-top: 6px; font-size: 11.5px; color: var(--text-2); white-space: nowrap; }
+.cnode.done .clab, .cnode.now .clab { color: var(--text); font-weight: 650; }
+.cnode .csub { font-size: 10.5px; color: var(--text-2); margin-top: 1px; }
+.cbar { flex: 1; height: 2px; background: var(--line); margin-top: 10px; min-width: 14px; }
+.cbar.done { background: var(--okc); }
+
+/* 域×状态热力矩阵（ERM 惯例：一眼看出差异集中在哪个域） */
+.heat td { text-align: center; font-variant-numeric: tabular-nums; font-weight: 650; }
+.heat .h0 { color: var(--text-2); font-weight: 400; }
+
+/* KPI 卡内迷你图 */
+.kpi .spark { margin-top: 8px; height: 34px; }
