@@ -274,6 +274,86 @@ function 差异工作台({ 台, 刷新 }) {
   )
 }
 
+function 报告中心({ 中心 }) {
+  if (!中心) return <p style={S.muted}>加载中…</p>
+  const 水 = 中心.水印, 判 = 中心.交付判据
+  return (
+    <>
+      <div style={S.grid}>
+        <div style={S.card}><div style={S.muted}>报告等级</div>
+          <div style={{ ...S.num, color: '#c0392b' }}>{中心.页眉.报告等级}</div></div>
+        <div style={S.card}><div style={S.muted}>质量等级</div>
+          <div style={S.num}>{中心.页眉.质量等级}</div></div>
+        <div style={S.card}><div style={S.muted}>delivery 状态</div>
+          <div style={{ ...S.num, fontSize: '1.2rem', color: 判.delivery_allowed ? '#1e8449' : '#c0392b' }}>
+            {中心.页眉.delivery状态}</div></div>
+        <div style={S.card}><div style={S.muted}>导出登记</div>
+          <div style={S.num}>{中心.导出登记.条数}</div>
+          <div style={S.muted}>追加式，不可改写</div></div>
+      </div>
+
+      <div style={{ ...S.card, marginTop: '1rem', borderLeft: '4px solid #c0392b' }}>
+        <b>水印：{水.生效中 ? '生效中，且无法关闭' : '已解除'}</b>
+        {水.文案 && <div style={{ marginTop: '.3rem', fontFamily: 'ui-monospace, monospace' }}>{水.文案}</div>}
+        <div style={{ ...S.muted, marginTop: '.3rem' }}>
+          覆盖格式：{水.覆盖格式.join(' / ')}｜可关闭：{水.可关闭 ? '是' : '否'}
+        </div>
+        <div style={{ ...S.muted, marginTop: '.2rem' }}>去除条件：{水.去除条件}</div>
+      </div>
+
+      <h3 style={{ marginTop: '1.2rem' }}>八份报告 × 三格式</h3>
+      <table style={表样}>
+        <thead><tr>
+          <th style={格样}>号</th><th style={格样}>标题</th><th style={格样}>正文字数</th>
+          <th style={格样}>下载</th>
+        </tr></thead>
+        <tbody>{中心.报告.map(r => (
+          <tr key={r.编号}>
+            <td style={格样}>{r.编号}</td>
+            <td style={格样}>{r.标题}</td>
+            <td style={格样}>{r.正文字数.toLocaleString('zh')}</td>
+            <td style={格样}>{r.格式.map(f => (
+              <a key={f.格式} href={f.下载} style={{ marginRight: '.7rem' }}
+                 title={f.可提交公开仓 ? '公开安全，可提交' : '仅运行时生成，不入公开仓'}>
+                {f.格式.toUpperCase()}{f.可提交公开仓 ? '' : '（运行时）'}
+              </a>
+            ))}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+
+      <h3 style={{ marginTop: '1.2rem' }}>PDF 策略</h3>
+      <div style={{ ...S.card, borderLeft: '4px solid #b9770e' }}>
+        <div>{中心.PDF策略.说明}</div>
+        <div style={{ ...S.muted, marginTop: '.3rem' }}>中文渲染：{中心.PDF策略.中文渲染}</div>
+      </div>
+
+      {中心.导出登记.记录.length > 0 && (
+        <>
+          <h3 style={{ marginTop: '1.2rem' }}>导出 hash 登记（最近 {中心.导出登记.记录.length} 条）</h3>
+          <table style={表样}>
+            <thead><tr>
+              <th style={格样}>号</th><th style={格样}>格式</th><th style={格样}>sha256</th>
+              <th style={格样}>字节</th><th style={格样}>水印</th><th style={格样}>时间</th>
+            </tr></thead>
+            <tbody>{中心.导出登记.记录.slice().reverse().map((e, i) => (
+              <tr key={i}>
+                <td style={格样}>{e.报告}</td>
+                <td style={格样}>{e.格式.toUpperCase()}</td>
+                <td style={格样}><code style={{ fontSize: '.72rem' }}>{String(e.sha256).slice(7, 27)}…</code></td>
+                <td style={格样}>{(e.字节 ?? 0).toLocaleString('zh')}</td>
+                <td style={{ ...格样, color: e.水印已加 ? '#c0392b' : '#1e8449' }}>
+                  {e.水印已加 ? '已加' : '无'}</td>
+                <td style={格样}>{e.导出时间}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </>
+      )}
+    </>
+  )
+}
+
 function 数据管线({ 管线 }) {
   if (!管线) return <div style={{ ...S.card, marginTop: '1.2rem' }}>加载中…</div>
   const 表 = Object.entries(管线.staging_tables ?? {}).sort((a, b) => (b[1].rows ?? 0) - (a[1].rows ?? 0))
@@ -715,12 +795,14 @@ export default function App() {
   const [账龄, set账龄] = useState(null)
   const [开票, set开票] = useState(null)
   const [工作台, set工作台] = useState(null)
+  const [中心, set中心] = useState(null)
   const 取工作台 = () => fetch('/api/差异工作台').then(r => r.json()).then(set工作台)
   useEffect(() => {
     fetch('/api/项目成本').then(r => r.json()).then(set成本)
     fetch('/api/账龄回款').then(r => r.json()).then(set账龄)
     fetch('/api/开票纳税').then(r => r.json()).then(set开票)
     取工作台()
+    fetch('/api/报告中心').then(r => r.json()).then(set中心)
     fetch('/api/状态').then(r => r.json()).then(set状态)
     fetch('/api/断言').then(r => r.json()).then(set断言)
     fetch('/api/数据管线').then(r => r.json()).then(set管线)
@@ -741,7 +823,7 @@ export default function App() {
       <nav style={S.tabs}>
         {/* 页签用语义化 button+role=tab：span onClick 既不可键盘操作、也不进可访问性树，
             自动化（含 PROD.0013 Playwright）点不到——本单元真开页面时实测踩到。 */}
-        {['我在哪', '源检查板', '项目成本', '账龄回款', '开票纳税', '差异工作台', '数据管线', '技能'].map(t => (
+        {['我在哪', '源检查板', '项目成本', '账龄回款', '开票纳税', '差异工作台', '报告中心', '数据管线', '技能'].map(t => (
           <button key={t} type="button" role="tab" aria-selected={页 === t}
                   style={{ ...S.tab(页 === t), font: 'inherit' }} onClick={() => set页(t)}>{t}</button>
         ))}
@@ -752,6 +834,7 @@ export default function App() {
       {页 === '账龄回款' && <账龄回款 账龄={账龄} />}
       {页 === '开票纳税' && <开票纳税 开票={开票} />}
       {页 === '差异工作台' && <差异工作台 台={工作台} 刷新={取工作台} />}
+      {页 === '报告中心' && <报告中心 中心={中心} />}
       {页 === '数据管线' && <数据管线 管线={管线} />}
       {页 === '技能' && <技能页 技能={技能} />}
     </div>
