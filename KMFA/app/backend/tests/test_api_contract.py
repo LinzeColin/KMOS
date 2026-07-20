@@ -471,15 +471,39 @@ import tempfile as _tempfile
 import pytest as _pytest
 
 
-@_pytest.fixture
-def 净状态(monkeypatch, tmp_path):
-    """每个用例用独立的应用状态目录——不污染仓内治理面，也不互相串。"""
+def _state_db(monkeypatch, tmp_path):
+    """每个用例用独立的 SQLite 状态库——不污染仓内治理面，也不互相串。"""
     from app import main as m
 
     state = tmp_path / "state"
     monkeypatch.setattr(m, "APP_STATE_DIR", state)
-    monkeypatch.setattr(m, "APP_EVENTS_PATH", state / "manual_resolution_events.jsonl")
-    return state / "manual_resolution_events.jsonl"
+    monkeypatch.setattr(m, "APP_DB_PATH", state / "kmfa_app_state.sqlite3")
+    return state / "kmfa_app_state.sqlite3"
+
+
+class _Table:
+    """把「读某张状态表」包成可当路径用的取数器，让既有用例改动最小。"""
+
+    def __init__(self, db, table):
+        self.db, self.table = db, table
+
+    def rows(self):
+        from app import app_state
+
+        return app_state.read(self.db, self.table)
+
+    def exists(self):
+        return bool(self.rows())
+
+    def read_text(self, encoding="utf-8"):
+        import json as _j
+
+        return "".join(_j.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in self.rows())
+
+
+@_pytest.fixture
+def 净状态(monkeypatch, tmp_path):
+    return _Table(_state_db(monkeypatch, tmp_path), "resolution_events")
 
 
 def _first_assertion_id():
@@ -630,12 +654,7 @@ def test_workbench_event_carries_no_forbidden_plaintext(净状态):
 # ── PROD.0009 报告中心：三格式导出 hash 登记 + D 级水印不可去除 ────────────────
 @_pytest.fixture
 def 净导出(monkeypatch, tmp_path):
-    from app import main as m
-
-    state = tmp_path / "state"
-    monkeypatch.setattr(m, "APP_STATE_DIR", state)
-    monkeypatch.setattr(m, "EXPORT_REGISTRY_PATH", state / "report_export_records.jsonl")
-    return state / "report_export_records.jsonl"
+    return _Table(_state_db(monkeypatch, tmp_path), "export_records")
 
 
 def test_report_center_header_triple_from_facts(净导出):
@@ -864,13 +883,14 @@ def test_pdf_line_wrap_never_splits_amounts(净导出):
 # ── PROD.0008 影响预览与重跑 ────────────────────────────────────────────────────
 @_pytest.fixture
 def 净重跑(monkeypatch, tmp_path):
-    from app import main as m
+    db = _state_db(monkeypatch, tmp_path)
 
-    state = tmp_path / "state"
-    monkeypatch.setattr(m, "APP_STATE_DIR", state)
-    monkeypatch.setattr(m, "APP_RERUN_STEPS_PATH", state / "manual_rerun_steps.jsonl")
-    monkeypatch.setattr(m, "APP_RERUN_CONSISTENCY_PATH", state / "manual_rerun_consistency_checks.jsonl")
-    return state
+    class _Dir:
+        def __truediv__(self, name):
+            return _Table(db, {"manual_rerun_steps.jsonl": "rerun_steps",
+                               "manual_rerun_consistency_checks.jsonl": "rerun_consistency"}[name])
+
+    return _Dir()
 
 
 def _an_asset():
@@ -1028,14 +1048,7 @@ def test_downstream_impact_matches_assertions_with_qualified_sources(净重跑):
 # ── PROD.0003 访问安全承接 S17：审计日志 append-only ──────────────────────────
 @_pytest.fixture
 def 净审计(monkeypatch, tmp_path):
-    from app import main as m
-
-    state = tmp_path / "state"
-    for name in ("APP_EVENTS_PATH", "APP_AUDIT_PATH", "EXPORT_REGISTRY_PATH",
-                 "APP_RERUN_STEPS_PATH", "APP_RERUN_CONSISTENCY_PATH"):
-        monkeypatch.setattr(m, name, state / f"{name.lower()}.jsonl")
-    monkeypatch.setattr(m, "APP_STATE_DIR", state)
-    return state / "app_audit_path.jsonl"
+    return _Table(_state_db(monkeypatch, tmp_path), "audit_events")
 
 
 def test_audit_contract_matches_repo_policy(净审计):
@@ -1122,3 +1135,80 @@ def test_single_user_mode_declared_truthfully(净审计):
     assert mode["应用内登录"] is False
     assert "Cloudflare Access" in mode["生产鉴权"]
     assert set(mode["角色口径"]) == {"management", "finance", "reviewer", "readonly"}
+
+
+# ── PROD.0001 应用状态面：SQLite + append-only 库层强制 ────────────────────────
+def test_state_tables_cover_all_app_writes(净审计):
+    """五张表 = 原来的五个 JSONL，一一对应，不多不少。"""
+    from app.app_state import TABLES
+
+    assert set(TABLES) == {"resolution_events", "rerun_steps", "rerun_consistency",
+                           "export_records", "audit_events"}
+
+
+def test_append_only_enforced_by_database_not_convention(monkeypatch, tmp_path):
+    """**本单元的实质收益**：append-only 从「我们只用 'a' 打开」升级成库层强制。
+
+    JSONL 时代，一个手滑的写操作就能改掉已发生的事实且无人察觉。
+    这里直接让数据库拒绝——UPDATE / DELETE 一律 ABORT。
+    """
+    import sqlite3
+
+    from app import app_state
+
+    db = tmp_path / "s.sqlite3"
+    app_state.append(db, "audit_events", {"event_id": "A1", "action_type": "export"})
+    app_state.append(db, "audit_events", {"event_id": "A2", "action_type": "report"})
+    assert [r["event_id"] for r in app_state.read(db, "audit_events")] == ["A1", "A2"]
+
+    con = sqlite3.connect(str(db))
+    try:
+        for sql in ("UPDATE audit_events SET payload='{}' WHERE seq=1",
+                    "DELETE FROM audit_events WHERE seq=1"):
+            with _pytest.raises(sqlite3.IntegrityError) as exc:
+                con.execute(sql)
+            assert "append-only" in str(exc.value)
+    finally:
+        con.close()
+    # 拒绝之后内容必须原封不动
+    assert [r["event_id"] for r in app_state.read(db, "audit_events")] == ["A1", "A2"]
+
+
+def test_state_read_is_empty_not_error_before_first_write(tmp_path):
+    """还没写过就读，应得空列表而不是异常——读路径不该因为库还没建就炸。"""
+    from app import app_state
+
+    assert app_state.read(tmp_path / "none.sqlite3", "audit_events") == []
+
+
+def test_jsonl_migration_is_idempotent(tmp_path):
+    """既有 JSONL 能搬进来，且重复搬不会翻倍。"""
+    from app import app_state
+
+    src = tmp_path / "old.jsonl"
+    src.write_text('{"event_id":"E1"}\n{"event_id":"E2"}\n', encoding="utf-8")
+    db = tmp_path / "s.sqlite3"
+    assert app_state.migrate_jsonl(db, "resolution_events", src) == 2
+    assert app_state.migrate_jsonl(db, "resolution_events", src) == 0, "重复迁移必须跳过"
+    assert len(app_state.read(db, "resolution_events")) == 2
+
+
+def test_unknown_table_rejected(tmp_path):
+    """表名走白名单——不给字符串拼接留注入面。"""
+    from app import app_state
+
+    with _pytest.raises(ValueError):
+        app_state.append(tmp_path / "s.sqlite3", "'; DROP TABLE audit_events; --", {})
+
+
+def test_data_plane_stays_read_only_after_app_writes(净审计):
+    """数据面与应用状态面分离：App 写完，治理数据面必须逐字节不变。"""
+    from app.main import ASSERTIONS_PATH, FACTS, LINEAGE_PATH
+
+    before = {p: p.read_bytes() for p in
+              (ASSERTIONS_PATH, LINEAGE_PATH, FACTS / "data_pipeline.json")}
+    client.post("/api/差异工作台/决策",
+                json={"断言": _first_assertion_id(), "决策": "闭案", "理由": "状态面分离验证"})
+    client.get("/api/报告中心/导出?报告=1&格式=csv")
+    for p, blob in before.items():
+        assert p.read_bytes() == blob, f"数据面被写了：{p.name}"

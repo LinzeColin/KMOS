@@ -734,6 +734,10 @@ REPO_EVENTS_PATH = APPROVALS_DIR / "manual_resolution_events.jsonl"
 # 应用状态面与数据面分离（PROD.0001 的 D2=A 约定）：App 写的事件落**可写状态目录**，
 # 绝不写进治理数据面。SQLite 状态面待 PROD.0001 建成后接管，契约与此处完全一致。
 APP_STATE_DIR = Path(os.environ.get("KMFA_APP_STATE_DIR", "/var/lib/kmfa/state"))
+# PROD.0001：应用状态面走 SQLite（D2=A）。append-only 由触发器在**库层**强制，
+# 不再依赖"我们只用 'a' 模式打开文件"这种君子协定。
+APP_DB_PATH = APP_STATE_DIR / "kmfa_app_state.sqlite3"
+from app import app_state as _st  # noqa: E402
 APP_EVENTS_PATH = APP_STATE_DIR / "manual_resolution_events.jsonl"
 
 BEIJING = timezone(timedelta(hours=8))  # 业务锚 +0800，与技能容器挂钟一致
@@ -767,7 +771,8 @@ APP_EVENT_ID_RE = re.compile(r"^MANEVT-APP-[0-9]{4}$")
 
 
 def _read_events(path: Path) -> list[dict[str, Any]]:
-    rows = _read_jsonl(path)
+    """仓内事件读 JSONL（治理数据面，只读）；App 自己写的读 SQLite 状态面。"""
+    rows = _st.read(APP_DB_PATH, "resolution_events") if path == APP_EVENTS_PATH else _read_jsonl(path)
     return [r for r in rows if r.get("record_type") != "protocol_header"]
 
 
@@ -822,12 +827,7 @@ def _append_event(event: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=500, detail="append_only 必须为 true")
     event["content_hash"] = _content_hash(event)
 
-    APP_STATE_DIR.mkdir(parents=True, exist_ok=True)
-    line = json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n"
-    with APP_EVENTS_PATH.open("a", encoding="utf-8") as fh:  # "a" —— 只追加
-        fh.write(line)
-        fh.flush()
-        os.fsync(fh.fileno())
+    _st.append(APP_DB_PATH, "resolution_events", event)
     return event
 
 
@@ -1277,12 +1277,7 @@ def _export_pdf(no: int, title: str, body: str, header: dict[str, Any], mark: st
 
 def _register_export(record: dict[str, Any]) -> dict[str, Any]:
     """导出 hash 登记——与 PROD.0007 同一条纪律：只追加，不改写。"""
-    APP_STATE_DIR.mkdir(parents=True, exist_ok=True)
-    with EXPORT_REGISTRY_PATH.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
-        fh.flush()
-        os.fsync(fh.fileno())
-    return record
+    return _st.append(APP_DB_PATH, "export_records", record)
 
 
 @app.get("/api/报告中心")
@@ -1290,7 +1285,7 @@ def report_center():
     """报告中心（PROD.0009）——八份报告 × 三格式，页眉三元组与水印状态如实呈现。"""
     header = _delivery_state()
     mark = _watermark_text()
-    registered = _read_jsonl(EXPORT_REGISTRY_PATH)
+    registered = _st.read(APP_DB_PATH, "export_records")
     by_key: dict[str, dict[str, Any]] = {}
     for r in registered:
         by_key[f"{r.get('报告')}|{r.get('格式')}"] = r
@@ -1500,12 +1495,9 @@ def _view_payload_hash(view: str) -> dict[str, Any]:
 
 
 def _append_state(path: Path, record: dict[str, Any]) -> dict[str, Any]:
-    APP_STATE_DIR.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
-        fh.flush()
-        os.fsync(fh.fileno())
-    return record
+    table = {APP_RERUN_STEPS_PATH: "rerun_steps",
+             APP_RERUN_CONSISTENCY_PATH: "rerun_consistency"}[path]
+    return _st.append(APP_DB_PATH, table, record)
 
 
 @app.get("/api/影响重跑")
@@ -1515,7 +1507,7 @@ def impact_and_rerun(asset: str | None = None):
     edges = graph.get("edges") or []
     nodes = graph.get("nodes") or []
     with_edges = sorted({str(e.get("from")) for e in edges})
-    app_steps = _read_jsonl(APP_RERUN_STEPS_PATH)
+    app_steps = _st.read(APP_DB_PATH, "rerun_steps")
     runs: dict[str, list[dict[str, Any]]] = {}
     for s in app_steps:
         runs.setdefault(str(s.get("rerun_run_id")), []).append(s)
@@ -1582,7 +1574,7 @@ def trigger_rerun(payload: dict[str, Any] = Body(...)):
     started = datetime.now(BEIJING)
     # 轮次号按**已有轮次递增**，不拿挂钟拼：同一秒内对同一资产连点两次（Owner 手快双击）
     # 会撞出同一个 id，两轮留痕被并成一轮——契约测试当场逮到。时间戳留在 rerun_at 字段里。
-    seq = len({str(s.get("rerun_run_id")) for s in _read_jsonl(APP_RERUN_STEPS_PATH)}) + 1
+    seq = len({str(s.get("rerun_run_id")) for s in _st.read(APP_DB_PATH, "rerun_steps")}) + 1
     run_id = f"RERUN-APP-{seq:04d}-{hashlib.sha256(asset.encode()).hexdigest()[:6]}"
 
     steps: list[dict[str, Any]] = []
@@ -1731,12 +1723,8 @@ def _audit(action_type: str, subject_ref: str, result_status: str,
     if leaked:
         raise HTTPException(status_code=500, detail=f"审计事件含禁写字段：{leaked}")
     try:
-        APP_STATE_DIR.mkdir(parents=True, exist_ok=True)
-        with APP_AUDIT_PATH.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
-            fh.flush()
-            os.fsync(fh.fileno())
-    except OSError as exc:
+        _st.append(APP_DB_PATH, "audit_events", event)
+    except Exception as exc:  # 审计是旁证：写不进去也不该拖垮业务动作
         event["audit_write_failed"] = str(exc)
     return event
 
@@ -1744,7 +1732,7 @@ def _audit(action_type: str, subject_ref: str, result_status: str,
 @app.get("/api/审计日志")
 def audit_log(action_type: str | None = None, page: int = 1, size: int = 50):
     """审计日志（PROD.0003）——append-only，只记动作不记业务明文。"""
-    rows = _read_jsonl(APP_AUDIT_PATH)
+    rows = _st.read(APP_DB_PATH, "audit_events")
     selected = [r for r in rows if not action_type or r.get("action_type") == action_type]
     items, meta = _paginate(list(reversed(selected)), page, size)
     policy = _read_jsonl(AUDIT_POLICY_PATH)
