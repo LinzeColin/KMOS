@@ -9,16 +9,57 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
+import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 FACTS = REPO / "KMFA" / "machine" / "facts"
 DB_PATH = REPO / "KMFA" / ".codex_private_runtime" / "duckdb" / "kmfa_staging.duckdb"
+# 原始件登记册的权威位置 = 私有库 Private-Database。
+# 公开仓 KMDatabase/data/manifest.jsonl 含真人姓名与客户名（余永昕、新疆宜化 等 53 条），
+# 属「财务/工资数据只进私有库、永不进公开 KMOS」策略要清的对象——本生成器不得再依赖它。
+PRIVATE_AREA = "Private-KMDatabase"
+PRIVATE_MANIFEST = "manifest.jsonl"
+PRIVATE_DB_CLIENT = REPO / "KMDatabase" / "machine" / "tools" / "private_db_client.py"
+
+
+def load_kmdb_manifest() -> list[dict]:
+    """从私有库读原始件登记册。
+
+    **不做本地回退**：回退到公开仓的那份，等于把刚解耦掉的依赖又悄悄接回去，
+    而且会在清除之后静默读到空/旧数据。读不到就明说、就停。
+    """
+    if not PRIVATE_DB_CLIENT.exists():
+        raise SystemExit(f"缺少私有库 SDK：{PRIVATE_DB_CLIENT}")
+    sys.path.insert(0, str(PRIVATE_DB_CLIENT.parent))
+    try:
+        import private_db_client as pdb
+    except ImportError as exc:
+        raise SystemExit(f"私有库 SDK 导入失败：{exc}") from exc
+
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "manifest.jsonl"
+        try:
+            pdb.get(PRIVATE_AREA, PRIVATE_MANIFEST, str(out))
+        except Exception as exc:  # SDK 内部已带连接级重试，到这里就是真读不到
+            raise SystemExit(
+                f"从私有库读 {PRIVATE_AREA}/{PRIVATE_MANIFEST} 失败：{exc}\n"
+                "  · 确认 `gh auth status` 已登录且对 LinzeColin/Private-Database 有读权限\n"
+                "  · 本生成器**不回退读公开仓**，见函数注释"
+            ) from exc
+        rows = [json.loads(l) for l in out.read_text(encoding="utf-8").splitlines() if l.strip()]
+
+    if not rows:
+        raise SystemExit("私有库登记册为空——拒绝据此生成事实")
+    print(f"✓ 登记册取自私有库 {PRIVATE_AREA}/{PRIVATE_MANIFEST}：{len(rows)} 条", file=sys.stderr)
+    return rows
 
 
 def main() -> int:
     import duckdb
-    kmdb = [json.loads(l) for l in (REPO / "KMDatabase/data/manifest.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+    kmdb = load_kmdb_manifest()
     # 质量报告取最新版（v2 重裁于 2026-07-18：回款重复项经权威视图消解闭案，open 阻断 3→2）
     quality_path = REPO / "KMFA/stage_artifacts/DT5_DATA0010_quality_v2/machine/quality_report.json"
     if not quality_path.exists():
