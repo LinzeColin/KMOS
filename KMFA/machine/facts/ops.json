@@ -69,6 +69,104 @@
       "symptom": "收发明细表的「结存金额」列与 期初+收−发 对不上",
       "cause": "源表固有显示伪象：物料清零段末行结存列不写 0（常写成当期收/发额），同日多单行的滚动余额按别的排序计算。两版工作簿逐分一致，非抽取失真。",
       "fix": "结存列仅供参考；任何下游计算一律用收/发金额列自行滚动（审计见 `KMFA/stage_artifacts/DT5_DATA0035_gm_identity/`）。"
+    },
+    {
+      "symptom": "排程一条都没执行，日志只有 `root: command not found`",
+      "cause": "`crontab.txt` 是系统格式（带 `root` 字段），被装成了用户 `crontab`",
+      "fix": "只走 `/etc/cron.d`；`entrypoint.sh` 已加自检，装不上直接拒绝启动。"
+    },
+    {
+      "symptom": "排程跑了但消息发不出去，`ledger` 记 `delivery_enabled` 为 `0`",
+      "cause": "`cron` 不继承容器环境，`cron.d` 也不做变量展开",
+      "fix": "部署时把 `KMFA_DELIVERY_ENABLED` 设成 `1`；`entrypoint.sh` 用实际值渲染进 `cron.d` 头部。"
+    },
+    {
+      "symptom": "考勤首跑报 `DWS_AUTH_REQUIRED`",
+      "cause": "`cron` 环境没有 `HOME`，`dws` 找不到凭据目录",
+      "fix": "`cron.d` 头部必须有 `HOME=/root`；已纳入 `entrypoint.sh` 自检。"
+    },
+    {
+      "symptom": "派发结果 `FAILED` 但不说原因，目标列表为空",
+      "cause": "零目标时一路掉到汇总函数，被归成裸 `FAILED`",
+      "fix": "已显式化为 `NOT_SENT_NO_TARGET_SELECTED` 等状态，凡未发出必带原因。"
+    },
+    {
+      "symptom": "推了代码但服务器还是旧行为",
+      "cause": "部署工作流的 `Coolify` 接口令牌失效，返回 `401`",
+      "fix": "见「五、服务启停」——换令牌后重部署；令牌只有 Owner 能生成。"
+    },
+    {
+      "symptom": "考勤报告在容器重建后全丢",
+      "cause": "归档根写死成 `Mac` 路径，容器里只是个假目录",
+      "fix": "用 `KMFA_ATTENDANCE_ARCHIVE_ROOT` 指向持久卷（云端默认 `/var/lib/kmfa/attendance`）。"
     }
-  ]
+  ],
+  "runbook": {
+    "服务启停": [
+      {
+        "场景": "本机开 `App`",
+        "怎么做": "双击 `KMFA.app`（自动起容器、等就绪、开页面）"
+      },
+      {
+        "场景": "本机停 `App`",
+        "怎么做": "`docker rm -f kmfa-app-local`"
+      },
+      {
+        "场景": "云端重部署",
+        "怎么做": "推 `main` 自动触发；令牌失效时需 Owner 在 `Coolify` 手动重部署"
+      },
+      {
+        "场景": "云端换接口令牌",
+        "怎么做": "`Coolify` 生成新令牌 → 更新仓库 `COOLIFY_API_TOKEN` → 重部署"
+      },
+      {
+        "场景": "开启真实投递",
+        "怎么做": "部署时设 `KMFA_DELIVERY_ENABLED` 为 `1`，否则排程按空跑"
+      }
+    ],
+    "备份": [
+      {
+        "对象": "原始件与登记册",
+        "去哪": "私有库 `Private-Database`（公开仓不留）"
+      },
+      {
+        "对象": "应用状态面（决策、重跑、导出登记、审计）",
+        "去哪": "容器卷 `/var/lib/kmfa/state`，随实例备份"
+      },
+      {
+        "对象": "考勤报告归档",
+        "去哪": "`KMFA_ATTENDANCE_ARCHIVE_ROOT` 指向的持久卷"
+      },
+      {
+        "对象": "仓库本体",
+        "去哪": "推 `GitHub`；本地不稳定，以远端为准"
+      }
+    ],
+    "断链自检": [
+      {
+        "查什么": "排程真装上了吗",
+        "怎么查": "容器内 `grep -c run_skill /etc/cron.d/kmfa-skills`，应为 `10`"
+      },
+      {
+        "查什么": "环境行齐吗",
+        "怎么查": "同文件头部应有 `HOME`、`TZ`、`KMFA_DELIVERY_ENABLED`"
+      },
+      {
+        "查什么": "排程真跑过吗",
+        "怎么查": "看 `/var/log/kmfa/ledger.jsonl` 有没有排程来源的记录"
+      },
+      {
+        "查什么": "认证还活着吗",
+        "怎么查": "`dws-keepalive` 每四小时一次，看日志有无刷新失败"
+      },
+      {
+        "查什么": "页面还能用吗",
+        "怎么查": "跑端到端回归 `app-e2e`，八步全绿才算通"
+      },
+      {
+        "查什么": "部署链通吗",
+        "怎么查": "看仓库 `Actions` 里 `deploy` 是不是绿的；红且报 `401` 即令牌失效"
+      }
+    ]
+  }
 }

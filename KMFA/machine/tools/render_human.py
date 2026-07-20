@@ -411,6 +411,11 @@ def render_06(facts: Path, project_name: str):
     # 曾用 [-10:]（列表尾＝最旧）：条目数≤10 时两种切片等价、门恒绿，第 11 条起最新条目被静默隐藏。
     cl_rows = [(c.get("version", "?"), c.get("date", ""), c.get("summary", ""))
                for c in changelog[:10]]
+    # 运维三节同样吃 facts：改 ops.json 就自然反映到手册，不手改渲染件
+    rb = ops.get("runbook", {}) if isinstance(ops, dict) else {}
+    run_rows = [(r.get("场景", "?"), r.get("怎么做", "")) for r in rb.get("服务启停", [])]
+    bak_rows = [(r.get("对象", "?"), r.get("去哪", "")) for r in rb.get("备份", [])]
+    chk_rows = [(r.get("查什么", "?"), r.get("怎么查", "")) for r in rb.get("断链自检", [])]
 
     body = f"""{GENERATED}
 <!-- 事实源：machine/config.yaml、machine/facts/ops.json、changelog.json -->
@@ -442,7 +447,24 @@ python3 machine/tools/check_blocker_stop.py      # 阻塞重审门
 {table(err_rows, ["遇到什么", "为什么", "怎么解决"],
        empty="> 还没有登记常见故障。踩过坑、解决了，就往 machine/facts/ops.json 里记一条，这里会自动列出，下次少走弯路。")}
 
-## 四、都改过什么（最近 10 条）
+## 四、服务启停
+
+{table(run_rows, ["场景", "怎么做"],
+       empty="> 还没登记启停方式。往 machine/facts/ops.json 的 runbook.服务启停 里记。")}
+
+## 五、备份去哪
+
+{table(bak_rows, ["对象", "去哪"],
+       empty="> 还没登记备份去向。往 machine/facts/ops.json 的 runbook.备份 里记。")}
+
+## 六、断链自检
+
+一条链断了往往不报错，只是安静地不干活。定期照这张单子过一遍。
+
+{table(chk_rows, ["查什么", "怎么查"],
+       empty="> 还没登记自检项。往 machine/facts/ops.json 的 runbook.断链自检 里记。")}
+
+## 七、都改过什么（最近 10 条）
 
 {table(cl_rows, ["版本", "时间", "改了什么"],
        empty="> 还没有变更记录。每次发版往 machine/facts/changelog.json 记一条，这里就有了。")}
