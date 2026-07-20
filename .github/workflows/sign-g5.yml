@@ -1,0 +1,67 @@
+# G5 签核通道（TSK.KMFA.PROD.0018）。
+#
+# 为什么是 workflow_dispatch：任务包写死 Approver=Owner，但一直没有签核入口。
+# 这里用 GitHub 自己的登录态验证签核人身份（github.actor），Owner 在网页上点一次
+# Run workflow、逐字输入确认语即完成签核——零本地操作，符合「本机仅为代码开发」。
+#
+# 三层防线（与 sign_g5.py 一致）：actor 必须是仓主；确认语必须逐字；
+# 技术判据现场重跑不全绿不许签。签名落 metadata/approvals/control_events.jsonl
+# （append-only 台账），检查器识别签名后 g5_passed 方翻真——工具链自始至终不代签。
+name: sign-g5
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "确认语——逐字输入：同意签核G5"
+        required: true
+        type: string
+      site_verified:
+        description: "我已登录 kmfa.linzezhang.com 亲眼确认真实经营数据与页眉三徽章"
+        required: true
+        type: choice
+        options: ["否", "是"]
+        default: "否"
+
+permissions:
+  contents: write
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.actor == 'LinzeColin'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 装依赖（渲染门复跑要 pyyaml）
+        run: python3 -m pip install --quiet pyyaml
+
+      - name: 执行签核（三层防线在 sign_g5.py 里）
+        run: |
+          set -euo pipefail
+          python3 KMFA/tools/sign_g5.py \
+            --actor "${{ github.actor }}" \
+            --confirm "${{ inputs.confirm }}" \
+            --site-verified "${{ inputs.site_verified }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: 双平面合规校验（签核改动不许破治理面）
+        run: |
+          set -euo pipefail
+          python3 KMFA/machine/tools/check_dual_plane_ci.py --root . --require-projects
+
+      - name: 提交签核落痕
+        run: |
+          set -euo pipefail
+          git config user.name "LinzeColin"
+          git config user.email "68840188+LinzeColin@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "无改动（幂等重跑），不提交。"
+            exit 0
+          fi
+          git add KMFA/metadata/approvals/control_events.jsonl \
+                  KMFA/stage_artifacts/DT6_PROD0018_g5/g5_checklist.json \
+                  KMFA/docs/governance/roadmap.yaml
+          git commit -m "govern(kmfa): G5 签核——Owner 经 workflow_dispatch 亲签，g5_passed 翻真、DT6 标记完成"
+          git push origin HEAD:main
