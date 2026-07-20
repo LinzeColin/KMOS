@@ -27,6 +27,7 @@ REQUIRED_PATHS = {
     "/api/我在哪",
     "/api/项目成本",
     "/api/账龄回款",
+    "/api/开票纳税",
 }
 
 
@@ -308,3 +309,154 @@ def test_api_sources_never_under_raw_inbox():
     for path in (FACTS, LINEAGE_PATH, ASSERTIONS_PATH, STAGE_ARTIFACTS):
         resolved = Path(path).resolve()
         assert forbidden not in resolved.parents, f"{resolved} 落在 raw inbox 下"
+
+
+# ── PROD.0011 开票纳税与资金贷款视图 ────────────────────────────────────────────
+def _invoice_payload():
+    return client.get("/api/开票纳税").json()
+
+
+def test_invoice_tax_blocks_match_assertion_domains():
+    """三域逐条必须等于断言表原值——不得另造一套数。"""
+    import json as _json
+
+    from app.main import ASSERTIONS_PATH
+
+    raw = [_json.loads(l) for l in ASSERTIONS_PATH.read_text(encoding="utf-8").splitlines() if l.strip()]
+    payload = _invoice_payload()
+    for domain, key in (("invoicing", "开票对账"), ("tax", "税务对账"), ("loan", "贷款对账")):
+        expect = {r["assertion_id"]: r for r in raw if r.get("domain") == domain}
+        got = {r["断言"]: r for r in payload[key]["逐条"]}
+        assert set(got) == set(expect), f"{key} 条目与断言表 {domain} 域不一致"
+        assert payload[key]["条数"] == len(expect)
+        for aid, src in expect.items():
+            assert got[aid]["差异分"] == src.get("delta_cents")
+            assert got[aid]["状态"] == src.get("status")
+            assert got[aid]["期间"] == src.get("period")
+            assert got[aid]["结论"] == src.get("finding")
+
+
+def test_invoice_tax_cents_to_yuan_is_exact_integer_math():
+    """分→元定点校验：纯整数运算，任何浮点近似都会在此暴露。"""
+    payload = _invoice_payload()
+    seen = 0
+    for key in ("开票对账", "税务对账", "贷款对账"):
+        for r in payload[key]["逐条"]:
+            cents = r["差异分"]
+            if cents is None:
+                assert r["差异元"] is None
+                continue
+            sign = "-" if cents < 0 else ""
+            a = abs(int(cents))
+            assert r["差异元"] == f"{sign}{a // 100:,}.{a % 100:02d}", r["断言"]
+            seen += 1
+    assert seen >= 3, "应至少有 3 条带分差的断言参与校验"
+    # 已知真值定点：仲利 0 分差、税负率 1 分、开票三角 3 分、贷款轴 ¥40,960,322.77
+    flat = {r["断言"]: r for key in ("开票对账", "税务对账", "贷款对账") for r in payload[key]["逐条"]}
+    assert flat["AST-LOAN-ZHONGLI-ADHERENCE"]["差异元"] == "0.00"
+    assert flat["AST-TAX-AXIS-HBKM-2025"]["差异元"] == "0.01"
+    assert flat["AST-INV-TRIANGLE-2025"]["差异元"] == "0.03"
+    assert flat["AST-LOAN-AXIS-2026M5"]["差异元"] == "40,960,322.77"
+
+
+def test_invoice_tax_zero_diff_counts_match_rows():
+    payload = _invoice_payload()
+    for key in ("开票对账", "税务对账", "贷款对账"):
+        rows = payload[key]["逐条"]
+        assert payload[key]["零分差条数"] == len([r for r in rows if r["差异分"] == 0])
+        assert payload[key]["未闭条数"] == len([r for r in rows if r["状态"] == "analyzed_open"])
+
+
+def test_invoice_tax_red_lines_are_zero_and_fact_sourced():
+    """任务包红线：不做付款操作、不做正式纳税申报。计数须来自 v014 事实且全零。"""
+    import json as _json
+
+    from app.main import S14_P1, S14_P2, S14_P3
+
+    payload = _invoice_payload()
+    红 = payload["红线"]
+    assert set(红) == {
+        "开票次数", "纳税申报次数", "付款或动账次数", "银行操作次数",
+        "付款审批次数", "贷款管理动作数", "政策申报提交次数", "补贴申请次数",
+    }
+    assert all(v == 0 for v in 红.values()), f"红线非零：{红}"
+
+    def load(base):
+        return _json.loads(Path(f"{base}_summary.json").read_text(encoding="utf-8"))
+
+    p1, p2, p3 = load(S14_P1), load(S14_P2), load(S14_P3)
+    assert 红["开票次数"] == p2["invoice_issuance_count"]
+    assert 红["纳税申报次数"] == p2["tax_filing_count"]
+    assert 红["付款或动账次数"] == p2["payment_or_bank_operation_count"]
+    assert 红["银行操作次数"] == p1["bank_operation_count"]
+    assert 红["贷款管理动作数"] == p1["loan_management_action_count"]
+    assert 红["补贴申请次数"] == p3["subsidy_application_count"]
+
+
+def test_invoice_tax_plan_layer_reported_as_blocked_without_amounts():
+    """计划层九个方法全部阻断，且响应里不得出现任何计划金额字段。"""
+    payload = _invoice_payload()
+    构 = payload["结构层"]
+    assert set(构) == {"开票纳税计划（S14-P2）", "资金贷款计划（S14-P1）"}
+    methods = []
+    for seg in 构.values():
+        assert seg["决策"] == "NO_GO"
+        assert seg["已证值绑定车道数"] == 0
+        assert seg["公开业务金额数"] == 0
+        assert seg["车道"], "车道不得为空"
+        for lane in seg["车道"]:
+            assert lane["含业务金额"] is False
+            assert lane["允许作经营依据"] is False
+            assert "values_unproven" in lane["数据状态"]
+        methods.extend(seg["方法"])
+    assert len(methods) == 9, f"应为 3 计划 + 3 现金汇总 + 3 问题复核，实得 {len(methods)}"
+    for m in methods:
+        assert m["定义完备"] is True
+        assert m["产出状态"].startswith("blocked_no_authoritative")
+        # 事实里九个方法都带中文名与依赖车道——不得只把英文 id 甩给人看
+        assert m["名称"], f'{m["方法"]} 缺中文名'
+        assert m["依赖车道"], f'{m["方法"]} 缺依赖车道'
+        assert m["说明"], f'{m["方法"]} 的"还缺什么"不得为空'
+    assert {m["名称"] for m in methods} >= {"开票预计现金流入", "贷款到期", "已开票未回款"}
+    # 阻断态下不得凭空造出计划金额/到期提示**字段**。
+    # 只扫字段名——诚实边界正文里"不产出计划金额"是否定句，扫全文会误伤。
+    keys: set[str] = set()
+
+    def walk(node):
+        if isinstance(node, dict):
+            keys.update(map(str, node))
+            for v in node.values():
+                walk(v)
+        elif isinstance(node, list):
+            for v in node:
+                walk(v)
+
+    walk(payload)
+    for banned in ("计划金额", "到期提示", "资金缺口金额", "预计现金流入", "预计税款"):
+        assert banned not in keys, f"阻断态下不得出现字段 {banned}"
+
+
+def test_invoice_tax_policy_gaps_are_tips_only():
+    """税务政策线只出证据缺口与风险提示，绝不出资格结论。"""
+    payload = _invoice_payload()
+    政 = payload["税务政策证据"]
+    assert 政["项目数"] == 5 and 政["证据完备项目数"] == 0
+    assert len(政["逐项"]) == 5
+    names = {p["项目"] for p in 政["逐项"]}
+    assert names == {"科小", "高新", "专精特新", "小巨人", "研发费用"}
+    for p in 政["逐项"]:
+        assert p["证据完备"] is False
+        assert p["允许出资格结论"] is False
+        assert p["风险提示"] and p["证据缺口"]
+        assert p["风险等级"] in {"high", "medium", "low"}
+
+
+def test_invoice_tax_staging_rows_match_pipeline_facts():
+    import json as _json
+
+    from app.main import FACTS
+
+    staging = _json.loads((FACTS / "data_pipeline.json").read_text(encoding="utf-8"))["staging_tables"]
+    got = {t["表"]: t["行数"] for t in _invoice_payload()["派生层规模"]}
+    assert got == {n: staging[n]["rows"] for n in ("invoice_raw", "invoice_lines",
+                                                   "tax_composition", "loan_register")}

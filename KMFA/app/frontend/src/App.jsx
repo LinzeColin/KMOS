@@ -409,6 +409,142 @@ function 账龄回款({ 账龄 }) {
   )
 }
 
+function 断言表({ 块, 标题 }) {
+  return (
+    <>
+      <h3 style={{ marginTop: '1.2rem' }}>{标题}（真实分差 {块.条数} 条）</h3>
+      <table style={表样}>
+        <thead><tr>
+          <th style={格样}>断言</th><th style={格样}>口径</th><th style={格样}>期间</th>
+          <th style={格样}>差异（元）</th><th style={格样}>差异（分）</th><th style={格样}>状态</th>
+        </tr></thead>
+        <tbody>{块.逐条.map(r => (
+          <tr key={r.断言}>
+            <td style={格样}><code>{r.断言}</code></td>
+            <td style={格样}>{r.口径}</td>
+            <td style={格样}>{r.期间}</td>
+            <td style={{ ...格样, fontWeight: r.差异分 ? 700 : 400,
+                          color: r.差异分 ? '#b9770e' : '#1e8449' }}>
+              {r.差异元 === null ? '—' : `¥${r.差异元}`}</td>
+            <td style={格样}>{r.差异分 ?? '—'}</td>
+            <td style={{ ...格样, color: r.状态 === 'analyzed_open' ? '#b9770e' : '#1e8449' }}>{r.状态}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+      {块.逐条.filter(r => r.结论).map(r => (
+        <details key={r.断言} style={{ ...S.muted, marginTop: '.4rem' }}>
+          <summary><code>{r.断言}</code> 结论</summary>
+          <div style={{ marginTop: '.3rem', lineHeight: 1.5 }}>{r.结论}</div>
+        </details>
+      ))}
+    </>
+  )
+}
+
+function 开票纳税({ 开票 }) {
+  if (!开票) return <p style={S.muted}>加载中…</p>
+  const 红 = 开票.红线, 构 = 开票.结构层, 政 = 开票.税务政策证据
+  const 红线项 = Object.entries(红)
+  const 红线全零 = 红线项.every(([, v]) => v === 0)
+  const 全部方法 = Object.entries(构).flatMap(([组, v]) => (v.方法 || []).map(m => ({ ...m, 组 })))
+  return (
+    <>
+      <div style={S.grid}>
+        <div style={S.card}><div style={S.muted}>开票域断言</div>
+          <div style={S.num}>{开票.开票对账.条数}</div>
+          <div style={S.muted}>未闭 {开票.开票对账.未闭条数}</div></div>
+        <div style={S.card}><div style={S.muted}>税务域断言</div>
+          <div style={S.num}>{开票.税务对账.条数}</div>
+          <div style={S.muted}>未闭 {开票.税务对账.未闭条数}</div></div>
+        <div style={S.card}><div style={S.muted}>贷款域断言</div>
+          <div style={S.num}>{开票.贷款对账.条数}</div>
+          <div style={{ ...S.muted, color: '#1e8449' }}>零分差 {开票.贷款对账.零分差条数}</div></div>
+        <div style={S.card}><div style={S.muted}>红线动作合计</div>
+          <div style={{ ...S.num, color: 红线全零 ? '#1e8449' : '#c0392b' }}>
+            {红线项.reduce((a, [, v]) => a + (v ?? 0), 0)}</div>
+          <div style={S.muted}>不开票·不申报·不动账</div></div>
+      </div>
+
+      <断言表 块={开票.开票对账} 标题="开票对账" />
+      <断言表 块={开票.税务对账} 标题="税务对账" />
+      <断言表 块={开票.贷款对账} 标题="贷款对账" />
+
+      <h3 style={{ marginTop: '1.2rem' }}>红线：本页只读，不产生任何业务动作</h3>
+      <table style={表样}>
+        <thead><tr><th style={格样}>动作</th><th style={格样}>事实计数</th></tr></thead>
+        <tbody>{红线项.map(([k, v]) => (
+          <tr key={k}><td style={格样}>{k}</td>
+            <td style={{ ...格样, color: v === 0 ? '#1e8449' : '#c0392b', fontWeight: 700 }}>{v}</td></tr>
+        ))}</tbody>
+      </table>
+
+      <h3 style={{ marginTop: '1.2rem' }}>计划层（值仍被阻断，故不出计划金额）</h3>
+      <div style={{ ...S.card, borderLeft: '4px solid #b9770e' }}>
+        <div>{开票.诚实边界}</div>
+      </div>
+      <table style={表样}>
+        <thead><tr><th style={格样}>计划段</th><th style={格样}>决策</th>
+          <th style={格样}>已证值绑定车道</th><th style={格样}>公开业务金额</th>
+          <th style={格样}>车道</th></tr></thead>
+        <tbody>{Object.entries(构).map(([名, v]) => (
+          <tr key={名}>
+            <td style={格样}>{名}</td>
+            <td style={{ ...格样, color: '#b9770e' }}>{v.决策}</td>
+            <td style={格样}>{v.已证值绑定车道数}</td>
+            <td style={格样}>{v.公开业务金额数}</td>
+            <td style={格样}>{(v.车道 || []).map(l => l.车道).join('、')}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+
+      <h4 style={{ marginTop: '1rem' }}>九个方法的阻断原因（定义已完备，缺权威值绑定）</h4>
+      <table style={表样}>
+        <thead><tr><th style={格样}>方法</th><th style={格样}>定义完备</th>
+          <th style={格样}>产出状态</th><th style={格样}>依赖车道</th>
+          <th style={格样}>还缺什么</th></tr></thead>
+        <tbody>{全部方法.map(m => (
+          <tr key={`${m.组}-${m.方法}`}>
+            <td style={格样}>{m.名称 ?? m.方法}<br />
+              <code style={{ fontSize: '.75rem', opacity: .65 }}>{m.方法}</code></td>
+            <td style={{ ...格样, color: m.定义完备 ? '#1e8449' : '#b9770e' }}>
+              {m.定义完备 ? '是' : '否'}</td>
+            <td style={{ ...格样, color: '#b9770e' }}>{m.产出状态}</td>
+            {/* 相邻 <code> 之间要有真实空白节点：只靠 margin 时 innerText/复制会粘连成一个词 */}
+            <td style={格样}>{(m.依赖车道 || []).map((l, i) => (
+              <React.Fragment key={l}>{i > 0 && ' '}<code>{l}</code></React.Fragment>))}</td>
+            <td style={格样}>{m.说明}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+
+      <h3 style={{ marginTop: '1.2rem' }}>
+        税务政策：证据缺口与风险提示（{政.证据完备项目数}/{政.项目数} 证据完备，不作资格判断）
+      </h3>
+      <table style={表样}>
+        <thead><tr><th style={格样}>项目</th><th style={格样}>风险等级</th>
+          <th style={格样}>风险提示</th><th style={格样}>证据缺口</th></tr></thead>
+        <tbody>{政.逐项.map(p => (
+          <tr key={p.项目}>
+            <td style={格样}>{p.项目}</td>
+            <td style={{ ...格样, color: p.风险等级 === 'high' ? '#c0392b' : '#b9770e' }}>{p.风险等级}</td>
+            <td style={格样}>{p.风险提示}</td>
+            <td style={格样}>{p.证据缺口}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+
+      <h3 style={{ marginTop: '1.2rem' }}>派生层规模</h3>
+      <table style={表样}>
+        <thead><tr><th style={格样}>staging 表</th><th style={格样}>真实行数</th></tr></thead>
+        <tbody>{开票.派生层规模.map(t => (
+          <tr key={t.表}><td style={格样}><code>{t.表}</code></td>
+            <td style={格样}>{(t.行数 ?? 0).toLocaleString('zh')}</td></tr>
+        ))}</tbody>
+      </table>
+    </>
+  )
+}
+
 function 项目成本({ 成本 }) {
   if (!成本) return <p style={S.muted}>加载中…</p>
   const 层 = 成本.事实层, 构 = 成本.必需结构, 阻 = 成本.阻塞链
@@ -488,9 +624,11 @@ export default function App() {
   const [我在哪数据, set我在哪] = useState(null)
   const [成本, set成本] = useState(null)
   const [账龄, set账龄] = useState(null)
+  const [开票, set开票] = useState(null)
   useEffect(() => {
     fetch('/api/项目成本').then(r => r.json()).then(set成本)
     fetch('/api/账龄回款').then(r => r.json()).then(set账龄)
+    fetch('/api/开票纳税').then(r => r.json()).then(set开票)
     fetch('/api/状态').then(r => r.json()).then(set状态)
     fetch('/api/断言').then(r => r.json()).then(set断言)
     fetch('/api/数据管线').then(r => r.json()).then(set管线)
@@ -511,7 +649,7 @@ export default function App() {
       <nav style={S.tabs}>
         {/* 页签用语义化 button+role=tab：span onClick 既不可键盘操作、也不进可访问性树，
             自动化（含 PROD.0013 Playwright）点不到——本单元真开页面时实测踩到。 */}
-        {['我在哪', '源检查板', '项目成本', '账龄回款', '差异工作台', '数据管线', '技能'].map(t => (
+        {['我在哪', '源检查板', '项目成本', '账龄回款', '开票纳税', '差异工作台', '数据管线', '技能'].map(t => (
           <button key={t} type="button" role="tab" aria-selected={页 === t}
                   style={{ ...S.tab(页 === t), font: 'inherit' }} onClick={() => set页(t)}>{t}</button>
         ))}
@@ -520,6 +658,7 @@ export default function App() {
       {页 === '源检查板' && <源检查板 源检查={源检查} />}
       {页 === '项目成本' && <项目成本 成本={成本} />}
       {页 === '账龄回款' && <账龄回款 账龄={账龄} />}
+      {页 === '开票纳税' && <开票纳税 开票={开票} />}
       {页 === '差异工作台' && <差异工作台 断言={断言} />}
       {页 === '数据管线' && <数据管线 管线={管线} />}
       {页 === '技能' && <技能页 技能={技能} />}
