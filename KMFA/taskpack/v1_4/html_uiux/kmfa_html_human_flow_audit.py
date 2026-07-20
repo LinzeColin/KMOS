@@ -155,8 +155,13 @@ def app_flow(browser, base_url: str):
     rows = []
 
     def tab(name):
-        page.get_by_role("tab", name=name).click()
-        page.wait_for_timeout(250)
+        t = page.get_by_role("tab", name=name)
+        t.click()
+        # 等 aria-selected 真的翻过来，而不是盲等 250ms
+        page.wait_for_function(
+            "n => [...document.querySelectorAll('[role=tab]')]"
+            ".some(b => b.textContent === n && b.getAttribute('aria-selected') === 'true')",
+            arg=name, timeout=15000)
 
     # ① 登录：本机 App 是单用户模式，**没有应用内登录**——生产侧鉴权由 Cloudflare Access
     #    在 DNS 前置。这里如实断言「入口可达 + 页眉三元组渲染出来」，不假造一个登录页。
@@ -211,10 +216,12 @@ def app_flow(browser, base_url: str):
         tab("差异工作台")
         before = page.locator("text=App 写入").inner_text()
         page.locator("tr", has=page.locator("code", has_text="AST-COLL-202503")).first.click()
-        page.wait_for_timeout(200)
+        # 等条件、不等时间：固定 sleep 在慢机器上会抢跑——CI 上就这么飘红过一次，
+        # 而同一份代码在本机 10/10 全过。等元素真出现才是可靠写法。
+        page.wait_for_selector('input[placeholder*="决策理由"]', timeout=15000)
         page.get_by_placeholder("决策理由", exact=False).fill("E2E 回归基线：按容差闭案")
         page.get_by_role("button", name="闭案 → closed").click()
-        page.wait_for_timeout(600)
+        page.wait_for_selector("text=已追加事件", timeout=30000)
         body = page.locator("body").inner_text()
         ok = "MANEVT-APP-" in body and "已追加事件" in body
         rows.append(_row("差异处理", "三选一决策 闭案", "fill+click", ok,
@@ -227,7 +234,7 @@ def app_flow(browser, base_url: str):
     try:
         tab("影响重跑")
         page.locator("select").first.select_option("raw:d46f77b0c90d")
-        page.wait_for_timeout(500)
+        page.wait_for_selector("text=goods_movement", timeout=15000)
         body = page.locator("body").inner_text()
         ok = "expense_lines" in body and "17,764" in body and "tax" in body
         rows.append(_row("影响预览", "raw:d46f77b0c90d", "select_option", ok,
