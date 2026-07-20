@@ -1690,7 +1690,7 @@ stages:
   - stage_id: "DT6"
     name: "产品面收口与部署上线（M5）"
     person_goal: "S24 收口；KMIDS 同栈真实 App（D2=A：FastAPI+SQLite+React/Vite+ECharts+docker-compose）替换启动器壳；kmfa.linzezhang.com 7×24 上线（Oracle Always Free + Cloudflare Tunnel 零开放端口 + Cloudflare Access 强制鉴权）。修订 R5：不开 PAYG，实例按可随时回收设计（幂等重建 + 数据卷日备份回 KMOS/KMDatabase/data）。"
-    status: "in_progress_20260720_M5按任务包18项逐条建设中(12/18完成)；PROD.0002/0004/0005/0006/0007/0008/0009/0010/0011/0013/0015已建、0003访问安全承接S17(审计日志append-only真落盘,四条写入导出路径全埋点;契约取自既有audit_log_policy与access_security_policy_manifest不自编;S17-P1原本persistent_event_write_enabled=false,本单元是真正落盘那步;安全走查单13/13过;顺序提前于0016因水印半边已在0009实证完、且0016压测应在埋点后做)；0005/0006/0010/0011标已建待验收(依赖G4值解锁)；均真起服务+真开页面实测，pytest 78绿+E2E 10/10；剩PROD.0012/0014/0016/0017/0018待建，G5未过。完成判据：第2条(E2E入CI)、第3条(.app双击+parity)已达成，第1/4/5条未达成"
+    status: "in_progress_20260720_M5按任务包18项逐条建设中(13/18完成)；PROD.0002/0003/0004/0005/0006/0007/0008/0009/0010/0011/0013/0015已建、0016性能预算与压测(仓内原本无任何时限目标,S18承接的是压力下正确性,时限维度本单元从零建立;真造万行xlsx跑全链16.282s,登记0.640/staging15.637/报表0.005;staging占96%为确认瓶颈,对照实验证实批量装载提速2.5倍且结果逐分一致,列为缺口交下轮在真实253864行规模改;九页P95最差33.2ms<200ms预算余量6倍,三格式导出P95最差9.6ms)；0005/0006/0010/0011标已建待验收(依赖G4值解锁)；均真起服务+真开页面实测，pytest 78绿+E2E 10/10；剩PROD.0001/0012/0014/0017/0018待建，G5未过。完成判据：第2/3条已达成，第1/4/5条未达成；第5条阻于Coolify token 401(基建线已撤,需Owner换token并重部署)"
     estimated_hours: 87
     stop_gate:
       gate_id: "G5"
