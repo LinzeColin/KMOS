@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-19T23:48:07Z"
-status: "stage045_completed_reviewed_local"
+updated_at_utc: "2026-07-20T01:59:33Z"
+status: "stage046_phase1_completed"
 
 transition_history:
+  stage046_phase1_state:
+    status: "stage046_phase1_completed"
+    current_task_id: "IDS-V0_1-STAGE046-P1"
+    next_gate: "IDS-STAGE046-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE046-P2"
+    github_upload_allowed: false
   stage045_review_state:
     status: "stage045_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE045-REVIEW"
@@ -914,9 +920,85 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
+  STAGE-046:
+    status: "stage046_phase1_completed"
+    completed_phases:
+      - "Phase 1"
+    next_phase: "Phase 2"
+    next_gate: "IDS-STAGE046-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE046-P1"
+    acceptance_id: "ACC-STAGE-046"
+    acceptance_status: "phase1_scope_boundary_complete"
+    review_status: "not_started"
+    phase2_entry_authorized: false
+    phase3_entry_authorized: false
+    phase4_entry_authorized: false
+    source_verification_status: "SOURCE_VERIFIED"
+    source_member_match_count: 1
+    source_member_sha256: "955cdf40f365c05853a87269eb02aa46e5922807e0bb0c48d9b99cfca9bc1d39"
+    predecessor_stage045_review_commit: "76027b8dc89e325c212d492d7f5df88357ea7112"
+    predecessor_stage045_review_root_tree: "37541fb276b548322227969fd36aadf40144e3e3"
+    predecessor_stage045_review_kmids_tree: "ef8dafd9cd6e19967b7964f88e6eeead25b1866b"
+    source_integrity_valid: true
+    predecessor_binding_valid: true
+    upstream_snapshot_bindings_valid: true
+    parser_routing_contract_id: "ids.parser_routing.v0_1.stage046.p1"
+    parser_routing_contract_schema: "ids.stage046.parser_routing.phase1.v1"
+    phase1_contract_valid: true
+    contract_state: "PHASE1_ENGINEERING_CONTRACT_PARSER_DISPATCH_DISABLED"
+    route_family_count: 6
+    supported_type_count: 8
+    required_parser_output_field_count: 6
+    parser_implementation_count: 0
+    assigned_parser_version_count: 0
+    stage047_output_owner_preserved: true
+    stage048_fallback_owner_preserved: true
+    stage050_prompt_injection_owner_preserved: true
+    execution_ready: false
+    taskpack_source_read_performed: true
+    ids_business_source_read_performed: false
+    raw_metadata_content_accessed: false
+    fake_ids_business_data_used: false
+    real_ids_business_job_created: false
+    source_file_open_performed: false
+    file_type_redetection_performed: false
+    parser_registry_runtime_loaded: false
+    parser_route_evaluation_performed: false
+    parser_selected: false
+    parser_dispatch_performed: false
+    parser_execution_performed: false
+    fallback_execution_performed: false
+    prompt_injection_scan_performed: false
+    prompt_injection_marker_applied: false
+    parser_output_produced: false
+    high_confidence_evidence_write_performed: false
+    manifest_write_performed: false
+    evidence_ledger_write_performed: false
+    audit_write_performed: false
+    job_creation_performed: false
+    state_transition_performed: false
+    persistent_state_write_performed: false
+    database_connection_performed: false
+    schema_change_performed: false
+    runtime_output_written: false
+    production_runtime_activation_performed: false
+    phase2_started: false
+    whole_stage_review_performed: false
+    batch_review_performed: false
+    github_upload_allowed: false
+    app_reinstall_allowed: false
+    evidence_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_ENTRY_CONTRACT.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_PHASE1_PARSER_ROUTING_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_contract.json"
+      - "KM_IDSystem/scripts/check_parser_routing.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+
 decision:
-  current_task_id: "IDS-V0_1-STAGE045-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-STAGE046-P1"
+  current_task_id: "IDS-V0_1-STAGE046-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE046-P2"
   github_upload_allowed: false
-  current_run: "STAGE-045 whole-stage independent review live-rehashed all approved sources, rebound the Phase1-4 evidence chain and verified seven repaired findings before completing ACC-STAGE-045 locally. No IDS business source, parser, fallback, persistence, Stage046, GitHub, app or production action ran."
-  no_upload_reason: "BATCH041_050 has five completed and individually reviewed Stages, but STAGE-046..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."
+  current_run: "STAGE-046 Phase 1 bound the approved source and immutable Stage045 reviewed-local snapshot, then defined reference-only parser-route eligibility, six static route families, output/fallback/prompt ownership and fail-closed quality/state boundaries. No source file, parser registry runtime, route evaluation, parser, fallback, persistence, raw metadata, GitHub, app or production action ran."
+  no_upload_reason: "BATCH041_050 has five completed and individually reviewed Stages plus STAGE-046 Phase 1 only; STAGE-046 Phase 2-4 and review, STAGE-047..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."

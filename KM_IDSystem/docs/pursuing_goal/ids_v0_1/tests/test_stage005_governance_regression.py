@@ -21,15 +21,19 @@ class Stage005GovernanceRegressionTests(unittest.TestCase):
         spec.loader.exec_module(module)
         return module
 
-    def _tamper_current_stage045_phase4_route(self, batch_text: str) -> str:
+    def _tamper_current_stage046_phase1_route(self, batch_text: str) -> str:
         tampered = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE045-REVIEW"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE046-P1"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE045-REVIEW"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE046-P1-BROKEN"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE046-P1"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE046-P2"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE046-P1"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE046-P2-BROKEN"',
         )
         self.assertNotEqual(batch_text, tampered)
         return tampered
+
+    # Historical tests use the old helper name but must tamper the live route.
+    def _tamper_current_stage045_phase4_route(self, batch_text: str) -> str:
+        return self._tamper_current_stage046_phase1_route(batch_text)
 
     def test_app_entry_install_policy_installs_app_and_command_launchers(self):
         self.assertTrue(APP_ENTRY_INSTALLER.is_file(), f"missing installer: {APP_ENTRY_INSTALLER}")
@@ -10775,7 +10779,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
             [], module.evaluate_required_event_semantics([tampered_event])
         )
 
-    def test_stage045_review_current_state_and_event_are_governed(self):
+    def test_stage046_phase1_current_state_and_event_are_governed(self):
         module = self._load_module()
         batch_text = (
             ROOT
@@ -10805,30 +10809,34 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
             event
             for event in events
             if event.get("event_id")
-            == "EVT-IDS-V0_1-STAGE045-REVIEW-20260720-001"
+            == "EVT-IDS-V0_1-STAGE046-P1-20260720-001"
         ]
         self.assertEqual(1, len(phase_event))
         self.assertEqual([], module.evaluate_required_event_semantics(phase_event))
 
         for required_path in (
-            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_STAGE_REVIEW.md",
-            "KM_IDSystem/scripts/check_file_type_detection_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_ENTRY_CONTRACT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE046_PHASE1_PARSER_ROUTING_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/"
+            "stage046_parser_routing_contract.json",
+            "KM_IDSystem/scripts/check_parser_routing.py",
             "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
-            "test_stage045_file_type_detection_stage_review.py",
-            "KM_IDSystem/machine/runs/2026-07-20-stage045-review-local.json",
+            "test_stage046_parser_routing.py",
+            "KM_IDSystem/machine/runs/2026-07-20-stage046-p1-local.json",
         ):
             with self.subTest(path=required_path):
                 self.assertIn(required_path, module.REQUIRED_FILES)
         self.assertIn(
-            "EVT-IDS-V0_1-STAGE045-REVIEW-20260720-001",
+            "EVT-IDS-V0_1-STAGE046-P1-20260720-001",
             module.REQUIRED_EVENT_IDS,
         )
 
         tampered_contract = batch_text.replace(
-            '    stage_review_schema: '
-            '"ids.stage045.file_type_detection.stage_review.v1"',
-            '    stage_review_schema: '
-            '"ids.stage045.file_type_detection.stage_review.invalid"',
+            '    parser_routing_contract_schema: '
+            '"ids.stage046.parser_routing.phase1.v1"',
+            '    parser_routing_contract_schema: '
+            '"ids.stage046.parser_routing.phase1.invalid"',
         )
         self.assertNotEqual(batch_text, tampered_contract)
         blocked = module.evaluate_phase_state(
@@ -10838,13 +10846,19 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
 
         tampered_event = dict(phase_event[0])
         tampered_event["notes"] = tampered_event["notes"].replace(
-            "review_finding_count=7",
-            "review_finding_count=6",
+            "route_family_count=6",
+            "route_family_count=5",
         )
         self.assertNotEqual(phase_event[0]["notes"], tampered_event["notes"])
         self.assertNotEqual(
             [], module.evaluate_required_event_semantics([tampered_event])
         )
+
+        tampered_route = self._tamper_current_stage046_phase1_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
 
 
 if __name__ == "__main__":

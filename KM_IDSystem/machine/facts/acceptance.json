@@ -1,6 +1,36 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE046-P1-01`",
+      "criteria": "批准归档、唯一 Stage046 成员、roadmap、instructions、执行索引和 Stage045 review commit/root/KM_IDSystem tree 均精确绑定并实时重验",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P1-02`",
+      "criteria": "七项 Stage045/037/原始数据边界上游文件均从不可变 Stage045 review commit 读取并重新计算哈希，不信任可变工作树",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P1-03`",
+      "criteria": "只有 `TYPE_CONFIRMED/HIGH` 形成未执行 `route candidate`；`provisional`、`conflict`、`unknown`、`unsupported`、`blocked` 与缺失 `parser` 全部显式失败关闭",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P1-04`",
+      "criteria": "六类静态路线覆盖 `PDF/DOCX/XLSX/CSV/TXT/PNG/JPEG/TIFF`，`parser implementation` 与 `version` 均为空且不授权 `dispatch`",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P1-05`",
+      "criteria": "Stage047 输出、Stage048 回退与 Stage050 非可信文本职责保持独立；`parser output` 必须经过质量门且不能直接提升证据",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P1-06`",
+      "criteria": "未打开业务源文件、重新检测类型、加载运行时注册表、执行路由或 `parser/fallback`、写持久态、进入步骤二、上传、合并、重装或生产激活",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE045-REVIEW-01`",
       "criteria": "批准 task-pack、唯一 Stage045 成员、roadmap 与 instructions 已恢复到精确绑定路径并由最终复审重新计算四项哈希",
       "status": "已通过"

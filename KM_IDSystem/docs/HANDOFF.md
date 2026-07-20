@@ -11,35 +11,47 @@
 
 ## Current Gate - 2026-07-20
 
-- Completed task in this run: `IDS-V0_1-STAGE045-REVIEW`. The three exact approved
-  source files were restored through their original conversation attachments and
-  live-rehashed against the existing archive/member/roadmap/instructions bindings.
-  Final review replays Phase1-4, Phase4 ancestry and all seven findings; all
-  `3 Critical / 4 Important / 0 Minor` findings are resolved and Stage045 is
-  `completed_reviewed_local` with parser and fallback disabled. The blocked
-  precheck remains preserved as historical fail-closed evidence.
-- Next allowed task: `IDS-V0_1-STAGE046-P1`, in a separate future run behind
-  `IDS-STAGE046-P1-GATE`; `NO_STAGE046_THIS_RUN`, `NO_BATCH_REVIEW_THIS_RUN`,
+- Completed task in this run: `IDS-V0_1-STAGE046-P1`. The approved archive,
+  unique Stage046 member, roadmap, instructions and execution index were
+  live-rehashed, while seven upstream artifacts were read and rehashed from the
+  immutable Stage045 review commit `76027b8dc89e325c212d492d7f5df88357ea7112`.
+- Historical Stage045 review transition only: Completed task in this run: `IDS-V0_1-STAGE045-REVIEW`; Next allowed task: `IDS-V0_1-STAGE046-P1`. This is not the current gate; the current gate is Stage046 P2.
+- Historical Stage044 review transition only: Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`; Next allowed task: `IDS-V0_1-STAGE045-P1`. This is not the current gate; the current gate is Stage046 P2.
+- `ids.stage046.parser_routing.phase1.v1` accepts only governed Stage045 detection
+  references. It defines six static parser families covering PDF, DOCX, XLSX,
+  CSV, TXT, PNG, JPEG and TIFF. A `TYPE_CONFIRMED/HIGH` result is only a route
+  candidate; all provisional, conflict, unknown, unsupported and blocked results
+  fail closed to explicit review/error dispositions.
+- Caller-selected parsers, file-type redetection, runtime registry loading, route
+  evaluation, parser selection/dispatch/execution, fallback, evidence promotion,
+  job/state mutation and persistence are all disabled. Parser implementations and
+  versions remain unassigned; Stage047 owns normalized output, Stage048 fallback,
+  and Stage050 prompt-injection handling.
+- Next allowed task: `IDS-V0_1-STAGE046-P2`, only in a separate future run behind
+  `IDS-STAGE046-P2-GATE`; `phase2_entry_authorized=false`, `NO_PHASE2_THIS_RUN`,
+  `NO_STAGE_REVIEW_THIS_RUN`, `NO_BATCH_REVIEW_THIS_RUN`,
   `NO_GITHUB_UPLOAD_THIS_RUN`, `NO_APP_REINSTALL_THIS_RUN`.
-- Preserved predecessor gate evidence: Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`;
-  Next allowed task: `IDS-V0_1-STAGE045-P1`.
-  This is historical evidence only; the current gate remains Stage046 P1.
+- Final Phase1 validation passes checker `23/23`, focused Stage046 `12/12`,
+  Stage005 `172/172`, Stage041-046 aggregate `355/355` in `1224.293s`, full
+  IDS v0.1 discovery `1105/1105` in `1576.221s`, and all eight Stage038-045
+  historical review checkers. The initial aggregate/full runs reached `350/355`
+  and `1099/1105`; their eleven stale forward-route failures were repaired only
+  for the exact current P1-to-P2 gate and were not counted as PASS. All 221
+  governance events have zero parse, duplicate-id or semantic errors; owner
+  rendering is idempotent and KM_IDSystem project dual-plane passes. Full results
+  are recorded in `machine/runs/2026-07-20-stage046-p1-local.json`.
 - Current source hashes: archive
   `55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3`,
-  unique Stage045 member
-  `4eac237a7f63d764cf71789d4949a5168cbe8fe24e1fe7eb816baabe04bb4d27`,
+  unique Stage046 member
+  `955cdf40f365c05853a87269eb02aa46e5922807e0bb0c48d9b99cfca9bc1d39`,
   roadmap `a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6`,
-  instructions `ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8`.
-- Final review evidence: `STAGE045_STAGE_REVIEW.md`,
-  `scripts/check_file_type_detection_stage_review.py`, focused review tests and
-  `machine/runs/2026-07-20-stage045-review-local.json`. Any live source,
-  Phase4 ancestry, phase replay, finding, governance or Git-index mismatch returns
-  `FAIL_CLOSED` to `IDS-STAGE045-REVIEW-GATE`.
-- Final review validation: focused `8/8` in `24.465s`, Stage005 `172/172` in
-  `41.976s`, Stage041–045 aggregate `343/343` in `1171.188s`, full discovery
-  `1093/1093` in `1548.501s`, and historical/current review checkers `8/8`.
-  The repaired compatibility route is exactly Stage045 review → Stage046 P1 gate;
-  Stage044 checker remains at its Phase1-bound hash.
+  instructions `ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8`,
+  execution index `2e0088153cd1e13a09d9aebd09a1bd0c8c7162acd0788360d45f5c7320af1e9a`.
+- Phase1 evidence: `STAGE046_PHASE1_PARSER_ROUTING_SCOPE_BOUNDARY.md`,
+  `parser_routing/stage046_parser_routing_contract.json`,
+  `scripts/check_parser_routing.py`, focused tests and the machine run. Any source,
+  predecessor, snapshot, route-family, ownership, quality, state or side-effect
+  mismatch returns `FAIL_CLOSED` to `IDS-STAGE046-P1-GATE`.
 - Completed task in this run: `IDS-V0_1-STAGE045-P4`; the approved source, committed Phase3 predecessor and five indexed Phase3 artifacts are bound into `ids.stage045.file_type_detection.phase4.delivery.v1`. The checker replays all fourteen Phase3 scenarios and derives six schema-only parser-output samples, seven non-runtime fallback-log samples, exact quality metrics and four fail-closed failure classes without parser or fallback execution.
 - Preserved Stage045 Phase 4 transition: Completed task in this run: `IDS-V0_1-STAGE045-P4`; Next allowed task: `IDS-V0_1-STAGE045-REVIEW`. This is historical evidence, not the current gate.
 - Preserved Stage045 Phase 3 transition: Completed task in this run: `IDS-V0_1-STAGE045-P3`; Next allowed task: `IDS-V0_1-STAGE045-P4`. This is historical evidence, not the current gate.
@@ -65,7 +77,7 @@
 - The first aggregate failed closed on fourteen historical current-route/index assertions and the first full discovery failed closed on four P3-to-P4 routes plus one stale owner render. A final-evidence Stage005 run failed closed on twenty-two exact result-binding checks before synchronization. Repairs were restricted to exact forward-route compatibility, preservation of existing historical safety invariants, generated owner views and the exact roadmap result binding; one wrong-workdir targeted command was interrupted and not counted as PASS.
 - Pre-commit self-review repaired one Important fail-closed gap: the three instruction-control flags now derive from the bounded Phase2 evidence wrapper and are included in scenario PASS evaluation instead of being hard-coded false. The same existing test proves an unsafe wrapper forces `FAIL_CLOSED`; the test count remains eighteen.
 - Project governance note: the sparse worktree does not contain root `scripts/lean_governance.py`, so the repository-wide command reports `SPARSE_CONFLICT`; no sparse expansion or unrelated-project inspection was performed.
-- Current batch gate: `BATCH041_050` has five locally reviewed Stages and remains locked with `push_allowed=false`; Stage046-050, single-stage upload, GitHub action, merge, app reinstall, batch review and production action are not authorized.
+- Current batch gate: `BATCH041_050` has five locally reviewed Stages plus Stage046 Phase1 only and remains locked with `push_allowed=false`; Stage046 Phase2-4/review, Stage047-050, single-stage upload, GitHub action, merge, app reinstall, batch review and production action are not authorized.
 - Preserve owner-controlled dependency/service paths (`backend/requirements.txt`, `frontend/package.json`, `frontend/pnpm-workspace.yaml`, `scripts/run_local_services.sh`); this phase does not modify them.
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only governance boundary and was not touched. Do not read, list, hash, open, scan, copy, move, delete, modify, dump, or normalize its contents.
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## IDS v0.1 STAGE-046 Phase 1 - 2026-07-20
+
+- Added `ids.stage046.parser_routing.phase1.v1`, bound to the exact approved Stage046 source and immutable Stage045 reviewed-local commit/tree plus seven rehashed upstream artifacts.
+- Defined six static parser families for PDF, DOCX, XLSX, CSV, TXT, PNG, JPEG and TIFF. Only governed `TYPE_CONFIRMED/HIGH` input can become a candidate; caller-selected parsers, type redetection and generic fallback are forbidden.
+- Preserved Stage047 normalized-output ownership, Stage048 fallback ownership and Stage050 prompt-injection ownership. Parser implementations and versions remain empty; no registry runtime, route evaluation, dispatch, parser, fallback, job/state mutation, evidence promotion or persistence ran.
+- Valid TDD RED produced four expected failures and eleven expected missing-artifact errors across twelve focused tests. Final GREEN passes checker `23/23`, focused Stage046 `12/12`, Stage005 `172/172`, Stage041-046 aggregate `355/355` in `1224.293s`, full IDS v0.1 discovery `1105/1105` in `1576.221s`, all eight Stage038-045 historical review checkers, 221-event semantics, idempotent owner rendering and KM_IDSystem project dual-plane.
+- The first aggregate reached `350/355` and the first full discovery reached `1099/1105`; all eleven failures were stale forward-route assertions. Repairs admit only the exact current `IDS-STAGE046-P1 -> IDS-STAGE046-P2-GATE` route and current Handoff markers; failed runs were not counted as PASS.
+- Routed the only next task to separate `IDS-V0_1-STAGE046-P2` with `phase2_entry_authorized=false` and `push_allowed=false`. No IDS business source, raw metadata, fake business data, Phase2, whole-stage review, batch review, GitHub action, app reinstall, dependency installation or production action ran.
+
 ## IDS v0.1 STAGE-045 Review - 2026-07-20
 
 - Completed the independent whole-stage review under `ACC-STAGE-045` after restoring the three exact approved source files and live-rehashing the archive, unique Stage045 member, roadmap and instructions against all four recorded SHA-256 values.

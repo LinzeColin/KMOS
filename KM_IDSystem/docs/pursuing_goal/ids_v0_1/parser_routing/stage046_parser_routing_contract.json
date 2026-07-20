@@ -1,0 +1,340 @@
+{
+  "schema_version": "ids.stage046.parser_routing.phase1.v1",
+  "stage": "STAGE-046",
+  "phase": "Phase 1",
+  "task_id": "IDS-V0_1-STAGE046-P1",
+  "acceptance_id": "ACC-STAGE-046",
+  "local_code": "D08-S002",
+  "domain": "D08",
+  "entrance": "IDS_SYSTEM_OPERATIONS",
+  "pursuing_goal": "SELECT_EXPLICIT_PARSER_ROUTE_FOR_GOVERNED_FILE_TYPE_WITHOUT_DISPATCH",
+  "parser_routing_contract_id": "ids.parser_routing.v0_1.stage046.p1",
+  "contract_state": "PHASE1_ENGINEERING_CONTRACT_PARSER_DISPATCH_DISABLED",
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE046-P2-GATE",
+  "source_binding": {
+    "source_archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "source_member": "IDS_v0_1_Final_Chinese_Revised/stages/STAGE-046_解析器路由合同.md",
+    "source_member_match_count": 1,
+    "source_member_integrity": "OK",
+    "source_member_sha256": "955cdf40f365c05853a87269eb02aa46e5922807e0bb0c48d9b99cfca9bc1d39",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+    "source_index_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/V0_1_STAGE_EXECUTION_INDEX.csv",
+    "source_index_sha256": "2e0088153cd1e13a09d9aebd09a1bd0c8c7162acd0788360d45f5c7320af1e9a",
+    "source_verification_status": "SOURCE_VERIFIED"
+  },
+  "predecessor_binding": {
+    "stage045_review_commit": "76027b8dc89e325c212d492d7f5df88357ea7112",
+    "stage045_review_root_tree": "37541fb276b548322227969fd36aadf40144e3e3",
+    "stage045_review_kmids_tree": "ef8dafd9cd6e19967b7964f88e6eeead25b1866b",
+    "stage045_review_parent": "02a3393766b3ba933383af415100ffe5e78c7630",
+    "stage045_review_status": "completed_reviewed_local",
+    "stage045_review_result": "PASS_REVIEWED_LOCAL_PARSER_AND_FALLBACK_DISABLED"
+  },
+  "upstream_snapshot_bindings": {
+    "stage045_file_type_contract_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_contract.json",
+      "sha256": "6f3926cd87ee3a654384176516db1d4f7e83e0906a220057d33d6873be8a506f",
+      "snapshot_commit": "76027b8dc89e325c212d492d7f5df88357ea7112"
+    },
+    "stage045_delivery_contract_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_delivery_contract.json",
+      "sha256": "209c13f67d457419c8760841f13f401f3d8acec2ec7a72c5c13e0f4722b6c743",
+      "snapshot_commit": "76027b8dc89e325c212d492d7f5df88357ea7112"
+    },
+    "stage045_review_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_STAGE_REVIEW.md",
+      "sha256": "7dc6cc5c73a6c243ac457bf76af84f58dbee14ed9371d467b14158057d263116",
+      "snapshot_commit": "76027b8dc89e325c212d492d7f5df88357ea7112"
+    },
+    "stage045_review_checker_ref": {
+      "ref": "KM_IDSystem/scripts/check_file_type_detection_stage_review.py",
+      "sha256": "ad9946e6db7303ac38f84927f3d4d51eba576cce545a8b4e75ff1e3b333cf977",
+      "snapshot_commit": "76027b8dc89e325c212d492d7f5df88357ea7112"
+    },
+    "stage045_review_run_ref": {
+      "ref": "KM_IDSystem/machine/runs/2026-07-20-stage045-review-local.json",
+      "sha256": "b78081cc37aee5c05e18a9942a1f9e0086348881fd4562743397bbac7b258c78",
+      "snapshot_commit": "76027b8dc89e325c212d492d7f5df88357ea7112"
+    },
+    "stage037_state_index_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/job_state_model/stage037_job_state_model_index.json",
+      "sha256": "b70bf72ebe4212f45d380c13fbfe429791e1f4a5c73dccbba81211b7adc1c2d3",
+      "snapshot_commit": "76027b8dc89e325c212d492d7f5df88357ea7112"
+    },
+    "raw_data_boundary_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md",
+      "sha256": "ad4695abf250049699a1b96b49b81432e5d5754dfe7de69c7f3056463a0a7d51",
+      "snapshot_commit": "76027b8dc89e325c212d492d7f5df88357ea7112"
+    }
+  },
+  "input_contract": {
+    "mode": "REFERENCE_ONLY_STAGE045_DETECTION_RESULT",
+    "required_fields": [
+      "routing_request_id",
+      "detection_request_id",
+      "source_fingerprint_ref",
+      "source_identity_ref",
+      "detected_type",
+      "detection_state",
+      "detection_confidence",
+      "detection_evidence_ref",
+      "detector_contract_version",
+      "parser_registry_version",
+      "requested_at"
+    ],
+    "detection_authority": "STAGE-045",
+    "required_detector_contract": "ids.file_type_detector.v0_1.stage045.p2",
+    "caller_selected_parser_allowed": false,
+    "file_type_redetection_allowed": false,
+    "source_body_allowed": false,
+    "source_path_allowed": false,
+    "unbounded_error_or_text_allowed": false,
+    "raw_metadata_boundary_blocked": true,
+    "input_record_write_allowed": false
+  },
+  "route_eligibility_contract": {
+    "candidate_ready_combinations": [
+      "TYPE_CONFIRMED:HIGH"
+    ],
+    "review_required_combinations": [
+      "TYPE_PROVISIONAL:MEDIUM",
+      "TYPE_PROVISIONAL:LOW"
+    ],
+    "always_review_states": [
+      "TYPE_CONFLICT_REVIEW_REQUIRED",
+      "TYPE_UNKNOWN_REVIEW_REQUIRED"
+    ],
+    "unsupported_states": [
+      "TYPE_UNSUPPORTED"
+    ],
+    "blocked_states": [
+      "TYPE_INPUT_BLOCKED"
+    ],
+    "blocked_type_values": [
+      "UNKNOWN",
+      "CORRUPT_OR_UNREADABLE"
+    ],
+    "candidate_ready_action": "ROUTE_CANDIDATE_READY_NOT_EXECUTED",
+    "review_required_action": "ROUTE_REVIEW_REQUIRED",
+    "unsupported_action": "ROUTE_UNSUPPORTED",
+    "blocked_action": "ROUTE_BLOCKED",
+    "generic_parser_fallback_allowed": false,
+    "unknown_type_route_allowed": false,
+    "caller_override_allowed": false
+  },
+  "route_registry_contract": {
+    "registry_id": "ids.parser_route_registry.v0_1.stage046.p1",
+    "registry_state": "STATIC_CANDIDATE_REGISTRY_RUNTIME_DISABLED",
+    "routes": [
+      {
+        "route_id": "ROUTE_PDF",
+        "accepted_types": [
+          "PDF"
+        ],
+        "parser_family": "PDF_PARSER",
+        "selection_status": "CANDIDATE_ONLY_NOT_EXECUTED"
+      },
+      {
+        "route_id": "ROUTE_OOXML_WORD",
+        "accepted_types": [
+          "DOCX"
+        ],
+        "parser_family": "OOXML_WORD_PARSER",
+        "selection_status": "CANDIDATE_ONLY_NOT_EXECUTED"
+      },
+      {
+        "route_id": "ROUTE_OOXML_WORKBOOK",
+        "accepted_types": [
+          "XLSX"
+        ],
+        "parser_family": "OOXML_WORKBOOK_PARSER",
+        "selection_status": "CANDIDATE_ONLY_NOT_EXECUTED"
+      },
+      {
+        "route_id": "ROUTE_DELIMITED_TEXT",
+        "accepted_types": [
+          "CSV"
+        ],
+        "parser_family": "DELIMITED_TEXT_PARSER",
+        "selection_status": "CANDIDATE_ONLY_NOT_EXECUTED"
+      },
+      {
+        "route_id": "ROUTE_PLAIN_TEXT",
+        "accepted_types": [
+          "TXT"
+        ],
+        "parser_family": "PLAIN_TEXT_PARSER",
+        "selection_status": "CANDIDATE_ONLY_NOT_EXECUTED"
+      },
+      {
+        "route_id": "ROUTE_IMAGE",
+        "accepted_types": [
+          "PNG",
+          "JPEG",
+          "TIFF"
+        ],
+        "parser_family": "IMAGE_PARSER",
+        "selection_status": "CANDIDATE_ONLY_NOT_EXECUTED"
+      }
+    ],
+    "route_family_count": 6,
+    "supported_type_count": 8,
+    "parser_implementations": [],
+    "assigned_parser_versions": [],
+    "parser_availability_required_before_dispatch": true,
+    "missing_parser_action": "ROUTE_BLOCKED_PARSER_IMPLEMENTATION_UNAVAILABLE",
+    "route_execution_allowed": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "remote_parser_lookup_allowed": false
+  },
+  "output_boundary": {
+    "detailed_contract_owner": "STAGE-047",
+    "required_parser_output_fields": [
+      "text",
+      "tables",
+      "pages",
+      "sections",
+      "confidence",
+      "errors"
+    ],
+    "all_content_fields_untrusted": true,
+    "parser_version_and_provenance_required": true,
+    "route_decision_ref_required": true,
+    "empty_output_is_failure": true,
+    "output_creation_allowed": false,
+    "direct_evidence_or_index_write_allowed": false,
+    "high_confidence_evidence_write_allowed": false
+  },
+  "fallback_boundary": {
+    "implementation_owner": "STAGE-048",
+    "attempt_history_required": true,
+    "attempt_parser_version_required": true,
+    "bounded_error_required": true,
+    "stop_reason_required": true,
+    "silent_drop_allowed": false,
+    "silent_parser_switch_allowed": false,
+    "route_unavailable_action": "OWNER_REVIEW_REQUIRED",
+    "fallback_execution_allowed": false
+  },
+  "prompt_injection_boundary": {
+    "implementation_owner": "STAGE-050",
+    "source_text_label": "UNTRUSTED_EVIDENCE_TEXT",
+    "forbidden_interpretations": [
+      "SYSTEM_INSTRUCTION",
+      "TOOL_INSTRUCTION",
+      "POLICY",
+      "CONTROL_COMMAND"
+    ],
+    "marker_required_before_downstream_model": true,
+    "source_text_can_override_system_rules": false,
+    "source_text_can_authorize_tools": false,
+    "marker_application_allowed": false,
+    "prompt_injection_scan_allowed": false
+  },
+  "quality_and_evidence_boundary": {
+    "route_decision_fact_level": "CANDIDATE",
+    "quality_gate_required_before_downstream": true,
+    "missing_quality_action": "BLOCK_DOWNSTREAM_PROMOTION",
+    "review_required_for_provisional_route": true,
+    "evidence_promotion_allowed": false,
+    "evidence_ledger_write_allowed": false,
+    "audit_write_allowed": false,
+    "manifest_or_index_mutation_allowed": false,
+    "report_or_database_write_allowed": false,
+    "original_or_delivered_output_mutation_allowed": false
+  },
+  "state_and_job_boundary": {
+    "job_type": "PARSE",
+    "state_model_owner": "STAGE-037",
+    "route_contract_owner": "STAGE-046",
+    "job_creation_allowed": false,
+    "queue_admission_allowed": false,
+    "claim_or_lock_allowed": false,
+    "state_transition_allowed": false,
+    "attempt_mutation_allowed": false,
+    "terminal_history_change_allowed": false
+  },
+  "phase2_entry_gate": {
+    "gate_id": "IDS-STAGE046-P2-GATE",
+    "required_conditions": [
+      "SOURCE_BINDING_EXACT",
+      "STAGE045_REVIEW_SNAPSHOT_EXACT",
+      "REFERENCE_ONLY_INPUT_EXACT",
+      "ROUTE_ELIGIBILITY_FAIL_CLOSED",
+      "SIX_ROUTE_FAMILIES_EIGHT_TYPES_EXACT",
+      "NO_PARSER_IMPLEMENTATION_OR_VERSION_ASSIGNED",
+      "OUTPUT_FALLBACK_PROMPT_OWNERSHIP_PRESERVED",
+      "QUALITY_AND_STATE_BOUNDARIES_CLOSED",
+      "ALL_RUNTIME_TRUTH_FLAGS_FALSE"
+    ],
+    "entry_authorized": false,
+    "must_run_separately": true,
+    "dependency_install_allowed": false
+  },
+  "runtime_boundary": {
+    "parser_registry_runtime_load_allowed": false,
+    "route_evaluation_allowed": false,
+    "parser_selection_allowed": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "fallback_execution_allowed": false,
+    "source_file_access_allowed": false,
+    "backend_or_worker_start_allowed": false,
+    "external_api_allowed": false,
+    "persistent_write_allowed": false,
+    "database_connection_allowed": false,
+    "production_activation_allowed": false
+  },
+  "rollback_contract": {
+    "scope": "STAGE046_PHASE1_CONTRACT_AND_GOVERNANCE_ONLY",
+    "rollback_target": "STAGE045_REVIEWED_LOCAL_SNAPSHOT",
+    "delete_or_cleanup_source_allowed": false,
+    "manifest_evidence_audit_index_report_mutation_allowed": false,
+    "github_or_app_state_change_allowed": false
+  },
+  "human_status_projection": {
+    "PHASE1_CONTRACT_READY": "解析器路由合同已就绪，实际路由与解析仍禁用",
+    "ROUTE_CANDIDATE_READY_NOT_EXECUTED": "已确认解析器候选路线，但尚未选择或执行解析器",
+    "ROUTE_REVIEW_REQUIRED": "检测证据不足以自动路由，需要人工复核",
+    "ROUTE_UNSUPPORTED": "当前文件类型不在支持路线内",
+    "ROUTE_BLOCKED": "输入或解析器条件不完整，路由已阻断"
+  },
+  "truth_flags": {
+    "taskpack_source_read_performed": true,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "fake_ids_business_data_used": false,
+    "real_ids_business_job_created": false,
+    "source_file_open_performed": false,
+    "file_type_redetection_performed": false,
+    "parser_registry_runtime_loaded": false,
+    "parser_route_evaluation_performed": false,
+    "parser_selected": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "fallback_execution_performed": false,
+    "prompt_injection_scan_performed": false,
+    "prompt_injection_marker_applied": false,
+    "parser_output_produced": false,
+    "high_confidence_evidence_write_performed": false,
+    "manifest_write_performed": false,
+    "evidence_ledger_write_performed": false,
+    "audit_write_performed": false,
+    "job_creation_performed": false,
+    "state_transition_performed": false,
+    "persistent_state_write_performed": false,
+    "database_connection_performed": false,
+    "schema_change_performed": false,
+    "runtime_output_written": false,
+    "production_runtime_activation_performed": false,
+    "phase2_started": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "app_reinstall_allowed": false
+  }
+}
