@@ -54,6 +54,11 @@ services:
     environment:
       TZ: Asia/Shanghai
     # 代码/facts 已烧进镜像（自包含），不挂宿主仓
+    volumes:
+      # 只读挂 skills 的日志卷：App 要能显示「排程到底跑没跑」。
+      # 在此之前 app 一个卷都不挂，排程健康只能靠人登服务器看——
+      # 于是每次都要 Owner 亲自去查再回报，这个来回本身就是设计缺陷。
+      - kmfa-logs:/var/log/kmfa:ro
     expose:
       - "8000"                                    # 经 Coolify Traefik 暴露；域名在 Coolify 面板设，无需开放主机端口
     healthcheck:

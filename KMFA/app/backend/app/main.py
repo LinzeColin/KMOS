@@ -1767,3 +1767,97 @@ def audit_log(action_type: str | None = None, page: int = 1, size: int = 50):
             "说明": "本机不做多用户与角色分权；角色口径承接 S17 供云端与导出留痕使用",
         },
     }
+
+
+# ── 排程健康：让「排程到底跑没跑」这件事在页面上一眼可见 ──────────────────────
+# 起因：2026-07-20 Owner 说「不可能每次结果都让我给你们反馈啊，你自己不会复审检查吗」。
+# 他是对的。在此之前 app 容器一个卷都不挂，排程状态只能靠人登服务器 `cat` 日志——
+# 于是每次都要 Owner 亲自查、再回报给开发侧。这个来回本身就是设计缺陷，不是沟通问题。
+# 现在 app 只读挂 kmfa-logs，本接口直接读 skills 写的 ledger。
+SKILL_LEDGER_PATH = Path(os.environ.get("KMFA_SKILL_LEDGER", "/var/log/kmfa/ledger.jsonl"))
+# 排程契约（与 deploy/skills-runtime/crontab.txt 一致；北京时间）
+SCHEDULE_CONTRACT = {
+    "attendance-morning": "每天 10:35",
+    "attendance-evening": "每天 20:05",
+    "work-check-morning": "每天 11:35",
+    "work-check-evening": "每天 17:05",
+    "fund-weekly": "周一/周六 11:00",
+    "mgmt-monthly": "每月 1 日 09:00",
+    "upstream-archive": "每天 11:00",
+    "self-audit": "周日 01:00",
+    "daily-backup": "每天 00:30",
+    "dws-keepalive": "每 4 小时 :20",
+}
+
+
+@app.get("/api/排程健康")
+def schedule_health():
+    """排程执行健康——**不出任何业务数据**，只报「谁在什么时候跑了、成没成」。
+
+    刻意做成这样：判断「排程是不是活着」不该需要登服务器，也不该需要谁口头汇报。
+    """
+    if not SKILL_LEDGER_PATH.exists():
+        return {
+            "可读": False,
+            "原因": f"读不到 {SKILL_LEDGER_PATH}——app 容器可能未挂 kmfa-logs 卷，或排程从未跑过",
+            "排程契约": SCHEDULE_CONTRACT,
+            "诚实边界": "读不到就说读不到，不猜、不拿「没有坏消息」当好消息。",
+        }
+
+    rows = []
+    for line in SKILL_LEDGER_PATH.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+
+    now = datetime.now(BEIJING)
+    per_skill: dict[str, Any] = {}
+    for r in rows:
+        skill = str(r.get("skill") or "?")
+        cur = per_skill.get(skill)
+        if cur is None or str(r.get("ts")) > str(cur.get("ts")):
+            per_skill[skill] = r
+
+    逐项 = []
+    for skill, 约定 in sorted(SCHEDULE_CONTRACT.items()):
+        last = per_skill.get(skill)
+        距今小时 = None
+        if last:
+            try:
+                距今小时 = round(
+                    (now - datetime.fromisoformat(str(last["ts"]))).total_seconds() / 3600, 1)
+            except (ValueError, KeyError, TypeError):
+                距今小时 = None
+        逐项.append({
+            "技能": skill,
+            "约定时刻": 约定,
+            "跑过": last is not None,
+            "最近一次": (last or {}).get("ts"),
+            "距今小时": 距今小时,
+            "退出码": (last or {}).get("rc"),
+            "成功": (last or {}).get("rc") == 0 if last else None,
+            "投递开关": (last or {}).get("delivery_enabled"),
+        })
+
+    跑过的 = [x for x in 逐项 if x["跑过"]]
+    失败的 = [x for x in 跑过的 if x["成功"] is False]
+    空跑的 = [x for x in 跑过的 if str(x["投递开关"]) == "0"]
+    return {
+        "可读": True,
+        "总执行次数": len(rows),
+        "有记录的技能数": f"{len(跑过的)}/{len(SCHEDULE_CONTRACT)}",
+        "失败数": len(失败的),
+        "仍在空跑数": len(空跑的),
+        "结论": (
+            "从未执行过任何排程——排程链是断的" if not 跑过的
+            else f"有 {len(失败的)} 个技能最近一次失败" if 失败的
+            else f"有 {len(空跑的)} 个技能仍按空跑（投递开关=0），消息发不出去" if 空跑的
+            else "最近一次执行全部成功且投递已开"
+        ),
+        "逐项": 逐项,
+        "诚实边界": "只报执行事实，不报业务内容；「没记录」一律显示为未跑过，不美化。",
+    }
