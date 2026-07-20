@@ -1,0 +1,172 @@
+{
+ "record_type": "g5_exit_checklist",
+ "task_id": "TSK.KMFA.PROD.0018",
+ "十八项证据包": {
+  "合计": 18,
+  "齐备": 18,
+  "缺": [],
+  "逐项": {
+   "PROD.0001": {
+    "证据目录": "DT6_PROD0001_sqlite_state",
+    "存在": true,
+    "文件数": 1,
+    "内容哈希": "sha256:e8b692e9f522426c29421435b5b2b527573da60530cd26b187fa054b22e9fae3"
+   },
+   "PROD.0002": {
+    "证据目录": "DT6_PROD0002_backend_api",
+    "存在": true,
+    "文件数": 1,
+    "内容哈希": "sha256:f36cec2539fe3df149e28a5144216fcdedaa1dd376411846814b8ee3c886e040"
+   },
+   "PROD.0003": {
+    "证据目录": "DT6_PROD0003_access_security",
+    "存在": true,
+    "文件数": 2,
+    "内容哈希": "sha256:f89bd7906b3428a9120cebcfab6098fb576e0bdff6bdf253b8bcee15e070e7c9"
+   },
+   "PROD.0004": {
+    "证据目录": "DT6_PROD0004_home",
+    "存在": true,
+    "文件数": 1,
+    "内容哈希": "sha256:e0a151a44a6814dcd579105f4335964d171f7237af9feda9ec27d8ec618a2d9f"
+   },
+   "PROD.0005": {
+    "证据目录": "DT6_PROD0005_source_board",
+    "存在": true,
+    "文件数": 1,
+    "内容哈希": "sha256:ba424f98bfc0c929d4b0d3fb1d662eaadd3a64649e53b6754ef632b6ce6f4755"
+   },
+   "PROD.0006": {
+    "证据目录": "DT6_PROD0006_project_cost",
+    "存在": true,
+    "文件数": 1,
+    "内容哈希": "sha256:16b47fe2deb7f21cf00ef568efc8ee10a2d8f34da2661576167ae0ed2e2cba0a"
+   },
+   "PROD.0007": {
+    "证据目录": "DT6_PROD0007_workbench",
+    "存在": true,
+    "文件数": 1,
+    "内容哈希": "sha256:e8173e5671010468051c6caea64a5aaef9c216e5478c62106cb979367e420557"
+   },
+   "PROD.0008": {
+    "证据目录": "DT6_PROD0008_impact_rerun",
+    "存在": true,
+    "文件数": 1,
+    "内容哈希": "sha256:eeeaa5196423ad1b15653a33170ada493490c72d5456e85e4908e71a07ee368c"
+   },
+   "PROD.0009": {
+    "证据目录": "DT6_PROD0009_report_center",
+    "存在": true,
+    "文件数": 3,
+    "内容哈希": "sha256:0d9fa610ce682fbcfc94156c3c4916b7bb529391b76ca436f6038cc81eda4ef0"
+   },
+   "PROD.0010": {
+    "证据目录": "DT6_PROD0010_aging",
+    "存在": true,
+    "文件数": 1,
+    "内容哈希": "sha256:ceafde2ac26ff30d1ddfde2eb0268a418e6b26feab4e7173bf4b0f7e9cb36d62"
+   },
+   "PROD.0011": {
+    "证据目录": "DT6_PROD0011_invoice_tax",
+    "存在": true,
+    "文件数": 1,
+    "内容哈希": "sha256:8d043bb9146cc3095112a1e07a8768a61acdb42d1b57480f1b02a6827eda804f"
+   },
+   "PROD.0012": {
+    "证据目录": "DT6_PROD0012_s24_review",
+    "存在": true,
+    "文件数": 2,
+    "内容哈希": "sha256:7cccab6862ca50422e5854f78773a73150c236bf3c1cd17ea3eb6c3fdca87438"
+   },
+   "PROD.0013": {
+    "证据目录": "DT6_PROD0013_e2e",
+    "存在": true,
+    "文件数": 2,
+    "内容哈希": "sha256:8d0580612b87d87c95e89a49c814a05bc2c8bd3186942ec95ab06640eb8f5dcb"
+   },
+   "PROD.0014": {
+    "证据目录": "DT6_PROD0014_erpnext_gap",
+    "存在": true,
+    "文件数": 2,
+    "内容哈希": "sha256:80d2d9fcccb281fd33b34b669968ec7d5b026f07971170068c9d372056cd6e3d"
+   },
+   "PROD.0015": {
+    "证据目录": "DT6_PROD0015_app_entry",
+    "存在": true,
+    "文件数": 2,
+    "内容哈希": "sha256:ab04f1b0d7c37416153fd146e608ce11366e758c28fa73d0888fa5056622db86"
+   },
+   "PROD.0016": {
+    "证据目录": "DT6_PROD0016_perf",
+    "存在": true,
+    "文件数": 3,
+    "内容哈希": "sha256:7b82b6aaa7614aa5bfe7503b45e5b0a69c4af53239bc7647c6b8b2be06d4c9e9"
+   },
+   "PROD.0017": {
+    "证据目录": "DT6_PROD0017_docs",
+    "存在": true,
+    "文件数": 1,
+    "内容哈希": "sha256:b2b61d2c61eb64df297bc72fc95cb4396f266b80b03cb45b5ef788256c2261e2"
+   },
+   "PROD.0018": {
+    "证据目录": "DT6_PROD0018_g5",
+    "存在": true,
+    "文件数": 2,
+    "内容哈希": "sha256:52701caaacef0a4ddca7e14b67f34b9f02a03db3004a657d5fc8d5c5a70ca084"
+   }
+  }
+ },
+ "G5检查单": {
+  "合计": 5,
+  "具备": 5,
+  "逐项": [
+   {
+    "项": "S24 review 通过",
+    "判据目录": "DT6_PROD0012_s24_review",
+    "具备": true
+   },
+   {
+    "项": "App 真数据端到端 PASS 并入 CI",
+    "判据目录": "DT6_PROD0013_e2e",
+    "具备": true
+   },
+   {
+    "项": ".app parity",
+    "判据目录": "DT6_PROD0015_app_entry",
+    "具备": true
+   },
+   {
+    "项": "性能达标",
+    "判据目录": "DT6_PROD0016_perf",
+    "具备": true
+   },
+   {
+    "项": "渲染门持续真绿",
+    "判据目录": "DT6_PROD0017_docs",
+    "具备": true
+   }
+  ]
+ },
+ "渲染门现场复跑": {
+  "渲染": {
+   "退出码": 0,
+   "尾行": "渲染完成：7 个文件全部由机器平面生成"
+  },
+  "三道门": {
+   "退出码": 0,
+   "尾行": "PASS —— 人类平面三道门全过"
+  },
+  "阻塞重审门": {
+   "退出码": 0,
+   "尾行": "PASS —— 1 个阻塞，无重复重审"
+  }
+ },
+ "technical_checks_all_green": true,
+ "g5_passed": false,
+ "why_not_passed": "Approver 是 Owner（任务包第 29 行）。技术判据全绿不等于门禁通过，本检查器不代签。失败动作 remain_in_stage。",
+ "owner_待办": [
+  "签核 G5（此项一签，g5_passed 方可翻 true）",
+  "Coolify 换 API 令牌并重部署，令 kmfa.linzezhang.com 上线（完成判据第 5 条）",
+  "为 ERPNext 三条 gap 排序（PROD.0014 登记表）"
+ ]
+}
