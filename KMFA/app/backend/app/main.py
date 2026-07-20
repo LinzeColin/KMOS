@@ -47,14 +47,18 @@ FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
 @app.get("/")
 def index():
-    return FileResponse(STATIC / "index.html")
+    return FileResponse(STATIC / "index.html",
+                        headers={"Cache-Control": "no-cache, must-revalidate"})
 
 
 @app.get("/ui/")
 def ui_index():
     if not (FRONTEND_DIST / "index.html").exists():
         raise HTTPException(status_code=503, detail="前端未构建（KMFA/app/frontend: npm run build）")
-    return FileResponse(FRONTEND_DIST / "index.html")
+    # 入口 html 禁缓存：不禁的话部署换新后浏览器仍用旧 html 引旧资产——
+    # 「服务器已换新、用户看着没变」，2026-07-20 Owner 真踩到。
+    return FileResponse(FRONTEND_DIST / "index.html",
+                        headers={"Cache-Control": "no-cache, must-revalidate"})
 
 
 @app.get("/ui/assets/{asset_path:path}")
@@ -62,7 +66,8 @@ def ui_assets(asset_path: str):
     target = (FRONTEND_DIST / "assets" / asset_path).resolve()
     if not str(target).startswith(str(FRONTEND_DIST.resolve())) or not target.is_file():
         raise HTTPException(status_code=404)
-    return FileResponse(target)
+    # 资产文件名含内容哈希，内容一变名字必变——可放心永久缓存
+    return FileResponse(target, headers={"Cache-Control": "public, max-age=31536000, immutable"})
 
 
 def load_json(path: Path):
