@@ -416,6 +416,8 @@ def render_06(facts: Path, project_name: str):
     run_rows = [(r.get("场景", "?"), r.get("怎么做", "")) for r in rb.get("服务启停", [])]
     bak_rows = [(r.get("对象", "?"), r.get("去哪", "")) for r in rb.get("备份", [])]
     chk_rows = [(r.get("查什么", "?"), r.get("怎么查", "")) for r in rb.get("断链自检", [])]
+    go_rows = [(r.get("步", "?"), r.get("动作", ""), r.get("不做会怎样", ""))
+               for r in rb.get("上线清单", [])]
 
     body = f"""{GENERATED}
 <!-- 事实源：machine/config.yaml、machine/facts/ops.json、changelog.json -->
@@ -452,19 +454,24 @@ python3 machine/tools/check_blocker_stop.py      # 阻塞重审门
 {table(run_rows, ["场景", "怎么做"],
        empty="> 还没登记启停方式。往 machine/facts/ops.json 的 runbook.服务启停 里记。")}
 
-## 五、备份去哪
+## 五、上线清单（顺序不能乱）
+
+{table(go_rows, ["步", "动作", "不做会怎样"],
+       empty="> 还没登记上线步骤。往 machine/facts/ops.json 的 runbook.上线清单 里记。")}
+
+## 六、备份去哪
 
 {table(bak_rows, ["对象", "去哪"],
        empty="> 还没登记备份去向。往 machine/facts/ops.json 的 runbook.备份 里记。")}
 
-## 六、断链自检
+## 七、断链自检
 
 一条链断了往往不报错，只是安静地不干活。定期照这张单子过一遍。
 
 {table(chk_rows, ["查什么", "怎么查"],
        empty="> 还没登记自检项。往 machine/facts/ops.json 的 runbook.断链自检 里记。")}
 
-## 七、都改过什么（最近 10 条）
+## 八、都改过什么（最近 10 条）
 
 {table(cl_rows, ["版本", "时间", "改了什么"],
        empty="> 还没有变更记录。每次发版往 machine/facts/changelog.json 记一条，这里就有了。")}
