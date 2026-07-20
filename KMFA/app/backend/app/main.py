@@ -1792,6 +1792,14 @@ SCHEDULE_CONTRACT = {
     "daily-backup": "每天 00:30",
     "dws-keepalive": "每 4 小时 :20",
 }
+# 技能归属业务模块（Owner 2026-07-21：「所有 skills 都需要整合进 kmfa 功能模块」）
+SKILL_MODULE = {
+    "attendance-morning": "考勤与日检", "attendance-evening": "考勤与日检",
+    "work-check-morning": "考勤与日检", "work-check-evening": "考勤与日检",
+    "fund-weekly": "资金与经营报告", "mgmt-monthly": "资金与经营报告",
+    "upstream-archive": "数据接入",
+    "self-audit": "系统底座", "daily-backup": "系统底座", "dws-keepalive": "系统底座",
+}
 
 
 @app.get("/api/排程健康")
@@ -1819,16 +1827,18 @@ def schedule_health():
             continue
 
     now = datetime.now(BEIJING)
-    per_skill: dict[str, Any] = {}
+    # 台账是 append-only 全量历史（run_skill.sh 每次运行追加一行、日志按时间戳独立归档）。
+    # 此前只取每技能最新一条是接口的缺陷，不是数据的缺陷——Owner 2026-07-21 点破后改为全量。
+    by_skill: dict[str, list] = {}
     for r in rows:
-        skill = str(r.get("skill") or "?")
-        cur = per_skill.get(skill)
-        if cur is None or str(r.get("ts")) > str(cur.get("ts")):
-            per_skill[skill] = r
+        by_skill.setdefault(str(r.get("skill") or "?"), []).append(r)
+    for v in by_skill.values():
+        v.sort(key=lambda r: str(r.get("ts")), reverse=True)
 
     逐项 = []
     for skill, 约定 in sorted(SCHEDULE_CONTRACT.items()):
-        last = per_skill.get(skill)
+        history = by_skill.get(skill, [])
+        last = history[0] if history else None
         距今小时 = None
         if last:
             try:
@@ -1836,8 +1846,16 @@ def schedule_health():
                     (now - datetime.fromisoformat(str(last["ts"]))).total_seconds() / 3600, 1)
             except (ValueError, KeyError, TypeError):
                 距今小时 = None
+        失败次数 = sum(1 for r in history if r.get("rc") != 0)
+        连续失败 = 0
+        for r in history:
+            if r.get("rc") != 0:
+                连续失败 += 1
+            else:
+                break
         逐项.append({
             "技能": skill,
+            "业务模块": SKILL_MODULE.get(skill, "系统底座"),
             "约定时刻": 约定,
             "跑过": last is not None,
             "最近一次": (last or {}).get("ts"),
@@ -1845,6 +1863,15 @@ def schedule_health():
             "退出码": (last or {}).get("rc"),
             "成功": (last or {}).get("rc") == 0 if last else None,
             "投递开关": (last or {}).get("delivery_enabled"),
+            "次数": len(history),
+            "失败次数": 失败次数,
+            "成功率": (round(100 * (len(history) - 失败次数) / len(history)) if history else None),
+            "连续失败": 连续失败,
+            # 全量运行历史（最近在前，封顶 100 条防大账本撑爆响应；快照=当次独立日志文件）
+            "历史": [{
+                "ts": r.get("ts"), "rc": r.get("rc"), "成功": r.get("rc") == 0,
+                "投递开关": r.get("delivery_enabled"), "快照": r.get("log"),
+            } for r in history[:100]],
         })
 
     跑过的 = [x for x in 逐项 if x["跑过"]]
@@ -1864,4 +1891,25 @@ def schedule_health():
         ),
         "逐项": 逐项,
         "诚实边界": "只报执行事实，不报业务内容；「没记录」一律显示为未跑过，不美化。",
+    }
+
+
+@app.get("/api/排程健康/快照")
+def schedule_run_snapshot(log: str):
+    """读取某一次运行的日志快照（run_skill.sh 每次运行写独立时间戳日志，即当时快照）。
+
+    只许读排程日志根目录之内的文件——路径防穿越与 /ui/assets 同款收紧；
+    只回尾部 64KB：快照是给人复盘的，不是给人下载全量日志的。
+    """
+    log_root = SKILL_LEDGER_PATH.parent.resolve()
+    target = Path(log).resolve()
+    if not str(target).startswith(str(log_root) + "/") or not target.is_file():
+        raise HTTPException(status_code=404, detail="快照不存在或不在排程日志目录内")
+    data = target.read_bytes()
+    tail = data[-65536:]
+    return {
+        "路径": str(target),
+        "总字节": len(data),
+        "截取": len(tail) < len(data),
+        "内容": tail.decode("utf-8", errors="replace"),
     }

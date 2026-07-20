@@ -690,6 +690,8 @@ function 操作留痕({ 审计 }) {
 /* ---------- 排程健康（系统自检主体） ---------- */
 
 function 排程健康({ 排程 }) {
+  const [展开, set展开] = useState(null)
+  const [快照, set快照] = useState({})
   if (!排程) return <骨架 />
   if (排程.加载失败) return <加载失败卡 详情={排程.加载失败} />
   if (!排程.可读) return (
@@ -700,38 +702,101 @@ function 排程健康({ 排程 }) {
     </div>
   )
   const 好 = 排程.失败数 === 0 && 排程.仍在空跑数 === 0
+  const 模块s = [...new Set(排程.逐项.map(x => x.业务模块 ?? '系统底座'))]
+
+  async function 看快照(键, 路径) {
+    if (快照[键]) { set快照(q => ({ ...q, [键]: null })); return }
+    set快照(q => ({ ...q, [键]: { 载入中: true } }))
+    try {
+      const r = await fetch(`/api/排程健康/快照?log=${encodeURIComponent(路径)}`)
+      const j = await r.json()
+      set快照(q => ({ ...q, [键]: r.ok ? j : { 错: j.detail ?? '读取失败' } }))
+    } catch (e) { set快照(q => ({ ...q, [键]: { 错: String(e) } })) }
+  }
+
   return (
     <>
       <div className="grid">
         <Kpi 标="有记录的自动任务" 值={排程.有记录的技能数} />
         <Kpi 标="最近一次失败" 值={排程.失败数} 色={排程.失败数 ? 'bad' : 'ok'} />
         <Kpi 标="空跑中（未开投递）" 值={排程.仍在空跑数} 色={排程.仍在空跑数 ? 'warn' : 'ok'} 注="消息不会真发出" />
-        <Kpi 标="总执行次数" 值={排程.总执行次数} />
+        <Kpi 标="总执行次数" 值={排程.总执行次数} 注="append-only 全量台账" />
       </div>
       <div className={`card callout ${好 ? 'ok' : 'warn'}`}>
         <b>{排程.结论}</b>
         <div className="sub">{排程.诚实边界}</div>
+        <div className="sub">点任意一行展开全部运行历史；每次运行都有当时的独立日志快照，可当场查看。</div>
       </div>
-      <Tbl>
-        <thead><tr>
-          <th>自动任务</th><th>约定时刻</th><th>最近一次</th>
-          <th className="num">距今</th><th>结果</th><th>投递</th>
-        </tr></thead>
-        <tbody>{排程.逐项.map(x => (
-          <tr key={x.技能}>
-            <td><code>{x.技能}</code></td>
-            <td className="muted">{x.约定时刻}</td>
-            <td>{x.最近一次 ?? <span className="tone-bad">从未跑过</span>}</td>
-            <td className="num">{x.距今小时 == null ? '—' : `${x.距今小时} 小时前`}</td>
-            <td>{x.成功 === true ? <span className="chip ok">成功</span>
-              : x.成功 === false ? <span className="chip bad" title={`rc=${x.退出码}`}>失败</span>
-              : <span className="muted">—</span>}</td>
-            <td>{x.投递开关 == null ? <span className="muted">—</span>
-              : String(x.投递开关) === '1' ? <span className="chip ok">已开</span>
-              : <span className="chip warn">空跑</span>}</td>
-          </tr>
-        ))}</tbody>
-      </Tbl>
+      {模块s.map(模 => (
+        <React.Fragment key={模}>
+          <h3 className="sec">{模}</h3>
+          <Tbl>
+            <thead><tr>
+              <th>自动任务</th><th>约定时刻</th><th>最近一次</th>
+              <th className="num">距今</th><th>结果</th><th>投递</th>
+              <th className="num">次数</th><th className="num">成功率</th>
+            </tr></thead>
+            <tbody>{排程.逐项.filter(x => (x.业务模块 ?? '系统底座') === 模).map(x => (
+              <React.Fragment key={x.技能}>
+                <tr className="click" onClick={() => set展开(展开 === x.技能 ? null : x.技能)}>
+                  <td><code>{x.技能}</code></td>
+                  <td className="muted">{x.约定时刻}</td>
+                  <td>{x.最近一次 ?? <span className="tone-bad">从未跑过</span>}</td>
+                  <td className="num">{x.距今小时 == null ? '—' : `${x.距今小时} 小时前`}</td>
+                  <td>{x.成功 === true ? <span className="chip ok">成功</span>
+                    : x.成功 === false ? <span className="chip bad" title={`rc=${x.退出码}`}>失败</span>
+                    : <span className="muted">—</span>}</td>
+                  <td>{x.投递开关 == null ? <span className="muted">—</span>
+                    : String(x.投递开关) === '1' ? <span className="chip ok">已开</span>
+                    : <span className="chip warn">空跑</span>}</td>
+                  <td className="num">{x.次数 || '—'}</td>
+                  <td className={`num ${x.失败次数 ? 'tone-warn' : ''}`}>
+                    {x.成功率 == null ? '—' : `${x.成功率}%`}</td>
+                </tr>
+                {展开 === x.技能 && (
+                  <tr className="detail"><td colSpan={8}>
+                    {(x.历史 ?? []).length === 0 ? <p className="empty">还没有运行记录。</p> : (
+                      <Tbl>
+                        <thead><tr><th>时间</th><th>结果</th><th>投递</th><th>当时快照</th></tr></thead>
+                        <tbody>{x.历史.map((h, i) => {
+                          const 键 = `${x.技能}#${i}`
+                          const q = 快照[键]
+                          return (
+                            <React.Fragment key={键}>
+                              <tr>
+                                <td className="muted">{h.ts}</td>
+                                <td>{h.成功 ? <span className="chip ok">成功</span>
+                                  : <span className="chip bad" title={`rc=${h.rc}`}>失败</span>}</td>
+                                <td>{String(h.投递开关) === '1' ? <span className="chip ok">已开</span>
+                                  : <span className="chip warn">空跑</span>}</td>
+                                <td>{h.快照
+                                  ? <button type="button" className="btn" onClick={() => 看快照(键, h.快照)}>
+                                      {q ? '收起' : '看快照'}</button>
+                                  : <span className="muted">—</span>}</td>
+                              </tr>
+                              {q && (
+                                <tr><td colSpan={4}>
+                                  {q.载入中 ? <div className="skel" style={{ height: 12 }} />
+                                    : q.错 ? <div className="alert bad">{q.错}</div>
+                                    : <>
+                                        <div className="muted">{q.路径}｜{q.总字节} 字节{q.截取 ? '（只显示尾部 64KB）' : ''}</div>
+                                        <pre style={{ marginTop: 8, maxHeight: '18rem', overflow: 'auto',
+                                                      fontSize: '.75rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{q.内容}</pre>
+                                      </>}
+                                </td></tr>
+                              )}
+                            </React.Fragment>
+                          )
+                        })}</tbody>
+                      </Tbl>
+                    )}
+                  </td></tr>
+                )}
+              </React.Fragment>
+            ))}</tbody>
+          </Tbl>
+        </React.Fragment>
+      ))}
     </>
   )
 }
@@ -883,10 +948,22 @@ function 治理详情({ 我 }) {
 
 /* ---------- 系统自检（后台） ---------- */
 
-function 系统自检({ 排程, 技能, 我 }) {
+function 系统自检({ 排程, 技能, 我, 审计, 图, 管线, 去 }) {
   return (
     <>
       <排程健康 排程={排程} />
+      <h3 className="sec" style={{ marginTop: 30 }}>其他流的健康与历史</h3>
+      <div className="grid">
+        <Kpi 标="操作流（拍板/下载留痕）" 小 点={去 ? () => 去('数据底账') : undefined}
+             值={审计 && !审计.加载失败 ? `${审计.总数} 条留痕` : '…'}
+             注="append-only 全量历史——数据底账·操作留痕" />
+        <Kpi 标="重算流（四层链）" 小 点={去 ? () => 去('数据底账') : undefined}
+             值={图 && !图.加载失败 ? `${图.本机重跑记录?.轮次 ?? 0} 轮` : '…'}
+             注="每轮逐层留痕、旧版本全保留——数据底账·重新核算" />
+        <Kpi 标="数据流（批次接入）" 小 点={去 ? () => 去('数据底账') : undefined}
+             值={管线 && !管线.加载失败 ? `截至 ${管线.data_as_of_batch}` : '…'}
+             注="内容寻址防篡改——数据底账·数据从哪来" />
+      </div>
       <h3 className="sec" style={{ marginTop: 30 }}>自动化任务清单</h3>
       {!技能 ? <div className="card" style={{ marginTop: 12 }}><div className="skel" style={{ height: 13 }} /></div>
         : 技能.加载失败 ? <加载失败卡 详情={技能.加载失败} /> : (
@@ -1268,7 +1345,7 @@ export default function App() {
             {页 === '报告下载' && <报告下载 中心={中心} />}
             {页 === '数据底账' && <数据底账 源检查={源检查} 管线={管线} 图={影响}
               选中资产={选中资产} 选资产={a => { set选中资产(a); 取影响(a) }} 刷新={取影响} 审计={审计} />}
-            {页 === '系统自检' && <系统自检 排程={排程} 技能={技能} 我={我在哪数据} />}
+            {页 === '系统自检' && <系统自检 排程={排程} 技能={技能} 我={我在哪数据} 审计={审计} 图={影响} 管线={管线} 去={去} />}
           </div>
         </div>
       </div>

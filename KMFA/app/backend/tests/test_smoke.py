@@ -64,3 +64,43 @@ def test_index_serves_dashboard():
 def test_react_ui_served():
     r = client.get("/ui/")
     assert r.status_code == 200 and "root" in r.text
+
+
+def test_schedule_health_full_history(tmp_path, monkeypatch):
+    """台账全量历史：不止最新一条——次数/成功率/连续失败/历史列表都要有（Owner 2026-07-21）。"""
+    from app import main as m
+    ledger = tmp_path / "ledger.jsonl"
+    logs = tmp_path / "attendance-morning"
+    logs.mkdir()
+    rows = [
+        '{"ts":"2026-07-19T10:39:00+08:00","skill":"attendance-morning","rc":0,"log":"%s","delivery_enabled":"0"}' % (logs / "a.log"),
+        '{"ts":"2026-07-20T10:39:00+08:00","skill":"attendance-morning","rc":1,"log":"%s","delivery_enabled":"1"}' % (logs / "b.log"),
+        '{"ts":"2026-07-21T10:39:00+08:00","skill":"attendance-morning","rc":0,"log":"%s","delivery_enabled":"1"}' % (logs / "c.log"),
+    ]
+    ledger.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    monkeypatch.setattr(m, "SKILL_LEDGER_PATH", ledger)
+    d = client.get("/api/排程健康").json()
+    行 = next(x for x in d["逐项"] if x["技能"] == "attendance-morning")
+    assert 行["次数"] == 3 and 行["失败次数"] == 1 and 行["成功率"] == 67
+    assert 行["连续失败"] == 0 and 行["业务模块"] == "考勤与日检"
+    assert [h["ts"][:10] for h in 行["历史"]] == ["2026-07-21", "2026-07-20", "2026-07-19"]
+    assert 行["历史"][1]["成功"] is False
+
+
+def test_schedule_snapshot_guarded(tmp_path, monkeypatch):
+    """快照端点：目录内可读、目录外与穿越一律 404。"""
+    from app import main as m
+    ledger = tmp_path / "ledger.jsonl"
+    ledger.write_text("", encoding="utf-8")
+    snap = tmp_path / "attendance-morning" 
+    snap.mkdir()
+    f = snap / "20260721_103900.log"
+    f.write_text("开始\n结束 rc=0\n", encoding="utf-8")
+    outside = tmp_path.parent / "outside.log"
+    outside.write_text("秘密", encoding="utf-8")
+    monkeypatch.setattr(m, "SKILL_LEDGER_PATH", ledger)
+    ok = client.get("/api/排程健康/快照", params={"log": str(f)})
+    assert ok.status_code == 200 and "rc=0" in ok.json()["内容"] and ok.json()["截取"] is False
+    assert client.get("/api/排程健康/快照", params={"log": str(outside)}).status_code == 404
+    assert client.get("/api/排程健康/快照", params={"log": str(snap / ".." / ".." / "outside.log")}).status_code == 404
+
