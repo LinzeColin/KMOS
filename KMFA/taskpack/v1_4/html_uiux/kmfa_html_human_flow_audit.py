@@ -138,7 +138,7 @@ def audit_file(browser, html_path: Path, root: Path, base_url: str|None=None):
 # 与上面的静态 HTML 普扫共用同一套输出契约（CSV 九列 + 有 FAIL 则退出码 1），
 # 但驱动方式完全不同：这里是**按角色选元素、真点、真断言真实数据**，
 # 不用像素坐标（坐标会随视口/缩放漂，CI 里必炸）。
-FLOW_STEPS = ("登录", "首页", "检查板", "成本页", "差异处理", "影响预览", "重跑", "报告导出")
+FLOW_STEPS = ("登录", "今天", "回款账龄", "成本页", "差异拍板", "重算", "报告导出", "系统自检")
 
 
 def _row(step, label, action, ok, reason, console):
@@ -178,31 +178,31 @@ def app_flow(browser, base_url: str):
         page.close()
         return rows
 
-    # ② 首页：须与 machine/facts 同源（BLK-001 与 18 阶段都要在）
+    # ② 今天（经营驾驶舱首页）：人话判决 + 等你拍板 + 真实阻塞（信息第一性，PRD v2）
     try:
-        tab("我在哪")
+        tab("今天")
         body = page.locator("body").inner_text()
-        ok = "BLK-001" in body and "S18" in body and "0.1.4" in body
-        rows.append(_row("首页", "我在哪", "click tab", ok,
-                         "含 BLK-001 / S18 / 版本 0.1.4" if ok else f"关键字段缺失: {body[:120]}", console))
+        ok = "等你拍板" in body and "BLK-001" in body and "暂不可对外" in body
+        rows.append(_row("今天", "驾驶舱首页", "click tab", ok,
+                         "人话判决+拍板队列+真实阻塞俱在" if ok else f"关键要素缺失: {body[:120]}", console))
     except Exception as e:
-        rows.append(_row("首页", "我在哪", "click tab", False, f"{e}", console))
+        rows.append(_row("今天", "驾驶舱首页", "click tab", False, f"{e}", console))
 
-    # ③ 检查板：覆盖矩阵须有真实资产数
+    # ③ 回款与账龄：逐月核对表须在，且有已对平的真实行
     try:
-        tab("源检查板")
+        tab("回款与账龄")
         body = page.locator("body").inner_text()
-        ok = "覆盖" in body and any(str(n) in body for n in range(50, 60))
-        rows.append(_row("检查板", "源检查板", "click tab", ok,
-                         "覆盖矩阵含真实资产数" if ok else f"未见覆盖矩阵: {body[:120]}", console))
+        ok = "回款逐月核对" in body and "已对平" in body
+        rows.append(_row("回款账龄", "回款与账龄", "click tab", ok,
+                         "逐月核对表与已对平状态俱在" if ok else f"未见核对表: {body[:120]}", console))
     except Exception as e:
-        rows.append(_row("检查板", "源检查板", "click tab", False, f"{e}", console))
+        rows.append(_row("回款账龄", "回款与账龄", "click tab", False, f"{e}", console))
 
     # ④ 成本页：A0 未就位时**不得**出现毛利数字——阻塞必须如实呈现
     try:
         tab("项目成本")
         body = page.locator("body").inner_text()
-        blocked = "blocked_pending_quality_resolution" in body or "阻塞" in body
+        blocked = "金额尚不可计算" in body or "算不出" in body or "阻塞" in body
         no_margin = "毛利率" not in body
         ok = blocked and no_margin
         rows.append(_row("成本页", "项目成本", "click tab", ok,
@@ -211,9 +211,9 @@ def app_flow(browser, base_url: str):
     except Exception as e:
         rows.append(_row("成本页", "项目成本", "click tab", False, f"{e}", console))
 
-    # ⑤ 差异处理：**真写一条决策**并验证留痕（不是只看页面能打开）
+    # ⑤ 差异拍板：**真写一条决策**并验证留痕（不是只看页面能打开）
     try:
-        tab("差异工作台")
+        tab("待拍板")
         before = page.locator("text=App 写入").inner_text()
         page.locator("tr", has=page.locator("code", has_text="AST-COLL-202503")).first.click()
         # 等条件、不等时间：固定 sleep 在慢机器上会抢跑——CI 上就这么飘红过一次，
@@ -224,24 +224,26 @@ def app_flow(browser, base_url: str):
         page.wait_for_selector("text=已追加事件", timeout=30000)
         body = page.locator("body").inner_text()
         ok = "MANEVT-APP-" in body and "已追加事件" in body
-        rows.append(_row("差异处理", "三选一决策 闭案", "fill+click", ok,
+        rows.append(_row("差异拍板", "三选一决策 闭案", "fill+click", ok,
                          f"事件已写入（写入前: {norm_text(before, 20)}）" if ok
                          else f"未见事件号: {body[:150]}", console))
     except Exception as e:
-        rows.append(_row("差异处理", "三选一决策", "fill+click", False, f"{e}", console))
+        rows.append(_row("差异拍板", "三选一决策", "fill+click", False, f"{e}", console))
 
-    # ⑥ 影响预览：选资产 → 下游影响面必须由血缘边算出真实行数
+    # ⑥ 重算（数据底账页内）：选源数据 → 影响面必须由血缘边算出真实行数
     try:
-        tab("影响重跑")
+        tab("数据底账")
         page.locator("select").first.select_option("raw:d46f77b0c90d")
-        page.wait_for_selector("text=goods_movement", timeout=15000)
+        # 锚点必须是影响面独有的文本：页内「接入了多少」区本来就含 goods_movement，
+        # 拿它当锚会秒过并抢在影响面渲染前断言——本轮实测踩到（10/11 那次 FAIL）。
+        page.wait_for_selector("text=会牵连什么", timeout=15000)
         body = page.locator("body").inner_text()
-        ok = "expense_lines" in body and "17,764" in body and "tax" in body
-        rows.append(_row("影响预览", "raw:d46f77b0c90d", "select_option", ok,
+        ok = "受影响核对域" in body and "expense_lines" in body and "17,764" in body
+        rows.append(_row("重算", "raw:d46f77b0c90d", "select_option", ok,
                          "下游影响面含真实派生表与行数（goods_movement 17,764）" if ok
                          else f"影响面异常: {body[:150]}", console))
     except Exception as e:
-        rows.append(_row("影响预览", "选中资产", "select_option", False, f"{e}", console))
+        rows.append(_row("重算", "选中资产", "select_option", False, f"{e}", console))
 
     # ⑦ 重跑：**真发起并完成**四层链——本单元最硬的一条
     try:
@@ -252,15 +254,15 @@ def app_flow(browser, base_url: str):
         layers = sum(1 for k in ("field_mapping", "fact_layer", "derived_metric", "report_reference")
                      if k in body)
         ok = layers == 4 and "链完整：是" in body and "旧版本全保留：是" in body
-        rows.append(_row("重跑", "四层链", "fill+click", ok,
+        rows.append(_row("重算", "四层链", "fill+click", ok,
                          f"四层全完成、链完整、旧版本保留（命中 {layers}/4 层）" if ok
                          else f"重跑未完成: 命中 {layers}/4 层", console))
     except Exception as e:
-        rows.append(_row("重跑", "四层链", "fill+click", False, f"{e}", console))
+        rows.append(_row("重算", "四层链", "fill+click", False, f"{e}", console))
 
-    # ⑧ 报告导出：三格式**真下载**，且水印/等级头必须在
+    # ⑦ 报告导出：三格式**真下载**，且水印/等级头必须在
     try:
-        tab("报告中心")
+        tab("报告下载")
         for fmt, magic in (("HTML", b"<!doctype"), ("CSV", b"\xef\xbb\xbf"), ("PDF", b"%PDF")):
             with page.expect_download(timeout=30000) as dl:
                 page.locator(f'a[href*="格式={fmt.lower()}"]').first.click()
@@ -275,6 +277,17 @@ def app_flow(browser, base_url: str):
                              else f"魔数/水印异常: head={head[:8]!r} mark={mark}", console))
     except Exception as e:
         rows.append(_row("报告导出", "三格式", "click download", False, f"{e}", console))
+
+    # ⑧ 系统自检：排程健康必须如实呈现（CI 容器无台账 → 直说读不到原因）
+    try:
+        tab("系统自检")
+        body = page.locator("body").inner_text()
+        ok = "排程" in body and ("从未跑过" in body or "读不到排程日志" in body or "成功" in body)
+        rows.append(_row("系统自检", "排程健康", "click tab", ok,
+                         "排程状态如实呈现（有记录或直说读不到）" if ok
+                         else f"排程状态缺失: {body[:120]}", console))
+    except Exception as e:
+        rows.append(_row("系统自检", "排程健康", "click tab", False, f"{e}", console))
 
     page.close()
     return rows
