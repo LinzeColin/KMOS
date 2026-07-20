@@ -359,6 +359,174 @@ def receivable_aging():
     }
 
 
+QUALITY_DIR = KMFA / "metadata" / "quality"
+# v014 S14 三段：P1 资金/现金/贷款计划、P2 开票/纳税计划、P3 税务政策证据
+S14_P1 = QUALITY_DIR / "v014_s14_p1_post_remediation_fund_cash_loan_plan"
+S14_P2 = QUALITY_DIR / "v014_s14_p2_post_remediation_invoice_tax_plan"
+S14_P3 = QUALITY_DIR / "v014_s14_p3_post_remediation_policy_evidence_plan"
+POLICY_RISKS_PATH = QUALITY_DIR / "v014_s14_p3_post_remediation_policy_risk_tips_public_safe.json"
+POLICY_GAPS_PATH = QUALITY_DIR / "v014_s14_p3_post_remediation_policy_evidence_gaps_public_safe.json"
+# 开票/纳税/贷款三域会吃的派生层表（行数取自 data_pipeline 事实）
+INVOICE_STAGING_TABLES = ("invoice_raw", "invoice_lines", "tax_composition", "loan_register")
+
+
+def _assertion_row(r: dict[str, Any]) -> dict[str, Any]:
+    """断言 → 展示行。差异分**原样透传**，元值走整数换算，绝不另造一套数。"""
+    delta = r.get("delta_cents")
+    return {
+        "断言": r.get("assertion_id"),
+        "口径": r.get("metric"),
+        "期间": r.get("period"),
+        "差异分": delta,
+        "差异元": _cents_to_yuan(delta),
+        "状态": r.get("status"),
+        "对账方": r.get("expect_source"),
+        "我方源": r.get("our_source"),
+        "结论": r.get("finding"),
+        "证据": r.get("evidence_ref"),
+    }
+
+
+def _s14_lanes_and_methods(manifest_path: Path, method_keys: tuple[str, ...]) -> dict[str, Any]:
+    """读 v014 S14 manifest 的车道与方法定义——只报结构与阻断状态，不取任何金额。"""
+    if not manifest_path.exists():
+        return {"车道": [], "方法": [], "缺失": manifest_path.name}
+    m = json.loads(manifest_path.read_text(encoding="utf-8"))
+    lanes = [
+        {
+            "车道": l.get("lane_id"),
+            "数据状态": l.get("data_status"),
+            "私有候选表数": (l.get("private_candidate_sheet_count")
+                             or l.get("private_direct_candidate_sheet_count")),
+            "含业务金额": bool(l.get("contains_business_amounts")),
+            "允许作经营依据": bool(l.get("business_decision_basis_allowed")),
+        }
+        for l in (m.get("source_lanes") or [])
+    ]
+    methods = []
+    for key in method_keys:
+        for d in (m.get(key) or []):
+            lanes_needed = d.get("required_lanes") or []
+            # 三个 cash_summary 方法事实里没有 method_note；兜底句由 required_lanes 推出，
+            # 且必须落在 API 而不是某个页面——否则导出/自动化拿到的仍是 null。
+            note = d.get("method_note") or (
+                f"需 {'、'.join(lanes_needed)} 车道的权威期间值绑定后才能出汇总。"
+                if lanes_needed else None)
+            methods.append({
+                "方法组": key,
+                "方法": d.get("method_id"),
+                # 事实里每个方法都带中文 visible_name 与 required_lanes；只显英文 id、
+                # 让三个无 method_note 的方法露出"—"是把已有事实丢了——真开页面时实测到。
+                "名称": d.get("visible_name"),
+                "依赖车道": lanes_needed,
+                "定义完备": bool(d.get("method_definition_complete")),
+                "产出状态": d.get("current_output_status"),
+                "绑定状态": d.get("current_binding_status"),
+                "说明": note,
+            })
+    return {"车道": lanes, "方法": methods}
+
+
+@app.get("/api/开票纳税")
+def invoice_tax_fund():
+    """开票纳税与资金贷款视图（PROD.0011）——`invoice_tax_plan`/`fund_cash_loan_plan` 真数据化。
+
+    与账龄页同构，**数据分两层如实区分**：
+    · **对账层（真数字）**：断言表 invoicing / tax / loan 三域，皆已核到分，直接呈现。
+      其中 `AST-LOAN-ZHONGLI-ADHERENCE` 为 0 分差已闭，`AST-TAX-AXIS-HBKM-2025` 39 格
+      逐月逐税种仅差 1 分。
+    · **v014 S14 结构层（值被阻断）**：P1 四车道 / P2 三车道全部
+      `values_unproven`，九个方法（3 计划 + 3 现金汇总 + 3 问题复核）全部
+      `blocked_no_authoritative_*_value_binding`——**故本页不产出计划金额、不列到期提示**。
+
+    任务包红线（P1 §212 / P2 §213）：**不做付款操作、不做正式纳税申报**。红线计数直接读
+    v014 summary 事实（非硬编码），任何一项非零都会被契约测试打回。
+    """
+    rows = _load_assertions()
+    by_domain = {d: [r for r in rows if str(r.get("domain")) == d]
+                 for d in ("invoicing", "tax", "loan")}
+
+    def block(domain: str) -> dict[str, Any]:
+        rs = [_assertion_row(r) for r in sorted(by_domain[domain], key=lambda x: str(x.get("assertion_id")))]
+        return {
+            "条数": len(rs),
+            "零分差条数": len([r for r in rs if r["差异分"] == 0]),
+            "未闭条数": len([r for r in rs if str(r["状态"]) == "analyzed_open"]),
+            "逐条": rs,
+        }
+
+    p1 = load_json(Path(f"{S14_P1}_summary.json"))
+    p2 = load_json(Path(f"{S14_P2}_summary.json"))
+    p3 = load_json(Path(f"{S14_P3}_summary.json"))
+
+    risks = {r.get("program_id"): r for r in
+             (json.loads(POLICY_RISKS_PATH.read_text(encoding="utf-8")).get("risks") or []
+              if POLICY_RISKS_PATH.exists() else [])}
+    gaps = (json.loads(POLICY_GAPS_PATH.read_text(encoding="utf-8")).get("gaps") or []
+            if POLICY_GAPS_PATH.exists() else [])
+    policy = []
+    for g in sorted(gaps, key=lambda x: x.get("gap_sequence") or 0):
+        r = risks.get(g.get("program_id")) or {}
+        policy.append({
+            "项目": g.get("visible_name"),
+            "风险等级": r.get("risk_level"),
+            "风险提示": r.get("risk_tip"),
+            "证据缺口": g.get("gap_summary"),
+            "缺口状态": g.get("gap_status"),
+            "证据完备": bool(g.get("evidence_complete")),
+            "允许出资格结论": bool(g.get("formal_policy_qualification_conclusion_allowed")),
+        })
+
+    pipeline = load_json(FACTS / "data_pipeline.json")
+    staging = pipeline.get("staging_tables") or {}
+
+    return {
+        "开票对账": block("invoicing"),
+        "税务对账": block("tax"),
+        "贷款对账": block("loan"),
+        "派生层规模": [
+            {"表": name, "行数": (staging.get(name) or {}).get("rows")}
+            for name in INVOICE_STAGING_TABLES if name in staging
+        ],
+        "结构层": {
+            "开票纳税计划（S14-P2）": {
+                "决策": p2.get("decision"),
+                "已证值绑定车道数": p2.get("value_binding_proven_lane_count"),
+                "公开业务金额数": p2.get("public_business_amount_count"),
+                **_s14_lanes_and_methods(Path(f"{S14_P2}_manifest.json"),
+                                         ("cash_summary_methods", "issue_review_methods")),
+            },
+            "资金贷款计划（S14-P1）": {
+                "决策": p1.get("decision"),
+                "已证值绑定车道数": p1.get("value_binding_proven_lane_count"),
+                "公开业务金额数": p1.get("public_business_amount_count"),
+                **_s14_lanes_and_methods(Path(f"{S14_P1}_manifest.json"), ("planning_methods",)),
+            },
+        },
+        "税务政策证据": {
+            "项目数": p3.get("policy_program_count"),
+            "证据完备项目数": p3.get("evidence_complete_program_count"),
+            "证据缺口数": p3.get("evidence_gap_count"),
+            "要求证据类目数": p3.get("required_evidence_category_total_count"),
+            "逐项": policy,
+        },
+        "红线": {
+            "开票次数": p2.get("invoice_issuance_count"),
+            "纳税申报次数": p2.get("tax_filing_count"),
+            "付款或动账次数": p2.get("payment_or_bank_operation_count"),
+            "银行操作次数": p1.get("bank_operation_count"),
+            "付款审批次数": p1.get("payment_approval_count"),
+            "贷款管理动作数": p1.get("loan_management_action_count"),
+            "政策申报提交次数": p3.get("policy_application_submission_count"),
+            "补贴申请次数": p3.get("subsidy_application_count"),
+        },
+        "诚实边界": ("对账层为已核到分的真实结果（仲利摊销 0 分差已闭、税负率 39 格仅差 1 分）；"
+                     "计划层在 v014 S14 仍 values_unproven，本页**不产出计划金额、不列贷款到期提示**。"
+                     "税务政策部分只出证据缺口与风险提示，**不构成资格判断**，"
+                     "且全线不开票、不申报、不付款、不动账。"),
+    }
+
+
 COST_MANIFEST_PATH = KMFA / "metadata" / "reports" / "project_cost_fact_layer_manifest.json"
 COST_RECORDS_PATH = KMFA / "metadata" / "lineage" / "project_cost_fact_records.jsonl"
 # 成本归集会吃的派生层表（下钻用；行数取自 data_pipeline 事实）
