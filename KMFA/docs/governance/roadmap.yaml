@@ -1690,7 +1690,7 @@ stages:
   - stage_id: "DT6"
     name: "产品面收口与部署上线（M5）"
     person_goal: "S24 收口；KMIDS 同栈真实 App（D2=A：FastAPI+SQLite+React/Vite+ECharts+docker-compose）替换启动器壳；kmfa.linzezhang.com 7×24 上线（Oracle Always Free + Cloudflare Tunnel 零开放端口 + Cloudflare Access 强制鉴权）。修订 R5：不开 PAYG，实例按可随时回收设计（幂等重建 + 数据卷日备份回 KMOS/KMDatabase/data）。"
-    status: "in_progress_20260720_M5按任务包18项逐条建设中(14/18完成)；PROD.0002/0003/0004/0005/0006/0007/0008/0009/0010/0011/0013/0015/0016已建、0017文档渲染件同步(基建线2026-07-20撤离,其操作知识固化进ops.json;运维手册补服务启停5条/备份4条/断链自检6条,全走facts渲染零手改;troubleshooting 14→20条,新增6条全来自本轮真踩的坑;走查逮到章节序号错位一二三五六七四已修;实证改facts渲染件变、撤回复原;中文门Mac用反引号豁免未调阈值;手册105/200行,三道门+双平面全绿)；0005/0006/0010/0011标已建待验收(依赖G4值解锁)；剩PROD.0001/0012/0014/0018待建，G5未过。完成判据：第2/3条达成，第1/4/5条未达成；第5条阻于Coolify token 401(基建线已撤,换token需Owner在Coolify后台操作,已写进运维手册五节)"
+    status: "in_progress_20260720_M5按任务包18项逐条建设中(15/18完成)；PROD.0002-0011/0013/0015/0016/0017已建、0001架构骨架与选型落地(脚手架早已在用,本单元补应用状态面切SQLite与ADR;五张表对应原五个JSONL;append-only从「只用 a 模式打开」的约定升级为库层强制,10个UPDATE/DELETE触发器,宿主机直接开库试改试删均被拒;迁移时我漏改trigger_rerun取序号那行导致轮次号又撞,被PROD.0008加的测试当场逮到,修后全仓扫无残留;ADR含代价与放弃方案)；0005/0006/0010/0011标已建待验收(依赖G4值解锁)；均真起服务+真开页面实测，pytest 84绿+E2E 10/10；剩PROD.0012/0014/0018待建，G5未过。完成判据：第2/3条达成，第1/4/5条未达成；第5条阻于Coolify token 401,换token步骤已写进运维手册五节"
     estimated_hours: 87
     stop_gate:
       gate_id: "G5"
