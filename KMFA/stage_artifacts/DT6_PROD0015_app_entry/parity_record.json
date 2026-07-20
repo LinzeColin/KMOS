@@ -1,0 +1,24 @@
+{
+  "task_id": "TSK.KMFA.PROD.0015",
+  "source": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-appentry/KMFA/app/app_bundle/KMFA.app",
+  "source_digests": {
+    "Contents/MacOS/KMFALauncher": "sha256:2078bb12c3a3f15d8d03694e5a7d0c788763f42c323acbc1c9aef7666fbeaa70",
+    "Contents/Info.plist": "sha256:7bbc566736e57bba0aec82dde73a4bca2b92ae44d5df4459e9b6828f1b1500c8",
+    "Contents/Resources/build_manifest.json": "sha256:122378399ffcee97a427e1f71b28f42dbe06754d0e93157ca5dcad1e6d501afb"
+  },
+  "installed": {
+    "/Users/linzezhang/Downloads/KMFA.app": {
+      "Contents/MacOS/KMFALauncher": "sha256:2078bb12c3a3f15d8d03694e5a7d0c788763f42c323acbc1c9aef7666fbeaa70",
+      "Contents/Info.plist": "sha256:7bbc566736e57bba0aec82dde73a4bca2b92ae44d5df4459e9b6828f1b1500c8",
+      "Contents/Resources/build_manifest.json": "sha256:122378399ffcee97a427e1f71b28f42dbe06754d0e93157ca5dcad1e6d501afb"
+    }
+  },
+  "parity_ok": true,
+  "mismatched": [],
+  "content_files_compared": [
+    "Contents/MacOS/KMFALauncher",
+    "Contents/Info.plist",
+    "Contents/Resources/build_manifest.json"
+  ],
+  "note": "签名会新增 _CodeSignature，故只比内容面三份文件——它们才决定装出来的是不是同一个 App"
+}

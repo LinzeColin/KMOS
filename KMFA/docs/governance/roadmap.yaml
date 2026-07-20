@@ -1690,7 +1690,7 @@ stages:
   - stage_id: "DT6"
     name: "产品面收口与部署上线（M5）"
     person_goal: "S24 收口；KMIDS 同栈真实 App（D2=A：FastAPI+SQLite+React/Vite+ECharts+docker-compose）替换启动器壳；kmfa.linzezhang.com 7×24 上线（Oracle Always Free + Cloudflare Tunnel 零开放端口 + Cloudflare Access 强制鉴权）。修订 R5：不开 PAYG，实例按可随时回收设计（幂等重建 + 数据卷日备份回 KMOS/KMDatabase/data）。"
-    status: "in_progress_20260720_M5按任务包18项逐条建设中(10/18完成)；PROD.0002后端API、0004首页、0005源检查板、0006项目成本页、0010账龄回款、0011开票纳税、0007差异工作台、0009报告中心、0008影响重跑、0013Playwright端到端(八步登录/首页/检查板/成本页/差异处理/影响预览/重跑/报告导出 10/10 PASS,退出码0;按role选元素非像素坐标;已入CI作回归基线 .github/workflows/app-e2e.yml;顺序提前于0012因0012是治理性范围复核不产出技术前置,反需0013结果作输入)；0005/0006/0010/0011标已建待验收(依赖G4值解锁)；均真起服务+真开页面实测，pytest 71绿+E2E 10/10；剩PROD.0003/0012/0014-0018待建，G5未过"
+    status: "in_progress_20260720_M5按任务包18项逐条建设中(11/18完成)；PROD.0002/0004/0005/0006/0007/0008/0009/0010/0011已建、0013Playwright端到端(10/10PASS已入CI)、0015.app真入口(双击真起服务+开十页签App非静态HTML;第二次双击复用容器;重装parity OK;默认只装~/Downloads,/Applications需显式加参数)；0005/0006/0010/0011标已建待验收(依赖G4值解锁)；均真起服务+真开页面实测，pytest 71绿+E2E 10/10；剩PROD.0003/0012/0014/0016/0017/0018待建，G5未过。完成判据：第2条(E2E入CI)与第3条(.app双击可用+parity)已达成，第1/4/5条未达成"
     estimated_hours: 87
     stop_gate:
       gate_id: "G5"
