@@ -311,3 +311,51 @@ ul.muted li { margin-top: 4px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- 驾驶舱（v2 信息第一性） ---------- */
+
+.verdict {
+  margin-top: 18px; padding: 18px 20px;
+  border: 1px solid var(--line); border-left: 4px solid var(--warnc);
+  border-radius: var(--radius); background: var(--warn-bg);
+  box-shadow: var(--shadow-1);
+}
+.verdict.ok { border-left-color: var(--okc); background: var(--ok-bg); }
+.verdict .vtitle { font-size: 16.5px; font-weight: 800; line-height: 1.4; }
+.verdict .vline { margin-top: 8px; font-size: 13.5px; line-height: 1.65; }
+.verdict .vline b { font-weight: 700; }
+.verdict .vpath { margin-top: 6px; font-size: 12.5px; color: var(--text-2); }
+
+.queue { margin-top: 12px; }
+.qrow {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 11px 14px; border-bottom: 1px solid var(--line);
+  transition: background .12s ease;
+}
+.qrow:last-child { border-bottom: 0; }
+.qrow:hover { background: var(--surface-2); }
+.qrow .qmain { min-width: 0; }
+.qrow .qname { font-size: 13.5px; font-weight: 650; }
+.qrow .qsub { margin-top: 2px; font-size: 12px; color: var(--text-2); }
+.qrow .qamt {
+  margin-left: auto; text-align: right;
+  font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 750;
+  white-space: nowrap;
+}
+.qrow .qamt small { display: block; font-size: 11px; font-weight: 400; color: var(--text-2); }
+
+.money { font-variant-numeric: tabular-nums; font-weight: 750; }
+
+.lightline {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  margin-top: 14px; padding: 10px 14px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+  font-size: 12.5px; color: var(--text-2); cursor: pointer;
+  transition: border-color .15s ease;
+}
+.lightline:hover { border-color: var(--accent); }
+.lightline .light { width: 9px; height: 9px; border-radius: 99px; flex: none; }
+.light.ok { background: #2ea44f; } .light.warn { background: #f0a300; } .light.bad { background: var(--badc); }
+
+.card.click { cursor: pointer; transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease; }
+.card.click:hover { box-shadow: var(--shadow-2); transform: translateY(-1px); border-color: var(--accent); }
