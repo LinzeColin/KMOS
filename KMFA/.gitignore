@@ -29,3 +29,7 @@ metadata/dingtalk_attendance/private_runtime/*
 metadata/daily_routine_check/private_runtime/*
 !metadata/daily_routine_check/private_runtime/README.md
 !metadata/daily_routine_check/private_runtime/.gitkeep
+
+# KMFA.app 是构建产物，由 KMFA/app/app_bundle/build_app_bundle.sh 现造；不入仓
+app/app_bundle/*.app/
+app/app_bundle/parity_record.json
