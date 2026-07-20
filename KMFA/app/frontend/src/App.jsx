@@ -483,6 +483,64 @@ function 影响重跑({ 图, 选中资产, 选资产, 刷新 }) {
   )
 }
 
+function 审计日志({ 审计 }) {
+  if (!审计) return <p style={S.muted}>加载中…</p>
+  const 契 = 审计.契约, 访 = 审计.访问模式
+  return (
+    <>
+      <div style={S.grid}>
+        <div style={S.card}><div style={S.muted}>审计事件总数</div>
+          <div style={S.num}>{审计.总数}</div>
+          <div style={S.muted}>append-only</div></div>
+        {Object.entries(审计.按动作).slice(0, 3).map(([k, v]) => (
+          <div key={k} style={S.card}><div style={S.muted}>{k}</div>
+            <div style={S.num}>{v}</div></div>
+        ))}
+      </div>
+
+      <div style={{ ...S.card, marginTop: '1rem', borderLeft: '4px solid #1e8449' }}>
+        <b>访问模式：{访.模式}</b>
+        <div style={{ ...S.muted, marginTop: '.3rem' }}>
+          应用内登录：{访.应用内登录 ? '有' : '无'}｜生产鉴权：{访.生产鉴权}
+        </div>
+        <div style={{ ...S.muted, marginTop: '.2rem' }}>角色口径：{访.角色口径.join('、')}</div>
+        <div style={{ ...S.muted, marginTop: '.2rem' }}>{访.说明}</div>
+      </div>
+
+      <div style={{ ...S.card, marginTop: '.6rem', borderLeft: '4px solid #b9770e' }}>
+        <b>审计契约（承接 v014 S17）</b>
+        <div style={{ ...S.muted, marginTop: '.3rem' }}>
+          政策版本 <code>{契.政策版本}</code>｜append-only：{契.append_only ? '是' : '否'}｜
+          允许记原始载荷：{契.允许记原始载荷 ? '是' : '否'}｜允许记业务明文：{契.允许记业务明文 ? '是' : '否'}
+        </div>
+        <div style={{ ...S.muted, marginTop: '.2rem' }}>必填字段：{契.必填字段.join('、')}</div>
+        <div style={{ ...S.muted, marginTop: '.2rem' }}>动作类型：{契.动作类型.join('、')}</div>
+      </div>
+
+      <h3 style={{ marginTop: '1.2rem' }}>事件流水（最近在前）</h3>
+      {审计.事件.length === 0 ? <p style={S.muted}>暂无事件——做一次决策或导出后即会留痕。</p> : (
+        <table style={表样}>
+          <thead><tr>
+            <th style={格样}>时间</th><th style={格样}>动作</th><th style={格样}>对象</th>
+            <th style={格样}>结果</th><th style={格样}>角色</th><th style={格样}>证据</th>
+          </tr></thead>
+          <tbody>{审计.事件.map(e => (
+            <tr key={e.event_id}>
+              <td style={格样}>{e.event_time}</td>
+              <td style={格样}><code>{e.action_type}</code></td>
+              <td style={格样}>{e.subject_ref}</td>
+              <td style={{ ...格样, color: /OK|COMPLETED/.test(e.result_status) ? '#1e8449' : '#b9770e' }}>
+                {e.result_status}</td>
+              <td style={格样}>{e.actor_role}</td>
+              <td style={格样}><code style={{ fontSize: '.7rem' }}>{String(e.evidence_ref).split('/').pop()}</code></td>
+            </tr>
+          ))}</tbody>
+        </table>
+      )}
+    </>
+  )
+}
+
 function 数据管线({ 管线 }) {
   if (!管线) return <div style={{ ...S.card, marginTop: '1.2rem' }}>加载中…</div>
   const 表 = Object.entries(管线.staging_tables ?? {}).sort((a, b) => (b[1].rows ?? 0) - (a[1].rows ?? 0))
@@ -927,6 +985,8 @@ export default function App() {
   const [中心, set中心] = useState(null)
   const [影响, set影响] = useState(null)
   const [选中资产, set选中资产] = useState('')
+  const [审计, set审计] = useState(null)
+  const 取审计 = () => fetch('/api/审计日志').then(r => r.json()).then(set审计)
   const 取影响 = (a) => fetch('/api/影响重跑' + (a ? `?asset=${encodeURIComponent(a)}` : ''))
     .then(r => r.json()).then(set影响)
   const 取工作台 = () => fetch('/api/差异工作台').then(r => r.json()).then(set工作台)
@@ -937,6 +997,7 @@ export default function App() {
     取工作台()
     fetch('/api/报告中心').then(r => r.json()).then(set中心)
     取影响()
+    取审计()
     fetch('/api/状态').then(r => r.json()).then(set状态)
     fetch('/api/断言').then(r => r.json()).then(set断言)
     fetch('/api/数据管线').then(r => r.json()).then(set管线)
@@ -957,7 +1018,7 @@ export default function App() {
       <nav style={S.tabs}>
         {/* 页签用语义化 button+role=tab：span onClick 既不可键盘操作、也不进可访问性树，
             自动化（含 PROD.0013 Playwright）点不到——本单元真开页面时实测踩到。 */}
-        {['我在哪', '源检查板', '项目成本', '账龄回款', '开票纳税', '差异工作台', '报告中心', '影响重跑', '数据管线', '技能'].map(t => (
+        {['我在哪', '源检查板', '项目成本', '账龄回款', '开票纳税', '差异工作台', '报告中心', '影响重跑', '审计日志', '数据管线', '技能'].map(t => (
           <button key={t} type="button" role="tab" aria-selected={页 === t}
                   style={{ ...S.tab(页 === t), font: 'inherit' }} onClick={() => set页(t)}>{t}</button>
         ))}
@@ -971,6 +1032,7 @@ export default function App() {
       {页 === '报告中心' && <报告中心 中心={中心} />}
       {页 === '影响重跑' && <影响重跑 图={影响} 选中资产={选中资产}
         选资产={a => { set选中资产(a); 取影响(a) }} 刷新={取影响} />}
+      {页 === '审计日志' && <审计日志 审计={审计} />}
       {页 === '数据管线' && <数据管线 管线={管线} />}
       {页 === '技能' && <技能页 技能={技能} />}
     </div>

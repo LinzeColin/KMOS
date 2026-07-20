@@ -1023,3 +1023,102 @@ def test_downstream_impact_matches_assertions_with_qualified_sources(净重跑):
     expect = sorted({r["domain"] for r in raw
                      if any(f"_staging.{t}" in str(r.get("our_source", "")) for t in tables)})
     assert got["受影响断言域"] == expect
+
+
+# ── PROD.0003 访问安全承接 S17：审计日志 append-only ──────────────────────────
+@_pytest.fixture
+def 净审计(monkeypatch, tmp_path):
+    from app import main as m
+
+    state = tmp_path / "state"
+    for name in ("APP_EVENTS_PATH", "APP_AUDIT_PATH", "EXPORT_REGISTRY_PATH",
+                 "APP_RERUN_STEPS_PATH", "APP_RERUN_CONSISTENCY_PATH"):
+        monkeypatch.setattr(m, name, state / f"{name.lower()}.jsonl")
+    monkeypatch.setattr(m, "APP_STATE_DIR", state)
+    return state / "app_audit_path.jsonl"
+
+
+def test_audit_contract_matches_repo_policy(净审计):
+    """契约须与仓内既有 S17 政策一致——不得自己另定一套。"""
+    import json as _json
+
+    from app.main import AUDIT_POLICY_PATH
+
+    payload = client.get("/api/审计日志").json()["契约"]
+    policy = [_json.loads(l) for l in AUDIT_POLICY_PATH.read_text(encoding="utf-8").splitlines() if l.strip()]
+    assert payload["必填字段"] == policy[0]["required_fields"]
+    assert sorted(payload["动作类型"]) == sorted({p["action_type"] for p in policy})
+    assert payload["append_only"] is True
+    assert payload["允许记原始载荷"] is False and payload["允许记业务明文"] is False
+    assert payload["政策版本"] == policy[0]["policy_version"]
+
+
+def test_every_write_and_export_leaves_audit_event(净审计):
+    """写入与导出都必须留痕——审计漏记等于没有审计。"""
+    aid = _first_assertion_id()
+    client.post("/api/差异工作台/决策", json={"断言": aid, "决策": "闭案", "理由": "审计留痕验证"})
+    client.get("/api/报告中心/导出?报告=1&格式=csv")
+    client.post("/api/影响重跑/重跑", json={"资产": _an_asset(), "理由": "审计留痕验证"})
+
+    rows = [json.loads(l) for l in 净审计.read_text(encoding="utf-8").splitlines() if l.strip()]
+    kinds = {r["action_type"] for r in rows}
+    assert {"processing", "export"} <= kinds, f"缺动作类型：{kinds}"
+    assert len(rows) >= 3
+
+    from app.main import AUDIT_REQUIRED_FIELDS
+
+    for r in rows:
+        for f in AUDIT_REQUIRED_FIELDS:
+            assert r.get(f), f"审计事件缺必填字段 {f}: {r}"
+
+
+def test_audit_export_event_carries_grade_triple(净审计):
+    """任务包要求「等级+Q 级+delivery 永远印在页眉」——导出留痕须把这三项一起记下。"""
+    client.get("/api/报告中心/导出?报告=1&格式=pdf")
+    rows = [json.loads(l) for l in 净审计.read_text(encoding="utf-8").splitlines() if l.strip()]
+    exp = next(r for r in rows if r["action_type"] == "export")
+    assert exp["report_grade"] == "D"
+    assert exp["quality_grade"] == "Q4"
+    assert exp["delivery_allowed"] is False
+    assert exp["watermark_applied"] is True
+    assert exp["sha256"].startswith("sha256:")
+
+
+def test_audit_is_append_only(净审计):
+    aid = _first_assertion_id()
+    client.post("/api/差异工作台/决策", json={"断言": aid, "决策": "闭案", "理由": "第一条"})
+    first = 净审计.read_text(encoding="utf-8")
+    client.post("/api/差异工作台/决策", json={"断言": aid, "决策": "排除", "理由": "第二条"})
+    second = 净审计.read_text(encoding="utf-8")
+    assert second.startswith(first), "审计日志被改写了——违反 append-only"
+    assert len(second.strip().splitlines()) == len(first.strip().splitlines()) + 1
+
+
+def test_audit_never_records_business_plaintext(净审计):
+    """审计记「谁对什么做了什么」，不记业务明文与原始载荷。"""
+    from app.main import AUDIT_FORBIDDEN_KEYS
+
+    client.get("/api/报告中心/导出?报告=1&格式=html")
+    client.post("/api/差异工作台/决策",
+                json={"断言": _first_assertion_id(), "决策": "闭案", "理由": "核到分"})
+    rows = [json.loads(l) for l in 净审计.read_text(encoding="utf-8").splitlines() if l.strip()]
+    for r in rows:
+        assert not (set(r) & AUDIT_FORBIDDEN_KEYS), f"审计事件含禁写字段：{set(r) & AUDIT_FORBIDDEN_KEYS}"
+        blob = json.dumps(r, ensure_ascii=False)
+        assert "<!doctype" not in blob.lower(), "报告正文不得进审计日志"
+
+
+def test_audit_rejects_illegal_action_type(净审计):
+    from app.main import _audit
+
+    with _pytest.raises(Exception):
+        _audit("删库", subject_ref="x", result_status="OK", evidence_ref="y")
+
+
+def test_single_user_mode_declared_truthfully(净审计):
+    """本机单用户模式须如实声明，不假装有应用内登录。"""
+    mode = client.get("/api/审计日志").json()["访问模式"]
+    assert mode["模式"] == "本机单用户"
+    assert mode["应用内登录"] is False
+    assert "Cloudflare Access" in mode["生产鉴权"]
+    assert set(mode["角色口径"]) == {"management", "finance", "reviewer", "readonly"}
