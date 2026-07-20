@@ -284,7 +284,42 @@ def dispatch_reports_to_targets(
         return receipt
 
     payload = json.loads(targets_resolved_path.read_text(encoding="utf-8"))
-    targets = _selected_targets(payload.get("targets", []), target_filter=target_filter)
+    all_targets = payload.get("targets", [])
+    targets = _selected_targets(all_targets, target_filter=target_filter)
+
+    # 「一个目标都没有」必须当场说清楚，不能一路掉到最后被 _summarize_dispatch_status
+    # 归成一个光秃秃的 FAILED——那样 target_results/messages/failure_reason 全空，
+    # 排查的人只能看着一个 FAILED 猜。2026-07-20 主机实测就撞上这个：
+    # 采集与报告都正常，派发 FAILED 却不说为什么。
+    if not targets:
+        receipt = _targets_receipt(
+            status="NOT_SENT_NO_TARGET_SELECTED",
+            output_status=output_status,
+            target_results=[],
+            failure_reason=(
+                f"no target selected: file={targets_resolved_path} "
+                f"total={len(all_targets) if isinstance(all_targets, list) else 0} "
+                f"filter={target_filter}"
+            ),
+        )
+        _write_json(receipt_path, receipt)
+        return receipt
+
+    enabled_targets = [
+        t for t in targets if isinstance(t, Mapping) and t.get("enabled", True)
+    ]
+    if not enabled_targets:
+        receipt = _targets_receipt(
+            status="NOT_SENT_ALL_TARGETS_DISABLED",
+            output_status=output_status,
+            target_results=[],
+            failure_reason=(
+                "all selected targets disabled: "
+                + ", ".join(str(t.get("label") or "?") for t in targets)
+            ),
+        )
+        _write_json(receipt_path, receipt)
+        return receipt
     values = merged_runtime_env() if env is None else dict(env)
     target_results: list[dict[str, Any]] = []
     messages: list[dict[str, Any]] = []
@@ -330,13 +365,23 @@ def dispatch_reports_to_targets(
             }
         )
 
-    status = _summarize_dispatch_status(target_results)
+    # 兜底：走完循环仍一条结果都没有，也不许退化成裸 FAILED
+    if not target_results:
+        status = "NOT_SENT_NO_DELIVERABLE_TARGET"
+        failure_reason = (
+            f"loop produced no result over {len(enabled_targets)} enabled target(s); "
+            "check target.reports and resolved_channel"
+        )
+    else:
+        status = _summarize_dispatch_status(target_results)
+        failure_reason = None
     receipt = _targets_receipt(
         status=status,
         output_status=output_status,
         target_results=target_results,
         messages=messages,
         notification_template_text=notification_template_text,
+        failure_reason=failure_reason,
     )
     _write_json(receipt_path, receipt)
     return receipt
