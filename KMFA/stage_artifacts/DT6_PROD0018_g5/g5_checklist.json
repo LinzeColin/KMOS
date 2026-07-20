@@ -165,8 +165,8 @@
  "g5_passed": false,
  "why_not_passed": "Approver 是 Owner（任务包第 29 行）。技术判据全绿不等于门禁通过，本检查器不代签。失败动作 remain_in_stage。",
  "owner_待办": [
-  "签核 G5（此项一签，g5_passed 方可翻 true）",
-  "Coolify 换 API 令牌并重部署，令 kmfa.linzezhang.com 上线（完成判据第 5 条）",
+  "签核 G5：仓库 Actions → sign-g5 → Run workflow，输入确认语（GitHub 验身份，一次点击）",
+  "登录 kmfa.linzezhang.com 亲验真实经营数据与页眉三徽章（可在同一 workflow 勾「已亲验网站」一并落痕）",
   "为 ERPNext 三条 gap 排序（PROD.0014 登记表）"
  ]
 }

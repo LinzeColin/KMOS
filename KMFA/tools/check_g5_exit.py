@@ -7,7 +7,11 @@
 
 本检查器只核**技术判据**并出证据包清单。**它不宣布 G5 通过**——
 Approver 是 Owner，技术判据全绿 ≠ 门禁通过。结论字段为此分成两个：
-  technical_checks_all_green（机器可判）与 g5_passed（恒 false，待 Owner 签核翻转）。
+  technical_checks_all_green（机器可判）与 g5_passed。
+
+g5_passed 的唯一翻真途径：审批台账 metadata/approvals/control_events.jsonl 里存在
+Owner 本人的 g5_signoff 事件（由 sign-g5 workflow_dispatch 落痕，GitHub 验身份）。
+检查器只**识别**已记录的签名，不制造签名——签名不存在时恒 false。
 """
 from __future__ import annotations
 
@@ -66,6 +70,28 @@ def _render_gate() -> dict:
     return out
 
 
+APPROVER = "LinzeColin"
+SIGNOFF_LEDGER = KMFA / "metadata" / "approvals" / "control_events.jsonl"
+
+
+def _find_signoff() -> dict | None:
+    """在审批台账里找 Owner 的 g5_signoff 事件。只认字段齐全的，不认残缺行。"""
+    if not SIGNOFF_LEDGER.exists():
+        return None
+    for line in SIGNOFF_LEDGER.read_text(encoding="utf-8").splitlines():
+        try:
+            ev = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if (ev.get("event_type") == "g5_signoff"
+                and ev.get("task_id") == "TSK.KMFA.PROD.0018"
+                and ev.get("approver") == APPROVER
+                and ev.get("approval_channel") == "github-actions workflow_dispatch"
+                and ev.get("workflow_run_url")):
+            return ev
+    return None
+
+
 def main() -> int:
     bundle = {t: {"证据目录": EVIDENCE[t], **_dir_digest(ART / EVIDENCE[t])} for t in TASKS}
     missing = [t for t, v in bundle.items() if not v.get("存在")]
@@ -83,15 +109,26 @@ def main() -> int:
         "G5检查单": {"合计": len(g5), "具备": len([x for x in g5 if x["具备"]]), "逐项": g5},
         "渲染门现场复跑": gate,
         "technical_checks_all_green": tech_green,
-        "g5_passed": False,
-        "why_not_passed": ("Approver 是 Owner（任务包第 29 行）。技术判据全绿不等于门禁通过，"
-                           "本检查器不代签。失败动作 remain_in_stage。"),
-        "owner_待办": [
-            "签核 G5（此项一签，g5_passed 方可翻 true）",
-            "Coolify 换 API 令牌并重部署，令 kmfa.linzezhang.com 上线（完成判据第 5 条）",
-            "为 ERPNext 三条 gap 排序（PROD.0014 登记表）",
-        ],
     }
+    signoff = _find_signoff()
+    report["g5_passed"] = bool(tech_green and signoff)
+    if signoff:
+        report["签核记录"] = {
+            "事件号": signoff.get("event_id"), "签核人": signoff.get("approver"),
+            "时间": signoff.get("event_time"), "运行": signoff.get("workflow_run_url"),
+            "网站内容已亲验": signoff.get("site_content_verified_by_owner"),
+        }
+        if not tech_green:
+            report["why_not_passed"] = "已有签核记录，但技术判据当前不全绿——签名不豁免技术判据。"
+    else:
+        report["why_not_passed"] = (
+            "Approver 是 Owner（任务包第 29 行）。技术判据全绿不等于门禁通过，"
+            "本检查器不代签。失败动作 remain_in_stage。")
+        report["owner_待办"] = [
+            "签核 G5：仓库 Actions → sign-g5 → Run workflow，输入确认语（GitHub 验身份，一次点击）",
+            "登录 kmfa.linzezhang.com 亲验真实经营数据与页眉三徽章（可在同一 workflow 勾「已亲验网站」一并落痕）",
+            "为 ERPNext 三条 gap 排序（PROD.0014 登记表）",
+        ]
     print(json.dumps(report, ensure_ascii=False, indent=1))
     return 0 if tech_green else 1
 
