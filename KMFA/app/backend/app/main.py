@@ -1802,6 +1802,25 @@ SKILL_MODULE = {
 }
 
 
+def _log_tail_line(log_path) -> str | None:
+    """取当次运行日志的最后一行实质输出（跳过 run_skill 的「结束 rc=」包装行）。"""
+    if not log_path:
+        return None
+    try:
+        target = Path(str(log_path)).resolve()
+        root = SKILL_LEDGER_PATH.parent.resolve()
+        if not str(target).startswith(str(root) + "/") or not target.is_file():
+            return None
+        lines = [l.strip() for l in target.read_bytes()[-8192:].decode("utf-8", "replace").splitlines() if l.strip()]
+        for l in reversed(lines):
+            if ": 结束 rc=" in l or ": 开始" in l:
+                continue
+            return l[:160]
+        return lines[-1][:160] if lines else None
+    except OSError:
+        return None
+
+
 @app.get("/api/排程健康")
 def schedule_health():
     """排程执行健康——**不出任何业务数据**，只报「谁在什么时候跑了、成没成」。
@@ -1809,9 +1828,16 @@ def schedule_health():
     刻意做成这样：判断「排程是不是活着」不该需要登服务器，也不该需要谁口头汇报。
     """
     if not SKILL_LEDGER_PATH.exists():
+        log_root = SKILL_LEDGER_PATH.parent
+        if not log_root.exists():
+            原因 = f"{log_root} 目录不存在——app 容器没挂 kmfa-logs 卷（部署配置问题，不是排程问题）"
+        elif not any(log_root.iterdir()):
+            原因 = f"{log_root} 已挂载但是空的——排程容器从未写入（查 skills 容器是否 Started）"
+        else:
+            原因 = f"{log_root} 有内容但没有 {SKILL_LEDGER_PATH.name}——排程从未完成过一次运行"
         return {
             "可读": False,
-            "原因": f"读不到 {SKILL_LEDGER_PATH}——app 容器可能未挂 kmfa-logs 卷，或排程从未跑过",
+            "原因": 原因,
             "排程契约": SCHEDULE_CONTRACT,
             "诚实边界": "读不到就说读不到，不猜、不拿「没有坏消息」当好消息。",
         }
@@ -1871,14 +1897,28 @@ def schedule_health():
             "历史": [{
                 "ts": r.get("ts"), "rc": r.get("rc"), "成功": r.get("rc") == 0,
                 "投递开关": r.get("delivery_enabled"), "快照": r.get("log"),
-            } for r in history[:100]],
+                # 结果摘要=当次日志最后一行有内容的输出（Owner：「skills 的结果呢」——
+                # 不点快照也要能看到这次跑出了什么）。只取最近 8 条，读文件 IO 有界。
+                "摘要": (_log_tail_line(r.get("log")) if i < 8 else None),
+            } for i, r in enumerate(history[:100])],
         })
 
     跑过的 = [x for x in 逐项 if x["跑过"]]
     失败的 = [x for x in 跑过的 if x["成功"] is False]
     空跑的 = [x for x in 跑过的 if str(x["投递开关"]) == "0"]
+    # 近 24 小时战报：首页要一眼看到「昨晚到现在都跑了什么、成没成、干了什么」
+    近24 = []
+    for x in 逐项:
+        for h in (x.get("历史") or []):
+            try:
+                if (now - datetime.fromisoformat(str(h["ts"]))).total_seconds() <= 86400:
+                    近24.append({"技能": x["技能"], "业务模块": x["业务模块"], **h})
+            except (ValueError, TypeError):
+                continue
+    近24.sort(key=lambda r: str(r.get("ts")), reverse=True)
     return {
         "可读": True,
+        "近24小时": 近24[:30],
         "总执行次数": len(rows),
         "有记录的技能数": f"{len(跑过的)}/{len(SCHEDULE_CONTRACT)}",
         "失败数": len(失败的),
