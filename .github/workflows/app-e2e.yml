@@ -1,0 +1,94 @@
+# KMFA App 真数据端到端回归基线（TSK.KMFA.PROD.0013）。
+#
+# 验收原文：「升级 kmfa_html_human_flow_audit.py 覆盖 App：登录→首页→检查板→成本页→
+# 差异处理→影响预览→重跑→报告导出；全流 PASS；**作为 App 回归基线入 CI**」。
+#
+# 本工作流真起服务、真开页面、真点按钮（差异处理会真写一条决策、重跑会真跑四层链、
+# 报告导出会真下载三个文件），任何一步 FAIL 就红。**不拿 /healthz 当通过依据。**
+name: app-e2e
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "KMFA/app/**"
+      - "KMFA/machine/facts/**"
+      - "KMFA/metadata/**"
+      - "KMFA/taskpack/v1_4/html_uiux/kmfa_html_human_flow_audit.py"
+      - ".github/workflows/app-e2e.yml"
+  pull_request:
+    paths:
+      - "KMFA/app/**"
+      - "KMFA/machine/facts/**"
+      - "KMFA/metadata/**"
+      - "KMFA/taskpack/v1_4/html_uiux/kmfa_html_human_flow_audit.py"
+      - ".github/workflows/app-e2e.yml"
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 构建前端（dist 入镜像）
+        run: |
+          set -euo pipefail
+          cd KMFA/app/frontend
+          npm ci
+          npm run build          # 构建失败必须红：曾拿仓里旧 dist 打镜像而不自知
+
+      - name: 起 App（零挂载，代码烧在镜像里）
+        run: |
+          set -euo pipefail
+          docker build -f KMFA/app/backend/Dockerfile -t kmfa-app:e2e .
+          mkdir -p /tmp/kmfa-state
+          docker run -d --name kmfa-e2e -p 18098:8000 \
+            -v /tmp/kmfa-state:/var/lib/kmfa/state kmfa-app:e2e
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:18098/healthz >/dev/null && break
+            sleep 2
+          done
+          curl -sf http://localhost:18098/healthz >/dev/null || {
+            echo "::error::App 未起来"; docker logs kmfa-e2e; exit 1; }
+
+      - name: 装 Playwright
+        run: |
+          set -euo pipefail
+          pip install --quiet playwright==1.49.0
+          python -m playwright install --with-deps chromium
+
+      - name: 跑全流端到端
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import pathlib, sys
+          src = pathlib.Path("KMFA/taskpack/v1_4/html_uiux/kmfa_html_human_flow_audit.py").read_text(encoding="utf-8")
+          src = src.replace("executable_path=CHROMIUM, ", "")
+          sys.argv = ["audit", "--app-url", "http://localhost:18098", "--out", "e2e_result.csv"]
+          exec(compile(src, "audit", "exec"))
+          PY
+
+      - name: 打印逐步结果
+        if: always()
+        run: |
+          python - <<'PY'
+          import csv, pathlib
+          p = pathlib.Path("e2e_result.csv")
+          if not p.exists():
+              print("未产出结果文件"); raise SystemExit
+          for r in list(csv.reader(p.open(encoding="utf-8-sig")))[1:]:
+              print(f"{'PASS' if r[6]=='PASS' else 'FAIL'}  [{r[1]}]  {r[4][:30]}  {r[7][:90]}")
+          PY
+
+      - name: 留存证据
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-e2e-result
+          path: e2e_result.csv
+
+      - name: 收容器
+        if: always()
+        run: docker rm -f kmfa-e2e || true

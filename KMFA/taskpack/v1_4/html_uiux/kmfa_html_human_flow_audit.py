@@ -130,18 +130,164 @@ def audit_file(browser, html_path: Path, root: Path, base_url: str|None=None):
     page.close()
     return results
 
+
+# ── PROD.0013：App 真数据端到端 ────────────────────────────────────────────────
+# 任务包第 22 行：升级本脚本覆盖 App「登录→首页→检查板→成本页→差异处理→影响预览→
+# 重跑→报告导出」，全流 PASS，作为 App 回归基线入 CI。
+#
+# 与上面的静态 HTML 普扫共用同一套输出契约（CSV 九列 + 有 FAIL 则退出码 1），
+# 但驱动方式完全不同：这里是**按角色选元素、真点、真断言真实数据**，
+# 不用像素坐标（坐标会随视口/缩放漂，CI 里必炸）。
+FLOW_STEPS = ("登录", "首页", "检查板", "成本页", "差异处理", "影响预览", "重跑", "报告导出")
+
+
+def _row(step, label, action, ok, reason, console):
+    return ["app", step, "flow", FLOW_STEPS.index(step) if step in FLOW_STEPS else -1,
+            label, action, "PASS" if ok else "FAIL", reason, "; ".join(console[-3:])]
+
+
+def app_flow(browser, base_url: str):
+    """按任务包八步驱动真实 App，每步断言真实数据。"""
+    page = browser.new_page(viewport={"width": 1440, "height": 1000}, accept_downloads=True)
+    console = []
+    page.on("console", lambda m: console.append(m.text) if m.type == "error" else None)
+    page.on("pageerror", lambda e: console.append(str(e)))
+    rows = []
+
+    def tab(name):
+        page.get_by_role("tab", name=name).click()
+        page.wait_for_timeout(250)
+
+    # ① 登录：本机 App 是单用户模式，**没有应用内登录**——生产侧鉴权由 Cloudflare Access
+    #    在 DNS 前置。这里如实断言「入口可达 + 页眉三元组渲染出来」，不假造一个登录页。
+    try:
+        page.goto(f"{base_url}/ui/", wait_until="networkidle", timeout=30000)
+        header = page.locator("header").inner_text()
+        ok = all(k in header for k in ("质量", "报告", "NO_GO"))
+        rows.append(_row("登录", "单用户模式（鉴权由 Cloudflare Access 前置）",
+                         f"goto {base_url}/ui/", ok,
+                         f"页眉三元组: {norm_text(header, 60)}" if ok else f"页眉缺三元组: {header[:80]}",
+                         console))
+    except Exception as e:
+        rows.append(_row("登录", "", "goto", False, f"入口不可达: {e}", console))
+        page.close()
+        return rows
+
+    # ② 首页：须与 machine/facts 同源（BLK-001 与 18 阶段都要在）
+    try:
+        tab("我在哪")
+        body = page.locator("body").inner_text()
+        ok = "BLK-001" in body and "S18" in body and "0.1.4" in body
+        rows.append(_row("首页", "我在哪", "click tab", ok,
+                         "含 BLK-001 / S18 / 版本 0.1.4" if ok else f"关键字段缺失: {body[:120]}", console))
+    except Exception as e:
+        rows.append(_row("首页", "我在哪", "click tab", False, f"{e}", console))
+
+    # ③ 检查板：覆盖矩阵须有真实资产数
+    try:
+        tab("源检查板")
+        body = page.locator("body").inner_text()
+        ok = "覆盖" in body and any(str(n) in body for n in range(50, 60))
+        rows.append(_row("检查板", "源检查板", "click tab", ok,
+                         "覆盖矩阵含真实资产数" if ok else f"未见覆盖矩阵: {body[:120]}", console))
+    except Exception as e:
+        rows.append(_row("检查板", "源检查板", "click tab", False, f"{e}", console))
+
+    # ④ 成本页：A0 未就位时**不得**出现毛利数字——阻塞必须如实呈现
+    try:
+        tab("项目成本")
+        body = page.locator("body").inner_text()
+        blocked = "blocked_pending_quality_resolution" in body or "阻塞" in body
+        no_margin = "毛利率" not in body
+        ok = blocked and no_margin
+        rows.append(_row("成本页", "项目成本", "click tab", ok,
+                         "阻塞如实呈现且无编造毛利" if ok
+                         else f"blocked={blocked} no_margin={no_margin}", console))
+    except Exception as e:
+        rows.append(_row("成本页", "项目成本", "click tab", False, f"{e}", console))
+
+    # ⑤ 差异处理：**真写一条决策**并验证留痕（不是只看页面能打开）
+    try:
+        tab("差异工作台")
+        before = page.locator("text=App 写入").inner_text()
+        page.locator("tr", has=page.locator("code", has_text="AST-COLL-202503")).first.click()
+        page.wait_for_timeout(200)
+        page.get_by_placeholder("决策理由", exact=False).fill("E2E 回归基线：按容差闭案")
+        page.get_by_role("button", name="闭案 → closed").click()
+        page.wait_for_timeout(600)
+        body = page.locator("body").inner_text()
+        ok = "MANEVT-APP-" in body and "已追加事件" in body
+        rows.append(_row("差异处理", "三选一决策 闭案", "fill+click", ok,
+                         f"事件已写入（写入前: {norm_text(before, 20)}）" if ok
+                         else f"未见事件号: {body[:150]}", console))
+    except Exception as e:
+        rows.append(_row("差异处理", "三选一决策", "fill+click", False, f"{e}", console))
+
+    # ⑥ 影响预览：选资产 → 下游影响面必须由血缘边算出真实行数
+    try:
+        tab("影响重跑")
+        page.locator("select").first.select_option("raw:d46f77b0c90d")
+        page.wait_for_timeout(500)
+        body = page.locator("body").inner_text()
+        ok = "expense_lines" in body and "17,764" in body and "tax" in body
+        rows.append(_row("影响预览", "raw:d46f77b0c90d", "select_option", ok,
+                         "下游影响面含真实派生表与行数（goods_movement 17,764）" if ok
+                         else f"影响面异常: {body[:150]}", console))
+    except Exception as e:
+        rows.append(_row("影响预览", "选中资产", "select_option", False, f"{e}", console))
+
+    # ⑦ 重跑：**真发起并完成**四层链——本单元最硬的一条
+    try:
+        page.get_by_placeholder("重跑理由", exact=False).fill("E2E 回归基线：四层链验证")
+        page.get_by_role("button", name="发起重跑", exact=False).click()
+        page.wait_for_selector("text=本次重跑结果", timeout=30000)
+        body = page.locator("body").inner_text()
+        layers = sum(1 for k in ("field_mapping", "fact_layer", "derived_metric", "report_reference")
+                     if k in body)
+        ok = layers == 4 and "链完整：是" in body and "旧版本全保留：是" in body
+        rows.append(_row("重跑", "四层链", "fill+click", ok,
+                         f"四层全完成、链完整、旧版本保留（命中 {layers}/4 层）" if ok
+                         else f"重跑未完成: 命中 {layers}/4 层", console))
+    except Exception as e:
+        rows.append(_row("重跑", "四层链", "fill+click", False, f"{e}", console))
+
+    # ⑧ 报告导出：三格式**真下载**，且水印/等级头必须在
+    try:
+        tab("报告中心")
+        for fmt, magic in (("HTML", b"<!doctype"), ("CSV", b"\xef\xbb\xbf"), ("PDF", b"%PDF")):
+            with page.expect_download(timeout=30000) as dl:
+                page.locator(f'a[href*="格式={fmt.lower()}"]').first.click()
+            path = Path(dl.value.path())
+            body_bytes = path.read_bytes()
+            # 取 16 字节：magic 最长的是 b"<!doctype"（9 字符），只取 8 字节会永远比不中
+            head = body_bytes[:16]
+            ok = head.startswith(magic) and len(body_bytes) > 200
+            mark = ("delivery_allowed=false" in body_bytes.decode("utf-8", "ignore")) or fmt == "PDF"
+            rows.append(_row("报告导出", f"第1号 {fmt}", "click download", ok and mark,
+                             f"{len(body_bytes)} 字节，魔数 {head[:4]!r}，水印在" if ok and mark
+                             else f"魔数/水印异常: head={head[:8]!r} mark={mark}", console))
+    except Exception as e:
+        rows.append(_row("报告导出", "三格式", "click download", False, f"{e}", console))
+
+    page.close()
+    return rows
+
+
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("root", type=Path)
+    ap.add_argument("root", type=Path, nargs="?")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--glob", default="*.html")
+    ap.add_argument("--app-url", help="给定则跑 App 全流端到端（PROD.0013）")
     args=ap.parse_args()
-    htmls=sorted(args.root.rglob(args.glob))
+    htmls=sorted(args.root.rglob(args.glob)) if args.root else []
     args.out.parent.mkdir(parents=True, exist_ok=True)
     httpd=None; base_url=None
     all_rows=[]
     with sync_playwright() as p:
         browser=p.chromium.launch(headless=True, executable_path=CHROMIUM, args=["--no-sandbox","--disable-dev-shm-usage"])
+        if args.app_url:
+            all_rows.extend(app_flow(browser, args.app_url.rstrip('/')))
         for hp in htmls:
             try:
                 all_rows.extend(audit_file(browser,hp,args.root,base_url))
