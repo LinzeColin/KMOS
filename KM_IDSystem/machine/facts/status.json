@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE046",
-  "phase": "IDS-STAGE046-P1",
-  "task": "IDS-V0_1-STAGE046-P1",
-  "real_progress": "Stage046 步骤一静态解析器路由合同已在本地完成；步骤二未开始且未获执行授权",
-  "report_grade": "批准来源、Stage045 review commit/tree 和七项上游 snapshot 哈希已实时重验，六类静态路线覆盖八种文件类型",
-  "business_verdict": "仅完成非生产解析器候选路由静态合同；未选择、分派或执行解析器、回退、持久化或生产能力",
-  "evidence_status": "LOCAL_PHASE1_CONTRACT_PARSER_DISPATCH_DISABLED",
+  "phase": "IDS-STAGE046-P2",
+  "task": "IDS-V0_1-STAGE046-P2",
+  "real_progress": "Stage046 步骤二仅元数据解析器路由切片已在本地完成；步骤三未开始且未获执行授权",
+  "report_grade": "批准来源与已提交 Phase1 快照实时重验，三个仅引用控制样本完成候选路由、置信度与未分配 parser version 状态记录",
+  "business_verdict": "仅启用非生产内存路由评估；解析器实现仍不可用，未选择、分派或执行解析器、回退、持久化或生产能力",
+  "evidence_status": "LOCAL_PHASE2_ROUTING_EVALUATOR_PARSER_DISABLED",
   "rendered_at": "2026-07-20",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE046-P2-GATE",
+  "next_gate": "IDS-STAGE046-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

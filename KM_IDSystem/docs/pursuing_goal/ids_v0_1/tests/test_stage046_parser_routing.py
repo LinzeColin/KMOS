@@ -393,13 +393,14 @@ class Stage046ParserRoutingTests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, docs)
         batch = BATCH.read_text(encoding="utf-8")
-        self.assertIn('status: "stage046_phase1_completed"', batch)
+        self.assertIn('status: "stage046_phase2_completed"', batch)
         self.assertIn('next_allowed_task_id: "IDS-V0_1-STAGE046-P2"', batch)
+        self.assertIn('next_allowed_task_id: "IDS-V0_1-STAGE046-P3"', batch)
         self.assertIn("push_allowed: false", batch)
         roadmap = ROADMAP.read_text(encoding="utf-8")
         self.assertIn('current_stage_id: "IDS-STAGE046"', roadmap)
-        self.assertIn('current_phase_id: "IDS-STAGE046-P1"', roadmap)
-        self.assertIn('next_gate_id: "IDS-STAGE046-P2-GATE"', roadmap)
+        self.assertIn('current_phase_id: "IDS-STAGE046-P2"', roadmap)
+        self.assertIn('next_gate_id: "IDS-STAGE046-P3-GATE"', roadmap)
         events = [
             json.loads(line)
             for line in EVENTS.read_text(encoding="utf-8").splitlines()

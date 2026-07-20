@@ -1,18 +1,18 @@
 {
   "stage": "`IDS-STAGE046`",
-  "phase": "`IDS-STAGE046-P1`",
-  "task": "`IDS-V0_1-STAGE046-P1`",
-  "owner": "Codex 专属 KMOS worktree，Stage046 步骤一静态解析器路由合同",
-  "objective": "绑定批准来源与不可变 Stage045 复审快照，形成 reference-only、失败关闭且禁止分派的解析器候选路由合同。",
+  "phase": "`IDS-STAGE046-P2`",
+  "task": "`IDS-V0_1-STAGE046-P2`",
+  "owner": "Codex 专属 KMOS worktree，Stage046 步骤二隔离元数据路由切片",
+  "objective": "消费受治理的 Stage045 检测结果引用，在静态内存注册表中形成失败关闭的解析器候选路线并记录置信度与版本状态。",
   "scope": [
-    "实时重新计算批准归档、唯一 Stage046 成员、roadmap、instructions 与执行索引哈希",
-    "从 Stage045 review commit 读取并重新计算 detection、delivery、review、state 与 raw boundary snapshot 哈希",
-    "固化输入资格、六类静态路线、Stage047/048/050 ownership、质量与状态边界及 Stage046 步骤二独立门禁"
+    "实时重新计算批准归档、唯一 Stage046 成员、roadmap 与 instructions 哈希，并绑定已提交 Phase1 commit/tree/父链",
+    "从 Phase1 commit 读取并重新计算六项 Stage046 Phase1 snapshot 哈希",
+    "执行三个无正文、仅引用的内存控制请求，记录候选路线、检测置信度、路由器与注册表版本及未分配解析器版本状态"
   ],
   "non_goals": [
-    "不执行 Stage046 步骤二、步骤三、步骤四、整阶段复审、十阶段批次复审或上传门禁",
-    "不打开真实源文件，不重新检测类型，不加载运行时注册表，不评估、选择、分派或执行解析器、回退、提示注入扫描、证据提升、审计、数据库或持久运行状态",
+    "不执行 Stage046 步骤三、步骤四、整阶段复审、十阶段批次复审或上传门禁",
+    "不打开真实源文件，不重新检测类型，不加载外部注册表，不选择、分派或执行解析器、回退、differential evaluation、提示注入扫描、证据提升、审计、数据库或持久运行状态",
     "不读取原始元数据，不创建虚构 IDS 业务数据，不上传、合并或重装应用"
   ],
-  "stop_condition": "Stage046 步骤一合同与分层治理验证通过后，停止在 IDS-STAGE046-P2-GATE 且 entry_authorized=false；任一来源、前序、snapshot、路线、ownership、治理或无副作用证据失配均回到 IDS-STAGE046-P1-GATE。"
+  "stop_condition": "Stage046 步骤二切片与分层治理验证通过后，停止在 IDS-STAGE046-P3-GATE 且 entry_authorized=false；任一来源、Phase1 snapshot、请求形状、路线、版本、evidence-only、治理或无副作用证据失配均回到 IDS-STAGE046-P2-GATE。"
 }

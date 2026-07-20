@@ -1,6 +1,31 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE046-P2-01`",
+      "criteria": "步骤二合同精确绑定批准来源、已提交 Phase1 commit/root/KM_IDSystem tree/父提交与六项不可变 Phase1 snapshot 哈希",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P2-02`",
+      "criteria": "三个无正文、仅引用的内存控制覆盖 PDF、DOCX 与未知待复核结果；六类静态路线覆盖八种受治理格式",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P2-03`",
+      "criteria": "候选路线记录检测置信度、路由器与注册表版本和 `UNASSIGNED_NOT_IMPLEMENTED` 解析器版本状态，但不授权解析器分派",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P2-04`",
+      "criteria": "上游指令样内容只保留 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY` 分类，不能授权工具、覆盖策略或冒充 Stage050 提示注入扫描器",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P2-05`",
+      "criteria": "未打开业务源文件、重检类型、执行解析器或回退、产生输出、写持久态、读取原始元数据、进入步骤三、上传、合并、重装或生产激活",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE046-P1-01`",
       "criteria": "批准归档、唯一 Stage046 成员、roadmap、instructions、执行索引和 Stage045 review commit/root/KM_IDSystem tree 均精确绑定并实时重验",
       "status": "已通过"

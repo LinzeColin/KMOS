@@ -1,5 +1,15 @@
 # Changelog
 
+## IDS v0.1 STAGE-046 Phase 2 - 2026-07-20
+
+- Added `ids.stage046.parser_routing.phase2.v1`, a metadata-only, reference-only and non-production parser-route evaluator bound to the exact approved Stage046 source, committed Phase1 predecessor and six immutable Phase1 artifacts.
+- Evaluated exactly three synthetic metadata controls for PDF, DOCX and unknown-review results. Six static route families cover eight governed types; confirmed high-confidence input selects only a candidate route.
+- Recorded exact detector, router and registry versions, upstream confidence and `UNASSIGNED_NOT_IMPLEMENTED` parser-version status. Parser implementations remain unavailable, so candidate routes stop at `ROUTE_BLOCKED_PARSER_IMPLEMENTATION_UNAVAILABLE` without selection or dispatch.
+- Preserved upstream instruction-like classification as `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`; it cannot authorize tools or override policy, and Phase2 does not impersonate the Stage050 prompt-injection scanner.
+- Valid TDD RED produced three expected governance failures and twelve expected missing-artifact errors across thirteen tests. Core implementation then passed `12/13`; the remaining failure was the expected P2-to-P3 governance transition. Final GREEN passes checker `21/21 + 6/6`, focused Phase2 `13/13`, combined Phase1+2 `25/25`, Stage005 `172/172` in `44.225s`, Stage041-046 aggregate `368/368` in `1231.667s`, full discovery `1118/1118` in `1668.884s`, all eight Stage038-045 review checkers, `222` unique event semantics, hash-based idempotent owner rendering and project dual-plane.
+- Project dual-plane initially failed closed on one untranslated `only` token and then seven untranslated routing terms in generated owner views. The repair changed only their machine-fact wording to exact Chinese equivalents, re-rendered all seven owner documents idempotently and preserved every parser, evidence and runtime boundary; failed checks were not counted as PASS.
+- Routed the only next task to separate `IDS-V0_1-STAGE046-P3` with `phase3_entry_authorized=false` and `push_allowed=false`. No source-file I/O, type redetection, parser/fallback execution, output, evidence promotion, persistence, raw metadata, Phase3, review, GitHub, app reinstall, dependency installation or production action ran.
+
 ## IDS v0.1 STAGE-046 Phase 1 - 2026-07-20
 
 - Added `ids.stage046.parser_routing.phase1.v1`, bound to the exact approved Stage046 source and immutable Stage045 reviewed-local commit/tree plus seven rehashed upstream artifacts.

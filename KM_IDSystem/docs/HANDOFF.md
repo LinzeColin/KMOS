@@ -11,35 +11,33 @@
 
 ## Current Gate - 2026-07-20
 
-- Completed task in this run: `IDS-V0_1-STAGE046-P1`. The approved archive,
-  unique Stage046 member, roadmap, instructions and execution index were
-  live-rehashed, while seven upstream artifacts were read and rehashed from the
-  immutable Stage045 review commit `76027b8dc89e325c212d492d7f5df88357ea7112`.
-- Historical Stage045 review transition only: Completed task in this run: `IDS-V0_1-STAGE045-REVIEW`; Next allowed task: `IDS-V0_1-STAGE046-P1`. This is not the current gate; the current gate is Stage046 P2.
-- Historical Stage044 review transition only: Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`; Next allowed task: `IDS-V0_1-STAGE045-P1`. This is not the current gate; the current gate is Stage046 P2.
-- `ids.stage046.parser_routing.phase1.v1` accepts only governed Stage045 detection
-  references. It defines six static parser families covering PDF, DOCX, XLSX,
-  CSV, TXT, PNG, JPEG and TIFF. A `TYPE_CONFIRMED/HIGH` result is only a route
-  candidate; all provisional, conflict, unknown, unsupported and blocked results
-  fail closed to explicit review/error dispositions.
-- Caller-selected parsers, file-type redetection, runtime registry loading, route
-  evaluation, parser selection/dispatch/execution, fallback, evidence promotion,
-  job/state mutation and persistence are all disabled. Parser implementations and
-  versions remain unassigned; Stage047 owns normalized output, Stage048 fallback,
-  and Stage050 prompt-injection handling.
-- Next allowed task: `IDS-V0_1-STAGE046-P2`, only in a separate future run behind
-  `IDS-STAGE046-P2-GATE`; `phase2_entry_authorized=false`, `NO_PHASE2_THIS_RUN`,
+- Completed task in this run: `IDS-V0_1-STAGE046-P2`. The approved archive,
+  unique Stage046 member, roadmap and instructions were live-rehashed; Phase1
+  commit `c82e4e928b167c718d462dc8cef3eed5b5dbb3ea`, root/KMIDS trees, parent and
+  six Phase1 artifacts were rebound from that immutable commit.
+- Historical Stage046 Phase1 transition only: Completed task: `IDS-V0_1-STAGE046-P1`; Next allowed task: `IDS-V0_1-STAGE046-P2`. This is not the current gate; the current gate is Stage046 P3.
+- Historical Stage045 review compatibility assertion only, quoted from that review handoff: Completed task in this run: `IDS-V0_1-STAGE045-REVIEW`; Next allowed task: `IDS-V0_1-STAGE046-P1`. This is not the current run or gate; the current gate is Stage046 P3.
+- Historical Stage044 review compatibility assertion only, quoted from that review handoff: Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`; Next allowed task: `IDS-V0_1-STAGE045-P1`. This is not the current run or gate; the current gate is Stage046 P3.
+- `ids.stage046.parser_routing.phase2.v1` accepts only governed Stage045 detection
+  references with no source path or content. Three metadata-only controls evaluate
+  PDF, DOCX and unknown-review results against six static parser families covering
+  PDF, DOCX, XLSX, CSV, TXT, PNG, JPEG and TIFF.
+- Confirmed high-confidence input records only a route candidate, upstream
+  confidence and `UNASSIGNED_NOT_IMPLEMENTED` parser-version status. Parser
+  implementations remain unavailable, so selection, dispatch, execution,
+  fallback, output, evidence promotion, job/state mutation and persistence remain
+  disabled. Stage047/048/049/050 ownership is unchanged.
+- Next allowed task: `IDS-V0_1-STAGE046-P3`, only in a separate future run behind
+  `IDS-STAGE046-P3-GATE`; `phase3_entry_authorized=false`, `NO_PHASE3_THIS_RUN`,
   `NO_STAGE_REVIEW_THIS_RUN`, `NO_BATCH_REVIEW_THIS_RUN`,
   `NO_GITHUB_UPLOAD_THIS_RUN`, `NO_APP_REINSTALL_THIS_RUN`.
-- Final Phase1 validation passes checker `23/23`, focused Stage046 `12/12`,
-  Stage005 `172/172`, Stage041-046 aggregate `355/355` in `1224.293s`, full
-  IDS v0.1 discovery `1105/1105` in `1576.221s`, and all eight Stage038-045
-  historical review checkers. The initial aggregate/full runs reached `350/355`
-  and `1099/1105`; their eleven stale forward-route failures were repaired only
-  for the exact current P1-to-P2 gate and were not counted as PASS. All 221
-  governance events have zero parse, duplicate-id or semantic errors; owner
-  rendering is idempotent and KM_IDSystem project dual-plane passes. Full results
-  are recorded in `machine/runs/2026-07-20-stage046-p1-local.json`.
+- Final GREEN passes the Phase2 checker `21/21` contract plus `6/6` slice checks,
+  focused Phase2 `13/13`, combined Phase1+2 `25/25`, Stage005 `172/172` in
+  `44.225s`, Stage041-046 aggregate `368/368` in `1231.667s`, and full IDS v0.1
+  discovery `1118/1118` in `1668.884s`. All eight Stage038-045 review checkers,
+  `222` unique event semantics, hash-based idempotent owner rendering and the
+  project-scoped dual-plane gate pass; final evidence synchronization is followed
+  by the same short gates before commit.
 - Current source hashes: archive
   `55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3`,
   unique Stage046 member
@@ -47,7 +45,13 @@
   roadmap `a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6`,
   instructions `ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8`,
   execution index `2e0088153cd1e13a09d9aebd09a1bd0c8c7162acd0788360d45f5c7320af1e9a`.
-- Phase1 evidence: `STAGE046_PHASE1_PARSER_ROUTING_SCOPE_BOUNDARY.md`,
+- Phase2 evidence: `STAGE046_PHASE2_PARSER_ROUTING_SLICE.md`,
+  `parser_routing/stage046_parser_routing_runtime_contract.json`,
+  `scripts/check_parser_routing_runtime.py`, focused tests and the Phase2 machine
+  run. Any source, Phase1 snapshot, request shape, route, version, evidence-only,
+  governance or side-effect mismatch returns `FAIL_CLOSED` to
+  `IDS-STAGE046-P2-GATE`.
+- Historical Phase1 evidence: `STAGE046_PHASE1_PARSER_ROUTING_SCOPE_BOUNDARY.md`,
   `parser_routing/stage046_parser_routing_contract.json`,
   `scripts/check_parser_routing.py`, focused tests and the machine run. Any source,
   predecessor, snapshot, route-family, ownership, quality, state or side-effect
@@ -77,7 +81,7 @@
 - The first aggregate failed closed on fourteen historical current-route/index assertions and the first full discovery failed closed on four P3-to-P4 routes plus one stale owner render. A final-evidence Stage005 run failed closed on twenty-two exact result-binding checks before synchronization. Repairs were restricted to exact forward-route compatibility, preservation of existing historical safety invariants, generated owner views and the exact roadmap result binding; one wrong-workdir targeted command was interrupted and not counted as PASS.
 - Pre-commit self-review repaired one Important fail-closed gap: the three instruction-control flags now derive from the bounded Phase2 evidence wrapper and are included in scenario PASS evaluation instead of being hard-coded false. The same existing test proves an unsafe wrapper forces `FAIL_CLOSED`; the test count remains eighteen.
 - Project governance note: the sparse worktree does not contain root `scripts/lean_governance.py`, so the repository-wide command reports `SPARSE_CONFLICT`; no sparse expansion or unrelated-project inspection was performed.
-- Current batch gate: `BATCH041_050` has five locally reviewed Stages plus Stage046 Phase1 only and remains locked with `push_allowed=false`; Stage046 Phase2-4/review, Stage047-050, single-stage upload, GitHub action, merge, app reinstall, batch review and production action are not authorized.
+- Current batch gate: `BATCH041_050` has five locally reviewed Stages plus Stage046 Phase1-2 only and remains locked with `push_allowed=false`; Stage046 Phase3-4/review, Stage047-050, single-stage upload, GitHub action, merge, app reinstall, batch review and production action are not authorized.
 - Preserve owner-controlled dependency/service paths (`backend/requirements.txt`, `frontend/package.json`, `frontend/pnpm-workspace.yaml`, `scripts/run_local_services.sh`); this phase does not modify them.
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only governance boundary and was not touched. Do not read, list, hash, open, scan, copy, move, delete, modify, dump, or normalize its contents.
 
