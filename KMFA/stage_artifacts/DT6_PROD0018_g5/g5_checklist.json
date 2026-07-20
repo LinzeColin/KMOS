@@ -112,7 +112,7 @@
     "证据目录": "DT6_PROD0018_g5",
     "存在": true,
     "文件数": 2,
-    "内容哈希": "sha256:52701caaacef0a4ddca7e14b67f34b9f02a03db3004a657d5fc8d5c5a70ca084"
+    "内容哈希": "sha256:d27352eb21ea7a0f90a2cf82ee36a7b44daea41fdfb3bedfb2e2c0bff8561f76"
    }
   }
  },
@@ -162,11 +162,12 @@
   }
  },
  "technical_checks_all_green": true,
- "g5_passed": false,
- "why_not_passed": "Approver 是 Owner（任务包第 29 行）。技术判据全绿不等于门禁通过，本检查器不代签。失败动作 remain_in_stage。",
- "owner_待办": [
-  "签核 G5：仓库 Actions → sign-g5 → Run workflow，输入确认语（GitHub 验身份，一次点击）",
-  "登录 kmfa.linzezhang.com 亲验真实经营数据与页眉三徽章（可在同一 workflow 勾「已亲验网站」一并落痕）",
-  "为 ERPNext 三条 gap 排序（PROD.0014 登记表）"
- ]
+ "g5_passed": true,
+ "签核记录": {
+  "事件号": "CTRL-KMFA-20260720-G5-SIGNOFF",
+  "签核人": "LinzeColin",
+  "时间": "2026-07-20T17:37:35+08:00",
+  "运行": "https://github.com/LinzeColin/KMOS/actions/runs/29732135218",
+  "网站内容已亲验": "否"
+ }
 }
