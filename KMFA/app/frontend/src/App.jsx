@@ -301,6 +301,36 @@ function 今天({ 状态, 工作台, 账龄, 开票, 成本, 管线, 排程, 断
         <span style={{ marginLeft: 'auto' }}>系统自检 →</span>
       </div>
 
+      <h3 className="sec">自动任务·近 24 小时{排?.近24小时?.length ? `（${排.近24小时.length} 次运行）` : ''}</h3>
+      {!排 ? <div className="card" style={{ marginTop: 12 }}><div className="skel" style={{ height: 13 }} /></div>
+        : 排程.加载失败 ? <加载失败卡 详情={排程.加载失败} />
+        : !排.可读 ? (
+          <div className="card callout bad">
+            <b>读不到自动任务日志</b>
+            <div className="sub">{排.原因}</div>
+            <div className="sub">{排.诚实边界}</div>
+          </div>
+        ) : (排.近24小时 ?? []).length === 0 ? (
+          <div className="card callout warn">
+            <b>近 24 小时没有任何自动任务运行记录</b>
+            <div className="sub">台账在、但这个窗口没跑过——对照约定时刻查排程是否停摆（点右上系统自检看全史）。</div>
+          </div>
+        ) : (
+        <div className="tblwrap queue">
+          {排.近24小时.slice(0, 10).map((h, i) => (
+            <div key={i} className="qrow">
+              <div className="qmain">
+                <div className="qname">{h.业务模块}·<code>{h.技能}</code></div>
+                <div className="qsub">{h.ts}{h.摘要 ? `　——　${h.摘要}` : ''}</div>
+              </div>
+              {h.成功 ? <span className="chip ok">成功</span> : <span className="chip bad" title={`rc=${h.rc}`}>失败</span>}
+              {String(h.投递开关) === '1' ? <span className="chip ok">已投递</span> : <span className="chip warn">空跑</span>}
+              <button type="button" className="btn" onClick={() => 去('系统自检')}>全史</button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="card click" style={{ marginTop: 14 }} onClick={() => 去('报告下载')}>
         <b>取报告</b>
         <div className="muted" style={{ marginTop: 5 }}>
@@ -757,7 +787,7 @@ function 排程健康({ 排程 }) {
                   <tr className="detail"><td colSpan={8}>
                     {(x.历史 ?? []).length === 0 ? <p className="empty">还没有运行记录。</p> : (
                       <Tbl>
-                        <thead><tr><th>时间</th><th>结果</th><th>投递</th><th>当时快照</th></tr></thead>
+                        <thead><tr><th>时间</th><th>结果</th><th>投递</th><th>这次干了什么</th><th>当时快照</th></tr></thead>
                         <tbody>{x.历史.map((h, i) => {
                           const 键 = `${x.技能}#${i}`
                           const q = 快照[键]
@@ -769,13 +799,14 @@ function 排程健康({ 排程 }) {
                                   : <span className="chip bad" title={`rc=${h.rc}`}>失败</span>}</td>
                                 <td>{String(h.投递开关) === '1' ? <span className="chip ok">已开</span>
                                   : <span className="chip warn">空跑</span>}</td>
+                                <td className="muted" style={{ maxWidth: '26rem' }}>{h.摘要 ?? '—'}</td>
                                 <td>{h.快照
                                   ? <button type="button" className="btn" onClick={() => 看快照(键, h.快照)}>
                                       {q ? '收起' : '看快照'}</button>
                                   : <span className="muted">—</span>}</td>
                               </tr>
                               {q && (
-                                <tr><td colSpan={4}>
+                                <tr><td colSpan={5}>
                                   {q.载入中 ? <div className="skel" style={{ height: 12 }} />
                                     : q.错 ? <div className="alert bad">{q.错}</div>
                                     : <>
