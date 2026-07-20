@@ -54,8 +54,11 @@ def test_skills_enriched_fields():
 
 
 def test_index_serves_dashboard():
+    # 根路径必须直达应用本体（307 → /ui/），不许再出现早期静态摘要页
+    r = client.get("/", follow_redirects=False)
+    assert r.status_code == 307 and r.headers["location"] == "/ui/"
     r = client.get("/")
-    assert r.status_code == 200 and "KMFA 经营分析" in r.text
+    assert r.status_code == 200 and "KMFA 经营分析" in r.text and "root" in r.text
 
 
 def test_react_ui_served():

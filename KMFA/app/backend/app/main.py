@@ -17,7 +17,7 @@ from typing import Any
 
 import yaml
 from fastapi import Body, FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 REPO = Path(__file__).resolve().parents[4]
 KMFA = REPO / "KMFA"
@@ -39,16 +39,15 @@ def _paginate(rows: list[Any], page: int, size: int) -> tuple[list[Any], dict[st
     pages = max(1, (total + size - 1) // size)
     start = (page - 1) * size
     return rows[start : start + size], {"page": page, "size": size, "total": total, "pages": pages}
-STATIC = Path(__file__).resolve().parent / "static"
-
-
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
 
 @app.get("/")
 def index():
-    return FileResponse(STATIC / "index.html",
-                        headers={"Cache-Control": "no-cache, must-revalidate"})
+    # 根路径直达应用本体。曾在这里挂过一张早期静态摘要页——Owner 打开裸域名
+    # 看到的是它而不是 App，误以为「前端没更新」（2026-07-20 截图实证）。
+    # 用户不该需要知道 /ui/ 才能用产品；那张静态页已删除，不许再回来。
+    return RedirectResponse(url="/ui/", status_code=307)
 
 
 @app.get("/ui/")
