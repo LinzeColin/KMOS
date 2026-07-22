@@ -39,6 +39,48 @@ CONTROL_ADAPTER_ID = (
 )
 CONTROL_PARSER_VERSION = "ids.parser.control_fixture.v0_1.stage047.p2"
 CONTROL_PARSER_FAMILY = "PLAIN_TEXT_PARSER"
+FORMAT_CONTROL_ROUTES = {
+    "PDF": {
+        "candidate_route_id": "ROUTE_PDF",
+        "parser_family": "PDF_PARSER",
+        "parser_version": "ids.parser.control_fixture.pdf.v0_1.stage047.p3",
+    },
+    "DOCX": {
+        "candidate_route_id": "ROUTE_OOXML_WORD",
+        "parser_family": "OOXML_WORD_PARSER",
+        "parser_version": "ids.parser.control_fixture.docx.v0_1.stage047.p3",
+    },
+    "XLSX": {
+        "candidate_route_id": "ROUTE_OOXML_WORKBOOK",
+        "parser_family": "OOXML_WORKBOOK_PARSER",
+        "parser_version": "ids.parser.control_fixture.xlsx.v0_1.stage047.p3",
+    },
+    "CSV": {
+        "candidate_route_id": "ROUTE_DELIMITED_TEXT",
+        "parser_family": "DELIMITED_TEXT_PARSER",
+        "parser_version": "ids.parser.control_fixture.csv.v0_1.stage047.p3",
+    },
+    "TXT": {
+        "candidate_route_id": "ROUTE_PLAIN_TEXT",
+        "parser_family": CONTROL_PARSER_FAMILY,
+        "parser_version": CONTROL_PARSER_VERSION,
+    },
+    "PNG": {
+        "candidate_route_id": "ROUTE_IMAGE",
+        "parser_family": "IMAGE_PARSER",
+        "parser_version": "ids.parser.control_fixture.image.v0_1.stage047.p3",
+    },
+    "JPEG": {
+        "candidate_route_id": "ROUTE_IMAGE",
+        "parser_family": "IMAGE_PARSER",
+        "parser_version": "ids.parser.control_fixture.image.v0_1.stage047.p3",
+    },
+    "TIFF": {
+        "candidate_route_id": "ROUTE_IMAGE",
+        "parser_family": "IMAGE_PARSER",
+        "parser_version": "ids.parser.control_fixture.image.v0_1.stage047.p3",
+    },
+}
 ROUTER_VERSION = "ids.parser_router.v0_1.stage046.p2"
 REGISTRY_VERSION = "ids.parser_route_registry.v0_1.stage046.p2"
 DETECTOR_VERSION = "ids.file_type_detector.v0_1.stage045.p2"
@@ -640,7 +682,7 @@ def _routing_request_valid(request: Any) -> bool:
             and _canonical_control_ref(
                 request["source_identity_ref"], prefix="source:control:"
             )
-            and request["detected_type"] == "TXT"
+            and request["detected_type"] in FORMAT_CONTROL_ROUTES
             and request["detection_state"] == "TYPE_CONFIRMED"
             and request["detection_confidence"] == "HIGH"
             and _canonical_control_ref(
@@ -660,7 +702,11 @@ def _routing_request_valid(request: Any) -> bool:
 
 
 def _build_routing_request(
-    *, suffix: str, evidence_marker: bool, requested_at: str
+    *,
+    suffix: str,
+    evidence_marker: bool,
+    requested_at: str,
+    detected_type: str = "TXT",
 ) -> Dict[str, Any]:
     if not isinstance(suffix, str) or not CONTROL_SUFFIX.fullmatch(suffix):
         raise ValueError("control suffix is invalid")
@@ -668,11 +714,13 @@ def _build_routing_request(
         raise ValueError("evidence marker must be boolean")
     if not _rfc3339_utc_valid(requested_at):
         raise ValueError("requested_at must be a real RFC3339 UTC timestamp")
+    if detected_type not in FORMAT_CONTROL_ROUTES:
+        raise ValueError("detected_type is not a governed control format")
     projection = {
         "detection_request_id": "detection:sha256:" + suffix[0] * 64,
         "source_fingerprint_ref": "fingerprint:sha256:" + suffix[0] * 64,
         "source_identity_ref": f"source:control:stage047:p2:{suffix}",
-        "detected_type": "TXT",
+        "detected_type": detected_type,
         "detection_state": "TYPE_CONFIRMED",
         "detection_confidence": "HIGH",
         "detection_evidence_ref": f"evidence:stage045:control:{suffix}",
@@ -696,6 +744,7 @@ def _build_routing_request(
 def _build_control_route_result(request: Mapping[str, Any]) -> Dict[str, Any]:
     if not _routing_request_valid(request):
         raise ValueError("routing request is invalid")
+    route = FORMAT_CONTROL_ROUTES[request["detected_type"]]
     result = {
         "schema_version": "ids.stage046.parser_routing_result.v1",
         "routing_request_id": request["routing_request_id"],
@@ -708,9 +757,9 @@ def _build_control_route_result(request: Mapping[str, Any]) -> Dict[str, Any]:
         "detection_state": request["detection_state"],
         "detection_confidence": request["detection_confidence"],
         "route_action": "ROUTE_CANDIDATE_READY_NOT_EXECUTED",
-        "candidate_route_id": "ROUTE_PLAIN_TEXT",
-        "parser_family": CONTROL_PARSER_FAMILY,
-        "parser_version": CONTROL_PARSER_VERSION,
+        "candidate_route_id": route["candidate_route_id"],
+        "parser_family": route["parser_family"],
+        "parser_version": route["parser_version"],
         "parser_version_status": "RECORDED_CONTROL_FIXTURE_ONLY",
         "dispatch_block_reason": "CONTROL_FIXTURE_ONLY_NO_RUNTIME_DISPATCH",
         "route_fact_level": "CANDIDATE",
@@ -754,6 +803,7 @@ def _route_result_valid(result: Any, request: Mapping[str, Any]) -> bool:
     if not isinstance(result, Mapping) or list(result) != ROUTE_RESULT_FIELDS:
         return False
     try:
+        route = FORMAT_CONTROL_ROUTES[request["detected_type"]]
         return (
             result["schema_version"]
             == "ids.stage046.parser_routing_result.v1"
@@ -764,7 +814,8 @@ def _route_result_valid(result: Any, request: Mapping[str, Any]) -> bool:
             and result["detection_result_id"] == request["detection_result_id"]
             and result["detection_result_identity_status"]
             == "VERIFIED_CANONICAL_PROJECTION"
-            and result["detected_type"] == request["detected_type"] == "TXT"
+            and result["detected_type"] == request["detected_type"]
+            and result["detected_type"] in FORMAT_CONTROL_ROUTES
             and result["detection_state"]
             == request["detection_state"]
             == "TYPE_CONFIRMED"
@@ -773,9 +824,9 @@ def _route_result_valid(result: Any, request: Mapping[str, Any]) -> bool:
             == "HIGH"
             and result["route_action"]
             == "ROUTE_CANDIDATE_READY_NOT_EXECUTED"
-            and result["candidate_route_id"] == "ROUTE_PLAIN_TEXT"
-            and result["parser_family"] == CONTROL_PARSER_FAMILY
-            and result["parser_version"] == CONTROL_PARSER_VERSION
+            and result["candidate_route_id"] == route["candidate_route_id"]
+            and result["parser_family"] == route["parser_family"]
+            and result["parser_version"] == route["parser_version"]
             and result["parser_version"] != "UNASSIGNED_NOT_IMPLEMENTED"
             and result["parser_version_status"]
             == "RECORDED_CONTROL_FIXTURE_ONLY"
@@ -824,6 +875,7 @@ def build_control_input(
     suffix: str,
     evidence_marker: bool = False,
     requested_at: str,
+    detected_type: str = "TXT",
 ) -> Dict[str, Any]:
     """Build a deterministic, reference-only control wrapper with lineage proof."""
 
@@ -831,6 +883,7 @@ def build_control_input(
         suffix=suffix,
         evidence_marker=evidence_marker,
         requested_at=requested_at,
+        detected_type=detected_type,
     )
     route_result = _build_control_route_result(request)
     wrapper = {
@@ -1171,7 +1224,10 @@ def validate_output_envelope(output: Any, wrapper: Any) -> bool:
             and output["source_identity_ref"] == wrapper["source_identity_ref"]
             and output["parser_family"] == route_result["parser_family"]
             and output["parser_version"] == route_result["parser_version"]
-            and output["parser_version"] == CONTROL_PARSER_VERSION
+            and output["parser_version"]
+            == FORMAT_CONTROL_ROUTES[route_result["detected_type"]][
+                "parser_version"
+            ]
             and output["status"] in ALLOWED_STATUSES
             and output["status"] == status
             and _payload_valid(payload)

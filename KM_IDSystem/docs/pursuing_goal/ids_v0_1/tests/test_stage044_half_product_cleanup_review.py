@@ -237,6 +237,10 @@ class Stage044HalfProductCleanupReviewTests(unittest.TestCase):
                 "Completed task in this run: `IDS-V0_1-STAGE047-P2`" in top
                 and "Next allowed task: `IDS-V0_1-STAGE047-P3`" in top
             )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE047-P3`" in top
+                and "Next allowed task: `IDS-V0_1-STAGE047-P4`" in top
+            )
         )
 
     def test_review_preserves_delete_and_external_effect_prohibitions(self):

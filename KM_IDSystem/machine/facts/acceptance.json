@@ -1,6 +1,36 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE047-P3-01`",
+      "criteria": "批准来源、已提交 Stage047 Phase2 commit/root/KM_IDSystem tree/父提交、五项 Phase2 工件及三项 Stage046 路由基线工件均实时重验",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P3-02`",
+      "criteria": "16 个确定性场景覆盖八种支持格式、未知、损坏、低质量、显式失败、指令文本与三类篡改",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P3-03`",
+      "criteria": "精确产生 11 个接受输出、3 个失败关闭拒绝和 2 个路由无输出；候选/部分/失败为 6/4/1，静默丢弃为 0",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P3-04`",
+      "criteria": "低质量与图片输出必须复核，显式失败必须阻断，未知/损坏格式不生成输出且不自动执行回退",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P3-05`",
+      "criteria": "指令式文本不改变路线且仅为 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`；XLSX 公式文本保留但从未执行；拒绝结果不回显输入",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P3-06`",
+      "criteria": "未读取业务源或原始元数据，未执行真实路线、解析器、回退、提示扫描、公式、质量门、持久化、步骤四、复审、上传或重装",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE047-P2-01`",
       "criteria": "批准来源、已提交 Stage047 Phase1 commit/root/KM_IDSystem tree/父提交与六项 Phase1 工件哈希均实时重验且精确绑定",
       "status": "已通过"

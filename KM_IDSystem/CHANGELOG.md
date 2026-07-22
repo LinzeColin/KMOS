@@ -1,5 +1,17 @@
 # Changelog
 
+## IDS v0.1 STAGE-047 Phase 3 - 2026-07-23
+
+- Added 16 deterministic, in-memory, format-labelled preparsed control scenarios spanning PDF, DOCX, XLSX, CSV, TXT, PNG, JPEG, TIFF, unknown/corrupt routes, low quality, explicit failure, instruction-like text and three fail-closed tamper cases.
+- Live-reverified the approved sources, exact committed Phase2 identity and five immutable P2 artifacts, then rehashed and replayed the Stage046 Phase3 route baseline at 14/14 without treating metadata routing as parser output.
+- Produced exactly 11 accepted control envelopes, 3 sanitized rejections and 2 explicit route-no-output results; status counts are 6 candidate, 4 partial and 1 failed, with 11 unique identities and zero silent drops.
+- Extended the P2 fixture builder backwards-compatibly for eight governed format labels. The adapter remains synthetic and preparsed: no source I/O, file-type detection, parser selection/dispatch/execution or production use occurs.
+- Verified low-quality/image review, explicit failure blocking, unknown/corrupt no-output dispositions, instruction route invariance, evidence-only classification, formula-string preservation without execution, and no unsafe rejection echo. Stage048 fallback and Stage050 scanner ownership remain intact.
+- TDD RED recorded 19 tests / 3 failures / 18 errors. Core implementation then passed 17/19; the two remaining failures were the expected missing evidence and P3-to-P4 governance transition. Final layered validation is recorded in the Phase3 machine run.
+- Final GREEN passed focused Phase3 `19/19` in `2.820s`, Phase1-3 `45/45` in `6.714s`, Stage005 `177/177` in `54.626s`, Stage041-047 aggregate `458/458` in `1247.359s`, and full IDS v0.1 discovery `1213/1213` in `1569.812s`; all nine Stage038-046 review checkers, `228` unique event semantics, idempotent owner rendering and project dual-plane also pass.
+- Layered fail-closed runs exposed inherited Stage042-046 invariants missing from the P3 current block, fifteen exact historical forward-route assertions, expected unstaged Git-index mismatches, one misplaced unittest helper assertion, two Phase2 current-gate assumptions and untranslated P3 owner terms. Repairs were limited to equivalent inherited constraints, exact `P3 -> P4 gate` compatibility, helper relocation, exact P3 changed-path governance and Chinese machine-fact wording; failed runs were not counted as PASS and no historical review or runtime-safety contract was weakened.
+- No IDS business source or raw metadata was read; no real route/parser, fallback, differential evaluation, prompt scan, formula, quality gate, persistence, Phase4, review, upload, merge or app reinstall ran. `push_allowed=false`.
+
 ## IDS v0.1 STAGE-047 Phase 2 - 2026-07-23
 
 - Delivered a pure in-memory parser-output normalization slice; the approved source, committed Phase1 commit/tree/parent and six Phase1 artifacts are live-reverified.
@@ -45,7 +57,6 @@
 - All fourteen scenarios have explicit dispositions with `silent_drop_count=0`; high-confidence supported inputs stop at unavailable parser candidates, other quality/failure states review or fail closed, and caller override plus forged routing IDs are rejected.
 - No IDS business source or raw metadata was read; no type redetection, parser, fallback, output, persistence, Phase4, whole-stage review, batch review, GitHub upload or App reinstall ran. The only next gate is separate `IDS-STAGE046-P4-GATE`.
 - Valid TDD RED produced two expected missing-artifact failures and sixteen expected errors across eighteen tests. Final GREEN passes focused Phase3 `18/18`, Phase1-3 compatibility `43/43`, Stage005 `173/173` in `45.246s`, Stage041-046 aggregate `386/386` in `1169.916s`, full discovery `1137/1137` in `1607.288s`, all eight Stage038-045 review checkers, `223` unique event semantics, idempotent owner rendering and project dual-plane.
-- Layered fail-closed runs exposed one unittest helper-name collision, nine historical current-route assertions ending at P2→P3, the expected unstaged Git-index mismatch and untranslated P3 owner-view terms. Repairs were limited to the helper rename, exact `P3 -> P4 gate` compatibility, exact P3 changed-path governance and Chinese machine-fact wording; failed runs were not counted as PASS and no historical review or runtime-safety contract was weakened.
 
 ## IDS v0.1 STAGE-046 Phase 2 - 2026-07-20
 

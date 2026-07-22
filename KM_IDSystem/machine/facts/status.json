@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE047",
-  "phase": "IDS-STAGE047-P2",
-  "task": "IDS-V0_1-STAGE047-P2",
-  "real_progress": "Stage047 步骤二纯内存输出归一化切片已在本地完成；步骤三至四与整阶段复审尚未开始",
-  "report_grade": "三个非业务控制输出、精确 lineage、18 字段 envelope、版本/置信度、安全错误、嵌套引用与证据文本边界均可机验",
-  "business_verdict": "Stage047 输出合同步骤二通过；fixture adapter 不是真实解析器，业务源、解析器、回退、质量评估、持久化、上传与生产能力仍禁用",
-  "evidence_status": "LOCAL_STAGE047_PHASE2_CONTROL_NORMALIZATION_VALID_PARSER_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE047-P3",
+  "task": "IDS-V0_1-STAGE047-P3",
+  "real_progress": "Stage047 步骤三全格式与失败关闭场景已在本地完成；步骤四与整阶段复审尚未开始",
+  "report_grade": "16 个控制场景、八种格式、上游 route replay、11/3/2 输出处置、指令路线不变、公式文本与拒绝净化均可机验",
+  "business_verdict": "Stage047 输出合同步骤三通过；格式标签夹具不是真实解析器，业务源、解析器、回退、提示扫描、质量评估、持久化、上传与生产能力仍禁用",
+  "evidence_status": "LOCAL_STAGE047_PHASE3_SCENARIOS_VALID_RUNTIME_DISABLED",
   "rendered_at": "2026-07-23",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE047-P3-GATE",
+  "next_gate": "IDS-STAGE047-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

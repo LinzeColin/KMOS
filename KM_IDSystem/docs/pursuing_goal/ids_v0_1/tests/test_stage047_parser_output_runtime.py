@@ -600,7 +600,7 @@ class Stage047ParserOutputPhase2Tests(unittest.TestCase):
         self.assertTrue(all(truth[name] is True for name in TRUE_TRUTH_FLAGS))
         self.assertTrue(all(truth[name] is False for name in FALSE_TRUTH_FLAGS))
 
-    def test_governance_and_docs_stop_at_phase3_gate(self):
+    def test_governance_preserves_phase2_and_routes_exactly_to_phase4(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         events = EVENTS.read_text(encoding="utf-8")
@@ -608,8 +608,14 @@ class Stage047ParserOutputPhase2Tests(unittest.TestCase):
         for text in (batch, roadmap):
             self.assertIn("IDS-V0_1-STAGE047-P2", text)
             self.assertIn("IDS-STAGE047-P3-GATE", text)
-            self.assertIn("phase3_entry_authorized: false", text)
+            self.assertIn("IDS-V0_1-STAGE047-P3", text)
+            self.assertIn("IDS-STAGE047-P4-GATE", text)
             self.assertIn("push_allowed: false", text)
+        self.assertIn("phase3_entry_authorized: true", batch)
+        self.assertIn("phase4_entry_authorized: false", batch)
+        self.assertIn('current_phase_id: "IDS-STAGE047-P3"', roadmap)
+        self.assertIn('current_task_id: "IDS-V0_1-STAGE047-P3"', roadmap)
+        self.assertIn('next_gate_id: "IDS-STAGE047-P4-GATE"', roadmap)
         self.assertIn("EVT-IDS-V0_1-STAGE047-P2-20260723-001", events)
         self.assertIn("CONTROL_FIXTURE_ONLY", boundary)
         self.assertIn("NO_PHASE3_THIS_RUN", boundary)

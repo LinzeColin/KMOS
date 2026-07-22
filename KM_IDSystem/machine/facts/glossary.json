@@ -6,12 +6,17 @@
     {
       "英文": "parser output envelope",
       "中文": "解析器输出封套",
-      "说明": "绑定来源、检测、路线、解析器版本、六个核心字段、安全标签和质量门的精确输出结构；步骤二仅构造非业务控制 envelope"
+      "说明": "绑定来源、检测、路线、解析器版本、六个核心字段、安全标签和质量门的精确输出结构；步骤三只验证非业务预解析控制 envelope"
     },
     {
       "英文": "control fixture adapter",
       "中文": "控制夹具适配器",
       "说明": "仅把预解析、合成、非业务映射送入输出归一化器的测试适配层；不是 Stage046 运行时解析器，不能用于选择、分派、执行或生产"
+    },
+    {
+      "英文": "format-labelled preparsed control",
+      "中文": "格式标签化预解析控制",
+      "说明": "携带受治理格式与路线元数据的合成内存 payload；用于验证输出合同，不代表读取过文件、检测过类型或执行过 parser"
     },
     {
       "英文": "output identity",
@@ -31,7 +36,7 @@
     {
       "英文": "quality gate",
       "中文": "质量门",
-      "说明": "parser 候选产物进入下游或证据提升前必须通过的独立控制；Stage047 步骤二只分配 UNASSESSED/REVIEW_REQUIRED/BLOCKED 初始处置，不执行质量评估"
+      "说明": "parser 候选产物进入下游或证据提升前必须通过的独立控制；Stage047 步骤三只验证 UNASSESSED/REVIEW_REQUIRED/BLOCKED 初始处置，不执行质量评估"
     },
     {
       "英文": "orphan reference",
