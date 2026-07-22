@@ -18,6 +18,11 @@ jobs:
           python-version: "3.12"
       - name: 安装 PyYAML（渲染 config.yaml / data_contract.yaml 需要，保证渲染确定性）
         run: python3 -m pip install --quiet pyyaml
+      - name: 运行 KMFA v1.5.2 taskpack fail-closed 门禁
+        run: |
+          set -euo pipefail
+          python3 KMFA/machine/tools/validate_taskpack.py --root KMFA
+          python3 KMFA/machine/tools/test_validate_taskpack_mutations.py --root KMFA
       - name: 运行全仓双平面合规校验
         run: |
           set -euo pipefail

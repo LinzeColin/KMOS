@@ -3,7 +3,8 @@
 ## v1.5.2 公开软件交付线（2026-07-23）
 
 - 当前唯一执行基线：用户提供的 `KMFA_Product_Design_Taskpack_v1.5.2.zip`，SHA-256 `31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb`；产品/runtime 版本仍为 `0.1.4-one-time-github-main-upload`，两者禁止混用。
-- 最近完成的唯一执行单元：**S02 / P2.3 / T-S02-03**。任务包 sealed `acceptance_contract.yaml`、`task_graph.yaml`、`traceability.csv` 已按原字节落入（SHA-256 分别为 `1f07bd14…bc1`、`a9753e7c…306`、`ca369627…727`），focused gate 证明 49 需求↔49 唯一主 AC、56 Task、49 trace rows、AC 必填字段 `735/735`、断链 `0`；重复 Requirement、缺 AC 阈值、未知 Task 和 trace 漂移四类本 phase 负向变异均被拒绝。`05_执行与验收.md` 已机械投影 AC/Oracle/Task/Test/Artifact/Owner，仍为 86 行；五项目双平面、确定性渲染、文档/阻塞、DAG 当前无环、public-safe 门全过。见 `machine/runs/S02_P23_TRACEABILITY.md`。本 phase 未安装完整 taskpack validator/CI，未进入 P2.4，未上传或部署。
+- 最近完成的唯一执行单元：**S02 / P2.4 / T-S02-04**。新增只读 `machine/tools/validate_taskpack.py`、临时夹具负向套件、`machine/VALIDATION_REPORT.md` 并显式接入 `.github/workflows/dual-plane.yml`；正向仓库投影以 `49 Requirements / 49 AC / 14 Stages / 56 Phases / 56 Tasks / 49 trace rows`、0 errors/warnings PASS，缺 AC、闭合循环、第八治理文件、`EVIDENCE/` 四类变异 `4/4` 非零且错误可读，四个 sealed source hash 全程不变。fresh 官方 taskpack validator、P2.3 focused gate、五项目双平面与 workflow 解析均 PASS。见 `machine/runs/S02_P24_VALIDATOR.md`。这只完成 P2.4；未做 S02 全 Stage Review、GitHub CI、上传或部署。
+- P2.3 的 sealed `acceptance_contract.yaml`、`task_graph.yaml`、`traceability.csv` 继续与任务包原字节一致（SHA-256 分别为 `1f07bd14…bc1`、`a9753e7c…306`、`ca369627…727`）；focused gate 保持 49 需求↔49 唯一主 AC、AC 必填字段 `735/735`、断链 `0`，`05_执行与验收.md` 继续机械投影 AC/Oracle/Task/Test/Artifact/Owner。见 `machine/runs/S02_P23_TRACEABILITY.md`。
 - P2.2 的七文件渲染继续有效：14 决策、49 需求、49 指标及 49 个 Task/Owner seed 全覆盖；无 `human/` 副本、无第八权威文档。连续两次渲染哈希一致；受控手改 `00` 与临时第八文件均被精确拒绝并恢复/移除；术语排序漂移和 shared-checker 跨项目误约束均已修复，见 `machine/runs/S02_P22_HUMAN_PLANE.md`。
 - P2.1 的 sealed `machine/canonical_facts.yaml` 继续保持任务包原字节，SHA-256 `5ae070cb4105e83eec0c05b3771759e550a67f1241708810f0b4430300198552`；唯一 writer 仍为 `WR-TASKPACK-PUBLISHER`，P2.2 只读渲染。
 - 上一个完整 Stage 是 **S01 全 Stage Review**。P1.1–P1.4、四个 sealed Task Test 与问题/用户/价值/非目标/指标/观察期/经济判据/范围八项 Stage Gate 已整体重放；发现 `F-S01-001`：旧 10-path filter 会让纯 S01 治理上传误触生产 rebuild，现以 5 个 S01 精确路径修复并同步预授权，`total=1 / resolved=1 / open=0`。见 `machine/runs/S01_STAGE_REVIEW.md`；结论为 `S01 PASS / G1 pending S02`，不是 runtime/GA PASS。
@@ -15,8 +16,8 @@
 - v1.5 恢复 bundle `1ee7fb111` 仍是不可变兜底，SHA-256 `2d0b516f...` 且 verify PASS；另发现并核验历史仓公开 recovery ref 已前进至 `268acce792`，仍为 PARTIAL 且 S24 路径为 0。受保护 full-sweep 的 1060 路径已互斥分类为 `Adopt 239 / Redo 750 / Discard 71 / Conflict 0 / 未分类 0`；`Redo` 只表示按当前 v1.5.2 Task/AC 重做所需行为，不重建旧文件。未 replay、merge、force-push 或复制私有元数据。
 - 旧业务 `machine/facts` 的 S05/A0/Q4/BLK-001 与 v1.5.2 delivery Canonical Facts 分属不同 namespace：前者继续约束正式财务结论，后者由 sealed taskpack 的 `WR-TASKPACK-PUBLISHER` 唯一写入；14 个旧 facts 未改写，七文件只由 `WR-RENDER-HUMAN` 全量生成。旧运维快照中的 Access/私有入口步骤已明确标为历史取证，不得当作 v1.5.2 发布指令。
 - P0.4/S00 继续保留真实失败基线：现有 App SQLite `/var/lib/kmfa/state` 未挂耐久卷，生产关系数据库、S3-compatible object adapter 与 backup/restore 均未实现，所以当前有限 RPO/RTO 不可证明，按 `unbounded/not recoverable` 处理。Taskpack 的 5 项 S00 unknown 已 `5/5` 绑定现状、默认动作、owner 与后续硬 Gate；这不会被伪报为 durable PASS。
-- 当前总进度：Task `11/56`，已完成 Stage `2/14`，S02 为 `3/4` phase、尚未完成 Stage Review。2026-07-23 fresh anonymous probes 对 `/`、`/ui`、`/ui/`、`/healthz` 仍全部返回 Cloudflare Access `302`；匿名完整使用、耐久 DB/object、任意文件安全上传下载、canary/rollback 等产品能力均尚未完成，不因 P2.3 PASS 提前宣称上线达标。
-- 下一步：下一个新 run 只能执行 **S02 / P2.4 / T-S02-04**，每 run 仍最多一个 phase；不得在本 run 启动 P2.4，不得提前执行 S02 Stage Review 或 GitHub 上传，也不得把 `G1` 提前判 PASS。
+- 当前总进度：Task `12/56`，已完成 Stage `2/14`，S02 为 `4/4` phase、但尚未完成 Stage Review。2026-07-23 已有 fresh anonymous probes 对 `/`、`/ui`、`/ui/`、`/healthz` 全部返回 Cloudflare Access `302`；匿名完整使用、耐久 DB/object、任意文件安全上传下载、canary/rollback 等产品能力均尚未完成，不因 P2.4 structural PASS 提前宣称上线达标。
+- 当前上传风险：`.github/workflows/deploy.yml` 的精确 `paths-ignore` 尚未覆盖 S02 candidate delta；现在上传可能误触生产 rebuild。下一个新 run 只能执行 **S02 whole-Stage Review**：整体重放 P2.1-P2.4/G1、复审最终 diff、解决全部 finding，补齐且负测精确治理路径后再一次性上传并核验 GitHub CI/no-deploy；该 run 不得启动 S03/P3.1，也不得提前把 `G1` 判 PASS。
 
 下列既有交接主体更新时间：2026-07-17（Australia/Sydney）
 
