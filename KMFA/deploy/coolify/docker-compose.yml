@@ -55,6 +55,7 @@ services:
       TZ: Asia/Shanghai
       # 根域名公开不等于私有 API 公开：生产源站二次校验 Access JWT。
       # 配置缺失时 /api*、/ops* fail-closed，/、/assets*、/healthz 仍可服务。
+      KMFA_PUBLIC_SHELL_ENABLED: "${KMFA_PUBLIC_SHELL_ENABLED:-1}"
       KMFA_PRIVATE_OPS_REQUIRE_ACCESS: "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
       KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN: "${KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}"
       KMFA_CLOUDFLARE_ACCESS_AUD: "${KMFA_CLOUDFLARE_ACCESS_AUD:-}"

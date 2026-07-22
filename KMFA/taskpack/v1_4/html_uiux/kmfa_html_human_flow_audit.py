@@ -166,11 +166,11 @@ def app_flow(browser, base_url: str):
     # ① 登录：本机 App 是单用户模式，**没有应用内登录**——生产侧鉴权由 Cloudflare Access
     #    在 DNS 前置。这里如实断言「入口可达 + 页眉三元组渲染出来」，不假造一个登录页。
     try:
-        page.goto(f"{base_url}/ui/", wait_until="networkidle", timeout=30000)
+        page.goto(f"{base_url}/ops/app", wait_until="networkidle", timeout=30000)
         header = page.locator("header").inner_text()
         ok = all(k in header for k in ("质量", "报告", "NO_GO"))
         rows.append(_row("登录", "单用户模式（鉴权由 Cloudflare Access 前置）",
-                         f"goto {base_url}/ui/", ok,
+                         f"goto {base_url}/ops/app", ok,
                          f"页眉三元组: {norm_text(header, 60)}" if ok else f"页眉缺三元组: {header[:80]}",
                          console))
     except Exception as e:

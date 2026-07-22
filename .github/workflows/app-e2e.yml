@@ -1,4 +1,4 @@
-# KMFA App 真数据端到端回归基线（TSK.KMFA.PROD.0013）。
+# KMFA 公共 App Shell + 私有经营 App 真数据端到端回归基线。
 #
 # 验收原文：「升级 kmfa_html_human_flow_audit.py 覆盖 App：登录→首页→检查板→成本页→
 # 差异处理→影响预览→重跑→报告导出；全流 PASS；**作为 App 回归基线入 CI**」。
@@ -55,7 +55,14 @@ jobs:
           pip install --quiet playwright==1.49.0
           python -m playwright install --with-deps chromium
 
-      - name: 跑全流端到端
+      - name: 跑公共 App Shell（桌面 / 移动 / 无 JS / 依赖降级）
+        run: |
+          set -euo pipefail
+          python KMFA/app/e2e/public_shell_flow.py \
+            --base-url http://localhost:18098 \
+            --out-dir public-shell-e2e
+
+      - name: 跑私有经营 App 全流端到端
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -83,7 +90,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-e2e-result
-          path: e2e_result.csv
+          path: |
+            e2e_result.csv
+            public-shell-e2e/
 
       - name: 收容器
         if: always()

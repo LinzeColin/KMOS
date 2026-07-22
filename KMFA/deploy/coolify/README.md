@@ -66,6 +66,9 @@
    `Cf-Access-Jwt-Assertion` 的签名、issuer、audience 和有效期；缺配置、缺 token、伪造 token 均
    fail-closed。Audience tag 是应用标识，不是登录 token；仍只进部署配置，不写入代码或日志。先确认
    匿名访问四类路径均不可达、带有效 Access 会话可达，host 登录墙仍不得改动。
+   同时保持 `KMFA_PUBLIC_SHELL_ENABLED=1`。若增强壳在灰度中异常，只把它置 `0` 并重部署：根路径会
+   回到仍含项目/上传/搜索/进度/报告/帮助的稳定静态壳，`/api*`、`/ops*` 守卫与全部数据不变；恢复
+   时重新置 `1`。响应头 `X-KMFA-Shell-Mode` 分别为 `public-app` / `stable-static`，用于无猜测核验。
 10. **最后公开根路径并验收**：只有第 9 步通过，才把 host 级 Application 改为
     `Bypass / Include Everyone`。更具体的路径应用优先于 host 级 Bypass，因而 `/`、`/assets*`、
     `/healthz` 可匿名，私有面仍需 Access。全程不打印 Access 登录 URL 的 query；无 cookie 的

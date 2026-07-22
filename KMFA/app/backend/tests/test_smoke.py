@@ -53,11 +53,12 @@ def test_skills_enriched_fields():
     assert isinstance(attendance["本地路径硬编码"], int)
 
 
-def test_index_serves_dashboard():
-    # 根路径本身就是 canonical App 入口，不依赖旧 /ui/ 别名。
+def test_index_serves_public_shell():
+    # 根路径本身就是 canonical 公共入口，不依赖旧 /ui/ 别名或私有经营仪表盘。
     r = client.get("/", follow_redirects=False)
     assert r.status_code == 200 and "location" not in r.headers
-    assert "KMFA 经营分析" in r.text and "root" in r.text
+    assert "KMFA｜公开工作区" in r.text and '<div id="root">' in r.text
+    assert r.text.count("data-static-shell-entry=") == 6
 
 
 def test_legacy_ui_redirects_once_to_root():

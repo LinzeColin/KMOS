@@ -49,16 +49,63 @@ def _paginate(rows: list[Any], page: int, size: int) -> tuple[list[Any], dict[st
     start = (page - 1) * size
     return rows[start : start + size], {"page": page, "size": size, "total": total, "pages": pages}
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+PUBLIC_SHELL_MODULE_RE = re.compile(
+    r'<script\b[^>]*\bid=["\']kmfa-app-module["\'][^>]*>\s*</script>',
+    flags=re.IGNORECASE,
+)
+
+
+def _public_shell_enabled() -> bool:
+    """默认启用公共增强壳；仅识别明确的关闭值，避免配置笔误静默回滚。"""
+    return os.environ.get("KMFA_PUBLIC_SHELL_ENABLED", "1").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
+
+
+def _frontend_index() -> Path:
+    index_path = FRONTEND_DIST / "index.html"
+    if not index_path.exists():
+        raise HTTPException(status_code=503, detail="前端未构建（KMFA/app/frontend: npm run build）")
+    return index_path
 
 
 @app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
 def index():
-    if not (FRONTEND_DIST / "index.html").exists():
-        raise HTTPException(status_code=503, detail="前端未构建（KMFA/app/frontend: npm run build）")
+    index_path = _frontend_index()
     # 入口 HTML 禁缓存；内容哈希资产则由 /assets 单独永久缓存。
+    headers = {
+        "Cache-Control": "no-cache, must-revalidate",
+        "X-KMFA-Shell-Mode": "public-app",
+    }
+    if not _public_shell_enabled():
+        # 快速回滚只关闭增强 JS，不改路由、不动数据、不打开私有面。稳定静态壳仍含六个入口
+        # 与清晰状态；marker 缺失时 fail-closed，避免误以为已经回滚。
+        html = index_path.read_text(encoding="utf-8")
+        stable_html, replacements = PUBLIC_SHELL_MODULE_RE.subn("", html)
+        if replacements != 1:
+            raise HTTPException(status_code=503, detail="稳定静态入口不可用")
+        headers["X-KMFA-Shell-Mode"] = "stable-static"
+        return Response(stable_html, media_type="text/html", headers=headers)
     return FileResponse(
-        FRONTEND_DIST / "index.html",
-        headers={"Cache-Control": "no-cache, must-revalidate"},
+        index_path,
+        headers=headers,
+    )
+
+
+@app.api_route("/ops/app/{app_path:path}", methods=["GET", "HEAD"], include_in_schema=False)
+@app.api_route("/ops/app", methods=["GET", "HEAD"], include_in_schema=False)
+@app.api_route("/ops/app/", methods=["GET", "HEAD"], include_in_schema=False)
+def private_operations_app(app_path: str | None = None):
+    """保留既有经营仪表盘的数据访问路径，并置于已守卫的 /ops 私有面。"""
+    return FileResponse(
+        _frontend_index(),
+        headers={
+            "Cache-Control": "no-cache, must-revalidate",
+            "X-KMFA-App-Mode": "private-operations",
+        },
     )
 
 

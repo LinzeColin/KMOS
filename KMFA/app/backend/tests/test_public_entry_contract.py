@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import re
 from types import SimpleNamespace
 
 import jwt
@@ -46,14 +47,57 @@ def test_root_is_direct_canonical_app_entry():
     response = client.get("/", follow_redirects=False)
     assert response.status_code == 200
     assert "location" not in response.headers
-    assert '<div id="root"></div>' in response.text
+    assert response.headers["x-kmfa-shell-mode"] == "public-app"
+    assert '<div id="root">' in response.text
     assert f'<link rel="canonical" href="{CANONICAL_ROOT}">' in response.text
     assert f'<meta property="og:url" content="{CANONICAL_ROOT}">' in response.text
     assert "/assets/" in response.text
     assert "/ui/" not in response.text
+    assert 'id="kmfa-app-module"' in response.text
 
     head = client.head("/", follow_redirects=False)
     assert head.status_code == 200 and not head.content
+    assert head.headers["x-kmfa-shell-mode"] == "public-app"
+
+
+def test_root_contains_complete_static_shell_without_account_controls():
+    html = client.get("/").text
+    entries = re.findall(r'data-static-shell-entry="([a-z]+)"', html)
+    assert entries == ["project", "upload", "search", "progress", "report", "help"]
+    for label in ("项目", "上传", "搜索", "进度", "报告", "帮助"):
+        assert label in html
+    assert 'data-no-js-state="visible"' in html
+    assert "JavaScript 已停用" in html
+    assert not re.search(r'<input\b[^>]*type=["\'](?:email|password)["\']', html, re.I)
+    assert not re.search(r'<(?:button|a)\b[^>]*>\s*(?:登录|注册|OAuth)', html, re.I)
+    assert "/api" not in html and "/ops" not in html
+
+
+def test_public_shell_flag_rolls_back_only_to_stable_static_entry(monkeypatch):
+    monkeypatch.setenv("KMFA_PUBLIC_SHELL_ENABLED", "0")
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 200
+    assert response.headers["x-kmfa-shell-mode"] == "stable-static"
+    assert 'id="kmfa-app-module"' not in response.text
+    assert response.text.count("data-static-shell-entry=") == 6
+    assert "静态公共入口已就绪" in response.text
+    assert "/api" not in response.text and "/ops" not in response.text
+
+    head = client.head("/", follow_redirects=False)
+    assert head.status_code == 200 and not head.content
+    assert head.headers["x-kmfa-shell-mode"] == "stable-static"
+
+
+def test_private_dashboard_compatibility_path_is_not_a_public_alias(monkeypatch):
+    monkeypatch.delenv("KMFA_PRIVATE_OPS_REQUIRE_ACCESS", raising=False)
+    response = client.get("/ops/app", follow_redirects=False)
+    assert response.status_code == 200
+    assert response.headers["x-kmfa-app-mode"] == "private-operations"
+    assert 'id="kmfa-app-module"' in response.text
+
+    deep = client.get("/ops/app/legacy/deep-link", follow_redirects=False)
+    assert deep.status_code == 200
+    assert deep.headers["x-kmfa-app-mode"] == "private-operations"
 
 
 def test_legacy_ui_aliases_are_single_hop_308_for_get_and_head():
@@ -121,7 +165,14 @@ def test_private_paths_fail_closed_and_verify_access_jwt(monkeypatch):
     assert client.get("/healthz").status_code == 200
     assert client.get("/sitemap.xml").status_code == 200
 
-    for path in ("/api", "/api/状态", "/ops", "/ops/healthz", "/ops/openapi.json"):
+    for path in (
+        "/api",
+        "/api/状态",
+        "/ops",
+        "/ops/app",
+        "/ops/healthz",
+        "/ops/openapi.json",
+    ):
         denied = client.get(path)
         assert denied.status_code == 403
         assert denied.json() == {"detail": "cloudflare_access_required"}
@@ -139,6 +190,10 @@ def test_private_paths_fail_closed_and_verify_access_jwt(monkeypatch):
     valid = _access_token(trusted_key, issuer=issuer, audience=audience)
     allowed = client.get("/api/状态", headers={"Cf-Access-Jwt-Assertion": valid})
     assert allowed.status_code == 200
+    allowed_dashboard = client.get(
+        "/ops/app", headers={"Cf-Access-Jwt-Assertion": valid}
+    )
+    assert allowed_dashboard.status_code == 200
 
     wrong_audience = _access_token(
         trusted_key, issuer=issuer, audience="wrong-audience"
@@ -206,6 +261,9 @@ def test_deployment_contract_enables_origin_guard_before_public_bypass():
     compose_path = REPO / "KMFA" / "deploy" / "coolify" / "docker-compose.yml"
     compose = yaml.safe_load(compose_path.read_text(encoding="utf-8"))
     environment = compose["services"]["app"]["environment"]
+    assert environment["KMFA_PUBLIC_SHELL_ENABLED"] == (
+        "${KMFA_PUBLIC_SHELL_ENABLED:-1}"
+    )
     assert environment["KMFA_PRIVATE_OPS_REQUIRE_ACCESS"] == (
         "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
     )
