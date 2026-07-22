@@ -181,12 +181,16 @@ function PublicAppShell() {
             </a>
           ))}
         </nav>
-        <a className={`public-health-chip is-${systemState}`} href="#system-status">
+        <a
+          className={`public-health-chip is-${systemState}`}
+          href="#system-status"
+          aria-label={`系统状态：${healthCopy[0]}`}
+        >
           <span aria-hidden="true" />{healthCopy[0]}
         </a>
       </header>
 
-      <main id="main-content">
+      <main id="main-content" tabIndex="-1">
         <section className="public-hero" aria-labelledby="hero-title">
           <div className="public-hero-copy">
             <p className="public-kicker"><span>NO ACCOUNT</span> · ONE PUBLIC ENTRY</p>
@@ -209,11 +213,11 @@ function PublicAppShell() {
           </aside>
         </section>
 
-        <div className="public-trust-strip" aria-label="使用边界">
-          <span>无需账号</span>
-          <span>状态透明</span>
-          <span>故障不空白</span>
-          <span>删除由用户明确触发</span>
+        <div className="public-trust-strip" role="list" aria-label="使用边界">
+          <span role="listitem">无需账号</span>
+          <span role="listitem">状态透明</span>
+          <span role="listitem">故障不空白</span>
+          <span role="listitem">删除由用户明确触发</span>
         </div>
 
         <section className="public-capabilities" id="capabilities" aria-labelledby="capabilities-title">
@@ -234,6 +238,7 @@ function PublicAppShell() {
                 data-shell-entry={item.key}
                 aria-pressed={activeKey === item.key}
                 aria-controls="module-detail"
+                aria-label={`${item.title}：${item.status}`}
                 onClick={() => openModule(item.key)}
               >
                 <span className="public-card-code">{item.code}</span>
@@ -286,7 +291,13 @@ function PublicAppShell() {
               </div>
               <p className="public-search-scope">范围：仅本页六项公开说明，不查询用户工作区。</p>
               {query.trim() && (
-                <div className="public-search-results" data-search-results="true">
+                <div
+                  className="public-search-results"
+                  data-search-results="true"
+                  role="region"
+                  aria-live="polite"
+                  aria-label="公开说明搜索结果"
+                >
                   {searchResults.length ? (
                     <ul>
                       {searchResults.map((item) => (
@@ -311,7 +322,12 @@ function PublicAppShell() {
             </div>
             <p>基础依赖失败时，导航和边界说明仍然保留；不会用空白页面或虚构数据代替错误。</p>
           </div>
-          <div className={`public-system-card is-${systemState}`}>
+          <div
+            className={`public-system-card is-${systemState}`}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             <span className="public-system-light" aria-hidden="true" />
             <div>
               <strong>{healthCopy[0]}</strong>

@@ -28,7 +28,7 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -41,6 +41,7 @@ jobs:
           docker build -f KMFA/app/backend/Dockerfile -t kmfa-app:e2e .
           mkdir -p /tmp/kmfa-state
           docker run -d --name kmfa-e2e -p 18098:8000 \
+            -e KMFA_PUBLIC_INDEXING_ENABLED=1 \
             -v /tmp/kmfa-state:/var/lib/kmfa/state kmfa-app:e2e
           for i in $(seq 1 60); do
             curl -sf http://localhost:18098/healthz >/dev/null && break
@@ -52,8 +53,9 @@ jobs:
       - name: 装 Playwright
         run: |
           set -euo pipefail
-          pip install --quiet playwright==1.49.0
-          python -m playwright install --with-deps chromium
+          npm ci --prefix KMFA/app/frontend --ignore-scripts
+          pip install --quiet playwright==1.60.0
+          python -m playwright install --with-deps chromium firefox webkit
 
       - name: 跑公共 App Shell（桌面 / 移动 / 无 JS / 依赖降级）
         run: |
@@ -61,6 +63,13 @@ jobs:
           python KMFA/app/e2e/public_shell_flow.py \
             --base-url http://localhost:18098 \
             --out-dir public-shell-e2e
+
+      - name: 跑公开页可访问性与索引边界（三浏览器）
+        run: |
+          set -euo pipefail
+          python KMFA/app/e2e/public_accessibility_index.py \
+            --base-url http://localhost:18098 \
+            --out-dir public-accessibility-index-e2e
 
       - name: 跑私有经营 App 全流端到端
         run: |
@@ -93,6 +102,7 @@ jobs:
           path: |
             e2e_result.csv
             public-shell-e2e/
+            public-accessibility-index-e2e/
 
       - name: 收容器
         if: always()

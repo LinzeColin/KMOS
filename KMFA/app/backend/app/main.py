@@ -20,6 +20,13 @@ from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse, RedirectResponse, Response
 
 from .private_access import PrivateOperationsAccessMiddleware
+from .public_indexing import (
+    PublicIndexBoundaryMiddleware,
+    control_headers,
+    public_indexing_enabled,
+    robots_body,
+    sitemap_body,
+)
 
 REPO = Path(__file__).resolve().parents[4]
 KMFA = REPO / "KMFA"
@@ -39,6 +46,9 @@ app = FastAPI(
     redoc_url=None,
 )
 app.add_middleware(PrivateOperationsAccessMiddleware)
+# Keep this outermost so even 403/503 responses produced by the private guard
+# receive the crawler/cache boundary.
+app.add_middleware(PublicIndexBoundaryMiddleware)
 
 
 def _paginate(rows: list[Any], page: int, size: int) -> tuple[list[Any], dict[str, int]]:
@@ -53,6 +63,8 @@ PUBLIC_SHELL_MODULE_RE = re.compile(
     r'<script\b[^>]*\bid=["\']kmfa-app-module["\'][^>]*>\s*</script>',
     flags=re.IGNORECASE,
 )
+PUBLIC_INDEX_META = '<meta name="robots" content="index,follow,max-snippet:-1">'
+PUBLIC_HOLD_META = '<meta name="robots" content="noindex,nofollow,noarchive">'
 
 
 def _public_shell_enabled() -> bool:
@@ -80,15 +92,25 @@ def index():
         "Cache-Control": "no-cache, must-revalidate",
         "X-KMFA-Shell-Mode": "public-app",
     }
-    if not _public_shell_enabled():
+    shell_enabled = _public_shell_enabled()
+    indexing_enabled = public_indexing_enabled()
+    if not shell_enabled or not indexing_enabled:
+        html = index_path.read_text(encoding="utf-8")
+        if not indexing_enabled:
+            replacements = html.count(PUBLIC_INDEX_META)
+            if replacements != 1:
+                raise HTTPException(status_code=503, detail="索引回退入口不可用")
+            html = html.replace(PUBLIC_INDEX_META, PUBLIC_HOLD_META)
+    if not shell_enabled:
         # 快速回滚只关闭增强 JS，不改路由、不动数据、不打开私有面。稳定静态壳仍含六个入口
         # 与清晰状态；marker 缺失时 fail-closed，避免误以为已经回滚。
-        html = index_path.read_text(encoding="utf-8")
         stable_html, replacements = PUBLIC_SHELL_MODULE_RE.subn("", html)
         if replacements != 1:
             raise HTTPException(status_code=503, detail="稳定静态入口不可用")
         headers["X-KMFA-Shell-Mode"] = "stable-static"
         return Response(stable_html, media_type="text/html", headers=headers)
+    if not indexing_enabled:
+        return Response(html, media_type="text/html", headers=headers)
     return FileResponse(
         index_path,
         headers=headers,
@@ -144,15 +166,22 @@ def operations_healthz():
     return {"status": "ok", "facts_dir_present": FACTS.is_dir()}
 
 
+@app.api_route("/robots.txt", methods=["GET", "HEAD"], include_in_schema=False)
+def robots():
+    return Response(
+        robots_body(),
+        media_type="text/plain",
+        headers=control_headers(),
+    )
+
+
 @app.api_route("/sitemap.xml", methods=["GET", "HEAD"], include_in_schema=False)
 def sitemap():
-    body = (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        "  <url><loc>https://kmfa.linzezhang.com/</loc></url>\n"
-        "</urlset>\n"
+    return Response(
+        sitemap_body(),
+        media_type="application/xml",
+        headers=control_headers(),
     )
-    return Response(body, media_type="application/xml")
 
 
 def _quality_grade_short() -> str:

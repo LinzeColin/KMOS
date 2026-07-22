@@ -66,7 +66,8 @@
    `Cf-Access-Jwt-Assertion` 的签名、issuer、audience 和有效期；缺配置、缺 token、伪造 token 均
    fail-closed。Audience tag 是应用标识，不是登录 token；仍只进部署配置，不写入代码或日志。先确认
    匿名访问四类路径均不可达、带有效 Access 会话可达，host 登录墙仍不得改动。
-   同时保持 `KMFA_PUBLIC_SHELL_ENABLED=1`。若增强壳在灰度中异常，只把它置 `0` 并重部署：根路径会
+   同时保持 `KMFA_PUBLIC_SHELL_ENABLED=1`、`KMFA_PUBLIC_INDEXING_ENABLED=0`。索引 hold 模式不会
+   阻止人类访问主页，但会以响应头、全拒绝 robots 和空 sitemap 阻止搜索索引。若增强壳在灰度中异常，只把它置 `0` 并重部署：根路径会
    回到仍含项目/上传/搜索/进度/报告/帮助的稳定静态壳，`/api*`、`/ops*` 守卫与全部数据不变；恢复
    时重新置 `1`。响应头 `X-KMFA-Shell-Mode` 分别为 `public-app` / `stable-static`，用于无猜测核验。
 10. **最后公开根路径并验收**：只有第 9 步通过，才把 host 级 Application 改为
@@ -76,6 +77,12 @@
     GET/HEAD `/ui`、`/ui/` 均单跳 `308 → /`；错误路径无登录跳转/循环；匿名 `/api/状态`、
     `/ops/healthz`、`/ops/openapi.json` 均不可达。失败时立即把 host 级 Application 从 Bypass 恢复原
     Owner Allow 策略；这是原子边缘回滚，不删除路径应用、不回退数据，也不绕过源站守卫。
+11. **最后单独放开搜索索引**：第 10 步的人类访问、三浏览器、键盘/axe、移动视口和未发布 canary
+    负测全部通过后，才把 `KMFA_PUBLIC_INDEXING_ENABLED=1` 并重部署。核验根响应
+    `X-KMFA-Index-Mode: public-root` 且无 `noindex`，`robots.txt` 只允许精确根路径与渲染资产，
+    `sitemap.xml` 只含 `https://kmfa.linzezhang.com/`；`/api*`、`/ops*`、`/ui*`、
+    `/healthz`、任意未发布 canary 仍必须被 robots 拒绝，响应带 `X-Robots-Tag: noindex`，并且
+    不进入 sitemap。发现索引边界异常时立即恢复 `0` 并重部署；该回滚保持主页可访问、不改数据。
 
 边界依据 Cloudflare 官方的 [Application paths](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/app-paths/)、
 [Bypass policy](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/) 与

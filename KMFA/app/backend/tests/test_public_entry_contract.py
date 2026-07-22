@@ -1,4 +1,4 @@
-"""S03/P3.1 root-domain and private-operations boundary contract."""
+"""S03 public entry, private operations and search-index boundary contract."""
 
 from __future__ import annotations
 
@@ -112,12 +112,120 @@ def test_legacy_ui_aliases_are_single_hop_308_for_get_and_head():
             assert final.status_code == 200 and "location" not in final.headers
 
 
-def test_sitemap_and_share_surface_name_only_the_root():
+def test_sitemap_and_share_surface_name_only_the_root(monkeypatch):
+    monkeypatch.setenv("KMFA_PUBLIC_INDEXING_ENABLED", "1")
     response = client.get("/sitemap.xml")
     assert response.status_code == 200
     assert response.text.count("<loc>") == 1
     assert f"<loc>{CANONICAL_ROOT}</loc>" in response.text
     assert "/ui" not in response.text
+
+
+def test_index_hold_is_default_and_keeps_the_human_homepage(monkeypatch):
+    monkeypatch.delenv("KMFA_PUBLIC_INDEXING_ENABLED", raising=False)
+
+    root = client.get("/", follow_redirects=False)
+    assert root.status_code == 200
+    assert root.headers["x-kmfa-index-mode"] == "hold"
+    assert "noindex" in root.headers["x-robots-tag"]
+    assert root.headers["cache-control"] == "private, no-store"
+    assert '<meta name="robots" content="noindex,nofollow,noarchive">' in root.text
+    assert '<meta name="robots" content="index,follow,max-snippet:-1">' not in root.text
+
+    robots = client.get("/robots.txt")
+    assert robots.status_code == 200
+    assert robots.text == "User-agent: *\nDisallow: /\n"
+    assert robots.headers["x-kmfa-index-mode"] == "hold"
+    assert "noindex" not in robots.headers
+
+    sitemap = client.get("/sitemap.xml")
+    assert sitemap.status_code == 200
+    assert sitemap.text.count("<loc>") == 0
+    assert sitemap.headers["x-kmfa-index-mode"] == "hold"
+
+
+def test_index_flag_typos_fail_closed(monkeypatch):
+    monkeypatch.setenv("KMFA_PUBLIC_INDEXING_ENABLED", "enable-ish")
+    root = client.get("/")
+    assert root.status_code == 200
+    assert root.headers["x-kmfa-index-mode"] == "hold"
+    assert "noindex" in root.headers["x-robots-tag"]
+    assert client.get("/robots.txt").text == "User-agent: *\nDisallow: /\n"
+    assert "<loc>" not in client.get("/sitemap.xml").text
+
+
+def test_promoted_index_mode_allows_only_the_canonical_root(monkeypatch):
+    monkeypatch.setenv("KMFA_PUBLIC_INDEXING_ENABLED", "1")
+
+    root = client.get("/", follow_redirects=False)
+    assert root.status_code == 200
+    assert root.headers["x-kmfa-index-mode"] == "public-root"
+    assert "x-robots-tag" not in root.headers
+    assert root.headers["cache-control"] == "no-cache, must-revalidate"
+    for metadata in (
+        '<meta name="robots" content="index,follow,max-snippet:-1">',
+        '<meta property="og:type" content="website">',
+        '<meta property="og:site_name" content="KMFA">',
+        '<meta property="og:title" content="KMFA｜公开工作区">',
+        '<meta property="og:locale" content="zh_CN">',
+        '<meta name="twitter:card" content="summary">',
+    ):
+        assert metadata in root.text
+
+    robots = client.get("/robots.txt")
+    assert robots.text.splitlines() == [
+        "User-agent: *",
+        "Disallow: /",
+        "Allow: /$",
+        "Allow: /assets/",
+        "Allow: /robots.txt",
+        "Allow: /sitemap.xml",
+        f"Sitemap: {CANONICAL_ROOT}sitemap.xml",
+    ]
+    assert robots.headers["cache-control"] == "public, no-cache, must-revalidate"
+    assert robots.headers["content-type"].startswith("text/plain")
+
+    sitemap = client.get("/sitemap.xml")
+    assert sitemap.text.count("<loc>") == 1
+    assert f"<loc>{CANONICAL_ROOT}</loc>" in sitemap.text
+    assert sitemap.headers["cache-control"] == "public, no-cache, must-revalidate"
+
+
+def test_unpublished_private_and_non_page_routes_never_become_index_candidates(
+    monkeypatch,
+):
+    monkeypatch.setenv("KMFA_PUBLIC_INDEXING_ENABLED", "1")
+    monkeypatch.delenv("KMFA_PRIVATE_OPS_REQUIRE_ACCESS", raising=False)
+    unpublished_canary = "/unpublished/__kmfa_publication_canary__/private-file"
+
+    robots = client.get("/robots.txt").text
+    sitemap = client.get("/sitemap.xml").text
+    assert unpublished_canary not in robots
+    assert unpublished_canary not in sitemap
+    assert all(
+        marker not in sitemap
+        for marker in ("/api", "/ops", "/ui", "/healthz")
+    )
+
+    for path, expected_status in (
+        (unpublished_canary, 404),
+        ("/ops/app", 200),
+        ("/api/状态", 200),
+        ("/ui/legacy", 308),
+        ("/healthz", 200),
+    ):
+        response = client.get(path, follow_redirects=False)
+        assert response.status_code == expected_status
+        assert response.headers["x-kmfa-index-mode"] == "public-root"
+        assert response.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
+        assert response.headers["cache-control"] == "private, no-store"
+
+    asset_path = re.search(r'(?:src|href)="(/assets/[^"]+)"', client.get("/").text)
+    assert asset_path is not None
+    asset = client.get(asset_path.group(1))
+    assert asset.status_code == 200
+    assert asset.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
+    assert asset.headers["cache-control"] == "public, max-age=31536000, immutable"
 
 
 def test_public_health_and_errors_do_not_disclose_private_details():
@@ -177,6 +285,7 @@ def test_private_paths_fail_closed_and_verify_access_jwt(monkeypatch):
         assert denied.status_code == 403
         assert denied.json() == {"detail": "cloudflare_access_required"}
         assert denied.headers["cache-control"] == "no-store"
+        assert denied.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
 
     assert client.get("/api-public-near-prefix").status_code == 404
 
@@ -264,6 +373,9 @@ def test_deployment_contract_enables_origin_guard_before_public_bypass():
     assert environment["KMFA_PUBLIC_SHELL_ENABLED"] == (
         "${KMFA_PUBLIC_SHELL_ENABLED:-1}"
     )
+    assert environment["KMFA_PUBLIC_INDEXING_ENABLED"] == (
+        "${KMFA_PUBLIC_INDEXING_ENABLED:-0}"
+    )
     assert environment["KMFA_PRIVATE_OPS_REQUIRE_ACCESS"] == (
         "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
     )
@@ -276,6 +388,9 @@ def test_deployment_contract_enables_origin_guard_before_public_bypass():
     for route_pattern in ("`/api`", "`/api/*`", "`/ops`", "`/ops/*`"):
         assert route_pattern in runbook
     assert "Bypass / Include Everyone" in runbook
+    assert "KMFA_PUBLIC_INDEXING_ENABLED=0" in runbook
+    assert "KMFA_PUBLIC_INDEXING_ENABLED=1" in runbook
+    assert "X-KMFA-Index-Mode: public-root" in runbook
     assert "恢复原" in runbook and "Owner Allow 策略" in runbook
     assert (
         runbook.index("先建更具体的路径锁")
