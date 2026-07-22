@@ -1,0 +1,1991 @@
+schema_version: '1.0'
+taskpack_version: 1.5.2
+graph_policy:
+  acyclic: true
+  max_direct_children_per_stage: 5
+  max_direct_tasks_per_phase: 5
+  one_primary_acceptance_per_requirement: true
+  task_slice: 每个任务默认 0.5-2 engineer-days；超过 2 天或含多于一个不可逆风险时必须再切片。
+  evidence_policy: 完整日志/截图/测试制品进入 CI/Release Artifacts；仓库只保留 compact receipt。
+stages:
+- id: S00
+  title: 权威、恢复与启动授权
+  objective: 先知道正在改什么、什么不能覆盖、哪些输入已经一次性准备好。
+  deliverable: 四方身份快照、恢复差异处置、版本权威表、预授权清单。
+  gate: 所有进入实现的差异已分类；产品版本与任务包版本不混用；普通依赖不再阻塞。
+  phases:
+  - id: P-S00-01
+    title: P0.1 只读取证
+    task_ids:
+    - T-S00-01
+  - id: P-S00-02
+    title: P0.2 恢复核对
+    task_ids:
+    - T-S00-02
+  - id: P-S00-03
+    title: P0.3 权威建立
+    task_ids:
+    - T-S00-03
+  - id: P-S00-04
+    title: P0.4 开发去阻塞
+    task_ids:
+    - T-S00-04
+- id: S01
+  title: Working Backwards 与产品合同
+  objective: 从客户问题和可证伪结果出发，冻结清晰范围、成功标准和停止条件。
+  deliverable: PR/FAQ、PRD、OKR、Baseline、成本收益与 Kill Criteria。
+  gate: 问题、用户、价值、非目标、指标、观察期、经济判据和范围均无歧义。
+  phases:
+  - id: P-S01-01
+    title: P1.1 客户倒推
+    task_ids:
+    - T-S01-01
+  - id: P-S01-02
+    title: P1.2 PRD 与 OKR
+    task_ids:
+    - T-S01-02
+  - id: P-S01-03
+    title: P1.3 经济与证伪
+    task_ids:
+    - T-S01-03
+  - id: P-S01-04
+    title: P1.4 合同冻结
+    task_ids:
+    - T-S01-04
+- id: S02
+  title: Canonical Facts 与精简双平面
+  objective: 把产品合同变成一条可生成、可校验、不重复的事实链。
+  deliverable: Canonical Facts、七文件、Acceptance Contract、Task Graph、Traceability 与 validator。
+  gate: 七文件精确、DAG 无环、所有需求追踪闭合、禁止形式化证据树。
+  phases:
+  - id: P-S02-01
+    title: P2.1 事实建模
+    task_ids:
+    - T-S02-01
+  - id: P-S02-02
+    title: P2.2 七文件渲染
+    task_ids:
+    - T-S02-02
+  - id: P-S02-03
+    title: P2.3 验收与追踪
+    task_ids:
+    - T-S02-03
+  - id: P-S02-04
+    title: P2.4 机器门禁
+    task_ids:
+    - T-S02-04
+- id: S03
+  title: 公开根主页与 Walking Skeleton
+  objective: 先让匿名用户在根域名看到并走通真实软件，而不是登录墙或路径跳转。
+  deliverable: 根入口、旧路径兼容、完整 App Shell、早期端到端骨架。
+  gate: 生产等价匿名根入口 Oracle 通过；核心骨架可在 Flag 下回滚。
+  phases:
+  - id: P-S03-01
+    title: P3.1 边缘路由
+    task_ids:
+    - T-S03-01
+  - id: P-S03-02
+    title: P3.2 App Shell
+    task_ids:
+    - T-S03-02
+  - id: P-S03-03
+    title: P3.3 可访问与公开索引
+    task_ids:
+    - T-S03-03
+  - id: P-S03-04
+    title: P3.4 早期骨架
+    task_ids:
+    - T-S03-04
+- id: S04
+  title: 匿名工作区、恢复与反滥用
+  objective: 在不登录的前提下，让用户长期找回自己的数据，并控制滥用。
+  deliverable: 高熵匿名身份、恢复码/文件、短时会话、限额和挑战机制。
+  gate: 跨设备恢复 100% 通过；secret 泄露为 0；攻击负载不拖垮正常用户。
+  phases:
+  - id: P-S04-01
+    title: P4.1 匿名身份
+    task_ids:
+    - T-S04-01
+  - id: P-S04-02
+    title: P4.2 恢复体验
+    task_ids:
+    - T-S04-02
+  - id: P-S04-03
+    title: P4.3 Secret hygiene
+    task_ids:
+    - T-S04-03
+  - id: P-S04-04
+    title: P4.4 反滥用
+    task_ids:
+    - T-S04-04
+- id: S05
+  title: 耐久数据库、对象存储与生命周期
+  objective: 把用户理解的“永久数据库”落成可恢复的结构化数据与文件存储。
+  deliverable: 事务数据库、对象存储、状态机/对账、备份恢复与删除生命周期。
+  gate: 跨重启/部署/恢复数据不丢；对象和索引一致；默认无自动到期。
+  phases:
+  - id: P-S05-01
+    title: P5.1 结构化数据库
+    task_ids:
+    - T-S05-01
+  - id: P-S05-02
+    title: P5.2 对象存储
+    task_ids:
+    - T-S05-02
+  - id: P-S05-03
+    title: P5.3 一致性状态机
+    task_ids:
+    - T-S05-03
+  - id: P-S05-04
+    title: P5.4 保留、备份与恢复
+    task_ids:
+    - T-S05-04
+- id: S06
+  title: 任意文件安全上传
+  objective: 允许全部文件类型进入耐久存储，同时不让未知或恶意文件危害系统。
+  deliverable: resumable upload、隔离扫描、处理/预览状态、全量负向与并发测试。
+  gate: 合法文件可存储；危险文件不执行；中断可恢复；原件不可变。
+  phases:
+  - id: P-S06-01
+    title: P6.1 上传合同
+    task_ids:
+    - T-S06-01
+  - id: P-S06-02
+    title: P6.2 隔离与扫描
+    task_ids:
+    - T-S06-02
+  - id: P-S06-03
+    title: P6.3 版本、血缘与预览
+    task_ids:
+    - T-S06-03
+  - id: P-S06-04
+    title: P6.4 上传质量门
+    task_ids:
+    - T-S06-04
+- id: S07
+  title: 可靠下载、批量导出与安全读取
+  objective: 让用户随时取回原件和成果，且读取操作无隐藏副作用。
+  deliverable: 单文件/Range/批量 ZIP、显式导出 Job、授权和负载门禁。
+  gate: 下载字节一致；批量不丢失；GET/HEAD 无业务副作用；导出受预算控制。
+  phases:
+  - id: P-S07-01
+    title: P7.1 单文件下载
+    task_ids:
+    - T-S07-01
+  - id: P-S07-02
+    title: P7.2 续传与批量 ZIP
+    task_ids:
+    - T-S07-02
+  - id: P-S07-03
+    title: P7.3 显式导出 Job
+    task_ids:
+    - T-S07-03
+  - id: P-S07-04
+    title: P7.4 下载与导出门禁
+    task_ids:
+    - T-S07-04
+- id: S08
+  title: 项目、进度、搜索、发布与统计
+  objective: 让持久化文件转化为可管理、可找回、可选择公开的产品。
+  deliverable: 项目/进度/分数、全文搜索、Publication Gate、隐私统计与可逆迁移。
+  gate: 核心 CRUD/恢复一致；私密搜索命中为 0；默认 Unlisted；统计不含秘密。
+  phases:
+  - id: P-S08-01
+    title: P8.1 项目与进度
+    task_ids:
+    - T-S08-01
+  - id: P-S08-02
+    title: P8.2 数据库全文搜索
+    task_ids:
+    - T-S08-02
+  - id: P-S08-03
+    title: P8.3 Publication Gate
+    task_ids:
+    - T-S08-03
+  - id: P-S08-04
+    title: P8.4 统计与可逆迁移
+    task_ids:
+    - T-S08-04
+- id: S09
+  title: KMFA 财务业务流与报告
+  objective: 在公开、耐久、可恢复的基础上保证财务计算和业务解释正确。
+  deliverable: 导入校验/血缘、精确计算、重跑冲突、报告与完整业务旅程。
+  gate: 金额精确、关键结果可追溯、重跑不重复、Golden/Black Path 通过。
+  phases:
+  - id: P-S09-01
+    title: P9.1 导入与血缘
+    task_ids:
+    - T-S09-01
+  - id: P-S09-02
+    title: P9.2 精确计算
+    task_ids:
+    - T-S09-02
+  - id: P-S09-03
+    title: P9.3 重跑与来源冲突
+    task_ids:
+    - T-S09-03
+  - id: P-S09-04
+    title: P9.4 业务流与报告
+    task_ids:
+    - T-S09-04
+- id: S10
+  title: Security Assurance 与条件性 AI 安全
+  objective: 把公开、匿名、文件和财务风险纳入设计、构建、测试和维护全周期。
+  deliverable: 威胁模型、SDLC/SBOM、授权/泄露红队、条件性 AI Gate。
+  gate: 公开边界无 canary 泄露；高危漏洞为 0；AI 范围按真实能力处理。
+  phases:
+  - id: P-S10-01
+    title: P10.1 威胁模型
+    task_ids:
+    - T-S10-01
+  - id: P-S10-02
+    title: P10.2 Secure SDLC 与供应链
+    task_ids:
+    - T-S10-02
+  - id: P-S10-03
+    title: P10.3 授权与泄露红队
+    task_ids:
+    - T-S10-03
+  - id: P-S10-04
+    title: P10.4 AI 条件 Gate
+    task_ids:
+    - T-S10-04
+- id: S11
+  title: 全层测试、极限与混沌
+  objective: 用确定性 Oracle 和主动故障验证质量，而不是依赖文档或平均指标。
+  deliverable: 单元/合同/属性/golden、E2E/视觉/a11y、压力/soak、混沌/恢复。
+  gate: 五类路径完整；阻断测试通过；极限受控；故障后不变量保持。
+  phases:
+  - id: P-S11-01
+    title: P11.1 确定性正确性
+    task_ids:
+    - T-S11-01
+  - id: P-S11-02
+    title: P11.2 用户路径
+    task_ids:
+    - T-S11-02
+  - id: P-S11-03
+    title: P11.3 性能与极限
+    task_ids:
+    - T-S11-03
+  - id: P-S11-04
+    title: P11.4 混沌与恢复
+    task_ids:
+    - T-S11-04
+- id: S12
+  title: 可观测、诊断、自愈、容量与运维
+  objective: 让上线后的系统可看见、可解释、可恢复、成本可控。
+  deliverable: OTel 信号/SLO、告警与 runbook、自愈、成本预算、例行恢复/补丁演练。
+  gate: 关键旅程 100% 可关联；告警可执行；成本和恢复在预算内。
+  phases:
+  - id: P-S12-01
+    title: P12.1 可观测与 SLO
+    task_ids:
+    - T-S12-01
+  - id: P-S12-02
+    title: P12.2 告警、诊断与自愈
+    task_ids:
+    - T-S12-02
+  - id: P-S12-03
+    title: P12.3 容量与成本护栏
+    task_ids:
+    - T-S12-03
+  - id: P-S12-04
+    title: P12.4 常态化运维演练
+    task_ids:
+    - T-S12-04
+- id: S13
+  title: 安全发布、自动回滚与 GA
+  objective: 把通过验证的能力小批量、可逆地推向生产，并用真实 Oracle 决定晋级。
+  deliverable: Feature Flags、Canary/Blue-Green 等效发布、发布后测试、GA 决策与证据封口。
+  gate: 无错误晋级；回滚后核心 Oracle 恢复；GA 只基于证据而非完成感。
+  phases:
+  - id: P-S13-01
+    title: P13.1 Feature Flag 与配置治理
+    task_ids:
+    - T-S13-01
+  - id: P-S13-02
+    title: P13.2 Canary/Blue-Green 与迁移发布
+    task_ids:
+    - T-S13-02
+  - id: P-S13-03
+    title: P13.3 发布后连续验收
+    task_ids:
+    - T-S13-03
+  - id: P-S13-04
+    title: P13.4 GA 与后验复核
+    task_ids:
+    - T-S13-04
+tasks:
+- id: T-S00-01
+  stage_id: S00
+  phase_id: P-S00-01
+  phase: P0.1 只读取证
+  title: 冻结当前系统与来源身份
+  purpose: 记录当前 main、生产入口/制品、配置、数据库和历史输入的可核验身份，不做修改。
+  inputs:
+  - 当前仓库只读检出
+  - 生产 URL 与部署元数据
+  - 验收包、v1.5、v1.4.2 参考包
+  outputs:
+  - SOURCE_IDENTITY.md
+  - commit/config/artifact digest 清单
+  - 只读审计日志
+  dependencies: []
+  requirement_ids:
+  - R-GOV-002
+  acceptance_ids:
+  - AC-GOV-002
+  test: 重新执行身份命令应得到相同 git SHA/artifact digest；生产响应可关联部署身份。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 误把任务包版本当产品版本，或对错误仓库/环境实施变更。
+  rollback: 只读任务，无业务回滚；删除临时凭据和本地审计副本。
+  stop_condition: 无法确认目标仓库/生产环境唯一身份，或发现密钥/私密原始数据意外进入公共输入。
+  pass_gate: 目标仓库、分支、产品版本、部署制品和输入包 SHA256 均唯一且已记录。
+  estimate_engineer_days: 0.5-1.0
+  owner: Tech Lead
+  parallel_group: ''
+- id: T-S00-02
+  stage_id: S00
+  phase_id: P-S00-02
+  phase: P0.2 恢复核对
+  title: 完成 main / production / v1.5 / history 四方 reconciliation
+  purpose: 保护恢复资产并消除盲目 replay 风险。
+  inputs:
+  - S00.1 身份快照
+  - v1.5 partial recovery bundle
+  - 当前 main 与生产制品
+  outputs:
+  - RECOVERY_RECONCILIATION.csv
+  - Adopt/Redo/Discard/Conflict 处置表
+  - 未完成 S24 排除证明
+  dependencies:
+  - T-S00-01
+  requirement_ids:
+  - R-GOV-001
+  acceptance_ids:
+  - AC-GOV-001
+  test: 拓扑检查所有差异有唯一处置；抽样从差异追到 commit/file/evidence；禁止 force push/replay 命令。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 覆盖当前有效代码、夹带未完成资产、丢失 v1.5 唯一恢复文件。
+  rollback: 所有试验仅在隔离分支；删除试验分支即可恢复。
+  stop_condition: 某冲突同时涉及不可逆数据迁移和无法确定的权威源。
+  pass_gate: 进入开发范围的差异未分类数为 0；Conflict 均有默认建议与 owner。
+  estimate_engineer_days: 1.0-2.0
+  owner: Recovery Lead
+  parallel_group: ''
+- id: T-S00-03
+  stage_id: S00
+  phase_id: P-S00-03
+  phase: P0.3 权威建立
+  title: 建立版本、事实与责任权威表
+  purpose: 明确谁对事实、产品、发布和验收负责。
+  inputs:
+  - S00.1 身份快照
+  - S00.2 处置表
+  - 现有七文件与 machine 目录
+  outputs:
+  - AUTHORITY_REGISTER.md
+  - 版本 namespace 规则
+  - one-writer-per-fact-domain 映射
+  dependencies:
+  - T-S00-01
+  requirement_ids:
+  - R-GOV-002
+  acceptance_ids:
+  - AC-GOV-002
+  test: 同一事实域只能有一个 writer；从部署制品可反查源码与任务包；冲突解析规则可执行。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 产生第二套治理或版本漂移。
+  rollback: 回退 authority 变更，不触碰业务数据。
+  stop_condition: 发现两个生产源同时被声明为唯一权威且无法只读核验。
+  pass_gate: 任务包/product/deployment 三类版本独立；每个事实域唯一 owner/writer。
+  estimate_engineer_days: 0.5-1.0
+  owner: Product+Tech Lead
+  parallel_group: S00-B
+- id: T-S00-04
+  stage_id: S00
+  phase_id: P-S00-04
+  phase: P0.4 开发去阻塞
+  title: 一次性准备依赖、权限、配额与默认决策
+  purpose: 让后续开发只在不可逆或越权风险时暂停。
+  inputs:
+  - S00.2 处置表
+  - S00.3 权威表
+  - 平台账户/环境/域名/数据库/对象存储现状
+  outputs:
+  - PREAUTHORIZED_INPUTS_CHECKLIST.md
+  - 默认决策表
+  - Stop Condition 协议
+  dependencies:
+  - T-S00-02
+  - T-S00-03
+  requirement_ids:
+  - R-GOV-004
+  acceptance_ids:
+  - AC-GOV-004
+  test: 用缺失普通配置、配额不足、暂缺 OAuth 等场景演练；应采用可逆默认继续，而非阻塞。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 过度授权造成不可控修改，或授权不足导致开发中途停滞。
+  rollback: 撤销临时权限和 Feature Flag；所有高风险权限设到期时间。
+  stop_condition: 需要不可逆基础设施迁移、可能泄露私密数据、可能损坏唯一数据或超出已授权产品范围。
+  pass_gate: 普通依赖均为 Ready/Default/Deferred-not-blocking；Stop 输出模板完整。
+  estimate_engineer_days: 0.5-1.5
+  owner: Delivery Lead
+  parallel_group: ''
+- id: T-S01-01
+  stage_id: S01
+  phase_id: P-S01-01
+  phase: P1.1 客户倒推
+  title: 编写面向客户的 PR/FAQ
+  purpose: 先验证为什么需要这款软件，以及匿名、持久化、上传下载对用户的实际价值。
+  inputs:
+  - 用户明确授权
+  - 2026-07-22 验收失败证据
+  - 历史业务流与公开项目调研
+  outputs:
+  - PR/FAQ 章节
+  - 客户问题-结果证据链
+  - 反证问题清单
+  dependencies:
+  - T-S00-04
+  requirement_ids: []
+  acceptance_ids: []
+  test: 每个 FAQ 都能落到用户结果、非目标或风险；不得以技术组件替代客户价值。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 做成技术展示或完整 ERP，而不是可用的 KMFA 软件。
+  rollback: 回退未授权范围，只保留用户明确核心合同。
+  stop_condition: 发现目标用户或核心问题与用户明确授权根本冲突。
+  pass_gate: PR/FAQ 经产品自审无技术先行表述，核心承诺可验收。
+  estimate_engineer_days: 0.5-1.0
+  owner: Product Design
+  parallel_group: ''
+- id: T-S01-02
+  stage_id: S01
+  phase_id: P-S01-02
+  phase: P1.2 PRD 与 OKR
+  title: 定义用户、Jobs、价值、范围、非目标与指标
+  purpose: 把“全部都可以”收敛为安全可交付的核心软件合同。
+  inputs:
+  - S01.1 PR/FAQ
+  - 用户授权与历史需求
+  - Baseline 证据
+  outputs:
+  - 完整 PRD
+  - 用户/JTBD
+  - 战略目标与 OKR
+  - 范围/非目标
+  dependencies:
+  - T-S01-01
+  requirement_ids:
+  - R-PUB-002
+  acceptance_ids:
+  - AC-PUB-002
+  test: 每个范围项至少有一个需求和主 Acceptance；每个非目标都说明避免的成本/风险。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 无限范围、伪精确指标或把未来能力当 GA 阻塞。
+  rollback: 将低价值能力移到 Triggered Backlog，不影响核心骨架。
+  stop_condition: 新增范围需要不可逆平台迁移且无证据支持。
+  pass_gate: 范围、非目标、OKR 和需求全集一致；核心免登录合同未被弱化。
+  estimate_engineer_days: 1.0-2.0
+  owner: Product Owner
+  parallel_group: ''
+- id: T-S01-03
+  stage_id: S01
+  phase_id: P-S01-03
+  phase: P1.3 经济与证伪
+  title: 建立成本收益区间、敏感性与 Kill Criteria
+  purpose: 确保每个重大能力的长期收益覆盖建设和运维成本。
+  inputs:
+  - S01.2 PRD
+  - 平台计费/容量公开资料
+  - 现有技术栈与流量未知项
+  outputs:
+  - COST_BENEFIT_AND_KILL_CRITERIA.md
+  - 高/基/低情景
+  - 机会成本清单
+  dependencies:
+  - T-S01-02
+  requirement_ids:
+  - R-GOV-005
+  acceptance_ids:
+  - AC-GOV-005
+  test: 改变流量、文件大小、出网、扫描率和人力假设，结论应显示敏感区间；禁止单点 ROI。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 忽略长期出网、备份、扫描、观测和 on-call 成本。
+  rollback: 未达触发阈值的独立服务保持不引入。
+  stop_condition: 核心能力在保守情景下持续成本不可控且没有配额/定价/范围护栏。
+  pass_gate: 所有重大能力均有区间、置信度、Kill 与复核窗口。
+  estimate_engineer_days: 0.5-1.5
+  owner: Product+Finance
+  parallel_group: ''
+- id: T-S01-04
+  stage_id: S01
+  phase_id: P-S01-04
+  phase: P1.4 合同冻结
+  title: 冻结 v1.5.2 产品合同与变更规则
+  purpose: 形成实现期间不漂移的唯一范围基线。
+  inputs:
+  - S01.1-S01.3 输出
+  - D-001 至 D-014
+  outputs:
+  - PRODUCT_CONTRACT.md
+  - 范围变更 Gate
+  - pursuing goal
+  dependencies:
+  - T-S01-02
+  - T-S01-03
+  requirement_ids: []
+  acceptance_ids: []
+  test: 将每项决策追到需求/非目标/风险；模拟新登录需求和新基础设施需求，必须走变更 Gate。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 开发中口头改变 public、永久、全部文件等核心含义。
+  rollback: 回到已签署合同版本；新需求进入后续版本候选。
+  stop_condition: 用户新授权与当前合同直接冲突且会改变公开/隐私边界。
+  pass_gate: 合同包含根路径、免登录、匿名恢复、耐久存储、任意文件和默认隐私的精确定义。
+  estimate_engineer_days: 0.5-1.0
+  owner: Product Owner
+  parallel_group: ''
+- id: T-S02-01
+  stage_id: S02
+  phase_id: P-S02-01
+  phase: P2.1 事实建模
+  title: 建立最小 Canonical Facts
+  purpose: 让产品事实只有一个可写源，并复用现有仓库治理而非另起炉灶。
+  inputs:
+  - S01.4 产品合同
+  - 现有 machine/facts 状态
+  - 双平面 Skill
+  outputs:
+  - machine/canonical_facts.yaml
+  - 事实域/owner 映射
+  - 派生规则
+  dependencies:
+  - T-S01-04
+  requirement_ids: []
+  acceptance_ids: []
+  test: YAML 可解析；所有决策/需求/指标有唯一 ID；无事实只存在于派生文档。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 创建过度 schema 或第二个 SSOT。
+  rollback: 删除新增冗余结构，回到最小 YAML 与现有七文件。
+  stop_condition: 现有仓库已有不同且正在生产使用的权威机制，直接替换会造成不可逆漂移。
+  pass_gate: Canonical Facts 足以生成七文件关键表和追踪矩阵，且没有重复事实 writer。
+  estimate_engineer_days: 1.0-2.0
+  owner: Governance Engineer
+  parallel_group: ''
+- id: T-S02-02
+  stage_id: S02
+  phase_id: P-S02-02
+  phase: P2.2 七文件渲染
+  title: 生成并校验人类平面七文件
+  purpose: 为产品、工程、QA 和运维提供各自清晰入口。
+  inputs:
+  - S02.1 Canonical Facts
+  - 现有七文件名称与职责
+  outputs:
+  - human/00-06 七文件
+  - 渲染一致性检查
+  dependencies:
+  - T-S02-01
+  requirement_ids:
+  - R-GOV-003
+  acceptance_ids:
+  - AC-GOV-003
+  test: 枚举文件名恰好七个；关键事实从 YAML 渲染后与文档一致；手改派生区使 CI 失败。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 七文件内容互相重复或冲突。
+  rollback: 恢复生成版本，禁止手改派生表。
+  stop_condition: 发现现有七文件含未迁移的唯一关键生产事实。
+  pass_gate: 七文件职责互斥、引用完整、无第八权威文档。
+  estimate_engineer_days: 1.0-2.0
+  owner: Product+Tech Writer
+  parallel_group: ''
+- id: T-S02-03
+  stage_id: S02
+  phase_id: P-S02-03
+  phase: P2.3 验收与追踪
+  title: 建立 Acceptance Contract 与 Traceability Matrix
+  purpose: 把需求、任务、测试、证据和制品连成可执行闭环。
+  inputs:
+  - 49 条需求
+  - Task DAG
+  - 测试策略
+  outputs:
+  - machine/acceptance_contract.yaml
+  - traceability.csv
+  - 质量门禁
+  dependencies:
+  - T-S02-01
+  - T-S01-04
+  requirement_ids:
+  - R-QA-004
+  acceptance_ids:
+  - AC-QA-004
+  test: 唯一 ID、每需求一个主 AC、每 AC 至少一个任务/测试/制品、所有引用存在。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 通过写文档假装验收，或产生大量人工台账。
+  rollback: 删除冗余 evidence 文件，只保留 CI artifacts 与 compact receipt。
+  stop_condition: 关键需求无法定义确定性 Oracle 且继续开发会掩盖产品风险。
+  pass_gate: 追踪断链=0，AC 字段完整率=100%。
+  estimate_engineer_days: 1.0-2.0
+  owner: QA Architect
+  parallel_group: S02-B
+- id: T-S02-04
+  stage_id: S02
+  phase_id: P-S02-04
+  phase: P2.4 机器门禁
+  title: 实现任务包 validator 与 fail-closed CI
+  purpose: 自动阻止循环依赖、遗漏、重复 ID、七文件漂移和禁用产物。
+  inputs:
+  - S02.1-S02.3 机器文件
+  - 禁止路径规则
+  outputs:
+  - tools/validate_taskpack.py
+  - VALIDATION_REPORT.md
+  - CI 接入说明
+  dependencies:
+  - T-S02-02
+  - T-S02-03
+  requirement_ids: []
+  acceptance_ids: []
+  test: 故意制造缺失 AC、循环、额外治理文件和 EVIDENCE 目录，validator 均非零退出；正常包退出 0。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 绿灯是假门，validator 只检查格式不检查引用。
+  rollback: 恢复上一版 validator，并把未知状态显示为未评估而非通过。
+  stop_condition: validator 会修改业务数据或依赖不可复现外部服务。
+  pass_gate: 正向包 PASS；四类负向变异全部 FAIL；输出可读错误。
+  estimate_engineer_days: 1.0-2.0
+  owner: QA+Platform
+  parallel_group: ''
+- id: T-S03-01
+  stage_id: S03
+  phase_id: P-S03-01
+  phase: P3.1 边缘路由
+  title: 修复根路径与 Cloudflare 访问边界
+  purpose: 让 `/` 成为公开软件入口，同时保留私有运维面。
+  inputs:
+  - S00 环境身份
+  - 当前 Cloudflare Access/WAF/Worker/route 配置
+  - 根路径合同
+  outputs:
+  - 边缘路由/IaC 变更
+  - '`/` 200 与 `/ui*` 308 规则'
+  - 私有运维路径边界
+  dependencies:
+  - T-S00-04
+  - T-S01-04
+  requirement_ids:
+  - R-PUB-001
+  - R-PUB-003
+  acceptance_ids:
+  - AC-PUB-001
+  - AC-PUB-003
+  test: 匿名 curl/Playwright 验证 `/`、`/ui`、`/ui/`、错误页；扫描 Access 重定向与循环。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 直接拆 Access 后暴露写接口、OpenAPI、深层健康信息或私密数据。
+  rollback: 原子回滚边缘规则或切回前一 Worker/route；保留只读维护页。
+  stop_condition: 无法在不暴露私密 API 的情况下解除根路径登录墙。
+  pass_gate: AC-PUB-001 与 AC-PUB-003 通过，私有运维 canary 仍不可访问。
+  estimate_engineer_days: 1.0-2.0
+  owner: Edge+Security
+  parallel_group: ''
+- id: T-S03-02
+  stage_id: S03
+  phase_id: P-S03-02
+  phase: P3.2 App Shell
+  title: 根主页承载完整公共软件导航
+  purpose: 让用户不懂技术路径也能直接使用软件。
+  inputs:
+  - 现有 UI
+  - PRD 信息架构
+  - 公开/匿名工作区边界
+  outputs:
+  - 根 App Shell
+  - 项目/上传/搜索/进度/报告/帮助入口
+  - 明确状态与错误页
+  dependencies:
+  - T-S03-01
+  requirement_ids:
+  - R-PUB-002
+  - R-PUB-004
+  acceptance_ids:
+  - AC-PUB-002
+  - AC-PUB-004
+  test: 匿名桌面/移动旅程；没有登录控件阻塞；关键依赖失败时无空白页。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 只做首页外观，实际功能仍隐藏在 `/ui/` 或登录后。
+  rollback: Feature Flag 切回稳定 Shell，根路径仍保持公开。
+  stop_condition: 新 Shell 会破坏现有唯一数据访问路径且无兼容层。
+  pass_gate: 核心入口 100% 可达；无账号/邮箱/OAuth 前置步骤。
+  estimate_engineer_days: 1.0-2.0
+  owner: Frontend+Product Design
+  parallel_group: ''
+- id: T-S03-03
+  stage_id: S03
+  phase_id: P-S03-03
+  phase: P3.3 可访问与公开索引
+  title: 完成移动端、无障碍与 SEO 发布边界
+  purpose: 让主页可被人和搜索引擎正确访问，但不索引未公开内容。
+  inputs:
+  - S03.2 App Shell
+  - Publication Gate 预合同
+  - 站点元数据
+  outputs:
+  - responsive/a11y 修复
+  - canonical/robots/sitemap
+  - 公开分享元数据
+  dependencies:
+  - T-S03-02
+  requirement_ids:
+  - R-PUB-005
+  acceptance_ids:
+  - AC-PUB-005
+  test: 三浏览器、键盘、屏幕阅读关键标签、对比度、移动视口、爬虫负向测试。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: SEO 在隐私边界完成前扩大泄露。
+  rollback: robots noindex 与 sitemap 回退；保留人类可用公开主页。
+  stop_condition: 未公开内容仍可能被 canonical/sitemap/缓存发现。
+  pass_gate: 严重 a11y=0；未公开 canary 索引命中=0。
+  estimate_engineer_days: 1.0-2.0
+  owner: Frontend+Privacy
+  parallel_group: ''
+- id: T-S03-04
+  stage_id: S03
+  phase_id: P-S03-04
+  phase: P3.4 早期骨架
+  title: 贯通第一个匿名可恢复文件旅程
+  purpose: 在扩展模块前验证系统能真正工作。
+  inputs:
+  - 根 App Shell
+  - 现有或最小临时耐久存储适配器
+  - 匿名 workspace 最小切片
+  outputs:
+  - Walking Skeleton E2E
+  - Flag/rollback hook
+  - 首个真实 artifact
+  dependencies:
+  - T-S03-02
+  requirement_ids:
+  - R-QA-001
+  acceptance_ids:
+  - AC-QA-001
+  test: 根主页→匿名工作区→上传 1 文件→保存项目→重启→恢复→下载 hash→Flag 回滚。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 用 mock/localStorage 假装持久化。
+  rollback: 关闭新骨架 Flag，保留原始数据与兼容读取。
+  stop_condition: 只能依赖浏览器临时存储，或上传会进入未经保护的公共桶。
+  pass_gate: 早期骨架可运行且清楚标记后续需硬化的存储/安全项；不得假称 GA。
+  estimate_engineer_days: 1.5-2.0
+  owner: Full-stack Lead
+  parallel_group: ''
+- id: T-S04-01
+  stage_id: S04
+  phase_id: P-S04-01
+  phase: P4.1 匿名身份
+  title: 实现匿名 workspace 与 verifier
+  purpose: 在无账号条件下建立最小授权边界。
+  inputs:
+  - 密码学随机源
+  - workspace 数据模型
+  - 威胁模型
+  outputs:
+  - workspace ID/secret 生成
+  - 服务端 verifier
+  - 短时会话交换 API
+  dependencies:
+  - T-S03-04
+  requirement_ids:
+  - R-WS-001
+  acceptance_ids:
+  - AC-WS-001
+  test: 碰撞/熵/时序/数据库明文扫描/并发创建属性测试。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 可枚举 ID、明文 secret 或万能匿名 token。
+  rollback: 撤销新会话 issuer，保留 workspace 数据并迁移 verifier。
+  stop_condition: 密码学库/随机源不可信或需要把 secret 写入日志才能调试。
+  pass_gate: 10,000 工作区碰撞=0，secret>=256-bit，服务端明文命中=0。
+  estimate_engineer_days: 1.0-2.0
+  owner: Backend+Security
+  parallel_group: ''
+- id: T-S04-02
+  stage_id: S04
+  phase_id: P-S04-02
+  phase: P4.2 恢复体验
+  title: 实现恢复码与 `.kmfa-recovery` 文件
+  purpose: 让用户跨设备和清除浏览器后仍能找回数据。
+  inputs:
+  - S04.1 workspace 能力
+  - UX 风险提示
+  - 恢复文件格式
+  outputs:
+  - 恢复导出/导入 UI/API
+  - 丢失密钥不可找回提示
+  - 撤销/轮换流程
+  dependencies:
+  - T-S04-01
+  requirement_ids:
+  - R-WS-002
+  acceptance_ids:
+  - AC-WS-002
+  test: 双设备、重启、错误码、截断文件、已撤销密钥和轮换 E2E。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 用户误以为平台可通过邮箱恢复，或恢复文件泄露全部权限。
+  rollback: 关闭跨设备恢复入口但保留当前会话；不得删除 workspace 数据。
+  stop_condition: 恢复材料必须通过 URL/分析系统传递。
+  pass_gate: 标准恢复成功 100%，负向授权成功 0，警示文案明确。
+  estimate_engineer_days: 1.0-2.0
+  owner: Backend+UX
+  parallel_group: ''
+- id: T-S04-03
+  stage_id: S04
+  phase_id: P-S04-03
+  phase: P4.3 Secret hygiene
+  title: 隔离恢复密钥与分析/日志
+  purpose: 防止 public 产品把匿名所有权凭据意外公开。
+  inputs:
+  - 全链路日志/分析/错误上报
+  - canary secret
+  - 会话配置
+  outputs:
+  - redaction/filter
+  - 安全 Cookie/会话策略
+  - secret scan Gate
+  dependencies:
+  - T-S04-01
+  - T-S04-02
+  requirement_ids:
+  - R-WS-003
+  acceptance_ids:
+  - AC-WS-003
+  test: 走完核心旅程后扫描 URL/Referer/log/event/error/cache；尝试 replay 和撤销。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: Secret 出现在 URL 或遥测，导致工作区被接管。
+  rollback: 立即撤销相关会话/密钥，清除日志/缓存并轮换。
+  stop_condition: 第三方分析 SDK 无法证明不收集 secret/file metadata。
+  pass_gate: canary 命中=0；会话可撤销且安全属性满足。
+  estimate_engineer_days: 1.0-2.0
+  owner: Security
+  parallel_group: S04-B
+- id: T-S04-04
+  stage_id: S04
+  phase_id: P-S04-04
+  phase: P4.4 反滥用
+  title: 实现分层配额、限流与风险挑战
+  purpose: 保持免登录，又让上传/导出等昂贵能力可持续。
+  inputs:
+  - 流量/成本基线
+  - 边缘 WAF/Turnstile 或等效
+  - workspace/IP/device 风险信号
+  outputs:
+  - 配额与 rate-limit policy
+  - 可疑流量挑战
+  - 资源隔离与告警
+  dependencies:
+  - T-S04-01
+  - T-S03-01
+  requirement_ids:
+  - R-WS-004
+  acceptance_ids:
+  - AC-WS-004
+  test: 正常用户和多类攻击流量 A/B 压测，测误伤、绕过、成本和恢复。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 过严导致“public”名存实亡，过松导致费用/容量失控。
+  rollback: 回退到上个策略版本；紧急时仅限制昂贵动作，不关闭浏览。
+  stop_condition: 唯一可行方案是强制账号登录，需重新走产品授权。
+  pass_gate: 正常误伤<1%，攻击无界资源增长=0，浏览始终可用。
+  estimate_engineer_days: 1.0-2.0
+  owner: Security+SRE
+  parallel_group: ''
+- id: T-S05-01
+  stage_id: S05
+  phase_id: P-S05-01
+  phase: P5.1 结构化数据库
+  title: 实现耐久关系数据模型与约束
+  purpose: 持久化项目、进度、分数、财务、文件索引、任务和审计。
+  inputs:
+  - Canonical Facts
+  - 现有数据库 schema
+  - 容量/事务需求
+  outputs:
+  - schema/migrations
+  - 约束与索引
+  - repository/service 层
+  dependencies:
+  - T-S04-01
+  - T-S02-04
+  requirement_ids:
+  - R-DATA-001
+  acceptance_ids:
+  - AC-DATA-001
+  test: 事务/约束/并发/重启/滚动部署/浏览器清空后恢复测试。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: localStorage 或单机临时卷仍是唯一数据源；迁移破坏历史数据。
+  rollback: expand-contract 与前向修复迁移；保留旧读路径直至校验通过。
+  stop_condition: 发现生产数据没有可验证备份且迁移不可逆。
+  pass_gate: 核心结构化夹具跨重启和部署一致，约束失败不会部分提交。
+  estimate_engineer_days: 1.5-2.0
+  owner: Backend+Data
+  parallel_group: ''
+- id: T-S05-02
+  stage_id: S05
+  phase_id: P-S05-02
+  phase: P5.2 对象存储
+  title: 实现版本化 S3-compatible 对象层
+  purpose: 耐久保存任意文件字节并与数据库索引关联。
+  inputs:
+  - Cloudflare R2 或现有合格对象存储
+  - 文件 metadata 合同
+  - 加密/区域/配额要求
+  outputs:
+  - object adapter
+  - immutable version/checksum
+  - 私有 bucket/prefix policy
+  dependencies:
+  - T-S05-01
+  requirement_ids:
+  - R-DATA-002
+  acceptance_ids:
+  - AC-DATA-002
+  test: 多类型/大小/同名/重复文件，比较 DB 与对象 inventory；访问策略负向测试。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 使用公开 bucket、对象 URL 长期有效或数据库/对象脱节。
+  rollback: 切回旧 adapter，保留双写数据并运行对账；不删除对象。
+  stop_condition: 对象存储无法满足耐久性、访问控制或备份/版本要求。
+  pass_gate: 正常对象索引一致率=100%，公开读取未发布对象=0。
+  estimate_engineer_days: 1.0-2.0
+  owner: Storage+Security
+  parallel_group: ''
+- id: T-S05-03
+  stage_id: S05
+  phase_id: P-S05-03
+  phase: P5.3 一致性状态机
+  title: 建立 upload/process/index/export 的可恢复状态机
+  purpose: 处理数据库、对象、队列和索引跨系统一致性。
+  inputs:
+  - DB/object adapters
+  - 任务队列
+  - 状态/错误合同
+  outputs:
+  - idempotency/outbox/compensation
+  - reconciliation job
+  - orphan quarantine
+  dependencies:
+  - T-S05-01
+  - T-S05-02
+  requirement_ids:
+  - R-ARCH-002
+  acceptance_ids:
+  - AC-ARCH-002
+  test: 在每个状态转移点注入崩溃、超时、重复和部分写入，验证收敛。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 用户看到成功但文件缺失，或重复计费/重复处理。
+  rollback: 暂停新处理，运行对账并回到上个状态机版本；保留原始对象。
+  stop_condition: 补偿会删除唯一原始对象或造成不可逆财务重复。
+  pass_gate: 不可解释终态=0，重复副作用=0，半完成均可恢复/隔离。
+  estimate_engineer_days: 1.5-2.0
+  owner: Backend
+  parallel_group: ''
+- id: T-S05-04
+  stage_id: S05
+  phase_id: P-S05-04
+  phase: P5.4 保留、备份与恢复
+  title: 定义永久保留、删除和恢复演练
+  purpose: 用工程证据而非口号证明长期保存。
+  inputs:
+  - DB/object lifecycle
+  - 备份能力
+  - 隐私/法律规则
+  - RPO/RTO 待实测
+  outputs:
+  - retention/delete policy
+  - backup/restore automation
+  - 季度演练 runbook
+  dependencies:
+  - T-S05-03
+  requirement_ids:
+  - R-DATA-003
+  - R-DATA-004
+  acceptance_ids:
+  - AC-DATA-003
+  - AC-DATA-004
+  test: 虚拟时间生命周期测试；从空环境恢复 DB+对象并执行应用级 E2E。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 自动过期误删、备份未包含对象、恢复只能恢复 metadata。
+  rollback: 暂停 lifecycle deletion；启用对象版本恢复；恢复前一备份策略。
+  stop_condition: 无法在删除前证明备份可恢复，或删除与法律保留冲突。
+  pass_gate: 默认无到期；标准夹具 100% 恢复；RPO/RTO 有实测值。
+  estimate_engineer_days: 1.5-2.0
+  owner: SRE+Privacy
+  parallel_group: ''
+- id: T-S06-01
+  stage_id: S06
+  phase_id: P-S06-01
+  phase: P6.1 上传合同
+  title: 实现任意类型、配额和断点续传
+  purpose: 提供清晰、可靠、可重试的上传体验。
+  inputs:
+  - 对象存储能力
+  - 平台限制
+  - 匿名配额
+  - tus/multipart 方案
+  outputs:
+  - upload session API
+  - 分片/续传
+  - 大小/配额 UI
+  - checksum 合同
+  dependencies:
+  - T-S05-02
+  - T-S04-04
+  requirement_ids:
+  - R-UP-001
+  - R-UP-002
+  acceptance_ids:
+  - AC-UP-001
+  - AC-UP-002
+  test: 全类型、边界大小、超限、断网、重复、篡改分片和并发上传。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 前端宣称无限、服务端实际截断；重复分片造成成本膨胀。
+  rollback: 关闭 resumable Flag，保留标准上传；未完成分片进入受控清理。
+  stop_condition: 平台真实限制无法核验或上传会绕过私有对象策略。
+  pass_gate: 合规文件安全存储；续传成功率 100%；篡改漏检 0。
+  estimate_engineer_days: 1.5-2.0
+  owner: Backend+Frontend
+  parallel_group: ''
+- id: T-S06-02
+  stage_id: S06
+  phase_id: P-S06-02
+  phase: P6.2 隔离与扫描
+  title: 构建 quarantine-first 文件安全流水线
+  purpose: 在任何解析/预览前控制恶意、畸形和高风险文件。
+  inputs:
+  - upload session
+  - 扫描器/沙箱
+  - OWASP 上传威胁集
+  outputs:
+  - 文件名/MIME/magic 验证
+  - zip-bomb/path traversal 防护
+  - scan/timeout 状态
+  dependencies:
+  - T-S06-01
+  requirement_ids:
+  - R-UP-003
+  acceptance_ids:
+  - AC-UP-003
+  test: MIME 欺骗、双扩展、EICAR、zip bomb、路径穿越、解析器超时、宏等。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 扫描器本身成为攻击面，或误把未知格式当安全预览。
+  rollback: 所有未判定文件降级为 attachment-only；停止预览处理器。
+  stop_condition: 扫描器必须获得超出最小权限的生产数据库访问。
+  pass_gate: 恶意/畸形逃逸=0；解析隔离；合法误拒<1%。
+  estimate_engineer_days: 1.5-2.0
+  owner: Security+Backend
+  parallel_group: ''
+- id: T-S06-03
+  stage_id: S06
+  phase_id: P-S06-03
+  phase: P6.3 版本、血缘与预览
+  title: 保存原件并生成安全派生物
+  purpose: 让每个文件版本和处理结果可追溯、可重跑。
+  inputs:
+  - 隔离通过/attachment-only 文件
+  - 处理器注册表
+  - metadata schema
+  outputs:
+  - immutable original
+  - preview/thumbnail/text extract
+  - 完整 lineage graph
+  dependencies:
+  - T-S06-02
+  - T-S05-03
+  requirement_ids:
+  - R-UP-004
+  acceptance_ids:
+  - AC-UP-004
+  test: 同名/相同内容/修改版/重新处理，检查版本、checksum、parent 与处理器版本。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 预览覆盖原件，或处理器升级使历史结果不可解释。
+  rollback: 停用新处理器并回到原件；派生物可删除重建，原件不可改。
+  stop_condition: 处理器需要执行用户文件中的代码或宏。
+  pass_gate: 历史不被覆盖，血缘断点=0，高风险文件仅附件。
+  estimate_engineer_days: 1.0-2.0
+  owner: Data+Media Processing
+  parallel_group: ''
+- id: T-S06-04
+  stage_id: S06
+  phase_id: P-S06-04
+  phase: P6.4 上传质量门
+  title: 完成上传并发、极限、恢复与滥用验收
+  purpose: 证明上传在真实失败和高负载下仍安全。
+  inputs:
+  - S06.1-S06.3
+  - 攻击/合法语料
+  - 流量模型
+  outputs:
+  - upload benchmark
+  - negative matrix
+  - capacity thresholds
+  - compact receipt
+  dependencies:
+  - T-S06-01
+  - T-S06-02
+  - T-S06-03
+  requirement_ids: []
+  acceptance_ids: []
+  test: 并发、慢速、断网、长时 soak、扫描积压、对象存储超时、配额竞争。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 平均性能正常但尾延迟/队列在极端场景失控。
+  rollback: 降低上传并发/大小，启用排队和降级，不关闭已有文件下载。
+  stop_condition: 测试显示可能损坏原件或跨 workspace 写入。
+  pass_gate: 阈值内 SLO 通过，数据不变量和隔离边界无失败。
+  estimate_engineer_days: 1.0-2.0
+  owner: QA+SRE
+  parallel_group: ''
+- id: T-S07-01
+  stage_id: S07
+  phase_id: P-S07-01
+  phase: P7.1 单文件下载
+  title: 实现原件、派生物和报告下载
+  purpose: 保证用户可取回存储的全部内容。
+  inputs:
+  - 对象版本与 metadata
+  - 匿名 workspace session
+  - 公开快照策略
+  outputs:
+  - download API/UI
+  - Content-Disposition/Type
+  - checksum 展示
+  dependencies:
+  - T-S06-03
+  - T-S04-03
+  requirement_ids:
+  - R-DL-001
+  acceptance_ids:
+  - AC-DL-001
+  test: 多类型、Unicode/特殊文件名、高风险附件、公开/未公开权限和 hash 比较。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 错误内联可执行内容、IDOR 或下载与 UI 显示版本不一致。
+  rollback: 强制 attachment-only 与短期签名 URL；关闭有问题的预览。
+  stop_condition: 下载 URL 可被枚举或长期绕过 workspace/发布权限。
+  pass_gate: 可用制品下载率 100%，字节不一致=0，越权=0。
+  estimate_engineer_days: 1.0-2.0
+  owner: Backend+Security
+  parallel_group: ''
+- id: T-S07-02
+  stage_id: S07
+  phase_id: P-S07-02
+  phase: P7.2 续传与批量 ZIP
+  title: 实现 Range、断点续传和可验证批量下载
+  purpose: 支持大文件和项目级资料带走。
+  inputs:
+  - download API
+  - 批量选择
+  - ZIP manifest 规则
+  outputs:
+  - Range 支持
+  - batch job/stream
+  - ZIP manifest/hash
+  dependencies:
+  - T-S07-01
+  requirement_ids:
+  - R-DL-002
+  acceptance_ids:
+  - AC-DL-002
+  test: 中断/并行 Range、50/500 文件、重名、特殊字符、取消、重试和 zip-slip 负向。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: ZIP 内路径穿越、内存爆炸、文件覆盖或长任务占满 worker。
+  rollback: 限制批量规模并切到异步 job；单文件下载保持可用。
+  stop_condition: 批量实现需要把整个归档放入单进程内存。
+  pass_gate: Range/续传 hash 正确；ZIP 无丢失/覆盖/穿越；资源受控。
+  estimate_engineer_days: 1.0-2.0
+  owner: Backend
+  parallel_group: ''
+- id: T-S07-03
+  stage_id: S07
+  phase_id: P-S07-03
+  phase: P7.3 显式导出 Job
+  title: 把有副作用的 GET 导出改为受控命令
+  purpose: 修复验收发现的 HTTP 语义和成本滥用风险。
+  inputs:
+  - 现有导出路由
+  - job queue/state machine
+  - 幂等/预算策略
+  outputs:
+  - POST /exports/jobs
+  - GET job status
+  - GET artifact
+  - 兼容弃用策略
+  dependencies:
+  - T-S05-03
+  - T-S07-01
+  requirement_ids:
+  - R-DL-003
+  - R-DL-004
+  acceptance_ids:
+  - AC-DL-003
+  - AC-DL-004
+  test: 枚举 GET/HEAD 前后状态 diff；并发/重复/取消/超时/过期 job 测试。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 旧客户端依赖 GET 副作用，迁移造成重复或无提示失败。
+  rollback: 兼容端点只返回弃用信息或安全读取状态；保留前一 job worker。
+  stop_condition: 无法区分旧 GET 是否已触发不可逆财务操作。
+  pass_gate: 有副作用 GET=0；同幂等键唯一结果；任务资源有上限。
+  estimate_engineer_days: 1.0-2.0
+  owner: API+Backend
+  parallel_group: ''
+- id: T-S07-04
+  stage_id: S07
+  phase_id: P-S07-04
+  phase: P7.4 下载与导出门禁
+  title: 完成越权、泄露、负载和恢复验收
+  purpose: 确保下载能力不会成为公共数据泄露或出网费用黑洞。
+  inputs:
+  - S07.1-S07.3
+  - 私密 canary
+  - 负载/成本模型
+  outputs:
+  - authorization matrix
+  - download benchmark
+  - egress budget alerts
+  dependencies:
+  - T-S07-01
+  - T-S07-02
+  - T-S07-03
+  requirement_ids: []
+  acceptance_ids: []
+  test: IDOR、签名 URL 重放/过期、公共缓存、并发大下载、导出洪泛、worker 故障恢复。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 公共 CDN 缓存未公开文件，或异常出网费用。
+  rollback: 撤销 URL、清缓存、降低并发/批量限额并关闭导出 Flag。
+  stop_condition: 发现任何跨 workspace 文件可读或公开缓存不可撤销。
+  pass_gate: 越权/泄露=0，预算阈值内 SLO 通过，恢复后制品一致。
+  estimate_engineer_days: 1.0-2.0
+  owner: Security+SRE
+  parallel_group: ''
+- id: T-S08-01
+  stage_id: S08
+  phase_id: P-S08-01
+  phase: P8.1 项目与进度
+  title: 实现项目、步骤、进度、分数和文件关联
+  purpose: 把文件存储变成可持续使用的软件工作区。
+  inputs:
+  - 耐久 DB
+  - 匿名 workspace
+  - PRD 业务对象
+  outputs:
+  - project/progress/score models
+  - CRUD UI/API
+  - 并发冲突策略
+  dependencies:
+  - T-S05-01
+  - T-S04-02
+  requirement_ids:
+  - R-PROD-001
+  acceptance_ids:
+  - AC-PROD-001
+  test: 边界分数、并发编辑、排序、删除、重启、跨设备恢复和文件关联 E2E。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 最后写入覆盖并发修改，或进度只在前端。
+  rollback: 保留旧字段和只读兼容；冲突进入可恢复版本历史。
+  stop_condition: 迁移会不可逆丢失现有项目/分数。
+  pass_gate: 核心 CRUD/恢复一致，冲突不静默丢失。
+  estimate_engineer_days: 1.5-2.0
+  owner: Product+Full-stack
+  parallel_group: ''
+- id: T-S08-02
+  stage_id: S08
+  phase_id: P-S08-02
+  phase: P8.2 数据库全文搜索
+  title: 建立权限感知的 PostgreSQL FTS
+  purpose: 先用现有数据库降低复杂度，只有指标触发才引入独立搜索。
+  inputs:
+  - project/file/text/report metadata
+  - 公共/私密权限
+  - 评测查询集
+  outputs:
+  - tsvector/GIN 或等效
+  - ranking/query API
+  - 增量更新/删除
+  dependencies:
+  - T-S08-01
+  - T-S06-03
+  requirement_ids:
+  - R-PROD-002
+  acceptance_ids:
+  - AC-PROD-002
+  test: 相关性、Unicode、空/极大查询、权限隔离、删除、增量和性能。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 把私密内容送入公共索引或盲目上独立搜索服务。
+  rollback: 关闭全文索引 Flag，退化为受限 metadata 查询；不丢源数据。
+  stop_condition: 数据库检索在实测规模无法满足阈值且无可逆扩展路径。
+  pass_gate: 私密命中=0，相关性和 P95 达批准阈值。
+  estimate_engineer_days: 1.0-2.0
+  owner: Search+Data
+  parallel_group: ''
+- id: T-S08-03
+  stage_id: S08
+  phase_id: P-S08-03
+  phase: P8.3 Publication Gate
+  title: 实现默认 Unlisted、显式发布与撤销
+  purpose: 区分公开网站和用户上传数据的隐私合同。
+  inputs:
+  - workspace 数据
+  - 字段分类/白名单
+  - CDN/搜索索引
+  outputs:
+  - public snapshot/version
+  - publish/revoke UI/API
+  - cache/index purge
+  dependencies:
+  - T-S08-01
+  - T-S07-01
+  - T-S03-03
+  requirement_ids:
+  - R-PROD-003
+  acceptance_ids:
+  - AC-PROD-003
+  test: 默认、发布、更新、撤销、过期缓存、字段泄露和链接重放。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 用户以为“public 软件”自动公开其文件；隐藏筛选器被误当安全控制。
+  rollback: 全局关闭 publish Flag，撤销链接并清除缓存/索引。
+  stop_condition: 无法证明公开快照与私有源隔离。
+  pass_gate: 默认公开命中=0；白名单外字段=0；撤销在 SLA 内完成。
+  estimate_engineer_days: 1.5-2.0
+  owner: Product+Privacy
+  parallel_group: ''
+- id: T-S08-04
+  stage_id: S08
+  phase_id: P-S08-04
+  phase: P8.4 统计与可逆迁移
+  title: 接入隐私统计并完成数据/路由迁移
+  purpose: 测量真实使用，同时确保演进可回退。
+  inputs:
+  - 事件字典
+  - Pages/Web Analytics 或等效
+  - 旧/新 schema 与路由
+  outputs:
+  - PV/UV/event dashboard
+  - secret redaction
+  - expand-contract migration
+  dependencies:
+  - T-S08-01
+  - T-S03-01
+  requirement_ids:
+  - R-PROD-004
+  - R-MIG-001
+  acceptance_ids:
+  - AC-PROD-004
+  - AC-MIG-001
+  test: 事件完整性/去重/敏感扫描；旧客户端/新客户端双跑；回填中断与回滚。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 统计 SDK 收集恢复密钥或文件内容；迁移同时切断旧路径。
+  rollback: 关闭 analytics SDK；恢复旧读路径并停止 contract 阶段。
+  stop_condition: 第三方数据处理条款不满足隐私边界或迁移无回退。
+  pass_gate: 核心事件可用>=99%、敏感命中=0；迁移差异=0 且回滚通过。
+  estimate_engineer_days: 1.0-2.0
+  owner: Analytics+Data
+  parallel_group: ''
+- id: T-S09-01
+  stage_id: S09
+  phase_id: P-S09-01
+  phase: P9.1 导入与血缘
+  title: 实现来源、字段映射和口径血缘
+  purpose: 让每个财务结果都能说明从哪里来、何时算、按什么规则。
+  inputs:
+  - 上传文件/解析结果
+  - 字段映射
+  - 口径字典
+  outputs:
+  - source/record/field lineage
+  - mapping/version registry
+  - 用户可见来源
+  dependencies:
+  - T-S06-03
+  - T-S08-01
+  requirement_ids:
+  - R-FIN-002
+  acceptance_ids:
+  - AC-FIN-002
+  test: 从报告随机抽关键结果反向追到原始对象/字段/版本；检查更新时间。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 报告数值正确但无法解释，或处理器升级抹除旧口径。
+  rollback: 保留旧 mapping/processor 版本；新结果作为并列版本。
+  stop_condition: 原始来源缺失且系统准备把推断值标为事实。
+  pass_gate: 关键结果 100% 可追溯，来源链断点=0。
+  estimate_engineer_days: 1.0-2.0
+  owner: Finance+Data
+  parallel_group: ''
+- id: T-S09-02
+  stage_id: S09
+  phase_id: P-S09-02
+  phase: P9.2 精确计算
+  title: 固化金额、舍入和零差额不变量
+  purpose: 避免财务软件常见浮点和边界错误。
+  inputs:
+  - 历史公式/zero-delta 参考
+  - 货币/舍入口径
+  - 真实边界匿名夹具
+  outputs:
+  - Decimal/minor-unit domain types
+  - calculation library
+  - golden/property tests
+  dependencies:
+  - T-S09-01
+  requirement_ids:
+  - R-FIN-001
+  acceptance_ids:
+  - AC-FIN-001
+  test: 0/1 最小单位/负值/极大值/舍入/随机属性/序列化往返。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 只在 UI 格式化，数据库仍存 float；不同报告舍入不一致。
+  rollback: 切回旧计算版本并保留双算 diff；不得覆盖源数据。
+  stop_condition: 口径无法确定且错误会影响财务决策。
+  pass_gate: 所有精确测试通过，权威浮点字段=0。
+  estimate_engineer_days: 1.0-2.0
+  owner: Finance Domain Engineer
+  parallel_group: ''
+- id: T-S09-03
+  stage_id: S09
+  phase_id: P-S09-03
+  phase: P9.3 重跑与来源冲突
+  title: 实现幂等重跑、去重和跨来源决策
+  purpose: 避免重复、静默覆盖和来源混乱。
+  inputs:
+  - source hash/version
+  - idempotency
+  - 冲突规则
+  outputs:
+  - same-source rerun policy
+  - cross-source decision UI
+  - dedupe/audit
+  dependencies:
+  - T-S09-01
+  - T-S09-02
+  requirement_ids:
+  - R-FIN-003
+  acceptance_ids:
+  - AC-FIN-003
+  test: 同文件/同内容不同名/修改版/冲突来源/并发重跑。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 重复入账或自动选错来源。
+  rollback: 将新运行标记无效并恢复上一有效版本；保留完整审计。
+  stop_condition: 跨来源冲突没有可靠默认且会改变关键财务结果。
+  pass_gate: 静默覆盖=0，重复结果=0，冲突均可解释。
+  estimate_engineer_days: 1.0-2.0
+  owner: Finance+Backend
+  parallel_group: ''
+- id: T-S09-04
+  stage_id: S09
+  phase_id: P-S09-04
+  phase: P9.4 业务流与报告
+  title: 贯通项目经营分析与可下载报告
+  purpose: 交付用户真正能完成的经营分析软件。
+  inputs:
+  - 项目/进度
+  - 财务计算/血缘
+  - 导出 Job
+  outputs:
+  - 成本/收入/预算/偏差/现金流分析
+  - 解释层
+  - 报告/下载
+  dependencies:
+  - T-S09-02
+  - T-S09-03
+  - T-S07-03
+  requirement_ids:
+  - R-FIN-004
+  acceptance_ids:
+  - AC-FIN-004
+  test: 标准及错误夹具执行导入→校验→计算→解释→报告→下载→恢复。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 只展示数字，不提供来源/解释；错误路径丢已确认数据。
+  rollback: 关闭新报告 Flag，保留数据和旧报告读取。
+  stop_condition: 报告关键数值无法通过独立 Oracle 对账。
+  pass_gate: Golden Path 100%，Black Path 数据不丢，报告 hash/数值/来源一致。
+  estimate_engineer_days: 1.5-2.0
+  owner: Product+Finance
+  parallel_group: ''
+- id: T-S10-01
+  stage_id: S10
+  phase_id: P-S10-01
+  phase: P10.1 威胁模型
+  title: 建模三平面、匿名所有权和文件攻击面
+  purpose: 让安全边界在代码前可检查。
+  inputs:
+  - 架构/数据流
+  - workspace/发布/上传/下载流程
+  - 验收缺陷
+  outputs:
+  - threat model
+  - trust boundaries
+  - abuse cases
+  - security requirements
+  dependencies:
+  - T-S05-02
+  - T-S04-04
+  - T-S08-03
+  requirement_ids:
+  - R-ARCH-001
+  acceptance_ids:
+  - AC-ARCH-001
+  test: 用 STRIDE/abuse story 覆盖 IDOR、secret 泄露、恶意文件、缓存、搜索、导出、供应链。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 只保护运维面，忽略 anonymous workspace 也是授权边界。
+  rollback: 安全设计任务无数据回滚；发现边界错误时停 Flag 并回到只读公开页。
+  stop_condition: 现有架构无法隔离未公开数据，继续开放会泄露。
+  pass_gate: 所有高风险威胁有预防、检测、响应和验收 Oracle。
+  estimate_engineer_days: 1.0-2.0
+  owner: Security Architect
+  parallel_group: ''
+- id: T-S10-02
+  stage_id: S10
+  phase_id: P-S10-02
+  phase: P10.2 Secure SDLC 与供应链
+  title: 接通安全编码、扫描、SBOM、补丁和制品签名
+  purpose: 持续管理代码和组件风险。
+  inputs:
+  - 源码/IaC/依赖/容器
+  - CI/CD
+  - 补丁 SLA
+  outputs:
+  - SAST/SCA/secret/IaC/container scans
+  - SBOM/signature
+  - patch workflow
+  dependencies:
+  - T-S10-01
+  - T-S02-04
+  requirement_ids:
+  - R-SEC-002
+  acceptance_ids:
+  - AC-SEC-002
+  test: 注入已知测试漏洞/secret/依赖，验证 Gate 阻断；验证制品签名与回滚。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 扫描只产报告不阻断，或高误报被永久豁免。
+  rollback: 回退有问题依赖/制品；豁免必须有期限/owner/补偿。
+  stop_condition: 发现真实密钥泄露或已被利用的高危漏洞。
+  pass_gate: Critical/High 阻断=0，SBOM 完整，逾期补丁=0。
+  estimate_engineer_days: 1.0-2.0
+  owner: Security+Platform
+  parallel_group: ''
+- id: T-S10-03
+  stage_id: S10
+  phase_id: P-S10-03
+  phase: P10.3 授权与泄露红队
+  title: 对页面、API、搜索、缓存和对象执行负向验证
+  purpose: 证明 public 不会变成全量数据公开。
+  inputs:
+  - 私密 canary
+  - 授权矩阵
+  - 公开快照
+  - DAST/红队工具
+  outputs:
+  - authorization/leak report
+  - 修复
+  - release blocker
+  dependencies:
+  - T-S10-01
+  - T-S07-04
+  - T-S08-03
+  requirement_ids:
+  - R-SEC-001
+  acceptance_ids:
+  - AC-SEC-001
+  test: 匿名枚举、跨 workspace、对象 URL、缓存键、搜索、错误、日志、分享撤销。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 公开链接被长期缓存，或只测试 UI 未测试 API/对象层。
+  rollback: 全局关闭发布/下载相关 Flag，撤销 URL 并清缓存。
+  stop_condition: 任何真实或 canary 私密数据公开可读。
+  pass_gate: canary 命中=0，越权读写=0。
+  estimate_engineer_days: 1.0-2.0
+  owner: Security Red Team
+  parallel_group: ''
+- id: T-S10-04
+  stage_id: S10
+  phase_id: P-S10-04
+  phase: P10.4 AI 条件 Gate
+  title: 仅在真实模型能力存在时建立双流水线
+  purpose: 既不漏掉 AI 安全，也不制造无意义产物。
+  inputs:
+  - 当前功能清单
+  - 模型/API 使用扫描
+  - 未来 AI 提案
+  outputs:
+  - AI scope decision
+  - 若适用：eval/red-team/System Card/阶段 Gate/监控
+  dependencies:
+  - T-S01-04
+  - T-S10-01
+  requirement_ids:
+  - R-AI-001
+  acceptance_ids:
+  - AC-AI-001
+  test: 无 AI 构建必须 N/A 且不生成伪报告；有 AI 构建缺任一证据即阻断。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 把普通规则/搜索误标 AI，或模型能力绕过软件正确性流水线。
+  rollback: 关闭模型 Feature Flag，回到确定性流程。
+  stop_condition: 模型处理未批准财务/文件数据或安全阈值无法满足。
+  pass_gate: AI scope 与代码一致；适用时双流水线均通过。
+  estimate_engineer_days: 0.5-2.0
+  owner: AI Safety Owner
+  parallel_group: ''
+- id: T-S11-01
+  stage_id: S11
+  phase_id: P-S11-01
+  phase: P11.1 确定性正确性
+  title: 整合 unit/contract/property/golden 测试
+  purpose: 在最小层快速发现业务和接口错误。
+  inputs:
+  - 需求/AC
+  - 计算/状态机/API
+  - 历史 zero-delta/golden 资产
+  outputs:
+  - 分层测试套件
+  - fixtures
+  - mutation/coverage 结果
+  dependencies:
+  - T-S09-04
+  - T-S07-03
+  - T-S08-04
+  requirement_ids: []
+  acceptance_ids: []
+  test: 关键规则 mutation 必须被测试杀死；合同和属性覆盖边界/重复/乱序。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 高覆盖率但不检查不变量。
+  rollback: 回退变异实现；测试失败不得以更新 golden 掩盖。
+  stop_condition: golden 来源不可验证或测试要求接受错误结果。
+  pass_gate: 关键 mutation 被捕获，所有确定性阻断测试通过。
+  estimate_engineer_days: 1.0-2.0
+  owner: QA+Domain Engineers
+  parallel_group: ''
+- id: T-S11-02
+  stage_id: S11
+  phase_id: P-S11-02
+  phase: P11.2 用户路径
+  title: 覆盖 Golden/Black/Abuse/Degraded/Recovery 和多端
+  purpose: 验证真实用户能完成任务并从错误恢复。
+  inputs:
+  - 关键业务流
+  - 浏览器/移动视口
+  - 故障开关
+  outputs:
+  - E2E path matrix
+  - a11y/visual/cross-browser baselines
+  - 错误 UX 修复
+  dependencies:
+  - T-S11-01
+  - T-S03-03
+  requirement_ids:
+  - R-QA-002
+  acceptance_ids:
+  - AC-QA-002
+  test: 每个关键流五类路径，Chromium/Firefox/WebKit、键盘、视觉 diff。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 只测 happy path，或视觉 baseline 自动接受回归。
+  rollback: 关闭对应 Feature Flag；保留数据兼容。
+  stop_condition: 错误路径可能误删/公开用户数据。
+  pass_gate: 关键流五类覆盖率 100%，阻断 a11y/视觉/功能失败=0。
+  estimate_engineer_days: 1.5-2.0
+  owner: QA+Product Design
+  parallel_group: ''
+- id: T-S11-03
+  stage_id: S11
+  phase_id: P-S11-03
+  phase: P11.3 性能与极限
+  title: 执行并发、压力、容量、极限和 soak
+  purpose: 找到真实瓶颈和安全上限。
+  inputs:
+  - 真实流量/文件分布基线
+  - 成本预算
+  - 关键旅程
+  outputs:
+  - 性能曲线与拐点
+  - P50/P95/P99
+  - 安全配额/并发阈值
+  dependencies:
+  - T-S11-01
+  - T-S06-04
+  - T-S07-04
+  requirement_ids:
+  - R-QA-003
+  acceptance_ids:
+  - AC-QA-003
+  test: 逐级负载、热/冷缓存、大文件/小文件、扫描积压、长时 soak、恢复后复测。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 只报平均值或在不等价环境得出伪容量。
+  rollback: 按实测降低配额/并发并启用排队；不牺牲数据正确性。
+  stop_condition: 压测可能触及真实私密数据或不可控生产费用。
+  pass_gate: 批准负载内 SLO/成本/错误率通过，拐点和上限已记录。
+  estimate_engineer_days: 1.5-2.0
+  owner: Performance+SRE
+  parallel_group: ''
+- id: T-S11-04
+  stage_id: S11
+  phase_id: P-S11-04
+  phase: P11.4 混沌与恢复
+  title: 主动制造跨依赖故障并验证恢复
+  purpose: 在发布前证明系统遇到故障不会丢数据。
+  inputs:
+  - 状态机/备份
+  - fault injection
+  - 数据不变量
+  outputs:
+  - chaos scenarios
+  - recovery evidence
+  - 缺陷/自愈改进
+  dependencies:
+  - T-S11-02
+  - T-S11-03
+  - T-S05-04
+  requirement_ids:
+  - R-REL-003
+  acceptance_ids:
+  - AC-REL-003
+  test: 网络分区、部分写、重复、对象/DB/队列故障、区域切换、错误恢复码。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 混沌直接打生产或缺少 blast-radius 控制。
+  rollback: 立即终止实验、恢复流量/依赖并从备份或补偿恢复。
+  stop_condition: 隔离/kill switch/可恢复备份任一不可用。
+  pass_gate: 关键故障覆盖 100%，数据不变量失败=0，RPO/RTO 有证据。
+  estimate_engineer_days: 1.5-2.0
+  owner: SRE+QA
+  parallel_group: ''
+- id: T-S12-01
+  stage_id: S12
+  phase_id: P-S12-01
+  phase: P12.1 可观测与 SLO
+  title: 接通 traces、metrics、logs 与业务事件
+  purpose: 从用户旅程追到具体制品、依赖和数据状态。
+  inputs:
+  - 关键旅程与状态机
+  - OpenTelemetry 或等效
+  - privacy redaction
+  outputs:
+  - instrumentation
+  - dashboards
+  - SLI/SLO/error budget
+  dependencies:
+  - T-S05-03
+  - T-S03-04
+  requirement_ids:
+  - R-REL-001
+  acceptance_ids:
+  - AC-REL-001
+  test: 为每个旅程注入 correlation ID，验证四类信号和 deployment digest 可关联；扫描敏感字段。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 观测收集文件内容/恢复密钥，或高基数导致成本失控。
+  rollback: 关闭高风险/高基数字段，保留最小 SLI。
+  stop_condition: 第三方观测无法满足数据边界或成本预算。
+  pass_gate: 关键旅程关联率 100%，敏感命中=0，SLO 可计算。
+  estimate_engineer_days: 1.0-2.0
+  owner: SRE
+  parallel_group: ''
+- id: T-S12-02
+  stage_id: S12
+  phase_id: P-S12-02
+  phase: P12.2 告警、诊断与自愈
+  title: 建立症状告警、runbook 和安全自愈
+  purpose: 减少故障发现和恢复时间。
+  inputs:
+  - SLO/dashboards
+  - 已知故障模式
+  - 状态机/队列
+  outputs:
+  - actionable alerts
+  - diagnostic bundles
+  - retry/isolate/reconcile automation
+  dependencies:
+  - T-S12-01
+  - T-S11-04
+  requirement_ids:
+  - R-REL-002
+  acceptance_ids:
+  - AC-REL-002
+  test: 注入每类依赖故障，验证告警、诊断信息、用户提示、自愈与升级路径。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 告警风暴、自愈重复副作用或掩盖数据损坏。
+  rollback: 关闭自愈动作，保留只读诊断和人工 runbook。
+  stop_condition: 自愈会删除唯一数据、重复财务操作或跨 workspace 修改。
+  pass_gate: 关键故障被发现并可定位；自愈保持幂等和数据不变量。
+  estimate_engineer_days: 1.0-2.0
+  owner: SRE+Backend
+  parallel_group: ''
+- id: T-S12-03
+  stage_id: S12
+  phase_id: P-S12-03
+  phase: P12.3 容量与成本护栏
+  title: 建立单位成本、预算、配额和扩展触发器
+  purpose: 避免“全部文件”变成不可控成本承诺。
+  inputs:
+  - 性能/流量/对象/出网/DB/扫描/观测数据
+  - 平台计价
+  outputs:
+  - capacity model
+  - cost dashboard/alerts
+  - quota tiers
+  - service trigger criteria
+  dependencies:
+  - T-S11-03
+  - T-S12-01
+  requirement_ids:
+  - R-OPS-001
+  acceptance_ids:
+  - AC-OPS-001
+  test: 高/基/低情景与突发流量模拟；触发预算告警和降级；核对正常用户体验。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 成本模型遗漏出网/扫描/备份，或配额不透明。
+  rollback: 降低昂贵操作限额、延后非核心处理，不删除已保存数据。
+  stop_condition: 保守情景下核心免费公开能力无法通过任何可接受配额持续。
+  pass_gate: 每类资源有预算/owner/告警；新增服务有量化触发条件。
+  estimate_engineer_days: 1.0-2.0
+  owner: FinOps+Product
+  parallel_group: ''
+- id: T-S12-04
+  stage_id: S12
+  phase_id: P-S12-04
+  phase: P12.4 常态化运维演练
+  title: 固化备份恢复、DR、补丁和密钥轮换日历
+  purpose: 把可靠性从一次性验收变成长期能力。
+  inputs:
+  - 恢复 runbook
+  - 补丁 SLA
+  - secret/session/key 生命周期
+  - 值班责任
+  outputs:
+  - 季度/每月演练计划
+  - runbook
+  - postmortem/action tracking
+  dependencies:
+  - T-S12-02
+  - T-S12-03
+  - T-S05-04
+  requirement_ids: []
+  acceptance_ids: []
+  test: 桌面演练+实际恢复/轮换；验证过期凭据失效、旧数据可读、服务可回滚。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 演练只在纸面完成或轮换导致匿名用户失去数据。
+  rollback: 恢复旧读密钥/兼容窗，保持数据可用；撤销有问题补丁。
+  stop_condition: 没有可用备份或轮换会不可逆切断现有 workspace。
+  pass_gate: 演练证据可复现，缺陷有 owner/期限，匿名恢复兼容。
+  estimate_engineer_days: 1.0-2.0
+  owner: SRE+Security
+  parallel_group: ''
+- id: T-S13-01
+  stage_id: S13
+  phase_id: P-S13-01
+  phase: P13.1 Feature Flag 与配置治理
+  title: 为高风险能力建立可审计开关
+  purpose: 独立控制根入口、上传处理、发布、搜索、导出和未来 AI。
+  inputs:
+  - 功能清单
+  - 风险等级
+  - 配置/secret 管理
+  outputs:
+  - flag registry
+  - owner/default/expiry
+  - kill switch
+  - audit log
+  dependencies:
+  - T-S10-03
+  - T-S12-01
+  requirement_ids: []
+  acceptance_ids: []
+  test: 逐个开关启停，验证数据兼容、缓存、后台任务和审计；过期开关 CI 告警。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: Flag 只隐藏 UI，后端仍开放；永久遗留死代码。
+  rollback: 关闭 Flag 并恢复上一配置快照。
+  stop_condition: 某高风险能力无法在不迁移/丢数据的情况下关闭。
+  pass_gate: 所有高风险能力可独立关闭；默认/owner/expiry 完整。
+  estimate_engineer_days: 1.0-2.0
+  owner: Release+Platform
+  parallel_group: ''
+- id: T-S13-02
+  stage_id: S13
+  phase_id: P-S13-02
+  phase: P13.2 Canary/Blue-Green 与迁移发布
+  title: 实现平台等效渐进切流和自动停止
+  purpose: 不为工具名迁移平台，但获得同等安全发布能力。
+  inputs:
+  - 两套可切流制品/路由
+  - Feature Flags
+  - SLO/业务 Oracle
+  - 迁移策略
+  outputs:
+  - progressive delivery pipeline
+  - promotion thresholds
+  - automatic rollback
+  dependencies:
+  - T-S13-01
+  - T-S11-04
+  - T-S12-02
+  requirement_ids:
+  - R-REL-004
+  acceptance_ids:
+  - AC-REL-004
+  test: 注入错误率/延迟/业务失败/迁移差异，验证停止晋级、回滚和数据兼容。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 只看基础设施健康而忽略业务错误，或回滚代码却无法回滚 schema。
+  rollback: 原子切回 blue/previous artifact；保持 expand-contract 兼容。
+  stop_condition: 生产切流不可控、没有 kill switch 或数据库迁移不可回退。
+  pass_gate: 阈值触发自动停止/回滚，回滚后核心 Oracle 全部通过。
+  estimate_engineer_days: 1.5-2.0
+  owner: Release+SRE
+  parallel_group: ''
+- id: T-S13-03
+  stage_id: S13
+  phase_id: P-S13-03
+  phase: P13.3 发布后连续验收
+  title: 在生产执行匿名旅程、泄露、恢复和成本 Oracle
+  purpose: 证明真实边缘/缓存/配置与预发布环境一致。
+  inputs:
+  - canary release
+  - production-safe fixtures
+  - AC 集合
+  outputs:
+  - post-deploy report
+  - continuous evidence
+  - rollback decision
+  dependencies:
+  - T-S13-02
+  - T-S11-02
+  - T-S10-03
+  requirement_ids: []
+  acceptance_ids: []
+  test: 根入口、完整匿名旅程、私密 canary、上传/下载 hash、导出、恢复、SLO/成本。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 只验证 200，不验证功能/数据/隐私；生产测试污染真实数据。
+  rollback: 自动关闭相关 Flag/切回前一制品，清理隔离测试 workspace。
+  stop_condition: 任何私密泄露、数据损坏、不可恢复或 SLO/成本硬阈值越界。
+  pass_gate: 生产核心 AC 全通过，连续观察窗口内无阻断回归。
+  estimate_engineer_days: 1.0-2.0
+  owner: QA+Release
+  parallel_group: ''
+- id: T-S13-04
+  stage_id: S13
+  phase_id: P-S13-04
+  phase: P13.4 GA 与后验复核
+  title: 执行证据驱动的 GA / Hold / Kill 决策
+  purpose: 只在产品、正确性、安全、可靠性和经济门同时通过时 GA。
+  inputs:
+  - 所有 Stage Gate
+  - 成本收益/Kill
+  - post-deploy evidence
+  - 开放缺陷
+  outputs:
+  - GA decision
+  - signed release receipt
+  - 后续 7/30 天复核计划
+  dependencies:
+  - T-S13-03
+  - T-S09-04
+  - T-S10-04
+  - T-S12-04
+  requirement_ids: []
+  acceptance_ids: []
+  test: 机器校验所有主 AC 状态；人工只审例外/不可逆风险；模拟 Hold/Kill 流程。
+  evidence: CI/Release Artifact，外加不超过 64KiB 的 compact receipt
+  risk: 因已投入成本而忽略失败证据，或用文档齐全替代真实可用。
+  rollback: 选择 Hold/Kill，关闭 Flag/切回前一制品；保存数据和调查证据。
+  stop_condition: 任何 P0 AC 失败、未知、证据不可复现，或 Kill Criteria 触发。
+  pass_gate: P0 AC 100% PASS；P1 无未接受高风险；成本/可靠性/安全门通过。
+  estimate_engineer_days: 0.5-1.0
+  owner: Product+Release Authority
+  parallel_group: ''

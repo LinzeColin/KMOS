@@ -17,7 +17,7 @@
 - 代码、skill、配置或 automation prompt 改动须先跑目标验证；通过后可在隔离 worktree 本地提交。v1.5.2 中间 phase 禁止 push；只有整个 Stage 完成、复审、问题修复后才整体上传 GitHub。
 - 旧 `LinzeColin/CodexProject` 与 `/Users/linzezhang/CodexProject` 只作历史取证，不是 KMFA 提交入口。
 - 不创建 branch、PR、issue 或额外 worktree，除非用户在当前线程明确改变规则。
-- 七个人类文档由 `machine/canonical_facts.yaml`（v1.5.2 交付合同）与 `machine/facts/`（旧业务状态）经 `machine/tools/render_human.py` 单向渲染；不得直接手写 `文档/`，也不得复制 taskpack `human/*` 形成第二人类平面。
+- 七个人类文档由 `machine/canonical_facts.yaml`（v1.5.2 产品合同）、`acceptance_contract.yaml` / `task_graph.yaml` / `traceability.csv`（`05` 的验收追踪）与 `machine/facts/`（旧业务状态）经 `machine/tools/render_human.py` 单向渲染；不得直接手写 `文档/`，也不得复制 taskpack `human/*` 形成第二人类平面。
 
 ## 数据与安全
 

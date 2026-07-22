@@ -1,0 +1,2 @@
+# Preserve the sealed taskpack CSV's CRLF bytes without treating CR-at-EOL as damage.
+KMFA/machine/traceability.csv whitespace=cr-at-eol

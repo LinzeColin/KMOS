@@ -5,6 +5,7 @@
 > Captured: `2026-07-22T12:38:59Z`
 > Closed: `2026-07-22T12:42:42Z`
 > Stage-review correction: `2026-07-22T13:16:08Z`
+> P2.3 projection update: `2026-07-22T15:53:03Z`
 > Status: **DONE — AC-GOV-002 PASS**
 
 本文是小于 64 KiB 的 public-safe compact receipt。它登记 namespace、唯一 writer、责任与冲突算法，但不复制产品/业务事实，不成为第八事实源。事实仍由下表指向的现有 machine 文件、Git object 或平台 manifest 写入；本 register 只回答“谁能写、从哪里读、冲突时怎么办”。
@@ -80,6 +81,7 @@ Reverse lookup is deterministic:
 | `delivery.product_contract` | taskpack `machine/canonical_facts.yaml` | `WR-TASKPACK-PUBLISHER` | Product Owner | sealed input；变更需 Owner 授权的新包/勘误 |
 | `delivery.acceptance_contract` | taskpack `machine/acceptance_contract.yaml` | `WR-TASKPACK-PUBLISHER` | QA+Product | 由 taskpack validator 维护引用闭合 |
 | `delivery.task_graph` | taskpack `machine/task_graph.yaml` | `WR-TASKPACK-PUBLISHER` | Delivery Lead | DAG 为执行顺序；Roadmap 仅派生视图 |
+| `delivery.traceability` | taskpack `machine/traceability.csv` | `WR-TASKPACK-PUBLISHER` | QA Architect | 只允许从 Canonical/AC/Task DAG 精确投影；断链或漂移即失败 |
 | `delivery.release_policy` | taskpack `machine/release_policy.yaml` | `WR-TASKPACK-PUBLISHER` | Release Owner | Promotion/rollback gate 不由阶段 receipt 改写 |
 | `product.runtime_version` | `KMFA/VERSION` | `WR-RELEASE-VERSION` | Release Owner | 版本升级必须经发布评审并与制品重绑 |
 | `source.published_main` | GitHub `LinzeColin/KMOS:refs/heads/main` | `WR-STAGE-PUBLISH` | Tech Lead | 仅 Stage 全部 phase、复审及修复完成后非破坏性上传；禁止 force-push |
@@ -101,12 +103,12 @@ Reverse lookup is deterministic:
 | `business.operations` | `machine/facts/ops.json` | `WR-FACT-OPS` | SRE | Runbook/故障处理唯一 |
 | `business.changelog` | `machine/facts/changelog.json` | `WR-FACT-CHANGELOG` | Release Owner | 域内历史条目，不写当前产品版本权威 |
 | `business.data_lineage` | `machine/lineage.yaml` | `WR-LINEAGE-GENERATOR` | Data | 仅由 `tools/lineage_graph.py` 机械生成，禁止手写 |
-| `human.business_views` | `machine/canonical_facts.yaml` + `machine/facts/*` → `文档/00_我在哪.md` … `06_运维手册.md` | `WR-RENDER-HUMAN` | Governance | 只能由 `machine/tools/render_human.py` 从已声明 machine sources 全量覆盖生成；禁止手写或复制 taskpack `human/*` |
+| `human.business_views` | `machine/canonical_facts.yaml` + `machine/acceptance_contract.yaml` + `machine/task_graph.yaml` + `machine/traceability.csv` + `machine/facts/*` → `文档/00_我在哪.md` … `06_运维手册.md` | `WR-RENDER-HUMAN` | Governance | 只能由 `machine/tools/render_human.py` 从已声明 machine sources 全量覆盖生成；禁止手写或复制 taskpack `human/*` |
 | `continuity.active_delivery` | `HANDOFF.md` 顶部 v1.5.2 区块 | `WR-PHASE-EXECUTOR` | Delivery Lead | 只写最近已通过 phase 与下一最小 task；不得覆盖事实源 |
 | `policy.agent_contract` | `AGENTS.md` | `WR-REPO-GOVERNANCE` | Tech Lead | 只写边界/路由并指向本 register/HANDOFF，不另存进度 |
 | `evidence.phase_receipts` | `machine/runs/` compact receipts | `WR-PHASE-EXECUTOR` | 当前 Task owner | 每 phase 一份紧凑证据；完整日志外置；receipt 不能写回事实 |
 
-29-row canonical writer map SHA-256：`5bd31aba74cd486d91d4d50a6c6b9972dd6b798a35e7a963a29fe277d1b18b69`。规范化方式为跳过表头/分隔行，按表中顺序取 29 行五列、去掉 Markdown code ticks、用 `|` 连接列、LF 连接行并保留末尾 LF。
+30-row canonical writer map SHA-256：`c8e0cebb60d16039860f84b2b062df4aea73b48dda0c06828ee214a338dd7bcd`。规范化方式为跳过表头/分隔行，按表中顺序取 30 行五列、去掉 Markdown code ticks、用 `|` 连接列、LF 连接行并保留末尾 LF。
 
 `metadata/**`、`docs/governance/**`、根目录历史文档、taskpack `human/*`/PDF/Roadmap、recovery/history 都只能提供 evidence/reference 或派生视图；它们不在本表中取得任何现行事实域的 writer 权限。
 
@@ -150,7 +152,7 @@ Baseline before edits: `AUTHORITY_BASELINE_RECORDED status=FAIL checks=5 failed=
 | Gate | Result |
 | --- | --- |
 | Taskpack identity | Outer SHA PASS；ZIP 43 files；manifest `42/42`；validator `49 requirements / 49 AC / 14 stages / 56 tasks`, 0 errors/warnings |
-| Namespace / writer structure | `AUTHORITY_FOCUSED_PASS namespaces=10 fact_domains=29 facts_covered=14 seven_views=7 binding=fca5e868`；published main 与 deployed source 各有唯一 writer |
+| Namespace / writer structure | `AUTHORITY_FOCUSED_PASS namespaces=10 fact_domains=30 facts_covered=14 seven_views=7 binding=fca5e868`；P2.3 增加 sealed Traceability 域，published main 与 deployed source 各有唯一 writer |
 | Conflict algorithm | `AUTH_RESOLVE_1_PASS cases=6 production_stop_negative=PASS`；different namespaces coexist, unauthorized writer rejected, ambiguous production stops |
 | Reverse trace | `REVERSE_TRACE_PASS deployment->deployed-source + published-main->taskpack binding=fca5e868`；query run `29916590384`、Git ref/object 与 taskpack bytes independently matched |
 | Production uniqueness | Latest deploy run `29916233128` and query run `29916590384` both bind `68306e8... / adfc849b... / boh5fsnx...`; current claims `1`, ambiguity `0` |

@@ -4,8 +4,9 @@
 render_human.py —— 从机器平面渲染人类平面七文件
 
 双平面原则：
-- 机器平面由 machine/canonical_facts.yaml（v1.5.2 交付合同）与
-  machine/facts/*（旧业务状态）两个已声明 namespace 组成。
+- 机器平面由 machine/canonical_facts.yaml、acceptance_contract.yaml、
+  task_graph.yaml、traceability.csv（v1.5.2 交付合同）与 machine/facts/*
+  （旧业务状态）两个已声明 namespace 组成。
 - 人类平面 文档/ 七个文件全部是渲染产物，无一手写。
   agent 负责生产机器平面事实，渲染器把它们渲染成七文件；负责人只复审，不手写。
 - 因此没有任何"手写区"。每次渲染都会覆盖全部七个文件。
@@ -21,7 +22,7 @@ render_human.py —— 从机器平面渲染人类平面七文件
   02_系统架构.md    <- canonical storage/privacy + legacy features/data_contract/config
   03_口径字典.md    <- canonical metrics + legacy glossary
   04_操作流程.md    <- canonical authorization/domain index + legacy flows
-  05_执行与验收.md  <- canonical requirement task/owner seed + legacy plan/acceptance/runs
+  05_执行与验收.md  <- canonical + Acceptance/Task DAG/Traceability + legacy plan/acceptance/runs
   06_运维手册.md    <- canonical ops requirement index + legacy config/ops/changelog
 
 Canonical Facts 缺失、损坏、ID 重复或关键字段不完整时必须停止渲染；
@@ -35,6 +36,8 @@ import json
 import re
 import sys
 from pathlib import Path
+
+from check_traceability import load_and_validate
 
 GENERATED = (
     "<!-- 本文件由 machine/tools/render_human.py 从机器平面生成。请勿手写——下次渲染会覆盖。 -->"
@@ -560,7 +563,7 @@ def render_04(facts: Path, canonical):
     return body
 
 
-def render_05(facts: Path, runs_dir: Path, canonical):
+def render_05(facts: Path, runs_dir: Path, canonical, trace_documents):
     plan = load_json(facts / "plan.json", {})
     acceptance = load_json(facts / "acceptance.json", {})
     runs = []
@@ -576,27 +579,41 @@ def render_05(facts: Path, runs_dir: Path, canonical):
                 for a in acceptance.get("items", [])]
     run_rows = [(r.get("run_id", "?"), r.get("action", ""), r.get("result", ""))
                 for r in runs[-5:]]
-    execution_rows = [
-        (f"`{row['id']}`", f"`{row['task']}`", f"`{row['owner']}`")
-        for row in canonical["requirements"]
-    ]
+    trace_by_requirement = {
+        row["requirement_id"]: row for row in trace_documents["trace_rows"]
+    }
+    execution_rows = []
+    for requirement in canonical["requirements"]:
+        row = trace_by_requirement[requirement["id"]]
+        task_ids = " ".join(f"`{task_id}`" for task_id in row["task_ids"].split(";") if task_id)
+        execution_rows.append(
+            (
+                f"`{row['requirement_id']}`",
+                f"`{row['acceptance_id']}`",
+                f"`{row['oracle_threshold']}`",
+                task_ids,
+                f"`{row['test_id']}`",
+                f"`{row['artifact']}`",
+                f"`{row['owner']}`",
+            )
+        )
 
     this_round = (f"**在做：** {now}\n\n**负责：** {owner or '待定'}"
                   if now else blank_note("当前任务", "把这一轮的计划写进机器平面（machine/facts/plan.json）"))
 
     body = f"""{GENERATED}
-<!-- 事实源：machine/canonical_facts.yaml（需求→Task/Owner seed）；machine/facts/plan.json、acceptance.json、runs/*.json（旧业务执行状态） -->
+<!-- 事实源：machine/canonical_facts.yaml、acceptance_contract.yaml、task_graph.yaml、traceability.csv（v1.5.2 验收追踪）；machine/facts/plan.json、acceptance.json、runs/*.json（旧业务执行状态） -->
 <!-- 上限 100 行 -->
 
 # 执行与验收
 
-本文件只展开执行映射；需求陈述见 `01_产品需求.md`，指标见 `03_口径字典.md`。
+本文件只展开执行与验收映射；需求陈述见 `01_产品需求.md`，指标见 `03_口径字典.md`。
 
-## 一、v1.5.2 需求执行种子
+## 一、v1.5.2 需求验收追踪
 
-下表只投影 Canonical Facts 已有的 `Requirement → Task / Owner`；Acceptance 与完整追踪由后续授权 Task 建立。
+下表按 Canonical Facts 的需求顺序，机械投影唯一主 Acceptance、Oracle、Task、Test、Artifact 与 Owner。完整字段保留在机器平面；`check_traceability.py` 对 49 条映射失败即关闭。
 
-{table(execution_rows, ["需求 ID", "主 Task", "Owner"])}
+{table(execution_rows, ["需求 ID", "主 Acceptance", "Oracle 阈值", "Task", "Test", "Artifact", "Owner"])}
 
 ## 二、旧业务这一轮在做什么
 
@@ -728,6 +745,7 @@ def main() -> int:
     runs = root / "machine" / "runs"
     project_name = root.resolve().name
     canonical = load_required_canonical(root)
+    trace_documents, _trace_counts = load_and_validate(root)
 
     docs.mkdir(parents=True, exist_ok=True)
     rendered = {
@@ -736,7 +754,7 @@ def main() -> int:
         "02_系统架构.md": render_02(facts, canonical),
         "03_口径字典.md": render_03(facts, canonical),
         "04_操作流程.md": render_04(facts, canonical),
-        "05_执行与验收.md": render_05(facts, runs, canonical),
+        "05_执行与验收.md": render_05(facts, runs, canonical, trace_documents),
         "06_运维手册.md": render_06(facts, project_name, canonical),
     }
     for name, body in rendered.items():
