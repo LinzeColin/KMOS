@@ -331,7 +331,8 @@ class Stage042AutomaticLifecycleStageReviewTests(unittest.TestCase):
         self.assertTrue(
             "`STAGE-041`, `STAGE-042` and `STAGE-043` are locally reviewed"
             in staged_head
-            or "`STAGE-041..STAGE-044` are locally reviewed" in staged_head,
+            or "`STAGE-041..STAGE-044` are locally reviewed" in staged_head
+            or "`STAGE-041..STAGE-045` are locally reviewed" in staged_head,
             staged_head,
         )
         self.assertTrue(
@@ -343,6 +344,7 @@ class Stage042AutomaticLifecycleStageReviewTests(unittest.TestCase):
             or "Current task: `IDS-V0_1-STAGE045-P3`" in staged_head
             or "Current task: `IDS-V0_1-STAGE045-P4`" in staged_head
             or "Current task: `IDS-V0_1-STAGE045-REVIEW`" in staged_head
+            or "Current task: `IDS-V0_1-STAGE046-P4`" in staged_head
         )
 
         events = [

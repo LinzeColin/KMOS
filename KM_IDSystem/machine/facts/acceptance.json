@@ -1,6 +1,31 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE046-P4-01`",
+      "criteria": "步骤四交付合同精确绑定批准来源、已提交步骤三前序与五项 Git 索引上游证据",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P4-02`",
+      "criteria": "六个候选 route 均提供仅含 text、tables、pages、sections、confidence、errors 的结构样例，并明确标记未执行及解析器版本未分配",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P4-03`",
+      "criteria": "十四个步骤三场景均派生显式 fallback 控制日志，回退尝试、静默丢弃和解析器切换计数均为零",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P4-04`",
+      "criteria": "质量指标由步骤三重算，五类失败分类无重叠覆盖十四项场景，八类治理格式和六个候选 route 的支持边界明确",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P4-05`",
+      "criteria": "未读取业务源或原始元数据，未执行解析器、回退、配置变更、持久化、整阶段复审、Stage047、批次复审、GitHub 或应用重装",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE046-P3-01`",
       "criteria": "步骤三合同精确绑定批准来源、已提交 Phase2 commit/root/KM_IDSystem tree/父提交与五项不可变 Phase2 工件哈希",
       "status": "已通过"

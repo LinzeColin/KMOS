@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE046",
-  "phase": "IDS-STAGE046-P3",
-  "task": "IDS-V0_1-STAGE046-P3",
-  "real_progress": "Stage046 步骤三十四项仅元数据解析器路由场景已在本地完成；步骤四未开始且须独立执行",
-  "report_grade": "批准来源、Phase2 提交与五项工件哈希实时重验，十四项格式、质量、错误与指令标记场景全部显式处置且无静默丢弃",
-  "business_verdict": "仅启用非生产内存场景重放；解析器、回退、输出、持久化、整阶段复审与生产能力仍禁用",
-  "evidence_status": "LOCAL_PHASE3_ROUTING_SCENARIOS_PARSER_DISABLED",
+  "phase": "IDS-STAGE046-P4",
+  "task": "IDS-V0_1-STAGE046-P4",
+  "real_progress": "Stage046 步骤四隔离交付证据已在本地完成；整阶段复审未开始且须独立执行",
+  "report_grade": "批准来源、步骤三提交与五项工件哈希实时重验，六个结构样例、十四项派生控制日志、质量指标与五类失败处置均可机验",
+  "business_verdict": "仅交付非生产结构和派生控制证据；解析器、回退、持久化、整阶段复审与生产能力仍禁用",
+  "evidence_status": "LOCAL_PHASE4_ROUTING_CLOSEOUT_PARSER_DISABLED",
   "rendered_at": "2026-07-22",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE046-P4-GATE",
+  "next_gate": "IDS-STAGE046-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## IDS v0.1 STAGE-046 Phase 4 - 2026-07-22
+
+- Bound the approved Stage046 task-pack source, committed Phase3 commit/root/KM_IDSystem tree/parent and five immutable indexed Phase3 artifact SHA-256 values into `ids.stage046.parser_routing.phase4.delivery.v1`.
+- Replayed all fourteen Phase3 metadata-only routing scenarios and derived six `SCHEMA_ONLY_NOT_EXECUTED` output-shape samples, fourteen `DERIVED_CONTROL_LOG_SAMPLE_NOT_RUNTIME` fallback control records, exact quality metrics and five non-overlapping fail-closed classifications.
+- The support boundary remains candidate-only: eight governed formats map to six route families, but no parser implementation or version is available; Stage047/048/049/050 ownership remains separate.
+- No IDS business source or raw metadata was read; no parser, fallback, configuration mutation, output, persistence, whole-stage review, Stage047, batch review, GitHub upload or App reinstall ran. The only next gate is separate `IDS-STAGE046-REVIEW-GATE`.
+- Valid TDD RED produced sixteen expected missing-artifact/governance assertion failures and one missing-checker command error across thirteen focused tests. Final GREEN passed focused `13/13` in `1.563s`, Phase1-4 `56/56` in `6.033s`, Stage005 `174/174` in `47.314s`, Stage041-046 aggregate `399/399` in `1183.625s`, full IDS v0.1 discovery `1151/1151` in `1600.768s`, eight historical review checkers in `220.172s`, `224` unique event semantics, idempotent owner rendering and project dual-plane.
+
 ## IDS v0.1 STAGE-046 Phase 3 - 2026-07-22
 
 - Bound the approved Stage046 task-pack source, committed Phase2 commit/root/KM_IDSystem tree/parent and five immutable Phase2 artifact SHA-256 values into `ids.stage046.parser_routing.phase3.scenarios.v1`.

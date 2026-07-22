@@ -281,6 +281,7 @@ def _canonical_finding_checks() -> dict[str, bool]:
             nonpaused_cleanup.append(runtime.evaluate_lifecycle(request, contract=contract))
 
         handoff = HANDOFF_PATH.read_text(encoding="utf-8")
+        top_handoff = "\n".join(handoff.splitlines()[:40])
         staged = handoff.split("## IDS v0.1 Staged Development", 1)[1]
         staged_head = "\n".join(staged.splitlines()[:18])
     except Exception:

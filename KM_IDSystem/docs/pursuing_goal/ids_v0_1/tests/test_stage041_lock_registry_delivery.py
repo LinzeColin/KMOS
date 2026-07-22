@@ -466,6 +466,12 @@ class Stage041LockRegistryDeliveryTests(unittest.TestCase):
                 and "IDS-V0_1-STAGE046-P3" in handoff
                 and "IDS-V0_1-STAGE046-P4" in handoff
             )
+            or (
+                status["phase"] == "IDS-STAGE046-P4"
+                and status["next_gate"] == "IDS-STAGE046-REVIEW-GATE"
+                and "IDS-V0_1-STAGE046-P4" in handoff
+                and "IDS-V0_1-STAGE046-REVIEW" in handoff
+            )
         )
         events = [
             json.loads(line)
