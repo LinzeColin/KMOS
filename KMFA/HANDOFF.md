@@ -1,6 +1,16 @@
 # KMFA HANDOFF
 
-更新时间：2026-07-17（Australia/Sydney）
+## v1.5.2 公开软件交付线（2026-07-22）
+
+- 当前唯一执行基线：用户提供的 `KMFA_Product_Design_Taskpack_v1.5.2.zip`，SHA-256 `31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb`；产品/runtime 版本仍为 `0.1.4-one-time-github-main-upload`，两者禁止混用。
+- 最近完成的唯一执行单元：`S00 / P0.1 / T-S00-01`。`AC-GOV-002` 已通过，详细 public-safe receipt 见 `machine/runs/SOURCE_IDENTITY.md`；本 run 未启动 P0.2。
+- 当前状态：`P0.1 DONE / 5-of-5 identity fields / ambiguity 0`。当前生产唯一链为 source `68306e850fa66ffe6b53622915ca81ff8ba98bf8`、image `sha256:adfc849b24e2efc471706c718377c97df07b41b4ce921f972e0cf598b0e25841`、Coolify deployment `boh5fsnxe82umwcpqzooam1p`、completed `2026-07-22T11:39:29.000000Z`；GitHub deploy/query runs 分别为 `29916233128` / `29916590384`。`STOP-S00-001` 已解决。
+- Owner 提供的 `fb31e8e... / sha256:0b09ca... / qcq1q8m... / 2026-07-20T21:50:47Z` 已由 query run `29916243207` 原样复核，作为上一部署的回滚/溯源记录保留。收口前发现 `main` 已前进并自动产生新部署，因此没有把旧 tuple 冒充当前身份。
+- v1.5 恢复 bundle 已在 prerequisite-bearing 历史仓 `git bundle verify` 通过，`_protected` 副本 hash 一致；未 replay、merge、force-push 或触碰 S24。PRIVATE 冗余 Release 仅做存在性/私有性/manifest parity 只读核验，未复制其元数据到公开仓。
+- 未完成：P0.2-P0.4、S00 Stage Review、复审问题修复与 S00 整体 GitHub upload；禁止跳级或 phase 级上传。
+- 下一步：新 run 严格按 v1.5.2 任务包只执行 `S00 / P0.2`，先重读本 HANDOFF、身份 receipt 与对应 task/AC；不得在同一 run 顺带执行 P0.3。
+
+下列既有交接主体更新时间：2026-07-17（Australia/Sydney）
 
 ## 接管入口
 
