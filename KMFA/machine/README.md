@@ -8,8 +8,9 @@
 
 | 目录 | 装什么 | 现状 |
 |---|---|---|
+| `canonical_facts.yaml` | v1.5.2 delivery 产品合同的 sealed Canonical Facts | P2.1 已按任务包原字节落入；唯一 writer 为 `WR-TASKPACK-PUBLISHER` |
 | `facts/` | 14 个既有业务状态事实（status/features/flows/plan/acceptance/ops/blockers/changelog...） | 已填充；描述旧业务状态域，不代表 v1.5.2 delivery 进度 |
-| `runs/` | compact public-safe receipts；完整日志与制品外置 | 已含清理交接、P0.1-P0.4、S00 Stage Review、P1.1 Customer PR/FAQ、P1.2 PRD/OKR、P1.3 Cost/Benefit/Kill、P1.4 Product Contract 及 S01 Stage Review 记录 |
+| `runs/` | compact public-safe receipts；完整日志与制品外置 | 已含清理交接、P0.1-P0.4、S00 Stage Review、P1.1-P1.4、S01 Stage Review 及 S02/P2.1 Canonical Facts 记录 |
 | `tools/` | 三道门 + 渲染器 | 已装 |
 | `legacy/` | v0.1.4 遗留记录指针（就地引用，未搬动，见其 README） | 指针 |
 
@@ -27,7 +28,8 @@ python3 machine/tools/check_blocker_stop.py  # 阻塞重审门
 ## Authority boundary
 
 - `facts/*` 是旧业务状态域的 writer；`文档/*` 只能由 renderer 生成。
+- `canonical_facts.yaml` 是 v1.5.2 delivery 产品合同 namespace；它与任务包 sealed bytes 一致，不得把 receipt、旧 facts 或手写文档变成第二 writer。
 - v1.5.2 的产品合同、AC、Task DAG 与 release policy 来自已授权 sealed taskpack，不写进旧业务 facts 伪装同一进度。
 - `runs/*` 只保存 compact evidence/authority mapping，不得反向成为产品或业务事实 writer。
 - 当前 delivery phase 看 `../HANDOFF.md`；产品版本看 `../VERSION`；published source 看 GitHub `main`；生产制品看 deployment manifest。
-- S02 会按其 Task/AC 建立 v1.5.2 canonical facts；在那之前不得提前迁移或覆盖现有 14 个业务 facts。
+- S02/P2.1 已建立 Canonical Facts，但未渲染 v1.5.2 人类平面；现有 14 个业务 facts 与七文件在 P2.2 前保持原样。派生边界见 `runs/S02_P21_CANONICAL_FACTS.md`。
