@@ -452,3 +452,12 @@ def test_deployment_waits_for_application_and_governance_gates():
     }
     assert gate["uses"] == "./.github/workflows/app-e2e.yml"
     assert golden_path["needs"] == "app-e2e-gate"
+
+
+def test_walking_skeleton_oracle_preserves_linux_bind_mount_ownership():
+    oracle = (REPO / "KMFA/app/e2e/walking_skeleton_flow.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'f"{os.getuid()}:{os.getgid()}"' in oracle
+    assert '("--user", self.user_spec)' in oracle
+    assert "Production keeps the image's default user" in oracle

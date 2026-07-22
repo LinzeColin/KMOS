@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import sqlite3
 import subprocess
@@ -68,11 +69,13 @@ class ContainerLifecycle:
         image: str,
         state_dir: Path,
         port: int,
+        user_spec: str | None,
     ) -> None:
         self.name = name
         self.image = image
         self.state_dir = state_dir
         self.port = port
+        self.user_spec = user_spec
         self.owned = False
         self.base_url = f"http://127.0.0.1:{port}"
 
@@ -81,6 +84,7 @@ class ContainerLifecycle:
         assert not _container_exists(self.name), (
             f"refusing to replace pre-existing container {self.name}"
         )
+        user_args = ("--user", self.user_spec) if self.user_spec else ()
         result = _run(
             "docker",
             "run",
@@ -97,6 +101,7 @@ class ContainerLifecycle:
             "KMFA_PRIVATE_OPS_REQUIRE_ACCESS=1",
             "-v",
             f"{self.state_dir}:/var/lib/kmfa/state",
+            *user_args,
             self.image,
         )
         assert result.stdout.strip(), result.stderr
@@ -360,6 +365,14 @@ def main() -> int:
         image=args.image,
         state_dir=args.state_dir,
         port=args.port,
+        # Bind-mounted evidence must remain readable by the host-side Oracle
+        # on native Linux runners. Docker Desktop masks this UID/GID boundary.
+        # Production keeps the image's default user; this override is test-only.
+        user_spec=(
+            f"{os.getuid()}:{os.getgid()}"
+            if hasattr(os, "getuid") and hasattr(os, "getgid")
+            else None
+        ),
     )
     log_secret_hits = 0
     try:

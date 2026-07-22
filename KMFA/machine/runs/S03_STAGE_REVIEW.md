@@ -3,7 +3,7 @@
 > Stage `S03 公开根主页与 Walking Skeleton`
 > Reviewed: `2026-07-22T19:58:46Z`
 > Phase candidate parent: `1a4941608a813254972ae333cdc66b5c32f4b142`
-> Status: **REVIEW PASS — S03 guarded release candidate；production edge Oracle WAIT；G2 NOT PASS**
+> Status: **REVIEW CORRECTION PASS — S03 guarded release candidate；production edge Oracle WAIT；G2 NOT PASS**
 
 本文是不超过 64 KiB 的 public-safe compact receipt。它把 P3.1–P3.4、S03 objective/deliverable/gate、
 相关 Acceptance、恢复边界、部署阻断与回滚作为一个整体重放，并记录复审发现及修复。它不保存用户文件、
@@ -66,8 +66,9 @@ WAIT 晋级。这个边界不是用“本地测试通过”掩盖生产失败。
 | `F-S03-006` CI runtime drift | Medium | workflow 依赖 runner 默认 Python/Node，而生产构建固定 Python 3.12 / Node 20；未来 runner 漂移可制造不一致结果 | `setup-python@v5` 固定 3.12、`setup-node@v4` 固定 20，并缓存各自 lock/input；合同测试锁定版本 | **RESOLVED** |
 | `F-S03-007` machine navigation stopped at P3.1 | Low | `machine/README.md` 已存在 P3.2–P3.4 receipts 却只导航到 P3.1，后续接管易遗漏三项证据 | 精确更新 runs 导航到 P3.1–P3.4 与本 whole-stage receipt | **RESOLVED** |
 | `F-S03-008` Python caches polluted review/image state | Medium | 历史仓跟踪 4 个 `.pyc`，本次新测试又生成 2 个 bytecode，且 Docker context 会带入 pytest/ruff cache；复验会改脏 worktree，并可能夹带本机解释器/路径元数据 | 删除 4 个可再生 tracked bytecode；`.gitignore` 拒绝 bytecode/test/lint cache，`.dockerignore` 同步排除；源码与数据不删 | **RESOLVED** |
+| `F-S03-009` Linux CI could not read root-owned bind state | High | 首次 publication run `29954158835` 的 gate 在部署前阻断：容器以 root 写 `0600` SQLite，native Linux host Oracle 读取时报 `PermissionError`；Docker Desktop 的 UID 映射未复现 | 仅 TEST-QA-001 容器增加 host runner UID:GID；生产 image/default user 不变；合同测试和完整非 root final-image flow 锁定 | **RESOLVED** |
 
-Final finding count：`total=8 / resolved=8 / accepted-risk=0 / open=0`。存储、备份、反滥用、扫描、
+Final finding count：`total=9 / resolved=9 / accepted-risk=0 / open=0`。存储、备份、反滥用、扫描、
 恢复轮换、多文件、删除、生产 edge 与外部 index 是已排期的后续合同/Oracle，不被伪装成 S03 review finding
 已解决。
 
@@ -98,23 +99,29 @@ Final finding count：`total=8 / resolved=8 / accepted-risk=0 / open=0`。存储
 |---|---|
 | Taskpack seal | outer ZIP SHA PASS；ZIP test PASS；manifest `42/42`；official validator `49 R / 49 AC / 14 Stages / 56 Tasks`, 0 errors/warnings |
 | Sealed authorities | byte-equal/hash PASS：Canonical `5ae070cb...552`、AC `1f07bd14...bc1`、DAG `a9753e7c...306`、Release `f47de7a...3c7`、Trace `ca369627...727` |
-| Backend | Python 3.12 full regression `119 passed`；focused public/deploy/index contract `17 passed`；仅 inherited TestClient deprecation warning |
+| Backend | Python 3.12 full regression `120 passed`；focused public/deploy/index/CI ownership contract `18 passed`；仅 inherited TestClient deprecation warning |
 | Browser / image | public shell desktop/mobile/no-JS/degraded `4/4`；a11y 22 runs violations/incomplete `0`；unpublished index hits `0`；legacy private flow `11/11` |
 | TEST-QA-001 | download #1/#2 SHA-256 均 `501b484cc19f114fdfed29a9f3f31ec5b0cdc3d12a0a8f75a2d21595998af011`；Flag rollback recovery `404`、root `200`、secret state/log/URL hits `0` |
 | Error/guard/rollback | promoted root `503` 与 missing asset `404` 均 noindex/no-store；guard-on missing config 的四个私有 canary `503`；三 Flag 全回退 root/static/index/state 边界 PASS |
 | Repository governance | validator PASS；required mutation `1 positive + 4 negative`，source unchanged `5/5`；auto-discovered five-project dual-plane PASS |
 | Dependency / build | `npm audit --omit=dev` vulnerabilities `0`；resolved Python requirements known vulnerabilities `0`；两套 Compose parse；Vite/Docker build PASS |
-| Workflow | reusable-call/needs/concurrency/runtime-pin contract PASS；actionlint PASS；deployment promotion remains bound to same SHA gate |
+| Workflow | reusable-call/needs/concurrency/runtime-pin/Linux ownership contract PASS；actionlint PASS；首次 run `29954158835` 正确阻断且未 deploy |
 | Public safety | tracked Python bytecode `0`；final diff high-confidence credential/private key/new absolute path/forbidden payload/runtime DB/archive 命中 `0`；receipts `<64 KiB`；`git diff --check` PASS |
 
 本地完整浏览器与恢复制品只放在一次性临时目录，使用合成项目/文件；不提交截图、状态库、对象字节或
 `EVIDENCE/` 树。review-time runtime-frozen image 曾以 `sha256:b56eb7e7...c6b8` 完成上述浏览器/恢复回归；
 最终 receipt commit 的精确 image ID 和实际部署 digest 必须在 commit/build/deploy 后另行核对，不能自引用。
 
+首次远端 upload 的 run `29954158835` 在 TEST-QA-001 发现 `F-S03-009` 后正确阻断，`golden-path`
+为 skipped，未触发 Coolify。修复必须先以 Linux 等价 UID/GID 和完整本地门禁复验；禁止 rerun 红 SHA、
+手动绕过 gate 或把这次 pre-deploy failure 计作发布成功。
+
 ## 7. Publication, rollout, rollback and next boundary
 
-1. 上传前 fresh fetch；只有 remote main 仍为 `a991e1b8...`、候选为其直接后代、worktree clean、open
-   finding `0`、安全与完整门禁全绿，才允许一次 `git push origin HEAD:main`；禁止 force。
+1. 首次 Stage upload 已把 `a991e1b8...` fast-forward 到 `6b1f3e94...`；run `29954158835` 在 deploy 前
+   暴露 Linux ownership finding 并阻断。只允许一个范围精确的 corrective commit（Oracle、合同测试、
+   receipt/HANDOFF）在 remote 仍为 `6b1f3e94...`、worktree clean、open finding `0`、本地完整门禁和
+   non-root TEST-QA-001 全绿时 fast-forward；禁止 amend 已公开 commit、force 或绕过 Gate。
 2. 同 SHA deploy workflow 必须先通过 reusable app-e2e gate 再触发 Coolify。上传后核对 remote main、
    workflow conclusion、Coolify deployment UUID、actual `source_commit`、image digest 和 completed_at；任一不一致 STOP。
 3. host 登录墙保持时，先建 `/api`、`/api/*`、`/ops`、`/ops/*` 更具体 Access apps；再配置 Audience 和
