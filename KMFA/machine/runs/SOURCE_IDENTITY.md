@@ -41,7 +41,7 @@ Composite 顺序固定为 `.github/workflows/deploy.yml`（从 Git object 读取
 
 | 输入 | Bytes | SHA-256 | 验证 |
 | --- | ---: | --- | --- |
-| `KMFA_Product_Design_Taskpack_v1.5.2.zip` | 4,026,290 | `31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb` | ZIP test PASS；内部 43/43 hash PASS；validator `49 requirements / 49 AC / 14 stages / 56 tasks`, 0 error, 0 warning |
+| `KMFA_Product_Design_Taskpack_v1.5.2.zip` | 4,026,290 | `31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb` | ZIP 共 43 个文件；manifest 排除自身，其余 42/42 hash PASS；validator `49 requirements / 49 AC / 14 stages / 56 tasks`, 0 error, 0 warning |
 | Standalone `KMFA_Roadmap_v1.5.2.md` | 67,405 | `8e4e5086158ab5309f73c9cc1289b6ca3d783c90557342717950cc0677535485` | 与本轮本地输入唯一绑定；Roadmap 仍是 machine graph 派生视图 |
 | `KMFA_acceptance_prod-entry-20260722_reference.zip` | 69,575 | `e0e31fc24d2712715b862939e51fd580fdcca1517721dc95eabf1aaadda6a714` | ZIP test PASS；内部 `SHA256SUMS.txt` 全 PASS |
 | `KMFA_v1.5_recovery_reference.zip` | 2,366,432 | `8066b65dc96f4368b54e2a053e6726a2bf194806d67b1bdbcacb669a457ef2c1` | ZIP test PASS；只读核验，未 replay/merge |
@@ -98,7 +98,7 @@ The previous deploy run uploaded an SBOM artifact ZIP with SHA-256 `dc860ae9b03a
 | --- | --- |
 | `unzip -t` outer taskpack and three approved input ZIPs | PASS |
 | `python3 tools/validate_taskpack.py .` | PASS, 0 errors / 0 warnings |
-| `shasum -a 256 -c manifest/SHA256SUMS.txt` | PASS, 43/43 |
+| `shasum -a 256 -c manifest/SHA256SUMS.txt` | PASS, 42/42（ZIP 共 43 个文件，manifest 不校验自身） |
 | Acceptance reference internal `SHA256SUMS.txt` | PASS |
 | `git fetch origin main`, local/remote authoritative ref comparison | PASS, current `main` / `origin/main` = `68306e8...` |
 | `git status --short --branch`; main mirror status | clean |
