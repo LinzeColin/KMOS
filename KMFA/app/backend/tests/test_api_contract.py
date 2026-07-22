@@ -218,7 +218,7 @@ def test_source_check_freshness_from_generated_facts_only():
 
 
 def test_openapi_covers_required_paths():
-    schema = client.get("/openapi.json").json()
+    schema = client.get("/ops/openapi.json").json()
     missing = REQUIRED_PATHS - set(schema["paths"])
     assert not missing, f"OpenAPI 缺路径: {missing}"
 
@@ -1134,6 +1134,7 @@ def test_single_user_mode_declared_truthfully(净审计):
     assert mode["模式"] == "本机单用户"
     assert mode["应用内登录"] is False
     assert "Cloudflare Access" in mode["生产鉴权"]
+    assert "/api" in mode["生产鉴权"] and "/ops" in mode["生产鉴权"]
     assert set(mode["角色口径"]) == {"management", "finance", "reviewer", "readonly"}
 
 

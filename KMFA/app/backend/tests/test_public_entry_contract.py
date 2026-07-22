@@ -1,0 +1,226 @@
+"""S03/P3.1 root-domain and private-operations boundary contract."""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from types import SimpleNamespace
+
+import jwt
+import yaml
+from cryptography.hazmat.primitives.asymmetric import rsa
+from fastapi.testclient import TestClient
+
+from app.main import app
+from app import private_access
+
+client = TestClient(app)
+CANONICAL_ROOT = "https://kmfa.linzezhang.com/"
+REPO = Path(__file__).resolve().parents[4]
+
+
+def _access_token(
+    private_key,
+    *,
+    issuer: str,
+    audience: str,
+    kid: str = "test-key",
+    valid_for_seconds: int = 300,
+) -> str:
+    now = datetime.now(timezone.utc)
+    return jwt.encode(
+        {
+            "sub": "test-operator",
+            "iss": issuer,
+            "aud": [audience],
+            "iat": now,
+            "exp": now + timedelta(seconds=valid_for_seconds),
+        },
+        private_key,
+        algorithm="RS256",
+        headers={"kid": kid},
+    )
+
+
+def test_root_is_direct_canonical_app_entry():
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 200
+    assert "location" not in response.headers
+    assert '<div id="root"></div>' in response.text
+    assert f'<link rel="canonical" href="{CANONICAL_ROOT}">' in response.text
+    assert f'<meta property="og:url" content="{CANONICAL_ROOT}">' in response.text
+    assert "/assets/" in response.text
+    assert "/ui/" not in response.text
+
+    head = client.head("/", follow_redirects=False)
+    assert head.status_code == 200 and not head.content
+
+
+def test_legacy_ui_aliases_are_single_hop_308_for_get_and_head():
+    for method in ("GET", "HEAD"):
+        for path in ("/ui", "/ui/", "/ui/legacy/deep-link"):
+            response = client.request(method, path, follow_redirects=False)
+            assert response.status_code == 308
+            assert response.headers["location"] == "/"
+            final = client.request(
+                method, response.headers["location"], follow_redirects=False
+            )
+            assert final.status_code == 200 and "location" not in final.headers
+
+
+def test_sitemap_and_share_surface_name_only_the_root():
+    response = client.get("/sitemap.xml")
+    assert response.status_code == 200
+    assert response.text.count("<loc>") == 1
+    assert f"<loc>{CANONICAL_ROOT}</loc>" in response.text
+    assert "/ui" not in response.text
+
+
+def test_public_health_and_errors_do_not_disclose_private_details():
+    health = client.get("/healthz")
+    assert health.status_code == 200 and health.json() == {"status": "ok"}
+    assert "facts" not in health.text.lower()
+
+    missing = client.get("/this-path-does-not-exist", follow_redirects=False)
+    assert missing.status_code == 404 and "location" not in missing.headers
+    lowered = missing.text.lower()
+    assert (
+        "traceback" not in lowered
+        and "/opt/" not in lowered
+        and "access_token" not in lowered
+    )
+
+
+def test_openapi_and_deep_health_live_only_under_private_ops(monkeypatch):
+    monkeypatch.delenv("KMFA_PRIVATE_OPS_REQUIRE_ACCESS", raising=False)
+    assert client.get("/openapi.json").status_code == 404
+    assert client.get("/docs").status_code == 404
+    assert client.get("/redoc").status_code == 404
+    assert client.get("/ops/openapi.json").status_code == 200
+    deep = client.get("/ops/healthz")
+    assert deep.status_code == 200 and "facts_dir_present" in deep.json()
+
+
+def test_private_paths_fail_closed_and_verify_access_jwt(monkeypatch):
+    issuer = "https://test-team.cloudflareaccess.com"
+    audience = "test-private-operations-audience"
+    trusted_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    forged_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+    class FakeJwkClient:
+        def get_signing_key_from_jwt(self, _token):
+            return SimpleNamespace(key=trusted_key.public_key())
+
+    monkeypatch.setenv("KMFA_PRIVATE_OPS_REQUIRE_ACCESS", "1")
+    monkeypatch.setenv("KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN", issuer)
+    monkeypatch.setenv("KMFA_CLOUDFLARE_ACCESS_AUD", f"{audience},second-private-app")
+    monkeypatch.setattr(private_access, "_jwk_client", lambda _uri: FakeJwkClient())
+
+    # The public plane remains anonymous even while the origin guard is active.
+    assert client.get("/").status_code == 200
+    assert client.get("/healthz").status_code == 200
+    assert client.get("/sitemap.xml").status_code == 200
+
+    for path in ("/api", "/api/状态", "/ops", "/ops/healthz", "/ops/openapi.json"):
+        denied = client.get(path)
+        assert denied.status_code == 403
+        assert denied.json() == {"detail": "cloudflare_access_required"}
+        assert denied.headers["cache-control"] == "no-store"
+
+    assert client.get("/api-public-near-prefix").status_code == 404
+
+    assert (
+        client.get(
+            "/api/状态", headers={"Cf-Access-Jwt-Assertion": "not-a-jwt"}
+        ).status_code
+        == 403
+    )
+
+    valid = _access_token(trusted_key, issuer=issuer, audience=audience)
+    allowed = client.get("/api/状态", headers={"Cf-Access-Jwt-Assertion": valid})
+    assert allowed.status_code == 200
+
+    wrong_audience = _access_token(
+        trusted_key, issuer=issuer, audience="wrong-audience"
+    )
+    assert (
+        client.get(
+            "/api/状态", headers={"Cf-Access-Jwt-Assertion": wrong_audience}
+        ).status_code
+        == 403
+    )
+
+    wrong_issuer = _access_token(
+        trusted_key,
+        issuer="https://other-team.cloudflareaccess.com",
+        audience=audience,
+    )
+    assert (
+        client.get(
+            "/api/状态", headers={"Cf-Access-Jwt-Assertion": wrong_issuer}
+        ).status_code
+        == 403
+    )
+
+    expired = _access_token(
+        trusted_key,
+        issuer=issuer,
+        audience=audience,
+        valid_for_seconds=-1,
+    )
+    assert (
+        client.get(
+            "/api/状态", headers={"Cf-Access-Jwt-Assertion": expired}
+        ).status_code
+        == 403
+    )
+
+    forged = _access_token(forged_key, issuer=issuer, audience=audience)
+    assert (
+        client.get("/api/状态", headers={"Cf-Access-Jwt-Assertion": forged}).status_code
+        == 403
+    )
+
+
+def test_enabled_guard_with_missing_or_invalid_config_is_unavailable(monkeypatch):
+    monkeypatch.setenv("KMFA_PRIVATE_OPS_REQUIRE_ACCESS", "typo-still-enables-guard")
+    monkeypatch.delenv("KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN", raising=False)
+    monkeypatch.delenv("KMFA_CLOUDFLARE_ACCESS_AUD", raising=False)
+    response = client.get("/api/状态")
+    assert response.status_code == 503
+    assert response.json() == {"detail": "private_operations_unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+
+    monkeypatch.setenv("KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN", "http://attacker.invalid")
+    monkeypatch.setenv("KMFA_CLOUDFLARE_ACCESS_AUD", "configured")
+    assert client.get("/ops/healthz").status_code == 503
+
+    monkeypatch.setenv(
+        "KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN",
+        "https://test-team.cloudflareaccess.com:not-a-port",
+    )
+    assert client.get("/ops/healthz").status_code == 503
+
+
+def test_deployment_contract_enables_origin_guard_before_public_bypass():
+    compose_path = REPO / "KMFA" / "deploy" / "coolify" / "docker-compose.yml"
+    compose = yaml.safe_load(compose_path.read_text(encoding="utf-8"))
+    environment = compose["services"]["app"]["environment"]
+    assert environment["KMFA_PRIVATE_OPS_REQUIRE_ACCESS"] == (
+        "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
+    )
+    assert "KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN" in environment
+    assert "KMFA_CLOUDFLARE_ACCESS_AUD" in environment
+
+    runbook = (REPO / "KMFA" / "deploy" / "coolify" / "README.md").read_text(
+        encoding="utf-8"
+    )
+    for route_pattern in ("`/api`", "`/api/*`", "`/ops`", "`/ops/*`"):
+        assert route_pattern in runbook
+    assert "Bypass / Include Everyone" in runbook
+    assert "恢复原" in runbook and "Owner Allow 策略" in runbook
+    assert (
+        runbook.index("先建更具体的路径锁")
+        < runbook.index("再启源站私有面守卫")
+        < runbook.index("最后公开根路径并验收")
+    )

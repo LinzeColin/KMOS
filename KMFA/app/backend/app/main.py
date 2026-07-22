@@ -17,7 +17,9 @@ from typing import Any
 
 import yaml
 from fastapi import Body, FastAPI, HTTPException
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response
+
+from .private_access import PrivateOperationsAccessMiddleware
 
 REPO = Path(__file__).resolve().parents[4]
 KMFA = REPO / "KMFA"
@@ -29,7 +31,14 @@ ASSERTIONS_PATH = KMFA / "metadata" / "quality" / "assertions.jsonl"
 # machine/lineage.yaml、metadata/quality、stage_artifacts 这些已治理的派生/证据面。
 FORBIDDEN_READ_ROOT = REPO / "KMDatabase" / "data"
 
-app = FastAPI(title="KMFA App", version="0.2.0-prod0002")
+app = FastAPI(
+    title="KMFA App",
+    version="0.2.0-prod0002",
+    openapi_url="/ops/openapi.json",
+    docs_url="/ops/docs",
+    redoc_url=None,
+)
+app.add_middleware(PrivateOperationsAccessMiddleware)
 
 
 def _paginate(rows: list[Any], page: int, size: int) -> tuple[list[Any], dict[str, int]]:
@@ -42,28 +51,30 @@ def _paginate(rows: list[Any], page: int, size: int) -> tuple[list[Any], dict[st
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
 def index():
-    # 根路径直达应用本体。曾在这里挂过一张早期静态摘要页——Owner 打开裸域名
-    # 看到的是它而不是 App，误以为「前端没更新」（2026-07-20 截图实证）。
-    # 用户不该需要知道 /ui/ 才能用产品；那张静态页已删除，不许再回来。
-    return RedirectResponse(url="/ui/", status_code=307)
-
-
-@app.get("/ui/")
-def ui_index():
     if not (FRONTEND_DIST / "index.html").exists():
         raise HTTPException(status_code=503, detail="前端未构建（KMFA/app/frontend: npm run build）")
-    # 入口 html 禁缓存：不禁的话部署换新后浏览器仍用旧 html 引旧资产——
-    # 「服务器已换新、用户看着没变」，2026-07-20 Owner 真踩到。
-    return FileResponse(FRONTEND_DIST / "index.html",
-                        headers={"Cache-Control": "no-cache, must-revalidate"})
+    # 入口 HTML 禁缓存；内容哈希资产则由 /assets 单独永久缓存。
+    return FileResponse(
+        FRONTEND_DIST / "index.html",
+        headers={"Cache-Control": "no-cache, must-revalidate"},
+    )
 
 
-@app.get("/ui/assets/{asset_path:path}")
-def ui_assets(asset_path: str):
+@app.api_route("/ui/{legacy_path:path}", methods=["GET", "HEAD"], include_in_schema=False)
+@app.api_route("/ui", methods=["GET", "HEAD"], include_in_schema=False)
+@app.api_route("/ui/", methods=["GET", "HEAD"], include_in_schema=False)
+def legacy_ui_redirect(legacy_path: str | None = None):
+    # 兼容旧书签/旧深链，但整个旧 UI 子树只允许单跳永久归一到根路径。
+    return RedirectResponse(url="/", status_code=308)
+
+
+@app.api_route("/assets/{asset_path:path}", methods=["GET", "HEAD"], include_in_schema=False)
+def frontend_assets(asset_path: str):
     target = (FRONTEND_DIST / "assets" / asset_path).resolve()
-    if not str(target).startswith(str(FRONTEND_DIST.resolve())) or not target.is_file():
+    asset_root = (FRONTEND_DIST / "assets").resolve()
+    if not target.is_relative_to(asset_root) or not target.is_file():
         raise HTTPException(status_code=404)
     # 资产文件名含内容哈希，内容一变名字必变——可放心永久缓存
     return FileResponse(target, headers={"Cache-Control": "public, max-age=31536000, immutable"})
@@ -77,7 +88,24 @@ def load_json(path: Path):
 
 @app.get("/healthz")
 def healthz():
+    # 公共浅健康不得泄露 facts、数据库、队列、扫描器或部署细节。
+    return {"status": "ok"}
+
+
+@app.get("/ops/healthz")
+def operations_healthz():
     return {"status": "ok", "facts_dir_present": FACTS.is_dir()}
+
+
+@app.api_route("/sitemap.xml", methods=["GET", "HEAD"], include_in_schema=False)
+def sitemap():
+    body = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        "  <url><loc>https://kmfa.linzezhang.com/</loc></url>\n"
+        "</urlset>\n"
+    )
+    return Response(body, media_type="application/xml")
 
 
 def _quality_grade_short() -> str:
@@ -1766,9 +1794,9 @@ def audit_log(action_type: str | None = None, page: int = 1, size: int = 50):
         "访问模式": {
             "模式": "本机单用户",
             "应用内登录": False,
-            "生产鉴权": "Cloudflare Access 前置（DNS 之前）",
+            "生产鉴权": "Cloudflare Access 仅保护 /api* 与 /ops*；源站校验签名 JWT",
             "角色口径": (access.get("required_roles") or []),
-            "说明": "本机不做多用户与角色分权；角色口径承接 S17 供云端与导出留痕使用",
+            "说明": "根域名公开；本机不做多用户与角色分权，私有运维面继续由 Access 控制",
         },
     }
 
@@ -1938,7 +1966,7 @@ def schedule_health():
 def schedule_run_snapshot(log: str):
     """读取某一次运行的日志快照（run_skill.sh 每次运行写独立时间戳日志，即当时快照）。
 
-    只许读排程日志根目录之内的文件——路径防穿越与 /ui/assets 同款收紧；
+    只许读排程日志根目录之内的文件——路径防穿越与 /assets 同款收紧；
     只回尾部 64KB：快照是给人复盘的，不是给人下载全量日志的。
     """
     log_root = SKILL_LEDGER_PATH.parent.resolve()

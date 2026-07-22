@@ -2,7 +2,7 @@
 # KMFA.app 的真入口（TSK.KMFA.PROD.0015）。
 #
 # 从「打开一个静态 HTML」升级为「起服务 + 开 App」：
-#   起 docker 容器（已在跑就复用）→ 等 /healthz 就绪 → 用默认浏览器打开 /ui/
+#   起 docker 容器（已在跑就复用）→ 等 /healthz 就绪 → 用默认浏览器打开根路径
 #
 # 保留旧入口的干跑契约：KMFA_APP_LAUNCH_DRY_RUN=1 时只打印将要做什么并退出 0，
 # 供 check_v013_s00_app_entry.py 那类验收器无副作用地检查绑定关系。
@@ -11,7 +11,7 @@ set -euo pipefail
 PORT="${KMFA_APP_PORT:-8000}"
 IMAGE="${KMFA_APP_IMAGE:-kmfa-app:local}"
 CONTAINER="${KMFA_APP_CONTAINER:-kmfa-app-local}"
-URL="http://127.0.0.1:${PORT}/ui/"
+URL="http://127.0.0.1:${PORT}/"
 REPO="${KMFA_REPO_DIR:-__REPO_DIR__}"
 LOG="${KMFA_APP_ENTRY_LOG:-$HOME/Library/Logs/KMFA-app-entry.log}"
 

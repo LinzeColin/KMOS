@@ -53,8 +53,31 @@
 
 6. 观测 P1 内存无碍后，在 Coolify 为本资源**启用 `full` profile**（Compose profiles → 勾 `full`）或设 `COMPOSE_PROFILES=full`，重部署 → `kmfa-app` 起。
 7. **域名**：Coolify 给 `app` 服务设 `kmfa.linzezhang.com`（Coolify Traefik 自动签发/路由）；**Cloudflare** 加一条**代理（橙云）** A 记录 `kmfa` → OVH 公网 IP（或按 Coolify 提示的 CNAME）。App 仅经 Traefik 暴露，主机不额外开放端口。
-8. ⚠️ **Cloudflare Access 强制鉴权（不可省，先于放通）**：App 面板展示的是**财务对账数据**（八份一致性报告、断言表、差异工作台），**裸挂公网＝财务数据对外泄露**。Zero Trust → Access → Applications → Add（Self-hosted，域名同上）→ 策略 Allow 仅 Owner 邮箱（`linzezhang35@gmail.com`）。
-   > **Access 生效后再放通**；若 DNS 先生效而 Access 未就位，先停用该记录或保持灰云。此项承自原 Tunnel 方案的 PROD.0020/0021「域名强制 Access 鉴权」——切 Coolify 路径时一度遗漏，此处补回。
+8. **先建更具体的路径锁，整站登录墙不动**：保留现有 host 级 Self-hosted Application 的 Owner
+   Allow 策略作为一键回滚杆，为下列四个模式建立更具体的 Self-hosted Application，并沿用现有私有
+   Owner Allow 策略：
+   - `/api` 与 `/api/*`
+   - `/ops` 与 `/ops/*`
+
+   `/*` 不覆盖父路径，所以父路径和通配路径缺一不可。记录这些应用的全部 Audience tags；此时 host
+   登录墙仍在，根路径尚未公开，没有私有数据暴露窗口。
+9. **再启源站私有面守卫**：在 Coolify 配置 `KMFA_PRIVATE_OPS_REQUIRE_ACCESS=1`、Cloudflare team
+   domain 与上述 Audience tags（逗号分隔，键位见 `.env.example`）后部署。`/api*`、`/ops*` 会校验
+   `Cf-Access-Jwt-Assertion` 的签名、issuer、audience 和有效期；缺配置、缺 token、伪造 token 均
+   fail-closed。Audience tag 是应用标识，不是登录 token；仍只进部署配置，不写入代码或日志。先确认
+   匿名访问四类路径均不可达、带有效 Access 会话可达，host 登录墙仍不得改动。
+10. **最后公开根路径并验收**：只有第 9 步通过，才把 host 级 Application 改为
+    `Bypass / Include Everyone`。更具体的路径应用优先于 host 级 Bypass，因而 `/`、`/assets*`、
+    `/healthz` 可匿名，私有面仍需 Access。全程不打印 Access 登录 URL 的 query；无 cookie 的
+    GET/HEAD `/` 均 `200`；
+    GET/HEAD `/ui`、`/ui/` 均单跳 `308 → /`；错误路径无登录跳转/循环；匿名 `/api/状态`、
+    `/ops/healthz`、`/ops/openapi.json` 均不可达。失败时立即把 host 级 Application 从 Bypass 恢复原
+    Owner Allow 策略；这是原子边缘回滚，不删除路径应用、不回退数据，也不绕过源站守卫。
+
+边界依据 Cloudflare 官方的 [Application paths](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/app-paths/)、
+[Bypass policy](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/) 与
+[origin JWT validation](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/)；
+其中路径优先级、通配符不覆盖父路径、Bypass 语义和 JWKS 轮换均不得靠经验猜测。
 
 ---
 

@@ -7,7 +7,7 @@ client = TestClient(app)
 
 def test_healthz():
     r = client.get("/healthz")
-    assert r.status_code == 200 and r.json()["status"] == "ok"
+    assert r.status_code == 200 and r.json() == {"status": "ok"}
 
 
 def test_status_header_triplet():
@@ -54,16 +54,17 @@ def test_skills_enriched_fields():
 
 
 def test_index_serves_dashboard():
-    # 根路径必须直达应用本体（307 → /ui/），不许再出现早期静态摘要页
+    # 根路径本身就是 canonical App 入口，不依赖旧 /ui/ 别名。
     r = client.get("/", follow_redirects=False)
-    assert r.status_code == 307 and r.headers["location"] == "/ui/"
-    r = client.get("/")
-    assert r.status_code == 200 and "KMFA 经营分析" in r.text and "root" in r.text
+    assert r.status_code == 200 and "location" not in r.headers
+    assert "KMFA 经营分析" in r.text and "root" in r.text
 
 
-def test_react_ui_served():
-    r = client.get("/ui/")
-    assert r.status_code == 200 and "root" in r.text
+def test_legacy_ui_redirects_once_to_root():
+    for path in ("/ui", "/ui/"):
+        r = client.get(path, follow_redirects=False)
+        assert r.status_code == 308 and r.headers["location"] == "/"
+        assert client.get(path).url.path == "/"
 
 
 def test_schedule_health_full_history(tmp_path, monkeypatch):
@@ -103,4 +104,3 @@ def test_schedule_snapshot_guarded(tmp_path, monkeypatch):
     assert ok.status_code == 200 and "rc=0" in ok.json()["内容"] and ok.json()["截取"] is False
     assert client.get("/api/排程健康/快照", params={"log": str(outside)}).status_code == 404
     assert client.get("/api/排程健康/快照", params={"log": str(snap / ".." / ".." / "outside.log")}).status_code == 404
-

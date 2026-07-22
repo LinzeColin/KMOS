@@ -4,6 +4,10 @@ services:
     build: ./backend
     container_name: kmfa-app
     restart: always
+    environment:
+      KMFA_PRIVATE_OPS_REQUIRE_ACCESS: "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
+      KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN: "${KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}"
+      KMFA_CLOUDFLARE_ACCESS_AUD: "${KMFA_CLOUDFLARE_ACCESS_AUD:-}"
     volumes:
       - /opt/kmfa/KMOS:/opt/kmfa/KMOS:ro   # 只读挂仓：facts/断言/registry
     ports:
