@@ -1,5 +1,14 @@
 # Changelog
 
+## IDS v0.1 STAGE-046 Phase 3 - 2026-07-22
+
+- Bound the approved Stage046 task-pack source, committed Phase2 commit/root/KM_IDSystem tree/parent and five immutable Phase2 artifact SHA-256 values into `ids.stage046.parser_routing.phase3.scenarios.v1`.
+- Reused the Phase2 strict request builder and route evaluator across fourteen body-free metadata scenarios covering PDF, DOCX, XLSX, CSV, TXT, PNG, JPEG, TIFF, unknown, corrupt, conflict, low-confidence, unsupported and instruction-marker behavior.
+- All fourteen scenarios have explicit dispositions with `silent_drop_count=0`; high-confidence supported inputs stop at unavailable parser candidates, other quality/failure states review or fail closed, and caller override plus forged routing IDs are rejected.
+- No IDS business source or raw metadata was read; no type redetection, parser, fallback, output, persistence, Phase4, whole-stage review, batch review, GitHub upload or App reinstall ran. The only next gate is separate `IDS-STAGE046-P4-GATE`.
+- Valid TDD RED produced two expected missing-artifact failures and sixteen expected errors across eighteen tests. Final GREEN passes focused Phase3 `18/18`, Phase1-3 compatibility `43/43`, Stage005 `173/173` in `45.246s`, Stage041-046 aggregate `386/386` in `1169.916s`, full discovery `1137/1137` in `1607.288s`, all eight Stage038-045 review checkers, `223` unique event semantics, idempotent owner rendering and project dual-plane.
+- Layered fail-closed runs exposed one unittest helper-name collision, nine historical current-route assertions ending at P2→P3, the expected unstaged Git-index mismatch and untranslated P3 owner-view terms. Repairs were limited to the helper rename, exact `P3 -> P4 gate` compatibility, exact P3 changed-path governance and Chinese machine-fact wording; failed runs were not counted as PASS and no historical review or runtime-safety contract was weakened.
+
 ## IDS v0.1 STAGE-046 Phase 2 - 2026-07-20
 
 - Added `ids.stage046.parser_routing.phase2.v1`, a metadata-only, reference-only and non-production parser-route evaluator bound to the exact approved Stage046 source, committed Phase1 predecessor and six immutable Phase1 artifacts.

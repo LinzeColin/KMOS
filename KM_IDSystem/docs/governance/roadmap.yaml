@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE046"
-current_phase_id: "IDS-STAGE046-P2"
-current_task_id: "IDS-V0_1-STAGE046-P2"
-next_gate_id: "IDS-STAGE046-P3-GATE"
+current_phase_id: "IDS-STAGE046-P3"
+current_task_id: "IDS-V0_1-STAGE046-P3"
+next_gate_id: "IDS-STAGE046-P4-GATE"
 current_transition_history:
+  stage046_phase3_state:
+    current_stage_id: "IDS-STAGE046"
+    current_phase_id: "IDS-STAGE046-P3"
+    current_task_id: "IDS-V0_1-STAGE046-P3"
+    next_gate_id: "IDS-STAGE046-P4-GATE"
   stage046_phase2_state:
     current_stage_id: "IDS-STAGE046"
     current_phase_id: "IDS-STAGE046-P2"
@@ -11992,9 +11997,9 @@ stages:
     status: "in_progress"
     pursuing_goal: "基于已治理文件类型选择明确解析器候选路线，未知、损坏、冲突和低置信输入失败关闭。"
     stop_gate:
-      gate_id: "IDS-STAGE046-P2-GATE"
+      gate_id: "IDS-STAGE046-P3-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE046-P3-GATE"
+      next_gate_id: "IDS-STAGE046-P4-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_ENTRY_CONTRACT.md"
@@ -12006,6 +12011,10 @@ stages:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_runtime_contract.json"
       - "KM_IDSystem/scripts/check_parser_routing_runtime.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_runtime.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_PHASE3_PARSER_ROUTING_SCENARIOS.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_scenarios_contract.json"
+      - "KM_IDSystem/scripts/check_parser_routing_scenarios.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_scenarios.py"
     phases:
       - phase_id: "IDS-STAGE046-P1"
         name: "解析器路由范围、输入输出与边界确认"
@@ -12131,3 +12140,65 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
             risk: "若 route candidate 被误作 parser dispatch 授权、调用方可覆盖 parser/version、或 instruction-like evidence 被当作系统指令，将污染后续解析和证据链。"
             rollback: "只回滚 Stage046 Phase2 runtime contract/checker/tests/docs/governance/event/handoff/owner-view；保留已提交 Phase1、Stage045 review、全部原始/事实/审计资料、GitHub 与 app 状态。"
+      - phase_id: "IDS-STAGE046-P3"
+        name: "解析器路由格式、质量与失败关闭场景验证"
+        objective: "复用已提交的 Phase2 仅元数据路由器，以十四个合成 metadata 场景覆盖八种治理格式、unknown、corrupt、conflict、low-confidence、unsupported 与 instruction marker；每项必须显式处置且不执行 parser 或 fallback。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        stop_conditions:
+          - "打开、stat、hash、sniff、解码、解压、扫描或遍历任何 IDS 业务文件或 raw metadata"
+          - "实现或调用源文件读取、类型重检、parser registry runtime、parser、fallback、differential evaluation 或 Stage050 scanner"
+          - "静默丢弃 unknown、corrupt、conflict、low-confidence 或 unsupported 结果，或将 candidate 误作 dispatch 授权"
+          - "保留 payload/source text/绝对业务路径，产生 parser output，写 evidence、manifest、audit、database、job、state 或 runtime output"
+          - "进入 Phase 4、whole-stage review、batch review、GitHub upload、merge 或 app reinstall"
+        stop_gate:
+          gate_id: "IDS-STAGE046-P3-GATE"
+          status: "passed_with_local_evidence"
+          pass_conditions:
+            - "Scenario contract binds the approved Stage046 source, exact Phase2 commit/root/KM_IDSystem trees/parent and five immutable Phase2 artifact hashes"
+            - "Fourteen deterministic metadata-only scenarios cover PDF, DOCX, XLSX, CSV, TXT, PNG, JPEG, TIFF, unknown, corrupt, conflict, low-confidence, unsupported and instruction-marker behavior"
+            - "All fourteen scenarios pass with explicit dispositions and silent_drop_count=0"
+            - "High-confidence supported types select only unavailable parser candidates; medium/low/unknown/conflict/corrupt/unsupported outcomes review or fail closed"
+            - "Instruction-marker routing matches its non-instruction baseline and cannot override system rules, authorize tools or claim Stage050 scanning"
+            - "Caller parser override and forged routing IDs are rejected with no dispatch"
+            - "No business source I/O, type redetection, parser/fallback execution, output, persistence, raw metadata or production action occurs"
+            - "The only next gate is IDS-STAGE046-P4-GATE"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_PHASE3_PARSER_ROUTING_SCENARIOS.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_scenarios_contract.json"
+            - "KM_IDSystem/scripts/check_parser_routing_scenarios.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_scenarios.py"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE046-P3"
+            name: "验证解析器路由异常与质量场景"
+            objective: "通过 P2 严格请求合同重放十四个仅元数据场景，证明全部结果具备显式 route 与 quality disposition，且 parser、fallback、output 和外部副作用持续关闭。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE046-P2"
+              - "ids.parser_routing.v0_1.stage046.p2"
+              - "ids.parser_route_registry.v0_1.stage046.p2"
+            acceptance_ids:
+              - "ACC-STAGE-046"
+            test_commands:
+              - "python3 -B KM_IDSystem/scripts/check_parser_routing_scenarios.py"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage046_parser_routing_scenarios"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage046_parser_routing KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage046_parser_routing_runtime KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage046_parser_routing_scenarios"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage005_governance_regression"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage04[1-6]*.py' -q"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -q"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+              - "python3 -B KM_IDSystem/machine/tools/check_dual_plane_ci.py --projects KM_IDSystem --require-projects"
+              - "events.jsonl parse, duplicate-id and semantic checks"
+              - "git diff --check"
+            test_results: "TDD RED ran 18 tests with two expected missing-artifact failures and sixteen expected missing-artifact errors. Core implementation passed after repairing a unittest helper-name collision; the remaining governance failure was the expected P3-to-P4 transition. Final layered validation is recorded in the Stage046 Phase3 machine run and changelog."
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_PHASE3_PARSER_ROUTING_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_scenarios_contract.json"
+              - "KM_IDSystem/scripts/check_parser_routing_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+            risk: "若非高质量结果可静默丢弃、指令样 marker 改变路线、caller override 绕过严格请求合同，或候选路线触发 parser/fallback，将破坏后续证据链。"
+            rollback: "只回滚 Stage046 Phase3 contract/checker/tests/docs/governance/event/handoff/owner-view；保留已提交 Phase1-2、Stage045 review、全部原始/事实/审计资料、GitHub 与 app 状态。"

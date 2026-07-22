@@ -1,0 +1,201 @@
+{
+  "schema_version": "ids.stage046.parser_routing.phase3.scenarios.v1",
+  "stage": "STAGE-046",
+  "phase": "Phase 3",
+  "task_id": "IDS-V0_1-STAGE046-P3",
+  "acceptance_id": "ACC-STAGE-046",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_METADATA_ONLY_PARSER_ROUTING_SCENARIOS",
+  "scenario_contract_id": "ids.parser_routing.v0_1.stage046.p3.scenarios",
+  "router_version": "ids.parser_router.v0_1.stage046.p2",
+  "contract_state": "PHASE3_SCENARIOS_ENABLED_PARSER_FALLBACK_AND_OUTPUT_DISABLED",
+  "next_gate": "IDS-STAGE046-P4-GATE",
+  "source_binding": {
+    "source_archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "source_member": "IDS_v0_1_Final_Chinese_Revised/stages/STAGE-046_解析器路由合同.md",
+    "source_member_match_count": 1,
+    "source_member_sha256": "955cdf40f365c05853a87269eb02aa46e5922807e0bb0c48d9b99cfca9bc1d39",
+    "roadmap_path": "/Users/linzezhang/Downloads/IDS_Codex开发Roadmap_v0_1_only_中文修订版.txt",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_path": "/Users/linzezhang/Downloads/IDS_Codex使用说明_v0_1_only_中文修订版.txt",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+    "source_verification_status": "SOURCE_VERIFIED"
+  },
+  "phase2_commit_binding": {
+    "commit": "18c45ee39522891abe4ef65ed609eb5482f2f148",
+    "root_tree": "ae7b08d3bc0bab21c2523dfd9a5e756b7d6a840d",
+    "kmids_tree": "0e549aaf1c476fa6d926c12ad444db66921164b5",
+    "parent": "c82e4e928b167c718d462dc8cef3eed5b5dbb3ea",
+    "required_ancestor_of_head": true
+  },
+  "phase2_artifact_bindings": {
+    "stage046_phase2_evidence": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_PHASE2_PARSER_ROUTING_SLICE.md",
+      "sha256": "3f7d4bbc3a20cf74af0da4dcb065d85d5ee53dd07440bb364074d10df5588a32"
+    },
+    "stage046_phase2_contract": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_runtime_contract.json",
+      "sha256": "de4111262bc87b94d238977fa4e1bc70e5d2c51aa8936f946c65413bcd6ff4d4"
+    },
+    "stage046_phase2_checker": {
+      "ref": "KM_IDSystem/scripts/check_parser_routing_runtime.py",
+      "sha256": "65f441499f4c0b2c5409ecd7b38b5274b7b3cedae6dc9a79cabd0dcc16be9927"
+    },
+    "stage046_phase2_tests": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_runtime.py",
+      "sha256": "021940f65fdbf5f976e9b3e9ebad84f74abc666d481a41175f306ef1f75fdf9b"
+    },
+    "stage046_phase2_run": {
+      "ref": "KM_IDSystem/machine/runs/2026-07-20-stage046-p2-local.json",
+      "sha256": "322a593202657673a92701d8498f5a62a3854b2d9ff96697cb20afcc3527b8aa"
+    }
+  },
+  "scenario_catalog": [
+    "pdf_high_candidate_parser_unavailable",
+    "docx_high_candidate_parser_unavailable",
+    "xlsx_high_candidate_parser_unavailable",
+    "csv_medium_quality_review",
+    "txt_medium_quality_review",
+    "png_high_candidate_parser_unavailable",
+    "jpeg_high_candidate_parser_unavailable",
+    "tiff_high_candidate_parser_unavailable",
+    "unknown_requires_owner_review",
+    "corrupt_input_blocks_explicitly",
+    "conflict_requires_owner_review",
+    "extension_only_low_requires_owner_review",
+    "unsupported_format_is_explicit",
+    "instruction_like_text_cannot_override_policy"
+  ],
+  "format_coverage": {
+    "supported_types": [
+      "PDF",
+      "DOCX",
+      "XLSX",
+      "CSV",
+      "TXT",
+      "PNG",
+      "JPEG",
+      "TIFF"
+    ],
+    "failure_types": [
+      "UNKNOWN",
+      "CORRUPT_OR_UNREADABLE",
+      "UNSUPPORTED"
+    ],
+    "scenario_count": 14,
+    "all_taskpack_formats_covered": true
+  },
+  "scenario_expectations": {
+    "pdf_high_candidate_parser_unavailable": "PDF_HIGH_ROUTE_CANDIDATE_PARSER_UNAVAILABLE_NO_DISPATCH",
+    "docx_high_candidate_parser_unavailable": "DOCX_HIGH_ROUTE_CANDIDATE_PARSER_UNAVAILABLE_NO_DISPATCH",
+    "xlsx_high_candidate_parser_unavailable": "XLSX_HIGH_ROUTE_CANDIDATE_PARSER_UNAVAILABLE_NO_DISPATCH",
+    "csv_medium_quality_review": "CSV_MEDIUM_EXPLICIT_QUALITY_REVIEW_NO_FALLBACK",
+    "txt_medium_quality_review": "TXT_MEDIUM_EXPLICIT_QUALITY_REVIEW_NO_FALLBACK",
+    "png_high_candidate_parser_unavailable": "PNG_HIGH_ROUTE_CANDIDATE_PARSER_UNAVAILABLE_NO_DISPATCH",
+    "jpeg_high_candidate_parser_unavailable": "JPEG_HIGH_ROUTE_CANDIDATE_PARSER_UNAVAILABLE_NO_DISPATCH",
+    "tiff_high_candidate_parser_unavailable": "TIFF_HIGH_ROUTE_CANDIDATE_PARSER_UNAVAILABLE_NO_DISPATCH",
+    "unknown_requires_owner_review": "UNKNOWN_EXPLICIT_OWNER_REVIEW_NO_SILENT_DROP",
+    "corrupt_input_blocks_explicitly": "CORRUPT_EXPLICIT_ERROR_NO_FALLBACK",
+    "conflict_requires_owner_review": "CONFLICT_EXPLICIT_OWNER_REVIEW_NO_SILENT_DROP",
+    "extension_only_low_requires_owner_review": "LOW_CONFIDENCE_EXPLICIT_OWNER_REVIEW_NO_DISPATCH",
+    "unsupported_format_is_explicit": "UNSUPPORTED_EXPLICIT_NO_FALLBACK",
+    "instruction_like_text_cannot_override_policy": "UNTRUSTED_EVIDENCE_ROUTE_INVARIANT_POLICY_OVERRIDE_DENIED"
+  },
+  "fallback_quality_contract": {
+    "disposition_by_state_and_confidence": {
+      "TYPE_CONFIRMED:HIGH": "PRIMARY_ROUTE_CANDIDATE_PARSER_UNAVAILABLE",
+      "TYPE_PROVISIONAL:MEDIUM": "QUALITY_REVIEW_REQUIRED",
+      "TYPE_PROVISIONAL:LOW": "OWNER_REVIEW_REQUIRED",
+      "TYPE_CONFLICT_REVIEW_REQUIRED:UNKNOWN": "OWNER_REVIEW_REQUIRED",
+      "TYPE_UNKNOWN_REVIEW_REQUIRED:UNKNOWN": "OWNER_REVIEW_REQUIRED",
+      "TYPE_INPUT_BLOCKED:UNKNOWN": "EXPLICIT_ERROR_NO_FALLBACK",
+      "TYPE_UNSUPPORTED:UNKNOWN": "UNSUPPORTED_EXPLICIT_NO_FALLBACK"
+    },
+    "every_scenario_requires_explicit_disposition": true,
+    "all_non_high_quality_results_require_review_or_error": true,
+    "silent_drop_allowed_count": 0,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "fallback_execution_allowed": false,
+    "fallback_log_claim_allowed": false,
+    "fallback_runtime_owner": "STAGE-048",
+    "quality_downgrade_is_not_evidence_promotion": true
+  },
+  "instruction_text_contract": {
+    "required_label": "UNTRUSTED_EVIDENCE_TEXT",
+    "required_interpretation": "EVIDENCE_ONLY",
+    "route_must_match_non_instruction_baseline": true,
+    "system_rule_override_allowed": false,
+    "tool_authorization_allowed": false,
+    "policy_override_allowed": false,
+    "prompt_injection_scan_allowed": false,
+    "scanner_runtime_owner": "STAGE-050",
+    "raw_text_retained_in_scenario_report": false,
+    "marker_is_not_scanner": true
+  },
+  "result_contract": {
+    "scenario_count": 14,
+    "all_scenarios_must_pass": true,
+    "every_scenario_requires_explicit_disposition": true,
+    "silent_drop_count_required": 0,
+    "errors_are_bounded_codes_only": true,
+    "raw_source_text_retained": false,
+    "source_body_retained": false,
+    "absolute_source_path_allowed": false,
+    "output_refs_must_be_empty": true,
+    "result_persistence_allowed": false,
+    "pass_result": "PASS_ISOLATED_PARSER_ROUTING_SCENARIOS_PARSER_DISABLED"
+  },
+  "phase4_entry_gate": {
+    "entry_authorized_after_scenario_pass": true,
+    "required_task_id": "IDS-V0_1-STAGE046-P4",
+    "required_acceptance_id": "ACC-STAGE-046",
+    "must_run_separately": true,
+    "whole_stage_review_allowed_in_phase3": false,
+    "github_upload_allowed": false,
+    "app_reinstall_allowed": false,
+    "next_gate": "IDS-STAGE046-P4-GATE"
+  },
+  "rollback_contract": {
+    "steps": [
+      "STOP_ON_INVALID_PHASE3_CONTRACT_OR_SCENARIO",
+      "REVERT_STAGE046_PHASE3_FILES_ONLY",
+      "PRESERVE_STAGE046_PHASE1_AND_PHASE2",
+      "PRESERVE_ORIGINAL_MANIFEST_EVIDENCE_AUDIT_REPORT_AND_INDEX_ARTIFACTS",
+      "DO_NOT_OPEN_SCAN_HASH_PARSE_MOVE_OVERWRITE_OR_DELETE_REAL_SOURCE_PATHS"
+    ],
+    "destructive_rollback_allowed": false
+  },
+  "truth_flags": {
+    "taskpack_source_read_performed": true,
+    "phase2_router_reexecuted": true,
+    "isolated_metadata_only_routing_scenarios_performed": true,
+    "all_taskpack_format_scenarios_performed": true,
+    "fallback_quality_disposition_evaluated": true,
+    "instruction_route_invariance_evaluated": true,
+    "source_file_open_performed": false,
+    "filesystem_scan_performed": false,
+    "file_hash_performed": false,
+    "file_type_redetection_performed": false,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "fallback_execution_performed": false,
+    "differential_parser_evaluation_performed": false,
+    "prompt_injection_scan_performed": false,
+    "system_rule_override_performed": false,
+    "tool_authorization_performed": false,
+    "parser_output_produced": false,
+    "high_confidence_evidence_write_performed": false,
+    "persistent_state_write_performed": false,
+    "database_connection_performed": false,
+    "runtime_output_written": false,
+    "production_runtime_activation_performed": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  }
+}

@@ -1,6 +1,31 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE046-P3-01`",
+      "criteria": "步骤三合同精确绑定批准来源、已提交 Phase2 commit/root/KM_IDSystem tree/父提交与五项不可变 Phase2 工件哈希",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P3-02`",
+      "criteria": "十四个无正文、仅元数据场景覆盖八种治理格式以及未知、损坏、冲突、低置信、不支持与指令标记",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P3-03`",
+      "criteria": "十四个场景全部通过、显式处置计数为十四、静默丢弃为零；非高质量结果进入质量复核、负责人复核或显式错误",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P3-04`",
+      "criteria": "指令标记与无指令基线保持相同路线，调用方指定解析器和伪造路由 ID 均失败关闭",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P3-05`",
+      "criteria": "未读取业务源文件、重检类型、执行解析器或回退、产生输出、写持久态、读取原始元数据、进入步骤四或整阶段复审、上传、合并、重装或生产激活",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE046-P2-01`",
       "criteria": "步骤二合同精确绑定批准来源、已提交 Phase1 commit/root/KM_IDSystem tree/父提交与六项不可变 Phase1 snapshot 哈希",
       "status": "已通过"

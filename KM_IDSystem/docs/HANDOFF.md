@@ -9,35 +9,43 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - 2026-07-20
+## Current Gate - 2026-07-22
 
-- Completed task in this run: `IDS-V0_1-STAGE046-P2`. The approved archive,
-  unique Stage046 member, roadmap and instructions were live-rehashed; Phase1
-  commit `c82e4e928b167c718d462dc8cef3eed5b5dbb3ea`, root/KMIDS trees, parent and
-  six Phase1 artifacts were rebound from that immutable commit.
-- Historical Stage046 Phase1 transition only: Completed task: `IDS-V0_1-STAGE046-P1`; Next allowed task: `IDS-V0_1-STAGE046-P2`. This is not the current gate; the current gate is Stage046 P3.
-- Historical Stage045 review compatibility assertion only, quoted from that review handoff: Completed task in this run: `IDS-V0_1-STAGE045-REVIEW`; Next allowed task: `IDS-V0_1-STAGE046-P1`. This is not the current run or gate; the current gate is Stage046 P3.
-- Historical Stage044 review compatibility assertion only, quoted from that review handoff: Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`; Next allowed task: `IDS-V0_1-STAGE045-P1`. This is not the current run or gate; the current gate is Stage046 P3.
-- `ids.stage046.parser_routing.phase2.v1` accepts only governed Stage045 detection
-  references with no source path or content. Three metadata-only controls evaluate
-  PDF, DOCX and unknown-review results against six static parser families covering
-  PDF, DOCX, XLSX, CSV, TXT, PNG, JPEG and TIFF.
-- Confirmed high-confidence input records only a route candidate, upstream
-  confidence and `UNASSIGNED_NOT_IMPLEMENTED` parser-version status. Parser
-  implementations remain unavailable, so selection, dispatch, execution,
-  fallback, output, evidence promotion, job/state mutation and persistence remain
-  disabled. Stage047/048/049/050 ownership is unchanged.
-- Next allowed task: `IDS-V0_1-STAGE046-P3`, only in a separate future run behind
-  `IDS-STAGE046-P3-GATE`; `phase3_entry_authorized=false`, `NO_PHASE3_THIS_RUN`,
+- Completed task in this run: `IDS-V0_1-STAGE046-P3`. The approved archive,
+  unique Stage046 member, roadmap and instructions were live-rehashed; Phase2
+  commit `18c45ee39522891abe4ef65ed609eb5482f2f148`, root/KMIDS trees, parent and
+  five Phase2 artifacts were rebound from that immutable snapshot.
+- Historical Stage046 Phase2 transition only: Completed task in this run: `IDS-V0_1-STAGE046-P2`; Next allowed task: `IDS-V0_1-STAGE046-P3`. This is not the current gate; the current gate is Stage046 P4.
+- Historical Stage046 Phase1 transition only: Completed task: `IDS-V0_1-STAGE046-P1`; Next allowed task: `IDS-V0_1-STAGE046-P2`. This is not the current gate; the current gate is Stage046 P4.
+- Historical Stage045 review compatibility assertion only, quoted from that review handoff: Completed task in this run: `IDS-V0_1-STAGE045-REVIEW`; Next allowed task: `IDS-V0_1-STAGE046-P1`. This is not the current run or gate; the current gate is Stage046 P4.
+- Historical Stage044 review compatibility assertion only, quoted from that review handoff: Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`; Next allowed task: `IDS-V0_1-STAGE045-P1`. This is not the current run or gate; the current gate is Stage046 P4.
+- `ids.stage046.parser_routing.phase3.scenarios.v1` reuses the committed Phase2
+  request builder and router over fourteen metadata-only controls covering eight
+  governed formats, unknown, corrupt, conflict, low-confidence, unsupported and
+  instruction-marker behavior. All fourteen have explicit dispositions and
+  `silent_drop_count=0`.
+- Confirmed high-confidence inputs record only unavailable route candidates;
+  medium, low, unknown, conflict, corrupt and unsupported inputs review or fail
+  closed. Instruction-marker routing matches its non-instruction baseline, and
+  caller parser override plus forged routing IDs are rejected. Parser dispatch,
+  execution, fallback, output, evidence promotion, job/state mutation and
+  persistence remain disabled. Stage047/048/049/050 ownership is unchanged.
+- Next allowed task: `IDS-V0_1-STAGE046-P4`, only in a separate future run behind
+  `IDS-STAGE046-P4-GATE`; `phase4_entry_authorized=false`, `NO_PHASE4_THIS_RUN`,
   `NO_STAGE_REVIEW_THIS_RUN`, `NO_BATCH_REVIEW_THIS_RUN`,
   `NO_GITHUB_UPLOAD_THIS_RUN`, `NO_APP_REINSTALL_THIS_RUN`.
-- Final GREEN passes the Phase2 checker `21/21` contract plus `6/6` slice checks,
-  focused Phase2 `13/13`, combined Phase1+2 `25/25`, Stage005 `172/172` in
-  `44.225s`, Stage041-046 aggregate `368/368` in `1231.667s`, and full IDS v0.1
-  discovery `1118/1118` in `1668.884s`. All eight Stage038-045 review checkers,
-  `222` unique event semantics, hash-based idempotent owner rendering and the
-  project-scoped dual-plane gate pass; final evidence synchronization is followed
-  by the same short gates before commit.
+- Final GREEN passes the Phase3 checker with 14/14 explicit scenario dispositions,
+  zero silent drops and two rejected invalid requests; focused Phase3 `18/18`,
+  Phase1-3 compatibility `43/43`, Stage005 `173/173` in `45.246s`,
+  Stage041-046 aggregate `386/386` in `1169.916s`, and full IDS v0.1 discovery `1137/1137` in
+  `1607.288s`. All eight Stage038-045 historical review checkers, `223` unique
+  event semantics, idempotent owner rendering and project dual-plane pass.
+- Layered fail-closed evidence repaired only the exact current
+  `IDS-STAGE046-P3 -> IDS-STAGE046-P4-GATE` compatibility in nine historical
+  assertions, the Stage005 P3 path/route allowlist, one unittest helper-name
+  collision and untranslated P3 owner-view terms. An unstaged Stage039 review
+  check correctly failed Git-index binding and passed after the exact KMIDS
+  change set was staged; failed runs were not counted as PASS.
 - Current source hashes: archive
   `55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3`,
   unique Stage046 member
@@ -45,7 +53,13 @@
   roadmap `a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6`,
   instructions `ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8`,
   execution index `2e0088153cd1e13a09d9aebd09a1bd0c8c7162acd0788360d45f5c7320af1e9a`.
-- Phase2 evidence: `STAGE046_PHASE2_PARSER_ROUTING_SLICE.md`,
+- Phase3 evidence: `STAGE046_PHASE3_PARSER_ROUTING_SCENARIOS.md`,
+  `parser_routing/stage046_parser_routing_scenarios_contract.json`,
+  `scripts/check_parser_routing_scenarios.py`, focused tests and the Phase3 machine
+  run. Any source, Phase2 snapshot, scenario outcome, explicit disposition,
+  instruction invariance, governance or side-effect mismatch returns
+  `FAIL_CLOSED` to `IDS-STAGE046-P3-GATE`.
+- Historical Phase2 evidence: `STAGE046_PHASE2_PARSER_ROUTING_SLICE.md`,
   `parser_routing/stage046_parser_routing_runtime_contract.json`,
   `scripts/check_parser_routing_runtime.py`, focused tests and the Phase2 machine
   run. Any source, Phase1 snapshot, request shape, route, version, evidence-only,
@@ -81,7 +95,7 @@
 - The first aggregate failed closed on fourteen historical current-route/index assertions and the first full discovery failed closed on four P3-to-P4 routes plus one stale owner render. A final-evidence Stage005 run failed closed on twenty-two exact result-binding checks before synchronization. Repairs were restricted to exact forward-route compatibility, preservation of existing historical safety invariants, generated owner views and the exact roadmap result binding; one wrong-workdir targeted command was interrupted and not counted as PASS.
 - Pre-commit self-review repaired one Important fail-closed gap: the three instruction-control flags now derive from the bounded Phase2 evidence wrapper and are included in scenario PASS evaluation instead of being hard-coded false. The same existing test proves an unsafe wrapper forces `FAIL_CLOSED`; the test count remains eighteen.
 - Project governance note: the sparse worktree does not contain root `scripts/lean_governance.py`, so the repository-wide command reports `SPARSE_CONFLICT`; no sparse expansion or unrelated-project inspection was performed.
-- Current batch gate: `BATCH041_050` has five locally reviewed Stages plus Stage046 Phase1-2 only and remains locked with `push_allowed=false`; Stage046 Phase3-4/review, Stage047-050, single-stage upload, GitHub action, merge, app reinstall, batch review and production action are not authorized.
+- Current batch gate: `BATCH041_050` has five locally reviewed Stages plus Stage046 Phase1-3 only and remains locked with `push_allowed=false`; Stage046 Phase4/review, Stage047-050, single-stage upload, GitHub action, merge, app reinstall, batch review and production action are not authorized.
 - Preserve owner-controlled dependency/service paths (`backend/requirements.txt`, `frontend/package.json`, `frontend/pnpm-workspace.yaml`, `scripts/run_local_services.sh`); this phase does not modify them.
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only governance boundary and was not touched. Do not read, list, hash, open, scan, copy, move, delete, modify, dump, or normalize its contents.
 
