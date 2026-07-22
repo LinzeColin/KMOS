@@ -7,6 +7,12 @@
 # secrets COOLIFY_BASE_URL / COOLIFY_API_TOKEN 由基建线在 KMOS 仓预设（最小 deploy+read 权限）。
 name: deploy
 
+# 新 main 会取消仍在 E2E/verify 阶段的旧 caller，避免过期 Gate 随后晋级。
+# Coolify 已接收的部署仍由 golden-path 自身串行；发布后必须核对实际 source_commit。
+concurrency:
+  group: kmfa-main-deploy
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -53,7 +59,13 @@ on:
       - "KMFA/文档/06_运维手册.md"
 
 jobs:
+  # 与部署处于同一 workflow/SHA 的阻断 Gate。浏览器、后端与治理任一失败，
+  # golden-path 都不会触发 Coolify；避免两个独立 push workflow 的竞态。
+  app-e2e-gate:
+    uses: ./.github/workflows/app-e2e.yml
+
   golden-path:
+    needs: app-e2e-gate
     uses: LinzeColin/CodexProject/.github/workflows/linze-golden-path.reusable.yml@main
     with:
       service_name: kmfa-kmos

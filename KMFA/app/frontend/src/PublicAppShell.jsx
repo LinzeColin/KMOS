@@ -218,7 +218,7 @@ function PublicAppShell() {
           <span role="listitem">无需账号</span>
           <span role="listitem">状态透明</span>
           <span role="listitem">故障不空白</span>
-          <span role="listitem">删除由用户明确触发</span>
+          <span role="listitem">不自动到期；显式删除待后续阶段接入</span>
         </div>
 
         <WalkingSkeleton />

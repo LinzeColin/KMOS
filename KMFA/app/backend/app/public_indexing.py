@@ -88,16 +88,22 @@ class PublicIndexBoundaryMiddleware:
         async def send_with_boundary(message: Message) -> None:
             if message["type"] == "http.response.start":
                 headers = MutableHeaders(scope=message)
+                status = int(message.get("status", 500))
+                response_ok = 200 <= status < 300
                 headers["X-KMFA-Index-Mode"] = (
                     "public-root" if indexing_enabled else "hold"
                 )
-                is_indexable_root = path in PUBLIC_INDEX_PATHS and indexing_enabled
-                if not is_indexable_root and path not in CONTROL_PATHS:
+                is_indexable_root = (
+                    path in PUBLIC_INDEX_PATHS and indexing_enabled and response_ok
+                )
+                is_successful_control = path in CONTROL_PATHS and response_ok
+                if not is_indexable_root and not is_successful_control:
                     headers["X-Robots-Tag"] = NO_INDEX
                     # Hashed assets remain publicly immutable so the approved
-                    # root can render. Every other non-public response,
-                    # including 4xx/5xx and guarded private routes, is no-store.
-                    if not path.startswith("/assets/"):
+                    # root can render. Only a successful asset response may
+                    # retain that cache policy; every error and every other
+                    # non-public response is fail-closed no-store.
+                    if not (path.startswith("/assets/") and response_ok):
                         existing_cache = headers.get("Cache-Control", "").lower()
                         if "no-store" not in existing_cache:
                             headers["Cache-Control"] = "private, no-store"

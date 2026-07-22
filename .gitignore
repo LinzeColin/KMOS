@@ -1,0 +1,5 @@
+# Python test/runtime caches are reproducible local artifacts, never source.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/

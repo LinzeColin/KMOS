@@ -5,6 +5,8 @@
 **/node_modules
 **/__pycache__
 **/*.pyc
+**/.pytest_cache
+**/.ruff_cache
 # 内容寻址大对象（~120M）——技能与 self-audit 均不需要（self-audit 的 tar 影子亦排除之）
 KMDatabase/data/objects
 # 私有运行时（gitignored；本地若存在也不入镜像）

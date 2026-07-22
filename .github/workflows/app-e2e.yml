@@ -8,14 +8,9 @@
 name: app-e2e
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "KMFA/app/**"
-      - "KMFA/machine/facts/**"
-      - "KMFA/metadata/**"
-      - "KMFA/taskpack/v1_4/html_uiux/kmfa_html_human_flow_audit.py"
-      - ".github/workflows/app-e2e.yml"
+  # main 部署工作流以 reusable call 调用本 Gate；不要另起并行 push run，
+  # 否则 deploy 可能在这组测试完成前晋级同一 SHA。
+  workflow_call:
   pull_request:
     paths:
       - "KMFA/app/**"
@@ -23,6 +18,7 @@ on:
       - "KMFA/metadata/**"
       - "KMFA/taskpack/v1_4/html_uiux/kmfa_html_human_flow_audit.py"
       - ".github/workflows/app-e2e.yml"
+      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 jobs:
@@ -31,6 +27,32 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: KMFA/app/backend/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: KMFA/app/frontend/package-lock.json
+
+      - name: 跑后端与治理阻断门禁
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+          PYTHONPATH: KMFA/app/backend
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet \
+            -r KMFA/app/backend/requirements.txt \
+            pytest==9.1.1 httpx==0.28.1
+          python -m pytest -q KMFA/app/backend/tests
+          python KMFA/machine/tools/validate_taskpack.py --root KMFA
+          python KMFA/machine/tools/test_validate_taskpack_mutations.py --root KMFA
+          python KMFA/machine/tools/check_dual_plane_ci.py --root . --require-projects
 
       # 前端不再在 runner 上预构建：Dockerfile 已改多阶段，镜像内由当次源码现建 dist
       # （「曾拿仓里旧 dist 打镜像而不自知」的教训由 Dockerfile 结构性根治，兜底退役）。
@@ -44,7 +66,7 @@ jobs:
             -e KMFA_PUBLIC_INDEXING_ENABLED=1 \
             -e KMFA_WALKING_SKELETON_ENABLED=1 \
             -v /tmp/kmfa-state:/var/lib/kmfa/state kmfa-app:e2e
-          for i in $(seq 1 60); do
+          for _ in {1..60}; do
             curl -sf http://localhost:18098/healthz >/dev/null && break
             sleep 2
           done

@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app import private_access
+from app import main as main_module, private_access
 
 client = TestClient(app)
 CANONICAL_ROOT = "https://kmfa.linzezhang.com/"
@@ -69,7 +69,7 @@ def test_root_contains_complete_static_shell_without_account_controls():
     assert 'data-no-js-state="visible"' in html
     assert "JavaScript 已停用" in html
     assert not re.search(r'<input\b[^>]*type=["\'](?:email|password)["\']', html, re.I)
-    assert not re.search(r'<(?:button|a)\b[^>]*>\s*(?:登录|注册|OAuth)', html, re.I)
+    assert not re.search(r"<(?:button|a)\b[^>]*>\s*(?:登录|注册|OAuth)", html, re.I)
     assert "/api" not in html and "/ops" not in html
 
 
@@ -191,6 +191,21 @@ def test_promoted_index_mode_allows_only_the_canonical_root(monkeypatch):
     assert sitemap.headers["cache-control"] == "public, no-cache, must-revalidate"
 
 
+def test_promoted_root_and_asset_errors_fail_closed(monkeypatch, tmp_path):
+    monkeypatch.setenv("KMFA_PUBLIC_INDEXING_ENABLED", "1")
+    monkeypatch.setattr(main_module, "FRONTEND_DIST", tmp_path)
+
+    root = client.get("/", follow_redirects=False)
+    assert root.status_code == 503
+    assert root.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
+    assert root.headers["cache-control"] == "private, no-store"
+
+    missing_asset = client.get("/assets/missing-deadbeef.js")
+    assert missing_asset.status_code == 404
+    assert missing_asset.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
+    assert missing_asset.headers["cache-control"] == "private, no-store"
+
+
 def test_unpublished_private_and_non_page_routes_never_become_index_candidates(
     monkeypatch,
 ):
@@ -202,10 +217,7 @@ def test_unpublished_private_and_non_page_routes_never_become_index_candidates(
     sitemap = client.get("/sitemap.xml").text
     assert unpublished_canary not in robots
     assert unpublished_canary not in sitemap
-    assert all(
-        marker not in sitemap
-        for marker in ("/api", "/ops", "/ui", "/healthz")
-    )
+    assert all(marker not in sitemap for marker in ("/api", "/ops", "/ui", "/healthz"))
 
     for path, expected_status in (
         (unpublished_canary, 404),
@@ -397,3 +409,46 @@ def test_deployment_contract_enables_origin_guard_before_public_bypass():
         < runbook.index("再启源站私有面守卫")
         < runbook.index("最后公开根路径并验收")
     )
+
+
+def test_deployment_waits_for_application_and_governance_gates():
+    app_e2e = yaml.load(
+        (REPO / ".github/workflows/app-e2e.yml").read_text(encoding="utf-8"),
+        Loader=yaml.BaseLoader,
+    )
+    deploy = yaml.load(
+        (REPO / ".github/workflows/deploy.yml").read_text(encoding="utf-8"),
+        Loader=yaml.BaseLoader,
+    )
+
+    assert "workflow_call" in app_e2e["on"]
+    assert "push" not in app_e2e["on"]
+    assert ".github/workflows/deploy.yml" in app_e2e["on"]["pull_request"]["paths"]
+    commands = "\n".join(
+        str(step.get("run", "")) for step in app_e2e["jobs"]["e2e"]["steps"]
+    )
+    steps = app_e2e["jobs"]["e2e"]["steps"]
+    python_setup = next(
+        step for step in steps if step.get("uses") == "actions/setup-python@v5"
+    )
+    node_setup = next(
+        step for step in steps if step.get("uses") == "actions/setup-node@v4"
+    )
+    assert python_setup["with"]["python-version"] == "3.12"
+    assert node_setup["with"]["node-version"] == "20"
+    for command in (
+        "pytest -q KMFA/app/backend/tests",
+        "validate_taskpack.py --root KMFA",
+        "test_validate_taskpack_mutations.py --root KMFA",
+        "check_dual_plane_ci.py --root . --require-projects",
+    ):
+        assert command in commands
+
+    gate = deploy["jobs"]["app-e2e-gate"]
+    golden_path = deploy["jobs"]["golden-path"]
+    assert deploy["concurrency"] == {
+        "group": "kmfa-main-deploy",
+        "cancel-in-progress": "true",
+    }
+    assert gate["uses"] == "./.github/workflows/app-e2e.yml"
+    assert golden_path["needs"] == "app-e2e-gate"
