@@ -27,11 +27,12 @@ jobs:
           UUID: ${{ inputs.deployment_uuid }}
         run: |
           set -euo pipefail
-          resp=$(curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/deployments/$UUID")
-          # 数据走环境变量：python3 - <<PY 的 heredoc 会抢占 stdin，管道进数据必丢（首跑实测踩到）
-          RESP="$resp" python3 - <<'PY'
+          # 响应含全量构建日志（数 MB）：环境变量会撞 execve 上限（二跑实测 Argument list
+          # too long）、heredoc 会抢占 stdin（首跑实测）——落临时文件再读，文件绝不打印。
+          curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/deployments/$UUID" -o "$RUNNER_TEMP/resp.json"
+          python3 - <<'PY'
           import json, os, re
-          d = json.loads(os.environ["RESP"])
+          d = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "resp.json"), encoding="utf-8"))
           # 兼容 {deployments:[...]} 与直接对象两种返回形状
           if isinstance(d, dict) and "deployments" in d:
               arr = d.get("deployments") or [{}]
