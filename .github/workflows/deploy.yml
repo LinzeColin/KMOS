@@ -12,6 +12,8 @@ on:
     branches: [main]
     paths-ignore:
       - ".github/workflows/deploy.yml"
+      - ".github/workflows/dual-plane.yml"
+      - ".gitattributes"
       - "KMFA/AGENTS.md"
       - "KMFA/HANDOFF.md"
       - "KMFA/machine/README.md"
@@ -26,6 +28,29 @@ on:
       - "KMFA/machine/runs/S01_P13_COST_BENEFIT_AND_KILL_CRITERIA.md"
       - "KMFA/machine/runs/S01_P14_PRODUCT_CONTRACT.md"
       - "KMFA/machine/runs/S01_STAGE_REVIEW.md"
+      - "KMFA/machine/VALIDATION_REPORT.md"
+      - "KMFA/machine/acceptance_contract.yaml"
+      - "KMFA/machine/canonical_facts.yaml"
+      - "KMFA/machine/release_policy.yaml"
+      - "KMFA/machine/task_graph.yaml"
+      - "KMFA/machine/traceability.csv"
+      - "KMFA/machine/runs/S02_P21_CANONICAL_FACTS.md"
+      - "KMFA/machine/runs/S02_P22_HUMAN_PLANE.md"
+      - "KMFA/machine/runs/S02_P23_TRACEABILITY.md"
+      - "KMFA/machine/runs/S02_P24_VALIDATOR.md"
+      - "KMFA/machine/runs/S02_STAGE_REVIEW.md"
+      - "KMFA/machine/tools/check_dual_plane_ci.py"
+      - "KMFA/machine/tools/check_traceability.py"
+      - "KMFA/machine/tools/render_human.py"
+      - "KMFA/machine/tools/test_validate_taskpack_mutations.py"
+      - "KMFA/machine/tools/validate_taskpack.py"
+      - "KMFA/文档/00_我在哪.md"
+      - "KMFA/文档/01_产品需求.md"
+      - "KMFA/文档/02_系统架构.md"
+      - "KMFA/文档/03_口径字典.md"
+      - "KMFA/文档/04_操作流程.md"
+      - "KMFA/文档/05_执行与验收.md"
+      - "KMFA/文档/06_运维手册.md"
 
 jobs:
   golden-path:

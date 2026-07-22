@@ -19,6 +19,7 @@ SOURCE_FILES = (
     "machine/canonical_facts.yaml",
     "machine/acceptance_contract.yaml",
     "machine/task_graph.yaml",
+    "machine/release_policy.yaml",
     "machine/traceability.csv",
 )
 FIXTURE_FILES = SOURCE_FILES + (

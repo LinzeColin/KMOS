@@ -5,7 +5,7 @@ render_human.py —— 从机器平面渲染人类平面七文件
 
 双平面原则：
 - 机器平面由 machine/canonical_facts.yaml、acceptance_contract.yaml、
-  task_graph.yaml、traceability.csv（v1.5.2 交付合同）与 machine/facts/*
+  task_graph.yaml、release_policy.yaml、traceability.csv（v1.5.2 交付合同）与 machine/facts/*
   （旧业务状态）两个已声明 namespace 组成。
 - 人类平面 文档/ 七个文件全部是渲染产物，无一手写。
   agent 负责生产机器平面事实，渲染器把它们渲染成七文件；负责人只复审，不手写。
@@ -22,7 +22,7 @@ render_human.py —— 从机器平面渲染人类平面七文件
   02_系统架构.md    <- canonical storage/privacy + legacy features/data_contract/config
   03_口径字典.md    <- canonical metrics + legacy glossary
   04_操作流程.md    <- canonical authorization/domain index + legacy flows
-  05_执行与验收.md  <- canonical + Acceptance/Task DAG/Traceability + legacy plan/acceptance/runs
+  05_执行与验收.md  <- canonical + Acceptance/Task DAG/Release/Traceability + legacy plan/acceptance/runs
   06_运维手册.md    <- canonical ops requirement index + legacy config/ops/changelog
 
 Canonical Facts 缺失、损坏、ID 重复或关键字段不完整时必须停止渲染；
@@ -159,6 +159,42 @@ def load_required_canonical(root: Path):
     metric_ids = [f"metric::{row['id']}" for row in requirements]
     if len(metric_ids) != len(set(metric_ids)):
         raise ValueError("Canonical Facts 指标 ID 重复")
+    return data
+
+
+def load_required_release_policy(root: Path):
+    """读取 sealed 发布策略；缺失或结构漂移必须阻断七文件渲染。"""
+    path = root / "machine" / "release_policy.yaml"
+    data = load_yaml_or_json(path, None)
+    if not isinstance(data, dict) or "_raw" in data:
+        raise ValueError(f"Release Policy 不可解析: {path}")
+    list_fields = (
+        "environments", "release_principles", "promotion_gates",
+        "automatic_rollback_triggers", "rollback_order", "stop_conditions",
+    )
+    required = {"schema_version", "taskpack_version", *list_fields}
+    missing = sorted(required - set(data))
+    if missing:
+        raise ValueError(f"Release Policy 缺字段: {missing}")
+    if str(data.get("taskpack_version")) != "1.5.2":
+        raise ValueError("Release Policy taskpack_version 必须为 1.5.2")
+    for field in list_fields:
+        value = data.get(field)
+        if not isinstance(value, list) or not value:
+            raise ValueError(f"Release Policy {field} 必须是非空列表")
+    expected_gates = [
+        "G0 Authority", "G1 Product Contract", "G2 Walking Skeleton",
+        "G3 Product Completeness", "G4 Assurance", "G5 GA",
+    ]
+    gates = data["promotion_gates"]
+    if any(not isinstance(row, dict) for row in gates):
+        raise ValueError("Release Policy promotion_gates 行必须是 mapping")
+    if [row.get("gate") for row in gates] != expected_gates:
+        raise ValueError("Release Policy promotion_gates 必须按 G0-G5 精确排列")
+    for row in gates:
+        requires = row.get("requires")
+        if not isinstance(requires, list) or not requires:
+            raise ValueError(f"Release Policy {row.get('gate')} requires 必须非空")
     return data
 
 
@@ -563,7 +599,7 @@ def render_04(facts: Path, canonical):
     return body
 
 
-def render_05(facts: Path, runs_dir: Path, canonical, trace_documents):
+def render_05(facts: Path, runs_dir: Path, canonical, trace_documents, release_policy):
     plan = load_json(facts / "plan.json", {})
     acceptance = load_json(facts / "acceptance.json", {})
     runs = []
@@ -598,11 +634,19 @@ def render_05(facts: Path, runs_dir: Path, canonical, trace_documents):
             )
         )
 
+    gate_rows = [
+        (
+            f"`{row['gate']}`",
+            "；".join(f"`{requirement}`" for requirement in row["requires"]),
+        )
+        for row in release_policy["promotion_gates"]
+    ]
+
     this_round = (f"**在做：** {now}\n\n**负责：** {owner or '待定'}"
                   if now else blank_note("当前任务", "把这一轮的计划写进机器平面（machine/facts/plan.json）"))
 
     body = f"""{GENERATED}
-<!-- 事实源：machine/canonical_facts.yaml、acceptance_contract.yaml、task_graph.yaml、traceability.csv（v1.5.2 验收追踪）；machine/facts/plan.json、acceptance.json、runs/*.json（旧业务执行状态） -->
+<!-- 事实源：machine/canonical_facts.yaml、acceptance_contract.yaml、task_graph.yaml、release_policy.yaml、traceability.csv（v1.5.2 验收追踪/发布门）；machine/facts/plan.json、acceptance.json、runs/*.json（旧业务执行状态） -->
 <!-- 上限 100 行 -->
 
 # 执行与验收
@@ -615,16 +659,20 @@ def render_05(facts: Path, runs_dir: Path, canonical, trace_documents):
 
 {table(execution_rows, ["需求 ID", "主 Acceptance", "Oracle 阈值", "Task", "Test", "Artifact", "Owner"])}
 
-## 二、旧业务这一轮在做什么
+## 二、v1.5.2 晋级门（由发布策略生成；未知不晋级）
+
+{table(gate_rows, ["门", "必要条件"])}
+
+## 三、旧业务这一轮在做什么
 
 {this_round}
 
-## 三、旧业务怎么算做完
+## 四、旧业务怎么算做完
 
 {table(acc_rows, ["编号", "达成标准", "状态"],
        empty=blank_note("验收标准", "把这一轮的验收标准写进机器平面（machine/facts/acceptance.json）"))}
 
-## 四、旧业务最近 5 条运行记录
+## 五、旧业务最近 5 条运行记录
 
 {table(run_rows, ["记录", "做了什么", "结果"],
        empty="> 还没有运行记录。每完成一步会自动追加一条，这里就有了。")}
@@ -745,6 +793,7 @@ def main() -> int:
     runs = root / "machine" / "runs"
     project_name = root.resolve().name
     canonical = load_required_canonical(root)
+    release_policy = load_required_release_policy(root)
     trace_documents, _trace_counts = load_and_validate(root)
 
     docs.mkdir(parents=True, exist_ok=True)
@@ -754,7 +803,9 @@ def main() -> int:
         "02_系统架构.md": render_02(facts, canonical),
         "03_口径字典.md": render_03(facts, canonical),
         "04_操作流程.md": render_04(facts, canonical),
-        "05_执行与验收.md": render_05(facts, runs, canonical, trace_documents),
+        "05_执行与验收.md": render_05(
+            facts, runs, canonical, trace_documents, release_policy
+        ),
         "06_运维手册.md": render_06(facts, project_name, canonical),
     }
     for name, body in rendered.items():

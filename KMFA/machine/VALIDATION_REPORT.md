@@ -1,8 +1,8 @@
 # KMFA v1.5.2 repository-projection validation report
 
 Status: **PASS — structural/taskpack gate only**
-Validated at: `2026-07-22T16:09:09Z`
-Scope: `S02 / P2.4 / T-S02-04`
+Validated at: `2026-07-22T16:27:12Z`
+Scope: `S02 / P2.4 / T-S02-04` plus S02 whole-Stage correction
 
 This report is a compact, reproducible snapshot of the repository projection. It is not a fact writer, runtime Acceptance result, release artifact, S02 Stage Review or GA decision. The validator and CI command determine PASS; this document cannot override a failing command.
 
@@ -10,8 +10,9 @@ This report is a compact, reproducible snapshot of the repository projection. It
 
 | Gate | Result | Deterministic evidence |
 |---|---|---|
-| Required machine sources | PASS | Canonical Facts, Acceptance Contract, Task Graph and Traceability present |
-| Sealed source identity | PASS | four SHA-256 values match the authorized v1.5.2 taskpack bytes |
+| Required machine sources | PASS | Canonical Facts, Acceptance Contract, Task Graph, Release Policy and Traceability present |
+| Sealed source identity | PASS | five SHA-256 values match the authorized v1.5.2 taskpack bytes |
+| Release policy | PASS | sealed policy exposes exact ordered G0-G5 promotion gates and fail-closed rollback/stop lists |
 | Exact human plane | PASS | `文档/` contains exactly seven generated files and no eighth authority file |
 | Requirements / primary AC | PASS | 49 unique Requirements; 49 unique primary ACs; one AC per Requirement |
 | AC completeness | PASS | 15 required fields × 49 contracts = `735/735` non-empty |
@@ -20,7 +21,7 @@ This report is a compact, reproducible snapshot of the repository projection. It
 | References / traceability | PASS | 49/49 rows exactly join Requirement, AC, Oracle, Task, Test, evidence, artifact and Owner; gaps `0` |
 | Formalism guard | PASS | no `SCHEMAS/`, `EVIDENCE/`, `state_ledger.py` or `catalog_builder.py` |
 | Compact evidence | PASS | every `machine/runs/*` file and this report are below 64 KiB |
-| Read-only behavior | PASS | validator reads files only; mutation tests operate only in temporary directories and preserve all four source hashes |
+| Read-only behavior | PASS | validator reads files only; mutation tests operate only in temporary directories and preserve all five source hashes |
 
 ## Sealed source identities
 
@@ -29,6 +30,7 @@ This report is a compact, reproducible snapshot of the repository projection. It
 | `machine/canonical_facts.yaml` | `5ae070cb4105e83eec0c05b3771759e550a67f1241708810f0b4430300198552` |
 | `machine/acceptance_contract.yaml` | `1f07bd14a382a4bad552f43e7ba281064c06bae7ab52c5e0d75139c305c43bc1` |
 | `machine/task_graph.yaml` | `a9753e7c76dea6041b7386fd31735db869a6e371bcbce57c2fc794256a4d1306` |
+| `machine/release_policy.yaml` | `f47de7a021ffe24d0abe549dbf468f1a890ebbcab52cd1947e8be67c732cb3c7` |
 | `machine/traceability.csv` | `ca36962746546e66c729dd564f4a3d316e47270199d5a1bec988c86949ca0727` |
 
 ## Fail-closed mutation results
@@ -56,8 +58,8 @@ The first command validates the current repository projection. The second proves
 
 ## Boundary and reproduction
 
-The authorized taskpack ZIP remains separately verified by its original `tools/validate_taskpack.py` and manifest. This repository adapter intentionally does not copy package PDFs, safe reference ZIPs, source inputs or release-policy material that is not an S02.1–S02.3 repository input.
+The authorized taskpack ZIP remains separately verified by its original `tools/validate_taskpack.py` and manifest. This repository adapter seals the package's five minimum machine authorities but intentionally does not copy package PDFs, safe reference ZIPs, source inputs or other package-only material.
 
-The current `.github/workflows/deploy.yml` exact `paths-ignore` list does not yet cover the S02 candidate file set. Therefore P2.4 does not authorize a GitHub upload: the S02 whole-Stage Review must enumerate the final delta, add only the exact governance-only exclusions it can justify, replay the negative path-filter case and confirm that the Stage upload creates no deployment. Any non-excluded path remains a production release.
+This structural report never authorizes a GitHub upload by itself. The S02 whole-Stage Review separately enumerates the final delta, justifies exact governance-only deploy exclusions, replays the negative path-filter case and requires post-upload CI/no-deploy evidence. Any non-excluded path remains a production release.
 
 Reproduce from repository root with the three commands above. UNKNOWN runtime behavior stays UNKNOWN: the root-domain Access `302`, loginless journey, durable DB/object storage, arbitrary-file upload/download, recovery and canary/rollback remain later Stage gates.

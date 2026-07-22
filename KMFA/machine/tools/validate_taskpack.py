@@ -2,9 +2,9 @@
 """Validate the KMFA v1.5.2 taskpack repository projection.
 
 The authorized ZIP's own validator remains the authority for the packaged
-PDFs, safe reference ZIPs, release policy and manifest. This read-only adapter
-checks the S02 machine sources and repository gates that will actually run in
-KMOS CI. It never renders, rewrites or contacts an external service.
+PDFs, safe reference ZIPs and manifest. This read-only adapter checks the five
+sealed S02 machine sources and repository gates that will actually run in KMOS
+CI. It never renders, rewrites or contacts an external service.
 """
 from __future__ import annotations
 
@@ -14,6 +14,8 @@ import sys
 from collections import Counter, defaultdict, deque
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 from check_traceability import load_documents, nonempty, validate_documents
 
@@ -31,12 +33,14 @@ EXPECTED_SOURCE_HASHES = {
     "machine/canonical_facts.yaml": "5ae070cb4105e83eec0c05b3771759e550a67f1241708810f0b4430300198552",
     "machine/acceptance_contract.yaml": "1f07bd14a382a4bad552f43e7ba281064c06bae7ab52c5e0d75139c305c43bc1",
     "machine/task_graph.yaml": "a9753e7c76dea6041b7386fd31735db869a6e371bcbce57c2fc794256a4d1306",
+    "machine/release_policy.yaml": "f47de7a021ffe24d0abe549dbf468f1a890ebbcab52cd1947e8be67c732cb3c7",
     "machine/traceability.csv": "ca36962746546e66c729dd564f4a3d316e47270199d5a1bec988c86949ca0727",
 }
 REQUIRED_PATHS = (
     "machine/canonical_facts.yaml",
     "machine/acceptance_contract.yaml",
     "machine/task_graph.yaml",
+    "machine/release_policy.yaml",
     "machine/traceability.csv",
     "machine/VALIDATION_REPORT.md",
     "machine/tools/check_traceability.py",
@@ -84,6 +88,14 @@ TASK_FIELDS_ALLOWED_EMPTY = {
     "acceptance_ids",
     "parallel_group",
 }
+EXPECTED_PROMOTION_GATES = [
+    "G0 Authority",
+    "G1 Product Contract",
+    "G2 Walking Skeleton",
+    "G3 Product Completeness",
+    "G4 Assurance",
+    "G5 GA",
+]
 
 
 def sha256_file(file_path: Path) -> str:
@@ -153,6 +165,51 @@ def validate(root: Path) -> tuple[list[str], list[str], dict[str, Any]]:
             actual = sha256_file(source)
             check(actual == expected, f"Sealed source SHA-256 mismatch: {relative}: expected {expected}, got {actual}")
 
+    promotion_gate_count = 0
+    policy_path = root / "machine" / "release_policy.yaml"
+    try:
+        policy = yaml.safe_load(policy_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        errors.append(f"Release Policy load failure: {exc}")
+        policy = {}
+    check(isinstance(policy, dict), "Release Policy top level must be a mapping")
+    if isinstance(policy, dict):
+        check(
+            str(policy.get("taskpack_version")) == "1.5.2",
+            "Release Policy taskpack_version must be 1.5.2",
+        )
+        required_policy_lists = (
+            "environments",
+            "release_principles",
+            "promotion_gates",
+            "automatic_rollback_triggers",
+            "rollback_order",
+            "stop_conditions",
+        )
+        for field in required_policy_lists:
+            value = policy.get(field)
+            check(
+                isinstance(value, list) and bool(value),
+                f"Release Policy {field} must be a non-empty list",
+            )
+        gates = policy.get("promotion_gates", [])
+        if isinstance(gates, list):
+            promotion_gate_count = len(gates)
+            gate_names = [row.get("gate") for row in gates if isinstance(row, dict)]
+            check(
+                gate_names == EXPECTED_PROMOTION_GATES,
+                "Release Policy promotion gates must be exact ordered G0-G5",
+            )
+            for row in gates:
+                if not isinstance(row, dict):
+                    errors.append("Release Policy promotion gate row must be a mapping")
+                    continue
+                requires = row.get("requires")
+                check(
+                    isinstance(requires, list) and bool(requires),
+                    f"Release Policy {row.get('gate') or '<unknown>'} requires must be a non-empty list",
+                )
+
     try:
         documents = load_documents(root)
     except Exception as exc:
@@ -164,6 +221,7 @@ def validate(root: Path) -> tuple[list[str], list[str], dict[str, Any]]:
             "phases": 0,
             "tasks": 0,
             "trace_rows": 0,
+            "promotion_gates": promotion_gate_count,
         }
 
     trace_errors, trace_counts = validate_documents(documents)
@@ -262,6 +320,7 @@ def validate(root: Path) -> tuple[list[str], list[str], dict[str, Any]]:
         "phases": len(phase_ids),
         "tasks": len(tasks) if isinstance(tasks, list) else 0,
         "trace_rows": trace_counts.get("trace_rows", 0),
+        "promotion_gates": promotion_gate_count,
         "receipts": len([entry for entry in runs_dir.iterdir() if entry.is_file()]) if runs_dir.is_dir() else 0,
     }
     return errors, warnings, counts

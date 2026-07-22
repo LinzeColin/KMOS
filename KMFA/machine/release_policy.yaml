@@ -1,0 +1,58 @@
+schema_version: '1.0'
+taskpack_version: 1.5.2
+environments:
+- local
+- ci
+- preview
+- staging
+- canary
+- production
+- isolated-recovery
+release_principles:
+- Walking Skeleton 先行。
+- 所有高风险能力必须 Feature Flag 可关闭。
+- Canary/Blue-Green 表示等效能力，不要求为工具名迁移平台。
+- Schema 使用 expand-contract，代码回滚时旧 schema 仍兼容。
+- Post-deploy：生产发布后运行匿名核心旅程、泄露、恢复、SLO 和成本 Oracle。
+- Backup/Restore：涉及持久化或 Migration 的发布，晋级前必须有备份、恢复点和已演练的恢复步骤。
+promotion_gates:
+- gate: G0 Authority
+  requires:
+  - S00 PASS
+- gate: G1 Product Contract
+  requires:
+  - S01-S02 PASS
+- gate: G2 Walking Skeleton
+  requires:
+  - S03-S07 核心 P0 AC PASS
+- gate: G3 Product Completeness
+  requires:
+  - S08-S09 PASS
+- gate: G4 Assurance
+  requires:
+  - S10-S12 PASS
+- gate: G5 GA
+  requires:
+  - S13 PASS
+  - 全部 P0 AC PASS
+  - 无 Kill Criteria 触发
+automatic_rollback_triggers:
+- 根入口出现登录墙、非预期重定向或关键首屏失败。
+- 任何未授权跨 workspace 访问或私密 canary 泄露。
+- 上传/下载 hash 不一致、原件丢失或不可恢复半完成状态。
+- 财务 golden/zero-delta 不变量失败。
+- 错误率、P95/P99 延迟、队列、存储或成本超过批准阈值。
+- 迁移影子校验出现未解释差异。
+rollback_order:
+- 停止流量晋级。
+- 关闭相关 Feature Flag/kill switch。
+- 切回 previous/blue artifact。
+- 保持 expand-contract schema 兼容，不执行破坏性回退。
+- 隔离受影响 jobs/objects，运行对账/补偿。
+- 运行核心 Oracle，只有恢复后才重新开放。
+stop_conditions:
+- 可能造成不可恢复数据损坏。
+- 可能泄露密钥或未批准的私密数据。
+- 需要不可逆基础设施迁移。
+- 超出已授权产品范围。
+- 无法确定唯一权威数据源。

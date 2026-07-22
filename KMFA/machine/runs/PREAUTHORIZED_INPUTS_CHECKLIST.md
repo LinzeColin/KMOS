@@ -5,6 +5,7 @@
 > Captured: `2026-07-22T12:54:25Z`
 > Closed: `2026-07-22T12:59:30Z`
 > Stage-review correction: `2026-07-22T13:16:08Z`
+> S02 stage-review correction: `2026-07-22T16:27:12Z`
 > Status: **DONE — AC-GOV-004 PASS**
 
 本文是小于 64 KiB 的 public-safe compact receipt，按已授权 taskpack 的
@@ -36,7 +37,7 @@ Stop 输出核心四要素——最小决策问题、已核验证据、默认建
 | `PRE-SRC-001` | published source 与生产制品身份 | capture 时 `origin/main=68306e8...`；最新成功 deploy run `29916233128` 与 query run `29916590384` 的 deployed source 也为 `68306e8...`、deployment `boh5fsnx...` | `Ready` | 每个 Stage 开始和上传前分别刷新 published main 与 deployment source；治理-only upload 后允许二者不同，禁止沿用旧 tuple 猜测 |
 | `PRE-REC-001` | v1.5 恢复兜底 | immutable bundle、公开 recovery tip 与 1060-path disposition 已由 P0.2 校验，未导入 KMOS | `Ready` | 只读参考；永不 wholesale replay/merge/force-push，不夹带 S24 |
 | `PRE-GH-001` | GitHub repo、Actions、artifact 与 stage upload | canonical public repo 可读；当前执行身份具备任务所需 repo 操作能力；Actions deploy/query 已成功实跑 | `Ready` | 中间 phase 只本地 commit；整个 Stage 完成、复审并修复后才非破坏上传 `main`，不创建额外 branch/PR |
-| `PRE-CICD-001` | CI/CD build/test/deploy/rollback | `deploy.yml` 对运行态相关 `main` push 调用 Coolify；当前只逐条排除 workflow、`AGENTS/HANDOFF/machine README`、6 个 S00 receipt、4 个 S01 phase receipt 与 S01 Stage Review，共 15 个精确文件且无目录通配符；所需 secret 只由 Actions 托管且最近运行成功 | `Ready` | 所有 Stage upload 都先 review/gates；治理-only upload 必须验证候选路径全部命中精确排除且未产生 deploy，含任一非排除路径（包括 `machine/runs/` 下未知文件）则按 production release 刷新 artifact/deployment identity；失败停止晋级并使用 previous deployment |
+| `PRE-CICD-001` | CI/CD build/test/deploy/rollback | `deploy.yml` 对运行态相关 `main` push 调用 Coolify；当前逐条排除 2 个 workflow、根 `.gitattributes`、`AGENTS/HANDOFF/machine README`、6 个 S00 receipt、5 个 S01 receipt 与 23 个 S02 machine/tool/receipt/七文件，共 40 个精确文件且无目录通配符；所需 secret 只由 Actions 托管且最近运行成功 | `Ready` | 所有 Stage upload 都先 review/gates；治理-only upload 必须验证候选路径全部命中精确排除且未产生 deploy，含任一非排除路径（包括 `machine/runs/` 下未知文件）则按 production release 刷新 artifact/deployment identity；失败停止晋级并使用 previous deployment |
 | `PRE-REL-001` | Flag/Canary/Blue-Green 等效能力 | taskpack release policy 已定义；现仓未证明完整运行态实现 | `Deferred-not-blocking` | 高风险功能默认 Flag off；S03 walking skeleton 开始落最小 kill switch，S13 前必须实证 canary/rollback，绝不为工具名迁 Kubernetes |
 | `PRE-ENV-001` | 本地/CI 构建环境 | Python、Node/npm、Docker daemon/Compose、GitHub CLI 均可用；Taskpack validator 与 manifest 已通过 | `Ready` | 缺某个非关键本地工具时用 CI 等效环境；不得绕过同一验证目的 |
 | `PRE-DOM-001` | domain、DNS、TLS、当前边缘身份 | `kmfa.linzezhang.com` A/AAAA 经 Cloudflare；`/`、`/ui`、`/ui/`、`/healthz` 当前均为 Access `302` baseline | `Ready` | 现状只证明路由与已知缺陷，不证明 public contract；S03 负责根入口 public、ops private 与 `/ui*` 308→`/` |
