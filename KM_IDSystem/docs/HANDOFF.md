@@ -11,10 +11,15 @@
 
 ## Current Gate - 2026-07-22
 
-- Completed task in this run: `IDS-V0_1-STAGE046-P4`. The approved sources were live-rehashed; Phase3 commit `49b876ec68ec8f92f0b9df72d57cca7b2d1d3344`, its trees, parent and five indexed artifacts were rebound.
+- Completed task in this run: `IDS-V0_1-STAGE046-REVIEW`. The independent review live-rehashed the approved sources, rebound Phase4 commit `5dee024cd44e2e772776487ee21761f274c7708e` and its exact trees/parent/ancestry, replayed Phase1-4 and repaired all six findings.
+- The repaired route contract has a result-level projection digest, sanitized invalid results, canonical non-path references, action-specific fact levels and exact Phase3 PASS invariants. The digest is integrity-only, not external provenance, source authentication or runtime authorization.
+- Next allowed task: `IDS-V0_1-STAGE047-P1`, only in a separate future run behind `IDS-STAGE047-P1-GATE`; `stage047_entry_allowed=false`, `NO_STAGE047_THIS_RUN`, `NO_BATCH_REVIEW_THIS_RUN`, `NO_GITHUB_UPLOAD_THIS_RUN`, `NO_APP_REINSTALL_THIS_RUN`.
+- Stage046 is `completed_reviewed_local`, but parser/fallback runtime, source I/O, persistence, upload and production activation remain disabled. Six of ten stages in BATCH041_050 are locally reviewed; the batch remains locked.
+- Review evidence is `STAGE046_STAGE_REVIEW.md`, `check_parser_routing_stage_review.py`, repair/final tests and the review machine run; any source, Phase4 binding, phase replay, finding, governance or Git-index mismatch returns `FAIL_CLOSED` to `IDS-STAGE046-REVIEW-GATE`.
+- Historical Stage046 Phase4 transition only: Completed task in this run: `IDS-V0_1-STAGE046-P4`. The approved sources were live-rehashed; Phase3 commit `49b876ec68ec8f92f0b9df72d57cca7b2d1d3344`, its trees, parent and five indexed artifacts were rebound.
 - `ids.stage046.parser_routing.phase4.delivery.v1` derives six schema-only parser-output samples, fourteen non-runtime fallback control logs, exact quality metrics and five fail-closed classifications from all fourteen Phase3 controls; no business content enters the artifacts.
 - Every output is `SCHEMA_ONLY_NOT_EXECUTED`, every parser version is `UNASSIGNED_NOT_IMPLEMENTED`, and every fallback record is `DERIVED_CONTROL_LOG_SAMPLE_NOT_RUNTIME` with zero attempts, silent drops or parser switches; Stage047/048/049/050 ownership is unchanged.
-- Next allowed task: `IDS-V0_1-STAGE046-REVIEW`, only in a separate future run behind `IDS-STAGE046-REVIEW-GATE`; `NO_STAGE_REVIEW_THIS_RUN`, `NO_STAGE047_THIS_RUN`, `NO_BATCH_REVIEW_THIS_RUN`, `NO_GITHUB_UPLOAD_THIS_RUN`, `NO_APP_REINSTALL_THIS_RUN`.
+- Historical Stage046 Phase4 next task only: Next allowed task: `IDS-V0_1-STAGE046-REVIEW`, behind `IDS-STAGE046-REVIEW-GATE`; this is not the current gate.
 - Phase4 evidence is `STAGE046_PHASE4_CLOSEOUT.md`, the delivery contract/checker/tests and machine run; any source, Phase3 snapshot, evidence, governance or side-effect mismatch returns `FAIL_CLOSED` to `IDS-STAGE046-P4-GATE`.
 - Historical Stage045 review compatibility assertion only: Completed task in this run: `IDS-V0_1-STAGE045-REVIEW`; Next allowed task: `IDS-V0_1-STAGE046-P1`. This is not the current run or gate.
 - Historical Stage044 review compatibility assertion only: Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`; Next allowed task: `IDS-V0_1-STAGE045-P1`. This is not the current run or gate.

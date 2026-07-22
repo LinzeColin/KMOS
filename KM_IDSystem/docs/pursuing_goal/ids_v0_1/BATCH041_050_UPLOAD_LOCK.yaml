@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-22T09:22:34Z"
-status: "stage046_phase4_completed_review_pending"
+updated_at_utc: "2026-07-22T12:00:00Z"
+status: "stage046_completed_reviewed_local"
 
 transition_history:
+  stage046_review_state:
+    status: "stage046_completed_reviewed_local"
+    current_task_id: "IDS-V0_1-STAGE046-REVIEW"
+    next_gate: "IDS-STAGE047-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE047-P1"
+    github_upload_allowed: false
   stage046_phase4_state:
     status: "stage046_phase4_completed_review_pending"
     current_task_id: "IDS-V0_1-STAGE046-P4"
@@ -939,17 +945,18 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
   STAGE-046:
-    status: "stage046_phase4_completed_review_pending"
+    status: "stage046_completed_reviewed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_gate: "IDS-STAGE046-REVIEW-GATE"
-    current_task_id: "IDS-V0_1-STAGE046-P4"
+    next_stage: "STAGE-047"
+    next_gate: "IDS-STAGE047-P1-GATE"
+    current_task_id: "IDS-V0_1-STAGE046-REVIEW"
     acceptance_id: "ACC-STAGE-046"
-    acceptance_status: "phase4_closeout_complete_review_pending"
-    review_status: "pending"
+    acceptance_status: "reviewed_local_passed"
+    review_status: "passed"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
     phase4_entry_authorized: true
@@ -976,8 +983,22 @@ stage_progress:
     phase3_scenarios_valid: true
     phase4_delivery_valid: true
     delivery_result: "PASS_ISOLATED_PARSER_ROUTING_CLOSEOUT_PARSER_DISABLED"
-    stage_review_status: "pending_next_run"
-    contract_state: "PHASE4_CLOSEOUT_EVIDENCE_ENABLED_PARSER_AND_FALLBACK_DISABLED"
+    stage_review_schema: "ids.stage046.parser_routing.stage_review.v1"
+    stage_review_status: "completed_reviewed_local"
+    stage_review_result: "PASS_REVIEWED_LOCAL_PARSER_AND_FALLBACK_DISABLED"
+    review_finding_count: 6
+    review_critical_finding_count: 2
+    review_important_finding_count: 3
+    review_minor_finding_count: 1
+    review_findings_repaired: true
+    phase4_commit_binding_valid: true
+    detection_result_projection_identity_exact: true
+    invalid_request_sanitized_no_echo: true
+    canonical_reference_shapes_reject_paths: true
+    route_fact_level_matches_disposition: true
+    scenario_result_invariants_fail_closed: true
+    phase_boundary_claim_corrected: true
+    contract_state: "STAGE046_REVIEWED_LOCAL_PARSER_AND_FALLBACK_DISABLED"
     route_family_count: 6
     supported_type_count: 8
     required_parser_output_field_count: 6
@@ -1054,7 +1075,7 @@ stage_progress:
     phase2_started: true
     phase3_started: true
     phase4_started: true
-    whole_stage_review_performed: false
+    whole_stage_review_performed: true
     stage047_entry_allowed: false
     batch_review_performed: false
     github_upload_allowed: false
@@ -1080,12 +1101,17 @@ stage_progress:
       - "KM_IDSystem/scripts/check_parser_routing_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_delivery.py"
       - "KM_IDSystem/machine/runs/2026-07-22-stage046-p4-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_STAGE_REVIEW.md"
+      - "KM_IDSystem/scripts/check_parser_routing_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_review_repairs.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_stage_review.py"
+      - "KM_IDSystem/machine/runs/2026-07-22-stage046-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE046-P4"
-  next_allowed_task_id: "IDS-V0_1-STAGE046-REVIEW"
+  current_task_id: "IDS-V0_1-STAGE046-REVIEW"
+  next_allowed_task_id: "IDS-V0_1-STAGE047-P1"
   github_upload_allowed: false
-  current_run: "STAGE-046 Phase 4 derived six schema-only parser-output samples, fourteen non-runtime fallback control logs, exact quality metrics and five fail-closed failure classes from the committed Phase 3 routing scenarios; no parser or fallback ran."
-  no_upload_reason: "BATCH041_050 has five completed and individually reviewed Stages plus STAGE-046 Phase 1-4 only; STAGE-046 whole-stage review, STAGE-047..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."
+  current_run: "STAGE-046 whole-stage independent review repaired six findings and reverified approved sources, Phase 1-4, the immutable Phase 4 commit, governance and Git-index binding; no parser, fallback or business-source runtime ran."
+  no_upload_reason: "BATCH041_050 has six completed and individually reviewed Stages; STAGE-047..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."

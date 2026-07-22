@@ -30,7 +30,7 @@ ROUTER_VERSION = "ids.parser_router.v0_1.stage046.p2"
 PASS_RESULT = "PASS_ISOLATED_PARSER_ROUTING_SCENARIOS_PARSER_DISABLED"
 NEXT_GATE = "IDS-STAGE046-P4-GATE"
 CANONICAL_CONTRACT_SHA256 = (
-    "161c4e7172ebe5b1305a6f7a48c71b4272d93cb0e1cedfaf2c8a316ab4c09534"
+    "8dcb04dfce730ef038d7c12bd8e61f0308a8f98daeb716f3e31bef613df2d96b"
 )
 
 SOURCE_BINDING = {
@@ -81,7 +81,7 @@ PHASE2_ARTIFACTS = {
             "STAGE046_PHASE2_PARSER_ROUTING_SLICE.md"
         ),
         "sha256": (
-            "3f7d4bbc3a20cf74af0da4dcb065d85d5ee53dd07440bb364074d10df5588a32"
+            "1ec339b03296724fe6e68d4992fa92a1eedd7ced018673285ffb7a6eb27f1435"
         ),
     },
     "stage046_phase2_contract": {
@@ -90,13 +90,13 @@ PHASE2_ARTIFACTS = {
             "stage046_parser_routing_runtime_contract.json"
         ),
         "sha256": (
-            "de4111262bc87b94d238977fa4e1bc70e5d2c51aa8936f946c65413bcd6ff4d4"
+            "d1772c08581d04a9b7932f1a74fcfe44877056973df559c2396fb69f9b1e3aab"
         ),
     },
     "stage046_phase2_checker": {
         "ref": "KM_IDSystem/scripts/check_parser_routing_runtime.py",
         "sha256": (
-            "65f441499f4c0b2c5409ecd7b38b5274b7b3cedae6dc9a79cabd0dcc16be9927"
+            "e65e2bd30527f42e25e0fde89b2f2dfc84550a36ab25aa0b57d2e9caa7629412"
         ),
     },
     "stage046_phase2_tests": {
@@ -244,6 +244,33 @@ EXPECTED_OUTCOMES = {
     ),
 }
 
+RESULT_INVARIANTS_BY_ACTION = {
+    "ROUTE_BLOCKED_PARSER_IMPLEMENTATION_UNAVAILABLE": {
+        "errors": ["PARSER_IMPLEMENTATION_UNAVAILABLE"],
+        "route_fact_level": "CANDIDATE",
+        "route_candidate_selected": True,
+        "dispatch_block_reason": "PARSER_IMPLEMENTATION_UNAVAILABLE",
+    },
+    "ROUTE_REVIEW_REQUIRED": {
+        "errors": ["DETECTION_REVIEW_REQUIRED"],
+        "route_fact_level": "REVIEW_REQUIRED",
+        "route_candidate_selected": False,
+        "dispatch_block_reason": "NOT_APPLICABLE",
+    },
+    "ROUTE_UNSUPPORTED": {
+        "errors": ["FILE_TYPE_UNSUPPORTED"],
+        "route_fact_level": "UNSUPPORTED",
+        "route_candidate_selected": False,
+        "dispatch_block_reason": "NOT_APPLICABLE",
+    },
+    "ROUTE_BLOCKED": {
+        "errors": ["DETECTION_INPUT_BLOCKED"],
+        "route_fact_level": "BLOCKED",
+        "route_candidate_selected": False,
+        "dispatch_block_reason": "NOT_APPLICABLE",
+    },
+}
+
 GOVERNED_ROUTES = {
     "PDF": "ROUTE_PDF",
     "DOCX": "ROUTE_OOXML_WORD",
@@ -374,6 +401,7 @@ def validate_scenario_contract(contract: Any) -> dict[str, bool]:
     value: Mapping[str, Any] = contract if isinstance(contract, Mapping) else {}
     fallback = value.get("fallback_quality_contract", {})
     instruction = value.get("instruction_text_contract", {})
+    result_contract = value.get("result_contract", {})
     truth = value.get("truth_flags", {})
     checks = {
         "root_exact_shape": (
@@ -439,6 +467,16 @@ def validate_scenario_contract(contract: Any) -> dict[str, bool]:
             and instruction.get("policy_override_allowed") is False
             and instruction.get("prompt_injection_scan_allowed") is False
             and instruction.get("scanner_runtime_owner") == "STAGE-050"
+        ),
+        "critical_result_invariants_exact": (
+            isinstance(result_contract, Mapping)
+            and result_contract.get("detection_result_identity_required") is True
+            and result_contract.get("exact_invariants_by_route_action")
+            == RESULT_INVARIANTS_BY_ACTION
+            and result_contract.get("parser_version_required")
+            == "UNASSIGNED_NOT_IMPLEMENTED"
+            and result_contract.get("critical_result_invariants_participate_in_pass")
+            is True
         ),
         "truth_flags_fail_closed": (
             isinstance(truth, Mapping)
@@ -531,6 +569,29 @@ def _summarize(
     route_matches_baseline: bool | None = None,
 ) -> dict[str, Any]:
     disposition = _quality_disposition(result)
+    route_action = result.get("route_action")
+    expected_invariants = RESULT_INVARIANTS_BY_ACTION.get(route_action, {})
+    detection_result_id = result.get("detection_result_id")
+    identity_valid = (
+        isinstance(detection_result_id, str)
+        and detection_result_id.startswith("detection-result:sha256:")
+        and len(detection_result_id) == len("detection-result:sha256:") + 64
+        and all(
+            character in "0123456789abcdef"
+            for character in detection_result_id.removeprefix(
+                "detection-result:sha256:"
+            )
+        )
+        and result.get("detection_result_identity_status")
+        == "PROJECTION_DIGEST_VERIFIED"
+    )
+    result_invariants_exact = (
+        bool(expected_invariants)
+        and all(result.get(key) == expected for key, expected in expected_invariants.items())
+        and result.get("parser_version") == "UNASSIGNED_NOT_IMPLEMENTED"
+        and result.get("parser_version_status") == "RECORDED_UNASSIGNED"
+        and identity_valid
+    )
     forbidden_effects_absent = (
         all(
             result.get(field) is False
@@ -558,6 +619,7 @@ def _summarize(
         _outcome_tuple(result, disposition) == expected
         and forbidden_effects_absent
         and route_matches_baseline is not False
+        and result_invariants_exact
     )
     detected_type = result.get("detected_type")
     return {
@@ -571,7 +633,14 @@ def _summarize(
         "candidate_route_id": result.get("candidate_route_id"),
         "parser_family": result.get("parser_family"),
         "parser_version": result.get("parser_version"),
+        "parser_version_status": result.get("parser_version_status"),
+        "detection_result_id": detection_result_id,
+        "detection_result_identity_status": result.get(
+            "detection_result_identity_status"
+        ),
+        "route_fact_level": result.get("route_fact_level"),
         "route_candidate_selected": result.get("route_candidate_selected"),
+        "result_invariants_exact": result_invariants_exact,
         "quality_disposition": disposition,
         "explicit_disposition": disposition != "INVALID_RESULT_FAIL_CLOSED",
         "silent_drop": disposition == "INVALID_RESULT_FAIL_CLOSED",

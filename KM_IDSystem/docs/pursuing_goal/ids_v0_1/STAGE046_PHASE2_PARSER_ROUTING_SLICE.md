@@ -44,6 +44,24 @@ source body, source text, raw exception, secret, credential or caller-selected
 parser. IDs and refs are bounded and canonical; the request ID is the canonical
 SHA-256 of all request metadata except itself.
 
+## Whole-Stage Review Repair Overlay
+
+The Stage046 independent review tightened this boundary without enabling any
+runtime. Every request now carries a `detection_result_id` computed from the
+exact governed detection-result projection. This digest proves projection
+integrity only; it is explicitly **not** external provenance or production
+authorization. Changing type, state, confidence, source identity, fingerprint,
+evidence ref, detector version or evidence-text marker invalidates the bound
+result identity.
+
+`source_identity_ref` and `detection_evidence_ref` now use strict colon-delimited
+namespaces with no slash, backslash, URI scheme, empty segment, dot segment or
+absolute-path representation. Invalid requests return one sanitized result and
+do not echo unvalidated IDs, types, states, confidence objects or marker values.
+The result fact level is action-specific: `CANDIDATE`, `REVIEW_REQUIRED`,
+`UNSUPPORTED`, `BLOCKED` or `INVALID`; review, unsupported, blocked and invalid
+outcomes are never mislabeled as candidate facts.
+
 ## Static Route Evaluation
 
 The in-memory registry maps eight governed types to six route families:

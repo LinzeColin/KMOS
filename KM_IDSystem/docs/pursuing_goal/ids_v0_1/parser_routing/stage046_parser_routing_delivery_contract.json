@@ -31,19 +31,19 @@
   "upstream_bindings": {
     "stage046_phase3_evidence": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_PHASE3_PARSER_ROUTING_SCENARIOS.md",
-      "sha256": "fa603715547ec41df2ad0f36aab8fa8484f4ed0fba44d5ed1cfffdfec0a7b181"
+      "sha256": "11c821b3ec13ce66d98cbec0f079a2356fea6bfac6a1137804e0bec90c2c9990"
     },
     "stage046_phase3_contract": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_scenarios_contract.json",
-      "sha256": "f9bbfe5913bb99762bf927028a509b14b83f6a2f491bfd08d32b7f285382a067"
+      "sha256": "eef1c03bf3abd2a95bb0294b2b8671a61e3fd29f77e3495b2a118941b979c8a2"
     },
     "stage046_phase3_checker": {
       "ref": "KM_IDSystem/scripts/check_parser_routing_scenarios.py",
-      "sha256": "4bc1622bdd7668bf599609deb281ebde4d2f404abd840010fa43c53a82c82dca"
+      "sha256": "5ab854480b0b079d848a6ff2c0cbd5808e9bbf529f7c34169d503c3084074b51"
     },
     "stage046_phase3_tests": {
       "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_scenarios.py",
-      "sha256": "30c0387c08cdbe0274824d67c4ffbb0499ea2f01e4d9cbfd7b8bbc8b9f0c610b"
+      "sha256": "795e8356ebfd3af6c7b5a9d9c3220c35a47c95d5cf3d6d37462038073b431f3d"
     },
     "stage046_phase3_run": {
       "ref": "KM_IDSystem/machine/runs/2026-07-22-stage046-p3-local.json",

@@ -68,7 +68,7 @@ EXPECTED_PHASE2_ARTIFACTS = {
             "STAGE046_PHASE2_PARSER_ROUTING_SLICE.md"
         ),
         "sha256": (
-            "3f7d4bbc3a20cf74af0da4dcb065d85d5ee53dd07440bb364074d10df5588a32"
+            "1ec339b03296724fe6e68d4992fa92a1eedd7ced018673285ffb7a6eb27f1435"
         ),
     },
     "stage046_phase2_contract": {
@@ -77,13 +77,13 @@ EXPECTED_PHASE2_ARTIFACTS = {
             "stage046_parser_routing_runtime_contract.json"
         ),
         "sha256": (
-            "de4111262bc87b94d238977fa4e1bc70e5d2c51aa8936f946c65413bcd6ff4d4"
+            "d1772c08581d04a9b7932f1a74fcfe44877056973df559c2396fb69f9b1e3aab"
         ),
     },
     "stage046_phase2_checker": {
         "ref": "KM_IDSystem/scripts/check_parser_routing_runtime.py",
         "sha256": (
-            "65f441499f4c0b2c5409ecd7b38b5274b7b3cedae6dc9a79cabd0dcc16be9927"
+            "e65e2bd30527f42e25e0fde89b2f2dfc84550a36ab25aa0b57d2e9caa7629412"
         ),
     },
     "stage046_phase2_tests": {

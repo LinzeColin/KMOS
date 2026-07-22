@@ -336,7 +336,7 @@ class Stage046ParserRoutingDeliveryTests(unittest.TestCase):
         self.assertIn("未执行解析器或回退", report["owner_feedback_zh"])
         self.assertIn("不是生产就绪证明", report["owner_feedback_zh"])
 
-    def test_governance_routes_phase4_to_separate_stage_review(self):
+    def test_governance_preserves_phase4_route_after_separate_stage_review(self):
         for path in (BATCH, ROADMAP, EVENTS, HANDOFF, STATUS):
             with self.subTest(path=path):
                 self.assertTrue(path.is_file(), f"missing {path}")
@@ -345,14 +345,22 @@ class Stage046ParserRoutingDeliveryTests(unittest.TestCase):
         events = EVENTS.read_text(encoding="utf-8")
         handoff = HANDOFF.read_text(encoding="utf-8")
         status = json.loads(STATUS.read_text(encoding="utf-8"))
+        self.assertIn("stage046_phase4_state:", batch)
         self.assertIn('status: "stage046_phase4_completed_review_pending"', batch)
         self.assertIn('next_allowed_task_id: "IDS-V0_1-STAGE046-REVIEW"', batch)
+        self.assertIn('current_task_id: "IDS-V0_1-STAGE046-REVIEW"', batch)
+        self.assertIn('next_allowed_task_id: "IDS-V0_1-STAGE047-P1"', batch)
+        self.assertIn("stage046_phase4_state:", roadmap)
         self.assertIn('current_phase_id: "IDS-STAGE046-P4"', roadmap)
         self.assertIn('next_gate_id: "IDS-STAGE046-REVIEW-GATE"', roadmap)
+        self.assertIn('current_phase_id: "IDS-STAGE046-REVIEW"', roadmap)
+        self.assertIn('next_gate_id: "IDS-STAGE047-P1-GATE"', roadmap)
         self.assertIn("IDS-V0_1-STAGE046-P4", events)
-        self.assertEqual("IDS-STAGE046-P4", status["phase"])
-        self.assertEqual("IDS-STAGE046-REVIEW-GATE", status["next_gate"])
+        self.assertEqual("IDS-STAGE046-REVIEW", status["phase"])
+        self.assertEqual("IDS-STAGE047-P1-GATE", status["next_gate"])
         self.assertFalse(status["push_allowed"])
+        self.assertIn("Completed task in this run: `IDS-V0_1-STAGE046-REVIEW`", handoff)
+        self.assertIn("Next allowed task: `IDS-V0_1-STAGE047-P1`", handoff)
         self.assertIn("Completed task in this run: `IDS-V0_1-STAGE046-P4`", handoff)
         self.assertIn("Next allowed task: `IDS-V0_1-STAGE046-REVIEW`", handoff)
 

@@ -1,18 +1,18 @@
 {
   "stage": "`IDS-STAGE046`",
-  "phase": "`IDS-STAGE046-P4`",
-  "task": "`IDS-V0_1-STAGE046-P4`",
-  "owner": "Codex 专属 KMOS worktree，Stage046 步骤四解析器路由交付收口",
-  "objective": "复验已提交的步骤三场景并派生结构样例、fallback 控制日志、质量指标、失败分类、支持边界与配置回滚。",
+  "phase": "`IDS-STAGE046-REVIEW`",
+  "task": "`IDS-V0_1-STAGE046-REVIEW`",
+  "owner": "Codex 专属 KMOS worktree，Stage046 独立整阶段复审",
+  "objective": "独立复验 Stage046 Phase1-4 并修复结果身份、失败结果、引用形状、事实等级、场景不变量与阶段边界问题。",
   "scope": [
-    "实时重新计算批准归档、唯一 Stage046 成员、roadmap 与 instructions 哈希，并绑定已提交 Phase3 commit/root/KM_IDSystem tree/父链",
-    "从 Git 索引重新计算 Phase3 证据、合同、检查器、测试与 machine run 五项工件哈希",
-    "重放十四个无正文、仅元数据场景，派生六个 schema-only 输出样例、十四项非运行时 fallback 控制日志和五类失败处置"
+    "实时重新计算批准归档、NFC 唯一 Stage046 成员、roadmap 与 instructions 哈希，并绑定已提交 Phase4 commit/root/KM_IDSystem tree/父链",
+    "重放 Phase1-4 与六项复审反例，确保每项发现均失败关闭并已修复",
+    "要求复审文档、检查器、测试、治理、事件、机器记录和 owner views 均由 Git 跟踪并匹配索引"
   ],
   "non_goals": [
-    "不执行 Stage046 整阶段复审、Stage047、十阶段批次复审或上传门禁",
+    "不执行 Stage047、十阶段批次复审或上传门禁",
     "不打开真实业务源文件，不重新检测类型，不加载外部注册表，不选择、分派或执行解析器、回退、差分评估、提示注入扫描、证据提升、审计、数据库或持久运行状态",
     "不读取原始元数据，不创建虚构 IDS 业务数据，不上传、合并或重装应用"
   ],
-  "stop_condition": "Stage046 步骤四交付证据与分层治理验证通过后，停止在 IDS-STAGE046-REVIEW-GATE；任一来源、Phase3 snapshot、结构样例、派生控制日志、质量/失败分类、治理或无副作用证据失配均回到 IDS-STAGE046-P4-GATE。"
+  "stop_condition": "Stage046 整阶段复审与分层治理验证通过后，停止在 IDS-STAGE047-P1-GATE 且不进入 Stage047；任一来源、Phase4 snapshot、阶段重放、发现反例、治理、索引或无副作用证据失配均回到 IDS-STAGE046-REVIEW-GATE。"
 }

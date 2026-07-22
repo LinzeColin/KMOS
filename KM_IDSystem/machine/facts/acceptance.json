@@ -1,6 +1,31 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE046-REVIEW-01`",
+      "criteria": "批准 task-pack、NFC 唯一 Stage046 成员、roadmap 与 instructions 由最终复审实时重新计算哈希",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-REVIEW-02`",
+      "criteria": "Phase4 commit、root tree、KM_IDSystem tree、parent 与 HEAD ancestry 精确，Phase1-4 checker 全部重放通过",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-REVIEW-03`",
+      "criteria": "两项严重、三项重要和一项次要发现全部由可执行反例验证并完成修复",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-REVIEW-04`",
+      "criteria": "结果级 digest 仅声明投影完整性，不冒充外部 provenance、来源认证、运行授权或生产证据",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-REVIEW-05`",
+      "criteria": "复审来源均由 Git 跟踪并匹配索引；解析器、回退、业务源、原始元数据、持久化、Stage047、批次、GitHub 与应用重装均未执行",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE046-P4-01`",
       "criteria": "步骤四交付合同精确绑定批准来源、已提交步骤三前序与五项 Git 索引上游证据",
       "status": "已通过"

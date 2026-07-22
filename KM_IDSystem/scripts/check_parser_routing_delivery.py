@@ -40,7 +40,7 @@ PHASE3_VALID_RESULT = "PASS_ISOLATED_PARSER_ROUTING_SCENARIOS_PARSER_DISABLED"
 ROUTER_VERSION = "ids.parser_router.v0_1.stage046.p2"
 REGISTRY_VERSION = "ids.parser_route_registry.v0_1.stage046.p2"
 CANONICAL_CONTRACT_SHA256 = (
-    "96d99ba148a7447084794625daf9b12ba64f3c7352fe2e34ad581deedbfe6db6"
+    "399128e8be46e78a28de64beec545f0954a3f972be94fd673ed6c02f3b445335"
 )
 
 EXPECTED_ROOT_KEYS = {
@@ -117,7 +117,7 @@ EXPECTED_UPSTREAM = {
             "STAGE046_PHASE3_PARSER_ROUTING_SCENARIOS.md"
         ),
         "sha256": (
-            "fa603715547ec41df2ad0f36aab8fa8484f4ed0fba44d5ed1cfffdfec0a7b181"
+            "11c821b3ec13ce66d98cbec0f079a2356fea6bfac6a1137804e0bec90c2c9990"
         ),
     },
     "stage046_phase3_contract": {
@@ -126,13 +126,13 @@ EXPECTED_UPSTREAM = {
             "stage046_parser_routing_scenarios_contract.json"
         ),
         "sha256": (
-            "f9bbfe5913bb99762bf927028a509b14b83f6a2f491bfd08d32b7f285382a067"
+            "eef1c03bf3abd2a95bb0294b2b8671a61e3fd29f77e3495b2a118941b979c8a2"
         ),
     },
     "stage046_phase3_checker": {
         "ref": "KM_IDSystem/scripts/check_parser_routing_scenarios.py",
         "sha256": (
-            "4bc1622bdd7668bf599609deb281ebde4d2f404abd840010fa43c53a82c82dca"
+            "5ab854480b0b079d848a6ff2c0cbd5808e9bbf529f7c34169d503c3084074b51"
         ),
     },
     "stage046_phase3_tests": {
@@ -141,7 +141,7 @@ EXPECTED_UPSTREAM = {
             "test_stage046_parser_routing_scenarios.py"
         ),
         "sha256": (
-            "30c0387c08cdbe0274824d67c4ffbb0499ea2f01e4d9cbfd7b8bbc8b9f0c610b"
+            "795e8356ebfd3af6c7b5a9d9c3220c35a47c95d5cf3d6d37462038073b431f3d"
         ),
     },
     "stage046_phase3_run": {

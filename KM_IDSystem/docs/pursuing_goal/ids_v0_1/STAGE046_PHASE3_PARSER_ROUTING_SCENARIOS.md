@@ -68,4 +68,4 @@ Phase 3 绑定并重放 Phase 2 提交 `18c45ee39522891abe4ef65ed609eb5482f2f148
 
 ## 停止条件与下一步
 
-本 run 在 `IDS-STAGE046-P4-GATE` 停止。下一次独立 run 才可执行 `IDS-V0_1-STAGE046-P4`，完成全 Stage 独立复审并修复其暴露问题；Stage 046 在 P4 通过前仍不得宣称整 Stage 完成。批量上传门禁仍按 Stage 041–050 十阶段策略锁定。
+本 run 在 `IDS-STAGE046-P4-GATE` 停止。下一次独立 run 才可执行 `IDS-V0_1-STAGE046-P4`，完成 Phase 4；整 Stage 独立复审仍须后续单独执行并修复其暴露问题。Stage 046 在独立复审通过前不得宣称整 Stage 完成。批量上传门禁仍按 Stage 041–050 十阶段策略锁定。

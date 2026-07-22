@@ -1,5 +1,14 @@
 # Changelog
 
+## IDS v0.1 STAGE-046 Review - 2026-07-22
+
+- Completed the independent whole-stage review under `ACC-STAGE-046`, live-rehashing the approved archive, NFC-unique Stage046 member, roadmap and instructions, then binding the exact Phase4 commit/root/KM_IDSystem tree/parent/HEAD ancestry.
+- Resolved `2 Critical / 3 Important / 1 Minor` findings: missing result-level detection identity, invalid-request echo, path-like references, inaccurate fact levels, incomplete Phase3 PASS invariants, and a misleading Phase3/Phase4/review sequencing claim.
+- Added `ids.stage046.parser_routing.stage_review.v1`, six executable finding checks, Phase1-4 replay, durable governance/event/machine evidence and Git-index binding for every review source. The result digest is explicitly integrity-only and does not claim external provenance, source authentication or runtime authorization.
+- Repair TDD RED produced ten expected failures and one error across six tests; the repair suite then passed `6/6`. Final-review TDD RED produced the expected missing-checker error. Final GREEN passed Stage046 focused `70/70`, review `8/8`, Stage005 `175/175`, Stage041-046 aggregate `413/413`, full IDS v0.1 discovery `1166/1166`, all nine historical/current review checkers, 225-event semantics, idempotent owner rendering and project dual-plane.
+- The first aggregate failed `5/413` and first full discovery failed `9/1166`, precisely exposing stale Stage038-045 forward-route assertions. The repair admits only the exact current `Stage046 REVIEW -> Stage047 P1 gate` route and preserves every historical Phase4, index and event assertion; focused compatibility then passed `9/9`. Failed runs were not counted as PASS.
+- Routed only to the separate `IDS-STAGE047-P1-GATE` with `stage047_entry_allowed=false` and `push_allowed=false`. No IDS business source, raw metadata, parser, fallback, persistence, Stage047, batch review, GitHub upload/merge, app reinstall, dependency installation or production action ran.
+
 ## IDS v0.1 STAGE-046 Phase 4 - 2026-07-22
 
 - Bound the approved Stage046 task-pack source, committed Phase3 commit/root/KM_IDSystem tree/parent and five immutable indexed Phase3 artifact SHA-256 values into `ids.stage046.parser_routing.phase4.delivery.v1`.

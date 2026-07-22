@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE046"
-current_phase_id: "IDS-STAGE046-P4"
-current_task_id: "IDS-V0_1-STAGE046-P4"
-next_gate_id: "IDS-STAGE046-REVIEW-GATE"
+current_phase_id: "IDS-STAGE046-REVIEW"
+current_task_id: "IDS-V0_1-STAGE046-REVIEW"
+next_gate_id: "IDS-STAGE047-P1-GATE"
 current_transition_history:
+  stage046_review_state:
+    current_stage_id: "IDS-STAGE046"
+    current_phase_id: "IDS-STAGE046-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE046-REVIEW"
+    next_gate_id: "IDS-STAGE047-P1-GATE"
   stage046_phase4_state:
     current_stage_id: "IDS-STAGE046"
     current_phase_id: "IDS-STAGE046-P4"
@@ -11999,12 +12004,12 @@ stages:
     task_id: "IDS-V0_1-STAGE046"
     acceptance_ids:
       - "ACC-STAGE-046"
-    status: "in_progress"
+    status: "completed_reviewed_local"
     pursuing_goal: "基于已治理文件类型选择明确解析器候选路线，未知、损坏、冲突和低置信输入失败关闭。"
     stop_gate:
-      gate_id: "IDS-STAGE046-P4-GATE"
+      gate_id: "IDS-STAGE046-REVIEW-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE046-REVIEW-GATE"
+      next_gate_id: "IDS-STAGE047-P1-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_ENTRY_CONTRACT.md"
@@ -12024,6 +12029,10 @@ stages:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_delivery_contract.json"
       - "KM_IDSystem/scripts/check_parser_routing_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_delivery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_STAGE_REVIEW.md"
+      - "KM_IDSystem/scripts/check_parser_routing_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_review_repairs.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_stage_review.py"
     phases:
       - phase_id: "IDS-STAGE046-P1"
         name: "解析器路由范围、输入输出与边界确认"
@@ -12273,3 +12282,17 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
             risk: "schema-only 样例、派生控制日志或候选 route 若被误读为 parser 可用、真实解析质量或 fallback runtime，会形成错误生产结论。"
             rollback: "只回滚 Stage046 Phase4 contract/checker/tests/evidence/governance/event/handoff/owner-view；保留已提交 Phase1-3、Stage045 review、原始/事实/审计资料、GitHub 与 app 状态。"
+    review:
+      review_id: "IDS-STAGE046-REVIEW"
+      task_id: "IDS-V0_1-STAGE046-REVIEW"
+      status: "completed"
+      acceptance_ids:
+        - "ACC-STAGE-046"
+      evidence_refs:
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_STAGE_REVIEW.md"
+        - "KM_IDSystem/scripts/check_parser_routing_stage_review.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_review_repairs.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_stage_review.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+      test_results: "Independent review found and repaired six findings (2 Critical / 3 Important / 1 Minor): result-level detection identity, sanitized invalid-request results, canonical non-path references, action-specific fact levels, exact Phase3 PASS invariants and truthful Phase3/Phase4/review sequencing. Final GREEN passed Stage046 focused 70/70 in 35.357s, review 8/8 in 28.458s, Stage005 175/175 in 51.308s, Stage041-046 aggregate 413/413 in 1221.575s, full IDS v0.1 discovery 1166/1166 in 1605.381s, nine historical/current review checkers, 225-event semantics, idempotent owner rendering and project dual-plane. Parser, fallback, source I/O, persistence, Stage047, GitHub upload and app reinstall remain disabled."
+      decision: "ACC-STAGE-046 completed_reviewed_local after all six findings were repaired; next gate is IDS-STAGE047-P1-GATE, push_allowed=false, and this run did not enter STAGE-047."

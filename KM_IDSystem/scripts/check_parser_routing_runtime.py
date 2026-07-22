@@ -37,7 +37,7 @@ REGISTRY_VERSION = "ids.parser_route_registry.v0_1.stage046.p2"
 DETECTOR_VERSION = "ids.file_type_detector.v0_1.stage045.p2"
 UNASSIGNED_VERSION = "UNASSIGNED_NOT_IMPLEMENTED"
 EXPECTED_CANONICAL_CONTRACT_SHA256 = (
-    "85f74930e81e4c6d550805111452a95ee9754ed770b4ba572eec2c15ff3c80f7"
+    "61b8e85f35e2762757ba4a5a088f74adab62aaf5b7dd8205dcad125d521d516c"
 )
 
 SOURCE_BINDING = {
@@ -173,6 +173,7 @@ REQUEST_FIELDS = [
     "schema_version",
     "routing_request_id",
     "detection_request_id",
+    "detection_result_id",
     "source_fingerprint_ref",
     "source_identity_ref",
     "detected_type",
@@ -190,6 +191,8 @@ RESULT_FIELDS = [
     "router_version",
     "registry_version",
     "detection_request_id",
+    "detection_result_id",
+    "detection_result_identity_status",
     "detected_type",
     "detection_state",
     "detection_confidence",
@@ -235,6 +238,7 @@ TRUE_TRUTH_FLAGS = {
     "parser_route_evaluation_performed",
     "route_candidate_selected",
     "parser_version_status_recorded",
+    "detection_result_identity_verified",
     "evidence_text_classification_enforced",
     "phase2_started",
 }
@@ -327,8 +331,16 @@ NESTED_KEYS = {
         "required_fields",
         "required_detector_contract",
         "required_parser_registry_version",
+        "detection_result_id_required",
+        "detection_result_id_formula",
+        "detection_result_projection_fields",
+        "detection_result_identity_scope",
         "strict_utc_required",
         "bounded_reference_max_chars",
+        "source_identity_ref_pattern",
+        "detection_evidence_ref_pattern",
+        "path_like_reference_allowed",
+        "invalid_input_echo_allowed",
         "source_path_allowed",
         "source_body_allowed",
         "source_text_allowed",
@@ -355,7 +367,12 @@ NESTED_KEYS = {
     "result_contract": {
         "schema_version",
         "required_fields",
-        "route_fact_level",
+        "route_fact_levels",
+        "route_fact_level_by_action",
+        "invalid_result_fact_level",
+        "detection_result_identity_status_required",
+        "invalid_input_echo_allowed",
+        "invalid_marker_preservation_allowed",
         "parser_version_record_required",
         "detection_confidence_preserved",
         "candidate_route_is_dispatch_authorization",
@@ -435,10 +452,38 @@ NESTED_KEYS = {
     "truth_flags": TRUE_TRUTH_FLAGS | FALSE_TRUTH_FLAGS,
 }
 
-SAFE_REF = re.compile(r"^[A-Za-z0-9][A-Za-z0-9:._/-]{0,511}$")
 DETECTION_REF = re.compile(r"^detection:sha256:[0-9a-f]{64}$")
+DETECTION_RESULT_REF = re.compile(
+    r"^detection-result:sha256:[0-9a-f]{64}$"
+)
 FINGERPRINT_REF = re.compile(r"^fingerprint:sha256:[0-9a-f]{64}$")
+SOURCE_IDENTITY_REF = re.compile(
+    r"^source:[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
+    r"(?::[A-Za-z0-9][A-Za-z0-9._-]{0,63}){0,7}$"
+)
+DETECTION_EVIDENCE_REF = re.compile(
+    r"^evidence:stage045:[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
+    r"(?::[A-Za-z0-9][A-Za-z0-9._-]{0,63}){0,7}$"
+)
 RFC3339_UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+
+DETECTION_RESULT_PROJECTION_FIELDS = [
+    "detection_request_id",
+    "source_fingerprint_ref",
+    "source_identity_ref",
+    "detected_type",
+    "detection_state",
+    "detection_confidence",
+    "detection_evidence_ref",
+    "detector_contract_version",
+    "evidence_text_marker_applied",
+]
+ROUTE_FACT_LEVEL_BY_ACTION = {
+    "ROUTE_BLOCKED_PARSER_IMPLEMENTATION_UNAVAILABLE": "CANDIDATE",
+    "ROUTE_REVIEW_REQUIRED": "REVIEW_REQUIRED",
+    "ROUTE_UNSUPPORTED": "UNSUPPORTED",
+    "ROUTE_BLOCKED": "BLOCKED",
+}
 
 HUMAN_STATUS = {
     "CANDIDATE_BLOCKED": "已确定候选解析路线，但解析器实现尚未提供，未执行分派",
@@ -479,12 +524,22 @@ def _git(*args: str, check: bool = True) -> subprocess.CompletedProcess:
     )
 
 
-def _safe_ref(value: Any) -> bool:
-    if not isinstance(value, str) or not SAFE_REF.fullmatch(value):
-        return False
-    if value.startswith(("/", "~")) or "\\" in value:
-        return False
-    return ".." not in value.split("/")
+def _source_identity_ref_valid(value: Any) -> bool:
+    return isinstance(value, str) and bool(SOURCE_IDENTITY_REF.fullmatch(value))
+
+
+def _detection_evidence_ref_valid(value: Any) -> bool:
+    return isinstance(value, str) and bool(DETECTION_EVIDENCE_REF.fullmatch(value))
+
+
+def _detection_result_projection(values: Mapping[str, Any]) -> dict[str, Any]:
+    return {name: values[name] for name in DETECTION_RESULT_PROJECTION_FIELDS}
+
+
+def _detection_result_id(values: Mapping[str, Any]) -> str:
+    return "detection-result:sha256:" + _canonical_sha256(
+        _detection_result_projection(values)
+    )
 
 
 def _rfc3339_utc_valid(value: Any) -> bool:
@@ -674,8 +729,21 @@ def evaluate_runtime_contract(contract: Any) -> dict[str, bool]:
             and request.get("required_detector_contract") == DETECTOR_VERSION
             and request.get("required_parser_registry_version")
             == REGISTRY_VERSION
+            and request.get("detection_result_id_required") is True
+            and request.get("detection_result_id_formula")
+            == "detection-result:sha256(canonical_json(exact_detection_result_projection))"
+            and request.get("detection_result_projection_fields")
+            == DETECTION_RESULT_PROJECTION_FIELDS
+            and request.get("detection_result_identity_scope")
+            == "INTEGRITY_ONLY_NOT_EXTERNAL_PROVENANCE"
             and request.get("strict_utc_required") is True
             and request.get("bounded_reference_max_chars") == 512
+            and request.get("source_identity_ref_pattern")
+            == SOURCE_IDENTITY_REF.pattern
+            and request.get("detection_evidence_ref_pattern")
+            == DETECTION_EVIDENCE_REF.pattern
+            and request.get("path_like_reference_allowed") is False
+            and request.get("invalid_input_echo_allowed") is False
             and request.get("source_path_allowed") is False
             and request.get("source_body_allowed") is False
             and request.get("source_text_allowed") is False
@@ -705,7 +773,14 @@ def evaluate_runtime_contract(contract: Any) -> dict[str, bool]:
             result.get("schema_version")
             == "ids.stage046.parser_routing_result.v1"
             and result.get("required_fields") == RESULT_FIELDS
-            and result.get("route_fact_level") == "CANDIDATE"
+            and result.get("route_fact_levels")
+            == ["CANDIDATE", "REVIEW_REQUIRED", "UNSUPPORTED", "BLOCKED", "INVALID"]
+            and result.get("route_fact_level_by_action")
+            == ROUTE_FACT_LEVEL_BY_ACTION
+            and result.get("invalid_result_fact_level") == "INVALID"
+            and result.get("detection_result_identity_status_required") is True
+            and result.get("invalid_input_echo_allowed") is False
+            and result.get("invalid_marker_preservation_allowed") is False
             and result.get("parser_version_record_required") is True
             and result.get("detection_confidence_preserved") is True
             and result.get("candidate_route_is_dispatch_authorization") is False
@@ -851,9 +926,9 @@ def build_routing_request(
         source_fingerprint_ref
     ):
         raise ValueError("source_fingerprint_ref is invalid")
-    if not _safe_ref(source_identity_ref):
+    if not _source_identity_ref_valid(source_identity_ref):
         raise ValueError("source_identity_ref is invalid")
-    if not _safe_ref(detection_evidence_ref):
+    if not _detection_evidence_ref_valid(detection_evidence_ref):
         raise ValueError("detection_evidence_ref is invalid")
     if detected_type not in ALLOWED_TYPES:
         raise ValueError("detected_type is invalid")
@@ -869,8 +944,7 @@ def build_routing_request(
         raise ValueError("evidence_text_marker_applied must be boolean")
     if not _rfc3339_utc_valid(requested_at):
         raise ValueError("requested_at must be a real RFC3339 UTC timestamp")
-    body = {
-        "schema_version": "ids.stage046.parser_routing_request.v1",
+    detection_projection = {
         "detection_request_id": detection_request_id,
         "source_fingerprint_ref": source_fingerprint_ref,
         "source_identity_ref": source_identity_ref,
@@ -879,8 +953,13 @@ def build_routing_request(
         "detection_confidence": detection_confidence,
         "detection_evidence_ref": detection_evidence_ref,
         "detector_contract_version": DETECTOR_VERSION,
-        "parser_registry_version": REGISTRY_VERSION,
         "evidence_text_marker_applied": evidence_text_marker_applied,
+    }
+    body = {
+        "schema_version": "ids.stage046.parser_routing_request.v1",
+        **detection_projection,
+        "detection_result_id": _detection_result_id(detection_projection),
+        "parser_registry_version": REGISTRY_VERSION,
         "requested_at": requested_at,
     }
     return {
@@ -899,9 +978,11 @@ def _request_valid(request: Any) -> bool:
             == "ids.stage046.parser_routing_request.v1"
             and isinstance(request["detection_request_id"], str)
             and bool(DETECTION_REF.fullmatch(request["detection_request_id"]))
+            and isinstance(request["detection_result_id"], str)
+            and bool(DETECTION_RESULT_REF.fullmatch(request["detection_result_id"]))
             and isinstance(request["source_fingerprint_ref"], str)
             and bool(FINGERPRINT_REF.fullmatch(request["source_fingerprint_ref"]))
-            and _safe_ref(request["source_identity_ref"])
+            and _source_identity_ref_valid(request["source_identity_ref"])
             and request["detected_type"] in ALLOWED_TYPES
             and request["detection_state"] in ALLOWED_STATES
             and request["detection_confidence"] in ALLOWED_CONFIDENCE
@@ -910,8 +991,9 @@ def _request_valid(request: Any) -> bool:
                 request["detection_state"],
                 request["detection_confidence"],
             )
-            and _safe_ref(request["detection_evidence_ref"])
+            and _detection_evidence_ref_valid(request["detection_evidence_ref"])
             and request["detector_contract_version"] == DETECTOR_VERSION
+            and request["detection_result_id"] == _detection_result_id(request)
             and request["parser_registry_version"] == REGISTRY_VERSION
             and isinstance(request["evidence_text_marker_applied"], bool)
             and _rfc3339_utc_valid(request["requested_at"])
@@ -922,26 +1004,46 @@ def _request_valid(request: Any) -> bool:
         return False
 
 
-def _base_result(request: Any) -> dict[str, Any]:
-    getter = request.get if isinstance(request, Mapping) else lambda _name: None
-    marker = getter("evidence_text_marker_applied") is True
+def _base_result(
+    request: Any = None, *, request_validated: bool = False
+) -> dict[str, Any]:
+    if request_validated and isinstance(request, Mapping):
+        getter = request.get
+        marker = getter("evidence_text_marker_applied") is True
+        detected_type = getter("detected_type")
+        detection_state = getter("detection_state")
+        detection_confidence = getter("detection_confidence")
+        routing_confidence = detection_confidence
+        route_fact_level = "BLOCKED"
+        identity_status = "PROJECTION_DIGEST_VERIFIED"
+    else:
+        getter = lambda _name: None
+        marker = False
+        detected_type = "UNKNOWN"
+        detection_state = "TYPE_INPUT_BLOCKED"
+        detection_confidence = "UNKNOWN"
+        routing_confidence = "UNKNOWN"
+        route_fact_level = "INVALID"
+        identity_status = "UNVERIFIED"
     return {
         "schema_version": "ids.stage046.parser_routing_result.v1",
         "routing_request_id": getter("routing_request_id"),
         "router_version": ROUTER_VERSION,
         "registry_version": REGISTRY_VERSION,
         "detection_request_id": getter("detection_request_id"),
-        "detected_type": getter("detected_type"),
-        "detection_state": getter("detection_state"),
-        "detection_confidence": getter("detection_confidence"),
+        "detection_result_id": getter("detection_result_id"),
+        "detection_result_identity_status": identity_status,
+        "detected_type": detected_type,
+        "detection_state": detection_state,
+        "detection_confidence": detection_confidence,
         "route_action": "ROUTE_BLOCKED",
         "candidate_route_id": None,
         "parser_family": None,
         "parser_version": UNASSIGNED_VERSION,
         "parser_version_status": "RECORDED_UNASSIGNED",
         "dispatch_block_reason": "NOT_APPLICABLE",
-        "route_fact_level": "CANDIDATE",
-        "routing_confidence": getter("detection_confidence") or "UNKNOWN",
+        "route_fact_level": route_fact_level,
+        "routing_confidence": routing_confidence,
         "evidence_text_label": (
             "UNTRUSTED_EVIDENCE_TEXT"
             if marker
@@ -978,11 +1080,12 @@ def _base_result(request: Any) -> dict[str, Any]:
 
 def evaluate_parser_route(request: Any) -> dict[str, Any]:
     """Evaluate one governed detection result without dispatching a parser."""
-    result = _base_result(request)
     if not _request_valid(request):
+        result = _base_result()
         result["errors"] = ["INVALID_ROUTING_REQUEST"]
         return result
 
+    result = _base_result(request, request_validated=True)
     result["parser_route_evaluation_performed"] = True
     state = request["detection_state"]
     confidence = request["detection_confidence"]
@@ -998,6 +1101,7 @@ def evaluate_parser_route(request: Any) -> dict[str, Any]:
             candidate_route_id=route["route_id"],
             parser_family=route["parser_family"],
             dispatch_block_reason="PARSER_IMPLEMENTATION_UNAVAILABLE",
+            route_fact_level="CANDIDATE",
             route_candidate_selected=True,
             errors=["PARSER_IMPLEMENTATION_UNAVAILABLE"],
             human_status=HUMAN_STATUS["CANDIDATE_BLOCKED"],
@@ -1011,6 +1115,7 @@ def evaluate_parser_route(request: Any) -> dict[str, Any]:
     }:
         result.update(
             route_action="ROUTE_REVIEW_REQUIRED",
+            route_fact_level="REVIEW_REQUIRED",
             errors=["DETECTION_REVIEW_REQUIRED"],
             human_status=HUMAN_STATUS["REVIEW"],
         )
@@ -1019,6 +1124,7 @@ def evaluate_parser_route(request: Any) -> dict[str, Any]:
     if state == "TYPE_UNSUPPORTED":
         result.update(
             route_action="ROUTE_UNSUPPORTED",
+            route_fact_level="UNSUPPORTED",
             errors=["FILE_TYPE_UNSUPPORTED"],
             human_status=HUMAN_STATUS["UNSUPPORTED"],
         )
@@ -1026,6 +1132,7 @@ def evaluate_parser_route(request: Any) -> dict[str, Any]:
 
     result.update(
         route_action="ROUTE_BLOCKED",
+        route_fact_level="BLOCKED",
         errors=["DETECTION_INPUT_BLOCKED"],
         human_status=HUMAN_STATUS["BLOCKED"],
     )
@@ -1108,6 +1215,13 @@ def build_stage046_phase2_report() -> dict[str, Any]:
             and item["parser_version_status"] == "RECORDED_UNASSIGNED"
             for item in controls
         ),
+        "detection_result_identity_verified": all(
+            isinstance(item["detection_result_id"], str)
+            and bool(DETECTION_RESULT_REF.fullmatch(item["detection_result_id"]))
+            and item["detection_result_identity_status"]
+            == "PROJECTION_DIGEST_VERIFIED"
+            for item in controls
+        ),
         "evidence_text_is_evidence_only": (
             pdf["evidence_text_label"] == "UNTRUSTED_EVIDENCE_TEXT"
             and pdf["evidence_text_interpretation"] == "EVIDENCE_ONLY"
@@ -1155,6 +1269,8 @@ def build_stage046_phase2_report() -> dict[str, Any]:
                 for key in (
                     "routing_request_id",
                     "detection_request_id",
+                    "detection_result_id",
+                    "detection_result_identity_status",
                     "detected_type",
                     "detection_state",
                     "detection_confidence",
@@ -1163,6 +1279,7 @@ def build_stage046_phase2_report() -> dict[str, Any]:
                     "parser_family",
                     "parser_version",
                     "parser_version_status",
+                    "route_fact_level",
                     "routing_confidence",
                     "evidence_text_label",
                     "errors",
@@ -1179,6 +1296,7 @@ def build_stage046_phase2_report() -> dict[str, Any]:
         "parser_route_evaluation_performed": True,
         "route_candidate_selected": True,
         "parser_version_status_recorded": True,
+        "detection_result_identity_verified": True,
         "evidence_text_classification_enforced": True,
         "source_file_open_performed": False,
         "filesystem_scan_performed": False,
