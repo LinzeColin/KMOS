@@ -7,9 +7,10 @@ check_dual_plane_ci.py —— 仓库级双平面合规校验（CI 入口）
 「项目」= 含 machine/tools/render_human.py 的目录，或 --projects 显式指定。
 
 对每个项目执行：
-  1. 结构门：文档/ 下 7 个文件齐全、machine/facts 与 machine/tools 存在
-  2. 渲染一致门：重新渲染后 5 个渲染文件无变化（人类平面确由机器平面生成，
-     未被手工篡改）；手写区 01/03 存在且非空
+  1. 结构门：文档/ 下 7 个文件齐全、machine/facts 与 machine/tools 存在；
+     声明 machine/canonical_facts.yaml 的项目还必须恰好七文件
+  2. 渲染一致门：重新渲染后 7 个文件无变化（人类平面确由机器平面生成，
+     未被手工篡改）；声明 Canonical Facts 的项目还须按职责逐值投影
   3. 三道门：check_doc_budget + check_blocker_stop
 
 任何项目任一门 FAIL -> 整体 FAIL（退出码 1）。
@@ -30,6 +31,7 @@ SEVEN = [
 ]
 # 七文件全部渲染，无手写区——渲染一致门覆盖全部七个。
 RENDERED = list(SEVEN)
+GENERATED_PREFIX = "<!-- 本文件由 machine/tools/render_human.py 从机器平面生成。"
 
 
 def discover(root: Path):
@@ -42,14 +44,134 @@ def discover(root: Path):
     return sorted(set(found))
 
 
+def _flatten(value):
+    if value is None:
+        yield "<MISSING>"
+    elif isinstance(value, (str, int, float, bool)):
+        yield str(value)
+    elif isinstance(value, dict):
+        for child in value.values():
+            yield from _flatten(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _flatten(child)
+
+
+def _missing_values(text: str, values) -> list:
+    missing = []
+    for raw in _flatten(values):
+        escaped = raw.replace("|", r"\|").replace("\n", "<br>")
+        if raw not in text and escaped not in text:
+            missing.append(raw)
+    return missing
+
+
+def check_canonical_projection(proj: Path, docs: Path, failures: list):
+    path = proj / "machine" / "canonical_facts.yaml"
+    if not path.is_file():
+        failures.append(f"[{proj.name}] Canonical 投影门: 缺 machine/canonical_facts.yaml")
+        return
+    try:
+        import yaml
+        canonical = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        failures.append(f"[{proj.name}] Canonical 投影门: YAML 不可解析: {exc}")
+        return
+    if not isinstance(canonical, dict):
+        failures.append(f"[{proj.name}] Canonical 投影门: 顶层必须是 mapping")
+        return
+
+    decisions = canonical.get("decisions", [])
+    requirements = canonical.get("requirements", [])
+    structure_errors = []
+    if canonical.get("taskpack_version") != "1.5.2":
+        structure_errors.append("taskpack_version != 1.5.2")
+    for label, rows, count in (
+        ("decisions", decisions, 14),
+        ("requirements", requirements, 49),
+        ("okrs", canonical.get("okrs", []), 4),
+        ("non_goals", canonical.get("non_goals", []), 7),
+    ):
+        if not isinstance(rows, list) or len(rows) != count:
+            structure_errors.append(f"{label} != {count}")
+    if structure_errors:
+        failures.append(
+            f"[{proj.name}] Canonical 投影门: 固定结构错误: {', '.join(structure_errors)}"
+        )
+        return
+    if any(not isinstance(row, dict) for row in decisions + requirements):
+        failures.append(f"[{proj.name}] Canonical 投影门: decision/requirement row 必须是 mapping")
+        return
+    for label, rows in (("decision", decisions), ("requirement", requirements)):
+        ids = [row.get("id") for row in rows]
+        if any(not value for value in ids) or len(ids) != len(set(ids)):
+            failures.append(f"[{proj.name}] Canonical 投影门: {label} ID 缺失或重复")
+            return
+    projections = {
+        "00_我在哪.md": [
+            canonical.get("taskpack_version"), canonical.get("status"),
+            canonical.get("authorized_at"), canonical.get("product", {}).get("name"),
+            canonical.get("product", {}).get("target_url"),
+        ],
+        "01_产品需求.md": [
+            canonical.get("product", {}).get("pursuing_goal"),
+            canonical.get("strategic_goal"), decisions, canonical.get("okrs", []),
+            canonical.get("non_goals", []),
+            [{key: row.get(key) for key in ("id", "area", "title", "statement", "priority")}
+             for row in requirements],
+        ],
+        "02_系统架构.md": [
+            canonical.get("storage_contract", {}), canonical.get("privacy_contract", {}),
+        ],
+        "03_口径字典.md": [
+            [{"metric_id": f"metric::{row.get('id')}",
+              **{key: row.get(key) for key in ("id", "metric", "baseline", "target", "window")}}
+             for row in requirements],
+        ],
+        "04_操作流程.md": [
+            canonical.get("owner_authorization", {}).get("interpretation", []),
+            [{"area": row.get("area"), "id": row.get("id")} for row in requirements],
+        ],
+        "05_执行与验收.md": [
+            [{key: row.get(key) for key in ("id", "task", "owner")}
+             for row in requirements],
+        ],
+        "06_运维手册.md": [
+            [row.get("id") for row in requirements
+             if row.get("area") in {"持久化", "可靠性", "安全", "运营"}],
+        ],
+    }
+    for name, values in projections.items():
+        path = docs / name
+        if not path.is_file():
+            continue
+        missing = _missing_values(path.read_text(encoding="utf-8"), values)
+        if missing:
+            preview = ", ".join(repr(value) for value in missing[:3])
+            failures.append(
+                f"[{proj.name}] Canonical 投影门: 文档/{name} 缺 {len(missing)} 个值"
+                f"（示例: {preview}）"
+            )
+
+
 def check_project(proj: Path, failures: list):
     name = proj.name
     docs = proj / "文档"
+    canonical_mode = (proj / "machine" / "canonical_facts.yaml").is_file()
 
     # 1. 结构门
+    actual = sorted(path.name for path in docs.iterdir() if path.is_file()) if docs.is_dir() else []
+    expected = sorted(SEVEN)
+    if canonical_mode and actual != expected:
+        failures.append(
+            f"[{name}] 结构门: 文档/ 文件集合不是精确七文件；"
+            f"缺少={sorted(set(expected) - set(actual))}，额外={sorted(set(actual) - set(expected))}"
+        )
     for f in SEVEN:
         if not (docs / f).is_file():
             failures.append(f"[{name}] 结构门: 缺 文档/{f}")
+        elif not (docs / f).read_text(encoding="utf-8").startswith(GENERATED_PREFIX):
+            failures.append(f"[{name}] 结构门: 文档/{f} 未声明 GENERATED")
     if not (proj / "machine" / "facts").is_dir():
         failures.append(f"[{name}] 结构门: 缺 machine/facts/")
 
@@ -76,6 +198,9 @@ def check_project(proj: Path, failures: list):
             failures.append(
                 f"[{name}] 渲染一致门: 文档/{f} 与机器平面不一致"
                 f"（人类平面被手工篡改，或事实源已变但未重渲染）")
+
+    if canonical_mode:
+        check_canonical_projection(proj, docs, failures)
 
     # 3. 三道门
     for tool, arg in [("check_doc_budget.py", ["--docs", "文档"]),

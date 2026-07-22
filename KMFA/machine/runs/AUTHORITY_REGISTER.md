@@ -101,12 +101,12 @@ Reverse lookup is deterministic:
 | `business.operations` | `machine/facts/ops.json` | `WR-FACT-OPS` | SRE | Runbook/故障处理唯一 |
 | `business.changelog` | `machine/facts/changelog.json` | `WR-FACT-CHANGELOG` | Release Owner | 域内历史条目，不写当前产品版本权威 |
 | `business.data_lineage` | `machine/lineage.yaml` | `WR-LINEAGE-GENERATOR` | Data | 仅由 `tools/lineage_graph.py` 机械生成，禁止手写 |
-| `human.business_views` | `文档/00_我在哪.md` … `06_运维手册.md` | `WR-RENDER-HUMAN` | Governance | 只能由 `machine/tools/render_human.py` 从 machine facts 覆盖生成 |
+| `human.business_views` | `machine/canonical_facts.yaml` + `machine/facts/*` → `文档/00_我在哪.md` … `06_运维手册.md` | `WR-RENDER-HUMAN` | Governance | 只能由 `machine/tools/render_human.py` 从已声明 machine sources 全量覆盖生成；禁止手写或复制 taskpack `human/*` |
 | `continuity.active_delivery` | `HANDOFF.md` 顶部 v1.5.2 区块 | `WR-PHASE-EXECUTOR` | Delivery Lead | 只写最近已通过 phase 与下一最小 task；不得覆盖事实源 |
 | `policy.agent_contract` | `AGENTS.md` | `WR-REPO-GOVERNANCE` | Tech Lead | 只写边界/路由并指向本 register/HANDOFF，不另存进度 |
 | `evidence.phase_receipts` | `machine/runs/` compact receipts | `WR-PHASE-EXECUTOR` | 当前 Task owner | 每 phase 一份紧凑证据；完整日志外置；receipt 不能写回事实 |
 
-29-row canonical writer map SHA-256：`1a466161cab406138793a16637fe0a5fdda01b6940a6e17e00317df0201cdb20`。规范化方式为按表中顺序取五列、去掉 Markdown code ticks、用 `|` 连接列、LF 连接行并保留末尾 LF。
+29-row canonical writer map SHA-256：`5bd31aba74cd486d91d4d50a6c6b9972dd6b798a35e7a963a29fe277d1b18b69`。规范化方式为跳过表头/分隔行，按表中顺序取 29 行五列、去掉 Markdown code ticks、用 `|` 连接列、LF 连接行并保留末尾 LF。
 
 `metadata/**`、`docs/governance/**`、根目录历史文档、taskpack `human/*`/PDF/Roadmap、recovery/history 都只能提供 evidence/reference 或派生视图；它们不在本表中取得任何现行事实域的 writer 权限。
 
@@ -130,7 +130,7 @@ Reverse lookup is deterministic:
 | taskpack `1.5.2` vs `KMFA/VERSION=0.1.4-one-time-github-main-upload` | different | **Adopt both** under separate namespaces |
 | taskpack S00/P0.3 vs `machine/facts/plan.json` S05-P3 | `delivery.task_graph` vs `business.current_plan` | **Adopt both**, current delivery only follows taskpack/HANDOFF |
 | prior deployment `qcq1q8...` vs current `boh5fsnx...` | same production domain, different capture | **Adopt current platform query**, retain prior as history |
-| machine fact vs rendered `文档/*` | same business domain | **Adopt machine fact**, regenerate view; never hand-edit view |
+| declared machine source vs rendered `文档/*` | same delivery/business domain | **Adopt machine source**, regenerate view; never hand-edit view |
 | recovery code vs current source | recovery vs published/candidate source | use P0.2 disposition; never wholesale replay |
 
 Current production has one platform-verified current claim; the Stop Condition is **not triggered**.

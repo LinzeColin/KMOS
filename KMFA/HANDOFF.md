@@ -3,7 +3,8 @@
 ## v1.5.2 公开软件交付线（2026-07-23）
 
 - 当前唯一执行基线：用户提供的 `KMFA_Product_Design_Taskpack_v1.5.2.zip`，SHA-256 `31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb`；产品/runtime 版本仍为 `0.1.4-one-time-github-main-upload`，两者禁止混用。
-- 最近完成的唯一执行单元：**S02 / P2.1 / T-S02-01**。任务包 sealed `machine/canonical_facts.yaml` 已按原字节落入，SHA-256 `5ae070cb4105e83eec0c05b3771759e550a67f1241708810f0b4430300198552`；14 个决策 ID、49 个需求 ID 和 49 个需求内指标定位符唯一，14 个事实域的 Owner 映射完整。派生规则只作机械投影，未创建第二事实 writer，见 `machine/runs/S02_P21_CANONICAL_FACTS.md`。本 phase 未改七文件/renderer/旧 facts，未进入 P2.2，未上传或部署。
+- 最近完成的唯一执行单元：**S02 / P2.2 / T-S02-02**。现有 `文档/` 恰好七文件已由 renderer 同时投影 sealed Canonical Facts 与 14 个旧业务 facts：14 决策、49 需求、49 指标及 49 个 Task/Owner seed 全覆盖；无 `human/` 副本、无第八权威文档。连续两次渲染哈希一致；受控手改 `00` 与临时第八文件均被 CI 精确拒绝并恢复/移除；术语排序漂移和 shared-checker 跨项目误约束均已修复，仓库级 5 项目双平面、预算/中文/纯净、阻塞与 public-safe 门全过。见 `machine/runs/S02_P22_HUMAN_PLANE.md`。本 phase 未进入 P2.3，未上传或部署。
+- P2.1 的 sealed `machine/canonical_facts.yaml` 继续保持任务包原字节，SHA-256 `5ae070cb4105e83eec0c05b3771759e550a67f1241708810f0b4430300198552`；唯一 writer 仍为 `WR-TASKPACK-PUBLISHER`，P2.2 只读渲染。
 - 上一个完整 Stage 是 **S01 全 Stage Review**。P1.1–P1.4、四个 sealed Task Test 与问题/用户/价值/非目标/指标/观察期/经济判据/范围八项 Stage Gate 已整体重放；发现 `F-S01-001`：旧 10-path filter 会让纯 S01 治理上传误触生产 rebuild，现以 5 个 S01 精确路径修复并同步预授权，`total=1 / resolved=1 / open=0`。见 `machine/runs/S01_STAGE_REVIEW.md`；结论为 `S01 PASS / G1 pending S02`，不是 runtime/GA PASS。
 - P1.1 的 12 FAQ/12 反证、P1.2 的 5 类用户/JTBD、10 步匿名旅程、P0 `12/12` + P1 `7/7`、`4 Objectives / 12 KRs`，以及 P1.3 的重大能力 `8/8`、低/基/高情景、敏感性、机会成本和 Kill 继续作为 P1.4 的冻结输入。工程总量沿用 task-level `58.5–106 engineer-days`，运行成本只作可重算公式；真实采用率、收益、账户账单、流量、容量与单点 ROI 均未伪造。2026-07-23 已只读刷新官方 R2 pricing/limits，实施和预算 Gate 仍须按当日账户与官方资料重取。
 - 整个 S00 已完成复审、修复并上传：P0.1-P0.4、`AC-GOV-001/002/004`、S00 Stage Gate 与 `G0 Authority` 整体复验，4 个 findings 全部修复、open finding `0`，见 `machine/runs/S00_STAGE_REVIEW.md`；发布后的 `main` 为 `6a9f2163d00adc000e965bf6bffbc0ed59283d7a`。S01 中间 phase 只作本地 commit，不上传 GitHub。
@@ -11,10 +12,10 @@
 - 最新只读查询 run `29931489638` 证明生产唯一链仍为 deployment source `68306e850fa66ffe6b53622915ca81ff8ba98bf8`、image `sha256:adfc849b24e2efc471706c718377c97df07b41b4ce921f972e0cf598b0e25841`、Coolify deployment `boh5fsnxe82umwcpqzooam1p`、completed `2026-07-22T11:39:29.000000Z`；最新 deploy run 仍为 `29916233128`，S01 治理上传未触发新部署。
 - Owner 提供的 `fb31e8e... / sha256:0b09ca... / qcq1q8m... / 2026-07-20T21:50:47Z` 已由 query run `29916243207` 原样复核，作为上一部署的回滚/溯源记录保留。收口前发现 `main` 已前进并自动产生新部署，因此没有把旧 tuple 冒充当前身份。
 - v1.5 恢复 bundle `1ee7fb111` 仍是不可变兜底，SHA-256 `2d0b516f...` 且 verify PASS；另发现并核验历史仓公开 recovery ref 已前进至 `268acce792`，仍为 PARTIAL 且 S24 路径为 0。受保护 full-sweep 的 1060 路径已互斥分类为 `Adopt 239 / Redo 750 / Discard 71 / Conflict 0 / 未分类 0`；`Redo` 只表示按当前 v1.5.2 Task/AC 重做所需行为，不重建旧文件。未 replay、merge、force-push 或复制私有元数据。
-- 旧业务 `machine/facts` 的 S05/A0/Q4/BLK-001 与 v1.5.2 delivery Canonical Facts 分属不同 namespace：前者继续约束正式财务结论，后者由 sealed taskpack 的 `WR-TASKPACK-PUBLISHER` 唯一写入；14 个旧 facts 与七文件在 P2.1 均未改写。
+- 旧业务 `machine/facts` 的 S05/A0/Q4/BLK-001 与 v1.5.2 delivery Canonical Facts 分属不同 namespace：前者继续约束正式财务结论，后者由 sealed taskpack 的 `WR-TASKPACK-PUBLISHER` 唯一写入；14 个旧 facts 未改写，七文件只由 `WR-RENDER-HUMAN` 全量生成。旧运维快照中的 Access/私有入口步骤已明确标为历史取证，不得当作 v1.5.2 发布指令。
 - P0.4/S00 继续保留真实失败基线：现有 App SQLite `/var/lib/kmfa/state` 未挂耐久卷，生产关系数据库、S3-compatible object adapter 与 backup/restore 均未实现，所以当前有限 RPO/RTO 不可证明，按 `unbounded/not recoverable` 处理。Taskpack 的 5 项 S00 unknown 已 `5/5` 绑定现状、默认动作、owner 与后续硬 Gate；这不会被伪报为 durable PASS。
-- 当前总进度：Task `9/56`，已完成 Stage `2/14`，S02 为 `1/4` phase、尚未完成 Stage Review。根入口仍被 Cloudflare Access 返回 `302`，匿名完整使用、耐久 DB/object、任意文件安全上传下载、canary/rollback 等产品能力均尚未完成，不因 P2.1 PASS 提前宣称上线达标。
-- 下一步：下一个新 run 只能执行 **S02 / P2.2 / T-S02-02**，每 run 仍最多一个 phase；不得在本 run 启动 P2.2，不得提前执行 P2.3/P2.4、S02 Stage Review 或 GitHub 上传，也不得把 `G1` 提前判 PASS。
+- 当前总进度：Task `10/56`，已完成 Stage `2/14`，S02 为 `2/4` phase、尚未完成 Stage Review。根入口仍被 Cloudflare Access 返回 `302`，匿名完整使用、耐久 DB/object、任意文件安全上传下载、canary/rollback 等产品能力均尚未完成，不因 P2.2 PASS 提前宣称上线达标。
+- 下一步：下一个新 run 只能执行 **S02 / P2.3 / T-S02-03**，每 run 仍最多一个 phase；不得在本 run 启动 P2.3，不得提前执行 P2.4、S02 Stage Review 或 GitHub 上传，也不得把 `G1` 提前判 PASS。
 
 下列既有交接主体更新时间：2026-07-17（Australia/Sydney）
 
