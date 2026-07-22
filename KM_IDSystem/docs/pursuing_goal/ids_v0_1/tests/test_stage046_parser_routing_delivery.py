@@ -363,6 +363,7 @@ class Stage046ParserRoutingDeliveryTests(unittest.TestCase):
                 "IDS-STAGE047-P1",
                 "IDS-STAGE047-P2",
                 "IDS-STAGE047-P3",
+                "IDS-STAGE047-P4",
             },
         )
         self.assertEqual(
@@ -372,7 +373,9 @@ class Stage046ParserRoutingDeliveryTests(unittest.TestCase):
             if status["phase"] == "IDS-STAGE047-P1"
             else "IDS-STAGE047-P3-GATE"
             if status["phase"] == "IDS-STAGE047-P2"
-            else "IDS-STAGE047-P4-GATE",
+            else "IDS-STAGE047-P4-GATE"
+            if status["phase"] == "IDS-STAGE047-P3"
+            else "IDS-STAGE047-REVIEW-GATE",
             status["next_gate"],
         )
         self.assertFalse(status["push_allowed"])
@@ -392,6 +395,10 @@ class Stage046ParserRoutingDeliveryTests(unittest.TestCase):
             or (
                 "Completed task in this run: `IDS-V0_1-STAGE047-P3`" in handoff
                 and "Next allowed task: `IDS-V0_1-STAGE047-P4`" in handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE047-P4`" in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE047-REVIEW`" in handoff
             )
         )
         self.assertIn("Completed task in this run: `IDS-V0_1-STAGE046-P4`", handoff)

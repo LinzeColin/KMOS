@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE047",
-  "phase": "IDS-STAGE047-P3",
-  "task": "IDS-V0_1-STAGE047-P3",
-  "real_progress": "Stage047 步骤三全格式与失败关闭场景已在本地完成；步骤四与整阶段复审尚未开始",
-  "report_grade": "16 个控制场景、八种格式、上游 route replay、11/3/2 输出处置、指令路线不变、公式文本与拒绝净化均可机验",
-  "business_verdict": "Stage047 输出合同步骤三通过；格式标签夹具不是真实解析器，业务源、解析器、回退、提示扫描、质量评估、持久化、上传与生产能力仍禁用",
-  "evidence_status": "LOCAL_STAGE047_PHASE3_SCENARIOS_VALID_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE047-P4",
+  "task": "IDS-V0_1-STAGE047-P4",
+  "real_progress": "Stage047 步骤四本地收口完成；整阶段复审须在下一轮独立执行",
+  "report_grade": "八个脱敏输出投影、16 条非运行时回退记录、七类失败关闭、精确质量指标、支持边界与版本回滚均可机验",
+  "business_verdict": "Stage047 输出合同步骤四通过并停在复审门；控制投影和回退记录都不是运行时结果，真实业务源、解析器、回退、质量门、持久化、上传与生产能力仍禁用",
+  "evidence_status": "LOCAL_STAGE047_PHASE4_CLOSEOUT_VALID_REVIEW_PENDING_RUNTIME_DISABLED",
   "rendered_at": "2026-07-23",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE047-P4-GATE",
+  "next_gate": "IDS-STAGE047-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

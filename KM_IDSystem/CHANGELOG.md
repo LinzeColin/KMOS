@@ -1,5 +1,17 @@
 # Changelog
 
+## IDS v0.1 STAGE-047 Phase 4 - 2026-07-23
+
+- Added `ids.stage047.parser_output.phase4.delivery.v1`, bound to the approved source, exact committed Phase3 commit/root/KM_IDSystem tree/parent and five immutable Phase3 artifact hashes.
+- Replayed all sixteen committed Phase3 controls and produced eight payload-free output projections covering PDF, DOCX, XLSX, CSV, TXT, PNG, JPEG and TIFF. The projections retain only governed structure and counts, never source text, table values, page/section text, formula values, raw exceptions, paths or credentials.
+- Derived sixteen explicitly disposed non-runtime fallback records with zero attempts, zero parser switches and zero silent drops. Stage048 remains the fallback-runtime owner, and these records do not claim runtime logging or fallback capability.
+- Recomputed exact quality metrics at 11 accepted / 3 rejected / 2 route-no-output, 6 candidate / 4 partial / 1 failed, 11 unique output identities and 16 explicit dispositions. Seven disjoint failure classes cover all ten non-candidate or failed scenarios.
+- Separated the eight control formats from an empty runtime-supported-format set; recorded output-schema, normalizer and fixture-only parser versions plus a no-configuration-change rollback to committed Phase3.
+- TDD RED recorded 13 tests / 16 failures / 1 missing-checker error. Core implementation then passed 12/13; the sole remaining failure was the expected P4-to-review governance transition. Final layered validation is recorded in the Phase4 machine run.
+- Final GREEN passed focused P4 `13/13`, Phase1-4 `58/58`, Stage005 `178/178`, Stage041-047 aggregate `471/471` in `1192.255s`, full IDS v0.1 discovery `1227/1227` in `1590.578s`, all nine Stage038-046 review checkers, `229` unique event semantics, idempotent seven-document owner rendering and project dual-plane.
+- The first aggregate failed 20 checks from six exact historical forward-route gaps plus expected unstaged index binding; the first full discovery passed `1223/1227` and exposed four Stage038/039 routes ending at P3. Repairs add only exact `IDS-STAGE047-P4 -> IDS-STAGE047-REVIEW-GATE` compatibility and do not weaken old review conclusions or runtime-safety boundaries. Root governance remains `SPARSE_CONFLICT` without sparse expansion.
+- No IDS business source or raw metadata was read; no real route/parser, fallback, quality gate, evidence promotion, persistence, whole-stage review, Stage048, upload, merge or app reinstall ran. The only next gate is the separate `IDS-STAGE047-REVIEW-GATE`, with `push_allowed=false`.
+
 ## IDS v0.1 STAGE-047 Phase 3 - 2026-07-23
 
 - Added 16 deterministic, in-memory, format-labelled preparsed control scenarios spanning PDF, DOCX, XLSX, CSV, TXT, PNG, JPEG, TIFF, unknown/corrupt routes, low quality, explicit failure, instruction-like text and three fail-closed tamper cases.

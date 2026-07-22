@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE047"
-current_phase_id: "IDS-STAGE047-P3"
-current_task_id: "IDS-V0_1-STAGE047-P3"
-next_gate_id: "IDS-STAGE047-P4-GATE"
+current_phase_id: "IDS-STAGE047-P4"
+current_task_id: "IDS-V0_1-STAGE047-P4"
+next_gate_id: "IDS-STAGE047-REVIEW-GATE"
 current_transition_history:
+  stage047_phase4_state:
+    current_stage_id: "IDS-STAGE047"
+    current_phase_id: "IDS-STAGE047-P4"
+    current_task_id: "IDS-V0_1-STAGE047-P4"
+    next_gate_id: "IDS-STAGE047-REVIEW-GATE"
   stage047_phase3_state:
     current_stage_id: "IDS-STAGE047"
     current_phase_id: "IDS-STAGE047-P3"
@@ -12319,9 +12324,9 @@ stages:
     status: "in_progress"
     pursuing_goal: "统一 parser 输出格式，精确定义 text、tables、pages、sections、confidence、errors，并阻断未通过质量门的证据提升。"
     stop_gate:
-      gate_id: "IDS-STAGE047-P3-GATE"
+      gate_id: "IDS-STAGE047-P4-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE047-P4-GATE"
+      next_gate_id: "IDS-STAGE047-REVIEW-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_ENTRY_CONTRACT.md"
@@ -12340,6 +12345,11 @@ stages:
       - "KM_IDSystem/scripts/check_parser_output_scenarios.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_scenarios.py"
       - "KM_IDSystem/machine/runs/2026-07-23-stage047-p3-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_PHASE4_CLOSEOUT.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/stage047_parser_output_delivery_contract.json"
+      - "KM_IDSystem/scripts/check_parser_output_delivery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_delivery.py"
+      - "KM_IDSystem/machine/runs/2026-07-23-stage047-p4-local.json"
     phases:
       - phase_id: "IDS-STAGE047-P1"
         name: "解析器输出范围、输入输出与边界确认"
@@ -12542,3 +12552,71 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
             risk: "若格式标签夹具被误当真实 parser、Stage046 metadata replay 被误报为输出执行、或低质量/失败处置可被静默绕过，将扩大能力声明并污染后续证据链。"
             rollback: "只回滚 Stage047 Phase3 contract/checker/tests/evidence、P2 控制适配扩展及治理投影；保留已提交 Phase1-2、Stage046 review、全部原始/事实/审计资料、GitHub 与 app 状态。"
+      - phase_id: "IDS-STAGE047-P4"
+        name: "解析器输出合同交付证据、回滚与中文反馈"
+        objective: "重放已提交的十六个 Phase3 场景，派生八个脱敏输出样例、十六条非运行时回退记录、精确质量指标、七类失败关闭、支持边界和版本回滚证据；不执行真实 parser、fallback、质量门或持久化。"
+        status: "passed_with_local_evidence_review_pending"
+        entry_authorized: true
+        stage_review_entry_authorized: false
+        push_allowed: false
+        stop_conditions:
+          - "打开、stat、hash、sniff、解码、解压、扫描或遍历任何 IDS 业务文件或 raw metadata"
+          - "把合成格式标签控制、脱敏结构投影或 fixture parser version 冒充真实 parser output/runtime support"
+          - "保留控制文本、表格单元格、页/节文本、公式值、原始异常、路径、secret 或 credential"
+          - "执行 parser、fallback、差异评估、Stage050 scanner、公式、质量门、证据提升或持久化"
+          - "进入 whole-stage review、Stage048、batch review、GitHub upload、merge 或 app reinstall"
+        stop_gate:
+          gate_id: "IDS-STAGE047-P4-GATE"
+          status: "passed_with_local_evidence_review_pending"
+          pass_conditions:
+            - "Approved source, exact committed Phase3 predecessor and all five immutable Phase3 artifacts are live-reverified across commit, index and working tree"
+            - "All sixteen committed Phase3 scenarios replay with eleven accepted outputs, three rejected outputs, two route-no-output results and zero silent drops"
+            - "Eight sanitized output samples cover PDF, DOCX, XLSX, CSV, TXT, PNG, JPEG and TIFF without retaining content or formula values"
+            - "Sixteen non-runtime fallback records have explicit dispositions, zero attempts, zero switches and preserve Stage048 ownership"
+            - "Quality metrics are recomputed exactly and seven disjoint fail-closed classes cover all ten non-candidate or failure scenarios"
+            - "Control format support is explicitly separated from an empty runtime-supported-format set"
+            - "Output schema, normalizer and fixture-only parser versions are recorded with a no-configuration-change rollback"
+            - "No source I/O, runtime parser, fallback, quality gate, evidence promotion, persistence, raw metadata or production action occurs"
+            - "The only next gate is IDS-STAGE047-REVIEW-GATE and the review must run separately"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_PHASE4_CLOSEOUT.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/stage047_parser_output_delivery_contract.json"
+            - "KM_IDSystem/scripts/check_parser_output_delivery.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_delivery.py"
+            - "KM_IDSystem/machine/runs/2026-07-23-stage047-p4-local.json"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE047-P4"
+            name: "交付 parser 输出样例、回退记录、质量/失败边界与版本回滚"
+            objective: "把 Phase3 的 payload-free 结果收口为可执行、可测试、可回滚且不扩大运行能力声明的 Phase4 交付合同。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE047-P3"
+              - "ids.parser_output.v0_1.stage047.p1"
+              - "ids.parser.output_normalizer.v0_1.stage047.p2"
+              - "ids.parser.output.v0_1.stage047.p3.scenarios"
+            acceptance_ids:
+              - "ACC-STAGE-047"
+            test_commands:
+              - "python3 -B KM_IDSystem/scripts/check_parser_output_delivery.py"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage047_parser_output_delivery"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage047_parser_output KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage047_parser_output_runtime KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage047_parser_output_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage047_parser_output_delivery"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage005_governance_regression"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage04[1-7]*.py' -q"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -q"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+              - "python3 -B KM_IDSystem/machine/tools/check_dual_plane_ci.py --projects KM_IDSystem --require-projects"
+              - "events.jsonl parse, duplicate-id and semantic checks"
+              - "git diff --check"
+            test_results: "TDD RED ran 13 focused tests with 16 expected failures and one expected missing-checker error. Core implementation passed 12/13; the sole remaining failure was the expected P4-to-review governance transition. Final layered validation is recorded in the Stage047 Phase4 machine run and changelog."
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_PHASE4_CLOSEOUT.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/stage047_parser_output_delivery_contract.json"
+              - "KM_IDSystem/scripts/check_parser_output_delivery.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_delivery.py"
+              - "KM_IDSystem/machine/runs/2026-07-23-stage047-p4-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+            risk: "若脱敏投影泄露 fixture 内容、fallback 控制记录被冒充 runtime log、或 control support 被误报为真实 parser support，将扩大能力声明并污染下游证据。"
+            rollback: "只回滚 Stage047 Phase4 contract/checker/tests/evidence 与治理投影，恢复到已提交 Phase3；保留 P1-3、全部原始/事实/审计资料、GitHub 与 app 状态。"
