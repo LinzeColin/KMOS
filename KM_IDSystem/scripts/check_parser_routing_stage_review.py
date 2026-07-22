@@ -513,9 +513,16 @@ def _governance_checks() -> dict[str, bool]:
             )
         ),
         "handoff_current_gate_exact": (
-            "Completed task in this run: `IDS-V0_1-STAGE046-REVIEW`"
-            in top_handoff
-            and "Next allowed task: `IDS-V0_1-STAGE047-P1`" in top_handoff
+            (
+                "Completed task in this run: `IDS-V0_1-STAGE046-REVIEW`"
+                in top_handoff
+                and "Next allowed task: `IDS-V0_1-STAGE047-P1`" in top_handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE047-P1`"
+                in top_handoff
+                and "Next allowed task: `IDS-V0_1-STAGE047-P2`" in top_handoff
+            )
         ),
         "machine_run_exact": (
             machine_run.get("task_id") == TASK_ID

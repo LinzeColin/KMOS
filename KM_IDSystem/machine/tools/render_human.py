@@ -365,8 +365,12 @@ def render_05(facts: Path, runs_dir: Path):
     owner = plan.get("owner")
     acc_rows = [(a.get("id", "?"), a.get("criteria", ""), a.get("status", ""))
                 for a in acceptance.get("items", [])]
+    # 05 has a hard 100-line budget. Keep every acceptance fact and shrink only
+    # the rolling run-history projection as acceptance evidence grows.
+    run_limit = max(0, 77 - len(acc_rows))
+    recent_runs = runs[-run_limit:] if run_limit else []
     run_rows = [(r.get("run_id", "?"), r.get("action", ""), r.get("result", ""))
-                for r in runs[-20:]]
+                for r in recent_runs]
 
     this_round = (f"**在做：** {now}\n\n**负责：** {owner or '待定'}"
                   if now else blank_note("当前任务", "把这一轮的计划写进机器平面（machine/facts/plan.json）"))
@@ -388,7 +392,7 @@ def render_05(facts: Path, runs_dir: Path):
 {table(acc_rows, ["编号", "达成标准", "状态"],
        empty=blank_note("验收标准", "把这一轮的验收标准写进机器平面（machine/facts/acceptance.json）"))}
 
-## 三、已经做了什么（最近 20 条）
+## 三、已经做了什么（最近 {len(run_rows)} 条）
 
 {table(run_rows, ["记录", "做了什么", "结果"],
        empty="> 还没有运行记录。每完成一步会自动追加一条，这里就有了。")}

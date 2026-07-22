@@ -337,16 +337,29 @@ def _predecessor_valid(repo_root: Path) -> bool:
     )
 
 
+def _git_blob_sha256(repo_root: Path, commit: str, relative: str) -> str | None:
+    result = subprocess.run(
+        ["git", "show", f"{commit}:{relative}"],
+        cwd=repo_root,
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        return None
+    return hashlib.sha256(result.stdout).hexdigest()
+
+
 def _upstream_valid(repo_root: Path, bindings: Any) -> bool:
     if bindings != EXPECTED_UPSTREAM:
         return False
     try:
+        commit = EXPECTED_PREDECESSOR["stage044_review_commit"]
         return all(
-            (repo_root / item["ref"]).is_file()
-            and _sha256(repo_root / item["ref"]) == item["sha256"]
+            _git_blob_sha256(repo_root, commit, item["ref"])
+            == item["sha256"]
             for item in EXPECTED_UPSTREAM.values()
         )
-    except (OSError, KeyError, TypeError):
+    except (OSError, KeyError, TypeError, subprocess.SubprocessError):
         return False
 
 

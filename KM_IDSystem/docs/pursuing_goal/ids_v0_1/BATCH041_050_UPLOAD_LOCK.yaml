@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-22T12:00:00Z"
-status: "stage046_completed_reviewed_local"
+updated_at_utc: "2026-07-22T13:52:20Z"
+status: "stage047_phase1_completed"
 
 transition_history:
+  stage047_phase1_state:
+    status: "stage047_phase1_completed"
+    current_task_id: "IDS-V0_1-STAGE047-P1"
+    next_gate: "IDS-STAGE047-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE047-P2"
+    github_upload_allowed: false
   stage046_review_state:
     status: "stage046_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE046-REVIEW"
@@ -1109,9 +1115,94 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
+  STAGE-047:
+    status: "stage047_phase1_completed"
+    completed_phases:
+      - "Phase 1"
+    next_stage: "STAGE-047"
+    next_gate: "IDS-STAGE047-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE047-P1"
+    acceptance_id: "ACC-STAGE-047"
+    acceptance_status: "phase1_local_passed"
+    review_status: "pending"
+    phase2_entry_authorized: false
+    phase3_entry_authorized: false
+    phase4_entry_authorized: false
+    source_verification_status: "SOURCE_VERIFIED"
+    source_member_match_count: 1
+    source_member_sha256: "e1d5bdb219b6f16ca7fec4e4455e7acba1ecbae9803a7c13721b75895671d2f4"
+    predecessor_stage046_review_commit: "c7d66380cfab7cf00ccbb9af34ef43a7f44a7bde"
+    predecessor_stage046_review_root_tree: "455b675a23243a8978b332e07e4a4cadcc532038"
+    predecessor_stage046_review_kmids_tree: "98d21d245ccee585795cbc6e6180a8fcafda7f75"
+    source_integrity_valid: true
+    predecessor_binding_valid: true
+    upstream_snapshot_bindings_valid: true
+    parser_output_contract_id: "ids.parser_output.v0_1.stage047.p1"
+    parser_output_contract_schema: "ids.stage047.parser_output.phase1.v1"
+    phase1_contract_valid: true
+    contract_state: "PHASE1_ENGINEERING_CONTRACT_PARSER_OUTPUT_RUNTIME_DISABLED"
+    required_envelope_field_count: 18
+    required_parser_output_field_count: 6
+    nested_item_schema_count: 4
+    output_identity_algorithm: "SHA256_CANONICAL_OUTPUT_PROJECTION"
+    output_identity_scope: "INTEGRITY_ONLY_NOT_EXTERNAL_PROVENANCE_OR_QUALITY_APPROVAL"
+    parser_content_fact_level: "CANDIDATE"
+    initial_quality_gate_state: "UNASSESSED"
+    stage048_fallback_owner_preserved: true
+    stage049_differential_evaluation_owner_preserved: true
+    stage050_prompt_injection_owner_preserved: true
+    execution_ready: false
+    taskpack_source_read_performed: true
+    ids_business_source_read_performed: false
+    raw_metadata_content_accessed: false
+    fake_ids_business_data_used: false
+    real_ids_business_job_created: false
+    source_file_open_performed: false
+    file_type_redetection_performed: false
+    route_evaluation_performed: false
+    parser_selected: false
+    parser_dispatch_performed: false
+    parser_execution_performed: false
+    parser_output_produced: false
+    fallback_execution_performed: false
+    differential_evaluation_performed: false
+    prompt_injection_scan_performed: false
+    prompt_injection_marker_applied: false
+    quality_gate_evaluation_performed: false
+    evidence_promotion_performed: false
+    manifest_write_performed: false
+    evidence_ledger_write_performed: false
+    audit_write_performed: false
+    index_write_performed: false
+    report_write_performed: false
+    job_creation_performed: false
+    state_transition_performed: false
+    persistent_state_write_performed: false
+    database_connection_performed: false
+    schema_change_performed: false
+    runtime_output_written: false
+    production_runtime_activation_performed: false
+    phase2_started: false
+    phase3_started: false
+    phase4_started: false
+    whole_stage_review_performed: false
+    stage048_entry_allowed: false
+    batch_review_performed: false
+    github_upload_allowed: false
+    app_reinstall_allowed: false
+    evidence_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_ENTRY_CONTRACT.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_PHASE1_PARSER_OUTPUT_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/stage047_parser_output_contract.json"
+      - "KM_IDSystem/scripts/check_parser_output.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output.py"
+      - "KM_IDSystem/machine/runs/2026-07-22-stage047-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+
 decision:
-  current_task_id: "IDS-V0_1-STAGE046-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-STAGE047-P1"
+  current_task_id: "IDS-V0_1-STAGE047-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE047-P2"
   github_upload_allowed: false
-  current_run: "STAGE-046 whole-stage independent review repaired six findings and reverified approved sources, Phase 1-4, the immutable Phase 4 commit, governance and Git-index binding; no parser, fallback or business-source runtime ran."
-  no_upload_reason: "BATCH041_050 has six completed and individually reviewed Stages; STAGE-047..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."
+  current_run: "STAGE-047 Phase 1 binds the approved source and immutable Stage046 reviewed-local snapshot, then defines an exact parser-output envelope, six core fields, lineage, safe errors and quality/evidence boundaries while all runtime effects remain disabled."
+  no_upload_reason: "BATCH041_050 has six completed and individually reviewed Stages plus Stage047 Phase1 only; Stage047 Phase2-4/review, STAGE-048..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."

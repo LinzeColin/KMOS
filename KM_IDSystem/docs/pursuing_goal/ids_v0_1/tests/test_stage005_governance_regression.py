@@ -23,10 +23,10 @@ class Stage005GovernanceRegressionTests(unittest.TestCase):
 
     def _tamper_current_stage046_phase1_route(self, batch_text: str) -> str:
         tampered = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE046-REVIEW"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE047-P1"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE046-REVIEW"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE047-P1-BROKEN"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE047-P1"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE047-P2"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE047-P1"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE047-P2-BROKEN"',
         )
         self.assertNotEqual(batch_text, tampered)
         return tampered
@@ -11086,6 +11086,87 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
             "all_findings_repaired=false",
         )
         self.assertNotEqual(review_events[0]["notes"], tampered_event["notes"])
+        self.assertNotEqual(
+            [], module.evaluate_required_event_semantics([tampered_event])
+        )
+
+        tampered_route = self._tamper_current_stage046_phase1_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage047_phase1_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_events = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE047-P1-20260722-001"
+        ]
+        self.assertEqual(1, len(phase_events))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_events))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_ENTRY_CONTRACT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE047_PHASE1_PARSER_OUTPUT_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/"
+            "stage047_parser_output_contract.json",
+            "KM_IDSystem/scripts/check_parser_output.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage047_parser_output.py",
+            "KM_IDSystem/machine/runs/2026-07-22-stage047-p1-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE047-P1-20260722-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_contract = batch_text.replace(
+            '    parser_output_contract_schema: '
+            '"ids.stage047.parser_output.phase1.v1"',
+            '    parser_output_contract_schema: '
+            '"ids.stage047.parser_output.phase1.invalid"',
+        )
+        self.assertNotEqual(batch_text, tampered_contract)
+        blocked = module.evaluate_phase_state(
+            tampered_contract, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_event = dict(phase_events[0])
+        tampered_event["notes"] = tampered_event["notes"].replace(
+            "nested_item_schema_count=4",
+            "nested_item_schema_count=3",
+        )
+        self.assertNotEqual(phase_events[0]["notes"], tampered_event["notes"])
         self.assertNotEqual(
             [], module.evaluate_required_event_semantics([tampered_event])
         )

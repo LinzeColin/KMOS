@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE046",
-  "phase": "IDS-STAGE046-REVIEW",
-  "task": "IDS-V0_1-STAGE046-REVIEW",
-  "real_progress": "Stage046 四个步骤与独立整阶段复审均已在本地完成；六项发现全部修复",
-  "report_grade": "批准来源、Phase4 不可变提交、Phase1-4、六项反例、治理与 Git 索引绑定均可机验",
-  "business_verdict": "Stage046 本地复审通过；解析器、回退、持久化、Stage047、上传与生产能力仍禁用",
-  "evidence_status": "LOCAL_STAGE046_REVIEWED_PARSER_AND_FALLBACK_DISABLED",
+  "stage": "IDS-STAGE047",
+  "phase": "IDS-STAGE047-P1",
+  "task": "IDS-V0_1-STAGE047-P1",
+  "real_progress": "Stage047 步骤一静态工程合同已在本地完成；步骤二至四与整阶段复审尚未开始",
+  "report_grade": "批准来源、Stage046 不可变复审快照、18 字段 envelope、六个核心字段、嵌套 schema、lineage 与质量门均可机验",
+  "business_verdict": "Stage047 输出合同步骤一通过；解析器、输出、回退、差异评估、提示注入扫描、持久化、上传与生产能力仍禁用",
+  "evidence_status": "LOCAL_STAGE047_PHASE1_CONTRACT_READY_RUNTIME_DISABLED",
   "rendered_at": "2026-07-22",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE047-P1-GATE",
+  "next_gate": "IDS-STAGE047-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

@@ -86,6 +86,7 @@ EXPECTED_PHASE3_COMMIT = {
     "parent": "082565a958459fb4b9ad2b951a74982c30311a03",
     "required_ancestor_of_head": True,
 }
+FINAL_REVIEW_BASELINE_COMMIT = "76027b8dc89e325c212d492d7f5df88357ea7112"
 
 EXPECTED_UPSTREAM = {
     "stage045_phase3_contract": {
@@ -495,9 +496,9 @@ def _safe_repo_ref(value: Any) -> bool:
     return not path.is_absolute() and ".." not in path.parts
 
 
-def _index_bytes(relative: str) -> Optional[bytes]:
+def _final_review_bytes(relative: str) -> Optional[bytes]:
     completed = subprocess.run(
-        ["git", "show", f":{relative}"],
+        ["git", "show", f"{FINAL_REVIEW_BASELINE_COMMIT}:{relative}"],
         cwd=REPO_ROOT,
         check=False,
         capture_output=True,
@@ -514,8 +515,8 @@ def _upstream_bindings_valid(value: Any) -> bool:
         relative = binding.get("ref") if isinstance(binding, Mapping) else None
         if not _safe_repo_ref(relative):
             return False
-        indexed = _index_bytes(relative)
-        if indexed is None or _sha256_bytes(indexed) != binding.get("sha256"):
+        reviewed = _final_review_bytes(relative)
+        if reviewed is None or _sha256_bytes(reviewed) != binding.get("sha256"):
             return False
     return True
 

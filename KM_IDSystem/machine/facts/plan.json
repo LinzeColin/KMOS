@@ -1,18 +1,20 @@
 {
-  "stage": "`IDS-STAGE046`",
-  "phase": "`IDS-STAGE046-REVIEW`",
-  "task": "`IDS-V0_1-STAGE046-REVIEW`",
-  "owner": "Codex 专属 KMOS worktree，Stage046 独立整阶段复审",
-  "objective": "独立复验 Stage046 Phase1-4 并修复结果身份、失败结果、引用形状、事实等级、场景不变量与阶段边界问题。",
+  "stage": "`IDS-STAGE047`",
+  "phase": "`IDS-STAGE047-P1`",
+  "task": "`IDS-V0_1-STAGE047-P1`",
+  "owner": "Codex 专属 KMOS worktree，Stage047 解析器输出合同步骤一",
+  "objective": "绑定批准来源与 Stage046 已复审快照，定义精确 parser output envelope、六个核心字段、嵌套引用、safe error 与质量证据边界。",
   "scope": [
-    "实时重新计算批准归档、NFC 唯一 Stage046 成员、roadmap 与 instructions 哈希，并绑定已提交 Phase4 commit/root/KM_IDSystem tree/父链",
-    "重放 Phase1-4 与六项复审反例，确保每项发现均失败关闭并已修复",
-    "要求复审文档、检查器、测试、治理、事件、机器记录和 owner views 均由 Git 跟踪并匹配索引"
+    "实时重新计算批准归档、唯一 Stage047 成员、roadmap、instructions 与执行索引哈希，并绑定 Stage046 review commit/root/KM_IDSystem tree/父链",
+    "从 Stage046 immutable snapshot 重新计算 Stage045 detection、Stage046 Phase1-4、review 与 raw-data 边界九项工件哈希",
+    "定义 reference-only route input、18 字段 envelope、六字段 exact shape、四个 nested item schema、lineage、empty/partial/failure、安全错误与质量门",
+    "保留 Stage048 fallback、Stage049 differential evaluation 与 Stage050 prompt-injection runtime ownership"
   ],
   "non_goals": [
-    "不执行 Stage047、十阶段批次复审或上传门禁",
-    "不打开真实业务源文件，不重新检测类型，不加载外部注册表，不选择、分派或执行解析器、回退、差分评估、提示注入扫描、证据提升、审计、数据库或持久运行状态",
+    "不执行 Stage047 Phase2、Phase3、Phase4、整阶段复审、十阶段批次复审或上传门禁",
+    "不打开真实业务源文件，不重新检测类型或评估路线，不选择、分派或执行解析器，不创建 parser output，不运行回退、差异评估、提示注入扫描或质量门",
+    "不提升证据，不写 manifest、evidence ledger、audit、index、report、database、job、state 或持久运行状态",
     "不读取原始元数据，不创建虚构 IDS 业务数据，不上传、合并或重装应用"
   ],
-  "stop_condition": "Stage046 整阶段复审与分层治理验证通过后，停止在 IDS-STAGE047-P1-GATE 且不进入 Stage047；任一来源、Phase4 snapshot、阶段重放、发现反例、治理、索引或无副作用证据失配均回到 IDS-STAGE046-REVIEW-GATE。"
+  "stop_condition": "Stage047 步骤一合同与分层治理验证通过后，停止在 IDS-STAGE047-P2-GATE 且不进入步骤二；任一来源、Stage046 snapshot、shape、lineage、质量门、治理或无副作用证据失配均回到 IDS-STAGE047-P1-GATE。"
 }

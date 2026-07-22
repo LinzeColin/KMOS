@@ -153,11 +153,17 @@ class Stage046ParserRoutingStageReviewTests(unittest.TestCase):
             self.assertIn(marker, roadmap)
         self.assertIn(REVIEW_EVENT_ID, events)
         top = "\n".join(handoff.splitlines()[:40])
-        self.assertIn(
-            "Completed task in this run: `IDS-V0_1-STAGE046-REVIEW`",
-            top,
+        self.assertTrue(
+            (
+                "Completed task in this run: `IDS-V0_1-STAGE046-REVIEW`"
+                in top
+                and "Next allowed task: `IDS-V0_1-STAGE047-P1`" in top
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE047-P1`" in top
+                and "Next allowed task: `IDS-V0_1-STAGE047-P2`" in top
+            )
         )
-        self.assertIn("Next allowed task: `IDS-V0_1-STAGE047-P1`", top)
 
     def test_review_preserves_runtime_and_external_effect_prohibitions(self):
         report = self.review.build_stage046_review_report()

@@ -409,16 +409,28 @@ def _predecessor_live() -> bool:
     )
 
 
+def _git_blob_sha256(commit: str, relative: str) -> str | None:
+    result = subprocess.run(
+        ["git", "show", f"{commit}:{relative}"],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        return None
+    return hashlib.sha256(result.stdout).hexdigest()
+
+
 def _upstream_live(bindings: Any) -> bool:
     if bindings != UPSTREAM_BINDINGS:
         return False
     try:
+        commit = PREDECESSOR_BINDING["commit"]
         return all(
-            (REPO_ROOT / item["ref"]).is_file()
-            and _sha256(REPO_ROOT / item["ref"]) == item["sha256"]
+            _git_blob_sha256(commit, item["ref"]) == item["sha256"]
             for item in UPSTREAM_BINDINGS.values()
         )
-    except (OSError, KeyError, TypeError):
+    except (OSError, KeyError, TypeError, subprocess.SubprocessError):
         return False
 
 

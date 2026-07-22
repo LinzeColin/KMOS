@@ -384,6 +384,12 @@ def _canonical_finding_checks() -> dict[str, bool]:
                 and "Next allowed task: `IDS-V0_1-STAGE046-P1`"
                 in top_handoff
             )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE047-P1`"
+                in top_handoff
+                and "Next allowed task: `IDS-V0_1-STAGE047-P2`"
+                in top_handoff
+            )
         ),
     }
 
@@ -532,6 +538,12 @@ def _governance_checks() -> dict[str, bool]:
                 "Completed task in this run: `IDS-V0_1-STAGE045-REVIEW`"
                 in top_handoff
                 and "Next allowed task: `IDS-V0_1-STAGE046-P1`"
+                in top_handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE047-P1`"
+                in top_handoff
+                and "Next allowed task: `IDS-V0_1-STAGE047-P2`"
                 in top_handoff
             )
         ),

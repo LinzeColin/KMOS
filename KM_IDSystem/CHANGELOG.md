@@ -1,5 +1,15 @@
 # Changelog
 
+## IDS v0.1 STAGE-047 Phase 1 - 2026-07-22
+
+- Added `ids.stage047.parser_output.phase1.v1`, bound to the exact approved Stage047 source, immutable Stage046 reviewed-local commit/root/KM_IDSystem tree/parent and nine rehashed upstream artifacts.
+- Defined an exact 18-field parser-output envelope plus the required `text`, `tables`, `pages`, `sections`, `confidence`, and `errors` field shapes. Table, page, section and safe-error item schemas reject unknown fields, duplicate/orphan references, raw exceptions, paths, secrets and silent success.
+- Added canonical route/output integrity identities, exact source/detection/route/parser lineage, explicit empty/partial/failed handling and a quality boundary that keeps all parser content `CANDIDATE/UNASSESSED` and forbids direct high-trust evidence, manifest, ledger, audit, index, report or database writes.
+- Preserved Stage048 fallback, Stage049 differential evaluation and Stage050 prompt-injection runtime ownership. Phase1 applies no runtime marker and performs no parser, output, fallback, comparison, quality evaluation or persistence.
+- TDD RED produced four expected missing-artifact failures and nine expected missing-artifact errors across ten focused tests. Core contract/checker implementation then passed `9/10`; the only remaining failure was the expected Stage046-to-Stage047 governance transition. Final layered validation is recorded in the Phase1 machine run.
+- Final focused validation passed `10/10`, Stage005 passed `176/176`, Stage041-046 delivery compatibility passed `73/73`, and all nine historical/current review checkers passed with Git-index binding. The first `423`-test aggregate failed one exact Stage042 current-task assertion; the first `1177`-test discovery passed `1171` and failed six exact Stage038/039 forward-route assertions. Repairs were limited to those exact Stage047-P1/P2-gate compatibility markers; targeted repair suites then passed Stage042 `10/10` and Stage038/039 `44/44`. The failed aggregate/discovery runs are retained as fail-closed evidence and are not reported as full-suite PASS.
+- Routed the only next task to separate `IDS-STAGE047-P2-GATE` with `phase2_entry_authorized=false` and `push_allowed=false`. No IDS business source, raw metadata, fake business data, Phase2, whole-stage review, batch review, GitHub action, app reinstall, dependency installation or production action ran.
+
 ## IDS v0.1 STAGE-046 Review - 2026-07-22
 
 - Completed the independent whole-stage review under `ACC-STAGE-046`, live-rehashing the approved archive, NFC-unique Stage046 member, roadmap and instructions, then binding the exact Phase4 commit/root/KM_IDSystem tree/parent/HEAD ancestry.

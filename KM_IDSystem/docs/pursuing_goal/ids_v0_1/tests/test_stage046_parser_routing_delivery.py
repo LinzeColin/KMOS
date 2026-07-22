@@ -356,11 +356,24 @@ class Stage046ParserRoutingDeliveryTests(unittest.TestCase):
         self.assertIn('current_phase_id: "IDS-STAGE046-REVIEW"', roadmap)
         self.assertIn('next_gate_id: "IDS-STAGE047-P1-GATE"', roadmap)
         self.assertIn("IDS-V0_1-STAGE046-P4", events)
-        self.assertEqual("IDS-STAGE046-REVIEW", status["phase"])
-        self.assertEqual("IDS-STAGE047-P1-GATE", status["next_gate"])
+        self.assertIn(status["phase"], {"IDS-STAGE046-REVIEW", "IDS-STAGE047-P1"})
+        self.assertEqual(
+            "IDS-STAGE047-P1-GATE"
+            if status["phase"] == "IDS-STAGE046-REVIEW"
+            else "IDS-STAGE047-P2-GATE",
+            status["next_gate"],
+        )
         self.assertFalse(status["push_allowed"])
-        self.assertIn("Completed task in this run: `IDS-V0_1-STAGE046-REVIEW`", handoff)
-        self.assertIn("Next allowed task: `IDS-V0_1-STAGE047-P1`", handoff)
+        self.assertTrue(
+            (
+                "Completed task in this run: `IDS-V0_1-STAGE046-REVIEW`" in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE047-P1`" in handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE047-P1`" in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE047-P2`" in handoff
+            )
+        )
         self.assertIn("Completed task in this run: `IDS-V0_1-STAGE046-P4`", handoff)
         self.assertIn("Next allowed task: `IDS-V0_1-STAGE046-REVIEW`", handoff)
 

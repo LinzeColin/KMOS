@@ -82,6 +82,7 @@ INTEGRATION_BASELINE = {
     "required_ancestor_of_head": True,
     "handoff_resolution": "CURRENT_STAGE045_GATE_PRESERVED_CANONICAL_OVERRIDE_ADDED",
 }
+FINAL_REVIEW_BASELINE_COMMIT = "76027b8dc89e325c212d492d7f5df88357ea7112"
 UPSTREAM_BINDINGS = {
     "stage045_phase2_contract": {
         "ref": (
@@ -455,16 +456,28 @@ def _commit_live(binding: Mapping[str, Any], *, merge: bool = False) -> bool:
     )
 
 
+def _git_blob_sha256(commit: str, relative: str) -> str | None:
+    result = subprocess.run(
+        ["git", "show", f"{commit}:{relative}"],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        return None
+    return hashlib.sha256(result.stdout).hexdigest()
+
+
 def _upstream_live(value: Any) -> bool:
     if value != UPSTREAM_BINDINGS:
         return False
     try:
+        commit = FINAL_REVIEW_BASELINE_COMMIT
         return all(
-            (REPO_ROOT / item["ref"]).is_file()
-            and _sha256(REPO_ROOT / item["ref"]) == item["sha256"]
+            _git_blob_sha256(commit, item["ref"]) == item["sha256"]
             for item in UPSTREAM_BINDINGS.values()
         )
-    except (OSError, KeyError, TypeError):
+    except (OSError, KeyError, TypeError, subprocess.SubprocessError):
         return False
 
 
