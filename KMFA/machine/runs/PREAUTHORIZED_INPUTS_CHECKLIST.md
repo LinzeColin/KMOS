@@ -4,6 +4,7 @@
 > Requirement `R-GOV-004` / Acceptance `AC-GOV-004` / Test `TEST-GOV-004`
 > Captured: `2026-07-22T12:54:25Z`
 > Closed: `2026-07-22T12:59:30Z`
+> Stage-review correction: `2026-07-22T13:16:08Z`
 > Status: **DONE — AC-GOV-004 PASS**
 
 本文是小于 64 KiB 的 public-safe compact receipt，按已授权 taskpack 的
@@ -24,18 +25,18 @@ Stop 输出核心四要素——最小决策问题、已核验证据、默认建
 | `Deferred-not-blocking` | 只有后续明确 Stage 才需要；已指定 entry gate 与安全 fallback | 不阻塞当前或更早 Task；到 entry gate 必须复验，不能自动宣称 Ready |
 
 依赖提交已闭合：P0.2 `1633a65a348af082e680dbf6f73fc38d9307ba14`、P0.3
-`dd23478be2dc46712c618c06e7a3fc330bc16693`。当前 published main、制品、deployment 与 taskpack
-仍由 P0.1/P0.3 的唯一 binding 证明；P0.4 不改写这些身份。
+`dd23478be2dc46712c618c06e7a3fc330bc16693`。P0.4 capture 时 published main 与 deployed source
+恰好同为 `68306e8...`；它们由 P0.3 的独立 namespace/writer 证明，后续不得因值相同而合并身份。
 
 ## 2. 当前输入、权限、环境与配额清单
 
 | ID | 域 / 所需能力 | 当前 public-safe 证据 | 状态 | 可逆默认 / 后续 entry gate |
 | --- | --- | --- | --- | --- |
-| `PRE-GIT-001` | 隔离 Git 开发、测试、本地提交 | detached 独立 worktree 干净；P0.1-P0.3 为连续本地提交；主镜像仍在 `main` 且干净 | `Ready` | 当前 worktree 内改动、测试和本地 commit 可直接进行；不得把 phase commit 称为 published source |
-| `PRE-SRC-001` | published source 与生产制品身份 | `origin/main=68306e8...`；最新成功 deploy run `29916233128` 与 query run `29916590384` 仍绑定 deployment `boh5fsnx...` | `Ready` | 每个 Stage 开始和上传前只读刷新；发生新部署就重新绑定，禁止沿用旧 tuple 猜测 |
+| `PRE-GIT-001` | 隔离 Git 开发、测试、本地提交 | detached 独立 worktree 干净；P0.1-P0.4 为连续本地提交；主镜像仍在 `main` 且干净 | `Ready` | 当前 worktree 内改动、测试和本地 commit 可直接进行；不得把 phase commit 称为 published source |
+| `PRE-SRC-001` | published source 与生产制品身份 | capture 时 `origin/main=68306e8...`；最新成功 deploy run `29916233128` 与 query run `29916590384` 的 deployed source 也为 `68306e8...`、deployment `boh5fsnx...` | `Ready` | 每个 Stage 开始和上传前分别刷新 published main 与 deployment source；治理-only upload 后允许二者不同，禁止沿用旧 tuple 猜测 |
 | `PRE-REC-001` | v1.5 恢复兜底 | immutable bundle、公开 recovery tip 与 1060-path disposition 已由 P0.2 校验，未导入 KMOS | `Ready` | 只读参考；永不 wholesale replay/merge/force-push，不夹带 S24 |
 | `PRE-GH-001` | GitHub repo、Actions、artifact 与 stage upload | canonical public repo 可读；当前执行身份具备任务所需 repo 操作能力；Actions deploy/query 已成功实跑 | `Ready` | 中间 phase 只本地 commit；整个 Stage 完成、复审并修复后才非破坏上传 `main`，不创建额外 branch/PR |
-| `PRE-CICD-001` | CI/CD build/test/deploy/rollback | `deploy.yml` 在每次 `main` push 调用 Coolify；所需 secret 只由 Actions 托管且最近运行成功；receipt 不保留 secret metadata/value | `Ready` | 任何 Stage upload 都按 production release 对待：先 review/gates，再上传；失败停止晋级并使用 previous deployment，不手工改数据库 |
+| `PRE-CICD-001` | CI/CD build/test/deploy/rollback | `deploy.yml` 对运行态相关 `main` push 调用 Coolify；本次只逐条排除 workflow、`AGENTS/HANDOFF/machine README` 与 6 个 S00 receipt，共 10 个精确文件且无目录通配符；所需 secret 只由 Actions 托管且最近运行成功 | `Ready` | 所有 Stage upload 都先 review/gates；治理-only upload 必须验证未产生 deploy，含任一非排除路径（包括 `machine/runs/` 下未知文件）则按 production release 刷新 artifact/deployment identity；失败停止晋级并使用 previous deployment |
 | `PRE-REL-001` | Flag/Canary/Blue-Green 等效能力 | taskpack release policy 已定义；现仓未证明完整运行态实现 | `Deferred-not-blocking` | 高风险功能默认 Flag off；S03 walking skeleton 开始落最小 kill switch，S13 前必须实证 canary/rollback，绝不为工具名迁 Kubernetes |
 | `PRE-ENV-001` | 本地/CI 构建环境 | Python、Node/npm、Docker daemon/Compose、GitHub CLI 均可用；Taskpack validator 与 manifest 已通过 | `Ready` | 缺某个非关键本地工具时用 CI 等效环境；不得绕过同一验证目的 |
 | `PRE-DOM-001` | domain、DNS、TLS、当前边缘身份 | `kmfa.linzezhang.com` A/AAAA 经 Cloudflare；`/`、`/ui`、`/ui/`、`/healthz` 当前均为 Access `302` baseline | `Ready` | 现状只证明路由与已知缺陷，不证明 public contract；S03 负责根入口 public、ops private 与 `/ui*` 308→`/` |
@@ -55,6 +56,22 @@ Stop 输出核心四要素——最小决策问题、已核验证据、默认建
 清单结果：所有普通依赖都有且只有 `Ready`、`Default` 或 `Deferred-not-blocking` 状态；
 `UNKNOWN` 不得被改名为 `Ready`，而是必须绑定上述可逆 default 和明确 entry gate。
 
+### 2.1 S00 启动 unknown 闭合矩阵
+
+此表逐项覆盖 `machine/canonical_facts.yaml:unknowns_to_resolve_in_s00`。这里的“闭合”是把当前值、
+失败状态、默认动作、owner 和后续阻断点变成确定决策；没有数据时不得编造一个看似精确的生产数值。
+
+| ID | Taskpack unknown | S00 verified resolution | 可继续默认 / 后续硬 Gate | Owner |
+| --- | --- | --- | --- | --- |
+| `U-S00-001` | production artifact/image/deployment 与 main SHA 映射 | `VERIFIED`：capture 时 published main 与 deployment source 均为 `68306e8...`，image `adfc849b...`、deployment `boh5fsnx...`；两个 source namespace 已分开 | 每次 Stage 分别刷新 GitHub ref 与平台 manifest；不能唯一关联则 STOP | Release Owner |
+| `U-S00-002` | DB/object 产品、区域、版本化、备份和配额 | `RESOLVED_CURRENT_ABSENT`：当前 App 只有未挂耐久卷的 SQLite；未发现生产关系 DB adapter、S3-compatible adapter 或可核验资源，故 provider/region/versioning/backup/quota 均不得报 Ready | S05 前只做 provider-neutral contract/fixture；S05 entry 必须选定并验证耐久 DB、私有版本化对象存储与 backup/restore，否则 S05/GA 不通过 | Data+SRE |
+| `U-S00-003` | 真实访问量、文件大小、出网、扫描和处理负载 | `RESOLVED_NO_TRUSTED_BASELINE`：当前无可用于 v1.5.2 承诺的完整 telemetry，旧叙述不晋升为事实 | 使用 synthetic/canary、透明临时预算与写前拒绝；S04/S06/S11/S12 逐层实测，未得到基线不得放宽配额或 GA | Ops+Product |
+| `U-S00-004` | RPO/RTO、预算和合规保留期最终值 | `RESOLVED_CURRENT_FAIL`：当前无生产 backup/restore，因此有限 RPO/RTO **不可证明，按 unbounded/not recoverable 基线处理**；成本预算无可信实测；产品 retention 已批准为默认无自动到期、仅用户明确删除或获批法律/安全处置 | S01 冻结成本/Kill 区间，S05 实测 restore/RPO/RTO，S12 定版单位成本/预算/告警；任一最终值未证实都阻断对应 Gate/GA，但不阻塞更早的安全合同工作 | Product+SRE+Ops |
+| `U-S00-005` | main 与 v1.5 recovery 每个 unresolved path 的处置 | `VERIFIED`：1060 路径互斥覆盖，`Adopt 239 / Redo 750 / Discard 71 / Conflict 0 / unclassified 0`；S24 精确排除 | recovery/history 只读；未来只按当前 Task/AC 选择性 Redo，禁止 wholesale replay/force-push | Recovery Lead |
+
+结果：taskpack S00 unknown `5/5` 均有唯一现状分类、默认动作、owner 与 entry gate；普通依赖暂停仍为 `0`。
+`CURRENT_ABSENT/NO_TRUSTED_BASELINE/CURRENT_FAIL` 是诚实的失败基线，不是 `Ready`，也不能在后续 Gate 中自动转成 PASS。
+
 ## 3. 默认决策与授权边界
 
 | Decision ID | 场景 | 无需再次询问的默认动作 | 禁止跨越的边界 / 复核点 |
@@ -70,7 +87,7 @@ Stop 输出核心四要素——最小决策问题、已核验证据、默认建
 | `DEF-009` | 配额不足或最终数字未知 | 使用明确临时预算、在写入前拒绝超限、Flag/队列降级并继续骨架 | 不把临时测试预算写成最终产品承诺；到 S06/S12 必须实测 |
 | `DEF-010` | 搜索/统计/图表/Flag 工具选择 | DB FTS、现有边缘统计或低复杂度方案、工具无关 Flag/Canary 合同 | 独立服务必须由实测阈值和收益触发 |
 | `DEF-011` | 真实用户数据不可用 | 使用 synthetic/anonymous/canary fixture | 不读取或复制 private/raw 数据，不以 fixture 生成正式经营结论 |
-| `DEF-012` | Stage 上传 | Phase 只本地 commit；Stage 全部 Phase 完成后整体复审、修复、再上传 | `main` push 会触发生产部署，必须按 release 处理并刷新 artifact/deployment identity |
+| `DEF-012` | Stage 上传 | Phase 只本地 commit；Stage 全部 Phase 完成后整体复审、修复、再上传 | 治理-only delta 必须命中精确 path filter 并验证无 deploy；含任一运行态/未排除路径则按 release 处理并刷新 artifact/deployment identity |
 | `DEF-013` | 生产路由、Flag、临时权限 | 仅在对应 Task/Stage Gate 内做最小、可导出、可回滚变更；高风险能力默认 off | 权限限于任务且任务结束即失效；密钥、删除、迁移、路由权限与普通开发分离 |
 | `DEF-014` | 用户数据删除 | 本开发计划默认不删除任何用户数据；未来仅处理用户明确删除或获批法律/安全处置 | 删除实现必须有审计、撤销公开链接、版本/缓存生命周期与恢复边界，提前删除触发 Stop |
 
@@ -85,7 +102,7 @@ Stop 输出核心四要素——最小决策问题、已核验证据、默认建
 | S02 | Taskpack validator、CI、双平面 writer 边界 | 本地确定性 validator 先行；外部 artifact 通道只在 merge/release 使用 |
 | S03 | Cloudflare 最小变更/回滚通道、根入口/ops 边界、Chromium | 本地/preview 完成配置与 Oracle；生产保持旧边界，直到 Stage Gate 后受控切换 |
 | S04 | 高熵 secret、verifier、短时可撤销 session、滥用预算 | 使用合成 workspace/canary；不得用登录替代安全或恢复 |
-| S05 | 事务关系数据库、private versioned object store、backup/restore | 未通过资源验证则只完成 provider-neutral contract/fixture；不得把 SQLite/容器卷判为 AC PASS |
+| S05 | 事务关系数据库、private versioned object store、backup/restore、可实测 RPO/RTO | 未通过资源验证则只完成 provider-neutral contract/fixture；不得把 SQLite/容器卷或 unbounded recovery baseline 判为 AC PASS |
 | S06-S07 | 实际上传/出网配额、resumable、quarantine/scan、range/manifest | Attachment-only/Flag off/明确限额安全降级；原件安全和 hash 不可降级 |
 | S10-S12 | assurance、三引擎/移动、load/chaos、observability、容量/成本 | 未实证项保持未通过；继续无风险测试和仪表建设，不发布虚假 PASS |
 | S13 | 两套等效切流环境、Flag、post-deploy Oracle、previous artifact rollback | 不晋级 GA；保持 previous production 与数据兼容，不做破坏性 schema 回退 |
@@ -167,11 +184,12 @@ Baseline：`P04_BASELINE status=EXPECTED_FAIL missing=PREAUTHORIZED_INPUTS_CHECK
 | Default decision coverage | `P04_DEFAULTS_PASS decisions=14 stage_entries=8`；每项均有可逆动作与禁止边界 |
 | Normal dependency simulations | `6/6 CONTINUE`；普通依赖导致暂停 `0` |
 | Stop template and simulations | `4/4 FAIL_CLOSED`；完整协议 `12/12`，核心四要素 `4/4` |
+| S00 unknown closure | `S00_UNKNOWN_CLOSURE_PASS items=5 verified=2 current_absent=1 no_trusted_baseline=1 current_fail=1 unowned=0`；失败基线均绑定可逆默认与后续硬 Gate |
 | Current platform evidence | source/deploy/query 稳定；DNS/TLS route present；Access `302` baseline `4/4`；未把该缺陷伪报为 public PASS |
 | Durability baseline | 当前 SQLite 跨部署不耐久、关系 DB adapter 缺失、object adapter 缺失三项均被显式判为未达标并绑定 S05 entry |
 | Recovery/public-safety/mutation boundary | v1.5 receipt/bundle 身份不变；receipt <64 KiB；本机绝对路径 `0`；secret values `0`；无 push/deploy/平台/数据写入 |
 | Repository regression | 双平面 PASS；facts 与七个人类视图无变更；`git diff --check` PASS；候选 delta 仅本 receipt |
 
 `AC-GOV-004` 的两个阈值均满足：普通依赖造成暂停 `0`，Stop 核心输出字段完整率 `100%`。
-P0.4 通过只表示 S00 四个 Phase 候选齐备；它不等于 S00 Stage Review/G0 已通过，不授权 phase 级
-GitHub upload，也不启动 S01。下一新 run 必须先做整个 S00 的独立复审，再修复 findings，全部通过后才整体上传。
+P0.4 原始关闭时只表示 S00 四个 Phase 候选齐备；它不等于 S00 Stage Review/G0 已通过，也从未授权
+phase 级 GitHub upload。后续复审结论与修复记录只看 `S00_STAGE_REVIEW.md`；本 receipt 本身不启动 S01。

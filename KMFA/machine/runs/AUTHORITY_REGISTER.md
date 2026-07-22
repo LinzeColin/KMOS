@@ -4,6 +4,7 @@
 > Requirement `R-GOV-002` / Acceptance `AC-GOV-002` / Test `TEST-GOV-002`
 > Captured: `2026-07-22T12:38:59Z`
 > Closed: `2026-07-22T12:42:42Z`
+> Stage-review correction: `2026-07-22T13:16:08Z`
 > Status: **DONE — AC-GOV-002 PASS**
 
 本文是小于 64 KiB 的 public-safe compact receipt。它登记 namespace、唯一 writer、责任与冲突算法，但不复制产品/业务事实，不成为第八事实源。事实仍由下表指向的现有 machine 文件、Git object 或平台 manifest 写入；本 register 只回答“谁能写、从哪里读、冲突时怎么办”。
@@ -23,17 +24,22 @@
 
 ## 2. Version namespaces
 
-| Namespace / field | Current VERIFIED value | Sole authority / writer | Forbidden substitution |
+下表保存 P0.3 关闭时的 verified snapshot，不把 receipt 中的常量冒充永久 current。实时值必须从
+对应 sole writer 重新解析；特别是治理-only Stage upload 后，published main 可以合法领先于仍在运行的
+deployment source，二者必须分开显示。
+
+| Namespace / field | Captured VERIFIED value | Sole authority / writer | Forbidden substitution |
 | --- | --- | --- | --- |
 | `taskpack.version` | `1.5.2` | sealed taskpack `manifest/PACKAGE_METADATA.json` / `WR-TASKPACK-PUBLISHER` | 不得当作产品版本、Git SHA 或 deployment ID |
 | `taskpack.sha256` | `31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb` | 下载输入字节 / `WR-TASKPACK-PUBLISHER` | 不得用内部 PDF、manifest 或目录摘要代替 |
 | `product.version` | `0.1.4-one-time-github-main-upload` | `KMFA/VERSION` / `WR-RELEASE-VERSION` | `machine/facts/status.json.version` 与 changelog 条目只是域内快照，不得反向覆盖 |
-| `source.git_sha` | `68306e850fa66ffe6b53622915ca81ff8ba98bf8` | GitHub `LinzeColin/KMOS` `refs/heads/main` / `WR-STAGE-PUBLISH` | detached phase receipt commit、tree SHA、旧 clone SHA 均不得冒充生产源码 |
+| `source.published_main_sha` | `68306e850fa66ffe6b53622915ca81ff8ba98bf8` | GitHub `LinzeColin/KMOS` `refs/heads/main` / `WR-STAGE-PUBLISH` | detached phase receipt commit、tree SHA、旧 clone SHA 与部署源码均不得冒充 live published ref |
+| `deployment.source_git_sha` | `68306e850fa66ffe6b53622915ca81ff8ba98bf8` | Coolify deployment manifest / `WR-DEPLOY-PLATFORM` | published main、receipt commit 或 workflow run SHA 均不得冒充当前 deployment 的构建源码 |
 | `artifact.image_digest` | `sha256:adfc849b24e2efc471706c718377c97df07b41b4ce921f972e0cf598b0e25841` | Coolify deployment manifest/build log / `WR-DEPLOY-PLATFORM` | 不得用 source/config/SBOM ZIP digest 代替 |
 | `deployment.id` | `boh5fsnxe82umwcpqzooam1p` | Coolify deployment record / `WR-DEPLOY-PLATFORM` | resource ID、GitHub run ID 与旧 deployment UUID 均不是当前 deployment ID |
 | `deployment.completed_at` | `2026-07-22T11:39:29.000000Z` | Coolify deployment record / `WR-DEPLOY-PLATFORM` | Git commit time、workflow start/end time不得代替 |
 | `business.snapshot_version` | `0.1.4` | `machine/facts/status.json` / `WR-FACT-STATUS` | 仅标识旧业务状态快照，不得当作 `product.version` 或 taskpack version |
-| `evidence.receipt_commit` | 运行时用 `git rev-parse HEAD` 取得 | Git object / `WR-PHASE-EXECUTOR` | receipt commit 只签证据，不自动成为 `source.git_sha` 或部署身份 |
+| `evidence.receipt_commit` | 运行时用 `git rev-parse HEAD` 取得 | Git object / `WR-PHASE-EXECUTOR` | receipt commit 只签证据，不自动成为 published main 或部署身份 |
 
 字段名必须带 namespace。若两个值处于不同 namespace，它们不是冲突，必须并存且禁止互相推断。
 
@@ -46,21 +52,23 @@ taskpack.version=1.5.2
 taskpack.sha256=31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb
 product.version=0.1.4-one-time-github-main-upload
 source.repository=LinzeColin/KMOS
-source.git_sha=68306e850fa66ffe6b53622915ca81ff8ba98bf8
+source.published_main_sha=68306e850fa66ffe6b53622915ca81ff8ba98bf8
+deployment.source_git_sha=68306e850fa66ffe6b53622915ca81ff8ba98bf8
 artifact.image_digest=sha256:adfc849b24e2efc471706c718377c97df07b41b4ce921f972e0cf598b0e25841
 deployment.resource_id=gz5qao2k0zrx3polpbwgcg51
 deployment.id=boh5fsnxe82umwcpqzooam1p
 deployment.completed_at=2026-07-22T11:39:29.000000Z
 ```
 
-Binding SHA-256：`77cbacec6e8be9a9d165cccac095f9f74fd0195f276a284b51147d362b80d250`。
+Binding SHA-256：`fca5e86879e083f69a772df00c02662f117cae5d0c4cf4866509b0b25fb2aad2`。
 
 Reverse lookup is deterministic:
 
-1. 用 `deployment.id` 在受约束的只读 query workflow 查到 `source.git_sha`、`artifact.image_digest` 与 `completed_at`；query run `29916590384` 已 PASS。
-2. 用 `source.git_sha` 从 `LinzeColin/KMOS` Git object 读取 `KMFA/VERSION`，得到独立 `product.version`；不得从 taskpack 推断。
-3. 用本 binding 的 `taskpack.sha256` 定位唯一批准 ZIP，再校验其 `PACKAGE_METADATA.json`、42-entry manifest 与 validator。
-4. P0.1 receipt `SOURCE_IDENTITY.md` 保存平台证据边界；本 register 只绑定其已核验字段，不取代平台 manifest。
+1. 用 `deployment.id` 在受约束的只读 query workflow 查到 `deployment.source_git_sha`、`artifact.image_digest` 与 `completed_at`；query run `29916590384` 已 PASS。
+2. 用 `deployment.source_git_sha` 从 `LinzeColin/KMOS` Git object 读取 `KMFA/VERSION`，得到独立 `product.version`；不得从 taskpack 推断。
+3. 独立读取 GitHub `refs/heads/main` 得到 live `source.published_main_sha`；它可以因治理-only upload 与 `deployment.source_git_sha` 不同，差异本身不是生产歧义。
+4. 在 published main 上按 `deployment.id` 定位本 register，再用 binding 的 `taskpack.sha256` 定位唯一批准 ZIP，校验其 `PACKAGE_METADATA.json`、42-entry manifest 与 validator；不得声称旧 deployment source commit 内含后来才发布的 taskpack receipt。
+5. P0.1 receipt `SOURCE_IDENTITY.md` 保存平台证据边界；本 register 只绑定其已核验字段，不取代 GitHub ref、平台 manifest 或 taskpack bytes。
 
 ## 4. One-writer-per-fact-domain map
 
@@ -110,7 +118,7 @@ Reverse lookup is deterministic:
 2. **Separate**：namespace 不同则并存，禁止互代。例如 `taskpack.version=1.5.2` 与 `product.version=0.1.4-...` 不冲突。
 3. **Authorize**：同一 `fact_domain` 只接受本表 writer_id 写入；其他来源降为 evidence/reference。
 4. **Order**：合法 writer 仍冲突时按第 1 节 authority order 选择；低优先级 claim 标记 `superseded`，不得折中。
-5. **Production uniqueness**：生产 claim 必须绑定固定 resource、deployment UUID、source SHA、image digest、完成时间和 `finished` 状态。若两个 claim 都称 current，先只读查询平台 current deployment；仍无法唯一判定则触发本 Task Stop Condition，禁止发布。
+5. **Production uniqueness**：生产 claim 必须绑定固定 resource、deployment UUID、`deployment.source_git_sha`、image digest、完成时间和 `finished` 状态。`source.published_main_sha` 只表示发布 ref，不自动声称已部署。若两个 deployment claim 都称 current，先只读查询平台 current deployment；仍无法唯一判定则触发本 Task Stop Condition，禁止发布。
 6. **Candidate isolation**：本地 phase commit 只属 `source.local_phase_candidate`；完成全部 Stage Review/修复并上传前，不得改变 `source.published_main` 或 `release.current_deployment`。
 7. **Private fail-closed**：任何解析需要 raw/private/secret 明文进入公开仓时，结果只能是 `Conflict/STOP`；不得为凑齐事实复制数据。
 8. **Record**：输出 `Adopt / Redo / Discard / Conflict`、owner、default action 与 evidence；receipt 不反向修改原始事实。
@@ -142,9 +150,9 @@ Baseline before edits: `AUTHORITY_BASELINE_RECORDED status=FAIL checks=5 failed=
 | Gate | Result |
 | --- | --- |
 | Taskpack identity | Outer SHA PASS；ZIP 43 files；manifest `42/42`；validator `49 requirements / 49 AC / 14 stages / 56 tasks`, 0 errors/warnings |
-| Namespace / writer structure | `AUTHORITY_FOCUSED_PASS namespaces=9 fact_domains=29 facts_covered=14 seven_views=7 binding=77cbacec` |
+| Namespace / writer structure | `AUTHORITY_FOCUSED_PASS namespaces=10 fact_domains=29 facts_covered=14 seven_views=7 binding=fca5e868`；published main 与 deployed source 各有唯一 writer |
 | Conflict algorithm | `AUTH_RESOLVE_1_PASS cases=6 production_stop_negative=PASS`；different namespaces coexist, unauthorized writer rejected, ambiguous production stops |
-| Reverse trace | `REVERSE_TRACE_PASS deployment->source->product->taskpack binding=77cbacec`；query run `29916590384` and Git/taskpack bytes independently matched |
+| Reverse trace | `REVERSE_TRACE_PASS deployment->deployed-source + published-main->taskpack binding=fca5e868`；query run `29916590384`、Git ref/object 与 taskpack bytes independently matched |
 | Production uniqueness | Latest deploy run `29916233128` and query run `29916590384` both bind `68306e8... / adfc849b... / boh5fsnx...`; current claims `1`, ambiguity `0` |
 | Existing governance | 14 business facts preserved byte-for-byte；seven rendered files unchanged；dual-plane PASS；no eighth fact writer created |
 | Public safety | Intended pre-HANDOFF delta 3 public-safe files；receipts <64 KiB；new absolute local paths `0`；secret/token/key hits `0`; forbidden payloads `0` |

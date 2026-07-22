@@ -1,6 +1,7 @@
 # KMFA → Coolify 自动部署（Golden Path caller）。
 # 治理（Owner 2026-07-18）：统一走 Coolify（OVH 主机）+ Cloudflare，不加第四件。
-#   push main → 经 Coolify API token 触发重部署 KMOS 应用（uuid 由基建线 operate 预建）。
+#   影响运行态的 main push → 经 Coolify API token 触发重部署 KMOS 应用（uuid 由基建线 operate 预建）。
+#   仅修改 KMFA 治理合同、handoff、导航和 compact receipt 时不重建同一运行态。
 #   复用工作流 LinzeColin/CodexProject：verify → deploy → home-sync。
 #   skills 默认 KMFA_DELIVERY_ENABLED=0（dry-run，不投递）；无入站端口。
 # secrets COOLIFY_BASE_URL / COOLIFY_API_TOKEN 由基建线在 KMOS 仓预设（最小 deploy+read 权限）。
@@ -9,6 +10,17 @@ name: deploy
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - ".github/workflows/deploy.yml"
+      - "KMFA/AGENTS.md"
+      - "KMFA/HANDOFF.md"
+      - "KMFA/machine/README.md"
+      - "KMFA/machine/runs/SOURCE_IDENTITY.md"
+      - "KMFA/machine/runs/RECOVERY_RECONCILIATION.md"
+      - "KMFA/machine/runs/RECOVERY_RECONCILIATION.csv"
+      - "KMFA/machine/runs/AUTHORITY_REGISTER.md"
+      - "KMFA/machine/runs/PREAUTHORIZED_INPUTS_CHECKLIST.md"
+      - "KMFA/machine/runs/S00_STAGE_REVIEW.md"
 
 jobs:
   golden-path:
