@@ -9,7 +9,7 @@
 | 目录 | 装什么 | 现状 |
 |---|---|---|
 | `facts/` | 14 个既有业务状态事实（status/features/flows/plan/acceptance/ops/blockers/changelog...） | 已填充；描述旧业务状态域，不代表 v1.5.2 delivery 进度 |
-| `runs/` | compact public-safe receipts；完整日志与制品外置 | 已含清理交接、P0.1-P0.4、S00 Stage Review、P1.1 Customer PR/FAQ、P1.2 PRD/OKR、P1.3 Cost/Benefit/Kill 及 P1.4 Product Contract 记录 |
+| `runs/` | compact public-safe receipts；完整日志与制品外置 | 已含清理交接、P0.1-P0.4、S00 Stage Review、P1.1 Customer PR/FAQ、P1.2 PRD/OKR、P1.3 Cost/Benefit/Kill、P1.4 Product Contract 及 S01 Stage Review 记录 |
 | `tools/` | 三道门 + 渲染器 | 已装 |
 | `legacy/` | v0.1.4 遗留记录指针（就地引用，未搬动，见其 README） | 指针 |
 

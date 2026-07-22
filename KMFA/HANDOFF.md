@@ -3,17 +3,17 @@
 ## v1.5.2 公开软件交付线（2026-07-23）
 
 - 当前唯一执行基线：用户提供的 `KMFA_Product_Design_Taskpack_v1.5.2.zip`，SHA-256 `31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb`；产品/runtime 版本仍为 `0.1.4-one-time-github-main-upload`，两者禁止混用。
-- 最近完成的唯一执行单元：`S01 / P1.4 / T-S01-04`。`machine/runs/S01_P14_PRODUCT_CONTRACT.md` 已把 sealed pursuing goal、根路径/免账号/匿名恢复/耐久存储/任意文件/默认隐私六项精确定义、P0/P1 范围、失败 Baseline、观察窗口和 Range Change Gate 冻结；`D-001..D-014 = 14/14` 完整追踪，登录/基础设施等负向变异 `8/8` 被正确拒绝或推迟。Product contract PASS，但 production 仍为 `302`，S01 Stage Review/runtime/GA 均未通过。
+- 最近完成的唯一执行单元：**S01 全 Stage Review**。P1.1–P1.4、四个 sealed Task Test 与问题/用户/价值/非目标/指标/观察期/经济判据/范围八项 Stage Gate 已整体重放；发现 `F-S01-001`：旧 10-path filter 会让纯 S01 治理上传误触生产 rebuild，现以 5 个 S01 精确路径修复并同步预授权，`total=1 / resolved=1 / open=0`。见 `machine/runs/S01_STAGE_REVIEW.md`；结论为 `S01 PASS / G1 pending S02`，不是 runtime/GA PASS。
 - P1.1 的 12 FAQ/12 反证、P1.2 的 5 类用户/JTBD、10 步匿名旅程、P0 `12/12` + P1 `7/7`、`4 Objectives / 12 KRs`，以及 P1.3 的重大能力 `8/8`、低/基/高情景、敏感性、机会成本和 Kill 继续作为 P1.4 的冻结输入。工程总量沿用 task-level `58.5–106 engineer-days`，运行成本只作可重算公式；真实采用率、收益、账户账单、流量、容量与单点 ROI 均未伪造。2026-07-23 已只读刷新官方 R2 pricing/limits，实施和预算 Gate 仍须按当日账户与官方资料重取。
 - 整个 S00 已完成复审、修复并上传：P0.1-P0.4、`AC-GOV-001/002/004`、S00 Stage Gate 与 `G0 Authority` 整体复验，4 个 findings 全部修复、open finding `0`，见 `machine/runs/S00_STAGE_REVIEW.md`；发布后的 `main` 为 `6a9f2163d00adc000e965bf6bffbc0ed59283d7a`。S01 中间 phase 只作本地 commit，不上传 GitHub。
-- 发布闭合采用可验证规则而不是自引用 SHA：本文件所在 commit 只有在 `git ls-remote origin refs/heads/main` 与该 commit 相等时才是已发布的 S00；不相等则仍待非破坏性 Stage upload。published main 必须从 GitHub ref 实时读取，deployment source 必须从 Coolify manifest 实时读取，二者不再混用。
-- 复审 capture 时生产唯一链仍为 deployment source `68306e850fa66ffe6b53622915ca81ff8ba98bf8`、image `sha256:adfc849b24e2efc471706c718377c97df07b41b4ce921f972e0cf598b0e25841`、Coolify deployment `boh5fsnxe82umwcpqzooam1p`、completed `2026-07-22T11:39:29.000000Z`；GitHub deploy/query runs 为 `29916233128` / `29916590384`。治理-only Stage upload 仅由最终 10 个文件的精确 path filter 跳过生产重建，没有目录通配符；因此发布后 main 合法领先于该 deployed source。若出现新 deploy，必须重新查询四元组而非猜测。
+- 发布闭合采用可验证规则而不是自引用 SHA：本文件所在 commit 只有在 `git ls-remote origin refs/heads/main` 与该 commit 相等、远端治理 Gate 通过且该 SHA 没有 deploy run 时，才是已发布的 S01；不相等则仍待非破坏性 Stage upload。published main 必须从 GitHub ref 实时读取，deployment source 必须从 Coolify manifest 实时读取，二者不得混用。
+- 复审 capture 时生产唯一链仍为 deployment source `68306e850fa66ffe6b53622915ca81ff8ba98bf8`、image `sha256:adfc849b24e2efc471706c718377c97df07b41b4ce921f972e0cf598b0e25841`、Coolify deployment `boh5fsnxe82umwcpqzooam1p`、completed `2026-07-22T11:39:29.000000Z`；GitHub deploy/query runs 为 `29916233128` / `29916590384`。S01 最终 candidate 为 9 个治理路径，全部落在当前 15 个精确 path filter entries 内且无目录通配符；上传后必须验证没有新 deploy，否则重新查询四元组并停止晋级。
 - Owner 提供的 `fb31e8e... / sha256:0b09ca... / qcq1q8m... / 2026-07-20T21:50:47Z` 已由 query run `29916243207` 原样复核，作为上一部署的回滚/溯源记录保留。收口前发现 `main` 已前进并自动产生新部署，因此没有把旧 tuple 冒充当前身份。
 - v1.5 恢复 bundle `1ee7fb111` 仍是不可变兜底，SHA-256 `2d0b516f...` 且 verify PASS；另发现并核验历史仓公开 recovery ref 已前进至 `268acce792`，仍为 PARTIAL 且 S24 路径为 0。受保护 full-sweep 的 1060 路径已互斥分类为 `Adopt 239 / Redo 750 / Discard 71 / Conflict 0 / 未分类 0`；`Redo` 只表示按当前 v1.5.2 Task/AC 重做所需行为，不重建旧文件。未 replay、merge、force-push 或复制私有元数据。
 - 旧业务 `machine/facts` 的 S05/A0/Q4/BLK-001 与当前 v1.5.2 delivery DAG 已分属不同 namespace：前者继续约束正式财务结论，后者决定本轮公开软件开发；14 个既有 facts 未在 P0.3 改写，七文件仍只由 renderer 生成。
 - P0.4/S00 继续保留真实失败基线：现有 App SQLite `/var/lib/kmfa/state` 未挂耐久卷，生产关系数据库、S3-compatible object adapter 与 backup/restore 均未实现，所以当前有限 RPO/RTO 不可证明，按 `unbounded/not recoverable` 处理。Taskpack 的 5 项 S00 unknown 已 `5/5` 绑定现状、默认动作、owner 与后续硬 Gate；这不会被伪报为 durable PASS。
-- 当前总进度：Task `8/56`、Stage `1/14`；S01 phases 已达 `4/4`，但整个 S01 尚未复审、修复、通过或上传，因此 Stage 完成数仍只计 S00。根入口仍被 Cloudflare Access 返回 `302`，匿名完整使用、耐久 DB/object、任意文件安全上传下载、canary/rollback 等产品能力均尚未完成，不因产品合同冻结而提前宣称上线达标。
-- 下一步：下一个新 run 先刷新 `origin/main` 与 deployment identity，然后严格只执行 **S01 全 Stage Review**，对 P1.1–P1.4 和 Stage Gate 整体复验；发现的问题必须先修复并重验，open finding 为 0 后才一次性上传整个 S01。不得跳过复审进入 S02，也不得回到 phase 级上传。
+- 当前总进度：Task `8/56`。若本 commit 满足上述远端发布闭合规则，则 Stage `2/14`；否则仍为 `1/14` 并待 S01 Stage upload。根入口仍被 Cloudflare Access 返回 `302`，匿名完整使用、耐久 DB/object、任意文件安全上传下载、canary/rollback 等产品能力均尚未完成，不因 `S01 PASS` 提前宣称上线达标。
+- 下一步：只有 S01 远端发布闭合后，下一个新 run 才能执行 **S02 / P2.1 / T-S02-01**，每 run 仍最多一个 phase；不得在本 run 启动 S02，也不得把 `G1` 提前判 PASS。
 
 下列既有交接主体更新时间：2026-07-17（Australia/Sydney）
 

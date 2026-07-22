@@ -21,6 +21,11 @@ on:
       - "KMFA/machine/runs/AUTHORITY_REGISTER.md"
       - "KMFA/machine/runs/PREAUTHORIZED_INPUTS_CHECKLIST.md"
       - "KMFA/machine/runs/S00_STAGE_REVIEW.md"
+      - "KMFA/machine/runs/S01_P11_CUSTOMER_PRFAQ.md"
+      - "KMFA/machine/runs/S01_P12_PRD_OKR.md"
+      - "KMFA/machine/runs/S01_P13_COST_BENEFIT_AND_KILL_CRITERIA.md"
+      - "KMFA/machine/runs/S01_P14_PRODUCT_CONTRACT.md"
+      - "KMFA/machine/runs/S01_STAGE_REVIEW.md"
 
 jobs:
   golden-path:
