@@ -486,6 +486,13 @@ class Stage042AutomaticLifecycleDeliveryTests(unittest.TestCase):
                 in handoff
                 and "Next allowed task: `IDS-V0_1-STAGE047-P2`" in handoff
             )
+            or (
+                status["phase"] == "IDS-STAGE047-P2"
+                and status["next_gate"] == "IDS-STAGE047-P3-GATE"
+                and "Completed task in this run: `IDS-V0_1-STAGE047-P2`"
+                in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE047-P3`" in handoff
+            )
         )
 
     def test_cli_report_matches_in_process_report(self):

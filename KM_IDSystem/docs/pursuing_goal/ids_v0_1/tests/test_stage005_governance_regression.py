@@ -23,10 +23,10 @@ class Stage005GovernanceRegressionTests(unittest.TestCase):
 
     def _tamper_current_stage046_phase1_route(self, batch_text: str) -> str:
         tampered = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE047-P1"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE047-P2"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE047-P1"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE047-P2-BROKEN"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE047-P2"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE047-P3"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE047-P2"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE047-P3-BROKEN"',
         )
         self.assertNotEqual(batch_text, tampered)
         return tampered
@@ -11096,7 +11096,7 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         )
         self.assertFalse(all(blocked.values()), blocked)
 
-    def test_stage047_phase1_current_state_and_event_are_governed(self):
+    def test_stage047_phase2_current_state_and_event_are_governed(self):
         module = self._load_module()
         batch_text = (
             ROOT
@@ -11126,34 +11126,33 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
             event
             for event in events
             if event.get("event_id")
-            == "EVT-IDS-V0_1-STAGE047-P1-20260722-001"
+            == "EVT-IDS-V0_1-STAGE047-P2-20260723-001"
         ]
         self.assertEqual(1, len(phase_events))
         self.assertEqual([], module.evaluate_required_event_semantics(phase_events))
 
         for required_path in (
-            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_ENTRY_CONTRACT.md",
             "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
-            "STAGE047_PHASE1_PARSER_OUTPUT_SCOPE_BOUNDARY.md",
+            "STAGE047_PHASE2_PARSER_OUTPUT_SLICE.md",
             "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/"
-            "stage047_parser_output_contract.json",
-            "KM_IDSystem/scripts/check_parser_output.py",
+            "stage047_parser_output_runtime_contract.json",
+            "KM_IDSystem/scripts/check_parser_output_runtime.py",
             "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
-            "test_stage047_parser_output.py",
-            "KM_IDSystem/machine/runs/2026-07-22-stage047-p1-local.json",
+            "test_stage047_parser_output_runtime.py",
+            "KM_IDSystem/machine/runs/2026-07-23-stage047-p2-local.json",
         ):
             with self.subTest(path=required_path):
                 self.assertIn(required_path, module.REQUIRED_FILES)
         self.assertIn(
-            "EVT-IDS-V0_1-STAGE047-P1-20260722-001",
+            "EVT-IDS-V0_1-STAGE047-P2-20260723-001",
             module.REQUIRED_EVENT_IDS,
         )
 
         tampered_contract = batch_text.replace(
-            '    parser_output_contract_schema: '
-            '"ids.stage047.parser_output.phase1.v1"',
-            '    parser_output_contract_schema: '
-            '"ids.stage047.parser_output.phase1.invalid"',
+            '    parser_output_runtime_contract_schema: '
+            '"ids.stage047.parser_output.phase2.v1"',
+            '    parser_output_runtime_contract_schema: '
+            '"ids.stage047.parser_output.phase2.invalid"',
         )
         self.assertNotEqual(batch_text, tampered_contract)
         blocked = module.evaluate_phase_state(
@@ -11163,8 +11162,8 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
 
         tampered_event = dict(phase_events[0])
         tampered_event["notes"] = tampered_event["notes"].replace(
-            "nested_item_schema_count=4",
-            "nested_item_schema_count=3",
+            "accepted_output_count=3",
+            "accepted_output_count=2",
         )
         self.assertNotEqual(phase_events[0]["notes"], tampered_event["notes"])
         self.assertNotEqual(

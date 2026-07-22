@@ -1,5 +1,10 @@
 [
   {
+    "version": "`v0.1-stage047-p2-local`",
+    "date": "2026-07-23",
+    "summary": "交付纯内存解析器输出归一化切片：三个非业务控制覆盖 `candidate/partial/failed`，精确验证 `routing lineage`、18 字段 envelope、版本/置信度、安全错误、嵌套引用与证据文本边界；fixture adapter 不是真实解析器，业务源、解析器、回退、质量门、持久化、步骤三、上传与生产动作保持关闭。"
+  },
+  {
     "version": "`v0.1-stage047-p1-local`",
     "date": "2026-07-22",
     "summary": "绑定批准来源与不可变 Stage046 复审快照，交付 reference-only route input、18 字段 parser output envelope、text/tables/pages/sections/confidence/errors 六字段精确形状、嵌套 schema、lineage、safe error 和质量/证据失败关闭合同；业务源、解析器、输出、回退、差异评估、提示注入扫描、持久化、步骤二、上传与生产动作保持关闭。"

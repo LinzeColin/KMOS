@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE047"
-current_phase_id: "IDS-STAGE047-P1"
-current_task_id: "IDS-V0_1-STAGE047-P1"
-next_gate_id: "IDS-STAGE047-P2-GATE"
+current_phase_id: "IDS-STAGE047-P2"
+current_task_id: "IDS-V0_1-STAGE047-P2"
+next_gate_id: "IDS-STAGE047-P3-GATE"
 current_transition_history:
+  stage047_phase2_state:
+    current_stage_id: "IDS-STAGE047"
+    current_phase_id: "IDS-STAGE047-P2"
+    current_task_id: "IDS-V0_1-STAGE047-P2"
+    next_gate_id: "IDS-STAGE047-P3-GATE"
   stage047_phase1_state:
     current_stage_id: "IDS-STAGE047"
     current_phase_id: "IDS-STAGE047-P1"
@@ -12309,9 +12314,9 @@ stages:
     status: "in_progress"
     pursuing_goal: "统一 parser 输出格式，精确定义 text、tables、pages、sections、confidence、errors，并阻断未通过质量门的证据提升。"
     stop_gate:
-      gate_id: "IDS-STAGE047-P1-GATE"
+      gate_id: "IDS-STAGE047-P2-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE047-P2-GATE"
+      next_gate_id: "IDS-STAGE047-P3-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_ENTRY_CONTRACT.md"
@@ -12320,6 +12325,11 @@ stages:
       - "KM_IDSystem/scripts/check_parser_output.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output.py"
       - "KM_IDSystem/machine/runs/2026-07-22-stage047-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_PHASE2_PARSER_OUTPUT_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/stage047_parser_output_runtime_contract.json"
+      - "KM_IDSystem/scripts/check_parser_output_runtime.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_runtime.py"
+      - "KM_IDSystem/machine/runs/2026-07-23-stage047-p2-local.json"
     phases:
       - phase_id: "IDS-STAGE047-P1"
         name: "解析器输出范围、输入输出与边界确认"
@@ -12387,3 +12397,70 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
             risk: "若 route/output identity、nested refs、safe errors 或 quality gate 可被绕过，parser 候选内容可能污染证据链、泄露原始异常或被误作系统指令。"
             rollback: "只回滚 Stage047 Phase1 contract/checker/tests/docs/governance/event/handoff/owner-view；保留 Stage046 review、全部原始/事实/审计资料、GitHub 与 app 状态。"
+      - phase_id: "IDS-STAGE047-P2"
+        name: "隔离解析器输出归一化切片"
+        objective: "仅用三个有界、合成、非业务的预解析控制 payload，在内存中构造并验证精确 Stage047 输出 envelope，记录 fixture-only parser version/confidence 与来源链；不读取源文件或执行解析器。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        phase3_entry_authorized: false
+        push_allowed: false
+        stop_conditions:
+          - "打开、stat、hash、sniff、解码、解压、扫描或遍历任何 IDS 业务文件或 raw metadata"
+          - "重新检测文件类型、实际评估路线、改动 Stage046 registry、选择、分派或执行 parser"
+          - "运行 fallback、差异评估、Stage050 prompt-injection scanner 或质量门"
+          - "把 fixture output 冒充 IDS 业务 parser output，提升证据，或写 manifest、evidence ledger、audit、index、report、database、job、state 或 runtime output"
+          - "进入 Phase 3、Phase 4、stage review、batch review、GitHub upload、merge 或 app reinstall"
+        stop_gate:
+          gate_id: "IDS-STAGE047-P2-GATE"
+          status: "passed_with_local_evidence"
+          pass_conditions:
+            - "Runtime contract binds the approved source, exact committed Phase1 predecessor and all six immutable Phase1 artifacts"
+            - "Three bounded non-business controls produce exactly one candidate, one partial and one failed output envelope"
+            - "The mandatory Stage046 routing request proves source/detection/request/route lineage before normalization"
+            - "All accepted envelopes use the exact 18-field Phase1 shape, canonical output identity, unique nested IDs, rectangular tables and resolvable references"
+            - "Fixture parser version and confidence are recorded while the adapter stays CONTROL_FIXTURE_ONLY_NOT_STAGE046_RUNTIME_PARSER"
+            - "Instruction-like content stays UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY and cannot authorize tools or override policy"
+            - "No business source I/O, actual route/parser/fallback/quality execution, persistence, raw metadata or production action occurs"
+            - "The only next gate is IDS-STAGE047-P3-GATE"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_PHASE2_PARSER_OUTPUT_SLICE.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/stage047_parser_output_runtime_contract.json"
+            - "KM_IDSystem/scripts/check_parser_output_runtime.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_runtime.py"
+            - "KM_IDSystem/machine/runs/2026-07-23-stage047-p2-local.json"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE047-P2"
+            name: "实现隔离解析器输出归一化切片"
+            objective: "以三个纯内存控制证明 parser output envelope、lineage、版本/置信度、安全错误和证据文本边界可执行且失败关闭，同时保持所有真实解析与外部副作用关闭。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE047-P1"
+              - "ids.parser_output.v0_1.stage047.p1"
+              - "ids.parser_routing.v0_1.stage046.p2"
+              - "ids.file_type_detector.v0_1.stage045.p2"
+            acceptance_ids:
+              - "ACC-STAGE-047"
+            test_commands:
+              - "python3 -B KM_IDSystem/scripts/check_parser_output_runtime.py"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage047_parser_output_runtime"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage047_parser_output KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage047_parser_output_runtime"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage005_governance_regression"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage04[1-7]*.py' -q"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -q"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+              - "python3 -B KM_IDSystem/machine/tools/check_dual_plane_ci.py --projects KM_IDSystem --require-projects"
+              - "events.jsonl parse, duplicate-id and semantic checks"
+              - "git diff --check"
+            test_results: "TDD RED ran 16 focused tests with three expected governance failures and fifteen expected missing-artifact errors. Core implementation then passed 15/16; the sole remaining failure was the expected P2-to-P3 governance transition. Final layered validation is recorded in the Stage047 Phase2 machine run and changelog."
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_PHASE2_PARSER_OUTPUT_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/stage047_parser_output_runtime_contract.json"
+              - "KM_IDSystem/scripts/check_parser_output_runtime.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_runtime.py"
+              - "KM_IDSystem/machine/runs/2026-07-23-stage047-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+            risk: "若 fixture adapter 被误作 Stage046 runtime parser、routing_request lineage 可被省略、或 control envelope 被冒充业务证据，将污染后续质量与来源链。"
+            rollback: "只回滚 Stage047 Phase2 runtime contract/checker/tests/docs/governance/event/handoff/owner-view；保留已提交 Phase1、Stage046 review、全部原始/事实/审计资料、GitHub 与 app 状态。"

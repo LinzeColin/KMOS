@@ -358,9 +358,18 @@ def _canonical_finding_checks() -> dict[str, bool]:
             and 'next_gate_id: "IDS-STAGE045-P1-GATE"' in roadmap
             and REVIEW_EVENT_ID in events
             and "STAGE044-REVIEW-F6" in review
-            and "Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`"
-            in handoff
-            and "Next allowed task: `IDS-V0_1-STAGE045-P1`" in handoff
+            and (
+                (
+                    "Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`"
+                    in handoff
+                    and "Next allowed task: `IDS-V0_1-STAGE045-P1`" in handoff
+                )
+                or (
+                    "Completed task in this run: `IDS-V0_1-STAGE047-P2`"
+                    in handoff
+                    and "Next allowed task: `IDS-V0_1-STAGE047-P3`" in handoff
+                )
+            )
         ),
     }
 
@@ -451,6 +460,11 @@ def _governance_checks() -> dict[str, bool]:
                 "Completed task in this run: `IDS-V0_1-STAGE047-P1`"
                 in top_handoff
                 and "Next allowed task: `IDS-V0_1-STAGE047-P2`" in top_handoff
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE047-P2`"
+                in top_handoff
+                and "Next allowed task: `IDS-V0_1-STAGE047-P3`" in top_handoff
             )
         ),
         "machine_run_exact": (

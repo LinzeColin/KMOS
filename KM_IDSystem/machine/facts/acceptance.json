@@ -1,6 +1,36 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE047-P2-01`",
+      "criteria": "批准来源、已提交 Stage047 Phase1 commit/root/KM_IDSystem tree/父提交与六项 Phase1 工件哈希均实时重验且精确绑定",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P2-02`",
+      "criteria": "三个有界非业务控制分别产生一个 `candidate`、`partial` 与 `failed envelope`，输出身份唯一且无静默成功、丢弃或解析器切换",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P2-03`",
+      "criteria": "`mandatory routing_request` 精确证明 `source/detection/request/route lineage`；18 字段 envelope、六字段 payload、矩形表格、嵌套 ID 与引用均失败关闭",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P2-04`",
+      "criteria": "`fixture-only parser version/confidence` 被记录；adapter 明确不是 Stage046 runtime parser，不能授权选择、分派、执行或生产使用",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P2-05`",
+      "criteria": "命令式控制文本固定为 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`；初始质量处置不冒充质量门、来源证明或高可信证据",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P2-06`",
+      "criteria": "未读取业务源或原始元数据，未执行类型重检、实际路线、解析器、回退、差异评估、提示扫描、质量门、持久化、步骤三、上传、合并、重装或生产激活",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE047-P1-01`",
       "criteria": "批准归档、唯一 Stage047 成员、roadmap、instructions、执行索引和 Stage046 review commit/root/KM_IDSystem tree 均精确绑定并实时重验",
       "status": "已通过"

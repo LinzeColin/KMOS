@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-22T13:52:20Z"
-status: "stage047_phase1_completed"
+updated_at_utc: "2026-07-22T16:27:07Z"
+status: "stage047_phase2_completed"
 
 transition_history:
+  stage047_phase2_state:
+    status: "stage047_phase2_completed"
+    current_task_id: "IDS-V0_1-STAGE047-P2"
+    next_gate: "IDS-STAGE047-P3-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE047-P3"
+    github_upload_allowed: false
   stage047_phase1_state:
     status: "stage047_phase1_completed"
     current_task_id: "IDS-V0_1-STAGE047-P1"
@@ -1116,16 +1122,17 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
   STAGE-047:
-    status: "stage047_phase1_completed"
+    status: "stage047_phase2_completed"
     completed_phases:
       - "Phase 1"
+      - "Phase 2"
     next_stage: "STAGE-047"
-    next_gate: "IDS-STAGE047-P2-GATE"
-    current_task_id: "IDS-V0_1-STAGE047-P1"
+    next_gate: "IDS-STAGE047-P3-GATE"
+    current_task_id: "IDS-V0_1-STAGE047-P2"
     acceptance_id: "ACC-STAGE-047"
-    acceptance_status: "phase1_local_passed"
+    acceptance_status: "phase2_local_passed"
     review_status: "pending"
-    phase2_entry_authorized: false
+    phase2_entry_authorized: true
     phase3_entry_authorized: false
     phase4_entry_authorized: false
     source_verification_status: "SOURCE_VERIFIED"
@@ -1140,7 +1147,14 @@ stage_progress:
     parser_output_contract_id: "ids.parser_output.v0_1.stage047.p1"
     parser_output_contract_schema: "ids.stage047.parser_output.phase1.v1"
     phase1_contract_valid: true
-    contract_state: "PHASE1_ENGINEERING_CONTRACT_PARSER_OUTPUT_RUNTIME_DISABLED"
+    parser_output_runtime_contract_schema: "ids.stage047.parser_output.phase2.v1"
+    normalizer_version: "ids.parser.output_normalizer.v0_1.stage047.p2"
+    control_adapter_id: "ids.parser.output.control_fixture_adapter.v0_1.stage047.p2"
+    control_adapter_state: "CONTROL_FIXTURE_ONLY_NOT_STAGE046_RUNTIME_PARSER"
+    control_parser_version: "ids.parser.control_fixture.v0_1.stage047.p2"
+    control_parser_version_status: "RECORDED_CONTROL_FIXTURE_ONLY"
+    phase2_slice_valid: true
+    contract_state: "PHASE2_CONTROL_OUTPUT_NORMALIZATION_VALID_PARSER_RUNTIME_DISABLED"
     required_envelope_field_count: 18
     required_parser_output_field_count: 6
     nested_item_schema_count: 4
@@ -1148,6 +1162,10 @@ stage_progress:
     output_identity_scope: "INTEGRITY_ONLY_NOT_EXTERNAL_PROVENANCE_OR_QUALITY_APPROVAL"
     parser_content_fact_level: "CANDIDATE"
     initial_quality_gate_state: "UNASSESSED"
+    isolated_output_normalization_count: 3
+    candidate_output_count: 1
+    partial_output_count: 1
+    failed_output_count: 1
     stage048_fallback_owner_preserved: true
     stage049_differential_evaluation_owner_preserved: true
     stage050_prompt_injection_owner_preserved: true
@@ -1160,10 +1178,21 @@ stage_progress:
     source_file_open_performed: false
     file_type_redetection_performed: false
     route_evaluation_performed: false
+    actual_route_evaluation_performed: false
+    synthetic_control_route_fixture_evaluated: true
+    synthetic_control_payload_evaluated: true
+    routing_lineage_proof_verified: true
+    in_memory_output_normalization_performed: true
+    candidate_output_envelope_constructed: true
+    parser_version_recorded: true
+    parser_confidence_recorded: true
+    evidence_text_classification_enforced: true
+    initial_quality_disposition_assigned: true
     parser_selected: false
     parser_dispatch_performed: false
     parser_execution_performed: false
     parser_output_produced: false
+    ids_business_parser_output_produced: false
     fallback_execution_performed: false
     differential_evaluation_performed: false
     prompt_injection_scan_performed: false
@@ -1182,7 +1211,7 @@ stage_progress:
     schema_change_performed: false
     runtime_output_written: false
     production_runtime_activation_performed: false
-    phase2_started: false
+    phase2_started: true
     phase3_started: false
     phase4_started: false
     whole_stage_review_performed: false
@@ -1197,12 +1226,17 @@ stage_progress:
       - "KM_IDSystem/scripts/check_parser_output.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output.py"
       - "KM_IDSystem/machine/runs/2026-07-22-stage047-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_PHASE2_PARSER_OUTPUT_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/stage047_parser_output_runtime_contract.json"
+      - "KM_IDSystem/scripts/check_parser_output_runtime.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_runtime.py"
+      - "KM_IDSystem/machine/runs/2026-07-23-stage047-p2-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE047-P1"
-  next_allowed_task_id: "IDS-V0_1-STAGE047-P2"
+  current_task_id: "IDS-V0_1-STAGE047-P2"
+  next_allowed_task_id: "IDS-V0_1-STAGE047-P3"
   github_upload_allowed: false
-  current_run: "STAGE-047 Phase 1 binds the approved source and immutable Stage046 reviewed-local snapshot, then defines an exact parser-output envelope, six core fields, lineage, safe errors and quality/evidence boundaries while all runtime effects remain disabled."
-  no_upload_reason: "BATCH041_050 has six completed and individually reviewed Stages plus Stage047 Phase1 only; Stage047 Phase2-4/review, STAGE-048..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."
+  current_run: "STAGE-047 Phase 2 normalizes three bounded non-business control payloads into exact candidate, partial and failed output envelopes with canonical lineage, parser version/confidence, safe errors and evidence-only text classification. The adapter is fixture-only; no source file, Stage046 runtime parser, fallback, quality evaluation, persistence or production action ran."
+  no_upload_reason: "BATCH041_050 has six completed and individually reviewed Stages plus Stage047 Phase1-2 only; Stage047 Phase3-4/review, STAGE-048..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."

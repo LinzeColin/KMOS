@@ -355,6 +355,7 @@ class Stage038WorkerQueueRuntimePhase2Tests(unittest.TestCase):
             or roadmap["next_gate_id"] == "IDS-STAGE046-REVIEW-GATE"
             or roadmap["next_gate_id"] == "IDS-STAGE047-P1-GATE"
             or roadmap["next_gate_id"] == "IDS-STAGE047-P2-GATE"
+            or roadmap["next_gate_id"] == "IDS-STAGE047-P3-GATE"
             or roadmap["next_gate_id"]
             == "IDS-V0_1-BATCH-031-040-REVIEW-GATE"
             or roadmap["next_gate_id"]

@@ -228,11 +228,16 @@ class Stage044HalfProductCleanupReviewTests(unittest.TestCase):
             self.assertIn(marker, roadmap)
         self.assertIn(REVIEW_EVENT_ID, events)
         top = "\n".join(handoff.splitlines()[:32])
-        self.assertIn(
-            "Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`",
-            top,
+        self.assertTrue(
+            (
+                "Completed task in this run: `IDS-V0_1-STAGE044-REVIEW`" in top
+                and "Next allowed task: `IDS-V0_1-STAGE045-P1`" in top
+            )
+            or (
+                "Completed task in this run: `IDS-V0_1-STAGE047-P2`" in top
+                and "Next allowed task: `IDS-V0_1-STAGE047-P3`" in top
+            )
         )
-        self.assertIn("Next allowed task: `IDS-V0_1-STAGE045-P1`", top)
 
     def test_review_preserves_delete_and_external_effect_prohibitions(self):
         report = self._review().build_stage044_review_report()

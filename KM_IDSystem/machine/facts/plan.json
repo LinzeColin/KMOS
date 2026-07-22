@@ -1,20 +1,21 @@
 {
   "stage": "`IDS-STAGE047`",
-  "phase": "`IDS-STAGE047-P1`",
-  "task": "`IDS-V0_1-STAGE047-P1`",
-  "owner": "Codex 专属 KMOS worktree，Stage047 解析器输出合同步骤一",
-  "objective": "绑定批准来源与 Stage046 已复审快照，定义精确 parser output envelope、六个核心字段、嵌套引用、safe error 与质量证据边界。",
+  "phase": "`IDS-STAGE047-P2`",
+  "task": "`IDS-V0_1-STAGE047-P2`",
+  "owner": "Codex 专属 KMOS worktree，Stage047 解析器输出合同步骤二",
+  "objective": "用三个有界、合成、非业务的预解析控制 payload，在内存中构造并验证精确 parser output envelope、lineage、版本/置信度、安全错误与证据文本边界。",
   "scope": [
-    "实时重新计算批准归档、唯一 Stage047 成员、roadmap、instructions 与执行索引哈希，并绑定 Stage046 review commit/root/KM_IDSystem tree/父链",
-    "从 Stage046 immutable snapshot 重新计算 Stage045 detection、Stage046 Phase1-4、review 与 raw-data 边界九项工件哈希",
-    "定义 reference-only route input、18 字段 envelope、六字段 exact shape、四个 nested item schema、lineage、empty/partial/failure、安全错误与质量门",
-    "保留 Stage048 fallback、Stage049 differential evaluation 与 Stage050 prompt-injection runtime ownership"
+    "实时重验批准来源、已提交 Stage047 Phase1 commit/root/KM_IDSystem tree/父链与六项 Phase1 工件哈希",
+    "保留 Phase1 五字段 wrapper 并增加 exact Stage046 routing_request lineage proof，拒绝来源、检测、请求或路线身份漂移",
+    "用三个纯内存控制覆盖 candidate、partial、failed，验证 18 字段 envelope、六字段 payload、矩形表格、唯一嵌套 ID、可解析引用与 safe error",
+    "记录 fixture-only parser version/confidence，固定 UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY，并保留 Stage048-050 ownership"
   ],
   "non_goals": [
-    "不执行 Stage047 Phase2、Phase3、Phase4、整阶段复审、十阶段批次复审或上传门禁",
-    "不打开真实业务源文件，不重新检测类型或评估路线，不选择、分派或执行解析器，不创建 parser output，不运行回退、差异评估、提示注入扫描或质量门",
+    "不执行 Stage047 Phase3、Phase4、整阶段复审、十阶段批次复审或上传门禁",
+    "不打开真实业务源文件，不重新检测类型或实际评估路线，不改 Stage046 registry，不选择、分派或执行解析器，不创建 IDS 业务 parser output",
+    "不运行回退、差异评估、提示注入扫描或质量门，不把 fixture envelope 冒充来源事实、质量通过或高可信证据",
     "不提升证据，不写 manifest、evidence ledger、audit、index、report、database、job、state 或持久运行状态",
     "不读取原始元数据，不创建虚构 IDS 业务数据，不上传、合并或重装应用"
   ],
-  "stop_condition": "Stage047 步骤一合同与分层治理验证通过后，停止在 IDS-STAGE047-P2-GATE 且不进入步骤二；任一来源、Stage046 snapshot、shape、lineage、质量门、治理或无副作用证据失配均回到 IDS-STAGE047-P1-GATE。"
+  "stop_condition": "Stage047 步骤二切片与分层治理验证通过后，停止在 IDS-STAGE047-P3-GATE 且不进入步骤三；任一来源、Phase1 snapshot、lineage、shape、安全/质量边界、治理或无副作用证据失配均回到 IDS-STAGE047-P2-GATE。"
 }

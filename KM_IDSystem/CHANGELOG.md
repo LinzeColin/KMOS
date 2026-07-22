@@ -1,5 +1,16 @@
 # Changelog
 
+## IDS v0.1 STAGE-047 Phase 2 - 2026-07-23
+
+- Delivered a pure in-memory parser-output normalization slice; the approved source, committed Phase1 commit/tree/parent and six Phase1 artifacts are live-reverified.
+- Three bounded synthetic non-business controls produce one candidate, one partial and one failed envelope. Exact 18-field shape, six-field payload, unique nested IDs, rectangular tables, resolvable references, safe errors and canonical output identities fail closed.
+- Added the mandatory Stage046 `routing_request` lineage proof because the Phase1 five-field wrapper alone could not prove that `source_identity_ref` and the route result share one detection lineage.
+- Recorded fixture-only parser version/confidence. The adapter is not a Stage046 runtime parser; command-like control text remains `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`, and initial quality disposition is not quality evaluation or evidence promotion.
+- TDD RED recorded 16 tests / 3 failures / 15 errors. The core checker passes 23/23 across three controls; before governance synchronization focused tests passed 15/16 with only the expected P2-to-P3 transition failure.
+- Final GREEN passes focused Phase2 `16/16`, Phase1+2 `26/26`, Stage005 `176/176`, Stage041-047 aggregate `439/439` in `1114.063s`, full IDS v0.1 discovery `1193/1193` in `1500.976s`, all nine Stage038-046 review checkers, seven-document idempotent owner rendering and the KM_IDSystem project dual-plane gate.
+- Fail-closed validation history is retained in the machine run: initial Stage005 exposed 18 exact P2 governance gaps; the initial aggregate exposed 11 stale forward-route/Handoff assertions; the first Stage038/039 targeted command used four wrong class names; dual-plane needed three code-term projection repairs; and two render-hash attempts were discarded after locale and zsh invocation errors. None of these failed/invalid attempts is counted as PASS.
+- No IDS business source or raw metadata was read; no type redetection, actual route, parser, fallback, differential evaluation, prompt scan, quality gate, persistence, Phase3, upload, merge or app reinstall ran. `push_allowed=false`.
+
 ## IDS v0.1 STAGE-047 Phase 1 - 2026-07-22
 
 - Added `ids.stage047.parser_output.phase1.v1`, bound to the exact approved Stage047 source, immutable Stage046 reviewed-local commit/root/KM_IDSystem tree/parent and nine rehashed upstream artifacts.

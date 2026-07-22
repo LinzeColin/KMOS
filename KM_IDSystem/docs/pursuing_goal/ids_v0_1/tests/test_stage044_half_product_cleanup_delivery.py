@@ -454,6 +454,12 @@ class Stage044HalfProductCleanupDeliveryTests(unittest.TestCase):
             and "Completed task in this run: `IDS-V0_1-STAGE047-P1`" in handoff
             and "Next allowed task: `IDS-V0_1-STAGE047-P2`" in handoff
         )
+        stage047_phase2_current = (
+            status["phase"] == "IDS-STAGE047-P2"
+            and status["next_gate"] == "IDS-STAGE047-P3-GATE"
+            and "Completed task in this run: `IDS-V0_1-STAGE047-P2`" in handoff
+            and "Next allowed task: `IDS-V0_1-STAGE047-P3`" in handoff
+        )
         self.assertTrue(
             p4_current
             or review_current
@@ -468,6 +474,7 @@ class Stage044HalfProductCleanupDeliveryTests(unittest.TestCase):
             or stage046_phase4_current
             or stage046_review_current
             or stage047_phase1_current
+            or stage047_phase2_current
         )
 
     def test_missing_or_malformed_contract_returns_structured_failure(self):
