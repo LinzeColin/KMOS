@@ -3,8 +3,8 @@
 ## v1.5.2 公开软件交付线（2026-07-23）
 
 - 当前唯一执行基线：用户提供的 `KMFA_Product_Design_Taskpack_v1.5.2.zip`，SHA-256 `31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb`；产品/runtime 版本仍为 `0.1.4-one-time-github-main-upload`，两者禁止混用。
-- 最近完成的唯一执行单元：`S01 / P1.2 / T-S01-02`。`machine/runs/S01_P12_PRD_OKR.md` 已把 P1.1 客户合同收敛为 5 类用户/JTBD、10 步匿名完整旅程、P0 `12/12` 与 P1 `7/7` scope rows、`7/7` 非目标和 `4 Objectives / 12 KRs`；scope union 精确覆盖 sealed `49/49 R` 与 `49/49 AC`。PRD contract PASS，但根入口仍为 `302`，所以主 `AC-PUB-002` runtime 明确保持 FAIL/UNPROVEN，绝不把写完合同冒充上线。
-- P1.1 的 `12` 个客户 FAQ、`9` 条问题→结果证据链与 `12` 个反证问题继续作为 P1.2 输入，见 `machine/runs/S01_P11_CUSTOMER_PRFAQ.md`；客户引语、采用量、收益和格式需求强度仍未伪造为事实，经济证伪留给 P1.3。
+- 最近完成的唯一执行单元：`S01 / P1.3 / T-S01-03`。`machine/runs/S01_P13_COST_BENEFIT_AND_KILL_CRITERIA.md` 已按 sealed economic matrix 覆盖重大能力 `8/8`、建设 workstream `5/5`、低/基/高情景 `9` 个维度、敏感变量 `9`、机会成本 `8`、能力级 Kill `8` 加全局 Kill，并给出复核窗口和 data-safe fallback；`AC-GOV-005` economic contract PASS，但这不是预算批准、客户采用或 runtime 价值证明。
+- P1.2 的 5 类用户/JTBD、10 步匿名完整旅程、P0 `12/12` 与 P1 `7/7` scope、`7/7` 非目标和 `4 Objectives / 12 KRs` 继续作为 P1.3 输入，见 `machine/runs/S01_P12_PRD_OKR.md`；P1.1 的客户假设仍见 `machine/runs/S01_P11_CUSTOMER_PRFAQ.md`。工程总量沿用 task-level `58.5–106 engineer-days`，运行成本只作可重算公式；真实采用率、收益、账户账单、流量、容量与单点 ROI 均未伪造。2026-07-23 已只读刷新官方 R2 pricing/limits，实施和预算 Gate 仍须按当日账户与官方资料重取。
 - 整个 S00 已完成复审、修复并上传：P0.1-P0.4、`AC-GOV-001/002/004`、S00 Stage Gate 与 `G0 Authority` 整体复验，4 个 findings 全部修复、open finding `0`，见 `machine/runs/S00_STAGE_REVIEW.md`；发布后的 `main` 为 `6a9f2163d00adc000e965bf6bffbc0ed59283d7a`。S01 中间 phase 只作本地 commit，不上传 GitHub。
 - 发布闭合采用可验证规则而不是自引用 SHA：本文件所在 commit 只有在 `git ls-remote origin refs/heads/main` 与该 commit 相等时才是已发布的 S00；不相等则仍待非破坏性 Stage upload。published main 必须从 GitHub ref 实时读取，deployment source 必须从 Coolify manifest 实时读取，二者不再混用。
 - 复审 capture 时生产唯一链仍为 deployment source `68306e850fa66ffe6b53622915ca81ff8ba98bf8`、image `sha256:adfc849b24e2efc471706c718377c97df07b41b4ce921f972e0cf598b0e25841`、Coolify deployment `boh5fsnxe82umwcpqzooam1p`、completed `2026-07-22T11:39:29.000000Z`；GitHub deploy/query runs 为 `29916233128` / `29916590384`。治理-only Stage upload 仅由最终 10 个文件的精确 path filter 跳过生产重建，没有目录通配符；因此发布后 main 合法领先于该 deployed source。若出现新 deploy，必须重新查询四元组而非猜测。
@@ -12,8 +12,8 @@
 - v1.5 恢复 bundle `1ee7fb111` 仍是不可变兜底，SHA-256 `2d0b516f...` 且 verify PASS；另发现并核验历史仓公开 recovery ref 已前进至 `268acce792`，仍为 PARTIAL 且 S24 路径为 0。受保护 full-sweep 的 1060 路径已互斥分类为 `Adopt 239 / Redo 750 / Discard 71 / Conflict 0 / 未分类 0`；`Redo` 只表示按当前 v1.5.2 Task/AC 重做所需行为，不重建旧文件。未 replay、merge、force-push 或复制私有元数据。
 - 旧业务 `machine/facts` 的 S05/A0/Q4/BLK-001 与当前 v1.5.2 delivery DAG 已分属不同 namespace：前者继续约束正式财务结论，后者决定本轮公开软件开发；14 个既有 facts 未在 P0.3 改写，七文件仍只由 renderer 生成。
 - P0.4/S00 继续保留真实失败基线：现有 App SQLite `/var/lib/kmfa/state` 未挂耐久卷，生产关系数据库、S3-compatible object adapter 与 backup/restore 均未实现，所以当前有限 RPO/RTO 不可证明，按 `unbounded/not recoverable` 处理。Taskpack 的 5 项 S00 unknown 已 `5/5` 绑定现状、默认动作、owner 与后续硬 Gate；这不会被伪报为 durable PASS。
-- 当前总进度：Task `6/56`、Stage `1/14`；S01 仅 `2/4` phases，尚未进入 Stage Review。根入口仍被 Cloudflare Access 返回 `302`，匿名完整使用、耐久 DB/object、任意文件安全上传下载、canary/rollback 等产品能力均尚未完成，不因 PRD/OKR 写完而提前宣称上线达标。
-- 下一步：下一个新 run 先刷新 `origin/main` 与 deployment identity，然后严格只执行 `S01 / P1.3 / T-S01-03`，补成本收益区间、敏感性、机会成本、置信度和 Kill Criteria；不得在同一 run 顺带启动 P1.4，也不得回到 phase 级上传。
+- 当前总进度：Task `7/56`、Stage `1/14`；S01 仅 `3/4` phases，尚未进入 Stage Review。根入口仍被 Cloudflare Access 返回 `302`，匿名完整使用、耐久 DB/object、任意文件安全上传下载、canary/rollback 等产品能力均尚未完成，不因经济合同写完而提前宣称上线达标。
+- 下一步：下一个新 run 先刷新 `origin/main` 与 deployment identity，然后严格只执行 `S01 / P1.4 / T-S01-04`，冻结 Baseline、目标、观察期、产品合同与变更 Gate；不得在同一 run 顺带启动 S01 Stage Review，也不得回到 phase 级上传。
 
 下列既有交接主体更新时间：2026-07-17（Australia/Sydney）
 
