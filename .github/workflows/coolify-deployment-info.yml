@@ -1,0 +1,48 @@
+# 部署溯源查询：给定 Coolify deployment_uuid，回显四个非秘密字段
+# （source_commit / image_id_or_digest / deployment_uuid / completed_at）。
+#
+# 为什么存在：镜像摘要与 Coolify 侧完成时刻只有部署平台知道，而令牌永不经人手。
+# 本 workflow 用仓库 secrets 在 Actions 内查询，**只打印上述字段**——
+# 原始响应与构建日志绝不落公开日志（构建日志可能回显 build args）。
+name: coolify-deployment-info
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_uuid:
+        description: "Coolify deployment uuid"
+        required: true
+        type: string
+
+jobs:
+  info:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.actor == 'LinzeColin'
+    steps:
+      - name: 查询并提取非秘密字段
+        env:
+          BASE: ${{ secrets.COOLIFY_BASE_URL }}
+          TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          UUID: ${{ inputs.deployment_uuid }}
+        run: |
+          set -euo pipefail
+          resp=$(curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/deployments/$UUID")
+          printf '%s' "$resp" | python3 - <<'PY'
+          import json, re, sys
+          d = json.load(sys.stdin)
+          # 兼容 {deployments:[...]} 与直接对象两种返回形状
+          if isinstance(d, dict) and "deployments" in d:
+              arr = d.get("deployments") or [{}]
+              d = arr[0] if arr else {}
+          raw = json.dumps(d, ensure_ascii=False)
+          # 镜像摘要：只从整响应文本正则提取 sha256，优先取「writing image」邻域
+          digests = re.findall(r"writing image[^\n\"]*?(sha256:[0-9a-f]{64})", raw)
+          if not digests:
+              digests = re.findall(r"(sha256:[0-9a-f]{64})", raw)
+          completed = d.get("finished_at") or d.get("updated_at") or ""
+          print("source_commit=" + str(d.get("commit") or ""))
+          print("image_id_or_digest=" + (digests[-1] if digests else "未在响应中找到 sha256（构建日志可能未含 writing image 行）"))
+          print("deployment_uuid=" + str(d.get("deployment_uuid") or d.get("uuid") or ""))
+          print("completed_at=" + str(completed) + "  status=" + str(d.get("status") or ""))
+          PY
