@@ -42,6 +42,7 @@ jobs:
           mkdir -p /tmp/kmfa-state
           docker run -d --name kmfa-e2e -p 18098:8000 \
             -e KMFA_PUBLIC_INDEXING_ENABLED=1 \
+            -e KMFA_WALKING_SKELETON_ENABLED=1 \
             -v /tmp/kmfa-state:/var/lib/kmfa/state kmfa-app:e2e
           for i in $(seq 1 60); do
             curl -sf http://localhost:18098/healthz >/dev/null && break
@@ -70,6 +71,17 @@ jobs:
           python KMFA/app/e2e/public_accessibility_index.py \
             --base-url http://localhost:18098 \
             --out-dir public-accessibility-index-e2e
+
+      - name: 跑匿名可恢复文件骨架（重启 / hash / Flag 回滚）
+        run: |
+          set -euo pipefail
+          p34_state=$(mktemp -d /tmp/kmfa-p34-state.XXXXXX)
+          python KMFA/app/e2e/walking_skeleton_flow.py \
+            --image kmfa-app:e2e \
+            --state-dir "$p34_state" \
+            --out-dir walking-skeleton-e2e \
+            --container-name kmfa-p34-e2e \
+            --port 18099
 
       - name: 跑私有经营 App 全流端到端
         run: |
@@ -103,7 +115,10 @@ jobs:
             e2e_result.csv
             public-shell-e2e/
             public-accessibility-index-e2e/
+            walking-skeleton-e2e/
 
       - name: 收容器
         if: always()
-        run: docker rm -f kmfa-e2e || true
+        run: |
+          docker rm -f kmfa-e2e || true
+          docker rm -f kmfa-p34-e2e || true

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import './public-shell.css'
+import WalkingSkeleton from './WalkingSkeleton.jsx'
 
 const MODULES = [
   {
@@ -7,20 +8,20 @@ const MODULES = [
     code: '01',
     title: '项目',
     eyebrow: 'PROJECTS',
-    status: '入口可达',
+    status: '早期骨架可用',
     summary: '进入项目容器，统一查看文件、进度与可验证结果。',
-    detail: '当前阶段交付公共导航壳，尚未创建或保存任何项目。匿名工作区接入后，这里会成为项目的真实入口。',
-    facts: ['不要求账号、邮箱或 OAuth', '当前不会写入浏览器存储', '未接入前不展示虚构项目'],
+    detail: '下方早期骨架可创建一个服务器端匿名工作区，并保存项目名称与进度。它用于验证真实旅程，完整模型与生命周期仍待后续阶段硬化。',
+    facts: ['不要求账号、邮箱或 OAuth', '状态写入服务器，不使用 localStorage', '当前只支持一个项目切片'],
   },
   {
     key: 'upload',
     code: '02',
     title: '上传',
     eyebrow: 'FILES',
-    status: '入口可达',
+    status: '早期骨架可用',
     summary: '从一个明确入口提交文件，并看见真实处理状态。',
-    detail: '安全文件通道尚未接入。当前页面不会读取、接受或传输你选择的文件，也不会用演示成功掩盖缺失能力。',
-    facts: ['任意文件支持将在后续阶段接入', '接入前不显示文件选择器', '失败时必须保留清晰、可恢复的状态'],
+    detail: '下方早期骨架接受一个任意类型、最大 8 MiB 的文件，私有保存原始字节并只按附件下载。扫描、分片和多文件生命周期仍待后续阶段完成。',
+    facts: ['未知扩展名可存储但不执行或预览', '文件不进入静态公开目录', '上传失败不覆盖既有文件'],
   },
   {
     key: 'search',
@@ -37,10 +38,10 @@ const MODULES = [
     code: '04',
     title: '进度',
     eyebrow: 'PROGRESS',
-    status: '接线状态可见',
+    status: '早期骨架可保存',
     summary: '区分已经可用、正在接入与尚未验证的能力。',
-    detail: '这里显示的是软件能力接入状态，不是你的项目进度。目前仅确认公共入口与导航已接通。',
-    facts: ['公共入口：已接通', '匿名工作区：待接入', '长期持久化与恢复：待验证'],
+    detail: '早期骨架可把 0–100% 项目进度写入服务器，并通过恢复码在重启后取回。分数、长期数据库与备份恢复仍未完成。',
+    facts: ['公共入口：已接通', '项目进度：骨架切片可保存', '长期持久化与备份：待 S05–S07 验证'],
   },
   {
     key: 'report',
@@ -60,7 +61,7 @@ const MODULES = [
     status: '说明可用',
     summary: '先讲清能力边界，再给出下一步与故障处理。',
     detail: 'KMFA 的公开使用路径不设账号前置。每个能力会如实标注接入状态；如果关键依赖不可用，页面仍保留导航与说明。',
-    facts: ['无需注册即可进入', '依赖故障不会显示空白页', '数据仅在用户明确删除时删除是后续持久化验收目标'],
+    facts: ['无需注册即可进入', '依赖故障不会显示空白页', '早期恢复码丢失时平台无法通过邮箱找回'],
   },
 ]
 
@@ -199,8 +200,8 @@ function PublicAppShell() {
               根域名就是主页。无需账号即可进入；每项能力按真实接入状态开放，未主动公开的数据不会因为站点公开而公开。
             </p>
             <div className="public-hero-actions">
-              <a className="public-primary-action" href="#capabilities">查看功能入口</a>
-              <a className="public-secondary-action" href="#system-status">查看系统状态</a>
+              <a className="public-primary-action" href="#walking-skeleton">创建或恢复工作区</a>
+              <a className="public-secondary-action" href="#capabilities">查看功能入口</a>
             </div>
           </div>
           <aside className="public-hero-index" aria-label="公共入口原则">
@@ -219,6 +220,8 @@ function PublicAppShell() {
           <span role="listitem">故障不空白</span>
           <span role="listitem">删除由用户明确触发</span>
         </div>
+
+        <WalkingSkeleton />
 
         <section className="public-capabilities" id="capabilities" aria-labelledby="capabilities-title">
           <div className="public-section-heading">

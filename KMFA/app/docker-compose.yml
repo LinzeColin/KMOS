@@ -1,20 +1,27 @@
 # KMFA App（DT6）。上线经 Cloudflare Tunnel + Access（PROD.0020/0021），实例零开放端口。
 services:
   app:
-    build: ./backend
+    build:
+      context: ../..
+      dockerfile: KMFA/app/backend/Dockerfile
     container_name: kmfa-app
     restart: always
     environment:
       KMFA_PUBLIC_SHELL_ENABLED: "${KMFA_PUBLIC_SHELL_ENABLED:-1}"
       KMFA_PUBLIC_INDEXING_ENABLED: "${KMFA_PUBLIC_INDEXING_ENABLED:-0}"
+      KMFA_WALKING_SKELETON_ENABLED: "${KMFA_WALKING_SKELETON_ENABLED:-0}"
       KMFA_PRIVATE_OPS_REQUIRE_ACCESS: "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
       KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN: "${KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}"
       KMFA_CLOUDFLARE_ACCESS_AUD: "${KMFA_CLOUDFLARE_ACCESS_AUD:-}"
     volumes:
-      - /opt/kmfa/KMOS:/opt/kmfa/KMOS:ro   # 只读挂仓：facts/断言/registry
+      # P3.4 早期骨架的 SQLite 与私有文件 adapter 共用耐久卷；Flag 回滚不得删卷。
+      - kmfa-app-state:/var/lib/kmfa/state
     ports:
       - "127.0.0.1:8000:8000"              # 仅本机回环，出网走 cloudflared
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
       interval: 2m
       timeout: 10s
+
+volumes:
+  kmfa-app-state:

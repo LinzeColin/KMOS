@@ -15,5 +15,11 @@ const shellModuleMarker = {
 export default defineConfig({
   plugins: [react(), shellModuleMarker],
   base: '/',
-  server: { proxy: { '/api': 'http://127.0.0.1:8000', '/healthz': 'http://127.0.0.1:8000' } },
+  server: {
+    proxy: {
+      '/api': 'http://127.0.0.1:8000',
+      '/public-api': 'http://127.0.0.1:8000',
+      '/healthz': 'http://127.0.0.1:8000',
+    },
+  },
 })

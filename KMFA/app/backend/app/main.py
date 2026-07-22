@@ -27,6 +27,7 @@ from .public_indexing import (
     robots_body,
     sitemap_body,
 )
+from .walking_skeleton import router as walking_skeleton_router
 
 REPO = Path(__file__).resolve().parents[4]
 KMFA = REPO / "KMFA"
@@ -49,6 +50,7 @@ app.add_middleware(PrivateOperationsAccessMiddleware)
 # Keep this outermost so even 403/503 responses produced by the private guard
 # receive the crawler/cache boundary.
 app.add_middleware(PublicIndexBoundaryMiddleware)
+app.include_router(walking_skeleton_router)
 
 
 def _paginate(rows: list[Any], page: int, size: int) -> tuple[list[Any], dict[str, int]]:

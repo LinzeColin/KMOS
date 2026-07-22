@@ -58,6 +58,8 @@ services:
       KMFA_PUBLIC_SHELL_ENABLED: "${KMFA_PUBLIC_SHELL_ENABLED:-1}"
       # 搜索索引独立灰度；默认 hold，隐私/爬虫 canary 全绿后才显式置 1。
       KMFA_PUBLIC_INDEXING_ENABLED: "${KMFA_PUBLIC_INDEXING_ENABLED:-0}"
+      # S03/P3.4 早期骨架独立灰度；默认关闭，启用前须确认 app state 卷与恢复/hash Oracle。
+      KMFA_WALKING_SKELETON_ENABLED: "${KMFA_WALKING_SKELETON_ENABLED:-0}"
       KMFA_PRIVATE_OPS_REQUIRE_ACCESS: "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
       KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN: "${KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}"
       KMFA_CLOUDFLARE_ACCESS_AUD: "${KMFA_CLOUDFLARE_ACCESS_AUD:-}"
@@ -67,6 +69,8 @@ services:
       # 在此之前 app 一个卷都不挂，排程健康只能靠人登服务器看——
       # 于是每次都要 Owner 亲自去查再回报，这个来回本身就是设计缺陷。
       - kmfa-logs:/var/log/kmfa:ro
+      # SQLite 结构化状态与私有文件 adapter；普通重部署/Flag 回滚必须保留此卷。
+      - kmfa-app-state:/var/lib/kmfa/state
     expose:
       - "8000"                                    # 经 Coolify Traefik 暴露；域名在 Coolify 面板设，无需开放主机端口
     healthcheck:
@@ -78,3 +82,4 @@ volumes:
   kmfa-dws-auth:
   kmfa-dws-keyring:
   kmfa-logs:
+  kmfa-app-state:
