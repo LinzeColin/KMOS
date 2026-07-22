@@ -3,12 +3,13 @@
 ## v1.5.2 公开软件交付线（2026-07-22）
 
 - 当前唯一执行基线：用户提供的 `KMFA_Product_Design_Taskpack_v1.5.2.zip`，SHA-256 `31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb`；产品/runtime 版本仍为 `0.1.4-one-time-github-main-upload`，两者禁止混用。
-- 最近完成的唯一执行单元：`S00 / P0.2 / T-S00-02`。`AC-GOV-001` 已通过，详细 public-safe artifacts 见 `machine/runs/RECOVERY_RECONCILIATION.md` 与 `.csv`；本 run 未启动 P0.3。
-- 当前状态：`P0.1 + P0.2 DONE`。P0.1 身份字段 `5/5`、歧义 `0`；当前生产唯一链为 source `68306e850fa66ffe6b53622915ca81ff8ba98bf8`、image `sha256:adfc849b24e2efc471706c718377c97df07b41b4ce921f972e0cf598b0e25841`、Coolify deployment `boh5fsnxe82umwcpqzooam1p`、completed `2026-07-22T11:39:29.000000Z`；GitHub deploy/query runs 分别为 `29916233128` / `29916590384`。`STOP-S00-001` 已解决。
+- 最近完成的唯一执行单元：`S00 / P0.3 / T-S00-03`。`AC-GOV-002` 已复验通过；9 个 version namespaces、29 个唯一 writer 事实域、`AUTH-RESOLVE-1` 与 deployment→source→product→taskpack binding 见 `machine/runs/AUTHORITY_REGISTER.md`。本 run 未启动 P0.4。
+- 当前状态：`P0.1 + P0.2 + P0.3 DONE`。P0.1/P0.3 身份字段 `5/5`、唯一 production claim `1`、歧义 `0`；当前生产唯一链为 source `68306e850fa66ffe6b53622915ca81ff8ba98bf8`、image `sha256:adfc849b24e2efc471706c718377c97df07b41b4ce921f972e0cf598b0e25841`、Coolify deployment `boh5fsnxe82umwcpqzooam1p`、completed `2026-07-22T11:39:29.000000Z`；GitHub deploy/query runs 分别为 `29916233128` / `29916590384`。`STOP-S00-001` 已解决。
 - Owner 提供的 `fb31e8e... / sha256:0b09ca... / qcq1q8m... / 2026-07-20T21:50:47Z` 已由 query run `29916243207` 原样复核，作为上一部署的回滚/溯源记录保留。收口前发现 `main` 已前进并自动产生新部署，因此没有把旧 tuple 冒充当前身份。
 - v1.5 恢复 bundle `1ee7fb111` 仍是不可变兜底，SHA-256 `2d0b516f...` 且 verify PASS；另发现并核验历史仓公开 recovery ref 已前进至 `268acce792`，仍为 PARTIAL 且 S24 路径为 0。受保护 full-sweep 的 1060 路径已互斥分类为 `Adopt 239 / Redo 750 / Discard 71 / Conflict 0 / 未分类 0`；`Redo` 只表示按当前 v1.5.2 Task/AC 重做所需行为，不重建旧文件。未 replay、merge、force-push 或复制私有元数据。
-- 未完成：P0.3-P0.4、S00 Stage Review、复审问题修复与 S00 整体 GitHub upload；禁止跳级或 phase 级上传。
-- 下一步：下一个新 run 严格只执行 `S00 / P0.3`，先重读本 HANDOFF、P0.1/P0.2 receipts 与对应 Task/AC；不得顺带进入 P0.4。
+- 旧业务 `machine/facts` 的 S05/A0/Q4/BLK-001 与当前 v1.5.2 delivery DAG 已分属不同 namespace：前者继续约束正式财务结论，后者决定本轮公开软件开发；14 个既有 facts 未在 P0.3 改写，七文件仍只由 renderer 生成。
+- 未完成：P0.4、S00 Stage Review、复审问题修复与 S00 整体 GitHub upload；禁止跳级或 phase 级上传。
+- 下一步：下一个新 run 严格只执行 `S00 / P0.4`，先重读本 HANDOFF、P0.1-P0.3 receipts 与对应 Task/AC；不得顺带进入 S01 或 S00 Stage Review。
 
 下列既有交接主体更新时间：2026-07-17（Australia/Sydney）
 

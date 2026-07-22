@@ -2,19 +2,19 @@
 
 本项目继承仓库根 `AGENTS.md`。任何 agent 接手前先读本文件、`HANDOFF.md` 和 `machine/facts/status.json`。
 
-## 当前真相
+## 当前真相与 namespace
 
-- GitHub：`LinzeColin/KMOS`，项目目录 `KMFA/`，只在 `main` 工作。
-- 版本：`0.1.4`。
-- 当前有效进度：`4/18`；结构校验通过不等于真实数据通过。
-- 当前任务：`S05-P3-T1`，人工确认后将 Q4 字段升级为 Q5 计算基准。
-- 业务状态：`Q4 / D / NO_GO / 3-9-2-1`，`lineage_complete=false`。
-- Owner blocker：`BLK-001`。未取得 8 份 PDF 加 1 份电子表格的真实字段确认前，不得继续把 S05-S18 宣称为完成。
+- GitHub canonical upstream：`LinzeColin/KMOS` 的 `main`，项目目录 `KMFA/`；中间 phase 在隔离 worktree 本地提交，只有整个 Stage 完成、复审并修复后才上传。
+- 当前公开软件交付合同：Owner 授权的 v1.5.2 Taskpack，SHA-256 `31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb`。当前 phase/Task 只从 `HANDOFF.md` 与该 task graph 读取。
+- 产品/runtime 版本：以 `KMFA/VERSION` 为唯一 writer，当前为 `0.1.4-one-time-github-main-upload`；不得由 taskpack 版本推断。
+- 版本、事实域 writer、生产身份与冲突规则：`machine/runs/AUTHORITY_REGISTER.md`。本文件只定义执行边界，不另存进度或业务事实。
+- `machine/facts/status.json`、`plan.json`、`roadmap.json` 描述旧业务状态域：有效进度 `4/18`、任务 `S05-P3-T1`、`Q4 / D / NO_GO / 3-9-2-1`。它们不是 v1.5.2 delivery DAG 的 writer。
+- Owner blocker：`BLK-001` 仍对正式财务结论 fail closed。未取得 8 份 PDF 加 1 份电子表格的真实字段确认前，不得把旧业务 S05-S18 宣称为完成；这不阻止不接触真实数据的 v1.5.2 公共软件阶段按 Task/AC 推进。
 
 ## 执行规则
 
 - 每个 run 最多解决一个 Phase；开始时先验证 `git root`、branch、remote、HEAD、status。
-- 代码、skill、配置或 automation prompt 改动须先跑目标验证；通过后才可提交并推送 `origin/main`。
+- 代码、skill、配置或 automation prompt 改动须先跑目标验证；通过后可在隔离 worktree 本地提交。v1.5.2 中间 phase 禁止 push；只有整个 Stage 完成、复审、问题修复后才整体上传 GitHub。
 - 旧 `LinzeColin/CodexProject` 与 `/Users/linzezhang/CodexProject` 只作历史取证，不是 KMFA 提交入口。
 - 不创建 branch、PR、issue 或额外 worktree，除非用户在当前线程明确改变规则。
 - 七个人类文档由 `machine/facts/` 渲染；不得直接手写 `文档/`。
