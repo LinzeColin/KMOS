@@ -105,6 +105,17 @@ jobs:
             --container-name kmfa-p34-e2e \
             --port 18099
 
+      - name: 跑匿名反滥用（正常误伤 / 五类攻击 / 并发预算 / 恢复）
+        run: |
+          set -euo pipefail
+          p44_state=$(mktemp -d /tmp/kmfa-p44-state.XXXXXX)
+          python KMFA/app/e2e/abuse_control_flow.py \
+            --image kmfa-app:e2e \
+            --state-dir "$p44_state" \
+            --out-dir abuse-control-e2e \
+            --container-name kmfa-p44-e2e \
+            --port 18105
+
       - name: 跑私有经营 App 全流端到端
         run: |
           set -euo pipefail
@@ -138,9 +149,11 @@ jobs:
             public-shell-e2e/
             public-accessibility-index-e2e/
             walking-skeleton-e2e/
+            abuse-control-e2e/
 
       - name: 收容器
         if: always()
         run: |
           docker rm -f kmfa-e2e || true
           docker rm -f kmfa-p34-e2e || true
+          docker rm -f kmfa-p44-e2e || true

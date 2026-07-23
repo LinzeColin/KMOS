@@ -19,6 +19,8 @@ import yaml
 from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse, RedirectResponse, Response
 
+from .anti_abuse import AntiAbuseMiddleware
+from .anti_abuse import ops_router as anti_abuse_ops_router
 from .private_access import PrivateOperationsAccessMiddleware
 from .public_indexing import (
     PublicIndexBoundaryMiddleware,
@@ -51,11 +53,16 @@ app.add_middleware(PrivateOperationsAccessMiddleware)
 # Keep this outermost so even 403/503 responses produced by the private guard
 # receive the crawler/cache boundary.
 app.add_middleware(PublicIndexBoundaryMiddleware)
+# Keep the abuse gate inside secret hygiene so challenged/limited responses
+# inherit the same no-leak browser boundary. It holds concurrency leases until
+# the final ASGI response body, including streamed artifact downloads.
+app.add_middleware(AntiAbuseMiddleware)
 # Outermost: redact request/error records and attach the browser boundary even
 # to responses short-circuited by the indexing or private-operations guards.
 install_secret_redaction()
 app.add_middleware(SecretHygieneMiddleware)
 app.include_router(walking_skeleton_router)
+app.include_router(anti_abuse_ops_router)
 
 
 def _paginate(rows: list[Any], page: int, size: int) -> tuple[list[Any], dict[str, int]]:
@@ -853,6 +860,7 @@ APP_STATE_DIR = Path(os.environ.get("KMFA_APP_STATE_DIR", "/var/lib/kmfa/state")
 # 不再依赖"我们只用 'a' 模式打开文件"这种君子协定。
 APP_DB_PATH = APP_STATE_DIR / "kmfa_app_state.sqlite3"
 from app import app_state as _st  # noqa: E402
+
 APP_EVENTS_PATH = APP_STATE_DIR / "manual_resolution_events.jsonl"
 
 BEIJING = timezone(timedelta(hours=8))  # 业务锚 +0800，与技能容器挂钟一致

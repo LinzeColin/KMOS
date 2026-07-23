@@ -96,10 +96,20 @@ def test_enabled_status_is_honest_about_adapter_limits_and_hardening(enabled_sto
     assert payload["limits"] == {
         "max_artifacts": 1,
         "max_bytes": 8 * 1024 * 1024,
+        "max_total_artifact_bytes": 512 * 1024 * 1024,
+        "min_free_state_bytes": 128 * 1024 * 1024,
+        "max_workspaces_total": 10_000,
+        "max_active_sessions_per_workspace": 8,
+        "max_audit_events_per_workspace": 10_000,
+        "max_audit_events_total": 250_000,
         "file_types": "any-stored-attachment-only",
     }
+    assert payload["abuse_control"]["policy_version"] == "p44-v1"
+    assert payload["abuse_control"]["login_required"] is False
+    assert payload["abuse_control"]["public_browse_exempt"] is True
     assert payload["stage_status"] == "early-skeleton-not-ga"
     assert "s3-compatible-object-store" in payload["hardening_pending"]
+    assert "abuse-and-malware-controls" not in payload["hardening_pending"]
 
 
 def test_unavailable_state_path_is_a_clear_503(
@@ -448,8 +458,10 @@ def test_deployment_defaults_off_and_mounts_a_named_state_volume():
     runbook = (kmfa_root / "deploy/coolify/README.md").read_text(encoding="utf-8")
     for compose in (local_compose, coolify_compose):
         assert "KMFA_WALKING_SKELETON_ENABLED:-0" in compose
+        assert "KMFA_ABUSE_POLICY_MODE:-enforced" in compose
         assert "kmfa-app-state:/var/lib/kmfa/state" in compose
         assert "kmfa-app-state:" in compose
     assert "KMFA_WALKING_SKELETON_ENABLED=0" in env_example
+    assert "KMFA_ABUSE_POLICY_MODE=enforced" in env_example
     assert "重启" in runbook and "SHA-256" in runbook
     assert "Flag" in runbook and "禁止使用 `docker compose down -v`" in runbook

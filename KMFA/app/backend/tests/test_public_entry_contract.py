@@ -388,6 +388,9 @@ def test_deployment_contract_enables_origin_guard_before_public_bypass():
     assert environment["KMFA_PUBLIC_INDEXING_ENABLED"] == (
         "${KMFA_PUBLIC_INDEXING_ENABLED:-0}"
     )
+    assert environment["KMFA_ABUSE_POLICY_MODE"] == (
+        "${KMFA_ABUSE_POLICY_MODE:-enforced}"
+    )
     assert environment["KMFA_PRIVATE_OPS_REQUIRE_ACCESS"] == (
         "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
     )

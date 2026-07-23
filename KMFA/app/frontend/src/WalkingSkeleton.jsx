@@ -17,8 +17,17 @@ const ERROR_COPY = {
   artifact_limit_reached: '该早期骨架每个工作区只验证一个文件，已有文件不会被覆盖。',
   artifact_integrity_failed: '下载完整性校验失败，服务器已阻止返回损坏字节。',
   artifact_unavailable: '文件当前不可读取，服务器没有返回替代或伪造内容。',
+  workspace_capacity_reached: '当前匿名灰度容量已满；公共浏览仍可用，已有工作区没有被删除。',
+  artifact_capacity_reached: '当前文件存储预算不足；本次文件未写入，已有文件没有被删除。',
+  workspace_audit_capacity_reached: '该早期工作区已达到审计安全上限；本次变更未执行。',
   secret_in_url_rejected: '请求 URL 或来源页包含恢复材料，服务器已拒绝处理。请只通过受保护的表单正文提交。',
   cross_origin_session_request_rejected: '会话操作不是从 KMFA 同源页面发起，服务器已拒绝处理。',
+  risk_capacity_limited: '匿名资源预算当前繁忙；公共浏览仍可使用，请按服务器提示稍后重试。',
+  risk_challenge_required: '需要完成一次匿名安全校验后重试；不要求登录或提供个人资料。',
+  risk_challenge_invalid: '匿名安全校验无效或已过期；未执行本次操作。',
+  risk_challenge_replayed: '匿名安全校验已经使用，不能重放；未执行本次操作。',
+  abuse_control_unavailable: '匿名资源保护暂不可用；昂贵操作已安全关闭，公共浏览保持可用。',
+  abuse_policy_configuration_invalid: '匿名资源策略配置无效；昂贵操作已安全关闭。',
 }
 
 async function errorFromResponse(response) {
@@ -34,8 +43,65 @@ async function errorFromResponse(response) {
   return error
 }
 
+function leadingZeroBits(bytes) {
+  let count = 0
+  for (const byte of bytes) {
+    if (byte === 0) {
+      count += 8
+      continue
+    }
+    count += 8 - byte.toString(2).length
+    break
+  }
+  return count
+}
+
+async function solveRiskChallenge(challenge) {
+  const token = typeof challenge?.token === 'string' ? challenge.token : ''
+  const difficulty = Number(challenge?.difficulty_bits)
+  if (
+    challenge?.algorithm !== 'sha256-leading-zero-bits'
+    || challenge?.proof_header !== 'X-KMFA-Challenge-Proof'
+    || !/^[A-Za-z0-9_.-]{40,1600}$/.test(token)
+    || !Number.isInteger(difficulty)
+    || difficulty < 8
+    || difficulty > 20
+  ) {
+    throw new Error(ERROR_COPY.risk_challenge_invalid)
+  }
+  const encoder = new TextEncoder()
+  for (let nonce = 0; nonce <= 0xffffffff; nonce += 1) {
+    const proof = `${token}:${nonce}`
+    const digest = await window.crypto.subtle.digest('SHA-256', encoder.encode(proof))
+    if (leadingZeroBits(new Uint8Array(digest)) >= difficulty) return proof
+  }
+  throw new Error(ERROR_COPY.risk_challenge_invalid)
+}
+
+async function fetchWithRiskChallenge(url, options = {}) {
+  const response = await fetch(url, options)
+  if (response.status !== 429) return response
+  let payload = null
+  try {
+    payload = await response.clone().json()
+  } catch {
+    return response
+  }
+  if (payload?.detail !== 'risk_challenge_required' || !payload.challenge) {
+    return response
+  }
+  const proof = await solveRiskChallenge(payload.challenge)
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      'X-KMFA-Challenge-Proof': proof,
+    },
+  })
+}
+
 async function jsonRequest(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetchWithRiskChallenge(`${API_BASE}${path}`, {
     cache: 'no-store',
     credentials: 'same-origin',
     ...options,
@@ -206,7 +272,7 @@ function WalkingSkeleton() {
       return
     }
     run(async () => {
-      const response = await fetch(`${API_BASE}/recovery-files/import`, {
+      const response = await fetchWithRiskChallenge(`${API_BASE}/recovery-files/import`, {
         method: 'POST',
         cache: 'no-store',
         credentials: 'same-origin',
@@ -237,7 +303,7 @@ function WalkingSkeleton() {
       return
     }
     run(async () => {
-      const response = await fetch(
+      const response = await fetchWithRiskChallenge(
         `${API_BASE}/workspaces/${workspace.workspace_id}/recovery-file`,
         {
           method: 'POST',
@@ -326,7 +392,7 @@ function WalkingSkeleton() {
       return
     }
     run(async () => {
-      const response = await fetch(`${API_BASE}/workspaces/${workspace.workspace_id}/artifact`, {
+      const response = await fetchWithRiskChallenge(`${API_BASE}/workspaces/${workspace.workspace_id}/artifact`, {
         method: 'PUT',
         cache: 'no-store',
         credentials: 'same-origin',
@@ -348,7 +414,7 @@ function WalkingSkeleton() {
 
   const downloadArtifact = () => {
     run(async () => {
-      const response = await fetch(
+      const response = await fetchWithRiskChallenge(
         `${API_BASE}/workspaces/${workspace.workspace_id}/artifact/download`,
         {
           method: 'POST',
@@ -369,7 +435,7 @@ function WalkingSkeleton() {
 
   const revokePageSession = () => {
     run(async () => {
-      const response = await fetch(`${API_BASE}/sessions/current`, {
+      const response = await fetchWithRiskChallenge(`${API_BASE}/sessions/current`, {
         method: 'DELETE',
         cache: 'no-store',
         credentials: 'same-origin',
@@ -400,8 +466,8 @@ function WalkingSkeleton() {
           <h2 id="walking-title">第一个真实、可恢复的文件旅程</h2>
         </div>
         <p>
-          这是 S03 骨架上的 S04 恢复硬化，不是 GA：验证匿名工作区、恢复文件、密钥轮换、项目进度、服务器重启与 hash 下载。
-          完整对象存储、备份演练、扫描、反滥用、多文件和明确删除仍将在后续阶段完成。
+          这是 S03 骨架上的 S04 匿名安全切片，不是 GA：验证恢复、密钥轮换、项目进度、hash 下载，以及无需账号的分层限额、并发预算与一次性风险挑战。
+          完整对象存储、备份演练、恶意文件扫描、多文件和明确删除仍将在后续阶段完成。
         </p>
       </div>
 
@@ -447,7 +513,7 @@ function WalkingSkeleton() {
                     placeholder="例如：我的第一个 KMFA 项目"
                   />
                   <button type="submit" disabled={busy}>创建并生成恢复码</button>
-                  <p>不要求账号、邮箱或 OAuth。恢复码只显示一次；平台不能通过邮箱找回。</p>
+                  <p>不要求账号、邮箱或 OAuth。可疑高频操作使用匿名计算挑战；恢复码只显示一次，平台不能通过邮箱找回。</p>
                 </form>
               ) : (
                 <form className="walking-form" data-walking-recover="true" onSubmit={recoverWorkspace}>
@@ -607,6 +673,7 @@ function WalkingSkeleton() {
         <span role="listitem">HttpOnly 短时会话可撤销</span>
         <span role="listitem">文件不进入静态公开目录</span>
         <span role="listitem">轮换撤销旧材料且不删状态</span>
+        <span role="listitem">四层预算与一次性挑战，不强制登录</span>
       </div>
     </section>
   )

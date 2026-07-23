@@ -1,4 +1,4 @@
-"""S03/P3.4 walking skeleton with S04/P4.1-P4.3 security hardening.
+"""S03/P3.4 walking skeleton with S04/P4.1-P4.4 security hardening.
 
 This is intentionally a narrow, replaceable adapter. Structured workspace
 state lives in SQLite while artifact bytes live outside the database in a
@@ -9,8 +9,9 @@ exchange while accepting existing S03 identifiers. P4.2 adds a strict,
 minimal `.kmfa-recovery` capability file plus atomic secret rotation. P4.3
 binds newly issued browser sessions to a Secure/HttpOnly/SameSite cookie,
 supports server-side revocation and keeps legacy Authorization bearer sessions
-read-compatible. S04/P4.4 onward still owns abuse controls, object storage,
-backup/restore, scanning and multi-file lifecycle semantics.
+read-compatible. P4.4 adds explicit lifetime resource ceilings alongside the
+persistent request/concurrency gate. S05 onward still owns scalable database
+and object storage, backup/restore, scanning and multi-file lifecycle semantics.
 
 Raw recovery codes and access capabilities are returned only to their caller;
 the store keeps SHA-256 hashes. Artifacts are never mapped into the static
@@ -25,6 +26,7 @@ import json
 import os
 import re
 import secrets
+import shutil
 import sqlite3
 import unicodedata
 from contextlib import contextmanager
@@ -37,6 +39,8 @@ from fastapi import APIRouter, Cookie, Header, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
+from .anti_abuse import public_policy_contract
+
 API_PREFIX = "/public-api/walking-skeleton/v1"
 SESSION_COOKIE_NAME = "__Secure-kmfa_session"
 SESSION_COOKIE_PATH = API_PREFIX
@@ -44,6 +48,12 @@ SESSION_COOKIE_SAMESITE = "strict"
 TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 MAX_ARTIFACT_BYTES = 8 * 1024 * 1024
 MAX_ARTIFACTS = 1
+MAX_TOTAL_ARTIFACT_BYTES = 512 * 1024 * 1024
+MIN_FREE_STATE_BYTES = 128 * 1024 * 1024
+MAX_WORKSPACES_TOTAL = 10_000
+MAX_ACTIVE_SESSIONS_PER_WORKSPACE = 8
+MAX_AUDIT_EVENTS_PER_WORKSPACE = 10_000
+MAX_AUDIT_EVENTS_TOTAL = 250_000
 ACCESS_TOKEN_TTL = timedelta(hours=1)
 SCHEMA_VERSION = 1
 WORKSPACE_ID_BYTES = 16
@@ -198,6 +208,8 @@ def _open_store() -> sqlite3.Connection:
           artifact_sha256 TEXT,
           created_at TEXT NOT NULL
         );
+        CREATE INDEX IF NOT EXISTS walking_audit_workspace
+          ON audit_events(workspace_id);
         CREATE TRIGGER IF NOT EXISTS walking_audit_no_update
           BEFORE UPDATE ON audit_events BEGIN
             SELECT RAISE(ABORT, 'walking-skeleton audit is append-only');
@@ -357,6 +369,18 @@ def _append_audit(
     result_status: str = "ok",
     artifact_sha256: str | None = None,
 ) -> None:
+    total = int(connection.execute("SELECT COUNT(*) FROM audit_events").fetchone()[0])
+    workspace_total = int(
+        connection.execute(
+            "SELECT COUNT(*) FROM audit_events WHERE workspace_id = ?",
+            (workspace_id,),
+        ).fetchone()[0]
+    )
+    if (
+        total >= MAX_AUDIT_EVENTS_TOTAL
+        or workspace_total >= MAX_AUDIT_EVENTS_PER_WORKSPACE
+    ):
+        raise SkeletonError(429, "workspace_audit_capacity_reached")
     connection.execute(
         """
         INSERT INTO audit_events(
@@ -378,6 +402,34 @@ def _issue_access_token(
     connection: sqlite3.Connection,
     workspace_id: str,
 ) -> tuple[str, str]:
+    now = _timestamp()
+    connection.execute(
+        "DELETE FROM access_tokens WHERE expires_at <= ?",
+        (now,),
+    )
+    active_rows = connection.execute(
+        """
+        SELECT token_hash FROM access_tokens
+        WHERE workspace_id = ?
+        ORDER BY created_at, rowid
+        """,
+        (workspace_id,),
+    ).fetchall()
+    eviction_count = max(
+        0,
+        len(active_rows) - MAX_ACTIVE_SESSIONS_PER_WORKSPACE + 1,
+    )
+    if eviction_count:
+        connection.executemany(
+            "DELETE FROM access_tokens WHERE token_hash = ?",
+            ((str(row["token_hash"]),) for row in active_rows[:eviction_count]),
+        )
+        _append_audit(
+            connection,
+            workspace_id,
+            "workspace_session_budget_eviction",
+            result_status="bounded",
+        )
     token = _new_access_token()
     created = _utc_now()
     expires = created + ACCESS_TOKEN_TTL
@@ -597,6 +649,11 @@ def _create_workspace(project_name: str) -> dict[str, Any]:
             workspace_id = _new_workspace_id()
             try:
                 connection.execute("BEGIN IMMEDIATE")
+                workspace_count = int(
+                    connection.execute("SELECT COUNT(*) FROM workspaces").fetchone()[0]
+                )
+                if workspace_count >= MAX_WORKSPACES_TOTAL:
+                    raise SkeletonError(429, "workspace_capacity_reached")
                 now = _timestamp()
                 connection.execute(
                     """
@@ -917,12 +974,16 @@ async def _store_artifact(
 ) -> dict[str, Any]:
     filename = _clean_filename(filename_header)
     content_length = request.headers.get("content-length", "").strip()
+    declared_length: int | None = None
     if content_length:
         try:
-            if int(content_length) > MAX_ARTIFACT_BYTES:
-                raise SkeletonError(413, "artifact_too_large")
+            declared_length = int(content_length)
         except ValueError as exc:
             raise SkeletonError(400, "invalid_content_length") from exc
+        if declared_length < 0:
+            raise SkeletonError(400, "invalid_content_length")
+        if declared_length > MAX_ARTIFACT_BYTES:
+            raise SkeletonError(413, "artifact_too_large")
 
     with _store() as connection:
         _authorize(connection, workspace_id, authorization, session_cookie)
@@ -930,6 +991,25 @@ async def _store_artifact(
             "SELECT 1 FROM artifacts WHERE workspace_id = ?", (workspace_id,)
         ).fetchone():
             raise SkeletonError(409, "artifact_limit_reached")
+        used_bytes = int(
+            connection.execute(
+                "SELECT COALESCE(SUM(size_bytes), 0) FROM artifacts"
+            ).fetchone()[0]
+        )
+        remaining_bytes = MAX_TOTAL_ARTIFACT_BYTES - used_bytes
+        if remaining_bytes <= 0:
+            raise SkeletonError(429, "artifact_capacity_reached")
+        if declared_length is not None and declared_length > remaining_bytes:
+            raise SkeletonError(429, "artifact_capacity_reached")
+    try:
+        free_bytes = shutil.disk_usage(_state_root()).free
+    except OSError as exc:
+        raise SkeletonError(503, "walking_skeleton_storage_unavailable") from exc
+    declared_or_max = (
+        declared_length if declared_length is not None else MAX_ARTIFACT_BYTES
+    )
+    if free_bytes - declared_or_max < MIN_FREE_STATE_BYTES:
+        raise SkeletonError(429, "artifact_capacity_reached")
 
     artifact_id = _new_artifact_id()
     object_name = f"{secrets.token_urlsafe(24)}.blob"
@@ -959,6 +1039,13 @@ async def _store_artifact(
             _authorize(connection, workspace_id, authorization, session_cookie)
             connection.execute("BEGIN IMMEDIATE")
             try:
+                used_bytes = int(
+                    connection.execute(
+                        "SELECT COALESCE(SUM(size_bytes), 0) FROM artifacts"
+                    ).fetchone()[0]
+                )
+                if used_bytes + size > MAX_TOTAL_ARTIFACT_BYTES:
+                    raise SkeletonError(429, "artifact_capacity_reached")
                 now = _timestamp()
                 connection.execute(
                     """
@@ -1132,14 +1219,23 @@ def walking_skeleton_status() -> dict[str, Any]:
         "limits": {
             "max_artifacts": MAX_ARTIFACTS,
             "max_bytes": MAX_ARTIFACT_BYTES,
+            "max_total_artifact_bytes": MAX_TOTAL_ARTIFACT_BYTES,
+            "min_free_state_bytes": MIN_FREE_STATE_BYTES,
+            "max_workspaces_total": MAX_WORKSPACES_TOTAL,
+            "max_active_sessions_per_workspace": (
+                MAX_ACTIVE_SESSIONS_PER_WORKSPACE
+            ),
+            "max_audit_events_per_workspace": MAX_AUDIT_EVENTS_PER_WORKSPACE,
+            "max_audit_events_total": MAX_AUDIT_EVENTS_TOTAL,
             "file_types": "any-stored-attachment-only",
         },
+        "abuse_control": public_policy_contract(),
         "stage_status": "early-skeleton-not-ga",
         "hardening_pending": [
             "durable-database-service",
             "s3-compatible-object-store",
             "backup-restore-drill",
-            "abuse-and-malware-controls",
+            "malware-controls",
             "multi-file-lifecycle-and-explicit-deletion",
         ],
     }

@@ -67,7 +67,10 @@
    fail-closed。Audience tag 是应用标识，不是登录 token；仍只进部署配置，不写入代码或日志。先确认
    匿名访问四类路径均不可达、带有效 Access 会话可达，host 登录墙仍不得改动。
    同时保持 `KMFA_PUBLIC_SHELL_ENABLED=1`、`KMFA_PUBLIC_INDEXING_ENABLED=0`、
-   `KMFA_WALKING_SKELETON_ENABLED=0`。索引 hold 模式不会
+   `KMFA_WALKING_SKELETON_ENABLED=0`、`KMFA_ABUSE_POLICY_MODE=enforced`。未知 abuse mode 会
+   fail closed 拒绝昂贵动作，但根页和状态仍可浏览；紧急回滚只允许
+   `emergency-expensive-only`，继续限制 identity/recovery/upload/export，不提供生产 `off`。
+   索引 hold 模式不会
    阻止人类访问主页，但会以响应头、全拒绝 robots 和空 sitemap 阻止搜索索引。若增强壳在灰度中异常，只把它置 `0` 并重部署：根路径会
    回到仍含项目/上传/搜索/进度/报告/帮助的稳定静态壳，`/api*`、`/ops*` 守卫与全部数据不变；恢复
    时重新置 `1`。响应头 `X-KMFA-Shell-Mode` 分别为 `public-app` / `stable-static`，用于无猜测核验。
@@ -78,6 +81,11 @@
    `200`、骨架 API fail closed、named volume 内容与 hash 未变；再置 `1` 应可再次恢复。任一步失败都
    保持/恢复 `0`，不得用 localStorage、镜像层或公开静态目录替代。普通回滚禁止删除
    `kmfa-app-state`，也禁止使用 `docker compose down -v`。
+   Walking Skeleton 置 `1` 前还必须对同一待发布 image 运行 `TEST-WS-004`：100 个正常合成请求
+   误伤 `<1%`，暴力恢复、上传洪泛、导出洪泛、六路慢上传并发与分布式低速流量绕过均为 `0`，
+   global/concurrency 达限时无 challenge 绕过，窗口/lease 释放后自动恢复，攻击前后 `/` 与
+   `/public-api/walking-skeleton/v1/status` 均 `200`。`/ops/abuse-control/status` 只在既有 Access
+   私有面读取聚合指标；其中不得出现 IP、device、workspace ID、文件名、Cookie 或恢复 capability。
 10. **最后公开根路径并验收**：只有第 9 步通过，才把 host 级 Application 改为
     `Bypass / Include Everyone`。更具体的路径应用优先于 host 级 Bypass，因而 `/`、`/assets*`、
     `/healthz` 可匿名，私有面仍需 Access。全程不打印 Access 登录 URL 的 query；无 cookie 的
@@ -87,7 +95,8 @@
     Owner Allow 策略；这是原子边缘回滚，不删除路径应用、不回退数据，也不绕过源站守卫。
     Walking Skeleton 公开后仍只使用高熵恢复能力与短时会话，不使用账号；`/public-api/*` 必须
     `noindex`、`private, no-store`，未持有 capability 的工作区读取/写入/下载统一失败。此阶段只证明
-    单节点 volume 跨容器重启，不得声称跨节点、备份恢复、反滥用或 GA 已完成。
+    单节点 volume 跨容器重启；只有 source/image/deployment tuple 对应的 `TEST-WS-004` 也通过，
+    才可声称该 tuple 的匿名反滥用 Gate 通过，仍不得声称跨节点、备份恢复或 GA 已完成。
 11. **最后单独放开搜索索引**：第 10 步的人类访问、三浏览器、键盘/axe、移动视口和未发布 canary
     负测全部通过后，才把 `KMFA_PUBLIC_INDEXING_ENABLED=1` 并重部署。核验根响应
     `X-KMFA-Index-Mode: public-root` 且无 `noindex`，`robots.txt` 只允许精确根路径与渲染资产，
