@@ -249,6 +249,10 @@ def _run_browser(
         viewport={"width": 1440, "height": 1000},
         locale="zh-CN",
         reduced_motion="reduce",
+        # Test-only: axe-core is loaded from the checked-in local dependency as
+        # an inline Playwright injection. Production keeps script-src 'self';
+        # this bypass changes only the isolated audit BrowserContext.
+        bypass_csp=True,
     )
     page = context.new_page()
     try:

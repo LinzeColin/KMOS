@@ -94,7 +94,7 @@ jobs:
             --base-url http://localhost:18098 \
             --out-dir public-accessibility-index-e2e
 
-      - name: 跑匿名恢复体验（双设备 / 轮换撤销 / 重启 / hash / Flag 回滚）
+      - name: 跑匿名恢复与 secret hygiene（会话撤销 / 泄露扫描 / 重启 / hash / Flag 回滚）
         run: |
           set -euo pipefail
           p34_state=$(mktemp -d /tmp/kmfa-p34-state.XXXXXX)

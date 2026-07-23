@@ -17,6 +17,8 @@ const ERROR_COPY = {
   artifact_limit_reached: '该早期骨架每个工作区只验证一个文件，已有文件不会被覆盖。',
   artifact_integrity_failed: '下载完整性校验失败，服务器已阻止返回损坏字节。',
   artifact_unavailable: '文件当前不可读取，服务器没有返回替代或伪造内容。',
+  secret_in_url_rejected: '请求 URL 或来源页包含恢复材料，服务器已拒绝处理。请只通过受保护的表单正文提交。',
+  cross_origin_session_request_rejected: '会话操作不是从 KMFA 同源页面发起，服务器已拒绝处理。',
 }
 
 async function errorFromResponse(response) {
@@ -35,7 +37,7 @@ async function errorFromResponse(response) {
 async function jsonRequest(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
     cache: 'no-store',
-    credentials: 'omit',
+    credentials: 'same-origin',
     ...options,
     headers: {
       Accept: 'application/json',
@@ -131,7 +133,6 @@ function WalkingSkeleton() {
   }, [statusAttempt])
 
   const workspace = session?.workspace || null
-  const bearer = session ? { Authorization: `Bearer ${session.accessToken}` } : {}
   const artifact = workspace?.artifact || null
   const progress = workspace?.progress ?? 0
   const progressText = useMemo(() => `${progress}%`, [progress])
@@ -163,12 +164,11 @@ function WalkingSkeleton() {
       })
       setSession({
         workspace: result.workspace,
-        accessToken: result.access_token,
         expiresAt: result.access_expires_at,
       })
       setRecoveryCode(result.recovery_code)
       setProjectName(result.workspace.project_name)
-      setMessage('工作区已写入服务器。请先离线保存下方恢复码；刷新页面后本页会话不会保留。')
+      setMessage('工作区已写入服务器，并签发可撤销的受保护短时会话。请先离线保存下方恢复码。')
     })
   }
 
@@ -187,13 +187,12 @@ function WalkingSkeleton() {
       })
       setSession({
         workspace: result.workspace,
-        accessToken: result.access_token,
         expiresAt: result.access_expires_at,
       })
       setRecoveryCode(submittedRecovery)
       setRecoveryInput('')
       setProjectName(result.workspace.project_name)
-      setMessage('已用恢复码恢复工作区并签发新的短时会话；恢复码未被服务器回传。')
+      setMessage('已用恢复码恢复工作区并签发新的受保护短时会话；恢复码未被服务器回传。')
     })
   }
 
@@ -210,7 +209,7 @@ function WalkingSkeleton() {
       const response = await fetch(`${API_BASE}/recovery-files/import`, {
         method: 'POST',
         cache: 'no-store',
-        credentials: 'omit',
+        credentials: 'same-origin',
         headers: {
           Accept: 'application/json',
           'Content-Type': RECOVERY_FILE_MEDIA_TYPE,
@@ -221,7 +220,6 @@ function WalkingSkeleton() {
       const result = await response.json()
       setSession({
         workspace: result.workspace,
-        accessToken: result.access_token,
         expiresAt: result.access_expires_at,
       })
       setRecoveryCode('')
@@ -244,10 +242,9 @@ function WalkingSkeleton() {
         {
           method: 'POST',
           cache: 'no-store',
-          credentials: 'omit',
+          credentials: 'same-origin',
           headers: {
             Accept: RECOVERY_FILE_MEDIA_TYPE,
-            ...bearer,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ workspace_secret: recoveryCode }),
@@ -280,7 +277,7 @@ function WalkingSkeleton() {
 
   const rotateRecoverySecret = () => {
     const confirmed = window.confirm(
-      '轮换会立即撤销旧恢复码和旧 .kmfa-recovery 文件。当前短时会话仍有效。确认继续？',
+      '轮换会立即撤销旧恢复码、旧 .kmfa-recovery 文件和全部旧短时会话，并为本页签发替代会话。确认继续？',
     )
     if (!confirmed) return
     run(async () => {
@@ -288,11 +285,14 @@ function WalkingSkeleton() {
         `/workspaces/${workspace.workspace_id}/recovery-secret/rotate`,
         {
           method: 'POST',
-          headers: { ...bearer },
         },
       )
       setRecoveryCode(result.workspace_secret)
-      setMessage('恢复密钥已轮换：旧恢复码与旧文件已失效。请立即复制新码或下载新的恢复文件。')
+      setSession((current) => ({
+        ...current,
+        expiresAt: result.access_expires_at,
+      }))
+      setMessage('恢复密钥与会话已轮换：旧恢复材料和旧会话均已失效，本页已切换到新的受保护会话。')
     })
   }
 
@@ -302,7 +302,7 @@ function WalkingSkeleton() {
     run(async () => {
       const result = await jsonRequest(`/workspaces/${workspace.workspace_id}`, {
         method: 'PATCH',
-        headers: { ...bearer, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           project_name: String(form.get('project_name') || ''),
           progress: Number(form.get('progress')),
@@ -329,10 +329,9 @@ function WalkingSkeleton() {
       const response = await fetch(`${API_BASE}/workspaces/${workspace.workspace_id}/artifact`, {
         method: 'PUT',
         cache: 'no-store',
-        credentials: 'omit',
+        credentials: 'same-origin',
         headers: {
           Accept: 'application/json',
-          ...bearer,
           'Content-Type': selectedFile.type || 'application/octet-stream',
           'X-KMFA-Filename': encodeURIComponent(selectedFile.name),
         },
@@ -354,8 +353,7 @@ function WalkingSkeleton() {
         {
           method: 'POST',
           cache: 'no-store',
-          credentials: 'omit',
-          headers: { ...bearer },
+          credentials: 'same-origin',
         },
       )
       if (!response.ok) throw await errorFromResponse(response)
@@ -369,17 +367,24 @@ function WalkingSkeleton() {
     })
   }
 
-  const clearPageSession = () => {
-    setSession(null)
-    setRecoveryCode('')
-    setRecoveryInput('')
-    setRecoveryFile(null)
-    setRecoveryFileKey((value) => value + 1)
-    setProjectName('')
-    setSelectedFile(null)
-    setMode('recover')
-    setMessage('本页短时会话已清除，服务器工作区和文件未删除。请使用恢复码重新进入。')
-    setError('')
+  const revokePageSession = () => {
+    run(async () => {
+      const response = await fetch(`${API_BASE}/sessions/current`, {
+        method: 'DELETE',
+        cache: 'no-store',
+        credentials: 'same-origin',
+      })
+      if (!response.ok) throw await errorFromResponse(response)
+      setSession(null)
+      setRecoveryCode('')
+      setRecoveryInput('')
+      setRecoveryFile(null)
+      setRecoveryFileKey((value) => value + 1)
+      setProjectName('')
+      setSelectedFile(null)
+      setMode('recover')
+      setMessage('短时会话已在服务器撤销并从浏览器清除；工作区和文件未删除。请使用恢复材料重新进入。')
+    })
   }
 
   return (
@@ -471,7 +476,7 @@ function WalkingSkeleton() {
                   <button type="button" disabled={busy || !recoveryFile} onClick={importRecoveryFile}>
                     导入恢复文件
                   </button>
-                  <p>恢复材料只在 POST 正文中处理，不进入 URL、localStorage、Cookie 或第三方登录流程。</p>
+                  <p>恢复材料只在 POST 正文中处理，不进入 URL、localStorage、会话 Cookie 或第三方登录流程；Cookie 仅承载独立的短时会话凭据。</p>
                 </form>
               )}
             </div>
@@ -481,9 +486,11 @@ function WalkingSkeleton() {
                 <div>
                   <p className="walking-state-label">SERVER WORKSPACE</p>
                   <h3>{workspace.project_name}</h3>
-                  <p>短时会话到期：{session.expiresAt}</p>
+                  <p>受保护短时会话到期：{session.expiresAt}</p>
                 </div>
-                <button type="button" className="walking-quiet" onClick={clearPageSession}>清除本页会话</button>
+                <button type="button" className="walking-quiet" onClick={revokePageSession} disabled={busy}>
+                  撤销并清除本页会话
+                </button>
               </div>
 
               <div className="walking-recovery" data-recovery-management="ready">
@@ -494,7 +501,7 @@ function WalkingSkeleton() {
                   <p>服务端没有回传恢复文件内的密钥。请保留已导入的文件；也可轮换并生成全新的恢复码与文件。</p>
                 )}
                 <p>
-                  恢复材料等同于完整控制权；不要分享、不要放进 URL。轮换后旧恢复码和旧文件会立即失效，但当前短时会话暂不撤销。
+                  恢复材料等同于完整控制权；不要分享、不要放进 URL。轮换会撤销旧恢复材料和全部旧会话，并原子签发本页替代会话。
                 </p>
                 <div className="walking-recovery-actions">
                   <button type="button" onClick={copyRecoveryCode} disabled={busy || !recoveryCode}>
@@ -597,6 +604,7 @@ function WalkingSkeleton() {
       <div className="walking-contract" role="list" aria-label="早期骨架边界">
         <span role="listitem">服务器状态，不用 localStorage</span>
         <span role="listitem">恢复码与文件服务端只存 hash</span>
+        <span role="listitem">HttpOnly 短时会话可撤销</span>
         <span role="listitem">文件不进入静态公开目录</span>
         <span role="listitem">轮换撤销旧材料且不删状态</span>
       </div>

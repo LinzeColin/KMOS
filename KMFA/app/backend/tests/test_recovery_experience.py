@@ -30,11 +30,20 @@ def recovery_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def _create(project_name: str = "P4.2 synthetic recovery") -> dict[str, object]:
     response = client.post(f"{BASE}/workspaces", json={"project_name": project_name})
     assert response.status_code == 201, response.text
-    return response.json()
+    return _response_payload(response)
 
 
 def _auth(payload: dict[str, object]) -> dict[str, str]:
-    return {"Authorization": f"Bearer {payload['access_token']}"}
+    return {"Authorization": f"Bearer {payload['_session_token']}"}
+
+
+def _response_payload(response) -> dict[str, object]:
+    payload = response.json()
+    assert "access_token" not in payload
+    session_token = response.cookies.get(recovery.SESSION_COOKIE_NAME)
+    assert recovery.ACCESS_TOKEN_RE.fullmatch(session_token)
+    payload["_session_token"] = session_token
+    return payload
 
 
 def _export(payload: dict[str, object]):
@@ -120,10 +129,10 @@ def test_strict_recovery_file_round_trip_preserves_full_workspace_inventory(
 
     imported = _import(exported.content)
     assert imported.status_code == 200, imported.text
-    restored = imported.json()
+    restored = _response_payload(imported)
     assert restored["recovery_file_imported"] is True
     assert restored["workspace_secret_returned"] is False
-    assert restored["access_token"] != created["access_token"]
+    assert restored["_session_token"] != created["_session_token"]
     assert restored["workspace"]["workspace_id"] == workspace_id
     assert restored["workspace"]["project_name"] == "P4.2 cross-device state"
     assert restored["workspace"]["progress"] == 72
@@ -249,13 +258,15 @@ def test_rotation_atomically_revokes_old_code_and_file_without_deleting_data(
         headers=_auth(created),
     )
     assert rotated.status_code == 200, rotated.text
-    rotation = rotated.json()
+    rotation = _response_payload(rotated)
     new_secret = rotation["workspace_secret"]
     assert recovery.RECOVERY_CODE_RE.fullmatch(new_secret)
     assert new_secret != old_secret
     assert rotation["workspace_secret_shown_once"] is True
     assert rotation["previous_workspace_secret_revoked"] is True
-    assert rotation["existing_sessions_revoked"] is False
+    assert rotation["existing_sessions_revoked"] is True
+    assert rotation["revoked_session_count"] >= 1
+    assert rotation["_session_token"] != created["_session_token"]
 
     old_code = client.post(
         f"{BASE}/recoveries",
@@ -280,8 +291,16 @@ def test_rotation_atomically_revokes_old_code_and_file_without_deleting_data(
         f"{BASE}/workspaces/{workspace_id}",
         headers=_auth(created),
     )
-    assert still_open.status_code == 200
-    assert still_open.json()["artifact"]["sha256"] == hashlib.sha256(fixture).hexdigest()
+    assert still_open.status_code == 404
+
+    replacement_open = client.get(
+        f"{BASE}/workspaces/{workspace_id}",
+        headers=_auth(rotation),
+    )
+    assert replacement_open.status_code == 200
+    assert replacement_open.json()["artifact"]["sha256"] == hashlib.sha256(
+        fixture
+    ).hexdigest()
 
     new_exchange = client.post(
         f"{BASE}/sessions",
@@ -290,7 +309,7 @@ def test_rotation_atomically_revokes_old_code_and_file_without_deleting_data(
     assert new_exchange.status_code == 200
     new_export = client.post(
         f"{BASE}/workspaces/{workspace_id}/recovery-file",
-        headers=_auth(created),
+        headers=_auth(rotation),
         json={"workspace_secret": new_secret},
     )
     assert new_export.status_code == 200

@@ -18,4 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . /opt/kmfa/KMOS
 # 现建的 dist 最后落位，覆盖仓里那份——顺序在 COPY . 之后，不许倒。
 COPY --from=frontend /fe/dist /opt/kmfa/KMOS/KMFA/app/frontend/dist
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Raw request-target access logs are disabled: a caller can control query
+# strings before application middleware runs. The app keeps structured,
+# capability-redacted audit events instead. Port 8000 is internal-only behind
+# the deployment proxy, whose forwarded scheme is required by the exact-origin
+# session mutation boundary.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--proxy-headers", "--forwarded-allow-ips", "*"]

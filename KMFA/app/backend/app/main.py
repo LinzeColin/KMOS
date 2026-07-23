@@ -27,6 +27,7 @@ from .public_indexing import (
     robots_body,
     sitemap_body,
 )
+from .secret_hygiene import SecretHygieneMiddleware, install_secret_redaction
 from .walking_skeleton import router as walking_skeleton_router
 
 REPO = Path(__file__).resolve().parents[4]
@@ -50,6 +51,10 @@ app.add_middleware(PrivateOperationsAccessMiddleware)
 # Keep this outermost so even 403/503 responses produced by the private guard
 # receive the crawler/cache boundary.
 app.add_middleware(PublicIndexBoundaryMiddleware)
+# Outermost: redact request/error records and attach the browser boundary even
+# to responses short-circuited by the indexing or private-operations guards.
+install_secret_redaction()
+app.add_middleware(SecretHygieneMiddleware)
 app.include_router(walking_skeleton_router)
 
 

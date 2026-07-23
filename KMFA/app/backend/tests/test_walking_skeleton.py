@@ -29,11 +29,23 @@ def enabled_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def _create(project_name: str = "合成骨架项目") -> dict:
     response = client.post(f"{BASE}/workspaces", json={"project_name": project_name})
     assert response.status_code == 201, response.text
-    return response.json()
+    payload = response.json()
+    assert "access_token" not in payload
+    payload["_session_token"] = response.cookies.get(skeleton.SESSION_COOKIE_NAME)
+    assert skeleton.ACCESS_TOKEN_RE.fullmatch(payload["_session_token"])
+    return payload
 
 
 def _auth(created: dict) -> dict[str, str]:
-    return {"Authorization": f"Bearer {created['access_token']}"}
+    return {"Authorization": f"Bearer {created['_session_token']}"}
+
+
+def _response_payload(response) -> dict:
+    payload = response.json()
+    assert "access_token" not in payload
+    payload["_session_token"] = response.cookies.get(skeleton.SESSION_COOKIE_NAME)
+    assert skeleton.ACCESS_TOKEN_RE.fullmatch(payload["_session_token"])
+    return payload
 
 
 def _upload(created: dict, content: bytes, name: str = "fixture.unknown"):
@@ -111,9 +123,10 @@ def test_create_returns_one_time_recovery_and_stores_only_capability_hashes(
 ):
     created = _create()
     recovery = created["recovery_code"]
-    access = created["access_token"]
+    access = created["_session_token"]
     assert skeleton.RECOVERY_CODE_RE.fullmatch(recovery)
     assert skeleton.ACCESS_TOKEN_RE.fullmatch(access)
+    assert "access_token" not in created
     assert created["recovery_code_shown_once"] is True
     assert created["workspace"]["progress"] == 0
     assert created["workspace"]["artifact"] is None
@@ -207,8 +220,8 @@ def test_recovery_issues_a_new_short_session_and_never_repeats_the_code(enabled_
         json={"recovery_code": created["recovery_code"]},
     )
     assert recovered.status_code == 200
-    payload = recovered.json()
-    assert payload["access_token"] != created["access_token"]
+    payload = _response_payload(recovered)
+    assert payload["_session_token"] != created["_session_token"]
     assert payload["workspace"]["workspace_id"] == workspace_id
     assert payload["workspace"]["progress"] == 64
     assert (
@@ -252,10 +265,11 @@ def test_rollback_disables_actions_but_preserves_and_can_restore_data(
     recovered = client.post(
         f"{BASE}/recoveries",
         json={"recovery_code": created["recovery_code"]},
-    ).json()
+    )
+    recovered_payload = _response_payload(recovered)
     downloaded = client.post(
-        f"{BASE}/workspaces/{recovered['workspace']['workspace_id']}/artifact/download",
-        headers={"Authorization": f"Bearer {recovered['access_token']}"},
+        f"{BASE}/workspaces/{recovered_payload['workspace']['workspace_id']}/artifact/download",
+        headers=_auth(recovered_payload),
     )
     assert downloaded.content == content
 
@@ -311,12 +325,13 @@ def test_audit_is_append_only_and_contains_actions_not_file_content(
         f"{BASE}/workspaces/{workspace_id}/artifact/download",
         headers=_auth(created),
     )
-    recovered = client.post(
+    recovered_response = client.post(
         f"{BASE}/recoveries", json={"recovery_code": created["recovery_code"]}
-    ).json()
+    )
+    recovered = _response_payload(recovered_response)
     audit = client.get(
         f"{BASE}/workspaces/{workspace_id}/audit-events",
-        headers={"Authorization": f"Bearer {recovered['access_token']}"},
+        headers=_auth(recovered),
     ).json()
     actions = [event["action"] for event in audit["events"]]
     assert audit["append_only"] is True

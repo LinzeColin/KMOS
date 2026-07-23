@@ -15,19 +15,30 @@ Access 加源站 JWT 校验双重保护。公共壳异常时把 `KMFA_PUBLIC_SHE
 8 MiB 的文件、用一次显示的高熵恢复码换取一小时短时会话，并以 attachment-only 下载校验
 SHA-256。恢复码与会话 capability 在服务端只存 hash；SQLite 结构化状态和私有文件字节分别写入
 `/var/lib/kmfa/state/walking-skeleton` 下的数据库与对象目录，由 `kmfa-app-state` named volume 跨容器
-重启保留。Flag 置 `0` 会关闭全部骨架写入/恢复/下载入口但不删除卷内状态。
+重启保留。Flag 置 `0` 会关闭骨架创建、恢复、读写和下载入口但不删除卷内状态；显式会话撤销仍可用，
+避免回滚期间把浏览器凭据留在服务端。
 
-S04/P4.1-P4.2 起，新 workspace ID 使用 128-bit CSPRNG，workspace secret 与一小时 access token 均使用
+S04/P4.1-P4.3 起，新 workspace ID 使用 128-bit CSPRNG，workspace secret 与一小时 access token 均使用
 256-bit CSPRNG。`POST /public-api/walking-skeleton/v1/sessions` 用 workspace ID + secret 交换短时
 session；未知 ID、错误 secret 与格式错误统一返回 `workspace_not_found`，服务端只以 SHA-256 verifier
 配合 constant-time compare 验证。S03 的 96-bit legacy workspace ID 继续可验证，既有恢复资产不迁移、
 不重写、不删除。用户可复制恢复码或下载/导入严格四字段、4 KiB 上限的 `.kmfa-recovery` 文件；
 恢复材料只经 POST 正文传输且服务端不保存明文。工作区内可原子轮换恢复 secret，轮换后旧码、旧文件
-与旧 ID+secret 交换立即失效，但既有短时 session 暂保留至到期。P4.3 仍负责全链 secret 泄露扫描和
-可撤销 session。
+与旧 ID+secret 交换立即失效，同时撤销该工作区全部旧 session 并原子签发替代 session。
+
+浏览器 API 不再返回 access token 明文，而是使用 host-only 的
+`__Secure-kmfa_session` Cookie：`Secure`、`HttpOnly`、`SameSite=Strict`、API-scoped Path 和一小时
+Max-Age；现存 S03/P4.1 bearer 仍只读兼容，冲突的 bearer+Cookie fail closed。用户可调用
+`DELETE /public-api/walking-skeleton/v1/sessions/current` 立即撤销服务端 session 并清除 Cookie。
+携带 session Cookie 的写操作还必须带匹配 scheme/host 的同源 `Origin`，防止同站兄弟域代发请求。
+全局边界拒绝 URL/Referer 内含原始或 percent-encoded capability，进程日志会脱敏恢复码、session、
+Bearer 和异常；生产 Uvicorn raw access log 已关闭。CSP `connect-src 'self'`、`no-referrer`、
+`private, no-store` 与无第三方分析/错误 SDK 的依赖边界共同阻止遥测外送。最终镜像 Gate 会扫描
+URL、Referer、日志、审计事件、错误、缓存、状态文件与截图，并验证轮换/显式撤销后的旧 session
+重放失败。
 
 这只是可替换的 Walking Skeleton，不是 GA 或“永久保存”证明：耐久数据库服务、S3-compatible
-对象存储、备份恢复、全链 secret/session 硬化、扫描、反滥用、多文件和明确删除仍由 S04–S07 完成。
+对象存储、备份恢复、恶意文件扫描、反滥用、多文件和明确删除仍由 S04–S07 完成。
 禁止把单节点 named volume 或本阶段重启测试宣传为跨节点、备份或长期 RPO/RTO 已通过。
 
 本地跑：`cd KMFA/app/backend && uvicorn app.main:app --reload`（未设置

@@ -153,12 +153,15 @@ def test_session_exchange_uses_verifier_and_returns_only_a_short_session(
     assert response.status_code == 200
     assert response.headers["cache-control"] == "private, no-store"
     assert response.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
+    session_token = response.cookies.get(identity.SESSION_COOKIE_NAME)
+    assert identity.ACCESS_TOKEN_RE.fullmatch(session_token)
     exchanged = response.json()
     expires_at = datetime.fromisoformat(
         exchanged["access_expires_at"].replace("Z", "+00:00")
     )
     assert exchanged["workspace"]["workspace_id"] == workspace_id
-    assert exchanged["access_token"] != created["access_token"]
+    assert "access_token" not in exchanged
+    assert session_token != created["access_token"]
     assert exchanged["workspace_secret_returned"] is False
     assert exchanged["session_ttl_seconds"] == 3600
     assert 3598 <= (expires_at - before).total_seconds() <= 3601
@@ -169,7 +172,7 @@ def test_session_exchange_uses_verifier_and_returns_only_a_short_session(
     assert (
         client.get(
             f"{BASE}/workspaces/{workspace_id}",
-            headers=_auth(exchanged["access_token"]),
+            headers=_auth(session_token),
         ).status_code
         == 200
     )

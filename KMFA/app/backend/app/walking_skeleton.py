@@ -1,4 +1,4 @@
-"""S03/P3.4 walking skeleton with S04/P4.1-P4.2 recovery hardening.
+"""S03/P3.4 walking skeleton with S04/P4.1-P4.3 security hardening.
 
 This is intentionally a narrow, replaceable adapter. Structured workspace
 state lives in SQLite while artifact bytes live outside the database in a
@@ -6,10 +6,11 @@ private filesystem root. Both must be mounted on the same durable deployment
 volume for this early skeleton. P4.1 adds 128-bit workspace identifiers,
 256-bit workspace secrets, irreversible verifiers and one-hour session
 exchange while accepting existing S03 identifiers. P4.2 adds a strict,
-minimal `.kmfa-recovery` capability file plus atomic secret rotation. S04/P4.3
-onward still owns session revocation, whole-chain secret hygiene, object
-storage, backup/restore, abuse controls, scanning and multi-file lifecycle
-semantics.
+minimal `.kmfa-recovery` capability file plus atomic secret rotation. P4.3
+binds newly issued browser sessions to a Secure/HttpOnly/SameSite cookie,
+supports server-side revocation and keeps legacy Authorization bearer sessions
+read-compatible. S04/P4.4 onward still owns abuse controls, object storage,
+backup/restore, scanning and multi-file lifecycle semantics.
 
 Raw recovery codes and access capabilities are returned only to their caller;
 the store keeps SHA-256 hashes. Artifacts are never mapped into the static
@@ -32,11 +33,14 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
 
-from fastapi import APIRouter, Header, HTTPException, Request
-from fastapi.responses import FileResponse, Response
+from fastapi import APIRouter, Cookie, Header, HTTPException, Request, Response
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 API_PREFIX = "/public-api/walking-skeleton/v1"
+SESSION_COOKIE_NAME = "__Secure-kmfa_session"
+SESSION_COOKIE_PATH = API_PREFIX
+SESSION_COOKIE_SAMESITE = "strict"
 TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 MAX_ARTIFACT_BYTES = 8 * 1024 * 1024
 MAX_ARTIFACTS = 1
@@ -436,11 +440,31 @@ def _workspace_payload(
     }
 
 
-def _authorization_token(authorization: str | None) -> str:
-    if not authorization or not authorization.startswith("Bearer "):
+def _presented_access_token(
+    authorization: str | None,
+    session_cookie: str | None,
+    *,
+    allow_missing: bool = False,
+) -> str | None:
+    header_token: str | None = None
+    if authorization is not None:
+        if not authorization.startswith("Bearer "):
+            raise SkeletonError(404, "workspace_not_found")
+        header_token = authorization.removeprefix("Bearer ").strip()
+        if not ACCESS_TOKEN_RE.fullmatch(header_token):
+            raise SkeletonError(404, "workspace_not_found")
+
+    cookie_token = session_cookie.strip() if session_cookie else None
+    if cookie_token is not None and not ACCESS_TOKEN_RE.fullmatch(cookie_token):
         raise SkeletonError(404, "workspace_not_found")
-    token = authorization.removeprefix("Bearer ").strip()
-    if not ACCESS_TOKEN_RE.fullmatch(token):
+    if (
+        header_token is not None
+        and cookie_token is not None
+        and not hmac.compare_digest(header_token, cookie_token)
+    ):
+        raise SkeletonError(404, "workspace_not_found")
+    token = header_token or cookie_token
+    if token is None and not allow_missing:
         raise SkeletonError(404, "workspace_not_found")
     return token
 
@@ -449,10 +473,12 @@ def _authorize(
     connection: sqlite3.Connection,
     workspace_id: str,
     authorization: str | None,
+    session_cookie: str | None = None,
 ) -> None:
     if not WORKSPACE_ID_RE.fullmatch(workspace_id):
         raise SkeletonError(404, "workspace_not_found")
-    token = _authorization_token(authorization)
+    token = _presented_access_token(authorization, session_cookie)
+    assert token is not None
     row = connection.execute(
         """
         SELECT 1 FROM access_tokens
@@ -520,6 +546,47 @@ def _workspace_session_payload(
         "access_expires_at": expires_at,
         "session_ttl_seconds": int(ACCESS_TOKEN_TTL.total_seconds()),
     }
+
+
+def _set_session_cookie(response: Response, access_token: str) -> None:
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=access_token,
+        max_age=int(ACCESS_TOKEN_TTL.total_seconds()),
+        path=SESSION_COOKIE_PATH,
+        secure=True,
+        httponly=True,
+        samesite=SESSION_COOKIE_SAMESITE,
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["X-KMFA-Session-Transport"] = "secure-http-only-cookie"
+
+
+def _clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path=SESSION_COOKIE_PATH,
+        secure=True,
+        httponly=True,
+        samesite=SESSION_COOKIE_SAMESITE,
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["X-KMFA-Session-Transport"] = "revoked"
+
+
+def _browser_session_payload(
+    payload: dict[str, Any],
+    response: Response,
+) -> dict[str, Any]:
+    safe_payload = dict(payload)
+    access_token = str(safe_payload.pop("access_token"))
+    _set_session_cookie(response, access_token)
+    safe_payload["session_transport"] = "secure-http-only-cookie"
+    safe_payload["session_cookie_path"] = SESSION_COOKIE_PATH
+    safe_payload["session_revocable"] = True
+    return safe_payload
 
 
 def _create_workspace(project_name: str) -> dict[str, Any]:
@@ -634,11 +701,12 @@ def _export_recovery_file(
     workspace_id: str,
     authorization: str | None,
     workspace_secret: str,
+    session_cookie: str | None = None,
 ) -> bytes:
     with _store() as connection:
         connection.execute("BEGIN IMMEDIATE")
         try:
-            _authorize(connection, workspace_id, authorization)
+            _authorize(connection, workspace_id, authorization, session_cookie)
             if not _workspace_secret_matches(
                 connection,
                 workspace_id,
@@ -669,13 +737,14 @@ def _import_recovery_file(payload: bytes) -> dict[str, Any]:
 def _rotate_workspace_secret(
     workspace_id: str,
     authorization: str | None,
+    session_cookie: str | None = None,
 ) -> dict[str, Any]:
     with _store() as connection:
         for _ in range(5):
             workspace_secret = _new_recovery_code()
             try:
                 connection.execute("BEGIN IMMEDIATE")
-                _authorize(connection, workspace_id, authorization)
+                _authorize(connection, workspace_id, authorization, session_cookie)
                 connection.execute(
                     """
                     UPDATE workspaces SET recovery_hash = ?, updated_at = ?
@@ -687,6 +756,19 @@ def _rotate_workspace_secret(
                         workspace_id,
                     ),
                 )
+                revoked_session_count = connection.execute(
+                    "DELETE FROM access_tokens WHERE workspace_id = ?",
+                    (workspace_id,),
+                ).rowcount
+                access_token, expires_at = _issue_access_token(
+                    connection,
+                    workspace_id,
+                )
+                _append_audit(
+                    connection,
+                    workspace_id,
+                    "workspace_sessions_revoked",
+                )
                 _append_audit(connection, workspace_id, "workspace_secret_rotated")
                 connection.execute("COMMIT")
                 return {
@@ -694,7 +776,11 @@ def _rotate_workspace_secret(
                     "workspace_secret": workspace_secret,
                     "workspace_secret_shown_once": True,
                     "previous_workspace_secret_revoked": True,
-                    "existing_sessions_revoked": False,
+                    "existing_sessions_revoked": True,
+                    "revoked_session_count": revoked_session_count,
+                    "access_token": access_token,
+                    "access_expires_at": expires_at,
+                    "session_ttl_seconds": int(ACCESS_TOKEN_TTL.total_seconds()),
                 }
             except sqlite3.IntegrityError:
                 if connection.in_transaction:
@@ -704,6 +790,41 @@ def _rotate_workspace_secret(
                     connection.execute("ROLLBACK")
                 raise
     raise SkeletonError(503, "workspace_identity_unavailable")
+
+
+def _revoke_current_session(
+    authorization: str | None,
+    session_cookie: str | None,
+) -> bool:
+    token = _presented_access_token(
+        authorization,
+        session_cookie,
+        allow_missing=True,
+    )
+    if token is None:
+        return False
+    with _store() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        try:
+            row = connection.execute(
+                "SELECT workspace_id FROM access_tokens WHERE token_hash = ?",
+                (_hash_capability(token),),
+            ).fetchone()
+            if row is None:
+                connection.execute("COMMIT")
+                return False
+            workspace_id = str(row["workspace_id"])
+            connection.execute(
+                "DELETE FROM access_tokens WHERE token_hash = ?",
+                (_hash_capability(token),),
+            )
+            _append_audit(connection, workspace_id, "workspace_session_revoked")
+            connection.execute("COMMIT")
+            return True
+        except Exception:
+            if connection.in_transaction:
+                connection.execute("ROLLBACK")
+            raise
 
 
 async def _read_recovery_file_request(request: Request) -> bytes:
@@ -728,9 +849,13 @@ async def _read_recovery_file_request(request: Request) -> bytes:
     return bytes(payload)
 
 
-def _get_workspace(workspace_id: str, authorization: str | None) -> dict[str, Any]:
+def _get_workspace(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None = None,
+) -> dict[str, Any]:
     with _store() as connection:
-        _authorize(connection, workspace_id, authorization)
+        _authorize(connection, workspace_id, authorization, session_cookie)
         return _workspace_payload(connection, workspace_id)
 
 
@@ -738,6 +863,7 @@ def _update_workspace(
     workspace_id: str,
     authorization: str | None,
     request: UpdateWorkspaceRequest,
+    session_cookie: str | None = None,
 ) -> dict[str, Any]:
     if request.project_name is None and request.progress is None:
         raise SkeletonError(422, "workspace_update_required")
@@ -747,7 +873,7 @@ def _update_workspace(
         else None
     )
     with _store() as connection:
-        _authorize(connection, workspace_id, authorization)
+        _authorize(connection, workspace_id, authorization, session_cookie)
         current = connection.execute(
             "SELECT project_name, progress FROM workspaces WHERE workspace_id = ?",
             (workspace_id,),
@@ -785,6 +911,7 @@ def _fsync_directory(path: Path) -> None:
 async def _store_artifact(
     workspace_id: str,
     authorization: str | None,
+    session_cookie: str | None,
     filename_header: str | None,
     request: Request,
 ) -> dict[str, Any]:
@@ -798,7 +925,7 @@ async def _store_artifact(
             raise SkeletonError(400, "invalid_content_length") from exc
 
     with _store() as connection:
-        _authorize(connection, workspace_id, authorization)
+        _authorize(connection, workspace_id, authorization, session_cookie)
         if connection.execute(
             "SELECT 1 FROM artifacts WHERE workspace_id = ?", (workspace_id,)
         ).fetchone():
@@ -829,7 +956,7 @@ async def _store_artifact(
         _fsync_directory(_objects_dir())
 
         with _store() as connection:
-            _authorize(connection, workspace_id, authorization)
+            _authorize(connection, workspace_id, authorization, session_cookie)
             connection.execute("BEGIN IMMEDIATE")
             try:
                 now = _timestamp()
@@ -881,9 +1008,10 @@ async def _store_artifact(
 def _artifact_for_download(
     workspace_id: str,
     authorization: str | None,
+    session_cookie: str | None = None,
 ) -> tuple[Path, dict[str, Any]]:
     with _store() as connection:
-        _authorize(connection, workspace_id, authorization)
+        _authorize(connection, workspace_id, authorization, session_cookie)
         artifact = connection.execute(
             """
             SELECT artifact_id, object_name, original_name, size_bytes, sha256, created_at
@@ -922,9 +1050,13 @@ def _artifact_for_download(
         return path, dict(artifact)
 
 
-def _audit_events(workspace_id: str, authorization: str | None) -> dict[str, Any]:
+def _audit_events(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None = None,
+) -> dict[str, Any]:
     with _store() as connection:
-        _authorize(connection, workspace_id, authorization)
+        _authorize(connection, workspace_id, authorization, session_cookie)
         rows = connection.execute(
             """
             SELECT action, result_status, artifact_sha256, created_at
@@ -981,6 +1113,22 @@ def walking_skeleton_status() -> dict[str, Any]:
             "secret_rotation": True,
             "email_recovery": False,
         },
+        "secret_hygiene": {
+            "session_transport": "secure-http-only-cookie",
+            "cookie": {
+                "name": SESSION_COOKIE_NAME,
+                "secure": True,
+                "http_only": True,
+                "same_site": "Strict",
+                "path": SESSION_COOKIE_PATH,
+                "max_age_seconds": int(ACCESS_TOKEN_TTL.total_seconds()),
+            },
+            "revocation": f"{API_PREFIX}/sessions/current",
+            "legacy_bearer_read_compatible": True,
+            "browser_receives_access_token": False,
+            "same_origin_mutations_required": True,
+            "runtime_telemetry": "none",
+        },
         "limits": {
             "max_artifacts": MAX_ARTIFACTS,
             "max_bytes": MAX_ARTIFACT_BYTES,
@@ -998,19 +1146,31 @@ def walking_skeleton_status() -> dict[str, Any]:
 
 
 @router.post("/workspaces", status_code=201)
-def create_workspace(request: CreateWorkspaceRequest) -> dict[str, Any]:
+def create_workspace(
+    request: CreateWorkspaceRequest,
+    response: Response,
+) -> dict[str, Any]:
     try:
         _require_enabled()
-        return _create_workspace(request.project_name)
+        return _browser_session_payload(
+            _create_workspace(request.project_name),
+            response,
+        )
     except SkeletonError as error:
         _raise_http(error)
 
 
 @router.post("/recoveries")
-def recover_workspace(request: RecoverWorkspaceRequest) -> dict[str, Any]:
+def recover_workspace(
+    request: RecoverWorkspaceRequest,
+    response: Response,
+) -> dict[str, Any]:
     try:
         _require_enabled()
-        return _recover_workspace(request.recovery_code)
+        return _browser_session_payload(
+            _recover_workspace(request.recovery_code),
+            response,
+        )
     except SkeletonError as error:
         _raise_http(error)
 
@@ -1018,35 +1178,69 @@ def recover_workspace(request: RecoverWorkspaceRequest) -> dict[str, Any]:
 @router.post("/sessions")
 def exchange_workspace_session(
     request: ExchangeWorkspaceSessionRequest,
+    response: Response,
 ) -> dict[str, Any]:
     try:
         _require_enabled()
-        return _exchange_workspace_session(
-            request.workspace_id,
-            request.workspace_secret,
+        return _browser_session_payload(
+            _exchange_workspace_session(
+                request.workspace_id,
+                request.workspace_secret,
+            ),
+            response,
         )
     except SkeletonError as error:
         _raise_http(error)
 
 
 @router.post("/recovery-files/import")
-async def import_recovery_file(request: Request) -> dict[str, Any]:
+async def import_recovery_file(
+    request: Request,
+    response: Response,
+) -> dict[str, Any]:
     try:
         _require_enabled()
         payload = await _read_recovery_file_request(request)
-        return _import_recovery_file(payload)
+        return _browser_session_payload(
+            _import_recovery_file(payload),
+            response,
+        )
     except SkeletonError as error:
         _raise_http(error)
+
+
+@router.delete("/sessions/current", status_code=204)
+def revoke_current_session(
+    authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
+) -> Response:
+    response = Response(status_code=204)
+    try:
+        _revoke_current_session(authorization, session_cookie)
+    except SkeletonError as error:
+        _raise_http(error)
+    # Missing, expired, unknown and already-revoked well-formed sessions are
+    # idempotent. Malformed or conflicting header/cookie credentials fail
+    # closed above instead of reporting a revocation that did not occur.
+    _clear_session_cookie(response)
+    return response
 
 
 @router.get("/workspaces/{workspace_id}")
 def get_workspace(
     workspace_id: str,
     authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
 ) -> dict[str, Any]:
     try:
         _require_enabled()
-        return _get_workspace(workspace_id, authorization)
+        return _get_workspace(workspace_id, authorization, session_cookie)
     except SkeletonError as error:
         _raise_http(error)
 
@@ -1056,6 +1250,10 @@ def export_recovery_file(
     workspace_id: str,
     request: ExportRecoveryFileRequest,
     authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
 ) -> Response:
     try:
         _require_enabled()
@@ -1063,6 +1261,7 @@ def export_recovery_file(
             workspace_id,
             authorization,
             request.workspace_secret,
+            session_cookie,
         )
     except SkeletonError as error:
         _raise_http(error)
@@ -1082,11 +1281,23 @@ def export_recovery_file(
 @router.post("/workspaces/{workspace_id}/recovery-secret/rotate")
 def rotate_workspace_secret(
     workspace_id: str,
+    response: Response,
     authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
 ) -> dict[str, Any]:
     try:
         _require_enabled()
-        return _rotate_workspace_secret(workspace_id, authorization)
+        return _browser_session_payload(
+            _rotate_workspace_secret(
+                workspace_id,
+                authorization,
+                session_cookie,
+            ),
+            response,
+        )
     except SkeletonError as error:
         _raise_http(error)
 
@@ -1096,10 +1307,19 @@ def update_workspace(
     workspace_id: str,
     request: UpdateWorkspaceRequest,
     authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
 ) -> dict[str, Any]:
     try:
         _require_enabled()
-        return _update_workspace(workspace_id, authorization, request)
+        return _update_workspace(
+            workspace_id,
+            authorization,
+            request,
+            session_cookie,
+        )
     except SkeletonError as error:
         _raise_http(error)
 
@@ -1110,12 +1330,17 @@ async def upload_artifact(
     request: Request,
     authorization: str | None = Header(default=None),
     x_kmfa_filename: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
 ) -> dict[str, Any]:
     try:
         _require_enabled()
         return await _store_artifact(
             workspace_id,
             authorization,
+            session_cookie,
             x_kmfa_filename,
             request,
         )
@@ -1132,10 +1357,18 @@ async def upload_artifact(
 def download_artifact(
     workspace_id: str,
     authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
 ) -> FileResponse:
     try:
         _require_enabled()
-        path, artifact = _artifact_for_download(workspace_id, authorization)
+        path, artifact = _artifact_for_download(
+            workspace_id,
+            authorization,
+            session_cookie,
+        )
     except SkeletonError as error:
         _raise_http(error)
     return FileResponse(
@@ -1156,9 +1389,13 @@ def download_artifact(
 def get_audit_events(
     workspace_id: str,
     authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
 ) -> dict[str, Any]:
     try:
         _require_enabled()
-        return _audit_events(workspace_id, authorization)
+        return _audit_events(workspace_id, authorization, session_cookie)
     except SkeletonError as error:
         _raise_http(error)
