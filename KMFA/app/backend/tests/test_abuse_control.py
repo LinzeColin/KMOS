@@ -306,6 +306,75 @@ def test_global_sustained_budget_blocks_distributed_low_speed_and_recovers(
     assert snapshot["raw_identifiers_stored"] is False
 
 
+def test_denied_attempts_are_charged_and_global_budget_cannot_be_bypassed(
+    abuse_store: Path,
+):
+    del abuse_store
+    policy = abuse.POLICIES["recovery"]
+    burst = next(window for window in policy.windows if window.seconds == 10)
+    base = (1_850_000_000 // burst.seconds) * burst.seconds + 1
+    actor = _signals(1)
+
+    for _ in range(burst.per_device):
+        admission = abuse.admit_request(
+            operation="recovery",
+            signals=actor,
+            proof_header=None,
+            now_value=base,
+        )
+        assert admission.allowed
+        abuse.release_lease(admission.lease_id)
+
+    challenged = []
+    for _ in range(burst.global_limit - burst.per_device):
+        admission = abuse.admit_request(
+            operation="recovery",
+            signals=actor,
+            proof_header=None,
+            now_value=base,
+        )
+        challenged.append(admission)
+    assert all(
+        not admission.allowed
+        and admission.decision == "challenge-required"
+        for admission in challenged
+    )
+    globally_blocked = abuse.admit_request(
+        operation="recovery",
+        signals=_signals(99),
+        proof_header=None,
+        now_value=base,
+    )
+    assert not globally_blocked.allowed
+    assert globally_blocked.reason == "global-10s"
+    assert globally_blocked.challenge is None
+
+    invalid_time = base + burst.seconds
+    invalid = [
+        abuse.admit_request(
+            operation="recovery",
+            signals=_signals(200 + index),
+            proof_header="not-a-valid-proof",
+            now_value=invalid_time,
+        )
+        for index in range(burst.global_limit)
+    ]
+    assert all(
+        not admission.allowed
+        and admission.detail == "risk_challenge_invalid"
+        for admission in invalid
+    )
+    invalid_global_block = abuse.admit_request(
+        operation="recovery",
+        signals=_signals(999),
+        proof_header=None,
+        now_value=invalid_time,
+    )
+    assert not invalid_global_block.allowed
+    assert invalid_global_block.reason == "global-10s"
+    assert invalid_global_block.challenge is None
+
+
 def test_concurrency_budget_is_global_non_bypassable_and_releases(
     abuse_store: Path,
 ):
@@ -386,23 +455,35 @@ def test_operational_store_is_bounded_hashed_and_private_snapshot_has_no_raw_ids
     )
 
 
-def test_invalid_policy_fails_expensive_actions_closed_but_not_public_browse(
+def test_invalid_policy_fails_guarded_actions_closed_but_not_public_browse(
     abuse_store: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
     del abuse_store
-    monkeypatch.setenv("KMFA_ABUSE_POLICY_MODE", "typo")
     with _client() as client:
+        created, _ = _create(
+            client,
+            ip="198.51.100.229",
+            name="invalid-policy-existing",
+        )
+        workspace_id = created["workspace"]["workspace_id"]
+        monkeypatch.setenv("KMFA_ABUSE_POLICY_MODE", "typo")
         root = client.get("/")
         status = client.get(f"{BASE}/status")
         create = client.post(
             f"{BASE}/workspaces",
             json={"project_name": "must-not-create"},
         )
+        read = client.get(f"{BASE}/workspaces/{workspace_id}")
+        mutation = client.patch(
+            f"{BASE}/workspaces/{workspace_id}",
+            json={"progress": 1},
+        )
     assert root.status_code == status.status_code == 200
-    assert create.status_code == 503
-    assert create.json()["detail"] == "abuse_policy_configuration_invalid"
-    assert create.headers["x-kmfa-abuse-decision"] == "fail-closed"
+    for response in (create, read, mutation):
+        assert response.status_code == 503
+        assert response.json()["detail"] == "abuse_policy_configuration_invalid"
+        assert response.headers["x-kmfa-abuse-decision"] == "fail-closed"
 
 
 def test_emergency_mode_exempts_only_low_cost_routes_and_ops_remains_private(

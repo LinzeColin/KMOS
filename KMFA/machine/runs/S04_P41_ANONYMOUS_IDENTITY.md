@@ -81,8 +81,9 @@ Quantitative run:
 | workspace ID entropy input | `128-bit` |
 | workspace secret / access token entropy input | `256-bit / 256-bit` |
 | concurrent creates | `256`, collision/error `0` |
-| final workspace/token/audit rows | `10,256 / 10,256 / 10,256` |
-| syntactically valid SHA-256 verifier rows | `10,256` |
+| sequential test final workspace/token/audit rows | `10,000 / 10,000 / 10,000` |
+| concurrent test final workspace/token/audit rows | `256 / 256 / 256` |
+| syntactically valid SHA-256 verifier rows | `10,000` sequential; `256` concurrent |
 | raw SQLite/WAL/SHM `kmfa-r1-` plaintext hits | `0` |
 | raw SQLite/WAL/SHM `kmfa-a1-` plaintext hits | `0` |
 | known-wrong vs unknown-ID median verifier time | `6.209µs / 5.167µs` |
@@ -143,10 +144,14 @@ mutations, Dual-Plane gate, forbidden-payload/secret/path scans and
 
 ## 7. Rollback and next boundary
 
-Rollback is an ordinary revert of this phase commit. It restores the previous
-session issuer while preserving the schema, workspace rows, artifact bytes,
-legacy verifier values and `kmfa-app-state`; no `down -v`, database deletion,
-secret logging, force-push or recovery replay is allowed.
+Before any new 22-character workspace ID exists, rollback may use an ordinary
+revert while preserving the schema, workspace rows, artifact bytes, legacy
+verifier values and `kmfa-app-state`. After the first P4.1 identity is created,
+the pre-P4.1/S03 reader is not functionally compatible with that row. Runtime
+rollback must therefore retain the P4.1 dual-ID reader: disable the Walking
+Skeleton Flag (or keep the current S04 image and apply its emergency policy),
+preserve the volume, then roll forward. No `down -v`, database deletion,
+verifier rewrite, secret logging, force-push or recovery replay is allowed.
 
 This is Task `17/56` completed locally and published Stage remains `4/14`.
 The next new run may execute only `S04 / P4.2 / T-S04-02`; whole-S04 review and

@@ -9,6 +9,7 @@ const ERROR_COPY = {
   walking_skeleton_storage_unavailable: '服务器耐久存储暂不可用，未执行本次操作。',
   workspace_not_found: '工作区不存在、会话已过期，或当前会话无权访问。请使用恢复码重新恢复。',
   recovery_not_found: '恢复码或恢复文件无效、已截断或已被轮换撤销。平台无法通过邮箱代找回。',
+  request_validation_failed: '请求格式或字段长度无效；服务器未回显提交内容。',
   invalid_recovery_file: '文件不是 KMFA 恢复文件；未授予任何访问。',
   recovery_file_too_large: '恢复文件超过 4 KiB 安全上限；未读取或授予访问。',
   invalid_project_name: '项目名不能为空，也不能包含控制字符。',
@@ -26,8 +27,8 @@ const ERROR_COPY = {
   risk_challenge_required: '需要完成一次匿名安全校验后重试；不要求登录或提供个人资料。',
   risk_challenge_invalid: '匿名安全校验无效或已过期；未执行本次操作。',
   risk_challenge_replayed: '匿名安全校验已经使用，不能重放；未执行本次操作。',
-  abuse_control_unavailable: '匿名资源保护暂不可用；昂贵操作已安全关闭，公共浏览保持可用。',
-  abuse_policy_configuration_invalid: '匿名资源策略配置无效；昂贵操作已安全关闭。',
+  abuse_control_unavailable: '匿名资源保护暂不可用；受保护操作已安全关闭，公共浏览保持可用。',
+  abuse_policy_configuration_invalid: '匿名资源策略配置无效；受保护操作已安全关闭。',
 }
 
 async function errorFromResponse(response) {

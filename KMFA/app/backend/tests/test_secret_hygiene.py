@@ -17,6 +17,7 @@ from app.secret_hygiene import CONTENT_SECURITY_POLICY, REDACTED, redact_secrets
 BASE = "/public-api/walking-skeleton/v1"
 RECOVERY_CANARY = "kmfa-r1-" + ("R" * 43)
 ACCESS_CANARY = "kmfa-a1-" + ("A" * 43)
+DEVICE_CANARY = "kmfa-d1-" + ("D" * 22)
 
 
 @pytest.fixture
@@ -244,7 +245,7 @@ def test_secret_rotation_revokes_every_old_session_and_issues_one_replacement(
     ]
 
 
-def test_url_referer_errors_events_and_headers_never_echo_recovery_canary(
+def test_url_path_query_referer_and_errors_never_echo_recovery_canary(
     secure_client: TestClient,
 ):
     status = secure_client.get(f"{BASE}/status")
@@ -265,9 +266,9 @@ def test_url_referer_errors_events_and_headers_never_echo_recovery_canary(
             "max_age_seconds": 3600,
         },
         "revocation": f"{BASE}/sessions/current",
-        "legacy_bearer_read_compatible": True,
+        "legacy_bearer_compatible_until_expiry": True,
         "browser_receives_access_token": False,
-        "same_origin_mutations_required": True,
+        "same_origin_cookie_mutations_required": True,
         "runtime_telemetry": "none",
     }
 
@@ -287,15 +288,28 @@ def test_url_referer_errors_events_and_headers_never_echo_recovery_canary(
     double_encoded_rejected = secure_client.get(
         f"{BASE}/status?workspace_secret={double_encoded_canary}"
     )
+    path_rejected = secure_client.get(f"{BASE}/{RECOVERY_CANARY}")
+    encoded_path_rejected = secure_client.get(f"{BASE}/{encoded_canary}")
+    double_encoded_path_rejected = secure_client.get(
+        f"{BASE}/{double_encoded_canary}"
+    )
     invalid_recovery = secure_client.post(
         f"{BASE}/recoveries",
         json={"recovery_code": RECOVERY_CANARY},
+    )
+    overlong_canary = f"{RECOVERY_CANARY}X"
+    invalid_schema = secure_client.post(
+        f"{BASE}/recoveries",
+        json={"recovery_code": overlong_canary},
     )
     for response in (
         query_rejected,
         referer_rejected,
         encoded_rejected,
         double_encoded_rejected,
+        path_rejected,
+        encoded_path_rejected,
+        double_encoded_path_rejected,
     ):
         assert response.status_code == 400
         assert response.json() == {"detail": "secret_in_url_rejected"}
@@ -304,6 +318,9 @@ def test_url_referer_errors_events_and_headers_never_echo_recovery_canary(
         assert response.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
     assert invalid_recovery.status_code == 404
     assert invalid_recovery.json() == {"detail": "recovery_not_found"}
+    assert invalid_schema.status_code == 422
+    assert invalid_schema.json() == {"detail": "request_validation_failed"}
+    assert overlong_canary not in invalid_schema.text
     assert all(
         RECOVERY_CANARY not in response.text
         for response in (
@@ -311,7 +328,11 @@ def test_url_referer_errors_events_and_headers_never_echo_recovery_canary(
             referer_rejected,
             encoded_rejected,
             double_encoded_rejected,
+            path_rejected,
+            encoded_path_rejected,
+            double_encoded_path_rejected,
             invalid_recovery,
+            invalid_schema,
         )
     )
 
@@ -330,10 +351,11 @@ def test_process_log_redaction_removes_capabilities_assignments_and_exceptions(
     logger = logging.getLogger("kmfa.secret-hygiene-test")
     with caplog.at_level(logging.INFO, logger=logger.name):
         logger.info(
-            "recovery=%s bearer=%s cookie=%s",
+            "recovery=%s bearer=%s session_cookie=%s device_cookie=%s",
             RECOVERY_CANARY,
             f"Bearer {ACCESS_CANARY}",
             f"{skeleton.SESSION_COOKIE_NAME}={ACCESS_CANARY}",
+            f"__Host-kmfa_device={DEVICE_CANARY}",
         )
         try:
             raise RuntimeError(
@@ -345,6 +367,7 @@ def test_process_log_redaction_removes_capabilities_assignments_and_exceptions(
     rendered = caplog.text
     assert RECOVERY_CANARY not in rendered
     assert ACCESS_CANARY not in rendered
+    assert DEVICE_CANARY not in rendered
     assert REDACTED in rendered
     assert RECOVERY_CANARY not in redact_secrets(
         f'{{"workspace_secret":"{RECOVERY_CANARY}"}}'

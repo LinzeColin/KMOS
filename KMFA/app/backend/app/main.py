@@ -16,8 +16,10 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from fastapi import Body, FastAPI, HTTPException
-from fastapi.responses import FileResponse, RedirectResponse, Response
+from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 
 from .anti_abuse import AntiAbuseMiddleware
 from .anti_abuse import ops_router as anti_abuse_ops_router
@@ -30,6 +32,7 @@ from .public_indexing import (
     sitemap_body,
 )
 from .secret_hygiene import SecretHygieneMiddleware, install_secret_redaction
+from .walking_skeleton import API_PREFIX as WALKING_API_PREFIX
 from .walking_skeleton import router as walking_skeleton_router
 
 REPO = Path(__file__).resolve().parents[4]
@@ -63,6 +66,22 @@ install_secret_redaction()
 app.add_middleware(SecretHygieneMiddleware)
 app.include_router(walking_skeleton_router)
 app.include_router(anti_abuse_ops_router)
+
+
+@app.exception_handler(RequestValidationError)
+async def sanitize_walking_validation_error(
+    request: Request,
+    error: RequestValidationError,
+) -> Response:
+    """Keep capability-shaped request values out of public validation errors."""
+
+    path = request.url.path
+    if path == WALKING_API_PREFIX or path.startswith(f"{WALKING_API_PREFIX}/"):
+        return JSONResponse(
+            {"detail": "request_validation_failed"},
+            status_code=422,
+        )
+    return await request_validation_exception_handler(request, error)
 
 
 def _paginate(rows: list[Any], page: int, size: int) -> tuple[list[Any], dict[str, int]]:

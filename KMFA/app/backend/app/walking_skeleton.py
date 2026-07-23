@@ -1211,9 +1211,9 @@ def walking_skeleton_status() -> dict[str, Any]:
                 "max_age_seconds": int(ACCESS_TOKEN_TTL.total_seconds()),
             },
             "revocation": f"{API_PREFIX}/sessions/current",
-            "legacy_bearer_read_compatible": True,
+            "legacy_bearer_compatible_until_expiry": True,
             "browser_receives_access_token": False,
-            "same_origin_mutations_required": True,
+            "same_origin_cookie_mutations_required": True,
             "runtime_telemetry": "none",
         },
         "limits": {

@@ -613,6 +613,29 @@ def _increment_counter(
     )
 
 
+def _increment_request_counters(
+    connection: sqlite3.Connection,
+    *,
+    operation: str,
+    policy: OperationPolicy,
+    signals: RequestSignals,
+    now: int,
+) -> None:
+    """Charge one evaluated attempt to every applicable persistent budget."""
+
+    for window in policy.windows:
+        window_start = (now // window.seconds) * window.seconds
+        for scope_kind, scope_tag, _ in _scope_limits(window, signals):
+            _increment_counter(
+                connection,
+                operation,
+                window,
+                window_start,
+                scope_kind,
+                scope_tag,
+            )
+
+
 def _record_decision(
     connection: sqlite3.Connection,
     *,
@@ -727,6 +750,8 @@ def admit_request(
     now = int(_now() if now_value is None else now_value)
     key = _load_or_create_key()
     valid_proof: ValidProof | None = None
+    proof_error_reason: str | None = None
+    proof_error_detail: str | None = None
     if proof_header:
         try:
             valid_proof = _validate_proof(
@@ -737,31 +762,8 @@ def admit_request(
                 now,
             )
         except (ValueError, TypeError, KeyError, json.JSONDecodeError):
-            with _open_store() as connection:
-                connection.execute("BEGIN IMMEDIATE")
-                try:
-                    _cleanup(connection, now)
-                    _record_decision(
-                        connection,
-                        now=now,
-                        operation=operation,
-                        decision="challenge-blocked",
-                        reason="invalid-proof",
-                        actor_tag=signals.actor_tag,
-                    )
-                    connection.execute("COMMIT")
-                except Exception:
-                    connection.execute("ROLLBACK")
-                    raise
-            return _denied(
-                operation=operation,
-                decision="challenge-blocked",
-                reason="invalid-proof",
-                status_code=403,
-                detail="risk_challenge_invalid",
-                retry_after=1,
-                reset_after=1,
-            )
+            proof_error_reason = "invalid-proof"
+            proof_error_detail = "risk_challenge_invalid"
 
     with _open_store() as connection:
         connection.execute("BEGIN IMMEDIATE")
@@ -773,24 +775,9 @@ def admit_request(
                     (valid_proof.proof_hash,),
                 ).fetchone()
                 if used is not None:
-                    _record_decision(
-                        connection,
-                        now=now,
-                        operation=operation,
-                        decision="challenge-blocked",
-                        reason="replayed-proof",
-                        actor_tag=signals.actor_tag,
-                    )
-                    connection.execute("COMMIT")
-                    return _denied(
-                        operation=operation,
-                        decision="challenge-blocked",
-                        reason="replayed-proof",
-                        status_code=403,
-                        detail="risk_challenge_replayed",
-                        retry_after=1,
-                        reset_after=1,
-                    )
+                    proof_error_reason = "replayed-proof"
+                    proof_error_detail = "risk_challenge_replayed"
+                    valid_proof = None
 
             exceeded_actor = False
             retry_after = 1
@@ -834,6 +821,38 @@ def admit_request(
                             alert_new=alert_new,
                         )
                     exceeded_actor = True
+
+            # Every attempt that reaches policy evaluation consumes capacity,
+            # including invalid/replayed proofs, actor challenges and
+            # concurrency denials. A request already rejected by a full global
+            # bucket is not incremented beyond its fixed ceiling.
+            _increment_request_counters(
+                connection,
+                operation=operation,
+                policy=policy,
+                signals=signals,
+                now=now,
+            )
+
+            if proof_error_reason is not None:
+                _record_decision(
+                    connection,
+                    now=now,
+                    operation=operation,
+                    decision="challenge-blocked",
+                    reason=proof_error_reason,
+                    actor_tag=signals.actor_tag,
+                )
+                connection.execute("COMMIT")
+                return _denied(
+                    operation=operation,
+                    decision="challenge-blocked",
+                    reason=proof_error_reason,
+                    status_code=403,
+                    detail=proof_error_detail or "risk_challenge_invalid",
+                    retry_after=1,
+                    reset_after=1,
+                )
 
             if exceeded_actor and valid_proof is None:
                 decision = (
@@ -907,17 +926,6 @@ def admit_request(
                     """,
                     (valid_proof.proof_hash, valid_proof.expires_at),
                 )
-            for window in policy.windows:
-                window_start = (now // window.seconds) * window.seconds
-                for scope_kind, scope_tag, _ in _scope_limits(window, signals):
-                    _increment_counter(
-                        connection,
-                        operation,
-                        window,
-                        window_start,
-                        scope_kind,
-                        scope_tag,
-                    )
             lease_id = f"lease_{secrets.token_urlsafe(18)}"
             connection.execute(
                 """

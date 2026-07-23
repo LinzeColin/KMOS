@@ -25,8 +25,9 @@ _URL_ENCODED_CAPABILITY_RE = re.compile(
     r"(?:[A-Za-z0-9_.~-]|%[0-9a-f]{2}){20,384}"
 )
 _BEARER_RE = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]{16,2048}")
-_SESSION_COOKIE_RE = re.compile(
-    r"(?i)(?:__Secure-|__Host-)?kmfa_session=[A-Za-z0-9._~-]{16,2048}"
+_COOKIE_RE = re.compile(
+    r"(?i)(?P<name>__Secure-kmfa_session|__Host-kmfa_device)"
+    r"=[A-Za-z0-9._~-]{16,2048}"
 )
 _SENSITIVE_ASSIGNMENT_RE = re.compile(
     r"""(?ix)
@@ -85,7 +86,10 @@ def redact_secrets(value: Any) -> str:
     if contains_capability(text):
         text = REDACTED
     text = _BEARER_RE.sub(f"Bearer {REDACTED}", text)
-    text = _SESSION_COOKIE_RE.sub(f"kmfa_session={REDACTED}", text)
+    text = _COOKIE_RE.sub(
+        lambda match: f"{match.group('name')}={REDACTED}",
+        text,
+    )
     return _SENSITIVE_ASSIGNMENT_RE.sub(
         lambda match: f"{match.group('prefix')}{REDACTED}",
         text,
@@ -194,13 +198,22 @@ class SecretHygieneMiddleware:
             return
 
         path = str(scope.get("path") or "")
+        raw_path = bytes(scope.get("raw_path") or b"").decode(
+            "latin-1",
+            errors="replace",
+        )
         raw_query = bytes(scope.get("query_string") or b"").decode(
             "latin-1",
             errors="replace",
         )
         headers = Headers(scope=scope)
         referer = headers.get("referer", "")
-        if contains_capability(raw_query) or contains_capability(referer):
+        if (
+            contains_capability(path)
+            or contains_capability(raw_path)
+            or contains_capability(raw_query)
+            or contains_capability(referer)
+        ):
             response = _blocked_response("secret_in_url_rejected", 400)
             await response(scope, receive, send)
             return

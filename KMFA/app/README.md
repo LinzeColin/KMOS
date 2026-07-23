@@ -28,17 +28,18 @@ session；未知 ID、错误 secret 与格式错误统一返回 `workspace_not_f
 
 浏览器 API 不再返回 access token 明文，而是使用 host-only 的
 `__Secure-kmfa_session` Cookie：`Secure`、`HttpOnly`、`SameSite=Strict`、API-scoped Path 和一小时
-Max-Age；现存 S03/P4.1 bearer 仍只读兼容，冲突的 bearer+Cookie fail closed。用户可调用
+Max-Age；现存 S03/P4.1 bearer 在自身到期前继续兼容读写，冲突的 bearer+Cookie fail closed。用户可调用
 `DELETE /public-api/walking-skeleton/v1/sessions/current` 立即撤销服务端 session 并清除 Cookie。
-携带 session Cookie 的写操作还必须带匹配 scheme/host 的同源 `Origin`，防止同站兄弟域代发请求。
-全局边界拒绝 URL/Referer 内含原始或 percent-encoded capability，进程日志会脱敏恢复码、session、
-Bearer 和异常；生产 Uvicorn raw access log 已关闭。CSP `connect-src 'self'`、`no-referrer`、
+仅携带 session Cookie 的写操作还必须带匹配 scheme/host 的同源 `Origin`，防止同站兄弟域代发请求。
+全局边界拒绝 URL path/query/Referer 内含原始、percent-encoded 或重复编码 capability；Walking
+Skeleton 的字段校验错误只返回固定错误码，不回显提交值。进程日志会脱敏恢复码、session、device
+Cookie、Bearer 和异常；生产 Uvicorn raw access log 已关闭。CSP `connect-src 'self'`、`no-referrer`、
 `private, no-store` 与无第三方分析/错误 SDK 的依赖边界共同阻止遥测外送。最终镜像 Gate 会扫描
 URL、Referer、日志、审计事件、错误、缓存、状态文件与截图，并验证轮换/显式撤销后的旧 session
 重放失败。
 
 P4.4 不用账号替代安全边界。生产 compose 固定
-`KMFA_ABUSE_POLICY_MODE=enforced`；未知值会让昂贵操作 fail closed，公共根页和 Walking Skeleton
+`KMFA_ABUSE_POLICY_MODE=enforced`；未知值会让全部受保护操作 fail closed，公共根页和 Walking Skeleton
 状态仍可浏览。策略 `p44-v1` 对 identity、recovery、mutation、upload、export、read 分别建立
 10 秒与 1 小时窗口，并同时检查 edge IP、`__Host-kmfa_device`、workspace 与全局四层 HMAC tag；
 控制面不保存原始 IP、device、workspace ID、文件名或 capability。IP 桶比 device 桶宽，避免共享
@@ -53,6 +54,11 @@ actor 层超限时返回一次性、90 秒、actor+workspace+operation 绑定的
 结构化告警；私有 `/ops/abuse-control/status` 可读取无原始标识的指标。紧急回滚只能把 mode 切到
 `emergency-expensive-only`，让低成本 read/mutation 恢复、继续限制 identity/recovery/upload/export；
 不存在生产 `off` 模式。
+
+S04 开始签发的 22 字符 workspace ID 不被 S03/P4.1 之前的 reader 接受。首次创建 S04 workspace
+之后，Walking Skeleton 开启状态下不得把运行镜像降到 P4.1 之前；快速回滚应保留当前 S04 reader 与
+named volume，只关闭 `KMFA_WALKING_SKELETON_ENABLED` 或切换紧急策略，再前滚修复。任何 ordinary
+revert 都必须继续包含 P4.1 双 ID reader；禁止用删卷、改 verifier 或重放恢复包代替兼容回滚。
 
 早期 adapter 还设置有限的 lifetime resource ceiling：最多 10,000 个 workspace、每 workspace 8 个
 活动 session、每 workspace 10,000/全局 250,000 条业务审计、全局 512 MiB artifact 字节，并在写入前

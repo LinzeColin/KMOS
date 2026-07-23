@@ -60,7 +60,7 @@ recovery values are never stored in the control database.
   `10,000` audit events per workspace and `250,000` audit events total. A
   rejected write rolls back without deleting existing workspace/recovery data.
 - Production default is `KMFA_ABUSE_POLICY_MODE=enforced`. Unknown values fail
-  guarded operations closed. The emergency rollback mode exempts low-cost
+  all guarded operations closed. The emergency rollback mode exempts low-cost
   read/mutation operations while continuing to control identity, recovery,
   upload and export. The root page and shallow Walking Skeleton status remain
   browsable even if admission control is unavailable.

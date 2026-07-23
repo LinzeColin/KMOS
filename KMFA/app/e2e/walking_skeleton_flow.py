@@ -787,13 +787,30 @@ def _negative_recovery_matrix(
             response_samples=response_samples,
         ),
     }
+    validation_canary = f"{revoked_code}X"
+    sample_index = len(response_samples)
+    validation_status = _post_status(
+        f"{base_url}/public-api/walking-skeleton/v1/recoveries",
+        json.dumps({"recovery_code": validation_canary}).encode("utf-8"),
+        content_type="application/json",
+        response_samples=response_samples,
+    )
     authorization_successes = sum(200 <= status < 300 for status in statuses.values())
     assert set(statuses.values()) == {404}
     assert authorization_successes == 0
+    assert validation_status == 422
+    assert response_samples[sample_index] == (
+        '{"detail":"request_validation_failed"}'
+    )
+    assert validation_canary not in response_samples[sample_index]
     return {
         "attempts": len(statuses),
         "http_statuses": statuses,
         "authorization_successes": authorization_successes,
+        "validation_error": {
+            "status": validation_status,
+            "secret_echoes": 0,
+        },
     }
 
 

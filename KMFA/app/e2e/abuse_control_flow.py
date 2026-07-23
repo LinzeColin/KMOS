@@ -618,20 +618,36 @@ def _concurrency_flood(
         )
         actors.append(actor)
         workspaces.append(workspace_id)
-    barrier = threading.Barrier(len(actors))
+    barrier = threading.Barrier(len(actors) + 1)
     with ThreadPoolExecutor(max_workers=len(actors)) as pool:
-        results = list(
-            pool.map(
-                lambda index: _slow_upload(
-                    port=port,
-                    actor=actors[index],
-                    workspace_id=workspaces[index],
-                    index=index,
-                    barrier=barrier,
-                ),
-                range(len(actors)),
+        futures = [
+            pool.submit(
+                _slow_upload,
+                port=port,
+                actor=actors[index],
+                workspace_id=workspaces[index],
+                index=index,
+                barrier=barrier,
             )
+            for index in range(len(actors))
+        ]
+        barrier.wait(timeout=10)
+        # All six attack connections are open. Two server-side upload leases
+        # remain occupied while this independent actor exercises the public
+        # root and a normal identity mutation.
+        time.sleep(0.25)
+        normal_actor = Actor(base_url, "192.0.2.240")
+        root_during_attack = normal_actor.request("GET", "/")
+        _, normal_create = _create_workspace(
+            normal_actor,
+            "normal-during-upload-attack",
+            sensitive_values,
         )
+        results = [future.result() for future in futures]
+    assert root_during_attack.status == 200
+    assert normal_create.status == 201
+    assert root_during_attack.elapsed_ms < 1000
+    assert normal_create.elapsed_ms < 1000
     statuses = {index: status for index, status in results}
     admitted = [index for index, status in statuses.items() if status == 200]
     blocked = [index for index, status in statuses.items() if status == 429]
@@ -656,6 +672,16 @@ def _concurrency_flood(
         "concurrency_budget": 2,
         "admitted": len(admitted),
         "capacity_blocked": len(blocked),
+        "public_root_during_attack": root_during_attack.status,
+        "public_root_during_attack_latency_ms": round(
+            root_during_attack.elapsed_ms,
+            2,
+        ),
+        "normal_workspace_during_attack": normal_create.status,
+        "normal_workspace_during_attack_latency_ms": round(
+            normal_create.elapsed_ms,
+            2,
+        ),
         "recovered_after_leases_released": recovered.status,
         "public_root_during_recovery": root.status,
         "status": "PASS",

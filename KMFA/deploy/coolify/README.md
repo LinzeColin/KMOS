@@ -68,7 +68,7 @@
    匿名访问四类路径均不可达、带有效 Access 会话可达，host 登录墙仍不得改动。
    同时保持 `KMFA_PUBLIC_SHELL_ENABLED=1`、`KMFA_PUBLIC_INDEXING_ENABLED=0`、
    `KMFA_WALKING_SKELETON_ENABLED=0`、`KMFA_ABUSE_POLICY_MODE=enforced`。未知 abuse mode 会
-   fail closed 拒绝昂贵动作，但根页和状态仍可浏览；紧急回滚只允许
+   fail closed 拒绝全部受保护动作，但根页和状态仍可浏览；紧急回滚只允许
    `emergency-expensive-only`，继续限制 identity/recovery/upload/export，不提供生产 `off`。
    索引 hold 模式不会
    阻止人类访问主页，但会以响应头、全拒绝 robots 和空 sitemap 阻止搜索索引。若增强壳在灰度中异常，只把它置 `0` 并重部署：根路径会
@@ -81,6 +81,10 @@
    `200`、骨架 API fail closed、named volume 内容与 hash 未变；再置 `1` 应可再次恢复。任一步失败都
    保持/恢复 `0`，不得用 localStorage、镜像层或公开静态目录替代。普通回滚禁止删除
    `kmfa-app-state`，也禁止使用 `docker compose down -v`。
+   首个 S04 22 字符 workspace ID 创建后，Walking Skeleton 开启状态下不得回滚到 P4.1 之前的
+   reader（S03 reader 只识别 16 字符 ID）。快速回滚须保留当前 S04 image/reader 与 named volume，
+   先把 `KMFA_WALKING_SKELETON_ENABLED=0` 或 abuse mode 切到紧急策略，再前滚兼容修复；ordinary
+   code revert 也必须保留 P4.1 双 ID reader。不得以删卷、改 verifier 或恢复包 replay 规避该边界。
    Walking Skeleton 置 `1` 前还必须对同一待发布 image 运行 `TEST-WS-004`：100 个正常合成请求
    误伤 `<1%`，暴力恢复、上传洪泛、导出洪泛、六路慢上传并发与分布式低速流量绕过均为 `0`，
    global/concurrency 达限时无 challenge 绕过，窗口/lease 释放后自动恢复，攻击前后 `/` 与
