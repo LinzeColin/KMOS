@@ -4,3 +4,4 @@ pyyaml>=6.0
 reportlab>=4.0
 PyJWT[crypto]>=2.10,<3
 psycopg[binary]==3.3.4
+boto3==1.43.51

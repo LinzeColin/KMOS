@@ -7,6 +7,11 @@
 **/*.pyc
 **/.pytest_cache
 **/.ruff_cache
+# Operator credentials are injected by the runtime; local env files must never
+# be copied into the self-contained application image.
+**/.env
+**/.env.*
+**/*.env
 # 内容寻址大对象（~120M）——技能与 self-audit 均不需要（self-audit 的 tar 影子亦排除之）
 KMDatabase/data/objects
 # 私有运行时（gitignored；本地若存在也不入镜像）

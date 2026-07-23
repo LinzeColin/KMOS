@@ -1,0 +1,34 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListOnlyKmfaPrivatePrefix",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::kmfa-private-artifacts"
+      ],
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": [
+            "kmfa/private/v1",
+            "kmfa/private/v1/*"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "ReadWriteOnlyKmfaPrivateObjects",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::kmfa-private-artifacts/kmfa/private/v1/*"
+      ]
+    }
+  ]
+}

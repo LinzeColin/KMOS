@@ -60,6 +60,18 @@
 > `legacy-sqlite` 并保留两个 volume；禁止 `down -v` 或 destructive downgrade。P5.4 备份恢复 Gate
 > 完成前不得宣称数据库 RPO/RTO 已达标。
 
+> **S05/P5.2 中间态边界**：App 已提供 opt-in 私有 S3-compatible adapter，但本 phase 不单独切
+> 生产。S05 整体复审批准前保持 `KMFA_ARTIFACT_STORAGE_MODE=legacy-filesystem`。候选 R2/S3 bucket
+> 必须默认 private、禁用 public development/custom-domain access，并使用只授权目标 bucket
+> （provider 支持时再缩到 `kmfa/private/v1` prefix）的独立 access key。随后配置 HTTPS
+> `KMFA_S3_ENDPOINT_URL`、bucket、region、prefix 与两个 Secret key，先跑同 image 的
+> `object_storage_flow.py`：正常 DB/object 深 checksum 一致率必须 100%，匿名 GET/LIST 与越 prefix
+> 均拒绝，missing/mismatch/orphan 全部分类且 unexplained=0，才可在后续受控 rollout 把 mode 改
+> `s3`。Cloudflare R2 不提供 native bucket versioning API 时，以应用独占 key +
+> `If-None-Match: *` 作为真实版本合同，不得写成 R2 native versioning。失败时只恢复
+> `legacy-filesystem`，保留 S3 配置供既有 S3 index 双读并运行对账；不得撤凭据、删 bucket/object、
+> 删 `kmfa-app-state` 或用 `down -v`。P5.4 前对象卷替换仍不是备份恢复证明。
+
 6. 观测 P1 内存无碍后，在 Coolify 为本资源**启用 `full` profile**（Compose profiles → 勾 `full`）或设 `COMPOSE_PROFILES=full`，重部署 → `kmfa-app` 起。
 7. **域名**：Coolify 给 `app` 服务设 `kmfa.linzezhang.com`（Coolify Traefik 自动签发/路由）；**Cloudflare** 加一条**代理（橙云）** A 记录 `kmfa` → OVH 公网 IP（或按 Coolify 提示的 CNAME）。App 仅经 Traefik 暴露，主机不额外开放端口。
 8. **先建更具体的路径锁，整站登录墙不动**：保留现有 host 级 Self-hosted Application 的 Owner

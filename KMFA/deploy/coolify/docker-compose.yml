@@ -63,6 +63,17 @@ services:
       # S05 expand/contract：Stage review 前默认保留 v1.5 SQLite read path。
       KMFA_STRUCTURED_DATABASE_MODE: "${KMFA_STRUCTURED_DATABASE_MODE:-legacy-sqlite}"
       KMFA_STRUCTURED_DATABASE_URL: "${KMFA_STRUCTURED_DATABASE_URL:-}"
+      # P5.2 默认继续写旧卷；外部 R2/S3 仅在完整私有配置与 Oracle 通过后 opt-in。
+      KMFA_ARTIFACT_STORAGE_MODE: "${KMFA_ARTIFACT_STORAGE_MODE:-legacy-filesystem}"
+      KMFA_S3_ENDPOINT_URL: "${KMFA_S3_ENDPOINT_URL:-}"
+      KMFA_S3_BUCKET: "${KMFA_S3_BUCKET:-}"
+      KMFA_S3_REGION: "${KMFA_S3_REGION:-auto}"
+      KMFA_S3_PREFIX: "${KMFA_S3_PREFIX:-kmfa/private/v1}"
+      KMFA_S3_ACCESS_KEY_ID: "${KMFA_S3_ACCESS_KEY_ID:-}"
+      KMFA_S3_SECRET_ACCESS_KEY: "${KMFA_S3_SECRET_ACCESS_KEY:-}"
+      KMFA_S3_ADDRESSING_STYLE: "${KMFA_S3_ADDRESSING_STYLE:-path}"
+      # Coolify/R2 必须保持 0；只有本机私网 MinIO fixture 才可显式置 1。
+      KMFA_S3_ALLOW_INSECURE_LOCAL: "${KMFA_S3_ALLOW_INSECURE_LOCAL:-0}"
       # P4.4 匿名反滥用策略；未知值 fail-closed，紧急回滚只能切 expensive-only。
       KMFA_ABUSE_POLICY_MODE: "${KMFA_ABUSE_POLICY_MODE:-enforced}"
       KMFA_PRIVATE_OPS_REQUIRE_ACCESS: "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
@@ -84,7 +95,7 @@ services:
           "CMD",
           "python3",
           "-c",
-          "import urllib.request;from pathlib import Path;from app.structured_store import open_structured_store;s=open_structured_store(Path('/var/lib/kmfa/state/walking-skeleton/walking_skeleton.sqlite3'));assert s.schema_version()==2;s.close();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
+          "import urllib.request;from pathlib import Path;from app.object_storage import configured_write_store;from app.structured_store import open_structured_store;p=Path('/var/lib/kmfa/state/walking-skeleton');s=open_structured_store(p/'walking_skeleton.sqlite3');assert s.schema_version()==2;s.close();o=configured_write_store(p);o.ensure_ready();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
         ]
       interval: 2m
       timeout: 10s

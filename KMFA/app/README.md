@@ -15,8 +15,9 @@ Access 加源站 JWT 校验双重保护。公共壳异常时把 `KMFA_PUBLIC_SHE
 8 MiB 的文件、用一次显示的高熵恢复码换取一小时短时会话，并以 attachment-only 下载校验
 SHA-256。恢复码与会话 capability 在服务端只存 hash；S05 的版本化 structured-store adapter 默认
 继续读取 `/var/lib/kmfa/state/walking-skeleton/walking_skeleton.sqlite3`，也可在显式
-`postgresql-primary` 模式连接共享 PostgreSQL；私有文件字节仍写在同目录的对象区并由
-`kmfa-app-state` named volume 跨容器重启保留。Flag 置 `0` 会关闭骨架创建、恢复、读写和下载入口但
+`postgresql-primary` 模式连接共享 PostgreSQL。文件字节默认继续写
+`kmfa-app-state` 的私有对象区；P5.2 也可显式切到私有 S3-compatible adapter。无论新写 backend
+为何，v1.5 filesystem 对象始终保留 read path。Flag 置 `0` 会关闭骨架创建、恢复、读写和下载入口但
 不删除任一存储；显式会话撤销仍可用，避免回滚期间把浏览器凭据留在服务端。
 
 S04/P4.1-P4.4 起，新 workspace ID 使用 128-bit CSPRNG，workspace secret 与一小时 access token 均使用
@@ -65,7 +66,7 @@ adapter 还设置有限的 lifetime resource ceiling：最多 10,000 个 workspa
 活动 session、每 workspace 10,000/全局 250,000 条业务审计、全局 512 MiB artifact 字节，并在写入前
 保留 128 MiB 文件系统余量；原有单文件 8 MiB、单 workspace 一个 artifact 上限不变。达到上限只拒绝
 新昂贵动作，不删除既有项目或文件。这些是灰度安全预算，不是生产采用率、容量或“永久保存”证明；
-S05 仍必须用对象存储与备份恢复重新定容。
+P5.2 对象层沿用这些早期 API 限额，S05/P5.4 仍必须用备份恢复重新定容并测量 RPO/RTO。
 
 S05/P5.1 把 schema 升到 v2：`projects`、`project_metrics`（progress/score）、
 `financial_records`、`artifact_versions`、`workspace_tasks` 与 append-only audit 均由有序、
@@ -78,9 +79,39 @@ checksum-locked、expand-only migration 建立，并由 repository/service trans
 `legacy-sqlite`，不得删、改或覆盖源 SQLite/PG volume；migration 采用 forward-fix，不做 destructive
 downgrade。
 
-这仍不是 GA 或“永久保存”证明：S3-compatible 对象存储、备份恢复、恶意文件扫描、多文件和明确删除
-仍由 S05 后续与 S06–S07 完成。P5.1 只证明共享结构化数据库、双 App 节点/数据库节点替换和旧库只读
-迁移 Oracle；禁止把私有文件单卷或本阶段测试宣传为对象存储备份、长期 RPO/RTO 已通过。
+S05/P5.2 加入 `KMFA_ARTIFACT_STORAGE_MODE=s3` 的私有对象 adapter。它只有在 endpoint、bucket、
+region、prefix 与 bucket-scoped access key 全部存在时才启用；未知 mode、缺项、非本机 HTTP endpoint
+或依赖故障均固定 503，不回显 endpoint 或凭据。对象 key 只含内部 workspace/artifact/version ID 和
+SHA-256，不含用户文件名；每个 `artifact_version` 独占 key，并以 `If-None-Match: *` 条件写阻止覆盖。
+数据库继续保存 backend、key、原名、reported media type、size、SHA-256、状态与 project/artifact
+血缘；下载只经匿名 capability 校验后的同源 attachment response，永不返回 bucket URL 或 presigned
+URL。对象 inventory 会深读原始字节计算 SHA-256，与 DB index 和对象 metadata 对账；missing、
+checksum/metadata mismatch、orphan 和 duplicate index key 都进入固定 repair state，报告仅保留对象
+key 的不可逆短 hash。
+
+Cloudflare R2 当前官方 S3 兼容表不实现 bucket versioning API，所以 KMFA 不伪报 R2 native versioning；
+provider-neutral 合同是上述 immutable application-version key。生产等价 Oracle 使用额外启用 native
+versioning 的私有 MinIO bucket，验证多类型/大小、同名、重复内容、两 App 节点、对象服务保卷替换、
+匿名读取 403、越 prefix 403、异常对账和切回 `legacy-filesystem` 后 S3 双读。可复现命令：
+
+```bash
+python KMFA/app/e2e/object_storage_flow.py \
+  --image kmfa-app:e2e \
+  --state-dir "$(mktemp -d /tmp/kmfa-p52-state.XXXXXX)" \
+  --out-dir object-storage-e2e \
+  --prefix kmfa-p52-local
+```
+
+本地 `docker-compose.yml` 的 `s3` profile 固定 MinIO/MC digest、私有 policy 与
+`kmfa-object-data` named volume；启动前必须显式提供不同的 MinIO root 和 App S3 凭据，并固定
+`KMFA_S3_BUCKET=kmfa-private-artifacts`、`KMFA_S3_PREFIX=kmfa/private/v1`。生产 R2 endpoint 必须
+HTTPS，`KMFA_S3_ALLOW_INSECURE_LOCAL=1` 只接受 loopback/`object-store` fixture。
+
+这仍不是 GA 或“永久保存”证明：P5.3 可恢复状态机/明确删除、P5.4 数据库与对象备份恢复、S06
+恶意文件扫描与多文件/大文件上传仍未完成。P5.2 只证明对象层、私有策略、版本/checksum 与
+inventory reconciliation；禁止把 MinIO named volume replacement 宣传为备份恢复或长期 RPO/RTO
+已通过。快速回滚只把新写 mode 恢复 `legacy-filesystem`，保留 S3 配置供已写版本双读，并保留
+`kmfa-app-state`、`kmfa-object-data` 与 PostgreSQL 数据；不得 `down -v`、删对象或移除 legacy reader。
 
 本地跑：`cd KMFA/app/backend && uvicorn app.main:app --reload`（未设置
 `KMFA_PRIVATE_OPS_REQUIRE_ACCESS` 时仅用于本机开发，私有面守卫关闭）。

@@ -369,9 +369,13 @@ class StructuredRepository:
               av.artifact_id,
               av.artifact_version_id,
               av.version_number,
+              av.storage_backend,
+              av.storage_key,
               av.original_name,
+              av.reported_media_type,
               av.size_bytes,
               av.sha256,
+              av.lifecycle_state,
               av.created_at
             FROM artifact_versions av
             JOIN projects p ON p.project_id = av.project_id
@@ -382,6 +386,27 @@ class StructuredRepository:
             """,
             (workspace_id,),
         ).fetchone()
+
+    def artifact_object_index(self, *, storage_backend: str) -> list[Any]:
+        """Return the non-secret object index required by inventory reconciliation."""
+
+        return self.connection.execute(
+            """
+            SELECT
+              av.artifact_version_id,
+              av.artifact_id,
+              av.version_number,
+              av.storage_backend,
+              av.storage_key,
+              av.size_bytes,
+              av.sha256,
+              av.lifecycle_state
+            FROM artifact_versions av
+            WHERE av.storage_backend = ? AND av.lifecycle_state = 'active'
+            ORDER BY av.storage_key, av.artifact_version_id
+            """,
+            (storage_backend,),
+        ).fetchall()
 
     def workspace_snapshot(self, workspace_id: str) -> dict[str, Any]:
         project = self.workspace_projection(workspace_id)

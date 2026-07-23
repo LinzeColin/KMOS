@@ -83,6 +83,16 @@ jobs:
             --out-dir structured-database-e2e \
             --prefix kmfa-p51-ci
 
+      - name: 跑私有对象存储（版本 / 权限 / inventory 对账 / 回滚）
+        run: |
+          set -euo pipefail
+          p52_state=$(mktemp -d /tmp/kmfa-p52-state.XXXXXX)
+          python KMFA/app/e2e/object_storage_flow.py \
+            --image kmfa-app:e2e \
+            --state-dir "$p52_state" \
+            --out-dir object-storage-e2e \
+            --prefix kmfa-p52-ci
+
       - name: 装 Playwright
         run: |
           set -euo pipefail
@@ -161,6 +171,7 @@ jobs:
             walking-skeleton-e2e/
             abuse-control-e2e/
             structured-database-e2e/
+            object-storage-e2e/
 
       - name: 收容器
         if: always()
@@ -174,3 +185,11 @@ jobs:
           docker rm -f kmfa-p51-ci-pg || true
           docker volume rm kmfa-p51-ci-pgdata || true
           docker network rm kmfa-p51-ci-net || true
+          docker rm -f kmfa-p52-ci-app-a || true
+          docker rm -f kmfa-p52-ci-app-b || true
+          docker rm -f kmfa-p52-ci-app-rollback || true
+          docker rm -f kmfa-p52-ci-pg || true
+          docker rm -f kmfa-p52-ci-object || true
+          docker volume rm kmfa-p52-ci-pgdata || true
+          docker volume rm kmfa-p52-ci-objectdata || true
+          docker network rm kmfa-p52-ci-net || true

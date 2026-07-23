@@ -2,16 +2,18 @@
 
 This is intentionally a narrow, replaceable adapter. Structured workspace
 state uses the S05 versioned database adapter (legacy SQLite by default or an
-explicit shared PostgreSQL service), while artifact bytes still live outside
-the database in a private filesystem root. P4.1 adds 128-bit workspace identifiers,
-256-bit workspace secrets, irreversible verifiers and one-hour session
-exchange while accepting existing S03 identifiers. P4.2 adds a strict,
-minimal `.kmfa-recovery` capability file plus atomic secret rotation. P4.3
-binds newly issued browser sessions to a Secure/HttpOnly/SameSite cookie,
-supports server-side revocation and keeps legacy Authorization bearer sessions
-read-compatible. P4.4 adds explicit lifetime resource ceilings alongside the
-persistent request/concurrency gate. S05 onward still owns scalable database
-and object storage, backup/restore, scanning and multi-file lifecycle semantics.
+explicit shared PostgreSQL service). S05/P5.2 adds an opt-in private
+S3-compatible byte store with immutable application-version keys, while
+retaining the v1.5 filesystem adapter as the default and permanent legacy read
+path. P4.1 adds 128-bit workspace identifiers, 256-bit workspace secrets,
+irreversible verifiers and one-hour session exchange while accepting existing
+S03 identifiers. P4.2 adds a strict, minimal `.kmfa-recovery` capability file
+plus atomic secret rotation. P4.3 binds newly issued browser sessions to a
+Secure/HttpOnly/SameSite cookie, supports server-side revocation and keeps
+legacy Authorization bearer sessions read-compatible. P4.4 adds explicit
+lifetime resource ceilings alongside the persistent request/concurrency gate.
+S05 onward still owns backup/restore and deletion lifecycle semantics; S06
+owns scanning and scalable multi-file upload semantics.
 
 Raw recovery codes and access capabilities are returned only to their caller;
 the store keeps SHA-256 hashes. Artifacts are never mapped into the static
@@ -37,9 +39,26 @@ from urllib.parse import unquote
 from fastapi import APIRouter, Cookie, Header, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+from starlette.background import BackgroundTask
 
 from .anti_abuse import public_policy_contract
-from .structured_repository import StructuredRepository
+from .object_storage import (
+    LEGACY_STORAGE_BACKEND,
+    S3_STORAGE_BACKEND,
+    ObjectStorageConfigurationError,
+    ObjectStorageConflictError,
+    ObjectStorageIntegrityError,
+    ObjectStorageMissingError,
+    ObjectStorageUnavailableError,
+    configured_write_store,
+    content_md5_base64,
+    object_store_for_backend,
+    s3_dual_read_configured,
+)
+from .structured_repository import (
+    StructuredRepository,
+    artifact_version_id,
+)
 from .structured_store import (
     StructuredStoreConnection,
     StructuredStoreError,
@@ -938,14 +957,6 @@ def _update_workspace(
         return _workspace_payload(connection, workspace_id)
 
 
-def _fsync_directory(path: Path) -> None:
-    descriptor = os.open(path, os.O_RDONLY)
-    try:
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
-
-
 async def _store_artifact(
     workspace_id: str,
     authorization: str | None,
@@ -995,13 +1006,23 @@ async def _store_artifact(
     if free_bytes - declared_or_max < MIN_FREE_STATE_BYTES:
         raise SkeletonError(429, "artifact_capacity_reached")
 
+    try:
+        object_store = configured_write_store(_state_root())
+        object_store.ensure_ready()
+    except (
+        ObjectStorageConfigurationError,
+        ObjectStorageUnavailableError,
+        OSError,
+    ) as exc:
+        raise SkeletonError(503, "walking_skeleton_storage_unavailable") from exc
+
     artifact_id = _new_artifact_id()
-    object_name = f"{secrets.token_urlsafe(24)}.blob"
-    temp_path = _tmp_dir() / f"{object_name}.part"
-    object_path = _objects_dir() / object_name
-    digest = hashlib.sha256()
+    version_number = 1
+    version_id = artifact_version_id(artifact_id, version_number)
+    temp_path = _tmp_dir() / f"upload-{secrets.token_urlsafe(24)}.part"
+    sha256_digest = hashlib.sha256()
+    md5_digest = hashlib.md5(usedforsecurity=False)
     size = 0
-    object_registered = False
     descriptor = os.open(temp_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     try:
         with os.fdopen(descriptor, "wb") as output:
@@ -1011,13 +1032,38 @@ async def _store_artifact(
                 size += len(chunk)
                 if size > MAX_ARTIFACT_BYTES:
                     raise SkeletonError(413, "artifact_too_large")
-                digest.update(chunk)
+                sha256_digest.update(chunk)
+                md5_digest.update(chunk)
                 output.write(chunk)
             output.flush()
             os.fsync(output.fileno())
-        os.replace(temp_path, object_path)
-        object_path.chmod(0o600)
-        _fsync_directory(_objects_dir())
+        sha256 = sha256_digest.hexdigest()
+        storage_key = object_store.build_storage_key(
+            workspace_id=workspace_id,
+            artifact_id=artifact_id,
+            artifact_version_id=version_id,
+            version_number=version_number,
+            sha256=sha256,
+        )
+        try:
+            stored = object_store.put_file(
+                temp_path,
+                storage_key=storage_key,
+                size_bytes=size,
+                sha256=sha256,
+                content_md5=content_md5_base64(md5_digest),
+                artifact_id=artifact_id,
+                artifact_version_id=version_id,
+            )
+        except (
+            ObjectStorageConfigurationError,
+            ObjectStorageConflictError,
+            ObjectStorageIntegrityError,
+            ObjectStorageUnavailableError,
+        ) as exc:
+            raise SkeletonError(
+                503, "walking_skeleton_storage_unavailable"
+            ) from exc
 
         with _store() as connection:
             _authorize(connection, workspace_id, authorization, session_cookie)
@@ -1045,24 +1091,24 @@ async def _store_artifact(
                     (
                         artifact_id,
                         workspace_id,
-                        object_name,
+                        stored.storage_key,
                         filename,
                         media_type,
                         size,
-                        digest.hexdigest(),
+                        sha256,
                         now,
                     ),
                 )
                 StructuredRepository(connection).register_artifact_version(
                     workspace_id=workspace_id,
                     artifact_id=artifact_id,
-                    version_number=1,
-                    storage_backend="legacy-private-filesystem",
-                    storage_key=object_name,
+                    version_number=version_number,
+                    storage_backend=stored.storage_backend,
+                    storage_key=stored.storage_key,
                     original_name=filename,
                     reported_media_type=media_type,
                     size_bytes=size,
-                    sha256=digest.hexdigest(),
+                    sha256=sha256,
                     created_at=now,
                 )
                 connection.execute(
@@ -1073,11 +1119,10 @@ async def _store_artifact(
                     connection,
                     workspace_id,
                     "artifact_uploaded",
-                    artifact_sha256=digest.hexdigest(),
+                    artifact_sha256=sha256,
                 )
                 payload = _workspace_payload(connection, workspace_id)
                 connection.execute("COMMIT")
-                object_registered = True
             except StructuredStoreIntegrityError as exc:
                 connection.execute("ROLLBACK")
                 raise SkeletonError(409, "artifact_limit_reached") from exc
@@ -1085,56 +1130,95 @@ async def _store_artifact(
                 connection.execute("ROLLBACK")
                 raise
             return payload
-    except Exception:
+    finally:
         temp_path.unlink(missing_ok=True)
-        if not object_registered:
-            object_path.unlink(missing_ok=True)
-        raise
+
+
+def _audit_artifact_download(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None,
+    *,
+    result_status: str,
+    artifact_sha256: str | None = None,
+) -> None:
+    with _store() as connection:
+        _authorize(connection, workspace_id, authorization, session_cookie)
+        _append_audit(
+            connection,
+            workspace_id,
+            "artifact_download",
+            result_status=result_status,
+            artifact_sha256=artifact_sha256,
+        )
 
 
 def _artifact_for_download(
     workspace_id: str,
     authorization: str | None,
     session_cookie: str | None = None,
-) -> tuple[Path, dict[str, Any]]:
+) -> tuple[Path, dict[str, Any], bool]:
     with _store() as connection:
         _authorize(connection, workspace_id, authorization, session_cookie)
-        artifact = connection.execute(
-            """
-            SELECT artifact_id, object_name, original_name, size_bytes, sha256, created_at
-            FROM artifacts WHERE workspace_id = ?
-            """,
-            (workspace_id,),
-        ).fetchone()
+        artifact = StructuredRepository(connection).latest_artifact_version(
+            workspace_id
+        )
         if artifact is None:
             raise SkeletonError(404, "artifact_not_found")
-        path = (_objects_dir() / artifact["object_name"]).resolve()
-        if path.parent != _objects_dir().resolve() or not path.is_file():
-            _append_audit(
-                connection, workspace_id, "artifact_download", result_status="missing"
-            )
-            raise SkeletonError(503, "artifact_unavailable")
-        digest = hashlib.sha256()
-        size = 0
-        with path.open("rb") as source:
-            for chunk in iter(lambda: source.read(1024 * 1024), b""):
-                size += len(chunk)
-                digest.update(chunk)
-        if size != artifact["size_bytes"] or digest.hexdigest() != artifact["sha256"]:
-            _append_audit(
-                connection,
-                workspace_id,
-                "artifact_download",
-                result_status="integrity_failed",
-            )
-            raise SkeletonError(503, "artifact_integrity_failed")
-        _append_audit(
-            connection,
-            workspace_id,
-            "artifact_download",
-            artifact_sha256=artifact["sha256"],
+        artifact_payload = dict(artifact)
+
+    materialized = None
+    try:
+        object_store = object_store_for_backend(
+            _state_root(),
+            str(artifact_payload["storage_backend"]),
         )
-        return path, dict(artifact)
+        materialized = object_store.materialize_verified(
+            storage_key=str(artifact_payload["storage_key"]),
+            expected_size=int(artifact_payload["size_bytes"]),
+            expected_sha256=str(artifact_payload["sha256"]),
+        )
+    except ObjectStorageMissingError as exc:
+        _audit_artifact_download(
+            workspace_id,
+            authorization,
+            session_cookie,
+            result_status="missing",
+        )
+        raise SkeletonError(503, "artifact_unavailable") from exc
+    except ObjectStorageIntegrityError as exc:
+        _audit_artifact_download(
+            workspace_id,
+            authorization,
+            session_cookie,
+            result_status="integrity_failed",
+        )
+        raise SkeletonError(503, "artifact_integrity_failed") from exc
+    except (
+        ObjectStorageConfigurationError,
+        ObjectStorageUnavailableError,
+    ) as exc:
+        _audit_artifact_download(
+            workspace_id,
+            authorization,
+            session_cookie,
+            result_status="unavailable",
+        )
+        raise SkeletonError(503, "artifact_unavailable") from exc
+
+    try:
+        _audit_artifact_download(
+            workspace_id,
+            authorization,
+            session_cookie,
+            result_status="ok",
+            artifact_sha256=str(artifact_payload["sha256"]),
+        )
+    except Exception:
+        if materialized.temporary:
+            materialized.path.unlink(missing_ok=True)
+        raise
+    return materialized.path, artifact_payload, materialized.temporary
 
 
 def _audit_events(
@@ -1173,8 +1257,18 @@ def walking_skeleton_status() -> dict[str, Any]:
             schema_version = connection.schema_version()
             structured_store = connection.backend_name
             connection.execute("SELECT 1").fetchone()
+        object_store = configured_write_store(_state_root())
+        object_store.ensure_ready()
     except SkeletonError as error:
         _raise_http(error)
+    except (
+        ObjectStorageConfigurationError,
+        ObjectStorageUnavailableError,
+        OSError,
+    ):
+        _raise_http(
+            SkeletonError(503, "walking_skeleton_storage_unavailable")
+        )
     return {
         "enabled": True,
         "mode": "early-skeleton",
@@ -1191,7 +1285,24 @@ def walking_skeleton_status() -> dict[str, Any]:
             "migration_strategy": "expand-only-forward-fix",
             "legacy_sqlite_read_path": True,
         },
-        "artifact_store": "private-filesystem-volume-adapter",
+        "artifact_store": object_store.public_label,
+        "artifact_storage": {
+            "write_backend": object_store.storage_backend,
+            "access_contract": "server-credential-only-private-required",
+            "application_issues_public_object_urls": False,
+            "bucket_policy_verified_by": "deployment-oracle-required",
+            "application_versioning": (
+                "immutable-key-v1"
+                if object_store.application_versioning
+                else "legacy-single-object"
+            ),
+            "conditional_create": object_store.storage_backend
+            == S3_STORAGE_BACKEND,
+            "legacy_filesystem_read": True,
+            "s3_dual_read_configured": s3_dual_read_configured(),
+            "inventory_reconciliation": object_store.storage_backend
+            == S3_STORAGE_BACKEND,
+        },
         "browser_storage": False,
         "recovery_capability": "high-entropy-server-hashed",
         "access_session_seconds": int(ACCESS_TOKEN_TTL.total_seconds()),
@@ -1244,8 +1355,12 @@ def walking_skeleton_status() -> dict[str, Any]:
         "stage_status": "early-skeleton-not-ga",
         "hardening_pending": (
             (["durable-database-service"] if structured_store.startswith("sqlite") else [])
+            + (
+                ["s3-compatible-object-store"]
+                if object_store.storage_backend == LEGACY_STORAGE_BACKEND
+                else []
+            )
             + [
-                "s3-compatible-object-store",
                 "backup-restore-drill",
                 "malware-controls",
                 "multi-file-lifecycle-and-explicit-deletion",
@@ -1473,7 +1588,7 @@ def download_artifact(
 ) -> FileResponse:
     try:
         _require_enabled()
-        path, artifact = _artifact_for_download(
+        path, artifact, temporary = _artifact_for_download(
             workspace_id,
             authorization,
             session_cookie,
@@ -1491,6 +1606,9 @@ def download_artifact(
             "X-KMFA-Artifact-SHA256": artifact["sha256"],
             "X-KMFA-Artifact-Mode": "attachment-only",
         },
+        background=(
+            BackgroundTask(path.unlink, missing_ok=True) if temporary else None
+        ),
     )
 
 
