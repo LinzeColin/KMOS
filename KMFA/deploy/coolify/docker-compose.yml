@@ -60,6 +60,9 @@ services:
       KMFA_PUBLIC_INDEXING_ENABLED: "${KMFA_PUBLIC_INDEXING_ENABLED:-0}"
       # S03/P3.4 早期骨架独立灰度；默认关闭，启用前须确认 app state 卷与恢复/hash Oracle。
       KMFA_WALKING_SKELETON_ENABLED: "${KMFA_WALKING_SKELETON_ENABLED:-0}"
+      # S05 expand/contract：Stage review 前默认保留 v1.5 SQLite read path。
+      KMFA_STRUCTURED_DATABASE_MODE: "${KMFA_STRUCTURED_DATABASE_MODE:-legacy-sqlite}"
+      KMFA_STRUCTURED_DATABASE_URL: "${KMFA_STRUCTURED_DATABASE_URL:-}"
       # P4.4 匿名反滥用策略；未知值 fail-closed，紧急回滚只能切 expensive-only。
       KMFA_ABUSE_POLICY_MODE: "${KMFA_ABUSE_POLICY_MODE:-enforced}"
       KMFA_PRIVATE_OPS_REQUIRE_ACCESS: "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
@@ -76,12 +79,43 @@ services:
     expose:
       - "8000"                                    # 经 Coolify Traefik 暴露；域名在 Coolify 面板设，无需开放主机端口
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request;from pathlib import Path;from app.structured_store import open_structured_store;s=open_structured_store(Path('/var/lib/kmfa/state/walking-skeleton/walking_skeleton.sqlite3'));assert s.schema_version()==2;s.close();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
+        ]
       interval: 2m
       timeout: 10s
+
+  structured-db:
+    # P5.1 先交付可验证的共享数据库形态；只有显式同时启用 full,postgresql
+    # 并通过迁移 Oracle 后才会启动，当前生产 rollout 不被中间 phase 自动切换。
+    profiles: ["postgresql"]
+    image: postgres:17.10-alpine3.23
+    container_name: kmfa-structured-db
+    restart: always
+    environment:
+      POSTGRES_DB: "${KMFA_POSTGRES_DB:-kmfa}"
+      POSTGRES_USER: "${KMFA_POSTGRES_USER:-kmfa}"
+      POSTGRES_PASSWORD: "${KMFA_POSTGRES_PASSWORD:-}"
+    volumes:
+      - kmfa-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
 volumes:
   kmfa-dws-auth:
   kmfa-dws-keyring:
   kmfa-logs:
   kmfa-app-state:
+  # 禁止 ordinary rollback / compose down -v 删除；P5.4 才完成备份恢复 Gate。
+  kmfa-postgres-data:

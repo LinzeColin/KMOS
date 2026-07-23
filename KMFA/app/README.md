@@ -13,10 +13,11 @@ Access 加源站 JWT 校验双重保护。公共壳异常时把 `KMFA_PUBLIC_SHE
 `KMFA_WALKING_SKELETON_ENABLED` 是 S03/P3.4 的独立早期骨架 Flag，生产默认 `0`。显式置 `1`
 后，根页可创建一个无需账号的服务器工作区、保存项目名称与 0–100% 进度、上传一个任意类型且不超过
 8 MiB 的文件、用一次显示的高熵恢复码换取一小时短时会话，并以 attachment-only 下载校验
-SHA-256。恢复码与会话 capability 在服务端只存 hash；SQLite 结构化状态和私有文件字节分别写入
-`/var/lib/kmfa/state/walking-skeleton` 下的数据库与对象目录，由 `kmfa-app-state` named volume 跨容器
-重启保留。Flag 置 `0` 会关闭骨架创建、恢复、读写和下载入口但不删除卷内状态；显式会话撤销仍可用，
-避免回滚期间把浏览器凭据留在服务端。
+SHA-256。恢复码与会话 capability 在服务端只存 hash；S05 的版本化 structured-store adapter 默认
+继续读取 `/var/lib/kmfa/state/walking-skeleton/walking_skeleton.sqlite3`，也可在显式
+`postgresql-primary` 模式连接共享 PostgreSQL；私有文件字节仍写在同目录的对象区并由
+`kmfa-app-state` named volume 跨容器重启保留。Flag 置 `0` 会关闭骨架创建、恢复、读写和下载入口但
+不删除任一存储；显式会话撤销仍可用，避免回滚期间把浏览器凭据留在服务端。
 
 S04/P4.1-P4.4 起，新 workspace ID 使用 128-bit CSPRNG，workspace secret 与一小时 access token 均使用
 256-bit CSPRNG。`POST /public-api/walking-skeleton/v1/sessions` 用 workspace ID + secret 交换短时
@@ -60,15 +61,26 @@ S04 开始签发的 22 字符 workspace ID 不被 S03/P4.1 之前的 reader 接�
 named volume，只关闭 `KMFA_WALKING_SKELETON_ENABLED` 或切换紧急策略，再前滚修复。任何 ordinary
 revert 都必须继续包含 P4.1 双 ID reader；禁止用删卷、改 verifier 或重放恢复包代替兼容回滚。
 
-早期 adapter 还设置有限的 lifetime resource ceiling：最多 10,000 个 workspace、每 workspace 8 个
+adapter 还设置有限的 lifetime resource ceiling：最多 10,000 个 workspace、每 workspace 8 个
 活动 session、每 workspace 10,000/全局 250,000 条业务审计、全局 512 MiB artifact 字节，并在写入前
 保留 128 MiB 文件系统余量；原有单文件 8 MiB、单 workspace 一个 artifact 上限不变。达到上限只拒绝
 新昂贵动作，不删除既有项目或文件。这些是灰度安全预算，不是生产采用率、容量或“永久保存”证明；
-S05 必须用真实耐久数据库/对象存储与备份恢复重新定容。
+S05 仍必须用对象存储与备份恢复重新定容。
 
-这只是可替换的 Walking Skeleton，不是 GA 或“永久保存”证明：耐久数据库服务、S3-compatible
-对象存储、备份恢复、恶意文件扫描、多文件和明确删除仍由 S05–S07 完成。
-禁止把单节点 named volume 或本阶段重启测试宣传为跨节点、备份或长期 RPO/RTO 已通过。
+S05/P5.1 把 schema 升到 v2：`projects`、`project_metrics`（progress/score）、
+`financial_records`、`artifact_versions`、`workspace_tasks` 与 append-only audit 均由有序、
+checksum-locked、expand-only migration 建立，并由 repository/service transaction 边界写入。
+`legacy-sqlite` 仍是未配置时的默认 reader；`postgresql-primary` 只有完整
+`KMFA_STRUCTURED_DATABASE_URL` 时才启用，未知 mode、缺 DSN 或连接失败均返回固定 503，不回显 DSN。
+旧 v1.5 SQLite 可用
+`python -m app.legacy_sqlite_import --source /只读路径/walking_skeleton.sqlite3`
+幂等导入 PostgreSQL；DSN 只从环境读取，源文件只读且冲突会让整个事务回滚。快速回滚可恢复
+`legacy-sqlite`，不得删、改或覆盖源 SQLite/PG volume；migration 采用 forward-fix，不做 destructive
+downgrade。
+
+这仍不是 GA 或“永久保存”证明：S3-compatible 对象存储、备份恢复、恶意文件扫描、多文件和明确删除
+仍由 S05 后续与 S06–S07 完成。P5.1 只证明共享结构化数据库、双 App 节点/数据库节点替换和旧库只读
+迁移 Oracle；禁止把私有文件单卷或本阶段测试宣传为对象存储备份、长期 RPO/RTO 已通过。
 
 本地跑：`cd KMFA/app/backend && uvicorn app.main:app --reload`（未设置
 `KMFA_PRIVATE_OPS_REQUIRE_ACCESS` 时仅用于本机开发，私有面守卫关闭）。

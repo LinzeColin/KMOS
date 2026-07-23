@@ -73,6 +73,16 @@ jobs:
           curl -sf http://localhost:18098/healthz >/dev/null || {
             echo "::error::App 未起来"; docker logs kmfa-e2e; exit 1; }
 
+      - name: 跑结构化数据库（双节点 / 事务 / 并发 / 迁移 / 恢复）
+        run: |
+          set -euo pipefail
+          p51_state=$(mktemp -d /tmp/kmfa-p51-state.XXXXXX)
+          python KMFA/app/e2e/structured_database_flow.py \
+            --image kmfa-app:e2e \
+            --state-dir "$p51_state" \
+            --out-dir structured-database-e2e \
+            --prefix kmfa-p51-ci
+
       - name: 装 Playwright
         run: |
           set -euo pipefail
@@ -150,6 +160,7 @@ jobs:
             public-accessibility-index-e2e/
             walking-skeleton-e2e/
             abuse-control-e2e/
+            structured-database-e2e/
 
       - name: 收容器
         if: always()
@@ -157,3 +168,9 @@ jobs:
           docker rm -f kmfa-e2e || true
           docker rm -f kmfa-p34-e2e || true
           docker rm -f kmfa-p44-e2e || true
+          docker rm -f kmfa-p51-ci-app-a || true
+          docker rm -f kmfa-p51-ci-app-b || true
+          docker rm -f kmfa-p51-ci-app-c || true
+          docker rm -f kmfa-p51-ci-pg || true
+          docker volume rm kmfa-p51-ci-pgdata || true
+          docker network rm kmfa-p51-ci-net || true

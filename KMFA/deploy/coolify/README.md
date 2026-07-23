@@ -51,6 +51,15 @@
 
 ## P2 —— 起 App 栈（容量确认后）
 
+> **S05/P5.1 中间态边界**：Compose 已提供 opt-in `postgresql` profile 和
+> `postgres:17.10-alpine3.23` durable volume，但本 phase 不单独切生产。Stage S05 整体复审批准前，
+> 生产保持 `KMFA_STRUCTURED_DATABASE_MODE=legacy-sqlite`，不得仅因服务定义存在就启动/迁移。
+> 后续切换必须先对 quiesced v1.5 SQLite 副本运行只读幂等 import Oracle，再同时设置
+> `KMFA_STRUCTURED_DATABASE_MODE=postgresql-primary`、Secret
+> `KMFA_STRUCTURED_DATABASE_URL`/`KMFA_POSTGRES_PASSWORD` 和 `postgresql` profile。失败时恢复
+> `legacy-sqlite` 并保留两个 volume；禁止 `down -v` 或 destructive downgrade。P5.4 备份恢复 Gate
+> 完成前不得宣称数据库 RPO/RTO 已达标。
+
 6. 观测 P1 内存无碍后，在 Coolify 为本资源**启用 `full` profile**（Compose profiles → 勾 `full`）或设 `COMPOSE_PROFILES=full`，重部署 → `kmfa-app` 起。
 7. **域名**：Coolify 给 `app` 服务设 `kmfa.linzezhang.com`（Coolify Traefik 自动签发/路由）；**Cloudflare** 加一条**代理（橙云）** A 记录 `kmfa` → OVH 公网 IP（或按 Coolify 提示的 CNAME）。App 仅经 Traefik 暴露，主机不额外开放端口。
 8. **先建更具体的路径锁，整站登录墙不动**：保留现有 host 级 Self-hosted Application 的 Owner

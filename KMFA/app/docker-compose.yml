@@ -10,6 +10,9 @@ services:
       KMFA_PUBLIC_SHELL_ENABLED: "${KMFA_PUBLIC_SHELL_ENABLED:-1}"
       KMFA_PUBLIC_INDEXING_ENABLED: "${KMFA_PUBLIC_INDEXING_ENABLED:-0}"
       KMFA_WALKING_SKELETON_ENABLED: "${KMFA_WALKING_SKELETON_ENABLED:-0}"
+      # S05 expand/contract：默认继续读 v1.5 SQLite；只有显式配置完整 DSN 才切共享 PG。
+      KMFA_STRUCTURED_DATABASE_MODE: "${KMFA_STRUCTURED_DATABASE_MODE:-legacy-sqlite}"
+      KMFA_STRUCTURED_DATABASE_URL: "${KMFA_STRUCTURED_DATABASE_URL:-}"
       KMFA_ABUSE_POLICY_MODE: "${KMFA_ABUSE_POLICY_MODE:-enforced}"
       KMFA_PRIVATE_OPS_REQUIRE_ACCESS: "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
       KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN: "${KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}"
@@ -20,9 +23,39 @@ services:
     ports:
       - "127.0.0.1:8000:8000"              # 仅本机回环，出网走 cloudflared
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request;from pathlib import Path;from app.structured_store import open_structured_store;s=open_structured_store(Path('/var/lib/kmfa/state/walking-skeleton/walking_skeleton.sqlite3'));assert s.schema_version()==2;s.close();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
+        ]
       interval: 2m
       timeout: 10s
 
+  structured-db:
+    profiles: ["postgresql"]
+    image: postgres:17.10-alpine3.23
+    container_name: kmfa-structured-db
+    restart: always
+    environment:
+      POSTGRES_DB: "${KMFA_POSTGRES_DB:-kmfa}"
+      POSTGRES_USER: "${KMFA_POSTGRES_USER:-kmfa}"
+      # 启动 postgresql profile 前必须显式设置；空值会由官方镜像 fail closed。
+      POSTGRES_PASSWORD: "${KMFA_POSTGRES_PASSWORD:-}"
+    volumes:
+      - kmfa-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   kmfa-app-state:
+  # P5.1 只建立共享结构化存储；备份/恢复演练由 P5.4 Gate 后才可宣称完成。
+  kmfa-postgres-data:

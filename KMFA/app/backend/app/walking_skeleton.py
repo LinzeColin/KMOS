@@ -1,9 +1,9 @@
 """S03/P3.4 walking skeleton with S04/P4.1-P4.4 security hardening.
 
 This is intentionally a narrow, replaceable adapter. Structured workspace
-state lives in SQLite while artifact bytes live outside the database in a
-private filesystem root. Both must be mounted on the same durable deployment
-volume for this early skeleton. P4.1 adds 128-bit workspace identifiers,
+state uses the S05 versioned database adapter (legacy SQLite by default or an
+explicit shared PostgreSQL service), while artifact bytes still live outside
+the database in a private filesystem root. P4.1 adds 128-bit workspace identifiers,
 256-bit workspace secrets, irreversible verifiers and one-hour session
 exchange while accepting existing S03 identifiers. P4.2 adds a strict,
 minimal `.kmfa-recovery` capability file plus atomic secret rotation. P4.3
@@ -27,8 +27,6 @@ import os
 import re
 import secrets
 import shutil
-import sqlite3
-import threading
 import unicodedata
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -41,6 +39,13 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from .anti_abuse import public_policy_contract
+from .structured_repository import StructuredRepository
+from .structured_store import (
+    StructuredStoreConnection,
+    StructuredStoreError,
+    StructuredStoreIntegrityError,
+    open_structured_store,
+)
 
 API_PREFIX = "/public-api/walking-skeleton/v1"
 SESSION_COOKIE_NAME = "__Secure-kmfa_session"
@@ -56,7 +61,6 @@ MAX_ACTIVE_SESSIONS_PER_WORKSPACE = 8
 MAX_AUDIT_EVENTS_PER_WORKSPACE = 10_000
 MAX_AUDIT_EVENTS_TOTAL = 250_000
 ACCESS_TOKEN_TTL = timedelta(hours=1)
-SCHEMA_VERSION = 1
 WORKSPACE_ID_BYTES = 16
 WORKSPACE_SECRET_BYTES = 32
 ACCESS_TOKEN_BYTES = 32
@@ -82,8 +86,6 @@ DUMMY_WORKSPACE_VERIFIER = hashlib.sha256(
 SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
 
 router = APIRouter(prefix=API_PREFIX, tags=["public-walking-skeleton"])
-_STORE_INITIALIZATION_LOCK = threading.Lock()
-_INITIALIZED_STORE_PATHS: set[Path] = set()
 
 
 class CreateWorkspaceRequest(BaseModel):
@@ -162,84 +164,9 @@ def _hash_capability(value: str) -> str:
     return hashlib.sha256(value.encode("ascii")).hexdigest()
 
 
-def _open_store() -> sqlite3.Connection:
+def _open_store() -> StructuredStoreConnection:
     _ensure_private_directories()
-    database_path = _db_path().resolve()
-    connection = sqlite3.connect(
-        str(database_path),
-        isolation_level=None,
-        timeout=5,
-    )
-    try:
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA busy_timeout=5000")
-        with _STORE_INITIALIZATION_LOCK:
-            if database_path not in _INITIALIZED_STORE_PATHS:
-                connection.execute("PRAGMA journal_mode=WAL")
-                connection.executescript(
-                    """
-                    CREATE TABLE IF NOT EXISTS workspaces (
-                      workspace_id TEXT PRIMARY KEY,
-                      recovery_hash TEXT NOT NULL UNIQUE,
-                      project_name TEXT NOT NULL,
-                      progress INTEGER NOT NULL CHECK(progress BETWEEN 0 AND 100),
-                      created_at TEXT NOT NULL,
-                      updated_at TEXT NOT NULL
-                    );
-                    CREATE TABLE IF NOT EXISTS access_tokens (
-                      token_hash TEXT PRIMARY KEY,
-                      workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id),
-                      created_at TEXT NOT NULL,
-                      expires_at TEXT NOT NULL
-                    );
-                    CREATE INDEX IF NOT EXISTS access_tokens_workspace
-                      ON access_tokens(workspace_id);
-                    CREATE TABLE IF NOT EXISTS artifacts (
-                      artifact_id TEXT PRIMARY KEY,
-                      workspace_id TEXT NOT NULL UNIQUE REFERENCES workspaces(workspace_id),
-                      object_name TEXT NOT NULL UNIQUE,
-                      original_name TEXT NOT NULL,
-                      reported_media_type TEXT NOT NULL,
-                      size_bytes INTEGER NOT NULL CHECK(size_bytes >= 0),
-                      sha256 TEXT NOT NULL,
-                      created_at TEXT NOT NULL
-                    );
-                    CREATE TABLE IF NOT EXISTS audit_events (
-                      seq INTEGER PRIMARY KEY AUTOINCREMENT,
-                      event_id TEXT NOT NULL UNIQUE,
-                      workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id),
-                      action TEXT NOT NULL,
-                      result_status TEXT NOT NULL,
-                      artifact_sha256 TEXT,
-                      created_at TEXT NOT NULL
-                    );
-                    CREATE INDEX IF NOT EXISTS walking_audit_workspace
-                      ON audit_events(workspace_id);
-                    CREATE TRIGGER IF NOT EXISTS walking_audit_no_update
-                      BEFORE UPDATE ON audit_events BEGIN
-                        SELECT RAISE(
-                          ABORT,
-                          'walking-skeleton audit is append-only'
-                        );
-                      END;
-                    CREATE TRIGGER IF NOT EXISTS walking_audit_no_delete
-                      BEFORE DELETE ON audit_events BEGIN
-                        SELECT RAISE(
-                          ABORT,
-                          'walking-skeleton audit is append-only'
-                        );
-                      END;
-                    """
-                )
-                connection.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
-                database_path.chmod(0o600)
-                _INITIALIZED_STORE_PATHS.add(database_path)
-        connection.execute("PRAGMA foreign_keys=ON")
-        connection.execute("PRAGMA synchronous=FULL")
-        return connection
-    except BaseException:
-        connection.close()
-        raise
+    return open_structured_store(_db_path())
 
 
 @contextmanager
@@ -250,7 +177,7 @@ def _store():
         yield connection
     except SkeletonError:
         raise
-    except (OSError, sqlite3.Error) as exc:
+    except (OSError, StructuredStoreError) as exc:
         raise SkeletonError(503, "walking_skeleton_storage_unavailable") from exc
     finally:
         if connection is not None:
@@ -379,19 +306,27 @@ def _parse_recovery_file(payload: bytes) -> tuple[str, str]:
 
 
 def _append_audit(
-    connection: sqlite3.Connection,
+    connection: StructuredStoreConnection,
     workspace_id: str,
     action: str,
     *,
     result_status: str = "ok",
     artifact_sha256: str | None = None,
 ) -> None:
-    total = int(connection.execute("SELECT COUNT(*) FROM audit_events").fetchone()[0])
+    total = int(
+        connection.execute(
+            "SELECT COUNT(*) AS count_value FROM audit_events"
+        ).fetchone()["count_value"]
+    )
     workspace_total = int(
         connection.execute(
-            "SELECT COUNT(*) FROM audit_events WHERE workspace_id = ?",
+            """
+            SELECT COUNT(*) AS count_value
+            FROM audit_events
+            WHERE workspace_id = ?
+            """,
             (workspace_id,),
-        ).fetchone()[0]
+        ).fetchone()["count_value"]
     )
     if (
         total >= MAX_AUDIT_EVENTS_TOTAL
@@ -416,7 +351,7 @@ def _append_audit(
 
 
 def _issue_access_token(
-    connection: sqlite3.Connection,
+    connection: StructuredStoreConnection,
     workspace_id: str,
 ) -> tuple[str, str]:
     now = _timestamp()
@@ -428,7 +363,7 @@ def _issue_access_token(
         """
         SELECT token_hash FROM access_tokens
         WHERE workspace_id = ?
-        ORDER BY created_at, rowid
+        ORDER BY issuance_order
         """,
         (workspace_id,),
     ).fetchall()
@@ -450,22 +385,32 @@ def _issue_access_token(
     token = _new_access_token()
     created = _utc_now()
     expires = created + ACCESS_TOKEN_TTL
+    issuance_order = int(
+        connection.execute(
+            """
+            SELECT COALESCE(MAX(issuance_order), 0) + 1 AS next_issuance_order
+            FROM access_tokens
+            """
+        ).fetchone()["next_issuance_order"]
+    )
     connection.execute(
         """
-        INSERT INTO access_tokens(token_hash, workspace_id, created_at, expires_at)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO access_tokens(
+          token_hash, workspace_id, created_at, expires_at, issuance_order
+        ) VALUES (?, ?, ?, ?, ?)
         """,
         (
             _hash_capability(token),
             workspace_id,
             _timestamp(created),
             _timestamp(expires),
+            issuance_order,
         ),
     )
     return token, _timestamp(expires)
 
 
-def _artifact_payload(row: sqlite3.Row | None) -> dict[str, Any] | None:
+def _artifact_payload(row: Any | None) -> dict[str, Any] | None:
     if row is None:
         return None
     return {
@@ -479,31 +424,30 @@ def _artifact_payload(row: sqlite3.Row | None) -> dict[str, Any] | None:
 
 
 def _workspace_payload(
-    connection: sqlite3.Connection,
+    connection: StructuredStoreConnection,
     workspace_id: str,
 ) -> dict[str, Any]:
-    workspace = connection.execute(
-        """
-        SELECT workspace_id, project_name, progress, created_at, updated_at
-        FROM workspaces WHERE workspace_id = ?
-        """,
-        (workspace_id,),
-    ).fetchone()
+    repository = StructuredRepository(connection)
+    workspace = repository.workspace_projection(workspace_id)
     if workspace is None:
         raise SkeletonError(404, "workspace_not_found")
-    artifact = connection.execute(
+    legacy_timestamps = connection.execute(
         """
-        SELECT artifact_id, original_name, size_bytes, sha256, created_at
-        FROM artifacts WHERE workspace_id = ?
+        SELECT created_at, updated_at
+        FROM workspaces
+        WHERE workspace_id = ?
         """,
         (workspace_id,),
     ).fetchone()
+    if legacy_timestamps is None:
+        raise SkeletonError(404, "workspace_not_found")
+    artifact = repository.latest_artifact_version(workspace_id)
     return {
         "workspace_id": workspace["workspace_id"],
         "project_name": workspace["project_name"],
         "progress": workspace["progress"],
-        "created_at": workspace["created_at"],
-        "updated_at": workspace["updated_at"],
+        "created_at": legacy_timestamps["created_at"],
+        "updated_at": legacy_timestamps["updated_at"],
         "artifact": _artifact_payload(artifact),
         "stage_status": "early-skeleton-not-ga",
     }
@@ -539,7 +483,7 @@ def _presented_access_token(
 
 
 def _authorize(
-    connection: sqlite3.Connection,
+    connection: StructuredStoreConnection,
     workspace_id: str,
     authorization: str | None,
     session_cookie: str | None = None,
@@ -560,7 +504,7 @@ def _authorize(
 
 
 def _workspace_secret_matches(
-    connection: sqlite3.Connection,
+    connection: StructuredStoreConnection,
     workspace_id: str,
     workspace_secret: str,
 ) -> bool:
@@ -593,7 +537,7 @@ def _workspace_secret_matches(
 
 
 def _issue_workspace_session_in_transaction(
-    connection: sqlite3.Connection,
+    connection: StructuredStoreConnection,
     workspace_id: str,
     *,
     audit_action: str,
@@ -604,7 +548,7 @@ def _issue_workspace_session_in_transaction(
 
 
 def _workspace_session_payload(
-    connection: sqlite3.Connection,
+    connection: StructuredStoreConnection,
     workspace_id: str,
     access_token: str,
     expires_at: str,
@@ -667,7 +611,9 @@ def _create_workspace(project_name: str) -> dict[str, Any]:
             try:
                 connection.execute("BEGIN IMMEDIATE")
                 workspace_count = int(
-                    connection.execute("SELECT COUNT(*) FROM workspaces").fetchone()[0]
+                    connection.execute(
+                        "SELECT COUNT(*) AS count_value FROM workspaces"
+                    ).fetchone()["count_value"]
                 )
                 if workspace_count >= MAX_WORKSPACES_TOTAL:
                     raise SkeletonError(429, "workspace_capacity_reached")
@@ -687,6 +633,13 @@ def _create_workspace(project_name: str) -> dict[str, Any]:
                         now,
                     ),
                 )
+                StructuredRepository(connection).create_project_projection(
+                    workspace_id=workspace_id,
+                    name=cleaned_name,
+                    progress=0,
+                    created_at=now,
+                    updated_at=now,
+                )
                 access_token, expires_at = _issue_access_token(connection, workspace_id)
                 _append_audit(connection, workspace_id, "workspace_created")
                 connection.execute("COMMIT")
@@ -697,8 +650,9 @@ def _create_workspace(project_name: str) -> dict[str, Any]:
                     "recovery_code": recovery_code,
                     "recovery_code_shown_once": True,
                 }
-            except sqlite3.IntegrityError:
-                connection.execute("ROLLBACK")
+            except StructuredStoreIntegrityError:
+                if connection.in_transaction:
+                    connection.execute("ROLLBACK")
         raise SkeletonError(503, "workspace_identity_unavailable")
 
 
@@ -856,7 +810,7 @@ def _rotate_workspace_secret(
                     "access_expires_at": expires_at,
                     "session_ttl_seconds": int(ACCESS_TOKEN_TTL.total_seconds()),
                 }
-            except sqlite3.IntegrityError:
+            except StructuredStoreIntegrityError:
                 if connection.in_transaction:
                     connection.execute("ROLLBACK")
             except Exception:
@@ -947,30 +901,40 @@ def _update_workspace(
         else None
     )
     with _store() as connection:
-        _authorize(connection, workspace_id, authorization, session_cookie)
-        current = connection.execute(
-            "SELECT project_name, progress FROM workspaces WHERE workspace_id = ?",
-            (workspace_id,),
-        ).fetchone()
-        if current is None:
-            raise SkeletonError(404, "workspace_not_found")
         connection.execute("BEGIN IMMEDIATE")
-        connection.execute(
-            """
-            UPDATE workspaces SET project_name = ?, progress = ?, updated_at = ?
-            WHERE workspace_id = ?
-            """,
-            (
-                project_name if project_name is not None else current["project_name"],
+        try:
+            _authorize(connection, workspace_id, authorization, session_cookie)
+            current = StructuredRepository(connection).workspace_projection(workspace_id)
+            if current is None:
+                raise SkeletonError(404, "workspace_not_found")
+            resolved_name = (
+                project_name if project_name is not None else current["project_name"]
+            )
+            resolved_progress = (
                 request.progress
                 if request.progress is not None
-                else current["progress"],
-                _timestamp(),
-                workspace_id,
-            ),
-        )
-        _append_audit(connection, workspace_id, "workspace_saved")
-        connection.execute("COMMIT")
+                else current["progress"]
+            )
+            now = _timestamp()
+            connection.execute(
+                """
+                UPDATE workspaces SET project_name = ?, progress = ?, updated_at = ?
+                WHERE workspace_id = ?
+                """,
+                (resolved_name, resolved_progress, now, workspace_id),
+            )
+            StructuredRepository(connection).save_project_projection(
+                workspace_id=workspace_id,
+                name=str(resolved_name),
+                progress=int(resolved_progress),
+                updated_at=now,
+            )
+            _append_audit(connection, workspace_id, "workspace_saved")
+            connection.execute("COMMIT")
+        except Exception:
+            if connection.in_transaction:
+                connection.execute("ROLLBACK")
+            raise
         return _workspace_payload(connection, workspace_id)
 
 
@@ -1010,8 +974,11 @@ async def _store_artifact(
             raise SkeletonError(409, "artifact_limit_reached")
         used_bytes = int(
             connection.execute(
-                "SELECT COALESCE(SUM(size_bytes), 0) FROM artifacts"
-            ).fetchone()[0]
+                """
+                SELECT COALESCE(SUM(size_bytes), 0) AS total_bytes
+                FROM artifacts
+                """
+            ).fetchone()["total_bytes"]
         )
         remaining_bytes = MAX_TOTAL_ARTIFACT_BYTES - used_bytes
         if remaining_bytes <= 0:
@@ -1058,12 +1025,16 @@ async def _store_artifact(
             try:
                 used_bytes = int(
                     connection.execute(
-                        "SELECT COALESCE(SUM(size_bytes), 0) FROM artifacts"
-                    ).fetchone()[0]
+                        """
+                        SELECT COALESCE(SUM(size_bytes), 0) AS total_bytes
+                        FROM artifacts
+                        """
+                    ).fetchone()["total_bytes"]
                 )
                 if used_bytes + size > MAX_TOTAL_ARTIFACT_BYTES:
                     raise SkeletonError(429, "artifact_capacity_reached")
                 now = _timestamp()
+                media_type = _clean_media_type(request.headers.get("content-type"))
                 connection.execute(
                     """
                     INSERT INTO artifacts(
@@ -1076,11 +1047,23 @@ async def _store_artifact(
                         workspace_id,
                         object_name,
                         filename,
-                        _clean_media_type(request.headers.get("content-type")),
+                        media_type,
                         size,
                         digest.hexdigest(),
                         now,
                     ),
+                )
+                StructuredRepository(connection).register_artifact_version(
+                    workspace_id=workspace_id,
+                    artifact_id=artifact_id,
+                    version_number=1,
+                    storage_backend="legacy-private-filesystem",
+                    storage_key=object_name,
+                    original_name=filename,
+                    reported_media_type=media_type,
+                    size_bytes=size,
+                    sha256=digest.hexdigest(),
+                    created_at=now,
                 )
                 connection.execute(
                     "UPDATE workspaces SET updated_at = ? WHERE workspace_id = ?",
@@ -1095,7 +1078,7 @@ async def _store_artifact(
                 payload = _workspace_payload(connection, workspace_id)
                 connection.execute("COMMIT")
                 object_registered = True
-            except sqlite3.IntegrityError as exc:
+            except StructuredStoreIntegrityError as exc:
                 connection.execute("ROLLBACK")
                 raise SkeletonError(409, "artifact_limit_reached") from exc
             except Exception:
@@ -1187,7 +1170,8 @@ def walking_skeleton_status() -> dict[str, Any]:
         }
     try:
         with _store() as connection:
-            schema_version = connection.execute("PRAGMA user_version").fetchone()[0]
+            schema_version = connection.schema_version()
+            structured_store = connection.backend_name
             connection.execute("SELECT 1").fetchone()
     except SkeletonError as error:
         _raise_http(error)
@@ -1196,7 +1180,17 @@ def walking_skeleton_status() -> dict[str, Any]:
         "mode": "early-skeleton",
         "healthy": True,
         "schema_version": schema_version,
-        "structured_store": "sqlite-durable-volume-adapter",
+        "structured_store": structured_store,
+        "structured_data": {
+            "projects": True,
+            "progress": True,
+            "scores": True,
+            "financial_records": True,
+            "artifact_versions": True,
+            "tasks": True,
+            "migration_strategy": "expand-only-forward-fix",
+            "legacy_sqlite_read_path": True,
+        },
         "artifact_store": "private-filesystem-volume-adapter",
         "browser_storage": False,
         "recovery_capability": "high-entropy-server-hashed",
@@ -1248,13 +1242,15 @@ def walking_skeleton_status() -> dict[str, Any]:
         },
         "abuse_control": public_policy_contract(),
         "stage_status": "early-skeleton-not-ga",
-        "hardening_pending": [
-            "durable-database-service",
-            "s3-compatible-object-store",
-            "backup-restore-drill",
-            "malware-controls",
-            "multi-file-lifecycle-and-explicit-deletion",
-        ],
+        "hardening_pending": (
+            (["durable-database-service"] if structured_store.startswith("sqlite") else [])
+            + [
+                "s3-compatible-object-store",
+                "backup-restore-drill",
+                "malware-controls",
+                "multi-file-lifecycle-and-explicit-deletion",
+            ]
+        ),
     }
 
 
