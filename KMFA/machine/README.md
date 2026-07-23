@@ -15,7 +15,7 @@
 | `traceability.csv` | 49 条 Requirement→AC→Oracle→Task→Test→Artifact→Owner 精确投影 | P2.3 已按任务包原字节落入；断链必须为 0 |
 | `VALIDATION_REPORT.md` | P2.4 仓库投影校验的可复现 compact snapshot | 只作 structural/taskpack evidence，不是事实 writer、运行态验收或发布判定 |
 | `facts/` | 14 个既有业务状态事实（status/features/flows/plan/acceptance/ops/blockers/changelog...） | 已填充；描述旧业务状态域，不代表 v1.5.2 delivery 进度 |
-| `runs/` | compact public-safe receipts；完整日志与制品外置 | 已含清理交接、P0.1-P0.4、S00 Stage Review、P1.1-P1.4、S01 Stage Review、S02/P2.1-P2.4、S02 Stage Review、S03/P3.1-P3.4 与 S03 Stage Review 记录 |
+| `runs/` | compact public-safe receipts；完整日志与制品外置 | 已含清理交接、P0.1-P0.4、S00 Stage Review、P1.1-P1.4、S01 Stage Review、S02/P2.1-P2.4、S02 Stage Review、S03/P3.1-P3.4、S03 Stage Review 与 S04/P4.1 记录 |
 | `tools/` | 双平面门、渲染器、focused trace gate、完整 taskpack validator 与负向变异套件 | P2.4 已装并接入 `.github/workflows/dual-plane.yml` |
 | `legacy/` | v0.1.4 遗留记录指针（就地引用，未搬动，见其 README） | 指针 |
 

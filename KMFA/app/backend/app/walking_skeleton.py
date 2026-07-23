@@ -1,10 +1,13 @@
-"""S03/P3.4 anonymous recoverable-file walking skeleton.
+"""S03/P3.4 walking skeleton with S04/P4.1 anonymous identity hardening.
 
 This is intentionally a narrow, replaceable adapter. Structured workspace
 state lives in SQLite while artifact bytes live outside the database in a
 private filesystem root. Both must be mounted on the same durable deployment
-volume for this early skeleton. S04-S07 later harden identity, object storage,
-backup/restore, abuse controls, scanning and multi-file lifecycle semantics.
+volume for this early skeleton. P4.1 adds 128-bit workspace identifiers,
+256-bit workspace secrets, irreversible verifiers and one-hour session
+exchange while accepting existing S03 identifiers. S04/P4.2 onward still owns
+recovery UX, rotation/revocation, object storage, backup/restore, abuse
+controls, scanning and multi-file lifecycle semantics.
 
 Raw recovery codes and access capabilities are returned only to their caller;
 the store keeps SHA-256 hashes. Artifacts are never mapped into the static
@@ -14,6 +17,7 @@ file tree and are always downloaded as attachments after capability checks.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
 import re
 import secrets
@@ -35,10 +39,22 @@ MAX_ARTIFACT_BYTES = 8 * 1024 * 1024
 MAX_ARTIFACTS = 1
 ACCESS_TOKEN_TTL = timedelta(hours=1)
 SCHEMA_VERSION = 1
+WORKSPACE_ID_BYTES = 16
+WORKSPACE_SECRET_BYTES = 32
+ACCESS_TOKEN_BYTES = 32
 
-WORKSPACE_ID_RE = re.compile(r"^ws_[A-Za-z0-9_-]{16}$")
+# Existing S03 workspaces used 12 random bytes (16 URL-safe characters). New
+# P4.1 identities use 16 bytes (22 characters), while the verifier continues
+# accepting the legacy shape so rollout never strands recovery assets.
+WORKSPACE_ID_RE = re.compile(r"^ws_(?:[A-Za-z0-9_-]{16}|[A-Za-z0-9_-]{22})$")
 RECOVERY_CODE_RE = re.compile(r"^kmfa-r1-[A-Za-z0-9_-]{43}$")
 ACCESS_TOKEN_RE = re.compile(r"^kmfa-a1-[A-Za-z0-9_-]{43}$")
+DUMMY_WORKSPACE_ID = "ws_" + ("0" * 22)
+DUMMY_WORKSPACE_SECRET = "kmfa-r1-" + ("0" * 43)
+DUMMY_WORKSPACE_VERIFIER = hashlib.sha256(
+    DUMMY_WORKSPACE_SECRET.encode("ascii")
+).hexdigest()
+SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
 
 router = APIRouter(prefix=API_PREFIX, tags=["public-walking-skeleton"])
 
@@ -49,6 +65,11 @@ class CreateWorkspaceRequest(BaseModel):
 
 class RecoverWorkspaceRequest(BaseModel):
     recovery_code: str = Field(min_length=51, max_length=51)
+
+
+class ExchangeWorkspaceSessionRequest(BaseModel):
+    workspace_id: str = Field(min_length=1, max_length=64)
+    workspace_secret: str = Field(min_length=1, max_length=128)
 
 
 class UpdateWorkspaceRequest(BaseModel):
@@ -239,15 +260,15 @@ def _clean_media_type(value: str | None) -> str:
 
 
 def _new_workspace_id() -> str:
-    return f"ws_{secrets.token_urlsafe(12)}"
+    return f"ws_{secrets.token_urlsafe(WORKSPACE_ID_BYTES)}"
 
 
 def _new_recovery_code() -> str:
-    return f"kmfa-r1-{secrets.token_urlsafe(32)}"
+    return f"kmfa-r1-{secrets.token_urlsafe(WORKSPACE_SECRET_BYTES)}"
 
 
 def _new_access_token() -> str:
-    return f"kmfa-a1-{secrets.token_urlsafe(32)}"
+    return f"kmfa-a1-{secrets.token_urlsafe(ACCESS_TOKEN_BYTES)}"
 
 
 def _new_artifact_id() -> str:
@@ -373,6 +394,61 @@ def _authorize(
         raise SkeletonError(404, "workspace_not_found")
 
 
+def _workspace_secret_matches(
+    connection: sqlite3.Connection,
+    workspace_id: str,
+    workspace_secret: str,
+) -> bool:
+    """Verify a workspace capability without making ID existence observable.
+
+    The secret has 256 bits of CSPRNG entropy, so a SHA-256 digest is an
+    irreversible verifier rather than a password hash. Both unknown IDs and
+    wrong secrets perform one indexed lookup, one digest and one constant-time
+    comparison before returning the same public error.
+    """
+
+    id_is_valid = bool(WORKSPACE_ID_RE.fullmatch(workspace_id))
+    secret_is_valid = bool(RECOVERY_CODE_RE.fullmatch(workspace_secret))
+    lookup_id = workspace_id if id_is_valid else DUMMY_WORKSPACE_ID
+    candidate = workspace_secret if secret_is_valid else DUMMY_WORKSPACE_SECRET
+    row = connection.execute(
+        "SELECT recovery_hash FROM workspaces WHERE workspace_id = ?",
+        (lookup_id,),
+    ).fetchone()
+    stored_verifier = (
+        str(row["recovery_hash"])
+        if row is not None and SHA256_HEX_RE.fullmatch(str(row["recovery_hash"]))
+        else DUMMY_WORKSPACE_VERIFIER
+    )
+    matches = hmac.compare_digest(
+        stored_verifier,
+        _hash_capability(candidate),
+    )
+    return id_is_valid and secret_is_valid and row is not None and matches
+
+
+def _issue_workspace_session(
+    connection: sqlite3.Connection,
+    workspace_id: str,
+    *,
+    audit_action: str,
+) -> dict[str, Any]:
+    connection.execute("BEGIN IMMEDIATE")
+    try:
+        access_token, expires_at = _issue_access_token(connection, workspace_id)
+        _append_audit(connection, workspace_id, audit_action)
+        connection.execute("COMMIT")
+    except Exception:
+        connection.execute("ROLLBACK")
+        raise
+    return {
+        "workspace": _workspace_payload(connection, workspace_id),
+        "access_token": access_token,
+        "access_expires_at": expires_at,
+        "session_ttl_seconds": int(ACCESS_TOKEN_TTL.total_seconds()),
+    }
+
+
 def _create_workspace(project_name: str) -> dict[str, Any]:
     cleaned_name = _clean_project_name(project_name)
     recovery_code = _new_recovery_code()
@@ -423,16 +499,33 @@ def _recover_workspace(recovery_code: str) -> dict[str, Any]:
         if workspace is None:
             raise SkeletonError(404, "recovery_not_found")
         workspace_id = str(workspace["workspace_id"])
-        connection.execute("BEGIN IMMEDIATE")
-        access_token, expires_at = _issue_access_token(connection, workspace_id)
-        _append_audit(connection, workspace_id, "workspace_recovered")
-        connection.execute("COMMIT")
-        return {
-            "workspace": _workspace_payload(connection, workspace_id),
-            "access_token": access_token,
-            "access_expires_at": expires_at,
-            "recovery_code_shown_once": False,
-        }
+        payload = _issue_workspace_session(
+            connection,
+            workspace_id,
+            audit_action="workspace_recovered",
+        )
+        payload["recovery_code_shown_once"] = False
+        return payload
+
+
+def _exchange_workspace_session(
+    workspace_id: str,
+    workspace_secret: str,
+) -> dict[str, Any]:
+    with _store() as connection:
+        if not _workspace_secret_matches(
+            connection,
+            workspace_id,
+            workspace_secret,
+        ):
+            raise SkeletonError(404, "workspace_not_found")
+        payload = _issue_workspace_session(
+            connection,
+            workspace_id,
+            audit_action="workspace_session_exchanged",
+        )
+        payload["workspace_secret_returned"] = False
+        return payload
 
 
 def _get_workspace(workspace_id: str, authorization: str | None) -> dict[str, Any]:
@@ -672,6 +765,13 @@ def walking_skeleton_status() -> dict[str, Any]:
         "browser_storage": False,
         "recovery_capability": "high-entropy-server-hashed",
         "access_session_seconds": int(ACCESS_TOKEN_TTL.total_seconds()),
+        "anonymous_identity": {
+            "workspace_id_entropy_bits": WORKSPACE_ID_BYTES * 8,
+            "workspace_secret_entropy_bits": WORKSPACE_SECRET_BYTES * 8,
+            "access_token_entropy_bits": ACCESS_TOKEN_BYTES * 8,
+            "verifier": "sha256-of-256-bit-secret",
+            "session_exchange": f"{API_PREFIX}/sessions",
+        },
         "limits": {
             "max_artifacts": MAX_ARTIFACTS,
             "max_bytes": MAX_ARTIFACT_BYTES,
@@ -702,6 +802,20 @@ def recover_workspace(request: RecoverWorkspaceRequest) -> dict[str, Any]:
     try:
         _require_enabled()
         return _recover_workspace(request.recovery_code)
+    except SkeletonError as error:
+        _raise_http(error)
+
+
+@router.post("/sessions")
+def exchange_workspace_session(
+    request: ExchangeWorkspaceSessionRequest,
+) -> dict[str, Any]:
+    try:
+        _require_enabled()
+        return _exchange_workspace_session(
+            request.workspace_id,
+            request.workspace_secret,
+        )
     except SkeletonError as error:
         _raise_http(error)
 
