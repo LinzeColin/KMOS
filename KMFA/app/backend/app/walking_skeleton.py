@@ -1,13 +1,15 @@
-"""S03/P3.4 walking skeleton with S04/P4.1 anonymous identity hardening.
+"""S03/P3.4 walking skeleton with S04/P4.1-P4.2 recovery hardening.
 
 This is intentionally a narrow, replaceable adapter. Structured workspace
 state lives in SQLite while artifact bytes live outside the database in a
 private filesystem root. Both must be mounted on the same durable deployment
 volume for this early skeleton. P4.1 adds 128-bit workspace identifiers,
 256-bit workspace secrets, irreversible verifiers and one-hour session
-exchange while accepting existing S03 identifiers. S04/P4.2 onward still owns
-recovery UX, rotation/revocation, object storage, backup/restore, abuse
-controls, scanning and multi-file lifecycle semantics.
+exchange while accepting existing S03 identifiers. P4.2 adds a strict,
+minimal `.kmfa-recovery` capability file plus atomic secret rotation. S04/P4.3
+onward still owns session revocation, whole-chain secret hygiene, object
+storage, backup/restore, abuse controls, scanning and multi-file lifecycle
+semantics.
 
 Raw recovery codes and access capabilities are returned only to their caller;
 the store keeps SHA-256 hashes. Artifacts are never mapped into the static
@@ -18,6 +20,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import os
 import re
 import secrets
@@ -30,7 +33,7 @@ from typing import Any
 from urllib.parse import unquote
 
 from fastapi import APIRouter, Header, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
 API_PREFIX = "/public-api/walking-skeleton/v1"
@@ -42,6 +45,13 @@ SCHEMA_VERSION = 1
 WORKSPACE_ID_BYTES = 16
 WORKSPACE_SECRET_BYTES = 32
 ACCESS_TOKEN_BYTES = 32
+RECOVERY_FILE_FORMAT = "kmfa-recovery"
+RECOVERY_FILE_VERSION = 1
+RECOVERY_FILE_MEDIA_TYPE = "application/vnd.kmfa.recovery+json"
+MAX_RECOVERY_FILE_BYTES = 4096
+RECOVERY_FILE_KEYS = frozenset(
+    {"format", "version", "workspace_id", "workspace_secret"}
+)
 
 # Existing S03 workspaces used 12 random bytes (16 URL-safe characters). New
 # P4.1 identities use 16 bytes (22 characters), while the verifier continues
@@ -69,6 +79,10 @@ class RecoverWorkspaceRequest(BaseModel):
 
 class ExchangeWorkspaceSessionRequest(BaseModel):
     workspace_id: str = Field(min_length=1, max_length=64)
+    workspace_secret: str = Field(min_length=1, max_length=128)
+
+
+class ExportRecoveryFileRequest(BaseModel):
     workspace_secret: str = Field(min_length=1, max_length=128)
 
 
@@ -275,6 +289,62 @@ def _new_artifact_id() -> str:
     return f"artifact_{secrets.token_urlsafe(12)}"
 
 
+def _recovery_file_bytes(workspace_id: str, workspace_secret: str) -> bytes:
+    return (
+        json.dumps(
+            {
+                "format": RECOVERY_FILE_FORMAT,
+                "version": RECOVERY_FILE_VERSION,
+                "workspace_id": workspace_id,
+                "workspace_secret": workspace_secret,
+            },
+            ensure_ascii=True,
+            separators=(",", ":"),
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
+def _parse_recovery_file(payload: bytes) -> tuple[str, str]:
+    if not payload or len(payload) > MAX_RECOVERY_FILE_BYTES:
+        raise SkeletonError(404, "recovery_not_found")
+
+    def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate recovery file key")
+            result[key] = value
+        return result
+
+    def reject_non_finite(_: str) -> None:
+        raise ValueError("non-finite recovery file value")
+
+    try:
+        decoded = payload.decode("utf-8")
+        parsed = json.loads(
+            decoded,
+            object_pairs_hook=reject_duplicate_keys,
+            parse_constant=reject_non_finite,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError, TypeError) as exc:
+        raise SkeletonError(404, "recovery_not_found") from exc
+    if (
+        type(parsed) is not dict
+        or frozenset(parsed) != RECOVERY_FILE_KEYS
+        or type(parsed["format"]) is not str
+        or parsed["format"] != RECOVERY_FILE_FORMAT
+        or type(parsed["version"]) is not int
+        or parsed["version"] != RECOVERY_FILE_VERSION
+        or type(parsed["workspace_id"]) is not str
+        or not WORKSPACE_ID_RE.fullmatch(parsed["workspace_id"])
+        or type(parsed["workspace_secret"]) is not str
+        or not RECOVERY_CODE_RE.fullmatch(parsed["workspace_secret"])
+    ):
+        raise SkeletonError(404, "recovery_not_found")
+    return parsed["workspace_id"], parsed["workspace_secret"]
+
+
 def _append_audit(
     connection: sqlite3.Connection,
     workspace_id: str,
@@ -427,20 +497,23 @@ def _workspace_secret_matches(
     return id_is_valid and secret_is_valid and row is not None and matches
 
 
-def _issue_workspace_session(
+def _issue_workspace_session_in_transaction(
     connection: sqlite3.Connection,
     workspace_id: str,
     *,
     audit_action: str,
+) -> tuple[str, str]:
+    access_token, expires_at = _issue_access_token(connection, workspace_id)
+    _append_audit(connection, workspace_id, audit_action)
+    return access_token, expires_at
+
+
+def _workspace_session_payload(
+    connection: sqlite3.Connection,
+    workspace_id: str,
+    access_token: str,
+    expires_at: str,
 ) -> dict[str, Any]:
-    connection.execute("BEGIN IMMEDIATE")
-    try:
-        access_token, expires_at = _issue_access_token(connection, workspace_id)
-        _append_audit(connection, workspace_id, audit_action)
-        connection.execute("COMMIT")
-    except Exception:
-        connection.execute("ROLLBACK")
-        raise
     return {
         "workspace": _workspace_payload(connection, workspace_id),
         "access_token": access_token,
@@ -492,17 +565,30 @@ def _recover_workspace(recovery_code: str) -> dict[str, Any]:
     if not RECOVERY_CODE_RE.fullmatch(recovery_code):
         raise SkeletonError(404, "recovery_not_found")
     with _store() as connection:
-        workspace = connection.execute(
-            "SELECT workspace_id FROM workspaces WHERE recovery_hash = ?",
-            (_hash_capability(recovery_code),),
-        ).fetchone()
-        if workspace is None:
-            raise SkeletonError(404, "recovery_not_found")
-        workspace_id = str(workspace["workspace_id"])
-        payload = _issue_workspace_session(
+        connection.execute("BEGIN IMMEDIATE")
+        try:
+            workspace = connection.execute(
+                "SELECT workspace_id FROM workspaces WHERE recovery_hash = ?",
+                (_hash_capability(recovery_code),),
+            ).fetchone()
+            if workspace is None:
+                raise SkeletonError(404, "recovery_not_found")
+            workspace_id = str(workspace["workspace_id"])
+            access_token, expires_at = _issue_workspace_session_in_transaction(
+                connection,
+                workspace_id,
+                audit_action="workspace_recovered",
+            )
+            connection.execute("COMMIT")
+        except Exception:
+            if connection.in_transaction:
+                connection.execute("ROLLBACK")
+            raise
+        payload = _workspace_session_payload(
             connection,
             workspace_id,
-            audit_action="workspace_recovered",
+            access_token,
+            expires_at,
         )
         payload["recovery_code_shown_once"] = False
         return payload
@@ -511,21 +597,135 @@ def _recover_workspace(recovery_code: str) -> dict[str, Any]:
 def _exchange_workspace_session(
     workspace_id: str,
     workspace_secret: str,
+    *,
+    audit_action: str = "workspace_session_exchanged",
+    not_found_code: str = "workspace_not_found",
 ) -> dict[str, Any]:
     with _store() as connection:
-        if not _workspace_secret_matches(
+        connection.execute("BEGIN IMMEDIATE")
+        try:
+            if not _workspace_secret_matches(
+                connection,
+                workspace_id,
+                workspace_secret,
+            ):
+                raise SkeletonError(404, not_found_code)
+            access_token, expires_at = _issue_workspace_session_in_transaction(
+                connection,
+                workspace_id,
+                audit_action=audit_action,
+            )
+            connection.execute("COMMIT")
+        except Exception:
+            if connection.in_transaction:
+                connection.execute("ROLLBACK")
+            raise
+        payload = _workspace_session_payload(
             connection,
             workspace_id,
-            workspace_secret,
-        ):
-            raise SkeletonError(404, "workspace_not_found")
-        payload = _issue_workspace_session(
-            connection,
-            workspace_id,
-            audit_action="workspace_session_exchanged",
+            access_token,
+            expires_at,
         )
         payload["workspace_secret_returned"] = False
         return payload
+
+
+def _export_recovery_file(
+    workspace_id: str,
+    authorization: str | None,
+    workspace_secret: str,
+) -> bytes:
+    with _store() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        try:
+            _authorize(connection, workspace_id, authorization)
+            if not _workspace_secret_matches(
+                connection,
+                workspace_id,
+                workspace_secret,
+            ):
+                raise SkeletonError(404, "workspace_not_found")
+            _append_audit(connection, workspace_id, "recovery_file_exported")
+            connection.execute("COMMIT")
+        except Exception:
+            if connection.in_transaction:
+                connection.execute("ROLLBACK")
+            raise
+    return _recovery_file_bytes(workspace_id, workspace_secret)
+
+
+def _import_recovery_file(payload: bytes) -> dict[str, Any]:
+    workspace_id, workspace_secret = _parse_recovery_file(payload)
+    result = _exchange_workspace_session(
+        workspace_id,
+        workspace_secret,
+        audit_action="recovery_file_imported",
+        not_found_code="recovery_not_found",
+    )
+    result["recovery_file_imported"] = True
+    return result
+
+
+def _rotate_workspace_secret(
+    workspace_id: str,
+    authorization: str | None,
+) -> dict[str, Any]:
+    with _store() as connection:
+        for _ in range(5):
+            workspace_secret = _new_recovery_code()
+            try:
+                connection.execute("BEGIN IMMEDIATE")
+                _authorize(connection, workspace_id, authorization)
+                connection.execute(
+                    """
+                    UPDATE workspaces SET recovery_hash = ?, updated_at = ?
+                    WHERE workspace_id = ?
+                    """,
+                    (
+                        _hash_capability(workspace_secret),
+                        _timestamp(),
+                        workspace_id,
+                    ),
+                )
+                _append_audit(connection, workspace_id, "workspace_secret_rotated")
+                connection.execute("COMMIT")
+                return {
+                    "workspace_id": workspace_id,
+                    "workspace_secret": workspace_secret,
+                    "workspace_secret_shown_once": True,
+                    "previous_workspace_secret_revoked": True,
+                    "existing_sessions_revoked": False,
+                }
+            except sqlite3.IntegrityError:
+                if connection.in_transaction:
+                    connection.execute("ROLLBACK")
+            except Exception:
+                if connection.in_transaction:
+                    connection.execute("ROLLBACK")
+                raise
+    raise SkeletonError(503, "workspace_identity_unavailable")
+
+
+async def _read_recovery_file_request(request: Request) -> bytes:
+    media_type = request.headers.get("content-type", "").split(";", 1)[0].lower()
+    if media_type.strip() != RECOVERY_FILE_MEDIA_TYPE:
+        raise SkeletonError(415, "invalid_recovery_file")
+    content_length = request.headers.get("content-length", "").strip()
+    if content_length:
+        try:
+            declared = int(content_length)
+        except ValueError as exc:
+            raise SkeletonError(400, "invalid_content_length") from exc
+        if declared < 0:
+            raise SkeletonError(400, "invalid_content_length")
+        if declared > MAX_RECOVERY_FILE_BYTES:
+            raise SkeletonError(413, "recovery_file_too_large")
+    payload = bytearray()
+    async for chunk in request.stream():
+        payload.extend(chunk)
+        if len(payload) > MAX_RECOVERY_FILE_BYTES:
+            raise SkeletonError(413, "recovery_file_too_large")
+    return bytes(payload)
 
 
 def _get_workspace(workspace_id: str, authorization: str | None) -> dict[str, Any]:
@@ -772,6 +972,15 @@ def walking_skeleton_status() -> dict[str, Any]:
             "verifier": "sha256-of-256-bit-secret",
             "session_exchange": f"{API_PREFIX}/sessions",
         },
+        "recovery_experience": {
+            "file_format": RECOVERY_FILE_FORMAT,
+            "file_version": RECOVERY_FILE_VERSION,
+            "file_media_type": RECOVERY_FILE_MEDIA_TYPE,
+            "max_file_bytes": MAX_RECOVERY_FILE_BYTES,
+            "import": f"{API_PREFIX}/recovery-files/import",
+            "secret_rotation": True,
+            "email_recovery": False,
+        },
         "limits": {
             "max_artifacts": MAX_ARTIFACTS,
             "max_bytes": MAX_ARTIFACT_BYTES,
@@ -820,6 +1029,16 @@ def exchange_workspace_session(
         _raise_http(error)
 
 
+@router.post("/recovery-files/import")
+async def import_recovery_file(request: Request) -> dict[str, Any]:
+    try:
+        _require_enabled()
+        payload = await _read_recovery_file_request(request)
+        return _import_recovery_file(payload)
+    except SkeletonError as error:
+        _raise_http(error)
+
+
 @router.get("/workspaces/{workspace_id}")
 def get_workspace(
     workspace_id: str,
@@ -828,6 +1047,46 @@ def get_workspace(
     try:
         _require_enabled()
         return _get_workspace(workspace_id, authorization)
+    except SkeletonError as error:
+        _raise_http(error)
+
+
+@router.post("/workspaces/{workspace_id}/recovery-file")
+def export_recovery_file(
+    workspace_id: str,
+    request: ExportRecoveryFileRequest,
+    authorization: str | None = Header(default=None),
+) -> Response:
+    try:
+        _require_enabled()
+        payload = _export_recovery_file(
+            workspace_id,
+            authorization,
+            request.workspace_secret,
+        )
+    except SkeletonError as error:
+        _raise_http(error)
+    return Response(
+        content=payload,
+        media_type=RECOVERY_FILE_MEDIA_TYPE,
+        headers={
+            "Cache-Control": "private, no-store",
+            "Pragma": "no-cache",
+            "X-Content-Type-Options": "nosniff",
+            "X-Robots-Tag": "noindex, nofollow, noarchive",
+            "Content-Disposition": 'attachment; filename="kmfa-workspace.kmfa-recovery"',
+        },
+    )
+
+
+@router.post("/workspaces/{workspace_id}/recovery-secret/rotate")
+def rotate_workspace_secret(
+    workspace_id: str,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    try:
+        _require_enabled()
+        return _rotate_workspace_secret(workspace_id, authorization)
     except SkeletonError as error:
         _raise_http(error)
 

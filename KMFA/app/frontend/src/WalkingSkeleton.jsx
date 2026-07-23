@@ -1,12 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react'
 
 const API_BASE = '/public-api/walking-skeleton/v1'
+const RECOVERY_FILE_MEDIA_TYPE = 'application/vnd.kmfa.recovery+json'
+const MAX_RECOVERY_FILE_BYTES = 4096
 
 const ERROR_COPY = {
   walking_skeleton_disabled: '早期骨架当前处于安全回滚状态。已有服务器状态不会因此删除。',
   walking_skeleton_storage_unavailable: '服务器耐久存储暂不可用，未执行本次操作。',
   workspace_not_found: '工作区不存在、会话已过期，或当前会话无权访问。请使用恢复码重新恢复。',
-  recovery_not_found: '恢复码无效。请核对完整恢复码；平台无法通过邮箱代找回。',
+  recovery_not_found: '恢复码或恢复文件无效、已截断或已被轮换撤销。平台无法通过邮箱代找回。',
+  invalid_recovery_file: '文件不是 KMFA 恢复文件；未授予任何访问。',
+  recovery_file_too_large: '恢复文件超过 4 KiB 安全上限；未读取或授予访问。',
   invalid_project_name: '项目名不能为空，也不能包含控制字符。',
   invalid_filename: '文件名无效。请选择不含路径或控制字符的文件。',
   artifact_too_large: '该早期骨架单文件上限为 8 MiB；文件未写入。',
@@ -53,6 +57,17 @@ async function sha256Hex(blob) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 function SkeletonBoundary({ state, retry }) {
   const copy = {
     checking: ['正在确认早期骨架', '公共主页已可用；正在读取服务器功能开关与存储健康状态。'],
@@ -77,6 +92,8 @@ function WalkingSkeleton() {
   const [projectName, setProjectName] = useState('')
   const [recoveryInput, setRecoveryInput] = useState('')
   const [recoveryCode, setRecoveryCode] = useState('')
+  const [recoveryFile, setRecoveryFile] = useState(null)
+  const [recoveryFileKey, setRecoveryFileKey] = useState(0)
   const [session, setSession] = useState(null)
   const [selectedFile, setSelectedFile] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -157,12 +174,51 @@ function WalkingSkeleton() {
 
   const recoverWorkspace = (event) => {
     event.preventDefault()
+    const submittedRecovery = recoveryInput.trim()
+    if (!submittedRecovery) {
+      setError('请输入完整恢复码。')
+      return
+    }
     run(async () => {
       const result = await jsonRequest('/recoveries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recovery_code: recoveryInput.trim() }),
+        body: JSON.stringify({ recovery_code: submittedRecovery }),
       })
+      setSession({
+        workspace: result.workspace,
+        accessToken: result.access_token,
+        expiresAt: result.access_expires_at,
+      })
+      setRecoveryCode(submittedRecovery)
+      setRecoveryInput('')
+      setProjectName(result.workspace.project_name)
+      setMessage('已用恢复码恢复工作区并签发新的短时会话；恢复码未被服务器回传。')
+    })
+  }
+
+  const importRecoveryFile = () => {
+    if (!recoveryFile) {
+      setError('请选择一个 .kmfa-recovery 文件。')
+      return
+    }
+    if (recoveryFile.size > MAX_RECOVERY_FILE_BYTES) {
+      setError('恢复文件超过 4 KiB 安全上限；未开始上传。')
+      return
+    }
+    run(async () => {
+      const response = await fetch(`${API_BASE}/recovery-files/import`, {
+        method: 'POST',
+        cache: 'no-store',
+        credentials: 'omit',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': RECOVERY_FILE_MEDIA_TYPE,
+        },
+        body: recoveryFile,
+      })
+      if (!response.ok) throw await errorFromResponse(response)
+      const result = await response.json()
       setSession({
         workspace: result.workspace,
         accessToken: result.access_token,
@@ -170,8 +226,73 @@ function WalkingSkeleton() {
       })
       setRecoveryCode('')
       setRecoveryInput('')
+      setRecoveryFile(null)
+      setRecoveryFileKey((value) => value + 1)
       setProjectName(result.workspace.project_name)
-      setMessage('已从服务器恢复工作区，并签发新的短时会话。')
+      setMessage('已用恢复文件恢复同一服务器工作区；服务端没有回传文件内的恢复密钥。')
+    })
+  }
+
+  const downloadRecoveryFile = () => {
+    if (!recoveryCode) {
+      setError('当前页面没有恢复码明文。可保留已导入文件，或轮换生成新的恢复材料。')
+      return
+    }
+    run(async () => {
+      const response = await fetch(
+        `${API_BASE}/workspaces/${workspace.workspace_id}/recovery-file`,
+        {
+          method: 'POST',
+          cache: 'no-store',
+          credentials: 'omit',
+          headers: {
+            Accept: RECOVERY_FILE_MEDIA_TYPE,
+            ...bearer,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ workspace_secret: recoveryCode }),
+        },
+      )
+      if (!response.ok) throw await errorFromResponse(response)
+      const mediaType = (response.headers.get('Content-Type') || '').split(';')[0]
+      if (mediaType !== RECOVERY_FILE_MEDIA_TYPE) {
+        throw new Error('服务器返回的恢复文件类型不正确，已停止保存。')
+      }
+      const blob = await response.blob()
+      if (!blob.size || blob.size > MAX_RECOVERY_FILE_BYTES) {
+        throw new Error('服务器返回的恢复文件大小异常，已停止保存。')
+      }
+      saveBlob(blob, 'kmfa-workspace.kmfa-recovery')
+      setMessage('`.kmfa-recovery` 下载已发起。它等同于完整控制权，请离线保存且不要分享。')
+    })
+  }
+
+  const copyRecoveryCode = () => {
+    if (!recoveryCode) return
+    run(async () => {
+      if (!window.navigator.clipboard?.writeText) {
+        throw new Error('当前浏览器不允许安全复制；请手动选择并复制恢复码。')
+      }
+      await window.navigator.clipboard.writeText(recoveryCode)
+      setMessage('恢复码已复制到系统剪贴板。请尽快保存到可信位置并清理不需要的副本。')
+    })
+  }
+
+  const rotateRecoverySecret = () => {
+    const confirmed = window.confirm(
+      '轮换会立即撤销旧恢复码和旧 .kmfa-recovery 文件。当前短时会话仍有效。确认继续？',
+    )
+    if (!confirmed) return
+    run(async () => {
+      const result = await jsonRequest(
+        `/workspaces/${workspace.workspace_id}/recovery-secret/rotate`,
+        {
+          method: 'POST',
+          headers: { ...bearer },
+        },
+      )
+      setRecoveryCode(result.workspace_secret)
+      setMessage('恢复密钥已轮换：旧恢复码与旧文件已失效。请立即复制新码或下载新的恢复文件。')
     })
   }
 
@@ -243,14 +364,7 @@ function WalkingSkeleton() {
       const blob = await response.blob()
       const browserHash = await sha256Hex(blob)
       if (browserHash !== serverHash) throw new Error('浏览器下载字节的 SHA-256 不一致，已停止保存。')
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = artifact.name
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+      saveBlob(blob, artifact.name)
       setMessage(`下载已发起；浏览器与服务器 SHA-256 一致：${browserHash}`)
     })
   }
@@ -259,6 +373,8 @@ function WalkingSkeleton() {
     setSession(null)
     setRecoveryCode('')
     setRecoveryInput('')
+    setRecoveryFile(null)
+    setRecoveryFileKey((value) => value + 1)
     setProjectName('')
     setSelectedFile(null)
     setMode('recover')
@@ -279,8 +395,8 @@ function WalkingSkeleton() {
           <h2 id="walking-title">第一个真实、可恢复的文件旅程</h2>
         </div>
         <p>
-          这是 S03 Walking Skeleton，不是 GA：只验证一个工作区、一个任意类型文件、项目进度、服务器重启恢复与 hash 下载。
-          完整对象存储、备份演练、扫描、反滥用、多文件和明确删除将在 S04–S07 硬化。
+          这是 S03 骨架上的 S04 恢复硬化，不是 GA：验证匿名工作区、恢复文件、密钥轮换、项目进度、服务器重启与 hash 下载。
+          完整对象存储、备份演练、扫描、反滥用、多文件和明确删除仍将在后续阶段完成。
         </p>
       </div>
 
@@ -288,6 +404,12 @@ function WalkingSkeleton() {
         <SkeletonBoundary state={availability} retry={() => setStatusAttempt((value) => value + 1)} />
       ) : (
         <div className="walking-console" data-walking-ready="true">
+          <div className="walking-recovery-warning" role="note" data-recovery-warning="visible">
+            <strong>创建前先准备离线保存恢复材料</strong>
+            <p>
+              恢复码或 `.kmfa-recovery` 文件就是完整控制权。两者都丢失且本页会话结束后，平台无法通过账号、邮箱或客服找回；若材料泄露，请进入工作区后立即轮换。
+            </p>
+          </div>
           {!session ? (
             <div className="walking-entry">
               <div className="walking-mode-switch" role="group" aria-label="工作区进入方式">
@@ -336,7 +458,20 @@ function WalkingSkeleton() {
                     placeholder="kmfa-r1-…"
                   />
                   <button type="submit" disabled={busy}>恢复服务器工作区</button>
-                  <p>恢复材料不进入 URL、localStorage 或第三方登录流程。</p>
+                  <p>或者导入由 KMFA 下载的严格格式恢复文件：</p>
+                  <label htmlFor="walking-recovery-file">恢复文件（.kmfa-recovery）</label>
+                  <input
+                    key={recoveryFileKey}
+                    id="walking-recovery-file"
+                    type="file"
+                    accept=".kmfa-recovery,application/vnd.kmfa.recovery+json"
+                    data-recovery-file-input="true"
+                    onChange={(event) => setRecoveryFile(event.target.files?.[0] || null)}
+                  />
+                  <button type="button" disabled={busy || !recoveryFile} onClick={importRecoveryFile}>
+                    导入恢复文件
+                  </button>
+                  <p>恢复材料只在 POST 正文中处理，不进入 URL、localStorage、Cookie 或第三方登录流程。</p>
                 </form>
               )}
             </div>
@@ -351,13 +486,38 @@ function WalkingSkeleton() {
                 <button type="button" className="walking-quiet" onClick={clearPageSession}>清除本页会话</button>
               </div>
 
-              {recoveryCode && (
-                <div className="walking-recovery" data-recovery-code="visible-once">
-                  <strong>现在保存恢复码</strong>
+              <div className="walking-recovery" data-recovery-management="ready">
+                <strong>{recoveryCode ? '现在保存当前恢复材料' : '恢复文件已验证'}</strong>
+                {recoveryCode ? (
                   <code data-recovery-code-value="true">{recoveryCode}</code>
-                  <p>它等同于当前工作区的恢复能力。本阶段尚未实现 `.kmfa-recovery` 文件、轮换或撤销；不要分享，也不要放进 URL。</p>
+                ) : (
+                  <p>服务端没有回传恢复文件内的密钥。请保留已导入的文件；也可轮换并生成全新的恢复码与文件。</p>
+                )}
+                <p>
+                  恢复材料等同于完整控制权；不要分享、不要放进 URL。轮换后旧恢复码和旧文件会立即失效，但当前短时会话暂不撤销。
+                </p>
+                <div className="walking-recovery-actions">
+                  <button type="button" onClick={copyRecoveryCode} disabled={busy || !recoveryCode}>
+                    复制恢复码
+                  </button>
+                  <button
+                    type="button"
+                    data-recovery-file-download="true"
+                    onClick={downloadRecoveryFile}
+                    disabled={busy || !recoveryCode}
+                  >
+                    下载 .kmfa-recovery
+                  </button>
+                  <button
+                    type="button"
+                    data-recovery-rotate="true"
+                    onClick={rotateRecoverySecret}
+                    disabled={busy}
+                  >
+                    轮换并撤销旧密钥
+                  </button>
                 </div>
-              )}
+              </div>
 
               <div className="walking-grid">
                 <form className="walking-card walking-form" data-walking-save="true" onSubmit={saveWorkspace}>
@@ -436,9 +596,9 @@ function WalkingSkeleton() {
 
       <div className="walking-contract" role="list" aria-label="早期骨架边界">
         <span role="listitem">服务器状态，不用 localStorage</span>
-        <span role="listitem">恢复码服务端只存 hash</span>
+        <span role="listitem">恢复码与文件服务端只存 hash</span>
         <span role="listitem">文件不进入静态公开目录</span>
-        <span role="listitem">Flag 回滚不删已有状态</span>
+        <span role="listitem">轮换撤销旧材料且不删状态</span>
       </div>
     </section>
   )

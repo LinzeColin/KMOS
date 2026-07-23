@@ -117,6 +117,9 @@ a { color: inherit; }
 .walking-state > p:not(.walking-state-label) { max-width: 42rem; margin: 0; color: var(--public-ink-muted); line-height: 1.7; }
 .walking-state button { min-height: 2.8rem; margin-top: 1.4rem; padding: .65rem 1rem; border: 1px solid var(--public-ink); color: white; background: var(--public-ink); cursor: pointer; font-weight: 800; }
 .walking-state-label, .walking-card-code { margin: 0; color: var(--public-accent-dark); font: 800 .66rem/1.3 ui-monospace, monospace; letter-spacing: .11em; }
+.walking-recovery-warning { padding: 1rem 1.25rem; border-bottom: 1px solid var(--public-ink); color: #4f1d15; background: #fff0e8; }
+.walking-recovery-warning strong { display: block; margin-bottom: .35rem; font-size: .78rem; }
+.walking-recovery-warning p { max-width: 72rem; margin: 0; font-size: .72rem; line-height: 1.65; }
 .walking-entry { display: grid; grid-template-columns: minmax(12rem, .5fr) minmax(20rem, 1.5fr); min-height: 24rem; }
 .walking-mode-switch { display: grid; align-content: start; border-right: 1px solid var(--public-ink); }
 .walking-mode-switch button { min-height: 4rem; padding: 1rem 1.25rem; border: 0; border-bottom: 1px solid var(--public-line); background: transparent; text-align: left; cursor: pointer; font-weight: 800; }
@@ -145,6 +148,10 @@ a { color: inherit; }
 .walking-recovery strong { display: block; margin-bottom: .75rem; color: #ff9b7d; font-size: .78rem; }
 .walking-recovery code { display: block; padding: .8rem; color: var(--public-ink); background: white; overflow-wrap: anywhere; font-size: .82rem; }
 .walking-recovery p { margin: .8rem 0 0; color: #d8dcd9; font-size: .72rem; line-height: 1.6; }
+.walking-recovery-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+.walking-recovery-actions button { min-height: 2.7rem; padding: .6rem .8rem; border: 1px solid white; color: white; background: transparent; cursor: pointer; font-size: .72rem; font-weight: 800; }
+.walking-recovery-actions button:hover { color: var(--public-ink); background: white; }
+.walking-recovery-actions button:disabled { cursor: not-allowed; opacity: .45; }
 .walking-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--public-ink); border-left: 1px solid var(--public-ink); }
 .walking-card { min-height: 24rem; padding: 1.25rem; border-right: 1px solid var(--public-ink); border-bottom: 1px solid var(--public-ink); background: white; }
 .walking-card h4 { margin: 2.5rem 0 1rem; font-size: 1.3rem; overflow-wrap: anywhere; }
