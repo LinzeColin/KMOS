@@ -565,7 +565,7 @@ def _slow_upload(
     workspace_id: str,
     index: int,
     barrier: threading.Barrier,
-) -> tuple[int, int]:
+) -> tuple[int, int, str]:
     connection = http.client.HTTPConnection("localhost", port, timeout=30)
     path = f"{BASE_PATH}/workspaces/{workspace_id}/artifact"
     connection.putrequest("PUT", path)
@@ -595,15 +595,17 @@ def _slow_upload(
         pass
     response = connection.getresponse()
     status = response.status
+    reason = response.getheader("X-KMFA-Abuse-Reason", "")
     response.read()
     connection.close()
-    return index, status
+    return index, status, reason
 
 
 def _concurrency_flood(
     *,
     base_url: str,
     port: int,
+    control_db: Path,
     sensitive_values: list[str],
 ) -> dict[str, Any]:
     actors: list[Actor] = []
@@ -618,6 +620,17 @@ def _concurrency_flood(
         )
         actors.append(actor)
         workspaces.append(workspace_id)
+
+    # The preceding upload-flood scenario intentionally consumed seven slots
+    # from the same 10-second global upload bucket. Start the concurrency curve
+    # in a fresh policy window so a fast Linux runner cannot turn the intended
+    # concurrency denials/recovery into a legitimate global-rate denial.
+    window_seconds = 10
+    window_now = time.time()
+    next_window = ((int(window_now) // window_seconds) + 1) * window_seconds
+    window_alignment_seconds = max(0.05, next_window - window_now + 0.05)
+    time.sleep(window_alignment_seconds)
+
     barrier = threading.Barrier(len(actors) + 1)
     with ThreadPoolExecutor(max_workers=len(actors)) as pool:
         futures = [
@@ -648,11 +661,35 @@ def _concurrency_flood(
     assert normal_create.status == 201
     assert root_during_attack.elapsed_ms < 1000
     assert normal_create.elapsed_ms < 1000
-    statuses = {index: status for index, status in results}
+    statuses = {index: status for index, status, _ in results}
+    reasons = {index: reason for index, _, reason in results}
     admitted = [index for index, status in statuses.items() if status == 200]
     blocked = [index for index, status in statuses.items() if status == 429]
     assert len(admitted) == 2, statuses
     assert len(blocked) == 4, statuses
+    assert {reasons[index] for index in blocked} == {"concurrency"}, reasons
+
+    # A successful recovery assertion requires the persistent lease invariant,
+    # not merely completed client futures. Observe that invariant directly
+    # instead of hiding it behind an arbitrary sleep.
+    lease_release_started = time.monotonic()
+    lease_release_deadline = lease_release_started + 5
+    active_leases = -1
+    while time.monotonic() < lease_release_deadline:
+        with sqlite3.connect(control_db) as connection:
+            active_leases = int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM concurrency_leases"
+                ).fetchone()[0]
+            )
+        if active_leases == 0:
+            break
+        time.sleep(0.02)
+    assert active_leases == 0, {
+        "active_leases": active_leases,
+        "parallel_statuses": statuses,
+    }
+    lease_release_wait_ms = (time.monotonic() - lease_release_started) * 1000
 
     recovery_index = blocked[0]
     recovered = actors[recovery_index].request(
@@ -664,14 +701,23 @@ def _concurrency_flood(
             "X-KMFA-Filename": "recovered.bin",
         },
     )
-    assert recovered.status == 200
+    assert recovered.status == 200, {
+        "status": recovered.status,
+        "body": recovered.body.decode("utf-8", errors="replace")[:500],
+        "lease_release_wait_ms": lease_release_wait_ms,
+    }
     root = actors[recovery_index].request("GET", "/")
     assert root.status == 200
     return {
         "parallel_uploads": len(actors),
         "concurrency_budget": 2,
+        "fresh_rate_window_wait_ms": round(
+            window_alignment_seconds * 1000,
+            2,
+        ),
         "admitted": len(admitted),
         "capacity_blocked": len(blocked),
+        "capacity_block_reason": "concurrency",
         "public_root_during_attack": root_during_attack.status,
         "public_root_during_attack_latency_ms": round(
             root_during_attack.elapsed_ms,
@@ -682,6 +728,8 @@ def _concurrency_flood(
             normal_create.elapsed_ms,
             2,
         ),
+        "active_leases_before_recovery": active_leases,
+        "lease_release_wait_ms": round(lease_release_wait_ms, 2),
         "recovered_after_leases_released": recovered.status,
         "public_root_during_recovery": root.status,
         "status": "PASS",
@@ -813,6 +861,12 @@ def main() -> int:
         concurrency = _concurrency_flood(
             base_url=lifecycle.base_url,
             port=args.port,
+            control_db=(
+                args.state_dir
+                / "walking-skeleton"
+                / "abuse-control"
+                / "abuse_control.sqlite3"
+            ),
             sensitive_values=sensitive_values,
         )
         distributed = lifecycle.policy_probe()

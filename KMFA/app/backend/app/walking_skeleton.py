@@ -28,6 +28,7 @@ import re
 import secrets
 import shutil
 import sqlite3
+import threading
 import unicodedata
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -81,6 +82,8 @@ DUMMY_WORKSPACE_VERIFIER = hashlib.sha256(
 SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
 
 router = APIRouter(prefix=API_PREFIX, tags=["public-walking-skeleton"])
+_STORE_INITIALIZATION_LOCK = threading.Lock()
+_INITIALIZED_STORE_PATHS: set[Path] = set()
 
 
 class CreateWorkspaceRequest(BaseModel):
@@ -161,68 +164,82 @@ def _hash_capability(value: str) -> str:
 
 def _open_store() -> sqlite3.Connection:
     _ensure_private_directories()
+    database_path = _db_path().resolve()
     connection = sqlite3.connect(
-        str(_db_path()),
+        str(database_path),
         isolation_level=None,
         timeout=5,
     )
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA foreign_keys=ON")
-    connection.execute("PRAGMA journal_mode=WAL")
-    connection.execute("PRAGMA synchronous=FULL")
-    connection.execute("PRAGMA busy_timeout=5000")
-    connection.executescript(
-        """
-        CREATE TABLE IF NOT EXISTS workspaces (
-          workspace_id TEXT PRIMARY KEY,
-          recovery_hash TEXT NOT NULL UNIQUE,
-          project_name TEXT NOT NULL,
-          progress INTEGER NOT NULL CHECK(progress BETWEEN 0 AND 100),
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS access_tokens (
-          token_hash TEXT PRIMARY KEY,
-          workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id),
-          created_at TEXT NOT NULL,
-          expires_at TEXT NOT NULL
-        );
-        CREATE INDEX IF NOT EXISTS access_tokens_workspace
-          ON access_tokens(workspace_id);
-        CREATE TABLE IF NOT EXISTS artifacts (
-          artifact_id TEXT PRIMARY KEY,
-          workspace_id TEXT NOT NULL UNIQUE REFERENCES workspaces(workspace_id),
-          object_name TEXT NOT NULL UNIQUE,
-          original_name TEXT NOT NULL,
-          reported_media_type TEXT NOT NULL,
-          size_bytes INTEGER NOT NULL CHECK(size_bytes >= 0),
-          sha256 TEXT NOT NULL,
-          created_at TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS audit_events (
-          seq INTEGER PRIMARY KEY AUTOINCREMENT,
-          event_id TEXT NOT NULL UNIQUE,
-          workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id),
-          action TEXT NOT NULL,
-          result_status TEXT NOT NULL,
-          artifact_sha256 TEXT,
-          created_at TEXT NOT NULL
-        );
-        CREATE INDEX IF NOT EXISTS walking_audit_workspace
-          ON audit_events(workspace_id);
-        CREATE TRIGGER IF NOT EXISTS walking_audit_no_update
-          BEFORE UPDATE ON audit_events BEGIN
-            SELECT RAISE(ABORT, 'walking-skeleton audit is append-only');
-          END;
-        CREATE TRIGGER IF NOT EXISTS walking_audit_no_delete
-          BEFORE DELETE ON audit_events BEGIN
-            SELECT RAISE(ABORT, 'walking-skeleton audit is append-only');
-          END;
-        """
-    )
-    connection.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
-    _db_path().chmod(0o600)
-    return connection
+    try:
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA busy_timeout=5000")
+        with _STORE_INITIALIZATION_LOCK:
+            if database_path not in _INITIALIZED_STORE_PATHS:
+                connection.execute("PRAGMA journal_mode=WAL")
+                connection.executescript(
+                    """
+                    CREATE TABLE IF NOT EXISTS workspaces (
+                      workspace_id TEXT PRIMARY KEY,
+                      recovery_hash TEXT NOT NULL UNIQUE,
+                      project_name TEXT NOT NULL,
+                      progress INTEGER NOT NULL CHECK(progress BETWEEN 0 AND 100),
+                      created_at TEXT NOT NULL,
+                      updated_at TEXT NOT NULL
+                    );
+                    CREATE TABLE IF NOT EXISTS access_tokens (
+                      token_hash TEXT PRIMARY KEY,
+                      workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id),
+                      created_at TEXT NOT NULL,
+                      expires_at TEXT NOT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS access_tokens_workspace
+                      ON access_tokens(workspace_id);
+                    CREATE TABLE IF NOT EXISTS artifacts (
+                      artifact_id TEXT PRIMARY KEY,
+                      workspace_id TEXT NOT NULL UNIQUE REFERENCES workspaces(workspace_id),
+                      object_name TEXT NOT NULL UNIQUE,
+                      original_name TEXT NOT NULL,
+                      reported_media_type TEXT NOT NULL,
+                      size_bytes INTEGER NOT NULL CHECK(size_bytes >= 0),
+                      sha256 TEXT NOT NULL,
+                      created_at TEXT NOT NULL
+                    );
+                    CREATE TABLE IF NOT EXISTS audit_events (
+                      seq INTEGER PRIMARY KEY AUTOINCREMENT,
+                      event_id TEXT NOT NULL UNIQUE,
+                      workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id),
+                      action TEXT NOT NULL,
+                      result_status TEXT NOT NULL,
+                      artifact_sha256 TEXT,
+                      created_at TEXT NOT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS walking_audit_workspace
+                      ON audit_events(workspace_id);
+                    CREATE TRIGGER IF NOT EXISTS walking_audit_no_update
+                      BEFORE UPDATE ON audit_events BEGIN
+                        SELECT RAISE(
+                          ABORT,
+                          'walking-skeleton audit is append-only'
+                        );
+                      END;
+                    CREATE TRIGGER IF NOT EXISTS walking_audit_no_delete
+                      BEFORE DELETE ON audit_events BEGIN
+                        SELECT RAISE(
+                          ABORT,
+                          'walking-skeleton audit is append-only'
+                        );
+                      END;
+                    """
+                )
+                connection.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
+                database_path.chmod(0o600)
+                _INITIALIZED_STORE_PATHS.add(database_path)
+        connection.execute("PRAGMA foreign_keys=ON")
+        connection.execute("PRAGMA synchronous=FULL")
+        return connection
+    except BaseException:
+        connection.close()
+        raise
 
 
 @contextmanager

@@ -9,6 +9,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
+from threading import Barrier
 
 import pytest
 from fastapi.testclient import TestClient
@@ -106,15 +107,15 @@ def test_10000_workspace_identities_are_unique_and_never_stored_in_plaintext(
 
 
 def test_concurrent_workspace_creation_preserves_uniqueness(identity_store: Path):
+    cold_start_barrier = Barrier(32)
+
+    def create(index: int):
+        if index < 32:
+            cold_start_barrier.wait()
+        return identity._create_workspace(f"synthetic-concurrent-{index}")
+
     with ThreadPoolExecutor(max_workers=32) as pool:
-        created = list(
-            pool.map(
-                lambda index: identity._create_workspace(
-                    f"synthetic-concurrent-{index}"
-                ),
-                range(256),
-            )
-        )
+        created = list(pool.map(create, range(256)))
 
     workspace_ids = [row["workspace"]["workspace_id"] for row in created]
     workspace_secrets = [row["recovery_code"] for row in created]
