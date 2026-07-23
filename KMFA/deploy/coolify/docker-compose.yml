@@ -60,6 +60,8 @@ services:
       KMFA_PUBLIC_INDEXING_ENABLED: "${KMFA_PUBLIC_INDEXING_ENABLED:-0}"
       # S03/P3.4 早期骨架独立灰度；默认关闭，启用前须确认 app state 卷与恢复/hash Oracle。
       KMFA_WALKING_SKELETON_ENABLED: "${KMFA_WALKING_SKELETON_ENABLED:-0}"
+      # 快速回滚置 paused：只停新上传，不降 schema、不删 DB/对象/卷。
+      KMFA_CONSISTENCY_STATE_MODE: "${KMFA_CONSISTENCY_STATE_MODE:-recoverable-v1}"
       # S05 expand/contract：Stage review 前默认保留 v1.5 SQLite read path。
       KMFA_STRUCTURED_DATABASE_MODE: "${KMFA_STRUCTURED_DATABASE_MODE:-legacy-sqlite}"
       KMFA_STRUCTURED_DATABASE_URL: "${KMFA_STRUCTURED_DATABASE_URL:-}"
@@ -95,7 +97,7 @@ services:
           "CMD",
           "python3",
           "-c",
-          "import urllib.request;from pathlib import Path;from app.object_storage import configured_write_store;from app.structured_store import open_structured_store;p=Path('/var/lib/kmfa/state/walking-skeleton');s=open_structured_store(p/'walking_skeleton.sqlite3');assert s.schema_version()==2;s.close();o=configured_write_store(p);o.ensure_ready();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
+          "import urllib.request;from pathlib import Path;from app.object_storage import configured_write_store;from app.structured_store import open_structured_store;p=Path('/var/lib/kmfa/state/walking-skeleton');s=open_structured_store(p/'walking_skeleton.sqlite3');assert s.schema_version()==3;s.close();o=configured_write_store(p);o.ensure_ready();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
         ]
       interval: 2m
       timeout: 10s

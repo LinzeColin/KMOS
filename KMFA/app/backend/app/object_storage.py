@@ -303,6 +303,30 @@ class FilesystemObjectStore:
         )
         return MaterializedObject(path=candidate, temporary=False)
 
+    def verify_existing(
+        self,
+        *,
+        storage_key: str,
+        expected_size: int,
+        expected_sha256: str,
+        artifact_id: str,
+        artifact_version_id: str,
+    ) -> PutObjectReceipt:
+        """Resolve an ambiguous create without overwriting or deleting bytes."""
+
+        del artifact_id, artifact_version_id
+        self.materialize_verified(
+            storage_key=storage_key,
+            expected_size=expected_size,
+            expected_sha256=expected_sha256,
+        )
+        return PutObjectReceipt(
+            storage_backend=self.storage_backend,
+            storage_key=storage_key,
+            etag=None,
+            provider_version_id=None,
+        )
+
 
 def _build_s3_client(config: S3ObjectStorageConfig):
     return boto3.session.Session().client(
@@ -534,6 +558,46 @@ class S3ObjectStore:
             raise ObjectStorageIntegrityError("object_integrity_failed")
         target.chmod(0o600)
         return MaterializedObject(path=target, temporary=True)
+
+    def verify_existing(
+        self,
+        *,
+        storage_key: str,
+        expected_size: int,
+        expected_sha256: str,
+        artifact_id: str,
+        artifact_version_id: str,
+    ) -> PutObjectReceipt:
+        """Deep-verify a conditional-write conflict or unknown timeout result."""
+
+        self._validate_storage_key(storage_key)
+        _validate_sha256(expected_sha256)
+        _validate_internal_id(artifact_id)
+        _validate_internal_id(artifact_version_id)
+        head = self._head(storage_key)
+        metadata = head.get("Metadata", {})
+        if (
+            int(head.get("ContentLength", -1)) != expected_size
+            or metadata.get("kmfa-sha256") != expected_sha256
+            or metadata.get("kmfa-artifact-id") != artifact_id
+            or metadata.get("kmfa-artifact-version-id")
+            != artifact_version_id
+            or metadata.get("kmfa-versioning") != "immutable-key-v1"
+        ):
+            raise ObjectStorageIntegrityError("object_integrity_failed")
+        materialized = self.materialize_verified(
+            storage_key=storage_key,
+            expected_size=expected_size,
+            expected_sha256=expected_sha256,
+        )
+        if materialized.temporary:
+            _safe_unlink(materialized.path)
+        return PutObjectReceipt(
+            storage_backend=self.storage_backend,
+            storage_key=storage_key,
+            etag=_etag(head.get("ETag")),
+            provider_version_id=head.get("VersionId"),
+        )
 
     def inventory(self) -> list[InventoryObject]:
         """Return a deep, byte-hashed inventory for the configured private prefix."""

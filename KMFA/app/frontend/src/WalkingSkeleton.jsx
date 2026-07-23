@@ -20,6 +20,11 @@ const ERROR_COPY = {
   artifact_unavailable: '文件当前不可读取，服务器没有返回替代或伪造内容。',
   workspace_capacity_reached: '当前匿名灰度容量已满；公共浏览仍可用，已有工作区没有被删除。',
   artifact_capacity_reached: '当前文件存储预算不足；本次文件未写入，已有文件没有被删除。',
+  invalid_idempotency_key: '上传重试标识无效；服务器未写入文件。',
+  idempotency_key_conflict: '同一上传重试标识对应了不同文件或元数据；服务器拒绝混用。',
+  artifact_upload_isolated: '上传进入可审计隔离态；原始对象未被删除，请勿把本次操作视为完成。',
+  consistency_processing_paused: '新上传已按回滚预案暂停；既有项目、恢复材料和文件仍被保留。',
+  consistency_mode_invalid: '一致性运行模式配置无效；服务器已停止接收新上传。',
   workspace_audit_capacity_reached: '该早期工作区已达到审计安全上限；本次变更未执行。',
   secret_in_url_rejected: '请求 URL 或来源页包含恢复材料，服务器已拒绝处理。请只通过受保护的表单正文提交。',
   cross_origin_session_request_rejected: '会话操作不是从 KMFA 同源页面发起，服务器已拒绝处理。',
@@ -126,6 +131,26 @@ async function sha256Hex(blob) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+async function uploadIdempotencyKeyFor(workspaceId, file) {
+  const bodyHash = await sha256Hex(file)
+  const identity = JSON.stringify([
+    workspaceId,
+    file.name,
+    file.type || 'application/octet-stream',
+    file.size,
+    bodyHash,
+  ])
+  const digest = await window.crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(identity),
+  )
+  const hex = Array.from(
+    new Uint8Array(digest),
+    (byte) => byte.toString(16).padStart(2, '0'),
+  ).join('')
+  return `upload_${hex}`
+}
+
 function saveBlob(blob, filename) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -165,6 +190,7 @@ function WalkingSkeleton() {
   const [recoveryFileKey, setRecoveryFileKey] = useState(0)
   const [session, setSession] = useState(null)
   const [selectedFile, setSelectedFile] = useState(null)
+  const [uploadIdempotencyKey, setUploadIdempotencyKey] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -393,6 +419,9 @@ function WalkingSkeleton() {
       return
     }
     run(async () => {
+      const retryKey = uploadIdempotencyKey
+        || await uploadIdempotencyKeyFor(workspace.workspace_id, selectedFile)
+      if (!uploadIdempotencyKey) setUploadIdempotencyKey(retryKey)
       const response = await fetchWithRiskChallenge(`${API_BASE}/workspaces/${workspace.workspace_id}/artifact`, {
         method: 'PUT',
         cache: 'no-store',
@@ -401,6 +430,7 @@ function WalkingSkeleton() {
           Accept: 'application/json',
           'Content-Type': selectedFile.type || 'application/octet-stream',
           'X-KMFA-Filename': encodeURIComponent(selectedFile.name),
+          'Idempotency-Key': retryKey,
         },
         body: selectedFile,
       })
@@ -408,6 +438,7 @@ function WalkingSkeleton() {
       const result = await response.json()
       setSession((current) => ({ ...current, workspace: result }))
       setSelectedFile(null)
+      setUploadIdempotencyKey('')
       form.reset()
       setMessage(`文件已按 attachment-only 模式写入服务器，SHA-256：${result.artifact.sha256}`)
     })
@@ -630,7 +661,11 @@ function WalkingSkeleton() {
                   <input
                     id="walking-file"
                     type="file"
-                    onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] || null
+                      setSelectedFile(file)
+                      setUploadIdempotencyKey('')
+                    }}
                     disabled={Boolean(artifact)}
                   />
                   <p>

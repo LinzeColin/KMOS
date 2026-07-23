@@ -5,14 +5,17 @@ state uses the S05 versioned database adapter (legacy SQLite by default or an
 explicit shared PostgreSQL service). S05/P5.2 adds an opt-in private
 S3-compatible byte store with immutable application-version keys, while
 retaining the v1.5 filesystem adapter as the default and permanent legacy read
-path. P4.1 adds 128-bit workspace identifiers, 256-bit workspace secrets,
+path. S05/P5.3 adds a hashed idempotency key, durable upload intent, fixed
+state transitions, transactional outbox, consumer dedupe receipts and
+converge-or-isolate reconciliation without raw-object deletion. P4.1 adds
+128-bit workspace identifiers, 256-bit workspace secrets,
 irreversible verifiers and one-hour session exchange while accepting existing
 S03 identifiers. P4.2 adds a strict, minimal `.kmfa-recovery` capability file
 plus atomic secret rotation. P4.3 binds newly issued browser sessions to a
 Secure/HttpOnly/SameSite cookie, supports server-side revocation and keeps
 legacy Authorization bearer sessions read-compatible. P4.4 adds explicit
 lifetime resource ceilings alongside the persistent request/concurrency gate.
-S05 onward still owns backup/restore and deletion lifecycle semantics; S06
+S05/P5.4 still owns backup/restore and deletion lifecycle semantics; S06
 owns scanning and scalable multi-file upload semantics.
 
 Raw recovery codes and access capabilities are returned only to their caller;
@@ -33,7 +36,7 @@ import unicodedata
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import unquote
 
 from fastapi import APIRouter, Cookie, Header, HTTPException, Request, Response
@@ -42,6 +45,15 @@ from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
 
 from .anti_abuse import public_policy_contract
+from .consistency_state import (
+    IDEMPOTENCY_KEY_RE,
+    ConsistencyConflictError,
+    ConsistencyRepository,
+    ConsistencyStateError,
+    UploadIntent,
+    idempotency_key_hash,
+    upload_request_fingerprint,
+)
 from .object_storage import (
     LEGACY_STORAGE_BACKEND,
     S3_STORAGE_BACKEND,
@@ -71,6 +83,12 @@ SESSION_COOKIE_NAME = "__Secure-kmfa_session"
 SESSION_COOKIE_PATH = API_PREFIX
 SESSION_COOKIE_SAMESITE = "strict"
 TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
+CONSISTENCY_STATE_MODE_ENV = "KMFA_CONSISTENCY_STATE_MODE"
+CONSISTENCY_ACTIVE_MODE = "recoverable-v1"
+CONSISTENCY_PAUSED_MODE = "paused"
+CONSISTENCY_STATE_MODES = frozenset(
+    {CONSISTENCY_ACTIVE_MODE, CONSISTENCY_PAUSED_MODE}
+)
 MAX_ARTIFACT_BYTES = 8 * 1024 * 1024
 MAX_ARTIFACTS = 1
 MAX_TOTAL_ARTIFACT_BYTES = 512 * 1024 * 1024
@@ -143,6 +161,16 @@ def walking_skeleton_enabled() -> bool:
         os.environ.get("KMFA_WALKING_SKELETON_ENABLED", "0").strip().lower()
         in TRUE_VALUES
     )
+
+
+def consistency_state_mode() -> str:
+    mode = os.environ.get(
+        CONSISTENCY_STATE_MODE_ENV,
+        CONSISTENCY_ACTIVE_MODE,
+    ).strip()
+    if mode not in CONSISTENCY_STATE_MODES:
+        raise SkeletonError(503, "consistency_mode_invalid")
+    return mode
 
 
 def _state_root() -> Path:
@@ -266,6 +294,19 @@ def _new_access_token() -> str:
 
 def _new_artifact_id() -> str:
     return f"artifact_{secrets.token_urlsafe(12)}"
+
+
+def _new_operation_id() -> str:
+    return f"operation_{secrets.token_urlsafe(18)}"
+
+
+def _resolved_idempotency_key(value: str | None) -> str:
+    if value is None:
+        return f"auto_{secrets.token_urlsafe(24)}"
+    normalized = value.strip()
+    if IDEMPOTENCY_KEY_RE.fullmatch(normalized) is None:
+        raise SkeletonError(422, "invalid_idempotency_key")
+    return normalized
 
 
 def _recovery_file_bytes(workspace_id: str, workspace_secret: str) -> bytes:
@@ -957,14 +998,431 @@ def _update_workspace(
         return _workspace_payload(connection, workspace_id)
 
 
+def _staged_file_digests(path: Path) -> tuple[int, str, Any]:
+    if path.is_symlink() or not path.is_file():
+        raise SkeletonError(503, "walking_skeleton_storage_unavailable")
+    sha256_digest = hashlib.sha256()
+    md5_digest = hashlib.md5(usedforsecurity=False)
+    size = 0
+    try:
+        with path.open("rb") as source:
+            for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                size += len(chunk)
+                sha256_digest.update(chunk)
+                md5_digest.update(chunk)
+    except OSError as exc:
+        raise SkeletonError(
+            503, "walking_skeleton_storage_unavailable"
+        ) from exc
+    return size, sha256_digest.hexdigest(), md5_digest
+
+
+def _ensure_staged_upload(
+    request_path: Path,
+    operation: Any,
+) -> Path:
+    staged_name = str(operation["staged_object_name"])
+    if (
+        Path(staged_name).name != staged_name
+        or "/" in staged_name
+        or "\\" in staged_name
+    ):
+        raise SkeletonError(503, "walking_skeleton_storage_unavailable")
+    staged_path = _tmp_dir() / staged_name
+    try:
+        if not staged_path.exists():
+            os.link(request_path, staged_path)
+            staged_path.chmod(0o600)
+            descriptor = os.open(_tmp_dir(), os.O_RDONLY)
+            try:
+                os.fsync(descriptor)
+            finally:
+                os.close(descriptor)
+    except FileExistsError:
+        pass
+    except OSError as exc:
+        raise SkeletonError(
+            503, "walking_skeleton_storage_unavailable"
+        ) from exc
+    actual_size, actual_sha256, _ = _staged_file_digests(staged_path)
+    if (
+        actual_size != int(operation["size_bytes"])
+        or actual_sha256 != str(operation["content_sha256"])
+    ):
+        raise SkeletonError(409, "artifact_upload_isolated")
+    return staged_path
+
+
+def _load_consistency_operation(operation_id: str) -> dict[str, Any]:
+    with _store() as connection:
+        row = ConsistencyRepository(connection).operation(operation_id)
+        if row is None:
+            raise SkeletonError(503, "walking_skeleton_storage_unavailable")
+        return dict(row)
+
+
+def _record_upload_retry(
+    operation_id: str,
+    *,
+    state: str,
+    error_code: str,
+) -> None:
+    with _store() as connection:
+        with connection.transaction():
+            current = ConsistencyRepository(connection).operation(operation_id)
+            if current is None or str(current["state"]) != state:
+                return
+            ConsistencyRepository(connection).record_attempt_failure(
+                operation_id,
+                expected_state=state,
+                error_code=error_code,
+                timestamp=_timestamp(),
+            )
+
+
+def _isolate_upload(
+    operation_id: str,
+    *,
+    expected_state: str,
+    error_code: str,
+) -> None:
+    with _store() as connection:
+        with connection.transaction():
+            repository = ConsistencyRepository(connection)
+            current = repository.operation(operation_id)
+            if current is None:
+                raise SkeletonError(503, "walking_skeleton_storage_unavailable")
+            state = str(current["state"])
+            if state == "converged":
+                raise SkeletonError(503, "walking_skeleton_storage_unavailable")
+            if state not in {expected_state, "isolated"}:
+                # Another reconciler advanced the operation after the caller's
+                # observation. Its newer state is authoritative; do not apply a
+                # stale isolation decision.
+                return
+            repository.quarantine_object(
+                operation_id=operation_id,
+                storage_backend=str(current["storage_backend"]),
+                storage_key=str(current["storage_key"]),
+                reason_code=error_code,
+                timestamp=_timestamp(),
+            )
+            if state != "isolated":
+                repository.isolate(
+                    operation_id,
+                    expected_state=state,
+                    error_code=error_code,
+                    timestamp=_timestamp(),
+                )
+
+
+def _resume_upload_operation(
+    operation_id: str,
+    object_store: Any,
+    *,
+    fault_hook: Callable[[str], None] | None = None,
+) -> dict[str, Any]:
+    def fault(point: str) -> None:
+        if fault_hook is not None:
+            fault_hook(point)
+
+    for _ in range(8):
+        operation = _load_consistency_operation(operation_id)
+        state = str(operation["state"])
+        if state == "isolated":
+            raise SkeletonError(409, "artifact_upload_isolated")
+        if state == "converged":
+            with _store() as connection:
+                payload = _workspace_payload(
+                    connection,
+                    str(operation["workspace_id"]),
+                )
+            if payload["artifact"] is None:
+                raise SkeletonError(503, "walking_skeleton_storage_unavailable")
+            return payload
+
+        if state == "intent_recorded":
+            with _store() as connection:
+                with connection.transaction():
+                    ConsistencyRepository(connection).transition(
+                        operation_id,
+                        expected_state="intent_recorded",
+                        to_state="effect_pending",
+                        transition_code="object_write_started",
+                        timestamp=_timestamp(),
+                    )
+            fault("effect_pending")
+            continue
+
+        if state == "effect_pending":
+            staged_name = str(operation["staged_object_name"])
+            staged_path = _tmp_dir() / staged_name
+            try:
+                operation_backend = str(operation["storage_backend"])
+                if (
+                    object_store is None
+                    or getattr(object_store, "storage_backend", None)
+                    != operation_backend
+                ):
+                    object_store = object_store_for_backend(
+                        _state_root(),
+                        operation_backend,
+                    )
+                    object_store.ensure_ready()
+                if staged_path.is_file() and not staged_path.is_symlink():
+                    actual_size, actual_sha256, md5_digest = (
+                        _staged_file_digests(staged_path)
+                    )
+                    if (
+                        actual_size != int(operation["size_bytes"])
+                        or actual_sha256 != str(operation["content_sha256"])
+                    ):
+                        raise ObjectStorageIntegrityError(
+                            "object_integrity_failed"
+                        )
+                    try:
+                        object_store.put_file(
+                            staged_path,
+                            storage_key=str(operation["storage_key"]),
+                            size_bytes=int(operation["size_bytes"]),
+                            sha256=str(operation["content_sha256"]),
+                            content_md5=content_md5_base64(md5_digest),
+                            artifact_id=str(operation["artifact_id"]),
+                            artifact_version_id=str(
+                                operation["artifact_version_id"]
+                            ),
+                        )
+                    except ObjectStorageConflictError:
+                        object_store.verify_existing(
+                            storage_key=str(operation["storage_key"]),
+                            expected_size=int(operation["size_bytes"]),
+                            expected_sha256=str(operation["content_sha256"]),
+                            artifact_id=str(operation["artifact_id"]),
+                            artifact_version_id=str(
+                                operation["artifact_version_id"]
+                            ),
+                        )
+                    except ObjectStorageUnavailableError:
+                        object_store.verify_existing(
+                            storage_key=str(operation["storage_key"]),
+                            expected_size=int(operation["size_bytes"]),
+                            expected_sha256=str(operation["content_sha256"]),
+                            artifact_id=str(operation["artifact_id"]),
+                            artifact_version_id=str(
+                                operation["artifact_version_id"]
+                            ),
+                        )
+                else:
+                    object_store.verify_existing(
+                        storage_key=str(operation["storage_key"]),
+                        expected_size=int(operation["size_bytes"]),
+                        expected_sha256=str(operation["content_sha256"]),
+                        artifact_id=str(operation["artifact_id"]),
+                        artifact_version_id=str(
+                            operation["artifact_version_id"]
+                        ),
+                    )
+            except (
+                ObjectStorageConfigurationError,
+                ObjectStorageMissingError,
+                ObjectStorageUnavailableError,
+                OSError,
+            ) as exc:
+                _record_upload_retry(
+                    operation_id,
+                    state="effect_pending",
+                    error_code="object_write_retryable",
+                )
+                raise SkeletonError(
+                    503, "walking_skeleton_storage_unavailable"
+                ) from exc
+            except (ObjectStorageConflictError, ObjectStorageIntegrityError) as exc:
+                _isolate_upload(
+                    operation_id,
+                    expected_state="effect_pending",
+                    error_code="object_identity_mismatch",
+                )
+                raise SkeletonError(409, "artifact_upload_isolated") from exc
+
+            fault("primary_effect_applied")
+            with _store() as connection:
+                with connection.transaction():
+                    ConsistencyRepository(connection).transition(
+                        operation_id,
+                        expected_state="effect_pending",
+                        to_state="effect_applied",
+                        transition_code="object_write_verified",
+                        timestamp=_timestamp(),
+                        increment_attempt=True,
+                    )
+            fault("effect_applied")
+            try:
+                staged_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            continue
+
+        if state == "effect_applied":
+            # The durable state proves the object was verified. A crash between
+            # that commit and normal staging cleanup may leave only a redundant
+            # local hardlink, which is now safe to remove.
+            try:
+                (_tmp_dir() / str(operation["staged_object_name"])).unlink(
+                    missing_ok=True
+                )
+            except OSError:
+                pass
+            with _store() as connection:
+                with connection.transaction():
+                    ConsistencyRepository(connection).transition(
+                        operation_id,
+                        expected_state="effect_applied",
+                        to_state="commit_pending",
+                        transition_code="database_commit_started",
+                        timestamp=_timestamp(),
+                    )
+            fault("commit_pending")
+            continue
+
+        if state == "commit_pending":
+            projection_conflict = False
+            try:
+                with _store() as connection:
+                    try:
+                        with connection.transaction():
+                            consistency = ConsistencyRepository(connection)
+                            repository = StructuredRepository(connection)
+                            operation = consistency.operation(operation_id)
+                            if (
+                                operation is None
+                                or str(operation["state"]) != "commit_pending"
+                            ):
+                                continue
+                            compatibility = connection.execute(
+                                """
+                                SELECT artifact_id
+                                FROM artifacts
+                                WHERE artifact_id = ?
+                                """,
+                                (operation["artifact_id"],),
+                            ).fetchone()
+                            if compatibility is None:
+                                used_bytes = int(
+                                    connection.execute(
+                                        """
+                                        SELECT COALESCE(SUM(size_bytes), 0)
+                                          AS total_bytes
+                                        FROM artifacts
+                                        """
+                                    ).fetchone()["total_bytes"]
+                                )
+                                if (
+                                    used_bytes + int(operation["size_bytes"])
+                                    > MAX_TOTAL_ARTIFACT_BYTES
+                                ):
+                                    raise SkeletonError(
+                                        429, "artifact_capacity_reached"
+                                    )
+                            created_at = str(operation["created_at"])
+                            repository.ensure_uploaded_artifact(
+                                workspace_id=str(operation["workspace_id"]),
+                                artifact_id=str(operation["artifact_id"]),
+                                version_number=1,
+                                storage_backend=str(operation["storage_backend"]),
+                                storage_key=str(operation["storage_key"]),
+                                original_name=str(operation["original_name"]),
+                                reported_media_type=str(
+                                    operation["reported_media_type"]
+                                ),
+                                size_bytes=int(operation["size_bytes"]),
+                                sha256=str(operation["content_sha256"]),
+                                created_at=created_at,
+                            )
+                            connection.execute(
+                                """
+                                UPDATE workspaces
+                                SET updated_at = ?
+                                WHERE workspace_id = ?
+                                """,
+                                (created_at, operation["workspace_id"]),
+                            )
+                            _append_audit(
+                                connection,
+                                str(operation["workspace_id"]),
+                                "artifact_uploaded",
+                                artifact_sha256=str(
+                                    operation["content_sha256"]
+                                ),
+                            )
+                            # This durable process request is not a claim that a
+                            # business processor already exists or has run.
+                            consistency.ensure_outbox(
+                                operation_id=operation_id,
+                                effect_kind="process",
+                                timestamp=_timestamp(),
+                            )
+                            consistency.transition(
+                                operation_id,
+                                expected_state="commit_pending",
+                                to_state="outbox_committed",
+                                transition_code="database_and_outbox_committed",
+                                timestamp=_timestamp(),
+                            )
+                    except StructuredStoreIntegrityError:
+                        projection_conflict = True
+            except SkeletonError as exc:
+                if exc.code in {
+                    "artifact_capacity_reached",
+                    "workspace_audit_capacity_reached",
+                }:
+                    _isolate_upload(
+                        operation_id,
+                        expected_state="commit_pending",
+                        error_code="database_capacity_isolated",
+                    )
+                raise
+            if projection_conflict:
+                _isolate_upload(
+                    operation_id,
+                    expected_state="commit_pending",
+                    error_code="database_projection_conflict",
+                )
+                raise SkeletonError(409, "artifact_upload_isolated")
+            fault("outbox_committed")
+            continue
+
+        if state == "outbox_committed":
+            with _store() as connection:
+                with connection.transaction():
+                    ConsistencyRepository(connection).transition(
+                        operation_id,
+                        expected_state="outbox_committed",
+                        to_state="converged",
+                        transition_code="upload_converged",
+                        timestamp=_timestamp(),
+                    )
+            fault("converged")
+            continue
+        raise SkeletonError(503, "walking_skeleton_storage_unavailable")
+    raise SkeletonError(503, "walking_skeleton_storage_unavailable")
+
+
 async def _store_artifact(
     workspace_id: str,
     authorization: str | None,
     session_cookie: str | None,
     filename_header: str | None,
+    idempotency_key_header: str | None,
     request: Request,
 ) -> dict[str, Any]:
+    if consistency_state_mode() == CONSISTENCY_PAUSED_MODE:
+        raise SkeletonError(503, "consistency_processing_paused")
     filename = _clean_filename(filename_header)
+    idempotency_key = _resolved_idempotency_key(idempotency_key_header)
+    try:
+        key_hash = idempotency_key_hash(idempotency_key)
+    except ConsistencyStateError as exc:
+        raise SkeletonError(422, "invalid_idempotency_key") from exc
     content_length = request.headers.get("content-length", "").strip()
     declared_length: int | None = None
     if content_length:
@@ -979,23 +1437,36 @@ async def _store_artifact(
 
     with _store() as connection:
         _authorize(connection, workspace_id, authorization, session_cookie)
-        if connection.execute(
-            "SELECT 1 FROM artifacts WHERE workspace_id = ?", (workspace_id,)
-        ).fetchone():
-            raise SkeletonError(409, "artifact_limit_reached")
-        used_bytes = int(
-            connection.execute(
-                """
-                SELECT COALESCE(SUM(size_bytes), 0) AS total_bytes
-                FROM artifacts
-                """
-            ).fetchone()["total_bytes"]
+        existing_operation = ConsistencyRepository(
+            connection
+        ).operation_for_idempotency(
+            workspace_id=workspace_id,
+            operation_kind="upload",
+            idempotency_key_hash_value=key_hash,
         )
-        remaining_bytes = MAX_TOTAL_ARTIFACT_BYTES - used_bytes
-        if remaining_bytes <= 0:
-            raise SkeletonError(429, "artifact_capacity_reached")
-        if declared_length is not None and declared_length > remaining_bytes:
-            raise SkeletonError(429, "artifact_capacity_reached")
+        if (
+            connection.execute(
+                "SELECT 1 FROM artifacts WHERE workspace_id = ?",
+                (workspace_id,),
+            ).fetchone()
+            and existing_operation is None
+        ):
+            raise SkeletonError(409, "artifact_limit_reached")
+        if existing_operation is None:
+            used_bytes = int(
+                connection.execute(
+                    """
+                    SELECT COALESCE(SUM(size_bytes), 0) AS total_bytes
+                    FROM artifacts
+                    """
+                ).fetchone()["total_bytes"]
+            )
+            remaining_bytes = MAX_TOTAL_ARTIFACT_BYTES - used_bytes
+            if remaining_bytes <= 0:
+                raise SkeletonError(429, "artifact_capacity_reached")
+            if declared_length is not None and declared_length > remaining_bytes:
+                raise SkeletonError(429, "artifact_capacity_reached")
+
     try:
         free_bytes = shutil.disk_usage(_state_root()).free
     except OSError as exc:
@@ -1016,14 +1487,18 @@ async def _store_artifact(
     ) as exc:
         raise SkeletonError(503, "walking_skeleton_storage_unavailable") from exc
 
+    operation_id = _new_operation_id()
     artifact_id = _new_artifact_id()
     version_number = 1
     version_id = artifact_version_id(artifact_id, version_number)
-    temp_path = _tmp_dir() / f"upload-{secrets.token_urlsafe(24)}.part"
+    request_path = _tmp_dir() / f"request-{secrets.token_urlsafe(24)}.part"
     sha256_digest = hashlib.sha256()
-    md5_digest = hashlib.md5(usedforsecurity=False)
     size = 0
-    descriptor = os.open(temp_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    descriptor = os.open(
+        request_path,
+        os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+        0o600,
+    )
     try:
         with os.fdopen(descriptor, "wb") as output:
             async for chunk in request.stream():
@@ -1033,11 +1508,18 @@ async def _store_artifact(
                 if size > MAX_ARTIFACT_BYTES:
                     raise SkeletonError(413, "artifact_too_large")
                 sha256_digest.update(chunk)
-                md5_digest.update(chunk)
                 output.write(chunk)
             output.flush()
             os.fsync(output.fileno())
         sha256 = sha256_digest.hexdigest()
+        media_type = _clean_media_type(request.headers.get("content-type"))
+        fingerprint = upload_request_fingerprint(
+            workspace_id=workspace_id,
+            original_name=filename,
+            reported_media_type=media_type,
+            size_bytes=size,
+            content_sha256=sha256,
+        )
         storage_key = object_store.build_storage_key(
             workspace_id=workspace_id,
             artifact_id=artifact_id,
@@ -1045,93 +1527,64 @@ async def _store_artifact(
             version_number=version_number,
             sha256=sha256,
         )
-        try:
-            stored = object_store.put_file(
-                temp_path,
-                storage_key=storage_key,
-                size_bytes=size,
-                sha256=sha256,
-                content_md5=content_md5_base64(md5_digest),
-                artifact_id=artifact_id,
-                artifact_version_id=version_id,
-            )
-        except (
-            ObjectStorageConfigurationError,
-            ObjectStorageConflictError,
-            ObjectStorageIntegrityError,
-            ObjectStorageUnavailableError,
-        ) as exc:
-            raise SkeletonError(
-                503, "walking_skeleton_storage_unavailable"
-            ) from exc
-
+        intent = UploadIntent(
+            workspace_id=workspace_id,
+            idempotency_key=idempotency_key,
+            request_fingerprint=fingerprint,
+            artifact_id=artifact_id,
+            artifact_version_id=version_id,
+            storage_backend=object_store.storage_backend,
+            storage_key=storage_key,
+            staged_object_name=f"workflow-{operation_id}.part",
+            original_name=filename,
+            reported_media_type=media_type,
+            size_bytes=size,
+            content_sha256=sha256,
+        )
         with _store() as connection:
-            _authorize(connection, workspace_id, authorization, session_cookie)
-            connection.execute("BEGIN IMMEDIATE")
             try:
-                used_bytes = int(
-                    connection.execute(
-                        """
-                        SELECT COALESCE(SUM(size_bytes), 0) AS total_bytes
-                        FROM artifacts
-                        """
-                    ).fetchone()["total_bytes"]
-                )
-                if used_bytes + size > MAX_TOTAL_ARTIFACT_BYTES:
-                    raise SkeletonError(429, "artifact_capacity_reached")
-                now = _timestamp()
-                media_type = _clean_media_type(request.headers.get("content-type"))
-                connection.execute(
-                    """
-                    INSERT INTO artifacts(
-                      artifact_id, workspace_id, object_name, original_name,
-                      reported_media_type, size_bytes, sha256, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        artifact_id,
-                        workspace_id,
-                        stored.storage_key,
-                        filename,
-                        media_type,
-                        size,
-                        sha256,
-                        now,
-                    ),
-                )
-                StructuredRepository(connection).register_artifact_version(
-                    workspace_id=workspace_id,
-                    artifact_id=artifact_id,
-                    version_number=version_number,
-                    storage_backend=stored.storage_backend,
-                    storage_key=stored.storage_key,
-                    original_name=filename,
-                    reported_media_type=media_type,
-                    size_bytes=size,
-                    sha256=sha256,
-                    created_at=now,
-                )
-                connection.execute(
-                    "UPDATE workspaces SET updated_at = ? WHERE workspace_id = ?",
-                    (now, workspace_id),
-                )
-                _append_audit(
-                    connection,
-                    workspace_id,
-                    "artifact_uploaded",
-                    artifact_sha256=sha256,
-                )
-                payload = _workspace_payload(connection, workspace_id)
-                connection.execute("COMMIT")
-            except StructuredStoreIntegrityError as exc:
-                connection.execute("ROLLBACK")
-                raise SkeletonError(409, "artifact_limit_reached") from exc
-            except Exception:
-                connection.execute("ROLLBACK")
+                with connection.transaction():
+                    identity = ConsistencyRepository(
+                        connection
+                    ).create_or_load_upload(
+                        intent,
+                        operation_id=operation_id,
+                        timestamp=_timestamp(),
+                    )
+                    operation = ConsistencyRepository(connection).operation(
+                        identity.operation_id
+                    )
+                    if operation is None:
+                        raise SkeletonError(
+                            503, "walking_skeleton_storage_unavailable"
+                        )
+                    operation = dict(operation)
+            except ConsistencyConflictError as exc:
+                raise SkeletonError(409, "idempotency_key_conflict") from exc
+        if str(operation["state"]) in {"intent_recorded", "effect_pending"}:
+            try:
+                _ensure_staged_upload(request_path, operation)
+            except SkeletonError as exc:
+                if exc.code == "artifact_upload_isolated":
+                    _isolate_upload(
+                        identity.operation_id,
+                        expected_state=str(operation["state"]),
+                        error_code="staged_object_mismatch",
+                    )
                 raise
-            return payload
+        # Once the durable intent either owns a verified staging hardlink or
+        # has advanced beyond object verification, the random request name is
+        # redundant. Remove it before any injected/process crash can strand an
+        # untracked full-file copy.
+        request_path.unlink(missing_ok=True)
+        descriptor = os.open(_tmp_dir(), os.O_RDONLY)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+        return _resume_upload_operation(identity.operation_id, object_store)
     finally:
-        temp_path.unlink(missing_ok=True)
+        request_path.unlink(missing_ok=True)
 
 
 def _audit_artifact_download(
@@ -1253,6 +1706,7 @@ def walking_skeleton_status() -> dict[str, Any]:
             "stage_status": "early-skeleton-not-ga",
         }
     try:
+        consistency_mode = consistency_state_mode()
         with _store() as connection:
             schema_version = connection.schema_version()
             structured_store = connection.backend_name
@@ -1302,6 +1756,19 @@ def walking_skeleton_status() -> dict[str, Any]:
             "s3_dual_read_configured": s3_dual_read_configured(),
             "inventory_reconciliation": object_store.storage_backend
             == S3_STORAGE_BACKEND,
+        },
+        "consistency_state": {
+            "schema": "recoverable-state-v1",
+            "mode": consistency_mode,
+            "new_uploads_paused": consistency_mode == CONSISTENCY_PAUSED_MODE,
+            "upload_path": "wired",
+            "operation_kinds": ["upload", "process", "index", "export"],
+            "idempotency_header": "Idempotency-Key",
+            "idempotency_persistence": "sha256-only",
+            "outbox_delivery": "at-least-once-idempotent-consumer-required",
+            "reconciliation": "converge-or-isolate",
+            "raw_object_compensation_delete": False,
+            "business_adapters": "stage-owned-not-claimed-by-p5.3",
         },
         "browser_storage": False,
         "recovery_capability": "high-entropy-server-hashed",
@@ -1364,6 +1831,7 @@ def walking_skeleton_status() -> dict[str, Any]:
                 "backup-restore-drill",
                 "malware-controls",
                 "multi-file-lifecycle-and-explicit-deletion",
+                "process-index-export-business-adapters",
             ]
         ),
     }
@@ -1554,6 +2022,10 @@ async def upload_artifact(
     request: Request,
     authorization: str | None = Header(default=None),
     x_kmfa_filename: str | None = Header(default=None),
+    idempotency_key: str | None = Header(
+        default=None,
+        alias="Idempotency-Key",
+    ),
     session_cookie: str | None = Cookie(
         default=None,
         alias=SESSION_COOKIE_NAME,
@@ -1566,6 +2038,7 @@ async def upload_artifact(
             authorization,
             session_cookie,
             x_kmfa_filename,
+            idempotency_key,
             request,
         )
     except SkeletonError as error:

@@ -93,6 +93,16 @@ jobs:
             --out-dir object-storage-e2e \
             --prefix kmfa-p52-ci
 
+      - name: 跑一致性状态机（崩溃 / 超时 / 重复 / 部分成功 / 隔离）
+        run: |
+          set -euo pipefail
+          p53_state=$(mktemp -d /tmp/kmfa-p53-state.XXXXXX)
+          python KMFA/app/e2e/consistency_state_flow.py \
+            --image kmfa-app:e2e \
+            --state-dir "$p53_state" \
+            --out-dir consistency-state-e2e \
+            --prefix kmfa-p53-ci
+
       - name: 装 Playwright
         run: |
           set -euo pipefail
@@ -172,6 +182,7 @@ jobs:
             abuse-control-e2e/
             structured-database-e2e/
             object-storage-e2e/
+            consistency-state-e2e/
 
       - name: 收容器
         if: always()
@@ -193,3 +204,8 @@ jobs:
           docker volume rm kmfa-p52-ci-pgdata || true
           docker volume rm kmfa-p52-ci-objectdata || true
           docker network rm kmfa-p52-ci-net || true
+          docker rm -f kmfa-p53-ci-pg || true
+          docker rm -f kmfa-p53-ci-object || true
+          docker volume rm kmfa-p53-ci-pgdata || true
+          docker volume rm kmfa-p53-ci-objectdata || true
+          docker network rm kmfa-p53-ci-net || true

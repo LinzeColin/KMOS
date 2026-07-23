@@ -17,7 +17,9 @@ SHA-256。恢复码与会话 capability 在服务端只存 hash；S05 的版本�
 继续读取 `/var/lib/kmfa/state/walking-skeleton/walking_skeleton.sqlite3`，也可在显式
 `postgresql-primary` 模式连接共享 PostgreSQL。文件字节默认继续写
 `kmfa-app-state` 的私有对象区；P5.2 也可显式切到私有 S3-compatible adapter。无论新写 backend
-为何，v1.5 filesystem 对象始终保留 read path。Flag 置 `0` 会关闭骨架创建、恢复、读写和下载入口但
+为何，v1.5 filesystem 对象始终保留 read path。P5.3 上传还接受 `Idempotency-Key`，浏览器按
+workspace + 文件名/type/size/content hash 生成稳定值，服务端只持久化其 SHA-256；对象、DB 与
+outbox 的部分成功会续跑或显式隔离，不以删除原始对象补偿。Flag 置 `0` 会关闭骨架创建、恢复、读写和下载入口但
 不删除任一存储；显式会话撤销仍可用，避免回滚期间把浏览器凭据留在服务端。
 
 S04/P4.1-P4.4 起，新 workspace ID 使用 128-bit CSPRNG，workspace secret 与一小时 access token 均使用
@@ -107,7 +109,32 @@ python KMFA/app/e2e/object_storage_flow.py \
 `KMFA_S3_BUCKET=kmfa-private-artifacts`、`KMFA_S3_PREFIX=kmfa/private/v1`。生产 R2 endpoint 必须
 HTTPS，`KMFA_S3_ALLOW_INSECURE_LOCAL=1` 只接受 loopback/`object-store` fixture。
 
-这仍不是 GA 或“永久保存”证明：P5.3 可恢复状态机/明确删除、P5.4 数据库与对象备份恢复、S06
+S05/P5.3 把 schema expand 到 v3：`consistency_operations` 保存 hashed idempotency 与
+upload/process/index/export 的固定状态，`consistency_outbox` 使用 lease + retry，消费者必须以
+`dedupe_key` 原子去重并回写稳定 receipt；append-only trace 和 `object_quarantine` 让未知结果能
+续跑或隔离。真实 upload 已接入 staging → object verify → DB+outbox 原子提交 → converged 链；
+process/index/export 的通用 adapter 合同已通过 synthetic Oracle，但业务处理器、搜索索引和导出器
+仍由各自后续 Stage 接线，状态页不会伪报已运行。可执行 upload reconciliation：
+
+```bash
+python -m app.consistency_worker --limit 100 --isolate-after-attempts 5
+```
+
+同一候选镜像的 PostgreSQL + 私有 MinIO + 外部 synthetic effect sink 故障矩阵：
+
+```bash
+python KMFA/app/e2e/consistency_state_flow.py \
+  --image kmfa-app:e2e \
+  --state-dir "$(mktemp -d /tmp/kmfa-p53-state.XXXXXX)" \
+  --out-dir consistency-state-e2e \
+  --prefix kmfa-p53-local
+```
+
+快速回滚把 `KMFA_CONSISTENCY_STATE_MODE=paused`：只拒绝新上传，既有项目、恢复、读取、下载及
+reconciliation 保持可用；恢复写入时重新置 `recoverable-v1`。v3 是 expand-only/forward-fix，
+旧二进制不能通过降 schema 回滚；禁止 destructive downgrade、删 outbox/trace、删对象或删卷。
+
+这仍不是 GA 或“永久保存”证明：P5.4 数据库/对象备份恢复、保留与明确删除，S06
 恶意文件扫描与多文件/大文件上传仍未完成。P5.2 只证明对象层、私有策略、版本/checksum 与
 inventory reconciliation；禁止把 MinIO named volume replacement 宣传为备份恢复或长期 RPO/RTO
 已通过。快速回滚只把新写 mode 恢复 `legacy-filesystem`，保留 S3 配置供已写版本双读，并保留

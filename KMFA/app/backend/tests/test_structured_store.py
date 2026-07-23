@@ -56,7 +56,7 @@ def _fixture(workspace_id: str, *, score: int = 88) -> AcceptanceFixture:
     )
 
 
-def test_default_sqlite_migrates_to_version_two_with_required_tables(
+def test_default_sqlite_migrates_to_version_three_with_required_tables(
     sqlite_state: Path,
 ):
     connection = skeleton._open_store()
@@ -67,13 +67,18 @@ def test_default_sqlite_migrates_to_version_two_with_required_tables(
                 "SELECT name FROM sqlite_master WHERE type = 'table'"
             ).fetchall()
         }
-        assert connection.schema_version() == SCHEMA_VERSION == 2
+        assert connection.schema_version() == SCHEMA_VERSION == 3
         assert {
             "projects",
             "project_metrics",
             "financial_records",
             "artifact_versions",
             "workspace_tasks",
+            "consistency_operations",
+            "consistency_outbox",
+            "consistency_effect_receipts",
+            "consistency_trace",
+            "object_quarantine",
             "schema_migrations",
         } <= tables
         migrations = connection.execute(
@@ -89,6 +94,11 @@ def test_default_sqlite_migrates_to_version_two_with_required_tables(
             {
                 "version": 2,
                 "name": "0002_structured_data.sql",
+                "digest_length": 64,
+            },
+            {
+                "version": 3,
+                "name": "0003_consistency_state.sql",
                 "digest_length": 64,
             },
         ]
@@ -151,7 +161,7 @@ def test_legacy_v1_database_is_expand_migrated_and_backfilled(
         repository = StructuredRepository(connection)
         projection = repository.workspace_projection("ws_" + "a" * 22)
         artifact = repository.latest_artifact_version("ws_" + "a" * 22)
-        assert connection.schema_version() == 2
+        assert connection.schema_version() == SCHEMA_VERSION == 3
         assert projection["project_name"] == "Legacy synthetic project"
         assert projection["progress"] == 42
         assert projection["score"] is None

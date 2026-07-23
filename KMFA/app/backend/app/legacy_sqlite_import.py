@@ -117,7 +117,76 @@ _STRUCTURED_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "updated_at",
     ),
 }
-_TABLE_COLUMNS = _CORE_TABLE_COLUMNS | _STRUCTURED_TABLE_COLUMNS
+_CONSISTENCY_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
+    "consistency_operations": (
+        "operation_id",
+        "workspace_id",
+        "operation_kind",
+        "idempotency_key_hash",
+        "request_fingerprint",
+        "artifact_id",
+        "artifact_version_id",
+        "storage_backend",
+        "storage_key",
+        "staged_object_name",
+        "original_name",
+        "reported_media_type",
+        "size_bytes",
+        "content_sha256",
+        "state",
+        "attempt_count",
+        "next_attempt_at",
+        "last_error_code",
+        "row_version",
+        "created_at",
+        "updated_at",
+    ),
+    "consistency_outbox": (
+        "outbox_event_id",
+        "operation_id",
+        "effect_kind",
+        "dedupe_key",
+        "state",
+        "attempt_count",
+        "available_at",
+        "lease_until",
+        "last_error_code",
+        "created_at",
+        "updated_at",
+    ),
+    "consistency_effect_receipts": (
+        "dedupe_key",
+        "operation_id",
+        "effect_kind",
+        "receipt_hash",
+        "applied_at",
+    ),
+    "consistency_trace": (
+        "trace_event_id",
+        "operation_id",
+        "from_state",
+        "to_state",
+        "transition_code",
+        "error_code",
+        "created_at",
+    ),
+    "object_quarantine": (
+        "quarantine_id",
+        "operation_id",
+        "storage_backend",
+        "storage_key",
+        "object_ref",
+        "reason_code",
+        "state",
+        "first_seen_at",
+        "last_seen_at",
+    ),
+}
+_TABLE_COLUMNS = (
+    _CORE_TABLE_COLUMNS
+    | _STRUCTURED_TABLE_COLUMNS
+    | _CONSISTENCY_TABLE_COLUMNS
+)
 _PRIMARY_KEYS = {
     "workspaces": "workspace_id",
     "access_tokens": "token_hash",
@@ -128,6 +197,11 @@ _PRIMARY_KEYS = {
     "financial_records": "financial_record_id",
     "artifact_versions": "artifact_version_id",
     "workspace_tasks": "task_id",
+    "consistency_operations": "operation_id",
+    "consistency_outbox": "outbox_event_id",
+    "consistency_effect_receipts": "dedupe_key",
+    "consistency_trace": "trace_event_id",
+    "object_quarantine": "quarantine_id",
 }
 
 
@@ -171,15 +245,26 @@ def read_legacy_snapshot(source_path: Path) -> dict[str, list[dict[str, Any]]]:
             _STRUCTURED_TABLE_COLUMNS
         ):
             raise LegacyImportError("legacy SQLite structured schema is partial")
+        present_consistency = set(_CONSISTENCY_TABLE_COLUMNS) & available
+        if present_consistency and present_consistency != set(
+            _CONSISTENCY_TABLE_COLUMNS
+        ):
+            raise LegacyImportError("legacy SQLite consistency schema is partial")
         snapshot: dict[str, list[dict[str, Any]]] = {}
         selected_tables = dict(_CORE_TABLE_COLUMNS)
         if present_structured:
             selected_tables.update(_STRUCTURED_TABLE_COLUMNS)
+        if present_consistency:
+            selected_tables.update(_CONSISTENCY_TABLE_COLUMNS)
         for table, columns in selected_tables.items():
             order_column = (
                 "issuance_order"
                 if table == "access_tokens"
-                else _PRIMARY_KEYS[table]
+                else (
+                    "seq"
+                    if table == "consistency_trace"
+                    else _PRIMARY_KEYS[table]
+                )
             )
             selected_columns = list(columns)
             if table == "access_tokens":
@@ -356,6 +441,15 @@ def import_legacy_sqlite(source_path: Path) -> dict[str, Any]:
                         created_at=str(row["created_at"]),
                     )
             for table in ("financial_records", "workspace_tasks"):
+                for row in snapshot.get(table, []):
+                    _insert_if_absent(connection, table=table, row=row)
+            for table in (
+                "consistency_operations",
+                "consistency_outbox",
+                "consistency_effect_receipts",
+                "consistency_trace",
+                "object_quarantine",
+            ):
                 for row in snapshot.get(table, []):
                     _insert_if_absent(connection, table=table, row=row)
             for row in snapshot["audit_events"]:

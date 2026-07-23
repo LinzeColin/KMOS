@@ -72,6 +72,16 @@
 > `legacy-filesystem`，保留 S3 配置供既有 S3 index 双读并运行对账；不得撤凭据、删 bucket/object、
 > 删 `kmfa-app-state` 或用 `down -v`。P5.4 前对象卷替换仍不是备份恢复证明。
 
+> **S05/P5.3 中间态边界**：schema v3、upload 可恢复状态链、outbox/consumer dedupe、
+> reconciliation CLI 与故障 Oracle 已进入候选代码，但本 phase 不单独切生产或启动尚不存在的业务
+> processor/index/export adapter。S05 整体复审前保持现有生产 DB/object mode；候选 image 必须先跑
+> `consistency_state_flow.py`，要求每个持久状态 crash、unknown timeout、duplicate delivery 和
+> partial success 全部在 30 秒 synthetic SLA 内 converged 或 isolated，unexplained terminal state、
+> duplicate side effect、raw-object delete 均为 0。快速回滚只把
+> `KMFA_CONSISTENCY_STATE_MODE=paused`，暂停新上传并继续读、恢复、下载和 reconciliation；恢复时置
+> `recoverable-v1`。v3 migration 只 forward-fix，禁止降 schema、回滚到不识别 v3 的旧 binary、
+> 清 outbox/trace、删 DB/object/volume 或用恢复包 replay 代替修复。
+
 6. 观测 P1 内存无碍后，在 Coolify 为本资源**启用 `full` profile**（Compose profiles → 勾 `full`）或设 `COMPOSE_PROFILES=full`，重部署 → `kmfa-app` 起。
 7. **域名**：Coolify 给 `app` 服务设 `kmfa.linzezhang.com`（Coolify Traefik 自动签发/路由）；**Cloudflare** 加一条**代理（橙云）** A 记录 `kmfa` → OVH 公网 IP（或按 Coolify 提示的 CNAME）。App 仅经 Traefik 暴露，主机不额外开放端口。
 8. **先建更具体的路径锁，整站登录墙不动**：保留现有 host 级 Self-hosted Application 的 Owner

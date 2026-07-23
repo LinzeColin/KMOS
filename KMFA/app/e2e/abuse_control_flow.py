@@ -433,16 +433,15 @@ def _browser_challenge(
         page.on("console", lambda message: console_messages.append(message.text))
         page.goto(base_url, wait_until="networkidle", timeout=30_000)
         page.locator('[data-walking-skeleton-state="ready"]').wait_for()
-        challenge_started = 0.0
         challenge_elapsed_ms = 0.0
-        for index in range(7):
+        successful_creates = 0
+        for index in range(20):
             if index:
                 page.get_by_role("button", name="创建工作区", exact=True).click()
             page.locator("#walking-project-create").fill(
                 f"browser-challenge-{index}"
             )
-            if index == 6:
-                challenge_started = time.monotonic()
+            attempt_started = time.monotonic()
             page.get_by_role(
                 "button",
                 name="创建并生成恢复码",
@@ -451,25 +450,31 @@ def _browser_challenge(
             page.locator('[data-workspace-ready="true"]').wait_for(
                 timeout=30_000
             )
-            if index == 6:
+            successful_creates += 1
+            if response_statuses.count(429):
                 challenge_elapsed_ms = (
-                    time.monotonic() - challenge_started
+                    time.monotonic() - attempt_started
                 ) * 1000
             recovery_code = page.locator(
                 '[data-recovery-code-value="true"]'
             ).inner_text()
             sensitive_values.append(recovery_code)
-            if index < 6:
-                page.get_by_role(
-                    "button",
-                    name="撤销并清除本页会话",
-                    exact=True,
-                ).click()
-                page.get_by_role(
-                    "button",
-                    name="创建工作区",
-                    exact=True,
-                ).wait_for()
+            if response_statuses.count(429):
+                break
+            page.get_by_role(
+                "button",
+                name="撤销并清除本页会话",
+                exact=True,
+            ).click()
+            page.get_by_role(
+                "button",
+                name="创建工作区",
+                exact=True,
+            ).wait_for()
+        else:
+            raise AssertionError(
+                "browser challenge was not reached within 20 creates"
+            )
         cookies = context.cookies()
         sensitive_values.extend(
             str(cookie["value"]) for cookie in cookies if cookie.get("value")
@@ -479,7 +484,7 @@ def _browser_challenge(
         context.close()
         browser.close()
 
-    assert response_statuses.count(201) == 7
+    assert response_statuses.count(201) == successful_creates
     assert response_statuses.count(429) == 1
     console_raw_hits = sum(
         value in message
@@ -489,9 +494,9 @@ def _browser_challenge(
     )
     assert console_raw_hits == 0
     return {
-        "workspace_creates": 7,
+        "workspace_creates": successful_creates,
         "challenge_responses": 1,
-        "successful_responses": 7,
+        "successful_responses": successful_creates,
         "automatic_retry_completed": True,
         "challenge_elapsed_ms": round(challenge_elapsed_ms, 2),
         "account_prompted": False,

@@ -9,7 +9,11 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-from .structured_store import StructuredStoreConnection, StructuredStoreError
+from .structured_store import (
+    StructuredStoreConnection,
+    StructuredStoreError,
+    StructuredStoreIntegrityError,
+)
 
 FINANCIAL_RECORD_TYPES = frozenset(
     {"budget", "actual", "forecast", "adjustment"}
@@ -200,6 +204,131 @@ class StructuredRepository:
                 created_at,
             ),
         )
+        return version_id
+
+    def ensure_uploaded_artifact(
+        self,
+        *,
+        workspace_id: str,
+        artifact_id: str,
+        version_number: int,
+        storage_backend: str,
+        storage_key: str,
+        original_name: str,
+        reported_media_type: str,
+        size_bytes: int,
+        sha256: str,
+        created_at: str,
+    ) -> str:
+        """Idempotently materialize an object-backed upload after recovery.
+
+        The compatibility row and normalized version row are verified field by
+        field. A conflicting workspace/object identity fails closed instead of
+        silently adopting or overwriting another upload.
+        """
+
+        version_id = artifact_version_id(artifact_id, version_number)
+        self.connection.execute(
+            """
+            INSERT INTO artifacts(
+              artifact_id, workspace_id, object_name, original_name,
+              reported_media_type, size_bytes, sha256, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(artifact_id) DO NOTHING
+            """,
+            (
+                artifact_id,
+                workspace_id,
+                storage_key,
+                original_name,
+                reported_media_type,
+                size_bytes,
+                sha256,
+                created_at,
+            ),
+        )
+        compatibility = self.connection.execute(
+            """
+            SELECT
+              artifact_id, workspace_id, object_name, original_name,
+              reported_media_type, size_bytes, sha256, created_at
+            FROM artifacts
+            WHERE artifact_id = ?
+            """,
+            (artifact_id,),
+        ).fetchone()
+        expected_compatibility = {
+            "artifact_id": artifact_id,
+            "workspace_id": workspace_id,
+            "object_name": storage_key,
+            "original_name": original_name,
+            "reported_media_type": reported_media_type,
+            "size_bytes": size_bytes,
+            "sha256": sha256,
+            "created_at": created_at,
+        }
+        if compatibility is None or any(
+            compatibility[key] != value
+            for key, value in expected_compatibility.items()
+        ):
+            raise StructuredStoreIntegrityError(
+                "artifact compatibility projection conflict"
+            )
+
+        self.connection.execute(
+            """
+            INSERT INTO artifact_versions(
+              artifact_version_id, artifact_id, project_id, version_number,
+              storage_backend, storage_key, original_name, reported_media_type,
+              size_bytes, sha256, lifecycle_state, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
+            ON CONFLICT(artifact_id, version_number) DO NOTHING
+            """,
+            (
+                version_id,
+                artifact_id,
+                project_id_for_workspace(workspace_id),
+                version_number,
+                storage_backend,
+                storage_key,
+                original_name,
+                reported_media_type,
+                size_bytes,
+                sha256,
+                created_at,
+            ),
+        )
+        version = self.connection.execute(
+            """
+            SELECT
+              artifact_version_id, artifact_id, project_id, version_number,
+              storage_backend, storage_key, original_name, reported_media_type,
+              size_bytes, sha256, lifecycle_state, created_at
+            FROM artifact_versions
+            WHERE artifact_id = ? AND version_number = ?
+            """,
+            (artifact_id, version_number),
+        ).fetchone()
+        expected_version = {
+            "artifact_version_id": version_id,
+            "artifact_id": artifact_id,
+            "project_id": project_id_for_workspace(workspace_id),
+            "version_number": version_number,
+            "storage_backend": storage_backend,
+            "storage_key": storage_key,
+            "original_name": original_name,
+            "reported_media_type": reported_media_type,
+            "size_bytes": size_bytes,
+            "sha256": sha256,
+            "lifecycle_state": "active",
+            "created_at": created_at,
+        }
+        if version is None or any(
+            version[key] != value for key, value in expected_version.items()
+        ):
+            raise StructuredStoreIntegrityError(
+                "artifact version projection conflict"
+            )
         return version_id
 
     def ensure_artifact_version(
