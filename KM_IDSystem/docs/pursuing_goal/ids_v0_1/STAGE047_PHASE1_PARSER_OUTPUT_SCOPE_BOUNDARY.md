@@ -23,9 +23,13 @@ checker PASS 只说明 schema、来源、前序、边界和禁止项一致；不
 ## Input Boundary
 
 未来 Stage047 input 是 reference-only wrapper，不包含 source body/path。wrapper 必须
-携带 Stage046 route result、source identity、请求的 output schema 与严格 UTC 时间。
+携带 Stage046 routing request、route result、source identity、请求的 output schema 与
+严格 UTC 时间。Stage review 已修复原 Phase1 五字段 wrapper 无法独立证明
+request/result/source 同属一个 detection lineage 的缺口；当前合同固定为六字段。
 
 - detection authority：Stage045；route authority：Stage046。
+- routing request 必须匹配 `ids.stage046.parser_routing_request.v1` 的精确字段集合，
+  `routing_request_id` 与 route result 中的 request/detection IDs 必须一致。
 - route result 必须匹配 `ids.stage046.parser_routing_result.v1`。
 - `route_result_id` 按 canonical JSON 计算
   `route-result:sha256:<64-lower-hex>`；它只证明完整性，不是外部 provenance、授权或质量
@@ -33,7 +37,9 @@ checker PASS 只说明 schema、来源、前序、边界和禁止项一致；不
 - source、detection、routing、route、parser family/version 必须形成一致 lineage。
 - blocked/review/unsupported route 不得伪装成 parser output input。
 - placeholder parser version 不能形成候选 output。
-- 路径、URI、原始异常、secret、无界文本和 raw metadata 均不允许进入 wrapper。
+- control reference 只允许 lower ASCII token segment；路径、URI、控制字符、原始异常、
+  secret、无界文本和 raw metadata 均不允许进入 wrapper。
+- route result 的控制夹具 `human_status` 必须匹配合同中的精确静态值。
 
 本 Phase 不创建或持久化 input wrapper。
 
@@ -62,7 +68,8 @@ checker PASS 只说明 schema、来源、前序、边界和禁止项一致；不
 
 unknown top-level 字段失败关闭。`output_id` 是 exact output projection 的 canonical
 SHA-256，格式为 `parser-output:sha256:<64-lower-hex>`；它不证明 provenance、事实正确、
-质量通过或下游授权。
+质量通过或下游授权。`produced_at` 必须是有效 UTC 时间且不得早于 wrapper 的
+`requested_at`。
 
 允许的状态只有：
 
@@ -104,13 +111,16 @@ SHA-256，格式为 `parser-output:sha256:<64-lower-hex>`；它不证明 provena
 ### `errors`
 
 有序 safe error 数组，每项精确包含 `code`、`severity`、`retryable`、`message_key`。
-禁止原始 exception、stack、path、URI、secret 或业务内容回显；失败必须显式，不得空数组
-静默成功。
+`code` 最长 96 字符，`message_key` 最长 128 字符。禁止原始 exception、stack、path、
+URI、secret 或业务内容回显；失败必须显式，不得空数组静默成功。
 
 ## Lineage, Completeness And Failure Rules
 
 - route/detection/source identity chain 必须完整且一致。
-- 所有 page/section/table 内部引用必须解析；重复 ID 与 orphan ref 均拒绝。
+- 所有 page/section/table 内部引用必须解析；table↔page 与 table↔section 引用必须
+  双向一致；重复 ID 与 orphan ref 均拒绝。
+- 所有进入 canonical JSON 的文本必须是可编码的有效 UTF-8；未配对 surrogate 等非法
+  Unicode scalar 必须返回静态 fail-closed rejection，不得抛出异常。
 - candidate 至少包含 non-empty text/tables/pages/sections 之一。
 - 全空且无 error 的 candidate 失败关闭。
 - partial/failed 必须携带 safe error；failed output 的内容必须为空。

@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE047"
-current_phase_id: "IDS-STAGE047-P4"
-current_task_id: "IDS-V0_1-STAGE047-P4"
-next_gate_id: "IDS-STAGE047-REVIEW-GATE"
+current_phase_id: "IDS-STAGE047-REVIEW"
+current_task_id: "IDS-V0_1-STAGE047-REVIEW"
+next_gate_id: "IDS-STAGE048-P1-GATE"
 current_transition_history:
+  stage047_review_state:
+    current_stage_id: "IDS-STAGE047"
+    current_phase_id: "IDS-STAGE047-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE047-REVIEW"
+    next_gate_id: "IDS-STAGE048-P1-GATE"
   stage047_phase4_state:
     current_stage_id: "IDS-STAGE047"
     current_phase_id: "IDS-STAGE047-P4"
@@ -12321,12 +12326,12 @@ stages:
     task_id: "IDS-V0_1-STAGE047"
     acceptance_ids:
       - "ACC-STAGE-047"
-    status: "in_progress"
+    status: "completed_reviewed_local"
     pursuing_goal: "统一 parser 输出格式，精确定义 text、tables、pages、sections、confidence、errors，并阻断未通过质量门的证据提升。"
     stop_gate:
-      gate_id: "IDS-STAGE047-P4-GATE"
+      gate_id: "IDS-STAGE047-REVIEW-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE047-REVIEW-GATE"
+      next_gate_id: "IDS-STAGE048-P1-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_ENTRY_CONTRACT.md"
@@ -12350,6 +12355,11 @@ stages:
       - "KM_IDSystem/scripts/check_parser_output_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_delivery.py"
       - "KM_IDSystem/machine/runs/2026-07-23-stage047-p4-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_STAGE_REVIEW.md"
+      - "KM_IDSystem/scripts/check_parser_output_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_review_repairs.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_stage_review.py"
+      - "KM_IDSystem/machine/runs/2026-07-24-stage047-review-local.json"
     phases:
       - phase_id: "IDS-STAGE047-P1"
         name: "解析器输出范围、输入输出与边界确认"
@@ -12620,3 +12630,18 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
             risk: "若脱敏投影泄露 fixture 内容、fallback 控制记录被冒充 runtime log、或 control support 被误报为真实 parser support，将扩大能力声明并污染下游证据。"
             rollback: "只回滚 Stage047 Phase4 contract/checker/tests/evidence 与治理投影，恢复到已提交 Phase3；保留 P1-3、全部原始/事实/审计资料、GitHub 与 app 状态。"
+    review:
+      review_id: "IDS-STAGE047-REVIEW"
+      task_id: "IDS-V0_1-STAGE047-REVIEW"
+      status: "completed"
+      acceptance_ids:
+        - "ACC-STAGE-047"
+      evidence_refs:
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_STAGE_REVIEW.md"
+        - "KM_IDSystem/scripts/check_parser_output_stage_review.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_review_repairs.py"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_stage_review.py"
+        - "KM_IDSystem/machine/runs/2026-07-24-stage047-review-local.json"
+        - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+      test_results: "Independent review found and repaired six findings (2 Critical / 4 Important): complete request/result/source lineage, structured invalid-Unicode rejection, lower-ASCII canonical references, reciprocal table reference graphs, bounded exact route/error text and monotonic request/production time. Final layered validation is recorded in the Stage047 review machine run."
+      decision: "ACC-STAGE-047 completed_reviewed_local after all six findings were repaired; next gate is IDS-STAGE048-P1-GATE, push_allowed=false, and this run did not enter STAGE-048."

@@ -35,14 +35,17 @@ registry and cannot authorize parser selection, dispatch, execution or productio
 
 ## Lineage Proof Refinement
 
-Phase1 requires five wrapper fields: `route_result_id`, `route_result`,
-`source_identity_ref`, `requested_output_schema_version` and `requested_at`.
-The Stage046 route-result schema does not itself carry `source_identity_ref`, so
-those five fields alone cannot prove that the wrapper source and route result share
-one detection lineage.
+The immutable Phase1 predecessor originally required five wrapper fields:
+`route_result_id`, `route_result`, `source_identity_ref`,
+`requested_output_schema_version` and `requested_at`. The Stage046 route-result
+schema does not itself carry `source_identity_ref`, so those five fields alone
+cannot prove that the wrapper source and route result share one detection lineage.
 
-Phase2 preserves all five fields and adds one mandatory `routing_request` proof.
-The proof is the exact Stage046 request shape and binds:
+The Stage047 independent review repaired the current Phase1 contract to require
+the same six fields as Phase2, including mandatory `routing_request`. The Phase2
+contract preserves the immutable five-field snapshot as historical evidence and
+separately records that the current six-field lineage repair is applied. The proof
+is the exact Stage046 request shape and binds:
 
 - `source_identity_ref` and `source_fingerprint_ref`;
 - Stage045 detection request, evidence, type, state and confidence;
@@ -51,10 +54,11 @@ The proof is the exact Stage046 request shape and binds:
 - the route result's request/detection IDs, type, state, confidence and marker;
 - canonical `route_result_id`.
 
-Any unknown field, digest mismatch, source mismatch, non-control namespace,
-placeholder parser version, path, URI, source body, raw exception, secret or
-credential rejects the request before output construction. Rejection output is
-sanitized and does not echo the unvalidated value.
+Any unknown field, digest mismatch, source mismatch, non-canonical lower-ASCII
+control reference, unexpected route `human_status`, placeholder parser version,
+path, URI, source body, raw exception, secret or credential rejects the request
+before output construction. Rejection output is sanitized and does not echo the
+unvalidated value.
 
 ## Control Adapter Boundary
 
@@ -79,15 +83,17 @@ The payload has exactly the Phase1 core fields:
 5. `confidence`
 6. `errors`
 
-The normalizer validates bounded text, exact nested item shapes, unique IDs,
-ascending page numbers, rectangular table cells, safe errors and all page/table/
-section references. A formula-like string remains untrusted text and is never
-executed.
+The normalizer validates bounded UTF-8-encodable text, exact nested item shapes,
+unique IDs, ascending page numbers, rectangular table cells, safe errors and all
+page/table/section references. Table-to-page and table-to-section links must be
+reciprocal. Safe-error code and message-key lengths are capped at 96 and 128
+characters. A formula-like string remains untrusted text and is never executed.
 
 Accepted controls receive the exact 18-field Phase1 envelope and canonical
 `parser-output:sha256:<digest>` identity. The digest covers every field except
 `output_id`; it proves projection integrity only, not external provenance, source
 authenticity, content truth, quality approval or runtime authorization.
+`produced_at` must be valid UTC and cannot precede the input `requested_at`.
 
 ## Completion And Failure Rules
 

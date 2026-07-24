@@ -207,7 +207,13 @@ class Stage047ParserOutputTests(unittest.TestCase):
     def test_input_and_envelope_bind_stage045_detection_and_stage046_route(self):
         contract = self._contract()
         incoming = contract["input_boundary"]
-        self.assertEqual("REFERENCE_ONLY_STAGE046_ROUTE_RESULT", incoming["mode"])
+        self.assertEqual(
+            "REFERENCE_ONLY_STAGE046_ROUTING_REQUEST_AND_RESULT",
+            incoming["mode"],
+        )
+        self.assertIn("routing_request", incoming["required_wrapper_fields"])
+        self.assertTrue(incoming["routing_request_identity_required"])
+        self.assertTrue(incoming["request_result_lineage_match_required"])
         self.assertEqual("STAGE-045", incoming["detection_authority"])
         self.assertEqual("STAGE-046", incoming["route_authority"])
         self.assertTrue(incoming["result_identity_required"])
@@ -228,6 +234,7 @@ class Stage047ParserOutputTests(unittest.TestCase):
             ],
             envelope["allowed_statuses"],
         )
+        self.assertTrue(envelope["produced_at_not_before_requested_at"])
 
     def test_six_core_fields_have_exact_fail_closed_shapes(self):
         core = self._contract()["core_output_contract"]
@@ -291,6 +298,10 @@ class Stage047ParserOutputTests(unittest.TestCase):
         lineage = contract["lineage_and_integrity_contract"]
         self.assertTrue(lineage["route_detection_source_identity_chain_required"])
         self.assertTrue(lineage["all_internal_references_must_resolve"])
+        self.assertTrue(lineage["reciprocal_table_page_references_required"])
+        self.assertTrue(
+            lineage["reciprocal_table_section_references_required"]
+        )
         self.assertTrue(lineage["duplicate_item_ids_rejected"])
         self.assertTrue(lineage["orphan_page_section_or_table_refs_rejected"])
         self.assertFalse(lineage["filesystem_path_or_uri_reference_allowed"])

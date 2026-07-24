@@ -1,6 +1,16 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE047-REVIEW-01`",
+      "criteria": "批准来源、Phase4 提交/树/父提交/HEAD ancestry 与五项不可变工件均实时重验；Phase1 至 Phase4 checker 全部重放，六项复审发现均有反例且修复后失败关闭",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-REVIEW-02`",
+      "criteria": "请求、路线结果与来源的完整来源链、非法字符编码、lower-ASCII 引用、互惠引用图、有界状态/错误与单调时间均失败关闭；业务源、原始元数据、解析器、回退、质量门、持久化、Stage048、批次、上传、合并和重装均未执行",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE047-P4-01`",
       "criteria": "批准来源、已提交 Stage047 步骤三提交、根树、KM_IDSystem 树、父提交与五项步骤三工件均跨提交、索引和工作树实时重验",
       "status": "已通过"

@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE047",
-  "phase": "IDS-STAGE047-P4",
-  "task": "IDS-V0_1-STAGE047-P4",
-  "real_progress": "Stage047 步骤四本地收口完成；整阶段复审须在下一轮独立执行",
-  "report_grade": "八个脱敏输出投影、16 条非运行时回退记录、七类失败关闭、精确质量指标、支持边界与版本回滚均可机验",
-  "business_verdict": "Stage047 输出合同步骤四通过并停在复审门；控制投影和回退记录都不是运行时结果，真实业务源、解析器、回退、质量门、持久化、上传与生产能力仍禁用",
-  "evidence_status": "LOCAL_STAGE047_PHASE4_CLOSEOUT_VALID_REVIEW_PENDING_RUNTIME_DISABLED",
-  "rendered_at": "2026-07-23",
+  "phase": "IDS-STAGE047-REVIEW",
+  "task": "IDS-V0_1-STAGE047-REVIEW",
+  "real_progress": "Stage047 四个步骤与六项整阶段复审发现均本地通过；下一步须独立进入 Stage048 步骤一",
+  "report_grade": "批准来源、不可变 Phase4 绑定、四阶段重放、六项反例修复、治理与 Git-index binding 均可机验",
+  "business_verdict": "Stage047 输出合同完成本地独立复审；该结论不证明真实解析器、业务输出、回退、质量门、持久化、Stage048、上传或生产能力已启用",
+  "evidence_status": "LOCAL_STAGE047_REVIEW_VALID_PARSER_OUTPUT_RUNTIME_DISABLED",
+  "rendered_at": "2026-07-24",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE047-REVIEW-GATE",
+  "next_gate": "IDS-STAGE048-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

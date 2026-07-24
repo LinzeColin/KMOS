@@ -412,6 +412,13 @@ class Stage045FileTypeDetectionDeliveryTests(unittest.TestCase):
                 in handoff
                 and "Next allowed task: `IDS-V0_1-STAGE047-REVIEW`" in handoff
             )
+            or (
+                status["phase"] == "IDS-STAGE047-REVIEW"
+                and status["next_gate"] == "IDS-STAGE048-P1-GATE"
+                and "Completed task in this run: `IDS-V0_1-STAGE047-REVIEW`"
+                in handoff
+                and "Next allowed task: `IDS-V0_1-STAGE048-P1`" in handoff
+            )
         )
         self.assertIn(
             "Completed task in this run: `IDS-V0_1-STAGE045-P4`", handoff

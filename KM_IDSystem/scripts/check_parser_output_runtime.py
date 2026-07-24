@@ -86,7 +86,7 @@ REGISTRY_VERSION = "ids.parser_route_registry.v0_1.stage046.p2"
 DETECTOR_VERSION = "ids.file_type_detector.v0_1.stage045.p2"
 OUTPUT_SCHEMA_VERSION = "ids.parser_output.v0_1.stage047.p1"
 EXPECTED_CANONICAL_CONTRACT_SHA256 = (
-    "0f1647b5bd89d5f438bbc4363030bb5eba9adb60e3cb3efd5d4cbe64c3a74879"
+    "ec829f094b8d0f45980150e9e40239f5384073e31401cb31ad1109118de2c782"
 )
 
 SOURCE_BINDING = {
@@ -192,7 +192,8 @@ INPUT_FIELDS = [
     "requested_output_schema_version",
     "requested_at",
 ]
-PHASE1_INPUT_FIELDS = [
+PHASE1_INPUT_FIELDS = list(INPUT_FIELDS)
+PHASE1_SNAPSHOT_INPUT_FIELDS = [
     "route_result_id",
     "route_result",
     "source_identity_ref",
@@ -467,6 +468,7 @@ EXPECTED_HUMAN_STATUS = {
         "输出或 lineage 不符合合同，已阻断且未回显不安全输入"
     ),
 }
+ROUTE_RESULT_HUMAN_STATUS = "控制路线夹具已绑定，未选择或执行解析器"
 
 RFC3339_UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
 LOWER_HEX_64 = r"[0-9a-f]{64}"
@@ -480,6 +482,9 @@ SAFE_ERROR_CODE = re.compile(r"PARSER_[A-Z0-9_]+")
 MESSAGE_KEY = re.compile(r"parser\.[a-z0-9_]+")
 CONTROL_SUFFIX = re.compile(r"[0-9a-f]{1,8}")
 ITEM_REF = re.compile(r"(?:table|page|section):control:[a-z0-9]{1,12}")
+CONTROL_REF_SEGMENT = re.compile(r"[a-z0-9][a-z0-9_-]{0,31}")
+SAFE_ERROR_CODE_MAX_CHARACTERS = 96
+SAFE_ERROR_MESSAGE_KEY_MAX_CHARACTERS = 128
 
 
 def _canonical_bytes(value: Any) -> bytes:
@@ -507,27 +512,44 @@ def _git_show_bytes(repo_root: Path, commit: str, ref: str) -> bytes:
     )
 
 
-def _rfc3339_utc_valid(value: Any) -> bool:
+def _rfc3339_utc_datetime(value: Any) -> Optional[datetime]:
     if not isinstance(value, str) or not RFC3339_UTC.fullmatch(value):
-        return False
+        return None
     try:
         parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(
             tzinfo=timezone.utc
         )
     except ValueError:
-        return False
-    return parsed.strftime("%Y-%m-%dT%H:%M:%SZ") == value
+        return None
+    if parsed.strftime("%Y-%m-%dT%H:%M:%SZ") != value:
+        return None
+    return parsed
+
+
+def _rfc3339_utc_valid(value: Any) -> bool:
+    return _rfc3339_utc_datetime(value) is not None
+
+
+def _timestamp_not_before(later: Any, earlier: Any) -> bool:
+    later_value = _rfc3339_utc_datetime(later)
+    earlier_value = _rfc3339_utc_datetime(earlier)
+    return (
+        later_value is not None
+        and earlier_value is not None
+        and later_value >= earlier_value
+    )
 
 
 def _canonical_control_ref(value: Any, *, prefix: str) -> bool:
     if not isinstance(value, str) or len(value) > 160:
         return False
-    if any(token in value for token in ("/", "\\", "://", "..")):
-        return False
     if not value.startswith(prefix):
         return False
-    parts = value.split(":")
-    return all(parts) and all(part and part not in {".", ".."} for part in parts)
+    suffix = value[len(prefix):]
+    return bool(suffix) and all(
+        CONTROL_REF_SEGMENT.fullmatch(part)
+        for part in suffix.split(":")
+    )
 
 
 def live_source_valid(root: Optional[Path] = None) -> bool:
@@ -773,7 +795,7 @@ def _build_control_route_result(request: Mapping[str, Any]) -> Dict[str, Any]:
         "tool_authorization_allowed": False,
         "policy_override_allowed": False,
         "errors": [],
-        "human_status": "控制路线夹具已绑定，未选择或执行解析器",
+        "human_status": ROUTE_RESULT_HUMAN_STATUS,
         "in_memory_only": True,
         "persisted": False,
         "output_refs": [],
@@ -842,7 +864,7 @@ def _route_result_valid(result: Any, request: Mapping[str, Any]) -> bool:
             and result["tool_authorization_allowed"] is False
             and result["policy_override_allowed"] is False
             and result["errors"] == []
-            and isinstance(result["human_status"], str)
+            and result["human_status"] == ROUTE_RESULT_HUMAN_STATUS
             and result["in_memory_only"] is True
             and result["persisted"] is False
             and result["output_refs"] == []
@@ -922,11 +944,17 @@ def validate_input_wrapper(wrapper: Any) -> bool:
 def _bounded_text(value: Any, *, nullable: bool = True, limit: int = 4096) -> bool:
     if value is None:
         return nullable
-    return (
-        isinstance(value, str)
-        and len(value) <= limit
-        and "\x00" not in value
-    )
+    if (
+        not isinstance(value, str)
+        or len(value) > limit
+        or "\x00" in value
+    ):
+        return False
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:
+        return False
+    return True
 
 
 def _safe_error(error: Any) -> bool:
@@ -934,10 +962,13 @@ def _safe_error(error: Any) -> bool:
         return False
     return (
         isinstance(error["code"], str)
+        and len(error["code"]) <= SAFE_ERROR_CODE_MAX_CHARACTERS
         and bool(SAFE_ERROR_CODE.fullmatch(error["code"]))
         and error["severity"] in ALLOWED_SEVERITIES
         and isinstance(error["retryable"], bool)
         and isinstance(error["message_key"], str)
+        and len(error["message_key"])
+        <= SAFE_ERROR_MESSAGE_KEY_MAX_CHARACTERS
         and bool(MESSAGE_KEY.fullmatch(error["message_key"]))
     )
 
@@ -1109,6 +1140,34 @@ def _payload_valid(payload: Any) -> bool:
             for item in sections
         ):
             return False
+        table_by_id = {item["table_id"]: item for item in tables}
+        page_by_id = {item["page_id"]: item for item in pages}
+        section_by_id = {item["section_id"]: item for item in sections}
+        if any(
+            table["table_id"] not in page_by_id[page_id]["table_refs"]
+            for table in tables
+            for page_id in table["page_refs"]
+        ):
+            return False
+        if any(
+            page["page_id"] not in table_by_id[table_id]["page_refs"]
+            for page in pages
+            for table_id in page["table_refs"]
+        ):
+            return False
+        if any(
+            table["section_ref"] is not None
+            and table["table_id"]
+            not in section_by_id[table["section_ref"]]["table_refs"]
+            for table in tables
+        ):
+            return False
+        if any(
+            table_by_id[table_id]["section_ref"] != section["section_id"]
+            for section in sections
+            for table_id in section["table_refs"]
+        ):
+            return False
 
         errors = _all_errors(payload)
         if len({item["code"] for item in errors}) != len(errors):
@@ -1237,6 +1296,10 @@ def validate_output_envelope(output: Any, wrapper: Any) -> bool:
             == _quality_gate(output["status"], output["confidence"])
             and list(output["quality_gate"]) == QUALITY_GATE_FIELDS
             and _rfc3339_utc_valid(output["produced_at"])
+            and _timestamp_not_before(
+                output["produced_at"],
+                wrapper["requested_at"],
+            )
         )
     except (KeyError, TypeError):
         return False
@@ -1253,6 +1316,7 @@ def normalize_parser_payload(
     if (
         not validate_input_wrapper(wrapper)
         or not _rfc3339_utc_valid(produced_at)
+        or not _timestamp_not_before(produced_at, wrapper["requested_at"])
         or not _payload_valid(payload)
     ):
         return _rejection()
@@ -1341,8 +1405,11 @@ def _contract_shape_checks(contract: Mapping[str, Any]) -> Dict[str, bool]:
         isinstance(incoming, Mapping)
         and incoming.get("required_fields") == INPUT_FIELDS
         and incoming.get("additional_fields_allowed") is False
-        and incoming.get("phase1_required_fields_preserved") is True
+        and incoming.get("phase1_required_fields_preserved") is False
         and incoming.get("phase1_required_field_names") == PHASE1_INPUT_FIELDS
+        and incoming.get("phase1_snapshot_required_field_names")
+        == PHASE1_SNAPSHOT_INPUT_FIELDS
+        and incoming.get("phase1_review_lineage_repair_applied") is True
         and incoming.get("routing_request_lineage_proof_required") is True
         and incoming.get("routing_request_schema_version")
         == "ids.stage046.parser_routing_request.v1"
@@ -1355,9 +1422,13 @@ def _contract_shape_checks(contract: Mapping[str, Any]) -> Dict[str, bool]:
         == "ROUTE_CANDIDATE_READY_NOT_EXECUTED"
         and incoming.get("source_identity_match_required") is True
         and incoming.get("request_result_lineage_match_required") is True
+        and incoming.get("route_result_human_status_exact")
+        == ROUTE_RESULT_HUMAN_STATUS
         and incoming.get("concrete_control_parser_version_required") is True
         and incoming.get("placeholder_parser_version_allowed") is False
         and incoming.get("control_namespace_required") is True
+        and incoming.get("canonical_control_reference_format")
+        == "LOWER_ASCII_TOKEN_SEGMENTS"
         and incoming.get("source_body_or_path_allowed") is False
         and incoming.get("raw_exception_secret_or_credential_allowed") is False
     )
@@ -1379,8 +1450,16 @@ def _contract_shape_checks(contract: Mapping[str, Any]) -> Dict[str, bool]:
         and payload.get("max_pages") == 8
         and payload.get("max_sections") == 16
         and payload.get("max_errors_per_scope") == 8
+        and payload.get("safe_error_code_max_characters")
+        == SAFE_ERROR_CODE_MAX_CHARACTERS
+        and payload.get("safe_error_message_key_max_characters")
+        == SAFE_ERROR_MESSAGE_KEY_MAX_CHARACTERS
+        and payload.get("valid_utf8_encodable_text_required") is True
         and payload.get("rectangular_tables_required") is True
         and payload.get("internal_references_must_resolve") is True
+        and payload.get("reciprocal_table_page_references_required") is True
+        and payload.get("reciprocal_table_section_references_required")
+        is True
         and payload.get("duplicate_ids_or_error_codes_allowed") is False
         and payload.get("formula_execution_allowed") is False
         and payload.get("raw_exception_path_uri_secret_or_business_echo_allowed")
@@ -1403,6 +1482,7 @@ def _contract_shape_checks(contract: Mapping[str, Any]) -> Dict[str, bool]:
         == "SHA256_CANONICAL_OUTPUT_PROJECTION"
         and output.get("output_id_scope")
         == "INTEGRITY_ONLY_NOT_PROVENANCE_QUALITY_OR_RUNTIME_PROOF"
+        and output.get("produced_at_not_before_requested_at") is True
         and output.get("normalization_result_fields")
         == NORMALIZATION_RESULT_FIELDS
         and output.get("control_output_fact_level")

@@ -355,8 +355,15 @@ class Stage047ParserOutputDeliveryTests(unittest.TestCase):
         self.assertIn("EVT-IDS-V0_1-STAGE047-P4-20260723-001", events)
         self.assertIn("Completed task in this run: `IDS-V0_1-STAGE047-P4`", handoff)
         self.assertIn("Next allowed task: `IDS-V0_1-STAGE047-REVIEW`", handoff)
-        self.assertEqual("IDS-STAGE047-P4", status["phase"])
-        self.assertEqual("IDS-STAGE047-REVIEW-GATE", status["next_gate"])
+        self.assertIn(
+            status["phase"],
+            {"IDS-STAGE047-P4", "IDS-STAGE047-REVIEW"},
+        )
+        if status["phase"] == "IDS-STAGE047-P4":
+            self.assertEqual("IDS-STAGE047-REVIEW-GATE", status["next_gate"])
+        else:
+            self.assertEqual("IDS-V0_1-STAGE047-REVIEW", status["task"])
+            self.assertEqual("IDS-STAGE048-P1-GATE", status["next_gate"])
         self.assertFalse(status["push_allowed"])
 
     def test_missing_or_malformed_contract_returns_structured_failure(self):

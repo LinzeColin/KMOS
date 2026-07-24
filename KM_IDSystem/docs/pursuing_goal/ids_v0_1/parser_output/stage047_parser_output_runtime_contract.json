@@ -87,14 +87,23 @@
       "requested_at"
     ],
     "additional_fields_allowed": false,
-    "phase1_required_fields_preserved": true,
+    "phase1_required_fields_preserved": false,
     "phase1_required_field_names": [
+      "route_result_id",
+      "route_result",
+      "routing_request",
+      "source_identity_ref",
+      "requested_output_schema_version",
+      "requested_at"
+    ],
+    "phase1_snapshot_required_field_names": [
       "route_result_id",
       "route_result",
       "source_identity_ref",
       "requested_output_schema_version",
       "requested_at"
     ],
+    "phase1_review_lineage_repair_applied": true,
     "routing_request_lineage_proof_required": true,
     "routing_request_schema_version": "ids.stage046.parser_routing_request.v1",
     "routing_request_required_fields": [
@@ -165,9 +174,11 @@
     "detection_result_identity_algorithm": "SHA256_CANONICAL_JSON",
     "source_identity_match_required": true,
     "request_result_lineage_match_required": true,
+    "route_result_human_status_exact": "控制路线夹具已绑定，未选择或执行解析器",
     "concrete_control_parser_version_required": true,
     "placeholder_parser_version_allowed": false,
     "control_namespace_required": true,
+    "canonical_control_reference_format": "LOWER_ASCII_TOKEN_SEGMENTS",
     "source_body_or_path_allowed": false,
     "raw_exception_secret_or_credential_allowed": false
   },
@@ -225,8 +236,13 @@
     "max_pages": 8,
     "max_sections": 16,
     "max_errors_per_scope": 8,
+    "safe_error_code_max_characters": 96,
+    "safe_error_message_key_max_characters": 128,
+    "valid_utf8_encodable_text_required": true,
     "rectangular_tables_required": true,
     "internal_references_must_resolve": true,
+    "reciprocal_table_page_references_required": true,
+    "reciprocal_table_section_references_required": true,
     "duplicate_ids_or_error_codes_allowed": false,
     "formula_execution_allowed": false,
     "raw_exception_path_uri_secret_or_business_echo_allowed": false
@@ -261,6 +277,7 @@
     ],
     "output_id_algorithm": "SHA256_CANONICAL_OUTPUT_PROJECTION",
     "output_id_scope": "INTEGRITY_ONLY_NOT_PROVENANCE_QUALITY_OR_RUNTIME_PROOF",
+    "produced_at_not_before_requested_at": true,
     "normalization_result_schema_version": "ids.stage047.parser_output.normalization_result.v1",
     "normalization_result_fields": [
       "schema_version",

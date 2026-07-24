@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-22T21:19:36Z"
-status: "stage047_phase4_completed_review_pending"
+updated_at_utc: "2026-07-24T03:41:08Z"
+status: "stage047_completed_reviewed_local"
 
 transition_history:
+  stage047_review_state:
+    status: "stage047_completed_reviewed_local"
+    current_task_id: "IDS-V0_1-STAGE047-REVIEW"
+    next_gate: "IDS-STAGE048-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE048-P1"
+    github_upload_allowed: false
   stage047_phase4_state:
     status: "stage047_phase4_completed_review_pending"
     current_task_id: "IDS-V0_1-STAGE047-P4"
@@ -1135,18 +1141,18 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
   STAGE-047:
-    status: "stage047_phase4_completed_review_pending"
+    status: "stage047_completed_reviewed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_stage: "STAGE-047"
-    next_gate: "IDS-STAGE047-REVIEW-GATE"
-    current_task_id: "IDS-V0_1-STAGE047-P4"
+    next_stage: "STAGE-048"
+    next_gate: "IDS-STAGE048-P1-GATE"
+    current_task_id: "IDS-V0_1-STAGE047-REVIEW"
     acceptance_id: "ACC-STAGE-047"
-    acceptance_status: "phase4_local_passed_review_pending"
-    review_status: "pending"
+    acceptance_status: "reviewed_local_passed"
+    review_status: "passed"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
     phase4_entry_authorized: true
@@ -1177,7 +1183,23 @@ stage_progress:
     parser_output_delivery_contract_schema: "ids.stage047.parser_output.phase4.delivery.v1"
     phase4_delivery_valid: true
     delivery_result: "PASS_ISOLATED_PARSER_OUTPUT_CLOSEOUT_RUNTIME_DISABLED"
-    contract_state: "PHASE4_CLOSEOUT_EVIDENCE_ENABLED_REAL_PARSER_FALLBACK_QUALITY_AND_PERSISTENCE_DISABLED"
+    stage_review_schema: "ids.stage047.parser_output.stage_review.v1"
+    stage_review_status: "completed_reviewed_local"
+    stage_review_result: "PASS_REVIEWED_LOCAL_PARSER_OUTPUT_RUNTIME_DISABLED"
+    review_finding_count: 6
+    review_critical_finding_count: 2
+    review_important_finding_count: 4
+    review_minor_finding_count: 0
+    review_findings_repaired: true
+    phase4_commit_binding_valid: true
+    phase4_artifact_bindings_valid: true
+    complete_request_result_source_lineage: true
+    invalid_unicode_structured_rejection: true
+    canonical_lower_ascii_control_references: true
+    reciprocal_internal_reference_graph: true
+    bounded_status_and_safe_errors: true
+    monotonic_request_production_time: true
+    contract_state: "STAGE047_REVIEWED_LOCAL_PARSER_OUTPUT_RUNTIME_DISABLED"
     required_envelope_field_count: 18
     required_parser_output_field_count: 6
     nested_item_schema_count: 4
@@ -1278,7 +1300,7 @@ stage_progress:
     phase2_started: true
     phase3_started: true
     phase4_started: true
-    whole_stage_review_performed: false
+    whole_stage_review_performed: true
     stage048_entry_allowed: false
     batch_review_performed: false
     github_upload_allowed: false
@@ -1305,12 +1327,17 @@ stage_progress:
       - "KM_IDSystem/scripts/check_parser_output_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_delivery.py"
       - "KM_IDSystem/machine/runs/2026-07-23-stage047-p4-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_STAGE_REVIEW.md"
+      - "KM_IDSystem/scripts/check_parser_output_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_review_repairs.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_stage_review.py"
+      - "KM_IDSystem/machine/runs/2026-07-24-stage047-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE047-P4"
-  next_allowed_task_id: "IDS-V0_1-STAGE047-REVIEW"
+  current_task_id: "IDS-V0_1-STAGE047-REVIEW"
+  next_allowed_task_id: "IDS-V0_1-STAGE048-P1"
   github_upload_allowed: false
-  current_run: "STAGE-047 Phase 4 replays the committed sixteen synthetic preparsed scenarios and derives eight sanitized output samples, sixteen non-runtime fallback records, exact quality metrics, seven bounded failure classes, support boundaries and version rollback evidence. No source file, runtime parser, fallback, quality gate, persistence or production action ran."
-  no_upload_reason: "BATCH041_050 has six completed and individually reviewed Stages plus Stage047 Phase1-4 only; Stage047 whole-stage review, STAGE-048..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."
+  current_run: "STAGE-047 whole-stage review reverified the approved source, immutable Phase4 commit/artifacts and all four phase checkers, then repaired six fail-closed contract gaps. No source file, runtime parser, fallback, quality gate, persistence or production action ran."
+  no_upload_reason: "BATCH041_050 has seven completed and individually reviewed Stages; STAGE-048..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."

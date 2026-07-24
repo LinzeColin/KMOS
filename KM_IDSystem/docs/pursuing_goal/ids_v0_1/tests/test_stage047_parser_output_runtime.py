@@ -318,7 +318,8 @@ class Stage047ParserOutputPhase2Tests(unittest.TestCase):
             ],
             incoming["required_fields"],
         )
-        self.assertTrue(incoming["phase1_required_fields_preserved"])
+        self.assertFalse(incoming["phase1_required_fields_preserved"])
+        self.assertTrue(incoming["phase1_review_lineage_repair_applied"])
         self.assertTrue(incoming["routing_request_lineage_proof_required"])
         self.assertFalse(incoming["source_body_or_path_allowed"])
 

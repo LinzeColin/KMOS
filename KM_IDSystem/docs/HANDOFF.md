@@ -9,7 +9,17 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - 2026-07-23
+## Current Gate - 2026-07-24
+
+- Completed task in this run: `IDS-V0_1-STAGE047-REVIEW`. The independent whole-stage review live-rehashed the approved archive, unique Stage047 member, roadmap and instructions; rebound immutable Phase4 commit `007ef85e6ee30e155269284dc9c0fe89572c8161`, exact root/KMIDS trees, parent, HEAD ancestry and five Phase4 artifact hashes; and replayed Phase1-4.
+- Six findings are repaired and machine-checked: `2 Critical / 4 Important / 0 Minor`. The current six-field input wrapper completes request/result/source lineage; unencodable Unicode rejects structurally; canonical refs use lower-ASCII token segments; table/page/section graphs are reciprocal; route/error text is exact and bounded; and `produced_at >= requested_at`.
+- The committed Phase1 five-field snapshot remains historical evidence. The current Phase1 contract and Phase2 runtime contract explicitly distinguish that immutable snapshot from the review repair; no history was rewritten.
+- Stage047 is `completed_reviewed_local`; `ACC-STAGE-047` is closed locally. The only next task is `IDS-V0_1-STAGE048-P1`, behind `IDS-STAGE048-P1-GATE` and only in a separate future run.
+- Next allowed task: `IDS-V0_1-STAGE048-P1`; this is a forward route only, not evidence that Stage048 started in this run.
+- Review evidence is `STAGE047_STAGE_REVIEW.md`, `check_parser_output_stage_review.py`, repair/final tests, the review machine run, event, batch/roadmap state, machine facts and rendered owner views. Any source, Phase4 binding, phase replay, finding, governance or Git-index mismatch returns `FAIL_CLOSED` to `IDS-STAGE047-REVIEW-GATE`.
+- No IDS business source, raw metadata, actual route/parser, fallback, quality gate, evidence promotion, persistence, Stage048, batch review, GitHub action or app reinstall ran. `BATCH041_050` remains locked with seven of ten stages locally reviewed; `push_allowed=false`.
+- Final GREEN passed Stage047 focused `72/72`, Stage005 `178/178`, Stage041-047 aggregate `485/485` in `1261.140s`, full IDS v0.1 discovery `1241/1241` in `1689.670s`, all ten Stage038-047 review checkers, `230` unique events, idempotent seven-document owner rendering and project dual-plane. Exact historical repairs only add the current `Stage047 Review -> Stage048 P1 Gate`; failed runs are not counted as PASS. Root governance remains `SPARSE_CONFLICT` because sparse checkout omits root `scripts/lean_governance.py`; do not expand other projects.
+- Historical Stage047 Phase4 transition only follows below. Its `P4 -> REVIEW` route is no longer the current gate.
 
 - Completed task in this run: `IDS-V0_1-STAGE047-P4`. The approved source and immutable Phase3 predecessor commit `595a507519b443faa49fca9fa0a6e8bd21cb9dde`, root tree `65a4db060a67ffbb4e7007b25d0dd453fbdbfc88`, KMIDS tree `d0e7058864e6669abcf213cf8c9defe4d57c6fa5`, parent and five Phase3 artifacts were live-rehashed across commit, index and working tree.
 - `ids.stage047.parser_output.phase4.delivery.v1` replays all 16 committed control scenarios and derives eight `RECOMPUTED_SANITIZED_CONTROL_OUTPUT_NOT_RUNTIME` projections plus 16 `DERIVED_CONTROL_LOG_SAMPLE_NOT_RUNTIME` records. No fixture text, table cell, page/section text, formula value, raw exception, path, secret or credential is retained.
@@ -225,8 +235,8 @@ Commit/PR summaries must include:
 - Read-only main checkout: `/Users/linzezhang/Documents/Codex/GithubProject/KMOS` (must remain on clean `main`).
 - Active task worktree: `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041`.
 - Project scope: `KM_IDSystem/` only.
-- Current local state: `STAGE-031..STAGE-040` and their independent batch review are merged to GitHub `main`; `STAGE-041..STAGE-046` are locally reviewed; `STAGE-047` Phase 1 is locally complete with a static exact-shape parser-output contract while all parser/output/fallback/persistence effects remain disabled.
-- Current task: `IDS-V0_1-STAGE047-P1` is complete; the only next task is `IDS-V0_1-STAGE047-P2` in a separate run behind `IDS-STAGE047-P2-GATE`. Stage047 Phase2-4/review, Stage048-050, ten-stage batch review, upload, merge and app reinstall remain separate gates.
+- Current local state: `STAGE-031..STAGE-040` and their independent batch review are merged to GitHub `main`; `STAGE-041..STAGE-047` are locally reviewed. Parser/output/fallback/quality/persistence effects remain disabled.
+- Current task: `IDS-V0_1-STAGE047-REVIEW` is complete; the only next task is `IDS-V0_1-STAGE048-P1` in a separate run behind `IDS-STAGE048-P1-GATE`. Stage048-050, ten-stage batch review, upload, merge and app reinstall remain separate gates.
 - Stage043 review publishes `ids.stage043.worker_crash_recovery.stage_review.v1`, binds the committed Phase4 baseline, reruns all four phase checkers and machine-checks six repaired findings.
 - Phase 2 remains valid at checker `18/18 + 15/15`; its canonical identity, candidate-only transition, fencing, idempotency and safe-reference boundaries are unchanged.
 - Preserved Stage043 Phase 4 transition: Completed task in this run: `IDS-V0_1-STAGE043-P4`; Next allowed task: `IDS-V0_1-STAGE043-REVIEW`; `NO_STAGE_REVIEW_THIS_RUN`. This is historical evidence, not the current gate.

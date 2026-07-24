@@ -24,7 +24,7 @@ INSTRUCTIONS_SOURCE_PATH = Path(
     "/Users/linzezhang/Downloads/IDS_Codex使用说明_v0_1_only_中文修订版.txt"
 )
 EXPECTED_CANONICAL_CONTRACT_SHA256 = (
-    "c343626e88b839cf30784a539f51d9d13ba0d3f76c217ffc763d7d30297ac385"
+    "8e4739c33651e10377c413348cade34a656e03d18ba9464d22e00d7c65b3fd0a"
 )
 
 EXPECTED_SOURCE = {
@@ -165,6 +165,31 @@ EXPECTED_UPSTREAM = {
 EXPECTED_CORE_FIELDS = [
     "text", "tables", "pages", "sections", "confidence", "errors",
 ]
+EXPECTED_INPUT_FIELDS = [
+    "route_result_id",
+    "route_result",
+    "routing_request",
+    "source_identity_ref",
+    "requested_output_schema_version",
+    "requested_at",
+]
+EXPECTED_ROUTING_REQUEST_FIELDS = [
+    "schema_version",
+    "routing_request_id",
+    "detection_request_id",
+    "detection_result_id",
+    "source_fingerprint_ref",
+    "source_identity_ref",
+    "detected_type",
+    "detection_state",
+    "detection_confidence",
+    "detection_evidence_ref",
+    "detector_contract_version",
+    "parser_registry_version",
+    "evidence_text_marker_applied",
+    "requested_at",
+]
+EXPECTED_ROUTE_HUMAN_STATUS = "控制路线夹具已绑定，未选择或执行解析器"
 EXPECTED_ENVELOPE_FIELDS = [
     "output_id",
     "output_schema_version",
@@ -289,6 +314,8 @@ EXPECTED_NESTED_KEYS = {
     "input_boundary": {
         "mode",
         "required_wrapper_fields",
+        "required_routing_request_schema_version",
+        "required_routing_request_fields",
         "required_route_result_schema_version",
         "required_route_result_fields",
         "eligible_route_actions",
@@ -299,6 +326,11 @@ EXPECTED_NESTED_KEYS = {
         "result_identity_algorithm",
         "result_identity_format",
         "result_identity_scope",
+        "routing_request_identity_required",
+        "routing_request_identity_algorithm",
+        "request_result_lineage_match_required",
+        "required_route_result_human_status",
+        "canonical_control_reference_format",
         "source_identity_match_required",
         "parser_family_and_version_match_required",
         "placeholder_parser_version_allowed_for_candidate_output",
@@ -316,6 +348,7 @@ EXPECTED_NESTED_KEYS = {
         "output_id_scope",
         "allowed_statuses",
         "strict_utc_produced_at_required",
+        "produced_at_not_before_requested_at",
         "parser_version_required",
         "placeholder_parser_version_allowed",
         "candidate_output_is_dispatch_authorization",
@@ -334,6 +367,9 @@ EXPECTED_NESTED_KEYS = {
         "source_identity_ref_must_match_route_result",
         "parser_family_and_version_must_match_route_result",
         "all_internal_references_must_resolve",
+        "reciprocal_table_page_references_required",
+        "reciprocal_table_section_references_required",
+        "canonical_reference_format",
         "duplicate_item_ids_rejected",
         "orphan_page_section_or_table_refs_rejected",
         "filesystem_path_or_uri_reference_allowed",
@@ -348,6 +384,7 @@ EXPECTED_NESTED_KEYS = {
         "unknown_confidence_blocks_promotion",
         "low_confidence_requires_review",
         "safe_error_codes_required_for_all_failures",
+        "valid_utf8_encodable_text_required",
         "silent_success_allowed",
         "silent_drop_allowed",
         "invalid_output_action",
@@ -637,7 +674,9 @@ def _nested_shapes_exact(value: Mapping[str, Any]) -> bool:
             "additional_fields_allowed",
             "allowed_severities",
             "code_format",
+            "code_max_characters",
             "message_key_format",
+            "message_key_max_characters",
             "raw_message_exception_stack_path_uri_or_content_allowed",
         },
     }
@@ -700,15 +739,13 @@ def evaluate_contract(
     incoming = value.get("input_boundary", {})
     checks["stage045_stage046_reference_only_input"] = (
         isinstance(incoming, Mapping)
-        and incoming.get("mode") == "REFERENCE_ONLY_STAGE046_ROUTE_RESULT"
-        and incoming.get("required_wrapper_fields")
-        == [
-            "route_result_id",
-            "route_result",
-            "source_identity_ref",
-            "requested_output_schema_version",
-            "requested_at",
-        ]
+        and incoming.get("mode")
+        == "REFERENCE_ONLY_STAGE046_ROUTING_REQUEST_AND_RESULT"
+        and incoming.get("required_wrapper_fields") == EXPECTED_INPUT_FIELDS
+        and incoming.get("required_routing_request_schema_version")
+        == "ids.stage046.parser_routing_request.v1"
+        and incoming.get("required_routing_request_fields")
+        == EXPECTED_ROUTING_REQUEST_FIELDS
         and incoming.get("required_route_result_schema_version")
         == "ids.stage046.parser_routing_result.v1"
         and incoming.get("eligible_route_actions")
@@ -728,6 +765,14 @@ def evaluate_contract(
         == "route-result:sha256:<64-lower-hex>"
         and incoming.get("result_identity_scope")
         == "INTEGRITY_ONLY_NOT_EXTERNAL_PROVENANCE_OR_AUTHORIZATION"
+        and incoming.get("routing_request_identity_required") is True
+        and incoming.get("routing_request_identity_algorithm")
+        == "SHA256_CANONICAL_JSON"
+        and incoming.get("request_result_lineage_match_required") is True
+        and incoming.get("required_route_result_human_status")
+        == EXPECTED_ROUTE_HUMAN_STATUS
+        and incoming.get("canonical_control_reference_format")
+        == "LOWER_ASCII_TOKEN_SEGMENTS"
         and incoming.get("source_identity_match_required") is True
         and incoming.get("parser_family_and_version_match_required") is True
         and incoming.get("placeholder_parser_version_allowed_for_candidate_output")
@@ -753,6 +798,7 @@ def evaluate_contract(
         == "INTEGRITY_ONLY_NOT_EXTERNAL_PROVENANCE_OR_QUALITY_APPROVAL"
         and envelope.get("allowed_statuses") == EXPECTED_STATUSES
         and envelope.get("strict_utc_produced_at_required") is True
+        and envelope.get("produced_at_not_before_requested_at") is True
         and envelope.get("parser_version_required") is True
         and envelope.get("placeholder_parser_version_allowed") is False
         and envelope.get("candidate_output_is_dispatch_authorization") is False
@@ -831,6 +877,9 @@ def evaluate_contract(
         and items.get("safe_error", {}).get("additional_fields_allowed") is False
         and items.get("safe_error", {}).get("allowed_severities")
         == ["WARNING", "ERROR", "FATAL"]
+        and items.get("safe_error", {}).get("code_max_characters") == 96
+        and items.get("safe_error", {}).get("message_key_max_characters")
+        == 128
         and items.get("safe_error", {}).get(
             "raw_message_exception_stack_path_uri_or_content_allowed"
         )
@@ -849,10 +898,14 @@ def evaluate_contract(
                 "source_identity_ref_must_match_route_result",
                 "parser_family_and_version_must_match_route_result",
                 "all_internal_references_must_resolve",
+                "reciprocal_table_page_references_required",
+                "reciprocal_table_section_references_required",
                 "duplicate_item_ids_rejected",
                 "orphan_page_section_or_table_refs_rejected",
             )
         )
+        and lineage.get("canonical_reference_format")
+        == "LOWER_ASCII_TOKEN_SEGMENTS"
         and lineage.get("filesystem_path_or_uri_reference_allowed") is False
         and lineage.get("identity_mismatch_action")
         == "OUTPUT_REJECTED_IDENTITY_MISMATCH"
@@ -874,6 +927,7 @@ def evaluate_contract(
                 "unknown_confidence_blocks_promotion",
                 "low_confidence_requires_review",
                 "safe_error_codes_required_for_all_failures",
+                "valid_utf8_encodable_text_required",
             )
         )
         and completion.get("silent_success_allowed") is False

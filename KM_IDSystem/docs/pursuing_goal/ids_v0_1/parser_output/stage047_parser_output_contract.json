@@ -81,12 +81,30 @@
     }
   },
   "input_boundary": {
-    "mode": "REFERENCE_ONLY_STAGE046_ROUTE_RESULT",
+    "mode": "REFERENCE_ONLY_STAGE046_ROUTING_REQUEST_AND_RESULT",
     "required_wrapper_fields": [
       "route_result_id",
       "route_result",
+      "routing_request",
       "source_identity_ref",
       "requested_output_schema_version",
+      "requested_at"
+    ],
+    "required_routing_request_schema_version": "ids.stage046.parser_routing_request.v1",
+    "required_routing_request_fields": [
+      "schema_version",
+      "routing_request_id",
+      "detection_request_id",
+      "detection_result_id",
+      "source_fingerprint_ref",
+      "source_identity_ref",
+      "detected_type",
+      "detection_state",
+      "detection_confidence",
+      "detection_evidence_ref",
+      "detector_contract_version",
+      "parser_registry_version",
+      "evidence_text_marker_applied",
       "requested_at"
     ],
     "required_route_result_schema_version": "ids.stage046.parser_routing_result.v1",
@@ -123,6 +141,11 @@
     "result_identity_algorithm": "SHA256_CANONICAL_JSON",
     "result_identity_format": "route-result:sha256:<64-lower-hex>",
     "result_identity_scope": "INTEGRITY_ONLY_NOT_EXTERNAL_PROVENANCE_OR_AUTHORIZATION",
+    "routing_request_identity_required": true,
+    "routing_request_identity_algorithm": "SHA256_CANONICAL_JSON",
+    "request_result_lineage_match_required": true,
+    "required_route_result_human_status": "控制路线夹具已绑定，未选择或执行解析器",
+    "canonical_control_reference_format": "LOWER_ASCII_TOKEN_SEGMENTS",
     "source_identity_match_required": true,
     "parser_family_and_version_match_required": true,
     "placeholder_parser_version_allowed_for_candidate_output": false,
@@ -163,6 +186,7 @@
       "OUTPUT_FAILED_EXPLICIT"
     ],
     "strict_utc_produced_at_required": true,
+    "produced_at_not_before_requested_at": true,
     "parser_version_required": true,
     "placeholder_parser_version_allowed": false,
     "candidate_output_is_dispatch_authorization": false,
@@ -293,7 +317,9 @@
         "FATAL"
       ],
       "code_format": "PARSER_<A-Z0-9_+>",
+      "code_max_characters": 96,
       "message_key_format": "parser.<lower_snake_case>",
+      "message_key_max_characters": 128,
       "raw_message_exception_stack_path_uri_or_content_allowed": false
     }
   },
@@ -304,6 +330,9 @@
     "source_identity_ref_must_match_route_result": true,
     "parser_family_and_version_must_match_route_result": true,
     "all_internal_references_must_resolve": true,
+    "reciprocal_table_page_references_required": true,
+    "reciprocal_table_section_references_required": true,
+    "canonical_reference_format": "LOWER_ASCII_TOKEN_SEGMENTS",
     "duplicate_item_ids_rejected": true,
     "orphan_page_section_or_table_refs_rejected": true,
     "filesystem_path_or_uri_reference_allowed": false,
@@ -318,6 +347,7 @@
     "unknown_confidence_blocks_promotion": true,
     "low_confidence_requires_review": true,
     "safe_error_codes_required_for_all_failures": true,
+    "valid_utf8_encodable_text_required": true,
     "silent_success_allowed": false,
     "silent_drop_allowed": false,
     "invalid_output_action": "OUTPUT_REJECTED_FAIL_CLOSED"

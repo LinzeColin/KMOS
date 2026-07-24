@@ -23,10 +23,10 @@ class Stage005GovernanceRegressionTests(unittest.TestCase):
 
     def _tamper_current_stage046_phase1_route(self, batch_text: str) -> str:
         tampered = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE047-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE047-REVIEW"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE047-P4"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE047-REVIEW-BROKEN"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE047-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE048-P1"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE047-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE048-P1-BROKEN"',
         )
         self.assertNotEqual(batch_text, tampered)
         return tampered

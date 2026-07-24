@@ -1,5 +1,14 @@
 # Changelog
 
+## IDS v0.1 STAGE-047 Review - 2026-07-24
+
+- Completed the independent Stage047 whole-stage review under `ACC-STAGE-047`, live-rehashing the approved archive, unique task-pack member, roadmap and instructions; binding immutable Phase4 commit/tree/parent/ancestry and five artifact hashes; and replaying Phase1-4.
+- Repaired `2 Critical / 4 Important / 0 Minor` findings: missing request/result/source lineage in the Phase1 wrapper, unstructured invalid-Unicode failure, permissive canonical references, one-way table reference graphs, unbounded/inexact route and safe-error text, and non-monotonic request/production timestamps.
+- Added `ids.stage047.parser_output.stage_review.v1`, six executable counterexample checks, durable governance/event/machine evidence and Git-index binding. The committed five-field Phase1 snapshot remains historical; the current six-field wrapper is explicitly recorded as a review repair.
+- Repair TDD RED produced nine expected failures and three errors across six tests; the repair suite then passed `6/6`. Review TDD RED produced four expected failures and one error across eight tests, with three already passing. P1-P2 passed `26/26` and P3-P4 passed `32/32` after repair.
+- Final validation passed Stage047 focused `72/72`, Stage005 `178/178`, Stage041-047 aggregate `485/485` in `1261.140s`, full IDS v0.1 discovery `1241/1241` in `1689.670s`, all ten Stage038-047 review checkers, `230` unique events, idempotent seven-document owner rendering and project dual-plane. Exact historical repairs only add `Stage047 Review -> Stage048 P1 Gate`; failed runs are not counted as PASS and root governance remains `SPARSE_CONFLICT` without sparse expansion.
+- Routed only to separate `IDS-STAGE048-P1-GATE` with `stage048_entry_allowed=false` and `push_allowed=false`. No IDS business source, raw metadata, real parser, fallback, quality gate, persistence, Stage048, batch review, GitHub upload/merge, app reinstall, dependency installation or production action ran.
+
 ## IDS v0.1 STAGE-047 Phase 4 - 2026-07-23
 
 - Added `ids.stage047.parser_output.phase4.delivery.v1`, bound to the approved source, exact committed Phase3 commit/root/KM_IDSystem tree/parent and five immutable Phase3 artifact hashes.
