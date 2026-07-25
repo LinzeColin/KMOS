@@ -1,0 +1,53 @@
+# KMFA A0 重算 + zero-delta —— 云上(GitHub Actions)从私有库 Private-Database 取真源、
+# 按 agent 自定的合规会计口径重算,只回 public-safe 结果(差额率/通过与否,无金额)。
+# 前提:KMOS 仓需有 secret PRIVATE_DB_TOKEN(对 LinzeColin/Private-Database 有 read 权限的 GitHub PAT)。
+# 手动触发(workflow_dispatch);真实财务不入公开 KMOS,仅私有库读、内存算、public-safe 出。
+name: kmfa-a0-recompute
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a0:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 预检 secret
+        env:
+          PRIVATE_DB_TOKEN: ${{ secrets.PRIVATE_DB_TOKEN }}
+        run: |
+          if [ -z "$PRIVATE_DB_TOKEN" ]; then
+            echo "::error::缺 PRIVATE_DB_TOKEN secret——请在 KMOS 仓 Settings→Secrets→Actions 添加(对 Private-Database 有 read 的 PAT),与 COOLIFY_API_TOKEN 同样操作。"
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 装依赖
+        run: python -m pip install --quiet openpyxl
+
+      - name: 云上 A0 重算 + zero-delta(读私有库,只出 public-safe)
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_DB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 KMFA/tools/a0_zero_delta_cloud.py
+          echo "## A0 zero-delta（public-safe，零金额）" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat a0_zero_delta_result.json >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 留存 public-safe 结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a0-zero-delta-public-safe
+          path: a0_zero_delta_result.json
+          if-no-files-found: ignore
