@@ -1356,11 +1356,21 @@ export default function App() {
         <header className="topbar">
           <h2>{页}</h2>
           {状态 && !状态.加载失败 && <>
-            <span className="badge" title="数据质量档位（机器判级）">质量 <b>{状态.页眉.质量等级}</b></span>
-            <span className="badge" title="报告可信度（机器判级）">报告 <b>{状态.页眉.报告等级}</b></span>
-            <span className={`badge${String(状态.页眉.GO状态).includes('NO_GO') ? ' risk' : ''}`}
-                  title="NO_GO＝暂不可对外：关键账未对平，报告仅限内部">
-              <b>{状态.页眉.GO状态}</b></span>
+            {/* 三徽章人话优先：先说人能懂的结论，机器代码降为小字后缀（Owner 2026-07-25 反馈看不懂）。
+                仍保留「质量 / 报告 / NO_GO」可见文本，回归基线断言不破。 */}
+            <span className="badge" title={`数据质量档位（机器判级 ${状态.页眉.质量等级}）`}>
+              数据质量 · <b>{状态.页眉.质量人话 || 状态.页眉.质量等级}</b>
+              <small className="gradecode">质量 {状态.页眉.质量等级}</small>
+            </span>
+            <span className="badge" title={`报告可信度（机器判级 ${状态.页眉.报告等级}）`}>
+              报告 · <b>{状态.页眉.报告人话 || '待评级'}</b>
+              <small className="gradecode">报告 {String(状态.页眉.报告等级).split('——')[0].trim()}</small>
+            </span>
+            <span className={`badge${状态.页眉.可对外 === false ? ' risk' : ''}`}
+                  title={`能否把报告对外使用（机器判级 ${状态.页眉.GO状态}）`}>
+              对外交付 · <b>{状态.页眉.交付人话 || (状态.页眉.可对外 ? '可对外使用' : '暂不能对外')}</b>
+              <small className="gradecode">{状态.页眉.GO状态}</small>
+            </span>
           </>}
           {管线 && !管线.加载失败 && 管线.data_as_of_batch &&
             <span className="meta">数据截至批次 {管线.data_as_of_batch}</span>}

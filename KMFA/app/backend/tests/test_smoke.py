@@ -14,7 +14,11 @@ def test_status_header_triplet():
     r = client.get("/api/状态")
     assert r.status_code == 200
     header = r.json()["页眉"]
-    assert set(header) == {"质量等级", "报告等级", "GO状态"}
+    # 三徽章机器代码三元组必须都在（回归基线锚点）。
+    assert {"质量等级", "报告等级", "GO状态"} <= set(header)
+    # Owner 2026-07-25 反馈「看不懂」后新增的人话字段：与代码并存,供前端人话优先渲染。
+    assert {"质量人话", "报告人话", "可对外", "交付人话"} <= set(header)
+    assert isinstance(header["可对外"], bool)
 
 
 def test_assertions_counts():
