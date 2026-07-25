@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""S03/P3.2 public App Shell browser oracle.
+"""S03/P3.2 public App Shell browser oracle(根路径 = KMFA 本体首页)。
 
-Exercises desktop, mobile, JavaScript-disabled, and shallow-health-degraded modes.
+Owner 2026-07-25 判定:根域名一进去必须是 KMFA(经营驾驶舱)的首页;
+匿名工作区迁至 /workspace(walking_skeleton_flow 覆盖)。本 oracle 保持
+桌面 / 移动 / 无 JS / 浅健康降级四种模式,并继续钉死:匿名首页不得触碰
+私有面、不得出现真实经营数据、不得出现登录/注册控件。
 Artifacts contain only the public shell DOM/screenshots/traces and belong in a CI or /tmp
 directory, never in the repository evidence tree.
 """
@@ -15,7 +18,7 @@ from urllib.parse import urlsplit
 
 from playwright.sync_api import Browser, Page, sync_playwright
 
-ENTRY_KEYS = ("project", "upload", "search", "progress", "report", "help")
+ENTRY_KEYS = ("today", "cash", "tax", "cost", "decide", "report")
 PRIVATE_PREFIXES = ("/api", "/ops")
 
 
@@ -79,13 +82,11 @@ def _run_interactive(
         body_text = page.locator("body").inner_text()
         assert not any(marker in body_text for marker in ("BLK-001", "NO_GO", "质量 Q3", "回款账龄"))
 
-        page.locator('[data-shell-entry="search"]').click()
-        search = page.locator('[data-public-search="true"]')
-        search.fill("上传")
-        results = page.locator('[data-search-results="true"]')
-        results.wait_for()
-        assert "上传" in results.inner_text()
-        assert "仅本页六项公开说明" in page.locator("#module-detail").inner_text()
+        # KMFA 首页契约:一键进入驾驶舱、公开工作区切片入口各恰好一个;
+        # 但本页自身绝不发起对私有面(/ops、/api)的请求。
+        assert page.locator('a.public-primary-action[href="/ops/app"]').count() == 1
+        assert page.locator('a[href="/workspace"]').count() == 1
+        assert "四层" in page.locator("#chain").inner_text()
 
         if viewport["width"] <= 480:
             overflow = page.evaluate("document.documentElement.scrollWidth - window.innerWidth")

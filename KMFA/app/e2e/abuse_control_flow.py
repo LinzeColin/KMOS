@@ -431,7 +431,7 @@ def _browser_challenge(
 
         page.on("response", capture_response)
         page.on("console", lambda message: console_messages.append(message.text))
-        page.goto(base_url, wait_until="networkidle", timeout=30_000)
+        page.goto(f"{base_url}/workspace", wait_until="networkidle", timeout=30_000)
         page.locator('[data-walking-skeleton-state="ready"]').wait_for()
         challenge_started = 0.0
         challenge_elapsed_ms = 0.0
