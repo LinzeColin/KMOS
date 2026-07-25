@@ -18,8 +18,9 @@ from playwright.sync_api import Browser, Page, Playwright, sync_playwright
 
 AXE_TAGS = ("wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa")
 ENGINES = ("chromium", "firefox", "webkit")
-ENTRY_KEYS = ("project", "upload", "search", "progress", "report", "help")
-ENTRY_NAMES = ("项目", "上传", "搜索", "进度", "报告", "帮助")
+ENTRY_KEYS = ("today", "cash", "tax", "cost", "decide", "report")
+ENTRY_NAMES = ("今天", "回款与账龄", "开票与税务", "项目成本", "待拍板", "报告下载")
+PRIMARY_HEADING = "把钱、票、成本与拍板，放进同一块驾驶舱。"
 CANONICAL_ROOT = "https://kmfa.linzezhang.com/"
 UNPUBLISHED_CANARY = "/unpublished/__kmfa_publication_canary__/private-file"
 NO_INDEX = "noindex, nofollow, noarchive"
@@ -101,7 +102,7 @@ def _screen_reader_contract(page: Page) -> dict[str, object]:
     assert (
         page.get_by_role(
             "heading",
-            name="一个入口，通往项目、文件与可验证进度。",
+            name=PRIMARY_HEADING,
             exact=True,
         ).count()
         == 1
@@ -115,15 +116,15 @@ def _screen_reader_contract(page: Page) -> dict[str, object]:
         assert control.count() == 1
         card_names.append(control.get_attribute("aria-label"))
 
-    page.get_by_role("button", name=re.compile(r"^搜索：")).click()
-    assert page.get_by_role("search").count() == 1
-    assert page.get_by_label("搜索本页公开说明", exact=True).count() == 1
+    # KMFA 首页两条出口链接必须有可访问名:驾驶舱入口与公开工作区切片。
+    assert page.get_by_role("link", name="进入经营驾驶舱", exact=True).count() == 1
+    assert page.get_by_role("link", name="打开公开工作区", exact=True).count() == 1
     return {
         "language": "zh-CN",
         "landmarks": ["banner", "navigation:主要功能", "main", "contentinfo"],
-        "primary_heading": "一个入口，通往项目、文件与可验证进度。",
+        "primary_heading": PRIMARY_HEADING,
         "live_status": True,
-        "search_label": "搜索本页公开说明",
+        "exit_links": ["进入经营驾驶舱", "打开公开工作区"],
         "card_accessible_names": card_names,
         "status": "PASS",
     }
@@ -279,9 +280,6 @@ def _run_browser(
             )
             # Flush computed styles before axe samples contrast across engines.
             page.wait_for_timeout(50)
-            if key == "search":
-                page.locator('[data-public-search="true"]').fill("上传")
-                page.locator('[data-search-results="true"]').wait_for()
             axe_runs.append(_run_axe(page, axe_script, f"{engine}:desktop:{key}"))
         page.screenshot(path=out_dir / f"{engine}-desktop.png", full_page=True)
 
@@ -380,6 +378,7 @@ def _crawler_contract(playwright: Playwright, base_url: str) -> dict[str, object
             "/api",
             "/ops/app",
             "/ui",
+            "/workspace",
             "/healthz",
             UNPUBLISHED_CANARY,
         ):
@@ -399,6 +398,7 @@ def _crawler_contract(playwright: Playwright, base_url: str) -> dict[str, object
         for path, expected_status in (
             (UNPUBLISHED_CANARY, 404),
             ("/ops/app", 200),
+            ("/workspace", 200),
             ("/ui/unpublished", 308),
             ("/healthz", 200),
         ):
@@ -444,6 +444,7 @@ def _crawler_contract(playwright: Playwright, base_url: str) -> dict[str, object
                 "/api",
                 "/ops/app",
                 "/ui",
+                "/workspace",
                 "/healthz",
                 UNPUBLISHED_CANARY,
             ],

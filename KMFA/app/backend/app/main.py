@@ -164,6 +164,24 @@ def private_operations_app(app_path: str | None = None):
     )
 
 
+@app.api_route("/workspace/{workspace_path:path}", methods=["GET", "HEAD"], include_in_schema=False)
+@app.api_route("/workspace", methods=["GET", "HEAD"], include_in_schema=False)
+@app.api_route("/workspace/", methods=["GET", "HEAD"], include_in_schema=False)
+def public_workspace(workspace_path: str | None = None):
+    """匿名工作区(原公开壳)独立入口;根路径归 KMFA 本体首页。
+
+    索引边界中间件对非根路径 fail-closed(noindex + private no-store),
+    robots 仅放行根,故本路由无需额外抓取控制。
+    """
+    return FileResponse(
+        _frontend_index(),
+        headers={
+            "Cache-Control": "no-cache, must-revalidate",
+            "X-KMFA-Shell-Mode": "public-workspace",
+        },
+    )
+
+
 @app.api_route("/ui/{legacy_path:path}", methods=["GET", "HEAD"], include_in_schema=False)
 @app.api_route("/ui", methods=["GET", "HEAD"], include_in_schema=False)
 @app.api_route("/ui/", methods=["GET", "HEAD"], include_in_schema=False)

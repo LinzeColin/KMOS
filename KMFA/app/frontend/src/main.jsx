@@ -70,18 +70,30 @@ class VisibleErrorBoundary extends React.Component {
 }
 
 const root = document.getElementById('root')
-const isPrivateOperationsApp = window.location.pathname === '/ops/app'
-  || window.location.pathname.startsWith('/ops/app/')
+const pathname = window.location.pathname
+const isPrivateOperationsApp = pathname === '/ops/app'
+  || pathname.startsWith('/ops/app/')
+const isPublicWorkspace = pathname === '/workspace'
+  || pathname.startsWith('/workspace/')
 
 function loadPrivateOperationsApp() {
   return import('./App.jsx')
 }
 
-function loadPublicAppShell() {
+function loadPublicWorkspace() {
   return import('./PublicAppShell.jsx')
 }
 
-const appModule = isPrivateOperationsApp ? loadPrivateOperationsApp() : loadPublicAppShell()
+function loadKmfaHome() {
+  return import('./KmfaHome.jsx')
+}
+
+// 根路径 = KMFA 本体首页;匿名工作区独立在 /workspace;私有驾驶舱在 /ops/app。
+const appModule = isPrivateOperationsApp
+  ? loadPrivateOperationsApp()
+  : isPublicWorkspace
+    ? loadPublicWorkspace()
+    : loadKmfaHome()
 
 appModule
   .then(({ default: App }) => {

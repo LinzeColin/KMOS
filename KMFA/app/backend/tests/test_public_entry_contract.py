@@ -63,8 +63,8 @@ def test_root_is_direct_canonical_app_entry():
 def test_root_contains_complete_static_shell_without_account_controls():
     html = client.get("/").text
     entries = re.findall(r'data-static-shell-entry="([a-z]+)"', html)
-    assert entries == ["project", "upload", "search", "progress", "report", "help"]
-    for label in ("项目", "上传", "搜索", "进度", "报告", "帮助"):
+    assert entries == ["today", "cash", "tax", "cost", "decide", "report"]
+    for label in ("今天", "回款与账龄", "开票与税务", "项目成本", "待拍板", "报告下载"):
         assert label in html
     assert 'data-no-js-state="visible"' in html
     assert "JavaScript 已停用" in html
@@ -166,7 +166,7 @@ def test_promoted_index_mode_allows_only_the_canonical_root(monkeypatch):
         '<meta name="robots" content="index,follow,max-snippet:-1">',
         '<meta property="og:type" content="website">',
         '<meta property="og:site_name" content="KMFA">',
-        '<meta property="og:title" content="KMFA｜公开工作区">',
+        '<meta property="og:title" content="KMFA｜经营驾驶舱">',
         '<meta property="og:locale" content="zh_CN">',
         '<meta name="twitter:card" content="summary">',
     ):

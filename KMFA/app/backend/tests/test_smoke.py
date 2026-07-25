@@ -54,11 +54,25 @@ def test_skills_enriched_fields():
 
 
 def test_index_serves_public_shell():
-    # 根路径本身就是 canonical 公共入口，不依赖旧 /ui/ 别名或私有经营仪表盘。
+    # 根路径本身就是 canonical 公共入口,而且必须是 KMFA 本体(经营驾驶舱门面),
+    # 不依赖旧 /ui/ 别名、不冒充成别的产品(Owner 2026-07-25)。
     r = client.get("/", follow_redirects=False)
     assert r.status_code == 200 and "location" not in r.headers
-    assert "KMFA｜公开工作区" in r.text and '<div id="root">' in r.text
+    assert "KMFA｜经营驾驶舱" in r.text and '<div id="root">' in r.text
+    assert "把钱、票、成本与拍板，放进同一块驾驶舱。" in r.text
     assert r.text.count("data-static-shell-entry=") == 6
+
+
+def test_workspace_route_serves_shell_with_noindex():
+    # 匿名工作区独立于根路径;索引边界中间件对它 fail-closed。
+    r = client.get("/workspace", follow_redirects=False)
+    assert r.status_code == 200
+    assert r.headers["x-kmfa-shell-mode"] == "public-workspace"
+    assert r.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
+    assert "no-store" in r.headers["cache-control"]
+    assert '<div id="root">' in r.text
+    deep = client.get("/workspace/anything", follow_redirects=False)
+    assert deep.status_code == 200
 
 
 def test_legacy_ui_redirects_once_to_root():
