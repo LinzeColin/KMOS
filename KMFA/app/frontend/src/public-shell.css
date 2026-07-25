@@ -75,7 +75,7 @@ a { color: inherit; }
   position: sticky; top: 0; z-index: 50;
   display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem;
   min-height: 4.4rem; padding: 0.6rem var(--pad-x);
-  background: rgba(241,234,219,.92); backdrop-filter: saturate(1.1) blur(6px);
+  background: var(--paper);
   border-bottom: 1px solid var(--ink);
 }
 .public-brand { display: flex; align-items: center; gap: 0.8rem; text-decoration: none; font-size: 1.05rem; font-weight: 800; letter-spacing: 0.01em; line-height: 1.1; }
@@ -265,12 +265,6 @@ a { color: inherit; }
   position: relative; width: min(100% - 2.6rem, 74rem); margin: 0 auto clamp(2.6rem, 5vw, 4.4rem);
   padding: clamp(3rem, 6vw, 5rem) clamp(1.8rem, 5vw, 5rem);
   border-radius: var(--r-lg); background: var(--seal); color: #f7e6e1; overflow: hidden;
-}
-.public-boundary::after {
-  content: "凭"; position: absolute; top: 50%; right: clamp(1.5rem, 5vw, 4rem); transform: translateY(-50%) rotate(-8deg);
-  display: grid; place-items: center; width: clamp(5rem, 12vw, 8rem); height: clamp(5rem, 12vw, 8rem);
-  color: rgba(247,230,225,.15); border: 4px solid rgba(247,230,225,.15); border-radius: 10px;
-  font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 800; pointer-events: none;
 }
 .public-boundary .public-kicker { color: #f2cfc7; }
 .public-boundary h2 { position: relative; max-width: 17em; margin: 1rem 0 1.1rem; color: #fff8f4; font-size: clamp(1.8rem, 3.2vw, 2.5rem); font-weight: 820; letter-spacing: -0.01em; line-height: 1.28; text-wrap: balance; }
