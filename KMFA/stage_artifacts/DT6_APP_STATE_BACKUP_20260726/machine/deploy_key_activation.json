@@ -1,0 +1,24 @@
+{
+  "schema_version": "kmfa.app_state_backup.deploy_key.v1",
+  "context": "Owner 2026-07-26 定:备份走 GitHub 私有库,且『你自己创建 token,我不会搞,也可以单独给我』。GitHub 不提供创建 PAT 的 API(安全限制),故改用 agent 可编程创建的**部署密钥**。",
+  "backup_repo": "LinzeColin/KMFA-App-State-Backup(私有,专用;非 Private-Database——最小爆炸半径:此密钥只能读写备份,读不到财务源)",
+  "credential": "ed25519 部署密钥;公钥已装为该库【可写】部署密钥(agent 经 gh API 完成);私钥在 Owner 本机 _protected/kmfa_backup_deploy_key(+ .b64 单行),永不入任何仓",
+  "roundtrip_tested_from_ci_env": {
+    "raw_ssh_clone_push": "PASS — 部署密钥 SSH 克隆+push+云端核实对象+清理",
+    "tool_git_ssh_backup": "PASS — 工具 backup 经部署密钥推备份库",
+    "tool_list": "PASS — 克隆读 manifest",
+    "tool_restore": "PASS — 克隆+sha256 完整性+解包",
+    "data_identity": "PASS — JSONL 逐字节 + SQLite 表数据一致",
+    "b64_env_path": "PASS — 经 KMFA_BACKUP_SSH_KEY_B64(VPS 真实路径)往返数据一致",
+    "entrypoint_decode": "PASS — base64 -d 还原私钥逐字节一致",
+    "test_archives_cleaned": "是 — 备份库已复位为空(README+.gitkeep)"
+  },
+  "vps_wiring": {
+    "dockerfile": "加 openssh-client(git-SSH 需要)",
+    "entrypoint": "启动时 KMFA_BACKUP_SSH_KEY_B64 → 解到 /opt/kmfa/secrets/kmfa_backup_deploy_key(600),只把路径写 cron.d(密钥本体不落 cron.d/日志)",
+    "compose": "skills 加 env KMFA_BACKUP_SSH_KEY_B64",
+    "cron": "已有每日北京 00:30 daily-backup;工具自动优先用密钥,无则 token,无则降级命名卷"
+  },
+  "activation_status": "已建+多路往返实证。云端异地生效待 Owner 在 Coolify skills 服务粘一次 base64 私钥(_protected/kmfa_backup_deploy_key.b64)到 KMFA_BACKUP_SSH_KEY_B64 → 下次部署即每日自动异地备份。未粘则自动降级命名卷(扛重部署)。",
+  "amounts_public": false
+}

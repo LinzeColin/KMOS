@@ -18,13 +18,15 @@
 命名卷内，能扛重部署但非异地），并明确告警「异地未激活」——不静默假装成功。
 无 `gh` 依赖：直接走 GitHub REST（urllib），VPS 容器只需 python3 即可。
 """
-import argparse, base64, hashlib, io, json, os, sqlite3, sys, tarfile, tempfile, time, urllib.request, urllib.error
+import argparse, base64, hashlib, io, json, os, shutil, sqlite3, subprocess, sys, tarfile, tempfile, time, urllib.request, urllib.error
 from datetime import datetime, timezone, timedelta
 
-REPO_DEFAULT = "LinzeColin/Private-Database"
+REPO_DEFAULT = "LinzeColin/Private-Database"           # REST(token)路径:入 Private-Database
+SSH_REPO_DEFAULT = "LinzeColin/KMFA-App-State-Backup"  # git-SSH(部署密钥)路径:专用私有备份库(最小爆炸半径)
 PREFIX = "kmfa-app-state"                      # 备份对象前缀
 MANIFEST = "backups/kmfa-app-state-manifest.jsonl"
 API = "https://api.github.com"
+KEEP_LAST = 30                                 # git-SSH 路径保留最近 N 份(防仓无限膨胀)
 
 
 def _bj_ts():
@@ -141,33 +143,143 @@ def _read_manifest(token, repo):
     return [json.loads(l) for l in base64.b64decode(cur["content"]).decode().splitlines() if l.strip()]
 
 
+def _resolve_ssh_key():
+    """部署密钥来源（按优先级）：
+      `KMFA_BACKUP_SSH_KEY_FILE`（已就位的 600 密钥文件路径；VPS 首选，entrypoint 已解码好）
+      `KMFA_BACKUP_SSH_KEY`（私钥明文内容）
+      `KMFA_BACKUP_SSH_KEY_B64`（私钥 base64——单行，便于经 env/Coolify 传递）
+    返回 (key_path, is_temp) 或 None。"""
+    kf = os.environ.get("KMFA_BACKUP_SSH_KEY_FILE")
+    if kf and os.path.isfile(kf):
+        return kf, False
+    content = os.environ.get("KMFA_BACKUP_SSH_KEY")
+    if not content:
+        b64 = os.environ.get("KMFA_BACKUP_SSH_KEY_B64")
+        if b64:
+            try:
+                content = base64.b64decode(b64).decode()
+            except Exception:
+                raise SystemExit("KMFA_BACKUP_SSH_KEY_B64 无法 base64 解码")
+    if content:
+        fd, path = tempfile.mkstemp(prefix="kmfa-bk-key-")
+        with os.fdopen(fd, "w") as f:
+            f.write(content if content.endswith("\n") else content + "\n")
+        os.chmod(path, 0o600)
+        return path, True
+    return None
+
+
+def _git(args, cwd, key_path):
+    env = dict(os.environ)
+    env["GIT_SSH_COMMAND"] = f"ssh -i {key_path} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    r = subprocess.run(["git", *args], cwd=cwd, env=env, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise SystemExit(f"git {args[0]} 失败：{(r.stderr or r.stdout)[:300]}")
+    return r.stdout
+
+
+def _git_ssh_backup(data, names, sha, ts, repo, key_path):
+    """git-over-SSH（部署密钥）推专用私有备份库；保留最近 KEEP_LAST 份。"""
+    work = tempfile.mkdtemp(prefix="kmfa-bk-repo-")
+    try:
+        _git(["clone", "--quiet", f"git@github.com:{repo}.git", work], cwd=None, key_path=key_path)
+        bkdir = os.path.join(work, "backups")
+        os.makedirs(bkdir, exist_ok=True)
+        fn = f"{ts}_{sha[:12]}_{PREFIX}.tar.gz"
+        with open(os.path.join(bkdir, fn), "wb") as f:
+            f.write(data)
+        # 追加 manifest
+        mpath = os.path.join(work, MANIFEST)
+        rec = {"ts": ts, "sha256": sha, "size_bytes": len(data),
+               "file_count": len(names), "object_path": f"backups/{fn}", "prefix": PREFIX}
+        with open(mpath, "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        # 保留最近 KEEP_LAST 份归档
+        arch = sorted(x for x in os.listdir(bkdir) if x.endswith(".tar.gz"))
+        for old in arch[:-KEEP_LAST]:
+            os.remove(os.path.join(bkdir, old))
+        _git(["add", "-A"], cwd=work, key_path=key_path)
+        _git(["-c", "user.email=kmfa-backup@localhost", "-c", "user.name=KMFA Backup",
+              "commit", "--quiet", "-m", f"backup(kmfa): app-state {ts}"], cwd=work, key_path=key_path)
+        _git(["push", "--quiet", "origin", "HEAD"], cwd=work, key_path=key_path)
+        print(f"✓ 异地备份完成（部署密钥→{repo}）sha256={sha[:12]}… "
+              f"（{len(data)} 字节，{len(names)} 文件，backups/{fn}；保留最近 {KEEP_LAST} 份）")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def cmd_backup(a):
     data, names = _tar_state(a.state_dir)
     sha = hashlib.sha256(data).hexdigest()
     ts = _bj_ts()
+    # 优先级：部署密钥(git-SSH,专用备份库) → token(REST,Private-Database) → 本地降级
+    keyinfo = _resolve_ssh_key()
+    if keyinfo:
+        key_path, is_temp = keyinfo
+        try:
+            _git_ssh_backup(data, names, sha, ts, a.ssh_repo, key_path)
+        finally:
+            if is_temp:
+                try: os.unlink(key_path)
+                except OSError: pass
+        return 0
     token = _token()
-    if not token:
-        os.makedirs(a.fallback_dir, exist_ok=True)
-        fp = os.path.join(a.fallback_dir, f"{ts}_{PREFIX}_{sha[:12]}.tar.gz")
-        with open(fp, "wb") as f:
-            f.write(data)
-        print(f"⚠ 异地未激活（无 KMFA_BACKUP_GH_TOKEN）：仅本地降级副本 {fp}"
-              f"（{len(data)} 字节，含 {len(names)} 文件）。设 Coolify secret 后自动切异地。")
-        return 3
-    obj = f"objects/{sha[:2]}/{sha}_{ts}_{PREFIX}.tar.gz"
-    _put_object(token, a.repo, obj, data, f"backup(kmfa): app-state {ts}")
-    _append_manifest(token, a.repo, {
-        "ts": ts, "sha256": sha, "size_bytes": len(data),
-        "file_count": len(names), "object_path": obj, "prefix": PREFIX})
-    print(f"✓ 异地备份完成 → {a.repo} sha256={sha[:12]}… "
-          f"（{len(data)} 字节，{len(names)} 文件，对象 {obj}）")
-    return 0
+    if token:
+        obj = f"objects/{sha[:2]}/{sha}_{ts}_{PREFIX}.tar.gz"
+        _put_object(token, a.repo, obj, data, f"backup(kmfa): app-state {ts}")
+        _append_manifest(token, a.repo, {
+            "ts": ts, "sha256": sha, "size_bytes": len(data),
+            "file_count": len(names), "object_path": obj, "prefix": PREFIX})
+        print(f"✓ 异地备份完成（token→{a.repo}）sha256={sha[:12]}… "
+              f"（{len(data)} 字节，{len(names)} 文件，对象 {obj}）")
+        return 0
+    os.makedirs(a.fallback_dir, exist_ok=True)
+    fp = os.path.join(a.fallback_dir, f"{ts}_{PREFIX}_{sha[:12]}.tar.gz")
+    with open(fp, "wb") as f:
+        f.write(data)
+    print(f"⚠ 异地未激活（无部署密钥/token）：仅本地降级副本 {fp}"
+          f"（{len(data)} 字节，含 {len(names)} 文件）。设 Coolify secret 后自动切异地。")
+    return 3
+
+
+def _clone_backup_repo(repo, key_path):
+    work = tempfile.mkdtemp(prefix="kmfa-bk-read-")
+    _git(["clone", "--quiet", f"git@github.com:{repo}.git", work], cwd=None, key_path=key_path)
+    return work
 
 
 def cmd_restore(a):
+    keyinfo = _resolve_ssh_key()
+    if keyinfo:                                   # git-SSH：从专用备份库克隆还原
+        key_path, is_temp = keyinfo
+        try:
+            work = _clone_backup_repo(a.ssh_repo, key_path)
+            mpath = os.path.join(work, MANIFEST)
+            man = [json.loads(l) for l in open(mpath, encoding="utf-8")] if os.path.isfile(mpath) else []
+            if not man:
+                raise SystemExit("备份库无 manifest 可还原")
+            rec = man[-1] if not a.sha else next((r for r in man if r["sha256"].startswith(a.sha)), None)
+            if not rec:
+                raise SystemExit(f"未找到备份 sha={a.sha}")
+            data = open(os.path.join(work, rec["object_path"]), "rb").read()
+            got = hashlib.sha256(data).hexdigest()
+            if got != rec["sha256"]:
+                raise SystemExit(f"完整性校验失败：期望 {rec['sha256'][:12]} 得 {got[:12]}")
+            os.makedirs(a.out, exist_ok=True)
+            with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
+                tar.extractall(a.out)
+            print(f"✓ 还原完成（部署密钥←{a.ssh_repo}）{rec['ts']} sha256={got[:12]}… → {a.out}"
+                  f"（{rec['file_count']} 文件，完整性 OK）")
+            shutil.rmtree(work, ignore_errors=True)
+        finally:
+            if is_temp:
+                try: os.unlink(key_path)
+                except OSError: pass
+        return 0
     token = _token()
     if not token:
-        raise SystemExit("restore 需 KMFA_BACKUP_GH_TOKEN")
+        raise SystemExit("restore 需部署密钥(KMFA_BACKUP_SSH_KEY) 或 KMFA_BACKUP_GH_TOKEN")
     man = _read_manifest(token, a.repo)
     if not man:
         raise SystemExit("私有库无备份可还原")
@@ -183,14 +295,29 @@ def cmd_restore(a):
     os.makedirs(a.out, exist_ok=True)
     with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
         tar.extractall(a.out)
-    print(f"✓ 还原完成 ← {rec['ts']} sha256={got[:12]}… → {a.out}（{rec['file_count']} 文件，完整性 OK）")
+    print(f"✓ 还原完成（token←{a.repo}）{rec['ts']} sha256={got[:12]}… → {a.out}（{rec['file_count']} 文件，完整性 OK）")
     return 0
 
 
 def cmd_list(a):
+    keyinfo = _resolve_ssh_key()
+    if keyinfo:
+        key_path, is_temp = keyinfo
+        try:
+            work = _clone_backup_repo(a.ssh_repo, key_path)
+            mpath = os.path.join(work, MANIFEST)
+            man = [json.loads(l) for l in open(mpath, encoding="utf-8")] if os.path.isfile(mpath) else []
+            for r in man:
+                print(f"{r['ts']}  {r['size_bytes']:>10} 字节  {r['file_count']:>3} 文件  {r['sha256'][:12]}…")
+            shutil.rmtree(work, ignore_errors=True)
+        finally:
+            if is_temp:
+                try: os.unlink(key_path)
+                except OSError: pass
+        return 0
     token = _token()
     if not token:
-        raise SystemExit("list 需 KMFA_BACKUP_GH_TOKEN")
+        raise SystemExit("list 需部署密钥(KMFA_BACKUP_SSH_KEY) 或 KMFA_BACKUP_GH_TOKEN")
     for r in _read_manifest(token, a.repo):
         print(f"{r['ts']}  {r['size_bytes']:>10} 字节  {r['file_count']:>3} 文件  {r['sha256'][:12]}…")
     return 0
@@ -198,7 +325,8 @@ def cmd_list(a):
 
 def main():
     p = argparse.ArgumentParser(description="KMFA App 状态面异地备份（→ GitHub 私有库）")
-    p.add_argument("--repo", default=REPO_DEFAULT)
+    p.add_argument("--repo", default=REPO_DEFAULT, help="token(REST) 路径的仓：默认 Private-Database")
+    p.add_argument("--ssh-repo", default=SSH_REPO_DEFAULT, help="部署密钥(git-SSH) 路径的专用备份仓")
     sub = p.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("backup"); b.add_argument("--state-dir", default="/var/lib/kmfa/state")
     b.add_argument("--fallback-dir", default="/var/log/kmfa/backups"); b.set_defaults(fn=cmd_backup)
