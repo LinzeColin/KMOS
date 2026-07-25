@@ -30,7 +30,7 @@
       "id": "S05",
       "name": "A0 权威项目成本黄金基准",
       "gate": "零差异",
-      "status": "链首次接通但 A6 零差异未过:A0(税务现金)对系统重算(金蝶6401 主营业务成本权责)云上真跑=+269% 跨基础差(非计算错误);闭合待现金对权责对账表。BLK-001 由『链未接通』降级为『跨基础对账表待建』,仍不置绿。",
+      "status": "A0 真源已上云真跑(源链第 1 环接通),但我的 临时云脚本有缺陷(借方列错位+汇总过计数),差额率已撤回。权威对账在 `assertions.jsonl`:30 条精确到分【19 对平/11 未闭合】;A0 项目成本基准仍治理锁定,权威口径 A6 零差异未达,不置绿。BLK-001 仍在。",
       "evidence": "stage_artifacts/DT6_DATA_ONCLOUD_A0",
       "evidence_run": "LinzeColin/Private-Database Actions kmfa-a0-zero-delta (public-safe)"
     },
@@ -58,7 +58,7 @@
       "id": "S09",
       "name": "项目成本计算引擎",
       "gate": "回归与可否交付",
-      "status": "项目成本口径(6401 主营业务成本)已用真实数据云上重算;与税务A0跨基础差+269%,零差异未达。",
+      "status": "项目成本引擎口径按仓内权威对账层(金蝶叶子科目、父级滚存降级)为准;我上轮 6401 云抽取的百分比因脚本缺陷已撤回。A0 基准未锁,零差异未达。",
       "evidence": "stage_artifacts/DT6_DATA_ONCLOUD_A0",
       "evidence_run": "LinzeColin/Private-Database Actions kmfa-a0-zero-delta (public-safe)"
     },

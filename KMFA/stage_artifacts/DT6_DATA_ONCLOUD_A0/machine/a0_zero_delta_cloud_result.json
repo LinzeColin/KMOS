@@ -1,45 +1,24 @@
 {
-  "schema_version": "kmfa.a0_zero_delta.cloudrun.v1",
-  "computed_where": "GitHub Actions in LinzeColin/Private-Database (私有库自带 GITHUB_TOKEN)",
-  "computed_how": "零 secret / 零本地资源 / 零 Owner 动作;源与真实金额只在私有库内存,产物只出 public-safe",
-  "authority_A0": "税务『2024-2025.12开票、纳税 资金汇总表.xlsx』→ sheet『2025项目成本明细』→ 收支类别=项目成本 的付款金额合计(现金基础)",
-  "system_source": "金蝶 3 家主体明细账 → 科目 6401 主营业务成本(权责基础)",
-  "entities_counted": 3,
-  "runs": [
-    {
-      "口径": "全科目借方合计(错误,含期间费用+内部划转)",
-      "basis": "—",
-      "delta_vs_A0_pct": 737.0,
-      "verdict": "REJECTED",
-      "note": "上一轮的假差;把 1159 个科目全加了,已弃用"
-    },
-    {
-      "口径": "6401 借方净额(借方−贷方)",
-      "run_id": "30155873638",
-      "basis": "权责,净额",
-      "delta_vs_A0_pct": -180.6,
-      "zero_delta_pass": false,
-      "verdict": "REJECTED",
-      "note": "净额把年末结转(贷方)减掉了,净成负,不反映真实 COGS"
-    },
-    {
-      "口径": "6401 借方发生额=COGS(不减结转)",
-      "run_id": "30155945479",
-      "basis": "权责,发生额",
-      "delta_vs_A0_pct": 268.7,
-      "zero_delta_pass": false,
-      "verdict": "ACCOUNTING-CORRECT-BUT-CROSS-BASIS",
-      "note": "会计正确的 COGS 度量;与税务现金口径天然不等"
-    }
-  ],
-  "conclusion": {
-    "zero_delta_pass": false,
-    "headline_delta_pct": 268.7,
-    "为什么非零": "税务 A0 是【现金基础】(实际付款),金蝶 6401 是【权责基础】(收入确认时计 COGS)。建筑业两者按设计就差很多:在建工程 WIP、收入确认时点、质保金留存,都会让权责 COGS 远大于当年现金付款。+269% 属正常的『权责>现金』跨基础差,不是计算 bug。",
-    "要真闭合需要什么": "一张【现金↔权责对账表】(cash-to-accrual bridge):现金付款 +期末WIP −期初WIP ±时点差 ±质保金 = 权责 COGS。这是真实会计编制工作,不能靠单值相减强算成 0。",
-    "诚实定级": "系统重算 − A0 = 0(验收 A6)【未通过】。不伪造 PASS。0005/0006/0010/0011 维持 quantified-gap,不置绿。"
+  "schema_version": "kmfa.a0_zero_delta.cloudrun.v2_RETRACTED",
+  "retraction_notice": "本文件 v1 报出的 +737% / -180.6% / +269% 三个差额率【全部作废】——它们出自我自己写的 ad-hoc 云抽取脚本,而该脚本有两个已证实的 bug(见下),算出的不是真实对账数,而是抽取错误的产物。不代表书对不平。",
+  "computed_where": "GitHub Actions in LinzeColin/Private-Database (私有库自带 GITHUB_TOKEN,零 secret/零本地/零 Owner 动作) —— 云上跑通这点仍成立",
+  "why_retracted": {
+    "bug_1_wrong_column": "主体B(b9)与主体C(2f)的明细账表头在『借方』前插了『对方科目』列 → 借方真实列号=12,我的脚本硬读 r[11]=对方科目(文本)→ cents()=0 → 这两家主体的成本被【读成~0】(漏计)。",
+    "bug_2_summary_overcount": "主体A(35)有 149 张 6401 分表,每张明细行仅~3-6 行、但小计/合计/累计/承前/过次页等【汇总行~21-28 行】。我的汇总行过滤只列了 4 个精确字符串,漏掉绝大多数汇总变体 → 把大量小计行当明细行累加 → 严重【过计数】。",
+    "net_effect": "主体A巨量过计数 + 主体B/主体C漏计,合成的 +269% 是垃圾数,不是跨基础差的真实量级。"
   },
-  "what_this_proves": "源优先级链第 1 环(真实授权导出)【首次接通】:真实税务权威源 + 3 家金蝶明细账已在私有库,云上 Actions 真跑重算,全程零 secret/零本地/零 Owner 动作。链通了;闭合待跨基础对账表。",
+  "authoritative_reconciliation_is_in_repo": {
+    "file": "KMFA/metadata/quality/assertions.jsonl",
+    "note": "仓自带 30 条真 cent 级对账断言,用正确口径(金蝶叶子科目、父级滚存降级)。这才是权威对账层,远比我的 ad-hoc 脚本可信。",
+    "tally": "13 closed_matched(Δ=0) + 6 closed_matched_tolerance = 19 已对平;11 analyzed_open(未闭合)",
+    "examples_tie": ["kingdee/凭证级借=贷 Δ=0", "kingdee/叶子科目明细借=贷(父级滚存降级后) Δ=0", "expense/费用明细=金蝶同码借方 Δ=0", "loan/仲利摊销=金蝶实还 Δ=0", "receivable_aging/合同额-已收=剩余 Δ=0"],
+    "examples_open": ["collection/财务应收回款 2025-07与11月 Δ≠0", "kingdee/明细账vs凭证导出一致性 Δ≠0", "loan/贷款一览表结存 vs 金蝶借款科目 Δ≠0", "material/收发明细 vs 金蝶材料借方"]
+  },
+  "honest_conclusion": {
+    "zero_delta_pass": false,
+    "more_accurate_statement": "不是『书差 +269% 对不平』。真实态是:仓内 30 项 cent 级对账【19 已对平、11 未闭合】;A0 项目成本黄金基准仍被治理层锁(amount_calculation_performed=false),因 A0 zero-diff(系统重算−A0=0)尚未在权威口径下达成。我上轮的 +269% 属【我自己脚本的数据质量事故】,已按 goal『禁 mock/确保真实』如实撤回。",
+    "what_still_stands": "① 云上重算流水线(零 secret/零本地/零 Owner)真跑通;② 源优先级链第 1 环(真实授权导出)已接通;③ 不伪造 PASS。"
+  },
   "amounts_public": false,
   "company_names_public": false
 }

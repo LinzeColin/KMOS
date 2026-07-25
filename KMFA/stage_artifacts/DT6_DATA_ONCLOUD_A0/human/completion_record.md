@@ -29,7 +29,18 @@ Owner 2026-07-25 连下三条真实指令,逐条落地:
 (过程中发现 Private-Database 的 Actions 被关着,我用 `gh api -X PUT .../actions/permissions -F enabled=true` 打开;
 仓其实只有 ~192MB,不是 500GB,全量 checkout 即可。)
 
-## A0 zero-delta 云上真跑结果(2026-07-25,零 secret/零本地/零 Owner 动作)
+## ⚠️ 更正(2026-07-25 晚,同日复核后撤回)——下表三个百分比全部作废
+复核金蝶明细账真实表结构后,确认我上轮那个 ad-hoc 云抽取脚本有**两个已证实 bug**:
+1. **列错位**:主体B/主体C的表头在『借方』前多一列『对方科目』,借方真实列号=12,我硬读 r[11] → 读成文本 → 这两家成本**读成 ~0(漏计)**。
+2. **汇总行过计数**:主体A 149 张 6401 分表,每张明细仅 3-6 行、汇总行却 21-28 行;我的汇总过滤只列 4 个词,漏掉绝大多数小计/累计/承前行 → **把小计当明细狂加(过计数)**。
+
+所以下表 `+737% / −180.6% / +269%` **不是对账数,是我脚本的数据质量事故**,已全部撤回(见 `machine/a0_zero_delta_cloud_result.json` 的 `retraction_notice`)。**书并不是差 269%。**
+
+**权威对账在仓里**:`KMFA/metadata/quality/assertions.jsonl` 有 30 条真 cent 级断言(正确口径:金蝶叶子科目、父级滚存降级)——**19 已对平(13 Δ=0 + 6 容差内)、11 未闭合**。A0 项目成本基准仍被治理锁(`amount_calculation_performed=false`),因权威口径下 A0 zero-diff 尚未达成。**仍成立的**:云算流水线跑通、源链第 1 环接通、不伪造 PASS。
+
+> 下面保留原始(错误)记录**不删**,作为「我犯过什么错、怎么发现的」的留痕——符合 append-only 与如实纪律。
+
+## A0 zero-delta 云上真跑结果(2026-07-25,零 secret/零本地/零 Owner 动作)【★已被上方更正撤回★】
 workflow `kmfa-a0-zero-delta.yml` 已在私有库真跑成功,public-safe 结果见
 `machine/a0_zero_delta_cloud_result.json`(**只有差额率/通过与否,零金额零公司名**)。三次口径:
 
