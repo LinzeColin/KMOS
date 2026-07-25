@@ -1,0 +1,36 @@
+{
+  "schema_version": "kmfa.a0_assembly_map.v1",
+  "probed_where": "Private-Database Actions kmfa-a0-assemble-probe(私算,public-safe)",
+  "finding": "确认 A0 六指标各自的可达源与 per-project 键",
+  "metric_sources": {
+    "revenue/invoice/contract_amount": {
+      "sheet": "开票明细表(2024/2025)",
+      "per_project_keys": [
+        "销售合同号",
+        "合同编号",
+        "项目名称",
+        "合同金额"
+      ],
+      "feasible": true
+    },
+    "collection_amount": {
+      "sheet": "回款明细(回2025/回往年)",
+      "per_project_keys": [
+        "合同号",
+        "项目内容",
+        "公司名称"
+      ],
+      "feasible": true
+    },
+    "cost_total_and_9_categories": {
+      "sheet": "2025项目成本明细",
+      "per_project_keys": [],
+      "feasible_from_tax": false,
+      "reason": "项目成本明细是扁平银行日记账,无项目列;内容列32组中23组无法映射到9类别(72% UNMAPPED)——税务只给总额(私有),给不出 per-project×category 拆分"
+    }
+  },
+  "source_priority_nuance": "税务>金蝶,但税务缺 per-project 成本粒度→成本拆分只能取自金蝶6401(有销售合同号=项目、子科目=类别,权责基础),并以税务总额为权威控制数对账。差=权责vs现金,文档化。",
+  "next_computation": "金蝶6401 按销售合同号×子科目类别 正确抽取(inspect-first:确认各主体借方列位=避免b9/2f对方科目错位、叶子降级排汇总行)→ per-project成本 → 与税务权威总额(私有)对账 → 拼 revenue侧4指标 → 4项目×9类别×6指标 A0",
+  "amounts_public": false,
+  "project_names_public": false
+}
