@@ -31,8 +31,8 @@ python3 $T verify Private-KMDatabase
 
 ## 本地这份 `objects/` 现状（给后续 agent）
 
+- **2026-07-25：本地 `objects/`（53 文件 / 120M）与 `manifest.jsonl` 已从当前版本移除。** 迁移前已核对 53/53 全部存在于 Private-Database，移除安全。
 - Private-Database 的 `Private-KMDatabase/` 是**跨仓访问的权威入口**，含全部 53 对象 + KMFA 后续上传（当前 56 个）。
-- 本目录现存的 `objects/`（53 文件 / 120M）与 `manifest.jsonl` 仍在，原因有二，**都不该由「仓库拆分」线程删**：
-  1. `manifest.jsonl` 含真人姓名与客户名（余永昕、新疆宜化 等），其清除属 **KMFA 线程**负责的「公网财务数据清除」——那是一次 KMOS 历史重写，会把整个 `KMDatabase/data` 一并清掉。
-  2. KMFA 另有约 8 个一次性入库提取器（`invoice_lines_extract.py` 等）历史上读本目录；是否随清除退役由 KMFA 决定。
-- **后续 agent 结论**：要数据走 SDK 读 Private-Database；本地这份是 KMFA 待清对象，不要依赖、也不要替 KMFA 删。
+- **仍未做的事（Owner 另行决策）**：`manifest.jsonl` 与 objects 含真人姓名与客户名（余永昕、新疆宜化 等），本次只删当前版本，**git 历史里的旧提交仍含这些财务对象**。彻底清除需一次 KMOS 历史重写（或把 KMOS 切为 Private），属破坏性操作，尚未执行。
+- KMFA 约 12 个一次性入库提取器（`invoice_lines_extract.py` 等）历史上读本目录，随数据移除一并成为历史工具；权威消费链 `facts_from_staging.py` 早已经 SDK 从 Private 读，不受影响，均未接入 CI。
+- **后续 agent 结论**：要数据走 SDK 读 Private-Database；本地已无数据副本，不要尝试恢复。
