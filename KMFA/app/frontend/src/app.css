@@ -129,8 +129,13 @@ code {
   background: var(--surface); border: 1px solid var(--line);
 }
 .badge b { color: var(--text); font-weight: 650; }
+.badge .gradecode {
+  color: var(--text-2); font-size: 10px; font-family: var(--mono, ui-monospace, monospace);
+  padding: 1px 5px; border-radius: 999px; background: var(--bg, rgba(0,0,0,.04)); opacity: .8;
+}
 .badge.risk { color: var(--badc); background: var(--bad-bg); border-color: transparent; }
 .badge.risk b { color: var(--badc); }
+.badge.risk .gradecode { color: var(--badc); background: rgba(0,0,0,.06); }
 
 .content { width: 100%; max-width: 1240px; margin: 0 auto; padding: 20px 28px 56px; }
 .panel { animation: rise .22s ease both; }

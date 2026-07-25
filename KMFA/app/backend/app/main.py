@@ -246,16 +246,38 @@ def _quality_grade_short() -> str:
     return full.split("（")[0].strip() or full or "未知"
 
 
+def _quality_plain() -> str:
+    """质量档位的人话：取 quality_grade_current 括号内的说明。
+
+    Owner 2026-07-25 反馈「三徽章看不懂」——徽章只给 Q3/D/NO_GO 代码，非技术用户读不懂。
+    这里把 facts 里本就写好的人话说明抽出来给前端，仍是 facts 单一真源，不硬编码。
+    """
+    pipeline = json.loads((FACTS / "data_pipeline.json").read_text(encoding="utf-8"))
+    full = str(pipeline.get("quality_grade_current") or "").strip()
+    if "（" in full and "）" in full:
+        return full.split("（", 1)[1].rsplit("）", 1)[0].strip()
+    return ""
+
+
 @app.get("/api/状态")
 def status():
     s = load_json(FACTS / "status.json")
+    report_grade_full = str(s.get("report_grade") or "").strip()
+    # "D —— 缺失、过期、失败或关键差异未闭合" → 破折号后的人话原因
+    report_plain = report_grade_full.split("——", 1)[1].strip() if "——" in report_grade_full else ""
+    verdict = str(s.get("business_verdict") or "")
+    可对外 = "NO_GO" not in verdict.upper()
     return {
         "版本": s.get("version"), "阶段": s.get("stage"), "当前任务": s.get("task"),
         "真实进度": s.get("real_progress"),
         "页眉": {
             "质量等级": _quality_grade_short(),
+            "质量人话": _quality_plain(),
             "报告等级": s.get("report_grade"),
+            "报告人话": report_plain,
             "GO状态": s.get("business_verdict"),
+            "可对外": 可对外,
+            "交付人话": "可对外使用" if 可对外 else "暂不能对外",
         },
     }
 
