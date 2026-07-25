@@ -1,0 +1,28 @@
+{
+  "schema_version": "kmfa.a0_tax_derive.foundation.v1",
+  "authorized_by": "Owner 2026-07-26 经 AskUserQuestion 授权『按源优先级强锁 A0』",
+  "computed_where": "LinzeColin/Private-Database Actions kmfa-a0-tax-derive(私有库私算,真额只在私有 run,零金额出)",
+  "source": "税务权威表(源优先级最高)『2024-2025.12开票、纳税 资金汇总表.xlsx』→ sheet『2025项目成本明细』",
+  "extraction_verified": {
+    "header_cols_confirmed": ["银行日记账表号","日期","摘要","收支类别(col3)","收款金额(col4)","付款金额(col5)","余额","内容(col7)"],
+    "col_map": {"收支类别": 3, "付款金额": 5, "内容": 7, "摘要": 2},
+    "收支类别_distinct": ["项目成本"],
+    "payment_rows": 3830,
+    "grouping_key": "内容(col7) 去重 32 组=可用聚合键;摘要去重 2713=自由文本不可用",
+    "内容_top_group_share_pct": 44.1
+  },
+  "bug_caught_preflight": "首版 find('金额') 误匹配 col4『收款金额』(应为 col5『付款金额』)——先探结构才发现,未出错额;正是 +269% 那类列错位,这次靠 inspect-first 拦住。",
+  "a0_target_structure": {
+    "projects": 4,
+    "cost_categories_9": ["labor","material","machinery","subcontract","transport","travel","tax","management_fee","interest"],
+    "metrics_6": ["revenue","contract_amount","invoice_amount","collection_amount","cost_total","cost_category"]
+  },
+  "remaining_to_lock_A0": [
+    "① 把税务 内容(32组) 语义映射到 4项目×9类别 网格(成本侧)",
+    "② 从税务 开票明细/回款明细 sheet 组装 revenue/invoice/collection 指标(按项目)",
+    "③ 建 S09-P2 毛利计算 + S09-P3 差异对账(源优先级裁决11残差) 两正式层+校验器",
+    "④ 页面接线(私有 runtime 出真额)+ e2e 复验;真额只进私有库,public-safe 进 KMOS"
+  ],
+  "amounts_public": false,
+  "project_names_public": false
+}

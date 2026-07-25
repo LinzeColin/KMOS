@@ -30,8 +30,8 @@
       "id": "S05",
       "name": "A0 权威项目成本黄金基准",
       "gate": "零差异",
-      "status": "A0 真源已上云真跑(源链第 1 环接通),但我的 临时云脚本有缺陷(借方列错位+汇总过计数),差额率已撤回。权威对账在 `assertions.jsonl`:30 条精确到分【19 对平/11 未闭合】;A0 项目成本基准仍治理锁定,权威口径 A6 零差异未达,不置绿。BLK-001 仍在。",
-      "evidence": "stage_artifacts/DT6_DATA_ONCLOUD_A0",
+      "status": "Owner 2026-07-26 授权按源优先级强锁 A0,执行中:税务权威源(私有库内)已核对可达,`内容` 列 32 组=干净聚合键(付款列已确证第5列、拦下收/付款列错位缺陷);目标结构 4项目×9类别×6指标已核对。待:内容→网格映射+开票回款组装+建 S09-P2/P3。真额只私有库。",
+      "evidence": "stage_artifacts/DT6_A0_TAX_DERIVE_FOUNDATION_20260726",
       "evidence_run": "LinzeColin/Private-Database Actions kmfa-a0-zero-delta (public-safe)"
     },
     {
