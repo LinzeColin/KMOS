@@ -1,0 +1,16 @@
+{
+  "schema_version": "kmfa.a0_cost_side_finding.v1",
+  "probed_where": "Private-Database Actions kmfa-a0-kingdee-coa + kmfa-a0-5001-struct(私算,public-safe)",
+  "finding": "A0 要求的 4项目×9类别成本拆分,在可达原始数据里不可机械导出",
+  "where_cost_lives": "金蝶 5001 生产成本(主力成本科目:主体A818/主体B456/主体C8 子科目sheet),非 6401(那是 COGS)",
+  "column_detection_fixed": "各主体借方列已按表头名正确定位(主体Acol11/主体Bcol12/主体Ccol11,已处理对方科目错位——即 +269% 根因)",
+  "why_not_derivable": {
+    "税务项目成本明细": "扁平银行日记账、无项目列;内容列32组72%不映射9类别",
+    "金蝶5001": "818个数字子科目(如5001003)不带类别语义,>90%不映射9类别;销售合同号稀疏;无 科目→类别 字典在可达数据里",
+    "结论": "9类别拆分需一张 科目→类别 映射表 或 语义判断数百子科目——机械做不出、对银行/税务不可辩护"
+  },
+  "original_A0_source": "A0 基准45条 field-lock 当年从一张【按项目成本 PDF】锁定(会计编制、带类别拆分)——正是那张不可达的私有源",
+  "definitive_conclusion": "可辩护的 A0 成本拆分,须会计那张【按项目×9类别 结构化成本汇总】(即当年锁 A0 用的 PDF 或等价表)进 Private-Database。原始台账单独机械映射不出、也不该硬凑(禁 mock/确保真实能用)。开票收入侧4指标可从税务算,成本侧卡在这张结构化表。",
+  "owner_action": "把会计的按项目成本结构化汇总(带9类别或可映射的类别列)放进 Private-Database → 我即可拼 4×9×6、对税务总额、建 S09-P2/P3、解锁 0005/0006/0010/0011",
+  "amounts_public": false, "names_public": false
+}
