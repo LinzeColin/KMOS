@@ -8,7 +8,7 @@ const MODULES = [
     key: 'today',
     code: '01',
     title: '今天',
-    eyebrow: 'TODAY',
+    eyebrow: '经营总览',
     status: '驾驶舱内已上线',
     summary: '一屏看清昨天发生了什么、自动任务跑得怎样、哪些事等你拍板。',
     detail: '「今天」是驾驶舱的经营战报首页:近 24 小时自动任务战报、待拍板队列与断链自检入口汇聚在一屏,打开系统的第一眼就是结论,而不是一堆表格。',
@@ -18,7 +18,7 @@ const MODULES = [
     key: 'cash',
     code: '02',
     title: '回款与账龄',
-    eyebrow: 'RECEIVABLES',
+    eyebrow: '应收 · 账龄',
     status: '驾驶舱内已上线',
     summary: '谁欠钱、欠了多久、先催谁,账龄与逐月差异一屏讲清。',
     detail: '回款与账龄把应收按客户与时间排开,配逐月差异图与人话金额(万/亿缩写与精确值并存);每一个数字都能下钻到数据底账,不做估算图、不摆演示数据。',
@@ -28,7 +28,7 @@ const MODULES = [
     key: 'tax',
     code: '03',
     title: '开票与税务',
-    eyebrow: 'INVOICES & TAX',
+    eyebrow: '开票 · 税负',
     status: '驾驶舱内已上线',
     summary: '开票、税负与口径一致性,数字与底账一一对应。',
     detail: '开票与税务呈现开票台账与税负口径,与数据底账同一来源;口径差异不藏在备注里,而是进入待拍板闭环,由拍板事件留痕。',
@@ -38,7 +38,7 @@ const MODULES = [
     key: 'cost',
     code: '04',
     title: '项目成本',
-    eyebrow: 'COSTS',
+    eyebrow: '项目 · 成本',
     status: '驾驶舱内已上线',
     summary: '每个项目花了多少、结构如何、走势怎样,支出到行级。',
     detail: '项目成本按项目与分项展开成本结构,逐月走势一屏可见;任何一笔汇总都能追溯到支出行,不存在讲不出来历的数字。',
@@ -48,7 +48,7 @@ const MODULES = [
     key: 'decide',
     code: '05',
     title: '待拍板',
-    eyebrow: 'DECISIONS',
+    eyebrow: '差异 · 拍板',
     status: '已上线·全留痕',
     summary: '差异、例外与闭案:先讲清"会牵连什么",再请老板拍板。',
     detail: '待拍板把每个差异的影响面(受影响核对域、牵连数据)讲清之后才允许闭案;每一次拍板写入留痕事件,可回溯、不可静默改数。',
@@ -58,7 +58,7 @@ const MODULES = [
     key: 'report',
     code: '06',
     title: '报告下载',
-    eyebrow: 'REPORTS',
+    eyebrow: '报告 · 导出',
     status: '已上线·真下载',
     summary: '三种口径的经营报告,一键真下载,与页面数字同源。',
     detail: '报告下载提供三种口径的经营报告文件,一键导出;报告数字与驾驶舱页面同源同链,历史版本全保留,重算不覆盖旧账。',
@@ -160,7 +160,7 @@ function KmfaHome() {
       <header className="public-header">
         <a className="public-brand" href="/" aria-label="KMFA 首页">
           <span className="public-brand-mark">KM</span>
-          <span>KMFA <small>BUSINESS COCKPIT</small></span>
+          <span>KMFA <small>经营驾驶舱</small></span>
         </a>
         <nav className="public-nav" aria-label="主要功能">
           {MODULES.map((item) => (
@@ -190,7 +190,7 @@ function KmfaHome() {
       <main id="main-content" tabIndex="-1">
         <section className="public-hero" aria-labelledby="hero-title">
           <div className="public-hero-copy">
-            <p className="public-kicker"><span>KMFA</span> · BUSINESS COCKPIT</p>
+            <p className="public-kicker"><span>经营账房</span> · 一本账,管到底</p>
             <h1 id="hero-title">把钱、票、成本与拍板，放进同一块驾驶舱。</h1>
             <p className="public-hero-lead">
               KMFA 是一套经营驾驶舱系统:回款、开票、成本、决策与报告在同一条四层可验证链路上运转。
@@ -202,7 +202,7 @@ function KmfaHome() {
             </div>
           </div>
           <aside className="public-hero-index" aria-label="KMFA 三条原则">
-            <p>KMFA / 00</p>
+            <p>家规 · 三条</p>
             <ol>
               <li><span>01</span> 真数据,不用演示冒充</li>
               <li><span>02</span> 每次拍板,全程留痕</li>
@@ -221,7 +221,7 @@ function KmfaHome() {
         <section className="public-capabilities" id="capabilities" aria-labelledby="capabilities-title">
           <div className="public-section-heading">
             <div>
-              <p className="public-kicker">SIX MODULES, ONE COCKPIT</p>
+              <p className="public-kicker">六本账 · 一个驾驶舱</p>
               <h2 id="capabilities-title">六个模块,管住经营的每一步</h2>
             </div>
             <p>这六个模块已在驾驶舱内上线运转。公开页只介绍能力与边界;真实经营数字属于企业私有,只在授权的驾驶舱内可见。</p>
@@ -276,7 +276,7 @@ function KmfaHome() {
         <section className="public-chain" id="chain" aria-labelledby="chain-title">
           <div className="public-section-heading">
             <div>
-              <p className="public-kicker">VERIFIABLE CHAIN</p>
+              <p className="public-kicker">四层过账链</p>
               <h2 id="chain-title">四层链:每个数字都讲得出来历</h2>
             </div>
             <p>从事实底账到最终拍板,四层依次咬合;任何一步重算,旧版本全保留。这是 KMFA 与"随手 Excel"的根本区别。</p>
@@ -294,7 +294,7 @@ function KmfaHome() {
 
         <section className="public-workspace-teaser" aria-labelledby="workspace-title">
           <div>
-            <p className="public-kicker">OPEN SLICE</p>
+            <p className="public-kicker">公开试用切片</p>
             <h2 id="workspace-title">一个公开可试的工程切片</h2>
             <p>
               匿名工作区是 KMFA 工程质量的公开样片:无需账号即可创建可恢复的服务器工作区、上传文件、保存进度。
@@ -307,7 +307,7 @@ function KmfaHome() {
         <section className="public-system" id="system-status" aria-labelledby="system-title">
           <div className="public-section-heading">
             <div>
-              <p className="public-kicker">EXPLICIT STATES</p>
+              <p className="public-kicker">状态如实</p>
               <h2 id="system-title">系统状态</h2>
             </div>
             <p>基础依赖失败时，导航和边界说明仍然保留；不会用空白页面或虚构数据代替错误。</p>
@@ -328,7 +328,7 @@ function KmfaHome() {
         </section>
 
         <section className="public-boundary" aria-labelledby="boundary-title">
-          <p className="public-kicker">PUBLIC SOFTWARE, PRIVATE NUMBERS</p>
+          <p className="public-kicker">软件公开 · 账目私有</p>
           <h2 id="boundary-title">公开的是软件与能力，不是经营数据。</h2>
           <p>驾驶舱里的回款、开票、成本与决策属于企业私有。公开站点只呈现产品能力与工程质量,未经明确公开的数字不会出现在这里。</p>
           <a href="#chain">了解四层可验证链</a>
