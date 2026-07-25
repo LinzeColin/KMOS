@@ -146,13 +146,30 @@ def _row(step, label, action, ok, reason, console):
             label, action, "PASS" if ok else "FAIL", reason, "; ".join(console[-3:])]
 
 
-def app_flow(browser, base_url: str):
-    """按任务包八步驱动真实 App，每步断言真实数据。"""
+def app_flow(browser, base_url: str, shot_dir: Path | None = None):
+    """按任务包八步驱动真实 App，每步断言真实数据。
+
+    shot_dir 给定则每步真截图——补足任务包铁律「真打开页面→截图」这一环
+    （历史因面板视口 0×0 只留了 DOM 正文等效证据，从未有过页面截图）。截图纯为
+    证据、失败不影响断言（try/except 包住）；CI 无私有数据时页面本就只渲已公开的
+    对账残差/行数/结构态，A0 金额封锁不出，故截图 public-safe。
+    """
     page = browser.new_page(viewport={"width": 1440, "height": 1000}, accept_downloads=True)
     console = []
     page.on("console", lambda m: console.append(m.text) if m.type == "error" else None)
     page.on("pageerror", lambda e: console.append(str(e)))
     rows = []
+    _shot_n = [0]
+
+    def _shot(label):
+        if not shot_dir:
+            return
+        try:
+            shot_dir.mkdir(parents=True, exist_ok=True)
+            _shot_n[0] += 1
+            page.screenshot(path=str(shot_dir / f"{_shot_n[0]:02d}_{label}.png"), full_page=True)
+        except Exception:
+            pass  # 截图仅证据，绝不因此让回归基线红
 
     def tab(name):
         t = page.get_by_role("tab", name=name)
@@ -162,6 +179,7 @@ def app_flow(browser, base_url: str):
             "n => [...document.querySelectorAll('[role=tab]')]"
             ".some(b => b.textContent === n && b.getAttribute('aria-selected') === 'true')",
             arg=name, timeout=15000)
+        _shot(name)
 
     # ① 登录：本机 App 是单用户模式，**没有应用内登录**——生产侧鉴权由 Cloudflare Access
     #    在 DNS 前置。这里如实断言「入口可达 + 页眉三元组渲染出来」，不假造一个登录页。
@@ -173,6 +191,7 @@ def app_flow(browser, base_url: str):
                          f"goto {base_url}/ops/app", ok,
                          f"页眉三元组: {norm_text(header, 60)}" if ok else f"页眉缺三元组: {header[:80]}",
                          console))
+        _shot("登录_我在哪")
     except Exception as e:
         rows.append(_row("登录", "", "goto", False, f"入口不可达: {e}", console))
         page.close()
@@ -299,6 +318,7 @@ def main():
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--glob", default="*.html")
     ap.add_argument("--app-url", help="给定则跑 App 全流端到端（PROD.0013）")
+    ap.add_argument("--shots", type=Path, help="给定则每步真截图入该目录（证据用，不影响断言）")
     args=ap.parse_args()
     htmls=sorted(args.root.rglob(args.glob)) if args.root else []
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -307,7 +327,7 @@ def main():
     with sync_playwright() as p:
         browser=p.chromium.launch(headless=True, executable_path=CHROMIUM, args=["--no-sandbox","--disable-dev-shm-usage"])
         if args.app_url:
-            all_rows.extend(app_flow(browser, args.app_url.rstrip('/')))
+            all_rows.extend(app_flow(browser, args.app_url.rstrip('/'), shot_dir=args.shots))
         for hp in htmls:
             try:
                 all_rows.extend(audit_file(browser,hp,args.root,base_url))

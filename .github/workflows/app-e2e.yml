@@ -123,7 +123,7 @@ jobs:
           import pathlib, sys
           src = pathlib.Path("KMFA/taskpack/v1_4/html_uiux/kmfa_html_human_flow_audit.py").read_text(encoding="utf-8")
           src = src.replace("executable_path=CHROMIUM, ", "")
-          sys.argv = ["audit", "--app-url", "http://localhost:18098", "--out", "e2e_result.csv"]
+          sys.argv = ["audit", "--app-url", "http://localhost:18098", "--out", "e2e_result.csv", "--shots", "ops-cockpit-shots"]
           exec(compile(src, "audit", "exec"))
           PY
 
@@ -146,6 +146,7 @@ jobs:
           name: app-e2e-result
           path: |
             e2e_result.csv
+            ops-cockpit-shots/
             public-shell-e2e/
             public-accessibility-index-e2e/
             walking-skeleton-e2e/
