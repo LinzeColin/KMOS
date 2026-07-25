@@ -1,0 +1,22 @@
+{
+  "schema_version": "kmfa.prod0013.regression.v1",
+  "verified_on": "current main post-#181/#182 (facts 改动后回归确认)",
+  "ci_run": "LinzeColin/KMOS app-e2e run 30157112093 (PR #182 e2e job)",
+  "driver": "kmfa_html_human_flow_audit.py --app-url http://localhost:18098 (Playwright 真驱动 /ops/app)",
+  "summary": "files=0 rows=11 pass=11 warn=0 fail=0 exit=0",
+  "criterion_2_status": "MET —— Playwright 端到端全流 PASS 且作为 app-e2e 回归基线在 CI(任一步 FAIL 即红)",
+  "steps": [
+    {"step":"登录","assert":"/ops/app 可达 + 页眉三元组","result":"PASS 质量Q3/报告D/对外"},
+    {"step":"今天","assert":"人话判决+拍板队列+真实阻塞","result":"PASS"},
+    {"step":"回款账龄","assert":"逐月核对表+已对平状态","result":"PASS"},
+    {"step":"成本页","assert":"A0未就位不得出现毛利数字","result":"PASS 阻塞如实、无编造毛利"},
+    {"step":"差异拍板","assert":"真写一条决策并留痕","result":"PASS 事件已写入(闭案)"},
+    {"step":"重算-影响","assert":"下游影响面真实行数","result":"PASS goods_movement 17,764"},
+    {"step":"重算-四层链","assert":"四层链真跑完成","result":"PASS 命中 4/4 层、旧版本保留"},
+    {"step":"报告导出-HTML","assert":"真下载+水印","result":"PASS 3735B 魔数<!do 水印在"},
+    {"step":"报告导出-CSV","assert":"真下载+水印","result":"PASS 763B BOM 水印在"},
+    {"step":"报告导出-PDF","assert":"真下载+水印","result":"PASS 4875B %PDF 水印在"},
+    {"step":"系统自检","assert":"排程状态如实","result":"PASS"}
+  ],
+  "note": "本轮未新建脚本——0013 早于 2026-07-20 建成并入 CI;本记录是 #181/#182 改 facts 后的回归确认(真开 /ops/app、真数据、真下载,非 pytest 绿)。零金额零公司名。"
+}
