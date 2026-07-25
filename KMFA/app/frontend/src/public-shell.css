@@ -266,12 +266,6 @@ a { color: inherit; }
   padding: clamp(3rem, 6vw, 5rem) clamp(1.8rem, 5vw, 5rem);
   border-radius: var(--r-lg); background: var(--seal); color: #f7e6e1; overflow: hidden;
 }
-.public-boundary::after {
-  content: "凭"; position: absolute; top: 50%; right: clamp(1.5rem, 5vw, 4rem); transform: translateY(-50%) rotate(-8deg);
-  display: grid; place-items: center; width: clamp(5rem, 12vw, 8rem); height: clamp(5rem, 12vw, 8rem);
-  color: rgba(247,230,225,.15); border: 4px solid rgba(247,230,225,.15); border-radius: 10px;
-  font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 800; pointer-events: none;
-}
 .public-boundary .public-kicker { color: #f2cfc7; }
 .public-boundary h2 { position: relative; max-width: 17em; margin: 1rem 0 1.1rem; color: #fff8f4; font-size: clamp(1.8rem, 3.2vw, 2.5rem); font-weight: 820; letter-spacing: -0.01em; line-height: 1.28; text-wrap: balance; }
 .public-boundary > p:not(.public-kicker) { position: relative; max-width: 46rem; margin: 0; font-size: 0.96rem; line-height: 1.9; }
