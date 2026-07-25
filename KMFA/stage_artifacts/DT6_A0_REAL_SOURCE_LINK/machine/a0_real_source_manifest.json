@@ -1,0 +1,24 @@
+{
+  "schema_version": "kmfa.a0_real_source_registration.v1",
+  "a0_id": "KMFA-A0-REAL-20260725-FROM-TAX",
+  "authority_source_file": "财务/开票纳税/2024-2025.12开票、纳税 资金汇总表.xlsx",
+  "authority_priority": "税务>银行>金蝶>红圈(Owner 2026-07-25)",
+  "unit": "integer_cents",
+  "cost": {
+    "source_sheet": "2025项目成本明细",
+    "filter": "收支类别==项目成本 的 付款金额",
+    "category_count": 32,
+    "record_rows": 3830,
+    "amounts_public": false,
+    "names_public": false
+  },
+  "revenue": {
+    "source_sheet": "2025年开票及纳税汇总",
+    "filter": "外部不含税收入 1-12月 按主体",
+    "entity_count": 7,
+    "amounts_public": false,
+    "names_public": false
+  },
+  "private_baseline_sha256": "sha256:2c4aeb89b2cb16f1f9e5205a80a84419c5436a7b0877ccf5d2dbc7aebdc6b5de",
+  "private_only_note": "真实金额与业务标识名(类别名/主体名)仅存私有产物;本 manifest 只有笔数/源trace/哈希,可入公开 KMOS。"
+}
