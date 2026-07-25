@@ -1,0 +1,83 @@
+{
+  "total": 9,
+  "passed": 9,
+  "failed": 0,
+  "console_errors": [
+    "The Cross-Origin-Opener-Policy header has been ignored, because the URL's origin was untrustworthy. It was defined either in the final response or a redirect. Please deliver the response using the HTTPS protocol. You can also use the 'localhost' origin instead. See https://www.w3.org/TR/powerful-features/#potentially-trustworthy-origin and https://html.spec.whatwg.org/#the-cross-origin-opener-policy-header."
+  ],
+  "findings": [
+    {
+      "step": "01 入口+页眉三徽章",
+      "pass": true,
+      "detail": "header含: ['质量', '报告', 'NO_GO', 'GO']",
+      "real_seen": "今天 质量 Q3 报告 D —— 缺失、过期、失败或关键差异未闭合 Q4 / D / NO_GO / 3-9-2-1 数据截至批次 2026-07-16"
+    },
+    {
+      "step": "02 今天(人话判决+拍板队列+真阻塞)",
+      "pass": true,
+      "detail": "等你拍板=True BLK-001=True 暂不可对外=True",
+      "real_seen": [
+        "项目成本还算不出金额——销售绩效考核 8 份 PDF 加 1 份电子表格的字段人工确认（源约 273 行…（编号 BLK-001，只有你能解）。"
+      ]
+    },
+    {
+      "step": "03 回款与账龄(逐月核对+已对平)",
+      "pass": true,
+      "detail": "逐月核对=True 已对平=True",
+      "real_seen": [
+        "已对平月数"
+      ]
+    },
+    {
+      "step": "04 项目成本(阻塞如实/无编造毛利)",
+      "pass": true,
+      "detail": "阻塞呈现=True 无毛利率=True",
+      "real_seen": [
+        "金额尚不可计算——本页不产出任何毛利数字"
+      ]
+    },
+    {
+      "step": "05 待拍板(真写决策+留痕事件)",
+      "pass": true,
+      "detail": "事件号出现=True",
+      "real_seen": "已追加事件 MANEVT-APP-0001（哈希 4b237244f217…）"
+    },
+    {
+      "step": "06 数据底账(影响面真实派生表+行数)",
+      "pass": true,
+      "detail": "受影响核对域=True expense_lines=True 17,764=True",
+      "real_seen": [
+        "goods_movement\t17,764\tgoods-movement-v1"
+      ]
+    },
+    {
+      "step": "07 重跑(四层链完整+旧版本保留)",
+      "pass": true,
+      "detail": "命中层=['field_mapping', 'fact_layer', 'derived_metric', 'report_reference'] 链完整=True 旧版本保留=True",
+      "real_seen": [
+        "field_mapping",
+        "fact_layer",
+        "derived_metric",
+        "report_reference"
+      ]
+    },
+    {
+      "step": "08 报告下载(三格式真下载+水印)",
+      "pass": true,
+      "detail": "HTML:3735B/魔数OK/水印; CSV:763B/魔数OK/水印; PDF:4875B/魔数OK/水印",
+      "real_seen": [
+        "HTML:3735B/魔数OK/水印",
+        "CSV:763B/魔数OK/水印",
+        "PDF:4875B/魔数OK/水印"
+      ]
+    },
+    {
+      "step": "09 系统自检(排程状态如实)",
+      "pass": true,
+      "detail": "排程=True",
+      "real_seen": [
+        "读不到排程日志"
+      ]
+    }
+  ]
+}
