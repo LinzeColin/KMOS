@@ -31,7 +31,6 @@
   --r-lg: 4px;
   --r: 3px;
   --pad-x: max(1.3rem, calc((100% - 74rem) / 2));
-  --grain: repeating-linear-gradient(0deg, rgba(120,100,60,.018) 0 1px, transparent 1px 3px);
 }
 
 * { box-sizing: border-box; }
@@ -40,7 +39,6 @@ html, body { overflow-x: clip; }
 body {
   margin: 0; min-width: 320px; line-height: 1.72;
   background: var(--paper);
-  background-image: var(--grain);
 }
 body, button, input, textarea { color: var(--ink); font: inherit; }
 a { color: inherit; }
