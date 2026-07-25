@@ -1,0 +1,11 @@
+{
+  "schema_version": "kmfa.a0_accountant_data_spec.v1",
+  "purpose": "解锁 0005/0006/0010/0011 四页金额所缺的唯一输入",
+  "deliverable": "分项目×分成本类别 的成本汇总表(2025,5账套)",
+  "required_columns": ["项目名称/合同号","成本类别(可映射到9类:人工/材料/机械/外协/运输/差旅/税费/管理费/利息)","成本金额","口径(现金或权责)"],
+  "format": "xlsx",
+  "destination": "Private-Database(私有,真额永不进公开KMOS)",
+  "agent_does_on_receipt": ["拼4×9×6","对税务总额","建S09-P2/P3","翻amount_calculation_performed","解锁四页"],
+  "optional_shortcuts": ["当年按项目成本PDF原件","private_fields_from_ring4_20260630.csv","5条未完成Excel候选"],
+  "amounts_public": false
+}
