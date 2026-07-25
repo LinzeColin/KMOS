@@ -1,0 +1,58 @@
+{
+  "chain": "首页→检查板→成本页→差异处理→影响预览→重跑→报告导出",
+  "unified_single_pass": true,
+  "passed": 8,
+  "total": 8,
+  "steps": [
+    {
+      "seq": 0,
+      "step": "首页(公开门面)",
+      "pass": true,
+      "seen": "title=KMFA｜经营驾驶舱"
+    },
+    {
+      "seq": 1,
+      "step": "进入驾驶舱 /ops/app(页眉三徽章)",
+      "pass": true,
+      "seen": "今天 质量 Q3 报告 D —— 缺失、过期、失败或关键差异未闭合 Q4 / D / NO_GO / 3-9-2-1 数"
+    },
+    {
+      "seq": 2,
+      "step": "检查板(源检查板 真数据)",
+      "pass": true,
+      "seen": "17表/263,758行/Q3/覆盖矩阵/批次2026-07-16"
+    },
+    {
+      "seq": 3,
+      "step": "成本页(阻塞如实/无编造毛利)",
+      "pass": true,
+      "seen": "算不出金额,无毛利率"
+    },
+    {
+      "seq": 4,
+      "step": "差异处理(真写决策+留痕)",
+      "pass": true,
+      "seen": "已追加事件 MANEVT-APP-0001（哈希 e301647da2bf…）"
+    },
+    {
+      "seq": 5,
+      "step": "影响预览(血缘真实行数)",
+      "pass": true,
+      "seen": "受影响核对域/expense_lines/17,764"
+    },
+    {
+      "seq": 6,
+      "step": "重跑(四层链完整+旧版本保留)",
+      "pass": true,
+      "seen": "['field_mapping', 'fact_layer', 'derived_metric', 'report_reference']"
+    },
+    {
+      "seq": 7,
+      "step": "报告导出(三格式真下载)",
+      "pass": true,
+      "seen": "HTML:3735B/OK; CSV:763B/OK; PDF:4875B/OK"
+    }
+  ],
+  "coop_false_positive": 2,
+  "real_console_errors": []
+}
