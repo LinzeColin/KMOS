@@ -25,6 +25,15 @@ KMFA / KMIDS / whkmSalary 三者共享的**数据契约层**。
 **约定**：任何跨 KM 项目的数据交换，必须经过 KMDatabase 声明的 schema，
 不得直接引用对方内部路径。
 
+## 📦 数据落地政策（长期有效 · 自运行分仓治理）
+
+**本仓只存代码与治理，长期/业务/运行时数据不入本仓。** 开发中产生的任何需长期存储的数据
+（原始经营数据、导出件、数据库、内容寻址对象、含 PII 的记录等）一律写入私有仓
+`LinzeColin/Private-Database` 的 `Private-KMDatabase/` 区，**不要提交进本仓**：
+用 `KMDatabase/machine/tools/private_db_client.py` 免 clone 读写（`ingest/get/list/verify`），
+Private-Database 禁止 `git clone`；派生/临时/可再生产物走 `.gitignore`。
+**一次分清、长期自运行，不再需要人工反复迁移。**（`AGENTS.md` 已将本条列为永久规则。）
+
 ## 治理
 
 治理框架不在本仓库内，来自共享仓库 [LinzeColin/Governance](https://github.com/LinzeColin/Governance)。
