@@ -16,7 +16,9 @@
       "id": "S03",
       "name": "原始文件导入与数据源检查矩阵",
       "gate": "回归与可否交付",
-      "status": "结构过但未扫描原始根目录"
+      "status": "真源已上云并扫描:税务权威源+3家金蝶明细账入私有库 Private-KMDatabase,云上 Actions 解析取数(DT6_DATA_ONCLOUD_A0);原始根目录首次被真实读取。",
+      "evidence": "stage_artifacts/DT6_DATA_ONCLOUD_A0",
+      "evidence_run": "LinzeColin/Private-Database Actions kmfa-a0-zero-delta (public-safe)"
     },
     {
       "id": "S04",
@@ -28,7 +30,9 @@
       "id": "S05",
       "name": "A0 权威项目成本黄金基准",
       "gate": "零差异",
-      "status": "被 BLK-001 阻塞"
+      "status": "链首次接通但 A6 零差异未过:A0(税务现金)vs 系统重算(金蝶6401 COGS 权责)云上真跑=+269% 跨基础差(非计算bug);闭合待『现金↔权责对账表』。BLK-001 由『链未接通』降级为『跨基础对账表待建』,仍不置绿。",
+      "evidence": "stage_artifacts/DT6_DATA_ONCLOUD_A0",
+      "evidence_run": "LinzeColin/Private-Database Actions kmfa-a0-zero-delta (public-safe)"
     },
     {
       "id": "S06",
@@ -40,7 +44,9 @@
       "id": "S07",
       "name": "文件型源适配与字段映射",
       "gate": "回归与可否交付",
-      "status": "结构过但无真实数据"
+      "status": "真实金蝶明细账已被云上按科目/收支类别解析取数(字段映射首次跑真数据);完整对账未闭合。",
+      "evidence": "stage_artifacts/DT6_DATA_ONCLOUD_A0",
+      "evidence_run": "LinzeColin/Private-Database Actions kmfa-a0-zero-delta (public-safe)"
     },
     {
       "id": "S08",
@@ -52,7 +58,9 @@
       "id": "S09",
       "name": "项目成本计算引擎",
       "gate": "回归与可否交付",
-      "status": "结构过但无真实数据"
+      "status": "项目成本口径(6401 主营业务成本 COGS)已用真实数据云上重算;与税务A0跨基础差+269%,零差异未达。",
+      "evidence": "stage_artifacts/DT6_DATA_ONCLOUD_A0",
+      "evidence_run": "LinzeColin/Private-Database Actions kmfa-a0-zero-delta (public-safe)"
     },
     {
       "id": "S10",
