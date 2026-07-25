@@ -1,0 +1,21 @@
+{
+  "passed": 3,
+  "total": 3,
+  "steps": [
+    {
+      "step": "入口① 公开首页(KMFA门面)",
+      "pass": true,
+      "detail": "title=KMFA｜经营驾驶舱 进入驾驶舱入口=1"
+    },
+    {
+      "step": "入口② 进入驾驶舱(/ops/app)",
+      "pass": true,
+      "detail": "path=/ops/app 页眉=今天 质量 Q3 报告 D —— 缺失、过期、失败或关键差异未闭合 Q4 / D / NO_GO / 3-9-2-1 数据截至批次 2026"
+    },
+    {
+      "step": "检查板③ 源清单/源检查矩阵(PROD.0005)真数据",
+      "pass": true,
+      "detail": "矩阵=True 新鲜度批次=True 质量Q3=True 派生=True"
+    }
+  ]
+}
