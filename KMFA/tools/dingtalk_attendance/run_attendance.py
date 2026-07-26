@@ -1022,7 +1022,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run-type", required=True, choices=RUN_TYPES)
     parser.add_argument("--timezone", default=TIMEZONE)
     parser.add_argument("--work-date", help="YYYY-MM-DD business date override for controlled reruns/tests.")
-    parser.add_argument("--notification-targets", default="group", choices=("all", "personal", "group"))
+    # 测试期默认 personal（只发张霖泽本人）——Owner 2026-07-26：测试阶段不许发群，除非授权。
+    # 授权发群时用 KMFA_NOTIFICATION_TARGETS=group（Coolify 环境变量），无需改代码。
+    parser.add_argument(
+        "--notification-targets",
+        default=os.environ.get("KMFA_NOTIFICATION_TARGETS", "personal"),
+        choices=("all", "personal", "group"),
+    )
     parser.add_argument("--send-latest-report-only", action="store_true", help="Send the latest private reports without DWS collection.")
     parser.add_argument(
         "--allow-dws-commands",
