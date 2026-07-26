@@ -13,7 +13,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import secrets
 import subprocess
@@ -228,13 +227,6 @@ def _cookie_token(headers: Any) -> str:
     if not all(value in cookie for value in ("Secure", "HttpOnly", "SameSite=strict")):
         raise AssertionError("secure session cookie attributes missing")
     return match.group(1)
-
-
-def _write_private_json(path: Path, value: dict[str, Any]) -> None:
-    descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-    with os.fdopen(descriptor, "w", encoding="utf-8") as output:
-        json.dump(value, output, sort_keys=True)
-        output.write("\n")
 
 
 class DrillEnvironment:
@@ -983,17 +975,23 @@ class Oracle:
                 publication_id,
             ]
         )
-        effects_file = (
-            self.state_dir / "target-state" / "publication-effects.json"
+        effects_file = "/oracle/target-state/publication-effects.json"
+        initialized_effects = target.helper(
+            [
+                "effects",
+                "--action",
+                "initialize",
+                "--effects-file",
+                effects_file,
+                "--publication-id",
+                publication_id,
+            ]
         )
-        _write_private_json(
-            effects_file,
-            {
-                "active": [publication_id],
-                "cached": [publication_id],
-                "indexed": [publication_id],
-            },
-        )
+        if any(
+            initialized_effects[f"{field}_count"] != 1
+            for field in ("active", "cached", "indexed")
+        ):
+            raise AssertionError("public effects fixture initialization failed")
         storage_key, provider_versions_before = (
             target.inject_historical_versions()
         )
@@ -1019,11 +1017,7 @@ class Oracle:
                 "--deletion-request-id",
                 deletion_request_id,
                 "--effects-file",
-                str(
-                    Path("/oracle")
-                    / "target-state"
-                    / "publication-effects.json"
-                ),
+                effects_file,
                 "--fail-object-delete",
             ],
             lifecycle_mode="active",
@@ -1036,10 +1030,19 @@ class Oracle:
             != provider_versions_before
         ):
             raise AssertionError("retry safety invariant failed")
-        effects_after_first = json.loads(
-            effects_file.read_text(encoding="utf-8")
+        effects_after_first = target.helper(
+            [
+                "effects",
+                "--action",
+                "summary",
+                "--effects-file",
+                effects_file,
+            ]
         )
-        if any(effects_after_first[field] for field in ("active", "cached", "indexed")):
+        if any(
+            effects_after_first[f"{field}_count"] != 0
+            for field in ("active", "cached", "indexed")
+        ):
             raise AssertionError("public effects were not fully purged")
 
         completed = target.helper(
@@ -1048,11 +1051,7 @@ class Oracle:
                 "--deletion-request-id",
                 deletion_request_id,
                 "--effects-file",
-                str(
-                    Path("/oracle")
-                    / "target-state"
-                    / "publication-effects.json"
-                ),
+                effects_file,
             ],
             lifecycle_mode="active",
             include_lifecycle_credentials=True,

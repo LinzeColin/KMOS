@@ -47,7 +47,61 @@ class FilePublicationEffects:
     """Small external-effect fixture with a durable, inspectable state file."""
 
     def __init__(self, path: Path) -> None:
-        self.path = path
+        self.path = _validated_effects_path(path)
+
+    def _read(self) -> dict[str, list[str]]:
+        payload = json.loads(self.path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise LifecycleWorkerError("publication_effect_invalid")
+        normalized: dict[str, list[str]] = {}
+        for field in ("active", "cached", "indexed"):
+            values = payload.get(field)
+            if not isinstance(values, list) or not all(
+                isinstance(value, str) for value in values
+            ):
+                raise LifecycleWorkerError("publication_effect_invalid")
+            normalized[field] = values
+        return normalized
+
+    def _replace(self, payload: dict[str, list[str]]) -> None:
+        descriptor, temporary_name = tempfile.mkstemp(
+            dir=self.path.parent,
+            prefix=".publication-effects-",
+        )
+        os.fchmod(descriptor, 0o600)
+        temporary = Path(temporary_name)
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+                json.dump(payload, output, sort_keys=True)
+                output.write("\n")
+                output.flush()
+                os.fsync(output.fileno())
+            os.replace(temporary, self.path)
+            self.path.chmod(0o600)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+    def initialize(self, publication_id: str) -> dict[str, Any]:
+        if self.path.exists():
+            raise LifecycleWorkerError("publication_effect_exists")
+        self._replace(
+            {
+                "active": [publication_id],
+                "cached": [publication_id],
+                "indexed": [publication_id],
+            }
+        )
+        return self.summary()
+
+    def summary(self) -> dict[str, Any]:
+        payload = self._read()
+        return {
+            "status": "pass",
+            **{
+                f"{field}_count": len(payload[field])
+                for field in ("active", "cached", "indexed")
+            },
+        }
 
     def revoke_and_purge(
         self,
@@ -57,28 +111,26 @@ class FilePublicationEffects:
     ) -> None:
         if len(subject_ref) != 20:
             raise LifecycleWorkerError("publication_subject_invalid")
-        payload = json.loads(self.path.read_text(encoding="utf-8"))
+        payload = self._read()
         for field in ("active", "cached", "indexed"):
-            values = payload.get(field)
-            if not isinstance(values, list) or publication_id not in values:
+            values = payload[field]
+            if publication_id not in values:
                 raise LifecycleWorkerError("publication_effect_missing")
             payload[field] = [
                 value for value in values if value != publication_id
             ]
-        descriptor, temporary_name = tempfile.mkstemp(
-            dir=self.path.parent,
-            prefix=".publication-effects-",
-        )
-        temporary = Path(temporary_name)
-        try:
-            with os.fdopen(descriptor, "w", encoding="utf-8") as output:
-                json.dump(payload, output, sort_keys=True)
-                output.write("\n")
-                output.flush()
-                os.fsync(output.fileno())
-            os.replace(temporary, self.path)
-        finally:
-            temporary.unlink(missing_ok=True)
+        self._replace(payload)
+
+
+def _validated_effects_path(path: Path) -> Path:
+    root = _state_root().resolve()
+    if (
+        path.name != "publication-effects.json"
+        or path.parent.resolve() != root
+        or path.is_symlink()
+    ):
+        raise LifecycleWorkerError("publication_effect_path_invalid")
+    return root / path.name
 
 
 class FailingDeleteStore:
@@ -163,6 +215,20 @@ def _publication(
         return {"status": "pass", "registered": 1}
     finally:
         connection.close()
+
+
+def _effects(
+    *,
+    action: str,
+    effects_file: Path,
+    publication_id: str | None,
+) -> dict[str, Any]:
+    effects = FilePublicationEffects(effects_file)
+    if action == "initialize":
+        if publication_id is None:
+            raise LifecycleWorkerError("publication_id_required")
+        return effects.initialize(publication_id)
+    return effects.summary()
 
 
 def _process(
@@ -325,6 +391,14 @@ def build_parser() -> argparse.ArgumentParser:
     publication = subparsers.add_parser("publication")
     publication.add_argument("--workspace-id", required=True)
     publication.add_argument("--publication-id", required=True)
+    effects = subparsers.add_parser("effects")
+    effects.add_argument(
+        "--action",
+        choices=("initialize", "summary"),
+        required=True,
+    )
+    effects.add_argument("--effects-file", type=Path, required=True)
+    effects.add_argument("--publication-id")
     process = subparsers.add_parser("process")
     process.add_argument("--deletion-request-id", required=True)
     process.add_argument("--effects-file", type=Path, required=True)
@@ -347,6 +421,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     elif arguments.command == "publication":
         result = _publication(
             workspace_id=arguments.workspace_id,
+            publication_id=arguments.publication_id,
+        )
+    elif arguments.command == "effects":
+        result = _effects(
+            action=arguments.action,
+            effects_file=arguments.effects_file,
             publication_id=arguments.publication_id,
         )
     elif arguments.command == "process":
