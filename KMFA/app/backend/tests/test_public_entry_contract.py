@@ -422,7 +422,7 @@ def test_deployment_contract_enables_origin_guard_before_public_bypass():
     )
 
 
-def test_deployment_waits_for_application_and_governance_gates():
+def test_deployment_uses_focused_application_and_governance_checks():
     app_e2e = yaml.load(
         (REPO / ".github/workflows/app-e2e.yml").read_text(encoding="utf-8"),
         Loader=yaml.BaseLoader,
@@ -447,8 +447,12 @@ def test_deployment_waits_for_application_and_governance_gates():
     )
     assert python_setup["with"]["python-version"] == "3.12"
     assert node_setup["with"]["node-version"] == "20"
+    assert "pytest -q KMFA/app/backend/tests" not in commands
     for command in (
-        "pytest -q KMFA/app/backend/tests",
+        "KMFA/app/backend/tests/test_public_entry_contract.py",
+        "KMFA/app/backend/tests/test_abuse_control.py",
+        "KMFA/app/backend/tests/test_file_security.py",
+        "KMFA/app/backend/tests/test_retention_backup.py",
         "validate_taskpack.py --root KMFA",
         "test_validate_taskpack_mutations.py --root KMFA",
         "check_dual_plane_ci.py --root . --require-projects",

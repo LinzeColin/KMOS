@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import http.client
 import json
 import secrets
 import socket
@@ -217,8 +218,15 @@ def test_private_client_timeout_never_returns_clean(
 ):
     payload = b"deterministic parser timeout fixture"
     digest = hashlib.sha256(payload).hexdigest()
-    monkeypatch.setenv("KMFA_FILE_SCANNER_TEST_DELAY_SHA256", digest)
-    monkeypatch.setenv("KMFA_FILE_SCANNER_TEST_DELAY_SECONDS", "0.2")
+
+    def inject_timeout(_connection):
+        raise TimeoutError("synthetic scanner timeout")
+
+    monkeypatch.setattr(
+        http.client.HTTPConnection,
+        "getresponse",
+        inject_timeout,
+    )
     source = tmp_path / "timeout.bin"
     source.write_bytes(payload)
     client = FileSecurityClient(

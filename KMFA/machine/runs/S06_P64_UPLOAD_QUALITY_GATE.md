@@ -1,6 +1,13 @@
 # S06 / P6.4 / T-S06-04 — 上传质量门 receipt
 
-状态：**LOCAL PHASE PASS — S06 四个 phase 已本地完成；尚未做 S06 整体复审、上传或部署**
+状态：**SUPERSEDED EXECUTION METHOD — phase 行为已由 S06 整体复审以确定性 Fixture/Fake Clock/即时故障注入重新验收**
+
+> **2026-07-26 Owner override / S06 review amendment**：本文原始 phase receipt 中的
+> `120 秒 soak`、真实限流窗口等待、scanner P99/drain wall-clock 门与 20 秒对象服务 pause
+> 仅保留为已发生的历史审计，不再是开发、部署、上线或下一阶段前置，禁止重跑或据此晋级。
+> 当前有效方法和结果见 `S06_STAGE_REVIEW.md`：12 个固定 Fixture 即时回放、Fake Clock
+> abuse focused tests、scanner synchronous fault recovery、object unavailable `503 → replay`
+> 故障注入；`real_time_soak_used=false`。完成整个 v1.5.2 Taskpack 前不上传 GitHub、不部署。
 
 Taskpack SHA-256：
 `31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb`
@@ -40,8 +47,9 @@ upload-quality-e2e/report.md
 identity；raw recovery/session capability、workspace ID、文件原始字节、对象 key、DSN 和 provider
 credential 不写入 evidence。
 
-本 phase 证明的是可重复的有界 CI 上传质量门，不声称生产容量、真实用户尾延迟或长周期稳定性。
-生产等价容量、分布式压力与更长浸泡仍由 `S11 / P11.3` 关闭。
+以下是当时的 phase 结论与数据，不是当前执行方法。当前只采用可重复的即时 Fixture/故障注入
+验证，不声称生产容量、真实用户尾延迟或长周期稳定性；后续容量工作也不得以更长浸泡或真实
+观察窗口作为前置。
 
 ## 2. 最终 benchmark 与阈值
 
@@ -180,11 +188,11 @@ KMFA_FILE_SECURITY_ENABLED=0
 KMFA_ARTIFACT_DERIVATION_ENABLED=0
 ```
 
-未来 guarded rollout 必须使用 whole-stage reviewed 的同一 source/image，先在隔离 canary
-workspace 验证 capacity、slow body、scanner backlog、object timeout、version/key/object
-一一对应、恢复与下载 hash，再按 stage gate 决定晋级。任一 P95/P99 超阈值、queue 不排空、
-重复 version/object、lineage gap、跨 workspace 写入、临时分片增长、公共根页不可用或
-capability/private byte 命中立即停止晋级。
+本节原有基于 P95/P99、真实 timeout 和观察窗口的 rollout 指令已废止。后续只允许在隔离
+Fixture workspace 即时验证核心链路和高风险故障：scanner backlog 状态收敛、object unavailable
+`503 → replay 200`、version/key/object 一一对应、恢复与下载 hash、跨 workspace 零写入、
+临时分片归零及 capability/private byte 零命中。不得把 elapsed time、真实等待或人工审批层
+作为晋级条件；当前也未授权 rollout。
 
 快速回滚优先降低上传并发/文件上限、排队或降级 scanner，再关闭对应 Flag；已有下载必须继续。
 若需停止全部新上传，置 `KMFA_CONSISTENCY_STATE_MODE=paused`。回滚保留 schema `6`、DB、原件、
@@ -192,12 +200,8 @@ immutable versions、lineage、assessment/events、intent/chunk、derivatives、
 reader 配置、所有 named volumes 与 v1.5 recovery asset。禁止 binary/schema downgrade、
 `down -v`、删表/对象/卷/备份、撤 reader 凭据、改 verifier 或 recovery replay 覆盖 live state。
 
-2026-07-26 收口时再次 `fetch origin main`：本地 parent `9c782ede…` 相对
-`origin/main=c00a90f5…` 为本地 `3`、远端 `43`；共同基线 `12d6fa9f…`。远端 43 个提交仍是
-KMIDS 范围，`KMFA/` 与 `.github/workflows/` scoped diff 为 `0`，没有覆盖本 phase。S06
-whole-stage review/push 前仍须第三次 fetch 并整合当时最新远端，禁止把当前 detached chain
-直接 force-push。
-
-本地 Task 进度为 `28/56`；S06 为 `4/4` phases，但 published Stage 仍为 `6/14`。下一次新 run
-只可执行 **S06 whole-stage review + exposed finding repair**；复审全绿后才允许把 P6.1-P6.4
-作为一个整体上传 GitHub。不得在本 run push、部署、进入 S07 或启用生产 Flags。
+本 receipt 的远端分叉与下一 run 说明也已被整体复审取代。当前真值见
+`S06_STAGE_REVIEW.md` 与 `KMFA/HANDOFF.md`：本地已纳入
+`origin/main=c00a90f5…`，S06 whole-stage review 本地通过；中间 phase/Stage 不上传。下一个新
+run 最多执行 `S07 / P7.1 / T-S07-01` 一个 phase，整个 v1.5.2 Taskpack 与最终整包复审完成后
+才一次性上传 GitHub。

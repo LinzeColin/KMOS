@@ -23,7 +23,6 @@ import time
 import urllib.error
 import urllib.request
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
@@ -465,9 +464,12 @@ class OwnedResources:
         )
 
     def replace_object_store(self) -> None:
+        self.remove_object_store()
+        self.start_object_store()
+
+    def remove_object_store(self) -> None:
         _run("docker", "rm", "-f", self.object_store)
         self.owned.discard(("container", self.object_store))
-        self.start_object_store()
 
     def start_app(
         self,
@@ -617,7 +619,7 @@ def _public_safe_reconciliation(report: dict[str, Any]) -> dict[str, Any]:
     return {key: report[key] for key in keys}
 
 
-def _object_store_timeout_oracle(
+def _object_store_fault_oracle(
     resources: OwnedResources,
     *,
     upload_url: str,
@@ -627,51 +629,46 @@ def _object_store_timeout_oracle(
         upload_url,
         "POST",
         f"{API_PREFIX}/workspaces",
-        {"project_name": "S06 P6.4 object timeout"},
+        {"project_name": "S06 P6.4 object unavailable fault"},
     )
     assert created_status == 201
     token = _cookie_token(headers)
     recovery = str(created["recovery_code"])
     assert RECOVERY_RE.fullmatch(recovery)
     workspace_id = str(created["workspace"]["workspace_id"])
-    payload = b"S06-P6.4 synthetic object-store timeout\n"
+    payload = b"S06-P6.4 synthetic object-store unavailable fault\n"
     payload_sha256 = hashlib.sha256(payload).hexdigest()
     upload_headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/octet-stream",
-        "X-KMFA-Filename": "object-timeout.synthetic",
-        "Idempotency-Key": "p64-object-timeout-0001",
+        "X-KMFA-Filename": "object-unavailable.synthetic",
+        "Idempotency-Key": "p64-object-unavailable-0001",
     }
 
-    _run("docker", "pause", resources.object_store)
-    paused = True
-    started = time.monotonic()
-    try:
-        with ThreadPoolExecutor(max_workers=1) as pool:
-            pending = pool.submit(
-                _request,
-                upload_url,
-                "PUT",
-                f"{API_PREFIX}/workspaces/{workspace_id}/artifact",
-                payload=payload,
-                headers=upload_headers,
-                timeout=60,
-            )
-            # S3ObjectStore uses a 15-second read timeout. Keeping the owned
-            # service paused for 20 seconds forces at least one true timeout,
-            # then the configured bounded retry can converge after unpause.
-            time.sleep(20)
-            _run("docker", "unpause", resources.object_store)
-            paused = False
-            status, raw, _ = pending.result(timeout=40)
-    finally:
-        if paused:
-            _run("docker", "unpause", resources.object_store, check=False)
-    elapsed_ms = (time.monotonic() - started) * 1000
-    assert 18_000 <= elapsed_ms <= 45_000
-    assert status == 200, raw.decode("utf-8", errors="replace")
-    uploaded = json.loads(raw.decode("utf-8"))["artifact"]
-    assert uploaded["sha256"] == payload_sha256
+    resources.remove_object_store()
+    outage_status, outage, _ = _json_request(
+        upload_url,
+        "GET",
+        f"{API_PREFIX}/status",
+    )
+    assert outage_status == 503
+    assert outage["detail"] == "walking_skeleton_storage_unavailable"
+    failed_status, failed_raw, _ = _request(
+        upload_url,
+        "PUT",
+        f"{API_PREFIX}/workspaces/{workspace_id}/artifact",
+        payload=payload,
+        headers=upload_headers,
+        timeout=20,
+    )
+    assert failed_status == 503
+    assert (
+        json.loads(failed_raw.decode("utf-8"))["detail"]
+        == "walking_skeleton_storage_unavailable"
+    )
+
+    resources.start_object_store()
+    _configure_host_clients(resources)
 
     replay_status, replay_raw, _ = _request(
         upload_url,
@@ -683,7 +680,7 @@ def _object_store_timeout_oracle(
     )
     assert replay_status == 200
     replayed = json.loads(replay_raw.decode("utf-8"))["artifact"]
-    assert replayed["artifact_version_id"] == uploaded["artifact_version_id"]
+    assert replayed["sha256"] == payload_sha256
     downloaded_status, downloaded, _ = _request(
         download_url,
         "POST",
@@ -737,20 +734,20 @@ def _object_store_timeout_oracle(
     assert len(exact_versions) == 1
     return (
         {
-            "forced_pause_ms": 20_000,
-            "configured_read_timeout_ms": 15_000,
-            "forced_stall_exceeded_read_timeout": True,
-            "observed_elapsed_ms": round(elapsed_ms, 2),
-            "request_status": status,
+            "fault_injection": "object_store_unavailable",
+            "status_contract_during_fault": outage_status,
+            "initial_request_status": failed_status,
             "idempotent_replay_status": replay_status,
             "artifact_versions": 1,
             "native_object_versions": 1,
             "duplicate_versions": 0,
             "download_sha256_match": True,
+            "real_time_stall_used": False,
+            "wall_clock_gate_used": False,
             "thresholds": {
-                "elapsed_min_ms": 18_000,
-                "elapsed_max_ms": 45_000,
                 "duplicate_versions_max": 0,
+                "artifact_versions_exact": 1,
+                "native_object_versions_exact": 1,
             },
             "status": "PASS",
         },
@@ -956,23 +953,11 @@ def run_oracle(resources: OwnedResources) -> dict[str, Any]:
         assert status == 200 and downloaded == FIXTURES[index][2]
         assert headers["X-KMFA-Artifact-SHA256"] == fixture_hashes[index]
 
-    object_timeout, timeout_capabilities = _object_store_timeout_oracle(
+    object_fault, fault_capabilities = _object_store_fault_oracle(
         resources,
         upload_url=url_a,
         download_url=url_b,
     )
-
-    # An object dependency outage is explicit and does not change DB rows.
-    _run("docker", "stop", "--time", "5", resources.object_store)
-    outage_status, outage, _ = _json_request(
-        url_a,
-        "GET",
-        f"{API_PREFIX}/status",
-    )
-    assert outage_status == 503
-    assert outage["detail"] == "walking_skeleton_storage_unavailable"
-    resources.replace_object_store()
-    _configure_host_clients(resources)
 
     connection = open_structured_store(Path("/tmp/kmfa-p52-unused.sqlite3"))
     try:
@@ -1131,7 +1116,7 @@ def run_oracle(resources: OwnedResources) -> dict[str, Any]:
         value
         for session in sessions
         for value in (session["token"], session["recovery"])
-    ) + (recovered_token, *timeout_capabilities)
+    ) + (recovered_token, *fault_capabilities)
     logs = resources.logs()
     assert not any(value in logs for value in capabilities)
     assert not any(value in logs for value in resources.sensitive_values)
@@ -1165,7 +1150,7 @@ def run_oracle(resources: OwnedResources) -> dict[str, Any]:
             "same-name.unknown"
         ],
         "duplicate_content_count": Counter(fixture_hashes)[fixture_hashes[1]],
-        "object_store_timeout": object_timeout,
+        "object_store_fault_injection": object_fault,
         "normal_reconciliation": _public_safe_reconciliation(normal_report),
         "anomaly_reconciliation": _public_safe_reconciliation(anomaly_report),
         "final_reconciliation": _public_safe_reconciliation(final_report),
@@ -1185,7 +1170,7 @@ def run_oracle(resources: OwnedResources) -> dict[str, Any]:
             "unexplained_anomalies_zero": "PASS",
             "deterministic_repair_rescan_consistent": "PASS",
             "object_store_outage_explicit_503": "PASS",
-            "object_store_read_timeout_retry_single_version": "PASS",
+            "object_store_unavailable_replay_single_version": "PASS",
             "object_container_replacement_same_volume": "PASS",
             "browser_state_cleared_recovery": "PASS",
             "legacy_write_rollback_s3_dual_read": "PASS",

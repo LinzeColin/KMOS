@@ -113,7 +113,6 @@ class Oracle:
         self.object_app_user = "p53-app-synthetic"
         self.object_app_secret = "p53-app-secret-synthetic-only"
         self.worker_outputs: list[dict[str, Any]] = []
-        self.recovery_durations: list[float] = []
 
     def cleanup(self) -> None:
         for container in (self.postgres, self.object_store):
@@ -310,17 +309,12 @@ mc admin policy attach local kmfa-p53-private --user "$KMFA_S3_ACCESS_KEY_ID"
         base_arguments: Sequence[str],
         fault: str,
     ) -> dict[str, Any]:
-        started = time.monotonic()
         self.worker(
             [*base_arguments, "--fault", fault],
             expected_returncode=FAULT_EXIT,
         )
         recovered = self.worker(base_arguments)
         assert recovered is not None
-        duration = time.monotonic() - started
-        self.recovery_durations.append(duration)
-        if duration > 30:
-            raise RuntimeError(f"recovery exceeded 30 seconds: {fault}")
         return recovered
 
     def execute_matrix(self) -> dict[str, Any]:
@@ -546,8 +540,8 @@ mc admin policy attach local kmfa-p53-private --user "$KMFA_S3_ACCESS_KEY_ID"
             "timeout_injection_count": 2,
             "explicit_isolation_count": 2,
             "outbox_events_drained_after_fault_matrix": delivered,
-            "max_recovery_seconds": round(max(self.recovery_durations), 3),
-            "recovery_sla_seconds": 30,
+            "recovery_mode": "immediate_fault_replay",
+            "wall_clock_gate_used": False,
             "reconciliation": reconciliation,
             "trace_count": final["trace_count"],
             "traced_operation_count": final["traced_operation_count"],

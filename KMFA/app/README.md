@@ -194,7 +194,8 @@ volume 不等于灾难恢复，完成目录还必须复制到独立加密故障�
 `deploy/coolify/P5.4_RETENTION_BACKUP_RUNBOOK.md`。
 
 这仍不是 GA：S06 已完成受限 64 MiB 断点上传、有界隔离扫描、不可变版本血缘和安全纯文本预览，
-但本次 Stage publication 不启用生产 P6.1-P6.3 Flags，且多文件/更大文件生命周期仍属后续阶段。
+但 S06 本地完成不启用生产 P6.1-P6.3 Flags；完成整个 v1.5.2 Taskpack 前不上传或部署，
+且多文件/更大文件生命周期仍属后续阶段。
 快速回滚先停止独立 file-security/lifecycle worker，再把相关 S06 Flags 置 `0`，必要时把
 `KMFA_LIFECYCLE_MODE=paused` 与 `KMFA_CONSISTENCY_STATE_MODE=paused`；保留
 `kmfa-app-state`、`kmfa-object-data`、PostgreSQL、backup、outbox/trace/lifecycle evidence，禁止

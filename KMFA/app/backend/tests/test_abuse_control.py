@@ -555,7 +555,7 @@ def test_emergency_mode_exempts_only_low_cost_routes_and_ops_remains_private(
     assert (abuse_store / "objects").is_dir()
 
 
-def test_release_wiring_runs_and_retains_only_compact_abuse_evidence(
+def test_release_wiring_uses_focused_fake_clock_abuse_tests(
     abuse_store: Path,
 ):
     del abuse_store
@@ -569,9 +569,9 @@ def test_release_wiring_runs_and_retains_only_compact_abuse_evidence(
     dockerfile = (repo / "KMFA/app/backend/Dockerfile").read_text(
         encoding="utf-8"
     )
-    assert "KMFA/app/e2e/abuse_control_flow.py" in workflow
-    assert "abuse-control-e2e/" in workflow
-    assert "docker rm -f kmfa-p44-e2e" in workflow
+    assert "KMFA/app/backend/tests/test_abuse_control.py" in workflow
+    assert "KMFA/app/e2e/abuse_control_flow.py" not in workflow
+    assert "abuse-control-e2e/" not in workflow
     assert "fetchWithRiskChallenge" in frontend
     assert "X-KMFA-Challenge-Proof" in frontend
     assert "--no-access-log" in dockerfile

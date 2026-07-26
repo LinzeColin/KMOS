@@ -3,6 +3,11 @@
 > **治理原则（Owner 2026-07-18）**：统一治理、降复杂度、不加第四件。
 > 只用已开的三件：**Coolify**（唯一部署/编排面板）+ **Cloudflare**（DNS/边缘 TLS）+ **OVH VPS**（主机）。
 > 本目录即云端主路径；`../skills-runtime/bootstrap.sh` 与 `../cloudflared/` 为**无 Coolify 时的 fallback 裸机路径**，非主路径。
+>
+> **执行方法覆盖（Owner 2026-07-26）**：真实时间 soak、观察期、等待窗口、后台空转、
+> 重复审批、形式化 Gate、无限重试、连续运行 N 小时及全量测试均不得成为开发、部署、上线或
+> 下一阶段前置。时间逻辑使用 Fake Clock、历史回放、固定 Fixture、模拟消息和即时故障注入；
+> MVP 只验证核心链路与高风险故障。下文若有旧表述冲突，以本条为准。
 
 节点：OVH Singapore VPS-1，amd64，Ubuntu 24.04，2 vCore/3.7GB/40GB。部署链已 #109 在 amd64 端到端出证。
 
@@ -12,7 +17,9 @@
 
 - ✅ **Docker 已就绪**（29.6.2 + compose + buildx，amd64）。
 - ⏳ **Owner 一次点连 Coolify 的 GitHub App**（STAGE-06.3）——连好后由 operate 线在 Coolify 建 project + 连 GitHub 源、登记本 `docker-compose.yml` 为 Docker-Compose 资源。分工：我维护仓内部署件（真相源），operate 线在 Coolify 登记指向它。
-- ⏳ **容量 Gate**（operate 线做）：Coolify+PG+Redis 常驻 ~1.3G，主机 3.7G + 2G swap，资金周报 OCR 峰值 ~1G 需错峰确认。过闸后 operate 线发 **"P1-GO"** 方动主机——在此之前只改仓、不碰主机。
+- ⏳ **容量即时核验**（operate 线做）：用固定峰值 Fixture 与资源限制故障注入核对
+  Coolify+PG+Redis、资金周报 OCR 和主机预算；不得靠真实观察窗口或人工过闸。核验前只改仓、
+  不碰主机。
 
 ## P1 —— 起 skills 栈（dry-run，不投递）
 
@@ -46,8 +53,10 @@
    /opt/runtime/test_send.sh 张霖泽                    # 默认 dry-run，只解析+打印
    KMFA_TEST_SEND_CONFIRM=1 /opt/runtime/test_send.sh 张霖泽   # 确认后真发一条
    ```
-4. **dry-run 双跑 ≥3 天**（`KMFA_DELIVERY_ENABLED=0`，云端北京锚与旧排程并行、只比对产物）。
-5. 无异常 → Coolify 置 `KMFA_DELIVERY_ENABLED=1` 重部署 → 正式投递。
+4. **即时 dry-run 回放**：`KMFA_DELIVERY_ENABLED=0`，使用固定历史 Fixture 和模拟消息对比
+   云端北京锚与旧排程产物；一次有界执行后立即收口，不后台空转、不等待自然时间窗口。
+5. 核心投递链路与高风险故障不变量通过 → Coolify 置 `KMFA_DELIVERY_ENABLED=1` 重部署 →
+   正式投递；不增加重复审批层。
 
 ## P2 —— 起 App 栈（容量确认后）
 
@@ -76,7 +85,7 @@
 > reconciliation CLI 与故障 Oracle 已进入候选代码，但本 phase 不单独切生产或启动尚不存在的业务
 > processor/index/export adapter。S05 整体复审前保持现有生产 DB/object mode；候选 image 必须先跑
 > `consistency_state_flow.py`，要求每个持久状态 crash、unknown timeout、duplicate delivery 和
-> partial success 全部在 30 秒 synthetic SLA 内 converged 或 isolated，unexplained terminal state、
+> partial success 经即时故障回放后全部 converged 或 isolated，不使用 elapsed-time 晋级阈值；unexplained terminal state、
 > duplicate side effect、raw-object delete 均为 0。快速回滚只把
 > `KMFA_CONSISTENCY_STATE_MODE=paused`，暂停新上传并继续读、恢复、下载和 reconciliation；恢复时置
 > `recoverable-v1`。v3 migration 只 forward-fix，禁止降 schema、回滚到不识别 v3 的旧 binary、
@@ -114,18 +123,22 @@
 > parent/source 血缘、固定版本 `kmfa-safe-text-extract/1.0.0` 处理器，以及只面向 scanner-clean
 > UTF-8 text/plain/JSON 的 64 KiB `text/plain` 派生预览。Web 不解析原件，未知、高风险、
 > attachment-only/rejected/timeout/error 均不进入 processor；原件和历史版本不可覆盖，派生物
-> 可重建但必须保留 processor/version/hash 血缘。S06 Stage publication 不自动切生产，保持
+> 可重建但必须保留 processor/version/hash 血缘。S06 本地完成不自动切生产，保持
 > `KMFA_ARTIFACT_DERIVATION_ENABLED=0`。同一候选 image 必须先证明同名同内容/修改内容均产生新
 > version、parent chain 与 lineage gap=0、浏览器校验 preview hash、重处理产生新 generation、
 > backup/restore 覆盖原件和派生物。快速回滚只恢复 Flag 为 `0` 并重部署同一 schema v6 binary；
 > 保留 DB、所有原件/版本/血缘/派生物/backup/volume，禁止降 schema、`down -v` 或删除对象。
 
-> **S06/P6.4 质量门**：正式 canary 前，同一 image ID 必须同时通过 P6.1/P6.2/P6.3、P5.2
-> PostgreSQL+S3 与 P4.4 abuse Oracles，并输出 bounded soak、quota race、scanner backlog、
-> object timeout 和统一 negative matrix。该合成结果不是生产容量或生产 RPO/RTO 证明；本次
-> Stage publication 保持三项 S06 Flags 为 `0`，生产灰度必须另行获批并逐项观察/回滚。
+> **S06/P6.4 确定性验证**：同一 runtime image ID 汇总 P6.1/P6.2/P6.3 与 P5.2
+> PostgreSQL+S3 核心/高风险 Oracles，并即时输出固定 Fixture replay、quota race、scanner
+> fault injection、object unavailable replay 和统一 negative matrix。禁止用真实时间 soak、观察期、
+> 等待窗口或连续运行 N 小时作为开发/部署/晋级前置；涉及时间的状态转换必须使用 Fake Clock、
+> 历史回放或模拟消息。该合成结果不冒充生产容量或生产 RPO/RTO。完成整个 v1.5.2 Taskpack 前
+> 不上传 GitHub、不部署、不灰度，三项 S06 Flags 保持 `0`。
 
-6. 观测 P1 内存无碍后，在 Coolify 为本资源**启用 `full` profile**（Compose profiles → 勾 `full`）或设 `COMPOSE_PROFILES=full`，重部署 → `kmfa-app` 起。
+6. 用固定峰值 Fixture 和资源限制故障注入即时确认 P1 内存边界后，在 Coolify 为本资源
+   **启用 `full` profile**（Compose profiles → 勾 `full`）或设 `COMPOSE_PROFILES=full`，
+   重部署 → `kmfa-app` 起。
 7. **域名**：Coolify 给 `app` 服务设 `kmfa.linzezhang.com`（Coolify Traefik 自动签发/路由）；**Cloudflare** 加一条**代理（橙云）** A 记录 `kmfa` → OVH 公网 IP（或按 Coolify 提示的 CNAME）。App 仅经 Traefik 暴露，主机不额外开放端口。
 8. **先建更具体的路径锁，整站登录墙不动**：保留现有 host 级 Self-hosted Application 的 Owner
    Allow 策略作为一键回滚杆，为下列四个模式建立更具体的 Self-hosted Application，并沿用现有私有

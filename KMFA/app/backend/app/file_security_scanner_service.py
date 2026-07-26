@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import os
 import tempfile
@@ -32,8 +31,6 @@ from .file_security_protocol import (
 )
 
 SCANNER_SHARED_SECRET_ENV = "KMFA_FILE_SCANNER_SHARED_SECRET"
-TEST_DELAY_SHA256_ENV = "KMFA_FILE_SCANNER_TEST_DELAY_SHA256"
-TEST_DELAY_SECONDS_ENV = "KMFA_FILE_SCANNER_TEST_DELAY_SECONDS"
 NONCE_TTL_SECONDS = 300.0
 MAX_NONCES = 10_000
 
@@ -86,19 +83,6 @@ def _header(request: Request, name: str) -> str:
     if not value or len(value) > 2048:
         raise FileSecurityProtocolError("scanner_request_invalid")
     return value
-
-
-def _test_delay_seconds(expected_sha256: str) -> float:
-    configured_hash = os.environ.get(TEST_DELAY_SHA256_ENV, "").strip()
-    if not configured_hash or configured_hash != expected_sha256:
-        return 0.0
-    try:
-        seconds = float(os.environ.get(TEST_DELAY_SECONDS_ENV, "0").strip())
-    except ValueError as exc:
-        raise FileSecurityPolicyError("security_test_delay_invalid") from exc
-    if not 0.0 <= seconds <= 10.0:
-        raise FileSecurityPolicyError("security_test_delay_invalid")
-    return seconds
 
 
 @app.get("/healthz")
@@ -192,9 +176,6 @@ async def scan_file(request: Request) -> JSONResponse:
         if received != expected_size or digest.hexdigest() != expected_sha256:
             return _error("scanner_source_identity_invalid", 422)
 
-        delay = _test_delay_seconds(expected_sha256)
-        if delay:
-            await asyncio.sleep(delay)
         decision = inspect_file(
             temporary_path,
             original_name=original_name,

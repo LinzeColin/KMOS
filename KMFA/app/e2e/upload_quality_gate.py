@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""S06/P6.4 bounded final-image upload quality and evidence gate.
+"""S06/P6.4 deterministic final-image upload quality validation.
 
-The gate adds quota competition, cross-workspace write isolation and a
-two-minute synthetic soak to the existing P6.1-P6.3 exact-image Oracles. It
-then emits a compact benchmark, negative matrix and explicit thresholds. This
-is a repeatable CI quality gate, not a production capacity claim; production-
-equivalent capacity and long-duration performance remain P11.3.
+The validation adds quota competition, cross-workspace write isolation and a fixed
+synthetic fixture replay to the existing P6.1-P6.3 exact-image Oracles. It
+emits a compact benchmark, negative matrix and explicit invariants without a
+real-time soak, observation window or wall-clock promotion threshold.
 """
 
 from __future__ import annotations
@@ -13,11 +12,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import re
 import sqlite3
 import subprocess
-import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
@@ -25,14 +22,9 @@ from typing import Any
 from resumable_upload_flow import Api, Container, MAX_FILE_BYTES
 
 CONTAINER_RE = re.compile(r"^kmfa-p64-[a-z0-9-]+$")
-SOAK_SAMPLES = 24
-SOAK_SECONDS_DEFAULT = 120
-SOAK_SECONDS_MIN = 60
-SOAK_SECONDS_MAX = 300
-SOAK_UPLOAD_P95_MAX_MS = 2_000
-SOAK_UPLOAD_P99_MAX_MS = 3_000
-SOAK_RSS_GROWTH_MAX_BYTES = 96 * 1024 * 1024
-SOAK_FD_GROWTH_MAX = 8
+FIXTURE_SAMPLES_DEFAULT = 12
+FIXTURE_SAMPLES_MIN = 3
+FIXTURE_SAMPLES_MAX = 12
 RECEIPT_MAX_BYTES = 64 * 1024
 
 
@@ -43,13 +35,6 @@ def _run(*arguments: str) -> subprocess.CompletedProcess[str]:
         capture_output=True,
         text=True,
     )
-
-
-def _nearest_rank(values: list[float], percentile: float) -> float:
-    assert values
-    ordered = sorted(values)
-    rank = max(1, math.ceil(percentile * len(ordered)))
-    return ordered[rank - 1]
 
 
 def _session_id(result: Any) -> str:
@@ -210,51 +195,25 @@ def _quota_competition(
     }
 
 
-def _process_snapshot(container_name: str) -> dict[str, int]:
-    script = (
-        "import json,pathlib;"
-        "lines=pathlib.Path('/proc/1/status').read_text().splitlines();"
-        "values={line.split(':',1)[0]:line.split(':',1)[1].strip() "
-        "for line in lines if ':' in line};"
-        "print(json.dumps({"
-        "'rss_bytes':int(values['VmRSS'].split()[0])*1024,"
-        "'threads':int(values['Threads']),"
-        "'fds':len(list(pathlib.Path('/proc/1/fd').iterdir()))"
-        "},sort_keys=True))"
-    )
-    return json.loads(
-        _run("docker", "exec", container_name, "python3", "-c", script).stdout
-    )
-
-
-def _soak_payload(index: int) -> bytes:
+def _fixture_payload(index: int) -> bytes:
     sizes = (1024, 64 * 1024, 256 * 1024)
     size = sizes[index % len(sizes)]
-    seed = hashlib.sha256(f"kmfa-p64-soak-{index}".encode()).digest()
+    seed = hashlib.sha256(f"kmfa-p64-fixture-{index}".encode()).digest()
     return (seed * ((size // len(seed)) + 1))[:size]
 
 
-def _bounded_soak(
+def _deterministic_fixture_replay(
     api: Api,
-    container: Container,
     *,
-    duration_seconds: int,
+    sample_count: int,
 ) -> tuple[dict[str, Any], list[tuple[str, str, dict[str, str], bytes]]]:
-    before = _process_snapshot(container.name)
-    started = time.monotonic()
-    latencies_ms: list[float] = []
     records: list[tuple[str, str, dict[str, str], bytes]] = []
     total_bytes = 0
-    for index in range(SOAK_SAMPLES):
-        scheduled = started + ((duration_seconds * index) / SOAK_SAMPLES)
-        remaining = scheduled - time.monotonic()
-        if remaining > 0:
-            time.sleep(remaining)
+    for index in range(sample_count):
         workspace_id, token, actor = api.create_workspace(
-            f"P6.4 bounded soak {index}"
+            f"P6.4 deterministic fixture {index}"
         )
-        payload = _soak_payload(index)
-        upload_started = time.monotonic()
+        payload = _fixture_payload(index)
         uploaded = api.request(
             "PUT",
             f"/workspaces/{workspace_id}/artifact",
@@ -262,11 +221,10 @@ def _bounded_soak(
             headers={
                 **api.auth(token, actor),
                 "Content-Type": "application/octet-stream",
-                "X-KMFA-Filename": f"soak-{index}.synthetic",
-                "Idempotency-Key": f"p64-soak-upload-{index:04d}",
+                "X-KMFA-Filename": f"fixture-{index}.synthetic",
+                "Idempotency-Key": f"p64-fixture-upload-{index:04d}",
             },
         )
-        latency_ms = (time.monotonic() - upload_started) * 1000
         assert uploaded.status == 200, uploaded.body
         assert uploaded.json()["artifact"]["sha256"] == hashlib.sha256(
             payload
@@ -274,53 +232,23 @@ def _bounded_soak(
         downloaded = api.download(workspace_id, token, actor)
         assert downloaded.status == 200
         assert downloaded.body == payload
-        latencies_ms.append(latency_ms)
         records.append((workspace_id, token, actor, payload))
         total_bytes += len(payload)
 
-    remaining = (started + duration_seconds) - time.monotonic()
-    if remaining > 0:
-        time.sleep(remaining)
-    elapsed_seconds = time.monotonic() - started
-    after = _process_snapshot(container.name)
-    p95_ms = _nearest_rank(latencies_ms, 0.95)
-    p99_ms = _nearest_rank(latencies_ms, 0.99)
-    rss_growth = after["rss_bytes"] - before["rss_bytes"]
-    fd_growth = after["fds"] - before["fds"]
-    assert elapsed_seconds >= duration_seconds
-    assert p95_ms <= SOAK_UPLOAD_P95_MAX_MS
-    assert p99_ms <= SOAK_UPLOAD_P99_MAX_MS
-    assert rss_growth <= SOAK_RSS_GROWTH_MAX_BYTES
-    assert fd_growth <= SOAK_FD_GROWTH_MAX
     return (
         {
-            "duration_seconds": round(elapsed_seconds, 2),
-            "samples": len(latencies_ms),
-            "successful_uploads": len(latencies_ms),
+            "mode": "deterministic_fixture_replay",
+            "real_time_soak_used": False,
+            "wall_clock_promotion_threshold_used": False,
+            "fixture_samples": len(records),
+            "successful_uploads": len(records),
             "failed_uploads": 0,
             "download_hash_mismatches": 0,
             "total_upload_bytes": total_bytes,
-            "upload_latency_ms": {
-                "p50": round(_nearest_rank(latencies_ms, 0.50), 2),
-                "p95": round(p95_ms, 2),
-                "p99": round(p99_ms, 2),
-                "max": round(max(latencies_ms), 2),
-            },
-            "process": {
-                "before": before,
-                "after": after,
-                "rss_growth_bytes": rss_growth,
-                "fd_growth": fd_growth,
-            },
             "thresholds": {
-                "duration_min_seconds": duration_seconds,
-                "samples_min": SOAK_SAMPLES,
+                "fixture_samples_exact": sample_count,
                 "failed_uploads_max": 0,
                 "download_hash_mismatches_max": 0,
-                "upload_p95_max_ms": SOAK_UPLOAD_P95_MAX_MS,
-                "upload_p99_max_ms": SOAK_UPLOAD_P99_MAX_MS,
-                "rss_growth_max_bytes": SOAK_RSS_GROWTH_MAX_BYTES,
-                "fd_growth_max": SOAK_FD_GROWTH_MAX,
             },
             "production_capacity_claimed": False,
             "status": "PASS",
@@ -329,7 +257,11 @@ def _bounded_soak(
     )
 
 
-def _database_invariants(state_dir: Path) -> dict[str, int]:
+def _database_invariants(
+    state_dir: Path,
+    *,
+    expected_versions: int,
+) -> dict[str, int]:
     root = state_dir / "walking-skeleton"
     database = root / "walking_skeleton.sqlite3"
     assert database.is_file()
@@ -372,7 +304,7 @@ def _database_invariants(state_dir: Path) -> dict[str, int]:
     object_files = len(list((root / "objects").glob("*.blob")))
     request_parts = len(list((root / "tmp").glob("request-*.part")))
     chunk_parts = len(list((root / "tmp").glob("*.chunk")))
-    assert versions == SOAK_SAMPLES
+    assert versions == expected_versions
     assert distinct_keys == versions
     assert object_files == versions
     assert lineage_gaps == 0
@@ -418,7 +350,6 @@ def _component_evidence(arguments: argparse.Namespace) -> dict[str, dict[str, An
             arguments.object_storage,
             "object-storage",
         ),
-        "abuse_control": _load_json(arguments.abuse_control, "abuse-control"),
         "lineage": _load_json(arguments.lineage, "lineage"),
     }
 
@@ -431,7 +362,6 @@ def _assert_component_contracts(
         components["resumable"]["image_id"],
         components["file_security"]["image_id"],
         components["object_storage"]["application_image_id"],
-        components["abuse_control"]["image_id"],
         components["lineage"]["image_id"],
     }
     assert component_image_ids == {image_id}
@@ -446,18 +376,12 @@ def _assert_component_contracts(
     assert security["scanner_backlog"]["status"] == "PASS"
     assert security["scanner_backlog"]["remaining_retryable"] == 0
     object_storage = components["object_storage"]
-    assert object_storage["object_store_timeout"]["status"] == "PASS"
-    assert object_storage["object_store_timeout"]["duplicate_versions"] == 0
-    abuse = components["abuse_control"]
-    flood = abuse["attack_curves"]["upload_export_flood"]
-    assert flood["immutable_version_rejections"] == 0
-    assert flood["versions_created"] == flood["objects_created"]
-    assert (
-        abuse["resource_metrics"]["state"]["business"][
-            "version_lineage_gaps"
-        ]
-        == 0
-    )
+    object_fault = object_storage["object_store_fault_injection"]
+    assert object_fault["status"] == "PASS"
+    assert object_fault["initial_request_status"] == 503
+    assert object_fault["idempotent_replay_status"] == 200
+    assert object_fault["duplicate_versions"] == 0
+    assert object_fault["real_time_stall_used"] is False
     lineage = components["lineage"]
     assert lineage["original_overwrite_count"] == 0
     assert lineage["version_parent_gaps"] == 0
@@ -467,25 +391,26 @@ def _assert_component_contracts(
 def _build_outputs(
     *,
     image_id: str,
-    soak: dict[str, Any],
+    fixture_replay: dict[str, Any],
     quota: dict[str, Any],
     database: dict[str, int],
     components: dict[str, dict[str, Any]],
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
-    abuse = components["abuse_control"]["attack_curves"]
     scanner = components["file_security"]["scanner_backlog"]
-    object_timeout = components["object_storage"]["object_store_timeout"]
+    object_fault = components["object_storage"][
+        "object_store_fault_injection"
+    ]
     resumable = components["resumable"]
     lineage = components["lineage"]
     benchmark = {
-        "schema_version": "kmfa.s06.p64.upload-benchmark.v1",
+        "schema_version": "kmfa.s06.p64.upload-benchmark.v2",
         "status": "PASS",
         "image_id": image_id,
         "synthetic_only": True,
-        "bounded_final_image_soak": soak,
-        "slow_upload_concurrency": abuse["concurrency_flood"],
+        "deterministic_fixture_replay": fixture_replay,
         "scanner_backlog": scanner,
-        "object_store_timeout": object_timeout,
+        "object_store_fault_injection": object_fault,
+        "real_time_soak_used": False,
         "production_capacity_claimed": False,
         "production_capacity_stage": "S11/P11.3",
     }
@@ -527,28 +452,16 @@ def _build_outputs(
             "status": "PASS",
         },
         {
-            "case": "slow parallel bodies",
-            "observed": abuse["concurrency_flood"],
-            "expected": "budget enforced; root and normal mutation available",
-            "status": "PASS",
-        },
-        {
-            "case": "immutable upload flood",
-            "observed": abuse["upload_export_flood"],
-            "expected": "new versions through budget; no overwrite",
-            "status": "PASS",
-        },
-        {
-            "case": "scanner timeout and unavailable",
+            "case": "scanner unavailable fault",
             "observed": {
-                "timeout_retry": components["file_security"][
-                    "timeout_retry_converged"
-                ],
                 "unavailable_retry": components["file_security"][
                     "unavailable_retry_converged"
                 ],
+                "real_time_window_wait_used": scanner[
+                    "real_time_window_wait_used"
+                ],
             },
-            "expected": "never clean on failure; retry converges",
+            "expected": "never clean; retry converges; no window wait",
             "status": "PASS",
         },
         {
@@ -558,9 +471,9 @@ def _build_outputs(
             "status": "PASS",
         },
         {
-            "case": "object-store read timeout",
-            "observed": object_timeout,
-            "expected": "bounded retry; one DB and native object version",
+            "case": "object-store unavailable fault",
+            "observed": object_fault,
+            "expected": "503 then replay; one DB and native object version",
             "status": "PASS",
         },
         {
@@ -585,11 +498,8 @@ def _build_outputs(
         "unexplained_failures": 0,
     }
     status_contract = resumable["contract"]
-    upload_limits = components["abuse_control"]["attack_curves"][
-        "distributed_low_speed"
-    ]["operation_limits"]["upload"]
     thresholds = {
-        "schema_version": "kmfa.s06.p64.capacity-thresholds.v1",
+        "schema_version": "kmfa.s06.p64.capacity-thresholds.v2",
         "status": "PASS",
         "image_id": image_id,
         "product_contract": {
@@ -599,14 +509,11 @@ def _build_outputs(
                 "max_sessions_per_workspace"
             ],
             "max_total_artifact_bytes": quota["total_capacity_bytes"],
-            "upload_workspace_burst_10s": upload_limits["per_workspace"],
-            "upload_global_burst_10s": upload_limits["global"],
-            "upload_concurrency": upload_limits["concurrency"],
         },
         "quality_gate": {
-            "soak": soak["thresholds"],
+            "deterministic_fixture_replay": fixture_replay["thresholds"],
             "scanner_backlog": scanner["thresholds"],
-            "object_store_timeout": object_timeout["thresholds"],
+            "object_store_fault_injection": object_fault["thresholds"],
             "data_invariants": {
                 "cross_workspace_bytes_written_max": 0,
                 "duplicate_object_versions_max": 0,
@@ -621,11 +528,15 @@ def _build_outputs(
             "preserve_existing_downloads": True,
             "delete_state_or_volumes": False,
         },
+        "real_time_soak_used": False,
+        "required_validation_mode": (
+            "fixture_replay_fake_clock_fault_injection"
+        ),
         "production_capacity_claimed": False,
         "production_capacity_stage": "S11/P11.3",
     }
     summary = {
-        "schema_version": "kmfa.s06.p64.upload-quality-gate.v1",
+        "schema_version": "kmfa.s06.p64.upload-quality-gate.v2",
         "status": "PASS",
         "task": "T-S06-04",
         "phase": "P6.4",
@@ -642,6 +553,7 @@ def _build_outputs(
         "unexplained_failures": 0,
         "data_invariant_failures": 0,
         "isolation_failures": 0,
+        "real_time_soak_used": False,
         "production_capacity_claimed": False,
         "next_capacity_stage": "S11/P11.3",
     }
@@ -656,14 +568,13 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--container-name", default="kmfa-p64-e2e")
     parser.add_argument("--port", type=int, default=18109)
     parser.add_argument(
-        "--soak-seconds",
+        "--fixture-samples",
         type=int,
-        default=SOAK_SECONDS_DEFAULT,
+        default=FIXTURE_SAMPLES_DEFAULT,
     )
     parser.add_argument("--resumable", type=Path, required=True)
     parser.add_argument("--file-security", type=Path, required=True)
     parser.add_argument("--object-storage", type=Path, required=True)
-    parser.add_argument("--abuse-control", type=Path, required=True)
     parser.add_argument("--lineage", type=Path, required=True)
     return parser
 
@@ -671,7 +582,11 @@ def _parser() -> argparse.ArgumentParser:
 def main() -> int:
     arguments = _parser().parse_args()
     assert CONTAINER_RE.fullmatch(arguments.container_name)
-    assert SOAK_SECONDS_MIN <= arguments.soak_seconds <= SOAK_SECONDS_MAX
+    assert (
+        FIXTURE_SAMPLES_MIN
+        <= arguments.fixture_samples
+        <= FIXTURE_SAMPLES_MAX
+    )
     arguments.state_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     assert not any(arguments.state_dir.iterdir())
     arguments.out_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -708,10 +623,9 @@ def main() -> int:
                 status_contract["resumable_upload"]["max_file_bytes"]
             ),
         )
-        soak, records = _bounded_soak(
+        fixture_replay, records = _deterministic_fixture_replay(
             api,
-            container,
-            duration_seconds=arguments.soak_seconds,
+            sample_count=arguments.fixture_samples,
         )
         container.restart()
         restarted_api = Api(container.base_url, capabilities)
@@ -719,12 +633,15 @@ def main() -> int:
             downloaded = restarted_api.download(workspace_id, token, actor)
             assert downloaded.status == 200
             assert downloaded.body == payload
-        soak["restart_hash_checks"] = 2
+        fixture_replay["restart_hash_checks"] = 2
         logs = container.logs()
         assert not any(value in logs for value in capabilities)
         container.remove()
 
-        database = _database_invariants(arguments.state_dir)
+        database = _database_invariants(
+            arguments.state_dir,
+            expected_versions=arguments.fixture_samples,
+        )
         persisted = b"".join(
             path.read_bytes()
             for path in (arguments.state_dir / "walking-skeleton").rglob("*")
@@ -735,7 +652,7 @@ def main() -> int:
         )
         benchmark, matrix, thresholds, summary = _build_outputs(
             image_id=image_id,
-            soak=soak,
+            fixture_replay=fixture_replay,
             quota=quota,
             database=database,
             components=components,
@@ -748,28 +665,30 @@ def main() -> int:
         )
         _write_json(arguments.out_dir / "summary.json", summary)
         scanner_backlog = components["file_security"]["scanner_backlog"]
-        object_timeout = components["object_storage"]["object_store_timeout"]
+        object_fault = components["object_storage"][
+            "object_store_fault_injection"
+        ]
         report = (
-            "# S06/P6.4 final-image upload quality gate\n\n"
+            "# S06/P6.4 final-image upload quality validation\n\n"
             f"- image: `{image_id}`\n"
             "- result: **PASS**\n"
-            f"- bounded soak: `{soak['duration_seconds']}s`, "
-            f"`{soak['samples']}` uploads, failures `0`, hash mismatches `0`\n"
-            f"- upload latency p50/p95/p99: "
-            f"`{soak['upload_latency_ms']['p50']}/"
-            f"{soak['upload_latency_ms']['p95']}/"
-            f"{soak['upload_latency_ms']['p99']} ms`\n"
+            "- real-time soak / observation window / wall-clock gate: "
+            "`not used`\n"
+            f"- deterministic fixture replay: "
+            f"`{fixture_replay['fixture_samples']}` uploads, failures `0`, "
+            "hash mismatches `0`\n"
             "- quota race: one winner, one capacity rejection; cancellation "
             "released capacity; cross-workspace bytes written `0`\n"
             f"- scanner backlog drained: `{scanner_backlog['drained']}`; "
             "remaining `0`\n"
-            f"- object-store forced timeout elapsed: "
-            f"`{object_timeout['observed_elapsed_ms']} ms`; "
-            "duplicate versions `0`\n"
+            "- object-store unavailable fault: immediate `503`, replay "
+            f"`{object_fault['idempotent_replay_status']}`; duplicate "
+            "versions `0`; no real-time stall\n"
             f"- negative matrix: `{len(matrix['rows'])}/{len(matrix['rows'])}` PASS; "
             "data invariant/isolation failures `0/0`\n"
-            "- this is a bounded CI quality gate, not a production capacity "
-            "claim; production-equivalent capacity remains S11/P11.3\n"
+            "- this is an immediate fixture/fault-injection validation, not a "
+            "production capacity claim; later capacity work must use "
+            "deterministic replay rather than elapsed-time promotion\n"
         )
         report_path = arguments.out_dir / "report.md"
         report_path.write_text(report, encoding="utf-8")
