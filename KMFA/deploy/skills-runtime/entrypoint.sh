@@ -18,6 +18,29 @@ if [ "$#" -gt 0 ]; then
 fi
 
 SECRETS=/opt/kmfa/secrets/skills.env
+
+# Coolify 部署没有宿主机 bind mount，/opt/kmfa/secrets/skills.env 永远不存在——
+# 于是每一次 cron 触发都以 NOTIFIER_CONFIG_MISSING 空跑：技能"在跑"但一条钉钉都不发
+# （Owner 实报：所有 skill 没运行、钉钉零消息；容器日志坐实是这一行警告）。
+# 修法与下面的备份密钥同构：把 Coolify 注入的环境变量在启动时**合成**成 600 的 skills.env。
+# 只写"有值"的键：全空则不生成文件，仍走原告警路径，不伪装成已配置。
+if [ ! -f "$SECRETS" ]; then
+  mkdir -p /opt/kmfa/secrets /var/log/kmfa   # 日志目录须先于下面写 cron.log 存在
+  TMP_ENV="$(mktemp)"
+  for k in DINGTALK_ROBOT_URL DINGTALK_ROBOT_SIGNING_KEY DINGTALK_DING_ROBOT_CODE \
+           KMFA_ALERT_WEBHOOK_TOKEN KMFA_DELIVERY_ENABLED \
+           KMFA_DINGTALK_ATTENDANCE_ALLOW_DWS_COMMANDS; do
+    v="$(printenv "$k" 2>/dev/null || true)"
+    [ -n "$v" ] && printf '%s=%s\n' "$k" "$v" >> "$TMP_ENV"
+  done
+  if [ -s "$TMP_ENV" ]; then
+    install -m 600 "$TMP_ENV" "$SECRETS"
+    # 只记键名与条数，绝不记值
+    echo "$(date -Is) entrypoint: 已从环境变量合成 skills.env（$(wc -l < "$SECRETS") 项：$(cut -d= -f1 "$SECRETS" | tr '\n' ' ')）" >> /var/log/kmfa/cron.log
+  fi
+  rm -f "$TMP_ENV"
+fi
+
 if [ -f "$SECRETS" ]; then
   PERM="$(stat -c '%a' "$SECRETS" 2>/dev/null || stat -f '%Lp' "$SECRETS")"
   if [ "$PERM" != "600" ] && [ "$PERM" != "400" ]; then
