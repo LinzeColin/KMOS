@@ -532,6 +532,9 @@ def _browser_challenge(
 def _upload_export_flood(
     base_url: str,
     sensitive_values: list[str],
+    *,
+    upload_workspace_burst: int,
+    export_workspace_burst: int,
 ) -> dict[str, Any]:
     actor = Actor(base_url, "198.51.100.91")
     actor.request("GET", f"{BASE_PATH}/status")
@@ -544,51 +547,58 @@ def _upload_export_flood(
         "Content-Type": "application/octet-stream",
         "X-KMFA-Filename": "synthetic-flood.bin",
     }
-    # Six uploads pass through (1 create + 5 duplicate 409s) before the seventh
-    # trips the upload per-workspace budget (6) and draws the challenge. Pin the
-    # burst to a fresh window so a mid-burst 10s boundary cannot reset the
-    # counter and demote the 7th 429 to a 409.
+    # Every admitted upload is a new immutable version after P6.3. Exhaust the
+    # versioned policy's current workspace burst, then prove the next request is
+    # challenged. Pin the run to one fresh window so a boundary cannot reset
+    # the counter during the synthetic burst.
+    assert 1 <= upload_workspace_burst <= 32
     _align_to_fresh_rate_window()
     uploads = [
         actor.request(
             "PUT",
             f"{BASE_PATH}/workspaces/{workspace_id}/artifact",
-            body=UPLOAD_FIXTURE if index == 0 else b"must-not-replace",
+            body=UPLOAD_FIXTURE,
             headers=upload_headers,
         )
-        for index in range(7)
+        for _ in range(upload_workspace_burst + 1)
     ]
-    assert uploads[0].status == 200
-    assert [result.status for result in uploads[1:6]] == [409] * 5
-    assert uploads[6].status == 429
-    assert uploads[6].json()["detail"] == "risk_challenge_required"
+    assert [result.status for result in uploads[:-1]] == (
+        [200] * upload_workspace_burst
+    )
+    assert uploads[-1].status == 429
+    assert uploads[-1].json()["detail"] == "risk_challenge_required"
 
-    # Six exports serve (200) before the seventh trips the export per-workspace
-    # budget (6). Same single-window property as the uploads above, so pin the
-    # download burst to its own fresh window too.
+    # The export policy has its own workspace budget. Pin it to an independent
+    # window and prove existing downloads remain available until that boundary.
+    assert 1 <= export_workspace_burst <= 32
     _align_to_fresh_rate_window()
     downloads = [
         actor.request(
             "POST",
             f"{BASE_PATH}/workspaces/{workspace_id}/artifact/download",
         )
-        for _ in range(7)
+        for _ in range(export_workspace_burst + 1)
     ]
-    assert [result.status for result in downloads[:6]] == [200] * 6
-    assert all(result.body == UPLOAD_FIXTURE for result in downloads[:6])
-    assert downloads[6].status == 429
-    assert downloads[6].json()["detail"] == "risk_challenge_required"
+    assert [result.status for result in downloads[:-1]] == (
+        [200] * export_workspace_burst
+    )
+    assert all(result.body == UPLOAD_FIXTURE for result in downloads[:-1])
+    assert downloads[-1].status == 429
+    assert downloads[-1].json()["detail"] == "risk_challenge_required"
     root = actor.request("GET", "/")
     status = actor.request("GET", f"{BASE_PATH}/status")
     assert root.status == status.status == 200
     return {
         "upload_attempts": len(uploads),
-        "objects_created": 1,
-        "duplicate_business_rejections": 5,
+        "versions_created": upload_workspace_burst,
+        "objects_created": upload_workspace_burst,
+        "immutable_version_rejections": 0,
         "upload_challenges": 1,
         "export_attempts": len(downloads),
-        "exports_served_before_challenge": 6,
-        "export_bytes_served": len(UPLOAD_FIXTURE) * 6,
+        "exports_served_before_challenge": export_workspace_burst,
+        "export_bytes_served": (
+            len(UPLOAD_FIXTURE) * export_workspace_burst
+        ),
         "export_challenges": 1,
         "public_root_after_flood": root.status,
         "public_status_after_flood": status.status,
@@ -645,7 +655,9 @@ def _concurrency_flood(
     port: int,
     control_db: Path,
     sensitive_values: list[str],
+    upload_concurrency_budget: int,
 ) -> dict[str, Any]:
+    assert 1 <= upload_concurrency_budget < 6
     actors: list[Actor] = []
     workspaces: list[str] = []
     for index in range(6):
@@ -659,10 +671,9 @@ def _concurrency_flood(
         actors.append(actor)
         workspaces.append(workspace_id)
 
-    # The preceding upload-flood scenario intentionally consumed seven slots
-    # from the same 10-second global upload bucket. Start the concurrency curve
-    # in a fresh policy window so a fast Linux runner cannot turn the intended
-    # concurrency denials/recovery into a legitimate global-rate denial.
+    # The preceding upload-flood scenario exhausted a workspace burst. Start
+    # the concurrency curve in a fresh global window so the intended lease
+    # denials/recovery cannot become a legitimate rate denial.
     window_alignment_seconds = _align_to_fresh_rate_window()
 
     barrier = threading.Barrier(len(actors) + 1)
@@ -699,8 +710,8 @@ def _concurrency_flood(
     reasons = {index: reason for index, _, reason in results}
     admitted = [index for index, status in statuses.items() if status == 200]
     blocked = [index for index, status in statuses.items() if status == 429]
-    assert len(admitted) == 2, statuses
-    assert len(blocked) == 4, statuses
+    assert len(admitted) == upload_concurrency_budget, statuses
+    assert len(blocked) == len(actors) - upload_concurrency_budget, statuses
     assert {reasons[index] for index in blocked} == {"concurrency"}, reasons
 
     # A successful recovery assertion requires the persistent lease invariant,
@@ -744,7 +755,7 @@ def _concurrency_flood(
     assert root.status == 200
     return {
         "parallel_uploads": len(actors),
-        "concurrency_budget": 2,
+        "concurrency_budget": upload_concurrency_budget,
         "fresh_rate_window_wait_ms": round(
             window_alignment_seconds * 1000,
             2,
@@ -792,6 +803,28 @@ def _state_metrics(
             "artifact_bytes": connection.execute(
                 "SELECT COALESCE(SUM(size_bytes), 0) FROM artifacts"
             ).fetchone()[0],
+            "artifact_versions": connection.execute(
+                "SELECT COUNT(*) FROM artifact_versions"
+            ).fetchone()[0],
+            "artifact_version_bytes": connection.execute(
+                "SELECT COALESCE(SUM(size_bytes), 0) FROM artifact_versions"
+            ).fetchone()[0],
+            "distinct_version_storage_keys": connection.execute(
+                "SELECT COUNT(DISTINCT storage_key) FROM artifact_versions"
+            ).fetchone()[0],
+            "version_lineage_gaps": connection.execute(
+                """
+                SELECT COUNT(*)
+                FROM (
+                  SELECT project_id
+                  FROM artifact_versions
+                  GROUP BY project_id
+                  HAVING MIN(version_number) <> 1
+                     OR MAX(version_number) <> COUNT(*)
+                     OR COUNT(DISTINCT version_number) <> COUNT(*)
+                )
+                """
+            ).fetchone()[0],
             "audit_events": connection.execute(
                 "SELECT COUNT(*) FROM audit_events"
             ).fetchone()[0],
@@ -828,6 +861,7 @@ def _state_metrics(
     assert control_counts["concurrency_leases"] == 0
     assert control_counts["rate_counters"] <= 2048
     files = [path for path in root.rglob("*") if path.is_file()]
+    object_files = list((root / "objects").glob("*.blob"))
     persisted = b"".join(path.read_bytes() for path in files)
     raw_value_hits = sum(
         value.encode("utf-8") in persisted
@@ -843,6 +877,7 @@ def _state_metrics(
         "decision_metrics": decisions,
         "state_files": len(files),
         "state_bytes": sum(path.stat().st_size for path in files),
+        "object_files": len(object_files),
         "raw_sensitive_value_hits": raw_value_hits,
         "capability_pattern_hits": capability_hits,
         "resource_growth_bounded": True,
@@ -891,7 +926,17 @@ def main() -> int:
             lifecycle.base_url,
             sensitive_values,
         )
-        floods = _upload_export_flood(lifecycle.base_url, sensitive_values)
+        distributed = lifecycle.policy_probe()
+        operation_limits = distributed["operation_limits"]
+        upload_limits = operation_limits["upload"]
+        export_limits = operation_limits["export"]
+        assert distributed["policy_version"] == "p44-v1"
+        floods = _upload_export_flood(
+            lifecycle.base_url,
+            sensitive_values,
+            upload_workspace_burst=int(upload_limits["per_workspace"]),
+            export_workspace_burst=int(export_limits["per_workspace"]),
+        )
         concurrency = _concurrency_flood(
             base_url=lifecycle.base_url,
             port=args.port,
@@ -902,8 +947,8 @@ def main() -> int:
                 / "abuse_control.sqlite3"
             ),
             sensitive_values=sensitive_values,
+            upload_concurrency_budget=int(upload_limits["concurrency"]),
         )
-        distributed = lifecycle.policy_probe()
         runtime_stats = lifecycle.stats()
         post_attack = Actor(lifecycle.base_url, "192.0.2.250")
         root_started = time.monotonic()
@@ -926,11 +971,28 @@ def main() -> int:
         "KMFA_ABUSE_CAPACITY_ALERT" in line for line in log_text.splitlines()
     )
     state = _state_metrics(args.state_dir, sensitive_values)
-    # One flood object, two concurrent admissions and one post-release recovery.
-    assert state["business"]["artifacts"] == 4
-    assert state["business"]["artifact_bytes"] == (
-        len(UPLOAD_FIXTURE) + (2 * SLOW_UPLOAD_BYTES) + len(b"post-concurrency-recovery")
+    expected_versions = (
+        floods["versions_created"] + concurrency["admitted"] + 1
     )
+    expected_version_bytes = (
+        (floods["versions_created"] * len(UPLOAD_FIXTURE))
+        + (concurrency["admitted"] * SLOW_UPLOAD_BYTES)
+        + len(b"post-concurrency-recovery")
+    )
+    # One latest compatibility row for the flood workspace, each admitted slow
+    # upload and the post-release recovery; historical versions stay normalized.
+    expected_artifacts = 1 + concurrency["admitted"] + 1
+    assert state["business"]["artifacts"] == expected_artifacts
+    assert state["business"]["artifact_bytes"] == (
+        len(UPLOAD_FIXTURE)
+        + (concurrency["admitted"] * SLOW_UPLOAD_BYTES)
+        + len(b"post-concurrency-recovery")
+    )
+    assert state["business"]["artifact_versions"] == expected_versions
+    assert state["business"]["artifact_version_bytes"] == expected_version_bytes
+    assert state["business"]["distinct_version_storage_keys"] == expected_versions
+    assert state["business"]["version_lineage_gaps"] == 0
+    assert state["object_files"] == expected_versions
     assert brute["bypasses"] == 0
     assert distributed["blocked_after_bound"] == 1
     assert distributed["recovered_next_window"] is True

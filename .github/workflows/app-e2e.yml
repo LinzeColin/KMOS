@@ -191,6 +191,22 @@ jobs:
             --container-name kmfa-p44-e2e \
             --port 18105
 
+      - name: 跑上传质量门（配额竞争 / soak / scanner backlog / 对象超时）
+        run: |
+          set -euo pipefail
+          p64_state=$(mktemp -d /tmp/kmfa-p64-state.XXXXXX)
+          python KMFA/app/e2e/upload_quality_gate.py \
+            --image kmfa-app:e2e \
+            --state-dir "$p64_state" \
+            --out-dir upload-quality-e2e \
+            --container-name kmfa-p64-e2e \
+            --port 18109 \
+            --resumable resumable-upload-e2e/summary.json \
+            --file-security file-security-e2e/summary.json \
+            --object-storage object-storage-e2e/object-storage-oracle.json \
+            --abuse-control abuse-control-e2e/result.json \
+            --lineage artifact-lineage-e2e/summary.json
+
       - name: 跑私有经营 App 全流端到端
         run: |
           set -euo pipefail
@@ -232,6 +248,7 @@ jobs:
             resumable-upload-e2e/
             file-security-e2e/
             artifact-lineage-e2e/
+            upload-quality-e2e/
 
       - name: 收容器
         if: always()
@@ -240,10 +257,12 @@ jobs:
           docker rm -f kmfa-p34-e2e || true
           docker rm -f kmfa-p44-e2e || true
           docker rm -f kmfa-p61-e2e || true
+          docker rm -f kmfa-p64-e2e || true
           docker rm -f kmfa-p62-ci-app || true
           docker rm -f kmfa-p62-ci-scanner || true
-          docker rm -f kmfa-p62-ci-worker-1 || true
-          docker rm -f kmfa-p62-ci-worker-2 || true
+          for index in {1..12}; do
+            docker rm -f "kmfa-p62-ci-worker-${index}" || true
+          done
           docker network rm kmfa-p62-ci-net || true
           docker network rm kmfa-p62-ci-app-net || true
           docker rm -f kmfa-p51-ci-app-a || true

@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import io
 import json
+import math
 import os
 import re
 import secrets
@@ -31,6 +32,9 @@ PREFIX_RE = re.compile(r"^kmfa-p62-[a-z0-9-]{1,32}$")
 ACCESS_RE = re.compile(r"^kmfa-a1-[A-Za-z0-9_-]{43}$")
 RECOVERY_RE = re.compile(r"^kmfa-r1-[A-Za-z0-9_-]{43}$")
 SECRET_RE = re.compile(r"^[A-Za-z0-9_-]{43}$")
+SCANNER_BACKLOG_CASES = 8
+SCANNER_BACKLOG_DRAIN_MAX_MS = 60_000
+SCANNER_BACKLOG_ITEM_P99_MAX_MS = 10_000
 
 
 @dataclass(frozen=True)
@@ -658,6 +662,138 @@ def _run_case(
     )
 
 
+def _nearest_rank(values: list[float], percentile: float) -> float:
+    assert values
+    ordered = sorted(values)
+    rank = max(1, math.ceil(percentile * len(ordered)))
+    return ordered[rank - 1]
+
+
+def _align_to_fresh_policy_window(window_seconds: int = 10) -> float:
+    wait_seconds = window_seconds - (time.time() % window_seconds) + 0.1
+    time.sleep(wait_seconds)
+    return wait_seconds
+
+
+def _scanner_backlog_oracle(
+    api: Api,
+    resources: Resources,
+) -> tuple[dict[str, Any], list[tuple[str, str, dict[str, str], str]]]:
+    resources.remove_scanner()
+    records: list[tuple[str, str, dict[str, str], str]] = []
+    for index in range(SCANNER_BACKLOG_CASES):
+        payload = f"P6.4 scanner backlog fixture {index}\n".encode()
+        workspace_id, token, actor = api.create(
+            f"P6.4 scanner backlog {index}"
+        )
+        uploaded = api.upload(
+            workspace_id,
+            token,
+            actor,
+            name=f"backlog-{index}.txt",
+            media_type="text/plain",
+            payload=payload,
+        )
+        assert uploaded.status == 200, uploaded.body
+        security = uploaded.json()["artifact"]["security"]
+        assert security["state"] == "scanner_error"
+        assert security["preview_allowed"] is False
+        assert security["processing_allowed"] is False
+        assert uploaded.json()["artifact"]["download_allowed"] is True
+        records.append(
+            (
+                workspace_id,
+                token,
+                actor,
+                hashlib.sha256(payload).hexdigest(),
+            )
+        )
+
+    # Earlier attack cases legitimately consume the shared export budget.
+    # Start the representative attachment checks in a new policy window rather
+    # than accidentally turning a scanner-backlog test into an export-rate test.
+    rate_window_wait = _align_to_fresh_policy_window()
+    for workspace_id, token, actor, expected_hash in (
+        records[0],
+        records[-1],
+    ):
+        downloaded = api.download(workspace_id, token, actor)
+        assert downloaded.status == 200
+        assert hashlib.sha256(downloaded.body).hexdigest() == expected_hash
+        assert downloaded.headers["x-kmfa-artifact-mode"] == (
+            "attachment-only"
+        )
+
+    queued = resources.database_summary()["assessments"]
+    assert queued.get("scanner_error") == SCANNER_BACKLOG_CASES, queued
+    resources.start_scanner(delay_enabled=False)
+    item_latencies_ms: list[float] = []
+    drain_started = time.monotonic()
+    for _ in range(SCANNER_BACKLOG_CASES):
+        item_started = time.monotonic()
+        output = resources.run_worker()
+        item_latencies_ms.append((time.monotonic() - item_started) * 1000)
+        payloads = [
+            json.loads(line)
+            for line in output.splitlines()
+            if line.strip().startswith("{")
+        ]
+        assert len(payloads) == 1
+        assert payloads[0]["kind"] == "security_scan"
+        assert payloads[0]["state"] == "clean"
+    drain_elapsed_ms = (time.monotonic() - drain_started) * 1000
+
+    drained = resources.database_summary()["assessments"]
+    assert drained.get("scanner_error", 0) == 0, drained
+    for workspace_id, token, actor, _ in records:
+        refreshed = api.workspace(workspace_id, token, actor)
+        assert refreshed.status == 200
+        security = refreshed.json()["artifact"]["security"]
+        assert security["state"] == "clean"
+        assert security["preview_allowed"] is False
+    for workspace_id, token, actor, expected_hash in (
+        records[0],
+        records[-1],
+    ):
+        downloaded = api.download(workspace_id, token, actor)
+        assert downloaded.status == 200
+        assert hashlib.sha256(downloaded.body).hexdigest() == expected_hash
+
+    item_p99_ms = _nearest_rank(item_latencies_ms, 0.99)
+    assert drain_elapsed_ms <= SCANNER_BACKLOG_DRAIN_MAX_MS
+    assert item_p99_ms <= SCANNER_BACKLOG_ITEM_P99_MAX_MS
+    return (
+        {
+            "queued": SCANNER_BACKLOG_CASES,
+            "initial_state": "scanner_error",
+            "queued_attachment_only": SCANNER_BACKLOG_CASES,
+            "attachment_download_hash_checks": 4,
+            "preview_or_processing_exposures": 0,
+            "fresh_export_window_wait_ms": round(
+                rate_window_wait * 1000,
+                2,
+            ),
+            "workers": SCANNER_BACKLOG_CASES,
+            "drained": SCANNER_BACKLOG_CASES,
+            "remaining_retryable": 0,
+            "drain_elapsed_ms": round(drain_elapsed_ms, 2),
+            "item_latency_ms": {
+                "p50": round(_nearest_rank(item_latencies_ms, 0.50), 2),
+                "p95": round(_nearest_rank(item_latencies_ms, 0.95), 2),
+                "p99": round(item_p99_ms, 2),
+                "max": round(max(item_latencies_ms), 2),
+            },
+            "thresholds": {
+                "drain_elapsed_max_ms": SCANNER_BACKLOG_DRAIN_MAX_MS,
+                "item_p99_max_ms": SCANNER_BACKLOG_ITEM_P99_MAX_MS,
+                "remaining_retryable_max": 0,
+            },
+            "status": "PASS",
+        },
+        records,
+    )
+
+
 def _browser_oracle(base_url: str) -> dict[str, Any]:
     from playwright.sync_api import sync_playwright
 
@@ -933,6 +1069,9 @@ def main() -> int:
             ).json()["artifact"]["security"]["state"]
             == "clean"
         )
+        backlog, backlog_records = _scanner_backlog_oracle(api, resources)
+        state_counts["scanner_error"] += SCANNER_BACKLOG_CASES
+        preserved.append(backlog_records[0])
 
         browser = (
             {"skipped": True}
@@ -1010,6 +1149,7 @@ def main() -> int:
             "timeout_retry_converged": True,
             "unavailable_was_clean": False,
             "unavailable_retry_converged": True,
+            "scanner_backlog": backlog,
             "restart_preserved_state": True,
             "rollback_preserved_rejected_block": True,
             "rollback_standard_upload": True,
@@ -1051,6 +1191,8 @@ def main() -> int:
             "private network only\n"
             "- timeout/unavailable: durable non-clean; attachment-only; retry "
             "converged after scanner recovery\n"
+            "- scanner backlog: `8/8` retryable assessments drained within "
+            "the recorded bounded threshold; preview/processing exposures `0`\n"
             "- rollback: persisted rejected remained blocked; standard upload "
             "and preserved safe download remained available\n"
             "- raw capabilities, shared secret, filenames and object keys are "

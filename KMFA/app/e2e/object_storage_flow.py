@@ -23,6 +23,7 @@ import time
 import urllib.error
 import urllib.request
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
@@ -615,6 +616,147 @@ def _public_safe_reconciliation(report: dict[str, Any]) -> dict[str, Any]:
     return {key: report[key] for key in keys}
 
 
+def _object_store_timeout_oracle(
+    resources: OwnedResources,
+    *,
+    upload_url: str,
+    download_url: str,
+) -> tuple[dict[str, Any], tuple[str, str]]:
+    created_status, created, headers = _json_request(
+        upload_url,
+        "POST",
+        f"{API_PREFIX}/workspaces",
+        {"project_name": "S06 P6.4 object timeout"},
+    )
+    assert created_status == 201
+    token = _cookie_token(headers)
+    recovery = str(created["recovery_code"])
+    assert RECOVERY_RE.fullmatch(recovery)
+    workspace_id = str(created["workspace"]["workspace_id"])
+    payload = b"S06-P6.4 synthetic object-store timeout\n"
+    payload_sha256 = hashlib.sha256(payload).hexdigest()
+    upload_headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/octet-stream",
+        "X-KMFA-Filename": "object-timeout.synthetic",
+        "Idempotency-Key": "p64-object-timeout-0001",
+    }
+
+    _run("docker", "pause", resources.object_store)
+    paused = True
+    started = time.monotonic()
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            pending = pool.submit(
+                _request,
+                upload_url,
+                "PUT",
+                f"{API_PREFIX}/workspaces/{workspace_id}/artifact",
+                payload=payload,
+                headers=upload_headers,
+                timeout=60,
+            )
+            # S3ObjectStore uses a 15-second read timeout. Keeping the owned
+            # service paused for 20 seconds forces at least one true timeout,
+            # then the configured bounded retry can converge after unpause.
+            time.sleep(20)
+            _run("docker", "unpause", resources.object_store)
+            paused = False
+            status, raw, _ = pending.result(timeout=40)
+    finally:
+        if paused:
+            _run("docker", "unpause", resources.object_store, check=False)
+    elapsed_ms = (time.monotonic() - started) * 1000
+    assert 18_000 <= elapsed_ms <= 45_000
+    assert status == 200, raw.decode("utf-8", errors="replace")
+    uploaded = json.loads(raw.decode("utf-8"))["artifact"]
+    assert uploaded["sha256"] == payload_sha256
+
+    replay_status, replay_raw, _ = _request(
+        upload_url,
+        "PUT",
+        f"{API_PREFIX}/workspaces/{workspace_id}/artifact",
+        payload=payload,
+        headers=upload_headers,
+        timeout=30,
+    )
+    assert replay_status == 200
+    replayed = json.loads(replay_raw.decode("utf-8"))["artifact"]
+    assert replayed["artifact_version_id"] == uploaded["artifact_version_id"]
+    downloaded_status, downloaded, _ = _request(
+        download_url,
+        "POST",
+        f"{API_PREFIX}/workspaces/{workspace_id}/artifact/download",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert downloaded_status == 200
+    assert downloaded == payload
+
+    _configure_host_clients(resources)
+    connection = open_structured_store(Path("/tmp/kmfa-p52-unused.sqlite3"))
+    try:
+        rows = [
+            dict(row)
+            for row in connection.execute(
+                """
+                SELECT
+                  av.artifact_version_id,
+                  av.version_number,
+                  av.storage_key,
+                  av.size_bytes,
+                  av.sha256
+                FROM artifact_versions av
+                JOIN projects p ON p.project_id = av.project_id
+                WHERE p.workspace_id = ?
+                """,
+                (workspace_id,),
+            )
+        ]
+    finally:
+        connection.close()
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["version_number"] == 1
+    assert row["size_bytes"] == len(payload)
+    assert row["sha256"] == payload_sha256
+    root_client = _s3_client(
+        resources.host_s3_endpoint,
+        resources.minio_root_user,
+        resources.minio_root_password,
+    )
+    native = root_client.list_object_versions(
+        Bucket=S3_BUCKET,
+        Prefix=str(row["storage_key"]),
+    )
+    exact_versions = [
+        version
+        for version in native.get("Versions", [])
+        if version["Key"] == row["storage_key"]
+    ]
+    assert len(exact_versions) == 1
+    return (
+        {
+            "forced_pause_ms": 20_000,
+            "configured_read_timeout_ms": 15_000,
+            "forced_stall_exceeded_read_timeout": True,
+            "observed_elapsed_ms": round(elapsed_ms, 2),
+            "request_status": status,
+            "idempotent_replay_status": replay_status,
+            "artifact_versions": 1,
+            "native_object_versions": 1,
+            "duplicate_versions": 0,
+            "download_sha256_match": True,
+            "thresholds": {
+                "elapsed_min_ms": 18_000,
+                "elapsed_max_ms": 45_000,
+                "duplicate_versions_max": 0,
+            },
+            "status": "PASS",
+        },
+        (token, recovery),
+    )
+
+
 def run_oracle(resources: OwnedResources) -> dict[str, Any]:
     app_a, url_a = resources.start_app("a")
     app_b, url_b = resources.start_app("b")
@@ -813,6 +955,12 @@ def run_oracle(resources: OwnedResources) -> dict[str, Any]:
         assert status == 200 and downloaded == FIXTURES[index][2]
         assert headers["X-KMFA-Artifact-SHA256"] == fixture_hashes[index]
 
+    object_timeout, timeout_capabilities = _object_store_timeout_oracle(
+        resources,
+        upload_url=url_a,
+        download_url=url_b,
+    )
+
     # An object dependency outage is explicit and does not change DB rows.
     _run("docker", "stop", "--time", "5", resources.object_store)
     outage_status, outage, _ = _json_request(
@@ -831,7 +979,7 @@ def run_oracle(resources: OwnedResources) -> dict[str, Any]:
             StructuredRepository(connection).artifact_object_index(
                 storage_backend=S3_STORAGE_BACKEND
             )
-        ) == len(FIXTURES)
+        ) == len(FIXTURES) + 1
     finally:
         connection.close()
 
@@ -982,7 +1130,7 @@ def run_oracle(resources: OwnedResources) -> dict[str, Any]:
         value
         for session in sessions
         for value in (session["token"], session["recovery"])
-    ) + (recovered_token,)
+    ) + (recovered_token, *timeout_capabilities)
     logs = resources.logs()
     assert not any(value in logs for value in capabilities)
     assert not any(value in logs for value in resources.sensitive_values)
@@ -1016,6 +1164,7 @@ def run_oracle(resources: OwnedResources) -> dict[str, Any]:
             "same-name.unknown"
         ],
         "duplicate_content_count": Counter(fixture_hashes)[fixture_hashes[1]],
+        "object_store_timeout": object_timeout,
         "normal_reconciliation": _public_safe_reconciliation(normal_report),
         "anomaly_reconciliation": _public_safe_reconciliation(anomaly_report),
         "final_reconciliation": _public_safe_reconciliation(final_report),
@@ -1035,6 +1184,7 @@ def run_oracle(resources: OwnedResources) -> dict[str, Any]:
             "unexplained_anomalies_zero": "PASS",
             "deterministic_repair_rescan_consistent": "PASS",
             "object_store_outage_explicit_503": "PASS",
+            "object_store_read_timeout_retry_single_version": "PASS",
             "object_container_replacement_same_volume": "PASS",
             "browser_state_cleared_recovery": "PASS",
             "legacy_write_rollback_s3_dual_read": "PASS",

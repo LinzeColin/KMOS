@@ -437,13 +437,19 @@ def _upload_fixture(
     assert downloaded.headers["x-content-type-options"] == "nosniff"
     assert downloaded.headers["x-kmfa-artifact-mode"] == "attachment-only"
     assert downloaded.headers["x-kmfa-artifact-sha256"] == expected_hash
-    for action in ("preview", "execute"):
-        denied = api.request(
-            "POST",
-            f"/workspaces/{workspace_id}/artifact/{action}",
-            headers=api.auth(token, actor),
-        )
-        assert denied.status == 404
+    preview = api.request(
+        "GET",
+        f"/workspaces/{workspace_id}/artifact/preview",
+        headers=api.auth(token, actor),
+    )
+    assert preview.status == 404
+    assert preview.json()["detail"] == "artifact_preview_disabled"
+    execute = api.request(
+        "POST",
+        f"/workspaces/{workspace_id}/artifact/execute",
+        headers=api.auth(token, actor),
+    )
+    assert execute.status == 404
     return expected_hash
 
 

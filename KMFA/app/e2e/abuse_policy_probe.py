@@ -31,6 +31,21 @@ def _signals(index: int) -> abuse.RequestSignals:
 def main() -> int:
     policy = abuse.POLICIES["identity"]
     sustained = next(window for window in policy.windows if window.seconds == 3600)
+    operation_limits: dict[str, dict[str, int | None]] = {}
+    for operation in ("upload", "export"):
+        operation_policy = abuse.POLICIES[operation]
+        burst = next(
+            window for window in operation_policy.windows if window.seconds == 10
+        )
+        operation_limits[operation] = {
+            "burst_seconds": burst.seconds,
+            "per_ip": burst.per_ip,
+            "per_device": burst.per_device,
+            "per_workspace": burst.per_workspace,
+            "global": burst.global_limit,
+            "concurrency": operation_policy.concurrency,
+            "lease_seconds": operation_policy.lease_seconds,
+        }
     base = (1_800_000_000 // sustained.seconds) * sustained.seconds + 1
     with tempfile.TemporaryDirectory(prefix="kmfa-p44-policy-") as state:
         os.environ["KMFA_WALKING_SKELETON_STATE_DIR"] = state
@@ -78,10 +93,12 @@ def main() -> int:
         json.dumps(
             {
                 "scenario": "distributed-low-speed",
+                "policy_version": abuse.POLICY_VERSION,
                 "request_interval_seconds": 5,
                 "unique_actor_signals": sustained.global_limit + 2,
                 "allowed_before_bound": allowed,
                 "global_sustained_limit": sustained.global_limit,
+                "operation_limits": operation_limits,
                 "blocked_after_bound": 1,
                 "challenge_bypass_offered": False,
                 "recovered_next_window": True,
