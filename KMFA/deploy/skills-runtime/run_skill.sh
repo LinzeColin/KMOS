@@ -26,8 +26,9 @@ cd "$ROOT"
 export PYTHONPATH="$ROOT"
 
 case "$SKILL" in
-  attendance-morning)  CMD=(python3 KMFA/tools/dingtalk_attendance/run_attendance.py --run-type morning) ;;
-  attendance-evening)  CMD=(python3 KMFA/tools/dingtalk_attendance/run_attendance.py --run-type evening) ;;
+  # 测试期只发张霖泽本人（Owner:不许发群，除非授权）。授权后在 Coolify 置 KMFA_NOTIFICATION_TARGETS=group。
+  attendance-morning)  CMD=(python3 KMFA/tools/dingtalk_attendance/run_attendance.py --run-type morning --notification-targets "${KMFA_NOTIFICATION_TARGETS:-personal}") ;;
+  attendance-evening)  CMD=(python3 KMFA/tools/dingtalk_attendance/run_attendance.py --run-type evening --notification-targets "${KMFA_NOTIFICATION_TARGETS:-personal}") ;;
   work-check-morning)  CMD=(python3 -m KMFA.tools.daily_routine_check.main --input-zip "${KMFA_DAILY_INPUT_ZIP:-/opt/kmfa/data/DWS_Outputs.zip}" --trigger-window morning_1135 $DELIVERY_FLAG) ;;   # SKL.0004 已演练（真实输入 dry-run 通过，通知对象原生=张霖泽）
   work-check-evening)  CMD=(python3 -m KMFA.tools.daily_routine_check.main --input-zip "${KMFA_DAILY_INPUT_ZIP:-/opt/kmfa/data/DWS_Outputs.zip}" --trigger-window evening_1705 $DELIVERY_FLAG) ;;
   fund-weekly)         CMD=(python3 KMFA/skills/资金周报/tools/validate_taskpack.py) ;;       # SKL.0005 OCR 替换后接业务入口
