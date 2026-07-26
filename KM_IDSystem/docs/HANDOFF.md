@@ -16,6 +16,7 @@
 - The branch preserves all Stage041–047 commits. `BATCH041_050` remains `7/10`; Stage048–050 and the ten-stage batch review have not started.
 - Latest observed `origin/main` is `12d6fa9f46786387ee21d9bd3c682175464f3554`; merge base is `0495b8482b78ff937a92ee061c92980bcbde173b`. Before final handoff commits the branch was 38 commits ahead and 108 behind, so the PR must remain Draft pending independent integration review.
 - The approved taskpack was imported as 183 byte-exact UTF-8 text files under `docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/`; the ZIP itself, raw metadata, private data and runtime outputs were not committed. Source/provenance, checksums and iteration recommendations are in `docs/taskpacks/`.
+- GitHub full-repo dual-plane CI is currently blocked only by the unchanged adjacent `KM_IDSystem/搜标项目/文档/05_执行与验收.md` using this branch's newer shared parent renderer. Both attempts in Actions run `30187010665` failed on the same render-consistency line; the bounded root-cause and one-line expected diff are recorded in `docs/FINAL_THREAD_HANDOFF_20260726.md`. No adjacent-project fix was made without explicit scope approval.
 - Read `docs/FINAL_THREAD_HANDOFF_20260726.md` for the concise state, validation, unresolved risks and next-run instructions.
 - After remote verification, this thread's local worktree is to be retired. The shared main checkout must remain clean on `main`; no `git gc --prune=now` is permitted.
 

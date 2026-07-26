@@ -59,6 +59,33 @@ owner views 均保留在 Git 历史及 `KM_IDSystem/` 内，没有压平为单�
 checksum、当前 Stage review checker 和 project-scoped governance；不得把旧结果伪装成
 本次重新执行的测试。
 
+## GitHub CI 残留
+
+PR #193 的 `Dual-Plane Governance` workflow
+[run 30187010665](https://github.com/LinzeColin/KMOS/actions/runs/30187010665)
+原始执行和一次 failed-job rerun 均失败。唯一失败是：
+
+```text
+[搜标项目] 渲染一致门: 文档/05_执行与验收.md 与机器平面不一致
+```
+
+归因证据：
+
+- `HEAD`、`origin/main` 和 PR merge commit 的整个 `KM_IDSystem/搜标项目` tree 均为
+  `a07d1decd8205ec68b553c9ee698f8a1b93fdeb4`，该相邻项目没有 branch-only 文件差异；
+- 其 `machine/tools/render_human.py` 是薄 wrapper，会调用父级
+  `KM_IDSystem/machine/tools/render_human.py`；
+- 本分支在 Stage041/047 历史中把 `render_05` 的固定 20 条运行记录改为按 100 行预算动态
+  计算，但相邻项目的人类视图没有按新共享 renderer 重渲染；
+- 内存级只读重算表明最小预期 diff 只有一行：标题从“最近 20 条”变为“最近 0 条”；
+- 当前 `main@12d6fa9f` 的同 workflow、同 runner、同 5 项目检查成功，但 PR merge context
+  会使用本分支父级 renderer，因此失败可复现。
+
+本线程没有修改 `KM_IDSystem/搜标项目/`：这将扩展到相邻项目，且 `github:gh-fix-ci`
+流程要求在根因和修复计划确认后取得显式批准。PR 必须继续保持 Draft/CI blocked；后续可在
+新 worktree 中只重渲染并复审该一行，或调整共享 renderer 的兼容策略，然后复跑全仓
+dual-plane。
+
 ## 任务包交付
 
 - ZIP SHA-256：`55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3`
@@ -84,16 +111,19 @@ checksum、当前 Stage review checker 和 project-scoped governance；不得把
 1. 当前 `origin/main` 比交付分支多 108 个提交。合并前必须从 GitHub 重新 fetch，并做独立
    ancestry、冲突、治理和全量测试复审。
 2. 批次只完成 7/10，Draft PR 不得直接改为 Ready 或合并。
-3. Stage 041–047 的多数产物是合同、控制证据或 isolated non-production slice，不是生产
+3. PR 当前 full-repo dual-plane check 失败；在相邻项目 renderer/view 一致性修复前不得
+   宣称 CI 通过。
+4. Stage 041–047 的多数产物是合同、控制证据或 isolated non-production slice，不是生产
    运行证明。
-4. 任务包中旧仓库/数据路径受当前 `AGENTS.md` 覆盖，不得据此恢复旧开发入口或数据路由。
-5. 任一来源 hash、Git index、commit/tree/parent/ancestry、event、machine fact 或 rendered
+5. 任务包中旧仓库/数据路径受当前 `AGENTS.md` 覆盖，不得据此恢复旧开发入口或数据路由。
+6. 任一来源 hash、Git index、commit/tree/parent/ancestry、event、machine fact 或 rendered
    view 不匹配，必须返回对应 fail-closed gate。
 
 ## 推荐接续
 
-1. 在 GitHub Draft PR 上先迭代任务包，不直接合入 `main`；
-2. 决定任务包新版的 canonical repo/data-routing/contract 模板；
-3. 从最新 `origin/main` 创建新的独立 worktree；
-4. 导入本分支时做 Stage 041–047 集成复审；
-5. 只有通过集成门禁后，才在新 run 进入 `IDS-STAGE048-P1-GATE`。
+1. 在新 worktree 中复审并修复 PR #193 的相邻项目单行 render mismatch；
+2. 在 GitHub Draft PR 上迭代任务包，不直接合入 `main`；
+3. 决定任务包新版的 canonical repo/data-routing/contract 模板；
+4. 从最新 `origin/main` 创建新的独立 worktree；
+5. 导入本分支时做 Stage 041–047 集成复审；
+6. 只有通过集成门禁后，才在新 run 进入 `IDS-STAGE048-P1-GATE`。
