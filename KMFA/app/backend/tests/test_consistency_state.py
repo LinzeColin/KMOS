@@ -812,8 +812,8 @@ def test_current_schema_deployment_preserves_v3_consistency_contract():
     )
     assert "'Idempotency-Key': retryKey" in frontend
     assert "uploadIdempotencyKeyFor" in frontend
-    assert "s.schema_version()==4" in local_compose
-    assert "s.schema_version()==4" in coolify_compose
+    assert "s.schema_version()==5" in local_compose
+    assert "s.schema_version()==5" in coolify_compose
     assert "KMFA_CONSISTENCY_STATE_MODE:-recoverable-v1" in local_compose
     assert "KMFA_CONSISTENCY_STATE_MODE:-recoverable-v1" in coolify_compose
     assert "KMFA/app/e2e/consistency_state_flow.py" in workflow

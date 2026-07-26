@@ -183,6 +183,36 @@ _CONSISTENCY_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "last_seen_at",
     ),
 }
+_SECURITY_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
+    "artifact_security_assessments": (
+        "artifact_version_id",
+        "operation_id",
+        "normalized_name",
+        "reported_media_type",
+        "detected_media_type",
+        "source_size_bytes",
+        "source_sha256",
+        "state",
+        "reason_code",
+        "scanner_engine",
+        "scanner_version",
+        "policy_version",
+        "attempt_count",
+        "lease_until",
+        "row_version",
+        "created_at",
+        "updated_at",
+        "completed_at",
+    ),
+    "artifact_security_events": (
+        "event_id",
+        "artifact_ref",
+        "from_state",
+        "to_state",
+        "reason_code",
+        "created_at",
+    ),
+}
 _LIFECYCLE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
     "restore_drill_proofs": (
         "proof_id",
@@ -270,6 +300,7 @@ _TABLE_COLUMNS = (
     _CORE_TABLE_COLUMNS
     | _STRUCTURED_TABLE_COLUMNS
     | _CONSISTENCY_TABLE_COLUMNS
+    | _SECURITY_TABLE_COLUMNS
     | _LIFECYCLE_TABLE_COLUMNS
 )
 _PRIMARY_KEYS = {
@@ -287,6 +318,8 @@ _PRIMARY_KEYS = {
     "consistency_effect_receipts": ("dedupe_key",),
     "consistency_trace": ("trace_event_id",),
     "object_quarantine": ("quarantine_id",),
+    "artifact_security_assessments": ("artifact_version_id",),
+    "artifact_security_events": ("event_id",),
     "restore_drill_proofs": ("proof_id",),
     "workspace_retention": ("workspace_id",),
     "legal_holds": ("hold_id",),
@@ -345,6 +378,11 @@ def read_legacy_snapshot(source_path: Path) -> dict[str, list[dict[str, Any]]]:
             _CONSISTENCY_TABLE_COLUMNS
         ):
             raise LegacyImportError("legacy SQLite consistency schema is partial")
+        present_security = set(_SECURITY_TABLE_COLUMNS) & available
+        if present_security and present_security != set(
+            _SECURITY_TABLE_COLUMNS
+        ):
+            raise LegacyImportError("legacy SQLite security schema is partial")
         present_lifecycle = set(_LIFECYCLE_TABLE_COLUMNS) & available
         if present_lifecycle and present_lifecycle != set(
             _LIFECYCLE_TABLE_COLUMNS
@@ -356,6 +394,8 @@ def read_legacy_snapshot(source_path: Path) -> dict[str, list[dict[str, Any]]]:
             selected_tables.update(_STRUCTURED_TABLE_COLUMNS)
         if present_consistency:
             selected_tables.update(_CONSISTENCY_TABLE_COLUMNS)
+        if present_security:
+            selected_tables.update(_SECURITY_TABLE_COLUMNS)
         if present_lifecycle:
             selected_tables.update(_LIFECYCLE_TABLE_COLUMNS)
         for table, columns in selected_tables.items():
@@ -364,7 +404,12 @@ def read_legacy_snapshot(source_path: Path) -> dict[str, list[dict[str, Any]]]:
                 if table == "access_tokens"
                 else (
                     "seq"
-                    if table in {"consistency_trace", "lifecycle_events"}
+                    if table
+                    in {
+                        "consistency_trace",
+                        "artifact_security_events",
+                        "lifecycle_events",
+                    }
                     else ", ".join(_PRIMARY_KEYS[table])
                 )
             )
@@ -561,6 +606,12 @@ def import_legacy_sqlite(source_path: Path) -> dict[str, Any]:
                 "consistency_effect_receipts",
                 "consistency_trace",
                 "object_quarantine",
+            ):
+                for row in snapshot.get(table, []):
+                    _insert_if_absent(connection, table=table, row=row)
+            for table in (
+                "artifact_security_assessments",
+                "artifact_security_events",
             ):
                 for row in snapshot.get(table, []):
                     _insert_if_absent(connection, table=table, row=row)

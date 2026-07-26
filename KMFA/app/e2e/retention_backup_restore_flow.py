@@ -1168,7 +1168,7 @@ class Oracle:
             "synthetic_only": True,
             "source_commit": self.source_commit,
             "application_image_id": image_id,
-            "database_schema_version": 4,
+            "database_schema_version": 5,
             "backup_chain": {
                 "full_manifest_sha256": full["manifest_sha256"],
                 "full_object_upserts": full["object_upserts"],

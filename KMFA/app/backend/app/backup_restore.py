@@ -261,6 +261,43 @@ TABLES: tuple[TableSpec, ...] = (
         ("operation_id",),
     ),
     TableSpec(
+        "artifact_security_assessments",
+        (
+            "artifact_version_id",
+            "operation_id",
+            "normalized_name",
+            "reported_media_type",
+            "detected_media_type",
+            "source_size_bytes",
+            "source_sha256",
+            "state",
+            "reason_code",
+            "scanner_engine",
+            "scanner_version",
+            "policy_version",
+            "attempt_count",
+            "lease_until",
+            "row_version",
+            "created_at",
+            "updated_at",
+            "completed_at",
+        ),
+        ("artifact_version_id",),
+    ),
+    TableSpec(
+        "artifact_security_events",
+        (
+            "seq",
+            "event_id",
+            "artifact_ref",
+            "from_state",
+            "to_state",
+            "reason_code",
+            "created_at",
+        ),
+        ("event_id",),
+    ),
+    TableSpec(
         "consistency_outbox",
         (
             "outbox_event_id",
@@ -820,6 +857,16 @@ def create_backup(
             raise BackupRestoreError(
                 "backup_consistency_operations_pending"
             )
+        active_security_scan = connection.execute(
+            """
+            SELECT 1
+            FROM artifact_security_assessments
+            WHERE state = 'scanning'
+            LIMIT 1
+            """
+        ).fetchone()
+        if active_security_scan is not None:
+            raise BackupRestoreError("backup_security_scan_pending")
         current_snapshot = _snapshot_database(connection)
         recovery_point_at = utc_timestamp(now)
     directory = _prepare_new_backup_directory(
@@ -1064,6 +1111,7 @@ def _reset_sequences(connection: StructuredStoreConnection) -> None:
     for table, column in (
         ("audit_events", "seq"),
         ("consistency_trace", "seq"),
+        ("artifact_security_events", "seq"),
         ("lifecycle_events", "seq"),
     ):
         connection.execute(

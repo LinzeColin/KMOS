@@ -56,7 +56,7 @@ def _fixture(workspace_id: str, *, score: int = 88) -> AcceptanceFixture:
     )
 
 
-def test_default_sqlite_migrates_to_version_four_with_required_tables(
+def test_default_sqlite_migrates_to_version_five_with_required_tables(
     sqlite_state: Path,
 ):
     connection = skeleton._open_store()
@@ -67,7 +67,7 @@ def test_default_sqlite_migrates_to_version_four_with_required_tables(
                 "SELECT name FROM sqlite_master WHERE type = 'table'"
             ).fetchall()
         }
-        assert connection.schema_version() == SCHEMA_VERSION == 4
+        assert connection.schema_version() == SCHEMA_VERSION == 5
         assert {
             "projects",
             "project_metrics",
@@ -79,6 +79,8 @@ def test_default_sqlite_migrates_to_version_four_with_required_tables(
             "consistency_effect_receipts",
             "consistency_trace",
             "object_quarantine",
+            "artifact_security_assessments",
+            "artifact_security_events",
             "restore_drill_proofs",
             "workspace_retention",
             "legal_holds",
@@ -111,6 +113,11 @@ def test_default_sqlite_migrates_to_version_four_with_required_tables(
             {
                 "version": 4,
                 "name": "0004_retention_backup_restore.sql",
+                "digest_length": 64,
+            },
+            {
+                "version": 5,
+                "name": "0005_file_security.sql",
                 "digest_length": 64,
             },
         ]
@@ -173,7 +180,7 @@ def test_legacy_v1_database_is_expand_migrated_and_backfilled(
         repository = StructuredRepository(connection)
         projection = repository.workspace_projection("ws_" + "a" * 22)
         artifact = repository.latest_artifact_version("ws_" + "a" * 22)
-        assert connection.schema_version() == SCHEMA_VERSION == 4
+        assert connection.schema_version() == SCHEMA_VERSION == 5
         assert projection["project_name"] == "Legacy synthetic project"
         assert projection["progress"] == 42
         assert projection["score"] is None

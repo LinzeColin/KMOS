@@ -23,6 +23,9 @@ const ERROR_COPY = {
   invalid_idempotency_key: '上传重试标识无效；服务器未写入文件。',
   idempotency_key_conflict: '同一上传重试标识对应了不同文件或元数据；服务器拒绝混用。',
   artifact_upload_isolated: '上传进入可审计隔离态；原始对象未被删除，请勿把本次操作视为完成。',
+  artifact_security_pending: '文件仍在隔离扫描中；扫描完成前不会返回原始字节，请稍后重新恢复或刷新工作区。',
+  artifact_security_rejected: '文件命中安全拒绝规则并保持隔离，服务器不会提供下载、执行或预览。',
+  file_security_unavailable: '文件安全扫描配置暂不可用；服务器未把未知结果标记为安全。',
   consistency_processing_paused: '新上传已按回滚预案暂停；既有项目、恢复材料和文件仍被保留。',
   consistency_mode_invalid: '一致性运行模式配置无效；服务器已停止接收新上传。',
   resumable_upload_disabled: '断点续传当前已安全回滚；可重新选择不超过标准上传上限的文件。',
@@ -53,6 +56,17 @@ const ERROR_COPY = {
   risk_challenge_replayed: '匿名安全校验已经使用，不能重放；未执行本次操作。',
   abuse_control_unavailable: '匿名资源保护暂不可用；受保护操作已安全关闭，公共浏览保持可用。',
   abuse_policy_configuration_invalid: '匿名资源策略配置无效；受保护操作已安全关闭。',
+}
+
+const SECURITY_STATE_COPY = {
+  quarantined: '已隔离，等待扫描',
+  scanning: '正在隔离扫描',
+  clean: '有界检查通过；仍仅附件下载',
+  attachment_only: '已分类为仅附件；不执行、不预览',
+  rejected: '安全规则拒绝；保持隔离且禁止下载',
+  timed_out: '扫描超时；未标记安全，仅允许附件下载',
+  scanner_error: '扫描异常；未标记安全，仅允许附件下载',
+  unscanned_attachment_only: '既有或回滚文件；未标记安全，仅允许附件下载',
 }
 
 async function errorFromResponse(response) {
@@ -214,6 +228,7 @@ function WalkingSkeleton() {
     maxSessions: 16,
   })
   const [resumableUpload, setResumableUpload] = useState(false)
+  const [fileSecurity, setFileSecurity] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(null)
   const [mode, setMode] = useState('create')
   const [projectName, setProjectName] = useState('')
@@ -252,6 +267,7 @@ function WalkingSkeleton() {
           maxSessions: status.resumable_upload?.max_sessions_per_workspace || 16,
         })
         setResumableUpload(resumableEnabled)
+        setFileSecurity(status.file_security?.enabled === true)
         setAvailability(status.healthy ? 'ready' : 'unavailable')
       })
       .catch(() => {
@@ -564,7 +580,9 @@ function WalkingSkeleton() {
       setUploadIdempotencyKey('')
       setUploadProgress(null)
       form.reset()
-      setMessage(`文件已按 attachment-only 模式写入服务器，SHA-256：${result.artifact.sha256}`)
+      const securityState = result.artifact?.security?.state || 'unscanned_attachment_only'
+      const securityCopy = SECURITY_STATE_COPY[securityState] || '安全状态待确认'
+      setMessage(`文件已写入私有耐久存储。${securityCopy}。SHA-256：${result.artifact.sha256}`)
     })
   }
 
@@ -623,8 +641,8 @@ function WalkingSkeleton() {
           <h2 id="walking-title">第一个真实、可恢复的文件旅程</h2>
         </div>
         <p>
-          这是 S03 骨架上的 S06/P6.1 上传切片，不是 GA：在 S05 耐久意图和私有对象路径上增加固定分片、断点恢复、幂等重试与端到端 SHA-256。
-          未知或危险类型仍只按附件保存和下载；恶意文件扫描由 P6.2 接入，多文件生命周期由后续阶段完成。
+          这是 S03 骨架上的 S06/P6.1–P6.2 上传切片，不是 GA：文件通过耐久意图与私有对象路径保存，灰度开启后先隔离，再由无数据库/对象凭据的私网扫描器分类。
+          未知、高风险、超时或异常结果不会冒充安全；拒绝项不下载，任何状态都不执行、不预览。多文件生命周期由后续阶段完成。
         </p>
       </div>
 
@@ -799,7 +817,10 @@ function WalkingSkeleton() {
                     {resumableUpload
                       ? ` 每片最多 ${formatBytes(limits.maxChunkBytes)}，每个工作区最多保留 ${limits.maxSessions} 个历史上传会话；连接中断后重新选择同一文件即可从服务器偏移继续。`
                       : ' 断点续传已回滚，当前使用标准上传路径。'}
-                    未知或危险扩展名只存储、只按附件下载，不执行、不预览。
+                    {fileSecurity
+                      ? ' 文件先隔离再扫描；未知/高风险格式只作附件，拒绝项不下载。'
+                      : ' 隔离扫描 Flag 当前回滚；既有或未决文件只作附件。'}
+                    所有状态均不执行、不预览。
                   </p>
                   {uploadProgress && (
                     <div
@@ -828,7 +849,11 @@ function WalkingSkeleton() {
                   </button>
                 </form>
 
-                <div className="walking-card walking-artifact" data-walking-artifact={artifact ? 'ready' : 'empty'}>
+                <div
+                  className="walking-card walking-artifact"
+                  data-walking-artifact={artifact ? 'ready' : 'empty'}
+                  data-security-state={artifact?.security?.state || 'none'}
+                >
                   <p className="walking-card-code">03 / VERIFY + DOWNLOAD</p>
                   {artifact ? (
                     <>
@@ -836,9 +861,25 @@ function WalkingSkeleton() {
                       <dl>
                         <div><dt>字节</dt><dd>{artifact.size_bytes}</dd></div>
                         <div><dt>模式</dt><dd>attachment-only</dd></div>
+                        <div>
+                          <dt>安全状态</dt>
+                          <dd>
+                            {SECURITY_STATE_COPY[artifact.security?.state]
+                              || '安全状态待确认'}
+                          </dd>
+                        </div>
                         <div><dt>SHA-256</dt><dd><code>{artifact.sha256}</code></dd></div>
                       </dl>
-                      <button type="button" data-walking-download="true" onClick={downloadArtifact} disabled={busy}>校验并下载</button>
+                      <button
+                        type="button"
+                        data-walking-download="true"
+                        onClick={downloadArtifact}
+                        disabled={busy || artifact.download_allowed === false}
+                      >
+                        {artifact.download_allowed === false
+                          ? '当前安全状态禁止下载'
+                          : '校验并下载附件'}
+                      </button>
                     </>
                   ) : (
                     <p>上传后显示服务器记录的字节数与 SHA-256；空状态不会生成样例成功。</p>

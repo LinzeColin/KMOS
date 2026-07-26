@@ -12,6 +12,14 @@ services:
       KMFA_WALKING_SKELETON_ENABLED: "${KMFA_WALKING_SKELETON_ENABLED:-0}"
       # P6.1 固定分片/断点续传独立灰度；置 0 立即保留标准 8 MiB 上传与全部暂存/对象。
       KMFA_RESUMABLE_UPLOAD_ENABLED: "${KMFA_RESUMABLE_UPLOAD_ENABLED:-0}"
+      # P6.2 隔离扫描独立灰度；回滚置 0 后未决文件仅 attachment-only，既有 rejected 仍阻断。
+      KMFA_FILE_SECURITY_ENABLED: "${KMFA_FILE_SECURITY_ENABLED:-0}"
+      KMFA_FILE_SCANNER_URL: "${KMFA_FILE_SCANNER_URL:-http://file-security-scanner:8090/scan}"
+      KMFA_FILE_SCANNER_SHARED_SECRET: "${KMFA_FILE_SCANNER_SHARED_SECRET:-}"
+      KMFA_FILE_SCANNER_TIMEOUT_SECONDS: "${KMFA_FILE_SCANNER_TIMEOUT_SECONDS:-10}"
+      KMFA_FILE_SCAN_LEASE_SECONDS: "${KMFA_FILE_SCAN_LEASE_SECONDS:-60}"
+      KMFA_FILE_SCAN_RETRY_DELAY_SECONDS: "${KMFA_FILE_SCAN_RETRY_DELAY_SECONDS:-30}"
+      KMFA_FILE_SCAN_MAX_ATTEMPTS: "${KMFA_FILE_SCAN_MAX_ATTEMPTS:-3}"
       # P5.3 快速回滚只暂停新上传；既有读/恢复与 reconciliation 保持可用。
       KMFA_CONSISTENCY_STATE_MODE: "${KMFA_CONSISTENCY_STATE_MODE:-recoverable-v1}"
       # P5.4 删除默认暂停；active 还要求 S3 backend、当前 schema 隔离恢复与独立 worker 凭据。
@@ -37,6 +45,9 @@ services:
     volumes:
       # P3.4 早期骨架的 SQLite 与私有文件 adapter 共用耐久卷；Flag 回滚不得删卷。
       - kmfa-app-state:/var/lib/kmfa/state
+    networks:
+      - default
+      - scan-plane
     ports:
       - "127.0.0.1:8000:8000"              # 仅本机回环，出网走 cloudflared
     healthcheck:
@@ -45,10 +56,102 @@ services:
           "CMD",
           "python3",
           "-c",
-          "import urllib.request;from pathlib import Path;from app.object_storage import configured_write_store;from app.structured_store import open_structured_store;p=Path('/var/lib/kmfa/state/walking-skeleton');s=open_structured_store(p/'walking_skeleton.sqlite3');assert s.schema_version()==4;s.close();o=configured_write_store(p);o.ensure_ready();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
+          "import urllib.request;from pathlib import Path;from app.object_storage import configured_write_store;from app.structured_store import open_structured_store;p=Path('/var/lib/kmfa/state/walking-skeleton');s=open_structured_store(p/'walking_skeleton.sqlite3');assert s.schema_version()==5;s.close();o=configured_write_store(p);o.ensure_ready();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
         ]
       interval: 2m
       timeout: 10s
+
+  file-security-scanner:
+    profiles: ["file-security"]
+    build:
+      context: ../..
+      dockerfile: KMFA/app/backend/Dockerfile
+    image: kmfa-app:file-security
+    container_name: kmfa-file-security-scanner
+    restart: always
+    command:
+      [
+        "uvicorn",
+        "app.file_security_scanner_service:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8090",
+        "--no-access-log",
+        "--workers",
+        "1",
+      ]
+    environment:
+      # 唯一运行凭据；不得向 scanner 注入 DB、S3、app state 或删除凭据。
+      KMFA_FILE_SCANNER_SHARED_SECRET: "${KMFA_FILE_SCANNER_SHARED_SECRET:-}"
+    user: "65532:65532"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=80m,mode=0700,uid=65532,gid=65532
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 1.0
+    expose:
+      - "8090"
+    networks:
+      - scan-plane
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8090/healthz')",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  file-security-worker:
+    profiles: ["file-security"]
+    build:
+      context: ../..
+      dockerfile: KMFA/app/backend/Dockerfile
+    image: kmfa-app:file-security
+    container_name: kmfa-file-security-worker
+    restart: always
+    command:
+      [
+        "python3",
+        "-m",
+        "app.file_security_worker",
+        "--poll-seconds",
+        "5",
+      ]
+    depends_on:
+      file-security-scanner:
+        condition: service_healthy
+    environment:
+      KMFA_FILE_SECURITY_ENABLED: "${KMFA_FILE_SECURITY_ENABLED:-0}"
+      KMFA_FILE_SCANNER_URL: "${KMFA_FILE_SCANNER_URL:-http://file-security-scanner:8090/scan}"
+      KMFA_FILE_SCANNER_SHARED_SECRET: "${KMFA_FILE_SCANNER_SHARED_SECRET:-}"
+      KMFA_FILE_SCANNER_TIMEOUT_SECONDS: "${KMFA_FILE_SCANNER_TIMEOUT_SECONDS:-10}"
+      KMFA_FILE_SCAN_LEASE_SECONDS: "${KMFA_FILE_SCAN_LEASE_SECONDS:-60}"
+      KMFA_FILE_SCAN_RETRY_DELAY_SECONDS: "${KMFA_FILE_SCAN_RETRY_DELAY_SECONDS:-30}"
+      KMFA_FILE_SCAN_MAX_ATTEMPTS: "${KMFA_FILE_SCAN_MAX_ATTEMPTS:-3}"
+      KMFA_STRUCTURED_DATABASE_MODE: "${KMFA_STRUCTURED_DATABASE_MODE:-legacy-sqlite}"
+      KMFA_STRUCTURED_DATABASE_URL: "${KMFA_STRUCTURED_DATABASE_URL:-}"
+      KMFA_S3_ENDPOINT_URL: "${KMFA_S3_ENDPOINT_URL:-}"
+      KMFA_S3_BUCKET: "${KMFA_S3_BUCKET:-}"
+      KMFA_S3_REGION: "${KMFA_S3_REGION:-auto}"
+      KMFA_S3_PREFIX: "${KMFA_S3_PREFIX:-kmfa/private/v1}"
+      KMFA_S3_ACCESS_KEY_ID: "${KMFA_S3_ACCESS_KEY_ID:-}"
+      KMFA_S3_SECRET_ACCESS_KEY: "${KMFA_S3_SECRET_ACCESS_KEY:-}"
+      KMFA_S3_ADDRESSING_STYLE: "${KMFA_S3_ADDRESSING_STYLE:-path}"
+      KMFA_S3_ALLOW_INSECURE_LOCAL: "${KMFA_S3_ALLOW_INSECURE_LOCAL:-0}"
+    volumes:
+      - kmfa-app-state:/var/lib/kmfa/state
+    networks:
+      - default
+      - scan-plane
 
   structured-db:
     profiles: ["postgresql"]
@@ -180,3 +283,7 @@ volumes:
   kmfa-postgres-data:
   # P5.2 对象卷与旧 app-state 卷都必须保留；普通 rollback 禁止 down -v。
   kmfa-object-data:
+
+networks:
+  scan-plane:
+    internal: true

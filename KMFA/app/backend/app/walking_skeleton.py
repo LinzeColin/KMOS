@@ -19,8 +19,10 @@ S05/P5.4 still owns backup/restore and deletion lifecycle semantics; S06
 P6.1 adds a flag-guarded offset protocol whose durable session identity reuses
 the S05 upload intent. Incomplete chunks stay in private bounded staging and
 the completed immutable original still passes through the same object/outbox
-state machine. S06/P6.2 owns scanning and later S06 phases own processing and
-scalable multi-file lifecycle semantics.
+state machine. S06/P6.2 adds quarantine-first assessment and sends verified
+originals to a credential-minimal private scanner; scan timeout/error is never
+clean and no preview is created. Later S06 phases own processing and scalable
+multi-file lifecycle semantics.
 
 Raw recovery codes and access capabilities are returned only to their caller;
 the store keeps SHA-256 hashes. Artifacts are never mapped into the static
@@ -58,6 +60,16 @@ from .consistency_state import (
     UploadIntent,
     idempotency_key_hash,
     upload_request_fingerprint,
+)
+from .file_security import (
+    FileSecurityError,
+    FileSecurityRepository,
+    FileSecurityStateConflict,
+    artifact_security_payload,
+    file_security_enabled,
+    public_file_security_contract,
+    require_download_allowed,
+    run_security_scan_once,
 )
 from .object_storage import (
     LEGACY_STORAGE_BACKEND,
@@ -582,9 +594,16 @@ def _issue_access_token(
     return token, _timestamp(expires)
 
 
-def _artifact_payload(row: Any | None) -> dict[str, Any] | None:
+def _artifact_payload(
+    connection: StructuredStoreConnection,
+    row: Any | None,
+) -> dict[str, Any] | None:
     if row is None:
         return None
+    security = artifact_security_payload(
+        connection,
+        artifact_version_id=str(row["artifact_version_id"]),
+    )
     return {
         "artifact_id": row["artifact_id"],
         "name": row["original_name"],
@@ -592,6 +611,9 @@ def _artifact_payload(row: Any | None) -> dict[str, Any] | None:
         "sha256": row["sha256"],
         "created_at": row["created_at"],
         "download_mode": "attachment-only",
+        "download_allowed": security["download_allowed"],
+        "preview_allowed": False,
+        "security": security,
     }
 
 
@@ -626,7 +648,7 @@ def _workspace_payload(
         "progress": workspace["progress"],
         "created_at": legacy_timestamps["created_at"],
         "updated_at": legacy_timestamps["updated_at"],
-        "artifact": _artifact_payload(artifact),
+        "artifact": _artifact_payload(connection, artifact),
         "stage_status": "early-skeleton-not-ga",
     }
 
@@ -1350,6 +1372,19 @@ def _resume_upload_operation(
         if state == "isolated":
             raise SkeletonError(409, "artifact_upload_isolated")
         if state == "converged":
+            if file_security_enabled():
+                try:
+                    run_security_scan_once(
+                        state_root=_state_root(),
+                        artifact_version_id=str(
+                            operation["artifact_version_id"]
+                        ),
+                    )
+                except FileSecurityError:
+                    # The immutable upload is already converged. Assessment
+                    # remains durable pending/error and must not be rewritten
+                    # as clean merely to make this response succeed.
+                    pass
             with _store() as connection:
                 payload = _workspace_payload(
                     connection,
@@ -1542,20 +1577,60 @@ def _resume_upload_operation(
                                         429, "artifact_capacity_reached"
                                     )
                             created_at = str(operation["created_at"])
-                            repository.ensure_uploaded_artifact(
-                                workspace_id=str(operation["workspace_id"]),
-                                artifact_id=str(operation["artifact_id"]),
-                                version_number=1,
-                                storage_backend=str(operation["storage_backend"]),
-                                storage_key=str(operation["storage_key"]),
-                                original_name=str(operation["original_name"]),
-                                reported_media_type=str(
-                                    operation["reported_media_type"]
-                                ),
-                                size_bytes=int(operation["size_bytes"]),
-                                sha256=str(operation["content_sha256"]),
-                                created_at=created_at,
+                            uploaded_version_id = (
+                                repository.ensure_uploaded_artifact(
+                                    workspace_id=str(
+                                        operation["workspace_id"]
+                                    ),
+                                    artifact_id=str(
+                                        operation["artifact_id"]
+                                    ),
+                                    version_number=1,
+                                    storage_backend=str(
+                                        operation["storage_backend"]
+                                    ),
+                                    storage_key=str(
+                                        operation["storage_key"]
+                                    ),
+                                    original_name=str(
+                                        operation["original_name"]
+                                    ),
+                                    reported_media_type=str(
+                                        operation["reported_media_type"]
+                                    ),
+                                    size_bytes=int(operation["size_bytes"]),
+                                    sha256=str(
+                                        operation["content_sha256"]
+                                    ),
+                                    created_at=created_at,
+                                )
                             )
+                            if file_security_enabled():
+                                FileSecurityRepository(
+                                    connection
+                                ).ensure_quarantined(
+                                    artifact_version_id=uploaded_version_id,
+                                    operation_id=operation_id,
+                                    normalized_name=str(
+                                        operation["original_name"]
+                                    ),
+                                    reported_media_type=str(
+                                        operation["reported_media_type"]
+                                    ),
+                                    source_size_bytes=int(
+                                        operation["size_bytes"]
+                                    ),
+                                    source_sha256=str(
+                                        operation["content_sha256"]
+                                    ),
+                                    storage_backend=str(
+                                        operation["storage_backend"]
+                                    ),
+                                    storage_key=str(
+                                        operation["storage_key"]
+                                    ),
+                                    timestamp=created_at,
+                                )
                             connection.execute(
                                 """
                                 UPDATE workspaces
@@ -2441,6 +2516,21 @@ def _artifact_for_download(
         if artifact is None:
             raise SkeletonError(404, "artifact_not_found")
         artifact_payload = dict(artifact)
+        try:
+            require_download_allowed(
+                connection,
+                artifact_version_id=str(
+                    artifact_payload["artifact_version_id"]
+                ),
+            )
+        except FileSecurityStateConflict as exc:
+            raise SkeletonError(409, str(exc)) from exc
+        artifact_payload["security"] = artifact_security_payload(
+            connection,
+            artifact_version_id=str(
+                artifact_payload["artifact_version_id"]
+            ),
+        )
 
     materialized = None
     try:
@@ -2539,6 +2629,7 @@ def walking_skeleton_status() -> dict[str, Any]:
             ).active_restore_proof()
         object_store = configured_write_store(_state_root())
         object_store.ensure_ready()
+        security_contract = public_file_security_contract()
     except (SkeletonError, LifecyclePausedError) as error:
         if isinstance(error, SkeletonError):
             _raise_http(error)
@@ -2551,6 +2642,8 @@ def walking_skeleton_status() -> dict[str, Any]:
         _raise_http(
             SkeletonError(503, "walking_skeleton_storage_unavailable")
         )
+    except FileSecurityError:
+        _raise_http(SkeletonError(503, "file_security_unavailable"))
     return {
         "enabled": True,
         "mode": "early-skeleton",
@@ -2678,6 +2771,7 @@ def walking_skeleton_status() -> dict[str, Any]:
             "attachment_only_until_classified": True,
             "standard_upload_rollback": True,
         },
+        "file_security": security_contract,
         "abuse_control": public_policy_contract(),
         "stage_status": "early-skeleton-not-ga",
         "hardening_pending": (
@@ -2697,8 +2791,10 @@ def walking_skeleton_status() -> dict[str, Any]:
                 if retention_mode != LIFECYCLE_ACTIVE_MODE
                 else []
             )
+            + (
+                [] if file_security_enabled() else ["malware-controls"]
+            )
             + [
-                "malware-controls",
                 "multi-file-lifecycle",
                 "process-index-export-business-adapters",
             ]
@@ -3169,6 +3265,7 @@ def download_artifact(
             "X-Content-Type-Options": "nosniff",
             "X-KMFA-Artifact-SHA256": artifact["sha256"],
             "X-KMFA-Artifact-Mode": "attachment-only",
+            "X-KMFA-Artifact-Security": artifact["security"]["state"],
         },
         background=(
             BackgroundTask(path.unlink, missing_ok=True) if temporary else None

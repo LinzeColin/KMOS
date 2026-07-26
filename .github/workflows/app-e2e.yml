@@ -133,6 +133,17 @@ jobs:
           pip install --quiet playwright==1.60.0
           python -m playwright install --with-deps chromium firefox webkit
 
+      - name: 跑文件隔离与扫描（攻击语料 / 超时 / 恢复 / 浏览器提示 / 回滚）
+        run: |
+          set -euo pipefail
+          p62_state=$(mktemp -d /tmp/kmfa-p62-state.XXXXXX)
+          python KMFA/app/e2e/file_security_flow.py \
+            --image kmfa-app:e2e \
+            --state-dir "$p62_state" \
+            --out-dir file-security-e2e \
+            --prefix kmfa-p62-ci \
+            --port 18107
+
       - name: 跑公共 App Shell（桌面 / 移动 / 无 JS / 依赖降级）
         run: |
           set -euo pipefail
@@ -208,6 +219,7 @@ jobs:
             consistency-state-e2e/
             retention-backup-restore-e2e/
             resumable-upload-e2e/
+            file-security-e2e/
 
       - name: 收容器
         if: always()
@@ -216,6 +228,12 @@ jobs:
           docker rm -f kmfa-p34-e2e || true
           docker rm -f kmfa-p44-e2e || true
           docker rm -f kmfa-p61-e2e || true
+          docker rm -f kmfa-p62-ci-app || true
+          docker rm -f kmfa-p62-ci-scanner || true
+          docker rm -f kmfa-p62-ci-worker-1 || true
+          docker rm -f kmfa-p62-ci-worker-2 || true
+          docker network rm kmfa-p62-ci-net || true
+          docker network rm kmfa-p62-ci-app-net || true
           docker rm -f kmfa-p51-ci-app-a || true
           docker rm -f kmfa-p51-ci-app-b || true
           docker rm -f kmfa-p51-ci-app-c || true
