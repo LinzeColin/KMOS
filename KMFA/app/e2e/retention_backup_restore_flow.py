@@ -56,6 +56,7 @@ FIXTURE = b"KMFA-S05-P54-SYNTHETIC\x00\xff\n" + bytes(range(256)) * 13
 FIXTURE_SHA256 = hashlib.sha256(FIXTURE).hexdigest()
 S3_BUCKET = "kmfa-private-artifacts"
 S3_PREFIX = "kmfa/private/v1"
+EXPECTED_DATABASE_SCHEMA_VERSION = 6
 
 
 def _timestamp() -> str:
@@ -854,7 +855,8 @@ class Oracle:
             ["summary", "--workspace-id", workspace_id]
         )
         if (
-            restored_summary["schema_version"] != 4
+            restored_summary["schema_version"]
+            != EXPECTED_DATABASE_SCHEMA_VERSION
             or restored_summary["retention_state"] != "active"
             or restored_summary["project_count"] != 1
             or restored_summary["score"] != 91
@@ -1168,7 +1170,7 @@ class Oracle:
             "synthetic_only": True,
             "source_commit": self.source_commit,
             "application_image_id": image_id,
-            "database_schema_version": 6,
+            "database_schema_version": EXPECTED_DATABASE_SCHEMA_VERSION,
             "backup_chain": {
                 "full_manifest_sha256": full["manifest_sha256"],
                 "full_object_upserts": full["object_upserts"],
