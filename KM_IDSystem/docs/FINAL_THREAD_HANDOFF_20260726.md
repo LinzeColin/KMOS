@@ -3,29 +3,30 @@
 ## 交接结论
 
 本线程完成了 Stage 041–047 的 Phase 1–4、独立 whole-stage review、复审修复和本地分层
-验证，并按 Owner 2026-07-26 指令准备将完整历史、任务包文本基线及关键迭代信息交付到
-GitHub。
+验证，并按 Owner 2026-07-26 指令将完整历史、任务包文本基线及关键迭代信息交付到
+GitHub `main`。
 
-交付采用独立远端分支与 Draft PR。原因是 `BATCH041_050` 仅完成 `7/10`，且当前分支相对
-最新 `origin/main` 已产生明显历史漂移。该交付用于保存、审阅和迭代，不是 `main` 合并、
-Stage 048 激活或生产批准。
+Owner 后续明确纠正了最初的 Draft-only 交付方式：现有 PR #193 仅作为 CI 与合并门禁，
+通过后合入 `main`，并删除远端任务分支，不留下 OPEN PR 或新 issue。`BATCH041_050`
+仍只完成 `7/10`，因此这次 `main` 交付是历史、任务包和复审证据接管，不等于 Stage 048
+激活、批次验收或生产批准。
 
 ## Git 状态快照
 
 - Repository：`LinzeColin/KMOS`
 - KMIDS canonical path：`KM_IDSystem/`
-- Delivery branch：`codex/kmids-recovery-stage041-p1`
+- Temporary delivery branch：`codex/kmids-recovery-stage041-p1`（合并后删除）
 - Pre-handoff implementation HEAD：`3bd20f8c875f8e426d299ed880a3bc490c417201`
 - Latest observed `origin/main`：`12d6fa9f46786387ee21d9bd3c682175464f3554`
 - Merge base：`0495b8482b78ff937a92ee061c92980bcbde173b`
 - Pre-handoff divergence：delivery branch `38` commits ahead / `108` commits behind
 - First verified GitHub handoff commit：`dee1e863d3011780418fa1e2cd050fa29b42dadd`
-- Draft PR：[LinzeColin/KMOS #193](https://github.com/LinzeColin/KMOS/pull/193)
+- Gated merge PR：[LinzeColin/KMOS #193](https://github.com/LinzeColin/KMOS/pull/193)
 
-`origin/main` 从未包含本批 Stage 041–047 提交；这不是当前 `main` 删除了已合入代码。
-不得把 Draft PR 直接视为可无冲突合并。PR 创建时 GitHub 报告 `OPEN + Draft`、
-`mergeable=MERGEABLE`、`mergeStateStatus=UNSTABLE`；这些是瞬时平台状态，不是门禁批准。
-相对当前 main 的 PR 统计为 433 个文件、107951 行新增、3535 行删除，必须按大跨度集成处理。
+PR 创建前的 `origin/main` 从未包含本批 Stage 041–047 提交；这不是当时的 `main` 删除了
+已合入代码。PR 创建时 GitHub 报告 `OPEN + Draft`、`mergeable=MERGEABLE`、
+`mergeStateStatus=UNSTABLE`；这些是历史瞬时状态，不是门禁批准。相对当时 main 的 PR
+统计为 433 个文件、107951 行新增、3535 行删除，因此最终仍须以 merge-context CI 为准。
 
 ## 已完成
 
@@ -59,7 +60,7 @@ owner views 均保留在 Git 历史及 `KM_IDSystem/` 内，没有压平为单�
 checksum、当前 Stage review checker 和 project-scoped governance；不得把旧结果伪装成
 本次重新执行的测试。
 
-## GitHub CI 残留
+## GitHub CI 根因与最终修复
 
 PR #193 的 `Dual-Plane Governance` workflow
 [run 30187010665](https://github.com/LinzeColin/KMOS/actions/runs/30187010665)
@@ -81,10 +82,10 @@ PR #193 的 `Dual-Plane Governance` workflow
 - 当前 `main@12d6fa9f` 的同 workflow、同 runner、同 5 项目检查成功，但 PR merge context
   会使用本分支父级 renderer，因此失败可复现。
 
-本线程没有修改 `KM_IDSystem/搜标项目/`：这将扩展到相邻项目，且 `github:gh-fix-ci`
-流程要求在根因和修复计划确认后取得显式批准。PR 必须继续保持 Draft/CI blocked；后续可在
-新 worktree 中只重渲染并复审该一行，或调整共享 renderer 的兼容策略，然后复跑全仓
-dual-plane。
+Owner 后续显式批准 `main` 交付后，最终交付只刷新该生成视图的一行标题：
+“最近 20 条”变为“最近 0 条”。本地对 `KM_IDSystem/搜标项目` 和 `KM_IDSystem`
+分别执行 dual-plane 检查均通过，且未产生其他文件改动；合并仍必须等待 GitHub
+merge-context CI 通过。
 
 ## 任务包交付
 
@@ -100,7 +101,6 @@ dual-plane。
 
 - Stage 048–050：未开始；
 - `BATCH041_050` 独立 batch review：未开始；
-- `main` 集成复审、冲突解决、merge：未执行；
 - parser/fallback runtime、真实业务解析、真实数据读写、evidence promotion、生产启用：未执行；
 - app reinstall、依赖安装、`.venv`、`node_modules`、data/reports/outputs 生成：未执行；
 - `IDS_MetaData`：未读取、列出、扫描、哈希、复制或修改；
@@ -108,11 +108,11 @@ dual-plane。
 
 ## 风险与停止条件
 
-1. 当前 `origin/main` 比交付分支多 108 个提交。合并前必须从 GitHub 重新 fetch，并做独立
-   ancestry、冲突、治理和全量测试复审。
-2. 批次只完成 7/10，Draft PR 不得直接改为 Ready 或合并。
-3. PR 当前 full-repo dual-plane check 失败；在相邻项目 renderer/view 一致性修复前不得
-   宣称 CI 通过。
+1. PR 创建时 `origin/main` 比交付分支多 108 个提交；最终合并必须使用 GitHub 的最新
+   merge context，并以 full-repo CI 通过为停止条件。
+2. 批次只完成 7/10；本次合并仅交付现有历史和任务包，不得据此进入 Stage 048、批次验收
+   或生产激活。
+3. 只有单行 renderer/view 一致性修复后的 GitHub dual-plane check 成功，才可完成合并。
 4. Stage 041–047 的多数产物是合同、控制证据或 isolated non-production slice，不是生产
    运行证明。
 5. 任务包中旧仓库/数据路径受当前 `AGENTS.md` 覆盖，不得据此恢复旧开发入口或数据路由。
@@ -121,9 +121,7 @@ dual-plane。
 
 ## 推荐接续
 
-1. 在新 worktree 中复审并修复 PR #193 的相邻项目单行 render mismatch；
-2. 在 GitHub Draft PR 上迭代任务包，不直接合入 `main`；
+1. PR #193 通过 GitHub CI 后合入 `main`，并删除任务分支及本地 worktree；
+2. 后续任务包迭代从最新 `origin/main` 创建新的独立 worktree；
 3. 决定任务包新版的 canonical repo/data-routing/contract 模板；
-4. 从最新 `origin/main` 创建新的独立 worktree；
-5. 导入本分支时做 Stage 041–047 集成复审；
-6. 只有通过集成门禁后，才在新 run 进入 `IDS-STAGE048-P1-GATE`。
+4. 只有新的独立 run 通过 `IDS-STAGE048-P1-GATE` 后，才可进入 Stage 048。
