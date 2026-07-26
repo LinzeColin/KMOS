@@ -10,6 +10,8 @@ services:
       KMFA_PUBLIC_SHELL_ENABLED: "${KMFA_PUBLIC_SHELL_ENABLED:-1}"
       KMFA_PUBLIC_INDEXING_ENABLED: "${KMFA_PUBLIC_INDEXING_ENABLED:-0}"
       KMFA_WALKING_SKELETON_ENABLED: "${KMFA_WALKING_SKELETON_ENABLED:-0}"
+      # P6.1 固定分片/断点续传独立灰度；置 0 立即保留标准 8 MiB 上传与全部暂存/对象。
+      KMFA_RESUMABLE_UPLOAD_ENABLED: "${KMFA_RESUMABLE_UPLOAD_ENABLED:-0}"
       # P5.3 快速回滚只暂停新上传；既有读/恢复与 reconciliation 保持可用。
       KMFA_CONSISTENCY_STATE_MODE: "${KMFA_CONSISTENCY_STATE_MODE:-recoverable-v1}"
       # P5.4 删除默认暂停；active 还要求 S3 backend、当前 schema 隔离恢复与独立 worker 凭据。

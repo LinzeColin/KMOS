@@ -199,7 +199,9 @@ def test_actor_limit_issues_one_use_bound_challenge_without_login(
 
 def test_upload_and_export_floods_are_isolated_and_growth_is_bounded(
     abuse_store: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ):
+    monkeypatch.setattr(abuse, "_now", lambda: 1_700_000_000.0)
     ip = "198.51.100.91"
     with _client() as client:
         client.get(f"{BASE}/status", headers={"CF-Connecting-IP": ip})
@@ -210,6 +212,7 @@ def test_upload_and_export_floods_are_isolated_and_growth_is_bounded(
             "Content-Type": "application/octet-stream",
             "X-KMFA-Filename": "bounded.bin",
         }
+        upload_burst = abuse.POLICIES["upload"].windows[0]
         uploads = [
             client.put(
                 f"{BASE}/workspaces/{workspace_id}/artifact",
@@ -218,11 +221,14 @@ def test_upload_and_export_floods_are_isolated_and_growth_is_bounded(
                     SYNTHETIC_FILE if index == 0 else b"must-not-replace"
                 ),
             )
-            for index in range(7)
+            for index in range(upload_burst.per_device + 1)
         ]
         assert uploads[0].status_code == 200
-        assert [response.status_code for response in uploads[1:6]] == [409] * 5
-        blocked_upload = uploads[6]
+        assert [
+            response.status_code
+            for response in uploads[1 : upload_burst.per_device]
+        ] == [409] * (upload_burst.per_device - 1)
+        blocked_upload = uploads[upload_burst.per_device]
         assert blocked_upload.status_code == 429
         assert blocked_upload.json()["detail"] == "risk_challenge_required"
 

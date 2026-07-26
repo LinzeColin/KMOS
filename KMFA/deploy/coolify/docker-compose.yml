@@ -70,6 +70,8 @@ services:
       KMFA_PUBLIC_INDEXING_ENABLED: "${KMFA_PUBLIC_INDEXING_ENABLED:-0}"
       # S03/P3.4 早期骨架独立灰度；默认关闭，启用前须确认 app state 卷与恢复/hash Oracle。
       KMFA_WALKING_SKELETON_ENABLED: "${KMFA_WALKING_SKELETON_ENABLED:-0}"
+      # P6.1 断点续传独立灰度；快速回滚置 0，继续保留标准上传、DB、分片、对象与卷。
+      KMFA_RESUMABLE_UPLOAD_ENABLED: "${KMFA_RESUMABLE_UPLOAD_ENABLED:-0}"
       # 快速回滚置 paused：只停新上传，不降 schema、不删 DB/对象/卷。
       KMFA_CONSISTENCY_STATE_MODE: "${KMFA_CONSISTENCY_STATE_MODE:-recoverable-v1}"
       # P5.4 默认暂停；active 还要求 S3 backend、当前 schema 隔离恢复与独立 worker 凭据。

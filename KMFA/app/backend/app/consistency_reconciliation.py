@@ -354,7 +354,7 @@ def reconcile_upload_operations(
     try:
         rows = connection.execute(
             """
-            SELECT operation_id
+            SELECT operation_id, state, staged_object_name, size_bytes
             FROM consistency_operations
             WHERE operation_kind = 'upload'
               AND state NOT IN ('converged', 'isolated')
@@ -369,8 +369,23 @@ def reconcile_upload_operations(
     resumed = 0
     retried = 0
     isolated = 0
+    incomplete_resumable = 0
     for row in rows:
         operation_id = str(row["operation_id"])
+        if (
+            str(row["state"]) == "intent_recorded"
+            and skeleton.is_resumable_staged_name(
+                str(row["staged_object_name"])
+            )
+        ):
+            staged_path = skeleton._tmp_dir() / str(row["staged_object_name"])
+            if not staged_path.exists():
+                # An active resumable intent is a durable reservation, not a
+                # failed whole-file upload. Reconciliation must leave its
+                # private chunks untouched until the client completes or
+                # explicitly cancels the session.
+                incomplete_resumable += 1
+                continue
         try:
             # Resolve from the durable operation backend, not the current
             # write-mode flag. An in-flight S3 operation must remain recoverable
@@ -408,6 +423,7 @@ def reconcile_upload_operations(
         "resumed_operation_count": resumed,
         "retry_operation_count": retried,
         "isolated_operation_count": isolated,
+        "incomplete_resumable_count": incomplete_resumable,
         "raw_object_deletes": 0,
         "reconciliation": report,
     }

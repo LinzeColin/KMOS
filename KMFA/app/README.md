@@ -12,7 +12,7 @@ Access 加源站 JWT 校验双重保护。公共壳异常时把 `KMFA_PUBLIC_SHE
 
 `KMFA_WALKING_SKELETON_ENABLED` 是 S03/P3.4 的独立早期骨架 Flag，生产默认 `0`。显式置 `1`
 后，根页可创建一个无需账号的服务器工作区、保存项目名称与 0–100% 进度、上传一个任意类型且不超过
-8 MiB 的文件、用一次显示的高熵恢复码换取一小时短时会话，并以 attachment-only 下载校验
+标准路径 8 MiB（P6.1 Flag 开启时为 64 MiB）的文件、用一次显示的高熵恢复码换取一小时短时会话，并以 attachment-only 下载校验
 SHA-256。恢复码与会话 capability 在服务端只存 hash；S05 的版本化 structured-store adapter 默认
 继续读取 `/var/lib/kmfa/state/walking-skeleton/walking_skeleton.sqlite3`，也可在显式
 `postgresql-primary` 模式连接共享 PostgreSQL。文件字节默认继续写
@@ -134,6 +134,24 @@ python KMFA/app/e2e/consistency_state_flow.py \
 reconciliation 保持可用；恢复写入时重新置 `recoverable-v1`。v3 是 expand-only/forward-fix，
 旧二进制不能通过降 schema 回滚；禁止 destructive downgrade、删 outbox/trace、删对象或删卷。
 
+S06/P6.1 增加独立且默认关闭的 `KMFA_RESUMABLE_UPLOAD_ENABLED`。显式置 `1` 后，浏览器先声明
+原始文件名、reported media type、精确字节数与完整 SHA-256，再以 `kmfa-offset-v1` 固定偏移合同
+上传最多 4 MiB 的分片；单文件上限 64 MiB。每片必须携带自身 SHA-256，服务端只接受当前连续偏移；
+同偏移同内容重试幂等，同偏移不同内容、越序、超限或 checksum 不一致均在写入对象前拒绝。上传
+session 复用 P5.3 的 durable intent，不建立第二套业务状态面；未完成分片只存在
+`kmfa-app-state` 私有暂存区，文件完整 SHA-256 通过后才进入既有 immutable object → DB+outbox
+状态机。每个 workspace 最多保留 16 个 resumable session，创建时为分片与完整组装文件预留两份
+本地空间，避免取消/重试造成无界 row、lock 或暂存增长。GET/HEAD session 返回服务端权威偏移，
+断线或客户端重启后重新选择同一文件会生成相同
+Idempotency-Key 并从该偏移继续。未知及高风险类型仍统一 attachment-only、`nosniff`、不执行、
+不预览；这不是 P6.2 malware 扫描通过声明。
+
+P6.1 快速回滚只把 `KMFA_RESUMABLE_UPLOAD_ENABLED=0` 并重部署：创建、分片、完成端点 fail closed，
+既有标准 8 MiB `PUT /artifact` 继续可用，所有 DB、intent、未完成私有分片、已完成对象与 named
+volume 必须保留。若要停止全部新上传，再独立把 `KMFA_CONSISTENCY_STATE_MODE=paused`；不得以删
+分片、删 intent、删对象、`down -v`、schema downgrade 或旧 binary 替代回滚。分片清理由用户显式
+取消或后续受控生命周期策略执行，本 phase 不引入无期限自动删除推断。
+
 S05/P5.4 把 schema expand 到 v4，并增加默认无到期的 `workspace_retention`、legal hold、明确删除
 请求/对象 target、publication binding、append-only lifecycle events 与当前 schema restore proof。
 `DELETE /public-api/walking-skeleton/v1/workspaces/{workspace_id}` 同时要求有效 session、recovery
@@ -160,7 +178,7 @@ incident。恢复会使复制来的旧 proof 失效，只有 application E2E、f
 volume 不等于灾难恢复，完成目录还必须复制到独立加密故障域。季度演练、灰度启用和回滚步骤见
 `deploy/coolify/P5.4_RETENTION_BACKUP_RUNBOOK.md`。
 
-这仍不是 GA：S06 恶意文件扫描与多文件/大文件上传尚未完成。快速回滚先停止独立 lifecycle worker，
+这仍不是 GA：S06/P6.1 只完成受限 64 MiB 断点上传，恶意文件扫描与多文件/更大文件生命周期尚未完成。快速回滚先停止独立 lifecycle worker，
 再把 `KMFA_LIFECYCLE_MODE=paused` 与 `KMFA_CONSISTENCY_STATE_MODE=paused`；保留
 `kmfa-app-state`、`kmfa-object-data`、PostgreSQL、backup、outbox/trace/lifecycle evidence，禁止
 `down -v`、destructive downgrade、删对象/卷或移除 legacy reader。

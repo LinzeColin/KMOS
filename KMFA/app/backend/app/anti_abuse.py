@@ -109,8 +109,12 @@ POLICIES: dict[str, OperationPolicy] = {
     "upload": OperationPolicy(
         name="upload",
         windows=(
-            LimitWindow(10, 24, 6, 6, 12),
-            LimitWindow(3600, 128, 32, 32, 256),
+            # One maximum-size P6.1 upload needs 16 chunks plus session create
+            # and completion. Keep enough actor/workspace headroom for one
+            # bounded retry while concurrency and byte ceilings still cap
+            # amplification.
+            LimitWindow(10, 64, 24, 24, 128),
+            LimitWindow(3600, 256, 64, 64, 512),
         ),
         concurrency=2,
         lease_seconds=120,
@@ -419,6 +423,11 @@ def _classify(method: str, path: str) -> tuple[str | None, str | None]:
     }:
         return "recovery", None
     if method == "PUT" and relative.endswith("/artifact"):
+        return "upload", workspace_value
+    if (
+        method in {"POST", "PATCH", "DELETE"}
+        and "/upload-sessions" in relative
+    ):
         return "upload", workspace_value
     if method == "POST" and (
         relative.endswith("/artifact/download")

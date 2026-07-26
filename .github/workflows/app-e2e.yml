@@ -65,6 +65,7 @@ jobs:
           docker run -d --name kmfa-e2e -p 18098:8000 \
             -e KMFA_PUBLIC_INDEXING_ENABLED=1 \
             -e KMFA_WALKING_SKELETON_ENABLED=1 \
+            -e KMFA_RESUMABLE_UPLOAD_ENABLED=1 \
             -v /tmp/kmfa-state:/var/lib/kmfa/state kmfa-app:e2e
           for _ in {1..60}; do
             curl -sf http://localhost:18098/healthz >/dev/null && break
@@ -113,6 +114,17 @@ jobs:
             --out-dir retention-backup-restore-e2e \
             --prefix kmfa-p54-ci \
             --source-commit "$GITHUB_SHA"
+
+      - name: 跑断点上传（任意类型 / 重启续传 / 篡改 / 并发 / Flag 回滚）
+        run: |
+          set -euo pipefail
+          p61_state=$(mktemp -d /tmp/kmfa-p61-state.XXXXXX)
+          python KMFA/app/e2e/resumable_upload_flow.py \
+            --image kmfa-app:e2e \
+            --state-dir "$p61_state" \
+            --out-dir resumable-upload-e2e \
+            --container-name kmfa-p61-e2e \
+            --port 18106
 
       - name: 装 Playwright
         run: |
@@ -195,6 +207,7 @@ jobs:
             object-storage-e2e/
             consistency-state-e2e/
             retention-backup-restore-e2e/
+            resumable-upload-e2e/
 
       - name: 收容器
         if: always()
@@ -202,6 +215,7 @@ jobs:
           docker rm -f kmfa-e2e || true
           docker rm -f kmfa-p34-e2e || true
           docker rm -f kmfa-p44-e2e || true
+          docker rm -f kmfa-p61-e2e || true
           docker rm -f kmfa-p51-ci-app-a || true
           docker rm -f kmfa-p51-ci-app-b || true
           docker rm -f kmfa-p51-ci-app-c || true

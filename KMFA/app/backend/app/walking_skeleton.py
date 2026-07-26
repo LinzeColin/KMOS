@@ -16,7 +16,11 @@ Secure/HttpOnly/SameSite cookie, supports server-side revocation and keeps
 legacy Authorization bearer sessions read-compatible. P4.4 adds explicit
 lifetime resource ceilings alongside the persistent request/concurrency gate.
 S05/P5.4 still owns backup/restore and deletion lifecycle semantics; S06
-owns scanning and scalable multi-file upload semantics.
+P6.1 adds a flag-guarded offset protocol whose durable session identity reuses
+the S05 upload intent. Incomplete chunks stay in private bounded staging and
+the completed immutable original still passes through the same object/outbox
+state machine. S06/P6.2 owns scanning and later S06 phases own processing and
+scalable multi-file lifecycle semantics.
 
 Raw recovery codes and access capabilities are returned only to their caller;
 the store keeps SHA-256 hashes. Artifacts are never mapped into the static
@@ -43,6 +47,7 @@ from fastapi import APIRouter, Cookie, Header, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
+from starlette.requests import ClientDisconnect
 
 from .anti_abuse import public_policy_contract
 from .consistency_state import (
@@ -82,6 +87,17 @@ from .retention_lifecycle import (
     lifecycle_mode,
     new_deletion_request_id,
 )
+from .resumable_upload import (
+    UPLOAD_SESSION_ID_RE,
+    ResumableStorageError,
+    assemble_upload,
+    cleanup_chunks,
+    discard_incomplete,
+    inspect_upload,
+    is_resumable_staged_name,
+    resumable_staged_name,
+    store_verified_chunk,
+)
 from .structured_repository import (
     StructuredRepository,
     artifact_version_id,
@@ -104,7 +120,11 @@ CONSISTENCY_PAUSED_MODE = "paused"
 CONSISTENCY_STATE_MODES = frozenset(
     {CONSISTENCY_ACTIVE_MODE, CONSISTENCY_PAUSED_MODE}
 )
+RESUMABLE_UPLOAD_ENABLED_ENV = "KMFA_RESUMABLE_UPLOAD_ENABLED"
 MAX_ARTIFACT_BYTES = 8 * 1024 * 1024
+MAX_RESUMABLE_ARTIFACT_BYTES = 64 * 1024 * 1024
+MAX_UPLOAD_CHUNK_BYTES = 4 * 1024 * 1024
+MAX_RESUMABLE_SESSIONS_PER_WORKSPACE = 16
 MAX_ARTIFACTS = 1
 MAX_TOTAL_ARTIFACT_BYTES = 512 * 1024 * 1024
 MIN_FREE_STATE_BYTES = 128 * 1024 * 1024
@@ -167,11 +187,29 @@ class DeleteWorkspaceRequest(BaseModel):
     workspace_secret: str = Field(min_length=1, max_length=128)
 
 
+class CreateUploadSessionRequest(BaseModel):
+    original_name: str = Field(min_length=1, max_length=255)
+    reported_media_type: str = Field(
+        default="application/octet-stream",
+        min_length=1,
+        max_length=200,
+    )
+    size_bytes: int = Field(ge=0)
+    sha256: str = Field(min_length=64, max_length=64)
+
+
 class SkeletonError(RuntimeError):
-    def __init__(self, status_code: int, code: str) -> None:
+    def __init__(
+        self,
+        status_code: int,
+        code: str,
+        *,
+        headers: dict[str, str] | None = None,
+    ) -> None:
         super().__init__(code)
         self.status_code = status_code
         self.code = code
+        self.headers = headers or {}
 
 
 def walking_skeleton_enabled() -> bool:
@@ -179,6 +217,15 @@ def walking_skeleton_enabled() -> bool:
 
     return (
         os.environ.get("KMFA_WALKING_SKELETON_ENABLED", "0").strip().lower()
+        in TRUE_VALUES
+    )
+
+
+def resumable_upload_enabled() -> bool:
+    """Only an explicit true value enables the P6.1 protocol."""
+
+    return (
+        os.environ.get(RESUMABLE_UPLOAD_ENABLED_ENV, "0").strip().lower()
         in TRUE_VALUES
     )
 
@@ -272,6 +319,11 @@ def _artifact_capacity_usage(connection: StructuredStoreConnection) -> int:
             FROM consistency_operations co
             WHERE co.operation_kind = 'upload'
               AND co.size_bytes IS NOT NULL
+              AND NOT (
+                co.state = 'isolated'
+                AND co.last_error_code = 'resumable_upload_cancelled'
+                AND co.staged_object_name LIKE 'resumable-%'
+              )
               AND NOT EXISTS (
                 SELECT 1
                 FROM artifact_versions av
@@ -289,7 +341,11 @@ def _require_enabled() -> None:
 
 
 def _raise_http(error: SkeletonError) -> None:
-    raise HTTPException(status_code=error.status_code, detail=error.code) from error
+    raise HTTPException(
+        status_code=error.status_code,
+        detail=error.code,
+        headers=error.headers,
+    ) from error
 
 
 def _clean_project_name(value: str) -> str:
@@ -308,7 +364,11 @@ def _clean_filename(encoded_value: str | None) -> str:
         decoded = unquote(encoded_value, encoding="utf-8", errors="strict")
     except UnicodeDecodeError as exc:
         raise SkeletonError(422, "invalid_filename") from exc
-    normalized = unicodedata.normalize("NFC", decoded).strip()
+    return _clean_plain_filename(decoded)
+
+
+def _clean_plain_filename(value: str) -> str:
+    normalized = unicodedata.normalize("NFC", value).strip()
     if (
         not normalized
         or normalized in {".", ".."}
@@ -1773,6 +1833,582 @@ async def _store_artifact(
         request_path.unlink(missing_ok=True)
 
 
+def _require_resumable_upload() -> None:
+    _require_enabled()
+    if not resumable_upload_enabled():
+        raise SkeletonError(404, "resumable_upload_disabled")
+    if consistency_state_mode() == CONSISTENCY_PAUSED_MODE:
+        raise SkeletonError(503, "consistency_processing_paused")
+
+
+def _upload_offset_headers(offset: int) -> dict[str, str]:
+    return {
+        "Upload-Offset": str(offset),
+        "Upload-Max-Chunk-Bytes": str(MAX_UPLOAD_CHUNK_BYTES),
+        "Cache-Control": "private, no-store",
+    }
+
+
+def _raise_resumable_storage(error: ResumableStorageError) -> None:
+    status_by_code = {
+        "upload_session_not_found": 404,
+        "invalid_upload_offset": 422,
+        "upload_chunk_size_invalid": 422,
+        "upload_chunk_conflict": 409,
+        "upload_offset_conflict": 409,
+        "upload_chunk_state_invalid": 409,
+        "upload_incomplete": 409,
+        "upload_checksum_mismatch": 409,
+        "artifact_too_large": 413,
+        "resumable_storage_unavailable": 503,
+    }
+    raise SkeletonError(
+        status_by_code.get(error.code, 503),
+        error.code,
+        headers=(
+            _upload_offset_headers(error.offset)
+            if error.offset is not None
+            else None
+        ),
+    ) from error
+
+
+def _resumable_operation(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None,
+    upload_session_id: str,
+) -> dict[str, Any]:
+    if UPLOAD_SESSION_ID_RE.fullmatch(upload_session_id) is None:
+        raise SkeletonError(404, "upload_session_not_found")
+    with _store() as connection:
+        _authorize(connection, workspace_id, authorization, session_cookie)
+        row = ConsistencyRepository(connection).operation(upload_session_id)
+        if (
+            row is None
+            or str(row["workspace_id"]) != workspace_id
+            or str(row["operation_kind"]) != "upload"
+            or not is_resumable_staged_name(str(row["staged_object_name"]))
+        ):
+            raise SkeletonError(404, "upload_session_not_found")
+        return dict(row)
+
+
+def _upload_session_payload(operation: dict[str, Any]) -> dict[str, Any]:
+    expected_size = int(operation["size_bytes"])
+    state = str(operation["state"])
+    if state == "converged":
+        offset = expected_size
+        chunk_count = 0
+        public_state = "completed"
+    elif state == "isolated":
+        try:
+            snapshot = inspect_upload(
+                _tmp_dir(),
+                str(operation["operation_id"]),
+                expected_size=expected_size,
+                max_chunk_bytes=MAX_UPLOAD_CHUNK_BYTES,
+            )
+            offset = snapshot.offset_bytes
+            chunk_count = snapshot.chunk_count
+        except ResumableStorageError:
+            offset = 0
+            chunk_count = 0
+        public_state = "isolated"
+    elif state == "intent_recorded":
+        try:
+            snapshot = inspect_upload(
+                _tmp_dir(),
+                str(operation["operation_id"]),
+                expected_size=expected_size,
+                max_chunk_bytes=MAX_UPLOAD_CHUNK_BYTES,
+            )
+        except ResumableStorageError as error:
+            _raise_resumable_storage(error)
+        offset = snapshot.offset_bytes
+        chunk_count = snapshot.chunk_count
+        public_state = "active"
+    else:
+        offset = expected_size
+        chunk_count = 0
+        public_state = "finalizing"
+    workspace_id = str(operation["workspace_id"])
+    upload_session_id = str(operation["operation_id"])
+    session_path = (
+        f"{API_PREFIX}/workspaces/{workspace_id}/upload-sessions/"
+        f"{upload_session_id}"
+    )
+    return {
+        "upload_session_id": upload_session_id,
+        "state": public_state,
+        "protocol": "kmfa-offset-v1",
+        "original_name": str(operation["original_name"]),
+        "reported_media_type": str(operation["reported_media_type"]),
+        "size_bytes": expected_size,
+        "offset_bytes": offset,
+        "remaining_bytes": max(0, expected_size - offset),
+        "chunk_count": chunk_count,
+        "max_chunk_bytes": MAX_UPLOAD_CHUNK_BYTES,
+        "checksum_algorithm": "sha256",
+        "sha256": str(operation["content_sha256"]),
+        "attachment_only": True,
+        "upload_url": session_path,
+        "complete_url": f"{session_path}/complete",
+    }
+
+
+def _create_resumable_upload_session(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None,
+    idempotency_key_header: str | None,
+    request: CreateUploadSessionRequest,
+) -> dict[str, Any]:
+    _require_resumable_upload()
+    if idempotency_key_header is None:
+        raise SkeletonError(422, "invalid_idempotency_key")
+    idempotency_key = _resolved_idempotency_key(idempotency_key_header)
+    try:
+        key_hash = idempotency_key_hash(idempotency_key)
+    except ConsistencyStateError as exc:
+        raise SkeletonError(422, "invalid_idempotency_key") from exc
+    filename = _clean_plain_filename(request.original_name)
+    media_type = _clean_media_type(request.reported_media_type)
+    if SHA256_HEX_RE.fullmatch(request.sha256) is None:
+        raise SkeletonError(422, "invalid_upload_checksum")
+    if request.size_bytes > MAX_RESUMABLE_ARTIFACT_BYTES:
+        raise SkeletonError(413, "artifact_too_large")
+    try:
+        fingerprint = upload_request_fingerprint(
+            workspace_id=workspace_id,
+            original_name=filename,
+            reported_media_type=media_type,
+            size_bytes=request.size_bytes,
+            content_sha256=request.sha256,
+        )
+    except ConsistencyStateError as exc:
+        raise SkeletonError(422, "invalid_upload_checksum") from exc
+
+    with _store() as connection:
+        _authorize(connection, workspace_id, authorization, session_cookie)
+        existing = ConsistencyRepository(
+            connection
+        ).operation_for_idempotency(
+            workspace_id=workspace_id,
+            operation_kind="upload",
+            idempotency_key_hash_value=key_hash,
+        )
+        if existing is not None:
+            if (
+                str(existing["request_fingerprint"]) != fingerprint
+                or not is_resumable_staged_name(
+                    str(existing["staged_object_name"])
+                )
+            ):
+                raise SkeletonError(409, "idempotency_key_conflict")
+            return {"upload_session": _upload_session_payload(dict(existing))}
+
+    try:
+        free_bytes = shutil.disk_usage(_state_root()).free
+    except OSError as exc:
+        raise SkeletonError(
+            503, "walking_skeleton_storage_unavailable"
+        ) from exc
+    # Chunks and the verified assembled file coexist until the existing S05
+    # object workflow accepts the original. Reserve both local copies so one
+    # maximum session cannot consume the configured free-space floor.
+    if free_bytes - (request.size_bytes * 2) < MIN_FREE_STATE_BYTES:
+        raise SkeletonError(429, "artifact_capacity_reached")
+    try:
+        object_store = configured_write_store(_state_root())
+        object_store.ensure_ready()
+    except (
+        ObjectStorageConfigurationError,
+        ObjectStorageUnavailableError,
+        OSError,
+    ) as exc:
+        raise SkeletonError(
+            503, "walking_skeleton_storage_unavailable"
+        ) from exc
+
+    operation_id = _new_operation_id()
+    artifact_id = _new_artifact_id()
+    version_number = 1
+    version_id = artifact_version_id(artifact_id, version_number)
+    storage_key = object_store.build_storage_key(
+        workspace_id=workspace_id,
+        artifact_id=artifact_id,
+        artifact_version_id=version_id,
+        version_number=version_number,
+        sha256=request.sha256,
+    )
+    intent = UploadIntent(
+        workspace_id=workspace_id,
+        idempotency_key=idempotency_key,
+        request_fingerprint=fingerprint,
+        artifact_id=artifact_id,
+        artifact_version_id=version_id,
+        storage_backend=object_store.storage_backend,
+        storage_key=storage_key,
+        staged_object_name=resumable_staged_name(operation_id),
+        original_name=filename,
+        reported_media_type=media_type,
+        size_bytes=request.size_bytes,
+        content_sha256=request.sha256,
+    )
+    try:
+        with _store() as connection:
+            with connection.transaction():
+                _authorize(
+                    connection,
+                    workspace_id,
+                    authorization,
+                    session_cookie,
+                )
+                consistency = ConsistencyRepository(connection)
+                durable_replay = consistency.operation_for_idempotency(
+                    workspace_id=workspace_id,
+                    operation_kind="upload",
+                    idempotency_key_hash_value=key_hash,
+                )
+                if durable_replay is None:
+                    resumable_session_count = int(
+                        connection.execute(
+                            """
+                            SELECT COUNT(*) AS session_count
+                            FROM consistency_operations
+                            WHERE workspace_id = ?
+                              AND operation_kind = 'upload'
+                              AND staged_object_name LIKE 'resumable-%'
+                            """,
+                            (workspace_id,),
+                        ).fetchone()["session_count"]
+                    )
+                    if (
+                        resumable_session_count
+                        >= MAX_RESUMABLE_SESSIONS_PER_WORKSPACE
+                    ):
+                        raise SkeletonError(
+                            429,
+                            "upload_session_capacity_reached",
+                        )
+                    competing_upload = connection.execute(
+                        """
+                        SELECT 1
+                        FROM consistency_operations
+                        WHERE workspace_id = ?
+                          AND operation_kind = 'upload'
+                          AND state NOT IN ('converged', 'isolated')
+                        LIMIT 1
+                        """,
+                        (workspace_id,),
+                    ).fetchone()
+                    projected_artifact = connection.execute(
+                        """
+                        SELECT 1
+                        FROM artifacts
+                        WHERE workspace_id = ?
+                        LIMIT 1
+                        """,
+                        (workspace_id,),
+                    ).fetchone()
+                    if (
+                        competing_upload is not None
+                        or projected_artifact is not None
+                    ):
+                        raise SkeletonError(409, "artifact_limit_reached")
+                    if (
+                        _artifact_capacity_usage(connection)
+                        + request.size_bytes
+                        > MAX_TOTAL_ARTIFACT_BYTES
+                    ):
+                        raise SkeletonError(
+                            429, "artifact_capacity_reached"
+                        )
+                identity = consistency.create_or_load_upload(
+                    intent,
+                    operation_id=operation_id,
+                    timestamp=_timestamp(),
+                )
+                operation = consistency.operation(identity.operation_id)
+                if operation is None:
+                    raise SkeletonError(
+                        503, "walking_skeleton_storage_unavailable"
+                    )
+                operation = dict(operation)
+    except ConsistencyConflictError as exc:
+        raise SkeletonError(409, "idempotency_key_conflict") from exc
+    if not is_resumable_staged_name(str(operation["staged_object_name"])):
+        raise SkeletonError(409, "idempotency_key_conflict")
+    return {"upload_session": _upload_session_payload(operation)}
+
+
+async def _store_resumable_chunk(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None,
+    upload_session_id: str,
+    upload_offset_header: str | None,
+    chunk_sha256_header: str | None,
+    request: Request,
+) -> int:
+    _require_resumable_upload()
+    operation = _resumable_operation(
+        workspace_id,
+        authorization,
+        session_cookie,
+        upload_session_id,
+    )
+    if str(operation["state"]) != "intent_recorded":
+        raise SkeletonError(409, "upload_session_not_active")
+    if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != (
+        "application/offset+octet-stream"
+    ):
+        raise SkeletonError(415, "invalid_upload_chunk_media_type")
+    content_encoding = request.headers.get("content-encoding", "").strip().lower()
+    if content_encoding not in {"", "identity"}:
+        raise SkeletonError(415, "invalid_upload_content_encoding")
+    try:
+        upload_offset = int(upload_offset_header or "")
+    except ValueError as exc:
+        raise SkeletonError(422, "invalid_upload_offset") from exc
+    if upload_offset < 0:
+        raise SkeletonError(422, "invalid_upload_offset")
+    claimed_sha256 = (chunk_sha256_header or "").strip().lower()
+    if SHA256_HEX_RE.fullmatch(claimed_sha256) is None:
+        raise SkeletonError(422, "invalid_upload_checksum")
+    expected_size = int(operation["size_bytes"])
+    content_length = request.headers.get("content-length", "").strip()
+    declared_length: int | None = None
+    if content_length:
+        try:
+            declared_length = int(content_length)
+        except ValueError as exc:
+            raise SkeletonError(400, "invalid_content_length") from exc
+        if (
+            declared_length < 1
+            or declared_length > MAX_UPLOAD_CHUNK_BYTES
+            or upload_offset + declared_length > expected_size
+        ):
+            raise SkeletonError(
+                413,
+                "artifact_too_large",
+                headers=_upload_offset_headers(upload_offset),
+            )
+    try:
+        free_bytes = shutil.disk_usage(_state_root()).free
+    except OSError as exc:
+        raise SkeletonError(
+            503, "walking_skeleton_storage_unavailable"
+        ) from exc
+    if free_bytes - (
+        declared_length or MAX_UPLOAD_CHUNK_BYTES
+    ) < MIN_FREE_STATE_BYTES:
+        raise SkeletonError(429, "artifact_capacity_reached")
+
+    request_path = _tmp_dir() / f"request-{secrets.token_urlsafe(24)}.part"
+    digest = hashlib.sha256()
+    size = 0
+    descriptor = os.open(
+        request_path,
+        os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+        0o600,
+    )
+    try:
+        with os.fdopen(descriptor, "wb") as output:
+            try:
+                async for chunk in request.stream():
+                    if not chunk:
+                        continue
+                    size += len(chunk)
+                    if (
+                        size > MAX_UPLOAD_CHUNK_BYTES
+                        or upload_offset + size > expected_size
+                    ):
+                        raise SkeletonError(
+                            413,
+                            "artifact_too_large",
+                            headers=_upload_offset_headers(upload_offset),
+                        )
+                    digest.update(chunk)
+                    output.write(chunk)
+            except ClientDisconnect as exc:
+                raise SkeletonError(
+                    409,
+                    "upload_chunk_interrupted",
+                    headers=_upload_offset_headers(upload_offset),
+                ) from exc
+            output.flush()
+            os.fsync(output.fileno())
+        if size < 1:
+            raise SkeletonError(422, "upload_chunk_size_invalid")
+        actual_sha256 = digest.hexdigest()
+        if actual_sha256 != claimed_sha256:
+            raise SkeletonError(
+                409,
+                "upload_chunk_checksum_mismatch",
+                headers=_upload_offset_headers(upload_offset),
+            )
+        operation = _resumable_operation(
+            workspace_id,
+            authorization,
+            session_cookie,
+            upload_session_id,
+        )
+        if str(operation["state"]) != "intent_recorded":
+            raise SkeletonError(409, "upload_session_not_active")
+
+        def assert_active_and_touch() -> None:
+            with _store() as connection:
+                with connection.transaction():
+                    current = ConsistencyRepository(connection).operation(
+                        upload_session_id
+                    )
+                    if (
+                        current is None
+                        or str(current["workspace_id"]) != workspace_id
+                        or str(current["state"]) != "intent_recorded"
+                    ):
+                        raise SkeletonError(
+                            409,
+                            "upload_session_not_active",
+                        )
+                    connection.execute(
+                        """
+                        UPDATE consistency_operations
+                        SET updated_at = ?, row_version = row_version + 1
+                        WHERE operation_id = ? AND state = 'intent_recorded'
+                        """,
+                        (_timestamp(), upload_session_id),
+                    )
+
+        try:
+            snapshot = store_verified_chunk(
+                _tmp_dir(),
+                upload_session_id,
+                request_path,
+                upload_offset=upload_offset,
+                chunk_size=size,
+                chunk_sha256=actual_sha256,
+                expected_size=int(operation["size_bytes"]),
+                max_chunk_bytes=MAX_UPLOAD_CHUNK_BYTES,
+                active_check=assert_active_and_touch,
+            )
+        except ResumableStorageError as error:
+            _raise_resumable_storage(error)
+        return snapshot.offset_bytes
+    finally:
+        request_path.unlink(missing_ok=True)
+
+
+def _complete_resumable_upload(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None,
+    upload_session_id: str,
+) -> dict[str, Any]:
+    _require_resumable_upload()
+    operation = _resumable_operation(
+        workspace_id,
+        authorization,
+        session_cookie,
+        upload_session_id,
+    )
+    state = str(operation["state"])
+    if state == "isolated":
+        raise SkeletonError(409, "upload_session_isolated")
+    if state == "intent_recorded":
+        try:
+            assemble_upload(
+                _tmp_dir(),
+                upload_session_id,
+                expected_size=int(operation["size_bytes"]),
+                expected_sha256=str(operation["content_sha256"]),
+                max_chunk_bytes=MAX_UPLOAD_CHUNK_BYTES,
+            )
+        except ResumableStorageError as error:
+            _raise_resumable_storage(error)
+    payload = _resume_upload_operation(upload_session_id, None)
+    try:
+        cleanup_chunks(
+            _tmp_dir(),
+            upload_session_id,
+            expected_size=int(operation["size_bytes"]),
+            max_chunk_bytes=MAX_UPLOAD_CHUNK_BYTES,
+        )
+    except ResumableStorageError as error:
+        _raise_resumable_storage(error)
+    return payload
+
+
+def _cancel_resumable_upload(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None,
+    upload_session_id: str,
+) -> None:
+    _require_resumable_upload()
+    operation = _resumable_operation(
+        workspace_id,
+        authorization,
+        session_cookie,
+        upload_session_id,
+    )
+    operation_state = str(operation["state"])
+    already_cancelled = (
+        operation_state == "isolated"
+        and str(operation["last_error_code"])
+        == "resumable_upload_cancelled"
+    )
+    if operation_state != "intent_recorded" and not already_cancelled:
+        raise SkeletonError(409, "upload_session_not_cancellable")
+
+    def claim_cancellation() -> None:
+        with _store() as connection:
+            with connection.transaction():
+                current = ConsistencyRepository(connection).operation(
+                    upload_session_id
+                )
+                if current is None:
+                    raise SkeletonError(404, "upload_session_not_found")
+                if (
+                    str(current["state"]) == "isolated"
+                    and str(current["last_error_code"])
+                    == "resumable_upload_cancelled"
+                ):
+                    return
+                if str(current["state"]) != "intent_recorded":
+                    raise SkeletonError(
+                        409,
+                        "upload_session_not_cancellable",
+                    )
+                try:
+                    ConsistencyRepository(connection).transition(
+                        upload_session_id,
+                        expected_state="intent_recorded",
+                        to_state="isolated",
+                        transition_code="resumable_upload_cancelled",
+                        error_code="resumable_upload_cancelled",
+                        timestamp=_timestamp(),
+                    )
+                except ConsistencyStateError as exc:
+                    raise SkeletonError(
+                        409,
+                        "upload_session_not_cancellable",
+                    ) from exc
+
+    try:
+        discard_incomplete(
+            _tmp_dir(),
+            upload_session_id,
+            expected_size=int(operation["size_bytes"]),
+            max_chunk_bytes=MAX_UPLOAD_CHUNK_BYTES,
+            before_discard=claim_cancellation,
+        )
+    except ResumableStorageError as error:
+        _raise_resumable_storage(error)
+
+
 def _audit_artifact_download(
     workspace_id: str,
     authorization: str | None,
@@ -2030,6 +2666,18 @@ def walking_skeleton_status() -> dict[str, Any]:
             "max_audit_events_total": MAX_AUDIT_EVENTS_TOTAL,
             "file_types": "any-stored-attachment-only",
         },
+        "resumable_upload": {
+            "enabled": resumable_upload_enabled(),
+            "protocol": "kmfa-offset-v1",
+            "max_file_bytes": MAX_RESUMABLE_ARTIFACT_BYTES,
+            "max_chunk_bytes": MAX_UPLOAD_CHUNK_BYTES,
+            "max_sessions_per_workspace": (
+                MAX_RESUMABLE_SESSIONS_PER_WORKSPACE
+            ),
+            "checksum": "sha256",
+            "attachment_only_until_classified": True,
+            "standard_upload_rollback": True,
+        },
         "abuse_control": public_policy_contract(),
         "stage_status": "early-skeleton-not-ga",
         "hardening_pending": (
@@ -2267,6 +2915,196 @@ def delete_workspace(
         _raise_http(error)
     _clear_session_cookie(response)
     return payload
+
+
+@router.post("/workspaces/{workspace_id}/upload-sessions", status_code=201)
+def create_resumable_upload_session(
+    workspace_id: str,
+    request: CreateUploadSessionRequest,
+    response: Response,
+    authorization: str | None = Header(default=None),
+    idempotency_key: str | None = Header(
+        default=None,
+        alias="Idempotency-Key",
+    ),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
+) -> dict[str, Any]:
+    try:
+        payload = _create_resumable_upload_session(
+            workspace_id,
+            authorization,
+            session_cookie,
+            idempotency_key,
+            request,
+        )
+    except SkeletonError as error:
+        _raise_http(error)
+    upload_session = payload["upload_session"]
+    response.headers.update(
+        {
+            **_upload_offset_headers(
+                int(upload_session["offset_bytes"]),
+            ),
+            "Upload-Length": str(upload_session["size_bytes"]),
+            "Location": str(upload_session["upload_url"]),
+        }
+    )
+    return payload
+
+
+@router.get(
+    "/workspaces/{workspace_id}/upload-sessions/{upload_session_id}"
+)
+def get_resumable_upload_session(
+    workspace_id: str,
+    upload_session_id: str,
+    authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
+) -> dict[str, Any]:
+    try:
+        _require_resumable_upload()
+        operation = _resumable_operation(
+            workspace_id,
+            authorization,
+            session_cookie,
+            upload_session_id,
+        )
+        return {"upload_session": _upload_session_payload(operation)}
+    except SkeletonError as error:
+        _raise_http(error)
+
+
+@router.head(
+    "/workspaces/{workspace_id}/upload-sessions/{upload_session_id}"
+)
+def head_resumable_upload_session(
+    workspace_id: str,
+    upload_session_id: str,
+    authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
+) -> Response:
+    try:
+        _require_resumable_upload()
+        operation = _resumable_operation(
+            workspace_id,
+            authorization,
+            session_cookie,
+            upload_session_id,
+        )
+        payload = _upload_session_payload(operation)
+    except SkeletonError as error:
+        _raise_http(error)
+    return Response(
+        status_code=204,
+        headers={
+            **_upload_offset_headers(int(payload["offset_bytes"])),
+            "Upload-Length": str(payload["size_bytes"]),
+            "Upload-State": str(payload["state"]),
+        },
+    )
+
+
+@router.patch(
+    "/workspaces/{workspace_id}/upload-sessions/{upload_session_id}",
+    status_code=204,
+)
+async def upload_resumable_chunk(
+    workspace_id: str,
+    upload_session_id: str,
+    request: Request,
+    authorization: str | None = Header(default=None),
+    upload_offset: str | None = Header(default=None, alias="Upload-Offset"),
+    chunk_sha256: str | None = Header(
+        default=None,
+        alias="X-KMFA-Chunk-SHA256",
+    ),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
+) -> Response:
+    try:
+        next_offset = await _store_resumable_chunk(
+            workspace_id,
+            authorization,
+            session_cookie,
+            upload_session_id,
+            upload_offset,
+            chunk_sha256,
+            request,
+        )
+        operation = _resumable_operation(
+            workspace_id,
+            authorization,
+            session_cookie,
+            upload_session_id,
+        )
+    except SkeletonError as error:
+        _raise_http(error)
+    return Response(
+        status_code=204,
+        headers={
+            **_upload_offset_headers(next_offset),
+            "Upload-Length": str(operation["size_bytes"]),
+        },
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/upload-sessions/{upload_session_id}/complete"
+)
+def complete_resumable_upload(
+    workspace_id: str,
+    upload_session_id: str,
+    authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
+) -> dict[str, Any]:
+    try:
+        return _complete_resumable_upload(
+            workspace_id,
+            authorization,
+            session_cookie,
+            upload_session_id,
+        )
+    except SkeletonError as error:
+        _raise_http(error)
+
+
+@router.delete(
+    "/workspaces/{workspace_id}/upload-sessions/{upload_session_id}",
+    status_code=204,
+)
+def cancel_resumable_upload(
+    workspace_id: str,
+    upload_session_id: str,
+    authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
+) -> Response:
+    try:
+        _cancel_resumable_upload(
+            workspace_id,
+            authorization,
+            session_cookie,
+            upload_session_id,
+        )
+    except SkeletonError as error:
+        _raise_http(error)
+    return Response(status_code=204)
 
 
 @router.put("/workspaces/{workspace_id}/artifact")

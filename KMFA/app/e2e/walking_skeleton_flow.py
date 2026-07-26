@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""S03/P3.4 plus S04/P4.2-P4.3 final-image browser oracle.
+"""S03/P3.4, S04/P4.2-P4.3 and S06/P6.1 final-image browser oracle.
 
 The script owns one explicitly test-prefixed container and an initially empty
 state directory. It never deletes the state directory. Evidence contains only
@@ -86,7 +86,8 @@ class BrowserSurfaceProbe:
     def capture_client_surfaces(self, page: Page) -> None:
         self.performance_urls.extend(
             page.evaluate(
-                "() => performance.getEntriesByType('resource').map((entry) => entry.name)"
+                "() => performance.getEntriesByType('resource')"
+                ".map((entry) => entry.name)"
             )
         )
         self.cache_entries.extend(
@@ -212,7 +213,9 @@ def _post_status(
     try:
         with urllib.request.urlopen(request, timeout=5) as response:
             if response_samples is not None:
-                response_samples.append(response.read().decode("utf-8", errors="replace"))
+                response_samples.append(
+                    response.read().decode("utf-8", errors="replace")
+                )
             return response.status
     except urllib.error.HTTPError as exc:
         if response_samples is not None:
@@ -260,7 +263,7 @@ class ContainerLifecycle:
         # the production Secure cookie can be exercised without weakening it.
         self.base_url = f"http://localhost:{port}"
 
-    def start(self, *, enabled: bool) -> None:
+    def start(self, *, enabled: bool, resumable: bool) -> None:
         assert not self.owned
         assert not _container_exists(self.name), (
             f"refusing to replace pre-existing container {self.name}"
@@ -276,6 +279,8 @@ class ContainerLifecycle:
             f"127.0.0.1:{self.port}:8000",
             "-e",
             f"KMFA_WALKING_SKELETON_ENABLED={1 if enabled else 0}",
+            "-e",
+            f"KMFA_RESUMABLE_UPLOAD_ENABLED={1 if resumable else 0}",
             "-e",
             "KMFA_PUBLIC_INDEXING_ENABLED=0",
             "-e",
@@ -339,6 +344,9 @@ def _seed(
     probe.attach(page, base_url)
     try:
         _goto_ready(page, base_url)
+        quota = page.locator('[data-upload-quota="visible"]')
+        # The quota is visible only after entering a workspace; the browser
+        # path below verifies it before sending any file bytes.
         warning = page.locator('[data-recovery-warning="visible"]')
         warning.wait_for()
         assert "邮箱" in warning.inner_text() and "无法" in warning.inner_text()
@@ -357,6 +365,9 @@ def _seed(
         page.locator("#walking-progress").fill(str(PROGRESS_SAVED))
         page.get_by_role("button", name="保存项目与进度").click()
         page.locator('[data-walking-message="success"]', has_text="64%").wait_for()
+        quota.wait_for()
+        assert "64.0 MiB" in quota.inner_text()
+        assert "4.0 MiB" in quota.inner_text()
 
         page.locator("#walking-file").set_input_files(
             {
@@ -370,6 +381,9 @@ def _seed(
         page.locator(
             '[data-walking-message="success"]', has_text=EXPECTED_HASH
         ).wait_for()
+        assert any(
+            "/upload-sessions" in url for url in probe.request_urls
+        ), probe.request_urls
         assert (
             page.locator(".walking-artifact code", has_text=EXPECTED_HASH).count() == 1
         )
@@ -869,7 +883,7 @@ def main() -> int:
     probe = BrowserSurfaceProbe()
     log_samples: list[str] = []
     try:
-        lifecycle.start(enabled=True)
+        lifecycle.start(enabled=True, resumable=True)
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True)
             try:
@@ -926,7 +940,7 @@ def main() -> int:
                 log_samples.append(lifecycle.logs())
 
                 lifecycle.remove()
-                lifecycle.start(enabled=False)
+                lifecycle.start(enabled=False, resumable=False)
                 rollback = _rollback_browser(browser, lifecycle.base_url, probe)
                 rollback["recovery_status"] = _disabled_recovery_status(
                     lifecycle.base_url,
@@ -943,7 +957,7 @@ def main() -> int:
                 log_samples.append(lifecycle.logs())
 
                 lifecycle.remove()
-                lifecycle.start(enabled=True)
+                lifecycle.start(enabled=True, resumable=True)
                 restored = _recover_file_and_download(
                     browser,
                     lifecycle.base_url,
@@ -966,7 +980,10 @@ def main() -> int:
         screenshot_scan = _screenshot_secret_scan(args.out_dir, capabilities)
 
         trace = {
-            "contract": "S04/P4.2 AC-WS-002 + S04/P4.3 AC-WS-003",
+            "contract": (
+                "S04/P4.2 AC-WS-002 + S04/P4.3 AC-WS-003 + "
+                "S06/P6.1 TEST-UP-001/002 browser path"
+            ),
             "capabilities_redacted": True,
             "native_trace_omitted_reason": (
                 "Browser traces retain capability-bearing DOM and POST bodies"
@@ -1040,7 +1057,7 @@ def main() -> int:
         result = {
             "contract": (
                 "S03/P3.4 TEST-QA-001 + S04/P4.2 AC-WS-002 + "
-                "S04/P4.3 AC-WS-003"
+                "S04/P4.3 AC-WS-003 + S06/P6.1 TEST-UP-001/002"
             ),
             "image_id": image_id,
             "fixture": {

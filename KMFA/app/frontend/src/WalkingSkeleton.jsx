@@ -14,7 +14,7 @@ const ERROR_COPY = {
   recovery_file_too_large: '恢复文件超过 4 KiB 安全上限；未读取或授予访问。',
   invalid_project_name: '项目名不能为空，也不能包含控制字符。',
   invalid_filename: '文件名无效。请选择不含路径或控制字符的文件。',
-  artifact_too_large: '该早期骨架单文件上限为 8 MiB；文件未写入。',
+  artifact_too_large: '文件超过服务器当前公开的单文件上限；超限字节未写入。',
   artifact_limit_reached: '该早期骨架每个工作区只验证一个文件，已有文件不会被覆盖。',
   artifact_integrity_failed: '下载完整性校验失败，服务器已阻止返回损坏字节。',
   artifact_unavailable: '文件当前不可读取，服务器没有返回替代或伪造内容。',
@@ -25,6 +25,25 @@ const ERROR_COPY = {
   artifact_upload_isolated: '上传进入可审计隔离态；原始对象未被删除，请勿把本次操作视为完成。',
   consistency_processing_paused: '新上传已按回滚预案暂停；既有项目、恢复材料和文件仍被保留。',
   consistency_mode_invalid: '一致性运行模式配置无效；服务器已停止接收新上传。',
+  resumable_upload_disabled: '断点续传当前已安全回滚；可重新选择不超过标准上传上限的文件。',
+  upload_session_not_found: '上传会话不存在、已取消，或不属于当前工作区。',
+  upload_session_not_active: '上传会话已进入完成或隔离状态，不能继续写入分片。',
+  upload_session_isolated: '上传完整性无法确认，会话已隔离且未发布为可下载文件。',
+  upload_session_not_cancellable: '上传已进入最终写入阶段，不能再取消；请查询工作区确认结果。',
+  upload_session_capacity_reached: '该工作区的历史上传会话已达到安全上限；既有项目和文件未被删除。',
+  invalid_upload_checksum: '上传校验值格式无效；服务器未接受本次字节。',
+  invalid_upload_offset: '上传偏移无效；请重新点击上传，让客户端从服务器偏移恢复。',
+  invalid_upload_chunk_media_type: '分片媒体类型无效；服务器未接受本次字节。',
+  invalid_upload_content_encoding: '分片必须发送原始 identity 字节；服务器拒绝压缩编码正文。',
+  upload_chunk_size_invalid: '分片大小不符合服务器公开合同；服务器未接受本次分片。',
+  upload_chunk_checksum_mismatch: '分片 SHA-256 不一致；该分片未进入耐久暂存。',
+  upload_chunk_interrupted: '连接在分片完成前中断；不完整分片已丢弃，重新点击即可从已确认偏移继续。',
+  upload_chunk_conflict: '该偏移已有不同字节；服务器拒绝覆盖，请重新选择原文件。',
+  upload_offset_conflict: '客户端偏移已过期；请重新点击上传，从服务器记录的偏移恢复。',
+  upload_chunk_state_invalid: '服务器检测到不连续分片并已停止完成操作，未发布文件。',
+  upload_incomplete: '文件尚未上传完整；请重新点击上传，从已有偏移继续。',
+  upload_checksum_mismatch: '完整文件 SHA-256 不一致；服务器未发布或返回受损文件。',
+  resumable_storage_unavailable: '断点续传暂存不可用；已保存的项目和既有文件不受影响。',
   workspace_audit_capacity_reached: '该早期工作区已达到审计安全上限；本次变更未执行。',
   secret_in_url_rejected: '请求 URL 或来源页包含恢复材料，服务器已拒绝处理。请只通过受保护的表单正文提交。',
   cross_origin_session_request_rejected: '会话操作不是从 KMFA 同源页面发起，服务器已拒绝处理。',
@@ -123,6 +142,12 @@ async function jsonRequest(path, options = {}) {
 function formatBytes(value) {
   if (!Number.isFinite(value)) return '—'
   if (value < 1024) return `${value} B`
+  if (value >= 1024 * 1024 * 1024) {
+    return `${(value / (1024 * 1024 * 1024)).toFixed(1)} GiB`
+  }
+  if (value >= 1024 * 1024) {
+    return `${(value / (1024 * 1024)).toFixed(value < 100 * 1024 * 1024 ? 1 : 0)} MiB`
+  }
   return `${(value / 1024).toFixed(value < 1024 * 100 ? 1 : 0)} KiB`
 }
 
@@ -131,14 +156,14 @@ async function sha256Hex(blob) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
-async function uploadIdempotencyKeyFor(workspaceId, file) {
-  const bodyHash = await sha256Hex(file)
+async function uploadIdempotencyKeyFor(workspaceId, file, bodyHash = '') {
+  const resolvedBodyHash = bodyHash || await sha256Hex(file)
   const identity = JSON.stringify([
     workspaceId,
     file.name,
     file.type || 'application/octet-stream',
     file.size,
-    bodyHash,
+    resolvedBodyHash,
   ])
   const digest = await window.crypto.subtle.digest(
     'SHA-256',
@@ -181,7 +206,15 @@ function SkeletonBoundary({ state, retry }) {
 
 function WalkingSkeleton() {
   const [availability, setAvailability] = useState('checking')
-  const [limits, setLimits] = useState({ maxBytes: 8 * 1024 * 1024, maxArtifacts: 1 })
+  const [limits, setLimits] = useState({
+    maxBytes: 8 * 1024 * 1024,
+    maxArtifacts: 1,
+    maxTotalBytes: 512 * 1024 * 1024,
+    maxChunkBytes: 4 * 1024 * 1024,
+    maxSessions: 16,
+  })
+  const [resumableUpload, setResumableUpload] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(null)
   const [mode, setMode] = useState('create')
   const [projectName, setProjectName] = useState('')
   const [recoveryInput, setRecoveryInput] = useState('')
@@ -208,10 +241,17 @@ function WalkingSkeleton() {
           setAvailability('rollback')
           return
         }
+        const resumableEnabled = status.resumable_upload?.enabled === true
         setLimits({
-          maxBytes: status.limits?.max_bytes || 8 * 1024 * 1024,
+          maxBytes: resumableEnabled
+            ? status.resumable_upload?.max_file_bytes || 64 * 1024 * 1024
+            : status.limits?.max_bytes || 8 * 1024 * 1024,
           maxArtifacts: status.limits?.max_artifacts || 1,
+          maxTotalBytes: status.limits?.max_total_artifact_bytes || 512 * 1024 * 1024,
+          maxChunkBytes: status.resumable_upload?.max_chunk_bytes || 4 * 1024 * 1024,
+          maxSessions: status.resumable_upload?.max_sessions_per_workspace || 16,
         })
+        setResumableUpload(resumableEnabled)
         setAvailability(status.healthy ? 'ready' : 'unavailable')
       })
       .catch(() => {
@@ -419,26 +459,110 @@ function WalkingSkeleton() {
       return
     }
     run(async () => {
+      const fullHash = resumableUpload ? await sha256Hex(selectedFile) : ''
       const retryKey = uploadIdempotencyKey
-        || await uploadIdempotencyKeyFor(workspace.workspace_id, selectedFile)
+        || await uploadIdempotencyKeyFor(
+          workspace.workspace_id,
+          selectedFile,
+          fullHash,
+        )
       if (!uploadIdempotencyKey) setUploadIdempotencyKey(retryKey)
-      const response = await fetchWithRiskChallenge(`${API_BASE}/workspaces/${workspace.workspace_id}/artifact`, {
-        method: 'PUT',
-        cache: 'no-store',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': selectedFile.type || 'application/octet-stream',
-          'X-KMFA-Filename': encodeURIComponent(selectedFile.name),
-          'Idempotency-Key': retryKey,
-        },
-        body: selectedFile,
-      })
-      if (!response.ok) throw await errorFromResponse(response)
-      const result = await response.json()
+      let result
+      if (resumableUpload) {
+        const created = await jsonRequest(
+          `/workspaces/${workspace.workspace_id}/upload-sessions`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Idempotency-Key': retryKey,
+            },
+            body: JSON.stringify({
+              original_name: selectedFile.name,
+              reported_media_type: selectedFile.type || 'application/octet-stream',
+              size_bytes: selectedFile.size,
+              sha256: fullHash,
+            }),
+          },
+        )
+        const uploadSession = created?.upload_session
+        const uploadSessionId = String(uploadSession?.upload_session_id || '')
+        let offset = Number(uploadSession?.offset_bytes)
+        const sessionChunkBytes = Number(uploadSession?.max_chunk_bytes)
+        if (
+          !/^operation_[A-Za-z0-9_-]{24}$/.test(uploadSessionId)
+          || uploadSession?.protocol !== 'kmfa-offset-v1'
+          || Number(uploadSession?.size_bytes) !== selectedFile.size
+          || uploadSession?.sha256 !== fullHash
+          || !Number.isSafeInteger(offset)
+          || offset < 0
+          || offset > selectedFile.size
+          || !Number.isSafeInteger(sessionChunkBytes)
+          || sessionChunkBytes < 1
+          || sessionChunkBytes > limits.maxChunkBytes
+        ) {
+          throw new Error('服务器返回的断点续传合同无效，已停止发送文件字节。')
+        }
+        setUploadProgress({ offset, total: selectedFile.size })
+        const sessionPath = (
+          `/workspaces/${workspace.workspace_id}/upload-sessions/${uploadSessionId}`
+        )
+        while (offset < selectedFile.size) {
+          const nextExpected = Math.min(
+            selectedFile.size,
+            offset + sessionChunkBytes,
+          )
+          const chunk = selectedFile.slice(offset, nextExpected)
+          const chunkHash = await sha256Hex(chunk)
+          const response = await fetchWithRiskChallenge(
+            `${API_BASE}${sessionPath}`,
+            {
+              method: 'PATCH',
+              cache: 'no-store',
+              credentials: 'same-origin',
+              headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/offset+octet-stream',
+                'Upload-Offset': String(offset),
+                'X-KMFA-Chunk-SHA256': chunkHash,
+              },
+              body: chunk,
+            },
+          )
+          if (!response.ok) throw await errorFromResponse(response)
+          const nextOffset = Number(response.headers.get('Upload-Offset'))
+          if (nextOffset !== nextExpected) {
+            throw new Error('服务器返回的上传偏移不连续；已停止继续发送文件字节。')
+          }
+          offset = nextOffset
+          setUploadProgress({ offset, total: selectedFile.size })
+        }
+        result = await jsonRequest(`${sessionPath}/complete`, {
+          method: 'POST',
+        })
+      } else {
+        const response = await fetchWithRiskChallenge(
+          `${API_BASE}/workspaces/${workspace.workspace_id}/artifact`,
+          {
+            method: 'PUT',
+            cache: 'no-store',
+            credentials: 'same-origin',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': selectedFile.type || 'application/octet-stream',
+              'X-KMFA-Filename': encodeURIComponent(selectedFile.name),
+              'Idempotency-Key': retryKey,
+            },
+            body: selectedFile,
+          },
+        )
+        if (!response.ok) throw await errorFromResponse(response)
+        result = await response.json()
+      }
       setSession((current) => ({ ...current, workspace: result }))
       setSelectedFile(null)
       setUploadIdempotencyKey('')
+      setUploadProgress(null)
       form.reset()
       setMessage(`文件已按 attachment-only 模式写入服务器，SHA-256：${result.artifact.sha256}`)
     })
@@ -480,6 +604,7 @@ function WalkingSkeleton() {
       setRecoveryFileKey((value) => value + 1)
       setProjectName('')
       setSelectedFile(null)
+      setUploadProgress(null)
       setMode('recover')
       setMessage('短时会话已在服务器撤销并从浏览器清除；工作区和文件未删除。请使用恢复材料重新进入。')
     })
@@ -498,8 +623,8 @@ function WalkingSkeleton() {
           <h2 id="walking-title">第一个真实、可恢复的文件旅程</h2>
         </div>
         <p>
-          这是 S03 骨架上的 S04 匿名安全切片，不是 GA：验证恢复、密钥轮换、项目进度、hash 下载，以及无需账号的分层限额、并发预算与一次性风险挑战。
-          S05 已加入耐久数据库、版本化对象、备份恢复与明确删除候选，但生产切换和删除仍默认暂停；恶意文件扫描、分片与多文件体验由后续阶段完成。
+          这是 S03 骨架上的 S06/P6.1 上传切片，不是 GA：在 S05 耐久意图和私有对象路径上增加固定分片、断点恢复、幂等重试与端到端 SHA-256。
+          未知或危险类型仍只按附件保存和下载；恶意文件扫描由 P6.2 接入，多文件生命周期由后续阶段完成。
         </p>
       </div>
 
@@ -665,14 +790,41 @@ function WalkingSkeleton() {
                       const file = event.target.files?.[0] || null
                       setSelectedFile(file)
                       setUploadIdempotencyKey('')
+                      setUploadProgress(null)
                     }}
                     disabled={Boolean(artifact)}
                   />
-                  <p>
-                    上限 {formatBytes(limits.maxBytes)}，最多 {limits.maxArtifacts} 个。未知或危险扩展名只存储、只按附件下载，不执行、不预览。
+                  <p data-upload-quota="visible">
+                    单文件上限 {formatBytes(limits.maxBytes)}，当前工作区最多 {limits.maxArtifacts} 个，阶段总文件预算 {formatBytes(limits.maxTotalBytes)}。
+                    {resumableUpload
+                      ? ` 每片最多 ${formatBytes(limits.maxChunkBytes)}，每个工作区最多保留 ${limits.maxSessions} 个历史上传会话；连接中断后重新选择同一文件即可从服务器偏移继续。`
+                      : ' 断点续传已回滚，当前使用标准上传路径。'}
+                    未知或危险扩展名只存储、只按附件下载，不执行、不预览。
                   </p>
+                  {uploadProgress && (
+                    <div
+                      className="walking-upload-progress"
+                      data-upload-progress="visible"
+                      data-upload-offset={uploadProgress.offset}
+                      data-upload-total={uploadProgress.total}
+                    >
+                      <progress
+                        max={Math.max(uploadProgress.total, 1)}
+                        value={uploadProgress.offset}
+                      />
+                      <span>
+                        已确认 {formatBytes(uploadProgress.offset)} / {formatBytes(uploadProgress.total)}
+                      </span>
+                    </div>
+                  )}
                   <button type="submit" disabled={busy || Boolean(artifact)}>
-                    {artifact ? '已保存一个文件' : '上传到服务器'}
+                    {artifact
+                      ? '已保存一个文件'
+                      : uploadProgress
+                        ? busy
+                          ? '正在断点续传'
+                          : '继续断点上传'
+                        : '上传到服务器'}
                   </button>
                 </form>
 
@@ -708,6 +860,7 @@ function WalkingSkeleton() {
         <span role="listitem">恢复码与文件服务端只存 hash</span>
         <span role="listitem">HttpOnly 短时会话可撤销</span>
         <span role="listitem">文件不进入静态公开目录</span>
+        <span role="listitem">固定分片、服务器偏移与端到端 SHA-256</span>
         <span role="listitem">轮换撤销旧材料且不删状态</span>
         <span role="listitem">四层预算与一次性挑战，不强制登录</span>
       </div>

@@ -94,6 +94,15 @@
 > [`P5.4_RETENTION_BACKUP_RUNBOOK.md`](P5.4_RETENTION_BACKUP_RUNBOOK.md)。快速回滚先 scale-to-zero
 > worker，再恢复 `paused`，保留全部 DB/object/backup/volume/evidence。
 
+> **S06/P6.1 中间态边界**：候选 image 已提供 `kmfa-offset-v1`、4 MiB 固定分片、64 MiB 单文件、
+> 服务端权威偏移、分片与完整文件 SHA-256 及幂等重试，但本 Phase 不单独切生产。S06 整体复审前
+> 保持 `KMFA_RESUMABLE_UPLOAD_ENABLED=0`；同一候选 image 必须先跑 TEST-UP-001/002，再用合成
+> PDF/图片/音频/视频/ZIP/未知/高风险扩展名 canary 验证 attachment-only、断线恢复、重复/越序/
+> 篡改拒绝、并发单副本、超限写入 0。快速回滚只恢复该 Flag 为 `0`，标准 8 MiB 上传继续工作；
+> 保留 DB、intent、私有暂存分片、对象与 `kmfa-app-state`，禁止 `down -v`、删分片/对象或回退到
+> 不识别当前 schema/恢复资产的旧 binary。P6.2 扫描接入前不得把 attachment-only 误报为 malware
+> clean。
+
 6. 观测 P1 内存无碍后，在 Coolify 为本资源**启用 `full` profile**（Compose profiles → 勾 `full`）或设 `COMPOSE_PROFILES=full`，重部署 → `kmfa-app` 起。
 7. **域名**：Coolify 给 `app` 服务设 `kmfa.linzezhang.com`（Coolify Traefik 自动签发/路由）；**Cloudflare** 加一条**代理（橙云）** A 记录 `kmfa` → OVH 公网 IP（或按 Coolify 提示的 CNAME）。App 仅经 Traefik 暴露，主机不额外开放端口。
 8. **先建更具体的路径锁，整站登录墙不动**：保留现有 host 级 Self-hosted Application 的 Owner
