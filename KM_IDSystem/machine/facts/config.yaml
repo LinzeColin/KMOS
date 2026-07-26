@@ -1,0 +1,46 @@
+{
+  "parameters": {
+    "租约持续时间": {
+      "canonical_name": "lease_duration_seconds",
+      "value": "30 秒（PROPOSED，非生产校准）",
+      "intent": "本地安全边界，等于三个续租间隔；生产启用前必须由 `TASK-OPME-B-001` 校准。",
+      "where": "`docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json`"
+    },
+    "续租间隔": {
+      "canonical_name": "renewal_interval_seconds",
+      "value": "10 秒（PROPOSED，非生产校准）",
+      "intent": "本地安全边界，为租约持续时间的三分之一；续租保持栅栏令牌并递增锁版本。",
+      "where": "`docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json`"
+    },
+    "过期宽限": {
+      "canonical_name": "expiry_grace_seconds",
+      "value": "5 秒（PROPOSED，非生产校准）",
+      "intent": "本地安全边界，小于一个续租间隔；接管仍必须携带当前栅栏与完整锁版本证据。",
+      "where": "`docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json`"
+    },
+    "获取超时": {
+      "canonical_name": "acquisition_timeout_seconds",
+      "value": "1 秒（PROPOSED，非生产校准）",
+      "intent": "有限同步决策上限；当前切片从不休眠或阻塞等待。",
+      "where": "`docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json`"
+    },
+    "最大等待": {
+      "canonical_name": "maximum_wait_seconds",
+      "value": "0 秒（PROPOSED，非生产校准）",
+      "intent": "保持 Stage038 在入队前暂停，禁止隐藏等待队列。",
+      "where": "`docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json`"
+    },
+    "重试抖动": {
+      "canonical_name": "retry_jitter_seconds",
+      "value": "0 秒（PROPOSED，非生产校准）",
+      "intent": "保持 Stage039 重试所有权；锁竞争不消耗重试预算。",
+      "where": "`docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json`"
+    },
+    "死锁超时": {
+      "canonical_name": "deadlock_timeout_seconds",
+      "value": "1 秒（PROPOSED，非生产校准）",
+      "intent": "登记有限保护值；规范排序和全有或全无获取使当前切片不产生阻塞死锁。",
+      "where": "`docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json`"
+    }
+  }
+}

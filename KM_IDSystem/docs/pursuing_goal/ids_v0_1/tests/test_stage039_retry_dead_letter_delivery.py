@@ -14,6 +14,7 @@ CONTRACT = BASE / "retry_dead_letter" / "stage039_retry_dead_letter_delivery_con
 EVIDENCE = BASE / "STAGE039_PHASE4_CLOSEOUT.md"
 CHECKER = ROOT / "scripts" / "check_retry_dead_letter_delivery.py"
 BATCH = BASE / "BATCH031_040_UPLOAD_LOCK.yaml"
+CURRENT_BATCH = BASE / "BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 
@@ -242,7 +243,12 @@ class Stage039RetryDeadLetterDeliveryTests(unittest.TestCase):
 
     def test_phase4_governance_routes_only_to_whole_stage_review(self):
         self.assertTrue(EVIDENCE.is_file(), f"missing closeout: {EVIDENCE}")
-        batch = BATCH.read_text(encoding="utf-8")
+        batch = "\n".join(
+            (
+                BATCH.read_text(encoding="utf-8"),
+                CURRENT_BATCH.read_text(encoding="utf-8"),
+            )
+        )
         roadmap = ROADMAP.read_text(encoding="utf-8")
         pending_review = (
             'status: "stage039_phase4_completed_review_pending"' in batch

@@ -1,0 +1,275 @@
+{
+  "run_id": "`RUN-IDS-STAGE045-P3-LOCAL-20260720-001`",
+  "task_id": "IDS-V0_1-STAGE045-P3",
+  "action": "复用已提交的文件类型检测器，以十四个有界合成内存场景验证完整文件格式、失败路径、质量降级和指令样文本边界",
+  "result": "`PASS_ISOLATED_FILE_TYPE_DETECTION_SCENARIOS_PARSER_DISABLED`",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "base_stage045_phase2_commit": "e61e8f7cbf8795a3f5d2b33be4031f1885948b00",
+  "base_stage045_phase2_tree": "94f820df60f592c516c61160ce40e059458d7b9f",
+  "base_stage045_phase2_kmids_tree": "2daa58d66a496e3b1aede42ed1154de271d80824",
+  "base_stage045_phase2_parent": "2f4051b7e9960e10698052b4e3f71fcb093f35e3",
+  "integration_baseline_commit": "082565a958459fb4b9ad2b951a74982c30311a03",
+  "integration_baseline_tree": "532d8338fdbbdab89be2cd16ac12a50ad850a5fe",
+  "integration_baseline_kmids_tree": "81489b941d9740cc0462d4dc1371481a44ed766d",
+  "integration_baseline_parents": [
+    "e61e8f7cbf8795a3f5d2b33be4031f1885948b00",
+    "0495b8482b78ff937a92ee061c92980bcbde173b"
+  ],
+  "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+  "source_member_sha256": "4eac237a7f63d764cf71789d4949a5168cbe8fe24e1fe7eb816baabe04bb4d27",
+  "scenarios": {
+    "scenario_contract_id": "ids.file_type_detector.v0_1.stage045.p3.scenarios",
+    "execution_mode": "ISOLATED_NON_PRODUCTION_IN_MEMORY_FILE_TYPE_DETECTION_SCENARIOS",
+    "scenario_count": 14,
+    "passed_scenario_count": 14,
+    "silent_drop_count": 0,
+    "supported_formats": [
+      "PDF",
+      "DOCX",
+      "XLSX",
+      "CSV",
+      "TXT",
+      "PNG",
+      "JPEG",
+      "TIFF"
+    ],
+    "failure_formats": [
+      "UNKNOWN",
+      "CORRUPT_OR_UNREADABLE"
+    ],
+    "instruction_route_invariance_evaluated": true,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "fallback_execution_performed": false
+  },
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0,
+    "sparse_root_governance_conflict": "scripts/lean_governance.py 缺失；仅报告 SPARSE_CONFLICT，未展开其他项目"
+  },
+  "verified_results": [
+    "批准任务包归档、唯一 Stage045 成员、路线图和使用说明哈希均匹配",
+    "Stage045 Phase2 提交、根目录树、KM_IDSystem 目录树、父提交及 integration baseline 精确",
+    "有效 TDD RED 在十八项测试中产生两项治理失败与十六项缺失产物错误",
+    "Phase3 独立检查器返回 valid=true，十四个场景全部通过且 silent_drop_count=0",
+    "所有非高质量结果均显式进入质量复核、owner 复核或错误，不存在静默丢弃",
+    "instruction-like 文本保持 detector 路由不变，未覆盖系统规则、授权工具或执行 Stage050 scanner",
+    "Phase3 聚焦测试 18/18 通过；Phase1-3 聚焦兼容性 46/46 通过",
+    "Stage005 governance regression 171/171 通过，事件治理共 218 条且无重复、解析或语义错误",
+    "Stage041-045 最终聚合 314/314 在 1083.079 秒通过；首轮十四项历史路由/index 失败与针对性修复均保留在 validation_iterations",
+    "IDS v0.1 最终全量发现 1063/1063 在 1540.095 秒通过；首轮五项历史路由/owner render 失败与一次无效中止运行均未计为 PASS",
+    "Stage038-044 七个历史整阶段 review checker 全部通过，review_valid 与 Git index source binding 均为 true",
+    "owner 文档二次渲染幂等，KM_IDSystem 项目双平面通过；根级 scripts/lean_governance.py 因 sparse 缺失仅记录 SPARSE_CONFLICT",
+    "提交前自审修复一项 Important：指令控制标志改为从 Phase2 非可信证据包装器派生并参与场景 PASS，异常包装器显式失败关闭"
+  ],
+  "validation_iterations": [
+    {
+      "gate": "stage045_phase3_focused_red",
+      "result": "EXPECTED_FAIL",
+      "tests": 18,
+      "failures": 2,
+      "errors": 16,
+      "reason": "Phase3 scenario contract、checker、document 与 governance state 尚不存在"
+    },
+    {
+      "gate": "stage045_phase3_test_harness_name_collision",
+      "result": "FAIL_CLOSED_NOT_COUNTED",
+      "tests": 18,
+      "failures": 1,
+      "errors": 14,
+      "reason": "测试 helper 名称与 unittest.TestCase._outcome 冲突；修正 helper 名称后重跑"
+    },
+    {
+      "gate": "stage045_phase3_core_before_governance",
+      "result": "EXPECTED_GOVERNANCE_RED",
+      "tests": 18,
+      "failures": 1,
+      "errors": 0,
+      "reason": "十四个场景、合同、防篡改、CLI 与 no-effect 断言均通过，仅治理状态仍为 Phase2"
+    },
+    {
+      "gate": "stage045_phase3_focused_green",
+      "result": "PASS",
+      "tests": 18,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 1.069
+    },
+    {
+      "gate": "stage045_phase1_3_compatibility",
+      "result": "PASS",
+      "tests": 46,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 2.069
+    },
+    {
+      "gate": "stage005_governance_regression_initial",
+      "result": "FAIL_CLOSED",
+      "tests": 171,
+      "failures": 12,
+      "errors": 0,
+      "seconds": 31.566,
+      "reason": "历史 current-route helper 尚停在 Stage045 P2 到 P3 gate"
+    },
+    {
+      "gate": "stage005_governance_regression_second",
+      "result": "FAIL_CLOSED",
+      "tests": 171,
+      "failures": 10,
+      "errors": 0,
+      "seconds": 31.79,
+      "reason": "Phase3 active state 尚未保留 Stage042-044 的历史精确安全断言"
+    },
+    {
+      "gate": "stage005_governance_regression_final",
+      "result": "PASS",
+      "tests": 171,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 39.106
+    },
+    {
+      "gate": "stage005_after_final_evidence_draft",
+      "result": "FAIL_CLOSED",
+      "tests": 171,
+      "failures": 22,
+      "errors": 0,
+      "seconds": 36.262,
+      "reason": "roadmap 的最终 test_results 已更新，但 Stage005 精确结果块仍绑定初稿文本；同步精确结果块后重跑"
+    },
+    {
+      "gate": "stage005_final_evidence_recheck",
+      "result": "PASS",
+      "tests": 171,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 38.633
+    },
+    {
+      "gate": "stage041_045_aggregate_initial",
+      "result": "FAIL_CLOSED",
+      "tests": 314,
+      "failures": 14,
+      "errors": 0,
+      "seconds": 1078.055,
+      "reason": "五项 current-route allowlist 尚停在 P2 到 P3，九项历史 review source 尚未匹配 Git index"
+    },
+    {
+      "gate": "historical_route_and_index_targeted_repair",
+      "result": "PASS",
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 513.266
+    },
+    {
+      "gate": "stage041_045_aggregate_final",
+      "result": "PASS",
+      "tests": 314,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 1083.079
+    },
+    {
+      "gate": "ids_v0_1_full_discovery_initial",
+      "result": "FAIL_CLOSED",
+      "tests": 1063,
+      "failures": 5,
+      "errors": 0,
+      "seconds": 1561.448,
+      "reason": "Stage038 三项与 Stage039 一项前向路由尚未接受 P3 到 P4，owner 文档尚未渲染到 Phase3"
+    },
+    {
+      "gate": "ids_v0_1_targeted_wrong_workdir",
+      "result": "INVALID_INTERRUPTED_NOT_COUNTED",
+      "reason": "针对性命令从 tests 目录执行，导致相对 git add 路径无效；在 review index 前置条件不成立时主动中止，无测试摘要，不计为 PASS"
+    },
+    {
+      "gate": "historical_route_and_owner_render_targeted",
+      "result": "PASS",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 12.345
+    },
+    {
+      "gate": "ids_v0_1_full_discovery_final",
+      "result": "PASS",
+      "tests": 1063,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 1540.095
+    },
+    {
+      "gate": "historical_stage038_044_review_checkers",
+      "result": "PASS",
+      "checks": 7,
+      "failures": 0,
+      "review_valid": true,
+      "sources_match_git_index": true
+    },
+    {
+      "gate": "event_governance",
+      "result": "PASS",
+      "events": 218,
+      "duplicates": 0,
+      "parse_errors": 0,
+      "semantic_errors": 0
+    },
+    {
+      "gate": "owner_render_and_project_dual_plane",
+      "result": "PASS",
+      "render_idempotent": true,
+      "project_count": 1,
+      "sparse_root_governance": "SPARSE_CONFLICT"
+    },
+    {
+      "gate": "project_dual_plane_final_evidence_draft",
+      "result": "FAIL_CLOSED",
+      "failures": 1,
+      "reason": "owner 页由机器事实渲染出未登记英文术语 integration 与 baseline；将 owner-facing 机器事实改为中文后重新渲染复测"
+    },
+    {
+      "gate": "project_dual_plane_after_status_translation",
+      "result": "FAIL_CLOSED",
+      "failures": 1,
+      "reason": "检查继续发现步骤三验收、计划与运行摘要中的十个未登记英文术语；统一改为中文机器事实后重新渲染复测"
+    },
+    {
+      "gate": "owner_render_and_project_dual_plane_final",
+      "result": "PASS",
+      "render_idempotent": true,
+      "project_count": 1,
+      "sparse_root_governance": "SPARSE_CONFLICT"
+    },
+    {
+      "gate": "precommit_instruction_control_fail_closed_repair",
+      "result": "PASS",
+      "tests": 18,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 1.055,
+      "reason": "指令控制标志由 Phase2 非可信证据包装器派生；同一测试证明不安全包装器强制 FAIL_CLOSED"
+    }
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未进入或实现 Stage045 步骤四或整阶段复审",
+    "未打开、stat、hash、扫描、遍历或读取任何 IDS 业务文件",
+    "未执行解析器分派、解析器、回退、Stage050 扫描器、证据提升、清单、审计、状态、持久化、数据库或生产运行时",
+    "未触碰原始元数据或创建虚构 IDS 业务数据",
+    "未安装依赖，未上传、合并、变更 issue 或重装应用"
+  ],
+  "source_file_open_performed": false,
+  "ids_business_source_read_performed": false,
+  "raw_metadata_content_accessed": false,
+  "persistent_state_write_performed": false,
+  "github_upload_allowed": false,
+  "app_reinstall_allowed": false,
+  "next_gate": "IDS-STAGE045-P4-GATE"
+}

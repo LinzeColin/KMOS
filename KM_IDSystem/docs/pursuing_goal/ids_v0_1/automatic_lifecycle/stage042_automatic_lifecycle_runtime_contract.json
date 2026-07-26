@@ -1,0 +1,395 @@
+{
+  "schema_version": "ids.stage042.automatic_lifecycle.phase2.v1",
+  "stage": "STAGE-042",
+  "phase": "Phase 2",
+  "task_id": "IDS-V0_1-STAGE042-P2",
+  "acceptance_id": "ACC-STAGE-042",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_REFERENCE_ONLY_LIFECYCLE_DECISION_SLICE",
+  "policy_contract_id": "ids.automatic_lifecycle_policy.v0_1.stage042.p2",
+  "contract_state": "PHASE2_ISOLATED_LIFECYCLE_DECISION_SLICE_ENABLED_PRODUCTION_DISABLED",
+  "next_gate": "IDS-STAGE042-P3-GATE",
+  "source_binding": {
+    "source_archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "source_member": "IDS_v0_1_Final_Chinese_Revised/stages/STAGE-042_自动运行、暂停、恢复与关闭.md",
+    "source_member_match_count": 1,
+    "source_member_sha256": "78a4bed1f5348837699bd7dd227898e6d47cc4099ca268ee1600bae84605ec08",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+    "source_verification_status": "SOURCE_VERIFIED"
+  },
+  "phase1_predecessor_binding": {
+    "commit": "24972088d901d351ac6b59bdb704fea64121bfc9",
+    "tree": "8a7f8d7746eb20034a30e09a9b037feb72246896",
+    "parent": "f6b30f8a55d60f1b37b9d57ee55587149ad43876",
+    "task_id": "IDS-V0_1-STAGE042-P1",
+    "result": "PASS_LOCAL"
+  },
+  "upstream_bindings": {
+    "phase1_contract": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_contract.json",
+      "sha256": "5c3f7b4a446f14590bae4e6ab4b803d0b79c61e0b5a40de061adbe6c139980ba"
+    },
+    "phase1_checker": {
+      "ref": "KM_IDSystem/scripts/check_automatic_lifecycle.py",
+      "sha256": "92fa435e88f3cd861dcde7d9a792021ee9d151d7d467203e746aed52ec9beb8a"
+    },
+    "phase1_boundary": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE1_AUTOMATIC_LIFECYCLE_SCOPE_BOUNDARY.md",
+      "sha256": "60bdd35780b6e67c168fc17c4426c1e7bd08c69cb743b235a9743d81849e82d7"
+    },
+    "stage037_state_index": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/job_state_model/stage037_job_state_model_index.json",
+      "sha256": "b70bf72ebe4212f45d380c13fbfe429791e1f4a5c73dccbba81211b7adc1c2d3"
+    },
+    "stage038_queue_contract": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_queue_baseline/stage038_worker_queue_baseline_index.json",
+      "sha256": "68513591996a51fea90cd2ea863f42f910c0c3a45b70fd1611655bb6d95911ab"
+    },
+    "stage039_retry_runtime": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/retry_dead_letter/stage039_retry_dead_letter_runtime_contract.json",
+      "sha256": "5fc9b49b0ede0fdbc87311f3280ffc69e8ec8e59f219b17a04a2ccae1e9124c0"
+    },
+    "stage040_backpressure_runtime": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_runtime_contract.json",
+      "sha256": "2970ebd143030821d9a8b00e4fdb11342f8f82ef3bcf4d91717ba707b5054e2e"
+    },
+    "stage041_lock_runtime": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json",
+      "sha256": "80f87c789c6fc834b13eaec3d14d9444417ee7313ff8f88f6893bbda15e1f464"
+    }
+  },
+  "policy": {
+    "policy_version": "ids.automatic_lifecycle_policy.v0_1.stage042.p2",
+    "parameters": {
+      "lifecycle_tick_interval": 1,
+      "resume_stability_window": 60,
+      "checkpoint_wait_timeout": 30,
+      "graceful_shutdown_timeout": 60,
+      "cleanup_scan_interval": 300
+    },
+    "parameter_provenance": {
+      "lifecycle_tick_interval": {
+        "value": 1,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"
+        ],
+        "derivation": "Equals the reviewed Stage041 acquisition timeout so the isolated decision tick cannot imply a faster lock decision cadence.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.automatic_lifecycle_policy.v0_1.stage042.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py",
+        "rollback": "NO_AUTOMATIC_LIFECYCLE"
+      },
+      "resume_stability_window": {
+        "value": 60,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_runtime_contract.json"
+        ],
+        "derivation": "Two reviewed Stage040 observation TTL windows (2 x 30 seconds) are required before a resume candidate.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.automatic_lifecycle_policy.v0_1.stage042.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py",
+        "rollback": "NO_AUTOMATIC_LIFECYCLE"
+      },
+      "checkpoint_wait_timeout": {
+        "value": 30,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"
+        ],
+        "derivation": "One reviewed Stage041 lease duration bounds checkpoint-or-quarantine evidence waiting in control metadata.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.automatic_lifecycle_policy.v0_1.stage042.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py",
+        "rollback": "NO_AUTOMATIC_LIFECYCLE"
+      },
+      "graceful_shutdown_timeout": {
+        "value": 60,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"
+        ],
+        "derivation": "Two reviewed Stage041 lease durations bound the candidate shutdown sequence without terminating a process.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.automatic_lifecycle_policy.v0_1.stage042.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py",
+        "rollback": "NO_AUTOMATIC_LIFECYCLE"
+      },
+      "cleanup_scan_interval": {
+        "value": 300,
+        "unit": "seconds",
+        "source_refs": [
+          "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_runtime_contract.json"
+        ],
+        "derivation": "Five reviewed Stage040 60-second control windows keep cleanup candidate scans slower than lifecycle decisions and never authorize delete.",
+        "fact_level": "PROPOSED",
+        "policy_version": "ids.automatic_lifecycle_policy.v0_1.stage042.p2",
+        "validation_evidence": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py",
+        "rollback": "NO_AUTOMATIC_LIFECYCLE"
+      }
+    },
+    "parameter_relationships": {
+      "lifecycle_tick_equals_stage041_acquisition_timeout": true,
+      "resume_stability_equals_two_stage040_observation_ttls": true,
+      "checkpoint_wait_equals_stage041_lease_duration": true,
+      "graceful_shutdown_equals_two_stage041_lease_durations": true,
+      "cleanup_scan_equals_five_stage040_api_windows": true
+    },
+    "parameter_source": "STAGE042_PHASE2_COMPOSED_REVIEWED_UPSTREAM_BOUNDARY",
+    "selection_rationale": "The isolated policy composes only reviewed Stage040 and Stage041 proposed timing boundaries; it performs no sleeping, scheduling or production calibration.",
+    "fact_level": "PROPOSED",
+    "production_calibrated": false,
+    "production_calibration_required": true,
+    "production_calibration_task_id": "TASK-OPME-B-001",
+    "rollback_policy": "NO_AUTOMATIC_LIFECYCLE_REQUIRE_MANUAL_REVIEW"
+  },
+  "request_contract": {
+    "schema_version": "ids.stage042.lifecycle_decision_request.v1",
+    "required_root_fields": [
+      "schema_version",
+      "job_id",
+      "expected_state",
+      "expected_state_version",
+      "lifecycle_action",
+      "lifecycle_request_id",
+      "policy_version",
+      "reason_code",
+      "audit_ref",
+      "evidence"
+    ],
+    "required_evidence_fields": [
+      "input_refs",
+      "resource_observation_refs",
+      "observed_at_epoch_seconds",
+      "evaluated_at_epoch_seconds",
+      "resource_stability_started_at_epoch_seconds",
+      "resource_stable_for_seconds",
+      "owner_revalidated",
+      "resource_gates_passed",
+      "admission_gates_passed",
+      "claim_candidate_ref",
+      "pressure_signal",
+      "active_claim_or_lock",
+      "lock_evidence_ref",
+      "lease_live",
+      "fencing_token",
+      "checkpoint_or_quarantine_complete",
+      "checkpoint_ref",
+      "checkpoint_wait_elapsed_seconds",
+      "shutdown_elapsed_seconds",
+      "cleanup_last_scan_at_epoch_seconds",
+      "cleanup_candidate_ref",
+      "cleanup_candidate_class"
+    ],
+    "allowed_actions": [
+      "AUTO_START",
+      "AUTO_PAUSE",
+      "AUTO_RESUME",
+      "SAFE_SHUTDOWN",
+      "CLEANUP_CANDIDATE_SCAN"
+    ],
+    "control_job_id_prefix": "control:stage042:",
+    "request_id_prefix": "lifecycle:stage042:",
+    "expected_state_version_must_be_positive": true,
+    "reason_code_by_action": {
+      "AUTO_START": "ELIGIBLE_CONTROL_START",
+      "AUTO_PAUSE": "RESOURCE_PAUSE_REQUIRED",
+      "AUTO_RESUME": "RESOURCE_STABILITY_REVALIDATED",
+      "SAFE_SHUTDOWN": "ORDERLY_CONTROL_SHUTDOWN",
+      "CLEANUP_CANDIDATE_SCAN": "CLEANUP_SCAN_DUE"
+    },
+    "unknown_field_action": "REJECT_CONTRACT",
+    "malformed_request_action": "REQUIRE_MANUAL_REVIEW",
+    "raw_payload_allowed": false,
+    "absolute_path_allowed": false,
+    "secret_material_allowed": false
+  },
+  "decision_contract": {
+    "AUTO_START": {
+      "eligible_states": ["QUEUED"],
+      "transition_candidates": [["QUEUED", "CLAIMED"], ["CLAIMED", "RUNNING"]],
+      "required_guards": ["fresh_resource_observation", "resource_gates_passed", "admission_gates_passed", "claim_candidate_ref", "lock_evidence_ref", "lease_live", "fencing_token"],
+      "decision_action": "AUTO_START_CANDIDATE"
+    },
+    "AUTO_PAUSE": {
+      "eligible_states": ["QUEUED", "CLAIMED", "RUNNING", "RETRY_WAIT"],
+      "mandatory_pressure_signals": ["EXTERNAL_DRIVE_OFFLINE", "DISK_SPACE_INSUFFICIENT", "EXTERNAL_API_BUDGET_INSUFFICIENT"],
+      "active_states": ["CLAIMED", "RUNNING"],
+      "active_first_target": "PAUSE_REQUESTED",
+      "checkpoint_or_quarantine_required": true,
+      "retry_budget_consumed": false,
+      "decision_action": "AUTO_PAUSE_CANDIDATE"
+    },
+    "AUTO_RESUME": {
+      "eligible_states": ["PAUSED"],
+      "transition_candidates": [["PAUSED", "QUEUED"]],
+      "owner_revalidation_required": true,
+      "resource_stability_required": true,
+      "no_active_claim_or_lock_required": true,
+      "fresh_admission_and_lock_cycle_required": true,
+      "direct_resume_to_running_allowed": false,
+      "decision_action": "AUTO_RESUME_CANDIDATE"
+    },
+    "SAFE_SHUTDOWN": {
+      "eligible_states": ["CREATED", "QUEUED", "CLAIMED", "RUNNING", "PAUSE_REQUESTED", "PAUSED", "RETRY_WAIT"],
+      "active_states": ["CLAIMED", "RUNNING", "PAUSE_REQUESTED"],
+      "checkpoint_or_quarantine_required_for_active": true,
+      "matching_lock_evidence_required_for_active": true,
+      "process_termination_allowed": false,
+      "decision_action": "SAFE_SHUTDOWN_CANDIDATE"
+    },
+    "CLEANUP_CANDIDATE_SCAN": {
+      "eligible_states": ["PAUSED"],
+      "eligible_artifact_classes": ["TEMP_STAGING_OUTPUT", "INCOMPLETE_DERIVATIVE_OUTPUT"],
+      "protected_artifact_classes": ["FACT_SOURCE", "MANIFEST", "EVIDENCE_LEDGER", "REPORT_SNAPSHOT", "AUDIT_LOG"],
+      "candidate_only": true,
+      "delete_allowed": false,
+      "runtime_owner": "STAGE-044",
+      "decision_action": "CLEANUP_CANDIDATE_ONLY"
+    }
+  },
+  "state_transition_contract": {
+    "state_model_version": "ids.job_state.v1",
+    "terminal_states": ["SUCCEEDED", "FAILED", "DEAD_LETTERED", "CANCELLED"],
+    "terminal_state_mutation_allowed": false,
+    "candidate_only": true,
+    "state_mutation_allowed": false,
+    "direct_queued_to_running_allowed": false,
+    "direct_running_to_paused_allowed": false,
+    "direct_paused_to_running_allowed": false,
+    "fresh_admission_and_lock_cycle_after_resume_required": true
+  },
+  "idempotency_contract": {
+    "request_key_formula": "sha256(canonical_request_without_lifecycle_request_id)",
+    "ledger_mode": "IN_MEMORY_DECISION_REPLAY_ONLY",
+    "exact_replay_returns_original": true,
+    "request_id_formula_enforced_for_new_requests": true,
+    "same_request_id_changed_payload_action": "REJECT_LIFECYCLE_REQUEST_CONFLICT",
+    "persistent_ledger_allowed": false,
+    "append_only_audit_required": true
+  },
+  "control_metadata_contract": {
+    "input_refs": [
+      "repo:KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE1_AUTOMATIC_LIFECYCLE_SCOPE_BOUNDARY.md"
+    ],
+    "input_refs_must_be_git_tracked": true,
+    "resource_observation_refs_must_be_git_tracked": true,
+    "raw_body_allowed": false,
+    "output_refs": [],
+    "checkpoint_ref_format": "checkpoint:sha256:<canonical-decision-digest>",
+    "error_ref_format": "error:<safe-control-reason-code>",
+    "audit_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE2_AUTOMATIC_LIFECYCLE_SLICE.md#Controlled-Evidence"
+  },
+  "human_status_projection": {
+    "AUTO_START_CANDIDATE": {"label_zh": "可自动开始", "owner_action_zh": "等待受控执行器确认", "owner_attention_required": false},
+    "AUTO_PAUSE_CANDIDATE": {"label_zh": "等待安全暂停", "owner_action_zh": "等待 checkpoint 或隔离完成", "owner_attention_required": true},
+    "AUTO_RESUME_CANDIDATE": {"label_zh": "可进入恢复队列", "owner_action_zh": "等待重新准入与锁确认", "owner_attention_required": false},
+    "AUTO_RESUME_BLOCKED_OWNER_REVALIDATION": {"label_zh": "等待复核后恢复", "owner_action_zh": "补齐负责人复核与稳定资源证据", "owner_attention_required": true},
+    "SAFE_SHUTDOWN_CANDIDATE": {"label_zh": "安全关闭中", "owner_action_zh": "等待受控执行器完成关闭", "owner_attention_required": true},
+    "CLEANUP_CANDIDATE_ONLY": {"label_zh": "待清理候选（不执行删除）", "owner_action_zh": "由 Stage 44 独立复核", "owner_attention_required": true},
+    "REJECT_TERMINAL_STATE_IMMUTABLE": {"label_zh": "任务已结束", "owner_action_zh": "如需重跑请新建关联任务", "owner_attention_required": true},
+    "REJECT_LIFECYCLE_REQUEST_CONFLICT": {"label_zh": "请求冲突", "owner_action_zh": "核对幂等键与请求内容", "owner_attention_required": true},
+    "REJECT_LIFECYCLE_REQUEST_ID_MISMATCH": {"label_zh": "请求身份不一致", "owner_action_zh": "按规范请求内容重新计算请求 ID", "owner_attention_required": true},
+    "REQUIRE_MANUAL_REVIEW": {"label_zh": "需要人工处理", "owner_action_zh": "补齐有效控制证据", "owner_attention_required": true}
+  },
+  "ownership_matrix": {
+    "queue_and_worker_transport": "STAGE-038",
+    "retry_and_dead_letter_policy": "STAGE-039",
+    "backpressure_observation_and_policy": "STAGE-040",
+    "lock_lease_and_fencing_runtime": "STAGE-041",
+    "automatic_lifecycle_decision_policy": "STAGE-042",
+    "process_crash_recovery_runtime": "STAGE-043",
+    "cleanup_execution_runtime": "STAGE-044"
+  },
+  "registry_binding": {
+    "model_id": "MOD-011",
+    "formula_id": "FORM-011",
+    "parameter_ids": ["PARAM-072", "PARAM-073", "PARAM-074", "PARAM-075", "PARAM-076"],
+    "production_calibration_task_id": "TASK-OPME-B-001"
+  },
+  "runtime_boundary": {
+    "isolated_lifecycle_decision_runtime_allowed": true,
+    "reference_only_control_metadata_allowed": true,
+    "queue_runtime_allowed": false,
+    "worker_runtime_allowed": false,
+    "retry_scheduler_allowed": false,
+    "backpressure_runtime_allowed": false,
+    "production_lock_runtime_allowed": false,
+    "process_crash_recovery_allowed": false,
+    "cleanup_runtime_allowed": false,
+    "delete_allowed": false,
+    "database_allowed": false,
+    "schema_change_allowed": false,
+    "persistent_state_write_allowed": false,
+    "runtime_output_write_allowed": false,
+    "external_api_allowed": false,
+    "raw_metadata_access_allowed": false,
+    "ids_business_job_allowed": false,
+    "fake_ids_business_data_allowed": false,
+    "process_termination_allowed": false,
+    "production_activation_allowed": false
+  },
+  "rollback": {
+    "trigger": "INVALID_CONTRACT_PARAMETER_REQUEST_EVIDENCE_OR_UPSTREAM_BINDING",
+    "action": "NO_AUTOMATIC_LIFECYCLE_REQUIRE_MANUAL_REVIEW_AND_REVERT_PHASE2_FILES_ONLY",
+    "preserve_phase1": true,
+    "preserve_stage037_stage041": true,
+    "preserve_source_and_evidence": true,
+    "github_action_allowed": false
+  },
+  "phase3_entry_gate": {
+    "entry_authorized": true,
+    "required_task_id": "IDS-V0_1-STAGE042-P3",
+    "required_gate": "IDS-STAGE042-P3-GATE",
+    "separate_run_required": true,
+    "required_work": [
+      "validate duplicate request and stale evidence behavior",
+      "validate resource pause and guarded resume scenarios",
+      "validate worker crash remains Stage043-owned",
+      "validate lock evidence prevents duplicate operations",
+      "validate protected artifacts never enter cleanup execution"
+    ]
+  },
+  "truth_flags": {
+    "taskpack_source_read_performed": true,
+    "parameter_values_assigned": true,
+    "isolated_lifecycle_decision_runtime_performed": true,
+    "lifecycle_candidate_evaluation_performed": true,
+    "automatic_start_candidate_evaluated": true,
+    "automatic_pause_candidate_evaluated": true,
+    "automatic_resume_candidate_evaluated": true,
+    "safe_shutdown_candidate_evaluated": true,
+    "cleanup_candidate_evaluated": true,
+    "automatic_lifecycle_runtime_performed": false,
+    "automatic_start_performed": false,
+    "automatic_pause_performed": false,
+    "automatic_resume_performed": false,
+    "automatic_shutdown_performed": false,
+    "queue_runtime_performed": false,
+    "worker_runtime_performed": false,
+    "retry_scheduler_performed": false,
+    "dead_letter_runtime_performed": false,
+    "backpressure_runtime_performed": false,
+    "production_lock_runtime_performed": false,
+    "process_crash_recovery_performed": false,
+    "cleanup_runtime_performed": false,
+    "protected_ref_delete_performed": false,
+    "database_connection_performed": false,
+    "schema_change_performed": false,
+    "state_registry_write_performed": false,
+    "persistent_decision_write_performed": false,
+    "runtime_output_written": false,
+    "external_api_call_performed": false,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "fake_ids_business_data_used": false,
+    "real_ids_business_job_created": false,
+    "production_runtime_activation_performed": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "app_reinstall_allowed": false
+  }
+}

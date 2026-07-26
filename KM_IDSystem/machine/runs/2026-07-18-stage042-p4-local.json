@@ -1,0 +1,60 @@
+{
+  "run_id": "`RUN-IDS-STAGE042-P4-LOCAL-20260718-001`",
+  "action": "绑定已提交步骤三与已复审上游证据，交付自动生命周期关闭、恢复、回滚、自动和人工处理分类",
+  "result": "`PASS_LOCAL_PHASE4_PRODUCTION_DISABLED`",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "predecessor": {
+    "phase3_commit": "d8773ac03d10d877b0b9c439bfce91fe85f8fdfe",
+    "phase3_kmids_tree": "51a990dbb6563197d7a16d97c7cf2af201a7224e"
+  },
+  "source_integrity": {
+    "taskpack_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "stage042_member_sha256": "78a4bed1f5348837699bd7dd227898e6d47cc4099ca268ee1600bae84605ec08",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8"
+  },
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0
+  },
+  "delivery_evidence": {
+    "job_type_count": 8,
+    "job_state_count": 11,
+    "terminal_state_count": 4,
+    "allowed_transition_count": 21,
+    "failure_attempt_count": 3,
+    "failure_retry_count": 2,
+    "failure_final_state": "DEAD_LETTERED",
+    "pressure_signal_count": 7,
+    "scenario_count": 12,
+    "passed_scenario_count": 12,
+    "same_source_operation_family_count": 4,
+    "cleanup_eligible_class_count": 2,
+    "protected_artifact_class_count": 5,
+    "automatic_recovery_eligible_case_count": 3,
+    "successful_automatic_recovery_case_count": 0
+  },
+  "verified_results": [
+    "TDD RED：12 项聚焦测试产生 14 个预期断言失败和 1 个缺失检查器错误",
+    "最终合同 18/18、交付检查 6/6、聚焦测试 12/12",
+    "Stage005 159/159、Stage037-039 124/124、Stage040-042 174/174",
+    "完整 IDS v0.1 discovery 856/856，耗时 673.264 秒",
+    "204 条治理事件零解析、重复和语义错误",
+    "人类平面二次渲染无漂移，项目级双平面 PASS",
+    "Stage039/041 历史路由扩展到当前步骤四，Stage041 场景测试至 Stage042 步骤一至四的 Git 索引哈希链精确重绑定",
+    "合同、来源、commit/tree 或上游 hash 篡改均在交付重放前失败关闭",
+    "CLI 仅向 stdout 输出稳定机器报告并在有效闭环时返回零"
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未执行 Stage042 整阶段复审或进入 Stage043",
+    "未执行实际自动启动、暂停、恢复、关闭、进程崩溃恢复、进程终止或清理删除",
+    "未触碰原始元数据或制造虚构 IDS 业务数据",
+    "未持久化、连接数据库、上传、合并、变更 issue 或重装应用"
+  ],
+  "next_gate": "IDS-STAGE042-REVIEW-GATE"
+}

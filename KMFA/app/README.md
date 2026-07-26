@@ -152,6 +152,21 @@ volume 必须保留。若要停止全部新上传，再独立把 `KMFA_CONSISTEN
 分片、删 intent、删对象、`down -v`、schema downgrade 或旧 binary 替代回滚。分片清理由用户显式
 取消或后续受控生命周期策略执行，本 phase 不引入无期限自动删除推断。
 
+S06/P6.2 增加默认关闭的 `KMFA_FILE_SECURITY_ENABLED` 与 `file-security` Compose profile。
+上传完成后先建立 durable quarantine assessment，独立 worker 只把验证过的私有原件流式发送给
+无 DB、对象凭据或状态卷的 internal scanner；HMAC、nonce、长度与 SHA-256 绑定请求和结果。
+有界策略拒绝恶意/畸形样本，把未知、主动内容、未检查压缩格式、超时和异常结果保持为
+attachment-only；只有明确 `clean` 才能进入后续安全处理。回滚置 `0` 并停止 profile，既有
+`rejected` 仍禁止下载，assessment/events、原件、对象和卷均保留。显式删除与 scanner claim
+串行：active scan 阻止删除请求，删除请求提交后 worker 不再领取该工作区。
+
+S06/P6.3 增加 schema 6 的 immutable version/parent/source-operation lineage，以及默认关闭的
+`KMFA_ARTIFACT_DERIVATION_ENABLED`。同名、相同内容和修改内容每次都形成独立原件版本；仅
+scanner-clean 的 UTF-8 text/plain 或 JSON 可由固定
+`kmfa-safe-text-extract/1.0.0` worker 生成最多 64 KiB 的 `text/plain` 派生物。Web 不解析原件，
+浏览器在 React 文本节点显示前校验派生物 SHA-256。回滚置 `0` 只停止/隐藏新派生，不删除版本、
+lineage、processing run、derivative、backup 或对象，也不得降 schema。
+
 S05/P5.4 把 schema expand 到 v4，并增加默认无到期的 `workspace_retention`、legal hold、明确删除
 请求/对象 target、publication binding、append-only lifecycle events 与当前 schema restore proof。
 `DELETE /public-api/walking-skeleton/v1/workspaces/{workspace_id}` 同时要求有效 session、recovery
@@ -178,8 +193,10 @@ incident。恢复会使复制来的旧 proof 失效，只有 application E2E、f
 volume 不等于灾难恢复，完成目录还必须复制到独立加密故障域。季度演练、灰度启用和回滚步骤见
 `deploy/coolify/P5.4_RETENTION_BACKUP_RUNBOOK.md`。
 
-这仍不是 GA：S06/P6.1 只完成受限 64 MiB 断点上传，恶意文件扫描与多文件/更大文件生命周期尚未完成。快速回滚先停止独立 lifecycle worker，
-再把 `KMFA_LIFECYCLE_MODE=paused` 与 `KMFA_CONSISTENCY_STATE_MODE=paused`；保留
+这仍不是 GA：S06 已完成受限 64 MiB 断点上传、有界隔离扫描、不可变版本血缘和安全纯文本预览，
+但本次 Stage publication 不启用生产 P6.1-P6.3 Flags，且多文件/更大文件生命周期仍属后续阶段。
+快速回滚先停止独立 file-security/lifecycle worker，再把相关 S06 Flags 置 `0`，必要时把
+`KMFA_LIFECYCLE_MODE=paused` 与 `KMFA_CONSISTENCY_STATE_MODE=paused`；保留
 `kmfa-app-state`、`kmfa-object-data`、PostgreSQL、backup、outbox/trace/lifecycle evidence，禁止
 `down -v`、destructive downgrade、删对象/卷或移除 legacy reader。
 

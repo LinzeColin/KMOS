@@ -1,0 +1,43 @@
+{
+  "run_id": "`RUN-IDS-STAGE042-REVIEW-LOCAL-20260718-001`",
+  "action": "独立复核 Stage042 批准来源、步骤四基线和步骤一至四，修复全部严重和重要发现，并关闭为仅本地复审通过",
+  "result": "`PASS_REVIEWED_LOCAL_PRODUCTION_DISABLED`",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "base_phase4_commit": "2c489d049d73cd632e905c7af1b39ba662a2139b",
+  "base_phase4_kmids_tree": "7d77abfd6c00ea3b663d899335d971342ac40384",
+  "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+  "source_member_sha256": "78a4bed1f5348837699bd7dd227898e6d47cc4099ca268ee1600bae84605ec08",
+  "review_findings": [
+    "一项严重问题：规范生命周期请求 ID 公式已声明但未执行",
+    "一项重要问题：零状态版本和动作不匹配原因码可通过请求验证",
+    "一项重要问题：恢复稳定时长可由调用者自报且缺少时间关系证明",
+    "一项重要问题：非暂停态可通过伪造无活动锁进入清理候选",
+    "一项重要问题：交接下半部与治理当前门仍停在旧步骤"
+  ],
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0
+  },
+  "verified_results": [
+    "批准任务包归档、唯一 Stage042 成员、路线图和使用说明哈希均匹配",
+    "步骤四 commit/tree 绑定保持复审提交的祖先且 KM_IDSystem tree 精确",
+    "P2 检查器 20/20 合同与 18/18 决策，聚焦 16/16",
+    "P3 十二场景聚焦 17/17，P4 交付聚焦 12/12",
+    "五项发现均由独立可篡改检查失败关闭",
+    "复审聚焦 10/10、Stage005 159/159、Stage040-042 聚合 184/184、全量 IDS v0.1 866/866",
+    "Stage038、Stage040、旧批次、Stage041、Stage042 五层复审检查器均通过",
+    "205 条治理事件无解析、语义或重复编号错误，人工视图幂等渲染且项目级双平面通过"
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未进入或实现 Stage043",
+    "未执行实际生命周期、进程崩溃恢复、终止、清理删除、持久化、数据库或生产运行时",
+    "未触碰原始元数据或制造虚构 IDS 业务数据",
+    "未上传、合并、变更 issue 或重装应用"
+  ],
+  "next_gate": "IDS-STAGE043-P1-GATE"
+}

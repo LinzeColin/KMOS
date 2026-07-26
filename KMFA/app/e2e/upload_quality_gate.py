@@ -747,6 +747,8 @@ def main() -> int:
             thresholds,
         )
         _write_json(arguments.out_dir / "summary.json", summary)
+        scanner_backlog = components["file_security"]["scanner_backlog"]
+        object_timeout = components["object_storage"]["object_store_timeout"]
         report = (
             "# S06/P6.4 final-image upload quality gate\n\n"
             f"- image: `{image_id}`\n"
@@ -759,10 +761,10 @@ def main() -> int:
             f"{soak['upload_latency_ms']['p99']} ms`\n"
             "- quota race: one winner, one capacity rejection; cancellation "
             "released capacity; cross-workspace bytes written `0`\n"
-            f"- scanner backlog drained: `{components['file_security']['scanner_backlog']['drained']}`; "
+            f"- scanner backlog drained: `{scanner_backlog['drained']}`; "
             "remaining `0`\n"
             f"- object-store forced timeout elapsed: "
-            f"`{components['object_storage']['object_store_timeout']['observed_elapsed_ms']} ms`; "
+            f"`{object_timeout['observed_elapsed_ms']} ms`; "
             "duplicate versions `0`\n"
             f"- negative matrix: `{len(matrix['rows'])}/{len(matrix['rows'])}` PASS; "
             "data invariant/isolation failures `0/0`\n"

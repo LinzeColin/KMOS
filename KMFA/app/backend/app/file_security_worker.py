@@ -46,6 +46,8 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     arguments = _parser().parse_args(argv)
+    if not 0.1 <= arguments.poll_seconds <= 60.0:
+        raise SystemExit("poll interval must be between 0.1 and 60 seconds")
     security_enabled = file_security_enabled()
     preview_enabled = derivation_enabled()
     if not security_enabled and not preview_enabled:
@@ -56,11 +58,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "processed": 0,
                 },
                 sort_keys=True,
-            )
+            ),
+            flush=True,
         )
-        return 0
-    if not 0.1 <= arguments.poll_seconds <= 60.0:
-        raise SystemExit("poll interval must be between 0.1 and 60 seconds")
+        if arguments.once:
+            return 0
     processed = 0
     while True:
         scan_result = (

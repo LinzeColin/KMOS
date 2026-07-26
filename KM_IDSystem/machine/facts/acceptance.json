@@ -1,0 +1,394 @@
+{
+  "items": [
+    {
+      "id": "`ACC-STAGE047-REVIEW-01`",
+      "criteria": "批准来源、Phase4 提交/树/父提交/HEAD ancestry 与五项不可变工件均实时重验；Phase1 至 Phase4 checker 全部重放，六项复审发现均有反例且修复后失败关闭",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-REVIEW-02`",
+      "criteria": "请求、路线结果与来源的完整来源链、非法字符编码、lower-ASCII 引用、互惠引用图、有界状态/错误与单调时间均失败关闭；业务源、原始元数据、解析器、回退、质量门、持久化、Stage048、批次、上传、合并和重装均未执行",
+      "status": "已遵守"
+    },
+    {
+      "id": "`ACC-STAGE047-P4-01`",
+      "criteria": "批准来源、已提交 Stage047 步骤三提交、根树、KM_IDSystem 树、父提交与五项步骤三工件均跨提交、索引和工作树实时重验",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P4-02`",
+      "criteria": "16 个已提交场景全部重放；精确得到 11 个接受、3 个拒绝、2 个路由无输出、11 个唯一输出身份和 0 个静默丢弃",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P4-03`",
+      "criteria": "八个格式输出样例仅保留脱敏结构与计数，不保留正文、表格单元值、页节文本、公式值、原始异常、路径或凭据",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P4-04`",
+      "criteria": "16 条回退记录全部标为非运行时样例，尝试次数、解析器切换和静默丢弃均为 0，Stage048 的运行时职责未被提前执行",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P4-05`",
+      "criteria": "质量指标精确重算，七个互斥失败类别完整覆盖十个非候选或失败场景；控制格式支持与空的运行时支持集合严格分离",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P4-06`",
+      "criteria": "未读取业务源或原始元数据，未执行解析器、回退、质量门、证据提升、持久化、整阶段复审、Stage048、上传、合并或重装",
+      "status": "已遵守"
+    },
+    {
+      "id": "`ACC-STAGE047-P3-01`",
+      "criteria": "批准来源、已提交 Stage047 Phase2 commit/root/KM_IDSystem tree/父提交、五项 Phase2 工件及三项 Stage046 路由基线工件均实时重验",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P3-02`",
+      "criteria": "16 个确定性场景覆盖八种支持格式、未知、损坏、低质量、显式失败、指令文本与三类篡改",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P3-03`",
+      "criteria": "精确产生 11 个接受输出、3 个失败关闭拒绝和 2 个路由无输出；候选/部分/失败为 6/4/1，静默丢弃为 0",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P3-04`",
+      "criteria": "低质量与图片输出必须复核，显式失败必须阻断，未知/损坏格式不生成输出且不自动执行回退",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P3-05`",
+      "criteria": "指令式文本不改变路线且仅为 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`；XLSX 公式文本保留但从未执行；拒绝结果不回显输入",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P3-06`",
+      "criteria": "未读取业务源或原始元数据，未执行真实路线、解析器、回退、提示扫描、公式、质量门、持久化、步骤四、复审、上传或重装",
+      "status": "已遵守"
+    },
+    {
+      "id": "`ACC-STAGE047-P2-01`",
+      "criteria": "批准来源、已提交 Stage047 Phase1 commit/root/KM_IDSystem tree/父提交与六项 Phase1 工件哈希均实时重验且精确绑定",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P2-02`",
+      "criteria": "三个有界非业务控制分别产生一个 `candidate`、`partial` 与 `failed envelope`，输出身份唯一且无静默成功、丢弃或解析器切换",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P2-03`",
+      "criteria": "`mandatory routing_request` 精确证明 `source/detection/request/route lineage`；18 字段 envelope、六字段 payload、矩形表格、嵌套 ID 与引用均失败关闭",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P2-04`",
+      "criteria": "`fixture-only parser version/confidence` 被记录；adapter 明确不是 Stage046 runtime parser，不能授权选择、分派、执行或生产使用",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P2-05`",
+      "criteria": "命令式控制文本固定为 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`；初始质量处置不冒充质量门、来源证明或高可信证据",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P2-06`",
+      "criteria": "未读取业务源或原始元数据，未执行类型重检、实际路线、解析器、回退、差异评估、提示扫描、质量门、持久化、步骤三、上传、合并、重装或生产激活",
+      "status": "已遵守"
+    },
+    {
+      "id": "`ACC-STAGE047-P1-01`",
+      "criteria": "批准归档、唯一 Stage047 成员、roadmap、instructions、执行索引和 Stage046 review commit/root/KM_IDSystem tree 均精确绑定并实时重验",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P1-02`",
+      "criteria": "九项 Stage045/046/原始数据边界上游工件均从不可变 Stage046 review commit 读取并重新计算哈希，不信任可变工作树",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P1-03`",
+      "criteria": "输出 envelope 精确包含 18 个字段；text、tables、pages、sections、confidence、errors 六个核心字段及四类嵌套 schema 形状明确且拒绝未知字段",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P1-04`",
+      "criteria": "`route/detection/source/parser lineage`、`canonical output identity`、内部引用、`empty/partial/failed` 与 `safe error` 规则均失败关闭",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P1-05`",
+      "criteria": "`parser content` 固定为 `CANDIDATE/UNASSESSED`，不能直接写高可信证据；Stage048 回退、Stage049 差异评估与 Stage050 非可信文本职责保持独立",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE047-P1-06`",
+      "criteria": "未打开业务源文件、重检类型、评估路线、执行解析器或产生输出、运行回退/差异评估/提示扫描、写持久态、进入步骤二、上传、合并、重装或生产激活",
+      "status": "已遵守"
+    },
+    {
+      "id": "`ACC-STAGE046-REVIEW-01`",
+      "criteria": "批准 task-pack、NFC 唯一 Stage046 成员、roadmap 与 instructions 由最终复审实时重新计算哈希",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-REVIEW-02`",
+      "criteria": "Phase4 commit、root tree、KM_IDSystem tree、parent 与 HEAD ancestry 精确，Phase1-4 checker 全部重放通过",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-REVIEW-03`",
+      "criteria": "两项严重、三项重要和一项次要发现全部由可执行反例验证并完成修复",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-REVIEW-04`",
+      "criteria": "结果级 digest 仅声明投影完整性，不冒充外部 provenance、来源认证、运行授权或生产证据",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-REVIEW-05`",
+      "criteria": "复审来源均由 Git 跟踪并匹配索引；解析器、回退、业务源、原始元数据、持久化、Stage047、批次、GitHub 与应用重装均未执行",
+      "status": "已遵守"
+    },
+    {
+      "id": "`ACC-STAGE046-P4-01`",
+      "criteria": "步骤四交付合同精确绑定批准来源、已提交步骤三前序与五项 Git 索引上游证据",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P4-02`",
+      "criteria": "六个候选 route 均提供仅含 text、tables、pages、sections、confidence、errors 的结构样例，并明确标记未执行及解析器版本未分配",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P4-03`",
+      "criteria": "十四个步骤三场景均派生显式 fallback 控制日志，回退尝试、静默丢弃和解析器切换计数均为零",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P4-04`",
+      "criteria": "质量指标由步骤三重算，五类失败分类无重叠覆盖十四项场景，八类治理格式和六个候选 route 的支持边界明确",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P4-05`",
+      "criteria": "未读取业务源或原始元数据，未执行解析器、回退、配置变更、持久化、整阶段复审、Stage047、批次复审、GitHub 或应用重装",
+      "status": "已遵守"
+    },
+    {
+      "id": "`ACC-STAGE046-P3-01`",
+      "criteria": "步骤三合同精确绑定批准来源、已提交 Phase2 commit/root/KM_IDSystem tree/父提交与五项不可变 Phase2 工件哈希",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P3-02`",
+      "criteria": "十四个无正文、仅元数据场景覆盖八种治理格式以及未知、损坏、冲突、低置信、不支持与指令标记",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P3-03`",
+      "criteria": "十四个场景全部通过、显式处置计数为十四、静默丢弃为零；非高质量结果进入质量复核、负责人复核或显式错误",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P3-04`",
+      "criteria": "指令标记与无指令基线保持相同路线，调用方指定解析器和伪造路由 ID 均失败关闭",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P3-05`",
+      "criteria": "未读取业务源文件、重检类型、执行解析器或回退、产生输出、写持久态、读取原始元数据、进入步骤四或整阶段复审、上传、合并、重装或生产激活",
+      "status": "已遵守"
+    },
+    {
+      "id": "`ACC-STAGE046-P2-01`",
+      "criteria": "步骤二合同精确绑定批准来源、已提交 Phase1 commit/root/KM_IDSystem tree/父提交与六项不可变 Phase1 snapshot 哈希",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P2-02`",
+      "criteria": "三个无正文、仅引用的内存控制覆盖 PDF、DOCX 与未知待复核结果；六类静态路线覆盖八种受治理格式",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P2-03`",
+      "criteria": "候选路线记录检测置信度、路由器与注册表版本和 `UNASSIGNED_NOT_IMPLEMENTED` 解析器版本状态，但不授权解析器分派",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P2-04`",
+      "criteria": "上游指令样内容只保留 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY` 分类，不能授权工具、覆盖策略或冒充 Stage050 提示注入扫描器",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P2-05`",
+      "criteria": "未打开业务源文件、重检类型、执行解析器或回退、产生输出、写持久态、读取原始元数据、进入步骤三、上传、合并、重装或生产激活",
+      "status": "已遵守"
+    },
+    {
+      "id": "`ACC-STAGE046-P1-01`",
+      "criteria": "批准归档、唯一 Stage046 成员、roadmap、instructions、执行索引和 Stage045 review commit/root/KM_IDSystem tree 均精确绑定并实时重验",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P1-02`",
+      "criteria": "七项 Stage045/037/原始数据边界上游文件均从不可变 Stage045 review commit 读取并重新计算哈希，不信任可变工作树",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P1-03`",
+      "criteria": "只有 `TYPE_CONFIRMED/HIGH` 形成未执行 `route candidate`；`provisional`、`conflict`、`unknown`、`unsupported`、`blocked` 与缺失 `parser` 全部显式失败关闭",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P1-04`",
+      "criteria": "六类静态路线覆盖 `PDF/DOCX/XLSX/CSV/TXT/PNG/JPEG/TIFF`，`parser implementation` 与 `version` 均为空且不授权 `dispatch`",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P1-05`",
+      "criteria": "Stage047 输出、Stage048 回退与 Stage050 非可信文本职责保持独立；`parser output` 必须经过质量门且不能直接提升证据",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE046-P1-06`",
+      "criteria": "未打开业务源文件、重新检测类型、加载运行时注册表、执行路由或 `parser/fallback`、写持久态、进入步骤二、上传、合并、重装或生产激活",
+      "status": "已遵守"
+    },
+    {
+      "id": "`ACC-STAGE045-REVIEW-01`",
+      "criteria": "批准 task-pack、唯一 Stage045 成员、roadmap 与 instructions 已恢复到精确绑定路径并由最终复审重新计算四项哈希",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-REVIEW-02`",
+      "criteria": "Phase4 commit 与 KM_IDSystem tree 仍为当前 HEAD 祖先，Phase1-4 checker 均由最终复审重新执行",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-REVIEW-03`",
+      "criteria": "三项严重与四项重要发现全部由可执行反例验证，截断格式、OOXML 绕过、MIME、UTC 和 evidence 顺序均失败关闭",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-REVIEW-04`",
+      "criteria": "最终 review 文档、checker、tests、事件、治理和机器记录形成 durable completed_reviewed_local 证据并绑定 Git index",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-REVIEW-05`",
+      "criteria": "未读取 IDS 业务源或原始元数据，未执行解析器、回退、持久化、Stage046、批次复审、GitHub 或应用重装",
+      "status": "已遵守"
+    },
+    {
+      "id": "`ACC-STAGE045-P4-01`",
+      "criteria": "步骤四交付合同精确绑定批准来源、已提交步骤三前序与五项 Git 索引上游证据",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P4-02`",
+      "criteria": "六类解析器候选路线均提供仅含六字段的结构样例，并明确标记未执行、未分配解析器版本",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P4-03`",
+      "criteria": "七个非高质量场景均派生显式回退控制日志，回退尝试、静默丢弃和解析器切换计数均为零",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P4-04`",
+      "criteria": "十四项质量指标、八类格式覆盖和四类失败处置从步骤三结果重算，并提供可回到步骤三关闭状态的非破坏性回滚",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P4-05`",
+      "criteria": "未读取业务源文件，未执行解析器、回退、配置修改、持久化、整阶段复审、上传、合并、应用重装或生产激活",
+      "status": "已遵守"
+    },
+    {
+      "id": "`ACC-STAGE045-P3-01`",
+      "criteria": "步骤三场景合同精确绑定批准来源、步骤二前序提交和目录树、集成基线与五项上游哈希",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P3-02`",
+      "criteria": "十四个有界合成内存场景覆盖全部治理格式、未知、损坏、冲突、仅扩展名信号与指令样文本输入",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P3-03`",
+      "criteria": "十四个场景全部通过且静默丢弃计数为零；所有非高质量结果均显式进入质量复核、负责人复核或错误",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P3-04`",
+      "criteria": "指令样文本与基线保持同一路由，并且不能覆盖系统规则、授权工具或冒充 Stage050 提示注入扫描器",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P3-05`",
+      "criteria": "未打开业务源文件，未保留样本内容，未执行解析器、回退、持久化、Stage045 步骤四、上传、合并、应用重装或生产激活",
+      "status": "已遵守"
+    },
+    {
+      "id": "`ACC-STAGE045-P2-01`",
+      "criteria": "Phase2 runtime contract 精确绑定批准来源、Phase1 predecessor commit/tree 与权威上游哈希",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P2-02`",
+      "criteria": "三个有界合成内存控制覆盖 PDF 文件签名、DOCX 容器和文件名/内容冲突，未知或冲突失败关闭",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P2-03`",
+      "criteria": "每个结果记录检测器版本、置信度、候选类型与解析器候选路由，但不分派解析器",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P2-04`",
+      "criteria": "来源指令样文本统一标记为 `UNTRUSTED_EVIDENCE_TEXT`，不能授权工具或覆盖系统规则",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P2-05`",
+      "criteria": "未打开业务源文件，未执行解析器、回退、持久化、Stage045 P3、上传、合并、应用重装或生产激活",
+      "status": "已遵守"
+    },
+    {
+      "id": "`ACC-STAGE045-P1-01`",
+      "criteria": "批准归档、唯一 Stage045 成员、Stage044 review commit/tree/父提交与 Stage013/027/037/044 上游哈希精确",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P1-02`",
+      "criteria": "文件签名优先于 `MIME` 和扩展名，扩展名仅作辅助提示；DOCX/XLSX 还必须绑定 `OOXML` 容器标记",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P1-03`",
+      "criteria": "十类规范文件类型、六类检测状态与冲突、未知、损坏的显式失败关闭行为完整",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P1-04`",
+      "criteria": "解析器路由、输出、回退与提示注入职责分别保留给 Stage046-050，解析器候选产物不得直接提升为高置信证据",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P1-05`",
+      "criteria": "`text`、`tables`、`pages`、`sections`、`confidence`、`errors` 六个输出字段定义为非可信候选，未知或冲突必须进入 owner review 或显式错误",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE045-P1-06`",
+      "criteria": "未读取业务源文件，未执行检测、解析、回退、证据写入、持久化、Stage045 P2、上传、合并、应用重装或生产激活",
+      "status": "已遵守"
+    }
+  ]
+}

@@ -13,6 +13,7 @@ SOURCE_REVERIFICATION = PURSUE_ROOT / "STAGE038_PHASE1_SOURCE_REVERIFICATION.md"
 SOURCE_REVIEW = PURSUE_ROOT / "STAGE038_PHASE1_SOURCE_REVERIFICATION_REVIEW.md"
 EXECUTION_INDEX = PURSUE_ROOT / "V0_1_STAGE_EXECUTION_INDEX.json"
 BATCH_LOCK = PURSUE_ROOT / "BATCH031_040_UPLOAD_LOCK.yaml"
+CURRENT_BATCH_LOCK = PURSUE_ROOT / "BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 VALIDATOR = PURSUE_ROOT / "validate_stage005_governance_regression.py"
@@ -299,13 +300,17 @@ class Stage038WorkerQueueBaselinePhase1Tests(unittest.TestCase):
 
     def test_batch_roadmap_and_event_track_source_reverification_without_upload(self):
         batch, roadmap = self._parsed_governance()
+        current_batch = self._load_validator()._parse_yaml_text(
+            CURRENT_BATCH_LOCK.read_text(encoding="utf-8")
+        )
         stage = batch["stage_progress"]["STAGE-038"]
         decision = batch["decision"]
         self.assertTrue(
             batch["status"] == "stage038_completed_reviewed_local"
             or batch["status"].startswith("stage039_")
             or batch["status"].startswith("stage040_")
-            or batch["status"] == "reviewed_ready_for_upload_no_github_upload",
+            or batch["status"] == "reviewed_ready_for_upload_no_github_upload"
+            or batch["status"] == "uploaded_to_github_main",
             batch["status"],
         )
         self.assertEqual(
@@ -326,12 +331,25 @@ class Stage038WorkerQueueBaselinePhase1Tests(unittest.TestCase):
             "reviewed_local_passed",
             stage["acceptance_status"],
         )
-        self.assertIs(False, decision["github_upload_allowed"])
-        self.assertIs(False, batch["upload_gate"]["push_allowed"])
+        self.assertIs(True, decision["github_upload_allowed"])
+        self.assertIs(True, batch["upload_gate"]["push_allowed"])
+        self.assertIs(False, current_batch["decision"]["github_upload_allowed"])
+        self.assertIs(False, current_batch["upload_gate"]["push_allowed"])
 
         self.assertIn(
             roadmap["current_stage_id"],
-            {"IDS-STAGE038", "IDS-STAGE039", "IDS-STAGE040"},
+            {
+                "IDS-STAGE038",
+                "IDS-STAGE039",
+                "IDS-STAGE040",
+                "IDS-STAGE041",
+                "IDS-STAGE042",
+                "IDS-STAGE043",
+                "IDS-STAGE044",
+                "IDS-STAGE045",
+                "IDS-STAGE046",
+                "IDS-STAGE047",
+            },
         )
         self.assertTrue(
             roadmap["next_gate_id"].startswith("IDS-STAGE")

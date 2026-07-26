@@ -1,0 +1,408 @@
+{
+  "schema_version": "ids.stage046.parser_routing.phase2.v1",
+  "stage": "STAGE-046",
+  "phase": "Phase 2",
+  "task_id": "IDS-V0_1-STAGE046-P2",
+  "acceptance_id": "ACC-STAGE-046",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_METADATA_ONLY_PARSER_ROUTING_SLICE",
+  "router_contract_id": "ids.parser_routing.v0_1.stage046.p2",
+  "router_version": "ids.parser_router.v0_1.stage046.p2",
+  "contract_state": "PHASE2_ISOLATED_ROUTING_EVALUATOR_ENABLED_PARSER_DISABLED",
+  "next_gate": "IDS-STAGE046-P3-GATE",
+  "source_binding": {
+    "source_archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "source_member": "IDS_v0_1_Final_Chinese_Revised/stages/STAGE-046_解析器路由合同.md",
+    "source_member_match_count": 1,
+    "source_member_sha256": "955cdf40f365c05853a87269eb02aa46e5922807e0bb0c48d9b99cfca9bc1d39",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+    "source_verification_status": "SOURCE_VERIFIED"
+  },
+  "phase1_predecessor_binding": {
+    "stage046_phase1_commit": "c82e4e928b167c718d462dc8cef3eed5b5dbb3ea",
+    "stage046_phase1_root_tree": "403e4057c028667c23a35588f09b3c00ebb51735",
+    "stage046_phase1_kmids_tree": "c59be0f27521a15dc876656c753ee9b503611f94",
+    "stage046_phase1_parent": "76027b8dc89e325c212d492d7f5df88357ea7112",
+    "stage046_phase1_status": "stage046_phase1_completed",
+    "stage046_phase1_result": "PASS_PHASE1_CONTRACT_PARSER_DISPATCH_DISABLED"
+  },
+  "phase1_snapshot_bindings": {
+    "stage046_phase1_entry_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_ENTRY_CONTRACT.md",
+      "sha256": "379f5068c1a834165125ea1a2ed1655b248476873504962bc3908fb38613801b",
+      "snapshot_commit": "c82e4e928b167c718d462dc8cef3eed5b5dbb3ea"
+    },
+    "stage046_phase1_boundary_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_PHASE1_PARSER_ROUTING_SCOPE_BOUNDARY.md",
+      "sha256": "12a1f889eab68a77a02e8c34fdb7f074ec8a40c081f004abc4063bb430c80af6",
+      "snapshot_commit": "c82e4e928b167c718d462dc8cef3eed5b5dbb3ea"
+    },
+    "stage046_phase1_contract_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_contract.json",
+      "sha256": "5c145dba0ba2246b6daa33da0098b4b2ee2a48a53cfec993261d70596706c1fd",
+      "snapshot_commit": "c82e4e928b167c718d462dc8cef3eed5b5dbb3ea"
+    },
+    "stage046_phase1_checker_ref": {
+      "ref": "KM_IDSystem/scripts/check_parser_routing.py",
+      "sha256": "eedea73a6f2a640f4f1b8836119ca9fe73170053e7b084abfed004d52c563ff8",
+      "snapshot_commit": "c82e4e928b167c718d462dc8cef3eed5b5dbb3ea"
+    },
+    "stage046_phase1_test_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing.py",
+      "sha256": "947fe518cd799297026ec32ea5707f9d6812524b83518cb014122e392906a74e",
+      "snapshot_commit": "c82e4e928b167c718d462dc8cef3eed5b5dbb3ea"
+    },
+    "stage046_phase1_run_ref": {
+      "ref": "KM_IDSystem/machine/runs/2026-07-20-stage046-p1-local.json",
+      "sha256": "60370c3a60535e191a68e5d8f30b49668d0ddae52f3400eafa8fd609ea84e473",
+      "snapshot_commit": "c82e4e928b167c718d462dc8cef3eed5b5dbb3ea"
+    }
+  },
+  "route_policy": {
+    "detection_authority": "STAGE-045",
+    "required_detector_contract": "ids.file_type_detector.v0_1.stage045.p2",
+    "candidate_ready_combinations": [
+      "TYPE_CONFIRMED:HIGH"
+    ],
+    "review_required_combinations": [
+      "TYPE_PROVISIONAL:MEDIUM",
+      "TYPE_PROVISIONAL:LOW"
+    ],
+    "always_review_states": [
+      "TYPE_CONFLICT_REVIEW_REQUIRED",
+      "TYPE_UNKNOWN_REVIEW_REQUIRED"
+    ],
+    "unsupported_states": [
+      "TYPE_UNSUPPORTED"
+    ],
+    "blocked_states": [
+      "TYPE_INPUT_BLOCKED"
+    ],
+    "blocked_types": [
+      "UNKNOWN",
+      "CORRUPT_OR_UNREADABLE"
+    ],
+    "candidate_action": "ROUTE_BLOCKED_PARSER_IMPLEMENTATION_UNAVAILABLE",
+    "review_action": "ROUTE_REVIEW_REQUIRED",
+    "unsupported_action": "ROUTE_UNSUPPORTED",
+    "blocked_action": "ROUTE_BLOCKED",
+    "generic_parser_allowed": false,
+    "caller_override_allowed": false,
+    "unknown_type_route_allowed": false
+  },
+  "request_contract": {
+    "schema_version": "ids.stage046.parser_routing_request.v1",
+    "mode": "REFERENCE_ONLY_STAGE045_DETECTION_RESULT",
+    "required_fields": [
+      "schema_version",
+      "routing_request_id",
+      "detection_request_id",
+      "detection_result_id",
+      "source_fingerprint_ref",
+      "source_identity_ref",
+      "detected_type",
+      "detection_state",
+      "detection_confidence",
+      "detection_evidence_ref",
+      "detector_contract_version",
+      "parser_registry_version",
+      "evidence_text_marker_applied",
+      "requested_at"
+    ],
+    "required_detector_contract": "ids.file_type_detector.v0_1.stage045.p2",
+    "required_parser_registry_version": "ids.parser_route_registry.v0_1.stage046.p2",
+    "detection_result_id_required": true,
+    "detection_result_id_formula": "detection-result:sha256(canonical_json(exact_detection_result_projection))",
+    "detection_result_projection_fields": [
+      "detection_request_id",
+      "source_fingerprint_ref",
+      "source_identity_ref",
+      "detected_type",
+      "detection_state",
+      "detection_confidence",
+      "detection_evidence_ref",
+      "detector_contract_version",
+      "evidence_text_marker_applied"
+    ],
+    "detection_result_identity_scope": "INTEGRITY_ONLY_NOT_EXTERNAL_PROVENANCE",
+    "strict_utc_required": true,
+    "bounded_reference_max_chars": 512,
+    "source_identity_ref_pattern": "^source:[A-Za-z0-9][A-Za-z0-9._-]{0,63}(?::[A-Za-z0-9][A-Za-z0-9._-]{0,63}){0,7}$",
+    "detection_evidence_ref_pattern": "^evidence:stage045:[A-Za-z0-9][A-Za-z0-9._-]{0,63}(?::[A-Za-z0-9][A-Za-z0-9._-]{0,63}){0,7}$",
+    "path_like_reference_allowed": false,
+    "invalid_input_echo_allowed": false,
+    "source_path_allowed": false,
+    "source_body_allowed": false,
+    "source_text_allowed": false,
+    "caller_selected_parser_allowed": false,
+    "file_type_redetection_allowed": false,
+    "unbounded_error_allowed": false,
+    "raw_metadata_boundary_blocked": true,
+    "input_record_write_allowed": false
+  },
+  "route_registry": {
+    "registry_id": "ids.parser_route_registry.v0_1.stage046.p2",
+    "registry_state": "STATIC_IN_MEMORY_ROUTING_POLICY_PARSER_IMPLEMENTATIONS_UNAVAILABLE",
+    "routes": [
+      {
+        "route_id": "ROUTE_PDF",
+        "accepted_types": [
+          "PDF"
+        ],
+        "parser_family": "PDF_PARSER",
+        "parser_version": "UNASSIGNED_NOT_IMPLEMENTED",
+        "parser_implementation_available": false
+      },
+      {
+        "route_id": "ROUTE_OOXML_WORD",
+        "accepted_types": [
+          "DOCX"
+        ],
+        "parser_family": "OOXML_WORD_PARSER",
+        "parser_version": "UNASSIGNED_NOT_IMPLEMENTED",
+        "parser_implementation_available": false
+      },
+      {
+        "route_id": "ROUTE_OOXML_WORKBOOK",
+        "accepted_types": [
+          "XLSX"
+        ],
+        "parser_family": "OOXML_WORKBOOK_PARSER",
+        "parser_version": "UNASSIGNED_NOT_IMPLEMENTED",
+        "parser_implementation_available": false
+      },
+      {
+        "route_id": "ROUTE_DELIMITED_TEXT",
+        "accepted_types": [
+          "CSV"
+        ],
+        "parser_family": "DELIMITED_TEXT_PARSER",
+        "parser_version": "UNASSIGNED_NOT_IMPLEMENTED",
+        "parser_implementation_available": false
+      },
+      {
+        "route_id": "ROUTE_PLAIN_TEXT",
+        "accepted_types": [
+          "TXT"
+        ],
+        "parser_family": "PLAIN_TEXT_PARSER",
+        "parser_version": "UNASSIGNED_NOT_IMPLEMENTED",
+        "parser_implementation_available": false
+      },
+      {
+        "route_id": "ROUTE_IMAGE",
+        "accepted_types": [
+          "PNG",
+          "JPEG",
+          "TIFF"
+        ],
+        "parser_family": "IMAGE_PARSER",
+        "parser_version": "UNASSIGNED_NOT_IMPLEMENTED",
+        "parser_implementation_available": false
+      }
+    ],
+    "route_family_count": 6,
+    "supported_type_count": 8,
+    "parser_implementation_count": 0,
+    "assigned_parser_version_count": 0,
+    "parser_version_status": "UNASSIGNED_NOT_IMPLEMENTED_RECORDED",
+    "generic_parser_allowed": false,
+    "remote_registry_lookup_allowed": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false
+  },
+  "result_contract": {
+    "schema_version": "ids.stage046.parser_routing_result.v1",
+    "required_fields": [
+      "schema_version",
+      "routing_request_id",
+      "router_version",
+      "registry_version",
+      "detection_request_id",
+      "detection_result_id",
+      "detection_result_identity_status",
+      "detected_type",
+      "detection_state",
+      "detection_confidence",
+      "route_action",
+      "candidate_route_id",
+      "parser_family",
+      "parser_version",
+      "parser_version_status",
+      "dispatch_block_reason",
+      "route_fact_level",
+      "routing_confidence",
+      "evidence_text_label",
+      "evidence_text_interpretation",
+      "evidence_text_marker_preserved",
+      "system_instruction_allowed",
+      "tool_authorization_allowed",
+      "policy_override_allowed",
+      "errors",
+      "human_status",
+      "in_memory_only",
+      "persisted",
+      "output_refs",
+      "parser_route_evaluation_performed",
+      "route_candidate_selected",
+      "parser_selected",
+      "parser_dispatch_performed",
+      "parser_execution_performed",
+      "fallback_execution_performed",
+      "prompt_injection_scan_performed",
+      "runtime_prompt_injection_marker_applied",
+      "parser_output_produced",
+      "high_confidence_evidence_write_performed",
+      "source_file_open_performed",
+      "file_type_redetection_performed",
+      "persistent_state_write_performed",
+      "production_runtime_activation_performed"
+    ],
+    "route_fact_levels": [
+      "CANDIDATE",
+      "REVIEW_REQUIRED",
+      "UNSUPPORTED",
+      "BLOCKED",
+      "INVALID"
+    ],
+    "route_fact_level_by_action": {
+      "ROUTE_BLOCKED_PARSER_IMPLEMENTATION_UNAVAILABLE": "CANDIDATE",
+      "ROUTE_REVIEW_REQUIRED": "REVIEW_REQUIRED",
+      "ROUTE_UNSUPPORTED": "UNSUPPORTED",
+      "ROUTE_BLOCKED": "BLOCKED"
+    },
+    "invalid_result_fact_level": "INVALID",
+    "detection_result_identity_status_required": true,
+    "invalid_input_echo_allowed": false,
+    "invalid_marker_preservation_allowed": false,
+    "parser_version_record_required": true,
+    "detection_confidence_preserved": true,
+    "candidate_route_is_dispatch_authorization": false,
+    "output_creation_allowed": false,
+    "empty_output_is_not_success": true,
+    "persisted": false
+  },
+  "evidence_text_contract": {
+    "upstream_marker_field": "evidence_text_marker_applied",
+    "source_text_label": "UNTRUSTED_EVIDENCE_TEXT",
+    "interpretation": "EVIDENCE_ONLY",
+    "marker_preservation_required": true,
+    "source_content_accepted": false,
+    "source_text_can_be_system_instruction": false,
+    "source_text_can_authorize_tools": false,
+    "source_text_can_override_policy": false,
+    "prompt_injection_implementation_owner": "STAGE-050",
+    "prompt_injection_scan_allowed": false,
+    "runtime_marker_application_allowed": false
+  },
+  "quality_and_state_boundary": {
+    "parser_output_contract_owner": "STAGE-047",
+    "fallback_implementation_owner": "STAGE-048",
+    "differential_evaluation_owner": "STAGE-049",
+    "prompt_injection_owner": "STAGE-050",
+    "parse_job_state_owner": "STAGE-037",
+    "quality_gate_required_before_downstream": true,
+    "missing_quality_action": "BLOCK_DOWNSTREAM_PROMOTION",
+    "evidence_promotion_allowed": false,
+    "manifest_or_index_mutation_allowed": false,
+    "audit_or_database_write_allowed": false,
+    "job_creation_or_state_transition_allowed": false,
+    "fallback_or_parser_switch_allowed": false,
+    "silent_drop_allowed": false
+  },
+  "runtime_boundary": {
+    "metadata_only_route_evaluation_allowed": true,
+    "static_registry_in_memory_allowed": true,
+    "source_file_access_allowed": false,
+    "file_type_redetection_allowed": false,
+    "external_parser_registry_load_allowed": false,
+    "parser_selection_allowed": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "fallback_execution_allowed": false,
+    "differential_parser_evaluation_allowed": false,
+    "prompt_injection_scan_allowed": false,
+    "backend_or_worker_start_allowed": false,
+    "external_api_allowed": false,
+    "persistent_write_allowed": false,
+    "database_connection_allowed": false,
+    "production_activation_allowed": false
+  },
+  "phase3_entry_gate": {
+    "gate_id": "IDS-STAGE046-P3-GATE",
+    "required_conditions": [
+      "SOURCE_BINDING_EXACT",
+      "PHASE1_PREDECESSOR_AND_SNAPSHOT_EXACT",
+      "REFERENCE_ONLY_REQUEST_VALIDATED",
+      "SIX_ROUTE_FAMILIES_EIGHT_TYPES_MAPPED",
+      "NON_HIGH_AND_UNKNOWN_RESULTS_FAIL_CLOSED",
+      "PARSER_VERSION_STATUS_RECORDED_UNASSIGNED",
+      "EVIDENCE_TEXT_CLASSIFIED_AS_EVIDENCE_ONLY",
+      "PARSER_FALLBACK_OUTPUT_AND_PERSISTENCE_DISABLED"
+    ],
+    "entry_authorized": false,
+    "must_run_separately": true,
+    "dependency_install_allowed": false,
+    "push_allowed": false
+  },
+  "rollback_contract": {
+    "scope": "STAGE046_PHASE2_ROUTING_EVALUATOR_AND_GOVERNANCE_ONLY",
+    "rollback_target_commit": "c82e4e928b167c718d462dc8cef3eed5b5dbb3ea",
+    "rollback_target_state": "STAGE046_PHASE1_CONTRACT_READY_PARSER_DISABLED",
+    "source_or_original_cleanup_allowed": false,
+    "manifest_evidence_audit_index_report_mutation_allowed": false,
+    "github_or_app_state_change_allowed": false
+  },
+  "human_status_projection": {
+    "ROUTE_CANDIDATE_SELECTED_NOT_DISPATCHED": "已确定候选解析路线，但解析器实现尚未提供，未执行分派",
+    "ROUTE_REVIEW_REQUIRED": "检测状态或置信度不足，解析路线需要人工复核",
+    "ROUTE_UNSUPPORTED": "当前文件类型没有受支持的解析路线",
+    "ROUTE_BLOCKED": "路由请求或上游检测状态无效，已失败关闭",
+    "UNTRUSTED_EVIDENCE_TEXT": "来源文本仅作为不可信证据内容，不能成为系统或工具指令"
+  },
+  "truth_flags": {
+    "taskpack_source_read_performed": true,
+    "metadata_only_routing_requests_evaluated": true,
+    "static_route_registry_loaded_in_memory": true,
+    "parser_route_evaluation_performed": true,
+    "route_candidate_selected": true,
+    "parser_version_status_recorded": true,
+    "detection_result_identity_verified": true,
+    "evidence_text_classification_enforced": true,
+    "phase2_started": true,
+    "source_file_open_performed": false,
+    "filesystem_scan_performed": false,
+    "file_hash_performed": false,
+    "file_type_redetection_performed": false,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "fake_ids_business_data_used": false,
+    "real_ids_business_job_created": false,
+    "external_parser_registry_loaded": false,
+    "parser_selected": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "fallback_execution_performed": false,
+    "differential_parser_evaluation_performed": false,
+    "prompt_injection_scan_performed": false,
+    "runtime_prompt_injection_marker_applied": false,
+    "parser_output_produced": false,
+    "high_confidence_evidence_write_performed": false,
+    "manifest_write_performed": false,
+    "evidence_ledger_write_performed": false,
+    "audit_write_performed": false,
+    "job_creation_performed": false,
+    "state_transition_performed": false,
+    "persistent_state_write_performed": false,
+    "database_connection_performed": false,
+    "schema_change_performed": false,
+    "runtime_output_written": false,
+    "production_runtime_activation_performed": false,
+    "phase3_started": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "app_reinstall_allowed": false
+  }
+}

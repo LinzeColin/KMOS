@@ -1,0 +1,245 @@
+{
+  "schema_version": "ids.stage041.lock_registry.phase4.delivery.v1",
+  "stage": "STAGE-041",
+  "phase": "Phase 4",
+  "task_id": "IDS-V0_1-STAGE041-P4",
+  "acceptance_id": "ACC-STAGE-041",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_LOCK_REGISTRY_CLOSEOUT",
+  "valid_result": "PASS_ISOLATED_CLOSEOUT_PRODUCTION_DISABLED",
+  "contract_state": "PHASE4_CLOSEOUT_EVIDENCE_ENABLED_PRODUCTION_DISABLED",
+  "stage_review_status": "pending_next_run",
+  "next_gate": "IDS-STAGE041-REVIEW-GATE",
+  "source_binding": {
+    "source_archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "source_member": "IDS_v0_1_Final_Chinese_Revised/stages/STAGE-041_锁注册与竞态控制.md",
+    "source_member_match_count": 1,
+    "source_member_sha256": "2258a7b57c6c2881f208f43fbe2862c7815a2794c908d6fef108a1a4b5a2ad36",
+    "roadmap_path": "/Users/linzezhang/Downloads/IDS_Codex开发Roadmap_v0_1_only_中文修订版.txt",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_path": "/Users/linzezhang/Downloads/IDS_Codex使用说明_v0_1_only_中文修订版.txt",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+    "source_verification_status": "SOURCE_VERIFIED"
+  },
+  "phase3_commit_binding": {
+    "commit": "03677aaec2fe7dbe6780736bf802e6ef555f383d",
+    "km_ids_tree": "ac363a93c711ac8bf41d9cb3894e37f3b3f1a405",
+    "required_ancestor_of_head": true
+  },
+  "upstream_bindings": {
+    "stage037_state_index": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/job_state_model/stage037_job_state_model_index.json",
+      "sha256": "b70bf72ebe4212f45d380c13fbfe429791e1f4a5c73dccbba81211b7adc1c2d3"
+    },
+    "stage040_delivery_contract": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_delivery_contract.json",
+      "sha256": "f9934bc5e0f30e032f3138f9c11022b823942160f07b734b0ccbf9ad17f431ce"
+    },
+    "stage040_delivery_checker": {
+      "ref": "KM_IDSystem/scripts/check_backpressure_delivery.py",
+      "sha256": "98b39ebc3d27cd6916958c1b46ea23486617d580fba576b1f23273a881d6ec41"
+    },
+    "stage040_review_artifact": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE040_STAGE_REVIEW.md",
+      "sha256": "ea1a6dacacc862d66de60883dd10ee2dbf23d3adc72efbf9586ba2ccf6c223f0"
+    },
+    "stage041_phase3_contract": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_scenarios.json",
+      "sha256": "0866db20e070d1b93981f4b7b4180977f3221395310f1194ddcaa14556268c19"
+    },
+    "stage041_phase3_checker": {
+      "ref": "KM_IDSystem/scripts/check_lock_registry_scenarios.py",
+      "sha256": "fa46f374e4708c15b0d3e856e42e55f1c784dd926278ad86a8610878b59d606e"
+    },
+    "stage041_phase3_evidence": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE3_SCENARIO_VALIDATION.md",
+      "sha256": "9cf6509ea5ef2d1250f98d3065338bb80a014ed25cf263c1650527e08e83cf6f"
+    },
+    "stage041_phase3_tests": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_scenarios.py",
+      "sha256": "e84852e59ae5d7b963df242324549729db1f72abadcef7cb4b2ca67211f9be3d"
+    }
+  },
+  "delivery_contract": {
+    "state_model_version": "ids.job_state.v1",
+    "required_job_type_count": 8,
+    "required_job_state_count": 11,
+    "required_terminal_state_count": 4,
+    "required_transition_count": 21,
+    "required_pressure_signals": [
+      "QUEUE_SOFT_PRESSURE",
+      "QUEUE_HARD_CAPACITY",
+      "EXTERNAL_DRIVE_OFFLINE",
+      "DISK_SPACE_INSUFFICIENT",
+      "EXTERNAL_API_BUDGET_INSUFFICIENT",
+      "JOB_TYPE_CONCURRENCY_LIMIT_REACHED",
+      "SAME_SOURCE_CONFLICT"
+    ],
+    "failure_retry_log_source": "STAGE039_REVIEWED_PHASE4_ACTUAL_ISOLATED_CONTROL_METADATA",
+    "expected_attempt_count": 3,
+    "expected_retry_count": 2,
+    "expected_final_state": "DEAD_LETTERED",
+    "stage040_delivery_must_be_reviewed_and_valid": true,
+    "stage_review_must_run_separately": true
+  },
+  "lock_lifecycle_contract": {
+    "operation_families": [
+      "FILE_PROCESSING",
+      "ARCHIVE_EXTRACTION",
+      "INDEX_BUILD",
+      "INDEX_SWITCH",
+      "REPORT_GENERATION"
+    ],
+    "shared_lock_namespace": "SOURCE_PIPELINE",
+    "expected_primary_acquisitions": 5,
+    "expected_exact_replays": 5,
+    "expected_resource_conflicts": 25,
+    "canonical_all_or_none_required": true,
+    "renewal_version_monotonic_required": true,
+    "takeover_fence_and_version_monotonic_required": true,
+    "stale_cas_and_fence_rejection_required": true,
+    "release_tombstone_monotonic_required": true,
+    "orderly_release_must_leave_zero_active_locks": true,
+    "persistent_lock_write_allowed": false
+  },
+  "cleanup_allowlist": {
+    "cleanup_eligible_classes": [
+      "TEMP_STAGING_OUTPUT",
+      "INCOMPLETE_DERIVATIVE_OUTPUT"
+    ],
+    "protected_artifact_classes": [
+      "FACT_SOURCE",
+      "MANIFEST",
+      "EVIDENCE_LEDGER",
+      "REPORT_SNAPSHOT",
+      "AUDIT_LOG"
+    ],
+    "cleanup_manifest_required": true,
+    "required_preconditions": [
+      "APPROVED_ROOT_IDENTITY",
+      "ROOT_RELATIVE_PATH",
+      "IMMUTABLE_LSTAT_IDENTITY",
+      "SYMLINK_BLOCKED",
+      "EXCLUSIVE_NAMESPACE_LOCK",
+      "WRITER_QUIESCENCE",
+      "NO_FOLLOW_TRAVERSAL"
+    ],
+    "runtime_owner": "STAGE-044",
+    "delete_execution_allowed": false
+  },
+  "recovery_handling": {
+    "automatic_lock_decision_cases": [
+      "EXACT_IDEMPOTENT_REPLAY",
+      "MATCHING_HOLDER_RENEWAL",
+      "MATCHING_HOLDER_RELEASE"
+    ],
+    "automatic_recovery_eligible_cases": [],
+    "successful_automatic_recovery_cases_observed": [],
+    "manual_action_required_cases": [
+      "STALE_OR_INCOMPLETE_CAS",
+      "ACTIVE_SAME_SOURCE_CONFLICT",
+      "RESOURCE_GATE_OWNER_REVALIDATION",
+      "WORKER_PROCESS_CRASH",
+      "PROTECTED_CLEANUP_REQUEST",
+      "INVALID_OR_MISSING_CONTRACT",
+      "UNCALIBRATED_POLICY",
+      "PROCESS_EXIT_WITHOUT_PERSISTENT_STATE"
+    ],
+    "automatic_resume_allowed": false,
+    "automatic_resume_runtime_owner": "STAGE-042",
+    "process_crash_recovery_runtime_owner": "STAGE-043"
+  },
+  "safe_shutdown_and_recovery": {
+    "shutdown_steps": [
+      "STOP_NEW_LOCK_ACQUISITIONS",
+      "FREEZE_RENEW_AND_TAKEOVER",
+      "PRESERVE_REFERENCE_ONLY_AUDIT_AND_CHECKPOINT_REFS",
+      "RELEASE_MATCHING_ACTIVE_LOCK_SET",
+      "VERIFY_ZERO_ACTIVE_LOCKS",
+      "VERIFY_TOMBSTONE_VERSIONS_ADVANCED",
+      "VERIFY_NO_PERSISTENT_OR_RUNTIME_OUTPUT"
+    ],
+    "recovery_steps": [
+      "VERIFY_EXACT_SOURCE_POLICY_AND_UPSTREAM_HASHES",
+      "REBUILD_ONLY_FROM_CURRENT_AUTHORIZED_EVIDENCE",
+      "DO_NOT_RESTORE_MISSING_IN_MEMORY_LOCK_STATE",
+      "REJECT_UNKNOWN_STALE_OR_INCOMPLETE_CAS",
+      "REQUIRE_OWNER_REVALIDATION_FOR_MANUAL_CASES",
+      "DEFER_AUTOMATIC_RESUME_TO_STAGE042",
+      "DEFER_PROCESS_CRASH_RECOVERY_TO_STAGE043"
+    ],
+    "persistent_lock_state_available_after_exit": false,
+    "process_termination_allowed": false,
+    "automatic_process_recovery_allowed": false
+  },
+  "rollback_contract": {
+    "steps": [
+      "STOP_ON_INVALID_DELIVERY_CONTRACT",
+      "DENY_NEW_LOCK_ACQUISITIONS_REQUIRE_MANUAL_REVIEW",
+      "FREEZE_RENEW_AND_TAKEOVER",
+      "REVERT_PHASE4_FILES_ONLY",
+      "PRESERVE_PHASE1_PHASE3_EVIDENCE",
+      "PRESERVE_STAGE037_STAGE040_REVIEWED_EVIDENCE",
+      "PRESERVE_RAW_DATA_AND_DURABLE_EVIDENCE"
+    ],
+    "destructive_rollback_allowed": false
+  },
+  "known_limits": [
+    "NO_PERSISTENT_LOCK_REGISTRY",
+    "NO_TRUSTED_PRODUCTION_CLOCK_SOURCE",
+    "NO_PRODUCTION_QUEUE_OR_WORKER_RUNTIME",
+    "NO_PRODUCTION_CALIBRATION",
+    "NO_AUTOMATIC_RESUME_OR_LIFECYCLE_RUNTIME",
+    "NO_PROCESS_CRASH_RECOVERY",
+    "NO_CLEANUP_RUNTIME",
+    "NO_DATABASE_OR_RAW_SOURCE_ACCESS",
+    "NO_STAGE041_WHOLE_STAGE_REVIEW_IN_THIS_RUN",
+    "STATIC_CLOSEOUT_IS_NOT_PRODUCTION_READINESS"
+  ],
+  "owner_feedback_contract": {
+    "status_zh": "Stage 41 四个 Phase 的本地锁注册交付证据已齐备，当前仅允许进入独立整阶段复审。",
+    "automatic_eligibility_zh": "已验证精确幂等重放、匹配 holder 续租和匹配 holder 释放；本轮未观察到自动恢复成功，自动恢复仍不允许。",
+    "manual_action_zh": "陈旧或不完整 CAS、活动同源冲突、资源门禁复核、worker 进程崩溃、受保护资料清理、无效合同、未校准策略及进程退出后的内存态缺失均需人工处理。",
+    "limit_zh": "当前不是生产运行或生产就绪证明，不提供可信生产时钟、持久锁注册、自动恢复、崩溃恢复或清理运行时。"
+  },
+  "review_gate": {
+    "next_task_id": "IDS-V0_1-STAGE041-REVIEW",
+    "must_run_separately": true,
+    "phase4_may_mark_stage_reviewed": false,
+    "batch_review_allowed": false,
+    "stage042_entry_allowed": false,
+    "github_upload_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "truth_flags": {
+    "taskpack_source_read_performed": true,
+    "phase2_lock_runtime_reexecuted": true,
+    "phase3_lock_scenarios_replayed": true,
+    "reviewed_stage040_delivery_replayed": true,
+    "actual_isolated_orderly_release_performed": true,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "fake_ids_business_data_used": false,
+    "real_ids_business_job_created": false,
+    "process_termination_performed": false,
+    "physical_drive_removal_performed": false,
+    "disk_allocation_performed": false,
+    "external_api_call_performed": false,
+    "cleanup_runtime_performed": false,
+    "protected_ref_delete_performed": false,
+    "queue_runtime_performed": false,
+    "worker_runtime_performed": false,
+    "retry_scheduler_performed": false,
+    "automatic_resume_performed": false,
+    "process_crash_recovery_performed": false,
+    "persistent_lock_write_performed": false,
+    "state_registry_write_performed": false,
+    "database_connection_performed": false,
+    "runtime_output_written": false,
+    "production_runtime_activation_performed": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "app_reinstall_allowed": false
+  }
+}

@@ -37,8 +37,15 @@ PROFILE_QUERIES = (
 SCRIPT = ROOT / "scripts" / "check_database_quality_constraints.py"
 MIGRATION_RUNNER = ROOT / "scripts" / "run_stage036_migration_section.py"
 BATCH_LOCK = PURSUE_ROOT / "BATCH031_040_UPLOAD_LOCK.yaml"
+CURRENT_BATCH_LOCK = PURSUE_ROOT / "BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
+
+
+def _batch_lock_history_and_current():
+    return BATCH_LOCK.read_text(encoding="utf-8") + "\n" + CURRENT_BATCH_LOCK.read_text(
+        encoding="utf-8"
+    )
 
 
 class Stage036DatabaseQualityConstraintsPhase1Tests(unittest.TestCase):
@@ -142,7 +149,7 @@ class Stage036DatabaseQualityConstraintsPhase1Tests(unittest.TestCase):
         self.assertTrue(ROADMAP.is_file(), f"missing roadmap: {ROADMAP}")
         self.assertTrue(EVENTS.is_file(), f"missing events: {EVENTS}")
 
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
         lock_terms = [
@@ -500,7 +507,7 @@ class Stage036DatabaseQualityConstraintsPhase2Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE036-P3-GATE", phase2["next_gate"])
 
     def test_governance_tracks_phase2_and_preserves_upload_lock(self):
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
         lock_terms = [
@@ -862,7 +869,7 @@ class Stage036DatabaseQualityConstraintsPhase3Tests(unittest.TestCase):
     def test_governance_tracks_phase3_and_preserves_upload_lock(self):
         self.assertTrue(PHASE3.is_file(), f"missing Phase 3 evidence: {PHASE3}")
         phase3_text = PHASE3.read_text(encoding="utf-8")
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
         required = {
@@ -1285,7 +1292,7 @@ class Stage036DatabaseQualityConstraintsPhase4Tests(unittest.TestCase):
     def test_governance_tracks_phase4_and_stops_at_separate_review_gate(self):
         self.assertTrue(PHASE4.is_file(), f"missing Phase 4 evidence: {PHASE4}")
         phase4_text = PHASE4.read_text(encoding="utf-8")
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
         required = {
@@ -1395,7 +1402,7 @@ class Stage036DatabaseQualityConstraintsReviewTests(unittest.TestCase):
                 self.assertIn(term, review_text)
 
     def test_review_gate_tracks_reviewed_local_and_keeps_batch_upload_locked(self):
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
         required = {

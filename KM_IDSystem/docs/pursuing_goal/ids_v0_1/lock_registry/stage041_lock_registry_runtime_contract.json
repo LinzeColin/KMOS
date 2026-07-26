@@ -1,0 +1,328 @@
+{
+  "schema_version": "ids.stage041.lock_registry.phase2.v1",
+  "stage": "STAGE-041",
+  "phase": "Phase 2",
+  "task_id": "IDS-V0_1-STAGE041-P2",
+  "acceptance_id": "ACC-STAGE-041",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_LOCK_DECISION_SLICE",
+  "policy_contract_id": "ids.lock_registry_policy.v0_1.stage041.p2",
+  "contract_state": "PHASE2_ISOLATED_LOCK_DECISION_SLICE_ENABLED_PRODUCTION_DISABLED",
+  "next_gate": "IDS-STAGE041-P3-GATE",
+  "source_binding": {
+    "source_archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "source_member": "IDS_v0_1_Final_Chinese_Revised/stages/STAGE-041_锁注册与竞态控制.md",
+    "source_member_match_count": 1,
+    "source_member_sha256": "2258a7b57c6c2881f208f43fbe2862c7815a2794c908d6fef108a1a4b5a2ad36",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+    "source_verification_status": "SOURCE_VERIFIED"
+  },
+  "upstream_bindings": {
+    "phase1_contract": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_contract.json",
+      "sha256": "52e445bd581fb32c23887a290b656f72fb1fe123119255019f9e5bc65fe9beb5"
+    },
+    "phase1_checker": {
+      "ref": "KM_IDSystem/scripts/check_lock_registry.py",
+      "sha256": "11e20b3fb4ad2e15500053c8ff0284183c4d880601e6edf9095f2f49bc8d05de"
+    },
+    "phase1_boundary": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE1_LOCK_REGISTRY_SCOPE_BOUNDARY.md",
+      "sha256": "526c8f7c1b71ad342535f3bc36db7ad79a9d203737c977089ac33cd301077c34"
+    },
+    "stage038_conflict_scenarios": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_queue_baseline/stage038_worker_queue_scenarios.json",
+      "sha256": "0ec9f1a0de6ec24d64d4108214ea426f9171b15eebdd6c3c60693fade62f2961"
+    },
+    "stage039_retry_runtime": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/retry_dead_letter/stage039_retry_dead_letter_runtime_contract.json",
+      "sha256": "5fc9b49b0ede0fdbc87311f3280ffc69e8ec8e59f219b17a04a2ccae1e9124c0"
+    },
+    "stage040_backpressure_runtime": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_runtime_contract.json",
+      "sha256": "2970ebd143030821d9a8b00e4fdb11342f8f82ef3bcf4d91717ba707b5054e2e"
+    }
+  },
+  "policy": {
+    "policy_version": "ids.lock_registry_policy.v0_1.stage041.p2",
+    "parameters": {
+      "lease_duration_seconds": 30,
+      "renewal_interval_seconds": 10,
+      "expiry_grace_seconds": 5,
+      "acquisition_timeout_seconds": 1,
+      "maximum_wait_seconds": 0,
+      "retry_jitter_seconds": 0,
+      "deadlock_timeout_seconds": 1
+    },
+    "parameter_provenance": {
+      "lease_duration_seconds": {
+        "unit": "seconds",
+        "source": "STAGE041_PHASE2_LOCAL_ENGINEERING_SAFETY_BOUNDARY",
+        "rationale": "Three renewal intervals create two missed-renewal opportunities before expiry in the isolated logical-clock slice.",
+        "policy_version": "ids.lock_registry_policy.v0_1.stage041.p2",
+        "validation_evidence": "check_lock_registry_runtime.py#evaluate_contract_and_renew",
+        "rollback": "DISABLE_ISOLATED_LOCK_RUNTIME_REQUIRE_MANUAL_REVIEW"
+      },
+      "renewal_interval_seconds": {
+        "unit": "seconds",
+        "source": "STAGE041_PHASE2_LOCAL_ENGINEERING_SAFETY_BOUNDARY",
+        "rationale": "One third of the lease duration keeps renewal strictly before expiry without wall-clock sleeping.",
+        "policy_version": "ids.lock_registry_policy.v0_1.stage041.p2",
+        "validation_evidence": "check_lock_registry_runtime.py#evaluate_contract_and_renew",
+        "rollback": "DISABLE_ISOLATED_LOCK_RUNTIME_REQUIRE_MANUAL_REVIEW"
+      },
+      "expiry_grace_seconds": {
+        "unit": "seconds",
+        "source": "STAGE041_PHASE2_LOCAL_ENGINEERING_SAFETY_BOUNDARY",
+        "rationale": "A finite grace smaller than one renewal interval prevents expiry observation alone from granting takeover.",
+        "policy_version": "ids.lock_registry_policy.v0_1.stage041.p2",
+        "validation_evidence": "check_lock_registry_runtime.py#takeover",
+        "rollback": "DISABLE_ISOLATED_LOCK_RUNTIME_REQUIRE_MANUAL_REVIEW"
+      },
+      "acquisition_timeout_seconds": {
+        "unit": "seconds",
+        "source": "STAGE041_PHASE2_LOCAL_ENGINEERING_SAFETY_BOUNDARY",
+        "rationale": "The isolated decision has a finite one-second policy ceiling while executing synchronously without sleep.",
+        "policy_version": "ids.lock_registry_policy.v0_1.stage041.p2",
+        "validation_evidence": "check_lock_registry_runtime.py#evaluate_contract",
+        "rollback": "DISABLE_ISOLATED_LOCK_RUNTIME_REQUIRE_MANUAL_REVIEW"
+      },
+      "maximum_wait_seconds": {
+        "unit": "seconds",
+        "source": "STAGE038_RESOURCE_CONFLICT_ACTIVE_BASELINE",
+        "rationale": "Zero blocking wait preserves pause-before-queue behavior and creates no hidden wait queue.",
+        "policy_version": "ids.lock_registry_policy.v0_1.stage041.p2",
+        "validation_evidence": "check_lock_registry_runtime.py#acquire",
+        "rollback": "DISABLE_ISOLATED_LOCK_RUNTIME_REQUIRE_MANUAL_REVIEW"
+      },
+      "retry_jitter_seconds": {
+        "unit": "seconds",
+        "source": "STAGE039_RETRY_OWNERSHIP_BOUNDARY",
+        "rationale": "Zero lock-local jitter preserves Stage039 ownership and ensures contention consumes no retry budget.",
+        "policy_version": "ids.lock_registry_policy.v0_1.stage041.p2",
+        "validation_evidence": "check_lock_registry_runtime.py#acquire",
+        "rollback": "DISABLE_ISOLATED_LOCK_RUNTIME_REQUIRE_MANUAL_REVIEW"
+      },
+      "deadlock_timeout_seconds": {
+        "unit": "seconds",
+        "source": "STAGE041_PHASE1_CANONICAL_ALL_OR_NONE_CONTRACT",
+        "rationale": "A finite guard is registered even though canonical all-or-none acquisition performs no blocking wait in this slice.",
+        "policy_version": "ids.lock_registry_policy.v0_1.stage041.p2",
+        "validation_evidence": "check_lock_registry_runtime.py#evaluate_contract",
+        "rollback": "DISABLE_ISOLATED_LOCK_RUNTIME_REQUIRE_MANUAL_REVIEW"
+      }
+    },
+    "parameter_relationships": [
+      "lease_duration_seconds == 3 * renewal_interval_seconds",
+      "0 < expiry_grace_seconds < renewal_interval_seconds < lease_duration_seconds",
+      "acquisition_timeout_seconds == deadlock_timeout_seconds",
+      "maximum_wait_seconds == 0",
+      "retry_jitter_seconds == 0"
+    ],
+    "logical_clock_only": true,
+    "wall_clock_sleep_allowed": false,
+    "parameter_source": "STAGE041_PHASE2_LOCAL_ENGINEERING_SAFETY_BOUNDARY",
+    "fact_level": "PROPOSED",
+    "production_calibrated": false,
+    "production_calibration_required": true,
+    "production_calibration_task_id": "TASK-OPME-B-001",
+    "rollback_policy": "DISABLE_ISOLATED_LOCK_RUNTIME_REQUIRE_MANUAL_REVIEW"
+  },
+  "operation_scope_contract": {
+    "FILE_PROCESSING": {
+      "job_types": ["PARSE"],
+      "required_lock_namespaces": ["SOURCE_PIPELINE", "FILE_PROCESSING"]
+    },
+    "ARCHIVE_EXTRACTION": {
+      "job_types": ["ARCHIVE"],
+      "required_lock_namespaces": ["SOURCE_PIPELINE", "ARCHIVE_EXTRACTION"]
+    },
+    "INDEX_BUILD": {
+      "job_types": ["INDEX"],
+      "required_lock_namespaces": ["SOURCE_PIPELINE", "INDEX_BUILD"]
+    },
+    "INDEX_SWITCH": {
+      "job_types": ["INDEX"],
+      "required_lock_namespaces": ["SOURCE_PIPELINE", "INDEX_SWITCH"]
+    },
+    "REPORT_GENERATION": {
+      "job_types": ["REPORT"],
+      "required_lock_namespaces": ["SOURCE_PIPELINE", "REPORT_GENERATION"]
+    }
+  },
+  "request_contract": {
+    "required_fields": [
+      "resource_identity_ref",
+      "operation_family",
+      "holder_job_id",
+      "holder_attempt_id",
+      "lease_owner_ref",
+      "requested_at_epoch_seconds",
+      "input_refs",
+      "idempotency_key",
+      "policy_version"
+    ],
+    "reference_only": true,
+    "raw_path_allowed": false,
+    "raw_payload_allowed": false,
+    "requested_at_must_be_non_negative": true,
+    "logical_time_regression_action": "REQUIRE_MANUAL_REVIEW",
+    "renewal_must_strictly_extend_expiry": true,
+    "release_requires_live_lease": true,
+    "unknown_field_action": "REQUIRE_MANUAL_REVIEW"
+  },
+  "decision_contract": {
+    "acquire": "CANONICAL_ALL_OR_NONE_CAS",
+    "renew": "MATCHING_LIVE_HOLDER_VERSION_ADVANCE_NO_FENCE_ADVANCE",
+    "takeover": "EXPECTED_CAS_EVIDENCE_EXPIRY_PLUS_GRACE_ATOMIC_FENCE_AND_VERSION_ADVANCE",
+    "commit": "CURRENT_HOLDER_FENCE_VERSION_AND_LIVE_LEASE_REQUIRED",
+    "release": "MATCHING_HOLDER_FENCE_VERSION_TOMBSTONE_ADVANCE_IDEMPOTENT",
+    "idempotency": "SAME_OPERATION_KEY_SAME_INPUT_REPLAY_DIFFERENT_INPUT_REJECT",
+    "contention": "PAUSE_BEFORE_QUEUE_ADMISSION_NO_RETRY_NO_PARTIAL_LOCK",
+    "unknown_or_invalid": "REQUIRE_MANUAL_REVIEW"
+  },
+  "registry_record_contract": {
+    "required_fields": [
+      "lock_key",
+      "lock_namespace",
+      "resource_identity_ref",
+      "operation_scope",
+      "holder_job_id",
+      "holder_attempt_id",
+      "lease_owner_ref",
+      "lease_expires_at",
+      "fencing_token",
+      "lock_version",
+      "acquired_at",
+      "renewed_at",
+      "released_at",
+      "release_reason",
+      "audit_ref",
+      "checkpoint_ref",
+      "policy_version"
+    ],
+    "registry_mode": "IN_MEMORY_CONTROL_METADATA_ONLY",
+    "canonical_key_order_required": true,
+    "partial_record_retention_allowed": false,
+    "persistent_write_allowed": false
+  },
+  "control_metadata_contract": {
+    "input_refs": [
+      "repo:KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE1_LOCK_REGISTRY_SCOPE_BOUNDARY.md"
+    ],
+    "input_refs_must_be_git_tracked": true,
+    "raw_body_allowed": false,
+    "output_refs": [],
+    "checkpoint_ref_format": "checkpoint:sha256:<canonical-decision-digest>",
+    "error_ref_format": "error:<safe-control-reason-code>",
+    "audit_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE2_LOCK_REGISTRY_SLICE.md#Controlled-Evidence"
+  },
+  "human_status_projection": {
+    "ACQUIRED": {
+      "label_zh": "已获取资源锁",
+      "owner_action_zh": "无需操作",
+      "owner_attention_required": false
+    },
+    "RENEWED": {
+      "label_zh": "资源锁已续租",
+      "owner_action_zh": "无需操作",
+      "owner_attention_required": false
+    },
+    "RELEASED": {
+      "label_zh": "资源锁已释放",
+      "owner_action_zh": "无需操作",
+      "owner_attention_required": false
+    },
+    "PAUSE_BEFORE_QUEUE_ADMISSION": {
+      "label_zh": "等待资源锁",
+      "owner_action_zh": "等待当前持有者释放或人工复核",
+      "owner_attention_required": false
+    },
+    "REJECT_COMMIT": {
+      "label_zh": "锁凭证已失效",
+      "owner_action_zh": "停止写入并检查当前锁持有者",
+      "owner_attention_required": true
+    },
+    "COMMIT_ALLOWED": {
+      "label_zh": "锁凭证有效",
+      "owner_action_zh": "可提交当前受保护结果",
+      "owner_attention_required": false
+    },
+    "REQUIRE_MANUAL_REVIEW": {
+      "label_zh": "等待人工复核",
+      "owner_action_zh": "检查请求、租约与 fencing 证据",
+      "owner_attention_required": true
+    }
+  },
+  "registry_binding": {
+    "model_id": "MOD-010",
+    "formula_id": "FORM-010",
+    "parameter_ids": [
+      "PARAM-065",
+      "PARAM-066",
+      "PARAM-067",
+      "PARAM-068",
+      "PARAM-069",
+      "PARAM-070",
+      "PARAM-071"
+    ],
+    "production_calibration_task_id": "TASK-OPME-B-001"
+  },
+  "runtime_boundary": {
+    "isolated_lock_decision_runtime_allowed": true,
+    "logical_clock_evaluation_allowed": true,
+    "wall_clock_sleep_allowed": false,
+    "queue_runtime_allowed": false,
+    "worker_runtime_allowed": false,
+    "retry_scheduler_allowed": false,
+    "automatic_resume_allowed": false,
+    "crash_recovery_allowed": false,
+    "cleanup_runtime_allowed": false,
+    "database_allowed": false,
+    "persistent_lock_write_allowed": false,
+    "state_registry_write_allowed": false,
+    "runtime_output_write_allowed": false,
+    "external_api_allowed": false,
+    "raw_metadata_access_allowed": false,
+    "ids_business_job_allowed": false,
+    "fake_ids_business_data_allowed": false,
+    "production_activation_allowed": false
+  },
+  "rollback": {
+    "trigger": "INVALID_CONTRACT_PARAMETER_REQUEST_LEASE_OR_FENCE_EVIDENCE",
+    "action": "DISABLE_ISOLATED_LOCK_RUNTIME_REQUIRE_MANUAL_REVIEW_AND_REVERT_PHASE2_FILES_ONLY",
+    "preserve_phase1": true,
+    "preserve_stage037_stage040": true,
+    "preserve_source_and_evidence": true,
+    "github_action_allowed": false
+  },
+  "truth_flags": {
+    "parameter_values_assigned": true,
+    "isolated_lock_decision_runtime_performed": true,
+    "actual_control_ref_verified": true,
+    "acquire_evaluation_performed": true,
+    "renew_evaluation_performed": true,
+    "release_evaluation_performed": true,
+    "takeover_evaluation_performed": true,
+    "fencing_evaluation_performed": true,
+    "queue_runtime_performed": false,
+    "worker_runtime_performed": false,
+    "retry_scheduler_performed": false,
+    "automatic_resume_performed": false,
+    "crash_recovery_runtime_performed": false,
+    "cleanup_runtime_performed": false,
+    "database_connection_performed": false,
+    "persistent_lock_write_performed": false,
+    "state_registry_write_performed": false,
+    "runtime_output_written": false,
+    "external_api_call_performed": false,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "fake_ids_business_data_used": false,
+    "real_ids_business_job_created": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_allowed": false,
+    "app_reinstall_allowed": false
+  }
+}

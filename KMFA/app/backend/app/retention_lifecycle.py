@@ -736,6 +736,23 @@ class LifecycleRepository:
         ).fetchone()
         if partial is not None:
             raise LifecycleConflictError("deletion_consistency_pending")
+        active_security_scan = self.connection.execute(
+            """
+            SELECT 1
+            FROM artifact_security_assessments assessment
+            JOIN artifact_versions version
+              ON version.artifact_version_id =
+                assessment.artifact_version_id
+            JOIN projects project
+              ON project.project_id = version.project_id
+            WHERE project.workspace_id = ?
+              AND assessment.state = 'scanning'
+            LIMIT 1
+            """,
+            (workspace_id,),
+        ).fetchone()
+        if active_security_scan is not None:
+            raise LifecycleConflictError("deletion_consistency_pending")
         active_derivation = self.connection.execute(
             """
             SELECT 1

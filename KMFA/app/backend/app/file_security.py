@@ -465,7 +465,12 @@ class FileSecurityRepository:
             FROM artifact_security_assessments asa
             JOIN artifact_versions av
               ON av.artifact_version_id = asa.artifact_version_id
-            WHERE asa.attempt_count < ?
+            JOIN projects project
+              ON project.project_id = av.project_id
+            JOIN workspace_retention retention
+              ON retention.workspace_id = project.workspace_id
+            WHERE retention.state = 'active'
+              AND asa.attempt_count < ?
               AND (
                 asa.state = 'quarantined'
                 OR (

@@ -21,6 +21,20 @@ class Stage005GovernanceRegressionTests(unittest.TestCase):
         spec.loader.exec_module(module)
         return module
 
+    def _tamper_current_stage046_phase1_route(self, batch_text: str) -> str:
+        tampered = batch_text.replace(
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE047-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE048-P1"',
+            'decision:\n  current_task_id: "IDS-V0_1-STAGE047-REVIEW"\n'
+            '  next_allowed_task_id: "IDS-V0_1-STAGE048-P1-BROKEN"',
+        )
+        self.assertNotEqual(batch_text, tampered)
+        return tampered
+
+    # Historical tests use the old helper name but must tamper the live route.
+    def _tamper_current_stage045_phase4_route(self, batch_text: str) -> str:
+        return self._tamper_current_stage046_phase1_route(batch_text)
+
     def test_app_entry_install_policy_installs_app_and_command_launchers(self):
         self.assertTrue(APP_ENTRY_INSTALLER.is_file(), f"missing installer: {APP_ENTRY_INSTALLER}")
         self.assertTrue(APP_ENTRY_DIAGNOSTIC.is_file(), f"missing diagnostic: {APP_ENTRY_DIAGNOSTIC}")
@@ -9179,6 +9193,15 @@ next_gate_id: "IDS-STAGE035-REVIEW-GATE"
         self.assertEqual(1, len(stage_event))
         self.assertEqual([], module.evaluate_required_event_semantics(stage_event))
 
+        phase2_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE041-P2-20260717-001"
+        ]
+        self.assertEqual(1, len(phase2_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase2_event))
+
     def test_stage040_phase3_current_state_and_event_are_governed(self):
         module = self._load_module()
         batch_text = (
@@ -9441,6 +9464,1872 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
             with self.subTest(marker=marker):
                 self.assertIn(marker, combined)
 
+    def test_stage041_phase1_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_path = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        )
+        batch_text = batch_path.read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        stage_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE041-P1-20260714-001"
+        ]
+        self.assertEqual(1, len(stage_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(stage_event))
+
+        self.assertIn(
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml",
+            module.REQUIRED_FILES,
+        )
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE041-P1-20260714-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE041-P2-20260717-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        unlocked = batch_text.replace("push_allowed: false", "push_allowed: true", 1)
+        blocked = module.evaluate_current_state_consistency(unlocked, roadmap_text)
+        self.assertFalse(blocked["push_locked_structurally"], blocked)
+
+    def test_stage041_review_current_state_and_events_are_governed(self):
+        module = self._load_module()
+        batch_path = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        )
+        batch_text = batch_path.read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase3_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE041-P3-20260717-001"
+        ]
+        self.assertEqual(1, len(phase3_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase3_event))
+        phase4_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE041-P4-20260717-001"
+        ]
+        self.assertEqual(1, len(phase4_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase4_event))
+        review_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE041-REVIEW-20260718-001"
+        ]
+        self.assertEqual(1, len(review_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(review_event))
+
+        self.assertIn(
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE041_PHASE4_CLOSEOUT.md",
+            module.REQUIRED_FILES,
+        )
+        self.assertIn(
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/"
+            "stage041_lock_registry_delivery_contract.json",
+            module.REQUIRED_FILES,
+        )
+        self.assertIn(
+            "KM_IDSystem/scripts/check_lock_registry_delivery.py",
+            module.REQUIRED_FILES,
+        )
+        self.assertIn(
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE041_STAGE_REVIEW.md",
+            module.REQUIRED_FILES,
+        )
+        self.assertIn(
+            "KM_IDSystem/scripts/check_lock_registry_stage_review.py",
+            module.REQUIRED_FILES,
+        )
+        self.assertIn(
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage041_lock_registry_review.py",
+            module.REQUIRED_FILES,
+        )
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE041-P4-20260717-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE041-REVIEW-20260718-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        unlocked = batch_text.replace("push_allowed: false", "push_allowed: true", 1)
+        blocked = module.evaluate_current_state_consistency(unlocked, roadmap_text)
+        self.assertFalse(blocked["push_locked_structurally"], blocked)
+
+    def test_stage042_phase1_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_path = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        )
+        batch_text = batch_path.read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase1_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE042-P1-20260718-001"
+        ]
+        self.assertEqual(1, len(phase1_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase1_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_ENTRY_CONTRACT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE042_PHASE1_AUTOMATIC_LIFECYCLE_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/"
+            "stage042_automatic_lifecycle_contract.json",
+            "KM_IDSystem/scripts/check_automatic_lifecycle.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage042_automatic_lifecycle.py",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE042-P1-20260718-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_batch = self._tamper_current_stage045_phase4_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_batch, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage042_phase2_through_review_state_and_events_are_governed(self):
+        module = self._load_module()
+        batch_path = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        )
+        batch_text = batch_path.read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase2_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE042-P2-20260718-001"
+        ]
+        self.assertEqual(1, len(phase2_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase2_event))
+        phase3_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE042-P3-20260718-001"
+        ]
+        self.assertEqual(1, len(phase3_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase3_event))
+        phase4_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE042-P4-20260718-001"
+        ]
+        self.assertEqual(1, len(phase4_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase4_event))
+        review_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE042-REVIEW-20260718-001"
+        ]
+        self.assertEqual(1, len(review_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(review_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE042_PHASE2_AUTOMATIC_LIFECYCLE_SLICE.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/"
+            "stage042_automatic_lifecycle_runtime_contract.json",
+            "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage042_automatic_lifecycle_runtime.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE042_PHASE3_SCENARIO_VALIDATION.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/"
+            "stage042_automatic_lifecycle_scenarios.json",
+            "KM_IDSystem/scripts/check_automatic_lifecycle_scenarios.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage042_automatic_lifecycle_scenarios.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE4_CLOSEOUT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/"
+            "stage042_automatic_lifecycle_delivery_contract.json",
+            "KM_IDSystem/scripts/check_automatic_lifecycle_delivery.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage042_automatic_lifecycle_delivery.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_STAGE_REVIEW.md",
+            "KM_IDSystem/scripts/check_automatic_lifecycle_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage042_automatic_lifecycle_review.py",
+            "KM_IDSystem/machine/runs/2026-07-18-stage042-review-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE042-P2-20260718-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE042-P3-20260718-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE042-P4-20260718-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE042-REVIEW-20260718-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_batch = batch_text.replace(
+            "    phase2_slice_valid: true",
+            "    phase2_slice_valid: false",
+        )
+        blocked = module.evaluate_phase_state(
+            tampered_batch, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_phase4 = batch_text.replace(
+            "    phase4_delivery_valid: true",
+            "    phase4_delivery_valid: false",
+        )
+        blocked = module.evaluate_phase_state(
+            tampered_phase4, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_phase3 = batch_text.replace(
+            "    phase3_scenarios_valid: true",
+            "    phase3_scenarios_valid: false",
+        )
+        blocked = module.evaluate_phase_state(
+            tampered_phase3, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_review = batch_text.replace(
+            "    review_findings_repaired: true",
+            "    review_findings_repaired: false",
+        )
+        blocked = module.evaluate_phase_state(
+            tampered_review, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage043_phase1_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE043-P1-20260718-001"
+        ]
+        self.assertEqual(1, len(phase_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_ENTRY_CONTRACT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE043_PHASE1_WORKER_CRASH_RECOVERY_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/"
+            "stage043_worker_crash_recovery_contract.json",
+            "KM_IDSystem/scripts/check_worker_crash_recovery.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage043_worker_crash_recovery.py",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE043-P1-20260718-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_batch = batch_text.replace(
+            '    crash_recovery_scenario_contract_schema: "ids.stage043.worker_crash_recovery.phase3.scenarios.v1"\n'
+            '    crash_recovery_delivery_contract_schema: "ids.stage043.worker_crash_recovery.phase4.delivery.v1"\n'
+            "    phase1_contract_valid: true",
+            '    crash_recovery_scenario_contract_schema: "ids.stage043.worker_crash_recovery.phase3.scenarios.v1"\n'
+            '    crash_recovery_delivery_contract_schema: "ids.stage043.worker_crash_recovery.phase4.delivery.v1"\n'
+            "    phase1_contract_valid: false",
+        )
+        self.assertNotEqual(batch_text, tampered_batch)
+        blocked = module.evaluate_phase_state(
+            tampered_batch, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage043_phase2_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase2_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE043-P2-20260718-001"
+        ]
+        self.assertEqual(1, len(phase2_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase2_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/"
+            "stage043_worker_crash_recovery_runtime_contract.json",
+            "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage043_worker_crash_recovery_runtime.py",
+            "KM_IDSystem/machine/runs/2026-07-18-stage043-p2-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE043-P2-20260718-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_slice = batch_text.replace(
+            '    crash_recovery_scenario_contract_schema: '
+            '"ids.stage043.worker_crash_recovery.phase3.scenarios.v1"\n'
+            '    crash_recovery_delivery_contract_schema: '
+            '"ids.stage043.worker_crash_recovery.phase4.delivery.v1"\n'
+            "    phase1_contract_valid: true\n"
+            "    phase2_slice_valid: true",
+            '    crash_recovery_scenario_contract_schema: '
+            '"ids.stage043.worker_crash_recovery.phase3.scenarios.v1"\n'
+            '    crash_recovery_delivery_contract_schema: '
+            '"ids.stage043.worker_crash_recovery.phase4.delivery.v1"\n'
+            "    phase1_contract_valid: true\n"
+            "    phase2_slice_valid: false",
+        )
+        self.assertNotEqual(batch_text, tampered_slice)
+        blocked = module.evaluate_phase_state(
+            tampered_slice, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage043_phase3_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase3_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE043-P3-20260718-001"
+        ]
+        self.assertEqual(1, len(phase3_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase3_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE043_PHASE3_SCENARIO_VALIDATION.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/"
+            "stage043_worker_crash_recovery_scenarios.json",
+            "KM_IDSystem/scripts/check_worker_crash_recovery_scenarios.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage043_worker_crash_recovery_scenarios.py",
+            "KM_IDSystem/machine/runs/2026-07-18-stage043-p3-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE043-P3-20260718-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_scenarios = batch_text.replace(
+            '    crash_recovery_scenario_contract_schema: '
+            '"ids.stage043.worker_crash_recovery.phase3.scenarios.v1"\n'
+            '    crash_recovery_delivery_contract_schema: '
+            '"ids.stage043.worker_crash_recovery.phase4.delivery.v1"\n'
+            "    phase1_contract_valid: true\n"
+            "    phase2_slice_valid: true\n"
+            "    phase3_scenarios_valid: true",
+            '    crash_recovery_scenario_contract_schema: '
+            '"ids.stage043.worker_crash_recovery.phase3.scenarios.v1"\n'
+            '    crash_recovery_delivery_contract_schema: '
+            '"ids.stage043.worker_crash_recovery.phase4.delivery.v1"\n'
+            "    phase1_contract_valid: true\n"
+            "    phase2_slice_valid: true\n"
+            "    phase3_scenarios_valid: false",
+        )
+        self.assertNotEqual(batch_text, tampered_scenarios)
+        blocked = module.evaluate_phase_state(
+            tampered_scenarios, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_crash_claim = batch_text.replace(
+            "    isolated_worker_process_exit_observed: true\n"
+            "    actual_worker_process_crash_performed: false",
+            "    isolated_worker_process_exit_observed: true\n"
+            "    actual_worker_process_crash_performed: true",
+        )
+        blocked = module.evaluate_phase_state(
+            tampered_crash_claim, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage043_phase4_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase4_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE043-P4-20260718-001"
+        ]
+        self.assertEqual(1, len(phase4_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase4_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE043_PHASE4_CLOSEOUT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/"
+            "stage043_worker_crash_recovery_delivery_contract.json",
+            "KM_IDSystem/scripts/check_worker_crash_recovery_delivery.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage043_worker_crash_recovery_delivery.py",
+            "KM_IDSystem/machine/runs/2026-07-19-stage043-p4-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE043-P4-20260718-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_delivery = batch_text.replace(
+            '    crash_recovery_delivery_contract_schema: '
+            '"ids.stage043.worker_crash_recovery.phase4.delivery.v1"\n'
+            "    phase1_contract_valid: true\n"
+            "    phase2_slice_valid: true\n"
+            "    phase3_scenarios_valid: true\n"
+            "    phase4_delivery_valid: true",
+            '    crash_recovery_delivery_contract_schema: '
+            '"ids.stage043.worker_crash_recovery.phase4.delivery.v1"\n'
+            "    phase1_contract_valid: true\n"
+            "    phase2_slice_valid: true\n"
+            "    phase3_scenarios_valid: true\n"
+            "    phase4_delivery_valid: false",
+        )
+        self.assertNotEqual(batch_text, tampered_delivery)
+        blocked = module.evaluate_phase_state(
+            tampered_delivery, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_recovery_claim = batch_text.replace(
+            "    persistent_recovery_state_available_after_exit: false\n"
+            "    automatic_recovery_performed: false",
+            "    persistent_recovery_state_available_after_exit: false\n"
+            "    automatic_recovery_performed: true",
+        )
+        self.assertNotEqual(batch_text, tampered_recovery_claim)
+        blocked = module.evaluate_phase_state(
+            tampered_recovery_claim, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage043_review_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        review_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE043-REVIEW-20260719-001"
+        ]
+        self.assertEqual(1, len(review_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(review_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_STAGE_REVIEW.md",
+            "KM_IDSystem/scripts/check_worker_crash_recovery_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage043_worker_crash_recovery_review.py",
+            "KM_IDSystem/machine/runs/2026-07-19-stage043-review-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE043-REVIEW-20260719-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_findings = batch_text.replace(
+            '    stage_review_schema: '
+            '"ids.stage043.worker_crash_recovery.stage_review.v1"\n'
+            '    stage_review_status: "completed_reviewed_local"\n'
+            '    stage_review_result: "PASS_REVIEWED_LOCAL_PRODUCTION_DISABLED"\n'
+            "    review_finding_count: 6\n"
+            "    review_critical_finding_count: 1\n"
+            "    review_important_finding_count: 5\n"
+            "    review_minor_finding_count: 0\n"
+            "    review_findings_repaired: true",
+            '    stage_review_schema: '
+            '"ids.stage043.worker_crash_recovery.stage_review.v1"\n'
+            '    stage_review_status: "completed_reviewed_local"\n'
+            '    stage_review_result: "PASS_REVIEWED_LOCAL_PRODUCTION_DISABLED"\n'
+            "    review_finding_count: 6\n"
+            "    review_critical_finding_count: 1\n"
+            "    review_important_finding_count: 5\n"
+            "    review_minor_finding_count: 0\n"
+            "    review_findings_repaired: false",
+        )
+        self.assertNotEqual(batch_text, tampered_findings)
+        blocked = module.evaluate_phase_state(
+            tampered_findings, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage044_phase1_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE044-P1-20260719-001"
+        ]
+        self.assertEqual(1, len(phase_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_ENTRY_CONTRACT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE044_PHASE1_HALF_PRODUCT_CLEANUP_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/"
+            "stage044_half_product_cleanup_contract.json",
+            "KM_IDSystem/scripts/check_half_product_cleanup.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage044_half_product_cleanup.py",
+            "KM_IDSystem/machine/runs/2026-07-19-stage044-p1-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE044-P1-20260719-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_contract = batch_text.replace(
+            '    cleanup_contract_schema: "ids.stage044.half_product_cleanup.phase1.v1"',
+            '    cleanup_contract_schema: "ids.stage044.half_product_cleanup.phase1.invalid"',
+        )
+        self.assertNotEqual(batch_text, tampered_contract)
+        blocked = module.evaluate_phase_state(
+            tampered_contract, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_route = self._tamper_current_stage046_phase1_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_delete = batch_text.replace(
+            "    delete_operation_started: false\n"
+            "    unlinkat_called: false",
+            "    delete_operation_started: true\n"
+            "    unlinkat_called: false",
+        )
+        self.assertNotEqual(batch_text, tampered_delete)
+        blocked = module.evaluate_phase_state(
+            tampered_delete, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage044_phase2_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE044-P2-20260719-001"
+        ]
+        self.assertEqual(1, len(phase_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE044_PHASE2_HALF_PRODUCT_CLEANUP_SLICE.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/"
+            "stage044_half_product_cleanup_runtime_contract.json",
+            "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage044_half_product_cleanup_runtime.py",
+            "KM_IDSystem/machine/runs/2026-07-19-stage044-p2-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE044-P2-20260719-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_policy = batch_text.replace(
+            '    cleanup_policy_contract_id: "ids.half_product_cleanup_policy.v0_1.stage044.p2"',
+            '    cleanup_policy_contract_id: "ids.half_product_cleanup_policy.v0_1.invalid"',
+        )
+        self.assertNotEqual(batch_text, tampered_policy)
+        blocked = module.evaluate_phase_state(
+            tampered_policy, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_delete = batch_text.replace(
+            "    delete_operation_started: false\n"
+            "    unlinkat_called: false",
+            "    delete_operation_started: true\n"
+            "    unlinkat_called: false",
+        )
+        self.assertNotEqual(batch_text, tampered_delete)
+        blocked = module.evaluate_phase_state(
+            tampered_delete, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage044_phase3_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE044-P3-20260719-001"
+        ]
+        self.assertEqual(1, len(phase_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE044_PHASE3_SCENARIO_VALIDATION.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/"
+            "stage044_half_product_cleanup_scenarios.json",
+            "KM_IDSystem/scripts/check_half_product_cleanup_scenarios.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage044_half_product_cleanup_scenarios.py",
+            "KM_IDSystem/machine/runs/2026-07-19-stage044-p3-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE044-P3-20260719-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_contract = batch_text.replace(
+            '    cleanup_scenario_contract_schema: '
+            '"ids.stage044.half_product_cleanup.phase3.scenarios.v1"',
+            '    cleanup_scenario_contract_schema: '
+            '"ids.stage044.half_product_cleanup.phase3.scenarios.invalid"',
+        )
+        self.assertNotEqual(batch_text, tampered_contract)
+        blocked = module.evaluate_phase_state(
+            tampered_contract, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_delete = batch_text.replace(
+            "    delete_operation_started: false\n"
+            "    unlinkat_called: false",
+            "    delete_operation_started: true\n"
+            "    unlinkat_called: false",
+        )
+        self.assertNotEqual(batch_text, tampered_delete)
+        blocked = module.evaluate_phase_state(
+            tampered_delete, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage044_phase4_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE044-P4-20260719-001"
+        ]
+        self.assertEqual(1, len(phase_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE044_PHASE4_CLOSEOUT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/"
+            "stage044_half_product_cleanup_delivery_contract.json",
+            "KM_IDSystem/scripts/check_half_product_cleanup_delivery.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage044_half_product_cleanup_delivery.py",
+            "KM_IDSystem/machine/runs/2026-07-19-stage044-p4-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE044-P4-20260719-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_contract = batch_text.replace(
+            '    cleanup_delivery_contract_schema: '
+            '"ids.stage044.half_product_cleanup.phase4.delivery.v1"',
+            '    cleanup_delivery_contract_schema: '
+            '"ids.stage044.half_product_cleanup.phase4.delivery.invalid"',
+        )
+        self.assertNotEqual(batch_text, tampered_contract)
+        blocked = module.evaluate_phase_state(
+            tampered_contract, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_delete = batch_text.replace(
+            "    delete_operation_started: false\n"
+            "    unlinkat_called: false",
+            "    delete_operation_started: true\n"
+            "    unlinkat_called: false",
+        )
+        self.assertNotEqual(batch_text, tampered_delete)
+        blocked = module.evaluate_phase_state(
+            tampered_delete, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage045_phase1_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE045-P1-20260719-001"
+        ]
+        self.assertEqual(1, len(phase_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_ENTRY_CONTRACT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE045_PHASE1_FILE_TYPE_DETECTION_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/"
+            "stage045_file_type_detection_contract.json",
+            "KM_IDSystem/scripts/check_file_type_detection.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage045_file_type_detection.py",
+            "KM_IDSystem/machine/runs/2026-07-19-stage045-p1-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE045-P1-20260719-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_contract = batch_text.replace(
+            '    file_type_contract_schema: '
+            '"ids.stage045.file_type_detection.phase1.v1"',
+            '    file_type_contract_schema: '
+            '"ids.stage045.file_type_detection.phase1.invalid"',
+        )
+        self.assertNotEqual(batch_text, tampered_contract)
+        blocked = module.evaluate_phase_state(
+            tampered_contract, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_parser_claim = batch_text.replace(
+            "    parser_dispatch_performed: false\n"
+            "    parser_execution_performed: false",
+            "    parser_dispatch_performed: false\n"
+            "    parser_execution_performed: true",
+        )
+        self.assertNotEqual(batch_text, tampered_parser_claim)
+        blocked = module.evaluate_phase_state(
+            tampered_parser_claim, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage045_phase2_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE045-P2-20260719-001"
+        ]
+        self.assertEqual(1, len(phase_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE045_PHASE2_FILE_TYPE_DETECTION_SLICE.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/"
+            "stage045_file_type_detection_runtime_contract.json",
+            "KM_IDSystem/scripts/check_file_type_detection_runtime.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage045_file_type_detection_runtime.py",
+            "KM_IDSystem/machine/runs/2026-07-19-stage045-p2-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE045-P2-20260719-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_contract = batch_text.replace(
+            '    file_type_runtime_contract_schema: '
+            '"ids.stage045.file_type_detection.phase2.v1"',
+            '    file_type_runtime_contract_schema: '
+            '"ids.stage045.file_type_detection.phase2.invalid"',
+        )
+        self.assertNotEqual(batch_text, tampered_contract)
+        blocked = module.evaluate_phase_state(
+            tampered_contract, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_event = dict(phase_event[0])
+        tampered_event["notes"] = tampered_event["notes"].replace(
+            "parser_execution_performed=false",
+            "parser_execution_performed=true",
+        )
+        self.assertNotEqual(phase_event[0]["notes"], tampered_event["notes"])
+        self.assertNotEqual(
+            [], module.evaluate_required_event_semantics([tampered_event])
+        )
+
+    def test_stage045_phase3_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE045-P3-20260720-001"
+        ]
+        self.assertEqual(1, len(phase_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE045_PHASE3_FILE_TYPE_DETECTION_SCENARIOS.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/"
+            "stage045_file_type_detection_scenarios_contract.json",
+            "KM_IDSystem/scripts/check_file_type_detection_scenarios.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage045_file_type_detection_scenarios.py",
+            "KM_IDSystem/machine/runs/2026-07-20-stage045-p3-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE045-P3-20260720-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_contract = batch_text.replace(
+            '    file_type_scenario_contract_schema: '
+            '"ids.stage045.file_type_detection.phase3.scenarios.v1"',
+            '    file_type_scenario_contract_schema: '
+            '"ids.stage045.file_type_detection.phase3.scenarios.invalid"',
+        )
+        self.assertNotEqual(batch_text, tampered_contract)
+        blocked = module.evaluate_phase_state(
+            tampered_contract, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_event = dict(phase_event[0])
+        tampered_event["notes"] = tampered_event["notes"].replace(
+            "silent_drop_count=0",
+            "silent_drop_count=1",
+        )
+        self.assertNotEqual(phase_event[0]["notes"], tampered_event["notes"])
+        self.assertNotEqual(
+            [], module.evaluate_required_event_semantics([tampered_event])
+        )
+
+    def test_stage046_phase2_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE046-P2-20260720-001"
+        ]
+        self.assertEqual(1, len(phase_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE046_PHASE2_PARSER_ROUTING_SLICE.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/"
+            "stage046_parser_routing_runtime_contract.json",
+            "KM_IDSystem/scripts/check_parser_routing_runtime.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage046_parser_routing_runtime.py",
+            "KM_IDSystem/machine/runs/2026-07-20-stage046-p2-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE046-P2-20260720-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_contract = batch_text.replace(
+            '    parser_routing_runtime_contract_schema: '
+            '"ids.stage046.parser_routing.phase2.v1"',
+            '    parser_routing_runtime_contract_schema: '
+            '"ids.stage046.parser_routing.phase2.invalid"',
+        )
+        self.assertNotEqual(batch_text, tampered_contract)
+        blocked = module.evaluate_phase_state(
+            tampered_contract, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_event = dict(phase_event[0])
+        tampered_event["notes"] = tampered_event["notes"].replace(
+            "route_family_count=6",
+            "route_family_count=5",
+        )
+        self.assertNotEqual(phase_event[0]["notes"], tampered_event["notes"])
+        self.assertNotEqual(
+            [], module.evaluate_required_event_semantics([tampered_event])
+        )
+
+        tampered_route = self._tamper_current_stage046_phase1_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage046_phase3_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE046-P3-20260722-001"
+        ]
+        self.assertEqual(1, len(phase_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE046_PHASE3_PARSER_ROUTING_SCENARIOS.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/"
+            "stage046_parser_routing_scenarios_contract.json",
+            "KM_IDSystem/scripts/check_parser_routing_scenarios.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage046_parser_routing_scenarios.py",
+            "KM_IDSystem/machine/runs/2026-07-22-stage046-p3-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE046-P3-20260722-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_contract = batch_text.replace(
+            '    parser_routing_scenario_contract_schema: '
+            '"ids.stage046.parser_routing.phase3.scenarios.v1"',
+            '    parser_routing_scenario_contract_schema: '
+            '"ids.stage046.parser_routing.phase3.scenarios.invalid"',
+        )
+        self.assertNotEqual(batch_text, tampered_contract)
+        blocked = module.evaluate_phase_state(
+            tampered_contract, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_event = dict(phase_event[0])
+        tampered_event["notes"] = tampered_event["notes"].replace(
+            "silent_drop_count=0",
+            "silent_drop_count=1",
+        )
+        self.assertNotEqual(phase_event[0]["notes"], tampered_event["notes"])
+        self.assertNotEqual(
+            [], module.evaluate_required_event_semantics([tampered_event])
+        )
+
+        tampered_route = self._tamper_current_stage046_phase1_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage046_phase4_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_event = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE046-P4-20260722-001"
+        ]
+        self.assertEqual(1, len(phase_event))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_event))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE046_PHASE4_CLOSEOUT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/"
+            "stage046_parser_routing_delivery_contract.json",
+            "KM_IDSystem/scripts/check_parser_routing_delivery.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage046_parser_routing_delivery.py",
+            "KM_IDSystem/machine/runs/2026-07-22-stage046-p4-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE046-P4-20260722-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_contract = batch_text.replace(
+            '    parser_routing_delivery_contract_schema: '
+            '"ids.stage046.parser_routing.phase4.delivery.v1"',
+            '    parser_routing_delivery_contract_schema: '
+            '"ids.stage046.parser_routing.phase4.delivery.invalid"',
+        )
+        self.assertNotEqual(batch_text, tampered_contract)
+        blocked = module.evaluate_phase_state(
+            tampered_contract, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_event = dict(phase_event[0])
+        tampered_event["notes"] = tampered_event["notes"].replace(
+            "fallback_log_sample_count=14",
+            "fallback_log_sample_count=13",
+        )
+        self.assertNotEqual(phase_event[0]["notes"], tampered_event["notes"])
+        self.assertNotEqual(
+            [], module.evaluate_required_event_semantics([tampered_event])
+        )
+
+        tampered_route = self._tamper_current_stage046_phase1_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage046_review_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        review_events = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE046-REVIEW-20260722-001"
+        ]
+        self.assertEqual(1, len(review_events))
+        self.assertEqual([], module.evaluate_required_event_semantics(review_events))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_STAGE_REVIEW.md",
+            "KM_IDSystem/scripts/check_parser_routing_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage046_parser_routing_review_repairs.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage046_parser_routing_stage_review.py",
+            "KM_IDSystem/machine/runs/2026-07-22-stage046-review-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE046-REVIEW-20260722-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_review_count = batch_text.replace(
+            "    review_finding_count: 6",
+            "    review_finding_count: 5",
+        )
+        self.assertNotEqual(batch_text, tampered_review_count)
+        blocked = module.evaluate_phase_state(
+            tampered_review_count, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_event = dict(review_events[0])
+        tampered_event["notes"] = tampered_event["notes"].replace(
+            "all_findings_repaired=true",
+            "all_findings_repaired=false",
+        )
+        self.assertNotEqual(review_events[0]["notes"], tampered_event["notes"])
+        self.assertNotEqual(
+            [], module.evaluate_required_event_semantics([tampered_event])
+        )
+
+        tampered_route = self._tamper_current_stage046_phase1_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage047_phase2_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_events = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE047-P2-20260723-001"
+        ]
+        self.assertEqual(1, len(phase_events))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_events))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE047_PHASE2_PARSER_OUTPUT_SLICE.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/"
+            "stage047_parser_output_runtime_contract.json",
+            "KM_IDSystem/scripts/check_parser_output_runtime.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage047_parser_output_runtime.py",
+            "KM_IDSystem/machine/runs/2026-07-23-stage047-p2-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE047-P2-20260723-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_contract = batch_text.replace(
+            '    parser_output_runtime_contract_schema: '
+            '"ids.stage047.parser_output.phase2.v1"',
+            '    parser_output_runtime_contract_schema: '
+            '"ids.stage047.parser_output.phase2.invalid"',
+        )
+        self.assertNotEqual(batch_text, tampered_contract)
+        blocked = module.evaluate_phase_state(
+            tampered_contract, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_event = dict(phase_events[0])
+        tampered_event["notes"] = tampered_event["notes"].replace(
+            "accepted_output_count=3",
+            "accepted_output_count=2",
+        )
+        self.assertNotEqual(phase_events[0]["notes"], tampered_event["notes"])
+        self.assertNotEqual(
+            [], module.evaluate_required_event_semantics([tampered_event])
+        )
+
+    def test_stage047_phase3_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_events = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE047-P3-20260723-001"
+        ]
+        self.assertEqual(1, len(phase_events))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_events))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE047_PHASE3_PARSER_OUTPUT_SCENARIOS.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/"
+            "stage047_parser_output_scenarios_contract.json",
+            "KM_IDSystem/scripts/check_parser_output_scenarios.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage047_parser_output_scenarios.py",
+            "KM_IDSystem/machine/runs/2026-07-23-stage047-p3-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE047-P3-20260723-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_count = batch_text.replace(
+            "    phase3_scenario_count: 16",
+            "    phase3_scenario_count: 15",
+        )
+        self.assertNotEqual(batch_text, tampered_count)
+        blocked = module.evaluate_phase_state(
+            tampered_count, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_event = dict(phase_events[0])
+        tampered_event["notes"] = tampered_event["notes"].replace(
+            "accepted_output_count=11",
+            "accepted_output_count=10",
+        )
+        self.assertNotEqual(phase_events[0]["notes"], tampered_event["notes"])
+        self.assertNotEqual(
+            [], module.evaluate_required_event_semantics([tampered_event])
+        )
+
+        tampered_route = self._tamper_current_stage046_phase1_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+    def test_stage047_phase4_current_state_and_event_are_governed(self):
+        module = self._load_module()
+        batch_text = (
+            ROOT
+            / "docs"
+            / "pursuing_goal"
+            / "ids_v0_1"
+            / "BATCH041_050_UPLOAD_LOCK.yaml"
+        ).read_text(encoding="utf-8")
+        roadmap_text = (ROOT / "docs" / "governance" / "roadmap.yaml").read_text(
+            encoding="utf-8"
+        )
+
+        current_checks = module.evaluate_current_state_consistency(
+            batch_text, roadmap_text
+        )
+        self.assertTrue(all(current_checks.values()), current_checks)
+        phase_checks = module.evaluate_phase_state(
+            batch_text, roadmap_text, require_structured=True
+        )
+        self.assertTrue(all(phase_checks.values()), phase_checks)
+
+        events, parse_errors = module._parse_events(
+            ROOT / "docs" / "governance" / "events.jsonl"
+        )
+        self.assertEqual([], parse_errors)
+        phase_events = [
+            event
+            for event in events
+            if event.get("event_id")
+            == "EVT-IDS-V0_1-STAGE047-P4-20260723-001"
+        ]
+        self.assertEqual(1, len(phase_events))
+        self.assertEqual([], module.evaluate_required_event_semantics(phase_events))
+
+        for required_path in (
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_PHASE4_CLOSEOUT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/"
+            "stage047_parser_output_delivery_contract.json",
+            "KM_IDSystem/scripts/check_parser_output_delivery.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage047_parser_output_delivery.py",
+            "KM_IDSystem/machine/runs/2026-07-23-stage047-p4-local.json",
+        ):
+            with self.subTest(path=required_path):
+                self.assertIn(required_path, module.REQUIRED_FILES)
+        self.assertIn(
+            "EVT-IDS-V0_1-STAGE047-P4-20260723-001",
+            module.REQUIRED_EVENT_IDS,
+        )
+
+        tampered_count = batch_text.replace(
+            "    sanitized_output_sample_count: 8",
+            "    sanitized_output_sample_count: 7",
+        )
+        self.assertNotEqual(batch_text, tampered_count)
+        blocked = module.evaluate_phase_state(
+            tampered_count, roadmap_text, require_structured=True
+        )
+        self.assertFalse(all(blocked.values()), blocked)
+
+        tampered_event = dict(phase_events[0])
+        tampered_event["notes"] = tampered_event["notes"].replace(
+            "fallback_log_sample_count=16",
+            "fallback_log_sample_count=15",
+        )
+        self.assertNotEqual(phase_events[0]["notes"], tampered_event["notes"])
+        self.assertNotEqual(
+            [], module.evaluate_required_event_semantics([tampered_event])
+        )
+
+        tampered_route = self._tamper_current_stage046_phase1_route(batch_text)
+        blocked = module.evaluate_current_state_consistency(
+            tampered_route, roadmap_text
+        )
+        self.assertFalse(all(blocked.values()), blocked)
 
 if __name__ == "__main__":
     unittest.main()

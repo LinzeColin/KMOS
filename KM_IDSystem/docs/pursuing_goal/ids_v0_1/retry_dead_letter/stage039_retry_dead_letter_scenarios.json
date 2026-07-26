@@ -21,7 +21,7 @@
     "source_verification_status": "SOURCE_VERIFIED"
   },
   "phase2_commit_binding": {
-    "commit": "27368f8e42522725dc97c76ea1a90481380d5d24",
+    "commit": "aeddad7e450b1983f42c802bd0e566cdcf52a0db",
     "required_ancestor_of_head": true
   },
   "upstream_bindings": {

@@ -11,6 +11,7 @@ from urllib.parse import quote
 
 import pytest
 import yaml
+from app import file_security_worker
 from app import walking_skeleton as skeleton
 from app.backup_restore import BackupRestoreError, create_backup, restore_backup
 from app.file_security import (
@@ -21,7 +22,13 @@ from app.file_security import (
     run_security_scan_once,
 )
 from app.main import app
+from app.retention_lifecycle import (
+    DELETE_CONFIRMATION,
+    LifecycleRepository,
+    RestoreDrillProof,
+)
 from app.structured_store import (
+    SCHEMA_VERSION,
     StructuredStoreIntegrityError,
     open_structured_store,
 )
@@ -454,6 +461,124 @@ def test_backup_refuses_an_active_security_scan(
             now=NOW,
         )
     connection.close()
+
+
+def test_deletion_and_scanner_claims_are_serialized(
+    security_runtime: tuple[Path, TestClient],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    state, client = security_runtime
+    monkeypatch.setattr(skeleton, "run_security_scan_once", lambda **kwargs: None)
+    created = _create(client)
+    workspace_id = created["workspace"]["workspace_id"]
+    _upload(
+        client,
+        workspace_id,
+        b"delete and scanner lease fixture",
+        name="delete-scan.txt",
+    )
+    connection = open_structured_store(state / "walking_skeleton.sqlite3")
+    with connection.transaction():
+        repository = FileSecurityRepository(connection)
+        claim = repository.claim(
+            now=NOW,
+            lease_seconds=60,
+            retry_delay_seconds=0,
+            max_attempts=3,
+        )
+        LifecycleRepository(connection).record_restore_proof(
+            RestoreDrillProof(
+                proof_id="proof_p62_delete_scan",
+                backup_id="backup_p62_delete_scan",
+                backup_manifest_sha256="a" * 64,
+                source_schema_version=SCHEMA_VERSION,
+                expected_fixture_count=1,
+                restored_fixture_count=1,
+                invariant_failures=0,
+                measured_rpo_ms=25,
+                measured_rto_ms=250,
+                artifact_identity_hash="b" * 64,
+                verified_at="2026-07-26T04:00:00Z",
+            )
+        )
+    assert claim is not None
+    monkeypatch.setenv("KMFA_LIFECYCLE_MODE", "active")
+    delete_body = {
+        "confirmation": DELETE_CONFIRMATION,
+        "workspace_secret": created["recovery_code"],
+    }
+    delete_headers = {
+        "Idempotency-Key": "p62-delete-scan-idempotency-000001",
+    }
+    blocked = client.request(
+        "DELETE",
+        f"{BASE}/workspaces/{workspace_id}",
+        json=delete_body,
+        headers=delete_headers,
+    )
+    assert blocked.status_code == 409
+    assert blocked.json() == {"detail": "deletion_consistency_pending"}
+
+    with connection.transaction():
+        FileSecurityRepository(connection).complete(
+            claim,
+            state="timed_out",
+            reason_code="security_scanner_timeout",
+            detected_media_type=None,
+            scanner_engine=None,
+            scanner_version=None,
+            policy_version="kmfa-upload-security-v1",
+            timestamp="2026-07-26T04:00:01Z",
+        )
+    accepted = client.request(
+        "DELETE",
+        f"{BASE}/workspaces/{workspace_id}",
+        json=delete_body,
+        headers=delete_headers,
+    )
+    assert accepted.status_code == 202, accepted.text
+    with connection.transaction():
+        retry_claim = FileSecurityRepository(connection).claim(
+            now=NOW + timedelta(minutes=1),
+            lease_seconds=60,
+            retry_delay_seconds=0,
+            max_attempts=3,
+        )
+    assert retry_claim is None
+    assessment = connection.execute(
+        "SELECT state, attempt_count FROM artifact_security_assessments"
+    ).fetchone()
+    retention = connection.execute(
+        "SELECT state FROM workspace_retention WHERE workspace_id = ?",
+        (workspace_id,),
+    ).fetchone()
+    assert tuple(assessment) == ("timed_out", 1)
+    assert retention["state"] == "deletion_requested"
+    connection.close()
+
+
+def test_disabled_worker_idles_without_compose_restart_loop(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    monkeypatch.setenv("KMFA_FILE_SECURITY_ENABLED", "0")
+    monkeypatch.setenv("KMFA_ARTIFACT_DERIVATION_ENABLED", "0")
+    assert file_security_worker.main(["--once"]) == 0
+    assert '"status": "disabled"' in capsys.readouterr().out
+
+    sleep_calls: list[float] = []
+
+    class StopIdleLoop(RuntimeError):
+        pass
+
+    def stop_after_first_idle(seconds: float) -> None:
+        sleep_calls.append(seconds)
+        raise StopIdleLoop
+
+    monkeypatch.setattr(file_security_worker.time, "sleep", stop_after_first_idle)
+    with pytest.raises(StopIdleLoop):
+        file_security_worker.main(["--poll-seconds", "0.25"])
+    assert sleep_calls == [0.25]
 
 
 def test_scanner_compose_has_no_data_plane_credentials_or_mounts():

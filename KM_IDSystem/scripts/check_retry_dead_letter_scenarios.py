@@ -223,15 +223,18 @@ def _upstream_valid(value: Any) -> bool:
 
 
 def _phase2_commit_is_ancestor(value: Any) -> bool:
+    kmos_commit = "aeddad7e450b1983f42c802bd0e566cdcf52a0db"
     if not _keys_exact(value, {"commit", "required_ancestor_of_head"}):
         return False
     if (
-        value.get("commit") != "27368f8e42522725dc97c76ea1a90481380d5d24"
+        value.get("commit") != kmos_commit
         or value.get("required_ancestor_of_head") is not True
     ):
         return False
+    # KMOS 的仓库拆分重写了提交身份。2026-07-17 对原 CodexProject
+    # 提交与此 KMOS 提交逐文件核对，18/18 个 KM_IDSystem blob 相同。
     result = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", value["commit"], "HEAD"],
+        ["git", "merge-base", "--is-ancestor", kmos_commit, "HEAD"],
         cwd=REPO_ROOT,
         check=False,
         stdout=subprocess.DEVNULL,

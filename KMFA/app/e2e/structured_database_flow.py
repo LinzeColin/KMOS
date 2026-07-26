@@ -579,7 +579,8 @@ def run_oracle(resources: OwnedResources, out_dir: Path) -> dict[str, Any]:
         },
     )
     assert upload_status == 200, upload_raw
-    assert json.loads(upload_raw.decode("utf-8"))["artifact"]["sha256"] == FIXTURE_SHA256
+    uploaded_sha256 = json.loads(upload_raw.decode("utf-8"))["artifact"]["sha256"]
+    assert uploaded_sha256 == FIXTURE_SHA256
 
     _configure_host_database(resources.host_dsn)
     connection = open_structured_store(Path("/tmp/kmfa-p51-unused.sqlite3"))

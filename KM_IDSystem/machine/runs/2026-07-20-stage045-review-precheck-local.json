@@ -1,0 +1,175 @@
+{
+  "run_id": "`RUN-IDS-STAGE045-REVIEW-PRECHECK-LOCAL-20260720-001`",
+  "task_id": "IDS-V0_1-STAGE045-REVIEW",
+  "action": "对 Stage045 步骤一至四执行独立整阶段复审预检，修复检测器边界缺陷，并在批准来源缺失时失败关闭",
+  "result": "`BLOCKED_SOURCE_UNAVAILABLE_REPAIRS_VERIFIED`",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "base_stage045_phase4_commit": "c0b2f3e2069d371125b70a5621031b1332403f95",
+  "base_stage045_phase4_tree": "2c07695af1e78c33f62dfb6f50db13f1bbe7a4b1",
+  "base_stage045_phase4_kmids_tree": "b00bab20eb5c265b7c3c3b25c0a7618d50cac2af",
+  "source_archive_sha256_bound": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+  "source_member_sha256_bound": "4eac237a7f63d764cf71789d4949a5168cbe8fe24e1fe7eb816baabe04bb4d27",
+  "source_availability": {
+    "live": false,
+    "archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "roadmap_path": "/Users/linzezhang/Downloads/IDS_Codex开发Roadmap_v0_1_only_中文修订版.txt",
+    "instructions_path": "/Users/linzezhang/Downloads/IDS_Codex使用说明_v0_1_only_中文修订版.txt",
+    "live_rehash_performed": false,
+    "replacement_authority_assumed": false,
+    "search_scope": "精确路径、精确文件名 Spotlight、Trash 精确路径、批准迁移备份和仓库 Git 对象名；未扫描 Downloads"
+  },
+  "review_findings": [
+    {
+      "id": "STAGE045-REVIEW-F0",
+      "severity": "Critical",
+      "status": "OPEN_BLOCKER",
+      "summary": "三份批准来源当前不可读，无法执行 live independent source rehash"
+    },
+    {
+      "id": "STAGE045-REVIEW-F1",
+      "severity": "Critical",
+      "status": "REPAIRED",
+      "summary": "magic-only 或截断 PDF/PNG/JPEG/TIFF 不再产生高置信候选"
+    },
+    {
+      "id": "STAGE045-REVIEW-F2",
+      "severity": "Critical",
+      "status": "REPAIRED",
+      "summary": "缺少 OOXML markers 的 ZIP 不再回退到 MIME 或扩展名候选"
+    },
+    {
+      "id": "STAGE045-REVIEW-F3",
+      "severity": "Important",
+      "status": "REPAIRED",
+      "summary": "OOXML member name 必须 canonical、唯一且无 traversal"
+    },
+    {
+      "id": "STAGE045-REVIEW-F4",
+      "severity": "Important",
+      "status": "REPAIRED",
+      "summary": "UNKNOWN MIME 输入与 schema 统一规范化"
+    },
+    {
+      "id": "STAGE045-REVIEW-F5",
+      "severity": "Important",
+      "status": "REPAIRED",
+      "summary": "UTC timestamp 增加真实 calendar 和 time 验证"
+    },
+    {
+      "id": "STAGE045-REVIEW-F6",
+      "severity": "Important",
+      "status": "REPAIRED",
+      "summary": "evidence excerpt 在任何 signature inspection 前完成边界验证"
+    }
+  ],
+  "finding_counts": {
+    "Critical": 3,
+    "Important": 4,
+    "Minor": 0,
+    "repaired": 6,
+    "open_blockers": 1
+  },
+  "contract_prechecks": {
+    "phase1": {
+      "passed": 21,
+      "total": 22,
+      "failed": [
+        "source_live"
+      ]
+    },
+    "phase2": {
+      "passed": 16,
+      "total": 17,
+      "failed": [
+        "source_live"
+      ]
+    },
+    "phase3": {
+      "passed": 15,
+      "total": 16,
+      "failed": [
+        "source_live"
+      ]
+    },
+    "phase4": {
+      "passed": 15,
+      "total": 16,
+      "failed": [
+        "source_binding_live"
+      ]
+    }
+  },
+  "validation_iterations": [
+    {
+      "gate": "stage045_review_counterexamples_initial",
+      "result": "EXPECTED_RED",
+      "tests": 6,
+      "assertion_failures": 10,
+      "errors": 1
+    },
+    {
+      "gate": "stage045_review_ooxml_marker_fallback_counterexample",
+      "result": "EXPECTED_RED",
+      "tests": 1,
+      "assertion_failures": 1,
+      "errors": 0
+    },
+    {
+      "gate": "stage045_review_repairs",
+      "result": "PASS",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 0.016
+    },
+    {
+      "gate": "stage045_phase1_phase4_plus_review_repairs",
+      "result": "BLOCKED_SOURCE_UNAVAILABLE",
+      "tests": 67,
+      "passed": 50,
+      "failures": 13,
+      "errors": 4,
+      "duration_seconds": 2.711,
+      "reason": "所有 failure/error 均为 live source 检查失败的直接或上游 fail-closed 级联；不得计为 PASS"
+    },
+    {
+      "gate": "stage005_governance_regression",
+      "result": "PASS",
+      "tests": 172,
+      "failures": 0,
+      "errors": 0,
+      "duration_seconds": 36.201
+    }
+  ],
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0,
+    "sparse_root_governance_conflict": "scripts/lean_governance.py 缺失；仅报告 SPARSE_CONFLICT，未展开其他项目"
+  },
+  "pending_results": [
+    "恢复或重新提供三份完全相同的批准来源并验证既有哈希",
+    "在同一 Git-index snapshot 重跑 P1-P4、整阶段聚合、全量 discovery、历史 review、events、render 和 dual-plane",
+    "全部通过后才可创建最终 STAGE045_STAGE_REVIEW.md 和 reviewed-local 治理路由",
+    "Stage046-050、十阶段批次复审、GitHub 上传和应用重装仍未授权"
+  ],
+  "prohibitions_observed": [
+    "未完成或宣称 Stage045 整阶段复审通过，未进入 Stage046",
+    "未扫描 Downloads，未读取、列出、stat、hash、复制或修改 IDS_MetaData",
+    "未执行真实业务 source、parser、fallback、持久化、数据库或生产运行时",
+    "未安装依赖，未上传、合并、变更 issue 或重装应用"
+  ],
+  "review_precheck_performed": true,
+  "whole_stage_review_performed": false,
+  "source_file_open_performed": false,
+  "ids_business_source_read_performed": false,
+  "raw_metadata_content_accessed": false,
+  "persistent_state_write_performed": false,
+  "stage046_entry_allowed": false,
+  "github_upload_allowed": false,
+  "app_reinstall_allowed": false,
+  "next_gate": "IDS-STAGE045-REVIEW-GATE"
+}

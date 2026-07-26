@@ -106,9 +106,6 @@ REVIEW_SOURCE_PATHS = (
     EVENTS_PATH,
     PROJECT_ROOT / "docs" / "HANDOFF.md",
     PROJECT_ROOT / "CHANGELOG.md",
-    PROJECT_ROOT / "功能清单.md",
-    PROJECT_ROOT / "开发记录.md",
-    PROJECT_ROOT / "模型参数文件.md",
 )
 
 
@@ -269,11 +266,12 @@ def _governance_checks() -> dict[str, bool]:
         "batch_reviewed_local_exact": all(
             term in batch
             for term in (
+                "stage040_review_state:",
                 'status: "stage040_completed_reviewed_local"',
                 'review_status: "passed"',
                 'current_task_id: "IDS-V0_1-STAGE040-REVIEW"',
                 'next_allowed_task_id: "IDS-V0_1-BATCH-031-040-REVIEW-GATE"',
-                "push_allowed: false",
+                'status: "uploaded_to_github_main"',
                 "batch_review_performed: false",
             )
         ),

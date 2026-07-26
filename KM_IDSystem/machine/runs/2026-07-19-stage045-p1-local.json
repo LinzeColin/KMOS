@@ -1,0 +1,93 @@
+{
+  "run_id": "`RUN-IDS-STAGE045-P1-LOCAL-20260719-001`",
+  "task_id": "IDS-V0_1-STAGE045-P1",
+  "action": "绑定批准来源、Stage044 复审基线与 Stage013/027/037 权威，交付文件类型检测步骤一静态工程合同",
+  "result": "`PASS_PHASE1_CONTRACT_DETECTION_RUNTIME_DISABLED`",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "base_stage044_review_commit": "97044d0b6475ebf41b4f79311164a392979305a0",
+  "base_stage044_review_tree": "eff34be6236b4ea3e89630961c510580aacf8259",
+  "base_stage044_review_parent": "5da8fdf64cab35545e717900e71ccbbb5dacb11c",
+  "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+  "source_member_sha256": "4eac237a7f63d764cf71789d4949a5168cbe8fe24e1fe7eb816baabe04bb4d27",
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0
+  },
+  "verified_results": [
+    "批准任务包归档、唯一 Stage045 成员、路线图和使用说明哈希均匹配",
+    "Stage044 复审提交、KM_IDSystem 目录树和父提交精确且保持当前分支祖先",
+    "TDD RED 在十三项测试中产生四项预期断言失败和十二项缺失产物错误",
+    "步骤一检查器 22/22、聚焦测试 13/13 通过",
+    "三信号优先级、OOXML 容器标记、十类规范类型、六类检测状态、显式 fallback 和非可信 parser output 合同均已固化",
+    "Stage041-045 聚合最终 281/281 通过，耗时 1152.681 秒",
+    "IDS v0.1 全量 discovery 最终 1028/1028 通过，耗时 1583.104 秒",
+    "Stage005 治理回归 169/169 通过，耗时 35.381 秒",
+    "Stage038-044 七个独立 review checker 在同一暂存快照全部通过",
+    "216 条治理事件无解析、重复标识或语义错误",
+    "owner 文档渲染幂等且 KM_IDSystem project dual-plane PASS",
+    "根级 scripts/lean_governance.py 因 sparse worktree 缺失，按约束记录 SPARSE_CONFLICT 且未展开其他项目"
+  ],
+  "validation_iterations": [
+    {
+      "gate": "stage041_045_aggregate",
+      "result": "FAIL",
+      "tests": 281,
+      "failures": 9,
+      "errors": 0,
+      "seconds": 1118.909,
+      "reason": "Stage041-044 历史 current-route 与 HANDOFF 断言止于 Stage044 Review"
+    },
+    {
+      "gate": "stage041_045_aggregate",
+      "result": "FAIL",
+      "tests": 281,
+      "failures": 11,
+      "errors": 0,
+      "seconds": 917.808,
+      "reason": "Stage044 Phase3 场景测试的精确哈希因前向路由修订变化；delivery checker 尚未绑定该唯一兼容哈希"
+    },
+    {
+      "gate": "stage041_045_aggregate",
+      "result": "PASS",
+      "tests": 281,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 1152.681
+    },
+    {
+      "gate": "ids_v0_1_full_discovery",
+      "result": "FAIL",
+      "tests": 1028,
+      "failures": 6,
+      "errors": 0,
+      "seconds": 1516.339,
+      "reason": "Stage038/039 六个历史测试的当前阶段与下一门白名单止于 Stage044 Review"
+    },
+    {
+      "gate": "ids_v0_1_full_discovery",
+      "result": "PASS",
+      "tests": 1028,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 1583.104
+    }
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未进入或实现 Stage045 步骤二",
+    "未打开、扫描、hash、sniff、解码、解压、stat 或遍历 IDS 业务文件",
+    "未执行类型检测、parser route、parser、fallback、prompt marker、证据提升、manifest、audit、状态、持久化、数据库或生产运行时",
+    "未触碰原始元数据或创建虚构 IDS 业务数据",
+    "未安装依赖，未上传、合并、变更 issue 或重装应用"
+  ],
+  "file_type_detection_runtime_performed": false,
+  "parser_execution_performed": false,
+  "high_confidence_evidence_write_performed": false,
+  "github_upload_allowed": false,
+  "app_reinstall_allowed": false,
+  "next_gate": "IDS-STAGE045-P2-GATE"
+}

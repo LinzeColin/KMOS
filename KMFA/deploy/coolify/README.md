@@ -95,23 +95,35 @@
 > worker，再恢复 `paused`，保留全部 DB/object/backup/volume/evidence。
 
 > **S06/P6.1 中间态边界**：候选 image 已提供 `kmfa-offset-v1`、4 MiB 固定分片、64 MiB 单文件、
-> 服务端权威偏移、分片与完整文件 SHA-256 及幂等重试，但本 Phase 不单独切生产。S06 整体复审前
+> 服务端权威偏移、分片与完整文件 SHA-256 及幂等重试。S06 Stage publication 不自动切生产，
 > 保持 `KMFA_RESUMABLE_UPLOAD_ENABLED=0`；同一候选 image 必须先跑 TEST-UP-001/002，再用合成
 > PDF/图片/音频/视频/ZIP/未知/高风险扩展名 canary 验证 attachment-only、断线恢复、重复/越序/
 > 篡改拒绝、并发单副本、超限写入 0。快速回滚只恢复该 Flag 为 `0`，标准 8 MiB 上传继续工作；
 > 保留 DB、intent、私有暂存分片、对象与 `kmfa-app-state`，禁止 `down -v`、删分片/对象或回退到
-> 不识别当前 schema/恢复资产的旧 binary。P6.2 扫描接入前不得把 attachment-only 误报为 malware
-> clean。
+> 不识别当前 schema/恢复资产的旧 binary。Flag 关闭或扫描未决时不得把 attachment-only 误报为
+> malware clean。
+
+> **S06/P6.2 隔离扫描边界**：只有另行批准 canary 后才同时启用 `file-security` profile、
+> `KMFA_FILE_SECURITY_ENABLED=1` 与 32–256 字符随机 shared secret。scanner 只能在 internal
+> `scan-plane` 接收 HMAC/nonce/hash 绑定的原件流，无 DB、对象凭据、状态卷或公网端口；worker
+> 持有 App 数据面凭据并将 durable quarantine 收敛为 clean/attachment-only/rejected/timeout/error。
+> active scan 会阻止显式删除，删除请求提交后不再领取该工作区。回滚先置 Flag `0` 再停止
+> profile；persisted rejected 仍阻断，未决项只作附件，禁止删 assessment/event/原件/对象/卷。
 
 > **S06/P6.3 中间态边界**：schema v6 增加同一逻辑文件最多 32 个不可变版本、显式
 > parent/source 血缘、固定版本 `kmfa-safe-text-extract/1.0.0` 处理器，以及只面向 scanner-clean
 > UTF-8 text/plain/JSON 的 64 KiB `text/plain` 派生预览。Web 不解析原件，未知、高风险、
 > attachment-only/rejected/timeout/error 均不进入 processor；原件和历史版本不可覆盖，派生物
-> 可重建但必须保留 processor/version/hash 血缘。本 Phase 不单独切生产；S06 整体复审前保持
+> 可重建但必须保留 processor/version/hash 血缘。S06 Stage publication 不自动切生产，保持
 > `KMFA_ARTIFACT_DERIVATION_ENABLED=0`。同一候选 image 必须先证明同名同内容/修改内容均产生新
 > version、parent chain 与 lineage gap=0、浏览器校验 preview hash、重处理产生新 generation、
 > backup/restore 覆盖原件和派生物。快速回滚只恢复 Flag 为 `0` 并重部署同一 schema v6 binary；
 > 保留 DB、所有原件/版本/血缘/派生物/backup/volume，禁止降 schema、`down -v` 或删除对象。
+
+> **S06/P6.4 质量门**：正式 canary 前，同一 image ID 必须同时通过 P6.1/P6.2/P6.3、P5.2
+> PostgreSQL+S3 与 P4.4 abuse Oracles，并输出 bounded soak、quota race、scanner backlog、
+> object timeout 和统一 negative matrix。该合成结果不是生产容量或生产 RPO/RTO 证明；本次
+> Stage publication 保持三项 S06 Flags 为 `0`，生产灰度必须另行获批并逐项观察/回滚。
 
 6. 观测 P1 内存无碍后，在 Coolify 为本资源**启用 `full` profile**（Compose profiles → 勾 `full`）或设 `COMPOSE_PROFILES=full`，重部署 → `kmfa-app` 起。
 7. **域名**：Coolify 给 `app` 服务设 `kmfa.linzezhang.com`（Coolify Traefik 自动签发/路由）；**Cloudflare** 加一条**代理（橙云）** A 记录 `kmfa` → OVH 公网 IP（或按 Coolify 提示的 CNAME）。App 仅经 Traefik 暴露，主机不额外开放端口。

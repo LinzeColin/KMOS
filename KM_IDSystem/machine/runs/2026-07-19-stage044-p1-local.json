@@ -1,0 +1,40 @@
+{
+  "run_id": "`RUN-IDS-STAGE044-P1-LOCAL-20260719-001`",
+  "action": "绑定批准来源、Stage043 复审基线和既有清理/控制合同，交付半成品输出清理步骤一静态工程合同",
+  "result": "`PASS_PHASE1_CONTRACT_DELETE_DISABLED`",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "base_stage043_review_commit": "e7835134550e2776f0949870fcaf7d7b9a54bd01",
+  "base_stage043_review_tree": "9550bdf529cb7b48198fac18a68983325abd1af4",
+  "base_stage043_review_parent": "641009f26df2119cf21bf33640789f4928d94037",
+  "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+  "source_member_sha256": "e7e98eb5497aa33124b944dfc1d00e15588a672c0f9accc4cda4a66fe1f72a53",
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0,
+    "sparse_root_governance_conflict": "scripts/lean_governance.py 缺失；仅报告 SPARSE_CONFLICT，未展开其他项目"
+  },
+  "verified_results": [
+    "批准任务包归档、唯一 Stage044 成员、路线图和使用说明哈希均匹配",
+    "Stage043 复审提交、目录树和父提交精确且保持当前分支祖先",
+    "TDD RED 在十三项测试中产生四项预期断言失败和十二项缺失产物错误",
+    "步骤一检查器 22/22、聚焦测试 13/13、Stage005 治理回归 165/165 全部通过",
+    "Stage041-044 聚合回归 211/211 通过，耗时 1014.663 秒",
+    "IDS v0.1 全量 discovery 954/954 通过，耗时 1403.519 秒",
+    "Stage038-043 六个历史整阶段复审检查器全部通过并保持 Git 索引绑定",
+    "211 条治理事件零 JSON、重复或语义错误；双次渲染幂等，项目级双平面通过",
+    "全量首轮只暴露六项历史 Stage038/039 前向 allowlist；修复严格限定到 Stage044 P1 到 P2",
+    "仓库级治理入口因 sparse checkout 缺失而报告 SPARSE_CONFLICT，未展开其他项目"
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未进入或实现 Stage044 步骤二",
+    "未执行 cleanup scan、候选运行评估、文件系统遍历、生产锁获取、移动、覆盖、删除、audit write、状态修改、持久化、数据库或生产运行时",
+    "未触碰原始元数据或创建虚构 IDS 业务数据",
+    "未安装依赖，未上传、合并、变更 issue 或重装应用"
+  ],
+  "next_gate": "IDS-STAGE044-P2-GATE"
+}

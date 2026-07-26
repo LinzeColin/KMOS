@@ -1,0 +1,75 @@
+{
+  "schema_version": "ids.stage045.file_type_detection.stage_review.run.v1",
+  "run_id": "`RUN-IDS-STAGE045-REVIEW-LOCAL-20260720-001`",
+  "stage": "STAGE-045",
+  "task_id": "IDS-V0_1-STAGE045-REVIEW",
+  "acceptance_id": "ACC-STAGE-045",
+  "action": "恢复并重新哈希批准来源，独立重放 Stage045 四个步骤与七项发现反例，固化仅本地复审结论",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "result": "PASS_REVIEWED_LOCAL_PARSER_AND_FALLBACK_DISABLED",
+  "stage_review_status": "completed_reviewed_local",
+  "finding_count": 7,
+  "finding_counts": {
+    "Critical": 3,
+    "Important": 4,
+    "Minor": 0
+  },
+  "resolved_finding_count": 7,
+  "open_finding_count": 0,
+  "approved_sources_live_exact": true,
+  "source_hashes": {
+    "archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "stage045_member_sha256": "4eac237a7f63d764cf71789d4949a5168cbe8fe24e1fe7eb816baabe04bb4d27",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8"
+  },
+  "phase4_commit_binding": {
+    "commit": "c0b2f3e2069d371125b70a5621031b1332403f95",
+    "root_tree": "2c07695af1e78c33f62dfb6f50db13f1bbe7a4b1",
+    "km_ids_tree": "b00bab20eb5c265b7c3c3b25c0a7618d50cac2af",
+    "required_ancestor_of_head": true
+  },
+  "phase_results": {
+    "phase1_contract_valid": true,
+    "phase2_slice_valid": true,
+    "phase3_scenarios_valid": true,
+    "phase4_delivery_valid": true
+  },
+  "finding_checks": {
+    "approved_sources_live_exact": true,
+    "bounded_format_structure_validation": true,
+    "ooxml_marker_fallback_fail_closed": true,
+    "ooxml_member_identity_canonical": true,
+    "unknown_mime_canonical": true,
+    "utc_timestamp_semantic": true,
+    "evidence_prevalidated_before_signature": true
+  },
+  "next_gate": "IDS-STAGE046-P1-GATE",
+  "stage046_started": false,
+  "stage046_entry_allowed": false,
+  "ids_business_source_read_performed": false,
+  "parser_dispatch_performed": false,
+  "parser_execution_performed": false,
+  "fallback_execution_performed": false,
+  "persistent_state_write_performed": false,
+  "audit_write_performed": false,
+  "database_connection_performed": false,
+  "raw_metadata_content_accessed": false,
+  "production_runtime_activation_performed": false,
+  "batch_review_performed": false,
+  "github_upload_allowed": false,
+  "app_reinstall_allowed": false,
+  "validation": {
+    "focused_review_tests": "8/8 PASS in 24.465s",
+    "phase1_to_review_repair_suite": "67/67 PASS in 4.038s",
+    "stage005_governance_regression": "172/172 PASS in 41.976s",
+    "stage041_045_aggregate": "343/343 PASS in 1171.188s",
+    "full_ids_v0_1_discovery": "1093/1093 PASS in 1548.501s",
+    "historical_and_current_review_checkers": "8/8 PASS",
+    "stage044_compatibility_retest": "10/10 PASS in 160.408s",
+    "governance_events": "220 parsed; 0 parse errors; 0 duplicate IDs; 0 semantic errors",
+    "owner_render_idempotent": true,
+    "project_dual_plane_valid": true
+  },
+  "root_governance_status": "SPARSE_CONFLICT_ROOT_SCRIPT_ABSENT_NO_SPARSE_EXPANSION"
+}

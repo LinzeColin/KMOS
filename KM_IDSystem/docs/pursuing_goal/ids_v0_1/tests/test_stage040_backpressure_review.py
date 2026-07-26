@@ -19,6 +19,7 @@ RUNTIME_CHECKER = ROOT / "scripts" / "check_backpressure_runtime.py"
 REVIEW_CHECKER = ROOT / "scripts" / "check_backpressure_stage_review.py"
 REVIEW = PURSUE_ROOT / "STAGE040_STAGE_REVIEW.md"
 BATCH = PURSUE_ROOT / "BATCH031_040_UPLOAD_LOCK.yaml"
+CURRENT_BATCH = PURSUE_ROOT / "BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 CONTROL_REF = (
@@ -133,6 +134,7 @@ class Stage040BackpressureStageReviewTests(unittest.TestCase):
 
     def test_governance_closes_stage_only_to_separate_batch_review(self):
         batch = BATCH.read_text(encoding="utf-8")
+        current_batch = CURRENT_BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         self.assertIn('status: "stage040_completed_reviewed_local"', batch)
         self.assertIn('review_status: "passed"', batch)
@@ -141,7 +143,9 @@ class Stage040BackpressureStageReviewTests(unittest.TestCase):
             'next_allowed_task_id: "IDS-V0_1-BATCH-031-040-REVIEW-GATE"',
             batch,
         )
-        self.assertIn('push_allowed: false', batch)
+        self.assertIn('status: "uploaded_to_github_main"', batch)
+        self.assertIn('push_allowed: false', current_batch)
+        self.assertIn('next_allowed_task_id: "IDS-V0_1-STAGE041-P2"', current_batch)
         self.assertIn('current_phase_id: "IDS-STAGE040-REVIEW"', roadmap)
         self.assertIn('current_task_id: "IDS-V0_1-STAGE040-REVIEW"', roadmap)
         self.assertIn(

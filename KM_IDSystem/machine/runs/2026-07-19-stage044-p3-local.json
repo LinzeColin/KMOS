@@ -1,0 +1,46 @@
+{
+  "run_id": "`RUN-IDS-STAGE044-P3-LOCAL-20260719-001`",
+  "action": "验证十四项隔离 reference-only 半成品清理异常与竞态场景",
+  "result": "`PASS_ISOLATED_CLEANUP_SCENARIOS_DELETE_DISABLED`",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "base_stage044_phase2_commit": "4867bb14f1ff87231d4dd6f4ebae7251d60be585",
+  "base_stage044_phase2_tree": "790114d3ce9e3e416d70c64da467ff148ceb848c",
+  "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+  "source_member_sha256": "e7e98eb5497aa33124b944dfc1d00e15588a672c0f9accc4cda4a66fe1f72a53",
+  "scenario_contract": {
+    "schema_version": "ids.stage044.half_product_cleanup.phase3.scenarios.v1",
+    "contract_id": "ids.half_product_cleanup_policy.v0_1.stage044.p3.scenarios",
+    "scenario_count": 14,
+    "passed_scenario_count": 14,
+    "delete_allowed": false,
+    "production_enabled": false
+  },
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0,
+    "sparse_root_governance_conflict": "scripts/lean_governance.py 缺失；仅报告 SPARSE_CONFLICT，未展开其他项目"
+  },
+  "verified_results": [
+    "批准任务包归档、唯一 Stage044 成员、路线图和使用说明哈希均匹配",
+    "Stage044 Phase2 提交和 KM_IDSystem 目录树精确且保持当前分支祖先",
+    "十四项隔离场景及 Stage041 同源锁、Stage043 控制子进程自退出证据复跑通过",
+    "Phase3 checker 通过 18/18 项合同检查与 14/14 项场景检查",
+    "focused tests 通过 19/19，耗时 14.295s；Stage005 governance 通过 167/167，耗时 31.893s",
+    "Stage041-044 aggregate 通过 246/246，耗时 1093.223s；IDS v0.1 full discovery 通过 991/991，耗时 1436.808s",
+    "Stage038-043 六个历史复审检查器全部保持 review_valid=true",
+    "213 条治理事件无解析、重复标识或语义错误；机器事实渲染幂等且 KM_IDSystem project dual-plane PASS",
+    "首轮 aggregate 231/246 与首轮 full discovery 990/991 失败关闭；修复仅限当前 P3 前向路由、精确上游哈希及自动恢复事实约束"
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未进入或实现 Stage044 步骤四、整阶段复审或 Stage045",
+    "未访问真实候选路径，未执行 cleanup scan、文件系统探测或遍历、生产锁、进程恢复、移动、覆盖、删除、audit write、状态修改、持久化、数据库或生产运行时",
+    "未触碰原始元数据或创建虚构 IDS 业务数据",
+    "未安装依赖，未上传、合并、变更 issue 或重装应用"
+  ],
+  "next_gate": "IDS-STAGE044-P4-GATE"
+}

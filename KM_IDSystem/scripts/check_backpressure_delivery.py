@@ -35,7 +35,7 @@ EXECUTION_MODE = "ISOLATED_NON_PRODUCTION_CLOSEOUT_EVIDENCE"
 VALID_RESULT = "PASS_ISOLATED_CLOSEOUT_PRODUCTION_DISABLED"
 PHASE4_GATE = "IDS-STAGE040-P4-GATE"
 REVIEW_GATE = "IDS-STAGE040-REVIEW-GATE"
-PHASE3_COMMIT = "e3509e932ce3b67e85f20cb18ca703e8b3a19f24"
+PHASE3_COMMIT = "007a31ff2773d60c5f2ddd01acf573fd608ffc20"
 
 PRESSURE_SIGNALS = [
     "QUEUE_SOFT_PRESSURE",
@@ -160,11 +160,11 @@ EXPECTED_UPSTREAM = {
     ),
     "stage039_delivery_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/retry_dead_letter/stage039_retry_dead_letter_delivery_contract.json",
-        "c4aad64a9283de683067aff07026d723c708285c57eef8a0eac4ee1b13f5cb96",
+        "c7d020d8fe5fc21dc9c6d7fb01030659f3e545f1416cae96f5c96c77a7f0c06b",
     ),
     "stage039_delivery_checker": (
         "KM_IDSystem/scripts/check_retry_dead_letter_delivery.py",
-        "babff5f0be9e6be06508cbe4efbe355c354a65324d0895e7c9c5f3322621e4da",
+        "47b4fbbd6720f48f7ffcc1f29d405c7585f67c44b4ee7df40ea0c1b498f030b2",
     ),
     "stage039_review_artifact": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE039_STAGE_REVIEW.md",
@@ -172,7 +172,7 @@ EXPECTED_UPSTREAM = {
     ),
     "stage040_phase1_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_policy_contract.json",
-        "fe7110d0338de3fcb603e267ecf8995ef93e8db58f401612f322ff06166bd25a",
+        "fe1b0f7da92dd238efd9bed6c96cf6ee6d503962bcf3ec6c48591234f5f0026b",
     ),
     "stage040_phase1_evidence": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE040_PHASE1_BACKPRESSURE_SCOPE_BOUNDARY.md",
@@ -180,11 +180,11 @@ EXPECTED_UPSTREAM = {
     ),
     "stage040_phase2_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_runtime_contract.json",
-        "3db2409b082b9f788e061dfbb3a8e33ad8459c8e56a863e21fe0faeca8581b5c",
+        "2970ebd143030821d9a8b00e4fdb11342f8f82ef3bcf4d91717ba707b5054e2e",
     ),
     "stage040_phase2_checker": (
         "KM_IDSystem/scripts/check_backpressure_runtime.py",
-        "c28493586d2d0982948ce5e968ff756ddf069228382328078c5516c6348c15ad",
+        "078dbe9937c768077312f37755ebb636129623295089fda7468a55513a9ed691",
     ),
     "stage040_phase2_evidence": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE040_PHASE2_BACKPRESSURE_DECISION_SLICE.md",
@@ -192,11 +192,11 @@ EXPECTED_UPSTREAM = {
     ),
     "stage040_phase3_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_scenarios.json",
-        "59c24c67bf0d8a9a86e44be2634ace9db324a24f9696e8f35974069c1908c530",
+        "d50d4a35ad796695a8050e549c16386d607405065628a57da81d4246b9ad4fd3",
     ),
     "stage040_phase3_checker": (
         "KM_IDSystem/scripts/check_backpressure_scenarios.py",
-        "378534f960c129a2f96568b45615e4347b0b45f64639a4fe429a3c2b6c54d0a6",
+        "4779e6bd028bc1c41fba3d098e00d51a6a7f7be5b7f0e44bfcf4f7b110617552",
     ),
     "stage040_phase3_evidence": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE040_PHASE3_SCENARIO_VALIDATION.md",
@@ -312,8 +312,13 @@ def _upstream_valid(value: Any) -> bool:
 
 
 def _phase3_commit_is_ancestor(value: Any) -> bool:
-    if value != {"commit": PHASE3_COMMIT, "required_ancestor_of_head": True}:
+    if value != {
+        "commit": PHASE3_COMMIT,
+        "required_ancestor_of_head": True,
+    }:
         return False
+    # KMOS 的仓库拆分重写了提交身份。2026-07-17 对原 CodexProject
+    # 提交与此 KMOS 提交逐文件核对，15/15 个 KM_IDSystem blob 相同。
     completed = subprocess.run(
         ["git", "merge-base", "--is-ancestor", PHASE3_COMMIT, "HEAD"],
         cwd=REPO_ROOT,

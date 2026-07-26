@@ -437,7 +437,8 @@ class OwnedResources:
           mc anonymous set none admin/kmfa-private-artifacts
           mc version enable admin/kmfa-private-artifacts
           mc admin user add admin "$P52_APP_KEY" "$P52_APP_SECRET"
-          mc admin policy create admin kmfa-private-artifacts /policy/object-store-policy.json
+          mc admin policy create admin kmfa-private-artifacts \
+            /policy/object-store-policy.json
           mc admin policy attach admin kmfa-private-artifacts --user "$P52_APP_KEY"
         """
         _run(
