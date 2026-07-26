@@ -62,6 +62,8 @@ services:
       KMFA_WALKING_SKELETON_ENABLED: "${KMFA_WALKING_SKELETON_ENABLED:-0}"
       # 快速回滚置 paused：只停新上传，不降 schema、不删 DB/对象/卷。
       KMFA_CONSISTENCY_STATE_MODE: "${KMFA_CONSISTENCY_STATE_MODE:-recoverable-v1}"
+      # P5.4 默认暂停；active 还要求 S3 backend、当前 schema 隔离恢复与独立 worker 凭据。
+      KMFA_LIFECYCLE_MODE: "${KMFA_LIFECYCLE_MODE:-paused}"
       # S05 expand/contract：Stage review 前默认保留 v1.5 SQLite read path。
       KMFA_STRUCTURED_DATABASE_MODE: "${KMFA_STRUCTURED_DATABASE_MODE:-legacy-sqlite}"
       KMFA_STRUCTURED_DATABASE_URL: "${KMFA_STRUCTURED_DATABASE_URL:-}"
@@ -97,7 +99,7 @@ services:
           "CMD",
           "python3",
           "-c",
-          "import urllib.request;from pathlib import Path;from app.object_storage import configured_write_store;from app.structured_store import open_structured_store;p=Path('/var/lib/kmfa/state/walking-skeleton');s=open_structured_store(p/'walking_skeleton.sqlite3');assert s.schema_version()==3;s.close();o=configured_write_store(p);o.ensure_ready();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
+          "import urllib.request;from pathlib import Path;from app.object_storage import configured_write_store;from app.structured_store import open_structured_store;p=Path('/var/lib/kmfa/state/walking-skeleton');s=open_structured_store(p/'walking_skeleton.sqlite3');assert s.schema_version()==4;s.close();o=configured_write_store(p);o.ensure_ready();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
         ]
       interval: 2m
       timeout: 10s
@@ -125,10 +127,36 @@ services:
       timeout: 5s
       retries: 10
 
+  lifecycle-worker:
+    # 与 app 分离且无公网路由；legacy filesystem 不支持生产 active lifecycle。
+    profiles: ["lifecycle"]
+    build:
+      context: .
+      dockerfile: KMFA/app/backend/Dockerfile
+    image: kmfa-app:coolify
+    container_name: kmfa-lifecycle-worker
+    restart: always
+    command: ["python3", "-m", "app.lifecycle_worker", "--poll-seconds", "10"]
+    environment:
+      TZ: Asia/Shanghai
+      KMFA_LIFECYCLE_MODE: "${KMFA_LIFECYCLE_MODE:-paused}"
+      KMFA_STRUCTURED_DATABASE_MODE: "${KMFA_STRUCTURED_DATABASE_MODE:-legacy-sqlite}"
+      KMFA_STRUCTURED_DATABASE_URL: "${KMFA_STRUCTURED_DATABASE_URL:-}"
+      KMFA_S3_ENDPOINT_URL: "${KMFA_S3_ENDPOINT_URL:-}"
+      KMFA_S3_BUCKET: "${KMFA_S3_BUCKET:-}"
+      KMFA_S3_REGION: "${KMFA_S3_REGION:-auto}"
+      KMFA_S3_PREFIX: "${KMFA_S3_PREFIX:-kmfa/private/v1}"
+      KMFA_S3_LIFECYCLE_ACCESS_KEY_ID: "${KMFA_S3_LIFECYCLE_ACCESS_KEY_ID:-}"
+      KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY: "${KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY:-}"
+      KMFA_S3_ADDRESSING_STYLE: "${KMFA_S3_ADDRESSING_STYLE:-path}"
+      KMFA_S3_ALLOW_INSECURE_LOCAL: "${KMFA_S3_ALLOW_INSECURE_LOCAL:-0}"
+    volumes:
+      - kmfa-app-state:/var/lib/kmfa/state
+
 volumes:
   kmfa-dws-auth:
   kmfa-dws-keyring:
   kmfa-logs:
   kmfa-app-state:
-  # 禁止 ordinary rollback / compose down -v 删除；P5.4 才完成备份恢复 Gate。
+  # P5.4 本地候选已证明备份恢复；生产启用仍须 S05 Stage Review。ordinary rollback 禁止 down -v。
   kmfa-postgres-data:

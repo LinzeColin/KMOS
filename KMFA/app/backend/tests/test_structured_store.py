@@ -56,7 +56,7 @@ def _fixture(workspace_id: str, *, score: int = 88) -> AcceptanceFixture:
     )
 
 
-def test_default_sqlite_migrates_to_version_three_with_required_tables(
+def test_default_sqlite_migrates_to_version_four_with_required_tables(
     sqlite_state: Path,
 ):
     connection = skeleton._open_store()
@@ -67,7 +67,7 @@ def test_default_sqlite_migrates_to_version_three_with_required_tables(
                 "SELECT name FROM sqlite_master WHERE type = 'table'"
             ).fetchall()
         }
-        assert connection.schema_version() == SCHEMA_VERSION == 3
+        assert connection.schema_version() == SCHEMA_VERSION == 4
         assert {
             "projects",
             "project_metrics",
@@ -79,6 +79,13 @@ def test_default_sqlite_migrates_to_version_three_with_required_tables(
             "consistency_effect_receipts",
             "consistency_trace",
             "object_quarantine",
+            "restore_drill_proofs",
+            "workspace_retention",
+            "legal_holds",
+            "deletion_requests",
+            "deletion_object_targets",
+            "publication_bindings",
+            "lifecycle_events",
             "schema_migrations",
         } <= tables
         migrations = connection.execute(
@@ -99,6 +106,11 @@ def test_default_sqlite_migrates_to_version_three_with_required_tables(
             {
                 "version": 3,
                 "name": "0003_consistency_state.sql",
+                "digest_length": 64,
+            },
+            {
+                "version": 4,
+                "name": "0004_retention_backup_restore.sql",
                 "digest_length": 64,
             },
         ]
@@ -161,13 +173,27 @@ def test_legacy_v1_database_is_expand_migrated_and_backfilled(
         repository = StructuredRepository(connection)
         projection = repository.workspace_projection("ws_" + "a" * 22)
         artifact = repository.latest_artifact_version("ws_" + "a" * 22)
-        assert connection.schema_version() == SCHEMA_VERSION == 3
+        assert connection.schema_version() == SCHEMA_VERSION == 4
         assert projection["project_name"] == "Legacy synthetic project"
         assert projection["progress"] == 42
         assert projection["score"] is None
         assert artifact["artifact_id"] == "artifact_legacy_synthetic"
         assert artifact["version_number"] == 1
         assert artifact["sha256"] == "c" * 64
+        retention = connection.execute(
+            """
+            SELECT state, created_at, active_deletion_request_id, deleted_at
+            FROM workspace_retention
+            WHERE workspace_id = ?
+            """,
+            ("ws_" + "a" * 22,),
+        ).fetchone()
+        assert dict(retention) == {
+            "state": "active",
+            "created_at": "2026-07-20T00:00:00Z",
+            "active_deletion_request_id": None,
+            "deleted_at": None,
+        }
     finally:
         connection.close()
 

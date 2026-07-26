@@ -48,7 +48,7 @@ jobs:
           set -euo pipefail
           python -m pip install --quiet \
             -r KMFA/app/backend/requirements.txt \
-            pytest==9.1.1 httpx==0.28.1
+            pytest==9.1.1 httpx2==2.9.1
           python -m pytest -q KMFA/app/backend/tests
           python KMFA/machine/tools/validate_taskpack.py --root KMFA
           python KMFA/machine/tools/test_validate_taskpack_mutations.py --root KMFA
@@ -102,6 +102,17 @@ jobs:
             --state-dir "$p53_state" \
             --out-dir consistency-state-e2e \
             --prefix kmfa-p53-ci
+
+      - name: 跑保留与恢复（全量+增量 / 空环境恢复 / 明确删除 / 不复活）
+        run: |
+          set -euo pipefail
+          p54_state=$(mktemp -d /tmp/kmfa-p54-state.XXXXXX)
+          python KMFA/app/e2e/retention_backup_restore_flow.py \
+            --image kmfa-app:e2e \
+            --state-dir "$p54_state" \
+            --out-dir retention-backup-restore-e2e \
+            --prefix kmfa-p54-ci \
+            --source-commit "$GITHUB_SHA"
 
       - name: 装 Playwright
         run: |
@@ -183,6 +194,7 @@ jobs:
             structured-database-e2e/
             object-storage-e2e/
             consistency-state-e2e/
+            retention-backup-restore-e2e/
 
       - name: 收容器
         if: always()
@@ -209,3 +221,11 @@ jobs:
           docker volume rm kmfa-p53-ci-pgdata || true
           docker volume rm kmfa-p53-ci-objectdata || true
           docker network rm kmfa-p53-ci-net || true
+          for label in source target final; do
+            docker rm -f "kmfa-p54-ci-${label}-app" || true
+            docker rm -f "kmfa-p54-ci-${label}-pg" || true
+            docker rm -f "kmfa-p54-ci-${label}-object" || true
+            docker volume rm "kmfa-p54-ci-${label}-pgdata" || true
+            docker volume rm "kmfa-p54-ci-${label}-objectdata" || true
+            docker network rm "kmfa-p54-ci-${label}-net" || true
+          done

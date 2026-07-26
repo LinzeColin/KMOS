@@ -794,7 +794,7 @@ def test_consistency_trace_is_append_only(enabled_store: Path):
         connection.close()
 
 
-def test_frontend_deployment_and_ci_are_wired_to_v3_consistency_contract():
+def test_current_schema_deployment_preserves_v3_consistency_contract():
     app_root = Path(__file__).resolve().parents[2]
     kmfa_root = app_root.parent
     repo_root = kmfa_root.parent
@@ -812,11 +812,13 @@ def test_frontend_deployment_and_ci_are_wired_to_v3_consistency_contract():
     )
     assert "'Idempotency-Key': retryKey" in frontend
     assert "uploadIdempotencyKeyFor" in frontend
-    assert "s.schema_version()==3" in local_compose
-    assert "s.schema_version()==3" in coolify_compose
+    assert "s.schema_version()==4" in local_compose
+    assert "s.schema_version()==4" in coolify_compose
     assert "KMFA_CONSISTENCY_STATE_MODE:-recoverable-v1" in local_compose
     assert "KMFA_CONSISTENCY_STATE_MODE:-recoverable-v1" in coolify_compose
     assert "KMFA/app/e2e/consistency_state_flow.py" in workflow
     assert "consistency-state-e2e/" in workflow
     assert "kmfa-p53-ci-pgdata" in workflow
     assert "kmfa-p53-ci-objectdata" in workflow
+    assert "KMFA/app/e2e/retention_backup_restore_flow.py" in workflow
+    assert "retention-backup-restore-e2e/" in workflow

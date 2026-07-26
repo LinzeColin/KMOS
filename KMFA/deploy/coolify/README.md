@@ -82,6 +82,17 @@
 > `recoverable-v1`。v3 migration 只 forward-fix，禁止降 schema、回滚到不识别 v3 的旧 binary、
 > 清 outbox/trace、删 DB/object/volume 或用恢复包 replay 代替修复。
 
+> **S05/P5.4 中间态边界**：schema v4、full + logical incremental、隔离恢复、93 天 restore-proof
+> gate、默认无到期、legal hold 和独立删除 worker 已进入候选代码，但本 Phase 不单独启用生产删除。
+> S05 整体复审前保持 `KMFA_LIFECYCLE_MODE=paused` 且不启用 `lifecycle` profile。App 服务绝不能
+> 注入 `KMFA_S3_LIFECYCLE_*`；worker 使用独立 prefix-scoped 删除凭据且无公网端口。生产 active
+> lifecycle 只支持已完成迁移/对账的 S3-compatible backend；legacy filesystem 无法隔离删除权限，
+> 必须保持 paused，测试 override 禁止配置。worker 采用 10 分钟租约，public purge 按实际完成时间
+> 计 SLA，超时在对象删除前 fail closed。季度演练、proof
+> 记录、灰度和回滚必须逐项执行
+> [`P5.4_RETENTION_BACKUP_RUNBOOK.md`](P5.4_RETENTION_BACKUP_RUNBOOK.md)。快速回滚先 scale-to-zero
+> worker，再恢复 `paused`，保留全部 DB/object/backup/volume/evidence。
+
 6. 观测 P1 内存无碍后，在 Coolify 为本资源**启用 `full` profile**（Compose profiles → 勾 `full`）或设 `COMPOSE_PROFILES=full`，重部署 → `kmfa-app` 起。
 7. **域名**：Coolify 给 `app` 服务设 `kmfa.linzezhang.com`（Coolify Traefik 自动签发/路由）；**Cloudflare** 加一条**代理（橙云）** A 记录 `kmfa` → OVH 公网 IP（或按 Coolify 提示的 CNAME）。App 仅经 Traefik 暴露，主机不额外开放端口。
 8. **先建更具体的路径锁，整站登录墙不动**：保留现有 host 级 Self-hosted Application 的 Owner

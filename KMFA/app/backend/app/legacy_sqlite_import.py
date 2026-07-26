@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Sequence
 from urllib.parse import quote
 
+from .retention_lifecycle import LifecycleRepository
 from .structured_repository import StructuredRepository
 from .structured_store import (
     POSTGRESQL_MODE,
@@ -182,26 +183,120 @@ _CONSISTENCY_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "last_seen_at",
     ),
 }
+_LIFECYCLE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
+    "restore_drill_proofs": (
+        "proof_id",
+        "backup_id",
+        "backup_manifest_sha256",
+        "source_schema_version",
+        "expected_fixture_count",
+        "restored_fixture_count",
+        "invariant_failures",
+        "measured_rpo_ms",
+        "measured_rto_ms",
+        "artifact_identity_hash",
+        "status",
+        "verified_at",
+    ),
+    "workspace_retention": (
+        "workspace_id",
+        "state",
+        "active_deletion_request_id",
+        "row_version",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+    ),
+    "legal_holds": (
+        "hold_id",
+        "workspace_id",
+        "reason_code",
+        "authority_ref_hash",
+        "state",
+        "imposed_at",
+        "released_at",
+    ),
+    "deletion_requests": (
+        "deletion_request_id",
+        "workspace_id",
+        "idempotency_key_hash",
+        "request_fingerprint",
+        "restore_proof_id",
+        "state",
+        "public_purge_due_at",
+        "public_purged_at",
+        "attempt_count",
+        "last_error_code",
+        "row_version",
+        "requested_at",
+        "updated_at",
+        "completed_at",
+    ),
+    "deletion_object_targets": (
+        "deletion_request_id",
+        "artifact_version_id",
+        "artifact_id",
+        "storage_backend",
+        "storage_key",
+        "size_bytes",
+        "sha256",
+        "state",
+        "attempt_count",
+        "last_error_code",
+        "deleted_at",
+    ),
+    "publication_bindings": (
+        "publication_id",
+        "workspace_id",
+        "subject_ref",
+        "state",
+        "cache_state",
+        "index_state",
+        "published_at",
+        "revoked_at",
+        "purged_at",
+    ),
+    "lifecycle_events": (
+        "event_id",
+        "workspace_ref",
+        "deletion_request_id",
+        "action",
+        "result_status",
+        "object_ref",
+        "created_at",
+    ),
+}
 _TABLE_COLUMNS = (
     _CORE_TABLE_COLUMNS
     | _STRUCTURED_TABLE_COLUMNS
     | _CONSISTENCY_TABLE_COLUMNS
+    | _LIFECYCLE_TABLE_COLUMNS
 )
 _PRIMARY_KEYS = {
-    "workspaces": "workspace_id",
-    "access_tokens": "token_hash",
-    "artifacts": "artifact_id",
-    "audit_events": "event_id",
-    "projects": "project_id",
-    "project_metrics": "project_id",
-    "financial_records": "financial_record_id",
-    "artifact_versions": "artifact_version_id",
-    "workspace_tasks": "task_id",
-    "consistency_operations": "operation_id",
-    "consistency_outbox": "outbox_event_id",
-    "consistency_effect_receipts": "dedupe_key",
-    "consistency_trace": "trace_event_id",
-    "object_quarantine": "quarantine_id",
+    "workspaces": ("workspace_id",),
+    "access_tokens": ("token_hash",),
+    "artifacts": ("artifact_id",),
+    "audit_events": ("event_id",),
+    "projects": ("project_id",),
+    "project_metrics": ("project_id",),
+    "financial_records": ("financial_record_id",),
+    "artifact_versions": ("artifact_version_id",),
+    "workspace_tasks": ("task_id",),
+    "consistency_operations": ("operation_id",),
+    "consistency_outbox": ("outbox_event_id",),
+    "consistency_effect_receipts": ("dedupe_key",),
+    "consistency_trace": ("trace_event_id",),
+    "object_quarantine": ("quarantine_id",),
+    "restore_drill_proofs": ("proof_id",),
+    "workspace_retention": ("workspace_id",),
+    "legal_holds": ("hold_id",),
+    "deletion_requests": ("deletion_request_id",),
+    "deletion_object_targets": (
+        "deletion_request_id",
+        "artifact_version_id",
+    ),
+    "publication_bindings": ("publication_id",),
+    "lifecycle_events": ("event_id",),
 }
 
 
@@ -250,20 +345,27 @@ def read_legacy_snapshot(source_path: Path) -> dict[str, list[dict[str, Any]]]:
             _CONSISTENCY_TABLE_COLUMNS
         ):
             raise LegacyImportError("legacy SQLite consistency schema is partial")
+        present_lifecycle = set(_LIFECYCLE_TABLE_COLUMNS) & available
+        if present_lifecycle and present_lifecycle != set(
+            _LIFECYCLE_TABLE_COLUMNS
+        ):
+            raise LegacyImportError("legacy SQLite lifecycle schema is partial")
         snapshot: dict[str, list[dict[str, Any]]] = {}
         selected_tables = dict(_CORE_TABLE_COLUMNS)
         if present_structured:
             selected_tables.update(_STRUCTURED_TABLE_COLUMNS)
         if present_consistency:
             selected_tables.update(_CONSISTENCY_TABLE_COLUMNS)
+        if present_lifecycle:
+            selected_tables.update(_LIFECYCLE_TABLE_COLUMNS)
         for table, columns in selected_tables.items():
             order_column = (
                 "issuance_order"
                 if table == "access_tokens"
                 else (
                     "seq"
-                    if table == "consistency_trace"
-                    else _PRIMARY_KEYS[table]
+                    if table in {"consistency_trace", "lifecycle_events"}
+                    else ", ".join(_PRIMARY_KEYS[table])
                 )
             )
             selected_columns = list(columns)
@@ -303,20 +405,22 @@ def _insert_if_absent(
     row: dict[str, Any],
 ) -> None:
     columns = _TABLE_COLUMNS[table]
-    primary_key = _PRIMARY_KEYS[table]
+    primary_keys = _PRIMARY_KEYS[table]
     column_sql = ", ".join(columns)
     placeholders = ", ".join("?" for _ in columns)
+    conflict_sql = ", ".join(primary_keys)
+    where_sql = " AND ".join(f"{column} = ?" for column in primary_keys)
     connection.execute(
         f"""
         INSERT INTO {table}({column_sql})
         VALUES ({placeholders})
-        ON CONFLICT({primary_key}) DO NOTHING
+        ON CONFLICT({conflict_sql}) DO NOTHING
         """,
         tuple(row[column] for column in columns),
     )
     stored = connection.execute(
-        f"SELECT {column_sql} FROM {table} WHERE {primary_key} = ?",
-        (row[primary_key],),
+        f"SELECT {column_sql} FROM {table} WHERE {where_sql}",
+        tuple(row[column] for column in primary_keys),
     ).fetchone()
     if stored is None or any(stored[column] != row[column] for column in columns):
         raise LegacyImportError("legacy import target conflict")
@@ -395,6 +499,14 @@ def import_legacy_sqlite(source_path: Path) -> dict[str, Any]:
                     table="workspaces",
                     row=row,
                 )
+            if "workspace_retention" not in snapshot:
+                lifecycle_repository = LifecycleRepository(connection)
+                for row in snapshot["workspaces"]:
+                    lifecycle_repository.ensure_workspace_retention(
+                        workspace_id=str(row["workspace_id"]),
+                        created_at=str(row["created_at"]),
+                        updated_at=str(row["updated_at"]),
+                    )
             if "projects" in snapshot:
                 for row in snapshot["projects"]:
                     _insert_if_absent(connection, table="projects", row=row)
@@ -449,6 +561,17 @@ def import_legacy_sqlite(source_path: Path) -> dict[str, Any]:
                 "consistency_effect_receipts",
                 "consistency_trace",
                 "object_quarantine",
+            ):
+                for row in snapshot.get(table, []):
+                    _insert_if_absent(connection, table=table, row=row)
+            for table in (
+                "restore_drill_proofs",
+                "workspace_retention",
+                "legal_holds",
+                "deletion_requests",
+                "deletion_object_targets",
+                "publication_bindings",
+                "lifecycle_events",
             ):
                 for row in snapshot.get(table, []):
                     _insert_if_absent(connection, table=table, row=row)

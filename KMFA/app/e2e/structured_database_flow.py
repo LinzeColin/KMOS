@@ -39,6 +39,7 @@ from app.structured_repository import (  # noqa: E402
     StructuredRepository,
 )
 from app.structured_store import (  # noqa: E402
+    SCHEMA_VERSION,
     StructuredStoreIntegrityError,
     open_structured_store,
 )
@@ -540,7 +541,7 @@ def run_oracle(resources: OwnedResources, out_dir: Path) -> dict[str, Any]:
     for status, payload, _ in statuses:
         assert status == 200
         assert payload["healthy"] is True
-        assert payload["schema_version"] == 3
+        assert payload["schema_version"] == SCHEMA_VERSION
         assert payload["structured_store"] == "postgresql-shared-service-adapter"
 
     created_status, created, created_headers = _json_request(
@@ -794,7 +795,7 @@ def run_oracle(resources: OwnedResources, out_dir: Path) -> dict[str, Any]:
         "application_image_id": app_image_id,
         "postgres_image": POSTGRES_IMAGE,
         "postgres_image_id": postgres_image_id,
-        "structured_schema_version": 3,
+        "structured_schema_version": SCHEMA_VERSION,
         "structured_business_state_sha256": business_hash_after_rollout,
         "pre_rollout_full_snapshot_sha256": hash_before_rollout,
         "post_rollout_full_snapshot_sha256": hash_after_rollout,

@@ -134,11 +134,36 @@ python KMFA/app/e2e/consistency_state_flow.py \
 reconciliation 保持可用；恢复写入时重新置 `recoverable-v1`。v3 是 expand-only/forward-fix，
 旧二进制不能通过降 schema 回滚；禁止 destructive downgrade、删 outbox/trace、删对象或删卷。
 
-这仍不是 GA 或“永久保存”证明：P5.4 数据库/对象备份恢复、保留与明确删除，S06
-恶意文件扫描与多文件/大文件上传仍未完成。P5.2 只证明对象层、私有策略、版本/checksum 与
-inventory reconciliation；禁止把 MinIO named volume replacement 宣传为备份恢复或长期 RPO/RTO
-已通过。快速回滚只把新写 mode 恢复 `legacy-filesystem`，保留 S3 配置供已写版本双读，并保留
-`kmfa-app-state`、`kmfa-object-data` 与 PostgreSQL 数据；不得 `down -v`、删对象或移除 legacy reader。
+S05/P5.4 把 schema expand 到 v4，并增加默认无到期的 `workspace_retention`、legal hold、明确删除
+请求/对象 target、publication binding、append-only lifecycle events 与当前 schema restore proof。
+`DELETE /public-api/walking-skeleton/v1/workspaces/{workspace_id}` 同时要求有效 session、recovery
+secret、`delete-workspace` 确认和 `Idempotency-Key`；首次接受后 App 立即撤销访问。相同 secret、
+确认文本与 key 组成的 hash-only verifier 可在 session 已撤销或任务完成后安全返回同一请求，
+不恢复访问；任一字段不同均固定失败。生产可启用的破坏性删除只支持 S3-compatible backend：
+App 不持有 lifecycle 凭据，worker 使用独立 prefix-scoped 凭据。legacy filesystem 仅保留兼容
+read/write path，无法隔离 App 的文件删除权限，因此生命周期删除默认 fail closed；显式
+`KMFA_LIFECYCLE_ALLOW_LEGACY_FILESYSTEM_DELETE=1` 只用于合成测试，不进入 compose 或生产。
+独立 `python -m app.lifecycle_worker` 先清除已发布内容、缓存和索引，再逐一验真并删除固定 key 的
+全部 provider versions，最后才清业务行与 recovery verifier。任何部分失败都保留 retry 状态，不在
+对象效果未知时清 metadata。worker claim 使用 10 分钟租约并在 publication/对象边界刷新心跳，
+活跃租约不并发重入，过期租约才允许 crash recovery。public purge 以 adapter 实际完成时间而非
+attempt 开始时间计 SLA；超时会留下 `public_purge_sla_exceeded` 证据并在对象删除前 fail closed。
+该不可逆 SLA 违约任务会退出自动 due 队列，等待显式人工处置，不会持续轮询扩张事件表。
+legal hold 在不可逆删除前可原子阻断；当前 schema 的恢复证明缺失、失败或超过 93 天时删除 fail
+closed。
+
+`python -m app.backup_restore` 提供 checksum-closed full + logical incremental、对象 blob/tombstone
+和只允许空 DB/空对象前缀的隔离恢复。backup 会机械拒绝非终态 consistency operation 与直接
+symlink 目标；restore 拒绝 symlink bundle/blob、无时区 incident 和早于 recovery point 的
+incident。恢复会使复制来的旧 proof 失效，只有 application E2E、fixture 100%、
+`invariant_failures=0` 且测得 RPO/RTO 后，才可用 `record-proof` 建立新 gate。同机目录或 named
+volume 不等于灾难恢复，完成目录还必须复制到独立加密故障域。季度演练、灰度启用和回滚步骤见
+`deploy/coolify/P5.4_RETENTION_BACKUP_RUNBOOK.md`。
+
+这仍不是 GA：S06 恶意文件扫描与多文件/大文件上传尚未完成。快速回滚先停止独立 lifecycle worker，
+再把 `KMFA_LIFECYCLE_MODE=paused` 与 `KMFA_CONSISTENCY_STATE_MODE=paused`；保留
+`kmfa-app-state`、`kmfa-object-data`、PostgreSQL、backup、outbox/trace/lifecycle evidence，禁止
+`down -v`、destructive downgrade、删对象/卷或移除 legacy reader。
 
 本地跑：`cd KMFA/app/backend && uvicorn app.main:app --reload`（未设置
 `KMFA_PRIVATE_OPS_REQUIRE_ACCESS` 时仅用于本机开发，私有面守卫关闭）。

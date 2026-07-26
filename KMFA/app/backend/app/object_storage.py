@@ -28,6 +28,9 @@ S3_COMPATIBLE_MODE = "s3"
 LEGACY_STORAGE_BACKEND = "legacy-private-filesystem"
 S3_STORAGE_BACKEND = "s3-compatible-private-v1"
 DEFAULT_S3_PREFIX = "kmfa/private/v1"
+LEGACY_LIFECYCLE_DELETE_ENV = (
+    "KMFA_LIFECYCLE_ALLOW_LEGACY_FILESYSTEM_DELETE"
+)
 TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 BUCKET_RE = re.compile(r"^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$")
 INTERNAL_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,160}$")
@@ -99,13 +102,18 @@ class S3ObjectStorageConfig:
     verify_tls: bool
 
     @classmethod
-    def from_environment(cls) -> "S3ObjectStorageConfig":
+    def from_environment(
+        cls,
+        *,
+        access_key_env: str = "KMFA_S3_ACCESS_KEY_ID",
+        secret_key_env: str = "KMFA_S3_SECRET_ACCESS_KEY",
+    ) -> "S3ObjectStorageConfig":
         endpoint_url = os.environ.get("KMFA_S3_ENDPOINT_URL", "").strip()
         bucket = os.environ.get("KMFA_S3_BUCKET", "").strip()
         region = os.environ.get("KMFA_S3_REGION", "auto").strip()
         prefix = os.environ.get("KMFA_S3_PREFIX", DEFAULT_S3_PREFIX).strip()
-        access_key_id = os.environ.get("KMFA_S3_ACCESS_KEY_ID", "").strip()
-        secret_access_key = os.environ.get("KMFA_S3_SECRET_ACCESS_KEY", "")
+        access_key_id = os.environ.get(access_key_env, "").strip()
+        secret_access_key = os.environ.get(secret_key_env, "")
         addressing_style = os.environ.get(
             "KMFA_S3_ADDRESSING_STYLE", "path"
         ).strip()
@@ -327,6 +335,47 @@ class FilesystemObjectStore:
             provider_version_id=None,
         )
 
+    def delete_all_versions(
+        self,
+        *,
+        storage_key: str,
+        expected_size: int,
+        expected_sha256: str,
+        artifact_id: str,
+        artifact_version_id: str,
+        missing_is_success: bool,
+    ) -> int:
+        """Delete one verified legacy object for the isolated worker."""
+
+        del artifact_id, artifact_version_id
+        self.ensure_ready()
+        if "/" in storage_key or "\\" in storage_key:
+            raise ObjectStorageConfigurationError("invalid_object_identity")
+        target = (self.objects_dir / storage_key).resolve()
+        if target.parent != self.objects_dir.resolve():
+            raise ObjectStorageConfigurationError("invalid_object_identity")
+        if not target.exists():
+            if missing_is_success:
+                return 0
+            raise ObjectStorageMissingError("object_missing")
+        if target.is_symlink() or not target.is_file():
+            raise ObjectStorageIntegrityError("object_integrity_failed")
+        _verify_file(
+            target,
+            expected_size=expected_size,
+            expected_sha256=expected_sha256,
+        )
+        try:
+            target.unlink()
+            _fsync_directory(self.objects_dir)
+        except OSError as exc:
+            raise ObjectStorageUnavailableError(
+                "object_store_unavailable"
+            ) from exc
+        if target.exists():
+            raise ObjectStorageUnavailableError("object_store_unavailable")
+        return 1
+
 
 def _build_s3_client(config: S3ObjectStorageConfig):
     return boto3.session.Session().client(
@@ -416,12 +465,20 @@ class S3ObjectStore:
             f"{artifact_version_id}/v{version_number:08d}-{sha256}.blob"
         )
 
-    def _head(self, storage_key: str) -> dict[str, Any]:
+    def _head(
+        self,
+        storage_key: str,
+        *,
+        version_id: str | None = None,
+    ) -> dict[str, Any]:
+        arguments: dict[str, str] = {
+            "Bucket": self.config.bucket,
+            "Key": storage_key,
+        }
+        if version_id is not None:
+            arguments["VersionId"] = version_id
         try:
-            return self.client.head_object(
-                Bucket=self.config.bucket,
-                Key=storage_key,
-            )
+            return self.client.head_object(**arguments)
         except ClientError as exc:
             if _client_error_code(exc) in {"404", "NoSuchKey", "NotFound"}:
                 raise ObjectStorageMissingError("object_missing") from exc
@@ -644,6 +701,147 @@ class S3ObjectStore:
             raise ObjectStorageUnavailableError("object_store_unavailable") from exc
         return sorted(items, key=lambda item: item.storage_key)
 
+    def delete_all_versions(
+        self,
+        *,
+        storage_key: str,
+        expected_size: int,
+        expected_sha256: str,
+        artifact_id: str,
+        artifact_version_id: str,
+        missing_is_success: bool,
+    ) -> int:
+        """Delete every provider version of one immutable application key."""
+
+        self._validate_storage_key(storage_key)
+        _validate_sha256(expected_sha256)
+        _validate_internal_id(artifact_id)
+        _validate_internal_id(artifact_version_id)
+
+        def validate_head(head: dict[str, Any]) -> None:
+            metadata = head.get("Metadata", {})
+            if (
+                int(head.get("ContentLength", -1)) != expected_size
+                or metadata.get("kmfa-sha256") != expected_sha256
+                or metadata.get("kmfa-artifact-id") != artifact_id
+                or metadata.get("kmfa-artifact-version-id")
+                != artifact_version_id
+            ):
+                raise ObjectStorageIntegrityError("object_integrity_failed")
+
+        def exact_provider_versions() -> tuple[bool, list[tuple[str, bool]]]:
+            versions: list[tuple[str, bool]] = []
+            try:
+                paginator = self.client.get_paginator("list_object_versions")
+                pages = paginator.paginate(
+                    Bucket=self.config.bucket,
+                    Prefix=storage_key,
+                )
+                for page in pages:
+                    for field, delete_marker in (
+                        ("Versions", False),
+                        ("DeleteMarkers", True),
+                    ):
+                        for item in page.get(field, []):
+                            if str(item.get("Key", "")) != storage_key:
+                                continue
+                            version_id = str(item.get("VersionId", ""))
+                            if not version_id:
+                                raise ObjectStorageUnavailableError(
+                                    "object_store_unavailable"
+                                )
+                            versions.append((version_id, delete_marker))
+            except ObjectStorageError:
+                raise
+            except ClientError as exc:
+                if _client_error_code(exc) in {
+                    "MethodNotAllowed",
+                    "NotImplemented",
+                    "UnsupportedOperation",
+                    "501",
+                }:
+                    return False, []
+                raise ObjectStorageUnavailableError(
+                    "object_store_unavailable"
+                ) from exc
+            except (BotoCoreError, OSError, AttributeError, KeyError) as exc:
+                raise ObjectStorageUnavailableError(
+                    "object_store_unavailable"
+                ) from exc
+            return True, versions
+
+        current: dict[str, Any] | None
+        try:
+            current = self._head(storage_key)
+        except ObjectStorageMissingError:
+            current = None
+        if current is not None:
+            validate_head(current)
+
+        version_api_available, versions = exact_provider_versions()
+        if not version_api_available:
+            if current is None:
+                if missing_is_success:
+                    return 0
+                raise ObjectStorageMissingError("object_missing")
+            try:
+                self.client.delete_object(
+                    Bucket=self.config.bucket,
+                    Key=storage_key,
+                )
+            except (BotoCoreError, ClientError, OSError) as exc:
+                raise ObjectStorageUnavailableError(
+                    "object_store_unavailable"
+                ) from exc
+            try:
+                self._head(storage_key)
+            except ObjectStorageMissingError:
+                return 1
+            raise ObjectStorageUnavailableError("object_store_unavailable")
+
+        if not versions:
+            if current is None and missing_is_success:
+                return 0
+            if current is None:
+                raise ObjectStorageMissingError("object_missing")
+            # A version-capable provider returning an empty inventory for a
+            # readable key cannot prove that all historical bytes are known.
+            raise ObjectStorageUnavailableError("object_store_unavailable")
+
+        for version_id, delete_marker in versions:
+            if not delete_marker:
+                validate_head(
+                    self._head(
+                        storage_key,
+                        version_id=version_id,
+                    )
+                )
+
+        deleted = 0
+        try:
+            for version_id, _ in versions:
+                self.client.delete_object(
+                    Bucket=self.config.bucket,
+                    Key=storage_key,
+                    VersionId=version_id,
+                )
+                deleted += 1
+        except ObjectStorageError:
+            raise
+        except (BotoCoreError, ClientError, OSError) as exc:
+            raise ObjectStorageUnavailableError(
+                "object_store_unavailable"
+            ) from exc
+
+        inventory_available, remaining = exact_provider_versions()
+        if not inventory_available or remaining:
+            raise ObjectStorageUnavailableError("object_store_unavailable")
+        try:
+            self._head(storage_key)
+        except ObjectStorageMissingError:
+            return deleted
+        raise ObjectStorageUnavailableError("object_store_unavailable")
+
 
 def configured_write_store(state_root: Path):
     mode = os.environ.get(
@@ -661,6 +859,24 @@ def object_store_for_backend(state_root: Path, storage_backend: str):
         return FilesystemObjectStore(state_root)
     if storage_backend == S3_STORAGE_BACKEND:
         return S3ObjectStore.from_environment(state_root)
+    raise ObjectStorageConfigurationError("unknown_object_storage_backend")
+
+
+def lifecycle_store_for_backend(state_root: Path, storage_backend: str):
+    """Resolve the separately credentialed destructive lifecycle adapter."""
+
+    if storage_backend == LEGACY_STORAGE_BACKEND:
+        if os.environ.get(LEGACY_LIFECYCLE_DELETE_ENV, "").strip() != "1":
+            raise ObjectStorageConfigurationError(
+                "legacy_lifecycle_delete_not_allowed"
+            )
+        return FilesystemObjectStore(state_root)
+    if storage_backend == S3_STORAGE_BACKEND:
+        config = S3ObjectStorageConfig.from_environment(
+            access_key_env="KMFA_S3_LIFECYCLE_ACCESS_KEY_ID",
+            secret_key_env="KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY",
+        )
+        return S3ObjectStore(state_root, config)
     raise ObjectStorageConfigurationError("unknown_object_storage_backend")
 
 

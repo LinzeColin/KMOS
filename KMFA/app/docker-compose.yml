@@ -12,6 +12,8 @@ services:
       KMFA_WALKING_SKELETON_ENABLED: "${KMFA_WALKING_SKELETON_ENABLED:-0}"
       # P5.3 快速回滚只暂停新上传；既有读/恢复与 reconciliation 保持可用。
       KMFA_CONSISTENCY_STATE_MODE: "${KMFA_CONSISTENCY_STATE_MODE:-recoverable-v1}"
+      # P5.4 删除默认暂停；active 还要求 S3 backend、当前 schema 隔离恢复与独立 worker 凭据。
+      KMFA_LIFECYCLE_MODE: "${KMFA_LIFECYCLE_MODE:-paused}"
       # S05 expand/contract：默认继续读 v1.5 SQLite；只有显式配置完整 DSN 才切共享 PG。
       KMFA_STRUCTURED_DATABASE_MODE: "${KMFA_STRUCTURED_DATABASE_MODE:-legacy-sqlite}"
       KMFA_STRUCTURED_DATABASE_URL: "${KMFA_STRUCTURED_DATABASE_URL:-}"
@@ -41,7 +43,7 @@ services:
           "CMD",
           "python3",
           "-c",
-          "import urllib.request;from pathlib import Path;from app.object_storage import configured_write_store;from app.structured_store import open_structured_store;p=Path('/var/lib/kmfa/state/walking-skeleton');s=open_structured_store(p/'walking_skeleton.sqlite3');assert s.schema_version()==3;s.close();o=configured_write_store(p);o.ensure_ready();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
+          "import urllib.request;from pathlib import Path;from app.object_storage import configured_write_store;from app.structured_store import open_structured_store;p=Path('/var/lib/kmfa/state/walking-skeleton');s=open_structured_store(p/'walking_skeleton.sqlite3');assert s.schema_version()==4;s.close();o=configured_write_store(p);o.ensure_ready();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
         ]
       interval: 2m
       timeout: 10s
@@ -113,14 +115,22 @@ services:
       KMFA_S3_PREFIX: "${KMFA_S3_PREFIX:-kmfa/private/v1}"
       KMFA_S3_ACCESS_KEY_ID: "${KMFA_S3_ACCESS_KEY_ID:-}"
       KMFA_S3_SECRET_ACCESS_KEY: "${KMFA_S3_SECRET_ACCESS_KEY:-}"
+      KMFA_S3_LIFECYCLE_ACCESS_KEY_ID: "${KMFA_S3_LIFECYCLE_ACCESS_KEY_ID:-}"
+      KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY: "${KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY:-}"
     entrypoint: ["/bin/sh", "-ec"]
     command: |
       : "$${MINIO_ROOT_USER:?KMFA_MINIO_ROOT_USER is required}"
       : "$${MINIO_ROOT_PASSWORD:?KMFA_MINIO_ROOT_PASSWORD is required}"
       : "$${KMFA_S3_ACCESS_KEY_ID:?KMFA_S3_ACCESS_KEY_ID is required}"
       : "$${KMFA_S3_SECRET_ACCESS_KEY:?KMFA_S3_SECRET_ACCESS_KEY is required}"
+      : "$${KMFA_S3_LIFECYCLE_ACCESS_KEY_ID:?KMFA_S3_LIFECYCLE_ACCESS_KEY_ID is required}"
+      : "$${KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY:?KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY is required}"
       test "$${MINIO_ROOT_USER}" != "$${KMFA_S3_ACCESS_KEY_ID}"
       test "$${MINIO_ROOT_PASSWORD}" != "$${KMFA_S3_SECRET_ACCESS_KEY}"
+      test "$${MINIO_ROOT_USER}" != "$${KMFA_S3_LIFECYCLE_ACCESS_KEY_ID}"
+      test "$${MINIO_ROOT_PASSWORD}" != "$${KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY}"
+      test "$${KMFA_S3_ACCESS_KEY_ID}" != "$${KMFA_S3_LIFECYCLE_ACCESS_KEY_ID}"
+      test "$${KMFA_S3_SECRET_ACCESS_KEY}" != "$${KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY}"
       test "$${KMFA_S3_BUCKET}" = "kmfa-private-artifacts"
       test "$${KMFA_S3_PREFIX}" = "kmfa/private/v1"
       mc alias set local http://object-store:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
@@ -130,12 +140,41 @@ services:
       mc admin user add local "$${KMFA_S3_ACCESS_KEY_ID}" "$${KMFA_S3_SECRET_ACCESS_KEY}"
       mc admin policy create local kmfa-private-artifacts /policy/object-store-policy.json
       mc admin policy attach local kmfa-private-artifacts --user "$${KMFA_S3_ACCESS_KEY_ID}"
+      mc admin user add local "$${KMFA_S3_LIFECYCLE_ACCESS_KEY_ID}" "$${KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY}"
+      mc admin policy create local kmfa-private-lifecycle /policy/object-store-lifecycle-policy.json
+      mc admin policy attach local kmfa-private-lifecycle --user "$${KMFA_S3_LIFECYCLE_ACCESS_KEY_ID}"
     volumes:
       - ./object-store-policy.json:/policy/object-store-policy.json:ro
+      - ./object-store-lifecycle-policy.json:/policy/object-store-lifecycle-policy.json:ro
+
+  lifecycle-worker:
+    # legacy filesystem 无法隔离删除权限；生产 active lifecycle 只支持 S3 backend。
+    profiles: ["lifecycle"]
+    build:
+      context: ../..
+      dockerfile: KMFA/app/backend/Dockerfile
+    image: kmfa-app:lifecycle
+    container_name: kmfa-lifecycle-worker
+    restart: always
+    command: ["python3", "-m", "app.lifecycle_worker", "--poll-seconds", "10"]
+    environment:
+      KMFA_LIFECYCLE_MODE: "${KMFA_LIFECYCLE_MODE:-paused}"
+      KMFA_STRUCTURED_DATABASE_MODE: "${KMFA_STRUCTURED_DATABASE_MODE:-legacy-sqlite}"
+      KMFA_STRUCTURED_DATABASE_URL: "${KMFA_STRUCTURED_DATABASE_URL:-}"
+      KMFA_S3_ENDPOINT_URL: "${KMFA_S3_ENDPOINT_URL:-}"
+      KMFA_S3_BUCKET: "${KMFA_S3_BUCKET:-}"
+      KMFA_S3_REGION: "${KMFA_S3_REGION:-auto}"
+      KMFA_S3_PREFIX: "${KMFA_S3_PREFIX:-kmfa/private/v1}"
+      KMFA_S3_LIFECYCLE_ACCESS_KEY_ID: "${KMFA_S3_LIFECYCLE_ACCESS_KEY_ID:-}"
+      KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY: "${KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY:-}"
+      KMFA_S3_ADDRESSING_STYLE: "${KMFA_S3_ADDRESSING_STYLE:-path}"
+      KMFA_S3_ALLOW_INSECURE_LOCAL: "${KMFA_S3_ALLOW_INSECURE_LOCAL:-0}"
+    volumes:
+      - kmfa-app-state:/var/lib/kmfa/state
 
 volumes:
   kmfa-app-state:
-  # P5.1 只建立共享结构化存储；备份/恢复演练由 P5.4 Gate 后才可宣称完成。
+  # P5.4 本地候选已证明共享 DB+对象恢复；生产声明仍须 S05 Stage Review。
   kmfa-postgres-data:
   # P5.2 对象卷与旧 app-state 卷都必须保留；普通 rollback 禁止 down -v。
   kmfa-object-data:

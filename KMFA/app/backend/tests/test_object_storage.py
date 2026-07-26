@@ -11,22 +11,24 @@ from pathlib import Path
 from urllib.parse import quote
 
 import pytest
-from botocore.exceptions import ClientError
-from fastapi.testclient import TestClient
-
+import yaml
 from app import object_storage
 from app import walking_skeleton as skeleton
 from app.main import app
 from app.object_reconciliation import reconcile_object_inventory
 from app.object_storage import (
+    S3_STORAGE_BACKEND,
     InventoryObject,
     ObjectStorageConfigurationError,
     ObjectStorageConflictError,
-    S3_STORAGE_BACKEND,
+    ObjectStorageIntegrityError,
     S3ObjectStore,
     configured_write_store,
     content_md5_base64,
+    lifecycle_store_for_backend,
 )
+from botocore.exceptions import ClientError
+from fastapi.testclient import TestClient
 
 client = TestClient(app)
 BASE = "/public-api/walking-skeleton/v1"
@@ -128,6 +130,113 @@ class _MemoryS3:
         assert name == "list_objects_v2"
         self._require_available("ListObjectsV2")
         return _MemoryPaginator(self)
+
+
+class _VersionedMemoryPaginator:
+    def __init__(self, backend: "_VersionedMemoryS3") -> None:
+        self.backend = backend
+
+    def paginate(self, *, Bucket: str, Prefix: str):
+        del Bucket
+        versions: list[dict[str, str]] = []
+        delete_markers: list[dict[str, str]] = []
+        for key, records in sorted(self.backend.versions.items()):
+            if not key.startswith(Prefix):
+                continue
+            for record in records:
+                target = delete_markers if record["delete_marker"] else versions
+                target.append(
+                    {
+                        "Key": key,
+                        "VersionId": str(record["version_id"]),
+                    }
+                )
+        return [{"Versions": versions, "DeleteMarkers": delete_markers}]
+
+
+class _VersionedMemoryS3:
+    def __init__(self) -> None:
+        self.versions: dict[str, list[dict[str, object]]] = {}
+        self.deleted: list[tuple[str, str]] = []
+
+    @staticmethod
+    def _error(code: str, operation: str) -> ClientError:
+        return ClientError(
+            {"Error": {"Code": code, "Message": "synthetic"}},
+            operation,
+        )
+
+    def add_version(
+        self,
+        *,
+        key: str,
+        version_id: str,
+        body: bytes = b"",
+        metadata: dict[str, str] | None = None,
+        delete_marker: bool = False,
+    ) -> None:
+        self.versions.setdefault(key, []).append(
+            {
+                "version_id": version_id,
+                "body": body,
+                "metadata": metadata or {},
+                "delete_marker": delete_marker,
+            }
+        )
+
+    def head_object(
+        self,
+        *,
+        Bucket: str,
+        Key: str,
+        VersionId: str | None = None,
+    ):
+        del Bucket
+        records = self.versions.get(Key, [])
+        if VersionId is None:
+            record = records[-1] if records else None
+        else:
+            record = next(
+                (
+                    candidate
+                    for candidate in records
+                    if candidate["version_id"] == VersionId
+                ),
+                None,
+            )
+        if record is None or record["delete_marker"]:
+            raise self._error("NoSuchKey", "HeadObject")
+        body = bytes(record["body"])
+        return {
+            "ContentLength": len(body),
+            "Metadata": dict(record["metadata"]),
+            "ETag": f'"{hashlib.md5(body, usedforsecurity=False).hexdigest()}"',
+            "VersionId": record["version_id"],
+        }
+
+    def get_paginator(self, name: str):
+        assert name == "list_object_versions"
+        return _VersionedMemoryPaginator(self)
+
+    def delete_object(
+        self,
+        *,
+        Bucket: str,
+        Key: str,
+        VersionId: str,
+    ):
+        del Bucket
+        records = self.versions.get(Key, [])
+        before = len(records)
+        self.versions[Key] = [
+            record
+            for record in records
+            if record["version_id"] != VersionId
+        ]
+        if len(self.versions[Key]) == before:
+            raise self._error("NoSuchVersion", "DeleteObject")
+        self.deleted.append((Key, VersionId))
+        return {"VersionId": VersionId}
 
 
 @pytest.fixture
@@ -335,6 +444,12 @@ def test_s3_api_round_trip_separates_same_name_and_duplicate_content(
     assert status_payload["artifact_storage"][
         "application_issues_public_object_urls"
     ] is False
+    assert status_payload["retention_lifecycle"][
+        "application_object_delete_credentials"
+    ] is False
+    assert status_payload["retention_lifecycle"][
+        "worker_uses_separate_credentials"
+    ] is True
     assert "s3-compatible-object-store" not in status_payload["hardening_pending"]
     object_key = next(iter(memory.objects))
     assert client.get(f"{BASE}/objects/{object_key}").status_code == 404
@@ -364,6 +479,171 @@ def test_s3_integrity_failure_and_outage_are_fixed_fail_closed_errors(
     assert "synthetic-app-secret" not in status.text
 
 
+def test_lifecycle_s3_uses_separate_credentials_and_deletes_all_exact_versions(
+    s3_environment: tuple[Path, _MemoryS3],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    state, _ = s3_environment
+    versioned = _VersionedMemoryS3()
+    monkeypatch.setenv(
+        "KMFA_S3_LIFECYCLE_ACCESS_KEY_ID",
+        "synthetic-lifecycle-key",
+    )
+    monkeypatch.setenv(
+        "KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY",
+        "synthetic-lifecycle-secret",
+    )
+    monkeypatch.setattr(object_storage, "_build_s3_client", lambda config: versioned)
+    store = lifecycle_store_for_backend(state, S3_STORAGE_BACKEND)
+    assert store.config.access_key_id == "synthetic-lifecycle-key"
+    assert store.config.access_key_id != "synthetic-app-key"
+
+    body = b"synthetic-versioned-delete"
+    sha256 = hashlib.sha256(body).hexdigest()
+    artifact_id = "artifact_synthetic_delete"
+    artifact_version_id = "artifact_version_synthetic_delete"
+    key = store.build_storage_key(
+        workspace_id="ws_" + "d" * 22,
+        artifact_id=artifact_id,
+        artifact_version_id=artifact_version_id,
+        version_number=1,
+        sha256=sha256,
+    )
+    metadata = {
+        "kmfa-sha256": sha256,
+        "kmfa-artifact-id": artifact_id,
+        "kmfa-artifact-version-id": artifact_version_id,
+    }
+    versioned.add_version(
+        key=key,
+        version_id="version-1",
+        body=body,
+        metadata=metadata,
+    )
+    versioned.add_version(
+        key=key,
+        version_id="version-2",
+        body=body,
+        metadata=metadata,
+    )
+    versioned.add_version(
+        key=key,
+        version_id="delete-marker-3",
+        delete_marker=True,
+    )
+    near_key = key + ".not-the-target"
+    versioned.add_version(
+        key=near_key,
+        version_id="near-version-1",
+        body=b"must-survive",
+        metadata=metadata,
+    )
+
+    deleted = store.delete_all_versions(
+        storage_key=key,
+        expected_size=len(body),
+        expected_sha256=sha256,
+        artifact_id=artifact_id,
+        artifact_version_id=artifact_version_id,
+        missing_is_success=True,
+    )
+    assert deleted == 3
+    assert versioned.versions[key] == []
+    assert len(versioned.versions[near_key]) == 1
+    assert {deleted_key for deleted_key, _ in versioned.deleted} == {key}
+
+
+def test_legacy_lifecycle_delete_requires_explicit_test_override(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.delenv(
+        "KMFA_LIFECYCLE_ALLOW_LEGACY_FILESYSTEM_DELETE",
+        raising=False,
+    )
+    with pytest.raises(
+        ObjectStorageConfigurationError,
+        match="legacy_lifecycle_delete_not_allowed",
+    ):
+        lifecycle_store_for_backend(
+            tmp_path,
+            object_storage.LEGACY_STORAGE_BACKEND,
+        )
+
+    monkeypatch.setenv(
+        "KMFA_LIFECYCLE_ALLOW_LEGACY_FILESYSTEM_DELETE",
+        "1",
+    )
+    store = lifecycle_store_for_backend(
+        tmp_path,
+        object_storage.LEGACY_STORAGE_BACKEND,
+    )
+    assert store.storage_backend == object_storage.LEGACY_STORAGE_BACKEND
+
+
+def test_lifecycle_s3_fails_closed_before_deleting_mismatched_old_version(
+    s3_environment: tuple[Path, _MemoryS3],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    state, _ = s3_environment
+    versioned = _VersionedMemoryS3()
+    monkeypatch.setenv(
+        "KMFA_S3_LIFECYCLE_ACCESS_KEY_ID",
+        "synthetic-lifecycle-key",
+    )
+    monkeypatch.setenv(
+        "KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY",
+        "synthetic-lifecycle-secret",
+    )
+    monkeypatch.setattr(object_storage, "_build_s3_client", lambda config: versioned)
+    store = lifecycle_store_for_backend(state, S3_STORAGE_BACKEND)
+    body = b"synthetic-expected-version"
+    sha256 = hashlib.sha256(body).hexdigest()
+    artifact_id = "artifact_synthetic_mismatch"
+    artifact_version_id = "artifact_version_synthetic_mismatch"
+    key = store.build_storage_key(
+        workspace_id="ws_" + "e" * 22,
+        artifact_id=artifact_id,
+        artifact_version_id=artifact_version_id,
+        version_number=1,
+        sha256=sha256,
+    )
+    expected_metadata = {
+        "kmfa-sha256": sha256,
+        "kmfa-artifact-id": artifact_id,
+        "kmfa-artifact-version-id": artifact_version_id,
+    }
+    versioned.add_version(
+        key=key,
+        version_id="version-expected",
+        body=body,
+        metadata=expected_metadata,
+    )
+    versioned.add_version(
+        key=key,
+        version_id="version-mismatched",
+        body=b"unexpected historical bytes",
+        metadata=expected_metadata,
+    )
+    versioned.add_version(
+        key=key,
+        version_id="delete-marker-current",
+        delete_marker=True,
+    )
+
+    with pytest.raises(ObjectStorageIntegrityError):
+        store.delete_all_versions(
+            storage_key=key,
+            expected_size=len(body),
+            expected_sha256=sha256,
+            artifact_id=artifact_id,
+            artifact_version_id=artifact_version_id,
+            missing_is_success=True,
+        )
+    assert versioned.deleted == []
+    assert len(versioned.versions[key]) == 3
+
+
 def test_legacy_write_rollback_keeps_s3_objects_readable(
     s3_environment: tuple[Path, _MemoryS3],
     monkeypatch: pytest.MonkeyPatch,
@@ -380,6 +660,12 @@ def test_legacy_write_rollback_keeps_s3_objects_readable(
         "legacy-private-filesystem"
     )
     assert status["artifact_storage"]["s3_dual_read_configured"] is True
+    assert status["retention_lifecycle"][
+        "application_object_delete_credentials"
+    ] is True
+    assert status["retention_lifecycle"][
+        "worker_uses_separate_credentials"
+    ] is False
     downloaded = client.post(
         f"{BASE}/workspaces/{workspace_id}/artifact/download",
         headers={"Authorization": f"Bearer {token}"},
@@ -475,14 +761,39 @@ def test_deployment_defaults_legacy_and_policy_is_private_prefix_scoped():
     policy = json.loads(
         (app_root / "object-store-policy.json").read_text(encoding="utf-8")
     )
+    lifecycle_policy = json.loads(
+        (app_root / "object-store-lifecycle-policy.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    local_config = yaml.safe_load(local_compose)
+    coolify_config = yaml.safe_load(coolify_compose)
     dockerignore = (repo_root / ".dockerignore").read_text(encoding="utf-8")
     gitignore = (repo_root / ".gitignore").read_text(encoding="utf-8")
 
     for compose in (local_compose, coolify_compose):
         assert "KMFA_ARTIFACT_STORAGE_MODE:-legacy-filesystem" in compose
+        assert "KMFA_LIFECYCLE_MODE:-paused" in compose
+        assert "KMFA_LIFECYCLE_ALLOW_LEGACY_FILESYSTEM_DELETE" not in compose
         assert "KMFA_S3_ALLOW_INSECURE_LOCAL:-0" in compose
         assert "KMFA_S3_SECRET_ACCESS_KEY:-" in compose
         assert "configured_write_store" in compose
+        assert "s.schema_version()==4" in compose
+    for config in (local_config, coolify_config):
+        app_environment = config["services"]["app"]["environment"]
+        worker = config["services"]["lifecycle-worker"]
+        worker_environment = worker["environment"]
+        assert "KMFA_S3_LIFECYCLE_ACCESS_KEY_ID" not in app_environment
+        assert "KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY" not in app_environment
+        assert worker["profiles"] == ["lifecycle"]
+        assert (
+            worker_environment["KMFA_S3_LIFECYCLE_ACCESS_KEY_ID"]
+            == "${KMFA_S3_LIFECYCLE_ACCESS_KEY_ID:-}"
+        )
+        assert (
+            worker_environment["KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY"]
+            == "${KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY:-}"
+        )
     assert "profiles: [\"s3\"]" in local_compose
     assert "kmfa-object-data:/data" in local_compose
     assert "minio/minio:RELEASE.2025-09-07" in local_compose
@@ -498,6 +809,7 @@ def test_deployment_defaults_legacy_and_policy_is_private_prefix_scoped():
     assert "object-store:" not in coolify_compose
     assert "KMFA_ARTIFACT_STORAGE_MODE=legacy-filesystem" in env_example
     assert "KMFA_S3_ALLOW_INSECURE_LOCAL=0" in env_example
+    assert "KMFA_LIFECYCLE_MODE=paused" in env_example
     assert {"**/.env", "**/.env.*", "**/*.env"} <= set(
         dockerignore.splitlines()
     )
@@ -543,3 +855,27 @@ def test_deployment_defaults_legacy_and_policy_is_private_prefix_scoped():
             ]
         }
     }
+
+    lifecycle_statements = lifecycle_policy["Statement"]
+    assert {statement["Effect"] for statement in lifecycle_statements} == {
+        "Allow"
+    }
+    lifecycle_actions = {
+        action
+        for statement in lifecycle_statements
+        for action in statement["Action"]
+    }
+    assert lifecycle_actions == {
+        "s3:ListBucket",
+        "s3:ListBucketVersions",
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+        "s3:DeleteObject",
+        "s3:DeleteObjectVersion",
+    }
+    lifecycle_resources = {
+        resource
+        for statement in lifecycle_statements
+        for resource in statement["Resource"]
+    }
+    assert lifecycle_resources == resources

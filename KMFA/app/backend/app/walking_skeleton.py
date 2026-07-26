@@ -67,6 +67,21 @@ from .object_storage import (
     object_store_for_backend,
     s3_dual_read_configured,
 )
+from .retention_lifecycle import (
+    DELETE_CONFIRMATION,
+    DELETION_WORKER_LEASE,
+    LIFECYCLE_ACTIVE_MODE,
+    PUBLIC_PURGE_SLA,
+    RESTORE_PROOF_MAX_AGE,
+    LifecycleConflictError,
+    LifecycleLegalHoldError,
+    LifecyclePausedError,
+    LifecycleRepository,
+    RestoreProofRequiredError,
+    deletion_request_fingerprint,
+    lifecycle_mode,
+    new_deletion_request_id,
+)
 from .structured_repository import (
     StructuredRepository,
     artifact_version_id,
@@ -145,6 +160,11 @@ class ExportRecoveryFileRequest(BaseModel):
 class UpdateWorkspaceRequest(BaseModel):
     project_name: str | None = Field(default=None, min_length=1, max_length=120)
     progress: int | None = Field(default=None, ge=0, le=100)
+
+
+class DeleteWorkspaceRequest(BaseModel):
+    confirmation: str = Field(min_length=1, max_length=64)
+    workspace_secret: str = Field(min_length=1, max_length=128)
 
 
 class SkeletonError(RuntimeError):
@@ -488,6 +508,12 @@ def _workspace_payload(
     workspace_id: str,
 ) -> dict[str, Any]:
     repository = StructuredRepository(connection)
+    retention = connection.execute(
+        "SELECT state FROM workspace_retention WHERE workspace_id = ?",
+        (workspace_id,),
+    ).fetchone()
+    if retention is None or str(retention["state"]) != "active":
+        raise SkeletonError(404, "workspace_not_found")
     workspace = repository.workspace_projection(workspace_id)
     if workspace is None:
         raise SkeletonError(404, "workspace_not_found")
@@ -554,8 +580,11 @@ def _authorize(
     assert token is not None
     row = connection.execute(
         """
-        SELECT 1 FROM access_tokens
-        WHERE token_hash = ? AND workspace_id = ? AND expires_at > ?
+        SELECT 1
+        FROM access_tokens at
+        JOIN workspace_retention wr ON wr.workspace_id = at.workspace_id
+        WHERE at.token_hash = ? AND at.workspace_id = ? AND at.expires_at > ?
+          AND wr.state = 'active'
         """,
         (_hash_capability(token), workspace_id, _timestamp()),
     ).fetchone()
@@ -581,7 +610,12 @@ def _workspace_secret_matches(
     lookup_id = workspace_id if id_is_valid else DUMMY_WORKSPACE_ID
     candidate = workspace_secret if secret_is_valid else DUMMY_WORKSPACE_SECRET
     row = connection.execute(
-        "SELECT recovery_hash FROM workspaces WHERE workspace_id = ?",
+        """
+        SELECT w.recovery_hash
+        FROM workspaces w
+        JOIN workspace_retention wr ON wr.workspace_id = w.workspace_id
+        WHERE w.workspace_id = ? AND wr.state = 'active'
+        """,
         (lookup_id,),
     ).fetchone()
     stored_verifier = (
@@ -672,7 +706,11 @@ def _create_workspace(project_name: str) -> dict[str, Any]:
                 connection.execute("BEGIN IMMEDIATE")
                 workspace_count = int(
                     connection.execute(
-                        "SELECT COUNT(*) AS count_value FROM workspaces"
+                        """
+                        SELECT COUNT(*) AS count_value
+                        FROM workspace_retention
+                        WHERE state != 'deleted'
+                        """
                     ).fetchone()["count_value"]
                 )
                 if workspace_count >= MAX_WORKSPACES_TOTAL:
@@ -700,6 +738,11 @@ def _create_workspace(project_name: str) -> dict[str, Any]:
                     created_at=now,
                     updated_at=now,
                 )
+                LifecycleRepository(connection).ensure_workspace_retention(
+                    workspace_id=workspace_id,
+                    created_at=now,
+                    updated_at=now,
+                )
                 access_token, expires_at = _issue_access_token(connection, workspace_id)
                 _append_audit(connection, workspace_id, "workspace_created")
                 connection.execute("COMMIT")
@@ -723,7 +766,12 @@ def _recover_workspace(recovery_code: str) -> dict[str, Any]:
         connection.execute("BEGIN IMMEDIATE")
         try:
             workspace = connection.execute(
-                "SELECT workspace_id FROM workspaces WHERE recovery_hash = ?",
+                """
+                SELECT w.workspace_id
+                FROM workspaces w
+                JOIN workspace_retention wr ON wr.workspace_id = w.workspace_id
+                WHERE w.recovery_hash = ? AND wr.state = 'active'
+                """,
                 (_hash_capability(recovery_code),),
             ).fetchone()
             if workspace is None:
@@ -964,7 +1012,9 @@ def _update_workspace(
         connection.execute("BEGIN IMMEDIATE")
         try:
             _authorize(connection, workspace_id, authorization, session_cookie)
-            current = StructuredRepository(connection).workspace_projection(workspace_id)
+            current = StructuredRepository(
+                connection
+            ).workspace_projection(workspace_id)
             if current is None:
                 raise SkeletonError(404, "workspace_not_found")
             resolved_name = (
@@ -996,6 +1046,82 @@ def _update_workspace(
                 connection.execute("ROLLBACK")
             raise
         return _workspace_payload(connection, workspace_id)
+
+
+def _request_workspace_deletion(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None,
+    request: DeleteWorkspaceRequest,
+    idempotency_key: str | None,
+) -> dict[str, Any]:
+    if idempotency_key is None:
+        raise SkeletonError(422, "idempotency_key_required")
+    with _store() as connection:
+        try:
+            with connection.transaction():
+                repository = LifecycleRepository(connection)
+                request_fingerprint = deletion_request_fingerprint(
+                    workspace_id=workspace_id,
+                    confirmation=request.confirmation,
+                    idempotency_key=idempotency_key,
+                    workspace_secret=request.workspace_secret,
+                )
+                deletion = repository.replay_workspace_deletion(
+                    workspace_id=workspace_id,
+                    idempotency_key=idempotency_key,
+                    request_fingerprint=request_fingerprint,
+                )
+                if deletion is None:
+                    _authorize(
+                        connection,
+                        workspace_id,
+                        authorization,
+                        session_cookie,
+                    )
+                    if not _workspace_secret_matches(
+                        connection,
+                        workspace_id,
+                        request.workspace_secret,
+                    ):
+                        raise SkeletonError(404, "workspace_not_found")
+                    deletion = repository.request_workspace_deletion(
+                        workspace_id=workspace_id,
+                        idempotency_key=idempotency_key,
+                        confirmation=request.confirmation,
+                        request_fingerprint=request_fingerprint,
+                        deletion_request_id=new_deletion_request_id(),
+                        timestamp=_timestamp(),
+                    )
+        except LifecyclePausedError as exc:
+            raise SkeletonError(503, "lifecycle_deletion_paused") from exc
+        except RestoreProofRequiredError as exc:
+            raise SkeletonError(
+                503, "deletion_restore_proof_required"
+            ) from exc
+        except LifecycleLegalHoldError as exc:
+            raise SkeletonError(409, "workspace_legal_hold") from exc
+        except LifecycleConflictError as exc:
+            code = str(exc)
+            status = 404 if code == "workspace_not_found" else 409
+            if code in {
+                "deletion_confirmation_required",
+                "invalid_idempotency_key",
+            }:
+                status = 422
+            raise SkeletonError(status, code) from exc
+        return {
+            "deletion_request_id": deletion["deletion_request_id"],
+            "state": deletion["state"],
+            "public_purge_due_at": deletion["public_purge_due_at"],
+            "access_revoked": True,
+            "default_retention_expiry": None,
+            "status": (
+                "completed"
+                if str(deletion["state"]) == "completed"
+                else "accepted"
+            ),
+        }
 
 
 def _staged_file_digests(path: Path) -> tuple[int, str, Any]:
@@ -1707,14 +1833,20 @@ def walking_skeleton_status() -> dict[str, Any]:
         }
     try:
         consistency_mode = consistency_state_mode()
+        retention_mode = lifecycle_mode()
         with _store() as connection:
             schema_version = connection.schema_version()
             structured_store = connection.backend_name
             connection.execute("SELECT 1").fetchone()
+            restore_proof = LifecycleRepository(
+                connection
+            ).active_restore_proof()
         object_store = configured_write_store(_state_root())
         object_store.ensure_ready()
-    except SkeletonError as error:
-        _raise_http(error)
+    except (SkeletonError, LifecyclePausedError) as error:
+        if isinstance(error, SkeletonError):
+            _raise_http(error)
+        _raise_http(SkeletonError(503, "lifecycle_mode_invalid"))
     except (
         ObjectStorageConfigurationError,
         ObjectStorageUnavailableError,
@@ -1770,6 +1902,26 @@ def walking_skeleton_status() -> dict[str, Any]:
             "raw_object_compensation_delete": False,
             "business_adapters": "stage-owned-not-claimed-by-p5.3",
         },
+        "retention_lifecycle": {
+            "mode": retention_mode,
+            "default_auto_expiry": False,
+            "explicit_workspace_deletion": True,
+            "delete_confirmation": DELETE_CONFIRMATION,
+            "public_cache_index_purge_sla_seconds": int(
+                PUBLIC_PURGE_SLA.total_seconds()
+            ),
+            "restore_drill_proof_current_schema": restore_proof is not None,
+            "restore_drill_max_age_days": RESTORE_PROOF_MAX_AGE.days,
+            "worker_lease_seconds": int(
+                DELETION_WORKER_LEASE.total_seconds()
+            ),
+            "application_object_delete_credentials": (
+                object_store.storage_backend == LEGACY_STORAGE_BACKEND
+            ),
+            "worker_uses_separate_credentials": (
+                object_store.storage_backend == S3_STORAGE_BACKEND
+            ),
+        },
         "browser_storage": False,
         "recovery_capability": "high-entropy-server-hashed",
         "access_session_seconds": int(ACCESS_TOKEN_TTL.total_seconds()),
@@ -1821,16 +1973,25 @@ def walking_skeleton_status() -> dict[str, Any]:
         "abuse_control": public_policy_contract(),
         "stage_status": "early-skeleton-not-ga",
         "hardening_pending": (
-            (["durable-database-service"] if structured_store.startswith("sqlite") else [])
+            (
+                ["durable-database-service"]
+                if structured_store.startswith("sqlite")
+                else []
+            )
             + (
                 ["s3-compatible-object-store"]
                 if object_store.storage_backend == LEGACY_STORAGE_BACKEND
                 else []
             )
+            + ([] if restore_proof is not None else ["backup-restore-drill"])
+            + (
+                ["lifecycle-deletion-worker"]
+                if retention_mode != LIFECYCLE_ACTIVE_MODE
+                else []
+            )
             + [
-                "backup-restore-drill",
                 "malware-controls",
-                "multi-file-lifecycle-and-explicit-deletion",
+                "multi-file-lifecycle",
                 "process-index-export-business-adapters",
             ]
         ),
@@ -1965,7 +2126,9 @@ def export_recovery_file(
             "Pragma": "no-cache",
             "X-Content-Type-Options": "nosniff",
             "X-Robots-Tag": "noindex, nofollow, noarchive",
-            "Content-Disposition": 'attachment; filename="kmfa-workspace.kmfa-recovery"',
+            "Content-Disposition": (
+                'attachment; filename="kmfa-workspace.kmfa-recovery"'
+            ),
         },
     )
 
@@ -2014,6 +2177,36 @@ def update_workspace(
         )
     except SkeletonError as error:
         _raise_http(error)
+
+
+@router.delete("/workspaces/{workspace_id}", status_code=202)
+def delete_workspace(
+    workspace_id: str,
+    request: DeleteWorkspaceRequest,
+    response: Response,
+    authorization: str | None = Header(default=None),
+    idempotency_key: str | None = Header(
+        default=None,
+        alias="Idempotency-Key",
+    ),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
+) -> dict[str, Any]:
+    try:
+        _require_enabled()
+        payload = _request_workspace_deletion(
+            workspace_id,
+            authorization,
+            session_cookie,
+            request,
+            idempotency_key,
+        )
+    except SkeletonError as error:
+        _raise_http(error)
+    _clear_session_cookie(response)
+    return payload
 
 
 @router.put("/workspaces/{workspace_id}/artifact")

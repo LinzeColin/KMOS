@@ -28,6 +28,7 @@ from app.object_storage import (
     ObjectStorageConflictError,
     content_md5_base64,
 )
+from app.retention_lifecycle import LifecycleRepository
 from app.structured_repository import StructuredRepository
 
 T0 = "2026-07-24T00:00:00Z"
@@ -189,6 +190,11 @@ def _ensure_workspace(workspace_id: str, scenario: str) -> None:
                 workspace_id=workspace_id,
                 name=f"Synthetic {scenario}",
                 progress=0,
+                created_at=timestamp,
+                updated_at=timestamp,
+            )
+            LifecycleRepository(connection).ensure_workspace_retention(
+                workspace_id=workspace_id,
                 created_at=timestamp,
                 updated_at=timestamp,
             )
