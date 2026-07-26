@@ -120,9 +120,10 @@ def _frontend_index() -> Path:
 @app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
 def index():
     index_path = _frontend_index()
-    # 入口 HTML 禁缓存；内容哈希资产则由 /assets 单独永久缓存。
+    # 入口 HTML 禁缓存且禁止边缘层改写，避免代理自动注入第三方脚本；
+    # 内容哈希资产仍由 /assets 单独永久缓存。
     headers = {
-        "Cache-Control": "no-cache, must-revalidate",
+        "Cache-Control": "no-cache, must-revalidate, no-transform",
         "X-KMFA-Shell-Mode": "public-app",
     }
     shell_enabled = _public_shell_enabled()
@@ -158,7 +159,7 @@ def private_operations_app(app_path: str | None = None):
     return FileResponse(
         _frontend_index(),
         headers={
-            "Cache-Control": "no-cache, must-revalidate",
+            "Cache-Control": "no-cache, must-revalidate, no-transform",
             "X-KMFA-App-Mode": "private-operations",
         },
     )
@@ -176,7 +177,7 @@ def public_workspace(workspace_path: str | None = None):
     return FileResponse(
         _frontend_index(),
         headers={
-            "Cache-Control": "no-cache, must-revalidate",
+            "Cache-Control": "no-cache, must-revalidate, no-transform",
             "X-KMFA-Shell-Mode": "public-workspace",
         },
     )

@@ -107,6 +107,15 @@ class PublicIndexBoundaryMiddleware:
                         existing_cache = headers.get("Cache-Control", "").lower()
                         if "no-store" not in existing_cache:
                             headers["Cache-Control"] = "private, no-store"
+                        content_type = headers.get("Content-Type", "").lower()
+                        if (
+                            content_type.startswith("text/html")
+                            and "no-transform"
+                            not in headers.get("Cache-Control", "").lower()
+                        ):
+                            headers["Cache-Control"] = (
+                                f"{headers['Cache-Control']}, no-transform"
+                            )
             await send(message)
 
         await self.app(scope, receive, send_with_boundary)

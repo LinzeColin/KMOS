@@ -4,7 +4,7 @@ Date: 2026-07-26
 
 Scope: `S05 / P5.1-P5.4 / T-S05-01..04`
 
-Status: **PASS — corrective guarded release candidate; remote closure pending**
+Status: **PASS — second corrective guarded candidate; remote closure pending**
 
 ## 1. Authority and review boundary
 
@@ -34,8 +34,14 @@ was blocked before deployment by Linux runner finding `F-S05-009`. The
 corrective runtime tree `dea35a8a1aea713be1b7ecd0228c4972140c494a` was then
 rebuilt and the complete relevant Oracle set passed as local image
 `sha256:dc55394a936dc9a3cb58f0bcf10f0a1145e6eaa0291bcf5ebe1d2c0e61dd9274`.
-Tree and local image identifiers are pre-receipt evidence, not the corrective
-Git commit or a production deployment identity.
+Corrective commit `afbd6cb6cd05cd7ceaedce5066af1c2efb5ca0a2` passed the full
+remote gate and deployed, after which the read-only production browser Oracle
+exposed edge finding `F-S05-010`. The second corrective runtime tree
+`90e9566da82ea337b2dfca86c7e4380080d24f9a` passed its focused/full local
+regressions as image
+`sha256:2a071ceb831ac15bd9f4cb3472f27f4e91f7b513c44728bb4cdd20ca0ec4cc9d`.
+Tree and local image identifiers are pre-receipt evidence, not the final
+corrective Git commit or production deployment identity.
 
 This review does not switch production to PostgreSQL or S3-compatible storage,
 enable production lifecycle deletion, create or claim a production backup,
@@ -73,8 +79,9 @@ P0 completion, and S06/S07 have not been executed.
 | `F-S05-007` the final P5.4 restore Oracle omitted lifecycle inventory credentials after exact version checks became mandatory | a correct fail-closed path prevented the Oracle from testing the intended restore | inject lifecycle credentials only into the two isolated restore calls; keep backup calls least-privileged | **RESOLVED** |
 | `F-S05-008` origin integration removed the complete Walking Skeleton style block | the anonymous product slice became visually unusable and WebKit found a sub-24px mode control | restore the coherent public walking layout, warning/mode/form/workspace/file/feedback/mobile styles and minimum 44px controls | **RESOLVED** |
 | `F-S05-009` P5.4's host orchestrator wrote a file inside a container-created `0700` state directory | macOS Docker Desktop UID mapping hid the issue; the Linux GitHub runner correctly failed with `Permission denied` | move effect-file initialize/update/summary into the same container helper, restrict it to the exact workspace state path and retain `0600` atomic writes; rerun all exact-image gates | **RESOLVED** |
+| `F-S05-010` Cloudflare automatic Web Analytics injected `beacon.min.js` into production HTML | CSP correctly blocked execution, but the third-party injection violated the no-analytics contract and caused a browser console error | retain the restrictive CSP and add origin `Cache-Control: no-transform` only to HTML; keep `private, no-store` in hold/private paths and strengthen browser/crawler Oracles against beacon markup | **RESOLVED** |
 
-Whole-stage open findings: `0` (`9/9` resolved). Accepted risk used to waive a
+Whole-stage open findings: `0` (`10/10` resolved). Accepted risk used to waive a
 finding: `0`.
 The initial import-order lint observations are formatting debt in already
 reviewed phase/origin files, not runtime defects; E/F static checks, full syntax
@@ -117,6 +124,10 @@ abuse-control Oracle:                                    PASS
 public shell desktop/mobile/no-JS/degraded:               PASS (4/4)
 Chromium/Firefox/WebKit accessibility and index boundary: PASS
   critical+serious axe / unpublished-canary index hits:   0 / 0
+HTML edge-integrity contract:                             PASS
+  root/workspace/private HTML:                            no-transform
+  hold caching / JSON caching:                            private no-store / unchanged
+  Cloudflare beacon markup allowed by Oracle:             0
 
 repository taskpack validator:                            PASS
   49 R / 49 AC / 14 Stages / 56 Phases / 56 Tasks
@@ -138,6 +149,24 @@ was skipped, so no deployment or production mutation occurred. The red SHA was
 not rerun. The corrective candidate passed P5.1-P5.4, public shell, three-engine
 accessibility/index, anonymous recovery/secret and abuse Oracles locally; the
 new SHA must repeat the remote sequence before deployment.
+
+Corrective deploy run `30183924838` then passed the complete E2E, secret, SBOM,
+dependency and deploy gates. Read-only query run `30184298703` bound that
+interim deployment to source `afbd6cb6cd05cd7ceaedce5066af1c2efb5ca0a2`,
+image `sha256:1054aad7ea1ff67d7a64f2366223967a1ee0bb1232174b320f4725d8adb18b1d`,
+deployment `flo5tgceg9ulip34k93et8mq`, completed
+`2026-07-26T02:15:32.000000Z`. Root/health/Walking/robots/sitemap and private
+Access boundaries passed, but the production browser Oracle exposed
+`F-S05-010`. Cloudflare documents that `no-transform` forbids intermediary
+payload transformation and prevents automatic Web Analytics injection:
+<https://developers.cloudflare.com/cache/concepts/cache-control/> and
+<https://developers.cloudflare.com/web-analytics/faq/>.
+
+The second corrective candidate passed `28` focused public-entry tests, the
+full `225` backend tests, hold/promoted cache-boundary checks, public Shell and
+Chromium/Firefox/WebKit accessibility/index Oracles locally. Its new SHA must
+repeat the full remote gate and replace the interim deployment before S05 is
+closed.
 
 ## 5. Promotion state, guarded upload and rollback
 

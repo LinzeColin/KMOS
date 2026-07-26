@@ -72,6 +72,8 @@ def _run_interactive(
     try:
         response = page.goto(f"{base_url}/", wait_until="networkidle", timeout=30_000)
         assert response and response.status == 200
+        assert "no-transform" in response.headers.get("cache-control", "")
+        assert "static.cloudflareinsights.com" not in page.content()
         page.locator('[data-shell-ready="true"]').wait_for()
         page.locator('[data-system-state="online"]').wait_for(timeout=10_000)
         _exercise_entries(page)

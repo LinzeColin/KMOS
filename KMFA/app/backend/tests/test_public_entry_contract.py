@@ -128,7 +128,7 @@ def test_index_hold_is_default_and_keeps_the_human_homepage(monkeypatch):
     assert root.status_code == 200
     assert root.headers["x-kmfa-index-mode"] == "hold"
     assert "noindex" in root.headers["x-robots-tag"]
-    assert root.headers["cache-control"] == "private, no-store"
+    assert root.headers["cache-control"] == "private, no-store, no-transform"
     assert '<meta name="robots" content="noindex,nofollow,noarchive">' in root.text
     assert '<meta name="robots" content="index,follow,max-snippet:-1">' not in root.text
 
@@ -161,7 +161,10 @@ def test_promoted_index_mode_allows_only_the_canonical_root(monkeypatch):
     assert root.status_code == 200
     assert root.headers["x-kmfa-index-mode"] == "public-root"
     assert "x-robots-tag" not in root.headers
-    assert root.headers["cache-control"] == "no-cache, must-revalidate"
+    assert (
+        root.headers["cache-control"]
+        == "no-cache, must-revalidate, no-transform"
+    )
     for metadata in (
         '<meta name="robots" content="index,follow,max-snippet:-1">',
         '<meta property="og:type" content="website">',
@@ -230,7 +233,12 @@ def test_unpublished_private_and_non_page_routes_never_become_index_candidates(
         assert response.status_code == expected_status
         assert response.headers["x-kmfa-index-mode"] == "public-root"
         assert response.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
-        assert response.headers["cache-control"] == "private, no-store"
+        expected_cache = (
+            "private, no-store, no-transform"
+            if path == "/ops/app"
+            else "private, no-store"
+        )
+        assert response.headers["cache-control"] == expected_cache
 
     asset_path = re.search(r'(?:src|href)="(/assets/[^"]+)"', client.get("/").text)
     assert asset_path is not None

@@ -73,6 +73,7 @@ def test_workspace_route_serves_shell_with_noindex():
     assert r.headers["x-kmfa-shell-mode"] == "public-workspace"
     assert r.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
     assert "no-store" in r.headers["cache-control"]
+    assert "no-transform" in r.headers["cache-control"]
     assert '<div id="root">' in r.text
     deep = client.get("/workspace/anything", follow_redirects=False)
     assert deep.status_code == 200

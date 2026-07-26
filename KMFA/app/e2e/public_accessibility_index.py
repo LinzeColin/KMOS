@@ -366,6 +366,7 @@ def _crawler_contract(playwright: Playwright, base_url: str) -> dict[str, object
         assert root.status == 200
         assert root_headers["x-kmfa-index-mode"] == "public-root"
         assert "noindex" not in root_headers.get("x-robots-tag", "")
+        assert "no-transform" in root_headers.get("cache-control", "")
         assert '<link rel="canonical" href="https://kmfa.linzezhang.com/">' in root_html
         assert '<meta name="robots" content="index,follow,max-snippet:-1">' in root_html
 
@@ -408,7 +409,12 @@ def _crawler_contract(playwright: Playwright, base_url: str) -> dict[str, object
             headers = {key.lower(): value for key, value in response.headers.items()}
             assert response.status == expected_status
             assert headers.get("x-robots-tag") == NO_INDEX
-            assert headers.get("cache-control") == "private, no-store"
+            expected_cache = (
+                "private, no-store, no-transform"
+                if path in {"/ops/app", "/workspace"}
+                else "private, no-store"
+            )
+            assert headers.get("cache-control") == expected_cache
             response_checks[path] = {
                 "status": response.status,
                 "x_robots_tag": headers.get("x-robots-tag"),
