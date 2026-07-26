@@ -21,10 +21,12 @@
 import argparse, base64, hashlib, io, json, os, shutil, sqlite3, subprocess, sys, tarfile, tempfile, time, urllib.request, urllib.error
 from datetime import datetime, timezone, timedelta
 
-REPO_DEFAULT = "LinzeColin/Private-Database"           # REST(token)路径:入 Private-Database
-SSH_REPO_DEFAULT = "LinzeColin/KMFA-App-State-Backup"  # git-SSH(部署密钥)路径:专用私有备份库(最小爆炸半径)
+# 【Owner 铁律】所有数据只进唯一私有库 Private-Database，永不新建 repo。
+REPO_DEFAULT = "LinzeColin/Private-Database"           # REST(token)路径
+SSH_REPO_DEFAULT = "LinzeColin/Private-Database"       # git-SSH(部署密钥)路径:同一个库
+AREA = "Private-KMDatabase/app-state-backup"           # 库内归置区(与 KMFA_MetaData 同级)
 PREFIX = "kmfa-app-state"                      # 备份对象前缀
-MANIFEST = "backups/kmfa-app-state-manifest.jsonl"
+MANIFEST = f"{AREA}/kmfa-app-state-manifest.jsonl"
 API = "https://api.github.com"
 KEEP_LAST = 30                                 # git-SSH 路径保留最近 N 份(防仓无限膨胀)
 
@@ -180,11 +182,19 @@ def _git(args, cwd, key_path):
 
 
 def _git_ssh_backup(data, names, sha, ts, repo, key_path):
-    """git-over-SSH（部署密钥）推专用私有备份库；保留最近 KEEP_LAST 份。"""
+    """git-over-SSH（部署密钥）推 Private-Database 的 app-state-backup 区；保留最近 KEEP_LAST 份。
+
+    Private-Database 含 KMFA_MetaData 等大量真实数据（数百 MB），VPS 每日全量 clone 不可接受——
+    故用 blobless + sparse（只取本备份区），下载量与本区大小同阶。
+    """
     work = tempfile.mkdtemp(prefix="kmfa-bk-repo-")
     try:
-        _git(["clone", "--quiet", f"git@github.com:{repo}.git", work], cwd=None, key_path=key_path)
-        bkdir = os.path.join(work, "backups")
+        _git(["clone", "--quiet", "--filter=blob:none", "--no-checkout",
+              f"git@github.com:{repo}.git", work], cwd=None, key_path=key_path)
+        _git(["sparse-checkout", "init", "--cone"], cwd=work, key_path=key_path)
+        _git(["sparse-checkout", "set", AREA], cwd=work, key_path=key_path)
+        _git(["checkout", "--quiet"], cwd=work, key_path=key_path)
+        bkdir = os.path.join(work, AREA)
         os.makedirs(bkdir, exist_ok=True)
         fn = f"{ts}_{sha[:12]}_{PREFIX}.tar.gz"
         with open(os.path.join(bkdir, fn), "wb") as f:
@@ -192,7 +202,7 @@ def _git_ssh_backup(data, names, sha, ts, repo, key_path):
         # 追加 manifest
         mpath = os.path.join(work, MANIFEST)
         rec = {"ts": ts, "sha256": sha, "size_bytes": len(data),
-               "file_count": len(names), "object_path": f"backups/{fn}", "prefix": PREFIX}
+               "file_count": len(names), "object_path": f"{AREA}/{fn}", "prefix": PREFIX}
         with open(mpath, "a", encoding="utf-8") as f:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
         # 保留最近 KEEP_LAST 份归档
@@ -204,7 +214,7 @@ def _git_ssh_backup(data, names, sha, ts, repo, key_path):
               "commit", "--quiet", "-m", f"backup(kmfa): app-state {ts}"], cwd=work, key_path=key_path)
         _git(["push", "--quiet", "origin", "HEAD"], cwd=work, key_path=key_path)
         print(f"✓ 异地备份完成（部署密钥→{repo}）sha256={sha[:12]}… "
-              f"（{len(data)} 字节，{len(names)} 文件，backups/{fn}；保留最近 {KEEP_LAST} 份）")
+              f"（{len(data)} 字节，{len(names)} 文件，{AREA}/{fn}；保留最近 {KEEP_LAST} 份）")
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -226,7 +236,7 @@ def cmd_backup(a):
         return 0
     token = _token()
     if token:
-        obj = f"objects/{sha[:2]}/{sha}_{ts}_{PREFIX}.tar.gz"
+        obj = f"{AREA}/objects/{sha[:2]}/{sha}_{ts}_{PREFIX}.tar.gz"
         _put_object(token, a.repo, obj, data, f"backup(kmfa): app-state {ts}")
         _append_manifest(token, a.repo, {
             "ts": ts, "sha256": sha, "size_bytes": len(data),
