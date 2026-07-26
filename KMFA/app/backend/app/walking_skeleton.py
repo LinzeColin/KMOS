@@ -44,7 +44,7 @@ import unicodedata
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 from urllib.parse import unquote
 
 from fastapi import APIRouter, Cookie, Header, HTTPException, Request, Response
@@ -143,6 +143,7 @@ CONSISTENCY_STATE_MODES = frozenset(
     {CONSISTENCY_ACTIVE_MODE, CONSISTENCY_PAUSED_MODE}
 )
 RESUMABLE_UPLOAD_ENABLED_ENV = "KMFA_RESUMABLE_UPLOAD_ENABLED"
+SINGLE_FILE_DOWNLOAD_ENABLED_ENV = "KMFA_SINGLE_FILE_DOWNLOAD_ENABLED"
 MAX_ARTIFACT_BYTES = 8 * 1024 * 1024
 MAX_RESUMABLE_ARTIFACT_BYTES = 64 * 1024 * 1024
 MAX_UPLOAD_CHUNK_BYTES = 4 * 1024 * 1024
@@ -178,6 +179,10 @@ DUMMY_WORKSPACE_VERIFIER = hashlib.sha256(
     DUMMY_WORKSPACE_SECRET.encode("ascii")
 ).hexdigest()
 SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
+MEDIA_TYPE_RE = re.compile(
+    r"^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}/"
+    r"[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$"
+)
 
 router = APIRouter(prefix=API_PREFIX, tags=["public-walking-skeleton"])
 
@@ -220,6 +225,11 @@ class CreateUploadSessionRequest(BaseModel):
     sha256: str = Field(min_length=64, max_length=64)
 
 
+class DownloadAssetRequest(BaseModel):
+    kind: Literal["original", "derivative"]
+    asset_id: str = Field(min_length=1, max_length=200)
+
+
 class SkeletonError(RuntimeError):
     def __init__(
         self,
@@ -250,6 +260,28 @@ def resumable_upload_enabled() -> bool:
         os.environ.get(RESUMABLE_UPLOAD_ENABLED_ENV, "0").strip().lower()
         in TRUE_VALUES
     )
+
+
+def single_file_download_enabled() -> bool:
+    """Only an explicit true value enables the P7.1 exact selector."""
+
+    return (
+        os.environ.get(SINGLE_FILE_DOWNLOAD_ENABLED_ENV, "0")
+        .strip()
+        .lower()
+        in TRUE_VALUES
+    )
+
+
+def public_single_file_download_contract() -> dict[str, Any]:
+    return {
+        "enabled": single_file_download_enabled(),
+        "selector_transport": "authorized-json-body",
+        "asset_kinds": ["original", "derivative"],
+        "content_disposition": "attachment-only",
+        "legacy_latest_original_fallback": True,
+        "public_snapshot_access": "deferred-to-s08",
+    }
 
 
 def consistency_state_mode() -> str:
@@ -474,12 +506,10 @@ def _clean_plain_filename(value: str) -> str:
 
 
 def _clean_media_type(value: str | None) -> str:
-    media_type = (value or "application/octet-stream").strip().lower()
-    if (
-        not media_type
-        or len(media_type) > 200
-        or any(ord(char) < 32 for char in media_type)
-    ):
+    media_type = (
+        value or "application/octet-stream"
+    ).split(";", 1)[0].strip().lower()
+    if MEDIA_TYPE_RE.fullmatch(media_type) is None:
         return "application/octet-stream"
     return media_type
 
@@ -674,9 +704,66 @@ def _issue_access_token(
     return token, _timestamp(expires)
 
 
+def _downloadable_payloads(
+    connection: StructuredStoreConnection,
+    workspace_id: str,
+) -> list[dict[str, Any]]:
+    payloads: list[dict[str, Any]] = []
+    for row in StructuredRepository(connection).downloadable_assets(
+        workspace_id
+    ):
+        kind = str(row["asset_kind"])
+        source_artifact_version_id = str(
+            row["source_artifact_version_id"]
+        )
+        security = artifact_security_payload(
+            connection,
+            artifact_version_id=source_artifact_version_id,
+        )
+        if kind == "original":
+            source = {
+                "kind": "upload",
+                "artifact_version_id": source_artifact_version_id,
+                "operation_id": (
+                    str(row["source_operation_id"])
+                    if row["source_operation_id"] is not None
+                    else None
+                ),
+            }
+            download_allowed = bool(security["download_allowed"])
+        else:
+            source = {
+                "kind": "processor",
+                "artifact_version_id": source_artifact_version_id,
+                "processor": {
+                    "name": str(row["processor_name"]),
+                    "version": str(row["processor_version"]),
+                },
+                "generation_number": int(row["generation_number"]),
+            }
+            download_allowed = security["state"] == "clean"
+        payloads.append(
+            {
+                "kind": kind,
+                "id": str(row["asset_id"]),
+                "name": str(row["original_name"]),
+                "media_type": _clean_media_type(str(row["media_type"])),
+                "size_bytes": int(row["size_bytes"]),
+                "sha256": str(row["sha256"]),
+                "created_at": str(row["created_at"]),
+                "version_number": int(row["version_number"]),
+                "download_allowed": download_allowed,
+                "download_mode": "attachment-only",
+                "source": source,
+            }
+        )
+    return payloads
+
+
 def _artifact_payload(
     connection: StructuredStoreConnection,
     row: Any | None,
+    workspace_id: str,
 ) -> dict[str, Any] | None:
     if row is None:
         return None
@@ -704,7 +791,8 @@ def _artifact_payload(
     security["preview_allowed"] = preview_allowed
     lineage = connection.execute(
         """
-        SELECT parent_artifact_version_id, relation_kind
+        SELECT
+          parent_artifact_version_id, relation_kind, source_operation_id
         FROM artifact_version_lineage
         WHERE artifact_version_id = ?
         """,
@@ -737,7 +825,7 @@ def _artifact_payload(
         if derivative is not None
         else None
     )
-    return {
+    payload = {
         "artifact_id": row["artifact_id"],
         "artifact_version_id": row["artifact_version_id"],
         "version_number": int(row["version_number"]),
@@ -752,15 +840,32 @@ def _artifact_payload(
             str(lineage["relation_kind"]) if lineage is not None else None
         ),
         "name": row["original_name"],
+        "media_type": _clean_media_type(str(row["reported_media_type"])),
         "size_bytes": row["size_bytes"],
         "sha256": row["sha256"],
         "created_at": row["created_at"],
+        "source": {
+            "kind": "upload",
+            "artifact_version_id": str(row["artifact_version_id"]),
+            "operation_id": (
+                str(lineage["source_operation_id"])
+                if lineage is not None
+                and lineage["source_operation_id"] is not None
+                else None
+            ),
+        },
         "download_mode": "attachment-only",
         "download_allowed": security["download_allowed"],
         "preview_allowed": preview_allowed,
         "preview": preview,
         "security": security,
     }
+    if single_file_download_enabled():
+        payload["downloadables"] = _downloadable_payloads(
+            connection,
+            workspace_id,
+        )
+    return payload
 
 
 def _workspace_payload(
@@ -794,7 +899,7 @@ def _workspace_payload(
         "progress": workspace["progress"],
         "created_at": legacy_timestamps["created_at"],
         "updated_at": legacy_timestamps["updated_at"],
-        "artifact": _artifact_payload(connection, artifact),
+        "artifact": _artifact_payload(connection, artifact, workspace_id),
         "stage_status": "early-skeleton-not-ga",
     }
 
@@ -2706,6 +2811,71 @@ def _artifact_for_download(
             ),
         )
 
+    return _materialize_download_asset(
+        workspace_id,
+        authorization,
+        session_cookie,
+        artifact_payload,
+    )
+
+
+def _selected_asset_for_download(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None,
+    request: DownloadAssetRequest,
+) -> tuple[Path, dict[str, Any], bool]:
+    if not single_file_download_enabled():
+        raise SkeletonError(404, "single_file_download_disabled")
+    with _store() as connection:
+        _authorize(connection, workspace_id, authorization, session_cookie)
+        selected = next(
+            (
+                row
+                for row in StructuredRepository(
+                    connection
+                ).downloadable_assets(workspace_id)
+                if str(row["asset_kind"]) == request.kind
+                and str(row["asset_id"]) == request.asset_id
+            ),
+            None,
+        )
+        if selected is None:
+            raise SkeletonError(404, "artifact_download_not_found")
+        artifact_payload = dict(selected)
+        source_artifact_version_id = str(
+            artifact_payload["source_artifact_version_id"]
+        )
+        security = artifact_security_payload(
+            connection,
+            artifact_version_id=source_artifact_version_id,
+        )
+        if request.kind == "original":
+            try:
+                require_download_allowed(
+                    connection,
+                    artifact_version_id=source_artifact_version_id,
+                )
+            except FileSecurityStateConflict as exc:
+                raise SkeletonError(409, str(exc)) from exc
+        elif security["state"] != "clean":
+            raise SkeletonError(409, "artifact_security_pending")
+        artifact_payload["security"] = security
+
+    return _materialize_download_asset(
+        workspace_id,
+        authorization,
+        session_cookie,
+        artifact_payload,
+    )
+
+
+def _materialize_download_asset(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None,
+    artifact_payload: dict[str, Any],
+) -> tuple[Path, dict[str, Any], bool]:
     materialized = None
     try:
         object_store = object_store_for_backend(
@@ -3086,6 +3256,7 @@ def walking_skeleton_status() -> dict[str, Any]:
         },
         "file_security": security_contract,
         "artifact_derivation": public_derivation_contract(),
+        "single_file_download": public_single_file_download_contract(),
         "abuse_control": public_policy_contract(),
         "stage_status": "early-skeleton-not-ga",
         "hardening_pending": (
@@ -3584,6 +3755,66 @@ def download_artifact(
             "X-KMFA-Artifact-Mode": "attachment-only",
             "X-KMFA-Artifact-Security": artifact["security"]["state"],
         },
+        background=(
+            BackgroundTask(path.unlink, missing_ok=True) if temporary else None
+        ),
+    )
+
+
+@router.post("/workspaces/{workspace_id}/artifact/downloads")
+def download_selected_artifact(
+    workspace_id: str,
+    request: DownloadAssetRequest,
+    authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
+) -> FileResponse:
+    try:
+        _require_enabled()
+        path, asset, temporary = _selected_asset_for_download(
+            workspace_id,
+            authorization,
+            session_cookie,
+            request,
+        )
+    except SkeletonError as error:
+        _raise_http(error)
+    headers = {
+        "Cache-Control": "private, no-store",
+        "Pragma": "no-cache",
+        "X-Content-Type-Options": "nosniff",
+        "X-KMFA-Artifact-SHA256": str(asset["sha256"]),
+        "X-KMFA-Artifact-Size": str(asset["size_bytes"]),
+        "X-KMFA-Artifact-Media-Type": str(asset["media_type"]),
+        "X-KMFA-Artifact-Kind": str(asset["asset_kind"]),
+        "X-KMFA-Artifact-ID": str(asset["asset_id"]),
+        "X-KMFA-Artifact-Mode": "attachment-only",
+        "X-KMFA-Artifact-Security": str(asset["security"]["state"]),
+        "X-KMFA-Source-Artifact-Version": str(
+            asset["source_artifact_version_id"]
+        ),
+        "X-KMFA-Source-Kind": (
+            "upload"
+            if str(asset["asset_kind"]) == "original"
+            else "processor"
+        ),
+    }
+    if asset["source_operation_id"] is not None:
+        headers["X-KMFA-Source-Operation"] = str(
+            asset["source_operation_id"]
+        )
+    if asset["processor_name"] is not None:
+        headers["X-KMFA-Processor"] = (
+            f"{asset['processor_name']}/{asset['processor_version']}"
+        )
+    return FileResponse(
+        path,
+        media_type=_clean_media_type(str(asset["media_type"])),
+        filename=str(asset["original_name"]),
+        content_disposition_type="attachment",
+        headers=headers,
         background=(
             BackgroundTask(path.unlink, missing_ok=True) if temporary else None
         ),

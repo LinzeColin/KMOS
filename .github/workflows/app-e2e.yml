@@ -57,6 +57,7 @@ jobs:
             KMFA/app/backend/tests/test_file_security_policy.py \
             KMFA/app/backend/tests/test_file_security_protocol.py \
             KMFA/app/backend/tests/test_artifact_lineage.py \
+            KMFA/app/backend/tests/test_single_file_download.py \
             KMFA/app/backend/tests/test_retention_backup.py
           python KMFA/machine/tools/validate_taskpack.py --root KMFA
           python KMFA/machine/tools/test_validate_taskpack_mutations.py --root KMFA
@@ -140,6 +141,17 @@ jobs:
             --prefix kmfa-p63-ci \
             --port 18108
 
+      - name: 跑单文件下载（精确版本 / 派生物 / 报告 / IDOR / 完整性 / 回滚）
+        run: |
+          set -euo pipefail
+          p71_state=$(mktemp -d /tmp/kmfa-p71-state.XXXXXX)
+          python KMFA/app/e2e/single_file_download_flow.py \
+            --image kmfa-app:e2e \
+            --state-dir "$p71_state" \
+            --out-dir single-file-download-e2e \
+            --prefix kmfa-p71-ci \
+            --port 18110
+
       - name: 跑匿名恢复与 secret hygiene（会话撤销 / 泄露扫描 / 重启 / hash / Flag 回滚）
         run: |
           set -euo pipefail
@@ -180,6 +192,7 @@ jobs:
             resumable-upload-e2e/
             file-security-e2e/
             artifact-lineage-e2e/
+            single-file-download-e2e/
             upload-quality-e2e/
 
       - name: 收容器
@@ -195,6 +208,13 @@ jobs:
           done
           docker network rm kmfa-p62-ci-net || true
           docker network rm kmfa-p62-ci-app-net || true
+          docker rm -f kmfa-p71-ci-app || true
+          docker rm -f kmfa-p71-ci-scanner || true
+          for index in {1..4}; do
+            docker rm -f "kmfa-p71-ci-worker-${index}" || true
+          done
+          docker network rm kmfa-p71-ci-net || true
+          docker network rm kmfa-p71-ci-app-net || true
           docker rm -f kmfa-p52-ci-app-a || true
           docker rm -f kmfa-p52-ci-app-b || true
           docker rm -f kmfa-p52-ci-app-rollback || true

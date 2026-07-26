@@ -167,6 +167,15 @@ scanner-clean 的 UTF-8 text/plain 或 JSON 可由固定
 浏览器在 React 文本节点显示前校验派生物 SHA-256。回滚置 `0` 只停止/隐藏新派生，不删除版本、
 lineage、processing run、derivative、backup 或对象，也不得降 schema。
 
+S07/P7.1 增加默认关闭的 `KMFA_SINGLE_FILE_DOWNLOAD_ENABLED`。显式置 `1` 后，已授权的匿名
+workspace 才会收到有界的原件版本与派生物索引，并通过 JSON body 中的 opaque kind/id 精确选择
+一个对象；对象标识不作为可枚举 URL capability。每个响应固定 `attachment` + `nosniff`，同时
+返回准确 Content-Type、大小、SHA-256、源版本与上传 operation 或 processor/version，浏览器在
+保存前再次核对元数据和完整字节 hash。报告若已作为该 workspace 的文件进入同一对象/版本注册表，
+沿用同一下载链；旧全局报告中心和未来报告生成 Job 不接入匿名工作区。Range、批量 ZIP、显式导出
+Job 与 published snapshot 分别留给 P7.2、P7.3 和 S08。快速回滚置 `0` 后，新 selector fail
+closed，既有“最新原件”兼容下载继续工作，所有版本、派生物、DB、对象、备份和 v1.5 恢复资产保留。
+
 S05/P5.4 把 schema expand 到 v4，并增加默认无到期的 `workspace_retention`、legal hold、明确删除
 请求/对象 target、publication binding、append-only lifecycle events 与当前 schema restore proof。
 `DELETE /public-api/walking-skeleton/v1/workspaces/{workspace_id}` 同时要求有效 session、recovery

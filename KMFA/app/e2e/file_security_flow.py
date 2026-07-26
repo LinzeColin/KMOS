@@ -351,6 +351,7 @@ class Resources:
         *,
         security_enabled: bool,
         derivation_enabled: bool = False,
+        single_file_download_enabled: bool = False,
     ) -> None:
         assert not _exists("container", self.app)
         result = _run(
@@ -375,6 +376,11 @@ class Resources:
             (
                 "KMFA_ARTIFACT_DERIVATION_ENABLED="
                 f"{1 if derivation_enabled else 0}"
+            ),
+            "-e",
+            (
+                "KMFA_SINGLE_FILE_DOWNLOAD_ENABLED="
+                f"{1 if single_file_download_enabled else 0}"
             ),
             "-e",
             (

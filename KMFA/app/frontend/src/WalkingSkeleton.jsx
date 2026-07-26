@@ -19,6 +19,8 @@ const ERROR_COPY = {
   artifact_upload_in_progress: '该工作区已有上传正在收敛；请等待完成后再提交下一版本。',
   artifact_integrity_failed: '下载完整性校验失败，服务器已阻止返回损坏字节。',
   artifact_unavailable: '文件当前不可读取，服务器没有返回替代或伪造内容。',
+  artifact_download_not_found: '所选文件不属于当前工作区、已删除或不可下载。',
+  single_file_download_disabled: '逐项下载 Flag 已回滚；既有文件未删除，当前版本原件仍可使用兼容下载。',
   workspace_capacity_reached: '当前匿名灰度容量已满；公共浏览仍可用，已有工作区没有被删除。',
   artifact_capacity_reached: '当前文件存储预算不足；本次文件未写入，已有文件没有被删除。',
   invalid_idempotency_key: '上传重试标识无效；服务器未写入文件。',
@@ -244,6 +246,7 @@ function WalkingSkeleton() {
   const [resumableUpload, setResumableUpload] = useState(false)
   const [fileSecurity, setFileSecurity] = useState(false)
   const [artifactDerivation, setArtifactDerivation] = useState(false)
+  const [singleFileDownload, setSingleFileDownload] = useState(false)
   const [previewText, setPreviewText] = useState('')
   const [uploadProgress, setUploadProgress] = useState(null)
   const [mode, setMode] = useState('create')
@@ -286,6 +289,7 @@ function WalkingSkeleton() {
         setResumableUpload(resumableEnabled)
         setFileSecurity(status.file_security?.enabled === true)
         setArtifactDerivation(status.artifact_derivation?.enabled === true)
+        setSingleFileDownload(status.single_file_download?.enabled === true)
         setAvailability(status.healthy ? 'ready' : 'unavailable')
       })
       .catch(() => {
@@ -301,6 +305,11 @@ function WalkingSkeleton() {
 
   const workspace = session?.workspace || null
   const artifact = workspace?.artifact || null
+  const downloadables = (
+    singleFileDownload && Array.isArray(artifact?.downloadables)
+      ? artifact.downloadables
+      : []
+  )
   const versionLimitReached = (
     Number(artifact?.version_count || 0) >= limits.maxVersions
   )
@@ -660,24 +669,106 @@ function WalkingSkeleton() {
     })
   }
 
-  const downloadArtifact = () => {
+  const downloadArtifact = (target = null) => {
     run(async () => {
+      const exactTarget = (
+        singleFileDownload
+        && target
+        && typeof target.id === 'string'
+      )
+      const expected = exactTarget
+        ? target
+        : {
+            id: artifact.artifact_version_id,
+            kind: 'original',
+            name: artifact.name,
+            media_type: artifact.media_type || 'application/octet-stream',
+            size_bytes: artifact.size_bytes,
+            sha256: artifact.sha256,
+            source: artifact.source || {
+              artifact_version_id: artifact.artifact_version_id,
+            },
+          }
       const response = await fetchWithRiskChallenge(
-        `${API_BASE}/workspaces/${workspace.workspace_id}/artifact/download`,
+        exactTarget
+          ? `${API_BASE}/workspaces/${workspace.workspace_id}/artifact/downloads`
+          : `${API_BASE}/workspaces/${workspace.workspace_id}/artifact/download`,
         {
           method: 'POST',
           cache: 'no-store',
           credentials: 'same-origin',
+          headers: exactTarget
+            ? {
+                Accept: 'application/octet-stream',
+                'Content-Type': 'application/json',
+              }
+            : undefined,
+          body: exactTarget
+            ? JSON.stringify({
+                kind: expected.kind,
+                asset_id: expected.id,
+              })
+            : undefined,
         },
       )
       if (!response.ok) throw await errorFromResponse(response)
       const serverHash = response.headers.get('X-KMFA-Artifact-SHA256') || ''
-      if (serverHash !== artifact.sha256) throw new Error('下载响应 hash 与项目记录不一致，已停止保存。')
+      if (serverHash !== expected.sha256) {
+        throw new Error('下载响应 hash 与项目记录不一致，已停止保存。')
+      }
+      const disposition = response.headers.get('Content-Disposition') || ''
+      if (!disposition.toLowerCase().startsWith('attachment;')) {
+        throw new Error('下载响应不是附件模式，已停止保存。')
+      }
+      if (exactTarget) {
+        const responseKind = response.headers.get('X-KMFA-Artifact-Kind') || ''
+        const responseId = response.headers.get('X-KMFA-Artifact-ID') || ''
+        const responseSize = response.headers.get('X-KMFA-Artifact-Size') || ''
+        const recordedMediaType = response.headers.get('X-KMFA-Artifact-Media-Type') || ''
+        const sourceVersion = response.headers.get('X-KMFA-Source-Artifact-Version') || ''
+        const responseMediaType = (
+          response.headers.get('Content-Type') || ''
+        ).split(';', 1)[0].toLowerCase()
+        const expectedResponseMediaType = expected.media_type
+          .split(';', 1)[0]
+          .trim()
+          .toLowerCase()
+        if (
+          responseKind !== expected.kind
+          || responseId !== expected.id
+          || responseSize !== String(expected.size_bytes)
+          || recordedMediaType !== expected.media_type
+          || sourceVersion !== expected.source?.artifact_version_id
+          || responseMediaType !== expectedResponseMediaType
+        ) {
+          throw new Error('下载响应元数据与所选文件不一致，已停止保存。')
+        }
+        if (expected.kind === 'derivative') {
+          const processor = expected.source?.processor
+          const expectedProcessor = processor
+            ? `${processor.name}/${processor.version}`
+            : ''
+          if (
+            response.headers.get('X-KMFA-Processor') !== expectedProcessor
+          ) {
+            throw new Error('下载派生物的处理器来源不一致，已停止保存。')
+          }
+        } else if (
+          expected.source?.operation_id
+          && response.headers.get('X-KMFA-Source-Operation')
+            !== expected.source.operation_id
+        ) {
+          throw new Error('下载原件的上传来源不一致，已停止保存。')
+        }
+      }
       const blob = await response.blob()
+      if (blob.size !== expected.size_bytes) {
+        throw new Error('浏览器收到的下载字节数不一致，已停止保存。')
+      }
       const browserHash = await sha256Hex(blob)
       if (browserHash !== serverHash) throw new Error('浏览器下载字节的 SHA-256 不一致，已停止保存。')
-      saveBlob(blob, artifact.name)
-      setMessage(`下载已发起；浏览器与服务器 SHA-256 一致：${browserHash}`)
+      saveBlob(blob, expected.name)
+      setMessage(`已校验并下载 ${expected.name}；类型、大小、来源与 SHA-256 均一致：${browserHash}`)
     })
   }
 
@@ -716,8 +807,8 @@ function WalkingSkeleton() {
           <h2 id="walking-title">第一个真实、可恢复的文件旅程</h2>
         </div>
         <p>
-          这是 S03 骨架上的 S06/P6.1–P6.3 上传切片，不是 GA：文件通过耐久意图与私有对象路径保存，灰度开启后先隔离，再由无数据库/对象凭据的私网扫描器分类。
-          未知、高风险、超时或异常结果不会冒充安全；拒绝项不下载，原件永不执行。只有 clean 的 UTF-8 文本或 JSON 可由独立 worker 生成有界纯文本预览；多文件生命周期由后续阶段完成。
+          这是 S03 骨架上的 S06 上传链与 S07/P7.1 单文件下载切片，不是 GA：文件通过耐久意图与私有对象路径保存，先隔离，再由无数据库/对象凭据的私网扫描器分类。
+          未知、高风险、超时或异常结果不会冒充安全；拒绝项不下载，原件永不执行。逐项下载按工作区会话授权，浏览器会复核类型、大小、来源与 SHA-256；Range、批量 ZIP、导出 Job 和公开快照仍由后续 phase 接管。
         </p>
       </div>
 
@@ -939,6 +1030,7 @@ function WalkingSkeleton() {
                       <h4>{artifact.name}</h4>
                       <dl>
                         <div><dt>版本</dt><dd>v{artifact.version_number} / {artifact.version_count}</dd></div>
+                        <div><dt>类型</dt><dd>{artifact.media_type || 'application/octet-stream'}</dd></div>
                         <div><dt>字节</dt><dd>{artifact.size_bytes}</dd></div>
                         <div><dt>模式</dt><dd>attachment-only</dd></div>
                         <div>
@@ -951,16 +1043,18 @@ function WalkingSkeleton() {
                         <div><dt>SHA-256</dt><dd><code>{artifact.sha256}</code></dd></div>
                       </dl>
                       <div className="walking-artifact-actions">
-                        <button
-                          type="button"
-                          data-walking-download="true"
-                          onClick={downloadArtifact}
-                          disabled={busy || artifact.download_allowed === false}
-                        >
-                          {artifact.download_allowed === false
-                            ? '当前安全状态禁止下载'
-                            : '校验并下载附件'}
-                        </button>
+                        {downloadables.length === 0 && (
+                          <button
+                            type="button"
+                            data-walking-download="true"
+                            onClick={() => downloadArtifact()}
+                            disabled={busy || artifact.download_allowed === false}
+                          >
+                            {artifact.download_allowed === false
+                              ? '当前安全状态禁止下载'
+                              : '校验并下载附件'}
+                          </button>
+                        )}
                         <button
                           type="button"
                           data-walking-refresh="true"
@@ -990,6 +1084,42 @@ function WalkingSkeleton() {
                           </button>
                         )}
                       </div>
+                      {downloadables.length > 0 && (
+                        <section
+                          className="walking-download-list"
+                          aria-label="可验证的单文件下载"
+                          data-walking-download-list="ready"
+                        >
+                          <h5>精确版本与派生物</h5>
+                          <p>每项固定为附件；下载前后核对服务器记录与浏览器收到的字节。</p>
+                          {downloadables.map((item) => (
+                            <article
+                              key={`${item.kind}:${item.id}`}
+                              data-walking-download-item={item.kind}
+                              data-download-asset-id={item.id}
+                            >
+                              <strong>{item.name}</strong>
+                              <span>
+                                {item.kind === 'original'
+                                  ? `上传原件 · v${item.version_number}`
+                                  : `派生物 · 源 v${item.version_number} · ${item.source.processor.name}/${item.source.processor.version}`}
+                              </span>
+                              <span>{item.media_type} · {formatBytes(item.size_bytes)}</span>
+                              <code>{item.sha256}</code>
+                              <button
+                                type="button"
+                                data-walking-download="exact"
+                                onClick={() => downloadArtifact(item)}
+                                disabled={busy || item.download_allowed === false}
+                              >
+                                {item.download_allowed === false
+                                  ? '当前安全状态禁止下载'
+                                  : '校验来源并下载附件'}
+                              </button>
+                            </article>
+                          ))}
+                        </section>
+                      )}
                       {previewText && (
                         <pre
                           className="walking-safe-preview"
@@ -1016,8 +1146,8 @@ function WalkingSkeleton() {
 
       <div className="walking-contract" role="list" aria-label="早期骨架边界">
         <span role="listitem">服务器状态，不用 localStorage</span>
-        <span role="listitem">恢复码与文件服务端只存 hash</span>
-        <span role="listitem">HttpOnly 短时会话可撤销</span>
+        <span role="listitem">精确版本、来源与 SHA-256 可核验</span>
+        <span role="listitem">强制附件；Range/ZIP/导出尚未启用</span>
         <span role="listitem">文件不进入静态公开目录</span>
         <span role="listitem">固定分片、服务器偏移与端到端 SHA-256</span>
         <span role="listitem">轮换撤销旧材料且不删状态</span>

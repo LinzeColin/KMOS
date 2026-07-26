@@ -271,13 +271,10 @@ def main() -> int:
         state_dir=arguments.state_dir.resolve(),
         port=arguments.port,
         shared_secret=shared_secret,
-        timeout_payload_sha256=hashlib.sha256(
-            b"P6.3 no timeout fixture"
-        ).hexdigest(),
     )
     try:
         resources.create_network()
-        resources.start_scanner(delay_enabled=False)
+        resources.start_scanner()
         resources.start_app(
             security_enabled=True,
             derivation_enabled=True,
@@ -491,9 +488,15 @@ def main() -> int:
         assert after_rollback == before_rollback
         assert after_rollback["schema_version"] == 6
         assert after_rollback["processors"] == 1
-        assert after_rollback["derivatives"] == 6
-        assert after_rollback["derivative_storage_keys"] == 6
-        assert after_rollback["runs"] == {"converged": 6}
+        expected_derivatives = 4 if arguments.skip_browser else 6
+        assert after_rollback["derivatives"] == expected_derivatives
+        assert (
+            after_rollback["derivative_storage_keys"]
+            == expected_derivatives
+        )
+        assert after_rollback["runs"] == {
+            "converged": expected_derivatives
+        }
 
         logs = resources.logs()
         assert shared_secret not in logs

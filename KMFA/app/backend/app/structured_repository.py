@@ -527,6 +527,89 @@ class StructuredRepository:
             (workspace_id,),
         ).fetchone()
 
+    def downloadable_assets(self, workspace_id: str) -> list[Any]:
+        """Return bounded, workspace-scoped original and derivative metadata.
+
+        Storage coordinates remain internal to the caller. The public adapter
+        projects only the explicit fields required to select and verify one
+        attachment after workspace authorization.
+        """
+
+        return self.connection.execute(
+            """
+            SELECT *
+            FROM (
+              SELECT
+                'original' AS asset_kind,
+                av.artifact_version_id AS asset_id,
+                av.artifact_id,
+                av.version_number,
+                av.storage_backend,
+                av.storage_key,
+                av.original_name,
+                av.reported_media_type AS media_type,
+                av.size_bytes,
+                av.sha256,
+                av.created_at,
+                av.artifact_version_id AS source_artifact_version_id,
+                lineage.source_operation_id,
+                NULL AS processor_name,
+                NULL AS processor_version,
+                NULL AS generation_number
+              FROM artifact_versions av
+              JOIN projects p ON p.project_id = av.project_id
+              LEFT JOIN artifact_version_lineage lineage
+                ON lineage.artifact_version_id = av.artifact_version_id
+              WHERE p.workspace_id = ?
+                AND p.lifecycle_state = 'active'
+                AND av.lifecycle_state = 'active'
+
+              UNION ALL
+
+              SELECT
+                'derivative' AS asset_kind,
+                derivative.derivative_id AS asset_id,
+                derivative.artifact_id,
+                av.version_number,
+                derivative.storage_backend,
+                derivative.storage_key,
+                derivative.original_name,
+                derivative.media_type,
+                derivative.size_bytes,
+                derivative.sha256,
+                derivative.created_at,
+                derivative.source_artifact_version_id,
+                NULL AS source_operation_id,
+                derivative.processor_name,
+                derivative.processor_version,
+                derivative.generation_number
+              FROM artifact_derivatives derivative
+              JOIN artifact_versions av
+                ON av.artifact_version_id =
+                  derivative.source_artifact_version_id
+              JOIN projects p ON p.project_id = av.project_id
+              JOIN processor_registry processor
+                ON processor.processor_name = derivative.processor_name
+                AND processor.processor_version =
+                  derivative.processor_version
+                AND processor.output_kind = derivative.output_kind
+                AND processor.output_media_type = derivative.media_type
+              WHERE p.workspace_id = ?
+                AND p.lifecycle_state = 'active'
+                AND av.lifecycle_state = 'active'
+            ) downloadable
+            ORDER BY
+              downloadable.version_number,
+              CASE downloadable.asset_kind
+                WHEN 'original' THEN 0
+                ELSE 1
+              END,
+              downloadable.generation_number,
+              downloadable.asset_id
+            """,
+            (workspace_id, workspace_id),
+        ).fetchall()
+
     def artifact_object_index(self, *, storage_backend: str) -> list[Any]:
         """Return the non-secret object index required by inventory reconciliation."""
 

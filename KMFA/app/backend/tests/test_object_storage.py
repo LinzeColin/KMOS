@@ -413,8 +413,10 @@ def test_s3_adapter_conditionally_creates_and_deep_hashes_inventory(
 
 def test_s3_api_round_trip_separates_same_name_and_duplicate_content(
     s3_environment: tuple[Path, _MemoryS3],
+    monkeypatch: pytest.MonkeyPatch,
 ):
     state, memory = s3_environment
+    monkeypatch.setenv("KMFA_SINGLE_FILE_DOWNLOAD_ENABLED", "1")
     content = b"same private synthetic bytes"
     created_a, token_a = _create("S3 object A")
     created_b, token_b = _create("S3 object B")
@@ -449,6 +451,34 @@ def test_s3_api_round_trip_separates_same_name_and_duplicate_content(
     assert downloaded.status_code == 200
     assert downloaded.content == content
     assert downloaded.headers["x-kmfa-artifact-sha256"] == rows[0][2]
+    assert not list((state / "tmp").glob("download-*.part"))
+
+    selected_workspace = client.get(
+        f"{BASE}/workspaces/{workspace_b}",
+        headers={"Authorization": f"Bearer {token_b}"},
+    )
+    selected_item = selected_workspace.json()["artifact"][
+        "downloadables"
+    ][0]
+    selected_download = client.post(
+        f"{BASE}/workspaces/{workspace_b}/artifact/downloads",
+        headers={"Authorization": f"Bearer {token_b}"},
+        json={
+            "kind": selected_item["kind"],
+            "asset_id": selected_item["id"],
+        },
+    )
+    assert selected_download.status_code == 200
+    assert selected_download.content == content
+    assert selected_download.headers["content-type"].startswith(
+        "application/x-kmfa-synthetic"
+    )
+    assert selected_download.headers["content-disposition"].startswith(
+        "attachment;"
+    )
+    assert selected_download.headers["x-kmfa-artifact-sha256"] == (
+        selected_item["sha256"]
+    )
     assert not list((state / "tmp").glob("download-*.part"))
 
     status = client.get(f"{BASE}/status")

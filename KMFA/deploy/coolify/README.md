@@ -136,6 +136,13 @@
 > 历史回放或模拟消息。该合成结果不冒充生产容量或生产 RPO/RTO。完成整个 v1.5.2 Taskpack 前
 > 不上传 GitHub、不部署、不灰度，三项 S06 Flags 保持 `0`。
 
+> **S07/P7.1 中间态边界**：`KMFA_SINGLE_FILE_DOWNLOAD_ENABLED=1` 只开启工作区授权的精确
+> 原件版本/派生物附件下载；选择器在 JSON body，不发布对象 URL。响应与浏览器共同核对
+> Content-Type、Content-Disposition、大小、SHA-256、源版本和上传/处理器来源；HTML、PDF 等
+> 主动格式仍强制 attachment + nosniff。Range、批量 ZIP、导出 Job 和 published snapshot 尚未
+> 启用。整个 v1.5.2 Taskpack 完成前保持 Flag `0`，不部署、不灰度。快速回滚恢复 `0` 并重部署
+> 同一 schema 6 binary，继续提供最新原件兼容下载；不得删除版本、派生物、DB、对象、备份或卷。
+
 6. 用固定峰值 Fixture 和资源限制故障注入即时确认 P1 内存边界后，在 Coolify 为本资源
    **启用 `full` profile**（Compose profiles → 勾 `full`）或设 `COMPOSE_PROFILES=full`，
    重部署 → `kmfa-app` 起。

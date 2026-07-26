@@ -252,6 +252,21 @@ a { color: inherit; }
 .walking-artifact dd { min-width: 0; margin: 0; font-size: 0.76rem; overflow-wrap: anywhere; }
 .walking-artifact dd code { font-size: 0.66rem; }
 .walking-artifact-actions { display: grid; gap: 0.55rem; }
+.walking-download-list { margin-top: 1.1rem; padding-top: 1rem; border-top: 2px solid var(--ink); }
+.walking-download-list h5 { margin: 0; font-size: 0.82rem; }
+.walking-download-list > p { margin: 0.45rem 0 0.8rem; color: var(--mut); font-size: 0.7rem; line-height: 1.55; }
+.walking-download-list article {
+  display: grid; gap: 0.35rem; padding: 0.8rem 0; border-top: 1px solid var(--line);
+}
+.walking-download-list article strong { font-size: 0.76rem; overflow-wrap: anywhere; }
+.walking-download-list article span { color: var(--mut); font-size: 0.68rem; overflow-wrap: anywhere; }
+.walking-download-list article code { font-size: 0.62rem; overflow-wrap: anywhere; }
+.walking-download-list article button {
+  min-height: 2.5rem; margin-top: 0.25rem; padding: 0.55rem 0.75rem;
+  border: 1px solid var(--ink); border-radius: var(--r); background: transparent;
+  cursor: pointer; font-size: 0.7rem; font-weight: 750;
+}
+.walking-download-list article button:disabled { cursor: not-allowed; opacity: 0.55; }
 .walking-safe-preview {
   max-height: 18rem; margin: 1rem 0 0; padding: 0.9rem;
   border: 1px solid var(--line); color: var(--ink); background: var(--paper);
