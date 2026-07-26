@@ -1,0 +1,106 @@
+# Coolify 运维面：让 agent 自己管部署，不再每件事都找 Owner。
+#
+# 为什么存在：Owner 2026-07-26「你自己搞 coolify 的事情吧，我也不懂」。
+# Coolify 令牌只存在于仓库 secrets，**永不经人手**；本 workflow 在 Actions 内用它操作，
+# 只回显非秘密字段（应用名/uuid/环境变量**名**/部署状态）。
+#
+# ⚠ 本仓是 PUBLIC，Actions 日志公开可读：任何秘密值一律 mask + 绝不 print。
+#
+# provision-backup-key 模式（关键设计）：
+#   在 runner 内**当场生成** ed25519 密钥对 → 私钥直接经 API 写进 Coolify 环境变量
+#   → 只把**公钥**打进日志（公钥本就是公开物）。
+#   私钥全程不落任何人手、不入任何仓库、不进对话记录——绕开「谁来粘密钥」这个死结。
+name: coolify-ops
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "list=看资源与环境变量名 | provision-backup-key=就地生成并注入备份密钥 | redeploy=触发重新部署"
+        required: true
+        type: choice
+        options: [list, provision-backup-key, redeploy]
+      app_uuid:
+        description: "目标应用 uuid（provision-backup-key / redeploy 必填；先用 list 查）"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  ops:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.actor == 'LinzeColin'
+    env:
+      BASE: ${{ secrets.COOLIFY_BASE_URL }}
+      TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+      MODE: ${{ inputs.mode }}
+      APP: ${{ inputs.app_uuid }}
+    steps:
+      - name: 列出资源与环境变量名（零秘密值）
+        if: inputs.mode == 'list'
+        run: |
+          set -euo pipefail
+          curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/applications" -o "$RUNNER_TEMP/apps.json"
+          python3 - <<'PY'
+          import json, os
+          p = os.path.join(os.environ["RUNNER_TEMP"], "apps.json")
+          d = json.load(open(p, encoding="utf-8"))
+          apps = d if isinstance(d, list) else d.get("data") or d.get("applications") or []
+          print(f"应用数={len(apps)}")
+          for a in apps:
+              print(f"  name={a.get('name')!r} uuid={a.get('uuid')} status={a.get('status')} fqdn={a.get('fqdn')}")
+          PY
+          # 环境变量：只打名字，绝不打值
+          if [ -n "${APP:-}" ]; then
+            curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/applications/$APP/envs" -o "$RUNNER_TEMP/envs.json"
+            python3 - <<'PY'
+          import json, os
+          d = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "envs.json"), encoding="utf-8"))
+          envs = d if isinstance(d, list) else d.get("data") or []
+          print(f"环境变量数={len(envs)}（只列名）")
+          for e in envs:
+              print("  " + str(e.get("key")))
+          PY
+          fi
+
+      - name: 就地生成备份密钥并注入 Coolify（私钥不落人手）
+        if: inputs.mode == 'provision-backup-key'
+        run: |
+          set -euo pipefail
+          test -n "${APP:-}" || { echo "需要 app_uuid（先跑 list）"; exit 1; }
+          ssh-keygen -t ed25519 -N "" -C "kmfa-vps-daily-backup@private-database" -f "$RUNNER_TEMP/k" -q
+          # 立刻 mask 私钥的 base64 单行，杜绝任何后续步骤误打印
+          B64="$(base64 -w0 < "$RUNNER_TEMP/k")"
+          echo "::add-mask::$B64"
+          # 写进 Coolify：先试新增，已存在则改（值经 --data @file，不进命令行/日志）
+          python3 - <<'PY' > "$RUNNER_TEMP/payload.json"
+          import json, os, base64
+          b64 = base64.b64encode(open(os.path.join(os.environ["RUNNER_TEMP"], "k"), "rb").read()).decode()
+          print(json.dumps({"key": "KMFA_BACKUP_SSH_KEY_B64", "value": b64,
+                            "is_preview": False, "is_build_time": False}))
+          PY
+          code=$(curl -sS -o "$RUNNER_TEMP/post.out" -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            --data @"$RUNNER_TEMP/payload.json" "$BASE/api/v1/applications/$APP/envs" || true)
+          echo "POST env 返回码=$code"
+          if [ "$code" != "200" ] && [ "$code" != "201" ]; then
+            code=$(curl -sS -o "$RUNNER_TEMP/patch.out" -w '%{http_code}' -X PATCH \
+              -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+              --data @"$RUNNER_TEMP/payload.json" "$BASE/api/v1/applications/$APP/envs" || true)
+            echo "PATCH env 返回码=$code"
+          fi
+          rm -f "$RUNNER_TEMP/payload.json" "$RUNNER_TEMP/k"
+          echo "—— 把下面这行公钥登记为 Private-Database 的可写 deploy key（公钥非秘密）——"
+          cat "$RUNNER_TEMP/k.pub"
+
+      - name: 触发重新部署
+        if: inputs.mode == 'redeploy'
+        run: |
+          set -euo pipefail
+          test -n "${APP:-}" || { echo "需要 app_uuid"; exit 1; }
+          curl -fsSL -X POST -H "Authorization: Bearer $TOKEN" \
+            "$BASE/api/v1/deploy?uuid=$APP" -o "$RUNNER_TEMP/dep.json"
+          python3 -c "import json,os;d=json.load(open(os.path.join(os.environ['RUNNER_TEMP'],'dep.json')));print('部署已触发:',json.dumps(d,ensure_ascii=False)[:300])"
