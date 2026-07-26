@@ -186,7 +186,19 @@ S07/P7.2 增加独立且默认关闭的 `KMFA_RANGE_BATCH_DOWNLOAD_ENABLED`。�
 网络失败只对当前分片有界重试一次；批量下载最多尝试两次，显示 manifest SHA-256，并由 manifest
 提供每项字节的 SHA-256 验证清单。
 快速回滚只需恢复 `KMFA_RANGE_BATCH_DOWNLOAD_ENABLED=0`：P7.1 单文件下载、schema `6`、所有
-原件/派生物/备份/卷和 v1.5 恢复资产均保持不变。P7.3 异步导出 Job 未在本 phase 实现。
+原件/派生物/备份/卷和 v1.5 恢复资产均保持不变。
+
+S07/P7.3 把旧 `GET /api/报告中心/导出` 的同步渲染与写登记永久退役为 `405` 只读弃用响应，
+canonical 合同改为 `POST /api/exports/jobs`（必需 `Idempotency-Key`）、GET/HEAD 状态与制品、
+DELETE 取消。默认关闭的 `KMFA_EXPORT_JOBS_ENABLED` 只控制新建和 worker 领取；关闭后既有 job
+状态与未过期制品仍可读，不删除源报告、导出登记、审计、DB、卷或 v1.5 恢复资产。SQLite 队列
+固定最多 `64` 个活跃 job、`2` 个运行 job、`3` 次尝试与显式成本/源/制品字节预算；同一幂等键
+只产生一个业务结果，raw key 与报告正文不进入 job/event。worker 在私有状态卷原子提交
+`succeeded + export_records + audit_events`，制品下载前重算大小与 SHA-256。
+
+本地与 CI 的 P7.3 验收只调用 `python -m app.export_worker --once` 并直接推进 Fake Clock；
+租约超时、retry、取消、过期、源变化、制品篡改、重启和 Flag rollback 均用 Fixture/故障注入即时
+回放，不把 worker 轮询、真实等待、观察窗口、Soak 或全量测试作为开发、上线或下一 phase 前置。
 
 S05/P5.4 把 schema expand 到 v4，并增加默认无到期的 `workspace_retention`、legal hold、明确删除
 请求/对象 target、publication binding、append-only lifecycle events 与当前 schema restore proof。

@@ -478,10 +478,73 @@ function 待拍板({ 台, 刷新, 初始展开 }) {
 
 /* ---------- 报告下载（原报告中心） ---------- */
 
-function 报告下载({ 中心 }) {
+function 报告下载({ 中心, 刷新 }) {
+  const [作业, set作业] = useState({})
   if (!中心) return <骨架 />
   if (中心.加载失败) return <加载失败卡 详情={中心.加载失败} />
   const 水 = 中心.水印, 判 = 中心.交付判据
+  const 合同 = 中心.导出作业 ?? { enabled: false, metrics: { active: 0 } }
+  const 槽 = (编号, 格式) => `${编号}:${格式}`
+  const 写槽 = (编号, 格式, value) => set作业(old => ({
+    ...old,
+    [槽(编号, 格式)]: { ...(old[槽(编号, 格式)] ?? {}), ...value },
+  }))
+  const 新幂等键 = () => `kmfa-export-${globalThis.crypto.randomUUID()}`
+  const 创建 = async (编号, 格式) => {
+    const current = 作业[槽(编号, 格式)]
+    const terminal = ['failed', 'cancelled', 'expired'].includes(current?.state)
+    const idempotencyKey = !terminal && current?.idempotencyKey
+      ? current.idempotencyKey : 新幂等键()
+    写槽(编号, 格式, { busy: true, error: null, idempotencyKey })
+    try {
+      const response = await fetch('/api/exports/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
+        body: JSON.stringify({ report_no: 编号, format: 格式 }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.detail ?? `HTTP ${response.status}`)
+      写槽(编号, 格式, { ...payload, busy: false, error: null, idempotencyKey })
+    } catch (error) {
+      写槽(编号, 格式, { busy: false, error: String(error), idempotencyKey })
+    }
+  }
+  const 刷状态 = async (编号, 格式) => {
+    const current = 作业[槽(编号, 格式)]
+    if (!current?.job_id) return
+    写槽(编号, 格式, { busy: true, error: null })
+    try {
+      const response = await fetch(`/api/exports/jobs/${encodeURIComponent(current.job_id)}`)
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.detail ?? `HTTP ${response.status}`)
+      写槽(编号, 格式, { ...payload, busy: false, error: null })
+      if (payload.state === 'succeeded') 刷新?.()
+    } catch (error) {
+      写槽(编号, 格式, { busy: false, error: String(error) })
+    }
+  }
+  const 取消 = async (编号, 格式) => {
+    const current = 作业[槽(编号, 格式)]
+    if (!current?.job_id) return
+    写槽(编号, 格式, { busy: true, error: null })
+    try {
+      const response = await fetch(`/api/exports/jobs/${encodeURIComponent(current.job_id)}`, {
+        method: 'DELETE',
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.detail ?? `HTTP ${response.status}`)
+      写槽(编号, 格式, { ...payload, busy: false, error: null })
+    } catch (error) {
+      写槽(编号, 格式, { busy: false, error: String(error) })
+    }
+  }
+  const 状态文案 = state => ({
+    queued: '已排队', running: '生成中', retry: '待重试', succeeded: '可下载',
+    failed: '失败', cancelled: '已取消', expired: '已过期',
+  }[state] ?? state)
+  const 状态色 = state => state === 'succeeded' ? 'ok'
+    : ['failed', 'expired'].includes(state) ? 'bad'
+      : ['queued', 'running', 'retry'].includes(state) ? 'warn' : 'mut'
   return (
     <>
       <div className="grid">
@@ -489,7 +552,7 @@ function 报告下载({ 中心 }) {
              色={判.delivery_allowed ? 'ok' : 'bad'} 注={`机器判级 ${中心.页眉.报告等级}`} />
         <Kpi 标="质量等级" 值={中心.页眉.质量等级} />
         <Kpi 标="交付状态" 值={中心.页眉.delivery状态} 小 色={判.delivery_allowed ? 'ok' : 'bad'} />
-        <Kpi 标="导出登记" 值={中心.导出登记.条数} 注="每次下载都留痕，不可改写" />
+        <Kpi 标="导出作业" 值={合同.metrics?.active ?? 0} 注={`活跃｜完成登记 ${中心.导出登记.条数}`} />
       </div>
 
       <div className="card callout bad">
@@ -499,22 +562,41 @@ function 报告下载({ 中心 }) {
         <div className="sub">去水印条件：{水.去除条件}</div>
       </div>
 
-      <h3 className="sec">八份报告 × 三格式（点击即下载）</h3>
+      {!合同.enabled && <div className="card callout warn" style={{ marginTop: 12 }}>
+        导出作业当前处于灰度关闭状态；既有报告与登记均保留，启用后可创建新作业。
+      </div>}
+
+      <h3 className="sec">八份报告 × 三格式（创建作业后显式刷新状态）</h3>
       <Tbl>
         <thead><tr>
-          <th>号</th><th>标题</th><th className="num">正文字数</th><th>下载</th>
+          <th>号</th><th>标题</th><th className="num">正文字数</th><th>导出</th>
         </tr></thead>
         <tbody>{中心.报告.map(r => (
           <tr key={r.编号}>
             <td>{r.编号}</td>
             <td>{r.标题}</td>
             <td className="num">{r.正文字数.toLocaleString('zh')}</td>
-            <td>{r.格式.map(f => (
-              <a key={f.格式} href={f.下载} style={{ marginRight: '.8rem' }}
-                 title={f.可提交公开仓 ? '公开安全，可提交' : '仅运行时生成，不入公开仓'}>
-                {f.格式.toUpperCase()}{f.可提交公开仓 ? '' : '（运行时）'}
-              </a>
-            ))}</td>
+            <td>{r.格式.map(f => {
+              const current = 作业[槽(r.编号, f.格式)]
+              const active = ['queued', 'running', 'retry'].includes(current?.state)
+              return <div key={f.格式} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
+                <b style={{ minWidth: 42 }}>{f.格式.toUpperCase()}</b>
+                <button type="button" className="btn" disabled={!合同.enabled || current?.busy || active}
+                        onClick={() => 创建(r.编号, f.格式)}>
+                  {current?.state && !active ? '新建作业' : '创建作业'}
+                </button>
+                {current?.job_id && <button type="button" className="btn" disabled={current.busy}
+                                            onClick={() => 刷状态(r.编号, f.格式)}>刷新状态</button>}
+                {active && <button type="button" className="btn danger" disabled={current.busy}
+                                   onClick={() => 取消(r.编号, f.格式)}>取消</button>}
+                {current?.state === 'succeeded' && current.artifact?.download_url &&
+                  <a className="btn pri" href={current.artifact.download_url}>下载</a>}
+                {current?.state && <span className={`chip ${状态色(current.state)}`}>
+                  {状态文案(current.state)}
+                </span>}
+                {current?.error && <span className="muted">{current.error}</span>}
+              </div>
+            })}</td>
           </tr>
         ))}</tbody>
       </Tbl>
@@ -1384,7 +1466,8 @@ export default function App() {
             {页 === '开票与税务' && <开票与税务 开票={开票} />}
             {页 === '项目成本' && <项目成本 成本={成本} />}
             {页 === '待拍板' && <待拍板 台={工作台} 刷新={取工作台} 初始展开={拍板跳转} />}
-            {页 === '报告下载' && <报告下载 中心={中心} />}
+            {页 === '报告下载' && <报告下载 中心={中心}
+              刷新={() => 取('/api/报告中心', set中心)} />}
             {页 === '数据底账' && <数据底账 源检查={源检查} 管线={管线} 图={影响}
               选中资产={选中资产} 选资产={a => { set选中资产(a); 取影响(a) }} 刷新={取影响} 审计={审计} />}
             {页 === '系统自检' && <系统自检 排程={排程} 技能={技能} 我={我在哪数据} 审计={审计} 图={影响} 管线={管线} 去={去} />}

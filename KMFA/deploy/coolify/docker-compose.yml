@@ -80,6 +80,8 @@ services:
       KMFA_SINGLE_FILE_DOWNLOAD_ENABLED: "${KMFA_SINGLE_FILE_DOWNLOAD_ENABLED:-0}"
       # P7.2 Range/流式批量 ZIP 独立灰度；关闭保留 P7.1 与全部 DB/对象，不降 schema。
       KMFA_RANGE_BATCH_DOWNLOAD_ENABLED: "${KMFA_RANGE_BATCH_DOWNLOAD_ENABLED:-0}"
+      # P7.3 显式导出作业独立灰度；关闭拒绝新建/领取，保留状态、登记与未过期制品读取。
+      KMFA_EXPORT_JOBS_ENABLED: "${KMFA_EXPORT_JOBS_ENABLED:-0}"
       KMFA_FILE_SCANNER_URL: "${KMFA_FILE_SCANNER_URL:-http://file-security-scanner:8090/scan}"
       KMFA_FILE_SCANNER_SHARED_SECRET: "${KMFA_FILE_SCANNER_SHARED_SECRET:-}"
       KMFA_FILE_SCANNER_TIMEOUT_SECONDS: "${KMFA_FILE_SCANNER_TIMEOUT_SECONDS:-10}"
@@ -227,6 +229,29 @@ services:
     networks:
       - default
       - scan-plane
+
+  export-worker:
+    profiles: ["export-jobs"]
+    build:
+      context: .
+      dockerfile: KMFA/app/backend/Dockerfile
+    image: kmfa-app:coolify
+    container_name: kmfa-export-worker
+    restart: "on-failure:5"
+    command:
+      [
+        "python3",
+        "-m",
+        "app.export_worker",
+        "--poll-seconds",
+        "2",
+      ]
+    environment:
+      TZ: Asia/Shanghai
+      # 默认关闭即干净退出；验证使用 --once + Fake Clock，不以真实等待或观察窗作 Gate。
+      KMFA_EXPORT_JOBS_ENABLED: "${KMFA_EXPORT_JOBS_ENABLED:-0}"
+    volumes:
+      - kmfa-app-state:/var/lib/kmfa/state
 
   structured-db:
     # P5.1 先交付可验证的共享数据库形态；只有显式同时启用 full,postgresql

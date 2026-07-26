@@ -5,8 +5,10 @@ metadata/quality/assertions.jsonl、stage_artifacts 八份报告），不使用 
 本线曾犯「用健康检查冒充完备性」的错，契约测试必须咬住真实内容。
 """
 import hashlib
+import itertools
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -501,6 +503,49 @@ class _Table:
         return "".join(_j.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in self.rows())
 
 
+_EXPORT_TEST_CLOCK = datetime(
+    2026,
+    7,
+    26,
+    0,
+    0,
+    tzinfo=timezone.utc,
+)
+_EXPORT_TEST_SEQUENCE = itertools.count(1)
+
+
+def _enable_export_jobs(monkeypatch):
+    from app import main as m
+
+    monkeypatch.setenv("KMFA_EXPORT_JOBS_ENABLED", "1")
+    monkeypatch.setattr(m, "utc_now", lambda: _EXPORT_TEST_CLOCK)
+
+
+def _complete_report_export(report_no: int, artifact_format: str):
+    from app.export_worker import run_once
+
+    sequence = next(_EXPORT_TEST_SEQUENCE)
+    created = client.post(
+        "/api/exports/jobs",
+        headers={
+            "Idempotency-Key": (
+                f"contract-export-key-{sequence:08d}"
+            )
+        },
+        json={
+            "report_no": report_no,
+            "format": artifact_format,
+        },
+    )
+    assert created.status_code == 202, created.text
+    worker = run_once(limit=1, now=_EXPORT_TEST_CLOCK)
+    assert worker["succeeded"] == 1, worker
+    job_id = created.json()["job_id"]
+    status = client.get(f"/api/exports/jobs/{job_id}")
+    assert status.json()["state"] == "succeeded"
+    return client.get(f"/api/exports/jobs/{job_id}/artifact")
+
+
 @_pytest.fixture
 def 净状态(monkeypatch, tmp_path):
     return _Table(_state_db(monkeypatch, tmp_path), "resolution_events")
@@ -654,6 +699,7 @@ def test_workbench_event_carries_no_forbidden_plaintext(净状态):
 # ── PROD.0009 报告中心：三格式导出 hash 登记 + D 级水印不可去除 ────────────────
 @_pytest.fixture
 def 净导出(monkeypatch, tmp_path):
+    _enable_export_jobs(monkeypatch)
     return _Table(_state_db(monkeypatch, tmp_path), "export_records")
 
 
@@ -673,16 +719,16 @@ def test_report_center_header_triple_from_facts(净导出):
 
 def test_report_export_three_formats_really_render(净导出):
     """三格式必须真产出可用文件——不是返回一句"已就绪"。"""
-    html = client.get("/api/报告中心/导出?报告=1&格式=html")
+    html = _complete_report_export(1, "html")
     assert html.status_code == 200 and html.content.startswith(b"<!doctype html")
     assert "一致性证明" in html.text
 
-    csv = client.get("/api/报告中心/导出?报告=1&格式=csv")
+    csv = _complete_report_export(1, "csv")
     assert csv.status_code == 200
     assert csv.content.startswith(b"\xef\xbb\xbf"), "CSV 需带 BOM，Excel 双击才不乱码"
     assert "差异分" in csv.content.decode("utf-8-sig")
 
-    pdf = client.get("/api/报告中心/导出?报告=1&格式=pdf")
+    pdf = _complete_report_export(1, "pdf")
     assert pdf.status_code == 200
     assert pdf.content.startswith(b"%PDF"), "必须是真 PDF 魔数"
     assert b"%%EOF" in pdf.content[-2048:], "PDF 必须完整收尾"
@@ -702,22 +748,38 @@ def test_watermark_cannot_be_removed_by_any_parameter(净导出):
     assert mark and "D 级" in mark and "delivery_allowed=false" in mark
 
     attempts = [
-        "", "&水印=off", "&水印=false", "&watermark=false", "&watermark=0",
-        "&no_watermark=1", "&nomark=true", "&raw=1", "&clean=1", "&plain=true",
-        "&delivery_allowed=true", "&报告等级=A", "&mark=", "&draft=false",
+        "水印", "watermark", "no_watermark", "nomark", "raw", "clean",
+        "plain", "delivery_allowed", "报告等级", "mark", "draft",
     ]
     for fmt in ("html", "csv", "pdf"):
-        for extra in attempts:
-            r = client.get(f"/api/报告中心/导出?报告=1&格式={fmt}{extra}")
-            assert r.status_code == 200, f"{fmt}{extra} → {r.status_code}"
-            assert r.headers["X-KMFA-Watermark"] == "applied", f"{fmt}{extra} 水印头丢了"
-            if fmt == "html":
-                assert mark in r.text, f"html{extra} 水印文案不见了"
-                assert 'class="wm"' in r.text
-            elif fmt == "csv":
-                assert mark in r.content.decode("utf-8-sig"), f"csv{extra} 水印行不见了"
-            else:
-                assert r.content.startswith(b"%PDF") and len(r.content) > 2000
+        r = _complete_report_export(1, fmt)
+        assert r.headers["X-KMFA-Watermark"] == "applied"
+        if fmt == "html":
+            assert mark in r.text
+            assert 'class="wm"' in r.text
+        elif fmt == "csv":
+            assert mark in r.content.decode("utf-8-sig")
+        else:
+            assert r.content.startswith(b"%PDF") and len(r.content) > 2000
+        for index, field in enumerate(attempts):
+            rejected = client.post(
+                "/api/exports/jobs",
+                headers={
+                    "Idempotency-Key": (
+                        f"watermark-extra-{fmt}-{index:04d}"
+                    )
+                },
+                json={
+                    "report_no": 1,
+                    "format": fmt,
+                    field: False,
+                },
+            )
+            assert rejected.status_code == 422, field
+        retired = client.get(
+            f"/api/报告中心/导出?报告=1&格式={fmt}&watermark=false"
+        )
+        assert retired.status_code == 405
 
 
 def test_watermark_is_fact_driven_not_hardcoded(净导出, monkeypatch):
@@ -740,7 +802,7 @@ def test_export_hash_registered_append_only(净导出):
     """三格式导出 hash 登记；登记只追加不改写。"""
     digests = {}
     for fmt in ("html", "csv", "pdf"):
-        r = client.get(f"/api/报告中心/导出?报告=2&格式={fmt}")
+        r = _complete_report_export(2, fmt)
         digests[fmt] = r.headers["X-KMFA-Sha256"]
         assert digests[fmt].startswith("sha256:")
 
@@ -757,12 +819,12 @@ def test_export_hash_registered_append_only(净导出):
         # 登记的 hash 必须真能复验：同一份报告重导出须**逐字节一致**。
         # PDF 默认会写挂钟 /CreationDate，那样 hash 每次都变、登记形同虚设——
         # 故导出走 invariant 模式，本断言即为此把关。
-        body = client.get(f"/api/报告中心/导出?报告=2&格式={rec['格式']}").content
+        body = _complete_report_export(2, rec["格式"]).content
         assert rec["sha256"] == "sha256:" + hashlib.sha256(body).hexdigest(), \
             f"{rec['格式']} 重导出 hash 不一致——登记无法复验"
 
     before = 净导出.read_text(encoding="utf-8")
-    client.get("/api/报告中心/导出?报告=3&格式=html")
+    _complete_report_export(3, "html")
     assert 净导出.read_text(encoding="utf-8").startswith(before), "登记必须是追加"
 
 
@@ -777,7 +839,7 @@ def test_pdf_never_committed_to_public_repo(净导出):
         pdf_fmt = next(f for f in r["格式"] if f["格式"] == "pdf")
         assert pdf_fmt["可提交公开仓"] is False
 
-    client.get("/api/报告中心/导出?报告=1&格式=pdf")
+    _complete_report_export(1, "pdf")
     assert list((KMFA / "app").rglob("*.pdf")) == [], "App 目录下不得出现 PDF 文件"
     assert not (REPO / "KMFA" / "app" / "backend" / "app").joinpath("kmfa_report_1.pdf").exists()
 
@@ -785,7 +847,7 @@ def test_pdf_never_committed_to_public_repo(净导出):
 def test_export_headers_carry_grade_and_delivery(净导出):
     """页眉三元组也要进响应头——自动化与下游取数不必解析正文。"""
     for fmt in ("html", "csv", "pdf"):
-        h = client.get(f"/api/报告中心/导出?报告=1&格式={fmt}").headers
+        h = _complete_report_export(1, fmt).headers
         assert h["X-KMFA-Report-Grade"] == "D"
         assert h["X-KMFA-Quality-Grade"] == "Q4"
         assert h["X-KMFA-Delivery-Allowed"] == "false"
@@ -793,8 +855,16 @@ def test_export_headers_carry_grade_and_delivery(净导出):
 
 
 def test_export_rejects_unknown_report_and_format(净导出):
-    assert client.get("/api/报告中心/导出?报告=1&格式=docx").status_code == 400
-    assert client.get("/api/报告中心/导出?报告=99&格式=html").status_code == 404
+    assert client.post(
+        "/api/exports/jobs",
+        headers={"Idempotency-Key": "unknown-format-key-0001"},
+        json={"report_no": 1, "format": "docx"},
+    ).status_code == 422
+    assert client.post(
+        "/api/exports/jobs",
+        headers={"Idempotency-Key": "unknown-report-key-0001"},
+        json={"report_no": 99, "format": "html"},
+    ).status_code == 404
     assert not 净导出.exists() or not 净导出.read_text(encoding="utf-8").strip()
 
 
@@ -1048,6 +1118,7 @@ def test_downstream_impact_matches_assertions_with_qualified_sources(净重跑):
 # ── PROD.0003 访问安全承接 S17：审计日志 append-only ──────────────────────────
 @_pytest.fixture
 def 净审计(monkeypatch, tmp_path):
+    _enable_export_jobs(monkeypatch)
     return _Table(_state_db(monkeypatch, tmp_path), "audit_events")
 
 
@@ -1070,7 +1141,7 @@ def test_every_write_and_export_leaves_audit_event(净审计):
     """写入与导出都必须留痕——审计漏记等于没有审计。"""
     aid = _first_assertion_id()
     client.post("/api/差异工作台/决策", json={"断言": aid, "决策": "闭案", "理由": "审计留痕验证"})
-    client.get("/api/报告中心/导出?报告=1&格式=csv")
+    _complete_report_export(1, "csv")
     client.post("/api/影响重跑/重跑", json={"资产": _an_asset(), "理由": "审计留痕验证"})
 
     rows = [json.loads(l) for l in 净审计.read_text(encoding="utf-8").splitlines() if l.strip()]
@@ -1087,7 +1158,7 @@ def test_every_write_and_export_leaves_audit_event(净审计):
 
 def test_audit_export_event_carries_grade_triple(净审计):
     """任务包要求「等级+Q 级+delivery 永远印在页眉」——导出留痕须把这三项一起记下。"""
-    client.get("/api/报告中心/导出?报告=1&格式=pdf")
+    _complete_report_export(1, "pdf")
     rows = [json.loads(l) for l in 净审计.read_text(encoding="utf-8").splitlines() if l.strip()]
     exp = next(r for r in rows if r["action_type"] == "export")
     assert exp["report_grade"] == "D"
@@ -1111,7 +1182,7 @@ def test_audit_never_records_business_plaintext(净审计):
     """审计记「谁对什么做了什么」，不记业务明文与原始载荷。"""
     from app.main import AUDIT_FORBIDDEN_KEYS
 
-    client.get("/api/报告中心/导出?报告=1&格式=html")
+    _complete_report_export(1, "html")
     client.post("/api/差异工作台/决策",
                 json={"断言": _first_assertion_id(), "决策": "闭案", "理由": "核到分"})
     rows = [json.loads(l) for l in 净审计.read_text(encoding="utf-8").splitlines() if l.strip()]
@@ -1210,6 +1281,6 @@ def test_data_plane_stays_read_only_after_app_writes(净审计):
               (ASSERTIONS_PATH, LINEAGE_PATH, FACTS / "data_pipeline.json")}
     client.post("/api/差异工作台/决策",
                 json={"断言": _first_assertion_id(), "决策": "闭案", "理由": "状态面分离验证"})
-    client.get("/api/报告中心/导出?报告=1&格式=csv")
+    _complete_report_export(1, "csv")
     for p, blob in before.items():
         assert p.read_bytes() == blob, f"数据面被写了：{p.name}"

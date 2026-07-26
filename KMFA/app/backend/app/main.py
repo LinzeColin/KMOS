@@ -13,16 +13,28 @@ import os
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
-from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi import Body, FastAPI, Header, HTTPException, Request
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
+from pydantic import BaseModel, ConfigDict, Field
 
 from .anti_abuse import AntiAbuseMiddleware
 from .anti_abuse import ops_router as anti_abuse_ops_router
+from .export_jobs import (
+    MAX_EXPORT_SOURCE_BYTES,
+    ExportJobCapacity,
+    ExportJobConflict,
+    ExportJobError,
+    ExportJobNotFound,
+    ExportJobRepository,
+    estimated_cost_units,
+    export_jobs_enabled,
+    utc_now,
+)
 from .private_access import PrivateOperationsAccessMiddleware
 from .public_indexing import (
     PublicIndexBoundaryMiddleware,
@@ -1225,13 +1237,38 @@ def workbench_reverse(payload: dict[str, Any] = Body(...)):
 # 既有 runtime 契约（KMFA/tools/report_export_runtime.py）：
 #   · HTML/CSV = public-safe 可提交；PDF = enabled_private_runtime_only，
 #     committed_artifact_path 恒为 null——**公开仓永不提交 PDF 文件**。
-#   · FORBIDDEN_PUBLIC_SUFFIXES 含 .pdf，故 PDF 只在运行时生成、只走响应流。
+#   · FORBIDDEN_PUBLIC_SUFFIXES 含 .pdf，故 PDF 只在运行时生成、只落私有状态卷并下载，
+#     到期只清理这份可重建制品，不进入公开仓。
 # KMIDS 管线本机不可得（按需 clone 铁律，未 clone），故 PDF 用 reportlab 内置
 # STSong-Light CID 字体渲染中文——不装任何字体文件，策略与既有契约完全一致。
 GRADE_RECORDS_PATH = KMFA / "metadata" / "reports" / "report_grade_runtime_records.jsonl"
 DELIVERY_GATE_PATH = KMFA / "metadata" / "quality" / "v014_s18_p2_go_no_go_report.json"
-EXPORT_REGISTRY_PATH = APP_STATE_DIR / "report_export_records.jsonl"
+EXPORT_REGISTRY_REF = "app-state:export_records"
 EXPORT_FORMATS = ("html", "csv", "pdf")
+
+
+class CreateReportExportJobRequest(BaseModel):
+    """Bounded command payload; watermark/delivery state is never caller input."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    report_no: int = Field(ge=1)
+    format: Literal["html", "csv", "pdf"]
+
+
+def _export_artifacts_root() -> Path:
+    return APP_STATE_DIR / "export-artifacts"
+
+
+def _export_jobs_repository(
+    *,
+    initialize: bool,
+) -> ExportJobRepository:
+    return ExportJobRepository(
+        APP_DB_PATH,
+        _export_artifacts_root(),
+        initialize=initialize,
+    )
 
 
 def _delivery_state() -> dict[str, Any]:
@@ -1286,6 +1323,75 @@ def _report_body(d: Path) -> str:
     return docs[0].read_text(encoding="utf-8")
 
 
+def _report_dispositions(d: Path) -> dict[str, Any]:
+    path = d / "machine" / "dispositions.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
+def _report_export_snapshot(
+    report_no: int,
+    artifact_format: str,
+) -> dict[str, Any]:
+    """Capture and hash exactly the bounded inputs used by one render.
+
+    A worker renders this in-memory snapshot instead of reopening a source
+    after checking its fingerprint, closing the check/use race.
+    """
+
+    if artifact_format not in EXPORT_FORMATS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"格式须为 {list(EXPORT_FORMATS)}",
+        )
+    directory = _report_dir(report_no)
+    title = (
+        _report_title(directory)
+        or f"一致性证明与差异分析报告 第 {report_no} 号"
+    )
+    header = _delivery_state()
+    mark = _watermark_text()
+    body = _report_body(directory) if artifact_format != "csv" else ""
+    dispositions = (
+        _report_dispositions(directory)
+        if artifact_format == "csv"
+        else {}
+    )
+    fingerprint_input = {
+        "contract": "kmfa-private-report-export-source-v1",
+        "report_no": report_no,
+        "format": artifact_format,
+        "title": title,
+        "header": {
+            "报告等级": header["报告等级"],
+            "质量等级": header["质量等级"],
+            "delivery状态": header["delivery状态"],
+            "delivery_allowed": header["delivery_allowed"],
+        },
+        "watermark": mark,
+        "body": body,
+        "dispositions": dispositions,
+    }
+    encoded = json.dumps(
+        fingerprint_input,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    if len(encoded) > MAX_EXPORT_SOURCE_BYTES:
+        raise ExportJobCapacity("export_source_bytes_exceeded")
+    return {
+        "report_no": report_no,
+        "format": artifact_format,
+        "title": title,
+        "header": header,
+        "watermark": mark,
+        "body": body,
+        "dispositions": dispositions,
+        "source_bytes": len(encoded),
+        "source_fingerprint": hashlib.sha256(encoded).hexdigest(),
+    }
+
+
 def _export_html(no: int, title: str, body: str, header: dict[str, Any], mark: str | None) -> bytes:
     import html as _html
 
@@ -1318,12 +1424,15 @@ def _export_html(no: int, title: str, body: str, header: dict[str, Any], mark: s
 </body></html>""".encode("utf-8")
 
 
-def _export_csv(no: int, d: Path, header: dict[str, Any], mark: str | None) -> bytes:
+def _export_csv(
+    no: int,
+    dispositions: dict[str, Any],
+    header: dict[str, Any],
+    mark: str | None,
+) -> bytes:
     import csv as _csv
     import io as _io
 
-    disp_path = d / "machine" / "dispositions.json"
-    disp = json.loads(disp_path.read_text(encoding="utf-8")) if disp_path.exists() else {}
     buf = _io.StringIO()
     w = _csv.writer(buf)
     # 水印与页眉三元组写成 CSV 前置行——任何打开方式都看得到，删不掉才算不可去除
@@ -1334,7 +1443,7 @@ def _export_csv(no: int, d: Path, header: dict[str, Any], mark: str | None) -> b
     w.writerow(["delivery 状态", header["delivery状态"]])
     w.writerow([])
     w.writerow(["条目", "状态", "差异分", "差异元", "结论"])
-    for item in (disp.get("dispositions") or []):
+    for item in (dispositions.get("dispositions") or []):
         cents = item.get("delta_cents")
         w.writerow([item.get("item"), item.get("status"), cents,
                     _cents_to_yuan(cents) or "", item.get("finding") or ""])
@@ -1458,9 +1567,47 @@ def _export_pdf(no: int, title: str, body: str, header: dict[str, Any], mark: st
     return buf.getvalue()
 
 
-def _register_export(record: dict[str, Any]) -> dict[str, Any]:
-    """导出 hash 登记——与 PROD.0007 同一条纪律：只追加，不改写。"""
-    return _st.append(APP_DB_PATH, "export_records", record)
+def _render_report_export(
+    snapshot: dict[str, Any],
+) -> tuple[bytes, str]:
+    report_no = int(snapshot["report_no"])
+    artifact_format = str(snapshot["format"])
+    title = str(snapshot["title"])
+    header = dict(snapshot["header"])
+    mark = snapshot["watermark"]
+    if artifact_format == "html":
+        return (
+            _export_html(
+                report_no,
+                title,
+                str(snapshot["body"]),
+                header,
+                mark,
+            ),
+            "text/html; charset=utf-8",
+        )
+    if artifact_format == "csv":
+        return (
+            _export_csv(
+                report_no,
+                dict(snapshot["dispositions"]),
+                header,
+                mark,
+            ),
+            "text/csv; charset=utf-8",
+        )
+    if artifact_format == "pdf":
+        return (
+            _export_pdf(
+                report_no,
+                title,
+                str(snapshot["body"]),
+                header,
+                mark,
+            ),
+            "application/pdf",
+        )
+    raise ExportJobError("export_format_invalid")
 
 
 @app.get("/api/报告中心")
@@ -1469,6 +1616,7 @@ def report_center():
     header = _delivery_state()
     mark = _watermark_text()
     registered = _st.read(APP_DB_PATH, "export_records")
+    jobs = _export_jobs_repository(initialize=False)
     by_key: dict[str, dict[str, Any]] = {}
     for r in registered:
         by_key[f"{r.get('报告')}|{r.get('格式')}"] = r
@@ -1485,7 +1633,15 @@ def report_center():
             "格式": [
                 {
                     "格式": fmt,
-                    "下载": f"/api/报告中心/导出?报告={no}&格式={fmt}",
+                    "创建作业": {
+                        "方法": "POST",
+                        "地址": "/api/exports/jobs",
+                        "请求体": {
+                            "report_no": no,
+                            "format": fmt,
+                        },
+                        "幂等请求头": "Idempotency-Key",
+                    },
                     "可提交公开仓": fmt != "pdf",
                     "已登记": by_key.get(f"{no}|{fmt}", {}).get("sha256"),
                 }
@@ -1507,71 +1663,292 @@ def report_center():
         "报告": items,
         "导出登记": {
             "条数": len(registered),
-            "位置": str(EXPORT_REGISTRY_PATH),
+            "位置": EXPORT_REGISTRY_REF,
             "追加式": True,
             "记录": registered[-20:],
+        },
+        "导出作业": {
+            "enabled": export_jobs_enabled(),
+            "创建": "POST /api/exports/jobs",
+            "状态": "GET /api/exports/jobs/{job_id}",
+            "制品": "GET /api/exports/jobs/{job_id}/artifact",
+            "取消": "DELETE /api/exports/jobs/{job_id}",
+            "metrics": jobs.metrics(now=utc_now()),
+            "轮询要求": "客户端显式刷新；服务端不以观察窗口或真实时间等待作为验收条件",
         },
         "PDF策略": {
             "运行时生成": True,
             "提交进公开仓": False,
             "说明": ("既有 runtime 契约 committed_artifact_path 恒 null、"
-                     "FORBIDDEN_PUBLIC_SUFFIXES 含 .pdf；本 App 只走响应流，不落仓。"),
+                     "FORBIDDEN_PUBLIC_SUFFIXES 含 .pdf；制品只落私有状态卷，不落公开仓。"),
             "中文渲染": "reportlab 内置 STSong-Light CID 字体，不依赖系统字体文件",
         },
     }
 
 
-@app.get("/api/报告中心/导出")
-def report_export(报告: int, 格式: str = "html"):
-    """三格式导出 + hash 登记。**水印不接受任何参数控制**——只认 delivery 事实。"""
-    fmt = str(格式).lower().strip()
-    if fmt not in EXPORT_FORMATS:
-        raise HTTPException(status_code=400, detail=f"格式须为 {list(EXPORT_FORMATS)}")
+def _raise_export_api_error(error: ExportJobError) -> None:
+    code = str(error)
+    if isinstance(error, ExportJobNotFound):
+        raise HTTPException(status_code=404, detail=code) from error
+    if isinstance(error, ExportJobCapacity):
+        status = (
+            413
+            if code
+            in {
+                "export_source_bytes_exceeded",
+                "export_artifact_bytes_exceeded",
+                "export_cost_budget_exceeded",
+            }
+            else 429
+        )
+        raise HTTPException(status_code=status, detail=code) from error
+    if isinstance(error, ExportJobConflict):
+        raise HTTPException(status_code=409, detail=code) from error
+    if code in {
+        "invalid_idempotency_key",
+        "export_job_request_invalid",
+        "export_format_invalid",
+    }:
+        raise HTTPException(status_code=400, detail=code) from error
+    raise HTTPException(status_code=503, detail=code) from error
 
-    d = _report_dir(int(报告))
-    title = _report_title(d) or f"一致性证明与差异分析报告 第 {报告} 号"
-    header = _delivery_state()
-    mark = _watermark_text()
-    body = _report_body(d)
 
-    if fmt == "html":
-        data, media = _export_html(报告, title, body, header, mark), "text/html; charset=utf-8"
-    elif fmt == "csv":
-        data, media = _export_csv(报告, d, header, mark), "text/csv; charset=utf-8"
-    else:
-        data, media = _export_pdf(报告, title, body, header, mark), "application/pdf"
+def _export_response_headers(
+    *,
+    state: str,
+    job_id: str,
+) -> dict[str, str]:
+    return {
+        "Cache-Control": "private, no-store",
+        "X-KMFA-Export-Job": job_id,
+        "X-KMFA-Export-State": state,
+    }
 
-    digest = "sha256:" + hashlib.sha256(data).hexdigest()
-    _register_export({
-        "报告": int(报告),
-        "标题": title,
-        "格式": fmt,
-        "sha256": digest,
-        "字节": len(data),
-        "水印已加": mark is not None,
-        "水印文案": mark,
-        "报告等级": header["报告等级"],
-        "质量等级": header["质量等级"],
-        "delivery_allowed": header["delivery_allowed"],
-        "提交进公开仓": False if fmt == "pdf" else True,
-        "导出时间": datetime.now(BEIJING).isoformat(timespec="seconds"),
-    })
 
-    _audit("export", subject_ref=f"report_no{报告}:{fmt}", result_status="OK",
-           evidence_ref=str(EXPORT_REGISTRY_PATH), sha256=digest, bytes=len(data),
-           report_grade=header["报告等级"], quality_grade=header["质量等级"],
-           delivery_allowed=header["delivery_allowed"], watermark_applied=mark is not None)
+@app.post("/api/exports/jobs")
+def create_report_export_job(
+    command: CreateReportExportJobRequest,
+    idempotency_key: str | None = Header(
+        default=None,
+        alias="Idempotency-Key",
+    ),
+):
+    """Record one bounded export command; rendering belongs to the worker."""
 
-    from fastapi.responses import Response
+    if not export_jobs_enabled():
+        raise HTTPException(status_code=503, detail="export_jobs_disabled")
+    if idempotency_key is None:
+        raise HTTPException(
+            status_code=400,
+            detail="idempotency_key_required",
+        )
+    try:
+        snapshot = _report_export_snapshot(
+            command.report_no,
+            command.format,
+        )
+        repository = _export_jobs_repository(initialize=True)
+        row, created = repository.create(
+            idempotency_key=idempotency_key,
+            report_no=command.report_no,
+            artifact_format=command.format,
+            source_fingerprint=str(snapshot["source_fingerprint"]),
+            estimated_units=estimated_cost_units(
+                source_bytes=int(snapshot["source_bytes"]),
+                artifact_format=command.format,
+            ),
+            now=utc_now(),
+        )
+        payload = repository.payload(
+            str(row["job_id"]),
+            now=utc_now(),
+        )
+    except ExportJobError as error:
+        _raise_export_api_error(error)
+    headers = _export_response_headers(
+        state=str(payload["state"]),
+        job_id=str(payload["job_id"]),
+    )
+    headers.update(
+        {
+            "Location": f"/api/exports/jobs/{payload['job_id']}",
+            "Idempotency-Replayed": str(not created).lower(),
+        }
+    )
+    return JSONResponse(
+        payload,
+        status_code=202 if created else 200,
+        headers=headers,
+    )
 
-    return Response(content=data, media_type=media, headers={
-        "Content-Disposition": f'attachment; filename="kmfa_report_{报告}.{fmt}"',
-        "X-KMFA-Report-Grade": header["报告等级"],
-        "X-KMFA-Quality-Grade": header["质量等级"],
-        "X-KMFA-Delivery-Allowed": str(header["delivery_allowed"]).lower(),
-        "X-KMFA-Watermark": "applied" if mark else "none",
-        "X-KMFA-Sha256": digest,
-    })
+
+def _report_export_job_metrics_payload() -> dict[str, Any]:
+    repository = _export_jobs_repository(initialize=False)
+    return repository.metrics(now=utc_now())
+
+
+@app.get("/api/exports/jobs/metrics")
+def report_export_job_metrics():
+    return JSONResponse(
+        _report_export_job_metrics_payload(),
+        headers={"Cache-Control": "private, no-store"},
+    )
+
+
+@app.head("/api/exports/jobs/metrics")
+def report_export_job_metrics_head():
+    # Run the same bounded read so HEAD and GET fail/succeed on the same state.
+    _report_export_job_metrics_payload()
+    return Response(
+        status_code=200,
+        headers={"Cache-Control": "private, no-store"},
+    )
+
+
+def _report_export_job_status_payload(
+    job_id: str,
+) -> dict[str, Any]:
+    repository = _export_jobs_repository(initialize=False)
+    try:
+        return repository.payload(job_id, now=utc_now())
+    except ExportJobError as error:
+        _raise_export_api_error(error)
+
+
+@app.get("/api/exports/jobs/{job_id}")
+def report_export_job_status(job_id: str):
+    payload = _report_export_job_status_payload(job_id)
+    headers = _export_response_headers(
+        state=str(payload["state"]),
+        job_id=job_id,
+    )
+    return JSONResponse(payload, headers=headers)
+
+
+@app.head("/api/exports/jobs/{job_id}")
+def report_export_job_status_head(job_id: str):
+    payload = _report_export_job_status_payload(job_id)
+    return Response(
+        status_code=200,
+        headers=_export_response_headers(
+            state=str(payload["state"]),
+            job_id=job_id,
+        ),
+    )
+
+
+def _report_export_job_artifact_response(
+    job_id: str,
+) -> FileResponse:
+    repository = _export_jobs_repository(initialize=False)
+    now = utc_now()
+    try:
+        path, row = repository.artifact_path(job_id, now=now)
+    except ExportJobConflict as error:
+        try:
+            state = repository.payload(job_id, now=now)["state"]
+        except ExportJobError as lookup_error:
+            _raise_export_api_error(lookup_error)
+        status = 410 if state == "expired" else 409
+        raise HTTPException(status_code=status, detail=str(error)) from error
+    except ExportJobError as error:
+        _raise_export_api_error(error)
+    headers = _export_response_headers(
+        state="succeeded",
+        job_id=job_id,
+    )
+    headers.update(
+        {
+            "X-Content-Type-Options": "nosniff",
+            "X-KMFA-Sha256": f"sha256:{row['artifact_sha256']}",
+            "X-KMFA-Report-Grade": str(row["report_grade"]),
+            "X-KMFA-Quality-Grade": str(row["quality_grade"]),
+            "X-KMFA-Delivery-Allowed": str(
+                bool(row["delivery_allowed"])
+            ).lower(),
+            "X-KMFA-Watermark": (
+                "applied" if bool(row["watermark_applied"]) else "none"
+            ),
+            "ETag": f'"sha256:{row["artifact_sha256"]}"',
+        }
+    )
+    return FileResponse(
+        path,
+        media_type=str(row["artifact_media_type"]),
+        filename=(
+            f"kmfa_report_{int(row['report_no'])}."
+            f"{row['artifact_format']}"
+        ),
+        headers=headers,
+    )
+
+
+@app.get("/api/exports/jobs/{job_id}/artifact")
+def report_export_job_artifact(job_id: str):
+    return _report_export_job_artifact_response(job_id)
+
+
+@app.head("/api/exports/jobs/{job_id}/artifact")
+def report_export_job_artifact_head(job_id: str):
+    return _report_export_job_artifact_response(job_id)
+
+
+@app.delete("/api/exports/jobs/{job_id}")
+def cancel_report_export_job(job_id: str):
+    repository = _export_jobs_repository(initialize=False)
+    try:
+        repository.get(job_id)
+        row = repository.cancel(job_id, now=utc_now())
+        payload = repository.payload(job_id, now=utc_now())
+    except ExportJobError as error:
+        _raise_export_api_error(error)
+    return JSONResponse(
+        payload,
+        headers=_export_response_headers(
+            state=str(row["state"]),
+            job_id=job_id,
+        ),
+    )
+
+
+def _retired_export_headers() -> dict[str, str]:
+    return {
+        "Allow": "POST",
+        "Cache-Control": "private, no-store",
+        "Deprecation": "true",
+        "Link": '</api/exports/jobs>; rel="successor-version"',
+    }
+
+
+@app.get(
+    "/api/报告中心/导出",
+    deprecated=True,
+)
+def retired_side_effect_export_get():
+    """Compatibility route is permanently replay-safe and never renders."""
+
+    return JSONResponse(
+        {
+            "detail": "side_effect_get_retired",
+            "successor": {
+                "method": "POST",
+                "url": "/api/exports/jobs",
+            },
+        },
+        status_code=405,
+        headers=_retired_export_headers(),
+    )
+
+
+@app.head(
+    "/api/报告中心/导出",
+    deprecated=True,
+)
+def retired_side_effect_export_head():
+    return Response(
+        status_code=405,
+        headers=_retired_export_headers(),
+    )
 
 
 # ── PROD.0008 影响预览与重跑 ────────────────────────────────────────────────────
@@ -1876,19 +2253,30 @@ AUDIT_FORBIDDEN_KEYS = FORBIDDEN_EVENT_KEYS | frozenset({
 })
 
 
-def _audit(action_type: str, subject_ref: str, result_status: str,
-           evidence_ref: str, actor_role: str = "management",
-           **extra: Any) -> dict[str, Any]:
-    """写一条审计事件。**只追加，且写失败不能拖垮业务动作**。
+def _audit_payload(
+    action_type: str,
+    subject_ref: str,
+    result_status: str,
+    evidence_ref: str,
+    actor_role: str = "management",
+    *,
+    at: datetime | None = None,
+    **extra: Any,
+) -> dict[str, Any]:
+    """Build a bounded audit event without writing it."""
 
-    审计是旁证不是主流程：日志写不进去时业务不该跟着挂，但也不能悄悄吞掉——
-    失败会以 audit_write_failed 记进返回值，调用方可见。
-    """
     if action_type not in AUDIT_ACTION_TYPES:
         raise HTTPException(status_code=500, detail=f"非法 action_type：{action_type}")
+    moment = (at or datetime.now(BEIJING)).astimezone(BEIJING)
+    event_time = moment.isoformat(timespec="seconds")
     event = {
-        "event_id": f"AUD-APP-{hashlib.sha256(f'{action_type}{subject_ref}{datetime.now(BEIJING).isoformat()}'.encode()).hexdigest()[:16]}",
-        "event_time": datetime.now(BEIJING).isoformat(timespec="seconds"),
+        "event_id": (
+            "AUD-APP-"
+            + hashlib.sha256(
+                f"{action_type}{subject_ref}{event_time}".encode()
+            ).hexdigest()[:16]
+        ),
+        "event_time": event_time,
         "actor_role": actor_role,
         "action_type": action_type,
         "subject_ref": subject_ref,
@@ -1905,6 +2293,26 @@ def _audit(action_type: str, subject_ref: str, result_status: str,
     leaked = sorted(set(event) & AUDIT_FORBIDDEN_KEYS)
     if leaked:
         raise HTTPException(status_code=500, detail=f"审计事件含禁写字段：{leaked}")
+    return event
+
+
+def _audit(action_type: str, subject_ref: str, result_status: str,
+           evidence_ref: str, actor_role: str = "management",
+           **extra: Any) -> dict[str, Any]:
+    """写一条审计事件。**只追加，且写失败不能拖垮业务动作**。
+
+    审计是旁证不是主流程：日志写不进去时业务不该跟着挂，但也不能悄悄吞掉——
+    失败会以 audit_write_failed 记进返回值，调用方可见。导出 worker 则把同一
+    payload 与 job 成功状态原子提交，避免成功但无 hash/审计的半完成状态。
+    """
+    event = _audit_payload(
+        action_type,
+        subject_ref,
+        result_status,
+        evidence_ref,
+        actor_role,
+        **extra,
+    )
     try:
         _st.append(APP_DB_PATH, "audit_events", event)
     except Exception as exc:  # 审计是旁证：写不进去也不该拖垮业务动作

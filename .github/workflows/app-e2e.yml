@@ -59,6 +59,8 @@ jobs:
             KMFA/app/backend/tests/test_artifact_lineage.py \
             KMFA/app/backend/tests/test_single_file_download.py \
             KMFA/app/backend/tests/test_range_batch_download.py \
+            KMFA/app/backend/tests/test_export_jobs.py \
+            KMFA/app/backend/tests/test_export_job_api.py \
             KMFA/app/backend/tests/test_retention_backup.py
           python KMFA/machine/tools/validate_taskpack.py --root KMFA
           python KMFA/machine/tools/test_validate_taskpack_mutations.py --root KMFA
@@ -164,6 +166,17 @@ jobs:
             --prefix kmfa-p72-ci \
             --port 18111
 
+      - name: 跑显式导出 Job（幂等 / GET-HEAD 只读 / Fake Clock / 故障 / 浏览器 / 回滚）
+        run: |
+          set -euo pipefail
+          p73_state=$(mktemp -d /tmp/kmfa-p73-state.XXXXXX)
+          python KMFA/app/e2e/export_job_flow.py \
+            --image kmfa-app:e2e \
+            --state-dir "$p73_state" \
+            --out-dir export-job-e2e \
+            --container-name kmfa-p73-ci \
+            --port 18112
+
       - name: 跑匿名恢复与 secret hygiene（会话撤销 / 泄露扫描 / 重启 / hash / Flag 回滚）
         run: |
           set -euo pipefail
@@ -206,6 +219,7 @@ jobs:
             artifact-lineage-e2e/
             single-file-download-e2e/
             range-batch-download-e2e/
+            export-job-e2e/
             upload-quality-e2e/
 
       - name: 收容器
@@ -233,6 +247,7 @@ jobs:
           done
           docker network rm kmfa-p72-ci-net || true
           docker network rm kmfa-p72-ci-app-net || true
+          docker rm -f kmfa-p73-ci || true
           docker network rm kmfa-p71-ci-net || true
           docker network rm kmfa-p71-ci-app-net || true
           docker rm -f kmfa-p52-ci-app-a || true
