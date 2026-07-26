@@ -16,10 +16,10 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | logs=容器日志 | set-flag=改一个非秘密开关 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
+        description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
         required: true
         type: choice
-        options: [list, flags, set-flag, provision-backup-key, sync-dingtalk, redeploy, deployments, logs, exec]
+        options: [list, flags, set-flag, testing-safe-mode, provision-backup-key, sync-dingtalk, redeploy, deployments, logs, exec]
       app_uuid:
         description: "目标应用 uuid（provision-backup-key / redeploy 必填；先用 list 查）"
         required: false
@@ -251,6 +251,38 @@ jobs:
               -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
               --data @"$RUNNER_TEMP/f.json" "$BASE/api/v1/applications/$APP/envs" || true)
           echo "$FK = $FV → 返回码 $c"
+
+      - name: 测试期安全态——清空群机器人 + 关投递（去重后重写，杜绝同名残留）
+        if: inputs.mode == 'testing-safe-mode'
+        run: |
+          set -euo pipefail
+          test -n "${APP:-}" || { echo "需要 app_uuid"; exit 1; }
+          curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/applications/$APP/envs" -o "$RUNNER_TEMP/e.json"
+          # 列出目标键的所有条目 uuid（同名可能有多份→只改一份会留下危险残留）
+          python3 - > "$RUNNER_TEMP/targets.txt" <<'PY2'
+          import json, os
+          d = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "e.json"), encoding="utf-8"))
+          envs = d if isinstance(d, list) else d.get("data") or []
+          TARGET = {"DINGTALK_ROBOT_URL", "DINGTALK_ROBOT_SIGNING_KEY", "KMFA_DELIVERY_ENABLED"}
+          for e in envs:
+              k = str(e.get("key"))
+              if k in TARGET:
+                  print(f"{k}\t{e.get('uuid') or ''}")
+          PY2
+          echo "命中条目："; cat "$RUNNER_TEMP/targets.txt"
+          # 逐条删除（删除即安全：群地址没了发不出群；投递默认 0）
+          while IFS=$'\t' read -r k u; do
+            [ -n "$u" ] || continue
+            c=$(curl -sS -o /dev/null -w '%{http_code}' -X DELETE -H "Authorization: Bearer $TOKEN" \
+                "$BASE/api/v1/applications/$APP/envs/$u" || true)
+            echo "  删除 $k($u) → $c"
+          done < "$RUNNER_TEMP/targets.txt"
+          # 只重建一条 KMFA_DELIVERY_ENABLED=0；群机器人保持缺失=群通道不可用
+          python3 -c "import json,os;open(os.path.join(os.environ['RUNNER_TEMP'],'d.json'),'w').write(json.dumps({'key':'KMFA_DELIVERY_ENABLED','value':'0'}))"
+          c=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" --data @"$RUNNER_TEMP/d.json" "$BASE/api/v1/applications/$APP/envs" || true)
+          echo "重建 KMFA_DELIVERY_ENABLED=0 → $c"
+          echo "测试期安全态完成：群机器人凭据已从 Coolify 移除，投递关闭。"
 
       - name: 触发重新部署
         if: inputs.mode == 'redeploy'
