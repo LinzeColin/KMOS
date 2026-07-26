@@ -20,7 +20,10 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # 经营月报（每月 1 日 北京 09:00；无契约排程条目——按需触发走 DT6 App 面板，此为云端兜底）
 0  9  1 * *   root /opt/runtime/run_skill.sh mgmt-monthly        >> /var/log/kmfa/cron.log 2>&1
 
-# 上游归档（契约业务锚 北京 每日 11:00）
+# 群清单自举（云端用已认证 dws 列群→候选配置进私有库；北京 周日 10:30，先于归档）
+30 10 * * 0   root /opt/runtime/run_skill.sh dws-bootstrap-groups >> /var/log/kmfa/cron.log 2>&1
+
+# 上游归档（契约业务锚 北京 每日 11:00）——已接真入口:钉钉→容器→GitHub 私有库
 0  11 * * *   root /opt/runtime/run_skill.sh upstream-archive    >> /var/log/kmfa/cron.log 2>&1
 
 # 健康周检（DT8 运维任务，无业务锚；北京周日 01:00）

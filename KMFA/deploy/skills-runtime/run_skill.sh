@@ -33,7 +33,10 @@ case "$SKILL" in
   work-check-evening)  CMD=(python3 -m KMFA.tools.daily_routine_check.main --input-zip "${KMFA_DAILY_INPUT_ZIP:-/opt/kmfa/data/DWS_Outputs.zip}" --trigger-window evening_1705 $DELIVERY_FLAG) ;;
   fund-weekly)         CMD=(python3 KMFA/skills/资金周报/tools/validate_taskpack.py) ;;       # SKL.0005 OCR 替换后接业务入口
   mgmt-monthly)        CMD=(python3 KMFA/skills/经营月报/tools/validate_skill_package.py) ;;   # SKL.0004 演练时替换为业务入口
-  upstream-archive)    CMD=(python3 KMFA/skills/上游归档/tools/validate_skill_package.py) ;;  # dws drive 命令面核对后接业务入口
+  # 真业务入口:云端 dws 归档(钉钉→容器→GitHub 私有库)。原先只跑校验器→从未真归档。
+  upstream-archive)    CMD=(bash KMFA/skills/上游归档/scripts/run_cloud_archive.sh) ;;
+  # 群清单自举:用容器内已认证 dws 列群生成候选配置进私有库(Owner 无需提供群 ID)
+  dws-bootstrap-groups) CMD=(bash KMFA/skills/上游归档/scripts/bootstrap_groups_cloud.sh) ;;  # dws drive 命令面核对后接业务入口
   daily-backup)        CMD=(python3 KMFA/tools/app_state_backup.py backup --state-dir /var/lib/kmfa/state) ;;  # App 状态面异地备份→GitHub 私有库（一致快照+sha256+manifest）。设 KMFA_BACKUP_GH_TOKEN 后异地生效；未设则降级写 /var/log/kmfa/backups 并告警。往返自测见 DT6_APP_STATE_BACKUP
   dws-keepalive)       CMD=(bash -c 'set -e; \
                          D=/var/log/kmfa/dws-keepalive; mkdir -p "$D"; \
