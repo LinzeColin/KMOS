@@ -1,0 +1,31 @@
+{
+  "schema": "ids.taskpack.provenance.v1",
+  "taskpack_version": "v0.1-only-final-chinese-revised",
+  "source_filename": "IDS_Taskpack_v0_1_only_中文修订版.zip",
+  "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+  "imported_root": "IDS_v0_1_Final_Chinese_Revised",
+  "imported_on": "2026-07-26",
+  "file_count": 183,
+  "uncompressed_bytes": 801574,
+  "file_types": {
+    "md": 179,
+    "txt": 2,
+    "csv": 1,
+    "json": 1
+  },
+  "checksums_file": "IDS_v0_1_Final_Chinese_Revised.sha256",
+  "verification": {
+    "safe_relative_paths": true,
+    "no_symlinks": true,
+    "utf8_text_only": true,
+    "no_nul_bytes": true,
+    "json_valid": true,
+    "csv_valid": true,
+    "byte_exact_member_matches": 183,
+    "credential_pattern_hits": 0,
+    "absolute_user_path_hits": 0
+  },
+  "archive_committed": false,
+  "raw_metadata_accessed": false,
+  "governance_note": "Current AGENTS.md and HANDOFF.md override historical repository and data-routing text in this immutable taskpack baseline."
+}
