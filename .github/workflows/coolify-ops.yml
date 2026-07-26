@@ -92,6 +92,18 @@ jobs:
               --data @"$RUNNER_TEMP/payload.json" "$BASE/api/v1/applications/$APP/envs" || true)
             echo "PATCH env 返回码=$code"
           fi
+          # 失败时回显错误原因（脱敏：抹掉任何长 base64 串，杜绝把私钥写进公开日志）
+          if [ "$code" != "200" ] && [ "$code" != "201" ]; then
+            python3 - <<'PY'
+          import os, re
+          for name in ("post.out", "patch.out"):
+              p = os.path.join(os.environ["RUNNER_TEMP"], name)
+              if not os.path.exists(p): continue
+              t = open(p, encoding="utf-8", errors="replace").read()[:800]
+              t = re.sub(r"[A-Za-z0-9+/=]{40,}", "<REDACTED>", t)
+              print(f"--- {name} ---"); print(t)
+          PY
+          fi
           rm -f "$RUNNER_TEMP/payload.json" "$RUNNER_TEMP/k"
           echo "—— 把下面这行公钥登记为 Private-Database 的可写 deploy key（公钥非秘密）——"
           cat "$RUNNER_TEMP/k.pub"
