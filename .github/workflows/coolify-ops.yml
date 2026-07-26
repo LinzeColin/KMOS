@@ -16,10 +16,10 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=看资源与环境变量名 | provision-backup-key=就地生成并注入备份密钥 | redeploy=触发重新部署"
+        description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署"
         required: true
         type: choice
-        options: [list, provision-backup-key, redeploy]
+        options: [list, flags, provision-backup-key, redeploy, deployments]
       app_uuid:
         description: "目标应用 uuid（provision-backup-key / redeploy 必填；先用 list 查）"
         required: false
@@ -107,6 +107,42 @@ jobs:
           rm -f "$RUNNER_TEMP/payload.json" "$RUNNER_TEMP/k"
           echo "—— 把下面这行公钥登记为 Private-Database 的可写 deploy key（公钥非秘密）——"
           cat "$RUNNER_TEMP/k.pub"
+
+      - name: 看非秘密开关的值（诊断：技能为何不投递）
+        if: inputs.mode == 'flags'
+        run: |
+          set -euo pipefail
+          test -n "${APP:-}" || { echo "需要 app_uuid"; exit 1; }
+          curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/applications/$APP/envs" -o "$RUNNER_TEMP/envs.json"
+          python3 - <<'PY'
+          import json, os, re
+          d = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "envs.json"), encoding="utf-8"))
+          envs = d if isinstance(d, list) else d.get("data") or []
+          # 白名单：只回显「开关/模式」类非秘密键；凡带 TOKEN/KEY/SECRET/PASSWORD/SIGNING/URL 一律只显示是否有值
+          SECRET = re.compile(r"TOKEN|KEY|SECRET|PASSWORD|SIGNING|CODE|URL|AUD|DSN", re.I)
+          SAFE = re.compile(r"^KMFA_.*(ENABLED|MODE|REQUIRE|POLICY)$|^COMPOSE_PROFILES$|^TZ$", re.I)
+          print("=== 开关值（诊断）===")
+          for e in sorted(envs, key=lambda x: str(x.get("key"))):
+              k = str(e.get("key")); v = e.get("value")
+              if SAFE.match(k) and not SECRET.search(k):
+                  print(f"  {k} = {v!r}")
+              elif SECRET.search(k):
+                  print(f"  {k} = <{'已设置' if (v not in (None, '')) else '空'}>")
+          PY
+
+      - name: 最近部署记录
+        if: inputs.mode == 'deployments'
+        run: |
+          set -euo pipefail
+          curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/deployments" -o "$RUNNER_TEMP/deps.json"
+          python3 - <<'PY'
+          import json, os
+          d = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "deps.json"), encoding="utf-8"))
+          arr = d if isinstance(d, list) else d.get("data") or d.get("deployments") or []
+          print(f"进行中/最近部署={len(arr)}")
+          for x in arr[:10]:
+              print(f"  uuid={x.get('deployment_uuid') or x.get('uuid')} app={x.get('application_name')} status={x.get('status')} at={x.get('created_at')}")
+          PY
 
       - name: 触发重新部署
         if: inputs.mode == 'redeploy'
