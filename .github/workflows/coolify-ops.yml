@@ -16,16 +16,24 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | logs=容器日志 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
+        description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | logs=容器日志 | set-flag=改一个非秘密开关 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
         required: true
         type: choice
-        options: [list, flags, provision-backup-key, sync-dingtalk, redeploy, deployments, logs, exec]
+        options: [list, flags, set-flag, provision-backup-key, sync-dingtalk, redeploy, deployments, logs, exec]
       app_uuid:
         description: "目标应用 uuid（provision-backup-key / redeploy 必填；先用 list 查）"
         required: false
         type: string
       command:
         description: "exec 模式的只读诊断命令（默认查 cron/台账/进程）"
+        required: false
+        type: string
+      flag_key:
+        description: "set-flag 的键（只允许非秘密开关，如 KMFA_DELIVERY_ENABLED）"
+        required: false
+        type: string
+      flag_value:
+        description: "set-flag 的值"
         required: false
         type: string
 
@@ -222,6 +230,27 @@ jobs:
           sync_one DINGTALK_ROBOT_URL "$D_URL"
           sync_one DINGTALK_ROBOT_SIGNING_KEY "$D_KEY"
           echo "完成（值全程未打印；GitHub 已自动 mask）"
+
+      - name: 改一个非秘密开关（拒绝任何疑似秘密的键）
+        if: inputs.mode == 'set-flag'
+        env:
+          FK: ${{ inputs.flag_key }}
+          FV: ${{ inputs.flag_value }}
+        run: |
+          set -euo pipefail
+          test -n "${APP:-}" || { echo "需要 app_uuid"; exit 1; }
+          test -n "${FK:-}" || { echo "需要 flag_key"; exit 1; }
+          case "$FK" in
+            *TOKEN*|*KEY*|*SECRET*|*PASSWORD*|*SIGNING*|*URL*|*CODE*|*AUD*)
+              echo "拒绝：$FK 疑似秘密键，set-flag 只允许非秘密开关"; exit 1;;
+          esac
+          python3 -c "import json,os,sys;open(os.path.join(os.environ['RUNNER_TEMP'],'f.json'),'w').write(json.dumps({'key':sys.argv[1],'value':sys.argv[2]}))" "$FK" "$FV"
+          c=$(curl -sS -o "$RUNNER_TEMP/o" -w '%{http_code}' -X POST -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" --data @"$RUNNER_TEMP/f.json" "$BASE/api/v1/applications/$APP/envs" || true)
+          [ "$c" = "200" ] || [ "$c" = "201" ] || c=$(curl -sS -o "$RUNNER_TEMP/o" -w '%{http_code}' -X PATCH \
+              -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+              --data @"$RUNNER_TEMP/f.json" "$BASE/api/v1/applications/$APP/envs" || true)
+          echo "$FK = $FV → 返回码 $c"
 
       - name: 触发重新部署
         if: inputs.mode == 'redeploy'
