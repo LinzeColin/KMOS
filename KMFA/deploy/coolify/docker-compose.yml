@@ -33,7 +33,7 @@ services:
       DINGTALK_DING_ROBOT_CODE: "${DINGTALK_DING_ROBOT_CODE:-}"
       KMFA_ALERT_WEBHOOK_TOKEN: "${KMFA_ALERT_WEBHOOK_TOKEN:-}"
       # App 状态面异地备份凭据（优先部署密钥，其次 token；都空则降级写命名卷）。
-      # 首选：部署密钥私钥的 **base64 单行**（对专用备份库 KMFA-App-State-Backup 可写）。
+      # 首选：部署密钥私钥的 **base64 单行**（对唯一私有库 Private-Database 可写）。
       #   agent 已生成密钥、把公钥装为该库可写部署密钥；base64 私钥在 Owner
       #   _protected/kmfa_backup_deploy_key.b64——粘进此项即可（entrypoint 启动时解到 600 文件、
       #   只把路径给 cron，密钥本体不落 cron.d/日志）。每日 00:30 北京自动异地备份。
