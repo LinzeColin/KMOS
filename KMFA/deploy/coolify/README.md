@@ -103,6 +103,16 @@
 > 不识别当前 schema/恢复资产的旧 binary。P6.2 扫描接入前不得把 attachment-only 误报为 malware
 > clean。
 
+> **S06/P6.3 中间态边界**：schema v6 增加同一逻辑文件最多 32 个不可变版本、显式
+> parent/source 血缘、固定版本 `kmfa-safe-text-extract/1.0.0` 处理器，以及只面向 scanner-clean
+> UTF-8 text/plain/JSON 的 64 KiB `text/plain` 派生预览。Web 不解析原件，未知、高风险、
+> attachment-only/rejected/timeout/error 均不进入 processor；原件和历史版本不可覆盖，派生物
+> 可重建但必须保留 processor/version/hash 血缘。本 Phase 不单独切生产；S06 整体复审前保持
+> `KMFA_ARTIFACT_DERIVATION_ENABLED=0`。同一候选 image 必须先证明同名同内容/修改内容均产生新
+> version、parent chain 与 lineage gap=0、浏览器校验 preview hash、重处理产生新 generation、
+> backup/restore 覆盖原件和派生物。快速回滚只恢复 Flag 为 `0` 并重部署同一 schema v6 binary；
+> 保留 DB、所有原件/版本/血缘/派生物/backup/volume，禁止降 schema、`down -v` 或删除对象。
+
 6. 观测 P1 内存无碍后，在 Coolify 为本资源**启用 `full` profile**（Compose profiles → 勾 `full`）或设 `COMPOSE_PROFILES=full`，重部署 → `kmfa-app` 起。
 7. **域名**：Coolify 给 `app` 服务设 `kmfa.linzezhang.com`（Coolify Traefik 自动签发/路由）；**Cloudflare** 加一条**代理（橙云）** A 记录 `kmfa` → OVH 公网 IP（或按 Coolify 提示的 CNAME）。App 仅经 Traefik 暴露，主机不额外开放端口。
 8. **先建更具体的路径锁，整站登录墙不动**：保留现有 host 级 Self-hosted Application 的 Owner

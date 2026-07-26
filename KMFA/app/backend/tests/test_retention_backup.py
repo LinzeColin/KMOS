@@ -130,11 +130,11 @@ def _open_for(root: Path):
     return open_structured_store(root / "walking_skeleton.sqlite3")
 
 
-def test_schema_five_preserves_default_no_expiry_retention(state: Path):
+def test_schema_six_preserves_default_no_expiry_retention(state: Path):
     created = skeleton._create_workspace("P5.4 no-expiry synthetic")
     connection = _open_for(state)
     try:
-        assert connection.schema_version() == SCHEMA_VERSION == 5
+        assert connection.schema_version() == SCHEMA_VERSION == 6
         retention = connection.execute(
             "SELECT * FROM workspace_retention WHERE workspace_id = ?",
             (created["workspace"]["workspace_id"],),

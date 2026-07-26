@@ -95,6 +95,7 @@ def test_enabled_status_is_honest_about_adapter_limits_and_hardening(enabled_sto
     assert payload["artifact_store"] == "private-filesystem-volume-adapter"
     assert payload["limits"] == {
         "max_artifacts": 1,
+        "max_versions_per_artifact": 32,
         "max_bytes": 8 * 1024 * 1024,
         "max_total_artifact_bytes": 512 * 1024 * 1024,
         "min_free_state_bytes": 128 * 1024 * 1024,
@@ -284,7 +285,7 @@ def test_rollback_disables_actions_but_preserves_and_can_restore_data(
     assert downloaded.content == content
 
 
-def test_second_artifact_oversize_and_path_filename_fail_without_orphans(
+def test_next_version_oversize_and_path_filename_fail_without_orphans(
     enabled_store: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -300,9 +301,18 @@ def test_second_artifact_oversize_and_path_filename_fail_without_orphans(
     assert not list((enabled_store / "tmp").glob("*.part"))
 
     monkeypatch.setattr(skeleton, "MAX_ARTIFACT_BYTES", 8 * 1024 * 1024)
-    assert _upload(created, b"first").status_code == 200
-    assert _upload(created, b"second", "second.bin").status_code == 409
-    assert len(list((enabled_store / "objects").glob("*.blob"))) == 1
+    first = _upload(created, b"first")
+    second = _upload(created, b"second", "second.bin")
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["artifact"]["version_number"] == 1
+    assert second.json()["artifact"]["version_number"] == 2
+    assert second.json()["artifact"]["version_count"] == 2
+    assert (
+        second.json()["artifact"]["parent_artifact_version_id"]
+        == first.json()["artifact"]["artifact_version_id"]
+    )
+    assert len(list((enabled_store / "objects").glob("*.blob"))) == 2
 
 
 def test_integrity_failure_is_fail_closed(enabled_store: Path):

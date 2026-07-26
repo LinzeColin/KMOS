@@ -243,6 +243,7 @@ TABLES: tuple[TableSpec, ...] = (
             "request_fingerprint",
             "artifact_id",
             "artifact_version_id",
+            "artifact_version_number",
             "storage_backend",
             "storage_key",
             "staged_object_name",
@@ -296,6 +297,78 @@ TABLES: tuple[TableSpec, ...] = (
             "created_at",
         ),
         ("event_id",),
+    ),
+    TableSpec(
+        "artifact_version_lineage",
+        (
+            "artifact_version_id",
+            "parent_artifact_version_id",
+            "source_operation_id",
+            "relation_kind",
+            "created_at",
+        ),
+        ("artifact_version_id",),
+    ),
+    TableSpec(
+        "processor_registry",
+        (
+            "processor_name",
+            "processor_version",
+            "output_kind",
+            "output_media_type",
+            "implementation_sha256",
+            "created_at",
+        ),
+        ("processor_name", "processor_version"),
+    ),
+    TableSpec(
+        "artifact_processing_runs",
+        (
+            "processing_run_id",
+            "workspace_id",
+            "source_artifact_version_id",
+            "processor_name",
+            "processor_version",
+            "idempotency_key_hash",
+            "derivative_id",
+            "generation_number",
+            "state",
+            "attempt_count",
+            "lease_until",
+            "last_error_code",
+            "output_storage_backend",
+            "output_storage_key",
+            "output_name",
+            "output_media_type",
+            "output_size_bytes",
+            "output_sha256",
+            "row_version",
+            "requested_at",
+            "updated_at",
+            "completed_at",
+        ),
+        ("processing_run_id",),
+    ),
+    TableSpec(
+        "artifact_derivatives",
+        (
+            "derivative_id",
+            "processing_run_id",
+            "source_artifact_version_id",
+            "artifact_id",
+            "processor_name",
+            "processor_version",
+            "generation_number",
+            "output_kind",
+            "storage_backend",
+            "storage_key",
+            "original_name",
+            "media_type",
+            "size_bytes",
+            "sha256",
+            "created_at",
+        ),
+        ("derivative_id",),
     ),
     TableSpec(
         "consistency_outbox",
@@ -529,6 +602,21 @@ def _object_index(
             "sha256": str(row["sha256"]),
             "artifact_id": str(row["artifact_id"]),
             "artifact_version_id": str(row["artifact_version_id"]),
+        }
+        identity = f"{entry['storage_backend']}\0{entry['storage_key']}"
+        if identity in result and result[identity] != entry:
+            raise BackupRestoreError("backup_duplicate_object_identity")
+        result[identity] = entry
+    for row in snapshot["artifact_derivatives"]:
+        entry = {
+            "storage_backend": str(row["storage_backend"]),
+            "storage_key": str(row["storage_key"]),
+            "size_bytes": int(row["size_bytes"]),
+            "sha256": str(row["sha256"]),
+            "artifact_id": str(row["artifact_id"]),
+            # Object metadata uses this generic identity slot for an immutable
+            # derivative as well as for an original artifact version.
+            "artifact_version_id": str(row["derivative_id"]),
         }
         identity = f"{entry['storage_backend']}\0{entry['storage_key']}"
         if identity in result and result[identity] != entry:
@@ -867,6 +955,16 @@ def create_backup(
         ).fetchone()
         if active_security_scan is not None:
             raise BackupRestoreError("backup_security_scan_pending")
+        active_derivation = connection.execute(
+            """
+            SELECT 1
+            FROM artifact_processing_runs
+            WHERE state IN ('processing', 'prepared')
+            LIMIT 1
+            """
+        ).fetchone()
+        if active_derivation is not None:
+            raise BackupRestoreError("backup_artifact_derivation_pending")
         current_snapshot = _snapshot_database(connection)
         recovery_point_at = utc_timestamp(now)
     directory = _prepare_new_backup_directory(

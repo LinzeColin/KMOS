@@ -884,7 +884,7 @@ def test_deployment_defaults_legacy_and_policy_is_private_prefix_scoped():
         assert "KMFA_S3_ALLOW_INSECURE_LOCAL:-0" in compose
         assert "KMFA_S3_SECRET_ACCESS_KEY:-" in compose
         assert "configured_write_store" in compose
-        assert "s.schema_version()==5" in compose
+        assert "s.schema_version()==6" in compose
     for config in (local_config, coolify_config):
         app_environment = config["services"]["app"]["environment"]
         worker = config["services"]["lifecycle-worker"]

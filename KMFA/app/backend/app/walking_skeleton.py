@@ -21,8 +21,10 @@ the S05 upload intent. Incomplete chunks stay in private bounded staging and
 the completed immutable original still passes through the same object/outbox
 state machine. S06/P6.2 adds quarantine-first assessment and sends verified
 originals to a credential-minimal private scanner; scan timeout/error is never
-clean and no preview is created. Later S06 phases own processing and scalable
-multi-file lifecycle semantics.
+clean and no preview is created. S06/P6.3 adds immutable revisions, explicit
+parent/source lineage and an opt-in worker-generated bounded text preview;
+originals are never overwritten and the web process never parses them. Later
+S06 phases own scalable multi-file lifecycle semantics.
 
 Raw recovery codes and access capabilities are returned only to their caller;
 the store keeps SHA-256 hashes. Artifacts are never mapped into the static
@@ -52,6 +54,14 @@ from starlette.background import BackgroundTask
 from starlette.requests import ClientDisconnect
 
 from .anti_abuse import public_policy_contract
+from .artifact_lineage import (
+    MAX_TOTAL_ARTIFACT_BYTES,
+    SUPPORTED_DETECTED_MEDIA_TYPES,
+    ArtifactLineageError,
+    ArtifactLineageRepository,
+    derivation_enabled,
+    public_derivation_contract,
+)
 from .consistency_state import (
     IDEMPOTENCY_KEY_RE,
     ConsistencyConflictError,
@@ -138,7 +148,7 @@ MAX_RESUMABLE_ARTIFACT_BYTES = 64 * 1024 * 1024
 MAX_UPLOAD_CHUNK_BYTES = 4 * 1024 * 1024
 MAX_RESUMABLE_SESSIONS_PER_WORKSPACE = 16
 MAX_ARTIFACTS = 1
-MAX_TOTAL_ARTIFACT_BYTES = 512 * 1024 * 1024
+MAX_ARTIFACT_VERSIONS = 32
 MIN_FREE_STATE_BYTES = 128 * 1024 * 1024
 MAX_WORKSPACES_TOTAL = 10_000
 MAX_ACTIVE_SESSIONS_PER_WORKSPACE = 8
@@ -324,7 +334,9 @@ def _artifact_capacity_usage(connection: StructuredStoreConnection) -> int:
     row = connection.execute(
         """
         SELECT
-          COALESCE((SELECT SUM(size_bytes) FROM artifacts), 0)
+          COALESCE((SELECT SUM(size_bytes) FROM artifact_versions), 0)
+          +
+          COALESCE((SELECT SUM(size_bytes) FROM artifact_derivatives), 0)
           +
           COALESCE((
             SELECT SUM(co.size_bytes)
@@ -334,7 +346,7 @@ def _artifact_capacity_usage(connection: StructuredStoreConnection) -> int:
               AND NOT (
                 co.state = 'isolated'
                 AND co.last_error_code = 'resumable_upload_cancelled'
-                AND co.staged_object_name LIKE 'resumable-%'
+                AND co.staged_object_name LIKE ?
               )
               AND NOT EXISTS (
                 SELECT 1
@@ -342,9 +354,77 @@ def _artifact_capacity_usage(connection: StructuredStoreConnection) -> int:
                 WHERE av.artifact_version_id = co.artifact_version_id
               )
           ), 0) AS total_bytes
-        """
+        """,
+        ("resumable-%",),
     ).fetchone()
     return int(row["total_bytes"])
+
+
+def _artifact_version_slots_used(
+    connection: StructuredStoreConnection,
+    workspace_id: str,
+) -> int:
+    artifact = connection.execute(
+        """
+        SELECT artifact_id
+        FROM artifacts
+        WHERE workspace_id = ?
+        """,
+        (workspace_id,),
+    ).fetchone()
+    if artifact is None:
+        return 0
+    row = connection.execute(
+        """
+        SELECT MAX(version_number) AS max_version
+        FROM (
+          SELECT av.version_number
+          FROM artifact_versions av
+          WHERE av.artifact_id = ?
+          UNION ALL
+          SELECT operation.artifact_version_number
+          FROM consistency_operations operation
+          WHERE operation.operation_kind = 'upload'
+            AND operation.artifact_id = ?
+            AND operation.artifact_version_number IS NOT NULL
+        ) versions
+        """,
+        (artifact["artifact_id"], artifact["artifact_id"]),
+    ).fetchone()
+    return int(row["max_version"] or 0)
+
+
+def _next_artifact_version_identity(
+    connection: StructuredStoreConnection,
+    workspace_id: str,
+) -> tuple[str, int]:
+    # A harmless update takes the workspace row lock in PostgreSQL and the
+    # write transaction in SQLite. Only one request may reserve the next
+    # immutable version number at a time.
+    locked = connection.execute(
+        """
+        UPDATE workspaces
+        SET updated_at = updated_at
+        WHERE workspace_id = ?
+        """,
+        (workspace_id,),
+    )
+    if locked.rowcount != 1:
+        raise SkeletonError(404, "workspace_not_found")
+    artifact = connection.execute(
+        """
+        SELECT artifact_id
+        FROM artifacts
+        WHERE workspace_id = ?
+        """,
+        (workspace_id,),
+    ).fetchone()
+    if artifact is None:
+        return _new_artifact_id(), 1
+    used = _artifact_version_slots_used(connection, workspace_id)
+    if used >= MAX_ARTIFACT_VERSIONS:
+        raise SkeletonError(409, "artifact_version_limit_reached")
+    return str(artifact["artifact_id"]), used + 1
 
 
 def _require_enabled() -> None:
@@ -600,19 +680,85 @@ def _artifact_payload(
 ) -> dict[str, Any] | None:
     if row is None:
         return None
-    security = artifact_security_payload(
-        connection,
-        artifact_version_id=str(row["artifact_version_id"]),
+    security = dict(
+        artifact_security_payload(
+            connection,
+            artifact_version_id=str(row["artifact_version_id"]),
+        )
+    )
+    processing_allowed = (
+        derivation_enabled()
+        and security["state"] == "clean"
+        and security["detected_media_type"]
+        in SUPPORTED_DETECTED_MEDIA_TYPES
+    )
+    derivative = (
+        ArtifactLineageRepository(connection).latest_derivative(
+            str(row["artifact_version_id"])
+        )
+        if processing_allowed
+        else None
+    )
+    preview_allowed = derivative is not None
+    security["processing_allowed"] = processing_allowed
+    security["preview_allowed"] = preview_allowed
+    lineage = connection.execute(
+        """
+        SELECT parent_artifact_version_id, relation_kind
+        FROM artifact_version_lineage
+        WHERE artifact_version_id = ?
+        """,
+        (row["artifact_version_id"],),
+    ).fetchone()
+    version_count = int(
+        connection.execute(
+            """
+            SELECT COUNT(*) AS count_value
+            FROM artifact_versions
+            WHERE artifact_id = ?
+            """,
+            (row["artifact_id"],),
+        ).fetchone()["count_value"]
+    )
+    preview = (
+        {
+            "derivative_id": str(derivative["derivative_id"]),
+            "kind": str(derivative["output_kind"]),
+            "generation_number": int(derivative["generation_number"]),
+            "media_type": str(derivative["media_type"]),
+            "size_bytes": int(derivative["size_bytes"]),
+            "sha256": str(derivative["sha256"]),
+            "processor": {
+                "name": str(derivative["processor_name"]),
+                "version": str(derivative["processor_version"]),
+            },
+            "created_at": str(derivative["created_at"]),
+        }
+        if derivative is not None
+        else None
     )
     return {
         "artifact_id": row["artifact_id"],
+        "artifact_version_id": row["artifact_version_id"],
+        "version_number": int(row["version_number"]),
+        "version_count": version_count,
+        "parent_artifact_version_id": (
+            str(lineage["parent_artifact_version_id"])
+            if lineage is not None
+            and lineage["parent_artifact_version_id"] is not None
+            else None
+        ),
+        "lineage_relation": (
+            str(lineage["relation_kind"]) if lineage is not None else None
+        ),
         "name": row["original_name"],
         "size_bytes": row["size_bytes"],
         "sha256": row["sha256"],
         "created_at": row["created_at"],
         "download_mode": "attachment-only",
         "download_allowed": security["download_allowed"],
-        "preview_allowed": False,
+        "preview_allowed": preview_allowed,
+        "preview": preview,
         "security": security,
     }
 
@@ -1551,31 +1697,22 @@ def _resume_upload_operation(
                                 or str(operation["state"]) != "commit_pending"
                             ):
                                 continue
-                            compatibility = connection.execute(
+                            projected_version = connection.execute(
                                 """
-                                SELECT artifact_id
-                                FROM artifacts
-                                WHERE artifact_id = ?
+                                SELECT artifact_version_id
+                                FROM artifact_versions
+                                WHERE artifact_version_id = ?
                                 """,
-                                (operation["artifact_id"],),
+                                (operation["artifact_version_id"],),
                             ).fetchone()
-                            if compatibility is None:
-                                used_bytes = int(
-                                    connection.execute(
-                                        """
-                                        SELECT COALESCE(SUM(size_bytes), 0)
-                                          AS total_bytes
-                                        FROM artifacts
-                                        """
-                                    ).fetchone()["total_bytes"]
+                            if (
+                                projected_version is None
+                                and _artifact_capacity_usage(connection)
+                                > MAX_TOTAL_ARTIFACT_BYTES
+                            ):
+                                raise SkeletonError(
+                                    429, "artifact_capacity_reached"
                                 )
-                                if (
-                                    used_bytes + int(operation["size_bytes"])
-                                    > MAX_TOTAL_ARTIFACT_BYTES
-                                ):
-                                    raise SkeletonError(
-                                        429, "artifact_capacity_reached"
-                                    )
                             created_at = str(operation["created_at"])
                             uploaded_version_id = (
                                 repository.ensure_uploaded_artifact(
@@ -1585,7 +1722,11 @@ def _resume_upload_operation(
                                     artifact_id=str(
                                         operation["artifact_id"]
                                     ),
-                                    version_number=1,
+                                    version_number=int(
+                                        operation[
+                                            "artifact_version_number"
+                                        ]
+                                    ),
                                     storage_backend=str(
                                         operation["storage_backend"]
                                     ),
@@ -1604,6 +1745,17 @@ def _resume_upload_operation(
                                     ),
                                     created_at=created_at,
                                 )
+                            )
+                            ArtifactLineageRepository(
+                                connection
+                            ).ensure_version_lineage(
+                                artifact_version_id=uploaded_version_id,
+                                artifact_id=str(operation["artifact_id"]),
+                                version_number=int(
+                                    operation["artifact_version_number"]
+                                ),
+                                source_operation_id=operation_id,
+                                created_at=created_at,
                             )
                             if file_security_enabled():
                                 FileSecurityRepository(
@@ -1737,15 +1889,12 @@ async def _store_artifact(
             operation_kind="upload",
             idempotency_key_hash_value=key_hash,
         )
-        if (
-            connection.execute(
-                "SELECT 1 FROM artifacts WHERE workspace_id = ?",
-                (workspace_id,),
-            ).fetchone()
-            and existing_operation is None
-        ):
-            raise SkeletonError(409, "artifact_limit_reached")
         if existing_operation is None:
+            if (
+                _artifact_version_slots_used(connection, workspace_id)
+                >= MAX_ARTIFACT_VERSIONS
+            ):
+                raise SkeletonError(409, "artifact_version_limit_reached")
             used_bytes = _artifact_capacity_usage(connection)
             remaining_bytes = MAX_TOTAL_ARTIFACT_BYTES - used_bytes
             if remaining_bytes <= 0:
@@ -1774,9 +1923,6 @@ async def _store_artifact(
         raise SkeletonError(503, "walking_skeleton_storage_unavailable") from exc
 
     operation_id = _new_operation_id()
-    artifact_id = _new_artifact_id()
-    version_number = 1
-    version_id = artifact_version_id(artifact_id, version_number)
     request_path = _tmp_dir() / f"request-{secrets.token_urlsafe(24)}.part"
     sha256_digest = hashlib.sha256()
     size = 0
@@ -1806,27 +1952,6 @@ async def _store_artifact(
             size_bytes=size,
             content_sha256=sha256,
         )
-        storage_key = object_store.build_storage_key(
-            workspace_id=workspace_id,
-            artifact_id=artifact_id,
-            artifact_version_id=version_id,
-            version_number=version_number,
-            sha256=sha256,
-        )
-        intent = UploadIntent(
-            workspace_id=workspace_id,
-            idempotency_key=idempotency_key,
-            request_fingerprint=fingerprint,
-            artifact_id=artifact_id,
-            artifact_version_id=version_id,
-            storage_backend=object_store.storage_backend,
-            storage_key=storage_key,
-            staged_object_name=f"workflow-{operation_id}.part",
-            original_name=filename,
-            reported_media_type=media_type,
-            size_bytes=size,
-            content_sha256=sha256,
-        )
         with _store() as connection:
             try:
                 with connection.transaction():
@@ -1848,19 +1973,10 @@ async def _store_artifact(
                             """,
                             (workspace_id,),
                         ).fetchone()
-                        projected_artifact = connection.execute(
-                            """
-                            SELECT 1 FROM artifacts
-                            WHERE workspace_id = ?
-                            LIMIT 1
-                            """,
-                            (workspace_id,),
-                        ).fetchone()
-                        if (
-                            competing_upload is not None
-                            or projected_artifact is not None
-                        ):
-                            raise SkeletonError(409, "artifact_limit_reached")
+                        if competing_upload is not None:
+                            raise SkeletonError(
+                                409, "artifact_upload_in_progress"
+                            )
                         if (
                             _artifact_capacity_usage(connection) + size
                             > MAX_TOTAL_ARTIFACT_BYTES
@@ -1869,6 +1985,51 @@ async def _store_artifact(
                                 429,
                                 "artifact_capacity_reached",
                             )
+                        artifact_id, version_number = (
+                            _next_artifact_version_identity(
+                                connection,
+                                workspace_id,
+                            )
+                        )
+                        version_id = artifact_version_id(
+                            artifact_id,
+                            version_number,
+                        )
+                        storage_key = object_store.build_storage_key(
+                            workspace_id=workspace_id,
+                            artifact_id=artifact_id,
+                            artifact_version_id=version_id,
+                            version_number=version_number,
+                            sha256=sha256,
+                        )
+                        staged_object_name = f"workflow-{operation_id}.part"
+                    else:
+                        artifact_id = str(durable_replay["artifact_id"])
+                        version_id = str(
+                            durable_replay["artifact_version_id"]
+                        )
+                        version_number = int(
+                            durable_replay["artifact_version_number"]
+                        )
+                        storage_key = str(durable_replay["storage_key"])
+                        staged_object_name = str(
+                            durable_replay["staged_object_name"]
+                        )
+                    intent = UploadIntent(
+                        workspace_id=workspace_id,
+                        idempotency_key=idempotency_key,
+                        request_fingerprint=fingerprint,
+                        artifact_id=artifact_id,
+                        artifact_version_id=version_id,
+                        storage_backend=object_store.storage_backend,
+                        storage_key=storage_key,
+                        staged_object_name=staged_object_name,
+                        original_name=filename,
+                        reported_media_type=media_type,
+                        size_bytes=size,
+                        content_sha256=sha256,
+                        artifact_version_number=version_number,
+                    )
                     identity = consistency.create_or_load_upload(
                         intent,
                         operation_id=operation_id,
@@ -2107,30 +2268,6 @@ def _create_resumable_upload_session(
         ) from exc
 
     operation_id = _new_operation_id()
-    artifact_id = _new_artifact_id()
-    version_number = 1
-    version_id = artifact_version_id(artifact_id, version_number)
-    storage_key = object_store.build_storage_key(
-        workspace_id=workspace_id,
-        artifact_id=artifact_id,
-        artifact_version_id=version_id,
-        version_number=version_number,
-        sha256=request.sha256,
-    )
-    intent = UploadIntent(
-        workspace_id=workspace_id,
-        idempotency_key=idempotency_key,
-        request_fingerprint=fingerprint,
-        artifact_id=artifact_id,
-        artifact_version_id=version_id,
-        storage_backend=object_store.storage_backend,
-        storage_key=storage_key,
-        staged_object_name=resumable_staged_name(operation_id),
-        original_name=filename,
-        reported_media_type=media_type,
-        size_bytes=request.size_bytes,
-        content_sha256=request.sha256,
-    )
     try:
         with _store() as connection:
             with connection.transaction():
@@ -2154,9 +2291,9 @@ def _create_resumable_upload_session(
                             FROM consistency_operations
                             WHERE workspace_id = ?
                               AND operation_kind = 'upload'
-                              AND staged_object_name LIKE 'resumable-%'
+                              AND staged_object_name LIKE ?
                             """,
-                            (workspace_id,),
+                            (workspace_id, "resumable-%"),
                         ).fetchone()["session_count"]
                     )
                     if (
@@ -2178,20 +2315,10 @@ def _create_resumable_upload_session(
                         """,
                         (workspace_id,),
                     ).fetchone()
-                    projected_artifact = connection.execute(
-                        """
-                        SELECT 1
-                        FROM artifacts
-                        WHERE workspace_id = ?
-                        LIMIT 1
-                        """,
-                        (workspace_id,),
-                    ).fetchone()
-                    if (
-                        competing_upload is not None
-                        or projected_artifact is not None
-                    ):
-                        raise SkeletonError(409, "artifact_limit_reached")
+                    if competing_upload is not None:
+                        raise SkeletonError(
+                            409, "artifact_upload_in_progress"
+                        )
                     if (
                         _artifact_capacity_usage(connection)
                         + request.size_bytes
@@ -2200,6 +2327,53 @@ def _create_resumable_upload_session(
                         raise SkeletonError(
                             429, "artifact_capacity_reached"
                         )
+                    artifact_id, version_number = (
+                        _next_artifact_version_identity(
+                            connection,
+                            workspace_id,
+                        )
+                    )
+                    version_id = artifact_version_id(
+                        artifact_id,
+                        version_number,
+                    )
+                    storage_key = object_store.build_storage_key(
+                        workspace_id=workspace_id,
+                        artifact_id=artifact_id,
+                        artifact_version_id=version_id,
+                        version_number=version_number,
+                        sha256=request.sha256,
+                    )
+                    staged_object_name = resumable_staged_name(
+                        operation_id
+                    )
+                else:
+                    artifact_id = str(durable_replay["artifact_id"])
+                    version_id = str(
+                        durable_replay["artifact_version_id"]
+                    )
+                    version_number = int(
+                        durable_replay["artifact_version_number"]
+                    )
+                    storage_key = str(durable_replay["storage_key"])
+                    staged_object_name = str(
+                        durable_replay["staged_object_name"]
+                    )
+                intent = UploadIntent(
+                    workspace_id=workspace_id,
+                    idempotency_key=idempotency_key,
+                    request_fingerprint=fingerprint,
+                    artifact_id=artifact_id,
+                    artifact_version_id=version_id,
+                    storage_backend=object_store.storage_backend,
+                    storage_key=storage_key,
+                    staged_object_name=staged_object_name,
+                    original_name=filename,
+                    reported_media_type=media_type,
+                    size_bytes=request.size_bytes,
+                    content_sha256=request.sha256,
+                    artifact_version_number=version_number,
+                )
                 identity = consistency.create_or_load_upload(
                     intent,
                     operation_id=operation_id,
@@ -2586,6 +2760,142 @@ def _artifact_for_download(
     return materialized.path, artifact_payload, materialized.temporary
 
 
+def _artifact_for_preview(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None = None,
+) -> tuple[Path, dict[str, Any], bool]:
+    if not derivation_enabled():
+        raise SkeletonError(404, "artifact_preview_disabled")
+    with _store() as connection:
+        _authorize(connection, workspace_id, authorization, session_cookie)
+        artifact = StructuredRepository(connection).latest_artifact_version(
+            workspace_id
+        )
+        if artifact is None:
+            raise SkeletonError(404, "artifact_not_found")
+        security = artifact_security_payload(
+            connection,
+            artifact_version_id=str(artifact["artifact_version_id"]),
+        )
+        if (
+            security["state"] != "clean"
+            or security["detected_media_type"]
+            not in SUPPORTED_DETECTED_MEDIA_TYPES
+        ):
+            raise SkeletonError(409, "artifact_preview_unavailable")
+        derivative = ArtifactLineageRepository(
+            connection
+        ).latest_derivative(str(artifact["artifact_version_id"]))
+        if derivative is None:
+            raise SkeletonError(409, "artifact_preview_pending")
+        derivative_payload = dict(derivative)
+    try:
+        object_store = object_store_for_backend(
+            _state_root(),
+            str(derivative_payload["storage_backend"]),
+        )
+        materialized = object_store.materialize_verified(
+            storage_key=str(derivative_payload["storage_key"]),
+            expected_size=int(derivative_payload["size_bytes"]),
+            expected_sha256=str(derivative_payload["sha256"]),
+        )
+    except ObjectStorageMissingError as exc:
+        raise SkeletonError(503, "artifact_preview_unavailable") from exc
+    except ObjectStorageIntegrityError as exc:
+        raise SkeletonError(503, "artifact_preview_integrity_failed") from exc
+    except (
+        ObjectStorageConfigurationError,
+        ObjectStorageUnavailableError,
+    ) as exc:
+        raise SkeletonError(503, "artifact_preview_unavailable") from exc
+    return materialized.path, derivative_payload, materialized.temporary
+
+
+def _artifact_lineage(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None = None,
+) -> dict[str, Any]:
+    with _store() as connection:
+        _authorize(connection, workspace_id, authorization, session_cookie)
+        return ArtifactLineageRepository(connection).lineage_graph(
+            workspace_id
+        )
+
+
+def _request_artifact_reprocess(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None,
+    idempotency_key: str | None,
+) -> dict[str, Any]:
+    if not derivation_enabled():
+        raise SkeletonError(404, "artifact_preview_disabled")
+    if idempotency_key is None:
+        raise SkeletonError(422, "invalid_idempotency_key")
+    with _store() as connection:
+        try:
+            with connection.transaction():
+                _authorize(
+                    connection,
+                    workspace_id,
+                    authorization,
+                    session_cookie,
+                )
+                artifact = StructuredRepository(
+                    connection
+                ).latest_artifact_version(workspace_id)
+                if artifact is None:
+                    raise SkeletonError(404, "artifact_not_found")
+                security = artifact_security_payload(
+                    connection,
+                    artifact_version_id=str(
+                        artifact["artifact_version_id"]
+                    ),
+                )
+                if (
+                    security["state"] != "clean"
+                    or security["detected_media_type"]
+                    not in SUPPORTED_DETECTED_MEDIA_TYPES
+                ):
+                    raise SkeletonError(
+                        409, "artifact_preview_unavailable"
+                    )
+                run, created = ArtifactLineageRepository(
+                    connection
+                ).request_reprocess(
+                    workspace_id=workspace_id,
+                    source_artifact_version_id=str(
+                        artifact["artifact_version_id"]
+                    ),
+                    idempotency_key=idempotency_key,
+                    timestamp=_timestamp(),
+                )
+                if created:
+                    _append_audit(
+                        connection,
+                        workspace_id,
+                        "artifact_reprocess_requested",
+                        artifact_sha256=str(artifact["sha256"]),
+                    )
+        except ArtifactLineageError as exc:
+            code = str(exc)
+            if code == "invalid_idempotency_key":
+                raise SkeletonError(422, code) from exc
+            raise SkeletonError(409, code) from exc
+    return {
+        "processing_run_id": str(run["processing_run_id"]),
+        "artifact_version_id": str(run["source_artifact_version_id"]),
+        "processor": {
+            "name": str(run["processor_name"]),
+            "version": str(run["processor_version"]),
+        },
+        "state": str(run["state"]),
+        "original_preserved": True,
+    }
+
+
 def _audit_events(
     workspace_id: str,
     authorization: str | None,
@@ -2656,6 +2966,8 @@ def walking_skeleton_status() -> dict[str, Any]:
             "scores": True,
             "financial_records": True,
             "artifact_versions": True,
+            "artifact_version_lineage": True,
+            "artifact_derivatives": True,
             "tasks": True,
             "migration_strategy": "expand-only-forward-fix",
             "legacy_sqlite_read_path": True,
@@ -2748,6 +3060,7 @@ def walking_skeleton_status() -> dict[str, Any]:
         },
         "limits": {
             "max_artifacts": MAX_ARTIFACTS,
+            "max_versions_per_artifact": MAX_ARTIFACT_VERSIONS,
             "max_bytes": MAX_ARTIFACT_BYTES,
             "max_total_artifact_bytes": MAX_TOTAL_ARTIFACT_BYTES,
             "min_free_state_bytes": MIN_FREE_STATE_BYTES,
@@ -2772,6 +3085,7 @@ def walking_skeleton_status() -> dict[str, Any]:
             "standard_upload_rollback": True,
         },
         "file_security": security_contract,
+        "artifact_derivation": public_derivation_contract(),
         "abuse_control": public_policy_contract(),
         "stage_status": "early-skeleton-not-ga",
         "hardening_pending": (
@@ -2793,6 +3107,9 @@ def walking_skeleton_status() -> dict[str, Any]:
             )
             + (
                 [] if file_security_enabled() else ["malware-controls"]
+            )
+            + (
+                [] if derivation_enabled() else ["safe-preview-worker"]
             )
             + [
                 "multi-file-lifecycle",
@@ -3271,6 +3588,94 @@ def download_artifact(
             BackgroundTask(path.unlink, missing_ok=True) if temporary else None
         ),
     )
+
+
+@router.get("/workspaces/{workspace_id}/artifact/preview")
+def preview_artifact(
+    workspace_id: str,
+    authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
+) -> FileResponse:
+    try:
+        _require_enabled()
+        path, derivative, temporary = _artifact_for_preview(
+            workspace_id,
+            authorization,
+            session_cookie,
+        )
+    except SkeletonError as error:
+        _raise_http(error)
+    return FileResponse(
+        path,
+        media_type="text/plain; charset=utf-8",
+        filename="kmfa-safe-text-preview.txt",
+        content_disposition_type="inline",
+        headers={
+            "Cache-Control": "private, no-store",
+            "Pragma": "no-cache",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+            "X-KMFA-Derivative-SHA256": str(derivative["sha256"]),
+            "X-KMFA-Processor": (
+                f"{derivative['processor_name']}/"
+                f"{derivative['processor_version']}"
+            ),
+        },
+        background=(
+            BackgroundTask(path.unlink, missing_ok=True) if temporary else None
+        ),
+    )
+
+
+@router.get("/workspaces/{workspace_id}/artifact/lineage")
+def get_artifact_lineage(
+    workspace_id: str,
+    authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
+) -> dict[str, Any]:
+    try:
+        _require_enabled()
+        return _artifact_lineage(
+            workspace_id,
+            authorization,
+            session_cookie,
+        )
+    except SkeletonError as error:
+        _raise_http(error)
+
+
+@router.post(
+    "/workspaces/{workspace_id}/artifact/reprocess",
+    status_code=202,
+)
+def reprocess_artifact(
+    workspace_id: str,
+    authorization: str | None = Header(default=None),
+    idempotency_key: str | None = Header(
+        default=None,
+        alias="Idempotency-Key",
+    ),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
+) -> dict[str, Any]:
+    try:
+        _require_enabled()
+        return _request_artifact_reprocess(
+            workspace_id,
+            authorization,
+            session_cookie,
+            idempotency_key,
+        )
+    except SkeletonError as error:
+        _raise_http(error)
 
 
 @router.get("/workspaces/{workspace_id}/audit-events")

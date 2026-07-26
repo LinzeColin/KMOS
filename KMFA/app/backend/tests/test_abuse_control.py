@@ -7,11 +7,11 @@ import sqlite3
 from pathlib import Path
 
 import pytest
+from app.main import app
 from fastapi.testclient import TestClient
 
 from app import anti_abuse as abuse
 from app import walking_skeleton as skeleton
-from app.main import app
 
 BASE = "/public-api/walking-skeleton/v1"
 ORIGIN = "https://kmfa.test"
@@ -213,21 +213,25 @@ def test_upload_and_export_floods_are_isolated_and_growth_is_bounded(
             "X-KMFA-Filename": "bounded.bin",
         }
         upload_burst = abuse.POLICIES["upload"].windows[0]
+        next_version = b"next-immutable-version"
         uploads = [
             client.put(
                 f"{BASE}/workspaces/{workspace_id}/artifact",
                 headers=upload_headers,
                 content=(
-                    SYNTHETIC_FILE if index == 0 else b"must-not-replace"
+                    SYNTHETIC_FILE if index == 0 else next_version
                 ),
             )
             for index in range(upload_burst.per_device + 1)
         ]
-        assert uploads[0].status_code == 200
         assert [
             response.status_code
-            for response in uploads[1 : upload_burst.per_device]
-        ] == [409] * (upload_burst.per_device - 1)
+            for response in uploads[: upload_burst.per_device]
+        ] == [200] * upload_burst.per_device
+        assert [
+            response.json()["artifact"]["version_number"]
+            for response in uploads[: upload_burst.per_device]
+        ] == list(range(1, upload_burst.per_device + 1))
         blocked_upload = uploads[upload_burst.per_device]
         assert blocked_upload.status_code == 429
         assert blocked_upload.json()["detail"] == "risk_challenge_required"
@@ -246,10 +250,11 @@ def test_upload_and_export_floods_are_isolated_and_growth_is_bounded(
         )
 
     assert [response.status_code for response in downloads[:6]] == [200] * 6
-    assert all(response.content == SYNTHETIC_FILE for response in downloads[:6])
+    assert all(response.content == next_version for response in downloads[:6])
     assert downloads[6].status_code == 429
     assert downloads[6].json()["detail"] == "risk_challenge_required"
-    assert root_after_flood.status_code == status_after_flood.status_code == 200
+    assert root_after_flood.status_code == 200, root_after_flood.text
+    assert status_after_flood.status_code == 200, status_after_flood.text
 
     database = abuse_store / "walking_skeleton.sqlite3"
     connection = sqlite3.connect(database)
@@ -257,12 +262,26 @@ def test_upload_and_export_floods_are_isolated_and_growth_is_bounded(
         artifact_count, artifact_bytes = connection.execute(
             "SELECT COUNT(*), COALESCE(SUM(size_bytes), 0) FROM artifacts"
         ).fetchone()
+        version_count, version_bytes = connection.execute(
+            """
+            SELECT COUNT(*), COALESCE(SUM(size_bytes), 0)
+            FROM artifact_versions
+            """
+        ).fetchone()
         download_events = connection.execute(
             "SELECT COUNT(*) FROM audit_events WHERE action = 'artifact_download'"
         ).fetchone()[0]
     finally:
         connection.close()
     assert (artifact_count, artifact_bytes) == (1, len(SYNTHETIC_FILE))
+    assert (version_count, version_bytes) == (
+        upload_burst.per_device,
+        len(SYNTHETIC_FILE)
+        + ((upload_burst.per_device - 1) * len(next_version)),
+    )
+    assert len(list((abuse_store / "objects").glob("*.blob"))) == (
+        upload_burst.per_device
+    )
     assert download_events == 6
     assert not list((abuse_store / "tmp").glob("*"))
 
@@ -590,13 +609,15 @@ def test_core_lifetime_caps_bound_sessions_audit_and_artifact_bytes(
     finally:
         connection.close()
     assert active_sessions == 2
-    with skeleton._store() as connection:
-        with pytest.raises(skeleton.SkeletonError) as error:
-            skeleton._authorize(
-                connection,
-                workspace_id,
-                f"Bearer {first_token}",
-            )
+    with (
+        skeleton._store() as connection,
+        pytest.raises(skeleton.SkeletonError) as error,
+    ):
+        skeleton._authorize(
+            connection,
+            workspace_id,
+            f"Bearer {first_token}",
+        )
     assert error.value.code == "workspace_not_found"
     assert latest["workspace"]["workspace_id"] == workspace_id
 

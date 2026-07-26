@@ -578,7 +578,7 @@ def run_oracle(resources: OwnedResources, out_dir: Path) -> dict[str, Any]:
             "X-KMFA-Filename": quote(FIXTURE_NAME, safe=""),
         },
     )
-    assert upload_status == 200
+    assert upload_status == 200, upload_raw
     assert json.loads(upload_raw.decode("utf-8"))["artifact"]["sha256"] == FIXTURE_SHA256
 
     _configure_host_database(resources.host_dsn)

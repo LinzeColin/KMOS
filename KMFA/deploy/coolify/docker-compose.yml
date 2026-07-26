@@ -74,6 +74,8 @@ services:
       KMFA_RESUMABLE_UPLOAD_ENABLED: "${KMFA_RESUMABLE_UPLOAD_ENABLED:-0}"
       # P6.2 隔离扫描独立灰度；关闭只退回 attachment-only，不覆盖已拒绝判定。
       KMFA_FILE_SECURITY_ENABLED: "${KMFA_FILE_SECURITY_ENABLED:-0}"
+      # P6.3 安全文本派生独立灰度；关闭不删除原件、版本、血缘或既有派生物。
+      KMFA_ARTIFACT_DERIVATION_ENABLED: "${KMFA_ARTIFACT_DERIVATION_ENABLED:-0}"
       KMFA_FILE_SCANNER_URL: "${KMFA_FILE_SCANNER_URL:-http://file-security-scanner:8090/scan}"
       KMFA_FILE_SCANNER_SHARED_SECRET: "${KMFA_FILE_SCANNER_SHARED_SECRET:-}"
       KMFA_FILE_SCANNER_TIMEOUT_SECONDS: "${KMFA_FILE_SCANNER_TIMEOUT_SECONDS:-10}"
@@ -122,7 +124,7 @@ services:
           "CMD",
           "python3",
           "-c",
-          "import urllib.request;from pathlib import Path;from app.object_storage import configured_write_store;from app.structured_store import open_structured_store;p=Path('/var/lib/kmfa/state/walking-skeleton');s=open_structured_store(p/'walking_skeleton.sqlite3');assert s.schema_version()==5;s.close();o=configured_write_store(p);o.ensure_ready();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
+          "import urllib.request;from pathlib import Path;from app.object_storage import configured_write_store;from app.structured_store import open_structured_store;p=Path('/var/lib/kmfa/state/walking-skeleton');s=open_structured_store(p/'walking_skeleton.sqlite3');assert s.schema_version()==6;s.close();o=configured_write_store(p);o.ensure_ready();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
         ]
       interval: 2m
       timeout: 10s
@@ -198,6 +200,8 @@ services:
     environment:
       TZ: Asia/Shanghai
       KMFA_FILE_SECURITY_ENABLED: "${KMFA_FILE_SECURITY_ENABLED:-0}"
+      # worker 与 Web 必须使用同一 P6.3 Flag；回滚后不再生成新派生物。
+      KMFA_ARTIFACT_DERIVATION_ENABLED: "${KMFA_ARTIFACT_DERIVATION_ENABLED:-0}"
       KMFA_FILE_SCANNER_URL: "${KMFA_FILE_SCANNER_URL:-http://file-security-scanner:8090/scan}"
       KMFA_FILE_SCANNER_SHARED_SECRET: "${KMFA_FILE_SCANNER_SHARED_SECRET:-}"
       KMFA_FILE_SCANNER_TIMEOUT_SECONDS: "${KMFA_FILE_SCANNER_TIMEOUT_SECONDS:-10}"

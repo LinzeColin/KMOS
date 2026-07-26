@@ -10,6 +10,10 @@ import time
 from collections.abc import Sequence
 from pathlib import Path
 
+from .artifact_lineage import (
+    derivation_enabled,
+    run_artifact_derivation_once,
+)
 from .file_security import (
     file_security_enabled,
     run_security_scan_once,
@@ -42,7 +46,9 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     arguments = _parser().parse_args(argv)
-    if not file_security_enabled():
+    security_enabled = file_security_enabled()
+    preview_enabled = derivation_enabled()
+    if not security_enabled and not preview_enabled:
         print(
             json.dumps(
                 {
@@ -57,18 +63,47 @@ def main(argv: Sequence[str] | None = None) -> int:
         raise SystemExit("poll interval must be between 0.1 and 60 seconds")
     processed = 0
     while True:
-        result = run_security_scan_once(state_root=_state_root())
-        if result is not None:
+        scan_result = (
+            run_security_scan_once(state_root=_state_root())
+            if security_enabled
+            else None
+        )
+        if scan_result is not None:
             processed += 1
             print(
                 json.dumps(
                     {
+                        "kind": "security_scan",
                         "artifact_ref": hashlib.sha256(
-                            result.artifact_version_id.encode("utf-8")
+                            scan_result.artifact_version_id.encode("utf-8")
                         ).hexdigest()[:20],
-                        "attempt_count": result.attempt_count,
-                        "reason_code": result.reason_code,
-                        "state": result.state,
+                        "attempt_count": scan_result.attempt_count,
+                        "reason_code": scan_result.reason_code,
+                        "state": scan_result.state,
+                    },
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        derivative_result = (
+            run_artifact_derivation_once(state_root=_state_root())
+            if preview_enabled
+            else None
+        )
+        if derivative_result is not None:
+            processed += 1
+            print(
+                json.dumps(
+                    {
+                        "kind": "artifact_derivation",
+                        "artifact_ref": hashlib.sha256(
+                            derivative_result.source_artifact_version_id.encode(
+                                "utf-8"
+                            )
+                        ).hexdigest()[:20],
+                        "attempt_count": derivative_result.attempt_count,
+                        "reason_code": derivative_result.reason_code,
+                        "state": derivative_result.state,
                     },
                     sort_keys=True,
                 ),
@@ -76,7 +111,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         if arguments.once:
             break
-        if result is None:
+        if scan_result is None and derivative_result is None:
             time.sleep(arguments.poll_seconds)
     return 0
 

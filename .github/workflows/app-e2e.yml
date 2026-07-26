@@ -144,6 +144,17 @@ jobs:
             --prefix kmfa-p62-ci \
             --port 18107
 
+      - name: 跑不可变版本与安全预览（血缘 / 重处理 / 浏览器 hash / 回滚）
+        run: |
+          set -euo pipefail
+          p63_state=$(mktemp -d /tmp/kmfa-p63-state.XXXXXX)
+          python KMFA/app/e2e/artifact_lineage_flow.py \
+            --image kmfa-app:e2e \
+            --state-dir "$p63_state" \
+            --out-dir artifact-lineage-e2e \
+            --prefix kmfa-p63-ci \
+            --port 18108
+
       - name: 跑公共 App Shell（桌面 / 移动 / 无 JS / 依赖降级）
         run: |
           set -euo pipefail
@@ -220,6 +231,7 @@ jobs:
             retention-backup-restore-e2e/
             resumable-upload-e2e/
             file-security-e2e/
+            artifact-lineage-e2e/
 
       - name: 收容器
         if: always()

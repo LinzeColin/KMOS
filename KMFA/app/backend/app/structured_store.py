@@ -29,7 +29,7 @@ STRUCTURED_DATABASE_URL_ENV = "KMFA_STRUCTURED_DATABASE_URL"
 SQLITE_MODE = "legacy-sqlite"
 POSTGRESQL_MODE = "postgresql-primary"
 SUPPORTED_MODES = frozenset({SQLITE_MODE, POSTGRESQL_MODE})
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 _MIGRATIONS_ROOT = Path(__file__).resolve().parents[1] / "migrations"
 _MIGRATION_NAME_RE = re.compile(r"^(?P<version>[0-9]{4})_[a-z0-9_]+\.sql$")

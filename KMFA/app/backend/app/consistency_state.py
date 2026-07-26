@@ -81,6 +81,7 @@ class UploadIntent:
     reported_media_type: str
     size_bytes: int
     content_sha256: str
+    artifact_version_number: int = 1
 
 
 @dataclass(frozen=True)
@@ -240,6 +241,7 @@ class ConsistencyRepository:
             not operation_id
             or INTERNAL_NAME_RE.fullmatch(intent.staged_object_name) is None
             or intent.size_bytes < 0
+            or intent.artifact_version_number < 1
         ):
             raise ConsistencyStateError("invalid_upload_intent")
 
@@ -259,11 +261,12 @@ class ConsistencyRepository:
               idempotency_key_hash, request_fingerprint, artifact_id,
               artifact_version_id, storage_backend, storage_key,
               staged_object_name, original_name, reported_media_type,
-              size_bytes, content_sha256, state, attempt_count,
+              size_bytes, content_sha256, artifact_version_number,
+              state, attempt_count,
               next_attempt_at, last_error_code, row_version, created_at,
               updated_at
             ) VALUES (
-              ?, ?, 'upload', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+              ?, ?, 'upload', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
               'intent_recorded', 0, NULL, NULL, 1, ?, ?
             )
             ON CONFLICT(workspace_id, operation_kind, idempotency_key_hash)
@@ -283,6 +286,7 @@ class ConsistencyRepository:
                 intent.reported_media_type,
                 intent.size_bytes,
                 intent.content_sha256,
+                intent.artifact_version_number,
                 timestamp,
                 timestamp,
             ),
@@ -319,6 +323,7 @@ class ConsistencyRepository:
             "request_fingerprint": intent.request_fingerprint,
             "artifact_id": intent.artifact_id,
             "artifact_version_id": intent.artifact_version_id,
+            "artifact_version_number": intent.artifact_version_number,
             "storage_backend": intent.storage_backend,
             "storage_key": intent.storage_key,
             "staged_object_name": intent.staged_object_name,

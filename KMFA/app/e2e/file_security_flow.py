@@ -359,7 +359,12 @@ class Resources:
             _run("docker", "rm", "-f", self.scanner)
             self.owned_scanner = False
 
-    def start_app(self, *, security_enabled: bool) -> None:
+    def start_app(
+        self,
+        *,
+        security_enabled: bool,
+        derivation_enabled: bool = False,
+    ) -> None:
         assert not _exists("container", self.app)
         result = _run(
             "docker",
@@ -379,6 +384,11 @@ class Resources:
             "KMFA_ABUSE_POLICY_MODE=enforced",
             "-e",
             f"KMFA_FILE_SECURITY_ENABLED={1 if security_enabled else 0}",
+            "-e",
+            (
+                "KMFA_ARTIFACT_DERIVATION_ENABLED="
+                f"{1 if derivation_enabled else 0}"
+            ),
             "-e",
             (
                 "KMFA_FILE_SCANNER_URL="
@@ -431,7 +441,7 @@ class Resources:
         _run("docker", "restart", self.app)
         _wait_http(f"{self.base_url}/healthz")
 
-    def run_worker(self) -> str:
+    def run_worker(self, *, derivation_enabled: bool = False) -> str:
         self.worker_sequence += 1
         name = f"{self.prefix}-worker-{self.worker_sequence}"
         assert not _exists("container", name)
@@ -445,6 +455,11 @@ class Resources:
             self.network,
             "-e",
             "KMFA_FILE_SECURITY_ENABLED=1",
+            "-e",
+            (
+                "KMFA_ARTIFACT_DERIVATION_ENABLED="
+                f"{1 if derivation_enabled else 0}"
+            ),
             "-e",
             (
                 "KMFA_FILE_SCANNER_URL="

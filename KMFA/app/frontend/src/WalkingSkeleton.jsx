@@ -15,7 +15,8 @@ const ERROR_COPY = {
   invalid_project_name: '项目名不能为空，也不能包含控制字符。',
   invalid_filename: '文件名无效。请选择不含路径或控制字符的文件。',
   artifact_too_large: '文件超过服务器当前公开的单文件上限；超限字节未写入。',
-  artifact_limit_reached: '该早期骨架每个工作区只验证一个文件，已有文件不会被覆盖。',
+  artifact_version_limit_reached: '该逻辑文件已达到不可变版本上限；既有版本与派生物未被覆盖。',
+  artifact_upload_in_progress: '该工作区已有上传正在收敛；请等待完成后再提交下一版本。',
   artifact_integrity_failed: '下载完整性校验失败，服务器已阻止返回损坏字节。',
   artifact_unavailable: '文件当前不可读取，服务器没有返回替代或伪造内容。',
   workspace_capacity_reached: '当前匿名灰度容量已满；公共浏览仍可用，已有工作区没有被删除。',
@@ -26,6 +27,12 @@ const ERROR_COPY = {
   artifact_security_pending: '文件仍在隔离扫描中；扫描完成前不会返回原始字节，请稍后重新恢复或刷新工作区。',
   artifact_security_rejected: '文件命中安全拒绝规则并保持隔离，服务器不会提供下载、执行或预览。',
   file_security_unavailable: '文件安全扫描配置暂不可用；服务器未把未知结果标记为安全。',
+  artifact_preview_disabled: '安全预览 Flag 已回滚；原件、版本、血缘和既有派生物仍保留。',
+  artifact_preview_pending: '安全文本派生物尚未生成；请稍后刷新处理状态。',
+  artifact_preview_unavailable: '当前版本不是可安全派生的纯文本，或派生对象暂不可用。',
+  artifact_preview_integrity_failed: '预览派生物完整性校验失败，服务器已阻止返回。',
+  processor_registry_conflict: '处理器登记与当前实现不一致，系统已停止生成新派生物。',
+  processing_request_capacity_reached: '该版本已达到受控重处理次数上限；既有派生物仍可验证。',
   consistency_processing_paused: '新上传已按回滚预案暂停；既有项目、恢复材料和文件仍被保留。',
   consistency_mode_invalid: '一致性运行模式配置无效；服务器已停止接收新上传。',
   resumable_upload_disabled: '断点续传当前已安全回滚；可重新选择不超过标准上传上限的文件。',
@@ -61,7 +68,7 @@ const ERROR_COPY = {
 const SECURITY_STATE_COPY = {
   quarantined: '已隔离，等待扫描',
   scanning: '正在隔离扫描',
-  clean: '有界检查通过；仍仅附件下载',
+  clean: '有界检查通过；原件仍只作附件',
   attachment_only: '已分类为仅附件；不执行、不预览',
   rejected: '安全规则拒绝；保持隔离且禁止下载',
   timed_out: '扫描超时；未标记安全，仅允许附件下载',
@@ -170,7 +177,12 @@ async function sha256Hex(blob) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
-async function uploadIdempotencyKeyFor(workspaceId, file, bodyHash = '') {
+async function uploadIdempotencyKeyFor(
+  workspaceId,
+  file,
+  bodyHash = '',
+  nextVersion = 1,
+) {
   const resolvedBodyHash = bodyHash || await sha256Hex(file)
   const identity = JSON.stringify([
     workspaceId,
@@ -178,6 +190,7 @@ async function uploadIdempotencyKeyFor(workspaceId, file, bodyHash = '') {
     file.type || 'application/octet-stream',
     file.size,
     resolvedBodyHash,
+    nextVersion,
   ])
   const digest = await window.crypto.subtle.digest(
     'SHA-256',
@@ -223,12 +236,15 @@ function WalkingSkeleton() {
   const [limits, setLimits] = useState({
     maxBytes: 8 * 1024 * 1024,
     maxArtifacts: 1,
+    maxVersions: 32,
     maxTotalBytes: 512 * 1024 * 1024,
     maxChunkBytes: 4 * 1024 * 1024,
     maxSessions: 16,
   })
   const [resumableUpload, setResumableUpload] = useState(false)
   const [fileSecurity, setFileSecurity] = useState(false)
+  const [artifactDerivation, setArtifactDerivation] = useState(false)
+  const [previewText, setPreviewText] = useState('')
   const [uploadProgress, setUploadProgress] = useState(null)
   const [mode, setMode] = useState('create')
   const [projectName, setProjectName] = useState('')
@@ -262,12 +278,14 @@ function WalkingSkeleton() {
             ? status.resumable_upload?.max_file_bytes || 64 * 1024 * 1024
             : status.limits?.max_bytes || 8 * 1024 * 1024,
           maxArtifacts: status.limits?.max_artifacts || 1,
+          maxVersions: status.limits?.max_versions_per_artifact || 32,
           maxTotalBytes: status.limits?.max_total_artifact_bytes || 512 * 1024 * 1024,
           maxChunkBytes: status.resumable_upload?.max_chunk_bytes || 4 * 1024 * 1024,
           maxSessions: status.resumable_upload?.max_sessions_per_workspace || 16,
         })
         setResumableUpload(resumableEnabled)
         setFileSecurity(status.file_security?.enabled === true)
+        setArtifactDerivation(status.artifact_derivation?.enabled === true)
         setAvailability(status.healthy ? 'ready' : 'unavailable')
       })
       .catch(() => {
@@ -283,6 +301,9 @@ function WalkingSkeleton() {
 
   const workspace = session?.workspace || null
   const artifact = workspace?.artifact || null
+  const versionLimitReached = (
+    Number(artifact?.version_count || 0) >= limits.maxVersions
+  )
   const progress = workspace?.progress ?? 0
   const progressText = useMemo(() => `${progress}%`, [progress])
 
@@ -481,6 +502,7 @@ function WalkingSkeleton() {
           workspace.workspace_id,
           selectedFile,
           fullHash,
+          Number(artifact?.version_number || 0) + 1,
         )
       if (!uploadIdempotencyKey) setUploadIdempotencyKey(retryKey)
       let result
@@ -579,10 +601,62 @@ function WalkingSkeleton() {
       setSelectedFile(null)
       setUploadIdempotencyKey('')
       setUploadProgress(null)
+      setPreviewText('')
       form.reset()
       const securityState = result.artifact?.security?.state || 'unscanned_attachment_only'
       const securityCopy = SECURITY_STATE_COPY[securityState] || '安全状态待确认'
-      setMessage(`文件已写入私有耐久存储。${securityCopy}。SHA-256：${result.artifact.sha256}`)
+      setMessage(`不可变版本 v${result.artifact.version_number} 已写入私有耐久存储。${securityCopy}。SHA-256：${result.artifact.sha256}`)
+    })
+  }
+
+  const refreshWorkspace = () => {
+    run(async () => {
+      const result = await jsonRequest(
+        `/workspaces/${workspace.workspace_id}`,
+      )
+      setSession((current) => ({ ...current, workspace: result }))
+      setPreviewText('')
+      setMessage('已从服务器刷新版本、扫描与派生状态。')
+    })
+  }
+
+  const previewArtifact = () => {
+    run(async () => {
+      const response = await fetchWithRiskChallenge(
+        `${API_BASE}/workspaces/${workspace.workspace_id}/artifact/preview`,
+        {
+          method: 'GET',
+          cache: 'no-store',
+          credentials: 'same-origin',
+          headers: { Accept: 'text/plain' },
+        },
+      )
+      if (!response.ok) throw await errorFromResponse(response)
+      const serverHash = response.headers.get('X-KMFA-Derivative-SHA256') || ''
+      if (!artifact.preview || serverHash !== artifact.preview.sha256) {
+        throw new Error('预览响应 hash 与当前派生记录不一致，已停止显示。')
+      }
+      const blob = await response.blob()
+      const browserHash = await sha256Hex(blob)
+      if (browserHash !== serverHash) {
+        throw new Error('浏览器收到的预览字节校验失败，已停止显示。')
+      }
+      setPreviewText(await blob.text())
+      setMessage(`纯文本预览已验证；处理器 ${artifact.preview.processor.name}/${artifact.preview.processor.version}，SHA-256：${browserHash}`)
+    })
+  }
+
+  const reprocessArtifact = () => {
+    run(async () => {
+      const key = `reprocess_${window.crypto.randomUUID().replaceAll('-', '')}`
+      const result = await jsonRequest(
+        `/workspaces/${workspace.workspace_id}/artifact/reprocess`,
+        {
+          method: 'POST',
+          headers: { 'Idempotency-Key': key },
+        },
+      )
+      setMessage(`已登记不可变重处理请求 ${result.processing_run_id}；原件未改写。稍后刷新处理状态。`)
     })
   }
 
@@ -616,6 +690,7 @@ function WalkingSkeleton() {
       })
       if (!response.ok) throw await errorFromResponse(response)
       setSession(null)
+      setPreviewText('')
       setRecoveryCode('')
       setRecoveryInput('')
       setRecoveryFile(null)
@@ -810,17 +885,19 @@ function WalkingSkeleton() {
                       setUploadIdempotencyKey('')
                       setUploadProgress(null)
                     }}
-                    disabled={Boolean(artifact)}
+                    disabled={versionLimitReached}
                   />
                   <p data-upload-quota="visible">
-                    单文件上限 {formatBytes(limits.maxBytes)}，当前工作区最多 {limits.maxArtifacts} 个，阶段总文件预算 {formatBytes(limits.maxTotalBytes)}。
+                    单版本上限 {formatBytes(limits.maxBytes)}；当前工作区保留 {limits.maxArtifacts} 个逻辑文件、最多 {limits.maxVersions} 个不可变版本，阶段总文件预算 {formatBytes(limits.maxTotalBytes)}。
                     {resumableUpload
                       ? ` 每片最多 ${formatBytes(limits.maxChunkBytes)}，每个工作区最多保留 ${limits.maxSessions} 个历史上传会话；连接中断后重新选择同一文件即可从服务器偏移继续。`
                       : ' 断点续传已回滚，当前使用标准上传路径。'}
                     {fileSecurity
                       ? ' 文件先隔离再扫描；未知/高风险格式只作附件，拒绝项不下载。'
                       : ' 隔离扫描 Flag 当前回滚；既有或未决文件只作附件。'}
-                    所有状态均不执行、不预览。
+                    {artifactDerivation
+                      ? ' 仅 clean 的 UTF-8 文本由独立 worker 生成有界纯文本派生物；任何内容均不执行。'
+                      : ' 安全预览 Flag 当前回滚；所有状态均不执行、不预览。'}
                   </p>
                   {uploadProgress && (
                     <div
@@ -838,14 +915,16 @@ function WalkingSkeleton() {
                       </span>
                     </div>
                   )}
-                  <button type="submit" disabled={busy || Boolean(artifact)}>
-                    {artifact
-                      ? '已保存一个文件'
+                  <button type="submit" disabled={busy || versionLimitReached}>
+                    {versionLimitReached
+                      ? '已达到版本上限'
                       : uploadProgress
                         ? busy
                           ? '正在断点续传'
                           : '继续断点上传'
-                        : '上传到服务器'}
+                        : artifact
+                          ? '上传为下一不可变版本'
+                          : '上传到服务器'}
                   </button>
                 </form>
 
@@ -859,6 +938,7 @@ function WalkingSkeleton() {
                     <>
                       <h4>{artifact.name}</h4>
                       <dl>
+                        <div><dt>版本</dt><dd>v{artifact.version_number} / {artifact.version_count}</dd></div>
                         <div><dt>字节</dt><dd>{artifact.size_bytes}</dd></div>
                         <div><dt>模式</dt><dd>attachment-only</dd></div>
                         <div>
@@ -870,16 +950,54 @@ function WalkingSkeleton() {
                         </div>
                         <div><dt>SHA-256</dt><dd><code>{artifact.sha256}</code></dd></div>
                       </dl>
-                      <button
-                        type="button"
-                        data-walking-download="true"
-                        onClick={downloadArtifact}
-                        disabled={busy || artifact.download_allowed === false}
-                      >
-                        {artifact.download_allowed === false
-                          ? '当前安全状态禁止下载'
-                          : '校验并下载附件'}
-                      </button>
+                      <div className="walking-artifact-actions">
+                        <button
+                          type="button"
+                          data-walking-download="true"
+                          onClick={downloadArtifact}
+                          disabled={busy || artifact.download_allowed === false}
+                        >
+                          {artifact.download_allowed === false
+                            ? '当前安全状态禁止下载'
+                            : '校验并下载附件'}
+                        </button>
+                        <button
+                          type="button"
+                          data-walking-refresh="true"
+                          onClick={refreshWorkspace}
+                          disabled={busy}
+                        >
+                          刷新处理状态
+                        </button>
+                        {artifact.preview_allowed && (
+                          <button
+                            type="button"
+                            data-walking-preview="true"
+                            onClick={previewArtifact}
+                            disabled={busy}
+                          >
+                            校验并查看纯文本预览
+                          </button>
+                        )}
+                        {artifact.security?.processing_allowed && (
+                          <button
+                            type="button"
+                            data-walking-reprocess="true"
+                            onClick={reprocessArtifact}
+                            disabled={busy}
+                          >
+                            生成新的不可变派生物
+                          </button>
+                        )}
+                      </div>
+                      {previewText && (
+                        <pre
+                          className="walking-safe-preview"
+                          data-walking-safe-preview="true"
+                        >
+                          {previewText}
+                        </pre>
+                      )}
                     </>
                   ) : (
                     <p>上传后显示服务器记录的字节数与 SHA-256；空状态不会生成样例成功。</p>

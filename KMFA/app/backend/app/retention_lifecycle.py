@@ -581,6 +581,26 @@ class LifecycleRepository:
             (workspace_id,),
         ).fetchall()
         targets = [dict(row) for row in rows]
+        derivatives = self.connection.execute(
+            """
+            SELECT
+              derivative.derivative_id AS artifact_version_id,
+              derivative.artifact_id,
+              derivative.storage_backend,
+              derivative.storage_key,
+              derivative.size_bytes,
+              derivative.sha256
+            FROM artifact_derivatives derivative
+            JOIN artifact_versions av
+              ON av.artifact_version_id =
+                derivative.source_artifact_version_id
+            JOIN projects p ON p.project_id = av.project_id
+            WHERE p.workspace_id = ?
+            ORDER BY derivative.derivative_id
+            """,
+            (workspace_id,),
+        ).fetchall()
+        targets.extend(dict(row) for row in derivatives)
         known_keys = {str(row["storage_key"]) for row in targets}
         quarantined = self.connection.execute(
             """
@@ -715,6 +735,17 @@ class LifecycleRepository:
             (workspace_id,),
         ).fetchone()
         if partial is not None:
+            raise LifecycleConflictError("deletion_consistency_pending")
+        active_derivation = self.connection.execute(
+            """
+            SELECT 1
+            FROM artifact_processing_runs
+            WHERE workspace_id = ? AND state IN ('processing', 'prepared')
+            LIMIT 1
+            """,
+            (workspace_id,),
+        ).fetchone()
+        if active_derivation is not None:
             raise LifecycleConflictError("deletion_consistency_pending")
 
         now_value = parse_timestamp(timestamp)

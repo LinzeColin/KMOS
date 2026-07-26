@@ -214,11 +214,11 @@ a { color: inherit; }
 .walking-form textarea { resize: vertical; }
 .walking-form input[type="file"] { min-height: 3.25rem; padding: 0.7rem; border-style: dashed; background: var(--card); }
 .walking-form input[type="range"] { width: 100%; min-height: 2rem; }
-.walking-form > button, .walking-artifact > button {
+.walking-form > button, .walking-artifact > button, .walking-artifact-actions button {
   min-height: 3rem; padding: 0.7rem 1rem; border: 1px solid var(--ink);
   border-radius: var(--r); color: #fff8f4; background: var(--ink); cursor: pointer; font-weight: 750;
 }
-.walking-form > button:disabled, .walking-artifact > button:disabled { cursor: not-allowed; opacity: 0.55; }
+.walking-form > button:disabled, .walking-artifact > button:disabled, .walking-artifact-actions button:disabled { cursor: not-allowed; opacity: 0.55; }
 .walking-form > p { margin: 0.15rem 0 0; color: var(--mut); font-size: 0.74rem; line-height: 1.65; }
 .walking-upload-progress { display: grid; gap: 0.35rem; color: var(--mut); font-size: 0.72rem; }
 .walking-upload-progress progress { width: 100%; height: 0.65rem; accent-color: var(--green); }
@@ -251,6 +251,13 @@ a { color: inherit; }
 .walking-artifact dt { color: var(--mut); font-size: 0.72rem; }
 .walking-artifact dd { min-width: 0; margin: 0; font-size: 0.76rem; overflow-wrap: anywhere; }
 .walking-artifact dd code { font-size: 0.66rem; }
+.walking-artifact-actions { display: grid; gap: 0.55rem; }
+.walking-safe-preview {
+  max-height: 18rem; margin: 1rem 0 0; padding: 0.9rem;
+  border: 1px solid var(--line); color: var(--ink); background: var(--paper);
+  white-space: pre-wrap; overflow: auto; overflow-wrap: anywhere;
+  font: 0.72rem/1.65 ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
 .walking-feedback { min-height: 3.7rem; display: grid; align-items: center; padding: 0.8rem 1.2rem; border-top: 1px solid var(--ink); }
 .walking-feedback p { margin: 0; color: var(--green); font-size: 0.76rem; line-height: 1.6; overflow-wrap: anywhere; }
 .walking-feedback .is-error { color: #7d2218; font-weight: 750; }

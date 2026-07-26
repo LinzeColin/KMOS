@@ -228,25 +228,26 @@ class StructuredRepository:
         """
 
         version_id = artifact_version_id(artifact_id, version_number)
-        self.connection.execute(
-            """
-            INSERT INTO artifacts(
-              artifact_id, workspace_id, object_name, original_name,
-              reported_media_type, size_bytes, sha256, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(artifact_id) DO NOTHING
-            """,
-            (
-                artifact_id,
-                workspace_id,
-                storage_key,
-                original_name,
-                reported_media_type,
-                size_bytes,
-                sha256,
-                created_at,
-            ),
-        )
+        if version_number == 1:
+            self.connection.execute(
+                """
+                INSERT INTO artifacts(
+                  artifact_id, workspace_id, object_name, original_name,
+                  reported_media_type, size_bytes, sha256, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(artifact_id) DO NOTHING
+                """,
+                (
+                    artifact_id,
+                    workspace_id,
+                    storage_key,
+                    original_name,
+                    reported_media_type,
+                    size_bytes,
+                    sha256,
+                    created_at,
+                ),
+            )
         compatibility = self.connection.execute(
             """
             SELECT
@@ -257,16 +258,26 @@ class StructuredRepository:
             """,
             (artifact_id,),
         ).fetchone()
-        expected_compatibility = {
-            "artifact_id": artifact_id,
-            "workspace_id": workspace_id,
-            "object_name": storage_key,
-            "original_name": original_name,
-            "reported_media_type": reported_media_type,
-            "size_bytes": size_bytes,
-            "sha256": sha256,
-            "created_at": created_at,
-        }
+        expected_compatibility = (
+            {
+                "artifact_id": artifact_id,
+                "workspace_id": workspace_id,
+                "object_name": storage_key,
+                "original_name": original_name,
+                "reported_media_type": reported_media_type,
+                "size_bytes": size_bytes,
+                "sha256": sha256,
+                "created_at": created_at,
+            }
+            if version_number == 1
+            else {
+                # The v1 compatibility row is deliberately immutable. New
+                # versions prove only logical artifact/workspace identity and
+                # never overwrite the legacy projection with newer bytes.
+                "artifact_id": artifact_id,
+                "workspace_id": workspace_id,
+            }
+        )
         if compatibility is None or any(
             compatibility[key] != value
             for key, value in expected_compatibility.items()
@@ -522,19 +533,44 @@ class StructuredRepository:
         return self.connection.execute(
             """
             SELECT
-              av.artifact_version_id,
-              av.artifact_id,
-              av.version_number,
-              av.storage_backend,
-              av.storage_key,
-              av.size_bytes,
-              av.sha256,
-              av.lifecycle_state
-            FROM artifact_versions av
-            WHERE av.storage_backend = ? AND av.lifecycle_state = 'active'
-            ORDER BY av.storage_key, av.artifact_version_id
+              object_index.artifact_version_id,
+              object_index.artifact_id,
+              object_index.version_number,
+              object_index.storage_backend,
+              object_index.storage_key,
+              object_index.size_bytes,
+              object_index.sha256,
+              object_index.lifecycle_state
+            FROM (
+              SELECT
+                av.artifact_version_id,
+                av.artifact_id,
+                av.version_number,
+                av.storage_backend,
+                av.storage_key,
+                av.size_bytes,
+                av.sha256,
+                av.lifecycle_state
+              FROM artifact_versions av
+              WHERE av.storage_backend = ?
+                AND av.lifecycle_state = 'active'
+              UNION ALL
+              SELECT
+                derivative.derivative_id AS artifact_version_id,
+                derivative.artifact_id,
+                1 AS version_number,
+                derivative.storage_backend,
+                derivative.storage_key,
+                derivative.size_bytes,
+                derivative.sha256,
+                'active' AS lifecycle_state
+              FROM artifact_derivatives derivative
+              WHERE derivative.storage_backend = ?
+            ) object_index
+            ORDER BY object_index.storage_key,
+                     object_index.artifact_version_id
             """,
-            (storage_backend,),
+            (storage_backend, storage_backend),
         ).fetchall()
 
     def workspace_snapshot(self, workspace_id: str) -> dict[str, Any]:

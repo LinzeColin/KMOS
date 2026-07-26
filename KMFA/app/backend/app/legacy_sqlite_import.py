@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Sequence
 from urllib.parse import quote
 
+from .artifact_lineage import ArtifactLineageRepository
 from .retention_lifecycle import LifecycleRepository
 from .structured_repository import StructuredRepository
 from .structured_store import (
@@ -213,6 +214,64 @@ _SECURITY_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "created_at",
     ),
 }
+_LINEAGE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
+    "artifact_version_lineage": (
+        "artifact_version_id",
+        "parent_artifact_version_id",
+        "source_operation_id",
+        "relation_kind",
+        "created_at",
+    ),
+    "processor_registry": (
+        "processor_name",
+        "processor_version",
+        "output_kind",
+        "output_media_type",
+        "implementation_sha256",
+        "created_at",
+    ),
+    "artifact_processing_runs": (
+        "processing_run_id",
+        "workspace_id",
+        "source_artifact_version_id",
+        "processor_name",
+        "processor_version",
+        "idempotency_key_hash",
+        "derivative_id",
+        "generation_number",
+        "state",
+        "attempt_count",
+        "lease_until",
+        "last_error_code",
+        "output_storage_backend",
+        "output_storage_key",
+        "output_name",
+        "output_media_type",
+        "output_size_bytes",
+        "output_sha256",
+        "row_version",
+        "requested_at",
+        "updated_at",
+        "completed_at",
+    ),
+    "artifact_derivatives": (
+        "derivative_id",
+        "processing_run_id",
+        "source_artifact_version_id",
+        "artifact_id",
+        "processor_name",
+        "processor_version",
+        "generation_number",
+        "output_kind",
+        "storage_backend",
+        "storage_key",
+        "original_name",
+        "media_type",
+        "size_bytes",
+        "sha256",
+        "created_at",
+    ),
+}
 _LIFECYCLE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
     "restore_drill_proofs": (
         "proof_id",
@@ -301,6 +360,7 @@ _TABLE_COLUMNS = (
     | _STRUCTURED_TABLE_COLUMNS
     | _CONSISTENCY_TABLE_COLUMNS
     | _SECURITY_TABLE_COLUMNS
+    | _LINEAGE_TABLE_COLUMNS
     | _LIFECYCLE_TABLE_COLUMNS
 )
 _PRIMARY_KEYS = {
@@ -320,6 +380,10 @@ _PRIMARY_KEYS = {
     "object_quarantine": ("quarantine_id",),
     "artifact_security_assessments": ("artifact_version_id",),
     "artifact_security_events": ("event_id",),
+    "artifact_version_lineage": ("artifact_version_id",),
+    "processor_registry": ("processor_name", "processor_version"),
+    "artifact_processing_runs": ("processing_run_id",),
+    "artifact_derivatives": ("derivative_id",),
     "restore_drill_proofs": ("proof_id",),
     "workspace_retention": ("workspace_id",),
     "legal_holds": ("hold_id",),
@@ -383,6 +447,11 @@ def read_legacy_snapshot(source_path: Path) -> dict[str, list[dict[str, Any]]]:
             _SECURITY_TABLE_COLUMNS
         ):
             raise LegacyImportError("legacy SQLite security schema is partial")
+        present_lineage = set(_LINEAGE_TABLE_COLUMNS) & available
+        if present_lineage and present_lineage != set(
+            _LINEAGE_TABLE_COLUMNS
+        ):
+            raise LegacyImportError("legacy SQLite lineage schema is partial")
         present_lifecycle = set(_LIFECYCLE_TABLE_COLUMNS) & available
         if present_lifecycle and present_lifecycle != set(
             _LIFECYCLE_TABLE_COLUMNS
@@ -396,6 +465,8 @@ def read_legacy_snapshot(source_path: Path) -> dict[str, list[dict[str, Any]]]:
             selected_tables.update(_CONSISTENCY_TABLE_COLUMNS)
         if present_security:
             selected_tables.update(_SECURITY_TABLE_COLUMNS)
+        if present_lineage:
+            selected_tables.update(_LINEAGE_TABLE_COLUMNS)
         if present_lifecycle:
             selected_tables.update(_LIFECYCLE_TABLE_COLUMNS)
         for table, columns in selected_tables.items():
@@ -615,6 +686,64 @@ def import_legacy_sqlite(source_path: Path) -> dict[str, Any]:
             ):
                 for row in snapshot.get(table, []):
                     _insert_if_absent(connection, table=table, row=row)
+            for table in (
+                "processor_registry",
+                "artifact_version_lineage",
+                "artifact_processing_runs",
+                "artifact_derivatives",
+            ):
+                for row in snapshot.get(table, []):
+                    _insert_if_absent(connection, table=table, row=row)
+            connection.execute(
+                """
+                UPDATE consistency_operations
+                SET artifact_version_number = COALESCE(
+                  (
+                    SELECT av.version_number
+                    FROM artifact_versions av
+                    WHERE av.artifact_version_id =
+                      consistency_operations.artifact_version_id
+                  ),
+                  1
+                )
+                WHERE operation_kind = 'upload'
+                  AND artifact_version_number IS NULL
+                """
+            )
+            lineage_repository = ArtifactLineageRepository(connection)
+            imported_versions = connection.execute(
+                """
+                SELECT artifact_version_id, artifact_id,
+                       version_number, created_at
+                FROM artifact_versions
+                ORDER BY artifact_id, version_number
+                """
+            ).fetchall()
+            for version in imported_versions:
+                operation = connection.execute(
+                    """
+                    SELECT operation_id
+                    FROM consistency_operations
+                    WHERE operation_kind = 'upload'
+                      AND artifact_version_id = ?
+                    ORDER BY created_at, operation_id
+                    LIMIT 1
+                    """,
+                    (version["artifact_version_id"],),
+                ).fetchone()
+                lineage_repository.ensure_version_lineage(
+                    artifact_version_id=str(
+                        version["artifact_version_id"]
+                    ),
+                    artifact_id=str(version["artifact_id"]),
+                    version_number=int(version["version_number"]),
+                    source_operation_id=(
+                        str(operation["operation_id"])
+                        if operation is not None
+                        else None
+                    ),
+                    created_at=str(version["created_at"]),
+                )
             for table in (
                 "restore_drill_proofs",
                 "workspace_retention",
