@@ -47,6 +47,8 @@ services:
       - kmfa-logs:/var/log/kmfa                   # 台账/日志持久
       # 只读挂 app 状态卷：daily-backup 要读 SQLite/JSONL 打包异地备份（只读，绝不写）。
       - kmfa-app-state:/var/lib/kmfa/state:ro
+      # DWS 上游归档输出（钉钉拉回的文件先落这里，再回传 GitHub 私有库）。可写。
+      - kmfa-dws-archive:/var/lib/kmfa/dws-archive
     healthcheck:
       test: ["CMD", "/opt/runtime/healthcheck.sh"]
       interval: 5m
@@ -164,6 +166,7 @@ services:
       - kmfa-app-state:/var/lib/kmfa/state
 
 volumes:
+  kmfa-dws-archive:
   kmfa-dws-auth:
   kmfa-dws-keyring:
   kmfa-logs:
