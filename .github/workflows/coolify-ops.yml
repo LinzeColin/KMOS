@@ -16,12 +16,16 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署"
+        description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | logs=容器日志 | exec=容器内只读诊断"
         required: true
         type: choice
-        options: [list, flags, provision-backup-key, redeploy, deployments]
+        options: [list, flags, provision-backup-key, redeploy, deployments, logs, exec]
       app_uuid:
         description: "目标应用 uuid（provision-backup-key / redeploy 必填；先用 list 查）"
+        required: false
+        type: string
+      command:
+        description: "exec 模式的只读诊断命令（默认查 cron/台账/进程）"
         required: false
         type: string
 
@@ -142,6 +146,55 @@ jobs:
           print(f"进行中/最近部署={len(arr)}")
           for x in arr[:10]:
               print(f"  uuid={x.get('deployment_uuid') or x.get('uuid')} app={x.get('application_name')} status={x.get('status')} at={x.get('created_at')}")
+          PY
+
+      - name: 容器日志
+        if: inputs.mode == 'logs'
+        run: |
+          set -euo pipefail
+          test -n "${APP:-}" || { echo "需要 app_uuid"; exit 1; }
+          code=$(curl -sS -o "$RUNNER_TEMP/logs.out" -w '%{http_code}' \
+            -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/applications/$APP/logs?lines=200" || true)
+          echo "logs 返回码=$code"
+          python3 - <<'PY'
+          import os, re, json
+          p = os.path.join(os.environ["RUNNER_TEMP"], "logs.out")
+          t = open(p, encoding="utf-8", errors="replace").read()
+          try:
+              d = json.loads(t); t = d.get("logs") or json.dumps(d, ensure_ascii=False)
+          except Exception:
+              pass
+          # 脱敏：抹长 base64/token 样式串
+          t = re.sub(r"[A-Za-z0-9+/=]{40,}", "<REDACTED>", t)
+          print(t[-6000:])
+          PY
+
+      - name: 容器内只读诊断
+        if: inputs.mode == 'exec'
+        env:
+          CMD: ${{ inputs.command }}
+        run: |
+          set -euo pipefail
+          test -n "${APP:-}" || { echo "需要 app_uuid"; exit 1; }
+          C="${CMD:-echo '--- date ---'; date; echo '--- crontab ---'; crontab -l 2>&1 | tail -20; echo '--- cron 进程 ---'; ps aux | grep -c '[c]ron'; echo '--- 台账 ---'; ls -la /var/log/kmfa 2>&1 | head -20; echo '--- 最近台账行 ---'; tail -5 /var/log/kmfa/ledger.jsonl 2>&1; echo '--- cron.log ---'; tail -20 /var/log/kmfa/cron.log 2>&1}"
+          python3 - <<'PY' > "$RUNNER_TEMP/exec.json"
+          import json, os
+          print(json.dumps({"command": os.environ.get("C") or os.environ.get("CMD") or "date"}))
+          PY
+          # C 由 shell 展开，重新写入 payload 保证一致
+          python3 -c "import json,os,sys;open(os.path.join(os.environ['RUNNER_TEMP'],'exec.json'),'w').write(json.dumps({'command':sys.argv[1]}))" "$C"
+          code=$(curl -sS -o "$RUNNER_TEMP/exec.out" -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            --data @"$RUNNER_TEMP/exec.json" "$BASE/api/v1/applications/$APP/execute" || true)
+          echo "exec 返回码=$code"
+          python3 - <<'PY'
+          import os, re, json
+          t = open(os.path.join(os.environ["RUNNER_TEMP"], "exec.out"), encoding="utf-8", errors="replace").read()
+          try:
+              d = json.loads(t); t = d.get("message") or d.get("output") or json.dumps(d, ensure_ascii=False)
+          except Exception:
+              pass
+          print(re.sub(r"[A-Za-z0-9+/=]{40,}", "<REDACTED>", t)[:6000])
           PY
 
       - name: 触发重新部署
