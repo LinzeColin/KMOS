@@ -87,8 +87,9 @@
 > S05 整体复审前保持 `KMFA_LIFECYCLE_MODE=paused` 且不启用 `lifecycle` profile。App 服务绝不能
 > 注入 `KMFA_S3_LIFECYCLE_*`；worker 使用独立 prefix-scoped 删除凭据且无公网端口。生产 active
 > lifecycle 只支持已完成迁移/对账的 S3-compatible backend；legacy filesystem 无法隔离删除权限，
-> 必须保持 paused，测试 override 禁止配置。worker 采用 10 分钟租约，public purge 按实际完成时间
-> 计 SLA，超时在对象删除前 fail closed。季度演练、proof
+> 且 provider 必须让 lifecycle/restore 凭据精确列出当前版本、历史版本和 delete marker；能力缺失
+> 时删除与恢复证明 fail closed，禁止退化为无 `VersionId` 删除。测试 override 禁止配置。worker
+> 采用 10 分钟租约，public purge 按实际完成时间计 SLA，超时在对象删除前 fail closed。季度演练、proof
 > 记录、灰度和回滚必须逐项执行
 > [`P5.4_RETENTION_BACKUP_RUNBOOK.md`](P5.4_RETENTION_BACKUP_RUNBOOK.md)。快速回滚先 scale-to-zero
 > worker，再恢复 `paused`，保留全部 DB/object/backup/volume/evidence。

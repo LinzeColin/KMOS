@@ -191,7 +191,10 @@ def test_actor_limit_issues_one_use_bound_challenge_without_login(
     assert replay.json()["detail"] == "risk_challenge_replayed"
     assert cross_actor.status_code == 403
     assert cross_actor.json()["detail"] == "risk_challenge_invalid"
-    assert all("login" not in response.text.lower() for response in (challenged, replay))
+    assert all(
+        "login" not in response.text.lower()
+        for response in (challenged, replay)
+    )
 
 
 def test_upload_and_export_floods_are_isolated_and_growth_is_bounded(
@@ -625,3 +628,41 @@ def test_core_lifetime_caps_bound_sessions_audit_and_artifact_bytes(
     assert upload.status_code == 429
     assert upload.json()["detail"] == "artifact_capacity_reached"
     assert not list((abuse_store / "objects").glob("*"))
+
+
+def test_chunked_upload_reserves_capacity_before_any_durable_object_effect(
+    abuse_store: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(skeleton, "MAX_TOTAL_ARTIFACT_BYTES", 4)
+    ip = "198.51.100.223"
+    with _client() as client:
+        created, _ = _create(
+            client,
+            ip=ip,
+            name="chunked-capacity-reservation",
+        )
+        workspace_id = str(created["workspace"]["workspace_id"])
+        upload = client.put(
+            f"{BASE}/workspaces/{workspace_id}/artifact",
+            headers={
+                "CF-Connecting-IP": ip,
+                "Content-Type": "application/octet-stream",
+                "X-KMFA-Filename": "chunked-over-capacity.bin",
+            },
+            content=iter((b"12", b"345")),
+        )
+
+    assert upload.request.headers.get("content-length") is None
+    assert upload.status_code == 429
+    assert upload.json()["detail"] == "artifact_capacity_reached"
+    assert not list((abuse_store / "objects").glob("*"))
+    assert not list((abuse_store / "tmp").glob("*.part"))
+    connection = sqlite3.connect(abuse_store / "walking_skeleton.sqlite3")
+    try:
+        operation_count = connection.execute(
+            "SELECT COUNT(*) FROM consistency_operations"
+        ).fetchone()[0]
+    finally:
+        connection.close()
+    assert operation_count == 0

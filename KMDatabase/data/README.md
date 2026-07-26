@@ -1,35 +1,36 @@
-# KMDatabase/data —— 原始数据增量仓（D11）
+# KMDatabase/data —— 数据已移出本公开仓
 
-> 🔴 **2026-07-19 更新：数据已迁往私有仓 `Private-Database/Private-KMDatabase`。**
-> **新数据不要再往本地 `objects/` 落**——用 `machine/tools/private_db_client.py ingest`（免 clone 写入 Private-Database）。
-> 详见同目录 `WHERE_IS_THE_DATA.md`。以下 D11 旧说明（本地内容寻址）为历史记录，本地 `objects/` 待 Phase B 协调移除。
+> 🔴 **2026-07-25 更新：本地 `objects/` 与 `manifest.jsonl` 已从本公开仓移除（Phase B 完成）。**
+> 全部 53 个经营数据对象的**唯一权威落地处**是私有仓
+> `LinzeColin/Private-Database` 的 `Private-KMDatabase/` 区（迁移已核对：53/53 一致，另含 KMFA 后续上传共 56 个）。
+> 本目录现在只剩这两份**路牌文档**，不再存任何真实数据。
 
-> 授权：Owner 2026-07-17 决策 D11（打通任务包 09 三节 v2）：原始数据直接入本目录，不新建仓库。
-> ⚠️ 推送前置：本仓当前为**公开仓**。首批真实业务数据推送前需 Owner 对「公开可见」再确认一次，
-> 或先把 KMOS 切为 Private（仓库 Settings 一个开关，结构零改动——09 三节第 5 条预留的正是这条路）。
+> 说明：manifest 与 objects 含真人姓名、客户名与财务明细，本仓为**公开仓**，故已移除。
+> 移除只针对当前版本；git 历史里的旧提交仍含这些对象，历史清除（重写/切私有）由 Owner 另行决策。
 
-## 布局
+## 读数据 / 写数据（免 clone，永不整仓下载）
 
-```
-data/
-├── objects/<sha256 前 2 位>/<sha256>_<原文件名>   # 内容寻址：同名不同内容共存，永不覆盖
-├── manifest.jsonl                                # append-only 账本（原名/批次/域/sha256/大小/来源）
-└── README.md
-```
-
-## Owner 用法（丢文件）
-
-把新批次文件（压缩包/Excel/PDF 均可）放到任意本地目录，然后：
+用本仓 `KMDatabase/machine/tools/private_db_client.py`（底层 GitHub API，零 clone、不落本地）：
 
 ```bash
-python3 KMDatabase/machine/tools/ingest_data.py add <目录或文件> --domain 财务   # 域：财务/WPS钉钉红圈/绩效/预算/对账基准/其他
-python3 KMDatabase/machine/tools/ingest_data.py verify                          # 随时全量核对
+T=KMDatabase/machine/tools/private_db_client.py
+python3 $T ingest Private-KMDatabase ./新数据.xlsx --domain 财务   # 域：财务/WPS钉钉红圈/绩效/预算/对账基准/其他
+python3 $T get    Private-KMDatabase objects/23/235a...zip ./out.zip  # 按需下载单个对象
+python3 $T list   Private-KMDatabase
+python3 $T verify Private-KMDatabase                                  # 全量对账
 ```
 
-重复运行无副作用（同内容幂等跳过）；同名新版本自动共存为新对象。
+协议见 `Private-Database/PROTOCOL.md`。Private-Database 是 **PRIVATE** 仓，**禁止 `git clone`**（预计 500GB+），只按需下载单文件。
 
-## 红线（工具强制）
+## 红线（迁移后仍然有效）
 
-- **凭据类永不入仓**：`.env/.pem/.key/token/secret/cookie` 等文件名直接拒绝；文本文件内容命中密钥模式（私钥头/AKIA/ghp_/sk-/JWT）拒绝。
-- **单文件 >95MB 拒绝**：GitHub 100MB 硬限制；需要时先配置 Git LFS（`git lfs track 'KMDatabase/data/objects/**'`）再入仓。
-- 本目录只进「数据」，不进 `_protected/` 的私密运行时、身份文件、部署密钥。
+- **新数据一律用 SDK 写进 Private-Database，不要再往本地落 `objects/`。**
+- **凭据类永不入仓**：`.env/.pem/.key/token/secret/cookie` 与密钥模式一律拒绝。
+- **单文件 >95MB 拒绝**：GitHub 100MB 硬限；需要时先配 Git LFS。
+
+## 历史记录（D11，已废止的本地落地方案）
+
+Owner 2026-07-17 决策 D11 曾把原始数据以内容寻址方式落在本地 `objects/` + `manifest.jsonl`；
+2026-07-19 起数据权威改为私有仓 `Private-KMDatabase`，本地这份降级为 KMFA 待清对象，
+2026-07-25 正式移除。KMFA 权威消费链 `facts_from_staging.py` 早已改经 SDK 从私有仓读，不依赖本目录；
+另有约 12 个一次性入库提取器（`invoice_lines_extract.py` 等）历史上读本目录，现随数据移除一并成为历史工具，未接入任何 CI。

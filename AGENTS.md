@@ -10,6 +10,10 @@ KM 系列商用线仓库，中文优先；代码、API、库名、模型名和�
   **禁止**用 git submodule 引入它 —— 通过 CI checkout 或 pip 安装消费。
 - 跨 KM 项目的数据交换必须经过 KMDatabase 声明的 schema，
   **禁止**直接引用其他项目的内部路径。
+- **数据落地铁律（长期有效 · 自运行分仓治理）**：长期/业务/运行时数据一律写私有仓
+  `LinzeColin/Private-Database` 的 `Private-KMDatabase/`，用 `KMDatabase/machine/tools/private_db_client.py`
+  免 clone 读写（`ingest/get/list/verify`）；**禁止把数据提交进本代码仓**，派生/临时物走 `.gitignore`。
+  Private-Database 禁止 `git clone`。目的：分仓治理长期自运行，不需 Owner 反复人工迁移。
 
 ## 迁移状态
 

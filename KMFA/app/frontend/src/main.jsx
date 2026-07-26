@@ -70,8 +70,9 @@ class VisibleErrorBoundary extends React.Component {
 }
 
 const root = document.getElementById('root')
-const isPrivateOperationsApp = window.location.pathname === '/ops/app'
-  || window.location.pathname.startsWith('/ops/app/')
+const pathname = window.location.pathname
+const isPrivateOperationsApp = pathname === '/ops/app'
+  || pathname.startsWith('/ops/app/')
 
 function loadPrivateOperationsApp() {
   return import('./App.jsx')
@@ -81,7 +82,12 @@ function loadPublicAppShell() {
   return import('./PublicAppShell.jsx')
 }
 
-const appModule = isPrivateOperationsApp ? loadPrivateOperationsApp() : loadPublicAppShell()
+// Sealed v1.5.2 contract: `/` is the complete anonymous App Shell. The
+// `/workspace` compatibility path may serve the same shell, while only
+// `/ops/app` loads the private operations bundle.
+const appModule = isPrivateOperationsApp
+  ? loadPrivateOperationsApp()
+  : loadPublicAppShell()
 
 appModule
   .then(({ default: App }) => {

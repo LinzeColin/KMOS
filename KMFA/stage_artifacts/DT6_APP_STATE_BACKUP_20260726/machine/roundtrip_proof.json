@@ -1,0 +1,24 @@
+{
+  "schema_version": "kmfa.app_state_backup.roundtrip.v1",
+  "unit": "App 状态面异地备份（Owner 2026-07-26 批准：接每日自动备份到 GitHub 私有库）",
+  "problem": "App 自写状态(SQLite+JSONL:拍板/导出/重跑/审计)在命名卷 kmfa-app-state,扛重部署但无异地副本→整机损毁即丢",
+  "solution": "KMFA/tools/app_state_backup.py:一致快照(SQLite 在线备份 API)→tar.gz→sha256→GitHub 私有库 Private-Database;含 restore/list;无 gh 依赖(纯 REST)",
+  "roundtrip_tested_from_ci_env": {
+    "backup": "PASS — 推 Private-Database,438 字节,3 文件,内容寻址 objects/12/…",
+    "list": "PASS — manifest 列出该备份",
+    "restore": "PASS — 下载+sha256 完整性校验通过,解包到新目录",
+    "jsonl_byte_identical": "PASS — audit_events/report_export_records 逐字节一致",
+    "sqlite_data_identical": "PASS — resolution_events 表行还原后完全一致",
+    "fallback_no_token": "PASS — 无 token 时降级写本地副本,rc=3+明确告警(不静默假成功)",
+    "test_objects_cleaned": "是 — 合成测试对象与 manifest 已从私有库删除"
+  },
+  "vps_wiring": {
+    "cron": "已存在 crontab.txt 每日北京 00:30 daily-backup",
+    "run_skill": "daily-backup 占位改为真调 app_state_backup.py",
+    "volume": "coolify compose:skills 容器只读挂 kmfa-app-state:/var/lib/kmfa/state:ro",
+    "secret": "KMFA_BACKUP_GH_TOKEN(Coolify 面板设一项即异地生效;空则降级命名卷)"
+  },
+  "activation_status": "已建+往返实证;云端异地生效待 Coolify 设 KMFA_BACKUP_GH_TOKEN 一项(同 COOLIFY_API_TOKEN 操作)。未设期间自动降级到命名卷(扛重部署)。",
+  "iron_rule": "App 状态含拍板引用→只进 GitHub 私有库,绝不进公开 KMOS;本证据用合成数据,零真实金额零公司名。",
+  "amounts_public": false
+}

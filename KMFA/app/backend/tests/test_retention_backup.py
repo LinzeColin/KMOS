@@ -9,6 +9,8 @@ from pathlib import Path
 from urllib.parse import quote
 
 import pytest
+from fastapi.testclient import TestClient
+
 from app import backup_restore as backup_restore_cli
 from app import retention_lifecycle
 from app import walking_skeleton as skeleton
@@ -29,7 +31,6 @@ from app.retention_lifecycle import (
 )
 from app.structured_repository import StructuredRepository
 from app.structured_store import SCHEMA_VERSION, open_structured_store
-from fastapi.testclient import TestClient
 
 BASE = "/public-api/walking-skeleton/v1"
 FIXTURE = b"KMFA-P54-SYNTHETIC\x00\xff\n" + bytes(range(256)) * 9
@@ -838,6 +839,93 @@ def test_hold_imposed_after_request_blocks_before_irreversible_delete(
     assert completed["state"] == "completed"
 
 
+def test_hold_race_blocks_zero_object_workspace_at_final_transaction(
+    state: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    created = skeleton._create_workspace("P5.4 zero-object hold race synthetic")
+    workspace_id = str(created["workspace"]["workspace_id"])
+    _record_proof()
+    connection = _open_for(state)
+    try:
+        with connection.transaction():
+            LifecycleRepository(connection).register_publication(
+                publication_id="publication_zero_object_hold_race",
+                workspace_id=workspace_id,
+                subject_identity="synthetic-zero-object-publication",
+                timestamp="2026-07-24T00:00:00Z",
+            )
+    finally:
+        connection.close()
+
+    monkeypatch.setenv("KMFA_LIFECYCLE_MODE", "active")
+    requested = TestClient(app, base_url="https://testserver").request(
+        "DELETE",
+        f"{BASE}/workspaces/{workspace_id}",
+        json={
+            "confirmation": DELETE_CONFIRMATION,
+            "workspace_secret": created["recovery_code"],
+        },
+        headers={
+            "Authorization": f"Bearer {created['access_token']}",
+            "Idempotency-Key": "p54-zero-object-hold-race-00001",
+        },
+    )
+    assert requested.status_code == 202
+    request_id = str(requested.json()["deletion_request_id"])
+
+    class HoldDuringPublicPurge:
+        def revoke_and_purge(
+            self,
+            *,
+            publication_id: str,
+            subject_ref: str,
+        ) -> None:
+            assert publication_id == "publication_zero_object_hold_race"
+            assert len(subject_ref) == 20
+            hold_connection = _open_for(state)
+            try:
+                with hold_connection.transaction():
+                    LifecycleRepository(hold_connection).impose_legal_hold(
+                        workspace_id=workspace_id,
+                        reason_code="security",
+                        authority_ref="synthetic-finalization-race-authority",
+                        timestamp="2026-07-24T00:00:05Z",
+                    )
+            finally:
+                hold_connection.close()
+
+    with pytest.raises(LifecycleLegalHoldError):
+        process_deletion_request(
+            open_connection=lambda: _open_for(state),
+            state_root=state,
+            deletion_request_id=request_id,
+            publication_effects=HoldDuringPublicPurge(),
+            now=NOW + timedelta(seconds=10),
+        )
+
+    connection = _open_for(state)
+    try:
+        request = connection.execute(
+            """
+            SELECT state, completed_at
+            FROM deletion_requests
+            WHERE deletion_request_id = ?
+            """,
+            (request_id,),
+        ).fetchone()
+        assert dict(request) == {
+            "state": "blocked_hold",
+            "completed_at": None,
+        }
+        assert connection.execute(
+            "SELECT COUNT(*) AS n FROM projects WHERE workspace_id = ?",
+            (workspace_id,),
+        ).fetchone()["n"] == 1
+    finally:
+        connection.close()
+
+
 def test_worker_retry_is_durable_and_never_scrubs_before_object_delete(
     state: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1044,6 +1132,15 @@ def test_full_incremental_restore_and_deletion_tombstone_prevent_resurrection(
     assert StructuredRepository(target_connection).workspace_snapshot_hash(
         workspace_id
     ) == source_hash
+    assert target_connection.execute(
+        "SELECT COUNT(*) AS n FROM access_tokens"
+    ).fetchone()["n"] == 0
+    with pytest.raises(skeleton.SkeletonError) as restored_session:
+        skeleton._get_workspace(
+            workspace_id,
+            f"Bearer {created['access_token']}",
+        )
+    assert restored_session.value.code == "workspace_not_found"
     with target_connection.transaction():
         LifecycleRepository(target_connection).record_restore_proof(
             RestoreDrillProof(

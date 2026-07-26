@@ -251,6 +251,38 @@ def _store():
             connection.close()
 
 
+def _artifact_capacity_usage(connection: StructuredStoreConnection) -> int:
+    """Count projected bytes plus every unprojected upload reservation.
+
+    Upload effects happen before their database projection is committed. Counting
+    only ``artifacts`` lets concurrent or chunked requests write objects and then
+    fail the final capacity check, leaving attacker-amplifiable isolated bytes.
+    The durable intent is therefore the reservation until a matching artifact
+    version exists; isolated operations remain conservatively accounted for
+    until explicit reconciliation/deletion.
+    """
+
+    row = connection.execute(
+        """
+        SELECT
+          COALESCE((SELECT SUM(size_bytes) FROM artifacts), 0)
+          +
+          COALESCE((
+            SELECT SUM(co.size_bytes)
+            FROM consistency_operations co
+            WHERE co.operation_kind = 'upload'
+              AND co.size_bytes IS NOT NULL
+              AND NOT EXISTS (
+                SELECT 1
+                FROM artifact_versions av
+                WHERE av.artifact_version_id = co.artifact_version_id
+              )
+          ), 0) AS total_bytes
+        """
+    ).fetchone()
+    return int(row["total_bytes"])
+
+
 def _require_enabled() -> None:
     if not walking_skeleton_enabled():
         raise SkeletonError(404, "walking_skeleton_disabled")
@@ -1579,14 +1611,7 @@ async def _store_artifact(
         ):
             raise SkeletonError(409, "artifact_limit_reached")
         if existing_operation is None:
-            used_bytes = int(
-                connection.execute(
-                    """
-                    SELECT COALESCE(SUM(size_bytes), 0) AS total_bytes
-                    FROM artifacts
-                    """
-                ).fetchone()["total_bytes"]
-            )
+            used_bytes = _artifact_capacity_usage(connection)
             remaining_bytes = MAX_TOTAL_ARTIFACT_BYTES - used_bytes
             if remaining_bytes <= 0:
                 raise SkeletonError(429, "artifact_capacity_reached")
@@ -1670,16 +1695,51 @@ async def _store_artifact(
         with _store() as connection:
             try:
                 with connection.transaction():
-                    identity = ConsistencyRepository(
-                        connection
-                    ).create_or_load_upload(
+                    consistency = ConsistencyRepository(connection)
+                    durable_replay = consistency.operation_for_idempotency(
+                        workspace_id=workspace_id,
+                        operation_kind="upload",
+                        idempotency_key_hash_value=key_hash,
+                    )
+                    if durable_replay is None:
+                        competing_upload = connection.execute(
+                            """
+                            SELECT 1
+                            FROM consistency_operations
+                            WHERE workspace_id = ?
+                              AND operation_kind = 'upload'
+                              AND state NOT IN ('converged', 'isolated')
+                            LIMIT 1
+                            """,
+                            (workspace_id,),
+                        ).fetchone()
+                        projected_artifact = connection.execute(
+                            """
+                            SELECT 1 FROM artifacts
+                            WHERE workspace_id = ?
+                            LIMIT 1
+                            """,
+                            (workspace_id,),
+                        ).fetchone()
+                        if (
+                            competing_upload is not None
+                            or projected_artifact is not None
+                        ):
+                            raise SkeletonError(409, "artifact_limit_reached")
+                        if (
+                            _artifact_capacity_usage(connection) + size
+                            > MAX_TOTAL_ARTIFACT_BYTES
+                        ):
+                            raise SkeletonError(
+                                429,
+                                "artifact_capacity_reached",
+                            )
+                    identity = consistency.create_or_load_upload(
                         intent,
                         operation_id=operation_id,
                         timestamp=_timestamp(),
                     )
-                    operation = ConsistencyRepository(connection).operation(
-                        identity.operation_id
-                    )
+                    operation = consistency.operation(identity.operation_id)
                     if operation is None:
                         raise SkeletonError(
                             503, "walking_skeleton_storage_unavailable"

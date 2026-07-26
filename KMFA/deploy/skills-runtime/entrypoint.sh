@@ -30,6 +30,17 @@ fi
 
 mkdir -p /var/log/kmfa
 
+# App 状态面备份的部署密钥：Coolify 传 base64 单行（私钥多行且含敏感内容，不宜进 cron.d 0644）。
+# 这里在启动时解到 600 文件，只把**路径**给 cron —— 密钥本体不落 cron.d、不进日志。
+BACKUP_KEY_FILE=/opt/kmfa/secrets/kmfa_backup_deploy_key
+if [ -n "${KMFA_BACKUP_SSH_KEY_B64:-}" ]; then
+  mkdir -p /opt/kmfa/secrets
+  echo "$KMFA_BACKUP_SSH_KEY_B64" | base64 -d > "$BACKUP_KEY_FILE" 2>/dev/null \
+    && chmod 600 "$BACKUP_KEY_FILE" \
+    && echo "$(date -Is) entrypoint: 备份部署密钥已就位（600）" >> /var/log/kmfa/cron.log \
+    || echo "$(date -Is) entrypoint: 警告——KMFA_BACKUP_SSH_KEY_B64 解码失败，异地备份将降级" >> /var/log/kmfa/cron.log
+fi
+
 # 排程只走 /etc/cron.d，不碰用户 crontab。
 #
 # 原实现是 `crontab <file> 2>/dev/null || cp <file> /etc/cron.d/kmfa-skills`，
@@ -56,6 +67,8 @@ crontab -r 2>/dev/null || true   # 清掉可能残留的用户 crontab，杜绝�
   echo "KMFA_DELIVERY_ENABLED=${KMFA_DELIVERY_ENABLED:-0}"
   echo "KMFA_DINGTALK_ATTENDANCE_ALLOW_DWS_COMMANDS=${KMFA_DINGTALK_ATTENDANCE_ALLOW_DWS_COMMANDS:-0}"
   echo "KMFA_ATTENDANCE_ARCHIVE_ROOT=${KMFA_ATTENDANCE_ARCHIVE_ROOT:-/var/lib/kmfa/attendance}"
+  # 备份密钥文件路径（值是路径不是密钥本体，单行安全）；密钥不在时 daily-backup 自动降级。
+  [ -f "$BACKUP_KEY_FILE" ] && echo "KMFA_BACKUP_SSH_KEY_FILE=$BACKUP_KEY_FILE"
   echo
   # 源文件自带的 SHELL/PATH 去掉，避免与上面重复
   grep -vE '^(SHELL|PATH)=' /opt/runtime/crontab.txt

@@ -40,8 +40,8 @@ const MODULES = [
     eyebrow: 'PROGRESS',
     status: '早期骨架可保存',
     summary: '区分已经可用、正在接入与尚未验证的能力。',
-    detail: '早期骨架可把 0–100% 项目进度写入服务器，并通过恢复码在重启后取回。分数、长期数据库与备份恢复仍未完成。',
-    facts: ['公共入口：已接通', '项目进度：骨架切片可保存', '长期持久化与备份：待 S05–S07 验证'],
+    detail: '早期骨架可把 0–100% 项目进度写入服务器，并通过恢复码在重启后取回。S05 已验证耐久数据库、对象存储与备份恢复候选；生产切换仍需独立灰度，分数完整体验由后续阶段接通。',
+    facts: ['公共入口：已接通', '项目进度：骨架切片可保存', '耐久存储与备份：候选已验证，生产灰度待执行'],
   },
   {
     key: 'report',
@@ -218,7 +218,7 @@ function PublicAppShell() {
           <span role="listitem">无需账号</span>
           <span role="listitem">状态透明</span>
           <span role="listitem">故障不空白</span>
-          <span role="listitem">不自动到期；显式删除待后续阶段接入</span>
+          <span role="listitem">默认不自动到期；显式删除生产默认暂停</span>
         </div>
 
         <WalkingSkeleton />

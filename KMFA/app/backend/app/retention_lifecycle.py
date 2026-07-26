@@ -1139,6 +1139,10 @@ class LifecycleRepository:
         if str(request["state"]) == "completed":
             return request
         workspace_id = str(request["workspace_id"])
+        if self._has_active_hold(workspace_id):
+            raise LifecycleLegalHoldError("workspace_legal_hold")
+        if str(request["state"]) != "purge_pending":
+            raise LifecycleWorkerError("deletion_request_state_invalid")
         remaining_targets = self.connection.execute(
             """
             SELECT COUNT(*) AS count_value
@@ -1496,10 +1500,23 @@ def process_deletion_request(
         connection = open_connection()
         try:
             with connection.transaction():
-                completed = LifecycleRepository(connection).finalize(
-                    deletion_request_id,
-                    timestamp=current_timestamp(),
+                repository = LifecycleRepository(connection)
+                finalize_timestamp = current_timestamp()
+                blocked_hold = repository.block_for_active_hold(
+                    deletion_request_id=deletion_request_id,
+                    timestamp=finalize_timestamp,
                 )
+                completed = (
+                    None
+                    if blocked_hold
+                    else repository.finalize(
+                        deletion_request_id,
+                        timestamp=finalize_timestamp,
+                    )
+                )
+            if blocked_hold:
+                raise LifecycleLegalHoldError("workspace_legal_hold")
+            assert completed is not None
             return dict(completed)
         finally:
             connection.close()

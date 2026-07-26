@@ -1,0 +1,26 @@
+{
+  "standard": "WCAG 2.2 AA",
+  "min_ratio_normal_text": 4.5,
+  "method": "相对亮度对比度,前景/背景成对数值计算(sRGB gamma 解码)",
+  "note": "小标签浅灰在本轮修复中由 #64748b 调深至 #55627a,确保落到页面灰底 #f5f7fa 上仍达标;边界区顶栏由 ::before 伪元素改实体 border-top,消除 axe「背景不可判定」的 incomplete。",
+  "pairs": [
+    {"role": "正文 ink / 白", "fg": "#0f172a", "bg": "#ffffff", "ratio": 17.85},
+    {"role": "正文 ink / 页面灰", "fg": "#0f172a", "bg": "#f5f7fa", "ratio": 16.63},
+    {"role": "muted 说明 / 白", "fg": "#475569", "bg": "#ffffff", "ratio": 7.58},
+    {"role": "muted 说明 / 页面灰", "fg": "#475569", "bg": "#f5f7fa", "ratio": 7.06},
+    {"role": "小标签 kicker / 页面灰(修复后)", "fg": "#55627a", "bg": "#f5f7fa", "ratio": 5.73},
+    {"role": "小标签 kicker / 白(修复后)", "fg": "#55627a", "bg": "#ffffff", "ratio": 6.15},
+    {"role": "小标签 kicker / 选中卡(修复后)", "fg": "#55627a", "bg": "#f7faff", "ratio": 5.88},
+    {"role": "accent 蓝字 / 白", "fg": "#1d4ed8", "bg": "#ffffff", "ratio": 6.70},
+    {"role": "accent 蓝字 / 蓝tint", "fg": "#1d4ed8", "bg": "#eff6ff", "ratio": 6.16},
+    {"role": "链接蓝 / 白", "fg": "#2563eb", "bg": "#ffffff", "ratio": 5.17},
+    {"role": "白字 / 蓝按钮", "fg": "#ffffff", "bg": "#2563eb", "ratio": 5.17},
+    {"role": "成功绿 / 反馈次白", "fg": "#166534", "bg": "#fbfcfe", "ratio": 6.95},
+    {"role": "错误红 / 白", "fg": "#b91c1c", "bg": "#ffffff", "ratio": 6.47},
+    {"role": "警示 amber / amber 底", "fg": "#92400e", "bg": "#fffbeb", "ratio": 6.84},
+    {"role": "边界区蓝亮字 / 深底", "fg": "#93c5fd", "bg": "#0f172a", "ratio": 9.90},
+    {"role": "边界区白字 / 深底", "fg": "#ffffff", "bg": "#0f172a", "ratio": 17.85},
+    {"role": "边界区正文 / 深底", "fg": "#cbd5e1", "bg": "#0f172a", "ratio": 12.02}
+  ],
+  "axe_oracle": "public_accessibility_index.py:chromium/firefox/webkit × (wcag2a,wcag2aa,wcag21a,wcag21aa,wcag22aa),critical/serious = 0"
+}

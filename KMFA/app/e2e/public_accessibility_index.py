@@ -380,6 +380,7 @@ def _crawler_contract(playwright: Playwright, base_url: str) -> dict[str, object
             "/api",
             "/ops/app",
             "/ui",
+            "/workspace",
             "/healthz",
             UNPUBLISHED_CANARY,
         ):
@@ -399,6 +400,7 @@ def _crawler_contract(playwright: Playwright, base_url: str) -> dict[str, object
         for path, expected_status in (
             (UNPUBLISHED_CANARY, 404),
             ("/ops/app", 200),
+            ("/workspace", 200),
             ("/ui/unpublished", 308),
             ("/healthz", 200),
         ):
@@ -444,6 +446,7 @@ def _crawler_contract(playwright: Playwright, base_url: str) -> dict[str, object
                 "/api",
                 "/ops/app",
                 "/ui",
+                "/workspace",
                 "/healthz",
                 UNPUBLISHED_CANARY,
             ],

@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """S03/P3.2 public App Shell browser oracle.
 
-Exercises desktop, mobile, JavaScript-disabled, and shallow-health-degraded modes.
+Exercises the canonical root App Shell in desktop, mobile, JavaScript-disabled,
+and shallow-health-degraded modes. The root must not touch the private plane,
+render private business facts, or place login/registration controls in front of
+the anonymous product.
 Artifacts contain only the public shell DOM/screenshots/traces and belong in a CI or /tmp
 directory, never in the repository evidence tree.
 """

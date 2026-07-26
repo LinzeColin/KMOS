@@ -701,6 +701,68 @@ class S3ObjectStore:
             raise ObjectStorageUnavailableError("object_store_unavailable") from exc
         return sorted(items, key=lambda item: item.storage_key)
 
+    def _provider_versions(
+        self,
+        *,
+        prefix: str,
+    ) -> list[tuple[str, str, bool]]:
+        """List every native version and delete marker under one private prefix.
+
+        A current-object listing cannot prove that a versioned target is empty:
+        delete markers may hide historical bytes. Callers that authorize
+        destructive deletion or isolated restore therefore require this exact
+        provider inventory and fail closed when the API or permission is absent.
+        """
+
+        versions: list[tuple[str, str, bool]] = []
+        try:
+            paginator = self.client.get_paginator("list_object_versions")
+            pages = paginator.paginate(
+                Bucket=self.config.bucket,
+                Prefix=prefix,
+            )
+            for page in pages:
+                for field, delete_marker in (
+                    ("Versions", False),
+                    ("DeleteMarkers", True),
+                ):
+                    for item in page.get(field, []):
+                        storage_key = str(item.get("Key", ""))
+                        version_id = str(item.get("VersionId", ""))
+                        if not storage_key or not version_id:
+                            raise ObjectStorageUnavailableError(
+                                "object_store_unavailable"
+                            )
+                        versions.append(
+                            (storage_key, version_id, delete_marker)
+                        )
+        except ObjectStorageError:
+            raise
+        except ClientError as exc:
+            if _client_error_code(exc) in {
+                "MethodNotAllowed",
+                "NotImplemented",
+                "UnsupportedOperation",
+                "501",
+            }:
+                raise ObjectStorageUnavailableError(
+                    "object_version_inventory_unavailable"
+                ) from exc
+            raise ObjectStorageUnavailableError(
+                "object_store_unavailable"
+            ) from exc
+        except (BotoCoreError, OSError, AttributeError, KeyError) as exc:
+            raise ObjectStorageUnavailableError(
+                "object_store_unavailable"
+            ) from exc
+        return versions
+
+    def provider_version_count(self) -> int:
+        """Count all current, historical and delete-marker versions in scope."""
+
+        prefix = f"{self.config.prefix}/artifacts/"
+        return len(self._provider_versions(prefix=prefix))
+
     def delete_all_versions(
         self,
         *,
@@ -729,46 +791,14 @@ class S3ObjectStore:
             ):
                 raise ObjectStorageIntegrityError("object_integrity_failed")
 
-        def exact_provider_versions() -> tuple[bool, list[tuple[str, bool]]]:
-            versions: list[tuple[str, bool]] = []
-            try:
-                paginator = self.client.get_paginator("list_object_versions")
-                pages = paginator.paginate(
-                    Bucket=self.config.bucket,
-                    Prefix=storage_key,
+        def exact_provider_versions() -> list[tuple[str, bool]]:
+            return [
+                (version_id, delete_marker)
+                for key, version_id, delete_marker in self._provider_versions(
+                    prefix=storage_key
                 )
-                for page in pages:
-                    for field, delete_marker in (
-                        ("Versions", False),
-                        ("DeleteMarkers", True),
-                    ):
-                        for item in page.get(field, []):
-                            if str(item.get("Key", "")) != storage_key:
-                                continue
-                            version_id = str(item.get("VersionId", ""))
-                            if not version_id:
-                                raise ObjectStorageUnavailableError(
-                                    "object_store_unavailable"
-                                )
-                            versions.append((version_id, delete_marker))
-            except ObjectStorageError:
-                raise
-            except ClientError as exc:
-                if _client_error_code(exc) in {
-                    "MethodNotAllowed",
-                    "NotImplemented",
-                    "UnsupportedOperation",
-                    "501",
-                }:
-                    return False, []
-                raise ObjectStorageUnavailableError(
-                    "object_store_unavailable"
-                ) from exc
-            except (BotoCoreError, OSError, AttributeError, KeyError) as exc:
-                raise ObjectStorageUnavailableError(
-                    "object_store_unavailable"
-                ) from exc
-            return True, versions
+                if key == storage_key
+            ]
 
         current: dict[str, Any] | None
         try:
@@ -778,26 +808,7 @@ class S3ObjectStore:
         if current is not None:
             validate_head(current)
 
-        version_api_available, versions = exact_provider_versions()
-        if not version_api_available:
-            if current is None:
-                if missing_is_success:
-                    return 0
-                raise ObjectStorageMissingError("object_missing")
-            try:
-                self.client.delete_object(
-                    Bucket=self.config.bucket,
-                    Key=storage_key,
-                )
-            except (BotoCoreError, ClientError, OSError) as exc:
-                raise ObjectStorageUnavailableError(
-                    "object_store_unavailable"
-                ) from exc
-            try:
-                self._head(storage_key)
-            except ObjectStorageMissingError:
-                return 1
-            raise ObjectStorageUnavailableError("object_store_unavailable")
+        versions = exact_provider_versions()
 
         if not versions:
             if current is None and missing_is_success:
@@ -833,8 +844,8 @@ class S3ObjectStore:
                 "object_store_unavailable"
             ) from exc
 
-        inventory_available, remaining = exact_provider_versions()
-        if not inventory_available or remaining:
+        remaining = exact_provider_versions()
+        if remaining:
             raise ObjectStorageUnavailableError("object_store_unavailable")
         try:
             self._head(storage_key)

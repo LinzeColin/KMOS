@@ -8,7 +8,7 @@ ENV TZ=Asia/Shanghai \
 # flock 不是独立包（属基础镜像自带的 util-linux）——构建尾部有存在性断言
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      cron curl ca-certificates git tzdata procps \
+      cron curl ca-certificates git openssh-client tzdata procps \
       tesseract-ocr tesseract-ocr-chi-sim libgomp1 libgl1 libglib2.0-0 \
  && rm -rf /var/lib/apt/lists/* \
  && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \

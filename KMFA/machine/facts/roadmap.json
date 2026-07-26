@@ -16,7 +16,9 @@
       "id": "S03",
       "name": "原始文件导入与数据源检查矩阵",
       "gate": "回归与可否交付",
-      "status": "结构过但未扫描原始根目录"
+      "status": "真源已上云并扫描:税务权威源+3家金蝶明细账入私有库 `Private-KMDatabase`,云上 `GitHub Actions` 解析取数(见 `DT6_DATA_ONCLOUD_A0`);原始根目录首次被真实读取。",
+      "evidence": "stage_artifacts/DT6_DATA_ONCLOUD_A0",
+      "evidence_run": "LinzeColin/Private-Database Actions kmfa-a0-zero-delta (public-safe)"
     },
     {
       "id": "S04",
@@ -28,7 +30,9 @@
       "id": "S05",
       "name": "A0 权威项目成本黄金基准",
       "gate": "零差异",
-      "status": "被 BLK-001 阻塞"
+      "status": "A0 强锁执行到底(Owner 授权):开票收入侧4指标可从税务按项目算;成本侧探明住金蝶5001生产成本(非6401),但818数字子科目>90%不映射9类别、无科目→类别字典——4项目×9类别拆分在原始台账里【不可机械导出、不该硬凑】。可辩护 A0 须会计【按项目×类别结构化成本汇总】(当年锁A0那张PDF等价)进私有库。卡在此结构化数据=Owner侧,非 agent 再算能推。 已产出【给会计的数据申请单】(`DT6_A0_ACCOUNTANT_DATA_SPEC_20260726`):会计按项目×类别成本汇总表进私有库→即解锁。",
+      "evidence": "stage_artifacts/DT6_A0_TAX_DERIVE_FOUNDATION_20260726",
+      "evidence_run": "LinzeColin/Private-Database Actions kmfa-a0-zero-delta (public-safe)"
     },
     {
       "id": "S06",
@@ -40,7 +44,9 @@
       "id": "S07",
       "name": "文件型源适配与字段映射",
       "gate": "回归与可否交付",
-      "status": "结构过但无真实数据"
+      "status": "真实金蝶明细账已被云上按科目/收支类别解析取数(字段映射首次跑真数据);完整对账未闭合。",
+      "evidence": "stage_artifacts/DT6_DATA_ONCLOUD_A0",
+      "evidence_run": "LinzeColin/Private-Database Actions kmfa-a0-zero-delta (public-safe)"
     },
     {
       "id": "S08",
@@ -52,7 +58,9 @@
       "id": "S09",
       "name": "项目成本计算引擎",
       "gate": "回归与可否交付",
-      "status": "结构过但无真实数据"
+      "status": "项目成本引擎口径按仓内权威对账层(金蝶叶子科目、父级滚存降级)为准;我上轮 6401 云抽取的百分比因脚本缺陷已撤回。A0 基准未锁,零差异未达。",
+      "evidence": "stage_artifacts/DT6_DATA_ONCLOUD_A0",
+      "evidence_run": "LinzeColin/Private-Database Actions kmfa-a0-zero-delta (public-safe)"
     },
     {
       "id": "S10",
@@ -70,13 +78,14 @@
       "id": "S12",
       "name": "人工处理工作台与重跑机制",
       "gate": "可用性与报告可信等级",
-      "status": "结构过但无真实数据"
+      "status": "人工处理工作台/重跑真跑在真实数据上(端到端实测:真写决策、四层链 4/4、影响面真实行数);仅涉金额处仍被 A0 治理锁。"
     },
     {
       "id": "S13",
       "name": "财务经营报表与回款应收扩展",
       "gate": "回归与可否交付",
-      "status": "结构过但无真实数据"
+      "status": "端到端全流 11/11 已入 `CI` 作回归基线(`app-e2e`『跑私有经营 App 全流端到端』,真开 /ops/app、真写决策、真跑四层链、真下载三格式带水印 `PDF`);跑在真实治理数据上(仅 4 页金额仍 A0 锁)。#182 改 facts 后回归确认仍绿。",
+      "evidence": "stage_artifacts/DT6_PROD0013_e2e_regression_20260725"
     },
     {
       "id": "S14",
@@ -106,7 +115,7 @@
       "id": "S18",
       "name": "回归、压力、稳定验收与后续接入准备",
       "gate": "回归与可否交付",
-      "status": "结构过但无真实数据"
+      "status": "回归基线真入 `CI`(`app-e2e` 全流 11/11)、性能达标证据在(`DT6_PROD0016`);G5 技术五项 5/5 且 `g5_passed=true`(Owner 已签),判据④满足,判据⑤ Owner 亲登待。"
     }
   ]
 }

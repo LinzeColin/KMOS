@@ -1,0 +1,31 @@
+{
+  "schema_version": "kmfa.private_db_ingest.v1",
+  "store": "LinzeColin/Private-Database (PRIVATE)",
+  "area": "Private-KMDatabase",
+  "ingested_2026_07_25": [
+    {
+      "domain": "KMFA财务税务",
+      "file": "2024-2025.12开票、纳税 资金汇总表.xlsx",
+      "sha256_prefix": "7bee02d06d9a",
+      "note": "A0 权威源(税务),先前已在库"
+    },
+    {
+      "domain": "KMFA金蝶明细账",
+      "file": "金蝶主体A-明细账.xlsx",
+      "sha256_prefix": "35f1e5a0f9ae",
+      "note": "系统重算源(金蝶)"
+    },
+    {
+      "domain": "KMFA金蝶明细账",
+      "file": "金蝶主体B-明细账.xlsx",
+      "sha256_prefix": "b9008d2c6727"
+    },
+    {
+      "domain": "KMFA金蝶明细账",
+      "file": "金蝶主体C-明细账.xlsx",
+      "sha256_prefix": "2f0c770f2554"
+    }
+  ],
+  "amounts_public": false,
+  "note": "真实财务只在私有库;本 manifest 仅哈希/域,零金额。compute 待 KMOS 加 PRIVATE_DB_TOKEN 后走 CI(云上)。 主体名(公司名)已脱敏为 A/B/C。"
+}

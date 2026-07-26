@@ -14,7 +14,11 @@ def test_status_header_triplet():
     r = client.get("/api/状态")
     assert r.status_code == 200
     header = r.json()["页眉"]
-    assert set(header) == {"质量等级", "报告等级", "GO状态"}
+    # 三徽章机器代码三元组必须都在（回归基线锚点）。
+    assert {"质量等级", "报告等级", "GO状态"} <= set(header)
+    # Owner 2026-07-25 反馈「看不懂」后新增的人话字段：与代码并存,供前端人话优先渲染。
+    assert {"质量人话", "报告人话", "可对外", "交付人话"} <= set(header)
+    assert isinstance(header["可对外"], bool)
 
 
 def test_assertions_counts():
@@ -54,11 +58,24 @@ def test_skills_enriched_fields():
 
 
 def test_index_serves_public_shell():
-    # 根路径本身就是 canonical 公共入口，不依赖旧 /ui/ 别名或私有经营仪表盘。
+    # 根路径本身就是 canonical 完整公共入口，不依赖旧 /ui/ 别名或私有经营仪表盘。
     r = client.get("/", follow_redirects=False)
     assert r.status_code == 200 and "location" not in r.headers
     assert "KMFA｜公开工作区" in r.text and '<div id="root">' in r.text
+    assert "一个入口，通往项目、文件与可验证进度。" in r.text
     assert r.text.count("data-static-shell-entry=") == 6
+
+
+def test_workspace_route_serves_shell_with_noindex():
+    # 匿名工作区独立于根路径;索引边界中间件对它 fail-closed。
+    r = client.get("/workspace", follow_redirects=False)
+    assert r.status_code == 200
+    assert r.headers["x-kmfa-shell-mode"] == "public-workspace"
+    assert r.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
+    assert "no-store" in r.headers["cache-control"]
+    assert '<div id="root">' in r.text
+    deep = client.get("/workspace/anything", follow_redirects=False)
+    assert deep.status_code == 200
 
 
 def test_legacy_ui_redirects_once_to_root():

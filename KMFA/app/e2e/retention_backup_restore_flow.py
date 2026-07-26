@@ -794,6 +794,7 @@ class Oracle:
             ],
             lifecycle_mode="paused",
             consistency_mode="paused",
+            include_lifecycle_credentials=True,
         )
         if (
             restore["status"] != "pass"
@@ -1132,6 +1133,7 @@ class Oracle:
             ],
             lifecycle_mode="paused",
             consistency_mode="paused",
+            include_lifecycle_credentials=True,
         )
         if (
             final_restore["status"] != "pass"

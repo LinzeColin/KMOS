@@ -35,6 +35,7 @@ from .object_storage import (
     ObjectStorageError,
     S3ObjectStore,
     content_md5_base64,
+    lifecycle_store_for_backend,
     object_store_for_backend,
 )
 from .retention_lifecycle import (
@@ -976,7 +977,18 @@ def _assert_empty_destination(
             if any(store.objects_dir.iterdir()):
                 raise BackupRestoreError("restore_object_target_not_empty")
         elif isinstance(store, S3ObjectStore):
-            if store.inventory():
+            # Current-object inventory is insufficient for a versioned bucket:
+            # a delete marker can hide historical bytes. The separately
+            # credentialed lifecycle adapter must prove the entire private
+            # prefix contains no versions before an isolated restore starts.
+            version_store = lifecycle_store_for_backend(
+                state_root,
+                S3_STORAGE_BACKEND,
+            )
+            if (
+                not isinstance(version_store, S3ObjectStore)
+                or version_store.provider_version_count() != 0
+            ):
                 raise BackupRestoreError("restore_object_target_not_empty")
         else:
             raise BackupRestoreError("restore_object_backend_invalid")
@@ -1094,6 +1106,11 @@ def restore_backup(
             "backup_incident_before_recovery_point"
         )
     _assert_reconstructed_counts(final_manifest, tables, objects)
+    # Browser sessions are derived, revocable capabilities rather than durable
+    # user data. Restoring them could resurrect a token revoked after the
+    # recovery point. Preserve the high-entropy workspace recovery verifier but
+    # require every browser/device to establish a fresh post-restore session.
+    tables["access_tokens"] = {}
     chain_backends = {
         str(entry["storage_backend"])
         for _, manifest, _, _ in chain

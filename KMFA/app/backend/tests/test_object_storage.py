@@ -12,6 +12,9 @@ from urllib.parse import quote
 
 import pytest
 import yaml
+from botocore.exceptions import ClientError
+from fastapi.testclient import TestClient
+
 from app import object_storage
 from app import walking_skeleton as skeleton
 from app.main import app
@@ -22,13 +25,12 @@ from app.object_storage import (
     ObjectStorageConfigurationError,
     ObjectStorageConflictError,
     ObjectStorageIntegrityError,
+    ObjectStorageUnavailableError,
     S3ObjectStore,
     configured_write_store,
     content_md5_base64,
     lifecycle_store_for_backend,
 )
-from botocore.exceptions import ClientError
-from fastapi.testclient import TestClient
 
 client = TestClient(app)
 BASE = "/public-api/walking-skeleton/v1"
@@ -237,6 +239,20 @@ class _VersionedMemoryS3:
             raise self._error("NoSuchVersion", "DeleteObject")
         self.deleted.append((Key, VersionId))
         return {"VersionId": VersionId}
+
+
+class _NoVersionInventoryS3(_VersionedMemoryS3):
+    def __init__(self) -> None:
+        super().__init__()
+        self.unversioned_delete_calls = 0
+
+    def get_paginator(self, name: str):
+        assert name == "list_object_versions"
+        raise self._error("NotImplemented", "ListObjectVersions")
+
+    def delete_object(self, **_: object):
+        self.unversioned_delete_calls += 1
+        raise AssertionError("unsafe unversioned delete must not be attempted")
 
 
 @pytest.fixture
@@ -553,6 +569,42 @@ def test_lifecycle_s3_uses_separate_credentials_and_deletes_all_exact_versions(
     assert {deleted_key for deleted_key, _ in versioned.deleted} == {key}
 
 
+def test_provider_version_count_includes_hidden_bytes_and_delete_markers(
+    s3_environment: tuple[Path, _MemoryS3],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    state, _ = s3_environment
+    versioned = _VersionedMemoryS3()
+    monkeypatch.setenv(
+        "KMFA_S3_LIFECYCLE_ACCESS_KEY_ID",
+        "synthetic-lifecycle-key",
+    )
+    monkeypatch.setenv(
+        "KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY",
+        "synthetic-lifecycle-secret",
+    )
+    monkeypatch.setattr(object_storage, "_build_s3_client", lambda config: versioned)
+    store = lifecycle_store_for_backend(state, S3_STORAGE_BACKEND)
+    scoped_key = f"{store.config.prefix}/artifacts/hidden/history.blob"
+    versioned.add_version(
+        key=scoped_key,
+        version_id="hidden-version-1",
+        body=b"historical bytes",
+    )
+    versioned.add_version(
+        key=scoped_key,
+        version_id="current-delete-marker",
+        delete_marker=True,
+    )
+    versioned.add_version(
+        key="outside/private/prefix/object.blob",
+        version_id="outside-version",
+        body=b"outside",
+    )
+
+    assert store.provider_version_count() == 2
+
+
 def test_legacy_lifecycle_delete_requires_explicit_test_override(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -642,6 +694,60 @@ def test_lifecycle_s3_fails_closed_before_deleting_mismatched_old_version(
         )
     assert versioned.deleted == []
     assert len(versioned.versions[key]) == 3
+
+
+def test_lifecycle_s3_fails_closed_when_exact_version_inventory_is_unavailable(
+    s3_environment: tuple[Path, _MemoryS3],
+    monkeypatch: pytest.MonkeyPatch,
+):
+    state, _ = s3_environment
+    versioned = _NoVersionInventoryS3()
+    monkeypatch.setenv(
+        "KMFA_S3_LIFECYCLE_ACCESS_KEY_ID",
+        "synthetic-lifecycle-key",
+    )
+    monkeypatch.setenv(
+        "KMFA_S3_LIFECYCLE_SECRET_ACCESS_KEY",
+        "synthetic-lifecycle-secret",
+    )
+    monkeypatch.setattr(object_storage, "_build_s3_client", lambda config: versioned)
+    store = lifecycle_store_for_backend(state, S3_STORAGE_BACKEND)
+    body = b"synthetic-version-inventory-required"
+    sha256 = hashlib.sha256(body).hexdigest()
+    artifact_id = "artifact_synthetic_inventory"
+    artifact_version_id = "artifact_version_synthetic_inventory"
+    key = store.build_storage_key(
+        workspace_id="ws_" + "f" * 22,
+        artifact_id=artifact_id,
+        artifact_version_id=artifact_version_id,
+        version_number=1,
+        sha256=sha256,
+    )
+    versioned.add_version(
+        key=key,
+        version_id="version-must-survive",
+        body=body,
+        metadata={
+            "kmfa-sha256": sha256,
+            "kmfa-artifact-id": artifact_id,
+            "kmfa-artifact-version-id": artifact_version_id,
+        },
+    )
+
+    with pytest.raises(
+        ObjectStorageUnavailableError,
+        match="object_version_inventory_unavailable",
+    ):
+        store.delete_all_versions(
+            storage_key=key,
+            expected_size=len(body),
+            expected_sha256=sha256,
+            artifact_id=artifact_id,
+            artifact_version_id=artifact_version_id,
+            missing_is_success=True,
+        )
+    assert versioned.unversioned_delete_calls == 0
+    assert len(versioned.versions[key]) == 1
 
 
 def test_legacy_write_rollback_keeps_s3_objects_readable(
