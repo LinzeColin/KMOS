@@ -139,9 +139,16 @@
 > **S07/P7.1 中间态边界**：`KMFA_SINGLE_FILE_DOWNLOAD_ENABLED=1` 只开启工作区授权的精确
 > 原件版本/派生物附件下载；选择器在 JSON body，不发布对象 URL。响应与浏览器共同核对
 > Content-Type、Content-Disposition、大小、SHA-256、源版本和上传/处理器来源；HTML、PDF 等
-> 主动格式仍强制 attachment + nosniff。Range、批量 ZIP、导出 Job 和 published snapshot 尚未
-> 启用。整个 v1.5.2 Taskpack 完成前保持 Flag `0`，不部署、不灰度。快速回滚恢复 `0` 并重部署
+> 主动格式仍强制 attachment + nosniff。导出 Job 和 published snapshot 尚未启用。整个 v1.5.2
+> Taskpack 完成前保持 Flag `0`，不部署、不灰度。快速回滚恢复 `0` 并重部署
 > 同一 schema 6 binary，继续提供最新原件兼容下载；不得删除版本、派生物、DB、对象、备份或卷。
+
+> **S07/P7.2 中间态边界**：`KMFA_RANGE_BATCH_DOWNLOAD_ENABLED=1` 只在 P7.1 已授权 selector
+> 上增加单区间 Range/稳定 SHA-256 ETag，以及最多 500 项的 `ZIP_STORED` 流式归档。ZIP 使用
+> ordinal 独立目录和 `manifest.json` 逐项记录来源/大小/hash；服务器不缓存整包、不创建第二归档，
+> 一次只 materialize 一个对象，断开时清理当前临时对象。当前 Taskpack 仍未完成，生产保持该 Flag
+> 为 `0`，不部署、不灰度，也不把真实时间 soak/观察期或全量测试设为前置。快速回滚只恢复该 Flag
+> 为 `0`；P7.1 单文件下载、schema 6、原件/派生物/备份/卷与 v1.5 恢复资产全部保留。
 
 6. 用固定峰值 Fixture 和资源限制故障注入即时确认 P1 内存边界后，在 Coolify 为本资源
    **启用 `full` profile**（Compose profiles → 勾 `full`）或设 `COMPOSE_PROFILES=full`，

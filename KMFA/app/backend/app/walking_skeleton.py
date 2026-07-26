@@ -48,7 +48,7 @@ from typing import Any, Callable, Literal
 from urllib.parse import unquote
 
 from fastapi import APIRouter, Cookie, Header, HTTPException, Request, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
 from starlette.requests import ClientDisconnect
@@ -61,6 +61,14 @@ from .artifact_lineage import (
     ArtifactLineageRepository,
     derivation_enabled,
     public_derivation_contract,
+)
+from .download_archive import (
+    MAX_BATCH_DOWNLOAD_ASSETS,
+    BatchArchiveEntry,
+    BatchArchiveError,
+    archive_path_for,
+    async_iter_prepared_archive,
+    prepare_batch_archive,
 )
 from .consistency_state import (
     IDEMPOTENCY_KEY_RE,
@@ -144,6 +152,7 @@ CONSISTENCY_STATE_MODES = frozenset(
 )
 RESUMABLE_UPLOAD_ENABLED_ENV = "KMFA_RESUMABLE_UPLOAD_ENABLED"
 SINGLE_FILE_DOWNLOAD_ENABLED_ENV = "KMFA_SINGLE_FILE_DOWNLOAD_ENABLED"
+RANGE_BATCH_DOWNLOAD_ENABLED_ENV = "KMFA_RANGE_BATCH_DOWNLOAD_ENABLED"
 MAX_ARTIFACT_BYTES = 8 * 1024 * 1024
 MAX_RESUMABLE_ARTIFACT_BYTES = 64 * 1024 * 1024
 MAX_UPLOAD_CHUNK_BYTES = 4 * 1024 * 1024
@@ -183,6 +192,7 @@ MEDIA_TYPE_RE = re.compile(
     r"^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}/"
     r"[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$"
 )
+SINGLE_BYTE_RANGE_RE = re.compile(r"^bytes=(\d*)-(\d*)$")
 
 router = APIRouter(prefix=API_PREFIX, tags=["public-walking-skeleton"])
 
@@ -230,6 +240,13 @@ class DownloadAssetRequest(BaseModel):
     asset_id: str = Field(min_length=1, max_length=200)
 
 
+class BatchDownloadRequest(BaseModel):
+    assets: list[DownloadAssetRequest] = Field(
+        min_length=1,
+        max_length=MAX_BATCH_DOWNLOAD_ASSETS,
+    )
+
+
 class SkeletonError(RuntimeError):
     def __init__(
         self,
@@ -242,6 +259,29 @@ class SkeletonError(RuntimeError):
         self.status_code = status_code
         self.code = code
         self.headers = headers or {}
+
+
+class CleanupFileResponse(FileResponse):
+    """Always remove a materialized private object after send or disconnect."""
+
+    def __init__(
+        self,
+        *args,
+        cleanup_path: Path | None = None,
+        **kwargs,
+    ) -> None:
+        self.cleanup_path = cleanup_path
+        super().__init__(*args, **kwargs)
+
+    async def __call__(self, scope, receive, send) -> None:
+        try:
+            await super().__call__(scope, receive, send)
+        finally:
+            if self.cleanup_path is not None:
+                try:
+                    self.cleanup_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
 
 
 def walking_skeleton_enabled() -> bool:
@@ -273,6 +313,17 @@ def single_file_download_enabled() -> bool:
     )
 
 
+def range_batch_download_enabled() -> bool:
+    """Only an explicit true value enables the P7.2 transport."""
+
+    return (
+        os.environ.get(RANGE_BATCH_DOWNLOAD_ENABLED_ENV, "0")
+        .strip()
+        .lower()
+        in TRUE_VALUES
+    )
+
+
 def public_single_file_download_contract() -> dict[str, Any]:
     return {
         "enabled": single_file_download_enabled(),
@@ -281,6 +332,28 @@ def public_single_file_download_contract() -> dict[str, Any]:
         "content_disposition": "attachment-only",
         "legacy_latest_original_fallback": True,
         "public_snapshot_access": "deferred-to-s08",
+    }
+
+
+def public_range_batch_download_contract() -> dict[str, Any]:
+    return {
+        "enabled": range_batch_download_enabled(),
+        "range": {
+            "unit": "bytes",
+            "ranges_per_request": 1,
+            "parallel_requests": True,
+            "validator": "sha256-etag",
+        },
+        "batch": {
+            "selector_transport": "authorized-json-body",
+            "max_assets": MAX_BATCH_DOWNLOAD_ASSETS,
+            "max_uncompressed_bytes": MAX_TOTAL_ARTIFACT_BYTES,
+            "archive_format": "zip-stored-stream-v1",
+            "manifest_path": "manifest.json",
+            "whole_archive_buffered": False,
+        },
+        "batch_requires_single_file_download": True,
+        "rollback_preserves_single_file_download": True,
     }
 
 
@@ -512,6 +585,63 @@ def _clean_media_type(value: str | None) -> str:
     if MEDIA_TYPE_RE.fullmatch(media_type) is None:
         return "application/octet-stream"
     return media_type
+
+
+def _validate_single_byte_range(value: str, size_bytes: int) -> None:
+    """Validate the one-range-per-request contract before materialization."""
+
+    common_headers = {
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "private, no-store",
+    }
+    normalized = value.strip()
+    match = (
+        SINGLE_BYTE_RANGE_RE.fullmatch(normalized)
+        if len(normalized) <= 128
+        else None
+    )
+    if match is None:
+        raise SkeletonError(
+            400,
+            "invalid_range_header",
+            headers=common_headers,
+        )
+    start_text, end_text = match.groups()
+    if not start_text and not end_text:
+        raise SkeletonError(
+            400,
+            "invalid_range_header",
+            headers=common_headers,
+        )
+
+    unsatisfied_headers = {
+        **common_headers,
+        "Content-Range": f"bytes */{size_bytes}",
+    }
+    if size_bytes <= 0:
+        raise SkeletonError(
+            416,
+            "range_not_satisfiable",
+            headers=unsatisfied_headers,
+        )
+    if start_text:
+        start = int(start_text)
+        end = int(end_text) if end_text else size_bytes - 1
+        if start >= size_bytes or end < start:
+            raise SkeletonError(
+                416,
+                "range_not_satisfiable",
+                headers=unsatisfied_headers,
+            )
+        return
+
+    suffix_length = int(end_text)
+    if suffix_length <= 0:
+        raise SkeletonError(
+            416,
+            "range_not_satisfiable",
+            headers=unsatisfied_headers,
+        )
 
 
 def _new_workspace_id() -> str:
@@ -2768,6 +2898,7 @@ def _audit_artifact_download(
     authorization: str | None,
     session_cookie: str | None,
     *,
+    action: str = "artifact_download",
     result_status: str,
     artifact_sha256: str | None = None,
 ) -> None:
@@ -2776,17 +2907,17 @@ def _audit_artifact_download(
         _append_audit(
             connection,
             workspace_id,
-            "artifact_download",
+            action,
             result_status=result_status,
             artifact_sha256=artifact_sha256,
         )
 
 
-def _artifact_for_download(
+def _latest_artifact_payload_for_download(
     workspace_id: str,
     authorization: str | None,
     session_cookie: str | None = None,
-) -> tuple[Path, dict[str, Any], bool]:
+) -> dict[str, Any]:
     with _store() as connection:
         _authorize(connection, workspace_id, authorization, session_cookie)
         artifact = StructuredRepository(connection).latest_artifact_version(
@@ -2810,63 +2941,80 @@ def _artifact_for_download(
                 artifact_payload["artifact_version_id"]
             ),
         )
-
-    return _materialize_download_asset(
-        workspace_id,
-        authorization,
-        session_cookie,
-        artifact_payload,
-    )
+    return artifact_payload
 
 
-def _selected_asset_for_download(
+def _selected_assets_for_download(
     workspace_id: str,
     authorization: str | None,
     session_cookie: str | None,
-    request: DownloadAssetRequest,
-) -> tuple[Path, dict[str, Any], bool]:
+    requests: list[DownloadAssetRequest],
+) -> list[dict[str, Any]]:
     if not single_file_download_enabled():
         raise SkeletonError(404, "single_file_download_disabled")
+    if not requests or len(requests) > MAX_BATCH_DOWNLOAD_ASSETS:
+        raise SkeletonError(422, "batch_asset_count_invalid")
+    selector_keys = [
+        (request.kind, request.asset_id) for request in requests
+    ]
+    if len(selector_keys) != len(set(selector_keys)):
+        raise SkeletonError(422, "duplicate_download_asset")
+
     with _store() as connection:
         _authorize(connection, workspace_id, authorization, session_cookie)
-        selected = next(
-            (
-                row
-                for row in StructuredRepository(
-                    connection
-                ).downloadable_assets(workspace_id)
-                if str(row["asset_kind"]) == request.kind
-                and str(row["asset_id"]) == request.asset_id
-            ),
-            None,
-        )
-        if selected is None:
-            raise SkeletonError(404, "artifact_download_not_found")
-        artifact_payload = dict(selected)
-        source_artifact_version_id = str(
-            artifact_payload["source_artifact_version_id"]
-        )
-        security = artifact_security_payload(
-            connection,
-            artifact_version_id=source_artifact_version_id,
-        )
-        if request.kind == "original":
-            try:
-                require_download_allowed(
+        rows_by_selector = {
+            (str(row["asset_kind"]), str(row["asset_id"])): row
+            for row in StructuredRepository(
+                connection
+            ).downloadable_assets(workspace_id)
+        }
+        resolved: list[dict[str, Any]] = []
+        security_by_version: dict[str, dict[str, Any]] = {}
+        for request, selector_key in zip(
+            requests,
+            selector_keys,
+            strict=True,
+        ):
+            selected = rows_by_selector.get(selector_key)
+            if selected is None:
+                raise SkeletonError(404, "artifact_download_not_found")
+            artifact_payload = dict(selected)
+            source_artifact_version_id = str(
+                artifact_payload["source_artifact_version_id"]
+            )
+            security = security_by_version.get(source_artifact_version_id)
+            if security is None:
+                security = artifact_security_payload(
                     connection,
                     artifact_version_id=source_artifact_version_id,
                 )
-            except FileSecurityStateConflict as exc:
-                raise SkeletonError(409, str(exc)) from exc
-        elif security["state"] != "clean":
-            raise SkeletonError(409, "artifact_security_pending")
-        artifact_payload["security"] = security
+                security_by_version[source_artifact_version_id] = security
+            if request.kind == "original":
+                try:
+                    require_download_allowed(
+                        connection,
+                        artifact_version_id=source_artifact_version_id,
+                    )
+                except FileSecurityStateConflict as exc:
+                    raise SkeletonError(409, str(exc)) from exc
+            elif security["state"] != "clean":
+                raise SkeletonError(409, "artifact_security_pending")
+            artifact_payload["security"] = security
+            resolved.append(artifact_payload)
+    return resolved
 
-    return _materialize_download_asset(
-        workspace_id,
-        authorization,
-        session_cookie,
-        artifact_payload,
+
+def _materialize_verified_download_asset(
+    artifact_payload: dict[str, Any],
+):
+    object_store = object_store_for_backend(
+        _state_root(),
+        str(artifact_payload["storage_backend"]),
+    )
+    return object_store.materialize_verified(
+        storage_key=str(artifact_payload["storage_key"]),
+        expected_size=int(artifact_payload["size_bytes"]),
+        expected_sha256=str(artifact_payload["sha256"]),
     )
 
 
@@ -2878,14 +3026,8 @@ def _materialize_download_asset(
 ) -> tuple[Path, dict[str, Any], bool]:
     materialized = None
     try:
-        object_store = object_store_for_backend(
-            _state_root(),
-            str(artifact_payload["storage_backend"]),
-        )
-        materialized = object_store.materialize_verified(
-            storage_key=str(artifact_payload["storage_key"]),
-            expected_size=int(artifact_payload["size_bytes"]),
-            expected_sha256=str(artifact_payload["sha256"]),
+        materialized = _materialize_verified_download_asset(
+            artifact_payload
         )
     except ObjectStorageMissingError as exc:
         _audit_artifact_download(
@@ -2928,6 +3070,74 @@ def _materialize_download_asset(
             materialized.path.unlink(missing_ok=True)
         raise
     return materialized.path, artifact_payload, materialized.temporary
+
+
+def _batch_archive_entry(
+    artifact: dict[str, Any],
+    index: int,
+) -> BatchArchiveEntry:
+    archive_path = archive_path_for(index, str(artifact["original_name"]))
+    source_kind = (
+        "upload"
+        if str(artifact["asset_kind"]) == "original"
+        else "processor"
+    )
+    source: dict[str, Any] = {
+        "kind": source_kind,
+        "artifact_version_id": str(
+            artifact["source_artifact_version_id"]
+        ),
+    }
+    if artifact["source_operation_id"] is not None:
+        source["operation_id"] = str(artifact["source_operation_id"])
+    if artifact["processor_name"] is not None:
+        source["processor"] = {
+            "name": str(artifact["processor_name"]),
+            "version": str(artifact["processor_version"]),
+        }
+        source["generation_number"] = int(
+            artifact["generation_number"]
+        )
+    safe_name = archive_path.rsplit("/", 1)[-1]
+    return BatchArchiveEntry(
+        archive_path=archive_path,
+        size_bytes=int(artifact["size_bytes"]),
+        sha256=str(artifact["sha256"]),
+        manifest_record={
+            "kind": str(artifact["asset_kind"]),
+            "asset_id": str(artifact["asset_id"]),
+            "name": safe_name,
+            "media_type": _clean_media_type(
+                str(artifact["media_type"])
+            ),
+            "version_number": int(artifact["version_number"]),
+            "source": source,
+        },
+        storage_backend=str(artifact["storage_backend"]),
+        storage_key=str(artifact["storage_key"]),
+    )
+
+
+def _materialize_batch_archive_entry(entry: BatchArchiveEntry):
+    try:
+        return object_store_for_backend(
+            _state_root(),
+            entry.storage_backend,
+        ).materialize_verified(
+            storage_key=entry.storage_key,
+            expected_size=entry.size_bytes,
+            expected_sha256=entry.sha256,
+        )
+    except ObjectStorageIntegrityError as exc:
+        raise BatchArchiveError(
+            "batch_source_integrity_failed"
+        ) from exc
+    except (
+        ObjectStorageConfigurationError,
+        ObjectStorageMissingError,
+        ObjectStorageUnavailableError,
+    ) as exc:
+        raise BatchArchiveError("batch_source_unavailable") from exc
 
 
 def _artifact_for_preview(
@@ -3257,6 +3467,7 @@ def walking_skeleton_status() -> dict[str, Any]:
         "file_security": security_contract,
         "artifact_derivation": public_derivation_contract(),
         "single_file_download": public_single_file_download_contract(),
+        "range_batch_download": public_range_batch_download_contract(),
         "abuse_control": public_policy_contract(),
         "stage_status": "early-skeleton-not-ga",
         "hardening_pending": (
@@ -3281,6 +3492,11 @@ def walking_skeleton_status() -> dict[str, Any]:
             )
             + (
                 [] if derivation_enabled() else ["safe-preview-worker"]
+            )
+            + (
+                []
+                if range_batch_download_enabled()
+                else ["range-batch-download"]
             )
             + [
                 "multi-file-lifecycle",
@@ -3729,6 +3945,7 @@ async def upload_artifact(
 def download_artifact(
     workspace_id: str,
     authorization: str | None = Header(default=None),
+    range_header: str | None = Header(default=None, alias="Range"),
     session_cookie: str | None = Cookie(
         default=None,
         alias=SESSION_COOKIE_NAME,
@@ -3736,28 +3953,43 @@ def download_artifact(
 ) -> FileResponse:
     try:
         _require_enabled()
-        path, artifact, temporary = _artifact_for_download(
+        artifact = _latest_artifact_payload_for_download(
             workspace_id,
             authorization,
             session_cookie,
         )
+        if range_header is not None:
+            if not range_batch_download_enabled():
+                raise SkeletonError(404, "range_batch_download_disabled")
+            _validate_single_byte_range(
+                range_header,
+                int(artifact["size_bytes"]),
+            )
+        path, artifact, temporary = _materialize_download_asset(
+            workspace_id,
+            authorization,
+            session_cookie,
+            artifact,
+        )
     except SkeletonError as error:
         _raise_http(error)
-    return FileResponse(
+    return CleanupFileResponse(
         path,
         media_type="application/octet-stream",
         filename=artifact["original_name"],
         content_disposition_type="attachment",
+        cleanup_path=path if temporary else None,
         headers={
             "Cache-Control": "private, no-store",
             "X-Content-Type-Options": "nosniff",
             "X-KMFA-Artifact-SHA256": artifact["sha256"],
             "X-KMFA-Artifact-Mode": "attachment-only",
             "X-KMFA-Artifact-Security": artifact["security"]["state"],
+            "Accept-Ranges": (
+                "bytes" if range_batch_download_enabled() else "none"
+            ),
+            "ETag": f'"{artifact["sha256"]}"',
         },
-        background=(
-            BackgroundTask(path.unlink, missing_ok=True) if temporary else None
-        ),
     )
 
 
@@ -3766,6 +3998,7 @@ def download_selected_artifact(
     workspace_id: str,
     request: DownloadAssetRequest,
     authorization: str | None = Header(default=None),
+    range_header: str | None = Header(default=None, alias="Range"),
     session_cookie: str | None = Cookie(
         default=None,
         alias=SESSION_COOKIE_NAME,
@@ -3773,11 +4006,24 @@ def download_selected_artifact(
 ) -> FileResponse:
     try:
         _require_enabled()
-        path, asset, temporary = _selected_asset_for_download(
+        asset = _selected_assets_for_download(
             workspace_id,
             authorization,
             session_cookie,
-            request,
+            [request],
+        )[0]
+        if range_header is not None:
+            if not range_batch_download_enabled():
+                raise SkeletonError(404, "range_batch_download_disabled")
+            _validate_single_byte_range(
+                range_header,
+                int(asset["size_bytes"]),
+            )
+        path, asset, temporary = _materialize_download_asset(
+            workspace_id,
+            authorization,
+            session_cookie,
+            asset,
         )
     except SkeletonError as error:
         _raise_http(error)
@@ -3792,6 +4038,10 @@ def download_selected_artifact(
         "X-KMFA-Artifact-ID": str(asset["asset_id"]),
         "X-KMFA-Artifact-Mode": "attachment-only",
         "X-KMFA-Artifact-Security": str(asset["security"]["state"]),
+        "Accept-Ranges": (
+            "bytes" if range_batch_download_enabled() else "none"
+        ),
+        "ETag": f'"{asset["sha256"]}"',
         "X-KMFA-Source-Artifact-Version": str(
             asset["source_artifact_version_id"]
         ),
@@ -3809,15 +4059,91 @@ def download_selected_artifact(
         headers["X-KMFA-Processor"] = (
             f"{asset['processor_name']}/{asset['processor_version']}"
         )
-    return FileResponse(
+    return CleanupFileResponse(
         path,
         media_type=_clean_media_type(str(asset["media_type"])),
         filename=str(asset["original_name"]),
         content_disposition_type="attachment",
+        cleanup_path=path if temporary else None,
         headers=headers,
-        background=(
-            BackgroundTask(path.unlink, missing_ok=True) if temporary else None
+    )
+
+
+@router.post("/workspaces/{workspace_id}/artifact/downloads/batch")
+def download_selected_artifact_batch(
+    workspace_id: str,
+    request: BatchDownloadRequest,
+    authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(
+        default=None,
+        alias=SESSION_COOKIE_NAME,
+    ),
+) -> StreamingResponse:
+    try:
+        _require_enabled()
+        if not range_batch_download_enabled():
+            raise SkeletonError(404, "range_batch_download_disabled")
+        assets = _selected_assets_for_download(
+            workspace_id,
+            authorization,
+            session_cookie,
+            request.assets,
+        )
+        entries = [
+            _batch_archive_entry(asset, index)
+            for index, asset in enumerate(assets, start=1)
+        ]
+        prepared = prepare_batch_archive(
+            entries,
+            max_total_source_bytes=MAX_TOTAL_ARTIFACT_BYTES,
+        )
+        _audit_artifact_download(
+            workspace_id,
+            authorization,
+            session_cookie,
+            action="artifact_batch_download",
+            result_status="stream_authorized",
+            artifact_sha256=prepared.manifest_sha256,
+        )
+    except BatchArchiveError as error:
+        if str(error) in {
+            "batch_download_bytes_exceeded",
+            "batch_archive_too_large",
+        }:
+            _raise_http(SkeletonError(413, str(error)))
+        _raise_http(SkeletonError(503, "batch_archive_unavailable"))
+    except SkeletonError as error:
+        _raise_http(error)
+
+    return StreamingResponse(
+        async_iter_prepared_archive(
+            prepared,
+            _materialize_batch_archive_entry,
         ),
+        media_type="application/zip",
+        headers={
+            "Cache-Control": "private, no-store",
+            "Pragma": "no-cache",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Disposition": (
+                'attachment; filename="kmfa-downloads.zip"'
+            ),
+            "Content-Length": str(prepared.content_length),
+            "Accept-Ranges": "none",
+            "X-KMFA-Batch-File-Count": str(len(prepared.entries)),
+            "X-KMFA-Batch-Source-Bytes": str(
+                prepared.total_source_bytes
+            ),
+            "X-KMFA-ZIP-Format": "zip-stored-stream-v1",
+            "X-KMFA-ZIP-Compression": "stored",
+            "X-KMFA-ZIP-Manifest-Path": "manifest.json",
+            "X-KMFA-ZIP-Manifest-SHA256": (
+                prepared.manifest_sha256
+            ),
+            "X-KMFA-ZIP-Verification": (
+                "manifest-sha256+per-entry-sha256"
+            ),
+        },
     )
 
 

@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 const API_BASE = '/public-api/walking-skeleton/v1'
 const RECOVERY_FILE_MEDIA_TYPE = 'application/vnd.kmfa.recovery+json'
 const MAX_RECOVERY_FILE_BYTES = 4096
+const DOWNLOAD_RANGE_CHUNK_BYTES = 4 * 1024 * 1024
+const MAX_BATCH_DOWNLOAD_ASSETS = 500
 
 const ERROR_COPY = {
   walking_skeleton_disabled: '早期骨架当前处于安全回滚状态。已有服务器状态不会因此删除。',
@@ -21,6 +23,14 @@ const ERROR_COPY = {
   artifact_unavailable: '文件当前不可读取，服务器没有返回替代或伪造内容。',
   artifact_download_not_found: '所选文件不属于当前工作区、已删除或不可下载。',
   single_file_download_disabled: '逐项下载 Flag 已回滚；既有文件未删除，当前版本原件仍可使用兼容下载。',
+  range_batch_download_disabled: '续传与批量 ZIP Flag 已回滚；逐项下载和既有文件仍保持可用。',
+  invalid_range_header: '续传区间格式无效；服务器未返回不确定字节。',
+  range_not_satisfiable: '续传区间超出文件边界；请重新从服务器记录的大小开始。',
+  duplicate_download_asset: '批量选择包含重复项目；服务器拒绝静默覆盖。',
+  batch_asset_count_invalid: '批量下载必须选择 1–500 个不同项目。',
+  batch_download_bytes_exceeded: '本次批量下载超过服务器公开的项目字节预算。',
+  batch_archive_too_large: '批量归档超过当前安全 ZIP 边界；单文件下载仍可使用。',
+  batch_archive_unavailable: '批量归档无法安全生成；服务器未返回不完整归档。',
   workspace_capacity_reached: '当前匿名灰度容量已满；公共浏览仍可用，已有工作区没有被删除。',
   artifact_capacity_reached: '当前文件存储预算不足；本次文件未写入，已有文件没有被删除。',
   invalid_idempotency_key: '上传重试标识无效；服务器未写入文件。',
@@ -88,6 +98,7 @@ async function errorFromResponse(response) {
   }
   const error = new Error(ERROR_COPY[code] || `操作未完成（HTTP ${response.status}）。`)
   error.code = code
+  error.status = response.status
   return error
 }
 
@@ -179,6 +190,62 @@ async function sha256Hex(blob) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+function downloadSelectorKey(item) {
+  return `${item.kind}:${item.id}`
+}
+
+function validateExactDownloadResponse(response, expected) {
+  const serverHash = response.headers.get('X-KMFA-Artifact-SHA256') || ''
+  if (serverHash !== expected.sha256) {
+    throw new Error('下载响应 hash 与项目记录不一致，已停止保存。')
+  }
+  const disposition = response.headers.get('Content-Disposition') || ''
+  if (!disposition.toLowerCase().startsWith('attachment;')) {
+    throw new Error('下载响应不是附件模式，已停止保存。')
+  }
+  const responseKind = response.headers.get('X-KMFA-Artifact-Kind') || ''
+  const responseId = response.headers.get('X-KMFA-Artifact-ID') || ''
+  const responseSize = response.headers.get('X-KMFA-Artifact-Size') || ''
+  const recordedMediaType = response.headers.get('X-KMFA-Artifact-Media-Type') || ''
+  const sourceVersion = response.headers.get('X-KMFA-Source-Artifact-Version') || ''
+  const responseMediaType = (
+    response.headers.get('Content-Type') || ''
+  ).split(';', 1)[0].toLowerCase()
+  const expectedResponseMediaType = expected.media_type
+    .split(';', 1)[0]
+    .trim()
+    .toLowerCase()
+  if (
+    responseKind !== expected.kind
+    || responseId !== expected.id
+    || responseSize !== String(expected.size_bytes)
+    || recordedMediaType !== expected.media_type
+    || sourceVersion !== expected.source?.artifact_version_id
+    || responseMediaType !== expectedResponseMediaType
+  ) {
+    throw new Error('下载响应元数据与所选文件不一致，已停止保存。')
+  }
+  if (expected.kind === 'derivative') {
+    const processor = expected.source?.processor
+    const expectedProcessor = processor
+      ? `${processor.name}/${processor.version}`
+      : ''
+    if (response.headers.get('X-KMFA-Processor') !== expectedProcessor) {
+      throw new Error('下载派生物的处理器来源不一致，已停止保存。')
+    }
+  } else if (
+    expected.source?.operation_id
+    && response.headers.get('X-KMFA-Source-Operation')
+      !== expected.source.operation_id
+  ) {
+    throw new Error('下载原件的上传来源不一致，已停止保存。')
+  }
+  return {
+    serverHash,
+    etag: response.headers.get('ETag') || '',
+  }
+}
+
 async function uploadIdempotencyKeyFor(
   workspaceId,
   file,
@@ -247,6 +314,9 @@ function WalkingSkeleton() {
   const [fileSecurity, setFileSecurity] = useState(false)
   const [artifactDerivation, setArtifactDerivation] = useState(false)
   const [singleFileDownload, setSingleFileDownload] = useState(false)
+  const [rangeBatchDownload, setRangeBatchDownload] = useState(false)
+  const [selectedDownloadKeys, setSelectedDownloadKeys] = useState([])
+  const [batchAbortController, setBatchAbortController] = useState(null)
   const [previewText, setPreviewText] = useState('')
   const [uploadProgress, setUploadProgress] = useState(null)
   const [mode, setMode] = useState('create')
@@ -290,6 +360,7 @@ function WalkingSkeleton() {
         setFileSecurity(status.file_security?.enabled === true)
         setArtifactDerivation(status.artifact_derivation?.enabled === true)
         setSingleFileDownload(status.single_file_download?.enabled === true)
+        setRangeBatchDownload(status.range_batch_download?.enabled === true)
         setAvailability(status.healthy ? 'ready' : 'unavailable')
       })
       .catch(() => {
@@ -309,6 +380,10 @@ function WalkingSkeleton() {
     singleFileDownload && Array.isArray(artifact?.downloadables)
       ? artifact.downloadables
       : []
+  )
+  const selectedBatchItems = downloadables.filter(
+    (item) => selectedDownloadKeys.includes(downloadSelectorKey(item))
+      && item.download_allowed !== false,
   )
   const versionLimitReached = (
     Number(artifact?.version_count || 0) >= limits.maxVersions
@@ -689,91 +764,238 @@ function WalkingSkeleton() {
               artifact_version_id: artifact.artifact_version_id,
             },
           }
-      const response = await fetchWithRiskChallenge(
+      const exactUrl = `${API_BASE}/workspaces/${workspace.workspace_id}/artifact/downloads`
+      const exactBody = JSON.stringify({
+        kind: expected.kind,
+        asset_id: expected.id,
+      })
+      let blob
+      let serverHash = ''
+      let usedRangeResume = false
+
+      if (
         exactTarget
-          ? `${API_BASE}/workspaces/${workspace.workspace_id}/artifact/downloads`
-          : `${API_BASE}/workspaces/${workspace.workspace_id}/artifact/download`,
-        {
-          method: 'POST',
-          cache: 'no-store',
-          credentials: 'same-origin',
-          headers: exactTarget
-            ? {
-                Accept: 'application/octet-stream',
-                'Content-Type': 'application/json',
-              }
-            : undefined,
-          body: exactTarget
-            ? JSON.stringify({
-                kind: expected.kind,
-                asset_id: expected.id,
+        && rangeBatchDownload
+        && Number(expected.size_bytes) > 0
+      ) {
+        const chunks = []
+        let offset = 0
+        let stableEtag = ''
+        while (offset < expected.size_bytes) {
+          const end = Math.min(
+            expected.size_bytes - 1,
+            offset + DOWNLOAD_RANGE_CHUNK_BYTES - 1,
+          )
+          let response = null
+          let lastNetworkError = null
+          for (let attempt = 0; attempt < 2; attempt += 1) {
+            try {
+              response = await fetchWithRiskChallenge(exactUrl, {
+                method: 'POST',
+                cache: 'no-store',
+                credentials: 'same-origin',
+                headers: {
+                  Accept: 'application/octet-stream',
+                  'Content-Type': 'application/json',
+                  Range: `bytes=${offset}-${end}`,
+                  ...(stableEtag ? { 'If-Range': stableEtag } : {}),
+                },
+                body: exactBody,
               })
-            : undefined,
-        },
-      )
-      if (!response.ok) throw await errorFromResponse(response)
-      const serverHash = response.headers.get('X-KMFA-Artifact-SHA256') || ''
-      if (serverHash !== expected.sha256) {
-        throw new Error('下载响应 hash 与项目记录不一致，已停止保存。')
-      }
-      const disposition = response.headers.get('Content-Disposition') || ''
-      if (!disposition.toLowerCase().startsWith('attachment;')) {
-        throw new Error('下载响应不是附件模式，已停止保存。')
-      }
-      if (exactTarget) {
-        const responseKind = response.headers.get('X-KMFA-Artifact-Kind') || ''
-        const responseId = response.headers.get('X-KMFA-Artifact-ID') || ''
-        const responseSize = response.headers.get('X-KMFA-Artifact-Size') || ''
-        const recordedMediaType = response.headers.get('X-KMFA-Artifact-Media-Type') || ''
-        const sourceVersion = response.headers.get('X-KMFA-Source-Artifact-Version') || ''
-        const responseMediaType = (
-          response.headers.get('Content-Type') || ''
-        ).split(';', 1)[0].toLowerCase()
-        const expectedResponseMediaType = expected.media_type
-          .split(';', 1)[0]
-          .trim()
-          .toLowerCase()
-        if (
-          responseKind !== expected.kind
-          || responseId !== expected.id
-          || responseSize !== String(expected.size_bytes)
-          || recordedMediaType !== expected.media_type
-          || sourceVersion !== expected.source?.artifact_version_id
-          || responseMediaType !== expectedResponseMediaType
-        ) {
-          throw new Error('下载响应元数据与所选文件不一致，已停止保存。')
-        }
-        if (expected.kind === 'derivative') {
-          const processor = expected.source?.processor
-          const expectedProcessor = processor
-            ? `${processor.name}/${processor.version}`
-            : ''
-          if (
-            response.headers.get('X-KMFA-Processor') !== expectedProcessor
-          ) {
-            throw new Error('下载派生物的处理器来源不一致，已停止保存。')
+              lastNetworkError = null
+            } catch (caught) {
+              lastNetworkError = caught
+              response = null
+            }
+            if (response !== null) break
           }
-        } else if (
-          expected.source?.operation_id
-          && response.headers.get('X-KMFA-Source-Operation')
-            !== expected.source.operation_id
-        ) {
-          throw new Error('下载原件的上传来源不一致，已停止保存。')
+          if (response === null) throw lastNetworkError
+          if (!response.ok) throw await errorFromResponse(response)
+          if (response.status !== 206) {
+            throw new Error('续传响应没有返回明确的 206 区间，已停止拼接。')
+          }
+          const verified = validateExactDownloadResponse(response, expected)
+          serverHash = verified.serverHash
+          if (!stableEtag) stableEtag = verified.etag
+          if (!stableEtag || verified.etag !== stableEtag) {
+            throw new Error('续传期间文件验证标识发生变化，已停止拼接。')
+          }
+          const expectedRange = `bytes ${offset}-${end}/${expected.size_bytes}`
+          if (
+            response.headers.get('Content-Range') !== expectedRange
+            || response.headers.get('Accept-Ranges') !== 'bytes'
+          ) {
+            throw new Error('续传响应区间与请求不一致，已停止拼接。')
+          }
+          const chunk = await response.blob()
+          if (chunk.size !== end - offset + 1) {
+            throw new Error('续传分片字节数不一致，已停止拼接。')
+          }
+          chunks.push(chunk)
+          offset = end + 1
         }
+        blob = new Blob(chunks, { type: expected.media_type })
+        usedRangeResume = true
+      } else {
+        const response = await fetchWithRiskChallenge(
+          exactTarget
+            ? exactUrl
+            : `${API_BASE}/workspaces/${workspace.workspace_id}/artifact/download`,
+          {
+            method: 'POST',
+            cache: 'no-store',
+            credentials: 'same-origin',
+            headers: exactTarget
+              ? {
+                  Accept: 'application/octet-stream',
+                  'Content-Type': 'application/json',
+                }
+              : undefined,
+            body: exactTarget ? exactBody : undefined,
+          },
+        )
+        if (!response.ok) throw await errorFromResponse(response)
+        if (exactTarget) {
+          serverHash = validateExactDownloadResponse(
+            response,
+            expected,
+          ).serverHash
+        } else {
+          serverHash = response.headers.get('X-KMFA-Artifact-SHA256') || ''
+          if (serverHash !== expected.sha256) {
+            throw new Error('下载响应 hash 与项目记录不一致，已停止保存。')
+          }
+          const disposition = response.headers.get('Content-Disposition') || ''
+          if (!disposition.toLowerCase().startsWith('attachment;')) {
+            throw new Error('下载响应不是附件模式，已停止保存。')
+          }
+        }
+        blob = await response.blob()
       }
-      const blob = await response.blob()
       if (blob.size !== expected.size_bytes) {
         throw new Error('浏览器收到的下载字节数不一致，已停止保存。')
       }
       const browserHash = await sha256Hex(blob)
       if (browserHash !== serverHash) throw new Error('浏览器下载字节的 SHA-256 不一致，已停止保存。')
       saveBlob(blob, expected.name)
-      setMessage(`已校验并下载 ${expected.name}；类型、大小、来源与 SHA-256 均一致：${browserHash}`)
+      setMessage(
+        `已校验并下载 ${expected.name}；${usedRangeResume ? '固定分片续传、' : ''}类型、大小、来源与 SHA-256 均一致：${browserHash}`,
+      )
     })
+  }
+
+  const toggleDownloadSelection = (item) => {
+    const key = downloadSelectorKey(item)
+    setSelectedDownloadKeys((current) => {
+      if (current.includes(key)) {
+        return current.filter((candidate) => candidate !== key)
+      }
+      if (current.length >= MAX_BATCH_DOWNLOAD_ASSETS) return current
+      return [...current, key]
+    })
+  }
+
+  const downloadSelectedBatch = () => {
+    run(async () => {
+      if (
+        selectedBatchItems.length < 1
+        || selectedBatchItems.length > MAX_BATCH_DOWNLOAD_ASSETS
+      ) {
+        throw new Error(ERROR_COPY.batch_asset_count_invalid)
+      }
+      const expectedSourceBytes = selectedBatchItems.reduce(
+        (total, item) => total + Number(item.size_bytes),
+        0,
+      )
+      const url = `${API_BASE}/workspaces/${workspace.workspace_id}/artifact/downloads/batch`
+      const body = JSON.stringify({
+        assets: selectedBatchItems.map((item) => ({
+          kind: item.kind,
+          asset_id: item.id,
+        })),
+      })
+      const controller = new AbortController()
+      setBatchAbortController(controller)
+      let archive = null
+      let manifestHash = ''
+      let lastError = null
+      try {
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            const response = await fetchWithRiskChallenge(url, {
+              method: 'POST',
+              cache: 'no-store',
+              credentials: 'same-origin',
+              signal: controller.signal,
+              headers: {
+                Accept: 'application/zip',
+                'Content-Type': 'application/json',
+              },
+              body,
+            })
+            if (!response.ok) throw await errorFromResponse(response)
+            manifestHash = (
+              response.headers.get('X-KMFA-ZIP-Manifest-SHA256') || ''
+            )
+            const disposition = response.headers.get('Content-Disposition') || ''
+            const contentLength = Number(response.headers.get('Content-Length'))
+            if (
+              response.headers.get('X-KMFA-Batch-File-Count')
+                !== String(selectedBatchItems.length)
+              || response.headers.get('X-KMFA-Batch-Source-Bytes')
+                !== String(expectedSourceBytes)
+              || response.headers.get('X-KMFA-ZIP-Format')
+                !== 'zip-stored-stream-v1'
+              || response.headers.get('X-KMFA-ZIP-Manifest-Path')
+                !== 'manifest.json'
+              || !/^[0-9a-f]{64}$/.test(manifestHash)
+              || !disposition.toLowerCase().startsWith('attachment;')
+              || !Number.isSafeInteger(contentLength)
+              || contentLength <= 0
+            ) {
+              throw new Error('批量归档响应合同不完整，已停止保存。')
+            }
+            archive = await response.blob()
+            if (
+              archive.size !== contentLength
+              || (archive.type && archive.type !== 'application/zip')
+            ) {
+              throw new Error('批量归档字节未完整送达，已停止保存。')
+            }
+            lastError = null
+            break
+          } catch (caught) {
+            if (controller.signal.aborted) {
+              throw new Error('已取消本次批量下载；已保存文件和项目未改变，可重新发起。')
+            }
+            if (
+              Number.isInteger(caught?.status)
+              && caught.status < 500
+            ) {
+              throw caught
+            }
+            lastError = caught
+            archive = null
+          }
+        }
+      } finally {
+        setBatchAbortController(null)
+      }
+      if (archive === null) throw lastError
+      saveBlob(archive, 'kmfa-downloads.zip')
+      setMessage(
+        `已下载 ${selectedBatchItems.length} 项流式 ZIP；manifest SHA-256：${manifestHash}，解压后可按其中逐项 SHA-256 验证。`,
+      )
+    })
+  }
+
+  const cancelBatchDownload = () => {
+    batchAbortController?.abort()
   }
 
   const revokePageSession = () => {
     run(async () => {
+      batchAbortController?.abort()
       const response = await fetchWithRiskChallenge(`${API_BASE}/sessions/current`, {
         method: 'DELETE',
         cache: 'no-store',
@@ -788,6 +1010,7 @@ function WalkingSkeleton() {
       setRecoveryFileKey((value) => value + 1)
       setProjectName('')
       setSelectedFile(null)
+      setSelectedDownloadKeys([])
       setUploadProgress(null)
       setMode('recover')
       setMessage('短时会话已在服务器撤销并从浏览器清除；工作区和文件未删除。请使用恢复材料重新进入。')
@@ -807,8 +1030,8 @@ function WalkingSkeleton() {
           <h2 id="walking-title">第一个真实、可恢复的文件旅程</h2>
         </div>
         <p>
-          这是 S03 骨架上的 S06 上传链与 S07/P7.1 单文件下载切片，不是 GA：文件通过耐久意图与私有对象路径保存，先隔离，再由无数据库/对象凭据的私网扫描器分类。
-          未知、高风险、超时或异常结果不会冒充安全；拒绝项不下载，原件永不执行。逐项下载按工作区会话授权，浏览器会复核类型、大小、来源与 SHA-256；Range、批量 ZIP、导出 Job 和公开快照仍由后续 phase 接管。
+          这是 S03 骨架上的 S06 上传链与 S07/P7.2 可续传下载切片，不是 GA：文件通过耐久意图与私有对象路径保存，先隔离，再由无数据库/对象凭据的私网扫描器分类。
+          未知、高风险、超时或异常结果不会冒充安全；拒绝项不下载，原件永不执行。逐项下载按固定 Range 分片核对来源与 SHA-256；批量 ZIP 逐项流出、带 manifest/hash 且不在服务器内存组装整包。导出 Job 与公开快照仍由后续 phase 接管。
         </p>
       </div>
 
@@ -1087,11 +1310,39 @@ function WalkingSkeleton() {
                       {downloadables.length > 0 && (
                         <section
                           className="walking-download-list"
-                          aria-label="可验证的单文件下载"
+                          aria-label="可续传单文件与批量 ZIP 下载"
                           data-walking-download-list="ready"
                         >
                           <h5>精确版本与派生物</h5>
-                          <p>每项固定为附件；下载前后核对服务器记录与浏览器收到的字节。</p>
+                          <p>每项固定为附件；下载前后核对服务器记录与浏览器收到的字节。批量项进入独立目录，重名不会覆盖。</p>
+                          {rangeBatchDownload && (
+                            <div
+                              className="walking-batch-actions"
+                              data-walking-batch-selection={selectedBatchItems.length}
+                            >
+                              <span>
+                                已选择 {selectedBatchItems.length} / {MAX_BATCH_DOWNLOAD_ASSETS} 项
+                              </span>
+                              <button
+                                type="button"
+                                data-walking-download-batch="true"
+                                onClick={downloadSelectedBatch}
+                                disabled={busy || selectedBatchItems.length === 0}
+                              >
+                                下载带 manifest/hash 的流式 ZIP
+                              </button>
+                              {batchAbortController && (
+                                <button
+                                  type="button"
+                                  className="walking-batch-cancel"
+                                  data-walking-download-batch-cancel="true"
+                                  onClick={cancelBatchDownload}
+                                >
+                                  取消本次批量下载
+                                </button>
+                              )}
+                            </div>
+                          )}
                           {downloadables.map((item) => (
                             <article
                               key={`${item.kind}:${item.id}`}
@@ -1106,6 +1357,25 @@ function WalkingSkeleton() {
                               </span>
                               <span>{item.media_type} · {formatBytes(item.size_bytes)}</span>
                               <code>{item.sha256}</code>
+                              {rangeBatchDownload && (
+                                <label className="walking-download-choice">
+                                  <input
+                                    type="checkbox"
+                                    data-walking-download-select={item.id}
+                                    checked={selectedDownloadKeys.includes(downloadSelectorKey(item))}
+                                    onChange={() => toggleDownloadSelection(item)}
+                                    disabled={
+                                      busy
+                                      || item.download_allowed === false
+                                      || (
+                                        selectedBatchItems.length >= MAX_BATCH_DOWNLOAD_ASSETS
+                                        && !selectedDownloadKeys.includes(downloadSelectorKey(item))
+                                      )
+                                    }
+                                  />
+                                  <span>加入批量 ZIP</span>
+                                </label>
+                              )}
                               <button
                                 type="button"
                                 data-walking-download="exact"

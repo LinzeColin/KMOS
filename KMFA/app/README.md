@@ -172,9 +172,21 @@ workspace 才会收到有界的原件版本与派生物索引，并通过 JSON b
 一个对象；对象标识不作为可枚举 URL capability。每个响应固定 `attachment` + `nosniff`，同时
 返回准确 Content-Type、大小、SHA-256、源版本与上传 operation 或 processor/version，浏览器在
 保存前再次核对元数据和完整字节 hash。报告若已作为该 workspace 的文件进入同一对象/版本注册表，
-沿用同一下载链；旧全局报告中心和未来报告生成 Job 不接入匿名工作区。Range、批量 ZIP、显式导出
-Job 与 published snapshot 分别留给 P7.2、P7.3 和 S08。快速回滚置 `0` 后，新 selector fail
+沿用同一下载链；旧全局报告中心和未来报告生成 Job 不接入匿名工作区。显式导出 Job 与 published
+snapshot 分别留给 P7.3 和 S08。快速回滚置 `0` 后，新 selector fail
 closed，既有“最新原件”兼容下载继续工作，所有版本、派生物、DB、对象、备份和 v1.5 恢复资产保留。
+
+S07/P7.2 增加独立且默认关闭的 `KMFA_RANGE_BATCH_DOWNLOAD_ENABLED`。显式置 `1` 后，P7.1
+精确下载接受单个 `bytes` Range，并用内容 SHA-256 作为稳定强 ETag；客户端可用多个独立请求并行
+续传，错误或越界 Range 在对象读取前固定失败。批量端点继续使用已授权 JSON body selector，接受
+`1–500` 个不重复对象，按请求顺序生成 `ZIP_STORED` 流：每项位于独立 ordinal 目录，重名不会
+覆盖，非法历史文件名降级为安全名称，`manifest.json` 记录每项来源、大小与 SHA-256。服务器只在
+内存保留最多 `501` 条中央目录元数据、一次只 materialize/校验一个对象，绝不缓存整包或生成第二
+归档文件；客户端断开会关闭生成器并清理当前临时对象。浏览器单文件下载按固定 `4 MiB` Range 分片，
+网络失败只对当前分片有界重试一次；批量下载最多尝试两次，显示 manifest SHA-256，并由 manifest
+提供每项字节的 SHA-256 验证清单。
+快速回滚只需恢复 `KMFA_RANGE_BATCH_DOWNLOAD_ENABLED=0`：P7.1 单文件下载、schema `6`、所有
+原件/派生物/备份/卷和 v1.5 恢复资产均保持不变。P7.3 异步导出 Job 未在本 phase 实现。
 
 S05/P5.4 把 schema expand 到 v4，并增加默认无到期的 `workspace_retention`、legal hold、明确删除
 请求/对象 target、publication binding、append-only lifecycle events 与当前 schema restore proof。

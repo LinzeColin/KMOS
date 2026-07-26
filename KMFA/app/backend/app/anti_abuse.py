@@ -432,6 +432,7 @@ def _classify(method: str, path: str) -> tuple[str | None, str | None]:
     if method == "POST" and (
         relative.endswith("/artifact/download")
         or relative.endswith("/artifact/downloads")
+        or relative.endswith("/artifact/downloads/batch")
         or relative.endswith("/recovery-file")
     ):
         return "export", workspace_value
