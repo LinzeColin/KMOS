@@ -1,0 +1,152 @@
+{
+  "run_id": "`RUN-IDS-STAGE047-P1-LOCAL-20260722-001`",
+  "task_id": "IDS-V0_1-STAGE047-P1",
+  "acceptance_id": "ACC-STAGE-047",
+  "action": "绑定 Stage046 已复审快照并定义精确解析器输出 envelope、六字段、嵌套 schema、lineage、safe error 与质量证据边界",
+  "result": "`PASS_PHASE1_PARSER_OUTPUT_CONTRACT_RUNTIME_DISABLED`",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "base_stage046_review_commit": "c7d66380cfab7cf00ccbb9af34ef43a7f44a7bde",
+  "base_stage046_review_root_tree": "455b675a23243a8978b332e07e4a4cadcc532038",
+  "base_stage046_review_kmids_tree": "98d21d245ccee585795cbc6e6180a8fcafda7f75",
+  "base_stage046_review_parent": "5dee024cd44e2e772776487ee21761f274c7708e",
+  "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+  "source_member_sha256": "e1d5bdb219b6f16ca7fec4e4455e7acba1ecbae9803a7c13721b75895671d2f4",
+  "source_roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+  "source_instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+  "contract": {
+    "schema_version": "ids.stage047.parser_output.phase1.v1",
+    "contract_state": "PHASE1_ENGINEERING_CONTRACT_PARSER_OUTPUT_RUNTIME_DISABLED",
+    "phase1_contract_valid": true,
+    "source_integrity_valid": true,
+    "predecessor_binding_valid": true,
+    "upstream_snapshot_bindings_valid": true,
+    "required_envelope_field_count": 18,
+    "required_core_field_count": 6,
+    "nested_item_schema_count": 4,
+    "output_identity_scope": "INTEGRITY_ONLY_NOT_EXTERNAL_PROVENANCE_OR_QUALITY_APPROVAL",
+    "parser_content_fact_level": "CANDIDATE",
+    "initial_quality_gate_state": "UNASSESSED",
+    "stage048_fallback_owner_preserved": true,
+    "stage049_differential_evaluation_owner_preserved": true,
+    "stage050_prompt_injection_owner_preserved": true
+  },
+  "validation_iterations": [
+    {
+      "gate": "stage047_phase1_tdd_red",
+      "result": "EXPECTED_FAIL",
+      "tests": 10,
+      "failures": 4,
+      "errors": 9
+    },
+    {
+      "gate": "stage047_phase1_core_checker",
+      "result": "PASS",
+      "checks": 24
+    },
+    {
+      "gate": "stage047_phase1_pre_governance",
+      "result": "EXPECTED_FAIL",
+      "tests": 10,
+      "passed": 9,
+      "failures": 1,
+      "reason": "批次锁、roadmap 与事件仍停在 Stage046 review 状态"
+    },
+    {
+      "gate": "stage047_phase1_focused_final",
+      "result": "PASS",
+      "tests": 10,
+      "passed": 10
+    },
+    {
+      "gate": "stage005_governance_regression",
+      "result": "PASS",
+      "tests": 176,
+      "passed": 176,
+      "duration_seconds": 50.991
+    },
+    {
+      "gate": "stage041_046_delivery_compatibility",
+      "result": "PASS",
+      "tests": 73,
+      "passed": 73,
+      "duration_seconds": 271.316
+    },
+    {
+      "gate": "stage041_047_aggregate_initial",
+      "result": "FAIL_CLOSED_REPAIRED_BY_TARGETED_RECHECK",
+      "tests": 423,
+      "passed": 422,
+      "failures": 1,
+      "duration_seconds": 1137.941,
+      "reason": "Stage042 历史复审测试尚未接受精确 Stage047-P1 当前任务标记"
+    },
+    {
+      "gate": "stage042_review_targeted_repair",
+      "result": "PASS",
+      "tests": 10,
+      "passed": 10,
+      "duration_seconds": 232.893
+    },
+    {
+      "gate": "ids_v0_1_full_discovery_initial",
+      "result": "FAIL_CLOSED_REPAIRED_BY_TARGETED_RECHECK",
+      "tests": 1177,
+      "passed": 1171,
+      "failures": 6,
+      "duration_seconds": 1457.262,
+      "reason": "六项 Stage038/039 历史前向路由断言尚未接受精确 Stage047-P1 到 P2 门禁"
+    },
+    {
+      "gate": "stage038_039_forward_route_targeted_repair",
+      "result": "PASS",
+      "tests": 44,
+      "passed": 44,
+      "duration_seconds": 74.732
+    },
+    {
+      "gate": "historical_current_stage_review_checkers",
+      "result": "PASS",
+      "checker_count": 9,
+      "git_index_binding_valid": true
+    },
+    {
+      "gate": "project_dual_plane",
+      "result": "PASS"
+    },
+    {
+      "gate": "owner_render_idempotence",
+      "result": "PASS"
+    }
+  ],
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "sparse_root_governance_conflict": "scripts/lean_governance.py 缺失；仅报告 SPARSE_CONFLICT，未扩展稀疏范围"
+  },
+  "ids_business_source_read_performed": false,
+  "raw_metadata_content_accessed": false,
+  "source_file_open_performed": false,
+  "file_type_redetection_performed": false,
+  "route_evaluation_performed": false,
+  "parser_dispatch_performed": false,
+  "parser_execution_performed": false,
+  "parser_output_produced": false,
+  "fallback_execution_performed": false,
+  "differential_evaluation_performed": false,
+  "prompt_injection_scan_performed": false,
+  "quality_gate_evaluation_performed": false,
+  "evidence_promotion_performed": false,
+  "persistent_state_write_performed": false,
+  "database_connection_performed": false,
+  "production_runtime_activation_performed": false,
+  "phase2_started": false,
+  "whole_stage_review_performed": false,
+  "batch_review_performed": false,
+  "github_upload_allowed": false,
+  "push_allowed": false,
+  "app_reinstall_allowed": false,
+  "next_gate": "IDS-STAGE047-P2-GATE"
+}

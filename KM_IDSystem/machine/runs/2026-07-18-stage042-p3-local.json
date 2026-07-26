@@ -1,0 +1,56 @@
+{
+  "run_id": "`RUN-IDS-STAGE042-P3-LOCAL-20260718-001`",
+  "action": "验证十二项隔离自动生命周期场景与保护边界",
+  "result": "`PASS_LOCAL_PHASE3_PRODUCTION_DISABLED`",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "predecessor": {
+    "phase2_commit": "32bd7d9775229e03cd9855edc4e5b737860b6af7",
+    "phase2_kmids_tree": "6ddb0c27a95afa1662a892e6bb3b5d890f72f963",
+    "phase2_parent": "24972088d901d351ac6b59bdb704fea64121bfc9"
+  },
+  "source_integrity": {
+    "taskpack_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "stage042_member_sha256": "78a4bed1f5348837699bd7dd227898e6d47cc4099ca268ee1600bae84605ec08",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8"
+  },
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0
+  },
+  "implementation": {
+    "scenario_contract_schema": "ids.stage042.automatic_lifecycle.phase3.scenarios.v1",
+    "scenario_count": 12,
+    "passed_scenario_count": 12,
+    "selected_lock_family_count": 4,
+    "protected_artifact_class_count": 5,
+    "actual_isolated_worker_exception_performed": true,
+    "actual_project_disk_observation_performed": true,
+    "actual_lifecycle_performed": false,
+    "process_crash_recovery_performed": false,
+    "process_termination_performed": false,
+    "cleanup_delete_performed": false,
+    "persistence_performed": false
+  },
+  "verified_results": [
+    "场景检查器合同 19/19、隔离场景 12/12、聚焦测试 17/17",
+    "Stage004 3/3、Stage005 159/159、Stage037-039 124/124、Stage040-042 162/162",
+    "完整 IDS v0.1 discovery 844/844，耗时 618.960 秒",
+    "203 条治理事件零解析、重复和语义错误",
+    "人类平面二次渲染无漂移，项目级双平面 PASS",
+    "两处生成中文术语问题已修复，未扩大术语白名单",
+    "Stage041 场景测试到 Stage042 Phase1/2/3 的 Git 索引哈希链精确重绑定且历史证据保持"
+  ],
+  "prohibitions_observed": [
+    "未进入 Stage042 Phase 4、整阶段复审或批次复审",
+    "未执行自动启动、暂停、恢复、关闭或任何状态写入",
+    "未执行进程崩溃恢复、进程终止、物理 drive 移除、磁盘分配、外部 API 或清理删除",
+    "未读取原始元数据或创建虚构 IDS 业务数据",
+    "未上传、推送、合并、变更 issue 或重装应用"
+  ],
+  "next_gate": "IDS-STAGE042-P4-GATE"
+}

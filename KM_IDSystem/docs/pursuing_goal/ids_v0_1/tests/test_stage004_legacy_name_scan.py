@@ -41,25 +41,81 @@ class Stage004LegacyNameScanTests(unittest.TestCase):
         self.assertNotIn("ProductMetaDatabase", matched)
         self.assertNotIn("FinanceMetaDatabase", matched)
 
-    def test_stage039_checker_allows_only_governance_identifiers(self):
+    def test_checker_scripts_allow_only_governance_identifiers(self):
         module = self._load_module()
-        checker_path = (
-            "KM_IDSystem/scripts/check_retry_dead_letter_stage_review.py"
+        checker_paths = (
+            "KM_IDSystem/scripts/check_retry_dead_letter_stage_review.py",
+            "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py",
         )
 
+        for checker_path in checker_paths:
+            with self.subTest(checker_path=checker_path):
+                self.assertEqual(
+                    "allowed_legacy_context",
+                    module.classify_hit(
+                        checker_path,
+                        'task_id = "TASK-OPME-B-001"',
+                        "legacy_opme_word",
+                    ),
+                )
+                self.assertEqual(
+                    "active_display_debt",
+                    module.classify_hit(
+                        checker_path,
+                        'display_name = "OpMe"',
+                        "legacy_opme_word",
+                    ),
+                )
+                self.assertEqual(
+                    "active_display_debt",
+                    module.classify_hit(
+                        checker_path,
+                        'task_id = "TASK-OPME-B-001"; display_name = "OpMe"',
+                        "legacy_opme_word",
+                    ),
+                )
         self.assertEqual(
             "allowed_legacy_context",
             module.classify_hit(
-                checker_path,
-                'task_id = "TASK-OPME-B-001"',
+                "KM_IDSystem/governance/archive/local_handoff/README.md",
+                "legacy source: opme-system",
+                "legacy_path_kebab",
+            ),
+        )
+        for machine_path in (
+            "KM_IDSystem/machine/facts/features.json",
+            "KM_IDSystem/machine/runs/2026-07-18-stage042-p2-local.json",
+        ):
+            with self.subTest(machine_path=machine_path):
+                self.assertEqual(
+                    "allowed_legacy_context",
+                    module.classify_hit(
+                        machine_path,
+                        '  "id": "FEAT-OPME-008",',
+                        "legacy_opme_word",
+                    ),
+                )
+                self.assertEqual(
+                    "active_display_debt",
+                    module.classify_hit(
+                        machine_path,
+                        '  "id": "FEAT-OPME-008", "name": "OpMe"',
+                        "legacy_opme_word",
+                    ),
+                )
+        self.assertEqual(
+            "active_display_debt",
+            module.classify_hit(
+                "KM_IDSystem/machine/facts/features.json",
+                '  "name": "OpMe",',
                 "legacy_opme_word",
             ),
         )
         self.assertEqual(
-            "active_display_debt",
+            "allowed_legacy_context",
             module.classify_hit(
-                checker_path,
-                'display_name = "OpMe"',
+                "KM_IDSystem/machine/facts/config.yaml",
+                '  "calibration_task": "TASK-OPME-B-001",',
                 "legacy_opme_word",
             ),
         )

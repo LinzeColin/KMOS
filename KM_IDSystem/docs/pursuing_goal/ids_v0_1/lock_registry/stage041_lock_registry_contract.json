@@ -1,0 +1,296 @@
+{
+  "schema_version": "ids.stage041.lock_registry.phase1.v1",
+  "stage": "STAGE-041",
+  "phase": "Phase 1",
+  "task_id": "IDS-V0_1-STAGE041-P1",
+  "acceptance_id": "ACC-STAGE-041",
+  "local_code": "D07-S005",
+  "domain": "D07 · 任务编排与机器控制",
+  "entrance": "IDS 系统运营入口",
+  "pursuing_goal": "为文件处理、归档解包、索引构建、索引切换与报告生成定义锁注册、租约与 fencing 竞态控制契约。",
+  "lock_registry_contract_id": "ids.lock_registry.v0_1.p1",
+  "contract_state": "PHASE1_ENGINEERING_CONTRACT_RUNTIME_DISABLED",
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE041-P2-GATE",
+  "source_binding": {
+    "source_archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "source_member": "IDS_v0_1_Final_Chinese_Revised/stages/STAGE-041_锁注册与竞态控制.md",
+    "source_member_match_count": 1,
+    "source_member_integrity": "OK",
+    "source_member_sha256": "2258a7b57c6c2881f208f43fbe2862c7815a2794c908d6fef108a1a4b5a2ad36",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+    "source_verification_status": "SOURCE_VERIFIED"
+  },
+  "upstream_bindings": {
+    "stage037_state_index_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/job_state_model/stage037_job_state_model_index.json",
+      "sha256": "b70bf72ebe4212f45d380c13fbfe429791e1f4a5c73dccbba81211b7adc1c2d3"
+    },
+    "stage038_scenarios_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_queue_baseline/stage038_worker_queue_scenarios.json",
+      "sha256": "0ec9f1a0de6ec24d64d4108214ea426f9171b15eebdd6c3c60693fade62f2961"
+    },
+    "stage038_delivery_contract_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_queue_baseline/stage038_worker_queue_delivery_contract.json",
+      "sha256": "a4067c25b46340c33bee5017c286d6867d2b72e8fa208430c005d6b1a342c7e4"
+    },
+    "stage039_delivery_contract_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/retry_dead_letter/stage039_retry_dead_letter_delivery_contract.json",
+      "sha256": "c7d020d8fe5fc21dc9c6d7fb01030659f3e545f1416cae96f5c96c77a7f0c06b"
+    },
+    "stage040_delivery_contract_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_delivery_contract.json",
+      "sha256": "f9934bc5e0f30e032f3138f9c11022b823942160f07b734b0ccbf9ad17f431ce"
+    },
+    "previous_batch_lock_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH031_040_UPLOAD_LOCK.yaml",
+      "sha256": "ad235a242c5833e2e6243227cc8fe7ca9223a75d5ae98a8b732b3b4418477940"
+    }
+  },
+  "state_model_inheritance": {
+    "state_model_version": "ids.job_state.v1",
+    "required_envelope_fields": [
+      "lease_owner_ref",
+      "lease_expires_at",
+      "fencing_token",
+      "lock_key"
+    ],
+    "claim_transition": ["QUEUED", "CLAIMED"],
+    "claim_guard": "claim_lease_and_lock_acquired",
+    "active_transition_guards": ["live_lease_valid", "fencing_token_matches"],
+    "unclaimed_guard": "no_active_claim_or_lock",
+    "terminal_states": ["SUCCEEDED", "FAILED", "DEAD_LETTERED", "CANCELLED"],
+    "terminal_state_mutation_allowed": false
+  },
+  "operation_scope_contract": {
+    "operation_families": {
+      "FILE_PROCESSING": {
+        "job_types": ["PARSE"],
+        "required_lock_namespaces": ["SOURCE_PIPELINE", "FILE_PROCESSING"],
+        "primary_granularity": "SOURCE_REFERENCE"
+      },
+      "ARCHIVE_EXTRACTION": {
+        "job_types": ["ARCHIVE"],
+        "required_lock_namespaces": ["SOURCE_PIPELINE", "ARCHIVE_EXTRACTION"],
+        "primary_granularity": "SOURCE_REFERENCE"
+      },
+      "INDEX_BUILD": {
+        "job_types": ["INDEX"],
+        "required_lock_namespaces": ["SOURCE_PIPELINE", "INDEX_BUILD"],
+        "primary_granularity": "INDEX_VERSION_REFERENCE"
+      },
+      "INDEX_SWITCH": {
+        "job_types": ["INDEX"],
+        "required_lock_namespaces": ["SOURCE_PIPELINE", "INDEX_SWITCH"],
+        "primary_granularity": "INDEX_NAMESPACE_REFERENCE"
+      },
+      "REPORT_GENERATION": {
+        "job_types": ["REPORT"],
+        "required_lock_namespaces": ["SOURCE_PIPELINE", "REPORT_GENERATION"],
+        "primary_granularity": "REPORT_IDENTITY_REFERENCE"
+      }
+    },
+    "stage038_same_source_conflict_job_types": ["ARCHIVE", "PARSE", "INDEX", "REPORT"],
+    "stage038_conflict_result_code": "RESOURCE_CONFLICT_ACTIVE",
+    "mandatory_shared_guard_namespace": "SOURCE_PIPELINE",
+    "all_operation_families_require_shared_guard": true,
+    "stage038_baseline_narrowing_allowed": false,
+    "index_build_switch_coordination_required": true
+  },
+  "registry_record_contract": {
+    "required_fields": [
+      "lock_key",
+      "lock_namespace",
+      "resource_identity_ref",
+      "operation_scope",
+      "holder_job_id",
+      "holder_attempt_id",
+      "lease_owner_ref",
+      "lease_expires_at",
+      "fencing_token",
+      "lock_version",
+      "acquired_at",
+      "renewed_at",
+      "released_at",
+      "release_reason",
+      "audit_ref",
+      "checkpoint_ref",
+      "policy_version"
+    ],
+    "reference_only": true,
+    "raw_path_allowed": false,
+    "raw_payload_allowed": false,
+    "secret_material_allowed": false,
+    "unknown_field_action": "REJECT_CONTRACT"
+  },
+  "lock_key_contract": {
+    "derivation": "SHA256_CANONICAL_NAMESPACE_AND_STABLE_RESOURCE_IDENTITY_REF",
+    "multi_lock_order": "LEXICOGRAPHIC_LOCK_KEY",
+    "stable_normalized_reference_required": true,
+    "source_content_read_required": false,
+    "raw_path_in_key_allowed": false,
+    "missing_identity_action": "REQUIRE_MANUAL_REVIEW",
+    "hash_algorithm": "SHA-256"
+  },
+  "idempotency_contract": {
+    "job_identity_derivation": "SHA256_TASK_INPUT_JOB_TYPE",
+    "lock_operation_derivation": "SHA256_JOB_ATTEMPT_LOCK_KEY",
+    "replay_returns_existing_decision": true,
+    "replay_advances_fencing_token": false,
+    "same_idempotency_key_different_input_action": "REJECT_CONFLICT"
+  },
+  "acquisition_contract": {
+    "compare_and_set_fields": ["lock_key", "expected_lock_version", "expected_fencing_token"],
+    "multi_lock_atomicity": "ALL_OR_NONE_CAS",
+    "partial_lock_retention_allowed": false,
+    "canonical_order_required": true,
+    "unknown_evidence_action": "REQUIRE_MANUAL_REVIEW",
+    "conflict_action": "PAUSE_BEFORE_QUEUE_ADMISSION",
+    "deadlock_prevention": "CANONICAL_ORDER_AND_ALL_OR_NONE"
+  },
+  "lease_contract": {
+    "single_active_holder_per_lock_key": true,
+    "renewal_requires_same_holder_attempt_and_token": true,
+    "renewal_requires_unexpired_live_lease": true,
+    "expiry_observation_alone_grants_lock": false,
+    "takeover_requires_expiry_evidence": true,
+    "takeover_atomically_advances_fence_and_version": true,
+    "clock_source_policy": "DEFERRED_TO_PHASE2",
+    "unknown_or_stale_lease_action": "REQUIRE_MANUAL_REVIEW"
+  },
+  "fencing_contract": {
+    "token_monotonic": true,
+    "guarded_commit_surfaces": ["output", "job_state", "checkpoint", "evidence"],
+    "stale_holder_commit_allowed": false,
+    "stale_holder_release_allowed": false,
+    "missing_token_action": "REJECT_COMMIT",
+    "token_regression_action": "REJECT_AND_REQUIRE_MANUAL_REVIEW",
+    "commit_requires_current_lock_version": true
+  },
+  "release_contract": {
+    "matching_identity_token_release_idempotent": true,
+    "release_requires_holder_job_attempt": true,
+    "release_requires_current_fencing_token": true,
+    "stale_release_action": "REJECT_STALE_RELEASE",
+    "terminal_release_requires_audit_ref": true,
+    "implicit_release_allowed": false
+  },
+  "conflict_contract": {
+    "result_code": "RESOURCE_CONFLICT_ACTIVE",
+    "queue_record_created": false,
+    "operation_invoked": false,
+    "retry_budget_consumed": false,
+    "partial_lock_retained": false,
+    "status_projection": "等待资源锁",
+    "active_conflict_terminal_mutation_allowed": false
+  },
+  "parameter_contract": {
+    "numeric_values_assigned": false,
+    "deferred_parameters": [
+      "lease_duration",
+      "renewal_interval",
+      "expiry_grace",
+      "acquisition_timeout",
+      "maximum_wait",
+      "retry_jitter",
+      "deadlock_timeout"
+    ],
+    "phase2_selection_requirements": [
+      "source",
+      "rationale",
+      "unit",
+      "policy_version",
+      "validation_evidence",
+      "rollback"
+    ],
+    "implicit_default_allowed": false,
+    "production_calibrated": false
+  },
+  "backpressure_boundary": {
+    "policy_owner": "STAGE-040",
+    "resource_signals": [
+      "EXTERNAL_DRIVE_OFFLINE",
+      "DISK_SPACE_INSUFFICIENT",
+      "EXTERNAL_API_BUDGET_INSUFFICIENT"
+    ],
+    "resource_signal_effect": "LEGAL_PAUSE_CANDIDATE_ONLY",
+    "automatic_resume_allowed": false,
+    "automatic_resume_runtime_owner": "STAGE-042",
+    "backpressure_runtime_performed": false
+  },
+  "retry_boundary": {
+    "lock_conflict_consumes_retry": false,
+    "lease_expiry_observation_consumes_retry": false,
+    "retry_policy_runtime_owner": "STAGE-039",
+    "retry_scheduler_performed": false
+  },
+  "partial_output_cleanup_boundary": {
+    "runtime_owner": "STAGE-044",
+    "cleanup_candidate_requires_allowlist": true,
+    "cleanup_runtime_performed": false,
+    "protected_artifact_delete_allowed": false,
+    "protected_artifact_classes": [
+      "FACT_SOURCE",
+      "MANIFEST",
+      "EVIDENCE_LEDGER",
+      "AUDIT_LOG",
+      "REPORT_SNAPSHOT"
+    ]
+  },
+  "ownership_matrix": {
+    "job_state_model": "STAGE-037",
+    "queue_and_worker_transport": "STAGE-038",
+    "retry_and_dead_letter_policy": "STAGE-039",
+    "backpressure_decision_policy": "STAGE-040",
+    "lock_lease_and_fencing_runtime": "STAGE-041",
+    "automatic_resume_runtime": "STAGE-042",
+    "crash_recovery_runtime": "STAGE-043",
+    "cleanup_execution_runtime": "STAGE-044"
+  },
+  "human_status_projection": {
+    "ACQUIRED": "已获取资源锁",
+    "RESOURCE_CONFLICT_ACTIVE": "等待资源锁",
+    "STALE_FENCING_TOKEN": "锁凭证已失效",
+    "UNKNOWN_OR_STALE_EVIDENCE": "需人工复核",
+    "RUNTIME_DISABLED": "锁运行时未启用"
+  },
+  "phase2_entry_gate": {
+    "entry_authorized": true,
+    "required_task_id": "IDS-V0_1-STAGE041-P2",
+    "required_gate": "IDS-STAGE041-P2-GATE",
+    "separate_run_required": true,
+    "required_work": [
+      "source and register every numeric parameter",
+      "implement one isolated non-production lock decision slice",
+      "prove acquire renew release takeover and fencing behavior",
+      "preserve Stage038 conflict behavior",
+      "keep persistence and production activation disabled"
+    ]
+  },
+  "truth_flags": {
+    "taskpack_source_read_performed": true,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "lock_runtime_performed": false,
+    "lease_runtime_performed": false,
+    "fencing_runtime_performed": false,
+    "queue_runtime_performed": false,
+    "worker_runtime_performed": false,
+    "retry_scheduler_performed": false,
+    "backpressure_runtime_performed": false,
+    "automatic_resume_performed": false,
+    "crash_recovery_runtime_performed": false,
+    "cleanup_runtime_performed": false,
+    "database_connection_performed": false,
+    "schema_change_performed": false,
+    "state_registry_write_performed": false,
+    "runtime_output_written": false,
+    "real_ids_business_job_created": false,
+    "fake_ids_business_data_used": false,
+    "external_api_call_performed": false,
+    "github_upload_allowed": false,
+    "app_reinstall_allowed": false
+  }
+}

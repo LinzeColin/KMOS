@@ -1,0 +1,378 @@
+{
+  "schema_version": "ids.stage045.file_type_detection.phase2.v1",
+  "stage": "STAGE-045",
+  "phase": "Phase 2",
+  "task_id": "IDS-V0_1-STAGE045-P2",
+  "acceptance_id": "ACC-STAGE-045",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_IN_MEMORY_FILE_TYPE_DETECTION_SLICE",
+  "detector_contract_id": "ids.file_type_detector.v0_1.stage045.p2",
+  "contract_state": "PHASE2_ISOLATED_DETECTION_SLICE_ENABLED_PARSER_DISABLED",
+  "next_gate": "IDS-STAGE045-P3-GATE",
+  "source_binding": {
+    "source_archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "source_member": "IDS_v0_1_Final_Chinese_Revised/stages/STAGE-045_文件类型检测.md",
+    "source_member_match_count": 1,
+    "source_member_sha256": "4eac237a7f63d764cf71789d4949a5168cbe8fe24e1fe7eb816baabe04bb4d27",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+    "source_verification_status": "SOURCE_VERIFIED"
+  },
+  "phase1_predecessor_binding": {
+    "commit": "2f4051b7e9960e10698052b4e3f71fcb093f35e3",
+    "root_tree": "462ff8112f8f59913a5822c67816c9247da0293e",
+    "kmids_tree": "5bb8cf7b5812276cb14f3c94983f237e46b4b404",
+    "parent": "97044d0b6475ebf41b4f79311164a392979305a0",
+    "task_id": "IDS-V0_1-STAGE045-P1",
+    "result": "PASS_PHASE1_CONTRACT_DETECTION_RUNTIME_DISABLED"
+  },
+  "upstream_bindings": {
+    "phase1_contract": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_contract.json",
+      "sha256": "6f3926cd87ee3a654384176516db1d4f7e83e0906a220057d33d6873be8a506f"
+    },
+    "phase1_checker": {
+      "ref": "KM_IDSystem/scripts/check_file_type_detection.py",
+      "sha256": "6e82ddf50bdbbe3e2a3259202aec510830965d8786700eb276d271ad22b0781e"
+    },
+    "phase1_boundary": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_PHASE1_FILE_TYPE_DETECTION_SCOPE_BOUNDARY.md",
+      "sha256": "d69c9b5a7aad1a16091916667bd99c92b431ade0e47891732b076b25a22c5644"
+    },
+    "phase1_tests": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection.py",
+      "sha256": "be96171f92323ae09b9636e3b6cbe245f5415605581d3e388693da9057a6ab17"
+    },
+    "phase1_run": {
+      "ref": "KM_IDSystem/machine/runs/2026-07-19-stage045-p1-local.json",
+      "sha256": "7e0ec4d59193fd2c13632e342094106112a3363fd2470ed147e753822c73045e"
+    },
+    "stage013_fingerprint_checker": {
+      "ref": "KM_IDSystem/scripts/check_file_fingerprint.py",
+      "sha256": "624129563860c47ab78c5f13bb37996f2bfa4652f5160bca84979d27fab60769"
+    },
+    "stage037_state_index": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/job_state_model/stage037_job_state_model_index.json",
+      "sha256": "b70bf72ebe4212f45d380c13fbfe429791e1f4a5c73dccbba81211b7adc1c2d3"
+    },
+    "raw_data_boundary": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md",
+      "sha256": "ad4695abf250049699a1b96b49b81432e5d5754dfe7de69c7f3056463a0a7d51"
+    }
+  },
+  "detector_policy": {
+    "policy_version": "ids.file_type_detector.v0_1.stage045.p2",
+    "max_control_bytes": 1048576,
+    "max_evidence_text_chars": 4096,
+    "ceiling_fact_level": "ISOLATED_SAFETY_CEILING_NOT_PRODUCTION_PARAMETER",
+    "supported_canonical_types": [
+      "PDF",
+      "DOCX",
+      "XLSX",
+      "CSV",
+      "TXT",
+      "PNG",
+      "JPEG",
+      "TIFF",
+      "UNKNOWN",
+      "CORRUPT_OR_UNREADABLE"
+    ],
+    "signature_rules": {
+      "PDF": "%PDF-",
+      "PNG": "89504e470d0a1a0a",
+      "JPEG": "ffd8ff",
+      "TIFF_LITTLE_ENDIAN": "49492a00",
+      "TIFF_BIG_ENDIAN": "4d4d002a",
+      "ZIP_CONTAINER": ["504b0304", "504b0506", "504b0708"]
+    },
+    "format_validation_rules": {
+      "PDF": {
+        "header_required": true,
+        "eof_within_last_bytes": 1024
+      },
+      "PNG": {
+        "crc_required": true,
+        "ihdr_first_required": true,
+        "idat_required": true,
+        "iend_terminal_required": true
+      },
+      "JPEG": {
+        "soi_required": true,
+        "eoi_required": true
+      },
+      "TIFF": {
+        "byte_order_magic_required": true,
+        "bounded_ifd_required": true
+      },
+      "OOXML": {
+        "canonical_member_paths_required": true,
+        "duplicate_member_names_allowed": false
+      }
+    },
+    "extension_type_map": {
+      ".pdf": "PDF",
+      ".docx": "DOCX",
+      ".xlsx": "XLSX",
+      ".csv": "CSV",
+      ".txt": "TXT",
+      ".png": "PNG",
+      ".jpg": "JPEG",
+      ".jpeg": "JPEG",
+      ".tif": "TIFF",
+      ".tiff": "TIFF"
+    },
+    "mime_type_map": {
+      "application/pdf": "PDF",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
+      "text/csv": "CSV",
+      "text/plain": "TXT",
+      "image/png": "PNG",
+      "image/jpeg": "JPEG",
+      "image/tiff": "TIFF"
+    },
+    "ooxml_container_rules": {
+      "zip_magic_alone_sufficient": false,
+      "content_types_marker": "[Content_Types].xml",
+      "docx_namespace_prefix": "word/",
+      "xlsx_namespace_prefix": "xl/",
+      "both_namespaces_action": "REVIEW_REQUIRED",
+      "missing_content_types_action": "REVIEW_REQUIRED",
+      "missing_namespace_action": "REVIEW_REQUIRED",
+      "corrupt_zip_action": "BLOCK_AS_CORRUPT_OR_UNREADABLE",
+      "canonical_member_paths_required": true,
+      "duplicate_member_names_allowed": false
+    },
+    "text_heuristic_rules": {
+      "encoding": "UTF-8_OR_UTF-8-SIG_CONTROL_SLICE_ONLY",
+      "binary_nul_blocked": true,
+      "csv_delimiters": [",", "\t", ";"],
+      "csv_min_nonempty_rows": 2,
+      "csv_min_columns": 2,
+      "csv_requires_consistent_width": true,
+      "text_without_magic_max_confidence": "MEDIUM",
+      "heuristic_is_production_calibrated": false
+    },
+    "filename_overrides_signature": false,
+    "mime_requires_provenance": true,
+    "extension_only_max_confidence": "LOW",
+    "extension_only_route_state": "ROUTE_REVIEW_REQUIRED",
+    "unknown_action": "OWNER_REVIEW_REQUIRED",
+    "conflict_action": "OWNER_REVIEW_REQUIRED",
+    "corrupt_action": "BLOCK_AND_RECORD_ERROR",
+    "route_candidate_map": {
+      "PDF": "PDF_PARSER",
+      "DOCX": "OOXML_WORD_PARSER",
+      "XLSX": "OOXML_WORKBOOK_PARSER",
+      "CSV": "DELIMITED_TEXT_PARSER",
+      "TXT": "PLAIN_TEXT_PARSER",
+      "PNG": "IMAGE_PARSER",
+      "JPEG": "IMAGE_PARSER",
+      "TIFF": "IMAGE_PARSER",
+      "UNKNOWN": "UNSUPPORTED",
+      "CORRUPT_OR_UNREADABLE": "UNSUPPORTED"
+    },
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "fallback_execution_allowed": false
+  },
+  "request_contract": {
+    "schema_version": "ids.stage045.file_type_detection_request.v1",
+    "required_root_fields": [
+      "schema_version",
+      "detection_request_id",
+      "source_identity_ref",
+      "source_fingerprint_ref",
+      "filename",
+      "extension_signal",
+      "mime_signal",
+      "detector_contract_version",
+      "requested_at"
+    ],
+    "extension_signal_fields": ["value", "advisory_only"],
+    "mime_signal_fields": ["value", "provenance_ref", "provenance_bound"],
+    "request_id_formula": "detection:sha256(canonical_json(request_without_detection_request_id))",
+    "bounded_control_bytes_runtime_only": true,
+    "raw_payload_field_allowed": false,
+    "raw_payload_persistence_allowed": false,
+    "absolute_source_path_allowed": false,
+    "request_persistence_allowed": false,
+    "unknown_mime_canonical_value": "UNKNOWN",
+    "requested_at_validation": "RFC3339_UTC_REAL_CALENDAR_VALUE"
+  },
+  "result_contract": {
+    "schema_version": "ids.stage045.file_type_detection_result.v1",
+    "required_root_fields": [
+      "schema_version",
+      "detection_request_id",
+      "detector_version",
+      "detected_type",
+      "candidate_types",
+      "detection_state",
+      "confidence",
+      "route_candidate",
+      "route_state",
+      "signal_evidence",
+      "errors",
+      "human_status",
+      "evidence_text_marker_applied",
+      "in_memory_only",
+      "persisted",
+      "output_refs",
+      "source_file_open_performed",
+      "file_hash_performed",
+      "file_signature_inspection_performed",
+      "container_inspection_performed",
+      "text_heuristic_evaluation_performed",
+      "parser_dispatch_performed",
+      "parser_execution_performed",
+      "fallback_execution_performed",
+      "high_confidence_evidence_write_performed",
+      "persistent_state_write_performed",
+      "production_runtime_activation_performed"
+    ],
+    "detection_states": [
+      "TYPE_CONFIRMED",
+      "TYPE_PROVISIONAL",
+      "TYPE_CONFLICT_REVIEW_REQUIRED",
+      "TYPE_UNKNOWN_REVIEW_REQUIRED",
+      "TYPE_UNSUPPORTED",
+      "TYPE_INPUT_BLOCKED"
+    ],
+    "confidence_values": ["HIGH", "MEDIUM", "LOW", "UNKNOWN"],
+    "route_states": [
+      "ROUTE_CANDIDATE",
+      "ROUTE_REVIEW_REQUIRED",
+      "ROUTE_UNSUPPORTED",
+      "ROUTE_BLOCKED"
+    ],
+    "errors_are_bounded_codes_only": true,
+    "raw_control_bytes_retained": false,
+    "raw_evidence_text_retained_in_result": false,
+    "output_refs_must_be_empty": true,
+    "result_persistence_allowed": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "fallback_execution_allowed": false,
+    "evidence_promotion_allowed": false
+  },
+  "evidence_text_contract": {
+    "label": "UNTRUSTED_EVIDENCE_TEXT",
+    "interpretation": "EVIDENCE_ONLY",
+    "wrapper_fields": [
+      "label",
+      "interpretation",
+      "content",
+      "system_instruction_allowed",
+      "tool_authorization_allowed",
+      "policy_override_allowed"
+    ],
+    "all_source_derived_text_requires_label": true,
+    "system_instruction_allowed": false,
+    "tool_authorization_allowed": false,
+    "policy_override_allowed": false,
+    "prompt_injection_scan_performed": false,
+    "stage050_scanner_implemented": false,
+    "persistence_allowed": false
+  },
+  "runtime_boundary": {
+    "mode": "ISOLATED_SYNTHETIC_CONTROL_BYTES_ONLY",
+    "in_memory_only": true,
+    "synthetic_control_only": true,
+    "source_file_open_allowed": false,
+    "filesystem_scan_allowed": false,
+    "file_hash_allowed": false,
+    "file_signature_inspection_allowed": true,
+    "container_inspection_allowed": true,
+    "text_heuristic_evaluation_allowed": true,
+    "route_candidate_evaluation_allowed": true,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "fallback_execution_allowed": false,
+    "evidence_text_marker_allowed": true,
+    "evidence_text_bounds_checked_before_signature": true,
+    "prompt_injection_scan_allowed": false,
+    "job_creation_allowed": false,
+    "state_transition_allowed": false,
+    "manifest_write_allowed": false,
+    "evidence_ledger_write_allowed": false,
+    "audit_write_allowed": false,
+    "index_write_allowed": false,
+    "database_connection_allowed": false,
+    "schema_change_allowed": false,
+    "runtime_output_write_allowed": false,
+    "production_runtime_allowed": false
+  },
+  "phase3_entry_gate": {
+    "required_gate": "IDS-STAGE045-P3-GATE",
+    "required_conditions": [
+      "PHASE2_RUNTIME_CONTRACT_VALID",
+      "PHASE1_PREDECESSOR_AND_UPSTREAM_BINDINGS_CURRENT",
+      "SYNTHETIC_CONTROL_BYTES_ONLY",
+      "SIGNATURE_MIME_EXTENSION_PRECEDENCE_FAILS_CLOSED",
+      "OOXML_CONTAINER_MARKERS_REQUIRED",
+      "DETECTOR_VERSION_AND_CONFIDENCE_RECORDED",
+      "UNTRUSTED_EVIDENCE_TEXT_MARKER_APPLIED",
+      "NO_REAL_SOURCE_FILE_READ_OR_HASH",
+      "NO_PARSER_DISPATCH_EXECUTION_OR_FALLBACK",
+      "NO_PERSISTENCE_EVIDENCE_PROMOTION_OR_PRODUCTION_RUNTIME"
+    ],
+    "phase3_must_run_separately": true,
+    "phase3_entry_authorized": true,
+    "whole_stage_review_allowed": false,
+    "push_allowed": false
+  },
+  "rollback_contract": {
+    "steps": [
+      "STOP_ON_INVALID_PHASE2_CONTRACT_OR_SLICE",
+      "REVERT_STAGE045_PHASE2_FILES_ONLY",
+      "PRESERVE_STAGE045_PHASE1_AND_STAGE044_REVIEW_EVIDENCE",
+      "PRESERVE_ORIGINAL_MANIFEST_EVIDENCE_AUDIT_REPORT_AND_INDEX_ARTIFACTS",
+      "DO_NOT_OPEN_SCAN_HASH_PARSE_MOVE_OVERWRITE_OR_DELETE_REAL_SOURCE_PATHS"
+    ],
+    "destructive_rollback_allowed": false
+  },
+  "human_status_projection": {
+    "TYPE_CONFIRMED": "文件类型信号一致，已形成解析器候选路由；尚未执行解析",
+    "TYPE_PROVISIONAL": "文件类型仅为低或中置信候选，需要后续验证",
+    "TYPE_CONFLICT_REVIEW_REQUIRED": "文件签名、MIME 或扩展名冲突，需要人工复核",
+    "TYPE_UNKNOWN_REVIEW_REQUIRED": "文件类型无法可靠确认，需要人工复核",
+    "TYPE_INPUT_BLOCKED": "输入为空、损坏、过大或合同无效，检测已阻断",
+    "TYPE_UNSUPPORTED": "当前切片不支持该文件类型，未执行解析"
+  },
+  "truth_flags": {
+    "taskpack_source_read_performed": true,
+    "isolated_control_bytes_evaluated": true,
+    "file_signature_inspection_performed": true,
+    "container_inspection_performed": true,
+    "text_heuristic_evaluation_performed": true,
+    "route_candidate_evaluation_performed": true,
+    "evidence_text_marker_applied": true,
+    "source_file_open_performed": false,
+    "filesystem_scan_performed": false,
+    "file_hash_performed": false,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "fake_ids_business_data_used": false,
+    "real_ids_business_job_created": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "fallback_execution_performed": false,
+    "prompt_injection_scan_performed": false,
+    "high_confidence_evidence_write_performed": false,
+    "manifest_write_performed": false,
+    "evidence_ledger_write_performed": false,
+    "audit_write_performed": false,
+    "job_creation_performed": false,
+    "state_transition_performed": false,
+    "persistent_state_write_performed": false,
+    "database_connection_performed": false,
+    "schema_change_performed": false,
+    "runtime_output_written": false,
+    "production_runtime_activation_performed": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "app_reinstall_allowed": false
+  }
+}

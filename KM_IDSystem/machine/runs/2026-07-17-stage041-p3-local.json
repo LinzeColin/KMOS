@@ -1,0 +1,49 @@
+{
+  "run_id": "`RUN-IDS-STAGE041-P3-LOCAL-20260717-001`",
+  "action": "在已提交步骤二锁引擎上验证十一项隔离竞态、资源暂停与受保护资料场景",
+  "result": "通过（仅限本地步骤三）：聚焦 15/15、合同 17/17、场景 11/11、全量 777/777；步骤四、整阶段复审、上传与生产保持关闭",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "base_phase2_commit": "22bd9263e38b697dfb681886a97c1b8ba0f4b5e9",
+  "phase2_kmids_tree": "c3e96185d5fe185fc9a8c27e8fa57a6279bc4e6d",
+  "origin_main_at_start": "9f2605ffde977bec1f048d773a4c0549777875d8",
+  "origin_main_at_validation": "4b0d564122541a024585ca69fb9b990edb27486f",
+  "origin_main_kmids_drift_paths": 0,
+  "transport": "P3 先在独立 worktree 完成并提交，确认远端 KM_IDSystem 漂移为零后 rebase；随后重绑定新 P2 commit，未 cherry-pick 候选或激活 Stage42-43",
+  "scenario_evidence": [
+    "五类操作各获取一次、精确重放一次，二十五个同源竞争组合全部在执行前拒绝",
+    "续租、过期加宽限接管、陈旧 CAS、释放墓碑与重新获取保持栅栏和版本单调",
+    "实际隔离 RuntimeError 保留锁且阻断竞争者，但未终止进程或执行崩溃恢复",
+    "drive、disk、API 资源门均在锁前暂停；磁盘仅作项目文件系统只读观察",
+    "事实源、清单、证据账本、报告快照和审计日志均拒绝清理且未尝试删除"
+  ],
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0
+  },
+  "verified_results": [
+    "TDD RED：15 项聚焦测试产生 18 个预期断言失败",
+    "步骤三合同检查 17/17，隔离场景 11/11",
+    "步骤三聚焦测试 15/15",
+    "Stage005 治理回归 157/157",
+    "Stage040 至 Stage041 聚合 97/97",
+    "IDS v0.1 全量回归 777/777",
+    "机器事实、七份渲染文档与项目级双平面门一致"
+  ],
+  "first_pass_fail_closed": [
+    "未暂存首轮聚合 95/97、全量 762/777",
+    "十七个失败均来自历史 review 的 Git index 绑定保护",
+    "完整步骤三集合进入 index 后全部绑定保护通过",
+    "随后全量 776/777 暴露 Stage039 路由映射停在步骤二；仅补 P3 到 P4 兼容映射后通过，未改历史证据或弱化 checker"
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未进入步骤四或整阶段复审",
+    "未执行物理故障、删除、持久锁、数据库、队列、工作进程、恢复或清理运行时",
+    "未触碰原始元数据或制造虚构 IDS 业务数据",
+    "未上传、合并或重装应用"
+  ]
+}

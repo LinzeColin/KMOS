@@ -1,12 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE040",
-  "phase": "IDS-V0_1-BATCH-031-040-MAIN-MERGED",
-  "task": "IDS-V0_1-BATCH-031-040-MAIN-MERGED",
-  "real_progress": "98.14%（这是走完了多少道结构关卡；离真正做完还差多少，要对着真实数据核一遍才知道）",
-  "report_grade": "",
-  "business_verdict": "",
-  "evidence_status": "EXTRACTED",
-  "rendered_at": "2026-07-15",
-  "migrated_from_legacy": "功能清单.md"
+  "stage": "IDS-STAGE047",
+  "phase": "IDS-STAGE047-REVIEW",
+  "task": "IDS-V0_1-STAGE047-REVIEW",
+  "real_progress": "Stage047 四个步骤与六项整阶段复审发现均本地通过；下一步须独立进入 Stage048 步骤一",
+  "report_grade": "批准来源、不可变 Phase4 绑定、四阶段重放、六项反例修复、治理与 Git-index binding 均可机验",
+  "business_verdict": "Stage047 输出合同完成本地独立复审；该结论不证明真实解析器、业务输出、回退、质量门、持久化、Stage048、上传或生产能力已启用",
+  "evidence_status": "LOCAL_STAGE047_REVIEW_VALID_PARSER_OUTPUT_RUNTIME_DISABLED",
+  "rendered_at": "2026-07-24",
+  "migrated_from_legacy": "功能清单.md",
+  "next_gate": "IDS-STAGE048-P1-GATE",
+  "runtime_enabled": false,
+  "push_allowed": false
 }

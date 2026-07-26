@@ -1,0 +1,40 @@
+{
+  "run_id": "`RUN-IDS-STAGE041-REVIEW-LOCAL-20260718-001`",
+  "action": "独立复核 Stage041 批准来源与步骤一至四，修复全部严重和重要发现，并关闭为仅本地复审通过",
+  "result": "通过：四项发现已修复，Stage041、全量回归、事件、双平面、渲染、差异检查和 Git 索引绑定均通过",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "base_phase4_commit": "68a89e9c3d1fbb3eae347fe71f1bbbbf7bc9ddc2",
+  "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+  "source_member_sha256": "2258a7b57c6c2881f208f43fbe2862c7815a2794c908d6fef108a1a4b5a2ad36",
+  "review_findings": [
+    "一项严重问题：布尔值和浮点数可冒充 CAS 锁版本",
+    "一项重要问题：负数或倒退逻辑时间、非延长续租和过期释放未失败关闭",
+    "一项重要问题：操作映射、参数关系和来源语义未精确验证",
+    "一项重要问题：交接顶部与治理当前门陈旧且互相冲突"
+  ],
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0
+  },
+  "verified_results": [
+    "批准任务包归档、唯一 Stage041 成员、路线图和使用说明哈希均匹配",
+    "严格整数 CAS、单调逻辑时间、有效租约和精确合同语义的目标修复测试通过",
+    "Phase 2、Phase 3 和 Phase 4 检查器在修复后通过",
+    "Stage041 聚合 63/63、Stage005 157/157、Stage040-041 聚合 118/118",
+    "IDS v0.1 全量回归 798/798（555.092s）",
+    "200 条事件零解析、重复与语义错误，复审事件与暂存路径精确 34/34",
+    "项目级双平面、渲染幂等、差异检查与 Git 索引绑定通过",
+    "最新 origin/main 的 KM_IDSystem 渲染器切片修复已逐行一致纳入，未合并其他项目提交"
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未进入或实现 Stage042",
+    "未执行物理故障、删除、持久锁、数据库、队列、工作进程、自动恢复或清理运行时",
+    "未触碰原始元数据或制造虚构 IDS 业务数据",
+    "未上传、合并、变更 issue 或重装应用"
+  ]
+}

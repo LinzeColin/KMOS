@@ -1,0 +1,106 @@
+{
+  "run_id": "`RUN-IDS-STAGE044-REVIEW-LOCAL-20260719-001`",
+  "task_id": "IDS-V0_1-STAGE044-REVIEW",
+  "action": "独立复核 Stage044 批准来源、步骤四基线和步骤一至四，修复全部严重和重要发现，并关闭为删除禁用的仅本地复审通过",
+  "result": "PASS_REVIEWED_LOCAL_DELETE_DISABLED",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "base_phase4_commit": "5da8fdf64cab35545e717900e71ccbbb5dacb11c",
+  "base_phase4_kmids_tree": "4df0d01406b2021ef0c4968373b9649733a5f857",
+  "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+  "source_member_sha256": "e7e98eb5497aa33124b944dfc1d00e15588a672c0f9accc4cda4a66fe1f72a53",
+  "review_findings": [
+    "一项严重问题：PAUSED 与 RETRY_WAIT 可恢复非终态被误纳入失败任务清理候选",
+    "一项重要问题：快速 contract validator 可绕过完整 source、path、identity 与深层字段验证",
+    "一项重要问题：creator、批准 root、manifest、writer/resource evidence 与 input refs 未绑定到同一候选身份",
+    "一项重要问题：点段与重复分隔符可形成同一路径的多种词法身份",
+    "一项重要问题：human status 只校验 key，可伪造已自动删除等过度宣称",
+    "一项重要问题：缺少 Stage044 durable whole-stage review 和 Stage045 独立入口路由"
+  ],
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0
+  },
+  "verified_results": [
+    "批准任务包归档、唯一 Stage044 成员、路线图和使用说明哈希均匹配",
+    "步骤四 commit/tree 保持 HEAD 祖先且 KM_IDSystem tree 精确",
+    "Phase1-4 checker 与 focused review suite 10/10 通过；review TDD RED 为 10 项测试中的 18 个预期失败",
+    "六项发现均由独立反例检查失败关闭",
+    "Stage041-044 聚合最终 268/268 通过，耗时 1189.358 秒",
+    "IDS v0.1 全量 discovery 最终 1014/1014 通过，耗时 1665.517 秒",
+    "Stage005 治理回归 168/168 通过，耗时 34.019 秒",
+    "Stage038-044 七个独立 review checker 在同一最终暂存快照全部通过",
+    "215 条治理事件无解析、重复标识或语义错误，changed_files 精确绑定 44 个实际变更文件",
+    "owner 七文件渲染幂等且 KM_IDSystem project dual-plane PASS"
+  ],
+  "validation_iterations": [
+    {
+      "gate": "stage041_044_aggregate",
+      "result": "FAIL",
+      "tests": 268,
+      "failures": 16,
+      "errors": 0,
+      "seconds": 1422.604,
+      "reason": "Stage041-043 历史 delivery/review 断言尚未接受 Stage044 Review 当前路由"
+    },
+    {
+      "gate": "stage041_044_aggregate",
+      "result": "FAIL",
+      "tests": 268,
+      "failures": 2,
+      "errors": 0,
+      "seconds": 1187.213,
+      "reason": "Stage044 Phase2/3 历史 HANDOFF 迁移证据缺少精确 P4 到 Review 文本"
+    },
+    {
+      "gate": "stage041_044_aggregate",
+      "result": "FAIL",
+      "tests": 268,
+      "failures": 8,
+      "errors": 20,
+      "seconds": 879.633,
+      "reason": "一次不正确的历史测试编辑破坏已审测试 SHA-256 链；该编辑已撤回并恢复原绑定哈希"
+    },
+    {
+      "gate": "stage041_044_aggregate",
+      "result": "PASS",
+      "tests": 268,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 1189.358
+    },
+    {
+      "gate": "ids_v0_1_full_discovery",
+      "result": "FAIL",
+      "tests": 1014,
+      "failures": 4,
+      "errors": 0,
+      "seconds": 1646.002,
+      "reason": "Stage038 三个 next-gate 白名单与 Stage039 review 路由白名单止于 Stage044 Review"
+    },
+    {
+      "gate": "ids_v0_1_full_discovery",
+      "result": "PASS",
+      "tests": 1014,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 1665.517
+    }
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未进入或实现 Stage045",
+    "未执行真实清理、文件系统扫描/探测/遍历、移动、覆盖、删除、审计写入、数据库、持久化或生产运行时",
+    "未触碰原始元数据或制造虚构 IDS 业务数据",
+    "未上传、合并、变更 issue 或重装应用"
+  ],
+  "cleanup_runtime_performed": false,
+  "delete_operation_started": false,
+  "stage045_started": false,
+  "github_upload_allowed": false,
+  "app_reinstall_allowed": false,
+  "next_gate": "IDS-STAGE045-P1-GATE"
+}

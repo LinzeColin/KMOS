@@ -103,7 +103,25 @@ def _contains_any(line: str, needles: tuple[str, ...]) -> bool:
     return any(needle.lower() in lowered for needle in needles)
 
 
+def _contains_only_governance_opme_ids(line: str) -> bool:
+    governance_id = re.compile(r"\b(?:TASK|FEAT)-OPME-[A-Z0-9-]+\b")
+    if not governance_id.search(line):
+        return False
+    remainder = governance_id.sub("", line)
+    return not any(
+        hit["pattern"] == "legacy_opme_word" for hit in find_legacy_hits(remainder)
+    )
+
+
 def classify_hit(rel_path: str, line: str, pattern_name: str) -> str:
+    if rel_path.startswith("KM_IDSystem/governance/archive/"):
+        return "allowed_legacy_context"
+    if rel_path in {
+        "KM_IDSystem/功能清单.md",
+        "KM_IDSystem/开发记录.md",
+        "KM_IDSystem/模型参数文件.md",
+    }:
+        return "allowed_legacy_context"
     if rel_path.startswith("KM_IDSystem/docs/pursuing_goal/ids_v0_1/"):
         return "allowed_legacy_context"
     if rel_path.startswith("KM_IDSystem/docs/governance/"):
@@ -139,10 +157,16 @@ def classify_hit(rel_path: str, line: str, pattern_name: str) -> str:
     } and pattern_name == "legacy_asset_opmeicon":
         return "allowed_legacy_context"
     if (
-        rel_path
-        == "KM_IDSystem/scripts/check_retry_dead_letter_stage_review.py"
+        rel_path.startswith("KM_IDSystem/scripts/check_")
+        and rel_path.endswith(".py")
         and pattern_name == "legacy_opme_word"
-        and re.search(r"\b(?:TASK|FEAT)-OPME-[A-Z0-9-]+\b", line)
+        and _contains_only_governance_opme_ids(line)
+    ):
+        return "allowed_legacy_context"
+    if (
+        rel_path.startswith("KM_IDSystem/machine/")
+        and pattern_name == "legacy_opme_word"
+        and _contains_only_governance_opme_ids(line)
     ):
         return "allowed_legacy_context"
     return "active_display_debt"

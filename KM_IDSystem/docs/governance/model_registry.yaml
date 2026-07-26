@@ -24,6 +24,26 @@ assumptions:
     fact_level: "PROPOSED"
     unknown_task_ids: ["TASK-OPME-B-001"]
     evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE040_PHASE2_BACKPRESSURE_DECISION_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_runtime_contract.json"]
+  - assumption_id: "ASM-006"
+    statement: "The Stage041 lease and timeout values are a bounded isolated engineering safety selection and are not production calibrated."
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE2_LOCK_REGISTRY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"]
+  - assumption_id: "ASM-007"
+    statement: "The Stage042 automatic lifecycle timing values are composed from reviewed Stage040 and Stage041 isolated safety boundaries and are not production calibrated."
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE2_AUTOMATIC_LIFECYCLE_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json"]
+  - assumption_id: "ASM-008"
+    statement: "The Stage043 crash-recovery timing values are composed from reviewed Stage039 through Stage042 isolated safety boundaries and are not production calibrated."
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"]
+  - assumption_id: "ASM-009"
+    statement: "The Stage044 cleanup candidate timing values compose reviewed Stage034 and Stage041 through Stage043 control boundaries and are not production calibrated."
+    fact_level: "PROPOSED"
+    unknown_task_ids: ["TASK-OPME-B-001"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_PHASE2_HALF_PRODUCT_CLEANUP_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_runtime_contract.json"]
 models:
   - model_id: "MOD-001"
     name: "Dynamic kiln risk rule"
@@ -169,3 +189,67 @@ models:
     code_refs: ["KM_IDSystem/scripts/check_backpressure_runtime.py"]
     test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage040_backpressure_runtime.py"]
     evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE040_PHASE2_BACKPRESSURE_DECISION_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/stage040_backpressure_runtime_contract.json"]
+  - model_id: "MOD-010"
+    name: "Lock registry lease and fencing policy"
+    kind: "deterministic_control_policy"
+    purpose: "Acquire, renew, release, or take over a canonical lock set while fencing stale holders in an isolated non-production process."
+    owner: "KM_IDSystem"
+    status: "planned"
+    fact_level: "PROPOSED"
+    model_version: "ids.lock_registry_policy.v0_1.stage041.p2"
+    assumptions: ["ASM-006"]
+    formula_ids: ["FORM-010"]
+    parameter_ids: ["PARAM-065", "PARAM-066", "PARAM-067", "PARAM-068", "PARAM-069", "PARAM-070", "PARAM-071"]
+    inputs: ["resource_identity_ref", "operation_family", "holder identity refs", "logical requested time", "fencing and lock-version evidence"]
+    outputs: ["decision_action", "lock_keys", "lease_expires_at", "fencing_token", "lock_versions", "checkpoint_ref", "human_status"]
+    code_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE2_LOCK_REGISTRY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"]
+  - model_id: "MOD-011"
+    name: "Automatic lifecycle candidate decision policy"
+    kind: "deterministic_control_policy"
+    purpose: "Evaluate reference-only start, pause, resume, safe-shutdown, and cleanup-scan candidates without mutating jobs or activating production runtime."
+    owner: "KM_IDSystem"
+    status: "planned"
+    fact_level: "PROPOSED"
+    model_version: "ids.automatic_lifecycle_policy.v0_1.stage042.p2"
+    assumptions: ["ASM-007"]
+    formula_ids: ["FORM-011"]
+    parameter_ids: ["PARAM-072", "PARAM-073", "PARAM-074", "PARAM-075", "PARAM-076"]
+    inputs: ["Git-tracked control input refs", "bounded lifecycle action and state metadata", "resource and lock evidence refs", "logical evaluation timestamps"]
+    outputs: ["decision_action", "human_status", "input_refs", "output_refs", "error_ref", "checkpoint_ref", "audit_ref"]
+    code_refs: ["KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE2_AUTOMATIC_LIFECYCLE_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json"]
+  - model_id: "MOD-012"
+    name: "Worker crash recovery candidate decision policy"
+    kind: "deterministic_control_policy"
+    purpose: "Evaluate reference-only crash evidence and emit guarded checkpoint, retry, safe-failure, or resource-pause candidates without recovering a process or mutating state."
+    owner: "KM_IDSystem"
+    status: "planned"
+    fact_level: "PROPOSED"
+    model_version: "ids.worker_crash_recovery_policy.v0_1.stage043.p2"
+    assumptions: ["ASM-008"]
+    formula_ids: ["FORM-012"]
+    parameter_ids: ["PARAM-077", "PARAM-078", "PARAM-079", "PARAM-080", "PARAM-081"]
+    inputs: ["Git-tracked control input refs", "worker generation and crash incident identity", "heartbeat, lease, state-version, fencing, resource, checkpoint and error evidence", "logical evaluation timestamps"]
+    outputs: ["decision_action", "transition_candidates", "human_status", "input_refs", "output_refs", "error_ref", "checkpoint_ref", "quarantine_ref", "audit_ref"]
+    code_refs: ["KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"]
+  - model_id: "MOD-013"
+    name: "Half-product cleanup candidate decision policy"
+    kind: "deterministic_control_policy"
+    purpose: "Evaluate reference-only ownership, retention, identity, hold, resource, lock and quiescence evidence and emit a guarded cleanup-review candidate without scanning or deleting files."
+    owner: "KM_IDSystem"
+    status: "planned"
+    fact_level: "PROPOSED"
+    model_version: "ids.half_product_cleanup_policy.v0_1.stage044.p2"
+    assumptions: ["ASM-009"]
+    formula_ids: ["FORM-013"]
+    parameter_ids: ["PARAM-082", "PARAM-083", "PARAM-084", "PARAM-085", "PARAM-086"]
+    inputs: ["Git-tracked control input refs", "bounded attempt, root-relative path and immutable lstat identity metadata", "retention, hold, durable-reference, resource, namespace-lock and writer-quiescence evidence"]
+    outputs: ["decision_action", "human_status", "input_refs", "output_refs", "candidate_ref", "error_ref", "audit_ref"]
+    code_refs: ["KM_IDSystem/scripts/check_half_product_cleanup_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_PHASE2_HALF_PRODUCT_CLEANUP_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_runtime_contract.json"]

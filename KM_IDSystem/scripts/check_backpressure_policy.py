@@ -87,7 +87,7 @@ EXPECTED_UPSTREAM = {
     "stage039_delivery_contract_ref": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
         "retry_dead_letter/stage039_retry_dead_letter_delivery_contract.json",
-        "c4aad64a9283de683067aff07026d723c708285c57eef8a0eac4ee1b13f5cb96",
+        "c7d020d8fe5fc21dc9c6d7fb01030659f3e545f1416cae96f5c96c77a7f0c06b",
     ),
     "stage039_review_checker_ref": (
         "KM_IDSystem/scripts/check_retry_dead_letter_stage_review.py",

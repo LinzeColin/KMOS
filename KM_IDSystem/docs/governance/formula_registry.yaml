@@ -261,3 +261,135 @@ formulas:
     implementation_refs: ["KM_IDSystem/scripts/check_backpressure_runtime.py::evaluate_backpressure", "KM_IDSystem/scripts/check_backpressure_runtime.py::build_stage040_phase2_report"]
     semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
     semantic_review_task_ids: ""
+  - formula_id: "FORM-010"
+    model_id: "MOD-010"
+    assumption_ids: ["ASM-006"]
+    status: "planned"
+    expression: "canonical_lock_keys=sort(SOURCE_PIPELINE plus operation namespace); acquire is all-or-none; lease_expires_at=logical_now+lease_duration; renew preserves the fence and increments every lock version; takeover requires current expected fence and lock versions plus logical_now>=lease_expires_at+grace, then atomically increments the global fence and every lock version; release requires current holder/fence/version and increments tombstone versions before deleting active records; same operation/idempotency key with changed input is rejected."
+    variables:
+      - name: "logical_now"
+        data_type: "integer"
+        unit: "logical epoch seconds"
+        input_domain: "non-boolean integer supplied by isolated control metadata"
+      - name: "lease_expires_at"
+        data_type: "integer"
+        unit: "logical epoch seconds"
+        input_domain: "logical_now plus 30 seconds for this proposed policy"
+      - name: "fencing_token"
+        data_type: "integer"
+        unit: "monotonic token"
+        input_domain: "positive process-local integer"
+      - name: "lock_version"
+        data_type: "integer"
+        unit: "per-key version"
+        input_domain: "positive process-local integer"
+    constraints: ["Isolated in-memory non-production control metadata only.", "Canonical lock sets are acquired and released as a whole.", "Renewal and release advance lock versions; takeover requires current CAS evidence.", "Contention creates no queue record and consumes no retry budget.", "Production calibration is required before production activation."]
+    missing_policy: "REQUIRE_MANUAL_REVIEW with no lock-state mutation."
+    output_range: "ACQUIRED, RENEWED, RELEASED, PAUSE_BEFORE_QUEUE_ADMISSION, COMMIT_ALLOWED, REJECT_COMMIT, or REQUIRE_MANUAL_REVIEW; no persistent write."
+    open_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_PHASE2_LOCK_REGISTRY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/lock_registry/stage041_lock_registry_runtime_contract.json"]
+    implementation_refs: ["KM_IDSystem/scripts/check_lock_registry_runtime.py::IsolatedLockRegistry", "KM_IDSystem/scripts/check_lock_registry_runtime.py::build_stage041_phase2_report"]
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    semantic_review_task_ids: ""
+  - formula_id: "FORM-011"
+    model_id: "MOD-011"
+    assumption_ids: ["ASM-007"]
+    status: "planned"
+    expression: "validate the exact reference-only request and Git-tracked evidence; reject terminal-state mutation; AUTO_START requires fresh resource, admission, claim, live lease, lock, and fence evidence; AUTO_PAUSE emits only legal pause candidates; AUTO_RESUME requires owner revalidation, a full stability window, no active claim or lock, and a fresh admission/lock cycle; SAFE_SHUTDOWN emits an ordered candidate without process termination; cleanup emits only an eligible Stage044-owned candidate and never deletes."
+    variables:
+      - name: "expected_state_version"
+        data_type: "integer"
+        unit: "monotonic control version"
+        input_domain: "positive non-boolean integer"
+      - name: "resource_stable_for_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "zero or greater logical duration"
+      - name: "checkpoint_wait_elapsed_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "zero or greater logical duration"
+      - name: "shutdown_elapsed_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "zero or greater logical duration"
+    constraints: ["Isolated in-memory reference-only decision metadata.", "All input and observation refs must be Git tracked.", "Terminal states are immutable and legal transition paths are candidate-only.", "No process termination, cleanup delete, persistence, queue, worker, retry, lock, business-job, or production action.", "Production calibration is required before activation."]
+    missing_policy: "REQUIRE_MANUAL_REVIEW with no lifecycle action or state mutation."
+    output_range: "AUTO_START_CANDIDATE, AUTO_PAUSE_CANDIDATE, AUTO_RESUME_CANDIDATE, SAFE_SHUTDOWN_CANDIDATE, CLEANUP_CANDIDATE_ONLY, explicit rejection, or REQUIRE_MANUAL_REVIEW; no persistent write."
+    open_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_PHASE2_AUTOMATIC_LIFECYCLE_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/automatic_lifecycle/stage042_automatic_lifecycle_runtime_contract.json"]
+    implementation_refs: ["KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py::evaluate_lifecycle_request", "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py::InMemoryLifecycleDecisionLedger", "KM_IDSystem/scripts/check_automatic_lifecycle_runtime.py::build_stage042_phase2_report"]
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    semantic_review_task_ids: ""
+  - formula_id: "FORM-012"
+    model_id: "MOD-012"
+    assumption_ids: ["ASM-008"]
+    status: "planned"
+    expression: "validate the exact reference-only request and canonical recovery key; require stale heartbeat plus lease expiry grace, current persistent state/version and a fenced lost worker; resource pressure emits only a pause candidate; checkpoint continuation requires integrity, idempotency, owner/resource revalidation and a fresh admission/claim/lock cycle; Stage039 retry requires policy, budget, replay safety and backoff; safe failure requires the legal RUNNING-to-FAILED edge; all outputs remain candidate-only."
+    variables:
+      - name: "observed_state_version"
+        data_type: "integer"
+        unit: "monotonic control version"
+        input_domain: "positive non-boolean integer"
+      - name: "heartbeat_age_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "evaluated_at minus last_heartbeat_observed_at; zero or greater"
+      - name: "lease_expiry_age_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "evaluated_at minus lease_expires_at; zero or greater"
+      - name: "checkpoint_validation_elapsed_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "zero or greater logical duration"
+      - name: "recovery_retry_wait_elapsed_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "zero or greater logical duration"
+    constraints: ["Isolated in-memory reference-only decision metadata.", "All control input refs must be Git tracked and recovery identity is canonical.", "Terminal history is immutable and every transition is candidate-only.", "No process probe, crash injection, termination, restart, recovery, state mutation, cleanup delete, persistence, business job, raw metadata, or production action.", "Production calibration is required before activation."]
+    missing_policy: "REQUIRE_MANUAL_REVIEW with no recovery action or state mutation."
+    output_range: "CHECKPOINT_RESUME_CANDIDATE, STAGE039_RETRY_CANDIDATE, SAFE_FAILURE_CANDIDATE, RESOURCE_PAUSE_CANDIDATE, or REQUIRE_MANUAL_REVIEW; no persistent write."
+    open_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_PHASE2_WORKER_CRASH_RECOVERY_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_crash_recovery/stage043_worker_crash_recovery_runtime_contract.json"]
+    implementation_refs: ["KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::derive_recovery_request_key", "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::evaluate_recovery", "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::InMemoryRecoveryDecisionLedger", "KM_IDSystem/scripts/check_worker_crash_recovery_runtime.py::build_stage043_phase2_report"]
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    semantic_review_task_ids: ""
+  - formula_id: "FORM-013"
+    model_id: "MOD-013"
+    assumption_ids: ["ASM-009"]
+    status: "planned"
+    expression: "validate the canonical reference-only cleanup request and Git-tracked evidence; protected, held, referenced, active, unknown or resource-blocked artifacts fail closed; only two rebuildable classes in five eligible states with stable identity, elapsed retention, managed exclusive namespace lock, fenced or absent producers, fresh resource gates and full writer quiescence emit CLEANUP_CANDIDATE_REVIEW_REQUIRED; no scan, traversal, mutation or delete occurs."
+    variables:
+      - name: "expected_state_version"
+        data_type: "integer"
+        unit: "monotonic control version"
+        input_domain: "positive non-boolean integer"
+      - name: "retention_elapsed_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "zero or greater logical duration"
+      - name: "writer_quiescence_elapsed_seconds"
+        data_type: "integer"
+        unit: "seconds"
+        input_domain: "zero or greater logical duration"
+      - name: "immutable_lstat_identity"
+        data_type: "reference-only object"
+        unit: "st_dev, st_ino, file_type"
+        input_domain: "positive non-boolean identities and REGULAR_FILE type"
+    constraints: ["Isolated in-memory reference-only decision metadata.", "All control input refs must be Git tracked and candidate paths remain unvisited.", "Only TEMP_STAGING_OUTPUT and INCOMPLETE_DERIVATIVE_OUTPUT can become review candidates.", "Protected, held, referenced, active, unknown, stale, unlocked or non-quiescent artifacts fail closed.", "No filesystem probe, scan, traversal, production lock, audit write, persistence, move, overwrite, unlink or production action.", "Production calibration is required before activation."]
+    missing_policy: "REQUIRE_MANUAL_REVIEW or an explicit blocked status with no cleanup action."
+    output_range: "CLEANUP_CANDIDATE_REVIEW_REQUIRED, CLEANUP_BLOCKED_ACTIVE_OR_UNKNOWN, CLEANUP_BLOCKED_RESOURCE, CLEANUP_BLOCKED_PROTECTED, or REQUIRE_MANUAL_REVIEW; delete_allowed is always false."
+    open_task_ids: ["TASK-OPME-B-001"]
+    code_refs: ["KM_IDSystem/scripts/check_half_product_cleanup_runtime.py"]
+    test_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_runtime.py"]
+    evidence_refs: ["KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_PHASE2_HALF_PRODUCT_CLEANUP_SLICE.md", "KM_IDSystem/docs/pursuing_goal/ids_v0_1/half_product_cleanup/stage044_half_product_cleanup_runtime_contract.json"]
+    implementation_refs: ["KM_IDSystem/scripts/check_half_product_cleanup_runtime.py::derive_cleanup_request_id", "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py::evaluate_cleanup_candidate", "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py::InMemoryCleanupDecisionLedger", "KM_IDSystem/scripts/check_half_product_cleanup_runtime.py::build_stage044_phase2_report"]
+    semantic_status: "MACHINE_VERIFIED_ISOLATED_NON_PRODUCTION"
+    semantic_review_task_ids: ""

@@ -1,0 +1,357 @@
+{
+  "schema_version": "ids.stage047.parser_output.phase3.scenarios.v1",
+  "stage": "STAGE-047",
+  "phase": "Phase 3",
+  "task_id": "IDS-V0_1-STAGE047-P3",
+  "acceptance_id": "ACC-STAGE-047",
+  "local_code": "D08-S003",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_FORMAT_LABELED_PREPARSED_OUTPUT_SCENARIOS",
+  "scenario_contract_id": "ids.parser_output.v0_1.stage047.p3.scenarios",
+  "contract_state": "PHASE3_SCENARIOS_VALID_REAL_PARSER_FALLBACK_AND_PERSISTENCE_DISABLED",
+  "next_gate": "IDS-STAGE047-P4-GATE",
+  "source_binding": {
+    "source_archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "source_member": "IDS_v0_1_Final_Chinese_Revised/stages/STAGE-047_解析器输出合同.md",
+    "source_member_match_count": 1,
+    "source_member_sha256": "e1d5bdb219b6f16ca7fec4e4455e7acba1ecbae9803a7c13721b75895671d2f4",
+    "roadmap_path": "/Users/linzezhang/Downloads/IDS_Codex开发Roadmap_v0_1_only_中文修订版.txt",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_path": "/Users/linzezhang/Downloads/IDS_Codex使用说明_v0_1_only_中文修订版.txt",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+    "source_verification_status": "SOURCE_VERIFIED"
+  },
+  "phase2_commit_binding": {
+    "commit": "65b81389e24d9ae371f464dcd6321784b9078d8b",
+    "root_tree": "a66f59a71bd8c41ba122e0415f126d7cea6d8375",
+    "kmids_tree": "eb2be74f3138221f39f4aab5e513c5fc8b03d984",
+    "parent": "7d44f72c6a5d50e9042b8af1f588cd40e1caf4f3",
+    "required_ancestor_of_head": true
+  },
+  "phase2_artifact_bindings": {
+    "stage047_phase2_evidence": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_PHASE2_PARSER_OUTPUT_SLICE.md",
+      "sha256": "4ec0b012ac3de8ae08b9359158d61df84e7a351ea39ede9d641deeeb328e7a9e"
+    },
+    "stage047_phase2_contract": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/stage047_parser_output_runtime_contract.json",
+      "sha256": "16f4e8c5be806e835b686359f06ac32b4c069cb4441b0394ff53dda1e82b5ddc"
+    },
+    "stage047_phase2_checker": {
+      "ref": "KM_IDSystem/scripts/check_parser_output_runtime.py",
+      "sha256": "02b42621c89110c67a99e2a0d87ecd7b9a58f4cbf36725a7812b69a55de84be7"
+    },
+    "stage047_phase2_tests": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_runtime.py",
+      "sha256": "66241bf92a40b85abf37483bca562564ed27fb366789ecd08d0c228c70b4cf03"
+    },
+    "stage047_phase2_run": {
+      "ref": "KM_IDSystem/machine/runs/2026-07-23-stage047-p2-local.json",
+      "sha256": "b6f23424d6253bcdd9249e252c94263ae0c874cc4398238532ef41a7e1417db7"
+    }
+  },
+  "upstream_route_baseline": {
+    "snapshot_commit": "65b81389e24d9ae371f464dcd6321784b9078d8b",
+    "checker_ref": "KM_IDSystem/scripts/check_parser_routing_scenarios.py",
+    "checker_sha256": "5ab854480b0b079d848a6ff2c0cbd5808e9bbf529f7c34169d503c3084074b51",
+    "contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_scenarios_contract.json",
+    "contract_sha256": "eef1c03bf3abd2a95bb0294b2b8671a61e3fd29f77e3495b2a118941b979c8a2",
+    "run_ref": "KM_IDSystem/machine/runs/2026-07-22-stage046-p3-local.json",
+    "run_sha256": "0c2d919db3db91f03e4e266bb5ea0f2bfb2ce1101b47deff40e69d43f95fafff",
+    "expected_result": "PASS_ISOLATED_PARSER_ROUTING_SCENARIOS_PARSER_DISABLED"
+  },
+  "format_control_adapter": {
+    "adapter_id": "ids.parser.output.format_fixture_adapter.v0_1.stage047.p3",
+    "adapter_state": "SYNTHETIC_FORMAT_LABELED_PREPARSED_CONTROL_NOT_RUNTIME_PARSER",
+    "input_kind": "SYNTHETIC_NON_BUSINESS_FORMAT_LABELED_PREPARSED_CONTROL",
+    "format_routes": {
+      "PDF": {
+        "candidate_route_id": "ROUTE_PDF",
+        "parser_family": "PDF_PARSER",
+        "parser_version": "ids.parser.control_fixture.pdf.v0_1.stage047.p3"
+      },
+      "DOCX": {
+        "candidate_route_id": "ROUTE_OOXML_WORD",
+        "parser_family": "OOXML_WORD_PARSER",
+        "parser_version": "ids.parser.control_fixture.docx.v0_1.stage047.p3"
+      },
+      "XLSX": {
+        "candidate_route_id": "ROUTE_OOXML_WORKBOOK",
+        "parser_family": "OOXML_WORKBOOK_PARSER",
+        "parser_version": "ids.parser.control_fixture.xlsx.v0_1.stage047.p3"
+      },
+      "CSV": {
+        "candidate_route_id": "ROUTE_DELIMITED_TEXT",
+        "parser_family": "DELIMITED_TEXT_PARSER",
+        "parser_version": "ids.parser.control_fixture.csv.v0_1.stage047.p3"
+      },
+      "TXT": {
+        "candidate_route_id": "ROUTE_PLAIN_TEXT",
+        "parser_family": "PLAIN_TEXT_PARSER",
+        "parser_version": "ids.parser.control_fixture.v0_1.stage047.p2"
+      },
+      "PNG": {
+        "candidate_route_id": "ROUTE_IMAGE",
+        "parser_family": "IMAGE_PARSER",
+        "parser_version": "ids.parser.control_fixture.image.v0_1.stage047.p3"
+      },
+      "JPEG": {
+        "candidate_route_id": "ROUTE_IMAGE",
+        "parser_family": "IMAGE_PARSER",
+        "parser_version": "ids.parser.control_fixture.image.v0_1.stage047.p3"
+      },
+      "TIFF": {
+        "candidate_route_id": "ROUTE_IMAGE",
+        "parser_family": "IMAGE_PARSER",
+        "parser_version": "ids.parser.control_fixture.image.v0_1.stage047.p3"
+      }
+    },
+    "upstream_route_replay_required": true,
+    "upstream_route_output_used_as_parser_output": false,
+    "stage046_runtime_route_replaced": false,
+    "fixture_parser_metadata_assignment_allowed": true,
+    "runtime_parser_selection_allowed": false,
+    "source_file_access_allowed": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "fallback_execution_allowed": false,
+    "production_use_allowed": false
+  },
+  "scenario_catalog": [
+    "pdf_preparsed_pages_candidate",
+    "docx_preparsed_sections_candidate",
+    "xlsx_preparsed_table_candidate_formula_preserved",
+    "csv_preparsed_table_candidate",
+    "txt_preparsed_text_candidate",
+    "png_preparsed_image_partial_review",
+    "jpeg_preparsed_image_partial_review",
+    "tiff_preparsed_image_partial_review",
+    "unknown_route_requires_owner_review_no_output",
+    "corrupt_route_blocks_explicit_no_output",
+    "low_quality_txt_output_requires_review",
+    "explicit_parser_failure_output_blocked",
+    "instruction_like_text_cannot_override_policy",
+    "invalid_lineage_rejected_sanitized",
+    "malformed_nested_references_rejected",
+    "empty_without_error_rejected"
+  ],
+  "format_coverage": {
+    "supported_types": [
+      "PDF",
+      "DOCX",
+      "XLSX",
+      "CSV",
+      "TXT",
+      "PNG",
+      "JPEG",
+      "TIFF"
+    ],
+    "image_types": [
+      "PNG",
+      "JPEG",
+      "TIFF"
+    ],
+    "failure_types": [
+      "UNKNOWN",
+      "CORRUPT_OR_UNREADABLE"
+    ],
+    "taskpack_format_groups": [
+      "PDF",
+      "DOCX",
+      "XLSX",
+      "CSV",
+      "TXT",
+      "IMAGE",
+      "UNKNOWN",
+      "CORRUPT_OR_UNREADABLE"
+    ],
+    "supported_type_count": 8,
+    "scenario_count": 16,
+    "all_taskpack_format_groups_covered": true
+  },
+  "scenario_expectations": {
+    "pdf_preparsed_pages_candidate": "PDF_CONTROL_CANDIDATE_OUTPUT_NO_RUNTIME",
+    "docx_preparsed_sections_candidate": "DOCX_CONTROL_CANDIDATE_OUTPUT_NO_RUNTIME",
+    "xlsx_preparsed_table_candidate_formula_preserved": "XLSX_CONTROL_CANDIDATE_FORMULA_TEXT_NOT_EXECUTED",
+    "csv_preparsed_table_candidate": "CSV_CONTROL_CANDIDATE_OUTPUT_NO_RUNTIME",
+    "txt_preparsed_text_candidate": "TXT_CONTROL_CANDIDATE_OUTPUT_NO_RUNTIME",
+    "png_preparsed_image_partial_review": "PNG_CONTROL_PARTIAL_REVIEW_NO_FALLBACK",
+    "jpeg_preparsed_image_partial_review": "JPEG_CONTROL_PARTIAL_REVIEW_NO_FALLBACK",
+    "tiff_preparsed_image_partial_review": "TIFF_CONTROL_PARTIAL_REVIEW_NO_FALLBACK",
+    "unknown_route_requires_owner_review_no_output": "UNKNOWN_ROUTE_OWNER_REVIEW_NO_OUTPUT_NO_FALLBACK",
+    "corrupt_route_blocks_explicit_no_output": "CORRUPT_ROUTE_EXPLICIT_ERROR_NO_OUTPUT_NO_FALLBACK",
+    "low_quality_txt_output_requires_review": "LOW_QUALITY_CONTROL_PARTIAL_REVIEW_NO_FALLBACK",
+    "explicit_parser_failure_output_blocked": "EXPLICIT_CONTROL_FAILURE_OUTPUT_BLOCKED_NO_FALLBACK",
+    "instruction_like_text_cannot_override_policy": "UNTRUSTED_EVIDENCE_OUTPUT_ROUTE_INVARIANT_POLICY_OVERRIDE_DENIED",
+    "invalid_lineage_rejected_sanitized": "INVALID_LINEAGE_REJECTED_WITHOUT_ECHO",
+    "malformed_nested_references_rejected": "MALFORMED_REFERENCES_REJECTED_FAIL_CLOSED",
+    "empty_without_error_rejected": "EMPTY_WITHOUT_ERROR_REJECTED_FAIL_CLOSED"
+  },
+  "output_expectations": {
+    "output_schema_version": "ids.parser_output.v0_1.stage047.p1",
+    "required_envelope_field_count": 18,
+    "required_payload_field_count": 6,
+    "accepted_output_count": 11,
+    "rejected_output_count": 3,
+    "route_no_output_count": 2,
+    "unique_output_id_count": 11,
+    "status_counts": {
+      "OUTPUT_CANDIDATE_NOT_VALIDATED": 6,
+      "OUTPUT_PARTIAL_REVIEW_REQUIRED": 4,
+      "OUTPUT_FAILED_EXPLICIT": 1
+    },
+    "control_output_fact_level": "CANDIDATE_CONTROL_FIXTURE_ONLY",
+    "ids_business_parser_output_count": 0,
+    "output_persistence_count": 0
+  },
+  "fallback_quality_contract": {
+    "fallback_runtime_owner": "STAGE-048",
+    "fallback_disposition_only": true,
+    "every_scenario_requires_explicit_disposition": true,
+    "low_quality_output_requires_review": true,
+    "unknown_route_requires_owner_review": true,
+    "corrupt_route_requires_explicit_error": true,
+    "silent_drop_allowed_count": 0,
+    "silent_parser_switch_allowed_count": 0,
+    "fallback_attempt_count": 0,
+    "fallback_execution_allowed": false,
+    "fallback_log_claim_allowed": false,
+    "quality_downgrade_is_not_evidence_promotion": true
+  },
+  "instruction_text_contract": {
+    "required_label": "UNTRUSTED_EVIDENCE_TEXT",
+    "required_interpretation": "EVIDENCE_ONLY",
+    "route_must_match_non_instruction_baseline": true,
+    "system_rule_override_allowed": false,
+    "tool_authorization_allowed": false,
+    "policy_override_allowed": false,
+    "prompt_injection_scan_allowed": false,
+    "scanner_runtime_owner": "STAGE-050",
+    "raw_instruction_text_retained_in_report": false,
+    "classification_is_not_scanner": true
+  },
+  "result_contract": {
+    "scenario_count": 16,
+    "all_scenarios_must_pass": true,
+    "passed_scenario_count": 16,
+    "accepted_output_count": 11,
+    "rejected_output_count": 3,
+    "route_no_output_count": 2,
+    "status_counts": {
+      "OUTPUT_CANDIDATE_NOT_VALIDATED": 6,
+      "OUTPUT_PARTIAL_REVIEW_REQUIRED": 4,
+      "OUTPUT_FAILED_EXPLICIT": 1
+    },
+    "silent_drop_count_required": 0,
+    "parser_execution_count_required": 0,
+    "fallback_execution_count_required": 0,
+    "persistent_write_count_required": 0,
+    "raw_payload_retained_in_report": false
+  },
+  "runtime_boundary": {
+    "synthetic_format_labeled_fixture_allowed": true,
+    "in_memory_normalization_allowed": true,
+    "stage046_synthetic_metadata_route_replay_allowed": true,
+    "stdout_control_report_allowed": true,
+    "ids_business_source_read_allowed": false,
+    "source_file_open_allowed": false,
+    "file_type_redetection_allowed": false,
+    "runtime_parser_selection_allowed": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "ids_business_parser_output_allowed": false,
+    "fallback_execution_allowed": false,
+    "differential_parser_evaluation_allowed": false,
+    "prompt_injection_scan_allowed": false,
+    "formula_execution_allowed": false,
+    "quality_gate_evaluation_allowed": false,
+    "evidence_promotion_allowed": false,
+    "persistent_state_write_allowed": false,
+    "database_connection_allowed": false,
+    "runtime_output_write_allowed": false,
+    "production_activation_allowed": false
+  },
+  "phase4_entry_gate": {
+    "gate_id": "IDS-STAGE047-P4-GATE",
+    "next_gate": "IDS-STAGE047-P4-GATE",
+    "required_task_id": "IDS-V0_1-STAGE047-P4",
+    "required_acceptance_id": "ACC-STAGE-047",
+    "entry_authorized_in_this_run": false,
+    "entry_authorized_after_separate_gate": true,
+    "must_run_separately": true,
+    "whole_stage_review_allowed_in_phase3": false,
+    "dependency_install_allowed": false,
+    "github_upload_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "rollback_contract": {
+    "scope": "STAGE047_PHASE3_SCENARIO_ARTIFACTS_AND_FORMAT_FIXTURE_EXTENSION_ONLY",
+    "rollback_target_commit": "65b81389e24d9ae371f464dcd6321784b9078d8b",
+    "phase1_or_phase2_evidence_mutation_allowed": false,
+    "source_or_original_mutation_allowed": false,
+    "manifest_evidence_ledger_audit_index_report_mutation_allowed": false,
+    "runtime_or_database_cleanup_required": false,
+    "github_or_app_state_change_allowed": false
+  },
+  "truth_flags": {
+    "taskpack_source_read_performed": true,
+    "taskpack_and_git_artifact_hashes_recomputed": true,
+    "phase2_snapshot_reverified": true,
+    "upstream_stage046_route_scenarios_replayed": true,
+    "synthetic_format_labeled_controls_evaluated": true,
+    "all_taskpack_format_groups_covered": true,
+    "in_memory_output_scenarios_performed": true,
+    "fallback_quality_disposition_evaluated": true,
+    "instruction_route_invariance_evaluated": true,
+    "formula_text_preservation_verified": true,
+    "rejection_sanitization_verified": true,
+    "control_output_envelopes_constructed": true,
+    "phase3_started": true,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "fake_ids_business_data_used": false,
+    "real_ids_business_job_created": false,
+    "source_file_open_performed": false,
+    "ids_business_filesystem_scan_performed": false,
+    "ids_business_file_hash_performed": false,
+    "file_type_redetection_performed": false,
+    "actual_business_route_evaluation_performed": false,
+    "runtime_parser_selected": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "ids_business_parser_output_produced": false,
+    "fallback_execution_performed": false,
+    "differential_parser_evaluation_performed": false,
+    "prompt_injection_scan_performed": false,
+    "prompt_injection_marker_applied": false,
+    "formula_execution_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "evidence_promotion_performed": false,
+    "manifest_write_performed": false,
+    "evidence_ledger_write_performed": false,
+    "audit_write_performed": false,
+    "index_write_performed": false,
+    "report_write_performed": false,
+    "job_creation_performed": false,
+    "state_transition_performed": false,
+    "persistent_state_write_performed": false,
+    "database_connection_performed": false,
+    "schema_change_performed": false,
+    "runtime_output_written": false,
+    "production_runtime_activation_performed": false,
+    "phase4_started": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "human_status_projection": {
+    "OUTPUT_CANDIDATE_NOT_VALIDATED": "控制候选输出尚未通过质量门，不能进入高可信证据",
+    "OUTPUT_PARTIAL_REVIEW_REQUIRED": "控制输出不完整或置信度不足，需要人工复核",
+    "OUTPUT_FAILED_EXPLICIT": "控制输出失败已显式记录，未静默丢弃",
+    "ROUTE_REVIEW_REQUIRED_NO_OUTPUT": "路线尚未满足输出条件，已转人工复核且未生成输出",
+    "ROUTE_BLOCKED_NO_OUTPUT": "路线输入已阻断，错误显式保留且未生成输出",
+    "OUTPUT_REJECTED_FAIL_CLOSED": "控制输出不符合合同，已拒绝且未回显输入"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "run_id": "`RUN-IDS-STAGE043-P4-LOCAL-20260719-001`",
+  "action": "收敛 Worker 崩溃恢复 Phase 4 交付证据并保持自动恢复、进程、状态、清理和生产动作禁用",
+  "result": "`PASS_ISOLATED_CLOSEOUT_PRODUCTION_DISABLED`",
+  "branch": "codex/kmids-recovery-stage041-p1",
+  "run_start": {
+    "head": "6af57993b35bde3c3a215b08ee7e1ab65c204747",
+    "km_ids_tree": "3461f0ac16efe01fb48e0eb589ac2a00b804e226",
+    "origin_main": "07bddf9845122c4ae16b7416a44b22feda281f07",
+    "merge_base": "4b0d564122541a024585ca69fb9b990edb27486f"
+  },
+  "source_integrity": {
+    "taskpack_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "stage043_member_sha256": "e1d5169cbc30515930a7224743b860d9b577ccfbf9e0f913ec254d2ea060317b",
+    "source_member_match_count": 1
+  },
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-kmids-stage041",
+    "scope": "KM_IDSystem only",
+    "outside_scope_paths": 0,
+    "owner_dirty_path_overlap": 0,
+    "conflicts": 0
+  },
+  "implementation": {
+    "contract_id": "ids.worker_crash_recovery_policy.v0_1.stage043.p4.delivery",
+    "contract_schema": "ids.stage043.worker_crash_recovery.phase4.delivery.v1",
+    "execution_mode": "ISOLATED_NON_PRODUCTION_WORKER_CRASH_RECOVERY_CLOSEOUT",
+    "job_type_count": 8,
+    "job_state_count": 11,
+    "terminal_state_count": 4,
+    "allowed_transition_count": 21,
+    "failure_retry_log_attempt_count": 3,
+    "failure_retry_log_retry_count": 2,
+    "pressure_signal_count": 7,
+    "scenario_count": 13,
+    "passed_scenario_count": 13,
+    "conditional_automatic_handling_candidate_count": 3,
+    "automatic_recovery_eligible_case_count": 0,
+    "successful_automatic_recovery_case_count": 0,
+    "manual_action_required_case_count": 13,
+    "cleanup_eligible_class_count": 2,
+    "protected_artifact_class_count": 5,
+    "reviewed_transport_orderly_shutdown_proved": true,
+    "persistent_recovery_state_available_after_exit": false,
+    "automatic_recovery_performed": false,
+    "actual_worker_process_crash_performed": false,
+    "process_crash_recovery_performed": false,
+    "state_mutation_performed": false,
+    "cleanup_delete_performed": false,
+    "persistence_performed": false
+  },
+  "verified_results": [
+    "Phase4 checker contract 14/14 and delivery 14/14 PASS",
+    "Phase3 evidence remains 13/13 and the isolated control self-exit remains code 73 without restart or recovery",
+    "Current automatic-recovery eligibility and observed success are both empty because persistent recovery state and production calibration are unavailable",
+    "All thirteen governed recovery cases remain manual-action cases",
+    "Same-source exclusion retains 25 full conflicts and 16 selected conflicts without operation, queue or retry effects",
+    "Two cleanup candidate classes remain reference-only while five evidence classes remain protected",
+    "Reviewed Stage038 transport shutdown is replayed as evidence only; no worker shutdown action ran",
+    "Focused tests 11/11 in 98.108 seconds and Stage005 governance regression 163/163 PASS",
+    "Stage041-043 aggregate 185/185 PASS in 660.796 seconds",
+    "Full IDS v0.1 discovery 926/926 PASS in 1024.295 seconds",
+    "Five historical Stage038-042 review checkers, 209-event semantics, idempotent rendering and project-scoped dual-plane PASS"
+  ],
+  "pending_results": [],
+  "prohibitions_observed": [
+    "未进入 Stage043 整阶段复审、Stage044 或批次复审",
+    "未探测、signal、kill、终止、重启或恢复外部或生产 Worker 进程",
+    "未修改状态、继续检查点、执行清理删除、持久化、数据库、schema 或外部 API 动作",
+    "未读取原始元数据或创建虚构 IDS 业务数据",
+    "未上传、push、merge、变更 issue 或重装应用"
+  ],
+  "next_gate": "IDS-STAGE043-REVIEW-GATE"
+}

@@ -1,0 +1,113 @@
+# IDS Codex 使用说明（v0.1-only 中文修订版）
+
+## 1. 这次只开发 v0.1
+
+不要让 Codex 开发 v0.2、v0.3、v0.4、v0.5、v1.0、v1.5 或 v2.0+ 的功能。那些只在 `future_framework/` 中保留方向。
+
+## 2. 每次只给 Codex 一个 Stage
+
+你的开发习惯是直接给 Codex 一个 Stage 的 Pursuing Goal。推荐发法：
+
+```text
+项目：CodexProject / OpMe_System
+产品名：IDS / Industrial Data System
+执行模式：IMPLEMENT
+当前只执行：STAGE-001
+Acceptance ID：ACC-STAGE-001
+Pursuing Goal：复制 stage 文件中的“追求目标”
+
+请读取：
+- AGENTS.md
+- OpMe_System/AGENTS.md
+- taskpack/00_已锁定Owner决策.md
+- taskpack/stages/STAGE-001_*.md
+
+必须遵守：
+- 不提交真实原始资料
+- 不提交 secrets
+- 不修改、移动、删除、覆盖 00_ORIGINAL_RAW_DATA
+- 不使用旧产品名作为新 UI、报告、文档显示名
+- 每次只处理本 Stage
+- 没有真实测试输出不得声称完成
+
+请输出：
+- 修改文件列表
+- 测试命令和真实结果
+- 验收证据
+- 未解决问题
+- 回滚方式
+```
+
+## 3. 先从 STAGE-001 开始
+
+不要跳到 RAG、OCR、索引或 UI。先把仓库命名、ProductMetaDatabase、FinanceMetaDatabase、路径和治理合同处理好。
+
+## 4. 并行开发怎么做
+
+只有 Stage 文件里写：
+
+```text
+建议并行度：是
+```
+
+才建议开另一个 Codex thread。
+
+并行时必须保证：
+
+```text
+不同 Stage
+不同 Acceptance ID
+不同文件范围
+不同时改 schema/migration/shared UI shell/route/deploy 脚本
+```
+
+如果不确定是否冲突，不并行。
+
+## 5. rclone / 云端备份能不能并行
+
+可以并行推进，但放在单独线程。它不阻塞 STAGE-001 开始。
+
+建议并行做的事情是：
+
+```text
+了解 rclone
+选择云端对象存储或云盘
+设计备份目录
+确认费用
+确认不直接同步运行中的 PostgreSQL 数据目录
+```
+
+IDS 代码里的备份入口对应 STAGE-143 至 STAGE-147，真正接入时再和主线合并。
+
+## 6. external_api_policy 怎么操作
+
+你不需要逐个标记 chunk。未来界面应支持在数据源或文档层选择：
+
+```text
+denied：禁止外发，默认值
+summary_only：只允许摘要外发
+full_text_allowed：允许文本块外发
+```
+
+如果不确定，保持 denied。
+
+## 7. 数据验收不要跳级
+
+```text
+Tier 0：synthetic golden dataset
+Tier 1：1–5GB owner real sample
+Tier 2：20–50GB owner medium batch
+Tier 3：150–500GB full batch
+```
+
+不要直接跑 500GB。
+
+## 8. 你额外需要准备
+
+1. Docker Desktop。
+2. 5TB 移动硬盘。
+3. `IDS_DATA_ROOT` 目录结构。
+4. 少量 Tier 1 真实样例资料。
+5. OpenAI API key 是否启用的决定。
+6. rclone/云端备份单独线程继续推进。
+7. 每个 Stage 完成后检查 Codex 是否有真实测试输出和回滚说明。

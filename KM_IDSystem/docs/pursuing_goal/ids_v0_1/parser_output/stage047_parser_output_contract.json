@@ -1,0 +1,509 @@
+{
+  "schema_version": "ids.stage047.parser_output.phase1.v1",
+  "stage": "STAGE-047",
+  "phase": "Phase 1",
+  "task_id": "IDS-V0_1-STAGE047-P1",
+  "acceptance_id": "ACC-STAGE-047",
+  "local_code": "D08-S003",
+  "domain": "D08",
+  "entrance": "IDS_SYSTEM_OPERATIONS",
+  "pursuing_goal": "DEFINE_EXACT_FAIL_CLOSED_PARSER_OUTPUT_WITHOUT_EXECUTION_OR_EVIDENCE_PROMOTION",
+  "parser_output_contract_id": "ids.parser_output.v0_1.stage047.p1",
+  "contract_state": "PHASE1_ENGINEERING_CONTRACT_PARSER_OUTPUT_RUNTIME_DISABLED",
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE047-P2-GATE",
+  "source_binding": {
+    "source_archive_path": "/Users/linzezhang/Downloads/IDS_Taskpack_v0_1_only_中文修订版.zip",
+    "source_archive_sha256": "55b782e338610aab6361b7945bb5e290ba60038a06cc765c7c2da801734db6d3",
+    "source_member": "IDS_v0_1_Final_Chinese_Revised/stages/STAGE-047_解析器输出合同.md",
+    "source_member_match_count": 1,
+    "source_member_integrity": "OK",
+    "source_member_sha256": "e1d5bdb219b6f16ca7fec4e4455e7acba1ecbae9803a7c13721b75895671d2f4",
+    "roadmap_sha256": "a193fd2c44c51d634bf7887a1a6baf7e5199d9a8535e4211e35e97588e2e21a6",
+    "instructions_sha256": "ce456e06136d5ecc56cd7c9dc926abb5894817dda87bf7667588bf85211794f8",
+    "source_index_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/V0_1_STAGE_EXECUTION_INDEX.csv",
+    "source_index_sha256": "2e0088153cd1e13a09d9aebd09a1bd0c8c7162acd0788360d45f5c7320af1e9a",
+    "source_verification_status": "SOURCE_VERIFIED"
+  },
+  "predecessor_binding": {
+    "stage046_review_commit": "c7d66380cfab7cf00ccbb9af34ef43a7f44a7bde",
+    "stage046_review_root_tree": "455b675a23243a8978b332e07e4a4cadcc532038",
+    "stage046_review_kmids_tree": "98d21d245ccee585795cbc6e6180a8fcafda7f75",
+    "stage046_review_parent": "5dee024cd44e2e772776487ee21761f274c7708e",
+    "stage046_review_status": "completed_reviewed_local",
+    "stage046_review_result": "PASS_REVIEWED_LOCAL_PARSER_AND_FALLBACK_DISABLED"
+  },
+  "upstream_snapshot_bindings": {
+    "stage045_delivery_contract_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/file_type_detection/stage045_file_type_detection_delivery_contract.json",
+      "sha256": "209c13f67d457419c8760841f13f401f3d8acec2ec7a72c5c13e0f4722b6c743",
+      "snapshot_commit": "c7d66380cfab7cf00ccbb9af34ef43a7f44a7bde"
+    },
+    "stage046_phase1_contract_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_contract.json",
+      "sha256": "5c145dba0ba2246b6daa33da0098b4b2ee2a48a53cfec993261d70596706c1fd",
+      "snapshot_commit": "c7d66380cfab7cf00ccbb9af34ef43a7f44a7bde"
+    },
+    "stage046_phase2_contract_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_runtime_contract.json",
+      "sha256": "d1772c08581d04a9b7932f1a74fcfe44877056973df559c2396fb69f9b1e3aab",
+      "snapshot_commit": "c7d66380cfab7cf00ccbb9af34ef43a7f44a7bde"
+    },
+    "stage046_phase3_contract_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_scenarios_contract.json",
+      "sha256": "eef1c03bf3abd2a95bb0294b2b8671a61e3fd29f77e3495b2a118941b979c8a2",
+      "snapshot_commit": "c7d66380cfab7cf00ccbb9af34ef43a7f44a7bde"
+    },
+    "stage046_delivery_contract_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_delivery_contract.json",
+      "sha256": "18629486122178a169ae88e54559d3166f73a19c1652011643ee88b4ae3e9dc0",
+      "snapshot_commit": "c7d66380cfab7cf00ccbb9af34ef43a7f44a7bde"
+    },
+    "stage046_review_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_STAGE_REVIEW.md",
+      "sha256": "f946ffdecb1a896065f7a3a66e1a6a38a52df445b3ef6b5fab4d310aa86362a2",
+      "snapshot_commit": "c7d66380cfab7cf00ccbb9af34ef43a7f44a7bde"
+    },
+    "stage046_review_checker_ref": {
+      "ref": "KM_IDSystem/scripts/check_parser_routing_stage_review.py",
+      "sha256": "61a84f278b0db213e7cd28021cb16daeecc76c21bbb17cde547eb6286df43053",
+      "snapshot_commit": "c7d66380cfab7cf00ccbb9af34ef43a7f44a7bde"
+    },
+    "stage046_review_run_ref": {
+      "ref": "KM_IDSystem/machine/runs/2026-07-22-stage046-review-local.json",
+      "sha256": "f33f1d06dc569ffe996167df373ec108abb4e129b7104c8ace2fa13d1776f719",
+      "snapshot_commit": "c7d66380cfab7cf00ccbb9af34ef43a7f44a7bde"
+    },
+    "raw_data_boundary_ref": {
+      "ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md",
+      "sha256": "ad4695abf250049699a1b96b49b81432e5d5754dfe7de69c7f3056463a0a7d51",
+      "snapshot_commit": "c7d66380cfab7cf00ccbb9af34ef43a7f44a7bde"
+    }
+  },
+  "input_boundary": {
+    "mode": "REFERENCE_ONLY_STAGE046_ROUTING_REQUEST_AND_RESULT",
+    "required_wrapper_fields": [
+      "route_result_id",
+      "route_result",
+      "routing_request",
+      "source_identity_ref",
+      "requested_output_schema_version",
+      "requested_at"
+    ],
+    "required_routing_request_schema_version": "ids.stage046.parser_routing_request.v1",
+    "required_routing_request_fields": [
+      "schema_version",
+      "routing_request_id",
+      "detection_request_id",
+      "detection_result_id",
+      "source_fingerprint_ref",
+      "source_identity_ref",
+      "detected_type",
+      "detection_state",
+      "detection_confidence",
+      "detection_evidence_ref",
+      "detector_contract_version",
+      "parser_registry_version",
+      "evidence_text_marker_applied",
+      "requested_at"
+    ],
+    "required_route_result_schema_version": "ids.stage046.parser_routing_result.v1",
+    "required_route_result_fields": [
+      "routing_request_id",
+      "detection_request_id",
+      "detection_result_id",
+      "detection_result_identity_status",
+      "detected_type",
+      "detection_state",
+      "detection_confidence",
+      "route_action",
+      "candidate_route_id",
+      "parser_family",
+      "parser_version",
+      "parser_version_status",
+      "route_fact_level",
+      "routing_confidence",
+      "evidence_text_label",
+      "errors"
+    ],
+    "eligible_route_actions": [
+      "ROUTE_CANDIDATE_READY_NOT_EXECUTED"
+    ],
+    "ineligible_route_actions": [
+      "ROUTE_BLOCKED_PARSER_IMPLEMENTATION_UNAVAILABLE",
+      "ROUTE_REVIEW_REQUIRED",
+      "ROUTE_UNSUPPORTED",
+      "ROUTE_BLOCKED"
+    ],
+    "detection_authority": "STAGE-045",
+    "route_authority": "STAGE-046",
+    "result_identity_required": true,
+    "result_identity_algorithm": "SHA256_CANONICAL_JSON",
+    "result_identity_format": "route-result:sha256:<64-lower-hex>",
+    "result_identity_scope": "INTEGRITY_ONLY_NOT_EXTERNAL_PROVENANCE_OR_AUTHORIZATION",
+    "routing_request_identity_required": true,
+    "routing_request_identity_algorithm": "SHA256_CANONICAL_JSON",
+    "request_result_lineage_match_required": true,
+    "required_route_result_human_status": "控制路线夹具已绑定，未选择或执行解析器",
+    "canonical_control_reference_format": "LOWER_ASCII_TOKEN_SEGMENTS",
+    "source_identity_match_required": true,
+    "parser_family_and_version_match_required": true,
+    "placeholder_parser_version_allowed_for_candidate_output": false,
+    "source_body_or_path_allowed": false,
+    "raw_exception_or_unbounded_text_allowed": false,
+    "input_record_write_allowed": false,
+    "raw_metadata_boundary_blocked": true
+  },
+  "output_envelope_contract": {
+    "required_fields": [
+      "output_id",
+      "output_schema_version",
+      "route_result_id",
+      "routing_request_id",
+      "detection_result_id",
+      "source_identity_ref",
+      "parser_family",
+      "parser_version",
+      "status",
+      "text",
+      "tables",
+      "pages",
+      "sections",
+      "confidence",
+      "errors",
+      "content_security",
+      "quality_gate",
+      "produced_at"
+    ],
+    "additional_fields_allowed": false,
+    "required_output_schema_version": "ids.parser_output.v0_1.stage047.p1",
+    "output_id_algorithm": "SHA256_CANONICAL_OUTPUT_PROJECTION",
+    "output_id_format": "parser-output:sha256:<64-lower-hex>",
+    "output_id_scope": "INTEGRITY_ONLY_NOT_EXTERNAL_PROVENANCE_OR_QUALITY_APPROVAL",
+    "allowed_statuses": [
+      "OUTPUT_CANDIDATE_NOT_VALIDATED",
+      "OUTPUT_PARTIAL_REVIEW_REQUIRED",
+      "OUTPUT_FAILED_EXPLICIT"
+    ],
+    "strict_utc_produced_at_required": true,
+    "produced_at_not_before_requested_at": true,
+    "parser_version_required": true,
+    "placeholder_parser_version_allowed": false,
+    "candidate_output_is_dispatch_authorization": false,
+    "candidate_output_is_quality_approval": false,
+    "output_creation_allowed": false,
+    "output_persistence_allowed": false
+  },
+  "core_output_contract": {
+    "required_fields": [
+      "text",
+      "tables",
+      "pages",
+      "sections",
+      "confidence",
+      "errors"
+    ],
+    "additional_core_fields_allowed": false,
+    "field_contracts": {
+      "text": {
+        "type": "STRING_OR_NULL",
+        "origin": "SOURCE_DERIVED",
+        "trust_label": "UNTRUSTED_EVIDENCE_TEXT",
+        "instruction_interpretation_allowed": false,
+        "tool_authorization_allowed": false,
+        "null_requires_non_text_content_or_explicit_error": true
+      },
+      "tables": {
+        "type": "ARRAY",
+        "item_schema_ref": "ids.parser_output.table.v0_1",
+        "item_ids_unique": true,
+        "source_order_preserved": true
+      },
+      "pages": {
+        "type": "ARRAY",
+        "item_schema_ref": "ids.parser_output.page.v0_1",
+        "item_ids_unique": true,
+        "source_order_preserved": true
+      },
+      "sections": {
+        "type": "ARRAY",
+        "item_schema_ref": "ids.parser_output.section.v0_1",
+        "item_ids_unique": true,
+        "source_order_preserved": true
+      },
+      "confidence": {
+        "type": "ENUM",
+        "allowed_values": [
+          "HIGH",
+          "MEDIUM",
+          "LOW",
+          "UNKNOWN"
+        ],
+        "default_when_not_measured": "UNKNOWN",
+        "numeric_thresholds_assigned": false,
+        "unknown_blocks_promotion": true
+      },
+      "errors": {
+        "type": "ARRAY",
+        "item_schema_ref": "ids.parser_output.safe_error.v0_1",
+        "raw_exception_allowed": false,
+        "business_content_echo_allowed": false,
+        "filesystem_path_or_secret_allowed": false,
+        "duplicate_error_codes_allowed": false
+      }
+    }
+  },
+  "item_schema_contracts": {
+    "table": {
+      "schema_id": "ids.parser_output.table.v0_1",
+      "required_fields": [
+        "table_id",
+        "page_refs",
+        "section_ref",
+        "cells",
+        "confidence",
+        "errors"
+      ],
+      "additional_fields_allowed": false,
+      "cells_type": "ARRAY_OF_ROWS_OF_UNTRUSTED_SCALAR_TEXT_OR_NULL",
+      "rectangular_shape_required": true,
+      "source_order_preserved": true,
+      "raw_formula_execution_allowed": false
+    },
+    "page": {
+      "schema_id": "ids.parser_output.page.v0_1",
+      "required_fields": [
+        "page_id",
+        "page_number",
+        "text",
+        "table_refs",
+        "confidence",
+        "errors"
+      ],
+      "additional_fields_allowed": false,
+      "page_number_type": "POSITIVE_INTEGER",
+      "page_numbers_unique_and_ascending": true,
+      "text_trust_label": "UNTRUSTED_EVIDENCE_TEXT"
+    },
+    "section": {
+      "schema_id": "ids.parser_output.section.v0_1",
+      "required_fields": [
+        "section_id",
+        "title",
+        "level",
+        "page_refs",
+        "text",
+        "table_refs",
+        "confidence",
+        "errors"
+      ],
+      "additional_fields_allowed": false,
+      "level_type": "POSITIVE_INTEGER",
+      "title_and_text_trust_label": "UNTRUSTED_EVIDENCE_TEXT",
+      "hierarchy_cycles_allowed": false
+    },
+    "safe_error": {
+      "schema_id": "ids.parser_output.safe_error.v0_1",
+      "required_fields": [
+        "code",
+        "severity",
+        "retryable",
+        "message_key"
+      ],
+      "additional_fields_allowed": false,
+      "allowed_severities": [
+        "WARNING",
+        "ERROR",
+        "FATAL"
+      ],
+      "code_format": "PARSER_<A-Z0-9_+>",
+      "code_max_characters": 96,
+      "message_key_format": "parser.<lower_snake_case>",
+      "message_key_max_characters": 128,
+      "raw_message_exception_stack_path_uri_or_content_allowed": false
+    }
+  },
+  "lineage_and_integrity_contract": {
+    "route_detection_source_identity_chain_required": true,
+    "route_result_id_must_match_input_projection": true,
+    "output_id_must_match_output_projection": true,
+    "source_identity_ref_must_match_route_result": true,
+    "parser_family_and_version_must_match_route_result": true,
+    "all_internal_references_must_resolve": true,
+    "reciprocal_table_page_references_required": true,
+    "reciprocal_table_section_references_required": true,
+    "canonical_reference_format": "LOWER_ASCII_TOKEN_SEGMENTS",
+    "duplicate_item_ids_rejected": true,
+    "orphan_page_section_or_table_refs_rejected": true,
+    "filesystem_path_or_uri_reference_allowed": false,
+    "identity_mismatch_action": "OUTPUT_REJECTED_IDENTITY_MISMATCH",
+    "lineage_mismatch_action": "OUTPUT_REJECTED_LINEAGE_MISMATCH"
+  },
+  "completion_and_error_contract": {
+    "candidate_non_empty_condition": "NON_EMPTY_TEXT_OR_TABLES_OR_PAGES_OR_SECTIONS",
+    "empty_candidate_without_error_rejected": true,
+    "partial_or_failed_requires_safe_error": true,
+    "failed_output_content_must_be_empty": true,
+    "unknown_confidence_blocks_promotion": true,
+    "low_confidence_requires_review": true,
+    "safe_error_codes_required_for_all_failures": true,
+    "valid_utf8_encodable_text_required": true,
+    "silent_success_allowed": false,
+    "silent_drop_allowed": false,
+    "invalid_output_action": "OUTPUT_REJECTED_FAIL_CLOSED"
+  },
+  "quality_and_evidence_boundary": {
+    "parser_content_fact_level": "CANDIDATE",
+    "initial_quality_gate_state": "UNASSESSED",
+    "allowed_quality_gate_states": [
+      "UNASSESSED",
+      "REVIEW_REQUIRED",
+      "BLOCKED"
+    ],
+    "quality_gate_required_before_downstream": true,
+    "missing_quality_action": "BLOCK_DOWNSTREAM_PROMOTION",
+    "quality_gate_pass_can_be_claimed_in_phase1": false,
+    "direct_high_trust_evidence_write_allowed": false,
+    "evidence_promotion_allowed": false,
+    "manifest_write_allowed": false,
+    "evidence_ledger_write_allowed": false,
+    "audit_write_allowed": false,
+    "index_or_report_write_allowed": false,
+    "database_write_allowed": false,
+    "original_or_delivered_output_mutation_allowed": false
+  },
+  "fallback_boundary": {
+    "runtime_owner": "STAGE-048",
+    "attempt_history_required": true,
+    "attempt_parser_version_required": true,
+    "bounded_safe_error_required": true,
+    "stop_reason_required": true,
+    "silent_drop_allowed": false,
+    "silent_parser_switch_allowed": false,
+    "fallback_output_must_use_same_envelope": true,
+    "execution_allowed": false
+  },
+  "differential_evaluation_boundary": {
+    "runtime_owner": "STAGE-049",
+    "candidate_outputs_must_remain_separate": true,
+    "comparison_cannot_rewrite_source_output": true,
+    "comparison_cannot_self_promote_evidence": true,
+    "execution_allowed": false
+  },
+  "prompt_injection_boundary": {
+    "runtime_owner": "STAGE-050",
+    "required_content_label": "UNTRUSTED_EVIDENCE_TEXT",
+    "phase1_marker_state": "REQUIRED_NOT_APPLIED",
+    "marker_required_before_downstream_model": true,
+    "forbidden_interpretations": [
+      "SYSTEM_INSTRUCTION",
+      "TOOL_INSTRUCTION",
+      "POLICY",
+      "CONTROL_COMMAND"
+    ],
+    "content_can_override_system_rules": false,
+    "content_can_authorize_tools": false,
+    "scan_or_marker_application_allowed": false
+  },
+  "state_and_job_boundary": {
+    "job_type": "PARSE",
+    "state_model_owner": "STAGE-037",
+    "route_contract_owner": "STAGE-046",
+    "output_contract_owner": "STAGE-047",
+    "job_creation_allowed": false,
+    "queue_admission_allowed": false,
+    "claim_or_lock_allowed": false,
+    "state_transition_allowed": false,
+    "attempt_mutation_allowed": false,
+    "terminal_history_change_allowed": false
+  },
+  "phase2_entry_gate": {
+    "gate_id": "IDS-STAGE047-P2-GATE",
+    "required_conditions": [
+      "SOURCE_BINDING_EXACT",
+      "STAGE046_REVIEW_SNAPSHOT_EXACT",
+      "STAGE045_DETECTION_AND_STAGE046_ROUTE_LINEAGE_EXACT",
+      "OUTPUT_ENVELOPE_EXACT",
+      "SIX_CORE_FIELDS_EXACT",
+      "NESTED_ITEM_SCHEMAS_EXACT",
+      "EMPTY_PARTIAL_FAILED_OUTPUTS_FAIL_CLOSED",
+      "QUALITY_AND_EVIDENCE_PROMOTION_CLOSED",
+      "STAGE048_049_050_OWNERSHIP_PRESERVED",
+      "ALL_RUNTIME_TRUTH_FLAGS_FALSE"
+    ],
+    "entry_authorized": false,
+    "must_run_separately": true,
+    "dependency_install_allowed": false
+  },
+  "runtime_boundary": {
+    "source_file_access_allowed": false,
+    "file_type_redetection_allowed": false,
+    "route_evaluation_allowed": false,
+    "parser_selection_allowed": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "parser_output_creation_allowed": false,
+    "fallback_execution_allowed": false,
+    "differential_evaluation_allowed": false,
+    "prompt_injection_scan_allowed": false,
+    "prompt_injection_marker_application_allowed": false,
+    "quality_gate_evaluation_allowed": false,
+    "backend_or_worker_start_allowed": false,
+    "external_api_allowed": false,
+    "persistent_write_allowed": false,
+    "database_connection_allowed": false,
+    "production_activation_allowed": false
+  },
+  "rollback_contract": {
+    "scope": "STAGE047_PHASE1_CONTRACT_AND_GOVERNANCE_ONLY",
+    "rollback_target": "STAGE046_REVIEWED_LOCAL_SNAPSHOT",
+    "delete_or_cleanup_source_allowed": false,
+    "manifest_evidence_audit_index_report_mutation_allowed": false,
+    "github_or_app_state_change_allowed": false
+  },
+  "human_status_projection": {
+    "PHASE1_CONTRACT_READY": "解析器输出合同已就绪，实际解析和输出仍禁用",
+    "OUTPUT_CANDIDATE_NOT_VALIDATED": "解析候选产物尚未通过质量门，不能作为高可信证据",
+    "OUTPUT_PARTIAL_REVIEW_REQUIRED": "解析结果不完整，需要人工复核后才能继续",
+    "OUTPUT_FAILED_EXPLICIT": "解析失败已显式记录，未静默丢弃内容",
+    "OUTPUT_REJECTED_FAIL_CLOSED": "解析输出不符合合同，已阻断下游使用"
+  },
+  "truth_flags": {
+    "taskpack_source_read_performed": true,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "fake_ids_business_data_used": false,
+    "real_ids_business_job_created": false,
+    "source_file_open_performed": false,
+    "file_type_redetection_performed": false,
+    "route_evaluation_performed": false,
+    "parser_selected": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "parser_output_produced": false,
+    "fallback_execution_performed": false,
+    "differential_evaluation_performed": false,
+    "prompt_injection_scan_performed": false,
+    "prompt_injection_marker_applied": false,
+    "quality_gate_evaluation_performed": false,
+    "evidence_promotion_performed": false,
+    "manifest_write_performed": false,
+    "evidence_ledger_write_performed": false,
+    "audit_write_performed": false,
+    "index_write_performed": false,
+    "report_write_performed": false,
+    "job_creation_performed": false,
+    "state_transition_performed": false,
+    "persistent_state_write_performed": false,
+    "database_connection_performed": false,
+    "schema_change_performed": false,
+    "runtime_output_written": false,
+    "production_runtime_activation_performed": false,
+    "phase2_started": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  }
+}

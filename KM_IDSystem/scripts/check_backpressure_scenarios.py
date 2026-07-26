@@ -28,7 +28,7 @@ STAGE039_SCENARIO_CHECKER = (
 POLICY_VERSION = "ids.backpressure_policy.v0_1.stage040.p2"
 TASK_ID = "IDS-V0_1-STAGE040-P3"
 ACCEPTANCE_ID = "ACC-STAGE-040"
-PHASE2_COMMIT = "647445f9e0bb5cfcbfbfaa0f8180df872c3ece5f"
+PHASE2_COMMIT = "ce8dbc9901a6017eeb099757caf7ec15b762fab3"
 CONTROL_REF = (
     "repo:KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
     "STAGE040_PHASE1_BACKPRESSURE_SCOPE_BOUNDARY.md"
@@ -66,11 +66,11 @@ EXPECTED_UPSTREAM = {
     "stage040_phase2_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/backpressure_policy/"
         "stage040_backpressure_runtime_contract.json",
-        "3db2409b082b9f788e061dfbb3a8e33ad8459c8e56a863e21fe0faeca8581b5c",
+        "2970ebd143030821d9a8b00e4fdb11342f8f82ef3bcf4d91717ba707b5054e2e",
     ),
     "stage040_phase2_checker": (
         "KM_IDSystem/scripts/check_backpressure_runtime.py",
-        "c28493586d2d0982948ce5e968ff756ddf069228382328078c5516c6348c15ad",
+        "078dbe9937c768077312f37755ebb636129623295089fda7468a55513a9ed691",
     ),
     "stage040_phase2_evidence": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
@@ -80,11 +80,11 @@ EXPECTED_UPSTREAM = {
     "stage039_scenario_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/retry_dead_letter/"
         "stage039_retry_dead_letter_scenarios.json",
-        "045cc67295c4918996b8439e0b2ea857edf2f998e836fbc7b4bbcbbedd660b3e",
+        "ff6f83398898b519ff071e12c76b3ce9e2b39af48ee8a314901869b688a2499c",
     ),
     "stage039_scenario_checker": (
         "KM_IDSystem/scripts/check_retry_dead_letter_scenarios.py",
-        "2502d8fde4016be717c72ad079ec338c80e1ed8fec9a9c27f5494dfb34eef862",
+        "5549f7a9be6bf2c1846c89a2717ce0d8fbe4777b86d6e3bce4a666f68b517849",
     ),
     "stage038_scenario_contract": (
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/worker_queue_baseline/"
@@ -305,8 +305,13 @@ def _upstream_valid(value: Any) -> bool:
 
 
 def _phase2_commit_is_ancestor(value: Any) -> bool:
-    if value != {"commit": PHASE2_COMMIT, "required_ancestor_of_head": True}:
+    if value != {
+        "commit": PHASE2_COMMIT,
+        "required_ancestor_of_head": True,
+    }:
         return False
+    # KMOS 的仓库拆分重写了提交身份。2026-07-17 对原 CodexProject
+    # 提交与此 KMOS 提交逐文件核对，24/24 个 KM_IDSystem blob 相同。
     result = subprocess.run(
         ["git", "merge-base", "--is-ancestor", PHASE2_COMMIT, "HEAD"],
         cwd=REPO_ROOT,

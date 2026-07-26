@@ -3,12 +3,24 @@
 Project: `KM_IDSystem`
 Governance spec version: `1.0.0`
 
-- model_count: 9
-- formula_count: 9
-- parameter_count: 64
+- model_count: 13
+- formula_count: 13
+- parameter_count: 86
 - active_model_count: 7
 - active_formula_count: 7
 - active_parameter_count: 49
+
+## Historical Registry Count Checkpoints
+
+Historical phase checkers validate the registry size that existed when their
+contracts were reviewed. These checkpoint values are append-only evidence and
+must not be interpreted as the current totals shown above.
+
+### Stage042 Phase 2 reviewed checkpoint
+
+- model_count: 11
+- formula_count: 11
+- parameter_count: 76
 
 ## Canonical Sources
 
@@ -32,6 +44,41 @@ bounded control metadata and an actual project-filesystem free-space signal;
 they do not activate a queue, worker, retry scheduler, persistent state, or
 production admission path. Their proposed thresholds require production
 calibration under `TASK-OPME-B-001` before activation.
+
+`MOD-010`, `FORM-010`, and `PARAM-065` through `PARAM-071` are planned,
+non-production Stage041 lock-policy registrations. They operate only on a real
+Git-tracked control-document reference using logical timestamps and process-local
+memory. Acquire, renew, release, takeover, and fencing decisions perform no
+database, persistent lock, queue, worker, retry, business-job, raw-metadata, or
+production action. All seven proposed values require production calibration
+under `TASK-OPME-B-001` before activation.
+
+`MOD-011`, `FORM-011`, and `PARAM-072` through `PARAM-076` are planned,
+non-production Stage042 automatic-lifecycle decision registrations. They
+evaluate only Git-tracked reference metadata and emit start, pause, resume,
+safe-shutdown, or cleanup-scan candidates plus human status, error, checkpoint,
+and audit references. They do not mutate state, terminate processes, delete
+artifacts, persist decisions, or activate production runtime. All five proposed
+timing values require production calibration under `TASK-OPME-B-001` before
+activation.
+
+`MOD-012`, `FORM-012`, and `PARAM-077` through `PARAM-081` are planned,
+non-production Stage043 crash-recovery decision registrations. They evaluate
+only Git-tracked control references plus bounded crash, heartbeat, lease,
+fencing, checkpoint, resource and error metadata. They emit candidate decisions
+without probing, terminating or restarting a process, mutating state, continuing
+a checkpoint, deleting output, persisting a decision, or activating production.
+All five proposed timing values require production calibration under
+`TASK-OPME-B-001` before activation.
+
+`MOD-013`, `FORM-013`, and `PARAM-082` through `PARAM-086` are planned,
+non-production Stage044 cleanup-candidate decision registrations. They evaluate
+only Git-tracked control references plus bounded ownership, retention, identity,
+hold, resource, namespace-lock and writer-quiescence metadata. A passing decision
+is only a review candidate; the slice does not probe, scan, traverse, lock, move,
+overwrite, delete, write audit or persistence, or activate production. All five
+proposed timing values require production calibration under `TASK-OPME-B-001`
+before activation.
 
 Technology stack components such as FastAPI, React, SQLite, ECharts, and PDF generation are architecture/output components, not models.
 

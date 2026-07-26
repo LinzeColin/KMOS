@@ -17,8 +17,15 @@ STAGE_REVIEW = PURSUE_ROOT / "STAGE033_STAGE_REVIEW.md"
 INDEX = PURSUE_ROOT / "database_size_guard" / "stage033_database_size_guard_index.json"
 SCRIPT = ROOT / "scripts" / "check_database_size_guard.py"
 BATCH_LOCK = PURSUE_ROOT / "BATCH031_040_UPLOAD_LOCK.yaml"
+CURRENT_BATCH_LOCK = PURSUE_ROOT / "BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
+
+
+def _batch_lock_history_and_current():
+    return BATCH_LOCK.read_text(encoding="utf-8") + "\n" + CURRENT_BATCH_LOCK.read_text(
+        encoding="utf-8"
+    )
 
 
 class Stage033DatabaseSizeGuardPhase1Tests(unittest.TestCase):
@@ -119,7 +126,7 @@ class Stage033DatabaseSizeGuardPhase1Tests(unittest.TestCase):
         self.assertTrue(ROADMAP.is_file(), f"missing roadmap: {ROADMAP}")
         self.assertTrue(EVENTS.is_file(), f"missing events: {EVENTS}")
 
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
 
@@ -383,7 +390,7 @@ class Stage033DatabaseSizeGuardPhase3Tests(unittest.TestCase):
         self.assertTrue(ROADMAP.is_file(), f"missing roadmap: {ROADMAP}")
         self.assertTrue(EVENTS.is_file(), f"missing events: {EVENTS}")
 
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
 
@@ -627,7 +634,7 @@ class Stage033DatabaseSizeGuardPhase4Tests(unittest.TestCase):
         self.assertTrue(ROADMAP.is_file(), f"missing roadmap: {ROADMAP}")
         self.assertTrue(EVENTS.is_file(), f"missing events: {EVENTS}")
 
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
 
@@ -785,7 +792,7 @@ class Stage033DatabaseSizeGuardReviewTests(unittest.TestCase):
 
     def test_stage_review_gate_batch_roadmap_and_event_track_reviewed_local_no_upload(self):
         self.assertTrue(STAGE_REVIEW.is_file(), f"missing stage review: {STAGE_REVIEW}")
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
 
@@ -1039,7 +1046,7 @@ class Stage033DatabaseSizeGuardPhase2Tests(unittest.TestCase):
         self.assertTrue(EVENTS.is_file(), f"missing events: {EVENTS}")
 
         phase2_text = PHASE2.read_text(encoding="utf-8")
-        lock_text = BATCH_LOCK.read_text(encoding="utf-8")
+        lock_text = _batch_lock_history_and_current()
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         events_text = EVENTS.read_text(encoding="utf-8")
 
