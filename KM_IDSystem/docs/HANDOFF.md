@@ -12,7 +12,7 @@
 ## Final GitHub Handoff - 2026-07-26
 
 - Owner explicitly ended this thread and authorized a final GitHub handoff of all existing KMIDS progress, the taskpack and key iteration information.
-- The handoff target is remote branch `codex/kmids-recovery-stage041-p1` plus a Draft PR. This owner directive supersedes historical per-run `NO_GITHUB_UPLOAD_THIS_RUN` markers only for preservation/review on that branch; it does not authorize direct `main` merge, Stage048 entry, production activation or app reinstall.
+- The handoff target is remote branch `codex/kmids-recovery-stage041-p1` plus Draft PR [LinzeColin/KMOS #193](https://github.com/LinzeColin/KMOS/pull/193). This owner directive supersedes historical per-run `NO_GITHUB_UPLOAD_THIS_RUN` markers only for preservation/review on that branch; it does not authorize direct `main` merge, Stage048 entry, production activation or app reinstall.
 - The branch preserves all Stage041–047 commits. `BATCH041_050` remains `7/10`; Stage048–050 and the ten-stage batch review have not started.
 - Latest observed `origin/main` is `12d6fa9f46786387ee21d9bd3c682175464f3554`; merge base is `0495b8482b78ff937a92ee061c92980bcbde173b`. Before final handoff commits the branch was 38 commits ahead and 108 behind, so the PR must remain Draft pending independent integration review.
 - The approved taskpack was imported as 183 byte-exact UTF-8 text files under `docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/`; the ZIP itself, raw metadata, private data and runtime outputs were not committed. Source/provenance, checksums and iteration recommendations are in `docs/taskpacks/`.

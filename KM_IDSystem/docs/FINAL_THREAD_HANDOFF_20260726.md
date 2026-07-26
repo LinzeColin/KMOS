@@ -19,10 +19,13 @@ Stage 048 激活或生产批准。
 - Latest observed `origin/main`：`12d6fa9f46786387ee21d9bd3c682175464f3554`
 - Merge base：`0495b8482b78ff937a92ee061c92980bcbde173b`
 - Pre-handoff divergence：delivery branch `38` commits ahead / `108` commits behind
-- Draft PR：提交后补充
+- First verified GitHub handoff commit：`dee1e863d3011780418fa1e2cd050fa29b42dadd`
+- Draft PR：[LinzeColin/KMOS #193](https://github.com/LinzeColin/KMOS/pull/193)
 
 `origin/main` 从未包含本批 Stage 041–047 提交；这不是当前 `main` 删除了已合入代码。
-不得把 Draft PR 直接视为可无冲突合并。
+不得把 Draft PR 直接视为可无冲突合并。PR 创建时 GitHub 报告 `OPEN + Draft`、
+`mergeable=MERGEABLE`、`mergeStateStatus=UNSTABLE`；这些是瞬时平台状态，不是门禁批准。
+相对当前 main 的 PR 统计为 433 个文件、107951 行新增、3535 行删除，必须按大跨度集成处理。
 
 ## 已完成
 
