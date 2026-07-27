@@ -182,3 +182,20 @@ def test_uplink_marker_is_not_echoed_wholesale(tmp_path, monkeypatch):
                   monkeypatch)
     text = client.get(URL).text
     assert "ghp_" not in text and "武汉开明" not in text
+
+
+def test_cron_only_variables_are_pinned_in_run_skill_not_only_in_compose():
+    """cron **不继承容器 ENV**——只写在 compose 里的变量，定时运行时拿不到。
+
+    2026-07-27 线上抓到的活例子：`KMFA_ATTENDANCE_RUNTIME_DIR` 只在 compose 里设，
+    于是 entrypoint 触发的自举与冷启动重试都能读到持久卷、跑绿，
+    而 cron 触发的定时运行退回镜像层默认路径、文件不在，报 NOTIFIER_CONFIG_MISSING。
+    表现是「手动跑绿、到点跑红」，看起来像随机失败，其实是两条路径读了不同目录。
+
+    这条锁住：凡是技能在 cron 下需要的变量，必须在 run_skill.sh 里显式 export，
+    compose 只作为可覆盖的来源。少了这层，同一个坑会换个变量名再来一次。
+    """
+    run_skill = (ROOT_REPO / "deploy" / "skills-runtime" / "run_skill.sh").read_text(encoding="utf-8")
+    for name in ("KMFA_ATTENDANCE_RUNTIME_DIR", "KMFA_FUND_VISION_OCR_COMMAND"):
+        assert f'export {name}="${{{name}:-' in run_skill, (
+            f"{name} 没在 run_skill.sh 里钉死——cron 跑的时候会拿不到它")
