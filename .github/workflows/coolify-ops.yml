@@ -19,7 +19,7 @@ on:
         description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
         required: true
         type: choice
-        options: [list, flags, set-flag, testing-safe-mode, provision-backup-key, sync-dingtalk, redeploy, deployments, logs, exec]
+        options: [list, flags, set-flag, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, logs, exec]
       app_uuid:
         description: "目标应用 uuid（provision-backup-key / redeploy 必填；先用 list 查）"
         required: false
@@ -283,6 +283,98 @@ jobs:
               -H "Content-Type: application/json" --data @"$RUNNER_TEMP/d.json" "$BASE/api/v1/applications/$APP/envs" || true)
           echo "重建 KMFA_DELIVERY_ENABLED=0 → $c"
           echo "测试期安全态完成：群机器人凭据已从 Coolify 移除，投递关闭。"
+
+      # ── testing-safe-mode 的反向操作 ───────────────────────────────────────
+      #
+      # 为什么需要它，而不是用 set-flag 把 KMFA_DELIVERY_ENABLED 改成 1：
+      #
+      #   1. **同名条目**。Coolify 里同一个键可能存着两份，谁赢不确定（本仓踩过：
+      #      两份 KMFA_CLOUDFLARE_ACCESS_AUD，空的那份赢）。set-flag 只写一份，
+      #      另一份 '0' 可能仍然生效——于是「开关显示已开、实际没发」，
+      #      比原来那个「跑绿不投递」更难查。这里沿用 testing-safe-mode 的
+      #      「全删再重建一条」，让终态无歧义。
+      #
+      #   2. **安全联锁**。开投递这个动作本身没风险，风险在于「开投递 + 群机器人
+      #      凭据还在」= 可能发进真实群，而 Owner 明令测试期不许发群。
+      #      所以这里先查群凭据，只要还在就**当场中止**，不给「先开了再说」的机会。
+      #      联锁是机械的：不依赖执行的人记得检查。
+      #
+      #   3. **显式写 personal**。run_skill.sh 的默认值已经是 personal，但默认值
+      #      是代码里的约定，面板上看不见。显式写一条，让「只发本人」这件事
+      #      在 Coolify 面板上是**看得见的事实**，而不是要读源码才知道的推断。
+      - name: 开投递——只发本人（群凭据仍在则中止）
+        if: inputs.mode == 'delivery-personal-on'
+        run: |
+          set -euo pipefail
+          test -n "${APP:-}" || { echo "需要 app_uuid"; exit 1; }
+          curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/applications/$APP/envs" -o "$RUNNER_TEMP/e.json"
+
+          # ① 安全联锁：群机器人凭据只要有一个「有值」，立刻中止。
+          python3 - <<'PY2'
+          import json, os, sys
+          d = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "e.json"), encoding="utf-8"))
+          envs = d if isinstance(d, list) else d.get("data") or []
+          ROBOT = {"DINGTALK_ROBOT_URL", "DINGTALK_ROBOT_SIGNING_KEY"}
+          live = [str(e.get("key")) for e in envs
+                  if str(e.get("key")) in ROBOT and (e.get("value") not in (None, ""))]
+          if live:
+              print(f"中止：群机器人凭据仍在（{sorted(set(live))}）。")
+              print("开投递前必须先跑 testing-safe-mode 清掉它们——"
+                    "Owner 明令测试期不许发群，凭据在就存在发群的可能。")
+              sys.exit(1)
+          print("联锁通过：群机器人凭据缺失 ⇒ 群通道结构上不可用。")
+          PY2
+
+          # ② 列出两个目标键的**全部**条目（同名多份要一并清掉）
+          python3 - > "$RUNNER_TEMP/targets.txt" <<'PY2'
+          import json, os
+          d = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "e.json"), encoding="utf-8"))
+          envs = d if isinstance(d, list) else d.get("data") or []
+          TARGET = {"KMFA_DELIVERY_ENABLED", "KMFA_NOTIFICATION_TARGETS"}
+          for e in envs:
+              k = str(e.get("key"))
+              if k in TARGET:
+                  print(f"{k}\t{e.get('uuid') or ''}\t{e.get('value')!r}")
+          PY2
+          echo "命中条目（键 / uuid / 现值）："; cat "$RUNNER_TEMP/targets.txt"
+          while IFS=$'\t' read -r k u v; do
+            [ -n "$u" ] || continue
+            c=$(curl -sS -o /dev/null -w '%{http_code}' -X DELETE -H "Authorization: Bearer $TOKEN" \
+                "$BASE/api/v1/applications/$APP/envs/$u" || true)
+            echo "  删除 $k($u) → $c"
+          done < "$RUNNER_TEMP/targets.txt"
+
+          # ③ 各重建一条，终态唯一
+          for pair in "KMFA_DELIVERY_ENABLED=1" "KMFA_NOTIFICATION_TARGETS=personal"; do
+            K="${pair%%=*}"; V="${pair#*=}"
+            python3 -c "import json,os,sys;open(os.path.join(os.environ['RUNNER_TEMP'],'p.json'),'w').write(json.dumps({'key':sys.argv[1],'value':sys.argv[2]}))" "$K" "$V"
+            c=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $TOKEN" \
+                -H "Content-Type: application/json" --data @"$RUNNER_TEMP/p.json" "$BASE/api/v1/applications/$APP/envs" || true)
+            echo "  重建 $K=$V → $c"
+          done
+
+          # ④ 回读校验：不信任写入的返回码，只信读回来的终态。
+          curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/applications/$APP/envs" -o "$RUNNER_TEMP/after.json"
+          python3 - <<'PY2'
+          import json, os, sys
+          d = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "after.json"), encoding="utf-8"))
+          envs = d if isinstance(d, list) else d.get("data") or []
+          got = {}
+          for e in envs:
+              k = str(e.get("key"))
+              if k in {"KMFA_DELIVERY_ENABLED", "KMFA_NOTIFICATION_TARGETS"}:
+                  got.setdefault(k, []).append(e.get("value"))
+          print("终态：", json.dumps(got, ensure_ascii=False))
+          bad = [k for k, vs in got.items() if len(set(map(str, vs))) != 1]
+          if bad:
+              print(f"失败：{bad} 仍有取值不一致的同名条目——终态有歧义，不算开成功。")
+              sys.exit(1)
+          if str(got.get("KMFA_DELIVERY_ENABLED", [None])[0]) != "1":
+              print("失败：KMFA_DELIVERY_ENABLED 回读不是 1。"); sys.exit(1)
+          if str(got.get("KMFA_NOTIFICATION_TARGETS", [None])[0]) != "personal":
+              print("失败：KMFA_NOTIFICATION_TARGETS 回读不是 personal。"); sys.exit(1)
+          print("投递已开，且只发本人。生效需要 redeploy。")
+          PY2
 
       - name: 触发重新部署
         if: inputs.mode == 'redeploy'
