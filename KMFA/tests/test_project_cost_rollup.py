@@ -67,3 +67,36 @@ def test_deeper_path_rolls_through_every_level():
     assert val["5.工程车辆使用费"] == Decimal("100.00")
     assert val["（四）现场管理费"] == Decimal("100.00")
     assert sec2 == Decimal("100.00")
+
+
+# —— 模板 B 的无行号明细行（真 bug 回归） ——
+# 出表时不变量报「山东圣川：二级之和 ≠ 叶子之和」，差的正是原材料那一笔：
+# 模板 B 的「采购材料/外协人员工资/外协人员生活费/临时用工费用」都没有行号，
+# 早先按「无行号即无父」处理，它们永远卷不上去，金额静默蒸发。
+LEAF_B = {
+    "（四）现场管理费": Decimal("2657.42"),
+    "9.其他费用": Decimal("1641.04"),
+    "2.差旅费": Decimal("1056.36"),
+    "1.自有人员工资": Decimal("549.68"),
+    "采购材料": Decimal("482.25"),          # 无行号，此前会丢
+}
+
+
+def test_unnumbered_detail_row_rolls_into_its_level2():
+    val, _ = R.rollup("B", LEAF_B)
+    assert val["（一）原材料"] == Decimal("482.25"), "无行号明细行必须卷进它的二级"
+
+
+def test_template_b_total_is_conserved_with_unnumbered_rows():
+    _, sec2 = R.rollup("B", LEAF_B)
+    assert sec2 == sum(LEAF_B.values())
+    assert R.check_invariants("B", LEAF_B) == []
+
+
+def test_every_unnumbered_detail_row_in_both_templates_has_a_parent():
+    """把两套模板里所有无行号的明细行都过一遍，防止将来加行又漏。"""
+    for tpl in ("A", "B"):
+        node = R.hierarchy(tpl)
+        for label, (l2, path) in node.items():
+            if l2 and not path:
+                assert R.parent_of(node, label) == l2, f"模板 {tpl} 的『{label}』没有父级，会丢钱"

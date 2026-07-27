@@ -43,10 +43,17 @@ def hierarchy(tpl_name: str) -> dict[str, tuple[str | None, tuple[int, ...]]]:
 
 
 def parent_of(node: dict, label: str) -> str | None:
-    """同一二级下，路径少一段的那行是父；找不到则父为二级本身。"""
+    """同一二级下，路径少一段的那行是父；找不到则父为二级本身。
+
+    模板 B 有一批**没有行号**的明细行（采购材料、外协人员工资、外协人员生活费、
+    临时用工费用…）。早先按「无行号即无父」处理，它们就永远卷不上去——
+    上卷不变量当场抓到某 B 版报表少了原材料那一笔。无行号的明细行，父就是它的二级。
+    """
     l2, path = node.get(label, (None, ()))
-    if not l2 or not path:
+    if not l2:
         return None
+    if not path:
+        return l2
     if len(path) > 1:
         for cand, (g, p) in node.items():
             if g == l2 and p == path[:-1]:
