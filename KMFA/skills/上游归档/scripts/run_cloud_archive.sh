@@ -40,7 +40,21 @@ git checkout --quiet 2>/dev/null
 
 CONF_SRC="$PDB_DIR/$CONF_AREA/target_groups.yaml"
 if [ ! -f "$CONF_SRC" ]; then
-  log "私有库缺 $CONF_AREA/target_groups.yaml —— 先跑 dws-list-groups 生成候选清单后再归档"
+  # 实测（2026-07-27 公开健康端点）：本技能连续 8 次 rc=4，全卡在这里——
+  # 生成群清单的 bootstrap 是个**手动步骤，从未被排程**，于是这条链永远等着一个没人会按的按钮。
+  # Owner 明令「不登录、不做这类操作」，所以缺配置时自己去生成，而不是退出等人。
+  log "私有库缺 $CONF_AREA/target_groups.yaml —— 就地自举群清单"
+  BOOT="$(dirname "$0")/bootstrap_groups_cloud.sh"
+  if [ -x "$BOOT" ] || [ -f "$BOOT" ]; then
+    bash "$BOOT" >> "$LOG" 2>&1 || log "自举返回码 $?（继续尝试重取配置）"
+    git -C "$PDB_DIR" fetch --quiet origin main 2>/dev/null || true
+    git -C "$PDB_DIR" checkout --quiet origin/main -- "$CONF_AREA" 2>/dev/null || true
+  else
+    log "找不到自举脚本 $BOOT"
+  fi
+fi
+if [ ! -f "$CONF_SRC" ]; then
+  log "自举后仍无 $CONF_AREA/target_groups.yaml —— 多半是容器内 dws 未登录，需先恢复登录态"
   exit 4
 fi
 mkdir -p "$SKILL/config"
