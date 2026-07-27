@@ -71,6 +71,7 @@ def check(d):
 
 
 def render(d):
+    names = {s['id']: s['name'] for s in d['stage_model']}
     stages = [s["id"] for s in d["stage_model"]]
     hdr = "基线".ljust(22) + "".join(s["name"].center(8) for s in d["stage_model"])
     print(hdr)
@@ -86,7 +87,8 @@ def render(d):
         for dfc in b.get("known_defects", []):
             # 兼容旧的裸字符串写法，但新写法带 ID 供 status 总览线跨线引用
             if isinstance(dfc, dict):
-                print(f"  · [{b['name']}] {dfc['id']} {dfc['desc']}")
+                st = names.get(dfc.get("stage", ""), dfc.get("stage", ""))
+                print(f"  · [{b['name']}] {dfc['id']}{f'({st})' if st else ''} {dfc['desc']}")
             else:
                 print(f"  · [{b['name']}] {dfc}")
 

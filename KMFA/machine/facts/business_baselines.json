@@ -77,48 +77,73 @@
         },
         "output": {
           "status": "degraded",
-          "evidence": "渲染器 KMFA/tools/project_cost/render_report.py 严格复刻源报表行序（模板A 44 行 / 模板B），千分位两位小数、缺值留空不臆造，4 项回归测试过；输入矩阵 KMFA/tools/project_cost/input_matrix.py 已上门禁。降级原因：上游 compute/verify 阻断，只能出『可算部分』"
+          "evidence": "已交付两类真实产出（均在 Private-KMDatabase，公开仓不落真额）：① 八份基准项目按原报表两套版式渲染的『可算部分』，每份标注覆盖率（0.1%～58.9%）与逐行留空原因；② 全部 218 个有成本归集项目的直接成本一览。降级原因：覆盖率低是数据本身的限制，不是渲染缺陷；上游 compute/verify 仍阻断"
         },
         "deliver": {
-          "status": "not_built",
-          "evidence": "需接 App 上传新项目→出表→下载"
+          "status": "degraded",
+          "evidence": "转向客户口径交付（Owner 2026-07-27 明确底稿给不了、记账也改不了）：项目维度不可复原，但客户维度填充完整，故交付《客户毛利》——205 个客户分『关联方/疑似关联方/外部客户/占位桶』四档，外部客户 194 家收入 2282 万、毛利 950 万（41.6%），16 家亏损具名，145 条数据异常逐条标注。仍为 degraded：尚未接入驾驶舱页面，Owner 需下载 CSV 而非打开即看"
         }
       },
       "known_defects": [
         {
           "id": "DEF-KMFA-001",
           "baseline": "BL-PROJECT-COST",
-          "desc": "根因：占生产成本约八成的『劳务费』有约七成记进『不分项目』占位，八个基准项目名下劳务费为 0——不解决记账口径，项目成本自动化只能算出零头"
+          "desc": "根因：占生产成本约八成的『劳务费』有约七成记进『不分项目』占位，八个基准项目名下劳务费为 0——不解决记账口径，项目成本自动化只能算出零头",
+          "stage": "compute"
         },
         {
           "id": "DEF-KMFA-002",
           "baseline": "BL-PROJECT-COST",
-          "desc": "3 份源报表所印毛利用其表内数字算不出（两种公式均证伪）→ 统一按 合同额−合计支出 重算并逐项标注"
+          "desc": "3 份源报表所印毛利用其表内数字算不出（两种公式均证伪）→ 统一按 合同额−合计支出 重算并逐项标注",
+          "stage": "verify"
         },
         {
           "id": "DEF-KMFA-003",
           "baseline": "BL-PROJECT-COST",
-          "desc": "八份历史报表的成本侧在全部源数据中查无实据（62 个金额仅 13 个可见且多为巧合）——机制不存在于数据里，须 Owner 提供底稿"
+          "desc": "八份历史报表的成本侧在全部源数据中查无实据（62 个金额仅 13 个可见且多为巧合）——机制不存在于数据里，须 Owner 提供底稿",
+          "stage": "verify"
         },
         {
           "id": "DEF-KMFA-004",
           "baseline": "BL-PROJECT-COST",
-          "desc": "『（四）现场管理费』是黑箱：某项目占其全部成本九成以上，账上无对应归集"
+          "desc": "『（四）现场管理费』是黑箱：某项目占其全部成本九成以上，账上无对应归集",
+          "stage": "compute"
         },
         {
           "id": "DEF-KMFA-005",
           "baseline": "BL-PROJECT-COST",
-          "desc": "金蝶项目辅助核算只覆盖 4 类科目，成本大头未启用——不修则未来项目同样算不准"
+          "desc": "金蝶项目辅助核算只覆盖 4 类科目，成本大头未启用——不修则未来项目同样算不准",
+          "stage": "intake"
         },
         {
           "id": "DEF-KMFA-006",
           "baseline": "BL-PROJECT-COST",
-          "desc": "源包内每本明细账存在 3 份同 CRC 副本，任何计算必须先按账簿名去重"
+          "desc": "源包内每本明细账存在 3 份同 CRC 副本，任何计算必须先按账簿名去重",
+          "stage": "intake"
         },
         {
           "id": "DEF-KMFA-007",
           "baseline": "BL-PROJECT-COST",
-          "desc": "合同号序号跨年重复，禁止按序号跨编号归并（已验证会把不同项目并到一起）"
+          "desc": "合同号序号跨年重复，禁止按序号跨编号归并（已验证会把不同项目并到一起）",
+          "stage": "compute"
+        },
+        {
+          "id": "DEF-KMFA-013",
+          "stage": "compute",
+          "desc": "按客户回填项目归属亦告失败：无归属成本约 4222 万里，约八成记在『不分客户』占位下，其余大头为集团关联公司之间的往来——不动记账则项目维度无法复原",
+          "baseline": "BL-PROJECT-COST"
+        },
+        {
+          "id": "DEF-KMFA-014",
+          "stage": "verify",
+          "desc": "客户口径里关联方与外部客户混算会严重失真（关联方毛利率约 68%，外部客户约 42%），交付件必须分档呈现，不得合并成一个总数",
+          "baseline": "BL-PROJECT-COST"
+        },
+        {
+          "id": "DEF-KMFA-015",
+          "stage": "verify",
+          "desc": "部分客户成本为负（红冲多于发生）或零成本有收入（成本走了别的主体），其毛利率不可直接引用；交付件逐条标注数据提示而非替读者算一个好看的数",
+          "baseline": "BL-PROJECT-COST"
         }
       ]
     },
@@ -165,7 +190,8 @@
         {
           "id": "DEF-KMFA-008",
           "baseline": "BL-UPSTREAM-ARCHIVE",
-          "desc": "历史上 cron 只跑校验器、从未真归档（已修复，待实证）"
+          "desc": "历史上 cron 只跑校验器、从未真归档（已修复，待实证）",
+          "stage": "intake"
         }
       ]
     },
@@ -208,7 +234,8 @@
         {
           "id": "DEF-KMFA-009",
           "baseline": "BL-ATTENDANCE",
-          "desc": "skills.env 缺失曾致全技能空跑（已修：entrypoint 从环境变量合成）"
+          "desc": "skills.env 缺失曾致全技能空跑（已修：entrypoint 从环境变量合成）",
+          "stage": "intake"
         }
       ]
     },
@@ -290,7 +317,8 @@
         {
           "id": "DEF-KMFA-010",
           "baseline": "BL-FUND-WEEKLY",
-          "desc": "AST-BANK-AXIS-2025 待延窗银行日记账"
+          "desc": "AST-BANK-AXIS-2025 待延窗银行日记账",
+          "stage": "intake"
         }
       ]
     },
@@ -373,7 +401,8 @@
         {
           "id": "DEF-KMFA-011",
           "baseline": "BL-PAYROLL-STD",
-          "desc": "工资数据为敏感数据，只进私有库"
+          "desc": "工资数据为敏感数据，只进私有库",
+          "stage": "deliver"
         }
       ]
     },
@@ -457,7 +486,8 @@
         {
           "id": "DEF-KMFA-012",
           "baseline": "BL-INFO-FEE",
-          "desc": "项目成本模板 B 含（六）信息费，与本基线耦合"
+          "desc": "项目成本模板 B 含（六）信息费，与本基线耦合",
+          "stage": "compute"
         }
       ]
     }
@@ -509,5 +539,5 @@
     "not_built": "未实现"
   },
   "status_split_note": "原先只有一个 blocked，把『测试期禁群』和『等 Owner 补数据』混成一态——这两者的处置动作是反的：前者不需要任何人做事，后者必须催人。合成一态就排不出优先级。由 status 总览线（status.linzezhang.com）提出拆分，2026-07-27 采纳。",
-  "defect_id_note": "known_defects 从裸字符串升级为 {id, baseline, desc}，便于 status 总览线跨线引用具体缺陷。"
+  "defect_id_note": "known_defects 为 {id, baseline, stage, desc}：stage 指该缺陷卡在六段中的哪一段，供 status 总览线在缺陷表里按阶段归类。"
 }
