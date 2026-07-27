@@ -314,7 +314,7 @@ class ContainerLifecycle:
 
 
 def _goto_ready(page: Page, base_url: str) -> None:
-    response = page.goto(f"{base_url}/", wait_until="networkidle", timeout=30_000)
+    response = page.goto(f"{base_url}/workspace", wait_until="networkidle", timeout=30_000)
     assert response and response.status == 200
     page.locator('[data-walking-skeleton-state="ready"]').wait_for(timeout=10_000)
     page.locator('[data-walking-ready="true"]').wait_for(timeout=10_000)
@@ -697,7 +697,7 @@ def _rollback_browser(
     page = context.new_page()
     probe.attach(page, base_url)
     try:
-        response = page.goto(f"{base_url}/", wait_until="networkidle", timeout=30_000)
+        response = page.goto(f"{base_url}/workspace", wait_until="networkidle", timeout=30_000)
         assert response and response.status == 200
         page.locator('[data-walking-skeleton-state="rollback"]').wait_for()
         page.locator('[data-walking-boundary="rollback"]').wait_for()
