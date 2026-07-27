@@ -97,7 +97,16 @@ def test_every_scheduled_skill_is_visible():
     missing = scheduled - set(main.SCHEDULE_CONTRACT)
     assert not missing, f"这些技能在排程表里跑，却不在健康面里，无人看得见：{sorted(missing)}"
     orphan = set(main.SCHEDULE_CONTRACT) - scheduled
-    assert not orphan, f"这些技能登记了健康面却没有排程，会永远显示『从未跑过』：{sorted(orphan)}"
+    # 没有钟点的技能只有一种正当理由：它是**冷启动自举**——缺产物时才跑，
+    # 有钟点反而有害（探测目标会真发消息，反复探测＝反复真发）。
+    # 所以规则不是「都必须有 cron」，而是「没 cron 就必须自称自举、并且真的接在
+    # entrypoint 的前置表里」。这比原来更严：光在契约里写「自举」而没接线，照样红。
+    entrypoint = (ROOT_REPO / "deploy" / "skills-runtime" / "entrypoint.sh").read_text(encoding="utf-8")
+    for skill in sorted(orphan):
+        assert "自举" in str(main.SCHEDULE_CONTRACT.get(skill, "")), (
+            f"{skill} 没有排程也没自称自举，会永远显示『从未跑过』")
+        assert f"|{skill}" in entrypoint, (
+            f"{skill} 自称冷启动自举，但没接进 entrypoint 的前置产物表——那它一次都不会跑")
 
 
 def test_every_scheduled_skill_has_a_module():

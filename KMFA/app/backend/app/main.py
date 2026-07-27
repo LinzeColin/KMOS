@@ -2219,6 +2219,9 @@ SCHEDULE_CONTRACT = {
     "dws-keepalive": "每 4 小时 :20",
     # 排程表里有它、台账与健康端点里却没有——于是「群清单自举到底跑没跑」长期无人可见，
     # 而上游归档正是卡在它的产出上。漏登记本身就是一种假绿：看不见的排程等于没有排程。
+    # 无固定钟点：缺目标文件时由 entrypoint 冷启动自举。它不该有排程——
+    # 解析一次就够，反复探测等于反复真发消息。
+    "attendance-bootstrap-targets": "缺目标文件时自举",
     "dws-bootstrap-groups": "周日 10:30",
     "project-cost-refresh": "每天 05:45",
 }
@@ -2229,6 +2232,7 @@ SKILL_MODULE = {
     "fund-weekly": "资金与经营报告", "mgmt-monthly": "资金与经营报告",
     "upstream-archive": "数据接入",
     "self-audit": "系统底座", "daily-backup": "系统底座", "dws-keepalive": "系统底座",
+    "attendance-bootstrap-targets": "钉钉考勤",
     "dws-bootstrap-groups": "系统底座",
     "project-cost-refresh": "成本与利润",
 }

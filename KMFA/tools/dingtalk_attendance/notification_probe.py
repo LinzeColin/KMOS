@@ -379,10 +379,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--recipient", default=ZHANG_LINZE_USER_ID)
     parser.add_argument("--recipient-name", default=RECIPIENT_NAME)
     parser.add_argument("--all-targets", action="store_true", help="Probe every enabled target in notification_targets.local.json.")
+    # 探测会真发消息。测试期 Owner 明令禁群，所以必须能只探 personal——
+    # 默认保持 all 不改既有行为，云端排程一律显式传 personal。
+    parser.add_argument("--target-filter", default="all", choices=["all", "personal", "group"],
+                        help="只探某一类目标；云端测试期用 personal（禁群）")
     args = parser.parse_args(argv)
 
     if args.all_targets:
-        result = probe_notification_targets()
+        result = probe_notification_targets(target_filter=args.target_filter)
         print(json.dumps(_sanitize_cli_result(result), ensure_ascii=False, indent=2, sort_keys=True))
         return 0 if result["status"] in {"SENT", "PARTIAL"} else 2
 
