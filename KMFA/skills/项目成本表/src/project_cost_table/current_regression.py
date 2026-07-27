@@ -327,6 +327,37 @@ def verify_regression_bundle(output_dir: Path) -> bool:
     return observed == expected
 
 
+def _sealed_artifact_status(
+    seed_root: Path, relative: str, *, forbid_placeholder_in: str | None = None
+) -> str:
+    """密封包里的档案/政策的真实观测状态。
+
+    这两项（金蝶读取档案、会计基础政策）原先在 `_derive_private_requirements` 里
+    **写死为 MISSING**——本该去查密封包的档案清单，但那段查询没有实现。
+    写死意味着无论现场准备得多齐，它永远报缺失；也意味着它永远不会因为准备到位而转 PRESENT，
+    这是 fail-closed 的桩，不是判定。
+
+    实现原则（不许作弊）：
+      · 文件不存在 → MISSING（与原行为一致，不因为"实现了"就凭空转绿）
+      · 文件存在但 status 不是 ACTIVE，或仍留着 REPLACE_ 占位 → CONFLICT
+      · 完整且 ACTIVE → PRESENT
+    """
+    path = Path(seed_root) / relative
+    if not path.is_file():
+        return "MISSING"
+    document = _load_yaml(path)
+    if document.get("status") != "ACTIVE":
+        return "CONFLICT"
+    if forbid_placeholder_in:
+        section = document.get(forbid_placeholder_in)
+        if not isinstance(section, dict) or not section:
+            return "CONFLICT"
+        for value in section.values():
+            if isinstance(value, str) and value.startswith("REPLACE_"):
+                return "CONFLICT"
+    return "PRESENT"
+
+
 def _derive_private_requirements(
     *,
     locator_seed: Mapping[str, Any],
@@ -334,6 +365,7 @@ def _derive_private_requirements(
     formula_seed: Mapping[str, Any],
     validation_summary: Mapping[str, Any],
     current_slot_counts: Mapping[str, int],
+    seed_root: Path,
 ) -> Tuple[Mapping[str, Optional[str]], ...]:
     formulas = formula_seed.get("formulas")
     redcircle_blockers = validation_summary.get("redcircle_blockers")
@@ -352,12 +384,17 @@ def _derive_private_requirements(
         },
         {
             "requirement_id": "KINGDEE_READER_PROFILE",
-            "observed_status": "MISSING",
+            "observed_status": _sealed_artifact_status(
+                seed_root, "profiles/kingdee_reader_profile.private.yml",
+                forbid_placeholder_in="column_bindings",
+            ),
             "evidence_ref": "sealed-current-package-profile-inventory",
         },
         {
             "requirement_id": "ACCOUNTING_BASIS_POLICY",
-            "observed_status": "MISSING",
+            "observed_status": _sealed_artifact_status(
+                seed_root, "policies/accounting_basis_policy.private.yml",
+            ),
             "evidence_ref": "sealed-current-package-policy-inventory",
         },
         {
@@ -526,6 +563,7 @@ def prepare_current_regression_bundle(
         formula_seed=formula_seed,
         validation_summary=validation_summary,
         current_slot_counts=current_slot_counts,
+        seed_root=seed_root,
     )
     observed_expected = []
     for item in requirements:
