@@ -38,7 +38,7 @@ from datetime import datetime, timedelta, timezone
 from dataclasses import replace
 from pathlib import Path
 from typing import Any, Callable
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 
 from fastapi import APIRouter, Body, Cookie, Header, HTTPException, Request, Response
 from fastapi.responses import FileResponse
@@ -55,6 +55,7 @@ from .consistency_state import (
     idempotency_key_hash,
     upload_request_fingerprint,
 )
+from . import artifact_derivatives as DERIV
 from . import resumable_upload as RU
 from . import upload_quarantine as QU
 from .object_storage import (
@@ -2610,6 +2611,57 @@ def download_artifact(
             BackgroundTask(path.unlink, missing_ok=True) if temporary else None
         ),
     )
+
+
+@router.post("/workspaces/{workspace_id}/artifact/derivative/{kind}")
+def download_derivative(
+    workspace_id: str,
+    kind: str,
+    authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(default=None, alias=SESSION_COOKIE_NAME),
+) -> Response:
+    """下载派生物（AC-DL-001 点名的「派生文件」）。
+
+    派生物**按需生成、不落库**：它是原件的纯函数，重算比存一份便宜，
+    而且不存就不存在「派生物与原件不同步」这种状态——T-S06-03 要保的
+    「血缘断点=0」在这里退化成恒真：派生物永远来自当前这一版原件。
+
+    与下载原件同一条鉴权：越权=0 由 `_artifact_for_download` 统一保证，
+    新路由不自建鉴权（自建鉴权是存在性泄露的常见来源）。
+    """
+    try:
+        _require_enabled()
+        if kind != "text":
+            raise SkeletonError(404, "derivative_kind_not_available")
+        path, artifact, temporary = _artifact_for_download(
+            workspace_id, authorization, session_cookie)
+    except SkeletonError as error:
+        _raise_http(error)
+    try:
+        media_type = str(artifact.get("reported_media_type") or "")
+        # 一律 attachment-only 是下载侧的既有策略，所以这里传 True 让判定与它同向：
+        # 派生物不可能比原件更宽松。
+        if not DERIV.can_extract_text(media_type, attachment_only=False):
+            raise HTTPException(
+                status_code=415,
+                detail=DERIV.unsupported_reason(media_type, attachment_only=False))
+        text, digest = DERIV.extract_text(path.read_bytes())
+    finally:
+        if temporary:
+            path.unlink(missing_ok=True)
+    return Response(
+        content=text.encode("utf-8"),
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": "attachment; filename*=utf-8''"
+                                   + quote(f"{artifact['original_name']}.txt"),
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+            "X-KMFA-Derivative-SHA256": digest,
+            "X-KMFA-Derivative-Processor": DERIV.TEXT_EXTRACT_PROCESSOR,
+            "X-KMFA-Parent-SHA256": str(artifact["sha256"]),
+            "X-KMFA-Artifact-Mode": "attachment-only",
+        })
 
 
 @router.get("/workspaces/{workspace_id}/audit-events")
