@@ -110,7 +110,9 @@ def _public_shell_enabled() -> bool:
     }
 
 
-STATIC_GRID_RE = re.compile(r'<section class="static-grid".*?</section>', re.S)
+# /workspace 换壳区间：从 kicker 到入口网格结束（含标题与导语），
+# 这样匿名工作区的完整文案在 /workspace 上原样保留。
+STATIC_GRID_RE = re.compile(r'<p class="static-kicker">.*?</section>', re.S)
 
 
 def _frontend_index() -> Path:
