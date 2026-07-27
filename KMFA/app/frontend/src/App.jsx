@@ -1381,6 +1381,9 @@ function 对比条({ 台账, 归集, 满 }) {
   )
 }
 
+const 连接色 = { connected: 'ok', partial: 'warn', none: 'bad', by_design_manual: '' }
+const 连接话 = { connected: '已打通', partial: '通道在，但没跑通',
+                 none: '完全没有自动通道', by_design_manual: '按约定走人工（不算缺陷）' }
 const 采集色 = { collected: 'ok', manual: 'warn', not_wired: 'bad' }
 const 采集话 = { collected: '系统自动收', manual: '靠人工放文件', not_wired: '完全没接' }
 const 源状态色 = { 已接入: 'ok', 接口: 'ok', 缺输入: 'bad', 读不出来: 'bad' }
@@ -1399,8 +1402,21 @@ function 数据源矩阵({ 矩阵 }) {
   }
   return (
     <>
+      {/* 头条必须是平台连接层。「文件到位」不等于「平台打通」——
+          初版把两者合成「已接入 11」，而那 11 个是 Owner 自己手动导出的文件。 */}
+      <div className={`card callout ${(矩阵['⚠平台打通情况'] || {}).自动通道跑通的 ? '' : 'bad'}`}>
+        <b>平台自动通道：{(矩阵['⚠平台打通情况'] || {}).平台总数} 个平台里跑通 {(矩阵['⚠平台打通情况'] || {}).自动通道跑通的} 个</b>
+        <div className="sub">{(矩阵['⚠平台打通情况'] || {}).为什么这是头条}</div>
+        <div className="kpis" style={{ marginTop: 10 }}>
+          <Kpi 标="通道跑通" 值={(矩阵['⚠平台打通情况'] || {}).自动通道跑通的} />
+          <Kpi 标="通道在·没跑通" 值={(矩阵['⚠平台打通情况'] || {}).通道在但没跑通的} 色="warn" />
+          <Kpi 标="完全没有通道" 值={(矩阵['⚠平台打通情况'] || {}).完全没有通道的} 色="bad" />
+          <Kpi 标="按约定走人工" 值={(矩阵['⚠平台打通情况'] || {}).按约定走人工的} />
+        </div>
+      </div>
+
       <div className="card callout">
-        <b>四个平台，{矩阵.输入总数} 个固定输入</b>
+        <b>输入到位情况（第二层）：{矩阵.输入总数} 个固定输入</b>
         <div className="sub">{矩阵.口径}</div>
         <div className="sub">{矩阵.为什么声明与实测分开}</div>
         <div className="kpis" style={{ marginTop: 10 }}>
@@ -1421,7 +1437,14 @@ function 数据源矩阵({ 矩阵 }) {
         <React.Fragment key={p.id}>
           <h3 className="sec">{p.平台}　<span className="muted">
             {p.已接入}/{p.输入数} 到位 · {p.采集周期}</span></h3>
-          <div className="card callout"><div className="sub">采集方式：{p.采集方式}</div></div>
+          <div className={`card callout ${连接色[(p.连接 || {}).status] || ''}`}>
+            <b>平台连接：{连接话[(p.连接 || {}).status] || '未知'}</b>
+            <div className="sub">通道：{(p.连接 || {}).channel || '无'}</div>
+            <div className="sub">已经能做的：{(p.连接 || {})['已经能做的'] || '—'}</div>
+            <div className="sub">还没跑通的：{(p.连接 || {})['还没跑通的'] || '—'}</div>
+            <div className="sub">要打通还缺：{(p.连接 || {})['要打通还缺'] || '—'}</div>
+            <div className="sub">采集方式：{p.采集方式}</div>
+          </div>
           <Tbl>
             <thead><tr>
               <th>固定输入</th><th>状态</th><th>采集现状</th>

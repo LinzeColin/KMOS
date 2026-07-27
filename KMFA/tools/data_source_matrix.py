@@ -104,6 +104,10 @@ def measure(data_root: str, declared: dict) -> dict:
             })
         platforms.append({
             "平台": platform["name"], "id": platform["id"],
+            # 平台连接层。**头条数字必须是它**——「文件到位」不等于「平台打通」，
+            # 混在一起就是假绿：Owner 当场纠正过一次，当时矩阵显示「已接入 11」，
+            # 而那 11 个是他自己手动导出的文件到位了，自动通道一个都没通。
+            "连接": platform.get("connection", {}),
             "采集方式": platform["collector"], "采集周期": platform["schedule"],
             "输入数": len(inputs),
             "已接入": sum(1 for i in inputs if i["状态"] in ("已接入", "接口")),
@@ -112,7 +116,17 @@ def measure(data_root: str, declared: dict) -> dict:
         })
 
     全部输入 = [i for p in platforms for i in p["输入"]]
+    连接 = [p["连接"].get("status") for p in platforms]
     return {
+        "⚠平台打通情况": {
+            "平台总数": len(platforms),
+            "自动通道跑通的": sum(1 for c in 连接 if c == "connected"),
+            "通道在但没跑通的": sum(1 for c in 连接 if c == "partial"),
+            "完全没有通道的": sum(1 for c in 连接 if c == "none"),
+            "按约定走人工的": sum(1 for c in 连接 if c == "by_design_manual"),
+            "口径": declared["连接状态口径"],
+            "为什么这是头条": declared["为什么分两层"],
+        },
         "schema_version": "kmfa.data_source_matrix.measured.v1",
         "生成时间": datetime.now(BEIJING).isoformat(),
         "口径": declared["purpose"],
@@ -132,13 +146,14 @@ def measure(data_root: str, declared: dict) -> dict:
 
 def to_csv(measured: dict) -> str:
     """给下载按钮用。逗号分隔，字段里的逗号换成中文逗号——不引入引号转义。"""
-    lines = ["平台,输入,采集现状,状态,文件数,行数,数据截至,喂给哪些业务,卡在哪"]
+    lines = ["平台,平台连接,输入,采集现状,状态,文件数,行数,数据截至,喂给哪些业务,卡在哪"]
     for platform in measured["平台"]:
         for slot in platform["输入"]:
             def clean(value):
                 return str(value if value not in (None, "") else "—").replace(",", "，").replace("\n", " ")
             lines.append(",".join(clean(v) for v in (
-                platform["平台"], slot.get("name"), slot.get("collection"), slot.get("状态"),
+                platform["平台"], platform["连接"].get("status"),
+                slot.get("name"), slot.get("collection"), slot.get("状态"),
                 slot.get("文件数"), slot.get("行数"), slot.get("数据截至"),
                 "/".join(slot.get("feeds") or []), slot.get("blocker"))))
     return "\n".join(lines) + "\n"
@@ -160,6 +175,9 @@ def main() -> int:
     if args.csv_out:
         Path(args.csv_out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.csv_out).write_text(to_csv(measured), encoding="utf-8-sig")
+    通 = measured["⚠平台打通情况"]
+    print(f"⚠ 平台自动通道：跑通 {通['自动通道跑通的']}、通道在但没跑通 {通['通道在但没跑通的']}、"
+          f"完全没通道 {通['完全没有通道的']}、按约定人工 {通['按约定走人工的']}")
     print(f"✓ {measured['平台数']} 个平台 / {measured['输入总数']} 个输入 → {out}；"
           f"已接入 {measured['已接入']}、缺输入 {measured['缺输入']}、读不出来 {measured['读不出来']}；"
           f"系统自动收 {measured['系统自动收集的']}、靠人工放 {measured['还靠人工放文件的']}、"
