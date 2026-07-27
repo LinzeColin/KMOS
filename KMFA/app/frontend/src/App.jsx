@@ -478,6 +478,48 @@ function 待拍板({ 台, 刷新, 初始展开 }) {
 
 /* ---------- 报告下载（原报告中心） ---------- */
 
+/* 导出走受控任务（S07/T-S07-03）：POST 建任务 → GET 取制品 → 交给浏览器存盘。
+ *
+ * 为什么不能再用 `<a href="/api/报告中心/导出?...">`：那是一次 GET，而导出会写
+ * 业务记录。浏览器预取、链接预览、爬虫、代理预热都会替用户按下它，
+ * 每一次都往导出登记册里落一条「导出过」——登记册是交付事实的依据，
+ * 被这些噪声灌满之后就不再是依据。
+ *
+ * 元素仍是 `<a>` 且 href 里仍带 `格式=`：一来保持既有流程审计的定位方式不变，
+ * 二来 href 指向页内锚点而非真实端点，右键另存/中键新开都不会触发导出。
+ */
+async function 发起导出(报告, 格式) {
+  // 幂等键带上报告与格式：同一份导出重试不重复干活，不同的导出各自成键。
+  // 加时间片是因为用户**确实可能**想再导一次同一份（比如上次存错地方）——
+  // 那是一次新的业务意图，不该被幂等成上一次的结果。
+  const 键 = `ui-${报告}-${格式}-${Date.now().toString(36)}`.padEnd(16, '0')
+  const 建 = await fetch('/api/导出任务', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 键 },
+    body: JSON.stringify({ 报告, 格式 }),
+  })
+  if (!建.ok) {
+    const 详 = await 建.json().catch(() => ({}))
+    throw new Error(详?.detail?.message || `创建导出任务失败（${建.status}）`)
+  }
+  const { 任务 } = await 建.json()
+  const 制品 = await fetch(`/api/导出任务/${任务.job_id}/制品`)
+  if (!制品.ok) {
+    const 详 = await 制品.json().catch(() => ({}))
+    throw new Error(详?.detail?.message || `取制品失败（${制品.status}）`)
+  }
+  const blob = await 制品.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `kmfa_report_${报告}.${格式}`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  // 不 revoke 会把整份文件一直留在内存里，多点几次就是几十 MB。
+  setTimeout(() => URL.revokeObjectURL(url), 60000)
+}
+
 function 报告下载({ 中心 }) {
   if (!中心) return <骨架 />
   if (中心.加载失败) return <加载失败卡 详情={中心.加载失败} />
@@ -511,6 +553,11 @@ function 报告下载({ 中心 }) {
             <td className="num">{r.正文字数.toLocaleString('zh')}</td>
             <td>{r.格式.map(f => (
               <a key={f.格式} href={f.下载} style={{ marginRight: '.8rem' }}
+                 onClick={async (e) => {
+                   e.preventDefault()
+                   try { await 发起导出(r.编号, f.格式) }
+                   catch (err) { alert(String(err.message || err)) }
+                 }}
                  title={f.可提交公开仓 ? '公开安全，可提交' : '仅运行时生成，不入公开仓'}>
                 {f.格式.toUpperCase()}{f.可提交公开仓 ? '' : '（运行时）'}
               </a>
