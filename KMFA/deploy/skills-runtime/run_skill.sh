@@ -62,8 +62,13 @@ esac
   "${CMD[@]}" >> "$LOG" 2>&1
   RC=$?
   echo "$(date -Is) $SKILL: 结束 rc=$RC" >> "$LOG"
-  printf '{"ts":"%s","skill":"%s","rc":%d,"log":"%s","delivery_enabled":"%s"}\n' \
-    "$(date -Is)" "$SKILL" "$RC" "$LOG" "$KMFA_DELIVERY_ENABLED" >> "$LEDGER"
+  LINE="$(printf '{"ts":"%s","skill":"%s","rc":%d,"log":"%s","delivery_enabled":"%s"}' \
+    "$(date -Is)" "$SKILL" "$RC" "$LOG" "$KMFA_DELIVERY_ENABLED")"
+  echo "$LINE" >> "$LEDGER"
+  # 回传私有库：容器卷里的台账没人验得到（Coolify 的 logs 返回空、exec 返回 404，
+  # /api/排程健康 在 Access 后面）。回传后验证就是一条 gh api，不必登录也不必进容器。
+  # 失败只记日志，绝不改变技能自身的退出码。
+  echo "$LINE" | timeout 60 python3 "$ROOT/KMFA/tools/skill_ledger_uplink.py" >> "$LOG" 2>&1 || true
   if [ "$RC" -ne 0 ] && [ -n "${KMFA_ALERT_WEBHOOK_TOKEN:-}" ]; then
     dws chat message send-by-webhook --token "$KMFA_ALERT_WEBHOOK_TOKEN" \
       --title "KMFA 云端技能失败告警" \

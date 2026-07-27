@@ -29,6 +29,7 @@ if [ ! -f "$SECRETS" ]; then
   TMP_ENV="$(mktemp)"
   for k in DINGTALK_ROBOT_URL DINGTALK_ROBOT_SIGNING_KEY DINGTALK_DING_ROBOT_CODE \
            KMFA_ALERT_WEBHOOK_TOKEN KMFA_DELIVERY_ENABLED \
+           KMFA_BACKUP_GH_TOKEN KMFA_NOTIFICATION_TARGETS \
            KMFA_DINGTALK_ATTENDANCE_ALLOW_DWS_COMMANDS; do
     v="$(printenv "$k" 2>/dev/null || true)"
     [ -n "$v" ] && printf '%s=%s\n' "$k" "$v" >> "$TMP_ENV"
