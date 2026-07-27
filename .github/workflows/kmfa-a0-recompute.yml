@@ -55,6 +55,11 @@ jobs:
   #   状态回写不该让重算作业获得写仓权限 —— 权限跟着最小需要走。
   report:
     needs: a0
+    # ★ 上游失败也要报。我自己写的契约里就有「报忧和报喜一样重要,
+    #   这个通道不是用来刷绿的」—— 第一版却让 report 只在 a0 成功时跑,
+    #   于是 A0 一失败 status 就什么都收不到、那一格永远停在人手写的自报。
+    #   **沉默不是中立**:它让「没跑」和「跑通了」在看板上长得一模一样。
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -64,10 +69,21 @@ jobs:
         with: {ref: main}
       - uses: actions/download-artifact@v4
         with: {name: a0-result}
+        continue-on-error: true          # a0 失败时没有产物,不该让回写也跟着挂
 
       - name: 把 A0 对账结果写回业务流状态
+        env:
+          A0_RESULT: ${{ needs.a0.result }}
         run: |
           set -euo pipefail
+          # ★ A0 没跑成 —— 如实报「算不出来」,不是沉默,也绝不报绿
+          if [ "$A0_RESULT" != "success" ] || [ ! -f a0_zero_delta_result.json ]; then
+            python3 KMFA/tools/report_flow_state.py \
+              --project-dir KMFA --key 'BL-PROJECT-COST.verify' \
+              --state blocked_by_input \
+              --note "A0 对账跑不起来（本轮 $A0_RESULT）；看 Actions 日志定位缺哪一份源"
+            exit 0
+          fi
           # ★ 只上报这一次重算**真正测到的那一格**:项目成本的「校验」段。
           #   A0 做的就是「税务基准 vs 金蝶明细账」对账,这正是 verify 的产出。
           #   绝不拿它去代表 intake/parse/compute —— 那是拿相邻信号冒充产出,是假绿。
