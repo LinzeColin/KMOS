@@ -73,7 +73,15 @@
         },
         "verify": {
           "status": "blocked_by_input",
-          "evidence": "溯源定案（2 位精度归一、全库 1292 文件）：八份报表成本侧 62 个金额只有 13 个能在源数据里找到且多为整数巧合撞号；『二』『合计支出』『（四）现场管理费』无一命中。无底稿则既不能复现也不能验证。表内恒等式 A/B 8/8 成立仍有效，但那只是自洽，不是可溯源"
+          "evidence": "溯源定案（2 位精度归一、全库 1292 文件）：八份报表成本侧 62 个金额只有 13 个能在源数据里找到且多为整数巧合撞号；『二』『合计支出』『（四）现场管理费』无一命中。无底稿则既不能复现也不能验证。表内恒等式 A/B 8/8 成立仍有效，但那只是自洽，不是可溯源",
+          "probe_hint": {
+            "kind": "repo_state",
+            "args": {
+              "key": "BL-PROJECT-COST.verify",
+              "max_age_h": 720
+            }
+          },
+          "probe_note": "A0 零差额对账由 kmfa-a0-recompute workflow 跑,跑完把结果写进 KMFA/docs/governance/flow_state.json;status 只读不写。★ 该 workflow 是手动触发(workflow_dispatch),所以 max_age_h 放宽到 720(30 天)——但超期一律降级成「不确定」,不会假装还通着。"
         },
         "output": {
           "status": "degraded",
