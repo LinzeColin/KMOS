@@ -75,8 +75,8 @@
           "evidence": "恒等式 A(Σ二级=二) 8/8、B(二+三=合计支出) 8/8 精确成立"
         },
         "output": {
-          "status": "not_built",
-          "evidence": "需复刻业务原格式（合同编号/一、合同额/…/合计支出/毛利）导出 Excel+PDF"
+          "status": "degraded",
+          "evidence": "渲染器已建 KMFA/tools/project_cost/render_report.py：严格复刻源报表行序（模板A 44 行 / 模板B），千分位两位小数、缺值留空不臆造；4 项回归测试过。降级原因：上游 compute 尚未全量重算、且 PDF 导出未建"
         },
         "deliver": {
           "status": "not_built",
