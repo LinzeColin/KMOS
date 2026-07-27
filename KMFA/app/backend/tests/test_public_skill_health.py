@@ -16,6 +16,8 @@ from app import main
 from app.main import app
 
 client = TestClient(app)
+# 仓内 KMFA 根：测试文件在 KMFA/app/backend/tests/ 下
+ROOT_REPO = Path(__file__).resolve().parents[3]
 URL = "/public-api/技能健康"
 
 
@@ -80,3 +82,24 @@ def test_never_run_skill_is_not_reported_as_healthy(tmp_path, monkeypatch):
 
 def test_response_is_not_cached():
     assert client.get(URL).headers.get("cache-control") == "no-store"
+
+
+def test_every_scheduled_skill_is_visible():
+    """排程表里有、健康面里没有 = 看不见的排程 = 事实上的假绿。
+
+    实测踩到：dws-bootstrap-groups 在 crontab 里每周日跑，却不在 SCHEDULE_CONTRACT 里，
+    于是「群清单自举到底跑没跑」长期无人可见——而上游归档正卡在它的产出上。
+    本测试把 crontab 与健康面对齐，防止再漏登记。
+    """
+    import re
+    cron = (ROOT_REPO / "deploy" / "skills-runtime" / "crontab.txt").read_text(encoding="utf-8")
+    scheduled = set(re.findall(r"run_skill\.sh\s+([a-z0-9-]+)", cron))
+    missing = scheduled - set(main.SCHEDULE_CONTRACT)
+    assert not missing, f"这些技能在排程表里跑，却不在健康面里，无人看得见：{sorted(missing)}"
+    orphan = set(main.SCHEDULE_CONTRACT) - scheduled
+    assert not orphan, f"这些技能登记了健康面却没有排程，会永远显示『从未跑过』：{sorted(orphan)}"
+
+
+def test_every_scheduled_skill_has_a_module():
+    missing = set(main.SCHEDULE_CONTRACT) - set(main.SKILL_MODULE)
+    assert not missing, f"这些技能没有业务模块归属，战报里会掉队：{sorted(missing)}"

@@ -40,9 +40,11 @@ git checkout --quiet 2>/dev/null
 
 CONF_SRC="$PDB_DIR/$CONF_AREA/target_groups.yaml"
 if [ ! -f "$CONF_SRC" ]; then
-  # 实测（2026-07-27 公开健康端点）：本技能连续 8 次 rc=4，全卡在这里——
-  # 生成群清单的 bootstrap 是个**手动步骤，从未被排程**，于是这条链永远等着一个没人会按的按钮。
-  # Owner 明令「不登录、不做这类操作」，所以缺配置时自己去生成，而不是退出等人。
+  # 实测（2026-07-27 公开健康端点）：本技能连续 8 次 rc=4，全卡在这里。
+  # 更正一处早先的判断：生成群清单的 bootstrap **是有排程的**（crontab 周日 10:30），
+  # 但它没登记进健康面，所以「它到底跑没跑、成没成」长期无人可见（本次一并补登记）。
+  # 真正的问题是节奏：归档每天跑、自举每周才跑一次，配置一旦缺失就要空转到下个周日。
+  # Owner 明令「不登录、不做这类操作」，故缺配置时就地自举，不等下一个周日、也不等人。
   log "私有库缺 $CONF_AREA/target_groups.yaml —— 就地自举群清单"
   BOOT="$(dirname "$0")/bootstrap_groups_cloud.sh"
   if [ -x "$BOOT" ] || [ -f "$BOOT" ]; then
