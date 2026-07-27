@@ -40,3 +40,10 @@ jobs:
           # Owner 2026-07-26：每条业务基线端到端健康可见 + 耦合治理
           # 门禁核心：上游断点时下游不得标 healthy（防"上游断了还静默出数"）
           python3 KMFA/tools/check_baseline_slices.py
+      - name: 项目成本输入矩阵门禁
+        run: |
+          set -euo pipefail
+          # Owner 2026-07-26：「输入缺失需要明确矩阵表格方式标注提醒我上传」
+          # 门禁核心：槽位不 ready 就必须写清要 Owner 传什么、缺了挡住报表哪几行
+          # ——防止矩阵悄悄退化成一张"都齐了"的表，让人误以为能出正式财务结论。
+          python3 KMFA/tools/project_cost/input_matrix.py --root KMFA
