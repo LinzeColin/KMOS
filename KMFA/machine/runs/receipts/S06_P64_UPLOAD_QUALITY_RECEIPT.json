@@ -1,0 +1,189 @@
+{
+  "schema_version": "kmfa.upload_quality_receipt.v1",
+  "任务": "T-S06-04 · S06/P6.4 上传质量门",
+  "生成时间": "2026-07-28T04:31:58.847031+08:00",
+  "pass_gate": "阈值内 SLO 通过，数据不变量和隔离边界无失败",
+  "三条贯穿不变量": [
+    "原件不被损坏——任何失败路径之后既有 artifact 摘要仍对得上",
+    "隔离边界不被跨越——任何并发/竞争下 A 的字节不得进入 B 的 workspace",
+    "配额不被绕过——并发开会话时各自看在额度内、加起来超额必须被挡"
+  ],
+  "质量门场景": {
+    "退出码": 0,
+    "结论": "9 passed, 1 warning in 2.06s",
+    "全过": true
+  },
+  "容量阈值": {
+    "单文件上限": 8388608,
+    "工作区总额度": 536870912,
+    "磁盘保留下限": 134217728,
+    "建议分片": 4194304,
+    "单片上限": 8388608,
+    "压缩比上限": 120,
+    "压缩包解压总量上限": 536870912,
+    "压缩包条目数上限": 20000,
+    "_口径": "全部读自代码常量。手抄会和实现悄悄分家，而分家之后 receipt 就在说谎。"
+  },
+  "校验吞吐": [
+    {
+      "字节": 65536,
+      "分片数": 1,
+      "校验耗时毫秒": 0.08,
+      "折合 MiB/s": 806.0
+    },
+    {
+      "字节": 524288,
+      "分片数": 1,
+      "校验耗时毫秒": 0.59,
+      "折合 MiB/s": 852.6
+    },
+    {
+      "字节": 2097152,
+      "分片数": 1,
+      "校验耗时毫秒": 2.31,
+      "折合 MiB/s": 865.8
+    }
+  ],
+  "负向矩阵": [
+    {
+      "输入": "MIME 欺骗（声明 png、内容 PE）",
+      "判据来源": "AC-UP-003",
+      "预期（抄自阈值原文）": "隔离，不落库",
+      "实测用例": "test_mime_spoofing_lands_in_quarantine"
+    },
+    {
+      "输入": "双扩展 发票.pdf.exe",
+      "判据来源": "AC-UP-003",
+      "预期（抄自阈值原文）": "隔离",
+      "实测用例": "test_double_extension_is_flagged"
+    },
+    {
+      "输入": "路径穿越 ../../etc/passwd",
+      "判据来源": "AC-UP-003",
+      "预期（抄自阈值原文）": "隔离（落盘前判）",
+      "实测用例": "test_hostile_filenames_are_all_flagged"
+    },
+    {
+      "输入": "NUL 截断文件名",
+      "判据来源": "AC-UP-003",
+      "预期（抄自阈值原文）": "隔离",
+      "实测用例": "test_hostile_filenames_are_all_flagged"
+    },
+    {
+      "输入": "Windows 保留设备名 CON",
+      "判据来源": "AC-UP-003",
+      "预期（抄自阈值原文）": "隔离",
+      "实测用例": "test_hostile_filenames_are_all_flagged"
+    },
+    {
+      "输入": "EICAR 标准样本",
+      "判据来源": "AC-UP-003",
+      "预期（抄自阈值原文）": "隔离",
+      "实测用例": "test_eicar_is_detected"
+    },
+    {
+      "输入": "zip bomb（高压缩比）",
+      "判据来源": "AC-UP-003",
+      "预期（抄自阈值原文）": "隔离，不解压",
+      "实测用例": "test_high_ratio_entry_is_flagged_without_extracting"
+    },
+    {
+      "输入": "zip slip（条目路径穿越）",
+      "判据来源": "AC-UP-003",
+      "预期（抄自阈值原文）": "隔离",
+      "实测用例": "test_zip_slip_entry_path_is_flagged"
+    },
+    {
+      "输入": "嵌套压缩包",
+      "判据来源": "AC-UP-003",
+      "预期（抄自阈值原文）": "隔离",
+      "实测用例": "test_nested_archive_is_flagged"
+    },
+    {
+      "输入": "畸形压缩包",
+      "判据来源": "AC-UP-003",
+      "预期（抄自阈值原文）": "隔离，不崩",
+      "实测用例": "test_malformed_archive_is_reported_not_crashed"
+    },
+    {
+      "输入": "篡改分片（等长、摘要不符）",
+      "判据来源": "AC-UP-002",
+      "预期（抄自阈值原文）": "422，零字节落盘",
+      "实测用例": "test_a_tampered_chunk_is_rejected_before_it_is_written"
+    },
+    {
+      "输入": "乱序偏移",
+      "判据来源": "AC-UP-002",
+      "预期（抄自阈值原文）": "409，不留空洞",
+      "实测用例": "test_out_of_order_offset_is_a_conflict_not_a_silent_gap"
+    },
+    {
+      "输入": "越界写（超声明总量）",
+      "判据来源": "AC-UP-002",
+      "预期（抄自阈值原文）": "413",
+      "实测用例": "test_a_chunk_cannot_write_past_the_declared_total"
+    },
+    {
+      "输入": "超限文件",
+      "判据来源": "AC-UP-002",
+      "预期（抄自阈值原文）": "开会话即 413，写前拒绝",
+      "实测用例": "test_oversize_is_refused_at_open_not_mid_stream"
+    },
+    {
+      "输入": "重复内容",
+      "判据来源": "AC-UP-002",
+      "预期（抄自阈值原文）": "不收字节",
+      "实测用例": "test_duplicate_content_is_refused_bytes_at_open"
+    },
+    {
+      "输入": "半程完成",
+      "判据来源": "AC-UP-002",
+      "预期（抄自阈值原文）": "409，不产出 artifact",
+      "实测用例": "test_completing_a_half_sent_upload_produces_no_artifact"
+    },
+    {
+      "输入": "跨 workspace 推分片",
+      "判据来源": "stop_condition",
+      "预期（抄自阈值原文）": "404，进度不受影响",
+      "实测用例": "test_bytes_never_cross_into_another_workspace"
+    },
+    {
+      "输入": "对象存储不可用",
+      "判据来源": "T-S06-04",
+      "预期（抄自阈值原文）": "503，不留半成品",
+      "实测用例": "test_storage_failure_leaves_no_half_written_artifact"
+    },
+    {
+      "输入": "并发写同一 workspace",
+      "判据来源": "T-S06-04",
+      "预期（抄自阈值原文）": "成功者完好，失败者零残留",
+      "实测用例": "test_concurrent_uploads_to_one_workspace_never_produce_a_corrupt_artifact"
+    },
+    {
+      "输入": "并发配额竞争",
+      "判据来源": "T-S06-04",
+      "预期（抄自阈值原文）": "总声明不得超额",
+      "实测用例": "test_concurrent_sessions_cannot_collectively_exceed_the_quota"
+    },
+    {
+      "输入": "处理器 latest（漂移标识）",
+      "判据来源": "AC-UP-004",
+      "预期（抄自阈值原文）": "拒绝，算血缘断点",
+      "实测用例": "test_drifting_or_missing_processor_versions_are_refused"
+    },
+    {
+      "输入": "同名再传",
+      "判据来源": "AC-UP-004",
+      "预期（抄自阈值原文）": "新版本，旧版仍在",
+      "实测用例": "test_same_name_creates_a_new_version_and_keeps_the_old_one"
+    },
+    {
+      "输入": "高风险文件求预览",
+      "判据来源": "AC-UP-004",
+      "预期（抄自阈值原文）": "拒绝，仅附件",
+      "实测用例": "test_attachment_only_versions_get_no_derivatives"
+    }
+  ],
+  "为什么预期与实测分两列": "合成一列写就只剩自我确认——只有分开摆，才可能出现『预期与实测不符』这一格。",
+  "过程去哪了": "receipt 只放结论与判据。塞进原始日志它就没人读了，而它的读者是三个月后想知道『当时到底验了什么』的人。过程在 KMFA/machine/runs/S06_P6*.md 与对应测试文件里。"
+}
