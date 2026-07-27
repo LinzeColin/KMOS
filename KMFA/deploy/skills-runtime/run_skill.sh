@@ -81,6 +81,13 @@ case "$SKILL" in
                          rm -rf "$D"') ;;
   # 真业务入口:云端 dws 归档(钉钉→容器→GitHub 私有库)。原先只跑校验器→从未真归档。
   upstream-archive)    CMD=(bash KMFA/skills/上游归档/scripts/run_cloud_archive.sh) ;;
+  # 考勤投递目标自举：解析出「谁收、钉钉 userid 是多少」并落持久卷。
+  # 这是「考勤修一个月没修好」的那把钥匙——派发要读 notification_targets_resolved.json，
+  # 而它的默认路径在镜像层里、每次部署被重置，于是容器里它永远不存在，
+  # 派发一路走到 NOTIFIER_CONFIG_MISSING → rc=5。rc=5 有十来种成因，所以过去查不动。
+  # **只探 personal**：探测会真发消息，测试期 Owner 明令禁群。
+  attendance-bootstrap-targets) CMD=(python3 KMFA/tools/dingtalk_attendance/notification_probe.py \
+                         --all-targets --target-filter personal) ;;
   # 群清单自举:用容器内已认证 dws 列群生成候选配置进私有库(Owner 无需提供群 ID)
   dws-bootstrap-groups) CMD=(bash KMFA/skills/上游归档/scripts/bootstrap_groups_cloud.sh) ;;  # dws drive 命令面核对后接业务入口
   daily-backup)        CMD=(python3 KMFA/tools/app_state_backup.py backup --state-dir /var/lib/kmfa/state) ;;  # App 状态面异地备份→GitHub 私有库（一致快照+sha256+manifest）。设 KMFA_BACKUP_GH_TOKEN 后异地生效；未设则降级写 /var/log/kmfa/backups 并告警。往返自测见 DT6_APP_STATE_BACKUP

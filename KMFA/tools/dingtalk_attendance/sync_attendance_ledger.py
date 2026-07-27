@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import os
+
 import argparse
 import gzip
 import hashlib
@@ -36,7 +38,8 @@ from KMFA.tools.dingtalk_attendance.notification_template import REST_REQUIRED_E
 from KMFA.tools.dingtalk_attendance.secrets_loader import ROOT
 
 
-PRIVATE_RUNTIME_DIR = ROOT / "metadata" / "dingtalk_attendance" / "private_runtime"
+PRIVATE_RUNTIME_DIR = Path(os.environ.get(
+    "KMFA_ATTENDANCE_RUNTIME_DIR", str(ROOT / "metadata" / "dingtalk_attendance" / "private_runtime")))
 DEFAULT_LEDGER_PATH = PRIVATE_RUNTIME_DIR / "attendance_ledger.sqlite"
 SCHEMA_VERSION = 2
 

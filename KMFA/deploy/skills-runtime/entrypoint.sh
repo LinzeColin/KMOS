@@ -190,6 +190,7 @@ PYR
     fi
   done <<'PREREQ'
 /var/log/kmfa/dws/candidate_groups.json|dws-bootstrap-groups
+/var/log/kmfa/attendance-runtime/notification_targets_resolved.json|attendance-bootstrap-targets
 PREREQ
 ) &
 

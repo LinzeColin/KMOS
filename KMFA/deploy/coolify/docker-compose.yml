@@ -47,6 +47,11 @@ services:
       # 这一项曾只加进 entrypoint 的合成清单却漏在 compose 里——变量于是从没到过容器，
       # 靠 run_skill.sh 的默认值 personal 兜住。默认值恰好是安全值，但那是运气不是设计。
       KMFA_NOTIFICATION_TARGETS: "${KMFA_NOTIFICATION_TARGETS:-personal}"
+      # 考勤私有运行时**必须落持久卷**。默认路径在镜像层里，每次部署被重置——
+      # 而派发要读的 notification_targets_resolved.json 就在这里。
+      # 它一直不存在，派发就一直 NOTIFIER_CONFIG_MISSING → rc=5。
+      # 这正是「考勤修一个月没修好」的根因（2026-07-27 靠失败码定位）。
+      KMFA_ATTENDANCE_RUNTIME_DIR: "/var/log/kmfa/attendance-runtime"
     volumes:
       # 代码已烧进镜像（自包含），不挂宿主仓
       - kmfa-dws-auth:/root/.dws                  # dws 登录态持久（实例内加密存储）

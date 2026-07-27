@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import os
+
 import json
 import subprocess
 from collections.abc import Callable, Mapping
@@ -19,7 +21,17 @@ from KMFA.tools.dingtalk_attendance.notification_template import (
 from KMFA.tools.dingtalk_attendance.secrets_loader import ROOT, merged_runtime_env
 
 
-PRIVATE_RUNTIME_DIR = ROOT / "metadata" / "dingtalk_attendance" / "private_runtime"
+#: 私有运行时目录。**必须能指向持久卷**——投递目标解析结果就落在这里。
+#:
+#: 2026-07-27 定位到的「考勤修一个月没修好」的根因就在这条路径上：
+#:   派发要读 notification_targets_resolved.json（谁收、钉钉 userid 是多少），
+#:   而这个默认路径在**镜像层里**，每次部署都被重置。于是容器里它永远不存在，
+#:   派发一路走到 NOTIFIER_CONFIG_MISSING → rc=5。
+#:   过去看不到这个码，只看到 rc=5，而 rc=5 有十来种成因——所以查不动。
+#: 云端把它指到 /var/log/kmfa 下（kmfa-logs 命名卷，容器重建不丢）。
+#: 本机不设该变量，行为与过去完全一致。
+PRIVATE_RUNTIME_DIR = Path(os.environ.get(
+    "KMFA_ATTENDANCE_RUNTIME_DIR", str(ROOT / "metadata" / "dingtalk_attendance" / "private_runtime")))
 RESOLVED_CHANNEL_PATH = PRIVATE_RUNTIME_DIR / "notification_channel_resolved.json"
 
 
