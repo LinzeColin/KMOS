@@ -31,8 +31,29 @@ case "$SKILL" in
   attendance-evening)  CMD=(python3 KMFA/tools/dingtalk_attendance/run_attendance.py --run-type evening --notification-targets "${KMFA_NOTIFICATION_TARGETS:-personal}") ;;
   work-check-morning)  CMD=(python3 -m KMFA.tools.daily_routine_check.main --input-zip "${KMFA_DAILY_INPUT_ZIP:-/opt/kmfa/data/DWS_Outputs.zip}" --trigger-window morning_1135 $DELIVERY_FLAG) ;;   # SKL.0004 已演练（真实输入 dry-run 通过，通知对象原生=张霖泽）
   work-check-evening)  CMD=(python3 -m KMFA.tools.daily_routine_check.main --input-zip "${KMFA_DAILY_INPUT_ZIP:-/opt/kmfa/data/DWS_Outputs.zip}" --trigger-window evening_1705 $DELIVERY_FLAG) ;;
-  fund-weekly)         CMD=(python3 KMFA/skills/资金周报/tools/validate_taskpack.py) ;;       # SKL.0005 OCR 替换后接业务入口
-  mgmt-monthly)        CMD=(python3 KMFA/skills/经营月报/tools/validate_skill_package.py) ;;   # SKL.0004 演练时替换为业务入口
+  # 资金周报：接真业务入口。原先跑 validate_taskpack.py——那是校验器，它永远绿，
+  # 而周报一次都没真出过。绿得没有意义比红更糟：红至少会被查，假绿谁也不会去查。
+  # 真入口自带分型退出码（2=源缺失 / 5=源不可读 / 6=私有模板缺失）且打印 status，
+  # 正好被 skill_failure_code.py 抓成失败码——失败也说得清是哪一种。
+  # 输入用 find 而不是写死路径：归档产物的目录层级由 dws 决定，写死会在改版时静默变空。
+  fund-weekly)         CMD=(bash -c '
+                         IN=$(find /var/lib/kmfa/dws-archive -maxdepth 4 -type d -name "*付款请示*" 2>/dev/null | head -1); \
+                         if [ -z "$IN" ]; then \
+                           echo "{\"status\": \"SOURCE_MISSING\"} 付款请示群的归档目录不在——上游归档还没把文件拉下来"; \
+                           exit 2; \
+                         fi; \
+                         python3 KMFA/skills/资金周报/tools/run_fund_weekly_analysis.py \
+                           --input-dir "$IN" --repo-root . --timezone Asia/Shanghai') ;;
+  # 经营月报：**这个技能的业务入口还没实现**。
+  # scripts/mgmt_monthly_report.py 只有 register 子命令，它自己的 help 就写着
+  # "this command does not copy raw data"——那是治理登记器，不是出报告的东西。
+  # 原先跑 validate_skill_package.py 同样是校验器。把它接到 register 上只是换件衣服的假绿，
+  # 所以这里如实退非零：没实现就说没实现，不拿一个绿灯冒充「月报在跑」。
+  mgmt-monthly)        CMD=(bash -c '
+                         echo "{\"status\": \"NOT_BUILT\"} 经营月报没有业务入口——"; \
+                         echo "KMFA/skills/经营月报/ 下只有 register（治理登记）与校验器，没有出报告的实现。"; \
+                         echo "接校验器会让它显示成功，那是假绿；这里如实报未建成。"; \
+                         exit 8') ;;
   # 最近完工项目成本：稀疏克隆私有库取真源 → 算 → 写共享卷；App 只读不算。
   # Owner 2026-07-27：「我根本没有看到项目成本，我说了我要最近完工的项目成本」——
   # 数要出现在驾驶舱页面上，所以产物是 App 直接读的 JSON，不是导出的文件。
