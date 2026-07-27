@@ -1170,6 +1170,134 @@ function 开票与税务({ 开票 }) {
   )
 }
 
+/* ---------- 最近完工项目成本（可视化） ----------
+   设计依据 ui-ux-pro-max：分析型仪表盘 = Data-Dense + 下钻对比；
+   类别对比用横向条形（无障碍 AAA），其硬性要求是**每条都标数值**、**按值降序**——
+   所以下面每根条旁边都带金额，不做"只有条没有数"的图。
+   不引外部图表库：CSP 禁 CDN，且一张对比条不值得为它加构建依赖。            */
+
+function 金额(v) {
+  const n = Number(v)
+  if (!isFinite(n)) return ''
+  return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function 对比条({ 台账, 归集, 满 }) {
+  const w = (v) => (满 > 0 ? Math.max(0, Math.min(100, (Number(v) / 满) * 100)) : 0)
+  return (
+    <div className="cmpbar" role="img"
+         aria-label={`业务台账 ${金额(台账)} 元，金蝶归集 ${金额(归集)} 元`}>
+      <div className="cmprow"><i className="seg a" style={{ width: `${w(台账)}%` }} /><b>{金额(台账)}</b></div>
+      <div className="cmprow"><i className="seg b" style={{ width: `${w(归集)}%` }} /><b>{金额(归集)}</b></div>
+    </div>
+  )
+}
+
+function 完工成本({ 完工, 展开, 设展开 }) {
+  if (!完工) return <骨架 />
+  if (完工.加载失败) return <加载失败卡 详情={完工.加载失败} />
+  if (完工.可读 === false) {
+    return (
+      <div className="card callout warn">
+        <b>还没有产出最近完工项目成本</b>
+        <div className="sub">{完工.原因}</div>
+        <div className="sub">{完工.诚实边界}</div>
+      </div>
+    )
+  }
+  const 项 = 完工.项目 || []
+  if (!项.length) return <div className="card callout warn"><b>台账里没有已完工的项目</b></div>
+
+  const 合 = (k) => 项.reduce((a, p) => a + (Number(p[k]) || 0), 0)
+  const 满 = Math.max(...项.map(p => Math.max(Number(p.业务台账成本合计) || 0,
+                                              Number(p.金蝶归集直接成本) || 0)), 1)
+  return (
+    <>
+      <div className="grid">
+        <Kpi 标="完工项目" 值={项.length} 注={`最近一次 ${项[0].完工排序 || '—'}`} />
+        <Kpi 标="合同额合计" 值={金额(合('含税合同金额'))} 小 />
+        <Kpi 标="业务台账成本" 值={金额(合('业务台账成本合计'))} 小 注="红圈自填四项" />
+        <Kpi 标="金蝶归集成本" 值={金额(合('金蝶归集直接成本'))} 小 注="按销售合同号归集" />
+      </div>
+
+      <div className="card callout">
+        <b>两个口径并排，不调平</b>
+        <div className="sub">
+          上条=业务台账（红圈《生产项目状态表》自填：材料费＋交通费＋生活住宿费＋其他费用）；
+          下条=金蝶归集（明细账按销售合同号归集的生产成本借方发生额）。
+          差异本身就是要看的东西——点行展开逐科目明细。
+        </div>
+      </div>
+
+      <h3 className="sec">最近完工项目（按完工时间倒序）</h3>
+      <Tbl>
+        <thead>
+          <tr>
+            <th>完工</th><th>甲方</th><th className="num">合同额</th>
+            <th style={{ minWidth: 190 }}>台账 ／ 金蝶</th>
+            <th className="num">两口径差额</th><th className="num">工时</th><th>成本表</th>
+          </tr>
+        </thead>
+        <tbody>
+          {项.map(p => {
+            const 开 = 展开 === p.合同编号
+            return (
+              <React.Fragment key={p.合同编号}>
+                <tr className="click" onClick={() => 设展开(开 ? null : p.合同编号)}>
+                  <td>{p.完工排序 || '—'}</td>
+                  <td>{p.甲方名称 || p.合同编号}<div className="hint"><code>{p.合同编号}</code></div></td>
+                  <td className="num">{金额(p.含税合同金额)}</td>
+                  <td><对比条 台账={p.业务台账成本合计} 归集={p.金蝶归集直接成本} 满={满} /></td>
+                  <td className="num">{金额(p.两口径差额)}</td>
+                  <td className="num">{p.自有人工工时 || '—'}{p.劳务人工工时 ? ` / ${p.劳务人工工时}` : ''}</td>
+                  <td>{p.是否提供项目成本表 || '—'}</td>
+                </tr>
+                {开 && (
+                  <tr><td colSpan={7}>
+                    <div className="drill">
+                      <div>
+                        <h4>业务台账口径（红圈自填）</h4>
+                        <Tbl><tbody>
+                          {['材料费', '交通费', '生活住宿费', '其他费用'].map(k => (
+                            <tr key={k}><td>{k}</td><td className="num">{金额(p[k]) || '—'}</td></tr>
+                          ))}
+                          <tr><td><b>合计</b></td><td className="num"><b>{金额(p.业务台账成本合计)}</b></td></tr>
+                        </tbody></Tbl>
+                      </div>
+                      <div>
+                        <h4>金蝶归集口径（按报表行）</h4>
+                        <Tbl><tbody>
+                          {Object.entries(p.金蝶成本明细 || {})
+                            .filter(([, v]) => Number(v) !== 0)
+                            .sort((a, b) => Number(b[1]) - Number(a[1]))
+                            .map(([row, v]) => (
+                              <tr key={row}><td>{row}</td><td className="num">{金额(v)}</td></tr>
+                            ))}
+                          {!Object.values(p.金蝶成本明细 || {}).some(v => Number(v) !== 0) && (
+                            <tr><td colSpan={2} className="hint">
+                              账上这个项目还没有带项目号的成本行——多为新完工、成本尚未入账或未打项目号。
+                            </td></tr>
+                          )}
+                        </tbody></Tbl>
+                      </div>
+                    </div>
+                  </td></tr>
+                )}
+              </React.Fragment>
+            )
+          })}
+        </tbody>
+      </Tbl>
+
+      <div className="card callout">
+        <b>口径锁（改动前先看这里，都是实测踩出来的）</b>
+        <ul className="sub">{(完工.锁定的算法 || []).map((t, i) => <li key={i}>{t}</li>)}</ul>
+        <div className="sub">产出时间 {完工.产出时间 || '—'}</div>
+      </div>
+    </>
+  )
+}
+
 /* ---------- 项目成本 ---------- */
 
 function 项目成本({ 成本 }) {
@@ -1273,6 +1401,8 @@ export default function App() {
   const [源检查, set源检查] = useState(null)
   const [我在哪数据, set我在哪] = useState(null)
   const [成本, set成本] = useState(null)
+  const [完工, set完工] = useState(null)
+  const [成本展开, 设成本展开] = useState(null)
   const [账龄, set账龄] = useState(null)
   const [开票, set开票] = useState(null)
   const [工作台, set工作台] = useState(null)
@@ -1291,6 +1421,7 @@ export default function App() {
   const 取工作台 = () => 取('/api/差异工作台', set工作台)
   useEffect(() => {
     取('/api/项目成本', set成本)
+    取('/api/项目成本/完工', set完工)
     取('/api/账龄回款', set账龄)
     取('/api/开票纳税', set开票)
     取工作台()
@@ -1382,7 +1513,11 @@ export default function App() {
               成本={成本} 管线={管线} 排程={排程} 断言={断言} 去={去} />}
             {页 === '回款与账龄' && <回款与账龄 账龄={账龄} />}
             {页 === '开票与税务' && <开票与税务 开票={开票} />}
-            {页 === '项目成本' && <项目成本 成本={成本} />}
+            {页 === '项目成本' && <>
+              <完工成本 完工={完工} 展开={成本展开} 设展开={设成本展开} />
+              <h3 className="sec">事实层与阻塞</h3>
+              <项目成本 成本={成本} />
+            </>}
             {页 === '待拍板' && <待拍板 台={工作台} 刷新={取工作台} 初始展开={拍板跳转} />}
             {页 === '报告下载' && <报告下载 中心={中心} />}
             {页 === '数据底账' && <数据底账 源检查={源检查} 管线={管线} 图={影响}

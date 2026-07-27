@@ -754,6 +754,40 @@ COST_STAGING_TABLES = ("expense_lines", "kingdee_ledger", "kingdee_voucher", "go
                        "invoice_lines", "collection", "receivable_aging")
 
 
+# 最近完工项目成本：由 skills 容器算好写进共享卷，App 只读不算。
+# 这条路是验证过的——公开技能健康端点就是这么读到真实台账的。
+RECENT_COST_PATH = Path(os.environ.get(
+    "KMFA_RECENT_COST", "/var/log/kmfa/project_cost/recent_completed.json"))
+
+
+@app.get("/api/项目成本/完工")
+def recent_completed_cost():
+    """最近完工项目的成本——两个口径并排，不调平。
+
+    Owner 2026-07-27：「我根本没有看到项目成本，我说了我要最近完工的项目成本」。
+    所以数要出现在页面上，不是出现在导出的文件里。
+
+    读不到就说读不到：产物缺失时返回 `可读:false` 与原因，**不返回空数组冒充"没有完工项目"**
+    ——空数组和读不到在页面上长得一样，但意思完全相反。
+    """
+    if not RECENT_COST_PATH.exists():
+        parent = RECENT_COST_PATH.parent
+        if not parent.exists():
+            reason = f"{parent} 不存在——app 容器没挂 kmfa-logs 卷（部署配置问题）"
+        else:
+            reason = "刷新作业尚未产出：技能 project-cost-refresh 从未成功跑完一次"
+        return {"可读": False, "原因": reason, "项目": [],
+                "诚实边界": "读不到就说读不到，不拿空列表冒充『没有完工项目』。"}
+    try:
+        payload = json.loads(RECENT_COST_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"可读": False, "原因": f"产物无法解析：{type(exc).__name__}", "项目": []}
+    payload["可读"] = True
+    payload["产出时间"] = datetime.fromtimestamp(
+        RECENT_COST_PATH.stat().st_mtime, BEIJING).isoformat()
+    return payload
+
+
 @app.get("/api/项目成本")
 def project_cost():
     """项目成本页（PROD.0006）——与 `project_cost_fact_layer` 输出一致。
@@ -2008,6 +2042,7 @@ SCHEDULE_CONTRACT = {
     # 排程表里有它、台账与健康端点里却没有——于是「群清单自举到底跑没跑」长期无人可见，
     # 而上游归档正是卡在它的产出上。漏登记本身就是一种假绿：看不见的排程等于没有排程。
     "dws-bootstrap-groups": "周日 10:30",
+    "project-cost-refresh": "每天 05:45",
 }
 # 技能归属业务模块（Owner 2026-07-21：「所有 skills 都需要整合进 kmfa 功能模块」）
 SKILL_MODULE = {
@@ -2017,6 +2052,7 @@ SKILL_MODULE = {
     "upstream-archive": "数据接入",
     "self-audit": "系统底座", "daily-backup": "系统底座", "dws-keepalive": "系统底座",
     "dws-bootstrap-groups": "系统底座",
+    "project-cost-refresh": "成本与利润",
 }
 
 
