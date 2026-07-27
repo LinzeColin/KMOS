@@ -1767,7 +1767,40 @@ def report_center():
 
 @app.get("/api/报告中心/导出")
 def report_export(报告: int, 格式: str = "html"):
-    """三格式导出 + hash 登记。**水印不接受任何参数控制**——只认 delivery 事实。"""
+    """**已停用**（S07/T-S07-03）——导出改走受控命令。
+
+    停用而不是「留着但不再登记」，是因为登记本身是这条端点存在的理由之一：
+    导出 hash 登记册是交付事实的依据。一个不登记的导出端点看起来还能用，
+    却在悄悄制造「发出去了但没记录」的报告——比停用危险得多。
+
+    为什么原来那样不行：GET 会被浏览器预取、链接预览、爬虫、代理预热替你按下，
+    每一次都往登记册里落一条「导出过」。登记册被噪声灌满之后就不再是依据。
+    加上渲染 PDF 不便宜，把它挂在 GET 上等于把昂贵操作放在人人可无限触发的位置。
+
+    **410 而不是静默改行为**：迁移的已知风险是「旧客户端无提示失败」。
+    410 是响亮的失败，且响应体里直说替代路径怎么调——
+    让调用方当场知道该改什么，而不是过几周才发现自己的导出全丢了。
+    """
+    raise HTTPException(status_code=410, detail={
+        "code": "export_get_retired",
+        "message": "GET 导出已停用：它会写业务记录，而 GET 会被预取、爬虫和代理"
+                   "替你触发，把导出登记册灌成噪声。改用受控导出任务。",
+        "replacement": {
+            "创建": "POST /api/导出任务（需 Idempotency-Key 头）",
+            "查状态": "GET /api/导出任务/{job_id}",
+            "取制品": "GET /api/导出任务/{job_id}/制品",
+            "取消": "POST /api/导出任务/{job_id}/取消",
+        },
+        "示例请求体": {"报告": 1, "格式": "html"},
+    })
+
+
+def _render_export(报告: int, 格式: str) -> tuple[bytes, str, dict[str, Any]]:
+    """渲染一份导出并登记。**只由导出任务调用**，不再挂在任何 GET 上。
+
+    水印不接受任何参数控制——只认 delivery 事实。这一条从旧实现原样保留：
+    水印是给「这份报告能不能对外」下的结论，能被请求参数左右就等于没有。
+    """
     fmt = str(格式).lower().strip()
     if fmt not in EXPORT_FORMATS:
         raise HTTPException(status_code=400, detail=f"格式须为 {list(EXPORT_FORMATS)}")
@@ -1806,16 +1839,174 @@ def report_export(报告: int, 格式: str = "html"):
            report_grade=header["报告等级"], quality_grade=header["质量等级"],
            delivery_allowed=header["delivery_allowed"], watermark_applied=mark is not None)
 
+    return data, media, {
+        "filename": f"kmfa_report_{报告}.{fmt}",
+        "报告等级": header["报告等级"],
+        "质量等级": header["质量等级"],
+        "delivery_allowed": header["delivery_allowed"],
+        "水印已加": mark is not None,
+        "sha256": digest,
+        "字节": len(data),
+    }
+
+
+# ── S07/T-S07-03 受控导出任务 ──────────────────────────────────────────────────
+#
+# 命令与查询分开：POST 创建（带幂等键），GET 只读。判定逻辑全在 `export_jobs`，
+# 是纯函数；这一层只负责存取与 HTTP 形状。分开是为了让「同键不同请求要 409」
+# 这类规则能被单独测，而不必每次都起一个 HTTP 客户端。
+
+from app import export_jobs as _ej  # noqa: E402
+
+
+def _job_events() -> list[dict[str, Any]]:
+    return _st.read(APP_DB_PATH, "export_jobs")
+
+
+def _load_job(job_id: str) -> dict[str, Any] | None:
+    return _ej.fold_job([e for e in _job_events() if e.get("job_id") == job_id])
+
+
+def _all_jobs() -> list[dict[str, Any]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for event in _job_events():
+        grouped.setdefault(str(event.get("job_id")), []).append(event)
+    return [job for job in (_ej.fold_job(v) for v in grouped.values()) if job]
+
+
+def _now_epoch() -> int:
+    return int(datetime.now(BEIJING).timestamp())
+
+
+def _job_error(error: _ej.ExportJobError):
+    raise HTTPException(status_code=error.status_code,
+                        detail={"code": error.code, "message": error.message})
+
+
+@app.post("/api/导出任务")
+def create_export_job(request: Request, 载荷: dict[str, Any] = Body(...)):
+    """创建导出任务。**POST 而非 GET**——它产生业务记录。
+
+    幂等键必填。没有它，一次网络抖动引发的重试就会变成两条导出登记，
+    而登记册是交付事实的依据，多出来的那条没人能事后分辨真假。
+    """
+    key = request.headers.get("Idempotency-Key")
+    owner = "management"  # 本 App 目前单租户；owner 进 id 是为将来多租户留位
+    payload = {"报告": int(载荷.get("报告", 0)), "格式": str(载荷.get("格式", "html")).lower()}
+
+    jobs = _all_jobs()
+    now = _now_epoch()
+    job_id = _ej.job_id_for(owner, key) if key else ""
+    existing = next((j for j in jobs if j["job_id"] == job_id), None) if job_id else None
+    running = sum(1 for j in jobs if j["state"] in {"queued", "running"})
+
+    try:
+        decision = _ej.admit(
+            owner=owner, key=key or "", request=payload, existing=existing,
+            running_count=running, owner_job_count=len(jobs))
+    except _ej.ExportJobError as error:
+        _job_error(error)
+
+    if decision["action"] == "reuse":
+        # 同键同请求：**一个字节都不重新渲染**。这正是幂等键的意义——
+        # 重试不该花第二份 CPU，也不该多出第二条登记。
+        return {"复用": True, "任务": _ej.project(decision["job"], now)}
+
+    job_id = decision["job_id"]
+    stamp = datetime.now(BEIJING).isoformat(timespec="seconds")
+    _st.append(APP_DB_PATH, "export_jobs", {
+        "event": "created", "job_id": job_id, "owner": owner,
+        "idempotency_key": key, "fingerprint": decision["fingerprint"],
+        "request": payload, "at": stamp})
+    _st.append(APP_DB_PATH, "export_jobs",
+               {"event": "started", "job_id": job_id, "at": stamp})
+
+    try:
+        data, media, meta = _render_export(payload["报告"], payload["格式"])
+    except HTTPException as error:
+        # 失败要**落成事件**，不是抛完就算：失败的任务和不存在的任务
+        # 对调用方意味着完全不同的下一步，而只有落了事件才分得开。
+        _st.append(APP_DB_PATH, "export_jobs", {
+            "event": "failed", "job_id": job_id,
+            "failure": str(error.detail)[:500], "at": stamp})
+        raise
+    if len(data) > _ej.MAX_ARTIFACT_BYTES:
+        _st.append(APP_DB_PATH, "export_jobs", {
+            "event": "failed", "job_id": job_id,
+            "failure": f"制品 {len(data)} 字节超过上限 {_ej.MAX_ARTIFACT_BYTES}",
+            "at": stamp})
+        raise HTTPException(status_code=413, detail={
+            "code": "export_artifact_too_large",
+            "message": f"制品超过 {_ej.MAX_ARTIFACT_BYTES} 字节上限。"})
+
+    artifact_path = APP_STATE_DIR / "export-artifacts" / f"{job_id}.bin"
+    artifact_path.parent.mkdir(parents=True, exist_ok=True)
+    artifact_path.write_bytes(data)
+    _st.append(APP_DB_PATH, "export_jobs", {
+        "event": "succeeded", "job_id": job_id, "at": stamp,
+        "artifact": {**meta, "media_type": media, "path": str(artifact_path),
+                     "produced_at_epoch": now}})
+    return {"复用": False, "任务": _ej.project(_load_job(job_id), now)}
+
+
+@app.get("/api/导出任务/{job_id}")
+def get_export_job(job_id: str):
+    """查状态。**纯读**——不推进任何状态机。
+
+    过期是读的时候算出来的，不是靠定时任务改状态：定时任务没跑的那段时间里，
+    改状态的做法会拿着过期制品当有效的发。
+    """
+    job = _load_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail={
+            "code": "export_job_not_found", "message": "没有这个导出任务。"})
+    return _ej.project(job, _now_epoch())
+
+
+@app.get("/api/导出任务/{job_id}/制品")
+def get_export_artifact(job_id: str):
+    """取制品。**纯读**——制品在任务成功时就已产出，这里只是搬运。"""
     from fastapi.responses import Response
 
-    return Response(content=data, media_type=media, headers={
-        "Content-Disposition": f'attachment; filename="kmfa_report_{报告}.{fmt}"',
-        "X-KMFA-Report-Grade": header["报告等级"],
-        "X-KMFA-Quality-Grade": header["质量等级"],
-        "X-KMFA-Delivery-Allowed": str(header["delivery_allowed"]).lower(),
-        "X-KMFA-Watermark": "applied" if mark else "none",
-        "X-KMFA-Sha256": digest,
-    })
+    try:
+        plan = _ej.artifact_response_plan(_load_job(job_id), _now_epoch())
+    except _ej.ExportJobError as error:
+        _job_error(error)
+    artifact = plan["artifact"]
+    path = Path(str(artifact["path"]))
+    if not path.exists():
+        raise HTTPException(status_code=410, detail={
+            "code": "export_artifact_missing",
+            "message": "任务记录为成功，但制品文件已不在。"
+                       "这是存储侧的问题，不是任务没跑——重新创建任务。"})
+    return Response(content=path.read_bytes(), media_type=str(artifact["media_type"]),
+                    headers={
+                        "Content-Disposition":
+                            f'attachment; filename="{artifact["filename"]}"',
+                        "Cache-Control": "private, no-store",
+                        "X-Content-Type-Options": "nosniff",
+                        "X-KMFA-Report-Grade": str(artifact["报告等级"]),
+                        "X-KMFA-Quality-Grade": str(artifact["质量等级"]),
+                        "X-KMFA-Delivery-Allowed":
+                            str(artifact["delivery_allowed"]).lower(),
+                        "X-KMFA-Watermark":
+                            "applied" if artifact["水印已加"] else "none",
+                        "X-KMFA-Sha256": str(artifact["sha256"]),
+                    })
+
+
+@app.post("/api/导出任务/{job_id}/取消")
+def cancel_export_job(job_id: str):
+    """取消。终态不可取消，且必须报出当前是什么状态——
+    只说「不能取消」而不说现在是什么，调用方只能猜，而猜错的方向通常是「再试一次」。"""
+    try:
+        plan = _ej.plan_cancel(_load_job(job_id), _now_epoch())
+    except _ej.ExportJobError as error:
+        _job_error(error)
+    _st.append(APP_DB_PATH, "export_jobs", {
+        "event": "cancelled", "job_id": plan["job_id"],
+        "at": datetime.now(BEIJING).isoformat(timespec="seconds")})
+    return _ej.project(_load_job(job_id), _now_epoch())
 
 
 # ── PROD.0008 影响预览与重跑 ────────────────────────────────────────────────────
