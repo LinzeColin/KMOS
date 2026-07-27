@@ -55,8 +55,34 @@ if [ ! -f "$CONF_SRC" ]; then
     log "找不到自举脚本 $BOOT"
   fi
 fi
+# 驾驶舱勾选优先：候选清单 + 人工勾选 → 已确认清单。
+# 这一步存在的理由是 Owner 明确「需要前端控制器筛选目标群」——归档是增量的，
+# 全量拉所有群既慢又会把无关群的文件拖进来。没有勾选就不猜，宁可停。
+SEL=/var/log/kmfa/dws/selected_groups.json
+CAND=/var/log/kmfa/dws/candidate_groups.json
+if [ -s "$SEL" ] && [ -s "$CAND" ]; then
+  python3 - "$CAND" "$SEL" "$CONF_SRC" <<'PYS' && log "已按驾驶舱勾选生成目标群清单"
+import json, sys, os, re
+cand = json.load(open(sys.argv[1], encoding="utf-8"))
+sel = set(json.load(open(sys.argv[2], encoding="utf-8")).get("已选群", []))
+picked = [g for g in cand.get("群", []) if g["id"] in sel]
+if not picked:
+    print("勾选为空——不生成清单", file=sys.stderr); raise SystemExit(1)
+out = sys.argv[3]
+base = out.replace("target_groups.yaml", "target_groups.candidate.yaml")
+head = open(base, encoding="utf-8").read().split("groups:")[0] if os.path.exists(base) else ""
+os.makedirs(os.path.dirname(out), exist_ok=True)
+with open(out, "w", encoding="utf-8") as fh:
+    fh.write(head or "# 由驾驶舱勾选生成\n")
+    fh.write("groups:\n")
+    for g in picked:
+        fh.write(f'  - id: "{g["id"]}"\n    name: "{g["name"]}"\n    mode: "auto"\n')
+    fh.write(f"# 驾驶舱勾选 {len(picked)} / 候选 {len(cand.get('群', []))}\n")
+PYS
+fi
+
 if [ ! -f "$CONF_SRC" ]; then
-  log "自举后仍无 $CONF_AREA/target_groups.yaml —— 多半是容器内 dws 未登录，需先恢复登录态"
+  log "无目标群清单：候选已就绪但驾驶舱尚未勾选，或容器内 dws 未登录。归档不猜目标，停在这里"
   exit 4
 fi
 mkdir -p "$SKILL/config"

@@ -63,4 +63,27 @@ if git diff --cached --quiet; then log "候选清单无变化"; else
   git -c user.email=kmfa-archive@localhost -c user.name="KMFA DWS Bootstrap" commit -q -m "config(dws): 云端自举群清单候选"
   git push -q origin HEAD && log "✓ 候选群清单已推私有库" || log "✗ 推送失败"
 fi
+# 候选清单同时落共享卷：驾驶舱要靠它显示可勾选的群。
+# Owner 2026-07-27：「dws 上游存档是增量存档，他也需要前端控制器筛选目标群」——
+# 选哪些群归档必须由人勾，不能由 agent 猜。群 ID/群名是敏感信息，只进共享卷与私有库，
+# 永不进公开仓。
+mkdir -p /var/log/kmfa/dws
+python3 - /tmp/target_groups.yaml > /var/log/kmfa/dws/candidate_groups.json <<'PYJ'
+import json, re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+groups, current = [], None
+for line in text.splitlines():
+    m = re.match(r'\s*-\s*id:\s*"([^"]+)"', line)
+    if m:
+        current = {"id": m.group(1), "name": ""}
+        groups.append(current)
+        continue
+    m = re.match(r'\s*name:\s*"([^"]*)"', line)
+    if m and current is not None:
+        current["name"] = m.group(1)
+print(json.dumps({"schema_version": "kmfa.dws.candidate_groups.v1",
+                  "群数": len(groups), "群": groups}, ensure_ascii=False, indent=2))
+PYJ
+log "候选群清单已落共享卷（$(python3 -c "import json;print(json.load(open('/var/log/kmfa/dws/candidate_groups.json'))['群数'])" 2>/dev/null || echo '?') 个）"
+
 rm -rf "$PDB_DIR" /tmp/target_groups.yaml "$OUT"

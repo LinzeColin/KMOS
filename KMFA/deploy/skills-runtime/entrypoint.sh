@@ -141,5 +141,35 @@ if [ -f /opt/kmfa/secrets/kmfa_backup_deploy_key ] \
   ( /opt/runtime/run_skill.sh project-cost-refresh >> /var/log/kmfa/cron.log 2>&1 || true ) &
 fi
 
+# 冷启动重试当前失败的技能：修好的代码要等下一次排程才被跑到，而排程可能是一天后。
+# Owner 2026-07-27：「你已经浪费了我一个月的时间都还没有修好考勤」——
+# 「等明天那次排程」正是把一个月耗掉的那个模式。所以部署即重试，不等排程。
+# 只重试台账里最近一次非 0 的技能；从未跑过的不动（那是排程问题不是失败）。
+( 
+  sleep 20
+  L=/var/log/kmfa/ledger.jsonl
+  [ -s "$L" ] || exit 0
+  python3 - "$L" <<'PYR' | while read -r s; do
+import json, sys
+last = {}
+for line in open(sys.argv[1], encoding="utf-8", errors="replace"):
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        r = json.loads(line)
+    except Exception:
+        continue
+    if r.get("skill"):
+        last[r["skill"]] = r
+for name, r in sorted(last.items()):
+    if r.get("rc") not in (0, None):
+        print(name)
+PYR
+    echo "$(date -Is) entrypoint: 冷启动重试失败技能 $s" >> /var/log/kmfa/cron.log
+    /opt/runtime/run_skill.sh "$s" >> /var/log/kmfa/cron.log 2>&1 || true
+  done
+) &
+
 echo "$(date -Is) entrypoint: cron 启动（TZ=$TZ，KMFA_DELIVERY_ENABLED=${KMFA_DELIVERY_ENABLED:-0}）" >> /var/log/kmfa/cron.log
 exec cron -f
