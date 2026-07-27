@@ -1,5 +1,24 @@
 # KMFA HANDOFF
 
+## ⛔ 先读这一段：Owner 硬覆写压过 sealed taskpack（2026-07-27）
+
+任何接手 agent（含 Codex 交付线）**必须先读 `AGENTS.md` 第 0 节「Owner 硬覆写」**。
+裁决顺序：**Owner 会话直接指令 > `AGENTS.md` 第 0 节 > v1.5.2 sealed taskpack > 其余文档**。
+
+已发生的实际冲突，作为判例记录：
+
+- **根路径被误改，Owner 三次投诉。** v1.5.2 写「`/` 是完整匿名 App Shell」，交付线据此删掉了
+  `app/frontend/src/KmfaHome.jsx` 并把匿名壳挂到根。Owner 看到后原话：
+  「这根本不是我的东西 你不要搞这些恶心人的东西来恶心我」「主页还是没有恢复 我看到这个主页就恶心」。
+  **已于 #211 归位**：`/` = KMFA 经营驾驶舱；匿名 App Shell / Walking Skeleton / 匿名反滥用挑战全部迁 `/workspace`。
+  合同该条**作废**，不得再以合同为由回退。
+- **门禁**：`app/backend/tests/test_root_is_kmfa_home.py`（根必须是驾驶舱 / `/workspace` 必须保留匿名壳 / 两者必须不同）。
+  该测试红了**只许改代码，不许改测试**。
+- **随迁清单**（改根路径相关内容时必须同步，否则 CI 会在这些地方红）：
+  `backend/tests/test_smoke.py`、`test_public_entry_contract.py`、
+  `e2e/public_shell_flow.py`、`public_accessibility_index.py`、`walking_skeleton_flow.py`、`abuse_control_flow.py`，
+  以及 `frontend/index.html` **和已提交的 `frontend/dist/index.html`**（pytest 服务的是 committed dist，两边必须一致）。
+
 ## v1.5.2 公开软件交付线（2026-07-26）
 
 - 当前唯一执行基线：用户提供的 `KMFA_Product_Design_Taskpack_v1.5.2.zip`，SHA-256 `31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb`；产品/runtime 版本仍为 `0.1.4-one-time-github-main-upload`，两者禁止混用。
