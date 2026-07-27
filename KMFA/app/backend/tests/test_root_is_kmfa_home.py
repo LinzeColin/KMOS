@@ -42,5 +42,13 @@ def test_workspace_keeps_anonymous_app_shell():
     assert _entries(r.text) == WORKSPACE_ENTRIES, "匿名工作区六入口必须在 /workspace 完整保留"
 
 
+def test_workspace_carries_its_own_identity_in_head():
+    """换壳只改正文的话，/workspace 会顶着驾驶舱的标题和分享卡片——两个面的身份必须分开。"""
+    html = client.get("/workspace").text
+    assert "<title>KMFA｜公开工作区</title>" in html, "/workspace 标题必须是公开工作区"
+    assert '<meta property="og:title" content="KMFA｜公开工作区">' in html
+    assert "KMFA｜经营驾驶舱" not in html, "/workspace 的 head 不得残留驾驶舱身份"
+
+
 def test_root_and_workspace_are_distinct_faces():
     assert _entries(client.get("/").text) != _entries(client.get("/workspace").text)
