@@ -1381,6 +1381,136 @@ function 对比条({ 台账, 归集, 满 }) {
   )
 }
 
+const 阶段色 = { 已完工: 'ok', 部分施工: 'warn', 施工中: 'warn', 待入场: 'mut', 状态不明: 'bad' }
+const 成本数据色 = { 两口径均有数: 'ok', 仅单口径有数: 'warn', 无成本数据: 'bad' }
+
+function 项目毛利({ 毛利, 展开, 设展开 }) {
+  if (!毛利) return <骨架 />
+  if (毛利.加载失败) return <加载失败卡 详情={毛利.加载失败} />
+  if (毛利.可读 === false) {
+    return (
+      <div className="card callout warn">
+        <b>还没有产出项目毛利</b>
+        <div className="sub">{毛利.原因}</div>
+        <div className="sub">{毛利.诚实边界}</div>
+      </div>
+    )
+  }
+  const 阶段 = 毛利.分阶段汇总 || {}
+  const 行 = 毛利.项目 || []
+  // 条形按合同额铺满，成本段叠在上面——一眼看出「已知成本只占合同额一丁点」，
+  // 而那正是这一页要讲的事：成本没归集，不是成本低。
+  const 满 = Math.max(...行.map(r => Number(r.含税合同金额) || 0), 1)
+
+  return (
+    <>
+      {/* 口径警告放最前，不是脚注。数字脱离这句话就会被当成毛利率读。 */}
+      <div className="card callout bad">
+        <b>这不是毛利，是毛利上限</b>
+        <div className="sub">{毛利['⚠这不是毛利']}</div>
+        <div className="sub">{毛利.为什么在建也列}</div>
+      </div>
+
+      <h3 className="sec">分阶段汇总</h3>
+      <Tbl>
+        <thead><tr>
+          <th>阶段</th><th className="num">项目数</th><th className="num">含税合同金额</th>
+          <th className="num">业务台账成本</th><th className="num">金蝶归集成本</th>
+          <th className="num">已知成本下限</th><th className="num">毛利上限率</th>
+          <th className="num">其中无成本数据</th>
+        </tr></thead>
+        <tbody>{Object.entries(阶段).map(([k, v]) => (
+          <tr key={k}>
+            <td><span className={`pill ${阶段色[k] || ''}`}>{k}</span></td>
+            <td className="num">{v.项目数}</td>
+            <td className="num">{金额(v.含税合同金额)}</td>
+            <td className="num">{金额(v.业务台账成本)}</td>
+            <td className="num">{金额(v.金蝶归集成本)}</td>
+            <td className="num">{金额(v.已知成本下限)}</td>
+            <td className="num">{v.毛利上限率 || '—'}</td>
+            <td className={`num ${v.其中无成本数据的项目数 ? 'tone-bad' : ''}`}>
+              {v.其中无成本数据的项目数 || '—'}</td>
+          </tr>
+        ))}</tbody>
+      </Tbl>
+
+      <h3 className="sec">逐个项目（{行.length} 个）</h3>
+      <div className="card callout">
+        <b>排序：先阶段，再看成本数据有没有，最后才是上限率</b>
+        <div className="sub">
+          中间那一级不能省。只按上限率排，榜首会是一串「成本填 0 所以率 100%」的项目——
+          那不是最赚钱的，是最没数据的。
+        </div>
+      </div>
+      <Tbl>
+        <thead><tr>
+          <th>合同编号</th><th>甲方</th><th>阶段</th><th>成本数据</th>
+          <th className="num">含税合同金额</th><th className="num">已知成本下限</th>
+          <th className="num">毛利上限率</th><th>合同额中已知成本占比</th>
+        </tr></thead>
+        <tbody>{行.map(r => {
+          const 开 = 展开 === r.合同编号
+          const 额 = Number(r.含税合同金额) || 0
+          const 本 = Number(r.已知成本下限) || 0
+          return (
+            <React.Fragment key={r.合同编号}>
+              <tr className="click" onClick={() => 设展开(开 ? null : r.合同编号)}>
+                <td><code>{r.合同编号}</code></td>
+                <td>{r.甲方名称 || '—'}</td>
+                <td><span className={`pill ${阶段色[r.阶段] || ''}`}>{r.阶段}</span></td>
+                <td><span className={`pill ${成本数据色[r.成本数据] || ''}`}>{r.成本数据}</span></td>
+                <td className="num">{金额(r.含税合同金额)}</td>
+                <td className="num">{金额(r.已知成本下限)}</td>
+                <td className="num">{r.毛利上限率 || '—'}</td>
+                <td>
+                  <div className="cmpbar" title={`合同额 ${金额(r.含税合同金额)}，已知成本 ${金额(r.已知成本下限)}`}>
+                    <div className="cmprow">
+                      <i style={{ width: `${Math.min(100, (额 / 满) * 100)}%` }} className="base" />
+                      <i style={{ width: `${额 ? Math.min(100, (本 / 满) * 100) : 0}%` }} className="cost" />
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              {开 && (
+                <tr className="detail"><td colSpan={8}>
+                  <div className="drill">
+                    <div>
+                      <b>两个口径</b>
+                      <div className="sub">业务台账（材料/交通/住宿/其他，不含人工）：{金额(r.业务台账成本)}</div>
+                      <div className="sub">金蝶按合同号归集：{金额(r.金蝶归集成本)}</div>
+                      <div className="sub">差额：{金额(r.两口径差额)}</div>
+                    </div>
+                    <div>
+                      <b>项目信息</b>
+                      <div className="sub">施工状态：{r.施工状态 || '—'}</div>
+                      <div className="sub">完工日期：{r.完工日期 || '—'}</div>
+                      <div className="sub">项目类型：{r.项目类型 || '—'}　负责人：{r.负责人 || '—'}</div>
+                    </div>
+                  </div>
+                  {(r.数据提示 || []).length > 0 && (
+                    <div className="card callout warn" style={{ marginTop: 10 }}>
+                      <b>这一行的数不能直接引用</b>
+                      <ul className="sub">{r.数据提示.map((f, i) => <li key={i}>{f}</li>)}</ul>
+                    </div>
+                  )}
+                  {Object.keys(r.金蝶成本明细 || {}).length > 0 && (
+                    <Tbl>
+                      <thead><tr><th>成本项</th><th className="num">金额</th></tr></thead>
+                      <tbody>{Object.entries(r.金蝶成本明细).map(([k, v]) => (
+                        <tr key={k}><td>{k}</td><td className="num">{金额(v)}</td></tr>
+                      ))}</tbody>
+                    </Tbl>
+                  )}
+                </td></tr>
+              )}
+            </React.Fragment>
+          )
+        })}</tbody>
+      </Tbl>
+    </>
+  )
+}
+
 function 完工成本({ 完工, 展开, 设展开 }) {
   if (!完工) return <骨架 />
   if (完工.加载失败) return <加载失败卡 详情={完工.加载失败} />
@@ -1591,6 +1721,8 @@ export default function App() {
   const [成本, set成本] = useState(null)
   const [完工, set完工] = useState(null)
   const [客户, set客户] = useState(null)
+  const [毛利, set毛利] = useState(null)
+  const [毛利展开, 设毛利展开] = useState(null)
   const [目标群数据, set目标群] = useState(null)
   const [成本展开, 设成本展开] = useState(null)
   const [账龄, set账龄] = useState(null)
@@ -1614,6 +1746,7 @@ export default function App() {
     取('/api/项目成本', set成本)
     取('/api/项目成本/完工', set完工)
     取('/api/客户毛利', set客户)
+    取('/api/项目毛利', set毛利)
     取群()
     取('/api/账龄回款', set账龄)
     取('/api/开票纳税', set开票)
@@ -1712,6 +1845,8 @@ export default function App() {
             </>}
             {页 === '项目成本' && <>
               <完工成本 完工={完工} 展开={成本展开} 设展开={设成本展开} />
+              <h3 className="sec">项目口径毛利（含在建）</h3>
+              <项目毛利 毛利={毛利} 展开={毛利展开} 设展开={设毛利展开} />
               <h3 className="sec">客户口径毛利</h3>
               <客户毛利 客户={客户} />
               <h3 className="sec">事实层与阻塞</h3>

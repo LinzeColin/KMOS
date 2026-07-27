@@ -444,3 +444,11 @@ ul.muted li { margin-top: 4px; }
   background: none;
   padding: 0;
 }
+
+/* 项目毛利的合同额/已知成本对比条。
+   两条叠在同一轨上而不是并排：要看的是「成本只占合同额一丁点」这个比例关系，
+   并排会变成两个独立长度，比例就读不出来了。 */
+.cmpbar .cmprow { position: relative; height: 14px; }
+.cmpbar .cmprow i { position: absolute; left: 0; top: 0; height: 100%; border-radius: 3px; }
+.cmpbar .cmprow i.base { background: var(--surface-2); }
+.cmpbar .cmprow i.cost { background: var(--badc); opacity: 0.75; }

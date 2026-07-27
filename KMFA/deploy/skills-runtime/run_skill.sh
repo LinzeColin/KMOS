@@ -53,6 +53,10 @@ case "$SKILL" in
                          python3 KMFA/tools/project_cost/build_customer_margin.py \
                            --data-root "$D/Private-KMDatabase/KMFA_MetaData" \
                            --out /var/log/kmfa/project_cost/customer_margin.json; \
+                         python3 KMFA/tools/project_cost/build_project_margin.py \
+                           --data-root "$D/Private-KMDatabase/KMFA_MetaData" \
+                           --account-map KMFA/machine/facts/project_cost_account_map.json \
+                           --out /var/log/kmfa/project_cost/project_margin.json; \
                          rm -rf "$D"') ;;
   # 真业务入口:云端 dws 归档(钉钉→容器→GitHub 私有库)。原先只跑校验器→从未真归档。
   upstream-archive)    CMD=(bash KMFA/skills/上游归档/scripts/run_cloud_archive.sh) ;;
