@@ -310,7 +310,7 @@
         },
         "compute": {
           "status": "degraded",
-          "evidence": "上游归档连续 8 次 rc=4、从未真正取回文件（公开健康端点实测）。本技能 rc=0 只证明「跑了」，不证明「有新输入」——这正是耦合治理要拦的假绿。待归档实证跑通后复评"
+          "evidence": "排程已接真业务入口 run_fund_weekly_analysis.py（原先跑的是 validate_taskpack.py 校验器，它永远绿而周报一次都没真出过）。真入口自带分型退出码，缺输入时以 SOURCE_MISSING 如实退 2，失败码上驾驶舱可见。上游归档取回文件前，本基线维持 degraded——rc=0 才是异常。"
         },
         "verify": {
           "status": "degraded",
@@ -318,7 +318,7 @@
         },
         "output": {
           "status": "degraded",
-          "evidence": "上游归档连续 8 次 rc=4、从未真正取回文件（公开健康端点实测）。本技能 rc=0 只证明「跑了」，不证明「有新输入」——这正是耦合治理要拦的假绿。待归档实证跑通后复评"
+          "evidence": "排程已接真业务入口 run_fund_weekly_analysis.py（原先跑的是 validate_taskpack.py 校验器，它永远绿而周报一次都没真出过）。真入口自带分型退出码，缺输入时以 SOURCE_MISSING 如实退 2，失败码上驾驶舱可见。上游归档取回文件前，本基线维持 degraded——rc=0 才是异常。"
         },
         "deliver": {
           "status": "blocked_by_policy",
@@ -355,22 +355,29 @@
         },
         "compute": {
           "status": "blocked_by_input",
-          "evidence": "上游项目成本 compute 未完成"
+          "evidence": "上游项目成本 compute 未完成；且本技能自身无脚本入口（见 output 阶段）。排程改为如实退 NOT_BUILT/rc=8，不再接校验器冒充成功。"
         },
         "verify": {
           "status": "not_built",
           "evidence": "—"
         },
         "output": {
-          "status": "degraded",
-          "evidence": "Excel/PDF 流程已建，但受上游阻断降级：项目成本(输出/投递未建)、资金周报(投递禁群)——耦合治理要求不得称健康"
+          "status": "not_built",
+          "evidence": "**没有脚本实现**。references/excel_pdf_contract.md 写的是规范，不是实现；skills/经营月报/ 下只有 register（治理登记，其 help 自陈 does not copy raw data）与校验器，生成逻辑在 agents/openai.yaml + 06_Recurring_Prompt 里，靠 agent 提示词跑，容器内没有执行路径。原评「Excel/PDF 流程已建」把规范说成了实现，2026-07-27 逐文件核对后更正。"
         },
         "deliver": {
           "status": "blocked_by_policy",
           "evidence": "测试期禁群"
         }
       },
-      "known_defects": []
+      "known_defects": [
+        {
+          "id": "DEF-KMFA-018",
+          "baseline": "BL-MGMT-MONTHLY",
+          "desc": "经营月报无脚本入口：生成逻辑只存在于 agent 提示词，容器排程无法执行",
+          "stage": "output"
+        }
+      ]
     },
     {
       "id": "BL-PAYROLL-STD",
