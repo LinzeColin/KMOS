@@ -113,13 +113,20 @@ def main() -> int:
         print(f"台账行不是合法 JSON，跳过：{e}", file=sys.stderr)
         _mark(False, "台账行不是合法 JSON")
         return 0
-    token = _token()
-    if not token:
-        print("无 KMFA_BACKUP_GH_TOKEN，跳过回传（不影响技能本身）")
-        _mark(False, "容器内没有 KMFA_BACKUP_GH_TOKEN")
+    # token 与部署密钥二选一。实测：Coolify 里 KMFA_BACKUP_GH_TOKEN 存了两份、
+    # 空的那份赢了，于是回传断了几十次无人察觉；而同一容器里的部署密钥一直好用
+    # （project-cost-refresh 每天用它 clone 私有库、rc=0）。所以不再只认 token。
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import private_db_access as PDB              # noqa: E402
+    if not PDB.token() and not PDB.has_deploy_key():
+        print("既无可用 token 也无部署密钥，跳过回传（不影响技能本身）")
+        _mark(False, "容器内既没有可用 token，也没有部署密钥")
         return 0
     try:
-        print(append_line(line, token))
+        record = json.loads(line)
+        print(PDB.append_line(
+            month_path(), line,
+            f"ledger: {record.get('skill', '?')} @ {record.get('ts', '')}"))
         _mark(True, "已回传")
     except Exception as e:                       # noqa: BLE001 —— 回传失败绝不拖垮技能
         print(f"回传失败（不影响技能本身）：{type(e).__name__}: {e}", file=sys.stderr)

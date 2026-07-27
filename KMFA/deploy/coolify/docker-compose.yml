@@ -39,7 +39,14 @@ services:
       #   只把路径给 cron，密钥本体不落 cron.d/日志）。每日 00:30 北京自动异地备份。
       KMFA_BACKUP_SSH_KEY_B64: "${KMFA_BACKUP_SSH_KEY_B64:-}"
       # 备选：对 Private-Database 有 contents:write 的 GitHub token（REST 路径）。
+      # 注意：2026-07-27 实测这一项在 Coolify 面板里**存了两份**，空的那份赢了，
+      # 于是容器内取到空值、台账回传断了几十次无人察觉。工具已改为 token 缺失时
+      # 回落到上面那把部署密钥（project-cost-refresh 用它、一直好用），不再单点依赖。
       KMFA_BACKUP_GH_TOKEN: "${KMFA_BACKUP_GH_TOKEN:-}"
+      # 考勤投递对象。测试期只发张霖泽本人（Owner 令：不许发群，除非授权）。
+      # 这一项曾只加进 entrypoint 的合成清单却漏在 compose 里——变量于是从没到过容器，
+      # 靠 run_skill.sh 的默认值 personal 兜住。默认值恰好是安全值，但那是运气不是设计。
+      KMFA_NOTIFICATION_TARGETS: "${KMFA_NOTIFICATION_TARGETS:-personal}"
     volumes:
       # 代码已烧进镜像（自包含），不挂宿主仓
       - kmfa-dws-auth:/root/.dws                  # dws 登录态持久（实例内加密存储）

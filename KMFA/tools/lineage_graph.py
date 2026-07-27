@@ -35,31 +35,18 @@ def _load_raw_from_private_db() -> list[dict]:
 
     2026-07-19 起数据的权威落地处是 Private-Database（见 KMDatabase/data/WHERE_IS_THE_DATA.md），
     仓里那份 KMDatabase/data/manifest.jsonl 在纯 checkout 环境**结构上就不会存在**。
-    云端自检每周都崩在这里（FileNotFoundError），而 `set -e` 让它顺手掐死了后面的双平面门禁。
+    云端自检每周都崩在这里（FileNotFoundError），而 set -e 让它顺手掐死了后面的双平面门禁。
 
-    用 urllib 而不是 private_db_client.py：技能容器里没有 `gh`（Dockerfile 没装），
-    而回传链已经证明 urllib + KMFA_BACKUP_GH_TOKEN 这条路在容器里是通的。
+    走 private_db_access：token 在就用 REST，不在就用容器里那把部署密钥。
+    实测容器内 token 是空的（Coolify 同名变量存了两份），而部署密钥一直好用。
     """
-    import urllib.error
-    import urllib.request
-
-    token = next((os.environ[k] for k in ("KMFA_BACKUP_GH_TOKEN", "GH_TOKEN", "GITHUB_TOKEN")
-                  if os.environ.get(k)), None)
-    if not token:
-        raise ManifestUnavailable("本地无 manifest.jsonl，且容器内没有读私有库的令牌")
-    repo = os.environ.get("KMFA_LEDGER_REPO", "LinzeColin/Private-Database")
-    url = f"https://api.github.com/repos/{repo}/contents/Private-KMDatabase/manifest.jsonl"
-    request = urllib.request.Request(url)
-    request.add_header("Authorization", f"Bearer {token.strip()}")
-    request.add_header("Accept", "application/vnd.github.raw")
-    request.add_header("User-Agent", "kmfa-lineage-graph")
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import private_db_access as PDB               # noqa: E402
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
-            text = response.read().decode("utf-8", "replace")
-    except urllib.error.HTTPError as exc:
-        raise ManifestUnavailable(f"私有库返回 HTTP {exc.code}") from exc
-    except Exception as exc:                      # noqa: BLE001 —— 网络层什么都可能抛
-        raise ManifestUnavailable(f"读私有库失败 {type(exc).__name__}") from exc
+        text = PDB.read_text("Private-KMDatabase/manifest.jsonl")
+    except PDB.Unavailable as exc:
+        raise ManifestUnavailable(str(exc)) from exc
     return [json.loads(l) for l in text.splitlines() if l.strip()]
 
 
