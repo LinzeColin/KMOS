@@ -103,3 +103,73 @@ def test_every_scheduled_skill_is_visible():
 def test_every_scheduled_skill_has_a_module():
     missing = set(main.SCHEDULE_CONTRACT) - set(main.SKILL_MODULE)
     assert not missing, f"这些技能没有业务模块归属，战报里会掉队：{sorted(missing)}"
+
+
+# ——— 失败码：rc 只说「失败了」，失败码说「哪一种失败」———
+
+def test_failure_code_is_served_so_a_failure_is_diagnosable_without_logging_in(tmp_path, monkeypatch):
+    """考勤连续多天 rc=5，而 rc=5 对应十来种原因。没有失败码就只能改一版等一天。"""
+    _write_ledger(tmp_path, [
+        {"ts": "2026-07-27T10:35:00+08:00", "skill": "attendance-morning", "rc": 5,
+         "code": "NOT_SENT_DWS_AUTH_REQUIRED"},
+    ], monkeypatch)
+    row = next(s for s in client.get(URL).json()["技能"] if s["技能"] == "attendance-morning")
+    assert row["失败码"] == "NOT_SENT_DWS_AUTH_REQUIRED"
+
+
+def test_successful_runs_carry_no_failure_code(tmp_path, monkeypatch):
+    _write_ledger(tmp_path, [
+        {"ts": "2026-07-27T10:35:00+08:00", "skill": "attendance-morning", "rc": 0, "code": ""},
+    ], monkeypatch)
+    row = next(s for s in client.get(URL).json()["技能"] if s["技能"] == "attendance-morning")
+    assert row["失败码"] is None
+
+
+def test_hostile_ledger_content_never_reaches_the_public_response(tmp_path, monkeypatch):
+    """台账是**另一个容器**写的。它写坏了、被塞进业务文本，也绝不能顺着流出来。
+
+    这不是假想：考勤日志里就有员工姓名和打卡明细，成本日志里有客户名和金额。
+    """
+    hostile = [
+        "张霖泽 09:12 未打卡",                       # 员工姓名
+        "武汉开明 合同 40960322.77",                  # 客户名 + 金额
+        "/var/log/kmfa/attendance-morning/2026.log",  # 目录结构
+        "ghp_AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHH",       # 凭据
+        "0123456789abcdef0123456789abcdef",           # 凭据
+        {"不是": "字符串"},                            # 类型错乱
+        None, "", "X", "a b c",
+    ]
+    _write_ledger(tmp_path, [
+        {"ts": f"2026-07-27T10:0{i}:00+08:00", "skill": "attendance-morning", "rc": 5, "code": c}
+        for i, c in enumerate(hostile)
+    ], monkeypatch)
+    text = client.get(URL).text
+    for bad in ("张霖泽", "武汉开明", "40960322", "/var/log", "ghp_", "0123456789abcdef"):
+        assert bad not in text, f"公开响应里出现了 {bad}"
+
+
+def test_ledger_uplink_health_is_reported_because_it_fails_silently_by_design(tmp_path, monkeypatch):
+    """回传失败绝不拖垮技能——代价是断了也没人发现。实测断了几十次无人察觉。"""
+    monkeypatch.setattr(main, "LEDGER_UPLINK_STATUS_PATH", tmp_path / "nope.json")
+    _write_ledger(tmp_path, [{"ts": "2026-07-27T10:35:00+08:00", "skill": "attendance-morning", "rc": 0}],
+                  monkeypatch)
+    assert client.get(URL).json()["台账回传"]["成功"] is False
+
+    marker = tmp_path / "uplink.json"
+    marker.write_text(json.dumps({"时间": "2026-07-27T17:00:00+08:00", "成功": True, "情况": "已回传"},
+                                 ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(main, "LEDGER_UPLINK_STATUS_PATH", marker)
+    assert client.get(URL).json()["台账回传"]["成功"] is True
+
+
+def test_uplink_marker_is_not_echoed_wholesale(tmp_path, monkeypatch):
+    """留痕文件也是别的容器写的，同样不当可信输入。"""
+    marker = tmp_path / "uplink.json"
+    marker.write_text(json.dumps(
+        {"成功": True, "情况": "已回传", "token": "ghp_AAAABBBBCCCCDDDDEEEEFFFFGGGG",
+         "客户": "武汉开明"}, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(main, "LEDGER_UPLINK_STATUS_PATH", marker)
+    _write_ledger(tmp_path, [{"ts": "2026-07-27T10:35:00+08:00", "skill": "attendance-morning", "rc": 0}],
+                  monkeypatch)
+    text = client.get(URL).text
+    assert "ghp_" not in text and "武汉开明" not in text
