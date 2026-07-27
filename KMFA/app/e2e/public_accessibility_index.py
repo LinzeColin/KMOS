@@ -265,7 +265,7 @@ def _run_browser(
             # Reload each state so axe never reuses a browser style snapshot
             # from the previously selected card (observed in WebKit).
             response = page.goto(
-                f"{base_url}/?test-pub-005-state={key}#{key}",
+                f"{base_url}/workspace?test-pub-005-state={key}#{key}",
                 wait_until="networkidle",
                 timeout=30_000,
             )
