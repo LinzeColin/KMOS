@@ -57,11 +57,21 @@ def test_skills_enriched_fields():
     assert isinstance(attendance["本地路径硬编码"], int)
 
 
-def test_index_serves_public_shell():
-    # 根路径本身就是 canonical 完整公共入口，不依赖旧 /ui/ 别名或私有经营仪表盘。
+def test_index_serves_kmfa_cockpit_home():
+    # Owner 2026-07-26（第二次明确）：根路径必须是 KMFA 自己的经营驾驶舱门面。
+    # 匿名公开工作区 shell 未删除，平移到 /workspace（见下一个测试）。
+    # 根路径归属另有专门守卫 test_root_is_kmfa_home.py，请勿改回。
     r = client.get("/", follow_redirects=False)
     assert r.status_code == 200 and "location" not in r.headers
-    assert "KMFA｜公开工作区" in r.text and '<div id="root">' in r.text
+    assert "KMFA｜经营驾驶舱" in r.text and '<div id="root">' in r.text
+    assert "把钱、票、成本与拍板" in r.text
+    assert r.text.count("data-static-shell-entry=") == 6
+
+
+def test_workspace_serves_anonymous_public_shell():
+    """v1.5.2 匿名 App Shell 契约在 /workspace 上继续完整成立。"""
+    r = client.get("/workspace", follow_redirects=False)
+    assert r.status_code == 200
     assert "一个入口，通往项目、文件与可验证进度。" in r.text
     assert r.text.count("data-static-shell-entry=") == 6
 

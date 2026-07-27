@@ -455,7 +455,9 @@ def _browser_challenge(
 
         page.on("response", capture_response)
         page.on("console", lambda message: console_messages.append(message.text))
-        page.goto(base_url, wait_until="networkidle", timeout=30_000)
+        # Owner 2026-07-26：根路径已归位 KMFA 经营驾驶舱；匿名骨架(walking skeleton)
+        # 归属 /workspace，浏览器挑战须在那里进行。（本文件的 GET / 可用性探针保持根。）
+        page.goto(f"{base_url}/workspace", wait_until="networkidle", timeout=30_000)
         page.locator('[data-walking-skeleton-state="ready"]').wait_for()
         challenge_elapsed_ms = 0.0
         successful_creates = 0
