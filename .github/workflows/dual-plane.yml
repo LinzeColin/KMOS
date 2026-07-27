@@ -46,3 +46,10 @@ jobs:
           # 拦两件"看着正常、数字是错的"：钱映射到不存在的行被静默丢掉；
           # 报表某行无人认领（既没人填也没说算不出）。
           python3 KMFA/tools/project_cost/account_map.py --root KMFA
+      - name: 项目成本输入矩阵门禁
+        run: |
+          set -euo pipefail
+          # Owner 2026-07-26：「输入缺失需要明确矩阵表格方式标注提醒我上传」
+          # 门禁核心：槽位不 ready 就必须写清要 Owner 传什么、缺了挡住报表哪几行
+          # ——防止矩阵悄悄退化成一张"都齐了"的表，让人误以为能出正式财务结论。
+          python3 KMFA/tools/project_cost/input_matrix.py --root KMFA

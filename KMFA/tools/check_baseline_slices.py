@@ -7,7 +7,7 @@ Owner 2026-07-26：「以后我都用 skill 管理业务基线，纵向切片；
 
 本工具做三件事：
 1. **渲染**每条基线的端到端六段健康（源接入→解析→计算→校验→输出→投递）。
-2. **耦合门禁**：上游任一段 blocked/not_built 时，下游依赖段不得标 healthy——
+2. **耦合门禁**：上游任一段 blocked_by_*/not_built 时，下游依赖段不得标 healthy——
    否则报错。这条防的是"上游断了、下游还静默出数"这种最危险的假健康。
 3. **引用完整性**：upstream 指向的基线/源必须存在。
 
@@ -18,8 +18,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FACTS = ROOT / "machine" / "facts" / "business_baselines.json"
-BAD = {"blocked", "not_built"}
-MARK = {"healthy": "✅", "degraded": "⚠️", "blocked": "⛔", "not_built": "⬚"}
+BAD = {"blocked_by_policy", "blocked_by_input", "not_built"}
+MARK = {"healthy": "✅", "degraded": "⚠️", "blocked_by_policy": "🚫",
+        "blocked_by_input": "⛔", "not_built": "⬚"}
 
 
 def load():
@@ -79,10 +80,15 @@ def render(d):
         for st in stages:
             row += MARK.get(b["stages"].get(st, {}).get("status"), "?").center(7)
         print(row)
+    print("  图例：✅通　⚠️有缺陷　🚫按规定不通(无需动作)　⛔缺输入待催　⬚未实现")
     print()
     for b in d["baselines"]:
         for dfc in b.get("known_defects", []):
-            print(f"  · [{b['name']}] {dfc}")
+            # 兼容旧的裸字符串写法，但新写法带 ID 供 status 总览线跨线引用
+            if isinstance(dfc, dict):
+                print(f"  · [{b['name']}] {dfc['id']} {dfc['desc']}")
+            else:
+                print(f"  · [{b['name']}] {dfc}")
 
 
 def main():

@@ -36,7 +36,8 @@
   "status_enum": [
     "healthy",
     "degraded",
-    "blocked",
+    "blocked_by_policy",
+    "blocked_by_input",
     "not_built"
   ],
   "baselines": [
@@ -67,16 +68,16 @@
           "evidence": "双模板解析 8/8（模板A 合计支出+毛利；模板B 税金/分摊入二级+利润）"
         },
         "compute": {
-          "status": "degraded",
-          "evidence": "连接键（合同编号）8/8 提取、金蝶 26,941 行中 6/8 命中；全量重算未完成"
+          "status": "blocked_by_input",
+          "evidence": "全账扫描定案：只有 收入/生产成本/主营业务成本/应收账款 四类科目带项目号（劳务成本·原材料·应付账款·期间费用 皆 0%）。源包内每本明细账重复 3 份需去重；净额口径会把归集与结转对冲成 0，正确取生产成本借方发生额。按此重算，8 个基准项目只覆盖各自『二』的 0.06%～60%——按项目的完整成本无法从现有导出算出"
         },
         "verify": {
-          "status": "healthy",
-          "evidence": "恒等式 A(Σ二级=二) 8/8、B(二+三=合计支出) 8/8 精确成立"
+          "status": "blocked_by_input",
+          "evidence": "溯源定案（2 位精度归一、全库 1292 文件）：八份报表成本侧 62 个金额只有 13 个能在源数据里找到且多为整数巧合撞号；『二』『合计支出』『（四）现场管理费』无一命中。无底稿则既不能复现也不能验证。表内恒等式 A/B 8/8 成立仍有效，但那只是自洽，不是可溯源"
         },
         "output": {
           "status": "degraded",
-          "evidence": "渲染器已建 KMFA/tools/project_cost/render_report.py：严格复刻源报表行序（模板A 44 行 / 模板B），千分位两位小数、缺值留空不臆造；4 项回归测试过。降级原因：上游 compute 尚未全量重算、且 PDF 导出未建"
+          "evidence": "渲染器 KMFA/tools/project_cost/render_report.py 严格复刻源报表行序（模板A 44 行 / 模板B），千分位两位小数、缺值留空不臆造，4 项回归测试过；输入矩阵 KMFA/tools/project_cost/input_matrix.py 已上门禁。降级原因：上游 compute/verify 阻断，只能出『可算部分』"
         },
         "deliver": {
           "status": "not_built",
@@ -84,7 +85,41 @@
         }
       },
       "known_defects": [
-        "3 份源报表所印毛利用其表内数字算不出（两种公式均证伪）→ 统一按 合同额−合计支出 重算并逐项标注"
+        {
+          "id": "DEF-KMFA-001",
+          "baseline": "BL-PROJECT-COST",
+          "desc": "根因：占生产成本约八成的『劳务费』有约七成记进『不分项目』占位，八个基准项目名下劳务费为 0——不解决记账口径，项目成本自动化只能算出零头"
+        },
+        {
+          "id": "DEF-KMFA-002",
+          "baseline": "BL-PROJECT-COST",
+          "desc": "3 份源报表所印毛利用其表内数字算不出（两种公式均证伪）→ 统一按 合同额−合计支出 重算并逐项标注"
+        },
+        {
+          "id": "DEF-KMFA-003",
+          "baseline": "BL-PROJECT-COST",
+          "desc": "八份历史报表的成本侧在全部源数据中查无实据（62 个金额仅 13 个可见且多为巧合）——机制不存在于数据里，须 Owner 提供底稿"
+        },
+        {
+          "id": "DEF-KMFA-004",
+          "baseline": "BL-PROJECT-COST",
+          "desc": "『（四）现场管理费』是黑箱：某项目占其全部成本九成以上，账上无对应归集"
+        },
+        {
+          "id": "DEF-KMFA-005",
+          "baseline": "BL-PROJECT-COST",
+          "desc": "金蝶项目辅助核算只覆盖 4 类科目，成本大头未启用——不修则未来项目同样算不准"
+        },
+        {
+          "id": "DEF-KMFA-006",
+          "baseline": "BL-PROJECT-COST",
+          "desc": "源包内每本明细账存在 3 份同 CRC 副本，任何计算必须先按账簿名去重"
+        },
+        {
+          "id": "DEF-KMFA-007",
+          "baseline": "BL-PROJECT-COST",
+          "desc": "合同号序号跨年重复，禁止按序号跨编号归并（已验证会把不同项目并到一起）"
+        }
       ]
     },
     {
@@ -127,7 +162,11 @@
         }
       },
       "known_defects": [
-        "历史上 cron 只跑校验器、从未真归档（已修复，待实证）"
+        {
+          "id": "DEF-KMFA-008",
+          "baseline": "BL-UPSTREAM-ARCHIVE",
+          "desc": "历史上 cron 只跑校验器、从未真归档（已修复，待实证）"
+        }
       ]
     },
     {
@@ -161,12 +200,16 @@
           "evidence": "管理/HR 双报告"
         },
         "deliver": {
-          "status": "blocked",
+          "status": "blocked_by_policy",
           "evidence": "测试期禁群：DELIVERY=0 且群机器人凭据已移除；默认只发张霖泽本人"
         }
       },
       "known_defects": [
-        "skills.env 缺失曾致全技能空跑（已修：entrypoint 从环境变量合成）"
+        {
+          "id": "DEF-KMFA-009",
+          "baseline": "BL-ATTENDANCE",
+          "desc": "skills.env 缺失曾致全技能空跑（已修：entrypoint 从环境变量合成）"
+        }
       ]
     },
     {
@@ -200,7 +243,7 @@
           "evidence": "—"
         },
         "deliver": {
-          "status": "blocked",
+          "status": "blocked_by_policy",
           "evidence": "测试期禁群"
         }
       },
@@ -239,12 +282,16 @@
           "evidence": "—"
         },
         "deliver": {
-          "status": "blocked",
+          "status": "blocked_by_policy",
           "evidence": "测试期禁群"
         }
       },
       "known_defects": [
-        "AST-BANK-AXIS-2025 待延窗银行日记账"
+        {
+          "id": "DEF-KMFA-010",
+          "baseline": "BL-FUND-WEEKLY",
+          "desc": "AST-BANK-AXIS-2025 待延窗银行日记账"
+        }
       ]
     },
     {
@@ -267,7 +314,7 @@
           "evidence": "—"
         },
         "compute": {
-          "status": "blocked",
+          "status": "blocked_by_input",
           "evidence": "上游项目成本 compute 未完成"
         },
         "verify": {
@@ -279,7 +326,7 @@
           "evidence": "Excel/PDF 流程已建，但受上游阻断降级：项目成本(输出/投递未建)、资金周报(投递禁群)——耦合治理要求不得称健康"
         },
         "deliver": {
-          "status": "blocked",
+          "status": "blocked_by_policy",
           "evidence": "测试期禁群"
         }
       },
@@ -318,12 +365,16 @@
           "evidence": "—"
         },
         "deliver": {
-          "status": "blocked",
+          "status": "blocked_by_policy",
           "evidence": "测试期禁群"
         }
       },
       "known_defects": [
-        "工资数据为敏感数据，只进私有库"
+        {
+          "id": "DEF-KMFA-011",
+          "baseline": "BL-PAYROLL-STD",
+          "desc": "工资数据为敏感数据，只进私有库"
+        }
       ]
     },
     {
@@ -403,7 +454,11 @@
         }
       },
       "known_defects": [
-        "项目成本模板 B 含（六）信息费，与本基线耦合"
+        {
+          "id": "DEF-KMFA-012",
+          "baseline": "BL-INFO-FEE",
+          "desc": "项目成本模板 B 含（六）信息费，与本基线耦合"
+        }
       ]
     }
   ],
@@ -445,5 +500,14 @@
       "note": "敏感，只进私有库"
     }
   ],
-  "coupling_rule": "上游任一 stage 为 blocked/not_built 时，下游依赖它的 stage 不得标 healthy——必须降级并具名上游原因，禁止静默出错数。"
+  "coupling_rule": "上游任一 stage 为 blocked_by_policy / blocked_by_input / not_built 时，下游依赖它的 stage 不得标 healthy——必须降级并具名上游原因，禁止静默出错数。",
+  "status_semantics": {
+    "healthy": "通",
+    "degraded": "有缺陷但仍出数",
+    "blocked_by_policy": "按规定就不该通（不需要任何人做事）",
+    "blocked_by_input": "缺输入，必须催人补",
+    "not_built": "未实现"
+  },
+  "status_split_note": "原先只有一个 blocked，把『测试期禁群』和『等 Owner 补数据』混成一态——这两者的处置动作是反的：前者不需要任何人做事，后者必须催人。合成一态就排不出优先级。由 status 总览线（status.linzezhang.com）提出拆分，2026-07-27 采纳。",
+  "defect_id_note": "known_defects 从裸字符串升级为 {id, baseline, desc}，便于 status 总览线跨线引用具体缺陷。"
 }

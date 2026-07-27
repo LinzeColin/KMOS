@@ -36,8 +36,22 @@ def test_every_template_row_is_accounted_for():
 def test_mapping_to_nonexistent_row_is_rejected():
     """打错行名 = 那笔钱静默消失，报表还看着正常。"""
     d = _data()
-    d["mappings"][0]["row"] = "（一）原材料费"          # 多一个字
+    d["mappings"][0]["rows"]["A"]["row"] = "（一）原材料费"     # 多一个字
     assert any("静默丢掉" in e for e in account_map.check(d))
+
+
+def test_row_valid_in_one_template_but_not_the_other_is_rejected():
+    """两套版式行集不同：把模板 A 的行名填给模板 B，那笔钱在 B 版报表里会蒸发。
+    首次出表时上卷不变量就是这样抓到某 B 版报表少了三千多元的。"""
+    d = _data()
+    d["mappings"][0]["rows"]["B"]["row"] = "2.1车票"          # 只存在于模板 A
+    assert any("模板 B" in e and "静默丢掉" in e for e in account_map.check(d))
+
+
+def test_missing_one_template_target_is_rejected():
+    d = _data()
+    del d["mappings"][0]["rows"]["B"]
+    assert any("两套模板" in e for e in account_map.check(d))
 
 
 def test_duplicate_account_is_rejected():
@@ -48,14 +62,14 @@ def test_duplicate_account_is_rejected():
 
 def test_low_confidence_must_explain_itself():
     d = _data()
-    m = next(x for x in d["mappings"] if x["confidence"] != "high")
+    m = next(x["rows"]["A"] for x in d["mappings"] if x["rows"]["A"]["confidence"] != "high")
     m["note"] = ""
     assert any("没写理由" in e for e in account_map.check(d))
 
 
 def test_row_cannot_be_both_mapped_and_unmappable():
     d = _data()
-    d["unmappable_rows"].append({"row": d["mappings"][0]["row"], "why": "自相矛盾"})
+    d["unmappable_rows"].append({"row": d["mappings"][0]["rows"]["A"]["row"], "why": "自相矛盾"})
     assert any("自相矛盾" in e for e in account_map.check(d))
 
 
@@ -68,9 +82,9 @@ def test_summarize_refuses_to_drop_unknown_accounts():
 
 def test_summarize_merges_accounts_sharing_a_row():
     d = _data()
-    same = [m["account"] for m in d["mappings"] if m["row"] == "3 外协 加工费"]
+    same = [m["account"] for m in d["mappings"] if m["rows"]["A"]["row"] == "3 外协 加工费"]
     assert len(same) >= 2, "外协费与加工费本应合并到同一行，样本失效"
-    got = account_map.summarize(d, {same[0]: "10.00", same[1]: "5.50"})
+    got = account_map.summarize(d, {same[0]: "10.00", same[1]: "5.50"}, template="A")
     assert got["3 外协 加工费"] == Decimal("15.50")
 
 

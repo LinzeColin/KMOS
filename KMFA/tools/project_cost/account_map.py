@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from render_report import TPL_A, TPL_B  # noqa: E402
 
 VALID_CONFIDENCE = {"high", "medium", "low"}
+TEMPLATES = {"A": TPL_A, "B": TPL_B}
 
 
 def load(root: Path) -> dict:
@@ -31,7 +32,10 @@ def load(root: Path) -> dict:
                       .read_text(encoding="utf-8"))
 
 
-def _template_rows() -> set[str]:
+def _template_rows(tpl: str | None = None) -> set[str]:
+    """tpl 为空时返回两套模板的并集；给定 A/B 时只返回该模板的行。"""
+    if tpl:
+        return {label for label, _ in TEMPLATES[tpl]}
     return {label for label, _ in TPL_A} | {label for label, _ in TPL_B}
 
 
@@ -47,14 +51,21 @@ def check(data: dict) -> list[str]:
         if acct in seen:
             errs.append(f"{acct}：科目重复登记，会被重复计入")
         seen.add(acct)
-        row = m.get("row")
-        if row not in rows:
-            errs.append(f"{acct}：目标行『{row}』在两套模板里都不存在——这笔钱会被静默丢掉")
-        conf = m.get("confidence")
-        if conf not in VALID_CONFIDENCE:
-            errs.append(f"{acct}：confidence『{conf}』不在 {sorted(VALID_CONFIDENCE)}")
-        elif conf in ("medium", "low") and not m.get("note"):
-            errs.append(f"{acct}：把握是 {conf} 却没写理由，以后没人知道为什么这么归")
+        rows_by_tpl = m.get("rows") or {}
+        if set(rows_by_tpl) != set(TEMPLATES):
+            errs.append(f"{acct}：必须同时给出 A/B 两套模板的落点（现有 {sorted(rows_by_tpl)}）"
+                        "——只写一套，另一套版式的报表会让这笔钱无处可归、直接蒸发")
+            continue
+        for tpl, spec in rows_by_tpl.items():
+            row = spec.get("row")
+            if row not in _template_rows(tpl):
+                errs.append(f"{acct}：模板 {tpl} 的目标行『{row}』在该模板里不存在——这笔钱会被静默丢掉")
+            conf = spec.get("confidence")
+            if conf not in VALID_CONFIDENCE:
+                errs.append(f"{acct}（模板 {tpl}）：confidence『{conf}』不在 {sorted(VALID_CONFIDENCE)}")
+            elif conf in ("medium", "low") and not spec.get("note"):
+                errs.append(f"{acct}（模板 {tpl}）：把握是 {conf} 却没写理由")
+
     for u in data.get("unmappable_rows") or []:
         if not u.get("why"):
             errs.append(f"不可映射行『{u.get('row')}』没写原因")
@@ -71,24 +82,29 @@ def check(data: dict) -> list[str]:
         if r.get("row") not in rows:
             errs.append(f"上卷行『{r.get('row')}』在模板里不存在")
 
-    # 闭环：模板里的每一行都必须有交代。一行没交代，就是一行钱可能被忘掉。
-    accounted = ({m.get("row") for m in maps}
-                 | {u.get("row") for u in data.get("unmappable_rows") or []}
-                 | {d.get("row") for d in data.get("derived_rows") or []}
-                 | {r.get("row") for r in data.get("rolled_up_rows") or []})
-    for label in sorted(rows):
-        if label not in accounted:
-            errs.append(f"模板行『{label}』既没有科目映射、也不是上卷行/派生行、也没声明算不出——无人认领")
-    overlap = ({m.get("row") for m in maps}
-               & {u.get("row") for u in data.get("unmappable_rows") or []})
-    for label in sorted(overlap):
-        errs.append(f"模板行『{label}』既被映射又被声明算不出，自相矛盾")
+    # 闭环：两套模板各自的每一行都必须有交代。一行没交代，就是一行钱可能被忘掉。
+    other = ({u.get("row") for u in data.get("unmappable_rows") or []}
+             | {d.get("row") for d in data.get("derived_rows") or []}
+             | {r.get("row") for r in data.get("rolled_up_rows") or []})
+    for tpl in TEMPLATES:
+        mapped = {m["rows"][tpl]["row"] for m in maps if isinstance(m.get("rows"), dict)
+                  and tpl in m["rows"]}
+        for label in sorted(_template_rows(tpl)):
+            if label not in mapped | other:
+                errs.append(f"模板 {tpl} 的行『{label}』既没有科目映射、也不是上卷行/派生行、"
+                            "也没声明算不出——无人认领")
+        for label in sorted(mapped & {u.get("row") for u in data.get("unmappable_rows") or []}):
+            errs.append(f"模板 {tpl} 的行『{label}』既被映射又被声明算不出，自相矛盾")
     return errs
 
 
-def summarize(data: dict, account_amounts: dict[str, str | Decimal]) -> dict[str, Decimal]:
-    """把 {科目: 金额} 汇总成 {报表行: 金额}。遇到未登记科目直接抛错——不静默丢钱。"""
-    table = {m["account"]: m["row"] for m in data.get("mappings", [])}
+def summarize(data: dict, account_amounts: dict[str, str | Decimal],
+              template: str = "A") -> dict[str, Decimal]:
+    """把 {科目: 金额} 汇总成 {报表行: 金额}。必须指定模板——两套版式行集不同。
+
+    遇到未登记科目直接抛错，不静默丢钱。
+    """
+    table = {m["account"]: m["rows"][template]["row"] for m in data.get("mappings", [])}
     out: dict[str, Decimal] = {}
     unknown = [a for a in account_amounts if a not in table]
     if unknown:
@@ -111,9 +127,9 @@ def main() -> int:
             print("  ·", e)
         return 1
     maps = data["mappings"]
-    low = [m for m in maps if m["confidence"] != "high"]
-    print(f"PASS —— {len(maps)} 个成本子科目已映射到报表行；其中 {len(low)} 条把握不足待业务纠正："
-          + "、".join(m["account"].split("_")[-1] for m in low))
+    low = [m for m in maps for t in TEMPLATES if m["rows"][t]["confidence"] != "high"]
+    print(f"PASS —— {len(maps)} 个成本子科目 × 两套模板已映射到报表行；"
+          f"其中 {len(low)} 个落点把握不足待业务纠正")
     print(f"        {len(data.get('rolled_up_rows', []))} 行由下级上卷、"
           f"{len(data.get('derived_rows', []))} 行由公式派生、"
           f"{len(data.get('unmappable_rows', []))} 行现阶段算不出（已具名原因）")
