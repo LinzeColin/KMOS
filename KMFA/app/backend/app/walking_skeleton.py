@@ -41,7 +41,7 @@ from typing import Any, Callable
 from urllib.parse import quote, unquote
 
 from fastapi import APIRouter, Body, Cookie, Header, HTTPException, Request, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
 
@@ -56,6 +56,8 @@ from .consistency_state import (
     upload_request_fingerprint,
 )
 from . import artifact_derivatives as DERIV
+from . import batch_archive as BA
+from . import download_range as DR
 from . import resumable_upload as RU
 from . import upload_quarantine as QU
 from .object_storage import (
@@ -1913,6 +1915,52 @@ def _artifact_for_download(
     return materialized.path, artifact_payload, materialized.temporary
 
 
+def _active_artifact_rows(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None,
+) -> list[dict[str, Any]]:
+    """本 workspace 的全部在用制品。鉴权与单件下载走同一条 `_authorize`——
+    批量接口自建鉴权是越权的常见来源（单件补了、批量忘了）。"""
+    with _store() as connection:
+        _authorize(connection, workspace_id, authorization, session_cookie)
+        snapshot = StructuredRepository(connection).workspace_snapshot(workspace_id)
+    return [
+        dict(row)
+        for row in snapshot["artifact_versions"]
+        if str(row.get("lifecycle_state")) == "active"
+    ]
+
+
+def _plan_batch(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """不读一个字节就算出「这份归档长什么样」：条目名、改名原因、总量。
+
+    单独成一步是有用的：用户在花掉带宽之前就能看到重名会被改成什么，
+    而不是解压之后才发现多了一个 `报表 (2).xlsx` 并开始怀疑自己下错了。
+    """
+    members = BA.members_from_artifact_rows(rows, resolve_path=lambda _row: Path("."))
+    planned = BA.assign_entry_names(members, reserved=[BA.MANIFEST_ENTRY_NAME])
+    total_bytes = sum(int(row["size_bytes"]) for row in rows)
+    return {
+        "entry_count": len(planned),
+        "total_bytes": total_bytes,
+        "max_sync_entries": BA.MAX_SYNC_ENTRIES,
+        "max_sync_bytes": BA.MAX_SYNC_BYTES,
+        "rejection": BA.sync_batch_rejection(len(planned), total_bytes),
+        "entries": [
+            {
+                "entry_name": name,
+                "original_name": member.original_name,
+                "sha256": member.sha256,
+                "size_bytes": member.size_bytes,
+                "renamed": bool(reasons),
+                "rename_reasons": reasons,
+            }
+            for member, name, reasons in planned
+        ],
+    }
+
+
 def _audit_events(
     workspace_id: str,
     authorization: str | None,
@@ -2582,11 +2630,19 @@ async def upload_artifact(
 def download_artifact(
     workspace_id: str,
     authorization: str | None = Header(default=None),
+    range_header: str | None = Header(default=None, alias="Range"),
+    if_range: str | None = Header(default=None, alias="If-Range"),
     session_cookie: str | None = Cookie(
         default=None,
         alias=SESSION_COOKIE_NAME,
     ),
-) -> FileResponse:
+) -> Response:
+    """下载原件；支持 Range 断点续传（AC-DL-002）。
+
+    Range 挂在 POST 上不是随意的：改成 GET 会同时违反 T-S07-01 的
+    「URL 不可枚举」和 AC-DL-004 的「读取无副作用」（本端点写审计事件）。
+    完整推理见 `download_range` 模块文档。
+    """
     try:
         _require_enabled()
         path, artifact, temporary = _artifact_for_download(
@@ -2596,20 +2652,67 @@ def download_artifact(
         )
     except SkeletonError as error:
         _raise_http(error)
-    return FileResponse(
-        path,
+
+    cleanup = BackgroundTask(path.unlink, missing_ok=True) if temporary else None
+    total = int(artifact["size_bytes"])
+    etag = DR.etag_for(str(artifact["sha256"]))
+    common = {
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+        "X-KMFA-Artifact-SHA256": artifact["sha256"],
+        "X-KMFA-Artifact-Mode": "attachment-only",
+        # 不广播 Accept-Ranges 客户端就不会尝试续传，Range 支持等于没做。
+        "Accept-Ranges": "bytes",
+        "ETag": etag,
+    }
+    disposition = (
+        "attachment; filename*=utf-8''" + quote(str(artifact["original_name"]))
+    )
+
+    requested = DR.parse_range(range_header, total)
+    if requested is not None and not DR.if_range_satisfied(if_range, etag):
+        # 制品在两次请求之间变了。发 206 会让客户端拼出一个既不是旧版
+        # 也不是新版的文件——回整份，让它从头来。
+        requested = None
+
+    if requested is DR.UNSATISFIABLE:
+        if cleanup is not None:
+            path.unlink(missing_ok=True)
+        raise HTTPException(
+            status_code=416,
+            detail="range_not_satisfiable",
+            headers={**common, "Content-Range": f"bytes */{total}"},
+        )
+
+    # 整份与片段走**同一条**产出路径，不用 FileResponse。
+    #
+    # 这不是风格选择：Starlette 的 FileResponse 自带一套 Range 处理，会重新
+    # 解析同一个 Range 头，而它的判断和本仓的三处不一致——
+    #   · `bytes=nonsense` 它回 400，RFC 9110 要求**忽略**无效 Range 当普通请求；
+    #   · 多段它发 multipart/byteranges，正是本仓因放大攻击而拒绝的；
+    #   · If-Range 它还接受 Last-Modified 比对，秒级分辨率留下一秒宽的损坏窗口。
+    # 两套实现并存时，框架那套会在我选择「不处理」的分支上悄悄接管——
+    # 也就是说，恰好在我认为最安全的路径上，行为不是我写的那个。
+    # 代价是失去 sendfile 优化；换来的是**只有一套语义**。
+    headers = {**common, "Content-Disposition": disposition}
+    if requested is None:
+        return StreamingResponse(
+            DR.iter_file_range(path, None),
+            media_type="application/octet-stream",
+            headers={**headers, "Content-Length": str(total)},
+            background=cleanup,
+        )
+
+    return StreamingResponse(
+        DR.iter_file_range(path, requested),
+        status_code=206,
         media_type="application/octet-stream",
-        filename=artifact["original_name"],
-        content_disposition_type="attachment",
         headers={
-            "Cache-Control": "private, no-store",
-            "X-Content-Type-Options": "nosniff",
-            "X-KMFA-Artifact-SHA256": artifact["sha256"],
-            "X-KMFA-Artifact-Mode": "attachment-only",
+            **headers,
+            "Content-Range": requested.content_range(total),
+            "Content-Length": str(requested.length),
         },
-        background=(
-            BackgroundTask(path.unlink, missing_ok=True) if temporary else None
-        ),
+        background=cleanup,
     )
 
 
@@ -2662,6 +2765,124 @@ def download_derivative(
             "X-KMFA-Parent-SHA256": str(artifact["sha256"]),
             "X-KMFA-Artifact-Mode": "attachment-only",
         })
+
+
+@router.post("/workspaces/{workspace_id}/artifact/batch/manifest")
+def plan_batch_download(
+    workspace_id: str,
+    authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(default=None, alias=SESSION_COOKIE_NAME),
+) -> dict[str, Any]:
+    """预演批量下载：给出条目名、改名原因和是否超限，**不产生任何字节**。"""
+    try:
+        _require_enabled()
+        rows = _active_artifact_rows(workspace_id, authorization, session_cookie)
+    except SkeletonError as error:
+        _raise_http(error)
+    return _plan_batch(rows)
+
+
+@router.post("/workspaces/{workspace_id}/artifact/batch")
+def download_batch(
+    workspace_id: str,
+    authorization: str | None = Header(default=None),
+    session_cookie: str | None = Cookie(default=None, alias=SESSION_COOKIE_NAME),
+) -> Response:
+    """批量 ZIP（AC-DL-002）。
+
+    全程流式：制品逐个物化、逐块写入磁盘上的临时归档，再逐块发出。
+    任何时刻常驻内存的只有一个 64 KiB 的块——T-S07-02 的 stop_condition
+    「整个归档放入单进程内存」在这里恒不成立。
+
+    超过同步上限**不降级成截断的归档**，而是 413 明确拒绝并说明界限值：
+    悄悄少打包几个文件，用户会以为自己拿全了。
+    """
+    try:
+        _require_enabled()
+        rows = _active_artifact_rows(workspace_id, authorization, session_cookie)
+    except SkeletonError as error:
+        _raise_http(error)
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="artifact_not_found")
+
+    plan = _plan_batch(rows)
+    if plan["rejection"]:
+        raise HTTPException(status_code=413, detail=plan["rejection"])
+
+    workdir = _state_root() / "batch-archive" / secrets.token_hex(8)
+    workdir.mkdir(parents=True, exist_ok=True)
+    cleanup = BackgroundTask(shutil.rmtree, workdir, ignore_errors=True)
+
+    try:
+        members: list[BA.ArchiveMember] = []
+        for row in rows:
+            object_store = object_store_for_backend(
+                _state_root(), str(row["storage_backend"])
+            )
+            materialized = object_store.materialize_verified(
+                storage_key=str(row["storage_key"]),
+                expected_size=int(row["size_bytes"]),
+                expected_sha256=str(row["sha256"]),
+            )
+            source = materialized.path
+            if not materialized.temporary:
+                # 物化结果落在对象库自己的目录里，而 `cleanup` 会整个删掉 workdir。
+                # 把非临时文件也复制进来，是为了让清理只有一条规则：删 workdir。
+                # 「有的删有的不删」这种规则，早晚会删到不该删的那个。
+                source = workdir / f"src-{row['sha256'][:16]}"
+                shutil.copyfile(materialized.path, source)
+            members.append(
+                BA.ArchiveMember(
+                    source_path=source,
+                    original_name=str(row.get("original_name") or ""),
+                    sha256=str(row["sha256"]),
+                    size_bytes=int(row["size_bytes"]),
+                    sort_key=str(row.get("artifact_version_id") or row["sha256"]),
+                )
+            )
+
+        archive_path = workdir / "archive.zip"
+        manifest = BA.build_archive(members, archive_path)
+    except (ObjectStorageMissingError, ObjectStorageIntegrityError) as exc:
+        shutil.rmtree(workdir, ignore_errors=True)
+        _audit_artifact_download(
+            workspace_id, authorization, session_cookie, result_status="integrity_failed"
+        )
+        raise HTTPException(status_code=503, detail="artifact_integrity_failed") from exc
+    except (ObjectStorageConfigurationError, ObjectStorageUnavailableError) as exc:
+        shutil.rmtree(workdir, ignore_errors=True)
+        raise HTTPException(status_code=503, detail="artifact_unavailable") from exc
+    except Exception:
+        shutil.rmtree(workdir, ignore_errors=True)
+        raise
+
+    with _store() as connection:
+        _authorize(connection, workspace_id, authorization, session_cookie)
+        _append_audit(
+            connection,
+            workspace_id,
+            "artifact_batch_download",
+            result_status="ok",
+            artifact_sha256=manifest["archive_sha256"],
+        )
+
+    return StreamingResponse(
+        BA.iter_archive(archive_path),
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": "attachment; filename*=utf-8''"
+                                   + quote(f"{workspace_id}-artifacts.zip"),
+            "Content-Length": str(manifest["archive_size_bytes"]),
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+            "X-KMFA-Artifact-Mode": "attachment-only",
+            "X-KMFA-Archive-SHA256": manifest["archive_sha256"],
+            "X-KMFA-Archive-Entries": str(manifest["entry_count"]),
+            "X-KMFA-Archive-Manifest-Entry": BA.MANIFEST_ENTRY_NAME,
+        },
+        background=cleanup,
+    )
 
 
 @router.get("/workspaces/{workspace_id}/audit-events")

@@ -671,18 +671,43 @@ def test_report_center_header_triple_from_facts(净导出):
         assert {f["格式"] for f in r["格式"]} == {"html", "csv", "pdf"}
 
 
+# ── S07/T-S07-03：导出改走受控命令 ────────────────────────────────────────────
+#
+# 旧 `GET /api/报告中心/导出` 已停用（它写业务记录，而 GET 会被预取/爬虫/代理
+# 替你触发）。下面这些用例断言的**性质一条没变**——三格式真渲染、水印去不掉、
+# hash 只追加、表头带等级三元组、审计留痕——只是换了产出它们的端点。
+#
+# 用一个薄适配器保持断言原样：POST 创建任务 → GET 取制品，把制品响应交回去。
+# **不改任何一条断言**，因为改断言就分不清「迁移」和「顺手放宽」了。
+def _export(报告: int, 格式: str, 序: str = ""):
+    """经受控任务导出一次，返回制品响应（失败时返回创建响应，保留原状态码）。
+
+    幂等键由 (报告, 格式, 序) 派生：同一次导出重试不重复干活，
+    而需要真的再导一次的用例传不同的 `序`。
+    """
+    # 键必须是 ASCII：HTTP 头不接受非 ASCII，而调用方会传中文参数名当 `序`。
+    # 摘要一遍，既保证形状合规，也保证「不同的序 ⇒ 不同的键」。
+    tag = hashlib.sha256(f"{报告}|{格式}|{序}".encode("utf-8")).hexdigest()[:24]
+    key = f"contract-{tag}"
+    created = client.post("/api/导出任务", headers={"Idempotency-Key": key},
+                          json={"报告": 报告, "格式": 格式})
+    if created.status_code != 200:
+        return created
+    return client.get(f"/api/导出任务/{created.json()['任务']['job_id']}/制品")
+
+
 def test_report_export_three_formats_really_render(净导出):
     """三格式必须真产出可用文件——不是返回一句"已就绪"。"""
-    html = client.get("/api/报告中心/导出?报告=1&格式=html")
+    html = _export(1, "html")
     assert html.status_code == 200 and html.content.startswith(b"<!doctype html")
     assert "一致性证明" in html.text
 
-    csv = client.get("/api/报告中心/导出?报告=1&格式=csv")
+    csv = _export(1, "csv")
     assert csv.status_code == 200
     assert csv.content.startswith(b"\xef\xbb\xbf"), "CSV 需带 BOM，Excel 双击才不乱码"
     assert "差异分" in csv.content.decode("utf-8-sig")
 
-    pdf = client.get("/api/报告中心/导出?报告=1&格式=pdf")
+    pdf = _export(1, "pdf")
     assert pdf.status_code == 200
     assert pdf.content.startswith(b"%PDF"), "必须是真 PDF 魔数"
     assert b"%%EOF" in pdf.content[-2048:], "PDF 必须完整收尾"
@@ -708,7 +733,10 @@ def test_watermark_cannot_be_removed_by_any_parameter(净导出):
     ]
     for fmt in ("html", "csv", "pdf"):
         for extra in attempts:
-            r = client.get(f"/api/报告中心/导出?报告=1&格式={fmt}{extra}")
+            # 受控任务的请求体只认 {报告, 格式}：这些参数在新端点上
+            # **根本无法表达**——比「传了也没用」更强一层。
+            # 仍逐个跑一遍，是为了锁住「将来有人把它们加回请求体」这件事。
+            r = _export(1, fmt, 序=extra or "none")
             assert r.status_code == 200, f"{fmt}{extra} → {r.status_code}"
             assert r.headers["X-KMFA-Watermark"] == "applied", f"{fmt}{extra} 水印头丢了"
             if fmt == "html":
@@ -740,7 +768,7 @@ def test_export_hash_registered_append_only(净导出):
     """三格式导出 hash 登记；登记只追加不改写。"""
     digests = {}
     for fmt in ("html", "csv", "pdf"):
-        r = client.get(f"/api/报告中心/导出?报告=2&格式={fmt}")
+        r = _export(2, fmt)
         digests[fmt] = r.headers["X-KMFA-Sha256"]
         assert digests[fmt].startswith("sha256:")
 
@@ -757,12 +785,12 @@ def test_export_hash_registered_append_only(净导出):
         # 登记的 hash 必须真能复验：同一份报告重导出须**逐字节一致**。
         # PDF 默认会写挂钟 /CreationDate，那样 hash 每次都变、登记形同虚设——
         # 故导出走 invariant 模式，本断言即为此把关。
-        body = client.get(f"/api/报告中心/导出?报告=2&格式={rec['格式']}").content
+        body = _export(2, rec['格式']).content
         assert rec["sha256"] == "sha256:" + hashlib.sha256(body).hexdigest(), \
             f"{rec['格式']} 重导出 hash 不一致——登记无法复验"
 
     before = 净导出.read_text(encoding="utf-8")
-    client.get("/api/报告中心/导出?报告=3&格式=html")
+    _export(3, "html")
     assert 净导出.read_text(encoding="utf-8").startswith(before), "登记必须是追加"
 
 
@@ -777,7 +805,7 @@ def test_pdf_never_committed_to_public_repo(净导出):
         pdf_fmt = next(f for f in r["格式"] if f["格式"] == "pdf")
         assert pdf_fmt["可提交公开仓"] is False
 
-    client.get("/api/报告中心/导出?报告=1&格式=pdf")
+    _export(1, "pdf")
     assert list((KMFA / "app").rglob("*.pdf")) == [], "App 目录下不得出现 PDF 文件"
     assert not (REPO / "KMFA" / "app" / "backend" / "app").joinpath("kmfa_report_1.pdf").exists()
 
@@ -785,7 +813,7 @@ def test_pdf_never_committed_to_public_repo(净导出):
 def test_export_headers_carry_grade_and_delivery(净导出):
     """页眉三元组也要进响应头——自动化与下游取数不必解析正文。"""
     for fmt in ("html", "csv", "pdf"):
-        h = client.get(f"/api/报告中心/导出?报告=1&格式={fmt}").headers
+        h = _export(1, fmt).headers
         assert h["X-KMFA-Report-Grade"] == "D"
         assert h["X-KMFA-Quality-Grade"] == "Q4"
         assert h["X-KMFA-Delivery-Allowed"] == "false"
@@ -793,8 +821,8 @@ def test_export_headers_carry_grade_and_delivery(净导出):
 
 
 def test_export_rejects_unknown_report_and_format(净导出):
-    assert client.get("/api/报告中心/导出?报告=1&格式=docx").status_code == 400
-    assert client.get("/api/报告中心/导出?报告=99&格式=html").status_code == 404
+    assert _export(1, "docx").status_code == 400
+    assert _export(99, "html").status_code == 404
     assert not 净导出.exists() or not 净导出.read_text(encoding="utf-8").strip()
 
 
@@ -1070,7 +1098,7 @@ def test_every_write_and_export_leaves_audit_event(净审计):
     """写入与导出都必须留痕——审计漏记等于没有审计。"""
     aid = _first_assertion_id()
     client.post("/api/差异工作台/决策", json={"断言": aid, "决策": "闭案", "理由": "审计留痕验证"})
-    client.get("/api/报告中心/导出?报告=1&格式=csv")
+    _export(1, "csv")
     client.post("/api/影响重跑/重跑", json={"资产": _an_asset(), "理由": "审计留痕验证"})
 
     rows = [json.loads(l) for l in 净审计.read_text(encoding="utf-8").splitlines() if l.strip()]
@@ -1087,7 +1115,7 @@ def test_every_write_and_export_leaves_audit_event(净审计):
 
 def test_audit_export_event_carries_grade_triple(净审计):
     """任务包要求「等级+Q 级+delivery 永远印在页眉」——导出留痕须把这三项一起记下。"""
-    client.get("/api/报告中心/导出?报告=1&格式=pdf")
+    _export(1, "pdf")
     rows = [json.loads(l) for l in 净审计.read_text(encoding="utf-8").splitlines() if l.strip()]
     exp = next(r for r in rows if r["action_type"] == "export")
     assert exp["report_grade"] == "D"
@@ -1111,7 +1139,7 @@ def test_audit_never_records_business_plaintext(净审计):
     """审计记「谁对什么做了什么」，不记业务明文与原始载荷。"""
     from app.main import AUDIT_FORBIDDEN_KEYS
 
-    client.get("/api/报告中心/导出?报告=1&格式=html")
+    _export(1, "html")
     client.post("/api/差异工作台/决策",
                 json={"断言": _first_assertion_id(), "决策": "闭案", "理由": "核到分"})
     rows = [json.loads(l) for l in 净审计.read_text(encoding="utf-8").splitlines() if l.strip()]
@@ -1144,7 +1172,11 @@ def test_state_tables_cover_all_app_writes(净审计):
     from app.app_state import TABLES
 
     assert set(TABLES) == {"resolution_events", "rerun_steps", "rerun_consistency",
-                           "export_records", "audit_events"}
+                           "export_records", "audit_events",
+                           # S07/T-S07-03：受控导出任务的事件序列。
+                           # 它是一个真实的新写落点，所以进清单——
+                           # 这条用例的意义正是「不许有没进清单的写」。
+                           "export_jobs"}
 
 
 def test_append_only_enforced_by_database_not_convention(monkeypatch, tmp_path):
@@ -1210,6 +1242,6 @@ def test_data_plane_stays_read_only_after_app_writes(净审计):
               (ASSERTIONS_PATH, LINEAGE_PATH, FACTS / "data_pipeline.json")}
     client.post("/api/差异工作台/决策",
                 json={"断言": _first_assertion_id(), "决策": "闭案", "理由": "状态面分离验证"})
-    client.get("/api/报告中心/导出?报告=1&格式=csv")
+    _export(1, "csv")
     for p, blob in before.items():
         assert p.read_bytes() == blob, f"数据面被写了：{p.name}"

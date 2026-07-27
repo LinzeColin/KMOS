@@ -24,6 +24,10 @@ TABLES = (
     "rerun_consistency",      # 重跑一致性检查（PROD.0008）
     "export_records",         # 报告导出 hash 登记（PROD.0009）
     "audit_events",           # 审计事件（PROD.0003）
+    # 受控导出任务的**事件序列**（S07/T-S07-03）。存事件而非当前状态，
+    # 是因为「任务为什么变成 failed」在可改写的表里查不到——最后一次写会盖掉原因。
+    # 当前状态由 export_jobs.fold_job 折叠得出。
+    "export_jobs",
 )
 
 

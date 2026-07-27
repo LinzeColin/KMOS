@@ -423,6 +423,14 @@ def _classify(method: str, path: str) -> tuple[str | None, str | None]:
     if method == "POST" and (
         relative.endswith("/artifact/download")
         or relative.endswith("/recovery-file")
+        or relative.endswith("/artifact/batch")
+        # 预演清单也算 export，虽然它一个字节都不产出：它枚举整个 workspace
+        # 的制品清单，是导出的侦察步。放进更宽松的 mutation 预算，等于让人
+        # 以**两倍于下载的速率**把库存摸清楚。侦察和它描述的那件事同预算。
+        or relative.endswith("/artifact/batch/manifest")
+        # 用包含而不是 endswith：派生物种类是路径的最后一段，
+        # 将来多一种就多一条漏网之鱼，而漏网的后果是它落进更宽松的预算。
+        or "/artifact/derivative/" in relative
     ):
         return "export", workspace_value
     if method == "GET" and workspace_value:
