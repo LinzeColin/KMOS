@@ -760,6 +760,34 @@ RECENT_COST_PATH = Path(os.environ.get(
     "KMFA_RECENT_COST", "/var/log/kmfa/project_cost/recent_completed.json"))
 
 
+CUSTOMER_MARGIN_PATH = Path(os.environ.get(
+    "KMFA_CUSTOMER_MARGIN", "/var/log/kmfa/project_cost/customer_margin.json"))
+
+
+@app.get("/api/客户毛利")
+def customer_margin():
+    """客户口径毛利——分四档，绝不合并成一个总数。
+
+    项目维度在账上大面积缺失，客户维度却是完整的，所以「哪些客户在赚钱」这个问题
+    现有数据能给出可信答案。但关联方（集团自有公司之间的往来）与外部客户混算会严重失真，
+    故分档呈现；数据异常（成本为负、零成本有收入等）逐条标注，不替读者算一个好看的数。
+
+    读不到就说读不到，不拿空列表冒充『没有客户』。
+    """
+    if not CUSTOMER_MARGIN_PATH.exists():
+        return {"可读": False,
+                "原因": "刷新作业尚未产出：技能 project-cost-refresh 从未成功跑完一次",
+                "客户": [], "诚实边界": "读不到就说读不到，不拿空列表冒充『没有客户』。"}
+    try:
+        payload = json.loads(CUSTOMER_MARGIN_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"可读": False, "原因": f"产物无法解析：{type(exc).__name__}", "客户": []}
+    payload["可读"] = True
+    payload["产出时间"] = datetime.fromtimestamp(
+        CUSTOMER_MARGIN_PATH.stat().st_mtime, BEIJING).isoformat()
+    return payload
+
+
 @app.get("/api/项目成本/完工")
 def recent_completed_cost():
     """最近完工项目的成本——两个口径并排，不调平。

@@ -1170,6 +1170,111 @@ function 开票与税务({ 开票 }) {
   )
 }
 
+/* ---------- 客户毛利（可视化） ----------
+   分四档呈现，绝不合并成一个总数：关联方之间的往来不是经营成果，
+   混进去会把毛利率拉到失真。数据异常逐条标注，不替读者算一个好看的数。   */
+
+const 档色 = { 外部客户: 'ok', 关联方: 'warn', 疑似关联方: 'warn', 占位桶: 'bad' }
+
+function 客户毛利({ 客户 }) {
+  if (!客户) return <骨架 />
+  if (客户.加载失败) return <加载失败卡 详情={客户.加载失败} />
+  if (客户.可读 === false) {
+    return (
+      <div className="card callout warn">
+        <b>还没有产出客户毛利</b>
+        <div className="sub">{客户.原因}</div>
+        <div className="sub">{客户.诚实边界}</div>
+      </div>
+    )
+  }
+  const 档 = 客户.分档汇总 || {}
+  const 外 = 档['外部客户'] || {}
+  const 行 = (客户.客户 || []).filter(c => c.类别 === '外部客户')
+  const 亏 = 行.filter(c => Number(c.毛利) < 0 && Number(c.收入) > 0 && !(c.数据提示 || []).length)
+  const 满 = Math.max(...行.map(c => Math.abs(Number(c.收入) || 0)), 1)
+
+  return (
+    <>
+      <div className="card callout">
+        <b>只看「外部客户」那一档才是对外经营的真实性</b>
+        <div className="sub">{客户.分档说明}</div>
+        <div className="sub">{客户.为什么是客户口径}</div>
+      </div>
+
+      <h3 className="sec">分档汇总</h3>
+      <Tbl>
+        <thead><tr><th>类别</th><th className="num">家数</th><th className="num">收入</th>
+          <th className="num">已入账成本</th><th className="num">毛利</th><th className="num">毛利率</th></tr></thead>
+        <tbody>{Object.entries(档).map(([k, v]) => (
+          <tr key={k}>
+            <td><span className={`pill ${档色[k] || ''}`}>{k}</span></td>
+            <td className="num">{v.家数}</td>
+            <td className="num">{金额(v.收入)}</td>
+            <td className="num">{金额(v.成本)}</td>
+            <td className="num">{金额(v.毛利)}</td>
+            <td className="num">{v.毛利率 || '—'}</td>
+          </tr>
+        ))}</tbody>
+      </Tbl>
+
+      <div className="grid">
+        <Kpi 标="外部客户" 值={外.家数 ?? '—'} 注="剔除关联方后" />
+        <Kpi 标="外部收入" 值={金额(外.收入)} 小 />
+        <Kpi 标="外部毛利" 值={金额(外.毛利)} 小 注={外.毛利率} />
+        <Kpi 标="亏损客户" 值={亏.length} 色={亏.length ? 'bad' : ''} 注="已剔除数据异常的" />
+      </div>
+
+      {亏.length > 0 && (
+        <>
+          <h3 className="sec">在亏钱的外部客户（按亏损额排序）</h3>
+          <Tbl>
+            <thead><tr><th>客户</th><th className="num">收入</th><th className="num">成本</th>
+              <th className="num">毛利</th><th className="num">毛利率</th><th className="num">项目数</th></tr></thead>
+            <tbody>{[...亏].sort((a, b) => Number(a.毛利) - Number(b.毛利)).map(c => (
+              <tr key={c.客户}>
+                <td>{c.客户}</td>
+                <td className="num">{金额(c.收入)}</td>
+                <td className="num">{金额(c.已入账成本)}</td>
+                <td className="num bad">{金额(c.毛利)}</td>
+                <td className="num">{c.毛利率}</td>
+                <td className="num">{c.涉及项目数}</td>
+              </tr>
+            ))}</tbody>
+          </Tbl>
+        </>
+      )}
+
+      <h3 className="sec">外部客户全表（按收入降序）</h3>
+      <Tbl>
+        <thead><tr><th>客户</th><th style={{ minWidth: 150 }}>收入规模</th>
+          <th className="num">收入</th><th className="num">毛利</th><th className="num">毛利率</th>
+          <th>数据提示</th></tr></thead>
+        <tbody>{行.map(c => (
+          <tr key={c.客户}>
+            <td>{c.客户}</td>
+            <td>
+              <div className="cmprow">
+                <i className="seg a" style={{ width: `${Math.min(100, (Math.abs(Number(c.收入)) / 满) * 100)}%` }} />
+              </div>
+            </td>
+            <td className="num">{金额(c.收入)}</td>
+            <td className={`num${Number(c.毛利) < 0 ? ' bad' : ''}`}>{金额(c.毛利)}</td>
+            <td className="num">{c.毛利率 || '—'}</td>
+            <td className="hint">{(c.数据提示 || []).join('；') || ''}</td>
+          </tr>
+        ))}</tbody>
+      </Tbl>
+
+      <div className="card callout">
+        <b>口径</b>
+        <div className="sub">收入={客户.口径?.收入}；成本={客户.口径?.成本}</div>
+        <div className="sub">{客户.口径?.边界}　产出时间 {客户.产出时间 || '—'}</div>
+      </div>
+    </>
+  )
+}
+
 /* ---------- 最近完工项目成本（可视化） ----------
    设计依据 ui-ux-pro-max：分析型仪表盘 = Data-Dense + 下钻对比；
    类别对比用横向条形（无障碍 AAA），其硬性要求是**每条都标数值**、**按值降序**——
@@ -1402,6 +1507,7 @@ export default function App() {
   const [我在哪数据, set我在哪] = useState(null)
   const [成本, set成本] = useState(null)
   const [完工, set完工] = useState(null)
+  const [客户, set客户] = useState(null)
   const [成本展开, 设成本展开] = useState(null)
   const [账龄, set账龄] = useState(null)
   const [开票, set开票] = useState(null)
@@ -1422,6 +1528,7 @@ export default function App() {
   useEffect(() => {
     取('/api/项目成本', set成本)
     取('/api/项目成本/完工', set完工)
+    取('/api/客户毛利', set客户)
     取('/api/账龄回款', set账龄)
     取('/api/开票纳税', set开票)
     取工作台()
@@ -1515,6 +1622,8 @@ export default function App() {
             {页 === '开票与税务' && <开票与税务 开票={开票} />}
             {页 === '项目成本' && <>
               <完工成本 完工={完工} 展开={成本展开} 设展开={设成本展开} />
+              <h3 className="sec">客户口径毛利</h3>
+              <客户毛利 客户={客户} />
               <h3 className="sec">事实层与阻塞</h3>
               <项目成本 成本={成本} />
             </>}
