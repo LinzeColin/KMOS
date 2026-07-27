@@ -40,3 +40,9 @@ jobs:
           # Owner 2026-07-26：每条业务基线端到端健康可见 + 耦合治理
           # 门禁核心：上游断点时下游不得标 healthy（防"上游断了还静默出数"）
           python3 KMFA/tools/check_baseline_slices.py
+      - name: 项目成本科目映射门禁（闭环：模板每一行都要有交代）
+        run: |
+          set -euo pipefail
+          # 拦两件"看着正常、数字是错的"：钱映射到不存在的行被静默丢掉；
+          # 报表某行无人认领（既没人填也没说算不出）。
+          python3 KMFA/tools/project_cost/account_map.py --root KMFA
