@@ -82,12 +82,20 @@ function loadPublicAppShell() {
   return import('./PublicAppShell.jsx')
 }
 
-// Sealed v1.5.2 contract: `/` is the complete anonymous App Shell. The
-// `/workspace` compatibility path may serve the same shell, while only
-// `/ops/app` loads the private operations bundle.
+// Owner 2026-07-26（第二次明确，首次见 #171）：根域名必须是 KMFA 自己的经营驾驶舱门面，
+// 不是泛化匿名工作区——「这根本不是我的东西」。故 `/` 载 KmfaHome；
+// v1.5.2 匿名 App Shell **不删除**，平移到 `/workspace`；`/ops/app` 仍为私有经营面。
+const isPublicWorkspace = pathname === '/workspace' || pathname.startsWith('/workspace/')
+
+function loadKmfaHome() {
+  return import('./KmfaHome.jsx')
+}
+
 const appModule = isPrivateOperationsApp
   ? loadPrivateOperationsApp()
-  : loadPublicAppShell()
+  : isPublicWorkspace
+    ? loadPublicAppShell()
+    : loadKmfaHome()
 
 appModule
   .then(({ default: App }) => {

@@ -110,6 +110,9 @@ def _public_shell_enabled() -> bool:
     }
 
 
+STATIC_GRID_RE = re.compile(r'<section class="static-grid".*?</section>', re.S)
+
+
 def _frontend_index() -> Path:
     index_path = FRONTEND_DIST / "index.html"
     if not index_path.exists():
@@ -174,8 +177,17 @@ def public_workspace(workspace_path: str | None = None):
     索引边界中间件对非根路径 fail-closed(noindex + private no-store),
     robots 仅放行根,故本路由无需额外抓取控制。
     """
-    return FileResponse(
-        _frontend_index(),
+    # 根路径是 KMFA 经营驾驶舱门面（Owner 指令）；本兼容入口把静态壳换成匿名工作区六入口，
+    # 这样 v1.5.2 的匿名 App Shell 契约在 /workspace 上完整保留，不因根路径归位而丢失。
+    html = _frontend_index().read_text(encoding="utf-8")
+    fragment = Path(__file__).with_name("workspace_shell_fragment.html")
+    if fragment.is_file():
+        replaced, n = STATIC_GRID_RE.subn(fragment.read_text(encoding="utf-8").strip(), html, count=1)
+        if n == 1:
+            html = replaced
+    return Response(
+        html,
+        media_type="text/html",
         headers={
             "Cache-Control": "no-cache, must-revalidate, no-transform",
             "X-KMFA-Shell-Mode": "public-workspace",
