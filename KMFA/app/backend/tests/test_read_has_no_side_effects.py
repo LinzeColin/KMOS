@@ -67,6 +67,12 @@ ALLOWED_MUTABLE = (
     "-wal",
     "-shm",
     "-journal",
+    # 惰性建表：首次读会创建空库并跑迁移。这是**结构**不是业务事实。
+    # 这条白名单不靠声称——`test_lazy_schema_bootstrap_writes_no_business_rows`
+    # 打开建出来的库逐表数行，任何一行都判失败。
+    # （生产环境里库早已存在，这一步只在全新状态目录上发生。）
+    "walking_skeleton.sqlite3",
+    "kmfa_app_state.sqlite3",
 )
 
 
@@ -103,11 +109,40 @@ def _diff(before: dict, after: dict) -> list[str]:
     return problems
 
 
+def _walk_routes(container) -> list:
+    """展开路由树，**递归进 included router**。
+
+    第一版没递归，于是 `app.include_router(...)` 挂进来的整个
+    walking-skeleton 路由组被静默丢掉——FastAPI 把它包成 `_IncludedRouter`，
+    该对象没有 `.path` / `.methods`，`getattr(..., "")` 兜底成空串后就被跳过了。
+
+    **失败方式是「少枚举」，而少枚举的表现是全绿。** 这正是本文件开头警告过的
+    那类失效：覆盖为零的绿灯。所以下面的守卫用例改成按**具体路由组**点名，
+    不再只数总数——数量对不上会被发现，整组消失也会。
+    """
+    found = []
+    for route in getattr(container, "routes", []) or []:
+        if getattr(route, "path", None) is not None and getattr(route, "methods", None):
+            found.append(route)
+            continue
+        # `_IncludedRouter`（app.include_router 的产物）把真正的路由藏在
+        # `original_router` 里；Mount / 子应用则用 `app` 或 `router`。
+        # 三个都探，且**不 break**——一个对象可能同时挂着多处。
+        for attribute in ("original_router", "router", "app", "routes"):
+            child = getattr(route, attribute, None)
+            if child is not None and child is not route and hasattr(child, "routes"):
+                found.extend(_walk_routes(child))
+    return found
+
+
+ALL_ROUTES = _walk_routes(app)
+
+
 def _readable_routes() -> list[tuple[str, str]]:
     """枚举所有 GET/HEAD 路由。**从 app 本身枚举，不维护清单**——
     手写清单会和路由表脱节，而脱节的方向永远是「新路由没进清单」。"""
     rows: list[tuple[str, str]] = []
-    for route in app.routes:
+    for route in ALL_ROUTES:
         methods = getattr(route, "methods", None) or set()
         path = getattr(route, "path", "")
         for method in ("GET", "HEAD"):
@@ -185,16 +220,36 @@ ROUTE_BY_KEY = {
 }
 
 
-def test_the_enumeration_itself_is_not_empty():
-    """守卫：枚举一旦返回空，下面每条用例都会「通过」而什么都没测。
+def test_the_enumeration_covers_every_route_group():
+    """守卫：枚举漏掉一整组路由时，下面每条用例都会「通过」而什么都没测。
 
-    这类失效最难发现——测试全绿，覆盖为零。
+    这条守卫的第一版只查「总数 ≥ 30 + 两条已知路径」，
+    于是 `app.include_router` 挂进来的**整个 walking-skeleton 路由组**
+    被漏掉而没人发现——两条抽查路径恰好都在顶层 app 上。
+
+    教训：抽查要按**路由组**点名，不能只数总数。
+    少一组的表现和一切正常完全一样，除非你专门去问那一组还在不在。
     """
-    assert len(ROUTES) >= 30, f"只枚举到 {len(ROUTES)} 条读路由，枚举逻辑可能失效了"
     paths = {path for _, path in ROUTES}
-    # 抽查几条一定存在的，确认枚举到的是真路由而不是别的什么
-    assert "/healthz" in paths
-    assert any("技能健康" in p for p in paths)
+    assert len(ROUTES) >= 40, f"只枚举到 {len(ROUTES)} 条读路由，枚举逻辑可能失效了"
+
+    # 按路由组点名，每组至少一条
+    assert "/healthz" in paths, "顶层健康检查"
+    assert any("技能健康" in p for p in paths), "public-api 组"
+    assert any("/api/" in p for p in paths), "业务 API 组"
+    assert any("导出任务" in p for p in paths), "受控导出组（S07/T-S07-03）"
+    assert any("walking-skeleton" in p for p in paths), (
+        "walking-skeleton 组整组不见了——这正是第一版漏掉的那组，"
+        "而漏掉它的表现是全绿")
+
+    # 顶层 app 的**可读**路由必须全在枚举结果里，否则递归展开写反了。
+    # 只比 GET/HEAD——把 POST 也算进来是拿两套口径互相校验，注定不成立。
+    top_level_readable = {
+        r.path for r in app.routes
+        if getattr(r, "path", None)
+        and {"GET", "HEAD"} & (getattr(r, "methods", None) or set())
+    }
+    assert top_level_readable <= paths, sorted(top_level_readable - paths)
 
 
 @pytest.fixture
@@ -263,6 +318,52 @@ def test_read_request_does_not_change_business_state(method, path, isolated_stat
             problems.append(f"[{target.name}] {item}")
     assert not problems, (
         f"{method} {path} 是读请求却改了业务状态：\n  " + "\n  ".join(problems))
+
+
+def test_lazy_schema_bootstrap_writes_no_business_rows(isolated_state):
+    """白名单里的两个 `.sqlite3` 必须**被证明**无害，不能只是被声称。
+
+    首次读会创建空库并跑迁移——这是结构，不是业务事实。
+    这条用例打开建出来的库逐表数行：**任何一行都判失败**。
+    没有它，白名单就成了「把一个真实副作用洗白成已知情况」的地方。
+    """
+    import sqlite3
+
+    walking, app_state, _ = isolated_state
+    for _, path in [r for r in ROUTES if r[0] == "GET"]:
+        client.get(_fill(path), params={"报告": "1", "格式": "html"})
+
+    # **复用同一份白名单**，不另立一套：两套白名单迟早会分叉，
+    # 而分叉的方向永远是「这边放行了那边没放行」，于是有人去调松严的那边。
+    databases = [
+        path for path in list(walking.rglob("*.sqlite3")) + list(app_state.rglob("*.sqlite3"))
+        if not any(token in str(path) for token in ALLOWED_MUTABLE if token != ".sqlite3")
+        or path.name in {"walking_skeleton.sqlite3", "kmfa_app_state.sqlite3"}
+    ]
+    databases = [p for p in databases
+                 if p.name in {"walking_skeleton.sqlite3", "kmfa_app_state.sqlite3"}]
+    assert databases, "一个库都没建出来——这条用例失去了对象，说明枚举或夹具变了"
+
+    for database in databases:
+        connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+        try:
+            tables = [
+                row[0] for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' "
+                    "AND name NOT LIKE 'sqlite_%'")
+            ]
+            assert tables, f"{database.name} 建了但一张表都没有"
+            for table in tables:
+                # 迁移登记表记录的是「schema 到哪一版」，属于结构自身。
+                if "migration" in table.lower() or "schema" in table.lower():
+                    continue
+                count = connection.execute(
+                    f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                assert count == 0, (
+                    f"读请求在 {database.name}.{table} 里写了 {count} 行业务数据——"
+                    "白名单只放行建表，不放行写数据")
+        finally:
+            connection.close()
 
 
 def test_head_and_get_agree_on_being_read_only(isolated_state):
