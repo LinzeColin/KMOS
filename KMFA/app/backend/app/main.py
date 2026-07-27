@@ -851,6 +851,51 @@ def customer_margin():
     return payload
 
 
+DATA_SOURCE_MATRIX_PATH = Path(os.environ.get(
+    "KMFA_DATA_SOURCE_MATRIX", "/var/log/kmfa/project_cost/data_source_matrix.json"))
+DATA_SOURCE_MATRIX_CSV = Path(os.environ.get(
+    "KMFA_DATA_SOURCE_MATRIX_CSV", "/var/log/kmfa/project_cost/data_source_matrix.csv"))
+
+
+@app.get("/api/数据源矩阵")
+def data_source_matrix():
+    """四个平台各自的固定输入——**声明该有什么，实测实际有什么**。
+
+    Owner 2026-07-27：「我根本看不到你的数据源矩阵」+「钉钉红圈金蝶WPS四个平台，
+    每个平台都有自己的固定输入，你全部都需要让系统能做到自己定时定期收集上传整理」。
+
+    这一页要能回答三个问题，缺一个都不算数：
+      · 每个平台该给哪几个输入？（声明）
+      · 实际到位了没有、多少行、数据截到哪天？（实测，不信文件自称的尺寸）
+      · 哪些是系统自己在收，哪些还靠人工放文件？（采集现状——这才是「自动化到哪一步」）
+
+    行数为什么必须实测：WPS/红圈导出的 xlsx 谎报尺寸，只查「文件在不在」的话
+    那几个文件全是绿的——文件确实在，只是一行都读不出来。
+    """
+    if not DATA_SOURCE_MATRIX_PATH.exists():
+        return {"可读": False,
+                "原因": "刷新作业尚未产出：技能 project-cost-refresh 从未成功跑完一次",
+                "平台": [], "诚实边界": "读不到就说读不到，不拿空列表冒充『没有数据源』。"}
+    try:
+        payload = json.loads(DATA_SOURCE_MATRIX_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"可读": False, "原因": f"产物无法解析：{type(exc).__name__}", "平台": []}
+    payload["可读"] = True
+    payload["产出时间"] = datetime.fromtimestamp(
+        DATA_SOURCE_MATRIX_PATH.stat().st_mtime, BEIJING).isoformat()
+    payload["可下载"] = DATA_SOURCE_MATRIX_CSV.exists()
+    return payload
+
+
+@app.get("/api/数据源矩阵/下载")
+def data_source_matrix_csv():
+    """把矩阵下载成 CSV。Owner 要能拿走，不是只能在页面上看。"""
+    if not DATA_SOURCE_MATRIX_CSV.exists():
+        raise HTTPException(status_code=404, detail="矩阵 CSV 尚未产出——技能 project-cost-refresh 未成功跑完")
+    return FileResponse(DATA_SOURCE_MATRIX_CSV, media_type="text/csv; charset=utf-8",
+                        filename="KMFA_数据源矩阵.csv")
+
+
 PROJECT_MARGIN_PATH = Path(os.environ.get(
     "KMFA_PROJECT_MARGIN", "/var/log/kmfa/project_cost/project_margin.json"))
 

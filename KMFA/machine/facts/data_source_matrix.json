@@ -1,0 +1,87 @@
+{
+  "schema_version": "kmfa.data_source_matrix.v1",
+  "as_of": "2026-07-27",
+  "public_safe": true,
+  "purpose": "四个平台各自的固定输入清单——声明「应该有什么」。「实际有没有」由 data_source_matrix.py 现场实测填，不写死在这里。",
+  "为什么分开": "声明和实测分开，才能出现『声明要这个输入、实测它不在』这一格。合在一起写就只剩自我确认。",
+  "采集现状口径": "collected=系统自己定时收；manual=目前靠人工放到源目录；not_wired=既没定时也没人工路径",
+  "platforms": [
+    {
+      "id": "PLT-DINGTALK",
+      "name": "钉钉",
+      "collector": "上游归档技能（dws，容器内已认证）→ GitHub 私有库",
+      "schedule": "每日 11:00（北京）",
+      "inputs": [
+        {"id": "IN-DING-GROUPFILES", "name": "群文件（按驾驶舱勾选的目标群）",
+         "pattern": "dws-archive/**", "collection": "collected",
+         "feeds": ["资金周报", "上游归档"],
+         "blocker": "候选群清单未产出前无目标可拉——见技能 dws-bootstrap-groups"},
+        {"id": "IN-DING-ATTENDANCE", "name": "考勤打卡与审批",
+         "pattern": "（dws 直连接口，不落文件）", "collection": "collected",
+         "feeds": ["钉钉考勤"], "blocker": null}
+      ]
+    },
+    {
+      "id": "PLT-REDCIRCLE",
+      "name": "红圈",
+      "collector": "人工导出后放入源目录；尚未接自动导出",
+      "schedule": "不定期",
+      "inputs": [
+        {"id": "IN-RC-CONTRACT", "name": "红圈主合同",
+         "pattern": "**/红圈主合同*.xlsx", "collection": "manual",
+         "feeds": ["项目成本", "项目毛利", "经营月报"],
+         "blocker": "曾因 xlsx 尺寸声明缺陷整表读为空，已修（reset_dimensions）"},
+        {"id": "IN-RC-STATUS", "name": "生产项目状态表",
+         "pattern": "**/生产项目状态表.xlsx", "collection": "manual",
+         "feeds": ["项目成本", "项目毛利"], "blocker": null},
+        {"id": "IN-RC-INVOICE", "name": "项目开票",
+         "pattern": "**/项目开票_导出文件_*.xlsx", "collection": "manual",
+         "feeds": ["开票与税务", "项目毛利"],
+         "blocker": "同尺寸声明缺陷，已修"},
+        {"id": "IN-RC-PAYMENT", "name": "付款审批（日常费用）",
+         "pattern": "**/付款审批（日常费用）_导出文件_*.xlsx", "collection": "manual",
+         "feeds": ["资金周报", "费用分析"],
+         "blocker": "同尺寸声明缺陷，已修"}
+      ]
+    },
+    {
+      "id": "PLT-KINGDEE",
+      "name": "金蝶",
+      "collector": "人工导出明细账压缩包后放入源目录",
+      "schedule": "不定期",
+      "inputs": [
+        {"id": "IN-KD-LEDGER", "name": "科目明细账（全科目）",
+         "pattern": "**/*明细账*.zip", "collection": "manual",
+         "feeds": ["项目成本", "客户毛利", "项目毛利"],
+         "blocker": "人工成本约七成记在『不分项目』，按合同号归集不到项目头上"},
+        {"id": "IN-KD-VOUCHER", "name": "凭证导出",
+         "pattern": "**/*凭证*.zip", "collection": "not_wired",
+         "feeds": ["对账"], "blocker": "尚无采集路径"}
+      ]
+    },
+    {
+      "id": "PLT-WPS",
+      "name": "WPS",
+      "collector": "人工导出后放入源目录",
+      "schedule": "不定期",
+      "inputs": [
+        {"id": "IN-WPS-COLLECTION", "name": "回款表（按年）",
+         "pattern": "**/*回款表*.xlsx", "collection": "manual",
+         "feeds": ["回款与账龄"], "blocker": null},
+        {"id": "IN-WPS-AGING", "name": "应收账龄表",
+         "pattern": "**/应收账龄表*.xlsx", "collection": "manual",
+         "feeds": ["回款与账龄"], "blocker": null},
+        {"id": "IN-WPS-RECEIVABLE", "name": "应收账款（合同登记）",
+         "pattern": "**/应收账款*.xlsx", "collection": "manual",
+         "feeds": ["回款与账龄"], "blocker": null},
+        {"id": "IN-WPS-DEPOSIT", "name": "保证金登记",
+         "pattern": "**/保证金*.xlsx", "collection": "manual",
+         "feeds": ["资金周报"], "blocker": null},
+        {"id": "IN-WPS-PAYROLL", "name": "工资发放表",
+         "pattern": "**/工资/**", "collection": "manual",
+         "feeds": ["工资发放标准", "项目成本"],
+         "blocker": "已入私有库但从未抽进 staging（自检报出的陈旧资产之一）"}
+      ]
+    }
+  ]
+}
