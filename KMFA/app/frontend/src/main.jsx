@@ -82,20 +82,16 @@ function loadPublicAppShell() {
   return import('./PublicAppShell.jsx')
 }
 
-// Owner 2026-07-26（第二次明确，首次见 #171）：根域名必须是 KMFA 自己的经营驾驶舱门面，
-// 不是泛化匿名工作区——「这根本不是我的东西」。故 `/` 载 KmfaHome；
-// v1.5.2 匿名 App Shell **不删除**，平移到 `/workspace`；`/ops/app` 仍为私有经营面。
+// Owner 2026-07-27：「把这个恶心的页面彻底删除掉，不允许死而复活无数次，我只要我的软件」。
+// 根路径不再是任何门面/宣传页——它**就是**经营驾驶舱本体，与 /ops/app 同一个应用。
+// 真实经营数字仍由边缘层 Cloudflare Access 守在 /api* 与 /ops* 之后：未认证者拿到的是
+// 空数据的界面，不是数字；认证一次之后根路径直接可用。
+// v1.5.2 匿名 App Shell 不删除，仍在 /workspace（那是给外人看的公开面）。
 const isPublicWorkspace = pathname === '/workspace' || pathname.startsWith('/workspace/')
 
-function loadKmfaHome() {
-  return import('./KmfaHome.jsx')
-}
-
-const appModule = isPrivateOperationsApp
+const appModule = (isPrivateOperationsApp || !isPublicWorkspace)
   ? loadPrivateOperationsApp()
-  : isPublicWorkspace
-    ? loadPublicAppShell()
-    : loadKmfaHome()
+  : loadPublicAppShell()
 
 appModule
   .then(({ default: App }) => {
