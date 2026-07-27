@@ -44,6 +44,55 @@ jobs:
           cat a0_zero_delta_result.json >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
+      - name: 上传结果给回写作业
+        uses: actions/upload-artifact@v4
+        with:
+          name: a0-result
+          path: a0_zero_delta_result.json
+          retention-days: 1
+
+  # ★ 回写单独一个作业:算的那个作业保持 contents:read,只有这个拿 write。
+  #   状态回写不该让重算作业获得写仓权限 —— 权限跟着最小需要走。
+  report:
+    needs: a0
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: main}
+      - uses: actions/download-artifact@v4
+        with: {name: a0-result}
+
+      - name: 把 A0 对账结果写回业务流状态
+        run: |
+          set -euo pipefail
+          # ★ 只上报这一次重算**真正测到的那一格**:项目成本的「校验」段。
+          #   A0 做的就是「税务基准 vs 金蝶明细账」对账,这正是 verify 的产出。
+          #   绝不拿它去代表 intake/parse/compute —— 那是拿相邻信号冒充产出,是假绿。
+          PASS=$(python3 -c "import json;print(json.load(open('a0_zero_delta_result.json'))['zero_delta_pass'])")
+          PCT=$(python3 -c "import json;d=json.load(open('a0_zero_delta_result.json'));print(d.get('delta_vs_a0_pct'))")
+          if [ "$PASS" = "True" ]; then
+            STATE=healthy;  NOTE="A0 零差额对账通过"
+          else
+            # 差额非零 = 真实跨基础/时点对账缺口,不是管道错误 → 通但打折
+            STATE=degraded; NOTE="A0 对账差额 ${PCT}%（现金 vs 权责，非管道错误）"
+          fi
+          # ★ 只出百分比,绝不出金额 —— 脚本自己标了 amounts_public:false
+          python3 KMFA/tools/report_flow_state.py \
+            --project-dir KMFA --key 'BL-PROJECT-COST.verify' \
+            --state "$STATE" --note "$NOTE"
+
+      - name: 提交
+        run: |
+          git config user.name  "kmfa-flow-state"
+          git config user.email "kmfa-flow-state@users.noreply.github.com"
+          git add KMFA/docs/governance/flow_state.json
+          git diff --cached --quiet && echo "状态没变，不产生空提交" && exit 0
+          git commit -m "chore(kmfa): 回写 A0 对账的业务流状态 [skip ci]"
+          git push
+
       - name: 留存 public-safe 结果
         if: always()
         uses: actions/upload-artifact@v4
