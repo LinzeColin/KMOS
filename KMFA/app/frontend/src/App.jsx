@@ -1381,6 +1381,97 @@ function 对比条({ 台账, 归集, 满 }) {
   )
 }
 
+const 连接色 = { connected: 'ok', partial: 'warn', none: 'bad', by_design_manual: '' }
+const 连接话 = { connected: '已打通', partial: '通道在，但没跑通',
+                 none: '完全没有自动通道', by_design_manual: '按约定走人工（不算缺陷）' }
+const 采集色 = { collected: 'ok', manual: 'warn', not_wired: 'bad' }
+const 采集话 = { collected: '系统自动收', manual: '靠人工放文件', not_wired: '完全没接' }
+const 源状态色 = { 已接入: 'ok', 接口: 'ok', 缺输入: 'bad', 读不出来: 'bad' }
+
+function 数据源矩阵({ 矩阵 }) {
+  if (!矩阵) return <骨架 />
+  if (矩阵.加载失败) return <加载失败卡 详情={矩阵.加载失败} />
+  if (矩阵.可读 === false) {
+    return (
+      <div className="card callout warn">
+        <b>还没有产出数据源矩阵</b>
+        <div className="sub">{矩阵.原因}</div>
+        <div className="sub">{矩阵.诚实边界}</div>
+      </div>
+    )
+  }
+  return (
+    <>
+      {/* 头条必须是平台连接层。「文件到位」不等于「平台打通」——
+          初版把两者合成「已接入 11」，而那 11 个是 Owner 自己手动导出的文件。 */}
+      <div className={`card callout ${(矩阵['⚠平台打通情况'] || {}).自动通道跑通的 ? '' : 'bad'}`}>
+        <b>平台自动通道：{(矩阵['⚠平台打通情况'] || {}).平台总数} 个平台里跑通 {(矩阵['⚠平台打通情况'] || {}).自动通道跑通的} 个</b>
+        <div className="sub">{(矩阵['⚠平台打通情况'] || {}).为什么这是头条}</div>
+        <div className="kpis" style={{ marginTop: 10 }}>
+          <Kpi 标="通道跑通" 值={(矩阵['⚠平台打通情况'] || {}).自动通道跑通的} />
+          <Kpi 标="通道在·没跑通" 值={(矩阵['⚠平台打通情况'] || {}).通道在但没跑通的} 色="warn" />
+          <Kpi 标="完全没有通道" 值={(矩阵['⚠平台打通情况'] || {}).完全没有通道的} 色="bad" />
+          <Kpi 标="按约定走人工" 值={(矩阵['⚠平台打通情况'] || {}).按约定走人工的} />
+        </div>
+      </div>
+
+      <div className="card callout">
+        <b>输入到位情况（第二层）：{矩阵.输入总数} 个固定输入</b>
+        <div className="sub">{矩阵.口径}</div>
+        <div className="sub">{矩阵.为什么声明与实测分开}</div>
+        <div className="kpis" style={{ marginTop: 10 }}>
+          <Kpi 标="已接入" 值={矩阵.已接入} />
+          <Kpi 标="缺输入" 值={矩阵.缺输入} 色={矩阵.缺输入 ? 'bad' : null} />
+          <Kpi 标="文件在但读不出来" 值={矩阵.读不出来} 色={矩阵.读不出来 ? 'bad' : null} />
+          <Kpi 标="系统自动收" 值={矩阵.系统自动收集的} />
+          <Kpi 标="靠人工放文件" 值={矩阵.还靠人工放文件的} 色="warn" />
+          <Kpi 标="完全没接" 值={矩阵.完全没接的} 色={矩阵.完全没接的 ? 'bad' : null} />
+        </div>
+        {矩阵.可下载 && (
+          <p style={{ marginTop: 12 }}>
+            <a className="btn" href="/api/数据源矩阵/下载" download>下载矩阵 CSV</a>
+          </p>
+        )}
+      </div>
+      {(矩阵.平台 || []).map(p => (
+        <React.Fragment key={p.id}>
+          <h3 className="sec">{p.平台}　<span className="muted">
+            {p.已接入}/{p.输入数} 到位 · {p.采集周期}</span></h3>
+          <div className={`card callout ${连接色[(p.连接 || {}).status] || ''}`}>
+            <b>平台连接：{连接话[(p.连接 || {}).status] || '未知'}</b>
+            <div className="sub">通道：{(p.连接 || {}).channel || '无'}</div>
+            <div className="sub">已经能做的：{(p.连接 || {})['已经能做的'] || '—'}</div>
+            <div className="sub">还没跑通的：{(p.连接 || {})['还没跑通的'] || '—'}</div>
+            <div className="sub">要打通还缺：{(p.连接 || {})['要打通还缺'] || '—'}</div>
+            <div className="sub">采集方式：{p.采集方式}</div>
+          </div>
+          <Tbl>
+            <thead><tr>
+              <th>固定输入</th><th>状态</th><th>采集现状</th>
+              <th className="num">文件数</th><th className="num">行数</th>
+              <th>数据截至</th><th>喂给哪些业务</th><th>卡在哪</th>
+            </tr></thead>
+            <tbody>{(p.输入 || []).map(i => (
+              <tr key={i.id}>
+                <td>{i.name}</td>
+                <td><span className={`pill ${源状态色[i.状态] || ''}`}>{i.状态}</span></td>
+                <td><span className={`pill ${采集色[i.collection] || ''}`}>
+                  {采集话[i.collection] || i.collection}</span></td>
+                <td className="num">{i.文件数 ?? '—'}</td>
+                <td className={`num ${i.行数 === 0 && i.文件数 ? 'tone-bad' : ''}`}>
+                  {i.行数 == null ? '—' : i.行数.toLocaleString()}</td>
+                <td className="muted">{i.数据截至 || '—'}</td>
+                <td className="muted">{(i.feeds || []).join('、') || '—'}</td>
+                <td className={i.blocker ? 'tone-warn' : 'muted'}>{i.blocker || '—'}</td>
+              </tr>
+            ))}</tbody>
+          </Tbl>
+        </React.Fragment>
+      ))}
+    </>
+  )
+}
+
 const 阶段色 = { 已完工: 'ok', 部分施工: 'warn', 施工中: 'warn', 待入场: 'mut', 状态不明: 'bad' }
 const 成本数据色 = { 两口径均有数: 'ok', 仅单口径有数: 'warn', 无成本数据: 'bad' }
 
@@ -1690,7 +1781,7 @@ const 导航组 = [
   ['钱', ['回款与账龄', '开票与税务', '项目成本']],
   ['拍板', ['待拍板']],
   ['报告', ['报告下载']],
-  ['后台', ['数据底账', '系统自检']],
+  ['后台', ['数据源', '数据底账', '系统自检']],
 ]
 const 全部页 = 导航组.flatMap(([, xs]) => xs)
 
@@ -1722,6 +1813,7 @@ export default function App() {
   const [完工, set完工] = useState(null)
   const [客户, set客户] = useState(null)
   const [毛利, set毛利] = useState(null)
+  const [矩阵, set矩阵] = useState(null)
   const [毛利展开, 设毛利展开] = useState(null)
   const [目标群数据, set目标群] = useState(null)
   const [成本展开, 设成本展开] = useState(null)
@@ -1747,6 +1839,7 @@ export default function App() {
     取('/api/项目成本/完工', set完工)
     取('/api/客户毛利', set客户)
     取('/api/项目毛利', set毛利)
+    取('/api/数据源矩阵', set矩阵)
     取群()
     取('/api/账龄回款', set账龄)
     取('/api/开票纳税', set开票)
@@ -1843,6 +1936,7 @@ export default function App() {
               <h3 className="sec">上游归档目标群</h3>
               <目标群 群={目标群数据} 刷新={取群} />
             </>}
+            {页 === '数据源' && <数据源矩阵 矩阵={矩阵} />}
             {页 === '项目成本' && <>
               <完工成本 完工={完工} 展开={成本展开} 设展开={设成本展开} />
               <h3 className="sec">项目口径毛利（含在建）</h3>

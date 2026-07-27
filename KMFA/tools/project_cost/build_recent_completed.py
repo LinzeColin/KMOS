@@ -64,6 +64,10 @@ def open_workbook(path: str):
     （`TypeError: DataValidation.__init__() got an unexpected keyword argument 'id'`）。
     只读模式是惰性解析，错误要到迭代行时才抛，try/except 包 load_workbook 接不住——
     所以不试探，一律先剥。数据验证与取数无关，且只在临时副本上剥，不改原文件。
+
+    ⚠ 拿到 sheet 后**必须调 `sheet.reset_dimensions()`**，或者直接用 `iter_sheet_rows()`。
+      见下面那个函数的注释：WPS/红圈导出的表声明 `<dimension ref="A1"/>`，
+      只读模式信这个声明，于是 max_row=1、整表静默变空。
     """
     import openpyxl
     temporary = os.path.join(tempfile.mkdtemp(), os.path.basename(path))
@@ -80,6 +84,26 @@ def open_workbook(path: str):
                 payload = text.encode("utf-8")
             target.writestr(item, payload)
     return openpyxl.load_workbook(temporary, read_only=True, data_only=True)
+
+
+def iter_sheet_rows(sheet, values_only: bool = True):
+    """迭代一张表的所有行——**先把它自称的尺寸扔掉**。
+
+    2026-07-27 实测的一个静默数据丢失（Owner：「wps的数据为什么不拉进来」）：
+      WPS / 红圈导出的 xlsx 在 sheet 里写 `<dimension ref="A1"/>`——声称整表只有一个单元格。
+      openpyxl 只读模式**信这个声明**去定 max_row，于是表头之后的每一行都读不到。
+      它不报错、不告警，就是零行。
+
+      被它吃掉的（都是真数据，不是边角料）：
+        红圈主合同 4341 行、项目开票 4525 行、付款审批（日常费用）1200 行。
+      而《生产项目状态表》没这个毛病，所以过去只有它一个源进得来——
+      项目成本因此建在 20 个完工项目上，而红圈主合同里有 390 个。
+
+    reset_dimensions() 让 openpyxl 改为**边读边算**真实范围。
+    代价是不能提前知道行数，换来的是不会静默丢数据——这个交换在任何时候都值。
+    """
+    sheet.reset_dimensions()
+    return sheet.iter_rows(values_only=values_only)
 
 
 def read_completed_projects(data_root: str) -> dict:

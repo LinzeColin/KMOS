@@ -74,6 +74,10 @@ case "$SKILL" in
                          python3 KMFA/tools/project_cost/build_customer_margin.py \
                            --data-root "$D/Private-KMDatabase/KMFA_MetaData" \
                            --out /var/log/kmfa/project_cost/customer_margin.json; \
+                         python3 KMFA/tools/data_source_matrix.py \
+                           --data-root "$D/Private-KMDatabase/KMFA_MetaData" \
+                           --out /var/log/kmfa/project_cost/data_source_matrix.json \
+                           --csv-out /var/log/kmfa/project_cost/data_source_matrix.csv; \
                          python3 KMFA/tools/project_cost/build_project_margin.py \
                            --data-root "$D/Private-KMDatabase/KMFA_MetaData" \
                            --account-map KMFA/machine/facts/project_cost_account_map.json \
