@@ -56,6 +56,7 @@ from .consistency_state import (
     upload_request_fingerprint,
 )
 from . import resumable_upload as RU
+from . import upload_quarantine as QU
 from .object_storage import (
     LEGACY_STORAGE_BACKEND,
     S3_STORAGE_BACKEND,
@@ -1592,7 +1593,17 @@ def _persist_completed_upload(
 
     调用方各自负责把字节写到 `request_path` 并给出 size/sha256：
     单次上传边收边算，续传在 complete 时对暂存文件整体重算。
+
+    S06/P6.2：**扫描放在这里，而不是各个入口**。放在入口的话，
+    每加一条上传路径就要记得加一次扫描，漏一次就是一条不设防的通道；
+    放在持久化的唯一入口，则「能落库的都扫过」是结构性成立的。
+    quarantine-first：判不干净就不进持久化链——不是先存起来再标记。
     """
+    verdict = QU.scan(path=request_path, declared_name=filename,
+                      declared_media_type=media_type)
+    if not verdict.is_clean:
+        request_path.unlink(missing_ok=True)
+        raise SkeletonError(422, "artifact_quarantined")
     try:
         fingerprint = upload_request_fingerprint(
             workspace_id=workspace_id,

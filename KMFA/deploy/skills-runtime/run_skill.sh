@@ -19,6 +19,12 @@ mkdir -p "$LOG_DIR"
 export KMFA_DELIVERY_ENABLED="${KMFA_DELIVERY_ENABLED:-0}"
 # 投递旗标：双跑纪律的机械化——未开闸一律 --dry-run
 DELIVERY_FLAG=$([ "$KMFA_DELIVERY_ENABLED" = "1" ] && echo --send || echo --dry-run)
+# 考勤私有运行时目录：**必须在这里钉死，不能只靠 compose 的 environment**。
+# 2026-07-27 线上抓到的活例子：compose 里设了它，entrypoint 触发的自举与冷启动重试
+# 都能读到持久卷、跑绿；而 **cron 触发的定时运行不继承容器 ENV**，退回镜像层默认路径，
+# 于是同一个技能「手动跑绿、到点跑红」。表现像是随机失败，其实是两条路径读了不同目录。
+# 这也是下面 OCR 那条注释里同一个坑，只是这次踩在考勤上。
+export KMFA_ATTENDANCE_RUNTIME_DIR="${KMFA_ATTENDANCE_RUNTIME_DIR:-/var/log/kmfa/attendance-runtime}"
 # SKL.0005：cron 环境不继承容器 ENV，这里显式钉死 OCR 引擎替换（swift Vision → Python 链）
 export KMFA_FUND_VISION_OCR_COMMAND="${KMFA_FUND_VISION_OCR_COMMAND:-python3 $ROOT/KMFA/skills/资金周报/tools/ocr_with_python.py}"
 

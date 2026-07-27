@@ -244,3 +244,53 @@ def test_duplicate_content_is_refused_bytes_at_open(enabled_store):
     assert again.json()["accept_bytes"] is False
     assert again.json()["duplicate_of"], "必须指出复用的是哪个既有版本"
     assert again.json()["upload_id"] is None, "不开会话就等于不会收到任何字节"
+
+
+# ─────────────── T-S06-02：quarantine-first 接线（AC-UP-003）───────────────
+
+def test_a_malicious_upload_never_becomes_an_artifact(enabled_store):
+    """AC-UP-003「恶意/畸形逃逸=0」的接线证明。
+
+    quarantine-first 的含义是**判不干净就不进持久化链**，
+    而不是「先存起来再打标记」——存下来的那一刻它就已经在系统里了。
+    """
+    from app.upload_quarantine import EICAR
+    created = _create()
+    workspace_id = created["workspace"]["workspace_id"]
+    payload = EICAR
+    digest = hashlib.sha256(payload).hexdigest()
+    upload_id = _open(created, content=payload, name="样本.txt", media="text/plain").json()["upload_id"]
+    sent = client.patch(
+        f"{BASE}/workspaces/{workspace_id}/artifact/uploads/{upload_id}",
+        headers={**_auth(created), "Upload-Offset": "0",
+                 "Chunk-SHA256": digest},
+        content=payload)
+    assert sent.status_code == 200, "传输层不负责判恶意——它只管字节对不对"
+
+    done = client.post(
+        f"{BASE}/workspaces/{workspace_id}/artifact/uploads/{upload_id}/complete",
+        headers={**_auth(created), "Idempotency-Key": "eicar-must-not-land"})
+    assert done.status_code == 422 and done.json()["detail"] == "artifact_quarantined"
+
+    workspace = client.get(f"{BASE}/workspaces/{workspace_id}",
+                           headers=_auth(created)).json()
+    assert workspace["artifact"] is None, "隔离的文件一个都不许出现在 workspace 上"
+
+
+def test_mime_spoofed_upload_is_quarantined_over_http(enabled_store):
+    """声明 png、内容是 PE 可执行——传输能过，落库不能过。"""
+    created = _create()
+    workspace_id = created["workspace"]["workspace_id"]
+    payload = b"MZ\x90\x00" + b"\x00" * 200
+    digest = hashlib.sha256(payload).hexdigest()
+    upload_id = _open(created, content=payload, name="图.png", media="image/png").json()["upload_id"]
+    client.patch(
+        f"{BASE}/workspaces/{workspace_id}/artifact/uploads/{upload_id}",
+        headers={**_auth(created), "Upload-Offset": "0", "Chunk-SHA256": digest},
+        content=payload)
+    done = client.post(
+        f"{BASE}/workspaces/{workspace_id}/artifact/uploads/{upload_id}/complete",
+        headers={**_auth(created), "Idempotency-Key": "spoofed-png-must-not-land"})
+    assert done.status_code == 422 and done.json()["detail"] == "artifact_quarantined"
+    assert client.get(f"{BASE}/workspaces/{workspace_id}",
+                      headers=_auth(created)).json()["artifact"] is None
