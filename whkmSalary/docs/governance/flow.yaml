@@ -1,0 +1,150 @@
+# 业务流登记 —— whkmSalary(季度绩效工资测算)
+#
+# 阶段:「输入约束 → 业绩评分 → 权重调整 → 金额计算 → 结果呈现」五段。
+#
+# ★ current_status = `failed_delivery_readiness` —— 交付就绪判定**没通过**。
+#   五项功能(FEAT-WHKM-001..005)都是 active,但那是「实现了」,不是「可交付」。
+#   这张表要如实反映后者。
+#
+# ★★ 工资是敏感数据。本项目的结果**只进私有库,不出公开面** ——
+#   这是与同仓 KMFA 的 BL-PAYROLL-STD 一致的既定约束,属 blocked_by_policy,
+#   不是待办。任何把它标成红色待修的做法都是误判。
+# ★ 探针即便将来接进来,也只允许看行数与时间戳等元信息,**绝不读工资数额本身**。
+#
+# ★ 本项目是 Streamlit 应用,**没有主机侧常驻单元**(不在 OVH / Cloudflare 部署清单里),
+#   status 一格也探不到,实测覆盖率 0%,整表标注「仅自报」。
+
+schema: linze.flow.v1
+project: whkmSalary
+repo: KMOS
+authority: whkmSalary/docs/governance/(project.yaml / MODEL_SPEC.md / formula_registry.yaml)
+stages: [input, score, weight, compute, present]
+stage_names:
+  input: 输入约束
+  score: 业绩评分
+  weight: 权重调整
+  compute: 金额计算
+  present: 结果呈现
+stage_meaning:
+  input: Streamlit 侧的输入约束与默认值,挡住不合法的参数
+  score: 业绩与毛利率评分
+  weight: 审计偏差、客情成本与省份权重的修正
+  compute: 季度绩效工资总额与税后保留计算
+  present: 把结果呈现给有权限的人
+
+coupling_rule: >-
+  上游任一 stage 为 blocked / blocked_by_input / blocked_by_policy / not_built 时,
+  下游依赖它的 stage 不得标 healthy —— 必须降级并具名上游原因。
+
+sources:
+  - id: SRC-WHKM-PERF
+    name: 业绩与毛利率数据
+  - id: SRC-WHKM-SETTLE
+    name: 结算、开票与回款时间
+  - id: SRC-WHKM-AUDIT
+    name: 审计偏差与客情成本
+
+baselines:
+  - id: BL-WHKM-TOTAL
+    name: 季度绩效工资总额与税后保留
+    priority: P0
+    note: 产品本体。计算实现了,但交付就绪未通过。
+    cells:
+      input:
+        state: healthy
+        evidence: Streamlit 输入约束与默认值已实现(FEAT-WHKM-005)
+      score:
+        state: healthy
+        evidence: 业绩与毛利率评分函数已实现(FEAT-WHKM-002)
+      weight:
+        state: healthy
+        evidence: 审计偏差、客情成本与省份权重已实现(FEAT-WHKM-004)
+      compute:
+        state: healthy
+        evidence: 季度绩效工资总额与税后保留计算已实现(FEAT-WHKM-001)
+      present:
+        state: blocked_by_policy
+        evidence: >-
+          **工资为敏感数据,结果只进私有库、不出公开面**。
+          这是既定约束,不需要任何人去修 —— 与同仓 KMFA 的 BL-PAYROLL-STD 同一条规则。
+
+  - id: BL-WHKM-SETTLE
+    name: 结算 / 开票 / 回款时间评分
+    priority: P0
+    upstream: [BL-WHKM-TOTAL]
+    cells:
+      input:
+        state: healthy
+        evidence: 时间类输入有边界约束
+      score:
+        state: healthy
+        evidence: 结算、开票与回款时间评分边界已实现(FEAT-WHKM-003)
+      weight:
+        state: healthy
+        evidence: 时间评分参与总权重
+      compute:
+        state: degraded
+        evidence: >-
+          评分边界已实现,但**边界取值缺真实分布的校准** ——
+          交付就绪判定未通过的落点之一
+      present:
+        state: blocked_by_policy
+        evidence: 同主线:结果不出公开面
+
+  - id: BL-WHKM-PROVINCE
+    name: 省份权重与客情成本
+    priority: P1
+    cells:
+      input:
+        state: healthy
+        evidence: 省份与客情参数有默认值与取值约束
+      score:
+        state: healthy
+        evidence: 权重表已登记进 parameter_registry.csv
+      weight:
+        state: healthy
+        evidence: 省份权重与客情成本修正已实现(FEAT-WHKM-004)
+      compute:
+        state: degraded
+        evidence: 权重系数来自历史经验值,尚无逐省验证
+      present:
+        state: blocked_by_policy
+        evidence: 同主线:结果不出公开面
+
+  - id: BL-WHKM-DELIVERY
+    name: 交付就绪
+    priority: P0
+    note: ★ 这条专门承载 `failed_delivery_readiness`,免得它散在各处看不出来。
+    upstream: [BL-WHKM-SETTLE, BL-WHKM-PROVINCE]
+    cells:
+      input:
+        state: healthy
+        evidence: 输入侧约束齐备
+      score:
+        state: healthy
+        evidence: 评分函数齐备
+      weight:
+        state: degraded
+        evidence: 权重与边界均缺真实分布校准
+      compute:
+        state: blocked_by_input
+        evidence: >-
+          **缺可用于校准的真实历史结算数据** —— 没有它就无法证明算出来的金额可用,
+          交付就绪判定因此为 failed。属于要催人的那种阻断。
+      present:
+        state: blocked_by_policy
+        evidence: 即便校准完成,结果仍只进私有库
+
+known_defects:
+  - id: DEF-WHKM-001
+    baseline: BL-WHKM-DELIVERY
+    stage: compute
+    desc: >-
+      缺真实历史结算数据做校准,评分边界与省份权重都还是经验取值 ——
+      功能"实现了"不等于"可交付",本项目交付就绪判定为 failed。
+  - id: DEF-WHKM-002
+    baseline: BL-WHKM-TOTAL
+    stage: present
+    desc: >-
+      工资为敏感数据,结果只进私有库不出公开面。这是既定约束不是待办,
+      不应被排进任何待修列表。

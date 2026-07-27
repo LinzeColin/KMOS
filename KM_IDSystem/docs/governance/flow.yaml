@@ -1,0 +1,163 @@
+# 业务流登记 —— KM_IDSystem / OPME(工业风险规则建议系统)
+#
+# 阶段:「工单接入 → 规则诊断 → 风险分级 → 隔离控制 → 回复交付」五段。
+# 与同仓的 KMFA 用同一套状态语义,但阶段不同 —— 统一的是接口,不是阶段。
+#
+# ★ current_status = `blocked_for_operational_validation`:
+#   规则本身实现了(FEAT-OPME-001..005 均 active),但**运行期验证没通过**。
+#   而 FEAT-OPME-006..009 四项隔离控制策略状态全是 `planned` —— 那就是 not_built,
+#   不是 degraded。把「还没做」写成「有缺陷」会让待办排不出优先级。
+#
+# ★ 本项目**没有主机侧常驻单元**(不在 OVH / Cloudflare 部署清单里),
+#   status 一格也探不到,实测覆盖率 0%,整表标注「仅自报」。这是如实。
+
+schema: linze.flow.v1
+project: KM_IDSystem
+repo: KMOS
+authority: KM_IDSystem/docs/governance/(project.yaml / MODEL_SPEC.md / TRACEABILITY_MATRIX.csv)
+stages: [intake, diagnose, grade, isolate, respond]
+stage_names:
+  intake: 工单接入
+  diagnose: 规则诊断
+  grade: 风险分级
+  isolate: 隔离控制
+  respond: 回复交付
+stage_meaning:
+  intake: 接进一条现场工单或咨询
+  diagnose: 用风险规则给出建议
+  grade: 把建议映射到风险等级
+  isolate: 出问题时的隔离、重试、背压与租约控制
+  respond: 把结论交到现场人员手上
+
+coupling_rule: >-
+  上游任一 stage 为 blocked / blocked_by_input / blocked_by_policy / not_built 时,
+  下游依赖它的 stage 不得标 healthy —— 必须降级并具名上游原因。
+
+sources:
+  - id: SRC-OPME-WORKORDER
+    name: 现场工单与咨询
+  - id: SRC-OPME-RULEBASE
+    name: 风险规则库
+
+baselines:
+  - id: BL-OPME-KILN
+    name: 动态窑线风险规则建议
+    priority: P0
+    cells:
+      intake:
+        state: healthy
+        evidence: 窑线工单接入已实现
+      diagnose:
+        state: healthy
+        evidence: 动态窑线风险规则建议已实现(FEAT-OPME-001)
+      grade:
+        state: healthy
+        evidence: 建议映射到统一风险等级(FEAT-OPME-005)
+      isolate:
+        state: not_built
+        evidence: >-
+          隔离重试与死信控制策略(FEAT-OPME-006)状态为 **planned** —— 还没做,
+          不是有缺陷。规则出错时没有兜底通道。
+      respond:
+        state: blocked_by_input
+        evidence: >-
+          **运行期验证未通过**(current_status = blocked_for_operational_validation):
+          缺现场真实运行数据来证明建议可用,不能就这么交到现场人员手上。
+
+  - id: BL-OPME-FAULT
+    name: 故障诊断风险规则建议
+    priority: P0
+    cells:
+      intake:
+        state: healthy
+        evidence: 故障工单接入已实现
+      diagnose:
+        state: healthy
+        evidence: 故障诊断风险规则建议已实现(FEAT-OPME-002)
+      grade:
+        state: healthy
+        evidence: 风险等级映射统一
+      isolate:
+        state: not_built
+        evidence: 隔离反压准入与暂停策略(FEAT-OPME-007)为 planned
+      respond:
+        state: blocked_by_input
+        evidence: 同主线:缺现场运行期验证数据
+
+  - id: BL-OPME-GEAR
+    name: 齿轮修复风险规则建议
+    priority: P1
+    cells:
+      intake:
+        state: healthy
+        evidence: 齿轮修复工单接入已实现
+      diagnose:
+        state: healthy
+        evidence: 齿轮修复风险规则建议已实现(FEAT-OPME-003)
+      grade:
+        state: healthy
+        evidence: 风险等级映射统一
+      isolate:
+        state: not_built
+        evidence: 隔离锁注册、租约与 fencing 策略(FEAT-OPME-008)为 planned
+      respond:
+        state: blocked_by_input
+        evidence: 同主线:缺现场运行期验证数据
+
+  - id: BL-OPME-MACHINING
+    name: 机加工交付风险规则建议
+    priority: P1
+    cells:
+      intake:
+        state: healthy
+        evidence: 机加工交付工单接入已实现
+      diagnose:
+        state: healthy
+        evidence: 机加工交付风险规则建议已实现(FEAT-OPME-004)
+      grade:
+        state: healthy
+        evidence: 风险等级映射统一
+      isolate:
+        state: not_built
+        evidence: 隔离自动生命周期候选决策策略(FEAT-OPME-009)为 planned
+      respond:
+        state: blocked_by_input
+        evidence: 同主线:缺现场运行期验证数据
+
+  - id: BL-OPME-CONSULT
+    name: 通用咨询与 LLM 离线回退
+    priority: P2
+    note: >-
+      离线回退是**设计能力**:没有模型可用时仍要能给出规则based 的答复。
+      这条线不依赖运行期验证,所以能通到底。
+    cells:
+      intake:
+        state: healthy
+        evidence: 通用咨询接入已实现(FEAT-OPME-005)
+      diagnose:
+        state: healthy
+        evidence: 规则匹配 + LLM 离线回退
+      grade:
+        state: healthy
+        evidence: 统一风险等级映射
+      isolate:
+        state: blocked_by_policy
+        evidence: >-
+          咨询类不进隔离通道 —— 按规定就不该走那条路,不需要任何人去修
+      respond:
+        state: healthy
+        evidence: 离线回退保证任何情况下都有答复
+
+known_defects:
+  - id: DEF-OPME-001
+    baseline: BL-OPME-KILN
+    stage: respond
+    desc: >-
+      运行期验证未通过:规则实现了,但缺现场真实数据证明建议可用,
+      四条主线的交付段全部卡在这里。
+  - id: DEF-OPME-002
+    baseline: BL-OPME-KILN
+    stage: isolate
+    desc: >-
+      四项隔离控制策略(重试死信 / 反压准入 / 锁租约 fencing / 生命周期决策)全部仍是
+      planned —— 规则出错时没有任何兜底通道。
