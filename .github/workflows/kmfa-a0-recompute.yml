@@ -60,6 +60,28 @@ jobs:
     #   于是 A0 一失败 status 就什么都收不到、那一格永远停在人手写的自报。
     #   **沉默不是中立**:它让「没跑」和「跑通了」在看板上长得一模一样。
     if: always()
+    # ★ 观测**绝不能拖垮被观测的东西**。
+    #   report 是独立作业,它挂掉不会改变 a0 那个作业自己的结论 —— 但会把
+    #   **整条 workflow 的结论**染红。看板上「A0 重算失败」和「回写状态失败」
+    #   长得一模一样,于是一个纯观测的 bug 会被当成财务对账出事。
+    #   arxiv 那条已经真踩过:我给 gate 加回写忘了 checkout,直接把在跑的
+    #   生产定时流水线弄挂(MetaDatabase#145)。这里提前隔离。
+    #
+    #   ★ 隔离不等于沉默 —— 沉默是这个文件开头就否掉的东西:
+    #     · 作业级 continue-on-error 只是不污染 workflow 结论,
+    #       作业本身在 Actions 里**照样显示为失败**,点得进去看日志;
+    #     · 回写没成功 ⇒ flow_state.json 不更新 ⇒ 过了新鲜度阈值,status
+    #       上那一格退成「不确定」,不会停在旧的绿(collect.py:_pr_repo_state
+    #       实测:超期返回 unknown,而不是 blocked/healthy)。
+    #
+    #   ★ 但**别把这条兜底当成快速告警** —— 如实说清它有多慢:
+    #     这条流水线是 `on: workflow_dispatch`,**只能手动点,没有定时**;
+    #     business_baselines.json 给 BL-PROJECT-COST.verify 设的
+    #     max_age_h = 720,即 **30 天**。所以回写坏掉之后,那一格最长会
+    #     停在上一次的结论近一个月才退成「不确定」。
+    #     这不是 bug —— 手动触发的重算本来就该配长窗口;写在这里是为了
+    #     下一个人不要误以为兜底是分钟级的。真要缩短,得先给它加定时。
+    continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
