@@ -2005,6 +2005,9 @@ SCHEDULE_CONTRACT = {
     "self-audit": "周日 01:00",
     "daily-backup": "每天 00:30",
     "dws-keepalive": "每 4 小时 :20",
+    # 排程表里有它、台账与健康端点里却没有——于是「群清单自举到底跑没跑」长期无人可见，
+    # 而上游归档正是卡在它的产出上。漏登记本身就是一种假绿：看不见的排程等于没有排程。
+    "dws-bootstrap-groups": "周日 10:30",
 }
 # 技能归属业务模块（Owner 2026-07-21：「所有 skills 都需要整合进 kmfa 功能模块」）
 SKILL_MODULE = {
@@ -2013,6 +2016,7 @@ SKILL_MODULE = {
     "fund-weekly": "资金与经营报告", "mgmt-monthly": "资金与经营报告",
     "upstream-archive": "数据接入",
     "self-audit": "系统底座", "daily-backup": "系统底座", "dws-keepalive": "系统底座",
+    "dws-bootstrap-groups": "系统底座",
 }
 
 
