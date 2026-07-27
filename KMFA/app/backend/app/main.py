@@ -760,6 +760,69 @@ RECENT_COST_PATH = Path(os.environ.get(
     "KMFA_RECENT_COST", "/var/log/kmfa/project_cost/recent_completed.json"))
 
 
+DWS_CANDIDATE_PATH = Path(os.environ.get(
+    "KMFA_DWS_CANDIDATES", "/var/log/kmfa/dws/candidate_groups.json"))
+DWS_SELECTED_PATH = Path(os.environ.get(
+    "KMFA_DWS_SELECTED", "/var/log/kmfa/dws/selected_groups.json"))
+
+
+@app.get("/api/归档目标群")
+def archive_target_groups():
+    """上游归档的候选群与当前勾选。
+
+    Owner 2026-07-27：「dws 上游存档是增量存档，他也需要前端控制器筛选目标群」。
+    此前链路缺这一环：自举产出候选清单，归档要已确认清单，中间没人勾选——归档因此长期 rc=4。
+
+    群名与群 ID 是敏感信息：本接口在 Access 之后的私有面，公开面永远不出这些。
+    """
+    if not DWS_CANDIDATE_PATH.exists():
+        return {"可读": False,
+                "原因": "候选群清单尚未产出：技能 dws-bootstrap-groups 未成功跑完一次"
+                        "（它需要容器内 dws 处于已登录态）",
+                "候选": [], "已选": []}
+    try:
+        candidates = json.loads(DWS_CANDIDATE_PATH.read_text(encoding="utf-8")).get("群", [])
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"可读": False, "原因": f"候选清单无法解析：{type(exc).__name__}",
+                "候选": [], "已选": []}
+    selected = []
+    if DWS_SELECTED_PATH.exists():
+        try:
+            selected = json.loads(DWS_SELECTED_PATH.read_text(encoding="utf-8")).get("已选群", [])
+        except (OSError, json.JSONDecodeError):
+            selected = []
+    return {
+        "可读": True, "候选": candidates, "已选": selected,
+        "说明": "归档是增量的：只拉勾选的群。没有勾选时归档会停下并如实报告，不会去猜该拉哪些群。",
+        "更新时间": datetime.fromtimestamp(DWS_CANDIDATE_PATH.stat().st_mtime, BEIJING).isoformat(),
+    }
+
+
+@app.post("/api/归档目标群")
+async def save_archive_target_groups(request: Request):
+    """保存勾选。只接受候选清单里存在的群 ID——不允许从请求里凭空引入新群。"""
+    if not DWS_CANDIDATE_PATH.exists():
+        raise HTTPException(status_code=409, detail="候选群清单尚未产出，无法保存勾选")
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="请求体不是合法 JSON")
+    wanted = body.get("已选群")
+    if not isinstance(wanted, list) or not all(isinstance(x, str) for x in wanted):
+        raise HTTPException(status_code=400, detail="已选群必须是字符串数组")
+    known = {g.get("id") for g in
+             json.loads(DWS_CANDIDATE_PATH.read_text(encoding="utf-8")).get("群", [])}
+    unknown = [x for x in wanted if x not in known]
+    if unknown:
+        # 不接受请求里凭空出现的群：那等于让调用方指定归档去拉任意会话。
+        raise HTTPException(status_code=400, detail=f"这些群不在候选清单里，拒绝保存：{unknown[:5]}")
+    DWS_SELECTED_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DWS_SELECTED_PATH.write_text(json.dumps(
+        {"schema_version": "kmfa.dws.selected_groups.v1", "已选群": wanted},
+        ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"已保存": len(wanted), "生效时机": "下一次 upstream-archive 运行（每天 11:00，或部署后立即重试）"}
+
+
 CUSTOMER_MARGIN_PATH = Path(os.environ.get(
     "KMFA_CUSTOMER_MARGIN", "/var/log/kmfa/project_cost/customer_margin.json"))
 

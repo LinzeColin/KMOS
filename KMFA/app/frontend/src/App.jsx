@@ -1170,6 +1170,83 @@ function 开票与税务({ 开票 }) {
   )
 }
 
+/* ---------- 归档目标群勾选 ----------
+   归档是增量的：只拉勾选的群。没有勾选时归档会停下并如实报告，不去猜该拉哪些群。
+   群名与群 ID 是敏感信息，只在这个 Access 之后的私有面出现。                    */
+
+function 目标群({ 群, 刷新 }) {
+  const [选, 设选] = React.useState(null)
+  const [存中, 设存中] = React.useState(false)
+  const [提示, 设提示] = React.useState('')
+
+  React.useEffect(() => { if (群?.可读) 设选(new Set(群.已选 || [])) }, [群])
+
+  if (!群) return <骨架 />
+  if (群.加载失败) return <加载失败卡 详情={群.加载失败} />
+  if (群.可读 === false) {
+    return (
+      <div className="card callout warn">
+        <b>还没有候选群清单，无法勾选</b>
+        <div className="sub">{群.原因}</div>
+        <div className="sub">归档不会去猜该拉哪些群——它会停下并如实报告。</div>
+      </div>
+    )
+  }
+
+  const 候 = 群.候选 || []
+  const 已 = 选 || new Set()
+  const 切 = (id) => { const n = new Set(已); n.has(id) ? n.delete(id) : n.add(id); 设选(n) }
+  const 存 = async () => {
+    设存中(true); 设提示('')
+    try {
+      const r = await fetch('/api/归档目标群', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 已选群: [...已] }),
+      })
+      const j = await r.json()
+      if (!r.ok) throw new Error(j.detail || `HTTP ${r.status}`)
+      设提示(`已保存 ${j.已保存} 个群；${j.生效时机}`)
+      刷新 && 刷新()
+    } catch (e) { 设提示(`保存失败：${String(e.message || e)}`) }
+    finally { 设存中(false) }
+  }
+
+  return (
+    <>
+      <div className="card callout">
+        <b>归档只拉你勾选的群</b>
+        <div className="sub">{群.说明}</div>
+        <div className="sub">候选 {候.length} 个　已勾 {已.size} 个　清单更新于 {群.更新时间 || '—'}</div>
+      </div>
+
+      <div className="card">
+        <div className="rowbtn">
+          <button type="button" onClick={() => 设选(new Set(候.map(g => g.id)))}>全选</button>
+          <button type="button" onClick={() => 设选(new Set())}>全不选</button>
+          <button type="button" className="primary" onClick={存} disabled={存中 || !选}>
+            {存中 ? '保存中…' : '保存勾选'}
+          </button>
+        </div>
+        {提示 && <div className="sub" role="status">{提示}</div>}
+      </div>
+
+      <Tbl>
+        <thead><tr><th style={{ width: 44 }}>归档</th><th>群名称</th><th>群 ID</th></tr></thead>
+        <tbody>{候.map(g => (
+          <tr key={g.id}>
+            <td>
+              <input type="checkbox" checked={已.has(g.id)} onChange={() => 切(g.id)}
+                     aria-label={`归档「${g.name || g.id}」`} />
+            </td>
+            <td>{g.name || <span className="hint">（无名称）</span>}</td>
+            <td><code className="hint">{g.id}</code></td>
+          </tr>
+        ))}</tbody>
+      </Tbl>
+    </>
+  )
+}
+
 /* ---------- 客户毛利（可视化） ----------
    分四档呈现，绝不合并成一个总数：关联方之间的往来不是经营成果，
    混进去会把毛利率拉到失真。数据异常逐条标注，不替读者算一个好看的数。   */
@@ -1508,6 +1585,7 @@ export default function App() {
   const [成本, set成本] = useState(null)
   const [完工, set完工] = useState(null)
   const [客户, set客户] = useState(null)
+  const [目标群数据, set目标群] = useState(null)
   const [成本展开, 设成本展开] = useState(null)
   const [账龄, set账龄] = useState(null)
   const [开票, set开票] = useState(null)
@@ -1522,6 +1600,7 @@ export default function App() {
   const 取 = (url, set) => fetch(url)
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
     .then(set).catch(e => set({ 加载失败: String(e) }))
+  const 取群 = () => 取('/api/归档目标群', set目标群)
   const 取审计 = () => 取('/api/审计日志', set审计)
   const 取影响 = (a) => 取('/api/影响重跑' + (a ? `?asset=${encodeURIComponent(a)}` : ''), set影响)
   const 取工作台 = () => 取('/api/差异工作台', set工作台)
@@ -1529,6 +1608,7 @@ export default function App() {
     取('/api/项目成本', set成本)
     取('/api/项目成本/完工', set完工)
     取('/api/客户毛利', set客户)
+    取群()
     取('/api/账龄回款', set账龄)
     取('/api/开票纳税', set开票)
     取工作台()
@@ -1620,6 +1700,10 @@ export default function App() {
               成本={成本} 管线={管线} 排程={排程} 断言={断言} 去={去} />}
             {页 === '回款与账龄' && <回款与账龄 账龄={账龄} />}
             {页 === '开票与税务' && <开票与税务 开票={开票} />}
+            {页 === '今天' && <>
+              <h3 className="sec">上游归档目标群</h3>
+              <目标群 群={目标群数据} 刷新={取群} />
+            </>}
             {页 === '项目成本' && <>
               <完工成本 完工={完工} 展开={成本展开} 设展开={设成本展开} />
               <h3 className="sec">客户口径毛利</h3>
