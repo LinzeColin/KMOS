@@ -6,10 +6,11 @@
   这是业务判定（Owner 已授权 agent 拍板），业务随时可能纠正。写在事实文件里，
   改一行就生效、且改动看得见；写在代码里就成了埋在实现细节中的隐形口径。
 
-门禁拦的三件事：
+门禁拦的四件事：
   1. 映射到一个模板里不存在的行——那笔钱会被静默丢掉，报表还看着正常；
   2. 同一科目登记两次——会重复计入；
-  3. 把握不足却不写理由——以后没人知道这行为什么这么归。
+  3. 把握不足却不写理由——以后没人知道这行为什么这么归；
+  4. 报表某一行无人认领——既没人往里填，也没说它是上卷/派生/算不出。
 
 真正的覆盖率检查（账上出现的每个子科目都必须已登记）在私有库的计算作业里做，
 因为科目全集要读真账。`summarize()` 遇到未登记科目会抛错，绝不静默丢弃。
@@ -64,14 +65,20 @@ def check(data: dict) -> list[str]:
             errs.append(f"派生行『{d.get('row')}』没写怎么算出来的")
         if d.get("row") not in rows:
             errs.append(f"派生行『{d.get('row')}』在模板里不存在")
+    for r in data.get("rolled_up_rows") or []:
+        if not r.get("from"):
+            errs.append(f"上卷行『{r.get('row')}』没写从哪几行汇总来的")
+        if r.get("row") not in rows:
+            errs.append(f"上卷行『{r.get('row')}』在模板里不存在")
 
     # 闭环：模板里的每一行都必须有交代。一行没交代，就是一行钱可能被忘掉。
     accounted = ({m.get("row") for m in maps}
                  | {u.get("row") for u in data.get("unmappable_rows") or []}
-                 | {d.get("row") for d in data.get("derived_rows") or []})
+                 | {d.get("row") for d in data.get("derived_rows") or []}
+                 | {r.get("row") for r in data.get("rolled_up_rows") or []})
     for label in sorted(rows):
         if label not in accounted:
-            errs.append(f"模板行『{label}』既没有科目映射、也没声明算不出、也不是派生行——无人认领")
+            errs.append(f"模板行『{label}』既没有科目映射、也不是上卷行/派生行、也没声明算不出——无人认领")
     overlap = ({m.get("row") for m in maps}
                & {u.get("row") for u in data.get("unmappable_rows") or []})
     for label in sorted(overlap):
@@ -107,7 +114,9 @@ def main() -> int:
     low = [m for m in maps if m["confidence"] != "high"]
     print(f"PASS —— {len(maps)} 个成本子科目已映射到报表行；其中 {len(low)} 条把握不足待业务纠正："
           + "、".join(m["account"].split("_")[-1] for m in low))
-    print(f"        另有 {len(data.get('unmappable_rows', []))} 组报表行现阶段算不出，已具名原因")
+    print(f"        {len(data.get('rolled_up_rows', []))} 行由下级上卷、"
+          f"{len(data.get('derived_rows', []))} 行由公式派生、"
+          f"{len(data.get('unmappable_rows', []))} 行现阶段算不出（已具名原因）")
     return 0
 
 
