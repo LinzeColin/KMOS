@@ -114,6 +114,24 @@ def _public_shell_enabled() -> bool:
 # 这样匿名工作区的完整文案在 /workspace 上原样保留。
 STATIC_GRID_RE = re.compile(r'<p class="static-kicker">.*?</section>', re.S)
 
+# 换壳只改正文不改 <head>，会让 /workspace 顶着驾驶舱的标题与分享卡片。
+# 这里把 head 里的身份文案一并换成匿名工作区的，两条路由的身份才真正分开。
+WORKSPACE_HEAD_SWAPS = (
+    ("<title>KMFA｜经营驾驶舱</title>", "<title>KMFA｜公开工作区</title>"),
+    (
+        '<meta property="og:title" content="KMFA｜经营驾驶舱">',
+        '<meta property="og:title" content="KMFA｜公开工作区">',
+    ),
+    (
+        '<meta property="og:description" content="回款、开票、成本、拍板与报告，跑在同一条四层可验证链上；经营数据默认私有。">',
+        '<meta property="og:description" content="一个入口，通往项目、文件与可验证进度；不含任何经营数字。">',
+    ),
+    (
+        '<meta name="description" content="KMFA 经营驾驶舱：回款、开票、成本、拍板与报告，跑在同一条四层可验证链上；经营数据默认私有。">',
+        '<meta name="description" content="KMFA 公开工作区：一个入口，通往项目、文件与可验证进度；不含任何经营数字。">',
+    ),
+)
+
 
 def _frontend_index() -> Path:
     index_path = FRONTEND_DIST / "index.html"
@@ -187,6 +205,9 @@ def public_workspace(workspace_path: str | None = None):
         replaced, n = STATIC_GRID_RE.subn(fragment.read_text(encoding="utf-8").strip(), html, count=1)
         if n == 1:
             html = replaced
+    for cockpit_meta, workspace_meta in WORKSPACE_HEAD_SWAPS:
+        # 找不到就跳过：前端改文案时 /workspace 退化成沿用驾驶舱 head，也不该 500。
+        html = html.replace(cockpit_meta, workspace_meta, 1)
     return Response(
         html,
         media_type="text/html",

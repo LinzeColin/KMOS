@@ -2,6 +2,26 @@
 
 本项目继承仓库根 `AGENTS.md`。任何 agent 接手前先读本文件、`HANDOFF.md` 和 `machine/facts/status.json`。
 
+## 0. Owner 硬覆写（最高优先级，压过 sealed taskpack）
+
+**冲突裁决顺序：Owner 在会话中的直接指令 > 本节 > v1.5.2 sealed taskpack > 其余一切文档。**
+sealed 合同只在 Owner 没有另行指令的题目上有效；**下列条目 Owner 已直接指令，任何 agent 不得以「合同这么写」为由回退。**
+
+- **O-1 根路径归属（2026-07-26 Owner 三次投诉后定案）**
+  `/` = **KMFA 经营驾驶舱**（`app/frontend/src/KmfaHome.jsx`，标题 `KMFA｜经营驾驶舱`，六入口 `today/cash/tax/cost/decide/report`）。
+  v1.5.2 里「`/` 是完整匿名 App Shell」**已被 Owner 覆写作废**；匿名 App Shell / Walking Skeleton / 匿名反滥用挑战一律归 **`/workspace`**。
+  - 禁止删除或改写 `KmfaHome.jsx`、`index.html` / `dist/index.html` 的驾驶舱首屏、`workspace_shell_fragment.html`。
+  - 门禁：`app/backend/tests/test_root_is_kmfa_home.py`。**它红了要改代码，不许改它来"修复"**；确需变更须 Owner 在会话中明说。
+  - Owner 原话：「这根本不是我的东西 你不要搞这些恶心人的东西来恶心我」「主页还是没有恢复 我看到这个主页就恶心」。
+- **O-2 永不新建 repo。** 禁 `gh repo create`。一切私有数据进唯一私有库 `LinzeColin/Private-Database` 的 `Private-KMDatabase/` 分区；体量问题用 sparse / blobless clone 解决，不用开新仓。
+- **O-3 测试期禁发钉钉群。** 未经 Owner 当场授权，投递收件人只能是**张霖泽本人**（个人通道）。安全态 = `KMFA_DELIVERY_ENABLED=0` **且** Coolify 内无群机器人凭据；一键恢复见 `.github/workflows/coolify-ops.yml` 的 `testing-safe-mode`。
+- **O-4 本机零占用。** 禁 launchd / 本机定时任务 / 本机大缓存。定时与增量同步只能跑在云端容器（Coolify / GitHub Actions）。
+- **O-5 原始数据只读。** `~/Downloads/KMFA_MetaData` 永不写、永不删。可删的只有"云端已存在的本地可重建副本"，且删前先证明云端已有。
+- **O-6 真实金额与真实公司名不进公开仓。** KMOS 是 PUBLIC；真额只进 `Private-Database`。
+- **O-7 文件入库唯一正路** = `skills/上游归档` **在容器内**跑（`scripts/run_cloud_archive.sh`）。不走钉钉云盘，不靠本机。
+- **O-8 不得叫 Owner 登录、看页面、点确认、粘贴任何东西。** 一切验收由 agent 自验并留证据到 `stage_artifacts/`。
+- **O-9 业务基线按纵向切片治理。** 九条基线 × 六阶段的健康与耦合规则见 `machine/facts/business_baselines.json`，门禁 `tools/check_baseline_slices.py`：上游 blocked/not_built 时，下游 计算/校验/输出/投递 不得标 `healthy`。
+
 ## 当前真相与 namespace
 
 - GitHub canonical upstream：`LinzeColin/KMOS` 的 `main`，项目目录 `KMFA/`；中间 phase 在隔离 worktree 本地提交，只有整个 Stage 完成、复审并修复后才上传。
