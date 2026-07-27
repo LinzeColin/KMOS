@@ -1,0 +1,124 @@
+name: kmfa-heartbeat
+# 技能心跳：每小时探公开健康端点，发现失败就**自动触发重新部署**——
+# 而部署会让容器冷启动重跑失败技能（见 entrypoint），于是这条链是自愈的，不是只报警。
+#
+# 为什么必须自愈而不是只报警（Owner 2026-07-27）：
+#   「你已经浪费了我一个月的时间都还没有修好考勤」。
+#   一个月是这么没的：修好代码 → 等下一次排程 → 一天 → 又发现别的问题 → 再等一天。
+#   报警只是把等待变成"有人知道的等待"，时间照样在流。所以这里直接动手。
+#
+# 防抖动三条（不做的话它会把自己变成噪音源）：
+#   · 只有距上次部署 ≥2 小时才允许再次触发，避免部署风暴；
+#   · 连续失败次数达阈值才动手，一次失败不折腾（排程本身就会重试）；
+#   · 每次都把判据打出来，人能复核它为什么动手。
+on:
+  schedule:
+    # 每小时第 23 分：避开整点——全网 cron 都挤在 :00，那一刻最容易被限流延迟。
+    - cron: "23 * * * *"
+  workflow_dispatch:
+
+permissions: { contents: read }
+
+jobs:
+  beat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: 探健康 + 判定是否需要自愈
+        id: probe
+        run: |
+          python3 - <<'PY' | tee /tmp/beat.txt
+          import json, urllib.request, urllib.parse, os, sys
+          url = "https://kmfa.linzezhang.com/public-api/" + urllib.parse.quote("技能健康")
+          try:
+              with urllib.request.urlopen(url, timeout=25) as r:
+                  d = json.loads(r.read().decode())
+          except Exception as e:
+              print(f"PROBE_FAILED={type(e).__name__}")
+              print("NEED_HEAL=1")
+              print("REASON=健康端点探测失败——站点或应用异常")
+              raise SystemExit(0)
+
+          if not d.get("台账可读"):
+              print("NEED_HEAL=1")
+              print(f"REASON=台账读不到：{d.get('原因')}")
+              raise SystemExit(0)
+
+          rows = d.get("技能", [])
+          failing = [r for r in rows if r.get("退出码") not in (0, None)]
+          never = [r for r in rows if (r.get("运行次数") or 0) == 0]
+          stale = [r for r in rows
+                   if r.get("距今小时") is not None and r["距今小时"] > 30
+                   and r.get("运行次数")]
+          for r in rows:
+              print(f"  {r['技能']:<24} rc={r.get('退出码')} 次数={r.get('运行次数')} 距今h={r.get('距今小时')}")
+          print(f"FAILING={len(failing)} NEVER_RAN={len(never)} STALE={len(stale)}")
+          if failing:
+              print("NEED_HEAL=1")
+              print("REASON=失败技能：" + "、".join(r["技能"] for r in failing))
+          else:
+              print("NEED_HEAL=0")
+              print("REASON=全部技能退出码为 0")
+          PY
+          grep -E '^(NEED_HEAL|REASON)=' /tmp/beat.txt >> "$GITHUB_OUTPUT"
+
+      - name: 距上次部署是否已满 2 小时（防部署风暴）
+        id: cooldown
+        if: steps.probe.outputs.NEED_HEAL == '1'
+        env:
+          BASE: ${{ secrets.COOLIFY_BASE_URL }}
+          TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/deployments" -o /tmp/dep.json || echo '[]' > /tmp/dep.json
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, datetime, os
+          try:
+              d = json.load(open("/tmp/dep.json"))
+          except Exception:
+              d = []
+          arr = d if isinstance(d, list) else (d.get("data") or [])
+          newest = None
+          for x in arr:
+              if x.get("application_name") != "kmfa-kmos-p1":
+                  continue
+              at = x.get("created_at")
+              if at and (newest is None or at > newest):
+                  newest = at
+          if not newest:
+              print("ALLOW=1"); print("LAST_DEPLOY=none")
+          else:
+              t = datetime.datetime.fromisoformat(newest.replace("Z", "+00:00"))
+              age = (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() / 3600
+              print(f"LAST_DEPLOY={newest}")
+              print(f"AGE_H={age:.1f}")
+              print("ALLOW=1" if age >= 2 else "ALLOW=0")
+          PY
+
+      - name: 自愈——触发重新部署（容器冷启动会重跑失败技能）
+        if: steps.probe.outputs.NEED_HEAL == '1' && steps.cooldown.outputs.ALLOW == '1'
+        env:
+          BASE: ${{ secrets.COOLIFY_BASE_URL }}
+          TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "判据：${{ steps.probe.outputs.REASON }}"
+          echo "上次部署：${{ steps.cooldown.outputs.LAST_DEPLOY }}（${{ steps.cooldown.outputs.AGE_H }} 小时前）"
+          curl -fsSL -X POST -H "Authorization: Bearer $TOKEN" \
+            "$BASE/api/v1/deploy?uuid=gz5qao2k0zrx3polpbwgcg51" | head -c 400
+          echo
+          echo "已触发重新部署——容器起来后会立刻重跑失败技能"
+
+      - name: 判定为失败但在冷却期内（只记录不动手）
+        if: steps.probe.outputs.NEED_HEAL == '1' && steps.cooldown.outputs.ALLOW != '1'
+        run: |
+          echo "::warning::${{ steps.probe.outputs.REASON }}；但距上次部署仅 ${{ steps.cooldown.outputs.AGE_H }} 小时，未满 2 小时冷却，本轮不触发部署"
+
+      - name: 有失败就让本次运行红（心跳自己不许假绿）
+        if: steps.probe.outputs.NEED_HEAL == '1'
+        run: |
+          echo "::error::${{ steps.probe.outputs.REASON }}"
+          exit 1
