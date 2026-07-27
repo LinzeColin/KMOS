@@ -3,15 +3,22 @@ skill_id: kmfa-dingtalk-attendance-skill
 automation_name: 每日早晚钉钉考勤检查
 delivery_enabled: true
 delivery_disabled_status: NOT_SENT_OWNER_DISABLED
-scheduled_delivery_target_filter: group
+# Owner 2026-07-26：「目前都还是测试阶段，不要发到群聊里了，除非我授权，测试发送人是张霖泽」。
+# 此前这里仍是 group，而测试期群机器人凭据已按令移除 → 每次排程都走群通道、每次都发不出去，
+# 考勤连续 rc=5（通知未送达）。改为 personal 后与「只发张霖泽本人」的实际配置一致。
+# 恢复发群时把本行改回 group，并用 coolify-ops 的 sync-dingtalk 恢复群机器人凭据。
+scheduled_delivery_target_filter: personal
 duplicate_guard_key: work_date_plus_run_slot
 recipient_policy:
   zhang_linze_dingtalk_user_id: 01256723246324629191
   boss_dingtalk_user_id: CONFIG_REQUIRED
+# 通道优先级同步调整：测试期个人通道优先，群机器人退到最后。
+# 只关开关不改这里的话，排程仍会先试群通道并失败。
 channel_priority:
-  - dingtalk_group_robot
+  - dws_ding_personal
   - dws_chat_bot
   - dingtalk_work_notification
+  - dingtalk_group_robot
 missing_config_status: NOTIFIER_CONFIG_MISSING
 ready_rule: any_supported_channel_ready
 group_robot_required_env:

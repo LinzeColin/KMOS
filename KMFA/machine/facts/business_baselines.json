@@ -162,8 +162,8 @@
       ],
       "stages": {
         "intake": {
-          "status": "degraded",
-          "evidence": "cron 已接真入口（#208），但群清单配置待云端自举生成"
+          "status": "blocked_by_input",
+          "evidence": "公开健康端点实测：本技能连续 8 次 rc=4，全卡在『私有库缺群清单配置』——生成配置的 bootstrap 是手动步骤、从未被排程。已改为缺配置时就地自举（本次修复），待下一轮 cron 实证；若自举后仍失败则是容器内 dws 登录态问题"
         },
         "parse": {
           "status": "healthy",
@@ -227,7 +227,7 @@
         },
         "deliver": {
           "status": "blocked_by_policy",
-          "evidence": "测试期禁群：DELIVERY=0 且群机器人凭据已移除；默认只发张霖泽本人"
+          "evidence": "测试期禁群（Owner 令）：DELIVERY=0 且群机器人凭据已移除。公开健康端点实测曾连续 rc=5（通知未送达）——根因是策略里投递目标仍写着 group，而群通道凭据已按令移除。本次改为 personal 并把群机器人退到最后优先，与『只发张霖泽本人』的实际配置一致；已加测试钉住，防止被改回去而无人察觉"
         }
       },
       "known_defects": [
@@ -258,16 +258,16 @@
           "evidence": "—"
         },
         "compute": {
-          "status": "healthy",
-          "evidence": "—"
+          "status": "degraded",
+          "evidence": "上游归档连续 8 次 rc=4、从未真正取回文件（公开健康端点实测）。本技能 rc=0 只证明「跑了」，不证明「有新输入」——这正是耦合治理要拦的假绿。待归档实证跑通后复评"
         },
         "verify": {
-          "status": "healthy",
-          "evidence": "—"
+          "status": "degraded",
+          "evidence": "上游归档连续 8 次 rc=4、从未真正取回文件（公开健康端点实测）。本技能 rc=0 只证明「跑了」，不证明「有新输入」——这正是耦合治理要拦的假绿。待归档实证跑通后复评"
         },
         "output": {
-          "status": "healthy",
-          "evidence": "—"
+          "status": "degraded",
+          "evidence": "上游归档连续 8 次 rc=4、从未真正取回文件（公开健康端点实测）。本技能 rc=0 只证明「跑了」，不证明「有新输入」——这正是耦合治理要拦的假绿。待归档实证跑通后复评"
         },
         "deliver": {
           "status": "blocked_by_policy",
@@ -297,16 +297,16 @@
           "evidence": "OCR 链已替换（集合口径零反例）"
         },
         "compute": {
-          "status": "healthy",
-          "evidence": "—"
+          "status": "degraded",
+          "evidence": "上游归档连续 8 次 rc=4、从未真正取回文件（公开健康端点实测）。本技能 rc=0 只证明「跑了」，不证明「有新输入」——这正是耦合治理要拦的假绿。待归档实证跑通后复评"
         },
         "verify": {
           "status": "degraded",
           "evidence": "报表vs银行匹配 72.9%，待延窗数据"
         },
         "output": {
-          "status": "healthy",
-          "evidence": "—"
+          "status": "degraded",
+          "evidence": "上游归档连续 8 次 rc=4、从未真正取回文件（公开健康端点实测）。本技能 rc=0 只证明「跑了」，不证明「有新输入」——这正是耦合治理要拦的假绿。待归档实证跑通后复评"
         },
         "deliver": {
           "status": "blocked_by_policy",
