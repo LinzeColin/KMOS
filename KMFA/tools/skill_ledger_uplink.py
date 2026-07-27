@@ -74,6 +74,30 @@ def append_line(line: str, token: str, repo: str = REPO, path: str | None = None
     return f"✓ 已回传 {repo}/{path}"
 
 
+#: 回传自身的健康留痕。没有它就会出现今天这种局面：私有库里根本没有 skill-ledger 目录，
+#: 而**没有任何人会发现**——回传按设计静默失败（不该拖垮技能），于是失败得悄无声息。
+#: 现在把结果写进共享卷，公开端点照读，回传断了当场看得见。
+STATUS_PATH = os.environ.get("KMFA_LEDGER_UPLINK_STATUS", "/var/log/kmfa/ledger_uplink_status.json")
+
+
+def _mark(ok: bool, detail: str) -> None:
+    """留痕失败绝不能反过来拖垮回传——整段吞掉。"""
+    try:
+        payload = {
+            "时间": datetime.now(timezone(timedelta(hours=8))).isoformat(),
+            "成功": ok,
+            "情况": detail,       # 只写机器可读的原因，不含凭据、不含业务数据
+            "仓库": REPO,
+        }
+        path = os.path.dirname(STATUS_PATH)
+        if path:
+            os.makedirs(path, exist_ok=True)
+        with open(STATUS_PATH, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, ensure_ascii=False)
+    except Exception:                            # noqa: BLE001
+        pass
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="技能台账回传私有库")
     ap.add_argument("--line", help="一行 JSON 台账；缺省从 stdin 读")
@@ -87,15 +111,19 @@ def main() -> int:
         json.loads(line)
     except json.JSONDecodeError as e:
         print(f"台账行不是合法 JSON，跳过：{e}", file=sys.stderr)
+        _mark(False, "台账行不是合法 JSON")
         return 0
     token = _token()
     if not token:
         print("无 KMFA_BACKUP_GH_TOKEN，跳过回传（不影响技能本身）")
+        _mark(False, "容器内没有 KMFA_BACKUP_GH_TOKEN")
         return 0
     try:
         print(append_line(line, token))
+        _mark(True, "已回传")
     except Exception as e:                       # noqa: BLE001 —— 回传失败绝不拖垮技能
         print(f"回传失败（不影响技能本身）：{type(e).__name__}: {e}", file=sys.stderr)
+        _mark(False, f"回传报错 {type(e).__name__}")
     return 0
 
 

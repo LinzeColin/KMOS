@@ -432,3 +432,15 @@ ul.muted li { margin-top: 4px; }
 .rowbtn button.primary { background: var(--accent, #9a3412); color: #fff; border-color: transparent; }
 .rowbtn button:disabled { opacity: .5; cursor: not-allowed; }
 .tbl input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+
+/* 失败码：跟在「失败」后面的那一小截机器状态令牌。
+   等宽体是有意的——它是要被搜索、被贴进 issue 的标识符，不是给人读的句子。
+   继承 chip 的红色而不另设一色：它属于那个失败，不是并列的第二条信息。 */
+.chip.bad .why {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  letter-spacing: 0.01em;
+  opacity: 0.86;
+  background: none;
+  padding: 0;
+}

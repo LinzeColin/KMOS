@@ -2118,6 +2118,54 @@ def audit_log(action_type: str | None = None, page: int = 1, size: int = 50):
 # 于是每次都要 Owner 亲自查、再回报给开发侧。这个来回本身就是设计缺陷，不是沟通问题。
 # 现在 app 只读挂 kmfa-logs，本接口直接读 skills 写的 ledger。
 SKILL_LEDGER_PATH = Path(os.environ.get("KMFA_SKILL_LEDGER", "/var/log/kmfa/ledger.jsonl"))
+LEDGER_UPLINK_STATUS_PATH = Path(os.environ.get(
+    "KMFA_LEDGER_UPLINK_STATUS", "/var/log/kmfa/ledger_uplink_status.json"))
+
+#: 公开失败码的形状校验。台账文件是**另一个容器**写的，这里不拿它当可信输入——
+#: 那边写坏了、被塞进业务文本，也绝不能顺着流到公开端点上。
+_PUBLIC_CODE_UPPER_SNAKE = re.compile(r"^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$")
+_PUBLIC_CODE_CAMEL = re.compile(r"^(?:[A-Z]{1,6}[a-z0-9]+)+$")
+_PUBLIC_CODE_CREDENTIAL = re.compile(r"^(?:gh[pousr]_|sk-|xox[bap]-)|^[A-Fa-f0-9]{24,}$")
+
+
+def _ledger_uplink_state() -> dict[str, Any]:
+    """台账回传通没通——**回传按设计静默失败**，没有这个就没人会发现它断了。
+
+    实测：私有库里压根没有 skill-ledger 目录，而回传每次都"成功"返回 0（不该拖垮技能），
+    于是断了几十次也无人察觉。这里把它摆到台面上。
+    """
+    if not LEDGER_UPLINK_STATUS_PATH.exists():
+        return {"成功": False, "情况": "回传从未留下过结果——技能容器里还没跑到回传这一步，或日志卷没挂上"}
+    try:
+        raw = json.loads(LEDGER_UPLINK_STATUS_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"成功": False, "情况": f"回传留痕无法解析：{type(exc).__name__}"}
+    if not isinstance(raw, dict):
+        return {"成功": False, "情况": "回传留痕格式不对"}
+    # 只透传三个已知字段，不整包回显——留痕文件是别的容器写的，不当可信输入。
+    return {
+        "成功": bool(raw.get("成功")),
+        "情况": str(raw.get("情况") or "")[:120],
+        "时间": str(raw.get("时间") or "")[:40],
+    }
+
+
+def _public_failure_code(raw: object) -> str | None:
+    """把台账里的 code 变成可公开的失败码；任何不合形状的一律丢弃（返回 None）。
+
+    与 KMFA/tools/skill_failure_code.py 的 is_public_safe 同规则，**故意重写一遍**：
+    这两侧分属两个容器、两条部署链，一侧被改坏时另一侧仍然拦得住。
+    """
+    if not isinstance(raw, str):
+        return None
+    code = raw.strip()
+    if not code or not (3 <= len(code) <= 60) or _PUBLIC_CODE_CREDENTIAL.search(code):
+        return None
+    if _PUBLIC_CODE_CAMEL.match(code):
+        return code
+    if _PUBLIC_CODE_UPPER_SNAKE.match(code) and ("_" in code or len(code) <= 12):
+        return code
+    return None
 # 排程契约（与 deploy/skills-runtime/crontab.txt 一致；北京时间）
 SCHEDULE_CONTRACT = {
     "attendance-morning": "每天 10:35",
@@ -2213,6 +2261,7 @@ def public_skill_health():
                     (now - datetime.fromisoformat(str(last["ts"]))).total_seconds() / 3600, 1)
             except (ValueError, KeyError, TypeError):
                 距今小时 = None
+        失败码 = _public_failure_code((last or {}).get("code")) if last and last.get("rc") else None
         出.append({
             "技能": skill,
             "最近一次": (last or {}).get("ts"),
@@ -2220,12 +2269,16 @@ def public_skill_health():
             "退出码": (last or {}).get("rc"),
             "成功": (last or {}).get("rc") == 0 if last else None,
             "运行次数": len(history),
+            # rc 只说「失败了」，失败码说「哪一种失败」——没有它就只能改一版等一天看会不会变绿。
+            "失败码": 失败码,
         })
     return JSONResponse({
         "生成时间": now.isoformat(),
         "台账可读": True,
         "技能": 出,
+        "台账回传": _ledger_uplink_state(),
         "口径": "只报运行事实，不含任何业务数据；零运行次数即视为未跑通，不因日志新鲜而判健康。",
+        "失败码口径": "白名单构造的机器状态令牌，形不合者一律不出；完整取证只落私有库，不上公开端点。",
     }, headers=headers)
 
 
@@ -2296,6 +2349,9 @@ def schedule_health():
             "距今小时": 距今小时,
             "退出码": (last or {}).get("rc"),
             "成功": (last or {}).get("rc") == 0 if last else None,
+            # 失败码：rc 只说「投递没成功」，而那对应十来种完全不同的原因。
+            # 没有它，修一个失败技能就只能改一版等一天看会不会变绿——考勤为此拖了一个月。
+            "失败码": (_public_failure_code((last or {}).get("code")) if last and last.get("rc") else None),
             "投递开关": (last or {}).get("delivery_enabled"),
             "次数": len(history),
             "失败次数": 失败次数,
@@ -2304,6 +2360,7 @@ def schedule_health():
             # 全量运行历史（最近在前，封顶 100 条防大账本撑爆响应；快照=当次独立日志文件）
             "历史": [{
                 "ts": r.get("ts"), "rc": r.get("rc"), "成功": r.get("rc") == 0,
+                "失败码": (_public_failure_code(r.get("code")) if r.get("rc") else None),
                 "投递开关": r.get("delivery_enabled"), "快照": r.get("log"),
                 # 结果摘要=当次日志最后一行有内容的输出（Owner：「skills 的结果呢」——
                 # 不点快照也要能看到这次跑出了什么）。只取最近 8 条，读文件 IO 有界。

@@ -83,13 +83,31 @@ esac
   "${CMD[@]}" >> "$LOG" 2>&1
   RC=$?
   echo "$(date -Is) $SKILL: 结束 rc=$RC" >> "$LOG"
-  LINE="$(printf '{"ts":"%s","skill":"%s","rc":%d,"log":"%s","delivery_enabled":"%s"}' \
-    "$(date -Is)" "$SKILL" "$RC" "$LOG" "$KMFA_DELIVERY_ENABLED")"
+  # 失败码：rc 只说「投递没成功」，而那对应十来种完全不同的原因。没有它就只能改一版等一天。
+  # 提取器是白名单构造的（见 skill_failure_code.py），出来的东西天然可公开。
+  CODE=""
+  if [ "$RC" -ne 0 ]; then
+    CODE="$(timeout 30 python3 "$ROOT/KMFA/tools/skill_failure_code.py" "$LOG" 2>/dev/null || echo UNKNOWN)"
+  fi
+  LINE="$(printf '{"ts":"%s","skill":"%s","rc":%d,"code":"%s","log":"%s","delivery_enabled":"%s"}' \
+    "$(date -Is)" "$SKILL" "$RC" "$CODE" "$LOG" "$KMFA_DELIVERY_ENABLED")"
+  # 共享卷这份被公开端点读，**故意不带日志尾巴**——考勤日志里有员工姓名和打卡明细。
   echo "$LINE" >> "$LEDGER"
   # 回传私有库：容器卷里的台账没人验得到（Coolify 的 logs 返回空、exec 返回 404，
   # /api/排程健康 在 Access 后面）。回传后验证就是一条 gh api，不必登录也不必进容器。
-  # 失败只记日志，绝不改变技能自身的退出码。
-  echo "$LINE" | timeout 60 python3 "$ROOT/KMFA/tools/skill_ledger_uplink.py" >> "$LOG" 2>&1 || true
+  # 私有库这份**带**日志尾巴——取证细节只该落在私有侧。失败只记日志，绝不改退出码。
+  if [ "$RC" -ne 0 ]; then
+    TAIL="$(timeout 30 python3 "$ROOT/KMFA/tools/skill_failure_code.py" "$LOG" --tail 2>/dev/null || true)"
+    LINE_FULL="$(SKILL_LINE="$LINE" SKILL_TAIL="$TAIL" python3 -c 'import json,os,sys
+d = json.loads(os.environ["SKILL_LINE"])
+t = os.environ.get("SKILL_TAIL", "")
+if t:
+    d["tail"] = t
+sys.stdout.write(json.dumps(d, ensure_ascii=False))' 2>/dev/null || printf '%s' "$LINE")"
+  else
+    LINE_FULL="$LINE"
+  fi
+  printf '%s' "$LINE_FULL" | timeout 60 python3 "$ROOT/KMFA/tools/skill_ledger_uplink.py" >> "$LOG" 2>&1 || true
   if [ "$RC" -ne 0 ] && [ -n "${KMFA_ALERT_WEBHOOK_TOKEN:-}" ]; then
     dws chat message send-by-webhook --token "$KMFA_ALERT_WEBHOOK_TOKEN" \
       --title "KMFA 云端技能失败告警" \

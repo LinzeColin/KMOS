@@ -775,7 +775,11 @@ function 排程健康({ 排程 }) {
                   <td>{x.最近一次 ?? <span className="tone-bad">从未跑过</span>}</td>
                   <td className="num">{x.距今小时 == null ? '—' : `${x.距今小时} 小时前`}</td>
                   <td>{x.成功 === true ? <span className="chip ok">成功</span>
-                    : x.成功 === false ? <span className="chip bad" title={`rc=${x.退出码}`}>失败</span>
+                    : x.成功 === false ? (
+                      // 只写「失败」等于没说：rc=5 对应十来种原因，把是哪一种摆在这一格。
+                      <span className="chip bad" title={`rc=${x.退出码}`}>
+                        失败{x.失败码 ? <> · <code className="why">{x.失败码}</code></> : null}
+                      </span>)
                     : <span className="muted">—</span>}</td>
                   <td>{x.投递开关 == null ? <span className="muted">—</span>
                     : String(x.投递开关) === '1' ? <span className="chip ok">已开</span>
@@ -797,7 +801,9 @@ function 排程健康({ 排程 }) {
                               <tr>
                                 <td className="muted">{h.ts}</td>
                                 <td>{h.成功 ? <span className="chip ok">成功</span>
-                                  : <span className="chip bad" title={`rc=${h.rc}`}>失败</span>}</td>
+                                  : <span className="chip bad" title={`rc=${h.rc}`}>
+                                      失败{h.失败码 ? <> · <code className="why">{h.失败码}</code></> : null}
+                                    </span>}</td>
                                 <td>{String(h.投递开关) === '1' ? <span className="chip ok">已开</span>
                                   : <span className="chip warn">空跑</span>}</td>
                                 <td className="muted" style={{ maxWidth: '26rem' }}>{h.摘要 ?? '—'}</td>
