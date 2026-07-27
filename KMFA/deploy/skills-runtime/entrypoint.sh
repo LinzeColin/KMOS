@@ -132,5 +132,14 @@ for KEY in HOME TZ KMFA_DELIVERY_ENABLED KMFA_ATTENDANCE_ARCHIVE_ROOT; do
 done
 echo "$(date -Is) entrypoint: 排程已装入 $CRON_D（$GOT_JOBS 条）" >> /var/log/kmfa/cron.log
 touch /var/log/kmfa/cron.log /var/log/kmfa/ledger.jsonl
+# 冷启动先补一次项目成本：排程是每天 05:45，新容器起来后若干等到明天，
+# 页面就会一直显示「还没产出」——对 Owner 而言等于没做。故启动即先算一次。
+# 后台跑、失败只记日志：这一步绝不能挡住 cron 启动。
+if [ -f /opt/kmfa/secrets/kmfa_backup_deploy_key ] \
+   && [ ! -s /var/log/kmfa/project_cost/recent_completed.json ]; then
+  echo "$(date -Is) entrypoint: 冷启动补算项目成本（后台）" >> /var/log/kmfa/cron.log
+  ( /opt/runtime/run_skill.sh project-cost-refresh >> /var/log/kmfa/cron.log 2>&1 || true ) &
+fi
+
 echo "$(date -Is) entrypoint: cron 启动（TZ=$TZ，KMFA_DELIVERY_ENABLED=${KMFA_DELIVERY_ENABLED:-0}）" >> /var/log/kmfa/cron.log
 exec cron -f

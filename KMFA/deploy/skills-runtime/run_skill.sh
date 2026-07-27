@@ -33,6 +33,24 @@ case "$SKILL" in
   work-check-evening)  CMD=(python3 -m KMFA.tools.daily_routine_check.main --input-zip "${KMFA_DAILY_INPUT_ZIP:-/opt/kmfa/data/DWS_Outputs.zip}" --trigger-window evening_1705 $DELIVERY_FLAG) ;;
   fund-weekly)         CMD=(python3 KMFA/skills/资金周报/tools/validate_taskpack.py) ;;       # SKL.0005 OCR 替换后接业务入口
   mgmt-monthly)        CMD=(python3 KMFA/skills/经营月报/tools/validate_skill_package.py) ;;   # SKL.0004 演练时替换为业务入口
+  # 最近完工项目成本：稀疏克隆私有库取真源 → 算 → 写共享卷；App 只读不算。
+  # Owner 2026-07-27：「我根本没有看到项目成本，我说了我要最近完工的项目成本」——
+  # 数要出现在驾驶舱页面上，所以产物是 App 直接读的 JSON，不是导出的文件。
+  project-cost-refresh) CMD=(bash -c '\
+                         set -e; K=/opt/kmfa/secrets/kmfa_backup_deploy_key; \
+                         [ -f "$K" ] || { echo "缺部署密钥，无法取私有源"; exit 3; }; \
+                         export GIT_SSH_COMMAND="ssh -i $K -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o BatchMode=yes"; \
+                         D=/tmp/kmfa-pdb-cost; rm -rf "$D"; \
+                         git clone --quiet --filter=blob:none --no-checkout git@github.com:LinzeColin/Private-Database.git "$D"; \
+                         git -C "$D" sparse-checkout init --cone; \
+                         git -C "$D" sparse-checkout set Private-KMDatabase/KMFA_MetaData; \
+                         git -C "$D" checkout --quiet; \
+                         mkdir -p /var/log/kmfa/project_cost; \
+                         python3 KMFA/tools/project_cost/build_recent_completed.py \
+                           --data-root "$D/Private-KMDatabase/KMFA_MetaData" \
+                           --account-map KMFA/machine/facts/project_cost_account_map.json \
+                           --out /var/log/kmfa/project_cost/recent_completed.json; \
+                         rm -rf "$D"') ;;
   # 真业务入口:云端 dws 归档(钉钉→容器→GitHub 私有库)。原先只跑校验器→从未真归档。
   upstream-archive)    CMD=(bash KMFA/skills/上游归档/scripts/run_cloud_archive.sh) ;;
   # 群清单自举:用容器内已认证 dws 列群生成候选配置进私有库(Owner 无需提供群 ID)
