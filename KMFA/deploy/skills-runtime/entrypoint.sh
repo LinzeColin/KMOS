@@ -169,6 +169,28 @@ PYR
     echo "$(date -Is) entrypoint: 冷启动重试失败技能 $s" >> /var/log/kmfa/cron.log
     /opt/runtime/run_skill.sh "$s" >> /var/log/kmfa/cron.log 2>&1 || true
   done
+
+  # 冷启动补齐「别的技能依赖、但产物还不在」的前置技能。
+  #
+  # 为什么不是「没跑过的都补跑一遍」：经营月报那种一跑就可能发出东西的，
+  # 绝不该因为一次部署被触发。所以判据是**产物在不在**，不是**跑没跑过**。
+  #
+  # 实测踩到的那条链（2026-07-27）：
+  #   dws-bootstrap-groups 排在周日 10:30，加进排程后一直没轮到（运行次数 0）
+  #     → 没有候选群清单 → 驾驶舱无群可勾 → 没有 target_groups.yaml
+  #     → upstream-archive 每天 exit 4。
+  #   一个周任务，把一个日任务卡了整整一周，而失败看起来像是归档自己的毛病。
+  # 变量名只能用 ASCII——bash 的 read/for 不接受中文标识符，而 `bash -n` 查不出来
+  # （报错发生在运行时）。真跑一遍才抓到，语法检查会放行。
+  while IFS='|' read -r ARTIFACT SKILL_NAME; do
+    [ -n "$SKILL_NAME" ] || continue
+    if [ ! -s "$ARTIFACT" ]; then
+      echo "$(date -Is) entrypoint: 缺前置产物 $ARTIFACT → 冷启动补跑 $SKILL_NAME" >> /var/log/kmfa/cron.log
+      /opt/runtime/run_skill.sh "$SKILL_NAME" >> /var/log/kmfa/cron.log 2>&1 || true
+    fi
+  done <<'PREREQ'
+/var/log/kmfa/dws/candidate_groups.json|dws-bootstrap-groups
+PREREQ
 ) &
 
 echo "$(date -Is) entrypoint: cron 启动（TZ=$TZ，KMFA_DELIVERY_ENABLED=${KMFA_DELIVERY_ENABLED:-0}）" >> /var/log/kmfa/cron.log

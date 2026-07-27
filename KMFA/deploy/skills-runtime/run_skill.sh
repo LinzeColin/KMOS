@@ -64,16 +64,23 @@ case "$SKILL" in
                          A="--profile-config $D/expected_profile.json --ledger-path $D/memory.md --state-path $D/state.json"; \
                          [ -f "$D/expected_profile.json" ] || A="$A --bootstrap-current-profile"; \
                          python3 KMFA/tools/automation/dws_auth_keepalive.py $A') ;;  # 认证保活：替代已停用的 Codex 排程 dws-auth-keepalive-2；无交互刷新 access-token；profile/state/ledger 落 kmfa-logs 卷（容器重建不丢），首跑自举 profile；失败经 run_skill 告警面上报
+  # 三道检查逐条跑完再一起判，**不是** set -e 一路串下来。
+  # 实测（2026-07-27）：lineage stale 发现陈旧资产时按设计返回 1，那是一条「发现」；
+  # 而 set -e 把这条发现当成中断，双平面门禁于是几周没被跑到过，还一直显示"自检失败"。
+  # 一条发现不该掐死后面的检查——自检的职责是把问题找全，不是遇到第一个就撒手。
   self-audit)          CMD=(bash -c 'set -e; \
                          rm -rf /tmp/kmfa-audit && mkdir -p /tmp/kmfa-audit; \
                          tar -C /opt/kmfa/KMOS --exclude=./.git --exclude=./KMDatabase/data/objects \
                              --exclude=./KMFA/app/frontend/node_modules --exclude=./KMFA/.codex_private_runtime \
                              -cf - . | tar -C /tmp/kmfa-audit -xf -; \
                          cd /tmp/kmfa-audit; \
-                         python3 KMFA/tools/evidence_check.py; \
-                         python3 KMFA/tools/lineage_graph.py stale; \
-                         python3 KMDatabase/machine/tools/check_dual_plane_ci.py --root . --require-projects; \
-                         rm -rf /tmp/kmfa-audit') ;;  # DT8 健康周检：tar 影子里跑（仓库挂载只读且双平面门原地重渲染——容器演练抓获；worktree .git 为指针文件故不用克隆），私有库类门禁另跑
+                         set +e; BAD=0; \
+                         for CHK in "KMFA/tools/evidence_check.py" "KMFA/tools/lineage_graph.py stale" \
+                                    "KMDatabase/machine/tools/check_dual_plane_ci.py --root . --require-projects"; do \
+                           python3 $CHK; R=$?; \
+                           [ $R -eq 0 ] || { echo "自检不过：$CHK → rc=$R"; BAD=1; }; \
+                         done; \
+                         rm -rf /tmp/kmfa-audit; exit $BAD') ;;  # DT8 健康周检：tar 影子里跑（仓库挂载只读且双平面门原地重渲染——容器演练抓获；worktree .git 为指针文件故不用克隆），私有库类门禁另跑
   *) echo "未知技能: $SKILL" >&2; exit 2 ;;
 esac
 
