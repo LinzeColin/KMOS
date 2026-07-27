@@ -92,3 +92,27 @@ def test_tail_is_bounded_so_one_runaway_log_cannot_blow_up_the_ledger():
     out = tail("\n".join(f"line {i} " + "x" * 900 for i in range(500)), lines=40)
     assert len(out.splitlines()) == 40
     assert all(len(line) <= 400 for line in out.splitlines())
+
+
+def test_a_later_substep_status_never_masks_the_notification_status():
+    """线上实测抓到的：考勤报回 `WRITTEN`——归档子步骤的 status 盖掉了投递状态。
+
+    归档的 `"status": "WRITTEN"` 写在投递之后，按文档顺序取就会赢。
+    结果失败码把一个**投递**问题说成了**归档**问题——比不给码更误导。
+    键优先级必须压过文档顺序。
+    """
+    log = """{"notification_status": "NOT_SENT_DWS_UNAVAILABLE"}
+{"status": "WRITTEN", "path": "onedrive"}
+2026-07-27 结束 rc=5"""
+    assert extract(log) == "NOT_SENT_DWS_UNAVAILABLE"
+
+
+def test_falls_back_to_plain_status_when_there_is_no_notification_status():
+    """没有投递状态时，`status` 仍然是有用的——优先级不等于只认一个键。"""
+    assert extract('{"status": "DWS_AUTH_REQUIRED"}') == "DWS_AUTH_REQUIRED"
+
+
+def test_within_one_key_the_last_write_still_wins():
+    """同一个键会被反复改写，最后落定的那次才决定退出码。"""
+    log = '{"notification_status": "NOT_SENT"}\n{"notification_status": "NOT_SENT_DWS_UNAVAILABLE"}'
+    assert extract(log) == "NOT_SENT_DWS_UNAVAILABLE"

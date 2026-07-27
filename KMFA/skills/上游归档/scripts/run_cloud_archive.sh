@@ -23,16 +23,23 @@ KEY=/opt/kmfa/secrets/kmfa_backup_deploy_key
 LOG=/var/log/kmfa/dws-archive.log
 
 log(){ echo "$(date -Iseconds 2>/dev/null || date) $*" >> "$LOG"; }
+# 退出时把机器码送到 **stdout**。log() 只写本技能自己的 dws-archive.log，
+# 而 run_skill.sh 抓的是 stdout——所以过去归档失败在台账里只留下一个 rc=4，
+# 失败码提取器什么也看不到（线上实测报回 UNKNOWN）。
+# 码的形状必须是 UPPER_SNAKE：公开端点只放行这种，别的形状会被整条丢弃。
+# 三个位置参数写死：码、说明、退出码。别用 shift+$*——那样退出码会被拼进说明里。
+die(){ log "$2"; echo "{\"status\": \"$1\"} $2"; exit "${3:-1}"; }
 mkdir -p "$WORKDIR" /var/log/kmfa
 
 if [ ! -f "$KEY" ]; then
-  log "缺部署密钥 $KEY —— 无法取私有配置/回传，跳过（不空跑假装成功）"; exit 3
+  die DEPLOY_KEY_MISSING "缺部署密钥 $KEY —— 无法取私有配置/回传，跳过（不空跑假装成功）" 3
 fi
 export GIT_SSH_COMMAND="ssh -i $KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o BatchMode=yes"
 
 # 1) 从私有库取群清单配置（稀疏，只取配置与归档区）
 rm -rf "$PDB_DIR"
-git clone --quiet --filter=blob:none --no-checkout "$PDB_REPO" "$PDB_DIR" || { log "私有库克隆失败"; exit 1; }
+git clone --quiet --filter=blob:none --no-checkout "$PDB_REPO" "$PDB_DIR" || \
+  die PRIVATE_DB_CLONE_FAILED "私有库克隆失败" 1
 cd "$PDB_DIR" || exit 1
 git sparse-checkout init --cone >/dev/null 2>&1
 git sparse-checkout set "$CONF_AREA" "$AREA" >/dev/null 2>&1
@@ -82,8 +89,7 @@ PYS
 fi
 
 if [ ! -f "$CONF_SRC" ]; then
-  log "无目标群清单：候选已就绪但驾驶舱尚未勾选，或容器内 dws 未登录。归档不猜目标，停在这里"
-  exit 4
+  die NO_TARGET_GROUPS "无目标群清单：候选已就绪但驾驶舱尚未勾选，或容器内 dws 未登录。归档不猜目标，停在这里" 4
 fi
 mkdir -p "$SKILL/config"
 install -m 600 "$CONF_SRC" "$SKILL/config/target_groups.yaml"
@@ -96,6 +102,7 @@ export DWS_CODEX_CONTROLLED=1
   --run-source "cloud_cron" --automation-name "云端钉钉DWS归档" "$@" >> "$LOG" 2>&1
 RC=$?
 log "归档退出码 rc=$RC"
+[ "$RC" -eq 0 ] || echo "{\"status\": \"ARCHIVE_RUN_FAILED\"} archive_dingtalk_all_files.py rc=$RC"
 
 # 3) 回传私有库（GitHub = 唯一权威全量存储）；无新增不产生空提交
 if [ -d "$WORKDIR" ] && [ -n "$(ls -A "$WORKDIR" 2>/dev/null)" ]; then

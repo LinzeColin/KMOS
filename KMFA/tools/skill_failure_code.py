@@ -53,10 +53,18 @@ def extract(text: str) -> str:
 
     从**后往前**找：一次运行会打很多行，最后写下的状态才是决定退出码的那个。
     """
-    hits = [m.group("val") for m in _JSON_STATUS.finditer(text)]
-    for value in reversed(hits):
-        if value.upper() not in _USELESS and is_public_safe(value):
-            return value
+    # **按键优先级取，不是按文档顺序取。**
+    # 线上实测（2026-07-27）：考勤报回 `WRITTEN`——那是归档步骤的 `"status": "WRITTEN"`
+    # （dws_attendance.py:2012），它写在投递之后，于是按文档顺序就盖掉了真正决定退出码的
+    # notification_status。结果失败码把一个投递问题说成了归档问题，比不给码更误导。
+    # 同一个键内部才按文档顺序取最后一个（一次运行会多次改写同一个状态）。
+    by_key: dict[str, list[str]] = {}
+    for match in _JSON_STATUS.finditer(text):
+        by_key.setdefault(match.group("key"), []).append(match.group("val"))
+    for key in _STATUS_KEYS:
+        for value in reversed(by_key.get(key, [])):
+            if value.upper() not in _USELESS and is_public_safe(value):
+                return value
 
     for match in reversed(list(_EXC.finditer(text))):
         cls = match.group("cls")
