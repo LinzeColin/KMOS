@@ -851,6 +851,45 @@ def customer_margin():
     return payload
 
 
+PROJECT_MARGIN_PATH = Path(os.environ.get(
+    "KMFA_PROJECT_MARGIN", "/var/log/kmfa/project_cost/project_margin.json"))
+
+
+@app.get("/api/项目毛利")
+def project_margin():
+    """项目口径毛利——给的是**毛利上限**，不是毛利，而且这一点必须传到页面上。
+
+    两个成本口径都是残的：业务台账那四项不含人工（人工约占生产成本八成），
+    金蝶只归集到带合同号的那部分（人工约七成记在『不分项目』）。
+    成本必然被低估，所以毛利必然被高估——这里给的是上限，真实毛利只会更低。
+
+    所以这个接口有一条别的接口没有的硬约束：`⚠这不是毛利` 这段口径说明**必须跟着数走**。
+    只给数字不给这句话，读的人会把 88% 当成毛利率——那比不给数还糟。
+
+    读不到就说读不到，不拿空列表冒充『没有项目』。
+    """
+    if not PROJECT_MARGIN_PATH.exists():
+        parent = PROJECT_MARGIN_PATH.parent
+        if not parent.exists():
+            reason = f"{parent} 不存在——app 容器没挂 kmfa-logs 卷（部署配置问题）"
+        else:
+            reason = "刷新作业尚未产出：技能 project-cost-refresh 从未成功跑完一次"
+        return {"可读": False, "原因": reason, "项目": [],
+                "诚实边界": "读不到就说读不到，不拿空列表冒充『没有项目』。"}
+    try:
+        payload = json.loads(PROJECT_MARGIN_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"可读": False, "原因": f"产物无法解析：{type(exc).__name__}", "项目": []}
+    if not payload.get("⚠这不是毛利"):
+        # 口径说明丢了就整份不发。宁可页面显示"读不到"，也不让一个 88% 裸奔出去。
+        return {"可读": False, "项目": [],
+                "原因": "产物缺少口径说明『⚠这不是毛利』——缺它这些数会被当成真毛利读，不予出数"}
+    payload["可读"] = True
+    payload["产出时间"] = datetime.fromtimestamp(
+        PROJECT_MARGIN_PATH.stat().st_mtime, BEIJING).isoformat()
+    return payload
+
+
 @app.get("/api/项目成本/完工")
 def recent_completed_cost():
     """最近完工项目的成本——两个口径并排，不调平。

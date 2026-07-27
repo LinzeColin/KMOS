@@ -84,6 +84,15 @@ def open_workbook(path: str):
 
 def read_completed_projects(data_root: str) -> dict:
     """红圈《生产项目状态表》：完工项目 + 业务自填的成本与工时。"""
+    return read_projects(data_root, only_completed=True)
+
+
+def read_projects(data_root: str, only_completed: bool = True) -> dict:
+    """红圈《生产项目状态表》：项目 + 业务自填的成本与工时。
+
+    only_completed=False 时连在建、待入场一起读出来——项目毛利要看的是「哪些项目在赚钱」，
+    而在建项目「成本在走、收入还没落」本身就是一条要摆出来的信息，不是该被滤掉的噪声。
+    """
     found: dict[str, dict] = {}
     for path in glob.glob(f"{data_root}/**/{STATUS_SHEET}", recursive=True):
         workbook = open_workbook(path)
@@ -131,7 +140,8 @@ def read_completed_projects(data_root: str) -> dict:
                     continue
                 status = str(cell(row, status_col) or "").strip()
                 completed_at = str(cell(row, done_col) or "")[:10]
-                if not re.search(r"完工|竣工|完成|结束|已交|验收", status + completed_at):
+                done = bool(re.search(r"完工|竣工|完成|结束|已交|验收", status + completed_at))
+                if only_completed and not done:
                     continue
                 record = {
                     "合同编号": key,
@@ -146,6 +156,7 @@ def read_completed_projects(data_root: str) -> dict:
                 for label, position in other_cols.items():
                     value = cell(row, position)
                     record[label] = "" if value is None else str(value)[:24]
+                record["已完工"] = done
                 previous = found.get(key)
                 if not previous or completed_at > previous.get("完工日期", ""):
                     found[key] = record
