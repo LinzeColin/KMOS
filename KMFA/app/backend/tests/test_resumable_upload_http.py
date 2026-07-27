@@ -157,3 +157,90 @@ def test_session_requires_authorization(enabled_store):
     probe = client.get(
         f"{BASE}/workspaces/{created['workspace']['workspace_id']}/artifact/uploads/{upload_id}")
     assert probe.status_code == 404 and probe.json()["detail"] == "workspace_not_found"
+
+
+# ─────────────── T-S06-01 的 pass_gate：完成 → 真产出 artifact ───────────────
+
+def test_resumable_upload_completes_into_a_real_artifact(enabled_store):
+    """端到端：分片传完 → complete → workspace 上真的出现这个 artifact。
+
+    这一条是 T-S06-01 的过关判据。前面那些证明「传得进来」，
+    只有这一条证明「传进来的东西变成了产品里的对象」——
+    少了它，续传就是一条通往暂存目录的死路。
+    """
+    created = _create()
+    workspace_id = created["workspace"]["workspace_id"]
+    content = bytes((i * 17 + 3) % 251 for i in range(7000))
+    digest = hashlib.sha256(content).hexdigest()
+    upload_id = _open(created, content=content, name="成品.bin").json()["upload_id"]
+
+    offset = 0
+    while offset < len(content):
+        block = content[offset:offset + 2500]
+        sent = client.patch(
+            f"{BASE}/workspaces/{workspace_id}/artifact/uploads/{upload_id}",
+            headers={**_auth(created), "Upload-Offset": str(offset),
+                     "Chunk-SHA256": hashlib.sha256(block).hexdigest()},
+            content=block)
+        assert sent.status_code == 200, sent.text
+        offset = sent.json()["received_bytes"]
+
+    done = client.post(
+        f"{BASE}/workspaces/{workspace_id}/artifact/uploads/{upload_id}/complete",
+        headers={**_auth(created), "Idempotency-Key": "resumable-complete-1"})
+    assert done.status_code == 200, done.text
+
+    # GET 直接返回 workspace 本体（POST 才嵌一层 "workspace"），别读错层
+    workspace = client.get(f"{BASE}/workspaces/{workspace_id}",
+                           headers=_auth(created)).json()
+    artifact = workspace["artifact"]
+    assert artifact is not None, "完成后 workspace 上必须真的出现 artifact"
+    assert artifact["sha256"] == digest
+    assert artifact["size_bytes"] == len(content)
+
+
+def test_completing_a_half_sent_upload_produces_no_artifact(enabled_store):
+    """没传完就完成，不能产出一个「看起来成功」的残缺对象。"""
+    created = _create()
+    workspace_id = created["workspace"]["workspace_id"]
+    content = b"q" * 900
+    upload_id = _open(created, content=content).json()["upload_id"]
+    block = content[:300]
+    client.patch(
+        f"{BASE}/workspaces/{workspace_id}/artifact/uploads/{upload_id}",
+        headers={**_auth(created), "Upload-Offset": "0",
+                 "Chunk-SHA256": hashlib.sha256(block).hexdigest()},
+        content=block)
+    done = client.post(
+        f"{BASE}/workspaces/{workspace_id}/artifact/uploads/{upload_id}/complete",
+        headers={**_auth(created), "Idempotency-Key": "half-sent-upload-key"})
+    assert done.status_code == 409 and done.json()["detail"] == "upload_incomplete"
+
+    workspace = client.get(f"{BASE}/workspaces/{workspace_id}",
+                           headers=_auth(created)).json()
+    assert workspace["artifact"] is None, "残缺上传不许留下 artifact"
+
+
+def test_duplicate_content_is_refused_bytes_at_open(enabled_store):
+    """AC-UP-002 重复对象不可控增长=0——第二次传同样内容，一个字节都不收。"""
+    created = _create()
+    workspace_id = created["workspace"]["workspace_id"]
+    content = b"duplicate me" * 40
+    upload_id = _open(created, content=content).json()["upload_id"]
+    client.patch(
+        f"{BASE}/workspaces/{workspace_id}/artifact/uploads/{upload_id}",
+        headers={**_auth(created), "Upload-Offset": "0",
+                 "Chunk-SHA256": hashlib.sha256(content).hexdigest()},
+        content=content)
+    # 每一步都要断言。初版这里没断言，第一次 complete 因为幂等键太短而 422，
+    # 于是根本没产生 artifact，去重当然查不到——**测试失败的原因和它想测的东西无关**。
+    first = client.post(
+        f"{BASE}/workspaces/{workspace_id}/artifact/uploads/{upload_id}/complete",
+        headers={**_auth(created), "Idempotency-Key": "duplicate-first-upload"})
+    assert first.status_code == 200, first.text
+
+    again = _open(created, content=content)
+    assert again.status_code == 201, again.text
+    assert again.json()["accept_bytes"] is False
+    assert again.json()["duplicate_of"], "必须指出复用的是哪个既有版本"
+    assert again.json()["upload_id"] is None, "不开会话就等于不会收到任何字节"

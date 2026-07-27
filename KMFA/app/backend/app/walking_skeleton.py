@@ -1567,105 +1567,33 @@ def _resume_upload_operation(
     raise SkeletonError(503, "walking_skeleton_storage_unavailable")
 
 
-async def _store_artifact(
+def _persist_completed_upload(
+    *,
     workspace_id: str,
-    authorization: str | None,
-    session_cookie: str | None,
-    filename_header: str | None,
-    idempotency_key_header: str | None,
-    request: Request,
+    request_path: Path,
+    size: int,
+    sha256: str,
+    filename: str,
+    media_type: str,
+    idempotency_key: str,
+    key_hash: str,
+    object_store: Any,
+    operation_id: str,
+    artifact_id: str,
+    version_number: int,
+    version_id: str,
 ) -> dict[str, Any]:
-    if consistency_state_mode() == CONSISTENCY_PAUSED_MODE:
-        raise SkeletonError(503, "consistency_processing_paused")
-    filename = _clean_filename(filename_header)
-    idempotency_key = _resolved_idempotency_key(idempotency_key_header)
-    try:
-        key_hash = idempotency_key_hash(idempotency_key)
-    except ConsistencyStateError as exc:
-        raise SkeletonError(422, "invalid_idempotency_key") from exc
-    content_length = request.headers.get("content-length", "").strip()
-    declared_length: int | None = None
-    if content_length:
-        try:
-            declared_length = int(content_length)
-        except ValueError as exc:
-            raise SkeletonError(400, "invalid_content_length") from exc
-        if declared_length < 0:
-            raise SkeletonError(400, "invalid_content_length")
-        if declared_length > MAX_ARTIFACT_BYTES:
-            raise SkeletonError(413, "artifact_too_large")
+    """把一个**已经完整落盘且已知摘要**的文件交给持久化链。
 
-    with _store() as connection:
-        _authorize(connection, workspace_id, authorization, session_cookie)
-        existing_operation = ConsistencyRepository(
-            connection
-        ).operation_for_idempotency(
-            workspace_id=workspace_id,
-            operation_kind="upload",
-            idempotency_key_hash_value=key_hash,
-        )
-        if (
-            connection.execute(
-                "SELECT 1 FROM artifacts WHERE workspace_id = ?",
-                (workspace_id,),
-            ).fetchone()
-            and existing_operation is None
-        ):
-            raise SkeletonError(409, "artifact_limit_reached")
-        if existing_operation is None:
-            used_bytes = _artifact_capacity_usage(connection)
-            remaining_bytes = MAX_TOTAL_ARTIFACT_BYTES - used_bytes
-            if remaining_bytes <= 0:
-                raise SkeletonError(429, "artifact_capacity_reached")
-            if declared_length is not None and declared_length > remaining_bytes:
-                raise SkeletonError(429, "artifact_capacity_reached")
+    S06/P6.1 从 `_store_artifact` 里抽出来，为的是让断点续传的 complete 走
+    **同一条**链而不是复制一份：idempotency、竞争上传检测、容量复核、
+    staging 硬链校验、isolate 处置——这些是 S05 一条条挣出来的，
+    复制一份等于让续传这条路重新踩一遍同样的坑。
 
+    调用方各自负责把字节写到 `request_path` 并给出 size/sha256：
+    单次上传边收边算，续传在 complete 时对暂存文件整体重算。
+    """
     try:
-        free_bytes = shutil.disk_usage(_state_root()).free
-    except OSError as exc:
-        raise SkeletonError(503, "walking_skeleton_storage_unavailable") from exc
-    declared_or_max = (
-        declared_length if declared_length is not None else MAX_ARTIFACT_BYTES
-    )
-    if free_bytes - declared_or_max < MIN_FREE_STATE_BYTES:
-        raise SkeletonError(429, "artifact_capacity_reached")
-
-    try:
-        object_store = configured_write_store(_state_root())
-        object_store.ensure_ready()
-    except (
-        ObjectStorageConfigurationError,
-        ObjectStorageUnavailableError,
-        OSError,
-    ) as exc:
-        raise SkeletonError(503, "walking_skeleton_storage_unavailable") from exc
-
-    operation_id = _new_operation_id()
-    artifact_id = _new_artifact_id()
-    version_number = 1
-    version_id = artifact_version_id(artifact_id, version_number)
-    request_path = _tmp_dir() / f"request-{secrets.token_urlsafe(24)}.part"
-    sha256_digest = hashlib.sha256()
-    size = 0
-    descriptor = os.open(
-        request_path,
-        os.O_CREAT | os.O_EXCL | os.O_WRONLY,
-        0o600,
-    )
-    try:
-        with os.fdopen(descriptor, "wb") as output:
-            async for chunk in request.stream():
-                if not chunk:
-                    continue
-                size += len(chunk)
-                if size > MAX_ARTIFACT_BYTES:
-                    raise SkeletonError(413, "artifact_too_large")
-                sha256_digest.update(chunk)
-                output.write(chunk)
-            output.flush()
-            os.fsync(output.fileno())
-        sha256 = sha256_digest.hexdigest()
-        media_type = _clean_media_type(request.headers.get("content-type"))
         fingerprint = upload_request_fingerprint(
             workspace_id=workspace_id,
             original_name=filename,
@@ -1771,6 +1699,117 @@ async def _store_artifact(
         finally:
             os.close(descriptor)
         return _resume_upload_operation(identity.operation_id, object_store)
+    finally:
+        request_path.unlink(missing_ok=True)
+
+
+async def _store_artifact(
+    workspace_id: str,
+    authorization: str | None,
+    session_cookie: str | None,
+    filename_header: str | None,
+    idempotency_key_header: str | None,
+    request: Request,
+) -> dict[str, Any]:
+    if consistency_state_mode() == CONSISTENCY_PAUSED_MODE:
+        raise SkeletonError(503, "consistency_processing_paused")
+    filename = _clean_filename(filename_header)
+    idempotency_key = _resolved_idempotency_key(idempotency_key_header)
+    try:
+        key_hash = idempotency_key_hash(idempotency_key)
+    except ConsistencyStateError as exc:
+        raise SkeletonError(422, "invalid_idempotency_key") from exc
+    content_length = request.headers.get("content-length", "").strip()
+    declared_length: int | None = None
+    if content_length:
+        try:
+            declared_length = int(content_length)
+        except ValueError as exc:
+            raise SkeletonError(400, "invalid_content_length") from exc
+        if declared_length < 0:
+            raise SkeletonError(400, "invalid_content_length")
+        if declared_length > MAX_ARTIFACT_BYTES:
+            raise SkeletonError(413, "artifact_too_large")
+
+    with _store() as connection:
+        _authorize(connection, workspace_id, authorization, session_cookie)
+        existing_operation = ConsistencyRepository(
+            connection
+        ).operation_for_idempotency(
+            workspace_id=workspace_id,
+            operation_kind="upload",
+            idempotency_key_hash_value=key_hash,
+        )
+        if (
+            connection.execute(
+                "SELECT 1 FROM artifacts WHERE workspace_id = ?",
+                (workspace_id,),
+            ).fetchone()
+            and existing_operation is None
+        ):
+            raise SkeletonError(409, "artifact_limit_reached")
+        if existing_operation is None:
+            used_bytes = _artifact_capacity_usage(connection)
+            remaining_bytes = MAX_TOTAL_ARTIFACT_BYTES - used_bytes
+            if remaining_bytes <= 0:
+                raise SkeletonError(429, "artifact_capacity_reached")
+            if declared_length is not None and declared_length > remaining_bytes:
+                raise SkeletonError(429, "artifact_capacity_reached")
+
+    try:
+        free_bytes = shutil.disk_usage(_state_root()).free
+    except OSError as exc:
+        raise SkeletonError(503, "walking_skeleton_storage_unavailable") from exc
+    declared_or_max = (
+        declared_length if declared_length is not None else MAX_ARTIFACT_BYTES
+    )
+    if free_bytes - declared_or_max < MIN_FREE_STATE_BYTES:
+        raise SkeletonError(429, "artifact_capacity_reached")
+
+    try:
+        object_store = configured_write_store(_state_root())
+        object_store.ensure_ready()
+    except (
+        ObjectStorageConfigurationError,
+        ObjectStorageUnavailableError,
+        OSError,
+    ) as exc:
+        raise SkeletonError(503, "walking_skeleton_storage_unavailable") from exc
+
+    operation_id = _new_operation_id()
+    artifact_id = _new_artifact_id()
+    version_number = 1
+    version_id = artifact_version_id(artifact_id, version_number)
+    request_path = _tmp_dir() / f"request-{secrets.token_urlsafe(24)}.part"
+    sha256_digest = hashlib.sha256()
+    size = 0
+    descriptor = os.open(
+        request_path,
+        os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+        0o600,
+    )
+    try:
+        with os.fdopen(descriptor, "wb") as output:
+            async for chunk in request.stream():
+                if not chunk:
+                    continue
+                size += len(chunk)
+                if size > MAX_ARTIFACT_BYTES:
+                    raise SkeletonError(413, "artifact_too_large")
+                sha256_digest.update(chunk)
+                output.write(chunk)
+            output.flush()
+            os.fsync(output.fileno())
+        sha256 = sha256_digest.hexdigest()
+        media_type = _clean_media_type(request.headers.get("content-type"))
+        return _persist_completed_upload(
+            workspace_id=workspace_id, request_path=request_path, size=size,
+            sha256=sha256, filename=filename, media_type=media_type,
+            idempotency_key=idempotency_key, key_hash=key_hash,
+            object_store=object_store, operation_id=operation_id,
+            artifact_id=artifact_id, version_number=version_number,
+            version_id=version_id,
+        )
     finally:
         request_path.unlink(missing_ok=True)
 
@@ -2434,6 +2473,59 @@ async def append_upload_chunk(
         _save_session(replace(session, received_bytes=received))
         return {"upload_id": upload_id, "received_bytes": received,
                 "total_bytes": session.total_bytes}
+    except RU.ResumableUploadError as error:
+        raise HTTPException(status_code=error.status_code, detail=error.code) from error
+    except SkeletonError as error:
+        _raise_http(error)
+
+
+@router.post("/workspaces/{workspace_id}/artifact/uploads/{upload_id}/complete")
+def complete_upload_session(
+    workspace_id: str,
+    upload_id: str,
+    authorization: str | None = Header(default=None),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    session_cookie: str | None = Cookie(default=None, alias=SESSION_COOKIE_NAME),
+) -> dict[str, Any]:
+    """完成会话：整体复核后交给**与单次上传同一条**持久化链。
+
+    这里对暂存文件**整体重算摘要**，尽管每片都已验过。逐片校验管不到
+    「片本身没坏但顺序被换 / 有片被重放 / 暂存文件在传输之外被改动」——
+    整体摘要管得到。两道都要，少一道就有一类篡改漏网（AC-UP-002 篡改漏检=0）。
+    """
+    try:
+        _require_enabled()
+        with _store() as connection:
+            _authorize(connection, workspace_id, authorization, session_cookie)
+        session = _load_session(workspace_id, upload_id)
+        RU.verify_complete(session, RU.file_sha256(session.part_path))
+
+        try:
+            key_hash = idempotency_key_hash(idempotency_key)
+        except ConsistencyStateError as exc:
+            raise SkeletonError(422, "invalid_idempotency_key") from exc
+        try:
+            object_store = configured_write_store(_state_root())
+            object_store.ensure_ready()
+        except (ObjectStorageConfigurationError, ObjectStorageUnavailableError, OSError) as exc:
+            raise SkeletonError(503, "walking_skeleton_storage_unavailable") from exc
+
+        operation_id = _new_operation_id()
+        artifact_id = _new_artifact_id()
+        version_number = 1
+        version_id = artifact_version_id(artifact_id, version_number)
+        payload = _persist_completed_upload(
+            workspace_id=workspace_id, request_path=session.part_path,
+            size=session.total_bytes, sha256=session.expected_sha256,
+            filename=session.original_name, media_type=session.media_type,
+            idempotency_key=idempotency_key, key_hash=key_hash,
+            object_store=object_store, operation_id=operation_id,
+            artifact_id=artifact_id, version_number=version_number,
+            version_id=version_id,
+        )
+        # 会话已经兑现成 artifact，sidecar 留着只会让配额把它的字节重复计一遍。
+        _upload_sidecar(upload_id).unlink(missing_ok=True)
+        return payload
     except RU.ResumableUploadError as error:
         raise HTTPException(status_code=error.status_code, detail=error.code) from error
     except SkeletonError as error:
