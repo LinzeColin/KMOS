@@ -2035,6 +2035,69 @@ def _log_tail_line(log_path) -> str | None:
         return None
 
 
+@app.get("/public-api/技能健康")
+def public_skill_health():
+    """技能运行健康的**公开安全**摘要：只有「谁、什么时候、成没成」。
+
+    为什么必须是公开的（2026-07-27 实测逼出来的）：
+      Coolify 的 `exec` 返回 404、`logs` 返回空、`/api/排程健康` 在 Cloudflare Access 后面，
+      而 Owner 明令不登录、不看页面——于是「技能到底跑没跑」**没有任何人能拿到证据**。
+      判据只能落在 agent 自验上，那就必须有一个不需要凭据也能读到的产出物。
+
+    公开边界：只出技能名（本就公开在仓库里）、时间戳、退出码、成功与否、次数。
+    **不出**日志路径（会暴露目录结构）、不出投递开关（属运行策略）、不出任何业务数字。
+
+    读不到就说读不到——不拿「没有坏消息」当好消息。
+    """
+    headers = {"Cache-Control": "no-store"}
+    now = datetime.now(BEIJING)
+    if not SKILL_LEDGER_PATH.exists():
+        return JSONResponse({
+            "生成时间": now.isoformat(),
+            "台账可读": False,
+            "原因": "排程台账不存在——排程从未完成过一次运行，或 app 容器没挂日志卷",
+            "技能": [],
+            "诚实边界": "读不到就说读不到，不猜、不拿「没有坏消息」当好消息。",
+        }, headers=headers)
+
+    by_skill: dict[str, list] = {}
+    for line in SKILL_LEDGER_PATH.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            r = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        by_skill.setdefault(str(r.get("skill") or "?"), []).append(r)
+
+    出 = []
+    for skill in sorted(SCHEDULE_CONTRACT):
+        history = sorted(by_skill.get(skill, []), key=lambda r: str(r.get("ts")), reverse=True)
+        last = history[0] if history else None
+        距今小时 = None
+        if last:
+            try:
+                距今小时 = round(
+                    (now - datetime.fromisoformat(str(last["ts"]))).total_seconds() / 3600, 1)
+            except (ValueError, KeyError, TypeError):
+                距今小时 = None
+        出.append({
+            "技能": skill,
+            "最近一次": (last or {}).get("ts"),
+            "距今小时": 距今小时,
+            "退出码": (last or {}).get("rc"),
+            "成功": (last or {}).get("rc") == 0 if last else None,
+            "运行次数": len(history),
+        })
+    return JSONResponse({
+        "生成时间": now.isoformat(),
+        "台账可读": True,
+        "技能": 出,
+        "口径": "只报运行事实，不含任何业务数据；零运行次数即视为未跑通，不因日志新鲜而判健康。",
+    }, headers=headers)
+
+
 @app.get("/api/排程健康")
 def schedule_health():
     """排程执行健康——**不出任何业务数据**，只报「谁在什么时候跑了、成没成」。
