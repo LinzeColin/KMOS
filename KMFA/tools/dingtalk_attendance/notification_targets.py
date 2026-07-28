@@ -259,12 +259,17 @@ def dispatch_reports_to_targets(
             and existing_attempt.get("notification_status") == "SENT"
         ):
             return existing_attempt
+        # 拦住的那次**是哪一种**要写进回执：确认送达过 ≠ 只是开始发过。
+        # 前者当天契约已达成（重跑不算失败），后者我们其实不知道有没有出去。
+        # 不记下来，退出码那边就只能瞎猜——2026-07-28 压测重跑考勤时踩到。
+        blocked_on = str(existing_attempt.get("notification_status") or "") or "UNKNOWN"
         receipt = _targets_receipt(
             status="NOT_SENT_DUPLICATE_GUARD",
             output_status=output_status,
             target_results=[],
             failure_reason="an earlier send or send attempt already exists for this work date and run slot",
         )
+        receipt["duplicate_guard_blocked_on"] = blocked_on
         _write_json(receipt_path, receipt)
         return receipt
     if not targets_resolved_path.exists():

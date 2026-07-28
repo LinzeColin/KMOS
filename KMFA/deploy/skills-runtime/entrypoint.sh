@@ -186,7 +186,16 @@ PYR
   # 结果就是「改一版等一天」，而那正是把一个月耗掉的模式。
   #
   # 默认开（`KMFA_BOOT_SWEEP=0` 可关）。串行跑：并发会让几个技能同时抢 dws 登录态
-  # 和稀疏克隆，把「压测」变成「制造假故障」。每个之间隔 5s，给 flock 让路。
+  # 和稀疏克隆，把「压测」变成「制造假故障」。
+  #
+  # 让路给 App：2026-07-28 首次全量压测跑到一半，线上 kmfa.linzezhang.com 连续
+  # 503「no available server」约 3 分钟才恢复（Coolify 侧同期报 running:healthy，
+  # 也没有部署在进行中，所以不是重新部署造成的）。这台是 3.7GB 的机器，
+  # 而压测里 project-cost-refresh 要克隆私有库再解析上千张表、self-audit 要 tar 整个仓，
+  # 跟 App 抢资源。**因果是从时间相关性推的，没有当场的内存/CPU 度量**，
+  # 所以这里用的是两种成因都能缓解的保守做法：nice 让 App 赢 CPU，
+  # 间隔从 5s 拉到 20s 给内存回收留窗口。压测是后台活，慢几分钟无所谓；
+  # 为了压测把 Owner 的页面打下线，那是本末倒置。
   if [ "${KMFA_BOOT_SWEEP:-1}" = "1" ]; then
     echo "$(date -Is) entrypoint: 全量压测开始（每个技能跑一遍）" >> /var/log/kmfa/cron.log
     SWEPT=0
@@ -197,12 +206,15 @@ PYR
     # `attendance-bootstrap-targets`（它不在排程里，只由上面那段前置补跑触发），
     # 排程 12 个而台账 13 个。写死清单同样不行——新增技能被漏掉的表现是
     # 「它一直没跑」，跟排程没配一模一样，极难查。
-    for SK in $(grep -oE '^  [a-z0-9-]+\)' /opt/runtime/run_skill.sh \
-                | tr -d ' )' | sort -u); do
+    # case 分支允许 `a|b)` 合并写法（work-check 两条共用同一段守卫），
+    # 所以抽取要认 `|` 再拆开。不认的话表现是「那两个技能一直没跑」，
+    # 跟排程没配一模一样、极难查——2026-07-28 合并 work-check 时被这条的测试当场抓住。
+    for SK in $(grep -oE '^  [a-z0-9|-]+\)' /opt/runtime/run_skill.sh \
+                | tr -d ' )' | tr '|' '\n' | sort -u); do
       echo "$(date -Is) entrypoint: 压测 $SK" >> /var/log/kmfa/cron.log
-      /opt/runtime/run_skill.sh "$SK" >> /var/log/kmfa/cron.log 2>&1 || true
+      nice -n 19 /opt/runtime/run_skill.sh "$SK" >> /var/log/kmfa/cron.log 2>&1 || true
       SWEPT=$((SWEPT + 1))
-      sleep 5
+      sleep 20
     done
     echo "$(date -Is) entrypoint: 全量压测结束，共 $SWEPT 个技能" >> /var/log/kmfa/cron.log
   fi

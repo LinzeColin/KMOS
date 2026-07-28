@@ -690,12 +690,18 @@ class TriggerWindowTests(unittest.TestCase):
                     str(base / "DWS_Outputs.zip"),
                     "--dry-run",
                 ],
-                check=True,
                 capture_output=True,
                 text=True,
             )
 
+        # 本轮两条到期规则被过期源全数堵住、零结果——**没有任何东西被检查过**，
+        # 所以退出码必须非零。这里原来是 `check=True`（要求 rc=0），
+        # 那锚住的正是 2026-07-28 抓到的假绿：线上 work-check 连绿 9 次而一条规则没评。
+        # 断言的其余部分（过期源不产生假警报）意图不变。
+        self.assertEqual(result.returncode, 5, result.stdout[-400:])
+
         payload = json.loads(result.stdout)
+        self.assertEqual(payload["failure_code"], "ALL_RULES_BLOCKED_BY_SOURCE")
         self.assertEqual(payload["input_mode"], "zip_only")
         self.assertEqual(payload["input_cache_policy"], "stream_members_no_copy_no_extract")
         self.assertEqual(payload["input_zip"], str(base / "DWS_Outputs.zip"))

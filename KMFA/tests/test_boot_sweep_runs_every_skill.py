@@ -56,8 +56,20 @@ def test_the_sweep_is_serial_not_parallel():
     把「压测」变成「制造假故障」。"""
     sweep = _entry()
     block = sweep[sweep.index("全量压测开始"):sweep.index("全量压测结束")]
-    assert "sleep 5" in block, "技能之间没有间隔，flock 会互相踩"
+    assert "sleep 20" in block, "技能之间没有间隔，flock 会互相踩"
     assert "&" not in block.replace("2>&1", "").replace("&&", ""), "压测块里有后台符号，会并发"
+
+
+def test_the_sweep_yields_to_the_app():
+    """压测不能把 Owner 的页面打下线。
+
+    2026-07-28 首次全量压测跑到一半，线上连续 503 约 3 分钟才恢复
+    （Coolify 同期报 running:healthy，也没有部署在进行中）。3.7GB 的机器上
+    压测要克隆私有库、解析上千张表、tar 整个仓，跟 App 抢资源。
+    """
+    block = _entry()[_entry().index("全量压测开始"):_entry().index("全量压测结束")]
+    assert "nice -n" in block, "压测没让出 CPU 优先级，App 会被挤掉"
+    assert "sleep 20" in block, "技能之间只隔几秒，内存来不及回收"
 
 
 def test_a_failing_skill_never_blocks_the_sweep():
@@ -68,9 +80,28 @@ def test_a_failing_skill_never_blocks_the_sweep():
 
 
 def _swept_skills():
-    """按 entrypoint 里的同一条规则，从 run_skill.sh 抽技能名。"""
+    """按 entrypoint 里的同一条规则，从 run_skill.sh 抽技能名。
+
+    `a|b)` 这种合并分支要拆开——2026-07-28 把两条 work-check 合并共用同一段
+    源缺失守卫时，旧规则不认 `|`，压测清单会从 13 静默掉到 11。
+    """
     runner = RUN_SKILL.read_text(encoding="utf-8")
-    return {m for m in re.findall(r"^  ([a-z0-9-]+)\)", runner, re.M)}
+    names = set()
+    for arm in re.findall(r"^  ([a-z0-9|-]+)\)", runner, re.M):
+        names.update(arm.split("|"))
+    return names
+
+
+def test_the_extraction_rule_matches_the_entrypoint_exactly():
+    """测试里的抽取规则必须和 entrypoint 里那行**是同一条**。
+
+    两边分头演化的话，测试会对着一份线上根本不会用的清单报绿。
+    """
+    entry_line = next(
+        line for line in _entry().splitlines() if "grep -oE" in line and "run_skill.sh" in line
+    )
+    assert "[a-z0-9|-]+" in entry_line, "entrypoint 的抽取正则不认合并分支"
+    assert "tr '|'" in _entry(), "entrypoint 抽出来后没把合并分支拆开"
 
 
 def test_the_sweep_covers_every_skill_run_skill_knows():
