@@ -2763,6 +2763,8 @@ def _cost_num(value) -> float | None:
         return None
 
 
+@app.api_route("/项目成本", methods=["GET", "HEAD"], response_class=HTMLResponse,
+               include_in_schema=False)
 @app.get("/public-api/项目成本表", response_class=HTMLResponse)
 def public_project_cost_page():
     """项目成本——**一页能直接看的表**，不需要登录、不用下载。
@@ -2772,8 +2774,13 @@ def public_project_cost_page():
     的 JSON——那是给机器读的，人打开看到的是一屏花括号。发文件也不行：卡片可能
     根本没露出来。所以出口必须是一个**打开就是数**的网页。
 
-    挂在 `/public-api/` 下是因为那是既有的匿名面；新起一个路径会被 Cloudflare Access
-    拦住，而 Access 策略在 Owner 的控制台里、本仓改不掉。
+    两个地址指同一个渲染器：
+      · `/项目成本` —— 给人用的。Owner 打开的是 kmfa.linzezhang.com，
+        「/public-api/项目成本表」这种地址他不会记也不该记。
+        实测 Access 只拦 `/api/*` 与 `/ops/*`（任意新顶级路径返回 404 而不是 302 登录跳转），
+        所以顶级中文路径是匿名可达的。
+      · `/public-api/项目成本表` —— 保留，因为我先把这个地址给过 Owner，
+        换掉会让那条链接失效。
 
     ⚠️ 与 `/public-api/项目成本` 同样的边界：真实客户名与合同金额会公开在互联网上。
     这是「取消登陆功能」的直接后果，已当面告知；缓解只做到 no-store + noindex。
