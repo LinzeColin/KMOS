@@ -94,7 +94,24 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--run-skill", default="/opt/runtime/run_skill.sh")
     ap.add_argument("--ledger", default="/var/log/kmfa/ledger.jsonl")
-    ap.add_argument("--min-age-hours", type=float, default=6.0)
+    # 24 小时不是拍脑袋——是模拟七天挑出来的拐点。原来写 6 小时，而
+    # 13 个技能 × 每 30 分钟一跳 = 6.5 小时，跟 6 小时闸**正好共振**：
+    # 一轮转完刚好过闸，于是每一跳都触发，一天 48 次额外运行、
+    # 其中重活（项目成本/自检/归档）12 次。那不是把突发摊开，
+    # 是把突发改成了持续负载——同一个问题的慢动作版。
+    #
+    #   闸(h)   额外跑/天   重活/天
+    #     6       48.0      12.0
+    #    12       24.0       6.0
+    #    20       14.4       3.6
+    #    24        5.0       1.0   ← 拐点
+    #    36        3.6       0.7
+    #
+    # 每个值的覆盖率都是满的（七天内周/月/未排程的技能全被碰到），
+    # 所以只需选负载最低的拐点。24 小时之所以是拐点：日排程技能 24 小时内
+    # 会自己再跑，于是永远不够格被挑——节拍精确地只碰「等最久的那几个」，
+    # 正是它该干的事。从没跑过的不受这道闸约束，30 分钟内就会被挑到。
+    ap.add_argument("--min-age-hours", type=float, default=24.0)
     ap.add_argument("--now", default=None, help="ISO 时间，仅供测试注入")
     args = ap.parse_args(argv)
 

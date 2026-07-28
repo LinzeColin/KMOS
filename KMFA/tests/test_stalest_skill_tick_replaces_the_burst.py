@@ -26,6 +26,17 @@ ENTRY = REPO / "KMFA/deploy/skills-runtime/entrypoint.sh"
 NOW = "2026-07-28T20:00:00+08:00"
 
 
+
+def _tick_cron_line():
+    """取节拍那条**可执行**的 cron 行。
+
+    按内容找行会找到注释——注释里也提到 pick_stalest_skill.py。
+    这个坑今晚踩了两次（前一次是 run_skill.sh 里那条幽灵路径的测试）：
+    判断「代码里有没有」时，一律先把注释剔掉。
+    """
+    return next(l for l in CRONTAB.read_text(encoding="utf-8").splitlines()
+                if "pick_stalest_skill" in l and not l.lstrip().startswith("#"))
+
 def _ledger(tmp_path: Path, rows: list[tuple[str, str]]) -> Path:
     p = tmp_path / "ledger.jsonl"
     p.write_text(
@@ -128,7 +139,6 @@ def test_an_empty_tick_is_not_an_error():
     少了兜底，正常的空跳会让整行以非零退出，cron 每半小时记一笔像失败的东西，
     真失败就淹在里面了——「红灯天天亮又次次不是真问题」的另一种长法。
     """
-    line = next(l for l in CRONTAB.read_text(encoding="utf-8").splitlines()
-                if "pick_stalest_skill" in l)
+    line = _tick_cron_line()
     assert "|| true" in line or line.rstrip().endswith("fi"), \
         f"空跳会让 cron 记成失败：{line}"
