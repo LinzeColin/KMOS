@@ -136,9 +136,13 @@ touch /var/log/kmfa/cron.log /var/log/kmfa/ledger.jsonl
 # 冷启动先补一次项目成本：排程是每天 05:45，新容器起来后若干等到明天，
 # 页面就会一直显示「还没产出」——对 Owner 而言等于没做。故启动即先算一次。
 # 后台跑、失败只记日志：这一步绝不能挡住 cron 启动。
-if [ -f /opt/kmfa/secrets/kmfa_backup_deploy_key ] \
-   && [ ! -s /var/log/kmfa/project_cost/recent_completed.json ]; then
-  echo "$(date -Is) entrypoint: 冷启动补算项目成本（后台）" >> /var/log/kmfa/cron.log
+# 判据从「产物不在」改成「每次部署都算」。
+# 原来是 `[ ! -s recent_completed.json ]`——产物一旦存在就再也不重算，于是新代码
+# 部署上去，页面还在显示旧算法的旧结果，要等次日 05:45 才更新。
+# Owner 2026-07-28：「项目成本是实时更新的」「不允许等待自然时间，那会浪费搁置很多时间」。
+# 重算一次的代价是一次稀疏克隆＋一遍账簿，几分钟；显示一天旧数的代价是决策用错数。
+if [ -f /opt/kmfa/secrets/kmfa_backup_deploy_key ]; then
+  echo "$(date -Is) entrypoint: 冷启动重算项目成本（后台，每次部署都算）" >> /var/log/kmfa/cron.log
   ( /opt/runtime/run_skill.sh project-cost-refresh >> /var/log/kmfa/cron.log 2>&1 || true ) &
 fi
 
@@ -170,6 +174,38 @@ PYR
     echo "$(date -Is) entrypoint: 冷启动重试失败技能 $s" >> /var/log/kmfa/cron.log
     /opt/runtime/run_skill.sh "$s" >> /var/log/kmfa/cron.log 2>&1 || true
   done
+
+  # ── 全量压测：一次部署把**每个**技能都跑一遍 ───────────────────────────
+  # Owner 2026-07-28：「所有的 skill 你全部都要主动 手动 压力检查运行状态，
+  # 不允许等待自然时间，那会浪费搁置很多时间」。
+  #
+  # 上面那段只重试**最近一次失败**的，而这远远不够：
+  #   · 从未跑过的（mgmt-monthly 运行次数 0）永远轮不到，因为它「没失败过」；
+  #   · 上一次侥幸成功、这次代码改动可能弄坏的，也轮不到；
+  #   · 周任务／月任务要等一周一月才知道死活。
+  # 结果就是「改一版等一天」，而那正是把一个月耗掉的模式。
+  #
+  # 默认开（`KMFA_BOOT_SWEEP=0` 可关）。串行跑：并发会让几个技能同时抢 dws 登录态
+  # 和稀疏克隆，把「压测」变成「制造假故障」。每个之间隔 5s，给 flock 让路。
+  if [ "${KMFA_BOOT_SWEEP:-1}" = "1" ]; then
+    echo "$(date -Is) entrypoint: 全量压测开始（每个技能跑一遍）" >> /var/log/kmfa/cron.log
+    SWEPT=0
+    # 技能名从 `run_skill.sh` 的 case 分支取——**那才是技能清单的真源**，
+    # 排程只是「什么时候跑」，不是「有哪些技能」。
+    #
+    # 2026-07-28 真跑提取逻辑抓到的：只看 crontab 会漏掉
+    # `attendance-bootstrap-targets`（它不在排程里，只由上面那段前置补跑触发），
+    # 排程 12 个而台账 13 个。写死清单同样不行——新增技能被漏掉的表现是
+    # 「它一直没跑」，跟排程没配一模一样，极难查。
+    for SK in $(grep -oE '^  [a-z0-9-]+\)' /opt/runtime/run_skill.sh \
+                | tr -d ' )' | sort -u); do
+      echo "$(date -Is) entrypoint: 压测 $SK" >> /var/log/kmfa/cron.log
+      /opt/runtime/run_skill.sh "$SK" >> /var/log/kmfa/cron.log 2>&1 || true
+      SWEPT=$((SWEPT + 1))
+      sleep 5
+    done
+    echo "$(date -Is) entrypoint: 全量压测结束，共 $SWEPT 个技能" >> /var/log/kmfa/cron.log
+  fi
 
   # 冷启动补齐「别的技能依赖、但产物还不在」的前置技能。
   #
