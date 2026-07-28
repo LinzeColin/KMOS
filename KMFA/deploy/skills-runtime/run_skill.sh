@@ -154,8 +154,14 @@ esac
   if [ "$RC" -ne 0 ]; then
     CODE="$(timeout 30 python3 "$ROOT/KMFA/tools/skill_failure_code.py" "$LOG" 2>/dev/null || echo UNKNOWN)"
   fi
-  LINE="$(printf '{"ts":"%s","skill":"%s","rc":%d,"code":"%s","log":"%s","delivery_enabled":"%s"}' \
-    "$(date -Is)" "$SKILL" "$RC" "$CODE" "$LOG" "$KMFA_DELIVERY_ENABLED")"
+  # sweep 标记：由 entrypoint 的全量压测置 KMFA_SWEEP_RUN=1。
+  # 压测跑与排程跑问的是两个问题——排程问「今天这件事办成没有」，
+  # 压测问「这个技能的机器还转不转」。混在一条时间线里，
+  # 时间锚定的技能被拉到窗口外跑的合法失败会顶掉当天真成功的排程结论。
+  SWEEP_FIELD=""
+  [ "${KMFA_SWEEP_RUN:-0}" = "1" ] && SWEEP_FIELD=',"sweep":true'
+  LINE="$(printf '{"ts":"%s","skill":"%s","rc":%d,"code":"%s","log":"%s","delivery_enabled":"%s"%s}' \
+    "$(date -Is)" "$SKILL" "$RC" "$CODE" "$LOG" "$KMFA_DELIVERY_ENABLED" "$SWEEP_FIELD")"
   # 共享卷这份被公开端点读，**故意不带日志尾巴**——考勤日志里有员工姓名和打卡明细。
   echo "$LINE" >> "$LEDGER"
   # 回传私有库：容器卷里的台账没人验得到（Coolify 的 logs 返回空、exec 返回 404，
