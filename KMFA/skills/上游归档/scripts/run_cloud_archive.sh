@@ -138,9 +138,19 @@ log "已载入群清单配置"
 # 2) 真跑归档（容器内输出；不写宿主 OneDrive）
 cd "$SKILL" || exit 1
 export DWS_CODEX_CONTROLLED=1
-/usr/bin/env python3 scripts/archive_dingtalk_all_files.py \
-  --run-source "cloud_cron" --automation-name "云端钉钉DWS归档" "$@" >> "$LOG" 2>&1
+# 归档器的输出同样要**进 stdout**，理由与上面的自举完全一样：
+# 只写 dws-archive.log 的话，私有库取证尾巴里只剩一句
+# 「archive_dingtalk_all_files.py rc=2」——rc=2 对应哪种成因（未登录/权限/网络/配置）
+# 一个字都不说，而容器 exec 是 404，等于又要改一版、等一轮、再猜一次。
+# 2026-07-28 实测吃到这一口：归档第一次真跑起来就撞 rc=2，尾巴里什么都没有。
+#
+# 公开边界不受影响：公开端点只取白名单构造出的失败码，**故意不带日志尾巴**；
+# 业务明细只随 skill_ledger_uplink 落私有库（见 run_skill.sh 的两条分支）。
+ARCH_OUT="$(/usr/bin/env python3 scripts/archive_dingtalk_all_files.py \
+  --run-source "cloud_cron" --automation-name "云端钉钉DWS归档" "$@" 2>&1)"
 RC=$?
+printf '%s\n' "$ARCH_OUT" >> "$LOG"
+printf '%s\n' "$ARCH_OUT" | tail -25
 log "归档退出码 rc=$RC"
 [ "$RC" -eq 0 ] || echo "{\"status\": \"ARCHIVE_RUN_FAILED\"} archive_dingtalk_all_files.py rc=$RC"
 
