@@ -475,3 +475,35 @@ def test_walking_skeleton_oracle_preserves_linux_bind_mount_ownership():
     assert 'f"{os.getuid()}:{os.getgid()}"' in oracle
     assert '("--user", self.user_spec)' in oracle
     assert "Production keeps the image's default user" in oracle
+
+
+def test_healthz_stays_anonymous_because_the_ui_diagnosis_depends_on_it():
+    """`/healthz` 必须保持**匿名可达**——不只是为了探活。
+
+    私有面被 Cloudflare Access 挡住时，浏览器 fetch 跟不了那个跨域 302，
+    只会抛一个 `TypeError: Failed to fetch`——**和「接口真挂了」长得一模一样**，
+    而两者的下一步完全相反：前者刷新一百次也没用、容器日志里干干净净。
+
+    前端靠「探一个一定公开的端点」来分辨这两种情况。`/healthz` 哪天被关进
+    Access，这个分辨就会**静默退回**到「一律提示查容器日志」——
+    而那正是把一次正常的未登录读成「网站不可用」的那句话。
+
+    2026-07-28 Owner 报「官网不可用 / 项目成本不可用」，实测站点 200、
+    容器健康，唯一问题就是这句误导。本用例锁住修复所依赖的前提。
+    """
+    assert client.get("/healthz").status_code == 200
+    assert client.head("/healthz").status_code in {200, 405}
+
+
+def test_the_ui_tells_a_locked_door_apart_from_a_dead_service():
+    """前端必须**两条分支都在**：认门、也认挂。
+
+    只留一条就回到了原来的问题——分不清就只能猜，而猜错的方向
+    是让人去查一个好好的容器。
+    """
+    app_source = (REPO / "KMFA/app/frontend/src/App.jsx").read_text(encoding="utf-8")
+    assert "探公开面" in app_source, "分辨两种失败的探针没了"
+    assert "需要登录" in app_source, "「被门挡住」这条分支没了"
+    assert "查对应接口与容器日志" in app_source, "「接口真挂了」这条分支没了"
+    # 探针必须打公开端点，打私有端点会一起被挡住，等于没探
+    assert "fetch('/healthz'" in app_source
