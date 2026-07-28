@@ -507,3 +507,50 @@ def test_the_ui_tells_a_locked_door_apart_from_a_dead_service():
     assert "查对应接口与容器日志" in app_source, "「接口真挂了」这条分支没了"
     # 探针必须打公开端点，打私有端点会一起被挡住，等于没探
     assert "fetch('/healthz'" in app_source
+
+
+def test_the_login_entry_is_itself_public():
+    """**一个需要登录才能拿到的登录入口没有意义。**"""
+    response = client.get("/public-api/登录入口")
+    assert response.status_code == 200
+    assert set(response.json()) >= {"可用", "登录地址"}
+
+
+def test_login_lands_back_on_the_dashboard_not_on_a_json_endpoint(monkeypatch):
+    """上一版把登录入口指向 `/api/状态`：点了确实能弹出 Cloudflare 登录页，
+    但登录**完成之后** Cloudflare 把人送回 `/api/状态` —— 那里返回一坨 JSON。
+
+    人看到那个，得到的结论是「登录了但没用」，而不是「登录成功了」。
+    Owner 2026-07-28 报「登陆不可用」，就是这个。
+    """
+    monkeypatch.setenv("KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN",
+                       "tiny-scene-b867.cloudflareaccess.com")
+    monkeypatch.setenv("KMFA_CLOUDFLARE_ACCESS_AUD", "a" * 64)
+    body = client.get("/public-api/登录入口").json()
+    assert body["可用"] is True
+    url = body["登录地址"]
+    assert url.startswith("https://tiny-scene-b867.cloudflareaccess.com/cdn-cgi/access/login/")
+    assert url.endswith("redirect_url=%2F"), f"落点不是首页：{url}"
+    assert "/api/" not in url, "又把落点指回了 JSON 接口"
+
+
+def test_a_missing_team_domain_says_so_instead_of_fabricating_a_link(monkeypatch):
+    """**一个点了没反应的按钮比没有按钮更难查。**"""
+    monkeypatch.delenv("KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN", raising=False)
+    body = client.get("/public-api/登录入口").json()
+    assert body["可用"] is False
+    assert body["登录地址"] is None
+    assert body["原因"]
+
+
+def test_the_ui_asks_the_backend_for_the_login_entry():
+    """守卫：前端不得再把登录入口写死成某个 `/api/*` 路径。"""
+    source = (REPO / "KMFA/app/frontend/src/App.jsx").read_text(encoding="utf-8")
+    assert "/public-api/登录入口" in source, "前端没有向后端要登录入口"
+    # 只看**活代码**：注释里为了解释「上一版错在哪」会原样引用旧写法，
+    # 那是文档不是行为。第一版守卫没剥注释，于是被自己的解释绊倒了。
+    live = "\n".join(
+        line for line in source.splitlines()
+        if not line.lstrip().startswith(("*", "//", "/*"))
+    )
+    assert 'href="/api/状态"' not in live, "又写死回 JSON 接口了"

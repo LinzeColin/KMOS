@@ -23,7 +23,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Resp
 
 from .anti_abuse import AntiAbuseMiddleware
 from .anti_abuse import ops_router as anti_abuse_ops_router
-from .private_access import PrivateOperationsAccessMiddleware
+from .private_access import PrivateOperationsAccessMiddleware, load_access_settings
 from .public_indexing import (
     PublicIndexBoundaryMiddleware,
     control_headers,
@@ -2501,6 +2501,35 @@ def _log_tail_line(log_path) -> str | None:
         return lines[-1][:160] if lines else None
     except OSError:
         return None
+
+
+@app.get("/public-api/登录入口")
+def public_login_entry(request: Request):
+    """给未登录的人一个**能用**的登录入口。**本身必须是公开的** ——
+    一个需要登录才能拿到的登录入口没有意义。
+
+    为什么不直接在前端写死一个链接：
+      · 写死 team domain，它一变链接就断，而断了的表现是「点了没反应」；
+      · 更要紧的是 **redirect**。之前前端指向 `/api/状态` 触发登录，
+        Cloudflare 就把用户在登录后送回 `/api/状态` —— 那里返回一坨 JSON。
+        人看到那个，得到的结论是「登录了但没用」，而不是「登录成功了」。
+        所以这里显式把落点定成 `/`，登录完直接回驾驶舱。
+
+    没配 team domain 时**如实说没有**，不编一个链接出来：
+    一个点了没反应的按钮比没有按钮更难查。
+    """
+    try:
+        settings = load_access_settings()
+    except Exception as error:
+        return {"可用": False,
+                "原因": f"未配置 Cloudflare Access team domain（{type(error).__name__}）",
+                "登录地址": None}
+    host = (request.headers.get("host") or "").split(":")[0]
+    try:
+        return {"可用": True, "登录地址": settings.login_url(host, "/"),
+                "落点": "/", "说明": "登录完直接回驾驶舱，不会停在 JSON 接口上。"}
+    except Exception as error:
+        return {"可用": False, "原因": str(error), "登录地址": None}
 
 
 @app.get("/public-api/技能健康")
