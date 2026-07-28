@@ -123,6 +123,36 @@ def test_the_skill_that_is_not_in_the_schedule_is_still_swept():
     assert "attendance-bootstrap-targets" in swept
 
 
+def test_a_restart_cannot_start_another_sweep_immediately():
+    """容器每重启一次 entrypoint 就跑一次，压测又是最重的一段——会自我维持。
+
+    2026-07-28 首轮压测后当场观察到：19:28 扫过一轮，19:44 又从头扫了一轮
+    （attendance-bootstrap-targets 运行次数 2→3、upstream-archive 56→57），
+    说明容器在压测期间重启、而重启又触发下一轮压测。
+    """
+    text = _entry()
+    assert "KMFA_BOOT_SWEEP_COOLDOWN_SECONDS" in text, "没有冷却闸，重启会带出压测环"
+    assert ".last_boot_sweep" in text, "冷却时间戳没落在持久卷上，容器重建即失效"
+
+
+def test_the_sweep_order_is_least_recently_run_not_alphabetical():
+    """字母序会固定饿死同一批技能。
+
+    实测两轮压测都没走到 work-check 两条——它们字母序排最后，
+    而每轮都在到达之前断掉。表现只是「时间戳还停在 cron 时间」，
+    看不出是压测从没到达过。按「最久没跑」排，中断由下一轮自动补上。
+    """
+    block = _entry()[_entry().index("全量压测开始"):_entry().index("全量压测结束")]
+    assert "ledger.jsonl" in block, "排序没读台账，就还是字母序"
+    assert "SWEEP_ORDER" in block
+
+
+def test_an_unreadable_ledger_never_costs_coverage():
+    """排序只是优化——台账读不动就退回字母序，绝不能因此少扫技能。"""
+    block = _entry()[_entry().index("全量压测开始"):_entry().index("全量压测结束")]
+    assert '[ -n "$SWEEP_ORDER" ] ||' in block, "没有兜底，台账坏掉时压测会整个空转"
+
+
 def test_the_never_run_skill_is_covered():
     """mgmt-monthly 运行次数 0——它正是「只重试失败的」永远漏掉的那类。"""
     assert "mgmt-monthly" in _swept_skills()
