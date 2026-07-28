@@ -20,6 +20,7 @@ Owner 2026-07-27：「我根本没有看到项目成本，我说了我要最近�
 """
 from __future__ import annotations
 import argparse, collections, glob, io, json, os, re, sys, tempfile, zipfile
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -470,6 +471,11 @@ def build(data_root: str, account_map: dict, limit: int = 0) -> dict:
 
     return {
         "schema_version": "kmfa.project_cost.recent_completed.v2",
+        # 生成时间必须落在载荷里。Owner 2026-07-28 问的正是「项目成本是实时更新的吗」，
+        # 而在此之前这份 JSON 里**没有任何时间戳**——看到的数是今天算的还是上周的，
+        # 从页面上分不出来。分不出来就等于不知道它有没有在更新，
+        # 跟「绿的但没干活」是同一类问题：看着有数，其实不知道数从哪一刻来。
+        "生成时间": datetime.now(timezone(timedelta(hours=8))).isoformat(timespec="seconds"),
         "口径": {
             "业务台账": "红圈《生产项目状态表》里业务自填的 材料费＋交通费＋生活住宿费＋其他费用",
             "金蝶归集": "明细账中按『销售合同号』归集的生产成本借方发生额；不含记入『不分项目』的部分",
