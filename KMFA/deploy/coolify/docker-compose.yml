@@ -24,6 +24,12 @@ services:
     environment:
       # 业务锚北京时间——entrypoint 有 +0800 守卫，切勿覆盖为他时区（否则 cron 按错钟评估排程）
       TZ: Asia/Shanghai
+      # 考勤投递回执必须落在 **app 也能读到的卷** 上。
+      # 原默认 `/var/lib/kmfa/attendance` 是纯容器内路径：没挂卷，容器重建即丢，
+      # 且 app 永远读不到——「考勤到底发出去没有」于是无从查证，只能等 Owner 说
+      # 「我没收到」。kmfa-logs 是 skills 读写、app 只读的既有共享卷
+      # （KMFA_ATTENDANCE_RUNTIME_DIR 已经这么用），直接复用，不新增卷和挂载。
+      KMFA_ATTENDANCE_ARCHIVE_ROOT: "/var/log/kmfa/dingtalk_attendance"
       # 双跑纪律：默认 0 只 dry-run；比对通过 + Owner 同意后于 Coolify 面板置 1
       KMFA_DELIVERY_ENABLED: "${KMFA_DELIVERY_ENABLED:-0}"
       # 考勤 dws 双闸之一：dws 登录 + browser-policy 完成后于 Coolify 置 1
