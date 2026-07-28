@@ -114,3 +114,31 @@ def test_the_conflict_is_material_not_a_rounding_issue():
     conflict = B.LABOUR_HOURS_CONFLICT["KMX20251119-079"]
     gap = (conflict["红圈工数"] - conflict["报表工数"]) * B.LABOUR_RATE_OWN
     assert gap == 47500
+
+
+# ── 合同号后缀：标的是科目记账线，不是项目身份 ──────────────────────────
+def test_ledger_contract_variants_are_recorded_for_audit():
+    """归并是代码替人做的决定，至少要让人看得见它并了什么。
+
+    `collect_ledger_cost(..., variants=...)` 记下归并**之前**的原始销售合同号。
+    没有它，「这个数从哪来」就只能靠重新扒账簿。
+    """
+    import inspect
+    sig = inspect.signature(B.collect_ledger_cost)
+    assert "variants" in sig.parameters
+    assert sig.parameters["variants"].default is None, "默认不收集，别给不需要的调用方加开销"
+
+
+def test_the_suffix_finding_is_written_into_the_artifact():
+    """把「后缀标的是科目不是项目」这条结论写进产物，而不是留在某次对话里。
+
+    2026-07-28 全量实测：同项目出现两种后缀的 5 个里有 4 个，`--Z` 金额与
+    『（一）原材料』分毫不差、`-Z` 与『（四）现场管理费』分毫不差。
+    这是「按主号归并不会把不同项目并到一起」的证据；下一个动这段代码的人
+    需要看到它，否则很容易以为归并是随手写的。
+    """
+    # 源码里这句跨了行，所以按半句断言，别把测试绑死在换行位置上。
+    source = (TOOLS / "build_recent_completed.py").read_text(encoding="utf-8")
+    assert "后缀标的是科目记账线" in source and "不是项目" in source
+    for proof in ("4,789.23", "21,675.08", "482.25", "6,322.60"):
+        assert proof in source, f"缺实测数字 {proof}——没有数字的结论下次会被当成猜测"

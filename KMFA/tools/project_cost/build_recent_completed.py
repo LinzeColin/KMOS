@@ -256,8 +256,22 @@ def sort_key(record: dict) -> str:
     return ""
 
 
-def collect_ledger_cost(data_root: str, targets: set[str], account_to_row: dict) -> dict:
-    """明细账按项目归集生产成本借方发生额。返回 {合同主号: {科目: 金额}}。"""
+def collect_ledger_cost(data_root: str, targets: set[str], account_to_row: dict,
+                        variants: dict | None = None) -> dict:
+    """明细账按项目归集生产成本借方发生额。返回 {合同主号: {科目: 金额}}。
+
+    `variants` 传入时，另记 {合同主号: {原始销售合同号: 金额}}——**归并到主号之前
+    长什么样**。
+
+    为什么要记：合同号带变体后缀（`-Z`／`-XF`／`--Z`），`norm_contract` 会把它们
+    并进主号。2026-07-28 实测，广安台泥 079 的金蝶成本 64,653.90 **全部**来自
+    `KMX20251119-079-Z`，福建鼎信 003 的 1,919.19 **全部**来自 `KMX2026116-003--Z`。
+    后缀的业务含义（变更／分包／中标）至今没有裁定，也就是说这两笔到底该不该算进
+    主项目，是个未决问题——而代码在静默地替它做了决定。
+
+    不改归并口径（不并会让这两个项目的金蝶成本直接归零，那更错），但把成分摆出来：
+    看表的人至少能知道「这个数是从一个带后缀的合同号来的」。
+    """
     import openpyxl
     aggregate: dict[str, dict[str, Decimal]] = collections.defaultdict(
         lambda: collections.defaultdict(Decimal))
@@ -309,6 +323,9 @@ def collect_ledger_cost(data_root: str, targets: set[str], account_to_row: dict)
             except Exception:
                 amount = Decimal(0)
             aggregate[key][account] += amount
+            if variants is not None:
+                variants.setdefault(key, collections.defaultdict(Decimal))[
+                    re.sub(r"\s", "", str(raw)).upper()] += amount
 
     bundles = sorted(set(glob.glob(f"{data_root}/**/*金蝶*.zip", recursive=True)
                          + glob.glob(f"{data_root}/**/*明细账*.zip", recursive=True)))
@@ -377,7 +394,9 @@ def build(data_root: str, account_map: dict, limit: int = 0) -> dict:
     ranked = sorted(everything.values(), key=sort_key, reverse=True)
     if limit:
         ranked = ranked[:limit]
-    ledger = collect_ledger_cost(data_root, {r["合同编号"] for r in ranked}, account_to_row)
+    variants: dict[str, dict[str, Decimal]] = {}
+    ledger = collect_ledger_cost(data_root, {r["合同编号"] for r in ranked},
+                                 account_to_row, variants=variants)
 
     projects = []
     for record in ranked:
@@ -432,6 +451,12 @@ def build(data_root: str, account_map: dict, limit: int = 0) -> dict:
             "可出毛利": bool(hours_recorded and contract is not None),
             # 工数两个来源对不上的，把两边都摆出来 —— 不替换、不取平均、不挑一个。
             # 哪个权威没有裁定，任何一种「处理」都是拿未经确认的数覆盖另一个。
+            # 金蝶这笔钱原始挂在哪个合同号下。带后缀的单列出来——归并是代码替人
+            # 做的决定，至少要让人看得见它做了什么。
+            **({"金蝶合同号构成": {
+                raw: str(amount) for raw, amount in
+                sorted(variants.get(key, {}).items(), key=lambda kv: -kv[1])
+            }} if variants.get(key) else {}),
             **({"工数冲突": {
                 **LABOUR_HOURS_CONFLICT[key],
                 "本表采用": "红圈工数",
@@ -463,6 +488,14 @@ def build(data_root: str, account_map: dict, limit: int = 0) -> dict:
             "工时没填 ≠ 工时为 0：没填的项目不出毛利（`可出毛利:false`）",
             "项目键＝合同号＋甲方：同合同号不同甲方是身份冲突，两条都留并打 `身份冲突` 标，"
             "绝不静默丢弃（曾因此少掉合同额 1,263,546 的日照钢铁项目）",
+            "合同号后缀（-Z／--Z／-XF／-Z1）按主号归并——2026-07-28 全量实测证实这是正确"
+            "口径，不是假设：① 32 个项目里凡金蝶有成本的 18 个，100% 都记在带后缀的号下，"
+            "说明后缀是账上固定写法而非例外；② 同项目出现两种后缀的 5 个里，有 4 个的 "
+            "`--Z` 金额与『（一）原材料』**分毫不差**、`-Z` 与『（四）现场管理费』分毫不差"
+            "（阜阳皖润 4,789.23／21,675.08、山东圣川 482.25／6,322.60、池州恒鑫 161.00／"
+            "25,016.93、青海盐湖海纳 2,797.44／9,428.06）。**后缀标的是科目记账线，不是项目"
+            "身份**，故按主号归并不会把不同项目并到一起。每个项目的 `金蝶合同号构成` 保留"
+            "原始号，可逐笔回溯",
         ],
         "单价标定": {
             "自有": {"采用": str(LABOUR_RATE_OWN),
