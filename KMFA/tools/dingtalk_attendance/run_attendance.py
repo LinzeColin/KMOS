@@ -883,6 +883,10 @@ def run_attendance(
         "elapsed_seconds": round(time.monotonic() - collection_started, 3),
         "notification_template_text": dispatch_receipt.get("notification_template_text", ""),
         "notification_delivery_table": dispatch_receipt.get("notification_delivery_table", ""),
+        # 守卫成因抬到顶层——**这条才是排程真正走的主路径**。
+        # 只修「只发最近报告」那条不够：那条平时根本不跑，
+        # 修了它等于修了个用不上的地方，线上照旧假红。
+        "duplicate_guard_blocked_on": dispatch_receipt.get("duplicate_guard_blocked_on"),
         "dispatch_receipt": dispatch_receipt,
         "onedrive_archive_status": output_status,
         "cleanup_status": cleanup_status,
@@ -991,6 +995,12 @@ def _legacy_send_latest_report_only(run_type: str, timezone: str) -> dict[str, A
         "notification_status": dispatch_receipt["notification_status"],
         "notification_template_text": dispatch_receipt.get("notification_template_text", ""),
         "notification_delivery_table": dispatch_receipt.get("notification_delivery_table", ""),
+        # 去重守卫拦的是哪一种，**必须抬到顶层**——result_exit_code 只读顶层。
+        # 2026-07-28 线上抓到：#273 加了这个字段却只留在嵌套的 dispatch_receipt 里，
+        # 退出码那边取到的永远是 None，于是「今天已确认送达」照旧判 5、照旧假红。
+        # 当时的单元测试之所以绿，是因为**喂了自己造的字典**，真调用方从不放这个字段——
+        # 测了判据、没测接线，跟这条线反复栽的「绿的但没干活」是同一个形状。
+        "duplicate_guard_blocked_on": dispatch_receipt.get("duplicate_guard_blocked_on"),
         "dispatch_receipt": dispatch_receipt,
         "cleanup_status": cleanup_status,
     }
