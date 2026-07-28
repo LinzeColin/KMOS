@@ -100,19 +100,39 @@ def _rest(method: str, path: str, tok: str, body=None):
         raise Unavailable(f"私有库返回 HTTP {exc.code}") from exc
 
 
-def _sparse_clone(paths: list[str], into: str) -> None:
-    """只取指定路径，不整仓下载——私有库预计 500GB+，整仓 clone 会损伤机器。"""
-    url = f"git@github.com:{REPO}.git"
-    _git(["clone", "--quiet", "--filter=blob:none", "--no-checkout", url, into], timeout=180)
-    _git(["sparse-checkout", "init", "--cone"], cwd=into)
-    _git(["sparse-checkout", "set", *paths], cwd=into)
-    # checkout 是这几步里唯一要**落盘**的：blob 到这一步才真正下载。
-    # 默认 120s 在线上不够（2026-07-28 实测就卡在这里），给它和 clone 一样的预算。
+def _sparse_clone_file(path: str, into: str) -> None:
+    """只把**一个文件**检出到工作树。
+
+    要写回私有库就必须有工作树（要 add/commit/push），但不需要它旁边的邻居。
+    用 `--no-cone` 才能精确到文件；cone 模式只认目录，一给就是整个目录。
+    """
+    _blobless_clone(into)
+    _git(["sparse-checkout", "init", "--no-cone"], cwd=into)
+    _git(["sparse-checkout", "set", path], cwd=into)
     _git(["checkout", "--quiet"], cwd=into, timeout=CHECKOUT_TIMEOUT_SECONDS)
 
 
+def _blobless_clone(into: str) -> None:
+    """只取 commit/tree，不取任何 blob，也不建工作树。
+
+    配合 `git show HEAD:<path>` 使用：blob 在那一刻按需拉一个，仅此一个。
+    """
+    _git(["clone", "--quiet", "--filter=blob:none", "--no-checkout",
+          f"git@github.com:{REPO}.git", into], timeout=180)
+
+
 def read_text(path: str) -> str:
-    """读私有库里的一个文件。够不着抛 Unavailable，绝不返回空串冒充「文件是空的」。"""
+    """读私有库里的一个文件。够不着抛 Unavailable，绝不返回空串冒充「文件是空的」。
+
+    走部署密钥时**不建工作树**——`git show HEAD:<path>` 在 blobless clone 上按需
+    只拉那一个 blob。
+
+    原实现是 `_sparse_clone([该文件的父目录])`：为了读一份 `manifest.jsonl`，
+    把整个 `Private-KMDatabase/` 检出到磁盘——里面装着 KMFA_MetaData、objects、
+    app-state-backup 等等，几百 MB。2026-07-28 线上就卡在这一步：
+    `git checkout --quiet` 120s 超时，self-audit 因此连续失败。
+    把超时调大只是让它「慢着失败」；真正该改的是**别去检出根本不需要的东西**。
+    """
     tok = token()
     if tok:
         got = _rest("GET", f"/repos/{REPO}/contents/{path}", tok)
@@ -124,11 +144,15 @@ def read_text(path: str) -> str:
         raise Unavailable("容器内既没有可用 token，也没有部署密钥")
 
     with tempfile.TemporaryDirectory(prefix="kmfa-pdb-") as work:
-        _sparse_clone([str(Path(path).parent)], work)
-        target = Path(work) / path
-        if not target.is_file():
-            raise Unavailable(f"私有库里没有 {path}")
-        return target.read_text(encoding="utf-8", errors="replace")
+        _blobless_clone(work)
+        try:
+            return _git(["show", f"HEAD:{path}"], cwd=work, timeout=CHECKOUT_TIMEOUT_SECONDS)
+        except Unavailable as exc:
+            # git show 对「路径不存在」也返回非零。这两种要分开：文件不在是业务事实，
+            # 网络/超时是够不着——混在一起会让「私有库里没有这个文件」看起来像故障。
+            if "exists on disk" in str(exc) or "does not exist" in str(exc):
+                raise Unavailable(f"私有库里没有 {path}") from exc
+            raise
 
 
 def append_line(path: str, line: str, message: str) -> str:
@@ -150,7 +174,9 @@ def append_line(path: str, line: str, message: str) -> str:
         raise Unavailable("容器内既没有可用 token，也没有部署密钥")
 
     with tempfile.TemporaryDirectory(prefix="kmfa-pdb-") as work:
-        _sparse_clone([str(Path(path).parent)], work)
+        # 精确到**文件**，不是它的父目录。父目录口径下，只要哪天日志挪进一个大目录，
+        # 就会像 read_text 那样把几百 MB 检出到磁盘然后超时（2026-07-28 实测）。
+        _sparse_clone_file(path, work)
         target = Path(work) / path
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("a", encoding="utf-8") as handle:
