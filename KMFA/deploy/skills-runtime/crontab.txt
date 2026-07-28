@@ -36,3 +36,12 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # dws 认证保活（运维任务，无业务锚；每 4 小时 :20）——替代已停用的 Codex 排程 dws-auth-keepalive-2。
 # 缺它 access-token 到期即静默失效、投递全断；失败会经 run_skill 告警面上报。
 20 */4 * * *  root /opt/runtime/run_skill.sh dws-keepalive       >> /var/log/kmfa/cron.log 2>&1
+
+# 压测节拍：每 30 分钟挑**一个**最久没跑的技能跑一遍（KMFA_SWEEP_RUN=1 标成压测跑）。
+#
+# 替代原来「部署后一口气跑 13 个」的做法——那个当天把线上打下线三次，
+# 最长 5.5 分钟；nice + 拉长间隔都不够，因为问题不在参数在形状。
+# 单跑一个是正常负载（排程本来天天这么跑），13 个背靠背才是突发。
+# 半小时一跳、六个多小时覆盖全部，从没跑过的几小时内就会被碰到。
+# 都在 6 小时内跑过时挑不出东西，这一跳什么都不做。
+*/30 * * * *  root SK=$(python3 /opt/kmfa/KMOS/KMFA/tools/pick_stalest_skill.py 2>/dev/null); [ -n "$SK" ] && KMFA_SWEEP_RUN=1 nice -n 19 /opt/runtime/run_skill.sh "$SK" >> /var/log/kmfa/cron.log 2>&1

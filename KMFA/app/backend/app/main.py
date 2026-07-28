@@ -2838,7 +2838,15 @@ def schedule_health():
 
     逐项 = []
     for skill, 约定 in sorted(SCHEDULE_CONTRACT.items()):
-        history = by_skill.get(skill, [])
+        # 跟 /public-api/技能健康 用**同一条**分法：结论只看排程跑，压测跑单独一栏。
+        # 两个健康端点必须一致——一个修一个不修，会给出互相矛盾的信号，
+        # 那比两个都错还糟：看到分歧的人只能猜哪个是真的。
+        # 压测跑（entrypoint 部署后的全量压测）问「机器还转不转」，
+        # 时间锚定的技能被拉到窗口外跑必然合法失败，那不是排程有问题。
+        # 老台账行没有 sweep 字段，一律按排程跑处理。
+        全部 = by_skill.get(skill, [])
+        history = [r for r in 全部 if not r.get("sweep")]
+        压测历史 = [r for r in 全部 if r.get("sweep")]
         last = history[0] if history else None
         距今小时 = None
         if last:
@@ -2880,6 +2888,16 @@ def schedule_health():
                 # 不点快照也要能看到这次跑出了什么）。只取最近 8 条，读文件 IO 有界。
                 "摘要": (_log_tail_line(r.get("log")) if i < 8 else None),
             } for i, r in enumerate(history[:100])],
+            # 压测结果一条不藏——藏了就等于没做压测，回到「改一版等一天」。
+            "压测": ({
+                "最近一次": 压测历史[0].get("ts"),
+                "退出码": 压测历史[0].get("rc"),
+                "成功": 压测历史[0].get("rc") == 0,
+                "失败码": (_public_failure_code(压测历史[0].get("code"))
+                          if 压测历史[0].get("rc") else None),
+                "次数": len(压测历史),
+                "摘要": _log_tail_line(压测历史[0].get("log")),
+            } if 压测历史 else None),
         })
 
     跑过的 = [x for x in 逐项 if x["跑过"]]
