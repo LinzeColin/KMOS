@@ -29,8 +29,8 @@ REQUIRED_METADATA_FILES = (
     "notification_targets_manifest.json",
     "onedrive_storage_manifest.yaml",
     "secrets_policy.md",
-    "codex_automation/morning_1035.prompt.md",
-    "codex_automation/evening_2000.prompt.md",
+    "codex_automation/morning_0801.prompt.md",
+    "codex_automation/evening_1731.prompt.md",
     "codex_automation/manual_rerun.prompt.md",
     "private_runtime/README.md",
     "private_runtime/.gitkeep",
@@ -91,8 +91,8 @@ PROMPT_CONTRACT_NEEDLES = {
     "fails_closed_for_dws": ("DWS_AUTH_REQUIRED", "Do not fabricate data"),
     "protects_private_runtime": (".env.local", "SQLite", "raw JSON", "report bodies"),
 }
-TEMPORARY_PROMPT_NAMES = {"morning_1035.prompt.md", "evening_2000.prompt.md"}
-FINAL_PROMPT_NAMES = {"morning_1035.prompt.md", "manual_rerun.prompt.md"}
+TEMPORARY_PROMPT_NAMES = {"morning_0801.prompt.md", "evening_1731.prompt.md"}
+FINAL_PROMPT_NAMES = {"morning_0801.prompt.md", "manual_rerun.prompt.md"}
 REALTIME_INTEGRITY_NEEDLES = (
     "realtime_reminder_integrity_status=PASS",
     "REALTIME_REMINDER_INTEGRITY_FAILED",
@@ -195,18 +195,18 @@ def validate_dingtalk_attendance_files(root: Path) -> dict[str, Any]:
     schedule = manifest.get("schedule", {})
     if (
         not isinstance(schedule, dict)
-        or schedule.get("morning") != "10:35"
-        or schedule.get("evening") != "20:05"
+        or schedule.get("morning") != "08:01"
+        or schedule.get("evening") != "17:31"
         or schedule.get("evening_clock") != "local_wall_clock"
         or schedule.get("business_date_timezone") != "Asia/Shanghai"
         or schedule.get("scheduler_timezone_configured") is not False
         or schedule.get("summary_datetime_source") != "actual_run_datetime_in_business_date_timezone"
     ):
         errors.append("automation schedule drift")
-    morning_prompt = (metadata_root / "codex_automation" / "morning_1035.prompt.md").read_text(encoding="utf-8")
-    if "fixed local wall-clock 10:35" not in morning_prompt:
+    morning_prompt = (metadata_root / "codex_automation" / "morning_0801.prompt.md").read_text(encoding="utf-8")
+    if "fixed local wall-clock 08:01" not in morning_prompt:
         errors.append("morning prompt scheduler freeze drift")
-    if (metadata_root / "codex_automation" / "evening_2000.prompt.md").read_text(encoding="utf-8").find("20:05") < 0:
+    if (metadata_root / "codex_automation" / "evening_1731.prompt.md").read_text(encoding="utf-8").find("17:31") < 0:
         errors.append("evening prompt schedule drift")
     if manifest.get("onedrive_root") != ONEDRIVE_ROOT:
         errors.append("onedrive root drift")
@@ -231,8 +231,8 @@ def validate_dingtalk_attendance_files(root: Path) -> dict[str, Any]:
     errors.extend(prompt_errors)
     package_prompt_root = root / "skills" / "钉钉考勤" / "automation"
     prompt_mirror_pairs = (
-        (package_prompt_root / "morning_prompt.md", metadata_root / "codex_automation" / "morning_1035.prompt.md"),
-        (package_prompt_root / "evening_prompt.md", metadata_root / "codex_automation" / "evening_2000.prompt.md"),
+        (package_prompt_root / "morning_prompt.md", metadata_root / "codex_automation" / "morning_0801.prompt.md"),
+        (package_prompt_root / "evening_prompt.md", metadata_root / "codex_automation" / "evening_1731.prompt.md"),
     )
     prompt_mirrors_match = all(
         package_path.read_text(encoding="utf-8").rstrip("\n") + "\n"
@@ -246,7 +246,7 @@ def validate_dingtalk_attendance_files(root: Path) -> dict[str, Any]:
             "run_id": "dingtalk_attendance_morning_20260707_103500",
             "run_type": "morning",
             "work_date": "2026-07-07",
-            "current_time": "10:35",
+            "current_time": "08:01",
             "stats": {
                 "attendance_anomaly_names": ["张三", "李四"],
                 "known_no_record_names": ["张霖泽", "林全意"],
@@ -263,7 +263,7 @@ def validate_dingtalk_attendance_files(root: Path) -> dict[str, Any]:
     pending_probe = build_notification_message(
         work_date="2026-07-07",
         run_type="morning",
-        current_time="10:35",
+        current_time="08:01",
         unexpected_empty_record_names=[],
         known_no_record_names=[],
         pending_hr_actions=["王五待补卡"],
@@ -276,7 +276,7 @@ def validate_dingtalk_attendance_files(root: Path) -> dict[str, Any]:
     historical_probe = build_notification_message(
         work_date="2026-07-08",
         run_type="morning",
-        current_time="10:35",
+        current_time="08:01",
         unexpected_empty_record_names=[],
         known_no_record_names=[],
         monthly_attendance_anomalies=[{"name": "历史累计甲", "monthly_count": 3, "latest_date": "2026-07-03"}],
@@ -290,7 +290,7 @@ def validate_dingtalk_attendance_files(root: Path) -> dict[str, Any]:
             "run_id": "dingtalk_attendance_morning_20260707_103500",
             "run_type": "morning",
             "work_date": "2026-07-07",
-            "current_time": "10:35",
+            "current_time": "08:01",
             "stats": {
                 "member_count": 44,
                 "record_success_count": 43,

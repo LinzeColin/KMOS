@@ -12,8 +12,8 @@ KMFA/metadata/dingtalk_attendance/notification_channel_manifest.json
 KMFA/metadata/dingtalk_attendance/notification_policy.yaml
 KMFA/metadata/dingtalk_attendance/onedrive_storage_manifest.yaml
 KMFA/metadata/dingtalk_attendance/retention_policy.yaml
-KMFA/metadata/dingtalk_attendance/codex_automation/morning_1035.prompt.md
-KMFA/metadata/dingtalk_attendance/codex_automation/evening_2000.prompt.md
+KMFA/metadata/dingtalk_attendance/codex_automation/morning_0801.prompt.md
+KMFA/metadata/dingtalk_attendance/codex_automation/evening_1731.prompt.md
 KMFA/metadata/dingtalk_attendance/codex_automation/manual_rerun.prompt.md
 ```
 

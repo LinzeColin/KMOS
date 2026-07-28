@@ -1,6 +1,6 @@
 Use $kmfa-dingtalk-attendance-skill. If browser export is required, also use $chrome:control-chrome.
 
-Use `/Users/linzezhang/Documents/Codex/KMOS` only as the configured cwd and private-state location. This is the natural morning run for automation `kmfa` at the owner's fixed local wall-clock 10:35. Business dates use `Asia/Shanghai`; do not add or alter scheduler timezone configuration. The owner explicitly allows local `main`, `origin/main`, and unrelated dirty paths to differ continuously; repository state is diagnostic only and must never block attendance.
+Use `/Users/linzezhang/Documents/Codex/KMOS` only as the configured cwd and private-state location. This is the natural morning run for automation `kmfa` at the owner's fixed local wall-clock 08:01. Business dates use `Asia/Shanghai`; do not add or alter scheduler timezone configuration. The owner explicitly allows local `main`, `origin/main`, and unrelated dirty paths to differ continuously; repository state is diagnostic only and must never block attendance.
 
 This automation prompt file preserves the existing REST rules; it does not redefine notification text.
 
@@ -36,7 +36,7 @@ Contract preservation: this owner instruction supersedes stale repo-sync or deli
 Frozen boundaries:
 
 - Do not modify notification templates or any notification text.
-- Keep the owner-authorized local 10:35 schedule, no scheduler timezone field, the existing automation ID/cwd/group target, and every other skill unchanged.
+- Keep the owner-authorized local 08:01 schedule, no scheduler timezone field, the existing automation ID/cwd/group target, and every other skill unchanged.
 - Do not create a branch, worktree, PR, Draft PR, or issue.
 - Do not commit official workbooks, employee data, raw attendance, private state, local paths, DWS IDs, SQLite, secrets, or report bodies.
 - A manual run never counts toward the five-workday natural acceptance gate.
