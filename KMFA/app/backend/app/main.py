@@ -12,6 +12,8 @@ import json
 import os
 import re
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation
+from html import escape as html_escape
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +21,13 @@ import yaml
 from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    Response,
+)
 
 from .anti_abuse import AntiAbuseMiddleware
 from .anti_abuse import ops_router as anti_abuse_ops_router
@@ -2701,6 +2709,163 @@ def public_project_cost():
     payload["产出时间"] = datetime.fromtimestamp(
         RECENT_COST_PATH.stat().st_mtime, BEIJING).isoformat()
     return JSONResponse(payload, headers=headers)
+
+
+#: 项目成本页的外壳。刻意做成**服务端渲染的单页 HTML**：Owner 不登录、不看 SPA，
+#: 出口必须是「打开就是数」。样式内联——CSP 拦外链，且这一页要能在任何网络下打开。
+_COST_PAGE_SHELL = """<!doctype html><html lang="zh-CN"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>项目成本 · KMFA</title>
+<style>
+:root{--paper:#f6f7f9;--card:#fff;--ink:#10151c;--soft:#5c6672;--rule:#dfe3e8;
+ --accent:#1d5c8f;--dim:#e8eef4;--bad:#9b2d2d;--badbg:#f7e8e8;
+ --mono:ui-monospace,"SF Mono",Menlo,monospace;
+ --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+@media(prefers-color-scheme:dark){:root{--paper:#0c1015;--card:#141a21;--ink:#e6eaef;
+ --soft:#8d98a5;--rule:#242c36;--accent:#6fa8d6;--dim:#17242f;--bad:#e08282;--badbg:#261616}}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);
+ font-family:var(--sans);line-height:1.6}
+.w{max-width:74rem;margin:0 auto;padding:2.2rem 1rem 4rem;display:flex;flex-direction:column;gap:1.5rem}
+header{border-bottom:2px solid var(--ink);padding-bottom:.8rem}
+.eb{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+h1{font-size:clamp(1.4rem,4vw,2rem);font-weight:640;margin:.15rem 0 .3rem;letter-spacing:-.02em}
+.sub{color:var(--soft);font-size:.86rem}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:1px;
+ background:var(--rule);border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.st{background:var(--card);padding:.85rem 1rem}
+.st b{display:block;font-family:var(--mono);font-size:1.45rem;font-weight:600;
+ font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.st span{font-size:.74rem;color:var(--soft)}
+.note,.warn{border-left:3px solid var(--accent);background:var(--dim);
+ padding:.75rem 1rem;border-radius:0 3px 3px 0;font-size:.86rem}
+.warn{border-left-color:var(--bad);background:var(--badbg)}
+.warn ul{margin:.4rem 0 0;padding-left:1.1rem}
+.tw{overflow-x:auto;border:1px solid var(--rule);border-radius:3px}
+table{border-collapse:collapse;width:100%;font-size:.8rem;background:var(--card);min-width:52rem}
+th{text-align:left;font-weight:600;font-size:.66rem;letter-spacing:.05em;color:var(--soft);
+ padding:.5rem .65rem;border-bottom:1px solid var(--rule);white-space:nowrap;
+ text-transform:uppercase;position:sticky;top:0;background:var(--card)}
+td{padding:.4rem .65rem;border-bottom:1px solid var(--rule)}
+tr:last-child td{border-bottom:none}
+td.n,th.n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+td.k{font-family:var(--mono);font-size:.74rem;white-space:nowrap}
+td.c{text-align:center;white-space:nowrap}td.b{font-weight:600}
+code{font-family:var(--mono);font-size:.85em;background:var(--dim);padding:.05rem .28rem;border-radius:2px}
+footer{border-top:1px solid var(--rule);padding-top:.9rem;font-size:.76rem;color:var(--soft)}
+</style></head><body><div class="w">{{BODY}}</div></body></html>"""
+
+def _cost_num(value) -> float | None:
+    if value in (None, "", "None"):
+        return None
+    try:
+        return float(Decimal(str(value)))
+    except (InvalidOperation, ValueError, TypeError):
+        return None
+
+
+@app.api_route("/项目成本", methods=["GET", "HEAD"], response_class=HTMLResponse,
+               include_in_schema=False)
+@app.get("/public-api/项目成本表", response_class=HTMLResponse)
+def public_project_cost_page():
+    """项目成本——**一页能直接看的表**，不需要登录、不用下载。
+
+    为什么要有它（Owner 2026-07-29）：「我说了我只要我的项目成本！」「我没有看到
+    你说的东西」「你不要放在本地，你推上网上去」。此前只有 `/public-api/项目成本`
+    的 JSON——那是给机器读的，人打开看到的是一屏花括号。发文件也不行：卡片可能
+    根本没露出来。所以出口必须是一个**打开就是数**的网页。
+
+    两个地址指同一个渲染器：
+      · `/项目成本` —— 给人用的。Owner 打开的是 kmfa.linzezhang.com，
+        「/public-api/项目成本表」这种地址他不会记也不该记。
+        实测 Access 只拦 `/api/*` 与 `/ops/*`（任意新顶级路径返回 404 而不是 302 登录跳转），
+        所以顶级中文路径是匿名可达的。
+      · `/public-api/项目成本表` —— 保留，因为我先把这个地址给过 Owner，
+        换掉会让那条链接失效。
+
+    ⚠️ 与 `/public-api/项目成本` 同样的边界：真实客户名与合同金额会公开在互联网上。
+    这是「取消登陆功能」的直接后果，已当面告知；缓解只做到 no-store + noindex。
+    """
+    headers = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow"}
+
+    def page(body: str) -> HTMLResponse:
+        return HTMLResponse(_COST_PAGE_SHELL.replace("{{BODY}}", body), headers=headers)
+
+    if not RECENT_COST_PATH.exists():
+        return page(
+            '<div class="warn"><b>还没有数。</b>刷新作业 <code>project-cost-refresh</code>'
+            "尚未成功跑完一次，或 app 容器没挂上共享卷。"
+            "<br>读不到就说读不到——不拿空表冒充「没有项目」。</div>")
+    try:
+        payload = json.loads(RECENT_COST_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return page(f'<div class="warn"><b>产物无法解析</b>：{type(exc).__name__}</div>')
+
+    projects = payload.get("项目") or []
+    # 判据是「有没有成本记录」，不是「成本是不是正数」。
+    # 有两个项目金蝶净额为负（红字冲销超过借方，最大一笔 -203 万）——
+    # 按 > 0 过滤会把它们连同那 203 万一起从页面和合计里抹掉，
+    # 而「这个项目账上是负的」恰恰是最该被看见的一条。
+    with_cost = [p for p in projects if (_cost_num(p.get("成本合计")) or 0) != 0]
+    with_cost.sort(key=lambda p: -(_cost_num(p.get("成本合计")) or 0))
+    total = sum(_cost_num(p.get("成本合计")) or 0 for p in with_cost)
+    suspect = [p for p in projects if p.get("合同号存疑")]
+
+    def money(value) -> str:
+        number = _cost_num(value)
+        return f"{number:,.0f}" if number is not None else "—"
+
+    rows = "\n".join(
+        "<tr>"
+        f'<td class="k">{html_escape(str(p.get("合同编号") or ""))}</td>'
+        f'<td>{html_escape(str(p.get("甲方名称") or ""))}</td>'
+        f'<td class="c">{html_escape(str(p.get("施工状态") or "—"))}</td>'
+        f'<td class="c">{html_escape(str(p.get("完工日期") or "—"))}</td>'
+        f'<td class="n">{money(p.get("含税合同金额"))}</td>'
+        f'<td class="n">{money(p.get("金蝶归集直接成本"))}</td>'
+        f'<td class="n">{money(p.get("自有人工成本"))}</td>'
+        f'<td class="n">{money(p.get("劳务人工成本"))}</td>'
+        f'<td class="n">{money(p.get("分摊管理费"))}</td>'
+        f'<td class="n b">{money(p.get("成本合计"))}</td>'
+        f'<td class="n">{money(p.get("毛利"))}</td>'
+        "</tr>"
+        for p in with_cost)
+
+    suspect_html = ""
+    if suspect:
+        items = "".join(
+            f'<li><b>{html_escape(str(p.get("合同编号")))}</b>　'
+            f'{html_escape(str(p.get("身份来源") or ""))}</li>' for p in suspect)
+        suspect_html = (
+            f'<div class="warn"><b>{len(suspect)} 条合同号与红圈主合同表对不上</b>'
+            f"，其成本未归入任何项目（归错了会凭空造出一个项目的成本）：<ul>{items}</ul></div>")
+
+    body = f"""
+<header>
+  <div class="eb">武汉开明高新</div>
+  <h1>项目成本</h1>
+  <div class="sub">数据生成 {html_escape(str(payload.get("生成时间") or "—"))}
+    　·　金额单位：元　·　源：金蝶明细账（成本）＋ 红圈主合同表（合同号权威）</div>
+</header>
+<div class="strip">
+  <div class="st"><b>{len(projects):,}</b><span>红圈主合同表里的合同</span></div>
+  <div class="st"><b>{len(with_cost)}</b><span>有成本发生额的项目</span></div>
+  <div class="st"><b>{total:,.0f}</b><span>成本合计</span></div>
+</div>
+{suspect_html}
+<div class="note">只列<b>有成本记录</b>的项目。其余合同在金蝶里没有归集、红圈也没填工时——
+  那是「成本不知道」，不是「成本是 0」，所以不列在这里凑数。<br>
+  <b>成本为负的项目照列</b>：那是金蝶里红字冲销超过借方，账上就是负的，不做粉饰。</div>
+<div class="tw"><table>
+<thead><tr><th>合同编号</th><th>甲方</th><th>状态</th><th>完工日</th>
+<th class="n">合同额</th><th class="n">金蝶成本</th><th class="n">自有人工</th>
+<th class="n">劳务人工</th><th class="n">分摊</th><th class="n">成本合计</th>
+<th class="n">毛利</th></tr></thead>
+<tbody>{rows}</tbody></table></div>
+<footer>同一份数据的机器可读版在 <code>/public-api/项目成本</code>。
+  口径：金蝶按销售合同号归集的借方发生额为底；现场管理费行取金蝶与红圈的大者不相加；
+  劳务人工在金蝶「工资（承包费）支出」缺位时取红圈工时×标定单价；分摊管理费＝合同额×2%，
+  只摊给有成本发生额的项目。</footer>"""
+    return page(body)
 
 
 @app.get("/public-api/技能健康")
