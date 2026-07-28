@@ -1,8 +1,8 @@
 {
   "acceptance_id": "ACC-V014-PROCESSED-VALUE-SOURCE-MAP-COMPLETION-FULL-RECONCILIATION-BLOCKER-AUDIT",
   "generated_at": "2026-07-06T00:00:00+10:00",
-  "git_branch": "feat/project-cost-full-ledger",
-  "git_head": "502cf875ca17fffc7c669e5eb27d04a7a9ac4e32",
+  "git_branch": "fix/lineage-buildable-without-duckdb",
+  "git_head": "b33e96aca9effeae2576e9ecabc426d1166c21f9",
   "go_no_go": {
     "acceptance_id": "ACC-V014-PROCESSED-VALUE-SOURCE-MAP-COMPLETION-FULL-RECONCILIATION-BLOCKER-AUDIT",
     "app_reinstall_performed": false,

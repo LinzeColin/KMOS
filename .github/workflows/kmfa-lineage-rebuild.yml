@@ -1,0 +1,69 @@
+# 血缘图重建 —— 从私有库读 raw 账本，把新资产记进图，回写 KMOS。
+#
+# 为什么要有这个：`lineage_graph build` 依赖的 DuckDB 在 gitignored 的私有运行时
+# 目录下，本机/CI/容器都够不着（容器里还被 self-audit 自己的 tar 显式排除）。
+# 于是图冻死、`stale` 每次都报 STALE、self-audit 连红 40 次——一个永远红的检查
+# 等于没有检查。工具侧的降级路径让 build 只靠 raw 账本就能跑；这里负责定期跑它。
+#
+# 产物 KMFA/machine/lineage.yaml 是 public-safe 的：只有指纹前 12 位、表名、
+# sheet 哈希、版本、行数，零业务明细、零金额。
+name: kmfa-lineage-rebuild
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "20 21 * * 0" # 每周一 05:20 北京（UTC 周日 21:20），排在 self-audit 之前
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 预检 secret
+        env:
+          PRIVATE_DB_TOKEN: ${{ secrets.PRIVATE_DB_TOKEN }}
+        run: |
+          if [ -z "$PRIVATE_DB_TOKEN" ]; then
+            echo "::error::缺 PRIVATE_DB_TOKEN——血缘图读不到 raw 账本"
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 重建血缘图
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_DB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 KMFA/tools/lineage_graph.py build | tee "$RUNNER_TEMP/build.json"
+          {
+            echo "## 血缘图重建"
+            echo '```json'
+            cat "$RUNNER_TEMP/build.json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 校验产物仍是 public-safe
+        run: python3 KMFA/tools/check_lineage_public_safe.py
+
+      - name: 有变化就提交
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- KMFA/machine/lineage.yaml; then
+            echo "血缘图无变化，不提交"
+            exit 0
+          fi
+          python3 KMFA/tools/lineage_commit_message.py \
+            "$RUNNER_TEMP/build.json" > "$RUNNER_TEMP/msg.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add KMFA/machine/lineage.yaml
+          git commit -F "$RUNNER_TEMP/msg.txt"
+          git push
