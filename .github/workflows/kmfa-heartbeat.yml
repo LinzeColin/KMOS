@@ -31,21 +31,51 @@ jobs:
         id: probe
         run: |
           python3 - <<'PY' | tee /tmp/beat.txt
-          import json, urllib.request, urllib.parse, os, sys
+          import json, urllib.request, urllib.parse, urllib.error, os, sys
           url = "https://kmfa.linzezhang.com/public-api/" + urllib.parse.quote("技能健康")
+          # **必须显式设 User-Agent。**站点在 Cloudflare 后面，而 CF 对默认的
+          # `Python-urllib/3.x` 直接回 403（error 1010，UA 黑名单）。
+          # 2026-07-28 实测：本探针从上线起每一轮都拿到 403 → 判「站点异常」→ 触发部署。
+          # 也就是说心跳**一次都没真正读到过技能健康**，几十轮部署全是对着一个 403 打的。
+          # curl 能过、urllib 过不了，正是这个差别让它在人工复核时看起来"没问题"。
+          req = urllib.request.Request(url, headers={
+              "User-Agent": "KMFA-Heartbeat/1.0 (+https://github.com/LinzeColin/KMOS)",
+              "Accept": "application/json"})
           try:
-              with urllib.request.urlopen(url, timeout=25) as r:
+              with urllib.request.urlopen(req, timeout=25) as r:
                   d = json.loads(r.read().decode())
           except Exception as e:
-              print(f"PROBE_FAILED={type(e).__name__}")
-              print("NEED_HEAL=1")
-              print("REASON=健康端点探测失败——站点或应用异常")
+              code = getattr(e, "code", None)
+              print(f"PROBE_FAILED={type(e).__name__} HTTP={code}")
+              print("RED=1")
+              # 4xx 是**我们被挡在门外**（UA/权限/路径），重新部署应用治不了它；
+              # 5xx / 连不上才是应用自己的事，那才值得冷启动一次。
+              if code is not None and 400 <= code < 500:
+                  print("NEED_HEAL=0")
+                  print(f"REASON=健康端点返回 {code}——探针被拒（UA/权限/路径），部署修不了，需改探针")
+              else:
+                  print("NEED_HEAL=1")
+                  print(f"REASON=健康端点探测失败（HTTP={code}）——站点或应用异常")
               raise SystemExit(0)
 
           if not d.get("台账可读"):
+              print("RED=1")
               print("NEED_HEAL=1")
               print(f"REASON=台账读不到：{d.get('原因')}")
               raise SystemExit(0)
+
+          # 重新部署能修的，只有「代码/配置换了一版，但容器还跑着旧的」这一类。
+          # 它修不了的：数据侧的发现（新资产没抽取）、外部登录态失效、业务对不平。
+          # 对这些码还去部署，就是每小时白烧一次部署 + 一次冷启动重试，而症状一动不动。
+          # 2026-07-28 实测：self-audit(STALE) 与 upstream-archive(NO_TARGET_GROUPS)
+          # 两条都属此类，于是心跳连着几十轮无脑重部署——噪音盖住了真问题。
+          NO_HEAL = {
+              "STALE", "LINEAGE_STALE",            # 数据发现：要跑抽取，不是重启
+              "MANIFEST_UNAVAILABLE", "NO_GRAPH",  # 数据源读不到：重启读不出来
+              "NO_TARGET_GROUPS", "NO_GROUPS_LISTED",  # 上游没登录/没清单：重启不会登录
+              "DWS_AUTH_REQUIRED", "NOT_SENT_DWS_AUTH_REQUIRED",
+              "DEPLOY_KEY_MISSING",                # 密钥要注入，不是重启
+          }
 
           rows = d.get("技能", [])
           failing = [r for r in rows if r.get("退出码") not in (0, None)]
@@ -54,46 +84,60 @@ jobs:
                    if r.get("距今小时") is not None and r["距今小时"] > 30
                    and r.get("运行次数")]
           for r in rows:
-              print(f"  {r['技能']:<24} rc={r.get('退出码')} 次数={r.get('运行次数')} 距今h={r.get('距今小时')}")
-          print(f"FAILING={len(failing)} NEVER_RAN={len(never)} STALE={len(stale)}")
-          if failing:
+              print(f"  {r['技能']:<24} rc={r.get('退出码')} 次数={r.get('运行次数')} "
+                    f"距今h={r.get('距今小时')} 码={r.get('失败码')}")
+          healable = [r for r in failing if (r.get("失败码") or "UNKNOWN") not in NO_HEAL]
+          blocked = [r for r in failing if (r.get("失败码") or "UNKNOWN") in NO_HEAL]
+          print(f"FAILING={len(failing)} NEVER_RAN={len(never)} STALE={len(stale)} "
+                f"HEALABLE={len(healable)} NO_HEAL={len(blocked)}")
+          # RED 与 NEED_HEAL 分家：前者管"这轮心跳红不红"，后者管"要不要动手部署"。
+          # 合在一起就只有两种姿势——要么假绿，要么无脑部署，两种都被实测证伪过。
+          print("RED=1" if failing else "RED=0")
+          if healable:
               print("NEED_HEAL=1")
-              print("REASON=失败技能：" + "、".join(r["技能"] for r in failing))
+              print("REASON=可自愈失败：" + "、".join(
+                  f"{r['技能']}({r.get('失败码') or 'UNKNOWN'})" for r in healable))
+          elif blocked:
+              print("NEED_HEAL=0")
+              print("REASON=有失败但重新部署修不了，需人/agent 处理：" + "、".join(
+                  f"{r['技能']}({r.get('失败码')})" for r in blocked))
           else:
               print("NEED_HEAL=0")
               print("REASON=全部技能退出码为 0")
           PY
-          grep -E '^(NEED_HEAL|REASON)=' /tmp/beat.txt >> "$GITHUB_OUTPUT"
+          grep -E '^(NEED_HEAL|REASON|RED)=' /tmp/beat.txt >> "$GITHUB_OUTPUT"
 
-      - name: 距上次部署是否已满 2 小时（防部署风暴）
+      # 上一版的冷却判据读 /api/v1/deployments，指望从里面找到本应用最近一次部署时间。
+      # 2026-07-28 实测：该端点只返回**进行中**的部署，稳态下恒为空数组（实测 len=0），
+      # 于是 newest 永远是 None → 永远 ALLOW=1 → **两小时冷却从上线起一次都没生效过**。
+      # 心跳因此每小时无条件部署一次。防抖动写在注释里，实现里是个空转的 if。
+      # 改用 Actions 缓存记时间戳：不依赖任何第三方端点的语义，自己记自己的账。
+      - name: 取上次自愈时间戳（缓存，不依赖 Coolify 部署历史）
+        id: stamp
+        if: steps.probe.outputs.NEED_HEAL == '1'
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/heal-stamp
+          key: kmfa-heal-stamp-${{ github.run_id }}
+          restore-keys: kmfa-heal-stamp-
+
+      - name: 距上次自愈是否已满 2 小时（防部署风暴）
         id: cooldown
         if: steps.probe.outputs.NEED_HEAL == '1'
-        env:
-          BASE: ${{ secrets.COOLIFY_BASE_URL }}
-          TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
         run: |
           set -euo pipefail
-          curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/deployments" -o /tmp/dep.json || echo '[]' > /tmp/dep.json
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
-          import json, datetime, os
-          try:
-              d = json.load(open("/tmp/dep.json"))
-          except Exception:
-              d = []
-          arr = d if isinstance(d, list) else (d.get("data") or [])
-          newest = None
-          for x in arr:
-              if x.get("application_name") != "kmfa-kmos-p1":
-                  continue
-              at = x.get("created_at")
-              if at and (newest is None or at > newest):
-                  newest = at
-          if not newest:
-              print("ALLOW=1"); print("LAST_DEPLOY=none")
+          import datetime, pathlib
+          p = pathlib.Path("/tmp/heal-stamp/last.txt")
+          raw = p.read_text(encoding="utf-8").strip() if p.exists() else ""
+          if not raw:
+              # 缓存里没有记录 = 从没自愈过（或缓存被回收）。放行一次，并立刻写下时间戳，
+              # 于是最多多打一次部署，不会退化成"每轮都放行"。
+              print("ALLOW=1"); print("LAST_HEAL=none"); print("AGE_H=inf")
           else:
-              t = datetime.datetime.fromisoformat(newest.replace("Z", "+00:00"))
+              t = datetime.datetime.fromisoformat(raw)
               age = (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() / 3600
-              print(f"LAST_DEPLOY={newest}")
+              print(f"LAST_HEAL={raw}")
               print(f"AGE_H={age:.1f}")
               print("ALLOW=1" if age >= 2 else "ALLOW=0")
           PY
@@ -106,19 +150,33 @@ jobs:
         run: |
           set -euo pipefail
           echo "判据：${{ steps.probe.outputs.REASON }}"
-          echo "上次部署：${{ steps.cooldown.outputs.LAST_DEPLOY }}（${{ steps.cooldown.outputs.AGE_H }} 小时前）"
+          echo "上次自愈：${{ steps.cooldown.outputs.LAST_HEAL }}（${{ steps.cooldown.outputs.AGE_H }} 小时前）"
           curl -fsSL -X POST -H "Authorization: Bearer $TOKEN" \
             "$BASE/api/v1/deploy?uuid=gz5qao2k0zrx3polpbwgcg51" | head -c 400
           echo
           echo "已触发重新部署——容器起来后会立刻重跑失败技能"
+          mkdir -p /tmp/heal-stamp
+          python3 -c "import datetime;print(datetime.datetime.now(datetime.timezone.utc).isoformat())" \
+            > /tmp/heal-stamp/last.txt
 
-      - name: 判定为失败但在冷却期内（只记录不动手）
+      # 只在**真的部署了**之后才写缓存——否则冷却会被没动手的轮次续期，
+      # 变成"越不动手越不许动手"。
+      - name: 记下本次自愈时间戳
+        if: steps.probe.outputs.NEED_HEAL == '1' && steps.cooldown.outputs.ALLOW == '1'
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/heal-stamp
+          key: kmfa-heal-stamp-${{ github.run_id }}
+
+      - name: 判定为可自愈但在冷却期内（只记录不动手）
         if: steps.probe.outputs.NEED_HEAL == '1' && steps.cooldown.outputs.ALLOW != '1'
         run: |
-          echo "::warning::${{ steps.probe.outputs.REASON }}；但距上次部署仅 ${{ steps.cooldown.outputs.AGE_H }} 小时，未满 2 小时冷却，本轮不触发部署"
+          echo "::warning::${{ steps.probe.outputs.REASON }}；但距上次自愈仅 ${{ steps.cooldown.outputs.AGE_H }} 小时，未满 2 小时冷却，本轮不触发部署"
 
+      # 红的判据是 RED（有技能在失败），不是 NEED_HEAL（值不值得部署）。
+      # 「修不了所以不部署」绝不等于「没问题」——那正是把红事静音成绿的老路。
       - name: 有失败就让本次运行红（心跳自己不许假绿）
-        if: steps.probe.outputs.NEED_HEAL == '1'
+        if: steps.probe.outputs.RED == '1'
         run: |
           echo "::error::${{ steps.probe.outputs.REASON }}"
           exit 1

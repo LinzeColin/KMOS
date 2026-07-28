@@ -67,6 +67,34 @@ fi
 # 全量拉所有群既慢又会把无关群的文件拖进来。没有勾选就不猜，宁可停。
 SEL=/var/log/kmfa/dws/selected_groups.json
 CAND=/var/log/kmfa/dws/candidate_groups.json
+# 没有勾选时**退回全量候选**，而不是停下来等人勾。
+#
+# 为什么改（2026-07-28）：原设计「没有勾选就不猜，宁可停」在纸面上是对的，但它假设了
+# 有人会去驾驶舱勾。Owner 的硬性工作方式里写死了「不登录、不看页面、不点确认」——
+# 这个前提永远不成立，于是「宁可停」在实际运行中等价于**永久停**：
+# 归档从上线起一个文件都没取回来过，而 Owner 要的正是「用 dws 上游归档自动整理文件」。
+# 两害相权：多归档几个无关群，代价是磁盘和一次增量扫描；一个群都不归档，代价是这条链白建。
+# 勾选一旦出现仍然优先（人的意图永远压过兜底），兜底只在无勾选时生效，且在日志里写明。
+if [ -s "$CAND" ] && [ ! -s "$SEL" ]; then
+  log "驾驶舱无勾选——按全量候选自动生成目标群清单（兜底；有勾选时以勾选为准）"
+  python3 - "$CAND" "$CONF_SRC" <<'PYA' && log "已按全量候选生成目标群清单"
+import json, sys, os
+cand = json.load(open(sys.argv[1], encoding="utf-8"))
+picked = cand.get("群", [])
+if not picked:
+    print("候选为空——不生成清单", file=sys.stderr); raise SystemExit(1)
+out = sys.argv[2]
+base = out.replace("target_groups.yaml", "target_groups.candidate.yaml")
+head = open(base, encoding="utf-8").read().split("groups:")[0] if os.path.exists(base) else ""
+os.makedirs(os.path.dirname(out), exist_ok=True)
+with open(out, "w", encoding="utf-8") as fh:
+    fh.write(head or "# 由全量候选兜底生成（驾驶舱未勾选）\n")
+    fh.write("groups:\n")
+    for g in picked:
+        fh.write(f'  - id: "{g["id"]}"\n    name: "{g["name"]}"\n    mode: "auto"\n')
+    fh.write(f"# 兜底：全量候选 {len(picked)} 个群（驾驶舱未勾选）\n")
+PYA
+fi
 if [ -s "$SEL" ] && [ -s "$CAND" ]; then
   python3 - "$CAND" "$SEL" "$CONF_SRC" <<'PYS' && log "已按驾驶舱勾选生成目标群清单"
 import json, sys, os, re
@@ -89,7 +117,9 @@ PYS
 fi
 
 if [ ! -f "$CONF_SRC" ]; then
-  die NO_TARGET_GROUPS "无目标群清单：候选已就绪但驾驶舱尚未勾选，或容器内 dws 未登录。归档不猜目标，停在这里" 4
+  # 走到这里只剩一种成因了：连**候选**都没有（自举列不出群 → 见 NO_GROUPS_LISTED）。
+  # 「勾选为空」不再是成因——无勾选已由上面的全量候选兜底接住。
+  die NO_TARGET_GROUPS "无目标群清单：连候选都没有，多半是容器内 dws 未登录（自举会报 NO_GROUPS_LISTED）" 4
 fi
 mkdir -p "$SKILL/config"
 install -m 600 "$CONF_SRC" "$SKILL/config/target_groups.yaml"
