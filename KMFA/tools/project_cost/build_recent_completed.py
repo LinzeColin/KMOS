@@ -383,6 +383,141 @@ def labour_cost(record: dict) -> tuple[Decimal, Decimal, bool]:
     return own, sub, recorded
 
 
+#: 红圈《主合同》导出——**合同号的权威来源**（Owner 2026-07-29 定：
+#: 「红圈数据和 wps 数据是合同号的权威来源」）。
+MASTER_CONTRACT_GLOB = "红圈主合同*.xlsx"
+
+
+def read_master_contracts(data_root: str) -> dict[str, dict]:
+    """红圈《主合同》：合同号 → 甲方／状态／合同额／完工日期。
+
+    为什么必须读它：《生产项目状态表》只有 **34 行**，而主合同表有 **4,332 个合同号**。
+    一直只读状态表，等于把项目成本的范围缩到了三十几个——而金蝶里有成本记录的
+    合同有 176 个。2026-07-29 实测：改用主合同表当身份权威后，能出成本的项目
+    从 32 个变成 169 个。
+
+    它同时解掉「一个合同号挂两个甲方」那种冲突：状态表里 KMX202595-064 同时挂在
+    新疆宜化和日照钢铁名下，而主合同表里它唯一对应新疆宜化——**状态表那条录错了**。
+    权威表说了算，不再需要人工裁定。
+    """
+    master: dict[str, dict] = {}
+    for path in sorted(glob.glob(f"{data_root}/**/{MASTER_CONTRACT_GLOB}", recursive=True)):
+        workbook = open_workbook(path)
+        for sheet_name in workbook.sheetnames:
+            sheet = workbook[sheet_name]
+            # read_only 下 openpyxl 信表里声明的 dimension，而这份导出声明的是单行——
+            # 不 reset 就只读得到表头，函数静默返回空，表现成「主合同表里没有任何合同」。
+            try:
+                sheet.reset_dimensions()
+            except AttributeError:
+                pass
+            rows = list(sheet.iter_rows(values_only=True))
+            if not rows:
+                continue
+            header = ["" if x is None else str(x).strip() for x in rows[0]]
+            index = {name: position for position, name in enumerate(header) if name}
+
+            def pick(row, *keys):
+                for key in keys:
+                    position = index.get(key)
+                    if position is not None and position < len(row) and row[position] is not None:
+                        return row[position]
+                return None
+
+            if not any("合同编号" in h or "合同号" in h for h in header):
+                continue
+            for row in rows[1:]:
+                if not row:
+                    continue
+                key = norm_contract(pick(row, "合同编号", "合同号"))
+                if not key.startswith("KMX"):
+                    continue
+                # 后出现的不覆盖先出现的：同名导出多份时以第一份为准，避免快照顺序影响结果
+                master.setdefault(key, {
+                    "甲方名称": str(pick(row, "甲方") or "").strip(),
+                    "施工状态": str(pick(row, "施工状态") or "").strip(),
+                    "完工时间": str(pick(row, "完工日期（产值上报）", "完工日期") or "")[:10],
+                    "含税合同金额": pick(row, "含税合同额(元)", "含税合同金额"),
+                    "结算金额": pick(row, "结算金额(元)"),
+                })
+        workbook.close()
+    return master
+
+
+def merge_master_contracts(data_root: str, projects: dict[str, dict]) -> dict[str, dict]:
+    """把主合同表并进来：它定身份，状态表定工时与业务自填费用。
+
+    并法有三条，每条都有实测理由：
+      · 主合同表里有、状态表里没有的 → **补进来**（这是从 32 涨到 169 的来源）；
+      · 两边都有 → 身份字段（甲方／状态／合同额／完工日）以主合同表为准，
+        工时与台账费用仍取状态表——那些字段主合同表里没有；
+      · 状态表里有、主合同表里没有的 → **保留但打标**，不静默丢。
+        丢了就是拿「权威表没登记」当「这个项目不存在」，而它可能只是新合同还没进表。
+    """
+    master = read_master_contracts(data_root)
+    if not master:
+        return projects                      # 读不到权威表就按原样走，不因此丢覆盖
+
+    merged: dict[str, dict] = {}
+    for key, record in projects.items():
+        contract_key = record["合同编号"]
+        authority = master.get(contract_key)
+        if authority:
+            record = dict(record)
+            same_party = (not authority.get("甲方名称")
+                          or not record.get("甲方名称")
+                          or authority["甲方名称"] == record["甲方名称"])
+            if same_party:
+                for field in ("甲方名称", "施工状态", "含税合同金额"):
+                    if authority.get(field):
+                        record[field] = authority[field]
+                if authority.get("完工时间"):
+                    record["完工日期"] = authority["完工时间"]
+                record["身份来源"] = "红圈主合同（权威）"
+                record.pop("身份冲突", None)   # 权威表已定案，冲突不再成立
+            else:
+                # 状态表这一行的甲方跟权威表对不上——**这一行的合同号填错了**，
+                # 不能把它改写成权威表的甲方：那等于把「日照钢铁的一笔成本」
+                # 挂到「新疆宜化」名下，凭空造出一个不存在的成本。
+                # 保留原样并标出来，让人去改源头。
+                record["身份来源"] = (
+                    f"⚠ 合同号与权威表冲突：主合同表里 {contract_key} 属于"
+                    f"「{authority['甲方名称']}」，而《生产项目状态表》这一行写的是"
+                    f"「{record['甲方名称']}」。**这一行的合同号很可能填错了**，"
+                    f"其成本未归入任何项目，需在红圈里更正。")
+                record["合同号存疑"] = True
+        else:
+            record = dict(record)
+            record["身份来源"] = "仅生产项目状态表——主合同表里查无此合同号"
+        record["已完工"] = bool(re.search(
+            r"完工|竣工|完成|结束|已交|验收",
+            str(record.get("施工状态", "")) + str(record.get("完工日期", ""))))
+        record["完工排序"] = record.get("完工日期") or ""
+        merged[key] = record
+
+    seen = {r["合同编号"] for r in merged.values()}
+    for contract_key, authority in master.items():
+        if contract_key in seen:
+            continue
+        done = bool(re.search(r"完工|竣工|完成|结束|已交|验收",
+                              authority["施工状态"] + authority["完工时间"]))
+        merged[contract_key] = {
+            "合同编号": contract_key,
+            "甲方名称": authority["甲方名称"],
+            "施工状态": authority["施工状态"],
+            "完工日期": authority["完工时间"],
+            "含税合同金额": authority["含税合同金额"],
+            "结算金额": authority.get("结算金额"),
+            "已完工": done,
+            "完工排序": authority["完工时间"],
+            "身份来源": "红圈主合同（权威）",
+            # 工时与业务自填费用只在《生产项目状态表》里有，这些项目没有那一行——
+            # 于是它们的人工算不出来。**这不是「人工是 0」，是「工时没填」**，
+            # labour_cost 会据此把「工时已填」标成 False。
+        }
+    return merged
+
+
 def build(data_root: str, account_map: dict, limit: int = 0) -> dict:
     """limit=0 表示**不限**——项目成本要覆盖全部项目，不是最近 N 个。
 
@@ -392,6 +527,7 @@ def build(data_root: str, account_map: dict, limit: int = 0) -> dict:
     """
     account_to_row = {m["account"]: m["rows"]["A"]["row"] for m in account_map["mappings"]}
     everything = read_projects(data_root, only_completed=False)
+    everything = merge_master_contracts(data_root, everything)
     ranked = sorted(everything.values(), key=sort_key, reverse=True)
     if limit:
         ranked = ranked[:limit]
@@ -431,8 +567,50 @@ def build(data_root: str, account_map: dict, limit: int = 0) -> dict:
             for c in BUSINESS_COST_COLUMNS if c != "材料费")
         site = max(ledger_site, site_from_business)
         site_from_ledger = ledger_site
-        total = material + lease + site + sub_labour
-        management_fee = (contract * Decimal("0.02")) if contract is not None else Decimal(0)
+
+        # 金蝶归集到的**全额**都要进成本，不能只挑三行。
+        #
+        # 2026-07-29 抓到：原来 total 只取 原材料＋租赁费＋现场管理费＋劳务人工，
+        # 而金蝶归集到的最大一行是 **（五）工资（承包费）支出 1,502 万**——整个被丢掉。
+        # 一直以为「金蝶的人工记在『不分项目』、按项目归集不到」，那是错的：
+        # 这一行按销售合同号归集得好好的，占全部归集成本的三分之二。
+        #
+        # 会不会和红圈工时重复？实测：84 个项目有金蝶(五)、16 个有红圈工时，
+        # **两者都有的是 0 个**——它们是同一件事的互补来源，相加不重复。
+        # 所以规则是：金蝶有归集就用金蝶全额，金蝶没有的项目才落到红圈工时上。
+        # 人工到底算谁的，只看**金蝶(五)在不在**，不看金蝶有没有别的成本。
+        # 第一版写成「金蝶有任何归集就不要红圈人工」，实测对 8 份竣工报表的覆盖率
+        # 从 84% 掉到 39%——因为很多项目金蝶只归集到了材料，人工仍然只在红圈里。
+        # 零重叠这个实测结论**只对 (五) 这一行成立**（84 个 vs 16 个，交集 0），
+        # 拿它去推「所有金蝶科目」就是把一个局部结论当全称用。
+        ledger_labour = by_row.get("（五）工资（承包费）支出") or Decimal(0)
+        if direct_total:
+            # 金蝶归集到了 → 以它的**全额**为底，只做两处调整：
+            #
+            #   · 现场管理费那一行换成 max(金蝶, 红圈)——金蝶这行有的已含管理人员工资、
+            #     有的没含，含没含逐项判不了；红圈那边是「自有人工＋台账其他费用」。
+            #     取大不相加，否则自有人工会被算两遍（第一版就是这么把 084 算到 112% 的）。
+            #   · 劳务人工只在金蝶(五)缺位时补红圈的——(五) 就是承包费，两者是同一件事。
+            #     实测 84 个项目有 (五)、16 个有红圈工时、交集 0，所以互补而不重叠。
+            total = direct_total - ledger_site + max(ledger_site, site_from_business)
+            if not ledger_labour:
+                total += sub_labour
+        else:
+            # 金蝶完全没归集：只能落到红圈自填的费用与工时上。
+            total = material + lease + site + sub_labour
+        # 分摊管理费只摊给**真发生过成本**的项目。
+        #
+        # 2026-07-29 改用红圈主合同表当身份权威后，项目范围从 32 个变成 4,313 个历史合同。
+        # 原来无条件按「合同额 × 2%」摊，在这个范围上摊出了 **967 万** ——
+        # 而其中绝大多数合同在金蝶里一分钱成本都没有、工时也没填。
+        # 给一个没跑过的合同摊 2%，那是凭空造成本：它会让「成本不知道」的项目
+        # 看起来像「成本很低」，正是这套表最该避免的那种误导。
+        #
+        # 判据是「有没有成本发生额」，不是「合同额是不是 0」：
+        # 金蝶归集到了、业务台账填了费用、或红圈填了工时——三者有其一才摊。
+        has_actual_cost = bool(total) or bool(business_total) or hours_recorded
+        management_fee = (contract * Decimal("0.02")) \
+            if (contract is not None and has_actual_cost) else Decimal(0)
 
         projects.append({
             **{k: v for k, v in record.items()},
