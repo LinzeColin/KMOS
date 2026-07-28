@@ -2542,6 +2542,37 @@ def public_login_entry(request: Request):
         return {"可用": False, "原因": str(error), "登录地址": None}
 
 
+#: 逐目标结果里表示「这份报告发没发成」的键。产线上有两种形状：
+#:   · `_target_send_result()` 出的是 `management_status` / `hr_status`（按报告分开）；
+#:   · 解析目标那一段出的是单个 `status`。
+#: 2026-07-28 实测踩过：端点只读 `status`，而真实投递走的是前一种，于是**把成功的
+#: 投递显示成失败**——顶层写着 SENT，目标行却是 成功=False。这正是本端点要消灭的
+#: 那类误导信号，不能由端点自己制造。
+_TARGET_STATUS_KEYS = ("management_status", "hr_status", "status")
+
+
+def _dispatch_target(item: dict[str, Any]) -> dict[str, Any]:
+    """把一条逐目标结果裁成公开安全的形状。
+
+    成功的判据是**所有实际出现的报告状态都为 SENT**，而不是任一为 SENT：
+    管理报表发了、HR 报表没发，是「没发全」，不能算成功。
+    `SKIPPED` 表示这份报告本就不在该目标的订阅里，不参与判定。
+    """
+    statuses = {key: str(item.get(key) or "") for key in _TARGET_STATUS_KEYS
+                if item.get(key) not in (None, "")}
+    effective = [v for v in statuses.values() if v != "SKIPPED"]
+    return {
+        "对象": str(item.get("label") or "?"),
+        "成功": bool(effective) and all(v == "SENT" for v in effective),
+        "各报告状态": statuses or {"（回执里没有状态字段）": ""},
+        "通道": str(item.get("channel") or item.get("resolved_channel") or ""),
+        "失败原因": str(item.get("failure_reason") or "") or None,
+        # trace_id 本体不出（是钉钉侧的追踪标识），只出「有没有」——
+        # 没有 trace 的「成功」值得怀疑，这一位就够判断了。
+        "有回执追踪号": bool(item.get("trace_id_present") or item.get("trace_id")),
+    }
+
+
 def _dispatch_receipts(limit: int = 8) -> list[dict[str, Any]]:
     """把最近若干份投递回执裁成公开安全的形状。
 
@@ -2564,16 +2595,8 @@ def _dispatch_receipts(limit: int = 8) -> list[dict[str, Any]]:
             out.append({"回执": path.name, "可读": False, "原因": "回执不是对象"})
             continue
         row = {k: raw.get(k) for k in _DISPATCH_PUBLIC_FIELDS if raw.get(k) not in (None, "")}
-        targets = []
-        for item in (raw.get("target_results") or []):
-            if not isinstance(item, dict):
-                continue
-            targets.append({
-                "对象": str(item.get("label") or "?"),
-                "成功": str(item.get("status") or "") == "SENT",
-                "状态": str(item.get("status") or ""),
-                "通道": str(item.get("channel") or ""),
-            })
+        targets = [_dispatch_target(item) for item in (raw.get("target_results") or [])
+                   if isinstance(item, dict)]
         row["目标"] = targets
         row["回执"] = path.name
         row["写入时间"] = datetime.fromtimestamp(path.stat().st_mtime, BEIJING).isoformat()
@@ -2612,11 +2635,24 @@ def public_attendance_dispatch():
         }, headers=headers)
     receipts = _dispatch_receipts()
     latest = receipts[0] if receipts else None
+    payload: dict[str, Any] = {}
+    if latest:
+        top_sent = latest.get("notification_status") == "SENT"
+        targets = latest.get("目标") or []
+        # 顶层状态和逐目标状态**可能对不上**。2026-07-28 首次真跑就撞上：顶层 SENT、
+        # 目标行却判成失败（当时是端点读错了键）。键修好了，但这种不一致本身仍要
+        # 报出来——它意味着「整体说成了、具体某个人没收到」，而那恰恰是 Owner 要问的。
+        if targets and top_sent != all(t["成功"] for t in targets):
+            payload["口径不一致"] = (
+                f"顶层 notification_status={latest.get('notification_status')}，"
+                f"但逐目标结果是 {[t['成功'] for t in targets]}——以逐目标为准，"
+                f"整体说发了不等于每个人都收到了")
     return JSONResponse({
         "生成时间": now.isoformat(),
         "可读": True,
         "需要登录": False,
         "最近一次是否真的发出": (latest.get("notification_status") == "SENT") if latest else None,
+        **payload,
         "为什么看这个": "台账 rc=0 只代表进程正常退出，不代表消息发出去了；"
                        "两者在台账上长得一模一样。",
         "投递": receipts,

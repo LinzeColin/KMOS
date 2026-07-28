@@ -28,7 +28,11 @@ SENT = {
     "run_type": "morning",
     "work_date": "2026-07-28",
     "target_results": [
-        {"label": "张霖泽", "status": "SENT", "channel": "dws_open_dingtalk_id_chat",
+        # 产线真实形状：`_target_send_result()` 出的是按报告分开的
+        # management_status / hr_status，**没有** `status` 这个键。
+        {"label": "张霖泽", "type": "personal", "channel": "dws_open_dingtalk_id_chat",
+         "management_status": "SENT", "hr_status": "SENT",
+         "failure_reason": None, "trace_id": "机密追踪号", "trace_id_present": True,
          "user_id": "机密员工标识"},
     ],
     "management_report": "全员考勤明细：张三迟到 12 分钟……",
@@ -125,3 +129,69 @@ def test_is_not_indexable_and_not_cached(tmp_path, monkeypatch):
     headers = client.get(URL).headers
     assert "noindex" in headers.get("x-robots-tag", "")
     assert headers.get("cache-control") == "no-store"
+
+
+# ── 2026-07-28 首次真跑暴露的：端点读错了状态键 ──────────────────────────
+def test_the_real_production_shape_is_read_correctly(tmp_path, monkeypatch):
+    """产线用 management_status/hr_status，不是 status。
+
+    读错的后果不是报错，是**把成功的投递显示成失败**——顶层写着 SENT，
+    目标行却是 成功=False。本端点存在的意义就是消灭这类误导信号，
+    它自己制造一个是最坏的情况。
+    """
+    _archive(tmp_path, monkeypatch, SENT)
+    target = client.get(URL).json()["投递"][0]["目标"][0]
+    assert target["对象"] == "张霖泽"
+    assert target["成功"] is True
+    assert target["各报告状态"]["management_status"] == "SENT"
+
+
+def test_a_partial_send_is_not_success(tmp_path, monkeypatch):
+    """管理报表发了、HR 没发 ＝ 没发全。任一为 SENT 就算成功会漏掉真问题。"""
+    payload = json.loads(json.dumps(SENT))
+    payload["target_results"][0]["hr_status"] = "FAILED"
+    _archive(tmp_path, monkeypatch, payload)
+    assert client.get(URL).json()["投递"][0]["目标"][0]["成功"] is False
+
+
+def test_skipped_reports_do_not_count_against_success(tmp_path, monkeypatch):
+    """SKIPPED 表示这份报告本就不在该目标的订阅里，不该拖成失败。"""
+    payload = json.loads(json.dumps(SENT))
+    payload["target_results"][0]["hr_status"] = "SKIPPED"
+    _archive(tmp_path, monkeypatch, payload)
+    assert client.get(URL).json()["投递"][0]["目标"][0]["成功"] is True
+
+
+def test_no_status_at_all_is_not_reported_as_success(tmp_path, monkeypatch):
+    """一个状态字段都没有时，绝不能默认成功——沉默不是好消息。"""
+    payload = json.loads(json.dumps(SENT))
+    for key in ("management_status", "hr_status"):
+        payload["target_results"][0].pop(key, None)
+    _archive(tmp_path, monkeypatch, payload)
+    assert client.get(URL).json()["投递"][0]["目标"][0]["成功"] is False
+
+
+def test_the_older_single_status_shape_still_works(tmp_path, monkeypatch):
+    """解析目标那一段出的是单个 status；两种形状都要认。"""
+    payload = json.loads(json.dumps(SENT))
+    payload["target_results"] = [{"label": "张霖泽", "status": "SENT",
+                                  "resolved_channel": "dws_open_dingtalk_id_chat"}]
+    _archive(tmp_path, monkeypatch, payload)
+    assert client.get(URL).json()["投递"][0]["目标"][0]["成功"] is True
+
+
+def test_a_mismatch_between_top_level_and_targets_is_surfaced(tmp_path, monkeypatch):
+    """「整体说发了」不等于「每个人都收到了」——这正是 Owner 要问的那件事。"""
+    payload = json.loads(json.dumps(SENT))
+    payload["target_results"][0]["hr_status"] = "FAILED"
+    _archive(tmp_path, monkeypatch, payload)
+    body = client.get(URL).json()
+    assert "口径不一致" in body and "以逐目标为准" in body["口径不一致"]
+
+
+def test_the_trace_id_itself_never_leaks(tmp_path, monkeypatch):
+    """只出「有没有回执追踪号」——没有 trace 的「成功」值得怀疑，一位就够判断。"""
+    _archive(tmp_path, monkeypatch, SENT)
+    text = client.get(URL).text
+    assert "机密追踪号" not in text
+    assert client.get(URL).json()["投递"][0]["目标"][0]["有回执追踪号"] is True
