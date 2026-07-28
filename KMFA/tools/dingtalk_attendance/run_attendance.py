@@ -75,7 +75,10 @@ from KMFA.tools.dingtalk_attendance.secrets_loader import merged_runtime_env
 
 RUN_TYPES = ("morning", "evening")
 PLAN_RUN_TYPES = (*RUN_TYPES, "final")
-SCHEDULE = {"morning": "10:35", "evening": "20:05"}
+# Owner 2026-07-28：上班 08:00、下班 17:30，各晚一分钟查。
+# 这两个值不只是显示——`_slot_cutoff` 拿它算考勤查询的**截止时刻**，
+# 改这里就是改「查到几点为止算没打卡」。
+SCHEDULE = {"morning": "08:01", "evening": "17:31"}
 # 2026-07-15's slowest successful natural reminder collection completed in 285 seconds.
 # Keep 45 seconds of headroom while still failing before the automation task's outer ceiling.
 DEFAULT_REMINDER_COLLECTION_DEADLINE_SECONDS = 330

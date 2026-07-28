@@ -2453,8 +2453,8 @@ def _public_failure_code(raw: object) -> str | None:
     return None
 # 排程契约（与 deploy/skills-runtime/crontab.txt 一致；北京时间）
 SCHEDULE_CONTRACT = {
-    "attendance-morning": "每天 10:35",
-    "attendance-evening": "每天 20:05",
+    "attendance-morning": "每天 08:01",
+    "attendance-evening": "每天 17:31",
     "work-check-morning": "每天 11:35",
     "work-check-evening": "每天 17:05",
     "fund-weekly": "周一/周六 11:00",

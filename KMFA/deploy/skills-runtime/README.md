@@ -69,8 +69,8 @@ docker compose exec skills /opt/runtime/test_send.sh "张霖泽"
 
 | 技能 | 原排程（悉尼钟面） | 说明 |
 |---|---|---|
-| 钉钉考勤 晨报 | 每日 10:35 | `run_skill.sh attendance-morning` |
-| 钉钉考勤 晚报 | 每日 20:05 | `run_skill.sh attendance-evening` |
+| 钉钉考勤 晨报 | 每日 08:01 | `run_skill.sh attendance-morning` |
+| 钉钉考勤 晚报 | 每日 17:31 | `run_skill.sh attendance-evening` |
 | 钉钉工作检查 | 每日 13:35 / 19:05 | `run_skill.sh work-check` |
 | 每日工作检查（日检） | 每日 11:30 | `run_skill.sh daily-routine` |
 | 资金周报 | 周一 / 周六 11:00 | `run_skill.sh fund-weekly`（先完成 SKL.0005 OCR 替换） |

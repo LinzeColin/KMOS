@@ -6,9 +6,9 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# 钉钉考勤（在产，最谨慎——SKL.0003 双跑一刀切换）：契约业务锚 北京 10:35 / 20:05
-35 10 * * *   root /opt/runtime/run_skill.sh attendance-morning  >> /var/log/kmfa/cron.log 2>&1
-5  20 * * *   root /opt/runtime/run_skill.sh attendance-evening  >> /var/log/kmfa/cron.log 2>&1
+# 钉钉考勤（在产，最谨慎——SKL.0003 双跑一刀切换）：契约业务锚 北京 08:01 / 17:31（Owner 2026-07-28 定：上班 08:00、下班 17:30，各晚一分钟查）
+1  8  * * *   root /opt/runtime/run_skill.sh attendance-morning  >> /var/log/kmfa/cron.log 2>&1
+31 17 * * *   root /opt/runtime/run_skill.sh attendance-evening  >> /var/log/kmfa/cron.log 2>&1
 
 # 钉钉工作检查 = 每日工作检查技能（契约业务锚 北京 11:35 / 17:05，窗口原生钟面）
 35 11 * * *   root /opt/runtime/run_skill.sh work-check-morning  >> /var/log/kmfa/cron.log 2>&1
