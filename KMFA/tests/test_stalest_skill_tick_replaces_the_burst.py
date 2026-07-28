@@ -120,3 +120,15 @@ def test_turning_the_tick_off_does_not_touch_the_real_schedule():
     assert "pick_stalest_skill" in off, "关的应当只是节拍那一行"
     for business in ("attendance-morning", "upstream-archive", "project-cost-refresh"):
         assert business not in off, f"关压测把 {business} 也过滤掉了"
+
+
+def test_an_empty_tick_is_not_an_error():
+    """挑不到东西是**常态**：一天 48 跳、只有 13 个技能，绝大多数跳都该是空的。
+
+    少了兜底，正常的空跳会让整行以非零退出，cron 每半小时记一笔像失败的东西，
+    真失败就淹在里面了——「红灯天天亮又次次不是真问题」的另一种长法。
+    """
+    line = next(l for l in CRONTAB.read_text(encoding="utf-8").splitlines()
+                if "pick_stalest_skill" in l)
+    assert "|| true" in line or line.rstrip().endswith("fi"), \
+        f"空跳会让 cron 记成失败：{line}"
