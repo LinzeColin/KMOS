@@ -77,6 +77,30 @@ def _create(client: TestClient, *, ip: str, name: str) -> tuple[dict, str]:
     return response.json(), session
 
 
+
+@pytest.fixture(autouse=True)
+def _frozen_abuse_clock(monkeypatch: pytest.MonkeyPatch):
+    """把本文件的墙上时钟钉住。**测的是限流，不是时钟。**
+
+    速率窗口是**固定纪元分桶**：`window_start = (now // window.seconds) * window.seconds`，
+    不是滑动窗口。于是「发 N 个请求，第 N+1 个应被拒」这类用例，一旦**跨过桶边界**
+    计数器就归零，第 N+1 个被放行——用例随机变红，而它红的原因与被测对象无关。
+
+    实测撞到三次：本机全量套件一次、CI 上两次（先是 `assert 201 == 429`，
+    修掉那条之后换成 `assert 409 == 429`）。逐条打补丁只会一直换下一条。
+
+    **一个会随机红的门禁比没有门禁更糟**：它训练人「再跑一次」，
+    于是它真抓到 bug 那天，也会被再跑一次。
+
+    本文件里直接调 `admit_request` 的用例一律显式传 `now_value=`——
+    `_admit` 在 `now_value` 非空时**根本不看** `_now()`，所以钉住它对那些用例无影响，
+    包括那条专门验「窗口过期后恢复」的（它自己把时间推到 base+3600）。
+    真正被钉住的只有走 HTTP 的那几条，而它们恰好就是会抖的那几条。
+    """
+    frozen = 1_785_200_000.0
+    monkeypatch.setattr(abuse, "_now", lambda: frozen)
+    return frozen
+
 def test_normal_fixture_has_zero_false_positives_and_public_browse_stays_open(
     abuse_store: Path,
 ):
@@ -126,24 +150,8 @@ def test_normal_fixture_has_zero_false_positives_and_public_browse_stays_open(
 
 def test_actor_limit_issues_one_use_bound_challenge_without_login(
     abuse_store: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ):
-    """本用例测的是**限流本身**，不是时钟——所以把时钟钉住。
-
-    速率窗口是固定纪元分桶：`window_start = (now // 10) * 10`，不是滑动窗口。
-    这七个请求一旦**跨过 10 秒边界**，计数器就归零，第 7 个被放行（201）而不是
-    被挑战（429）——用例于是随机变红，而它红的原因和它要测的东西毫无关系。
-
-    实测撞到过两次：本机全量套件偶发一次、CI 上又一次。
-    **一个会随机红的门禁比没有门禁更糟**：它训练人「再跑一次」，
-    于是它真抓到 bug 那天，也会被再跑一次。
-
-    钉住时钟只去掉「哪一秒发起」这个与被测对象无关的变量；
-    限流的判定逻辑一行都没被绕过。
-    """
     del abuse_store
-    frozen = 1_785_200_000.0  # 任意固定时刻，只要七个请求落在同一个 10 秒桶里
-    monkeypatch.setattr(abuse, "_now", lambda: frozen)
     ip = "198.51.100.81"
     with _client() as client:
         status = client.get(f"{BASE}/status", headers={"CF-Connecting-IP": ip})
