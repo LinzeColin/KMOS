@@ -926,8 +926,23 @@ def _an_asset():
 
 
 def test_lineage_assets_and_chain_exposed(净重跑):
+    """血缘规模断言口径：查**自洽**，不查具体数字。
+
+    原来写死 `节点数 == 53 and 边数 == 69`。血缘图是机械生成的，且**本就会随
+    Owner 往私有库放数据而增长**——每周重建一次就会撞坏一次。2026-07-28 重建到
+    60 个资产，这条立刻红了，而红的原因是"数据变多了"，不是接口坏了。
+    写死数字等于把一个正常演进当成回归，最后只会被人改成新数字或直接删掉。
+
+    真正该守的是接口和图对得上：非空、与产物一致、可选资产有得选。
+    """
+    import yaml as _yaml
+
+    from app.main import LINEAGE_PATH
+
+    graph = _yaml.safe_load(LINEAGE_PATH.read_text(encoding="utf-8"))
     payload = client.get("/api/影响重跑").json()
-    assert payload["血缘"]["节点数"] == 53 and payload["血缘"]["边数"] == 69
+    assert payload["血缘"]["节点数"] == len(graph["nodes"]) > 0
+    assert payload["血缘"]["边数"] == len(graph["edges"]) > 0
     assert payload["血缘"]["可选资产数"] >= 1
     assert [c["层"] for c in payload["重跑链"]] == [
         "field_mapping", "fact_layer", "derived_metric", "report_reference"]
