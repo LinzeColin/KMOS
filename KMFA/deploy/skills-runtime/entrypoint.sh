@@ -91,7 +91,7 @@ crontab -r 2>/dev/null || true   # 清掉可能残留的用户 crontab，杜绝�
   echo "TZ=${TZ}"
   echo "KMFA_DELIVERY_ENABLED=${KMFA_DELIVERY_ENABLED:-0}"
   echo "KMFA_DINGTALK_ATTENDANCE_ALLOW_DWS_COMMANDS=${KMFA_DINGTALK_ATTENDANCE_ALLOW_DWS_COMMANDS:-0}"
-  echo "KMFA_ATTENDANCE_ARCHIVE_ROOT=${KMFA_ATTENDANCE_ARCHIVE_ROOT:-/var/lib/kmfa/attendance}"
+  echo "KMFA_ATTENDANCE_ARCHIVE_ROOT=${KMFA_ATTENDANCE_ARCHIVE_ROOT:-/var/log/kmfa/dingtalk_attendance}"
   # 备份密钥文件路径（值是路径不是密钥本体，单行安全）；密钥不在时 daily-backup 自动降级。
   [ -f "$BACKUP_KEY_FILE" ] && echo "KMFA_BACKUP_SSH_KEY_FILE=$BACKUP_KEY_FILE"
   echo
@@ -104,7 +104,7 @@ if [ -n "$(tail -c1 "$CRON_D")" ]; then
   echo >> "$CRON_D"
 fi
 # 归档根必须存在且可写——否则考勤报告写不出去
-mkdir -p "${KMFA_ATTENDANCE_ARCHIVE_ROOT:-/var/lib/kmfa/attendance}"
+mkdir -p "${KMFA_ATTENDANCE_ARCHIVE_ROOT:-/var/log/kmfa/dingtalk_attendance}"
 
 # 装完自检——**装不上就不许启动**。静默失效比起不来危险得多：上一版就是这样
 # 安安静静一个月不发消息，还得靠 Owner 说"我没收到"才被发现。
