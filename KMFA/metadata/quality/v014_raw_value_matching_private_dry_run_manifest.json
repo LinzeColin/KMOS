@@ -3,7 +3,7 @@
     "ACC-V014-RAW-VALUE-MATCHING-PRIVATE-DRY-RUN"
   ],
   "app_reinstall_performed": false,
-  "branch": "feat/project-cost-full-ledger",
+  "branch": "fix/lineage-buildable-without-duckdb",
   "business_execution_performed": false,
   "dependencies": {
     "authoritative_raw_baseline_lock": "KMFA/metadata/baseline/v014_authoritative_raw_baseline_lock.json",
@@ -106,7 +106,7 @@
   "private_gap_report_ref": "KMFA/.codex_private_runtime/v014_raw_value_matching_private_dry_run/local_gap_report.md",
   "processed_target_summary": {
     "approved_private_processed_value_target_count": 0,
-    "processed_artifact_files_scanned": 2560,
+    "processed_artifact_files_scanned": 2559,
     "processed_candidate_records_seen": 3964,
     "processed_records_with_explicit_no_value_policy": 333,
     "processed_reference_or_hash_only_records": 191,
@@ -170,7 +170,7 @@
   },
   "record_type": "v014_raw_value_matching_private_dry_run_manifest",
   "schema_version": "kmfa.v014_raw_value_matching_private_dry_run.v1",
-  "source_commit": "502cf875ca17fffc7c669e5eb27d04a7a9ac4e32",
+  "source_commit": "b33e96aca9effeae2576e9ecabc426d1166c21f9",
   "status": "completed_validated_local_only_no_go_private_raw_value_fingerprints_processed_targets_missing",
   "task_id": "KMFA-V014-RAW-VALUE-MATCHING-PRIVATE-DRY-RUN-20260705",
   "value_matching_summary": {
