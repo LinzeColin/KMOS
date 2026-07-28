@@ -32,6 +32,12 @@ DEPLOY_KEY = os.environ.get("KMFA_BACKUP_DEPLOY_KEY", "/opt/kmfa/secrets/kmfa_ba
 API = "https://api.github.com"
 
 
+#: 稀疏 checkout 的超时预算。私有库很大，blob 在 checkout 这一步才真正下载，
+#: 默认 120s 线上不够用（2026-07-28 实测 self-audit 就卡死在这里）。
+#: 环境变量可调，方便在慢机器上加预算而不必改代码重部署。
+CHECKOUT_TIMEOUT_SECONDS = int(os.environ.get("KMFA_PRIVATE_DB_CHECKOUT_TIMEOUT", "300"))
+
+
 class Unavailable(RuntimeError):
     """够不着私有库——是「读不到」，不是「没有内容」。两者绝不能混。"""
 
@@ -58,8 +64,18 @@ def _ssh_env() -> dict:
 
 
 def _git(args: list[str], cwd: str | None = None, timeout: int = 120) -> str:
-    done = subprocess.run(["git", *args], cwd=cwd, env=_ssh_env(), timeout=timeout,
-                          capture_output=True, text=True)
+    try:
+        done = subprocess.run(["git", *args], cwd=cwd, env=_ssh_env(), timeout=timeout,
+                              capture_output=True, text=True)
+    except subprocess.TimeoutExpired as exc:
+        # 超时也是「够不着」，必须归成 Unavailable。
+        #
+        # 2026-07-28 线上：`git checkout --quiet` 在 120s 上超时，而 TimeoutExpired
+        # 不是 Unavailable，于是一路穿过 lineage_graph 的 `except ManifestUnavailable`
+        # 变成裸 traceback——self-audit 报 rc=1 但失败码是 UNKNOWN，看的人只能猜。
+        # 调用方对「读不到」是有正经处理的（如实说读不到，不当成没有资产）；
+        # 让超时绕开那条路，等于把一个已知状态退化成未知故障。
+        raise Unavailable(f"git {args[0]} 超时（{timeout}s）——私有库大，网络或磁盘慢") from exc
     if done.returncode != 0:
         # stderr 可能带 ssh 细节，但不含密钥本体；截断防止把整段塞进台账。
         raise Unavailable(f"git {args[0]} 失败：{(done.stderr or '').strip()[:200]}")
@@ -90,7 +106,9 @@ def _sparse_clone(paths: list[str], into: str) -> None:
     _git(["clone", "--quiet", "--filter=blob:none", "--no-checkout", url, into], timeout=180)
     _git(["sparse-checkout", "init", "--cone"], cwd=into)
     _git(["sparse-checkout", "set", *paths], cwd=into)
-    _git(["checkout", "--quiet"], cwd=into)
+    # checkout 是这几步里唯一要**落盘**的：blob 到这一步才真正下载。
+    # 默认 120s 在线上不够（2026-07-28 实测就卡在这里），给它和 clone 一样的预算。
+    _git(["checkout", "--quiet"], cwd=into, timeout=CHECKOUT_TIMEOUT_SECONDS)
 
 
 def read_text(path: str) -> str:
