@@ -115,13 +115,30 @@ print("scan:")
 print('  mode: "codex_controlled_incremental_hot_cold"')
 print("  page_size: 500")
 print("  full_depth_no_time_or_page_truncation: true")
+# 群条目的键名必须与归档器读的一致：canonical_name / open_conversation_id /
+# group_type / scan_mode / enabled（见 templates/target_groups.example.yaml
+# 与 archive_dingtalk_all_files.py 的 enabled_groups()/validate_config()）。
+# 上一版这里写的是 id/name/mode——三个键**没有一个**是归档器认识的，
+# 于是配置一送进去就 KeyError: 'canonical_name'（2026-07-28 线上实测 rc=1）。
+# 它一直没被发现，是因为归档在更前面先被 NO_TARGET_GROUPS 挡住，从没读到过这份配置。
+#
+# canonical_name 取群标题：归档器靠它 `chat search` 反查群，再与
+# open_conversation_id 交叉校验（resolve_group）。故**无标题的群直接跳过**——
+# 没有标题就没法反查，留着只会在解析阶段炸掉整轮。
 print("groups:")
+kept = 0
 for g in groups:
-    print(f'  - id: "{g["id"]}"')
-    print(f'    name: "{g["name"]}"')
-    print('    mode: "auto"')
-print(f"# 共 {len(groups)} 个群")
-sys.exit(0 if groups else 9)      # 零群不是成功——见下面 rc=9 的处理
+    if not g["name"]:
+        continue
+    kept += 1
+    print(f'  - canonical_name: "{g["name"]}"')
+    print(f'    aliases: ["{g["name"]}"]')
+    print(f'    open_conversation_id: "{g["id"]}"')
+    print('    group_type: "standing"')
+    print('    scan_mode: "auto"')
+    print("    enabled: true")
+print(f"# 共 {kept} 个群（列出 {len(groups)}，跳过无标题 {len(groups) - kept}）")
+sys.exit(0 if kept else 9)        # 零群不是成功——见下面 rc=9 的处理
 PY
 BOOT_RC=$?
 
@@ -152,17 +169,21 @@ fi
 mkdir -p /var/log/kmfa/dws
 python3 - /tmp/target_groups.yaml > /var/log/kmfa/dws/candidate_groups.json <<'PYJ'
 import json, re, sys
+# 共享卷这份是**驾驶舱的契约**（{id, name}），刻意与 YAML 的键名解耦：
+# 前端只关心"勾哪个群"，不该跟着归档器的 schema 走。
+# 但解析的来源是上面那份 YAML，所以这里读的是 canonical_name / open_conversation_id。
 text = open(sys.argv[1], encoding="utf-8").read()
 groups, current = [], None
 for line in text.splitlines():
-    m = re.match(r'\s*-\s*id:\s*"([^"]+)"', line)
+    m = re.match(r'\s*-\s*canonical_name:\s*"([^"]*)"', line)
     if m:
-        current = {"id": m.group(1), "name": ""}
+        current = {"id": "", "name": m.group(1)}
         groups.append(current)
         continue
-    m = re.match(r'\s*name:\s*"([^"]*)"', line)
+    m = re.match(r'\s*open_conversation_id:\s*"([^"]+)"', line)
     if m and current is not None:
-        current["name"] = m.group(1)
+        current["id"] = m.group(1)
+groups = [g for g in groups if g["id"]]
 print(json.dumps({"schema_version": "kmfa.dws.candidate_groups.v1",
                   "群数": len(groups), "群": groups}, ensure_ascii=False, indent=2))
 PYJ
