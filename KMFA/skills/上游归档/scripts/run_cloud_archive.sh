@@ -146,8 +146,15 @@ export DWS_CODEX_CONTROLLED=1
 #
 # 公开边界不受影响：公开端点只取白名单构造出的失败码，**故意不带日志尾巴**；
 # 业务明细只随 skill_ledger_uplink 落私有库（见 run_skill.sh 的两条分支）。
+# --run-source 只认 codex_manual / codex_automation（argparse choices，见归档器 main()）。
+# 这里原来传的是 "cloud_cron"——一个不存在的取值，argparse 直接 error 退出 **2**。
+# 2026-07-28 实测复现：`--run-source cloud_cron` → rc=2
+#   `error: argument --run-source: invalid choice: 'cloud_cron'`
+# 它藏了这么久，是因为归档在它前面先被 NO_TARGET_GROUPS 挡住，从来没真跑到过这一行；
+# 群清单一通，第一次真跑就撞上。云端 cron 属"Codex 控制的自动化"，故取 codex_automation
+# （automation-name 已经带了，语义正好对上）。
 ARCH_OUT="$(/usr/bin/env python3 scripts/archive_dingtalk_all_files.py \
-  --run-source "cloud_cron" --automation-name "云端钉钉DWS归档" "$@" 2>&1)"
+  --run-source "codex_automation" --automation-name "云端钉钉DWS归档" "$@" 2>&1)"
 RC=$?
 printf '%s\n' "$ARCH_OUT" >> "$LOG"
 printf '%s\n' "$ARCH_OUT" | tail -25
