@@ -1,8 +1,8 @@
 {
   "acceptance_id": "ACC-V014-PROCESSED-VALUE-SOURCE-MAP-COMPLETION-OWNER-DIAGNOSTIC-PACKET",
   "generated_at": "2026-07-06T00:00:00+10:00",
-  "git_branch": "codex/kmfa",
-  "git_head": "cfc7c84b2b0f8fa45a48da5fbf120fbc7b5850b8",
+  "git_branch": "feat/project-cost-full-ledger",
+  "git_head": "502cf875ca17fffc7c669e5eb27d04a7a9ac4e32",
   "go_no_go": {
     "acceptance_id": "ACC-V014-PROCESSED-VALUE-SOURCE-MAP-COMPLETION-OWNER-DIAGNOSTIC-PACKET",
     "app_reinstall_allowed": false,

@@ -31,6 +31,33 @@ STATUS_SHEET = "生产项目状态表.xlsx"
 SUMMARY_ROWS = ("期初余额", "本期合计", "本年累计", "本期发生额", "期末余额")
 BUSINESS_COST_COLUMNS = ("材料费", "交通费", "生活住宿费", "其他费用")
 
+# ── 人工：金蝶给不出，只能从红圈工时来 ────────────────────────────────────
+# 生产成本里「劳务费」占约八成，其中约七成记在 `不分项目_不分项目` 占位桶，
+# 八个基准项目名下劳务费为 0——这是记账口径问题，历史改不了。
+# Owner 2026-07-28 指出红圈《生产项目状态表》按项目填了工时，人工从那里出。
+# 因为金蝶的人工归集不到项目，两者不会重复计。
+#
+# 单价从 8 份竣工项目财务报表标定（除以红圈同项目工时）：
+#   自有  465.12 / 500.00 / 496.54 / 502.43 / 479.44  → 收敛在 ~490，取 500
+#         另三份 741.66 / 796.09 / 587.78 报表自注了补贴或提成，不参与定价
+#   劳务  池州恒鑫 9,010.00 ÷ 17 = 530.00；新疆宜化 930,152.75 ÷ 1,579.32 = 588.95 → 取 550
+LABOUR_RATE_OWN = Decimal("500")
+LABOUR_RATE_SUB = Decimal("550")
+
+# 这两个是账上的**伪合同号**占位桶（合计约 3,261 万），不是真项目。
+# 不排掉，它们会被当成两个金额巨大的项目混进表里。
+PLACEHOLDER_CONTRACTS = frozenset({"KMX999", "KMX9999"})
+
+# 已知读不到的源：武汉彤烨、湖北曦悦两家的 `.xls` 账簿。它们是单表结构、
+# 另一套科目表（生产成本是 4101 不是 5001），且**没有「销售合同号」列**——
+# 即使读进来也归不到项目。实测两家生产成本合计 5,951.17 元。
+# 如实登记为未覆盖，不为 0.03% 的钱引入 xlrd 依赖，也不假装已覆盖。
+UNCOVERED_SOURCES = [
+    {"账簿": "武汉彤烨明细账.xls", "原因": "单表结构 + 4101 科目表 + 无销售合同号列",
+     "实测生产成本": "5212.65"},
+    {"账簿": "曦悦公司明细账.xls", "原因": "同上", "实测生产成本": "738.52"},
+]
+
 
 def norm_contract(value) -> str:
     """合同号归一：去空白、去重复自拼、只留主号。"""
@@ -241,6 +268,8 @@ def collect_ledger_cost(data_root: str, targets: set[str], account_to_row: dict)
             if raw in (None, "") or "不分项目" in str(raw):
                 continue
             key = norm_contract(raw)
+            if key in PLACEHOLDER_CONTRACTS:    # 伪合同号占位桶，不是项目
+                continue
             if key not in targets:
                 continue
             account = str(row[account_i]).strip() if account_i < len(row) and row[account_i] else ""
@@ -281,10 +310,33 @@ def collect_ledger_cost(data_root: str, targets: set[str], account_to_row: dict)
     return aggregate
 
 
-def build(data_root: str, account_map: dict, limit: int = 20) -> dict:
+def labour_cost(record: dict) -> tuple[Decimal, Decimal, bool]:
+    """人工＝红圈工时 × 标定单价。返回 (自有, 劳务, 是否填了工时)。
+
+    工时**没填**和工时**是 0** 必须分得开：前者是不知道，后者是真没投人工。
+    分不开的后果是，一个没填工时的项目会以「人工 0」的面目出现在表上，
+    而人工往往是最大的一块——那等于给出一个系统性偏高的毛利。
+    """
+    own_hours = money(record.get("自有人工工时"))
+    sub_hours = money(record.get("劳务人工工时"))
+    recorded = own_hours is not None or sub_hours is not None
+    own = (own_hours or Decimal(0)) * LABOUR_RATE_OWN
+    sub = (sub_hours or Decimal(0)) * LABOUR_RATE_SUB
+    return own, sub, recorded
+
+
+def build(data_root: str, account_map: dict, limit: int = 0) -> dict:
+    """limit=0 表示**不限**——项目成本要覆盖全部项目，不是最近 N 个。
+
+    Owner 2026-07-28：「既然在系统上这些项目成本本来就应该是实时更新的，
+    说明你根本没有全量跑所有信息」。之前默认 limit=20 只出最近 20 个完工项目，
+    施工中的一个都没有，而施工中的项目恰恰是还能干预的那些。
+    """
     account_to_row = {m["account"]: m["rows"]["A"]["row"] for m in account_map["mappings"]}
-    completed = read_completed_projects(data_root)
-    ranked = sorted(completed.values(), key=sort_key, reverse=True)[:limit]
+    everything = read_projects(data_root, only_completed=False)
+    ranked = sorted(everything.values(), key=sort_key, reverse=True)
+    if limit:
+        ranked = ranked[:limit]
     ledger = collect_ledger_cost(data_root, {r["合同编号"] for r in ranked}, account_to_row)
 
     projects = []
@@ -299,7 +351,29 @@ def build(data_root: str, account_map: dict, limit: int = 20) -> dict:
         by_row, direct_total = R.rollup("A", leaf)
 
         business_total = sum((money(record.get(c)) or Decimal(0)) for c in BUSINESS_COST_COLUMNS)
+        own_labour, sub_labour, hours_recorded = labour_cost(record)
         contract = money(record.get("含税合同金额"))
+
+        # 逐行合并两个口径，**不是整块取大**——整块取大会把「金蝶有材料没现场费」
+        # 和「红圈有现场费没材料」互相抵消掉，实测覆盖率从 84% 掉到 78%。
+        #
+        #   原材料／租赁费：按源优先级取（金蝶是入账实据，优先于红圈自填）；
+        #   现场管理费：取大不相加——金蝶这一行有的已含管理人员工资、有的没含
+        #     （工资进了「不分项目」），含没含无法逐项判定，重叠相加会把成本算高。
+        ledger_material = by_row.get("（一）原材料") or Decimal(0)
+        ledger_lease = by_row.get("（二）租赁费") or Decimal(0)
+        ledger_site = by_row.get("（四）现场管理费") or Decimal(0)
+
+        material = ledger_material or (money(record.get("材料费")) or Decimal(0))
+        lease = ledger_lease
+        site_from_business = own_labour + sum(
+            (money(record.get(c)) or Decimal(0))
+            for c in BUSINESS_COST_COLUMNS if c != "材料费")
+        site = max(ledger_site, site_from_business)
+        site_from_ledger = ledger_site
+        total = material + lease + site + sub_labour
+        management_fee = (contract * Decimal("0.02")) if contract is not None else Decimal(0)
+
         projects.append({
             **{k: v for k, v in record.items()},
             "完工排序": sort_key(record),
@@ -308,13 +382,23 @@ def build(data_root: str, account_map: dict, limit: int = 20) -> dict:
             "金蝶归集直接成本": str(direct_total),
             "金蝶成本明细": {row: str(value) for row, value in sorted(by_row.items())},
             "两口径差额": str(direct_total - business_total),
+            "自有人工成本": str(own_labour),
+            "劳务人工成本": str(sub_labour),
+            "工时已填": hours_recorded,
+            "现场成本取自": "金蝶" if site_from_ledger > site_from_business else "红圈工时＋台账费用",
+            "分摊管理费": str(management_fee),
+            "成本合计": str(total + management_fee),
+            "毛利": str(contract - total - management_fee) if contract is not None else "",
+            "可出毛利": bool(hours_recorded and contract is not None),
         })
 
     return {
-        "schema_version": "kmfa.project_cost.recent_completed.v1",
+        "schema_version": "kmfa.project_cost.recent_completed.v2",
         "口径": {
             "业务台账": "红圈《生产项目状态表》里业务自填的 材料费＋交通费＋生活住宿费＋其他费用",
             "金蝶归集": "明细账中按『销售合同号』归集的生产成本借方发生额；不含记入『不分项目』的部分",
+            "人工": f"红圈工时 × 标定单价（自有 {LABOUR_RATE_OWN}／劳务 {LABOUR_RATE_SUB} 元每工）"
+                    "——金蝶的人工记在『不分项目』，按项目归集不到，因此两者不重复计",
             "为什么并排": "两个口径都来自真实记录，差异本身就是要看的东西——不做任何调平，也不挑一个好看的",
         },
         "锁定的算法": [
@@ -322,7 +406,24 @@ def build(data_root: str, account_map: dict, limit: int = 20) -> dict:
             "取借方发生额而非净额：生产成本结转到主营业务成本，净额会互相对冲成 0",
             "合同号按完整主号匹配：序号跨年重复，按序号归并会把不同项目的钱并到一起",
             "『不分项目』占位桶不计入任何项目",
+            "KMX999／KMX9999 是伪合同号占位桶（约 3,261 万），不是项目，排除",
+            "现场这一块金蝶与红圈取大不相加：金蝶『现场管理费』有的已含工资、有的没含，"
+            "无法逐项判定，重叠相加会把成本算高",
+            "工时没填 ≠ 工时为 0：没填的项目不出毛利（`可出毛利:false`）",
         ],
+        "单价标定": {
+            "自有": {"采用": str(LABOUR_RATE_OWN),
+                     "样本": "8 份竣工报表工资行 ÷ 红圈同项目工时："
+                             "465.12／500.00／496.54／502.43／479.44 收敛在 ~490；"
+                             "741.66／796.09／587.78 三份报表自注了补贴或提成，不参与定价"},
+            "劳务": {"采用": str(LABOUR_RATE_SUB),
+                     "样本": "池州恒鑫 9,010.00÷17＝530.00；新疆宜化 930,152.75÷1,579.32＝588.95"},
+        },
+        "未覆盖": {
+            "行": ["（六）信息费", "（七）税金", "1.2 占用的资金利息"],
+            "影响方向": "三行全部是少算，所以本产物的成本偏保守、毛利偏乐观",
+            "源": UNCOVERED_SOURCES,
+        },
         "项目数": len(projects),
         "项目": projects,
     }
@@ -333,7 +434,8 @@ def main() -> int:
     parser.add_argument("--data-root", required=True, help="KMFA_MetaData 根目录")
     parser.add_argument("--account-map", required=True, help="project_cost_account_map.json")
     parser.add_argument("--out", required=True, help="输出 JSON 路径")
-    parser.add_argument("--limit", type=int, default=20)
+    parser.add_argument("--limit", type=int, default=0,
+                        help="只出最近 N 个；0＝全部（默认）")
     args = parser.parse_args()
 
     account_map = json.loads(Path(args.account_map).read_text(encoding="utf-8"))

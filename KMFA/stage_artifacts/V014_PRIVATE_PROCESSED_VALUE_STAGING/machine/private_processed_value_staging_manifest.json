@@ -3,7 +3,7 @@
     "ACC-V014-PRIVATE-PROCESSED-VALUE-STAGING"
   ],
   "app_reinstall_performed": false,
-  "branch": "codex/kmfa",
+  "branch": "feat/project-cost-full-ledger",
   "business_execution_performed": false,
   "dependencies": {
     "raw_value_matching_private_dry_run_go_no_go": "KMFA/stage_artifacts/V014_RAW_VALUE_MATCHING_PRIVATE_DRY_RUN/machine/raw_value_matching_private_dry_run_go_no_go_report.json",
@@ -89,9 +89,9 @@
     "excluded_private_ref_count": 12,
     "private_processed_value_fingerprint_count": 0,
     "private_ref_candidate_count": 161,
-    "processed_artifact_files_scanned": 132,
+    "processed_artifact_files_scanned": 1028,
     "processed_business_values_committed_publicly": false,
-    "processed_records_scanned": 411,
+    "processed_records_scanned": 1436,
     "processed_target_slot_count": 149,
     "processed_target_slots_staged": true,
     "processed_value_materialization_complete": false,
@@ -138,7 +138,7 @@
   },
   "record_type": "v014_private_processed_value_staging_manifest",
   "schema_version": "kmfa.v014_private_processed_value_staging.v1",
-  "source_commit": "0991684cc0bbcb19398a000d1803fc33edf3a4fc",
+  "source_commit": "502cf875ca17fffc7c669e5eb27d04a7a9ac4e32",
   "status": "completed_validated_local_only_no_go_processed_target_slots_staged_value_fingerprints_missing",
   "task_id": "KMFA-V014-PRIVATE-PROCESSED-VALUE-STAGING-20260705",
   "value_matching_readiness": {
