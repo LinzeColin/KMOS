@@ -59,7 +59,28 @@ function 骨架() {
   )
 }
 
-function 加载失败卡({ 详情 }) {
+function 加载失败卡({ 详情, 需要登录, 接口 }) {
+  // 「被门挡住」和「接口挂了」在 fetch 层长得一样，但下一步完全相反。
+  // 分不清就会把一次正常的未登录读成「网站不可用」——这正是本卡片存在的理由。
+  if (需要登录) {
+    return (
+      <div className="card callout warn">
+        <b>需要登录才能看这一页</b>
+        <div className="sub">
+          站点是好的（公开面已实测可达），是<b>私有面按设计需要 Cloudflare Access 登录</b>。
+          经营数据含真实客户与金额，不放在公开面上——这道门是有意的，不是故障。
+        </div>
+        <div className="sub">
+          <a href="/api/状态" rel="nofollow">点这里登录</a>
+          ，完成后回到本页刷新即可。
+        </div>
+        <div className="sub muted">
+          刷新和查容器日志都解决不了这个——容器是好的。
+          {接口 ? `（受阻接口：${接口}）` : ''}
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="card callout bad">
       <b>这一页没取到数据</b>
@@ -252,7 +273,7 @@ function 今天({ 状态, 工作台, 账龄, 开票, 成本, 管线, 排程, 断
 
       <h3 className="sec">等你拍板{待办.length ? `（${待办.length} 项，按金额从大到小）` : ''}</h3>
       {!工作台 ? <div className="card" style={{ marginTop: 12 }}><div className="skel" style={{ height: 13 }} /></div>
-        : 工作台.加载失败 ? <加载失败卡 详情={工作台.加载失败} />
+        : 工作台.加载失败 ? <加载失败卡 详情={工作台.加载失败} 需要登录={工作台.需要登录} 接口={工作台.接口} />
         : 待办.length === 0 ? <p className="empty">没有等你拍板的事——都对平了。</p> : (
         <div className="tblwrap queue">
           {待办.slice(0, 8).map(it => (
@@ -304,7 +325,7 @@ function 今天({ 状态, 工作台, 账龄, 开票, 成本, 管线, 排程, 断
 
       <h3 className="sec">自动任务·近 24 小时{排?.近24小时?.length ? `（${排.近24小时.length} 次运行）` : ''}</h3>
       {!排 ? <div className="card" style={{ marginTop: 12 }}><div className="skel" style={{ height: 13 }} /></div>
-        : 排程.加载失败 ? <加载失败卡 详情={排程.加载失败} />
+        : 排程.加载失败 ? <加载失败卡 详情={排程.加载失败} 需要登录={排程.需要登录} 接口={排程.接口} />
         : !排.可读 ? (
           <div className="card callout bad">
             <b>读不到自动任务日志</b>
@@ -352,7 +373,7 @@ function 待拍板({ 台, 刷新, 初始展开 }) {
   const [忙, set忙] = useState(null)
   const [提示, set提示] = useState(null)
   if (!台) return <骨架 />
-  if (台.加载失败) return <加载失败卡 详情={台.加载失败} />
+  if (台.加载失败) return <加载失败卡 详情={台.加载失败} 需要登录={台.需要登录} 接口={台.接口} />
   const items = 台.断言明细 ?? []
   const 域列表 = ['全部', ...new Set(items.map(i => i.域).filter(Boolean))]
   const 序 = { open: 0, closed: 1, excluded: 2 }
@@ -522,7 +543,7 @@ async function 发起导出(报告, 格式) {
 
 function 报告下载({ 中心 }) {
   if (!中心) return <骨架 />
-  if (中心.加载失败) return <加载失败卡 详情={中心.加载失败} />
+  if (中心.加载失败) return <加载失败卡 详情={中心.加载失败} 需要登录={中心.需要登录} 接口={中心.接口} />
   const 水 = 中心.水印, 判 = 中心.交付判据
   return (
     <>
@@ -605,7 +626,7 @@ function 重新核算({ 图, 选中资产, 选资产, 刷新 }) {
   const [结果, set结果] = useState(null)
   const [提示, set提示] = useState(null)
   if (!图) return <骨架 />
-  if (图.加载失败) return <加载失败卡 详情={图.加载失败} />
+  if (图.加载失败) return <加载失败卡 详情={图.加载失败} 需要登录={图.需要登录} 接口={图.接口} />
   const 下 = 图.选中
 
   async function 重跑() {
@@ -717,7 +738,7 @@ function 重新核算({ 图, 选中资产, 选资产, 刷新 }) {
 
 function 操作留痕({ 审计 }) {
   if (!审计) return <骨架 />
-  if (审计.加载失败) return <加载失败卡 详情={审计.加载失败} />
+  if (审计.加载失败) return <加载失败卡 详情={审计.加载失败} 需要登录={审计.需要登录} 接口={审计.接口} />
   const 契 = 审计.契约, 访 = 审计.访问模式
   return (
     <>
@@ -771,7 +792,7 @@ function 排程健康({ 排程 }) {
   const [展开, set展开] = useState(null)
   const [快照, set快照] = useState({})
   if (!排程) return <骨架 />
-  if (排程.加载失败) return <加载失败卡 详情={排程.加载失败} />
+  if (排程.加载失败) return <加载失败卡 详情={排程.加载失败} 需要登录={排程.需要登录} 接口={排程.接口} />
   if (!排程.可读) return (
     <div className="card callout bad">
       <b>读不到排程日志</b>
@@ -890,7 +911,7 @@ function 排程健康({ 排程 }) {
 
 function 数据接入({ 管线 }) {
   if (!管线) return <骨架 />
-  if (管线.加载失败) return <加载失败卡 详情={管线.加载失败} />
+  if (管线.加载失败) return <加载失败卡 详情={管线.加载失败} 需要登录={管线.需要登录} 接口={管线.接口} />
   const 表 = Object.entries(管线.staging_tables ?? {}).sort((a, b) => (b[1].rows ?? 0) - (a[1].rows ?? 0))
   return (
     <>
@@ -925,7 +946,7 @@ function 数据接入({ 管线 }) {
 
 function 源清单({ 源检查 }) {
   if (!源检查) return <骨架 />
-  if (源检查.加载失败) return <加载失败卡 详情={源检查.加载失败} />
+  if (源检查.加载失败) return <加载失败卡 详情={源检查.加载失败} 需要登录={源检查.需要登录} 接口={源检查.接口} />
   const 协议 = 源检查.矩阵协议, 覆盖 = 源检查.覆盖矩阵, 鲜 = 源检查.新鲜度, 派生 = 源检查.派生层
   return (
     <>
@@ -1051,7 +1072,7 @@ function 系统自检({ 排程, 技能, 我, 审计, 图, 管线, 去 }) {
       </div>
       <h3 className="sec" style={{ marginTop: 30 }}>自动化任务清单</h3>
       {!技能 ? <div className="card" style={{ marginTop: 12 }}><div className="skel" style={{ height: 13 }} /></div>
-        : 技能.加载失败 ? <加载失败卡 详情={技能.加载失败} /> : (
+        : 技能.加载失败 ? <加载失败卡 详情={技能.加载失败} 需要登录={技能.需要登录} 接口={技能.接口} /> : (
         <Tbl>
           <thead><tr><th>任务</th><th>排程</th><th>外部依赖</th><th>迁移待办</th></tr></thead>
           <tbody>
@@ -1077,7 +1098,7 @@ function 系统自检({ 排程, 技能, 我, 审计, 图, 管线, 去 }) {
 
 function 回款与账龄({ 账龄 }) {
   if (!账龄) return <骨架 />
-  if (账龄.加载失败) return <加载失败卡 详情={账龄.加载失败} />
+  if (账龄.加载失败) return <加载失败卡 详情={账龄.加载失败} 需要登录={账龄.需要登录} 接口={账龄.接口} />
   const 对 = 账龄.回款对账, 恒 = 账龄.账龄恒等式, 构 = 账龄.账龄结构层
   return (
     <>
@@ -1176,7 +1197,7 @@ function 断言表({ 块, 标题 }) {
 
 function 开票与税务({ 开票 }) {
   if (!开票) return <骨架 />
-  if (开票.加载失败) return <加载失败卡 详情={开票.加载失败} />
+  if (开票.加载失败) return <加载失败卡 详情={开票.加载失败} 需要登录={开票.需要登录} 接口={开票.接口} />
   const 红 = 开票.红线, 政 = 开票.税务政策证据
   const 红线项 = Object.entries(红)
   const 红线全零 = 红线项.every(([, v]) => v === 0)
@@ -1235,7 +1256,7 @@ function 目标群({ 群, 刷新 }) {
   React.useEffect(() => { if (群?.可读) 设选(new Set(群.已选 || [])) }, [群])
 
   if (!群) return <骨架 />
-  if (群.加载失败) return <加载失败卡 详情={群.加载失败} />
+  if (群.加载失败) return <加载失败卡 详情={群.加载失败} 需要登录={群.需要登录} 接口={群.接口} />
   if (群.可读 === false) {
     return (
       <div className="card callout warn">
@@ -1308,7 +1329,7 @@ const 档色 = { 外部客户: 'ok', 关联方: 'warn', 疑似关联方: 'warn',
 
 function 客户毛利({ 客户 }) {
   if (!客户) return <骨架 />
-  if (客户.加载失败) return <加载失败卡 详情={客户.加载失败} />
+  if (客户.加载失败) return <加载失败卡 详情={客户.加载失败} 需要登录={客户.需要登录} 接口={客户.接口} />
   if (客户.可读 === false) {
     return (
       <div className="card callout warn">
@@ -1437,7 +1458,7 @@ const 源状态色 = { 已接入: 'ok', 接口: 'ok', 缺输入: 'bad', 读不�
 
 function 数据源矩阵({ 矩阵 }) {
   if (!矩阵) return <骨架 />
-  if (矩阵.加载失败) return <加载失败卡 详情={矩阵.加载失败} />
+  if (矩阵.加载失败) return <加载失败卡 详情={矩阵.加载失败} 需要登录={矩阵.需要登录} 接口={矩阵.接口} />
   if (矩阵.可读 === false) {
     return (
       <div className="card callout warn">
@@ -1524,7 +1545,7 @@ const 成本数据色 = { 两口径均有数: 'ok', 仅单口径有数: 'warn', 
 
 function 项目毛利({ 毛利, 展开, 设展开 }) {
   if (!毛利) return <骨架 />
-  if (毛利.加载失败) return <加载失败卡 详情={毛利.加载失败} />
+  if (毛利.加载失败) return <加载失败卡 详情={毛利.加载失败} 需要登录={毛利.需要登录} 接口={毛利.接口} />
   if (毛利.可读 === false) {
     return (
       <div className="card callout warn">
@@ -1651,7 +1672,7 @@ function 项目毛利({ 毛利, 展开, 设展开 }) {
 
 function 完工成本({ 完工, 展开, 设展开 }) {
   if (!完工) return <骨架 />
-  if (完工.加载失败) return <加载失败卡 详情={完工.加载失败} />
+  if (完工.加载失败) return <加载失败卡 详情={完工.加载失败} 需要登录={完工.需要登录} 接口={完工.接口} />
   if (完工.可读 === false) {
     return (
       <div className="card callout warn">
@@ -1758,7 +1779,7 @@ function 完工成本({ 完工, 展开, 设展开 }) {
 
 function 项目成本({ 成本 }) {
   if (!成本) return <骨架 />
-  if (成本.加载失败) return <加载失败卡 详情={成本.加载失败} />
+  if (成本.加载失败) return <加载失败卡 详情={成本.加载失败} 需要登录={成本.需要登录} 接口={成本.接口} />
   const 层 = 成本.事实层, 构 = 成本.必需结构, 阻 = 成本.阻塞链
   const 阻塞中 = 层.已算金额记录数 === 0
   return (
@@ -1873,10 +1894,29 @@ export default function App() {
   const [审计, set审计] = useState(null)
   const [排程, set排程] = useState(null)
   const [拍板跳转, set拍板跳转] = useState(null)
-  // 取不到就把失败写进状态：面板显式报错，不许无限骨架屏装加载
+  // 取不到就把失败写进状态：面板显式报错，不许无限骨架屏装加载。
+  //
+  // **但「取不到」有两种，它们的下一步完全相反**：
+  //   · 私有面被 Cloudflare Access 挡住（按设计如此，见 deploy/coolify/README 第 10 步：
+  //     `/`、`/assets*`、`/healthz` 可匿名，私有面仍需 Access）——
+  //     浏览器 fetch 跟不了那个跨域 302，只会抛一个 `TypeError: Failed to fetch`；
+  //   · 接口真挂了。
+  //
+  // 两者在 fetch 层长得一模一样，而给出的建议正好相反：前者刷新一百次也没用、
+  // 容器日志里干干净净；后者才该去查容器。之前一律提示「查容器日志」，
+  // 于是**一次正常的未登录被读成了「网站不可用」**。
+  //
+  // 分辨方法很直接：探一个**一定公开**的端点。它通而私有面抛，就是门，不是挂。
+  const 探公开面 = () => fetch('/healthz', { cache: 'no-store' })
+    .then(r => r.ok).catch(() => false)
   const 取 = (url, set) => fetch(url)
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
-    .then(set).catch(e => set({ 加载失败: String(e) }))
+    .then(set)
+    .catch(async e => {
+      const 私有面 = url.startsWith('/api/')
+      const 站点还活着 = 私有面 ? await 探公开面() : false
+      set({ 加载失败: String(e), 需要登录: 私有面 && 站点还活着, 接口: url })
+    })
   const 取群 = () => 取('/api/归档目标群', set目标群)
   const 取审计 = () => 取('/api/审计日志', set审计)
   const 取影响 = (a) => 取('/api/影响重跑' + (a ? `?asset=${encodeURIComponent(a)}` : ''), set影响)
