@@ -96,13 +96,28 @@ if not picked:
 out = sys.argv[2]
 base = out.replace("target_groups.yaml", "target_groups.candidate.yaml")
 head = open(base, encoding="utf-8").read().split("groups:")[0] if os.path.exists(base) else ""
+# 先把内容拼齐再落盘：条目为零时**不留下半份文件**。
+# 留了的话下游会拿到一个 groups 为空的合法配置，一个群都不扫却报成功——
+# 又是一次"全绿但覆盖为零"，这条链今天已经栽过两回了。
+body, kept = [], 0
+for g in picked:
+    if not g.get("name"):
+        continue                # 无标题无法反查，跳过（见 bootstrap 同处说明）
+    kept += 1
+    body.append(f'  - canonical_name: "{g["name"]}"\n'
+                f'    aliases: ["{g["name"]}"]\n'
+                f'    open_conversation_id: "{g["id"]}"\n'
+                f'    group_type: "standing"\n'
+                f'    scan_mode: "auto"\n'
+                f'    enabled: true\n')
+if not kept:
+    print("候选全部无标题——不生成清单", file=sys.stderr); raise SystemExit(1)
 os.makedirs(os.path.dirname(out), exist_ok=True)
 with open(out, "w", encoding="utf-8") as fh:
     fh.write(head or "# 由全量候选兜底生成（驾驶舱未勾选）\n")
     fh.write("groups:\n")
-    for g in picked:
-        fh.write(f'  - id: "{g["id"]}"\n    name: "{g["name"]}"\n    mode: "auto"\n')
-    fh.write(f"# 兜底：全量候选 {len(picked)} 个群（驾驶舱未勾选）\n")
+    fh.writelines(body)
+    fh.write(f"# 兜底：全量候选 {kept} 个群（驾驶舱未勾选）\n")
 PYA
 fi
 if [ -s "$SEL" ] && [ -s "$CAND" ]; then
@@ -116,13 +131,25 @@ if not picked:
 out = sys.argv[3]
 base = out.replace("target_groups.yaml", "target_groups.candidate.yaml")
 head = open(base, encoding="utf-8").read().split("groups:")[0] if os.path.exists(base) else ""
+body, kept = [], 0
+for g in picked:
+    if not g.get("name"):
+        continue
+    kept += 1
+    body.append(f'  - canonical_name: "{g["name"]}"\n'
+                f'    aliases: ["{g["name"]}"]\n'
+                f'    open_conversation_id: "{g["id"]}"\n'
+                f'    group_type: "standing"\n'
+                f'    scan_mode: "auto"\n'
+                f'    enabled: true\n')
+if not kept:
+    print("勾选的群全部无标题——不生成清单", file=sys.stderr); raise SystemExit(1)
 os.makedirs(os.path.dirname(out), exist_ok=True)
 with open(out, "w", encoding="utf-8") as fh:
     fh.write(head or "# 由驾驶舱勾选生成\n")
     fh.write("groups:\n")
-    for g in picked:
-        fh.write(f'  - id: "{g["id"]}"\n    name: "{g["name"]}"\n    mode: "auto"\n')
-    fh.write(f"# 驾驶舱勾选 {len(picked)} / 候选 {len(cand.get('群', []))}\n")
+    fh.writelines(body)
+    fh.write(f"# 驾驶舱勾选 {kept} / 候选 {len(cand.get('群', []))}\n")
 PYS
 fi
 
