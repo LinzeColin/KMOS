@@ -45,6 +45,25 @@ class AccessSettings:
     def jwks_uri(self) -> str:
         return f"{self.issuer}/cdn-cgi/access/certs"
 
+    def login_url(self, app_hostname: str, redirect_path: str = "/") -> str:
+        """登录入口，**登录完落回指定页面**。
+
+        为什么要显式给 redirect：不指定的话，用户是被哪个受保护路径弹去登录的，
+        登录完就被送回哪个路径。而本仓的受保护路径全是 `/api/*` ——
+        返回的是一坨 JSON，不是驾驶舱。人看到那个，得到的结论是
+        「登录了但没用」，而不是「登录成功了」。
+
+        team domain 不是秘密：它出现在每一次 Access 跳转的 URL 里，
+        任何一个未登录访问都能看到。所以这个入口可以公开给前端。
+        """
+        from urllib.parse import quote
+
+        host = (app_hostname or "").split(":")[0].strip().lower()
+        if not host:
+            raise AccessConfigurationError("missing application hostname")
+        return (f"{self.issuer}/cdn-cgi/access/login/{host}"
+                f"?redirect_url={quote(redirect_path, safe='')}")
+
 
 def private_access_required() -> bool:
     """Return whether the origin guard is enabled.

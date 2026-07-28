@@ -59,6 +59,41 @@ function 骨架() {
   )
 }
 
+/* 登录入口向后端要，不在前端写死。
+ *
+ * 上一版直接 `<a href="/api/状态">`：点了确实能弹出 Cloudflare 登录页，
+ * 但登录**完成之后**，Cloudflare 会把人送回 `/api/状态` —— 那里返回一坨 JSON。
+ * 人看到那个，得到的结论是「登录了但没用」，而不是「登录成功了」。
+ *
+ * 后端用 team domain 拼一个显式 `redirect_url=/` 的入口，登录完直接回驾驶舱。
+ * team domain 不是秘密：它出现在每一次 Access 跳转的 URL 里。
+ */
+function 登录按钮() {
+  const [入口, set入口] = useState(null)
+  useEffect(() => {
+    fetch('/public-api/登录入口')
+      .then(r => r.json()).then(set入口)
+      .catch(e => set入口({ 可用: false, 原因: String(e) }))
+  }, [])
+  if (!入口) return <span className="muted">正在取登录入口…</span>
+  if (入口.可用 && 入口.登录地址) {
+    return (
+      <>
+        <a href={入口.登录地址} rel="nofollow">点这里登录</a>
+        ，登录完会直接回到这一页。
+      </>
+    )
+  }
+  // 拼不出入口时**如实说**，不给一个点了没反应的按钮——
+  // 那比没有按钮更难查。
+  return (
+    <span>
+      登录入口拿不到：{入口.原因 || '未知原因'}。
+      需要在 Cloudflare 里确认 Access 应用与 team domain 配置。
+    </span>
+  )
+}
+
 function 加载失败卡({ 详情, 需要登录, 接口 }) {
   // 「被门挡住」和「接口挂了」在 fetch 层长得一样，但下一步完全相反。
   // 分不清就会把一次正常的未登录读成「网站不可用」——这正是本卡片存在的理由。
@@ -71,8 +106,7 @@ function 加载失败卡({ 详情, 需要登录, 接口 }) {
           经营数据含真实客户与金额，不放在公开面上——这道门是有意的，不是故障。
         </div>
         <div className="sub">
-          <a href="/api/状态" rel="nofollow">点这里登录</a>
-          ，完成后回到本页刷新即可。
+          <登录按钮 />
         </div>
         <div className="sub muted">
           刷新和查容器日志都解决不了这个——容器是好的。
