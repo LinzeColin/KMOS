@@ -19,7 +19,7 @@ on:
         description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
         required: true
         type: choice
-        options: [list, flags, set-flag, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, logs, exec]
+        options: [list, flags, set-flag, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, logs, exec]
       app_uuid:
         description: "目标应用 uuid（provision-backup-key / redeploy 必填；先用 list 查）"
         required: false
@@ -375,6 +375,54 @@ jobs:
               print("失败：KMFA_NOTIFICATION_TARGETS 回读不是 personal。"); sys.exit(1)
           print("投递已开，且只发本人。生效需要 redeploy。")
           PY2
+
+      # 部署失败时唯一能看到原因的地方。
+      #
+      # 为什么不能用现成的 `deployments` 模式：`/api/v1/deployments` **只返回
+      # 进行中的部署**（#251 已经踩过一次并记下来了），稳态恒为空数组——
+      # 部署失败之后再去查，永远是「最近部署=0」，而失败原因就此消失。
+      # 要拿失败的那一次，必须**按 deployment uuid 直取**。
+      #
+      # uuid 从 deploy workflow 的日志里拿（它触发时会打印 deployment_uuid）。
+      - name: 取一次部署的完整日志（按 deployment uuid 直取）
+        if: inputs.mode == 'deployment-log'
+        env:
+          DUUID: ${{ inputs.command }}
+        run: |
+          set -euo pipefail
+          test -n "${DUUID:-}" || {
+            echo "需要把 deployment uuid 放在 command 输入里"; exit 1; }
+          code=$(curl -sS -o "$RUNNER_TEMP/dep.json" -w '%{http_code}' \
+            -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/deployments/$DUUID" || true)
+          echo "返回码=$code"
+          python3 - <<'PY'
+          import json, os, re
+          raw = open(os.path.join(os.environ["RUNNER_TEMP"], "dep.json"),
+                     encoding="utf-8", errors="replace").read()
+          try:
+              data = json.loads(raw)
+          except Exception:
+              print(raw[:4000]); raise SystemExit(0)
+          print("status =", data.get("status"))
+          print("commit =", data.get("commit"))
+          logs = data.get("logs")
+          if isinstance(logs, str):
+              try:
+                  logs = json.loads(logs)
+              except Exception:
+                  logs = [{"output": logs}]
+          lines = []
+          for item in (logs or []):
+              text = item.get("output") if isinstance(item, dict) else str(item)
+              lines.extend(str(text).splitlines())
+          # 本仓是 PUBLIC，日志公开可读：凡像密钥的一律遮掉再打。
+          SECRET = re.compile(
+              r"(gh[pousr]_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{16,}|"
+              r"xox[bap]-[A-Za-z0-9-]{10,}|Bearer\s+\S+|[A-Fa-f0-9]{40,})")
+          print(f"--- 共 {len(lines)} 行，打末尾 120 行 ---")
+          for line in lines[-120:]:
+              print(SECRET.sub("<redacted>", line))
+          PY
 
       - name: 触发重新部署
         if: inputs.mode == 'redeploy'
