@@ -300,6 +300,32 @@ def build_notification_events(
     return events
 
 
+_EXIT_REASONS = {
+    "ZIP_INPUT_MISSING": "输入源不存在——这一轮没有任何东西被检查过",
+    "ALL_RULES_BLOCKED_BY_SOURCE": "到期规则全部因为源过期/缺失被堵，一条也没检成",
+}
+
+
+def run_exit_code(*, input_missing: bool, rules_due: int, rules_evaluated: int) -> tuple[int, str | None]:
+    """这一轮到底算不算「检查做了」。
+
+    原来这里无条件 `return 0`：输入文件根本不存在、零条规则被评，照样绿。
+    云端 work-check 就是这么连绿 9 次的（2026-07-28 本机压测抓获），
+    而绿灯把上游「钉钉没授 chat/list_conversation_message_v2 权限」这个真问题
+    盖了整整一段时间——红至少会被查，假绿谁也不会去查。
+
+    但判据是「**本该检查的**检查成了没有」，不是「有没有结果」：
+      · 本窗口没有到期规则（周五规则在周二）——合法空跑，绿。
+        这种情况报红会天天假红，红灯最后一定被当噪音关掉，比不报还糟。
+      · 到期了、也评到了——绿。规则评下来「一切正常」本来就是正常产出。
+      · 到期了、一条都没评到——红。分两种成因，码要分得开，
+        否则又回到「rc=5 对应十来种原因」那种查不动的状态。
+    """
+    if rules_evaluated > 0 or rules_due == 0:
+        return 0, None
+    return (2, "ZIP_INPUT_MISSING") if input_missing else (5, "ALL_RULES_BLOCKED_BY_SOURCE")
+
+
 def notification_delivery_status(send_requested: bool, events: list[dict[str, Any]], target_config: Path = DEFAULT_NOTIFICATION_TARGETS) -> str:
     if not events:
         return "NO_EVENTS"
@@ -439,6 +465,8 @@ def main() -> int:
     tz = ZoneInfo("Asia/Shanghai")
     now = datetime.now(tz)
     check_date = parse_date(args.date, tz)
+    # 判据在 run_exit_code：进程没崩 ≠ 检查做了。见
+    # tests/test_work_check_must_not_be_green_without_checking.py 里的成因链。
     raw_rules, rules = load_rules(Path(args.rules))
     cash_config = load_yaml(Path(args.cash_config))
     default_input = raw_rules.get("input_zip_default")
@@ -499,10 +527,21 @@ def main() -> int:
         "notification_events": notification_events,
         "notification_delivery_status": notification_delivery_status(args.send, notification_events),
     }
+    code, failure_code = run_exit_code(
+        input_missing=not input_zip.exists(),
+        rules_due=len(rules_to_evaluate),
+        rules_evaluated=len(rules_ready_for_evaluation),
+    )
+    if failure_code:
+        # 键名要落在 skill_failure_code.py 的 _STATUS_KEYS 里，否则台账上只会是 UNKNOWN，
+        # 「查不动」就又回来了。
+        output["failure_code"] = failure_code
+        output["运行结论"] = _EXIT_REASONS[failure_code]
+
     if not args.dry_run:
         output["persistence"] = persist_run_log(output["run_id"], output)
     print(json.dumps(output, ensure_ascii=False, indent=2))
-    return 0
+    return code
 
 
 if __name__ == "__main__":

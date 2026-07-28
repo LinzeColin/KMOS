@@ -1012,9 +1012,20 @@ def result_exit_code(result: Mapping[str, Any]) -> int:
     查明：此前 `SENT` 的判据只是 dws 退出码为 0，于是这条链整月绿着、Owner 一条
     没收到。但它也必须**跟 5（明确失败）分开**：5 要去看错误码，8 要去看 dws
     到底返回了什么。混成一个码，排查方向就没了。
+
+    「今天已经确认发过了，本轮正确地没有重发」判 0。2026-07-28 全量压测当场抓到：
+    boot sweep 在 19:30 重跑 attendance-evening，而 17:32 那轮**已确认送达**，
+    去重守卫拦住第二次发送——干对了事，却被算进 FAILED 记成 ❌。那是假红，
+    而且是压测本身造出来的；红灯天天亮又次次不是真问题，最后一定被当噪音关掉。
+    这里只能给 0 不能给一个「专属非零码」：run_skill.sh 把任何非零都当失败告警，
+    给非零等于假红照旧。当轮没重发这件事本身落在回执里，由考勤投递端点讲清楚。
+    但**只有先前那次确认 SENT 才给绿**：拦住的若只是 SEND_STARTED / SENT_UNVERIFIED，
+    我们其实不知道它出去没有，现在又拒绝重试，那正是该看见的状态，留红（5）。
     """
     status = str(result.get("status") or "")
     notification_status = str(result.get("notification_status") or "")
+    if notification_status == "NOT_SENT_DUPLICATE_GUARD":
+        return 0 if str(result.get("duplicate_guard_blocked_on") or "") == "SENT" else 5
     if notification_status == "SENT_UNVERIFIED":
         return 8
     if status == "SENT":

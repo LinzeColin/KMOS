@@ -35,8 +35,24 @@ case "$SKILL" in
   # 测试期只发张霖泽本人（Owner:不许发群，除非授权）。授权后在 Coolify 置 KMFA_NOTIFICATION_TARGETS=group。
   attendance-morning)  CMD=(python3 KMFA/tools/dingtalk_attendance/run_attendance.py --run-type morning --notification-targets "${KMFA_NOTIFICATION_TARGETS:-personal}") ;;
   attendance-evening)  CMD=(python3 KMFA/tools/dingtalk_attendance/run_attendance.py --run-type evening --notification-targets "${KMFA_NOTIFICATION_TARGETS:-personal}") ;;
-  work-check-morning)  CMD=(python3 -m KMFA.tools.daily_routine_check.main --input-zip "${KMFA_DAILY_INPUT_ZIP:-/opt/kmfa/data/DWS_Outputs.zip}" --trigger-window morning_1135 $DELIVERY_FLAG) ;;   # SKL.0004 已演练（真实输入 dry-run 通过，通知对象原生=张霖泽）
-  work-check-evening)  CMD=(python3 -m KMFA.tools.daily_routine_check.main --input-zip "${KMFA_DAILY_INPUT_ZIP:-/opt/kmfa/data/DWS_Outputs.zip}" --trigger-window evening_1705 $DELIVERY_FLAG) ;;
+  # 日常检查：输入**必须真找得到**才跑。原来写死默认值 /opt/kmfa/data/DWS_Outputs.zip，
+  # 而全仓没有任何东西会去生成它——没有 Dockerfile COPY、没有 compose 挂载、没有下载步骤，
+  # 那个路径只出现在这一行的默认值里。于是线上连绿 9 次，实际零条规则被评
+  # （2026-07-28 本机用历史数据压测抓获）。写死一个不存在的路径，等于把「源没配」
+  # 伪装成「源配好了只是没数」。这里改成和上面 fund-weekly 同一种写法：find 不到就明说源缺失。
+  # 注：reader 是刻意 zip-only（stream_members_no_copy_no_extract，从不解压），
+  # 而上游归档落地的是目录树——两头格式还没搭上桥，这条在权限通了之后要一起接。
+  work-check-morning|work-check-evening)
+                       WINDOW=$([ "$SKILL" = work-check-morning ] && echo morning_1135 || echo evening_1705)
+                       CMD=(bash -c '
+                         Z="${KMFA_DAILY_INPUT_ZIP:-}"; \
+                         [ -n "$Z" ] || Z=$(find /var/lib/kmfa/dws-archive -maxdepth 3 -type f -name "DWS_Outputs*.zip" 2>/dev/null | sort | tail -1); \
+                         if [ -z "$Z" ] || [ ! -f "$Z" ]; then \
+                           echo "{\"status\": \"ZIP_INPUT_MISSING\"} 日常检查的输入 zip 不在——上游归档还没把聊天记录落成 zip；未检查任何规则"; \
+                           exit 2; \
+                         fi; \
+                         python3 -m KMFA.tools.daily_routine_check.main \
+                           --input-zip "$Z" --trigger-window '"$WINDOW"' '"$DELIVERY_FLAG"'') ;;
   # 资金周报：接真业务入口。原先跑 validate_taskpack.py——那是校验器，它永远绿，
   # 而周报一次都没真出过。绿得没有意义比红更糟：红至少会被查，假绿谁也不会去查。
   # 真入口自带分型退出码（2=源缺失 / 5=源不可读 / 6=私有模板缺失）且打印 status，

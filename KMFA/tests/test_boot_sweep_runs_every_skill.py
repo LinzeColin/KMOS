@@ -56,8 +56,20 @@ def test_the_sweep_is_serial_not_parallel():
     把「压测」变成「制造假故障」。"""
     sweep = _entry()
     block = sweep[sweep.index("全量压测开始"):sweep.index("全量压测结束")]
-    assert "sleep 5" in block, "技能之间没有间隔，flock 会互相踩"
+    assert "sleep 20" in block, "技能之间没有间隔，flock 会互相踩"
     assert "&" not in block.replace("2>&1", "").replace("&&", ""), "压测块里有后台符号，会并发"
+
+
+def test_the_sweep_yields_to_the_app():
+    """压测不能把 Owner 的页面打下线。
+
+    2026-07-28 首次全量压测跑到一半，线上连续 503 约 3 分钟才恢复
+    （Coolify 同期报 running:healthy，也没有部署在进行中）。3.7GB 的机器上
+    压测要克隆私有库、解析上千张表、tar 整个仓，跟 App 抢资源。
+    """
+    block = _entry()[_entry().index("全量压测开始"):_entry().index("全量压测结束")]
+    assert "nice -n" in block, "压测没让出 CPU 优先级，App 会被挤掉"
+    assert "sleep 20" in block, "技能之间只隔几秒，内存来不及回收"
 
 
 def test_a_failing_skill_never_blocks_the_sweep():
@@ -68,9 +80,28 @@ def test_a_failing_skill_never_blocks_the_sweep():
 
 
 def _swept_skills():
-    """按 entrypoint 里的同一条规则，从 run_skill.sh 抽技能名。"""
+    """按 entrypoint 里的同一条规则，从 run_skill.sh 抽技能名。
+
+    `a|b)` 这种合并分支要拆开——2026-07-28 把两条 work-check 合并共用同一段
+    源缺失守卫时，旧规则不认 `|`，压测清单会从 13 静默掉到 11。
+    """
     runner = RUN_SKILL.read_text(encoding="utf-8")
-    return {m for m in re.findall(r"^  ([a-z0-9-]+)\)", runner, re.M)}
+    names = set()
+    for arm in re.findall(r"^  ([a-z0-9|-]+)\)", runner, re.M):
+        names.update(arm.split("|"))
+    return names
+
+
+def test_the_extraction_rule_matches_the_entrypoint_exactly():
+    """测试里的抽取规则必须和 entrypoint 里那行**是同一条**。
+
+    两边分头演化的话，测试会对着一份线上根本不会用的清单报绿。
+    """
+    entry_line = next(
+        line for line in _entry().splitlines() if "grep -oE" in line and "run_skill.sh" in line
+    )
+    assert "[a-z0-9|-]+" in entry_line, "entrypoint 的抽取正则不认合并分支"
+    assert "tr '|'" in _entry(), "entrypoint 抽出来后没把合并分支拆开"
 
 
 def test_the_sweep_covers_every_skill_run_skill_knows():
@@ -90,6 +121,36 @@ def test_the_skill_that_is_not_in_the_schedule_is_still_swept():
     assert "attendance-bootstrap-targets" not in scheduled, \
         "它现在进排程了——那这条测试的前提变了，重新审一遍提取来源"
     assert "attendance-bootstrap-targets" in swept
+
+
+def test_a_restart_cannot_start_another_sweep_immediately():
+    """容器每重启一次 entrypoint 就跑一次，压测又是最重的一段——会自我维持。
+
+    2026-07-28 首轮压测后当场观察到：19:28 扫过一轮，19:44 又从头扫了一轮
+    （attendance-bootstrap-targets 运行次数 2→3、upstream-archive 56→57），
+    说明容器在压测期间重启、而重启又触发下一轮压测。
+    """
+    text = _entry()
+    assert "KMFA_BOOT_SWEEP_COOLDOWN_SECONDS" in text, "没有冷却闸，重启会带出压测环"
+    assert ".last_boot_sweep" in text, "冷却时间戳没落在持久卷上，容器重建即失效"
+
+
+def test_the_sweep_order_is_least_recently_run_not_alphabetical():
+    """字母序会固定饿死同一批技能。
+
+    实测两轮压测都没走到 work-check 两条——它们字母序排最后，
+    而每轮都在到达之前断掉。表现只是「时间戳还停在 cron 时间」，
+    看不出是压测从没到达过。按「最久没跑」排，中断由下一轮自动补上。
+    """
+    block = _entry()[_entry().index("全量压测开始"):_entry().index("全量压测结束")]
+    assert "ledger.jsonl" in block, "排序没读台账，就还是字母序"
+    assert "SWEEP_ORDER" in block
+
+
+def test_an_unreadable_ledger_never_costs_coverage():
+    """排序只是优化——台账读不动就退回字母序，绝不能因此少扫技能。"""
+    block = _entry()[_entry().index("全量压测开始"):_entry().index("全量压测结束")]
+    assert '[ -n "$SWEEP_ORDER" ] ||' in block, "没有兜底，台账坏掉时压测会整个空转"
 
 
 def test_the_never_run_skill_is_covered():

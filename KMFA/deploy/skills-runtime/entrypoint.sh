@@ -186,8 +186,32 @@ PYR
   # 结果就是「改一版等一天」，而那正是把一个月耗掉的模式。
   #
   # 默认开（`KMFA_BOOT_SWEEP=0` 可关）。串行跑：并发会让几个技能同时抢 dws 登录态
-  # 和稀疏克隆，把「压测」变成「制造假故障」。每个之间隔 5s，给 flock 让路。
-  if [ "${KMFA_BOOT_SWEEP:-1}" = "1" ]; then
+  # 和稀疏克隆，把「压测」变成「制造假故障」。
+  #
+  # 让路给 App：2026-07-28 首次全量压测跑到一半，线上 kmfa.linzezhang.com 连续
+  # 503「no available server」约 3 分钟才恢复（Coolify 侧同期报 running:healthy，
+  # 也没有部署在进行中，所以不是重新部署造成的）。这台是 3.7GB 的机器，
+  # 而压测里 project-cost-refresh 要克隆私有库再解析上千张表、self-audit 要 tar 整个仓，
+  # 跟 App 抢资源。**因果是从时间相关性推的，没有当场的内存/CPU 度量**，
+  # 所以这里用的是两种成因都能缓解的保守做法：nice 让 App 赢 CPU，
+  # 间隔从 5s 拉到 20s 给内存回收留窗口。压测是后台活，慢几分钟无所谓；
+  # 为了压测把 Owner 的页面打下线，那是本末倒置。
+  # 冷却闸：容器每重启一次 entrypoint 就跑一次，压测又是这里最重的一段——
+  # 2026-07-28 首轮压测后当场观察到的：19:28 扫过一轮，19:44 又从头扫了一轮
+  # （attendance-bootstrap-targets 运行次数 2→3、upstream-archive 56→57），
+  # 说明容器在压测期间重启了，而重启又触发下一轮压测。这条链会自我维持，
+  # 且每轮都在字母序靠后的技能之前断掉——work-check 两条因此**一次都没被扫到**，
+  # 表现却只是「它俩时间戳还是 cron 时间」，极难看出是压测从没走到那里。
+  # 冷却窗口内直接跳过：压测的价值是「部署后确认每个技能还能跑」，
+  # 一小时内重复扫十遍并不会多确认什么，只会把机器压垮。
+  SWEEP_STAMP=/var/log/kmfa/.last_boot_sweep
+  SWEEP_COOLDOWN="${KMFA_BOOT_SWEEP_COOLDOWN_SECONDS:-3600}"
+  if [ "${KMFA_BOOT_SWEEP:-1}" = "1" ] && [ -f "$SWEEP_STAMP" ] \
+     && [ "$(( $(date +%s) - $(cat "$SWEEP_STAMP" 2>/dev/null || echo 0) ))" -lt "$SWEEP_COOLDOWN" ]; then
+    echo "$(date -Is) entrypoint: 距上轮全量压测不足 ${SWEEP_COOLDOWN}s，本次跳过（防重启压测环）" \
+      >> /var/log/kmfa/cron.log
+  elif [ "${KMFA_BOOT_SWEEP:-1}" = "1" ]; then
+    date +%s > "$SWEEP_STAMP"
     echo "$(date -Is) entrypoint: 全量压测开始（每个技能跑一遍）" >> /var/log/kmfa/cron.log
     SWEPT=0
     # 技能名从 `run_skill.sh` 的 case 分支取——**那才是技能清单的真源**，
@@ -197,12 +221,42 @@ PYR
     # `attendance-bootstrap-targets`（它不在排程里，只由上面那段前置补跑触发），
     # 排程 12 个而台账 13 个。写死清单同样不行——新增技能被漏掉的表现是
     # 「它一直没跑」，跟排程没配一模一样，极难查。
-    for SK in $(grep -oE '^  [a-z0-9-]+\)' /opt/runtime/run_skill.sh \
-                | tr -d ' )' | sort -u); do
+    # case 分支允许 `a|b)` 合并写法（work-check 两条共用同一段守卫），
+    # 所以抽取要认 `|` 再拆开。不认的话表现是「那两个技能一直没跑」，
+    # 跟排程没配一模一样、极难查——2026-07-28 合并 work-check 时被这条的测试当场抓住。
+    #
+    # 顺序按「最久没跑」而不是字母序。字母序下 work-check 两条永远排最后，
+    # 压测一被打断就固定饿死同一批——2026-07-28 实测两轮压测都没走到它们，
+    # 而表现只是「时间戳还停在 cron 时间」，看不出是压测从没到达。
+    # 最久没跑优先：从没跑过的（mgmt-monthly 曾经运行次数 0）排最前，
+    # 每次中断都由下一轮自动补上，不会有固定的尾巴长期没人碰。
+    # 台账读不动就退回字母序——排序只是优化，绝不能因为它丢覆盖。
+    SWEEP_ORDER="$(grep -oE '^  [a-z0-9|-]+\)' /opt/runtime/run_skill.sh \
+                   | tr -d ' )' | tr '|' '\n' | sort -u \
+                   | python3 -c '
+import json, os, sys
+names = [n.strip() for n in sys.stdin if n.strip()]
+last = {}
+try:
+    with open("/var/log/kmfa/ledger.jsonl", encoding="utf-8") as fh:
+        for line in fh:
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if row.get("skill") in names and row.get("ts"):
+                last[row["skill"]] = max(last.get(row["skill"], ""), str(row["ts"]))
+except OSError:
+    pass
+print("\n".join(sorted(names, key=lambda n: (last.get(n, ""), n))))
+' 2>/dev/null)"
+    [ -n "$SWEEP_ORDER" ] || SWEEP_ORDER="$(grep -oE '^  [a-z0-9|-]+\)' /opt/runtime/run_skill.sh \
+                                            | tr -d ' )' | tr '|' '\n' | sort -u)"
+    for SK in $SWEEP_ORDER; do
       echo "$(date -Is) entrypoint: 压测 $SK" >> /var/log/kmfa/cron.log
-      /opt/runtime/run_skill.sh "$SK" >> /var/log/kmfa/cron.log 2>&1 || true
+      nice -n 19 /opt/runtime/run_skill.sh "$SK" >> /var/log/kmfa/cron.log 2>&1 || true
       SWEPT=$((SWEPT + 1))
-      sleep 5
+      sleep 20
     done
     echo "$(date -Is) entrypoint: 全量压测结束，共 $SWEPT 个技能" >> /var/log/kmfa/cron.log
   fi
