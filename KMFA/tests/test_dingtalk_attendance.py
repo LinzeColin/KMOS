@@ -4869,6 +4869,8 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
 
             resolved = json.loads((runtime_dir / "notification_channel_resolved.json").read_text(encoding="utf-8"))
             public_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            # fixture 里 --open-dingtalk-id 返回 openTaskId——钉钉的投递凭据，
+            # 故新契约下仍是 SENT。而 --user 那步 returncode=1，所以确实发生了 fallback。
             self.assertEqual(result["status"], "SENT")
             self.assertEqual(result["successful_channel"], "dws_open_dingtalk_id_chat")
             self.assertEqual(resolved["channel"], "dws_open_dingtalk_id_chat")
@@ -5492,6 +5494,8 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
 
             resolved = json.loads(targets_resolved.read_text(encoding="utf-8"))
             manifest = json.loads(public_manifest.read_text(encoding="utf-8"))
+            # 该 fixture 的返回体里带 openTaskId——那是钉钉的投递凭据，
+            # 所以新契约下仍然是 SENT（确认收下了）。
             self.assertEqual(result["status"], "SENT")
             self.assertEqual(resolved["targets"][0]["resolved_channel"], "dws_open_dingtalk_id_chat")
             self.assertEqual(resolved["targets"][0]["open_dingtalk_id"], "open-secret-id")
@@ -5552,6 +5556,8 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
                 help_provider=lambda command: "Flags:\n      --user string\n      --open-dingtalk-id string\n      --text string\n",
             )
 
+            # 该 fixture 的返回体里带 openTaskId——那是钉钉的投递凭据，
+            # 所以新契约下仍然是 SENT（确认收下了）。
             self.assertEqual(result["status"], "SENT")
             self.assertTrue(any(call[:5] == ["dws", "contact", "user", "search", "--query"] for call in calls))
             self.assertTrue(any(call[:5] == ["dws", "chat", "message", "send", "--open-dingtalk-id"] for call in calls))
@@ -5629,7 +5635,11 @@ class DingTalkAttendanceContractTests(unittest.TestCase):
 
             resolved = json.loads(targets_resolved.read_text(encoding="utf-8"))
             manifest = json.loads(public_manifest.read_text(encoding="utf-8"))
-            self.assertEqual(result["status"], "SENT")
+            # 假 dws 返回 {"success": True}——**没有投递凭据**。新契约下这是
+            # SENT_UNVERIFIED：命令跑完了，但确认不了钉钉收下。这里不给 fixture
+            # 编造 messageId——我们并不知道 dws 真返回什么，那正是这个状态存在的理由。
+            # 本测试验的是通道解析与脱敏，那部分断言原样保留。
+            self.assertEqual(result["status"], "SENT_UNVERIFIED")
             self.assertEqual([target["label"] for target in resolved["targets"]], ["张霖泽", "考勤小群"])
             self.assertEqual(resolved["targets"][1]["resolved_channel"], "dws_group_chat")
             self.assertNotIn("open-secret-id", json.dumps(manifest, ensure_ascii=False))

@@ -2563,7 +2563,11 @@ def _dispatch_target(item: dict[str, Any]) -> dict[str, Any]:
     effective = [v for v in statuses.values() if v != "SKIPPED"]
     return {
         "对象": str(item.get("label") or "?"),
+        # `SENT_UNVERIFIED` 明确**不算成功**：它表示 dws 命令跑完了，但返回体里
+        # 没有钉钉侧的投递凭据。把它算成功，就是这次「绿了一个月、一条没收到」
+        # 事故的复现。
         "成功": bool(effective) and all(v == "SENT" for v in effective),
+        "查无投递凭据": any(v == "SENT_UNVERIFIED" for v in effective),
         "各报告状态": statuses or {"（回执里没有状态字段）": ""},
         "通道": str(item.get("channel") or item.get("resolved_channel") or ""),
         "失败原因": str(item.get("failure_reason") or "") or None,

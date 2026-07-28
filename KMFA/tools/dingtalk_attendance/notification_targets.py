@@ -495,10 +495,10 @@ def _probe_personal_target(
             runner=dws_runner,
         )
         attempts.append(result)
-        if result.get("status") == "SENT":
+        if _probe_reached(result):
             return _resolved_target(
                 target=target,
-                status="SENT",
+                status=str(result.get("status") or "SENT"),
                 now=now,
                 resolved_channel="dws_open_dingtalk_id_chat",
                 user_id=user_id,
@@ -515,10 +515,10 @@ def _probe_personal_target(
             runner=dws_runner,
         )
         attempts.append(result)
-        if result.get("status") == "SENT":
+        if _probe_reached(result):
             return _resolved_target(
                 target=target,
-                status="SENT",
+                status=str(result.get("status") or "SENT"),
                 now=now,
                 resolved_channel="dws_userid_chat",
                 user_id=user_id,
@@ -527,8 +527,9 @@ def _probe_personal_target(
             )
     ding = send_dws_ding_message(recipient_user_id=user_id, title=title, text=text, env=env, runner=dws_runner)
     attempts.append(ding)
-    if ding.get("status") == "SENT":
-        return _resolved_target(target=target, status="SENT", now=now, resolved_channel="dws_ding_personal", user_id=user_id, reports=reports)
+    if _probe_reached(ding):
+        return _resolved_target(target=target, status=str(ding.get("status") or "SENT"), now=now,
+                                resolved_channel="dws_ding_personal", user_id=user_id, reports=reports)
     return _resolved_target(
         target=target,
         status="FAILED",
@@ -563,10 +564,10 @@ def _probe_group_target(
             help_text=chat_help,
             runner=dws_runner,
         )
-        if result.get("status") == "SENT":
+        if _probe_reached(result):
             return _resolved_target(
                 target=target,
-                status="SENT",
+                status=str(result.get("status") or "SENT"),
                 now=now,
                 resolved_channel="dws_group_chat",
                 group_conversation_id=conversation_id,
@@ -588,10 +589,10 @@ def _probe_group_target(
             robot_sender=robot_sender,
             dws_runner=dws_runner,
         )
-        if webhook_result.get("status") == "SENT":
+        if _probe_reached(webhook_result):
             return _resolved_target(
                 target=target,
-                status="SENT",
+                status=str(webhook_result.get("status") or "SENT"),
                 now=now,
                 resolved_channel="dingtalk_group_robot_env",
                 webhook_env_key=webhook_env_key,
@@ -704,6 +705,18 @@ def _extract_list_records(payload: Any) -> list[Mapping[str, Any]]:
             if nested:
                 return nested
     return []
+
+
+#: 探测意义上的「这条通道通了」。
+#: `SENT_UNVERIFIED` 也算通——命令送出去了、没报错，只是拿不到钉钉的投递凭据。
+#: **通道解析成功** 和 **投递确认** 是两件事：前者决定要不要继续 fallback，
+#: 后者决定能不能说「发到了」。混为一谈会走向两个反向的错误：
+#: 当成失败 → 明明能用的通道被跳过；当成成功 → 就是骗了一个月的那个 bug。
+_PROBE_REACHED = ("SENT", "SENT_UNVERIFIED")
+
+
+def _probe_reached(result: Mapping[str, Any]) -> bool:
+    return str(result.get("status") or "") in _PROBE_REACHED
 
 
 def _resolved_target(
@@ -922,6 +935,11 @@ def _summarize_target_probe_status(statuses: list[str]) -> str:
     active = [status for status in statuses if status]
     if active and all(status == "SENT" for status in active):
         return "SENT"
+    # 「拿不到投递凭据」独立成一档，不能塌进 FAILED。
+    # FAILED 是发送这一步报错了，去看错误码；SENT_UNVERIFIED 是没报错但也没证据，
+    # 去看 dws 到底返回了什么。并成一档，排查方向就没了。
+    if active and all(status in {"SENT", "SENT_UNVERIFIED"} for status in active):
+        return "SENT_UNVERIFIED"
     if active and any(status == "SENT" for status in active):
         return "PARTIAL"
     return "FAILED"
@@ -938,6 +956,10 @@ def _summarize_dispatch_status(target_results: list[Mapping[str, Any]]) -> str:
         return "SENT"
     if statuses and all(status == "NOTIFIER_CONFIG_MISSING" for status in statuses):
         return "NOTIFIER_CONFIG_MISSING"
+    # 同上：没拿到凭据 ≠ 发送报错。这是回执上最终写给人看的那个字段，
+    # 说错了就等于继续拿「FAILED」或「SENT」骗人——两个方向都错。
+    if statuses and all(status in {"SENT", "SENT_UNVERIFIED"} for status in statuses):
+        return "SENT_UNVERIFIED"
     return "FAILED"
 
 

@@ -163,8 +163,14 @@ def probe_notification_channels(
             now=current,
         )
 
+    # 全部通道都没拿到投递凭据，但也没有一条真的报错——那是「无法确认」，不是
+    # 「失败」。两者要修的地方不同：FAILED 去看错误码，UNVERIFIED 去看 dws 到底
+    # 返回了什么。探测器的职责是「找一条**确认能用**的通道」，拿不到凭据就不能
+    # 宣布这条通道能用，所以继续 fallback 是对的；但收口时不该把它说成报错。
+    tried = [str(a.get("status") or "") for a in attempts if a.get("status") != "SKIPPED"]
+    unverified = bool(tried) and all(s in {"SENT", "SENT_UNVERIFIED"} for s in tried)
     result = {
-        "status": "FAILED",
+        "status": "SENT_UNVERIFIED" if unverified else "FAILED",
         "successful_channel": None,
         "recipient_user_id": recipient,
         "attempts": attempts,
@@ -340,6 +346,13 @@ def _attempt(channel: str, result: Mapping[str, Any], *, identifier_present: boo
         "errmsg": result.get("errmsg"),
         "identifier_present": identifier_present,
     }
+
+
+# 注意：这里短路判据**仍然是严格 SENT**，不接受 SENT_UNVERIFIED。
+# 探测器的职责是「找一条**确认能用**的通道」——拿不到投递凭据就没确认，
+# 该继续试下一条，而不是就此收工把它定成结果通道。
+# SENT_UNVERIFIED 只在**全部通道都试完**的收口处起作用：那时它区分的是
+# 「都没确认」和「有一条真报错了」，两者要查的地方不同。
 
 
 def _next_fallback(attempts: list[Mapping[str, Any]]) -> str:
