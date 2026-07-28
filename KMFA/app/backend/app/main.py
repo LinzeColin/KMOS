@@ -2406,6 +2406,16 @@ SKILL_LEDGER_PATH = Path(os.environ.get("KMFA_SKILL_LEDGER", "/var/log/kmfa/ledg
 LEDGER_UPLINK_STATUS_PATH = Path(os.environ.get(
     "KMFA_LEDGER_UPLINK_STATUS", "/var/log/kmfa/ledger_uplink_status.json"))
 
+#: 考勤投递回执的归档根。技能按 `<root>/<YYYYMM>/*.dispatch.json` 写。
+ATTENDANCE_ARCHIVE_ROOT = Path(os.environ.get(
+    "KMFA_ATTENDANCE_ARCHIVE_ROOT", "/var/log/kmfa/dingtalk_attendance"))
+
+#: 回执里允许出现在公开面的字段。**白名单，不是黑名单**——回执里还有
+#: `management_report`／`hr_report`／`notification_template_text`，那是全员考勤正文，
+#: 一个都不能出去。用黑名单的话，将来回执加字段就会默认泄露。
+_DISPATCH_PUBLIC_FIELDS = (
+    "notification_status", "channel", "run_type", "work_date", "failure_reason")
+
 #: 公开失败码的形状校验。台账文件是**另一个容器**写的，这里不拿它当可信输入——
 #: 那边写坏了、被塞进业务文本，也绝不能顺着流到公开端点上。
 _PUBLIC_CODE_UPPER_SNAKE = re.compile(r"^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$")
@@ -2530,6 +2540,87 @@ def public_login_entry(request: Request):
                 "落点": "/", "说明": "登录完直接回驾驶舱，不会停在 JSON 接口上。"}
     except Exception as error:
         return {"可用": False, "原因": str(error), "登录地址": None}
+
+
+def _dispatch_receipts(limit: int = 8) -> list[dict[str, Any]]:
+    """把最近若干份投递回执裁成公开安全的形状。
+
+    只出白名单字段，外加每个目标的「谁 / 成没成 / 走的哪条通道」。
+    **不出**报表正文、模板文本、user_id——那是全员考勤数据和员工标识。
+    """
+    if not ATTENDANCE_ARCHIVE_ROOT.is_dir():
+        return []
+    files = sorted(ATTENDANCE_ARCHIVE_ROOT.glob("*/*.dispatch.json"),
+                   key=lambda p: p.stat().st_mtime, reverse=True)[:limit]
+    out = []
+    for path in files:
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            out.append({"回执": path.name, "可读": False,
+                        "原因": f"{type(exc).__name__}"})
+            continue
+        if not isinstance(raw, dict):
+            out.append({"回执": path.name, "可读": False, "原因": "回执不是对象"})
+            continue
+        row = {k: raw.get(k) for k in _DISPATCH_PUBLIC_FIELDS if raw.get(k) not in (None, "")}
+        targets = []
+        for item in (raw.get("target_results") or []):
+            if not isinstance(item, dict):
+                continue
+            targets.append({
+                "对象": str(item.get("label") or "?"),
+                "成功": str(item.get("status") or "") == "SENT",
+                "状态": str(item.get("status") or ""),
+                "通道": str(item.get("channel") or ""),
+            })
+        row["目标"] = targets
+        row["回执"] = path.name
+        row["写入时间"] = datetime.fromtimestamp(path.stat().st_mtime, BEIJING).isoformat()
+        out.append(row)
+    return out
+
+
+@app.get("/public-api/考勤投递")
+def public_attendance_dispatch():
+    """考勤到底发出去没有——**不需要登录**。
+
+    Owner 2026-07-28：「考勤我没有收到」。
+
+    这个端点存在的理由和 `技能健康` 一模一样，是同一个死结的下一段：台账里考勤
+    `rc=0`，看着是绿的，但绿只代表**进程正常退出**，不代表**消息发出去了**。
+    真相在容器里的 `*.dispatch.json` 回执里，而 Coolify 的 `exec` 实测返回 404、
+    `logs` 是空的、`/api/*` 在 Access 后面而 Owner 不登录——**没有任何人能拿到证据**。
+
+    分得开的三件事（现在在台账上长得一模一样，都是 rc=0）：
+      · `SENT`                          真发了
+      · `NOTIFIER_CONFIG_MISSING`       通道没配好，一条没发
+      · `NOT_SENT_NO_TARGET_SELECTED`   目标筛完是空的，一条没发
+
+    公开边界：只出状态、时间、对象标签与通道名。**不出**考勤正文、模板文本、
+    user_id——那是全员考勤数据和员工标识。
+    """
+    headers = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow"}
+    now = datetime.now(BEIJING)
+    if not ATTENDANCE_ARCHIVE_ROOT.is_dir():
+        return JSONResponse({
+            "生成时间": now.isoformat(), "可读": False,
+            "原因": f"{ATTENDANCE_ARCHIVE_ROOT} 不存在——app 容器没挂考勤归档卷，"
+                    f"或考勤从未产出过回执",
+            "投递": [],
+            "诚实边界": "读不到就说读不到，不拿空列表冒充『没有投递记录』。",
+        }, headers=headers)
+    receipts = _dispatch_receipts()
+    latest = receipts[0] if receipts else None
+    return JSONResponse({
+        "生成时间": now.isoformat(),
+        "可读": True,
+        "需要登录": False,
+        "最近一次是否真的发出": (latest.get("notification_status") == "SENT") if latest else None,
+        "为什么看这个": "台账 rc=0 只代表进程正常退出，不代表消息发出去了；"
+                       "两者在台账上长得一模一样。",
+        "投递": receipts,
+    }, headers=headers)
 
 
 @app.get("/public-api/项目成本")
