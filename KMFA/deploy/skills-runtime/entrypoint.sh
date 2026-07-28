@@ -254,7 +254,11 @@ print("\n".join(sorted(names, key=lambda n: (last.get(n, ""), n))))
                                             | tr -d ' )' | tr '|' '\n' | sort -u)"
     for SK in $SWEEP_ORDER; do
       echo "$(date -Is) entrypoint: 压测 $SK" >> /var/log/kmfa/cron.log
-      nice -n 19 /opt/runtime/run_skill.sh "$SK" >> /var/log/kmfa/cron.log 2>&1 || true
+      # 给压测跑打标：它和排程跑问的是两个问题——排程问「今天这件事办成没有」，
+      # 压测问「这个技能的机器还转不转」。不打标就会互相污染：时间锚定的技能
+      # 被拉到窗口外跑必然合法失败（19:44 跑早班实时提醒），
+      # 那条会把当天真成功的排程结论顶红。
+      KMFA_SWEEP_RUN=1 nice -n 19 /opt/runtime/run_skill.sh "$SK" >> /var/log/kmfa/cron.log 2>&1 || true
       SWEPT=$((SWEPT + 1))
       sleep 20
     done

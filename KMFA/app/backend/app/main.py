@@ -2742,7 +2742,15 @@ def public_skill_health():
     出 = []
     for skill in sorted(SCHEDULE_CONTRACT):
         history = sorted(by_skill.get(skill, []), key=lambda r: str(r.get("ts")), reverse=True)
-        last = history[0] if history else None
+        # ✅/❌ 只由**排程跑**决定。压测跑（entrypoint 的全量压测）问的是另一个问题：
+        # 「这个技能的机器还转不转」。混在一起，时间锚定的技能被拉到窗口外跑的合法失败
+        # 就会顶掉当天真成功的排程结论——2026-07-28 实测：早上 10:36 考勤真发成功，
+        # 晚上 19:44 压测重跑 REALTIME_REMINDER_INTEGRITY_FAILED，页面直接变红。
+        # 但压测结果也不能藏：藏了就等于没做压测，回到「改一版等一天」。所以分两栏各报各的。
+        # 老台账行没有 sweep 字段，一律按排程跑处理——改造不能把历史判没了。
+        scheduled = [r for r in history if not r.get("sweep")]
+        swept = [r for r in history if r.get("sweep")]
+        last = scheduled[0] if scheduled else None
         距今小时 = None
         if last:
             try:
@@ -2751,22 +2759,39 @@ def public_skill_health():
             except (ValueError, KeyError, TypeError):
                 距今小时 = None
         失败码 = _public_failure_code((last or {}).get("code")) if last and last.get("rc") else None
-        出.append({
+        行 = {
             "技能": skill,
             "最近一次": (last or {}).get("ts"),
             "距今小时": 距今小时,
             "退出码": (last or {}).get("rc"),
             "成功": (last or {}).get("rc") == 0 if last else None,
-            "运行次数": len(history),
+            "运行次数": len(scheduled),
             # rc 只说「失败了」，失败码说「哪一种失败」——没有它就只能改一版等一天看会不会变绿。
             "失败码": 失败码,
-        })
+        }
+        if swept:
+            最近压测 = swept[0]
+            行["压测"] = {
+                "最近一次": 最近压测.get("ts"),
+                "退出码": 最近压测.get("rc"),
+                "成功": 最近压测.get("rc") == 0,
+                "次数": len(swept),
+                "失败码": (_public_failure_code(最近压测.get("code"))
+                          if 最近压测.get("rc") else None),
+            }
+        出.append(行)
     return JSONResponse({
         "生成时间": now.isoformat(),
         "台账可读": True,
         "技能": 出,
         "台账回传": _ledger_uplink_state(),
         "口径": "只报运行事实，不含任何业务数据；零运行次数即视为未跑通，不因日志新鲜而判健康。",
+        "压测口径": (
+            "「压测」是部署后把每个技能主动跑一遍，问的是「机器还转不转」；"
+            "上面的成功/失败只由**排程跑**决定，问的是「今天这件事办成没有」。"
+            "时间锚定的技能在压测里被拉到窗口外跑，合法拒绝会显示为压测失败，"
+            "那不代表排程有问题。"
+        ),
         "失败码口径": "白名单构造的机器状态令牌，形不合者一律不出；完整取证只落私有库，不上公开端点。",
     }, headers=headers)
 
