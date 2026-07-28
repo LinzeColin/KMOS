@@ -183,6 +183,25 @@ PYR
   #   一个周任务，把一个日任务卡了整整一周，而失败看起来像是归档自己的毛病。
   # 变量名只能用 ASCII——bash 的 read/for 不接受中文标识符，而 `bash -n` 查不出来
   # （报错发生在运行时）。真跑一遍才抓到，语法检查会放行。
+  # 「产物在不在」还不够——**空产物和没有产物一样没用，但它长得像有**。
+  # 实测（2026-07-28）：candidate_groups.json 存在且非空，内容却是 `"群数": 0`。
+  # 于是 `[ ! -s ]` 判定"前置已就绪"，自举从此再也不会被补跑，
+  # 而它排在周日 10:30，等于每周只有一次机会翻身；归档则每天红一次。
+  # 这里把"零群的候选清单"当成没有：删掉它，让下面的补跑逻辑正常接手，
+  # 自举于是走 run_skill.sh 跑（登记进台账 + 带失败码 + 回传私有库取证）。
+  CAND_JSON=/var/log/kmfa/dws/candidate_groups.json
+  if [ -s "$CAND_JSON" ] && ! python3 -c "
+import json, sys
+try:
+    d = json.load(open('$CAND_JSON', encoding='utf-8'))
+except Exception:
+    sys.exit(1)
+sys.exit(0 if (d.get('群数') or 0) > 0 else 1)
+" 2>/dev/null; then
+    echo "$(date -Is) entrypoint: 候选群清单为零群/不可解析 → 视为缺产物，删除以触发补跑" >> /var/log/kmfa/cron.log
+    rm -f "$CAND_JSON"
+  fi
+
   while IFS='|' read -r ARTIFACT SKILL_NAME; do
     [ -n "$SKILL_NAME" ] || continue
     if [ ! -s "$ARTIFACT" ]; then

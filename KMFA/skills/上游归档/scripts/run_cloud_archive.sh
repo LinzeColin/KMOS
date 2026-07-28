@@ -55,7 +55,17 @@ if [ ! -f "$CONF_SRC" ]; then
   log "私有库缺 $CONF_AREA/target_groups.yaml —— 就地自举群清单"
   BOOT="$(dirname "$0")/bootstrap_groups_cloud.sh"
   if [ -x "$BOOT" ] || [ -f "$BOOT" ]; then
-    bash "$BOOT" >> "$LOG" 2>&1 || log "自举返回码 $?（继续尝试重取配置）"
+    # 自举的输出必须**同时进 stdout**，不能只写 dws-archive.log。
+    # 2026-07-28 实测代价：自举在这里失败了，但它的日志只落在本技能私有的
+    # dws-archive.log 里，而 run_skill.sh 抓的是 stdout ——于是私有库取证尾巴里
+    # 一个字都看不到，公开端点只剩一个下游的 NO_TARGET_GROUPS。
+    # 容器 exec 又是 404（Coolify 实测），等于**完全没有诊断通道**：
+    # 只能改一版、部署、等下一轮，再猜一次。这正是「一个月」的那个循环。
+    # tee 一份到日志、一份到 stdout，取证尾巴就能直接回答"自举为什么没列出群"。
+    BOOT_OUT="$(bash "$BOOT" 2>&1)"; BOOT_RC=$?
+    printf '%s\n' "$BOOT_OUT" >> "$LOG"
+    printf '%s\n' "$BOOT_OUT" | tail -20
+    log "自举返回码 $BOOT_RC（继续尝试重取配置）"
     git -C "$PDB_DIR" fetch --quiet origin main 2>/dev/null || true
     git -C "$PDB_DIR" checkout --quiet origin/main -- "$CONF_AREA" 2>/dev/null || true
   else
