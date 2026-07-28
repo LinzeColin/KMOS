@@ -404,6 +404,7 @@ def parse_json_output(text: str) -> dict[str, Any]:
 def dws_retryable_output(text: str) -> bool:
     lowered = text.lower()
     markers = [
+        # 网络层：连不上、连上了没说完
         "io_timeout",
         "request_timeout",
         "context deadline",
@@ -412,6 +413,21 @@ def dws_retryable_output(text: str) -> bool:
         "connection reset",
         "temporarily unavailable",
         "timeout",
+        # 钉钉业务层的**瞬时**忙——服务端说"等会儿再来"，不是我们参数错了。
+        # 2026-07-28 线上实测：整轮归档倒在 im/search_groups 的
+        # `[UNCLASSIFIED] 系统繁忙，请稍后再试`（business_error）上。
+        # 上面那批标记全是网络词，中文的"系统繁忙"一个都不沾边，于是
+        # run_dws 一次都没重试就把整轮 abort 了——而重试参数（3 次 / 退避 5s）
+        # 明明是配好的，只是永远轮不到它生效。
+        # 归档要按群逐个 chat search 反查（11 个群就是 11 连发），撞限流是常态而非意外。
+        # 只收**明确瞬时**的词：权限、参数、不存在这类永久错误绝不能进来，
+        # 否则会把"确定失败"变成"慢四倍地失败"。
+        "系统繁忙",
+        "请稍后再试",
+        "请求过于频繁",
+        "service unavailable",
+        "too many requests",
+        "rate limit",
     ]
     return any(marker in lowered for marker in markers)
 
