@@ -208,10 +208,37 @@ def read_projects(data_root: str, only_completed: bool = True) -> dict:
                     value = cell(row, position)
                     record[label] = "" if value is None else str(value)[:24]
                 record["已完工"] = done
-                previous = found.get(key)
+                # 键必须带甲方。只用合同号做键，会把**不同项目**吃掉一个。
+                #
+                # 2026-07-28 实证：`KMX202595-064` 在《生产项目状态表》里挂着两行——
+                # 日照钢铁（施工中，合同额 1,263,546）与新疆宜化（已完工，1,180,000）。
+                # 原来 `found[合同号] = record` 加「保留完工日期较晚的」，于是日照钢铁
+                # 整个项目**从表上消失**，32 行进、31 个出，没有任何提示。
+                #
+                # 静默丢弃比归并更糟：归并至少金额还在，丢弃是凭空少一个项目，
+                # 而少掉的那个恰好是合同额最大的几个之一。
+                # 同合同号同甲方才是重复导出，按完工日期取新；同合同号不同甲方是
+                # **身份冲突**，两条都留、都打标，交给人去裁。
+                identity = (key, record["甲方名称"])
+                previous = found.get(identity)
                 if not previous or completed_at > previous.get("完工日期", ""):
-                    found[key] = record
+                    found[identity] = record
+
         workbook.close()
+
+    # 标记冲突：同一合同号落在多个甲方名下
+    by_contract: dict[str, list[tuple]] = {}
+    for identity in found:
+        by_contract.setdefault(identity[0], []).append(identity)
+    for contract, group in by_contract.items():
+        if len(group) < 2:
+            continue
+        others = {found[i]["甲方名称"] for i in group}
+        for identity in group:
+            found[identity]["身份冲突"] = (
+                f"合同号 {contract} 同时挂在 {len(group)} 个甲方名下："
+                + "、".join(sorted(others))
+                + "。不得自动归并，需人工确认唯一项目/合同映射。")
     return found
 
 
@@ -229,8 +256,22 @@ def sort_key(record: dict) -> str:
     return ""
 
 
-def collect_ledger_cost(data_root: str, targets: set[str], account_to_row: dict) -> dict:
-    """明细账按项目归集生产成本借方发生额。返回 {合同主号: {科目: 金额}}。"""
+def collect_ledger_cost(data_root: str, targets: set[str], account_to_row: dict,
+                        variants: dict | None = None) -> dict:
+    """明细账按项目归集生产成本借方发生额。返回 {合同主号: {科目: 金额}}。
+
+    `variants` 传入时，另记 {合同主号: {原始销售合同号: 金额}}——**归并到主号之前
+    长什么样**。
+
+    为什么要记：合同号带变体后缀（`-Z`／`-XF`／`--Z`），`norm_contract` 会把它们
+    并进主号。2026-07-28 实测，广安台泥 079 的金蝶成本 64,653.90 **全部**来自
+    `KMX20251119-079-Z`，福建鼎信 003 的 1,919.19 **全部**来自 `KMX2026116-003--Z`。
+    后缀的业务含义（变更／分包／中标）至今没有裁定，也就是说这两笔到底该不该算进
+    主项目，是个未决问题——而代码在静默地替它做了决定。
+
+    不改归并口径（不并会让这两个项目的金蝶成本直接归零，那更错），但把成分摆出来：
+    看表的人至少能知道「这个数是从一个带后缀的合同号来的」。
+    """
     import openpyxl
     aggregate: dict[str, dict[str, Decimal]] = collections.defaultdict(
         lambda: collections.defaultdict(Decimal))
@@ -282,6 +323,9 @@ def collect_ledger_cost(data_root: str, targets: set[str], account_to_row: dict)
             except Exception:
                 amount = Decimal(0)
             aggregate[key][account] += amount
+            if variants is not None:
+                variants.setdefault(key, collections.defaultdict(Decimal))[
+                    re.sub(r"\s", "", str(raw)).upper()] += amount
 
     bundles = sorted(set(glob.glob(f"{data_root}/**/*金蝶*.zip", recursive=True)
                          + glob.glob(f"{data_root}/**/*明细账*.zip", recursive=True)))
@@ -308,6 +352,19 @@ def collect_ledger_cost(data_root: str, targets: set[str], account_to_row: dict)
     if unknown_accounts:
         raise KeyError(f"这些成本子科目未在映射表登记，拒绝静默丢弃：{sorted(unknown_accounts)}")
     return aggregate
+
+
+#: 竣工报表（PDF）里注明的自有工数，与红圈《生产项目状态表》对不上的项目。
+#: 数字来自另一线程的参考回放核对（`KMFA_项目成本_真实参考回放_8项目.xlsx`
+#: 的「阻塞与异常」页，P0 人工工数冲突）。
+#:
+#: 这里**不替换**红圈的工时——两个来源哪个权威没有裁定，替换就是拿一个未经确认的
+#: 数覆盖另一个。只打标：让用这张表的人知道该项目的人工成本存在 ~2× 的不确定性。
+#: 广安台泥按 214 工算是 107,000，按 119 工算是 59,500，差 47,500——这不是小数点问题。
+LABOUR_HOURS_CONFLICT = {
+    "KMX20251119-079": {"报表工数": 119, "红圈工数": 214},
+    "KMX2026120-004": {"报表工数": 31, "红圈工数": 32},
+}
 
 
 def labour_cost(record: dict) -> tuple[Decimal, Decimal, bool]:
@@ -337,7 +394,9 @@ def build(data_root: str, account_map: dict, limit: int = 0) -> dict:
     ranked = sorted(everything.values(), key=sort_key, reverse=True)
     if limit:
         ranked = ranked[:limit]
-    ledger = collect_ledger_cost(data_root, {r["合同编号"] for r in ranked}, account_to_row)
+    variants: dict[str, dict[str, Decimal]] = {}
+    ledger = collect_ledger_cost(data_root, {r["合同编号"] for r in ranked},
+                                 account_to_row, variants=variants)
 
     projects = []
     for record in ranked:
@@ -390,6 +449,23 @@ def build(data_root: str, account_map: dict, limit: int = 0) -> dict:
             "成本合计": str(total + management_fee),
             "毛利": str(contract - total - management_fee) if contract is not None else "",
             "可出毛利": bool(hours_recorded and contract is not None),
+            # 工数两个来源对不上的，把两边都摆出来 —— 不替换、不取平均、不挑一个。
+            # 哪个权威没有裁定，任何一种「处理」都是拿未经确认的数覆盖另一个。
+            # 金蝶这笔钱原始挂在哪个合同号下。带后缀的单列出来——归并是代码替人
+            # 做的决定，至少要让人看得见它做了什么。
+            **({"金蝶合同号构成": {
+                raw: str(amount) for raw, amount in
+                sorted(variants.get(key, {}).items(), key=lambda kv: -kv[1])
+            }} if variants.get(key) else {}),
+            **({"工数冲突": {
+                **LABOUR_HOURS_CONFLICT[key],
+                "本表采用": "红圈工数",
+                "影响": f"人工成本按 {LABOUR_HOURS_CONFLICT[key]['红圈工数']} 工计"
+                        f"{LABOUR_HOURS_CONFLICT[key]['红圈工数'] * LABOUR_RATE_OWN:,.2f}；"
+                        f"若按报表 {LABOUR_HOURS_CONFLICT[key]['报表工数']} 工则为 "
+                        f"{LABOUR_HOURS_CONFLICT[key]['报表工数'] * LABOUR_RATE_OWN:,.2f}",
+                "处理": "待人工锁定批准工时与人员项目分配后再定",
+            }} if key in LABOUR_HOURS_CONFLICT else {}),
         })
 
     return {
@@ -410,6 +486,16 @@ def build(data_root: str, account_map: dict, limit: int = 0) -> dict:
             "现场这一块金蝶与红圈取大不相加：金蝶『现场管理费』有的已含工资、有的没含，"
             "无法逐项判定，重叠相加会把成本算高",
             "工时没填 ≠ 工时为 0：没填的项目不出毛利（`可出毛利:false`）",
+            "项目键＝合同号＋甲方：同合同号不同甲方是身份冲突，两条都留并打 `身份冲突` 标，"
+            "绝不静默丢弃（曾因此少掉合同额 1,263,546 的日照钢铁项目）",
+            "合同号后缀（-Z／--Z／-XF／-Z1）按主号归并——2026-07-28 全量实测证实这是正确"
+            "口径，不是假设：① 32 个项目里凡金蝶有成本的 18 个，100% 都记在带后缀的号下，"
+            "说明后缀是账上固定写法而非例外；② 同项目出现两种后缀的 5 个里，有 4 个的 "
+            "`--Z` 金额与『（一）原材料』**分毫不差**、`-Z` 与『（四）现场管理费』分毫不差"
+            "（阜阳皖润 4,789.23／21,675.08、山东圣川 482.25／6,322.60、池州恒鑫 161.00／"
+            "25,016.93、青海盐湖海纳 2,797.44／9,428.06）。**后缀标的是科目记账线，不是项目"
+            "身份**，故按主号归并不会把不同项目并到一起。每个项目的 `金蝶合同号构成` 保留"
+            "原始号，可逐笔回溯",
         ],
         "单价标定": {
             "自有": {"采用": str(LABOUR_RATE_OWN),
