@@ -2532,6 +2532,46 @@ def public_login_entry(request: Request):
         return {"可用": False, "原因": str(error), "登录地址": None}
 
 
+@app.get("/public-api/项目成本")
+def public_project_cost():
+    """项目成本——**不需要登录**。
+
+    Owner 2026-07-28：「kmfa 没有登录的地方」「取消登陆功能」。
+
+    `/api/项目成本/完工` 在 Cloudflare Access 后面，未登录访问是 302 跳登录墙；
+    而 Access 应用配在 Owner 的 Cloudflare 控制台里，本仓改不掉。`/public-api/*`
+    是既有的匿名面（`技能健康` 就是这么被读到的），所以出口挪到这里。
+
+    ⚠️ 这个端点会把真实客户名与合同金额公开在互联网上。这是 Owner 明确要求
+    「取消登陆功能」后的直接后果，已当面告知。缓解只做到 `no-store` + `noindex`
+    （不进搜索引擎），**不等于不可访问**。要重新收口，只能在 Cloudflare 控制台
+    把 `/public-api/项目成本` 单独加回 Access 策略。
+
+    读不到就说读不到——不拿空列表冒充「没有项目」。
+    """
+    headers = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow"}
+    if not RECENT_COST_PATH.exists():
+        parent = RECENT_COST_PATH.parent
+        reason = (f"{parent} 不存在——app 容器没挂 kmfa-logs 卷（部署配置问题）"
+                  if not parent.exists()
+                  else "刷新作业尚未产出：技能 project-cost-refresh 从未成功跑完一次")
+        return JSONResponse(
+            {"可读": False, "原因": reason, "项目": [],
+             "诚实边界": "读不到就说读不到，不拿空列表冒充『没有项目』。"},
+            headers=headers)
+    try:
+        payload = json.loads(RECENT_COST_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return JSONResponse(
+            {"可读": False, "原因": f"产物无法解析：{type(exc).__name__}", "项目": []},
+            headers=headers)
+    payload["可读"] = True
+    payload["需要登录"] = False
+    payload["产出时间"] = datetime.fromtimestamp(
+        RECENT_COST_PATH.stat().st_mtime, BEIJING).isoformat()
+    return JSONResponse(payload, headers=headers)
+
+
 @app.get("/public-api/技能健康")
 def public_skill_health():
     """技能运行健康的**公开安全**摘要：只有「谁、什么时候、成没成」。
