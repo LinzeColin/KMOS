@@ -28,6 +28,17 @@ CRONTAB = Path(__file__).resolve().parents[1] / "deploy" / "skills-runtime" / "c
 RUN_SKILL = Path(__file__).resolve().parents[1] / "deploy" / "skills-runtime" / "run_skill.sh"
 
 
+
+def _tick_cron_line():
+    """取节拍那条**可执行**的 cron 行。
+
+    按内容找行会找到注释——注释里也提到 pick_stalest_skill.py。
+    这个坑今晚踩了两次（前一次是 run_skill.sh 里那条幽灵路径的测试）：
+    判断「代码里有没有」时，一律先把注释剔掉。
+    """
+    return next(l for l in CRONTAB.read_text(encoding="utf-8").splitlines()
+                if "pick_stalest_skill" in l and not l.lstrip().startswith("#"))
+
 def _entry():
     return ENTRY.read_text(encoding="utf-8")
 
@@ -55,8 +66,7 @@ def test_the_tick_exists_and_marks_itself_as_a_sweep():
 
 def test_the_tick_runs_one_skill_at_a_time():
     """一跳一个——多跑几个就退回突发了。"""
-    line = next(l for l in CRONTAB.read_text(encoding="utf-8").splitlines()
-                if "pick_stalest_skill" in l)
+    line = _tick_cron_line()
     assert line.count("run_skill.sh") == 1, f"一跳跑了不止一个技能：{line}"
     assert "nice -n" in line, "节拍没让出 CPU 优先级"
 
