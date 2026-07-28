@@ -1943,10 +1943,13 @@ export default function App() {
   // 分辨方法很直接：探一个**一定公开**的端点。它通而私有面抛，就是门，不是挂。
   const 探公开面 = () => fetch('/healthz', { cache: 'no-store' })
     .then(r => r.ok).catch(() => false)
-  const 取 = (url, set) => fetch(url)
+  const 取 = (url, set, 兜底) => fetch(url)
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
     .then(set)
     .catch(async e => {
+      // 公开面失败时退回私有面：公开出口是新加的，旧镜像上还没有它，
+      // 那种情况下整块空掉比要求登录更难查。
+      if (兜底) return 取(兜底, set)
       const 私有面 = url.startsWith('/api/')
       const 站点还活着 = 私有面 ? await 探公开面() : false
       set({ 加载失败: String(e), 需要登录: 私有面 && 站点还活着, 接口: url })
@@ -1957,7 +1960,10 @@ export default function App() {
   const 取工作台 = () => 取('/api/差异工作台', set工作台)
   useEffect(() => {
     取('/api/项目成本', set成本)
-    取('/api/项目成本/完工', set完工)
+    // 免登录面优先：Owner 2026-07-28「kmfa 没有登录的地方」「取消登陆功能」。
+    // /api/* 在 Cloudflare Access 后面，未登录是 302 跳登录墙；/public-api/* 是匿名面。
+    // 仍保留 /api/ 兜底——公开面万一没部署上，不能整块空掉。
+    取('/public-api/项目成本', set完工, '/api/项目成本/完工')
     取('/api/客户毛利', set客户)
     取('/api/项目毛利', set毛利)
     取('/api/数据源矩阵', set矩阵)
