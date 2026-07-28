@@ -47,6 +47,14 @@ def _load_raw_from_private_db() -> list[dict]:
         text = PDB.read_text("Private-KMDatabase/manifest.jsonl")
     except PDB.Unavailable as exc:
         raise ManifestUnavailable(str(exc)) from exc
+    except Exception as exc:
+        # 兜住「够不着」的所有形态。2026-07-28 线上：`git checkout` 超时抛的是
+        # subprocess.TimeoutExpired，不是 Unavailable，于是一路穿过下游那个
+        # `except ManifestUnavailable` 变成裸 traceback——self-audit 报 rc=1
+        # 而失败码是 UNKNOWN，看的人只能猜。
+        # 源头已按类型修（超时归 Unavailable），这里是第二道：任何新的意外形态
+        # 都该表现成「读不到」，而不是把整条自检链炸掉。
+        raise ManifestUnavailable(f"{type(exc).__name__}: {str(exc)[:200]}") from exc
     return [json.loads(l) for l in text.splitlines() if l.strip()]
 
 
