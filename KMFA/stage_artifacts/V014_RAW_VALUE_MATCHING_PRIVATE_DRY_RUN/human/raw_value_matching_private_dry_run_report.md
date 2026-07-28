@@ -4,7 +4,7 @@
 - phase_id: `V014_RAW_VALUE_MATCHING_PRIVATE_DRY_RUN`
 - task_id: `KMFA-V014-RAW-VALUE-MATCHING-PRIVATE-DRY-RUN-20260705`
 - raw_value_fingerprints_generated: `true`
-- raw_value_fingerprint_count: `871`
+- raw_value_fingerprint_count: `0`
 - processed_value_targets_available: `false`
 - comparable_value_pair_count: `0`
 - business_value_consistency_verified: `false`
