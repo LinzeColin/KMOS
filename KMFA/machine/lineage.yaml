@@ -3,14 +3,15 @@ schema: "kmfa.lineage.v1"
 generated_from:
   - "KMDatabase/data/manifest.jsonl"
   - "_staging.extraction_manifest"
+extractions_source: "existing_lineage"
 covered_categories:
   - "collection"
   - "receivable_aging"
   - "journal"
-raw_assets: 53
+raw_assets: 60
 raw_with_staging_edges: 13
-raw_deferred_all_sheets: 2
-raw_not_yet_extracted: 38
+raw_deferred_all_sheets: 0
+raw_not_yet_extracted: 47
 staging_tables:
   - "_staging.bank_journal"
   - "_staging.collection"
@@ -99,12 +100,12 @@ nodes:
     domain: "财务"
     batch: "2026-07-16"
     size_bytes: 77544
-    status: "deferred_all_sheets"
+    status: "not_yet_extracted"
   - asset: "raw:c409a545bf54"
     domain: "财务"
     batch: "2026-07-16"
     size_bytes: 235339
-    status: "deferred_all_sheets"
+    status: "not_yet_extracted"
   - asset: "raw:958c7918da5d"
     domain: "财务"
     batch: "2026-07-16"
@@ -279,6 +280,41 @@ nodes:
     domain: "绩效"
     batch: "2026-07-16"
     size_bytes: 79085
+    status: "not_yet_extracted"
+  - asset: "raw:7899f5ed7f86"
+    domain: "工资"
+    batch: "2026-07-16"
+    size_bytes: 37376
+    status: "not_yet_extracted"
+  - asset: "raw:251298be2121"
+    domain: "工资"
+    batch: "2026-07-16"
+    size_bytes: 22528
+    status: "not_yet_extracted"
+  - asset: "raw:cbdc15a813a6"
+    domain: "工资"
+    batch: "2026-07-16"
+    size_bytes: 14638180
+    status: "not_yet_extracted"
+  - asset: "raw:35f1e5a0f9ae"
+    domain: "KMFA金蝶明细账"
+    batch: "2026-07-25"
+    size_bytes: 9818345
+    status: "not_yet_extracted"
+  - asset: "raw:b9008d2c6727"
+    domain: "KMFA金蝶明细账"
+    batch: "2026-07-25"
+    size_bytes: 3478999
+    status: "not_yet_extracted"
+  - asset: "raw:2f0c770f2554"
+    domain: "KMFA金蝶明细账"
+    batch: "2026-07-25"
+    size_bytes: 424192
+    status: "not_yet_extracted"
+  - asset: "raw:87833c5099a8"
+    domain: "KMOS真实数据快照"
+    batch: "2026-07-26"
+    size_bytes: 1556068
     status: "not_yet_extracted"
 edges:
   - from: "raw:cc3963bcdfa0"
