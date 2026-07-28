@@ -661,14 +661,52 @@ def selected_groups(config: dict[str, Any], requested: list[str] | None) -> list
     return selected
 
 
+def _resolved_from_config(group: dict[str, Any], reason: str) -> dict[str, Any]:
+    """不靠 chat search，直接用配置里已有的 open_conversation_id。
+
+    那个 ID 不是人手抄的：`bootstrap_groups_cloud.sh` 用 `chat group list-all`
+    列出真实群、把 openConversationId 写进配置候选。list-all 是更权威的枚举口径，
+    search 在这里本来只是交叉验证 + 补 title/memberCount。
+
+    退到这条路时 `member_count` 保持 None——**不许填 0**。0 是「这个群没人」，
+    None 是「这次没查」，下游拿它做判断时两者含义相反。
+    """
+    resolved = dict(group)
+    resolved["resolved_title"] = group.get("canonical_name", "")
+    resolved["member_count"] = None
+    resolved["resolution_source"] = "configured_open_conversation_id"
+    resolved["resolution_note"] = reason
+    return resolved
+
+
 def resolve_group(group: dict[str, Any]) -> dict[str, Any]:
     aliases = list(dict.fromkeys([group["canonical_name"], *group.get("aliases", [])]))
+    configured = group.get("open_conversation_id")
     exact_matches: dict[str, dict[str, Any]] = {}
     loose_matches: dict[str, dict[str, Any]] = {}
     for alias in aliases:
         proc = run_dws(["chat", "search", "--query", alias, "--limit", "10", "--cursor", "0"], timeout=60)
         if proc.returncode != 0:
-            raise RuntimeError(redact_error(proc.stderr or proc.stdout))
+            # 2026-07-28 线上实测：`im/search_groups` 持续返回「系统繁忙」，
+            # 45 次运行全撞同一个错，而重试（3 次 / 退避 5s）也全部撞上——
+            # 这是**持续性故障**，不是限流，重试解决不了。
+            #
+            # 关键在于：整轮归档因此 abort，但 search 在这里并不是必需的。
+            # 群的 openConversationId 已经由 `chat group list-all`（该命令一直正常）
+            # 写进了配置，search 只承担交叉验证与补 title/memberCount 两件次要工作。
+            # 让一个可选的验证步骤有权杀死整条归档链，是设计上的单点。
+            #
+            # 所以：配置里有 ID 就退回去接着干，并在产物里记明这次没验证过；
+            # 没有 ID 才是真的走不下去——那时才抛。
+            detail = redact_error(proc.stderr or proc.stdout)
+            if configured:
+                print("GROUP_RESOLVE_FALLBACK " + json.dumps({
+                    "group": group.get("canonical_name", ""),
+                    "reason": "chat_search_failed",
+                    "detail": detail[:200],
+                }, ensure_ascii=False))
+                return _resolved_from_config(group, f"chat search 不可用：{detail[:120]}")
+            raise RuntimeError(detail)
         data = parse_json_output(proc.stdout)
         for item in data.get("result", {}).get("groups", []):
             title = item.get("title", "")
@@ -694,13 +732,16 @@ def resolve_group(group: dict[str, Any]) -> dict[str, Any]:
             for c in candidates
         ]
         raise RuntimeError(f"group resolution is not unique for {group['canonical_name']}: {safe}")
-    configured = group.get("open_conversation_id")
     if configured and configured != item.get("openConversationId"):
+        # 这条**不降级**：ID 对不上说明配置指的群和搜到的群不是同一个，
+        # 接着归档就会往错的群里写。上面那条降级放行的是「查不到」，
+        # 这里挡的是「查到了但不一致」——后者是真冲突，必须停。
         raise RuntimeError(f"configured group id mismatch for {group['canonical_name']}")
     resolved = dict(group)
     resolved["open_conversation_id"] = item["openConversationId"]
     resolved["resolved_title"] = item.get("title", group["canonical_name"])
     resolved["member_count"] = item.get("memberCount")
+    resolved["resolution_source"] = "chat_search"
     return resolved
 
 
