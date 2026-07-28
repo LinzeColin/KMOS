@@ -53,6 +53,18 @@ services:
       # 这一项曾只加进 entrypoint 的合成清单却漏在 compose 里——变量于是从没到过容器，
       # 靠 run_skill.sh 的默认值 personal 兜住。默认值恰好是安全值，但那是运气不是设计。
       KMFA_NOTIFICATION_TARGETS: "${KMFA_NOTIFICATION_TARGETS:-personal}"
+      # 压测节拍的总闸。**同一个坑在这个文件里第二次出现**：2026-07-28 压测把线上
+      # 打下线时，我在 Coolify 置了 KMFA_BOOT_SWEEP=0 当急停——而它没在这里声明，
+      # 于是根本没进容器。Compose 的语义是：shell 里的变量只能用于 ${} 插值，
+      # 不列在 environment 下就不会传进容器。那晚站点稳下来是别的原因（冷却闸），
+      # 不是我以为的这个开关。**一个不管用的急停比没有更糟**——真出事时会去按它。
+      # 门禁见 KMFA/tests/test_env_switches_reach_the_container.py：
+      # entrypoint / run_skill.sh 读的每个开关，都必须在这里声明。
+      KMFA_BOOT_SWEEP: "${KMFA_BOOT_SWEEP:-1}"
+      # 日常检查的输入 zip 覆盖。空 = 从上游归档目录里 find 最新的一份。
+      # 这一项是上面那道门禁**当场抓到的第三例**——我在 #273 加了它却同样漏了声明，
+      # 想用它指定输入也会是按了没反应。
+      KMFA_DAILY_INPUT_ZIP: "${KMFA_DAILY_INPUT_ZIP:-}"
       # 考勤私有运行时**必须落持久卷**。默认路径在镜像层里，每次部署被重置——
       # 而派发要读的 notification_targets_resolved.json 就在这里。
       # 它一直不存在，派发就一直 NOTIFIER_CONFIG_MISSING → rc=5。
