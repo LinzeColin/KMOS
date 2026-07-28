@@ -615,6 +615,12 @@ def _summarize_notification_status(statuses: list[str]) -> str:
         return "DINGTALK_ROBOT_ERROR"
     if statuses and all(status == "NOTIFIER_CONFIG_MISSING" for status in statuses):
         return "NOTIFIER_CONFIG_MISSING"
+    # 「命令跑完了但拿不到钉钉收下的凭据」要独立成一档，不能并进 FAILED。
+    # 两者要修的地方完全不同：FAILED 是发送这一步报错了，去看错误码；
+    # UNVERIFIED 是发送没报错但也没证据，去看 dws 到底返回了什么
+    # （收窄凭据键、还是 dws 本来就不回执）。并成一档就分不出该查哪边。
+    if statuses and all(status in {"SENT", "SENT_UNVERIFIED"} for status in statuses):
+        return "SENT_UNVERIFIED"
     return "FAILED"
 
 
@@ -1000,9 +1006,17 @@ def _scheduled_run_datetime(*, run_type: str, timezone: str, work_date: str | No
 
 
 def result_exit_code(result: Mapping[str, Any]) -> int:
-    """Return a scheduler-visible fail-closed exit code for a run result."""
+    """Return a scheduler-visible fail-closed exit code for a run result.
+
+    退出码 8 是「发了但拿不到收下的凭据」的专属码。它必须**非零**——2026-07-28
+    查明：此前 `SENT` 的判据只是 dws 退出码为 0，于是这条链整月绿着、Owner 一条
+    没收到。但它也必须**跟 5（明确失败）分开**：5 要去看错误码，8 要去看 dws
+    到底返回了什么。混成一个码，排查方向就没了。
+    """
     status = str(result.get("status") or "")
     notification_status = str(result.get("notification_status") or "")
+    if notification_status == "SENT_UNVERIFIED":
+        return 8
     if status == "SENT":
         return 0 if notification_status == "SENT" else 5
     if status == "COMPLETED":

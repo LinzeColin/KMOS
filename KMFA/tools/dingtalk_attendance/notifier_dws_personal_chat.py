@@ -396,11 +396,68 @@ def _build_notification_delivery_table(target_results: list[Mapping[str, Any]]) 
     return "\n".join(lines)
 
 
+#: 钉钉侧「这条消息确实被收下了」的凭据键。任一命中即视为有投递证据。
+#: 命名在各接口间不统一，故按 key 名匹配而不是按固定路径取。
+#: `openTaskId` 是从仓内既有 fixture 里读出来的——那份 fixture 照真实 dws 响应写，
+#: 是目前唯一能确认「dws 成功时到底回什么」的样本。漏掉它会把真发出去的判成没凭据。
+_DELIVERY_EVIDENCE_KEYS = (
+    "messageId", "message_id", "msgId", "msg_id",
+    "openTaskId", "open_task_id", "taskId", "task_id",
+    "processQueryKey", "process_query_key",
+    "requestId", "request_id", "traceId", "trace_id",
+)
+
+
+def _find_delivery_evidence(value: Any) -> str | None:
+    """在返回体里深搜投递凭据。找不到就是找不到，不编。"""
+    if isinstance(value, Mapping):
+        for key in _DELIVERY_EVIDENCE_KEYS:
+            got = value.get(key)
+            if isinstance(got, (str, int)) and str(got).strip():
+                return str(got).strip()
+        for child in value.values():
+            found = _find_delivery_evidence(child)
+            if found:
+                return found
+    elif isinstance(value, list):
+        for child in value:
+            found = _find_delivery_evidence(child)
+            if found:
+                return found
+    return None
+
+
 def _dws_result_to_status(result: Mapping[str, Any], *, channel: str) -> dict[str, Any]:
+    """把 dws 的执行结果翻成投递状态。
+
+    ⚠ 2026-07-28 查出来的：这里原本是
+
+        if returncode == 0 and not error_payload: return {"status": "SENT"}
+
+    即 **`SENT` 的唯一判据是命令退出码为 0**，既不看钉钉有没有收下，也把成功时的
+    返回体整个丢掉（连凭据都不留）。于是台账绿、回执写着 SENT，而 Owner 一个月
+    没收到过一条——「发出去了」这四个字整整骗了一个月。
+
+    退出码只说明**进程没崩**。改成：退出码为 0 还要能在返回体里找到钉钉侧的投递
+    凭据，才算 `SENT`；找不到凭据就是 `SENT_UNVERIFIED`——**不是失败，也绝不是
+    成功**，而是「命令跑完了但拿不到收下的证据」。两者必须分开：把没证据的算成
+    成功，就是这次事故本身。
+    """
     payload = result.get("payload", {})
     error_payload = _find_error_payload(payload)
     if result.get("returncode") == 0 and not error_payload:
-        return {"status": "SENT", "channel": channel}
+        evidence = _find_delivery_evidence(payload)
+        if evidence:
+            return {"status": "SENT", "channel": channel, "trace_id": evidence}
+        return {
+            "status": "SENT_UNVERIFIED",
+            "channel": channel,
+            "failure_reason": "dws 退出码 0，但返回体里没有钉钉侧的投递凭据——"
+                              "只能确认命令跑完了，不能确认对方收到了",
+            # 返回体的**键名**留下来（不留值：可能含会话/员工标识）。
+            # 下次要补凭据键时，这是唯一能告诉我们「dws 到底返回了什么」的线索。
+            "payload_keys": sorted(payload.keys())[:20] if isinstance(payload, Mapping) else [],
+        }
     return {
         "status": "FAILED",
         "channel": channel,
