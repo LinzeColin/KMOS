@@ -95,8 +95,23 @@ crontab -r 2>/dev/null || true   # 清掉可能残留的用户 crontab，杜绝�
   # 备份密钥文件路径（值是路径不是密钥本体，单行安全）；密钥不在时 daily-backup 自动降级。
   [ -f "$BACKUP_KEY_FILE" ] && echo "KMFA_BACKUP_SSH_KEY_FILE=$BACKUP_KEY_FILE"
   echo
-  # 源文件自带的 SHELL/PATH 去掉，避免与上面重复
-  grep -vE '^(SHELL|PATH)=' /opt/runtime/crontab.txt
+  # 源文件自带的 SHELL/PATH 去掉，避免与上面重复。
+  #
+  # 压测节拍的总闸也在这里落地——**不能写在 cron 行里**：cron.d 不做变量展开、
+  # cron 也不继承容器 ENV（上面那三行注释就是为这个坑写的）。所以由 entrypoint
+  # 在渲染时决定这一行进不进 crontab。
+  #
+  # 开关名 `KMFA_BOOT_SWEEP` 是历史遗留——那时压测在启动时一口气跑完。
+  # 现在压测摊成节拍了，名字不再贴切，但它是**现存唯一、且已经被用过的压测开关**：
+  # 2026-07-28 压测把线上打下线时就是用它止的血，Coolify 里那个 0 还在。
+  # 换个新名字，那个 0 就变成「看着像总闸、其实不管用」的雷——
+  # 下次谁想关压测，关了个寂寞。
+  if [ "${KMFA_BOOT_SWEEP:-1}" = "1" ]; then
+    grep -vE '^(SHELL|PATH)=' /opt/runtime/crontab.txt
+  else
+    echo "# 压测节拍已由 KMFA_BOOT_SWEEP=0 关闭（排程本身不受影响）"
+    grep -vE '^(SHELL|PATH)=' /opt/runtime/crontab.txt | grep -v pick_stalest_skill
+  fi
 } > "$CRON_D"
 chmod 0644 "$CRON_D"; chown root:root "$CRON_D"
 # cron.d 硬性要求：文件名不含点（kmfa-skills 合规）、末尾必须有换行

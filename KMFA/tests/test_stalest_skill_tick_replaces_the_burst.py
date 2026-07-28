@@ -99,3 +99,24 @@ def test_the_tick_is_scheduled_and_marked_as_a_sweep():
     cron = CRONTAB.read_text(encoding="utf-8")
     assert "pick_stalest_skill" in cron, "没有摊开的压测节拍，等于压测整个没了"
     assert "KMFA_SWEEP_RUN=1" in cron, "节拍跑的没标成压测，会顶掉排程结论"
+
+
+def test_the_tick_has_a_kill_switch_that_actually_works():
+    """压测要能被关掉——2026-07-28 它把线上打下线时就是靠关它止的血。
+
+    开关必须由 entrypoint 在**渲染 crontab 时**落地，不能写在 cron 行里：
+    cron.d 不做变量展开、cron 也不继承容器 ENV（这仓已为此栽过两次）。
+    """
+    text = ENTRY.read_text(encoding="utf-8")
+    assert "KMFA_BOOT_SWEEP" in text, "压测没有总闸，出事时只能改代码重新部署"
+    assert "grep -v pick_stalest_skill" in text, \
+        "关掉时没有真把节拍行从 crontab 里摘掉"
+
+
+def test_turning_the_tick_off_does_not_touch_the_real_schedule():
+    """关压测不能顺手把业务排程一起关了。"""
+    text = ENTRY.read_text(encoding="utf-8")
+    off = text[text.index("KMFA_BOOT_SWEEP=0 关闭"):][:400]
+    assert "pick_stalest_skill" in off, "关的应当只是节拍那一行"
+    for business in ("attendance-morning", "upstream-archive", "project-cost-refresh"):
+        assert business not in off, f"关压测把 {business} 也过滤掉了"
