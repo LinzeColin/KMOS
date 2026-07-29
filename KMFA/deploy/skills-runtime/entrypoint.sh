@@ -161,19 +161,28 @@ if [ -f /opt/kmfa/secrets/kmfa_backup_deploy_key ]; then
   ( /opt/runtime/run_skill.sh project-cost-refresh >> /var/log/kmfa/cron.log 2>&1 || true ) &
 fi
 
-# dws 数据授权请求：**默认关**，由 Owner 说「我现在搞授权」时才打开。
+# dws 数据授权请求：**自愈**，不靠开关也不靠人按。
 #
-# 为什么做成「部署即触发」而不是排程：授权弹窗要 Owner 当场点确认，
-# 所以必须在他**正等着**的那几分钟里推出去；排到明天推等于没推。
-# 为什么默认 0：开着的话每次部署都给 Owner 弹一次窗，那是骚扰。
-# 用完请把它调回 0（Coolify 环境变量，改完需重新部署才生效）。
+# 第一版做成环境变量 KMFA_DWS_DATA_AUTH_REQUEST——线上不生效。排查到最后：
+# 开关在 Coolify 里、compose 里也声明了、部署用的确实是含改动的提交，
+# 但技能从没进过台账。**这正是 KMFA_BOOT_SWEEP 那次的重演**：变量看着设了、
+# 实际没到容器。仓里那条门禁只能验「compose 写没写」，验不了「Coolify 有没有
+# 重新读 compose」。**一个不管用的开关比没有更糟**，所以那条路整个删掉。
 #
-# ⚠️ 这个开关必须同时在 docker-compose.yml 里声明，否则它到不了容器——
-# `KMFA_BOOT_SWEEP` 就这么哑过一次（看着像总闸、其实不管用）。
-if [ "${KMFA_DWS_DATA_AUTH_REQUEST:-0}" = "1" ]; then
-  echo "$(date -Is) entrypoint: 发起 dws 数据授权请求（Owner 正在等弹窗）" >> /var/log/kmfa/cron.log
-  ( /opt/runtime/run_skill.sh dws-data-auth >> /var/log/kmfa/cron.log 2>&1 || true ) &
-fi
+# 也没做成 App 上的按钮：那个面是匿名可达的，而「给 Owner 弹窗」被反复触发
+# 就是骚扰——不该为了省事开一个陌生人能按的门。
+#
+# 改成：卡住了就自己去请求一次。判据与静默期见 should_request_dws_auth.py。
+# 好处不只是省掉人工触发——下次授权过期（TTL 到期是必然的），Owner 会自动
+# 收到请求，而不是整条链默默红着等人发现。
+(
+  sleep 40
+  if python3 /opt/kmfa/KMOS/KMFA/tools/should_request_dws_auth.py \
+       --ledger /var/log/kmfa/ledger.jsonl --mark 2>> /var/log/kmfa/cron.log; then
+    echo "$(date -Is) entrypoint: 发起 dws 数据授权请求（弹窗推给 Owner）" >> /var/log/kmfa/cron.log
+    /opt/runtime/run_skill.sh dws-data-auth >> /var/log/kmfa/cron.log 2>&1 || true
+  fi
+) &
 
 # 冷启动重试当前失败的技能：修好的代码要等下一次排程才被跑到，而排程可能是一天后。
 # Owner 2026-07-27：「你已经浪费了我一个月的时间都还没有修好考勤」——
