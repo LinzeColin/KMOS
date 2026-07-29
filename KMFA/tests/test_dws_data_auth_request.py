@@ -142,23 +142,27 @@ def test_a_blocking_command_is_read_as_the_dialog_being_up(tmp_path):
     assert proc.stdout.strip() == "124", f"超时没被识别：{proc.stdout} {proc.stderr}"
 
 
-def test_the_skill_is_wired_into_the_runner_and_the_switch_is_declared():
-    """技能要真接进 run_skill.sh，开关要真声明进 compose——否则按了没反应。"""
+def test_the_skill_is_wired_into_the_runner():
+    """技能要真接进 run_skill.sh——否则触发了也跑不起来。"""
     runner = (REPO / "KMFA/deploy/skills-runtime/run_skill.sh").read_text(encoding="utf-8")
     assert "dws-data-auth)" in runner, "技能没接进 run_skill.sh"
     assert "dws_data_auth_request.py" in runner
 
+
+def test_the_trigger_is_never_unconditional():
+    """触发必须**有闸**——无条件跑 = 每次部署都给 Owner 弹一次窗，那是骚扰。
+
+    2026-07-29 本条改过一次：原来验的是环境变量开关
+    `KMFA_DWS_DATA_AUTH_REQUEST` 默认为 0。那个设计**线上实证不生效**
+    （开关在 Coolify 里、compose 里也声明了、部署也用了含改动的提交，
+    技能却从没进过台账——变量没到容器，KMFA_BOOT_SWEEP 那次的重演），
+    已整条删除，改成自愈判据 + 静默期。
+    这里跟着改成验**新的闸**；闸的语义细节归
+    KMFA/tests/test_dws_auth_asks_itself.py 管。
+    """
     entry = (REPO / "KMFA/deploy/skills-runtime/entrypoint.sh").read_text(encoding="utf-8")
-    assert "KMFA_DWS_DATA_AUTH_REQUEST" in entry, "entrypoint 没有触发开关"
-
-    compose = (REPO / "KMFA/deploy/coolify/docker-compose.yml").read_text(encoding="utf-8")
-    assert "KMFA_DWS_DATA_AUTH_REQUEST:" in compose, \
-        "开关没在 compose 里声明——它到不了容器（KMFA_BOOT_SWEEP 就这么哑过）"
-
-
-def test_the_trigger_defaults_to_off():
-    """默认必须是关的：开着的话每次部署都给 Owner 弹一次窗。"""
-    entry = (REPO / "KMFA/deploy/skills-runtime/entrypoint.sh").read_text(encoding="utf-8")
-    assert "${KMFA_DWS_DATA_AUTH_REQUEST:-0}" in entry, "默认值不是 0"
-    compose = (REPO / "KMFA/deploy/coolify/docker-compose.yml").read_text(encoding="utf-8")
-    assert "${KMFA_DWS_DATA_AUTH_REQUEST:-0}" in compose, "compose 默认值不是 0"
+    assert "should_request_dws_auth.py" in entry, "触发没有任何闸"
+    # 闸必须真决定跑不跑，而不是跑完再说
+    gate = entry.index("should_request_dws_auth.py")
+    fire = entry.index("run_skill.sh dws-data-auth")
+    assert gate < fire, "闸在触发之后才判——等于没闸"
