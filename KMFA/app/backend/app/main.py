@@ -3259,6 +3259,10 @@ def public_skill_health():
             except (ValueError, KeyError, TypeError):
                 距今小时 = None
         失败码 = _public_failure_code((last or {}).get("code")) if last and last.get("rc") else None
+        # rc=0 底下也有截然不同的结局——例如 dws-data-auth 的「授权请求已发出」
+        # 与「按设计没请求」，两者都是 rc=0，在页面上曾长得一模一样。
+        # 「成功」不是终点，**成功里做了什么**才是；不报出来就等于又一种假绿。
+        本次状态 = _public_failure_code((last or {}).get("code")) if last else None
         行 = {
             "技能": skill,
             "最近一次": (last or {}).get("ts"),
@@ -3268,6 +3272,7 @@ def public_skill_health():
             "运行次数": len(scheduled),
             # rc 只说「失败了」，失败码说「哪一种失败」——没有它就只能改一版等一天看会不会变绿。
             "失败码": 失败码,
+            "本次状态": 本次状态,
         }
         if swept:
             最近压测 = swept[0]
