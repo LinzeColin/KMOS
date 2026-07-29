@@ -3180,9 +3180,13 @@ def public_project_cost_refresh():
         COST_REFRESH_FLAG.write_text(
             datetime.now(BEIJING).isoformat(timespec="seconds"), encoding="utf-8")
     except OSError as exc:
+        # 报**这个**卷的名字。第一版把标记写进 kmfa-logs 才 503，改到 app-state 后
+        # 这句话没跟着改，于是失败信息把人指向一个根本没参与的卷——
+        # 「说错了地方的报错」比不报还费时间。
         return JSONResponse(
             {"已提交": False,
-             "原因": f"共享卷不可写（{type(exc).__name__}）——app 容器没挂 kmfa-logs 卷",
+             "原因": (f"{COST_REFRESH_FLAG.parent} 写不进去（{type(exc).__name__}）"
+                    "——app 容器没挂上 kmfa-app-state 卷（部署配置问题）"),
              "上次算完": previous},
             status_code=503, headers=headers)
     return JSONResponse(

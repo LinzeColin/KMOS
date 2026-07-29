@@ -329,6 +329,28 @@ def test_the_flag_goes_where_the_app_can_actually_write():
     assert "APP_STATE_DIR" in line, f"标记又放回 app 只读的卷上了：{line}"
 
 
+def test_the_failure_message_names_the_volume_that_is_actually_involved(tmp_path, monkeypatch):
+    """写失败时报的卷名必须是**真参与的那个**。
+
+    标记从 kmfa-logs 挪到 kmfa-app-state 之后，这句报错没跟着改，
+    于是失败信息把人指向一个根本没参与的卷。**指错地方的报错比不报还费时间**——
+    照着它去查日志卷的挂载，会发现挂载完全正常，然后一无所获。
+    """
+    client = _client(tmp_path)
+    from app import main as m  # noqa: PLC0415
+
+    # 让写标记必然失败：把它指到一个「父目录是文件」的路径上
+    blocker = tmp_path / "not_a_dir"
+    blocker.write_text("x", encoding="utf-8")
+    monkeypatch.setattr(m, "COST_REFRESH_FLAG", blocker / "flag")
+
+    body = client.post("/项目成本/重算").json()
+    assert body["已提交"] is False
+    reason = body["原因"]
+    assert "app-state" in reason, f"报错没提真正涉及的卷：{reason}"
+    assert "kmfa-logs" not in reason, f"报错还在指向没参与的日志卷：{reason}"
+
+
 def test_the_skills_side_actually_watches_for_the_flag():
     """标记要有人看。没人看的标记 = 按钮按下去什么也不会发生。"""
     cron = (REPO / "KMFA/deploy/skills-runtime/crontab.txt").read_text(encoding="utf-8")
