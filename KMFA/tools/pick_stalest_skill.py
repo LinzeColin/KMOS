@@ -32,12 +32,37 @@ from pathlib import Path
 # 不说「有哪些技能」。`a|b)` 合并分支要拆开，否则那两个会被静默漏掉。
 CASE_ARM = re.compile(r"^  ([a-z0-9|-]+)\)", re.M)
 
+#: 压测**不碰**的技能：有硬业务时点、且一跑就往外发东西的。
+#:
+#: 2026-07-29 Owner：「考勤通知依旧不能用」。压测挑中 attendance-evening，
+#: 于是**晚间考勤在早上 07:28 发了出去**；到了真正的 17:31，去重守卫看到
+#: 「今天已发过」，把该发的那次吞了。run_skill.sh 现在会给压测跑强制关投递，
+#: 那是结构性的兜底；这里再把它们直接排除，理由是另一件事：
+#:
+#: 压测跑也会刷新「最近一次」。只要压测碰过考勤，就再也答不出
+#: 「今天 08:01 那次到底跑了没」——而这恰恰是唯一能回答 Owner
+#: 「我没收到」的判据。把它们留给排程独占，那根指针才有意义。
+#:
+#: 代价是这两个技能不再被压测覆盖。这是**故意**的：它们本来就每天准点跑两次，
+#: 从不缺少「机器还转不转」的证据。
+TIME_ANCHORED_DELIVERY_SKILLS = frozenset({"attendance-morning", "attendance-evening"})
+
 
 def known_skills(run_skill: Path) -> set[str]:
+    """runner **认识**的全部技能。故意不在这里做排除：
+
+    「有哪些技能」和「压测跑哪些」是两件事，混成一个函数会让
+    「挑选器和测试用同一条抽取规则」那条门禁失去意义——它比的就是抽取规则本身。
+    """
     names: set[str] = set()
     for arm in CASE_ARM.findall(run_skill.read_text(encoding="utf-8")):
         names.update(arm.split("|"))
     return names
+
+
+def sweepable_skills(run_skill: Path) -> set[str]:
+    """压测**允许碰**的技能 = 认识的全部 − 有硬业务时点且会往外发的。"""
+    return known_skills(run_skill) - TIME_ANCHORED_DELIVERY_SKILLS
 
 
 def last_seen(ledger: Path, names: set[str]) -> dict[str, str]:
@@ -61,7 +86,7 @@ def last_seen(ledger: Path, names: set[str]) -> dict[str, str]:
 
 
 def pick(*, run_skill: Path, ledger: Path, min_age_hours: float, now_iso: str) -> str | None:
-    names = known_skills(run_skill)
+    names = sweepable_skills(run_skill)
     if not names:
         return None
     seen = last_seen(ledger, names)

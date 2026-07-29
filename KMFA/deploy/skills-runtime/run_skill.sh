@@ -17,6 +17,23 @@ mkdir -p "$LOG_DIR"
 
 # 双跑纪律：未开启投递时强制 dry-run 语义（各技能读该变量；考勤守卫另有 ALLOW_DWS_COMMANDS）
 export KMFA_DELIVERY_ENABLED="${KMFA_DELIVERY_ENABLED:-0}"
+
+# 压测跑**永远不许做真投递**。
+#
+# 2026-07-29 Owner：「考勤通知依旧不能用」。查实的链条：
+#   压测节拍（每 30 分钟挑一个最久没跑的技能）挑中 attendance-evening
+#     → KMFA_SWEEP_RUN=1 当时只给台账打个标签、**不关投递**
+#     → 晚间考勤在**早上 07:28** 真发了出去
+#     → 到了真正的 17:31 排程，去重守卫看到「今天已发过」→ NOT_SENT_DUPLICATE_GUARD
+#     → Owner 该收到的那一次，被吞了
+#
+# 压测问的是「机器还转不转」，排程问的是「今天这件事办成没有」。
+# 压测做真投递，等于拿 Owner 的钉钉当测试靶子，还会顺手把真投递挤掉。
+# 这里按**结构**关死，不靠维护一张「哪些技能会发消息」的名单——
+# 名单一定会漏掉下一个新技能。
+if [ "${KMFA_SWEEP_RUN:-0}" = "1" ]; then
+  export KMFA_DELIVERY_ENABLED=0
+fi
 # 投递旗标：双跑纪律的机械化——未开闸一律 --dry-run
 DELIVERY_FLAG=$([ "$KMFA_DELIVERY_ENABLED" = "1" ] && echo --send || echo --dry-run)
 # 考勤私有运行时目录：**必须在这里钉死，不能只靠 compose 的 environment**。
