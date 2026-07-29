@@ -123,3 +123,101 @@ def test_it_is_not_indexed(tmp_path):
     # 断包含不断相等：中间件会再追加 no-transform（防边缘层注入第三方脚本），
     # 写死相等会把「中间件在干活」判成回归。
     assert "no-store" in r.headers.get("Cache-Control", "")
+
+
+def test_the_page_has_a_margin_rate_column(tmp_path):
+    """Owner 2026-07-29：「需要有毛利率百分比」。"""
+    r = _client(tmp_path).get("/public-api/项目成本表")
+    assert "毛利率" in r.text
+    assert "53.0%" in r.text, "毛利 53000 ÷ 合同 100000 应当渲成 53.0%"
+
+
+def test_no_margin_rate_is_invented_without_a_contract_amount(tmp_path):
+    """合同额缺失/为 0 时不编一个百分比出来——除以零的地方最容易长出假数。"""
+    r = _client(tmp_path).get("/public-api/项目成本表")
+    # 只看表格里的那一行——存疑提示块也提到这个合同号，按整页搜会搜到那里去。
+    rows = [x for x in r.text.split("<tr>") if "<td" in x]
+    hit = [x for x in rows if "KMX2026001-002" in x]
+    assert hit, "找不到那个没有毛利的行"
+    assert 'data-v=""' in hit[0], "没有合同额却给了毛利率"
+
+
+def test_numeric_columns_sort_by_value_not_by_the_printed_string(tmp_path):
+    """排序读 data-v 的数值。按显示的千分位字符串排，「1,000,000」会排在「9,000」前面。"""
+    r = _client(tmp_path).get("/public-api/项目成本表")
+    assert 'data-v="47000.0"' in r.text or 'data-v="47000"' in r.text
+    assert "aria-sort" in r.text, "没有排序状态标记"
+    assert "th[data-s]" in r.text, "表头没做成可点"
+
+
+def test_empty_cells_always_sink_to_the_bottom(tmp_path):
+    """空值不管升序降序都沉底——把「没有数」排到有数的前面等于让缺失冒充最小值。"""
+    r = _client(tmp_path).get("/public-api/项目成本表")
+    assert "空值永远沉底" in r.text
+
+
+def test_there_is_a_download_button(tmp_path):
+    r = _client(tmp_path).get("/public-api/项目成本表")
+    assert 'href="/项目成本/下载"' in r.text
+
+
+def test_the_download_is_a_real_workbook_shaped_like_the_owner_reference(tmp_path):
+    """Owner：「你的下载产品和我的格式要保持一致」——对照物是那份 8 项目参考表，
+    页签是 使用说明／项目总览／毛利复核／…。"""
+    import io
+
+    import openpyxl
+
+    r = _client(tmp_path).get("/项目成本/下载")
+    assert r.status_code == 200
+    assert "spreadsheetml" in r.headers["content-type"]
+    book = openpyxl.load_workbook(io.BytesIO(r.content))
+    for must in ("使用说明", "项目总览", "毛利复核", "成本明细"):
+        assert must in book.sheetnames, f"缺页签 {must}：{book.sheetnames}"
+    overview = book["项目总览"]
+    headers = [overview.cell(1, i).value for i in range(1, overview.max_column + 1)]
+    assert "毛利率" in headers
+    # 样例里 001（47000）与 002（-9000）进表；003 成本为 0 不进；
+    # 004 合同号存疑——它的成本不归入任何项目，所以也不进主表。
+    assert overview.max_row - 1 == 2, \
+        f"主表行数不对：{overview.max_row - 1}（存疑项目不该进来，成本为 0 的也不该）"
+
+
+def test_the_download_filename_survives_chinese(tmp_path):
+    """中文文件名要走 RFC 5987，否则浏览器存下来是一串下划线或乱码。"""
+    r = _client(tmp_path).get("/项目成本/下载")
+    disposition = r.headers.get("content-disposition", "")
+    assert "filename*=UTF-8''" in disposition
+    assert "attachment" in disposition
+
+
+def test_the_download_says_no_when_there_is_no_artifact(tmp_path):
+    import importlib
+    import os
+    import sys
+
+    sys.path.insert(0, str(REPO / "KMFA/app/backend"))
+    os.environ["KMFA_RECENT_COST"] = str(tmp_path / "nope.json")
+    import app.main as m  # noqa: PLC0415
+
+    importlib.reload(m)
+    from fastapi.testclient import TestClient  # noqa: PLC0415
+
+    r = TestClient(m.app, raise_server_exceptions=False).get("/项目成本/下载")
+    assert r.status_code == 503, "产物不在却给了一个文件——那文件里会是空的"
+
+
+def test_the_homepage_link_survives_react_hydration():
+    """链接必须写在 React 壳里，不能只写在静态壳里。
+
+    2026-07-29 Owner：「和主页没有连接在一起」。此前链接只在 index.html 的静态壳，
+    浏览器一加载 JS，React 接管就把整块换掉——「首页有链接」只在没有 JS 时成立。
+    """
+    shell = (REPO / "KMFA/app/frontend/src/PublicAppShell.jsx").read_text(encoding="utf-8")
+    assert shell.count('href="/项目成本"') >= 2, "React 壳里没有项目成本入口"
+    assert "data-shell-cost-entry" in shell, "入口没有可测锚点"
+
+    built = list((REPO / "KMFA/app/frontend/dist/assets").glob("PublicAppShell-*.js"))
+    assert built, "找不到构建产物"
+    assert any("shell-cost-entry" in f.read_text(encoding="utf-8", errors="replace")
+               for f in built), "改了源码但没重新构建，线上还是旧的"
