@@ -161,27 +161,24 @@ if [ -f /opt/kmfa/secrets/kmfa_backup_deploy_key ]; then
   ( /opt/runtime/run_skill.sh project-cost-refresh >> /var/log/kmfa/cron.log 2>&1 || true ) &
 fi
 
-# dws 数据授权请求：**自愈**，不靠开关也不靠人按。
+# dws 数据授权请求：**自愈**，判据在技能内部。
 #
-# 第一版做成环境变量 KMFA_DWS_DATA_AUTH_REQUEST——线上不生效。排查到最后：
-# 开关在 Coolify 里、compose 里也声明了、部署用的确实是含改动的提交，
-# 但技能从没进过台账。**这正是 KMFA_BOOT_SWEEP 那次的重演**：变量看着设了、
-# 实际没到容器。仓里那条门禁只能验「compose 写没写」，验不了「Coolify 有没有
-# 重新读 compose」。**一个不管用的开关比没有更糟**，所以那条路整个删掉。
+# 走过的两条弯路，都记在这里免得再走：
+#  1. 环境变量开关 KMFA_DWS_DATA_AUTH_REQUEST —— 线上不生效。开关在 Coolify 里、
+#     compose 里声明了、部署也用了含改动的提交，技能却从没进过台账。
+#     变量没到容器，KMFA_BOOT_SWEEP 那次的重演。已整条删除。
+#  2. 判据放在**这里**（entrypoint 里先判再决定跑不跑）—— 判据一旦说「不跑」，
+#     整件事就只在 cron.log 里留一行，而 cron.log 谁都读不到：
+#     Coolify 的 logs 返回空、exec 返回 404、/api/排程健康 在 Access 后面。
+#     于是线上表现成「什么都没发生」，跟故障完全分不开。**我在这上面浪费了一次部署。**
 #
-# 也没做成 App 上的按钮：那个面是匿名可达的，而「给 Owner 弹窗」被反复触发
-# 就是骚扰——不该为了省事开一个陌生人能按的门。
-#
-# 改成：卡住了就自己去请求一次。判据与静默期见 should_request_dws_auth.py。
-# 好处不只是省掉人工触发——下次授权过期（TTL 到期是必然的），Owner 会自动
-# 收到请求，而不是整条链默默红着等人发现。
+# 所以现在**无条件**调 run_skill.sh，判据搬进技能内部：
+# 这样每一次决定都进台账、失败还带日志尾巴回传私有库——
+# 验证就是一条 gh api，不必登录也不必进容器。仓里本来就写着这条经验（见
+# run_skill.sh 的回传注释），上一版是我自己把它破坏了。
 (
   sleep 40
-  if python3 /opt/kmfa/KMOS/KMFA/tools/should_request_dws_auth.py \
-       --ledger /var/log/kmfa/ledger.jsonl --mark 2>> /var/log/kmfa/cron.log; then
-    echo "$(date -Is) entrypoint: 发起 dws 数据授权请求（弹窗推给 Owner）" >> /var/log/kmfa/cron.log
-    /opt/runtime/run_skill.sh dws-data-auth >> /var/log/kmfa/cron.log 2>&1 || true
-  fi
+  /opt/runtime/run_skill.sh dws-data-auth >> /var/log/kmfa/cron.log 2>&1 || true
 ) &
 
 # 冷启动重试当前失败的技能：修好的代码要等下一次排程才被跑到，而排程可能是一天后。
