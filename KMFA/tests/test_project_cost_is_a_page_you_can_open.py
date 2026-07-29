@@ -17,6 +17,7 @@ from __future__ import annotations
 import importlib
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -142,18 +143,37 @@ def test_no_margin_rate_is_invented_without_a_contract_amount(tmp_path):
     assert 'data-v=""' in hit[0], "没有合同额却给了毛利率"
 
 
+def _page_script(client) -> str:
+    """跟着页面真正引的 <script src> 去取脚本——浏览器就是这么拿到它的。
+
+    2026-07-29 教训：这两条断言原本写成 `in r.text`，于是
+    「aria-sort」命中的是 CSS 规则、「空值永远沉底」命中的是脚本里的注释，
+    而那整块脚本当时是内联的、被 CSP 拒绝执行，排序**从来没能用过**。
+    在 HTML 文本里找字符串，证明不了浏览器会执行它。
+    """
+    html = client.get("/public-api/项目成本表").text
+    srcs = re.findall(r"""<script[^>]*\bsrc\s*=\s*["']([^"']+)["']""", html, re.I)
+    assert srcs, "页面没引任何脚本——排序是靠 JS 活的"
+    return "\n".join(client.get(s).text for s in srcs)
+
+
 def test_numeric_columns_sort_by_value_not_by_the_printed_string(tmp_path):
     """排序读 data-v 的数值。按显示的千分位字符串排，「1,000,000」会排在「9,000」前面。"""
-    r = _client(tmp_path).get("/public-api/项目成本表")
+    client = _client(tmp_path)
+    r = client.get("/public-api/项目成本表")
     assert 'data-v="47000.0"' in r.text or 'data-v="47000"' in r.text
-    assert "aria-sort" in r.text, "没有排序状态标记"
     assert "th[data-s]" in r.text, "表头没做成可点"
+    js = _page_script(client)
+    assert "parseFloat" in js, "数值列没按数值比，会退化成字符串序"
+    assert "aria-sort" in js, "排序状态没写回表头"
 
 
 def test_empty_cells_always_sink_to_the_bottom(tmp_path):
     """空值不管升序降序都沉底——把「没有数」排到有数的前面等于让缺失冒充最小值。"""
-    r = _client(tmp_path).get("/public-api/项目成本表")
-    assert "空值永远沉底" in r.text
+    js = _page_script(_client(tmp_path))
+    assert "空值永远沉底" in js
+    # 沉底靠的是「不参与升降序取反」：命中空值时直接返回定值
+    assert "return 1;" in js and "return -1;" in js, "空值分支没有绕开升降序取反"
 
 
 def test_there_is_a_download_button(tmp_path):
@@ -295,13 +315,53 @@ def test_recompute_only_files_a_request_and_never_runs_the_job_here(tmp_path, mo
     assert "subprocess" not in tail, "重算端点里出现了子进程调用——重活不该在 App 容器里跑"
 
 
+def test_the_flag_goes_where_the_app_can_actually_write():
+    """标记必须落在 **app 可写**的卷上。
+
+    2026-07-29 线上实测：第一版把它写进日志卷，按钮直接 503
+    「共享卷不可写——app 容器没挂 kmfa-logs 卷」。两个卷的读写方向是刻意反着的：
+      kmfa-logs       skills 可写 / app **只读**
+      kmfa-app-state  app 可写   / skills **只读**（daily-backup 读它打包备份，「绝不写」）
+    那道只读边界是有意的，不该为了一个按钮把整个日志卷对 app 开成可写。
+    """
+    src = (REPO / "KMFA/app/backend/app/main.py").read_text(encoding="utf-8")
+    line = next(l for l in src.splitlines() if l.startswith("COST_REFRESH_FLAG"))
+    assert "APP_STATE_DIR" in line, f"标记又放回 app 只读的卷上了：{line}"
+
+
+def test_the_failure_message_names_the_volume_that_is_actually_involved(tmp_path, monkeypatch):
+    """写失败时报的卷名必须是**真参与的那个**。
+
+    标记从 kmfa-logs 挪到 kmfa-app-state 之后，这句报错没跟着改，
+    于是失败信息把人指向一个根本没参与的卷。**指错地方的报错比不报还费时间**——
+    照着它去查日志卷的挂载，会发现挂载完全正常，然后一无所获。
+    """
+    client = _client(tmp_path)
+    from app import main as m  # noqa: PLC0415
+
+    # 让写标记必然失败：把它指到一个「父目录是文件」的路径上
+    blocker = tmp_path / "not_a_dir"
+    blocker.write_text("x", encoding="utf-8")
+    monkeypatch.setattr(m, "COST_REFRESH_FLAG", blocker / "flag")
+
+    body = client.post("/项目成本/重算").json()
+    assert body["已提交"] is False
+    reason = body["原因"]
+    assert "app-state" in reason, f"报错没提真正涉及的卷：{reason}"
+    assert "kmfa-logs" not in reason, f"报错还在指向没参与的日志卷：{reason}"
+
+
 def test_the_skills_side_actually_watches_for_the_flag():
     """标记要有人看。没人看的标记 = 按钮按下去什么也不会发生。"""
     cron = (REPO / "KMFA/deploy/skills-runtime/crontab.txt").read_text(encoding="utf-8")
     line = next((l for l in cron.splitlines()
-                 if ".refresh_requested" in l and not l.lstrip().startswith("#")), None)
+                 if "refresh_requested" in l and not l.lstrip().startswith("#")), None)
     assert line, "crontab 里没有看标记的那一跳"
     assert line.startswith("* * * * *"), "不是每分钟看一次，按下去要等很久才有反应"
-    assert "rm -f" in line and line.index("rm -f") < line.index("run_skill.sh"), \
-        "要先删标记再跑：跑的过程中再点一次才不会被吞掉"
     assert "nice -n" in line, "重算没让出 CPU 优先级"
+    # skills 只读挂载 app-state，**删不掉**那个标记，所以只能比时间戳。
+    # 写成「先删后跑」在线上会一直失败，而且失败得很安静。
+    assert "rm -f" not in line, "skills 对 app-state 只读，删不掉标记"
+    assert "-nt" in line, "没有比时间戳——那就分不出「这次点的」和「上次点的」"
+    assert "/var/lib/kmfa/state/" in line and "/var/log/kmfa/" in line, \
+        "两个卷都要用到：读 app 写的标记，写自己这边的处理记录"
