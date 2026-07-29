@@ -221,3 +221,87 @@ def test_the_homepage_link_survives_react_hydration():
     assert built, "找不到构建产物"
     assert any("shell-cost-entry" in f.read_text(encoding="utf-8", errors="replace")
                for f in built), "改了源码但没重新构建，线上还是旧的"
+
+
+def test_the_entry_is_in_the_component_the_root_actually_renders():
+    """入口必须在 App.jsx——**根路径渲染的是它**，不是 PublicAppShell。
+
+    2026-07-29 栽在这上面：入口写进了 PublicAppShell.jsx，而 main.jsx 里
+    只有 `/workspace` 才加载那个组件，根路径加载的是 App.jsx。
+    我当时只 grep 了 JS 包里有没有那个字符串，**没验它渲不渲得出来**——
+    包里有 ≠ 用户看得见。Owner 连着两次说「首页依旧进不去项目成本」。
+    """
+    main_js = (REPO / "KMFA/app/frontend/src/main.jsx").read_text(encoding="utf-8")
+    assert "loadPrivateOperationsApp()" in main_js and "isPublicWorkspace" in main_js, \
+        "路由结构变了——重新确认根路径到底渲染哪个组件，别再照着旧假设放入口"
+
+    app_jsx = (REPO / "KMFA/app/frontend/src/App.jsx").read_text(encoding="utf-8")
+    assert 'href="/项目成本"' in app_jsx, "根路径渲染的组件里没有项目成本入口"
+    assert 'href="/项目成本/下载"' in app_jsx, "根路径渲染的组件里没有下载入口"
+
+    built = list((REPO / "KMFA/app/frontend/dist/assets").glob("App-*.js"))
+    assert built, "找不到 App 的构建产物"
+    assert any("/项目成本" in f.read_text(encoding="utf-8", errors="replace") for f in built), \
+        "改了源码但没重新构建，线上还是旧的"
+
+
+def test_every_row_can_be_downloaded_on_its_own(tmp_path):
+    """Owner：「不支持单一合同下载」。"""
+    r = _client(tmp_path).get("/public-api/项目成本表")
+    assert r.text.count('class="one"') == 2, "不是每个有成本的项目都有单独下载"
+    assert "/项目成本/下载?合同=" in r.text
+
+
+def test_a_single_contract_download_contains_only_that_contract(tmp_path):
+    import io
+
+    import openpyxl
+
+    r = _client(tmp_path).get("/项目成本/下载", params={"合同": "KMX2026001-001"})
+    assert r.status_code == 200
+    book = openpyxl.load_workbook(io.BytesIO(r.content))
+    overview = book["项目总览"]
+    assert overview.max_row - 1 == 1
+    assert overview.cell(2, 1).value == "KMX2026001-001"
+    assert "KMX2026001-001" in r.headers.get("content-disposition", "")
+
+
+def test_an_unknown_contract_is_a_404_not_an_empty_workbook(tmp_path):
+    """找不到就说找不到。回一份空表比报错更糟——拿到手的人会以为这个项目成本是 0。"""
+    r = _client(tmp_path).get("/项目成本/下载", params={"合同": "KMX-不存在"})
+    assert r.status_code == 404
+
+
+def test_recompute_only_files_a_request_and_never_runs_the_job_here(tmp_path, monkeypatch):
+    """「重新计算」只放标记，真正的活在 skills 容器里跑。
+
+    让 App 容器去跑克隆私有库解析上千张表的活，就是把 2026-07-28 那次
+    「压测把线上打下线」原样重演一遍，只是换了个触发器。
+    """
+    c = _client(tmp_path)
+    import app.main as m  # noqa: PLC0415
+
+    flag = tmp_path / ".refresh_requested"
+    monkeypatch.setattr(m, "COST_REFRESH_FLAG", flag)
+    r = c.post("/项目成本/重算")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["已提交"] is True
+    assert body["怎么确认"], "只说「已提交」而不说怎么确认，跟没回一样"
+    assert flag.exists(), "标记没落到共享卷上，skills 那边永远看不到"
+
+    src = (REPO / "KMFA/app/backend/app/main.py").read_text(encoding="utf-8")
+    tail = src.split("def public_project_cost_refresh")[1][:1400]
+    assert "subprocess" not in tail, "重算端点里出现了子进程调用——重活不该在 App 容器里跑"
+
+
+def test_the_skills_side_actually_watches_for_the_flag():
+    """标记要有人看。没人看的标记 = 按钮按下去什么也不会发生。"""
+    cron = (REPO / "KMFA/deploy/skills-runtime/crontab.txt").read_text(encoding="utf-8")
+    line = next((l for l in cron.splitlines()
+                 if ".refresh_requested" in l and not l.lstrip().startswith("#")), None)
+    assert line, "crontab 里没有看标记的那一跳"
+    assert line.startswith("* * * * *"), "不是每分钟看一次，按下去要等很久才有反应"
+    assert "rm -f" in line and line.index("rm -f") < line.index("run_skill.sh"), \
+        "要先删标记再跑：跑的过程中再点一次才不会被吞掉"
+    assert "nice -n" in line, "重算没让出 CPU 优先级"

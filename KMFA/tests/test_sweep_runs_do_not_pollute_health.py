@@ -27,15 +27,25 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 ENTRY = REPO / "KMFA/deploy/skills-runtime/entrypoint.sh"
+CRONTAB = REPO / "KMFA/deploy/skills-runtime/crontab.txt"
 RUN_SKILL = REPO / "KMFA/deploy/skills-runtime/run_skill.sh"
 MAIN = REPO / "KMFA/app/backend/app/main.py"
 
 
 def test_the_sweep_marks_its_own_runs():
-    """压测得先认领自己跑的那些，下游才分得开。"""
-    entry = ENTRY.read_text(encoding="utf-8")
-    block = entry[entry.index("全量压测开始"):entry.index("全量压测结束")]
-    assert "KMFA_SWEEP_RUN=1" in block, "压测没给自己的运行打标，台账里就分不出来"
+    """压测得先认领自己跑的那些，下游才分得开。
+
+    压测在 #275 从 entrypoint 的一次性突发改成了 crontab 节拍（那一版把线上打下线三次），
+    这条测试当时漏改、于是在 main 上一直红着。**主干上常红的测试是噪音**——
+    它会盖住真失败，而且没人会去看第二次。判据跟着实现走：现在标记打在 crontab 那一跳上。
+    """
+    cron = CRONTAB.read_text(encoding="utf-8")
+    ticks = [l for l in cron.splitlines()
+             if "run_skill.sh" in l and not l.lstrip().startswith("#")
+             and ("pick_stalest_skill" in l or ".refresh_requested" in l)]
+    assert ticks, "找不到压测/重算那几跳"
+    for line in ticks:
+        assert "KMFA_SWEEP_RUN=1" in line, f"这一跳没打标，台账里分不出来：{line[:70]}"
 
 
 def test_the_ledger_carries_the_mark():
