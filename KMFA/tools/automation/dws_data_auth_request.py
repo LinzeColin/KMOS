@@ -144,10 +144,30 @@ def main() -> int:
 
     report["候选"] = [" ".join(c) for c in candidates]
 
-    # ② 读候选命令自己的 --help，照它声明的参数来，不硬塞我记忆里的 flag。
-    chosen = candidates[0]
-    rc, help_text = run([*chosen, "--help"], timeout=30)
-    report["候选帮助"] = {"命令": " ".join(chosen), "rc": rc, "原文": help_text[:4000]}
+    # ② 逐个候选：先读它自己的 --help，再照它声明的参数调用。
+    #
+    # 2026-07-29 线上第一次拿到真答案时暴露的问题：上一版只试**字母序第一个**
+    # 候选（chmod），它要一个位置参数（`accepts 1 arg(s), received 0`），
+    # 于是整件事以 AUTH_REQUEST_FAILED 收场——而候选里还有个 data-auth 从没被试过。
+    # **一个候选失败不代表这条路走不通。** 逐个试完，并把每个的完整帮助都留下来：
+    # 就算全失败，Owner 和我拿到的也是一份完整的命令说明书，而不是半句。
+    report["候选帮助"] = []
+    for chosen in candidates:
+        rc, help_text = run([*chosen, "--help"], timeout=30)
+        report["候选帮助"].append(
+            {"命令": " ".join(chosen), "rc": rc, "原文": help_text[:3000]})
+
+        if args.dry_run or not args.send:
+            continue
+
+        invocation = list(chosen)
+        if args.ttl and "--ttl" in help_text:
+            invocation += ["--ttl", args.ttl]
+        rc, output = run(invocation, timeout=180)
+        report["尝试"].append({"命令": " ".join(invocation), "rc": rc,
+                              "输出": output[:3000]})
+        if rc in (0, 124):
+            break
 
     if args.dry_run or not args.send:
         report["status"] = "PROBED_ONLY"
@@ -155,15 +175,7 @@ def main() -> int:
         emit(report)
         return 0
 
-    # ③ 真发起。TTL 只在命令自己声明了该参数、且调用方明确给了值时才带上——
-    #    授权时长是 Owner 的事，不替他选。
-    invocation = list(chosen)
-    if args.ttl and "--ttl" in help_text:
-        invocation += ["--ttl", args.ttl]
-
-    rc, output = run(invocation, timeout=180)
-    report["尝试"].append({"命令": " ".join(invocation), "rc": rc,
-                          "输出": output[:4000]})
+    rc = report["尝试"][-1]["rc"] if report["尝试"] else 5
 
     if rc in (0, 124):
         # 写下时间戳：静默期靠它生效。**只在真发起之后写**——
