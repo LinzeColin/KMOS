@@ -17,6 +17,7 @@ from __future__ import annotations
 import importlib
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -142,18 +143,37 @@ def test_no_margin_rate_is_invented_without_a_contract_amount(tmp_path):
     assert 'data-v=""' in hit[0], "没有合同额却给了毛利率"
 
 
+def _page_script(client) -> str:
+    """跟着页面真正引的 <script src> 去取脚本——浏览器就是这么拿到它的。
+
+    2026-07-29 教训：这两条断言原本写成 `in r.text`，于是
+    「aria-sort」命中的是 CSS 规则、「空值永远沉底」命中的是脚本里的注释，
+    而那整块脚本当时是内联的、被 CSP 拒绝执行，排序**从来没能用过**。
+    在 HTML 文本里找字符串，证明不了浏览器会执行它。
+    """
+    html = client.get("/public-api/项目成本表").text
+    srcs = re.findall(r"""<script[^>]*\bsrc\s*=\s*["']([^"']+)["']""", html, re.I)
+    assert srcs, "页面没引任何脚本——排序是靠 JS 活的"
+    return "\n".join(client.get(s).text for s in srcs)
+
+
 def test_numeric_columns_sort_by_value_not_by_the_printed_string(tmp_path):
     """排序读 data-v 的数值。按显示的千分位字符串排，「1,000,000」会排在「9,000」前面。"""
-    r = _client(tmp_path).get("/public-api/项目成本表")
+    client = _client(tmp_path)
+    r = client.get("/public-api/项目成本表")
     assert 'data-v="47000.0"' in r.text or 'data-v="47000"' in r.text
-    assert "aria-sort" in r.text, "没有排序状态标记"
     assert "th[data-s]" in r.text, "表头没做成可点"
+    js = _page_script(client)
+    assert "parseFloat" in js, "数值列没按数值比，会退化成字符串序"
+    assert "aria-sort" in js, "排序状态没写回表头"
 
 
 def test_empty_cells_always_sink_to_the_bottom(tmp_path):
     """空值不管升序降序都沉底——把「没有数」排到有数的前面等于让缺失冒充最小值。"""
-    r = _client(tmp_path).get("/public-api/项目成本表")
-    assert "空值永远沉底" in r.text
+    js = _page_script(_client(tmp_path))
+    assert "空值永远沉底" in js
+    # 沉底靠的是「不参与升降序取反」：命中空值时直接返回定值
+    assert "return 1;" in js and "return -1;" in js, "空值分支没有绕开升降序取反"
 
 
 def test_there_is_a_download_button(tmp_path):
