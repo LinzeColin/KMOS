@@ -94,12 +94,32 @@ def test_the_picker_and_the_tests_use_the_same_extraction_rule():
 
 
 def test_every_skill_is_reachable_by_the_tick():
-    swept = _known_skills()
-    assert len(swept) >= 13, f"只抓到 {len(swept)} 个技能"
-    for must in ("attendance-morning", "attendance-evening", "self-audit",
-                 "upstream-archive", "project-cost-refresh", "mgmt-monthly",
-                 "work-check-morning", "work-check-evening"):
+    """比的必须是**挑选器真用的那个池子**，不是原始 case 清单。
+
+    2026-07-29 改：本条原本断言 `_known_skills()`——那是测试自己抽的原始清单，
+    挑选器就算把技能全排除掉，这里照样绿。名字写着「能被节拍扫到」，
+    验的却是「名字在脚本里出现过」，两件事。
+    """
+    from KMFA.tools.pick_stalest_skill import sweepable_skills  # noqa: PLC0415
+
+    swept = sweepable_skills(RUN_SKILL)
+    for must in ("self-audit", "upstream-archive", "project-cost-refresh",
+                 "mgmt-monthly", "work-check-morning", "work-check-evening"):
         assert must in swept, f"{must} 扫不到"
+
+
+def test_the_attendance_pair_is_deliberately_out_of_the_tick():
+    """考勤两兄弟**故意**不进压测池，不是漏了。
+
+    2026-07-29 Owner：「考勤通知依旧不能用」。压测挑中 attendance-evening，
+    晚间考勤在早上 07:28 发了出去；真正的 17:31 撞上去重守卫被吞。
+    详见 KMFA/tests/test_sweep_must_never_deliver.py。
+    """
+    from KMFA.tools.pick_stalest_skill import known_skills, sweepable_skills  # noqa: PLC0415
+
+    pair = {"attendance-morning", "attendance-evening"}
+    assert pair <= known_skills(RUN_SKILL), "runner 不认识考勤技能了——排除≠删除"
+    assert not (pair & sweepable_skills(RUN_SKILL)), "考勤又被放回压测池了"
 
 
 def test_the_skill_that_is_not_in_the_schedule_is_still_reachable():
