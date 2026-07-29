@@ -179,27 +179,20 @@ fi
 # Owner 2026-07-27：「你已经浪费了我一个月的时间都还没有修好考勤」——
 # 「等明天那次排程」正是把一个月耗掉的那个模式。所以部署即重试，不等排程。
 # 只重试台账里最近一次非 0 的技能；从未跑过的不动（那是排程问题不是失败）。
-( 
+#
+# ⚠️ 挑选逻辑搬去 KMFA/tools/pick_coldstart_retries.py，不再内联。
+# 原因不只是「行内 python 难读」：这里**没带 KMFA_SWEEP_RUN=1，投递是开的**，
+# 于是 attendance-evening 只要失败过一次，之后每次部署都会在部署发生的那个
+# 时刻真发一次考勤——部署时间是任意的，可能是凌晨。（第一道门是压测节拍，
+# 已由 PR #282 关掉；这是第二道。）判据现在按窗口来，且**可被测试**：
+# 时间锚定的技能只有在今天、且锚点起算 3 小时内才补发，理由写进日志不藏。
+(
   sleep 20
   L=/var/log/kmfa/ledger.jsonl
   [ -s "$L" ] || exit 0
-  python3 - "$L" <<'PYR' | while read -r s; do
-import json, sys
-last = {}
-for line in open(sys.argv[1], encoding="utf-8", errors="replace"):
-    line = line.strip()
-    if not line:
-        continue
-    try:
-        r = json.loads(line)
-    except Exception:
-        continue
-    if r.get("skill"):
-        last[r["skill"]] = r
-for name, r in sorted(last.items()):
-    if r.get("rc") not in (0, None):
-        print(name)
-PYR
+  python3 /opt/kmfa/KMOS/KMFA/tools/pick_coldstart_retries.py \
+      --ledger "$L" --crontab /opt/runtime/crontab.txt \
+      2>> /var/log/kmfa/cron.log | while read -r s; do
     echo "$(date -Is) entrypoint: 冷启动重试失败技能 $s" >> /var/log/kmfa/cron.log
     /opt/runtime/run_skill.sh "$s" >> /var/log/kmfa/cron.log 2>&1 || true
   done
