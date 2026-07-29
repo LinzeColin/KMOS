@@ -167,6 +167,7 @@ function PublicAppShell() {
           <span>KMFA <small>PUBLIC WORKSPACE</small></span>
         </a>
         <nav className="public-nav" aria-label="主要功能">
+          <a className="public-nav-link" href="/项目成本" data-shell-cost-entry="nav">项目成本</a>
           {MODULES.map((item) => (
             <a
               key={item.key}
@@ -199,9 +200,15 @@ function PublicAppShell() {
             <p className="public-hero-lead">
               根域名就是主页。无需账号即可进入；每项能力按真实接入状态开放，未主动公开的数据不会因为站点公开而公开。
             </p>
+            {/* 首页第一按钮＝项目成本。Owner 2026-07-29：「我还是没有看到你的项目成本
+                https://kmfa.linzezhang.com/」「和主页没有连接在一起」。
+                此前链接只写在静态壳里，浏览器一加载 JS，React 接管就把它换掉了——
+                于是「首页有链接」这件事只在没有 JS 时成立，等于没有。 */}
             <div className="public-hero-actions">
-              <a className="public-primary-action" href="#walking-skeleton">创建或恢复工作区</a>
-              <a className="public-secondary-action" href="#capabilities">查看功能入口</a>
+              <a className="public-primary-action" href="/项目成本" data-shell-cost-entry="hero">
+                打开项目成本表
+              </a>
+              <a className="public-secondary-action" href="#walking-skeleton">创建或恢复工作区</a>
             </div>
           </div>
           <aside className="public-hero-index" aria-label="公共入口原则">

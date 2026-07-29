@@ -5,3 +5,6 @@ reportlab>=4.0
 PyJWT[crypto]>=2.10,<3
 psycopg[binary]==3.3.4
 boto3==1.43.51
+# 项目成本下载要出 .xlsx——Owner 要求「你的下载产品和我的格式要保持一致」，
+# 而对照格式是 8 份竣工报表那种多页签工作簿，CSV 出不了。
+openpyxl>=3.1

@@ -14,6 +14,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from html import escape as html_escape
+from urllib.parse import quote
 from pathlib import Path
 from typing import Any
 
@@ -2751,8 +2752,62 @@ td.n,th.n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:r
 td.k{font-family:var(--mono);font-size:.74rem;white-space:nowrap}
 td.c{text-align:center;white-space:nowrap}td.b{font-weight:600}
 code{font-family:var(--mono);font-size:.85em;background:var(--dim);padding:.05rem .28rem;border-radius:2px}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem;justify-content:space-between}
+.dl{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;
+ padding:.5rem .95rem;border-radius:3px;font-size:.85rem;font-weight:600}
+.dl:hover{filter:brightness(1.1)}
+.hint{font-size:.78rem;color:var(--soft)}
+th[data-s]{cursor:pointer;user-select:none}
+th[data-s]:hover{color:var(--accent)}
+th[data-s]::after{content:"";opacity:.35;margin-left:.28em;font-size:.9em}
+th[data-s]:not([aria-sort])::after{content:"⇅"}
+th[aria-sort="ascending"]::after{content:"↑";opacity:1}
+th[aria-sort="descending"]::after{content:"↓";opacity:1}
+td.neg{color:var(--bad);font-weight:600}
 footer{border-top:1px solid var(--rule);padding-top:.9rem;font-size:.76rem;color:var(--soft)}
-</style></head><body><div class="w">{{BODY}}</div></body></html>"""
+</style></head><body><div class="w">{{BODY}}</div>
+<script>
+/* 点表头排序。数值列按 data-v 的**数值**排——按显示的千分位字符串排会让
+   「1,000,000」排在「9,000」前面。空值一律沉底，不管升序降序：
+   把「没有数」排到有数的前面，等于让缺失冒充最小值。 */
+(function () {
+  var tbl = document.getElementById('costtbl');
+  if (!tbl) return;
+  var heads = tbl.tHead.rows[0].cells;
+  Array.prototype.forEach.call(heads, function (th, idx) {
+    if (!th.hasAttribute('data-s')) return;
+    th.setAttribute('role', 'button');
+    th.tabIndex = 0;
+    function sort() {
+      var numeric = th.getAttribute('data-s') === 'n';
+      var desc = th.getAttribute('aria-sort') !== 'descending';
+      Array.prototype.forEach.call(heads, function (o) { o.removeAttribute('aria-sort'); });
+      th.setAttribute('aria-sort', desc ? 'descending' : 'ascending');
+      var body = tbl.tBodies[0];
+      var rows = Array.prototype.slice.call(body.rows);
+      rows.sort(function (a, b) {
+        var x = a.cells[idx].getAttribute('data-v');
+        var y = b.cells[idx].getAttribute('data-v');
+        var ex = (x === null || x === ''), ey = (y === null || y === '');
+        if (ex && ey) return 0;
+        if (ex) return 1;            /* 空值永远沉底 */
+        if (ey) return -1;
+        if (numeric) {
+          var d = parseFloat(x) - parseFloat(y);
+          return desc ? -d : d;
+        }
+        return desc ? y.localeCompare(x, 'zh') : x.localeCompare(y, 'zh');
+      });
+      rows.forEach(function (r) { body.appendChild(r); });
+    }
+    th.addEventListener('click', sort);
+    th.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sort(); }
+    });
+  });
+})();
+</script>
+</body></html>"""
 
 def _cost_num(value) -> float | None:
     if value in (None, "", "None"):
@@ -2805,29 +2860,55 @@ def public_project_cost_page():
     # 有两个项目金蝶净额为负（红字冲销超过借方，最大一笔 -203 万）——
     # 按 > 0 过滤会把它们连同那 203 万一起从页面和合计里抹掉，
     # 而「这个项目账上是负的」恰恰是最该被看见的一条。
-    with_cost = [p for p in projects if (_cost_num(p.get("成本合计")) or 0) != 0]
+    # 合同号与权威表对不上的**不进主表、也不进合计**——页面上写着「其成本未归入
+    # 任何项目」，那就得真的不归入。把它算进合计而在旁边写「未归入」，
+    # 是让说明和数字互相打脸；下面单列一块专门交代它们。
+    suspect = [p for p in projects if p.get("合同号存疑")]
+    with_cost = [p for p in projects
+                 if not p.get("合同号存疑") and (_cost_num(p.get("成本合计")) or 0) != 0]
     with_cost.sort(key=lambda p: -(_cost_num(p.get("成本合计")) or 0))
     total = sum(_cost_num(p.get("成本合计")) or 0 for p in with_cost)
-    suspect = [p for p in projects if p.get("合同号存疑")]
 
     def money(value) -> str:
         number = _cost_num(value)
         return f"{number:,.0f}" if number is not None else "—"
 
+    def cell(value, kind="n"):
+        """数值单元格同时带 data-v——排序按**数值**排，不按显示出来的千分位字符串。
+        少了它，「1,000,000」会排在「9,000」前面（字符串比较 '1'<'9'）。"""
+        number = _cost_num(value)
+        shown = f"{number:,.0f}" if number is not None else "—"
+        attr = f' data-v="{number}"' if number is not None else ' data-v=""'
+        return f'<td class="{kind}"{attr}>{shown}</td>'
+
+    def rate_cell(p):
+        """毛利率＝毛利 ÷ 含税合同额。合同额为 0/缺失时不编一个百分比出来。"""
+        gross, contract = _cost_num(p.get("毛利")), _cost_num(p.get("含税合同金额"))
+        if gross is None or not contract:
+            return '<td class="n" data-v="">—</td>'
+        rate = gross / contract
+        klass = "n neg" if rate < 0 else "n"
+        return f'<td class="{klass}" data-v="{rate}">{rate * 100:,.1f}%</td>'
+
     rows = "\n".join(
         "<tr>"
-        f'<td class="k">{html_escape(str(p.get("合同编号") or ""))}</td>'
-        f'<td>{html_escape(str(p.get("甲方名称") or ""))}</td>'
-        f'<td class="c">{html_escape(str(p.get("施工状态") or "—"))}</td>'
-        f'<td class="c">{html_escape(str(p.get("完工日期") or "—"))}</td>'
-        f'<td class="n">{money(p.get("含税合同金额"))}</td>'
-        f'<td class="n">{money(p.get("金蝶归集直接成本"))}</td>'
-        f'<td class="n">{money(p.get("自有人工成本"))}</td>'
-        f'<td class="n">{money(p.get("劳务人工成本"))}</td>'
-        f'<td class="n">{money(p.get("分摊管理费"))}</td>'
-        f'<td class="n b">{money(p.get("成本合计"))}</td>'
-        f'<td class="n">{money(p.get("毛利"))}</td>'
-        "</tr>"
+        f'<td class="k" data-v="{html_escape(str(p.get("合同编号") or ""))}">'
+        f'{html_escape(str(p.get("合同编号") or ""))}</td>'
+        f'<td data-v="{html_escape(str(p.get("甲方名称") or ""))}">'
+        f'{html_escape(str(p.get("甲方名称") or ""))}</td>'
+        f'<td class="c" data-v="{html_escape(str(p.get("施工状态") or ""))}">'
+        f'{html_escape(str(p.get("施工状态") or "—"))}</td>'
+        f'<td class="c" data-v="{html_escape(str(p.get("完工日期") or ""))}">'
+        f'{html_escape(str(p.get("完工日期") or "—"))}</td>'
+        + cell(p.get("含税合同金额"))
+        + cell(p.get("金蝶归集直接成本"))
+        + cell(p.get("自有人工成本"))
+        + cell(p.get("劳务人工成本"))
+        + cell(p.get("分摊管理费"))
+        + cell(p.get("成本合计"), "n b")
+        + cell(p.get("毛利"))
+        + rate_cell(p)
+        + "</tr>"
         for p in with_cost)
 
     suspect_html = ""
@@ -2855,17 +2936,198 @@ def public_project_cost_page():
 <div class="note">只列<b>有成本记录</b>的项目。其余合同在金蝶里没有归集、红圈也没填工时——
   那是「成本不知道」，不是「成本是 0」，所以不列在这里凑数。<br>
   <b>成本为负的项目照列</b>：那是金蝶里红字冲销超过借方，账上就是负的，不做粉饰。</div>
-<div class="tw"><table>
-<thead><tr><th>合同编号</th><th>甲方</th><th>状态</th><th>完工日</th>
-<th class="n">合同额</th><th class="n">金蝶成本</th><th class="n">自有人工</th>
-<th class="n">劳务人工</th><th class="n">分摊</th><th class="n">成本合计</th>
-<th class="n">毛利</th></tr></thead>
+<div class="bar">
+  <a class="dl" href="/项目成本/下载">⬇ 下载 Excel（按竣工报表的页签结构）</a>
+  <span class="hint">点表头可按该列排序，再点一次反向。</span>
+</div>
+<div class="tw"><table id="costtbl">
+<thead><tr>
+<th data-s="t">合同编号</th><th data-s="t">甲方</th><th data-s="t">状态</th><th data-s="t">完工日</th>
+<th class="n" data-s="n">合同额</th><th class="n" data-s="n">金蝶成本</th>
+<th class="n" data-s="n">自有人工</th><th class="n" data-s="n">劳务人工</th>
+<th class="n" data-s="n">分摊</th><th class="n" data-s="n">成本合计</th>
+<th class="n" data-s="n">毛利</th><th class="n" data-s="n">毛利率</th>
+</tr></thead>
 <tbody>{rows}</tbody></table></div>
 <footer>同一份数据的机器可读版在 <code>/public-api/项目成本</code>。
   口径：金蝶按销售合同号归集的借方发生额为底；现场管理费行取金蝶与红圈的大者不相加；
   劳务人工在金蝶「工资（承包费）支出」缺位时取红圈工时×标定单价；分摊管理费＝合同额×2%，
   只摊给有成本发生额的项目。</footer>"""
     return page(body)
+
+
+@app.api_route("/项目成本/下载", methods=["GET", "HEAD"], include_in_schema=False)
+@app.get("/public-api/项目成本表/下载", include_in_schema=False)
+def public_project_cost_download():
+    """项目成本 .xlsx——**页签结构对齐 Owner 手上那份竣工报表参考表**。
+
+    Owner 2026-07-29：「需要支持下载」「你的下载产品和我的格式要保持一致」。
+    对照物是 `KMFA_项目成本_真实参考回放_8项目.xlsx`，它的页签是
+    使用说明／项目总览／毛利复核／参考成本明细／…。这里出同一套骨架：
+
+      使用说明 —— 这份表怎么读、每个数从哪来、哪些算不出来
+      项目总览 —— 一行一个项目，含毛利率
+      毛利复核 —— 合同额 − 成本 = 毛利 的逐项复算，差异照实列
+      成本明细 —— 金蝶／人工／分摊 分列，看得出成本构成
+
+    只出**有成本记录**的项目：没有记录的合同列进去就是拿「不知道」冒充「是 0」。
+    """
+    if not RECENT_COST_PATH.exists():
+        raise HTTPException(status_code=503, detail="项目成本产物还没生成（project-cost-refresh 未成功跑完）")
+    try:
+        payload = json.loads(RECENT_COST_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=503, detail=f"项目成本产物无法解析：{type(exc).__name__}") from exc
+
+    import io as _io
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    # 与页面同一条判据：存疑合同号不归入任何项目，主表与合计都不含它们，
+    # 单独出一个「合同号存疑」页签交代。两个出口口径必须一致，
+    # 否则页面和下载的合计对不上，谁都不知道该信哪个。
+    projects = [p for p in (payload.get("项目") or [])
+                if not p.get("合同号存疑") and (_cost_num(p.get("成本合计")) or 0) != 0]
+    projects.sort(key=lambda p: -(_cost_num(p.get("成本合计")) or 0))
+    stamp = str(payload.get("生成时间") or "")
+
+    head_fill = PatternFill("solid", fgColor="1D5C8F")
+    money_fmt = "#,##0.00"
+
+    def sheet(book, name, headers, widths):
+        ws = book.create_sheet(name)
+        for i, h in enumerate(headers, 1):
+            c = ws.cell(row=1, column=i, value=h)
+            c.font = Font(bold=True, color="FFFFFF", size=10)
+            c.fill = head_fill
+            c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            ws.column_dimensions[get_column_letter(i)].width = widths[i - 1]
+        ws.row_dimensions[1].height = 26
+        ws.freeze_panes = "A2"
+        return ws
+
+    book = Workbook()
+
+    guide = book.active
+    guide.title = "使用说明"
+    guide.column_dimensions["A"].width = 96
+    lines = [
+        ("KMFA 项目成本", True),
+        (f"数据生成时间：{stamp}　·　金额单位：元", False),
+        ("", False),
+        ("范围：红圈《主合同》里**有成本记录**的项目。没有成本记录的合同不列——"
+         "列进去就是拿「不知道」冒充「是 0」。", False),
+        ("成本为负的项目照列：那是金蝶里红字冲销超过借方，账上就是负的，不做粉饰。", False),
+        ("", False),
+        ("每个数从哪来", True),
+        ("· 合同号／甲方／合同额／状态：红圈《主合同》——Owner 定的合同号权威来源。", False),
+        ("· 金蝶成本：明细账里按「销售合同号」归集的借方发生额。取发生额不取净额"
+         "（5001 结转 6401 时净额会归零）。不含记在「不分项目」的部分。", False),
+        ("· 人工：金蝶「（五）工资（承包费）支出」优先；该行缺位时才用红圈工时 × 标定单价"
+         "（自有 500／劳务 550 元每工）。实测两者交集为 0，不重复计。", False),
+        ("· 现场管理费：金蝶该行与红圈（自有人工＋台账费用）**取大不相加**——"
+         "相加会把自有人工算两遍。", False),
+        ("· 分摊管理费：合同额 × 2%，只摊给有成本发生额的项目。", False),
+        ("· 毛利＝含税合同额 − 成本合计；毛利率＝毛利 ÷ 含税合同额。", False),
+        ("", False),
+        ("目前算不出来的", True),
+        ("· 竣工报表里的材料费有一部分在金蝶全科目搜不到来源（不是金蝶记的），源头未定不补。", False),
+        ("· 6401 主营业务成本未计入：116 个两边都有记录的合同里只有 16 个与 5001 相等，"
+         "比值 0.41~4.93，加也不对不加也不对，需先定会计口径。", False),
+        ("· 招待费、占用资金利息不在按合同号归集的范围内。", False),
+    ]
+    for i, (text, bold) in enumerate(lines, 1):
+        c = guide.cell(row=i, column=1, value=text)
+        c.alignment = Alignment(wrap_text=True, vertical="top")
+        c.font = Font(bold=bold, size=13 if (bold and i == 1) else (11 if bold else 9))
+        guide.row_dimensions[i].height = 30 if len(text) > 60 else 16
+
+    ws = sheet(book, "项目总览",
+               ["合同编号", "甲方名称", "施工状态", "完工日期", "含税合同额",
+                "成本合计", "毛利", "毛利率"],
+               [20, 30, 10, 12, 15, 15, 15, 10])
+    for r, p in enumerate(projects, 2):
+        contract, cost = _cost_num(p.get("含税合同金额")), _cost_num(p.get("成本合计"))
+        gross = _cost_num(p.get("毛利"))
+        vals = [p.get("合同编号"), p.get("甲方名称"), p.get("施工状态"), p.get("完工日期"),
+                contract, cost, gross,
+                (gross / contract) if (gross is not None and contract) else None]
+        for i, v in enumerate(vals, 1):
+            c = ws.cell(row=r, column=i, value=v)
+            c.font = Font(size=9)
+            if 5 <= i <= 7:
+                c.number_format = money_fmt
+            if i == 8:
+                c.number_format = "0.0%"
+
+    ws = sheet(book, "毛利复核",
+               ["合同编号", "甲方名称", "含税合同额", "成本合计", "复算毛利",
+                "产物毛利", "差异", "算术状态"],
+               [20, 30, 15, 15, 15, 15, 13, 12])
+    for r, p in enumerate(projects, 2):
+        contract = _cost_num(p.get("含税合同金额")) or 0
+        cost = _cost_num(p.get("成本合计")) or 0
+        stated = _cost_num(p.get("毛利"))
+        recomputed = contract - cost
+        diff = (stated - recomputed) if stated is not None else None
+        vals = [p.get("合同编号"), p.get("甲方名称"), contract, cost, recomputed,
+                stated, diff, "PASS" if (diff is not None and abs(diff) < 0.01) else "差异"]
+        for i, v in enumerate(vals, 1):
+            c = ws.cell(row=r, column=i, value=v)
+            c.font = Font(size=9)
+            if 3 <= i <= 7:
+                c.number_format = money_fmt
+
+    ws = sheet(book, "成本明细",
+               ["合同编号", "甲方名称", "金蝶归集成本", "自有人工", "劳务人工",
+                "业务台账费用", "分摊管理费", "成本合计", "成本来源"],
+               [20, 28, 15, 13, 13, 14, 13, 15, 26])
+    for r, p in enumerate(projects, 2):
+        vals = [p.get("合同编号"), p.get("甲方名称"),
+                _cost_num(p.get("金蝶归集直接成本")), _cost_num(p.get("自有人工成本")),
+                _cost_num(p.get("劳务人工成本")), _cost_num(p.get("业务台账成本合计")),
+                _cost_num(p.get("分摊管理费")), _cost_num(p.get("成本合计")),
+                p.get("现场成本取自") or p.get("身份来源") or ""]
+        for i, v in enumerate(vals, 1):
+            c = ws.cell(row=r, column=i, value=v)
+            c.font = Font(size=9)
+            if 3 <= i <= 8:
+                c.number_format = money_fmt
+            if i == 9:
+                c.alignment = Alignment(wrap_text=True, vertical="top")
+
+    suspect = [p for p in (payload.get("项目") or []) if p.get("合同号存疑")]
+    if suspect:
+        ws = sheet(book, "合同号存疑", ["合同编号", "甲方名称", "成本合计", "说明"],
+                   [20, 30, 15, 80])
+        for r, p in enumerate(suspect, 2):
+            for i, v in enumerate([p.get("合同编号"), p.get("甲方名称"),
+                                   _cost_num(p.get("成本合计")), p.get("身份来源")], 1):
+                c = ws.cell(row=r, column=i, value=v)
+                c.font = Font(size=9)
+                if i == 3:
+                    c.number_format = money_fmt
+                if i == 4:
+                    c.alignment = Alignment(wrap_text=True, vertical="top")
+
+    buffer = _io.BytesIO()
+    book.save(buffer)
+    day = (stamp[:10] or datetime.now(BEIJING).date().isoformat()).replace("-", "")
+    name = f"KMFA_项目成本_{day}.xlsx"
+    return Response(
+        buffer.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            # filename* 走 RFC 5987，中文文件名在浏览器里才不会变成乱码或 _
+            "Content-Disposition":
+                f"attachment; filename=KMFA_project_cost_{day}.xlsx; "
+                f"filename*=UTF-8''{quote(name)}",
+            "Cache-Control": "no-store",
+            "X-Robots-Tag": "noindex, nofollow",
+        },
+    )
 
 
 @app.get("/public-api/技能健康")
