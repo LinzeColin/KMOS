@@ -2513,6 +2513,12 @@ SCHEDULE_CONTRACT = {
     "attendance-bootstrap-targets": "缺目标文件时自举",
     "dws-bootstrap-groups": "周日 10:30",
     "project-cost-refresh": "每天 05:45",
+    # 2026-07-29：**这条漏登记害我查错了方向。** 健康端点是
+    # `for skill in sorted(SCHEDULE_CONTRACT)`——只输出契约里有的技能。
+    # dws-data-auth 不在契约里，于是它**哪怕一直在跑，端点也永远不会显示它**。
+    # 我据此连着两轮判定「技能没跑」，还为此改了两版触发方式。
+    # 判据用了一个结构上就不可能显示该技能的面——看不见 ≠ 没发生。
+    "dws-data-auth": "每 15 分钟（闸在技能内：未卡住不请求、请求后静默 6 小时）",
 }
 # 技能归属业务模块（Owner 2026-07-21：「所有 skills 都需要整合进 kmfa 功能模块」）
 SKILL_MODULE = {
@@ -2520,7 +2526,7 @@ SKILL_MODULE = {
     "work-check-morning": "考勤与日检", "work-check-evening": "考勤与日检",
     "fund-weekly": "资金与经营报告", "mgmt-monthly": "资金与经营报告",
     "upstream-archive": "数据接入",
-    "self-audit": "系统底座", "daily-backup": "系统底座", "dws-keepalive": "系统底座",
+    "self-audit": "系统底座", "daily-backup": "系统底座", "dws-data-auth": "上游归档", "dws-keepalive": "系统底座",
     "attendance-bootstrap-targets": "钉钉考勤",
     "dws-bootstrap-groups": "系统底座",
     "project-cost-refresh": "成本与利润",
