@@ -169,3 +169,32 @@ def test_the_quiet_period_stamp_is_written_only_after_a_real_request():
     # 写时间戳这段必须在「真调用了授权命令」之后
     invoke = tool.index("rc, output = run(invocation")
     assert invoke < stamp, "还没真调用就盖了时间戳"
+
+
+def test_the_trigger_does_not_depend_on_the_entrypoint_alone():
+    """触发必须有一条**已证明能工作**的通道：cron。
+
+    2026-07-29 试过两次 entrypoint，两次都没让技能进过台账：
+      · v2 判据放 entrypoint 里 → 判「不跑」只在读不到的 cron.log 留一行
+      · v3 判据搬进技能、entrypoint 无条件调 → **技能仍然没进过台账**，
+        原因至今没定位到（容器内不可观测：logs 返空、exec 404、/api 在 Access 后）
+
+    而 cron 是有实证的：dws-keepalive 12:20 准点跑过（`20 */4`）。
+    所以判据不能只挂在 entrypoint 上——**一条没被证明过的通道，
+    不该是唯一的通道**。
+    """
+    cron = (REPO / "KMFA/deploy/skills-runtime/crontab.txt").read_text(encoding="utf-8")
+    line = next((l for l in cron.splitlines()
+                 if "run_skill.sh dws-data-auth" in l and not l.lstrip().startswith("#")), None)
+    assert line, "crontab 里没有 dws-data-auth——只剩 entrypoint 那条没被证明过的路"
+    assert line.split()[0].startswith("*/"), f"不是周期性节拍：{line}"
+
+
+def test_a_frequent_tick_does_not_mean_frequent_popups():
+    """每 15 分钟跑一次 ≠ 每 15 分钟弹一次窗——闸在技能内部，静默期挡住连发。
+
+    这条防的是「为了让它快点跑就把节拍调密，顺手把闸也放宽」。
+    """
+    runner = (REPO / "KMFA/deploy/skills-runtime/run_skill.sh").read_text(encoding="utf-8")
+    assert "--only-if-blocked" in runner, "节拍密了却没有闸——那就是每 15 分钟骚扰一次"
+    assert decider.MIN_INTERVAL_HOURS >= 1.0, "静默期太短，撑不住密节拍"

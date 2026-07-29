@@ -36,6 +36,19 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # dws 认证保活（运维任务，无业务锚；每 4 小时 :20）——替代已停用的 Codex 排程 dws-auth-keepalive-2。
 # 缺它 access-token 到期即静默失效、投递全断；失败会经 run_skill 告警面上报。
 20 */4 * * *  root /opt/runtime/run_skill.sh dws-keepalive       >> /var/log/kmfa/cron.log 2>&1
+# dws **数据授权**请求（跟上面的 keepalive 不是一回事：那层刷 access-token、一直是绿的；
+# 这层是「读群消息内容」的授权，有 TTL 会过期，重新授权要 Owner 在宿主应用点确认）。
+#
+# 为什么走 cron 而不是 entrypoint（2026-07-29，试过两次都没成）：
+#   · 判据放 entrypoint 里先判 → 判「不跑」就只在 cron.log 留一行，而 cron.log 读不到
+#     （Coolify logs 返空、exec 404、/api 在 Access 后面），线上跟故障分不开；
+#   · 判据搬进技能、entrypoint 无条件调用 → **技能仍然没进过台账**，原因至今没定位到。
+# 而 cron 是**已证明能工作**的：dws-keepalive 12:20 准点跑过（20 */4）。
+# 所以不再赌 entrypoint，给它一条自己的线。
+#
+# 每 15 分钟跑一次不等于每 15 分钟弹一次窗：闸在技能内部——上游归档没红就不请求，
+# 请求过就静默 6 小时（见 KMFA/tools/should_request_dws_auth.py）。
+*/15 * * * *  root /opt/runtime/run_skill.sh dws-data-auth        >> /var/log/kmfa/cron.log 2>&1
 
 # 压测节拍：每 30 分钟挑**一个**最久没跑的技能跑一遍（KMFA_SWEEP_RUN=1 标成压测跑）。
 #
