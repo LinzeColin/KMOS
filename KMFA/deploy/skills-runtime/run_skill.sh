@@ -176,10 +176,12 @@ esac
   echo "$(date -Is) $SKILL: 结束 rc=$RC" >> "$LOG"
   # 失败码：rc 只说「投递没成功」，而那对应十来种完全不同的原因。没有它就只能改一版等一天。
   # 提取器是白名单构造的（见 skill_failure_code.py），出来的东西天然可公开。
-  CODE=""
-  if [ "$RC" -ne 0 ]; then
-    CODE="$(timeout 30 python3 "$ROOT/KMFA/tools/skill_failure_code.py" "$LOG" 2>/dev/null || echo UNKNOWN)"
-  fi
+  # **rc=0 也要取码。** 2026-07-29 的教训：dws-data-auth 连着 9 次 rc=0，
+  # 而 rc=0 底下藏着三种完全不同的结局——「授权请求已发出」「按设计没请求」
+  # 「只探测没发起」。它们在台账里长得一模一样，于是「跑了」和「跑了但什么也没做」
+  # 分不开，Owner 那句「我没收到弹窗」也就无从对账。
+  # 成功不是终点，**成功里做了什么**才是。提取器是白名单构造的，出来的东西天然可公开。
+  CODE="$(timeout 30 python3 "$ROOT/KMFA/tools/skill_failure_code.py" "$LOG" 2>/dev/null || echo UNKNOWN)"
   # sweep 标记：由 entrypoint 的全量压测置 KMFA_SWEEP_RUN=1。
   # 压测跑与排程跑问的是两个问题——排程问「今天这件事办成没有」，
   # 压测问「这个技能的机器还转不转」。混在一条时间线里，
