@@ -167,3 +167,54 @@ def test_the_trigger_is_never_unconditional():
     gate = tool.index("args.only_if_blocked")
     fire = tool.index("rc, output = run(invocation")
     assert gate < fire, "闸在真发起之后才判——等于没闸"
+
+
+def test_it_tries_every_candidate_not_just_the_first(tmp_path):
+    """一个候选失败，不代表这条路走不通。
+
+    2026-07-29 线上第一次拿到真答案时暴露的：上一版只试**字母序第一个**候选
+    （`dws chat chmod`），它要一个位置参数（`accepts 1 arg(s), received 0`），
+    于是整件事以 AUTH_REQUEST_FAILED 收场——而候选里还有个 `data-auth`
+    **从没被试过**。差一步就拿到弹窗，却停在了第一个。
+    """
+    cli = """#!/bin/sh
+case "$*" in
+  "--help")                echo "Usage: dws <cmd>"; echo "  chat 群与消息" ;;
+  "chat --help")           echo "Usage: dws chat <cmd>"; echo "  chmod 授权"; echo "  data-auth 数据授权"; echo "  message 消息" ;;
+  "chat chmod --help")     echo "Usage: dws chat chmod <scope>" ;;
+  "chat chmod")            echo '{"error":{"message":"accepts 1 arg(s), received 0"}}' >&2; exit 5 ;;
+  "chat data-auth --help") echo "Usage: dws chat data-auth" ;;
+  "chat data-auth")        echo '{"ok":true}' ;;
+  *) exit 2 ;;
+esac
+"""
+    env = _fake_dws(tmp_path, cli)
+    rc, report = _run(env, "--send")
+    tried = [t["命令"] for t in report["尝试"]]
+    assert "dws chat chmod" in tried, f"第一个候选没试：{tried}"
+    assert "dws chat data-auth" in tried, (
+        f"第一个失败就停了——第二个候选本来能成功：{tried}")
+    assert rc == 0 and report["status"] == "AUTH_REQUESTED", report
+
+
+def test_every_candidate_help_is_kept_even_when_all_fail(tmp_path):
+    """全失败时，留下的必须是一份**完整的命令说明书**，不是半句。
+
+    这是我今天在这件事上唯一真正前进的一步：拿到 CLI 自己的原话。
+    只留第一个候选的帮助，等于把另一半答案丢掉。
+    """
+    cli = """#!/bin/sh
+case "$*" in
+  "--help")                echo "Usage: dws <cmd>"; echo "  chat 群与消息" ;;
+  "chat --help")           echo "Usage: dws chat <cmd>"; echo "  chmod 授权"; echo "  data-auth 数据授权" ;;
+  "chat chmod --help")     echo "CHMOD_HELP_MARKER" ;;
+  "chat data-auth --help") echo "DATAAUTH_HELP_MARKER" ;;
+  *) exit 5 ;;
+esac
+"""
+    env = _fake_dws(tmp_path, cli)
+    rc, report = _run(env, "--send")
+    helps = json.dumps(report["候选帮助"], ensure_ascii=False)
+    assert "CHMOD_HELP_MARKER" in helps and "DATAAUTH_HELP_MARKER" in helps, \
+        f"漏了某个候选的帮助：{helps[:300]}"
+    assert rc == 5, report
