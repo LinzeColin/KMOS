@@ -65,6 +65,10 @@ services:
       # 这一项是上面那道门禁**当场抓到的第三例**——我在 #273 加了它却同样漏了声明，
       # 想用它指定输入也会是按了没反应。
       KMFA_DAILY_INPUT_ZIP: "${KMFA_DAILY_INPUT_ZIP:-}"
+      # dws 数据授权请求开关。置 1 后**下一次部署**会把授权弹窗推到 Owner 钉钉上。
+      # 默认 0：开着的话每次部署都弹一次，那是骚扰。Owner 授权完请调回 0。
+      # （这一项一并声明，正是为了不重蹈上面那三例「设了却没进容器」。）
+      KMFA_DWS_DATA_AUTH_REQUEST: "${KMFA_DWS_DATA_AUTH_REQUEST:-0}"
       # 考勤私有运行时**必须落持久卷**。默认路径在镜像层里，每次部署被重置——
       # 而派发要读的 notification_targets_resolved.json 就在这里。
       # 它一直不存在，派发就一直 NOTIFIER_CONFIG_MISSING → rc=5。
