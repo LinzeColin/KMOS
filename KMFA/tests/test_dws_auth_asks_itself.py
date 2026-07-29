@@ -198,3 +198,26 @@ def test_a_frequent_tick_does_not_mean_frequent_popups():
     runner = (REPO / "KMFA/deploy/skills-runtime/run_skill.sh").read_text(encoding="utf-8")
     assert "--only-if-blocked" in runner, "节拍密了却没有闸——那就是每 15 分钟骚扰一次"
     assert decider.MIN_INTERVAL_HOURS >= 1.0, "静默期太短，撑不住密节拍"
+
+
+def test_the_skill_can_actually_show_up_on_the_health_page():
+    """**这条是今天最贵的一课。**
+
+    健康端点是 `for skill in sorted(SCHEDULE_CONTRACT)`——只输出**契约里有**的技能。
+    dws-data-auth 一开始没登记进契约，于是它**哪怕一直在跑，端点也永远不显示它**。
+
+    我据此连着两轮判定「技能没跑」，还为此改了两版触发方式（判据搬进技能、
+    改走 cron）。**判据用了一个结构上就不可能显示该技能的面。**
+    仓里那条 test_every_scheduled_skill_is_visible 是对的，
+    但它只在技能**进了 crontab** 之后才管得着——我前两版只挂 entrypoint，
+    正好从它下面绕了过去。
+
+    所以这里补一条不依赖 crontab 的：只要这个技能存在，它就必须能在健康面上出现。
+    """
+    sys.path.insert(0, str(REPO / "KMFA/app/backend"))
+    from app.main import SCHEDULE_CONTRACT, SKILL_MODULE  # noqa: PLC0415
+
+    assert "dws-data-auth" in SCHEDULE_CONTRACT, (
+        "技能没登记进 SCHEDULE_CONTRACT——健康端点按它取值，"
+        "没登记就等于这个技能在页面上不存在，跑没跑永远看不见")
+    assert "dws-data-auth" in SKILL_MODULE, "没归业务模块，驾驶舱分组里会掉出去"
