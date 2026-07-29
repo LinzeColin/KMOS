@@ -2764,6 +2764,15 @@ th[data-s]:not([aria-sort])::after{content:"⇅"}
 th[aria-sort="ascending"]::after{content:"↑";opacity:1}
 th[aria-sort="descending"]::after{content:"↓";opacity:1}
 td.neg{color:var(--bad);font-weight:600}
+.grp{display:flex;gap:.55rem;align-items:center;flex-wrap:wrap}
+.dl.alt{background:transparent;color:var(--accent);border:1px solid var(--accent);cursor:pointer;
+ font-family:inherit}
+.dl.alt:disabled{opacity:.55;cursor:default}
+a.one{text-decoration:none;color:var(--accent);font-size:1rem}
+a.one:hover{filter:brightness(1.25)}
+#recalcmsg:empty{display:none}
+#recalcmsg{background:var(--dim);border-left:3px solid var(--accent);padding:.6rem .9rem;
+ border-radius:0 3px 3px 0}
 footer{border-top:1px solid var(--rule);padding-top:.9rem;font-size:.76rem;color:var(--soft)}
 </style></head><body><div class="w">{{BODY}}</div>
 <script>
@@ -2804,6 +2813,34 @@ footer{border-top:1px solid var(--rule);padding-top:.9rem;font-size:.76rem;color
     th.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sort(); }
     });
+  });
+})();
+
+/* 重新计算：只提交请求，真正的活在 skills 容器里跑（App 容器没有 run_skill.sh，
+   也不该有——让 App 去跑克隆私有库解析上千张表，就是把「压测把线上打下线」重演一遍）。
+   按钮点完立刻禁用并写明「怎么确认真的变了」——只回一句「已提交」等于没回。 */
+(function () {
+  var btn = document.getElementById('recalc');
+  var msg = document.getElementById('recalcmsg');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    msg.textContent = '正在提交…';
+    fetch('/项目成本/重算', { method: 'POST' })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.j['已提交']) {
+          msg.textContent = '没能提交：' + (res.j['原因'] || '未知');
+          btn.disabled = false;
+          return;
+        }
+        msg.textContent = '已提交。' + res.j['说明'] + '　上次算完：' +
+          (res.j['上次算完'] || '（无记录）') + '　' + res.j['怎么确认'];
+      })
+      .catch(function (e) {
+        msg.textContent = '没能提交：' + e;
+        btn.disabled = false;
+      });
   });
 })();
 </script>
@@ -2908,6 +2945,8 @@ def public_project_cost_page():
         + cell(p.get("成本合计"), "n b")
         + cell(p.get("毛利"))
         + rate_cell(p)
+        + f'<td class="c" data-v=""><a class="one" title="只下载这一个合同" '
+          f'href="/项目成本/下载?合同={quote(str(p.get("合同编号") or ""))}">⬇</a></td>'
         + "</tr>"
         for p in with_cost)
 
@@ -2937,9 +2976,13 @@ def public_project_cost_page():
   那是「成本不知道」，不是「成本是 0」，所以不列在这里凑数。<br>
   <b>成本为负的项目照列</b>：那是金蝶里红字冲销超过借方，账上就是负的，不做粉饰。</div>
 <div class="bar">
-  <a class="dl" href="/项目成本/下载">⬇ 下载 Excel（按竣工报表的页签结构）</a>
-  <span class="hint">点表头可按该列排序，再点一次反向。</span>
+  <span class="grp">
+    <a class="dl" href="/项目成本/下载">⬇ 下载全部（Excel）</a>
+    <button class="dl alt" id="recalc" type="button">↻ 重新计算</button>
+  </span>
+  <span class="hint">点表头按该列排序，再点一次反向　·　每行末尾 ⬇ 只下载那一个合同</span>
 </div>
+<div class="hint" id="recalcmsg" role="status" aria-live="polite"></div>
 <div class="tw"><table id="costtbl">
 <thead><tr>
 <th data-s="t">合同编号</th><th data-s="t">甲方</th><th data-s="t">状态</th><th data-s="t">完工日</th>
@@ -2947,6 +2990,7 @@ def public_project_cost_page():
 <th class="n" data-s="n">自有人工</th><th class="n" data-s="n">劳务人工</th>
 <th class="n" data-s="n">分摊</th><th class="n" data-s="n">成本合计</th>
 <th class="n" data-s="n">毛利</th><th class="n" data-s="n">毛利率</th>
+<th>单独下载</th>
 </tr></thead>
 <tbody>{rows}</tbody></table></div>
 <footer>同一份数据的机器可读版在 <code>/public-api/项目成本</code>。
@@ -2958,7 +3002,7 @@ def public_project_cost_page():
 
 @app.api_route("/项目成本/下载", methods=["GET", "HEAD"], include_in_schema=False)
 @app.get("/public-api/项目成本表/下载", include_in_schema=False)
-def public_project_cost_download():
+def public_project_cost_download(合同: str | None = None):
     """项目成本 .xlsx——**页签结构对齐 Owner 手上那份竣工报表参考表**。
 
     Owner 2026-07-29：「需要支持下载」「你的下载产品和我的格式要保持一致」。
@@ -2991,6 +3035,18 @@ def public_project_cost_download():
     projects = [p for p in (payload.get("项目") or [])
                 if not p.get("合同号存疑") and (_cost_num(p.get("成本合计")) or 0) != 0]
     projects.sort(key=lambda p: -(_cost_num(p.get("成本合计")) or 0))
+
+    # 单一合同（Owner 2026-07-29：「不支持…单一合同下载」）。
+    # 找不到就 404 说找不到——回一份空表比报错更糟：拿到手的人会以为这个项目成本是 0。
+    if 合同:
+        want = 合同.strip().upper()
+        projects = [p for p in projects
+                    if str(p.get("合同编号") or "").strip().upper() == want]
+        if not projects:
+            raise HTTPException(
+                status_code=404,
+                detail=f"{合同} 不在有成本记录的项目里——可能没有成本发生额，"
+                       f"也可能合同号与红圈主合同表对不上。")
     stamp = str(payload.get("生成时间") or "")
 
     head_fill = PatternFill("solid", fgColor="1D5C8F")
@@ -3115,19 +3171,61 @@ def public_project_cost_download():
     buffer = _io.BytesIO()
     book.save(buffer)
     day = (stamp[:10] or datetime.now(BEIJING).date().isoformat()).replace("-", "")
-    name = f"KMFA_项目成本_{day}.xlsx"
+    tag = f"_{合同.strip().upper()}" if 合同 else ""
+    name = f"KMFA_项目成本{tag}_{day}.xlsx"
     return Response(
         buffer.getvalue(),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
             # filename* 走 RFC 5987，中文文件名在浏览器里才不会变成乱码或 _
             "Content-Disposition":
-                f"attachment; filename=KMFA_project_cost_{day}.xlsx; "
+                f"attachment; filename=KMFA_project_cost{tag}_{day}.xlsx; "
                 f"filename*=UTF-8''{quote(name)}",
             "Cache-Control": "no-store",
             "X-Robots-Tag": "noindex, nofollow",
         },
     )
+
+
+#: 「重新计算」的请求标记。App 容器与 skills 容器是**两个容器**，
+#: App 里没有 run_skill.sh、也不该有——真让 App 去跑克隆私有库解析上千张表的活，
+#: 就是把 2026-07-28 那次「压测把线上打下线」原样重演一遍，只是换了个触发器。
+#: 所以 App 只在共享卷上放一个标记，skills 容器每分钟看一眼、有就跑。
+COST_REFRESH_FLAG = RECENT_COST_PATH.parent / ".refresh_requested"
+
+
+@app.post("/项目成本/重算", include_in_schema=False)
+@app.post("/public-api/项目成本表/重算", include_in_schema=False)
+def public_project_cost_refresh():
+    """请求重算项目成本——**不在这个容器里跑**，只放一个标记。
+
+    Owner 2026-07-29：「不支持实时更新」。此前只有两种时机会重算：
+    每次部署、以及每天 05:45 的排程。源数据变了要等到第二天，那不叫实时。
+
+    返回里带上「上一次算完是什么时候」，好让人判断按下去之后有没有真的变——
+    只回一句「已提交」而不给时间戳，跟没回一样。
+    """
+    headers = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow"}
+    previous = None
+    if RECENT_COST_PATH.exists():
+        previous = datetime.fromtimestamp(
+            RECENT_COST_PATH.stat().st_mtime, BEIJING).isoformat(timespec="seconds")
+    try:
+        COST_REFRESH_FLAG.parent.mkdir(parents=True, exist_ok=True)
+        COST_REFRESH_FLAG.write_text(
+            datetime.now(BEIJING).isoformat(timespec="seconds"), encoding="utf-8")
+    except OSError as exc:
+        return JSONResponse(
+            {"已提交": False,
+             "原因": f"共享卷不可写（{type(exc).__name__}）——app 容器没挂 kmfa-logs 卷",
+             "上次算完": previous},
+            status_code=503, headers=headers)
+    return JSONResponse(
+        {"已提交": True,
+         "说明": "skills 容器每分钟检查一次；重算要克隆私有库并解析上千张明细账，约 2–4 分钟。",
+         "上次算完": previous,
+         "怎么确认": "过几分钟刷新本页，看顶部「数据生成」时间有没有变。"},
+        headers=headers)
 
 
 @app.get("/public-api/技能健康")

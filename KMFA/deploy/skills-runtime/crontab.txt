@@ -51,3 +51,12 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # 少了它，「正常的空跳」会让整行以非零退出，cron 每半小时记一笔像失败的东西，
 # 真失败就淹在里面了。
 */30 * * * *  root SK=$(python3 /opt/kmfa/KMOS/KMFA/tools/pick_stalest_skill.py 2>/dev/null); if [ -n "$SK" ]; then KMFA_SWEEP_RUN=1 nice -n 19 /opt/runtime/run_skill.sh "$SK" >> /var/log/kmfa/cron.log 2>&1 || true; fi
+
+# 项目成本「重新计算」请求：App 容器在共享卷上放标记，这里每分钟看一眼。
+#
+# 为什么绕这一圈：App 与 skills 是两个容器，App 里没有 run_skill.sh、也不该有——
+# 真让 App 去跑克隆私有库解析上千张表的活，就是把 2026-07-28 那次
+# 「压测把线上打下线」原样重演，只是换了个触发器。
+# 标记先删后跑：跑的过程中再点一次，会留下新标记、下一分钟再跑一遍，
+# 而不是把这一次的请求吞掉。nice 让 App 赢 CPU（那台机器 3.7GB）。
+* * * * *     root F=/var/log/kmfa/project_cost/.refresh_requested; if [ -f "$F" ]; then rm -f "$F"; KMFA_SWEEP_RUN=1 nice -n 19 /opt/runtime/run_skill.sh project-cost-refresh >> /var/log/kmfa/cron.log 2>&1 || true; fi
