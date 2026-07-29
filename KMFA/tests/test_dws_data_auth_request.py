@@ -150,19 +150,20 @@ def test_the_skill_is_wired_into_the_runner():
 
 
 def test_the_trigger_is_never_unconditional():
-    """触发必须**有闸**——无条件跑 = 每次部署都给 Owner 弹一次窗，那是骚扰。
+    """触发必须**有闸**——无条件弹窗 = 每次部署都骚扰 Owner 一次。
 
-    2026-07-29 本条改过一次：原来验的是环境变量开关
-    `KMFA_DWS_DATA_AUTH_REQUEST` 默认为 0。那个设计**线上实证不生效**
-    （开关在 Coolify 里、compose 里也声明了、部署也用了含改动的提交，
-    技能却从没进过台账——变量没到容器，KMFA_BOOT_SWEEP 那次的重演），
-    已整条删除，改成自愈判据 + 静默期。
-    这里跟着改成验**新的闸**；闸的语义细节归
-    KMFA/tests/test_dws_auth_asks_itself.py 管。
+    这条改过两次，两次都是设计真的变了：
+      v1 闸是环境变量 KMFA_DWS_DATA_AUTH_REQUEST —— 线上实证不生效
+         （变量没到容器，KMFA_BOOT_SWEEP 那次的重演），整条删除。
+      v2 闸放在 entrypoint 里先判再决定跑不跑 —— 判成「不跑」时整件事只在
+         读不到的 cron.log 留一行，线上跟故障分不开，又浪费一次部署。
+    现在闸在**技能内部**：entrypoint 无条件调用，每次决定都进台账。
+    闸的语义细节归 test_dws_auth_asks_itself.py 管。
     """
-    entry = (REPO / "KMFA/deploy/skills-runtime/entrypoint.sh").read_text(encoding="utf-8")
-    assert "should_request_dws_auth.py" in entry, "触发没有任何闸"
-    # 闸必须真决定跑不跑，而不是跑完再说
-    gate = entry.index("should_request_dws_auth.py")
-    fire = entry.index("run_skill.sh dws-data-auth")
-    assert gate < fire, "闸在触发之后才判——等于没闸"
+    runner = (REPO / "KMFA/deploy/skills-runtime/run_skill.sh").read_text(encoding="utf-8")
+    assert "--only-if-blocked" in runner, "技能被无条件调用且没有闸——那就是每次部署都弹窗"
+
+    tool = (REPO / "KMFA/tools/automation/dws_data_auth_request.py").read_text(encoding="utf-8")
+    gate = tool.index("args.only_if_blocked")
+    fire = tool.index("rc, output = run(invocation")
+    assert gate < fire, "闸在真发起之后才判——等于没闸"

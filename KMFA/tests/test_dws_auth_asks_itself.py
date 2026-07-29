@@ -128,8 +128,44 @@ def test_the_dead_env_switch_is_gone():
     assert "KMFA_DWS_DATA_AUTH_REQUEST:" not in compose, "compose 里还留着它"
 
 
-def test_the_entrypoint_actually_uses_the_decider():
+def test_every_decision_reaches_the_ledger():
+    """**本轮最重要的一条。** entrypoint 必须**无条件**调 run_skill.sh。
+
+    上一版把闸放在 entrypoint 里：判据说「不跑」，整件事就只在 cron.log 留一行，
+    而 cron.log 谁都读不到——Coolify 的 logs 返空、exec 返回 404、
+    /api/排程健康 在 Access 后面。于是线上表现成「什么都没发生」，
+    跟故障完全分不开。**为此浪费了一次部署。**
+
+    仓里本来就写着这条经验（run_skill.sh 的回传注释：「回传后验证就是一条
+    gh api，不必登录也不必进容器」）——上一版是我自己把它破坏了。
+    """
     entry = (REPO / "KMFA/deploy/skills-runtime/entrypoint.sh").read_text(encoding="utf-8")
-    assert "should_request_dws_auth.py" in entry, "判据没接进 entrypoint"
-    assert "--mark" in entry, "没带 --mark，静默期永远不会生效——会变成每次部署都弹"
-    assert "run_skill.sh dws-data-auth" in entry, "判成该请求了却没真去跑技能"
+    assert "run_skill.sh dws-data-auth" in entry, "技能没被调用"
+    assert "should_request_dws_auth.py" not in entry, (
+        "闸又回到 entrypoint 里了——它一旦说「不跑」，决定就只落在读不到的 cron.log，"
+        "线上跟故障分不开")
+
+    runner = (REPO / "KMFA/deploy/skills-runtime/run_skill.sh").read_text(encoding="utf-8")
+    assert "--only-if-blocked" in runner, "闸没交给技能——那就是无条件弹窗了"
+
+
+def test_the_gate_lives_inside_the_skill():
+    """闸在技能内部，且「按设计没请求」必须是 rc=0。
+
+    判成非零会让心跳天天假红，而天天亮的红灯最后一定被当噪音关掉——
+    真出事那次跟着被忽略。
+    """
+    tool = (REPO / "KMFA/tools/automation/dws_data_auth_request.py").read_text(encoding="utf-8")
+    assert "--only-if-blocked" in tool, "技能不认这个参数"
+    assert "NOT_REQUESTED_BY_DESIGN" in tool, "没有「按设计没请求」这个状态"
+    idx = tool.index("NOT_REQUESTED_BY_DESIGN")
+    assert "return 0" in tool[idx:idx + 200], "按设计没请求却报了非零——那是假红"
+
+
+def test_the_quiet_period_stamp_is_written_only_after_a_real_request():
+    """时间戳只在真发起之后写。没发起却盖时间戳，会把下一次真请求推掉。"""
+    tool = (REPO / "KMFA/tools/automation/dws_data_auth_request.py").read_text(encoding="utf-8")
+    stamp = tool.index("state.write_text(datetime.now()")
+    # 写时间戳这段必须在「真调用了授权命令」之后
+    invoke = tool.index("rc, output = run(invocation")
+    assert invoke < stamp, "还没真调用就盖了时间戳"

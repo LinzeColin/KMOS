@@ -30,6 +30,8 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import datetime
+from pathlib import Path
 
 #: 授权类子命令的候选词。宁可多认几个再用 --help 甄别，
 #: 也不要漏掉一个而误报「CLI 里没有授权入口」。
@@ -81,9 +83,33 @@ def main() -> int:
     ap.add_argument("--send", action="store_true", help="真发起授权请求")
     ap.add_argument("--ttl", default=None,
                     help="授权时长；不给就用命令自己的默认值，不擅自替 Owner 选")
+    ap.add_argument("--only-if-blocked", action="store_true",
+                    help="仅当上游归档确实卡住、且已过静默期时才发起")
+    ap.add_argument("--ledger", default="/var/log/kmfa/ledger.jsonl")
+    ap.add_argument("--state", default="/var/log/kmfa/dws-data-auth/.last_request")
     args = ap.parse_args()
 
     report: dict = {"status": "UNKNOWN", "探测": [], "尝试": []}
+
+    # 闸放在**技能内部**，不放在 entrypoint 里。
+    #
+    # 上一版放在外面：判据说「不跑」，整件事就只在 cron.log 留一行，而 cron.log
+    # 谁都读不到（Coolify logs 返空、exec 404、/api 在 Access 后面）。
+    # 线上表现成「什么都没发生」，跟故障完全分不开。**为此浪费了一次部署。**
+    # 放进来之后，每一次决定都经 run_skill.sh 进台账，能用一条 gh api 验到。
+    if args.only_if_blocked:
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        from should_request_dws_auth import decide  # noqa: PLC0415
+
+        ok, why = decide(ledger=Path(args.ledger), state=Path(args.state),
+                         now=datetime.now())
+        report["闸"] = why
+        if not ok:
+            # **rc=0**：这是「按设计没请求」，不是故障。判成非零会让心跳天天假红，
+            # 而天天亮的红灯最后一定被当噪音关掉——真出事那次跟着被忽略。
+            report["status"] = "NOT_REQUESTED_BY_DESIGN"
+            emit(report)
+            return 0
 
     if not shutil.which("dws"):
         report["status"] = "DWS_NOT_INSTALLED"
@@ -139,6 +165,13 @@ def main() -> int:
     report["尝试"].append({"命令": " ".join(invocation), "rc": rc,
                           "输出": output[:4000]})
 
+    if rc in (0, 124):
+        # 写下时间戳：静默期靠它生效。**只在真发起之后写**——
+        # 没发起却盖时间戳，会把下一次真该请求的时机推掉。
+        if args.only_if_blocked:
+            state = Path(args.state)
+            state.parent.mkdir(parents=True, exist_ok=True)
+            state.write_text(datetime.now().isoformat(timespec="seconds"), encoding="utf-8")
     if rc == 0:
         report["status"] = "AUTH_REQUESTED"
         report["说明"] = "授权请求已发出——Owner 的钉钉/悟空上应出现确认弹窗"

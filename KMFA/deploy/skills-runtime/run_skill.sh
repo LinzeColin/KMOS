@@ -145,7 +145,9 @@ case "$SKILL" in
   # upstream-archive 的 AUTH_PERMISSION_DENIED 就卡在这层。
   # **不进压测池的兜底已在 run_skill 顶部**（SWEEP=1 强制 dry-run），
   # 所以压测碰到它只会探测 CLI、不会平白给 Owner 弹窗。
-  dws-data-auth)       CMD=(python3 KMFA/tools/automation/dws_data_auth_request.py "$DELIVERY_FLAG") ;;
+  dws-data-auth)       CMD=(python3 KMFA/tools/automation/dws_data_auth_request.py "$DELIVERY_FLAG" \
+                         --only-if-blocked --ledger /var/log/kmfa/ledger.jsonl \
+                         --state /var/log/kmfa/dws-data-auth/.last_request) ;;
   # 三道检查逐条跑完再一起判，**不是** set -e 一路串下来。
   # 实测（2026-07-27）：lineage stale 发现陈旧资产时按设计返回 1，那是一条「发现」；
   # 而 set -e 把这条发现当成中断，双平面门禁于是几周没被跑到过，还一直显示"自检失败"。
