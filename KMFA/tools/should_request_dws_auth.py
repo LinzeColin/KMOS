@@ -44,6 +44,44 @@ BLOCKED_SKILL = "upstream-archive"
 MIN_INTERVAL_HOURS = 6.0
 
 
+#: 只有**真发出过请求**的结局才买得到静默期。
+#: 「按设计没请求」「只探测」都不算——没打扰过 Owner，就没有理由让下一次闭嘴。
+REQUESTED_OUTCOMES = frozenset({"AUTH_REQUESTED", "AUTH_REQUESTED_AWAITING_CONFIRM"})
+
+
+def read_stamp(state: Path) -> tuple[datetime | None, str | None]:
+    """读戳记 → (时间, 结局)。
+
+    新格式是 JSON：`{"at": "...", "outcome": "AUTH_REQUESTED"}`。
+    旧格式是**裸时间戳**（上一版写的），没有结局——那种戳记一律不算静默期：
+    它恰恰可能是「盖了戳但没请求成功」的那一种，认它就等于让系统自己锁死自己。
+    """
+    if not state.exists():
+        return None, None
+    try:
+        text = state.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None, None
+    if not text:
+        return None, None
+    try:
+        data = json.loads(text)
+        return datetime.fromisoformat(str(data["at"])), str(data.get("outcome") or "")
+    except (ValueError, TypeError, KeyError):
+        pass
+    try:
+        return datetime.fromisoformat(text), None   # 旧的裸时间戳
+    except ValueError:
+        return None, None
+
+
+def write_stamp(state: Path, *, now: datetime, outcome: str) -> None:
+    state.parent.mkdir(parents=True, exist_ok=True)
+    state.write_text(json.dumps({"at": now.isoformat(timespec="seconds"),
+                                 "outcome": outcome}, ensure_ascii=False),
+                     encoding="utf-8")
+
+
 def last_run(ledger: Path, skill: str) -> dict | None:
     row = None
     try:
@@ -70,18 +108,24 @@ def decide(*, ledger: Path, state: Path, now: datetime) -> tuple[bool, str]:
     if row.get("rc") in (0, None):
         return False, f"{BLOCKED_SKILL} 最近一次是成功的——授权是通的，不用请求"
 
-    if state.exists():
-        try:
-            previous = datetime.fromisoformat(state.read_text(encoding="utf-8").strip())
-        except (OSError, ValueError):
-            previous = None
-        if previous is not None:
-            elapsed = now - previous
-            if elapsed < timedelta(hours=MIN_INTERVAL_HOURS):
-                left = timedelta(hours=MIN_INTERVAL_HOURS) - elapsed
-                return False, (f"上次请求在 {previous:%m-%d %H:%M}，还差 "
-                               f"{left.total_seconds() / 3600:.1f} 小时才到间隔"
-                               f"（{MIN_INTERVAL_HOURS:g}h）——弹窗有骚扰性，不连发")
+    stamped_at, outcome = read_stamp(state)
+    if stamped_at is not None:
+        if outcome not in REQUESTED_OUTCOMES:
+            # **静默期必须有凭据。**
+            # 2026-07-29 线上卡死在这里：上一版的 --mark 是在「判定该请求」时就盖戳，
+            # 而不是在**真请求之后**。于是盖了戳、请求却没发出去，接下来 6 小时
+            # 全被自己盖的戳拦住，端点只报 NOT_REQUESTED_BY_DESIGN——
+            # 看上去一切正常，Owner 却永远收不到弹窗。
+            # 静默期存在的理由是「刚请求过、别再打扰」；**没请求成功就不该买到安静**。
+            return True, (f"{BLOCKED_SKILL} 最近一次失败（rc={row.get('rc')}）；"
+                          f"上次戳记 {stamped_at:%m-%d %H:%M} 没有成功请求的凭据"
+                          f"（outcome={outcome or '无'}），不算静默期")
+        elapsed = now - stamped_at
+        if elapsed < timedelta(hours=MIN_INTERVAL_HOURS):
+            left = timedelta(hours=MIN_INTERVAL_HOURS) - elapsed
+            return False, (f"上次请求在 {stamped_at:%m-%d %H:%M}（{outcome}），还差 "
+                           f"{left.total_seconds() / 3600:.1f} 小时才到间隔"
+                           f"（{MIN_INTERVAL_HOURS:g}h）——弹窗有骚扰性，不连发")
     return True, f"{BLOCKED_SKILL} 最近一次失败（rc={row.get('rc')}），且已过静默期"
 
 
@@ -102,8 +146,10 @@ def main() -> int:
     # 而前者是设计、后者是故障。
     print(why, file=sys.stderr)
     if ok and args.mark:
-        state.parent.mkdir(parents=True, exist_ok=True)
-        state.write_text(now.isoformat(timespec="seconds"), encoding="utf-8")
+        # 这里盖的戳**不带成功凭据**——它只说明「判过该请求」。
+        # 真正的凭据由发起方在请求成功后写（见 dws_data_auth_request.py）。
+        # 这个区分正是 2026-07-29 卡死的根因：判过 ≠ 请求过。
+        write_stamp(state, now=now, outcome="DECIDED_ONLY")
     return 0 if ok else 1
 
 

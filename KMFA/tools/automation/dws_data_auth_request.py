@@ -169,9 +169,11 @@ def main() -> int:
         # 写下时间戳：静默期靠它生效。**只在真发起之后写**——
         # 没发起却盖时间戳，会把下一次真该请求的时机推掉。
         if args.only_if_blocked:
-            state = Path(args.state)
-            state.parent.mkdir(parents=True, exist_ok=True)
-            state.write_text(datetime.now().isoformat(timespec="seconds"), encoding="utf-8")
+            from should_request_dws_auth import write_stamp  # noqa: PLC0415
+
+            write_stamp(Path(args.state), now=datetime.now(),
+                        outcome=("AUTH_REQUESTED" if rc == 0
+                                 else "AUTH_REQUESTED_AWAITING_CONFIRM"))
     if rc == 0:
         report["status"] = "AUTH_REQUESTED"
         report["说明"] = "授权请求已发出——Owner 的钉钉/悟空上应出现确认弹窗"

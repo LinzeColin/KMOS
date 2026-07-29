@@ -39,11 +39,17 @@ def _ledger(tmp_path: Path, rows: list[dict]) -> Path:
     return p
 
 
-def _decide(tmp_path, rows, *, state_ts: str | None = None, now: str = NOW):
+def _decide(tmp_path, rows, *, state_ts: str | None = None, now: str = NOW,
+            outcome: str = "AUTH_REQUESTED"):
+    """state_ts 默认写成**带成功凭据**的戳记。
+
+    2026-07-29 改：裸时间戳现在不算静默期（它分不出「请求成功过」和「只是判过」，
+    而后者曾把系统锁死 6 小时）。所以要测静默期本身，就得给它一个真凭据。
+    """
     ledger = _ledger(tmp_path, rows)
     state = tmp_path / "last_request"
     if state_ts:
-        state.write_text(state_ts, encoding="utf-8")
+        decider.write_stamp(state, now=datetime.fromisoformat(state_ts), outcome=outcome)
     return decider.decide(ledger=ledger, state=state, now=datetime.fromisoformat(now))
 
 
@@ -85,7 +91,10 @@ def test_after_the_quiet_period_it_asks_again(tmp_path):
 
 def test_a_corrupt_state_file_does_not_wedge_it_shut(tmp_path):
     """状态文件坏了不能变成「永远不再请求」——那会让整条链无声地卡死。"""
-    ok, why = _decide(tmp_path, [BLOCKED], state_ts="不是时间")
+    ledger = _ledger(tmp_path, [BLOCKED])
+    state = tmp_path / "last_request"
+    state.write_text("不是时间也不是 JSON", encoding="utf-8")
+    ok, why = decider.decide(ledger=ledger, state=state, now=datetime.fromisoformat(NOW))
     assert ok, why
 
 
@@ -165,7 +174,7 @@ def test_the_gate_lives_inside_the_skill():
 def test_the_quiet_period_stamp_is_written_only_after_a_real_request():
     """时间戳只在真发起之后写。没发起却盖时间戳，会把下一次真请求推掉。"""
     tool = (REPO / "KMFA/tools/automation/dws_data_auth_request.py").read_text(encoding="utf-8")
-    stamp = tool.index("state.write_text(datetime.now()")
+    stamp = tool.index("write_stamp(Path(args.state)")
     # 写时间戳这段必须在「真调用了授权命令」之后
     invoke = tool.index("rc, output = run(invocation")
     assert invoke < stamp, "还没真调用就盖了时间戳"
@@ -221,3 +230,71 @@ def test_the_skill_can_actually_show_up_on_the_health_page():
         "技能没登记进 SCHEDULE_CONTRACT——健康端点按它取值，"
         "没登记就等于这个技能在页面上不存在，跑没跑永远看不见")
     assert "dws-data-auth" in SKILL_MODULE, "没归业务模块，驾驶舱分组里会掉出去"
+
+
+# ── 静默期必须有凭据（2026-07-29 线上卡死在这里）───────────────────────────
+
+def test_a_stamp_without_proof_does_not_buy_silence(tmp_path):
+    """**本轮最贵的一条。**
+
+    上一版的 `--mark` 在「判定该请求」时就盖戳，而不是在**真请求之后**。
+    于是盖了戳、请求却没发出去，接下来 6 小时全被自己盖的戳拦住——
+    端点只报 NOT_REQUESTED_BY_DESIGN，看上去一切正常，Owner 却永远收不到弹窗。
+    **系统自己把自己锁死了，而且锁得毫无痕迹。**
+
+    静默期存在的理由是「刚打扰过 Owner、别再打扰」。没请求成功，就没打扰过，
+    也就不该买到安静。
+    """
+    ledger = _ledger(tmp_path, [BLOCKED])
+    state = tmp_path / "s"
+    decider.write_stamp(state, now=datetime.fromisoformat("2026-07-29T15:00:00+08:00"),
+                        outcome="DECIDED_ONLY")
+    ok, why = decider.decide(ledger=ledger, state=state,
+                             now=datetime.fromisoformat(NOW))
+    assert ok, f"没有成功凭据的戳记却买到了静默期——系统会把自己锁死：{why}"
+    assert "没有成功请求的凭据" in why, why
+
+
+def test_a_real_request_does_buy_silence(tmp_path):
+    """真请求过就该安静——否则每 15 分钟弹一次就是骚扰。"""
+    ledger = _ledger(tmp_path, [BLOCKED])
+    state = tmp_path / "s"
+    decider.write_stamp(state, now=datetime.fromisoformat("2026-07-29T15:00:00+08:00"),
+                        outcome="AUTH_REQUESTED")
+    ok, why = decider.decide(ledger=ledger, state=state,
+                             now=datetime.fromisoformat(NOW))
+    assert not ok, "真请求过还连发，那是骚扰"
+    assert "AUTH_REQUESTED" in why, why
+
+
+def test_the_legacy_bare_timestamp_is_not_trusted(tmp_path):
+    """线上**此刻**就有一个旧格式的裸时间戳，它正是把系统锁死的那个。
+
+    旧格式没有结局字段，分不出「请求成功过」和「只是判过」——
+    分不出的时候必须当作没凭据，否则这次修复对线上那个戳记不起作用。
+    """
+    ledger = _ledger(tmp_path, [BLOCKED])
+    state = tmp_path / "s"
+    state.write_text("2026-07-29T15:00:00+08:00", encoding="utf-8")   # 旧格式
+    ok, why = decider.decide(ledger=ledger, state=state,
+                             now=datetime.fromisoformat(NOW))
+    assert ok, f"旧的裸时间戳还在锁着——线上那个戳记不会被解开：{why}"
+
+
+def test_awaiting_confirm_also_counts_as_asked(tmp_path):
+    """命令阻塞超时通常意味着弹窗已推出、正等 Owner 点——那也是打扰过了。"""
+    ledger = _ledger(tmp_path, [BLOCKED])
+    state = tmp_path / "s"
+    decider.write_stamp(state, now=datetime.fromisoformat("2026-07-29T15:00:00+08:00"),
+                        outcome="AUTH_REQUESTED_AWAITING_CONFIRM")
+    ok, _ = decider.decide(ledger=ledger, state=state, now=datetime.fromisoformat(NOW))
+    assert not ok, "弹窗已推出却又推一次"
+
+
+def test_only_the_requester_writes_a_proof_stamp():
+    """凭据只能由**真发起的那一方**写。判据方写的戳记不许带成功结局。"""
+    gate = (REPO / "KMFA/tools/should_request_dws_auth.py").read_text(encoding="utf-8")
+    assert 'outcome="DECIDED_ONLY"' in gate, "判据方写了带成功结局的戳记——那又能锁死自己"
+    tool = (REPO / "KMFA/tools/automation/dws_data_auth_request.py").read_text(encoding="utf-8")
+    assert "write_stamp(" in tool, "发起方没写凭据——静默期永远不会生效，变成连发"
+    assert "AUTH_REQUESTED" in tool
