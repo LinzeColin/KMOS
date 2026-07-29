@@ -139,6 +139,13 @@ case "$SKILL" in
                          A="--profile-config $D/expected_profile.json --ledger-path $D/memory.md --state-path $D/state.json"; \
                          [ -f "$D/expected_profile.json" ] || A="$A --bootstrap-current-profile"; \
                          python3 KMFA/tools/automation/dws_auth_keepalive.py $A') ;;  # 认证保活：替代已停用的 Codex 排程 dws-auth-keepalive-2；无交互刷新 access-token；profile/state/ledger 落 kmfa-logs 卷（容器重建不丢），首跑自举 profile；失败经 run_skill 告警面上报
+  # dws **数据授权**请求：把授权弹窗推到 Owner 的钉钉/悟空上。
+  # 跟上面的 keepalive 不是一回事——keepalive 刷的是 access-token（无交互、一直绿），
+  # 这里缺的是「读群消息内容」那层数据授权，它有 TTL、过期后必须 Owner 点确认。
+  # upstream-archive 的 AUTH_PERMISSION_DENIED 就卡在这层。
+  # **不进压测池的兜底已在 run_skill 顶部**（SWEEP=1 强制 dry-run），
+  # 所以压测碰到它只会探测 CLI、不会平白给 Owner 弹窗。
+  dws-data-auth)       CMD=(python3 KMFA/tools/automation/dws_data_auth_request.py "$DELIVERY_FLAG") ;;
   # 三道检查逐条跑完再一起判，**不是** set -e 一路串下来。
   # 实测（2026-07-27）：lineage stale 发现陈旧资产时按设计返回 1，那是一条「发现」；
   # 而 set -e 把这条发现当成中断，双平面门禁于是几周没被跑到过，还一直显示"自检失败"。
