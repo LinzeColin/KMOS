@@ -52,11 +52,15 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # 真失败就淹在里面了。
 */30 * * * *  root SK=$(python3 /opt/kmfa/KMOS/KMFA/tools/pick_stalest_skill.py 2>/dev/null); if [ -n "$SK" ]; then KMFA_SWEEP_RUN=1 nice -n 19 /opt/runtime/run_skill.sh "$SK" >> /var/log/kmfa/cron.log 2>&1 || true; fi
 
-# 项目成本「重新计算」请求：App 容器在共享卷上放标记，这里每分钟看一眼。
+# 项目成本「重新计算」请求：App 在 app-state 卷放时间戳，这里每分钟比一次。
 #
 # 为什么绕这一圈：App 与 skills 是两个容器，App 里没有 run_skill.sh、也不该有——
 # 真让 App 去跑克隆私有库解析上千张表的活，就是把 2026-07-28 那次
 # 「压测把线上打下线」原样重演，只是换了个触发器。
-# 标记先删后跑：跑的过程中再点一次，会留下新标记、下一分钟再跑一遍，
-# 而不是把这一次的请求吞掉。nice 让 App 赢 CPU（那台机器 3.7GB）。
-* * * * *     root F=/var/log/kmfa/project_cost/.refresh_requested; if [ -f "$F" ]; then rm -f "$F"; KMFA_SWEEP_RUN=1 nice -n 19 /opt/runtime/run_skill.sh project-cost-refresh >> /var/log/kmfa/cron.log 2>&1 || true; fi
+#
+# 为什么比时间戳而不是「先删后跑」：两个卷的读写方向是刻意反着的——
+# app-state 是 app 可写、**skills 只读**（daily-backup 读它打包备份，「绝不写」）。
+# skills 删不掉那个标记。第一版把标记放日志卷想着好删，结果 app 对日志卷只读，
+# 线上直接 503。所以：标记里是请求时刻，这边在自己可写的卷上记「处理到哪」，
+# 标记比记录新就跑。跑的过程中再点一次不会被吞掉——时间戳又变新了。
+* * * * *     root R=/var/lib/kmfa/state/.project_cost_refresh_requested; S=/var/log/kmfa/project_cost/.last_refresh_handled; if [ -f "$R" ] && { [ ! -f "$S" ] || [ "$R" -nt "$S" ]; }; then mkdir -p "$(dirname "$S")"; cp -f "$R" "$S" 2>/dev/null || date -Is > "$S"; KMFA_SWEEP_RUN=1 nice -n 19 /opt/runtime/run_skill.sh project-cost-refresh >> /var/log/kmfa/cron.log 2>&1 || true; fi

@@ -3187,11 +3187,20 @@ def public_project_cost_download(合同: str | None = None):
     )
 
 
-#: 「重新计算」的请求标记。App 容器与 skills 容器是**两个容器**，
-#: App 里没有 run_skill.sh、也不该有——真让 App 去跑克隆私有库解析上千张表的活，
-#: 就是把 2026-07-28 那次「压测把线上打下线」原样重演一遍，只是换了个触发器。
-#: 所以 App 只在共享卷上放一个标记，skills 容器每分钟看一眼、有就跑。
-COST_REFRESH_FLAG = RECENT_COST_PATH.parent / ".refresh_requested"
+#: 「重新计算」的请求标记。App 与 skills 是**两个容器**，App 里没有 run_skill.sh、
+#: 也不该有——真让 App 去跑克隆私有库解析上千张表的活，就是把 2026-07-28 那次
+#: 「压测把线上打下线」原样重演一遍，只是换了个触发器。所以 App 只放一个标记。
+#:
+#: 放在 **app-state 卷**，不是日志卷。两个卷的读写方向是刻意反着的：
+#:   kmfa-logs      skills 可写 / app **只读**
+#:   kmfa-app-state app 可写   / skills **只读**（daily-backup 读它打包备份，注释写明「绝不写」）
+#: 第一版把标记写进日志卷，线上直接 503「共享卷不可写」——那道只读边界是有意的，
+#: 不该为了一个按钮把整个日志卷对 app 开成可写。
+#:
+#: skills 那边**删不掉**这个标记（它只读挂载），所以不能用「先删后跑」，
+#: 改成比时间戳：标记里写请求时刻，skills 在自己可写的卷上记「上次处理到哪」，
+#: 标记比记录新就跑。跑的过程中再点一次也不会被吞掉——时间戳又变新了。
+COST_REFRESH_FLAG = APP_STATE_DIR / ".project_cost_refresh_requested"
 
 
 @app.post("/项目成本/重算", include_in_schema=False)

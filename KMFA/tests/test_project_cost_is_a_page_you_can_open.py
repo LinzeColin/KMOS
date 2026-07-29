@@ -295,13 +295,31 @@ def test_recompute_only_files_a_request_and_never_runs_the_job_here(tmp_path, mo
     assert "subprocess" not in tail, "重算端点里出现了子进程调用——重活不该在 App 容器里跑"
 
 
+def test_the_flag_goes_where_the_app_can_actually_write():
+    """标记必须落在 **app 可写**的卷上。
+
+    2026-07-29 线上实测：第一版把它写进日志卷，按钮直接 503
+    「共享卷不可写——app 容器没挂 kmfa-logs 卷」。两个卷的读写方向是刻意反着的：
+      kmfa-logs       skills 可写 / app **只读**
+      kmfa-app-state  app 可写   / skills **只读**（daily-backup 读它打包备份，「绝不写」）
+    那道只读边界是有意的，不该为了一个按钮把整个日志卷对 app 开成可写。
+    """
+    src = (REPO / "KMFA/app/backend/app/main.py").read_text(encoding="utf-8")
+    line = next(l for l in src.splitlines() if l.startswith("COST_REFRESH_FLAG"))
+    assert "APP_STATE_DIR" in line, f"标记又放回 app 只读的卷上了：{line}"
+
+
 def test_the_skills_side_actually_watches_for_the_flag():
     """标记要有人看。没人看的标记 = 按钮按下去什么也不会发生。"""
     cron = (REPO / "KMFA/deploy/skills-runtime/crontab.txt").read_text(encoding="utf-8")
     line = next((l for l in cron.splitlines()
-                 if ".refresh_requested" in l and not l.lstrip().startswith("#")), None)
+                 if "refresh_requested" in l and not l.lstrip().startswith("#")), None)
     assert line, "crontab 里没有看标记的那一跳"
     assert line.startswith("* * * * *"), "不是每分钟看一次，按下去要等很久才有反应"
-    assert "rm -f" in line and line.index("rm -f") < line.index("run_skill.sh"), \
-        "要先删标记再跑：跑的过程中再点一次才不会被吞掉"
     assert "nice -n" in line, "重算没让出 CPU 优先级"
+    # skills 只读挂载 app-state，**删不掉**那个标记，所以只能比时间戳。
+    # 写成「先删后跑」在线上会一直失败，而且失败得很安静。
+    assert "rm -f" not in line, "skills 对 app-state 只读，删不掉标记"
+    assert "-nt" in line, "没有比时间戳——那就分不出「这次点的」和「上次点的」"
+    assert "/var/lib/kmfa/state/" in line and "/var/log/kmfa/" in line, \
+        "两个卷都要用到：读 app 写的标记，写自己这边的处理记录"
