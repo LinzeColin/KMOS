@@ -181,9 +181,19 @@ def test_there_is_a_download_button(tmp_path):
     assert 'href="/项目成本/下载"' in r.text
 
 
-def test_the_download_is_a_real_workbook_shaped_like_the_owner_reference(tmp_path):
-    """Owner：「你的下载产品和我的格式要保持一致」——对照物是那份 8 项目参考表，
-    页签是 使用说明／项目总览／毛利复核／…。"""
+def test_the_download_is_a_real_workbook_in_the_owners_own_column_order(tmp_path):
+    """Owner：「你的下载产品和我的格式要保持一致」。
+
+    2026-07-29 本条整条重写，因为**它原来钉错了基准**：
+    旧版断言页签为 使用说明／项目总览／毛利复核／成本明细，对照物写的是
+    「那份 8 项目参考表」——而那份 `KMFA_项目成本_真实参考回放_8项目.xlsx`
+    **是我自己生成的产物**。测试于是变成「我的输出等于我的输出」，
+    Owner 再说一次「和我原来的格式根本不一样」时它依然全绿。
+
+    真源是他的《生产项目状态表》「信息表」（30 列）。列序细节归
+    KMFA/tests/test_download_matches_owner_column_order.py 管，
+    这里只守住最粗的形状：是个真 xlsx、工作表叫「信息表」、自造页签不许回来。
+    """
     import io
 
     import openpyxl
@@ -192,15 +202,17 @@ def test_the_download_is_a_real_workbook_shaped_like_the_owner_reference(tmp_pat
     assert r.status_code == 200
     assert "spreadsheetml" in r.headers["content-type"]
     book = openpyxl.load_workbook(io.BytesIO(r.content))
-    for must in ("使用说明", "项目总览", "毛利复核", "成本明细"):
-        assert must in book.sheetnames, f"缺页签 {must}：{book.sheetnames}"
-    overview = book["项目总览"]
-    headers = [overview.cell(1, i).value for i in range(1, overview.max_column + 1)]
+    assert book.sheetnames[0] == "信息表", f"第一个页签不是「信息表」：{book.sheetnames}"
+    for invented in ("使用说明", "项目总览", "毛利复核", "成本明细"):
+        assert invented not in book.sheetnames, f"自造页签「{invented}」回来了"
+    ws = book["信息表"]
+    headers = [ws.cell(1, i).value for i in range(1, ws.max_column + 1)]
+    assert headers[:3] == ["甲方名称", "省份", "合同号"], f"列序不是他的：{headers[:3]}"
     assert "毛利率" in headers
     # 样例里 001（47000）与 002（-9000）进表；003 成本为 0 不进；
     # 004 合同号存疑——它的成本不归入任何项目，所以也不进主表。
-    assert overview.max_row - 1 == 2, \
-        f"主表行数不对：{overview.max_row - 1}（存疑项目不该进来，成本为 0 的也不该）"
+    assert ws.max_row - 1 == 2, \
+        f"主表行数不对：{ws.max_row - 1}（存疑项目不该进来，成本为 0 的也不该）"
 
 
 def test_the_download_filename_survives_chinese(tmp_path):
@@ -273,6 +285,7 @@ def test_every_row_can_be_downloaded_on_its_own(tmp_path):
 
 
 def test_a_single_contract_download_contains_only_that_contract(tmp_path):
+    """单合同件也走「信息表」——合同号在他的表里是**第 3 列**，不是第 1 列。"""
     import io
 
     import openpyxl
@@ -280,9 +293,9 @@ def test_a_single_contract_download_contains_only_that_contract(tmp_path):
     r = _client(tmp_path).get("/项目成本/下载", params={"合同": "KMX2026001-001"})
     assert r.status_code == 200
     book = openpyxl.load_workbook(io.BytesIO(r.content))
-    overview = book["项目总览"]
-    assert overview.max_row - 1 == 1
-    assert overview.cell(2, 1).value == "KMX2026001-001"
+    ws = book["信息表"]
+    assert ws.max_row - 1 == 1
+    assert ws.cell(2, 3).value == "KMX2026001-001", "合同号没落在他表里的第 3 列"
     assert "KMX2026001-001" in r.headers.get("content-disposition", "")
 
 
