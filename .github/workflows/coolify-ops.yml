@@ -311,25 +311,26 @@ jobs:
           curl -fsSL -H "Authorization: Bearer $TOKEN" \
             "$BASE/api/v1/applications/$APP/envs" -o "$RUNNER_TEMP/after.json"
           python3 - <<'PY'
-          import json, os, sys
+          import collections, json, os, sys
           data = json.load(open(
               os.path.join(os.environ["RUNNER_TEMP"], "after.json"),
               encoding="utf-8",
           ))
           envs = data if isinstance(data, list) else data.get("data") or []
-          values = [
-              item.get("value")
-              for item in envs
-              if str(item.get("key")) == "KMFA_CLOUDFLARE_ACCESS_AUD"
-          ]
-          # Coolify omits every environment value in this list endpoint,
-          # including non-secret audience tags.  Only key cardinality is
-          # observable here; the post-deploy origin JWT canary proves the
-          # actual audience set.
-          if len(values) != 1:
-              print("回读失败：audience 条目不是唯一。")
+          counts = collections.Counter(str(item.get("key")) for item in envs)
+          representation_count = collections.Counter(counts.values()).most_common(1)[0][0]
+          # Docker Compose apps expose each environment row once per Coolify
+          # context.  This app currently has production and preview contexts,
+          # so every ordinary key appears twice.  Match that normal
+          # multiplicity instead of treating the API representations as
+          # conflicting duplicate values.
+          if (
+              representation_count not in (1, 2)
+              or counts["KMFA_CLOUDFLARE_ACCESS_AUD"] != representation_count
+          ):
+              print("回读失败：audience 条目与应用正常上下文数不一致。")
               sys.exit(1)
-          print("KMFA_CLOUDFLARE_ACCESS_AUD 已唯一写入并回读到唯一键。")
+          print("KMFA_CLOUDFLARE_ACCESS_AUD 已覆盖全部正常应用上下文。")
           PY
 
       - name: 同步项目成本私有只读源与工资密码（去重并回读）
@@ -402,30 +403,30 @@ jobs:
           curl -fsSL -H "Authorization: Bearer $TOKEN" \
             "$BASE/api/v1/applications/$APP/envs" -o "$RUNNER_TEMP/after.json"
           python3 - <<'PY'
-          import json, os, sys
+          import collections, json, os, sys
           data = json.load(open(
               os.path.join(os.environ["RUNNER_TEMP"], "after.json"),
               encoding="utf-8",
           ))
           envs = data if isinstance(data, list) else data.get("data") or []
+          counts = collections.Counter(str(item.get("key")) for item in envs)
+          representation_count = collections.Counter(counts.values()).most_common(1)[0][0]
+          if representation_count not in (1, 2):
+              print("回读失败：应用环境上下文数量异常。")
+              sys.exit(1)
           expected_keys = {
               "KMFA_PRIVATE_DB_READ_TOKEN",
               "KMFA_PAYROLL_PASSWORD",
           }
           for key in expected_keys:
-              rows = [
-                  item.get("value")
-                  for item in envs
-                  if str(item.get("key")) == key
-              ]
               # Coolify omits secret values on readback.  Exact equality with
-              # the GitHub secret is therefore unobservable here; require one
-              # row, then prove the values end-to-end by a successful private
-              # manifest fetch and payroll decrypt after redeploy.
-              if len(rows) != 1:
-                  print(f"{key} 回读失败：条目不是唯一。")
+              # the GitHub secret is therefore unobservable here.  Require the
+              # same number of representations as ordinary app keys, then
+              # prove the values end-to-end after redeploy.
+              if counts[key] != representation_count:
+                  print(f"{key} 回读失败：未覆盖全部正常应用上下文。")
                   sys.exit(1)
-          print("项目成本两个 secret 已唯一写入并回读到唯一键。")
+          print("项目成本两个 secret 已覆盖全部正常应用上下文。")
           PY
 
       - name: 测试期安全态——清空群机器人 + 关投递（去重后重写，杜绝同名残留）
