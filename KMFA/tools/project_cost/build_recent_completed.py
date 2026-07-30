@@ -257,9 +257,26 @@ def sort_key(record: dict) -> str:
     return ""
 
 
+#: 账上有、但**归不到任何项目**的生产成本，按跳过原因分桶。运行时统计，
+#: 不写死任何金额——KMOS 是公开仓，真实金额只能在运行期出现在产物里。
+#:
+#: 为什么必须统计它：2026-07-30 拿 8 份真实《竣工项目财务报表》对了一次线上产物，
+#: **0/8 落在 ±10% 内，且 8 个全部偏低**（-10.4% 到 -79.3%）。偏低不是解析错，
+#: 是会计把大量成本记在了 `不分项目`／`KMX999`／`KMX9999` 这些占位桶里——
+#: 新疆宜化 064 的承包费 93 万在报表上有、在金蝶该项目名下是 0。
+#:
+#: 本产物此前只写了一句「成本偏保守、毛利偏乐观」。**定性不够**：
+#: 看表的人无法判断偏 3% 还是偏 79%，也就无法判断这个毛利能不能拿去谈结算。
+UNATTRIBUTED_REASONS = ("不分项目", "伪合同号占位桶", "不在主合同表中")
+
+
 def collect_ledger_cost(data_root: str, targets: set[str], account_to_row: dict,
-                        variants: dict | None = None) -> dict:
+                        variants: dict | None = None,
+                        unattributed: dict | None = None) -> dict:
     """明细账按项目归集生产成本借方发生额。返回 {合同主号: {科目: 金额}}。
+
+    `unattributed` 传入时，另把**被跳过的**生产成本按原因累加进去——
+    那部分钱确实发生了，只是账上没挂到项目，见 `UNATTRIBUTED_REASONS`。
 
     `variants` 传入时，另记 {合同主号: {原始销售合同号: 金额}}——**归并到主号之前
     长什么样**。
@@ -307,22 +324,31 @@ def collect_ledger_cost(data_root: str, targets: set[str], account_to_row: dict,
             if not memo or memo in SUMMARY_ROWS:
                 continue
             raw = row[contract_i] if contract_i < len(row) else None
-            if raw in (None, "") or "不分项目" in str(raw):
-                continue
-            key = norm_contract(raw)
-            if key in PLACEHOLDER_CONTRACTS:    # 伪合同号占位桶，不是项目
-                continue
-            if key not in targets:
-                continue
-            account = str(row[account_i]).strip() if account_i < len(row) and row[account_i] else ""
-            if account not in account_to_row:
-                unknown_accounts.add(account)
-                continue
             value = row[debit_i] if debit_i < len(row) else None
             try:
                 amount = Decimal(str(value)) if value not in (None, "") else Decimal(0)
             except Exception:
                 amount = Decimal(0)
+
+            def drop(reason: str) -> None:
+                """这笔钱花掉了，只是归不到项目——记下来，别静默丢。"""
+                if unattributed is not None and amount:
+                    unattributed[reason] = unattributed.get(reason, Decimal(0)) + amount
+
+            if raw in (None, "") or "不分项目" in str(raw):
+                drop("不分项目")
+                continue
+            key = norm_contract(raw)
+            if key in PLACEHOLDER_CONTRACTS:    # 伪合同号占位桶，不是项目
+                drop("伪合同号占位桶")
+                continue
+            if key not in targets:
+                drop("不在主合同表中")
+                continue
+            account = str(row[account_i]).strip() if account_i < len(row) and row[account_i] else ""
+            if account not in account_to_row:
+                unknown_accounts.add(account)
+                continue
             aggregate[key][account] += amount
             if variants is not None:
                 variants.setdefault(key, collections.defaultdict(Decimal))[
@@ -532,8 +558,10 @@ def build(data_root: str, account_map: dict, limit: int = 0) -> dict:
     if limit:
         ranked = ranked[:limit]
     variants: dict[str, dict[str, Decimal]] = {}
+    unattributed: dict[str, Decimal] = {}
     ledger = collect_ledger_cost(data_root, {r["合同编号"] for r in ranked},
-                                 account_to_row, variants=variants)
+                                 account_to_row, variants=variants,
+                                 unattributed=unattributed)
 
     projects = []
     for record in ranked:
@@ -694,6 +722,31 @@ def build(data_root: str, account_map: dict, limit: int = 0) -> dict:
             "影响方向": "三行全部是少算，所以本产物的成本偏保守、毛利偏乐观",
             "源": UNCOVERED_SOURCES,
         },
+        # ── 少算多少：从形容词变成数 ──────────────────────────────────
+        # 2026-07-30 拿 8 份真实《竣工项目财务报表》对了一次本产物：
+        # **0/8 落在 ±10% 内，8 个全部偏低**，区间 -10.4% ～ -79.3%。
+        # 此前这里只有一句「成本偏保守、毛利偏乐观」——定性不够：
+        # 偏 3% 和偏 79% 是两件事，前者能拿去谈结算，后者会让人亏着钱以为在赚。
+        #
+        # 偏低不是解析错（解析已按列名取数、按 CRC 去重、取借方不取净额）。
+        # 偏低是**账上就没把钱挂到项目**：下面这三个桶里的生产成本确实发生了，
+        # 只是没有可用的项目归属。新疆宜化 064 的承包费在竣工报表上有 93 万，
+        # 在金蝶该项目名下是 0——那笔钱在「不分项目」桶里。
+        #
+        # 金额一律运行时统计，**不写死在仓库里**（KMOS 是公开仓）。
+        "未归集成本池": {
+            "是什么": "账上确有发生、但归不到任何项目的生产成本借方发生额",
+            "分桶": {reason: str(unattributed.get(reason, Decimal(0)))
+                    for reason in UNATTRIBUTED_REASONS},
+            "合计": str(sum(unattributed.values(), Decimal(0))),
+            "已归集到项目": str(sum(
+                (money(p.get("金蝶归集直接成本")) or Decimal(0)) for p in projects)),
+            "怎么读": "本表每个项目的成本是**下限**——归集率越低，下限离真实成本越远，"
+                    "毛利也就越偏乐观。要把下限抬成真值，得在记账时把这三桶里的钱"
+                    "挂上销售合同号，代码这边补不出来。",
+        },
+        "毛利方向": "偏乐观（成本是下限）——见「未归集成本池」与「未覆盖」两节；"
+                "拿去谈结算或考核前，先看该项目的金蝶归集是否覆盖了承包费与材料",
         "项目数": len(projects),
         "项目": projects,
     }
