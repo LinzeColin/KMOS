@@ -54,6 +54,12 @@ def build_parser() -> argparse.ArgumentParser:
     calculate.add_argument("--output-dir", required=True)
     calculate.add_argument("--ocr-jsonl")
     calculate.add_argument("--payroll-workbook", action="append", default=[])
+    calculate.add_argument(
+        "--employer-burden-workbook",
+        action="append",
+        default=[],
+        help="单位承担社保/医保最终表；必须与工资月份及雇佣主体一致",
+    )
     calculate.add_argument("--attendance-root", action="append", default=[])
     calculate.add_argument(
         "--payroll-password-env",
@@ -92,6 +98,10 @@ def main() -> int:
                 payroll_workbooks=tuple(
                     Path(value).expanduser().resolve()
                     for value in args.payroll_workbook
+                ),
+                employer_burden_workbooks=tuple(
+                    Path(value).expanduser().resolve()
+                    for value in args.employer_burden_workbook
                 ),
                 attendance_roots=tuple(
                     Path(value).expanduser().resolve()

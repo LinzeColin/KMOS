@@ -29,9 +29,10 @@ from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Seque
 
 
 CORE_VERSION = "0.2.0"
-SKILL_VERSION = "0.0.5"
+SKILL_VERSION = "0.0.6"
 SUBJECT_DIGEST_RECIPE = "kmfa.project_cost.subject_tree.v1"
 CENT = Decimal("0.01")
+MAX_GROSS_MARGIN_BPS = 7000
 MAX_ARCHIVE_MEMBERS = 20000
 MAX_ARCHIVE_UNCOMPRESSED = 1024 * 1024 * 1024
 MAX_ARCHIVE_MEMBER = 256 * 1024 * 1024
@@ -486,6 +487,8 @@ def discover_candidates(files: Sequence[Path]) -> Dict[str, List[Path]]:
         "master": [],
         "status": [],
         "payment": [],
+        "approved_cost_detail": [],
+        "project_invoice": [],
         "ledger_zip": [],
         "dingtalk_zip": [],
         "dws_zip": [],
@@ -500,6 +503,10 @@ def discover_candidates(files: Sequence[Path]) -> Dict[str, List[Path]]:
             result["status"].append(path)
         elif lower.endswith(".xlsx") and "付款审批" in name:
             result["payment"].append(path)
+        elif lower.endswith(".xlsx") and "项目成本统计" in name:
+            result["approved_cost_detail"].append(path)
+        elif lower.endswith(".xlsx") and "项目开票_导出文件" in name:
+            result["project_invoice"].append(path)
         elif lower.endswith(".zip") and "金蝶" in name and ("账务" in name or "账套" in name):
             result["ledger_zip"].append(path)
         elif lower.endswith(".zip") and name == "DWS_Outputs.zip":
@@ -623,21 +630,86 @@ def select_master(
 
 
 def _project_indexes(projects: Sequence[Mapping[str, Any]], year: int) -> Dict[str, Any]:
-    year_projects = [project for project in projects if project.get("year") == year]
-    by_base = {str(project["contract_base"]): project for project in year_projects}
+    # Callers pass a reporting cohort.  Do not re-filter it by the contract-id
+    # year here: a prior-year contract can be an in-scope carryover project
+    # when it starts, remains active, or completes in the reporting year.
+    # The ``year`` argument remains part of the parser contract and is used by
+    # callers for posting/date cut-offs and unresolved-row diagnostics.
+    indexed_projects = list(projects)
+    by_base = {
+        str(project["contract_base"]): project
+        for project in indexed_projects
+    }
     by_customer: Dict[str, List[Mapping[str, Any]]] = defaultdict(list)
     by_contractor: Dict[str, List[Mapping[str, Any]]] = defaultdict(list)
-    for project in year_projects:
+    for project in indexed_projects:
         by_customer[normalize_text(project.get("customer"))].append(project)
         contractor = normalize_text(project.get("contractor"))
         if contractor:
             by_contractor[contractor].append(project)
     return {
-        "projects": year_projects,
+        "projects": indexed_projects,
         "by_base": by_base,
         "by_customer": by_customer,
         "by_contractor": by_contractor,
     }
+
+
+def reporting_project_cohort(
+    projects: Sequence[Mapping[str, Any]],
+    status_map: Mapping[str, Mapping[str, Any]],
+    *,
+    year: int,
+) -> List[Mapping[str, Any]]:
+    """Return target-year contracts plus evidenced carryover projects.
+
+    Invoice and cash dates alone do not move a completed prior-year project
+    into a new project-cost cohort.  A carryover needs a target-year start or
+    completion date, a target-year master completion date, or a current
+    non-completed production status.
+    """
+
+    selected: List[Mapping[str, Any]] = []
+    for project in projects:
+        contract_year_value = project.get("year")
+        if not isinstance(contract_year_value, int):
+            continue
+        status = status_map.get(str(project["contract_base"]), {})
+        construction_status = normalize_text(
+            status.get("construction_status")
+            or project.get("construction_status_master")
+        )
+        target_prefix = "%04d-" % year
+        starts_in_year = str(status.get("start_date") or "").startswith(
+            target_prefix
+        )
+        completes_in_year = any(
+            str(value or "").startswith(target_prefix)
+            for value in (
+                status.get("completion_date"),
+                project.get("completion_date_master"),
+            )
+        )
+        active_carryover = (
+            contract_year_value == year - 1
+            and bool(status)
+            and construction_status
+            not in ("已完工", "已终止", "已取消", "作废")
+        )
+        if (
+            contract_year_value == year
+            or starts_in_year
+            or completes_in_year
+            or active_carryover
+        ):
+            selected.append(project)
+    return sorted(
+        selected,
+        key=lambda project: (
+            project.get("created_date") or "",
+            str(project["contract_base"]),
+        ),
+    )
 
 
 def _entity_ledger_period_end(
@@ -878,6 +950,8 @@ def parse_status(
     result: Dict[str, Dict[str, Any]] = {}
     reviews: List[Dict[str, Any]] = []
     max_observed_date = ""
+    provided_report_rows = 0
+    provided_report_with_direct_components = 0
     for row_number, row in enumerate(
         selected_sheet.iter_rows(min_row=header_row + 1, values_only=True),
         header_row + 1,
@@ -919,6 +993,12 @@ def parse_status(
             if observed and observed > max_observed_date:
                 max_observed_date = observed
         base = str(project["contract_base"])
+        provided_text = normalize_text(values.get("是否提供项目成本表"))
+        project_cost_report_provided = provided_text == "已提供"
+        if project_cost_report_provided:
+            provided_report_rows += 1
+            if present:
+                provided_report_with_direct_components += 1
         result[base] = {
             "source_contract": raw_contract,
             "identity_reason": reason,
@@ -931,12 +1011,25 @@ def parse_status(
             "invoice_date": iso_date(values.get("开票时间")),
             "cash_in_date": iso_date(values.get("回款时间")),
             "actual_duration_days": values.get("实际工期"),
+            "status_contract_amount_cents": cents(values.get("含税合同金额")),
+            "status_tax_rate_source": str(values.get("税率") or "").strip(),
             "settlement_amount_cents": cents(values.get("结算金额")),
             "invoice_amount_cents": cents(values.get("开票金额")),
             "own_work_units": values.get("自有人工工时"),
             "external_work_units": values.get("劳务人工工时"),
             "business_components_cents": direct_components,
             "business_reported_direct_cost_cents": sum(present) if present else None,
+            "project_cost_report_deadline": iso_date(
+                values.get("项目成本表截止提供时间")
+            ),
+            "project_cost_report_provided": project_cost_report_provided,
+            "project_cost_report_provided_source": str(
+                values.get("是否提供项目成本表") or ""
+            ).strip(),
+            "commission_calculated": normalize_text(
+                values.get("是否已计算提成")
+            )
+            == "是",
             "source_row": row_number,
         }
         if reason not in ("EXACT_CONTRACT", "CONTROLLED_SUFFIX_ALIAS"):
@@ -952,7 +1045,80 @@ def parse_status(
                 }
             )
     workbook.close()
-    return result, reviews, {"mapped_rows": len(result), "max_observed_date": max_observed_date}
+    return result, reviews, {
+        "mapped_rows": len(result),
+        "max_observed_date": max_observed_date,
+        "provided_project_cost_report_rows": provided_report_rows,
+        "provided_project_cost_report_with_direct_components": (
+            provided_report_with_direct_components
+        ),
+    }
+
+
+def governed_contract_revenue(
+    project: Mapping[str, Any],
+    status: Optional[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    """Resolve the contract-margin revenue plane without mixing lifecycle facts.
+
+    Original contract value, settlement and billed amount are three different
+    facts.  A completed project can use a positive governed settlement-register
+    amount as its contract-margin revenue basis.  Invoice amount remains a
+    separate lifecycle observation and is never substituted for settlement.
+    Projects without a closed settlement/change basis remain blocked.
+    """
+
+    status_row = status or {}
+    master_contract = project.get("contract_amount_cents")
+    status_contract = status_row.get("status_contract_amount_cents")
+    settlement = status_row.get("settlement_amount_cents")
+    construction_status = normalize_text(
+        status_row.get("construction_status")
+        or project.get("construction_status_master")
+    )
+
+    positive_master = (
+        master_contract
+        if isinstance(master_contract, int)
+        and not isinstance(master_contract, bool)
+        and master_contract > 0
+        else None
+    )
+    positive_status_contract = (
+        status_contract
+        if isinstance(status_contract, int)
+        and not isinstance(status_contract, bool)
+        and status_contract > 0
+        else None
+    )
+    positive_settlement = (
+        settlement
+        if isinstance(settlement, int)
+        and not isinstance(settlement, bool)
+        and settlement > 0
+        else None
+    )
+    if (
+        positive_master is not None
+        and positive_status_contract is not None
+        and positive_master != positive_status_contract
+    ):
+        return {
+            "effective_revenue_cents": None,
+            "status": "BLOCKED_CONTRACT_REGISTER_CONFLICT",
+            "basis": None,
+        }
+    if construction_status == "已完工" and positive_settlement is not None:
+        return {
+            "effective_revenue_cents": positive_settlement,
+            "status": "READY_SETTLEMENT_REGISTER",
+            "basis": "GOVERNED_SETTLEMENT_REGISTER",
+        }
+    return {
+        "effective_revenue_cents": None,
+        "status": "BLOCKED_CONTRACT_CHANGE_COMPLETENESS",
+        "basis": None,
+    }
 
 
 def select_latest_tabular(
@@ -1274,6 +1440,17 @@ def parse_ledger_books(
     status_map: Mapping[str, Mapping[str, Any]],
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
     indexes = _project_indexes(projects, year)
+    project_window_starts = [
+        candidate
+        for project in projects
+        for candidate in _project_window(project, status_map)[:2]
+        if candidate is not None
+    ]
+    cohort_scan_start = (
+        min(project_window_starts) - timedelta(days=45)
+        if project_window_starts
+        else date(year, 1, 1)
+    )
     events: List[Dict[str, Any]] = []
     reviews: List[Dict[str, Any]] = []
     event_rep_counts: Dict[
@@ -1281,6 +1458,10 @@ def parse_ledger_books(
         Dict[Tuple[str, str], int],
     ] = defaultdict(lambda: defaultdict(int))
     review_rep_counts: Dict[
+        Tuple[Any, ...],
+        Dict[Tuple[str, str], int],
+    ] = defaultdict(lambda: defaultdict(int))
+    unallocated_rep_counts: Dict[
         Tuple[Any, ...],
         Dict[Tuple[str, str], int],
     ] = defaultdict(lambda: defaultdict(int))
@@ -1308,6 +1489,13 @@ def parse_ledger_books(
     duplicate_rows = 0
     unresolved_current_customer_rows = 0
     unresolved_current_customer_cents = 0
+    unallocated_cost_rows = 0
+    unallocated_cost_net_cents = 0
+    unallocated_cost_absolute_cents = 0
+    unallocated_cost_buckets: Dict[
+        Tuple[str, str, str, str],
+        Dict[str, int],
+    ] = defaultdict(lambda: {"row_count": 0, "net_cents": 0, "absolute_cents": 0})
     for book in books:
         metadata = book["metadata"]
         selected_period_end = max(selected_period_end, metadata["period_end"])
@@ -1321,8 +1509,14 @@ def parse_ledger_books(
         entity = metadata["company"]
         raw_entity_key = normalize_text(entity)
         entity_key = entity_aliases.get(raw_entity_key, raw_entity_key)
-        period_ends_by_entity[raw_entity_key] = max(
-            period_ends_by_entity.get(raw_entity_key, ""),
+        # One legal entity is exported under both a short display name and a
+        # full company name in the supplied Kingdee bundles.  Event identity
+        # already uses ``entity_key`` to collapse those representations, so
+        # period coverage must use the same key.  Keeping the raw label here
+        # made a project with otherwise exact ledger rows look as if it had
+        # two entities and incorrectly raised PROJECT_COST_SOURCE_UNAVAILABLE.
+        period_ends_by_entity[entity_key] = max(
+            period_ends_by_entity.get(entity_key, ""),
             str(metadata["period_end"]),
         )
         for sheet in workbook.worksheets:
@@ -1356,8 +1550,15 @@ def parse_ledger_books(
                     continue
                 customer = str(_safe_row_value(row, headers, ("客户", "甲方", "客户名称")) or "")
                 sales_contract = str(_safe_row_value(row, headers, ("销售合同号",)) or "")
+                supplier = str(
+                    _safe_row_value(row, headers, ("供应商", "供应商名称")) or ""
+                )
                 posting_date = iso_date(_safe_row_value(row, headers, ("日期", "过账日期")))
-                if posting_date and not posting_date.startswith("%04d-" % year):
+                posting_date_value = _as_date(posting_date)
+                if (
+                    posting_date_value is not None
+                    and posting_date_value < cohort_scan_start
+                ):
                     continue
                 if posting_date and posting_date > as_of:
                     reviews.append(
@@ -1392,12 +1593,100 @@ def parse_ledger_books(
                     indexes=indexes,
                     status_map=status_map,
                 )
+                if project is None and account.startswith("5001"):
+                    narrative_project, narrative_reason = (
+                        resolve_narrative_identity(
+                            summary,
+                            posting_date,
+                            indexes,
+                            status_map,
+                        )
+                    )
+                    if narrative_project is not None:
+                        project = narrative_project
+                        reason = "LEDGER_%s" % narrative_reason
                 account_code = account.split("-", 1)[0].split("_", 1)[0].strip()
                 representation = (
                     str(metadata["payload_sha256"]),
                     str(title),
                 )
                 if project is None:
+                    # Unassigned 5001 rows were previously dropped silently.
+                    # They are a cost-completeness risk even when no current
+                    # customer token is present.  Preserve a deduplicated pool
+                    # and block formal margin publication until governed
+                    # project/WBS evidence assigns or excludes it.
+                    unallocated_reasons = {
+                        "UNRESOLVED",
+                        "CUSTOMER_DATE_MISSING",
+                        "CUSTOMER_ACTIVE_WINDOW_AMBIGUOUS",
+                    }
+                    if account.startswith("5001") and reason in unallocated_reasons:
+                        pool_key = (
+                            entity_key,
+                            posting_date,
+                            voucher,
+                            normalize_text(account_code),
+                            normalize_text(customer),
+                            normalize_text(sales_contract),
+                            net_minor,
+                            normalize_text(summary),
+                        )
+                        other_max = max(
+                            (
+                                count
+                                for source_representation, count
+                                in unallocated_rep_counts[pool_key].items()
+                                if source_representation != representation
+                            ),
+                            default=0,
+                        )
+                        unallocated_rep_counts[pool_key][representation] += 1
+                        occurrence = unallocated_rep_counts[pool_key][
+                            representation
+                        ]
+                        if occurrence <= other_max:
+                            duplicate_rows += 1
+                            continue
+                        unallocated_cost_rows += 1
+                        unallocated_cost_net_cents += net_minor
+                        unallocated_cost_absolute_cents += abs(net_minor)
+                        bucket_key = (
+                            entity_key,
+                            (posting_date or str(metadata["period_end"]))[:7],
+                            account_category(account),
+                            reason,
+                        )
+                        bucket = unallocated_cost_buckets[bucket_key]
+                        bucket["row_count"] += 1
+                        bucket["net_cents"] += net_minor
+                        bucket["absolute_cents"] += abs(net_minor)
+                        events.append(
+                            {
+                                "event_id": "unallocated_"
+                                + sha256_bytes(
+                                    stable_json([list(pool_key), occurrence])
+                                )[:24],
+                                "project": None,
+                                "plane": "UNALLOCATED_LEDGER_COST_POOL",
+                                "category": account_category(account),
+                                "amount_cents": net_minor,
+                                "posting_date": posting_date,
+                                "account_code": account_code,
+                                "voucher": voucher,
+                                "summary": summary,
+                                "supplier": supplier,
+                                "sales_contract": sales_contract,
+                                "entity": entity,
+                                "source_id": "src_"
+                                + metadata["payload_sha256"][:24],
+                                "source_member": metadata["container_member"],
+                                "sheet": title,
+                                "row": row_number,
+                                "identity_reason": reason,
+                                "link_text": normalize_text(text),
+                            }
+                        )
                     customer_candidates = indexes["by_customer"].get(
                         normalize_text(_customer_name(customer)),
                         (),
@@ -1439,7 +1728,7 @@ def parse_ledger_books(
                                 "posting_date": posting_date,
                                 "amount_cents": net_minor,
                                 "reason": reason,
-                                "action": "明示为其他合同；从本年度项目成本公式中排除",
+                                "action": "明示为其他合同；从本报告项目组合成本公式中排除",
                             }
                         )
                     elif customer_candidates:
@@ -1468,8 +1757,8 @@ def parse_ledger_books(
                                     for candidate in customer_candidates
                                 ],
                                 "action": (
-                                    "客户相同但凭证服务日不在本年度候选项目窗口；"
-                                    "保留审计并从本年度项目公式排除"
+                                    "客户相同但凭证服务日不在本报告候选项目窗口；"
+                                    "保留审计并从本报告项目公式排除"
                                     if outside_window
                                     else "保留在未分配池；确认合同或项目窗口后再归属"
                                 ),
@@ -1528,7 +1817,9 @@ def parse_ledger_books(
                         "account_code": account_code,
                         "voucher": voucher,
                         "summary": summary,
-                        "entity": entity,
+                        "supplier": supplier,
+                        "entity": entity_key,
+                        "source_entity": entity,
                         "source_id": "src_" + metadata["payload_sha256"][:24],
                         "source_member": metadata["container_member"],
                         "sheet": title,
@@ -1551,11 +1842,26 @@ def parse_ledger_books(
                         }
                     )
         workbook.close()
+    if unallocated_cost_rows:
+        reviews.append(
+            {
+                "severity": "P1",
+                "type": "UNALLOCATED_LEDGER_COST_POOL_OPEN",
+                "row_count": unallocated_cost_rows,
+                "net_cents": unallocated_cost_net_cents,
+                "absolute_cents": unallocated_cost_absolute_cents,
+                "action": (
+                    "存在未归属的5001生产成本；必须以合同/项目/WBS证据逐笔归属"
+                    "或证明排除，禁止静默遗漏、按合同额比例分摊或用于反推毛利"
+                ),
+            }
+        )
     reviews = _dedupe_review_rows(reviews)
     return events, reviews, {
         "selected_book_count": len(books),
         "selected_period_end": selected_period_end,
         "minimum_period_end": minimum_period_end,
+        "cohort_scan_start": cohort_scan_start.isoformat(),
         "period_ends_by_entity": dict(sorted(period_ends_by_entity.items())),
         "scanned_sheets": scanned_sheets,
         "scanned_rows": scanned_rows,
@@ -1563,6 +1869,21 @@ def parse_ledger_books(
         "semantic_duplicate_rows": duplicate_rows,
         "unresolved_current_customer_rows": unresolved_current_customer_rows,
         "unresolved_current_customer_cents": unresolved_current_customer_cents,
+        "unallocated_cost_rows": unallocated_cost_rows,
+        "unallocated_cost_net_cents": unallocated_cost_net_cents,
+        "unallocated_cost_absolute_cents": unallocated_cost_absolute_cents,
+        "unallocated_cost_buckets": [
+            {
+                "entity": entity,
+                "period": period,
+                "category": category,
+                "reason": reason,
+                **amounts,
+            }
+            for (entity, period, category, reason), amounts in sorted(
+                unallocated_cost_buckets.items()
+            )
+        ],
     }
 
 
@@ -1728,6 +2049,564 @@ def parse_payment(
     }
 
 
+def parse_approved_cost_detail(
+    path: Path,
+    projects: Sequence[Mapping[str, Any]],
+    status_map: Mapping[str, Mapping[str, Any]],
+    year: int,
+    as_of: str,
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
+    """Read approved line-level project expenses from the business export.
+
+    This source is an occurrence/approval register, not a cash observation.
+    Rows are accepted only when the approval state is explicit and the
+    contract resolves uniquely to the reporting cohort.  Deposits, advances,
+    loans, fines and their reversals remain outside project direct cost.
+    """
+
+    payload = read_path_bytes(path)
+    workbook = open_xlsx_payload(payload)
+    indexes = _project_indexes(projects, year)
+    selected_sheet = None
+    header_row = None
+    headers = None
+    required = (
+        "费用明细编号",
+        "创建时间",
+        "审批状态",
+        "费用项目",
+        "费用说明",
+        "金额",
+    )
+    for sheet in workbook.worksheets:
+        try:
+            row_number, mapping = locate_header(sheet, required)
+        except ProjectCostError:
+            continue
+        selected_sheet, header_row, headers = sheet, row_number, mapping
+        break
+    if selected_sheet is None or header_row is None or headers is None:
+        workbook.close()
+        raise ProjectCostError(
+            "APPROVED_COST_DETAIL_SCHEMA",
+            "approved project-cost detail schema was not recognized",
+        )
+
+    candidates_by_id: Dict[str, Dict[str, Any]] = {}
+    conflicting_ids: Set[str] = set()
+    reviews: List[Dict[str, Any]] = []
+    max_observed_date = ""
+    approved_rows = 0
+    mapped_rows = 0
+    non_cost_rows = 0
+    outside_cohort_rows = 0
+    unresolved_current_rows = 0
+    cutoff = date.fromisoformat(as_of)
+    project_bases = {
+        str(project["contract_base"]): project for project in projects
+    }
+    non_cost_markers = (
+        "保证金",
+        "押金",
+        "定金",
+        "借款",
+        "借支",
+        "贷款",
+        "回款",
+        "收票",
+        "罚款",
+        "预支",
+        "备用金",
+    )
+    for row_number, row in enumerate(
+        selected_sheet.iter_rows(
+            min_row=header_row + 1,
+            values_only=True,
+        ),
+        header_row + 1,
+    ):
+        values = _row_dict(row, headers)
+        if normalize_text(values.get("审批状态")) != "已通过":
+            continue
+        approved_rows += 1
+        observed = iso_date(values.get("创建时间"))
+        if not observed:
+            continue
+        observed_day = _as_date(observed)
+        if observed_day is None or observed_day > cutoff:
+            continue
+        if observed > max_observed_date:
+            max_observed_date = observed
+        amount_minor = cents(values.get("金额"))
+        if amount_minor in (None, 0):
+            continue
+        detail_id = normalize_text(values.get("费用明细编号"))
+        if not detail_id:
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "APPROVED_COST_DETAIL_ID_MISSING",
+                    "source_row": row_number,
+                    "action": "已通过成本缺少稳定明细编号；不得进入正式应计",
+                }
+            )
+            continue
+        raw_contract_values = tuple(
+            str(values.get(name) or "").strip()
+            for name in (
+                "任务单",
+                "关联主合同",
+                "关联主合同(费用报销)",
+            )
+        )
+        description_values = tuple(
+            str(values.get(name) or "").strip()
+            for name in (
+                "费用项目",
+                "费用说明",
+                "成本清单明细",
+                "业务类型",
+            )
+        )
+        identity_text = " | ".join(
+            value
+            for value in raw_contract_values + description_values
+            if value
+        )
+        project, identity_reason, tokens = resolve_identity(
+            identity_text,
+            "",
+            indexes,
+            allow_text_only=True,
+        )
+        if project is None:
+            project, identity_reason = resolve_narrative_identity(
+                identity_text,
+                observed,
+                indexes,
+                status_map,
+            )
+        if project is None:
+            has_current_contract = any(
+                contract_year(token) == year for token in tokens
+            )
+            if has_current_contract:
+                unresolved_current_rows += 1
+                reviews.append(
+                    {
+                        "severity": "P1",
+                        "type": "APPROVED_COST_DETAIL_PROJECT_UNRESOLVED",
+                        "source_row": row_number,
+                        "amount_cents": amount_minor,
+                        "action": "当年已通过成本未能唯一归属项目；确认任务单后重跑",
+                    }
+                )
+            else:
+                outside_cohort_rows += 1
+            continue
+        project_base = str(project["contract_base"])
+        project_record = project_bases[project_base]
+        project_created = _as_date(project_record.get("created_date"))
+        if (
+            project_created is not None
+            and observed_day < project_created - timedelta(days=90)
+            and identity_reason
+            not in ("EXACT_CONTRACT", "CONTROLLED_SUFFIX_ALIAS")
+        ):
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "APPROVED_COST_DETAIL_BEFORE_PROJECT_WINDOW",
+                    "project": project_base,
+                    "source_row": row_number,
+                    "amount_cents": amount_minor,
+                    "action": "成本日期早于项目建立窗口；不得仅凭相似文本强行归属",
+                }
+            )
+            continue
+        cost_text = " | ".join(description_values)
+        exclusion = next(
+            (marker for marker in non_cost_markers if marker in cost_text),
+            None,
+        )
+        if exclusion:
+            non_cost_rows += 1
+            reviews.append(
+                {
+                    "severity": "P2",
+                    "type": "APPROVED_COST_DETAIL_NON_COST_EXCLUDED",
+                    "project": project_base,
+                    "source_row": row_number,
+                    "amount_cents": amount_minor,
+                    "reason": exclusion,
+                    "action": "押金、借支等资金往来及罚款不进入项目直接成本",
+                }
+            )
+            continue
+        parent_approval_id = normalize_text(
+            values.get("申请编号(费用报销)")
+        )
+        event = {
+            "event_id": "wps_cost_"
+            + sha256_bytes(
+                stable_json(
+                    [
+                        detail_id,
+                        project_base,
+                        amount_minor,
+                        observed,
+                    ]
+                )
+            )[:24],
+            "project": project_base,
+            "plane": "WPS_APPROVED_COST_DETAIL",
+            "category": _approved_cost_detail_category(
+                str(values.get("费用项目") or ""),
+                str(values.get("费用说明") or ""),
+                str(values.get("成本清单明细") or ""),
+            ),
+            "amount_cents": amount_minor,
+            "posting_date": observed,
+            "summary": str(values.get("费用说明") or "").strip(),
+            "source_member": path.name,
+            "row": row_number,
+            "identity_reason": identity_reason,
+            "approval_id": detail_id,
+            "parent_approval_id": parent_approval_id or None,
+            "approval_authority_verified": True,
+            "approval_state_source": "审批状态=已通过",
+            "approval_source_kind": "WPS_APPROVED_COST_DETAIL",
+        }
+        existing = candidates_by_id.get(detail_id)
+        if existing is None:
+            candidates_by_id[detail_id] = event
+            mapped_rows += 1
+        elif (
+            existing["project"],
+            existing["category"],
+            existing["amount_cents"],
+            existing["posting_date"],
+        ) != (
+            event["project"],
+            event["category"],
+            event["amount_cents"],
+            event["posting_date"],
+        ):
+            conflicting_ids.add(detail_id)
+    workbook.close()
+    for detail_id in sorted(conflicting_ids):
+        candidates_by_id.pop(detail_id, None)
+        reviews.append(
+            {
+                "severity": "P1",
+                "type": "APPROVED_COST_DETAIL_ID_CONFLICT",
+                "detail_id_hash": sha256_bytes(
+                    detail_id.encode("utf-8")
+                )[:16],
+                "action": "同一费用明细编号在项目、金额或日期上冲突；整组排除",
+            }
+        )
+    return (
+        [
+            candidates_by_id[key]
+            for key in sorted(candidates_by_id)
+        ],
+        _dedupe_review_rows(reviews),
+        {
+            "approved_rows": approved_rows,
+            "mapped_rows": len(candidates_by_id),
+            "non_cost_rows": non_cost_rows,
+            "outside_cohort_rows": outside_cohort_rows,
+            "unresolved_current_rows": unresolved_current_rows,
+            "conflicting_detail_id_count": len(conflicting_ids),
+            "max_observed_date": max_observed_date,
+            "formal_amount_use": bool(candidates_by_id),
+        },
+    )
+
+
+def _tax_rate_fraction(value: Any) -> Optional[Decimal]:
+    """Normalize an invoice tax rate to a fraction without float arithmetic."""
+
+    if value in (None, "") or isinstance(value, bool):
+        return None
+    text = str(value).strip().replace("％", "%")
+    percent = text.endswith("%")
+    if percent:
+        text = text[:-1].strip()
+    try:
+        rate = Decimal(text)
+    except (InvalidOperation, ValueError):
+        return None
+    if not rate.is_finite():
+        return None
+    if percent or rate > 1:
+        rate /= Decimal(100)
+    if rate < 0 or rate > 1:
+        return None
+    return rate
+
+
+def _tax_from_gross_cents(gross_cents: int, rate: Decimal) -> int:
+    """Return per-line output VAT from a tax-inclusive integer-cent amount."""
+
+    if isinstance(gross_cents, bool) or not isinstance(gross_cents, int):
+        raise ProjectCostError(
+            "PROJECT_INVOICE_AMOUNT_INVALID",
+            "project invoice gross amount must be integer cents",
+        )
+    if rate < 0 or rate > 1:
+        raise ProjectCostError(
+            "PROJECT_INVOICE_TAX_RATE_INVALID",
+            "project invoice tax rate must be between zero and one",
+        )
+    return int(
+        (
+            Decimal(gross_cents)
+            * rate
+            / (Decimal(1) + rate)
+        ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    )
+
+
+def parse_project_invoice_tax(
+    path: Path,
+    projects: Sequence[Mapping[str, Any]],
+    year: int,
+    as_of: str,
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
+    """Create project-direct output-VAT facts from approved issued invoices.
+
+    The export is authoritative only for the project-specific invoice line.
+    It is not used to spread a company tax return across projects.  Positive
+    and red-letter negative invoice allocations are both retained.  Tax is
+    rounded once per exported invoice/project line from the tax-inclusive
+    amount, using integer cents and ``ROUND_HALF_UP``.
+    """
+
+    workbook = open_xlsx_payload(read_path_bytes(path))
+    indexes = _project_indexes(projects, year)
+    selected_sheet = None
+    header_row = None
+    headers = None
+    required = (
+        "发票号码",
+        "开票状态",
+        "开票日期",
+        "本次开票含税金额(元)",
+        "税率(%)",
+        "开票单位",
+        "审批状态",
+        "合同编号(合同名称)",
+    )
+    for sheet in workbook.worksheets:
+        try:
+            row_number, mapping = locate_header(sheet, required)
+        except ProjectCostError:
+            continue
+        selected_sheet, header_row, headers = sheet, row_number, mapping
+        break
+    if selected_sheet is None or header_row is None or headers is None:
+        workbook.close()
+        raise ProjectCostError(
+            "PROJECT_INVOICE_SCHEMA",
+            "project invoice export schema was not recognized",
+        )
+
+    cutoff = date.fromisoformat(as_of)
+    candidates: Dict[Tuple[str, str], Dict[str, Any]] = {}
+    conflicts: Set[Tuple[str, str]] = set()
+    reviews: List[Dict[str, Any]] = []
+    approved_issued_rows = 0
+    mapped_rows = 0
+    zero_rate_rows = 0
+    outside_cohort_rows = 0
+    unresolved_current_rows = 0
+    max_observed_date = ""
+    for row_number, row in enumerate(
+        selected_sheet.iter_rows(
+            min_row=header_row + 1,
+            values_only=True,
+        ),
+        header_row + 1,
+    ):
+        values = _row_dict(row, headers)
+        if (
+            normalize_text(values.get("审批状态")) != "已通过"
+            or normalize_text(values.get("开票状态")) != "已开票"
+        ):
+            continue
+        approved_issued_rows += 1
+        invoice_date = iso_date(values.get("开票日期"))
+        invoice_day = _as_date(invoice_date)
+        if invoice_day is None or invoice_day > cutoff:
+            continue
+        if invoice_date > max_observed_date:
+            max_observed_date = invoice_date
+        invoice_number = normalize_text(values.get("发票号码"))
+        if not invoice_number or invoice_number == "待开票":
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "PROJECT_INVOICE_NUMBER_MISSING",
+                    "source_row": row_number,
+                    "action": "已开票记录缺少真实发票号码；不得形成项目税额",
+                }
+            )
+            continue
+        gross_cents = cents(values.get("本次开票含税金额(元)"))
+        if gross_cents in (None, 0):
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "PROJECT_INVOICE_AMOUNT_INVALID",
+                    "source_row": row_number,
+                    "invoice_number_hash": sha256_bytes(
+                        invoice_number.encode("utf-8")
+                    )[:16],
+                    "action": "已开票记录含税金额为空或为零；不得形成项目税额",
+                }
+            )
+            continue
+        rate = _tax_rate_fraction(values.get("税率(%)"))
+        if rate is None:
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "PROJECT_INVOICE_TAX_RATE_INVALID",
+                    "source_row": row_number,
+                    "invoice_number_hash": sha256_bytes(
+                        invoice_number.encode("utf-8")
+                    )[:16],
+                    "action": "税率无法确定；不得猜测项目税额",
+                }
+            )
+            continue
+        raw_contract = str(
+            values.get("合同编号(合同名称)") or ""
+        ).strip()
+        project, reason, tokens = resolve_identity(
+            raw_contract,
+            "",
+            indexes,
+            allow_text_only=False,
+        )
+        if project is None:
+            if any(contract_year(token) == year for token in tokens):
+                unresolved_current_rows += 1
+                reviews.append(
+                    {
+                        "severity": "P1",
+                        "type": "PROJECT_INVOICE_PROJECT_UNRESOLVED",
+                        "source_row": row_number,
+                        "invoice_number_hash": sha256_bytes(
+                            invoice_number.encode("utf-8")
+                        )[:16],
+                        "action": "当年开票未能唯一归属报告项目；确认合同编号后重跑",
+                    }
+                )
+            else:
+                outside_cohort_rows += 1
+            continue
+        if reason not in ("EXACT_CONTRACT", "CONTROLLED_SUFFIX_ALIAS"):
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "PROJECT_INVOICE_IDENTITY_NOT_EXACT",
+                    "source_row": row_number,
+                    "invoice_number_hash": sha256_bytes(
+                        invoice_number.encode("utf-8")
+                    )[:16],
+                    "action": "项目税额只接受发票导出中的精确合同号或受控后缀",
+                }
+            )
+            continue
+        project_base = str(project["contract_base"])
+        tax_cents = _tax_from_gross_cents(gross_cents, rate)
+        if tax_cents == 0:
+            zero_rate_rows += 1
+            continue
+        key = (invoice_number, project_base)
+        event = {
+            "event_id": "invoice_vat_"
+            + sha256_bytes(
+                stable_json(
+                    [
+                        invoice_number,
+                        project_base,
+                        gross_cents,
+                        format(rate, "f"),
+                        invoice_date,
+                    ]
+                )
+            )[:24],
+            "project": project_base,
+            "plane": "COST_ACCRUED",
+            "category": "项目税费-销项税额",
+            "amount_cents": tax_cents,
+            "posting_date": invoice_date,
+            "summary": "已审批且已开票的项目销项增值税",
+            "source_member": path.name,
+            "row": row_number,
+            "identity_reason": reason,
+            "invoice_number_hash": sha256_bytes(
+                invoice_number.encode("utf-8")
+            )[:16],
+            "invoice_gross_cents": gross_cents,
+            "tax_rate_fraction": format(rate, "f"),
+            "tax_policy": "OUTPUT_VAT_FROM_TAX_INCLUSIVE_PROJECT_INVOICE",
+        }
+        existing = candidates.get(key)
+        if existing is None:
+            candidates[key] = event
+            mapped_rows += 1
+        elif (
+            existing["amount_cents"],
+            existing["invoice_gross_cents"],
+            existing["tax_rate_fraction"],
+            existing["posting_date"],
+        ) != (
+            event["amount_cents"],
+            event["invoice_gross_cents"],
+            event["tax_rate_fraction"],
+            event["posting_date"],
+        ):
+            conflicts.add(key)
+    workbook.close()
+    for invoice_number, project_base in sorted(conflicts):
+        candidates.pop((invoice_number, project_base), None)
+        reviews.append(
+            {
+                "severity": "P1",
+                "type": "PROJECT_INVOICE_ALLOCATION_CONFLICT",
+                "project": project_base,
+                "invoice_number_hash": sha256_bytes(
+                    invoice_number.encode("utf-8")
+                )[:16],
+                "action": "同一发票与项目的金额、税率或日期冲突；整组排除",
+            }
+        )
+    events = [
+        candidates[key]
+        for key in sorted(candidates)
+    ]
+    return events, _dedupe_review_rows(reviews), {
+        "approved_issued_rows": approved_issued_rows,
+        "mapped_rows": len(events),
+        "zero_rate_rows": zero_rate_rows,
+        "outside_cohort_rows": outside_cohort_rows,
+        "unresolved_current_rows": unresolved_current_rows,
+        "conflicting_invoice_project_count": len(conflicts),
+        "max_observed_date": max_observed_date,
+        "formal_amount_use": bool(events),
+        "calculation": (
+            "ROUND_HALF_UP(gross_invoice_cents * rate / (1 + rate)) "
+            "per invoice/project row"
+        ),
+        "company_tax_allocation_used": False,
+    }
+
+
 def inspect_dingtalk_archives(
     candidates: Sequence[Path],
     roots: Sequence[Path],
@@ -1823,11 +2702,40 @@ def _narrative_category(text: str) -> str:
     mappings = (
         (("工资", "劳务", "人工"), "劳务/人工"),
         (("加工费", "外协"), "外协"),
+        (
+            (
+                "项目税",
+                "税费",
+                "增值税",
+                "附加税",
+                "印花税",
+                "税款",
+            ),
+            "项目税费",
+        ),
         (("保险", "安责险"), "项目保险"),
-        (("设备租赁", "吊车租赁"), "设备租赁"),
-        (("交通", "车费", "火车", "飞机"), "交通/差旅"),
+        (("设备租赁", "吊车租赁", "机械租赁"), "设备租赁"),
+        (("物流", "快递", "寄件", "运费", "货运", "发货"), "物流运杂"),
+        (("住宿", "房租", "酒店", "宾馆"), "住宿"),
+        (("过路", "停车", "高速费"), "过路停车"),
+        (("加油", "油费", "车辆保养"), "车辆油费"),
+        (("电费", "水费", "临电", "燃气费"), "燃料及动力"),
+        (
+            (
+                "交通",
+                "车费",
+                "火车",
+                "高铁",
+                "飞机",
+                "轮渡",
+                "出差",
+                "返程",
+                "回途",
+                "回公司",
+            ),
+            "交通/差旅",
+        ),
         (("材料", "采购", "螺栓", "焊条"), "材料"),
-        (("住宿", "房租"), "住宿"),
         (("生活费", "餐费", "晚餐"), "生活补助"),
         (("信息费",), "信息费"),
     )
@@ -1835,6 +2743,58 @@ def _narrative_category(text: str) -> str:
         if any(marker in text for marker in markers):
             return category
     return "其他直接成本"
+
+
+def _approved_cost_detail_category(
+    cost_item: str,
+    description: str,
+    cost_detail: str,
+) -> str:
+    """Classify a line-level approved project expense from its cost fields."""
+
+    item = normalize_text(cost_item)
+    explicit = (
+        (("交通费", "差旅费"), "交通/差旅"),
+        (("采购费", "材料费"), "材料"),
+        (("外协人员工资", "劳务费"), "劳务/人工"),
+        (("物流运输费", "运费"), "物流运杂"),
+        (("车辆加油费", "车辆维修保养费"), "车辆油费"),
+        (("生活费", "生活用品费"), "生活补助"),
+        (("住宿费", "房租"), "住宿"),
+        (("吊车租赁费", "脚手架租赁费", "设备租赁费"), "设备租赁"),
+        (("员工保险费", "项目保险费"), "项目保险"),
+        (("外发加工费", "工程外包费"), "外协"),
+        (("税费", "项目税费"), "项目税费"),
+    )
+    for markers, category in explicit:
+        if any(marker in item for marker in markers):
+            return category
+    return _narrative_category(
+        " | ".join(
+            value
+            for value in (cost_item, description, cost_detail)
+            if value
+        )
+    )
+
+
+def _funding_plan_category(description: str, counterparty: str) -> str:
+    """Classify an approved cost without letting project names contaminate it.
+
+    The linked-contract field is identity evidence, not cost-nature evidence.
+    In the production export, some customer names contain words such as
+    ``材料``.  Mixing that field into the classifier mislabeled a ferry/travel
+    reimbursement as material.  Cost nature is therefore derived only from
+    the reimbursement description and payee/account text.
+    """
+
+    return _narrative_category(
+        " | ".join(
+            value.strip()
+            for value in (description, counterparty)
+            if value and value.strip()
+        )
+    )
 
 
 def resolve_narrative_identity(
@@ -1852,6 +2812,28 @@ def resolve_narrative_identity(
     if direct is not None:
         return direct, reason
     normalized = normalize_text(text)
+    exact_name_candidates: List[Tuple[int, Mapping[str, Any]]] = []
+    observed = _as_date(observed_date)
+    for project in indexes["projects"]:
+        project_name = normalize_text(project.get("project_name"))
+        if len(project_name) < 6 or project_name not in normalized:
+            continue
+        _, start, end = _project_window(project, status_map)
+        if observed is not None:
+            if start and observed < start - timedelta(days=45):
+                continue
+            if end and observed > end + timedelta(days=90):
+                continue
+        exact_name_candidates.append((len(project_name), project))
+    if exact_name_candidates:
+        best_length = max(length for length, _ in exact_name_candidates)
+        best = [
+            project
+            for length, project in exact_name_candidates
+            if length == best_length
+        ]
+        if len(best) == 1:
+            return best[0], "NARRATIVE_EXACT_PROJECT_NAME"
     by_customer: Dict[str, List[Mapping[str, Any]]] = defaultdict(list)
     customer_scores: Dict[str, int] = {}
     for project in indexes["projects"]:
@@ -1891,7 +2873,6 @@ def resolve_narrative_identity(
     if len(best_customers) != 1:
         return None, "NARRATIVE_CUSTOMER_AMBIGUOUS"
     candidates = by_customer[best_customers[0]]
-    observed = _as_date(observed_date)
     preaward = any(
         marker in text
         for marker in ("投标", "标书", "勘察", "踏勘", "技术沟通", "现场沟通")
@@ -1938,18 +2919,24 @@ def parse_dws_approvals(
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
     indexes = _project_indexes(projects, year)
     events: List[Dict[str, Any]] = []
+    funding_plan_events: Dict[str, Dict[str, Any]] = {}
+    funding_plan_conflicts: Set[str] = set()
     reviews: List[Dict[str, Any]] = []
     sources: List[Dict[str, Any]] = []
     seen_archives: Set[str] = set()
     seen_messages: Set[str] = set()
     message_count = 0
     approved_count = 0
+    funding_plan_member_count = 0
+    funding_plan_approved_row_count = 0
+    funding_plan_mapped_row_count = 0
     for path in candidates:
         digest = sha256_file(path)
         if digest in seen_archives:
             continue
         seen_archives.add(digest)
         selected_members = 0
+        funding_members: List[Any] = []
         try:
             with zipfile.ZipFile(path) as archive:
                 audit_archive(archive)
@@ -2054,6 +3041,232 @@ def parse_dws_approvals(
                                 "approval_authority_verified": False,
                             }
                         )
+                funding_members = [
+                    info
+                    for info in archive.infolist()
+                    if not info.is_dir()
+                    and info.filename.lower().endswith(".xlsx")
+                    and "项目资金计划" in PurePosixPath(info.filename).name
+                ]
+                for member in funding_members:
+                    funding_plan_member_count += 1
+                    try:
+                        workbook = open_xlsx_payload(archive.read(member))
+                        selected_sheet = None
+                        header_row = None
+                        headers = None
+                        for sheet in workbook.worksheets:
+                            try:
+                                row_number, mapping = locate_header(
+                                    sheet,
+                                    (
+                                        "申请编号",
+                                        "关联主合同",
+                                        "累计报销金额",
+                                        "审批状态",
+                                        "报销说明",
+                                    ),
+                                )
+                            except ProjectCostError:
+                                continue
+                            selected_sheet = sheet
+                            header_row = row_number
+                            headers = mapping
+                            break
+                        if (
+                            selected_sheet is None
+                            or header_row is None
+                            or headers is None
+                        ):
+                            raise ProjectCostError(
+                                "DWS_FUNDING_PLAN_SCHEMA",
+                                "project funding plan schema was not recognized",
+                            )
+                        for row_number, row in enumerate(
+                            selected_sheet.iter_rows(
+                                min_row=header_row + 1,
+                                values_only=True,
+                            ),
+                            header_row + 1,
+                        ):
+                            values = _row_dict(row, headers)
+                            approval_id = normalize_text(
+                                values.get("申请编号")
+                            )
+                            if (
+                                not approval_id
+                                or normalize_text(values.get("审批状态"))
+                                != "已通过"
+                            ):
+                                continue
+                            funding_plan_approved_row_count += 1
+                            amount_minor = cents(
+                                values.get("累计报销金额")
+                            )
+                            if amount_minor is None or amount_minor <= 0:
+                                continue
+                            date_match = re.search(
+                                r"(20\d{2})(\d{2})(\d{2})",
+                                approval_id,
+                            )
+                            if not date_match:
+                                reviews.append(
+                                    {
+                                        "severity": "P1",
+                                        "type": "DWS_APPROVED_COST_DATE_UNRESOLVED",
+                                        "approval_id_hash": sha256_bytes(
+                                            approval_id.encode("utf-8")
+                                        )[:16],
+                                        "action": "审批日期不能从稳定申请编号解析；不得计入正式应计",
+                                    }
+                                )
+                                continue
+                            observed = "%s-%s-%s" % date_match.groups()
+                            try:
+                                date.fromisoformat(observed)
+                            except ValueError:
+                                continue
+                            if (
+                                not observed.startswith("%04d-" % year)
+                                or observed > as_of
+                            ):
+                                continue
+                            related_contract = str(
+                                values.get("关联主合同") or ""
+                            ).strip()
+                            description = str(
+                                values.get("报销说明") or ""
+                            ).strip()
+                            counterparty = " ".join(
+                                str(values.get(name) or "")
+                                for name in ("收款单位", "收款账户")
+                            )
+                            narrative = " | ".join(
+                                value
+                                for value in (
+                                    related_contract,
+                                    description,
+                                    counterparty,
+                                )
+                                if value
+                            )
+                            exclusion = next(
+                                (
+                                    marker
+                                    for marker in (
+                                        "保证金",
+                                        "押金",
+                                        "定金",
+                                        "借款",
+                                        "贷款",
+                                        "回款",
+                                        "收票",
+                                        "罚款",
+                                    )
+                                    if marker in narrative
+                                ),
+                                None,
+                            )
+                            if exclusion:
+                                reviews.append(
+                                    {
+                                        "severity": "P2",
+                                        "type": "DWS_APPROVED_NON_COST_EXCLUDED",
+                                        "approval_id_hash": sha256_bytes(
+                                            approval_id.encode("utf-8")
+                                        )[:16],
+                                        "amount_cents": amount_minor,
+                                        "reason": exclusion,
+                                        "action": "审批事实保留；非成本或尚未发生项目不进入成本公式",
+                                    }
+                                )
+                                continue
+                            project, identity_reason = (
+                                resolve_narrative_identity(
+                                    narrative,
+                                    observed,
+                                    indexes,
+                                    status_map,
+                                )
+                            )
+                            if project is None:
+                                if related_contract:
+                                    reviews.append(
+                                        {
+                                            "severity": "P2",
+                                            "type": "DWS_APPROVED_COST_PROJECT_UNRESOLVED",
+                                            "approval_id_hash": sha256_bytes(
+                                                approval_id.encode("utf-8")
+                                            )[:16],
+                                            "amount_cents": amount_minor,
+                                            "identity_reason": identity_reason,
+                                            "action": "保留未分配审批成本；禁止关键词强行归项目",
+                                        }
+                                    )
+                                continue
+                            project_base = str(project["contract_base"])
+                            candidate = {
+                                "event_id": "dws_funding_"
+                                + sha256_bytes(
+                                    stable_json(
+                                        [
+                                            approval_id,
+                                            project_base,
+                                            amount_minor,
+                                        ]
+                                    )
+                                )[:24],
+                                "project": project_base,
+                                "plane": "DWS_APPROVED_COST",
+                                "category": _funding_plan_category(
+                                    description,
+                                    counterparty,
+                                ),
+                                "amount_cents": amount_minor,
+                                "posting_date": observed,
+                                "summary": description,
+                                "counterparty": counterparty,
+                                "source_id": "src_" + digest[:24],
+                                "source_member": member.filename,
+                                "row": row_number,
+                                "identity_reason": identity_reason,
+                                "approval_id": approval_id,
+                                "approval_authority_verified": True,
+                                "approval_state_source": "审批状态=已通过",
+                                "payment_status": str(
+                                    values.get("支付状态") or ""
+                                ).strip(),
+                            }
+                            existing = funding_plan_events.get(approval_id)
+                            if existing is None:
+                                funding_plan_events[approval_id] = candidate
+                                funding_plan_mapped_row_count += 1
+                            elif (
+                                existing["project"],
+                                existing["category"],
+                                existing["amount_cents"],
+                                existing["posting_date"],
+                            ) != (
+                                candidate["project"],
+                                candidate["category"],
+                                candidate["amount_cents"],
+                                candidate["posting_date"],
+                            ):
+                                funding_plan_conflicts.add(approval_id)
+                        workbook.close()
+                    except Exception as exc:
+                        reviews.append(
+                            {
+                                "severity": "P1",
+                                "type": "DWS_FUNDING_PLAN_REJECTED",
+                                "source_member_hash": sha256_bytes(
+                                    member.filename.encode("utf-8")
+                                )[:16],
+                                "detail": "%s: %s"
+                                % (type(exc).__name__, str(exc)),
+                                "action": "资金计划底表未读通；整批正式发布保持阻断",
+                            }
+                        )
         except Exception as exc:
             reviews.append(
                 {
@@ -2069,25 +3282,45 @@ def parse_dws_approvals(
                 source_record(
                     path,
                     roots,
-                    selected=selected_members > 0,
+                    selected=selected_members > 0 or bool(funding_members),
                     reason=(
-                        "payment-request raw messages; approval-like reactions "
-                        "are observations only because approver authority is not modeled"
+                        "payment-request observations plus explicit approved-cost "
+                        "rows from the production funding plan"
                     ),
                 ),
                 source_slot="dws_payment_approvals",
                 logical_metadata={
                     "selected_raw_message_members": selected_members,
+                    "selected_funding_plan_members": len(funding_members),
                     "message_count": message_count,
                     "approval_like_reaction_count": approved_count,
                 },
             )
         )
+    for approval_id in sorted(funding_plan_conflicts):
+        funding_plan_events.pop(approval_id, None)
+        reviews.append(
+            {
+                "severity": "P1",
+                "type": "DWS_APPROVED_COST_EXPORT_CONFLICT",
+                "approval_id_hash": sha256_bytes(
+                    approval_id.encode("utf-8")
+                )[:16],
+                "action": "同一申请编号在导出中金额或项目冲突；禁止选边",
+            }
+        )
+    events.extend(
+        funding_plan_events[key]
+        for key in sorted(funding_plan_events)
+    )
     return events, _dedupe_review_rows(reviews), sources, {
         "message_count": message_count,
         "approval_like_reaction_count": approved_count,
+        "funding_plan_member_count": funding_plan_member_count,
+        "funding_plan_approved_row_count": funding_plan_approved_row_count,
+        "funding_plan_mapped_row_count": len(funding_plan_events),
         "observed_event_count": len(events),
-        "formal_amount_use": False,
+        "formal_amount_use": bool(funding_plan_events),
     }
 
 
@@ -2297,18 +3530,32 @@ def qualify_cost_accruals(
     approved_events: Sequence[Mapping[str, Any]],
     paid_events: Sequence[Mapping[str, Any]],
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
-    """Promote qualified, not-yet-posted observations into the accrual plane."""
+    """Promote approved, not-yet-posted facts into the accrual plane.
+
+    Reconciliation is one-to-one.  An exact or strongly evidenced gross/net
+    representation may suppress one approved line against one posted line;
+    a nearby row of the same broad category is never enough on its own.
+    """
 
     posted = [
         event
         for event in ledger_events
         if event.get("plane") == "JOB_POSTED_ACTUAL"
     ]
+    unallocated_posted = [
+        event
+        for event in ledger_events
+        if event.get("plane") == "UNALLOCATED_LEDGER_COST_POOL"
+    ]
     accruals: List[Dict[str, Any]] = []
     reviews: List[Dict[str, Any]] = []
-    consumed: Set[str] = set()
     posting_link_required = 0
     corroborated = 0
+    approved_formal = 0
+    exact_posting_matches = 0
+    fuzzy_posting_matches = 0
+    ambiguous_posting_matches = 0
+    unallocated_posting_links = 0
 
     def close_dates(left: Any, right: Any, days: int) -> bool:
         ldate, rdate = _as_date(left), _as_date(right)
@@ -2322,6 +3569,8 @@ def qualify_cost_accruals(
             return "SUBCONTRACT"
         if category in ("自有人工过账", "自有人工-工资应计"):
             return "OWN_LABOR"
+        if category in ("自有人工-雇主社保医保应计",):
+            return "OWN_LABOR_BURDEN"
         if category in ("设备租赁",):
             return "RENTAL"
         if category in ("交通/差旅",):
@@ -2330,6 +3579,18 @@ def qualify_cost_accruals(
             return "LODGING"
         if category in ("生活补助",):
             return "LIVING"
+        if category in ("物流运杂",):
+            return "LOGISTICS"
+        if category in ("过路停车",):
+            return "ROAD_PARKING"
+        if category in ("车辆油费",):
+            return "VEHICLE"
+        if category in ("燃料及动力",):
+            return "UTILITIES"
+        if category in ("项目税费",):
+            return "PROJECT_TAX"
+        if category in ("项目税费-销项税额",):
+            return "PROJECT_OUTPUT_VAT"
         return normalize_text(category)
 
     def possible_postings(
@@ -2349,25 +3610,216 @@ def qualify_cost_accruals(
             and category_family(row) == family
         ]
 
+    def date_distance(left: Any, right: Any) -> int:
+        ldate, rdate = _as_date(left), _as_date(right)
+        if ldate is None or rdate is None:
+            return 10**9
+        return abs((ldate - rdate).days)
+
+    def event_text(event: Mapping[str, Any]) -> str:
+        return normalize_text(
+            " | ".join(
+                str(event.get(key) or "")
+                for key in ("summary", "description", "counterparty")
+            )
+        )
+
+    def semantic_score(
+        left: Mapping[str, Any],
+        right: Mapping[str, Any],
+    ) -> int:
+        left_text, right_text = event_text(left), event_text(right)
+        shorter = min(len(left_text), len(right_text))
+        if shorter == 0:
+            return 0
+        common = _longest_common_substring_length(left_text, right_text)
+        return int(Decimal(common) * Decimal(1000) / Decimal(shorter))
+
+    def posting_match(
+        approved: Mapping[str, Any],
+        posting: Mapping[str, Any],
+    ) -> Optional[Tuple[int, int, int, str]]:
+        if (
+            str(posting.get("project")) != str(approved.get("project"))
+            or category_family(posting) != category_family(approved)
+            or not close_dates(
+                posting.get("posting_date"),
+                approved.get("posting_date"),
+                45,
+            )
+        ):
+            return None
+        approved_amount = int(approved.get("amount_cents") or 0)
+        posted_amount = int(posting.get("amount_cents") or 0)
+        if (
+            approved_amount == 0
+            or posted_amount == 0
+            or (approved_amount > 0) != (posted_amount > 0)
+        ):
+            return None
+        distance = date_distance(
+            posting.get("posting_date"),
+            approved.get("posting_date"),
+        )
+        similarity = semantic_score(approved, posting)
+        if approved_amount == posted_amount:
+            return 0, distance, -similarity, "EXACT_AMOUNT"
+
+        # Gross reimbursement values and VAT-exclusive GL values can be two
+        # representations of one occurrence.  This weaker relationship is
+        # accepted only with strong narrative overlap and a narrow,
+        # enumerated amount transformation.
+        if similarity < 550:
+            return None
+        approved_abs, posted_abs = abs(approved_amount), abs(posted_amount)
+        if len(event_text(approved)) < 8 or len(event_text(posting)) < 8:
+            return None
+        near_tolerance = max(300, int(
+            (
+                Decimal(approved_abs) * Decimal("0.01")
+            ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        ))
+        if abs(approved_abs - posted_abs) <= near_tolerance:
+            return 1, distance, -similarity, "SEMANTIC_NEAR_AMOUNT"
+        if approved_abs >= posted_abs:
+            for percentage in (1, 3, 6, 9, 13):
+                rate = Decimal(percentage) / Decimal(100)
+                expected_net = int(
+                    (
+                        Decimal(approved_abs)
+                        / (Decimal(1) + rate)
+                    ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+                )
+                if abs(expected_net - posted_abs) <= 2:
+                    return (
+                        2,
+                        distance,
+                        -similarity,
+                        "SEMANTIC_GROSS_NET_%d_PERCENT" % percentage,
+                    )
+        return None
+
+    # Build a deterministic one-to-one bipartite match.  Repeated exact
+    # amounts are safe because each physical posting is consumed once.
+    posting_edges: List[
+        Tuple[int, int, int, str, str, int, int, str]
+    ] = []
+    fuzzy_by_approved: Dict[
+        int,
+        List[Tuple[int, int, int, int]],
+    ] = defaultdict(list)
+    exact_candidate_approved: Set[int] = set()
+    for approved_index, approved in enumerate(approved_events):
+        if not approved.get("approval_authority_verified"):
+            continue
+        for posted_index, posting in enumerate(posted):
+            candidate = posting_match(approved, posting)
+            if candidate is None:
+                continue
+            rank, distance, negative_similarity, match_kind = candidate
+            posting_edges.append(
+                (
+                    rank,
+                    distance,
+                    negative_similarity,
+                    str(approved.get("event_id") or approved_index),
+                    str(posting.get("event_id") or posted_index),
+                    approved_index,
+                    posted_index,
+                    match_kind,
+                )
+            )
+            if rank == 0:
+                exact_candidate_approved.add(approved_index)
+            else:
+                fuzzy_by_approved[approved_index].append(
+                    (
+                        rank,
+                        distance,
+                        negative_similarity,
+                        posted_index,
+                    )
+                )
+    ambiguous_approved: Set[int] = set()
+    for approved_index, candidates in fuzzy_by_approved.items():
+        if approved_index in exact_candidate_approved:
+            continue
+        ordered = sorted(candidates)
+        best_core = ordered[0][:3]
+        if sum(candidate[:3] == best_core for candidate in ordered) > 1:
+            ambiguous_approved.add(approved_index)
+    approved_to_posted: Dict[int, Tuple[int, str]] = {}
+    used_posted: Set[int] = set()
+    for edge in sorted(posting_edges):
+        (
+            _rank,
+            _distance,
+            _negative_similarity,
+            _approved_id,
+            _posted_id,
+            approved_index,
+            posted_index,
+            match_kind,
+        ) = edge
+        if (
+            approved_index in ambiguous_approved
+            or approved_index in approved_to_posted
+            or posted_index in used_posted
+        ):
+            continue
+        approved_to_posted[approved_index] = (posted_index, match_kind)
+        used_posted.add(posted_index)
+
+    # Exact unallocated 5001 candidates are also consumed one-to-one.  Their
+    # lack of project identity remains a P1 link blocker; they are never
+    # silently assigned to a project.
+    unallocated_edges: List[Tuple[int, str, str, int, int]] = []
+    for approved_index, approved in enumerate(approved_events):
+        if (
+            not approved.get("approval_authority_verified")
+            or approved_index in approved_to_posted
+            or approved_index in ambiguous_approved
+        ):
+            continue
+        family = category_family(approved)
+        amount = int(approved.get("amount_cents") or 0)
+        for unallocated_index, posting in enumerate(unallocated_posted):
+            if (
+                int(posting.get("amount_cents") or 0) == amount
+                and category_family(posting) == family
+                and close_dates(
+                    posting.get("posting_date"),
+                    approved.get("posting_date"),
+                    45,
+                )
+            ):
+                unallocated_edges.append(
+                    (
+                        date_distance(
+                            posting.get("posting_date"),
+                            approved.get("posting_date"),
+                        ),
+                        str(approved.get("event_id") or approved_index),
+                        str(posting.get("event_id") or unallocated_index),
+                        approved_index,
+                        unallocated_index,
+                    )
+                )
+    approved_to_unallocated: Dict[int, int] = {}
+    used_unallocated: Set[int] = set()
+    for _, _, _, approved_index, unallocated_index in sorted(
+        unallocated_edges
+    ):
+        if (
+            approved_index in approved_to_unallocated
+            or unallocated_index in used_unallocated
+        ):
+            continue
+        approved_to_unallocated[approved_index] = unallocated_index
+        used_unallocated.add(unallocated_index)
+
     for paid in paid_events:
         posting_candidates = possible_postings(paid, 10)
-        if posting_candidates:
-            posting_link_required += 1
-            reviews.append(
-                {
-                    "severity": "P1",
-                    "type": "ACCRUAL_POSTING_LINK_REQUIRED",
-                    "project": paid.get("project"),
-                    "observation_event_id": paid.get("event_id"),
-                    "candidate_count": len(posting_candidates),
-                    "amount_cents": paid.get("amount_cents"),
-                    "action": (
-                        "存在同项目近日期过账候选；即使同日同额也不能证明同一交易，"
-                        "取得单据/凭证稳定链接前不应计也不判重复"
-                    ),
-                }
-            )
-            continue
         matching_approved = next(
             (
                 row
@@ -2380,60 +3832,242 @@ def qualify_cost_accruals(
             None,
         )
         if matching_approved is not None:
-            consumed.add(str(matching_approved.get("event_id")))
             corroborated += 1
-        key = [
-            paid.get("project"),
-            paid.get("amount_cents"),
-            paid.get("posting_date"),
-            paid.get("event_id"),
-        ]
-        accruals.append(
-            {
-                "event_id": "accr_" + sha256_bytes(stable_json(key))[:24],
-                "project": paid["project"],
-                "plane": "COST_ACCRUED",
-                "category": paid.get("category"),
-                "amount_cents": int(paid["amount_cents"]),
-                "posting_date": paid.get("posting_date"),
-                "summary": "已支付未见金蝶项目成本入账"
-                + ("；DWS反应观察已关联（不影响金额资格）" if matching_approved else ""),
-                "source_id": paid.get("source_id"),
-                "source_member": paid.get("source_member"),
-                "identity_reason": paid.get("identity_reason"),
-                "evidence_event_ids": [
-                    value
-                    for value in (
-                        paid.get("event_id"),
-                        matching_approved.get("event_id") if matching_approved else None,
-                    )
-                    if value
-                ],
-            }
-        )
-    for approved in approved_events:
-        if str(approved.get("event_id")) in consumed:
-            continue
-        posting_candidates = possible_postings(approved, 45)
-        posting_link_required += bool(posting_candidates)
+        # A bank/payment observation proves cash movement, not cost
+        # occurrence.  Earlier revisions promoted an OCR payment to accrued
+        # cost whenever no nearby posting was found.  That reverses the
+        # evidence direction and can manufacture project cost from payment
+        # alone.  Keep the observation and any corroborating links outside the
+        # incurred-cost formula; an independently approved event is evaluated
+        # in the next loop on its own authority.
         reviews.append(
             {
-                "severity": "P1",
-                "type": "DWS_APPROVER_AUTHORITY_UNVERIFIED_EXCLUDED",
-                "project": approved.get("project"),
-                "observation_event_id": approved.get("event_id"),
+                "severity": "P2",
+                "type": "PAID_COST_OBSERVATION_EXCLUDED_FROM_ACCRUAL",
+                "project": paid.get("project"),
+                "observation_event_id": paid.get("event_id"),
                 "posting_candidate_count": len(posting_candidates),
-                "amount_cents": int(approved["amount_cents"]),
+                "approved_event_linked": matching_approved is not None,
+                "amount_cents": paid.get("amount_cents"),
                 "action": (
-                    "DWS 反应人权限未建模；该记录只能作为观察，不能独立形成正式应计"
+                    "支付只证明现金阶段，不单独证明成本发生；保留观察和链接，"
+                    "仅由独立过账或已批准发生事实进入成本公式"
                 ),
             }
         )
+    for approved_index, approved in enumerate(approved_events):
+        posting_candidates = possible_postings(approved, 45)
+        if not approved.get("approval_authority_verified"):
+            posting_link_required += bool(posting_candidates)
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "DWS_APPROVER_AUTHORITY_UNVERIFIED_EXCLUDED",
+                    "project": approved.get("project"),
+                    "observation_event_id": approved.get("event_id"),
+                    "posting_candidate_count": len(posting_candidates),
+                    "amount_cents": int(approved["amount_cents"]),
+                    "action": (
+                        "DWS 反应人权限未建模；该记录只能作为观察，不能独立形成正式应计"
+                    ),
+                }
+            )
+            continue
+        if approved_index in ambiguous_approved:
+            posting_link_required += 1
+            ambiguous_posting_matches += 1
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "APPROVED_COST_POSTING_MATCH_AMBIGUOUS",
+                    "project": approved.get("project"),
+                    "observation_event_id": approved.get("event_id"),
+                    "candidate_count": len(
+                        fuzzy_by_approved.get(approved_index, ())
+                    ),
+                    "amount_cents": int(approved["amount_cents"]),
+                    "action": (
+                        "已通过成本存在多个同等强度的毛额/净额过账候选；"
+                        "确认申请编号到凭证链接前不重复应计"
+                    ),
+                }
+            )
+            continue
+        if approved_index in approved_to_posted:
+            posted_index, match_kind = approved_to_posted[approved_index]
+            if match_kind == "EXACT_AMOUNT":
+                exact_posting_matches += 1
+            else:
+                fuzzy_posting_matches += 1
+            reviews.append(
+                {
+                    "severity": "P2",
+                    "type": "APPROVED_COST_POSTING_MATCHED_ONE_TO_ONE",
+                    "project": approved.get("project"),
+                    "observation_event_id": approved.get("event_id"),
+                    "posting_event_id": posted[posted_index].get("event_id"),
+                    "match_kind": match_kind,
+                    "amount_cents": int(approved["amount_cents"]),
+                    "posting_amount_cents": int(
+                        posted[posted_index].get("amount_cents") or 0
+                    ),
+                    "action": "已通过成本与项目过账逐笔匹配；仅保留总账表示一次",
+                }
+            )
+            continue
+        if approved_index in approved_to_unallocated:
+            posting_link_required += 1
+            unallocated_posting_links += 1
+            unallocated_index = approved_to_unallocated[approved_index]
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "APPROVED_COST_UNALLOCATED_POSTING_LINK_REQUIRED",
+                    "project": approved.get("project"),
+                    "observation_event_id": approved.get("event_id"),
+                    "candidate_count": 1,
+                    "posting_event_id": unallocated_posted[
+                        unallocated_index
+                    ].get("event_id"),
+                    "amount_cents": int(approved["amount_cents"]),
+                    "action": (
+                        "已通过成本存在同额、同类别、近日期的未分配5001过账；"
+                        "取得申请编号到凭证/项目辅助核算的稳定链接前不得重复应计，"
+                        "也不得直接把该总账行强行归项目"
+                    ),
+                }
+            )
+            continue
+        key = [
+            approved.get("project"),
+            approved.get("approval_id"),
+            approved.get("amount_cents"),
+            approved.get("posting_date"),
+        ]
+        accruals.append(
+            {
+                "event_id": "accr_approved_"
+                + sha256_bytes(stable_json(key))[:24],
+                "project": approved["project"],
+                "plane": "COST_ACCRUED",
+                "category": approved.get("category"),
+                "amount_cents": int(approved["amount_cents"]),
+                "posting_date": approved.get("posting_date"),
+                "summary": "业务系统审批已通过、尚未见项目成本过账",
+                "source_id": approved.get("source_id"),
+                "source_member": approved.get("source_member"),
+                "identity_reason": approved.get("identity_reason"),
+                "evidence_event_ids": [approved.get("event_id")],
+                "approval_id": approved.get("approval_id"),
+            }
+        )
+        approved_formal += 1
     return accruals, _dedupe_review_rows(reviews), {
         "qualified_accrual_count": len(accruals),
         "posting_link_required_count": posting_link_required,
         "dws_reaction_paid_observation_link_count": corroborated,
+        "dws_approved_cost_formal_count": approved_formal,
         "dws_reaction_formal_amount_use": False,
+        "approved_posting_exact_match_count": exact_posting_matches,
+        "approved_posting_fuzzy_match_count": fuzzy_posting_matches,
+        "approved_posting_ambiguous_count": ambiguous_posting_matches,
+        "approved_unallocated_posting_link_count": (
+            unallocated_posting_links
+        ),
+        "one_to_one_posting_reconciliation": True,
+    }
+
+
+def merge_approved_cost_sources(
+    dws_events: Sequence[Mapping[str, Any]],
+    detail_events: Sequence[Mapping[str, Any]],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
+    """Prefer line detail when it exactly reconciles to a DWS parent approval.
+
+    The funding-plan workbook is one row per reimbursement application while
+    the cost-detail workbook is one row per expense line.  An application may
+    therefore appear in both sources.  Exact parent amount/project agreement
+    keeps the richer detail and suppresses the summary.  Any disagreement
+    excludes both representations instead of choosing a convenient number.
+    """
+
+    detail_by_parent: Dict[str, List[Mapping[str, Any]]] = defaultdict(list)
+    for event in detail_events:
+        parent = normalize_text(event.get("parent_approval_id"))
+        if parent:
+            detail_by_parent[parent].append(event)
+    dws_by_approval: Dict[str, Mapping[str, Any]] = {
+        normalize_text(event.get("approval_id")): event
+        for event in dws_events
+        if event.get("approval_authority_verified")
+        and normalize_text(event.get("approval_id"))
+    }
+    suppressed_dws: Set[str] = set()
+    conflicting_parents: Set[str] = set()
+    reviews: List[Dict[str, Any]] = []
+    exact_parent_matches = 0
+    for parent in sorted(set(detail_by_parent) & set(dws_by_approval)):
+        detail_rows = detail_by_parent[parent]
+        dws = dws_by_approval[parent]
+        detail_projects = {
+            str(event.get("project")) for event in detail_rows
+        }
+        detail_amount = sum(
+            int(event.get("amount_cents") or 0)
+            for event in detail_rows
+        )
+        if (
+            detail_projects == {str(dws.get("project"))}
+            and detail_amount == int(dws.get("amount_cents") or 0)
+        ):
+            exact_parent_matches += 1
+            suppressed_dws.add(parent)
+            reviews.append(
+                {
+                    "severity": "P2",
+                    "type": "APPROVED_COST_PARENT_EXACT_DUPLICATE",
+                    "parent_id_hash": sha256_bytes(
+                        parent.encode("utf-8")
+                    )[:16],
+                    "detail_row_count": len(detail_rows),
+                    "amount_cents": detail_amount,
+                    "action": "资金计划汇总与费用明细逐行合计一致；仅保留明细表示一次",
+                }
+            )
+        else:
+            conflicting_parents.add(parent)
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "APPROVED_COST_PARENT_RECONCILIATION_CONFLICT",
+                    "parent_id_hash": sha256_bytes(
+                        parent.encode("utf-8")
+                    )[:16],
+                    "detail_row_count": len(detail_rows),
+                    "detail_amount_cents": detail_amount,
+                    "summary_amount_cents": int(
+                        dws.get("amount_cents") or 0
+                    ),
+                    "action": "资金计划汇总与费用明细不一致；两种表示均不进入正式应计",
+                }
+            )
+    result: List[Dict[str, Any]] = []
+    for event in dws_events:
+        approval_id = normalize_text(event.get("approval_id"))
+        if approval_id in suppressed_dws or approval_id in conflicting_parents:
+            continue
+        result.append(dict(event))
+    for event in detail_events:
+        parent = normalize_text(event.get("parent_approval_id"))
+        if parent in conflicting_parents:
+            continue
+        result.append(dict(event))
+    return result, _dedupe_review_rows(reviews), {
+        "dws_event_count": len(dws_events),
+        "detail_event_count": len(detail_events),
+        "exact_parent_match_count": exact_parent_matches,
+        "conflicting_parent_count": len(conflicting_parents),
+        "combined_event_count": len(result),
     }
 
 
@@ -2499,6 +4133,60 @@ def labor_posted_reconciliation(
         )
     matched = min(allocated, posted)
     return matched, allocated - matched
+
+
+def labor_posted_component_reconciliation(
+    allocated_wage_cents: int,
+    allocated_burden_cents: int,
+    direct_wage_posted_cents: int,
+    combined_wage_burden_posted_cents: int,
+) -> Dict[str, int]:
+    """Reconcile payroll components to project-period GL labor postings.
+
+    ``5001003`` is matched only to the wage component.  A ``5001006`` row is
+    eligible only when its summary explicitly identifies a wage/social
+    allocation; because that row is combined, its matched amount is split
+    deterministically across the remaining wage and employer-burden
+    components.  The split is a reconciliation device, not a new accounting
+    fact, and total cents remain exact.
+    """
+
+    wage = int(allocated_wage_cents)
+    burden = int(allocated_burden_cents)
+    direct = int(direct_wage_posted_cents)
+    combined = int(combined_wage_burden_posted_cents)
+    if min(wage, burden, direct, combined) < 0:
+        raise ProjectCostError(
+            "LABOR_POSTED_COMPONENT_NEGATIVE",
+            "labor component reconciliation requires non-negative cents",
+        )
+    direct_match = min(wage, direct)
+    wage_after_direct = wage - direct_match
+    remaining_components = {
+        "wage": Decimal(wage_after_direct),
+        "burden": Decimal(burden),
+    }
+    combined_capacity = wage_after_direct + burden
+    combined_match = min(combined_capacity, combined)
+    combined_split = (
+        largest_remainder_allocate(
+            combined_match,
+            remaining_components,
+        )
+        if combined_match
+        else {"wage": 0, "burden": 0}
+    )
+    wage_accrual = wage_after_direct - combined_split.get("wage", 0)
+    burden_accrual = burden - combined_split.get("burden", 0)
+    return {
+        "direct_wage_matched_cents": direct_match,
+        "combined_matched_cents": combined_match,
+        "matched_cents": direct_match + combined_match,
+        "wage_accrual_cents": wage_accrual,
+        "employer_burden_accrual_cents": burden_accrual,
+        "direct_wage_posted_excess_cents": direct - direct_match,
+        "combined_posted_excess_cents": combined - combined_match,
+    }
 
 
 def _open_payroll_workbook(path: Path, password_env: Optional[str]):
@@ -2594,6 +4282,397 @@ def _payroll_header(sheet: Any) -> Tuple[int, Dict[str, int]]:
     )
 
 
+def _employment_entity_key(value: Any) -> str:
+    """Return a narrow legal-employer key shared by payroll and burden files."""
+
+    text = normalize_text(value)
+    if not text:
+        return ""
+    # Some finalized social-insurance sheets append the payroll month to a
+    # legal-employer label in the sheet title.  Remove only a terminal period
+    # token; do not keep tenant-specific company aliases in public source.
+    text = re.sub(
+        r"[（(]?(?:20)?\d{4,6}(?:-\d+)?[）)]?$",
+        "",
+        text,
+    )
+    return _company_core(text)
+
+
+def _compatible_entity_key(
+    requested: str,
+    candidates: Iterable[str],
+) -> Optional[str]:
+    """Resolve one legal-employer key by exact or unique containment.
+
+    Final payroll, burden and ledger exports do not always use the same legal
+    suffix.  A narrow containment match handles ``short name`` versus
+    ``full legal name`` while refusing ambiguous or two-character brand-only
+    matches.
+    """
+
+    normalized = _employment_entity_key(requested)
+    available = sorted(
+        {
+            _employment_entity_key(candidate)
+            for candidate in candidates
+            if _employment_entity_key(candidate)
+        }
+    )
+    if not normalized:
+        return None
+    if normalized in available:
+        return normalized
+    minimum_length = 2 if len(available) == 1 else 4
+    matches = [
+        candidate
+        for candidate in available
+        if min(len(normalized), len(candidate)) >= minimum_length
+        and (
+            normalized in candidate
+            or candidate in normalized
+        )
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _compact_payroll_period(value: Any) -> Optional[str]:
+    text = normalize_text(value)
+    match = re.fullmatch(r"(?:(20)?(\d{2}))[-./年]?(\d{1,2})", text)
+    if not match:
+        return None
+    year = int(match.group(2))
+    month = int(match.group(3))
+    if not 1 <= month <= 12:
+        return None
+    return "20%02d-%02d" % (year, month)
+
+
+def _sheet_declared_period(sheet: Any) -> Optional[str]:
+    values: List[str] = [str(sheet.title or "")]
+    for row in sheet.iter_rows(
+        min_row=1,
+        max_row=min(sheet.max_row or 2, 2),
+        values_only=True,
+    ):
+        values.extend(str(value or "") for value in row)
+    text = " ".join(values)
+    candidates = re.findall(r"(20\d{2})[-./年]?(\d{1,2})", text)
+    normalized = {
+        "%s-%02d" % (year, int(month))
+        for year, month in candidates
+        if 1 <= int(month) <= 12
+    }
+    return next(iter(normalized)) if len(normalized) == 1 else None
+
+
+def _employer_burden_header(
+    sheet: Any,
+) -> Optional[Tuple[int, Dict[str, int]]]:
+    """Locate a two-row 社保/医保 header and its employer-total column."""
+
+    for row_number in range(1, min(sheet.max_row or 8, 8) + 1):
+        try:
+            parent = list(
+                next(
+                    sheet.iter_rows(
+                        min_row=row_number,
+                        max_row=row_number,
+                        values_only=True,
+                    )
+                )
+            )
+            child = list(
+                next(
+                    sheet.iter_rows(
+                        min_row=row_number + 1,
+                        max_row=row_number + 1,
+                        values_only=True,
+                    )
+                )
+            )
+        except StopIteration:
+            continue
+        compact = [
+            re.sub(r"\s+", "", str(value or ""))
+            for value in parent
+        ]
+        if not all(
+            name in compact
+            for name in ("序号", "部门", "月份", "姓名", "单位应缴")
+        ):
+            continue
+        employer_start = compact.index("单位应缴")
+        try:
+            personal_start = compact.index("个人应缴")
+        except ValueError:
+            continue
+        child_compact = [
+            re.sub(r"\s+", "", str(value or ""))
+            for value in child
+        ]
+        totals = [
+            index
+            for index in range(employer_start, min(personal_start, len(child_compact)))
+            if child_compact[index] == "合计"
+        ]
+        if len(totals) != 1:
+            continue
+        return row_number, {
+            "department": compact.index("部门"),
+            "employee": compact.index("姓名"),
+            "period": compact.index("月份"),
+            "employer_total": totals[0],
+        }
+    return None
+
+
+def parse_employer_burden_workbooks(
+    workbooks: Sequence[Path],
+    roots: Sequence[Path],
+    *,
+    year: int,
+    as_of: str,
+    password_env: Optional[str] = None,
+) -> Tuple[
+    Dict[str, Dict[Tuple[str, str], Dict[str, Any]]],
+    List[Dict[str, Any]],
+    List[Dict[str, Any]],
+    Dict[str, Any],
+]:
+    """Parse employer-paid social/medical components without using deductions."""
+
+    cutoff = date.fromisoformat(as_of)
+    records_by_period: Dict[
+        str,
+        Dict[Tuple[str, str], Dict[str, Any]],
+    ] = {}
+    sources: List[Dict[str, Any]] = []
+    reviews: List[Dict[str, Any]] = []
+    period_meta: List[Dict[str, Any]] = []
+    seen_periods: Set[str] = set()
+    for raw_path in workbooks:
+        path = Path(raw_path)
+        if path.is_symlink() or not path.is_file():
+            raise ProjectCostError(
+                "EMPLOYER_BURDEN_SOURCE_INVALID",
+                "employer burden source is unavailable or is a symlink",
+            )
+        workbook = _open_payroll_workbook(path, password_env)
+        try:
+            period = _payroll_period(path, workbook)
+            if int(period[:4]) != year or _period_end(period) > cutoff:
+                continue
+            if period in seen_periods:
+                raise ProjectCostError(
+                    "EMPLOYER_BURDEN_PERIOD_DUPLICATE",
+                    "provide exactly one finalized employer-burden workbook per period",
+                )
+            seen_periods.add(period)
+            parsed: Dict[Tuple[str, str], Dict[str, Any]] = {}
+            duplicate_keys: Set[Tuple[str, str]] = set()
+            row_period_overrides = 0
+            rejected_sheets = 0
+            adjustment_block_candidate_rows = 0
+            for sheet in workbook.worksheets:
+                located = _employer_burden_header(sheet)
+                if located is None:
+                    continue
+                header_row, indexes = located
+                sheet_period = _sheet_declared_period(sheet)
+                if sheet_period and sheet_period != period:
+                    rejected_sheets += 1
+                    reviews.append(
+                        {
+                            "severity": "P1",
+                            "type": "EMPLOYER_BURDEN_SHEET_PERIOD_CONFLICT",
+                            "period": period,
+                            "source_sheet": sheet.title,
+                            "declared_period": sheet_period,
+                            "action": "文件月份与工作表月份冲突；该表不进入雇主负担成本",
+                        }
+                    )
+                    continue
+                entity_hint = ""
+                for row in sheet.iter_rows(
+                    min_row=1,
+                    max_row=min(header_row, 3),
+                    values_only=True,
+                ):
+                    entity_hint = next(
+                        (
+                            str(value).strip()
+                            for value in row
+                            if value not in (None, "")
+                            and "有限公司" in str(value)
+                        ),
+                        entity_hint,
+                    )
+                entity = _employment_entity_key(entity_hint or sheet.title)
+                if not entity:
+                    reviews.append(
+                        {
+                            "severity": "P1",
+                            "type": "EMPLOYER_BURDEN_ENTITY_UNRESOLVED",
+                            "period": period,
+                            "source_sheet": sheet.title,
+                            "action": "单位负担表无法解析雇佣主体；该表不进入人工成本",
+                        }
+                    )
+                    continue
+                for row in sheet.iter_rows(
+                    min_row=header_row + 2,
+                    values_only=True,
+                ):
+                    employee = normalize_text(
+                        row[indexes["employee"]]
+                        if indexes["employee"] < len(row)
+                        else None
+                    )
+                    amount = cents(
+                        row[indexes["employer_total"]]
+                        if indexes["employer_total"] < len(row)
+                        else None
+                    )
+                    if not employee or amount is None or amount < 0:
+                        continue
+                    row_period = _compact_payroll_period(
+                        row[indexes["period"]]
+                        if indexes["period"] < len(row)
+                        else None
+                    )
+                    # The same worksheet may contain a second, differently
+                    # shaped contribution-base adjustment table below the
+                    # finalized monthly rows.  It reuses the words
+                    # ``单位应缴`` but has no payroll-month column at the
+                    # primary index.  Treating that block as monthly employee
+                    # burden shifts columns and invents duplicate employees.
+                    if row_period is None:
+                        if employee not in ("合计", "总计"):
+                            adjustment_block_candidate_rows += 1
+                        continue
+                    if row_period and row_period != period:
+                        if sheet_period == period:
+                            row_period_overrides += 1
+                        else:
+                            reviews.append(
+                                {
+                                    "severity": "P1",
+                                    "type": "EMPLOYER_BURDEN_ROW_PERIOD_CONFLICT",
+                                    "period": period,
+                                    "source_sheet": sheet.title,
+                                    "action": "单位负担行月份与文件月份冲突且无一致表头证据；该行已排除",
+                                }
+                            )
+                            continue
+                    key = (entity, employee)
+                    if key in parsed:
+                        duplicate_keys.add(key)
+                        continue
+                    parsed[key] = {
+                        "amount_cents": amount,
+                        "department": normalize_text(
+                            row[indexes["department"]]
+                            if indexes["department"] < len(row)
+                            else None
+                        ),
+                        "source_sheet": sheet.title,
+                    }
+            for key in duplicate_keys:
+                parsed.pop(key, None)
+            if duplicate_keys:
+                reviews.append(
+                    {
+                        "severity": "P1",
+                        "type": "EMPLOYER_BURDEN_EMPLOYEE_DUPLICATE",
+                        "period": period,
+                        "duplicate_employee_count": len(duplicate_keys),
+                        "action": "同主体同员工单位负担重复；重复人员保持未分配且不输出身份",
+                    }
+                )
+            if row_period_overrides:
+                reviews.append(
+                    {
+                        "severity": "P2",
+                        "type": "EMPLOYER_BURDEN_ROW_PERIOD_OVERRIDDEN",
+                        "period": period,
+                        "row_count": row_period_overrides,
+                        "action": "文件名与工作表均明确同一月份，行内复制月份未采用并保留审计记录",
+                    }
+                )
+            if adjustment_block_candidate_rows:
+                reviews.append(
+                    {
+                        "severity": "P1",
+                        "type": (
+                            "EMPLOYER_BURDEN_ADJUSTMENT_BLOCK_REQUIRES_PERIOD_ALLOCATION"
+                        ),
+                        "period": period,
+                        "candidate_row_count": (
+                            adjustment_block_candidate_rows
+                        ),
+                        "action": (
+                            "同一工作表含无月度字段的缴费基数调整块；"
+                            "需取得调整所属月份后才能计入项目人工成本"
+                        ),
+                    }
+                )
+            if not parsed:
+                reviews.append(
+                    {
+                        "severity": "P1",
+                        "type": "EMPLOYER_BURDEN_PERIOD_EMPTY",
+                        "period": period,
+                        "action": "单位承担社保/医保来源没有可用人员行；该期间人工成本保持阻断",
+                    }
+                )
+            records_by_period[period] = parsed
+            source = dict(
+                source_record(
+                    path,
+                    tuple(roots) + (path.parent,),
+                    selected=True,
+                    reason="caller-supplied finalized employer social/medical burden workbook",
+                ),
+                source_slot="payroll_and_time.employer_burden",
+                logical_metadata={
+                    "payroll_period": period,
+                    "employee_row_count": len(parsed),
+                    "contains_personal_data": True,
+                    "personal_data_not_copied_to_output": True,
+                },
+            )
+            sources.append(source)
+            period_meta.append(
+                {
+                    "period": period,
+                    "employee_row_count": len(parsed),
+                    "row_period_override_count": row_period_overrides,
+                    "adjustment_block_candidate_row_count": (
+                        adjustment_block_candidate_rows
+                    ),
+                    "rejected_sheet_count": rejected_sheets,
+                    "employer_burden_control_cents": sum(
+                        int(record["amount_cents"])
+                        for record in parsed.values()
+                    ),
+                }
+            )
+        finally:
+            workbook.close()
+    return records_by_period, sources, _dedupe_review_rows(reviews), {
+        "provided": bool(workbooks),
+        "periods": period_meta,
+        "selected_period_count": len(records_by_period),
+        "employer_burden_control_cents": sum(
+            int(record["amount_cents"])
+            for records in records_by_period.values()
+            for record in records.values()
+        ),
+        "personal_deductions_used": False,
+    }
+
+
 def _attendance_file_rank(path: Path) -> Tuple[int, int, str]:
     name = path.name.lower()
     rank = 4 if "final" in name else 3 if "evening" in name else 2 if "morning" in name else 1
@@ -2631,6 +4710,297 @@ def _selected_attendance_files(
                 if current_choice is None or _attendance_file_rank(path) > _attendance_file_rank(current_choice):
                     selected[match.group(1)] = path
     return selected
+
+
+def _official_attendance_sheet_period(sheet: Any) -> Optional[str]:
+    for row in sheet.iter_rows(
+        min_row=1,
+        max_row=min(sheet.max_row or 3, 3),
+        values_only=True,
+    ):
+        text = " ".join(str(value or "") for value in row)
+        match = re.search(
+            r"(20\d{2})年0?(\d{1,2})月份各项目(?:差旅|自有工人工时)",
+            text,
+        )
+        if match and 1 <= int(match.group(2)) <= 12:
+            return "%s-%02d" % (match.group(1), int(match.group(2)))
+    return None
+
+
+def _official_attendance_header(
+    sheet: Any,
+) -> Tuple[int, Dict[str, int], Dict[int, int]]:
+    for row_number in range(1, min(sheet.max_row or 8, 8) + 1):
+        try:
+            row = next(
+                sheet.iter_rows(
+                    min_row=row_number,
+                    max_row=row_number,
+                    values_only=True,
+                )
+            )
+        except StopIteration:
+            break
+        mapping: Dict[str, int] = {}
+        days: Dict[int, int] = {}
+        for index, value in enumerate(row):
+            key = re.sub(r"\s+", "", str(value or ""))
+            if key and key not in mapping:
+                mapping[key] = index
+            try:
+                day_number = int(str(value).strip())
+            except (TypeError, ValueError):
+                continue
+            if 1 <= day_number <= 31:
+                days[index] = day_number
+        if (
+            ("任务单号" in mapping or "合同号" in mapping)
+            and "姓名" in mapping
+            and "费用类别" in mapping
+            and days
+        ):
+            mapping["contract"] = (
+                mapping["任务单号"]
+                if "任务单号" in mapping
+                else mapping["合同号"]
+            )
+            return row_number, mapping, days
+    raise ProjectCostError(
+        "OFFICIAL_ATTENDANCE_HEADER_NOT_FOUND",
+        "official project attendance sheet must expose 任务单号或合同号/姓名/费用类别 and day columns",
+    )
+
+
+def _official_attendance_assignments(
+    attendance_roots: Sequence[Path],
+    period: str,
+    projects: Sequence[Mapping[str, Any]],
+    roots: Sequence[Path],
+) -> Tuple[
+    Dict[str, Dict[str, Set[str]]],
+    List[Dict[str, Any]],
+    Dict[str, Any],
+    List[Dict[str, Any]],
+]:
+    """Read payroll-reviewed WPS project-day sheets as the exact time source."""
+
+    candidates: List[Path] = []
+    compact_period = period.replace("-", "")
+    for root in attendance_roots:
+        root_path = Path(root)
+        if root_path.is_symlink() or not root_path.is_dir():
+            raise ProjectCostError(
+                "ATTENDANCE_ROOT_INVALID",
+                "attendance root is unavailable or is a symlink",
+            )
+        for current, directories, filenames in os.walk(
+            str(root_path),
+            followlinks=False,
+        ):
+            directories[:] = sorted(
+                name
+                for name in directories
+                if name not in (".git", "__pycache__", "__MACOSX")
+                and not (Path(current) / name).is_symlink()
+            )
+            for filename in sorted(filenames):
+                lower_filename = filename.lower()
+                governed_alias = bool(
+                    re.fullmatch(
+                        re.escape(compact_period)
+                        + r"(?:[-_][^.]+)?\.xlsx",
+                        lower_filename,
+                    )
+                )
+                if (
+                    filename.startswith("._")
+                    or not lower_filename.endswith(".xlsx")
+                    or (
+                        "生产部考勤表" not in filename
+                        and not governed_alias
+                    )
+                ):
+                    continue
+                path = Path(current) / filename
+                metadata = path.lstat()
+                if stat.S_ISREG(metadata.st_mode) and not stat.S_ISLNK(
+                    metadata.st_mode
+                ):
+                    candidates.append(path)
+    assignments_by_source: List[
+        Tuple[Path, Dict[str, Dict[str, Set[str]]], int, int]
+    ] = []
+    reviews: List[Dict[str, Any]] = []
+    seen_digests: Set[str] = set()
+    for path in sorted(candidates):
+        digest = sha256_file(path)
+        if digest in seen_digests:
+            continue
+        seen_digests.add(digest)
+        workbook = None
+        try:
+            workbook = open_xlsx_payload(read_path_bytes(path))
+            matched_sheet_count = 0
+            source_assignments: Dict[
+                str,
+                Dict[str, Set[str]],
+            ] = defaultdict(lambda: defaultdict(set))
+            current_project_days = 0
+            for sheet in workbook.worksheets:
+                if _official_attendance_sheet_period(sheet) != period:
+                    continue
+                matched_sheet_count += 1
+                header_row, headers, day_columns = _official_attendance_header(
+                    sheet
+                )
+                contract_index = headers["contract"]
+                employee_index = headers["姓名"]
+                category_index = headers["费用类别"]
+                current_project: Optional[str] = None
+                current_employee = ""
+                project_bases = {
+                    str(project["contract_base"]) for project in projects
+                }
+                for row in sheet.iter_rows(
+                    min_row=header_row + 1,
+                    values_only=True,
+                ):
+                    raw_contract = (
+                        row[contract_index]
+                        if contract_index < len(row)
+                        else None
+                    )
+                    if raw_contract not in (None, ""):
+                        current_employee = ""
+                        candidate_base = contract_base(raw_contract)
+                        current_project = (
+                            candidate_base
+                            if candidate_base in project_bases
+                            else None
+                        )
+                    raw_employee = (
+                        row[employee_index]
+                        if employee_index < len(row)
+                        else None
+                    )
+                    if raw_employee not in (None, ""):
+                        current_employee = normalize_text(raw_employee)
+                    category = normalize_text(
+                        row[category_index]
+                        if category_index < len(row)
+                        else None
+                    )
+                    if (
+                        current_project is None
+                        or not current_employee
+                        or category
+                        not in ("餐费", "餐补", "生活费", "住宿", "生", "住")
+                    ):
+                        continue
+                    for column_index, day_number in day_columns.items():
+                        value = (
+                            row[column_index]
+                            if column_index < len(row)
+                            else None
+                        )
+                        if _decimal_units(value) <= 0:
+                            continue
+                        try:
+                            work_date = date.fromisoformat(
+                                "%s-%02d" % (period, day_number)
+                            )
+                        except ValueError:
+                            continue
+                        compact_day = work_date.strftime("%Y%m%d")
+                        before = len(
+                            source_assignments[current_employee][
+                                current_project
+                            ]
+                        )
+                        source_assignments[current_employee][
+                            current_project
+                        ].add(compact_day)
+                        if (
+                            len(
+                                source_assignments[current_employee][
+                                    current_project
+                                ]
+                            )
+                            > before
+                        ):
+                            current_project_days += 1
+            if matched_sheet_count:
+                assignments_by_source.append(
+                    (
+                        path,
+                        source_assignments,
+                        matched_sheet_count,
+                        current_project_days,
+                    )
+                )
+        except Exception as exc:
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "OFFICIAL_ATTENDANCE_SOURCE_REJECTED",
+                    "source": relative_to_any(
+                        path,
+                        tuple(roots) + tuple(attendance_roots),
+                    ),
+                    "detail": "%s: %s"
+                    % (type(exc).__name__, str(exc)),
+                    "action": "工资复核项目日底表未读通；该期间人工分配保持阻断",
+                }
+            )
+        finally:
+            if workbook is not None:
+                workbook.close()
+    if len(assignments_by_source) > 1:
+        reviews.append(
+            {
+                "severity": "P1",
+                "type": "OFFICIAL_ATTENDANCE_PERIOD_DUPLICATE",
+                "period": period,
+                "source_count": len(assignments_by_source),
+                "action": "同期间存在多份不同字节的核定生产考勤；需明确唯一终稿后重跑",
+            }
+        )
+        return {}, [], {
+            "period": period,
+            "selected_workbook_count": 0,
+            "matched_sheet_count": 0,
+            "mapped_employee_project_days": 0,
+        }, reviews
+    if not assignments_by_source:
+        return {}, [], {
+            "period": period,
+            "selected_workbook_count": 0,
+            "matched_sheet_count": 0,
+            "mapped_employee_project_days": 0,
+        }, reviews
+    path, assignments, sheet_count, project_days = assignments_by_source[0]
+    source = dict(
+        source_record(
+            path,
+            tuple(roots) + tuple(attendance_roots),
+            selected=True,
+            reason="unique payroll-reviewed production project attendance workbook for the period",
+        ),
+        source_slot="payroll_and_time.official_project_attendance",
+        logical_metadata={
+            "payroll_period": period,
+            "matched_sheet_count": sheet_count,
+            "contains_personal_data": True,
+            "personal_data_not_copied_to_output": True,
+        },
+    )
+    return assignments, [source], {
+        "period": period,
+        "selected_workbook_count": 1,
+        "matched_sheet_count": sheet_count,
+        "mapped_employee_project_days": project_days,
+    }, reviews
 
 
 def _company_core(value: Any) -> str:
@@ -2723,13 +5093,30 @@ def _attendance_assignments(
     status_map: Mapping[str, Mapping[str, Any]],
     roots: Sequence[Path],
 ) -> Tuple[Dict[str, Dict[str, Set[str]]], List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]]]:
+    (
+        official_assignments,
+        official_sources,
+        official_meta,
+        official_reviews,
+    ) = _official_attendance_assignments(
+        attendance_roots,
+        period,
+        projects,
+        roots,
+    )
     selected = _selected_attendance_files(attendance_roots, period)
-    assignments: Dict[str, Dict[str, Set[str]]] = defaultdict(lambda: defaultdict(set))
-    sources: List[Dict[str, Any]] = []
-    reviews: List[Dict[str, Any]] = []
+    assignments: Dict[str, Dict[str, Set[str]]] = defaultdict(
+        lambda: defaultdict(set)
+    )
+    for employee, project_rows in official_assignments.items():
+        for project, days in project_rows.items():
+            assignments[employee][project].update(days)
+    sources: List[Dict[str, Any]] = list(official_sources)
+    reviews: List[Dict[str, Any]] = list(official_reviews)
     employee_days_with_location = 0
     mapped_employee_days = 0
     ambiguous_employee_days = 0
+    official_location_conflicts = 0
     for compact_day, path in sorted(selected.items()):
         try:
             work_date = datetime.strptime(compact_day, "%Y%m%d").date()
@@ -2763,8 +5150,20 @@ def _attendance_assignments(
                     resolutions.discard(None)
                     if len(resolutions) == 1:
                         project = next(iter(resolutions))
-                        assignments[employee][project].add(compact_day)
-                        mapped_employee_days += 1
+                        official_day_projects = {
+                            candidate_project
+                            for candidate_project, days in assignments.get(
+                                employee,
+                                {},
+                            ).items()
+                            if compact_day in days
+                        }
+                        if official_day_projects:
+                            if project not in official_day_projects:
+                                official_location_conflicts += 1
+                        else:
+                            assignments[employee][project].add(compact_day)
+                            mapped_employee_days += 1
                     elif len(resolutions) > 1 or any(
                         reason == "AMBIGUOUS_PROJECT_SITE" for _, reason in resolved
                     ):
@@ -2796,18 +5195,31 @@ def _attendance_assignments(
                     "action": "该日不进入人工分摊；其余日期继续计算",
                 }
             )
+    if official_location_conflicts:
+        reviews.append(
+            {
+                "severity": "P2",
+                "type": "ATTENDANCE_LOCATION_DIFFERS_FROM_OFFICIAL_PROJECT_DAY",
+                "period": period,
+                "employee_day_count": official_location_conflicts,
+                "action": "核定生产考勤项目日优先；钉钉地理位置差异仅保留为观察，不改写核定项目",
+            }
+        )
     return assignments, sources, {
         "period": period,
         "selected_day_count": len(selected),
         "employee_days_with_location": employee_days_with_location,
         "mapped_employee_days": mapped_employee_days,
         "ambiguous_employee_days": ambiguous_employee_days,
+        "official_project_attendance": official_meta,
+        "official_location_conflicts": official_location_conflicts,
     }, reviews
 
 
 def parse_payroll_and_attendance(
     payroll_workbooks: Sequence[Path],
     attendance_roots: Sequence[Path],
+    employer_burden_workbooks: Sequence[Path],
     projects: Sequence[Mapping[str, Any]],
     status_map: Mapping[str, Mapping[str, Any]],
     ledger_events: Sequence[Mapping[str, Any]],
@@ -2817,17 +5229,46 @@ def parse_payroll_and_attendance(
     as_of: str,
     password_env: Optional[str] = None,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
-    """Allocate the auditable wage component using payroll-approved days and site evidence."""
+    """Allocate wage and employer burden using the same approved project days."""
 
+    (
+        burden_records_by_period,
+        burden_sources,
+        burden_reviews,
+        burden_meta,
+    ) = parse_employer_burden_workbooks(
+        employer_burden_workbooks,
+        roots,
+        year=year,
+        as_of=as_of,
+        password_env=password_env,
+    )
     if not payroll_workbooks:
-        return [], [], [], {
+        reviews = list(burden_reviews)
+        if burden_meta["employer_burden_control_cents"]:
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "EMPLOYER_BURDEN_WITHOUT_PAYROLL",
+                    "period_count": burden_meta["selected_period_count"],
+                    "action": "单位负担来源缺少同月工资控制表；不得单独按姓名或比例分配",
+                }
+            )
+        return [], _dedupe_review_rows(reviews), burden_sources, {
             "provided": False,
             "periods": [],
             "wage_component_control_cents": 0,
+            "employer_burden_control_cents": 0,
+            "fully_loaded_labor_control_cents": 0,
+            "wage_allocated_accrual_cents": 0,
+            "employer_burden_allocated_accrual_cents": 0,
             "allocated_accrual_cents": 0,
             "already_posted_cents": 0,
+            "wage_unallocated_cents": 0,
+            "employer_burden_unallocated_cents": 0,
             "unallocated_cents": 0,
             "conservation_delta_cents": 0,
+            "employer_burden": burden_meta,
         }
     cutoff = date.fromisoformat(as_of)
     period_books: Dict[str, Tuple[Path, Any]] = {}
@@ -2845,26 +5286,49 @@ def parse_payroll_and_attendance(
                 "provide exactly one finalized payroll workbook per payroll period",
             )
         period_books[period] = (path, workbook)
-    posted_labor_cents: Dict[Tuple[str, str], int] = defaultdict(int)
+    posted_wage_cents: Dict[Tuple[str, str, str], int] = defaultdict(int)
+    posted_combined_labor_cents: Dict[
+        Tuple[str, str, str],
+        int,
+    ] = defaultdict(int)
     for event in ledger_events:
-        if (
-            event.get("plane") == "JOB_POSTED_ACTUAL"
-            and str(event.get("account_code") or "").startswith("5001003")
+        if event.get("plane") != "JOB_POSTED_ACTUAL":
+            continue
+        scope = (
+            str(event.get("project")),
+            str(event.get("posting_date") or "")[:7],
+            _employment_entity_key(event.get("entity")),
+        )
+        account_code = str(event.get("account_code") or "")
+        if account_code.startswith("5001003"):
+            posted_wage_cents[scope] += int(
+                event.get("amount_cents") or 0
+            )
+        elif (
+            account_code.startswith("5001006")
+            and any(
+                marker in normalize_text(event.get("summary"))
+                for marker in ("工资", "社保", "人工成本")
+            )
         ):
-            posted_labor_cents[
-                (
-                    str(event.get("project")),
-                    str(event.get("posting_date") or "")[:7],
-                )
-            ] += int(event.get("amount_cents") or 0)
+            posted_combined_labor_cents[scope] += int(
+                event.get("amount_cents") or 0
+            )
     events: List[Dict[str, Any]] = []
-    reviews: List[Dict[str, Any]] = []
-    sources: List[Dict[str, Any]] = []
+    reviews: List[Dict[str, Any]] = list(burden_reviews)
+    sources: List[Dict[str, Any]] = list(burden_sources)
     period_meta: List[Dict[str, Any]] = []
-    grand_control = 0
-    grand_accrual = 0
+    grand_wage_control = 0
+    grand_burden_control = 0
+    grand_wage_accrual = 0
+    grand_burden_accrual = 0
     grand_posted = 0
-    grand_unallocated = 0
+    grand_wage_unallocated = 0
+    grand_burden_unallocated = 0
+    burden_source_by_period = {
+        str((source.get("logical_metadata") or {}).get("payroll_period")): source
+        for source in burden_sources
+    }
     for period, (path, workbook) in sorted(period_books.items()):
         sheets = [sheet for sheet in workbook.worksheets if "分部门" in sheet.title]
         if len(sheets) != 1:
@@ -2876,6 +5340,7 @@ def parse_payroll_and_attendance(
         header_row, headers = _payroll_header(sheet)
         name_index = headers["姓名"]
         department_index = headers.get("实际部门", headers["部门"])
+        company_index = headers.get("公司")
         gross_index = headers["应计工资小计"]
         outside_index = headers.get("实出勤天-厂外")
         inside_index = headers.get("实出勤天-厂内")
@@ -2897,6 +5362,11 @@ def parse_payroll_and_attendance(
             payroll_rows.append(
                 {
                     "employee": employee,
+                    "entity": _employment_entity_key(
+                        row[company_index]
+                        if company_index is not None and company_index < len(row)
+                        else None
+                    ),
                     "department": department,
                     "gross_cents": amount,
                     "approved_days": approved_days,
@@ -2928,93 +5398,300 @@ def parse_payroll_and_attendance(
         sources.append(payroll_source)
         sources.extend(attendance_sources)
         reviews.extend(attendance_reviews)
-        gross_allocated_by_project: Dict[str, int] = defaultdict(int)
+        wage_allocated_by_scope: Dict[Tuple[str, str], int] = defaultdict(
+            int
+        )
+        burden_allocated_by_scope: Dict[
+            Tuple[str, str],
+            int,
+        ] = defaultdict(int)
         allocated_days_by_project: Dict[str, Decimal] = defaultdict(Decimal)
         allocated_people_by_project: Dict[str, Set[str]] = defaultdict(set)
-        control = 0
-        accrued = 0
+        wage_control = 0
+        burden_control = 0
+        wage_accrued = 0
+        burden_accrued = 0
         already_posted = 0
-        unallocated = 0
+        wage_unallocated = 0
+        burden_unallocated = 0
         duplicate_name_rows = 0
         invalid_time_rows = 0
         non_direct_excluded = 0
+        non_direct_burden_excluded = 0
+        missing_burden_rows = 0
+        unmatched_direct_burden_rows = 0
+        burden_records = burden_records_by_period.get(period, {})
+        burden_keys_by_employee: Dict[str, List[Tuple[str, str]]] = defaultdict(list)
+        for burden_key in burden_records:
+            burden_keys_by_employee[burden_key[1]].append(burden_key)
+        consumed_burden_keys: Set[Tuple[str, str]] = set()
         for payroll_row in payroll_rows:
             employee = str(payroll_row["employee"])
             amount = int(payroll_row["gross_cents"])
+            entity = str(payroll_row["entity"])
             department = str(payroll_row["department"])
             approved_days = payroll_row["approved_days"]
-            if not any(token in department for token in DIRECT_LABOR_DEPARTMENT_TOKENS):
-                non_direct_excluded += amount
-                continue
-            control += amount
-            if name_counts[employee] != 1:
-                duplicate_name_rows += 1
-                unallocated += amount
-                continue
             project_days = {
                 project: Decimal(len(days))
                 for project, days in assignments.get(employee, {}).items()
                 if days
             }
+            direct_scope = any(
+                token in department for token in DIRECT_LABOR_DEPARTMENT_TOKENS
+            ) or bool(project_days)
+            burden_key: Optional[Tuple[str, str]] = None
+            employee_burden_keys = burden_keys_by_employee.get(
+                employee,
+                (),
+            )
+            if entity:
+                matched_entity = _compatible_entity_key(
+                    entity,
+                    (key[0] for key in employee_burden_keys),
+                )
+                if (
+                    matched_entity is not None
+                    and (matched_entity, employee) in burden_records
+                ):
+                    burden_key = (matched_entity, employee)
+            elif len(employee_burden_keys) == 1:
+                burden_key = employee_burden_keys[0]
+            burden_record = (
+                burden_records.get(burden_key)
+                if burden_key is not None and burden_key not in consumed_burden_keys
+                else None
+            )
+            burden_amount = (
+                int(burden_record["amount_cents"])
+                if burden_record is not None
+                else None
+            )
+            if burden_key is not None and burden_record is not None:
+                consumed_burden_keys.add(burden_key)
+            if not direct_scope:
+                non_direct_excluded += amount
+                if burden_amount is not None:
+                    non_direct_burden_excluded += burden_amount
+                continue
+            wage_control += amount
+            if burden_amount is not None:
+                burden_control += burden_amount
+            if name_counts[employee] != 1:
+                duplicate_name_rows += 1
+                wage_unallocated += amount
+                if burden_amount is not None:
+                    burden_unallocated += burden_amount
+                continue
+            if burden_amount is None:
+                missing_burden_rows += 1
             mapped_days = sum(project_days.values(), Decimal(0))
             if approved_days <= 0 or mapped_days > approved_days:
                 invalid_time_rows += 1
-                unallocated += amount
+                wage_unallocated += amount
+                if burden_amount is not None:
+                    burden_unallocated += burden_amount
                 continue
             weights = dict(project_days)
             remainder_days = approved_days - mapped_days
             if remainder_days > 0:
                 weights["__UNALLOCATED__"] = remainder_days
             if not weights:
-                unallocated += amount
+                wage_unallocated += amount
+                if burden_amount is not None:
+                    burden_unallocated += burden_amount
                 continue
-            allocation = largest_remainder_allocate(amount, weights)
-            unallocated += allocation.pop("__UNALLOCATED__", 0)
+            wage_allocation = largest_remainder_allocate(amount, weights)
+            wage_unallocated += wage_allocation.pop("__UNALLOCATED__", 0)
+            burden_allocation = (
+                largest_remainder_allocate(burden_amount, weights)
+                if burden_amount is not None
+                else {}
+            )
+            burden_unallocated += burden_allocation.pop("__UNALLOCATED__", 0)
+            allocation_entity = (
+                burden_key[0] if burden_key is not None else entity
+            )
             employee_token = "emp_" + sha256_bytes(stable_json([period, employee]))[:16]
-            for project, project_amount in allocation.items():
+            for project, project_amount in wage_allocation.items():
                 if project_amount <= 0:
                     continue
-                gross_allocated_by_project[project] += project_amount
+                wage_allocated_by_scope[
+                    (project, allocation_entity)
+                ] += project_amount
                 allocated_days_by_project[project] += project_days[project]
                 allocated_people_by_project[project].add(employee_token)
-        allocated_by_project: Dict[str, int] = {}
-        for project, gross_amount in sorted(gross_allocated_by_project.items()):
-            posted_amount = posted_labor_cents.get((project, period), 0)
-            if posted_amount < 0:
+            for project, project_amount in burden_allocation.items():
+                if project_amount > 0:
+                    burden_allocated_by_scope[
+                        (project, allocation_entity)
+                    ] += project_amount
+        for burden_key, burden_record in burden_records.items():
+            if burden_key in consumed_burden_keys:
+                continue
+            employee = burden_key[1]
+            department = str(burden_record.get("department") or "")
+            amount = int(burden_record["amount_cents"])
+            direct_scope = any(
+                token in department for token in DIRECT_LABOR_DEPARTMENT_TOKENS
+            ) or bool(assignments.get(employee))
+            if direct_scope:
+                burden_control += amount
+                burden_unallocated += amount
+                unmatched_direct_burden_rows += 1
+            else:
+                non_direct_burden_excluded += amount
+        wage_residual_by_project: Dict[str, int] = defaultdict(int)
+        burden_residual_by_project: Dict[str, int] = defaultdict(int)
+        allocation_scopes = sorted(
+            set(wage_allocated_by_scope)
+            | set(burden_allocated_by_scope)
+        )
+        for project, allocation_entity in allocation_scopes:
+            wage_amount = wage_allocated_by_scope.get(
+                (project, allocation_entity),
+                0,
+            )
+            burden_amount = burden_allocated_by_scope.get(
+                (project, allocation_entity),
+                0,
+            )
+
+            def resolved_posted_amount(
+                values: Mapping[Tuple[str, str, str], int],
+            ) -> Tuple[int, Optional[str], int]:
+                candidate_entities = {
+                    key[2]
+                    for key, amount in values.items()
+                    if key[0] == project
+                    and key[1] == period
+                    and amount
+                    and key[2]
+                }
+                matched_entity = _compatible_entity_key(
+                    allocation_entity,
+                    candidate_entities,
+                )
+                amount = (
+                    int(
+                        values.get(
+                            (project, period, matched_entity),
+                            0,
+                        )
+                    )
+                    if matched_entity is not None
+                    else 0
+                )
+                return amount, matched_entity, len(candidate_entities)
+
+            direct_posted, direct_entity, direct_candidate_count = (
+                resolved_posted_amount(posted_wage_cents)
+            )
+            combined_posted, combined_entity, combined_candidate_count = (
+                resolved_posted_amount(posted_combined_labor_cents)
+            )
+            if direct_posted < 0 or combined_posted < 0:
                 reviews.append(
                     {
                         "severity": "P1",
                         "type": "LABOR_POSTED_CONTROL_NEGATIVE",
                         "project": project,
                         "period": period,
-                        "amount_cents": posted_amount,
-                        "action": "人工过账控制额为负；未用于压减工资应计，需核对冲销关系",
+                        "direct_wage_posted_cents": direct_posted,
+                        "combined_wage_burden_posted_cents": (
+                            combined_posted
+                        ),
+                        "action": "人工过账控制额为负；未用于压减工资社保应计，需核对冲销关系",
                     }
                 )
-                posted_amount = 0
-            matched, residual = labor_posted_reconciliation(
-                gross_amount,
-                posted_amount,
+                direct_posted = max(0, direct_posted)
+                combined_posted = max(0, combined_posted)
+            reconciliation = labor_posted_component_reconciliation(
+                wage_amount,
+                burden_amount,
+                direct_posted,
+                combined_posted,
             )
+            matched = reconciliation["matched_cents"]
+            wage_residual = reconciliation["wage_accrual_cents"]
+            burden_residual = reconciliation[
+                "employer_burden_accrual_cents"
+            ]
             already_posted += matched
-            accrued += residual
-            if residual:
-                allocated_by_project[project] = residual
-            if posted_amount:
+            wage_accrued += wage_residual
+            burden_accrued += burden_residual
+            wage_residual_by_project[project] += wage_residual
+            burden_residual_by_project[project] += burden_residual
+            if direct_posted or combined_posted:
                 reviews.append(
                     {
                         "severity": "P2",
                         "type": "LABOR_POSTED_COMPONENT_MATCHED",
                         "project": project,
                         "period": period,
-                        "allocated_wage_component_cents": gross_amount,
-                        "posted_wage_component_cents": posted_amount,
+                        "allocated_wage_component_cents": wage_amount,
+                        "allocated_employer_burden_cents": burden_amount,
+                        "posted_5001003_wage_cents": direct_posted,
+                        "posted_5001006_explicit_labor_cents": (
+                            combined_posted
+                        ),
                         "matched_cents": matched,
-                        "accrual_residual_cents": residual,
-                        "action": "仅以5001003同项目同期间金额压减工资组件；禁止以存在性整笔压掉",
+                        "wage_accrual_residual_cents": wage_residual,
+                        "employer_burden_accrual_residual_cents": (
+                            burden_residual
+                        ),
+                        "entity_match_proven": bool(
+                            direct_entity or combined_entity
+                        ),
+                        "action": (
+                            "同项目、同期间、唯一兼容雇佣主体下，5001003仅抵工资；"
+                            "摘要明示工资/社保的5001006抵剩余工资与单位负担，"
+                            "按最大余数拆分且总分守恒"
+                        ),
                     }
                 )
-        for project, amount in sorted(allocated_by_project.items()):
+            posted_excess = (
+                reconciliation["direct_wage_posted_excess_cents"]
+                + reconciliation["combined_posted_excess_cents"]
+            )
+            if posted_excess:
+                reviews.append(
+                    {
+                        "severity": "P1",
+                        "type": "LABOR_POSTED_EXCEEDS_ALLOCATED_COMPONENTS",
+                        "project": project,
+                        "period": period,
+                        "excess_cents": posted_excess,
+                        "action": "项目人工过账超过同主体工资与单位负担分配额；保持毛利阻断并核对范围",
+                    }
+                )
+            if (
+                allocation_entity
+                and not direct_entity
+                and direct_candidate_count
+            ) or (
+                allocation_entity
+                and not combined_entity
+                and combined_candidate_count
+            ):
+                reviews.append(
+                    {
+                        "severity": "P1",
+                        "type": "LABOR_POSTED_ENTITY_UNRESOLVED",
+                        "project": project,
+                        "period": period,
+                        "direct_wage_candidate_entity_count": (
+                            direct_candidate_count
+                        ),
+                        "combined_candidate_entity_count": (
+                            combined_candidate_count
+                        ),
+                        "action": "同项目期间存在人工过账但雇佣主体不唯一兼容；不得跨主体抵减工资应计",
+                    }
+                )
+        burden_source = burden_source_by_period.get(period)
+        for project, amount in sorted(wage_residual_by_project.items()):
+            if amount <= 0:
+                continue
             key = [period, project, amount, payroll_source["source_id"]]
             events.append(
                 {
@@ -3025,10 +5702,10 @@ def parse_payroll_and_attendance(
                     "amount_cents": amount,
                     "posting_date": _period_end(period).isoformat(),
                     "payroll_period": period,
-                    "summary": "工资组件×工资表批准出勤控制额内的钉钉唯一项目定位日；最大余数法",
+                    "summary": "工资组件×工资表批准出勤控制额内的核定项目日（钉钉唯一定位仅补空白）；最大余数法",
                     "source_id": payroll_source["source_id"],
                     "source_member": path.name,
-                    "identity_reason": "PAYROLL_APPROVED_TIME_PLUS_UNIQUE_PROJECT_SITE",
+                    "identity_reason": "PAYROLL_APPROVED_TIME_PLUS_CONTROLLED_PROJECT_DAY",
                     "approved_project_days": str(allocated_days_by_project[project]),
                     "allocated_employee_count": len(allocated_people_by_project[project]),
                     "evidence_source_ids": [
@@ -3036,23 +5713,81 @@ def parse_payroll_and_attendance(
                     ],
                 }
             )
-        conservation_delta = control - accrued - already_posted - unallocated
+        for project, amount in sorted(
+            burden_residual_by_project.items()
+        ):
+            if amount <= 0:
+                continue
+            source_id = (
+                burden_source.get("source_id")
+                if burden_source is not None
+                else payroll_source["source_id"]
+            )
+            key = [period, project, amount, source_id]
+            events.append(
+                {
+                    "event_id": "labor_burden_"
+                    + sha256_bytes(stable_json(key))[:24],
+                    "project": project,
+                    "plane": "COST_ACCRUED",
+                    "category": "自有人工-雇主社保医保应计",
+                    "amount_cents": amount,
+                    "posting_date": _period_end(period).isoformat(),
+                    "payroll_period": period,
+                    "summary": "单位承担社保医保×同员工工资表批准出勤控制额内的核定项目日；最大余数法",
+                    "source_id": source_id,
+                    "source_member": (
+                        burden_source.get("relative_path")
+                        if burden_source is not None
+                        else None
+                    ),
+                    "identity_reason": "EMPLOYER_ENTITY_EMPLOYEE_PLUS_CONTROLLED_PROJECT_DAY",
+                    "approved_project_days": str(
+                        allocated_days_by_project[project]
+                    ),
+                    "allocated_employee_count": len(
+                        allocated_people_by_project[project]
+                    ),
+                    "evidence_source_ids": [
+                        source["source_id"] for source in attendance_sources
+                    ],
+                }
+            )
+        conservation_delta = (
+            wage_control
+            + burden_control
+            - wage_accrued
+            - burden_accrued
+            - already_posted
+            - wage_unallocated
+            - burden_unallocated
+        )
         if conservation_delta:
             raise ProjectCostError(
                 "LABOR_CONTROL_DRIFT",
-                "allocated + already-posted + unallocated must equal the wage component control",
+                "wage + employer burden must equal accrual + matched labor postings + unallocated",
             )
-        if unallocated:
+        if wage_unallocated:
             reviews.append(
                 {
                     "severity": "P2",
                     "type": "LABOR_WAGE_COMPONENT_UNALLOCATED",
                     "source": payroll_source["relative_path"],
-                    "amount_cents": unallocated,
+                    "amount_cents": wage_unallocated,
                     "action": (
                         "工资组件已按项目日证据分配并守恒；剩余部分保留为"
                         "未分配控制池，不向任何项目塞数"
                     ),
+                }
+            )
+        if burden_unallocated:
+            reviews.append(
+                {
+                    "severity": "P2",
+                    "type": "LABOR_EMPLOYER_BURDEN_UNALLOCATED",
+                    "period": period,
+                    "amount_cents": burden_unallocated,
+                    "action": "单位负担成本未唯一归属部分保留控制池，不按比例向项目塞数",
                 }
             )
         if not attendance_sources:
@@ -3075,42 +5810,116 @@ def parse_payroll_and_attendance(
                     "action": "歧义姓名或项目日超过批准出勤的行不分配，且不输出人员身份",
                 }
             )
+        if missing_burden_rows:
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "LABOR_EMPLOYER_BURDEN_MISSING",
+                    "period": period,
+                    "employee_row_count": missing_burden_rows,
+                    "action": "项目人工工资行缺少同月同雇佣主体单位负担来源；该期间毛利率保持阻断",
+                }
+            )
+        if unmatched_direct_burden_rows:
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "LABOR_EMPLOYER_BURDEN_WITHOUT_PAYROLL_ROW",
+                    "period": period,
+                    "employee_row_count": unmatched_direct_burden_rows,
+                    "action": "生产或项目人员单位负担缺少同月工资行；金额已守恒保留未分配",
+                }
+            )
         reviews.append(
             {
                 "severity": "P2",
-                "type": "LABOR_COMPONENT_SCOPE_WAGE_ONLY",
+                "type": "LABOR_COMPONENT_SCOPE_CONTROLLED",
                 "source": payroll_source["relative_path"],
-                "action": "仅分配工资表可审计应计工资组件；雇主社保/公积金只接受金蝶项目过账，不按个人扣款反推",
+                "action": "工资与单位承担社保医保分别分配并守恒；个人扣款不反推单位成本，公积金无单位来源时不猜测",
             }
         )
         period_meta.append(
             {
                 "period": period,
                 "employee_row_count": len(payroll_rows),
-                "direct_wage_component_control_cents": control,
-                "allocated_accrual_cents": accrued,
+                "direct_wage_component_control_cents": wage_control,
+                "direct_employer_burden_control_cents": burden_control,
+                "fully_loaded_labor_control_cents": (
+                    wage_control + burden_control
+                ),
+                "wage_allocated_accrual_cents": wage_accrued,
+                "employer_burden_allocated_accrual_cents": burden_accrued,
+                "allocated_accrual_cents": wage_accrued + burden_accrued,
                 "already_posted_cents": already_posted,
-                "unallocated_cents": unallocated,
+                "wage_unallocated_cents": wage_unallocated,
+                "employer_burden_unallocated_cents": burden_unallocated,
+                "unallocated_cents": wage_unallocated + burden_unallocated,
                 "non_direct_payroll_cents_excluded": non_direct_excluded,
+                "non_direct_employer_burden_cents_excluded": (
+                    non_direct_burden_excluded
+                ),
+                "missing_employer_burden_employee_row_count": (
+                    missing_burden_rows
+                ),
+                "unmatched_direct_employer_burden_row_count": (
+                    unmatched_direct_burden_rows
+                ),
                 "conservation_delta_cents": conservation_delta,
                 "attendance": attendance_meta,
             }
         )
-        grand_control += control
-        grand_accrual += accrued
+        grand_wage_control += wage_control
+        grand_burden_control += burden_control
+        grand_wage_accrual += wage_accrued
+        grand_burden_accrual += burden_accrued
         grand_posted += already_posted
-        grand_unallocated += unallocated
+        grand_wage_unallocated += wage_unallocated
+        grand_burden_unallocated += burden_unallocated
+    burden_without_payroll = sorted(
+        set(burden_records_by_period) - set(period_books)
+    )
+    if burden_without_payroll:
+        reviews.append(
+            {
+                "severity": "P1",
+                "type": "EMPLOYER_BURDEN_PERIOD_WITHOUT_PAYROLL",
+                "period_count": len(burden_without_payroll),
+                "action": "单位负担来源存在无同月工资表期间；不得跨月或按姓名强配",
+            }
+        )
     return events, _dedupe_review_rows(reviews), sources, {
         "provided": True,
         "periods": period_meta,
-        "wage_component_control_cents": grand_control,
-        "allocated_accrual_cents": grand_accrual,
+        "wage_component_control_cents": grand_wage_control,
+        "employer_burden_control_cents": grand_burden_control,
+        "fully_loaded_labor_control_cents": (
+            grand_wage_control + grand_burden_control
+        ),
+        "wage_allocated_accrual_cents": grand_wage_accrual,
+        "employer_burden_allocated_accrual_cents": grand_burden_accrual,
+        "allocated_accrual_cents": (
+            grand_wage_accrual + grand_burden_accrual
+        ),
         "already_posted_cents": grand_posted,
-        "unallocated_cents": grand_unallocated,
-        "conservation_delta_cents": grand_control - grand_accrual - grand_posted - grand_unallocated,
+        "wage_unallocated_cents": grand_wage_unallocated,
+        "employer_burden_unallocated_cents": grand_burden_unallocated,
+        "unallocated_cents": (
+            grand_wage_unallocated + grand_burden_unallocated
+        ),
+        "conservation_delta_cents": (
+            grand_wage_control
+            + grand_burden_control
+            - grand_wage_accrual
+            - grand_burden_accrual
+            - grand_posted
+            - grand_wage_unallocated
+            - grand_burden_unallocated
+        ),
         "fixed_daily_rate_used": False,
         "allocation_method": "largest_remainder",
         "personal_data_in_output": False,
+        "personal_deductions_used": False,
+        "employer_burden": burden_meta,
     }
 
 
@@ -3141,6 +5950,7 @@ def build_snapshot(
     as_of: str,
     ocr_jsonl: Optional[Path] = None,
     payroll_workbooks: Sequence[Path] = (),
+    employer_burden_workbooks: Sequence[Path] = (),
     attendance_roots: Sequence[Path] = (),
     payroll_password_env: Optional[str] = None,
     private_input_manifest_sha256: Optional[str] = None,
@@ -3161,27 +5971,68 @@ def build_snapshot(
     files = list(iter_source_files(roots))
     candidates = discover_candidates(files)
     _, all_projects, master_sources, master_errors = select_master(candidates["master"], roots)
-    projects = sorted(
-        [project for project in all_projects if project.get("year") == year],
-        key=lambda project: (project.get("created_date") or "", project["contract_base"]),
-    )
-    if not projects:
-        raise ProjectCostError("YEAR_PROJECTS_EMPTY", "red-circle master has no contracts for %d" % year)
-    year_bases = [str(project["contract_base"]) for project in projects]
-    if len(year_bases) != len(set(year_bases)):
-        raise ProjectCostError(
-            "YEAR_IDENTITY_CONFLICT",
-            "selected-year red-circle contracts have duplicate normalized identities",
+    target_prefix = "%04d-" % year
+    status_candidates = [
+        project
+        for project in all_projects
+        if project.get("year") in (year - 1, year)
+        or str(project.get("completion_date_master") or "").startswith(
+            target_prefix
         )
-    status_path, status_map, status_sources, status_reviews, status_meta = select_latest_tabular(
+    ]
+    candidate_bases = [
+        str(project["contract_base"]) for project in status_candidates
+    ]
+    if len(candidate_bases) != len(set(candidate_bases)):
+        raise ProjectCostError(
+            "COHORT_IDENTITY_CONFLICT",
+            "target-year and carryover candidate contracts are not unique",
+        )
+    (
+        status_path,
+        candidate_status_map,
+        status_sources,
+        status_reviews,
+        status_meta,
+    ) = select_latest_tabular(
         candidates["status"],
         roots,
         parse_status,
         source_slot="production_status",
-        parser_args=(projects, year),
+        parser_args=(status_candidates, year),
     )
-    if status_map is None:
-        status_map = {}
+    if candidate_status_map is None:
+        candidate_status_map = {}
+    projects = reporting_project_cohort(
+        status_candidates,
+        candidate_status_map,
+        year=year,
+    )
+    if not projects:
+        raise ProjectCostError(
+            "YEAR_PROJECTS_EMPTY",
+            "red-circle master/status has no target-year or carryover projects for %d"
+            % year,
+        )
+    year_bases = [str(project["contract_base"]) for project in projects]
+    if len(year_bases) != len(set(year_bases)):
+        raise ProjectCostError(
+            "YEAR_IDENTITY_CONFLICT",
+            "reporting-cohort red-circle contracts have duplicate normalized identities",
+        )
+    status_map = {
+        base: candidate_status_map[base]
+        for base in year_bases
+        if base in candidate_status_map
+    }
+    status_meta = dict(status_meta)
+    status_meta["reporting_cohort_project_count"] = len(projects)
+    status_meta["target_contract_year_project_count"] = sum(
+        project.get("year") == year for project in projects
+    )
+    status_meta["carryover_project_count"] = sum(
+        project.get("year") != year for project in projects
+    )
     books, ledger_sources, ledger_errors = collect_ledger_books(candidates["ledger_zip"], roots)
     ledger_events, ledger_reviews, ledger_meta = parse_ledger_books(
         books,
@@ -3193,6 +6044,7 @@ def build_snapshot(
     labor_events, labor_reviews, labor_sources, labor_meta = parse_payroll_and_attendance(
         payroll_workbooks,
         attendance_roots,
+        employer_burden_workbooks,
         projects,
         status_map,
         ledger_events,
@@ -3222,6 +6074,44 @@ def build_snapshot(
         year,
         as_of,
     )
+    (
+        approved_cost_detail_path,
+        approved_cost_detail_events,
+        approved_cost_detail_sources,
+        approved_cost_detail_reviews,
+        approved_cost_detail_meta,
+    ) = select_latest_tabular(
+        candidates["approved_cost_detail"],
+        roots,
+        parse_approved_cost_detail,
+        source_slot="approved_project_cost_detail",
+        parser_args=(projects, status_map, year, as_of),
+    )
+    if approved_cost_detail_events is None:
+        approved_cost_detail_events = []
+    (
+        project_invoice_path,
+        project_invoice_tax_events,
+        project_invoice_sources,
+        project_invoice_reviews,
+        project_invoice_meta,
+    ) = select_latest_tabular(
+        candidates["project_invoice"],
+        roots,
+        parse_project_invoice_tax,
+        source_slot="project_invoice_output_vat",
+        parser_args=(projects, year, as_of),
+    )
+    if project_invoice_tax_events is None:
+        project_invoice_tax_events = []
+    (
+        approved_cost_events,
+        approved_cost_merge_reviews,
+        approved_cost_merge_meta,
+    ) = merge_approved_cost_sources(
+        dws_events,
+        approved_cost_detail_events,
+    )
     ocr_events, ocr_reviews, ocr_sources, ocr_meta = parse_ocr_paid_project_costs(
         ocr_jsonl,
         roots,
@@ -3232,7 +6122,7 @@ def build_snapshot(
     )
     accrual_events, accrual_reviews, accrual_meta = qualify_cost_accruals(
         ledger_events,
-        dws_events,
+        approved_cost_events,
         ocr_events,
     )
     sources = (
@@ -3242,6 +6132,8 @@ def build_snapshot(
         + payment_sources
         + dingtalk_sources
         + dws_sources
+        + approved_cost_detail_sources
+        + project_invoice_sources
         + ocr_sources
         + labor_sources
     )
@@ -3250,6 +6142,9 @@ def build_snapshot(
     reviews.extend(ledger_reviews)
     reviews.extend(payment_reviews)
     reviews.extend(dws_reviews)
+    reviews.extend(approved_cost_detail_reviews)
+    reviews.extend(project_invoice_reviews)
+    reviews.extend(approved_cost_merge_reviews)
     reviews.extend(ocr_reviews)
     reviews.extend(labor_reviews)
     reviews.extend(accrual_reviews)
@@ -3296,6 +6191,7 @@ def build_snapshot(
         list(ledger_events)
         + list(payment_events)
         + list(accrual_events)
+        + list(project_invoice_tax_events)
         + list(labor_events)
     ):
         aggregate[str(event["project"])][str(event["plane"])] += int(event["amount_cents"])
@@ -3303,6 +6199,8 @@ def build_snapshot(
         list(ledger_events)
         + list(payment_events)
         + list(dws_events)
+        + list(approved_cost_detail_events)
+        + list(project_invoice_tax_events)
         + list(ocr_events)
         + list(accrual_events)
         + list(labor_events)
@@ -3311,6 +6209,7 @@ def build_snapshot(
     for project in projects:
         base = str(project["contract_base"])
         status = status_map.get(base)
+        revenue = governed_contract_revenue(project, status)
         observed_entities = project_ledger_entities.get(base, set())
         contractor_entities = contractor_entity_evidence.get(
             normalize_text(project.get("contractor")),
@@ -3400,9 +6299,33 @@ def build_snapshot(
                 "status_invoice_amount_cents": (
                     status.get("invoice_amount_cents") if status else None
                 ),
+                "status_contract_amount_cents": (
+                    status.get("status_contract_amount_cents") if status else None
+                ),
+                "project_cost_report_deadline": (
+                    status.get("project_cost_report_deadline") if status else None
+                ),
+                "project_cost_report_provided": (
+                    status.get("project_cost_report_provided") if status else False
+                ),
+                "commission_calculated": (
+                    status.get("commission_calculated") if status else False
+                ),
                 "job_posted_actual_cents": job_posted,
                 "cost_accrued_cents": accrued,
                 "job_cost_incurred_cents": incurred,
+                # Actual-to-date is a lower bound.  Final project cost/FAC and
+                # its governed revenue basis remain empty until a controlled
+                # close process proves them.
+                "gross_margin_cost_basis_cents": None,
+                "effective_revenue_cents": revenue["effective_revenue_cents"],
+                "revenue_basis_status": revenue["status"],
+                "revenue_basis": revenue["basis"],
+                "gross_margin_status": (
+                    "BLOCKED_COST_COMPLETENESS"
+                    if revenue["effective_revenue_cents"] is not None
+                    else "BLOCKED_REVENUE_AND_COST_COMPLETENESS"
+                ),
                 "gl_recognized_cogs_cents": recognized,
                 "business_reported_direct_cost_cents": business_reported,
                 "payment_system_paid_observed_cents": paid_observed,
@@ -3579,6 +6502,12 @@ def build_snapshot(
             "status_selected": status_path is not None,
             "ledger_selected_book_count": len(books),
             "payment_selected": payment_path is not None,
+            "approved_cost_detail_selected": (
+                approved_cost_detail_path is not None
+            ),
+            "project_invoice_selected": (
+                project_invoice_path is not None
+            ),
             "ledger_logical_period_end": ledger_meta.get("selected_period_end"),
             "ledger_minimum_period_end": ledger_meta.get("minimum_period_end"),
             "ledger_entity_count": len(ledger_meta.get("period_ends_by_entity") or {}),
@@ -3591,22 +6520,59 @@ def build_snapshot(
             "ocr_formal_amount_use": bool(ocr_events),
             "dws_reaction_observed_event_count": len(dws_events),
             "dws_reaction_formal_amount_use": False,
+            "approved_cost_detail_event_count": len(
+                approved_cost_detail_events
+            ),
+            "project_invoice_tax_event_count": len(
+                project_invoice_tax_events
+            ),
+            "approved_cost_combined_event_count": len(
+                approved_cost_events
+            ),
             "ocr_paid_project_cost_event_count": len(ocr_events),
             "qualified_accrual_event_count": len(accrual_events),
-            "labor_wage_component_event_count": len(labor_events),
+            "labor_wage_component_event_count": sum(
+                event.get("category") == "自有人工-工资应计"
+                for event in labor_events
+            ),
+            "labor_employer_burden_event_count": sum(
+                event.get("category") == "自有人工-雇主社保医保应计"
+                for event in labor_events
+            ),
             "labor_wage_component_control_cents": labor_meta.get(
                 "wage_component_control_cents"
+            ),
+            "labor_employer_burden_control_cents": labor_meta.get(
+                "employer_burden_control_cents"
+            ),
+            "labor_fully_loaded_control_cents": labor_meta.get(
+                "fully_loaded_labor_control_cents"
             ),
             "labor_allocated_accrual_cents": labor_meta.get(
                 "allocated_accrual_cents"
             ),
+            "labor_wage_allocated_accrual_cents": labor_meta.get(
+                "wage_allocated_accrual_cents"
+            ),
+            "labor_employer_burden_allocated_accrual_cents": labor_meta.get(
+                "employer_burden_allocated_accrual_cents"
+            ),
             "labor_unallocated_cents": labor_meta.get("unallocated_cents"),
+            "labor_wage_unallocated_cents": labor_meta.get(
+                "wage_unallocated_cents"
+            ),
+            "labor_employer_burden_unallocated_cents": labor_meta.get(
+                "employer_burden_unallocated_cents"
+            ),
         },
         "diagnostics": {
             "ledger": ledger_meta,
             "status": status_meta,
             "payment": payment_meta,
             "dws": dws_meta,
+            "approved_cost_detail": approved_cost_detail_meta,
+            "project_invoice": project_invoice_meta,
+            "approved_cost_source_merge": approved_cost_merge_meta,
             "ocr": ocr_meta,
             "accrual": accrual_meta,
             "labor": labor_meta,
@@ -3620,9 +6586,19 @@ def build_snapshot(
                 "PAYMENT_SYSTEM_PAID_OBSERVED",
             ],
             "automatic_fixed_labor_rate": False,
-            "labor_allocation": "auditable wage component × approved payroll days; largest remainder",
+            "labor_allocation": (
+                "auditable wage + employer-paid social/medical burden × "
+                "approved payroll days; entity+employee match; largest remainder"
+            ),
             "labor_unallocated_preserved": True,
+            "personal_deductions_used": False,
+            "employer_burden_inferred_from_personal_deduction": False,
             "automatic_management_fee_percent": False,
+            "project_output_vat": (
+                "per approved issued invoice/project line: "
+                "ROUND_HALF_UP(gross_invoice_cents * rate / (1 + rate))"
+            ),
+            "company_tax_default_allocation": False,
             "historical_reference_in_calculate": False,
         },
     }
@@ -3953,14 +6929,36 @@ def write_workbook(path: Path, snapshot: Mapping[str, Any]) -> None:
             else "本次未提供或无合格项目成本行",
         ),
         (
-            "人工工资组件已分配（元）",
-            yuan_from_cents(snapshot["coverage"].get("labor_allocated_accrual_cents")),
+            "人工工资组件控制额（元）",
+            yuan_from_cents(
+                snapshot["coverage"].get("labor_wage_component_control_cents")
+            ),
         ),
         (
-            "人工工资组件未分配（元）",
-            yuan_from_cents(snapshot["coverage"].get("labor_unallocated_cents")),
+            "人工单位社保医保控制额（元）",
+            yuan_from_cents(
+                snapshot["coverage"].get(
+                    "labor_employer_burden_control_cents"
+                )
+            ),
         ),
-        ("人工分摊", "工资表批准出勤控制额×钉钉唯一项目定位日；最大余数法；固定日薪禁用"),
+        (
+            "人工全成本已分配（元）",
+            yuan_from_cents(
+                snapshot["coverage"].get("labor_allocated_accrual_cents")
+            ),
+        ),
+        (
+            "人工全成本未分配（元）",
+            yuan_from_cents(
+                snapshot["coverage"].get("labor_unallocated_cents")
+            ),
+        ),
+        (
+            "人工分摊",
+            "工资及单位承担社保医保×工资表批准出勤控制额内的核定项目日；"
+            "同主体同人员匹配；最大余数法；固定日薪和个人扣款反推禁用",
+        ),
         ("项目数", snapshot["project_count"]),
         ("事件数", len(snapshot["events"])),
         ("待确认数", len(snapshot["reviews"])),
@@ -4380,6 +7378,62 @@ def _yuan_text(value: Optional[int]) -> Optional[str]:
     return format(Decimal(value) / 100, ".2f")
 
 
+def governed_gross_margin(
+    *,
+    revenue_cents: Optional[int],
+    cost_cents: Optional[int],
+    basis_status: str,
+) -> Dict[str, Any]:
+    """Calculate a publishable project margin only from a closed basis.
+
+    ``JOB_COST_INCURRED`` is an actual-to-date lower bound while payroll,
+    approved expenses, remaining commitments, or final settlement are still
+    open.  Treating that lower bound as final cost is what produced the
+    implausible 89%--100% margins in the withdrawn run.  A caller must
+    explicitly close the revenue and cost basis before this function returns a
+    number.  The 70% owner control is a release invariant, never a clamp or a
+    target used to back-solve cost.
+    """
+
+    status = str(basis_status or "BLOCKED_COST_COMPLETENESS")
+    if status != "READY":
+        return {
+            "gross_profit_cents": None,
+            "gross_margin_bps": None,
+            "status": status,
+        }
+    if (
+        isinstance(revenue_cents, bool)
+        or not isinstance(revenue_cents, int)
+        or revenue_cents <= 0
+        or isinstance(cost_cents, bool)
+        or not isinstance(cost_cents, int)
+    ):
+        raise ProjectCostError(
+            "GROSS_MARGIN_BASIS_INVALID",
+            "READY gross margin requires positive integer-cents revenue and integer-cents cost",
+        )
+    gross_profit = revenue_cents - cost_cents
+    gross_margin_bps = int(
+        (
+            Decimal(gross_profit)
+            * Decimal(10_000)
+            / Decimal(revenue_cents)
+        ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    )
+    if gross_margin_bps > MAX_GROSS_MARGIN_BPS:
+        raise ProjectCostError(
+            "GROSS_MARGIN_SANITY_GATE",
+            "a project gross margin above 70% blocks the complete runtime; "
+            "the engine never clamps or back-solves cost",
+        )
+    return {
+        "gross_profit_cents": gross_profit,
+        "gross_margin_bps": gross_margin_bps,
+        "status": "READY",
+    }
+
+
 def _formal_cost_categories(
     snapshot: Mapping[str, Any],
 ) -> Dict[str, Dict[str, int]]:
@@ -4421,6 +7475,7 @@ def _statement_buckets(categories: Mapping[str, int]) -> Dict[str, int]:
         "车辆油费": "vehicle",
         "自有人工过账": "own_labor",
         "自有人工-工资应计": "own_labor",
+        "自有人工-雇主社保医保应计": "own_labor",
         "外协": "subcontract_labor",
         "劳务/分包": "subcontract_labor",
         "劳务/人工": "subcontract_labor",
@@ -4451,6 +7506,11 @@ def runtime_projection(
             "P0_REVIEW_OPEN",
             "P0 review rows block runtime publication",
         )
+    if reviews_control["by_severity"]["P1"]:
+        raise ProjectCostError(
+            "P1_REVIEW_OPEN",
+            "P1 review rows block formal runtime publication",
+        )
     categories_by_project = _formal_cost_categories(snapshot)
     rows: List[Dict[str, Any]] = []
     for project in snapshot.get("projects", ()):
@@ -4464,6 +7524,29 @@ def runtime_projection(
                 "formal statement categories do not conserve project cents",
             )
         observed = project.get("status_business_components_cents") or {}
+        margin_cost_basis = project.get("gross_margin_cost_basis_cents")
+        if (
+            str(project.get("gross_margin_status") or "") == "READY"
+            and formal_total is not None
+            and (
+                isinstance(margin_cost_basis, bool)
+                or not isinstance(margin_cost_basis, int)
+                or margin_cost_basis < formal_total
+            )
+        ):
+            raise ProjectCostError(
+                "GROSS_MARGIN_COST_BELOW_INCURRED",
+                "closed project cost/FAC must be integer cents and cannot be below incurred cost",
+            )
+        margin = governed_gross_margin(
+            revenue_cents=project.get("effective_revenue_cents"),
+            cost_cents=margin_cost_basis,
+            basis_status=str(
+                project.get("gross_margin_status")
+                or "BLOCKED_COST_COMPLETENESS"
+            ),
+        )
+        margin_bps = margin["gross_margin_bps"]
         rows.append(
             {
                 "合同编号": project.get("canonical_contract_id"),
@@ -4480,11 +7563,22 @@ def runtime_projection(
                 "回款时间": project.get("cash_in_date"),
                 "含税合同金额": _yuan_text(project.get("contract_amount_cents")),
                 "合同额口径": "红圈原始合同；不含未经完整批准链验证的变更",
-                "有效合同额": None,
+                "有效合同额": _yuan_text(project.get("effective_revenue_cents")),
+                "项目成本": (
+                    _yuan_text(margin_cost_basis)
+                    if margin["status"] == "READY"
+                    else None
+                ),
                 "收入确认额": None,
-                "毛利": None,
-                "毛利率": None,
-                "收入与毛利状态": "BLOCKED_CONTRACT_CHANGE_AND_REVENUE_RECOGNITION",
+                "毛利": _yuan_text(margin["gross_profit_cents"]),
+                "毛利率": (
+                    "%s%%"
+                    % format(Decimal(int(margin_bps)) / Decimal(100), ".2f")
+                    if margin_bps is not None
+                    else None
+                ),
+                "毛利率基点": margin_bps,
+                "收入与毛利状态": margin["status"],
                 "结算金额": _yuan_text(project.get("status_settlement_amount_cents")),
                 "开票金额": _yuan_text(project.get("status_invoice_amount_cents")),
                 "自有人工工时": project.get("own_work_units"),
@@ -4574,7 +7668,7 @@ def runtime_projection(
             "runtime input-manifest binding kind and digest are inconsistent",
         )
     result = {
-        "schema_version": "kmfa.project_cost.current.v3",
+        "schema_version": "kmfa.project_cost.current.v4",
         "生成时间": snapshot.get("generated_at"),
         "快照ID": snapshot.get("snapshot_id"),
         "年份": snapshot.get("year"),
@@ -4613,13 +7707,19 @@ def runtime_projection(
         "校验": {
             "项目数一致": len(rows) == snapshot.get("project_count"),
             "P0阻断数": reviews_control["by_severity"]["P0"],
-            "人工分配分差": coverage.get("labor_wage_component_control_cents", 0)
+            "人工分配分差": coverage.get(
+                "labor_fully_loaded_control_cents",
+                coverage.get("labor_wage_component_control_cents", 0),
+            )
             - coverage.get("labor_allocated_accrual_cents", 0)
             - coverage.get("labor_unallocated_cents", 0)
             - labor.get("already_posted_cents", 0),
             "金蝶明细账本数": coverage.get("ledger_selected_book_count"),
             "合格应计事件数": coverage.get("qualified_accrual_event_count"),
             "工资应计事件数": coverage.get("labor_wage_component_event_count"),
+            "单位社保医保应计事件数": coverage.get(
+                "labor_employer_burden_event_count"
+            ),
         },
     }
     if sealed_workbook is not None:
@@ -5290,6 +8390,7 @@ def calculate_and_generate(
     output_dir: Path,
     ocr_jsonl: Optional[Path] = None,
     payroll_workbooks: Sequence[Path] = (),
+    employer_burden_workbooks: Sequence[Path] = (),
     attendance_roots: Sequence[Path] = (),
     payroll_password_env: Optional[str] = None,
     private_input_manifest_sha256: Optional[str] = None,
@@ -5298,6 +8399,7 @@ def calculate_and_generate(
     input_paths = (
         tuple(Path(root).resolve() for root in roots)
         + tuple(Path(path).resolve() for path in payroll_workbooks)
+        + tuple(Path(path).resolve() for path in employer_burden_workbooks)
         + tuple(Path(root).resolve() for root in attendance_roots)
     )
     for raw in input_paths:
@@ -5312,6 +8414,7 @@ def calculate_and_generate(
         as_of=as_of,
         ocr_jsonl=ocr_jsonl,
         payroll_workbooks=payroll_workbooks,
+        employer_burden_workbooks=employer_burden_workbooks,
         attendance_roots=attendance_roots,
         payroll_password_env=payroll_password_env,
         private_input_manifest_sha256=private_input_manifest_sha256,
@@ -5524,6 +8627,11 @@ def _synthetic_status(path: Path) -> None:
             "交通费",
             "材料费",
             "其他费用",
+            "含税合同金额",
+            "税率",
+            "项目成本表截止提供时间",
+            "是否提供项目成本表",
+            "是否已计算提成",
         ]
     )
     sheet.append(
@@ -5546,6 +8654,11 @@ def _synthetic_status(path: Path) -> None:
             20,
             30,
             40,
+            1000,
+            "9%",
+            "2099-03-01",
+            "已提供",
+            "是",
         ]
     )
     workbook.save(path)
@@ -5562,6 +8675,7 @@ def _synthetic_ledger_book(
     cogs: Optional[Decimal] = None,
     duplicate_auxiliary_view: bool = False,
     same_sheet_occurrences: int = 1,
+    posting_date: str = "2099-02-01",
 ) -> bytes:
     from openpyxl import Workbook
 
@@ -5589,7 +8703,7 @@ def _synthetic_ledger_book(
         opening[headers.index("贷方")] = 0
         sheet.append(opening)
         event = list(opening)
-        event[headers.index("日期")] = "2099-02-01"
+        event[headers.index("日期")] = posting_date
         event[headers.index("凭证字号")] = "记-1"
         event[headers.index("摘要")] = summary
         event[headers.index("借方")] = debit

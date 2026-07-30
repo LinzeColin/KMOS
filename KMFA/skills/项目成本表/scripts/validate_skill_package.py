@@ -111,7 +111,7 @@ def validate_package(*, working_tree: bool, staged: bool, repo_root: Path | None
     _add(findings, version == "0.2.0", "RELEASE_VERSION", "VERSION")
     _add(
         findings,
-        operational_version == "0.0.5",
+        operational_version == "0.0.6",
         "OPERATIONAL_RELEASE_VERSION",
         "OPERATIONAL_VERSION",
     )

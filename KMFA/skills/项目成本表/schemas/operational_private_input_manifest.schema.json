@@ -16,7 +16,7 @@
       "const": "kmfa.project_cost.operational_private_inputs.v1"
     },
     "operational_version": {
-      "const": "0.0.5"
+      "const": "0.0.6"
     },
     "files": {
       "type": "array",
@@ -53,6 +53,7 @@
         "data_root",
         "ocr_path",
         "payroll_paths",
+        "employer_burden_paths",
         "attendance_roots"
       ],
       "properties": {
@@ -64,6 +65,11 @@
         "data_root": {"type": "string", "minLength": 1},
         "ocr_path": {"type": "string", "minLength": 1},
         "payroll_paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "employer_burden_paths": {
           "type": "array",
           "minItems": 1,
           "items": {"type": "string", "minLength": 1}
@@ -86,6 +92,7 @@
         "ledger_selected_book_count",
         "qualified_accrual_event_count",
         "labor_wage_component_event_count",
+        "labor_employer_burden_event_count",
         "p0_review_count",
         "p1_review_count",
         "p2_review_count",
@@ -101,6 +108,10 @@
         "ledger_selected_book_count": {"type": "integer", "minimum": 1},
         "qualified_accrual_event_count": {"type": "integer", "minimum": 0},
         "labor_wage_component_event_count": {"type": "integer", "minimum": 0},
+        "labor_employer_burden_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
         "p0_review_count": {"const": 0},
         "p1_review_count": {"type": "integer", "minimum": 0},
         "p2_review_count": {"type": "integer", "minimum": 0},

@@ -40,7 +40,7 @@ from project_cost_table.operational import (  # noqa: E402
 
 AREA = "Private-KMDatabase"
 SCHEMA_VERSION = "kmfa.project_cost.operational_private_inputs.v1"
-OPERATIONAL_VERSION = "0.0.5"
+OPERATIONAL_VERSION = "0.0.6"
 MAX_FILES = 128
 MAX_TOTAL_BYTES = 512 * 1024 * 1024
 ALLOWED_SUFFIXES = (".xlsx", ".zip", ".jsonl", ".jsonl.gz")
@@ -53,6 +53,7 @@ INTEGER_CONTROL_FIELDS = (
     "ledger_selected_book_count",
     "qualified_accrual_event_count",
     "labor_wage_component_event_count",
+    "labor_employer_burden_event_count",
     "p0_review_count",
     "p1_review_count",
     "p2_review_count",
@@ -186,6 +187,10 @@ def validate_manifest(payload: Mapping[str, Any]) -> Dict[str, Any]:
         _safe_relative(value, field="run.payroll_paths")
         for value in (run.get("payroll_paths") or [])
     ]
+    employer_burden_paths = [
+        _safe_relative(value, field="run.employer_burden_paths")
+        for value in (run.get("employer_burden_paths") or [])
+    ]
     attendance_roots = [
         _safe_relative(value, field="run.attendance_roots")
         for value in (run.get("attendance_roots") or [])
@@ -200,6 +205,13 @@ def validate_manifest(payload: Mapping[str, Any]) -> Dict[str, Any]:
         raise ProjectCostError(
             "PRIVATE_MANIFEST_PAYROLL",
             "payroll paths are missing or not bound to manifest files",
+        )
+    if not employer_burden_paths or any(
+        str(path) not in local_paths for path in employer_burden_paths
+    ):
+        raise ProjectCostError(
+            "PRIVATE_MANIFEST_EMPLOYER_BURDEN",
+            "employer burden paths are missing or not bound to manifest files",
         )
     year = run.get("year")
     as_of = str(run.get("as_of") or "")
@@ -255,6 +267,9 @@ def validate_manifest(payload: Mapping[str, Any]) -> Dict[str, Any]:
             "data_root": str(data_root),
             "ocr_path": str(ocr_path),
             "payroll_paths": [str(path) for path in payroll_paths],
+            "employer_burden_paths": [
+                str(path) for path in employer_burden_paths
+            ],
             "attendance_roots": [str(path) for path in attendance_roots],
         },
         "expected_controls": dict(expected),
@@ -316,6 +331,9 @@ def _expectations(
         ),
         "labor_wage_component_event_count": coverage.get(
             "labor_wage_component_event_count"
+        ),
+        "labor_employer_burden_event_count": coverage.get(
+            "labor_employer_burden_event_count"
         ),
         "p0_review_count": result.get("p0_review_count"),
         "p1_review_count": result.get("p1_review_count"),
@@ -443,6 +461,10 @@ def refresh(
                 ocr_jsonl=input_root / run["ocr_path"],
                 payroll_workbooks=tuple(
                     input_root / path for path in run["payroll_paths"]
+                ),
+                employer_burden_workbooks=tuple(
+                    input_root / path
+                    for path in run["employer_burden_paths"]
                 ),
                 attendance_roots=tuple(
                     input_root / path for path in run["attendance_roots"]

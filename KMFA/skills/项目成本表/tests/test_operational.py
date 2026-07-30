@@ -1,23 +1,31 @@
 from __future__ import annotations
 
 import json
+import zipfile
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
+from openpyxl import Workbook
 
 import project_cost_table.operational as operational
 from project_cost_table.operational import (
     ProjectCostError,
+    _attendance_assignments,
     _formal_cost_categories,
     _synthetic_ledger_book,
     _statement_buckets,
     _statement_rows,
     generate_outputs,
+    governed_gross_margin,
+    governed_contract_revenue,
+    labor_posted_component_reconciliation,
     labor_posted_reconciliation,
     ledger_book_metadata,
+    parse_dws_approvals,
     parse_ledger_books,
     parse_ocr_paid_project_costs,
+    parse_status,
     qualify_cost_accruals,
     runtime_projection,
     sha256_bytes,
@@ -36,7 +44,7 @@ def _snapshot() -> dict:
         "schema_version": "kmfa.project_cost.snapshot.v2",
         "snapshot_id": "kmfa-pc-2099-synthetic",
         "generated_at": "2099-02-05T00:00:00+00:00",
-        "skill_version": "0.0.5",
+        "skill_version": "0.0.6",
         "core_version": "0.2.0",
         "year": 2099,
         "as_of": "2099-02-05",
@@ -61,6 +69,9 @@ def _snapshot() -> dict:
                 "job_posted_actual_cents": 12_345,
                 "cost_accrued_cents": 7_655,
                 "job_cost_incurred_cents": 20_000,
+                "gross_margin_cost_basis_cents": 20_000,
+                "effective_revenue_cents": 50_000,
+                "gross_margin_status": "READY",
                 "gl_recognized_cogs_cents": 8_000,
                 "business_reported_direct_cost_cents": 5_000,
                 "payment_system_paid_observed_cents": None,
@@ -80,6 +91,9 @@ def _snapshot() -> dict:
                 "job_posted_actual_cents": 0,
                 "cost_accrued_cents": 0,
                 "job_cost_incurred_cents": 0,
+                "gross_margin_cost_basis_cents": None,
+                "effective_revenue_cents": None,
+                "gross_margin_status": "BLOCKED_COST_COMPLETENESS",
                 "gl_recognized_cogs_cents": 0,
                 "business_reported_direct_cost_cents": None,
                 "payment_system_paid_observed_cents": None,
@@ -132,15 +146,19 @@ def _snapshot() -> dict:
 
 def test_runtime_projection_keeps_formal_cost_and_observation_planes_separate():
     projection = runtime_projection(_snapshot())
-    assert projection["schema_version"] == "kmfa.project_cost.current.v3"
+    assert projection["schema_version"] == "kmfa.project_cost.current.v4"
     assert projection["项目数"] == 2
     first, second = projection["项目"]
     assert first["项目过账实际"] == "123.45"
     assert first["项目应计"] == "76.55"
     assert first["项目已发生成本"] == "200.00"
+    assert first["项目成本"] == "200.00"
     assert first["主营成本已结转"] == "80.00"
-    assert first["毛利"] is None and first["毛利率"] is None
+    assert first["毛利"] == "300.00"
+    assert first["毛利率"] == "60.00%"
+    assert first["毛利率基点"] == 6000
     assert second["项目已发生成本"] == "0.00"
+    assert second["项目成本"] is None
     assert "固定人工单价" in projection["禁止"]
     assert "自动合同额2%管理费" in projection["禁止"]
     assert "参考报表回填" in projection["禁止"]
@@ -173,7 +191,7 @@ def test_runtime_projection_rejects_a_one_cent_category_drift():
     assert caught.value.code == "RUNTIME_CATEGORY_CONSERVATION"
 
 
-def test_runtime_projection_surfaces_open_p1_without_using_it_in_formulas():
+def test_runtime_projection_blocks_open_p1_instead_of_publishing_a_lower_bound():
     snapshot = _snapshot()
     snapshot["reviews"] = [
         {
@@ -187,11 +205,149 @@ def test_runtime_projection_surfaces_open_p1_without_using_it_in_formulas():
             "amount_cents": 888_888,
         },
     ]
-    projection = runtime_projection(snapshot)
-    assert projection["计算状态"] == "PASS_WITH_OPEN_REVIEWS"
-    assert projection["待确认"]["P1开放复核数"] == 1
-    assert projection["待确认"]["P2已排除或提示数"] == 1
-    assert projection["项目"][0]["项目已发生成本"] == "200.00"
+    with pytest.raises(ProjectCostError) as caught:
+        runtime_projection(snapshot)
+    assert caught.value.code == "P1_REVIEW_OPEN"
+
+
+def test_margin_above_seventy_percent_blocks_instead_of_being_clamped():
+    with pytest.raises(ProjectCostError) as caught:
+        governed_gross_margin(
+            revenue_cents=100_000,
+            cost_cents=20_000,
+            basis_status="READY",
+        )
+    assert caught.value.code == "GROSS_MARGIN_SANITY_GATE"
+
+
+def test_incomplete_margin_basis_returns_null_without_backsolving_cost():
+    result = governed_gross_margin(
+        revenue_cents=100_000,
+        cost_cents=1,
+        basis_status="BLOCKED_COST_COMPLETENESS",
+    )
+    assert result == {
+        "gross_profit_cents": None,
+        "gross_margin_bps": None,
+        "status": "BLOCKED_COST_COMPLETENESS",
+    }
+
+
+def test_closed_cost_basis_cannot_be_below_incurred_cost():
+    snapshot = _snapshot()
+    snapshot["projects"][0]["gross_margin_cost_basis_cents"] = 19_999
+    with pytest.raises(ProjectCostError) as caught:
+        runtime_projection(snapshot)
+    assert caught.value.code == "GROSS_MARGIN_COST_BELOW_INCURRED"
+
+
+def test_completed_settlement_is_distinct_from_invoice_and_original_contract():
+    project = {
+        "contract_amount_cents": 91_000,
+        "construction_status_master": "已完工",
+    }
+    status = {
+        "construction_status": "已完工",
+        "status_contract_amount_cents": 91_000,
+        "settlement_amount_cents": 157_300,
+        "invoice_amount_cents": 145_200,
+    }
+    result = governed_contract_revenue(project, status)
+    assert result == {
+        "effective_revenue_cents": 157_300,
+        "status": "READY_SETTLEMENT_REGISTER",
+        "basis": "GOVERNED_SETTLEMENT_REGISTER",
+    }
+
+
+def test_revenue_basis_blocks_when_master_and_status_contract_conflict():
+    result = governed_contract_revenue(
+        {
+            "contract_amount_cents": 100_000,
+            "construction_status_master": "已完工",
+        },
+        {
+            "construction_status": "已完工",
+            "status_contract_amount_cents": 110_000,
+            "settlement_amount_cents": 120_000,
+        },
+    )
+    assert result["effective_revenue_cents"] is None
+    assert result["status"] == "BLOCKED_CONTRACT_REGISTER_CONFLICT"
+
+
+def test_reporting_cohort_includes_target_year_and_operational_carryovers_only():
+    projects = [
+        {
+            "contract_base": "KMX20990101-001",
+            "year": 2099,
+            "created_date": "2099-01-01",
+            "construction_status_master": "",
+        },
+        {
+            "contract_base": "KMX20981201-002",
+            "year": 2098,
+            "created_date": "2098-12-01",
+            "construction_status_master": "",
+        },
+        {
+            "contract_base": "KMX20981202-003",
+            "year": 2098,
+            "created_date": "2098-12-02",
+            "construction_status_master": "",
+        },
+        {
+            "contract_base": "KMX20981203-004",
+            "year": 2098,
+            "created_date": "2098-12-03",
+            "construction_status_master": "",
+        },
+    ]
+    status = {
+        "KMX20981201-002": {
+            "construction_status": "已完工",
+            "completion_date": "2099-02-05",
+        },
+        "KMX20981202-003": {
+            "construction_status": "施工中",
+            "start_date": "2098-12-20",
+        },
+        "KMX20981203-004": {
+            "construction_status": "已完工",
+            "completion_date": "2098-12-28",
+            "invoice_date": "2099-01-10",
+            "cash_in_date": "2099-01-20",
+        },
+    }
+    cohort = operational.reporting_project_cohort(
+        projects,
+        status,
+        year=2099,
+    )
+    assert [row["contract_base"] for row in cohort] == [
+        "KMX20981201-002",
+        "KMX20981202-003",
+        "KMX20990101-001",
+    ]
+
+
+def test_status_parser_preserves_project_cost_report_control_fields(
+    tmp_path: Path,
+):
+    master_path = tmp_path / "红圈主合同.xlsx"
+    status_path = tmp_path / "生产项目状态表.xlsx"
+    operational._synthetic_master(master_path)
+    operational._synthetic_status(status_path)
+    projects, _metadata = operational.parse_master(master_path)
+    rows, reviews, diagnostics = parse_status(status_path, projects, 2099)
+    row = rows["KMX20990101-001"]
+    assert row["project_cost_report_provided"] is True
+    assert row["project_cost_report_deadline"] == "2099-03-01"
+    assert row["commission_calculated"] is True
+    assert row["status_contract_amount_cents"] == 100_000
+    assert diagnostics["provided_project_cost_report_rows"] == 1
+    assert diagnostics["provided_project_cost_report_with_direct_components"] == 1
+    assert not [review for review in reviews if review["severity"] == "P1"]
 
 
 def test_runtime_projection_blocks_any_p0_review():
@@ -239,6 +395,63 @@ def test_ledger_keeps_two_legal_identical_rows_in_one_source_view():
     assert sum(event["amount_cents"] for event in actual) == 20_000
     assert diagnostics["semantic_duplicate_rows"] == 0
     assert not [row for row in reviews if row["severity"] == "P0"]
+
+
+def test_ledger_short_and_full_entity_names_share_one_coverage_key():
+    payloads = [
+        _synthetic_ledger_book(
+            entity=entity,
+            contract="KMX20990101-001",
+            customer="合成客户甲",
+            amount=amount,
+            account="5001001-生产成本_原材料",
+            include_research_column=True,
+        )
+        for entity, amount in (
+            ("合成企业甲", Decimal("100.00")),
+            ("区域合成企业甲有限公司", Decimal("200.00")),
+        )
+    ]
+    books = [
+        {
+            "metadata": ledger_book_metadata(
+                "%s-明细账.xlsx" % entity,
+                payload,
+            ),
+            "payload": payload,
+        }
+        for entity, payload in zip(
+            ("合成企业甲", "区域合成企业甲有限公司"),
+            payloads,
+        )
+    ]
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "year": 2099,
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+        }
+    ]
+    events, _reviews, diagnostics = parse_ledger_books(
+        books,
+        projects,
+        2099,
+        "2099-02-28",
+        {},
+    )
+    actual = [
+        event for event in events if event["plane"] == "JOB_POSTED_ACTUAL"
+    ]
+    assert len(actual) == 2
+    assert {event["entity"] for event in actual} == {"合成企业甲"}
+    assert {event["source_entity"] for event in actual} == {
+        "合成企业甲",
+        "区域合成企业甲有限公司",
+    }
+    assert list(diagnostics["period_ends_by_entity"]) == ["合成企业甲"]
 
 
 def test_other_contract_review_is_not_multiplied_by_export_views():
@@ -291,7 +504,104 @@ def test_other_contract_review_is_not_multiplied_by_export_views():
     assert diagnostics["semantic_duplicate_rows"] == 1
 
 
-def test_accrual_is_not_deleted_by_unrelated_equal_amount_posting():
+def test_unallocated_5001_pool_is_preserved_and_blocks_publication():
+    payloads = [
+        _synthetic_ledger_book(
+            entity="合成企业甲",
+            contract="",
+            customer="",
+            amount=Decimal("100.00"),
+            account="5001007-生产成本_劳务",
+            include_research_column=include_research,
+        )
+        for include_research in (False, True)
+    ]
+    books = [
+        {
+            "metadata": ledger_book_metadata(
+                "合成企业甲-未分配-%d.xlsx" % index,
+                payload,
+            ),
+            "payload": payload,
+        }
+        for index, payload in enumerate(payloads, 1)
+    ]
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "year": 2099,
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+        }
+    ]
+    events, reviews, diagnostics = parse_ledger_books(
+        books,
+        projects,
+        2099,
+        "2099-02-28",
+        {},
+    )
+    assert len(events) == 1
+    assert events[0]["plane"] == "UNALLOCATED_LEDGER_COST_POOL"
+    assert events[0]["project"] is None
+    assert diagnostics["unallocated_cost_rows"] == 1
+    assert diagnostics["unallocated_cost_net_cents"] == 10_000
+    assert diagnostics["unallocated_cost_absolute_cents"] == 10_000
+    assert diagnostics["semantic_duplicate_rows"] == 1
+    open_pool = [
+        row
+        for row in reviews
+        if row["type"] == "UNALLOCATED_LEDGER_COST_POOL_OPEN"
+    ]
+    assert len(open_pool) == 1
+    assert open_pool[0]["severity"] == "P1"
+
+
+def test_ledger_exact_project_name_in_summary_recovers_project_identity():
+    payload = _synthetic_ledger_book(
+        entity="合成企业甲",
+        contract="KMX999_不分项目",
+        customer="",
+        amount=Decimal("100.00"),
+        account="5001003-生产成本_工资",
+        include_research_column=True,
+    )
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成项目成本",
+            "year": 2099,
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+        }
+    ]
+    metadata = ledger_book_metadata("合成企业甲-明细账.xlsx", payload)
+    events, reviews, diagnostics = parse_ledger_books(
+        [{"metadata": metadata, "payload": payload}],
+        projects,
+        2099,
+        "2099-02-28",
+        {},
+    )
+    actual = [
+        event for event in events if event["plane"] == "JOB_POSTED_ACTUAL"
+    ]
+    assert len(actual) == 1
+    assert actual[0]["project"] == "KMX20990101-001"
+    assert actual[0]["identity_reason"] == "LEDGER_NARRATIVE_EXACT_PROJECT_NAME"
+    assert diagnostics["unallocated_cost_rows"] == 0
+    assert not [
+        row
+        for row in reviews
+        if row["type"] == "UNALLOCATED_LEDGER_COST_POOL_OPEN"
+    ]
+
+
+def test_payment_observation_never_creates_cost_without_occurrence_evidence():
     posted = [
         {
             "event_id": "posted-material",
@@ -312,13 +622,17 @@ def test_accrual_is_not_deleted_by_unrelated_equal_amount_posting():
         }
     ]
     accruals, reviews, diagnostics = qualify_cost_accruals(posted, [], paid)
-    assert len(accruals) == 1
-    assert accruals[0]["amount_cents"] == 10_000
-    assert reviews == []
+    assert accruals == []
+    assert reviews[0]["severity"] == "P2"
+    assert (
+        reviews[0]["type"]
+        == "PAID_COST_OBSERVATION_EXCLUDED_FROM_ACCRUAL"
+    )
+    assert reviews[0]["posting_candidate_count"] == 0
     assert diagnostics["posting_link_required_count"] == 0
 
 
-def test_possible_partial_posting_requires_a_stable_link_before_accrual():
+def test_payment_with_partial_posting_remains_observation_only():
     posted = [
         {
             "event_id": "posted-material-part",
@@ -344,12 +658,16 @@ def test_possible_partial_posting_requires_a_stable_link_before_accrual():
         paid,
     )
     assert accruals == []
-    assert reviews[0]["type"] == "ACCRUAL_POSTING_LINK_REQUIRED"
-    assert reviews[0]["severity"] == "P1"
-    assert diagnostics["posting_link_required_count"] == 1
+    assert (
+        reviews[0]["type"]
+        == "PAID_COST_OBSERVATION_EXCLUDED_FROM_ACCRUAL"
+    )
+    assert reviews[0]["severity"] == "P2"
+    assert reviews[0]["posting_candidate_count"] == 1
+    assert diagnostics["posting_link_required_count"] == 0
 
 
-def test_exact_same_day_amount_and_category_requires_stable_link():
+def test_exact_payment_and_posting_still_do_not_change_cost_formula():
     posted = [
         {
             "event_id": "posted-rental",
@@ -371,10 +689,49 @@ def test_exact_same_day_amount_and_category_requires_stable_link():
     ]
     accruals, reviews, diagnostics = qualify_cost_accruals(posted, [], paid)
     assert accruals == []
-    assert reviews[0]["severity"] == "P1"
-    assert reviews[0]["type"] == "ACCRUAL_POSTING_LINK_REQUIRED"
-    assert reviews[0]["candidate_count"] == 1
+    assert reviews[0]["severity"] == "P2"
+    assert (
+        reviews[0]["type"]
+        == "PAID_COST_OBSERVATION_EXCLUDED_FROM_ACCRUAL"
+    )
+    assert reviews[0]["posting_candidate_count"] == 1
+    assert diagnostics["posting_link_required_count"] == 0
+
+
+def test_approved_cost_is_not_double_accrued_over_unallocated_5001_candidate():
+    ledger = [
+        {
+            "event_id": "unallocated-material",
+            "project": None,
+            "plane": "UNALLOCATED_LEDGER_COST_POOL",
+            "category": "材料",
+            "amount_cents": 10_000,
+            "posting_date": "2099-02-08",
+        }
+    ]
+    approved = [
+        {
+            "event_id": "approved-material",
+            "project": "KMX20990101-001",
+            "plane": "DWS_APPROVED_COST",
+            "category": "材料",
+            "amount_cents": 10_000,
+            "posting_date": "2099-02-05",
+            "approval_authority_verified": True,
+        }
+    ]
+    accruals, reviews, diagnostics = qualify_cost_accruals(
+        ledger,
+        approved,
+        [],
+    )
+    assert accruals == []
     assert diagnostics["posting_link_required_count"] == 1
+    assert [
+        row
+        for row in reviews
+        if row["type"] == "APPROVED_COST_UNALLOCATED_POSTING_LINK_REQUIRED"
+    ]
 
 
 def test_dws_reaction_cannot_create_a_formal_accrual_without_authority():
@@ -397,6 +754,1042 @@ def test_dws_reaction_cannot_create_a_formal_accrual_without_authority():
     assert reviews[0]["severity"] == "P1"
     assert reviews[0]["type"] == "DWS_APPROVER_AUTHORITY_UNVERIFIED_EXCLUDED"
     assert diagnostics["dws_reaction_formal_amount_use"] is False
+
+
+def test_explicit_approved_cost_accrues_even_when_payment_status_is_unpaid():
+    approved = [
+        {
+            "event_id": "dws-approved",
+            "approval_id": "SYN-APPROVED-1",
+            "project": "KMX20990101-001",
+            "category": "设备租赁",
+            "amount_cents": 240_000,
+            "posting_date": "2099-02-05",
+            "approval_authority_verified": True,
+            "payment_status": "未支付",
+        }
+    ]
+    accruals, reviews, diagnostics = qualify_cost_accruals([], approved, [])
+    assert reviews == []
+    assert len(accruals) == 1
+    assert accruals[0]["plane"] == "COST_ACCRUED"
+    assert accruals[0]["amount_cents"] == 240_000
+    assert diagnostics["dws_approved_cost_formal_count"] == 1
+
+
+def test_paid_observation_plus_independent_approval_creates_exactly_one_accrual():
+    approved = [
+        {
+            "event_id": "approved-tax",
+            "approval_id": "SYN-APPROVED-TAX",
+            "project": "KMX20990101-001",
+            "category": "项目税费",
+            "amount_cents": 12_300,
+            "posting_date": "2099-02-05",
+            "approval_authority_verified": True,
+        }
+    ]
+    paid = [
+        {
+            "event_id": "paid-tax",
+            "project": "KMX20990101-001",
+            "category": "项目税费",
+            "amount_cents": 12_300,
+            "posting_date": "2099-02-06",
+        }
+    ]
+    accruals, reviews, diagnostics = qualify_cost_accruals(
+        [],
+        approved,
+        paid,
+    )
+    assert len(accruals) == 1
+    assert accruals[0]["amount_cents"] == 12_300
+    assert sum(row["amount_cents"] for row in accruals) == 12_300
+    assert [
+        row
+        for row in reviews
+        if row["type"] == "PAID_COST_OBSERVATION_EXCLUDED_FROM_ACCRUAL"
+    ]
+    assert diagnostics["dws_reaction_paid_observation_link_count"] == 1
+
+
+def test_approved_cost_posting_reconciliation_is_one_to_one():
+    posted = [
+        {
+            "event_id": "posted-%d" % index,
+            "project": "KMX20990101-001",
+            "plane": "JOB_POSTED_ACTUAL",
+            "category": "交通/差旅",
+            "amount_cents": 41_650,
+            "posting_date": "2099-02-05",
+            "summary": "同一批差旅报销",
+        }
+        for index in range(3)
+    ]
+    approved = [
+        {
+            "event_id": "approved-%d" % index,
+            "approval_id": "APPROVED-%d" % index,
+            "project": "KMX20990101-001",
+            "category": "交通/差旅",
+            "amount_cents": 41_650,
+            "posting_date": "2099-02-05",
+            "summary": "同一批差旅报销",
+            "approval_authority_verified": True,
+        }
+        for index in range(4)
+    ]
+    accruals, reviews, diagnostics = qualify_cost_accruals(
+        posted,
+        approved,
+        [],
+    )
+    assert len(accruals) == 1
+    assert accruals[0]["amount_cents"] == 41_650
+    assert diagnostics["approved_posting_exact_match_count"] == 3
+    assert len(
+        [
+            row
+            for row in reviews
+            if row["type"]
+            == "APPROVED_COST_POSTING_MATCHED_ONE_TO_ONE"
+        ]
+    ) == 3
+
+
+def test_nearby_same_category_different_amount_no_longer_blocks_accrual():
+    posted = [
+        {
+            "event_id": "posted-partial",
+            "project": "KMX20990101-001",
+            "plane": "JOB_POSTED_ACTUAL",
+            "category": "材料",
+            "amount_cents": 4_000,
+            "posting_date": "2099-02-01",
+            "summary": "部分材料",
+        }
+    ]
+    approved = [
+        {
+            "event_id": "approved-total",
+            "approval_id": "APPROVED-TOTAL",
+            "project": "KMX20990101-001",
+            "category": "材料",
+            "amount_cents": 10_000,
+            "posting_date": "2099-02-05",
+            "summary": "另一笔材料采购",
+            "approval_authority_verified": True,
+        }
+    ]
+    accruals, reviews, diagnostics = qualify_cost_accruals(
+        posted,
+        approved,
+        [],
+    )
+    assert len(accruals) == 1
+    assert accruals[0]["amount_cents"] == 10_000
+    assert not [
+        row
+        for row in reviews
+        if row["type"] == "APPROVED_COST_POSTING_LINK_REQUIRED"
+    ]
+    assert diagnostics["posting_link_required_count"] == 0
+
+
+def test_semantic_gross_net_posting_match_suppresses_one_duplicate():
+    posted = [
+        {
+            "event_id": "posted-net",
+            "project": "KMX20990101-001",
+            "plane": "JOB_POSTED_ACTUAL",
+            "category": "交通/差旅",
+            "amount_cents": 10_000,
+            "posting_date": "2099-02-07",
+            "summary": "设备维修项目差旅住宿费用入账",
+        }
+    ]
+    approved = [
+        {
+            "event_id": "approved-gross",
+            "approval_id": "APPROVED-GROSS",
+            "project": "KMX20990101-001",
+            "category": "交通/差旅",
+            "amount_cents": 11_300,
+            "posting_date": "2099-02-05",
+            "summary": "设备维修项目差旅住宿费用报销",
+            "approval_authority_verified": True,
+        }
+    ]
+    accruals, reviews, diagnostics = qualify_cost_accruals(
+        posted,
+        approved,
+        [],
+    )
+    assert accruals == []
+    assert diagnostics["approved_posting_fuzzy_match_count"] == 1
+    matched = [
+        row
+        for row in reviews
+        if row["type"] == "APPROVED_COST_POSTING_MATCHED_ONE_TO_ONE"
+    ]
+    assert matched[0]["match_kind"] == "SEMANTIC_GROSS_NET_13_PERCENT"
+
+
+def test_ambiguous_fuzzy_posting_match_remains_blocked():
+    posted = [
+        {
+            "event_id": "posted-net-%d" % index,
+            "project": "KMX20990101-001",
+            "plane": "JOB_POSTED_ACTUAL",
+            "category": "交通/差旅",
+            "amount_cents": 10_000,
+            "posting_date": "2099-02-07",
+            "summary": "设备维修项目差旅住宿费用入账",
+        }
+        for index in range(2)
+    ]
+    approved = [
+        {
+            "event_id": "approved-gross",
+            "approval_id": "APPROVED-GROSS",
+            "project": "KMX20990101-001",
+            "category": "交通/差旅",
+            "amount_cents": 11_300,
+            "posting_date": "2099-02-05",
+            "summary": "设备维修项目差旅住宿费用报销",
+            "approval_authority_verified": True,
+        }
+    ]
+    accruals, reviews, diagnostics = qualify_cost_accruals(
+        posted,
+        approved,
+        [],
+    )
+    assert accruals == []
+    assert diagnostics["approved_posting_ambiguous_count"] == 1
+    assert reviews[0]["type"] == "APPROVED_COST_POSTING_MATCH_AMBIGUOUS"
+    assert reviews[0]["severity"] == "P1"
+
+
+def test_unallocated_posting_candidate_is_consumed_one_to_one():
+    ledger = [
+        {
+            "event_id": "unallocated-material",
+            "project": None,
+            "plane": "UNALLOCATED_LEDGER_COST_POOL",
+            "category": "材料",
+            "amount_cents": 10_000,
+            "posting_date": "2099-02-08",
+        }
+    ]
+    approved = [
+        {
+            "event_id": "approved-material-%d" % index,
+            "approval_id": "APPROVED-MATERIAL-%d" % index,
+            "project": "KMX20990101-001",
+            "category": "材料",
+            "amount_cents": 10_000,
+            "posting_date": "2099-02-05",
+            "approval_authority_verified": True,
+        }
+        for index in range(2)
+    ]
+    accruals, reviews, diagnostics = qualify_cost_accruals(
+        ledger,
+        approved,
+        [],
+    )
+    assert len(accruals) == 1
+    assert diagnostics["approved_unallocated_posting_link_count"] == 1
+    assert len(
+        [
+            row
+            for row in reviews
+            if row["type"]
+            == "APPROVED_COST_UNALLOCATED_POSTING_LINK_REQUIRED"
+        ]
+    ) == 1
+
+
+def test_approved_cost_detail_uses_exact_project_and_excludes_deposit(
+    tmp_path: Path,
+):
+    path = tmp_path / "项目成本统计_截至20990205.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "资金支出明细"
+    sheet.append(
+        [
+            "费用明细编号",
+            "创建时间",
+            "审批状态",
+            "费用项目",
+            "费用说明",
+            "金额",
+            "业务类型",
+            "成本清单明细",
+            "关联主合同",
+            "关联主合同(费用报销)",
+            "任务单",
+            "申请编号(费用报销)",
+        ]
+    )
+    sheet.append(
+        [
+            "DETAIL-1",
+            "2099-02-05 09:00",
+            "已通过",
+            "采购费",
+            "项目材料",
+            Decimal("123.45"),
+            "项目报销",
+            "",
+            "",
+            "",
+            "KMX20990101-001--Z",
+            "PARENT-1",
+        ]
+    )
+    sheet.append(
+        [
+            "DETAIL-2",
+            "2099-02-05 10:00",
+            "已通过",
+            "押金",
+            "设备押金",
+            Decimal("50.00"),
+            "项目付款",
+            "",
+            "",
+            "",
+            "KMX20990101-001--Z",
+            "PARENT-2",
+        ]
+    )
+    sheet.append(
+        [
+            "DETAIL-3",
+            "2099-02-05 11:00",
+            "已通过",
+            "税费",
+            "项目印花税",
+            Decimal("12.30"),
+            "项目报销",
+            "",
+            "",
+            "",
+            "KMX20990101-001--Z",
+            "PARENT-3",
+        ]
+    )
+    workbook.save(path)
+    workbook.close()
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成项目甲",
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        }
+    ]
+    events, reviews, diagnostics = operational.parse_approved_cost_detail(
+        path,
+        projects,
+        {},
+        2099,
+        "2099-02-28",
+    )
+    assert [(row["category"], row["amount_cents"]) for row in events] == [
+        ("材料", 12_345),
+        ("项目税费", 1_230),
+    ]
+    assert all(row["approval_authority_verified"] for row in events)
+    assert diagnostics["mapped_rows"] == 2
+    assert diagnostics["non_cost_rows"] == 1
+    assert [
+        row
+        for row in reviews
+        if row["type"] == "APPROVED_COST_DETAIL_NON_COST_EXCLUDED"
+    ]
+
+
+def test_approved_cost_summary_is_suppressed_on_exact_parent_reconciliation():
+    dws = [
+        {
+            "event_id": "summary",
+            "approval_id": "PARENT-1",
+            "project": "KMX20990101-001",
+            "amount_cents": 30_000,
+            "approval_authority_verified": True,
+        }
+    ]
+    detail = [
+        {
+            "event_id": "detail-1",
+            "parent_approval_id": "PARENT-1",
+            "project": "KMX20990101-001",
+            "amount_cents": 10_000,
+        },
+        {
+            "event_id": "detail-2",
+            "parent_approval_id": "PARENT-1",
+            "project": "KMX20990101-001",
+            "amount_cents": 20_000,
+        },
+    ]
+    combined, reviews, diagnostics = (
+        operational.merge_approved_cost_sources(dws, detail)
+    )
+    assert [row["event_id"] for row in combined] == [
+        "detail-1",
+        "detail-2",
+    ]
+    assert diagnostics["exact_parent_match_count"] == 1
+    assert diagnostics["conflicting_parent_count"] == 0
+    assert reviews[0]["type"] == "APPROVED_COST_PARENT_EXACT_DUPLICATE"
+
+
+def test_project_invoice_tax_uses_exact_issued_lines_and_keeps_red_invoice(
+    tmp_path: Path,
+):
+    path = tmp_path / "项目开票_导出文件_20990205.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "项目开票"
+    sheet.append(
+        [
+            "发票号码",
+            "开票状态",
+            "开票日期",
+            "本次开票含税金额(元)",
+            "税率(%)",
+            "开票单位",
+            "审批状态",
+            "合同编号(合同名称)",
+        ]
+    )
+    rows = [
+        [
+            "INV-13",
+            "已开票",
+            "2099-02-01",
+            Decimal("113.00"),
+            "13%",
+            "合成企业甲",
+            "已通过",
+            "KMX20990101-001",
+        ],
+        # An exact duplicate export row is one business fact.
+        [
+            "INV-13",
+            "已开票",
+            "2099-02-01",
+            Decimal("113.00"),
+            "13%",
+            "合成企业甲",
+            "已通过",
+            "KMX20990101-001",
+        ],
+        [
+            "INV-RED-6",
+            "已开票",
+            "2099-02-02",
+            Decimal("-106.00"),
+            "6%",
+            "合成企业甲",
+            "已通过",
+            "KMX20990101-001",
+        ],
+        [
+            "INV-ZERO",
+            "已开票",
+            "2099-02-03",
+            Decimal("100.00"),
+            "0%",
+            "合成企业甲",
+            "已通过",
+            "KMX20990101-001",
+        ],
+        [
+            "INV-NOT-ISSUED",
+            "未开票",
+            "2099-02-04",
+            Decimal("113.00"),
+            "13%",
+            "合成企业甲",
+            "已通过",
+            "KMX20990101-001",
+        ],
+    ]
+    for row in rows:
+        sheet.append(row)
+    workbook.save(path)
+    workbook.close()
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成项目甲",
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        }
+    ]
+    events, reviews, diagnostics = operational.parse_project_invoice_tax(
+        path,
+        projects,
+        2099,
+        "2099-02-28",
+    )
+    assert reviews == []
+    assert [
+        (row["category"], row["amount_cents"])
+        for row in events
+    ] == [
+        ("项目税费-销项税额", 1_300),
+        ("项目税费-销项税额", -600),
+    ]
+    assert all(row["plane"] == "COST_ACCRUED" for row in events)
+    assert diagnostics["mapped_rows"] == 2
+    assert diagnostics["zero_rate_rows"] == 1
+    assert diagnostics["company_tax_allocation_used"] is False
+
+
+def test_project_invoice_conflict_excludes_the_complete_invoice_project_group(
+    tmp_path: Path,
+):
+    path = tmp_path / "项目开票_导出文件_冲突.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(
+        [
+            "发票号码",
+            "开票状态",
+            "开票日期",
+            "本次开票含税金额(元)",
+            "税率(%)",
+            "开票单位",
+            "审批状态",
+            "合同编号(合同名称)",
+        ]
+    )
+    for amount in (Decimal("113.00"), Decimal("226.00")):
+        sheet.append(
+            [
+                "INV-CONFLICT",
+                "已开票",
+                "2099-02-01",
+                amount,
+                "13%",
+                "合成企业甲",
+                "已通过",
+                "KMX20990101-001",
+            ]
+        )
+    workbook.save(path)
+    workbook.close()
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成项目甲",
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        }
+    ]
+    events, reviews, diagnostics = operational.parse_project_invoice_tax(
+        path,
+        projects,
+        2099,
+        "2099-02-28",
+    )
+    assert events == []
+    assert diagnostics["conflicting_invoice_project_count"] == 1
+    assert reviews[0]["type"] == "PROJECT_INVOICE_ALLOCATION_CONFLICT"
+
+
+def test_funding_plan_uses_description_not_customer_name_for_cost_category(
+    tmp_path: Path,
+):
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "项目资金计划"
+    sheet.append(
+        [
+            "申请编号",
+            "关联主合同",
+            "累计报销金额",
+            "审批状态",
+            "报销说明",
+            "收款单位",
+            "收款账户",
+            "支付状态",
+        ]
+    )
+    sheet.append(
+        [
+            "APP209902050001",
+            "KMX20990101-001 某材料科技项目",
+            Decimal("123.45"),
+            "已通过",
+            "坐轮渡回公司",
+            "",
+            "",
+            "未支付",
+        ]
+    )
+    payload = tmp_path / "资金计划.xlsx"
+    workbook.save(payload)
+    workbook.close()
+    archive_path = tmp_path / "DWS_Outputs.zip"
+    with zipfile.ZipFile(
+        archive_path,
+        "w",
+        compression=zipfile.ZIP_DEFLATED,
+    ) as archive:
+        archive.write(
+            payload,
+            "DWS_Outputs/生产管理群/files/02/项目资金计划.xlsx",
+        )
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "某材料科技项目",
+            "customer": "某材料科技公司",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        }
+    ]
+    events, reviews, _sources, diagnostics = parse_dws_approvals(
+        (archive_path,),
+        (tmp_path,),
+        projects,
+        {},
+        2099,
+        "2099-02-28",
+    )
+    assert reviews == []
+    assert len(events) == 1
+    assert events[0]["plane"] == "DWS_APPROVED_COST"
+    assert events[0]["category"] == "交通/差旅"
+    assert events[0]["amount_cents"] == 12_345
+    assert diagnostics["funding_plan_mapped_row_count"] == 1
+
+
+def test_official_project_attendance_maps_exact_employee_project_days(
+    tmp_path: Path,
+):
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "2月项目差旅费"
+    sheet.append(["2099年02月份各项目差旅食宿费"])
+    sheet.append(
+        [
+            "序号",
+            "任务单号",
+            "项目名称",
+            "姓名",
+            "费用类别",
+            "1",
+            "2",
+            "3",
+        ]
+    )
+    sheet.append(
+        [
+            1,
+            "KMX20990101-001",
+            "合成项目甲",
+            "合成人员甲",
+            "餐费",
+            35,
+            0,
+            35,
+        ]
+    )
+    sheet.append([None, None, None, None, "住宿", 0, 35, 0])
+    attendance_path = tmp_path / "生产部考勤表2月份-核对后.xlsx"
+    workbook.save(attendance_path)
+    workbook.close()
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成项目甲",
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        }
+    ]
+    assignments, sources, diagnostics, reviews = _attendance_assignments(
+        (tmp_path,),
+        "2099-02",
+        projects,
+        {},
+        (tmp_path,),
+    )
+    assert reviews == []
+    assert assignments["合成人员甲"]["KMX20990101-001"] == {
+        "20990201",
+        "20990202",
+        "20990203",
+    }
+    assert len(sources) == 1
+    assert (
+        diagnostics["official_project_attendance"][
+            "mapped_employee_project_days"
+        ]
+        == 3
+    )
+
+
+def test_current_contract_header_and_short_cost_categories_map_project_days(
+    tmp_path: Path,
+):
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "6月项目差旅费"
+    sheet.append(["2099年06月份各项目自有工人工时（截止至6.30日）"])
+    sheet.append(
+        [
+            "序号",
+            "项目名称",
+            "合同号",
+            "姓名",
+            "费用类别",
+            "1",
+            "2",
+            "3",
+        ]
+    )
+    sheet.append(
+        [
+            1,
+            "合成项目甲",
+            "KMX20990101-001",
+            "合成人员甲",
+            "生",
+            35,
+            35,
+            0,
+        ]
+    )
+    sheet.append([None, None, None, None, "住", 0, 35, 35])
+    attendance_path = tmp_path / "生产部考勤表6月份-核对后.xlsx"
+    workbook.save(attendance_path)
+    workbook.close()
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成项目甲",
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        }
+    ]
+    assignments, _sources, diagnostics, reviews = (
+        _attendance_assignments(
+            (tmp_path,),
+            "2099-06",
+            projects,
+            {},
+            (tmp_path,),
+        )
+    )
+    assert reviews == []
+    assert assignments["合成人员甲"]["KMX20990101-001"] == {
+        "20990601",
+        "20990602",
+        "20990603",
+    }
+    assert (
+        diagnostics["official_project_attendance"][
+            "mapped_employee_project_days"
+        ]
+        == 3
+    )
+
+
+def test_hash_bound_attendance_alias_is_selected_by_workbook_period(
+    tmp_path: Path,
+):
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "6月项目差旅费"
+    sheet.append(["2099年06月份各项目自有工人工时（截止至6.30日）"])
+    sheet.append(
+        [
+            "序号",
+            "项目名称",
+            "合同号",
+            "姓名",
+            "费用类别",
+            "1",
+            "2",
+        ]
+    )
+    sheet.append(
+        [
+            1,
+            "合成项目甲",
+            "KMX20990101-001",
+            "合成人员甲",
+            "生",
+            35,
+            35,
+        ]
+    )
+    attendance_path = tmp_path / "209906.xlsx"
+    workbook.save(attendance_path)
+    workbook.close()
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成项目甲",
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        }
+    ]
+    assignments, sources, diagnostics, reviews = _attendance_assignments(
+        (tmp_path,),
+        "2099-06",
+        projects,
+        {},
+        (tmp_path,),
+    )
+    assert reviews == []
+    assert assignments["合成人员甲"]["KMX20990101-001"] == {
+        "20990601",
+        "20990602",
+    }
+    assert len(sources) == 1
+    assert (
+        diagnostics["official_project_attendance"][
+            "mapped_employee_project_days"
+        ]
+        == 2
+    )
+
+
+def _write_synthetic_payroll(path: Path) -> None:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "分部门"
+    sheet.append(
+        [
+            "序号",
+            "公司",
+            "姓名",
+            "部门",
+            "应计工资小计",
+            "实出勤天-厂外",
+            "实出勤天-厂内",
+            "实际部门",
+        ]
+    )
+    sheet.append(
+        [
+            1,
+            "合成区域企业甲",
+            "合成人员甲",
+            "综合部",
+            Decimal("300.00"),
+            3,
+            0,
+            "综合部",
+        ]
+    )
+    workbook.save(path)
+    workbook.close()
+
+
+def _write_synthetic_employer_burden(
+    path: Path,
+    *,
+    row_period: int = 9902,
+) -> None:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "合成区域企业甲209902"
+    sheet.append(
+        [
+            "序号",
+            "部门",
+            "月份",
+            "姓名",
+            "单位应缴",
+            None,
+            "个人应缴",
+        ]
+    )
+    sheet.append([None, None, None, None, "养老", "合计", "合计"])
+    sheet.append(
+        [
+            1,
+            "综合部",
+            row_period,
+            "合成人员甲",
+            Decimal("40.00"),
+            Decimal("60.00"),
+            Decimal("10.00"),
+        ]
+    )
+    workbook.save(path)
+    workbook.close()
+
+
+def _write_synthetic_project_attendance(path: Path) -> None:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "2月项目差旅费"
+    sheet.append(["2099年02月份各项目差旅食宿费"])
+    sheet.append(
+        [
+            "序号",
+            "任务单号",
+            "项目名称",
+            "姓名",
+            "费用类别",
+            "1",
+            "2",
+            "3",
+        ]
+    )
+    sheet.append(
+        [
+            1,
+            "KMX20990101-001",
+            "合成项目甲",
+            "合成人员甲",
+            "餐费",
+            35,
+            35,
+            35,
+        ]
+    )
+    workbook.save(path)
+    workbook.close()
+
+
+def _synthetic_labor_inputs(tmp_path: Path) -> tuple[Path, Path, Path, list[dict]]:
+    payroll = tmp_path / "209902工资.xlsx"
+    burden = tmp_path / "209902单位社保医保.xlsx"
+    attendance = tmp_path / "生产部考勤表2月份-核对后.xlsx"
+    _write_synthetic_payroll(payroll)
+    _write_synthetic_employer_burden(burden)
+    _write_synthetic_project_attendance(attendance)
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成项目甲",
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        }
+    ]
+    return payroll, burden, attendance, projects
+
+
+def test_non_production_employee_with_approved_project_days_gets_full_labor_cost(
+    tmp_path: Path,
+):
+    payroll, burden, _attendance, projects = _synthetic_labor_inputs(tmp_path)
+    events, reviews, _sources, diagnostics = (
+        operational.parse_payroll_and_attendance(
+            (payroll,),
+            (tmp_path,),
+            (burden,),
+            projects,
+            {},
+            (),
+            (tmp_path,),
+            year=2099,
+            as_of="2099-02-28",
+        )
+    )
+    assert not [row for row in reviews if row["severity"] in ("P0", "P1")]
+    by_category = {
+        event["category"]: event["amount_cents"] for event in events
+    }
+    assert by_category == {
+        "自有人工-工资应计": 30_000,
+        "自有人工-雇主社保医保应计": 6_000,
+    }
+    assert diagnostics["fully_loaded_labor_control_cents"] == 36_000
+    assert diagnostics["allocated_accrual_cents"] == 36_000
+    assert diagnostics["unallocated_cents"] == 0
+    assert diagnostics["conservation_delta_cents"] == 0
+
+
+def test_missing_employer_burden_blocks_instead_of_guessing(
+    tmp_path: Path,
+):
+    payroll, _burden, _attendance, projects = _synthetic_labor_inputs(
+        tmp_path
+    )
+    events, reviews, _sources, diagnostics = (
+        operational.parse_payroll_and_attendance(
+            (payroll,),
+            (tmp_path,),
+            (),
+            projects,
+            {},
+            (),
+            (tmp_path,),
+            year=2099,
+            as_of="2099-02-28",
+        )
+    )
+    assert [event["category"] for event in events] == [
+        "自有人工-工资应计"
+    ]
+    assert any(
+        row["type"] == "LABOR_EMPLOYER_BURDEN_MISSING"
+        and row["severity"] == "P1"
+        for row in reviews
+    )
+    assert diagnostics["employer_burden_control_cents"] == 0
+    assert diagnostics["personal_deductions_used"] is False
+
+
+def test_employer_burden_row_month_override_requires_file_and_sheet_agreement(
+    tmp_path: Path,
+):
+    burden = tmp_path / "209902单位社保医保.xlsx"
+    _write_synthetic_employer_burden(burden, row_period=9901)
+    records, _sources, reviews, diagnostics = (
+        operational.parse_employer_burden_workbooks(
+            (burden,),
+            (tmp_path,),
+            year=2099,
+            as_of="2099-02-28",
+        )
+    )
+    assert len(records["2099-02"]) == 1
+    assert diagnostics["employer_burden_control_cents"] == 6_000
+    assert any(
+        row["type"] == "EMPLOYER_BURDEN_ROW_PERIOD_OVERRIDDEN"
+        and row["severity"] == "P2"
+        for row in reviews
+    )
+    assert not [row for row in reviews if row["severity"] in ("P0", "P1")]
 
 
 def test_ledger_excludes_postings_after_as_of():
@@ -434,6 +1827,44 @@ def test_ledger_excludes_postings_after_as_of():
     ]
     assert len(future) == 1
     assert future[0]["amount_cents"] == 10_000
+
+
+def test_carryover_project_keeps_inception_to_date_prior_year_cost():
+    payload = _synthetic_ledger_book(
+        entity="合成企业甲",
+        contract="KMX20981201-001",
+        customer="合成客户甲",
+        amount=Decimal("100.00"),
+        account="5001001-生产成本_原材料",
+        include_research_column=True,
+        posting_date="2098-12-15",
+    )
+    metadata = ledger_book_metadata("合成企业甲-明细账.xlsx", payload)
+    events, reviews, diagnostics = parse_ledger_books(
+        [{"metadata": metadata, "payload": payload}],
+        [
+            {
+                "canonical_contract_id": "KMX20981201-001",
+                "contract_base": "KMX20981201-001",
+                "year": 2098,
+                "customer": "合成客户甲",
+                "contractor": "合成企业甲",
+                "created_date": "2098-12-01",
+            }
+        ],
+        2099,
+        "2099-02-28",
+        {
+            "KMX20981201-001": {
+                "start_date": "2098-12-10",
+                "completion_date": "2099-01-20",
+            }
+        },
+    )
+    assert not [row for row in reviews if row["severity"] in ("P0", "P1")]
+    assert len(events) == 1
+    assert events[0]["amount_cents"] == 10_000
+    assert diagnostics["cohort_scan_start"] == "2098-10-17"
 
 
 def test_ocr_preserves_identical_legal_payments_on_distinct_pages(
@@ -484,6 +1915,93 @@ def test_one_cent_labor_posting_cannot_suppress_full_payroll_allocation():
     assert matched == 1
     assert residual == 9_999
     assert matched + residual == 10_000
+
+
+def test_explicit_gl_wage_and_social_allocation_prevents_double_count():
+    result = labor_posted_component_reconciliation(
+        allocated_wage_cents=30_000,
+        allocated_burden_cents=6_000,
+        direct_wage_posted_cents=10_000,
+        combined_wage_burden_posted_cents=26_000,
+    )
+    assert result == {
+        "direct_wage_matched_cents": 10_000,
+        "combined_matched_cents": 26_000,
+        "matched_cents": 36_000,
+        "wage_accrual_cents": 0,
+        "employer_burden_accrual_cents": 0,
+        "direct_wage_posted_excess_cents": 0,
+        "combined_posted_excess_cents": 0,
+    }
+
+
+def test_combined_gl_labor_split_conserves_every_cent():
+    result = labor_posted_component_reconciliation(
+        allocated_wage_cents=10_000,
+        allocated_burden_cents=2_000,
+        direct_wage_posted_cents=1,
+        combined_wage_burden_posted_cents=1,
+    )
+    assert result["matched_cents"] == 2
+    assert (
+        result["wage_accrual_cents"]
+        + result["employer_burden_accrual_cents"]
+        + result["matched_cents"]
+        == 12_000
+    )
+
+
+def test_payroll_parser_matches_explicit_5001006_labor_by_legal_entity(
+    tmp_path: Path,
+):
+    payroll, burden, _attendance, projects = _synthetic_labor_inputs(
+        tmp_path
+    )
+    ledger_events = (
+        {
+            "event_id": "posted-wage",
+            "project": "KMX20990101-001",
+            "plane": "JOB_POSTED_ACTUAL",
+            "account_code": "5001003",
+            "amount_cents": 10_000,
+            "posting_date": "2099-02-28",
+            "entity": "合成区域企业甲有限公司",
+            "summary": "项目工资",
+        },
+        {
+            "event_id": "posted-wage-burden",
+            "project": "KMX20990101-001",
+            "plane": "JOB_POSTED_ACTUAL",
+            "account_code": "5001006",
+            "amount_cents": 26_000,
+            "posting_date": "2099-02-28",
+            "entity": "合成区域企业甲有限公司",
+            "summary": "项目分摊工资和社保费用",
+        },
+    )
+    events, reviews, _sources, diagnostics = (
+        operational.parse_payroll_and_attendance(
+            (payroll,),
+            (tmp_path,),
+            (burden,),
+            projects,
+            {},
+            ledger_events,
+            (tmp_path,),
+            year=2099,
+            as_of="2099-02-28",
+        )
+    )
+    assert events == []
+    assert not [
+        row
+        for row in reviews
+        if row["severity"] in ("P0", "P1")
+    ]
+    assert diagnostics["fully_loaded_labor_control_cents"] == 36_000
+    assert diagnostics["already_posted_cents"] == 36_000
+    assert diagnostics["allocated_accrual_cents"] == 0
+    assert diagnostics["conservation_delta_cents"] == 0
 
 
 def test_runtime_projection_is_an_atomic_private_file(tmp_path: Path):

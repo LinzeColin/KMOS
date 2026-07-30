@@ -19,7 +19,7 @@ def _manifest() -> dict:
     private_root = "KMFA" + "_MetaData"
     return {
         "schema_version": "kmfa.project_cost.operational_private_inputs.v1",
-        "operational_version": "0.0.5",
+        "operational_version": "0.0.6",
         "files": [
             {
                 "repo_path": private_root + "/合成输入.xlsx",
@@ -36,6 +36,13 @@ def _manifest() -> dict:
                 "role": "payroll",
             },
             {
+                "repo_path": private_root + "/合成单位社保医保.xlsx",
+                "local_path": "data/合成单位社保医保.xlsx",
+                "sha256": "d" * 64,
+                "size_bytes": 321,
+                "role": "employer_burden",
+            },
+            {
                 "repo_path": private_root + "/合成OCR.jsonl",
                 "local_path": "ocr/dingtalk_ocr.jsonl",
                 "sha256": "c" * 64,
@@ -49,6 +56,7 @@ def _manifest() -> dict:
             "data_root": "data",
             "ocr_path": "ocr/dingtalk_ocr.jsonl",
             "payroll_paths": ["data/合成工资.xlsx"],
+            "employer_burden_paths": ["data/合成单位社保医保.xlsx"],
             "attendance_roots": ["data/dingtalk_attendance"],
         },
         "expected_controls": {
@@ -59,6 +67,7 @@ def _manifest() -> dict:
             "ledger_selected_book_count": 1,
             "qualified_accrual_event_count": 0,
             "labor_wage_component_event_count": 0,
+            "labor_employer_burden_event_count": 0,
             "p0_review_count": 0,
             "p1_review_count": 1,
             "p2_review_count": 2,
@@ -71,8 +80,8 @@ def _manifest() -> dict:
 
 def test_private_manifest_is_bounded_and_hash_bound():
     result = MODULE.validate_manifest(_manifest())
-    assert len(result["files"]) == 3
-    assert result["total_bytes"] == 1368
+    assert len(result["files"]) == 4
+    assert result["total_bytes"] == 1689
     assert result["run"]["year"] == 2099
 
 
@@ -106,6 +115,7 @@ def test_private_control_drift_blocks_runtime_publish():
             "ledger_selected_book_count": 1,
             "qualified_accrual_event_count": 0,
             "labor_wage_component_event_count": 0,
+            "labor_employer_burden_event_count": 0,
             "ledger_stale_entity_count": 0,
             "ledger_minimum_period_end": "2099-02",
             "ledger_logical_period_end": "2099-02",

@@ -129,7 +129,7 @@ python3 scripts/run_private_refresh.py \
 先在输出卷隐藏 staging 目录完成计算、预期控制和 `verify-output`，
 全部通过后才原子改名为正式 run；控制漂移不会遗留正式外观目录。
 
-网站运行态固定为 `kmfa.project_cost.current.v3`，并绑定完整 Skill 源码摘要、输入清单
+网站运行态固定为 `kmfa.project_cost.current.v4`，并绑定完整 Skill 源码摘要、输入清单
 类型与摘要、私有输入清单摘要、选中来源摘要，以及已验证工作簿的文件名、字节数、
 SHA-256 与快照 ID。网站全量下载必须返回这一个封印工作簿，禁止再次生成另一份文件。
 App 必须拒绝旧 schema、非可发布状态、项目数不一致、缺少来源绑定或缺少封印工作簿

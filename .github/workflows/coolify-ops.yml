@@ -16,10 +16,10 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
+        description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
         required: true
         type: choice
-        options: [list, flags, set-flag, sync-access-aud, sync-project-cost-secrets, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, logs, exec]
+        options: [list, flags, set-flag, sync-access-aud, sync-project-cost-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, logs, exec]
       app_uuid:
         description: "目标应用 uuid（provision-backup-key / redeploy 必填；先用 list 查）"
         required: false
@@ -43,7 +43,7 @@ permissions:
 jobs:
   ops:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     if: github.actor == 'LinzeColin'
     env:
       BASE: ${{ secrets.COOLIFY_BASE_URL }}
@@ -51,6 +51,164 @@ jobs:
       MODE: ${{ inputs.mode }}
       APP: ${{ inputs.app_uuid }}
     steps:
+      - name: 检出诊断代码
+        if: inputs.mode == 'project-cost-diagnostic'
+        uses: actions/checkout@v4
+
+      - name: 安装项目成本诊断依赖
+        if: inputs.mode == 'project-cost-diagnostic'
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check \
+            -r "KMFA/skills/项目成本表/requirements.txt"
+
+      # 私密工资与业务快照不得出现在公开仓库或 Actions 明文 artifact 中。
+      # command 输入在此模式下仅承载一次性 X.509 公钥证书（公钥不是秘密）；
+      # 完整诊断结果用该证书加密，本机持有的私钥从不进入 GitHub。
+      - name: 全量项目成本诊断（仅输出非敏感计数）
+        if: inputs.mode == 'project-cost-diagnostic'
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_DB_TOKEN }}
+          KMFA_PAYROLL_PASSWORD: ${{ secrets.KMFA_PAYROLL_PASSWORD }}
+          DIAGNOSTIC_CERT_B64: ${{ inputs.command }}
+        run: |
+          set -euo pipefail
+          test -n "${GH_TOKEN:-}" || {
+            echo "仓库缺 PRIVATE_DB_TOKEN"; exit 1; }
+          test -n "${KMFA_PAYROLL_PASSWORD:-}" || {
+            echo "仓库缺 KMFA_PAYROLL_PASSWORD"; exit 1; }
+          test -n "${DIAGNOSTIC_CERT_B64:-}" || {
+            echo "project-cost-diagnostic 需要在 command 提供 X.509 公钥证书 base64"; exit 1; }
+          echo "::add-mask::$GH_TOKEN"
+          echo "::add-mask::$KMFA_PAYROLL_PASSWORD"
+          printf '%s' "$DIAGNOSTIC_CERT_B64" \
+            | base64 --decode > "$RUNNER_TEMP/project-cost-diagnostic-cert.pem"
+          openssl x509 -in "$RUNNER_TEMP/project-cost-diagnostic-cert.pem" \
+            -noout -checkend 3600
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+          import tempfile
+          from pathlib import Path
+
+          repo = Path(os.environ["GITHUB_WORKSPACE"]).resolve()
+          skill = repo / "KMFA" / "skills" / "项目成本表"
+          sys.dont_write_bytecode = True
+          sys.path.insert(0, str(skill / "src"))
+          sys.path.insert(0, str(skill / "scripts"))
+          sys.path.insert(0, str(repo))
+
+          from project_cost_table.operational import ProjectCostError, build_snapshot
+          from run_private_refresh import fetch_manifest
+
+          try:
+              with tempfile.TemporaryDirectory(
+                  prefix="kmfa-project-cost-diagnostic-",
+                  dir=os.environ["RUNNER_TEMP"],
+              ) as temporary:
+                  staging = Path(temporary)
+                  manifest, manifest_sha256 = fetch_manifest(
+                      "KMFA_MetaData/project_cost/"
+                      "diagnostic_input_manifest_v006.json",
+                      staging,
+                  )
+                  run = manifest["run"]
+                  input_root = staging / "input"
+                  snapshot = build_snapshot(
+                      (input_root / run["data_root"],),
+                      year=run["year"],
+                      as_of=run["as_of"],
+                      ocr_jsonl=input_root / run["ocr_path"],
+                      payroll_workbooks=tuple(
+                          input_root / path for path in run["payroll_paths"]
+                      ),
+                      employer_burden_workbooks=tuple(
+                          input_root / path
+                          for path in run["employer_burden_paths"]
+                      ),
+                      attendance_roots=tuple(
+                          input_root / path
+                          for path in run["attendance_roots"]
+                      ),
+                      payroll_password_env="KMFA_PAYROLL_PASSWORD",
+                      private_input_manifest_sha256=manifest_sha256,
+                  )
+                  private_json = Path(os.environ["RUNNER_TEMP"]) / (
+                      "project-cost-diagnostic-private.json"
+                  )
+                  private_json.write_text(
+                      json.dumps(
+                          snapshot,
+                          ensure_ascii=False,
+                          sort_keys=True,
+                          separators=(",", ":"),
+                      ),
+                      encoding="utf-8",
+                  )
+                  provisional_over_70 = 0
+                  formal_over_70 = 0
+                  for project in snapshot["projects"]:
+                      revenue = project.get("effective_revenue_cents")
+                      incurred = project.get("job_cost_incurred_cents")
+                      formal_cost = project.get("gross_margin_cost_basis_cents")
+                      if revenue and incurred is not None:
+                          provisional_over_70 += (
+                              (revenue - incurred) * 10000 // revenue > 7000
+                          )
+                      if revenue and formal_cost is not None:
+                          formal_over_70 += (
+                              (revenue - formal_cost) * 10000 // revenue > 7000
+                          )
+                  reviews = snapshot.get("review_summary") or {}
+                  coverage = snapshot.get("coverage") or {}
+                  print(json.dumps({
+                      "status": "DIAGNOSTIC_COMPLETE",
+                      "project_count": snapshot.get("project_count"),
+                      "event_count": len(snapshot.get("events") or []),
+                      "p0_review_count": reviews.get("P0", 0),
+                      "p1_review_count": reviews.get("P1", 0),
+                      "p2_review_count": reviews.get("P2", 0),
+                      "labor_wage_event_count": coverage.get(
+                          "labor_wage_component_event_count"
+                      ),
+                      "labor_burden_event_count": coverage.get(
+                          "labor_employer_burden_event_count"
+                      ),
+                      "provisional_margin_over_70_count": provisional_over_70,
+                      "formal_margin_over_70_count": formal_over_70,
+                  }, ensure_ascii=False, sort_keys=True))
+          except ProjectCostError as exc:
+              print(json.dumps({
+                  "status": "FAIL",
+                  "error_code": exc.code,
+              }, sort_keys=True), file=sys.stderr)
+              raise SystemExit(2)
+          except Exception as exc:
+              print(json.dumps({
+                  "status": "FAIL",
+                  "error_type": type(exc).__name__,
+              }, sort_keys=True), file=sys.stderr)
+              raise SystemExit(3)
+          PY
+          openssl cms -encrypt -binary -aes256 \
+            -in "$RUNNER_TEMP/project-cost-diagnostic-private.json" \
+            -outform DER \
+            -out "$RUNNER_TEMP/project-cost-diagnostic-private.p7m" \
+            "$RUNNER_TEMP/project-cost-diagnostic-cert.pem"
+          rm -f \
+            "$RUNNER_TEMP/project-cost-diagnostic-private.json" \
+            "$RUNNER_TEMP/project-cost-diagnostic-cert.pem"
+
+      - name: 上传仅本机可解密的项目成本诊断
+        if: inputs.mode == 'project-cost-diagnostic'
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-cost-diagnostic-encrypted
+          path: ${{ runner.temp }}/project-cost-diagnostic-private.p7m
+          if-no-files-found: error
+          retention-days: 1
+
       - name: 列出资源与环境变量名（零秘密值）
         if: inputs.mode == 'list'
         run: |
