@@ -3080,8 +3080,92 @@ def public_project_cost_download(合同: str | None = None):
             raise HTTPException(status_code=404, detail=f"没有这个合同号的成本记录：{wanted}")
         tag = f"_{wanted}"
 
+    import io as _io  # noqa: PLC0415
+
     from openpyxl import Workbook  # noqa: PLC0415
     from openpyxl.styles import Alignment, Font  # noqa: PLC0415
+
+    # 单个合同 → **竖版《项目财务分析表》**，逐行照抄 Owner 的真实模版。
+    #
+    # Owner 2026-07-30：「/Users/linzezhang/Downloads/KMFA_MetaData/销售绩效考核
+    # 这里面的才是真实模版，你现在用的不知道是什么恶心东西」。
+    # 那目录下是「竣工项目财务报表」PDF——单个项目的成本表是竖版分析表，
+    # 而《生产项目状态表》的 30 列横表是**项目清单**的格式。两件事，我混了。
+    # 我在这上面错了两版：先对齐自己生成的 xlsx，再把清单格式当成单项目格式。
+    if 合同:
+        from .project_statement import statement_header, statement_rows  # noqa: PLC0415
+
+        project = rows[0]
+        book = Workbook()
+        ws = book.active
+        ws.title = "项目财务分析表"
+        ws.column_dimensions["A"].width = 30
+        ws.column_dimensions["B"].width = 16
+        ws.column_dimensions["C"].width = 52
+
+        title = ws.cell(row=1, column=1, value="项目财务分析表")
+        title.font = Font(bold=True, size=14)
+        title.alignment = Alignment(horizontal="center")
+        ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=3)
+
+        line = 2
+        for label, value in statement_header(project):
+            ws.cell(row=line, column=1, value=label).font = Font(bold=True)
+            ws.cell(row=line, column=2, value=value)
+            line += 1
+        ws.cell(row=line, column=2, value="金额（元）").font = Font(bold=True)
+        ws.cell(row=line, column=3, value="备注").font = Font(bold=True)
+        line += 1
+
+        strong = {"一、合同额", "二、资金运用及各项支出", "合计支出", "（七）毛利"}
+        for label, amount, note in statement_rows(project):
+            ws.cell(row=line, column=1, value=label)
+            cell = ws.cell(row=line, column=2)
+            if amount is not None:
+                cell.value = float(amount)
+                cell.number_format = "#,##0.00"
+            ws.cell(row=line, column=3, value=note or None)
+            if label in strong:
+                for col in (1, 2):
+                    ws.cell(row=line, column=col).font = Font(bold=True)
+            line += 1
+
+        line += 1
+        ws.cell(row=line, column=1, value="项目经理：")
+        ws.cell(row=line, column=3,
+                value=f"日期：{datetime.now(BEIJING).strftime('%Y年%m月%d日')}")
+
+        note_ws = book.create_sheet("口径")
+        note_ws.column_dimensions["A"].width = 22
+        note_ws.column_dimensions["B"].width = 96
+        for key, text in (
+            ("生成时间", str(payload.get("生成时间") or "")),
+            ("模版", "逐行照抄《竣工项目财务报表》A 表；行序、层级、编号、括号写法未作改动"),
+            ("空行", "表示「本系统没有这个数」，**不是 0**"),
+            ("（四）现场管理费", "＝自有人工＋差旅（车票＋住宿）＋台账未细分的其他费用"),
+            ("（五）工资（承包费）支出", "劳务人工；金蝶该科目缺位时取红圈工时×标定单价"),
+            ("三 1.1分摊的管理费用", "合同额×2%，只摊给有成本发生额的项目"),
+            ("二、资金运用及各项支出", "＝合计支出 − 三 项（与模版恒等式一致）"),
+            ("备注百分比", "占总成本比例，分母为合计支出"),
+        ):
+            note_ws.append([key, text])
+        note_ws.cell(row=1, column=1).font = Font(bold=True)
+
+        stream = _io.BytesIO()
+        book.save(stream)
+        day = datetime.now(BEIJING).strftime("%Y%m%d")
+        name = f"项目财务分析表_{合同}_{day}.xlsx"
+        return Response(
+            content=stream.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition":
+                    f"attachment; filename=KMFA_statement_{合同}_{day}.xlsx; "
+                    f"filename*=UTF-8''{quote(name)}",
+                "Cache-Control": "no-store",
+                "X-Robots-Tag": "noindex, nofollow",
+            },
+        )
 
     book = Workbook()
     ws = book.active
@@ -3126,8 +3210,6 @@ def public_project_cost_download(合同: str | None = None):
     ):
         note.append([key, text])
     note.cell(row=1, column=1).font = Font(bold=True)
-
-    import io as _io  # noqa: PLC0415
 
     stream = _io.BytesIO()
     book.save(stream)
