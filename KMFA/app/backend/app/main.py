@@ -990,6 +990,14 @@ def recent_completed_cost():
         payload = json.loads(RECENT_COST_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         return {"可读": False, "原因": f"产物无法解析：{type(exc).__name__}", "项目": []}
+    try:
+        _assert_current_project_cost_runtime(payload)
+    except ValueError as exc:
+        return {
+            "可读": False,
+            "原因": f"项目成本运行态版本不兼容或不完整：{exc}",
+            "项目": [],
+        }
     payload["可读"] = True
     payload["产出时间"] = datetime.fromtimestamp(
         RECENT_COST_PATH.stat().st_mtime, BEIJING).isoformat()
@@ -2108,7 +2116,7 @@ def _downstream(asset: str) -> dict[str, Any]:
         views.update(TABLE_TO_VIEWS.get(t, ()))
     # our_source 的真实长相带括号与 via：
     #   "_staging.expense_lines(6403) via _staging.tax_composition"
-    #   "_staging.kingdee_ledger（book=武汉开明）"
+    #   "_staging.kingdee_ledger（book=<受控法人主体>）"
     # 原来用精确相等匹配，这些**全都漏掉**，影响面少报——真开页面看到"受影响断言域 —"才发现。
     domains = sorted({str(r.get("domain")) for r in _load_assertions()
                       if any(f"_staging.{t}" in str(r.get("our_source", "")) for t in tables)})
@@ -2704,18 +2712,10 @@ def public_attendance_dispatch():
 
 @app.get("/public-api/项目成本")
 def public_project_cost():
-    """项目成本——**不需要登录**。
+    """项目成本兼容 API；生产必须经过 Cloudflare Access。
 
-    Owner 2026-07-28：「kmfa 没有登录的地方」「取消登陆功能」。
-
-    `/api/项目成本/完工` 在 Cloudflare Access 后面，未登录访问是 302 跳登录墙；
-    而 Access 应用配在 Owner 的 Cloudflare 控制台里，本仓改不掉。`/public-api/*`
-    是既有的匿名面（`技能健康` 就是这么被读到的），所以出口挪到这里。
-
-    ⚠️ 这个端点会把真实客户名与合同金额公开在互联网上。这是 Owner 明确要求
-    「取消登陆功能」后的直接后果，已当面告知。缓解只做到 `no-store` + `noindex`
-    （不进搜索引擎），**不等于不可访问**。要重新收口，只能在 Cloudflare 控制台
-    把 `/public-api/项目成本` 单独加回 Access 策略。
+    路由名保留 ``/public-api`` 只为兼容旧链接，不表示匿名授权。Origin guard
+    独立校验 Access JWT，边缘策略误配时也不得返回客户名或财务金额。
 
     读不到就说读不到——不拿空列表冒充「没有项目」。
     """
@@ -2735,8 +2735,20 @@ def public_project_cost():
         return JSONResponse(
             {"可读": False, "原因": f"产物无法解析：{type(exc).__name__}", "项目": []},
             headers=headers)
+    try:
+        _assert_current_project_cost_runtime(payload)
+    except ValueError as exc:
+        return JSONResponse(
+            {
+                "可读": False,
+                "原因": f"项目成本运行态版本不兼容或不完整：{exc}",
+                "项目": [],
+            },
+            status_code=503,
+            headers=headers,
+        )
     payload["可读"] = True
-    payload["需要登录"] = False
+    payload["需要登录"] = True
     payload["产出时间"] = datetime.fromtimestamp(
         RECENT_COST_PATH.stat().st_mtime, BEIJING).isoformat()
     return JSONResponse(payload, headers=headers)
@@ -2808,20 +2820,137 @@ footer{border-top:1px solid var(--rule);padding-top:.9rem;font-size:.76rem;color
 <script src="/static/project-cost.js" defer></script>
 </body></html>"""
 
-def _cost_num(value) -> float | None:
+def _cost_num(value) -> Decimal | None:
     if value in (None, "", "None"):
         return None
     try:
-        return float(Decimal(str(value)))
+        return Decimal(str(value))
     except (InvalidOperation, ValueError, TypeError):
         return None
+
+
+def _project_cost_review_counts(payload: dict) -> tuple[int, int]:
+    """Read only the public-safe P1/P2 aggregate from a runtime payload."""
+
+    control = payload.get("待确认") or {}
+    try:
+        return (
+            int(control.get("P1开放复核数") or 0),
+            int(control.get("P2已排除或提示数") or 0),
+        )
+    except (TypeError, ValueError):
+        return 0, 0
+
+
+def _assert_current_project_cost_runtime(payload: dict) -> None:
+    """Reject legacy or incomplete project-cost payloads before interpretation."""
+
+    if not isinstance(payload, dict):
+        raise ValueError("runtime_payload_not_object")
+    if payload.get("schema_version") != "kmfa.project_cost.current.v3":
+        raise ValueError("runtime_schema_unsupported")
+    snapshot_id = str(payload.get("快照ID") or "")
+    if not snapshot_id:
+        raise ValueError("runtime_snapshot_missing")
+    status = str(payload.get("计算状态") or "")
+    if status not in ("PASS", "PASS_WITH_OPEN_REVIEWS"):
+        raise ValueError("runtime_calculation_not_publishable")
+    projects = payload.get("项目")
+    if not isinstance(projects, list) or any(
+        not isinstance(project, dict) for project in projects
+    ):
+        raise ValueError("runtime_projects_invalid")
+    if payload.get("项目数") != len(projects):
+        raise ValueError("runtime_project_count_mismatch")
+    review_control = payload.get("待确认")
+    if not isinstance(review_control, dict) or review_control.get("状态") != status:
+        raise ValueError("runtime_review_control_mismatch")
+    source_binding = payload.get("封印来源")
+    if not isinstance(source_binding, dict):
+        raise ValueError("runtime_source_binding_missing")
+    private_input_digest = str(
+        source_binding.get("私有输入清单SHA256") or ""
+    )
+    if (
+        source_binding.get("源码摘要算法")
+        != "kmfa.project_cost.subject_tree.v1"
+        or re.fullmatch(
+            r"[0-9a-f]{64}",
+            str(source_binding.get("源码SHA256") or ""),
+        )
+        is None
+        or not isinstance(source_binding.get("源码文件数"), int)
+        or isinstance(source_binding.get("源码文件数"), bool)
+        or source_binding.get("源码文件数", 0) <= 0
+        or re.fullmatch(
+            r"[0-9a-f]{64}",
+            private_input_digest,
+        )
+        is None
+        or source_binding.get("输入清单类型")
+        != "PRIVATE_MANIFEST_SHA256"
+        or source_binding.get("输入清单SHA256") != private_input_digest
+        or re.fullmatch(
+            r"[0-9a-f]{64}",
+            str(source_binding.get("选中来源绑定SHA256") or ""),
+        )
+        is None
+    ):
+        raise ValueError("runtime_source_binding_invalid")
+    binding = payload.get("封印工作簿")
+    if not isinstance(binding, dict):
+        raise ValueError("sealed_workbook_binding_missing")
+    filename = str(binding.get("文件名") or "")
+    digest = str(binding.get("SHA256") or "").lower()
+    size = binding.get("字节数")
+    if (
+        not filename
+        or Path(filename).name != filename
+        or "/" in filename
+        or "\\" in filename
+        or not re.fullmatch(r"[0-9a-f]{64}", digest)
+        or not isinstance(size, int)
+        or isinstance(size, bool)
+        or size <= 0
+        or binding.get("快照ID") != snapshot_id
+    ):
+        raise ValueError("sealed_workbook_binding_invalid")
+
+
+def _sealed_project_cost_workbook(payload: dict) -> Path:
+    """Resolve and hash-check the immutable workbook bound to this snapshot."""
+
+    _assert_current_project_cost_runtime(payload)
+    binding = payload.get("封印工作簿")
+    assert isinstance(binding, dict)
+    filename = str(binding.get("文件名") or "")
+    digest = str(binding.get("SHA256") or "").lower()
+    size = binding.get("字节数")
+    assert isinstance(size, int) and not isinstance(size, bool)
+    path = RECENT_COST_PATH.parent / filename
+    if path.is_symlink() or not path.is_file() or path.stat().st_size != size:
+        raise ValueError("sealed_workbook_unavailable")
+    actual = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            actual.update(block)
+    if actual.hexdigest() != digest:
+        raise ValueError("sealed_workbook_hash_mismatch")
+    return path
+
+
+def _safe_spreadsheet_text(value) -> str:
+    """Keep user-controlled text from becoming an Excel formula."""
+
+    text = str(value or "")
+    return "'" + text if text.startswith(("=", "+", "-", "@")) else text
 
 
 @app.api_route("/项目成本", methods=["GET", "HEAD"], response_class=HTMLResponse,
                include_in_schema=False)
 @app.get("/public-api/项目成本表", response_class=HTMLResponse)
 def public_project_cost_page():
-    """项目成本——**一页能直接看的表**，不需要登录、不用下载。
+    """项目成本——登录后打开就是数，也可下载封印工作簿。
 
     为什么要有它（Owner 2026-07-29）：「我说了我只要我的项目成本！」「我没有看到
     你说的东西」「你不要放在本地，你推上网上去」。此前只有 `/public-api/项目成本`
@@ -2831,13 +2960,11 @@ def public_project_cost_page():
     两个地址指同一个渲染器：
       · `/项目成本` —— 给人用的。Owner 打开的是 kmfa.linzezhang.com，
         「/public-api/项目成本表」这种地址他不会记也不该记。
-        实测 Access 只拦 `/api/*` 与 `/ops/*`（任意新顶级路径返回 404 而不是 302 登录跳转），
-        所以顶级中文路径是匿名可达的。
       · `/public-api/项目成本表` —— 保留，因为我先把这个地址给过 Owner，
         换掉会让那条链接失效。
 
-    ⚠️ 与 `/public-api/项目成本` 同样的边界：真实客户名与合同金额会公开在互联网上。
-    这是「取消登陆功能」的直接后果，已当面告知；缓解只做到 no-store + noindex。
+    两条路径都含真实客户与财务金额，必须同时在 origin guard 和 Cloudflare
+    Access 应用中受保护；``no-store``/``noindex`` 只是附加边界。
     """
     headers = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow"}
 
@@ -2853,90 +2980,141 @@ def public_project_cost_page():
         payload = json.loads(RECENT_COST_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         return page(f'<div class="warn"><b>产物无法解析</b>：{type(exc).__name__}</div>')
+    try:
+        _assert_current_project_cost_runtime(payload)
+    except ValueError as exc:
+        return HTMLResponse(
+            _COST_PAGE_SHELL.replace(
+                "{{BODY}}",
+                '<div class="warn"><b>运行态版本不兼容或不完整。</b>'
+                f"{html_escape(str(exc))}；等待 project-cost-refresh 成功发布新快照。</div>",
+            ),
+            status_code=503,
+            headers=headers,
+        )
 
-    projects = payload.get("项目") or []
-    # 判据是「有没有成本记录」，不是「成本是不是正数」。
-    # 有两个项目金蝶净额为负（红字冲销超过借方，最大一笔 -203 万）——
-    # 按 > 0 过滤会把它们连同那 203 万一起从页面和合计里抹掉，
-    # 而「这个项目账上是负的」恰恰是最该被看见的一条。
-    # 合同号与权威表对不上的**不进主表、也不进合计**——页面上写着「其成本未归入
-    # 任何项目」，那就得真的不归入。把它算进合计而在旁边写「未归入」，
-    # 是让说明和数字互相打脸；下面单列一块专门交代它们。
-    suspect = [p for p in projects if p.get("合同号存疑")]
-    with_cost = [p for p in projects
-                 if not p.get("合同号存疑") and (_cost_num(p.get("成本合计")) or 0) != 0]
-    with_cost.sort(key=lambda p: -(_cost_num(p.get("成本合计")) or 0))
-    total = sum(_cost_num(p.get("成本合计")) or 0 for p in with_cost)
+    projects = [item for item in (payload.get("项目") or []) if isinstance(item, dict)]
+    projects.sort(
+        key=lambda project: (
+            -(_cost_num(project.get("项目已发生成本")) or 0),
+            str(project.get("合同编号") or ""),
+        )
+    )
+    known_cost = [
+        project for project in projects
+        if _cost_num(project.get("项目已发生成本")) is not None
+    ]
+    nonzero_cost = [
+        project for project in known_cost
+        if _cost_num(project.get("项目已发生成本")) != 0
+    ]
+    verified_zero = [
+        project for project in known_cost
+        if _cost_num(project.get("项目已发生成本")) == 0
+    ]
+    missing_cost = len(projects) - len(known_cost)
+    total = sum(
+        _cost_num(project.get("项目已发生成本")) or 0
+        for project in known_cost
+    )
+    p1_open, p2_notices = _project_cost_review_counts(payload)
+    ledger_coverage = payload.get("账簿覆盖") or {}
+    try:
+        stale_ledger_entities = int(
+            ledger_coverage.get("早于报表截至月主体数") or 0
+        )
+    except (TypeError, ValueError):
+        stale_ledger_entities = 0
+    review_warning = (
+        '<div class="warn"><b>存在开放复核项。</b>'
+        f"当前有 {p1_open} 条 P1 观察未能唯一归属或未满足成本资格，"
+        "它们均未进入任何项目的正式金额；这份结果只代表已唯一归属的合格事件。"
+        f"另有 {p2_notices} 条已确定排除、别名修复或控制提示。</div>"
+        if p1_open
+        else ""
+    )
+    coverage_warning = (
+        '<div class="warn"><b>账簿截止月早于报表截至日。</b>'
+        f"有 {stale_ledger_entities} 个账簿主体尚未覆盖到"
+        f"{html_escape(str(payload.get('截至日期') or '报表截至日'))} 所在月份。"
+        "过账实际只代表各主体已选账簿截至月；之后只计入满足资格且未见过账冲突的应计。"
+        "</div>"
+        if stale_ledger_entities
+        else ""
+    )
 
     def money(value) -> str:
         number = _cost_num(value)
-        return f"{number:,.0f}" if number is not None else "—"
+        return f"{number:,.2f}" if number is not None else "—"
 
     def cell(value, kind="n"):
-        """数值单元格同时带 data-v——排序按**数值**排，不按显示出来的千分位字符串。
-        少了它，「1,000,000」会排在「9,000」前面（字符串比较 '1'<'9'）。"""
+        """数值单元格带原始 data-v，空值不冒充 0。"""
         number = _cost_num(value)
-        shown = f"{number:,.0f}" if number is not None else "—"
+        shown = f"{number:,.2f}" if number is not None else "—"
         attr = f' data-v="{number}"' if number is not None else ' data-v=""'
         return f'<td class="{kind}"{attr}>{shown}</td>'
 
-    def rate_cell(p):
-        """毛利率＝毛利 ÷ 含税合同额。合同额为 0/缺失时不编一个百分比出来。"""
-        gross, contract = _cost_num(p.get("毛利")), _cost_num(p.get("含税合同金额"))
-        if gross is None or not contract:
-            return '<td class="n" data-v="">—</td>'
-        rate = gross / contract
-        klass = "n neg" if rate < 0 else "n"
-        return f'<td class="{klass}" data-v="{rate}">{rate * 100:,.1f}%</td>'
+    def coverage_text(project):
+        status = str(project.get("项目成本覆盖") or "")
+        period = str(project.get("账簿截至月份") or "未知")
+        if status.endswith("POSTING_PRESENT"):
+            return f"账簿截至 {period}｜有过账"
+        if status.endswith("NO_QUALIFIED_EVENT"):
+            return f"账簿截至 {period}｜无合格过账"
+        if "SOURCE_UNAVAILABLE" in status:
+            return "来源不可用"
+        return status or "来源不可用"
 
     rows = "\n".join(
         "<tr>"
         f'<td class="k" data-v="{html_escape(str(p.get("合同编号") or ""))}">'
         f'{html_escape(str(p.get("合同编号") or ""))}</td>'
-        f'<td data-v="{html_escape(str(p.get("甲方名称") or ""))}">'
-        f'{html_escape(str(p.get("甲方名称") or ""))}</td>'
+        f'<td data-v="{html_escape(str(p.get("项目名称") or p.get("甲方名称") or ""))}">'
+        f'<b>{html_escape(str(p.get("项目名称") or "—"))}</b><br>'
+        f'<span class="hint">{html_escape(str(p.get("甲方名称") or "—"))}</span></td>'
         f'<td class="c" data-v="{html_escape(str(p.get("施工状态") or ""))}">'
         f'{html_escape(str(p.get("施工状态") or "—"))}</td>'
         f'<td class="c" data-v="{html_escape(str(p.get("完工日期") or ""))}">'
         f'{html_escape(str(p.get("完工日期") or "—"))}</td>'
         + cell(p.get("含税合同金额"))
-        + cell(p.get("金蝶归集直接成本"))
-        + cell(p.get("自有人工成本"))
-        + cell(p.get("劳务人工成本"))
-        + cell(p.get("分摊管理费"))
-        + cell(p.get("成本合计"), "n b")
-        + cell(p.get("毛利"))
-        + rate_cell(p)
+        + cell(p.get("项目过账实际"))
+        + cell(p.get("项目应计"))
+        + cell(p.get("项目已发生成本"), "n b")
+        + cell(p.get("主营成本已结转"))
+        + cell(p.get("状态表已报直接成本"))
+        + cell(p.get("支付系统已付观察"))
+        + (
+            f'<td class="c" data-v="{html_escape(coverage_text(p))}">'
+            f'{html_escape(coverage_text(p))}</td>'
+        )
         + f'<td class="c" data-v=""><a class="one" title="只下载这一个合同" '
           f'href="/项目成本/下载?合同={quote(str(p.get("合同编号") or ""))}">⬇</a></td>'
         + "</tr>"
-        for p in with_cost)
-
-    suspect_html = ""
-    if suspect:
-        items = "".join(
-            f'<li><b>{html_escape(str(p.get("合同编号")))}</b>　'
-            f'{html_escape(str(p.get("身份来源") or ""))}</li>' for p in suspect)
-        suspect_html = (
-            f'<div class="warn"><b>{len(suspect)} 条合同号与红圈主合同表对不上</b>'
-            f"，其成本未归入任何项目（归错了会凭空造出一个项目的成本）：<ul>{items}</ul></div>")
+        for p in projects)
 
     body = f"""
 <header>
-  <div class="eb">武汉开明高新</div>
+  <div class="eb">KMFA · FORMAL PROJECT COST</div>
   <h1>项目成本</h1>
-  <div class="sub">数据生成 {html_escape(str(payload.get("生成时间") or "—"))}
-    　·　金额单位：元　·　源：金蝶明细账（成本）＋ 红圈主合同表（合同号权威）</div>
+  <div class="sub">快照 {html_escape(str(payload.get("快照ID") or "—"))}
+    　·　截至 {html_escape(str(payload.get("截至日期") or "—"))}
+    　·　生成 {html_escape(str(payload.get("生成时间") or "—"))}</div>
 </header>
 <div class="strip">
-  <div class="st"><b>{len(projects):,}</b><span>红圈主合同表里的合同</span></div>
-  <div class="st"><b>{len(with_cost)}</b><span>有成本发生额的项目</span></div>
-  <div class="st"><b>{total:,.0f}</b><span>成本合计</span></div>
+  <div class="st"><b>{len(projects):,}</b><span>2026 全部项目</span></div>
+  <div class="st"><b>{len(nonzero_cost)}</b><span>已有成本发生</span></div>
+  <div class="st"><b>{len(verified_zero)}</b><span>账簿截至月内为 0</span></div>
+  <div class="st"><b>{total:,.2f}</b><span>项目已发生成本合计</span></div>
+  <div class="st"><b>{p1_open}</b><span>P1 开放复核（未计入）</span></div>
 </div>
-{suspect_html}
-<div class="note">只列<b>有成本记录</b>的项目。其余合同在金蝶里没有归集、红圈也没填工时——
-  那是「成本不知道」，不是「成本是 0」，所以不列在这里凑数。<br>
-  <b>成本为负的项目照列</b>：那是金蝶里红字冲销超过借方，账上就是负的，不做粉饰。</div>
+<div class="note"><b>正式口径：</b>项目已发生成本＝项目过账实际＋合格应计。
+  主营成本已结转、状态表已报直接成本、支付系统已付观察是独立观察面，
+  不相加、不覆盖、不取最大值。固定人工单价和合同额 2% 管理费均已禁用。<br>
+  全部 26 个项目都列出：<b>0.00</b> 表示在该项目所列账簿截至月及合格应计中
+  没有成本事件，不代表账簿尚未覆盖月份为 0；“—”才表示来源不可用。
+  当前缺值项目 {missing_cost} 个。</div>
+{coverage_warning}
+{review_warning}
 <div class="bar">
   <span class="grp">
     <a class="dl" href="/项目成本/下载">⬇ 下载全部（Excel）</a>
@@ -2947,18 +3125,16 @@ def public_project_cost_page():
 <div class="hint" id="recalcmsg" role="status" aria-live="polite"></div>
 <div class="tw"><table id="costtbl">
 <thead><tr>
-<th data-s="t">合同编号</th><th data-s="t">甲方</th><th data-s="t">状态</th><th data-s="t">完工日</th>
-<th class="n" data-s="n">合同额</th><th class="n" data-s="n">金蝶成本</th>
-<th class="n" data-s="n">自有人工</th><th class="n" data-s="n">劳务人工</th>
-<th class="n" data-s="n">分摊</th><th class="n" data-s="n">成本合计</th>
-<th class="n" data-s="n">毛利</th><th class="n" data-s="n">毛利率</th>
+<th data-s="t">合同编号</th><th data-s="t">项目 / 甲方</th><th data-s="t">状态</th><th data-s="t">完工日</th>
+<th class="n" data-s="n">原合同额</th><th class="n" data-s="n">过账实际</th>
+<th class="n" data-s="n">合格应计</th><th class="n" data-s="n">已发生成本</th>
+<th class="n" data-s="n">主营成本结转</th><th class="n" data-s="n">状态表观察</th>
+<th class="n" data-s="n">支付观察</th><th data-s="t">覆盖</th>
 <th>单独下载</th>
 </tr></thead>
 <tbody>{rows}</tbody></table></div>
 <footer>同一份数据的机器可读版在 <code>/public-api/项目成本</code>。
-  口径：金蝶按销售合同号归集的借方发生额为底；现场管理费行取金蝶与红圈的大者不相加；
-  劳务人工在金蝶「工资（承包费）支出」缺位时取红圈工时×标定单价；分摊管理费＝合同额×2%，
-  只摊给有成本发生额的项目。</footer>"""
+  原合同额仅作合同维度展示；有效合同额、收入确认额和毛利在批准变更链未闭合前保持空白。</footer>"""
     return page(body)
 
 
@@ -2984,8 +3160,10 @@ OWNER_STATUS_COLUMNS = (
 #: 我算出来的东西**接在原表 30 列之后**，不插进去、不改名、不顶掉任何一列。
 #: 插进去就等于改了 Owner 的表；顶掉就等于我认为我的口径比他的表更权威。
 COMPUTED_COLUMNS = (
-    "金蝶归集直接成本", "自有人工成本", "劳务人工成本", "分摊管理费",
-    "成本合计", "毛利", "毛利率", "现场成本取自", "身份来源",
+    "项目过账实际", "项目应计", "项目已发生成本", "正式材料成本",
+    "正式租赁物流成本", "正式现场管理成本", "正式劳务承包成本",
+    "主营成本已结转", "状态表已报直接成本", "支付系统已付观察",
+    "账簿截至月份", "项目成本覆盖", "应计覆盖", "合同额口径", "收入与毛利状态",
 )
 
 #: 原表里这几列是 Excel 日期序列号（如 45999），导出要还成人看得懂的日期。
@@ -3022,17 +3200,25 @@ def _owner_row(project: dict) -> list:
 
 
 def _computed_row(project: dict) -> list:
-    contract = _cost_num(project.get("含税合同税额") or project.get("含税合同金额"))
-    profit = _cost_num(project.get("毛利"))
-    rate = ""
-    if contract not in (None, 0) and profit is not None:
-        rate = round(profit / contract, 4)
+    buckets = project.get("报表归类") or {}
+
+    def bucket_total(*keys):
+        values = [_cost_num(buckets.get(key)) for key in keys]
+        present = [value for value in values if value is not None]
+        return sum(present) if present else ""
+
+    calculated = {
+        "正式材料成本": bucket_total("material", "fuel_power"),
+        "正式租赁物流成本": bucket_total("rental", "logistics"),
+        "正式现场管理成本": bucket_total(
+            "own_labor", "travel", "lodging", "living",
+            "road_parking", "vehicle", "other",
+        ),
+        "正式劳务承包成本": bucket_total("subcontract_labor"),
+    }
     row = []
     for column in COMPUTED_COLUMNS:
-        if column == "毛利率":
-            row.append(rate)
-            continue
-        value = project.get(column, "")
+        value = calculated.get(column, project.get(column, ""))
         if value in (None, ""):
             row.append("")
             continue
@@ -3044,21 +3230,11 @@ def _computed_row(project: dict) -> list:
 @app.api_route("/项目成本/下载", methods=["GET", "HEAD"], include_in_schema=False)
 @app.get("/public-api/项目成本表/下载", include_in_schema=False)
 def public_project_cost_download(合同: str | None = None):
-    """项目成本 .xlsx——**列序与 Owner 的《生产项目状态表》「信息表」一模一样**。
+    """下载与当前运行态快照绑定的项目成本工作簿。
 
-    Owner 2026-07-29：「项目成本单个项目下载下来的和我原来的格式根本不一样，
-    你不要用乱七八糟的东西恶心我，这个东西很急，我和你说了无数遍」。
-
-    上一版错在哪：我把页签结构对齐了 `KMFA_项目成本_真实参考回放_8项目.xlsx`,
-    而那份是**我自己生成的**。拿自己的输出当基准，再在注释里写成「对齐 Owner
-    手上那份」——这就是「说了无数遍」的由来。
-
-    现在的规矩：
-      · 工作表就叫「信息表」，与源表同名；
-      · 前 30 列 **逐列照抄** Owner 的列序，一个字不改、不换名、不重排；
-      · 我算出来的东西**接在第 31 列往后**，不插进去、不顶掉任何一列——
-        插进去等于改了他的表，顶掉等于我认为我的口径比他的表更权威；
-      · 我没有的列**留空**。留空是「我不知道」，填 0 是「我说它是 0」。
+    全量下载直接返回由 Skill 生成、验证并封印的 8 页签工作簿，网站不再二次生成
+    一份看似相同但无法证明同源的文件。指定合同时，才按真实竖版参考模板生成单项目
+    《项目财务分析表》；未知值留空，不用 0 冒充。
     """
     if not RECENT_COST_PATH.exists():
         raise HTTPException(status_code=503, detail="项目成本产物还没生成（project-cost-refresh 未成功跑完）")
@@ -3066,11 +3242,19 @@ def public_project_cost_download(合同: str | None = None):
         payload = json.loads(RECENT_COST_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=503, detail=f"产物无法解析：{type(exc).__name__}") from exc
+    try:
+        _assert_current_project_cost_runtime(payload)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"项目成本运行态版本不兼容或不完整：{exc}",
+        ) from exc
+    p1_open, _ = _project_cost_review_counts(payload)
 
     projects = payload.get("项目") or []
-    # 与页面同一条规则：合同号与权威表冲突的不进表（归错了会凭空造出一个项目的成本）。
-    rows = [p for p in projects
-            if not p.get("合同号存疑") and (_cost_num(p.get("成本合计")) or 0) != 0]
+    # 正式运行态已完成唯一合同身份解析；全部项目都输出。0.00 是经过完整
+    # 选定期间检查后的明确零，空值才是来源不可用，两者不能再用过滤器混为一谈。
+    rows = [project for project in projects if isinstance(project, dict)]
 
     tag = ""
     if 合同:
@@ -3083,7 +3267,14 @@ def public_project_cost_download(合同: str | None = None):
     import io as _io  # noqa: PLC0415
 
     from openpyxl import Workbook  # noqa: PLC0415
-    from openpyxl.styles import Alignment, Font  # noqa: PLC0415
+    from openpyxl.styles import (  # noqa: PLC0415
+        Alignment,
+        Border,
+        Font,
+        PatternFill,
+        Side,
+    )
+    from openpyxl.worksheet.page import PageMargins  # noqa: PLC0415
 
     # 单个合同 → **竖版《项目财务分析表》**，逐行照抄 Owner 的真实模版。
     #
@@ -3099,41 +3290,113 @@ def public_project_cost_download(合同: str | None = None):
         book = Workbook()
         ws = book.active
         ws.title = "项目财务分析表"
-        ws.column_dimensions["A"].width = 30
-        ws.column_dimensions["B"].width = 16
-        ws.column_dimensions["C"].width = 52
+        ws.sheet_view.showGridLines = False
+        ws.column_dimensions["A"].width = 31
+        ws.column_dimensions["B"].width = 17
+        ws.column_dimensions["C"].width = 48
+        ws.page_setup.orientation = "portrait"
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+        ws.page_setup.fitToWidth = 1
+        ws.page_setup.fitToHeight = 1
+        ws.sheet_properties.pageSetUpPr.fitToPage = True
+        ws.print_options.horizontalCentered = True
+        ws.page_margins = PageMargins(
+            left=Decimal("0.22"),
+            right=Decimal("0.22"),
+            top=Decimal("0.3"),
+            bottom=Decimal("0.3"),
+            header=Decimal("0.1"),
+            footer=Decimal("0.1"),
+        )
 
         title = ws.cell(row=1, column=1, value="项目财务分析表")
-        title.font = Font(bold=True, size=14)
-        title.alignment = Alignment(horizontal="center")
+        title.font = Font(bold=True, size=16, color="17365D")
+        title.alignment = Alignment(horizontal="center", vertical="center")
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=3)
+        ws.row_dimensions[1].height = 26
 
         line = 2
         for label, value in statement_header(project):
-            ws.cell(row=line, column=1, value=label).font = Font(bold=True)
-            ws.cell(row=line, column=2, value=value)
+            ws.cell(row=line, column=1, value=label).font = Font(bold=True, size=9)
+            ws.cell(
+                row=line,
+                column=2,
+                value=_safe_spreadsheet_text(value),
+            )
+            ws.merge_cells(start_row=line, start_column=2, end_row=line, end_column=3)
+            ws.row_dimensions[line].height = 17
             line += 1
-        ws.cell(row=line, column=2, value="金额（元）").font = Font(bold=True)
-        ws.cell(row=line, column=3, value="备注").font = Font(bold=True)
+        header_line = line
+        ws.cell(row=line, column=1, value="项目")
+        ws.cell(row=line, column=2, value="金额（元）")
+        ws.cell(row=line, column=3, value="备注")
+        for column in range(1, 4):
+            current = ws.cell(row=line, column=column)
+            current.font = Font(bold=True, color="FFFFFF", size=9)
+            current.fill = PatternFill("solid", fgColor="17365D")
+            current.alignment = Alignment(
+                horizontal="center", vertical="center"
+            )
         line += 1
 
-        strong = {"一、合同额", "二、资金运用及各项支出", "合计支出", "（七）毛利"}
+        thin = Side(style="thin", color="7F8C8D")
+        section_fill = PatternFill("solid", fgColor="9DC3E6")
+        subtotal_fill = PatternFill("solid", fgColor="DDEBF7")
+        total_fill = PatternFill("solid", fgColor="F4B183")
+        policy_fill = PatternFill("solid", fgColor="FFF2CC")
+        section_labels = {"二、资金运用及各项支出"}
+        subtotal_labels = {
+            "（一）原材料", "（二）租赁费", "（三）保险费",
+            "（四）现场管理费", "（五）工资（承包费）支出", "（六）信息费",
+        }
+        total_labels = {"一、合同额", "合计支出", "（七）毛利"}
+        policy_labels = {
+            "三 1.1分摊的管理费用（合同的2%）",
+            "1.2占用的资金利息",
+        }
         for label, amount, note in statement_rows(project):
             ws.cell(row=line, column=1, value=label)
             cell = ws.cell(row=line, column=2)
             if amount is not None:
-                cell.value = float(amount)
-                cell.number_format = "#,##0.00"
+                cell.value = amount
+                cell.number_format = "#,##0.00;[Red](#,##0.00);0.00"
             ws.cell(row=line, column=3, value=note or None)
-            if label in strong:
-                for col in (1, 2):
-                    ws.cell(row=line, column=col).font = Font(bold=True)
+            fill = None
+            if label in total_labels:
+                fill = total_fill
+            elif label in section_labels:
+                fill = section_fill
+            elif label in subtotal_labels:
+                fill = subtotal_fill
+            elif label in policy_labels:
+                fill = policy_fill
+            for column in range(1, 4):
+                current = ws.cell(row=line, column=column)
+                current.border = Border(
+                    left=thin, right=thin, top=thin, bottom=thin
+                )
+                current.font = Font(
+                    bold=fill is not None,
+                    size=8,
+                    color="9C0006" if label in policy_labels else "000000",
+                )
+                current.alignment = Alignment(
+                    horizontal="right" if column == 2 else "left",
+                    vertical="center",
+                    wrap_text=True,
+                    indent=1 if column == 1 and fill is None else 0,
+                )
+                if fill is not None:
+                    current.fill = fill
+            ws.row_dimensions[line].height = 14.5
             line += 1
 
         line += 1
         ws.cell(row=line, column=1, value="项目经理：")
         ws.cell(row=line, column=3,
                 value=f"日期：{datetime.now(BEIJING).strftime('%Y年%m月%d日')}")
+        ws.print_title_rows = f"1:{header_line}"
+        ws.print_area = f"A1:C{line}"
 
         note_ws = book.create_sheet("口径")
         note_ws.column_dimensions["A"].width = 22
@@ -3142,10 +3405,16 @@ def public_project_cost_download(合同: str | None = None):
             ("生成时间", str(payload.get("生成时间") or "")),
             ("模版", "逐行照抄《竣工项目财务报表》A 表；行序、层级、编号、括号写法未作改动"),
             ("空行", "表示「本系统没有这个数」，**不是 0**"),
-            ("（四）现场管理费", "＝自有人工＋差旅（车票＋住宿）＋台账未细分的其他费用"),
-            ("（五）工资（承包费）支出", "劳务人工；金蝶该科目缺位时取红圈工时×标定单价"),
-            ("三 1.1分摊的管理费用", "合同额×2%，只摊给有成本发生额的项目"),
-            ("二、资金运用及各项支出", "＝合计支出 − 三 项（与模版恒等式一致）"),
+            ("正式成本", "项目已发生成本＝项目过账实际＋合格应计；内部全程整数分"),
+            (
+                "复核状态",
+                f"{payload.get('计算状态') or ''}；P1 开放复核 {p1_open} 条，"
+                "均未进入正式金额",
+            ),
+            ("（四）现场管理费", "仅承接正式事件分类；不能安全细分的金额在备注中保留"),
+            ("（五）工资（承包费）支出", "正式劳务/分包/人工事件；不使用固定工时单价"),
+            ("三 1.1分摊的管理费用", "保留模板原行；无合格政策时留空，禁止按合同额2%生成"),
+            ("毛利", "有效合同变更链与收入确认口径未闭合，留空"),
             ("备注百分比", "占总成本比例，分母为合计支出"),
         ):
             note_ws.append([key, text])
@@ -3153,6 +3422,28 @@ def public_project_cost_download(合同: str | None = None):
 
         stream = _io.BytesIO()
         book.save(stream)
+        stream.seek(0)
+        from openpyxl import load_workbook  # noqa: PLC0415
+
+        checked = load_workbook(stream, read_only=True, data_only=False)
+        try:
+            if any(
+                cell.data_type == "f"
+                or (
+                    isinstance(cell.value, str)
+                    and cell.value.startswith("=")
+                )
+                for sheet in checked.worksheets
+                for row in sheet.iter_rows()
+                for cell in row
+            ):
+                raise HTTPException(
+                    status_code=500,
+                    detail="单项目工作簿安全校验失败",
+                )
+        finally:
+            checked.close()
+        stream.seek(0)
         day = datetime.now(BEIJING).strftime("%Y%m%d")
         name = f"项目财务分析表_{合同}_{day}.xlsx"
         return Response(
@@ -3167,70 +3458,31 @@ def public_project_cost_download(合同: str | None = None):
             },
         )
 
-    book = Workbook()
-    ws = book.active
-    ws.title = "信息表"
-
-    header = list(OWNER_STATUS_COLUMNS) + list(COMPUTED_COLUMNS)
-    ws.append(header)
-    for index in range(1, len(header) + 1):
-        cell = ws.cell(row=1, column=index)
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.freeze_panes = "A2"
-
-    for project in rows:
-        ws.append(_owner_row(project) + _computed_row(project))
-
-    money = {"含税合同金额", "结算金额", "开票金额", "生活住宿费", "交通费", "材料费",
-             "其他费用", "金蝶归集直接成本", "自有人工成本", "劳务人工成本",
-             "分摊管理费", "成本合计", "毛利"}
-    for index, column in enumerate(header, start=1):
-        letter = ws.cell(row=1, column=index).column_letter
-        ws.column_dimensions[letter].width = max(10, min(26, len(column) * 2 + 4))
-        if column in money:
-            for r in range(2, ws.max_row + 1):
-                ws.cell(row=r, column=index).number_format = "#,##0.00"
-        elif column == "毛利率":
-            for r in range(2, ws.max_row + 1):
-                ws.cell(row=r, column=index).number_format = "0.0%"
-
-    # 口径页：银行/税务要能看懂每个数从哪来。**放第二个页签**，绝不挤占「信息表」。
-    note = book.create_sheet("口径")
-    note.column_dimensions["A"].width = 22
-    note.column_dimensions["B"].width = 96
-    for key, text in (
-        ("生成时间", str(payload.get("生成时间") or "")),
-        ("列序", "前 30 列与《生产项目状态表》「信息表」逐列一致；第 31 列起为本系统计算值"),
-        ("成本合计", "金蝶按销售合同号归集的借方发生额为底；现场管理费取金蝶与红圈的大者，不相加"),
-        ("人工", "劳务人工在金蝶「工资（承包费）支出」缺位时，才取红圈工时×标定单价"),
-        ("分摊管理费", "合同额×2%，只摊给有成本发生额的项目"),
-        ("空单元格", "表示「本系统没有这个数」，不是 0"),
-        ("未列入", "合同号与红圈主合同表冲突的行不列入——归错了会凭空造出一个项目的成本"),
-    ):
-        note.append([key, text])
-    note.cell(row=1, column=1).font = Font(bold=True)
-
-    stream = _io.BytesIO()
-    book.save(stream)
+    try:
+        sealed_workbook = _sealed_project_cost_workbook(payload)
+    except (OSError, ValueError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"封印项目成本工作簿不可用：{exc}",
+        ) from exc
     day = datetime.now(BEIJING).strftime("%Y%m%d")
-    name = f"项目成本{tag}_{day}.xlsx"
-    return Response(
-        content=stream.getvalue(),
+    return FileResponse(
+        sealed_workbook,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=f"KMFA_项目成本报表_{day}.xlsx",
         headers={
-            # filename* 走 RFC 5987，中文文件名在浏览器里才不会变成乱码或 _
-            "Content-Disposition":
-                f"attachment; filename=KMFA_project_cost{tag}_{day}.xlsx; "
-                f"filename*=UTF-8''{quote(name)}",
             "Cache-Control": "no-store",
             "X-Robots-Tag": "noindex, nofollow",
+            "X-KMFA-Snapshot-ID": str(payload.get("快照ID") or ""),
+            "X-KMFA-Workbook-SHA256": str(
+                (payload.get("封印工作簿") or {}).get("SHA256") or ""
+            ),
         },
     )
 
 
 #: 「重新计算」的请求标记。App 与 skills 是**两个容器**，App 里没有 run_skill.sh、
-#: 也不该有——真让 App 去跑克隆私有库解析上千张表的活，就是把 2026-07-28 那次
+#: 也不该有——真让 App 去跑免 clone 下载并解析私有清单内全部文件的活，就是把 2026-07-28 那次
 #: 「压测把线上打下线」原样重演一遍，只是换了个触发器。所以 App 只放一个标记。
 #:
 #: 放在 **app-state 卷**，不是日志卷。两个卷的读写方向是刻意反着的：
@@ -3277,7 +3529,7 @@ def public_project_cost_refresh():
             status_code=503, headers=headers)
     return JSONResponse(
         {"已提交": True,
-         "说明": "skills 容器每分钟检查一次；重算要克隆私有库并解析上千张明细账，约 2–4 分钟。",
+         "说明": "skills 容器每分钟检查一次；重算会免 clone 按私有清单下载并解析全部选定文件，约 2–4 分钟。",
          "上次算完": previous,
          "怎么确认": "过几分钟刷新本页，看顶部「数据生成」时间有没有变。"},
         headers=headers)

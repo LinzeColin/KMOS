@@ -303,6 +303,11 @@ def test_private_paths_fail_closed_and_verify_access_jwt(monkeypatch):
         "/ops/app",
         "/ops/healthz",
         "/ops/openapi.json",
+        "/项目成本",
+        "/项目成本/下载",
+        "/public-api/项目成本",
+        "/public-api/项目成本表",
+        "/public-api/项目成本表/下载",
     ):
         denied = client.get(path)
         assert denied.status_code == 403
@@ -326,6 +331,11 @@ def test_private_paths_fail_closed_and_verify_access_jwt(monkeypatch):
         "/ops/app", headers={"Cf-Access-Jwt-Assertion": valid}
     )
     assert allowed_dashboard.status_code == 200
+    allowed_project_cost = client.get(
+        "/public-api/项目成本",
+        headers={"Cf-Access-Jwt-Assertion": valid},
+    )
+    assert allowed_project_cost.status_code in (200, 503)
 
     wrong_audience = _access_token(
         trusted_key, issuer=issuer, audience="wrong-audience"

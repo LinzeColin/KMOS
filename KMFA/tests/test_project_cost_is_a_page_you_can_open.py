@@ -8,13 +8,14 @@ Owner 2026-07-29：「我说了我只要我的项目成本！」「我没有看�
   · `/public-api/项目成本` 是 JSON——人打开看到的是一屏花括号；
   · 发 Excel 文件——卡片可能根本没在对话里露出来。
 
-所以判据是「用浏览器打开这个地址，看到的是表格」。挂在 `/public-api/` 下
-是因为那是既有匿名面；新起路径会被 Cloudflare Access 拦住，而 Access 策略
-在 Owner 的控制台里、本仓改不掉。
+所以判据是「通过 Access 后用浏览器打开这个地址，看到的是表格」。历史
+`/public-api/` 名称只为兼容旧链接，生产必须同时经过 Cloudflare Access 与 origin
+JWT，不能因路由名继续匿名暴露真实客户和金额。
 """
 from __future__ import annotations
 
 import importlib
+import hashlib
 import json
 import os
 import re
@@ -24,26 +25,83 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 
 SAMPLE = {
+    "schema_version": "kmfa.project_cost.current.v3",
     "生成时间": "2026-07-29T09:00:00+08:00",
+    "快照ID": "kmfa-pc-2099-synthetic",
+    "截至日期": "2099-07-30",
+    "计算状态": "PASS",
+    "项目数": 4,
+    "封印来源": {
+        "源码摘要算法": "kmfa.project_cost.subject_tree.v1",
+        "源码SHA256": "a" * 64,
+        "源码文件数": 1,
+        "输入清单类型": "PRIVATE_MANIFEST_SHA256",
+        "输入清单SHA256": "b" * 64,
+        "私有输入清单SHA256": "b" * 64,
+        "选中来源绑定SHA256": "c" * 64,
+    },
+    "待确认": {
+        "状态": "PASS",
+        "P0阻断数": 0,
+        "P1开放复核数": 0,
+        "P2已排除或提示数": 0,
+    },
+    "正式成本口径": "项目已发生成本 = 项目过账实际 + 合格应计",
     "项目": [
-        {"合同编号": "KMX2026001-001", "甲方名称": "甲公司", "施工状态": "已完工",
-         "完工日期": "2026-06-30", "含税合同金额": "100000", "金蝶归集直接成本": "40000",
-         "自有人工成本": "5000", "劳务人工成本": "0", "分摊管理费": "2000",
-         "成本合计": "47000", "毛利": "53000"},
-        {"合同编号": "KMX2026001-002", "甲方名称": "乙公司", "施工状态": "施工中",
-         "含税合同金额": "50000", "金蝶归集直接成本": "-9000",
-         "分摊管理费": "0", "成本合计": "-9000", "毛利": "59000"},
-        {"合同编号": "KMX2026001-003", "甲方名称": "丙公司", "施工状态": "待入场",
-         "含税合同金额": "80000", "成本合计": "0"},
-        {"合同编号": "KMX2026001-004", "甲方名称": "丁公司", "成本合计": "1234",
-         "合同号存疑": True, "身份来源": "⚠ 合同号与权威表冲突：本行很可能填错了"},
+        {"合同编号": "KMX2099001-001", "项目名称": "合成项目甲", "甲方名称": "合成客户甲",
+         "施工状态": "已完工", "完工日期": "2099-06-30", "含税合同金额": "100000",
+         "项目过账实际": "40000", "项目应计": "7000", "项目已发生成本": "47000",
+         "主营成本已结转": "39000", "状态表已报直接成本": "12000",
+         "支付系统已付观察": "9000", "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT",
+         "账簿截至月份": "2099-06",
+         "报表归类": {"material": "10000", "other": "30000", "subcontract_labor": "7000"}},
+        {"合同编号": "KMX2099001-002", "项目名称": "合成项目乙", "甲方名称": "合成客户乙",
+         "施工状态": "施工中", "含税合同金额": "50000",
+         "项目过账实际": "-9000", "项目应计": "0", "项目已发生成本": "-9000",
+         "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT",
+         "账簿截至月份": "2099-06",
+         "报表归类": {"other": "-9000"}},
+        {"合同编号": "KMX2099001-003", "项目名称": "合成项目丙", "甲方名称": "合成客户丙",
+         "施工状态": "待入场", "含税合同金额": "80000",
+         "项目过账实际": "0", "项目应计": "0", "项目已发生成本": "0",
+         "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;NO_QUALIFIED_EVENT",
+         "账簿截至月份": "2099-06",
+         "报表归类": {}},
+        {"合同编号": "KMX2099001-004", "项目名称": "合成项目丁", "甲方名称": "合成客户丁",
+         "项目已发生成本": None, "项目成本覆盖": "SOURCE_UNAVAILABLE",
+         "报表归类": {}},
     ],
 }
 
 
 def _client(tmp_path: Path):
+    from openpyxl import Workbook  # noqa: PLC0415
+
+    payload = json.loads(json.dumps(SAMPLE, ensure_ascii=False))
+    workbook_path = tmp_path / "sealed-canonical.xlsx"
+    book = Workbook()
+    book.active.title = "01_项目成本表"
+    for title in (
+        "02_成本明细",
+        "03_生命周期对照",
+        "04_收入与现金",
+        "05_来源与核销",
+        "06_差异与待确认",
+        "07_项目身份",
+        "08_运行说明",
+    ):
+        book.create_sheet(title)
+    book["01_项目成本表"]["A1"] = "合成封印工作簿"
+    book.save(workbook_path)
+    digest = hashlib.sha256(workbook_path.read_bytes()).hexdigest()
+    payload["封印工作簿"] = {
+        "文件名": workbook_path.name,
+        "SHA256": digest,
+        "字节数": workbook_path.stat().st_size,
+        "快照ID": payload["快照ID"],
+    }
     artifact = tmp_path / "recent_completed.json"
-    artifact.write_text(json.dumps(SAMPLE, ensure_ascii=False), encoding="utf-8")
+    artifact.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     sys.path.insert(0, str(REPO / "KMFA/app/backend"))
     os.environ["KMFA_RECENT_COST"] = str(artifact)
     import app.main as m  # noqa: PLC0415
@@ -62,20 +120,24 @@ def test_it_returns_html_not_json(tmp_path):
     assert "<table" in r.text
 
 
-def test_it_needs_no_login(tmp_path):
-    """挂在 /public-api/ 下才不会被 Access 拦。新起路径 = 打开就是登录墙。"""
-    from app import main as m  # noqa: PLC0415
+def test_legacy_public_api_name_is_still_access_protected(tmp_path):
+    """兼容路径名不等于匿名授权；生产 origin guard 必须覆盖它。"""
+    from app import main as m, private_access  # noqa: PLC0415
 
     _client(tmp_path)
     paths = {getattr(r, "path", "") for r in m.app.routes}
-    assert "/public-api/项目成本表" in paths, "路径不在匿名面下"
+    assert "/public-api/项目成本表" in paths
+    assert any(
+        "/public-api/项目成本".startswith(prefix)
+        for prefix in private_access.PRIVATE_PATH_ROOTS
+    )
 
 
 def test_the_numbers_are_actually_on_the_page(tmp_path):
     r = _client(tmp_path).get("/public-api/项目成本表")
-    assert "KMX2026001-001" in r.text
-    assert "47,000" in r.text, "成本合计没渲出来"
-    assert "甲公司" in r.text
+    assert "KMX2099001-001" in r.text
+    assert "47,000.00" in r.text, "项目已发生成本没渲出来"
+    assert "合成项目甲" in r.text
 
 
 def test_a_negative_cost_project_is_not_filtered_out(tmp_path):
@@ -85,21 +147,24 @@ def test_a_negative_cost_project_is_not_filtered_out(tmp_path):
     这条线整晚都在修的就是这种静默过滤。
     """
     r = _client(tmp_path).get("/public-api/项目成本表")
-    assert "KMX2026001-002" in r.text, "负成本项目被滤掉了"
-    assert "-9,000" in r.text
+    assert "KMX2099001-002" in r.text, "负成本项目被滤掉了"
+    assert "-9,000.00" in r.text
 
 
-def test_a_project_with_no_cost_record_is_not_padded_in(tmp_path):
-    """没有成本记录的合同不列——列了就是拿「不知道」冒充「是 0」。"""
+def test_verified_zero_and_missing_are_both_shown_but_not_conflated(tmp_path):
+    """0.00 是完整期间无事件；空值才是来源不可用。两者都要看见。"""
     r = _client(tmp_path).get("/public-api/项目成本表")
-    assert "KMX2026001-003" not in r.text
-    assert "成本不知道" in r.text, "没有说明为什么不列"
+    assert "KMX2099001-003" in r.text
+    assert "KMX2099001-004" in r.text
+    assert "账簿截至 2099-06｜无合格过账" in r.text
+    assert "来源不可用" in r.text
+    assert "0.00" in r.text
 
 
-def test_a_contract_number_conflict_is_shown_not_swallowed(tmp_path):
+def test_all_canonical_projects_are_kept_on_the_page(tmp_path):
     r = _client(tmp_path).get("/public-api/项目成本表")
-    assert "KMX2026001-004" in r.text
-    assert "合同号" in r.text and "对不上" in r.text
+    for suffix in ("001", "002", "003", "004"):
+        assert f"KMX2099001-{suffix}" in r.text
 
 
 def test_it_says_so_when_there_is_no_artifact(tmp_path):
@@ -126,21 +191,17 @@ def test_it_is_not_indexed(tmp_path):
     assert "no-store" in r.headers.get("Cache-Control", "")
 
 
-def test_the_page_has_a_margin_rate_column(tmp_path):
-    """Owner 2026-07-29：「需要有毛利率百分比」。"""
+def test_margin_is_not_invented_before_contract_change_and_revenue_gates(tmp_path):
     r = _client(tmp_path).get("/public-api/项目成本表")
-    assert "毛利率" in r.text
-    assert "53.0%" in r.text, "毛利 53000 ÷ 合同 100000 应当渲成 53.0%"
+    assert ">毛利率<" not in r.text
+    assert ">毛利<" not in r.text
+    assert "有效合同额、收入确认额和毛利" in r.text
 
 
-def test_no_margin_rate_is_invented_without_a_contract_amount(tmp_path):
-    """合同额缺失/为 0 时不编一个百分比出来——除以零的地方最容易长出假数。"""
+def test_no_margin_value_is_invented_from_the_original_contract(tmp_path):
     r = _client(tmp_path).get("/public-api/项目成本表")
-    # 只看表格里的那一行——存疑提示块也提到这个合同号，按整页搜会搜到那里去。
-    rows = [x for x in r.text.split("<tr>") if "<td" in x]
-    hit = [x for x in rows if "KMX2026001-002" in x]
-    assert hit, "找不到那个没有毛利的行"
-    assert 'data-v=""' in hit[0], "没有合同额却给了毛利率"
+    assert "53.0%" not in r.text
+    assert "原合同额" in r.text
 
 
 def _page_script(client) -> str:
@@ -181,19 +242,8 @@ def test_there_is_a_download_button(tmp_path):
     assert 'href="/项目成本/下载"' in r.text
 
 
-def test_the_download_is_a_real_workbook_in_the_owners_own_column_order(tmp_path):
-    """Owner：「你的下载产品和我的格式要保持一致」。
-
-    2026-07-29 本条整条重写，因为**它原来钉错了基准**：
-    旧版断言页签为 使用说明／项目总览／毛利复核／成本明细，对照物写的是
-    「那份 8 项目参考表」——而那份 `KMFA_项目成本_真实参考回放_8项目.xlsx`
-    **是我自己生成的产物**。测试于是变成「我的输出等于我的输出」，
-    Owner 再说一次「和我原来的格式根本不一样」时它依然全绿。
-
-    真源是他的《生产项目状态表》「信息表」（30 列）。列序细节归
-    KMFA/tests/test_download_matches_owner_column_order.py 管，
-    这里只守住最粗的形状：是个真 xlsx、工作表叫「信息表」、自造页签不许回来。
-    """
+def test_the_download_is_the_canonical_sealed_workbook(tmp_path):
+    """全量下载必须返回 Skill 封印的 8 页签工作簿。"""
     import io
 
     import openpyxl
@@ -202,24 +252,24 @@ def test_the_download_is_a_real_workbook_in_the_owners_own_column_order(tmp_path
     assert r.status_code == 200
     assert "spreadsheetml" in r.headers["content-type"]
     book = openpyxl.load_workbook(io.BytesIO(r.content))
-    assert book.sheetnames[0] == "信息表", f"第一个页签不是「信息表」：{book.sheetnames}"
-    for invented in ("使用说明", "项目总览", "毛利复核", "成本明细"):
-        assert invented not in book.sheetnames, f"自造页签「{invented}」回来了"
-    ws = book["信息表"]
-    headers = [ws.cell(1, i).value for i in range(1, ws.max_column + 1)]
-    assert headers[:3] == ["甲方名称", "省份", "合同号"], f"列序不是他的：{headers[:3]}"
-    assert "毛利率" in headers
-    # 样例里 001（47000）与 002（-9000）进表；003 成本为 0 不进；
-    # 004 合同号存疑——它的成本不归入任何项目，所以也不进主表。
-    assert ws.max_row - 1 == 2, \
-        f"主表行数不对：{ws.max_row - 1}（存疑项目不该进来，成本为 0 的也不该）"
+    assert book.sheetnames == [
+        "01_项目成本表",
+        "02_成本明细",
+        "03_生命周期对照",
+        "04_收入与现金",
+        "05_来源与核销",
+        "06_差异与待确认",
+        "07_项目身份",
+        "08_运行说明",
+    ]
+    assert book["01_项目成本表"]["A1"].value == "合成封印工作簿"
 
 
 def test_the_download_filename_survives_chinese(tmp_path):
     """中文文件名要走 RFC 5987，否则浏览器存下来是一串下划线或乱码。"""
     r = _client(tmp_path).get("/项目成本/下载")
     disposition = r.headers.get("content-disposition", "")
-    assert "filename*=UTF-8''" in disposition
+    assert "filename*=utf-8''" in disposition.lower()
     assert "attachment" in disposition
 
 
@@ -280,7 +330,7 @@ def test_the_entry_is_in_the_component_the_root_actually_renders():
 def test_every_row_can_be_downloaded_on_its_own(tmp_path):
     """Owner：「不支持单一合同下载」。"""
     r = _client(tmp_path).get("/public-api/项目成本表")
-    assert r.text.count('class="one"') == 2, "不是每个有成本的项目都有单独下载"
+    assert r.text.count('class="one"') == 4, "不是每个项目都有单独下载"
     assert "/项目成本/下载?合同=" in r.text
 
 
@@ -294,14 +344,14 @@ def test_a_single_contract_download_is_the_vertical_statement(tmp_path):
 
     import openpyxl
 
-    r = _client(tmp_path).get("/项目成本/下载", params={"合同": "KMX2026001-001"})
+    r = _client(tmp_path).get("/项目成本/下载", params={"合同": "KMX2099001-001"})
     assert r.status_code == 200
     book = openpyxl.load_workbook(io.BytesIO(r.content))
     assert book.sheetnames[0] == "项目财务分析表", f"页签不对：{book.sheetnames}"
     labels = [row[0] for row in book["项目财务分析表"].iter_rows(values_only=True)]
     for must in ("一、合同额", "二、资金运用及各项支出", "合计支出", "（七）毛利"):
         assert must in labels, f"模版缺行「{must}」"
-    assert "KMX2026001-001" in r.headers.get("content-disposition", "")
+    assert "KMX2099001-001" in r.headers.get("content-disposition", "")
 
 
 def test_an_unknown_contract_is_a_404_not_an_empty_workbook(tmp_path):
@@ -377,9 +427,46 @@ def test_the_skills_side_actually_watches_for_the_flag():
     assert line, "crontab 里没有看标记的那一跳"
     assert line.startswith("* * * * *"), "不是每分钟看一次，按下去要等很久才有反应"
     assert "nice -n" in line, "重算没让出 CPU 优先级"
-    # skills 只读挂载 app-state，**删不掉**那个标记，所以只能比时间戳。
-    # 写成「先删后跑」在线上会一直失败，而且失败得很安静。
-    assert "rm -f" not in line, "skills 对 app-state 只读，删不掉标记"
+    # skills 只读挂载 app-state，**删不掉**请求标记，所以只能比时间戳。
+    # 失败时可以删除自己在日志卷创建的 pending 副本，但不能删除 $R。
+    assert 'rm -f "$R"' not in line, "skills 对 app-state 只读，删不掉请求标记"
     assert "-nt" in line, "没有比时间戳——那就分不出「这次点的」和「上次点的」"
     assert "/var/lib/kmfa/state/" in line and "/var/log/kmfa/" in line, \
         "两个卷都要用到：读 app 写的标记，写自己这边的处理记录"
+    assert 'cp -p "$R" "$P"' in line, "运行前没有冻结本次请求时间戳"
+    assert line.index('cp -p "$R" "$P"') < line.index("run_skill.sh project-cost-refresh"), \
+        "必须先冻结请求时间戳，再开始长任务"
+    assert line.index("run_skill.sh project-cost-refresh") < line.index('mv -f "$P" "$S"'), \
+        "请求尚未成功就被标成已处理，失败后不会自动重试"
+
+
+def test_project_cost_lock_contention_is_retryable_not_success():
+    """flock 抢不到不能返回 0，否则 cron 会把未运行的请求标成成功。"""
+    wrapper = (
+        REPO / "KMFA/deploy/skills-runtime/run_skill.sh"
+    ).read_text(encoding="utf-8")
+    lock_guard = next(
+        line for line in wrapper.splitlines()
+        if "flock -n 9" in line and "上一轮仍在运行" in line
+    )
+    assert "exit 75" in lock_guard, "锁竞争必须返回 EX_TEMPFAIL，交给 cron 重试"
+    assert "exit 0" not in lock_guard, "锁竞争没有产生新快照，不得冒充成功"
+
+
+def test_project_cost_secrets_are_synthesised_for_cron():
+    entrypoint = (
+        REPO / "KMFA/deploy/skills-runtime/entrypoint.sh"
+    ).read_text(encoding="utf-8")
+    assert "KMFA_PRIVATE_DB_READ_TOKEN KMFA_PAYROLL_PASSWORD" in entrypoint
+    assert "printf '%s=%q\\n'" in entrypoint, "secret 值没有 shell-safe 转义"
+
+
+def test_healthcheck_requires_current_schema_binding_and_freshness():
+    health = (
+        REPO / "KMFA/deploy/skills-runtime/healthcheck.sh"
+    ).read_text(encoding="utf-8")
+    assert "36*3600" in health
+    assert "kmfa.project_cost.current.v3" in health
+    assert "PASS_WITH_OPEN_REVIEWS" in health
+    assert "封印工作簿" in health
+    assert 'row.get("skill") == "project-cost-refresh"' in health

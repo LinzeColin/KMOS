@@ -49,6 +49,11 @@ services:
       # 于是容器内取到空值、台账回传断了几十次无人察觉。工具已改为 token 缺失时
       # 回落到上面那把部署密钥（project-cost-refresh 用它、一直好用），不再单点依赖。
       KMFA_BACKUP_GH_TOKEN: "${KMFA_BACKUP_GH_TOKEN:-}"
+      # 项目成本正式刷新只读 Private-Database 的专用 token。运行时通过
+      # private_db_client 按 manifest 精确取文件，禁止回退为 git clone 全库。
+      KMFA_PRIVATE_DB_READ_TOKEN: "${KMFA_PRIVATE_DB_READ_TOKEN:-}"
+      # 加密工资表密码。只进 Coolify secret；不进入命令参数、日志、代码或制品。
+      KMFA_PAYROLL_PASSWORD: "${KMFA_PAYROLL_PASSWORD:-}"
       # 考勤投递对象。测试期只发张霖泽本人（Owner 令：不许发群，除非授权）。
       # 这一项曾只加进 entrypoint 的合成清单却漏在 compose 里——变量于是从没到过容器，
       # 靠 run_skill.sh 的默认值 personal 兜住。默认值恰好是安全值，但那是运气不是设计。

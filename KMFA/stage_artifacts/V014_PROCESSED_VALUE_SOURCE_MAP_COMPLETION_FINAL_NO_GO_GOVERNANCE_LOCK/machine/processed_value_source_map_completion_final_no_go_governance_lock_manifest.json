@@ -1,8 +1,8 @@
 {
   "acceptance_id": "ACC-V014-PROCESSED-VALUE-SOURCE-MAP-COMPLETION-FINAL-NO-GO-GOVERNANCE-LOCK",
   "generated_at": "2026-07-06T00:00:00+10:00",
-  "git_branch": "feat/project-cost-full-ledger",
-  "git_head": "502cf875ca17fffc7c669e5eb27d04a7a9ac4e32",
+  "git_branch": "",
+  "git_head": "0cf941c73fac51df2b36f10a119b94b15eacdf79",
   "go_no_go": {
     "acceptance_id": "ACC-V014-PROCESSED-VALUE-SOURCE-MAP-COMPLETION-FINAL-NO-GO-GOVERNANCE-LOCK",
     "app_reinstall_allowed": false,

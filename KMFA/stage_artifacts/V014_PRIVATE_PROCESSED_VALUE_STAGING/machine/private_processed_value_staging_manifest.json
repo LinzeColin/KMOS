@@ -3,7 +3,7 @@
     "ACC-V014-PRIVATE-PROCESSED-VALUE-STAGING"
   ],
   "app_reinstall_performed": false,
-  "branch": "feat/project-cost-full-ledger",
+  "branch": "",
   "business_execution_performed": false,
   "dependencies": {
     "raw_value_matching_private_dry_run_go_no_go": "KMFA/stage_artifacts/V014_RAW_VALUE_MATCHING_PRIVATE_DRY_RUN/machine/raw_value_matching_private_dry_run_go_no_go_report.json",
@@ -138,7 +138,7 @@
   },
   "record_type": "v014_private_processed_value_staging_manifest",
   "schema_version": "kmfa.v014_private_processed_value_staging.v1",
-  "source_commit": "502cf875ca17fffc7c669e5eb27d04a7a9ac4e32",
+  "source_commit": "0cf941c73fac51df2b36f10a119b94b15eacdf79",
   "status": "completed_validated_local_only_no_go_processed_target_slots_staged_value_fingerprints_missing",
   "task_id": "KMFA-V014-PRIVATE-PROCESSED-VALUE-STAGING-20260705",
   "value_matching_readiness": {
@@ -151,8 +151,8 @@
     "processed_target_slot_count": 149,
     "processed_target_slots_staged": true,
     "raw_to_processed_value_comparison_performed": false,
-    "raw_value_fingerprint_count_from_previous_phase": 871,
-    "raw_value_fingerprints_available_from_previous_phase": true
+    "raw_value_fingerprint_count_from_previous_phase": 0,
+    "raw_value_fingerprints_available_from_previous_phase": false
   },
   "version": "0.1.4"
 }

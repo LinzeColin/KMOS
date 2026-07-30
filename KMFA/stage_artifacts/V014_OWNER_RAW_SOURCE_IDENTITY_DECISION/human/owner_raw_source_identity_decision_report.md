@@ -10,11 +10,11 @@
 
 - source_phase_id: `V014_RAW_ALIGNMENT_REMEDIATION`
 - source_decision: `NO_GO`
-- business_shape_matches_expected_a0: `true`
+- business_shape_matches_expected_a0: `false`
 - registered_container_hash_match: `false`
 - registered_container_size_match: `false`
 - raw_alignment_complete: `false`
-- aggregate_counts: files=`5`, archives=`3`, spreadsheets=`2`, selected_candidate=`1`, business_members=`9`
+- aggregate_counts: files=`2`, archives=`1`, spreadsheets=`0`, selected_candidate=`0`, business_members=`0`
 
 ## Decision Boundary
 

@@ -93,35 +93,21 @@ case "$SKILL" in
                          echo "KMFA/skills/经营月报/ 下只有 register（治理登记）与校验器，没有出报告的实现。"; \
                          echo "接校验器会让它显示成功，那是假绿；这里如实报未建成。"; \
                          exit 8') ;;
-  # 最近完工项目成本：稀疏克隆私有库取真源 → 算 → 写共享卷；App 只读不算。
+  # 正式项目成本：private_db_client 免 clone 下载 hash-bound 选定源 → canonical Skill
+  # 算全量 2026 项目 → 二次验封 → 原子发布网站运行态；App 只读不算。
   # Owner 2026-07-27：「我根本没有看到项目成本，我说了我要最近完工的项目成本」——
   # 数要出现在驾驶舱页面上，所以产物是 App 直接读的 JSON，不是导出的文件。
-  project-cost-refresh) CMD=(bash -c '\
-                         set -e; K=/opt/kmfa/secrets/kmfa_backup_deploy_key; \
-                         [ -f "$K" ] || { echo "缺部署密钥，无法取私有源"; exit 3; }; \
-                         export GIT_SSH_COMMAND="ssh -i $K -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o BatchMode=yes"; \
-                         D=/tmp/kmfa-pdb-cost; rm -rf "$D"; \
-                         git clone --quiet --filter=blob:none --no-checkout git@github.com:LinzeColin/Private-Database.git "$D"; \
-                         git -C "$D" sparse-checkout init --cone; \
-                         git -C "$D" sparse-checkout set Private-KMDatabase/KMFA_MetaData; \
-                         git -C "$D" checkout --quiet; \
-                         mkdir -p /var/log/kmfa/project_cost; \
-                         python3 KMFA/tools/project_cost/build_recent_completed.py \
-                           --data-root "$D/Private-KMDatabase/KMFA_MetaData" \
-                           --account-map KMFA/machine/facts/project_cost_account_map.json \
-                           --out /var/log/kmfa/project_cost/recent_completed.json; \
-                         python3 KMFA/tools/project_cost/build_customer_margin.py \
-                           --data-root "$D/Private-KMDatabase/KMFA_MetaData" \
-                           --out /var/log/kmfa/project_cost/customer_margin.json; \
-                         python3 KMFA/tools/data_source_matrix.py \
-                           --data-root "$D/Private-KMDatabase/KMFA_MetaData" \
-                           --out /var/log/kmfa/project_cost/data_source_matrix.json \
-                           --csv-out /var/log/kmfa/project_cost/data_source_matrix.csv; \
-                         python3 KMFA/tools/project_cost/build_project_margin.py \
-                           --data-root "$D/Private-KMDatabase/KMFA_MetaData" \
-                           --account-map KMFA/machine/facts/project_cost_account_map.json \
-                           --out /var/log/kmfa/project_cost/project_margin.json; \
-                         rm -rf "$D"') ;;
+  project-cost-refresh) CMD=(bash -c '
+                         set -e; \
+                         T="${KMFA_PRIVATE_DB_READ_TOKEN:-}"; \
+                         [ -n "$T" ] || { echo "{\"status\":\"PRIVATE_DB_TOKEN_MISSING\"} 项目成本正式刷新要求 Private-Database 只读 token；禁止回退到 clone"; exit 3; }; \
+                         [ -n "${KMFA_PAYROLL_PASSWORD:-}" ] || { echo "{\"status\":\"PAYROLL_PASSWORD_MISSING\"} 加密工资表密码未注入；禁止跳过人工应计"; exit 3; }; \
+                         export GH_TOKEN="$T"; \
+                         mkdir -p /var/log/kmfa/project_cost/runs; \
+                         python3 KMFA/skills/项目成本表/scripts/run_private_refresh.py \
+                           --manifest-relpath project_cost/operational_input_manifest_v1.json \
+                           --output-root /var/log/kmfa/project_cost/runs \
+                           --runtime-json /var/log/kmfa/project_cost/recent_completed.json') ;;
   # 真业务入口:云端 dws 归档(钉钉→容器→GitHub 私有库)。原先只跑校验器→从未真归档。
   upstream-archive)    CMD=(bash KMFA/skills/上游归档/scripts/run_cloud_archive.sh) ;;
   # 考勤投递目标自举：解析出「谁收、钉钉 userid 是多少」并落持久卷。
@@ -169,7 +155,9 @@ case "$SKILL" in
 esac
 
 (
-  flock -n 9 || { echo "$(date -Is) $SKILL: 上一轮仍在运行，跳过" >> "$LOG"; exit 0; }
+  # 75=EX_TEMPFAIL。锁竞争不是“已处理”：尤其项目成本刷新请求只有
+  # 真正生成并验证新快照后才能推进 handled marker。
+  flock -n 9 || { echo "$(date -Is) $SKILL: 上一轮仍在运行，稍后重试" >> "$LOG"; exit 75; }
   echo "$(date -Is) $SKILL: 开始 ${CMD[*]}" >> "$LOG"
   "${CMD[@]}" >> "$LOG" 2>&1
   RC=$?

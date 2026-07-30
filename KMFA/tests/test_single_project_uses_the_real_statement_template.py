@@ -1,27 +1,14 @@
 # -*- coding: utf-8 -*-
-"""单个项目下载 = 竖版《项目财务分析表》，逐行照抄 Owner 的真实模版。
+"""单个项目下载 = 竖版《项目财务分析表》。
 
-Owner 2026-07-30：「/Users/linzezhang/Downloads/KMFA_MetaData/销售绩效考核
-这里面的才是真实模版，你现在用的不知道是什么恶心东西」。
-
-**我在这件事上错了两版，都记下来：**
-  1. 第一版：页签是我自己造的（使用说明／项目总览／毛利复核／成本明细），
-     注释里写「对齐 Owner 手上那份竣工报表参考表」，而对照物
-     `KMFA_项目成本_真实参考回放_8项目.xlsx` **是我自己生成的产物**。
-     测试于是变成「我的输出等于我的输出」，Owner 每说一次不一样它都全绿。
-  2. 第二版：改成《生产项目状态表》的 30 列横表。那张表是对的——但它是
-     **项目清单**的格式。单个项目要的是竖版分析表。**两件不同的东西，我混了。**
-
-真源是 `销售绩效考核/` 下的「竣工项目财务报表」PDF，逐行读出四份：
-  A（池州恒鑫 085 / 崇阳昌华 084 / 新疆宜化 064）—— 终行 合计支出 +（七）毛利
-  B（山东圣川）—— 多「项目产值」，（七）税金（八）分摊，终行「三 利润」
-
-行序与百分比口径都是从真 PDF 反推的，写死在本文件里做独立对照。
-不把 PDF 提交进仓：KMOS 是公开仓，那几份里是真实甲方名与真实金额。
+行序来自用户提供的 A 系模板；测试数据全部为合成值。参考 PDF 只用于验证布局，
+不作为计算输入，也不进入公开仓。正式金额仅来自 canonical Skill 的事件分类与
+``项目已发生成本``，模板中的 2% 管理费和利润行在缺少合格政策/收入确认时必须留空。
 """
 from __future__ import annotations
 
 import importlib
+import hashlib
 import io
 import json
 import os
@@ -31,8 +18,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 BACKEND = REPO / "KMFA/app/backend"
 
-#: 从 `竣工项目财务报表  池州恒鑫 085.pdf` 逐行抄下来的表体行序（**独立一份**，
-#: 不 import 主程序常量——只 import 来比自己等于什么都没验）。
+#: A 系模板表体行序的独立公开安全转录；不 import 主程序常量，避免自证。
 PDF_ROWS_AS_READ = [
     "一、合同额", "二、资金运用及各项支出",
     "（一）原材料", "其中:1.主要材料", "2.辅助材料", "2.1气体", "2.2焊材", "2.3漆料",
@@ -49,27 +35,74 @@ PDF_ROWS_AS_READ = [
     "合计支出", "（七）毛利",
 ]
 
-#: 用真 PDF 那个项目的数喂进来，好逐格核对。
+#: 使用合成正式事件分类逐格核对；真实项目名与金额不进入公开仓。
 SAMPLE = {
+    "schema_version": "kmfa.project_cost.current.v3",
     "生成时间": "2026-07-30T15:00:00+08:00",
+    "快照ID": "kmfa-pc-2099-statement",
+    "截至日期": "2099-12-31",
+    "计算状态": "PASS",
+    "项目数": 2,
+    "封印来源": {
+        "源码摘要算法": "kmfa.project_cost.subject_tree.v1",
+        "源码SHA256": "a" * 64,
+        "源码文件数": 1,
+        "输入清单类型": "PRIVATE_MANIFEST_SHA256",
+        "输入清单SHA256": "b" * 64,
+        "私有输入清单SHA256": "b" * 64,
+        "选中来源绑定SHA256": "c" * 64,
+    },
+    "待确认": {
+        "状态": "PASS",
+        "P0阻断数": 0,
+        "P1开放复核数": 0,
+        "P2已排除或提示数": 0,
+    },
     "项目": [{
-        "合同编号": "KMX20251222-085", "甲方名称": "池州恒鑫材料科技有限公司",
-        "施工状态": "已完工", "开工时间": "2025-12-23 00:00:00", "完工日期": "2025-12-30",
+        "合同编号": "KMX20991222-085", "项目名称": "合成竣工项目甲", "甲方名称": "合成客户甲",
+        "施工状态": "已完工", "开工时间": "2099-12-23 00:00:00", "完工日期": "2099-12-30",
         "含税合同金额": "45000", "材料费": "494.10", "交通费": "542.81",
         "生活住宿费": "1300", "其他费用": "56", "自有人工工时": "41",
-        "劳务人工工时": "17", "自有人工成本": "24098.85", "劳务人工成本": "9010",
-        "分摊管理费": "900", "成本合计": "42779.24", "毛利": "6120.76",
-        "现场成本取自": "红圈工时＋台账费用",
+        "劳务人工工时": "17", "项目过账实际": "11402.81", "项目应计": "24098.95",
+        "项目已发生成本": "35501.76",
+        "报表归类": {"material": "494.10", "travel": "542.81", "lodging": "1300",
+                  "other": "56", "own_labor": "24098.85", "subcontract_labor": "9010"},
+        "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT",
     }, {
-        "合同编号": "KMX20251222-086", "甲方名称": "乙公司",
-        "含税合同金额": "50000", "成本合计": "9000", "毛利": "41000",
+        "合同编号": "KMX20991222-086", "项目名称": "合成竣工项目乙", "甲方名称": "合成客户乙",
+        "含税合同金额": "50000", "项目过账实际": "9000", "项目应计": "0",
+        "项目已发生成本": "9000", "报表归类": {"other": "9000"},
+        "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT",
     }],
 }
 
 
 def _client(tmp_path: Path):
+    from openpyxl import Workbook  # noqa: PLC0415
+
+    payload = json.loads(json.dumps(SAMPLE, ensure_ascii=False))
+    workbook_path = tmp_path / "sealed-statement-source.xlsx"
+    book = Workbook()
+    book.active.title = "01_项目成本表"
+    for title in (
+        "02_成本明细",
+        "03_生命周期对照",
+        "04_收入与现金",
+        "05_来源与核销",
+        "06_差异与待确认",
+        "07_项目身份",
+        "08_运行说明",
+    ):
+        book.create_sheet(title)
+    book.save(workbook_path)
+    payload["封印工作簿"] = {
+        "文件名": workbook_path.name,
+        "SHA256": hashlib.sha256(workbook_path.read_bytes()).hexdigest(),
+        "字节数": workbook_path.stat().st_size,
+        "快照ID": payload["快照ID"],
+    }
     artifact = tmp_path / "recent_completed.json"
-    artifact.write_text(json.dumps(SAMPLE, ensure_ascii=False), encoding="utf-8")
+    artifact.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     sys.path.insert(0, str(BACKEND))
     os.environ["KMFA_RECENT_COST"] = str(artifact)
     import app.main as m  # noqa: PLC0415
@@ -80,7 +113,7 @@ def _client(tmp_path: Path):
     return TestClient(m.app, raise_server_exceptions=False)
 
 
-def _statement(tmp_path: Path, key: str = "KMX20251222-085"):
+def _statement(tmp_path: Path, key: str = "KMX20991222-085"):
     from openpyxl import load_workbook  # noqa: PLC0415
 
     r = _client(tmp_path).get("/项目成本/下载", params={"合同": key})
@@ -132,38 +165,31 @@ def test_the_amounts_land_on_the_pdfs_own_lines(tmp_path):
         ("2.1车票", 542.81),
         ("2.2住宿", 1300.00),
         ("（五）工资（承包费）支出", 9010.00),
-        ("三 1.1分摊的管理费用（合同的2%）", 900.00),
-        ("合计支出", 42779.24),
-        ("（七）毛利", 6120.76),
+        ("合计支出", 35501.76),
     ):
         got = data[label][0]
         assert got == expected, f"{label}：出的 {got}，应为 {expected}"
+    assert data["三 1.1分摊的管理费用（合同的2%）"][0] is None
+    assert data["（七）毛利"][0] is None
 
 
-def test_the_profit_share_uses_the_contract_as_denominator(tmp_path):
-    """**这条是逐行核对真 PDF 反推出来的，别改回去。**
-
-    支出各行以「合计支出」为分母（494.10/42,779.24 = 1.15%），
-    而（七）毛利以「合同额」为分母（6,120.76/45,000 = 13.60%）。
-    用合计支出会算成 14.31% —— 这是给银行/税务看的表，比例口径错了不行。
-    """
+def test_formal_cost_share_and_policy_blanks_are_explicit(tmp_path):
+    """成本占比以正式成本为分母；无依据的政策费与毛利既不算数也不伪装成 0。"""
     book, _ = _statement(tmp_path)
     _, data = _body(book["项目财务分析表"])
-    assert "13.60%" in (data["（七）毛利"][1] or ""), \
-        f"毛利比例分母错了：{data['（七）毛利'][1]}（14.31% = 用了合计支出）"
-    assert "1.15%" in (data["（一）原材料"][1] or "")
-    assert "2.10%" in (data["三 1.1分摊的管理费用（合同的2%）"][1] or "")
+    assert "1.39%" in (data["（一）原材料"][1] or "")
+    assert data["三 1.1分摊的管理费用（合同的2%）"][0] is None
+    assert "禁止" in (data["三 1.1分摊的管理费用（合同的2%）"][1] or "")
+    assert data["（七）毛利"][0] is None
+    assert "禁止" in (data["（七）毛利"][1] or "")
 
 
 def test_free_text_and_share_coexist_in_the_note(tmp_path):
-    """真 PDF：「（五）工资（承包费）支出 9,010.00 外协17个工 21.06%」——两者并存。
-
-    第一版写成「有文字就不算百分比」，于是（四）（五）两行的比例凭空消失了。
-    """
+    """工时说明与正式成本占比必须同时保留。"""
     book, _ = _statement(tmp_path)
     _, data = _body(book["项目财务分析表"])
     note = data["（五）工资（承包费）支出"][1] or ""
-    assert "17" in note and "21.06%" in note, f"文字与比例没并存：{note!r}"
+    assert "17" in note and "25.38%" in note, f"文字与比例没并存：{note!r}"
 
 
 def test_lines_i_have_no_data_for_stay_empty(tmp_path):
@@ -177,7 +203,7 @@ def test_lines_i_have_no_data_for_stay_empty(tmp_path):
 
 
 def test_money_never_silently_disappears(tmp_path):
-    """台账里的「其他费用」在模版里没有对应行——不能因此当它不存在。
+    """正式分类里的 ``other`` 在模板里没有对应行——不能因此当它不存在。
 
     它已经算进成本合计了；如果既不进任何小计、又不写明，
     表里的分项就永远加不出合计，而看表的人不知道差额去哪了。
@@ -186,19 +212,17 @@ def test_money_never_silently_disappears(tmp_path):
     _, data = _body(book["项目财务分析表"])
     site = data["（四）现场管理费"]
     assert site[0] == 25997.66, f"（四）小计没含其他费用：{site[0]}"
-    assert "其他费用" in (site[1] or ""), f"其他费用没在备注里交代：{site[1]!r}"
+    assert "正式成本 56.00" in (site[1] or ""), f"未细分成本没在备注里交代：{site[1]!r}"
 
 
 def test_the_second_level_subtotal_satisfies_the_templates_identity(tmp_path):
-    """模版恒等式：二、资金运用 + 三 项 = 合计支出。
-
-    真 PDF：41,832.76 + 900.00 + 46.48 = 42,779.24。
-    """
+    """无合格管理费/利息政策时，二、资金运用本身等于正式合计支出。"""
     book, _ = _statement(tmp_path)
     _, data = _body(book["项目财务分析表"])
     sec2 = data["二、资金运用及各项支出"][0]
     alloc = data["三 1.1分摊的管理费用（合同的2%）"][0] or 0
     interest = data["1.2占用的资金利息"][0] or 0
+    assert alloc == 0 and interest == 0
     assert round(sec2 + alloc + interest, 2) == data["合计支出"][0], \
         f"恒等式不成立：{sec2} + {alloc} + {interest} ≠ {data['合计支出'][0]}"
 
@@ -211,9 +235,9 @@ def test_the_header_block_copies_the_pdfs_fields(tmp_path):
         "\t".join("" if c is None else str(c) for c in row)
         for row in ws.iter_rows(min_row=1, max_row=8, values_only=True))
     for must in ("项目财务分析表", "项目名称：", "合同编号", "开工时间", "完工时间",
-                 "金额（元）", "备注", "池州恒鑫材料科技有限公司", "KMX20251222-085"):
+                 "金额（元）", "备注", "合成竣工项目甲", "KMX20991222-085"):
         assert must in text, f"表头缺「{must}」：\n{text}"
-    assert "2025/12/23" in text and "2025/12/30" in text, "日期没按模版的斜杠写法"
+    assert "2099/12/23" in text and "2099/12/30" in text, "日期没按模版的斜杠写法"
 
 
 def test_there_is_a_signature_line_like_the_pdf(tmp_path):
@@ -226,14 +250,14 @@ def test_there_is_a_signature_line_like_the_pdf(tmp_path):
     assert "项目经理" in tail and "日期" in tail, f"没有签字行：\n{tail}"
 
 
-def test_the_full_download_is_still_the_project_list_format(tmp_path):
-    """不带合同号的全量件仍是《生产项目状态表》的清单格式——两种格式各归其位。"""
+def test_the_full_download_is_the_canonical_sealed_format(tmp_path):
+    """不带合同号时直接返回 Skill 的 8 页签封印工作簿。"""
     from openpyxl import load_workbook  # noqa: PLC0415
 
     r = _client(tmp_path).get("/项目成本/下载")
     book = load_workbook(io.BytesIO(r.content))
-    assert book.sheetnames[0] == "信息表", f"全量件不该变成竖表：{book.sheetnames}"
-    assert [c.value for c in book["信息表"][1]][:3] == ["甲方名称", "省份", "合同号"]
+    assert book.sheetnames[0] == "01_项目成本表"
+    assert len(book.sheetnames) == 8
 
 
 def test_the_caliber_sheet_explains_where_each_number_came_from(tmp_path):
@@ -251,6 +275,6 @@ def test_the_caliber_sheet_explains_where_each_number_came_from(tmp_path):
 def test_the_filename_says_it_is_a_statement(tmp_path):
     _, r = _statement(tmp_path)
     disposition = r.headers.get("content-disposition", "")
-    assert "KMX20251222-085" in disposition
+    assert "KMX20991222-085" in disposition
     assert "statement" in disposition or "%E5%88%86%E6%9E%90%E8%A1%A8" in disposition, \
         f"文件名没体现这是分析表：{disposition}"

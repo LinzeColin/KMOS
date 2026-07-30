@@ -1,8 +1,9 @@
 """Fail-closed Cloudflare Access boundary for KMFA private operations.
 
-The public application shell lives at the root domain.  Existing operational
-APIs and diagnostics stay behind path-specific Cloudflare Access applications,
-and this middleware independently verifies the Access assertion at the origin.
+The public application shell lives at the root domain. Operational APIs,
+diagnostics, and project-cost financial pages stay behind path-specific
+Cloudflare Access applications, and this middleware independently verifies the
+Access assertion at the origin.
 """
 
 from __future__ import annotations
@@ -20,7 +21,13 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import Headers
 from starlette.responses import JSONResponse
 
-PRIVATE_PATH_ROOTS = ("/api", "/ops")
+PRIVATE_PATH_ROOTS = (
+    "/api",
+    "/ops",
+    "/项目成本",
+    "/public-api/项目成本",
+    "/public-api/项目成本表",
+)
 _DISABLED = frozenset({"0", "false", "no", "off"})
 
 
@@ -157,7 +164,7 @@ def _blocked(status_code: int, code: str) -> JSONResponse:
 
 
 class PrivateOperationsAccessMiddleware:
-    """Verify Access JWTs for ``/api`` and ``/ops`` when production enables it."""
+    """Verify Access JWTs for every configured private path root."""
 
     def __init__(self, app):
         self.app = app

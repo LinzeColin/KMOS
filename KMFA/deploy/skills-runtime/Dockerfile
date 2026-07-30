@@ -9,6 +9,7 @@ ENV TZ=Asia/Shanghai \
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       cron curl ca-certificates git openssh-client tzdata procps \
+      gh fonts-noto-cjk \
       tesseract-ocr tesseract-ocr-chi-sim libgomp1 libgl1 libglib2.0-0 \
  && rm -rf /var/lib/apt/lists/* \
  && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
@@ -16,7 +17,8 @@ RUN apt-get update \
 
 # 技能公共 Python 依赖（各技能自带 requirements 时在此汇总固定）
 # OCR（SKL.0005）：rapidocr(PP-OCRv4/onnxruntime) 为主，tesseract 兜底 —— 均有 linux-arm64 轮子
-RUN pip install --no-cache-dir openpyxl pyyaml requests \
+RUN pip install --no-cache-dir openpyxl pyyaml requests jsonschema \
+      reportlab pdfplumber msoffcrypto-tool \
       rapidocr-onnxruntime pillow pytesseract
 
 # SKL.0005：资金周报 OCR 用 Python 助手替换 swift Vision（主工具零改动，经此环境变量换引擎；
@@ -24,6 +26,7 @@ RUN pip install --no-cache-dir openpyxl pyyaml requests \
 # 部署后验收（代码已烧进镜像，无需卷挂载）：
 #   docker compose exec skills python3 /opt/kmfa/KMOS/KMFA/skills/资金周报/tools/ocr_with_python.py --selftest
 ENV KMFA_FUND_VISION_OCR_COMMAND="python3 /opt/kmfa/KMOS/KMFA/skills/资金周报/tools/ocr_with_python.py"
+ENV KMFA_CJK_FONT="/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
 
 # build context = 仓根（compose）。运行脚本按仓根路径 COPY 到 /opt/runtime。
 COPY KMFA/deploy/skills-runtime/install_dws.sh KMFA/deploy/skills-runtime/dws.sha256.lock* /opt/runtime/

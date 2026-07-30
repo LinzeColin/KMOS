@@ -24,7 +24,7 @@ import build_recent_completed as B  # noqa: E402
 
 
 def _record(**kw):
-    base = {"合同编号": "KMX2026112-002", "含税合同金额": "91000",
+    base = {"合同编号": "KMX2099112-902", "含税合同金额": "91000",
             "材料费": "", "交通费": "", "生活住宿费": "2800", "其他费用": ""}
     base.update(kw)
     return base
@@ -76,7 +76,7 @@ def test_placeholder_contracts_are_not_projects():
 
 def test_a_real_contract_is_not_caught_by_the_placeholder_filter():
     """别把 KMX9999 的前缀匹配扩大到真合同号上。"""
-    for real in ("KMX2026112-002", "KMX20251119-079", "KMX202595-064"):
+    for real in ("KMX2099112-902", "KMX20991119-979", "KMX2099995-964"):
         assert B.norm_contract(real) not in B.PLACEHOLDER_CONTRACTS
 
 

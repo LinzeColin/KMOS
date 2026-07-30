@@ -9,10 +9,12 @@ public_root_files:
   - SKILL.md
   - TRACEABILITY_MATRIX.csv
   - VERSION
+  - OPERATIONAL_VERSION
   - formula_registry.yaml
   - governance.yaml
   - model_registry.yaml
   - parameter_registry.csv
+  - requirements.txt
 
 public_roots:
   - agents
@@ -57,4 +59,4 @@ forbidden_content_patterns:
   - pattern_id: private_source_root_token
     regex: '[K]MFA_MetaData'
   - pattern_id: real_project_code_shape
-    regex: '\b[K]MX[0-9]{6,}(?:-[0-9]{3})?\b'
+    regex: '\b[K]MX20(?:1[0-9]|2[0-9]|3[0-5])[0-9]{4,}(?:-[0-9]{3})?\b'

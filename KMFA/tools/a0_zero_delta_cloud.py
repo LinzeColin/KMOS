@@ -12,6 +12,7 @@
 铁律:真实金额只在运行内存/私有库;stdout 与产物只出 public-safe(差额率/通过与否/方法),零金额。
 """
 import json, subprocess, sys, tempfile, os, collections
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from pathlib import Path
 
 REPO = "LinzeColin/Private-Database"
@@ -26,8 +27,13 @@ def fetch(area, obj_path, out):
 
 def cents(x):
     try:
-        return int(round(float(x) * 100))
-    except Exception:
+        return int(
+            (Decimal(str(x)) * Decimal(100)).quantize(
+                Decimal(1),
+                rounding=ROUND_HALF_UP,
+            )
+        )
+    except (InvalidOperation, TypeError, ValueError):
         return 0
 
 

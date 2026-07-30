@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
-"""免登录项目成本接口。
+"""项目成本接口的受控应用路由。
 
-Owner 2026-07-28：「kmfa 没有登录的地方」「取消登陆功能」。
-
-`/api/项目成本/完工` 在 Cloudflare Access 后面，未登录是 302 跳登录墙，而 Access 应用
-配在 Owner 的控制台里、本仓改不掉。所以出口挪到既有的匿名面 `/public-api/*`。
+路由名因历史兼容仍保留 `/public-api/*`，生产由 origin guard 与 Cloudflare
+Access 双重保护；本文件在未启用 guard 的本地开发模式测试业务响应。
 
 这组测试钉死三件事：
-  · 它必须真的在匿名面上——挪回 `/api/*` 就等于登录墙又回来了；
+  · 历史兼容路由必须保留；
   · 读不到要说读不到，不能拿空列表冒充「没有项目」；
-  · 数必须原样出，不能因为「公开」就悄悄砍字段——砍了页面就少一块，且没人会发现。
+  · 正式成本及独立观察面必须原样出，不能因为「公开」就悄悄砍字段。
 """
 import json
+import hashlib
 
 from fastapi.testclient import TestClient
 
@@ -22,27 +21,58 @@ client = TestClient(app)
 URL = "/public-api/项目成本"
 
 SAMPLE = {
-    "schema_version": "kmfa.project_cost.recent_completed.v1",
-    "口径": {"业务台账": "红圈自填四项", "金蝶归集": "按销售合同号归集"},
-    "锁定的算法": ["账簿按名去重", "取借方发生额而非净额"],
+    "schema_version": "kmfa.project_cost.current.v3",
+    "快照ID": "kmfa-pc-2099-api",
+    "计算状态": "PASS",
+    "待确认": {
+        "状态": "PASS",
+        "P0阻断数": 0,
+        "P1开放复核数": 0,
+        "P2已排除或提示数": 0,
+    },
+    "口径": {
+        "正式成本": "项目已发生成本＝项目过账实际＋合格应计",
+        "独立观察面": "主营成本、状态表、支付系统不并入正式成本",
+    },
+    "锁定的算法": ["原始凭证明细去重", "工资应计最大余数法守恒到分"],
     "项目数": 1,
+    "封印来源": {
+        "源码摘要算法": "kmfa.project_cost.subject_tree.v1",
+        "源码SHA256": "a" * 64,
+        "源码文件数": 1,
+        "输入清单类型": "PRIVATE_MANIFEST_SHA256",
+        "输入清单SHA256": "b" * 64,
+        "私有输入清单SHA256": "b" * 64,
+        "选中来源绑定SHA256": "c" * 64,
+    },
     "项目": [{
-        "合同编号": "KMX20251119-079", "甲方名称": "某水泥", "完工日期": "2026-03-07",
-        "含税合同金额": "228900.00", "业务台账成本合计": "27174.04",
-        "金蝶归集直接成本": "64653.90", "两口径差额": "37479.86",
+        "合同编号": "KMX20990101-001", "甲方名称": "合成客户甲", "完工日期": "2099-01-31",
+        "含税合同金额": "100000.00", "项目过账实际": "1234.56",
+        "项目应计": "765.44", "项目已发生成本": "2000.00",
+        "主营成本已结转": "321.00", "状态表已报直接成本": "654.00",
+        "支付系统已付观察": None,
+        "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT",
     }],
 }
 
 
-def _write(tmp_path, monkeypatch, payload=SAMPLE):
+def _write(tmp_path, monkeypatch, payload=None):
+    payload = json.loads(json.dumps(payload or SAMPLE, ensure_ascii=False))
+    workbook = tmp_path / "sealed-api.xlsx"
+    workbook.write_bytes(b"synthetic sealed workbook")
+    payload["封印工作簿"] = {
+        "文件名": workbook.name,
+        "SHA256": hashlib.sha256(workbook.read_bytes()).hexdigest(),
+        "字节数": workbook.stat().st_size,
+        "快照ID": payload["快照ID"],
+    }
     path = tmp_path / "recent_completed.json"
     path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     monkeypatch.setattr(main, "RECENT_COST_PATH", path)
     return path
 
 
-def test_lives_on_the_anonymous_surface():
-    """路由前缀就是这个改动的全部意义——挪回 /api/ 登录墙就又回来了。"""
+def test_keeps_the_legacy_compatible_route():
     paths = {route.path for route in app.routes if hasattr(route, "path")}
     assert URL in paths
     assert URL.startswith("/public-api/")
@@ -64,23 +94,55 @@ def test_unparseable_artifact_is_reported_not_swallowed(tmp_path, monkeypatch):
     assert body["可读"] is False and "无法解析" in body["原因"]
 
 
+def test_legacy_runtime_schema_is_rejected_instead_of_reinterpreted(
+    tmp_path,
+    monkeypatch,
+):
+    legacy = json.loads(json.dumps(SAMPLE, ensure_ascii=False))
+    legacy["schema_version"] = "kmfa.project_cost.recent_completed.v2"
+    _write(tmp_path, monkeypatch, legacy)
+    response = client.get(URL)
+    assert response.status_code == 503
+    body = response.json()
+    assert body["可读"] is False
+    assert body["项目"] == []
+    assert "版本不兼容" in body["原因"]
+
+
+def test_runtime_without_sealed_source_binding_is_rejected(
+    tmp_path,
+    monkeypatch,
+):
+    unbound = json.loads(json.dumps(SAMPLE, ensure_ascii=False))
+    unbound.pop("封印来源")
+    _write(tmp_path, monkeypatch, unbound)
+    response = client.get(URL)
+    assert response.status_code == 503
+    body = response.json()
+    assert body["可读"] is False
+    assert body["项目"] == []
+    assert "版本不兼容" in body["原因"]
+
+
 def test_serves_the_same_payload_as_the_gated_route(tmp_path, monkeypatch):
-    """公开面不是删减面：两个口径、差额、口径与算法锁都必须原样在。"""
+    """公开面不是删减面：正式口径、观察面、覆盖与算法锁都必须原样在。"""
     _write(tmp_path, monkeypatch)
     body = client.get(URL).json()
     assert body["可读"] is True
     row = body["项目"][0]
-    assert row["业务台账成本合计"] == "27174.04"
-    assert row["金蝶归集直接成本"] == "64653.90"
-    assert "两口径差额" in row
-    assert body["口径"]["业务台账"] and body["锁定的算法"]
+    assert row["项目过账实际"] == "1234.56"
+    assert row["项目应计"] == "765.44"
+    assert row["项目已发生成本"] == "2000.00"
+    assert row["主营成本已结转"] == "321.00"
+    assert row["状态表已报直接成本"] == "654.00"
+    assert row["项目成本覆盖"]
+    assert body["口径"]["正式成本"] and body["锁定的算法"]
     assert body["产出时间"]
 
 
-def test_declares_it_needs_no_login(tmp_path, monkeypatch):
-    """页面靠这个字段决定要不要弹「请先登录」——它错了，人就被挡在门外。"""
+def test_declares_that_production_access_is_required(tmp_path, monkeypatch):
     _write(tmp_path, monkeypatch)
-    assert client.get(URL).json()["需要登录"] is False
+    assert client.get(URL).json()["需要登录"] is True
 
 
 def test_is_not_indexable_and_not_cached(tmp_path, monkeypatch):

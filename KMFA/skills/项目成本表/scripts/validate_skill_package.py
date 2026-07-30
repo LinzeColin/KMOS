@@ -62,6 +62,7 @@ def _validate_schemas(findings: list[Dict[str, str]]) -> None:
         "performance_budget.schema.json",
         "performance_summary.schema.json",
         "input_sufficiency_report.schema.json",
+        "operational_private_input_manifest.schema.json",
         "run_manifest.schema.json",
         "output_index.schema.json",
     }
@@ -98,10 +99,22 @@ def validate_package(*, working_tree: bool, staged: bool, repo_root: Path | None
         version = (MODULE_ROOT / "VERSION").read_text(encoding="utf-8").strip()
     except (OSError, UnicodeError):
         version = ""
+    try:
+        operational_version = (
+            MODULE_ROOT / "OPERATIONAL_VERSION"
+        ).read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeError):
+        operational_version = ""
     governance = _read_yaml(MODULE_ROOT / "governance.yaml", findings)
     models = _read_yaml(MODULE_ROOT / "model_registry.yaml", findings)
     formulas = _read_yaml(MODULE_ROOT / "formula_registry.yaml", findings)
     _add(findings, version == "0.2.0", "RELEASE_VERSION", "VERSION")
+    _add(
+        findings,
+        operational_version == "0.0.5",
+        "OPERATIONAL_RELEASE_VERSION",
+        "OPERATIONAL_VERSION",
+    )
     _add(findings, governance.get("task_pack_version") == "1.2.0", "TASK_PACK_VERSION", "governance.yaml")
     _add(findings, governance.get("product_version") == version, "GOVERNANCE_VERSION", "governance.yaml")
     run_status = governance.get("run_status")
@@ -153,6 +166,10 @@ def validate_package(*, working_tree: bool, staged: bool, repo_root: Path | None
     _add(findings, req17.get("run_id") == "R12" and req17.get("status") == "IMPLEMENTED_R12", "PERFORMANCE_TRACEABILITY", "TRACEABILITY_MATRIX.csv:REQ-017")
     skill_text = (MODULE_ROOT / "SKILL.md").read_text(encoding="utf-8")
     for token, code in (
+        ("OPERATIONAL_0_0_5", "SKILL_OPERATIONAL_STATUS"),
+        ("run_operational_report.py calculate", "SKILL_OPERATIONAL_ENTRY"),
+        ("项目已发生成本 = 项目过账实际 + 合格应计", "SKILL_FORMAL_FORMULA"),
+        ("参考报表补差", "SKILL_REFERENCE_ISOLATION"),
         ("RELEASED_0_2_0_FAIL_CLOSED", "SKILL_RELEASE_STATUS"),
         ("输入充分性", "SKILL_INPUT_PREFLIGHT"),
         ("绝对", "SKILL_OUTPUT_LOCATOR"),
@@ -202,6 +219,7 @@ def validate_package(*, working_tree: bool, staged: bool, repo_root: Path | None
         "schema_version": "kmfa.project_cost.package_validation.v1",
         "status": "PASS" if not ordered else "FAILED",
         "product_version": version,
+        "operational_version": operational_version,
         "task_pack_version": governance.get("task_pack_version"),
         "r12_status": run_status.get("R12") if isinstance(run_status, dict) else None,
         "global_install_status": run_status.get("GLOBAL_INSTALL") if isinstance(run_status, dict) else None,

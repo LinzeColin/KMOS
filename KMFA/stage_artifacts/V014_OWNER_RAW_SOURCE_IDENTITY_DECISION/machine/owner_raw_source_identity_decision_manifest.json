@@ -11,23 +11,23 @@
       "GITHUB_UPLOAD_BLOCKED_BY_RAW_ALIGNMENT",
       "APP_REINSTALL_BLOCKED_BY_RAW_ALIGNMENT"
     ],
-    "business_member_count": 9,
-    "business_shape_matches_expected_a0": true,
+    "business_member_count": 0,
+    "business_shape_matches_expected_a0": false,
     "package_hash_matches_registered": false,
     "package_size_matches_registered": false,
-    "private_member_hashes_recorded": true,
+    "private_member_hashes_recorded": false,
     "public_member_hash_backfill_allowed": false,
     "raw_alignment_complete": false,
-    "raw_root_archive_count": 3,
-    "raw_root_file_count": 5,
-    "raw_root_spreadsheet_count": 2,
-    "selected_candidate_count": 1,
+    "raw_root_archive_count": 1,
+    "raw_root_file_count": 2,
+    "raw_root_spreadsheet_count": 0,
+    "selected_candidate_count": 0,
     "source_decision": "NO_GO",
     "source_phase_id": "V014_RAW_ALIGNMENT_REMEDIATION",
     "source_status": "raw_alignment_remediation_reported_no_go_owner_source_identity_required",
     "source_task_id": "KMFA-V014-RAW-ALIGNMENT-REMEDIATION-20260705"
   },
-  "branch": "feat/project-cost-full-ledger",
+  "branch": "",
   "evidence_refs": [
     "KMFA/stage_artifacts/V014_OWNER_RAW_SOURCE_IDENTITY_DECISION/human/owner_raw_source_identity_decision_report.md",
     "KMFA/stage_artifacts/V014_OWNER_RAW_SOURCE_IDENTITY_DECISION/human/owner_decision_request.md",
@@ -140,7 +140,7 @@
     "zip_member_names_committed": false
   },
   "remote": "git@github.com:LinzeColin/KMOS.git",
-  "reviewed_head": "502cf875ca17fffc7c669e5eb27d04a7a9ac4e32",
+  "reviewed_head": "0cf941c73fac51df2b36f10a119b94b15eacdf79",
   "schema_version": "kmfa.v014_owner_raw_source_identity_decision.v1",
   "status": "owner_raw_source_identity_decision_intake_ready_no_active_decision_no_go",
   "task_id": "KMFA-V014-OWNER-RAW-SOURCE-IDENTITY-DECISION-20260705",
@@ -161,5 +161,5 @@
     "yaml_parse_checks": "PENDING_FINAL_VALIDATION"
   },
   "version": "0.1.4",
-  "worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-项目成本全量"
+  "worktree": "/Users/linzezhang/.codex/worktrees/2e3f/KMOS"
 }

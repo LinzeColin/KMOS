@@ -16,10 +16,10 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
+        description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
         required: true
         type: choice
-        options: [list, flags, set-flag, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, logs, exec]
+        options: [list, flags, set-flag, sync-access-aud, sync-project-cost-secrets, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, logs, exec]
       app_uuid:
         description: "目标应用 uuid（provision-backup-key / redeploy 必填；先用 list 查）"
         required: false
@@ -251,6 +251,174 @@ jobs:
               -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
               --data @"$RUNNER_TEMP/f.json" "$BASE/api/v1/applications/$APP/envs" || true)
           echo "$FK = $FV → 返回码 $c"
+
+      # Access Application Audience tag 不是凭据，但它决定源站接受哪一个
+      # Cloudflare Access 应用签发的 JWT。项目成本页面/API 使用两个更具体的
+      # Access 应用，必须与既有 /api、/ops audience 一并写入；同名多份时
+      # Coolify 的取值顺序不稳定，所以这里沿用「全删、重建一条、回读」。
+      - name: 同步 Cloudflare Access audiences（去重并回读）
+        if: inputs.mode == 'sync-access-aud'
+        env:
+          AUDS: ${{ inputs.flag_value }}
+        run: |
+          set -euo pipefail
+          test -n "${APP:-}" || { echo "需要 app_uuid"; exit 1; }
+          python3 - <<'PY'
+          import os, re, sys
+          values = [part.strip() for part in os.environ.get("AUDS", "").split(",")]
+          if len(values) != 3 or len(set(values)) != 3:
+              print("需要 3 个互不重复的 audience，以逗号分隔。")
+              sys.exit(1)
+          if any(re.fullmatch(r"[a-f0-9]{64}", value) is None for value in values):
+              print("audience 格式错误；每项必须是 64 位小写十六进制。")
+              sys.exit(1)
+          PY
+          echo "::add-mask::$AUDS"
+          curl -fsSL -H "Authorization: Bearer $TOKEN" \
+            "$BASE/api/v1/applications/$APP/envs" -o "$RUNNER_TEMP/e.json"
+          python3 - > "$RUNNER_TEMP/targets.txt" <<'PY'
+          import json, os
+          data = json.load(open(
+              os.path.join(os.environ["RUNNER_TEMP"], "e.json"),
+              encoding="utf-8",
+          ))
+          envs = data if isinstance(data, list) else data.get("data") or []
+          for item in envs:
+              if str(item.get("key")) == "KMFA_CLOUDFLARE_ACCESS_AUD":
+                  print(item.get("uuid") or "")
+          PY
+          while IFS= read -r uuid; do
+            [ -n "$uuid" ] || continue
+            code=$(curl -sS -o /dev/null -w '%{http_code}' -X DELETE \
+              -H "Authorization: Bearer $TOKEN" \
+              "$BASE/api/v1/applications/$APP/envs/$uuid" || true)
+            [ "$code" = "200" ] || [ "$code" = "204" ] || {
+              echo "删除旧 audience 条目失败：HTTP $code"; exit 1; }
+          done < "$RUNNER_TEMP/targets.txt"
+          python3 - <<'PY' > "$RUNNER_TEMP/payload.json"
+          import json, os
+          print(json.dumps({
+              "key": "KMFA_CLOUDFLARE_ACCESS_AUD",
+              "value": os.environ["AUDS"],
+          }))
+          PY
+          code=$(curl -sS -o "$RUNNER_TEMP/post.out" -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            --data @"$RUNNER_TEMP/payload.json" \
+            "$BASE/api/v1/applications/$APP/envs" || true)
+          [ "$code" = "200" ] || [ "$code" = "201" ] || {
+            echo "重建 audience 条目失败：HTTP $code"; exit 1; }
+          curl -fsSL -H "Authorization: Bearer $TOKEN" \
+            "$BASE/api/v1/applications/$APP/envs" -o "$RUNNER_TEMP/after.json"
+          python3 - <<'PY'
+          import json, os, sys
+          data = json.load(open(
+              os.path.join(os.environ["RUNNER_TEMP"], "after.json"),
+              encoding="utf-8",
+          ))
+          envs = data if isinstance(data, list) else data.get("data") or []
+          values = [
+              item.get("value")
+              for item in envs
+              if str(item.get("key")) == "KMFA_CLOUDFLARE_ACCESS_AUD"
+          ]
+          if values != [os.environ["AUDS"]]:
+              print("回读失败：audience 条目不是唯一且精确的目标值。")
+              sys.exit(1)
+          print("KMFA_CLOUDFLARE_ACCESS_AUD 已唯一写入并精确回读（值已隐藏）。")
+          PY
+
+      - name: 同步项目成本私有只读源与工资密码（去重并回读）
+        if: inputs.mode == 'sync-project-cost-secrets'
+        env:
+          PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_DB_TOKEN }}
+          PAYROLL_PASSWORD: ${{ secrets.KMFA_PAYROLL_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "${APP:-}" || { echo "需要 app_uuid"; exit 1; }
+          test -n "${PRIVATE_READ_TOKEN:-}" || {
+            echo "仓库缺 PRIVATE_DB_TOKEN（Private-Database contents:read）"; exit 1; }
+          test -n "${PAYROLL_PASSWORD:-}" || {
+            echo "仓库缺 KMFA_PAYROLL_PASSWORD"; exit 1; }
+          echo "::add-mask::$PRIVATE_READ_TOKEN"
+          echo "::add-mask::$PAYROLL_PASSWORD"
+          curl -fsSL -H "Authorization: Bearer $TOKEN" \
+            "$BASE/api/v1/applications/$APP/envs" -o "$RUNNER_TEMP/e.json"
+          python3 - > "$RUNNER_TEMP/targets.txt" <<'PY'
+          import json, os
+          data = json.load(open(
+              os.path.join(os.environ["RUNNER_TEMP"], "e.json"),
+              encoding="utf-8",
+          ))
+          envs = data if isinstance(data, list) else data.get("data") or []
+          target = {"KMFA_PRIVATE_DB_READ_TOKEN", "KMFA_PAYROLL_PASSWORD"}
+          for item in envs:
+              if str(item.get("key")) in target:
+                  print(item.get("uuid") or "")
+          PY
+          while IFS= read -r uuid; do
+            [ -n "$uuid" ] || continue
+            code=$(curl -sS -o /dev/null -w '%{http_code}' -X DELETE \
+              -H "Authorization: Bearer $TOKEN" \
+              "$BASE/api/v1/applications/$APP/envs/$uuid" || true)
+            [ "$code" = "200" ] || [ "$code" = "204" ] || {
+              echo "删除旧项目成本 secret 条目失败：HTTP $code"; exit 1; }
+          done < "$RUNNER_TEMP/targets.txt"
+          python3 - <<'PY' > "$RUNNER_TEMP/payloads.json"
+          import json, os
+          print(json.dumps([
+              {
+                  "key": "KMFA_PRIVATE_DB_READ_TOKEN",
+                  "value": os.environ["PRIVATE_READ_TOKEN"],
+              },
+              {
+                  "key": "KMFA_PAYROLL_PASSWORD",
+                  "value": os.environ["PAYROLL_PASSWORD"],
+              },
+          ]))
+          PY
+          python3 - <<'PY' > "$RUNNER_TEMP/payload-lines.jsonl"
+          import json, os
+          for item in json.load(open(
+              os.path.join(os.environ["RUNNER_TEMP"], "payloads.json"),
+              encoding="utf-8",
+          )):
+              print(json.dumps(item))
+          PY
+          while IFS= read -r payload; do
+            printf '%s\n' "$payload" > "$RUNNER_TEMP/payload.json"
+            code=$(curl -sS -o "$RUNNER_TEMP/post.out" -w '%{http_code}' -X POST \
+              -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" \
+              --data @"$RUNNER_TEMP/payload.json" \
+              "$BASE/api/v1/applications/$APP/envs" || true)
+            [ "$code" = "200" ] || [ "$code" = "201" ] || {
+              echo "重建项目成本 secret 条目失败：HTTP $code"; exit 1; }
+          done < "$RUNNER_TEMP/payload-lines.jsonl"
+          curl -fsSL -H "Authorization: Bearer $TOKEN" \
+            "$BASE/api/v1/applications/$APP/envs" -o "$RUNNER_TEMP/after.json"
+          python3 - <<'PY'
+          import json, os, sys
+          data = json.load(open(
+              os.path.join(os.environ["RUNNER_TEMP"], "after.json"),
+              encoding="utf-8",
+          ))
+          envs = data if isinstance(data, list) else data.get("data") or []
+          expected = {
+              "KMFA_PRIVATE_DB_READ_TOKEN": os.environ["PRIVATE_READ_TOKEN"],
+              "KMFA_PAYROLL_PASSWORD": os.environ["PAYROLL_PASSWORD"],
+          }
+          for key, value in expected.items():
+              rows = [
+                  item.get("value")
+                  for item in envs
+                  if str(item.get("key")) == key
+              ]
+              if rows != [value]:
+                  print(f"{key} 回读失败：条目不是唯一且精确的目标值。")
+                  sys.exit(1)
+          print("项目成本两个 secret 已唯一写入并精确回读（值已隐藏）。")
+          PY
 
       - name: 测试期安全态——清空群机器人 + 关投递（去重后重写，杜绝同名残留）
         if: inputs.mode == 'testing-safe-mode'

@@ -2,7 +2,7 @@
   "acceptance_ids": [
     "ACC-V014-RAW-ALIGNMENT-REMEDIATION"
   ],
-  "branch": "feat/project-cost-full-ledger",
+  "branch": "",
   "evidence_refs": [
     "KMFA/stage_artifacts/V014_RAW_ALIGNMENT_REMEDIATION/human/raw_alignment_remediation_report.md",
     "KMFA/stage_artifacts/V014_RAW_ALIGNMENT_REMEDIATION/human/go_no_go_record.md",
@@ -115,7 +115,7 @@
     "selected_candidate_count": 0
   },
   "remote": "git@github.com:LinzeColin/KMOS.git",
-  "reviewed_head": "502cf875ca17fffc7c669e5eb27d04a7a9ac4e32",
+  "reviewed_head": "0cf941c73fac51df2b36f10a119b94b15eacdf79",
   "schema_version": "kmfa.v014_raw_alignment_remediation.v1",
   "status": "raw_alignment_remediation_reported_no_go_owner_source_identity_required",
   "task_id": "KMFA-V014-RAW-ALIGNMENT-REMEDIATION-20260705",
@@ -132,5 +132,5 @@
     "secret_scan": "PENDING_FINAL_VALIDATION"
   },
   "version": "0.1.4",
-  "worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/kmos-项目成本全量"
+  "worktree": "/Users/linzezhang/.codex/worktrees/2e3f/KMOS"
 }

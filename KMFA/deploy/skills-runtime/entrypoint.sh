@@ -31,9 +31,10 @@ if [ ! -f "$SECRETS" ]; then
            KMFA_ALERT_WEBHOOK_TOKEN KMFA_DELIVERY_ENABLED \
            KMFA_BACKUP_GH_TOKEN KMFA_NOTIFICATION_TARGETS \
            KMFA_DINGTALK_ATTENDANCE_ALLOW_DWS_COMMANDS \
-           KMFA_ATTENDANCE_RUNTIME_DIR; do
+           KMFA_ATTENDANCE_RUNTIME_DIR \
+           KMFA_PRIVATE_DB_READ_TOKEN KMFA_PAYROLL_PASSWORD; do
     v="$(printenv "$k" 2>/dev/null || true)"
-    [ -n "$v" ] && printf '%s=%s\n' "$k" "$v" >> "$TMP_ENV"
+    [ -n "$v" ] && printf '%s=%q\n' "$k" "$v" >> "$TMP_ENV"
   done
   if [ -s "$TMP_ENV" ]; then
     install -m 600 "$TMP_ENV" "$SECRETS"
@@ -54,6 +55,8 @@ else
 fi
 
 mkdir -p /var/log/kmfa
+mkdir -p /var/log/kmfa/project_cost
+date +%s > /var/log/kmfa/project_cost/.container_started_at
 
 # App 状态面备份的部署密钥：Coolify 传 base64 单行（私钥多行且含敏感内容，不宜进 cron.d 0644）。
 # 这里在启动时解到 600 文件，只把**路径**给 cron —— 密钥本体不落 cron.d、不进日志。
@@ -156,10 +159,8 @@ touch /var/log/kmfa/cron.log /var/log/kmfa/ledger.jsonl
 # 部署上去，页面还在显示旧算法的旧结果，要等次日 05:45 才更新。
 # Owner 2026-07-28：「项目成本是实时更新的」「不允许等待自然时间，那会浪费搁置很多时间」。
 # 重算一次的代价是一次稀疏克隆＋一遍账簿，几分钟；显示一天旧数的代价是决策用错数。
-if [ -f /opt/kmfa/secrets/kmfa_backup_deploy_key ]; then
-  echo "$(date -Is) entrypoint: 冷启动重算项目成本（后台，每次部署都算）" >> /var/log/kmfa/cron.log
-  ( /opt/runtime/run_skill.sh project-cost-refresh >> /var/log/kmfa/cron.log 2>&1 || true ) &
-fi
+echo "$(date -Is) entrypoint: 冷启动重算项目成本（后台，每次部署都算）" >> /var/log/kmfa/cron.log
+( /opt/runtime/run_skill.sh project-cost-refresh >> /var/log/kmfa/cron.log 2>&1 || true ) &
 
 # dws 数据授权请求：**自愈**，判据在技能内部。
 #
@@ -211,7 +212,8 @@ fi
   # 第一版做成「部署后一口气把 13 个技能全跑一遍」。**当天把线上打下线三次**，
   # 最长一次 5.5 分钟，恢复后又掉；私有库台账证实掉线期间压测正在跑。
   # 加 nice -n 19、把间隔从 5s 拉到 20s **都不够**——所以不是调参能解决的，
-  # 是形状不对：这台机器 3.7GB，而压测里 project-cost-refresh 要克隆私有库
+  # 是形状不对：这台机器 3.7GB，而压测里 project-cost-refresh 要免 clone
+  # 下载并解析私有清单内全部文件
   # 解析上千张表、self-audit 要 tar 整个仓。
   #
   # 关键在于：**单跑一个技能是正常负载**，排程本来天天就在这么跑；

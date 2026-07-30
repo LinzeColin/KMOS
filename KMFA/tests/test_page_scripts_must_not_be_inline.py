@@ -30,6 +30,7 @@
 from __future__ import annotations
 
 import importlib
+import hashlib
 import json
 import os
 import re
@@ -44,12 +45,38 @@ SRC_ATTR = re.compile(r"""\bsrc\s*=\s*["']([^"']+)["']""", re.I)
 
 
 def _client(tmp_path: Path):
+    workbook = tmp_path / "sealed-page-script.xlsx"
+    workbook.write_bytes(b"synthetic sealed workbook")
     artifact = tmp_path / "recent_completed.json"
     artifact.write_text(
         json.dumps(
-            {"生成时间": "2026-07-29T09:00:00+08:00",
-             "项目": [{"合同编号": "KMX2026001-001", "甲方名称": "甲公司",
-                       "含税合同金额": "100000", "成本合计": "47000", "毛利": "53000"}]},
+            {"schema_version": "kmfa.project_cost.current.v3",
+             "生成时间": "2026-07-29T09:00:00+08:00",
+             "快照ID": "kmfa-pc-2099-script",
+             "计算状态": "PASS",
+             "项目数": 1,
+             "封印来源": {
+                 "源码摘要算法": "kmfa.project_cost.subject_tree.v1",
+                 "源码SHA256": "a" * 64,
+                 "源码文件数": 1,
+                 "输入清单类型": "PRIVATE_MANIFEST_SHA256",
+                 "输入清单SHA256": "b" * 64,
+                 "私有输入清单SHA256": "b" * 64,
+                 "选中来源绑定SHA256": "c" * 64,
+             },
+             "待确认": {"状态": "PASS", "P0阻断数": 0,
+                      "P1开放复核数": 0, "P2已排除或提示数": 0},
+             "封印工作簿": {
+                 "文件名": workbook.name,
+                 "SHA256": hashlib.sha256(workbook.read_bytes()).hexdigest(),
+                 "字节数": workbook.stat().st_size,
+                 "快照ID": "kmfa-pc-2099-script",
+             },
+             "项目": [{"合同编号": "KMX2099001-001", "项目名称": "合成项目甲",
+                       "甲方名称": "合成客户甲", "含税合同金额": "100000",
+                       "项目过账实际": "40000", "项目应计": "7000",
+                       "项目已发生成本": "47000",
+                       "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT"}]},
             ensure_ascii=False),
         encoding="utf-8")
     sys.path.insert(0, str(BACKEND))

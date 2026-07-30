@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kmfa.invalid/schemas/operational_private_input_manifest.schema.json",
+  "title": "KMFA project cost operational private inputs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operational_version",
+    "files",
+    "run",
+    "expected_controls"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "kmfa.project_cost.operational_private_inputs.v1"
+    },
+    "operational_version": {
+      "const": "0.0.5"
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "repo_path",
+          "local_path",
+          "sha256",
+          "size_bytes",
+          "role"
+        ],
+        "properties": {
+          "repo_path": {"type": "string", "minLength": 1},
+          "local_path": {"type": "string", "minLength": 1},
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size_bytes": {"type": "integer", "minimum": 0},
+          "role": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "year",
+        "as_of",
+        "data_root",
+        "ocr_path",
+        "payroll_paths",
+        "attendance_roots"
+      ],
+      "properties": {
+        "year": {"type": "integer", "minimum": 2000, "maximum": 2100},
+        "as_of": {
+          "type": "string",
+          "pattern": "^20[0-9]{2}-[0-9]{2}-[0-9]{2}$"
+        },
+        "data_root": {"type": "string", "minLength": 1},
+        "ocr_path": {"type": "string", "minLength": 1},
+        "payroll_paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "attendance_roots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "expected_controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_count",
+        "event_count",
+        "job_cost_total_cents",
+        "gl_recognized_cogs_total_cents",
+        "ledger_selected_book_count",
+        "qualified_accrual_event_count",
+        "labor_wage_component_event_count",
+        "p0_review_count",
+        "p1_review_count",
+        "p2_review_count",
+        "ledger_stale_entity_count",
+        "ledger_minimum_period_end",
+        "ledger_maximum_period_end"
+      ],
+      "properties": {
+        "project_count": {"type": "integer", "minimum": 1},
+        "event_count": {"type": "integer", "minimum": 0},
+        "job_cost_total_cents": {"type": "integer"},
+        "gl_recognized_cogs_total_cents": {"type": "integer"},
+        "ledger_selected_book_count": {"type": "integer", "minimum": 1},
+        "qualified_accrual_event_count": {"type": "integer", "minimum": 0},
+        "labor_wage_component_event_count": {"type": "integer", "minimum": 0},
+        "p0_review_count": {"const": 0},
+        "p1_review_count": {"type": "integer", "minimum": 0},
+        "p2_review_count": {"type": "integer", "minimum": 0},
+        "ledger_stale_entity_count": {"type": "integer", "minimum": 0},
+        "ledger_minimum_period_end": {
+          "type": "string",
+          "pattern": "^20[0-9]{2}-(0[1-9]|1[0-2])$"
+        },
+        "ledger_maximum_period_end": {
+          "type": "string",
+          "pattern": "^20[0-9]{2}-(0[1-9]|1[0-2])$"
+        }
+      }
+    }
+  }
+}

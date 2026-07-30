@@ -1,8 +1,8 @@
 {
   "acceptance_id": "ACC-V014-PROCESSED-VALUE-SOURCE-MAP-COMPLETION-FULL-RECONCILIATION-BLOCKER-AUDIT",
   "generated_at": "2026-07-06T00:00:00+10:00",
-  "git_branch": "fix/lineage-buildable-without-duckdb",
-  "git_head": "b33e96aca9effeae2576e9ecabc426d1166c21f9",
+  "git_branch": "",
+  "git_head": "0cf941c73fac51df2b36f10a119b94b15eacdf79",
   "go_no_go": {
     "acceptance_id": "ACC-V014-PROCESSED-VALUE-SOURCE-MAP-COMPLETION-FULL-RECONCILIATION-BLOCKER-AUDIT",
     "app_reinstall_performed": false,

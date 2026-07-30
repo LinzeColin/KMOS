@@ -22,7 +22,11 @@ families:
     - scripts/validate_skill_package.py
   workbook_runtime:
     - tests/test_generation.py
+    - tests/test_operational.py
+    - tests/test_private_refresh.py
     - scripts/build_project_cost_workbook.mjs
+    - scripts/run_operational_report.py
+    - scripts/run_private_refresh.py
   private_reference_replay:
     - scripts/run_reference_regression.py
   private_current_source:
