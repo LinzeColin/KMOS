@@ -2962,181 +2962,179 @@ def public_project_cost_page():
     return page(body)
 
 
+#: Owner 那张《生产项目状态表》「信息表」的**列序原样**（30 列，2026-07-29 从
+#: ~/Downloads/生产项目状态表.xlsx 逐列读出）。
+#:
+#: 为什么钉在这里：Owner 2026-07-29「项目成本单个项目下载下来的和我原来的格式
+#: 根本不一样，你不要用乱七八糟的东西恶心我，这个东西很急，我和你说了无数遍」。
+#: 上一版我把页签对齐了 `KMFA_项目成本_真实参考回放_8项目.xlsx`——**那是我自己
+#: 生成的产物**，我却在注释里写成「对齐 Owner 手上那份」。拿自己的输出当基准，
+#: 就是这句「说了无数遍」的由来。
+#:
+#: 这里只存**列名**：列名不是业务数据，可以进公开仓；真实甲方名与金额一个都不进。
+OWNER_STATUS_COLUMNS = (
+    "甲方名称", "省份", "合同号", "含税合同金额", "税率", "负责人", "项目类型",
+    "开工时间", "完工时间", "实际工期", "施工状态", "结算时间", "开票时间", "回款时间",
+    "完工后结算时间", "结算后开票时间", "开票后回款90%时间", "结算金额", "开票金额",
+    "结算审计偏差率", "自有人工工时", "劳务人工工时", "生活住宿费", "交通费", "材料费",
+    "其他费用", "项目成本表截止提供时间", "截止剩余时间", "是否提供项目成本表",
+    "是否已计算提成",
+)
+
+#: 我算出来的东西**接在原表 30 列之后**，不插进去、不改名、不顶掉任何一列。
+#: 插进去就等于改了 Owner 的表；顶掉就等于我认为我的口径比他的表更权威。
+COMPUTED_COLUMNS = (
+    "金蝶归集直接成本", "自有人工成本", "劳务人工成本", "分摊管理费",
+    "成本合计", "毛利", "毛利率", "现场成本取自", "身份来源",
+)
+
+#: 原表里这几列是 Excel 日期序列号（如 45999），导出要还成人看得懂的日期。
+_DATE_COLUMNS = frozenset({
+    "开工时间", "完工时间", "结算时间", "开票时间", "回款时间",
+    "项目成本表截止提供时间",
+})
+
+#: 我的产物字段名 → 原表列名。只映**同一件事**，名字不同就在这里对上，
+#: 不在这里的列一律留空——留空是「我不知道」，填 0 是「我说它是 0」，两码事。
+_FIELD_TO_OWNER_COLUMN = {
+    "合同编号": "合同号",
+    "完工日期": "完工时间",
+}
+
+
+def _owner_row(project: dict) -> list:
+    """按 Owner 列序摊一行。缺的留空，绝不臆造。"""
+    reverse = {v: k for k, v in _FIELD_TO_OWNER_COLUMN.items()}
+    row = []
+    for column in OWNER_STATUS_COLUMNS:
+        field = reverse.get(column, column)
+        value = project.get(field, "")
+        if value in (None, ""):
+            row.append("")
+            continue
+        if column in _DATE_COLUMNS:
+            text = str(value)
+            row.append(text.split(" ")[0] if " " in text else text)
+            continue
+        number = _cost_num(value)
+        row.append(number if number is not None else value)
+    return row
+
+
+def _computed_row(project: dict) -> list:
+    contract = _cost_num(project.get("含税合同税额") or project.get("含税合同金额"))
+    profit = _cost_num(project.get("毛利"))
+    rate = ""
+    if contract not in (None, 0) and profit is not None:
+        rate = round(profit / contract, 4)
+    row = []
+    for column in COMPUTED_COLUMNS:
+        if column == "毛利率":
+            row.append(rate)
+            continue
+        value = project.get(column, "")
+        if value in (None, ""):
+            row.append("")
+            continue
+        number = _cost_num(value)
+        row.append(number if number is not None else value)
+    return row
+
+
 @app.api_route("/项目成本/下载", methods=["GET", "HEAD"], include_in_schema=False)
 @app.get("/public-api/项目成本表/下载", include_in_schema=False)
 def public_project_cost_download(合同: str | None = None):
-    """项目成本 .xlsx——**页签结构对齐 Owner 手上那份竣工报表参考表**。
+    """项目成本 .xlsx——**列序与 Owner 的《生产项目状态表》「信息表」一模一样**。
 
-    Owner 2026-07-29：「需要支持下载」「你的下载产品和我的格式要保持一致」。
-    对照物是 `KMFA_项目成本_真实参考回放_8项目.xlsx`，它的页签是
-    使用说明／项目总览／毛利复核／参考成本明细／…。这里出同一套骨架：
+    Owner 2026-07-29：「项目成本单个项目下载下来的和我原来的格式根本不一样，
+    你不要用乱七八糟的东西恶心我，这个东西很急，我和你说了无数遍」。
 
-      使用说明 —— 这份表怎么读、每个数从哪来、哪些算不出来
-      项目总览 —— 一行一个项目，含毛利率
-      毛利复核 —— 合同额 − 成本 = 毛利 的逐项复算，差异照实列
-      成本明细 —— 金蝶／人工／分摊 分列，看得出成本构成
+    上一版错在哪：我把页签结构对齐了 `KMFA_项目成本_真实参考回放_8项目.xlsx`,
+    而那份是**我自己生成的**。拿自己的输出当基准，再在注释里写成「对齐 Owner
+    手上那份」——这就是「说了无数遍」的由来。
 
-    只出**有成本记录**的项目：没有记录的合同列进去就是拿「不知道」冒充「是 0」。
+    现在的规矩：
+      · 工作表就叫「信息表」，与源表同名；
+      · 前 30 列 **逐列照抄** Owner 的列序，一个字不改、不换名、不重排；
+      · 我算出来的东西**接在第 31 列往后**，不插进去、不顶掉任何一列——
+        插进去等于改了他的表，顶掉等于我认为我的口径比他的表更权威；
+      · 我没有的列**留空**。留空是「我不知道」，填 0 是「我说它是 0」。
     """
     if not RECENT_COST_PATH.exists():
         raise HTTPException(status_code=503, detail="项目成本产物还没生成（project-cost-refresh 未成功跑完）")
     try:
         payload = json.loads(RECENT_COST_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise HTTPException(status_code=503, detail=f"项目成本产物无法解析：{type(exc).__name__}") from exc
+        raise HTTPException(status_code=503, detail=f"产物无法解析：{type(exc).__name__}") from exc
 
-    import io as _io
+    projects = payload.get("项目") or []
+    # 与页面同一条规则：合同号与权威表冲突的不进表（归错了会凭空造出一个项目的成本）。
+    rows = [p for p in projects
+            if not p.get("合同号存疑") and (_cost_num(p.get("成本合计")) or 0) != 0]
 
-    from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Font, PatternFill
-    from openpyxl.utils import get_column_letter
-
-    # 与页面同一条判据：存疑合同号不归入任何项目，主表与合计都不含它们，
-    # 单独出一个「合同号存疑」页签交代。两个出口口径必须一致，
-    # 否则页面和下载的合计对不上，谁都不知道该信哪个。
-    projects = [p for p in (payload.get("项目") or [])
-                if not p.get("合同号存疑") and (_cost_num(p.get("成本合计")) or 0) != 0]
-    projects.sort(key=lambda p: -(_cost_num(p.get("成本合计")) or 0))
-
-    # 单一合同（Owner 2026-07-29：「不支持…单一合同下载」）。
-    # 找不到就 404 说找不到——回一份空表比报错更糟：拿到手的人会以为这个项目成本是 0。
+    tag = ""
     if 合同:
-        want = 合同.strip().upper()
-        projects = [p for p in projects
-                    if str(p.get("合同编号") or "").strip().upper() == want]
-        if not projects:
-            raise HTTPException(
-                status_code=404,
-                detail=f"{合同} 不在有成本记录的项目里——可能没有成本发生额，"
-                       f"也可能合同号与红圈主合同表对不上。")
-    stamp = str(payload.get("生成时间") or "")
+        wanted = str(合同).strip()
+        rows = [p for p in rows if str(p.get("合同编号") or "").strip() == wanted]
+        if not rows:
+            raise HTTPException(status_code=404, detail=f"没有这个合同号的成本记录：{wanted}")
+        tag = f"_{wanted}"
 
-    head_fill = PatternFill("solid", fgColor="1D5C8F")
-    money_fmt = "#,##0.00"
-
-    def sheet(book, name, headers, widths):
-        ws = book.create_sheet(name)
-        for i, h in enumerate(headers, 1):
-            c = ws.cell(row=1, column=i, value=h)
-            c.font = Font(bold=True, color="FFFFFF", size=10)
-            c.fill = head_fill
-            c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-            ws.column_dimensions[get_column_letter(i)].width = widths[i - 1]
-        ws.row_dimensions[1].height = 26
-        ws.freeze_panes = "A2"
-        return ws
+    from openpyxl import Workbook  # noqa: PLC0415
+    from openpyxl.styles import Alignment, Font  # noqa: PLC0415
 
     book = Workbook()
+    ws = book.active
+    ws.title = "信息表"
 
-    guide = book.active
-    guide.title = "使用说明"
-    guide.column_dimensions["A"].width = 96
-    lines = [
-        ("KMFA 项目成本", True),
-        (f"数据生成时间：{stamp}　·　金额单位：元", False),
-        ("", False),
-        ("范围：红圈《主合同》里**有成本记录**的项目。没有成本记录的合同不列——"
-         "列进去就是拿「不知道」冒充「是 0」。", False),
-        ("成本为负的项目照列：那是金蝶里红字冲销超过借方，账上就是负的，不做粉饰。", False),
-        ("", False),
-        ("每个数从哪来", True),
-        ("· 合同号／甲方／合同额／状态：红圈《主合同》——Owner 定的合同号权威来源。", False),
-        ("· 金蝶成本：明细账里按「销售合同号」归集的借方发生额。取发生额不取净额"
-         "（5001 结转 6401 时净额会归零）。不含记在「不分项目」的部分。", False),
-        ("· 人工：金蝶「（五）工资（承包费）支出」优先；该行缺位时才用红圈工时 × 标定单价"
-         "（自有 500／劳务 550 元每工）。实测两者交集为 0，不重复计。", False),
-        ("· 现场管理费：金蝶该行与红圈（自有人工＋台账费用）**取大不相加**——"
-         "相加会把自有人工算两遍。", False),
-        ("· 分摊管理费：合同额 × 2%，只摊给有成本发生额的项目。", False),
-        ("· 毛利＝含税合同额 − 成本合计；毛利率＝毛利 ÷ 含税合同额。", False),
-        ("", False),
-        ("目前算不出来的", True),
-        ("· 竣工报表里的材料费有一部分在金蝶全科目搜不到来源（不是金蝶记的），源头未定不补。", False),
-        ("· 6401 主营业务成本未计入：116 个两边都有记录的合同里只有 16 个与 5001 相等，"
-         "比值 0.41~4.93，加也不对不加也不对，需先定会计口径。", False),
-        ("· 招待费、占用资金利息不在按合同号归集的范围内。", False),
-    ]
-    for i, (text, bold) in enumerate(lines, 1):
-        c = guide.cell(row=i, column=1, value=text)
-        c.alignment = Alignment(wrap_text=True, vertical="top")
-        c.font = Font(bold=bold, size=13 if (bold and i == 1) else (11 if bold else 9))
-        guide.row_dimensions[i].height = 30 if len(text) > 60 else 16
+    header = list(OWNER_STATUS_COLUMNS) + list(COMPUTED_COLUMNS)
+    ws.append(header)
+    for index in range(1, len(header) + 1):
+        cell = ws.cell(row=1, column=index)
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.freeze_panes = "A2"
 
-    ws = sheet(book, "项目总览",
-               ["合同编号", "甲方名称", "施工状态", "完工日期", "含税合同额",
-                "成本合计", "毛利", "毛利率"],
-               [20, 30, 10, 12, 15, 15, 15, 10])
-    for r, p in enumerate(projects, 2):
-        contract, cost = _cost_num(p.get("含税合同金额")), _cost_num(p.get("成本合计"))
-        gross = _cost_num(p.get("毛利"))
-        vals = [p.get("合同编号"), p.get("甲方名称"), p.get("施工状态"), p.get("完工日期"),
-                contract, cost, gross,
-                (gross / contract) if (gross is not None and contract) else None]
-        for i, v in enumerate(vals, 1):
-            c = ws.cell(row=r, column=i, value=v)
-            c.font = Font(size=9)
-            if 5 <= i <= 7:
-                c.number_format = money_fmt
-            if i == 8:
-                c.number_format = "0.0%"
+    for project in rows:
+        ws.append(_owner_row(project) + _computed_row(project))
 
-    ws = sheet(book, "毛利复核",
-               ["合同编号", "甲方名称", "含税合同额", "成本合计", "复算毛利",
-                "产物毛利", "差异", "算术状态"],
-               [20, 30, 15, 15, 15, 15, 13, 12])
-    for r, p in enumerate(projects, 2):
-        contract = _cost_num(p.get("含税合同金额")) or 0
-        cost = _cost_num(p.get("成本合计")) or 0
-        stated = _cost_num(p.get("毛利"))
-        recomputed = contract - cost
-        diff = (stated - recomputed) if stated is not None else None
-        vals = [p.get("合同编号"), p.get("甲方名称"), contract, cost, recomputed,
-                stated, diff, "PASS" if (diff is not None and abs(diff) < 0.01) else "差异"]
-        for i, v in enumerate(vals, 1):
-            c = ws.cell(row=r, column=i, value=v)
-            c.font = Font(size=9)
-            if 3 <= i <= 7:
-                c.number_format = money_fmt
+    money = {"含税合同金额", "结算金额", "开票金额", "生活住宿费", "交通费", "材料费",
+             "其他费用", "金蝶归集直接成本", "自有人工成本", "劳务人工成本",
+             "分摊管理费", "成本合计", "毛利"}
+    for index, column in enumerate(header, start=1):
+        letter = ws.cell(row=1, column=index).column_letter
+        ws.column_dimensions[letter].width = max(10, min(26, len(column) * 2 + 4))
+        if column in money:
+            for r in range(2, ws.max_row + 1):
+                ws.cell(row=r, column=index).number_format = "#,##0.00"
+        elif column == "毛利率":
+            for r in range(2, ws.max_row + 1):
+                ws.cell(row=r, column=index).number_format = "0.0%"
 
-    ws = sheet(book, "成本明细",
-               ["合同编号", "甲方名称", "金蝶归集成本", "自有人工", "劳务人工",
-                "业务台账费用", "分摊管理费", "成本合计", "成本来源"],
-               [20, 28, 15, 13, 13, 14, 13, 15, 26])
-    for r, p in enumerate(projects, 2):
-        vals = [p.get("合同编号"), p.get("甲方名称"),
-                _cost_num(p.get("金蝶归集直接成本")), _cost_num(p.get("自有人工成本")),
-                _cost_num(p.get("劳务人工成本")), _cost_num(p.get("业务台账成本合计")),
-                _cost_num(p.get("分摊管理费")), _cost_num(p.get("成本合计")),
-                p.get("现场成本取自") or p.get("身份来源") or ""]
-        for i, v in enumerate(vals, 1):
-            c = ws.cell(row=r, column=i, value=v)
-            c.font = Font(size=9)
-            if 3 <= i <= 8:
-                c.number_format = money_fmt
-            if i == 9:
-                c.alignment = Alignment(wrap_text=True, vertical="top")
+    # 口径页：银行/税务要能看懂每个数从哪来。**放第二个页签**，绝不挤占「信息表」。
+    note = book.create_sheet("口径")
+    note.column_dimensions["A"].width = 22
+    note.column_dimensions["B"].width = 96
+    for key, text in (
+        ("生成时间", str(payload.get("生成时间") or "")),
+        ("列序", "前 30 列与《生产项目状态表》「信息表」逐列一致；第 31 列起为本系统计算值"),
+        ("成本合计", "金蝶按销售合同号归集的借方发生额为底；现场管理费取金蝶与红圈的大者，不相加"),
+        ("人工", "劳务人工在金蝶「工资（承包费）支出」缺位时，才取红圈工时×标定单价"),
+        ("分摊管理费", "合同额×2%，只摊给有成本发生额的项目"),
+        ("空单元格", "表示「本系统没有这个数」，不是 0"),
+        ("未列入", "合同号与红圈主合同表冲突的行不列入——归错了会凭空造出一个项目的成本"),
+    ):
+        note.append([key, text])
+    note.cell(row=1, column=1).font = Font(bold=True)
 
-    suspect = [p for p in (payload.get("项目") or []) if p.get("合同号存疑")]
-    if suspect:
-        ws = sheet(book, "合同号存疑", ["合同编号", "甲方名称", "成本合计", "说明"],
-                   [20, 30, 15, 80])
-        for r, p in enumerate(suspect, 2):
-            for i, v in enumerate([p.get("合同编号"), p.get("甲方名称"),
-                                   _cost_num(p.get("成本合计")), p.get("身份来源")], 1):
-                c = ws.cell(row=r, column=i, value=v)
-                c.font = Font(size=9)
-                if i == 3:
-                    c.number_format = money_fmt
-                if i == 4:
-                    c.alignment = Alignment(wrap_text=True, vertical="top")
+    import io as _io  # noqa: PLC0415
 
-    buffer = _io.BytesIO()
-    book.save(buffer)
-    day = (stamp[:10] or datetime.now(BEIJING).date().isoformat()).replace("-", "")
-    tag = f"_{合同.strip().upper()}" if 合同 else ""
-    name = f"KMFA_项目成本{tag}_{day}.xlsx"
+    stream = _io.BytesIO()
+    book.save(stream)
+    day = datetime.now(BEIJING).strftime("%Y%m%d")
+    name = f"项目成本{tag}_{day}.xlsx"
     return Response(
-        buffer.getvalue(),
+        content=stream.getvalue(),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
             # filename* 走 RFC 5987，中文文件名在浏览器里才不会变成乱码或 _
