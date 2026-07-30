@@ -284,8 +284,12 @@ def test_every_row_can_be_downloaded_on_its_own(tmp_path):
     assert "/项目成本/下载?合同=" in r.text
 
 
-def test_a_single_contract_download_contains_only_that_contract(tmp_path):
-    """单合同件也走「信息表」——合同号在他的表里是**第 3 列**，不是第 1 列。"""
+def test_a_single_contract_download_is_the_vertical_statement(tmp_path):
+    """单合同件是竖版《项目财务分析表》——照抄 Owner 的「竣工项目财务报表」模版。
+
+    2026-07-30 改向：本条上一版断言它是 30 列横表的一行。那是搞混了两种格式——
+    横表是**项目清单**，单个项目要的是竖版分析表。
+    """
     import io
 
     import openpyxl
@@ -293,9 +297,10 @@ def test_a_single_contract_download_contains_only_that_contract(tmp_path):
     r = _client(tmp_path).get("/项目成本/下载", params={"合同": "KMX2026001-001"})
     assert r.status_code == 200
     book = openpyxl.load_workbook(io.BytesIO(r.content))
-    ws = book["信息表"]
-    assert ws.max_row - 1 == 1
-    assert ws.cell(2, 3).value == "KMX2026001-001", "合同号没落在他表里的第 3 列"
+    assert book.sheetnames[0] == "项目财务分析表", f"页签不对：{book.sheetnames}"
+    labels = [row[0] for row in book["项目财务分析表"].iter_rows(values_only=True)]
+    for must in ("一、合同额", "二、资金运用及各项支出", "合计支出", "（七）毛利"):
+        assert must in labels, f"模版缺行「{must}」"
     assert "KMX2026001-001" in r.headers.get("content-disposition", "")
 
 

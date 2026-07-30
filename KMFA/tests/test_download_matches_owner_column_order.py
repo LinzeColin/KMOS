@@ -123,22 +123,28 @@ def test_the_old_invented_sheets_are_gone(tmp_path):
         assert invented not in names, f"自造页签「{invented}」还在：{names}"
 
 
-def test_a_single_contract_download_uses_the_same_format(tmp_path):
-    """Owner 抱怨的是**单个项目**那份。它必须与全量件同格式，只是少几行。"""
+def test_the_single_contract_download_is_deliberately_a_different_format(tmp_path):
+    """单合同件**不是**这个 30 列横表——它是竖版《项目财务分析表》。
+
+    2026-07-30 本条整条改向：我上一版把它写成「单合同件必须与全量件同格式」，
+    那是又一次搞混。Owner 指出真模版在 `销售绩效考核/` 下的
+    「竣工项目财务报表」PDF：
+      · 全量件 = 《生产项目状态表》30 列横表 → **项目清单**
+      · 单项目 = 竖版《项目财务分析表》     → **单个项目的成本表**
+    两种格式各归其位。竖表的行序与口径归
+    KMFA/tests/test_single_project_uses_the_real_statement_template.py 管。
+    """
     client, _ = _client(tmp_path)
     one = _sheet(client.get("/项目成本/下载", params={"合同": "KMX2026001-001"}))
-    every = _sheet(client.get("/项目成本/下载"))
-    assert one.sheetnames == every.sheetnames, "单合同件的页签跟全量件不一样"
-    assert [c.value for c in one["信息表"][1]] == [c.value for c in every["信息表"][1]], \
-        "单合同件的表头跟全量件不一样"
-    assert one["信息表"].max_row == 2, "单合同件不是一行数据"
-    assert one["信息表"].cell(row=2, column=3).value == "KMX2026001-001", "合同号没落在第 3 列"
+    assert one.sheetnames[0] == "项目财务分析表", f"单合同件页签不对：{one.sheetnames}"
+    assert "信息表" not in one.sheetnames, "单合同件又变回清单格式了"
 
 
 def test_his_own_field_names_land_in_his_own_columns(tmp_path):
     """材料费／交通费／生活住宿费这些字段**本来就来自他的表**，必须回到原位。"""
     client, _ = _client(tmp_path)
-    ws = _sheet(client.get("/项目成本/下载", params={"合同": "KMX2026001-001"}))["信息表"]
+    # 用**全量件**验列位：单合同件已改为竖版分析表，不再是这个横表。
+    ws = _sheet(client.get("/项目成本/下载"))["信息表"]
     header = [c.value for c in ws[1]]
     row = {header[i]: ws.cell(row=2, column=i + 1).value for i in range(len(header))}
     assert row["甲方名称"] == "甲公司"
@@ -159,7 +165,8 @@ def test_missing_columns_are_blank_not_zero(tmp_path):
     留空是「我不知道」，填 0 是「我说它是 0」——后者会被当成真实业务数字拿去用。
     """
     client, _ = _client(tmp_path)
-    ws = _sheet(client.get("/项目成本/下载", params={"合同": "KMX2026001-001"}))["信息表"]
+    # 用**全量件**验列位：单合同件已改为竖版分析表，不再是这个横表。
+    ws = _sheet(client.get("/项目成本/下载"))["信息表"]
     header = [c.value for c in ws[1]]
     for column in ("省份", "税率", "结算时间", "开票时间", "回款时间", "是否已计算提成"):
         value = ws.cell(row=2, column=header.index(column) + 1).value
