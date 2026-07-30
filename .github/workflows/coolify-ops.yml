@@ -322,10 +322,13 @@ jobs:
               for item in envs
               if str(item.get("key")) == "KMFA_CLOUDFLARE_ACCESS_AUD"
           ]
-          if values != [os.environ["AUDS"]]:
-              print("回读失败：audience 条目不是唯一且精确的目标值。")
+          # Coolify masks all environment values in this endpoint, including
+          # non-secret audience tags.  Require an unambiguous non-empty row;
+          # the post-deploy origin JWT canary proves the actual audience set.
+          if len(values) != 1 or values[0] in (None, ""):
+              print("回读失败：audience 条目不是唯一且非空。")
               sys.exit(1)
-          print("KMFA_CLOUDFLARE_ACCESS_AUD 已唯一写入并精确回读（值已隐藏）。")
+          print("KMFA_CLOUDFLARE_ACCESS_AUD 已唯一写入并回读为非空掩码值。")
           PY
 
       - name: 同步项目成本私有只读源与工资密码（去重并回读）
@@ -404,20 +407,24 @@ jobs:
               encoding="utf-8",
           ))
           envs = data if isinstance(data, list) else data.get("data") or []
-          expected = {
-              "KMFA_PRIVATE_DB_READ_TOKEN": os.environ["PRIVATE_READ_TOKEN"],
-              "KMFA_PAYROLL_PASSWORD": os.environ["PAYROLL_PASSWORD"],
+          expected_keys = {
+              "KMFA_PRIVATE_DB_READ_TOKEN",
+              "KMFA_PAYROLL_PASSWORD",
           }
-          for key, value in expected.items():
+          for key in expected_keys:
               rows = [
                   item.get("value")
                   for item in envs
                   if str(item.get("key")) == key
               ]
-              if rows != [value]:
-                  print(f"{key} 回读失败：条目不是唯一且精确的目标值。")
+              # Coolify masks secret values on readback.  Exact equality with
+              # the GitHub secret is therefore unobservable here; require one
+              # non-empty row, then prove the values end-to-end by a successful
+              # private manifest fetch and payroll decrypt after redeploy.
+              if len(rows) != 1 or rows[0] in (None, ""):
+                  print(f"{key} 回读失败：条目不是唯一且非空。")
                   sys.exit(1)
-          print("项目成本两个 secret 已唯一写入并精确回读（值已隐藏）。")
+          print("项目成本两个 secret 已唯一写入并回读为非空掩码值。")
           PY
 
       - name: 测试期安全态——清空群机器人 + 关投递（去重后重写，杜绝同名残留）
