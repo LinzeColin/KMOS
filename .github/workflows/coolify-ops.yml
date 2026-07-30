@@ -322,13 +322,14 @@ jobs:
               for item in envs
               if str(item.get("key")) == "KMFA_CLOUDFLARE_ACCESS_AUD"
           ]
-          # Coolify masks all environment values in this endpoint, including
-          # non-secret audience tags.  Require an unambiguous non-empty row;
-          # the post-deploy origin JWT canary proves the actual audience set.
-          if len(values) != 1 or values[0] in (None, ""):
-              print("回读失败：audience 条目不是唯一且非空。")
+          # Coolify omits every environment value in this list endpoint,
+          # including non-secret audience tags.  Only key cardinality is
+          # observable here; the post-deploy origin JWT canary proves the
+          # actual audience set.
+          if len(values) != 1:
+              print("回读失败：audience 条目不是唯一。")
               sys.exit(1)
-          print("KMFA_CLOUDFLARE_ACCESS_AUD 已唯一写入并回读为非空掩码值。")
+          print("KMFA_CLOUDFLARE_ACCESS_AUD 已唯一写入并回读到唯一键。")
           PY
 
       - name: 同步项目成本私有只读源与工资密码（去重并回读）
@@ -417,14 +418,14 @@ jobs:
                   for item in envs
                   if str(item.get("key")) == key
               ]
-              # Coolify masks secret values on readback.  Exact equality with
+              # Coolify omits secret values on readback.  Exact equality with
               # the GitHub secret is therefore unobservable here; require one
-              # non-empty row, then prove the values end-to-end by a successful
-              # private manifest fetch and payroll decrypt after redeploy.
-              if len(rows) != 1 or rows[0] in (None, ""):
-                  print(f"{key} 回读失败：条目不是唯一且非空。")
+              # row, then prove the values end-to-end by a successful private
+              # manifest fetch and payroll decrypt after redeploy.
+              if len(rows) != 1:
+                  print(f"{key} 回读失败：条目不是唯一。")
                   sys.exit(1)
-          print("项目成本两个 secret 已唯一写入并回读为非空掩码值。")
+          print("项目成本两个 secret 已唯一写入并回读到唯一键。")
           PY
 
       - name: 测试期安全态——清空群机器人 + 关投递（去重后重写，杜绝同名残留）
