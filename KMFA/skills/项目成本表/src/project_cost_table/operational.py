@@ -10066,11 +10066,11 @@ def _statement_rows(
     ready = str(project.get("gross_margin_status") or "") == "READY"
     values: Dict[str, Tuple[Optional[int], str]] = {
         "contract": (
-            revenue,
+            project.get("contract_amount_cents"),
             (
-                "批准项目产值；原始合同额 %s 元，收入桥 %s 元"
+                "红圈原始含税合同额；批准项目产值 %s 元，收入桥 %s 元"
                 % (
-                    _pdf_money(project.get("contract_amount_cents")),
+                    _pdf_money(revenue),
                     _pdf_money(project.get("revenue_bridge_cents")),
                 )
             ),
@@ -10114,6 +10114,7 @@ def _statement_rows(
         "d_vehicle": (vehicle, ""),
         "d_vehicle_fuel": (vehicle_fuel, ""),
         "d_road_parking": (road_parking, ""),
+        "other": (other, ""),
         "l2_subcontract_labor": (
             subcontract_labor,
             "外协 %s 个工" % external_units
@@ -10696,6 +10697,7 @@ def runtime_projection(
                 "含税合同金额": _yuan_text(project.get("contract_amount_cents")),
                 "合同额口径": "红圈原始合同；不含未经完整批准链验证的变更",
                 "有效合同额": _yuan_text(project.get("effective_revenue_cents")),
+                "收入桥": _yuan_text(project.get("revenue_bridge_cents")),
                 "项目成本": (
                     _yuan_text(margin_cost_basis)
                     if margin["status"] == "READY"

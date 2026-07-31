@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """单个项目下载 = 竖版《项目财务分析表》。
 
-行序来自用户提供的 A 系模板；测试数据全部为合成值。参考 PDF 只用于验证布局，
-不作为计算输入，也不进入公开仓。正式金额仅来自 canonical Skill 的事件分类与
-``项目已发生成本``，模板中的 2% 管理费和利润行在缺少合格政策/收入确认时必须留空。
+行序来自 canonical Skill 封印 PDF 使用的 B 系模板；测试数据全部为合成值。
+参考 PDF 只用于验证布局，不作为计算输入，也不进入公开仓。正式金额仅来自
+canonical Skill 的闭合项目成本分类，模板中的 2% 管理费在缺少合格政策时必须留空。
 """
 from __future__ import annotations
 
@@ -18,21 +18,16 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 BACKEND = REPO / "KMFA/app/backend"
 
-#: A 系模板表体行序的独立公开安全转录；不 import 主程序常量，避免自证。
+#: B 系模板表体行序的独立公开安全转录；不 import 主程序常量，避免自证。
 PDF_ROWS_AS_READ = [
-    "一、合同额", "二、资金运用及各项支出",
-    "（一）原材料", "其中:1.主要材料", "2.辅助材料", "2.1气体", "2.2焊材", "2.3漆料",
-    "2.4低值易损耗材", "3 外协 加工费",
-    "（二）租赁费", "其中:1.吊车租赁费", "2.脚手架租赁费", "3.物流运输费",
-    "（三）保险费",
-    "（四）现场管理费", "1.管理人员工资", "2.差旅费", "2.1车票", "2.2住宿",
-    "3.业务费用", "3.1招待费", "4.生活费用", "4.1生活用品", "4.2生活费",
-    "5.工程车辆使用费", "5.1加油费及保养", "5.2过路、停车费", "5.3维修费",
-    "6.办公费", "7.安全防护费", "8.房租", "9.临电", "10.体检及工伤支出等",
-    "11.罚款", "12.挂靠管理费",
-    "（五）工资（承包费）支出", "（六）信息费",
-    "三 1.1分摊的管理费用（合同的2%）", "1.2占用的资金利息",
-    "合计支出", "（七）毛利",
+    "一、合同额", "项目产值", "二、资金运用及各项支出",
+    "（一）原材料", "采购材料",
+    "（二）租赁费", "其中:1.机械费", "（三）保险费",
+    "（四）现场管理费", "1.自有人员工资", "2.差旅费", "3.招待费",
+    "4.运输费", "5.办公费", "6.房租", "7.水电费", "8.备用金", "9.其他费用",
+    "（五）工资（承包费）支出", "外协人员工资", "外协人员生活费",
+    "临时用工费用", "（六）信息费", "（七）税金",
+    "（八） 分摊的管理费用（合同的2%）", "已发生尚未支付费用", "三 利润",
 ]
 
 #: 使用合成正式事件分类逐格核对；真实项目名与金额不进入公开仓。
@@ -64,9 +59,10 @@ SAMPLE = {
         "含税合同金额": "45000", "材料费": "494.10", "交通费": "542.81",
         "生活住宿费": "1300", "其他费用": "56", "自有人工工时": "41",
         "劳务人工工时": "17", "项目过账实际": "11402.81", "项目应计": "24098.95",
-        "项目已发生成本": "35501.76",
-        "有效合同额": None, "毛利": None, "毛利率": None,
-        "毛利率基点": None, "收入与毛利状态": "BLOCKED_COST_COMPLETENESS",
+        "项目已发生成本": "35501.76", "项目成本": "35501.76",
+        "有效合同额": "45000", "收入桥": "0.00",
+        "毛利": "9498.24", "毛利率": "21.11%",
+        "毛利率基点": 2111, "收入与毛利状态": "READY",
         "报表归类": {"material": "494.10", "travel": "542.81", "lodging": "1300",
                   "other": "56", "own_labor": "24098.85", "subcontract_labor": "9010"},
         "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT",
@@ -164,29 +160,31 @@ def test_the_amounts_land_on_the_pdfs_own_lines(tmp_path):
     _, data = _body(book["项目财务分析表"])
     for label, expected in (
         ("一、合同额", 45000),
+        ("项目产值", 45000),
         ("（一）原材料", 494.10),
-        ("1.管理人员工资", 24098.85),
+        ("1.自有人员工资", 24098.85),
         ("2.差旅费", 1842.81),
-        ("2.1车票", 542.81),
-        ("2.2住宿", 1300.00),
+        ("6.房租", 1300.00),
+        ("9.其他费用", 56.00),
         ("（五）工资（承包费）支出", 9010.00),
-        ("合计支出", 35501.76),
+        ("二、资金运用及各项支出", 35501.76),
+        ("三 利润", 9498.24),
     ):
         got = data[label][0]
         assert got == expected, f"{label}：出的 {got}，应为 {expected}"
-    assert data["三 1.1分摊的管理费用（合同的2%）"][0] is None
-    assert data["（七）毛利"][0] is None
+    assert data["（八） 分摊的管理费用（合同的2%）"][0] is None
+    assert data["（七）税金"][0] is None
 
 
 def test_formal_cost_share_and_policy_blanks_are_explicit(tmp_path):
-    """成本占比以正式成本为分母；无依据的政策费与毛利既不算数也不伪装成 0。"""
+    """成本占比以闭合成本为分母；无依据的政策费不伪装成 0。"""
     book, _ = _statement(tmp_path)
     _, data = _body(book["项目财务分析表"])
     assert "1.39%" in (data["（一）原材料"][1] or "")
-    assert data["三 1.1分摊的管理费用（合同的2%）"][0] is None
-    assert "禁止" in (data["三 1.1分摊的管理费用（合同的2%）"][1] or "")
-    assert data["（七）毛利"][0] is None
-    assert "禁止" in (data["（七）毛利"][1] or "")
+    assert data["（八） 分摊的管理费用（合同的2%）"][0] is None
+    assert "留空" in (data["（八） 分摊的管理费用（合同的2%）"][1] or "")
+    assert data["三 利润"][0] == 9498.24
+    assert "毛利" in (data["三 利润"][1] or "")
 
 
 def test_free_text_and_share_coexist_in_the_note(tmp_path):
@@ -201,8 +199,14 @@ def test_lines_i_have_no_data_for_stay_empty(tmp_path):
     """没有的行**留空**。留空是「我不知道」，填 0 是「我说它是 0」。"""
     book, _ = _statement(tmp_path)
     _, data = _body(book["项目财务分析表"])
-    for label in ("（二）租赁费", "（三）保险费", "（六）信息费",
-                  "5.工程车辆使用费", "1.2占用的资金利息", "8.房租"):
+    for label in (
+        "（二）租赁费",
+        "（三）保险费",
+        "（六）信息费",
+        "（七）税金",
+        "4.运输费",
+        "（八） 分摊的管理费用（合同的2%）",
+    ):
         assert data[label][0] in (None, ""), \
             f"{label} 我并没有这个数，却填了 {data[label][0]!r}"
 
@@ -220,16 +224,11 @@ def test_money_never_silently_disappears(tmp_path):
     assert "正式成本 56.00" in (site[1] or ""), f"未细分成本没在备注里交代：{site[1]!r}"
 
 
-def test_the_second_level_subtotal_satisfies_the_templates_identity(tmp_path):
-    """无合格管理费/利息政策时，二、资金运用本身等于正式合计支出。"""
+def test_the_second_level_subtotal_is_the_closed_project_cost(tmp_path):
+    """B 系二级总额必须等于网站同一项目的闭合项目成本。"""
     book, _ = _statement(tmp_path)
     _, data = _body(book["项目财务分析表"])
-    sec2 = data["二、资金运用及各项支出"][0]
-    alloc = data["三 1.1分摊的管理费用（合同的2%）"][0] or 0
-    interest = data["1.2占用的资金利息"][0] or 0
-    assert alloc == 0 and interest == 0
-    assert round(sec2 + alloc + interest, 2) == data["合计支出"][0], \
-        f"恒等式不成立：{sec2} + {alloc} + {interest} ≠ {data['合计支出'][0]}"
+    assert data["二、资金运用及各项支出"][0] == 35501.76
 
 
 def test_the_header_block_copies_the_pdfs_fields(tmp_path):
@@ -274,7 +273,7 @@ def test_the_caliber_sheet_explains_where_each_number_came_from(tmp_path):
         "\t".join("" if c is None else str(c) for c in row)
         for row in book["口径"].iter_rows(values_only=True))
     assert "不是 0" in text, "没有写明空行的含义"
-    assert "合计支出" in text
+    assert "闭合项目成本" in text
 
 
 def test_the_filename_says_it_is_a_statement(tmp_path):

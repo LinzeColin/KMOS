@@ -52,7 +52,8 @@ SAMPLE = {
          "施工状态": "已完工", "完工日期": "2099-06-30", "含税合同金额": "100000",
          "项目过账实际": "40000", "项目应计": "7000", "项目已发生成本": "47000",
          "项目成本": "47000",
-         "有效合同额": "100000", "毛利": "53000", "毛利率": "53.00%",
+         "有效合同额": "100000", "收入桥": "0.00",
+         "毛利": "53000", "毛利率": "53.00%",
          "毛利率基点": 5300, "收入与毛利状态": "READY",
          "主营成本已结转": "39000", "状态表已报直接成本": "12000",
          "支付系统已付观察": "9000", "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT",
@@ -398,11 +399,13 @@ def test_the_entry_is_in_the_component_the_root_actually_renders():
         "改了源码但没重新构建，线上还是旧的"
 
 
-def test_every_row_can_be_downloaded_on_its_own(tmp_path):
-    """Owner：「不支持单一合同下载」。"""
+def test_only_closed_rows_can_be_downloaded_as_formal_statements(tmp_path):
+    """未闭合下限不能经下载按钮重新命名成正式项目成本。"""
     r = _client(tmp_path).get("/public-api/项目成本表")
-    assert r.text.count('class="one"') == 4, "不是每个项目都有单独下载"
-    assert "/项目成本/下载?合同=" in r.text
+    assert r.text.count('class="one"') == 1
+    assert "/项目成本/下载?合同=KMX2099001-001" in r.text
+    for suffix in ("002", "003", "004"):
+        assert f"/项目成本/下载?合同=KMX2099001-{suffix}" not in r.text
 
 
 def test_a_single_contract_download_is_the_vertical_statement(tmp_path):
@@ -420,7 +423,13 @@ def test_a_single_contract_download_is_the_vertical_statement(tmp_path):
     book = openpyxl.load_workbook(io.BytesIO(r.content))
     assert book.sheetnames[0] == "项目财务分析表", f"页签不对：{book.sheetnames}"
     labels = [row[0] for row in book["项目财务分析表"].iter_rows(values_only=True)]
-    for must in ("一、合同额", "二、资金运用及各项支出", "合计支出", "（七）毛利"):
+    for must in (
+        "一、合同额",
+        "项目产值",
+        "二、资金运用及各项支出",
+        "（七）税金",
+        "三 利润",
+    ):
         assert must in labels, f"模版缺行「{must}」"
     assert "KMX2099001-001" in r.headers.get("content-disposition", "")
 

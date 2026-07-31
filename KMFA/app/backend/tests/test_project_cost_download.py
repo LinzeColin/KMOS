@@ -52,6 +52,7 @@ def _runtime() -> dict:
                 "甲方名称": "合成客户甲",
                 "含税合同金额": "3000.00",
                 "有效合同额": "2500.00",
+                "收入桥": "-500.00",
                 "项目已发生成本": "900.00",
                 "项目成本": "1000.00",
                 "毛利": "1500.00",
@@ -157,6 +158,7 @@ def test_ready_download_uses_closed_cost_and_margin_not_incurred_lower_bound(
     )
     assert response.status_code == 200
     amounts = _amounts_by_label(response.content)
+    assert amounts["一、合同额"] == 3000
     assert amounts["项目产值"] == 2500
     assert amounts["二、资金运用及各项支出"] == 1000
     assert amounts["（六）信息费"] == 50
