@@ -963,6 +963,53 @@ def test_dws_reaction_cannot_create_a_formal_accrual_without_authority():
     assert diagnostics["dws_reaction_formal_amount_use"] is False
 
 
+def test_dws_reaction_does_not_block_independently_evidenced_cost_occurrence():
+    observed_reaction = [
+        {
+            "event_id": "dws-unverified",
+            "project": "KMX20990101-001",
+            "category": "劳务/人工",
+            "amount_cents": 5_325_851,
+            "posting_date": "2099-02-05",
+            "approval_authority_verified": False,
+        }
+    ]
+    paid_occurrence = [
+        {
+            "event_id": "finance-register-paid",
+            "project": "KMX20990101-001",
+            "category": "劳务/人工",
+            "amount_cents": 5_325_851,
+            "posting_date": "2099-02-05",
+            "cost_occurrence_evidenced": True,
+            "cost_occurrence_basis": "FINANCE_REGISTER_WAGE_PAYMENT",
+        }
+    ]
+    accruals, reviews, diagnostics = qualify_cost_accruals(
+        [],
+        observed_reaction,
+        paid_occurrence,
+    )
+    assert len(accruals) == 1
+    assert accruals[0]["amount_cents"] == 5_325_851
+    assert [
+        row
+        for row in reviews
+        if row["type"]
+        == (
+            "DWS_APPROVER_AUTHORITY_UNVERIFIED_"
+            "CORROBORATED_BY_COST_OCCURRENCE"
+        )
+        and row["severity"] == "P2"
+    ]
+    assert not [
+        row
+        for row in reviews
+        if row["type"] == "DWS_APPROVER_AUTHORITY_UNVERIFIED_EXCLUDED"
+    ]
+    assert diagnostics["dws_reaction_formal_amount_use"] is False
+
+
 def test_explicit_approved_cost_accrues_even_when_payment_status_is_unpaid():
     approved = [
         {

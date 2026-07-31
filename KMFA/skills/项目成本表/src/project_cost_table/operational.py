@@ -5735,6 +5735,49 @@ def qualify_cost_accruals(
     for approved_index, approved in enumerate(approved_events):
         posting_candidates = possible_postings(approved, 45)
         if not approved.get("approval_authority_verified"):
+            independently_evidenced_occurrence = next(
+                (
+                    paid
+                    for paid in paid_events
+                    if paid.get("cost_occurrence_evidenced") is True
+                    and str(paid.get("project"))
+                    == str(approved.get("project"))
+                    and category_family(paid)
+                    == category_family(approved)
+                    and int(paid.get("amount_cents") or 0)
+                    == int(approved.get("amount_cents") or 0)
+                    and close_dates(
+                        paid.get("posting_date"),
+                        approved.get("posting_date"),
+                        20,
+                    )
+                ),
+                None,
+            )
+            if independently_evidenced_occurrence is not None:
+                corroborated += 1
+                reviews.append(
+                    {
+                        "severity": "P2",
+                        "type": (
+                            "DWS_APPROVER_AUTHORITY_UNVERIFIED_"
+                            "CORROBORATED_BY_COST_OCCURRENCE"
+                        ),
+                        "project": approved.get("project"),
+                        "observation_event_id": approved.get("event_id"),
+                        "cost_occurrence_event_id": (
+                            independently_evidenced_occurrence.get(
+                                "event_id"
+                            )
+                        ),
+                        "amount_cents": int(approved["amount_cents"]),
+                        "action": (
+                            "DWS 记录仅作同额同项目旁证；独立财务交易登记已证明"
+                            "成本实际发生，正式金额仅由该发生凭证表示一次"
+                        ),
+                    }
+                )
+                continue
             posting_link_required += bool(posting_candidates)
             reviews.append(
                 {
