@@ -2410,13 +2410,17 @@ def parse_project_invoice_tax(
     year: int,
     as_of: str,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
-    """Create project-direct output-VAT facts from approved issued invoices.
+    """Create billing-side output-VAT observations from issued invoices.
 
-    The export is authoritative only for the project-specific invoice line.
-    It is not used to spread a company tax return across projects.  Positive
-    and red-letter negative invoice allocations are both retained.  Tax is
-    rounded once per exported invoice/project line from the tax-inclusive
-    amount, using integer cents and ``ROUND_HALF_UP``.
+    A customer invoice proves billed output VAT, not a project-direct cost.
+    The observations remain traceable for tax-register reconciliation, but
+    their plane is deliberately outside ``JOB_POSTED_ACTUAL`` and
+    ``COST_ACCRUED``.  Only a separate authoritative tax-payment or governed
+    tax-accrual source may create a formal project-tax cost event.
+
+    Positive and red-letter negative invoice observations are both retained.
+    The observed amount is rounded once per exported invoice/project line from
+    the tax-inclusive amount, using integer cents and ``ROUND_HALF_UP``.
     """
 
     workbook = open_xlsx_payload(read_path_bytes(path))
@@ -2621,11 +2625,11 @@ def parse_project_invoice_tax(
                 )
             )[:24],
             "project": project_base,
-            "plane": "COST_ACCRUED",
-            "category": "项目税费-销项税额",
+            "plane": "PROJECT_INVOICE_OUTPUT_VAT_OBSERVED",
+            "category": "项目开票销项税额（观察）",
             "amount_cents": tax_cents,
             "posting_date": invoice_date,
-            "summary": "已审批且已开票的项目销项增值税",
+            "summary": "已审批且已开票的客户侧销项增值税观察值",
             "source_member": path.name,
             "row": row_number,
             "identity_reason": reason,
@@ -2634,7 +2638,7 @@ def parse_project_invoice_tax(
             )[:16],
             "invoice_gross_cents": gross_cents,
             "tax_rate_fraction": format(rate, "f"),
-            "tax_policy": "OUTPUT_VAT_FROM_TAX_INCLUSIVE_PROJECT_INVOICE",
+            "tax_policy": "OUTPUT_VAT_OBSERVATION_EXCLUDED_FROM_PROJECT_COST",
         }
         existing = candidates.get(key)
         if existing is None:
@@ -2670,6 +2674,18 @@ def parse_project_invoice_tax(
         candidates[key]
         for key in sorted(candidates)
     ]
+    if events:
+        reviews.append(
+            {
+                "severity": "P2",
+                "type": "PROJECT_INVOICE_OUTPUT_VAT_EXCLUDED_FROM_COST",
+                "event_count": len(events),
+                "action": (
+                    "客户侧销项税仅保留为开票观察；不得计入项目成本。"
+                    "项目税费须由独立税务实缴或合格应计来源证明"
+                ),
+            }
+        )
     return events, _dedupe_review_rows(reviews), {
         "approved_issued_rows": approved_issued_rows,
         "mapped_rows": len(events),
@@ -2680,12 +2696,14 @@ def parse_project_invoice_tax(
         "conflicting_attachment_number_rows": conflicting_attachment_number_rows,
         "conflicting_invoice_project_count": len(conflicts),
         "max_observed_date": max_observed_date,
-        "formal_amount_use": bool(events),
+        "formal_amount_use": False,
+        "observation_amount_use": bool(events),
         "calculation": (
             "ROUND_HALF_UP(gross_invoice_cents * rate / (1 + rate)) "
             "per invoice/project row"
         ),
         "company_tax_allocation_used": False,
+        "output_vat_in_project_cost": False,
     }
 
 
@@ -3703,6 +3721,132 @@ def _plain_money_cents(value: str) -> Optional[int]:
     return cents(clean)
 
 
+def _ocr_cost_occurrence_basis(description: str) -> Optional[str]:
+    """Return a narrow occurrence basis carried by a finance transaction row.
+
+    Cash movement alone is not cost occurrence.  A finance-maintained row that
+    explicitly says an employee expense was reimbursed or a wage was
+    paid/settled provides both the cash fact and the economic nature.  Advances
+    and deposits remain observations even when the source labels them
+    ``项目成本``.
+    """
+
+    normalized = normalize_text(description)
+    if any(
+        marker in normalized
+        for marker in (
+            "保证金",
+            "押金",
+            "借支",
+            "预支",
+            "贷款",
+            "还借款",
+        )
+    ):
+        return None
+    if "报销" in normalized:
+        return "FINANCE_REGISTER_EMPLOYEE_REIMBURSEMENT"
+    if "工资" in normalized and any(
+        marker in normalized
+        for marker in ("用款", "发放", "结清", "已支付", "已经支付", "本次支付")
+    ):
+        return "FINANCE_REGISTER_WAGE_PAYMENT"
+    return None
+
+
+def _money_expression_cents(value: str, unit: str) -> Optional[int]:
+    clean = value.replace(",", "").replace("，", "")
+    if not re.fullmatch(r"\d+(?:\.\d{1,2})?", clean):
+        return None
+    amount = Decimal(clean)
+    if unit == "万":
+        amount *= Decimal(10_000)
+    return cents(format(amount, "f"))
+
+
+def _embedded_wage_history(
+    *,
+    text: str,
+    description: str,
+    project_base: str,
+    filename: str,
+    line_number: int,
+    year: int,
+    as_of: str,
+) -> List[Dict[str, Any]]:
+    """Recover explicit prior wage payments documented by the same row.
+
+    Some daily finance-register rows reconcile a project labor contract in one
+    narrative: prior payment dates and amounts followed by the current payment.
+    Only the exact ``M月D日已支付X元/万`` grammar is accepted, and only when the
+    same context identifies an external wage contract and the current payment.
+    """
+
+    normalized_text = normalize_text(text)
+    normalized_description = normalize_text(description)
+    start = normalized_text.find(normalized_description)
+    if start < 0:
+        return []
+    context = normalized_text[start : start + len(normalized_description) + 240]
+    if not (
+        "工资" in context
+        and "合同金额" in context
+        and "本次支付" in context
+    ):
+        return []
+    events: List[Dict[str, Any]] = []
+    pattern = re.compile(
+        r"(?P<month>\d{1,2})月(?P<day>\d{1,2})日"
+        r"(?:已经|已)?支付"
+        r"(?P<amount>\d[\d,，]*(?:\.\d{1,2})?)"
+        r"(?P<unit>万|元)"
+    )
+    for match_index, match in enumerate(pattern.finditer(context)):
+        try:
+            observed = date(
+                year,
+                int(match.group("month")),
+                int(match.group("day")),
+            ).isoformat()
+        except ValueError:
+            continue
+        if observed > as_of:
+            continue
+        amount_minor = _money_expression_cents(
+            match.group("amount"),
+            match.group("unit"),
+        )
+        if amount_minor is None or amount_minor <= 0:
+            continue
+        event_key = [
+            filename,
+            sha256_bytes(text.encode("utf-8")),
+            project_base,
+            observed,
+            amount_minor,
+            match_index,
+        ]
+        events.append(
+            {
+                "event_id": "ocr_wage_history_"
+                + sha256_bytes(stable_json(event_key))[:24],
+                "project": project_base,
+                "plane": "OCR_PAID_PROJECT_COST_OBSERVED",
+                "category": "劳务/人工",
+                "amount_cents": amount_minor,
+                "posting_date": observed,
+                "summary": "财务交易登记行内明确记载的项目外协工资历史支付",
+                "source_member": filename,
+                "row": line_number,
+                "identity_reason": "SAME_FINANCE_REGISTER_WAGE_CONTRACT_CONTEXT",
+                "cost_occurrence_evidenced": True,
+                "cost_occurrence_basis": "FINANCE_REGISTER_WAGE_PAYMENT_HISTORY",
+                "embedded_history_match": match_index,
+            }
+        )
+    return events
+
+
 def parse_ocr_paid_project_costs(
     path: Optional[Path],
     roots: Sequence[Path],
@@ -3722,6 +3866,8 @@ def parse_ocr_paid_project_costs(
     seen_occurrences: Set[Tuple[Any, ...]] = set()
     page_count = 0
     candidate_count = 0
+    occurrence_evidenced_count = 0
+    embedded_wage_history_count = 0
     for line_number, raw_line in enumerate(source_path.read_text(encoding="utf-8-sig").splitlines(), 1):
         try:
             record = json.loads(raw_line)
@@ -3855,22 +4001,39 @@ def parse_ocr_paid_project_costs(
                 amount_minor,
                 normalize_text(description),
             )
-            events.append(
-                {
-                    "event_id": "ocr_" + sha256_bytes(stable_json(event_key))[:24],
-                    "project": project_base,
-                    "plane": "OCR_PAID_PROJECT_COST_OBSERVED",
-                    "category": _narrative_category(description),
-                    "amount_cents": amount_minor,
-                    "posting_date": observed,
-                    "summary": description,
-                    "source_id": "src_" + sha256_file(source_path)[:24],
-                    "source_member": filename,
-                    "row": line_number,
-                    "identity_reason": identity_reason,
-                    "ocr_amount_line": amount_index,
-                }
-            )
+            occurrence_basis = _ocr_cost_occurrence_basis(description)
+            event = {
+                "event_id": "ocr_" + sha256_bytes(stable_json(event_key))[:24],
+                "project": project_base,
+                "plane": "OCR_PAID_PROJECT_COST_OBSERVED",
+                "category": _narrative_category(description),
+                "amount_cents": amount_minor,
+                "posting_date": observed,
+                "summary": description,
+                "source_id": "src_" + sha256_file(source_path)[:24],
+                "source_member": filename,
+                "row": line_number,
+                "identity_reason": identity_reason,
+                "ocr_amount_line": amount_index,
+                "cost_occurrence_evidenced": occurrence_basis is not None,
+                "cost_occurrence_basis": occurrence_basis,
+            }
+            events.append(event)
+            if occurrence_basis is not None:
+                occurrence_evidenced_count += 1
+            if occurrence_basis == "FINANCE_REGISTER_WAGE_PAYMENT":
+                history = _embedded_wage_history(
+                    text=text,
+                    description=description,
+                    project_base=project_base,
+                    filename=filename,
+                    line_number=line_number,
+                    year=year,
+                    as_of=as_of,
+                )
+                events.extend(history)
+                occurrence_evidenced_count += len(history)
+                embedded_wage_history_count += len(history)
     sources = [
         dict(
             source_record(
@@ -3884,6 +4047,8 @@ def parse_ocr_paid_project_costs(
                 "page_count": page_count,
                 "candidate_project_cost_rows": candidate_count,
                 "qualified_event_count": len(events),
+                "occurrence_evidenced_count": occurrence_evidenced_count,
+                "embedded_wage_history_count": embedded_wage_history_count,
                 "machine_derived": True,
             },
         )
@@ -3893,6 +4058,8 @@ def parse_ocr_paid_project_costs(
         "page_count": page_count,
         "candidate_project_cost_rows": candidate_count,
         "qualified_event_count": len(events),
+        "occurrence_evidenced_count": occurrence_evidenced_count,
+        "embedded_wage_history_count": embedded_wage_history_count,
     }
 
 
@@ -3927,6 +4094,8 @@ def qualify_cost_accruals(
     fuzzy_posting_matches = 0
     ambiguous_posting_matches = 0
     unallocated_posting_links = 0
+    paid_occurrence_accruals = 0
+    paid_occurrence_existing_representation = 0
 
     def close_dates(left: Any, right: Any, days: int) -> bool:
         ldate, rdate = _as_date(left), _as_date(right)
@@ -4195,7 +4364,8 @@ def qualify_cost_accruals(
             (
                 row
                 for row in approved_events
-                if str(row.get("project")) == str(paid.get("project"))
+                if row.get("approval_authority_verified")
+                and str(row.get("project")) == str(paid.get("project"))
                 and int(row.get("amount_cents") or 0) == int(paid.get("amount_cents") or 0)
                 and category_family(row) == category_family(paid)
                 and close_dates(row.get("posting_date"), paid.get("posting_date"), 20)
@@ -4204,6 +4374,88 @@ def qualify_cost_accruals(
         )
         if matching_approved is not None:
             corroborated += 1
+        occurrence_evidenced = paid.get("cost_occurrence_evidenced") is True
+        exact_postings = [
+            row
+            for row in posted
+            if str(row.get("project")) == str(paid.get("project"))
+            and category_family(row) == category_family(paid)
+            and int(row.get("amount_cents") or 0)
+            == int(paid.get("amount_cents") or 0)
+            and close_dates(
+                row.get("posting_date"),
+                paid.get("posting_date"),
+                45,
+            )
+        ]
+        if occurrence_evidenced and (
+            matching_approved is not None or exact_postings
+        ):
+            paid_occurrence_existing_representation += 1
+            reviews.append(
+                {
+                    "severity": "P2",
+                    "type": "PAID_COST_OCCURRENCE_ALREADY_REPRESENTED",
+                    "project": paid.get("project"),
+                    "observation_event_id": paid.get("event_id"),
+                    "approved_event_id": (
+                        matching_approved.get("event_id")
+                        if matching_approved is not None
+                        else None
+                    ),
+                    "posting_event_ids": [
+                        row.get("event_id")
+                        for row in exact_postings
+                    ],
+                    "amount_cents": paid.get("amount_cents"),
+                    "action": (
+                        "明确发生的支付已由已通过成本或同额项目过账表示；"
+                        "仅保留一个正式金额"
+                    ),
+                }
+            )
+            continue
+        if occurrence_evidenced:
+            key = [
+                paid.get("project"),
+                paid.get("event_id"),
+                paid.get("amount_cents"),
+                paid.get("posting_date"),
+                paid.get("cost_occurrence_basis"),
+            ]
+            accruals.append(
+                {
+                    "event_id": "accr_paid_occurrence_"
+                    + sha256_bytes(stable_json(key))[:24],
+                    "project": paid["project"],
+                    "plane": "COST_ACCRUED",
+                    "category": paid.get("category"),
+                    "amount_cents": int(paid["amount_cents"]),
+                    "posting_date": paid.get("posting_date"),
+                    "summary": "财务交易登记已明确报销或工资结算、尚未见同额过账",
+                    "source_id": paid.get("source_id"),
+                    "source_member": paid.get("source_member"),
+                    "identity_reason": paid.get("identity_reason"),
+                    "evidence_event_ids": [paid.get("event_id")],
+                    "occurrence_basis": paid.get("cost_occurrence_basis"),
+                }
+            )
+            paid_occurrence_accruals += 1
+            reviews.append(
+                {
+                    "severity": "P2",
+                    "type": "PAID_COST_OCCURRENCE_PROMOTED_TO_ACCRUAL",
+                    "project": paid.get("project"),
+                    "observation_event_id": paid.get("event_id"),
+                    "amount_cents": paid.get("amount_cents"),
+                    "occurrence_basis": paid.get("cost_occurrence_basis"),
+                    "action": (
+                        "该行同时证明项目身份、经济性质和已报销/工资结算；"
+                        "未见同额过账或已通过明细，形成一次应计"
+                    ),
+                }
+            )
+            continue
         # A bank/payment observation proves cash movement, not cost
         # occurrence.  Earlier revisions promoted an OCR payment to accrued
         # cost whenever no nearby posting was found.  That reverses the
@@ -4344,6 +4596,10 @@ def qualify_cost_accruals(
         "approved_posting_ambiguous_count": ambiguous_posting_matches,
         "approved_unallocated_posting_link_count": (
             unallocated_posting_links
+        ),
+        "paid_occurrence_accrual_count": paid_occurrence_accruals,
+        "paid_occurrence_existing_representation_count": (
+            paid_occurrence_existing_representation
         ),
         "one_to_one_posting_reconciliation": True,
     }
@@ -7111,7 +7367,7 @@ def build_snapshot(
         approved_cost_detail_events = []
     (
         project_invoice_path,
-        project_invoice_tax_events,
+        project_invoice_output_vat_observations,
         project_invoice_sources,
         project_invoice_reviews,
         project_invoice_meta,
@@ -7119,11 +7375,11 @@ def build_snapshot(
         candidates["project_invoice"],
         roots,
         parse_project_invoice_tax,
-        source_slot="project_invoice_output_vat",
+        source_slot="project_invoice_output_vat_observation",
         parser_args=(projects, year, as_of),
     )
-    if project_invoice_tax_events is None:
-        project_invoice_tax_events = []
+    if project_invoice_output_vat_observations is None:
+        project_invoice_output_vat_observations = []
     (
         approved_cost_events,
         approved_cost_merge_reviews,
@@ -7211,7 +7467,6 @@ def build_snapshot(
         list(ledger_events)
         + list(payment_events)
         + list(accrual_events)
-        + list(project_invoice_tax_events)
         + list(labor_events)
     ):
         aggregate[str(event["project"])][str(event["plane"])] += int(event["amount_cents"])
@@ -7220,7 +7475,7 @@ def build_snapshot(
         + list(payment_events)
         + list(dws_events)
         + list(approved_cost_detail_events)
-        + list(project_invoice_tax_events)
+        + list(project_invoice_output_vat_observations)
         + list(ocr_events)
         + list(accrual_events)
         + list(labor_events)
@@ -7543,8 +7798,9 @@ def build_snapshot(
             "approved_cost_detail_event_count": len(
                 approved_cost_detail_events
             ),
-            "project_invoice_tax_event_count": len(
-                project_invoice_tax_events
+            "project_invoice_tax_event_count": 0,
+            "project_invoice_output_vat_observation_event_count": len(
+                project_invoice_output_vat_observations
             ),
             "approved_cost_combined_event_count": len(
                 approved_cost_events

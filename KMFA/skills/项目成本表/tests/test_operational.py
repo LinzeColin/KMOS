@@ -633,6 +633,68 @@ def test_payment_observation_never_creates_cost_without_occurrence_evidence():
     assert diagnostics["posting_link_required_count"] == 0
 
 
+def test_paid_reimbursement_occurrence_creates_one_accrual_when_unrepresented():
+    paid = [
+        {
+            "event_id": "paid-reimbursement",
+            "project": "KMX20990101-001",
+            "category": "材料",
+            "amount_cents": 10_000,
+            "posting_date": "2099-02-05",
+            "cost_occurrence_evidenced": True,
+            "cost_occurrence_basis": "FINANCE_REGISTER_EMPLOYEE_REIMBURSEMENT",
+        }
+    ]
+    accruals, reviews, diagnostics = qualify_cost_accruals([], [], paid)
+    assert len(accruals) == 1
+    assert accruals[0]["amount_cents"] == 10_000
+    assert accruals[0]["plane"] == "COST_ACCRUED"
+    assert [
+        row
+        for row in reviews
+        if row["type"] == "PAID_COST_OCCURRENCE_PROMOTED_TO_ACCRUAL"
+    ]
+    assert diagnostics["paid_occurrence_accrual_count"] == 1
+
+
+def test_paid_occurrence_does_not_duplicate_verified_approval():
+    approved = [
+        {
+            "event_id": "approved-reimbursement",
+            "approval_id": "APP-1",
+            "project": "KMX20990101-001",
+            "category": "材料",
+            "amount_cents": 10_000,
+            "posting_date": "2099-02-05",
+            "approval_authority_verified": True,
+        }
+    ]
+    paid = [
+        {
+            "event_id": "paid-reimbursement",
+            "project": "KMX20990101-001",
+            "category": "材料",
+            "amount_cents": 10_000,
+            "posting_date": "2099-02-06",
+            "cost_occurrence_evidenced": True,
+            "cost_occurrence_basis": "FINANCE_REGISTER_EMPLOYEE_REIMBURSEMENT",
+        }
+    ]
+    accruals, reviews, diagnostics = qualify_cost_accruals(
+        [],
+        approved,
+        paid,
+    )
+    assert len(accruals) == 1
+    assert accruals[0]["evidence_event_ids"] == ["approved-reimbursement"]
+    assert [
+        row
+        for row in reviews
+        if row["type"] == "PAID_COST_OCCURRENCE_ALREADY_REPRESENTED"
+    ]
+    assert diagnostics["paid_occurrence_existing_representation_count"] == 1
+
+
 def test_payment_with_partial_posting_remains_observation_only():
     posted = [
         {
@@ -1154,7 +1216,7 @@ def test_approved_cost_summary_is_suppressed_on_exact_parent_reconciliation():
     assert reviews[0]["type"] == "APPROVED_COST_PARENT_EXACT_DUPLICATE"
 
 
-def test_project_invoice_tax_uses_exact_issued_lines_and_keeps_red_invoice(
+def test_project_invoice_output_vat_is_observation_only_and_keeps_red_invoice(
     tmp_path: Path,
 ):
     path = tmp_path / "项目开票_导出文件_20990205.xlsx"
@@ -1247,17 +1309,25 @@ def test_project_invoice_tax_uses_exact_issued_lines_and_keeps_red_invoice(
         2099,
         "2099-02-28",
     )
-    assert reviews == []
+    assert [row["type"] for row in reviews] == [
+        "PROJECT_INVOICE_OUTPUT_VAT_EXCLUDED_FROM_COST"
+    ]
     assert [
         (row["category"], row["amount_cents"])
         for row in events
     ] == [
-        ("项目税费-销项税额", 1_300),
-        ("项目税费-销项税额", -600),
+        ("项目开票销项税额（观察）", 1_300),
+        ("项目开票销项税额（观察）", -600),
     ]
-    assert all(row["plane"] == "COST_ACCRUED" for row in events)
+    assert all(
+        row["plane"] == "PROJECT_INVOICE_OUTPUT_VAT_OBSERVED"
+        for row in events
+    )
     assert diagnostics["mapped_rows"] == 2
     assert diagnostics["zero_rate_rows"] == 1
+    assert diagnostics["formal_amount_use"] is False
+    assert diagnostics["observation_amount_use"] is True
+    assert diagnostics["output_vat_in_project_cost"] is False
     assert diagnostics["company_tax_allocation_used"] is False
 
 
@@ -1371,7 +1441,9 @@ def test_project_invoice_number_is_recovered_from_unambiguous_attachment_name(
         "2099-02-28",
     )
 
-    assert reviews == []
+    assert [row["type"] for row in reviews] == [
+        "PROJECT_INVOICE_OUTPUT_VAT_EXCLUDED_FROM_COST"
+    ]
     assert len(events) == 1
     assert events[0]["amount_cents"] == 1_300
     assert events[0]["invoice_number_hash"] == sha256_bytes(
@@ -2212,6 +2284,60 @@ def test_ocr_preserves_identical_legal_payments_on_distinct_pages(
         == "OCR_SAME_PHYSICAL_OCCURRENCE_DUPLICATE_EXCLUDED"
     ]
     assert len(duplicates) == 1
+
+
+def test_ocr_marks_reimbursement_and_recovers_explicit_wage_payment_history(
+    tmp_path: Path,
+):
+    text = "\n".join(
+        (
+            "2月5日",
+            (
+                "生产部用款合成项目甲测试外协人员工资（合同金额1万，"
+                "1月10日已经支付200元，1月20日支付0.03万，"
+                "本次支付100元）"
+            ),
+            "项目成本",
+            "100.00",
+        )
+    )
+    path = tmp_path / "ocr.jsonl"
+    path.write_text(
+        json.dumps(
+            {"file": "finance-register.png", "text": text},
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成项目甲测试",
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        }
+    ]
+    events, reviews, _sources, diagnostics = parse_ocr_paid_project_costs(
+        path,
+        (tmp_path,),
+        projects,
+        {},
+        2099,
+        "2099-02-28",
+    )
+    assert reviews == []
+    assert sorted(event["amount_cents"] for event in events) == [
+        10_000,
+        20_000,
+        30_000,
+    ]
+    assert all(event["cost_occurrence_evidenced"] for event in events)
+    assert diagnostics["embedded_wage_history_count"] == 2
+    assert diagnostics["occurrence_evidenced_count"] == 3
 
 
 def test_one_cent_labor_posting_cannot_suppress_full_payroll_allocation():
