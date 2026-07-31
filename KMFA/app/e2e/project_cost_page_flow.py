@@ -39,7 +39,7 @@ COST_PATH = "/项目成本"
 
 # 刻意造出排序能看出差别的分布：数量级跨度大（按字符串排会错），且有一个空值。
 SAMPLE = {
-    "schema_version": "kmfa.project_cost.current.v3",
+    "schema_version": "kmfa.project_cost.current.v4",
     "快照ID": "kmfa-pc-2099-page-e2e",
     "计算状态": "PASS",
     "待确认": {
@@ -69,27 +69,36 @@ SAMPLE = {
         {"合同编号": "E2E-002", "项目名称": "合成项目乙", "甲方名称": "合成客户乙",
          "施工状态": "施工中", "含税合同金额": "5000000",
          "项目过账实际": "1000000", "项目应计": "0", "项目已发生成本": "1000000",
+         "项目成本": "2000000", "有效合同额": "5000000",
+         "毛利": "3000000", "毛利率": "60.00%", "毛利率基点": 6000,
+         "收入与毛利状态": "READY",
          "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT"},
         {"合同编号": "E2E-003", "项目名称": "合成项目丙", "甲方名称": "合成客户丙",
          "施工状态": "待入场", "含税合同金额": "80000",
          "项目过账实际": "250000", "项目应计": "0", "项目已发生成本": "250000",
+         "项目成本": "250000", "有效合同额": "80000",
+         "毛利": "-170000", "毛利率": "-212.50%", "毛利率基点": -21250,
+         "收入与毛利状态": "READY",
          "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT"},
         {"合同编号": "E2E-004", "项目名称": "合成项目丁", "甲方名称": "合成客户丁",
          "施工状态": "已完工", "项目过账实际": "77777", "项目应计": "0",
          "项目已发生成本": "77777",
+         "收入与毛利状态": "BLOCKED_COST_COMPLETENESS",
          "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT"},
         {"合同编号": "E2E-001", "项目名称": "合成项目甲", "甲方名称": "合成客户甲",
          "施工状态": "已完工",
          "完工日期": "2025-06-30", "含税合同金额": "100000",
          "项目过账实际": "40000", "项目应计": "-31000", "项目已发生成本": "9000",
-         "主营成本已结转": "40000",
+         "项目成本": "40000", "有效合同额": "100000",
+         "毛利": "60000", "毛利率": "60.00%", "毛利率基点": 6000,
+         "收入与毛利状态": "READY",
          "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT"},
     ],
 }
 
-# 合同额列。数量级跨到 5,000,000 vs 80,000——按显示的千分位字符串排会把
+# 有效收入列。数量级跨到 5,000,000 vs 80,000——按显示的千分位字符串排会把
 # 「1,000,000」排在「9,000」前面，这一列专门用来照出那种退化。
-CONTRACT_COL = 4
+REVENUE_COL = 4
 
 CSP_WATCHER = """
 window.__cspViolations = [];
@@ -154,13 +163,29 @@ def run_flow(page: Page, base_url: str, results: list[dict]) -> None:
     _check(results, "排序脚本已执行", role == "button" and tab_index == 0,
            f"role={role!r} tabIndex={tab_index}（脚本没跑时是 null / -1）")
 
+    headers = [text.strip() for text in page.locator("#costtbl thead th").all_inner_texts()]
+    forbidden_headers = {
+        "支付观察",
+        "主营成本结转",
+        "状态表观察",
+        "过账应计",
+        "合格应计",
+    }
+    _check(results, "毛利率列明确展示", "毛利率" in headers, f"表头={headers}")
+    _check(
+        results,
+        "已删除指定观察与应计列",
+        forbidden_headers.isdisjoint(headers),
+        f"表头={headers}",
+    )
+
     before = _order(page)
-    header = page.locator("#costtbl thead th").nth(CONTRACT_COL)
+    header = page.locator("#costtbl thead th").nth(REVENUE_COL)
 
     # ③ 点一下：顺序必须真的变，而且是**按数值**降序。
     header.click()
     desc = _order(page)
-    desc_values = [v for v in _column(page, CONTRACT_COL) if v not in (None, "")]
+    desc_values = [v for v in _column(page, REVENUE_COL) if v not in (None, "")]
     numeric_desc = [float(v) for v in desc_values]
     _check(results, "点表头之后顺序真的变了", desc != before,
            f"{before} → {desc}")
@@ -170,7 +195,7 @@ def run_flow(page: Page, base_url: str, results: list[dict]) -> None:
 
     # ④ 再点一下：反向，且空值**仍然**沉底（不能因为升序就冒充最小值）。
     header.click()
-    asc_values_raw = _column(page, CONTRACT_COL)
+    asc_values_raw = _column(page, REVENUE_COL)
     asc_numeric = [float(v) for v in asc_values_raw if v not in (None, "")]
     empties_at = [i for i, v in enumerate(asc_values_raw) if v in (None, "")]
     _check(results, "再点一次是升序", asc_numeric == sorted(asc_numeric),

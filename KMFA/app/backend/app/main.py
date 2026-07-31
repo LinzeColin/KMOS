@@ -3099,6 +3099,19 @@ def public_project_cost_page():
             return "待成本闭合｜账簿截至 %s" % ledger_period
         return "待成本闭合"
 
+    def download_cell(project):
+        if project.get("收入与毛利状态") != "READY":
+            return (
+                '<td class="c" data-v=""><span class="hint" '
+                'title="项目成本未闭合，不能生成正式项目财务分析表">待闭合</span></td>'
+            )
+        contract = quote(str(project.get("合同编号") or ""))
+        return (
+            '<td class="c" data-v=""><a class="one" '
+            'title="只下载这一个已闭合合同" '
+            f'href="/项目成本/下载?合同={contract}">⬇</a></td>'
+        )
+
     rows = "\n".join(
         "<tr>"
         f'<td class="k" data-v="{html_escape(str(p.get("合同编号") or ""))}">'
@@ -3119,8 +3132,7 @@ def public_project_cost_page():
             f'<td class="c" data-v="{html_escape(margin_status_text(p))}">'
             f'{html_escape(margin_status_text(p))}</td>'
         )
-        + f'<td class="c" data-v=""><a class="one" title="只下载这一个合同" '
-          f'href="/项目成本/下载?合同={quote(str(p.get("合同编号") or ""))}">⬇</a></td>'
+        + download_cell(p)
         + "</tr>"
         for p in projects)
 
@@ -3151,7 +3163,7 @@ def public_project_cost_page():
     <a class="dl" href="/项目成本/下载">⬇ 下载全部（Excel）</a>
     <button class="dl alt" id="recalc" type="button">↻ 重新计算</button>
   </span>
-  <span class="hint">点表头按该列排序，再点一次反向　·　每行末尾 ⬇ 只下载那一个合同</span>
+  <span class="hint">点表头按该列排序，再点一次反向　·　只有“已闭合”项目可单独下载</span>
 </div>
 <div class="hint" id="recalcmsg" role="status" aria-live="polite"></div>
 <div class="tw"><table id="costtbl">
@@ -3308,7 +3320,8 @@ def public_project_cost_download(合同: str | None = None):
     )
     from openpyxl.worksheet.page import PageMargins  # noqa: PLC0415
 
-    # 单个合同 → **竖版《项目财务分析表》**，逐行照抄 Owner 的真实模版。
+    # 单个合同 → **竖版《项目财务分析表》**，使用与 Skill 封印 PDF 相同的
+    # B-family 行序和闭合项目财务分析成本口径。
     #
     # Owner 2026-07-30：「/Users/linzezhang/Downloads/KMFA_MetaData/销售绩效考核
     # 这里面的才是真实模版，你现在用的不知道是什么恶心东西」。
@@ -3319,6 +3332,14 @@ def public_project_cost_download(合同: str | None = None):
         from .project_statement import statement_header, statement_rows  # noqa: PLC0415
 
         project = rows[0]
+        if str(project.get("收入与毛利状态") or "") != "READY":
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "该项目成本尚未闭合；网页仅展示已发生成本下限，"
+                    "禁止生成或下载正式项目财务分析表"
+                ),
+            )
         book = Workbook()
         ws = book.active
         ws.title = "项目财务分析表"
@@ -3380,11 +3401,11 @@ def public_project_cost_download(合同: str | None = None):
         subtotal_labels = {
             "（一）原材料", "（二）租赁费", "（三）保险费",
             "（四）现场管理费", "（五）工资（承包费）支出", "（六）信息费",
+            "（七）税金",
         }
-        total_labels = {"一、合同额", "合计支出", "（七）毛利"}
+        total_labels = {"一、合同额", "项目产值", "三 利润"}
         policy_labels = {
-            "三 1.1分摊的管理费用（合同的2%）",
-            "1.2占用的资金利息",
+            "（八） 分摊的管理费用（合同的2%）",
         }
         for label, amount, note in statement_rows(project):
             ws.cell(row=line, column=1, value=label)
@@ -3435,9 +3456,16 @@ def public_project_cost_download(合同: str | None = None):
         note_ws.column_dimensions["B"].width = 96
         for key, text in (
             ("生成时间", str(payload.get("生成时间") or "")),
-            ("模版", "逐行照抄《竣工项目财务报表》A 表；行序、层级、编号、括号写法未作改动"),
+            ("模版", "与 Skill 封印单项目 PDF 一致的 B-family 项目财务分析表"),
             ("空行", "表示「本系统没有这个数」，**不是 0**"),
             ("正式成本", "项目已发生成本＝项目过账实际＋合格应计；内部全程整数分"),
+            ("收入与毛利状态", str(project.get("收入与毛利状态") or "")),
+            (
+                "已发生成本下限（非闭合项目成本）",
+                str(project.get("项目已发生成本") or ""),
+            ),
+            ("闭合项目成本", str(project.get("项目成本") or "")),
+            ("毛利率", str(project.get("毛利率") or "")),
             (
                 "复核状态",
                 f"{payload.get('计算状态') or ''}；P1 开放复核 {p1_open} 条，"
@@ -3445,9 +3473,9 @@ def public_project_cost_download(合同: str | None = None):
             ),
             ("（四）现场管理费", "仅承接正式事件分类；不能安全细分的金额在备注中保留"),
             ("（五）工资（承包费）支出", "正式劳务/分包/人工事件；不使用固定工时单价"),
-            ("三 1.1分摊的管理费用", "保留模板原行；无合格政策时留空，禁止按合同额2%生成"),
-            ("毛利", "有效合同变更链与收入确认口径未闭合，留空"),
-            ("备注百分比", "占总成本比例，分母为合计支出"),
+            ("（八）分摊的管理费用", "保留模板原行；无合格政策时留空，禁止按合同额2%生成"),
+            ("毛利", "有效收入基数减闭合项目成本；毛利率超过70%时整批禁止发布"),
+            ("备注百分比", "占闭合项目成本比例"),
         ):
             note_ws.append([key, text])
         note_ws.cell(row=1, column=1).font = Font(bold=True)

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Render one project's formal cost into the owner statement layout.
+"""Render one closed project into the governed financial-statement layout.
 
-The row order is a public-safe transcription of the supplied A-family project
-financial statement. Values only come from the canonical Skill runtime fields
-``报表归类`` and ``项目已发生成本``. The historical “合同的2%” and profit rows
-remain for layout parity but stay blank until their own governed inputs exist.
+Amounts only come from the canonical Skill runtime fields ``报表归类``,
+``项目成本``, ``有效合同额`` and ``毛利``.  A project whose cost basis is not
+``READY`` is rejected instead of relabelling its incurred-cost lower bound as a
+closed project cost.
 """
 
 from __future__ import annotations
@@ -12,49 +12,34 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 
 
-TEMPLATE_A: tuple[tuple[str, str], ...] = (
+TEMPLATE_B: tuple[tuple[str, str], ...] = (
     ("一、合同额", "contract"),
+    ("项目产值", "revenue"),
     ("二、资金运用及各项支出", "sec2"),
     ("（一）原材料", "l2_material"),
-    ("其中:1.主要材料", "d_material"),
-    ("2.辅助材料", "blank"),
-    ("2.1气体", "d_fuel_power"),
-    ("2.2焊材", "blank"),
-    ("2.3漆料", "blank"),
-    ("2.4低值易损耗材", "blank"),
-    ("3 外协 加工费", "blank"),
+    ("采购材料", "d_material"),
     ("（二）租赁费", "l2_rental"),
-    ("其中:1.吊车租赁费", "blank"),
-    ("2.脚手架租赁费", "blank"),
-    ("3.物流运输费", "d_logistics"),
-    ("（三）保险费", "blank"),
+    ("其中:1.机械费", "rental_only"),
+    ("（三）保险费", "insurance"),
     ("（四）现场管理费", "l2_site"),
-    ("1.管理人员工资", "d_own_labour"),
+    ("1.自有人员工资", "d_own_labour"),
     ("2.差旅费", "d_travel"),
-    ("2.1车票", "d_ticket"),
-    ("2.2住宿", "d_stay"),
-    ("3.业务费用", "blank"),
-    ("3.1招待费", "blank"),
-    ("4.生活费用", "d_living"),
-    ("4.1生活用品", "blank"),
-    ("4.2生活费", "blank"),
-    ("5.工程车辆使用费", "d_vehicle"),
-    ("5.1加油费及保养", "d_vehicle_fuel"),
-    ("5.2过路、停车费", "d_road_parking"),
-    ("5.3维修费", "blank"),
-    ("6.办公费", "blank"),
-    ("7.安全防护费", "blank"),
-    ("8.房租", "blank"),
-    ("9.临电", "blank"),
-    ("10.体检及工伤支出等", "blank"),
-    ("11.罚款", "blank"),
-    ("12.挂靠管理费", "blank"),
+    ("3.招待费", "blank"),
+    ("4.运输费", "d_logistics"),
+    ("5.办公费", "blank"),
+    ("6.房租", "d_stay"),
+    ("7.水电费", "d_fuel_power"),
+    ("8.备用金", "blank"),
+    ("9.其他费用", "d_other"),
     ("（五）工资（承包费）支出", "l2_sub_labour"),
-    ("（六）信息费", "blank"),
-    ("三 1.1分摊的管理费用（合同的2%）", "allocation"),
-    ("1.2占用的资金利息", "interest"),
-    ("合计支出", "total"),
-    ("（七）毛利", "profit"),
+    ("外协人员工资", "l2_sub_labour"),
+    ("外协人员生活费", "blank"),
+    ("临时用工费用", "blank"),
+    ("（六）信息费", "information_fee"),
+    ("（七）税金", "tax"),
+    ("（八） 分摊的管理费用（合同的2%）", "allocation"),
+    ("已发生尚未支付费用", "blank"),
+    ("三 利润", "profit"),
 )
 
 
@@ -73,9 +58,12 @@ def _plus(*values: Decimal | None) -> Decimal | None:
 
 
 def statement_rows(project: dict) -> list[tuple[str, Decimal | None, str]]:
-    """Return statement rows while conserving the formal project-cost total."""
+    """Return a closed statement while conserving every project-cost cent."""
 
+    if str(project.get("收入与毛利状态") or "") != "READY":
+        raise ValueError("项目成本未闭合，禁止生成正式项目财务分析表")
     contract = _num(project.get("含税合同金额"))
+    revenue = _num(project.get("有效合同额"))
     buckets = project.get("报表归类") or {}
     material = _num(buckets.get("material"))
     fuel_power = _num(buckets.get("fuel_power"))
@@ -89,24 +77,49 @@ def statement_rows(project: dict) -> list[tuple[str, Decimal | None, str]]:
     other = _num(buckets.get("other"))
     own_labour = _num(buckets.get("own_labor"))
     sub_labour = _num(buckets.get("subcontract_labor"))
-    total = _num(project.get("项目已发生成本"))
+    information_fee = _num(buckets.get("information_fee"))
+    tax = _num(buckets.get("tax"))
+    management_allocation = _num(buckets.get("management_allocation"))
+    total = _num(project.get("项目成本"))
+    profit = _num(project.get("毛利"))
 
     material_total = _plus(material, fuel_power)
-    rental_total = _plus(rental, logistics)
+    rental_total = rental
     travel = _plus(ticket, stay)
     vehicle_total = _plus(vehicle, road_parking)
-    site = _plus(own_labour, travel, living, vehicle_total, other)
-    classified = _plus(material_total, rental_total, site, sub_labour)
+    site = _plus(
+        own_labour,
+        travel,
+        living,
+        vehicle_total,
+        logistics,
+        other,
+    )
+    classified = _plus(
+        material_total,
+        rental_total,
+        site,
+        sub_labour,
+        information_fee,
+        tax,
+        management_allocation,
+    )
     if total == Decimal(0) and classified is None:
         classified = Decimal(0)
-    if total is not None and classified != total:
-        raise ValueError(f"正式成本归类不守恒：{classified!r} != {total!r}")
+    if total is None or classified != total:
+        raise ValueError(f"闭合项目成本归类不守恒：{classified!r} != {total!r}")
+    if revenue is None or profit is None or profit != revenue - total:
+        raise ValueError("闭合项目毛利与有效收入、项目成本不守恒")
 
     own_hours = project.get("自有人工工时")
     sub_hours = project.get("劳务人工工时")
     values: dict[str, tuple[Decimal | None, str]] = {
-        "contract": (contract, "原始合同额；不等于有效合同额或收入确认额"),
-        "sec2": (total, "正式项目成本；三项政策行未自动计提"),
+        "contract": (contract, "红圈原始含税合同额"),
+        "revenue": (revenue, "毛利计算使用的有效收入基数"),
+        "sec2": (
+            total,
+            "已闭合项目财务分析成本；与网站项目成本及毛利口径一致",
+        ),
         "l2_material": (material_total, ""),
         "d_material": (material, ""),
         "d_fuel_power": (fuel_power, "燃料及动力"),
@@ -130,35 +143,41 @@ def statement_rows(project: dict) -> list[tuple[str, Decimal | None, str]]:
             else ("正式自有人工成本" if own_labour is not None else ""),
         ),
         "d_travel": (travel, ""),
-        "d_ticket": (ticket, ""),
         "d_stay": (stay, ""),
         "d_living": (living, ""),
         "d_vehicle": (vehicle_total, ""),
-        "d_vehicle_fuel": (vehicle, ""),
-        "d_road_parking": (road_parking, ""),
+        "d_logistics": (logistics, ""),
+        "d_other": (other, ""),
         "l2_sub_labour": (
             sub_labour,
             f"外协 {sub_hours} 个工" if sub_hours else "",
         ),
-        "allocation": (
-            None,
-            "模板原行；无合格管理费政策，禁止按合同额2%自动生成",
+        "information_fee": (information_fee, ""),
+        "tax": (
+            tax,
+            "逐张开票销项税扣除税费台账已预缴增值税；不估率、不补差",
         ),
-        "interest": (None, "无合格资金占用政策，留空"),
-        "total": (total, ""),
+        "allocation": (
+            management_allocation,
+            (
+                "仅批准且在生效期内的项目管理分摊政策可计入"
+                if management_allocation is not None
+                else "无活动政策，禁止按合同额2%自动生成"
+            ),
+        ),
         "profit": (
-            None,
-            "有效合同变更链与收入确认口径未闭合，禁止生成毛利",
+            profit,
+            f"毛利率 {project.get('毛利率')}",
         ),
     }
 
     output: list[tuple[str, Decimal | None, str]] = []
-    for label, kind in TEMPLATE_A:
+    for label, kind in TEMPLATE_B:
         amount, note = values.get(kind, (None, ""))
         if (
             amount is not None
             and total not in (None, Decimal(0))
-            and kind not in ("contract", "total", "sec2")
+            and kind not in ("contract", "revenue", "sec2", "profit")
         ):
             share = f"{amount / total:.2%}"
             note = f"{note} {share}".strip() if note else share
