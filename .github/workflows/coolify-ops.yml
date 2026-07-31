@@ -140,6 +140,37 @@ jobs:
                       gross_index = headers["应计工资小计"]
                       outside_index = headers.get("实出勤天-厂外")
                       inside_index = headers.get("实出勤天-厂内")
+                      diagnostic_component_indexes = {
+                          header: index
+                          for header, index in headers.items()
+                          if any(
+                              marker in header
+                              for marker in (
+                                  "工资",
+                                  "薪",
+                                  "出勤",
+                                  "天",
+                                  "岗位",
+                                  "基本",
+                                  "绩效",
+                                  "加班",
+                                  "补贴",
+                                  "奖金",
+                                  "标准",
+                                  "基数",
+                              )
+                          )
+                          and not any(
+                              prohibited in header
+                              for prohibited in (
+                                  "身份证",
+                                  "银行卡",
+                                  "账号",
+                                  "电话",
+                                  "手机",
+                              )
+                          )
+                      }
                       for row in sheet.iter_rows(
                           min_row=header_row + 1,
                           values_only=True,
@@ -187,6 +218,31 @@ jobs:
                                   ),
                                   "gross_cents": gross,
                                   "approved_days": str(approved_days),
+                                  "compensation_fields": {
+                                      header: (
+                                          value
+                                          if value is None
+                                          or isinstance(
+                                              value,
+                                              (
+                                                  str,
+                                                  int,
+                                                  float,
+                                                  bool,
+                                              ),
+                                          )
+                                          else str(value)
+                                      )
+                                      for header, index in (
+                                          diagnostic_component_indexes.items()
+                                      )
+                                      for value in (
+                                          row[index]
+                                          if index < len(row)
+                                          else None,
+                                      )
+                                      if value not in (None, "")
+                                  },
                               }
                           )
                   return result
