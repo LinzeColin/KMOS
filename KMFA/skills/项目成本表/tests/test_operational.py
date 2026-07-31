@@ -17,19 +17,23 @@ from project_cost_table.operational import (
     _statement_buckets,
     _statement_rows,
     generate_outputs,
+    governed_financial_analysis_revenue,
     governed_gross_margin,
     governed_contract_revenue,
+    project_financial_analysis_components,
     labor_posted_component_reconciliation,
     labor_posted_reconciliation,
     ledger_book_metadata,
     parse_dws_approvals,
     parse_ledger_books,
     parse_ocr_paid_project_costs,
+    parse_ocr_shared_information_fees,
     parse_status,
     project_level_residual_labor_allocate,
     qualify_cost_accruals,
     runtime_projection,
     sha256_bytes,
+    split_project_work_units_by_entity,
     stable_json,
     subject_source_binding,
     verify_output,
@@ -167,7 +171,7 @@ def test_runtime_projection_keeps_formal_cost_and_observation_planes_separate():
     assert projection["待确认"]["P1开放复核数"] == 0
 
 
-def test_statement_template_conserves_cents_and_leaves_policy_rows_blank():
+def test_statement_template_uses_current_b_family_and_conserves_cents():
     snapshot = _snapshot()
     categories = _formal_cost_categories(snapshot)["KMX20990101-001"]
     buckets = _statement_buckets(categories)
@@ -176,12 +180,10 @@ def test_statement_template_conserves_cents_and_leaves_policy_rows_blank():
         for label, amount, note in _statement_rows(snapshot["projects"][0], buckets)
     }
     assert rows["（一）原材料"][0] == 12_345
-    assert rows["1.管理人员工资"][0] == 7_655
-    assert rows["合计支出"][0] == 20_000
-    assert rows["三 1.1分摊的管理费用（合同的2%）"][0] is None
-    assert "禁止" in rows["三 1.1分摊的管理费用（合同的2%）"][1]
-    assert rows["（七）毛利"][0] is None
-    assert "禁止" in rows["（七）毛利"][1]
+    assert rows["1.自有人员工资"][0] == 7_655
+    assert rows["二、资金运用及各项支出"][0] == 20_000
+    assert rows["（八） 分摊的管理费用（合同的2%）"][0] is None
+    assert rows["三 利润"][0] == 30_000
 
 
 def test_runtime_projection_rejects_a_one_cent_category_drift():
@@ -259,6 +261,82 @@ def test_completed_settlement_is_distinct_from_invoice_and_original_contract():
         "status": "READY_SETTLEMENT_REGISTER",
         "basis": "GOVERNED_SETTLEMENT_REGISTER",
     }
+
+
+def test_financial_analysis_revenue_uses_approved_project_output_not_settlement():
+    result = governed_financial_analysis_revenue(
+        {
+            "contract_amount_cents": 91_000,
+            "construction_status_master": "已完工",
+        },
+        {
+            "construction_status": "已完工",
+            "status_contract_amount_cents": 91_000,
+            "settlement_amount_cents": 157_300,
+            "invoice_amount_cents": 145_200,
+        },
+    )
+    assert result == {
+        "effective_revenue_cents": 145_200,
+        "status": "READY_APPROVED_INVOICED_PROJECT_OUTPUT",
+        "basis": "APPROVED_INVOICED_PROJECT_OUTPUT",
+        "original_contract_cents": 91_000,
+        "settlement_cents": 157_300,
+        "revenue_bridge_cents": 54_200,
+    }
+
+
+def test_financial_analysis_policy_is_exact_and_credits_direct_tax_once():
+    result = project_financial_analysis_components(
+        revenue_cents=11_300,
+        invoice_events=[
+            {
+                "event_id": "invoice-1",
+                "invoice_gross_cents": 11_300,
+                "amount_cents": 1_300,
+            }
+        ],
+        direct_project_tax_in_incurred_cents=500,
+    )
+    assert result["status"] == "READY"
+    assert result["management_allocation_cents"] == 226
+    assert result["tax_components_cents"] == {
+        "output_vat": 1_300,
+        "surcharge": 156,
+        "income_tax": 226,
+        "stamp_tax": 3,
+    }
+    assert result["tax_provision_cents"] == 1_685
+    assert result["direct_project_tax_credit_cents"] == 500
+    assert result["incremental_tax_provision_cents"] == 1_185
+    assert result["analysis_increment_cents"] == 1_411
+
+
+def test_financial_analysis_tax_blocks_invoice_control_drift_and_overcredit():
+    drift = project_financial_analysis_components(
+        revenue_cents=11_301,
+        invoice_events=[
+            {
+                "event_id": "invoice-1",
+                "invoice_gross_cents": 11_300,
+                "amount_cents": 1_300,
+            }
+        ],
+        direct_project_tax_in_incurred_cents=0,
+    )
+    assert drift["status"] == "BLOCKED_INVOICE_REVENUE_RECONCILIATION"
+    overcredit = project_financial_analysis_components(
+        revenue_cents=11_300,
+        invoice_events=[
+            {
+                "event_id": "invoice-1",
+                "invoice_gross_cents": 11_300,
+                "amount_cents": 1_300,
+            }
+        ],
+        direct_project_tax_in_incurred_cents=1_686,
+    )
+    assert overcredit["status"] == "BLOCKED_DIRECT_TAX_EXCEEDS_PROVISION"
 
 
 def test_revenue_basis_blocks_when_master_and_status_contract_conflict():
@@ -2571,6 +2649,155 @@ def test_ocr_marks_reimbursement_and_recovers_explicit_wage_payment_history(
     assert diagnostics["occurrence_evidenced_count"] == 3
 
 
+def test_ocr_page_anchor_resolves_same_customer_rows_without_name_hardcoding(
+    tmp_path: Path,
+):
+    text = "\n".join(
+        (
+            "5月22日",
+            "合成客户甲 5号煅烧炉现场车削 外协人员工资",
+            "项目成本",
+            "7480.00",
+            "合成客户甲 焊丝",
+            "项目成本",
+            "1235.00",
+        )
+    )
+    path = tmp_path / "ocr.jsonl"
+    path.write_text(
+        json.dumps(
+            {"file": "finance-register.png", "text": text},
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成客户甲7号锅炉省煤器",
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        },
+        {
+            "canonical_contract_id": "KMX20990501-002",
+            "contract_base": "KMX20990501-002",
+            "project_name": "合成客户甲5号煅烧炉现场车削",
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-05-01",
+            "year": 2099,
+        },
+    ]
+    status = {
+        "KMX20990101-001": {
+            "start_date": "2099-03-01",
+            "completion_date": "2099-06-30",
+            "project_type": "自有人员",
+        },
+        "KMX20990501-002": {
+            "start_date": "2099-05-11",
+            "completion_date": "2099-05-21",
+            "project_type": "劳务外协",
+            "external_work_units": 34,
+        },
+    }
+    events, reviews, _sources, diagnostics = parse_ocr_paid_project_costs(
+        path,
+        (tmp_path,),
+        projects,
+        status,
+        2099,
+        "2099-05-31",
+    )
+    assert [(row["amount_cents"], row["project"]) for row in events] == [
+        (748_000, "KMX20990501-002"),
+        (123_500, "KMX20990501-002"),
+    ]
+    assert not [
+        row
+        for row in reviews
+        if row["type"] == "OCR_PAID_OUTSIDE_FORMULA_EXCLUDED"
+    ]
+    assert diagnostics["page_anchor_inherited_count"] == 1
+
+
+def test_shared_information_fee_uses_governed_invoice_weight_and_conserves_cents(
+    tmp_path: Path,
+):
+    path = tmp_path / "ocr.jsonl"
+    path.write_text(
+        json.dumps(
+            {
+                "file": "transfer.png",
+                "text": "\n".join(
+                    (
+                        "交易详情",
+                        "-¥100.00",
+                        "交易时间",
+                        "2099-03-20 16:20:06",
+                        "附言",
+                        "合成客户甲信息费",
+                    )
+                ),
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成项目甲",
+            "customer": "合成客户甲有限公司",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        },
+        {
+            "canonical_contract_id": "KMX20990102-002",
+            "contract_base": "KMX20990102-002",
+            "project_name": "合成项目乙",
+            "customer": "合成客户甲有限公司",
+            "created_date": "2099-01-02",
+            "year": 2099,
+        },
+    ]
+    status = {
+        "KMX20990101-001": {"invoice_amount_cents": 30_000},
+        "KMX20990102-002": {"invoice_amount_cents": 10_000},
+    }
+    events, reviews, _sources, diagnostics = (
+        parse_ocr_shared_information_fees(
+            path,
+            (tmp_path,),
+            projects,
+            status,
+            2099,
+            "2099-03-31",
+        )
+    )
+    assert reviews == []
+    assert [
+        (row["project"], row["amount_cents"])
+        for row in events
+    ] == [
+        ("KMX20990101-001", 7_500),
+        ("KMX20990102-002", 2_500),
+    ]
+    assert sum(row["amount_cents"] for row in events) == 10_000
+    assert all(
+        row["cost_occurrence_evidenced"] is True
+        and row["category"] == "信息费"
+        for row in events
+    )
+    assert diagnostics["allocated_transaction_count"] == 1
+
+
 def test_one_cent_labor_posting_cannot_suppress_full_payroll_allocation():
     matched, residual = labor_posted_reconciliation(10_000, 1)
     assert matched == 1
@@ -2614,6 +2841,36 @@ def test_project_level_residual_labor_rejects_time_overflow():
         )
 
     assert error.value.code == "LABOR_PROJECT_LEVEL_TIME_OVERFLOW"
+
+
+def test_project_work_units_split_across_observed_employment_entities():
+    result = split_project_work_units_by_entity(
+        Decimal("19"),
+        {
+            "entity-a": Decimal("1"),
+            "entity-b": Decimal("1"),
+        },
+    )
+
+    assert result == {
+        "entity-a": Decimal("9.5"),
+        "entity-b": Decimal("9.5"),
+    }
+    assert sum(result.values(), Decimal(0)) == Decimal("19")
+
+
+def test_project_work_units_entity_split_conserves_repeating_ratio():
+    result = split_project_work_units_by_entity(
+        Decimal("20"),
+        {
+            "entity-a": Decimal("1"),
+            "entity-b": Decimal("2"),
+        },
+    )
+
+    assert set(result) == {"entity-a", "entity-b"}
+    assert all(value > 0 for value in result.values())
+    assert sum(result.values(), Decimal(0)) == Decimal("20")
 
 
 def test_payroll_parser_allocates_actual_residual_pool_by_status_work_units(

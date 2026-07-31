@@ -99,6 +99,35 @@ STATEMENT_TEMPLATE_A = (
     ("合计支出", "total"),
     ("（七）毛利", "profit"),
 )
+STATEMENT_TEMPLATE_B = (
+    ("一、合同额", "contract"),
+    ("项目产值", "revenue"),
+    ("二、资金运用及各项支出", "sec2"),
+    ("（一）原材料", "l2_material"),
+    ("采购材料", "d_material"),
+    ("（二）租赁费", "l2_rental"),
+    ("其中:1.机械费", "rental_only"),
+    ("（三）保险费", "insurance"),
+    ("（四）现场管理费", "l2_site"),
+    ("1.自有人员工资", "d_own_labor"),
+    ("2.差旅费", "d_travel"),
+    ("3.招待费", "blank"),
+    ("4.运输费", "d_logistics"),
+    ("5.办公费", "blank"),
+    ("6.房租", "d_lodging"),
+    ("7.水电费", "d_fuel_power"),
+    ("8.备用金", "blank"),
+    ("9.其他费用", "other"),
+    ("（五）工资（承包费）支出", "l2_subcontract_labor"),
+    ("外协人员工资", "l2_subcontract_labor"),
+    ("外协人员生活费", "blank"),
+    ("临时用工费用", "blank"),
+    ("（六）信息费", "information_fee"),
+    ("（七）税金", "tax"),
+    ("（八） 分摊的管理费用（合同的2%）", "allocation"),
+    ("已发生尚未支付费用", "blank"),
+    ("三 利润", "profit"),
+)
 MONEY_FORMAT = '#,##0.00;[Red](#,##0.00);-'
 CONTRACT_TOKEN_RE = re.compile(r"KMX[0-9A-Z]+(?:-[0-9A-Z]+)+", re.IGNORECASE)
 DATE_DIR_RE = re.compile(r"(20\d{2})[-_.]?(\d{2})[-_.]?(\d{2})")
@@ -1129,6 +1158,273 @@ def governed_contract_revenue(
         "effective_revenue_cents": None,
         "status": "BLOCKED_CONTRACT_CHANGE_COMPLETENESS",
         "basis": None,
+    }
+
+
+def _project_financial_analysis_policy() -> Dict[str, Any]:
+    """Load and validate the public-safe owner reporting policy.
+
+    The policy records calculation semantics only.  Historical project reports
+    remain validation fixtures and never provide a current project amount.
+    """
+
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "config"
+        / "project_financial_analysis_policy.json"
+    )
+    try:
+        policy = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ProjectCostError(
+            "FINANCIAL_ANALYSIS_POLICY_INVALID",
+            "project financial-analysis policy cannot be loaded",
+        ) from exc
+    if (
+        policy.get("schema_version")
+        != "kmfa.project_cost.financial_analysis_policy.v1"
+        or policy.get("status") != "ACTIVE"
+        or policy.get("currency") != "CNY"
+        or policy.get("reference_report_role")
+        != "VALIDATION_ONLY_NOT_CALCULATION_INPUT"
+    ):
+        raise ProjectCostError(
+            "FINANCIAL_ANALYSIS_POLICY_INVALID",
+            "project financial-analysis policy is inactive or structurally invalid",
+        )
+    controls = policy.get("release_controls") or {}
+    if (
+        controls.get("maximum_gross_margin_bps") != MAX_GROSS_MARGIN_BPS
+        or controls.get("above_maximum_action") != "BLOCK"
+        or controls.get("clamp_allowed") is not False
+        or controls.get("backsolve_cost_allowed") is not False
+        or controls.get("reference_value_fill_allowed") is not False
+    ):
+        raise ProjectCostError(
+            "FINANCIAL_ANALYSIS_POLICY_INVALID",
+            "project financial-analysis release controls are not fail-closed",
+        )
+    return policy
+
+
+def _policy_rate_cents(
+    amount_cents: int,
+    numerator: int,
+    denominator: int,
+) -> int:
+    if (
+        isinstance(amount_cents, bool)
+        or not isinstance(amount_cents, int)
+        or isinstance(numerator, bool)
+        or not isinstance(numerator, int)
+        or isinstance(denominator, bool)
+        or not isinstance(denominator, int)
+        or numerator < 0
+        or denominator <= 0
+    ):
+        raise ProjectCostError(
+            "FINANCIAL_ANALYSIS_POLICY_INTEGER_REQUIRED",
+            "financial-analysis rates require exact integer fractions and integer cents",
+        )
+    value = (
+        Decimal(amount_cents)
+        * Decimal(numerator)
+        / Decimal(denominator)
+    )
+    return int(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+def governed_financial_analysis_revenue(
+    project: Mapping[str, Any],
+    status: Optional[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    """Resolve the owner project-financial-analysis revenue plane.
+
+    The current supplied report family calls this value ``项目产值``.  A
+    positive approved invoiced amount is therefore the controlled basis.  It
+    is kept beside original contract and settlement so a change/revenue bridge
+    stays visible rather than being mislabeled as source arithmetic conflict.
+    """
+
+    _project_financial_analysis_policy()
+    status_row = status or {}
+    construction_status = normalize_text(
+        status_row.get("construction_status")
+        or project.get("construction_status_master")
+    )
+    original = project.get("contract_amount_cents")
+    settlement = status_row.get("settlement_amount_cents")
+    invoiced = status_row.get("invoice_amount_cents")
+    positive_original = (
+        original
+        if isinstance(original, int)
+        and not isinstance(original, bool)
+        and original > 0
+        else None
+    )
+    positive_settlement = (
+        settlement
+        if isinstance(settlement, int)
+        and not isinstance(settlement, bool)
+        and settlement > 0
+        else None
+    )
+    positive_invoiced = (
+        invoiced
+        if isinstance(invoiced, int)
+        and not isinstance(invoiced, bool)
+        and invoiced > 0
+        else None
+    )
+    if construction_status != "已完工":
+        return {
+            "effective_revenue_cents": None,
+            "status": "BLOCKED_PROJECT_NOT_COMPLETED",
+            "basis": None,
+            "original_contract_cents": positive_original,
+            "settlement_cents": positive_settlement,
+            "revenue_bridge_cents": None,
+        }
+    if positive_invoiced is None:
+        return {
+            "effective_revenue_cents": None,
+            "status": "BLOCKED_APPROVED_PROJECT_OUTPUT_MISSING",
+            "basis": None,
+            "original_contract_cents": positive_original,
+            "settlement_cents": positive_settlement,
+            "revenue_bridge_cents": None,
+        }
+    return {
+        "effective_revenue_cents": positive_invoiced,
+        "status": "READY_APPROVED_INVOICED_PROJECT_OUTPUT",
+        "basis": "APPROVED_INVOICED_PROJECT_OUTPUT",
+        "original_contract_cents": positive_original,
+        "settlement_cents": positive_settlement,
+        "revenue_bridge_cents": (
+            positive_invoiced - positive_original
+            if positive_original is not None
+            else None
+        ),
+    }
+
+
+def project_financial_analysis_components(
+    *,
+    revenue_cents: int,
+    invoice_events: Sequence[Mapping[str, Any]],
+    direct_project_tax_in_incurred_cents: int,
+) -> Dict[str, Any]:
+    """Calculate the policy additions without duplicating direct project tax.
+
+    Invoice VAT is not reclassified into the strict accounting
+    ``JOB_COST_INCURRED`` plane.  It is used only in this separately named
+    management-analysis plane.  Any direct project-tax amount already present
+    in incurred cost is credited cent-for-cent against the provision.
+    """
+
+    policy = _project_financial_analysis_policy()
+    if (
+        isinstance(revenue_cents, bool)
+        or not isinstance(revenue_cents, int)
+        or revenue_cents <= 0
+        or isinstance(direct_project_tax_in_incurred_cents, bool)
+        or not isinstance(direct_project_tax_in_incurred_cents, int)
+        or direct_project_tax_in_incurred_cents < 0
+    ):
+        raise ProjectCostError(
+            "FINANCIAL_ANALYSIS_INPUT_INVALID",
+            "financial-analysis revenue and direct-tax credit require valid integer cents",
+        )
+    seen_event_ids: Set[str] = set()
+    invoice_gross_cents = 0
+    output_vat_cents = 0
+    for position, event in enumerate(invoice_events):
+        event_id = str(event.get("event_id") or "")
+        gross = event.get("invoice_gross_cents")
+        vat = event.get("amount_cents")
+        if (
+            not event_id
+            or event_id in seen_event_ids
+            or isinstance(gross, bool)
+            or not isinstance(gross, int)
+            or gross == 0
+            or isinstance(vat, bool)
+            or not isinstance(vat, int)
+        ):
+            raise ProjectCostError(
+                "FINANCIAL_ANALYSIS_INVOICE_INVALID",
+                "each financial-analysis invoice event must be unique and use integer cents",
+            )
+        seen_event_ids.add(event_id)
+        invoice_gross_cents += gross
+        output_vat_cents += vat
+    if not invoice_events:
+        return {
+            "status": "BLOCKED_PROJECT_INVOICE_DETAIL_MISSING",
+            "invoice_event_count": 0,
+        }
+    if invoice_gross_cents != revenue_cents:
+        return {
+            "status": "BLOCKED_INVOICE_REVENUE_RECONCILIATION",
+            "invoice_event_count": len(invoice_events),
+            "invoice_gross_cents": invoice_gross_cents,
+            "revenue_cents": revenue_cents,
+            "delta_cents": invoice_gross_cents - revenue_cents,
+        }
+    tax_policy = policy["tax_provision"]
+    management_policy = policy["management_allocation"]
+    surcharge = _policy_rate_cents(
+        output_vat_cents,
+        int(tax_policy["surcharge_rate_numerator"]),
+        int(tax_policy["surcharge_rate_denominator"]),
+    )
+    income_tax = _policy_rate_cents(
+        invoice_gross_cents,
+        int(tax_policy["income_tax_rate_numerator"]),
+        int(tax_policy["income_tax_rate_denominator"]),
+    )
+    stamp_tax = _policy_rate_cents(
+        invoice_gross_cents,
+        int(tax_policy["stamp_tax_rate_numerator"]),
+        int(tax_policy["stamp_tax_rate_denominator"]),
+    )
+    tax_provision = output_vat_cents + surcharge + income_tax + stamp_tax
+    if direct_project_tax_in_incurred_cents > tax_provision:
+        return {
+            "status": "BLOCKED_DIRECT_TAX_EXCEEDS_PROVISION",
+            "tax_provision_cents": tax_provision,
+            "direct_project_tax_credit_cents": (
+                direct_project_tax_in_incurred_cents
+            ),
+            "delta_cents": (
+                direct_project_tax_in_incurred_cents - tax_provision
+            ),
+        }
+    management = _policy_rate_cents(
+        revenue_cents,
+        int(management_policy["rate_numerator"]),
+        int(management_policy["rate_denominator"]),
+    )
+    incremental_tax = tax_provision - direct_project_tax_in_incurred_cents
+    return {
+        "status": "READY",
+        "policy_id": policy["policy_id"],
+        "policy_version": policy["policy_version"],
+        "invoice_event_count": len(invoice_events),
+        "invoice_gross_cents": invoice_gross_cents,
+        "tax_components_cents": {
+            "output_vat": output_vat_cents,
+            "surcharge": surcharge,
+            "income_tax": income_tax,
+            "stamp_tax": stamp_tax,
+        },
+        "tax_provision_cents": tax_provision,
+        "direct_project_tax_credit_cents": (
+            direct_project_tax_in_incurred_cents
+        ),
+        "incremental_tax_provision_cents": incremental_tax,
+        "management_allocation_cents": management,
+        "analysis_increment_cents": incremental_tax + management,
     }
 
 
@@ -2897,6 +3193,25 @@ def _funding_plan_category(description: str, counterparty: str) -> str:
     )
 
 
+def _narrative_customer_core(value: Any) -> str:
+    core = normalize_text(value)
+    for generic in (
+        "有限责任公司",
+        "股份有限公司",
+        "有限公司",
+        "分公司",
+        "集团",
+        "科技",
+        "实业",
+        "材料",
+        "化工",
+        "水泥",
+        "公司",
+    ):
+        core = core.replace(generic, "")
+    return core
+
+
 def resolve_narrative_identity(
     text: str,
     observed_date: Optional[str],
@@ -2942,21 +3257,7 @@ def resolve_narrative_identity(
         if not key:
             continue
         by_customer[key].append(project)
-        core = key
-        for generic in (
-            "有限责任公司",
-            "股份有限公司",
-            "有限公司",
-            "分公司",
-            "集团",
-            "科技",
-            "实业",
-            "材料",
-            "化工",
-            "水泥",
-            "公司",
-        ):
-            core = core.replace(generic, "")
+        core = _narrative_customer_core(customer)
         score = _longest_common_substring_length(normalized, core)
         meaningful_three = any(
             core[index : index + 3] in normalized
@@ -2990,6 +3291,46 @@ def resolve_narrative_identity(
             eligible.append(candidate)
         candidates = eligible
     if len(candidates) > 1:
+        external_labor_text = bool(
+            re.search(r"(?:外协|劳务|外包).{0,8}工资", normalized)
+        )
+        if external_labor_text:
+            documented_external_candidates: List[
+                Mapping[str, Any]
+            ] = []
+            external_candidates: List[Mapping[str, Any]] = []
+            for candidate in candidates:
+                candidate_status = status_map.get(
+                    str(candidate.get("contract_base") or ""),
+                    {},
+                )
+                project_type = normalize_text(
+                    candidate_status.get("project_type")
+                )
+                external_units = candidate_status.get("external_work_units")
+                if (
+                    (
+                        isinstance(external_units, (int, Decimal))
+                        and not isinstance(external_units, bool)
+                        and Decimal(external_units) > 0
+                    )
+                ):
+                    documented_external_candidates.append(candidate)
+                if (
+                    "劳务" in project_type
+                    or "外协" in project_type
+                ):
+                    external_candidates.append(candidate)
+            if len(documented_external_candidates) == 1:
+                return (
+                    documented_external_candidates[0],
+                    "NARRATIVE_UNIQUE_DOCUMENTED_EXTERNAL_LABOR_SCOPE",
+                )
+            if len(external_candidates) == 1:
+                return (
+                    external_candidates[0],
+                    "NARRATIVE_UNIQUE_EXTERNAL_LABOR_SCOPE",
+                )
         name_scores: List[Tuple[int, Mapping[str, Any]]] = []
         for candidate in candidates:
             project_name = normalize_text(candidate.get("project_name"))
@@ -4246,6 +4587,26 @@ def _ocr_cost_occurrence_basis(description: str) -> Optional[str]:
         for marker in ("用款", "发放", "结清", "已支付", "已经支付", "本次支付")
     ):
         return "FINANCE_REGISTER_WAGE_PAYMENT"
+    if any(
+        marker in normalized
+        for marker in (
+            "采购",
+            "生活费",
+            "加班餐",
+            "餐费",
+            "里程",
+            "焊条",
+            "焊丝",
+            "钢丝绳",
+            "吊钩",
+            "材料费",
+            "交通费",
+            "住宿费",
+            "租赁费",
+            "保险费",
+        )
+    ):
+        return "FINANCE_REGISTER_NAMED_DIRECT_OUTLAY"
     return None
 
 
@@ -4354,6 +4715,277 @@ def _embedded_wage_history(
     return events
 
 
+def parse_ocr_shared_information_fees(
+    path: Optional[Path],
+    roots: Sequence[Path],
+    projects: Sequence[Mapping[str, Any]],
+    status_map: Mapping[str, Mapping[str, Any]],
+    year: int,
+    as_of: str,
+) -> Tuple[
+    List[Dict[str, Any]],
+    List[Dict[str, Any]],
+    List[Dict[str, Any]],
+    Dict[str, Any],
+]:
+    """Allocate an exact customer-level information-fee transaction.
+
+    This is the only shared-cost allocation currently activated by the owner
+    policy.  The transaction must itself say ``信息费`` and identify one
+    customer.  Every eligible same-customer project must have a positive
+    approved invoiced project-output amount; otherwise the complete
+    transaction is blocked.  Integer cents are allocated by largest remainder
+    and conserve the transaction exactly.
+    """
+
+    if path is None:
+        return [], [], [], {
+            "provided": False,
+            "allocated_transaction_count": 0,
+        }
+    _project_financial_analysis_policy()
+    source_path = Path(path)
+    if not source_path.is_file() or source_path.is_symlink():
+        raise ProjectCostError(
+            "OCR_JSONL_INVALID",
+            "OCR JSONL must be a regular file",
+        )
+    source_info = source_record(
+        source_path,
+        tuple(roots) + (source_path.parent,),
+        selected=True,
+        reason=(
+            "caller-supplied OCR JSONL; exact customer information-fee "
+            "transactions allocated by active owner policy"
+        ),
+    )
+    projects_by_customer: Dict[str, List[Mapping[str, Any]]] = (
+        defaultdict(list)
+    )
+    for project in projects:
+        core = _narrative_customer_core(project.get("customer"))
+        if len(core) >= 3:
+            projects_by_customer[core].append(project)
+    events: List[Dict[str, Any]] = []
+    reviews: List[Dict[str, Any]] = []
+    seen_transactions: Set[Tuple[str, int, str]] = set()
+    candidate_transaction_count = 0
+    allocated_transaction_count = 0
+    allocated_control_cents = 0
+    for jsonl_line, raw_line in enumerate(
+        source_path.read_text(encoding="utf-8-sig").splitlines(),
+        1,
+    ):
+        try:
+            record = json.loads(raw_line)
+        except json.JSONDecodeError:
+            continue
+        text = str(record.get("text") or "")
+        normalized = normalize_text(text)
+        if "信息费" not in normalized:
+            continue
+        date_match = re.search(
+            r"(20\d{2})[/.年-](\d{1,2})[/.月-](\d{1,2})",
+            text,
+        )
+        amount_match = re.search(
+            r"[-−]\s*[¥￥]\s*(\d[\d,，]*(?:\.\d{1,2})?)",
+            text,
+        )
+        if date_match is None or amount_match is None:
+            continue
+        try:
+            observed = date(
+                int(date_match.group(1)),
+                int(date_match.group(2)),
+                int(date_match.group(3)),
+            ).isoformat()
+        except ValueError:
+            continue
+        if observed > as_of or not observed.startswith("%04d-" % year):
+            continue
+        amount_cents = cents(
+            amount_match.group(1).replace(",", "").replace("，", "")
+        )
+        if amount_cents is None or amount_cents <= 0:
+            continue
+        matching_customers: List[Tuple[int, str]] = []
+        for customer_core in projects_by_customer:
+            score = _longest_common_substring_length(
+                normalized,
+                customer_core,
+            )
+            if customer_core in normalized or score >= 4:
+                matching_customers.append((score, customer_core))
+        matching_customers.sort(reverse=True)
+        if (
+            not matching_customers
+            or (
+                len(matching_customers) > 1
+                and matching_customers[0][0]
+                == matching_customers[1][0]
+            )
+        ):
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "SHARED_INFORMATION_FEE_CUSTOMER_UNRESOLVED",
+                    "date": observed,
+                    "amount_cents": amount_cents,
+                    "jsonl_line": jsonl_line,
+                    "action": (
+                        "信息费交易未能唯一识别客户；整笔保留待确认，"
+                        "不得按金额或项目名称猜分"
+                    ),
+                }
+            )
+            continue
+        customer_core = matching_customers[0][1]
+        transaction_key = (observed, amount_cents, customer_core)
+        if transaction_key in seen_transactions:
+            continue
+        seen_transactions.add(transaction_key)
+        candidate_transaction_count += 1
+        observed_date = date.fromisoformat(observed)
+        eligible: List[Mapping[str, Any]] = []
+        for project in projects_by_customer[customer_core]:
+            created = _as_date(project.get("created_date"))
+            if (
+                created is not None
+                and created > observed_date + timedelta(days=14)
+            ):
+                continue
+            status = status_map.get(
+                str(project.get("contract_base") or ""),
+            )
+            if status is None:
+                continue
+            completion = _as_date(status.get("completion_date"))
+            if (
+                completion is not None
+                and observed_date > completion + timedelta(days=180)
+            ):
+                continue
+            eligible.append(project)
+        if len(eligible) == 1:
+            only_base = str(eligible[0]["contract_base"])
+            weights = [(only_base, 1)]
+            unweighted: List[str] = []
+        else:
+            weights = []
+            unweighted = []
+            for project in eligible:
+                base = str(project["contract_base"])
+                weight = status_map[base].get("invoice_amount_cents")
+                if (
+                    isinstance(weight, int)
+                    and not isinstance(weight, bool)
+                    and weight > 0
+                ):
+                    weights.append((base, weight))
+                else:
+                    unweighted.append(base)
+        if not weights or unweighted:
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "SHARED_INFORMATION_FEE_WEIGHT_BLOCKED",
+                    "date": observed,
+                    "amount_cents": amount_cents,
+                    "eligible_project_count": len(eligible),
+                    "weighted_project_count": len(weights),
+                    "unweighted_project_count": len(unweighted),
+                    "action": (
+                        "同客户候选项目缺少批准开票项目产值；"
+                        "整笔信息费不分摊"
+                    ),
+                }
+            )
+            continue
+        total_weight = sum(weight for _, weight in weights)
+        allocations: List[List[Any]] = []
+        for base, weight in sorted(weights):
+            quotient, remainder = divmod(
+                amount_cents * weight,
+                total_weight,
+            )
+            allocations.append([base, quotient, remainder])
+        residual = amount_cents - sum(
+            int(allocation[1]) for allocation in allocations
+        )
+        for allocation in sorted(
+            allocations,
+            key=lambda item: (-int(item[2]), str(item[0])),
+        )[:residual]:
+            allocation[1] = int(allocation[1]) + 1
+        allocated_total = sum(
+            int(allocation[1]) for allocation in allocations
+        )
+        if allocated_total != amount_cents:
+            raise ProjectCostError(
+                "SHARED_INFORMATION_FEE_CONSERVATION",
+                "shared information-fee allocation does not conserve integer cents",
+            )
+        filename = str(record.get("file") or record.get("path") or "")
+        for base, allocated, _remainder in sorted(allocations):
+            event_key = [
+                observed,
+                amount_cents,
+                customer_core,
+                base,
+                int(allocated),
+            ]
+            events.append(
+                {
+                    "event_id": "ocr_shared_info_"
+                    + sha256_bytes(stable_json(event_key))[:24],
+                    "project": base,
+                    "plane": "OCR_SHARED_COST_ALLOCATION_EVIDENCE",
+                    "category": "信息费",
+                    "amount_cents": int(allocated),
+                    "posting_date": observed,
+                    "summary": (
+                        "客户级信息费按批准开票项目产值进行整数分分摊"
+                    ),
+                    "source_id": source_info["source_id"],
+                    "source_member": filename,
+                    "row": jsonl_line,
+                    "identity_reason": (
+                        "EXACT_CUSTOMER_SHARED_INFORMATION_FEE_POLICY"
+                    ),
+                    "cost_occurrence_evidenced": True,
+                    "cost_occurrence_basis": (
+                        "OWNER_POLICY_SHARED_INFORMATION_FEE_ALLOCATION"
+                    ),
+                    "allocation_control_cents": amount_cents,
+                    "allocation_weight_cents": dict(weights)[base],
+                    "allocation_total_weight_cents": total_weight,
+                }
+            )
+        allocated_transaction_count += 1
+        allocated_control_cents += amount_cents
+    sources = [
+        dict(
+            source_info,
+            source_slot="ocr_shared_information_fee",
+            logical_metadata={
+                "candidate_transaction_count": candidate_transaction_count,
+                "allocated_transaction_count": allocated_transaction_count,
+                "allocated_event_count": len(events),
+                "allocated_control_cents": allocated_control_cents,
+                "machine_derived": True,
+            },
+        )
+    ]
+    return events, _dedupe_review_rows(reviews), sources, {
+        "provided": True,
+        "candidate_transaction_count": candidate_transaction_count,
+        "allocated_transaction_count": allocated_transaction_count,
+        "allocated_event_count": len(events),
+        "allocated_control_cents": allocated_control_cents,
+    }
+
+
 def parse_ocr_paid_project_costs(
     path: Optional[Path],
     roots: Sequence[Path],
@@ -4375,6 +5007,7 @@ def parse_ocr_paid_project_costs(
     candidate_count = 0
     occurrence_evidenced_count = 0
     embedded_wage_history_count = 0
+    page_anchor_inherited_count = 0
     for line_number, raw_line in enumerate(source_path.read_text(encoding="utf-8-sig").splitlines(), 1):
         try:
             record = json.loads(raw_line)
@@ -4397,6 +5030,7 @@ def parse_ocr_paid_project_costs(
             continue
         if observed > as_of:
             continue
+        page_candidates: List[Dict[str, Any]] = []
         for index, line in enumerate(lines):
             if line != "项目成本":
                 continue
@@ -4450,6 +5084,84 @@ def parse_ocr_paid_project_costs(
                 indexes,
                 status_map,
             )
+            page_candidates.append(
+                {
+                    "index": index,
+                    "amount_index": amount_index,
+                    "amount_cents": amount_minor,
+                    "description": description,
+                    "exclusion": exclusion,
+                    "project": project,
+                    "identity_reason": identity_reason,
+                }
+            )
+
+        anchored_bases_by_customer: Dict[str, Set[str]] = defaultdict(set)
+        projects_by_base = {
+            str(project["contract_base"]): project
+            for project in projects
+        }
+        for candidate in page_candidates:
+            anchored = candidate.get("project")
+            if anchored is None or candidate.get("exclusion"):
+                continue
+            customer_core = _narrative_customer_core(
+                anchored.get("customer")
+            )
+            if len(customer_core) >= 3:
+                anchored_bases_by_customer[customer_core].add(
+                    str(anchored["contract_base"])
+                )
+
+        for candidate in page_candidates:
+            index = int(candidate["index"])
+            amount_index = int(candidate["amount_index"])
+            amount_minor = int(candidate["amount_cents"])
+            description = str(candidate["description"])
+            exclusion = candidate.get("exclusion")
+            project = candidate.get("project")
+            identity_reason = str(candidate.get("identity_reason") or "")
+            if (
+                project is None
+                and not exclusion
+                and identity_reason
+                in (
+                    "NARRATIVE_PROJECT_AMBIGUOUS",
+                    "NARRATIVE_CUSTOMER_AMBIGUOUS",
+                )
+            ):
+                normalized_description = normalize_text(description)
+                matching_anchors: List[Tuple[int, str]] = []
+                for customer_core, anchored_bases in (
+                    anchored_bases_by_customer.items()
+                ):
+                    if len(anchored_bases) != 1:
+                        continue
+                    score = _longest_common_substring_length(
+                        normalized_description,
+                        customer_core,
+                    )
+                    if (
+                        customer_core in normalized_description
+                        or score >= 4
+                    ):
+                        matching_anchors.append(
+                            (score, next(iter(anchored_bases)))
+                        )
+                matching_anchors.sort(reverse=True)
+                if (
+                    matching_anchors
+                    and (
+                        len(matching_anchors) == 1
+                        or matching_anchors[0][0]
+                        > matching_anchors[1][0]
+                    )
+                ):
+                    project = projects_by_base[matching_anchors[0][1]]
+                    identity_reason = (
+                        "NARRATIVE_SAME_PAGE_UNIQUE_CUSTOMER_PROJECT_ANCHOR"
+                    )
+                    page_anchor_inherited_count += 1
             if exclusion:
                 reviews.append(
                     {
@@ -4556,6 +5268,7 @@ def parse_ocr_paid_project_costs(
                 "qualified_event_count": len(events),
                 "occurrence_evidenced_count": occurrence_evidenced_count,
                 "embedded_wage_history_count": embedded_wage_history_count,
+                "page_anchor_inherited_count": page_anchor_inherited_count,
                 "machine_derived": True,
             },
         )
@@ -4567,6 +5280,7 @@ def parse_ocr_paid_project_costs(
         "qualified_event_count": len(events),
         "occurrence_evidenced_count": occurrence_evidenced_count,
         "embedded_wage_history_count": embedded_wage_history_count,
+        "page_anchor_inherited_count": page_anchor_inherited_count,
     }
 
 
@@ -5344,6 +6058,54 @@ def project_level_residual_labor_allocate(
         "wage_control_delta_cents": wage_delta,
         "employer_burden_control_delta_cents": burden_delta,
     }
+
+
+def split_project_work_units_by_entity(
+    total_units: Decimal,
+    exact_project_days_by_entity: Mapping[str, Decimal],
+) -> Dict[str, Decimal]:
+    """Split residual project units by the observed employment-entity mix.
+
+    A project can legitimately use employees from more than one employing
+    entity.  Treating that fact as an ambiguity drops the complete residual
+    labor allocation and understates project cost.  The observed employee-day
+    mix is a direct source-derived weight, so it is used across the matching
+    entities while the final entity receives the exact Decimal remainder.
+    """
+
+    units = _decimal_units(total_units)
+    weights = sorted(
+        (
+            str(entity),
+            _decimal_units(weight),
+        )
+        for entity, weight in exact_project_days_by_entity.items()
+        if str(entity) and _decimal_units(weight) > 0
+    )
+    control = sum((weight for _, weight in weights), Decimal(0))
+    if units <= 0 or control <= 0:
+        raise ProjectCostError(
+            "LABOR_ENTITY_SPLIT_INPUT",
+            "entity split requires positive project units and observed entity days",
+        )
+    allocations: Dict[str, Decimal] = {}
+    allocated = Decimal(0)
+    for position, (entity, weight) in enumerate(weights):
+        if position == len(weights) - 1:
+            share = units - allocated
+        else:
+            share = units * weight / control
+            allocated += share
+        allocations[entity] = share
+    if (
+        any(value <= 0 for value in allocations.values())
+        or sum(allocations.values(), Decimal(0)) != units
+    ):
+        raise ProjectCostError(
+            "LABOR_ENTITY_SPLIT_DRIFT",
+            "entity work-unit split did not conserve the project control",
+        )
+    return allocations
 
 
 def labor_posted_reconciliation(
@@ -6563,7 +7325,10 @@ def parse_payroll_and_attendance(
         for source in burden_sources
     }
     exact_project_days_global: Dict[str, Decimal] = defaultdict(Decimal)
-    exact_project_entities_global: Dict[str, Set[str]] = defaultdict(set)
+    exact_project_days_by_entity_global: Dict[
+        str,
+        Dict[str, Decimal],
+    ] = defaultdict(lambda: defaultdict(Decimal))
     project_level_period_states: Dict[str, Dict[str, Any]] = {}
     consumed_direct_posted: Dict[
         Tuple[str, str, str],
@@ -6790,9 +7555,9 @@ def parse_payroll_and_attendance(
                     project
                 ] += project_day_count
                 if allocation_entity:
-                    exact_project_entities_global[project].add(
-                        allocation_entity
-                    )
+                    exact_project_days_by_entity_global[
+                        project
+                    ][allocation_entity] += project_day_count
             employee_token = "emp_" + sha256_bytes(stable_json([period, employee]))[:16]
             for project, project_amount in wage_allocation.items():
                 if project_amount <= 0:
@@ -7217,54 +7982,82 @@ def parse_payroll_and_attendance(
             ).items()
             if _decimal_units(days) > 0
         }
-        exact_entities = (
-            exact_project_entities_global.get(project_base, set())
-            & available_entities
-        )
-        if len(exact_entities) > 1:
-            reviews.append(
-                {
-                    "severity": "P1",
-                    "type": "LABOR_PROJECT_LEVEL_ENTITY_AMBIGUOUS",
-                    "project": project_base,
-                    "completion_period": completion_period,
-                    "candidate_entity_count": len(exact_entities),
-                    "action": "员工级项目日落在多个雇佣主体；状态表余额不得改用承包主体猜测分配",
-                }
-            )
-            continue
-        matched_entity = (
-            next(iter(exact_entities))
-            if len(exact_entities) == 1
-            else None
-        )
-        if matched_entity is None:
-            requested_entity = _employment_entity_key(
-                project.get("contractor")
-            )
-            matched_entity = _compatible_entity_key(
-                requested_entity,
-                available_entities,
-            )
-            if matched_entity is None and requested_entity:
-                prefix_matches = sorted(
-                    (
-                        entity
-                        for entity in available_entities
-                        if len(entity) >= 2
-                        and requested_entity.startswith(entity)
-                    ),
-                    key=lambda entity: (-len(entity), entity),
+        exact_entity_days = {
+            entity: days
+            for entity, days in (
+                exact_project_days_by_entity_global.get(
+                    project_base,
+                    {},
                 )
-                if (
-                    prefix_matches
-                    and (
-                        len(prefix_matches) == 1
-                        or len(prefix_matches[0])
-                        > len(prefix_matches[1])
-                    )
-                ):
-                    matched_entity = prefix_matches[0]
+            ).items()
+            if entity in available_entities
+            and _decimal_units(days) > 0
+        }
+        if exact_entity_days:
+            entity_units = split_project_work_units_by_entity(
+                residual_units,
+                exact_entity_days,
+            )
+            for matched_entity, entity_residual_units in (
+                entity_units.items()
+            ):
+                project_level_requests[
+                    (completion_period, matched_entity)
+                ][project_base] = entity_residual_units
+            if len(entity_units) > 1:
+                reviews.append(
+                    {
+                        "severity": "P2",
+                        "type": (
+                            "LABOR_PROJECT_LEVEL_MULTI_ENTITY_SOURCE_SPLIT"
+                        ),
+                        "project": project_base,
+                        "completion_period": completion_period,
+                        "entity_count": len(entity_units),
+                        "residual_status_work_units": str(
+                            residual_units
+                        ),
+                        "observed_entity_project_days": str(
+                            sum(
+                                exact_entity_days.values(),
+                                Decimal(0),
+                            )
+                        ),
+                        "action": (
+                            "按已核定员工项目日的雇佣主体构成拆分"
+                            "状态表剩余工时；各主体仍以同月实际工资"
+                            "和批准未分配工日为控制"
+                        ),
+                    }
+                )
+            continue
+        matched_entity = None
+        requested_entity = _employment_entity_key(
+            project.get("contractor")
+        )
+        matched_entity = _compatible_entity_key(
+            requested_entity,
+            available_entities,
+        )
+        if matched_entity is None and requested_entity:
+            prefix_matches = sorted(
+                (
+                    entity
+                    for entity in available_entities
+                    if len(entity) >= 2
+                    and requested_entity.startswith(entity)
+                ),
+                key=lambda entity: (-len(entity), entity),
+            )
+            if (
+                prefix_matches
+                and (
+                    len(prefix_matches) == 1
+                    or len(prefix_matches[0])
+                    > len(prefix_matches[1])
+                )
+            ):
+                matched_entity = prefix_matches[0]
         if matched_entity is None:
             reviews.append(
                 {
@@ -7911,13 +8704,32 @@ def build_snapshot(
         list(approved_cost_events)
         + list(project_tax_evidence_events)
     )
-    ocr_events, ocr_reviews, ocr_sources, ocr_meta = parse_ocr_paid_project_costs(
+    ocr_paid_events, ocr_reviews, ocr_sources, ocr_meta = (
+        parse_ocr_paid_project_costs(
+            ocr_jsonl,
+            roots,
+            projects,
+            status_map,
+            year,
+            as_of,
+        )
+    )
+    (
+        shared_information_fee_events,
+        shared_information_fee_reviews,
+        shared_information_fee_sources,
+        shared_information_fee_meta,
+    ) = parse_ocr_shared_information_fees(
         ocr_jsonl,
         roots,
         projects,
         status_map,
         year,
         as_of,
+    )
+    ocr_events = (
+        list(ocr_paid_events)
+        + list(shared_information_fee_events)
     )
     accrual_events, accrual_reviews, accrual_meta = qualify_cost_accruals(
         ledger_events,
@@ -7935,6 +8747,7 @@ def build_snapshot(
         + project_invoice_sources
         + project_tax_evidence_sources
         + ocr_sources
+        + shared_information_fee_sources
         + labor_sources
     )
     reviews: List[Dict[str, Any]] = []
@@ -7947,6 +8760,7 @@ def build_snapshot(
     reviews.extend(project_tax_evidence_reviews)
     reviews.extend(approved_cost_merge_reviews)
     reviews.extend(ocr_reviews)
+    reviews.extend(shared_information_fee_reviews)
     reviews.extend(labor_reviews)
     reviews.extend(accrual_reviews)
     for error in master_errors + ledger_errors + dingtalk_errors:
@@ -8006,11 +8820,32 @@ def build_snapshot(
         + list(accrual_events)
         + list(labor_events)
     )
+    invoice_events_by_project: Dict[str, List[Mapping[str, Any]]] = (
+        defaultdict(list)
+    )
+    for event in project_invoice_output_vat_observations:
+        invoice_events_by_project[str(event.get("project") or "")].append(
+            event
+        )
+    direct_tax_in_incurred_by_project: Dict[str, int] = defaultdict(int)
+    for event in (
+        list(ledger_events)
+        + list(accrual_events)
+        + list(labor_events)
+    ):
+        if str(event.get("category") or "").startswith("项目税费"):
+            direct_tax_in_incurred_by_project[
+                str(event.get("project") or "")
+            ] += int(event.get("amount_cents") or 0)
     project_rows: List[Dict[str, Any]] = []
     for project in projects:
         base = str(project["contract_base"])
         status = status_map.get(base)
-        revenue = governed_contract_revenue(project, status)
+        accounting_revenue = governed_contract_revenue(project, status)
+        analysis_revenue = governed_financial_analysis_revenue(
+            project,
+            status,
+        )
         observed_entities = project_ledger_entities.get(base, set())
         contractor_entities = contractor_entity_evidence.get(
             normalize_text(project.get("contractor")),
@@ -8069,6 +8904,165 @@ def build_snapshot(
             if status is not None
             else None
         )
+        analysis_components: Dict[str, Any] = {
+            "status": analysis_revenue["status"],
+        }
+        analysis_cost: Optional[int] = None
+        margin_cost_basis: Optional[int] = None
+        gross_margin_status = str(analysis_revenue["status"])
+        if (
+            analysis_revenue["effective_revenue_cents"] is not None
+            and incurred is not None
+        ):
+            analysis_components = project_financial_analysis_components(
+                revenue_cents=int(
+                    analysis_revenue["effective_revenue_cents"]
+                ),
+                invoice_events=invoice_events_by_project.get(base, ()),
+                direct_project_tax_in_incurred_cents=(
+                    direct_tax_in_incurred_by_project.get(base, 0)
+                ),
+            )
+            gross_margin_status = str(analysis_components["status"])
+            if analysis_components["status"] == "READY":
+                incremental_tax = int(
+                    analysis_components[
+                        "incremental_tax_provision_cents"
+                    ]
+                )
+                management_allocation = int(
+                    analysis_components["management_allocation_cents"]
+                )
+                analysis_cost = (
+                    int(incurred)
+                    + incremental_tax
+                    + management_allocation
+                )
+                if incremental_tax:
+                    detail_events.append(
+                        {
+                            "event_id": "analysis_tax_"
+                            + sha256_bytes(
+                                stable_json(
+                                    [
+                                        base,
+                                        analysis_components["policy_id"],
+                                        analysis_components[
+                                            "tax_provision_cents"
+                                        ],
+                                        analysis_components[
+                                            "direct_project_tax_credit_cents"
+                                        ],
+                                    ]
+                                )
+                            )[:24],
+                            "project": base,
+                            "plane": (
+                                "PROJECT_FINANCIAL_ANALYSIS_TAX_PROVISION"
+                            ),
+                            "category": "项目财务分析税费",
+                            "amount_cents": incremental_tax,
+                            "posting_date": (
+                                status.get("invoice_date")
+                                if status
+                                else None
+                            ),
+                            "summary": (
+                                "项目财务分析税费总额扣除已进入发生成本的"
+                                "直接项目税费；不得重复计税"
+                            ),
+                            "policy_id": analysis_components["policy_id"],
+                            "tax_components_cents": analysis_components[
+                                "tax_components_cents"
+                            ],
+                            "direct_project_tax_credit_cents": (
+                                analysis_components[
+                                    "direct_project_tax_credit_cents"
+                                ]
+                            ),
+                        }
+                    )
+                detail_events.append(
+                    {
+                        "event_id": "analysis_management_"
+                        + sha256_bytes(
+                            stable_json(
+                                [
+                                    base,
+                                    analysis_components["policy_id"],
+                                    analysis_revenue[
+                                        "effective_revenue_cents"
+                                    ],
+                                    management_allocation,
+                                ]
+                            )
+                        )[:24],
+                        "project": base,
+                        "plane": (
+                            "PROJECT_FINANCIAL_ANALYSIS_MANAGEMENT_ALLOCATION"
+                        ),
+                        "category": "管理分摊",
+                        "amount_cents": management_allocation,
+                        "posting_date": (
+                            status.get("completion_date")
+                            if status
+                            else None
+                        ),
+                        "summary": (
+                            "Owner 激活的项目财务分析政策："
+                            "批准项目产值按2%分摊管理费用"
+                        ),
+                        "policy_id": analysis_components["policy_id"],
+                    }
+                )
+                analysis_revenue_cents = int(
+                    analysis_revenue["effective_revenue_cents"]
+                )
+                preliminary_margin_bps = int(
+                    (
+                        Decimal(
+                            analysis_revenue_cents - analysis_cost
+                        )
+                        * Decimal(10_000)
+                        / Decimal(analysis_revenue_cents)
+                    ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+                )
+                if preliminary_margin_bps > MAX_GROSS_MARGIN_BPS:
+                    gross_margin_status = (
+                        "BLOCKED_GROSS_MARGIN_ABOVE_70_PERCENT"
+                    )
+                    reviews.append(
+                        {
+                            "severity": "P1",
+                            "type": "GROSS_MARGIN_ABOVE_OWNER_MAXIMUM",
+                            "project": base,
+                            "gross_margin_bps": preliminary_margin_bps,
+                            "analysis_revenue_cents": (
+                                analysis_revenue_cents
+                            ),
+                            "analysis_cost_cents": analysis_cost,
+                            "action": (
+                                "毛利率超过70%即阻断发布；复核缺失成本、"
+                                "项目归属和收入桥，不限幅、不倒推、不补差"
+                            ),
+                        }
+                    )
+                else:
+                    gross_margin_status = "READY"
+                    margin_cost_basis = analysis_cost
+            else:
+                reviews.append(
+                    {
+                        "severity": "P1",
+                        "type": "PROJECT_FINANCIAL_ANALYSIS_BLOCKED",
+                        "project": base,
+                        "reason": analysis_components["status"],
+                        "action": (
+                            "完工项目的项目产值、逐张开票或直接税费抵扣"
+                            "未闭合；不发布项目成本和毛利"
+                        ),
+                    }
+                )
         row = dict(project)
         row.update(
             {
@@ -8115,17 +9109,50 @@ def build_snapshot(
                 "job_posted_actual_cents": job_posted,
                 "cost_accrued_cents": accrued,
                 "job_cost_incurred_cents": incurred,
-                # Actual-to-date is a lower bound.  Final project cost/FAC and
-                # its governed revenue basis remain empty until a controlled
-                # close process proves them.
-                "gross_margin_cost_basis_cents": None,
-                "effective_revenue_cents": revenue["effective_revenue_cents"],
-                "revenue_basis_status": revenue["status"],
-                "revenue_basis": revenue["basis"],
-                "gross_margin_status": (
-                    "BLOCKED_COST_COMPLETENESS"
-                    if revenue["effective_revenue_cents"] is not None
-                    else "BLOCKED_REVENUE_AND_COST_COMPLETENESS"
+                "gross_margin_cost_basis_cents": margin_cost_basis,
+                "project_financial_analysis_cost_cents": analysis_cost,
+                "effective_revenue_cents": (
+                    analysis_revenue["effective_revenue_cents"]
+                ),
+                "revenue_basis_status": analysis_revenue["status"],
+                "revenue_basis": analysis_revenue["basis"],
+                "accounting_effective_revenue_cents": (
+                    accounting_revenue["effective_revenue_cents"]
+                ),
+                "accounting_revenue_basis_status": (
+                    accounting_revenue["status"]
+                ),
+                "accounting_revenue_basis": accounting_revenue["basis"],
+                "revenue_bridge_cents": analysis_revenue[
+                    "revenue_bridge_cents"
+                ],
+                "gross_margin_status": gross_margin_status,
+                "financial_analysis_policy_id": (
+                    analysis_components.get("policy_id")
+                ),
+                "financial_analysis_policy_version": (
+                    analysis_components.get("policy_version")
+                ),
+                "financial_analysis_tax_components_cents": (
+                    analysis_components.get("tax_components_cents")
+                ),
+                "financial_analysis_tax_provision_cents": (
+                    analysis_components.get("tax_provision_cents")
+                ),
+                "financial_analysis_direct_tax_credit_cents": (
+                    analysis_components.get(
+                        "direct_project_tax_credit_cents"
+                    )
+                ),
+                "financial_analysis_incremental_tax_cents": (
+                    analysis_components.get(
+                        "incremental_tax_provision_cents"
+                    )
+                ),
+                "financial_analysis_management_allocation_cents": (
+                    analysis_components.get(
+                        "management_allocation_cents"
+                    )
                 ),
                 "gl_recognized_cogs_cents": recognized,
                 "business_reported_direct_cost_cents": business_reported,
@@ -8339,7 +9366,10 @@ def build_snapshot(
             "approved_cost_combined_event_count": len(
                 approved_cost_events
             ),
-            "ocr_paid_project_cost_event_count": len(ocr_events),
+            "ocr_paid_project_cost_event_count": len(ocr_paid_events),
+            "ocr_shared_information_fee_event_count": len(
+                shared_information_fee_events
+            ),
             "qualified_accrual_event_count": len(accrual_events),
             "labor_wage_component_event_count": sum(
                 event.get("category") == "自有人工-工资应计"
@@ -8385,6 +9415,7 @@ def build_snapshot(
             "project_tax_register": project_tax_evidence_meta,
             "approved_cost_source_merge": approved_cost_merge_meta,
             "ocr": ocr_meta,
+            "shared_information_fee": shared_information_fee_meta,
             "accrual": accrual_meta,
             "labor": labor_meta,
             "candidate_counts": {key: len(value) for key, value in candidates.items()},
@@ -8803,7 +9834,7 @@ def _statement_rows(
     project: Mapping[str, Any],
     buckets: Mapping[str, int],
 ) -> List[Tuple[str, Optional[int], str]]:
-    """Map formal cents into the supplied A-family statement without invention."""
+    """Map governed analysis cents into the current supplied B-family report."""
 
     material = buckets.get("material")
     fuel_power = buckets.get("fuel_power")
@@ -8817,18 +9848,35 @@ def _statement_rows(
     other = buckets.get("other")
     own_labor = buckets.get("own_labor")
     subcontract_labor = buckets.get("subcontract_labor")
-    total = project.get("job_cost_incurred_cents")
+    information_fee = buckets.get("information_fee")
+    tax = buckets.get("tax")
+    management_allocation = buckets.get("management_allocation")
+    total = (
+        project.get("project_financial_analysis_cost_cents")
+        if project.get("project_financial_analysis_cost_cents") is not None
+        else project.get("job_cost_incurred_cents")
+    )
 
     material_total = _sum_present_cents(material, fuel_power)
-    rental_total = _sum_present_cents(rental, logistics)
+    rental_total = rental
     travel = _sum_present_cents(ticket, lodging)
     vehicle = _sum_present_cents(vehicle_fuel, road_parking)
-    site = _sum_present_cents(own_labor, travel, living, vehicle, other)
+    site = _sum_present_cents(
+        own_labor,
+        travel,
+        living,
+        vehicle,
+        logistics,
+        other,
+    )
     classified = _sum_present_cents(
         material_total,
         rental_total,
         site,
         subcontract_labor,
+        information_fee,
+        tax,
+        management_allocation,
     )
     if total == 0 and classified is None:
         classified = 0
@@ -8840,12 +9888,24 @@ def _statement_rows(
 
     own_units = project.get("own_work_units")
     external_units = project.get("external_work_units")
+    revenue = project.get("effective_revenue_cents")
+    ready = str(project.get("gross_margin_status") or "") == "READY"
     values: Dict[str, Tuple[Optional[int], str]] = {
         "contract": (
-            project.get("contract_amount_cents"),
-            "原始合同额；不等于有效合同额或收入确认额",
+            revenue,
+            (
+                "批准项目产值；原始合同额 %s 元，收入桥 %s 元"
+                % (
+                    _pdf_money(project.get("contract_amount_cents")),
+                    _pdf_money(project.get("revenue_bridge_cents")),
+                )
+            ),
         ),
-        "sec2": (total, "正式项目成本；政策行未自动计提"),
+        "revenue": (revenue, "批准开票项目产值"),
+        "sec2": (
+            total,
+            "项目财务分析成本；会计已发生成本、税费和管理分摊各自可追溯",
+        ),
         "l2_material": (material_total, ""),
         "d_material": (material, ""),
         "d_fuel_power": (fuel_power, "燃料及动力"),
@@ -8853,6 +9913,8 @@ def _statement_rows(
             rental_total,
             "设备租赁未细分吊车/脚手架" if rental else "",
         ),
+        "rental_only": (rental, ""),
+        "insurance": (None, "未单列的项目保险保留在其他费用"),
         "d_logistics": (logistics, ""),
         "l2_site": (
             site,
@@ -8884,19 +9946,44 @@ def _statement_rows(
             if external_units is not None
             else "",
         ),
+        "information_fee": (information_fee, ""),
+        "tax": (
+            tax,
+            (
+                "销项税、附加、所得税和印花税；已发生直接项目税费"
+                "按分抵扣，禁止重复"
+            )
+            if tax is not None
+            else "",
+        ),
         "allocation": (
-            None,
-            "模板原行；无合格管理费政策，禁止按合同额2%自动生成",
+            management_allocation,
+            (
+                "POLICY-KMFA-PROJECT-FINANCIAL-ANALYSIS-2026-01；"
+                "批准项目产值×2%，整数分四舍五入"
+            )
+            if management_allocation is not None
+            else "",
         ),
         "interest": (None, "无合格资金占用政策，留空"),
         "total": (total, ""),
         "profit": (
-            None,
-            "有效合同变更链与收入确认口径未闭合，禁止生成毛利",
+            (
+                int(revenue) - int(total)
+                if ready
+                and revenue is not None
+                and total is not None
+                else None
+            ),
+            (
+                "项目财务分析毛利"
+                if ready
+                else "毛利基础未闭合或超过70%硬门槛，留空"
+            ),
         ),
     }
     rows: List[Tuple[str, Optional[int], str]] = []
-    for label, kind in STATEMENT_TEMPLATE_A:
+    for label, kind in STATEMENT_TEMPLATE_B:
         amount, note = values.get(kind, (None, ""))
         if (
             amount is not None
@@ -8996,7 +10083,7 @@ def write_project_pdfs(directory: Path, snapshot: Mapping[str, Any]) -> List[Pat
     def paragraph(value: Any, style: Any = body_style) -> Any:
         return Paragraph(escape("" if value is None else str(value)), style)
 
-    categories_by_project = _formal_cost_categories(snapshot)
+    categories_by_project = _financial_analysis_cost_categories(snapshot)
     paths: List[Path] = []
     for project in snapshot["projects"]:
         buckets = _statement_buckets(
@@ -9073,11 +10160,11 @@ def write_project_pdfs(directory: Path, snapshot: Mapping[str, Any]) -> List[Pat
             "（四）现场管理费",
             "（五）工资（承包费）支出",
             "（六）信息费",
+            "（七）税金",
         }
-        total_labels = {"一、合同额", "合计支出", "（七）毛利"}
+        total_labels = {"一、合同额", "项目产值", "三 利润"}
         policy_labels = {
-            "三 1.1分摊的管理费用（合同的2%）",
-            "1.2占用的资金利息",
+            "（八） 分摊的管理费用（合同的2%）",
         }
         table_commands = [
             ("FONTNAME", (0, 0), (-1, -1), font_name),
@@ -9112,7 +10199,7 @@ def write_project_pdfs(directory: Path, snapshot: Mapping[str, Any]) -> List[Pat
             [[
                 paragraph("项目经理：", header_style),
                 paragraph(
-                    "正式成本＝过账实际＋合格应计；管理费、利息、毛利无合格输入时留空。",
+                    "项目财务分析成本＝会计已发生成本＋税费补提＋2%管理分摊；毛利率超过70%阻断。",
                     header_style,
                 ),
                 paragraph("日期：", header_style),
@@ -9275,6 +10362,42 @@ def _formal_cost_categories(
     return {project: dict(categories) for project, categories in totals.items()}
 
 
+def _financial_analysis_cost_categories(
+    snapshot: Mapping[str, Any],
+) -> Dict[str, Dict[str, int]]:
+    """Aggregate strict incurred cost plus the two governed analysis planes."""
+
+    totals: Dict[str, Dict[str, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
+    allowed_planes = {
+        "JOB_POSTED_ACTUAL",
+        "COST_ACCRUED",
+        "PROJECT_FINANCIAL_ANALYSIS_TAX_PROVISION",
+        "PROJECT_FINANCIAL_ANALYSIS_MANAGEMENT_ALLOCATION",
+    }
+    for event in snapshot.get("events", ()):
+        if event.get("plane") not in allowed_planes:
+            continue
+        project = str(event.get("project") or "")
+        category = str(event.get("category") or "未分类")
+        amount = event.get("amount_cents")
+        if (
+            not project
+            or isinstance(amount, bool)
+            or not isinstance(amount, int)
+        ):
+            raise ProjectCostError(
+                "RUNTIME_CATEGORY_EVENT_INVALID",
+                "analysis cost event is missing a project, category, or integer-cents amount",
+            )
+        totals[project][category] += amount
+    return {
+        project: dict(categories)
+        for project, categories in totals.items()
+    }
+
+
 def _statement_buckets(categories: Mapping[str, int]) -> Dict[str, int]:
     """Map formal event categories to the owner statement without losing cents."""
 
@@ -9294,6 +10417,10 @@ def _statement_buckets(categories: Mapping[str, int]) -> Dict[str, int]:
         "外协": "subcontract_labor",
         "劳务/分包": "subcontract_labor",
         "劳务/人工": "subcontract_labor",
+        "信息费": "information_fee",
+        "项目税费": "tax",
+        "项目财务分析税费": "tax",
+        "管理分摊": "management_allocation",
         "已过账制造费用分配": "other",
         "其他直接成本": "other",
         "其他5001": "other",
@@ -9326,17 +10453,24 @@ def runtime_projection(
             "P1_REVIEW_OPEN",
             "P1 review rows block formal runtime publication",
         )
-    categories_by_project = _formal_cost_categories(snapshot)
+    formal_categories_by_project = _formal_cost_categories(snapshot)
+    analysis_categories_by_project = (
+        _financial_analysis_cost_categories(snapshot)
+    )
     rows: List[Dict[str, Any]] = []
     for project in snapshot.get("projects", ()):
         base = str(project["contract_base"])
-        categories = categories_by_project.get(base, {})
-        buckets = _statement_buckets(categories)
+        formal_categories = formal_categories_by_project.get(base, {})
+        analysis_categories = analysis_categories_by_project.get(base, {})
+        buckets = _statement_buckets(analysis_categories)
         formal_total = project.get("job_cost_incurred_cents")
-        if formal_total is not None and sum(buckets.values()) != formal_total:
+        if (
+            formal_total is not None
+            and sum(formal_categories.values()) != formal_total
+        ):
             raise ProjectCostError(
                 "RUNTIME_CATEGORY_CONSERVATION",
-                "formal statement categories do not conserve project cents",
+                "strict incurred categories do not conserve project cents",
             )
         observed = project.get("status_business_components_cents") or {}
         margin_cost_basis = project.get("gross_margin_cost_basis_cents")
@@ -9352,6 +10486,15 @@ def runtime_projection(
             raise ProjectCostError(
                 "GROSS_MARGIN_COST_BELOW_INCURRED",
                 "closed project cost/FAC must be integer cents and cannot be below incurred cost",
+            )
+        if (
+            str(project.get("gross_margin_status") or "") == "READY"
+            and margin_cost_basis is not None
+            and sum(buckets.values()) != margin_cost_basis
+        ):
+            raise ProjectCostError(
+                "RUNTIME_ANALYSIS_CATEGORY_CONSERVATION",
+                "financial-analysis statement categories do not conserve project cents",
             )
         margin = governed_gross_margin(
             revenue_cents=project.get("effective_revenue_cents"),
@@ -9414,7 +10557,15 @@ def runtime_projection(
                 ),
                 "正式成本分类": {
                     category: _yuan_text(amount)
-                    for category, amount in sorted(categories.items())
+                    for category, amount in sorted(
+                        formal_categories.items()
+                    )
+                },
+                "项目财务分析成本分类": {
+                    category: _yuan_text(amount)
+                    for category, amount in sorted(
+                        analysis_categories.items()
+                    )
                 },
                 "报表归类": {
                     bucket: _yuan_text(amount)

@@ -1,0 +1,64 @@
+{
+  "schema_version": "kmfa.project_cost.financial_analysis_policy.v1",
+  "policy_id": "POLICY-KMFA-PROJECT-FINANCIAL-ANALYSIS-2026-01",
+  "policy_version": "2026.07.31.1",
+  "status": "ACTIVE",
+  "effective_from": "2026-04-21",
+  "currency": "CNY",
+  "authority_basis": "OWNER_DIRECTIVE",
+  "reference_report_role": "VALIDATION_ONLY_NOT_CALCULATION_INPUT",
+  "revenue_basis_priority": [
+    "APPROVED_INVOICED_PROJECT_OUTPUT",
+    "BLOCK"
+  ],
+  "management_allocation": {
+    "base": "APPROVED_INVOICED_PROJECT_OUTPUT",
+    "rate_numerator": 2,
+    "rate_denominator": 100,
+    "rounding": "ROUND_HALF_UP"
+  },
+  "shared_cost_allocation": {
+    "information_fee": {
+      "source_identity": "EXACT_CUSTOMER_AND_INFORMATION_FEE_TRANSACTION",
+      "eligible_projects": "CREATED_NO_LATER_THAN_14_DAYS_AFTER_TRANSACTION_AND_PRESENT_IN_STATUS",
+      "single_eligible_project": "FULL_ALLOCATION_WITHOUT_WEIGHT",
+      "weight": "APPROVED_INVOICED_PROJECT_OUTPUT",
+      "rounding": "LARGEST_REMAINDER_INTEGER_CENTS",
+      "unweighted_project_action": "BLOCK"
+    }
+  },
+  "tax_provision": {
+    "vat": "SUM_OF_RECONCILED_PROJECT_INVOICE_OUTPUT_VAT",
+    "surcharge_rate_numerator": 12,
+    "surcharge_rate_denominator": 100,
+    "income_tax_rate_numerator": 2,
+    "income_tax_rate_denominator": 100,
+    "stamp_tax_rate_numerator": 3,
+    "stamp_tax_rate_denominator": 10000,
+    "rounding": "ROUND_HALF_UP",
+    "direct_project_tax_treatment": "CREDIT_AGAINST_PROVISION_WITHOUT_DOUBLE_COUNTING"
+  },
+  "release_controls": {
+    "maximum_gross_margin_bps": 7000,
+    "above_maximum_action": "BLOCK",
+    "clamp_allowed": false,
+    "backsolve_cost_allowed": false,
+    "reference_value_fill_allowed": false
+  },
+  "synthetic_test_vectors": [
+    {
+      "vector_id": "SYNTHETIC-MANAGEMENT-001",
+      "base_cents": 10050,
+      "expected_cents": 201
+    },
+    {
+      "vector_id": "SYNTHETIC-TAX-001",
+      "invoice_gross_cents": 11300,
+      "output_vat_cents": 1300,
+      "expected_surcharge_cents": 156,
+      "expected_income_tax_cents": 226,
+      "expected_stamp_tax_cents": 3,
+      "expected_total_tax_cents": 1685
+    }
+  ]
+}
