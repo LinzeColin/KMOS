@@ -35,7 +35,7 @@ from pathlib import Path
 
 runtime = Path(sys.argv[1])
 payload = json.loads(runtime.read_text(encoding="utf-8"))
-if payload.get("schema_version") != "kmfa.project_cost.current.v3":
+if payload.get("schema_version") != "kmfa.project_cost.current.v4":
     raise SystemExit("项目成本运行态 schema 不受支持")
 if payload.get("计算状态") not in ("PASS", "PASS_WITH_OPEN_REVIEWS"):
     raise SystemExit("项目成本运行态不是可服务状态")

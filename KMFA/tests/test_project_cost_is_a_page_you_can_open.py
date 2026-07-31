@@ -25,7 +25,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 
 SAMPLE = {
-    "schema_version": "kmfa.project_cost.current.v3",
+    "schema_version": "kmfa.project_cost.current.v4",
     "生成时间": "2026-07-29T09:00:00+08:00",
     "快照ID": "kmfa-pc-2099-synthetic",
     "截至日期": "2099-07-30",
@@ -51,6 +51,9 @@ SAMPLE = {
         {"合同编号": "KMX2099001-001", "项目名称": "合成项目甲", "甲方名称": "合成客户甲",
          "施工状态": "已完工", "完工日期": "2099-06-30", "含税合同金额": "100000",
          "项目过账实际": "40000", "项目应计": "7000", "项目已发生成本": "47000",
+         "项目成本": "47000",
+         "有效合同额": "100000", "毛利": "53000", "毛利率": "53.00%",
+         "毛利率基点": 5300, "收入与毛利状态": "READY",
          "主营成本已结转": "39000", "状态表已报直接成本": "12000",
          "支付系统已付观察": "9000", "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT",
          "账簿截至月份": "2099-06",
@@ -58,17 +61,26 @@ SAMPLE = {
         {"合同编号": "KMX2099001-002", "项目名称": "合成项目乙", "甲方名称": "合成客户乙",
          "施工状态": "施工中", "含税合同金额": "50000",
          "项目过账实际": "-9000", "项目应计": "0", "项目已发生成本": "-9000",
+         "项目成本": None,
+         "有效合同额": None, "毛利": None, "毛利率": None,
+         "毛利率基点": None, "收入与毛利状态": "BLOCKED_COST_COMPLETENESS",
          "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT",
          "账簿截至月份": "2099-06",
          "报表归类": {"other": "-9000"}},
         {"合同编号": "KMX2099001-003", "项目名称": "合成项目丙", "甲方名称": "合成客户丙",
          "施工状态": "待入场", "含税合同金额": "80000",
          "项目过账实际": "0", "项目应计": "0", "项目已发生成本": "0",
+         "项目成本": None,
+         "有效合同额": None, "毛利": None, "毛利率": None,
+         "毛利率基点": None, "收入与毛利状态": "BLOCKED_COST_COMPLETENESS",
          "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;NO_QUALIFIED_EVENT",
          "账簿截至月份": "2099-06",
          "报表归类": {}},
         {"合同编号": "KMX2099001-004", "项目名称": "合成项目丁", "甲方名称": "合成客户丁",
-         "项目已发生成本": None, "项目成本覆盖": "SOURCE_UNAVAILABLE",
+         "项目已发生成本": None, "项目成本": None,
+         "有效合同额": None, "毛利": None, "毛利率": None,
+         "毛利率基点": None, "收入与毛利状态": "BLOCKED_COST_COMPLETENESS",
+         "项目成本覆盖": "SOURCE_UNAVAILABLE",
          "报表归类": {}},
     ],
 }
@@ -191,17 +203,76 @@ def test_it_is_not_indexed(tmp_path):
     assert "no-store" in r.headers.get("Cache-Control", "")
 
 
-def test_margin_is_not_invented_before_contract_change_and_revenue_gates(tmp_path):
+def test_margin_column_is_explicit_and_incomplete_rows_stay_blocked(tmp_path):
     r = _client(tmp_path).get("/public-api/项目成本表")
-    assert ">毛利率<" not in r.text
-    assert ">毛利<" not in r.text
-    assert "有效合同额、收入确认额和毛利" in r.text
+    assert ">毛利率<" in r.text
+    assert ">毛利<" in r.text
+    assert "项目成本（已闭合）" in r.text
+    assert "已发生成本（下限）" in r.text
+    assert "53.00%" in r.text
+    assert "待成本闭合" in r.text
 
 
-def test_no_margin_value_is_invented_from_the_original_contract(tmp_path):
+def test_requested_observation_and_posting_columns_are_removed(tmp_path):
     r = _client(tmp_path).get("/public-api/项目成本表")
-    assert "53.0%" not in r.text
-    assert "原合同额" in r.text
+    for removed in (
+        "支付观察",
+        "主营成本结转",
+        "状态表观察",
+        ">过账实际<",
+        ">合格应计<",
+    ):
+        assert removed not in r.text
+
+
+def test_react_dashboard_no_longer_fetches_or_renders_legacy_margin_upper_bound():
+    source = (
+        REPO / "KMFA/app/frontend/src/App.jsx"
+    ).read_text(encoding="utf-8")
+    assert "/api/项目毛利" not in source
+    assert "毛利上限率" not in source
+    assert "项目口径毛利（含在建）" not in source
+
+
+def test_runtime_with_margin_above_seventy_percent_is_rejected(tmp_path):
+    payload = json.loads(json.dumps(SAMPLE, ensure_ascii=False))
+    first = payload["项目"][0]
+    first.update(
+        {
+            "有效合同额": "100000",
+            "项目已发生成本": "20000",
+            "项目成本": "20000",
+            "毛利": "80000",
+            "毛利率": "80.00%",
+            "毛利率基点": 8000,
+            "收入与毛利状态": "READY",
+        }
+    )
+    from openpyxl import Workbook  # noqa: PLC0415
+
+    workbook_path = tmp_path / "sealed-over-limit.xlsx"
+    workbook = Workbook()
+    workbook.save(workbook_path)
+    payload["封印工作簿"] = {
+        "文件名": workbook_path.name,
+        "SHA256": hashlib.sha256(workbook_path.read_bytes()).hexdigest(),
+        "字节数": workbook_path.stat().st_size,
+        "快照ID": payload["快照ID"],
+    }
+    artifact = tmp_path / "over-limit.json"
+    artifact.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    sys.path.insert(0, str(REPO / "KMFA/app/backend"))
+    os.environ["KMFA_RECENT_COST"] = str(artifact)
+    import app.main as m  # noqa: PLC0415
+
+    importlib.reload(m)
+    from fastapi.testclient import TestClient  # noqa: PLC0415
+
+    response = TestClient(m.app, raise_server_exceptions=False).get(
+        "/public-api/项目成本表"
+    )
+    assert response.status_code == 503
+    assert "runtime_gross_margin_above_release_limit" in response.text
 
 
 def _page_script(client) -> str:
@@ -466,7 +537,10 @@ def test_healthcheck_requires_current_schema_binding_and_freshness():
         REPO / "KMFA/deploy/skills-runtime/healthcheck.sh"
     ).read_text(encoding="utf-8")
     assert "36*3600" in health
-    assert "kmfa.project_cost.current.v3" in health
-    assert "PASS_WITH_OPEN_REVIEWS" in health
+    assert "kmfa.project_cost.current.v4" in health
+    assert (
+        'payload.get("计算状态") not in '
+        '("PASS", "PASS_WITH_OPEN_REVIEWS")'
+    ) in health
     assert "封印工作簿" in health
     assert 'row.get("skill") == "project-cost-refresh"' in health

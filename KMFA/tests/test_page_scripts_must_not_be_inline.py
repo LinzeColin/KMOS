@@ -50,7 +50,7 @@ def _client(tmp_path: Path):
     artifact = tmp_path / "recent_completed.json"
     artifact.write_text(
         json.dumps(
-            {"schema_version": "kmfa.project_cost.current.v3",
+            {"schema_version": "kmfa.project_cost.current.v4",
              "生成时间": "2026-07-29T09:00:00+08:00",
              "快照ID": "kmfa-pc-2099-script",
              "计算状态": "PASS",
@@ -76,6 +76,9 @@ def _client(tmp_path: Path):
                        "甲方名称": "合成客户甲", "含税合同金额": "100000",
                        "项目过账实际": "40000", "项目应计": "7000",
                        "项目已发生成本": "47000",
+                       "有效合同额": None, "毛利": None, "毛利率": None,
+                       "毛利率基点": None,
+                       "收入与毛利状态": "BLOCKED_COST_COMPLETENESS",
                        "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT"}]},
             ensure_ascii=False),
         encoding="utf-8")

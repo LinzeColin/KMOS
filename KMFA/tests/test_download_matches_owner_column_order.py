@@ -39,6 +39,11 @@ PROJECTS = [
         "项目过账实际": "3614.25",
         "项目应计": "18500",
         "项目已发生成本": "22114.25",
+        "有效合同额": None,
+        "毛利": None,
+        "毛利率": None,
+        "毛利率基点": None,
+        "收入与毛利状态": "BLOCKED_COST_COMPLETENESS",
         "报表归类": {
             "material": "774.25",
             "travel": "1470",
@@ -55,6 +60,11 @@ PROJECTS = [
         "项目应计": "0",
         "项目已发生成本": "9000",
         "含税合同金额": "50000",
+        "有效合同额": None,
+        "毛利": None,
+        "毛利率": None,
+        "毛利率基点": None,
+        "收入与毛利状态": "BLOCKED_COST_COMPLETENESS",
         "报表归类": {"other": "9000"},
         "项目成本覆盖": "GL_SELECTED_THROUGH_2099-02;POSTING_PRESENT",
     },
@@ -75,7 +85,7 @@ def _client(tmp_path: Path):
     digest = hashlib.sha256(workbook_path.read_bytes()).hexdigest()
 
     payload = {
-        "schema_version": "kmfa.project_cost.current.v3",
+        "schema_version": "kmfa.project_cost.current.v4",
         "生成时间": "2099-02-05T00:00:00+00:00",
         "快照ID": SNAPSHOT,
         "截至日期": "2099-02-05",

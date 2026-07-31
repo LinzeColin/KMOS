@@ -9160,7 +9160,7 @@ def build_snapshot(
                             )[:24],
                             "project": base,
                             "plane": (
-                                "PROJECT_FINANCIAL_ANALYSIS_TAX_PROVISION"
+                                "PROJECT_FINANCIAL_ANALYSIS_OUTPUT_VAT_GAP"
                             ),
                             "category": "项目财务分析税费",
                             "amount_cents": incremental_tax,
@@ -10467,7 +10467,7 @@ def governed_gross_margin(
     open.  Treating that lower bound as final cost is what produced the
     implausible 89%--100% margins in the withdrawn run.  A caller must
     explicitly close the revenue and cost basis before this function returns a
-    number.  The 70% owner control is a release invariant, never a clamp or a
+    number.  The 70% release control is an invariant, never a clamp or a
     target used to back-solve cost.
     """
 
@@ -10539,7 +10539,7 @@ def _formal_cost_categories(
 def _financial_analysis_cost_categories(
     snapshot: Mapping[str, Any],
 ) -> Dict[str, Dict[str, int]]:
-    """Aggregate strict incurred cost plus the two governed analysis planes."""
+    """Aggregate strict incurred cost plus the evidence-only VAT bridge."""
 
     totals: Dict[str, Dict[str, int]] = defaultdict(
         lambda: defaultdict(int)
@@ -10547,8 +10547,7 @@ def _financial_analysis_cost_categories(
     allowed_planes = {
         "JOB_POSTED_ACTUAL",
         "COST_ACCRUED",
-        "PROJECT_FINANCIAL_ANALYSIS_TAX_PROVISION",
-        "PROJECT_FINANCIAL_ANALYSIS_MANAGEMENT_ALLOCATION",
+        "PROJECT_FINANCIAL_ANALYSIS_OUTPUT_VAT_GAP",
     }
     for event in snapshot.get("events", ()):
         if event.get("plane") not in allowed_planes:
@@ -10622,10 +10621,11 @@ def runtime_projection(
             "P0_REVIEW_OPEN",
             "P0 review rows block runtime publication",
         )
-    if reviews_control["by_severity"]["P1"]:
+    runtime_status = reviews_control["status"]
+    if runtime_status not in ("PASS", "PASS_WITH_OPEN_REVIEWS"):
         raise ProjectCostError(
-            "P1_REVIEW_OPEN",
-            "P1 review rows block formal runtime publication",
+            "RUNTIME_REVIEW_STATUS",
+            "runtime review status is not publishable",
         )
     formal_categories_by_project = _formal_cost_categories(snapshot)
     analysis_categories_by_project = (
@@ -10815,7 +10815,7 @@ def runtime_projection(
         "截至日期": snapshot.get("as_of"),
         "币种": snapshot.get("currency"),
         "金额单位": "元；正式计算内部使用整数分",
-        "计算状态": reviews_control["status"],
+        "计算状态": runtime_status,
         "项目数": len(rows),
         "正式成本口径": "项目已发生成本 = 项目过账实际 + 合格应计",
         "观察面": ["主营成本已结转", "状态表已报直接成本", "支付系统已付观察"],
@@ -10837,11 +10837,14 @@ def runtime_projection(
             "说明": "过账实际只覆盖各主体所列截至月；随后仅纳入满足资格且未见过账冲突的应计",
         },
         "待确认": {
-            "状态": reviews_control["status"],
+            "状态": runtime_status,
             "P0阻断数": reviews_control["by_severity"]["P0"],
             "P1开放复核数": reviews_control["by_severity"]["P1"],
             "P2已排除或提示数": reviews_control["by_severity"]["P2"],
-            "说明": "P1 观察未唯一归属或未满足成本资格，均已排除在正式公式之外；P0 会阻断发布",
+            "说明": (
+                "P1 未唯一归属金额不进入正式公式；项目级 P1 会使该项目"
+                "成本、毛利和毛利率留空。P0 才阻断整个安全投影。"
+            ),
         },
         "项目": rows,
         "校验": {

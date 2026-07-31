@@ -12,7 +12,7 @@ import json
 import os
 import re
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from html import escape as html_escape
 from urllib.parse import quote
 from pathlib import Path
@@ -929,43 +929,17 @@ def data_source_matrix_csv():
                         filename="KMFA_数据源矩阵.csv")
 
 
-PROJECT_MARGIN_PATH = Path(os.environ.get(
-    "KMFA_PROJECT_MARGIN", "/var/log/kmfa/project_cost/project_margin.json"))
-
-
 @app.get("/api/项目毛利")
 def project_margin():
-    """项目口径毛利——给的是**毛利上限**，不是毛利，而且这一点必须传到页面上。
+    """Retire the legacy lower-bound-cost / upper-bound-margin surface."""
 
-    两个成本口径都是残的：业务台账那四项不含人工（人工约占生产成本八成），
-    金蝶只归集到带合同号的那部分（人工约七成记在『不分项目』）。
-    成本必然被低估，所以毛利必然被高估——这里给的是上限，真实毛利只会更低。
-
-    所以这个接口有一条别的接口没有的硬约束：`⚠这不是毛利` 这段口径说明**必须跟着数走**。
-    只给数字不给这句话，读的人会把 88% 当成毛利率——那比不给数还糟。
-
-    读不到就说读不到，不拿空列表冒充『没有项目』。
-    """
-    if not PROJECT_MARGIN_PATH.exists():
-        parent = PROJECT_MARGIN_PATH.parent
-        if not parent.exists():
-            reason = f"{parent} 不存在——app 容器没挂 kmfa-logs 卷（部署配置问题）"
-        else:
-            reason = "刷新作业尚未产出：技能 project-cost-refresh 从未成功跑完一次"
-        return {"可读": False, "原因": reason, "项目": [],
-                "诚实边界": "读不到就说读不到，不拿空列表冒充『没有项目』。"}
-    try:
-        payload = json.loads(PROJECT_MARGIN_PATH.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        return {"可读": False, "原因": f"产物无法解析：{type(exc).__name__}", "项目": []}
-    if not payload.get("⚠这不是毛利"):
-        # 口径说明丢了就整份不发。宁可页面显示"读不到"，也不让一个 88% 裸奔出去。
-        return {"可读": False, "项目": [],
-                "原因": "产物缺少口径说明『⚠这不是毛利』——缺它这些数会被当成真毛利读，不予出数"}
-    payload["可读"] = True
-    payload["产出时间"] = datetime.fromtimestamp(
-        PROJECT_MARGIN_PATH.stat().st_mtime, BEIJING).isoformat()
-    return payload
+    raise HTTPException(
+        status_code=410,
+        detail=(
+            "旧项目毛利上限接口已下线；请使用 /public-api/项目成本。"
+            "新接口仅在成本完整性闭合后发布毛利与毛利率。"
+        ),
+    )
 
 
 @app.get("/api/项目成本/完工")
@@ -2847,7 +2821,7 @@ def _assert_current_project_cost_runtime(payload: dict) -> None:
 
     if not isinstance(payload, dict):
         raise ValueError("runtime_payload_not_object")
-    if payload.get("schema_version") != "kmfa.project_cost.current.v3":
+    if payload.get("schema_version") != "kmfa.project_cost.current.v4":
         raise ValueError("runtime_schema_unsupported")
     snapshot_id = str(payload.get("快照ID") or "")
     if not snapshot_id:
@@ -2862,6 +2836,55 @@ def _assert_current_project_cost_runtime(payload: dict) -> None:
         raise ValueError("runtime_projects_invalid")
     if payload.get("项目数") != len(projects):
         raise ValueError("runtime_project_count_mismatch")
+    for project in projects:
+        margin_status = str(project.get("收入与毛利状态") or "")
+        if not margin_status:
+            raise ValueError("runtime_margin_status_missing")
+        gross_profit = _cost_num(project.get("毛利"))
+        closed_cost = _cost_num(project.get("项目成本"))
+        gross_margin_text = project.get("毛利率")
+        gross_margin_bps = project.get("毛利率基点")
+        if margin_status != "READY":
+            if (
+                gross_profit is not None
+                or closed_cost is not None
+                or gross_margin_text not in (None, "")
+                or gross_margin_bps is not None
+            ):
+                raise ValueError("runtime_blocked_margin_has_value")
+            continue
+        revenue = _cost_num(project.get("有效合同额"))
+        cost = closed_cost
+        incurred = _cost_num(project.get("项目已发生成本"))
+        if (
+            revenue is None
+            or revenue <= 0
+            or cost is None
+            or (incurred is not None and cost < incurred)
+            or gross_profit is None
+            or isinstance(gross_margin_bps, bool)
+            or not isinstance(gross_margin_bps, int)
+        ):
+            raise ValueError("runtime_margin_basis_invalid")
+        if gross_profit != revenue - cost:
+            raise ValueError("runtime_gross_profit_arithmetic")
+        expected_bps = int(
+            (
+                gross_profit
+                * Decimal(10_000)
+                / revenue
+            ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        )
+        if gross_margin_bps != expected_bps:
+            raise ValueError("runtime_gross_margin_arithmetic")
+        if gross_margin_bps > 7000:
+            raise ValueError("runtime_gross_margin_above_release_limit")
+        expected_text = "%s%%" % format(
+            Decimal(gross_margin_bps) / Decimal(100),
+            ".2f",
+        )
+        if gross_margin_text != expected_text:
+            raise ValueError("runtime_gross_margin_display_mismatch")
     review_control = payload.get("待确认")
     if not isinstance(review_control, dict) or review_control.get("状态") != status:
         raise ValueError("runtime_review_control_mismatch")
@@ -2996,7 +3019,11 @@ def public_project_cost_page():
     projects = [item for item in (payload.get("项目") or []) if isinstance(item, dict)]
     projects.sort(
         key=lambda project: (
-            -(_cost_num(project.get("项目已发生成本")) or 0),
+            -(
+                _cost_num(project.get("项目成本"))
+                or _cost_num(project.get("项目已发生成本"))
+                or 0
+            ),
             str(project.get("合同编号") or ""),
         )
     )
@@ -3007,10 +3034,6 @@ def public_project_cost_page():
     nonzero_cost = [
         project for project in known_cost
         if _cost_num(project.get("项目已发生成本")) != 0
-    ]
-    verified_zero = [
-        project for project in known_cost
-        if _cost_num(project.get("项目已发生成本")) == 0
     ]
     missing_cost = len(projects) - len(known_cost)
     total = sum(
@@ -3054,16 +3077,27 @@ def public_project_cost_page():
         attr = f' data-v="{number}"' if number is not None else ' data-v=""'
         return f'<td class="{kind}"{attr}>{shown}</td>'
 
-    def coverage_text(project):
-        status = str(project.get("项目成本覆盖") or "")
-        period = str(project.get("账簿截至月份") or "未知")
-        if status.endswith("POSTING_PRESENT"):
-            return f"账簿截至 {period}｜有过账"
-        if status.endswith("NO_QUALIFIED_EVENT"):
-            return f"账簿截至 {period}｜无合格过账"
-        if "SOURCE_UNAVAILABLE" in status:
-            return "来源不可用"
-        return status or "来源不可用"
+    def rate_cell(project):
+        bps = project.get("毛利率基点")
+        if isinstance(bps, int) and not isinstance(bps, bool):
+            return (
+                f'<td class="n b" data-v="{bps}">'
+                f'{bps / 100:.2f}%</td>'
+            )
+        return '<td class="n" data-v="">待闭合</td>'
+
+    def margin_status_text(project):
+        if project.get("收入与毛利状态") == "READY":
+            return "已闭合"
+        coverage = str(project.get("项目成本覆盖") or "")
+        ledger_period = str(project.get("账簿截至月份") or "")
+        if coverage == "SOURCE_UNAVAILABLE":
+            return "待成本闭合｜来源不可用"
+        if "NO_QUALIFIED_EVENT" in coverage and ledger_period:
+            return "待成本闭合｜账簿截至 %s｜无合格过账" % ledger_period
+        if ledger_period:
+            return "待成本闭合｜账簿截至 %s" % ledger_period
+        return "待成本闭合"
 
     rows = "\n".join(
         "<tr>"
@@ -3076,16 +3110,14 @@ def public_project_cost_page():
         f'{html_escape(str(p.get("施工状态") or "—"))}</td>'
         f'<td class="c" data-v="{html_escape(str(p.get("完工日期") or ""))}">'
         f'{html_escape(str(p.get("完工日期") or "—"))}</td>'
-        + cell(p.get("含税合同金额"))
-        + cell(p.get("项目过账实际"))
-        + cell(p.get("项目应计"))
-        + cell(p.get("项目已发生成本"), "n b")
-        + cell(p.get("主营成本已结转"))
-        + cell(p.get("状态表已报直接成本"))
-        + cell(p.get("支付系统已付观察"))
+        + cell(p.get("有效合同额"))
+        + cell(p.get("项目成本"), "n b")
+        + cell(p.get("项目已发生成本"))
+        + cell(p.get("毛利"), "n b")
+        + rate_cell(p)
         + (
-            f'<td class="c" data-v="{html_escape(coverage_text(p))}">'
-            f'{html_escape(coverage_text(p))}</td>'
+            f'<td class="c" data-v="{html_escape(margin_status_text(p))}">'
+            f'{html_escape(margin_status_text(p))}</td>'
         )
         + f'<td class="c" data-v=""><a class="one" title="只下载这一个合同" '
           f'href="/项目成本/下载?合同={quote(str(p.get("合同编号") or ""))}">⬇</a></td>'
@@ -3103,16 +3135,15 @@ def public_project_cost_page():
 <div class="strip">
   <div class="st"><b>{len(projects):,}</b><span>2026 全部项目</span></div>
   <div class="st"><b>{len(nonzero_cost)}</b><span>已有成本发生</span></div>
-  <div class="st"><b>{len(verified_zero)}</b><span>账簿截至月内为 0</span></div>
+  <div class="st"><b>{sum(p.get("收入与毛利状态") == "READY" for p in projects)}</b><span>毛利口径已闭合</span></div>
   <div class="st"><b>{total:,.2f}</b><span>项目已发生成本合计</span></div>
-  <div class="st"><b>{p1_open}</b><span>P1 开放复核（未计入）</span></div>
+  <div class="st"><b>{missing_cost}</b><span>成本尚未闭合</span></div>
 </div>
-<div class="note"><b>正式口径：</b>项目已发生成本＝项目过账实际＋合格应计。
-  主营成本已结转、状态表已报直接成本、支付系统已付观察是独立观察面，
-  不相加、不覆盖、不取最大值。固定人工单价和合同额 2% 管理费均已禁用。<br>
-  全部 26 个项目都列出：<b>0.00</b> 表示在该项目所列账簿截至月及合格应计中
-  没有成本事件，不代表账簿尚未覆盖月份为 0；“—”才表示来源不可用。
-  当前缺值项目 {missing_cost} 个。</div>
+<div class="note"><b>毛利口径：</b>毛利＝有效收入基数－已闭合项目成本；
+  毛利率＝毛利÷有效收入基数。实际发生额仍是下限、人工或审批费用未闭合、
+  或尚无受控完工预计时，毛利率显示“待闭合”，不会把低估成本算成高毛利。<br>
+  <b>发布硬控制：</b>任何项目毛利率高于 70% 会阻断整批发布；
+  该阈值只用于报错，绝不用于倒推、补差或压低毛利率。</div>
 {coverage_warning}
 {review_warning}
 <div class="bar">
@@ -3126,15 +3157,16 @@ def public_project_cost_page():
 <div class="tw"><table id="costtbl">
 <thead><tr>
 <th data-s="t">合同编号</th><th data-s="t">项目 / 甲方</th><th data-s="t">状态</th><th data-s="t">完工日</th>
-<th class="n" data-s="n">原合同额</th><th class="n" data-s="n">过账实际</th>
-<th class="n" data-s="n">合格应计</th><th class="n" data-s="n">已发生成本</th>
-<th class="n" data-s="n">主营成本结转</th><th class="n" data-s="n">状态表观察</th>
-<th class="n" data-s="n">支付观察</th><th data-s="t">覆盖</th>
+<th class="n" data-s="n">有效收入基数</th><th class="n" data-s="n">项目成本（已闭合）</th>
+<th class="n" data-s="n">已发生成本（下限）</th>
+<th class="n" data-s="n">毛利</th><th class="n" data-s="n">毛利率</th>
+<th data-s="t">口径状态</th>
 <th>单独下载</th>
 </tr></thead>
 <tbody>{rows}</tbody></table></div>
 <footer>同一份数据的机器可读版在 <code>/public-api/项目成本</code>。
-  原合同额仅作合同维度展示；有效合同额、收入确认额和毛利在批准变更链未闭合前保持空白。</footer>"""
+  收入、人工、审批费用和完工预计任一未闭合时，闭合项目成本、毛利与毛利率均保持空白；
+  已发生成本只作为实际发生下限单独展示。</footer>"""
     return page(body)
 
 

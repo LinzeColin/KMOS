@@ -195,12 +195,13 @@ def test_runtime_projection_rejects_a_one_cent_category_drift():
     assert caught.value.code == "RUNTIME_CATEGORY_CONSERVATION"
 
 
-def test_runtime_projection_blocks_open_p1_instead_of_publishing_a_lower_bound():
+def test_runtime_projection_keeps_p1_counts_but_only_publishes_closed_margins():
     snapshot = _snapshot()
     snapshot["reviews"] = [
         {
             "severity": "P1",
-            "type": "SYNTHETIC_IDENTITY_UNRESOLVED",
+            "type": "SYNTHETIC_PROJECT_COST_INCOMPLETE",
+            "project": "KMX20990102-002",
             "amount_cents": 999_999,
         },
         {
@@ -209,9 +210,14 @@ def test_runtime_projection_blocks_open_p1_instead_of_publishing_a_lower_bound()
             "amount_cents": 888_888,
         },
     ]
-    with pytest.raises(ProjectCostError) as caught:
-        runtime_projection(snapshot)
-    assert caught.value.code == "P1_REVIEW_OPEN"
+    projection = runtime_projection(snapshot)
+    assert projection["计算状态"] == "PASS_WITH_OPEN_REVIEWS"
+    assert projection["待确认"]["状态"] == "PASS_WITH_OPEN_REVIEWS"
+    assert projection["待确认"]["P1开放复核数"] == 1
+    first, second = projection["项目"]
+    assert first["毛利率"] == "60.00%"
+    assert second["项目成本"] is None
+    assert second["毛利率"] is None
 
 
 def test_margin_above_seventy_percent_blocks_instead_of_being_clamped():

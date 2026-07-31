@@ -37,7 +37,7 @@ PDF_ROWS_AS_READ = [
 
 #: 使用合成正式事件分类逐格核对；真实项目名与金额不进入公开仓。
 SAMPLE = {
-    "schema_version": "kmfa.project_cost.current.v3",
+    "schema_version": "kmfa.project_cost.current.v4",
     "生成时间": "2026-07-30T15:00:00+08:00",
     "快照ID": "kmfa-pc-2099-statement",
     "截至日期": "2099-12-31",
@@ -65,13 +65,18 @@ SAMPLE = {
         "生活住宿费": "1300", "其他费用": "56", "自有人工工时": "41",
         "劳务人工工时": "17", "项目过账实际": "11402.81", "项目应计": "24098.95",
         "项目已发生成本": "35501.76",
+        "有效合同额": None, "毛利": None, "毛利率": None,
+        "毛利率基点": None, "收入与毛利状态": "BLOCKED_COST_COMPLETENESS",
         "报表归类": {"material": "494.10", "travel": "542.81", "lodging": "1300",
                   "other": "56", "own_labor": "24098.85", "subcontract_labor": "9010"},
         "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT",
     }, {
         "合同编号": "KMX20991222-086", "项目名称": "合成竣工项目乙", "甲方名称": "合成客户乙",
         "含税合同金额": "50000", "项目过账实际": "9000", "项目应计": "0",
-        "项目已发生成本": "9000", "报表归类": {"other": "9000"},
+        "项目已发生成本": "9000", "有效合同额": None, "毛利": None,
+        "毛利率": None, "毛利率基点": None,
+        "收入与毛利状态": "BLOCKED_COST_COMPLETENESS",
+        "报表归类": {"other": "9000"},
         "项目成本覆盖": "FULL_SELECTED_GL_PERIOD;POSTING_PRESENT",
     }],
 }
