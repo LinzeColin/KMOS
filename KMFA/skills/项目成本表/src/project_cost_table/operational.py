@@ -1428,6 +1428,31 @@ def project_financial_analysis_components(
     }
 
 
+def project_margin_cost_completeness_blockers(
+    reviews: Sequence[Mapping[str, Any]],
+) -> Dict[str, Tuple[str, ...]]:
+    """Return project-scoped P0/P1 findings that invalidate a margin.
+
+    A provisional cost total remains useful for diagnostics while a cost
+    event is unresolved, but it must not be promoted to a formal gross
+    margin.  Missing or unreconciled labour therefore cannot appear as zero
+    merely because the remaining arithmetic is complete.
+    """
+
+    by_project: Dict[str, Set[str]] = defaultdict(set)
+    for review in reviews:
+        if str(review.get("severity") or "") not in ("P0", "P1"):
+            continue
+        project = str(review.get("project") or "").strip()
+        review_type = str(review.get("type") or "").strip()
+        if project and review_type:
+            by_project[project].add(review_type)
+    return {
+        project: tuple(sorted(review_types))
+        for project, review_types in sorted(by_project.items())
+    }
+
+
 def select_latest_tabular(
     candidates: Sequence[Path],
     roots: Sequence[Path],
@@ -8837,9 +8862,16 @@ def build_snapshot(
             direct_tax_in_incurred_by_project[
                 str(event.get("project") or "")
             ] += int(event.get("amount_cents") or 0)
+    margin_cost_blockers_by_project = (
+        project_margin_cost_completeness_blockers(reviews)
+    )
     project_rows: List[Dict[str, Any]] = []
     for project in projects:
         base = str(project["contract_base"])
+        margin_cost_blockers = margin_cost_blockers_by_project.get(
+            base,
+            (),
+        )
         status = status_map.get(base)
         accounting_revenue = governed_contract_revenue(project, status)
         analysis_revenue = governed_financial_analysis_revenue(
@@ -9027,7 +9059,9 @@ def build_snapshot(
                         / Decimal(analysis_revenue_cents)
                     ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
                 )
-                if preliminary_margin_bps > MAX_GROSS_MARGIN_BPS:
+                if margin_cost_blockers:
+                    gross_margin_status = "BLOCKED_COST_COMPLETENESS"
+                elif preliminary_margin_bps > MAX_GROSS_MARGIN_BPS:
                     gross_margin_status = (
                         "BLOCKED_GROSS_MARGIN_ABOVE_70_PERCENT"
                     )
@@ -9127,6 +9161,9 @@ def build_snapshot(
                     "revenue_bridge_cents"
                 ],
                 "gross_margin_status": gross_margin_status,
+                "gross_margin_cost_blocker_types": list(
+                    margin_cost_blockers
+                ),
                 "financial_analysis_policy_id": (
                     analysis_components.get("policy_id")
                 ),

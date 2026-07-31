@@ -29,6 +29,7 @@ from project_cost_table.operational import (
     parse_ocr_paid_project_costs,
     parse_ocr_shared_information_fees,
     parse_status,
+    project_margin_cost_completeness_blockers,
     project_level_residual_labor_allocate,
     qualify_cost_accruals,
     runtime_projection,
@@ -233,6 +234,32 @@ def test_incomplete_margin_basis_returns_null_without_backsolving_cost():
         "gross_profit_cents": None,
         "gross_margin_bps": None,
         "status": "BLOCKED_COST_COMPLETENESS",
+    }
+
+
+def test_project_scoped_p1_blocks_margin_cost_completeness():
+    blockers = project_margin_cost_completeness_blockers(
+        [
+            {
+                "severity": "P1",
+                "type": "LABOR_PROJECT_LEVEL_PERIOD_SOURCE_MISSING",
+                "project": "KMX20990101-001",
+            },
+            {
+                "severity": "P2",
+                "type": "LABOR_PROJECT_LEVEL_MULTI_ENTITY_SOURCE_SPLIT",
+                "project": "KMX20990101-001",
+            },
+            {
+                "severity": "P1",
+                "type": "SOURCE_CANDIDATE_REJECTED",
+            },
+        ]
+    )
+    assert blockers == {
+        "KMX20990101-001": (
+            "LABOR_PROJECT_LEVEL_PERIOD_SOURCE_MISSING",
+        )
     }
 
 

@@ -99,8 +99,99 @@ jobs:
           sys.path.insert(0, str(skill / "scripts"))
           sys.path.insert(0, str(repo))
 
-          from project_cost_table.operational import ProjectCostError, build_snapshot
+          from project_cost_table.operational import (
+              ProjectCostError,
+              _decimal_units,
+              _open_payroll_workbook,
+              _payroll_header,
+              _payroll_period,
+              build_snapshot,
+              cents,
+              normalize_text,
+          )
           from run_private_refresh import fetch_manifest
+
+          def private_payroll_inspection(path):
+              workbook = _open_payroll_workbook(
+                  path,
+                  "KMFA_PAYROLL_PASSWORD",
+              )
+              try:
+                  period = _payroll_period(path, workbook)
+                  result = {
+                      "source_member": path.name,
+                      "parsed_period": period,
+                      "sheet_names": list(workbook.sheetnames),
+                      "employee_rows": [],
+                  }
+                  detail_sheets = [
+                      sheet
+                      for sheet in workbook.worksheets
+                      if "分部门" in sheet.title
+                  ]
+                  for sheet in detail_sheets:
+                      header_row, headers = _payroll_header(sheet)
+                      name_index = headers["姓名"]
+                      department_index = headers.get(
+                          "实际部门",
+                          headers["部门"],
+                      )
+                      company_index = headers.get("公司")
+                      gross_index = headers["应计工资小计"]
+                      outside_index = headers.get("实出勤天-厂外")
+                      inside_index = headers.get("实出勤天-厂内")
+                      for row in sheet.iter_rows(
+                          min_row=header_row + 1,
+                          values_only=True,
+                      ):
+                          employee = normalize_text(
+                              row[name_index]
+                              if name_index < len(row)
+                              else None
+                          )
+                          gross = cents(
+                              row[gross_index]
+                              if gross_index < len(row)
+                              else None
+                          )
+                          if not employee or gross is None or gross <= 0:
+                              continue
+                          approved_days = 0
+                          if (
+                              outside_index is not None
+                              and outside_index < len(row)
+                          ):
+                              approved_days += _decimal_units(
+                                  row[outside_index]
+                              )
+                          if (
+                              inside_index is not None
+                              and inside_index < len(row)
+                          ):
+                              approved_days += _decimal_units(
+                                  row[inside_index]
+                              )
+                          result["employee_rows"].append(
+                              {
+                                  "employee": employee,
+                                  "company": normalize_text(
+                                      row[company_index]
+                                      if company_index is not None
+                                      and company_index < len(row)
+                                      else None
+                                  ),
+                                  "department": normalize_text(
+                                      row[department_index]
+                                      if department_index < len(row)
+                                      else None
+                                  ),
+                                  "gross_cents": gross,
+                                  "approved_days": str(approved_days),
+                              }
+                          )
+                  return result
+              finally:
+                  workbook.close()
 
           try:
               with tempfile.TemporaryDirectory(
@@ -134,6 +225,18 @@ jobs:
                       payroll_password_env="KMFA_PAYROLL_PASSWORD",
                       private_input_manifest_sha256=manifest_sha256,
                   )
+                  # This extension can contain employee names and wage
+                  # components.  It exists only inside the one-day,
+                  # certificate-encrypted diagnostic artifact and is never
+                  # printed to Actions logs or written to the repository.
+                  snapshot["private_diagnostic_extension"] = {
+                      "contains_personal_data": True,
+                      "plaintext_publication_prohibited": True,
+                      "payroll_workbooks": [
+                          private_payroll_inspection(input_root / path)
+                          for path in run["payroll_paths"]
+                      ],
+                  }
                   private_json = Path(os.environ["RUNNER_TEMP"]) / (
                       "project-cost-diagnostic-private.json"
                   )
