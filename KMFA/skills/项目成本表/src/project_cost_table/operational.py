@@ -4484,6 +4484,105 @@ def largest_remainder_allocate(
     return floors
 
 
+def project_level_residual_labor_allocate(
+    *,
+    wage_pool_cents: int,
+    employer_burden_pool_cents: int,
+    approved_unallocated_days: Decimal,
+    project_work_units: Mapping[str, Decimal],
+) -> Dict[str, Any]:
+    """Allocate only the still-unassigned labor pool at project level.
+
+    The numerator is the actual current-period wage/employer-burden remainder
+    after employee-level project-day allocation.  The denominator is the same
+    rows' actual approved yet-unassigned payroll days.  Status-register project
+    work units consume that denominator; the remainder stays explicitly
+    unallocated.  This is a source-derived quotient, never a fixed daily rate.
+    """
+
+    wage_pool = int(wage_pool_cents)
+    burden_pool = int(employer_burden_pool_cents)
+    days = _decimal_units(approved_unallocated_days)
+    if wage_pool < 0 or burden_pool < 0:
+        raise ProjectCostError(
+            "LABOR_PROJECT_LEVEL_CONTROL_NEGATIVE",
+            "project-level labor controls must be non-negative",
+        )
+    units = {
+        str(project): _decimal_units(value)
+        for project, value in project_work_units.items()
+        if _decimal_units(value) > 0
+    }
+    allocated_units = sum(units.values(), Decimal(0))
+    if allocated_units > days:
+        raise ProjectCostError(
+            "LABOR_PROJECT_LEVEL_TIME_OVERFLOW",
+            "status project work units exceed approved unallocated payroll days",
+        )
+    weights = dict(units)
+    remainder_days = days - allocated_units
+    if remainder_days > 0:
+        weights["__UNALLOCATED__"] = remainder_days
+    if not weights:
+        return {
+            "wage_by_project": {},
+            "employer_burden_by_project": {},
+            "wage_unallocated_cents": wage_pool,
+            "employer_burden_unallocated_cents": burden_pool,
+            "approved_unallocated_days": str(days),
+            "allocated_project_work_units": "0",
+            "remaining_unallocated_days": str(days),
+            "wage_control_delta_cents": 0,
+            "employer_burden_control_delta_cents": 0,
+        }
+    wage_allocations = largest_remainder_allocate(wage_pool, weights)
+    burden_allocations = largest_remainder_allocate(
+        burden_pool,
+        weights,
+    )
+    wage_unallocated = wage_allocations.pop("__UNALLOCATED__", 0)
+    burden_unallocated = burden_allocations.pop(
+        "__UNALLOCATED__",
+        0,
+    )
+    wage_by_project = {
+        project: amount
+        for project, amount in wage_allocations.items()
+        if amount > 0
+    }
+    burden_by_project = {
+        project: amount
+        for project, amount in burden_allocations.items()
+        if amount > 0
+    }
+    wage_delta = (
+        wage_pool
+        - sum(wage_by_project.values())
+        - wage_unallocated
+    )
+    burden_delta = (
+        burden_pool
+        - sum(burden_by_project.values())
+        - burden_unallocated
+    )
+    if wage_delta or burden_delta:
+        raise ProjectCostError(
+            "LABOR_PROJECT_LEVEL_CONTROL_DRIFT",
+            "project-level labor allocation did not conserve cents",
+        )
+    return {
+        "wage_by_project": wage_by_project,
+        "employer_burden_by_project": burden_by_project,
+        "wage_unallocated_cents": wage_unallocated,
+        "employer_burden_unallocated_cents": burden_unallocated,
+        "approved_unallocated_days": str(days),
+        "allocated_project_work_units": str(allocated_units),
+        "remaining_unallocated_days": str(remainder_days),
+        "wage_control_delta_cents": wage_delta,
+        "employer_burden_control_delta_cents": burden_delta,
+    }
+
+
 def labor_posted_reconciliation(
     allocated_wage_component_cents: int,
     posted_wage_component_cents: int,
@@ -5700,6 +5799,17 @@ def parse_payroll_and_attendance(
         str((source.get("logical_metadata") or {}).get("payroll_period")): source
         for source in burden_sources
     }
+    exact_project_days_global: Dict[str, Decimal] = defaultdict(Decimal)
+    exact_project_entities_global: Dict[str, Set[str]] = defaultdict(set)
+    project_level_period_states: Dict[str, Dict[str, Any]] = {}
+    consumed_direct_posted: Dict[
+        Tuple[str, str, str],
+        int,
+    ] = defaultdict(int)
+    consumed_combined_posted: Dict[
+        Tuple[str, str, str],
+        int,
+    ] = defaultdict(int)
     for period, (path, workbook) in sorted(period_books.items()):
         sheets = [sheet for sheet in workbook.worksheets if "分部门" in sheet.title]
         if len(sheets) != 1:
@@ -5774,6 +5884,18 @@ def parse_payroll_and_attendance(
         )
         burden_allocated_by_scope: Dict[
             Tuple[str, str],
+            int,
+        ] = defaultdict(int)
+        project_level_days_by_entity: Dict[
+            str,
+            Decimal,
+        ] = defaultdict(Decimal)
+        project_level_wage_pool_by_entity: Dict[
+            str,
+            int,
+        ] = defaultdict(int)
+        project_level_burden_pool_by_entity: Dict[
+            str,
             int,
         ] = defaultdict(int)
         allocated_days_by_project: Dict[str, Decimal] = defaultdict(Decimal)
@@ -5871,17 +5993,43 @@ def parse_payroll_and_attendance(
                 if burden_amount is not None:
                     burden_unallocated += burden_amount
                 continue
+            allocation_entity = (
+                burden_key[0] if burden_key is not None else entity
+            )
             wage_allocation = largest_remainder_allocate(amount, weights)
-            wage_unallocated += wage_allocation.pop("__UNALLOCATED__", 0)
+            wage_unallocated_share = wage_allocation.pop(
+                "__UNALLOCATED__",
+                0,
+            )
+            wage_unallocated += wage_unallocated_share
             burden_allocation = (
                 largest_remainder_allocate(burden_amount, weights)
                 if burden_amount is not None
                 else {}
             )
-            burden_unallocated += burden_allocation.pop("__UNALLOCATED__", 0)
-            allocation_entity = (
-                burden_key[0] if burden_key is not None else entity
+            burden_unallocated_share = burden_allocation.pop(
+                "__UNALLOCATED__",
+                0,
             )
+            burden_unallocated += burden_unallocated_share
+            if remainder_days > 0 and allocation_entity:
+                project_level_days_by_entity[
+                    allocation_entity
+                ] += remainder_days
+                project_level_wage_pool_by_entity[
+                    allocation_entity
+                ] += wage_unallocated_share
+                project_level_burden_pool_by_entity[
+                    allocation_entity
+                ] += burden_unallocated_share
+            for project, project_day_count in project_days.items():
+                exact_project_days_global[
+                    project
+                ] += project_day_count
+                if allocation_entity:
+                    exact_project_entities_global[project].add(
+                        allocation_entity
+                    )
             employee_token = "emp_" + sha256_bytes(stable_json([period, employee]))[:16]
             for project, project_amount in wage_allocation.items():
                 if project_amount <= 0:
@@ -5982,6 +6130,14 @@ def parse_payroll_and_attendance(
                 direct_posted,
                 combined_posted,
             )
+            if direct_entity is not None:
+                consumed_direct_posted[
+                    (project, period, direct_entity)
+                ] += reconciliation["direct_wage_matched_cents"]
+            if combined_entity is not None:
+                consumed_combined_posted[
+                    (project, period, combined_entity)
+                ] += reconciliation["combined_matched_cents"]
             matched = reconciliation["matched_cents"]
             wage_residual = reconciliation["wage_accrual_cents"]
             burden_residual = reconciliation[
@@ -6138,38 +6294,6 @@ def parse_payroll_and_attendance(
                 "LABOR_CONTROL_DRIFT",
                 "wage + employer burden must equal accrual + matched labor postings + unallocated",
             )
-        if wage_unallocated:
-            reviews.append(
-                {
-                    "severity": "P2",
-                    "type": "LABOR_WAGE_COMPONENT_UNALLOCATED",
-                    "source": payroll_source["relative_path"],
-                    "amount_cents": wage_unallocated,
-                    "action": (
-                        "工资组件已按项目日证据分配并守恒；剩余部分保留为"
-                        "未分配控制池，不向任何项目塞数"
-                    ),
-                }
-            )
-        if burden_unallocated:
-            reviews.append(
-                {
-                    "severity": "P2",
-                    "type": "LABOR_EMPLOYER_BURDEN_UNALLOCATED",
-                    "period": period,
-                    "amount_cents": burden_unallocated,
-                    "action": "单位负担成本未唯一归属部分保留控制池，不按比例向项目塞数",
-                }
-            )
-        if not attendance_sources:
-            reviews.append(
-                {
-                    "severity": "P1",
-                    "type": "LABOR_TIME_PERIOD_NOT_MAPPED",
-                    "source": payroll_source["relative_path"],
-                    "action": "该工资期间无可绑定的钉钉逐日项目定位；工资控制额全部保留未分配",
-                }
-            )
         if duplicate_name_rows or invalid_time_rows:
             reviews.append(
                 {
@@ -6209,8 +6333,7 @@ def parse_payroll_and_attendance(
                 "action": "工资与单位承担社保医保分别分配并守恒；个人扣款不反推单位成本，公积金无单位来源时不猜测",
             }
         )
-        period_meta.append(
-            {
+        period_record = {
                 "period": period,
                 "employee_row_count": len(payroll_rows),
                 "direct_wage_component_control_cents": wage_control,
@@ -6237,8 +6360,29 @@ def parse_payroll_and_attendance(
                 ),
                 "conservation_delta_cents": conservation_delta,
                 "attendance": attendance_meta,
+                "project_level_status_work_unit_count": "0",
+                "project_level_wage_accrual_cents": 0,
+                "project_level_employer_burden_accrual_cents": 0,
+                "project_level_already_posted_cents": 0,
+                "project_level_allocation_scope": "NONE",
             }
-        )
+        period_meta.append(period_record)
+        project_level_period_states[period] = {
+            "period_record": period_record,
+            "payroll_source": payroll_source,
+            "burden_source": burden_source_by_period.get(period),
+            "approved_unallocated_days_by_entity": dict(
+                project_level_days_by_entity
+            ),
+            "wage_pool_by_entity": dict(
+                project_level_wage_pool_by_entity
+            ),
+            "burden_pool_by_entity": dict(
+                project_level_burden_pool_by_entity
+            ),
+            "attendance_source_count": len(attendance_sources),
+            "project_level_allocated": False,
+        }
         grand_wage_control += wage_control
         grand_burden_control += burden_control
         grand_wage_accrual += wage_accrued
@@ -6246,6 +6390,510 @@ def parse_payroll_and_attendance(
         grand_posted += already_posted
         grand_wage_unallocated += wage_unallocated
         grand_burden_unallocated += burden_unallocated
+    project_level_requests: Dict[
+        Tuple[str, str],
+        Dict[str, Decimal],
+    ] = defaultdict(dict)
+    projects_by_base = {
+        str(project["contract_base"]): project
+        for project in projects
+    }
+    for project_base, project in sorted(projects_by_base.items()):
+        status = status_map.get(project_base, {})
+        governed_units = _decimal_units(
+            status.get("own_work_units")
+        )
+        if governed_units <= 0:
+            continue
+        exact_units = exact_project_days_global.get(
+            project_base,
+            Decimal(0),
+        )
+        if exact_units > governed_units:
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "LABOR_STATUS_WORK_UNITS_BELOW_EXACT_DAYS",
+                    "project": project_base,
+                    "status_work_units": str(governed_units),
+                    "exact_employee_project_days": str(exact_units),
+                    "action": "员工级核定项目日超过状态表项目工时；禁止用状态表余额分配",
+                }
+            )
+            continue
+        residual_units = governed_units - exact_units
+        if residual_units <= 0:
+            continue
+        completion_date = str(
+            status.get("completion_date")
+            or project.get("completion_date_master")
+            or ""
+        )
+        completion_period = completion_date[:7]
+        period_state = project_level_period_states.get(
+            completion_period
+        )
+        if period_state is None:
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "LABOR_PROJECT_LEVEL_PERIOD_SOURCE_MISSING",
+                    "project": project_base,
+                    "completion_period": completion_period or None,
+                    "residual_status_work_units": str(residual_units),
+                    "action": "项目完工期间缺少同月工资与批准出勤控制额；不得跨月套用人工单价",
+                }
+            )
+            continue
+        available_entities = {
+            str(entity)
+            for entity, days in (
+                period_state[
+                    "approved_unallocated_days_by_entity"
+                ]
+            ).items()
+            if _decimal_units(days) > 0
+        }
+        exact_entities = (
+            exact_project_entities_global.get(project_base, set())
+            & available_entities
+        )
+        if len(exact_entities) > 1:
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "LABOR_PROJECT_LEVEL_ENTITY_AMBIGUOUS",
+                    "project": project_base,
+                    "completion_period": completion_period,
+                    "candidate_entity_count": len(exact_entities),
+                    "action": "员工级项目日落在多个雇佣主体；状态表余额不得改用承包主体猜测分配",
+                }
+            )
+            continue
+        matched_entity = (
+            next(iter(exact_entities))
+            if len(exact_entities) == 1
+            else None
+        )
+        if matched_entity is None:
+            requested_entity = _employment_entity_key(
+                project.get("contractor")
+            )
+            matched_entity = _compatible_entity_key(
+                requested_entity,
+                available_entities,
+            )
+            if matched_entity is None and requested_entity:
+                prefix_matches = sorted(
+                    (
+                        entity
+                        for entity in available_entities
+                        if len(entity) >= 2
+                        and requested_entity.startswith(entity)
+                    ),
+                    key=lambda entity: (-len(entity), entity),
+                )
+                if (
+                    prefix_matches
+                    and (
+                        len(prefix_matches) == 1
+                        or len(prefix_matches[0])
+                        > len(prefix_matches[1])
+                    )
+                ):
+                    matched_entity = prefix_matches[0]
+        if matched_entity is None:
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "LABOR_PROJECT_LEVEL_ENTITY_UNRESOLVED",
+                    "project": project_base,
+                    "completion_period": completion_period,
+                    "candidate_entity_count": len(
+                        available_entities
+                    ),
+                    "action": "项目承包主体不能唯一映射到工资雇佣主体；不得跨主体分配人工",
+                }
+            )
+            continue
+        project_level_requests[
+            (completion_period, matched_entity)
+        ][project_base] = residual_units
+    for (
+        period,
+        allocation_entity,
+    ), requested_units in sorted(project_level_requests.items()):
+        period_state = project_level_period_states[period]
+        approved_unallocated_days = _decimal_units(
+            period_state[
+                "approved_unallocated_days_by_entity"
+            ].get(allocation_entity)
+        )
+        wage_pool = int(
+            period_state["wage_pool_by_entity"].get(
+                allocation_entity,
+                0,
+            )
+        )
+        burden_pool = int(
+            period_state["burden_pool_by_entity"].get(
+                allocation_entity,
+                0,
+            )
+        )
+        try:
+            project_level_result = (
+                project_level_residual_labor_allocate(
+                    wage_pool_cents=wage_pool,
+                    employer_burden_pool_cents=burden_pool,
+                    approved_unallocated_days=(
+                        approved_unallocated_days
+                    ),
+                    project_work_units=requested_units,
+                )
+            )
+        except ProjectCostError as exc:
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": exc.code,
+                    "period": period,
+                    "project_count": len(requested_units),
+                    "requested_project_work_units": str(
+                        sum(requested_units.values(), Decimal(0))
+                    ),
+                    "approved_unallocated_days": str(
+                        approved_unallocated_days
+                    ),
+                    "action": "项目级工时控制不闭合；该主体期间保持未分配",
+                }
+            )
+            continue
+        wage_by_project = project_level_result[
+            "wage_by_project"
+        ]
+        burden_by_project = project_level_result[
+            "employer_burden_by_project"
+        ]
+        allocated_wage = sum(wage_by_project.values())
+        allocated_burden = sum(burden_by_project.values())
+        project_level_wage_accrual = 0
+        project_level_burden_accrual = 0
+        project_level_matched = 0
+        payroll_source = period_state["payroll_source"]
+        burden_source = period_state.get("burden_source")
+        for project_base in sorted(
+            set(wage_by_project) | set(burden_by_project)
+        ):
+            wage_amount = int(wage_by_project.get(project_base, 0))
+            burden_amount = int(
+                burden_by_project.get(project_base, 0)
+            )
+            direct_entities = {
+                scope[2]
+                for scope, amount in posted_wage_cents.items()
+                if scope[0] == project_base
+                and scope[1] == period
+                and amount
+                and scope[2]
+            }
+            combined_entities = {
+                scope[2]
+                for scope, amount in posted_combined_labor_cents.items()
+                if scope[0] == project_base
+                and scope[1] == period
+                and amount
+                and scope[2]
+            }
+            direct_entity = _compatible_entity_key(
+                allocation_entity,
+                direct_entities,
+            )
+            combined_entity = _compatible_entity_key(
+                allocation_entity,
+                combined_entities,
+            )
+            direct_posted = (
+                max(
+                    0,
+                    int(
+                        posted_wage_cents.get(
+                            (
+                                project_base,
+                                period,
+                                direct_entity,
+                            ),
+                            0,
+                        )
+                    )
+                    - consumed_direct_posted.get(
+                        (
+                            project_base,
+                            period,
+                            direct_entity,
+                        ),
+                        0,
+                    ),
+                )
+                if direct_entity is not None
+                else 0
+            )
+            combined_posted = (
+                max(
+                    0,
+                    int(
+                        posted_combined_labor_cents.get(
+                            (
+                                project_base,
+                                period,
+                                combined_entity,
+                            ),
+                            0,
+                        )
+                    )
+                    - consumed_combined_posted.get(
+                        (
+                            project_base,
+                            period,
+                            combined_entity,
+                        ),
+                        0,
+                    ),
+                )
+                if combined_entity is not None
+                else 0
+            )
+            reconciliation = labor_posted_component_reconciliation(
+                wage_amount,
+                burden_amount,
+                direct_posted,
+                combined_posted,
+            )
+            wage_residual = reconciliation[
+                "wage_accrual_cents"
+            ]
+            burden_residual = reconciliation[
+                "employer_burden_accrual_cents"
+            ]
+            matched = reconciliation["matched_cents"]
+            project_level_wage_accrual += wage_residual
+            project_level_burden_accrual += burden_residual
+            project_level_matched += matched
+            if direct_entity is not None:
+                consumed_direct_posted[
+                    (project_base, period, direct_entity)
+                ] += reconciliation[
+                    "direct_wage_matched_cents"
+                ]
+            if combined_entity is not None:
+                consumed_combined_posted[
+                    (project_base, period, combined_entity)
+                ] += reconciliation["combined_matched_cents"]
+            work_units = requested_units[project_base]
+            if wage_residual > 0:
+                key = [
+                    period,
+                    project_base,
+                    wage_residual,
+                    payroll_source["source_id"],
+                    "PROJECT_LEVEL_DOCUMENTED_SCOPE",
+                ]
+                events.append(
+                    {
+                        "event_id": "labor_project_level_"
+                        + sha256_bytes(stable_json(key))[:24],
+                        "project": project_base,
+                        "plane": "COST_ACCRUED",
+                        "category": "自有人工-工资项目级分配",
+                        "amount_cents": wage_residual,
+                        "posting_date": _period_end(
+                            period
+                        ).isoformat(),
+                        "payroll_period": period,
+                        "summary": "实际未分配工资组件÷同源批准未分配工日×状态表核定项目工时；最大余数法",
+                        "source_id": payroll_source["source_id"],
+                        "source_member": payroll_source[
+                            "relative_path"
+                        ],
+                        "identity_reason": "PROJECT_LEVEL_DOCUMENTED_SCOPE",
+                        "allocation_level": "PROJECT_LEVEL",
+                        "residual_status_work_units": str(
+                            work_units
+                        ),
+                        "fixed_daily_rate_used": False,
+                    }
+                )
+            if burden_residual > 0:
+                source_id = (
+                    burden_source.get("source_id")
+                    if burden_source is not None
+                    else payroll_source["source_id"]
+                )
+                key = [
+                    period,
+                    project_base,
+                    burden_residual,
+                    source_id,
+                    "PROJECT_LEVEL_DOCUMENTED_SCOPE",
+                ]
+                events.append(
+                    {
+                        "event_id": "labor_burden_project_level_"
+                        + sha256_bytes(stable_json(key))[:24],
+                        "project": project_base,
+                        "plane": "COST_ACCRUED",
+                        "category": "自有人工-单位负担项目级分配",
+                        "amount_cents": burden_residual,
+                        "posting_date": _period_end(
+                            period
+                        ).isoformat(),
+                        "payroll_period": period,
+                        "summary": "实际未分配单位负担÷同源批准未分配工日×状态表核定项目工时；最大余数法",
+                        "source_id": source_id,
+                        "source_member": (
+                            burden_source.get("relative_path")
+                            if burden_source is not None
+                            else None
+                        ),
+                        "identity_reason": "PROJECT_LEVEL_DOCUMENTED_SCOPE",
+                        "allocation_level": "PROJECT_LEVEL",
+                        "residual_status_work_units": str(
+                            work_units
+                        ),
+                        "fixed_daily_rate_used": False,
+                    }
+                )
+        period_record = period_state["period_record"]
+        period_record[
+            "wage_allocated_accrual_cents"
+        ] += project_level_wage_accrual
+        period_record[
+            "employer_burden_allocated_accrual_cents"
+        ] += project_level_burden_accrual
+        period_record["allocated_accrual_cents"] += (
+            project_level_wage_accrual
+            + project_level_burden_accrual
+        )
+        period_record["already_posted_cents"] += (
+            project_level_matched
+        )
+        period_record["wage_unallocated_cents"] -= allocated_wage
+        period_record[
+            "employer_burden_unallocated_cents"
+        ] -= allocated_burden
+        period_record["unallocated_cents"] -= (
+            allocated_wage + allocated_burden
+        )
+        period_record[
+            "project_level_status_work_unit_count"
+        ] = str(
+            _decimal_units(
+                period_record[
+                    "project_level_status_work_unit_count"
+                ]
+            )
+            + _decimal_units(
+                project_level_result[
+                    "allocated_project_work_units"
+                ]
+            )
+        )
+        period_record[
+            "project_level_wage_accrual_cents"
+        ] += project_level_wage_accrual
+        period_record[
+            "project_level_employer_burden_accrual_cents"
+        ] += project_level_burden_accrual
+        period_record[
+            "project_level_already_posted_cents"
+        ] += project_level_matched
+        period_record[
+            "project_level_allocation_scope"
+        ] = "PROJECT_LEVEL_DOCUMENTED_SCOPE"
+        period_state["project_level_allocated"] = bool(
+            period_state["project_level_allocated"]
+            or allocated_wage
+            or allocated_burden
+        )
+        grand_wage_accrual += project_level_wage_accrual
+        grand_burden_accrual += project_level_burden_accrual
+        grand_posted += project_level_matched
+        grand_wage_unallocated -= allocated_wage
+        grand_burden_unallocated -= allocated_burden
+        reviews.append(
+            {
+                "severity": "P2",
+                "type": "LABOR_PROJECT_LEVEL_STATUS_ALLOCATION",
+                "period": period,
+                "project_count": len(requested_units),
+                "allocated_project_work_units": project_level_result[
+                    "allocated_project_work_units"
+                ],
+                "approved_unallocated_days": project_level_result[
+                    "approved_unallocated_days"
+                ],
+                "wage_component_cents": allocated_wage,
+                "employer_burden_cents": allocated_burden,
+                "matched_posted_cents": project_level_matched,
+                "fixed_daily_rate_used": False,
+                "action": "仅将员工级分配后的实际余额按状态表核定项目工时分配；金额与工时控制额均逐分闭合",
+            }
+        )
+    for period, period_state in sorted(
+        project_level_period_states.items()
+    ):
+        period_record = period_state["period_record"]
+        wage_unallocated = int(
+            period_record["wage_unallocated_cents"]
+        )
+        burden_unallocated = int(
+            period_record[
+                "employer_burden_unallocated_cents"
+            ]
+        )
+        if wage_unallocated:
+            reviews.append(
+                {
+                    "severity": "P2",
+                    "type": "LABOR_WAGE_COMPONENT_UNALLOCATED",
+                    "source": period_state["payroll_source"][
+                        "relative_path"
+                    ],
+                    "amount_cents": wage_unallocated,
+                    "action": "员工级与项目级证据分配后仍未归属的工资组件保留控制池",
+                }
+            )
+        if burden_unallocated:
+            reviews.append(
+                {
+                    "severity": "P2",
+                    "type": "LABOR_EMPLOYER_BURDEN_UNALLOCATED",
+                    "period": period,
+                    "amount_cents": burden_unallocated,
+                    "action": "员工级与项目级证据分配后仍未归属的单位负担保留控制池",
+                }
+            )
+        if not period_state["attendance_source_count"]:
+            if period_state["project_level_allocated"]:
+                reviews.append(
+                    {
+                        "severity": "P2",
+                        "type": "LABOR_EMPLOYEE_LEVEL_TIME_NOT_MAPPED",
+                        "period": period,
+                        "action": "员工到项目层仍不可用；项目成本仅采用状态表项目级核定工时，不用于个人绩效",
+                    }
+                )
+            else:
+                reviews.append(
+                    {
+                        "severity": "P1",
+                        "type": "LABOR_TIME_PERIOD_NOT_MAPPED",
+                        "source": period_state["payroll_source"][
+                            "relative_path"
+                        ],
+                        "action": "该工资期间既无员工项目日，也无可闭合的状态表项目级工时",
+                    }
+                )
     burden_without_payroll = sorted(
         set(burden_records_by_period) - set(period_books)
     )

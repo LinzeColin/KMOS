@@ -26,6 +26,7 @@ from project_cost_table.operational import (
     parse_ledger_books,
     parse_ocr_paid_project_costs,
     parse_status,
+    project_level_residual_labor_allocate,
     qualify_cost_accruals,
     runtime_projection,
     sha256_bytes,
@@ -1885,7 +1886,11 @@ def test_hash_bound_attendance_alias_is_selected_by_workbook_period(
     )
 
 
-def _write_synthetic_payroll(path: Path) -> None:
+def _write_synthetic_payroll(
+    path: Path,
+    *,
+    department: str = "综合部",
+) -> None:
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "分部门"
@@ -1906,11 +1911,11 @@ def _write_synthetic_payroll(path: Path) -> None:
             1,
             "合成区域企业甲",
             "合成人员甲",
-            "综合部",
+            department,
             Decimal("300.00"),
             3,
             0,
-            "综合部",
+            department,
         ]
     )
     workbook.save(path)
@@ -2214,6 +2219,104 @@ def test_one_cent_labor_posting_cannot_suppress_full_payroll_allocation():
     assert matched == 1
     assert residual == 9_999
     assert matched + residual == 10_000
+
+
+def test_project_level_residual_labor_uses_actual_control_quotient():
+    result = project_level_residual_labor_allocate(
+        wage_pool_cents=100_000,
+        employer_burden_pool_cents=10_000,
+        approved_unallocated_days=Decimal("100"),
+        project_work_units={
+            "project-a": Decimal("10"),
+            "project-b": Decimal("20"),
+        },
+    )
+
+    assert result["wage_by_project"] == {
+        "project-a": 10_000,
+        "project-b": 20_000,
+    }
+    assert result["employer_burden_by_project"] == {
+        "project-a": 1_000,
+        "project-b": 2_000,
+    }
+    assert result["wage_unallocated_cents"] == 70_000
+    assert result["employer_burden_unallocated_cents"] == 7_000
+    assert result["remaining_unallocated_days"] == "70"
+    assert result["wage_control_delta_cents"] == 0
+    assert result["employer_burden_control_delta_cents"] == 0
+
+
+def test_project_level_residual_labor_rejects_time_overflow():
+    with pytest.raises(ProjectCostError) as error:
+        project_level_residual_labor_allocate(
+            wage_pool_cents=100_000,
+            employer_burden_pool_cents=10_000,
+            approved_unallocated_days=Decimal("10"),
+            project_work_units={"project-a": Decimal("11")},
+        )
+
+    assert error.value.code == "LABOR_PROJECT_LEVEL_TIME_OVERFLOW"
+
+
+def test_payroll_parser_allocates_actual_residual_pool_by_status_work_units(
+    tmp_path: Path,
+):
+    payroll = tmp_path / "209902工资.xlsx"
+    burden = tmp_path / "209902单位社保医保.xlsx"
+    attendance_root = tmp_path / "attendance"
+    attendance_root.mkdir()
+    _write_synthetic_payroll(payroll, department="生产部")
+    _write_synthetic_employer_burden(burden)
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成项目甲",
+            "customer": "合成客户甲",
+            "contractor": "合成区域企业甲",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        }
+    ]
+    status_map = {
+        "KMX20990101-001": {
+            "own_work_units": Decimal("1"),
+            "completion_date": "2099-02-20",
+        }
+    }
+
+    events, reviews, _sources, diagnostics = (
+        operational.parse_payroll_and_attendance(
+            (payroll,),
+            (attendance_root,),
+            (burden,),
+            projects,
+            status_map,
+            (),
+            (tmp_path,),
+            year=2099,
+            as_of="2099-02-28",
+        )
+    )
+
+    assert {
+        event["category"]: event["amount_cents"]
+        for event in events
+    } == {
+        "自有人工-工资项目级分配": 10_000,
+        "自有人工-单位负担项目级分配": 2_000,
+    }
+    assert not [
+        row
+        for row in reviews
+        if row["severity"] in ("P0", "P1")
+    ]
+    assert diagnostics["fully_loaded_labor_control_cents"] == 36_000
+    assert diagnostics["allocated_accrual_cents"] == 12_000
+    assert diagnostics["unallocated_cents"] == 24_000
+    assert diagnostics["conservation_delta_cents"] == 0
+    assert diagnostics["fixed_daily_rate_used"] is False
 
 
 def test_explicit_gl_wage_and_social_allocation_prevents_double_count():
