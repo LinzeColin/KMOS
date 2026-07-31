@@ -5,7 +5,7 @@ description: 从 KMFA 私有全量来源重算指定年度全部项目的可审�
 
 # 项目成本表 Skill
 
-运营版本：`OPERATIONAL_0_0_5`；治理内核：`RELEASED_0_2_0_FAIL_CLOSED`。
+运营版本：`OPERATIONAL_0_0_6`；治理内核：`RELEASED_0_2_0_FAIL_CLOSED`。
 
 本 Skill 可从下载 ZIP 直接运行，不需要安装到 Codex，也不会改写输入目录。原始财务、
 合同、员工、考勤、聊天和金额数据只能在私有只读输入与私有输出中出现，不得进入公开

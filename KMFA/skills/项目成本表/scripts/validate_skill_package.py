@@ -166,7 +166,7 @@ def validate_package(*, working_tree: bool, staged: bool, repo_root: Path | None
     _add(findings, req17.get("run_id") == "R12" and req17.get("status") == "IMPLEMENTED_R12", "PERFORMANCE_TRACEABILITY", "TRACEABILITY_MATRIX.csv:REQ-017")
     skill_text = (MODULE_ROOT / "SKILL.md").read_text(encoding="utf-8")
     for token, code in (
-        ("OPERATIONAL_0_0_5", "SKILL_OPERATIONAL_STATUS"),
+        ("OPERATIONAL_0_0_6", "SKILL_OPERATIONAL_STATUS"),
         ("run_operational_report.py calculate", "SKILL_OPERATIONAL_ENTRY"),
         ("项目已发生成本 = 项目过账实际 + 合格应计", "SKILL_FORMAL_FORMULA"),
         ("参考报表补差", "SKILL_REFERENCE_ISOLATION"),

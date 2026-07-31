@@ -11998,8 +11998,15 @@ def self_test() -> Dict[str, Any]:
             )
         output = root / "output"
         generated = generate_outputs(output, snapshot)
-        if generated.get("status") != "PASS":
-            raise ProjectCostError("SELF_TEST_OUTPUT", "synthetic output verification failed")
+        if (
+            generated.get("status") != "PASS_WITH_OPEN_REVIEWS"
+            or generated.get("p0_review_count") != 0
+            or generated.get("p1_review_count") != 1
+        ):
+            raise ProjectCostError(
+                "SELF_TEST_OUTPUT",
+                "synthetic output release-status control differs",
+            )
         return {
             "status": "PASS",
             "python_compatibility": "3.9+",
@@ -12012,6 +12019,7 @@ def self_test() -> Dict[str, Any]:
             "labor_largest_remainder_conserved": True,
             "dual_basis_separated": True,
             "output_verified": True,
+            "open_review_release_status_verified": True,
         }
     finally:
         shutil.rmtree(root, ignore_errors=True)

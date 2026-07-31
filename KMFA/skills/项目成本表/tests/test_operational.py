@@ -33,6 +33,7 @@ from project_cost_table.operational import (
     project_level_residual_labor_allocate,
     qualify_cost_accruals,
     runtime_projection,
+    self_test,
     sha256_bytes,
     split_project_work_units_by_entity,
     stable_json,
@@ -43,6 +44,12 @@ from project_cost_table.operational import (
 
 SUBJECT_BINDING = subject_source_binding()
 EMPTY_SOURCE_BINDING_DIGEST = sha256_bytes(stable_json([]))
+
+
+def test_self_test_preserves_open_review_release_status() -> None:
+    result = self_test()
+    assert result["status"] == "PASS"
+    assert result["open_review_release_status_verified"] is True
 
 
 def _snapshot() -> dict:
