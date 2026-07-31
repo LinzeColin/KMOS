@@ -902,6 +902,45 @@ def test_approved_cost_is_not_double_accrued_over_unallocated_5001_candidate():
     ]
 
 
+def test_unrelated_unallocated_same_amount_does_not_hide_approved_cost():
+    ledger = [
+        {
+            "event_id": "unallocated-lodging",
+            "project": None,
+            "plane": "UNALLOCATED_LEDGER_COST_POOL",
+            "category": "其他直接成本",
+            "amount_cents": 100_000,
+            "posting_date": "2099-02-28",
+            "summary": "报销外协施工人员住宿费用",
+        }
+    ]
+    approved = [
+        {
+            "event_id": "approved-customer-gift",
+            "approval_id": "APPROVED-CUSTOMER-GIFT",
+            "project": "KMX20990101-001",
+            "category": "其他直接成本",
+            "amount_cents": 100_000,
+            "posting_date": "2099-01-28",
+            "summary": "项目合同签订后为客户购买礼品",
+            "approval_authority_verified": True,
+        }
+    ]
+    accruals, reviews, diagnostics = qualify_cost_accruals(
+        ledger,
+        approved,
+        [],
+    )
+    assert len(accruals) == 1
+    assert accruals[0]["amount_cents"] == 100_000
+    assert diagnostics["approved_unallocated_posting_link_count"] == 0
+    assert not [
+        row
+        for row in reviews
+        if row["type"] == "APPROVED_COST_UNALLOCATED_POSTING_LINK_REQUIRED"
+    ]
+
+
 def test_dws_reaction_cannot_create_a_formal_accrual_without_authority():
     observed_reaction = [
         {

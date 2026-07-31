@@ -5570,6 +5570,13 @@ def qualify_cost_accruals(
         family = category_family(approved)
         amount = int(approved.get("amount_cents") or 0)
         for unallocated_index, posting in enumerate(unallocated_posted):
+            approved_text = event_text(approved)
+            posting_text = event_text(posting)
+            narratives_are_explicitly_different = (
+                len(approved_text) >= 8
+                and len(posting_text) >= 8
+                and semantic_score(approved, posting) < 550
+            )
             if (
                 int(posting.get("amount_cents") or 0) == amount
                 and category_family(posting) == family
@@ -5578,6 +5585,7 @@ def qualify_cost_accruals(
                     approved.get("posting_date"),
                     45,
                 )
+                and not narratives_are_explicitly_different
             ):
                 unallocated_edges.append(
                     (
