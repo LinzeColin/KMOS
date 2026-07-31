@@ -313,7 +313,7 @@ def test_financial_analysis_revenue_uses_approved_project_output_not_settlement(
     }
 
 
-def test_financial_analysis_policy_is_exact_and_credits_direct_tax_once():
+def test_financial_analysis_tax_bridge_is_exact_and_credits_prepaid_vat_once():
     result = project_financial_analysis_components(
         revenue_cents=11_300,
         invoice_events=[
@@ -323,23 +323,31 @@ def test_financial_analysis_policy_is_exact_and_credits_direct_tax_once():
                 "amount_cents": 1_300,
             }
         ],
+        tax_register_events=[
+            {
+                "event_id": "tax-register-1",
+                "amount_cents": 500,
+                "prepaid_vat_cents": 400,
+                "tax_component_amounts_cents": [400, 60, 40],
+            }
+        ],
         direct_project_tax_in_incurred_cents=500,
     )
     assert result["status"] == "READY"
-    assert result["management_allocation_cents"] == 226
+    assert result["management_allocation_cents"] is None
     assert result["tax_components_cents"] == {
-        "output_vat": 1_300,
-        "surcharge": 156,
-        "income_tax": 226,
-        "stamp_tax": 3,
+        "invoice_output_vat": 1_300,
+        "tax_register_prepaid_vat": 400,
+        "tax_register_other_direct_tax": 100,
     }
-    assert result["tax_provision_cents"] == 1_685
-    assert result["direct_project_tax_credit_cents"] == 500
-    assert result["incremental_tax_provision_cents"] == 1_185
-    assert result["analysis_increment_cents"] == 1_411
+    assert result["tax_cost_basis_cents"] == 1_400
+    assert result["direct_project_tax_in_incurred_cents"] == 500
+    assert result["prepaid_vat_credit_cents"] == 400
+    assert result["incremental_output_vat_cents"] == 900
+    assert result["analysis_increment_cents"] == 900
 
 
-def test_financial_analysis_tax_blocks_invoice_control_drift_and_overcredit():
+def test_financial_analysis_tax_blocks_invoice_and_direct_tax_evidence_drift():
     drift = project_financial_analysis_components(
         revenue_cents=11_301,
         invoice_events=[
@@ -349,10 +357,11 @@ def test_financial_analysis_tax_blocks_invoice_control_drift_and_overcredit():
                 "amount_cents": 1_300,
             }
         ],
+        tax_register_events=[],
         direct_project_tax_in_incurred_cents=0,
     )
     assert drift["status"] == "BLOCKED_INVOICE_REVENUE_RECONCILIATION"
-    overcredit = project_financial_analysis_components(
+    tax_gap = project_financial_analysis_components(
         revenue_cents=11_300,
         invoice_events=[
             {
@@ -361,9 +370,19 @@ def test_financial_analysis_tax_blocks_invoice_control_drift_and_overcredit():
                 "amount_cents": 1_300,
             }
         ],
-        direct_project_tax_in_incurred_cents=1_686,
+        tax_register_events=[
+            {
+                "event_id": "tax-register-1",
+                "amount_cents": 500,
+                "prepaid_vat_cents": 400,
+                "tax_component_amounts_cents": [400, 60, 40],
+            }
+        ],
+        direct_project_tax_in_incurred_cents=501,
     )
-    assert overcredit["status"] == "BLOCKED_DIRECT_TAX_EXCEEDS_PROVISION"
+    assert tax_gap["status"] == (
+        "BLOCKED_DIRECT_TAX_COMPONENT_EVIDENCE_GAP"
+    )
 
 
 def test_revenue_basis_blocks_when_master_and_status_contract_conflict():
@@ -1778,6 +1797,16 @@ def test_ocr_project_tax_register_requires_customer_gross_and_component_total(
     assert events[0]["project"] == "KMX20990101-001"
     assert events[0]["amount_cents"] == 240
     assert events[0]["tax_component_count"] == 5
+    assert events[0]["tax_component_amounts_cents"] == [
+        200,
+        10,
+        6,
+        4,
+        20,
+    ]
+    assert events[0]["prepaid_vat_cents"] == 200
+    assert events[0]["other_direct_tax_cents"] == 40
+    assert events[0]["component_reconciliation_delta_cents"] == 0
     assert events[0]["approval_authority_verified"] is True
     assert events[0]["plane"] == "PROJECT_TAX_REGISTER_EVIDENCE"
     assert [row["type"] for row in reviews] == [
@@ -1865,6 +1894,12 @@ def test_ocr_project_tax_register_parses_dotted_thousands_total(
         )
     )
     assert [event["amount_cents"] for event in events] == [217_982]
+    assert [event["prepaid_vat_cents"] for event in events] == [
+        181_651
+    ]
+    assert [event["other_direct_tax_cents"] for event in events] == [
+        36_331
+    ]
     assert reviews[-1]["type"] == (
         "OCR_PROJECT_TAX_REGISTER_EVIDENCE_ACCEPTED"
     )

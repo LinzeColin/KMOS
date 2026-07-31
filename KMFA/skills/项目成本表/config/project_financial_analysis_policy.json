@@ -1,21 +1,21 @@
 {
-  "schema_version": "kmfa.project_cost.financial_analysis_policy.v1",
-  "policy_id": "POLICY-KMFA-PROJECT-FINANCIAL-ANALYSIS-2026-01",
-  "policy_version": "2026.07.31.1",
+  "schema_version": "kmfa.project_cost.financial_analysis_policy.v2",
+  "policy_id": "CONTROL-KMFA-PROJECT-FINANCIAL-ANALYSIS-EVIDENCE-2026-01",
+  "policy_version": "2026.07.31.2",
   "status": "ACTIVE",
-  "effective_from": "2026-04-21",
+  "effective_from": "2026-07-31",
   "currency": "CNY",
-  "authority_basis": "OWNER_DIRECTIVE",
+  "authority_basis": "SEALED_FORMULA_CONTRACT_AND_DIRECT_SOURCE_EVIDENCE",
   "reference_report_role": "VALIDATION_ONLY_NOT_CALCULATION_INPUT",
   "revenue_basis_priority": [
     "APPROVED_INVOICED_PROJECT_OUTPUT",
     "BLOCK"
   ],
   "management_allocation": {
-    "base": "APPROVED_INVOICED_PROJECT_OUTPUT",
-    "rate_numerator": 2,
-    "rate_denominator": 100,
-    "rounding": "ROUND_HALF_UP"
+    "active": false,
+    "default_rate_allowed": false,
+    "historical_two_percent_role": "REFERENCE_ONLY",
+    "missing_approved_policy_action": "LEAVE_BLANK_AND_DO_NOT_ADD_COST"
   },
   "shared_cost_allocation": {
     "information_fee": {
@@ -28,15 +28,11 @@
     }
   },
   "tax_provision": {
-    "vat": "SUM_OF_RECONCILED_PROJECT_INVOICE_OUTPUT_VAT",
-    "surcharge_rate_numerator": 12,
-    "surcharge_rate_denominator": 100,
-    "income_tax_rate_numerator": 2,
-    "income_tax_rate_denominator": 100,
-    "stamp_tax_rate_numerator": 3,
-    "stamp_tax_rate_denominator": 10000,
-    "rounding": "ROUND_HALF_UP",
-    "direct_project_tax_treatment": "CREDIT_AGAINST_PROVISION_WITHOUT_DOUBLE_COUNTING"
+    "invoice_output_vat": "SUM_OF_RECONCILED_PROJECT_INVOICE_OUTPUT_VAT",
+    "prepaid_vat_credit": "SUM_OF_RECONCILED_PROJECT_TAX_REGISTER_FIRST_COMPONENT",
+    "other_direct_tax": "RECONCILED_PROJECT_TAX_REGISTER_TOTAL_MINUS_PREPAID_VAT",
+    "rate_based_estimation_allowed": false,
+    "direct_project_tax_treatment": "ADD_ONLY_OUTPUT_VAT_NOT_ALREADY_PREPAID"
   },
   "release_controls": {
     "maximum_gross_margin_bps": 7000,
@@ -44,21 +40,5 @@
     "clamp_allowed": false,
     "backsolve_cost_allowed": false,
     "reference_value_fill_allowed": false
-  },
-  "synthetic_test_vectors": [
-    {
-      "vector_id": "SYNTHETIC-MANAGEMENT-001",
-      "base_cents": 10050,
-      "expected_cents": 201
-    },
-    {
-      "vector_id": "SYNTHETIC-TAX-001",
-      "invoice_gross_cents": 11300,
-      "output_vat_cents": 1300,
-      "expected_surcharge_cents": 156,
-      "expected_income_tax_cents": 226,
-      "expected_stamp_tax_cents": 3,
-      "expected_total_tax_cents": 1685
-    }
-  ]
+  }
 }

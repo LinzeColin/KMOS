@@ -1162,10 +1162,10 @@ def governed_contract_revenue(
 
 
 def _project_financial_analysis_policy() -> Dict[str, Any]:
-    """Load and validate the public-safe owner reporting policy.
+    """Load and validate the public-safe evidence and release controls.
 
-    The policy records calculation semantics only.  Historical project reports
-    remain validation fixtures and never provide a current project amount.
+    Historical project reports remain validation fixtures and never provide a
+    current project amount or a default rate.
     """
 
     path = (
@@ -1182,9 +1182,11 @@ def _project_financial_analysis_policy() -> Dict[str, Any]:
         ) from exc
     if (
         policy.get("schema_version")
-        != "kmfa.project_cost.financial_analysis_policy.v1"
+        != "kmfa.project_cost.financial_analysis_policy.v2"
         or policy.get("status") != "ACTIVE"
         or policy.get("currency") != "CNY"
+        or policy.get("authority_basis")
+        != "SEALED_FORMULA_CONTRACT_AND_DIRECT_SOURCE_EVIDENCE"
         or policy.get("reference_report_role")
         != "VALIDATION_ONLY_NOT_CALCULATION_INPUT"
     ):
@@ -1204,34 +1206,22 @@ def _project_financial_analysis_policy() -> Dict[str, Any]:
             "FINANCIAL_ANALYSIS_POLICY_INVALID",
             "project financial-analysis release controls are not fail-closed",
         )
-    return policy
-
-
-def _policy_rate_cents(
-    amount_cents: int,
-    numerator: int,
-    denominator: int,
-) -> int:
+    management = policy.get("management_allocation") or {}
+    tax = policy.get("tax_provision") or {}
     if (
-        isinstance(amount_cents, bool)
-        or not isinstance(amount_cents, int)
-        or isinstance(numerator, bool)
-        or not isinstance(numerator, int)
-        or isinstance(denominator, bool)
-        or not isinstance(denominator, int)
-        or numerator < 0
-        or denominator <= 0
+        management.get("active") is not False
+        or management.get("default_rate_allowed") is not False
+        or management.get("historical_two_percent_role")
+        != "REFERENCE_ONLY"
+        or tax.get("rate_based_estimation_allowed") is not False
+        or tax.get("direct_project_tax_treatment")
+        != "ADD_ONLY_OUTPUT_VAT_NOT_ALREADY_PREPAID"
     ):
         raise ProjectCostError(
-            "FINANCIAL_ANALYSIS_POLICY_INTEGER_REQUIRED",
-            "financial-analysis rates require exact integer fractions and integer cents",
+            "FINANCIAL_ANALYSIS_POLICY_INVALID",
+            "project financial-analysis controls permit an unsupported rate or allocation",
         )
-    value = (
-        Decimal(amount_cents)
-        * Decimal(numerator)
-        / Decimal(denominator)
-    )
-    return int(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    return policy
 
 
 def governed_financial_analysis_revenue(
@@ -1312,14 +1302,17 @@ def project_financial_analysis_components(
     *,
     revenue_cents: int,
     invoice_events: Sequence[Mapping[str, Any]],
+    tax_register_events: Sequence[Mapping[str, Any]],
     direct_project_tax_in_incurred_cents: int,
 ) -> Dict[str, Any]:
-    """Calculate the policy additions without duplicating direct project tax.
+    """Build the evidence-only project-tax bridge without double counting.
 
     Invoice VAT is not reclassified into the strict accounting
     ``JOB_COST_INCURRED`` plane.  It is used only in this separately named
-    management-analysis plane.  Any direct project-tax amount already present
-    in incurred cost is credited cent-for-cent against the provision.
+    project-analysis plane.  A reconciled cross-region tax register identifies
+    the VAT already prepaid; only the remaining invoice output VAT is added.
+    No surcharge, income-tax, stamp-tax, management-rate, clamp, or balancing
+    plug is estimated.
     """
 
     policy = _project_financial_analysis_policy()
@@ -1371,60 +1364,90 @@ def project_financial_analysis_components(
             "revenue_cents": revenue_cents,
             "delta_cents": invoice_gross_cents - revenue_cents,
         }
-    tax_policy = policy["tax_provision"]
-    management_policy = policy["management_allocation"]
-    surcharge = _policy_rate_cents(
-        output_vat_cents,
-        int(tax_policy["surcharge_rate_numerator"]),
-        int(tax_policy["surcharge_rate_denominator"]),
-    )
-    income_tax = _policy_rate_cents(
-        invoice_gross_cents,
-        int(tax_policy["income_tax_rate_numerator"]),
-        int(tax_policy["income_tax_rate_denominator"]),
-    )
-    stamp_tax = _policy_rate_cents(
-        invoice_gross_cents,
-        int(tax_policy["stamp_tax_rate_numerator"]),
-        int(tax_policy["stamp_tax_rate_denominator"]),
-    )
-    tax_provision = output_vat_cents + surcharge + income_tax + stamp_tax
-    if direct_project_tax_in_incurred_cents > tax_provision:
+
+    seen_tax_event_ids: Set[str] = set()
+    tax_register_total_cents = 0
+    prepaid_vat_cents = 0
+    for event in tax_register_events:
+        event_id = str(event.get("event_id") or "")
+        amount = event.get("amount_cents")
+        prepaid_vat = event.get("prepaid_vat_cents")
+        component_amounts = event.get("tax_component_amounts_cents")
+        if (
+            not event_id
+            or event_id in seen_tax_event_ids
+            or isinstance(amount, bool)
+            or not isinstance(amount, int)
+            or amount <= 0
+            or isinstance(prepaid_vat, bool)
+            or not isinstance(prepaid_vat, int)
+            or prepaid_vat <= 0
+            or prepaid_vat > amount
+            or not isinstance(component_amounts, list)
+            or not component_amounts
+            or any(
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or value <= 0
+                for value in component_amounts
+            )
+            or int(component_amounts[0]) != prepaid_vat
+        ):
+            raise ProjectCostError(
+                "FINANCIAL_ANALYSIS_TAX_REGISTER_INVALID",
+                "tax-register events require unique ids and exact positive component cents",
+            )
+        seen_tax_event_ids.add(event_id)
+        tax_register_total_cents += amount
+        prepaid_vat_cents += prepaid_vat
+
+    if direct_project_tax_in_incurred_cents != tax_register_total_cents:
         return {
-            "status": "BLOCKED_DIRECT_TAX_EXCEEDS_PROVISION",
-            "tax_provision_cents": tax_provision,
-            "direct_project_tax_credit_cents": (
+            "status": "BLOCKED_DIRECT_TAX_COMPONENT_EVIDENCE_GAP",
+            "tax_register_total_cents": tax_register_total_cents,
+            "direct_project_tax_in_incurred_cents": (
                 direct_project_tax_in_incurred_cents
             ),
             "delta_cents": (
-                direct_project_tax_in_incurred_cents - tax_provision
+                direct_project_tax_in_incurred_cents
+                - tax_register_total_cents
             ),
         }
-    management = _policy_rate_cents(
-        revenue_cents,
-        int(management_policy["rate_numerator"]),
-        int(management_policy["rate_denominator"]),
+    if prepaid_vat_cents > output_vat_cents:
+        return {
+            "status": "BLOCKED_PREPAID_VAT_EXCEEDS_OUTPUT_VAT",
+            "output_vat_cents": output_vat_cents,
+            "prepaid_vat_cents": prepaid_vat_cents,
+            "delta_cents": prepaid_vat_cents - output_vat_cents,
+        }
+
+    other_direct_tax_cents = (
+        tax_register_total_cents - prepaid_vat_cents
     )
-    incremental_tax = tax_provision - direct_project_tax_in_incurred_cents
+    incremental_tax = output_vat_cents - prepaid_vat_cents
+    tax_cost_basis = (
+        direct_project_tax_in_incurred_cents + incremental_tax
+    )
     return {
         "status": "READY",
         "policy_id": policy["policy_id"],
         "policy_version": policy["policy_version"],
         "invoice_event_count": len(invoice_events),
+        "tax_register_event_count": len(tax_register_events),
         "invoice_gross_cents": invoice_gross_cents,
         "tax_components_cents": {
-            "output_vat": output_vat_cents,
-            "surcharge": surcharge,
-            "income_tax": income_tax,
-            "stamp_tax": stamp_tax,
+            "invoice_output_vat": output_vat_cents,
+            "tax_register_prepaid_vat": prepaid_vat_cents,
+            "tax_register_other_direct_tax": other_direct_tax_cents,
         },
-        "tax_provision_cents": tax_provision,
-        "direct_project_tax_credit_cents": (
+        "tax_cost_basis_cents": tax_cost_basis,
+        "direct_project_tax_in_incurred_cents": (
             direct_project_tax_in_incurred_cents
         ),
-        "incremental_tax_provision_cents": incremental_tax,
-        "management_allocation_cents": management,
-        "analysis_increment_cents": incremental_tax + management,
+        "prepaid_vat_credit_cents": prepaid_vat_cents,
+        "incremental_output_vat_cents": incremental_tax,
+        "management_allocation_cents": None,
+        "analysis_increment_cents": incremental_tax,
     }
 
 
@@ -4536,6 +4559,24 @@ def parse_ocr_project_tax_registers(
                 "invoice_gross_cents": int(chosen["gross_cents"]),
                 "invoice_observation_event_ids": invoice_event_ids,
                 "tax_component_count": len(chosen["components_cents"]),
+                "tax_component_amounts_cents": [
+                    int(value)
+                    for value in chosen["components_cents"]
+                ],
+                "prepaid_vat_cents": int(
+                    chosen["components_cents"][0]
+                ),
+                "other_direct_tax_cents": (
+                    int(chosen["amount_cents"])
+                    - int(chosen["components_cents"][0])
+                ),
+                "component_reconciliation_delta_cents": (
+                    sum(
+                        int(value)
+                        for value in chosen["components_cents"]
+                    )
+                    - int(chosen["amount_cents"])
+                ),
                 "machine_derived": True,
             }
         )
@@ -4755,8 +4796,9 @@ def parse_ocr_shared_information_fees(
 ]:
     """Allocate an exact customer-level information-fee transaction.
 
-    This is the only shared-cost allocation currently activated by the owner
-    policy.  The transaction must itself say ``信息费`` and identify one
+    This is the only shared-cost allocation currently encoded by the
+    controlled calculation profile.  The transaction must itself say
+    ``信息费`` and identify one
     customer.  Every eligible same-customer project must have a positive
     approved invoiced project-output amount; otherwise the complete
     transaction is blocked.  Integer cents are allocated by largest remainder
@@ -4980,7 +5022,7 @@ def parse_ocr_shared_information_fees(
                     ),
                     "cost_occurrence_evidenced": True,
                     "cost_occurrence_basis": (
-                        "OWNER_POLICY_SHARED_INFORMATION_FEE_ALLOCATION"
+                        "CONTROLLED_SHARED_INFORMATION_FEE_ALLOCATION"
                     ),
                     "allocation_control_cents": amount_cents,
                     "allocation_weight_cents": dict(weights)[base],
@@ -8903,6 +8945,13 @@ def build_snapshot(
         invoice_events_by_project[str(event.get("project") or "")].append(
             event
         )
+    tax_register_events_by_project: Dict[
+        str, List[Mapping[str, Any]]
+    ] = defaultdict(list)
+    for event in project_tax_evidence_events:
+        tax_register_events_by_project[
+            str(event.get("project") or "")
+        ].append(event)
     direct_tax_in_incurred_by_project: Dict[str, int] = defaultdict(int)
     for event in (
         list(ledger_events)
@@ -8913,6 +8962,79 @@ def build_snapshot(
             direct_tax_in_incurred_by_project[
                 str(event.get("project") or "")
             ] += int(event.get("amount_cents") or 0)
+
+    labor_wage_by_project_period: Dict[
+        Tuple[str, str], int
+    ] = defaultdict(int)
+    labor_burden_by_project_period: Dict[
+        Tuple[str, str], int
+    ] = defaultdict(int)
+    for event in labor_events:
+        project_base = str(event.get("project") or "")
+        payroll_period = str(event.get("payroll_period") or "")
+        category = str(event.get("category") or "")
+        if not project_base or not payroll_period:
+            continue
+        key = (project_base, payroll_period)
+        if category.startswith("自有人工") and "工资" in category:
+            labor_wage_by_project_period[key] += int(
+                event.get("amount_cents") or 0
+            )
+        if category.startswith("自有人工") and (
+            "雇主" in category or "单位负担" in category
+        ):
+            labor_burden_by_project_period[key] += int(
+                event.get("amount_cents") or 0
+            )
+    for (
+        project_base,
+        payroll_period,
+    ), wage_amount in sorted(labor_wage_by_project_period.items()):
+        if (
+            wage_amount > 0
+            and labor_burden_by_project_period.get(
+                (project_base, payroll_period),
+                0,
+            )
+            <= 0
+        ):
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": (
+                        "PROJECT_LABOR_EMPLOYER_BURDEN_UNRECONCILED"
+                    ),
+                    "project": project_base,
+                    "period": payroll_period,
+                    "wage_amount_cents": wage_amount,
+                    "action": (
+                        "该项目期间已有自有人工工资，但没有同期间单位"
+                        "负担项目金额；取得社保医保单位负担原件并按同一"
+                        "人员/期间归属前，项目成本和毛利率保持阻断"
+                    ),
+                }
+            )
+    for project in projects:
+        project_base = str(project["contract_base"])
+        status_row = status_map.get(project_base) or {}
+        project_type = normalize_text(status_row.get("project_type"))
+        if (
+            "混合" in project_type
+            and status_row.get("external_work_units") is None
+        ):
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "PROJECT_EXTERNAL_LABOR_SCOPE_UNQUANTIFIED",
+                    "project": project_base,
+                    "project_type": project_type,
+                    "action": (
+                        "状态表标记为混合用工但没有外协工数；取得项目"
+                        "外协工数或明确无外协的批准证据前，不得把外协"
+                        "人工按零计入毛利"
+                    ),
+                }
+            )
     margin_cost_blockers_by_project = (
         project_margin_cost_completeness_blockers(reviews)
     )
@@ -9002,6 +9124,10 @@ def build_snapshot(
                     analysis_revenue["effective_revenue_cents"]
                 ),
                 invoice_events=invoice_events_by_project.get(base, ()),
+                tax_register_events=tax_register_events_by_project.get(
+                    base,
+                    (),
+                ),
                 direct_project_tax_in_incurred_cents=(
                     direct_tax_in_incurred_by_project.get(base, 0)
                 ),
@@ -9010,17 +9136,10 @@ def build_snapshot(
             if analysis_components["status"] == "READY":
                 incremental_tax = int(
                     analysis_components[
-                        "incremental_tax_provision_cents"
+                        "incremental_output_vat_cents"
                     ]
                 )
-                management_allocation = int(
-                    analysis_components["management_allocation_cents"]
-                )
-                analysis_cost = (
-                    int(incurred)
-                    + incremental_tax
-                    + management_allocation
-                )
+                analysis_cost = int(incurred) + incremental_tax
                 if incremental_tax:
                     detail_events.append(
                         {
@@ -9031,10 +9150,10 @@ def build_snapshot(
                                         base,
                                         analysis_components["policy_id"],
                                         analysis_components[
-                                            "tax_provision_cents"
+                                            "tax_cost_basis_cents"
                                         ],
                                         analysis_components[
-                                            "direct_project_tax_credit_cents"
+                                            "prepaid_vat_credit_cents"
                                         ],
                                     ]
                                 )
@@ -9051,53 +9170,20 @@ def build_snapshot(
                                 else None
                             ),
                             "summary": (
-                                "项目财务分析税费总额扣除已进入发生成本的"
-                                "直接项目税费；不得重复计税"
+                                "逐张开票销项税扣除税费台账中已预缴增值税；"
+                                "其他直接税费已在发生成本内，不估率、不重复"
                             ),
                             "policy_id": analysis_components["policy_id"],
                             "tax_components_cents": analysis_components[
                                 "tax_components_cents"
                             ],
-                            "direct_project_tax_credit_cents": (
+                            "prepaid_vat_credit_cents": (
                                 analysis_components[
-                                    "direct_project_tax_credit_cents"
+                                    "prepaid_vat_credit_cents"
                                 ]
                             ),
                         }
                     )
-                detail_events.append(
-                    {
-                        "event_id": "analysis_management_"
-                        + sha256_bytes(
-                            stable_json(
-                                [
-                                    base,
-                                    analysis_components["policy_id"],
-                                    analysis_revenue[
-                                        "effective_revenue_cents"
-                                    ],
-                                    management_allocation,
-                                ]
-                            )
-                        )[:24],
-                        "project": base,
-                        "plane": (
-                            "PROJECT_FINANCIAL_ANALYSIS_MANAGEMENT_ALLOCATION"
-                        ),
-                        "category": "管理分摊",
-                        "amount_cents": management_allocation,
-                        "posting_date": (
-                            status.get("completion_date")
-                            if status
-                            else None
-                        ),
-                        "summary": (
-                            "Owner 激活的项目财务分析政策："
-                            "批准项目产值按2%分摊管理费用"
-                        ),
-                        "policy_id": analysis_components["policy_id"],
-                    }
-                )
                 analysis_revenue_cents = int(
                     analysis_revenue["effective_revenue_cents"]
                 )
@@ -9119,7 +9205,7 @@ def build_snapshot(
                     reviews.append(
                         {
                             "severity": "P1",
-                            "type": "GROSS_MARGIN_ABOVE_OWNER_MAXIMUM",
+                            "type": "GROSS_MARGIN_ABOVE_RELEASE_MAXIMUM",
                             "project": base,
                             "gross_margin_bps": preliminary_margin_bps,
                             "analysis_revenue_cents": (
@@ -9224,17 +9310,17 @@ def build_snapshot(
                 "financial_analysis_tax_components_cents": (
                     analysis_components.get("tax_components_cents")
                 ),
-                "financial_analysis_tax_provision_cents": (
-                    analysis_components.get("tax_provision_cents")
+                "financial_analysis_tax_cost_basis_cents": (
+                    analysis_components.get("tax_cost_basis_cents")
                 ),
-                "financial_analysis_direct_tax_credit_cents": (
+                "financial_analysis_prepaid_vat_credit_cents": (
                     analysis_components.get(
-                        "direct_project_tax_credit_cents"
+                        "prepaid_vat_credit_cents"
                     )
                 ),
-                "financial_analysis_incremental_tax_cents": (
+                "financial_analysis_incremental_output_vat_cents": (
                     analysis_components.get(
-                        "incremental_tax_provision_cents"
+                        "incremental_output_vat_cents"
                     )
                 ),
                 "financial_analysis_management_allocation_cents": (
@@ -9992,7 +10078,7 @@ def _statement_rows(
         "revenue": (revenue, "批准开票项目产值"),
         "sec2": (
             total,
-            "项目财务分析成本；会计已发生成本、税费和管理分摊各自可追溯",
+            "项目财务分析成本；会计已发生成本和销项税差额均可追溯",
         ),
         "l2_material": (material_total, ""),
         "d_material": (material, ""),
@@ -10038,8 +10124,8 @@ def _statement_rows(
         "tax": (
             tax,
             (
-                "销项税、附加、所得税和印花税；已发生直接项目税费"
-                "按分抵扣，禁止重复"
+                "逐张开票销项税扣除税费台账已预缴增值税；其他"
+                "直接税费已在发生成本内，不估率、不重复"
             )
             if tax is not None
             else "",
@@ -10047,11 +10133,11 @@ def _statement_rows(
         "allocation": (
             management_allocation,
             (
-                "POLICY-KMFA-PROJECT-FINANCIAL-ANALYSIS-2026-01；"
-                "批准项目产值×2%，整数分四舍五入"
+                "仅批准且在生效期内的项目管理分摊政策可计入；"
+                "当前无活动政策，禁止沿用历史2%"
             )
             if management_allocation is not None
-            else "",
+            else "当前无活动项目管理分摊政策，留空",
         ),
         "interest": (None, "无合格资金占用政策，留空"),
         "total": (total, ""),
@@ -10287,7 +10373,7 @@ def write_project_pdfs(directory: Path, snapshot: Mapping[str, Any]) -> List[Pat
             [[
                 paragraph("项目经理：", header_style),
                 paragraph(
-                    "项目财务分析成本＝会计已发生成本＋税费补提＋2%管理分摊；毛利率超过70%阻断。",
+                    "项目财务分析成本＝会计已发生成本＋逐张开票销项税差额；无批准政策不计管理分摊，毛利率超过70%阻断。",
                     header_style,
                 ),
                 paragraph("日期：", header_style),
