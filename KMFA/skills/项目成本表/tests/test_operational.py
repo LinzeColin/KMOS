@@ -222,6 +222,8 @@ def test_runtime_projection_keeps_formal_cost_and_observation_planes_separate():
     assert first["毛利率基点"] == 6000
     assert second["项目已发生成本"] == "0.00"
     assert second["项目成本"] is None
+    assert second["项目财务分析成本分类"] == {}
+    assert second["报表归类"] == {}
     assert "固定人工单价" in projection["禁止"]
     assert "自动合同额2%管理费" in projection["禁止"]
     assert "参考报表回填" in projection["禁止"]
@@ -275,6 +277,8 @@ def test_runtime_projection_keeps_p1_counts_but_only_publishes_closed_margins():
     assert first["毛利率"] == "60.00%"
     assert second["项目成本"] is None
     assert second["毛利率"] is None
+    assert second["项目财务分析成本分类"] == {}
+    assert second["报表归类"] == {}
 
 
 def test_margin_above_seventy_percent_blocks_instead_of_being_clamped():

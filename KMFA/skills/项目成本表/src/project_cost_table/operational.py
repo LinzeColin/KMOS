@@ -10655,8 +10655,16 @@ def runtime_projection(
     rows: List[Dict[str, Any]] = []
     for project in snapshot.get("projects", ()):
         base = str(project["contract_base"])
+        margin_status = str(
+            project.get("gross_margin_status")
+            or "BLOCKED_COST_COMPLETENESS"
+        )
         formal_categories = formal_categories_by_project.get(base, {})
-        analysis_categories = analysis_categories_by_project.get(base, {})
+        analysis_categories = (
+            analysis_categories_by_project.get(base, {})
+            if margin_status == "READY"
+            else {}
+        )
         buckets = _statement_buckets(analysis_categories)
         formal_total = project.get("job_cost_incurred_cents")
         if (
@@ -10670,7 +10678,7 @@ def runtime_projection(
         observed = project.get("status_business_components_cents") or {}
         margin_cost_basis = project.get("gross_margin_cost_basis_cents")
         if (
-            str(project.get("gross_margin_status") or "") == "READY"
+            margin_status == "READY"
             and formal_total is not None
             and (
                 isinstance(margin_cost_basis, bool)
@@ -10683,7 +10691,7 @@ def runtime_projection(
                 "closed project cost/FAC must be integer cents and cannot be below incurred cost",
             )
         if (
-            str(project.get("gross_margin_status") or "") == "READY"
+            margin_status == "READY"
             and margin_cost_basis is not None
             and sum(buckets.values()) != margin_cost_basis
         ):
@@ -10694,10 +10702,7 @@ def runtime_projection(
         margin = governed_gross_margin(
             revenue_cents=project.get("effective_revenue_cents"),
             cost_cents=margin_cost_basis,
-            basis_status=str(
-                project.get("gross_margin_status")
-                or "BLOCKED_COST_COMPLETENESS"
-            ),
+            basis_status=margin_status,
         )
         margin_bps = margin["gross_margin_bps"]
         rows.append(
