@@ -3721,6 +3721,501 @@ def _plain_money_cents(value: str) -> Optional[int]:
     return cents(clean)
 
 
+_TAX_REGISTER_MONEY_RE = re.compile(
+    r"(?<![A-Z0-9])[-+]?(?:"
+    r"\d{1,3}(?:[,.，]\s?\d{3})+(?:\.\d{1,2})?"
+    r"|\d+(?:\.\d{1,2})?"
+    r")(?![A-Z0-9])",
+    re.IGNORECASE,
+)
+
+
+def _tax_register_money_cents(value: str) -> Optional[int]:
+    """Parse one OCR tax-register amount, including dotted thousands.
+
+    OCR exports occasionally render ``2,179.82`` as ``2.179.82``.  The
+    special case is intentionally local to tax-register parsing; broad money
+    parsers must not reinterpret an ordinary multi-dot string as currency.
+    """
+
+    clean = (
+        str(value)
+        .strip()
+        .replace("¥", "")
+        .replace("￥", "")
+        .replace(",", "")
+        .replace("，", "")
+        .replace(" ", "")
+    )
+    sign = ""
+    if clean.startswith(("-", "+")):
+        sign, clean = clean[0], clean[1:]
+    if re.fullmatch(r"\d{1,3}(?:\.\d{3})+\.\d{1,2}", clean):
+        groups = clean.split(".")
+        clean = "".join(groups[:-1]) + "." + groups[-1]
+    if not re.fullmatch(r"\d+(?:\.\d{1,2})?", clean):
+        return None
+    return cents(sign + clean)
+
+
+def _tax_register_money_tokens(line: str) -> List[Tuple[int, int]]:
+    result: List[Tuple[int, int]] = []
+    for match in _TAX_REGISTER_MONEY_RE.finditer(str(line)):
+        amount = _tax_register_money_cents(match.group(0))
+        if amount is not None:
+            result.append((match.start(), amount))
+    return result
+
+
+def _project_customer_core(value: Any) -> str:
+    """Return a conservative company core suitable for exact OCR matching."""
+
+    core = normalize_text(value)
+    for suffix in (
+        "有限责任公司",
+        "股份有限公司",
+        "集团有限公司",
+        "有限公司",
+        "股份公司",
+        "分公司",
+        "公司",
+    ):
+        if core.endswith(suffix):
+            core = core[: -len(suffix)]
+            break
+    return core if len(core) >= 4 else ""
+
+
+def _tax_register_total_candidate(
+    values: Sequence[int],
+    gross_cents: int,
+) -> Optional[Tuple[int, Tuple[int, ...]]]:
+    """Find a component sum followed by its printed total.
+
+    Tax-register rows contain gross, net and billing VAT before three to five
+    project-prepayment components.  A subtotal can itself resemble a valid
+    three-component sum, so the rightmost valid printed total wins, followed
+    by the widest component set.  The ten-percent ceiling is a sanity gate,
+    not a tax estimate.
+    """
+
+    candidates: List[Tuple[int, int, int, int, Tuple[int, ...]]] = []
+    for total_index in range(3, len(values)):
+        total = int(values[total_index])
+        if total <= 0 or total * 10 > gross_cents:
+            continue
+        for component_count in range(3, 6):
+            start = total_index - component_count
+            if start < 0:
+                continue
+            components = tuple(int(value) for value in values[start:total_index])
+            if any(value <= 0 for value in components):
+                continue
+            delta = abs(sum(components) - total)
+            if delta <= 2:
+                candidates.append(
+                    (
+                        total_index,
+                        component_count,
+                        -delta,
+                        total,
+                        components,
+                    )
+                )
+    if not candidates:
+        return None
+    _, _, _, total, components = max(candidates)
+    return total, components
+
+
+def _nearest_tax_register_date(
+    lines: Sequence[str],
+    gross_line_index: int,
+    *,
+    fallback: Optional[str],
+    as_of: str,
+) -> Optional[str]:
+    for index in range(gross_line_index, max(-1, gross_line_index - 12), -1):
+        observed = iso_date(lines[index])
+        if observed is not None and observed <= as_of:
+            return observed
+    return fallback if fallback is not None and fallback <= as_of else None
+
+
+def parse_ocr_project_tax_registers(
+    path: Optional[Path],
+    roots: Sequence[Path],
+    projects: Sequence[Mapping[str, Any]],
+    invoice_observations: Sequence[Mapping[str, Any]],
+    as_of: str,
+) -> Tuple[
+    List[Dict[str, Any]],
+    List[Dict[str, Any]],
+    List[Dict[str, Any]],
+    Dict[str, Any],
+]:
+    """Recover direct project-tax evidence from OCR tax-register rows.
+
+    A row is eligible only when the OCR page is recognizably a prepayment tax
+    register and both the governed customer core and the exact issued-invoice
+    gross amount match.  The printed tax total must also reconcile to three to
+    five immediately preceding positive components.  Customer-side output VAT
+    remains an observation and is never substituted for this evidence.
+    """
+
+    if path is None:
+        return [], [], [], {
+            "provided": False,
+            "tax_register_page_count": 0,
+            "qualified_event_count": 0,
+        }
+    source_path = Path(path)
+    if not source_path.is_file() or source_path.is_symlink():
+        raise ProjectCostError(
+            "OCR_JSONL_INVALID",
+            "OCR JSONL must be a regular file",
+        )
+    projects_by_base = {
+        str(project.get("contract_base")): project
+        for project in projects
+        if project.get("contract_base")
+    }
+    all_customer_cores = {
+        core
+        for core in (
+            _project_customer_core(project.get("customer"))
+            for project in projects
+        )
+        if core
+    }
+    observations: List[Dict[str, Any]] = []
+    for observation in invoice_observations:
+        project_base = str(observation.get("project") or "")
+        project = projects_by_base.get(project_base)
+        gross_cents = observation.get("invoice_gross_cents")
+        customer_core = (
+            _project_customer_core(project.get("customer"))
+            if project is not None
+            else ""
+        )
+        if (
+            not customer_core
+            or isinstance(gross_cents, bool)
+            or not isinstance(gross_cents, int)
+            or gross_cents <= 0
+        ):
+            continue
+        observations.append(
+            {
+                "event_id": str(observation.get("event_id") or ""),
+                "project": project_base,
+                "customer_core": customer_core,
+                "gross_cents": gross_cents,
+                "posting_date": observation.get("posting_date"),
+            }
+        )
+
+    raw_claims: List[Dict[str, Any]] = []
+    page_count = 0
+    tax_register_page_count = 0
+    for jsonl_line, raw_line in enumerate(
+        source_path.read_text(encoding="utf-8-sig").splitlines(),
+        1,
+    ):
+        try:
+            record = json.loads(raw_line)
+        except json.JSONDecodeError:
+            continue
+        page_count += 1
+        text = str(record.get("text") or "")
+        normalized_page = normalize_text(text)
+        if not (
+            "开票金额" in normalized_page
+            and "合计" in normalized_page
+            and (
+                "税款登记表" in normalized_page
+                or "预缴税金" in normalized_page
+                or "预繳税金" in normalized_page
+            )
+        ):
+            continue
+        tax_register_page_count += 1
+        filename = str(record.get("file") or "")
+        text_hash = sha256_bytes(text.encode("utf-8"))
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        normalized_lines = [normalize_text(line) for line in lines]
+        for observation in observations:
+            customer_indices = [
+                index
+                for index, line in enumerate(normalized_lines)
+                if observation["customer_core"] in line
+            ]
+            for customer_index in customer_indices:
+                for gross_line_index in range(
+                    customer_index,
+                    min(len(lines), customer_index + 11),
+                ):
+                    gross_tokens = _tax_register_money_tokens(
+                        lines[gross_line_index]
+                    )
+                    for gross_token_index, (
+                        token_offset,
+                        amount_cents,
+                    ) in enumerate(gross_tokens):
+                        if amount_cents != observation["gross_cents"]:
+                            continue
+                        values = [
+                            value
+                            for offset, value in gross_tokens
+                            if offset > token_offset
+                        ]
+                        for value_line_index in range(
+                            gross_line_index + 1,
+                            min(len(lines), gross_line_index + 22),
+                        ):
+                            normalized_line = normalized_lines[
+                                value_line_index
+                            ]
+                            if (
+                                re.search(
+                                    r"20\d{2}[/.\-年]\d{1,2}[/.\-月]\d{1,2}",
+                                    lines[value_line_index],
+                                )
+                                or normalized_line.startswith(
+                                    ("合计", "小计", "备注")
+                                )
+                                or any(
+                                    core in normalized_line
+                                    for core in all_customer_cores
+                                    if core != observation["customer_core"]
+                                )
+                            ):
+                                break
+                            values.extend(
+                                amount
+                                for _, amount in _tax_register_money_tokens(
+                                    lines[value_line_index]
+                                )
+                            )
+                            if len(values) >= 18:
+                                break
+                        total_candidate = _tax_register_total_candidate(
+                            values[:18],
+                            observation["gross_cents"],
+                        )
+                        if total_candidate is None:
+                            continue
+                        tax_total_cents, components = total_candidate
+                        posting_date = _nearest_tax_register_date(
+                            lines,
+                            gross_line_index,
+                            fallback=observation.get("posting_date"),
+                            as_of=as_of,
+                        )
+                        if posting_date is None:
+                            continue
+                        invoice_date = _as_date(
+                            observation.get("posting_date")
+                        )
+                        register_date = _as_date(posting_date)
+                        if (
+                            invoice_date is not None
+                            and register_date is not None
+                            and abs((register_date - invoice_date).days) > 45
+                        ):
+                            continue
+                        raw_claims.append(
+                            {
+                                "physical_key": (
+                                    filename or "JSONL_LINE_%d" % jsonl_line,
+                                    text_hash,
+                                    customer_index,
+                                    gross_line_index,
+                                    gross_token_index,
+                                ),
+                                "business_key": (
+                                    observation["project"],
+                                    observation["gross_cents"],
+                                    posting_date,
+                                ),
+                                "project": observation["project"],
+                                "gross_cents": observation["gross_cents"],
+                                "posting_date": posting_date,
+                                "amount_cents": tax_total_cents,
+                                "components_cents": components,
+                                "invoice_observation_event_id": observation[
+                                    "event_id"
+                                ],
+                                "source_member": filename,
+                                "row": jsonl_line,
+                            }
+                        )
+
+    reviews: List[Dict[str, Any]] = []
+    claims_by_physical: Dict[Tuple[Any, ...], List[Dict[str, Any]]] = (
+        defaultdict(list)
+    )
+    for claim in raw_claims:
+        claims_by_physical[claim["physical_key"]].append(claim)
+    eligible_claims: List[Dict[str, Any]] = []
+    physical_project_conflicts = 0
+    for physical_key in sorted(claims_by_physical, key=str):
+        claims = claims_by_physical[physical_key]
+        projects_for_occurrence = {
+            str(claim["project"]) for claim in claims
+        }
+        if len(projects_for_occurrence) > 1:
+            physical_project_conflicts += 1
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "OCR_PROJECT_TAX_REGISTER_PROJECT_CONFLICT",
+                    "project_count": len(projects_for_occurrence),
+                    "source_member_hash": sha256_bytes(
+                        str(claims[0].get("source_member") or "").encode(
+                            "utf-8"
+                        )
+                    )[:16],
+                    "action": (
+                        "同一税费台账物理行命中多个项目；整行排除，"
+                        "不得按相似客户或金额拆分"
+                    ),
+                }
+            )
+            continue
+        eligible_claims.extend(claims)
+
+    claims_by_business: Dict[Tuple[Any, ...], List[Dict[str, Any]]] = (
+        defaultdict(list)
+    )
+    for claim in eligible_claims:
+        claims_by_business[claim["business_key"]].append(claim)
+    source_info = source_record(
+        source_path,
+        tuple(roots) + (source_path.parent,),
+        selected=True,
+        reason=(
+            "caller-supplied OCR JSONL; exact customer + issued-invoice gross "
+            "+ reconciled tax-register total only"
+        ),
+    )
+    events: List[Dict[str, Any]] = []
+    business_conflicts = 0
+    for business_key in sorted(claims_by_business, key=str):
+        claims = claims_by_business[business_key]
+        amounts = {int(claim["amount_cents"]) for claim in claims}
+        if len(amounts) != 1:
+            business_conflicts += 1
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "OCR_PROJECT_TAX_REGISTER_AMOUNT_CONFLICT",
+                    "project": business_key[0],
+                    "invoice_gross_cents": business_key[1],
+                    "posting_date": business_key[2],
+                    "amounts_cents": sorted(amounts),
+                    "action": (
+                        "同一项目、发票金额和税费日期出现多个税费合计；"
+                        "整组排除，取得原始台账确认后重跑"
+                    ),
+                }
+            )
+            continue
+        chosen = min(
+            claims,
+            key=lambda claim: (
+                str(claim.get("source_member") or ""),
+                int(claim.get("row") or 0),
+                str(claim.get("physical_key") or ""),
+            ),
+        )
+        invoice_event_ids = sorted(
+            {
+                str(claim["invoice_observation_event_id"])
+                for claim in claims
+                if claim.get("invoice_observation_event_id")
+            }
+        )
+        event_key = [
+            chosen["project"],
+            chosen["gross_cents"],
+            chosen["posting_date"],
+            chosen["amount_cents"],
+        ]
+        approval_id = "tax_register_" + sha256_bytes(
+            stable_json(event_key)
+        )[:24]
+        events.append(
+            {
+                "event_id": "tax_evidence_"
+                + sha256_bytes(stable_json(event_key))[:24],
+                "project": chosen["project"],
+                "plane": "PROJECT_TAX_REGISTER_EVIDENCE",
+                "category": "项目税费",
+                "amount_cents": int(chosen["amount_cents"]),
+                "posting_date": chosen["posting_date"],
+                "summary": "跨区域涉税事项预缴税金登记表的项目税费合计",
+                "source_id": source_info["source_id"],
+                "source_member": chosen.get("source_member"),
+                "row": chosen.get("row"),
+                "identity_reason": (
+                    "EXACT_CUSTOMER_CORE_AND_ISSUED_INVOICE_GROSS"
+                ),
+                "approval_id": approval_id,
+                "approval_authority_verified": True,
+                "approval_state_source": (
+                    "跨区域涉税事项预缴税金登记表"
+                ),
+                "approval_source_kind": "OCR_PROJECT_TAX_REGISTER",
+                "invoice_gross_cents": int(chosen["gross_cents"]),
+                "invoice_observation_event_ids": invoice_event_ids,
+                "tax_component_count": len(chosen["components_cents"]),
+                "machine_derived": True,
+            }
+        )
+    if events:
+        reviews.append(
+            {
+                "severity": "P2",
+                "type": "OCR_PROJECT_TAX_REGISTER_EVIDENCE_ACCEPTED",
+                "event_count": len(events),
+                "action": (
+                    "仅客户主体、发票含税金额和税费分项合计三重闭合的"
+                    "项目税费进入过账去重/应计资格判断"
+                ),
+            }
+        )
+    sources = [
+        dict(
+            source_info,
+            source_slot="ocr_project_tax_register",
+            logical_metadata={
+                "page_count": page_count,
+                "tax_register_page_count": tax_register_page_count,
+                "raw_claim_count": len(raw_claims),
+                "qualified_event_count": len(events),
+                "physical_project_conflict_count": (
+                    physical_project_conflicts
+                ),
+                "business_amount_conflict_count": business_conflicts,
+                "machine_derived": True,
+            },
+        )
+    ]
+    return events, _dedupe_review_rows(reviews), sources, {
+        "provided": True,
+        "page_count": page_count,
+        "tax_register_page_count": tax_register_page_count,
+        "raw_claim_count": len(raw_claims),
+        "qualified_event_count": len(events),
+        "physical_project_conflict_count": physical_project_conflicts,
+        "business_amount_conflict_count": business_conflicts,
+        "formal_amount_use": bool(events),
+        "output_vat_substituted": False,
+        "company_tax_default_allocation_used": False,
+    }
+
+
 def _ocr_cost_occurrence_basis(description: str) -> Optional[str]:
     """Return a narrow occurrence basis carried by a finance transaction row.
 
@@ -3794,6 +4289,18 @@ def _embedded_wage_history(
         and "本次支付" in context
     ):
         return []
+    # Wide spreadsheet OCR can interleave the current row's date/category/
+    # amount/bank cells between two wrapped fragments of one narrative, e.g.
+    # ``4月30日支 ... 06月15日 项目成本 53258.51 某银行 ... 付8万``.
+    # Repair only that tightly bounded, self-identifying interruption.
+    context = re.sub(
+        r"(?P<prefix>\d{1,2}月\d{1,2}日)支"
+        r"(?=\d{1,2}月\d{1,2}日项目成本)"
+        r".{0,80}?项目成本.{0,80}?付"
+        r"(?=\d[\d,，]*(?:\.\d{1,2})?(?:万|元))",
+        r"\g<prefix>支付",
+        context,
+    )
     events: List[Dict[str, Any]] = []
     pattern = re.compile(
         r"(?P<month>\d{1,2})月(?P<day>\d{1,2})日"
@@ -7381,12 +7888,28 @@ def build_snapshot(
     if project_invoice_output_vat_observations is None:
         project_invoice_output_vat_observations = []
     (
+        project_tax_evidence_events,
+        project_tax_evidence_reviews,
+        project_tax_evidence_sources,
+        project_tax_evidence_meta,
+    ) = parse_ocr_project_tax_registers(
+        ocr_jsonl,
+        roots,
+        projects,
+        project_invoice_output_vat_observations,
+        as_of,
+    )
+    (
         approved_cost_events,
         approved_cost_merge_reviews,
         approved_cost_merge_meta,
     ) = merge_approved_cost_sources(
         dws_events,
         approved_cost_detail_events,
+    )
+    approved_cost_events = (
+        list(approved_cost_events)
+        + list(project_tax_evidence_events)
     )
     ocr_events, ocr_reviews, ocr_sources, ocr_meta = parse_ocr_paid_project_costs(
         ocr_jsonl,
@@ -7410,6 +7933,7 @@ def build_snapshot(
         + dws_sources
         + approved_cost_detail_sources
         + project_invoice_sources
+        + project_tax_evidence_sources
         + ocr_sources
         + labor_sources
     )
@@ -7420,6 +7944,7 @@ def build_snapshot(
     reviews.extend(dws_reviews)
     reviews.extend(approved_cost_detail_reviews)
     reviews.extend(project_invoice_reviews)
+    reviews.extend(project_tax_evidence_reviews)
     reviews.extend(approved_cost_merge_reviews)
     reviews.extend(ocr_reviews)
     reviews.extend(labor_reviews)
@@ -7476,6 +8001,7 @@ def build_snapshot(
         + list(dws_events)
         + list(approved_cost_detail_events)
         + list(project_invoice_output_vat_observations)
+        + list(project_tax_evidence_events)
         + list(ocr_events)
         + list(accrual_events)
         + list(labor_events)
@@ -7783,6 +8309,9 @@ def build_snapshot(
             "project_invoice_selected": (
                 project_invoice_path is not None
             ),
+            "project_tax_register_selected": bool(
+                project_tax_evidence_sources
+            ),
             "ledger_logical_period_end": ledger_meta.get("selected_period_end"),
             "ledger_minimum_period_end": ledger_meta.get("minimum_period_end"),
             "ledger_entity_count": len(ledger_meta.get("period_ends_by_entity") or {}),
@@ -7798,7 +8327,12 @@ def build_snapshot(
             "approved_cost_detail_event_count": len(
                 approved_cost_detail_events
             ),
-            "project_invoice_tax_event_count": 0,
+            "project_invoice_tax_event_count": len(
+                project_tax_evidence_events
+            ),
+            "project_tax_register_evidence_event_count": len(
+                project_tax_evidence_events
+            ),
             "project_invoice_output_vat_observation_event_count": len(
                 project_invoice_output_vat_observations
             ),
@@ -7848,6 +8382,7 @@ def build_snapshot(
             "dws": dws_meta,
             "approved_cost_detail": approved_cost_detail_meta,
             "project_invoice": project_invoice_meta,
+            "project_tax_register": project_tax_evidence_meta,
             "approved_cost_source_merge": approved_cost_merge_meta,
             "ocr": ocr_meta,
             "accrual": accrual_meta,
@@ -7871,8 +8406,12 @@ def build_snapshot(
             "employer_burden_inferred_from_personal_deduction": False,
             "automatic_management_fee_percent": False,
             "project_output_vat": (
-                "per approved issued invoice/project line: "
-                "ROUND_HALF_UP(gross_invoice_cents * rate / (1 + rate))"
+                "billing-side observation only; excluded from project cost"
+            ),
+            "approved_project_tax": (
+                "direct tax-register total only after exact customer core + "
+                "issued-invoice gross + printed component-sum reconciliation; "
+                "then one-to-one posting deduplication or COST_ACCRUED"
             ),
             "company_tax_default_allocation": False,
             "historical_reference_in_calculate": False,

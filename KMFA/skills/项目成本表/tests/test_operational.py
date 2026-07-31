@@ -1514,6 +1514,235 @@ def test_project_invoice_attachment_conflict_fails_closed_and_is_scoped(
     assert diagnostics["conflicting_attachment_number_rows"] == 1
 
 
+def test_ocr_project_tax_register_requires_customer_gross_and_component_total(
+    tmp_path: Path,
+):
+    path = tmp_path / "tax-register.jsonl"
+    path.write_text(
+        json.dumps(
+            {
+                "file": "synthetic-tax-register.png",
+                "text": "\n".join(
+                    (
+                        "缴纳税款登记表-跨区域涉税事项报告预（2099年2月）",
+                        "开票金额（含税）",
+                        "预缴税金",
+                        "合计",
+                        "2099/2/5",
+                        "合成客户甲有限公司",
+                        "合成工程甲",
+                        "113.00",
+                        "100.00",
+                        "13.00",
+                        "2.00",
+                        "0.10",
+                        "0.06",
+                        "0.04",
+                        "0.20",
+                        "2.40",
+                    )
+                ),
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    projects = [
+        {
+            "contract_base": "KMX20990101-001",
+            "customer": "合成客户甲有限公司",
+        },
+        {
+            "contract_base": "KMX20990102-002",
+            "customer": "合成客户乙有限公司",
+        },
+    ]
+    invoices = [
+        {
+            "event_id": "invoice-a",
+            "project": "KMX20990101-001",
+            "invoice_gross_cents": 11_300,
+            "posting_date": "2099-02-05",
+        },
+        {
+            "event_id": "invoice-b",
+            "project": "KMX20990102-002",
+            "invoice_gross_cents": 11_300,
+            "posting_date": "2099-02-05",
+        },
+    ]
+
+    events, reviews, sources, diagnostics = (
+        operational.parse_ocr_project_tax_registers(
+            path,
+            (tmp_path,),
+            projects,
+            invoices,
+            "2099-02-28",
+        )
+    )
+
+    assert len(events) == 1
+    assert events[0]["project"] == "KMX20990101-001"
+    assert events[0]["amount_cents"] == 240
+    assert events[0]["tax_component_count"] == 5
+    assert events[0]["approval_authority_verified"] is True
+    assert events[0]["plane"] == "PROJECT_TAX_REGISTER_EVIDENCE"
+    assert [row["type"] for row in reviews] == [
+        "OCR_PROJECT_TAX_REGISTER_EVIDENCE_ACCEPTED"
+    ]
+    assert sources[0]["source_slot"] == "ocr_project_tax_register"
+    assert diagnostics["qualified_event_count"] == 1
+    assert diagnostics["output_vat_substituted"] is False
+
+    posted = [
+        {
+            "event_id": "posted-tax",
+            "project": "KMX20990101-001",
+            "plane": "JOB_POSTED_ACTUAL",
+            "category": "项目税费",
+            "amount_cents": 240,
+            "posting_date": "2099-02-05",
+            "summary": "项目预缴税金",
+        }
+    ]
+    accruals, reconciliation_reviews, reconciliation = (
+        qualify_cost_accruals(posted, events, [])
+    )
+    assert accruals == []
+    assert reconciliation["approved_posting_exact_match_count"] == 1
+    assert reconciliation_reviews[0]["type"] == (
+        "APPROVED_COST_POSTING_MATCHED_ONE_TO_ONE"
+    )
+
+
+def test_ocr_project_tax_register_parses_dotted_thousands_total(
+    tmp_path: Path,
+):
+    assert operational._tax_register_money_cents("2.179.82") == 217_982
+    path = tmp_path / "tax-register.jsonl"
+    path.write_text(
+        json.dumps(
+            {
+                "file": "dotted-total.png",
+                "text": "\n".join(
+                    (
+                        "缴纳税款登记表-跨区域涉税事项报告预",
+                        "开票金额（含税）",
+                        "预缴税金",
+                        "合计",
+                        "2099/2/6",
+                        "合成客户甲有限公司",
+                        "合成工程甲",
+                        "99,000.00",
+                        "90,825.69",
+                        "8,174.31",
+                        "1,816.51",
+                        "90.83",
+                        "54.50",
+                        "36.33",
+                        "181.65",
+                        "2.179.82",
+                    )
+                ),
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    events, reviews, _sources, diagnostics = (
+        operational.parse_ocr_project_tax_registers(
+            path,
+            (tmp_path,),
+            [
+                {
+                    "contract_base": "KMX20990101-001",
+                    "customer": "合成客户甲有限公司",
+                }
+            ],
+            [
+                {
+                    "event_id": "invoice-a",
+                    "project": "KMX20990101-001",
+                    "invoice_gross_cents": 9_900_000,
+                    "posting_date": "2099-02-06",
+                }
+            ],
+            "2099-02-28",
+        )
+    )
+    assert [event["amount_cents"] for event in events] == [217_982]
+    assert reviews[-1]["type"] == (
+        "OCR_PROJECT_TAX_REGISTER_EVIDENCE_ACCEPTED"
+    )
+    assert diagnostics["qualified_event_count"] == 1
+
+
+def test_ocr_project_tax_register_conflict_excludes_business_identity(
+    tmp_path: Path,
+):
+    path = tmp_path / "tax-register.jsonl"
+    records = []
+    for filename, components, total in (
+        ("conflict-a.png", ("2.00", "0.10", "0.06", "0.04", "0.20"), "2.40"),
+        ("conflict-b.png", ("2.00", "0.10", "0.06", "0.04", "0.30"), "2.50"),
+    ):
+        records.append(
+            json.dumps(
+                {
+                    "file": filename,
+                    "text": "\n".join(
+                        (
+                            "缴纳税款登记表-跨区域涉税事项报告预",
+                            "开票金额（含税）",
+                            "预缴税金",
+                            "合计",
+                            "2099/2/5",
+                            "合成客户甲有限公司",
+                            "合成工程甲",
+                            "113.00",
+                            "100.00",
+                            "13.00",
+                            *components,
+                            total,
+                        )
+                    ),
+                },
+                ensure_ascii=False,
+            )
+        )
+    path.write_text("\n".join(records) + "\n", encoding="utf-8")
+
+    events, reviews, _sources, diagnostics = (
+        operational.parse_ocr_project_tax_registers(
+            path,
+            (tmp_path,),
+            [
+                {
+                    "contract_base": "KMX20990101-001",
+                    "customer": "合成客户甲有限公司",
+                }
+            ],
+            [
+                {
+                    "event_id": "invoice-a",
+                    "project": "KMX20990101-001",
+                    "invoice_gross_cents": 11_300,
+                    "posting_date": "2099-02-05",
+                }
+            ],
+            "2099-02-28",
+        )
+    )
+    assert events == []
+    assert reviews[0]["type"] == (
+        "OCR_PROJECT_TAX_REGISTER_AMOUNT_CONFLICT"
+    )
+    assert diagnostics["business_amount_conflict_count"] == 1
+
+
 def test_funding_plan_uses_description_not_customer_name_for_cost_category(
     tmp_path: Path,
 ):
@@ -2294,11 +2523,13 @@ def test_ocr_marks_reimbursement_and_recovers_explicit_wage_payment_history(
             "2月5日",
             (
                 "生产部用款合成项目甲测试外协人员工资（合同金额1万，"
-                "1月10日已经支付200元，1月20日支付0.03万，"
-                "本次支付100元）"
+                "1月10日已经支付200元，1月20日支"
             ),
+            "2月5日",
             "项目成本",
             "100.00",
+            "合成银行",
+            "付0.03万，本次支付100元）",
         )
     )
     path = tmp_path / "ocr.jsonl"
