@@ -214,6 +214,19 @@ def test_margin_column_is_explicit_and_incomplete_rows_stay_blocked(tmp_path):
     assert "待成本闭合" in r.text
 
 
+def test_unclosed_headline_counts_blocked_rows_not_only_missing_incurred_cost(tmp_path):
+    """已有下限成本不等于成本闭合；顶部必须如实显示 1 READY、3 BLOCKED。"""
+    r = _client(tmp_path).get("/public-api/项目成本表")
+    assert re.search(
+        r'<div class="st"><b>1</b><span>毛利口径已闭合</span></div>',
+        r.text,
+    )
+    assert re.search(
+        r'<div class="st"><b>3</b><span>成本尚未闭合</span></div>',
+        r.text,
+    )
+
+
 def test_requested_observation_and_posting_columns_are_removed(tmp_path):
     r = _client(tmp_path).get("/public-api/项目成本表")
     for removed in (

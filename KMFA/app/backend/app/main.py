@@ -3035,7 +3035,11 @@ def public_project_cost_page():
         project for project in known_cost
         if _cost_num(project.get("项目已发生成本")) != 0
     ]
-    missing_cost = len(projects) - len(known_cost)
+    closed_margin_count = sum(
+        project.get("收入与毛利状态") == "READY"
+        for project in projects
+    )
+    unclosed_cost_count = len(projects) - closed_margin_count
     total = sum(
         _cost_num(project.get("项目已发生成本")) or 0
         for project in known_cost
@@ -3147,9 +3151,9 @@ def public_project_cost_page():
 <div class="strip">
   <div class="st"><b>{len(projects):,}</b><span>2026 全部项目</span></div>
   <div class="st"><b>{len(nonzero_cost)}</b><span>已有成本发生</span></div>
-  <div class="st"><b>{sum(p.get("收入与毛利状态") == "READY" for p in projects)}</b><span>毛利口径已闭合</span></div>
+  <div class="st"><b>{closed_margin_count}</b><span>毛利口径已闭合</span></div>
   <div class="st"><b>{total:,.2f}</b><span>项目已发生成本合计</span></div>
-  <div class="st"><b>{missing_cost}</b><span>成本尚未闭合</span></div>
+  <div class="st"><b>{unclosed_cost_count}</b><span>成本尚未闭合</span></div>
 </div>
 <div class="note"><b>毛利口径：</b>毛利＝有效收入基数－已闭合项目成本；
   毛利率＝毛利÷有效收入基数。实际发生额仍是下限、人工或审批费用未闭合、
