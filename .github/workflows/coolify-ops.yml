@@ -108,6 +108,7 @@ jobs:
               build_snapshot,
               cents,
               normalize_text,
+              parse_employer_burden_workbooks,
           )
           from run_private_refresh import fetch_manifest
 
@@ -249,6 +250,47 @@ jobs:
               finally:
                   workbook.close()
 
+          def private_employer_burden_inspection(paths, input_root, run):
+              records_by_period, _, reviews, metadata = (
+                  parse_employer_burden_workbooks(
+                      paths,
+                      (input_root,),
+                      year=run["year"],
+                      as_of=run["as_of"],
+                      password_env="KMFA_PAYROLL_PASSWORD",
+                  )
+              )
+              return {
+                  "metadata": metadata,
+                  "review_types": sorted(
+                      {
+                          str(review.get("type") or "")
+                          for review in reviews
+                          if review.get("type")
+                      }
+                  ),
+                  "periods": [
+                      {
+                          "period": period,
+                          "employee_rows": [
+                              {
+                                  "entity": entity,
+                                  "employee": employee,
+                                  "amount_cents": int(record["amount_cents"]),
+                                  "department": record.get("department"),
+                                  "source_sheet": record.get("source_sheet"),
+                              }
+                              for (entity, employee), record in sorted(
+                                  records.items()
+                              )
+                          ],
+                      }
+                      for period, records in sorted(
+                          records_by_period.items()
+                      )
+                  ],
+              }
+
           try:
               with tempfile.TemporaryDirectory(
                   prefix="kmfa-project-cost-diagnostic-",
@@ -262,6 +304,10 @@ jobs:
                   )
                   run = manifest["run"]
                   input_root = staging / "input"
+                  employer_burden_paths = tuple(
+                      input_root / path
+                      for path in run["employer_burden_paths"]
+                  )
                   snapshot = build_snapshot(
                       (input_root / run["data_root"],),
                       year=run["year"],
@@ -270,10 +316,7 @@ jobs:
                       payroll_workbooks=tuple(
                           input_root / path for path in run["payroll_paths"]
                       ),
-                      employer_burden_workbooks=tuple(
-                          input_root / path
-                          for path in run["employer_burden_paths"]
-                      ),
+                      employer_burden_workbooks=employer_burden_paths,
                       attendance_roots=tuple(
                           input_root / path
                           for path in run["attendance_roots"]
@@ -292,6 +335,13 @@ jobs:
                           private_payroll_inspection(input_root / path)
                           for path in run["payroll_paths"]
                       ],
+                      "employer_burden": (
+                          private_employer_burden_inspection(
+                              employer_burden_paths,
+                              input_root,
+                              run,
+                          )
+                      ),
                   }
                   private_json = Path(os.environ["RUNNER_TEMP"]) / (
                       "project-cost-diagnostic-private.json"
