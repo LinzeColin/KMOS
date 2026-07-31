@@ -16,6 +16,7 @@ from project_cost_table.operational import (
     _synthetic_ledger_book,
     _statement_buckets,
     _statement_rows,
+    _statement_rows,
     generate_outputs,
     governed_financial_analysis_revenue,
     governed_gross_margin,
@@ -52,6 +53,54 @@ def test_self_test_preserves_open_review_release_status() -> None:
     assert result["open_review_release_status_verified"] is True
 
 
+def test_blocked_project_pdf_rows_keep_incurred_cost_as_a_lower_bound() -> None:
+    project = {
+        "gross_margin_status": "BLOCKED_COST_COMPLETENESS",
+        "contract_amount_cents": 100_000,
+        "effective_revenue_cents": 80_000,
+        "job_cost_incurred_cents": 12_345,
+        "project_financial_analysis_cost_cents": None,
+    }
+    rows = _statement_rows(project, {"material": 12_345})
+    amounts = {label: amount for label, amount, _note in rows}
+    notes = {label: note for label, _amount, note in rows}
+    assert amounts["一、合同额"] == 100_000
+    assert amounts["项目产值"] == 80_000
+    assert all(
+        amount is None
+        for label, amount in amounts.items()
+        if label not in ("一、合同额", "项目产值")
+    )
+    assert "已发生成本下限 123.45 元" in notes["二、资金运用及各项支出"]
+    assert "不是闭合项目财务分析成本" in notes["二、资金运用及各项支出"]
+
+
+def test_ready_project_pdf_rows_use_closed_cost_and_preserve_other() -> None:
+    project = {
+        "gross_margin_status": "READY",
+        "contract_amount_cents": 120_000,
+        "effective_revenue_cents": 100_000,
+        "revenue_bridge_cents": -20_000,
+        "job_cost_incurred_cents": 30_000,
+        "project_financial_analysis_cost_cents": 40_000,
+    }
+    rows = _statement_rows(
+        project,
+        {
+            "material": 10_000,
+            "other": 20_000,
+            "tax": 10_000,
+        },
+    )
+    amounts = {label: amount for label, amount, _note in rows}
+    assert amounts["一、合同额"] == 120_000
+    assert amounts["项目产值"] == 100_000
+    assert amounts["二、资金运用及各项支出"] == 40_000
+    assert amounts["9.其他费用"] == 20_000
+    assert amounts["（七）税金"] == 10_000
+    assert amounts["三 利润"] == 60_000
+
+
 def _snapshot() -> dict:
     return {
         "schema_version": "kmfa.project_cost.snapshot.v2",
@@ -82,6 +131,7 @@ def _snapshot() -> dict:
                 "job_posted_actual_cents": 12_345,
                 "cost_accrued_cents": 7_655,
                 "job_cost_incurred_cents": 20_000,
+                "project_financial_analysis_cost_cents": 20_000,
                 "gross_margin_cost_basis_cents": 20_000,
                 "effective_revenue_cents": 50_000,
                 "gross_margin_status": "READY",
@@ -104,6 +154,7 @@ def _snapshot() -> dict:
                 "job_posted_actual_cents": 0,
                 "cost_accrued_cents": 0,
                 "job_cost_incurred_cents": 0,
+                "project_financial_analysis_cost_cents": None,
                 "gross_margin_cost_basis_cents": None,
                 "effective_revenue_cents": None,
                 "gross_margin_status": "BLOCKED_COST_COMPLETENESS",

@@ -10010,6 +10010,9 @@ def _statement_rows(
 ) -> List[Tuple[str, Optional[int], str]]:
     """Map governed analysis cents into the current supplied B-family report."""
 
+    ready = str(project.get("gross_margin_status") or "") == "READY"
+    if not ready:
+        buckets = {}
     material = buckets.get("material")
     fuel_power = buckets.get("fuel_power")
     rental = buckets.get("rental")
@@ -10027,8 +10030,8 @@ def _statement_rows(
     management_allocation = buckets.get("management_allocation")
     total = (
         project.get("project_financial_analysis_cost_cents")
-        if project.get("project_financial_analysis_cost_cents") is not None
-        else project.get("job_cost_incurred_cents")
+        if ready
+        else None
     )
 
     material_total = _sum_present_cents(material, fuel_power)
@@ -10063,7 +10066,7 @@ def _statement_rows(
     own_units = project.get("own_work_units")
     external_units = project.get("external_work_units")
     revenue = project.get("effective_revenue_cents")
-    ready = str(project.get("gross_margin_status") or "") == "READY"
+    incurred_lower_bound = project.get("job_cost_incurred_cents")
     values: Dict[str, Tuple[Optional[int], str]] = {
         "contract": (
             project.get("contract_amount_cents"),
@@ -10078,7 +10081,15 @@ def _statement_rows(
         "revenue": (revenue, "批准开票项目产值"),
         "sec2": (
             total,
-            "项目财务分析成本；会计已发生成本和销项税差额均可追溯",
+            (
+                "项目财务分析成本；会计已发生成本和销项税差额均可追溯"
+                if ready
+                else (
+                    "待闭合；已发生成本下限 %s 元仅作观察，"
+                    "不是闭合项目财务分析成本"
+                    % _pdf_money(incurred_lower_bound)
+                )
+            ),
         ),
         "l2_material": (material_total, ""),
         "d_material": (material, ""),
@@ -10261,9 +10272,10 @@ def write_project_pdfs(directory: Path, snapshot: Mapping[str, Any]) -> List[Pat
     categories_by_project = _financial_analysis_cost_categories(snapshot)
     paths: List[Path] = []
     for project in snapshot["projects"]:
+        ready = str(project.get("gross_margin_status") or "") == "READY"
         buckets = _statement_buckets(
             categories_by_project.get(str(project["contract_base"]), {})
-        )
+        ) if ready else {}
         name = "%s_%s.pdf" % (
             _safe_filename(str(project["canonical_contract_id"])),
             _safe_filename(str(project["project_name"]), 45),
@@ -10279,7 +10291,10 @@ def write_project_pdfs(directory: Path, snapshot: Mapping[str, Any]) -> List[Pat
             title="项目财务分析表",
             author="KMFA Project Cost Skill",
         )
-        title = Paragraph("项目财务分析表", title_style)
+        title = Paragraph(
+            "项目财务分析表" if ready else "项目财务分析表（待闭合）",
+            title_style,
+        )
         header = Table(
             [
                 [paragraph("项目名称：", header_style), paragraph(project["project_name"], header_style)],
@@ -10374,7 +10389,12 @@ def write_project_pdfs(directory: Path, snapshot: Mapping[str, Any]) -> List[Pat
             [[
                 paragraph("项目经理：", header_style),
                 paragraph(
-                    "项目财务分析成本＝会计已发生成本＋逐张开票销项税差额；无批准政策不计管理分摊，毛利率超过70%阻断。",
+                    (
+                        "项目财务分析成本＝会计已发生成本＋逐张开票销项税差额；"
+                        "无批准政策不计管理分摊，毛利率超过70%阻断。"
+                        if ready
+                        else "项目成本待闭合；正式成本、分类、毛利与毛利率均留空。"
+                    ),
                     header_style,
                 ),
                 paragraph("日期：", header_style),
@@ -11311,15 +11331,31 @@ def verify_output(
                     "PDF_SNAPSHOT_ID",
                     "single-project PDF snapshot ID is missing",
                 )
-            expected_cost = expected_project.get("job_cost_incurred_cents")
-            if (
-                isinstance(expected_cost, int)
-                and not isinstance(expected_cost, bool)
-                and not _reference_amount_present(text, expected_cost)
+            ready = (
+                str(expected_project.get("gross_margin_status") or "")
+                == "READY"
+            )
+            if ready:
+                expected_cost = expected_project.get(
+                    "project_financial_analysis_cost_cents"
+                )
+                if (
+                    not isinstance(expected_cost, int)
+                    or isinstance(expected_cost, bool)
+                    or not _reference_amount_present(text, expected_cost)
+                ):
+                    raise ProjectCostError(
+                        "PDF_PROJECT_COST",
+                        "closed single-project PDF cost differs from the snapshot",
+                    )
+            elif (
+                "待闭合" not in text
+                or "已发生成本下限" not in text
+                or "不是闭合项目财务分析成本" not in text
             ):
                 raise ProjectCostError(
-                    "PDF_PROJECT_COST",
-                    "single-project PDF formal cost differs from the snapshot",
+                    "PDF_BLOCKED_COST_BOUNDARY",
+                    "blocked project PDF does not preserve the lower-bound boundary",
                 )
     if manifest.get("project_count") != snapshot.get("project_count"):
         raise ProjectCostError("MANIFEST_PROJECT_COUNT", "manifest project count mismatch")
