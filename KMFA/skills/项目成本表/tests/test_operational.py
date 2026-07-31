@@ -16,7 +16,6 @@ from project_cost_table.operational import (
     _synthetic_ledger_book,
     _statement_buckets,
     _statement_rows,
-    _statement_rows,
     generate_outputs,
     governed_financial_analysis_revenue,
     governed_gross_margin,
@@ -751,7 +750,7 @@ def test_unallocated_5001_pool_is_preserved_and_blocks_publication():
 def test_ledger_exact_project_name_in_summary_recovers_project_identity():
     payload = _synthetic_ledger_book(
         entity="合成企业甲",
-        contract="KMX999_不分项目",
+        contract='KMX260101-901',
         customer="",
         amount=Decimal("100.00"),
         account="5001003-生产成本_工资",
