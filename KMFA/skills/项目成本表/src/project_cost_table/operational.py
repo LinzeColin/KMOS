@@ -39,6 +39,12 @@ MAX_ARCHIVE_MEMBER = 256 * 1024 * 1024
 MAX_COMPRESSION_RATIO = 250
 CONTROL_SUMMARIES = ("期初余额", "本期合计", "本年累计", "结转本期损益")
 PLACEHOLDER_CONTRACTS = ("KMX999", "KMX9999", "不分项目")
+FUNDING_PLAN_FILENAME_MARKERS = (
+    "项目资金支出",
+    "项目资金计划",
+    "付款计划",
+    "本周计划支付",
+)
 FORMULA_SHEETS = (
     "01_项目成本表",
     "02_成本明细",
@@ -492,6 +498,7 @@ def discover_candidates(files: Sequence[Path]) -> Dict[str, List[Path]]:
         "ledger_zip": [],
         "dingtalk_zip": [],
         "dws_zip": [],
+        "funding_plan": [],
         "reference_pdf": [],
     }
     for path in files:
@@ -513,6 +520,10 @@ def discover_candidates(files: Sequence[Path]) -> Dict[str, List[Path]]:
             result["dws_zip"].append(path)
         elif lower.endswith(".zip") and "钉钉" in name:
             result["dingtalk_zip"].append(path)
+        elif lower.endswith(".xlsx") and any(
+            marker in name for marker in FUNDING_PLAN_FILENAME_MARKERS
+        ):
+            result["funding_plan"].append(path)
         elif lower.endswith(".pdf"):
             result["reference_pdf"].append(path)
     return result
@@ -2369,6 +2380,30 @@ def _tax_from_gross_cents(gross_cents: int, rate: Decimal) -> int:
     )
 
 
+def _invoice_numbers_from_attachment_cells(
+    row: Sequence[Any],
+    attachment_indices: Sequence[int],
+) -> List[str]:
+    """Recover real 20-digit e-invoice numbers from exported attachment names.
+
+    Some approved/issued RedCircle rows leave ``发票号码`` as ``待开票`` while
+    the repeated ``发票回填`` columns already contain the immutable
+    ``dzfp_<20 digits>_*.pdf`` attachment name.  Only an unambiguous number is
+    eligible; callers must fail closed when multiple distinct numbers occur.
+    """
+
+    candidates: Set[str] = set()
+    for index in attachment_indices:
+        if index >= len(row) or row[index] in (None, ""):
+            continue
+        for match in re.finditer(
+            r"(?i)DZFP[_-]?(\d{20})(?!\d)",
+            str(row[index]),
+        ):
+            candidates.add(match.group(1))
+    return sorted(candidates)
+
+
 def parse_project_invoice_tax(
     path: Path,
     projects: Sequence[Mapping[str, Any]],
@@ -2412,6 +2447,18 @@ def parse_project_invoice_tax(
             "PROJECT_INVOICE_SCHEMA",
             "project invoice export schema was not recognized",
         )
+    header_values = next(
+        selected_sheet.iter_rows(
+            min_row=header_row,
+            max_row=header_row,
+            values_only=True,
+        )
+    )
+    attachment_indices = [
+        index
+        for index, value in enumerate(header_values)
+        if normalize_text(value) == normalize_text("发票回填")
+    ]
 
     cutoff = date.fromisoformat(as_of)
     candidates: Dict[Tuple[str, str], Dict[str, Any]] = {}
@@ -2422,6 +2469,8 @@ def parse_project_invoice_tax(
     zero_rate_rows = 0
     outside_cohort_rows = 0
     unresolved_current_rows = 0
+    recovered_invoice_number_rows = 0
+    conflicting_attachment_number_rows = 0
     max_observed_date = ""
     for row_number, row in enumerate(
         selected_sheet.iter_rows(
@@ -2443,17 +2492,57 @@ def parse_project_invoice_tax(
             continue
         if invoice_date > max_observed_date:
             max_observed_date = invoice_date
+        raw_contract = str(
+            values.get("合同编号(合同名称)") or ""
+        ).strip()
+        project, reason, tokens = resolve_identity(
+            raw_contract,
+            "",
+            indexes,
+            allow_text_only=False,
+        )
+        review_project = (
+            str(project["contract_base"])
+            if project is not None
+            and reason in ("EXACT_CONTRACT", "CONTROLLED_SUFFIX_ALIAS")
+            else None
+        )
         invoice_number = normalize_text(values.get("发票号码"))
         if not invoice_number or invoice_number == "待开票":
-            reviews.append(
-                {
+            attachment_numbers = _invoice_numbers_from_attachment_cells(
+                row,
+                attachment_indices,
+            )
+            if len(attachment_numbers) == 1:
+                invoice_number = attachment_numbers[0]
+                recovered_invoice_number_rows += 1
+            elif len(attachment_numbers) > 1:
+                conflicting_attachment_number_rows += 1
+                review = {
+                    "severity": "P1",
+                    "type": "PROJECT_INVOICE_ATTACHMENT_NUMBER_CONFLICT",
+                    "source_row": row_number,
+                    "attachment_number_hashes": [
+                        sha256_bytes(number.encode("utf-8"))[:16]
+                        for number in attachment_numbers
+                    ],
+                    "action": "发票回填附件含多个真实票号；整行不得形成项目税额",
+                }
+                if review_project is not None:
+                    review["project"] = review_project
+                reviews.append(review)
+                continue
+            else:
+                review = {
                     "severity": "P1",
                     "type": "PROJECT_INVOICE_NUMBER_MISSING",
                     "source_row": row_number,
                     "action": "已开票记录缺少真实发票号码；不得形成项目税额",
                 }
-            )
-            continue
+                if review_project is not None:
+                    review["project"] = review_project
+                reviews.append(review)
+                continue
         gross_cents = cents(values.get("本次开票含税金额(元)"))
         if gross_cents in (None, 0):
             reviews.append(
@@ -2482,15 +2571,6 @@ def parse_project_invoice_tax(
                 }
             )
             continue
-        raw_contract = str(
-            values.get("合同编号(合同名称)") or ""
-        ).strip()
-        project, reason, tokens = resolve_identity(
-            raw_contract,
-            "",
-            indexes,
-            allow_text_only=False,
-        )
         if project is None:
             if any(contract_year(token) == year for token in tokens):
                 unresolved_current_rows += 1
@@ -2596,6 +2676,8 @@ def parse_project_invoice_tax(
         "zero_rate_rows": zero_rate_rows,
         "outside_cohort_rows": outside_cohort_rows,
         "unresolved_current_rows": unresolved_current_rows,
+        "recovered_invoice_number_rows": recovered_invoice_number_rows,
+        "conflicting_attachment_number_rows": conflicting_attachment_number_rows,
         "conflicting_invoice_project_count": len(conflicts),
         "max_observed_date": max_observed_date,
         "formal_amount_use": bool(events),
@@ -2909,6 +2991,410 @@ def resolve_narrative_identity(
     return None, "NARRATIVE_PROJECT_AMBIGUOUS"
 
 
+def _funding_application_date(
+    approval_id: str,
+    values: Mapping[str, Any],
+) -> Optional[str]:
+    match = re.search(r"(20\d{2})(\d{2})(\d{2})", approval_id)
+    if match:
+        observed = "%s-%s-%s" % match.groups()
+        try:
+            date.fromisoformat(observed)
+            return observed
+        except ValueError:
+            return None
+    observed = iso_date(values.get("申请日期"))
+    try:
+        return observed if observed and date.fromisoformat(observed) else None
+    except ValueError:
+        return None
+
+
+def _funding_snapshot_label_date(
+    source_label: str,
+    max_observed_date: str,
+) -> str:
+    """Extract a deterministic snapshot date without trusting file mtime."""
+
+    normalized = source_label.replace("年", "-").replace("月", "-").replace("日", "")
+    candidates: Set[str] = set()
+    for match in re.finditer(
+        r"(?<!\d)(20\d{2})[-_./](\d{1,2})[-_./](\d{1,2})(?!\d)",
+        normalized,
+    ):
+        try:
+            candidates.add(
+                date(
+                    int(match.group(1)),
+                    int(match.group(2)),
+                    int(match.group(3)),
+                ).isoformat()
+            )
+        except ValueError:
+            continue
+    year_months = [
+        (int(match.group(1)), int(match.group(2)))
+        for match in re.finditer(
+            r"(?<!\d)(20\d{2})[-_./](\d{1,2})(?!\d)",
+            normalized,
+        )
+    ]
+    month_days = [
+        (int(match.group(1)), int(match.group(2)))
+        for match in re.finditer(r"(?<!\d)(\d{1,2})[-_.](\d{1,2})(?!\d)", normalized)
+    ]
+    for year_value, month_value in year_months:
+        for observed_month, observed_day in month_days:
+            if observed_month != month_value:
+                continue
+            try:
+                candidates.add(
+                    date(year_value, observed_month, observed_day).isoformat()
+                )
+            except ValueError:
+                continue
+    return max(candidates) if candidates else max_observed_date
+
+
+def _parse_funding_plan_payload(
+    payload: bytes,
+    *,
+    source_id: str,
+    source_member: str,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """Read all funding-plan sheets as state observations.
+
+    No amount is qualified here.  Qualification happens only after every
+    supplied snapshot has been compared and the newest explicit state for an
+    application is known.
+    """
+
+    workbook = open_xlsx_payload(payload)
+    observations: List[Dict[str, Any]] = []
+    recognized_sheets = 0
+    scanned_rows = 0
+    state_rows = 0
+    approved_appearance_rows = 0
+    max_observed_date = ""
+    try:
+        for sheet in workbook.worksheets:
+            try:
+                header_row, headers = locate_header(
+                    sheet,
+                    (
+                        "申请编号",
+                        "关联主合同",
+                        "累计报销金额",
+                        "审批状态",
+                        "报销说明",
+                    ),
+                )
+            except ProjectCostError:
+                continue
+            recognized_sheets += 1
+            for row_number, row in enumerate(
+                sheet.iter_rows(
+                    min_row=header_row + 1,
+                    values_only=True,
+                ),
+                header_row + 1,
+            ):
+                scanned_rows += 1
+                values = _row_dict(row, headers)
+                approval_id = normalize_text(values.get("申请编号"))
+                approval_state = normalize_text(values.get("审批状态"))
+                if not approval_id or not approval_state:
+                    continue
+                state_rows += 1
+                if approval_state == "已通过":
+                    approved_appearance_rows += 1
+                observed = _funding_application_date(approval_id, values)
+                if observed:
+                    max_observed_date = max(max_observed_date, observed)
+                observations.append(
+                    {
+                        "approval_id": approval_id,
+                        "approval_state": approval_state,
+                        "amount_cents": cents(values.get("累计报销金额")),
+                        "observed_date": observed,
+                        "related_contract": str(
+                            values.get("关联主合同") or ""
+                        ).strip(),
+                        "description": str(
+                            values.get("报销说明") or ""
+                        ).strip(),
+                        "counterparty": " ".join(
+                            str(values.get(name) or "").strip()
+                            for name in ("收款单位", "收款账户")
+                            if str(values.get(name) or "").strip()
+                        ),
+                        "payment_status": str(
+                            values.get("支付状态") or ""
+                        ).strip(),
+                        "source_id": source_id,
+                        "source_member": source_member,
+                        "sheet": sheet.title,
+                        "row": row_number,
+                    }
+                )
+    finally:
+        workbook.close()
+    if recognized_sheets == 0:
+        raise ProjectCostError(
+            "DWS_FUNDING_PLAN_SCHEMA",
+            "project funding plan schema was not recognized",
+        )
+    label_date = _funding_snapshot_label_date(
+        source_member,
+        max_observed_date,
+    )
+    snapshot_rank = [max_observed_date, label_date]
+    for observation in observations:
+        observation["snapshot_rank"] = snapshot_rank
+    return observations, {
+        "recognized_sheet_count": recognized_sheets,
+        "scanned_row_count": scanned_rows,
+        "state_row_count": state_rows,
+        "approved_appearance_row_count": approved_appearance_rows,
+        "max_observed_date": max_observed_date,
+        "snapshot_label_date": label_date,
+    }
+
+
+def _resolve_funding_plan_observations(
+    observations: Sequence[Mapping[str, Any]],
+    projects: Sequence[Mapping[str, Any]],
+    status_map: Mapping[str, Mapping[str, Any]],
+    year: int,
+    as_of: str,
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
+    """Choose the latest explicit state per application, then qualify cost."""
+
+    indexes = _project_indexes(projects, year)
+    grouped: Dict[str, List[Mapping[str, Any]]] = defaultdict(list)
+    for observation in observations:
+        approval_id = normalize_text(observation.get("approval_id"))
+        if approval_id:
+            grouped[approval_id].append(observation)
+    events: List[Dict[str, Any]] = []
+    reviews: List[Dict[str, Any]] = []
+    latest_nonapproved = 0
+    latest_approved = 0
+    exact_duplicate_observations = 0
+    latest_conflicts = 0
+    unresolved_projects = 0
+    for approval_id in sorted(grouped):
+        rows = grouped[approval_id]
+        newest_rank = max(
+            tuple(str(value or "") for value in row.get("snapshot_rank", ("", "")))
+            for row in rows
+        )
+        newest = [
+            row
+            for row in rows
+            if tuple(
+                str(value or "")
+                for value in row.get("snapshot_rank", ("", ""))
+            )
+            == newest_rank
+        ]
+        fingerprints = {
+            (
+                normalize_text(row.get("approval_state")),
+                row.get("amount_cents"),
+                normalize_text(row.get("related_contract")),
+                normalize_text(row.get("description")),
+                normalize_text(row.get("counterparty")),
+                str(row.get("observed_date") or ""),
+            )
+            for row in newest
+        }
+        if len(fingerprints) != 1:
+            latest_conflicts += 1
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "APPROVED_COST_LATEST_SNAPSHOT_CONFLICT",
+                    "approval_id_hash": sha256_bytes(
+                        approval_id.encode("utf-8")
+                    )[:16],
+                    "snapshot_rank": list(newest_rank),
+                    "conflicting_observation_count": len(newest),
+                    "action": "同一申请编号在最新快照的状态、金额或项目信息冲突；禁止选边",
+                }
+            )
+            continue
+        exact_duplicate_observations += max(0, len(newest) - 1)
+        selected = sorted(
+            newest,
+            key=lambda row: (
+                str(row.get("source_member") or ""),
+                str(row.get("sheet") or ""),
+                int(row.get("row") or 0),
+            ),
+        )[0]
+        approval_state = normalize_text(selected.get("approval_state"))
+        if approval_state != "已通过":
+            latest_nonapproved += 1
+            continue
+        latest_approved += 1
+        observed = str(selected.get("observed_date") or "")
+        if not observed:
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "DWS_APPROVED_COST_DATE_UNRESOLVED",
+                    "approval_id_hash": sha256_bytes(
+                        approval_id.encode("utf-8")
+                    )[:16],
+                    "action": "审批日期不能从稳定申请编号或申请日期解析；不得计入正式应计",
+                }
+            )
+            continue
+        if not observed.startswith("%04d-" % year) or observed > as_of:
+            continue
+        amount_minor = selected.get("amount_cents")
+        if (
+            amount_minor == 0
+            and normalize_text(selected.get("payment_status"))
+            == "无需支付"
+        ):
+            reviews.append(
+                {
+                    "severity": "P2",
+                    "type": "DWS_APPROVED_ZERO_COST_EXCLUDED",
+                    "approval_id_hash": sha256_bytes(
+                        approval_id.encode("utf-8")
+                    )[:16],
+                    "amount_cents": 0,
+                    "action": "审批金额明确为零且支付状态为无需支付；作为零成本记录排除",
+                }
+            )
+            continue
+        if (
+            not isinstance(amount_minor, int)
+            or isinstance(amount_minor, bool)
+            or amount_minor <= 0
+        ):
+            reviews.append(
+                {
+                    "severity": "P1",
+                    "type": "DWS_APPROVED_COST_AMOUNT_INVALID",
+                    "approval_id_hash": sha256_bytes(
+                        approval_id.encode("utf-8")
+                    )[:16],
+                    "action": "最新已通过申请缺少有效正数金额；不得进入正式应计",
+                }
+            )
+            continue
+        related_contract = str(
+            selected.get("related_contract") or ""
+        ).strip()
+        description = str(selected.get("description") or "").strip()
+        counterparty = str(selected.get("counterparty") or "").strip()
+        narrative = " | ".join(
+            value
+            for value in (related_contract, description, counterparty)
+            if value
+        )
+        exclusion = next(
+            (
+                marker
+                for marker in (
+                    "保证金",
+                    "押金",
+                    "定金",
+                    "借款",
+                    "贷款",
+                    "回款",
+                    "收票",
+                    "罚款",
+                )
+                if marker in narrative
+            ),
+            None,
+        )
+        if exclusion:
+            reviews.append(
+                {
+                    "severity": "P2",
+                    "type": "DWS_APPROVED_NON_COST_EXCLUDED",
+                    "approval_id_hash": sha256_bytes(
+                        approval_id.encode("utf-8")
+                    )[:16],
+                    "amount_cents": amount_minor,
+                    "reason": exclusion,
+                    "action": "审批事实保留；非成本或尚未发生项目不进入成本公式",
+                }
+            )
+            continue
+        project, identity_reason = resolve_narrative_identity(
+            narrative,
+            observed,
+            indexes,
+            status_map,
+        )
+        if project is None:
+            if related_contract:
+                unresolved_projects += 1
+                reviews.append(
+                    {
+                        "severity": "P2",
+                        "type": "DWS_APPROVED_COST_PROJECT_UNRESOLVED",
+                        "approval_id_hash": sha256_bytes(
+                            approval_id.encode("utf-8")
+                        )[:16],
+                        "amount_cents": amount_minor,
+                        "identity_reason": identity_reason,
+                        "action": "保留未分配审批成本；禁止关键词强行归项目",
+                    }
+                )
+            continue
+        project_base = str(project["contract_base"])
+        events.append(
+            {
+                "event_id": "dws_funding_"
+                + sha256_bytes(
+                    stable_json(
+                        [approval_id, project_base, amount_minor]
+                    )
+                )[:24],
+                "project": project_base,
+                "plane": "DWS_APPROVED_COST",
+                "category": _funding_plan_category(
+                    description,
+                    counterparty,
+                ),
+                "amount_cents": amount_minor,
+                "posting_date": observed,
+                "summary": description,
+                "counterparty": counterparty,
+                "source_id": selected.get("source_id"),
+                "source_member": selected.get("source_member"),
+                "row": selected.get("row"),
+                "identity_reason": identity_reason,
+                "approval_id": approval_id,
+                "approval_authority_verified": True,
+                "approval_state_source": "latest_snapshot:审批状态=已通过",
+                "payment_status": selected.get("payment_status"),
+                "snapshot_rank": list(newest_rank),
+                "duplicate_snapshot_observation_count": max(
+                    0,
+                    len(newest) - 1,
+                ),
+            }
+        )
+    return events, _dedupe_review_rows(reviews), {
+        "application_count": len(grouped),
+        "latest_approved_application_count": latest_approved,
+        "latest_nonapproved_application_count": latest_nonapproved,
+        "latest_snapshot_conflict_count": latest_conflicts,
+        "exact_duplicate_observation_count": exact_duplicate_observations,
+        "mapped_event_count": len(events),
+        "unresolved_project_count": unresolved_projects,
+    }
+
+
 def parse_dws_approvals(
     candidates: Sequence[Path],
     roots: Sequence[Path],
@@ -2916,20 +3402,21 @@ def parse_dws_approvals(
     status_map: Mapping[str, Mapping[str, Any]],
     year: int,
     as_of: str,
+    funding_plan_candidates: Sequence[Path] = (),
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
     indexes = _project_indexes(projects, year)
     events: List[Dict[str, Any]] = []
-    funding_plan_events: Dict[str, Dict[str, Any]] = {}
-    funding_plan_conflicts: Set[str] = set()
+    funding_plan_observations: List[Dict[str, Any]] = []
     reviews: List[Dict[str, Any]] = []
     sources: List[Dict[str, Any]] = []
     seen_archives: Set[str] = set()
+    seen_funding_payloads: Set[str] = set()
     seen_messages: Set[str] = set()
     message_count = 0
     approved_count = 0
     funding_plan_member_count = 0
-    funding_plan_approved_row_count = 0
-    funding_plan_mapped_row_count = 0
+    funding_plan_approved_appearance_count = 0
+    standalone_funding_plan_count = 0
     for path in candidates:
         digest = sha256_file(path)
         if digest in seen_archives:
@@ -3046,214 +3533,35 @@ def parse_dws_approvals(
                     for info in archive.infolist()
                     if not info.is_dir()
                     and info.filename.lower().endswith(".xlsx")
-                    and "项目资金计划" in PurePosixPath(info.filename).name
+                    and any(
+                        marker in PurePosixPath(info.filename).name
+                        for marker in FUNDING_PLAN_FILENAME_MARKERS
+                    )
                 ]
                 for member in funding_members:
                     funding_plan_member_count += 1
                     try:
-                        workbook = open_xlsx_payload(archive.read(member))
-                        selected_sheet = None
-                        header_row = None
-                        headers = None
-                        for sheet in workbook.worksheets:
-                            try:
-                                row_number, mapping = locate_header(
-                                    sheet,
-                                    (
-                                        "申请编号",
-                                        "关联主合同",
-                                        "累计报销金额",
-                                        "审批状态",
-                                        "报销说明",
-                                    ),
-                                )
-                            except ProjectCostError:
-                                continue
-                            selected_sheet = sheet
-                            header_row = row_number
-                            headers = mapping
-                            break
-                        if (
-                            selected_sheet is None
-                            or header_row is None
-                            or headers is None
-                        ):
-                            raise ProjectCostError(
-                                "DWS_FUNDING_PLAN_SCHEMA",
-                                "project funding plan schema was not recognized",
+                        member_payload = archive.read(member)
+                        member_digest = sha256_bytes(member_payload)
+                        if member_digest in seen_funding_payloads:
+                            continue
+                        seen_funding_payloads.add(member_digest)
+                        parsed_observations, parsed_meta = (
+                            _parse_funding_plan_payload(
+                                member_payload,
+                                source_id="src_" + digest[:24],
+                                source_member=member.filename,
                             )
-                        for row_number, row in enumerate(
-                            selected_sheet.iter_rows(
-                                min_row=header_row + 1,
-                                values_only=True,
-                            ),
-                            header_row + 1,
-                        ):
-                            values = _row_dict(row, headers)
-                            approval_id = normalize_text(
-                                values.get("申请编号")
+                        )
+                        funding_plan_observations.extend(
+                            parsed_observations
+                        )
+                        funding_plan_approved_appearance_count += int(
+                            parsed_meta.get(
+                                "approved_appearance_row_count",
+                                0,
                             )
-                            if (
-                                not approval_id
-                                or normalize_text(values.get("审批状态"))
-                                != "已通过"
-                            ):
-                                continue
-                            funding_plan_approved_row_count += 1
-                            amount_minor = cents(
-                                values.get("累计报销金额")
-                            )
-                            if amount_minor is None or amount_minor <= 0:
-                                continue
-                            date_match = re.search(
-                                r"(20\d{2})(\d{2})(\d{2})",
-                                approval_id,
-                            )
-                            if not date_match:
-                                reviews.append(
-                                    {
-                                        "severity": "P1",
-                                        "type": "DWS_APPROVED_COST_DATE_UNRESOLVED",
-                                        "approval_id_hash": sha256_bytes(
-                                            approval_id.encode("utf-8")
-                                        )[:16],
-                                        "action": "审批日期不能从稳定申请编号解析；不得计入正式应计",
-                                    }
-                                )
-                                continue
-                            observed = "%s-%s-%s" % date_match.groups()
-                            try:
-                                date.fromisoformat(observed)
-                            except ValueError:
-                                continue
-                            if (
-                                not observed.startswith("%04d-" % year)
-                                or observed > as_of
-                            ):
-                                continue
-                            related_contract = str(
-                                values.get("关联主合同") or ""
-                            ).strip()
-                            description = str(
-                                values.get("报销说明") or ""
-                            ).strip()
-                            counterparty = " ".join(
-                                str(values.get(name) or "")
-                                for name in ("收款单位", "收款账户")
-                            )
-                            narrative = " | ".join(
-                                value
-                                for value in (
-                                    related_contract,
-                                    description,
-                                    counterparty,
-                                )
-                                if value
-                            )
-                            exclusion = next(
-                                (
-                                    marker
-                                    for marker in (
-                                        "保证金",
-                                        "押金",
-                                        "定金",
-                                        "借款",
-                                        "贷款",
-                                        "回款",
-                                        "收票",
-                                        "罚款",
-                                    )
-                                    if marker in narrative
-                                ),
-                                None,
-                            )
-                            if exclusion:
-                                reviews.append(
-                                    {
-                                        "severity": "P2",
-                                        "type": "DWS_APPROVED_NON_COST_EXCLUDED",
-                                        "approval_id_hash": sha256_bytes(
-                                            approval_id.encode("utf-8")
-                                        )[:16],
-                                        "amount_cents": amount_minor,
-                                        "reason": exclusion,
-                                        "action": "审批事实保留；非成本或尚未发生项目不进入成本公式",
-                                    }
-                                )
-                                continue
-                            project, identity_reason = (
-                                resolve_narrative_identity(
-                                    narrative,
-                                    observed,
-                                    indexes,
-                                    status_map,
-                                )
-                            )
-                            if project is None:
-                                if related_contract:
-                                    reviews.append(
-                                        {
-                                            "severity": "P2",
-                                            "type": "DWS_APPROVED_COST_PROJECT_UNRESOLVED",
-                                            "approval_id_hash": sha256_bytes(
-                                                approval_id.encode("utf-8")
-                                            )[:16],
-                                            "amount_cents": amount_minor,
-                                            "identity_reason": identity_reason,
-                                            "action": "保留未分配审批成本；禁止关键词强行归项目",
-                                        }
-                                    )
-                                continue
-                            project_base = str(project["contract_base"])
-                            candidate = {
-                                "event_id": "dws_funding_"
-                                + sha256_bytes(
-                                    stable_json(
-                                        [
-                                            approval_id,
-                                            project_base,
-                                            amount_minor,
-                                        ]
-                                    )
-                                )[:24],
-                                "project": project_base,
-                                "plane": "DWS_APPROVED_COST",
-                                "category": _funding_plan_category(
-                                    description,
-                                    counterparty,
-                                ),
-                                "amount_cents": amount_minor,
-                                "posting_date": observed,
-                                "summary": description,
-                                "counterparty": counterparty,
-                                "source_id": "src_" + digest[:24],
-                                "source_member": member.filename,
-                                "row": row_number,
-                                "identity_reason": identity_reason,
-                                "approval_id": approval_id,
-                                "approval_authority_verified": True,
-                                "approval_state_source": "审批状态=已通过",
-                                "payment_status": str(
-                                    values.get("支付状态") or ""
-                                ).strip(),
-                            }
-                            existing = funding_plan_events.get(approval_id)
-                            if existing is None:
-                                funding_plan_events[approval_id] = candidate
-                                funding_plan_mapped_row_count += 1
-                            elif (
-                                existing["project"],
-                                existing["category"],
-                                existing["amount_cents"],
-                                existing["posting_date"],
-                            ) != (
-                                candidate["project"],
-                                candidate["category"],
-                                candidate["amount_cents"],
-                                candidate["posting_date"],
-                            ):
-                                funding_plan_conflicts.add(approval_id)
-                        workbook.close()
+                        )
                     except Exception as exc:
                         reviews.append(
                             {
@@ -3297,28 +3605,91 @@ def parse_dws_approvals(
                 },
             )
         )
-    for approval_id in sorted(funding_plan_conflicts):
-        funding_plan_events.pop(approval_id, None)
-        reviews.append(
-            {
-                "severity": "P1",
-                "type": "DWS_APPROVED_COST_EXPORT_CONFLICT",
-                "approval_id_hash": sha256_bytes(
-                    approval_id.encode("utf-8")
-                )[:16],
-                "action": "同一申请编号在导出中金额或项目冲突；禁止选边",
-            }
+    for path in funding_plan_candidates:
+        digest = sha256_file(path)
+        selected = False
+        metadata: Dict[str, Any] = {}
+        reason = "standalone project-funding state snapshot"
+        if digest in seen_funding_payloads:
+            reason = "byte-identical funding snapshot already represented"
+        else:
+            try:
+                payload = read_path_bytes(path)
+                parsed_observations, metadata = (
+                    _parse_funding_plan_payload(
+                        payload,
+                        source_id="src_" + digest[:24],
+                        source_member=relative_to_any(path, roots),
+                    )
+                )
+                seen_funding_payloads.add(digest)
+                funding_plan_observations.extend(
+                    parsed_observations
+                )
+                funding_plan_approved_appearance_count += int(
+                    metadata.get(
+                        "approved_appearance_row_count",
+                        0,
+                    )
+                )
+                standalone_funding_plan_count += 1
+                selected = True
+            except Exception as exc:
+                reviews.append(
+                    {
+                        "severity": "P1",
+                        "type": "DWS_FUNDING_PLAN_REJECTED",
+                        "source": relative_to_any(path, roots),
+                        "detail": "%s: %s"
+                        % (type(exc).__name__, str(exc)),
+                        "action": "资金计划底表未读通；整批正式发布保持阻断",
+                    }
+                )
+                reason = "funding snapshot rejected by schema or safety gate"
+        sources.append(
+            dict(
+                source_record(
+                    path,
+                    roots,
+                    selected=selected,
+                    reason=reason,
+                ),
+                source_slot="approved_project_funding_plan",
+                logical_metadata=metadata,
+            )
         )
+    (
+        funding_plan_events,
+        funding_plan_reviews,
+        funding_plan_meta,
+    ) = _resolve_funding_plan_observations(
+        funding_plan_observations,
+        projects,
+        status_map,
+        year,
+        as_of,
+    )
+    reviews.extend(funding_plan_reviews)
     events.extend(
-        funding_plan_events[key]
-        for key in sorted(funding_plan_events)
+        sorted(
+            funding_plan_events,
+            key=lambda event: str(event.get("approval_id") or ""),
+        )
     )
     return events, _dedupe_review_rows(reviews), sources, {
         "message_count": message_count,
         "approval_like_reaction_count": approved_count,
         "funding_plan_member_count": funding_plan_member_count,
-        "funding_plan_approved_row_count": funding_plan_approved_row_count,
+        "standalone_funding_plan_count": standalone_funding_plan_count,
+        "funding_plan_approved_appearance_row_count": (
+            funding_plan_approved_appearance_count
+        ),
+        "funding_plan_approved_row_count": funding_plan_meta.get(
+            "latest_approved_application_count",
+            0,
+        ),
         "funding_plan_mapped_row_count": len(funding_plan_events),
+        "funding_plan_state_resolution": funding_plan_meta,
         "observed_event_count": len(events),
         "formal_amount_use": bool(funding_plan_events),
     }
@@ -6073,6 +6444,7 @@ def build_snapshot(
         status_map,
         year,
         as_of,
+        candidates["funding_plan"],
     )
     (
         approved_cost_detail_path,

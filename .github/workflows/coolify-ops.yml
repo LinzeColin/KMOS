@@ -160,7 +160,8 @@ jobs:
                           formal_over_70 += (
                               (revenue - formal_cost) * 10000 // revenue > 7000
                           )
-                  reviews = snapshot.get("review_summary") or {}
+                  review_summary = snapshot.get("review_summary") or {}
+                  reviews = review_summary.get("by_severity") or {}
                   coverage = snapshot.get("coverage") or {}
                   print(json.dumps({
                       "status": "DIAGNOSTIC_COMPLETE",

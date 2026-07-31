@@ -1315,6 +1315,132 @@ def test_project_invoice_conflict_excludes_the_complete_invoice_project_group(
     assert reviews[0]["type"] == "PROJECT_INVOICE_ALLOCATION_CONFLICT"
 
 
+def test_project_invoice_number_is_recovered_from_unambiguous_attachment_name(
+    tmp_path: Path,
+):
+    path = tmp_path / "项目开票_导出文件_附件票号.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(
+        [
+            "发票号码",
+            "开票状态",
+            "开票日期",
+            "本次开票含税金额(元)",
+            "税率(%)",
+            "开票单位",
+            "审批状态",
+            "合同编号(合同名称)",
+            "发票回填",
+            "发票回填",
+        ]
+    )
+    sheet.append(
+        [
+            "待开票",
+            "已开票",
+            "2099-02-01",
+            Decimal("113.00"),
+            "13%",
+            "合成企业甲",
+            "已通过",
+            "KMX20990101-001",
+            "dzfp_12345678901234567890_合成.pdf",
+            "https://example.invalid/download",
+        ]
+    )
+    workbook.save(path)
+    workbook.close()
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成项目甲",
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        }
+    ]
+
+    events, reviews, diagnostics = operational.parse_project_invoice_tax(
+        path,
+        projects,
+        2099,
+        "2099-02-28",
+    )
+
+    assert reviews == []
+    assert len(events) == 1
+    assert events[0]["amount_cents"] == 1_300
+    assert events[0]["invoice_number_hash"] == sha256_bytes(
+        b"12345678901234567890"
+    )[:16]
+    assert diagnostics["recovered_invoice_number_rows"] == 1
+    assert diagnostics["conflicting_attachment_number_rows"] == 0
+
+
+def test_project_invoice_attachment_conflict_fails_closed_and_is_scoped(
+    tmp_path: Path,
+):
+    path = tmp_path / "项目开票_导出文件_附件票号冲突.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(
+        [
+            "发票号码",
+            "开票状态",
+            "开票日期",
+            "本次开票含税金额(元)",
+            "税率(%)",
+            "开票单位",
+            "审批状态",
+            "合同编号(合同名称)",
+            "发票回填",
+            "发票回填",
+        ]
+    )
+    sheet.append(
+        [
+            "待开票",
+            "已开票",
+            "2099-02-01",
+            Decimal("113.00"),
+            "13%",
+            "合成企业甲",
+            "已通过",
+            "KMX20990101-001",
+            "dzfp_12345678901234567890_合成.pdf",
+            "dzfp_09876543210987654321_冲突.pdf",
+        ]
+    )
+    workbook.save(path)
+    workbook.close()
+    projects = [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成项目甲",
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        }
+    ]
+
+    events, reviews, diagnostics = operational.parse_project_invoice_tax(
+        path,
+        projects,
+        2099,
+        "2099-02-28",
+    )
+
+    assert events == []
+    assert reviews[0]["type"] == "PROJECT_INVOICE_ATTACHMENT_NUMBER_CONFLICT"
+    assert reviews[0]["project"] == "KMX20990101-001"
+    assert diagnostics["conflicting_attachment_number_rows"] == 1
+
+
 def test_funding_plan_uses_description_not_customer_name_for_cost_category(
     tmp_path: Path,
 ):
@@ -1383,6 +1509,179 @@ def test_funding_plan_uses_description_not_customer_name_for_cost_category(
     assert events[0]["category"] == "交通/差旅"
     assert events[0]["amount_cents"] == 12_345
     assert diagnostics["funding_plan_mapped_row_count"] == 1
+
+
+def _write_funding_snapshot(
+    path: Path,
+    *,
+    approval_state: str,
+    amount: str = "123.45",
+    payment_status: str = "未支付",
+) -> None:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "项目资金支出"
+    sheet.append(
+        [
+            "申请编号",
+            "关联主合同",
+            "累计报销金额",
+            "审批状态",
+            "报销说明",
+            "收款单位",
+            "收款账户",
+            "支付状态",
+        ]
+    )
+    sheet.append(
+        [
+            "APP209902010001",
+            "KMX20990101-001 合成项目甲",
+            Decimal(amount),
+            approval_state,
+            "项目交通费",
+            "",
+            "",
+            payment_status,
+        ]
+    )
+    workbook.save(path)
+    workbook.close()
+
+
+def _funding_projects() -> list:
+    return [
+        {
+            "canonical_contract_id": "KMX20990101-001",
+            "contract_base": "KMX20990101-001",
+            "project_name": "合成项目甲",
+            "customer": "合成客户甲",
+            "contractor": "合成企业甲",
+            "created_date": "2099-01-01",
+            "year": 2099,
+        }
+    ]
+
+
+def test_standalone_funding_plan_uses_latest_explicit_approval_state(
+    tmp_path: Path,
+):
+    pending = tmp_path / "项目资金支出-2099.02.05.xlsx"
+    approved = tmp_path / "项目资金支出-2099.02.06.xlsx"
+    _write_funding_snapshot(pending, approval_state="审批中")
+    _write_funding_snapshot(approved, approval_state="已通过")
+
+    events, reviews, sources, diagnostics = parse_dws_approvals(
+        (),
+        (tmp_path,),
+        _funding_projects(),
+        {},
+        2099,
+        "2099-02-28",
+        (pending, approved),
+    )
+
+    assert reviews == []
+    assert len(events) == 1
+    assert events[0]["amount_cents"] == 12_345
+    assert events[0]["approval_state_source"].startswith(
+        "latest_snapshot:"
+    )
+    assert len([source for source in sources if source["selected"]]) == 2
+    assert diagnostics["standalone_funding_plan_count"] == 2
+    assert diagnostics["funding_plan_mapped_row_count"] == 1
+
+
+def test_funding_snapshot_date_does_not_cross_directory_boundary():
+    assert operational._funding_snapshot_label_date(
+        "2026-05/2026.5.15付款计划.xlsx",
+        "2026-05-14",
+    ) == "2026-05-15"
+
+
+def test_standalone_funding_plan_latest_revocation_excludes_prior_approval(
+    tmp_path: Path,
+):
+    approved = tmp_path / "项目资金支出-2099.02.05.xlsx"
+    revoked = tmp_path / "项目资金支出-2099.02.06.xlsx"
+    _write_funding_snapshot(approved, approval_state="已通过")
+    _write_funding_snapshot(revoked, approval_state="已撤回")
+
+    events, reviews, _sources, diagnostics = parse_dws_approvals(
+        (),
+        (tmp_path,),
+        _funding_projects(),
+        {},
+        2099,
+        "2099-02-28",
+        (approved, revoked),
+    )
+
+    assert reviews == []
+    assert events == []
+    state_resolution = diagnostics["funding_plan_state_resolution"]
+    assert state_resolution["latest_nonapproved_application_count"] == 1
+
+
+def test_standalone_funding_plan_latest_snapshot_conflict_fails_closed(
+    tmp_path: Path,
+):
+    left = tmp_path / "项目资金支出-A-2099.02.07.xlsx"
+    right = tmp_path / "项目资金支出-B-2099.02.07.xlsx"
+    _write_funding_snapshot(left, approval_state="已通过")
+    _write_funding_snapshot(
+        right,
+        approval_state="已通过",
+        amount="223.45",
+    )
+
+    events, reviews, _sources, diagnostics = parse_dws_approvals(
+        (),
+        (tmp_path,),
+        _funding_projects(),
+        {},
+        2099,
+        "2099-02-28",
+        (left, right),
+    )
+
+    assert events == []
+    assert reviews[0]["type"] == (
+        "APPROVED_COST_LATEST_SNAPSHOT_CONFLICT"
+    )
+    assert (
+        diagnostics["funding_plan_state_resolution"][
+            "latest_snapshot_conflict_count"
+        ]
+        == 1
+    )
+
+
+def test_standalone_funding_plan_explicit_zero_needs_no_payment(
+    tmp_path: Path,
+):
+    zero = tmp_path / "项目资金支出-2099.02.07.xlsx"
+    _write_funding_snapshot(
+        zero,
+        approval_state="已通过",
+        amount="0",
+        payment_status="无需支付",
+    )
+
+    events, reviews, _sources, diagnostics = parse_dws_approvals(
+        (),
+        (tmp_path,),
+        _funding_projects(),
+        {},
+        2099,
+        "2099-02-28",
+        (zero,),
+    )
+
+    assert events == []
+    assert reviews[0]["severity"] == "P2"
+    assert reviews[0]["type"] == "DWS_APPROVED_ZERO_COST_EXCLUDED"
+    assert diagnostics["funding_plan_mapped_row_count"] == 0
 
 
 def test_official_project_attendance_maps_exact_employee_project_days(
