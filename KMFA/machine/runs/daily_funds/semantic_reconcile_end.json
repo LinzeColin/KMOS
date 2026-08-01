@@ -1,0 +1,92 @@
+{
+  "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
+  "stage": "T99_END",
+  "observed_at": "2026-08-01T13:27:52Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "verification": "PASS"
+  },
+  "git_baseline": {
+    "start_origin_main": "910d02763f01cc6db5263b0e1867c06b4f8f5933",
+    "implementation_commit": "42acfe4b0c509f2151b71d50b36fc0b890171a96",
+    "release_commit": "f75a1dc6dadf61f3645080fb913648fccd757c08",
+    "end_origin_main": "f75a1dc6dadf61f3645080fb913648fccd757c08",
+    "direct_main_push": true,
+    "branch_or_pr_created": false
+  },
+  "semantic_reconcile": [
+    {
+      "subject": "independent_daily_funds_runtime",
+      "classification": "IMPLEMENTED",
+      "evidence": "独立 Docker service、own state/DWS/publication/control volumes、15 分钟 history poll、cron、healthcheck 均在 CI 真容器通过。"
+    },
+    {
+      "subject": "raw_evidence_authority",
+      "classification": "IMPLEMENTED_NOT_REAL_INPUT_VERIFIED",
+      "evidence": "代码只允许 Private-Database/KMFA/daily_funds 窄 sparse single-writer；Git 回读后才进入 R2/解析。未在本次发布中读取或写入任何真实原始消息/附件。"
+    },
+    {
+      "subject": "integer_reconciliation_and_thresholds",
+      "classification": "IMPLEMENTED_AND_TESTED",
+      "evidence": "整数分账户/流水零差 Oracle、固定 60/120 万线、完整自然月 3/6 月线、自定义版本控制和周末承接/工作日缺口均由 contract/API 回归覆盖。"
+    },
+    {
+      "subject": "d1_r2_oci_and_restore",
+      "classification": "IMPLEMENTED_AND_SYNTHETICALLY_VERIFIED",
+      "evidence": "CI 的结构化数据库、对象存储、一致性状态机和空环境恢复门均 PASS；代码恢复前校验 OCI 哈希、Git bundle 实导入、原始 commit、R2 inventory 与 D1 Query Oracle。"
+    },
+    {
+      "subject": "kmfa_private_ui",
+      "classification": "IMPLEMENTED_AND_TESTED",
+      "evidence": "私有页面仅读验证 projection；本地合成投影验收了今天页按需不请求、进入每日资金页后加载、30/7 天范围、固定线、0 分勾稽和冷备状态；CI 私有 App 全流 PASS。"
+    },
+    {
+      "subject": "first_e2e_failure",
+      "classification": "CORRECTED",
+      "evidence": "run 30700821351 在默认今天页因未选中页面仍拉取每日资金接口，使 networkidle 超时；f75a1dc6 改为仅选中每日资金页时读取，run 30701246490 的私有 App 全流随后 PASS。"
+    }
+  ],
+  "validation": {
+    "local": {
+      "daily_funds_contract": "PASS 18",
+      "daily_funds_api_and_health": "PASS 17",
+      "backend_full_regression": "PASS 850",
+      "frontend_production_build": "PASS",
+      "taskpack_projection_and_dual_plane": "PASS",
+      "local_docker_daemon": "UNKNOWN_DAEMON_UNAVAILABLE"
+    },
+    "github": {
+      "governance_run": "PASS 30701246293",
+      "app_e2e_run": "PASS 30701246490",
+      "daily_funds_real_container": "PASS image, cron, healthcheck",
+      "structured_database": "PASS",
+      "object_storage": "PASS",
+      "consistency_state_machine": "PASS",
+      "retention_restore": "PASS",
+      "private_app_end_to_end": "PASS",
+      "secret_scan": "PASS",
+      "sbom_vulnerabilities": "PASS HIGH=0 CRITICAL=0"
+    }
+  },
+  "production_deployment": {
+    "github_run_url": "https://github.com/LinzeColin/KMOS/actions/runs/30701246490",
+    "coolify_application_uuid": "gz5qao2k0zrx3polpbwgcg51",
+    "coolify_deployment_uuid": "neazx7udbzt7psg42uw00jf8",
+    "coolify_status": "finished",
+    "deployment_triggered_at": "2026-08-01T13:20:14Z",
+    "deployment_finished_at": "2026-08-01T13:26:37Z",
+    "deployed_commit_receipt": "f75a1dc6dadf61f3645080fb913648fccd757c08",
+    "coolify_live_source_readback": "UNKNOWN_NOT_RETURNED_BY_GOLDEN_PATH",
+    "post_deploy_remote_exec": "UNKNOWN_NO_COOLIFY_EXEC_RECEIPT"
+  },
+  "real_data_chain": {
+    "independent_dws_group_sender_identity": "UNKNOWN_NO_POST_DEPLOY_IDENTITY_RECEIPT",
+    "private_database_sparse_deploy_key": "UNKNOWN_NO_POST_DEPLOY_IDENTITY_RECEIPT",
+    "dedicated_d1_r2_oci_resources": "UNKNOWN_NO_POST_DEPLOY_RESOURCE_RECEIPT",
+    "real_message_attachment_ingestion": "UNKNOWN_NO_VALID_PRODUCTION_PUBLICATION",
+    "real_money_result": "UNKNOWN_NOT_COMPUTED",
+    "rule": "UNKNOWN is never converted to PASS; the UI must show 需处理 until the independent source, storage and publication gates create a VALID projection."
+  },
+  "final_status": "CODE_AND_DEPLOYMENT_PASS__REAL_DAILY_FUNDS_DATA_CHAIN_UNKNOWN_FAIL_CLOSED"
+}
