@@ -1,0 +1,69 @@
+{
+  "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
+  "stage": "T00_START",
+  "observed_at": "2026-08-01T11:22:02Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "verified": true
+  },
+  "git_baseline": {
+    "origin_main": "910d02763f01cc6db5263b0e1867c06b4f8f5933",
+    "working_head": "910d02763f01cc6db5263b0e1867c06b4f8f5933",
+    "baseline_mode": "detached_origin_main",
+    "working_tree_clean": true
+  },
+  "production_identity": {
+    "source_commit": "910d02763f01cc6db5263b0e1867c06b4f8f5933",
+    "image_digest": "sha256:1a5d7a180dd3822fb31e073e70a465d34c429451bf317cb5c1ec227b4920c8bd",
+    "platform_status": "finished",
+    "application_health": "running:healthy",
+    "container_probe": "UNKNOWN_COOLIFY_EXEC_404",
+    "identity_receipt_sha256": "ac0bd08ab13b9bb318ce7c0e2c25be25665dd6564bf509ec17e40929de697982"
+  },
+  "semantic_reconcile": [
+    {
+      "subject": "existing_upstream_dws_archive",
+      "classification": "CONFLICT",
+      "decision": "do_not_depend_on_it",
+      "reason": "Daily-funds requires its own DWS identity, cursor, state and raw path."
+    },
+    {
+      "subject": "existing_skills_runtime",
+      "classification": "CONFLICT",
+      "decision": "do_not_share_runtime_or_volumes",
+      "reason": "The task requires an independently schedulable cloud service and forbids reusing other skills or login state."
+    },
+    {
+      "subject": "KMFA_private_operations_app",
+      "classification": "ADAPT",
+      "decision": "add_private_tab_and_read_only_projection",
+      "reason": "Reuse the protected KMFA UI shell only; do not expose raw messages or attachments."
+    },
+    {
+      "subject": "Coolify_deployment_plane",
+      "classification": "ADAPT",
+      "decision": "add_independent_service_to_existing_compose",
+      "reason": "Coolify is the established cloud orchestration plane."
+    },
+    {
+      "subject": "Private_Database_no_clone_rule",
+      "classification": "OWNER_EXCEPTION_APPLIES",
+      "decision": "narrow_single_writer_sparse_clone_only",
+      "reason": "The task pack explicitly permits only the daily-funds raw/manifest writer to use a private-repository sparse clone."
+    },
+    {
+      "subject": "Cloudflare_D1_R2",
+      "classification": "NEW_RESOURCE_REQUIRED",
+      "decision": "provision_only_after_code_gate",
+      "reason": "No dedicated daily-funds D1 database or R2 bucket was present in the production inventory."
+    },
+    {
+      "subject": "DingTalk_and_OCI_runtime_identity",
+      "classification": "UNKNOWN",
+      "decision": "fail_closed_and_register_need_action",
+      "reason": "No independent daily-funds credentials or target binding were found in the current production configuration."
+    }
+  ],
+  "release_rule": "UNKNOWN is never converted to PASS; end-of-run reconciliation must be written after deployment evidence is collected."
+}

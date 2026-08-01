@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import './app.css'
 import * as echarts from 'echarts/core'
-import { BarChart, PieChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
+import { BarChart, LineChart, PieChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent } from 'echarts/components'
 import { SVGRenderer } from 'echarts/renderers'
 
-echarts.use([BarChart, PieChart, GridComponent, TooltipComponent, LegendComponent, SVGRenderer])
+echarts.use([BarChart, LineChart, PieChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, SVGRenderer])
 
 function Chart({ option, height = '16rem' }) {
   const ref = useRef(null)
@@ -1763,11 +1763,149 @@ function 项目成本({ 成本 }) {
   )
 }
 
+/* ---------- 每日资金（私有已验证投影；不直连 DWS/Git/D1/R2） ---------- */
+
+const 资金范围 = ['1d', '7d', '30d', '90d', '180d', '360d']
+const 资金范围话 = { '1d': '1 天', '7d': '7 天', '30d': '30 天', '90d': '90 天', '180d': '180 天', '360d': '360 天' }
+
+function 每日资金({ 摘要, 时序, 来源, 阈值, 范围, 设范围, 自定义, 设自定义, 刷新 }) {
+  const [阈值模式, 设阈值模式] = useState('numeric')
+  const [阈值金额, 设阈值金额] = useState('')
+  const [阈值日期, 设阈值日期] = useState({ from: '', to: '' })
+  const [阈值原因, 设阈值原因] = useState('')
+  const [阈值提交, 设阈值提交] = useState(null)
+  const 主状态 = 来源?.human_status || '处理中'
+  const 状态色 = 主状态 === '需处理' ? 'bad' : 主状态 === '处理中' ? 'warn' : 'ok'
+  const 取不到 = 摘要?.加载失败 || 时序?.加载失败
+  const points = (时序?.points || 摘要?.points || []).filter(p => Number.isInteger(p.ending_available_fen))
+  const threshold = 时序?.thresholds || 阈值?.active || {}
+  const fixed = threshold.fixed || {}
+  const floating = (threshold.floating || []).filter(x => x?.active && Number.isInteger(x.threshold_fen))
+  const option = useMemo(() => {
+    if (!points.length) return null
+    const fixedLines = []
+    if (Number.isInteger(fixed.hard_fen)) fixedLines.push({ name: '固定高风险线', yAxis: fixed.hard_fen / 100, lineStyle: { color: '#c2410c', type: 'dashed' } })
+    if (Number.isInteger(fixed.soft_fen)) fixedLines.push({ name: '固定关注线', yAxis: fixed.soft_fen / 100, lineStyle: { color: '#b7791f', type: 'dashed' } })
+    floating.forEach(line => fixedLines.push({ name: line.name, yAxis: line.threshold_fen / 100, lineStyle: { color: '#64748b', type: 'dotted' } }))
+    return {
+      tooltip: { trigger: 'axis', formatter: rows => {
+        const row = points[rows?.[0]?.dataIndex]
+        return row ? `${row.business_date}<br/>可用资金：${金额(row.ending_available_fen / 100)}` : ''
+      } },
+      grid: { left: 8, right: 12, top: 20, bottom: 16, containLabel: true },
+      xAxis: { type: 'category', data: points.map(p => p.business_date.slice(5)), axisLabel: { fontSize: 10 } },
+      yAxis: { type: 'value', axisLabel: { formatter: value => `¥${(value / 10000).toFixed(0)}万`, fontSize: 10 } },
+      series: [{
+        type: 'line', name: '可用资金', smooth: true, showSymbol: points.length < 60,
+        data: points.map(p => p.ending_available_fen / 100),
+        lineStyle: { color: '#1d5c8f', width: 2 }, areaStyle: { color: 'rgba(29,92,143,.12)' },
+        markLine: fixedLines.length ? { silent: true, symbol: 'none', label: { fontSize: 10 }, data: fixedLines } : undefined,
+      }],
+    }
+  }, [points, fixed.hard_fen, fixed.soft_fen, floating])
+
+  const 应用自定义 = () => {
+    if (自定义.from && 自定义.to) { 设范围('custom'); 刷新('custom', 自定义.from, 自定义.to) }
+  }
+  const 提交自定义阈值 = async () => {
+    const reason = 阈值原因.trim()
+    if (!reason) { 设阈值提交({ ok: false, text: '请填写调整原因。' }); return }
+    const body = { mode: 阈值模式, reason, expected_revision: 阈值?.control?.revision ?? null }
+    if (阈值模式 === 'numeric') {
+      const matched = 阈值金额.trim().match(/^(\d+)(?:\.(\d{1,2}))?$/)
+      if (!matched) { 设阈值提交({ ok: false, text: '请输入最多两位小数的人民币金额。' }); return }
+      const amountFen = Number(matched[1]) * 100 + Number(((matched[2] || '') + '00').slice(0, 2))
+      if (!Number.isSafeInteger(amountFen) || amountFen > 999999999999999) { 设阈值提交({ ok: false, text: '金额超出允许范围。' }); return }
+      body.amount_fen = amountFen
+    }
+    if (阈值模式 === 'date_range') {
+      if (!阈值日期.from || !阈值日期.to) { 设阈值提交({ ok: false, text: '请填写自定义阈值的开始与结束日期。' }); return }
+      body.from = 阈值日期.from
+      body.to = 阈值日期.to
+    }
+    try {
+      const response = await fetch('/api/daily-funds/thresholds', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.detail || `HTTP ${response.status}`)
+      设阈值提交({ ok: true, text: '已提交给独立资金服务复核；通过覆盖与版本校验后才会生效。' })
+      刷新()
+    } catch (error) {
+      设阈值提交({ ok: false, text: `提交失败：${error.message || '未知错误'}` })
+    }
+  }
+  return (
+    <>
+      <div className={`card callout ${主状态 === '已更新' ? '' : 状态色}`}>
+        <b>运行状态：<span className={`chip ${状态色}`}>{主状态}</span></b>
+        <div className="sub">有效业务日期：{来源?.effective_business_date || 摘要?.publication?.business_date || '未验证'}｜最后验证：{来源?.last_verified_at || '未验证'}</div>
+        {主状态 !== '已更新' && <div className="sub">当前没有被新数据覆盖；页面只会保留上一份已验证结果，不把 UNKNOWN 写成已更新。</div>}
+        <div className="sub">冷备：{来源?.backup_state || 摘要?.publication?.oci_backup_state || 'UNKNOWN'}｜机器状态：{来源?.machine_code || 'UNKNOWN'}</div>
+      </div>
+
+      <div className="grid" style={{ marginTop: 14 }}>
+        <Kpi 标="当前可用资金" 值={摘要 && !摘要.加载失败 && Number.isInteger(摘要.total_available_fen) ? 金额(摘要.total_available_fen / 100) : '—'} 小 />
+        <Kpi 标="固定风险" 值={摘要?.risk_label || '数据不足'} 色={摘要?.risk_label === '高风险' ? 'bad' : 摘要?.risk_label === '关注' ? 'warn' : undefined} />
+        <Kpi 标="动态观察" 值={摘要?.dynamic_flag || '无'} 色={摘要?.dynamic_flag ? 'warn' : undefined} />
+        <Kpi 标="勾稽差异" 值={摘要?.publication?.reconciliation_difference_fen === 0 ? '0 分' : '未验证'} 色={摘要?.publication?.reconciliation_difference_fen === 0 ? 'ok' : 'warn'} />
+      </div>
+
+      <div className="card" style={{ marginTop: 14 }}>
+        <div className="toolbar" role="group" aria-label="资金时间范围">
+          {资金范围.map(key => <button key={key} type="button" className={范围 === key ? 'btn active' : 'btn'} aria-pressed={范围 === key}
+            onClick={() => { 设范围(key); 刷新(key) }}>{资金范围话[key]}</button>)}
+          <label className="muted">自定义开始 <input aria-label="自定义开始日期" type="date" value={自定义.from} onChange={e => 设自定义({ ...自定义, from: e.target.value })} /></label>
+          <label className="muted">结束 <input aria-label="自定义结束日期" type="date" value={自定义.to} onChange={e => 设自定义({ ...自定义, to: e.target.value })} /></label>
+          <button type="button" className="btn" onClick={应用自定义} disabled={!自定义.from || !自定义.to}>应用</button>
+        </div>
+        {范围 === 'custom' && <p className="hint">自定义区间至少 7 个自然日；数据覆盖不足时动态线会自动停用。</p>}
+        {取不到 && <加载失败卡 详情={(摘要?.加载失败 || 时序?.加载失败)} 需要登录={摘要?.需要登录 || 时序?.需要登录} 接口={摘要?.接口 || 时序?.接口} />}
+        {!取不到 && !points.length && <div className="card callout warn" style={{ marginTop: 12 }}><b>暂无已验证的资金时点</b><div className="sub">先看运行状态；在来源、附件、勾稽与发布链全部通过前，系统不绘制猜测曲线。</div></div>}
+        {option && <><div className="muted" style={{ marginTop: 12 }}>可用资金趋势（默认 30 天；固定 60/120 万线与可用动态线）</div><Chart option={option} height="22rem" /></>}
+      </div>
+
+      <h3 className="sec">阈值与数据覆盖</h3>
+      <Tbl>
+        <thead><tr><th>规则</th><th className="num">金额</th><th>窗口/覆盖</th><th>是否启用</th></tr></thead>
+        <tbody>
+          <tr><td>固定高风险线</td><td className="num">{Number.isInteger(fixed.hard_fen) ? 金额(fixed.hard_fen / 100) : '—'}</td><td>≤ 固定线</td><td>固定</td></tr>
+          <tr><td>固定关注线</td><td className="num">{Number.isInteger(fixed.soft_fen) ? 金额(fixed.soft_fen / 100) : '—'}</td><td>高风险线以上且 ≤ 固定线</td><td>固定</td></tr>
+          {(threshold.floating || []).map(line => <tr key={line.name}>
+            <td>{line.name}</td><td className="num">{Number.isInteger(line.threshold_fen) ? 金额(line.threshold_fen / 100) : '数据不足'}</td>
+            <td>{line.start && line.end ? `${line.start} 至 ${line.end}｜覆盖 ${line.coverage || '—'}｜直测 ${line.direct_observations ?? '—'} 天｜承接 ${line.carried_forward_days ?? '—'} 天` : line.reason || '—'}</td>
+            <td>{line.active ? <span className="chip ok">启用</span> : <span className="chip warn">停用</span>}</td>
+          </tr>)}
+        </tbody>
+      </Tbl>
+
+      <div className="card threshold-control">
+        <div><b>自定义浮动阈值</b><div className="sub">固定 60/120 万线不可编辑；此处仅提交带原因、带版本的全局动态观察线，由独立服务按覆盖规则复核。</div></div>
+        <div className="formrow" role="group" aria-label="自定义浮动阈值">
+          <select className="select" aria-label="自定义阈值模式" value={阈值模式} onChange={event => 设阈值模式(event.target.value)}>
+            <option value="numeric">直接输入金额</option>
+            <option value="date_range">自定义日期均值</option>
+            <option value="disabled">停用自定义线</option>
+          </select>
+          {阈值模式 === 'numeric' && <input className="input" aria-label="自定义阈值金额（元）" inputMode="decimal" placeholder="金额（元）" value={阈值金额} onChange={event => 设阈值金额(event.target.value)} />}
+          {阈值模式 === 'date_range' && <>
+            <input className="input" aria-label="自定义阈值开始日期" type="date" value={阈值日期.from} onChange={event => 设阈值日期({ ...阈值日期, from: event.target.value })} />
+            <input className="input" aria-label="自定义阈值结束日期" type="date" value={阈值日期.to} onChange={event => 设阈值日期({ ...阈值日期, to: event.target.value })} />
+          </>}
+          <input className="input threshold-reason" aria-label="自定义阈值调整原因" placeholder="调整原因（必填）" value={阈值原因} onChange={event => 设阈值原因(event.target.value)} />
+          <button type="button" className="btn" onClick={提交自定义阈值}>提交复核</button>
+        </div>
+        {阈值提交 && <div className={`alert ${阈值提交.ok ? 'ok' : 'bad'}`} role="status">{阈值提交.text}</div>}
+      </div>
+    </>
+  )
+}
+
 /* ---------- 壳：导航结构与图标 ---------- */
 
 const 导航组 = [
   ['总览', ['今天']],
-  ['钱', ['回款与账龄', '开票与税务', '项目成本']],
+  ['钱', ['回款与账龄', '开票与税务', '每日资金', '项目成本']],
   ['拍板', ['待拍板']],
   ['报告', ['报告下载']],
   ['后台', ['数据源', '数据底账', '系统自检']],
@@ -1783,6 +1921,7 @@ const 图标 = {
   今天: <图 d="M3 11.5 12 4l9 7.5M5.5 9.8V20h13V9.8" />,
   回款与账龄: <图 d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM12 7v5l3.5 2" />,
   开票与税务: <图 d="M6 3h12v18l-2-1.4L14 21l-2-1.4L10 21l-2-1.4L6 21V3zM9 8h6M9 12h6" />,
+  每日资金: <图 d="M4 18V9m5 9V5m5 13v-7m5 7V3M2 21h20" />,
   项目成本: <图 d="M12 3a9 9 0 1 0 9 9h-9V3zM15 3.5A9 9 0 0 1 20.5 9H15V3.5z" />,
   待拍板: <图 d="M6 4h12M6 4v3l4 4-4 4v3M18 4v3l-4 4 4 4v3M6 18h12" />,
   报告下载: <图 d="M7 3h7l4 4v14H7V3zM14 3v4h4M12 11v6M9.5 14.5 12 17l2.5-2.5" />,
@@ -1791,7 +1930,7 @@ const 图标 = {
 }
 
 export default function App() {
-  const [页, set页] = useState('今天')
+  const [页, set页] = useState(() => new URLSearchParams(window.location.search).get('tab') === '每日资金' ? '每日资金' : '今天')
   const [状态, set状态] = useState(null)
   const [断言, set断言] = useState(null)
   const [管线, set管线] = useState(null)
@@ -1813,6 +1952,12 @@ export default function App() {
   const [审计, set审计] = useState(null)
   const [排程, set排程] = useState(null)
   const [拍板跳转, set拍板跳转] = useState(null)
+  const [资金摘要, set资金摘要] = useState(null)
+  const [资金时序, set资金时序] = useState(null)
+  const [资金来源, set资金来源] = useState(null)
+  const [资金阈值, set资金阈值] = useState(null)
+  const [资金范围状态, set资金范围] = useState('30d')
+  const [资金自定义, set资金自定义] = useState({ from: '', to: '' })
   // 取不到就把失败写进状态：面板显式报错，不许无限骨架屏装加载。
   //
   // **但「取不到」有两种，它们的下一步完全相反**：
@@ -1843,6 +1988,16 @@ export default function App() {
   const 取审计 = () => 取('/api/审计日志', set审计)
   const 取影响 = (a) => 取('/api/影响重跑' + (a ? `?asset=${encodeURIComponent(a)}` : ''), set影响)
   const 取工作台 = () => 取('/api/差异工作台', set工作台)
+  const 取每日资金 = (range = 资金范围状态, from = 资金自定义.from, to = 资金自定义.to) => {
+    if (range === 'custom' && (!from || !to)) return
+    const 参数 = new URLSearchParams({ range })
+    if (range === 'custom') { 参数.set('from', from); 参数.set('to', to) }
+    const 查询 = `?${参数.toString()}`
+    取(`/api/daily-funds/summary${查询}`, set资金摘要)
+    取(`/api/daily-funds/timeseries${查询}`, set资金时序)
+    取('/api/daily-funds/source-health', set资金来源)
+    取('/api/daily-funds/thresholds', set资金阈值)
+  }
   useEffect(() => {
     取('/api/项目成本', set成本)
     // 免登录面优先：Owner 2026-07-28「kmfa 没有登录的地方」「取消登陆功能」。
@@ -1866,6 +2021,10 @@ export default function App() {
     取('/api/源检查', set源检查)
     取('/api/我在哪', set我在哪)
   }, [])
+
+  useEffect(() => {
+    取每日资金()
+  }, [资金范围状态])
 
   const 去 = (p, 断言id) => { set拍板跳转(断言id ?? null); set页(p) }
 
@@ -1943,6 +2102,8 @@ export default function App() {
               成本={成本} 管线={管线} 排程={排程} 断言={断言} 去={去} />}
             {页 === '回款与账龄' && <回款与账龄 账龄={账龄} />}
             {页 === '开票与税务' && <开票与税务 开票={开票} />}
+            {页 === '每日资金' && <每日资金 摘要={资金摘要} 时序={资金时序} 来源={资金来源} 阈值={资金阈值}
+              范围={资金范围状态} 设范围={set资金范围} 自定义={资金自定义} 设自定义={set资金自定义} 刷新={取每日资金} />}
             {页 === '今天' && <>
               <h3 className="sec">上游归档目标群</h3>
               <目标群 群={目标群数据} 刷新={取群} />

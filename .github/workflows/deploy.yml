@@ -45,6 +45,9 @@ on:
       - "KMFA/machine/runs/S02_P23_TRACEABILITY.md"
       - "KMFA/machine/runs/S02_P24_VALIDATOR.md"
       - "KMFA/machine/runs/S02_STAGE_REVIEW.md"
+      # 每日资金的 semantic reconcile 是发布证据，不改变镜像运行态；收尾写入
+      # production identity 后不得为了归档证据再滚一次容器。
+      - "KMFA/machine/runs/daily_funds/**"
       - "KMFA/machine/tools/check_dual_plane_ci.py"
       - "KMFA/machine/tools/check_traceability.py"
       - "KMFA/machine/tools/render_human.py"

@@ -50,6 +50,7 @@ jobs:
             -r KMFA/app/backend/requirements.txt \
             pytest==9.1.1 httpx2==2.9.1
           python -m pytest -q KMFA/app/backend/tests
+          PYTHONPATH=KMFA/skills/每日资金 python -m pytest -q KMFA/skills/每日资金/tests/test_daily_funds_contract.py
           python KMFA/machine/tools/validate_taskpack.py --root KMFA
           python KMFA/machine/tools/test_validate_taskpack_mutations.py --root KMFA
           python KMFA/machine/tools/check_dual_plane_ci.py --root . --require-projects
@@ -72,6 +73,22 @@ jobs:
           done
           curl -sf http://localhost:18098/healthz >/dev/null || {
             echo "::error::App 未起来"; docker logs kmfa-e2e; exit 1; }
+
+      - name: 验证每日资金独立容器（镜像、cron、健康检查）
+        run: |
+          set -euo pipefail
+          docker build -f KMFA/skills/每日资金/Dockerfile -t kmfa-daily-funds:e2e .
+          docker run -d --name kmfa-daily-funds-e2e kmfa-daily-funds:e2e
+          for _ in {1..30}; do
+            if docker exec kmfa-daily-funds-e2e /opt/daily-funds/healthcheck.sh; then break; fi
+            sleep 1
+          done
+          docker exec kmfa-daily-funds-e2e /opt/daily-funds/healthcheck.sh
+          docker exec kmfa-daily-funds-e2e sh -c '
+            test -f /etc/cron.d/daily-funds &&
+            grep -Fq "/opt/daily-funds/scripts/run_daily_funds.py poll" /etc/cron.d/daily-funds &&
+            pgrep -x cron >/dev/null
+          '
 
       - name: 跑结构化数据库（双节点 / 事务 / 并发 / 迁移 / 恢复）
         run: |
@@ -211,6 +228,7 @@ jobs:
         if: always()
         run: |
           docker rm -f kmfa-e2e || true
+          docker rm -f kmfa-daily-funds-e2e || true
           docker rm -f kmfa-p34-e2e || true
           docker rm -f kmfa-p44-e2e || true
           docker rm -f kmfa-p51-ci-app-a || true

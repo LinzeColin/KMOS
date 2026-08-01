@@ -19,6 +19,14 @@
   `e2e/public_shell_flow.py`、`public_accessibility_index.py`、`walking_skeleton_flow.py`、`abuse_control_flow.py`，
   以及 `frontend/index.html` **和已提交的 `frontend/dist/index.html`**（pytest 服务的是 committed dist，两边必须一致）。
 
+## 每日资金 v0.0.0.1（当前受控实现，2026-08-01）
+
+- 当前执行合同：`KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip`，SHA-256 `072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1`。T00 起点写在 `machine/runs/daily_funds/semantic_reconcile_start.json`：执行基线为 `origin/main=910d0276…`，Coolify 平台记录为 healthy；容器内二次 probe 返回 404，故该项明确为 `UNKNOWN`，不是 PASS。
+- 实现位于 `skills/每日资金/`：独立 Docker/cron/SQLite cursor/inbox/outbox、独立 DWS config/keyring、每 15 分钟 `search-advanced` 历史轮询、每分钟授权探测、每小时保活、受控回填/OCI 冷备/观察。禁止让它调用既有 skills、复用 `kmfa-dws-auth`/`kmfa-dws-keyring`、读取本机或使用 Agent/模型。
+- **唯一窄例外（Owner Directive）**：原始消息信封、附件字节、occurrence/batch manifest 与正式 publication 只能由该服务的 single writer 以 `--filter=blob:none --sparse --no-checkout` 写入私有仓 `Private-KMDatabase/KMFA/daily_funds`；不得扩展为其他业务或全库 clone，禁止 force push。其他 KMFA 私有库访问规则不变。
+- 资金结果发布门固定为：私库原始字节回读 → R2 热镜像 → 两类事实解析 → 整数分零差勾稽 → D1 query Oracle → 私库 publication → UI pointer；OCI 失败仅标记冷备滞后，不能抹掉前一份 VALID publication。固定线为 600,000/1,200,000 元，旧 500,000/1,000,000 禁止回流。
+- 当前真实生产输入状态：专用 DWS 群/发送人/应用身份、专用 Git deploy key、D1/R2/OCI 运行凭据均未从当前生产配置取得。`business_baselines.json` 因而把 `BL-DAILY-FUNDS` 六段登记为 `blocked_by_input`；UI/status 必须显示“需处理”，不能声称已抓群、已解析、已备份或已上线闭环。
+
 ## v1.5.2 公开软件交付线（2026-07-26）
 
 - 当前唯一执行基线：用户提供的 `KMFA_Product_Design_Taskpack_v1.5.2.zip`，SHA-256 `31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb`；产品/runtime 版本仍为 `0.1.4-one-time-github-main-upload`，两者禁止混用。
@@ -64,7 +72,7 @@
 - Owner blocker `BLK-001`：8 份 PDF + 1 份电子表格约 273 行字段尚未逐条确认——**A 级报告的唯一人门**。未解决前，不得把结构校验解释为业务完成。
 - **云端**：skills 运行基座与 App 部署件在 `KMFA/deploy/skills-runtime/` 与 `KMFA/app/`；等 Oracle ARM 实例 + `dws auth login --device` 一次 + Codex 应用停用 6 条旧排程（路线 B 已拍板）。实例日 runbook 见 deploy README。
 
-## Repo 内 Skills（9 个，统一位于 `KMFA/skills/`）
+## Repo 内 Skills（10 个，统一位于 `KMFA/skills/`）
 
 1. `skills/每日工作检查/`（id `daily_routine_check_skill`）：钉钉工作检查，OneDrive `DWS_Outputs.zip` 只读输入。
 2. `skills/资金周报/`（id `fund-weekly-analysis-skill`）：资金与税费周报，真实证据、OCR 复核和 no-simulation 门禁。
@@ -75,6 +83,7 @@
 7. `skills/红圈主合同/`（id `hongquan-main-contract-dws`）：红圈主合同导出、下载与归档。
 8. `skills/信息费更新/`（id `info-fee-update`）：信息费申请表与历史明细更新。
 9. `skills/项目成本表/`（id `project-cost-table-skill`）：项目成本输入门禁、双口径计算与工作簿生成。
+10. `skills/每日资金/`（id `daily-funds-skill`）：独立 DWS 历史轮询、私有 Git 原件、D1/R2/OCI 与私有资金界面。
 
 ## 私有恢复点
 

@@ -517,6 +517,56 @@
           "stage": "compute"
         }
       ]
+    },
+    {
+      "id": "BL-DAILY-FUNDS",
+      "skill": "每日资金",
+      "name": "每日资金（独立钉钉历史轮询）",
+      "priority": "P0",
+      "upstream": [
+        "SRC-DINGTALK"
+      ],
+      "downstream": [],
+      "stages": {
+        "intake": {
+          "status": "blocked_by_input",
+          "evidence": "独立服务与 15 分钟历史轮询已实现；截至 T00 生产配置未发现专用群 ID、发送人 ID、DWS client identity，不能借用既有 DWS 登录态"
+        },
+        "parse": {
+          "status": "blocked_by_input",
+          "evidence": "Excel/CSV 双事实解析与附件能力门已实现；未取得目标群真实附件字节，任何类型均未写成已验证"
+        },
+        "compute": {
+          "status": "blocked_by_input",
+          "evidence": "整数分账户/流水勾稽、内部调拨与 60/120 万阈值已实现；无真实两类同日资料不得生成金额"
+        },
+        "verify": {
+          "status": "blocked_by_input",
+          "evidence": "Git/R2/D1/OCI 发布门与零分差 Oracle 已实现；目标群两页 cursor、真实附件和恢复演练尚无生产输入证据"
+        },
+        "output": {
+          "status": "blocked_by_input",
+          "evidence": "D1 查询投影、R2 热镜像、OCI 冷备与 KMFA 私有页面代码已接入；没有 VALID publication 时页面明确显示需处理"
+        },
+        "deliver": {
+          "status": "blocked_by_input",
+          "evidence": "只向 Cloudflare Access 保护的 KMFA 页面投影，不发送钉钉群消息；首次真实 publication 前不存在可交付资金结果"
+        }
+      },
+      "known_defects": [
+        {
+          "id": "DEF-KMFA-020",
+          "baseline": "BL-DAILY-FUNDS",
+          "stage": "intake",
+          "desc": "当前生产配置没有独立每日资金 DWS 群/发送人/应用身份；按隔离契约禁止复用上游归档或考勤的登录卷"
+        },
+        {
+          "id": "DEF-KMFA-021",
+          "baseline": "BL-DAILY-FUNDS",
+          "stage": "verify",
+          "desc": "每日资金专用 D1、R2、OCI 资源及其最小权限运行身份尚未以生产证据确认；UNKNOWN 不得视作 PASS"
+        }
+      ]
     }
   ],
   "sources": [

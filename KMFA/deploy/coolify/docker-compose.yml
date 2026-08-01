@@ -14,6 +14,58 @@
 #   代码随每次 push 重 build 更新。本机验证：build 后 `docker run`（不挂任何卷）跑 self-audit 应 rc=0。
 
 services:
+  daily-funds:
+    # 完全独立的纵向切片：不依赖 skills/app 的启动顺序，也不共享现有 DWS profile、
+    # keyring、台账或本机状态。唯一给 app 的是已验证 projection（只读）。
+    build:
+      context: .
+      dockerfile: KMFA/skills/每日资金/Dockerfile
+    image: kmfa-daily-funds:coolify
+    container_name: kmfa-daily-funds
+    restart: always
+    environment:
+      TZ: Asia/Shanghai
+      DAILY_FUNDS_STATE_DIR: "/var/lib/kmfa/daily-funds-state"
+      DAILY_FUNDS_PUBLICATION_DIR: "/var/lib/kmfa/daily-funds-publication"
+      DAILY_FUNDS_CONTROL_DIR: "/var/lib/kmfa/daily-funds-control"
+      DAILY_FUNDS_DWS_CONFIG_DIR: "/var/lib/kmfa/daily-funds-dws/config"
+      DAILY_FUNDS_DWS_KEYRING_DIR: "/var/lib/kmfa/daily-funds-dws/keyring"
+      DAILY_FUNDS_PRIVATE_REPO: "${DAILY_FUNDS_PRIVATE_REPO:-git@github.com:LinzeColin/Private-Database.git}"
+      DAILY_FUNDS_PRIVATE_BRANCH: "${DAILY_FUNDS_PRIVATE_BRANCH:-main}"
+      DAILY_FUNDS_GROUP_ID: "${DAILY_FUNDS_GROUP_ID:-}"
+      DAILY_FUNDS_SENDER_ID: "${DAILY_FUNDS_SENDER_ID:-}"
+      DAILY_FUNDS_DWS_CLIENT_ID: "${DAILY_FUNDS_DWS_CLIENT_ID:-}"
+      DAILY_FUNDS_DWS_CLIENT_SECRET: "${DAILY_FUNDS_DWS_CLIENT_SECRET:-}"
+      DAILY_FUNDS_GIT_SSH_KEY_B64: "${DAILY_FUNDS_GIT_SSH_KEY_B64:-}"
+      DAILY_FUNDS_CLOUDFLARE_API_TOKEN: "${DAILY_FUNDS_CLOUDFLARE_API_TOKEN:-}"
+      DAILY_FUNDS_CF_ACCOUNT_ID: "${DAILY_FUNDS_CF_ACCOUNT_ID:-}"
+      DAILY_FUNDS_D1_DATABASE_ID: "${DAILY_FUNDS_D1_DATABASE_ID:-}"
+      # Monthly restore drill must target a separate non-production D1; the
+      # worker rejects an empty value or the live database ID.
+      DAILY_FUNDS_RESTORE_DRILL_D1_DATABASE_ID: "${DAILY_FUNDS_RESTORE_DRILL_D1_DATABASE_ID:-}"
+      DAILY_FUNDS_R2_ENDPOINT_URL: "${DAILY_FUNDS_R2_ENDPOINT_URL:-}"
+      DAILY_FUNDS_R2_BUCKET: "${DAILY_FUNDS_R2_BUCKET:-}"
+      DAILY_FUNDS_R2_ACCESS_KEY_ID: "${DAILY_FUNDS_R2_ACCESS_KEY_ID:-}"
+      DAILY_FUNDS_R2_SECRET_ACCESS_KEY: "${DAILY_FUNDS_R2_SECRET_ACCESS_KEY:-}"
+      DAILY_FUNDS_OCI_ENDPOINT_URL: "${DAILY_FUNDS_OCI_ENDPOINT_URL:-}"
+      DAILY_FUNDS_OCI_BUCKET: "${DAILY_FUNDS_OCI_BUCKET:-}"
+      DAILY_FUNDS_OCI_ACCESS_KEY_ID: "${DAILY_FUNDS_OCI_ACCESS_KEY_ID:-}"
+      DAILY_FUNDS_OCI_SECRET_ACCESS_KEY: "${DAILY_FUNDS_OCI_SECRET_ACCESS_KEY:-}"
+      DAILY_FUNDS_OCI_REGION: "${DAILY_FUNDS_OCI_REGION:-ap-chuncheon-1}"
+    volumes:
+      - kmfa-daily-funds-state:/var/lib/kmfa/daily-funds-state
+      - kmfa-daily-funds-dws:/var/lib/kmfa/daily-funds-dws
+      - kmfa-daily-funds-publication:/var/lib/kmfa/daily-funds-publication
+      - kmfa-daily-funds-control:/var/lib/kmfa/daily-funds-control
+    healthcheck:
+      # Liveness only.  Missing production credentials must surface in the
+      # protected UI as "需处理", never be disguised as source readiness.
+      test: ["CMD", "/opt/daily-funds/healthcheck.sh"]
+      interval: 2m
+      timeout: 15s
+      start_period: 45s
+      retries: 3
+
   skills:
     build:
       context: .                              # 仓根（Coolify Golden Path project-dir）
@@ -130,6 +182,8 @@ services:
       KMFA_PRIVATE_OPS_REQUIRE_ACCESS: "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
       KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN: "${KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}"
       KMFA_CLOUDFLARE_ACCESS_AUD: "${KMFA_CLOUDFLARE_ACCESS_AUD:-}"
+      DAILY_FUNDS_PUBLICATION_DIR: "/var/lib/kmfa/daily-funds"
+      DAILY_FUNDS_CONTROL_DIR: "/var/lib/kmfa/daily-funds-control"
     # 代码/facts 已烧进镜像（自包含），不挂宿主仓
     volumes:
       # 只读挂 skills 的日志卷：App 要能显示「排程到底跑没跑」。
@@ -138,6 +192,10 @@ services:
       - kmfa-logs:/var/log/kmfa:ro
       # SQLite 结构化状态与私有文件 adapter；普通重部署/Flag 回滚必须保留此卷。
       - kmfa-app-state:/var/lib/kmfa/state
+      # 每日资金仅共享已验证 projection；app 不能读原始 DWS/Git/R2 数据。
+      - kmfa-daily-funds-publication:/var/lib/kmfa/daily-funds:ro
+      # 阈值请求由 Access 保护的 app 写入，独立 worker 复核、版本化并发布。
+      - kmfa-daily-funds-control:/var/lib/kmfa/daily-funds-control
     expose:
       - "8000"                                    # 经 Coolify Traefik 暴露；域名在 Coolify 面板设，无需开放主机端口
     healthcheck:
@@ -201,6 +259,10 @@ services:
       - kmfa-app-state:/var/lib/kmfa/state
 
 volumes:
+  kmfa-daily-funds-state:
+  kmfa-daily-funds-dws:
+  kmfa-daily-funds-publication:
+  kmfa-daily-funds-control:
   kmfa-dws-archive:
   kmfa-dws-auth:
   kmfa-dws-keyring:

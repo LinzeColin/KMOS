@@ -115,9 +115,75 @@ skills:
     hardcoded_local_paths: 0
     contains_secrets: false
 
+  - id: daily-funds-skill
+    name_zh: 每日资金
+    path: KMFA/skills/每日资金
+    purpose_zh: 独立云端每 15 分钟从指定钉钉群历史消息取得每日资金两类资料；原始证据写唯一私有 sparse 路径，逐分勾稽后投影 D1/R2/OCI 与 KMFA 私有页面
+    status: CLOUD_INDEPENDENT_PENDING_RUNTIME_CONFIG
+    external_deps: ["dws (isolated DingTalk Workspace CLI profile)", "GitHub Private-Database", "Cloudflare D1/R2", "OCI Object Storage"]
+    schedules: ["daily-funds-history-poll", "daily-funds-auth-probe", "daily-funds-keepalive", "daily-funds-backfill", "daily-funds-cold-backup", "daily-funds-observer", "daily-funds-restore-drill"]
+    hardcoded_local_paths: 0
+    contains_secrets: false
+
 # 排程配在 Codex 应用内部，不在本仓库、也不在 ~/.codex/automations/。
 # 源仓 CodexProject 迁出前的契约记录：KMFA/metadata/automation/codex_app_schedules.contract.toml
 schedules:
+  - id: daily-funds-history-poll
+    name_zh: 每日资金历史轮询
+    skill: daily-funds-skill
+    configured_in: coolify_daily_funds_container
+    schedule: "*/15 * * * * Asia/Shanghai"
+    cwd_exists: null
+    fixable_by_agent: true
+
+  - id: daily-funds-auth-probe
+    name_zh: 每日资金授权探测
+    skill: daily-funds-skill
+    configured_in: coolify_daily_funds_container
+    schedule: "* * * * * Asia/Shanghai"
+    cwd_exists: null
+    fixable_by_agent: true
+
+  - id: daily-funds-keepalive
+    name_zh: 每日资金登录保活
+    skill: daily-funds-skill
+    configured_in: coolify_daily_funds_container
+    schedule: "0 * * * * Asia/Shanghai"
+    cwd_exists: null
+    fixable_by_agent: true
+
+  - id: daily-funds-backfill
+    name_zh: 每日资金回填
+    skill: daily-funds-skill
+    configured_in: coolify_daily_funds_container
+    schedule: "15 2 * * * Asia/Shanghai"
+    cwd_exists: null
+    fixable_by_agent: true
+
+  - id: daily-funds-cold-backup
+    name_zh: 每日资金 OCI 冷备
+    skill: daily-funds-skill
+    configured_in: coolify_daily_funds_container
+    schedule: "10 4 * * * Asia/Shanghai"
+    cwd_exists: null
+    fixable_by_agent: true
+
+  - id: daily-funds-restore-drill
+    name_zh: 每日资金非生产恢复演练
+    skill: daily-funds-skill
+    configured_in: coolify_daily_funds_container
+    schedule: "0 5 1 * * Asia/Shanghai"
+    cwd_exists: null
+    fixable_by_agent: true
+
+  - id: daily-funds-observer
+    name_zh: 每日资金自治观察
+    skill: daily-funds-skill
+    configured_in: coolify_daily_funds_container
+    schedule: "30 3 * * * Asia/Shanghai"
+    cwd_exists: null
+    fixable_by_agent: true
+
   - id: kmfa-attendance-morning
     name_zh: 考勤早
     skill: kmfa-dingtalk-attendance-skill
