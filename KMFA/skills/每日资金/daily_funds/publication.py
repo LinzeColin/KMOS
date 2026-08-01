@@ -59,6 +59,262 @@ def _jsonable_lines(lines: Iterable[FloatingLine]) -> list[dict[str, Any]]:
     ]
 
 
+_PUBLICATION_FIELDS = frozenset({
+    "publication_id",
+    "business_date",
+    "status",
+    "source_versions",
+    "reconciliation_difference_fen",
+    "threshold_snapshot",
+    "created_at",
+    "git_commit_sha",
+    "d1_projection_version",
+    "r2_manifest_sha256",
+    "oci_backup_state",
+})
+_R2_MANIFEST_FIELDS = frozenset({"schema_version", "git_commit_sha", "objects", "created_at"})
+_OCI_MANIFEST_FIELDS = frozenset({"schema_version", "publication_id", "publication_sha256", "artifacts", "created_at"})
+
+
+def _is_lower_hex(value: object, length: int) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == length
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def _require_lower_hex(value: object, length: int, code: str) -> str:
+    if not _is_lower_hex(value, length):
+        raise PublicationError(code)
+    return str(value)
+
+
+def _require_integer(value: object, code: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise PublicationError(code)
+    return value
+
+
+def _require_boolean(value: object, code: str) -> bool:
+    if not isinstance(value, bool):
+        raise PublicationError(code)
+    return value
+
+
+def _require_text(value: object, code: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise PublicationError(code)
+    return value
+
+
+def _require_iso_day(value: object, code: str) -> date:
+    text = _require_text(value, code)
+    try:
+        return date.fromisoformat(text)
+    except ValueError as exc:
+        raise PublicationError(code) from exc
+
+
+def _require_iso_timestamp(value: object, code: str) -> str:
+    text = _require_text(value, code)
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise PublicationError(code) from exc
+    if parsed.tzinfo is None:
+        raise PublicationError(code)
+    return text
+
+
+def _d1_parameters(params: Iterable[object]) -> list[str]:
+    """Serialize Cloudflare D1 REST bindings to its documented string array.
+
+    Integer-fen values remain exact decimal strings; SQLite INTEGER affinity
+    restores them as integers at rest.  SQL NULL is emitted only as a fixed
+    statement literal by the account projection below, never as an ambiguous
+    JSON `null` parameter.
+    """
+
+    values: list[str] = []
+    for value in params:
+        if isinstance(value, str):
+            values.append(value)
+        elif isinstance(value, bool) or not isinstance(value, int):
+            raise PublicationError("D1_PARAMETER_INVALID")
+        else:
+            values.append(str(value))
+    return values
+
+
+def _validate_publication(publication: Mapping[str, Any]) -> dict[str, Any]:
+    """Reject an ambiguous publication before it reaches any read model.
+
+    The private Git snapshot is immutable evidence.  D1, R2 and OCI must all
+    carry the same canonical shape rather than accepting a permissive mapping
+    that happens to contain a few familiar keys.
+    """
+
+    if not isinstance(publication, Mapping) or set(publication) != _PUBLICATION_FIELDS:
+        raise PublicationError("PUBLICATION_INVALID")
+    normalized = dict(publication)
+    _require_lower_hex(normalized["publication_id"], 64, "PUBLICATION_INVALID")
+    _require_iso_day(normalized["business_date"], "PUBLICATION_INVALID")
+    if normalized["status"] != "VALID":
+        raise PublicationError("PUBLICATION_NOT_PUBLISHABLE")
+    difference = _require_integer(normalized["reconciliation_difference_fen"], "PUBLICATION_INVALID")
+    if difference != 0:
+        raise PublicationError("PUBLICATION_NOT_PUBLISHABLE")
+    source_versions = normalized["source_versions"]
+    if not isinstance(source_versions, list) or len(source_versions) < 2:
+        raise PublicationError("PUBLICATION_INVALID")
+    seen_versions: set[str] = set()
+    for source in source_versions:
+        if not isinstance(source, Mapping) or set(source) != {"source_version"}:
+            raise PublicationError("PUBLICATION_INVALID")
+        source_version = _require_lower_hex(source.get("source_version"), 64, "PUBLICATION_INVALID")
+        if source_version in seen_versions:
+            raise PublicationError("PUBLICATION_INVALID")
+        seen_versions.add(source_version)
+    if not isinstance(normalized["threshold_snapshot"], Mapping):
+        raise PublicationError("PUBLICATION_INVALID")
+    _require_iso_timestamp(normalized["created_at"], "PUBLICATION_INVALID")
+    _require_lower_hex(normalized["git_commit_sha"], 40, "PUBLICATION_INVALID")
+    if normalized["d1_projection_version"] != "kmfa.daily_funds.d1.v1":
+        raise PublicationError("PUBLICATION_INVALID")
+    _require_lower_hex(normalized["r2_manifest_sha256"], 64, "PUBLICATION_INVALID")
+    if normalized["oci_backup_state"] != "PENDING":
+        # OCI is deliberately runtime state after publication.  Mutating the
+        # canonical Git/D1 payload to claim a later backup result would break
+        # content-addressed restore proofs.
+        raise PublicationError("PUBLICATION_INVALID")
+    return normalized
+
+
+def _validate_daily_balances(
+    balances: Iterable[DailyBalance],
+    *,
+    publication_day: date,
+) -> tuple[DailyBalance, ...]:
+    indexed: dict[date, DailyBalance] = {}
+    for balance in balances:
+        if not isinstance(balance, DailyBalance):
+            raise PublicationError("PROJECTION_BALANCE_INVALID")
+        day = balance.business_day
+        if isinstance(day, datetime) or not isinstance(day, date) or day > publication_day:
+            raise PublicationError("PROJECTION_BALANCE_INVALID")
+        _require_integer(balance.ending_available_fen, "PROJECTION_BALANCE_NOT_INTEGER_FEN")
+        direct = _require_boolean(balance.direct_observation, "PROJECTION_BALANCE_FLAG_INVALID")
+        gap = _require_boolean(balance.coverage_gap, "PROJECTION_BALANCE_FLAG_INVALID")
+        carried = _require_boolean(balance.carried_forward, "PROJECTION_BALANCE_FLAG_INVALID")
+        if (direct and (gap or carried)) or (gap and carried) or (not direct and not gap and not carried):
+            raise PublicationError("PROJECTION_BALANCE_CLASSIFICATION_INVALID")
+        if day in indexed:
+            raise PublicationError("PROJECTION_BALANCE_DUPLICATE")
+        indexed[day] = balance
+    current = indexed.get(publication_day)
+    if current is None or not current.direct_observation or current.coverage_gap or current.carried_forward:
+        raise PublicationError("PROJECTION_CURRENT_BALANCE_MISSING")
+    return tuple(indexed[day] for day in sorted(indexed))
+
+
+def _validate_transaction_rows(
+    rows: Iterable[Mapping[str, Any]],
+    *,
+    publication_day: date,
+) -> tuple[dict[str, Any], ...]:
+    required = {
+        "transaction_key_hash", "business_date", "inflow_fen", "outflow_fen", "adjustment_fen",
+        "internal_transfer", "source_version", "message_id_hash",
+    }
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in rows:
+        if not isinstance(row, Mapping) or set(row) != required:
+            raise PublicationError("PROJECTION_TRANSACTION_INVALID")
+        item = dict(row)
+        key = _require_lower_hex(item["transaction_key_hash"], 64, "PROJECTION_TRANSACTION_INVALID")
+        if key in seen:
+            raise PublicationError("PROJECTION_TRANSACTION_DUPLICATE")
+        seen.add(key)
+        if _require_iso_day(item["business_date"], "PROJECTION_TRANSACTION_INVALID") != publication_day:
+            raise PublicationError("PROJECTION_TRANSACTION_DATE_INVALID")
+        inflow = _require_integer(item["inflow_fen"], "PROJECTION_TRANSACTION_NOT_INTEGER_FEN")
+        outflow = _require_integer(item["outflow_fen"], "PROJECTION_TRANSACTION_NOT_INTEGER_FEN")
+        _require_integer(item["adjustment_fen"], "PROJECTION_TRANSACTION_NOT_INTEGER_FEN")
+        if inflow < 0 or outflow < 0 or (inflow and outflow):
+            raise PublicationError("PROJECTION_TRANSACTION_FLOW_INVALID")
+        _require_boolean(item["internal_transfer"], "PROJECTION_TRANSACTION_FLAG_INVALID")
+        _require_lower_hex(item["source_version"], 64, "PROJECTION_TRANSACTION_INVALID")
+        _require_lower_hex(item["message_id_hash"], 64, "PROJECTION_TRANSACTION_INVALID")
+        normalized.append(item)
+    if not normalized:
+        raise PublicationError("PROJECTION_TRANSACTION_MISSING")
+    return tuple(sorted(normalized, key=lambda item: str(item["transaction_key_hash"])))
+
+
+def _validate_account_rows(
+    rows: Iterable[Mapping[str, Any]],
+    *,
+    publication_day: date,
+) -> tuple[dict[str, Any], ...]:
+    required = {
+        "account_key_hash", "business_date", "company_id", "bank_id", "account_alias",
+        "opening_available_fen", "ending_available_fen", "source_version", "message_id_hash",
+    }
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in rows:
+        if not isinstance(row, Mapping) or set(row) != required:
+            raise PublicationError("PROJECTION_ACCOUNT_INVALID")
+        item = dict(row)
+        key = _require_lower_hex(item["account_key_hash"], 64, "PROJECTION_ACCOUNT_INVALID")
+        if key in seen:
+            raise PublicationError("PROJECTION_ACCOUNT_DUPLICATE")
+        seen.add(key)
+        if _require_iso_day(item["business_date"], "PROJECTION_ACCOUNT_INVALID") != publication_day:
+            raise PublicationError("PROJECTION_ACCOUNT_DATE_INVALID")
+        _require_text(item["company_id"], "PROJECTION_ACCOUNT_INVALID")
+        _require_text(item["bank_id"], "PROJECTION_ACCOUNT_INVALID")
+        if item["account_alias"] != key:
+            raise PublicationError("PROJECTION_ACCOUNT_ALIAS_INVALID")
+        opening = item["opening_available_fen"]
+        if opening is not None:
+            _require_integer(opening, "PROJECTION_ACCOUNT_NOT_INTEGER_FEN")
+        _require_integer(item["ending_available_fen"], "PROJECTION_ACCOUNT_NOT_INTEGER_FEN")
+        _require_lower_hex(item["source_version"], 64, "PROJECTION_ACCOUNT_INVALID")
+        _require_lower_hex(item["message_id_hash"], 64, "PROJECTION_ACCOUNT_INVALID")
+        normalized.append(item)
+    if not normalized:
+        raise PublicationError("PROJECTION_ACCOUNT_MISSING")
+    return tuple(sorted(normalized, key=lambda item: str(item["account_key_hash"])))
+
+
+def _validate_projection_inputs(
+    publication: Mapping[str, Any],
+    balances: Iterable[DailyBalance],
+    transactions: Iterable[Mapping[str, Any]],
+    accounts: Iterable[Mapping[str, Any]],
+) -> tuple[dict[str, Any], tuple[DailyBalance, ...], tuple[dict[str, Any], ...], tuple[dict[str, Any], ...]]:
+    normalized_publication = _validate_publication(publication)
+    publication_day = _require_iso_day(normalized_publication["business_date"], "PUBLICATION_INVALID")
+    normalized_balances = _validate_daily_balances(balances, publication_day=publication_day)
+    normalized_transactions = _validate_transaction_rows(transactions, publication_day=publication_day)
+    normalized_accounts = _validate_account_rows(accounts, publication_day=publication_day)
+    declared_versions = {str(row["source_version"]) for row in normalized_publication["source_versions"]}
+    projected_versions = {
+        *(str(row["source_version"]) for row in normalized_transactions),
+        *(str(row["source_version"]) for row in normalized_accounts),
+    }
+    if not projected_versions.issubset(declared_versions):
+        raise PublicationError("PROJECTION_SOURCE_VERSION_MISMATCH")
+    expected_ending = sum(int(row["ending_available_fen"]) for row in normalized_accounts)
+    current_balance = next(balance for balance in normalized_balances if balance.business_day == publication_day)
+    if current_balance.ending_available_fen != expected_ending:
+        raise PublicationError("PROJECTION_RECONCILIATION_FAILED")
+    return normalized_publication, normalized_balances, normalized_transactions, normalized_accounts
+
+
 class D1Projection:
     """Small Cloudflare D1 REST client; no raw attachment bytes enter D1."""
 
@@ -70,7 +326,7 @@ class D1Projection:
         )
 
     def _query(self, sql: str, params: list[Any] | None = None) -> list[dict[str, Any]]:
-        decoded = self._request({"sql": sql, "params": params or []})
+        decoded = self._request({"sql": sql, "params": _d1_parameters(params or [])})
         result = decoded.get("result")
         if isinstance(result, list) and result:
             first = result[0]
@@ -111,7 +367,7 @@ class D1Projection:
         # Cloudflare D1 executes a query batch as one transaction.  If a D1
         # endpoint rejects the batch shape, the method fails closed before the
         # public pointer is touched; it never degrades to partial row writes.
-        statements_payload = [{"sql": sql, "params": params} for sql, params in statements]
+        statements_payload = [{"sql": sql, "params": _d1_parameters(params)} for sql, params in statements]
         if not statements_payload:
             return
         # Cloudflare's REST API accepts ``{batch:[...]}``, not a bare JSON
@@ -158,6 +414,12 @@ class D1Projection:
         transaction_rows: Iterable[Mapping[str, Any]],
         account_rows: Iterable[Mapping[str, Any]],
     ) -> None:
+        publication, balances, transactions, accounts = _validate_projection_inputs(
+            publication,
+            daily_balances,
+            transaction_rows,
+            account_rows,
+        )
         self.ensure_schema()
         publication_id = str(publication["publication_id"])
         statements: list[tuple[str, list[Any]]] = [
@@ -165,7 +427,7 @@ class D1Projection:
             ("DELETE FROM daily_funds_transactions WHERE publication_id=?", [publication_id]),
             ("DELETE FROM daily_funds_account_snapshots WHERE publication_id=?", [publication_id]),
             (
-                """INSERT OR REPLACE INTO daily_funds_publications
+                """INSERT INTO daily_funds_publications
                 (publication_id,business_date,status,reconciliation_difference_fen,git_commit_sha,payload_json,created_at)
                 VALUES(?,?,?,?,?,?,?)""",
                 [
@@ -179,7 +441,7 @@ class D1Projection:
                 ],
             ),
         ]
-        for balance in daily_balances:
+        for balance in balances:
             statements.append((
                 """INSERT INTO daily_funds_daily_balances
                 (publication_id,business_date,scope,ending_available_fen,direct_observation,coverage_gap,carried_forward)
@@ -194,7 +456,7 @@ class D1Projection:
                     int(balance.carried_forward),
                 ],
             ))
-        for row in transaction_rows:
+        for row in transactions:
             statements.append((
                 """INSERT INTO daily_funds_transactions
                 (publication_id,transaction_key_hash,business_date,inflow_fen,outflow_fen,adjustment_fen,internal_transfer,source_version,message_id_hash)
@@ -211,43 +473,73 @@ class D1Projection:
                     row["message_id_hash"],
                 ],
             ))
-        for row in account_rows:
-            statements.append((
-                """INSERT INTO daily_funds_account_snapshots
-                (publication_id,account_key_hash,business_date,company_id,bank_id,account_alias,
-                 opening_available_fen,ending_available_fen,source_version,message_id_hash)
-                VALUES(?,?,?,?,?,?,?,?,?,?)""",
-                [
-                    publication_id,
-                    row["account_key_hash"],
-                    row["business_date"],
-                    row["company_id"],
-                    row["bank_id"],
-                    row["account_alias"],
-                    row.get("opening_available_fen"),
-                    row["ending_available_fen"],
-                    row["source_version"],
-                    row["message_id_hash"],
-                ],
-            ))
+        for row in accounts:
+            if row.get("opening_available_fen") is None:
+                statements.append((
+                    """INSERT INTO daily_funds_account_snapshots
+                    (publication_id,account_key_hash,business_date,company_id,bank_id,account_alias,
+                     opening_available_fen,ending_available_fen,source_version,message_id_hash)
+                    VALUES(?,?,?,?,?,?,NULL,?,?,?)""",
+                    [
+                        publication_id,
+                        row["account_key_hash"],
+                        row["business_date"],
+                        row["company_id"],
+                        row["bank_id"],
+                        row["account_alias"],
+                        row["ending_available_fen"],
+                        row["source_version"],
+                        row["message_id_hash"],
+                    ],
+                ))
+            else:
+                statements.append((
+                    """INSERT INTO daily_funds_account_snapshots
+                    (publication_id,account_key_hash,business_date,company_id,bank_id,account_alias,
+                     opening_available_fen,ending_available_fen,source_version,message_id_hash)
+                    VALUES(?,?,?,?,?,?,?,?,?,?)""",
+                    [
+                        publication_id,
+                        row["account_key_hash"],
+                        row["business_date"],
+                        row["company_id"],
+                        row["bank_id"],
+                        row["account_alias"],
+                        row["opening_available_fen"],
+                        row["ending_available_fen"],
+                        row["source_version"],
+                        row["message_id_hash"],
+                    ],
+                ))
         self._batch(statements)
 
     def oracle(self, publication_id: str) -> Mapping[str, Any]:
+        _require_lower_hex(publication_id, 64, "D1_ORACLE_PUBLICATION_INVALID")
         rows = self._query(
-            "SELECT publication_id,reconciliation_difference_fen,status,payload_json FROM daily_funds_publications WHERE publication_id=?",
+            """SELECT publication_id,business_date,status,reconciliation_difference_fen,
+               git_commit_sha,payload_json,created_at
+               FROM daily_funds_publications WHERE publication_id=?""",
             [publication_id],
         )
         if len(rows) != 1:
             raise PublicationError("D1_ORACLE_MISSING")
         row = rows[0]
-        if row.get("status") != "VALID" or row.get("reconciliation_difference_fen") != 0:
+        if row.get("status") != "VALID" or _require_integer(row.get("reconciliation_difference_fen"), "D1_ORACLE_RECONCILIATION_FAILED") != 0:
             raise PublicationError("D1_ORACLE_RECONCILIATION_FAILED")
         try:
-            publication = json.loads(str(row["payload_json"]))
+            payload_json = _require_text(row["payload_json"], "D1_ORACLE_PUBLICATION_INVALID")
+            publication = _validate_publication(json.loads(payload_json))
             business_date = str(publication["business_date"])
-        except (KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (KeyError, TypeError, json.JSONDecodeError, PublicationError) as exc:
             raise PublicationError("D1_ORACLE_PUBLICATION_INVALID") from exc
-        if not isinstance(publication, Mapping) or publication.get("publication_id") != publication_id:
+        if (
+            _canonical_bytes(publication).decode("utf-8") != payload_json
+            or publication.get("publication_id") != publication_id
+            or row.get("business_date") != publication.get("business_date")
+            or row.get("status") != publication.get("status")
+            or row.get("git_commit_sha") != publication.get("git_commit_sha")
+            or row.get("created_at") != publication.get("created_at")
+        ):
             raise PublicationError("D1_ORACLE_PUBLICATION_INVALID")
         # Receipt success says D1 accepted the batch, not that every critical
         # projection row is queryable or coherent.  This read-back Oracle
@@ -351,11 +643,83 @@ class R2Mirror:
     def __init__(self, store: ObjectStore):
         self.store = store
 
-    def mirror(self, attachments: Iterable[DownloadedAttachment], *, git_commit_sha: str) -> tuple[str, bytes]:
-        rows: list[dict[str, Any]] = []
+    @staticmethod
+    def _attachment_hashes(attachments: Iterable[DownloadedAttachment]) -> tuple[DownloadedAttachment, ...]:
+        unique: dict[str, DownloadedAttachment] = {}
         for attachment in attachments:
+            if not isinstance(attachment, DownloadedAttachment) or not isinstance(attachment.payload, bytes):
+                raise PublicationError("R2_ATTACHMENT_INVALID")
+            digest = _require_lower_hex(attachment.sha256, 64, "R2_ATTACHMENT_INVALID")
+            if sha256(attachment.payload).hexdigest() != digest:
+                raise PublicationError("R2_ATTACHMENT_HASH_MISMATCH")
+            existing = unique.get(digest)
+            if existing is not None and existing.payload != attachment.payload:
+                raise PublicationError("R2_ATTACHMENT_HASH_MISMATCH")
+            unique.setdefault(digest, attachment)
+        return tuple(unique[digest] for digest in sorted(unique))
+
+    @staticmethod
+    def validate_manifest_payload(
+        manifest_sha: str,
+        payload: bytes,
+        *,
+        expected_git_commit_sha: str,
+        expected_attachment_hashes: Iterable[str] | None = None,
+    ) -> Mapping[str, Any]:
+        _require_lower_hex(manifest_sha, 64, "R2_MANIFEST_INVALID")
+        _require_lower_hex(expected_git_commit_sha, 40, "R2_MANIFEST_INVALID")
+        if not isinstance(payload, bytes) or sha256(payload).hexdigest() != manifest_sha:
+            raise PublicationError("R2_MANIFEST_HASH_MISMATCH")
+        try:
+            manifest = json.loads(payload.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise PublicationError("R2_MANIFEST_INVALID") from exc
+        if not isinstance(manifest, Mapping) or set(manifest) != _R2_MANIFEST_FIELDS:
+            raise PublicationError("R2_MANIFEST_INVALID")
+        if manifest.get("schema_version") != "kmfa.daily_funds.r2_manifest.v1":
+            raise PublicationError("R2_MANIFEST_INVALID")
+        if manifest.get("git_commit_sha") != expected_git_commit_sha:
+            raise PublicationError("R2_MANIFEST_GIT_MISMATCH")
+        _require_iso_timestamp(manifest.get("created_at"), "R2_MANIFEST_INVALID")
+        objects = manifest.get("objects")
+        if not isinstance(objects, list):
+            raise PublicationError("R2_MANIFEST_INVALID")
+        seen: set[str] = set()
+        normalized: list[tuple[str, int]] = []
+        for row in objects:
+            if not isinstance(row, Mapping) or set(row) != {"key", "sha256", "size_bytes"}:
+                raise PublicationError("R2_MANIFEST_INVALID")
+            digest = _require_lower_hex(row.get("sha256"), 64, "R2_MANIFEST_INVALID")
+            key = row.get("key")
+            size = _require_integer(row.get("size_bytes"), "R2_MANIFEST_INVALID")
+            if key != f"daily-funds/sha256/{digest}" or size < 0 or digest in seen:
+                raise PublicationError("R2_MANIFEST_INVALID")
+            seen.add(digest)
+            normalized.append((digest, size))
+        if normalized != sorted(normalized, key=lambda item: item[0]):
+            raise PublicationError("R2_MANIFEST_INVALID")
+        if expected_attachment_hashes is not None:
+            expected = {_require_lower_hex(digest, 64, "R2_ATTACHMENT_INVALID") for digest in expected_attachment_hashes}
+            if seen != expected:
+                raise PublicationError("R2_MANIFEST_ATTACHMENT_MISMATCH")
+        return manifest
+
+    def _put_and_verify(self, key: str, payload: bytes, *, digest: str) -> None:
+        try:
+            self.store.put_bytes(key, payload, metadata={"sha256": digest})
+            readback = self.store.get_bytes(key)
+        except Exception as exc:
+            raise PublicationError("R2_READBACK_FAILED") from exc
+        if not isinstance(readback, bytes) or len(readback) != len(payload) or sha256(readback).hexdigest() != digest:
+            raise PublicationError("R2_READBACK_FAILED")
+
+    def mirror(self, attachments: Iterable[DownloadedAttachment], *, git_commit_sha: str) -> tuple[str, bytes]:
+        git_commit_sha = _require_lower_hex(git_commit_sha, 40, "R2_MANIFEST_INVALID")
+        verified_attachments = self._attachment_hashes(attachments)
+        rows: list[dict[str, Any]] = []
+        for attachment in verified_attachments:
             key = f"daily-funds/sha256/{attachment.sha256}"
-            self.store.put_bytes(key, attachment.payload, metadata={"sha256": attachment.sha256})
+            self._put_and_verify(key, attachment.payload, digest=attachment.sha256)
             rows.append({"key": key, "sha256": attachment.sha256, "size_bytes": len(attachment.payload)})
         manifest = {
             "schema_version": "kmfa.daily_funds.r2_manifest.v1",
@@ -365,23 +729,75 @@ class R2Mirror:
         }
         payload = _canonical_bytes(manifest)
         manifest_sha = sha256(payload).hexdigest()
-        self.store.put_bytes(f"daily-funds/manifests/{manifest_sha}.json", payload, metadata={"sha256": manifest_sha})
+        self._put_and_verify(f"daily-funds/manifests/{manifest_sha}.json", payload, digest=manifest_sha)
+        self.validate_manifest_payload(
+            manifest_sha,
+            payload,
+            expected_git_commit_sha=git_commit_sha,
+            expected_attachment_hashes=(attachment.sha256 for attachment in verified_attachments),
+        )
         return manifest_sha, payload
+
+    def verify_manifest(
+        self,
+        manifest_sha: str,
+        *,
+        expected_git_commit_sha: str,
+        expected_attachment_hashes: Iterable[str] | None = None,
+    ) -> bytes:
+        _require_lower_hex(manifest_sha, 64, "R2_MANIFEST_INVALID")
+        try:
+            payload = self.store.get_bytes(f"daily-funds/manifests/{manifest_sha}.json")
+        except Exception as exc:
+            raise PublicationError("R2_READBACK_FAILED") from exc
+        manifest = self.validate_manifest_payload(
+            manifest_sha,
+            payload,
+            expected_git_commit_sha=expected_git_commit_sha,
+            expected_attachment_hashes=expected_attachment_hashes,
+        )
+        for row in manifest["objects"]:
+            try:
+                object_payload = self.store.get_bytes(str(row["key"]))
+            except Exception as exc:
+                raise PublicationError("R2_READBACK_FAILED") from exc
+            if (
+                not isinstance(object_payload, bytes)
+                or len(object_payload) != row["size_bytes"]
+                or sha256(object_payload).hexdigest() != row["sha256"]
+            ):
+                raise PublicationError("R2_READBACK_FAILED")
+        return payload
 
 
 class OciColdBackup:
     def __init__(self, store: ObjectStore):
         self.store = store
 
+    def _put_and_verify(self, key: str, payload: bytes, *, digest: str) -> None:
+        try:
+            self.store.put_bytes(key, payload, metadata={"sha256": digest})
+            readback = self.store.get_bytes(key)
+        except Exception as exc:
+            raise PublicationError("OCI_BACKUP_READBACK_FAILED") from exc
+        if not isinstance(readback, bytes) or len(readback) != len(payload) or sha256(readback).hexdigest() != digest:
+            raise PublicationError("OCI_BACKUP_READBACK_FAILED")
+
     def backup(
         self,
         *,
         publication_id: str,
         publication_sha256: str,
+        publication_created_at: str,
         git_bundle: bytes,
         d1_export: bytes,
         r2_inventory: bytes,
     ) -> str:
+        publication_id = _require_lower_hex(publication_id, 64, "OCI_BACKUP_INVALID")
+        publication_sha256 = _require_lower_hex(publication_sha256, 64, "OCI_BACKUP_INVALID")
+        publication_created_at = _require_iso_timestamp(publication_created_at, "OCI_BACKUP_INVALID")
+        if not all(isinstance(payload, bytes) and payload for payload in (git_bundle, d1_export, r2_inventory)):
+            raise PublicationError("OCI_BACKUP_INVALID")
         artifacts = {
             "git_bundle": git_bundle,
             "d1_export": d1_export,
@@ -396,7 +812,11 @@ class OciColdBackup:
             "publication_id": publication_id,
             "publication_sha256": publication_sha256,
             "artifacts": inventory,
-            "created_at": iso_now(),
+            # The restore manifest is content-addressed by a specific
+            # immutable publication.  Reusing the publication timestamp,
+            # rather than backup-attempt time, makes a retry with the same
+            # artifacts byte-identical instead of mutating its recovery set.
+            "created_at": publication_created_at,
         }
         manifest_payload = _canonical_bytes(manifest)
         inventory["restore_manifest"] = {
@@ -405,8 +825,12 @@ class OciColdBackup:
             "size_bytes": len(manifest_payload),
         }
         for name, payload in artifacts.items():
-            self.store.put_bytes(inventory[name]["key"], payload, metadata={"sha256": inventory[name]["sha256"]})
-        self.store.put_bytes(inventory["restore_manifest"]["key"], manifest_payload, metadata={"sha256": inventory["restore_manifest"]["sha256"]})
+            self._put_and_verify(inventory[name]["key"], payload, digest=inventory[name]["sha256"])
+        self._put_and_verify(
+            inventory["restore_manifest"]["key"],
+            manifest_payload,
+            digest=inventory["restore_manifest"]["sha256"],
+        )
         return inventory["restore_manifest"]["sha256"]
 
     def restore_artifacts(self, publication_id: str) -> tuple[Mapping[str, Any], Mapping[str, bytes]]:
@@ -417,18 +841,30 @@ class OciColdBackup:
         rebuild Oracle succeeds.
         """
 
+        publication_id = _require_lower_hex(publication_id, 64, "RESTORE_MANIFEST_INVALID")
         key = f"daily-funds/{publication_id}/restore_manifest.json"
         try:
             manifest_payload = self.store.get_bytes(key)
-            manifest = json.loads(manifest_payload.decode("utf-8"))
-        except (PublicationError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        except Exception as exc:
             raise PublicationError("RESTORE_MANIFEST_UNAVAILABLE") from exc
-        if not isinstance(manifest, Mapping) or manifest.get("publication_id") != publication_id:
+        if not isinstance(manifest_payload, bytes):
+            raise PublicationError("RESTORE_MANIFEST_UNAVAILABLE")
+        try:
+            manifest = json.loads(manifest_payload.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise PublicationError("RESTORE_MANIFEST_UNAVAILABLE") from exc
+        if (
+            not isinstance(manifest, Mapping)
+            or set(manifest) != _OCI_MANIFEST_FIELDS
+            or _canonical_bytes(manifest) != manifest_payload
+            or manifest.get("schema_version") != "kmfa.daily_funds.oci_restore_manifest.v1"
+            or manifest.get("publication_id") != publication_id
+        ):
             raise PublicationError("RESTORE_MANIFEST_INVALID")
-        if not isinstance(manifest.get("publication_sha256"), str) or len(str(manifest["publication_sha256"])) != 64:
-            raise PublicationError("RESTORE_MANIFEST_INVALID")
+        _require_lower_hex(manifest.get("publication_sha256"), 64, "RESTORE_MANIFEST_INVALID")
+        _require_iso_timestamp(manifest.get("created_at"), "RESTORE_MANIFEST_INVALID")
         inventory = manifest.get("artifacts")
-        if not isinstance(inventory, Mapping):
+        if not isinstance(inventory, Mapping) or set(inventory) != {"git_bundle", "d1_export", "r2_inventory"}:
             raise PublicationError("RESTORE_MANIFEST_INVALID")
         recovered: dict[str, bytes] = {}
         for name in ("git_bundle", "d1_export", "r2_inventory"):
@@ -438,13 +874,23 @@ class OciColdBackup:
             object_key = descriptor.get("key")
             expected_sha = descriptor.get("sha256")
             expected_size = descriptor.get("size_bytes")
-            if not isinstance(object_key, str) or not isinstance(expected_sha, str) or not isinstance(expected_size, int):
+            if (
+                object_key != f"daily-funds/{publication_id}/{name}"
+                or not _is_lower_hex(expected_sha, 64)
+                or isinstance(expected_size, bool)
+                or not isinstance(expected_size, int)
+                or expected_size <= 0
+            ):
                 raise PublicationError("RESTORE_MANIFEST_INVALID")
             try:
                 payload = self.store.get_bytes(object_key)
-            except PublicationError as exc:
+            except Exception as exc:
                 raise PublicationError("RESTORE_ARTIFACT_UNAVAILABLE") from exc
-            if len(payload) != expected_size or sha256(payload).hexdigest() != expected_sha:
+            if (
+                not isinstance(payload, bytes)
+                or len(payload) != expected_size
+                or sha256(payload).hexdigest() != expected_sha
+            ):
                 raise PublicationError("RESTORE_ARTIFACT_HASH_MISMATCH")
             recovered[name] = payload
         return manifest, recovered
@@ -455,6 +901,7 @@ class PublishedProjection:
     publication: Mapping[str, Any]
     snapshot: Mapping[str, Any]
     oci_backup_state: str
+    oci_restore_manifest_sha: str | None
 
 
 class PublicationCoordinator:
@@ -488,10 +935,16 @@ class PublicationCoordinator:
             raise PublicationError("RECONCILIATION_FAILED")
         if len(report.source_versions) < 2:
             raise PublicationError("SOURCE_VERSION_PAIR_MISSING")
+        _require_lower_hex(git_commit.commit_sha, 40, "GIT_COMMIT_INVALID")
+        _require_lower_hex(r2_manifest_sha, 64, "R2_MANIFEST_INVALID")
         active_lines = [line.threshold_fen for line in floating_lines if line.active and line.threshold_fen is not None]
         risk, dynamic = effective_risk(report.total_ending_fen, active_lines)
-        created_at = iso_now()
-        identity = "|".join((report.business_date.isoformat(), git_commit.commit_sha, *report.source_versions, r2_manifest_sha))
+        # A publication ID is immutable, so a retry must never reuse the same
+        # ID while changing `created_at` or its threshold snapshot.  Include a
+        # microsecond UTC creation value in the identity and use plain INSERT
+        # in D1; a collision fails closed instead of overwriting history.
+        created_at = datetime.now(UTC).isoformat(timespec="microseconds").replace("+00:00", "Z")
+        identity = "|".join((report.business_date.isoformat(), created_at, git_commit.commit_sha, *report.source_versions, r2_manifest_sha))
         publication_id = sha256(identity.encode("utf-8")).hexdigest()
         return {
             "publication_id": publication_id,
@@ -531,8 +984,15 @@ class PublicationCoordinator:
         balances = tuple(daily_balances)
         transactions = tuple(transaction_rows)
         accounts = tuple(account_rows)
+        attachments = tuple(attachments)
         if not report.valid:
             raise PublicationError("RECONCILIATION_FAILED")
+        if private_publication_sink is None:
+            raise PublicationError("GIT_PUBLICATION_SINK_REQUIRED")
+        if git_bundle_sink is None:
+            raise PublicationError("GIT_BUNDLE_SINK_REQUIRED")
+        _require_lower_hex(git_commit.commit_sha, 40, "GIT_COMMIT_INVALID")
+        attachment_hashes = tuple(attachment.sha256 for attachment in R2Mirror._attachment_hashes(attachments))
         # R2 must be complete before parsing/reconciliation can produce a user
         # visible pointer; a controlled OCI lag is the sole asynchronous stage.
         if pre_mirrored is None:
@@ -541,7 +1001,30 @@ class PublicationCoordinator:
             except PublicationError as exc:
                 raise PublicationError("R2_FAILED") from exc
         else:
+            if (
+                not isinstance(pre_mirrored, tuple)
+                or len(pre_mirrored) != 2
+                or not isinstance(pre_mirrored[0], str)
+                or not isinstance(pre_mirrored[1], bytes)
+            ):
+                raise PublicationError("R2_FAILED")
             r2_sha, r2_inventory = pre_mirrored
+            try:
+                verified_inventory = self.r2.verify_manifest(
+                    r2_sha,
+                    expected_git_commit_sha=git_commit.commit_sha,
+                    expected_attachment_hashes=attachment_hashes,
+                )
+                R2Mirror.validate_manifest_payload(
+                    r2_sha,
+                    r2_inventory,
+                    expected_git_commit_sha=git_commit.commit_sha,
+                    expected_attachment_hashes=attachment_hashes,
+                )
+            except PublicationError as exc:
+                raise PublicationError("R2_FAILED") from exc
+            if verified_inventory != r2_inventory:
+                raise PublicationError("R2_FAILED")
         as_of = report.business_date + timedelta(days=1)
         floating_lines = (*floating_month_lines(as_of, balances), *tuple(extra_floating_lines))
         publication = self._make_publication(
@@ -555,18 +1038,16 @@ class PublicationCoordinator:
             self.d1.oracle(str(publication["publication_id"]))
         except PublicationError as exc:
             raise PublicationError("D1_FAILED") from exc
-        if private_publication_sink is not None:
-            try:
-                private_publication_sink(publication)
-            except Exception as exc:
-                raise PublicationError("GIT_WRITE_FAILED") from exc
-        offsite_bundle = git_commit.bundle_bytes
-        if git_bundle_sink is not None:
-            try:
-                offsite_bundle = git_bundle_sink()
-            except Exception as exc:
-                raise PublicationError("GIT_WRITE_FAILED") from exc
-        if not offsite_bundle:
+        try:
+            private_commit_sha = private_publication_sink(publication)
+        except Exception as exc:
+            raise PublicationError("GIT_WRITE_FAILED") from exc
+        _require_lower_hex(private_commit_sha, 40, "GIT_WRITE_FAILED")
+        try:
+            offsite_bundle = git_bundle_sink()
+        except Exception as exc:
+            raise PublicationError("GIT_WRITE_FAILED") from exc
+        if not isinstance(offsite_bundle, bytes) or not offsite_bundle:
             raise PublicationError("GIT_BUNDLE_EMPTY")
         active_lines = [line.threshold_fen for line in floating_lines if line.active and line.threshold_fen is not None]
         risk, dynamic = effective_risk(report.total_ending_fen, active_lines)
@@ -609,11 +1090,13 @@ class PublicationCoordinator:
                 backup_state="PENDING",
             )
         oci_state = "OK"
+        oci_restore_manifest_sha: str | None = None
         try:
             d1_export = self.d1.export(str(publication["publication_id"]))
-            self.oci.backup(
+            oci_restore_manifest_sha = self.oci.backup(
                 publication_id=str(publication["publication_id"]),
                 publication_sha256=sha256(_canonical_bytes(publication)).hexdigest(),
+                publication_created_at=str(publication["created_at"]),
                 git_bundle=offsite_bundle,
                 d1_export=d1_export,
                 r2_inventory=r2_inventory,
@@ -625,7 +1108,11 @@ class PublicationCoordinator:
         # ``publication`` is immutable and is written byte-identically to D1,
         # private Git and the pointer.  OCI state is operational status, not a
         # late mutation of the canonical publication record.
-        snapshot["runtime"] = {"oci_backup_state": oci_state}
+        snapshot["runtime"] = {
+            "oci_backup_state": oci_state,
+            **({"oci_restore_manifest_sha": oci_restore_manifest_sha} if oci_restore_manifest_sha else {}),
+            "git_publication_commit_sha": private_commit_sha,
+        }
         if advance_pointer:
             atomic_json_write(self.current_path, snapshot)
             self.status.write(
@@ -636,7 +1123,7 @@ class PublicationCoordinator:
                 publication_id=str(publication["publication_id"]),
                 backup_state=oci_state,
             )
-        return PublishedProjection(snapshot["publication"], snapshot, oci_state)
+        return PublishedProjection(snapshot["publication"], snapshot, oci_state, oci_restore_manifest_sha)
 
 
 class RestoreOracle:
@@ -644,13 +1131,17 @@ class RestoreOracle:
 
     @staticmethod
     def verify(*, restored_publication: Mapping[str, Any], expected_publication_sha: str, expected_difference_fen: int = 0) -> None:
-        actual_sha = sha256(_canonical_bytes(restored_publication)).hexdigest()
+        _require_lower_hex(expected_publication_sha, 64, "RESTORE_HASH_MISMATCH")
+        _require_integer(expected_difference_fen, "RESTORE_RECONCILIATION_FAILED")
+        try:
+            publication = _validate_publication(restored_publication)
+        except PublicationError as exc:
+            raise PublicationError("RESTORE_PUBLICATION_INVALID") from exc
+        actual_sha = sha256(_canonical_bytes(publication)).hexdigest()
         if actual_sha != expected_publication_sha:
             raise PublicationError("RESTORE_HASH_MISMATCH")
-        if restored_publication.get("reconciliation_difference_fen") != expected_difference_fen:
+        if publication.get("reconciliation_difference_fen") != expected_difference_fen:
             raise PublicationError("RESTORE_RECONCILIATION_FAILED")
-        if restored_publication.get("status") != "VALID":
-            raise PublicationError("RESTORE_PUBLICATION_INVALID")
 
     @staticmethod
     def verify_git_bundle(bundle: bytes, *, expected_commit_sha: str) -> None:
@@ -702,64 +1193,63 @@ class RestoreOracle:
     ) -> tuple[Mapping[str, Any], tuple[DailyBalance, ...], tuple[dict[str, Any], ...], tuple[dict[str, Any], ...]]:
         """Validate the OCI D1 export and return only rebuild-safe records."""
 
+        _require_lower_hex(publication_id, 64, "RESTORE_D1_EXPORT_INVALID")
+        _require_lower_hex(expected_publication_sha, 64, "RESTORE_D1_EXPORT_INVALID")
         try:
+            if not isinstance(payload, bytes):
+                raise TypeError
             decoded = json.loads(payload.decode("utf-8"))
+            if not isinstance(decoded, Mapping) or set(decoded) != {"publication", "daily_balances", "transactions", "account_snapshots"}:
+                raise TypeError
             row = decoded["publication"]
-            publication = json.loads(row["payload_json"])
+            if not isinstance(row, Mapping) or set(row) != {
+                "publication_id", "business_date", "status", "reconciliation_difference_fen",
+                "git_commit_sha", "payload_json", "created_at",
+            }:
+                raise TypeError
+            payload_json = _require_text(row["payload_json"], "RESTORE_D1_EXPORT_INVALID")
+            publication = _validate_publication(json.loads(payload_json))
             raw_balances = decoded["daily_balances"]
             raw_transactions = decoded["transactions"]
             raw_accounts = decoded["account_snapshots"]
-        except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as exc:
+        except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, PublicationError) as exc:
             raise PublicationError("RESTORE_D1_EXPORT_INVALID") from exc
-        if not isinstance(publication, Mapping) or str(publication.get("publication_id")) != publication_id:
+        if (
+            publication.get("publication_id") != publication_id
+            or _canonical_bytes(publication).decode("utf-8") != payload_json
+            or row.get("business_date") != publication.get("business_date")
+            or row.get("status") != publication.get("status")
+            or row.get("reconciliation_difference_fen") != publication.get("reconciliation_difference_fen")
+            or row.get("git_commit_sha") != publication.get("git_commit_sha")
+            or row.get("created_at") != publication.get("created_at")
+        ):
             raise PublicationError("RESTORE_D1_EXPORT_INVALID")
         RestoreOracle.verify(restored_publication=publication, expected_publication_sha=expected_publication_sha)
         if not isinstance(raw_balances, list) or not isinstance(raw_transactions, list) or not isinstance(raw_accounts, list):
             raise PublicationError("RESTORE_D1_EXPORT_INVALID")
         balances: list[DailyBalance] = []
-        transactions: list[dict[str, Any]] = []
-        accounts: list[dict[str, Any]] = []
         try:
-            for row in raw_balances:
-                if not isinstance(row, Mapping):
+            for balance_row in raw_balances:
+                if not isinstance(balance_row, Mapping) or set(balance_row) != {
+                    "business_date", "scope", "ending_available_fen", "direct_observation", "coverage_gap", "carried_forward",
+                } or balance_row["scope"] != "global":
                     raise TypeError
                 balances.append(DailyBalance(
-                    date.fromisoformat(str(row["business_date"])),
-                    int(row["ending_available_fen"]),
-                    bool(row["direct_observation"]),
-                    bool(row["coverage_gap"]),
-                    bool(row.get("carried_forward")),
+                    _require_iso_day(balance_row["business_date"], "RESTORE_D1_EXPORT_INVALID"),
+                    _require_integer(balance_row["ending_available_fen"], "RESTORE_D1_EXPORT_INVALID"),
+                    _require_boolean(balance_row["direct_observation"], "RESTORE_D1_EXPORT_INVALID"),
+                    _require_boolean(balance_row["coverage_gap"], "RESTORE_D1_EXPORT_INVALID"),
+                    _require_boolean(balance_row["carried_forward"], "RESTORE_D1_EXPORT_INVALID"),
                 ))
-            for row in raw_transactions:
-                if not isinstance(row, Mapping):
-                    raise TypeError
-                transactions.append({
-                    "transaction_key_hash": str(row["transaction_key_hash"]),
-                    "business_date": str(row["business_date"]),
-                    "inflow_fen": int(row["inflow_fen"]),
-                    "outflow_fen": int(row["outflow_fen"]),
-                    "adjustment_fen": int(row["adjustment_fen"]),
-                    "internal_transfer": bool(row["internal_transfer"]),
-                    "source_version": str(row["source_version"]),
-                    "message_id_hash": str(row["message_id_hash"]),
-                })
-            for row in raw_accounts:
-                if not isinstance(row, Mapping):
-                    raise TypeError
-                accounts.append({
-                    "account_key_hash": str(row["account_key_hash"]),
-                    "business_date": str(row["business_date"]),
-                    "company_id": str(row["company_id"]),
-                    "bank_id": str(row["bank_id"]),
-                    "account_alias": str(row["account_alias"]),
-                    "opening_available_fen": None if row.get("opening_available_fen") is None else int(row["opening_available_fen"]),
-                    "ending_available_fen": int(row["ending_available_fen"]),
-                    "source_version": str(row["source_version"]),
-                    "message_id_hash": str(row["message_id_hash"]),
-                })
-        except (KeyError, TypeError, ValueError) as exc:
+            _, normalized_balances, transactions, accounts = _validate_projection_inputs(
+                publication,
+                balances,
+                raw_transactions,
+                raw_accounts,
+            )
+        except (KeyError, TypeError, ValueError, PublicationError) as exc:
             raise PublicationError("RESTORE_D1_EXPORT_INVALID") from exc
-        return publication, tuple(balances), tuple(transactions), tuple(accounts)
+        return publication, normalized_balances, transactions, accounts
 
 
 @dataclass(frozen=True)
@@ -785,8 +1275,14 @@ class RestoreCoordinator:
             expected_publication_sha=str(manifest["publication_sha256"]),
         )
         expected_r2 = str(publication.get("r2_manifest_sha256") or "")
-        if sha256(artifacts["r2_inventory"]).hexdigest() != expected_r2:
-            raise PublicationError("RESTORE_R2_INVENTORY_MISMATCH")
+        try:
+            R2Mirror.validate_manifest_payload(
+                expected_r2,
+                artifacts["r2_inventory"],
+                expected_git_commit_sha=str(publication.get("git_commit_sha") or ""),
+            )
+        except PublicationError as exc:
+            raise PublicationError("RESTORE_R2_INVENTORY_MISMATCH") from exc
         RestoreOracle.verify_git_bundle(
             artifacts["git_bundle"],
             expected_commit_sha=str(publication.get("git_commit_sha") or ""),

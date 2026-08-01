@@ -1,5 +1,7 @@
 # Independent daily-funds cloud schedule.  No host scheduler, existing skill,
 # event trigger, model or agent participates in these commands.
+# `bootstrap-dws-auth` is deliberately absent: it is a one-time protected
+# cloud-terminal command, never an unattended source of device codes.
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -9,4 +11,5 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 15 2 * * * root /opt/daily-funds/scripts/run_daily_funds.py backfill --max-days 7 >> /var/log/daily-funds/cron.log 2>&1
 30 3 * * * root /opt/daily-funds/scripts/run_daily_funds.py observer >> /var/log/daily-funds/cron.log 2>&1
 10 4 * * * root /opt/daily-funds/scripts/run_daily_funds.py cold-backup >> /var/log/daily-funds/cron.log 2>&1
+45 5 * * * root /opt/daily-funds/scripts/run_daily_funds.py runtime-audit >> /var/log/daily-funds/cron.log 2>&1
 0 5 1 * * root /opt/daily-funds/scripts/run_daily_funds.py restore-drill >> /var/log/daily-funds/cron.log 2>&1

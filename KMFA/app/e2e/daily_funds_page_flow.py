@@ -1,0 +1,508 @@
+#!/usr/bin/env python3
+"""T09 每日资金私有投影的真浏览器 Oracle。
+
+这不是接口字符串检查：脚本启动当前 FastAPI 与当前已构建的 React 资产，使用
+Playwright 真的打开 ``/ops/app?tab=每日资金``。全部输入均为本文件生成的合成
+projection，产物只写入调用方给出的临时目录；它不能也不会读取 DWS、Git、D1、R2、
+OCI 或任何原始附件。
+
+覆盖的浏览器可见契约：三个人类状态、30 天默认范围、键盘范围切换、自定义区间、
+SVG 趋势图/图例/tooltip、移动端无横向溢出，以及已验证投影不得泄露原始字段。
+生产 Access 边界另由后端访问控制测试覆盖；本 Oracle 明确只在临时本地进程中关闭
+该边界，以验证已受保护页面本身的渲染行为。
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import socket
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+from typing import Any
+from urllib.parse import parse_qs, urlsplit
+
+from playwright.sync_api import Browser, Error as PlaywrightError, Page, TimeoutError as PlaywrightTimeout, sync_playwright
+
+
+REPO = Path(__file__).resolve().parents[3]
+BACKEND = REPO / "KMFA" / "app" / "backend"
+RAW_SENTINEL = "RAW_DWS_FIXTURE_MUST_NEVER_ESCAPE"
+DAILY_PATHS = (
+    "/ops/api/daily-funds/summary?range=30d",
+    "/ops/api/daily-funds/timeseries?range=30d",
+    "/ops/api/daily-funds/source-health",
+    "/ops/api/daily-funds/thresholds",
+)
+
+
+def _write_projection(root: Path, human_status: str) -> None:
+    """Write a strict, synthetic projection accepted by the app read model."""
+
+    root.mkdir(parents=True, exist_ok=True)
+    current: dict[str, Any] = {
+        "schema_version": "kmfa.daily_funds.current_projection.v1",
+        "publication": {
+            "publication_id": "c" * 64,
+            "business_date": "2026-07-30",
+            "status": "VALID",
+            "source_versions": [{"source_version": "a" * 64}, {"source_version": "b" * 64}],
+            "reconciliation_difference_fen": 0,
+            "threshold_snapshot": {
+                "fixed": {"hard_fen": 60_000_000, "soft_fen": 120_000_000},
+                "floating": [{
+                    "name": "three_month",
+                    "active": True,
+                    "threshold_fen": 100_000_000,
+                    "start": "2026-04-01",
+                    "end": "2026-06-30",
+                    "days": 91,
+                    "coverage": "1",
+                    "direct_observations": 90,
+                    "covered_days": 91,
+                    "carried_forward_days": 1,
+                    "reason": None,
+                }],
+                "currency": "CNY",
+                "fixed_risk": "正常",
+                "dynamic_flag": None,
+            },
+            "created_at": "2026-07-30T12:00:00Z",
+            "git_commit_sha": "d" * 40,
+            "d1_projection_version": "kmfa.daily_funds.d1.v1",
+            "r2_manifest_sha256": "e" * 64,
+            "oci_backup_state": "PENDING",
+        },
+        "summary": {
+            "total_available_fen": 157_000_000,
+            "risk_label": "正常",
+            "dynamic_flag": None,
+            "by_company_ending_fen": {"合成公司": 157_000_000},
+            "by_bank_ending_fen": {"合成银行": 157_000_000},
+            "account_ending_by_hash": {"f" * 64: 157_000_000},
+        },
+        "daily_balances": [
+            {"business_date": "2026-07-28", "ending_available_fen": 150_000_000, "direct_observation": False, "coverage_gap": True, "carried_forward": False},
+            {"business_date": "2026-07-29", "ending_available_fen": 150_000_000, "direct_observation": True, "coverage_gap": False, "carried_forward": False},
+            {"business_date": "2026-07-30", "ending_available_fen": 157_000_000, "direct_observation": True, "coverage_gap": False, "carried_forward": False},
+        ],
+        "transactions": [
+            {
+                "transaction_key_hash": "f" * 64,
+                "business_date": "2026-07-30",
+                "inflow_fen": 25_000_000,
+                "outflow_fen": 0,
+                "adjustment_fen": 0,
+                "internal_transfer": False,
+                "source_version": "a" * 64,
+                "message_id_hash": "b" * 64,
+            },
+            {
+                "transaction_key_hash": "9" * 64,
+                "business_date": "2026-07-30",
+                "inflow_fen": 0,
+                "outflow_fen": 18_000_000,
+                "adjustment_fen": 0,
+                "internal_transfer": False,
+                "source_version": "b" * 64,
+                "message_id_hash": "a" * 64,
+            },
+        ],
+        "runtime": {"oci_backup_state": "OK"},
+    }
+    status = {
+        "human_status": human_status,
+        "machine_code": "SYNTHETIC_T09_ONLY",
+        "effective_business_date": "2026-07-30",
+        "last_verified_at": "2026-07-30T12:00:00Z",
+        "publication_id": "c" * 64,
+        "updated_at": "2026-07-30T12:00:00Z",
+        "schedules": {"history_poll": "*/15 * * * * Asia/Shanghai"},
+        "backup_state": "OK",
+    }
+    # ``/api/排程健康`` reads this file on app mount.  The marker represents
+    # something which a worker might know but the browser must never receive.
+    flow_state = {
+        "schema_version": "kmfa.daily_funds.flow_state.v1",
+        "updated_at": "2026-07-30T12:05:00Z",
+        "deployment": {
+            "runtime_state": "RUNTIME_AUDITED",
+            "instance_state": "OBSERVED",
+            "identity_state": "UNKNOWN",
+            "runtime_audit_at": "2026-07-30T12:04:00Z",
+        },
+        "schedules": {"observer": "30 3 * * * Asia/Shanghai"},
+        "business_flow": {
+            "stage": "POST_DEPLOY_OBSERVING",
+            "human_status": human_status,
+            "effective_business_date": "2026-07-30",
+            "last_verified_at": "2026-07-30T12:05:00Z",
+            "last_status_at": "2026-07-30T12:05:00Z",
+            "publication_present": True,
+        },
+        "self_healing": {
+            "state": "JOURNAL_READY",
+            "restart_recovery": "CURSOR_INBOX_LEASES",
+            "restore_drill": "NOT_YET_RUN",
+            "restore_drill_at": None,
+        },
+        "post_deploy_observer": {
+            "schedule": "30 3 * * * Asia/Shanghai",
+            "state": "OBSERVING",
+            "last_comparison": "D1_AND_POINTER_VERIFIED",
+            "required_business_days": 5,
+            "completed_business_days": 1,
+            "baseline_business_date": "2026-07-29",
+            "started_at": "2026-07-29T12:00:00Z",
+            "last_observed_at": "2026-07-30T12:05:00Z",
+            "comparisons": [{
+                "business_date": "2026-07-30",
+                "observed_at": "2026-07-30T12:05:00Z",
+                "comparison_state": "D1_AND_POINTER_VERIFIED",
+                "coverage_state": "DIRECT_OBSERVATION",
+                "amount_state": "ZERO_FEN",
+                "threshold_state": "VALID",
+                "retrieval_state": "COMPLETE_PAIR",
+                "duplicate_state": "SOURCE_VERSION_UNIQUE",
+                "backup_state": "OK",
+                "restore_state": "NOT_YET_RUN",
+                "latency_minutes": 5,
+                "raw_fixture_should_not_escape": RAW_SENTINEL,
+            }],
+        },
+    }
+    for name, payload in (("current.json", current), ("status.json", status), ("flow_state.json", flow_state)):
+        (root / name).write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def _wait_healthy(base_url: str, server: subprocess.Popen[str]) -> None:
+    deadline = time.monotonic() + 45
+    while time.monotonic() < deadline:
+        if server.poll() is not None:
+            detail = server.stdout.read() if server.stdout else ""
+            raise AssertionError(f"本地 KMFA 进程提前退出：{detail[-3000:]}")
+        try:
+            with urllib.request.urlopen(f"{base_url}/healthz", timeout=2) as response:
+                if response.status == 200:
+                    return
+        except (OSError, urllib.error.URLError):
+            pass
+        time.sleep(0.25)
+    raise AssertionError("本地 KMFA /healthz 未在 45 秒内就绪")
+
+
+def _start_server(publication_dir: Path, control_dir: Path, port: int) -> subprocess.Popen[str]:
+    env = os.environ.copy()
+    env.update({
+        "KMFA_PRIVATE_OPS_REQUIRE_ACCESS": "0",
+        "DAILY_FUNDS_PUBLICATION_DIR": str(publication_dir),
+        "DAILY_FUNDS_CONTROL_DIR": str(control_dir),
+    })
+    return subprocess.Popen(
+        [
+            sys.executable, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", str(port),
+            # The oracle owns the server process and records its own request
+            # evidence.  Disabling Uvicorn's access logger avoids filling a
+            # piped diagnostic stream with unrelated local logging failures.
+            "--no-access-log",
+        ],
+        cwd=BACKEND,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+
+
+def _stop_server(server: subprocess.Popen[str] | None) -> str:
+    if server is None:
+        return ""
+    if server.poll() is None:
+        server.terminate()
+        try:
+            server.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            server.kill()
+            server.wait(timeout=10)
+    return server.stdout.read() if server.stdout else ""
+
+
+def _launch_browser(playwright: Any) -> Browser:
+    """Prefer a managed Chrome but retain the normal CI Chromium fallback."""
+
+    try:
+        # This macOS runner has Chrome already, so the local Oracle does not
+        # download a second browser.  CI images normally expose only the
+        # Playwright-managed Chromium, which is equally valid for the test.
+        return playwright.chromium.launch(headless=True, channel="chrome")
+    except PlaywrightError:
+        return playwright.chromium.launch(headless=True)
+
+
+def _summary_response(response: Any, range_value: str) -> bool:
+    parsed = urlsplit(response.url)
+    return (
+        parsed.path == "/ops/api/daily-funds/summary"
+        and parse_qs(parsed.query).get("range") == [range_value]
+    )
+
+
+def _projection_bodies(page: Page) -> dict[str, dict[str, Any]]:
+    return page.evaluate(
+        """async (paths) => Object.fromEntries(await Promise.all(paths.map(async path => {
+          const response = await fetch(path, { cache: 'no-store' });
+          return [path, { status: response.status, body: await response.text() }];
+        })))""",
+        list(DAILY_PATHS),
+    )
+
+
+def _assert_projection_is_redacted(page: Page) -> None:
+    bodies = _projection_bodies(page)
+    assert set(bodies) == set(DAILY_PATHS)
+    forbidden = tuple(token.lower() for token in (
+        RAW_SENTINEL, "source_version", "message_id_hash", "attachment", "raw/messages",
+    ))
+    for path, response in bodies.items():
+        assert response["status"] == 200, f"{path} returned HTTP {response['status']}"
+        assert not any(token in response["body"].lower() for token in forbidden), f"raw marker escaped from {path}"
+    dom = page.content().lower()
+    assert not any(token in dom for token in forbidden), "raw marker escaped into rendered DOM"
+
+
+def _assert_chart_interaction(page: Page) -> None:
+    chart = page.locator("svg").filter(has_text="可用资金")
+    chart.first.wait_for(state="visible", timeout=10_000)
+    assert chart.count() == 1, f"expected one daily-funds SVG chart, got {chart.count()}"
+
+    # ECharts SVG legend is a user-facing control.  A true click must change
+    # its rendered state; merely finding the label is not sufficient evidence.
+    legend = chart.locator("text").filter(has_text="固定高风险线").first
+    legend.wait_for(state="visible", timeout=5_000)
+    before = chart.inner_html()
+    legend.click()
+    page.wait_for_timeout(150)
+    after = chart.inner_html()
+    assert before != after, "fixed-risk legend click did not change SVG state"
+
+    box = chart.bounding_box()
+    assert box is not None and box["width"] > 100 and box["height"] > 100
+    page.mouse.move(box["x"] + box["width"] * 0.82, box["y"] + box["height"] * 0.5)
+    page.get_by_text("数据状态：", exact=False).last.wait_for(state="visible", timeout=5_000)
+
+
+def _exercise_case(
+    browser: Browser,
+    *,
+    base_url: str,
+    publication_dir: Path,
+    status: str,
+    name: str,
+    viewport: dict[str, int],
+    color_scheme: str,
+    exercise_controls: bool,
+    out_dir: Path,
+) -> dict[str, Any]:
+    _write_projection(publication_dir, status)
+    context = browser.new_context(viewport=viewport, color_scheme=color_scheme, locale="zh-CN")
+    context.tracing.start(screenshots=True, snapshots=True, sources=False)
+    page = context.new_page()
+    requests: list[str] = []
+    responses: list[tuple[str, int]] = []
+    console_errors: list[dict[str, Any]] = []
+    page_errors: list[str] = []
+    page.add_init_script(
+        """window.__dailyFundsCspViolations = [];
+        document.addEventListener('securitypolicyviolation', event =>
+          window.__dailyFundsCspViolations.push(event.violatedDirective));"""
+    )
+    page.on("request", lambda request: requests.append(request.url))
+    page.on("response", lambda response: responses.append((response.url, response.status)))
+    page.on(
+        "console",
+        lambda message: console_errors.append({"text": message.text, "location": message.location})
+        if message.type == "error" else None,
+    )
+    page.on("pageerror", lambda error: page_errors.append(str(error)))
+    try:
+        response = page.goto(
+            f"{base_url}/ops/app?tab=%E6%AF%8F%E6%97%A5%E8%B5%84%E9%87%91",
+            # The shared app deliberately starts independent non-current-page
+            # reads too.  Those are not a prerequisite for this tab and may
+            # remain in flight on a degraded machine plane, so a global
+            # ``networkidle`` would turn an intentional isolation property
+            # into a false browser failure.  The daily callout below is the
+            # actual readiness oracle.
+            wait_until="domcontentloaded",
+            timeout=30_000,
+        )
+        assert response and response.status == 200
+        # Before source-health arrives the component intentionally renders a
+        # conservative ``需处理`` placeholder.  Wait for a *loaded* callout,
+        # otherwise that safe initial state could be mistaken for the actual
+        # synthetic status under test.
+        callout = (
+            page.locator(".callout")
+            .filter(has_text=f"运行状态：{status}")
+            .filter(has_text="数据日期：2026-07-30")
+            .first
+        )
+        try:
+            callout.wait_for(state="visible", timeout=10_000)
+        except PlaywrightTimeout as error:
+            body = page.locator("body").inner_text()[:1200]
+            raise AssertionError(
+                "daily-funds projection did not become ready; "
+                f"requests={requests}; responses={responses}; console={console_errors}; "
+                f"page_errors={page_errors}; body={body!r}"
+            ) from error
+        assert f"运行状态：{status}" in callout.inner_text(), callout.inner_text()
+
+        range_group = page.get_by_role("group", name="资金时间范围")
+        range_group.wait_for(state="visible", timeout=10_000)
+        assert range_group.get_by_role("button", name="30 天").get_attribute("aria-pressed") == "true"
+
+        if exercise_controls:
+            # One desktop case proves keyboard range switching, custom range,
+            # legend toggling and tooltip behavior.  The mobile cases focus on
+            # their distinct state/layout contract instead of duplicating an
+            # imprecise pointer gesture on a touch-sized viewport.
+            seven_days = range_group.get_by_role("button", name="7 天")
+            seven_days.focus()
+            with page.expect_response(lambda candidate: _summary_response(candidate, "7d"), timeout=10_000) as expected:
+                page.keyboard.press("Enter")
+            assert expected.value.status == 200
+            assert seven_days.get_attribute("aria-pressed") == "true"
+
+            page.get_by_label("自定义开始日期").fill("2026-07-24")
+            page.get_by_label("自定义结束日期").fill("2026-07-30")
+            with page.expect_response(lambda candidate: _summary_response(candidate, "custom"), timeout=10_000) as expected:
+                range_group.get_by_role("button", name="应用").click()
+            assert expected.value.status == 200
+            page.get_by_text("自定义区间至少 7 个自然日", exact=False).wait_for(state="visible")
+            _assert_chart_interaction(page)
+        else:
+            page.locator("svg").filter(has_text="可用资金").first.wait_for(state="visible", timeout=10_000)
+        _assert_projection_is_redacted(page)
+        csp_violations = page.evaluate("() => window.__dailyFundsCspViolations || []")
+        assert not csp_violations, f"CSP violations: {csp_violations}"
+        failed_responses = [(url, status) for url, status in responses if status >= 400]
+        assert not console_errors, f"console errors: {console_errors}; failed responses: {failed_responses}"
+        assert not page_errors, f"page errors: {page_errors}"
+        if viewport["width"] <= 480:
+            overflow = page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
+            assert overflow <= 1, f"mobile horizontal overflow: {overflow}px"
+        page.screenshot(path=out_dir / f"{name}.png", full_page=True)
+        (out_dir / f"{name}.html").write_text(page.content(), encoding="utf-8")
+        daily_paths = {
+            urlsplit(request).path
+            for request in requests
+            if "/daily-funds/" in urlsplit(request).path
+        }
+        expected_paths = {
+            "/ops/api/daily-funds/summary",
+            "/ops/api/daily-funds/timeseries",
+            "/ops/api/daily-funds/source-health",
+            "/ops/api/daily-funds/thresholds",
+        }
+        assert expected_paths.issubset(daily_paths), f"missing daily projection requests: {expected_paths - daily_paths}"
+        protected_paths = {
+            urlsplit(request).path
+            for request in requests
+            if urlsplit(request).path.startswith(("/api/", "/ops/api/"))
+        }
+        assert protected_paths == expected_paths, (
+            "daily-funds deep link requested unrelated protected paths: "
+            f"{sorted(protected_paths - expected_paths)}"
+        )
+        return {
+            "name": name,
+            "human_status": status,
+            "viewport": viewport,
+            "color_scheme": color_scheme,
+            "controls_exercised": exercise_controls,
+            "status": "PASS",
+            "daily_projection_requests": sorted(daily_paths),
+            "mobile_overflow_checked": viewport["width"] <= 480,
+        }
+    finally:
+        context.tracing.stop(path=out_dir / f"{name}.trace.zip")
+        context.close()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out-dir", type=Path, required=True)
+    args = parser.parse_args()
+    args.out_dir.mkdir(parents=True, exist_ok=True)
+
+    results: list[dict[str, Any]] = []
+    server: subprocess.Popen[str] | None = None
+    server_log = ""
+    try:
+        with tempfile.TemporaryDirectory(prefix="kmfa-daily-funds-page-e2e-") as temp:
+            temp_root = Path(temp)
+            publication_dir = temp_root / "publication"
+            control_dir = temp_root / "control"
+            control_dir.mkdir()
+            _write_projection(publication_dir, "已更新")
+            port = _free_port()
+            base_url = f"http://127.0.0.1:{port}"
+            server = _start_server(publication_dir, control_dir, port)
+            _wait_healthy(base_url, server)
+            with sync_playwright() as playwright:
+                browser = _launch_browser(playwright)
+                try:
+                    results.append(_exercise_case(
+                        browser, base_url=base_url, publication_dir=publication_dir,
+                        status="已更新", name="updated-desktop", viewport={"width": 1440, "height": 1000},
+                        color_scheme="light", exercise_controls=True, out_dir=args.out_dir,
+                    ))
+                    results.append(_exercise_case(
+                        browser, base_url=base_url, publication_dir=publication_dir,
+                        status="处理中", name="processing-mobile", viewport={"width": 390, "height": 844},
+                        color_scheme="dark", exercise_controls=False, out_dir=args.out_dir,
+                    ))
+                    results.append(_exercise_case(
+                        browser, base_url=base_url, publication_dir=publication_dir,
+                        status="需处理", name="action-needed-desktop", viewport={"width": 1280, "height": 900},
+                        color_scheme="light", exercise_controls=False, out_dir=args.out_dir,
+                    ))
+                finally:
+                    browser.close()
+    except Exception as error:  # noqa: BLE001 - write an auditable failure record first.
+        results.append({"status": "FAIL", "error": f"{type(error).__name__}: {error}"})
+    finally:
+        server_log = _stop_server(server)
+
+    failed = [result for result in results if result.get("status") != "PASS"]
+    summary = {
+        "contract": "T09-daily-funds-page-browser-oracle",
+        "fixture": "synthetic-only",
+        "production_identity": "NOT_EVALUATED",
+        "results": results,
+        "status": "PASS" if results and not failed else "FAIL",
+    }
+    (args.out_dir / "result.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8",
+    )
+    if failed and server_log:
+        (args.out_dir / "server.log").write_text(server_log, encoding="utf-8")
+    print(json.dumps(summary, ensure_ascii=False))
+    return 0 if summary["status"] == "PASS" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

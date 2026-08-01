@@ -37,16 +37,48 @@ class ThresholdControl:
     def active(self) -> dict[str, Any] | None:
         return self._read(self.active_path)
 
+    @staticmethod
+    def _revision(value: object, *, code: str) -> str:
+        revision = str(value or "")
+        if len(revision) != 64 or any(character not in "0123456789abcdef" for character in revision):
+            raise ControlError(code)
+        return revision
+
+    @staticmethod
+    def _signature(value: Mapping[str, Any], *, code: str) -> tuple[object, ...]:
+        """Return the immutable business meaning of a control revision."""
+
+        mode = value.get("mode")
+        if mode == "disabled":
+            return ("disabled",)
+        if mode == "numeric":
+            try:
+                return ("numeric", validate_custom_numeric(value.get("amount_fen")))
+            except ContractError as exc:
+                raise ControlError(code) from exc
+        if mode == "date_range":
+            try:
+                start = date.fromisoformat(str(value.get("from") or ""))
+                end = date.fromisoformat(str(value.get("to") or ""))
+            except ValueError as exc:
+                raise ControlError(code) from exc
+            if end < start or (end - start).days + 1 < 7:
+                raise ControlError(code)
+            return ("date_range", start.isoformat(), end.isoformat())
+        raise ControlError(code)
+
     def apply_pending(self) -> dict[str, Any] | None:
         request = self._read(self.request_path)
         if request is None:
-            return self.active()
+            current = self.active()
+            if current is not None:
+                self._revision(current.get("revision"), code="THRESHOLD_ACTIVE_INVALID")
+                self._signature(current, code="THRESHOLD_ACTIVE_INVALID")
+            return current
         mode = str(request.get("mode") or "")
         if mode not in {"disabled", "date_range", "numeric"}:
             raise ControlError("THRESHOLD_REQUEST_INVALID")
-        revision = str(request.get("revision") or "")
-        if len(revision) != 64:
-            raise ControlError("THRESHOLD_REQUEST_INVALID")
+        revision = self._revision(request.get("revision"), code="THRESHOLD_REQUEST_INVALID")
         active: dict[str, Any] = {
             "schema_version": "kmfa.daily_funds.threshold_control.v1",
             "mode": mode,
@@ -68,19 +100,26 @@ class ThresholdControl:
             active.update({"from": start.isoformat(), "to": end.isoformat()})
         self.root.mkdir(parents=True, exist_ok=True)
         current = self.active()
-        if current is None or current.get("revision") != revision:
-            atomic_json_write(self.active_path, active)
-            with self.audit_path.open("a", encoding="utf-8") as audit:
-                audit.write(json.dumps({
-                    "schema_version": "kmfa.daily_funds.threshold_audit.v1",
-                    "revision": revision,
-                    "actor": active["actor"],
-                    "changed_at": active["applied_at"],
-                    "old_value": current,
-                    "new_value": active,
-                    "reason": active["reason"],
-                    "rollback_version": current.get("revision") if isinstance(current, dict) else None,
-                }, ensure_ascii=False, sort_keys=True) + "\n")
+        signature = self._signature(active, code="THRESHOLD_REQUEST_INVALID")
+        if current is not None:
+            current_revision = self._revision(current.get("revision"), code="THRESHOLD_ACTIVE_INVALID")
+            current_signature = self._signature(current, code="THRESHOLD_ACTIVE_INVALID")
+            if current_revision == revision:
+                if current_signature != signature:
+                    raise ControlError("THRESHOLD_REVISION_COLLISION")
+                return current
+        atomic_json_write(self.active_path, active)
+        with self.audit_path.open("a", encoding="utf-8") as audit:
+            audit.write(json.dumps({
+                "schema_version": "kmfa.daily_funds.threshold_audit.v1",
+                "revision": revision,
+                "actor": active["actor"],
+                "changed_at": active["applied_at"],
+                "old_value": current,
+                "new_value": active,
+                "reason": active["reason"],
+                "rollback_version": current.get("revision") if isinstance(current, dict) else None,
+            }, ensure_ascii=False, sort_keys=True) + "\n")
         return active
 
     def line(self, balances: Iterable[DailyBalance], business_date: date) -> FloatingLine | None:
@@ -89,17 +128,22 @@ class ThresholdControl:
             return None
         mode = active.get("mode")
         if mode == "numeric":
-            amount = validate_custom_numeric(active.get("amount_fen"))
+            try:
+                amount = validate_custom_numeric(active.get("amount_fen"))
+            except ContractError as exc:
+                raise ControlError("THRESHOLD_ACTIVE_INVALID") from exc
             return FloatingLine("custom_numeric", amount, business_date, business_date, 1, 1, Decimal("1"), True, None, 1, 0)
         if mode == "date_range":
             try:
-                return custom_date_line(
-                    date.fromisoformat(str(active["from"])),
-                    date.fromisoformat(str(active["to"])),
-                    tuple(balances),
-                )
-            except (KeyError, ValueError, ContractError):
-                # A custom range with not-yet-available data is an inactive
-                # line, never a guessed threshold or a failed cash publication.
-                return FloatingLine("custom_date_range", None, business_date, business_date, 0, 0, Decimal("0"), False, "COVERAGE_INSUFFICIENT")
+                start = date.fromisoformat(str(active["from"]))
+                end = date.fromisoformat(str(active["to"]))
+                return custom_date_line(start, end, tuple(balances))
+            except (KeyError, ValueError, ContractError) as exc:
+                # A valid range with insufficient observations returns an
+                # inactive ``FloatingLine`` above.  Every exception here is
+                # therefore malformed saved control data or a balance-quality
+                # failure and must not be silently relabelled as coverage.
+                if str(exc).startswith("DAILY_BALANCE_"):
+                    raise ControlError("THRESHOLD_BALANCE_QUALITY_INVALID") from exc
+                raise ControlError("THRESHOLD_ACTIVE_INVALID") from exc
         raise ControlError("THRESHOLD_REQUEST_INVALID")

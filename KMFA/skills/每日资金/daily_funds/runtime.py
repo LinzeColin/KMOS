@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 import json
-import subprocess
+import os
 import uuid
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta, timezone
 from hashlib import sha256
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Callable, Iterable, Mapping
 
 from .config import ConfigError, DailyFundsConfig
 from .control import ControlError, ThresholdControl
-from .contracts import DailyBalance
+from .contracts import HARD_THRESHOLD_FEN, RISK_LABELS, SOFT_THRESHOLD_FEN, DailyBalance
 from .ingestion import (
     ALLOWED_SUFFIXES,
     DownloadedAttachment,
@@ -39,6 +39,23 @@ from .state import RuntimeState, StatusWriter, atomic_json_write, iso_now
 
 UTC = timezone.utc
 
+_CLOUD_RUNTIME_PATHS = {
+    "state": Path("/var/lib/kmfa/daily-funds-state"),
+    "publication": Path("/var/lib/kmfa/daily-funds-publication"),
+    "control": Path("/var/lib/kmfa/daily-funds-control"),
+    "dws_config": Path("/var/lib/kmfa/daily-funds-dws/config"),
+    "dws_keyring": Path("/var/lib/kmfa/daily-funds-dws/keyring"),
+}
+_FORBIDDEN_MOUNT_PREFIXES = ("/Users", "/Volumes", "/home", "/mnt", "/media")
+_COUPLED_PROCESS_MARKERS = (
+    b"/opt/kmfa/kmos/kmfa/skills/",
+    b"run_skill.sh",
+    b"onedrive",
+    b"launchd",
+)
+_POST_DEPLOY_OBSERVER_REQUIRED_BUSINESS_DAYS = 5
+_FLOW_STATE_SCHEMA = "kmfa.daily_funds.flow_state.v1"
+
 
 @dataclass(frozen=True)
 class TimedFacts:
@@ -62,6 +79,9 @@ class DailyFundsRuntime:
             return callback()
         finally:
             self.state.release_lease(name, holder)
+
+    def _dws_client(self) -> DwsHistoryClient:
+        return DwsHistoryClient(self.config, event_sink=self.state.record_network_event)
 
     def _current(self) -> dict[str, Any] | None:
         path = self.config.publication_dir / "current.json"
@@ -117,6 +137,302 @@ class DailyFundsRuntime:
             )
         return self.status.write("需处理", fallback_code, backup_state=backup_state or "UNKNOWN")
 
+    @staticmethod
+    def _read_json_object(path: Path) -> dict[str, Any] | None:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+        return dict(payload) if isinstance(payload, Mapping) else None
+
+    @staticmethod
+    def _lower_hex(value: object, length: int) -> str | None:
+        if not isinstance(value, str) or len(value) != length:
+            return None
+        return value if all(character in "0123456789abcdef" for character in value) else None
+
+    @staticmethod
+    def _flow_code(value: object, *, default: str = "UNKNOWN") -> str:
+        text = str(value or default).strip().upper()
+        token = "".join(
+            character for character in text
+            if character.isascii() and (character.isupper() or character.isdigit() or character == "_")
+        )
+        return token[:80] or default
+
+    @staticmethod
+    def _flow_timestamp(value: object) -> str | None:
+        if not isinstance(value, str) or not value or len(value) > 40:
+            return None
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return value if parsed.tzinfo is not None else None
+
+    def _deployment_marker(self) -> str | None:
+        """Hash a container-instance marker without persisting its raw value.
+
+        A named volume survives a redeploy, so a five-day observation window
+        cannot be keyed merely to the SQLite file.  Docker provides a fresh
+        container hostname for a replacement deployment; operators may supply
+        a more explicit marker, but either source is one-way hashed before it
+        reaches the journal or shared status projection.  This is intentionally
+        *not* a source/image identity assertion; those remain production-Oracle
+        evidence owned by T10.
+        """
+
+        raw = os.environ.get("DAILY_FUNDS_DEPLOYMENT_MARKER", "").strip()
+        if not raw:
+            raw = os.environ.get("HOSTNAME", "").strip()
+        if not raw:
+            try:
+                raw = Path("/etc/hostname").read_text(encoding="utf-8").strip()
+            except OSError:
+                raw = ""
+        if not raw or len(raw) > 512:
+            return None
+        return sha256(raw.encode("utf-8")).hexdigest()
+
+    def _restore_drill_state(self) -> tuple[str, str | None]:
+        receipt = self._read_json_object(self.config.publication_dir / "restore_drill.json")
+        if receipt is None:
+            return "NOT_YET_RUN", None
+        result = self._flow_code(receipt.get("result"))
+        observed_at = self._flow_timestamp(receipt.get("observed_at"))
+        if result not in {"OK", "IN_PROGRESS", "NEEDS_ATTENTION"}:
+            return "UNKNOWN", observed_at
+        return result, observed_at
+
+    def _write_flow_state(
+        self,
+        *,
+        stage: str,
+        status: Mapping[str, Any] | None = None,
+        observer_state: str | None = None,
+        observer_result: str | None = None,
+    ) -> dict[str, Any]:
+        """Write the sole values-free business-flow hand-off for KMFA status.
+
+        It is deliberately a worker projection, not a second health service:
+        the existing KMFA ``/api/排程健康`` endpoint consumes this file along
+        with the canonical runtime status.  No source payload, account, amount,
+        message/group ID, attachment hash or deployment identifier is written.
+        """
+
+        previous = self._read_json_object(self.config.publication_dir / "flow_state.json") or {}
+        prior_observer = previous.get("post_deploy_observer")
+        if not isinstance(prior_observer, Mapping):
+            prior_observer = {}
+        current_status = dict(status or self.status.read() or {})
+        human_status = str(current_status.get("human_status") or "需处理")
+        if human_status not in {"已更新", "处理中", "需处理"}:
+            human_status = "需处理"
+        current = self._current()
+        audit = self._read_json_object(self.config.publication_dir / "runtime_audit.json") or {}
+        audit_result = self._flow_code(audit.get("result"))
+        runtime_state = {
+            "OK": "RUNTIME_AUDITED",
+            "NEEDS_ATTENTION": "RUNTIME_NEEDS_ATTENTION",
+        }.get(audit_result, "UNKNOWN")
+        window = self.state.observer_window()
+        comparisons = self.state.observer_days(limit=_POST_DEPLOY_OBSERVER_REQUIRED_BUSINESS_DAYS)
+        restore_state, restore_at = self._restore_drill_state()
+        resolved_observer_state = self._flow_code(
+            observer_state if observer_state is not None else prior_observer.get("state"),
+            default="NOT_STARTED",
+        )
+        resolved_observer_result = self._flow_code(
+            observer_result if observer_result is not None else prior_observer.get("last_comparison"),
+            default="NOT_STARTED",
+        )
+        last_observed_at = (
+            comparisons[-1]["observed_at"] if comparisons else self._flow_timestamp(prior_observer.get("last_observed_at"))
+        )
+        payload = {
+            "schema_version": _FLOW_STATE_SCHEMA,
+            "updated_at": iso_now(),
+            "deployment": {
+                "runtime_state": runtime_state,
+                "instance_state": "OBSERVED" if window is not None else "UNKNOWN",
+                # The worker can prove a running instance but cannot infer the
+                # live source SHA/image digest from that fact.
+                "identity_state": "UNKNOWN",
+                "runtime_audit_at": self._flow_timestamp(audit.get("observed_at")),
+            },
+            "schedules": dict(StatusWriter.SCHEDULES),
+            "business_flow": {
+                "stage": self._flow_code(stage),
+                "human_status": human_status,
+                "effective_business_date": str(current_status.get("effective_business_date") or "")[:10] or None,
+                "last_verified_at": self._flow_timestamp(current_status.get("last_verified_at")),
+                "last_status_at": self._flow_timestamp(current_status.get("updated_at")),
+                "publication_present": current is not None,
+            },
+            "self_healing": {
+                "state": "JOURNAL_READY",
+                "restart_recovery": "CURSOR_INBOX_LEASES",
+                "restore_drill": restore_state,
+                "restore_drill_at": restore_at,
+            },
+            "post_deploy_observer": {
+                "schedule": StatusWriter.SCHEDULES["observer"],
+                "state": resolved_observer_state,
+                "last_comparison": resolved_observer_result,
+                "required_business_days": _POST_DEPLOY_OBSERVER_REQUIRED_BUSINESS_DAYS,
+                "completed_business_days": len(comparisons) if window is not None else 0,
+                "baseline_business_date": window["baseline_business_date"] if window is not None else None,
+                "started_at": window["started_at"] if window is not None else None,
+                "last_observed_at": last_observed_at,
+                "comparisons": comparisons,
+            },
+        }
+        atomic_json_write(self.config.publication_dir / "flow_state.json", payload)
+        return payload
+
+    def _record_restore_drill(
+        self,
+        *,
+        status: Mapping[str, Any],
+        code: str,
+    ) -> dict[str, Any]:
+        human_status = str(status.get("human_status") or "需处理")
+        result = "OK" if human_status == "已更新" and code == "RESTORE_DRILL_OK" else (
+            "IN_PROGRESS" if human_status == "处理中" else "NEEDS_ATTENTION"
+        )
+        atomic_json_write(
+            self.config.publication_dir / "restore_drill.json",
+            {
+                "schema_version": "kmfa.daily_funds.restore_drill.v1",
+                "observed_at": iso_now(),
+                "result": result,
+                "machine_code": self._flow_code(code),
+                "non_production": True,
+            },
+        )
+        self._write_flow_state(
+            stage="RESTORE_DRILL" if result == "OK" else "RESTORE_DRILL_NEEDS_ATTENTION",
+            status=status,
+        )
+        return dict(status)
+
+    def _observer_status(
+        self,
+        human_status: str,
+        machine_code: str,
+        *,
+        stage: str,
+        observer_state: str,
+        observer_result: str,
+        effective_business_date: str | None = None,
+        last_verified_at: str | None = None,
+        publication_id: str | None = None,
+        backup_state: str = "UNKNOWN",
+    ) -> dict[str, Any]:
+        status = self.status.write(
+            human_status,
+            machine_code,
+            effective_business_date=effective_business_date,
+            last_verified_at=last_verified_at,
+            publication_id=publication_id,
+            backup_state=backup_state,
+        )
+        self._write_flow_state(
+            stage=stage,
+            status=status,
+            observer_state=observer_state,
+            observer_result=observer_result,
+        )
+        return status
+
+    def _observer_inputs(self, current: Mapping[str, Any], *, observed_at: datetime) -> dict[str, Any]:
+        """Validate the values-free predicates needed for a shadow comparison."""
+
+        publication = current.get("publication")
+        summary = current.get("summary")
+        balances = current.get("daily_balances")
+        if not isinstance(publication, Mapping) or not isinstance(summary, Mapping) or not isinstance(balances, list):
+            raise ValueError("current projection structure invalid")
+        publication_id = self._lower_hex(publication.get("publication_id"), 64)
+        if publication_id is None or publication.get("status") != "VALID":
+            raise ValueError("publication invalid")
+        try:
+            business_date = date.fromisoformat(str(publication.get("business_date") or ""))
+        except ValueError as exc:
+            raise ValueError("business date invalid") from exc
+        difference = publication.get("reconciliation_difference_fen")
+        if isinstance(difference, bool) or not isinstance(difference, int) or difference != 0:
+            raise ValueError("publication reconciliation invalid")
+        source_versions = publication.get("source_versions")
+        if not isinstance(source_versions, list) or len(source_versions) != 2:
+            raise ValueError("source pair invalid")
+        versions = {
+            self._lower_hex(row.get("source_version"), 64)
+            for row in source_versions if isinstance(row, Mapping)
+        }
+        if len(versions) != 2 or None in versions:
+            raise ValueError("source pair invalid")
+        threshold = publication.get("threshold_snapshot")
+        fixed = threshold.get("fixed") if isinstance(threshold, Mapping) else None
+        if (
+            not isinstance(fixed, Mapping)
+            or fixed.get("hard_fen") != HARD_THRESHOLD_FEN
+            or fixed.get("soft_fen") != SOFT_THRESHOLD_FEN
+            or publication.get("threshold_snapshot", {}).get("fixed_risk") not in RISK_LABELS
+        ):
+            raise ValueError("threshold snapshot invalid")
+        total = summary.get("total_available_fen")
+        if isinstance(total, bool) or not isinstance(total, int):
+            raise ValueError("summary total invalid")
+        current_rows = [
+            row for row in balances
+            if isinstance(row, Mapping) and row.get("business_date") == business_date.isoformat()
+        ]
+        if len(current_rows) != 1:
+            raise ValueError("current balance missing")
+        current_row = current_rows[0]
+        ending = current_row.get("ending_available_fen")
+        if (
+            isinstance(ending, bool)
+            or not isinstance(ending, int)
+            or ending != total
+            or current_row.get("direct_observation") is not True
+            or current_row.get("coverage_gap") is not False
+            or current_row.get("carried_forward") is not False
+        ):
+            raise ValueError("current balance invalid")
+        history = self._history().get("days", {})
+        history_row = history.get(business_date.isoformat()) if isinstance(history, Mapping) else None
+        if (
+            not isinstance(history_row, Mapping)
+            or history_row.get("publication_id") != publication_id
+            or history_row.get("ending_available_fen") != total
+            or history_row.get("direct_observation") is not True
+            or history_row.get("coverage_gap") is not False
+            or history_row.get("carried_forward") is not False
+        ):
+            raise ValueError("history comparison invalid")
+        created_at = self._flow_timestamp(publication.get("created_at"))
+        if created_at is None:
+            raise ValueError("publication timestamp invalid")
+        created = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        latency_seconds = (observed_at.astimezone(UTC) - created.astimezone(UTC)).total_seconds()
+        if latency_seconds < 0:
+            raise ValueError("publication timestamp invalid")
+        runtime = current.get("runtime") if isinstance(current.get("runtime"), Mapping) else {}
+        backup_state = self._flow_code(runtime.get("oci_backup_state") or publication.get("oci_backup_state"))
+        if backup_state not in {"OK", "LAG", "PENDING", "UNKNOWN"}:
+            backup_state = "UNKNOWN"
+        restore_state, _ = self._restore_drill_state()
+        return {
+            "publication": dict(publication),
+            "publication_id": publication_id,
+            "business_date": business_date,
+            "backup_state": backup_state,
+            "restore_state": restore_state,
+            "latency_minutes": int(latency_seconds // 60),
+        }
+
     def preflight(self) -> dict[str, Any]:
         """Record configuration readiness without issuing external requests."""
 
@@ -127,6 +443,13 @@ class DailyFundsRuntime:
             self.config.validate()
         except ConfigError:
             return self.status.write("需处理", "CONFIG_INVALID", backup_state="UNKNOWN")
+        # A new cloud volume has neither a profile receipt nor a recovery
+        # bundle.  Do not describe that state as "CONFIG_READY": it needs the
+        # one-time protected cloud-terminal bootstrap before any scheduled
+        # source work can legitimately begin.  The DWS CLI owns its profile
+        # layout (v1.0.52 creates identity.json, not a public app.json).
+        if not self.config.dws_auth_bundle_b64 and not (self.config.control_dir / "dws_bootstrap.json").is_file():
+            return self.status.write("需处理", "DWS_BOOTSTRAP_REQUIRED", backup_state="UNKNOWN")
         # This only proves configuration shape, not credentials or source access.
         current = self._current()
         return self.status.write(
@@ -137,6 +460,180 @@ class DailyFundsRuntime:
             publication_id=current and current["publication"].get("publication_id"),
             backup_state="UNKNOWN",
         )
+
+    def bootstrap_dws_auth(self) -> dict[str, Any]:
+        """Create this cloud slice's DWS login once, outside all schedules.
+
+        The device code remains solely in the protected interactive terminal
+        used to execute this command.  This method records only a redacted
+        receipt after DWS independently reports a refreshable login.  The
+        client fingerprint identifies only the configured Coolify value; the
+        subsequent exact source query remains the authority for access.
+        """
+
+        try:
+            self.config.validate_dws_bootstrap()
+        except ConfigError:
+            return self.status.write("需处理", "CONFIG_INVALID")
+        client = self._dws_client()
+        try:
+            self._lease_call(
+                "dws_bootstrap_lock",
+                ttl_seconds=1_800,
+                code="DWS_BOOTSTRAP_LOCK_HELD",
+                callback=client.bootstrap_device_auth,
+            )
+        except IngestionError as exc:
+            if exc.code == "DWS_BOOTSTRAP_LOCK_HELD":
+                return self.status.write("处理中", exc.code)
+            self.state.queue_incident(exc.code)
+            return self.status.write("需处理", exc.code)
+        atomic_json_write(
+            self.config.control_dir / "dws_bootstrap.json",
+            {
+                "schema_version": "kmfa.daily_funds.dws_bootstrap.v1",
+                "completed_at": iso_now(),
+                "configured_client_fingerprint": sha256(self.config.dws_client_id.encode("utf-8")).hexdigest(),
+                "cloud_volume_only": True,
+            },
+        )
+        status = self.status.write("处理中", "DWS_BOOTSTRAP_READY")
+        return {"ok": True, "status": "DWS_BOOTSTRAP_READY", "human_status": status["human_status"]}
+
+    @staticmethod
+    def _mount_targets(proc_root: Path) -> set[str] | None:
+        """Read only mount targets, never host sources or mount options."""
+
+        try:
+            lines = (proc_root / "self" / "mountinfo").read_text(encoding="utf-8").splitlines()
+        except OSError:
+            return None
+        targets: set[str] = set()
+        for line in lines:
+            fields = line.split()
+            if len(fields) >= 5:
+                targets.add(fields[4].replace(r"\040", " "))
+        return targets
+
+    @staticmethod
+    def _process_summary(proc_root: Path) -> dict[str, int] | None:
+        """Inspect process categories without persisting argv, IDs or values."""
+
+        try:
+            entries = list(proc_root.iterdir())
+        except OSError:
+            return None
+        scanned = daily_funds = coupled = 0
+        for entry in entries:
+            if not entry.name.isdigit():
+                continue
+            try:
+                command = (entry / "cmdline").read_bytes().lower()
+            except OSError:
+                continue
+            scanned += 1
+            if b"/opt/daily-funds/" in command:
+                daily_funds += 1
+            if any(marker in command for marker in _COUPLED_PROCESS_MARKERS):
+                coupled += 1
+        return {
+            "scanned_processes": scanned,
+            "daily_funds_processes": daily_funds,
+            "coupled_skill_processes": coupled,
+        }
+
+    def runtime_audit(
+        self,
+        *,
+        proc_root: Path = Path("/proc"),
+        mount_checker: Callable[[str], bool] = os.path.ismount,
+        expected_paths: Mapping[str, Path] | None = None,
+    ) -> dict[str, Any]:
+        """Persist a redacted T01 isolation receipt without changing status.
+
+        The protected publication volume receives only booleans, counts and
+        operation codes.  It deliberately excludes raw command lines, host
+        mount sources, identifiers, URLs, credentials and message content.
+        """
+
+        expected = dict(_CLOUD_RUNTIME_PATHS if expected_paths is None else expected_paths)
+        actual = {
+            "state": self.config.state_dir,
+            "publication": self.config.publication_dir,
+            "control": self.config.control_dir,
+            "dws_config": self.config.dws_config_dir,
+            "dws_keyring": self.config.dws_keyring_dir,
+        }
+        path_layout_exact = actual == expected
+        dws_volume_shared = actual["dws_config"].parent == actual["dws_keyring"].parent
+        mount_targets = self._mount_targets(proc_root)
+        process_summary = self._process_summary(proc_root)
+        mount_roots = {
+            "state": actual["state"],
+            "publication": actual["publication"],
+            "control": actual["control"],
+            "dws": actual["dws_config"].parent,
+        }
+        mount_checks = {
+            name: bool(mount_checker(str(path))) and mount_targets is not None and str(path) in mount_targets
+            for name, path in mount_roots.items()
+        }
+        forbidden_mount = bool(mount_targets is not None and any(
+            target == prefix or target.startswith(prefix + "/")
+            for target in mount_targets
+            for prefix in _FORBIDDEN_MOUNT_PREFIXES
+        ))
+        try:
+            # A green topology receipt is meaningful only when every runtime
+            # secret/config slot (including D1/R2/OCI) has a valid shape.
+            self.config.validate()
+            config_state = "VALID"
+            config_fingerprint = self.config.redacted_fingerprint()
+        except ConfigError:
+            config_state = "INVALID"
+            config_fingerprint = None
+
+        if not path_layout_exact:
+            code = "RUNTIME_PATH_INVALID"
+        elif not dws_volume_shared:
+            code = "DWS_VOLUME_LAYOUT_INVALID"
+        elif mount_targets is None or process_summary is None:
+            code = "RUNTIME_AUDIT_UNAVAILABLE"
+        elif forbidden_mount:
+            code = "FORBIDDEN_HOST_MOUNT"
+        elif not all(mount_checks.values()):
+            code = "MOUNT_LAYOUT_INVALID"
+        elif process_summary["coupled_skill_processes"]:
+            code = "COUPLED_SKILL_PROCESS"
+        elif process_summary["daily_funds_processes"] < 1:
+            code = "DAILY_FUNDS_PROCESS_MISSING"
+        elif config_state != "VALID":
+            code = "CONFIG_INVALID"
+        else:
+            code = "RUNTIME_AUDIT_OK"
+
+        audit = {
+            "schema_version": "kmfa.daily_funds.runtime_audit.v1",
+            "observed_at": iso_now(),
+            "result": "OK" if code == "RUNTIME_AUDIT_OK" else "NEEDS_ATTENTION",
+            "machine_code": code,
+            "config_state": config_state,
+            "redacted_config_fingerprint": config_fingerprint,
+            "path_layout_exact": path_layout_exact,
+            "dws_volume_shared": dws_volume_shared,
+            "mounts": mount_checks,
+            "forbidden_host_mount_detected": forbidden_mount,
+            "processes": process_summary,
+            "network_ledger": self.state.network_ledger_summary(),
+        }
+        atomic_json_write(self.config.publication_dir / "runtime_audit.json", audit)
+        # T08: this joins the existing KMFA status center through the same
+        # values-free projection volume; it does not create a parallel health
+        # endpoint or claim a production source/image identity.
+        self._write_flow_state(
+            stage="RUNTIME_AUDITED" if code == "RUNTIME_AUDIT_OK" else "RUNTIME_NEEDS_ATTENTION",
+        )
+        return {"ok": code == "RUNTIME_AUDIT_OK", "code": code}
 
     @staticmethod
     def _source_ref(attachment: DownloadedAttachment) -> SourceRef:
@@ -159,13 +656,27 @@ class DailyFundsRuntime:
         for attachment in attachments:
             if attachment.family is None or Path(attachment.filename).suffix.lower() not in ALLOWED_SUFFIXES:
                 raise ParseError("UNSUPPORTED_ATTACHMENT")
+            # ``attachments`` here come only from GitSparseWriter's fresh
+            # sparse-clone readback.  Persist parser evidence after, never
+            # before, exact source SHA + MIME/magic + parser-open validation.
+            facts = parse_attachment(
+                family=attachment.family,
+                filename=attachment.filename,
+                payload=attachment.payload,
+                source=self._source_ref(attachment),
+                mime=attachment.mime,
+            )
+            evidence = facts.parser_evidence
+            self.state.record_parser_evidence(
+                attachment_sha256=attachment.sha256,
+                family=facts.family,
+                suffix=evidence.suffix,
+                declared_mime=evidence.declared_mime,
+                magic=evidence.magic,
+                parser_version=evidence.parser_version,
+            )
             parsed.append(TimedFacts(
-                parse_attachment(
-                    family=attachment.family,
-                    filename=attachment.filename,
-                    payload=attachment.payload,
-                    source=self._source_ref(attachment),
-                ),
+                facts,
                 attachment.message_at,
             ))
         return parsed
@@ -197,19 +708,49 @@ class DailyFundsRuntime:
             raise ReconciliationError("BUSINESS_DATE_MISMATCH")
         return accounts, transactions
 
+    @staticmethod
+    def _journal_fen(value: object, code: str) -> int:
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise ReconciliationError(code)
+        return value
+
+    @staticmethod
+    def _journal_flag(value: object, code: str) -> bool:
+        if not isinstance(value, bool):
+            raise ReconciliationError(code)
+        return value
+
+    def _prior_balance_mapping(self, values: object) -> Mapping[str, int]:
+        if not isinstance(values, Mapping):
+            return {}
+        result: dict[str, int] = {}
+        for key, value in values.items():
+            if not isinstance(key, str) or not key:
+                raise ReconciliationError("PRIOR_BALANCE_KEY_INVALID")
+            result[key] = self._journal_fen(value, "PRIOR_BALANCE_NOT_INTEGER_FEN")
+        return result
+
     def _prior_account_balances(self, business_date: date | None = None) -> Mapping[str, int]:
         if business_date is not None:
             previous_day = (business_date - timedelta(days=1)).isoformat()
             record = self._history().get("days", {}).get(previous_day)
             if isinstance(record, Mapping) and isinstance(record.get("account_ending_by_hash"), Mapping):
-                return {str(key): int(value) for key, value in record["account_ending_by_hash"].items() if isinstance(value, int)}
+                return self._prior_balance_mapping(record["account_ending_by_hash"])
         current = self._current()
         if not current:
             return {}
+        if business_date is not None:
+            try:
+                current_business_date = date.fromisoformat(str(current["publication"]["business_date"]))
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ReconciliationError("PRIOR_PUBLICATION_INVALID") from exc
+            # Historical backfill must never borrow a newer (or older)
+            # pointer just because it happens to have account aliases.  Only
+            # the immediately preceding VALID date is a permissible fallback.
+            if current_business_date != business_date - timedelta(days=1):
+                return {}
         values = current.get("summary", {}).get("account_ending_by_hash")
-        if not isinstance(values, Mapping):
-            return {}
-        return {str(key): int(value) for key, value in values.items() if isinstance(value, int)}
+        return self._prior_balance_mapping(values)
 
     def _daily_balances(self, report: ReconciliationReport) -> tuple[DailyBalance, ...]:
         """Build the daily-balance series without inventing missing business days.
@@ -230,13 +771,19 @@ class DailyFundsRuntime:
                 day = datetime.fromisoformat(str(business_day)).date()
                 if day > report.business_date:
                     continue
+                ending = self._journal_fen(row["ending_available_fen"], "HISTORY_BALANCE_NOT_INTEGER_FEN")
+                direct_observation = self._journal_flag(row.get("direct_observation"), "HISTORY_BALANCE_FLAG_INVALID")
+                coverage_gap = self._journal_flag(row.get("coverage_gap", False), "HISTORY_BALANCE_FLAG_INVALID")
+                carried_forward = self._journal_flag(row.get("carried_forward", False), "HISTORY_BALANCE_FLAG_INVALID")
                 existing[day.isoformat()] = DailyBalance(
                     day,
-                    int(row["ending_available_fen"]),
-                    bool(row.get("direct_observation")),
-                    bool(row.get("coverage_gap")),
-                    bool(row.get("carried_forward")),
+                    ending,
+                    direct_observation,
+                    coverage_gap,
+                    carried_forward,
                 )
+            except ReconciliationError:
+                raise
             except (KeyError, TypeError, ValueError):
                 continue
         current = self._current()
@@ -248,18 +795,27 @@ class DailyFundsRuntime:
                     # later live day merely because the local UI pointer is
                     # newer.  Only direct rows are source evidence; gaps and
                     # carries are deterministically rebuilt below.
-                    if business_day > report.business_date or not bool(row.get("direct_observation")):
+                    if business_day > report.business_date:
                         continue
+                    direct_observation = self._journal_flag(row.get("direct_observation"), "CURRENT_BALANCE_FLAG_INVALID")
+                    if not direct_observation:
+                        continue
+                    ending = self._journal_fen(row["ending_available_fen"], "CURRENT_BALANCE_NOT_INTEGER_FEN")
+                    coverage_gap = self._journal_flag(row.get("coverage_gap", False), "CURRENT_BALANCE_FLAG_INVALID")
+                    carried_forward = self._journal_flag(row.get("carried_forward", False), "CURRENT_BALANCE_FLAG_INVALID")
                     existing[business_day.isoformat()] = DailyBalance(
                         business_day,
-                        int(row["ending_available_fen"]),
-                        True,
-                        False,
-                        False,
+                        ending,
+                        direct_observation,
+                        coverage_gap,
+                        carried_forward,
                     )
+                except ReconciliationError:
+                    raise
                 except (KeyError, TypeError, ValueError):
                     continue
-        existing[report.business_date.isoformat()] = DailyBalance(report.business_date, report.total_ending_fen, True, False)
+        report_ending = self._journal_fen(report.total_ending_fen, "REPORT_BALANCE_NOT_INTEGER_FEN")
+        existing[report.business_date.isoformat()] = DailyBalance(report.business_date, report_ending, True, False)
         if not existing:
             return ()
         direct_days = sorted(date.fromisoformat(key) for key in existing)
@@ -375,6 +931,7 @@ class DailyFundsRuntime:
         cursor_key: str = "history_next_cursor",
         high_water_key: str = "history_high_water_at",
         advance_pointer: bool = True,
+        allow_empty_window: bool = False,
     ) -> dict[str, Any]:
         try:
             self.config.validate()
@@ -382,7 +939,7 @@ class DailyFundsRuntime:
             return self.status.write("需处理", "CONFIG_INVALID")
         now = now or datetime.now(UTC)
         holder = str(uuid.uuid4())
-        client = DwsHistoryClient(self.config)
+        client = self._dws_client()
         poller = HistoryPoller(self.state, client)
         writer = GitSparseWriter(self.config)
         all_attachments: list[DownloadedAttachment] = []
@@ -421,6 +978,19 @@ class DailyFundsRuntime:
                 start_override=start_override,
             )
             if not all_attachments:
+                # A historic calendar day can be a complete, valid scan with
+                # no selected source document (for example a non-reporting
+                # day).  That is not permission to weaken the live source
+                # gate: only bounded backfill explicitly opts in and it never
+                # advances the current publication pointer.
+                if allow_empty_window and not advance_pointer:
+                    self._status_from_current(fallback_code="BACKFILL_EMPTY_WINDOW")
+                    return {
+                        "ok": True,
+                        "pages": pages,
+                        "attachments": 0,
+                        "empty_window": True,
+                    }
                 raise IngestionError("SOURCE_MATCH_ZERO")
             verified_attachments = self._deduplicated_attachments(all_attachments)
             # The raw Git authority has been re-opened before this point.  R2
@@ -492,7 +1062,7 @@ class DailyFundsRuntime:
             self.config.validate(include_storage=False)
         except ConfigError:
             return self.status.write("需处理", "CONFIG_INVALID")
-        client = DwsHistoryClient(self.config)
+        client = self._dws_client()
         now = datetime.now(UTC)
         try:
             self._lease_call(
@@ -530,6 +1100,7 @@ class DailyFundsRuntime:
         except ValueError:
             return self.status.write("需处理", "BACKFILL_CURSOR_INVALID")
         completed: list[str] = []
+        empty_days: list[str] = []
         for _ in range(max(1, min(max_days, 14))):
             if next_day >= local_today:
                 break
@@ -542,16 +1113,20 @@ class DailyFundsRuntime:
                 cursor_key=f"backfill_cursor_{key_day}",
                 high_water_key=f"backfill_high_water_{key_day}",
                 advance_pointer=False,
+                allow_empty_window=True,
             )
             if not result.get("ok"):
                 return {"ok": False, "completed_days": completed, "code": result.get("code", "BACKFILL_FAILED")}
             completed.append(next_day.isoformat())
+            if result.get("empty_window"):
+                empty_days.append(next_day.isoformat())
             next_day += timedelta(days=1)
             self.state.put("backfill_next_business_date", next_day.isoformat())
         status = self._status_from_current(fallback_code="BACKFILL_COMPLETE" if next_day >= local_today else "BACKFILLING")
         return {
             "ok": True,
             "completed_days": completed,
+            "empty_days": empty_days,
             "next_business_date": next_day.isoformat(),
             "complete": next_day >= local_today,
             "status": status["human_status"],
@@ -562,59 +1137,239 @@ class DailyFundsRuntime:
             self.config.validate(include_storage=False)
         except ConfigError:
             return self.status.write("需处理", "CONFIG_INVALID")
-        env = DwsHistoryClient(self.config)._environment()
+        client = self._dws_client()
         try:
-            completed = self._lease_call(
+            self._lease_call(
                 "keepalive_lock",
                 ttl_seconds=55,
                 code="KEEPALIVE_LOCK_HELD",
-                callback=lambda: subprocess.run(
-                    [self.config.dws_bin, "auth", "status", "--format", "json"],
-                    capture_output=True, text=True, check=False, timeout=60, env=env,
-                ),
+                callback=client.ensure_authenticated,
             )
-            payload = json.loads(completed.stdout) if completed.returncode == 0 else {}
-        except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
-            payload = {}
-            completed = None
         except IngestionError as exc:
             if exc.code == "KEEPALIVE_LOCK_HELD":
                 return self.status.write("处理中", exc.code)
-            payload = {}
-            completed = None
-        explicit_ok = bool(isinstance(payload, Mapping) and (payload.get("authenticated") is True or payload.get("loggedIn") is True))
-        if completed is None or not explicit_ok:
-            self.state.queue_incident("AUTH_REQUIRED")
-            return self.status.write("需处理", "AUTH_REQUIRED")
+            self.state.queue_incident(exc.code)
+            return self.status.write("需处理", exc.code)
         return self._status_from_current(fallback_code="KEEPALIVE_OK")
 
-    def observer(self) -> dict[str, Any]:
-        """Autonomous post-deploy observer; it never invokes another skill."""
+    def observer(self, *, now: datetime | None = None) -> dict[str, Any]:
+        """Record one autonomous, deployment-bound shadow comparison.
 
-        current = self._current()
-        if current is None:
-            return self.status.write("需处理", "SOURCE_MISSING")
-        publication = current.get("publication", {})
+        Progress is counted only for a *new source-validated business date*
+        after the current container deployment's verified baseline.  Cron runs,
+        retries and historic backfill can therefore never manufacture the
+        required five post-deploy business days.
+        """
+
+        observed_at = now or datetime.now(UTC)
+        if observed_at.tzinfo is None:
+            return self._observer_status(
+                "需处理", "PUBLICATION_INVALID",
+                stage="OBSERVER_NEEDS_ATTENTION",
+                observer_state="NEEDS_ATTENTION",
+                observer_result="OBSERVATION_CLOCK_INVALID",
+            )
+        observed_at = observed_at.astimezone(UTC)
+        observed_at_text = observed_at.isoformat(timespec="seconds").replace("+00:00", "Z")
         try:
-            business_date = datetime.fromisoformat(str(publication["business_date"])).date()
-        except (KeyError, ValueError):
-            return self.status.write("需处理", "PUBLICATION_INVALID")
-        stale = (datetime.now(UTC).date() - business_date).days > 1
-        status = self.status.write(
-            "需处理" if stale else "已更新",
-            "STALE" if stale else "OBSERVER_OK",
-            effective_business_date=business_date.isoformat(),
-            last_verified_at=iso_now(),
-            publication_id=publication.get("publication_id"),
-            backup_state=str(current.get("runtime", {}).get("oci_backup_state") or publication.get("oci_backup_state") or "UNKNOWN"),
-        )
-        atomic_json_write(self.config.publication_dir / "observer.json", {
-            "schema_version": "kmfa.daily_funds.observer.v1",
-            "observed_at": iso_now(),
-            "publication_id": publication.get("publication_id"),
-            "result": "STALE" if stale else "OK",
-        })
-        return status
+            self.config.validate()
+        except ConfigError:
+            return self._observer_status(
+                "需处理", "CONFIG_INVALID",
+                stage="OBSERVER_NEEDS_ATTENTION",
+                observer_state="NEEDS_ATTENTION",
+                observer_result="CONFIG_INVALID",
+            )
+        deployment_marker = self._deployment_marker()
+        if deployment_marker is None:
+            return self._observer_status(
+                "需处理", "DEPLOYMENT_MARKER_UNAVAILABLE",
+                stage="OBSERVER_NEEDS_ATTENTION",
+                observer_state="NEEDS_ATTENTION",
+                observer_result="DEPLOYMENT_MARKER_UNAVAILABLE",
+            )
+
+        def observe_under_lock() -> dict[str, Any]:
+            def verify_d1_and_pointer() -> dict[str, Any]:
+                # Load the pointer only after taking the same publication lock
+                # used by publish/restore.  Otherwise a new pointer could land
+                # between a local read and the D1 oracle and be miscounted as
+                # a verified observation for the wrong day.
+                current = self._current()
+                if current is None:
+                    raise PublicationError("SOURCE_MISSING")
+                try:
+                    inputs = self._observer_inputs(current, observed_at=observed_at)
+                except (TypeError, ValueError) as exc:
+                    raise PublicationError("PUBLICATION_INVALID") from exc
+                publication_id = str(inputs["publication_id"])
+                row = D1Projection(self.config).oracle(publication_id)
+                payload_json = row.get("payload_json") if isinstance(row, Mapping) else None
+                if not isinstance(payload_json, str):
+                    raise PublicationError("D1_ORACLE_PUBLICATION_INVALID")
+                try:
+                    stored_publication = json.loads(payload_json)
+                except json.JSONDecodeError as exc:
+                    raise PublicationError("D1_ORACLE_PUBLICATION_INVALID") from exc
+                if (
+                    not isinstance(stored_publication, Mapping)
+                    or dict(stored_publication) != inputs["publication"]
+                    or json.dumps(stored_publication, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n" != payload_json
+                ):
+                    raise PublicationError("D1_ORACLE_PUBLICATION_INVALID")
+                return inputs
+
+            try:
+                inputs = self._lease_call(
+                    "publisher_lock",
+                    ttl_seconds=13 * 60,
+                    code="PUBLISHER_LOCK_HELD",
+                    callback=verify_d1_and_pointer,
+                )
+            except IngestionError as exc:
+                if exc.code == "PUBLISHER_LOCK_HELD":
+                    return self._observer_status(
+                        "处理中", "POLLING",
+                        stage="OBSERVER_WAITING_FOR_PUBLICATION_LOCK",
+                        observer_state="WAITING_FOR_LOCK",
+                        observer_result="PUBLISHER_LOCK_HELD",
+                    )
+                return self._observer_status(
+                    "需处理", "D1_FAILED",
+                    stage="OBSERVER_NEEDS_ATTENTION",
+                    observer_state="NEEDS_ATTENTION",
+                    observer_result="D1_ORACLE_FAILED",
+                )
+            except PublicationError as exc:
+                if exc.code == "SOURCE_MISSING":
+                    return self._observer_status(
+                        "需处理", "SOURCE_MISSING",
+                        stage="WAITING_FOR_VALID_PUBLICATION",
+                        observer_state="WAITING_FOR_VALID_PUBLICATION",
+                        observer_result="SOURCE_MISSING",
+                    )
+                if exc.code == "PUBLICATION_INVALID":
+                    return self._observer_status(
+                        "需处理", "PUBLICATION_INVALID",
+                        stage="OBSERVER_NEEDS_ATTENTION",
+                        observer_state="NEEDS_ATTENTION",
+                        observer_result="POINTER_OR_HISTORY_INVALID",
+                    )
+                return self._observer_status(
+                    "需处理", "D1_FAILED",
+                    stage="OBSERVER_NEEDS_ATTENTION",
+                    observer_state="NEEDS_ATTENTION",
+                    observer_result="D1_ORACLE_FAILED",
+                )
+
+            business_date = inputs["business_date"]
+            assert isinstance(business_date, date)
+            publication_id = str(inputs["publication_id"])
+            backup_state = str(inputs["backup_state"])
+            # Do not label a lagging pointer as a fresh daily comparison.  Its
+            # date stays visible in the existing status center for follow-up.
+            if (observed_at.date() - business_date).days > 1:
+                return self._observer_status(
+                    "需处理", "STALE",
+                    stage="OBSERVER_NEEDS_ATTENTION",
+                    observer_state="NEEDS_ATTENTION",
+                    observer_result="STALE",
+                    effective_business_date=business_date.isoformat(),
+                    last_verified_at=observed_at_text,
+                    publication_id=publication_id,
+                    backup_state=backup_state,
+                )
+
+            window = self.state.observer_window()
+            if window is None or window["deployment_marker"] != deployment_marker:
+                self.state.begin_observer_window(
+                    deployment_marker=deployment_marker,
+                    baseline_business_date=business_date.isoformat(),
+                    started_at=observed_at_text,
+                )
+                return self._observer_status(
+                    "已更新", "VALID_PUBLISHED",
+                    stage="OBSERVER_BASELINE_CAPTURED",
+                    observer_state="BASELINE_CAPTURED",
+                    observer_result="D1_AND_POINTER_VERIFIED",
+                    effective_business_date=business_date.isoformat(),
+                    last_verified_at=observed_at_text,
+                    publication_id=publication_id,
+                    backup_state=backup_state,
+                )
+
+            baseline = date.fromisoformat(window["baseline_business_date"])
+            if business_date < baseline:
+                return self._observer_status(
+                    "需处理", "STALE",
+                    stage="OBSERVER_NEEDS_ATTENTION",
+                    observer_state="NEEDS_ATTENTION",
+                    observer_result="POINTER_BEFORE_DEPLOYMENT_BASELINE",
+                    effective_business_date=business_date.isoformat(),
+                    last_verified_at=observed_at_text,
+                    publication_id=publication_id,
+                    backup_state=backup_state,
+                )
+            if business_date == baseline:
+                return self._observer_status(
+                    "已更新", "VALID_PUBLISHED",
+                    stage="OBSERVER_WAITING_FOR_NEXT_BUSINESS_DATE",
+                    observer_state="WAITING_FOR_NEXT_BUSINESS_DATE",
+                    observer_result="D1_AND_POINTER_VERIFIED",
+                    effective_business_date=business_date.isoformat(),
+                    last_verified_at=observed_at_text,
+                    publication_id=publication_id,
+                    backup_state=backup_state,
+                )
+
+            self.state.record_observer_day(
+                business_date=business_date.isoformat(),
+                publication_id=publication_id,
+                comparison_state="D1_AND_POINTER_VERIFIED",
+                coverage_state="DIRECT_OBSERVATION",
+                amount_state="ZERO_FEN",
+                threshold_state="VALID",
+                retrieval_state="COMPLETE_PAIR",
+                duplicate_state="SOURCE_VERSION_UNIQUE",
+                backup_state=backup_state,
+                restore_state=str(inputs["restore_state"]),
+                latency_minutes=int(inputs["latency_minutes"]),
+                observed_at=observed_at_text,
+            )
+            completed = len(self.state.observer_days(limit=_POST_DEPLOY_OBSERVER_REQUIRED_BUSINESS_DAYS))
+            observer_state = "COMPLETE" if completed >= _POST_DEPLOY_OBSERVER_REQUIRED_BUSINESS_DAYS else "OBSERVING"
+            return self._observer_status(
+                "已更新", "VALID_PUBLISHED",
+                stage="POST_DEPLOY_OBSERVATION_COMPLETE" if observer_state == "COMPLETE" else "POST_DEPLOY_OBSERVING",
+                observer_state=observer_state,
+                observer_result="D1_AND_POINTER_VERIFIED",
+                effective_business_date=business_date.isoformat(),
+                last_verified_at=observed_at_text,
+                publication_id=publication_id,
+                backup_state=backup_state,
+            )
+
+        try:
+            return self._lease_call(
+                "observer_lock",
+                ttl_seconds=13 * 60,
+                code="OBSERVER_LOCK_HELD",
+                callback=observe_under_lock,
+            )
+        except IngestionError as exc:
+            if exc.code == "OBSERVER_LOCK_HELD":
+                return self._observer_status(
+                    "处理中", "POLLING",
+                    stage="OBSERVER_WAITING_FOR_LOCK",
+                    observer_state="WAITING_FOR_LOCK",
+                    observer_result="OBSERVER_LOCK_HELD",
+                )
+            return self._observer_status(
+                "需处理", "D1_FAILED",
+                stage="OBSERVER_NEEDS_ATTENTION",
+                observer_state="NEEDS_ATTENTION",
+                observer_result="OBSERVER_FAILED",
+            )
 
     def cold_backup(self) -> dict[str, Any]:
         """Retry OCI recovery artifacts without moving the publication pointer."""
@@ -623,15 +1378,23 @@ class DailyFundsRuntime:
             self.config.validate()
         except ConfigError:
             return self.status.write("需处理", "CONFIG_INVALID")
-        current = self._current()
-        if current is None:
-            return self.status.write("需处理", "SOURCE_MISSING")
-        publication = current.get("publication", {})
-        publication_id = str(publication.get("publication_id") or "")
-        r2_sha = str(publication.get("r2_manifest_sha256") or "")
-        if len(publication_id) != 64 or len(r2_sha) != 64:
-            return self.status.write("需处理", "PUBLICATION_INVALID")
-        try:
+
+        def backup_under_publisher_lock() -> dict[str, Any]:
+            # Reload after acquiring the same lease used by publish/restore so
+            # a retry can neither back up a stale pointer nor race a new one.
+            current = self._current()
+            if current is None:
+                raise PublicationError("SOURCE_MISSING")
+            publication = current.get("publication", {})
+            publication_id = str(publication.get("publication_id") or "")
+            r2_sha = str(publication.get("r2_manifest_sha256") or "")
+            if (
+                len(publication_id) != 64
+                or len(r2_sha) != 64
+                or any(char not in "0123456789abcdef" for char in publication_id)
+                or any(char not in "0123456789abcdef" for char in r2_sha)
+            ):
+                raise PublicationError("PUBLICATION_INVALID")
             r2_store = S3CompatibleStore(
                 endpoint_url=self.config.r2_endpoint_url,
                 bucket=self.config.r2_bucket,
@@ -647,9 +1410,14 @@ class DailyFundsRuntime:
                 secret_access_key=self.config.oci_secret_access_key,
                 region=self.config.oci_region,
             )
-            OciColdBackup(oci_store).backup(
+            r2_inventory = R2Mirror(r2_store).verify_manifest(
+                r2_sha,
+                expected_git_commit_sha=str(publication.get("git_commit_sha") or ""),
+            )
+            restore_manifest_sha = OciColdBackup(oci_store).backup(
                 publication_id=publication_id,
                 publication_sha256=sha256(json.dumps(publication, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8") + b"\n").hexdigest(),
+                publication_created_at=str(publication.get("created_at") or ""),
                 git_bundle=self._lease_call(
                     "git_writer_lock",
                     ttl_seconds=13 * 60,
@@ -657,39 +1425,82 @@ class DailyFundsRuntime:
                     callback=GitSparseWriter(self.config).bundle_head,
                 ),
                 d1_export=d1.export(publication_id),
-                r2_inventory=r2_store.get_bytes(f"daily-funds/manifests/{r2_sha}.json"),
+                r2_inventory=r2_inventory,
             )
-        except (IngestionError, PublicationError) as exc:
+            # Keep the canonical publication byte-identical to its D1/Git
+            # form; only the operational hand-off changes after a retry.
+            runtime = current.get("runtime") if isinstance(current.get("runtime"), Mapping) else {}
+            current["runtime"] = {
+                **dict(runtime),
+                "oci_backup_state": "OK",
+                "oci_restore_manifest_sha": restore_manifest_sha,
+            }
+            atomic_json_write(self.config.publication_dir / "current.json", current)
+            return self.status.write(
+                "已更新",
+                "OCI_BACKUP_OK",
+                effective_business_date=publication.get("business_date"),
+                last_verified_at=publication.get("created_at"),
+                publication_id=publication_id,
+                backup_state="OK",
+            )
+
+        try:
+            return self._lease_call(
+                "publisher_lock",
+                ttl_seconds=13 * 60,
+                code="PUBLISHER_LOCK_HELD",
+                callback=backup_under_publisher_lock,
+            )
+        except IngestionError as exc:
+            if getattr(exc, "code", str(exc)) == "PUBLISHER_LOCK_HELD":
+                return self.status.write("处理中", "PUBLISHER_LOCK_HELD", backup_state="LAG")
             return self._status_from_current(fallback_code="OCI_BACKUP_LAG", backup_state="LAG")
-        # Keep the canonical publication byte-identical to its D1/Git form;
-        # only the operational hand-off changes after a retry succeeds.
-        current["runtime"] = {"oci_backup_state": "OK"}
-        atomic_json_write(self.config.publication_dir / "current.json", current)
-        return self.status.write(
-            "已更新",
-            "OCI_BACKUP_OK",
-            effective_business_date=publication.get("business_date"),
-            last_verified_at=publication.get("created_at"),
-            publication_id=publication_id,
-            backup_state="OK",
-        )
+        except PublicationError as exc:
+            if exc.code in {"SOURCE_MISSING", "PUBLICATION_INVALID"}:
+                return self.status.write("需处理", exc.code, backup_state="LAG")
+            return self._status_from_current(fallback_code="OCI_BACKUP_LAG", backup_state="LAG")
 
     def restore_drill(self) -> dict[str, Any]:
         """Monthly non-production D1 rebuild; it never moves the live pointer."""
 
         try:
             self.config.validate()
-        except ConfigError:
-            return self.status.write("需处理", "CONFIG_INVALID")
+        except ConfigError as exc:
+            # Preserve the drill-specific, operator-actionable status while
+            # enforcing the same full runtime config contract as every other
+            # command.  Other missing storage/source values remain generic
+            # CONFIG_INVALID rather than falsely implying a restore attempt.
+            if str(exc) in {
+                "CONFIG_INVALID:DAILY_FUNDS_RESTORE_DRILL_D1_DATABASE_ID",
+                "RESTORE_DRILL_D1_MUST_DIFFER",
+            }:
+                return self._record_restore_drill(
+                    status=self.status.write("需处理", "RESTORE_DRILL_CONFIG_INVALID"),
+                    code="RESTORE_DRILL_CONFIG_INVALID",
+                )
+            return self._record_restore_drill(
+                status=self.status.write("需处理", "CONFIG_INVALID"),
+                code="CONFIG_INVALID",
+            )
         drill_database_id = self.config.restore_drill_d1_database_id
         if not drill_database_id or drill_database_id == self.config.d1_database_id:
-            return self.status.write("需处理", "RESTORE_DRILL_CONFIG_INVALID")
+            return self._record_restore_drill(
+                status=self.status.write("需处理", "RESTORE_DRILL_CONFIG_INVALID"),
+                code="RESTORE_DRILL_CONFIG_INVALID",
+            )
         current = self._current()
         if current is None:
-            return self.status.write("需处理", "SOURCE_MISSING")
+            return self._record_restore_drill(
+                status=self.status.write("需处理", "SOURCE_MISSING"),
+                code="SOURCE_MISSING",
+            )
         publication_id = str(current.get("publication", {}).get("publication_id") or "")
         if len(publication_id) != 64:
-            return self.status.write("需处理", "PUBLICATION_INVALID")
+            return self._record_restore_drill(
+                status=self.status.write("需处理", "PUBLICATION_INVALID"),
+                code="PUBLICATION_INVALID",
+            )
         try:
             oci_store = S3CompatibleStore(
                 endpoint_url=self.config.oci_endpoint_url,
@@ -710,8 +1521,12 @@ class DailyFundsRuntime:
         except (IngestionError, PublicationError) as exc:
             code = getattr(exc, "code", "RESTORE_DRILL_FAILED")
             status = "处理中" if code == "PUBLISHER_LOCK_HELD" else "需处理"
-            return self.status.write(status, code)
-        return self._status_from_current(fallback_code="RESTORE_DRILL_OK")
+            return self._record_restore_drill(
+                status=self.status.write(status, code),
+                code=str(code),
+            )
+        status = self._status_from_current(fallback_code="RESTORE_DRILL_OK")
+        return self._record_restore_drill(status=status, code="RESTORE_DRILL_OK")
 
     def restore(self, *, publication_id: str) -> dict[str, Any]:
         """Rebuild an empty/corrupt D1 and private pointer from OCI artifacts.

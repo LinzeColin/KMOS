@@ -8,7 +8,7 @@ import sqlite3
 import tempfile
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -74,7 +74,7 @@ class RuntimeStatus:
 
 
 class RuntimeState:
-    """A small SQLite journal: cursors, locks, inbox, idempotency and outbox only."""
+    """A small SQLite journal: cursors, locks, inbox, idempotency, outbox and values-free observer receipts only."""
 
     def __init__(self, state_dir: str | Path):
         self.root = Path(state_dir)
@@ -132,6 +132,41 @@ class RuntimeState:
                   started_at TEXT NOT NULL,
                   finished_at TEXT
                 );
+                CREATE TABLE IF NOT EXISTS network_events (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  service TEXT NOT NULL,
+                  operation TEXT NOT NULL,
+                  outcome TEXT NOT NULL,
+                  occurred_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS network_events_lookup
+                  ON network_events(service, operation, outcome, occurred_at);
+                CREATE TABLE IF NOT EXISTS parser_evidence (
+                  attachment_sha256 TEXT NOT NULL,
+                  family TEXT NOT NULL,
+                  suffix TEXT NOT NULL,
+                  declared_mime TEXT,
+                  magic TEXT NOT NULL,
+                  parser_version TEXT NOT NULL,
+                  opened_at TEXT NOT NULL,
+                  PRIMARY KEY(attachment_sha256, family)
+                );
+                CREATE TABLE IF NOT EXISTS observer_days (
+                  business_date TEXT PRIMARY KEY,
+                  publication_id TEXT NOT NULL,
+                  observed_at TEXT NOT NULL,
+                  comparison_state TEXT NOT NULL,
+                  coverage_state TEXT NOT NULL,
+                  amount_state TEXT NOT NULL,
+                  threshold_state TEXT NOT NULL,
+                  retrieval_state TEXT NOT NULL,
+                  duplicate_state TEXT NOT NULL,
+                  backup_state TEXT NOT NULL,
+                  restore_state TEXT NOT NULL,
+                  latency_minutes INTEGER
+                );
+                CREATE INDEX IF NOT EXISTS observer_days_observed_at
+                  ON observer_days(observed_at);
                 """
             )
 
@@ -149,7 +184,10 @@ class RuntimeState:
             )
 
     def get_cursor(self, key: str = "history_next_cursor") -> str | None:
-        return self.get(key)
+        # ``commit_cursor(None)`` deliberately retains the KV key as an empty
+        # value, but callers must never treat that terminal marker as an
+        # opaque continuation token.
+        return self.get(key) or None
 
     def commit_cursor(self, cursor: str | None, key: str = "history_next_cursor") -> None:
         # An opaque cursor is state, not a publication.  It is only advanced at
@@ -202,6 +240,83 @@ class RuntimeState:
                 (run_id, _safe_code(kind), _safe_code(state), _safe_code(code), now, now if finished else None),
             )
 
+    def record_network_event(self, service: str, operation: str, outcome: str) -> None:
+        """Record a values-free external-operation receipt for runtime audit.
+
+        URLs, identifiers, payloads and command output never enter this table:
+        the evidence is limited to a fixed service/operation/outcome triplet.
+        """
+
+        cutoff = (utc_now() - timedelta(days=35)).isoformat(timespec="seconds").replace("+00:00", "Z")
+        with self.connection() as connection:
+            connection.execute(
+                "INSERT INTO network_events(service,operation,outcome,occurred_at) VALUES(?,?,?,?)",
+                (_safe_code(service), _safe_code(operation), _safe_code(outcome), iso_now()),
+            )
+            # This is derived operational telemetry, not source data.  Keep
+            # enough history for the five-workday observer while preventing
+            # the non-authoritative OVH SQLite journal from growing forever.
+            connection.execute("DELETE FROM network_events WHERE occurred_at < ?", (cutoff,))
+
+    def record_parser_evidence(
+        self,
+        *,
+        attachment_sha256: str,
+        family: str,
+        suffix: str,
+        declared_mime: str | None,
+        magic: str,
+        parser_version: str,
+    ) -> None:
+        """Record a real raw-readback parser-open receipt without source values.
+
+        Callers invoke this only after the attachment has been re-opened from
+        the private sparse clone and the parser has completed.  The SHA is the
+        join key to the private raw manifest; no filename, group ID, account,
+        message content or attachment bytes enter the local journal.
+        """
+
+        if len(attachment_sha256) != 64 or any(character not in "0123456789abcdef" for character in attachment_sha256):
+            raise ValueError("invalid parser evidence hash")
+        if not all(isinstance(value, str) and value for value in (family, suffix, magic, parser_version)):
+            raise ValueError("invalid parser evidence")
+        if declared_mime is not None and (not isinstance(declared_mime, str) or not declared_mime):
+            raise ValueError("invalid parser evidence MIME")
+        with self.connection() as connection:
+            connection.execute(
+                """INSERT INTO parser_evidence(
+                       attachment_sha256,family,suffix,declared_mime,magic,parser_version,opened_at
+                   ) VALUES(?,?,?,?,?,?,?)
+                   ON CONFLICT(attachment_sha256,family) DO UPDATE SET
+                       suffix=excluded.suffix,
+                       declared_mime=excluded.declared_mime,
+                       magic=excluded.magic,
+                       parser_version=excluded.parser_version,
+                       opened_at=excluded.opened_at""",
+                (attachment_sha256, family, suffix, declared_mime, magic, parser_version, iso_now()),
+            )
+
+    def network_ledger_summary(self) -> list[dict[str, Any]]:
+        """Return aggregate, values-free network evidence for the protected UI."""
+
+        with self.connection() as connection:
+            rows = connection.execute(
+                """SELECT service,operation,outcome,COUNT(*) AS count,MAX(occurred_at) AS last_occurred_at
+                   FROM network_events
+                   GROUP BY service,operation,outcome
+                   ORDER BY service,operation,outcome"""
+            ).fetchall()
+        return [
+            {
+                "service": _safe_code(row["service"]),
+                "operation": _safe_code(row["operation"]),
+                "outcome": _safe_code(row["outcome"]),
+                "count": int(row["count"]),
+                "last_occurred_at": str(row["last_occurred_at"]),
+            }
+            for row in rows
+        ]
+
     def queue_incident(self, code: str, *, cooldown_minutes: int = 360) -> bool:
         """Deduplicate noisy auth incidents without sending any message itself."""
 
@@ -220,6 +335,209 @@ class RuntimeState:
             except sqlite3.IntegrityError:
                 return False
 
+    def observer_window(self) -> dict[str, str] | None:
+        """Return the current deployment-bound shadow-observation window.
+
+        The values are values-free: the marker is already a SHA-256 digest of
+        a container-instance token, never a raw hostname, deployment ID or
+        source revision.  A missing/corrupt window deliberately has no
+        implicit default because that could make a carried-over five-day count
+        look like evidence for a new deployment.
+        """
+
+        keys = (
+            "observer_deployment_marker",
+            "observer_baseline_business_date",
+            "observer_started_at",
+        )
+        with self.connection() as connection:
+            rows = connection.execute(
+                "SELECT key,value FROM kv WHERE key IN (?,?,?)", keys
+            ).fetchall()
+        values = {str(row["key"]): str(row["value"]) for row in rows}
+        marker = values.get("observer_deployment_marker")
+        baseline = values.get("observer_baseline_business_date")
+        started_at = values.get("observer_started_at")
+        if (
+            not marker
+            or len(marker) != 64
+            or any(character not in "0123456789abcdef" for character in marker)
+            or not baseline
+            or not started_at
+        ):
+            return None
+        try:
+            date.fromisoformat(baseline)
+            datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return {
+            "deployment_marker": marker,
+            "baseline_business_date": baseline,
+            "started_at": started_at,
+        }
+
+    def begin_observer_window(
+        self,
+        *,
+        deployment_marker: str,
+        baseline_business_date: str,
+        started_at: str,
+    ) -> None:
+        """Reset shadow comparisons only for a new container deployment.
+
+        A deployment's first validated publication is a baseline, not one of
+        the five post-deploy business-day comparisons.  The reset and the
+        marker update are one SQLite transaction, so a restart cannot retain
+        old comparisons under a new deployment marker.
+        """
+
+        if (
+            len(deployment_marker) != 64
+            or any(character not in "0123456789abcdef" for character in deployment_marker)
+        ):
+            raise ValueError("invalid observer deployment marker")
+        try:
+            date.fromisoformat(baseline_business_date)
+            datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("invalid observer window") from exc
+        now = iso_now()
+        rows = (
+            ("observer_deployment_marker", deployment_marker),
+            ("observer_baseline_business_date", baseline_business_date),
+            ("observer_started_at", started_at),
+        )
+        with self.connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute("DELETE FROM observer_days")
+            connection.executemany(
+                """INSERT INTO kv(key,value,updated_at) VALUES(?,?,?)
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at""",
+                ((key, value, now) for key, value in rows),
+            )
+            connection.execute("COMMIT")
+
+    def record_observer_day(
+        self,
+        *,
+        business_date: str,
+        publication_id: str,
+        comparison_state: str,
+        coverage_state: str,
+        amount_state: str,
+        threshold_state: str,
+        retrieval_state: str,
+        duplicate_state: str,
+        backup_state: str,
+        restore_state: str,
+        latency_minutes: int | None,
+        observed_at: str,
+    ) -> None:
+        """Upsert one real, verified business-date comparison without values.
+
+        The unique key is the source-validated business date rather than a
+        cron invocation.  Re-running the observer for the same publication
+        date refreshes evidence but cannot fabricate progress toward five
+        post-deploy business days.
+        """
+
+        try:
+            date.fromisoformat(business_date)
+        except ValueError as exc:
+            raise ValueError("invalid observer business date") from exc
+        if (
+            len(publication_id) != 64
+            or any(character not in "0123456789abcdef" for character in publication_id)
+        ):
+            raise ValueError("invalid observer publication")
+        if latency_minutes is not None and (
+            isinstance(latency_minutes, bool)
+            or not isinstance(latency_minutes, int)
+            or latency_minutes < 0
+            or latency_minutes > 60 * 24 * 31
+        ):
+            raise ValueError("invalid observer latency")
+        try:
+            datetime.fromisoformat(observed_at.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("invalid observer timestamp") from exc
+        states = (
+            comparison_state,
+            coverage_state,
+            amount_state,
+            threshold_state,
+            retrieval_state,
+            duplicate_state,
+            backup_state,
+            restore_state,
+        )
+        if any(not isinstance(value, str) or not value for value in states):
+            raise ValueError("invalid observer state")
+        values = tuple(_safe_code(value) for value in states)
+        with self.connection() as connection:
+            connection.execute(
+                """INSERT INTO observer_days(
+                     business_date,publication_id,observed_at,comparison_state,
+                     coverage_state,amount_state,threshold_state,retrieval_state,
+                     duplicate_state,backup_state,restore_state,latency_minutes
+                   ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+                   ON CONFLICT(business_date) DO UPDATE SET
+                     publication_id=excluded.publication_id,
+                     observed_at=excluded.observed_at,
+                     comparison_state=excluded.comparison_state,
+                     coverage_state=excluded.coverage_state,
+                     amount_state=excluded.amount_state,
+                     threshold_state=excluded.threshold_state,
+                     retrieval_state=excluded.retrieval_state,
+                     duplicate_state=excluded.duplicate_state,
+                     backup_state=excluded.backup_state,
+                     restore_state=excluded.restore_state,
+                     latency_minutes=excluded.latency_minutes""",
+                (business_date, publication_id, observed_at, *values, latency_minutes),
+            )
+            # The worker journal is rebuildable operational telemetry.  Keep
+            # a bounded tail that comfortably covers the five-day observer
+            # while preventing it becoming a second long-term evidence store.
+            connection.execute(
+                """DELETE FROM observer_days
+                   WHERE business_date NOT IN (
+                     SELECT business_date FROM observer_days
+                     ORDER BY business_date DESC LIMIT 35
+                   )"""
+            )
+
+    def observer_days(self, *, limit: int = 5) -> list[dict[str, Any]]:
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 35:
+            raise ValueError("invalid observer limit")
+        with self.connection() as connection:
+            rows = connection.execute(
+                """SELECT business_date,observed_at,comparison_state,coverage_state,
+                          amount_state,threshold_state,retrieval_state,duplicate_state,
+                          backup_state,restore_state,latency_minutes
+                   FROM observer_days
+                   ORDER BY business_date DESC LIMIT ?""",
+                (limit,),
+            ).fetchall()
+        # Return chronological order: it is easier for the existing status
+        # center to summarize, while the SQL query still bounds the newest N.
+        return [
+            {
+                "business_date": str(row["business_date"]),
+                "observed_at": str(row["observed_at"]),
+                "comparison_state": _safe_code(row["comparison_state"]),
+                "coverage_state": _safe_code(row["coverage_state"]),
+                "amount_state": _safe_code(row["amount_state"]),
+                "threshold_state": _safe_code(row["threshold_state"]),
+                "retrieval_state": _safe_code(row["retrieval_state"]),
+                "duplicate_state": _safe_code(row["duplicate_state"]),
+                "backup_state": _safe_code(row["backup_state"]),
+                "restore_state": _safe_code(row["restore_state"]),
+                "latency_minutes": None if row["latency_minutes"] is None else int(row["latency_minutes"]),
+            }
+            for row in reversed(rows)
+        ]
+
 
 class StatusWriter:
     """The only runtime-to-KMFA status hand-off; it contains no raw source."""
@@ -231,6 +549,7 @@ class StatusWriter:
         "backfill": "15 2 * * * Asia/Shanghai",
         "observer": "30 3 * * * Asia/Shanghai",
         "cold_backup": "10 4 * * * Asia/Shanghai",
+        "runtime_audit": "45 5 * * * Asia/Shanghai",
         "restore_drill": "0 5 1 * * Asia/Shanghai",
     }
 

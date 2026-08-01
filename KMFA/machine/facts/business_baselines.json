@@ -564,7 +564,7 @@
           "id": "DEF-KMFA-021",
           "baseline": "BL-DAILY-FUNDS",
           "stage": "verify",
-          "desc": "每日资金专用 D1、R2、OCI 资源及其最小权限运行身份尚未以生产证据确认；UNKNOWN 不得视作 PASS"
+          "desc": "每日资金专用 D1 与 R2 已由 Cloudflare API 创建并回读；其最小权限运行身份、OCI 资源/身份和真实 publication 仍未以生产证据确认，UNKNOWN 不得视作 PASS"
         }
       ]
     }

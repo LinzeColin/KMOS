@@ -8,8 +8,10 @@ archive.
 
 from __future__ import annotations
 
+import base64
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -43,6 +45,12 @@ class DwsPage:
     messages: tuple[dict[str, Any], ...]
     next_cursor: str | None
     has_more: bool
+
+
+@dataclass(frozen=True)
+class DwsAuthStatus:
+    authenticated: bool
+    refresh_token_valid: bool
 
 
 @dataclass(frozen=True)
@@ -190,9 +198,32 @@ class DwsHistoryClient:
         config: DailyFundsConfig,
         *,
         runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+        interactive_runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+        event_sink: Callable[[str, str, str], None] | None = None,
     ):
         self.config = config
         self._runner = runner
+        self._interactive_runner = interactive_runner
+        self._event_sink = event_sink
+        self._auth_ready = False
+
+    def _record_network_event(self, operation: str, outcome: str) -> None:
+        if self._event_sink is not None:
+            self._event_sink("DWS", operation, outcome)
+
+    def _run_dws(self, command: list[str], *, operation: str, timeout: int) -> subprocess.CompletedProcess[str]:
+        try:
+            return self._runner(
+                command,
+                capture_output=True,
+                text=True,
+                check=False,
+                env=self._environment(),
+                timeout=timeout,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            self._record_network_event(operation, "UNAVAILABLE")
+            raise
 
     def _environment(self) -> dict[str, str]:
         # Do not inherit another KMFA skill's DWS profile, keyring or optional
@@ -205,20 +236,142 @@ class DwsHistoryClient:
         env = {key: value for key in passthrough if (value := os.environ.get(key))}
         home = self.config.dws_config_dir / "home"
         home.mkdir(parents=True, exist_ok=True)
+        self.config.dws_keyring_dir.mkdir(parents=True, exist_ok=True)
         env.update({
             "HOME": str(home),
             "DWS_CONFIG_DIR": str(self.config.dws_config_dir),
-            "XDG_DATA_HOME": str(self.config.dws_keyring_dir),
+            "DWS_KEYCHAIN_DIR": str(self.config.dws_keyring_dir),
+            # The command environment is constructed from an allowlist, so
+            # this is the dedicated Coolify configuration value rather than
+            # an inherited workstation/other-skill override.  DWS uses this
+            # AppKey for device login and later history requests; an AppSecret
+            # is deliberately never injected into this slice.
             "DWS_CLIENT_ID": self.config.dws_client_id,
-            "DWS_CLIENT_SECRET": self.config.dws_client_secret,
+            # On the cloud Linux runtime this selects DWS's file-backed,
+            # slice-local keyring.  It also makes an accidental macOS test
+            # invocation refuse the host Keychain rather than inheriting it.
+            "DWS_DISABLE_KEYCHAIN": "1",
         })
         return env
 
+    def _auth_status(self) -> DwsAuthStatus:
+        try:
+            completed = self._run_dws(
+                [self.config.dws_bin, "auth", "status", "--format", "json"],
+                operation="AUTH_STATUS",
+                timeout=90,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise IngestionError("DWS_AUTH_STATUS_UNAVAILABLE") from exc
+        if completed.returncode != 0:
+            self._record_network_event("AUTH_STATUS", "FAILED")
+            raise IngestionError("DWS_AUTH_STATUS_FAILED")
+        try:
+            payload = json.loads(completed.stdout)
+        except json.JSONDecodeError as exc:
+            self._record_network_event("AUTH_STATUS", "INVALID")
+            raise IngestionError("DWS_AUTH_STATUS_INVALID") from exc
+        if not isinstance(payload, Mapping):
+            self._record_network_event("AUTH_STATUS", "INVALID")
+            raise IngestionError("DWS_AUTH_STATUS_INVALID")
+        self._record_network_event("AUTH_STATUS", "OK")
+        return DwsAuthStatus(
+            authenticated=payload.get("authenticated") is True,
+            refresh_token_valid=payload.get("refresh_token_valid") is True,
+        )
+
+    def _import_auth_bundle(self) -> None:
+        self.config.state_dir.mkdir(parents=True, exist_ok=True)
+        # The bundle is an opaque base64 export created for this dedicated DWS
+        # identity.  It is never printed and exists on disk only for the CLI
+        # import process inside this temporary directory.
+        with tempfile.TemporaryDirectory(prefix="daily-funds-auth-", dir=self.config.state_dir) as temp:
+            bundle = Path(temp) / "dws-auth.b64"
+            bundle.write_text(self.config.dws_auth_bundle_b64, encoding="ascii")
+            bundle.chmod(0o600)
+            try:
+                completed = self._run_dws(
+                    [
+                        self.config.dws_bin,
+                        "auth",
+                        "import",
+                        "--input",
+                        str(bundle),
+                        "--base64",
+                        "--force",
+                    ],
+                    operation="AUTH_IMPORT",
+                    timeout=90,
+                )
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                raise IngestionError("DWS_AUTH_IMPORT_UNAVAILABLE") from exc
+            if completed.returncode != 0:
+                self._record_network_event("AUTH_IMPORT", "FAILED")
+                raise IngestionError("DWS_AUTH_IMPORT_FAILED")
+            self._record_network_event("AUTH_IMPORT", "OK")
+
+    def bootstrap_device_auth(self) -> None:
+        """Perform one explicit device login inside this slice's cloud volume.
+
+        This method is intentionally *not* called by cron or normal polling.
+        Its stdout/stderr stay attached to the operator's protected cloud
+        terminal so a device code never enters runtime files, status JSON or
+        cron logs.  Once it succeeds, later jobs need only the isolated DWS
+        config/keyring volume and run unattended.
+        """
+
+        self.config.validate_dws_bootstrap()
+        status = self._auth_status()
+        if status.authenticated and status.refresh_token_valid:
+            self._auth_ready = True
+            self._record_network_event("AUTH_BOOTSTRAP", "ALREADY_READY")
+            return
+        self._record_network_event("AUTH_BOOTSTRAP", "STARTED")
+        try:
+            completed = self._interactive_runner(
+                [self.config.dws_bin, "auth", "login", "--device", "--no-browser", "--yes"],
+                text=True,
+                check=False,
+                env=self._environment(),
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            self._record_network_event("AUTH_BOOTSTRAP", "UNAVAILABLE")
+            raise IngestionError("DWS_AUTH_BOOTSTRAP_UNAVAILABLE") from exc
+        if completed.returncode != 0:
+            self._record_network_event("AUTH_BOOTSTRAP", "FAILED")
+            raise IngestionError("DWS_AUTH_BOOTSTRAP_FAILED")
+        status = self._auth_status()
+        if not (status.authenticated and status.refresh_token_valid):
+            self._record_network_event("AUTH_BOOTSTRAP", "AUTH_REQUIRED")
+            raise IngestionError("DWS_AUTH_REQUIRED")
+        self._auth_ready = True
+        self._record_network_event("AUTH_BOOTSTRAP", "OK")
+
+    def ensure_authenticated(self) -> None:
+        """Establish only this slice's portable DWS auth state, fail closed."""
+
+        if self._auth_ready:
+            return
+        status = self._auth_status()
+        if not (status.authenticated and status.refresh_token_valid):
+            if not self.config.dws_auth_bundle_b64:
+                # No cloud profile and no explicit recovery bundle is a hard
+                # source gate.  Never launch an interactive login from cron.
+                self._record_network_event("AUTH_IMPORT", "NOT_CONFIGURED")
+                raise IngestionError("DWS_AUTH_REQUIRED")
+            self._import_auth_bundle()
+            status = self._auth_status()
+        if not (status.authenticated and status.refresh_token_valid):
+            raise IngestionError("DWS_AUTH_REQUIRED")
+        self._auth_ready = True
+
     def search(self, start: datetime, end: datetime, cursor: str | None) -> DwsPage:
+        self.ensure_authenticated()
         command = [
             self.config.dws_bin,
             "chat", "message", "search-advanced",
             "--conversation-ids", self.config.group_id,
+            "--user", self.config.sender_id,
             "--start", start.astimezone(UTC).isoformat().replace("+00:00", "Z"),
             "--end", end.astimezone(UTC).isoformat().replace("+00:00", "Z"),
             "--limit", "100",
@@ -226,22 +379,26 @@ class DwsHistoryClient:
             "--format", "json",
         ]
         try:
-            completed = self._runner(
+            completed = self._run_dws(
                 command,
-                capture_output=True,
-                text=True,
-                check=False,
-                env=self._environment(),
+                operation="HISTORY_SEARCH",
                 timeout=90,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise IngestionError("DWS_HISTORY_UNAVAILABLE") from exc
         if completed.returncode != 0:
-            raise IngestionError("AUTH_REQUIRED" if completed.returncode in {1, 401, 403} else "DWS_HISTORY_FAILED")
+            code = "AUTH_REQUIRED" if completed.returncode in {1, 401, 403} else "FAILED"
+            self._record_network_event("HISTORY_SEARCH", code)
+            raise IngestionError("AUTH_REQUIRED" if code == "AUTH_REQUIRED" else "DWS_HISTORY_FAILED")
         try:
-            return _extract_page(json.loads(completed.stdout))
-        except json.JSONDecodeError as exc:
+            page = _extract_page(json.loads(completed.stdout))
+        except (IngestionError, json.JSONDecodeError) as exc:
+            self._record_network_event("HISTORY_SEARCH", "INVALID")
+            if isinstance(exc, IngestionError):
+                raise
             raise IngestionError("DWS_HISTORY_JSON_INVALID") from exc
+        self._record_network_event("HISTORY_SEARCH", "OK")
+        return page
 
     def assert_exact_source(self, message: Mapping[str, Any]) -> None:
         conversation_id = _message_field(message, ("openConversationId", "conversationId", "conversation_id"))
@@ -274,6 +431,7 @@ class DwsHistoryClient:
 
     def download(self, message: dict[str, Any], index: int) -> DownloadedAttachment:
         self.assert_exact_source(message)
+        self.ensure_authenticated()
         attachments = _attachments(message)
         if index >= len(attachments):
             raise IngestionError("ATTACHMENT_INDEX_INVALID")
@@ -298,24 +456,26 @@ class DwsHistoryClient:
                 "--output", str(output),
             ]
             try:
-                completed = self._runner(
+                completed = self._run_dws(
                     command,
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                    env=self._environment(),
+                    operation="ATTACHMENT_DOWNLOAD",
                     timeout=180,
                 )
             except (OSError, subprocess.TimeoutExpired) as exc:
                 raise IngestionError("ATTACHMENT_DOWNLOAD_FAILED") from exc
             if completed.returncode != 0:
-                raise IngestionError("AUTH_REQUIRED" if completed.returncode in {1, 401, 403} else "ATTACHMENT_DOWNLOAD_FAILED")
+                code = "AUTH_REQUIRED" if completed.returncode in {1, 401, 403} else "FAILED"
+                self._record_network_event("ATTACHMENT_DOWNLOAD", code)
+                raise IngestionError("AUTH_REQUIRED" if code == "AUTH_REQUIRED" else "ATTACHMENT_DOWNLOAD_FAILED")
             files = [path for path in output.rglob("*") if path.is_file()]
             if len(files) != 1:
+                self._record_network_event("ATTACHMENT_DOWNLOAD", "INVALID")
                 raise IngestionError("ATTACHMENT_DOWNLOAD_AMBIGUOUS")
             payload = files[0].read_bytes()
         if not payload:
+            self._record_network_event("ATTACHMENT_DOWNLOAD", "INVALID")
             raise IngestionError("CORRUPT_ATTACHMENT")
+        self._record_network_event("ATTACHMENT_DOWNLOAD", "OK")
         return DownloadedAttachment(
             message=message,
             message_id=message_id,
@@ -369,9 +529,14 @@ class HistoryPoller:
                 page = self.client.search(start, now, candidate_cursor)
                 persist_page(page)
                 pages += 1
-                candidate_cursor = page.next_cursor
                 if not page.has_more:
+                    # DWS defines ``nextCursor`` as a continuation token only
+                    # while ``hasMore`` is true.  A terminal response may
+                    # still contain a value, but persisting it would bind the
+                    # next 30-minute overlap query to a completed result set.
+                    candidate_cursor = None
                     break
+                candidate_cursor = page.next_cursor
                 if candidate_cursor is None:
                     raise IngestionError("NEXT_CURSOR_MISSING")
             # Commit both durable high-water markers only after every page and
@@ -387,6 +552,80 @@ class RawMaterializer:
     """Write byte-identical raw blobs and deterministic manifests below a root."""
 
     @staticmethod
+    def _json_text(value: object, *, code: str) -> str:
+        try:
+            return json.dumps(value, ensure_ascii=False, sort_keys=True, allow_nan=False) + "\n"
+        except (TypeError, ValueError) as exc:
+            raise IngestionError(code) from exc
+
+    @staticmethod
+    def _safe_path(root: Path, relative: Path) -> Path:
+        """Reject a pre-existing sparse-tree symlink escape before writing."""
+
+        if root.is_symlink():
+            raise IngestionError("RAW_PATH_SYMLINK_REJECTED")
+        root_resolved = root.resolve()
+        candidate = root / relative
+        try:
+            candidate.resolve(strict=False).relative_to(root_resolved)
+        except ValueError as exc:
+            raise IngestionError("RAW_PATH_ESCAPE") from exc
+        return candidate
+
+    @staticmethod
+    def _validate_attachment(attachment: DownloadedAttachment) -> None:
+        for value, code in (
+            (attachment.message_id_hash, "RAW_MESSAGE_ID_HASH_INVALID"),
+            (attachment.sha256, "RAW_ATTACHMENT_HASH_INVALID"),
+        ):
+            if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+                raise IngestionError(code)
+        if not isinstance(attachment.index, int) or isinstance(attachment.index, bool) or attachment.index < 0:
+            raise IngestionError("RAW_ATTACHMENT_INDEX_INVALID")
+        if not attachment.filename:
+            raise IngestionError("RAW_FILENAME_MISSING")
+        if attachment.message_at.tzinfo is None or attachment.message_at.utcoffset() is None:
+            raise IngestionError("RAW_MESSAGE_TIMESTAMP_INVALID")
+
+    @classmethod
+    def canonical_attachments(cls, attachments: Iterable[DownloadedAttachment]) -> tuple[DownloadedAttachment, ...]:
+        """Make an overlap batch order-independent without erasing occurrences.
+
+        One immutable occurrence is identified by message hash plus attachment
+        index.  An exact repeat belongs to that same occurrence; a different
+        byte hash at that address is an integrity conflict and must stop.
+        """
+
+        frozen = tuple(attachments)
+        if not frozen:
+            raise IngestionError("SOURCE_MISSING")
+        unique: list[DownloadedAttachment] = []
+        by_occurrence: dict[tuple[str, int], DownloadedAttachment] = {}
+        for attachment in frozen:
+            cls._validate_attachment(attachment)
+            occurrence_key = (attachment.message_id_hash, attachment.index)
+            previous = by_occurrence.get(occurrence_key)
+            if previous is None:
+                by_occurrence[occurrence_key] = attachment
+                unique.append(attachment)
+                continue
+            if previous != attachment:
+                raise IngestionError("RAW_OCCURRENCE_COLLISION")
+        return tuple(unique)
+
+    @staticmethod
+    def _attachment_paths(attachment: DownloadedAttachment) -> tuple[Path, Path, Path, Path]:
+        day = attachment.message_at.astimezone(BEIJING).date()
+        message_path = Path("raw/messages") / day.strftime("%Y/%m/%d") / f"{attachment.message_id_hash}.json"
+        occurrence_path = (
+            Path("raw/occurrences") / day.strftime("%Y/%m/%d") /
+            attachment.message_id_hash / f"{attachment.index}.json"
+        )
+        blob_path = Path("raw/blobs/sha256") / attachment.sha256[:2] / f"{attachment.sha256}{RawMaterializer._suffix(attachment.filename)}"
+        manifest_path = Path("raw/chunks/sha256") / attachment.sha256 / "reassembly.json"
+        return message_path, occurrence_path, blob_path, manifest_path
+
+    @staticmethod
     def _suffix(filename: str) -> str:
         suffix = Path(filename).suffix.lower()
         return suffix if suffix and len(suffix) <= 10 and suffix.replace(".", "").isalnum() else ".bin"
@@ -398,12 +637,22 @@ class RawMaterializer:
             if path.read_bytes() != payload:
                 raise IngestionError("RAW_PATH_HASH_COLLISION")
             return
-        path.write_bytes(payload)
+        fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+        try:
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(payload)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, path)
+        finally:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
 
     def stage(self, root: Path, attachments: Iterable[DownloadedAttachment]) -> StagedRawBatch:
-        frozen = list(attachments)
-        if not frozen:
-            raise IngestionError("SOURCE_MISSING")
+        frozen = self.canonical_attachments(attachments)
+        root.mkdir(parents=True, exist_ok=True)
+        if root.is_symlink() or any(path.is_symlink() for path in root.rglob("*")):
+            raise IngestionError("RAW_PATH_SYMLINK_REJECTED")
         paths: list[str] = []
         manifests: list[str] = []
         hash_list: list[str] = []
@@ -411,11 +660,8 @@ class RawMaterializer:
         for attachment in frozen:
             if sha256(attachment.payload).hexdigest() != attachment.sha256:
                 raise IngestionError("RAW_SOURCE_HASH_MISMATCH")
-            day = attachment.message_at.astimezone(BEIJING).date()
-            prefix = attachment.sha256[:2]
-            suffix = self._suffix(attachment.filename)
-            blob_path = Path("raw/blobs/sha256") / prefix / f"{attachment.sha256}{suffix}"
-            blob_absolute = root / blob_path
+            message_path, occurrence_path, blob_path, manifest_path = self._attachment_paths(attachment)
+            blob_absolute = self._safe_path(root, blob_path)
             if len(attachment.payload) <= DIRECT_BLOB_MAX_BYTES:
                 self._write_once(blob_absolute, attachment.payload)
                 object_paths = [str(blob_path)]
@@ -426,10 +672,9 @@ class RawMaterializer:
                 for index, offset in enumerate(range(0, len(attachment.payload), CHUNK_BYTES)):
                     part = attachment.payload[offset:offset + CHUNK_BYTES]
                     part_path = Path("raw/chunks/sha256") / attachment.sha256 / f"{index:06d}.part"
-                    self._write_once(root / part_path, part)
+                    self._write_once(self._safe_path(root, part_path), part)
                     object_paths.append(str(part_path))
                     part_hashes.append(sha256(part).hexdigest())
-                manifest_path = Path("raw/chunks/sha256") / attachment.sha256 / "reassembly.json"
                 reassembly_payload = {
                     "schema_version": "kmfa.daily_funds.reassembly.v1",
                     "sha256": attachment.sha256,
@@ -437,16 +682,11 @@ class RawMaterializer:
                     "chunk_size_bytes": CHUNK_BYTES,
                     "chunks": part_hashes,
                 }
-                self._write_once(root / manifest_path, (json.dumps(reassembly_payload, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8"))
+                self._write_once(self._safe_path(root, manifest_path), self._json_text(reassembly_payload, code="RAW_MANIFEST_SERIALIZATION_FAILED").encode("utf-8"))
                 object_paths.append(str(manifest_path))
                 manifests.append(str(manifest_path))
                 reassembly = str(manifest_path)
-            message_path = Path("raw/messages") / day.strftime("%Y/%m/%d") / f"{attachment.message_id_hash}.json"
-            self._write_once(root / message_path, (json.dumps(attachment.message, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8"))
-            occurrence_path = (
-                Path("raw/occurrences") / day.strftime("%Y/%m/%d") /
-                attachment.message_id_hash / f"{attachment.index}.json"
-            )
+            self._write_once(self._safe_path(root, message_path), self._json_text(attachment.message, code="RAW_MESSAGE_SERIALIZATION_FAILED").encode("utf-8"))
             occurrence = {
                 "schema_version": "kmfa.daily_funds.occurrence.v1",
                 "message_id_hash": attachment.message_id_hash,
@@ -464,7 +704,7 @@ class RawMaterializer:
                 # time belongs in SQLite, not the Git authority record.
                 "message_at": attachment.message_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
             }
-            self._write_once(root / occurrence_path, (json.dumps(occurrence, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8"))
+            self._write_once(self._safe_path(root, occurrence_path), self._json_text(occurrence, code="RAW_OCCURRENCE_SERIALIZATION_FAILED").encode("utf-8"))
             paths.extend([str(message_path), str(occurrence_path), *object_paths])
             hash_list.append(attachment.sha256)
             batch_rows.append({
@@ -473,6 +713,7 @@ class RawMaterializer:
                 "attachment_sha256": attachment.sha256,
                 "occurrence_path": str(occurrence_path),
             })
+        batch_rows.sort(key=lambda row: (row["message_id_hash"], row["attachment_index"], row["attachment_sha256"]))
         batch_id = sha256(json.dumps(batch_rows, sort_keys=True).encode("utf-8")).hexdigest()
         batch_path = Path("raw/batches") / f"{batch_id}.json"
         batch = {
@@ -480,17 +721,31 @@ class RawMaterializer:
             "batch_id": batch_id,
             "occurrences": batch_rows,
         }
-        self._write_once(root / batch_path, (json.dumps(batch, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8"))
+        self._write_once(self._safe_path(root, batch_path), self._json_text(batch, code="RAW_BATCH_SERIALIZATION_FAILED").encode("utf-8"))
         paths.append(str(batch_path))
         return StagedRawBatch(batch_id, tuple(sorted(set(paths))), tuple(sorted(set(hash_list))), len(frozen), tuple(sorted(set(manifests))))
 
     @staticmethod
     def reassemble(root: Path, attachment_sha256: str) -> bytes:
-        manifest_path = root / "raw/chunks/sha256" / attachment_sha256 / "reassembly.json"
+        if len(attachment_sha256) != 64 or any(character not in "0123456789abcdef" for character in attachment_sha256):
+            raise IngestionError("REASSEMBLY_HASH_MISMATCH")
+        manifest_path = RawMaterializer._safe_path(root, Path("raw/chunks/sha256") / attachment_sha256 / "reassembly.json")
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if (
+            not isinstance(payload, Mapping)
+            or payload.get("schema_version") != "kmfa.daily_funds.reassembly.v1"
+            or payload.get("sha256") != attachment_sha256
+            or payload.get("chunk_size_bytes") != CHUNK_BYTES
+            or not isinstance(payload.get("original_size_bytes"), int)
+            or payload["original_size_bytes"] < 0
+            or not isinstance(payload.get("chunks"), list)
+        ):
+            raise IngestionError("REASSEMBLY_MANIFEST_INVALID")
         chunks = []
         for index, expected_sha in enumerate(payload["chunks"]):
-            part = (manifest_path.parent / f"{index:06d}.part").read_bytes()
+            if not isinstance(expected_sha, str) or len(expected_sha) != 64:
+                raise IngestionError("REASSEMBLY_MANIFEST_INVALID")
+            part = RawMaterializer._safe_path(root, manifest_path.parent.relative_to(root) / f"{index:06d}.part").read_bytes()
             if sha256(part).hexdigest() != expected_sha:
                 raise IngestionError("CHUNK_HASH_MISMATCH")
             chunks.append(part)
@@ -509,9 +764,45 @@ class RawMaterializer:
         """
 
         try:
-            suffix = cls._suffix(attachment.filename)
-            direct = root / "raw/blobs/sha256" / attachment.sha256[:2] / f"{attachment.sha256}{suffix}"
-            payload = direct.read_bytes() if direct.is_file() else cls.reassemble(root, attachment.sha256)
+            cls._validate_attachment(attachment)
+            if root.is_symlink():
+                raise IngestionError("GIT_READBACK_FAILED")
+            message_path, occurrence_path, direct_path, manifest_path = cls._attachment_paths(attachment)
+            expected_message = cls._json_text(attachment.message, code="GIT_READBACK_FAILED")
+            if cls._safe_path(root, message_path).read_text(encoding="utf-8") != expected_message:
+                raise IngestionError("GIT_READBACK_FAILED")
+            occurrence = json.loads(cls._safe_path(root, occurrence_path).read_text(encoding="utf-8"))
+            if not isinstance(occurrence, Mapping):
+                raise IngestionError("GIT_READBACK_FAILED")
+            required = {
+                "schema_version": "kmfa.daily_funds.occurrence.v1",
+                "message_id_hash": attachment.message_id_hash,
+                "attachment_index": attachment.index,
+                "attachment_sha256": attachment.sha256,
+                "attachment_size_bytes": len(attachment.payload),
+                "filename": attachment.filename,
+                "mime": attachment.mime,
+                "family": attachment.family,
+                "message_path": str(message_path),
+                "message_at": attachment.message_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
+            }
+            if any(occurrence.get(key) != value for key, value in required.items()):
+                raise IngestionError("GIT_READBACK_FAILED")
+            if len(attachment.payload) <= DIRECT_BLOB_MAX_BYTES:
+                if occurrence.get("object_paths") != [str(direct_path)] or occurrence.get("reassembly_manifest") is not None:
+                    raise IngestionError("GIT_READBACK_FAILED")
+                payload = cls._safe_path(root, direct_path).read_bytes()
+            else:
+                manifest = json.loads(cls._safe_path(root, manifest_path).read_text(encoding="utf-8"))
+                if not isinstance(manifest, Mapping) or not isinstance(manifest.get("chunks"), list):
+                    raise IngestionError("GIT_READBACK_FAILED")
+                expected_paths = [
+                    str(Path("raw/chunks/sha256") / attachment.sha256 / f"{index:06d}.part")
+                    for index in range(len(manifest["chunks"]))
+                ] + [str(manifest_path)]
+                if occurrence.get("object_paths") != expected_paths or occurrence.get("reassembly_manifest") != str(manifest_path):
+                    raise IngestionError("GIT_READBACK_FAILED")
+                payload = cls.reassemble(root, attachment.sha256)
             if sha256(payload).hexdigest() != attachment.sha256:
                 raise IngestionError("GIT_READBACK_FAILED")
             return replace(attachment, payload=payload)
@@ -532,7 +823,71 @@ class GitSparseWriter:
         self.config = config
         self._runner = runner
 
+    @staticmethod
+    def _is_force_push(args: Sequence[str]) -> bool:
+        return bool(args and args[0] == "push" and any(
+            argument == "-f" or argument.startswith("--force")
+            for argument in args[1:]
+        ))
+
+    @staticmethod
+    def _is_non_fast_forward(args: Sequence[str], stderr: str) -> bool:
+        if not args or args[0] != "push":
+            return False
+        text = stderr.lower()
+        return any(marker in text for marker in (
+            "non-fast-forward",
+            "non fast forward",
+            "fetch first",
+            "[rejected]",
+        ))
+
+    @staticmethod
+    def _git_environment(temp_root: Path, key_path: Path) -> dict[str, str]:
+        """Create an isolated Git/SSH process environment for the one writer.
+
+        The deploy key is the sole authentication source.  No host SSH agent,
+        global Git config, `known_hosts`, or prompt may silently participate.
+        """
+
+        home = temp_root / "git-home"
+        home.mkdir(mode=0o700, exist_ok=True)
+        passthrough = (
+            "PATH", "LANG", "LC_ALL", "TZ", "SSL_CERT_FILE", "SSL_CERT_DIR",
+            "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY",
+        )
+        env = {key: value for key in passthrough if (value := os.environ.get(key))}
+        known_hosts = home / "known_hosts"
+        ssh_args = (
+            "ssh", "-F", "/dev/null", "-i", str(key_path),
+            "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
+            "-o", "StrictHostKeyChecking=accept-new",
+            "-o", f"UserKnownHostsFile={known_hosts}",
+        )
+        env.update({
+            "HOME": str(home),
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": "/dev/null",
+            "GIT_TERMINAL_PROMPT": "0",
+            "GIT_ASKPASS": "/bin/false",
+            "SSH_ASKPASS": "/bin/false",
+            "GIT_SSH_COMMAND": " ".join(shlex.quote(argument) for argument in ssh_args),
+        })
+        return env
+
+    @staticmethod
+    def _write_deploy_key(temp_root: Path, encoded_key: str) -> Path:
+        key_path = temp_root / "private_db_ed25519"
+        try:
+            key_path.write_bytes(base64.b64decode(encoded_key, validate=True))
+        except (OSError, ValueError) as exc:
+            raise IngestionError("GIT_SSH_KEY_WRITE_FAILED") from exc
+        key_path.chmod(0o600)
+        return key_path
+
     def _git(self, args: Sequence[str], *, cwd: Path | None = None, env: Mapping[str, str] | None = None) -> str:
+        if self._is_force_push(args):
+            raise IngestionError("GIT_FORCE_PUSH_FORBIDDEN")
         try:
             completed = self._runner(
                 ["git", *args],
@@ -546,16 +901,49 @@ class GitSparseWriter:
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise IngestionError("GIT_WRITE_FAILED") from exc
         if completed.returncode != 0:
-            raise IngestionError("GIT_NON_FAST_FORWARD" if "non-fast-forward" in (completed.stderr or "").lower() else "GIT_WRITE_FAILED")
+            raise IngestionError("GIT_NON_FAST_FORWARD" if self._is_non_fast_forward(args, completed.stderr or "") else "GIT_WRITE_FAILED")
         return completed.stdout.strip()
+
+    @staticmethod
+    def _assert_sparse_checkout_scope(repo: Path) -> None:
+        """The clone may materialize only the owner-approved sparse path."""
+
+        for path in repo.rglob("*"):
+            relative = path.relative_to(repo)
+            if relative.parts and relative.parts[0] == ".git":
+                continue
+            if path.is_symlink() or (path.is_file() and not relative.is_relative_to(SPARSE_PATH)):
+                raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
+
+    def _assert_staged_scope(self, repo: Path, *, env: Mapping[str, str]) -> None:
+        expected_prefix = f"{SPARSE_PATH.as_posix()}/"
+        staged_paths = self._git(["diff", "--cached", "--name-only", "--"], cwd=repo, env=env).splitlines()
+        if any(path != SPARSE_PATH.as_posix() and not path.startswith(expected_prefix) for path in staged_paths):
+            raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
 
     def _clone_sparse(self, repo: Path, *, env: Mapping[str, str], ref: str) -> None:
         self._git([
             "clone", "--filter=blob:none", "--sparse", "--no-checkout",
             self.config.private_repo, str(repo),
         ], env=env)
-        self._git(["sparse-checkout", "set", "--cone", str(SPARSE_PATH)], cwd=repo, env=env)
+        # Cone mode always includes root-level files.  Non-cone mode is used
+        # deliberately so an exact-path writer never checks out unrelated
+        # repository material before it handles financial evidence.
+        self._git(["sparse-checkout", "set", "--no-cone", f"{SPARSE_PATH.as_posix()}/"], cwd=repo, env=env)
         self._git(["checkout", ref], cwd=repo, env=env)
+        self._assert_sparse_checkout_scope(repo)
+
+    def _push_with_single_rebase(self, repo: Path, *, env: Mapping[str, str]) -> None:
+        """Retry the expected main race once, never with a force push."""
+
+        try:
+            self._git(["push", "origin", f"HEAD:{self.config.private_branch}"], cwd=repo, env=env)
+        except IngestionError as exc:
+            if exc.code != "GIT_NON_FAST_FORWARD":
+                raise
+            self._git(["fetch", "origin", self.config.private_branch], cwd=repo, env=env)
+            self._git(["rebase", f"origin/{self.config.private_branch}"], cwd=repo, env=env)
+            self._git(["push", "origin", f"HEAD:{self.config.private_branch}"], cwd=repo, env=env)
 
     def _readback_sparse_root(self, temp_root: Path, *, env: Mapping[str, str], commit_sha: str) -> Path:
         """Reopen the pushed commit through a new sparse clone.
@@ -585,17 +973,13 @@ class GitSparseWriter:
 
     def persist(self, attachments: Iterable[DownloadedAttachment]) -> GitCommit:
         self.config.validate(include_storage=False)
-        frozen_attachments = tuple(attachments)
+        frozen_attachments = RawMaterializer.canonical_attachments(attachments)
         if not self.config.state_dir.exists():
             self.config.state_dir.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="daily-funds-git-", dir=self.config.state_dir) as temp:
             temp_root = Path(temp)
-            key_path = temp_root / "private_db_ed25519"
-            import base64
-            key_path.write_bytes(base64.b64decode(self.config.git_ssh_key_b64))
-            key_path.chmod(0o600)
-            env = dict(os.environ)
-            env["GIT_SSH_COMMAND"] = f"ssh -i {key_path} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+            key_path = self._write_deploy_key(temp_root, self.config.git_ssh_key_b64)
+            env = self._git_environment(temp_root, key_path)
             repo = temp_root / "private-db"
             self._clone_sparse(repo, env=env, ref=self.config.private_branch)
             self._git(["config", "user.name", "kmfa-daily-funds-writer"], cwd=repo, env=env)
@@ -603,6 +987,7 @@ class GitSparseWriter:
             materializer = RawMaterializer()
             staged = materializer.stage(repo / SPARSE_PATH, frozen_attachments)
             self._git(["add", "--", str(SPARSE_PATH)], cwd=repo, env=env)
+            self._assert_staged_scope(repo, env=env)
             try:
                 self._git(["diff", "--cached", "--quiet"], cwd=repo, env=env)
                 changed = False
@@ -614,14 +999,7 @@ class GitSparseWriter:
                 changed = bool(self._git(["status", "--porcelain"], cwd=repo, env=env))
             if changed:
                 self._git(["commit", "-m", f"data(kmfa): daily funds raw batch {staged.batch_id[:12]}"], cwd=repo, env=env)
-                try:
-                    self._git(["push", "origin", f"HEAD:{self.config.private_branch}"], cwd=repo, env=env)
-                except IngestionError as exc:
-                    if exc.code != "GIT_NON_FAST_FORWARD":
-                        raise
-                    self._git(["fetch", "origin", self.config.private_branch], cwd=repo, env=env)
-                    self._git(["rebase", f"origin/{self.config.private_branch}"], cwd=repo, env=env)
-                    self._git(["push", "origin", f"HEAD:{self.config.private_branch}"], cwd=repo, env=env)
+                self._push_with_single_rebase(repo, env=env)
             commit_sha = self._git(["rev-parse", "HEAD"], cwd=repo, env=env)
             remote_head = self._git(["ls-remote", "origin", f"refs/heads/{self.config.private_branch}"], cwd=repo, env=env).split()
             if not remote_head or remote_head[0] != commit_sha:
@@ -649,34 +1027,26 @@ class GitSparseWriter:
             raise IngestionError("PUBLICATION_SHAPE_INVALID")
         with tempfile.TemporaryDirectory(prefix="daily-funds-publication-", dir=self.config.state_dir) as temp:
             temp_root = Path(temp)
-            key_path = temp_root / "private_db_ed25519"
-            import base64
-            key_path.write_bytes(base64.b64decode(self.config.git_ssh_key_b64))
-            key_path.chmod(0o600)
-            env = dict(os.environ)
-            env["GIT_SSH_COMMAND"] = f"ssh -i {key_path} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+            key_path = self._write_deploy_key(temp_root, self.config.git_ssh_key_b64)
+            env = self._git_environment(temp_root, key_path)
             repo = temp_root / "private-db"
             self._clone_sparse(repo, env=env, ref=self.config.private_branch)
             self._git(["config", "user.name", "kmfa-daily-funds-writer"], cwd=repo, env=env)
             self._git(["config", "user.email", "kmfa-daily-funds@localhost"], cwd=repo, env=env)
-            target = repo / SPARSE_PATH / "publications" / business_date / f"{publication_id}.json"
-            target.parent.mkdir(parents=True, exist_ok=True)
+            target = RawMaterializer._safe_path(
+                repo / SPARSE_PATH,
+                Path("publications") / business_date / f"{publication_id}.json",
+            )
             payload = json.dumps(publication, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
             if target.exists() and target.read_text(encoding="utf-8") != payload:
                 raise IngestionError("PUBLICATION_ID_COLLISION")
-            target.write_text(payload, encoding="utf-8")
+            RawMaterializer._write_once(target, payload.encode("utf-8"))
             self._git(["add", "--", str(SPARSE_PATH)], cwd=repo, env=env)
+            self._assert_staged_scope(repo, env=env)
             changed = bool(self._git(["status", "--porcelain"], cwd=repo, env=env))
             if changed:
                 self._git(["commit", "-m", f"data(kmfa): daily funds publication {publication_id[:12]}"], cwd=repo, env=env)
-                try:
-                    self._git(["push", "origin", f"HEAD:{self.config.private_branch}"], cwd=repo, env=env)
-                except IngestionError as exc:
-                    if exc.code != "GIT_NON_FAST_FORWARD":
-                        raise
-                    self._git(["fetch", "origin", self.config.private_branch], cwd=repo, env=env)
-                    self._git(["rebase", f"origin/{self.config.private_branch}"], cwd=repo, env=env)
-                    self._git(["push", "origin", f"HEAD:{self.config.private_branch}"], cwd=repo, env=env)
+                self._push_with_single_rebase(repo, env=env)
             commit_sha = self._git(["rev-parse", "HEAD"], cwd=repo, env=env)
             remote = self._git(["ls-remote", "origin", f"refs/heads/{self.config.private_branch}"], cwd=repo, env=env).split()
             if not remote or remote[0] != commit_sha:
@@ -696,12 +1066,8 @@ class GitSparseWriter:
         self.config.validate(include_storage=False)
         with tempfile.TemporaryDirectory(prefix="daily-funds-bundle-", dir=self.config.state_dir) as temp:
             temp_root = Path(temp)
-            key_path = temp_root / "private_db_ed25519"
-            import base64
-            key_path.write_bytes(base64.b64decode(self.config.git_ssh_key_b64))
-            key_path.chmod(0o600)
-            env = dict(os.environ)
-            env["GIT_SSH_COMMAND"] = f"ssh -i {key_path} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+            key_path = self._write_deploy_key(temp_root, self.config.git_ssh_key_b64)
+            env = self._git_environment(temp_root, key_path)
             repo = temp_root / "private-db"
             self._clone_sparse(repo, env=env, ref=self.config.private_branch)
             bundle = temp_root / "daily-funds.bundle"

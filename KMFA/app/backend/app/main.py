@@ -12,7 +12,7 @@ import json
 import os
 import re
 import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from html import escape as html_escape
 from urllib.parse import quote
@@ -2575,8 +2575,217 @@ def _daily_funds_status() -> dict[str, Any]:
     }
 
 
+def _daily_funds_flow_token(value: object, *, allowed: set[str], default: str) -> str:
+    if not isinstance(value, str):
+        return default
+    token = value.strip().upper()
+    return token if token in allowed else default
+
+
+def _daily_funds_flow_state() -> dict[str, Any]:
+    """Safely fold the worker's flow record into the existing status center.
+
+    ``flow_state.json`` is not a dashboard and cannot become a source of
+    authority: it is a values-free, worker-written hand-off.  The canonical
+    human status remains ``status.json`` and malformed/extended input is
+    reduced to an explicit unknown state before it reaches an API response.
+    """
+
+    status = _daily_funds_status()
+    observer_schedule = str(status["schedules"].get("observer") or "")
+    if observer_schedule != "30 3 * * * Asia/Shanghai":
+        observer_schedule = "30 3 * * * Asia/Shanghai"
+    default = {
+        "部署": {
+            "运行": "UNKNOWN",
+            "实例": "UNKNOWN",
+            "身份": "UNKNOWN",
+            "最近运行审计": None,
+        },
+        "业务流": {
+            "阶段": "UNKNOWN",
+            "状态": status["human_status"],
+            "有效业务日期": status["effective_business_date"],
+            "最近验证": status["last_verified_at"],
+            "已验证发布": False,
+        },
+        "自愈": {
+            "状态": "UNKNOWN",
+            "重启恢复": "UNKNOWN",
+            "恢复演练": "NOT_YET_RUN",
+            "最近恢复演练": None,
+        },
+        "上线后观察": {
+            "排程": observer_schedule,
+            "状态": "NOT_STARTED",
+            "最近对照": "NOT_STARTED",
+            "需验证业务日": 5,
+            "已完成业务日": 0,
+            "基准业务日期": None,
+            "开始时间": None,
+            "最近观察": None,
+            "每日对照": [],
+        },
+    }
+    payload = _read_daily_funds_json("flow_state.json")
+    if not isinstance(payload, dict) or payload.get("schema_version") != "kmfa.daily_funds.flow_state.v1":
+        return default
+    deployment = payload.get("deployment") if isinstance(payload.get("deployment"), dict) else {}
+    business = payload.get("business_flow") if isinstance(payload.get("business_flow"), dict) else {}
+    healing = payload.get("self_healing") if isinstance(payload.get("self_healing"), dict) else {}
+    observer = payload.get("post_deploy_observer") if isinstance(payload.get("post_deploy_observer"), dict) else {}
+    comparison_rows = observer.get("comparisons")
+    comparisons: list[dict[str, Any]] = []
+    if isinstance(comparison_rows, list):
+        for row in comparison_rows[:5]:
+            if not isinstance(row, dict):
+                continue
+            business_date = _daily_funds_date(row.get("business_date"))
+            observed_at = _daily_funds_timestamp(row.get("observed_at"))
+            latency = row.get("latency_minutes")
+            if (
+                business_date is None
+                or observed_at is None
+                or (latency is not None and (not _daily_funds_is_integer(latency) or latency < 0 or latency > 60 * 24 * 31))
+            ):
+                continue
+            comparisons.append({
+                "业务日期": business_date.isoformat(),
+                "观察时间": observed_at,
+                "对照": _daily_funds_flow_token(
+                    row.get("comparison_state"),
+                    allowed={"D1_AND_POINTER_VERIFIED"},
+                    default="UNKNOWN",
+                ),
+                "覆盖": _daily_funds_flow_token(
+                    row.get("coverage_state"),
+                    allowed={"DIRECT_OBSERVATION"},
+                    default="UNKNOWN",
+                ),
+                "金额": _daily_funds_flow_token(
+                    row.get("amount_state"),
+                    allowed={"ZERO_FEN"},
+                    default="UNKNOWN",
+                ),
+                "阈值": _daily_funds_flow_token(
+                    row.get("threshold_state"),
+                    allowed={"VALID"},
+                    default="UNKNOWN",
+                ),
+                "取数": _daily_funds_flow_token(
+                    row.get("retrieval_state"),
+                    allowed={"COMPLETE_PAIR"},
+                    default="UNKNOWN",
+                ),
+                "重复": _daily_funds_flow_token(
+                    row.get("duplicate_state"),
+                    allowed={"SOURCE_VERSION_UNIQUE"},
+                    default="UNKNOWN",
+                ),
+                "备份": _daily_funds_flow_token(
+                    row.get("backup_state"),
+                    allowed=DAILY_FUNDS_BACKUP_STATES,
+                    default="UNKNOWN",
+                ),
+                "恢复": _daily_funds_flow_token(
+                    row.get("restore_state"),
+                    allowed={"OK", "IN_PROGRESS", "NEEDS_ATTENTION", "NOT_YET_RUN", "UNKNOWN"},
+                    default="UNKNOWN",
+                ),
+                "延迟分钟": latency,
+            })
+    required_days = observer.get("required_business_days")
+    completed_days = observer.get("completed_business_days")
+    if not _daily_funds_is_integer(required_days) or required_days != 5:
+        required_days = 5
+    if not _daily_funds_is_integer(completed_days) or completed_days < 0 or completed_days > required_days:
+        completed_days = 0
+    return {
+        "部署": {
+            "运行": _daily_funds_flow_token(
+                deployment.get("runtime_state"),
+                allowed={"RUNTIME_AUDITED", "RUNTIME_NEEDS_ATTENTION", "UNKNOWN"},
+                default="UNKNOWN",
+            ),
+            "实例": _daily_funds_flow_token(
+                deployment.get("instance_state"),
+                allowed={"OBSERVED", "UNKNOWN"},
+                default="UNKNOWN",
+            ),
+            # The worker has no authority to invent source SHA/image digest.
+            "身份": "UNKNOWN",
+            "最近运行审计": _daily_funds_timestamp(deployment.get("runtime_audit_at")),
+        },
+        "业务流": {
+            "阶段": _daily_funds_flow_token(
+                business.get("stage"),
+                allowed={
+                    "RUNTIME_AUDITED", "RUNTIME_NEEDS_ATTENTION", "WAITING_FOR_VALID_PUBLICATION",
+                    "OBSERVER_NEEDS_ATTENTION", "OBSERVER_WAITING_FOR_PUBLICATION_LOCK",
+                    "OBSERVER_BASELINE_CAPTURED", "OBSERVER_WAITING_FOR_NEXT_BUSINESS_DATE",
+                    "POST_DEPLOY_OBSERVING", "POST_DEPLOY_OBSERVATION_COMPLETE",
+                    "RESTORE_DRILL", "RESTORE_DRILL_NEEDS_ATTENTION", "UNKNOWN",
+                },
+                default="UNKNOWN",
+            ),
+            # The main status writer remains the only primary human status.
+            "状态": status["human_status"],
+            "有效业务日期": status["effective_business_date"],
+            "最近验证": status["last_verified_at"],
+            "已验证发布": business.get("publication_present") is True,
+        },
+        "自愈": {
+            "状态": _daily_funds_flow_token(
+                healing.get("state"), allowed={"JOURNAL_READY", "UNKNOWN"}, default="UNKNOWN",
+            ),
+            "重启恢复": _daily_funds_flow_token(
+                healing.get("restart_recovery"), allowed={"CURSOR_INBOX_LEASES", "UNKNOWN"}, default="UNKNOWN",
+            ),
+            "恢复演练": _daily_funds_flow_token(
+                healing.get("restore_drill"),
+                allowed={"OK", "IN_PROGRESS", "NEEDS_ATTENTION", "NOT_YET_RUN", "UNKNOWN"},
+                default="UNKNOWN",
+            ),
+            "最近恢复演练": _daily_funds_timestamp(healing.get("restore_drill_at")),
+        },
+        "上线后观察": {
+            "排程": observer_schedule,
+            "状态": _daily_funds_flow_token(
+                observer.get("state"),
+                allowed={
+                    "NOT_STARTED", "WAITING_FOR_VALID_PUBLICATION", "WAITING_FOR_LOCK",
+                    "BASELINE_CAPTURED", "WAITING_FOR_NEXT_BUSINESS_DATE", "OBSERVING",
+                    "COMPLETE", "NEEDS_ATTENTION", "UNKNOWN",
+                },
+                default="NOT_STARTED",
+            ),
+            "最近对照": _daily_funds_flow_token(
+                observer.get("last_comparison"),
+                allowed={
+                    "NOT_STARTED", "SOURCE_MISSING", "CONFIG_INVALID", "DEPLOYMENT_MARKER_UNAVAILABLE",
+                    "OBSERVATION_CLOCK_INVALID", "POINTER_OR_HISTORY_INVALID", "STALE",
+                    "D1_ORACLE_FAILED", "D1_AND_POINTER_VERIFIED", "PUBLISHER_LOCK_HELD",
+                    "OBSERVER_LOCK_HELD", "POINTER_BEFORE_DEPLOYMENT_BASELINE", "OBSERVER_FAILED",
+                    "UNKNOWN",
+                },
+                default="UNKNOWN",
+            ),
+            "需验证业务日": required_days,
+            "已完成业务日": completed_days,
+            "基准业务日期": (
+                _daily_funds_date(observer.get("baseline_business_date")).isoformat()
+                if _daily_funds_date(observer.get("baseline_business_date")) is not None else None
+            ),
+            "开始时间": _daily_funds_timestamp(observer.get("started_at")),
+            "最近观察": _daily_funds_timestamp(observer.get("last_observed_at")),
+            "每日对照": comparisons,
+        },
+    }
+
+
 def _daily_funds_schedule_row() -> dict[str, Any]:
     status = _daily_funds_status()
+    flow = _daily_funds_flow_state()
     is_updated = status["human_status"] == "已更新"
     return {
         "技能": "daily-funds",
@@ -2601,33 +2810,104 @@ def _daily_funds_schedule_row() -> dict[str, Any]:
             "最近验证": status["last_verified_at"],
             "备份": status["backup_state"],
             "排程": status["schedules"],
+            "业务流": flow,
         },
     }
 
 
+def _daily_funds_is_integer(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _daily_funds_date(value: object) -> date | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _daily_funds_timestamp(value: object) -> str | None:
+    if not isinstance(value, str) or len(value) > 40:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return value if parsed.tzinfo is not None else None
+
+
+def _daily_funds_lower_hex(value: object, length: int) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == length
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
 def _daily_funds_current() -> dict[str, Any]:
+    """Return only a structurally valid, already-published projection.
+
+    The daily-funds worker is the sole producer.  The application must not
+    make a partially written, malformed, or merely plausible JSON file look
+    like a trusted financial publication just because it happens to be on the
+    shared read-only volume.
+    """
+
     payload = _read_daily_funds_json("current.json")
     if not payload or not isinstance(payload.get("publication"), dict):
         raise HTTPException(status_code=503, detail="daily_funds_projection_unavailable")
     publication = payload["publication"]
-    if publication.get("status") != "VALID" or publication.get("reconciliation_difference_fen") != 0:
+    source_versions = publication.get("source_versions")
+    expected_fields = {
+        "publication_id", "business_date", "status", "source_versions", "reconciliation_difference_fen",
+        "threshold_snapshot", "created_at", "git_commit_sha", "d1_projection_version", "r2_manifest_sha256",
+        "oci_backup_state",
+    }
+    if (
+        set(publication) != expected_fields
+        or publication.get("status") != "VALID"
+        or not _daily_funds_is_integer(publication.get("reconciliation_difference_fen"))
+        or publication.get("reconciliation_difference_fen") != 0
+        or not _daily_funds_lower_hex(publication.get("publication_id"), 64)
+        or _daily_funds_date(publication.get("business_date")) is None
+        or _daily_funds_timestamp(publication.get("created_at")) is None
+        or not _daily_funds_lower_hex(publication.get("git_commit_sha"), 40)
+        or not _daily_funds_lower_hex(publication.get("r2_manifest_sha256"), 64)
+        or publication.get("d1_projection_version") != "kmfa.daily_funds.d1.v1"
+        or not isinstance(source_versions, list)
+        or len(source_versions) < 2
+        or len({item.get("source_version") for item in source_versions if isinstance(item, dict)}) != len(source_versions)
+        or any(
+            not isinstance(item, dict)
+            or set(item) != {"source_version"}
+            or not _daily_funds_lower_hex(item.get("source_version"), 64)
+            for item in source_versions
+        )
+    ):
         raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
     return payload
 
 
-def _daily_funds_range_days(range_value: str, from_date: str | None, to_date: str | None) -> tuple[str, str]:
+def _daily_funds_range_days(
+    range_value: str,
+    from_date: str | None,
+    to_date: str | None,
+    *,
+    publication_day: date,
+) -> tuple[str, str]:
+    # A trusted publication, not wall-clock time, anchors preset ranges.  If
+    # the worker is delayed, using "today" would create an empty chart and
+    # falsely imply that a valid prior snapshot has no data.
     if range_value in DAILY_FUNDS_ALLOWED_RANGES:
-        end = datetime.now(BEIJING).date()
-        start = end - timedelta(days=DAILY_FUNDS_ALLOWED_RANGES[range_value] - 1)
-        return start.isoformat(), end.isoformat()
+        start = publication_day - timedelta(days=DAILY_FUNDS_ALLOWED_RANGES[range_value] - 1)
+        return start.isoformat(), publication_day.isoformat()
     if range_value != "custom" or not from_date or not to_date:
         raise HTTPException(status_code=422, detail="daily_funds_range_invalid")
-    try:
-        start = datetime.fromisoformat(from_date).date()
-        end = datetime.fromisoformat(to_date).date()
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail="daily_funds_custom_range_invalid") from exc
-    if end < start or (end - start).days + 1 < 7:
+    start = _daily_funds_date(from_date)
+    end = _daily_funds_date(to_date)
+    if start is None or end is None or end < start or (end - start).days + 1 < 7:
         raise HTTPException(status_code=422, detail="daily_funds_custom_range_invalid")
     return start.isoformat(), end.isoformat()
 
@@ -2635,21 +2915,360 @@ def _daily_funds_range_days(range_value: str, from_date: str | None, to_date: st
 def _daily_funds_filtered_timeseries(payload: dict[str, Any], start: str, end: str) -> list[dict[str, Any]]:
     rows = payload.get("daily_balances")
     if not isinstance(rows, list):
-        return []
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
     safe: list[dict[str, Any]] = []
+    seen_days: set[str] = set()
     for row in rows:
         if not isinstance(row, dict):
-            continue
-        business_date = str(row.get("business_date") or "")[:10]
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+        observed = _daily_funds_date(row.get("business_date"))
         amount = row.get("ending_available_fen")
-        if start <= business_date <= end and isinstance(amount, int):
+        direct = row.get("direct_observation")
+        gap = row.get("coverage_gap")
+        carried = row.get("carried_forward")
+        if (
+            observed is None
+            or not _daily_funds_is_integer(amount)
+            or not all(isinstance(flag, bool) for flag in (direct, gap, carried))
+            or (direct and (gap or carried))
+            or (gap and carried)
+            or (not direct and not gap and not carried)
+        ):
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+        business_date = observed.isoformat()
+        if business_date in seen_days:
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+        seen_days.add(business_date)
+        if start <= business_date <= end:
             safe.append({
                 "business_date": business_date,
                 "ending_available_fen": amount,
-                "direct_observation": bool(row.get("direct_observation")),
-                "coverage_gap": bool(row.get("coverage_gap")),
+                "direct_observation": direct,
+                "coverage_gap": gap,
+                "carried_forward": carried,
             })
     return sorted(safe, key=lambda row: row["business_date"])
+
+
+def _daily_funds_range_health(points: list[dict[str, Any]], start: str, end: str) -> dict[str, Any]:
+    start_day = _daily_funds_date(start)
+    end_day = _daily_funds_date(end)
+    if start_day is None or end_day is None:
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    expected_dates = [
+        (start_day + timedelta(days=offset)).isoformat()
+        for offset in range((end_day - start_day).days + 1)
+    ]
+    present = {str(point["business_date"]) for point in points}
+    coverage_gaps = [str(point["business_date"]) for point in points if point["coverage_gap"]]
+    return {
+        "expected_days": len(expected_dates),
+        "published_days": len(points),
+        "expected_dates": expected_dates,
+        "missing_dates": [business_date for business_date in expected_dates if business_date not in present],
+        "coverage_gap_dates": coverage_gaps,
+    }
+
+
+def _daily_funds_projection_day(payload: dict[str, Any]) -> date:
+    publication = payload["publication"]
+    business_day = _daily_funds_date(publication.get("business_date"))
+    if business_day is None:
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    return business_day
+
+
+def _daily_funds_safe_label(value: object) -> str:
+    """Return a bounded display label, never an arbitrary JSON value."""
+    if not isinstance(value, str):
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    label = value.strip()
+    if not label or len(label) > 80 or any(ord(character) < 32 for character in label):
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    return label
+
+
+def _daily_funds_safe_breakdown(value: object, *, total: int) -> list[dict[str, Any]]:
+    if not isinstance(value, dict):
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    safe: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw_label, amount in value.items():
+        label = _daily_funds_safe_label(raw_label)
+        if label in seen or not _daily_funds_is_integer(amount):
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+        seen.add(label)
+        safe.append({"label": label, "ending_available_fen": amount})
+    if not safe or sum(int(row["ending_available_fen"]) for row in safe) != total:
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    return sorted(safe, key=lambda row: (-abs(int(row["ending_available_fen"])), str(row["label"])))
+
+
+def _daily_funds_safe_accounts(value: object, *, total: int) -> list[dict[str, Any]]:
+    if not isinstance(value, dict):
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    safe: list[dict[str, Any]] = []
+    for account_hash, amount in value.items():
+        if not _daily_funds_lower_hex(account_hash, 64) or not _daily_funds_is_integer(amount):
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+        safe.append({"account_alias": f"••••{str(account_hash)[-4:]}", "ending_available_fen": amount})
+    if not safe or sum(int(row["ending_available_fen"]) for row in safe) != total:
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    return sorted(safe, key=lambda row: (-abs(int(row["ending_available_fen"])), str(row["account_alias"])))
+
+
+def _daily_funds_safe_transactions(payload: dict[str, Any], *, publication_day: date) -> list[dict[str, Any]]:
+    rows = payload.get("transactions")
+    if not isinstance(rows, list) or not rows:
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    expected = {
+        "transaction_key_hash", "business_date", "inflow_fen", "outflow_fen", "adjustment_fen",
+        "internal_transfer", "source_version", "message_id_hash",
+    }
+    safe: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict) or set(row) != expected:
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+        key = row.get("transaction_key_hash")
+        observed = _daily_funds_date(row.get("business_date"))
+        inflow = row.get("inflow_fen")
+        outflow = row.get("outflow_fen")
+        adjustment = row.get("adjustment_fen")
+        internal_transfer = row.get("internal_transfer")
+        if (
+            not _daily_funds_lower_hex(key, 64)
+            or key in seen
+            or observed != publication_day
+            or not all(_daily_funds_is_integer(amount) for amount in (inflow, outflow, adjustment))
+            or int(inflow) < 0
+            or int(outflow) < 0
+            or (int(inflow) and int(outflow))
+            or not isinstance(internal_transfer, bool)
+            or not _daily_funds_lower_hex(row.get("source_version"), 64)
+            or not _daily_funds_lower_hex(row.get("message_id_hash"), 64)
+        ):
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+        seen.add(str(key))
+        safe.append({
+            "transaction_ref": str(key)[-8:],
+            "business_date": observed.isoformat(),
+            "inflow_fen": inflow,
+            "outflow_fen": outflow,
+            "adjustment_fen": adjustment,
+            "internal_transfer": internal_transfer,
+        })
+    return sorted(safe, key=lambda row: (str(row["business_date"]), str(row["transaction_ref"])))
+
+
+def _daily_funds_safe_thresholds(publication: dict[str, Any]) -> dict[str, Any]:
+    snapshot = publication.get("threshold_snapshot")
+    if not isinstance(snapshot, dict):
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    fixed = snapshot.get("fixed")
+    floating = snapshot.get("floating")
+    if (
+        not isinstance(fixed, dict)
+        or set(fixed) != {"hard_fen", "soft_fen"}
+        or fixed.get("hard_fen") != 60_000_000
+        or fixed.get("soft_fen") != 120_000_000
+        or not isinstance(floating, list)
+    ):
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    required = {
+        "name", "threshold_fen", "start", "end", "days", "direct_observations", "covered_days",
+        "carried_forward_days", "coverage", "active", "reason",
+    }
+    lines: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for line in floating:
+        if not isinstance(line, dict) or set(line) != required:
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+        name = _daily_funds_safe_label(line.get("name"))
+        threshold = line.get("threshold_fen")
+        start = _daily_funds_date(line.get("start"))
+        end = _daily_funds_date(line.get("end"))
+        fields = (line.get("days"), line.get("direct_observations"), line.get("covered_days"), line.get("carried_forward_days"))
+        coverage = line.get("coverage")
+        reason = line.get("reason")
+        if (
+            name in seen
+            or start is None
+            or end is None
+            or end < start
+            or not all(_daily_funds_is_integer(value) and int(value) >= 0 for value in fields)
+            or not isinstance(coverage, str)
+            or len(coverage) > 24
+            or not isinstance(line.get("active"), bool)
+            or (threshold is not None and not _daily_funds_is_integer(threshold))
+            or (reason is not None and (not isinstance(reason, str) or len(reason) > 120))
+        ):
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+        if bool(line["active"]) != _daily_funds_is_integer(threshold):
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+        seen.add(name)
+        lines.append({
+            "name": name,
+            "threshold_fen": threshold,
+            "start": start.isoformat(),
+            "end": end.isoformat(),
+            "days": line["days"],
+            "direct_observations": line["direct_observations"],
+            "covered_days": line["covered_days"],
+            "carried_forward_days": line["carried_forward_days"],
+            "coverage": coverage,
+            "active": line["active"],
+            "reason": reason,
+        })
+    return {"fixed": {"hard_fen": 60_000_000, "soft_fen": 120_000_000}, "floating": lines}
+
+
+def _daily_funds_projection_view(payload: dict[str, Any]) -> dict[str, Any]:
+    """Validate the entire browser projection before exposing any financial value."""
+    publication = payload["publication"]
+    publication_day = _daily_funds_projection_day(payload)
+    all_points = _daily_funds_filtered_timeseries(payload, "0001-01-01", "9999-12-31")
+    if any(point["business_date"] > publication_day.isoformat() for point in all_points):
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    points = [point for point in all_points if point["business_date"] <= publication_day.isoformat()]
+    current_point = next((point for point in points if point["business_date"] == publication_day.isoformat()), None)
+    summary = payload.get("summary")
+    if not isinstance(summary, dict) or not _daily_funds_is_integer(summary.get("total_available_fen")):
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    total = int(summary["total_available_fen"])
+    if current_point is None or not current_point["direct_observation"] or current_point["ending_available_fen"] != total:
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    risk_label = summary.get("risk_label")
+    dynamic_flag = summary.get("dynamic_flag")
+    if risk_label not in {"正常", "关注", "高风险", "动态明显偏低", "动态偏低"}:
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    if dynamic_flag not in {None, "动态明显偏低", "动态偏低"}:
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    runtime = payload.get("runtime") if isinstance(payload.get("runtime"), dict) else {}
+    backup_state = str(runtime.get("oci_backup_state") or publication.get("oci_backup_state") or "UNKNOWN").upper()
+    if backup_state not in DAILY_FUNDS_BACKUP_STATES:
+        backup_state = "UNKNOWN"
+    return {
+        "publication_day": publication_day,
+        "points": points,
+        "transactions": _daily_funds_safe_transactions(payload, publication_day=publication_day),
+        "thresholds": _daily_funds_safe_thresholds(publication),
+        "total_available_fen": total,
+        "risk_label": risk_label,
+        "dynamic_flag": dynamic_flag,
+        "by_company_ending_fen": _daily_funds_safe_breakdown(summary.get("by_company_ending_fen"), total=total),
+        "by_bank_ending_fen": _daily_funds_safe_breakdown(summary.get("by_bank_ending_fen"), total=total),
+        "account_breakdown": _daily_funds_safe_accounts(summary.get("account_ending_by_hash"), total=total),
+        "backup_state": backup_state,
+    }
+
+
+def _daily_funds_activity(rows: list[dict[str, Any]], *, publication_day: date) -> dict[str, Any]:
+    today_rows = [row for row in rows if row["business_date"] == publication_day.isoformat()]
+    today = {
+        "inflow_fen": sum(int(row["inflow_fen"]) for row in today_rows),
+        "outflow_fen": sum(int(row["outflow_fen"]) for row in today_rows),
+        "adjustment_fen": sum(int(row["adjustment_fen"]) for row in today_rows),
+        "internal_transfer_count": sum(bool(row["internal_transfer"]) for row in today_rows),
+    }
+    today["net_change_fen"] = int(today["inflow_fen"]) - int(today["outflow_fen"]) + int(today["adjustment_fen"])
+    inflows = sorted((row for row in today_rows if int(row["inflow_fen"]) > 0), key=lambda row: (-int(row["inflow_fen"]), str(row["transaction_ref"])))[:5]
+    outflows = sorted((row for row in today_rows if int(row["outflow_fen"]) > 0), key=lambda row: (-int(row["outflow_fen"]), str(row["transaction_ref"])))[:5]
+    return {"today": today, "top_inflows": inflows, "top_outflows": outflows}
+
+
+def _daily_funds_public_control_value(control: object) -> dict[str, Any] | None:
+    if not isinstance(control, dict):
+        return None
+    mode = control.get("mode")
+    revision = control.get("revision")
+    expected = {"schema_version", "mode", "revision", "applied_at", "actor", "reason"}
+    if mode == "numeric":
+        expected.add("amount_fen")
+    elif mode == "date_range":
+        expected.update({"from", "to"})
+    if (
+        set(control) != expected
+        or control.get("schema_version") != "kmfa.daily_funds.threshold_control.v1"
+        or mode not in {"disabled", "date_range", "numeric"}
+        or not _daily_funds_lower_hex(revision, 64)
+        or _daily_funds_timestamp(control.get("applied_at")) is None
+        or control.get("actor") != "kmfa_private_owner_ui"
+    ):
+        return None
+    reason = control.get("reason")
+    if not isinstance(reason, str) or not reason.strip() or len(reason) > 500 or any(ord(character) < 32 for character in reason):
+        return None
+    public: dict[str, Any] = {
+        "mode": mode,
+        "revision": revision,
+        "applied_at": control["applied_at"],
+        "actor": "kmfa_private_owner_ui",
+        "reason": reason.strip(),
+    }
+    if mode == "numeric" and _daily_funds_is_integer(control.get("amount_fen")):
+        public["amount_fen"] = control["amount_fen"]
+    elif mode == "date_range":
+        start = _daily_funds_date(control.get("from"))
+        end = _daily_funds_date(control.get("to"))
+        if start is not None and end is not None and end >= start:
+            public["from"] = start.isoformat()
+            public["to"] = end.isoformat()
+        else:
+            return None
+    elif mode != "disabled":
+        return None
+    return public
+
+
+def _daily_funds_public_control() -> dict[str, Any] | None:
+    return _daily_funds_public_control_value(_read_daily_funds_control())
+
+
+def _daily_funds_source_health_view() -> dict[str, Any]:
+    status = _daily_funds_status()
+    view: dict[str, Any] = {
+        "human_status": status["human_status"],
+        "effective_business_date": status["effective_business_date"],
+        "last_verified_at": status["last_verified_at"],
+        "updated_at": status["updated_at"],
+        "backup_state": status["backup_state"],
+        "has_trusted_publication": False,
+        "message": "尚无可展示的已验证资金数据。",
+    }
+    try:
+        payload = _daily_funds_current()
+        projection = _daily_funds_projection_view(payload)
+    except HTTPException:
+        # A stale status hand-off must not make malformed or absent money look
+        # like a fresh success in the owner UI.  Preserve an in-flight state,
+        # but downgrade a claimed update to the explicit actionable state.
+        if view["human_status"] == "已更新":
+            view["human_status"] = "需处理"
+        view["backup_state"] = "UNKNOWN"
+        view["message"] = (
+            "正在等待可验证的正式资金数据。" if view["human_status"] == "处理中"
+            else "正式资金 projection 未通过完整性校验，需处理。"
+        )
+        return view
+    publication = payload["publication"]
+    view.update({
+        "has_trusted_publication": True,
+        "effective_business_date": publication["business_date"],
+        "last_verified_at": publication["created_at"],
+        "backup_state": projection["backup_state"],
+        "source_families": {"required": 2, "published": len(publication["source_versions"])},
+        "reconciliation_difference_fen": 0,
+        "git_evidence_available": True,
+        "r2_mirror_available": True,
+        "evidence_version": str(publication["publication_id"])[-12:],
+    })
+    view["message"] = (
+        "当前显示已验证的正式资金数据。" if view["human_status"] == "已更新"
+        else "最新运行尚未覆盖；页面保留上一份已验证资金数据。" if view["human_status"] == "处理中"
+        else "最新运行需处理；页面仅保留上一份已验证资金数据。"
+    )
+    return view
 
 
 @app.get("/ops/api/daily-funds/summary")
@@ -2658,28 +3277,35 @@ def daily_funds_summary(range: str = "30d", from_: str | None = Query(None, alia
     if scope != "global":
         raise HTTPException(status_code=422, detail="daily_funds_scope_invalid")
     payload = _daily_funds_current()
-    start, end = _daily_funds_range_days(range, from_, to)
-    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+    projection = _daily_funds_projection_view(payload)
+    start, end = _daily_funds_range_days(range, from_, to, publication_day=projection["publication_day"])
+    points = [point for point in projection["points"] if start <= point["business_date"] <= end]
+    activity = _daily_funds_activity(projection["transactions"], publication_day=projection["publication_day"])
     publication = payload["publication"]
-    runtime = payload.get("runtime") if isinstance(payload.get("runtime"), dict) else {}
     return {
         "range": range,
         "from": start,
         "to": end,
         "scope": "global",
+        "granularity": "daily",
+        "range_health": _daily_funds_range_health(points, start, end),
         "publication": {
-            "publication_id": publication.get("publication_id"),
-            "business_date": publication.get("business_date"),
-            "created_at": publication.get("created_at"),
-            "reconciliation_difference_fen": publication.get("reconciliation_difference_fen"),
-            "oci_backup_state": runtime.get("oci_backup_state") or publication.get("oci_backup_state"),
+            "business_date": publication["business_date"],
+            "created_at": publication["created_at"],
+            "evidence_version": str(publication["publication_id"])[-12:],
+            "reconciliation_difference_fen": 0,
+            "oci_backup_state": projection["backup_state"],
+            "git_evidence_available": True,
+            "r2_mirror_available": True,
         },
-        "total_available_fen": summary.get("total_available_fen"),
-        "risk_label": summary.get("risk_label"),
-        "dynamic_flag": summary.get("dynamic_flag"),
-        "by_company_ending_fen": summary.get("by_company_ending_fen") if isinstance(summary.get("by_company_ending_fen"), dict) else {},
-        "by_bank_ending_fen": summary.get("by_bank_ending_fen") if isinstance(summary.get("by_bank_ending_fen"), dict) else {},
-        "points": _daily_funds_filtered_timeseries(payload, start, end),
+        "total_available_fen": projection["total_available_fen"],
+        "risk_label": projection["risk_label"],
+        "dynamic_flag": projection["dynamic_flag"],
+        "by_company_ending_fen": projection["by_company_ending_fen"],
+        "by_bank_ending_fen": projection["by_bank_ending_fen"],
+        "account_breakdown": projection["account_breakdown"],
+        **activity,
+        "points": points,
     }
 
 
@@ -2687,15 +3313,17 @@ def daily_funds_summary(range: str = "30d", from_: str | None = Query(None, alia
 @app.get("/api/daily-funds/timeseries")
 def daily_funds_timeseries(range: str = "30d", from_: str | None = Query(None, alias="from"), to: str | None = None):
     payload = _daily_funds_current()
-    start, end = _daily_funds_range_days(range, from_, to)
-    publication = payload["publication"]
-    thresholds = publication.get("threshold_snapshot") if isinstance(publication.get("threshold_snapshot"), dict) else {}
+    projection = _daily_funds_projection_view(payload)
+    start, end = _daily_funds_range_days(range, from_, to, publication_day=projection["publication_day"])
+    points = [point for point in projection["points"] if start <= point["business_date"] <= end]
     return {
         "range": range,
         "from": start,
         "to": end,
-        "points": _daily_funds_filtered_timeseries(payload, start, end),
-        "thresholds": thresholds,
+        "granularity": "daily",
+        "range_health": _daily_funds_range_health(points, start, end),
+        "points": points,
+        "thresholds": projection["thresholds"],
     }
 
 
@@ -2703,18 +3331,15 @@ def daily_funds_timeseries(range: str = "30d", from_: str | None = Query(None, a
 @app.get("/api/daily-funds/transactions")
 def daily_funds_transactions(page: int = 1, size: int = 100):
     payload = _daily_funds_current()
-    rows = payload.get("transactions") if isinstance(payload.get("transactions"), list) else []
-    # The projection intentionally contains hashed transaction keys only; raw
-    # messages, filenames, account numbers and attachment URLs stay outside app.
-    safe = [row for row in rows if isinstance(row, dict)]
-    items, meta = _paginate(safe, page, size)
+    projection = _daily_funds_projection_view(payload)
+    items, meta = _paginate(projection["transactions"], page, size)
     return {"items": items, "pagination": meta}
 
 
 @app.get("/ops/api/daily-funds/source-health")
 @app.get("/api/daily-funds/source-health")
 def daily_funds_source_health():
-    return _daily_funds_status()
+    return _daily_funds_source_health_view()
 
 
 def _read_daily_funds_control() -> dict[str, Any] | None:
@@ -2729,14 +3354,76 @@ def _read_daily_funds_control() -> dict[str, Any] | None:
     return payload if isinstance(payload, dict) else None
 
 
+def _daily_funds_control_audit() -> dict[str, Any]:
+    """Expose a tiny, redacted audit projection for the Owner-only page.
+
+    Audit corruption is never converted into a healthy result.  It also must
+    not make a valid financial publication disappear, so this secondary view
+    explicitly reports itself unavailable instead of forwarding raw JSONL.
+    """
+    target = (DAILY_FUNDS_CONTROL_DIR / "threshold_audit.jsonl").resolve()
+    root = DAILY_FUNDS_CONTROL_DIR.resolve()
+    if not str(target).startswith(str(root) + "/") or not target.is_file():
+        return {"available": False, "entries": []}
+    try:
+        raw = target.read_bytes()
+        if len(raw) > 65_536:
+            raw = raw[-65_536:]
+            if b"\n" not in raw:
+                return {"available": False, "entries": []}
+            raw = raw.split(b"\n", 1)[1]
+        lines = raw.decode("utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        return {"available": False, "entries": []}
+    entries: list[dict[str, Any]] = []
+    for line in lines:
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            return {"available": False, "entries": []}
+        if not isinstance(row, dict) or set(row) != {
+            "schema_version", "revision", "actor", "changed_at", "old_value", "new_value", "reason", "rollback_version",
+        }:
+            return {"available": False, "entries": []}
+        old_value = row.get("old_value")
+        old = None if old_value is None else _daily_funds_public_control_value(old_value)
+        new = _daily_funds_public_control_value(row.get("new_value"))
+        rollback_version = row.get("rollback_version")
+        if (
+            row.get("schema_version") != "kmfa.daily_funds.threshold_audit.v1"
+            or not _daily_funds_lower_hex(row.get("revision"), 64)
+            or row.get("actor") != "kmfa_private_owner_ui"
+            or _daily_funds_timestamp(row.get("changed_at")) is None
+            or not isinstance(row.get("reason"), str)
+            or len(row["reason"]) > 500
+            or any(ord(character) < 32 for character in row["reason"])
+            or new is None
+            or str(row["revision"]) != new["revision"]
+            or (old_value is not None and old is None)
+            or (rollback_version is not None and not _daily_funds_lower_hex(rollback_version, 64))
+        ):
+            return {"available": False, "entries": []}
+        entries.append({
+            "revision": row["revision"],
+            "actor": "kmfa_private_owner_ui",
+            "changed_at": row["changed_at"],
+            "old_value": old,
+            "new_value": new,
+            "reason": row["reason"],
+            "rollback_version": rollback_version,
+        })
+    return {"available": True, "entries": entries[-10:]}
+
+
 @app.get("/ops/api/daily-funds/thresholds")
 @app.get("/api/daily-funds/thresholds")
 def daily_funds_thresholds():
     payload = _daily_funds_current()
-    publication = payload["publication"]
+    projection = _daily_funds_projection_view(payload)
     return {
-        "active": publication.get("threshold_snapshot") if isinstance(publication.get("threshold_snapshot"), dict) else {},
-        "control": _read_daily_funds_control(),
+        "active": projection["thresholds"],
+        "control": _daily_funds_public_control(),
+        "control_audit": _daily_funds_control_audit(),
         "fixed_editable": False,
     }
 
@@ -3999,7 +4686,10 @@ def schedule_health():
             "原因": 原因,
             "排程契约": SCHEDULE_CONTRACT,
             "逐项": [_daily_funds_schedule_row()],
-            "每日资金": _daily_funds_status(),
+            "每日资金": {
+                **_daily_funds_status(),
+                "业务流": _daily_funds_flow_state(),
+            },
             "诚实边界": "读不到就说读不到，不猜、不拿「没有坏消息」当好消息。",
         }
 
@@ -4116,6 +4806,10 @@ def schedule_health():
             else "最近一次执行全部成功且投递已开"
         ),
         "逐项": 逐项,
+        "每日资金": {
+            **_daily_funds_status(),
+            "业务流": _daily_funds_flow_state(),
+        },
         "诚实边界": "只报执行事实，不报业务内容；「没记录」一律显示为未跑过，不美化。",
     }
 

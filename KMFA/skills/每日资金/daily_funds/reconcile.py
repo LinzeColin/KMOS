@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from hashlib import sha256
 from typing import Iterable, Mapping
 
@@ -21,6 +21,97 @@ def account_key(company: str, bank: str, account: str) -> tuple[str, str, str]:
 
 def account_key_hash(key: tuple[str, str, str]) -> str:
     return sha256("\x1f".join(key).encode("utf-8")).hexdigest()
+
+
+def _require_calendar_day(value: object, code: str) -> date:
+    if isinstance(value, datetime) or not isinstance(value, date):
+        raise ReconciliationError(code)
+    return value
+
+
+def _require_text(value: object, code: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ReconciliationError(code)
+    return value.strip()
+
+
+def _require_fen(value: object, code: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ReconciliationError(code)
+    return value
+
+
+def _require_source_version(value: object) -> str:
+    if not isinstance(value, str) or len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+        raise ReconciliationError("SOURCE_VERSION_INVALID")
+    return value
+
+
+def _validate_facts(facts: Iterable[ParsedFacts]) -> list[ParsedFacts]:
+    """Refuse malformed direct callers before they can make a false zero."""
+
+    frozen = list(facts)
+    for fact in frozen:
+        business_date = _require_calendar_day(fact.business_date, "FACT_BUSINESS_DATE_INVALID")
+        fact_source_version = _require_source_version(fact.source_version)
+        if fact.accounts and fact.transactions:
+            raise ReconciliationError("FACT_FAMILIES_MIXED")
+        for account in fact.accounts:
+            if account.business_date != business_date:
+                raise ReconciliationError("FACT_BUSINESS_DATE_MISMATCH")
+            _require_text(account.company, "ACCOUNT_COMPANY_INVALID")
+            _require_text(account.bank, "ACCOUNT_BANK_INVALID")
+            _require_text(account.account, "ACCOUNT_NUMBER_INVALID")
+            _require_fen(account.ending_available_fen, "ACCOUNT_ENDING_NOT_INTEGER_FEN")
+            if account.opening_available_fen is not None:
+                _require_fen(account.opening_available_fen, "ACCOUNT_OPENING_NOT_INTEGER_FEN")
+            if account.currency != "CNY":
+                raise ReconciliationError("CURRENCY_UNSUPPORTED")
+            if _require_source_version(account.source.source_version) != fact_source_version:
+                raise ReconciliationError("SOURCE_VERSION_MISMATCH")
+        for transaction in fact.transactions:
+            if transaction.business_date != business_date:
+                raise ReconciliationError("FACT_BUSINESS_DATE_MISMATCH")
+            _require_text(transaction.company, "TRANSACTION_COMPANY_INVALID")
+            _require_text(transaction.bank, "TRANSACTION_BANK_INVALID")
+            _require_text(transaction.account, "TRANSACTION_ACCOUNT_INVALID")
+            _require_text(transaction.transaction_id, "TRANSACTION_ID_INVALID")
+            inflow = _require_fen(transaction.inflow_fen, "TRANSACTION_INFLOW_NOT_INTEGER_FEN")
+            outflow = _require_fen(transaction.outflow_fen, "TRANSACTION_OUTFLOW_NOT_INTEGER_FEN")
+            _require_fen(transaction.adjustment_fen, "TRANSACTION_ADJUSTMENT_NOT_INTEGER_FEN")
+            if inflow < 0 or outflow < 0 or (inflow and outflow):
+                raise ReconciliationError("TRANSACTION_FLOW_INVALID")
+            if not isinstance(transaction.is_internal_transfer, bool):
+                raise ReconciliationError("INTERNAL_TRANSFER_FLAG_INVALID")
+            if transaction.is_internal_transfer:
+                _require_text(transaction.transfer_id, "INTERNAL_TRANSFER_ID_MISSING")
+            elif transaction.transfer_id is not None:
+                _require_text(transaction.transfer_id, "TRANSFER_ID_INVALID")
+            if _require_source_version(transaction.source.source_version) != fact_source_version:
+                raise ReconciliationError("SOURCE_VERSION_MISMATCH")
+    return frozen
+
+
+def _validated_prior_balances(
+    values: Mapping[tuple[str, str, str] | str, int] | None,
+) -> dict[tuple[str, str, str] | str, int]:
+    if values is None:
+        return {}
+    if not isinstance(values, Mapping):
+        raise ReconciliationError("PRIOR_BALANCE_MAPPING_INVALID")
+    normalized: dict[tuple[str, str, str] | str, int] = {}
+    for key, value in values.items():
+        amount = _require_fen(value, "PRIOR_BALANCE_NOT_INTEGER_FEN")
+        if isinstance(key, tuple):
+            if len(key) != 3:
+                raise ReconciliationError("PRIOR_BALANCE_KEY_INVALID")
+            normalized_key = tuple(_require_text(part, "PRIOR_BALANCE_KEY_INVALID") for part in key)
+            normalized[normalized_key] = amount
+        elif isinstance(key, str):
+            normalized[_require_source_version(key)] = amount
+        else:
+            raise ReconciliationError("PRIOR_BALANCE_KEY_INVALID")
+    return normalized
 
 
 @dataclass(frozen=True)
@@ -64,7 +155,7 @@ class ReconciliationReport:
 
 
 def _collect_facts(facts: Iterable[ParsedFacts]) -> tuple[date, list[AccountSnapshot], list[Transaction], set[str]]:
-    frozen = list(facts)
+    frozen = _validate_facts(facts)
     account_facts = [fact for fact in frozen if fact.accounts]
     transaction_facts = [fact for fact in frozen if fact.transactions]
     if not account_facts:
@@ -92,14 +183,15 @@ def _unique_accounts(accounts: Iterable[AccountSnapshot]) -> dict[tuple[str, str
     return indexed
 
 
-def _dedupe_transactions(transactions: Iterable[Transaction]) -> list[Transaction]:
+def _unique_transactions(transactions: Iterable[Transaction]) -> list[Transaction]:
     seen: set[tuple[str, str, str, str]] = set()
     unique: list[Transaction] = []
     for transaction in transactions:
         key = (*account_key(transaction.company, transaction.bank, transaction.account), transaction.transaction_id)
-        if key not in seen:
-            unique.append(transaction)
-            seen.add(key)
+        if key in seen:
+            raise ReconciliationError("DUPLICATE_TRANSACTION")
+        unique.append(transaction)
+        seen.add(key)
     return unique
 
 
@@ -131,9 +223,9 @@ def reconcile(
 
     business_date, accounts, transactions, source_versions = _collect_facts(facts)
     indexed_accounts = _unique_accounts(accounts)
-    unique_transactions = _dedupe_transactions(transactions)
+    unique_transactions = _unique_transactions(transactions)
     _validate_internal_transfer_pairs(unique_transactions)
-    previous = dict(previous_ending_by_account or {})
+    previous = _validated_prior_balances(previous_ending_by_account)
     by_account: dict[tuple[str, str, str], list[Transaction]] = {key: [] for key in indexed_accounts}
     for transaction in unique_transactions:
         key = account_key(transaction.company, transaction.bank, transaction.account)
@@ -160,7 +252,10 @@ def reconcile(
         outflow = sum(row.outflow_fen for row in external)
         internal_inflow = sum(row.inflow_fen for row in internal)
         internal_outflow = sum(row.outflow_fen for row in internal)
-        adjustment = sum(row.adjustment_fen for row in external)
+        # The frozen arithmetic contract applies adjustments to every ledger
+        # row.  Dropping one merely because its transfer flag is internal can
+        # fabricate a zero or hide a real one-fen discrepancy.
+        adjustment = sum(row.adjustment_fen for row in by_account[key])
         difference = (
             opening + inflow + internal_inflow - outflow - internal_outflow
             + adjustment - snapshot.ending_available_fen

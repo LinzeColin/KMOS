@@ -1767,6 +1767,13 @@ function 项目成本({ 成本 }) {
 
 const 资金范围 = ['1d', '7d', '30d', '90d', '180d', '360d']
 const 资金范围话 = { '1d': '1 天', '7d': '7 天', '30d': '30 天', '90d': '90 天', '180d': '180 天', '360d': '360 天' }
+const 资金金额 = fen => Number.isInteger(fen) ? `¥${金额(fen / 100)}` : '—'
+const 阈值控制话 = value => {
+  if (!value) return '无'
+  if (value.mode === 'numeric') return `数值 ${资金金额(value.amount_fen)}`
+  if (value.mode === 'date_range') return `区间 ${value.from || '—'} 至 ${value.to || '—'}`
+  return value.mode === 'disabled' ? '已停用' : '未验证'
+}
 
 function 每日资金({ 摘要, 时序, 来源, 阈值, 范围, 设范围, 自定义, 设自定义, 刷新 }) {
   const [阈值模式, 设阈值模式] = useState('numeric')
@@ -1774,35 +1781,77 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 范围, 设范围, 自�
   const [阈值日期, 设阈值日期] = useState({ from: '', to: '' })
   const [阈值原因, 设阈值原因] = useState('')
   const [阈值提交, 设阈值提交] = useState(null)
-  const 主状态 = 来源?.human_status || '处理中'
+  const 主状态 = ['已更新', '处理中', '需处理'].includes(来源?.human_status) ? 来源.human_status : '需处理'
   const 状态色 = 主状态 === '需处理' ? 'bad' : 主状态 === '处理中' ? 'warn' : 'ok'
   const 取不到 = 摘要?.加载失败 || 时序?.加载失败
+  const 需要登录 = 摘要?.需要登录 || 时序?.需要登录
+  const 无可信发布 = !需要登录 && 来源 && !来源.加载失败 && 来源.has_trusted_publication === false
   const points = (时序?.points || 摘要?.points || []).filter(p => Number.isInteger(p.ending_available_fen))
   const threshold = 时序?.thresholds || 阈值?.active || {}
   const fixed = threshold.fixed || {}
   const floating = (threshold.floating || []).filter(x => x?.active && Number.isInteger(x.threshold_fen))
+  const 覆盖 = 时序?.range_health || 摘要?.range_health || {}
+  const 图点 = useMemo(() => {
+    const 已发布 = new Map(points.map(point => [point.business_date, point]))
+    const 预期日期 = Array.isArray(覆盖.expected_dates) && 覆盖.expected_dates.length
+      ? 覆盖.expected_dates : points.map(point => point.business_date)
+    return 预期日期.map(business_date => {
+      const point = 已发布.get(business_date)
+      return point ? { ...point, missing: false } : { business_date, missing: true, coverage_gap: false, carried_forward: false }
+    })
+  }, [points, 覆盖])
+  const 今日 = 摘要?.today || {}
+  const 主流入 = Array.isArray(摘要?.top_inflows) ? 摘要.top_inflows : []
+  const 主流出 = Array.isArray(摘要?.top_outflows) ? 摘要.top_outflows : []
+  const 公司结构 = Array.isArray(摘要?.by_company_ending_fen) ? 摘要.by_company_ending_fen : []
+  const 银行结构 = Array.isArray(摘要?.by_bank_ending_fen) ? 摘要.by_bank_ending_fen : []
+  const 账户结构 = Array.isArray(摘要?.account_breakdown) ? 摘要.account_breakdown : []
+  const 阈值审计 = Array.isArray(阈值?.control_audit?.entries) ? 阈值.control_audit.entries : []
+  const 阈值审计可读 = 阈值?.control_audit?.available === true && Array.isArray(阈值?.control_audit?.entries)
   const option = useMemo(() => {
-    if (!points.length) return null
-    const fixedLines = []
-    if (Number.isInteger(fixed.hard_fen)) fixedLines.push({ name: '固定高风险线', yAxis: fixed.hard_fen / 100, lineStyle: { color: '#c2410c', type: 'dashed' } })
-    if (Number.isInteger(fixed.soft_fen)) fixedLines.push({ name: '固定关注线', yAxis: fixed.soft_fen / 100, lineStyle: { color: '#b7791f', type: 'dashed' } })
-    floating.forEach(line => fixedLines.push({ name: line.name, yAxis: line.threshold_fen / 100, lineStyle: { color: '#64748b', type: 'dotted' } }))
+    if (!图点.length) return null
+    const 阈值说明 = [
+      Number.isInteger(fixed.hard_fen) && `固定高风险线：${资金金额(fixed.hard_fen)}`,
+      Number.isInteger(fixed.soft_fen) && `固定关注线：${资金金额(fixed.soft_fen)}`,
+      ...floating.map(line => `浮动 ${line.name}：${资金金额(line.threshold_fen)}（${line.start} 至 ${line.end}；覆盖 ${line.coverage || '—'}）`),
+    ].filter(Boolean).join('<br/>')
+    const 阈值线 = [
+      Number.isInteger(fixed.hard_fen) && { name: '固定高风险线', value: fixed.hard_fen, color: '#c2410c', type: 'dashed' },
+      Number.isInteger(fixed.soft_fen) && { name: '固定关注线', value: fixed.soft_fen, color: '#b7791f', type: 'dashed' },
+      ...floating.map(line => ({ name: line.name, value: line.threshold_fen, color: '#64748b', type: 'dotted' })),
+    ].filter(Boolean)
     return {
+      legend: { top: 0, type: 'scroll', textStyle: { fontSize: 10 } },
       tooltip: { trigger: 'axis', formatter: rows => {
-        const row = points[rows?.[0]?.dataIndex]
-        return row ? `${row.business_date}<br/>可用资金：${金额(row.ending_available_fen / 100)}` : ''
+        const row = 图点[rows?.[0]?.dataIndex]
+        if (!row) return ''
+        const 数据状态 = row.missing ? '缺少正式数据（断档）'
+          : row.coverage_gap ? '覆盖缺口（不参与浮动阈值）'
+          : row.carried_forward ? '非报告日承接值'
+          : '直接观测值'
+        return `${row.business_date}<br/>可用资金：${row.missing ? '—' : 资金金额(row.ending_available_fen)}<br/>数据状态：${数据状态}<br/>${阈值说明 || '阈值：数据不足'}`
       } },
-      grid: { left: 8, right: 12, top: 20, bottom: 16, containLabel: true },
-      xAxis: { type: 'category', data: points.map(p => p.business_date.slice(5)), axisLabel: { fontSize: 10 } },
+      grid: { left: 8, right: 12, top: 42, bottom: 16, containLabel: true },
+      xAxis: { type: 'category', data: 图点.map(p => p.business_date.slice(5)), axisLabel: { fontSize: 10 } },
       yAxis: { type: 'value', axisLabel: { formatter: value => `¥${(value / 10000).toFixed(0)}万`, fontSize: 10 } },
-      series: [{
-        type: 'line', name: '可用资金', smooth: true, showSymbol: points.length < 60,
-        data: points.map(p => p.ending_available_fen / 100),
-        lineStyle: { color: '#1d5c8f', width: 2 }, areaStyle: { color: 'rgba(29,92,143,.12)' },
-        markLine: fixedLines.length ? { silent: true, symbol: 'none', label: { fontSize: 10 }, data: fixedLines } : undefined,
-      }],
+      series: [
+        {
+          type: 'line', name: '可用资金', smooth: false, connectNulls: false, showSymbol: 图点.length < 60,
+          data: 图点.map(p => p.missing || p.coverage_gap ? null : p.ending_available_fen / 100),
+          lineStyle: { color: '#1d5c8f', width: 2 }, areaStyle: { color: 'rgba(29,92,143,.12)' },
+        },
+        {
+          type: 'line', name: '覆盖缺口', showSymbol: true, symbol: 'diamond', symbolSize: 8,
+          data: 图点.map(p => p.coverage_gap ? p.ending_available_fen / 100 : null),
+          lineStyle: { opacity: 0 }, itemStyle: { color: '#b7791f' },
+        },
+        ...阈值线.map(line => ({
+          type: 'line', name: line.name, showSymbol: false, data: 图点.map(() => line.value / 100),
+          lineStyle: { color: line.color, type: line.type, width: 1.25 },
+        })),
+      ],
     }
-  }, [points, fixed.hard_fen, fixed.soft_fen, floating])
+  }, [图点, fixed.hard_fen, fixed.soft_fen, floating])
 
   const 应用自定义 = () => {
     if (自定义.from && 自定义.to) { 设范围('custom'); 刷新('custom', 自定义.from, 自定义.to) }
@@ -1824,7 +1873,7 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 范围, 设范围, 自�
       body.to = 阈值日期.to
     }
     try {
-      const response = await fetch('/api/daily-funds/thresholds', {
+      const response = await fetch('/ops/api/daily-funds/thresholds', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       })
       const result = await response.json()
@@ -1839,16 +1888,15 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 范围, 设范围, 自�
     <>
       <div className={`card callout ${主状态 === '已更新' ? '' : 状态色}`}>
         <b>运行状态：<span className={`chip ${状态色}`}>{主状态}</span></b>
-        <div className="sub">有效业务日期：{来源?.effective_business_date || 摘要?.publication?.business_date || '未验证'}｜最后验证：{来源?.last_verified_at || '未验证'}</div>
-        {主状态 !== '已更新' && <div className="sub">当前没有被新数据覆盖；页面只会保留上一份已验证结果，不把 UNKNOWN 写成已更新。</div>}
-        <div className="sub">冷备：{来源?.backup_state || 摘要?.publication?.oci_backup_state || 'UNKNOWN'}｜机器状态：{来源?.machine_code || 'UNKNOWN'}</div>
+        <div className="sub">数据日期：{来源?.effective_business_date || 摘要?.publication?.business_date || '未验证'}｜最后验证：{来源?.last_verified_at || 摘要?.publication?.created_at || '未验证'}｜证据版本：{来源?.evidence_version || 摘要?.publication?.evidence_version || '未验证'}</div>
+        <div className="sub">{来源?.message || '页面只展示已验证 publication；没有可信结果时明确提示需处理。'}</div>
       </div>
 
       <div className="grid" style={{ marginTop: 14 }}>
-        <Kpi 标="当前可用资金" 值={摘要 && !摘要.加载失败 && Number.isInteger(摘要.total_available_fen) ? 金额(摘要.total_available_fen / 100) : '—'} 小 />
-        <Kpi 标="固定风险" 值={摘要?.risk_label || '数据不足'} 色={摘要?.risk_label === '高风险' ? 'bad' : 摘要?.risk_label === '关注' ? 'warn' : undefined} />
-        <Kpi 标="动态观察" 值={摘要?.dynamic_flag || '无'} 色={摘要?.dynamic_flag ? 'warn' : undefined} />
-        <Kpi 标="勾稽差异" 值={摘要?.publication?.reconciliation_difference_fen === 0 ? '0 分' : '未验证'} 色={摘要?.publication?.reconciliation_difference_fen === 0 ? 'ok' : 'warn'} />
+        <Kpi 标="当前可用资金" 值={资金金额(摘要?.total_available_fen)} 小 />
+        <Kpi 标="今日流入" 值={资金金额(今日.inflow_fen)} 小 />
+        <Kpi 标="今日流出" 值={资金金额(今日.outflow_fen)} 小 />
+        <Kpi 标="今日净变动" 值={资金金额(今日.net_change_fen)} 小 色={Number.isInteger(今日.net_change_fen) ? (今日.net_change_fen < 0 ? 'bad' : 'ok') : undefined} />
       </div>
 
       <div className="card" style={{ marginTop: 14 }}>
@@ -1860,9 +1908,11 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 范围, 设范围, 自�
           <button type="button" className="btn" onClick={应用自定义} disabled={!自定义.from || !自定义.to}>应用</button>
         </div>
         {范围 === 'custom' && <p className="hint">自定义区间至少 7 个自然日；数据覆盖不足时动态线会自动停用。</p>}
-        {取不到 && <加载失败卡 详情={(摘要?.加载失败 || 时序?.加载失败)} 需要登录={摘要?.需要登录 || 时序?.需要登录} 接口={摘要?.接口 || 时序?.接口} />}
+        {无可信发布 && <div className="card callout bad" style={{ marginTop: 12 }}><b>暂无可信 publication，需处理</b><div className="sub">来源、附件、整数分勾稽及发布链未同时通过前，系统不绘制或补造资金数据。</div></div>}
+        {取不到 && !无可信发布 && <加载失败卡 详情={(摘要?.加载失败 || 时序?.加载失败)} 需要登录={需要登录} 接口={摘要?.接口 || 时序?.接口} />}
         {!取不到 && !points.length && <div className="card callout warn" style={{ marginTop: 12 }}><b>暂无已验证的资金时点</b><div className="sub">先看运行状态；在来源、附件、勾稽与发布链全部通过前，系统不绘制猜测曲线。</div></div>}
-        {option && <><div className="muted" style={{ marginTop: 12 }}>可用资金趋势（默认 30 天；固定 60/120 万线与可用动态线）</div><Chart option={option} height="22rem" /></>}
+        {option && <><div className="muted" style={{ marginTop: 12 }}>可用资金趋势（{范围 === '1d' ? '当日仍仅显示已发布日级结果；小时数据未发布' : '日级期末可用资金'}；固定 60/120 万线与已激活浮动线均可在图例独立开关）</div><Chart option={option} height="22rem" /></>}
+        {option && (覆盖.missing_dates?.length > 0 || 覆盖.coverage_gap_dates?.length > 0) && <div className="hint" role="status">{覆盖.missing_dates?.length > 0 && `未发布断档 ${覆盖.missing_dates.length} 天`}{覆盖.missing_dates?.length > 0 && 覆盖.coverage_gap_dates?.length > 0 ? '；' : ''}{覆盖.coverage_gap_dates?.length > 0 && `覆盖缺口 ${覆盖.coverage_gap_dates.length} 天（图中菱形标记，不参与浮动阈值）`}</div>}
       </div>
 
       <h3 className="sec">阈值与数据覆盖</h3>
@@ -1896,7 +1946,50 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 范围, 设范围, 自�
           <button type="button" className="btn" onClick={提交自定义阈值}>提交复核</button>
         </div>
         {阈值提交 && <div className={`alert ${阈值提交.ok ? 'ok' : 'bad'}`} role="status">{阈值提交.text}</div>}
+        {阈值?.control && <div className="sub">当前生效配置：{阈值.control.mode || '—'}｜版本 {String(阈值.control.revision || '').slice(-12) || '—'}｜操作者 {阈值.control.actor || '—'}｜生效时间 {阈值.control.applied_at || '—'}</div>}
+        <details>
+          <summary>配置变更留痕与可回退版本</summary>
+          {!阈值审计可读 && <p className="muted">留痕暂不可读取，不能把它当作已验证。</p>}
+          {阈值审计可读 && <Tbl><thead><tr><th>时间 / 操作者</th><th>旧值</th><th>新值</th><th>回退版本</th></tr></thead><tbody>
+            {阈值审计.length ? 阈值审计.map(item => <tr key={item.revision}>
+              <td>{item.changed_at}<br /><span className="muted">{item.actor}</span></td>
+              <td>{阈值控制话(item.old_value)}</td><td>{阈值控制话(item.new_value)}</td>
+              <td>{item.rollback_version ? String(item.rollback_version).slice(-12) : '无前序版本'}</td>
+            </tr>) : <tr><td colSpan="4" className="muted">尚无已验证的配置变更记录</td></tr>}
+          </tbody></Tbl>}
+        </details>
       </div>
+
+      <h3 className="sec">资金结构与主要流水</h3>
+      <div className="daily-funds-structure">
+        {[["公司", 公司结构, 'label'], ["银行", 银行结构, 'label'], ["脱敏账户", 账户结构, 'account_alias']].map(([标题, rows, key]) => (
+          <div className="card" key={标题}>
+            <b>{标题}结构</b>
+            <Tbl><thead><tr><th>{标题}</th><th className="num">期末可用资金</th></tr></thead><tbody>
+              {rows.length ? rows.map(row => <tr key={row[key]}><td>{row[key]}</td><td className="num">{资金金额(row.ending_available_fen)}</td></tr>) : <tr><td colSpan="2" className="muted">暂无已验证结构数据</td></tr>}
+            </tbody></Tbl>
+          </div>
+        ))}
+      </div>
+      <div className="daily-funds-flows">
+        {[["主要流入", 主流入, 'inflow_fen'], ["主要流出", 主流出, 'outflow_fen']].map(([标题, rows, field]) => (
+          <div className="card" key={标题}>
+            <b>{标题}</b>
+            <Tbl><thead><tr><th>脱敏流水</th><th>日期</th><th>类型</th><th className="num">金额</th></tr></thead><tbody>
+              {rows.length ? rows.map(row => <tr key={row.transaction_ref}><td><code>••••{row.transaction_ref}</code></td><td>{row.business_date}</td><td>{row.internal_transfer ? '内部调拨' : '外部流水'}</td><td className="num">{资金金额(row[field])}</td></tr>) : <tr><td colSpan="4" className="muted">暂无该日已验证{标题}</td></tr>}
+            </tbody></Tbl>
+          </div>
+        ))}
+      </div>
+
+      <h3 className="sec">来源完整性与勾稽</h3>
+      <Tbl><thead><tr><th>检查项</th><th>结果</th><th>说明</th></tr></thead><tbody>
+        <tr><td>来源事实表</td><td>{来源?.source_families ? `${来源.source_families.published}/${来源.source_families.required}` : '未验证'}</td><td>账户余额与资金流水需成对进入正式 publication</td></tr>
+        <tr><td>整数分勾稽</td><td className={摘要?.publication?.reconciliation_difference_fen === 0 ? 'ok' : 'warn'}>{摘要?.publication?.reconciliation_difference_fen === 0 ? '0 分' : '未验证'}</td><td>公司、银行、账户与全局汇总必须一致</td></tr>
+        <tr><td>Git / R2 热镜像</td><td>{摘要?.publication?.git_evidence_available && 摘要?.publication?.r2_mirror_available ? '已验证' : '未验证'}</td><td>仅显示脱敏证据版本，不暴露原始附件、群或身份标识</td></tr>
+        <tr><td>OCI 异地冷备</td><td>{来源?.backup_state || 摘要?.publication?.oci_backup_state || 'UNKNOWN'}</td><td>运行态与正式 publication 分离记录</td></tr>
+        <tr><td>风险判断</td><td className={摘要?.risk_label === '高风险' ? 'bad' : 摘要?.risk_label === '关注' || 摘要?.risk_label?.includes('动态') ? 'warn' : 'ok'}>{摘要?.risk_label || '未验证'}{摘要?.dynamic_flag ? `｜${摘要.dynamic_flag}` : ''}</td><td>与三态运行状态分离，不以状态替代风险</td></tr>
+      </tbody></Tbl>
     </>
   )
 }
@@ -1958,6 +2051,10 @@ export default function App() {
   const [资金阈值, set资金阈值] = useState(null)
   const [资金范围状态, set资金范围] = useState('30d')
   const [资金自定义, set资金自定义] = useState({ from: '', to: '' })
+  // 每日资金是独立的私有纵向切片。若深链直接进入它，不能先把二十多条
+  // 无关经营接口塞进同一轮请求队列，否则机器面慢或降级时会让资金 projection
+  // 被无关读取拖住。用户离开本页时再一次性补齐通用数据即可。
+  const 通用数据已请求 = useRef(false)
   // 取不到就把失败写进状态：面板显式报错，不许无限骨架屏装加载。
   //
   // **但「取不到」有两种，它们的下一步完全相反**：
@@ -1980,7 +2077,7 @@ export default function App() {
       // 公开面失败时退回私有面：公开出口是新加的，旧镜像上还没有它，
       // 那种情况下整块空掉比要求登录更难查。
       if (兜底) return 取(兜底, set)
-      const 私有面 = url.startsWith('/api/')
+      const 私有面 = url.startsWith('/api/') || url.startsWith('/ops/api/')
       const 站点还活着 = 私有面 ? await 探公开面() : false
       set({ 加载失败: String(e), 需要登录: 私有面 && 站点还活着, 接口: url })
     })
@@ -1993,12 +2090,14 @@ export default function App() {
     const 参数 = new URLSearchParams({ range })
     if (range === 'custom') { 参数.set('from', from); 参数.set('to', to) }
     const 查询 = `?${参数.toString()}`
-    取(`/api/daily-funds/summary${查询}`, set资金摘要)
-    取(`/api/daily-funds/timeseries${查询}`, set资金时序)
-    取('/api/daily-funds/source-health', set资金来源)
-    取('/api/daily-funds/thresholds', set资金阈值)
+    取(`/ops/api/daily-funds/summary${查询}`, set资金摘要)
+    取(`/ops/api/daily-funds/timeseries${查询}`, set资金时序)
+    取('/ops/api/daily-funds/source-health', set资金来源)
+    取('/ops/api/daily-funds/thresholds', set资金阈值)
   }
   useEffect(() => {
+    if (页 === '每日资金' || 通用数据已请求.current) return
+    通用数据已请求.current = true
     取('/api/项目成本', set成本)
     // 免登录面优先：Owner 2026-07-28「kmfa 没有登录的地方」「取消登陆功能」。
     // /api/* 在 Cloudflare Access 后面，未登录是 302 跳登录墙；/public-api/* 是匿名面。
@@ -2020,7 +2119,7 @@ export default function App() {
     取('/api/技能', set技能)
     取('/api/源检查', set源检查)
     取('/api/我在哪', set我在哪)
-  }, [])
+  }, [页])
 
   // 每日资金是受保护的独立投影；未进入该页就不请求，避免在其他私有页面
   // 首屏无谓拉取资金接口，也让“当前页”的网络空闲语义保持真实可测。

@@ -20,7 +20,7 @@ def parser() -> argparse.ArgumentParser:
     command = argparse.ArgumentParser(description="KMFA daily-funds deterministic worker")
     command.add_argument(
         "job",
-        choices=("preflight", "poll", "auth-probe", "keepalive", "backfill", "observer", "cold-backup", "restore-drill", "restore", "healthcheck"),
+        choices=("preflight", "bootstrap-dws-auth", "runtime-audit", "poll", "auth-probe", "keepalive", "backfill", "observer", "cold-backup", "restore-drill", "restore", "healthcheck"),
     )
     command.add_argument("--max-days", type=int, default=7, help="bounded backfill days (1-14)")
     command.add_argument("--publication-id", help="64-char immutable publication ID for a verified restore")
@@ -35,6 +35,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.job == "preflight":
             result = runtime.preflight()
+        elif args.job == "bootstrap-dws-auth":
+            result = runtime.bootstrap_dws_auth()
+        elif args.job == "runtime-audit":
+            result = runtime.runtime_audit()
         elif args.job == "poll":
             result = runtime.poll()
         elif args.job == "auth-probe":

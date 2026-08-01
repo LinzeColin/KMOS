@@ -16,6 +16,22 @@ class SourceRef:
 
 
 @dataclass(frozen=True)
+class ParserEvidence:
+    """Values-free parser-open evidence for one raw attachment.
+
+    The source SHA remains in ``SourceRef`` / the private runtime journal.  A
+    fact never gains this evidence until the declared type, byte magic and
+    parser-open gate have all succeeded.
+    """
+
+    format: str
+    suffix: str
+    declared_mime: str | None
+    magic: str
+    parser_version: str
+
+
+@dataclass(frozen=True)
 class AccountSnapshot:
     business_date: date
     company: str
@@ -50,6 +66,7 @@ class ParsedFacts:
     accounts: tuple[AccountSnapshot, ...]
     transactions: tuple[Transaction, ...]
     source_version: str
+    parser_evidence: ParserEvidence
 
     def public_shape(self) -> dict[str, Any]:
         """A values-free shape used only in status diagnostics."""

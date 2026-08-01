@@ -260,6 +260,9 @@ table.tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size
 .threshold-control { margin-top: 14px; }
 .threshold-control .sub { margin-top: 5px; color: var(--text-2); font-size: 12.5px; line-height: 1.55; }
 .threshold-reason { min-width: min(100%, 16rem); flex: 1 1 14rem; }
+.daily-funds-structure { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.daily-funds-flows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.daily-funds-structure .tblwrap, .daily-funds-flows .tblwrap { margin-top: 10px; }
 
 /* ---------- 提示 / 空态 / 骨架 ---------- */
 
@@ -318,6 +321,7 @@ ul.muted li { margin-top: 4px; }
   .content { padding: 14px 14px 44px; }
   .grid { grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); gap: 10px; }
   .kpi .val { font-size: 22px; }
+  .daily-funds-structure, .daily-funds-flows { grid-template-columns: 1fr; }
 }
 
 @media print { .side, .topbar { display: none; } .content { max-width: none; padding: 0; } }

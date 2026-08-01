@@ -8,14 +8,14 @@ is used.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Iterable, Mapping
 
 HARD_THRESHOLD_FEN = 60_000_000
 SOFT_THRESHOLD_FEN = 120_000_000
 HUMAN_STATUSES = frozenset({"已更新", "处理中", "需处理"})
-RISK_LABELS = frozenset({"正常", "关注", "高风险", "动态偏低", "数据不足"})
+RISK_LABELS = frozenset({"正常", "关注", "高风险", "动态偏低", "动态明显偏低", "数据不足"})
 RANGE_DAYS: Mapping[str, int] = {
     "1d": 1,
     "7d": 7,
@@ -85,6 +85,8 @@ def fixed_risk(amount_fen: int) -> str:
 
 
 def dynamic_flag(current_fen: int, active_lines: Iterable[int]) -> str | None:
+    if isinstance(current_fen, bool) or not isinstance(current_fen, int):
+        raise ContractError("CURRENT_AMOUNT_NOT_INTEGER_FEN")
     lines = list(active_lines)
     if not lines:
         return None
@@ -116,11 +118,18 @@ def _month_start(day: date) -> date:
     return day.replace(day=1)
 
 
+def _require_calendar_day(value: object, code: str) -> date:
+    if isinstance(value, datetime) or not isinstance(value, date):
+        raise ContractError(code)
+    return value
+
+
 def complete_calendar_month_window(as_of: date, months: int) -> tuple[date, date]:
     """Return the last ``months`` completed calendar months before ``as_of``."""
 
     if months <= 0:
         raise ContractError("MONTH_WINDOW_INVALID")
+    as_of = _require_calendar_day(as_of, "AS_OF_DATE_INVALID")
     end = _month_start(as_of) - timedelta(days=1)
     start_month = end.replace(day=1)
     for _ in range(months - 1):
@@ -158,9 +167,41 @@ class FloatingLine:
 
 
 def _calendar_days(start: date, end: date) -> list[date]:
+    start = _require_calendar_day(start, "DATE_RANGE_INVALID")
+    end = _require_calendar_day(end, "DATE_RANGE_INVALID")
     if end < start:
         raise ContractError("DATE_RANGE_INVALID")
     return [start + timedelta(days=offset) for offset in range((end - start).days + 1)]
+
+
+def _indexed_daily_balances(balances: Iterable[DailyBalance]) -> dict[date, DailyBalance]:
+    """Validate the daily-balance grain before coverage or averaging.
+
+    A dynamic line is decision support, so a duplicate date or an unclassified
+    carry/gap must not be silently resolved by input order.  Values are already
+    integer fen at parser/reconciliation boundaries; this guard keeps a stale
+    journal or direct caller from reintroducing floats/bools later.
+    """
+
+    indexed: dict[date, DailyBalance] = {}
+    for row in balances:
+        if not isinstance(row, DailyBalance):
+            raise ContractError("DAILY_BALANCE_INVALID")
+        day = _require_calendar_day(row.business_day, "DAILY_BALANCE_DATE_INVALID")
+        if isinstance(row.ending_available_fen, bool) or not isinstance(row.ending_available_fen, int):
+            raise ContractError("DAILY_BALANCE_NOT_INTEGER_FEN")
+        if not all(isinstance(flag, bool) for flag in (row.direct_observation, row.coverage_gap, row.carried_forward)):
+            raise ContractError("DAILY_BALANCE_FLAG_INVALID")
+        if row.direct_observation and (row.coverage_gap or row.carried_forward):
+            raise ContractError("DAILY_BALANCE_CLASSIFICATION_INVALID")
+        if row.coverage_gap and row.carried_forward:
+            raise ContractError("DAILY_BALANCE_CLASSIFICATION_INVALID")
+        if not row.direct_observation and not row.coverage_gap and not row.carried_forward:
+            raise ContractError("DAILY_BALANCE_CLASSIFICATION_INVALID")
+        if day in indexed:
+            raise ContractError("DAILY_BALANCE_DUPLICATE")
+        indexed[day] = row
+    return indexed
 
 
 def _window_line(
@@ -172,7 +213,7 @@ def _window_line(
     minimum_direct_observations: int,
     minimum_coverage: Decimal,
 ) -> FloatingLine:
-    indexed = {row.business_day: row for row in balances}
+    indexed = _indexed_daily_balances(balances)
     rows = [indexed.get(day) for day in _calendar_days(start, end)]
     present = [row for row in rows if row is not None]
     covered = [row for row in present if not row.coverage_gap]
