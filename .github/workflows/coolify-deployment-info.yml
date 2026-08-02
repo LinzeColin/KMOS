@@ -221,7 +221,13 @@ jobs:
                   ("KMFA/deploy/skills-runtime/Dockerfile", 1),
                   ("KMFA/app/backend/Dockerfile", 2),
               )
-              root_context_count = len(
+              repository_root_context_count = len(
+                  re.findall(
+                      r"(?m)^\s*context:\s*[\"']?\.[\"']?\s*(?:#.*)?$",
+                      compose_raw,
+                  )
+              )
+              legacy_parent_context_count = len(
                   re.findall(
                       r"(?m)^\s*context:\s*[\"']?\.\./\.\./\.\./?[\"']?\s*$",
                       compose_raw,
@@ -234,15 +240,28 @@ jobs:
               if not compose_raw:
                   compose_contract_class = "UNAVAILABLE"
               elif (
-                  root_context_count >= 4
+                  repository_root_context_count >= 4
                   and dockerfile_count
                   >= sum(expected_count for _, expected_count in expected_dockerfiles)
               ):
-                  compose_contract_class = "ROOT_CONTEXT_AND_DOCKERFILES_MATCH"
+                  compose_contract_class = "REPOSITORY_ROOT_CONTEXT_AND_DOCKERFILES_MATCH"
+              elif (
+                  legacy_parent_context_count >= 4
+                  and dockerfile_count
+                  >= sum(expected_count for _, expected_count in expected_dockerfiles)
+              ):
+                  compose_contract_class = "LEGACY_PARENT_CONTEXT_AND_DOCKERFILES_MATCH"
               else:
                   compose_contract_class = "COMPOSE_BUILD_CONTRACT_DRIFT"
               print("resource_compose_build_contract=" + compose_contract_class)
-              print("resource_compose_root_context_count=" + str(root_context_count))
+              print(
+                  "resource_compose_repository_root_context_count="
+                  + str(repository_root_context_count)
+              )
+              print(
+                  "resource_compose_legacy_parent_context_count="
+                  + str(legacy_parent_context_count)
+              )
               print("resource_compose_dockerfile_path_count=" + str(dockerfile_count))
               deployment_log_text = json.dumps(
                   d.get("logs") or d.get("output") or "",
@@ -284,4 +303,54 @@ jobs:
                   "dockerfile_failure_service_class="
                   + dockerfile_failure_service
               )
+              # Container and application logs may contain private runtime
+              # context.  Keep the diagnostic strictly categorical: inspect
+              # only bounded neighbouring lines and emit no line, value, ID,
+              # filename, environment key, or exception text.
+              log_lines = deployment_log_text.splitlines()
+              components = (
+                  ("APP", ("kmfa-app", "app/backend")),
+                  ("DAILY_FUNDS", ("kmfa-daily-funds", "daily-funds")),
+                  ("SKILLS", ("kmfa-skills", "skills-runtime")),
+                  ("LIFECYCLE_WORKER", ("kmfa-lifecycle-worker", "lifecycle-worker")),
+              )
+              boot_signatures = (
+                  ("UNHEALTHY", r"unhealthy|healthcheck"),
+                  ("EXITED", r"container .* exited|exited .*code|exit code [1-9]"),
+                  ("IMPORT", r"modulenotfounderror|importerror|failed to import|could not import"),
+                  ("PORT", r"address already in use|bind.*port|connection refused"),
+                  ("STATE", r"schema.*(version|mismatch)|structured.*store|object.*storage"),
+                  ("PERMISSION", r"permission denied|read-only file system"),
+              )
+              component_failures = []
+              for component, markers in components:
+                  nearby = []
+                  for idx, line in enumerate(log_lines):
+                      if any(marker in line for marker in markers):
+                          nearby.append(
+                              "\n".join(
+                                  log_lines[max(0, idx - 3) : min(len(log_lines), idx + 8)]
+                              )
+                          )
+                  matched = [
+                      name
+                      for name, pattern in boot_signatures
+                      if any(re.search(pattern, window) for window in nearby)
+                  ]
+                  if matched:
+                      component_failures.append(component + "_" + matched[0])
+              component_failure_class = (
+                  component_failures[0]
+                  if len(component_failures) == 1
+                  else "MULTIPLE_OR_AMBIGUOUS"
+                  if component_failures
+                  else "NONE_OR_UNCLASSIFIED"
+              )
+              print("runtime_component_failure_class=" + component_failure_class)
+              proxy_class = (
+                  "PROXY_OR_ROUTING_SIGNAL"
+                  if re.search(r"traefik|router.*(error|fail)|bad gateway|service unavailable", deployment_log_text)
+                  else "NONE_OR_UNCLASSIFIED"
+              )
+              print("runtime_proxy_signal_class=" + proxy_class)
           PY
