@@ -458,6 +458,10 @@ class DwsHistoryClient:
         anchor = _parse_dws_history_cursor(cursor) if cursor else end
         if anchor < start:
             return DwsPage(messages=(), next_cursor=None, has_more=False)
+        # DWS v1.0.52 defines ``--group`` and ``--user`` as mutually
+        # exclusive conversation selectors.  The cloud request is therefore
+        # group-scoped only; ``selected_messages`` applies the configured
+        # stable sender ID and document-family gates to every returned row.
         command = [
             self.config.dws_bin,
             "chat", "message", "list",

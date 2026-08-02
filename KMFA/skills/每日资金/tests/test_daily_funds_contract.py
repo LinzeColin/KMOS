@@ -1709,6 +1709,12 @@ def test_dws_list_uses_beijing_boundary_and_embedded_media_source(tmp_path: Path
     assert history_calls[0][history_calls[0].index("--time") + 1] == "2026-08-01 08:10:00"
     assert history_calls[1][history_calls[1].index("--time") + 1] == "2026-08-01 08:01:00"
     assert all(call[call.index("--direction") + 1] == "older" for call in history_calls)
+    # The DWS contract makes group, user and open-DingTalk-id mutually
+    # exclusive conversation selectors.  Sender filtering must stay local
+    # and exact rather than turning the production request into an invalid
+    # mixed-selector call.
+    assert all("--group" in call for call in history_calls)
+    assert all("--user" not in call and "--open-dingtalk-id" not in call for call in history_calls)
 
 
 def test_dws_history_permission_denial_is_not_misreported_as_auth_loss(tmp_path: Path) -> None:
