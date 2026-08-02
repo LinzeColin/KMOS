@@ -1,7 +1,7 @@
 {
   "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
-  "stage": "T10_POST_DEPLOY",
-  "observed_at": "2026-08-02T00:34:55Z",
+  "stage": "T10_POST_DEPLOY_LIVE_RECONCILE",
+  "observed_at": "2026-08-02T12:40:12Z",
   "taskpack": {
     "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
     "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
@@ -9,88 +9,95 @@
   },
   "git_baseline": {
     "start_origin_main": "910d02763f01cc6db5263b0e1867c06b4f8f5933",
-    "deployed_runtime_commit": "ea96a2b9eeb0bf8bade0a63e37494636eda262fd",
+    "runtime_source_commit": "275ea6242dbfe7000f0fbda9847b4a99158a065b",
+    "evidence_base_origin_main": "81337f0e45f75a82c1d4843cca91ee1955ca6a31",
     "deployment_mode": "DIRECT_MAIN_NO_BRANCH_NO_PR",
-    "source_commit_observation": "VERIFIED_BY_COOLIFY_DEPLOYMENT_LOG",
-    "post_deploy_evidence_commit": "PENDING_THIS_EVIDENCE_ONLY_RECORD"
+    "runtime_source_observation": "VERIFIED_BY_COOLIFY_DEPLOYMENT_RECORD_AND_PUBLIC_STATIC_ASSET_MATCH",
+    "post_runtime_change_classification": "DIAGNOSTIC_EVIDENCE_ONLY_NO_RUNTIME_REDEPLOY"
+  },
+  "production_identity": {
+    "deployment_status": "finished",
+    "runtime_source_commit": "275ea6242dbfe7000f0fbda9847b4a99158a065b",
+    "image_digest": "sha256:96fa67217cc5ab12e3cd225fb900c9f284361d52dfc18ccf440606d7bede0192",
+    "public_root_http": 200,
+    "public_healthz_http": 200,
+    "static_asset_identity": "MATCH_RUNTIME_BUILD",
+    "protected_owner_ui": "VERIFIED_BY_EXISTING_AUTHENTICATED_CHROME_SESSION",
+    "daily_funds_worker_receipt": "VERIFIED_BY_NEW_VALUES_FREE_SOURCE_DISCOVERY_STATE"
   },
   "semantic_reconcile": [
     {
       "subject": "independent_daily_funds_runtime",
-      "classification": "DEPLOYED_CODE_AND_CI_VERIFIED",
-      "evidence": "独立 Docker service、own state/DWS/publication/control volumes、15 分钟 history poll、cron、healthcheck 与隔离守卫均由 58 项技能合约和完整远程 app E2E 覆盖；部署流水线已成功。"
+      "classification": "DEPLOYED_AND_LIVE_RECEIPT_VERIFIED",
+      "evidence": "独立 daily-funds 服务、自己的 state/DWS/publication/control 卷、15 分钟历史轮询和 values-free source discovery 已在受保护 Owner 页面真实呈现；无运行时依赖本机、其他 Skill、Agent 或模型的证据。"
+    },
+    {
+      "subject": "owner_authorized_dingtalk_identity",
+      "classification": "AUTHENTICATED_NOT_A_BUSINESS_SOURCE_SELECTOR",
+      "evidence": "张霖泽钉钉号只作为独立云端 DWS 授权身份；业务来源仍由任务包固定的群、逻辑发送人和两类文件三重门禁决定，身份授权不替换来源选择。"
+    },
+    {
+      "subject": "current_day_history_poll",
+      "classification": "SOURCE_HISTORY_EMPTY_FAIL_CLOSED",
+      "evidence": "已认证的当前北京日历史轮询返回 HISTORY_EMPTY；该状态证明查询完成但当前窗口没有消息，不展示、推断或发布任何金额。"
+    },
+    {
+      "subject": "historical_backfill",
+      "classification": "SELF_SCHEDULED_NOT_YET_RECEIPTED",
+      "evidence": "任务包规定当前日优先，随后由云端每日限额回填逐批覆盖至少 360 天或所有可用历史；本次部署发生在当日回填时点之后，尚无首个回填作业回执。"
     },
     {
       "subject": "raw_evidence_authority",
       "classification": "IMPLEMENTED_NOT_REAL_INPUT_VERIFIED",
-      "evidence": "代码只允许 Private-Database/KMFA/daily_funds 窄 sparse single-writer；当前私库目标路径尚不存在，故没有真实消息、附件或原始 manifest 被写入或声称已验证。"
+      "evidence": "代码仅允许 Private-Database/KMFA/daily_funds 窄范围 sparse single-writer；尚未取得目标来源附件，故没有真实原始 manifest、私库写入或解析能力可标为 PASS。"
     },
     {
       "subject": "integer_reconciliation_and_thresholds",
-      "classification": "IMPLEMENTED_AND_SYNTHETICALLY_VERIFIED",
-      "evidence": "整数分账户/流水零差 Oracle、固定 60/120 万线、3/6 月与自定义阈值质量门均通过受控 fixture 和 API 回归；真实资金金额尚未计算。"
+      "classification": "IMPLEMENTED_AND_SYNTHETICALLY_VERIFIED_ONLY",
+      "evidence": "整数分账户/流水零差 Oracle、固定 60/120 万线以及 3/6 月和自定义阈值质量门通过受控 fixture 与 API 回归；真实资金金额仍未计算。"
     },
     {
       "subject": "d1_r2_oci_and_restore",
-      "classification": "RESOURCES_PROVISIONED_RUNTIME_CONFIG_INVALID",
-      "evidence": "两份专用 D1 与一个专用 R2 bucket 已存在且为空；独立 Cloudflare runtime token/R2 access key/OCI 身份未配置，故不构成发布、恢复或备份 PASS。"
+      "classification": "NO_REAL_PUBLICATION_OR_RESTORE_RECEIPT",
+      "evidence": "在没有目标来源附件和 VALID publication 的情况下，D1/R2/OCI 写入、查询 Oracle、冷备与空环境恢复均不得标为通过。"
     },
     {
-      "subject": "kmfa_private_ui",
-      "classification": "DEPLOYED_EDGE_HEALTH_VERIFIED_UI_RECEIPT_UNKNOWN",
-      "evidence": "生产根路径与 healthz 返回 200，受保护 ops/API 返回 Access 302；受控 Chrome 请求被本机浏览器规则拦截，未取得已认证 UI receipt，故 UI 数据状态仍为 UNKNOWN。"
-    },
-    {
-      "subject": "existing_production_identity",
-      "classification": "RUNTIME_SOURCE_COMMIT_VERIFIED",
-      "evidence": "Coolify 部署日志确认运行源码等于 deployed_runtime_commit；应用控制面为 running:healthy。镜像 digest 未回读，container execute 端点 HTTP 404，不能由健康标记推导 worker/cron/卷状态。"
+      "subject": "post_runtime_diagnostic_commit",
+      "classification": "NON_RUNTIME_EVIDENCE_ONLY",
+      "evidence": "后续 main 提交仅收窄 Coolify 脱敏诊断并校正仓根 context 分类；部署工作流显式忽略该路径，不能把该证据提交误写成新的运行镜像。"
     }
   ],
   "validation": {
     "local": {
-      "daily_funds_contract": "PASS 58",
-      "affected_backend_regression": "PASS 853",
+      "daily_funds_contract": "PASS 75 passed, 1 skipped",
+      "affected_backend_regression": "PASS 24 passed",
       "frontend_production_build": "PASS",
       "daily_funds_browser_oracle": "PASS synthetic-only",
       "taskpack": "PASS requirements=24 tasks=11 acceptance=17",
-      "diff_check": "PASS"
+      "workflow_yaml_and_diff_check": "PASS"
     },
     "production": {
       "remote_app_e2e_and_golden_deploy": "PASS",
       "application_health_observation": "PASS public root and healthz HTTP 200",
-      "protected_ops_and_api_boundary": "PASS Cloudflare Access HTTP 302",
-      "current_source_commit": "PASS ea96a2b9eeb0bf8bade0a63e37494636eda262fd",
-      "current_image_digest": "UNKNOWN",
-      "container_runtime_receipt": "UNKNOWN_COOLIFY_EXEC_404",
-      "authenticated_daily_funds_ui_receipt": "UNKNOWN_BROWSER_REQUEST_BLOCKED_BY_CLIENT"
+      "static_asset_identity": "PASS matches deployed runtime build",
+      "protected_daily_funds_ui": "PASS authenticated Owner UI rendered source discovery without an Access prompt",
+      "isolated_dws_auth": "PASS AUTH_OK receipt before history query",
+      "current_day_source_gate": "HISTORY_EMPTY",
+      "trusted_money_publication": "NOT_PRESENT",
+      "container_execute_endpoint": "UNKNOWN_COOLIFY_EXEC_404"
     }
   },
   "real_data_chain": {
-    "independent_dws_group_sender_identity": "CONFIG_INVALID_MISSING_GROUP_SENDER_DWS_CLIENT",
-    "private_database_sparse_deploy_key": "PRESENT_IN_REPOSITORY_SECRET_STORE_BUT_NOT_YET_RUNTIME_VERIFIED",
-    "dedicated_d1_r2_resources": "PRESENT_EMPTY",
-    "cloudflare_runtime_and_r2_write_identity": "CONFIG_INVALID_MISSING",
-    "oci_backup_identity": "CONFIG_INVALID_MISSING",
-    "real_message_attachment_ingestion": "UNKNOWN_NO_VALID_PRODUCTION_PUBLICATION",
-    "real_money_result": "UNKNOWN_NOT_COMPUTED",
+    "independent_dws_auth_identity": "AUTH_OK",
+    "current_day_group_history": "HISTORY_EMPTY",
+    "business_source_selector": "TASKPACK_FIXED_TRIPLE_GATE",
+    "private_database_sparse_writer": "NOT_YET_EXERCISED_WITH_REAL_ATTACHMENT",
+    "real_attachment_parser_capability": "UNKNOWN_NO_TARGET_SAMPLE",
+    "real_money_reconciliation": "UNKNOWN_NOT_COMPUTED",
+    "d1_r2_oci_publication": "UNKNOWN_NO_VALID_PUBLICATION",
+    "restore_drill": "NOT_STARTED_NO_VALID_PUBLICATION",
     "five_business_day_shadow_observation": "NOT_STARTED_NO_VALID_PUBLICATION",
-    "rule": "UNKNOWN is never converted to PASS; the UI/status must show 需处理 until independent source, storage and publication gates create a VALID projection."
+    "rule": "HISTORY_EMPTY, UNKNOWN and a missing publication are not PASS; UI/status remain 需处理 until all source, raw-evidence, reconciliation and publication gates pass."
   },
-  "configuration_gate": {
-    "sync_workflow": "FAIL_CLOSED_NO_COOLIFY_MUTATION",
-    "missing_required_secret_names": [
-      "DAILY_FUNDS_GROUP_ID",
-      "DAILY_FUNDS_SENDER_ID",
-      "DAILY_FUNDS_DWS_CLIENT_ID",
-      "DAILY_FUNDS_CLOUDFLARE_API_TOKEN",
-      "DAILY_FUNDS_R2_ACCESS_KEY_ID",
-      "DAILY_FUNDS_R2_SECRET_ACCESS_KEY",
-      "DAILY_FUNDS_OCI_ENDPOINT_URL",
-      "DAILY_FUNDS_OCI_BUCKET",
-      "DAILY_FUNDS_OCI_ACCESS_KEY_ID",
-      "DAILY_FUNDS_OCI_SECRET_ACCESS_KEY"
-    ],
-    "interpretation": "这些是独立云端执行身份与目标参数，不是历史财务源数据；不得由本机历史归档、既有 Skill 或其他 DWS profile 替代。"
-  },
-  "final_status": "T10_DEPLOYED__RUNTIME_CONFIG_INVALID__REAL_DATA_CHAIN_FAIL_CLOSED"
+  "final_status": "T10_DEPLOYED__LIVE_UI_AND_AUTH_RECEIPT_VERIFIED__CURRENT_DAY_HISTORY_EMPTY__NO_VALID_PUBLICATION"
 }
