@@ -81,14 +81,17 @@ chmod 0644 /etc/cron.d/daily-funds
 # the broker accepts only a strict request from the already Access-protected
 # KMFA app through the existing control volume.  Its terminal output is sent
 # to /dev/null so a device code can never appear in cron logs.
+CRON_PID_FILE="/run/daily-funds-cron.pid"
 python3 /opt/daily-funds/scripts/run_auth_broker.py >/dev/null 2>&1 &
 AUTH_BROKER_PID=$!
 cron -f &
 CRON_PID=$!
+printf '%s\n' "$CRON_PID" > "$CRON_PID_FILE"
 
 shutdown() {
   kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" 2>/dev/null || true
   wait "$CRON_PID" "$AUTH_BROKER_PID" 2>/dev/null || true
+  rm -f "$CRON_PID_FILE"
   exit 0
 }
 trap shutdown INT TERM
@@ -101,4 +104,5 @@ while kill -0 "$CRON_PID" 2>/dev/null && kill -0 "$AUTH_BROKER_PID" 2>/dev/null;
 done
 kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" 2>/dev/null || true
 wait "$CRON_PID" "$AUTH_BROKER_PID" 2>/dev/null || true
+rm -f "$CRON_PID_FILE"
 exit 1

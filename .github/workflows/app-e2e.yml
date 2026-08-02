@@ -104,7 +104,10 @@ jobs:
             test -x /opt/daily-funds/scripts/run_cron_job.sh &&
             grep -Fq "/opt/daily-funds/scripts/run_cron_job.sh poll" /etc/cron.d/daily-funds &&
             grep -Fq "exec python3 /opt/daily-funds/scripts/run_daily_funds.py \"\$@\"" /opt/daily-funds/scripts/run_cron_job.sh &&
-            pgrep -x cron >/dev/null
+            test -r /run/daily-funds-cron.pid &&
+            pid=$(cat /run/daily-funds-cron.pid) &&
+            test -r "/proc/$pid/comm" &&
+            test "$(cat "/proc/$pid/comm")" = cron
           '
 
       - name: 跑结构化数据库（双节点 / 事务 / 并发 / 迁移 / 恢复）

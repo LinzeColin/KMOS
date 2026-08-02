@@ -14,6 +14,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[4]
 APP_DOCKERFILE = REPO / "KMFA/app/backend/Dockerfile"
 SKILLS_DOCKERFILE = REPO / "KMFA/deploy/skills-runtime/Dockerfile"
+DAILY_FUNDS_DOCKERFILE = REPO / "KMFA/skills/每日资金/Dockerfile"
 
 
 def test_kmfa_images_copy_only_runtime_and_shared_contract_layers():
@@ -43,3 +44,16 @@ def test_app_image_uses_ci_verified_frontend_dist_not_a_host_node_build():
         "COPY KMFA/app/frontend/dist "
         "/opt/kmfa/KMOS/KMFA/app/frontend/dist"
     ) in text
+
+
+def test_daily_funds_runtime_reuses_the_app_base_and_keeps_fetch_tools_build_only():
+    """The independent worker must not double the constrained host's base layers."""
+
+    text = DAILY_FUNDS_DOCKERFILE.read_text(encoding="utf-8")
+    base = "FROM python:3.12-slim-bookworm"
+    assert text.count(base) == 2
+    assert f"{base} AS dws-installer" in text
+    assert "COPY --from=dws-installer /usr/local/bin/dws /usr/local/bin/dws" in text
+    runtime = text.split(base, maxsplit=2)[-1]
+    assert "curl" not in runtime
+    assert "procps" not in runtime

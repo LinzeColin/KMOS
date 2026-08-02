@@ -1279,7 +1279,12 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_frozen_cadence() -> Non
     wrapper_text = (ROOT / "scripts" / "run_cron_job.sh").read_text(encoding="utf-8")
     assert command in wrapper_text
     assert '. "$CRON_ENV_FILE"' in wrapper_text
-    assert command in (ROOT / "healthcheck.sh").read_text(encoding="utf-8")
+    healthcheck = (ROOT / "healthcheck.sh").read_text(encoding="utf-8")
+    assert command in healthcheck
+    assert "pgrep -x cron" not in healthcheck
+    assert 'CRON_PID_FILE="/run/daily-funds-cron.pid"' in healthcheck
+    assert '"/proc/$CRON_PID/comm"' in healthcheck
+    assert 'CRON_PID_FILE="/run/daily-funds-cron.pid"' in entrypoint
 
 
 @pytest.mark.parametrize("job,code", (("auth-probe", "AUTH_OK"), ("keepalive", "KEEPALIVE_OK")))
