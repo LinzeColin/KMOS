@@ -14,9 +14,12 @@ WORKDIR /opt/kmfa/KMOS/KMFA/app/backend
 # build context = 仓根（compose）。先装依赖（缓存友好）再烧代码。
 COPY KMFA/app/backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-# 自包含：不再依赖运行时卷挂载（Coolify 的 ./ 挂载只含 compose）——代码烧进镜像。
-COPY . /opt/kmfa/KMOS
-# 现建的 dist 最后落位，覆盖仓里那份——顺序在 COPY . 之后，不许倒。
+# 自包含：不再依赖运行时卷挂载（Coolify 的 ./ 挂载只含 compose）。
+# App 只依赖 KMFA 与跨项目契约层 KMDatabase；禁止把其他产品线烧入镜像，
+# 否则小磁盘 Coolify 宿主会在无缓存构建时耗尽空间。
+COPY KMDatabase /opt/kmfa/KMOS/KMDatabase
+COPY KMFA /opt/kmfa/KMOS/KMFA
+# 现建的 dist 最后落位，覆盖仓里那份——顺序在运行代码复制之后，不许倒。
 COPY --from=frontend /fe/dist /opt/kmfa/KMOS/KMFA/app/frontend/dist
 # Raw request-target access logs are disabled: a caller can control query
 # strings before application middleware runs. The app keeps structured,

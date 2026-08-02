@@ -35,10 +35,11 @@ RUN chmod +x /opt/runtime/install_dws.sh && /opt/runtime/install_dws.sh
 COPY KMFA/deploy/skills-runtime/entrypoint.sh KMFA/deploy/skills-runtime/run_skill.sh KMFA/deploy/skills-runtime/healthcheck.sh KMFA/deploy/skills-runtime/test_send.sh KMFA/deploy/skills-runtime/crontab.txt /opt/runtime/
 RUN chmod +x /opt/runtime/*.sh
 
-# 自包含：把整个仓烧进镜像（Coolify 的 ./ 运行时挂载只含 compose、无代码——见 DT9 主机核验）。
-# 放在末尾使代码层最后构建（缓存友好）；.dockerignore 已排除 .git/data.objects(120M)/node_modules 等。
-# 每次 push→重 build 即更新代码，不依赖任何运行时卷挂载。
-COPY . /opt/kmfa/KMOS
+# 自包含：Coolify 的 ./ 运行时挂载只含 compose、无代码（见 DT9 主机核验）。
+# Skills 只依赖 KMFA 与跨项目契约层 KMDatabase；限定复制范围，避免其他产品线
+# 在 3.7GB 宿主的无缓存构建中无谓占满磁盘。每次 push→重 build 仍更新全部运行代码。
+COPY KMDatabase /opt/kmfa/KMOS/KMDatabase
+COPY KMFA /opt/kmfa/KMOS/KMFA
 
 WORKDIR /opt/kmfa/KMOS
 HEALTHCHECK --interval=5m --timeout=20s --start-period=1m \

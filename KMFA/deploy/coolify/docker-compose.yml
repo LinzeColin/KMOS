@@ -10,8 +10,8 @@
 # 分批（3.7GB 容量 Gate）：默认只起 skills（app 在 `full` profile 后置）；观测内存无碍后再启 app。
 #
 # 自包含镜像：Coolify 以仓根传入 `--project-directory`，故 build.context 必须为
-# `.`（不是相对本文件的 `../../..`）；Dockerfile 用 `COPY . /opt/kmfa/KMOS`
-# 把代码烧进镜像。本机排障须复用同一调用：`docker compose --project-directory <仓根> -f <compose文件> ...`。
+# `.`（不是相对本文件的 `../../..`）；Dockerfile 只复制 `KMFA/` 与 `KMDatabase/`
+# 到镜像。本机排障须复用同一调用：`docker compose --project-directory <仓根> -f <compose文件> ...`。
 #   **不挂宿主仓**——真 Coolify 上 `./` 运行时挂载只含 compose、无代码（DT9 主机核验坐实），故弃之。
 #   代码随每次 push 重 build 更新。本机验证：build 后 `docker run`（不挂任何卷）跑 self-audit 应 rc=0。
 
@@ -74,7 +74,7 @@ services:
   skills:
     build:
       context: .                              # 仓根（Coolify --project-directory）
-      dockerfile: KMFA/deploy/skills-runtime/Dockerfile   # 复用 #109 Dockerfile，内 COPY . 烧代码进镜像
+      dockerfile: KMFA/deploy/skills-runtime/Dockerfile   # 复用 #109 Dockerfile，内仅复制 KMFA/KMDatabase
     image: kmfa-skills:coolify
     container_name: kmfa-skills
     restart: always
