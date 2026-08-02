@@ -62,15 +62,22 @@ def main(argv: list[str] | None = None) -> int:
     except Exception:
         runtime.state.record_run(run_id, args.job, "FAILED", "UNHANDLED", finished=True)
         raise
+    code = str(result.get("code") or result.get("machine_code") or result.get("status") or "UNKNOWN")
     if "ok" in result:
         ok = bool(result["ok"])
+    elif code in {"AUTH_OK", "KEEPALIVE_OK"}:
+        # Source authentication and token keepalive are independent health
+        # checks.  Before the first reconciled publication the user-facing
+        # funding status correctly remains "需处理", but a successful probe
+        # must still be recorded as a successful scheduled job rather than
+        # poisoning the runtime ledger with a false failure.
+        ok = True
     elif result.get("status") == "ok":
         ok = True
     else:
         # Status-only maintenance jobs are successful when they completed or
         # deliberately observed another holder; ``需处理`` remains non-zero.
         ok = result.get("human_status") in {"已更新", "处理中"}
-    code = str(result.get("code") or result.get("machine_code") or result.get("status") or "UNKNOWN")
     runtime.state.record_run(run_id, args.job, "SUCCEEDED" if ok else "FAILED", code, finished=True)
     # The payload is intentionally values-free.  Cron logs must not become a
     # second raw-message archive or a place to leak identifiers/credentials.

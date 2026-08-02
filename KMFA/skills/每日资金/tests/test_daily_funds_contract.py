@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import importlib.util
 import json
 import subprocess
 import sys
@@ -867,6 +868,43 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_frozen_cadence() -> Non
     assert command in wrapper_text
     assert '. "$CRON_ENV_FILE"' in wrapper_text
     assert command in (ROOT / "healthcheck.sh").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("job,code", (("auth-probe", "AUTH_OK"), ("keepalive", "KEEPALIVE_OK")))
+def test_successful_maintenance_probe_is_not_failed_before_first_publication(
+    job: str,
+    code: str,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Cron success tracks the maintenance operation, not publication state."""
+
+    script = ROOT / "scripts" / "run_daily_funds.py"
+    spec = importlib.util.spec_from_file_location("daily_funds_runner_test", script)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    calls: list[tuple[str, str, str, bool]] = []
+
+    class FakeState:
+        def record_run(self, _run_id: str, kind: str, state: str, received_code: str, *, finished: bool = False) -> None:
+            calls.append((kind, state, received_code, finished))
+
+    class FakeRuntime:
+        def __init__(self) -> None:
+            self.state = FakeState()
+
+        def auth_probe(self):
+            return {"human_status": "需处理", "machine_code": "AUTH_OK"}
+
+        def keepalive(self):
+            return {"human_status": "需处理", "machine_code": "KEEPALIVE_OK"}
+
+    monkeypatch.setattr(module, "DailyFundsRuntime", FakeRuntime)
+    assert module.main([job]) == 0
+    assert calls[-1] == (job, "SUCCEEDED", code, True)
+    assert json.loads(capsys.readouterr().out)["machine_code"] == code
 
 
 def test_raw_writer_preserves_direct_and_oversize_bytes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
