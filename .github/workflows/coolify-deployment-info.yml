@@ -36,6 +36,25 @@ jobs:
           # 响应含全量构建日志（数 MB）：环境变量会撞 execve 上限（二跑实测 Argument list
           # too long）、heredoc 会抢占 stdin（首跑实测）——落临时文件再读，文件绝不打印。
           curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/deployments/$UUID" -o "$RUNNER_TEMP/resp.json"
+          # The deployment record carries the opaque resource UUID.  Diagnostic
+          # mode may read the resource configuration only to classify its base
+          # directory and compose-file wiring; it never prints raw configuration.
+          if [ "${DIAGNOSTIC:-false}" = "true" ]; then
+            APP_UUID="$(python3 - <<'PY'
+          import json
+          import os
+          d = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "resp.json"), encoding="utf-8"))
+          if isinstance(d, dict) and "deployments" in d:
+              arr = d.get("deployments") or [{}]
+              d = arr[0] if arr else {}
+          print(d.get("resource_uuid") or d.get("application_uuid") or "")
+          PY
+            )"
+            if [ -n "$APP_UUID" ]; then
+              curl -fsSL -H "Authorization: Bearer $TOKEN" \
+                "$BASE/api/v1/applications/$APP_UUID" -o "$RUNNER_TEMP/application.json" || true
+            fi
+          fi
           python3 - <<'PY'
           import hashlib
           import json
@@ -101,4 +120,46 @@ jobs:
               print("context_detail_class=" + context_detail_class)
               print("context_detail_marker_count=" + str(len(context_matches)))
               print("failure_fingerprint=" + fingerprint)
+              app_path = os.path.join(os.environ["RUNNER_TEMP"], "application.json")
+              app = {}
+              try:
+                  if os.path.exists(app_path):
+                      app = json.load(open(app_path, encoding="utf-8"))
+                      if isinstance(app, dict) and isinstance(app.get("data"), dict):
+                          app = app["data"]
+              except Exception:
+                  app = {}
+              if not isinstance(app, dict):
+                  app = {}
+              base = str(app.get("base_directory") or "").strip()
+              compose_location = str(app.get("docker_compose_location") or "").strip()
+              base_normalized = base.strip("/")
+              compose_normalized = compose_location.strip("/")
+              if not app:
+                  base_class = "UNAVAILABLE"
+                  compose_class = "UNAVAILABLE"
+                  source_class = "UNAVAILABLE"
+              else:
+                  base_class = (
+                      "REPOSITORY_ROOT"
+                      if base_normalized in ("", ".")
+                      else "COMPOSE_DIRECTORY"
+                      if base_normalized == "KMFA/deploy/coolify"
+                      else "OTHER_SUBPATH"
+                  )
+                  compose_class = (
+                      "EXPECTED_COMPOSE_PATH"
+                      if compose_normalized == "KMFA/deploy/coolify/docker-compose.yml"
+                      else "OTHER_COMPOSE_PATH"
+                      if compose_normalized
+                      else "UNSET"
+                  )
+                  source_class = (
+                      "INLINE_COMPOSE"
+                      if app.get("docker_compose_raw")
+                      else "GIT_COMPOSE_FILE"
+                  )
+              print("resource_base_directory_class=" + base_class)
+              print("resource_compose_location_class=" + compose_class)
+              print("resource_compose_source_class=" + source_class)
           PY
