@@ -7,6 +7,7 @@ import os
 import subprocess
 import tempfile
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
@@ -637,6 +638,92 @@ class S3CompatibleStore:
             return response["Body"].read()
         except Exception as exc:
             raise PublicationError("OBJECT_STORE_FAILED") from exc
+
+
+class OciParStore:
+    """Bucket-scoped OCI Pre-Authenticated Request object store.
+
+    This avoids distributing a user-level OCI HMAC key to the container.  The
+    supplied PAR must be an HTTPS ``AnyObjectReadWrite`` URI rooted at its
+    ``/o/`` object prefix; every write is still read back and hash-verified by
+    :class:`OciColdBackup` before it can be considered a recovery artifact.
+    """
+
+    def __init__(self, *, par_url: str):
+        parsed = urllib.parse.urlsplit(par_url)
+        path = parsed.path
+        if (
+            parsed.scheme != "https"
+            or not parsed.netloc
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.query
+            or parsed.fragment
+            or not path.endswith("/o/")
+            or not all(marker in path for marker in ("/p/", "/n/", "/b/", "/o/"))
+        ):
+            raise PublicationError("OCI_PAR_URL_INVALID")
+        self._base_url = par_url.rstrip("/") + "/"
+
+    def _object_url(self, key: str) -> str:
+        if (
+            not isinstance(key, str)
+            or not key
+            or key.startswith("/")
+            or any(part in {"", ".", ".."} for part in key.split("/"))
+        ):
+            raise PublicationError("OBJECT_STORE_FAILED")
+        return self._base_url + urllib.parse.quote(key, safe="/")
+
+    @staticmethod
+    def _response_status(response: object) -> int:
+        status = getattr(response, "status", None)
+        if isinstance(status, int):
+            return status
+        getcode = getattr(response, "getcode", None)
+        return int(getcode()) if callable(getcode) else 0
+
+    def put_bytes(self, key: str, payload: bytes, *, metadata: Mapping[str, str] | None = None) -> None:
+        if not isinstance(payload, bytes):
+            raise PublicationError("OBJECT_STORE_FAILED")
+        headers = {"Content-Type": "application/octet-stream"}
+        for name, value in dict(metadata or {}).items():
+            if (
+                not isinstance(name, str)
+                or not isinstance(value, str)
+                or not name.replace("-", "").isalnum()
+                or any(character in value for character in ("\r", "\n"))
+            ):
+                raise PublicationError("OBJECT_STORE_FAILED")
+            headers[f"opc-meta-{name}"] = value
+        try:
+            request = urllib.request.Request(
+                self._object_url(key),
+                data=payload,
+                method="PUT",
+                headers=headers,
+            )
+            with urllib.request.urlopen(request, timeout=30) as response:
+                if self._response_status(response) not in {200, 201, 204}:
+                    raise PublicationError("OBJECT_STORE_FAILED")
+        except PublicationError:
+            raise
+        except Exception as exc:
+            raise PublicationError("OBJECT_STORE_FAILED") from exc
+
+    def get_bytes(self, key: str) -> bytes:
+        try:
+            with urllib.request.urlopen(self._object_url(key), timeout=30) as response:
+                if self._response_status(response) != 200:
+                    raise PublicationError("OBJECT_STORE_FAILED")
+                payload = response.read()
+        except PublicationError:
+            raise
+        except Exception as exc:
+            raise PublicationError("OBJECT_STORE_FAILED") from exc
+        if not isinstance(payload, bytes):
+            raise PublicationError("OBJECT_STORE_FAILED")
+        return payload
 
 
 class R2Mirror:

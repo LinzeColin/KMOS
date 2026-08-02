@@ -38,6 +38,8 @@ publication 是严格的零差、双来源、整数分 canonical record。D1 仅
 
 OCI 是最后一跳，故其失败只把 runtime 标为 `LAG`，不会撤销一份已验证的 VALID pointer。恢复 manifest 使用 publication 创建时刻而非每次重试的当前时间，以保证同一恢复输入的 bytes 稳定；冷备重试、发布与恢复共用 `publisher_lock`，避免并发写入或备份陈旧 pointer。恢复前会验证 OCI artifact、R2 inventory、D1 export 的严格结构和 hash，并在全新 bare Git 库实际导入 bundle、确认引用 commit，D1 重建与查询 Oracle 均成功后才允许切换 pointer。
 
+生产 OCI 入口使用专用 bucket 的 HTTPS `AnyObjectReadWrite` PAR；运行容器只持有这一个 bucket 范围内的回读能力，不持有用户级 HMAC。旧 S3/HMAC 仅保留为显式迁移/恢复兼容路径，和 PAR 同时出现即失败关闭，避免凭据范围不明确。
+
 这些都是离线合同实现；尚无真实 D1/R2/OCI 身份、空环境恢复 transcript 或浏览器 Oracle 时，运行状态仍必须是 `UNKNOWN`/`需处理`，不能宣称生产恢复已通过。
 
 ## 本地无数据验证

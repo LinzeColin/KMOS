@@ -4,6 +4,7 @@ import base64
 import json
 import subprocess
 import sys
+import urllib.error
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from hashlib import sha256
@@ -49,7 +50,7 @@ from daily_funds.ingestion import (
 )
 from daily_funds.models import SourceRef
 from daily_funds.parsing import ACCOUNT_FAMILY, ParseError, parse_attachment
-from daily_funds.publication import D1Projection, OciColdBackup, PublicationCoordinator, PublicationError, R2Mirror, RestoreCoordinator, RestoreOracle
+from daily_funds.publication import D1Projection, OciColdBackup, OciParStore, PublicationCoordinator, PublicationError, R2Mirror, RestoreCoordinator, RestoreOracle
 from daily_funds.reconcile import AccountReconciliation, ReconciliationError, ReconciliationReport, reconcile
 from daily_funds.runtime import DailyFundsRuntime, TimedFacts
 from daily_funds.state import RuntimeState, StatusWriter
@@ -1644,6 +1645,73 @@ def test_oci_backup_requires_exact_readback() -> None:
         )
 
 
+def test_oci_par_is_a_valid_dedicated_recovery_transport(tmp_path: Path) -> None:
+    config = replace(
+        _config(tmp_path),
+        oci_endpoint_url="",
+        oci_bucket="",
+        oci_access_key_id="",
+        oci_secret_access_key="",
+        oci_par_url="https://objectstorage.example.invalid/p/token/n/namespace/b/daily-funds/o/",
+    )
+    config.validate()
+    assert isinstance(DailyFundsRuntime(config)._oci_store(), OciParStore)
+
+
+def test_oci_par_rejects_ambiguous_or_malformed_credential_modes(tmp_path: Path) -> None:
+    par_url = "https://objectstorage.example.invalid/p/token/n/namespace/b/daily-funds/o/"
+    with pytest.raises(ConfigError, match="OCI_CREDENTIAL_MODE_AMBIGUOUS"):
+        replace(_config(tmp_path), oci_par_url=par_url).validate()
+    malformed = replace(
+        _config(tmp_path),
+        oci_endpoint_url="",
+        oci_bucket="",
+        oci_access_key_id="",
+        oci_secret_access_key="",
+        oci_par_url="http://objectstorage.example.invalid/not-a-par",
+    )
+    with pytest.raises(ConfigError, match="OCI_PAR_URL_INVALID"):
+        malformed.validate()
+
+
+def test_oci_par_store_writes_and_reads_only_escaped_object_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+    saved: dict[str, bytes] = {}
+
+    class Response:
+        status = 200
+
+        def __init__(self, payload: bytes = b""):
+            self.payload = payload
+
+        def read(self) -> bytes:
+            return self.payload
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    def fake_urlopen(request, *, timeout):
+        assert timeout == 30
+        url = request.full_url if hasattr(request, "full_url") else str(request)
+        method = request.get_method() if hasattr(request, "get_method") else "GET"
+        if method == "PUT":
+            saved[url] = request.data
+            return Response()
+        if url not in saved:
+            raise urllib.error.HTTPError(url, 404, "not found", hdrs=None, fp=None)
+        return Response(saved[url])
+
+    monkeypatch.setattr("daily_funds.publication.urllib.request.urlopen", fake_urlopen)
+    store = OciParStore(par_url="https://objectstorage.example.invalid/p/token/n/namespace/b/daily-funds/o/")
+    key = "daily-funds/a file.json"
+    store.put_bytes(key, b"payload", metadata={"sha256": "abc"})
+    assert store.get_bytes(key) == b"payload"
+    with pytest.raises(PublicationError, match="OBJECT_STORE_FAILED"):
+        store.get_bytes("../outside")
+
+
 def test_oci_restore_rejects_non_byte_manifest_without_adapter_error_leakage() -> None:
     class TextStore:
         def get_bytes(self, key):
@@ -1975,7 +2043,8 @@ def test_daily_funds_deployment_keeps_its_auth_bundle_and_identifiers_private() 
     # replacement, but it is never read from GitHub Secrets or re-created.
     assert "DAILY_FUNDS_DWS_CLIENT_SECRET: ${{ secrets." not in ops
     assert '"DAILY_FUNDS_DWS_CLIENT_SECRET",' in ops
-    assert "每日资金 15 个必填 secret" in ops
+    assert "每日资金 12 个必填 secret" in ops
+    assert "DAILY_FUNDS_OCI_PAR_URL" in ops
     assert "optional_keys=(DAILY_FUNDS_DWS_CLIENT_ID DAILY_FUNDS_DWS_AUTH_BUNDLE_B64)" in ops
     assert "留空时使用 DWS 官方默认客户端" in env_example
     assert "kmfa-dws-auth" not in daily_service

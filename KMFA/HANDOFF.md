@@ -45,6 +45,10 @@
 
 - 2026-08-02 T10 部署与生产复核：已直接推送 `main`（无分支、无 PR），运行代码提交为 `ea96a2b9eeb0bf8bade0a63e37494636eda262fd`；远程 app E2E、Golden deploy 均成功，Coolify 部署日志确认 source commit 精确匹配该提交。生产根路径和 `/healthz` 为 HTTP 200，受保护 `/ops` 与每日资金 API 正确返回 Cloudflare Access 302。受控 Chrome 的原生桥、扩展和本机浏览器均健康，但对生产域请求被浏览器规则拦截，未获得已认证 UI receipt；不要将边缘健康或本地合成 UI Oracle 写成真实数据 UI PASS。部署后再次调用 Coolify 只读 execute 仍为 HTTP 404，故 worker/cron/卷的实时 receipt 继续为 UNKNOWN。每日资金专用 secret 同步 Action 在写入 Coolify 前 fail-closed：独立群/发送人/DWS client、Cloudflare runtime token、R2 access pair 与 OCI endpoint/bucket/access pair 均缺；未发生 Coolify 配置变更。它们是云端执行身份与目标参数，不是全量历史财务源数据，严禁用本机历史归档、既有 Skill 或其他 DWS profile 补造。status 继续为“需处理 / CONFIG_INVALID”，私库 raw、D1/R2/OCI、真实金额、恢复演练和五业务日观察均未开始。详见 `machine/runs/daily_funds/semantic_reconcile_end.json`。
 
+- 2026-08-02 T11 受控来源与异地备份补齐（未推送、未部署）：移动基线已刷新为 `origin/main=bb51b9f0f54b3e78ce9c0b6b267f15565761342c`，当前本地候选仅基于该基线。通过私有历史归档的完整 SHA-256 校验与不回显结构扫描，发现唯一一组同时满足“资金账户明细/资金流水明细/资金明细”关键词、实际附件、单一群 ID、单一发送人 ID 的候选（48 份附件、39 个消息日期）；两个 ID 仅写入 KMOS 仓库级 `DAILY_FUNDS_GROUP_ID`、`DAILY_FUNDS_SENDER_ID` Secret，未进入代码、日志或本文件。每日资金 12 项运行必填 Secret 的**键名**现齐全。归档无 DWS profile、keyring、token 或可迁移认证包，且旧 Skill/profile 仍禁止复用。
+- T11 OCI：用已验证的正式 OCI 身份新建专用、无公网、版本控制开启的冷备 bucket；创建仅限该 bucket 的 HTTPS `AnyObjectReadWrite` PAR，直接写入 `DAILY_FUNDS_OCI_PAR_URL` Secret。运行代码新增 PAR ObjectStore（旧 S3/HMAC 仅保留显式兼容，二者混用失败关闭）；真实合成 Git bundle/D1 export/R2 inventory 经 PAR 写入、逐件回读、restore manifest 验证和逻辑清理均成功，旧 PAR 已撤销。此为 OCI transport/restore 证据，不是目标群或真实金额恢复 PASS。
+- T11 回归：每日资金契约 `60 passed, 1 skipped`（跳过项为无 XLSX runtime 的明确环境跳过）、Python 编译、Compose 渲染、workflow YAML、diff check，以及封存 TaskPack `24 requirements / 11 tasks / 17 acceptance` 和 threshold/reconciliation/storage 三个 Oracle 全部通过。仍不可把此写成生产数据 PASS：当前唯一未闭合的硬门是**新建 daily-funds 独立云端 DWS 身份的一次官方授权**。本机 DWS 为未认证，归档无可用授权，Coolify execute 仍为 404；在独立云端容器中完成授权并得到真实 `auth status`/目标群历史回执前，不推送候选、不同步 Coolify、不部署，也不声明原始写入、D1/R2/OCI 真实业务链、恢复演练或五日观察已通过。
+
 ## v1.5.2 公开软件交付线（2026-07-26）
 
 - 当前唯一执行基线：用户提供的 `KMFA_Product_Design_Taskpack_v1.5.2.zip`，SHA-256 `31088516896e98cd7df1f877f7ec5077e6d8afe8013a88b803a616849555cffb`；产品/runtime 版本仍为 `0.1.4-one-time-github-main-upload`，两者禁止混用。

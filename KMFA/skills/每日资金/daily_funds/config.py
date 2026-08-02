@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import os
+from urllib.parse import urlsplit
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping
@@ -56,6 +57,7 @@ class DailyFundsConfig:
     oci_access_key_id: str
     oci_secret_access_key: str
     oci_region: str
+    oci_par_url: str
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "DailyFundsConfig":
@@ -87,6 +89,7 @@ class DailyFundsConfig:
             oci_access_key_id=_nonempty(source, "DAILY_FUNDS_OCI_ACCESS_KEY_ID"),
             oci_secret_access_key=_nonempty(source, "DAILY_FUNDS_OCI_SECRET_ACCESS_KEY"),
             oci_region=_nonempty(source, "DAILY_FUNDS_OCI_REGION", "ap-chuncheon-1"),
+            oci_par_url=_nonempty(source, "DAILY_FUNDS_OCI_PAR_URL"),
         )
 
     def missing(self, *, include_storage: bool = True) -> tuple[str, ...]:
@@ -105,11 +108,18 @@ class DailyFundsConfig:
                 "DAILY_FUNDS_R2_BUCKET": self.r2_bucket,
                 "DAILY_FUNDS_R2_ACCESS_KEY_ID": self.r2_access_key_id,
                 "DAILY_FUNDS_R2_SECRET_ACCESS_KEY": self.r2_secret_access_key,
-                "DAILY_FUNDS_OCI_ENDPOINT_URL": self.oci_endpoint_url,
-                "DAILY_FUNDS_OCI_BUCKET": self.oci_bucket,
-                "DAILY_FUNDS_OCI_ACCESS_KEY_ID": self.oci_access_key_id,
-                "DAILY_FUNDS_OCI_SECRET_ACCESS_KEY": self.oci_secret_access_key,
             }
+            # OCI cold backup has two mutually exclusive credential modes.
+            # The production path is one bucket-scoped PAR URL; legacy
+            # S3-compatible HMAC values remain accepted for an explicit
+            # migration/recovery deployment only.
+            if not self.oci_par_url:
+                required |= {
+                    "DAILY_FUNDS_OCI_ENDPOINT_URL": self.oci_endpoint_url,
+                    "DAILY_FUNDS_OCI_BUCKET": self.oci_bucket,
+                    "DAILY_FUNDS_OCI_ACCESS_KEY_ID": self.oci_access_key_id,
+                    "DAILY_FUNDS_OCI_SECRET_ACCESS_KEY": self.oci_secret_access_key,
+                }
         return tuple(sorted(name for name, value in required.items() if not value))
 
     def _validate_runtime_paths(self) -> None:
@@ -138,6 +148,28 @@ class DailyFundsConfig:
             raise ConfigError("PRIVATE_REPOSITORY_NOT_ALLOWED")
         if include_storage and self.restore_drill_d1_database_id == self.d1_database_id:
             raise ConfigError("RESTORE_DRILL_D1_MUST_DIFFER")
+        legacy_oci_values = (
+            self.oci_endpoint_url,
+            self.oci_bucket,
+            self.oci_access_key_id,
+            self.oci_secret_access_key,
+        )
+        if self.oci_par_url:
+            if any(legacy_oci_values):
+                raise ConfigError("OCI_CREDENTIAL_MODE_AMBIGUOUS")
+            parsed_par = urlsplit(self.oci_par_url)
+            path = parsed_par.path
+            if (
+                parsed_par.scheme != "https"
+                or not parsed_par.netloc
+                or parsed_par.username is not None
+                or parsed_par.password is not None
+                or parsed_par.query
+                or parsed_par.fragment
+                or not path.endswith("/o/")
+                or not all(marker in path for marker in ("/p/", "/n/", "/b/", "/o/"))
+            ):
+                raise ConfigError("OCI_PAR_URL_INVALID")
         # The source gate accepts one opaque group ID and one opaque sender ID
         # only.  A comma/newline separated value is a common accidental way to
         # turn a single-source contract into a multi-source scan; reject it
@@ -177,5 +209,6 @@ class DailyFundsConfig:
             self.restore_drill_d1_database_id,
             self.r2_bucket,
             self.oci_bucket,
+            hashlib.sha256(self.oci_par_url.encode("utf-8")).hexdigest(),
         )
         return hashlib.sha256("\x1f".join(fields).encode("utf-8")).hexdigest()

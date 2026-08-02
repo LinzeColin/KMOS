@@ -800,7 +800,7 @@ jobs:
           PY
 
       # 每日资金是一条独立的数据面：不能借用项目成本或其他 KMFA 服务的
-      # 凭据。15 个运行必填值先在 GitHub Secret Store 完整存在才开始写
+      # 凭据。12 个运行必填值先在 GitHub Secret Store 完整存在才开始写
       # Coolify；可选 DWS client override 与 recovery bundle 只在显式配置时
       # 一并同步。Coolify
       # 没有跨 env 的事务，任何 HTTP 失败都停止并要求整次重跑，不会把不完整
@@ -821,10 +821,7 @@ jobs:
           DAILY_FUNDS_R2_BUCKET: ${{ secrets.DAILY_FUNDS_R2_BUCKET }}
           DAILY_FUNDS_R2_ACCESS_KEY_ID: ${{ secrets.DAILY_FUNDS_R2_ACCESS_KEY_ID }}
           DAILY_FUNDS_R2_SECRET_ACCESS_KEY: ${{ secrets.DAILY_FUNDS_R2_SECRET_ACCESS_KEY }}
-          DAILY_FUNDS_OCI_ENDPOINT_URL: ${{ secrets.DAILY_FUNDS_OCI_ENDPOINT_URL }}
-          DAILY_FUNDS_OCI_BUCKET: ${{ secrets.DAILY_FUNDS_OCI_BUCKET }}
-          DAILY_FUNDS_OCI_ACCESS_KEY_ID: ${{ secrets.DAILY_FUNDS_OCI_ACCESS_KEY_ID }}
-          DAILY_FUNDS_OCI_SECRET_ACCESS_KEY: ${{ secrets.DAILY_FUNDS_OCI_SECRET_ACCESS_KEY }}
+          DAILY_FUNDS_OCI_PAR_URL: ${{ secrets.DAILY_FUNDS_OCI_PAR_URL }}
         run: |
           set -euo pipefail
           test -n "${APP:-}" || { echo "需要 app_uuid"; exit 1; }
@@ -840,10 +837,7 @@ jobs:
             DAILY_FUNDS_R2_BUCKET
             DAILY_FUNDS_R2_ACCESS_KEY_ID
             DAILY_FUNDS_R2_SECRET_ACCESS_KEY
-            DAILY_FUNDS_OCI_ENDPOINT_URL
-            DAILY_FUNDS_OCI_BUCKET
-            DAILY_FUNDS_OCI_ACCESS_KEY_ID
-            DAILY_FUNDS_OCI_SECRET_ACCESS_KEY
+            DAILY_FUNDS_OCI_PAR_URL
           )
           optional_keys=(DAILY_FUNDS_DWS_CLIENT_ID DAILY_FUNDS_DWS_AUTH_BUNDLE_B64)
           missing=()
@@ -882,6 +876,7 @@ jobs:
               "DAILY_FUNDS_R2_ACCESS_KEY_ID", "DAILY_FUNDS_R2_SECRET_ACCESS_KEY",
               "DAILY_FUNDS_OCI_ENDPOINT_URL", "DAILY_FUNDS_OCI_BUCKET",
               "DAILY_FUNDS_OCI_ACCESS_KEY_ID", "DAILY_FUNDS_OCI_SECRET_ACCESS_KEY",
+              "DAILY_FUNDS_OCI_PAR_URL",
           }
           data = json.load(open(
               os.path.join(os.environ["RUNNER_TEMP"], "daily-funds-envs-before.json"),
@@ -911,8 +906,7 @@ jobs:
               "DAILY_FUNDS_D1_DATABASE_ID", "DAILY_FUNDS_RESTORE_DRILL_D1_DATABASE_ID",
               "DAILY_FUNDS_R2_ENDPOINT_URL", "DAILY_FUNDS_R2_BUCKET",
               "DAILY_FUNDS_R2_ACCESS_KEY_ID", "DAILY_FUNDS_R2_SECRET_ACCESS_KEY",
-              "DAILY_FUNDS_OCI_ENDPOINT_URL", "DAILY_FUNDS_OCI_BUCKET",
-              "DAILY_FUNDS_OCI_ACCESS_KEY_ID", "DAILY_FUNDS_OCI_SECRET_ACCESS_KEY",
+              "DAILY_FUNDS_OCI_PAR_URL",
           )
           optional = ("DAILY_FUNDS_DWS_CLIENT_ID", "DAILY_FUNDS_DWS_AUTH_BUNDLE_B64")
           keys = required + tuple(key for key in optional if os.environ.get(key))
@@ -944,8 +938,7 @@ jobs:
               "DAILY_FUNDS_D1_DATABASE_ID", "DAILY_FUNDS_RESTORE_DRILL_D1_DATABASE_ID",
               "DAILY_FUNDS_R2_ENDPOINT_URL", "DAILY_FUNDS_R2_BUCKET",
               "DAILY_FUNDS_R2_ACCESS_KEY_ID", "DAILY_FUNDS_R2_SECRET_ACCESS_KEY",
-              "DAILY_FUNDS_OCI_ENDPOINT_URL", "DAILY_FUNDS_OCI_BUCKET",
-              "DAILY_FUNDS_OCI_ACCESS_KEY_ID", "DAILY_FUNDS_OCI_SECRET_ACCESS_KEY",
+              "DAILY_FUNDS_OCI_PAR_URL",
           }
           optional = {"DAILY_FUNDS_DWS_CLIENT_ID", "DAILY_FUNDS_DWS_AUTH_BUNDLE_B64"}
           expected = required | {key for key in optional if os.environ.get(key)}
@@ -970,7 +963,7 @@ jobs:
               if counts[key] != representation_count:
                   print(f"{key} 回读失败：未覆盖全部正常应用上下文。")
                   sys.exit(1)
-          print("每日资金 15 个必填 secret 已覆盖全部正常应用上下文；可选 DWS 客户端覆盖和恢复包仅在显式配置时同步，值一致性待运行时验收。")
+          print("每日资金 12 个必填 secret 已覆盖全部正常应用上下文；可选 DWS 客户端覆盖和恢复包仅在显式配置时同步，值一致性待运行时验收。")
           PY
 
       - name: 测试期安全态——清空群机器人 + 关投递（去重后重写，杜绝同名残留）

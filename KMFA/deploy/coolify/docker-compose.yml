@@ -52,6 +52,7 @@ services:
       DAILY_FUNDS_OCI_ACCESS_KEY_ID: "${DAILY_FUNDS_OCI_ACCESS_KEY_ID:-}"
       DAILY_FUNDS_OCI_SECRET_ACCESS_KEY: "${DAILY_FUNDS_OCI_SECRET_ACCESS_KEY:-}"
       DAILY_FUNDS_OCI_REGION: "${DAILY_FUNDS_OCI_REGION:-ap-chuncheon-1}"
+      DAILY_FUNDS_OCI_PAR_URL: "${DAILY_FUNDS_OCI_PAR_URL:-}"
     volumes:
       - kmfa-daily-funds-state:/var/lib/kmfa/daily-funds-state
       - kmfa-daily-funds-dws:/var/lib/kmfa/daily-funds-dws

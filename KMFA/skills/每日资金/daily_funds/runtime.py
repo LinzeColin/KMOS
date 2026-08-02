@@ -28,6 +28,7 @@ from .parsing import ACCOUNT_FAMILY, ParseError, parse_attachment
 from .publication import (
     D1Projection,
     OciColdBackup,
+    OciParStore,
     PublicationCoordinator,
     PublicationError,
     R2Mirror,
@@ -94,6 +95,24 @@ class DailyFundsRuntime:
         if payload.get("publication", {}).get("status") != "VALID":
             return None
         return payload
+
+    def _oci_store(self):
+        """Return the one configured OCI cold-backup transport.
+
+        A bucket-scoped PAR is preferred because it cannot grant the runtime
+        access outside the dedicated daily-funds bucket.  The S3/HMAC path is
+        retained only for explicitly configured legacy recovery deployments.
+        """
+
+        if self.config.oci_par_url:
+            return OciParStore(par_url=self.config.oci_par_url)
+        return S3CompatibleStore(
+            endpoint_url=self.config.oci_endpoint_url,
+            bucket=self.config.oci_bucket,
+            access_key_id=self.config.oci_access_key_id,
+            secret_access_key=self.config.oci_secret_access_key,
+            region=self.config.oci_region,
+        )
 
     @property
     def _history_path(self) -> Path:
@@ -912,13 +931,7 @@ class DailyFundsRuntime:
             secret_access_key=self.config.r2_secret_access_key,
             region="auto",
         )
-        oci = S3CompatibleStore(
-            endpoint_url=self.config.oci_endpoint_url,
-            bucket=self.config.oci_bucket,
-            access_key_id=self.config.oci_access_key_id,
-            secret_access_key=self.config.oci_secret_access_key,
-            region=self.config.oci_region,
-        )
+        oci = self._oci_store()
         return PublicationCoordinator(
             publication_dir=self.config.publication_dir,
             status=self.status,
@@ -1407,13 +1420,7 @@ class DailyFundsRuntime:
                 region="auto",
             )
             d1 = D1Projection(self.config)
-            oci_store = S3CompatibleStore(
-                endpoint_url=self.config.oci_endpoint_url,
-                bucket=self.config.oci_bucket,
-                access_key_id=self.config.oci_access_key_id,
-                secret_access_key=self.config.oci_secret_access_key,
-                region=self.config.oci_region,
-            )
+            oci_store = self._oci_store()
             r2_inventory = R2Mirror(r2_store).verify_manifest(
                 r2_sha,
                 expected_git_commit_sha=str(publication.get("git_commit_sha") or ""),
@@ -1506,13 +1513,7 @@ class DailyFundsRuntime:
                 code="PUBLICATION_INVALID",
             )
         try:
-            oci_store = S3CompatibleStore(
-                endpoint_url=self.config.oci_endpoint_url,
-                bucket=self.config.oci_bucket,
-                access_key_id=self.config.oci_access_key_id,
-                secret_access_key=self.config.oci_secret_access_key,
-                region=self.config.oci_region,
-            )
+            oci_store = self._oci_store()
             self._lease_call(
                 "publisher_lock",
                 ttl_seconds=13 * 60,
@@ -1547,13 +1548,7 @@ class DailyFundsRuntime:
         if len(publication_id) != 64 or any(char not in "0123456789abcdef" for char in publication_id):
             return self.status.write("需处理", "RESTORE_PUBLICATION_ID_INVALID")
         try:
-            oci_store = S3CompatibleStore(
-                endpoint_url=self.config.oci_endpoint_url,
-                bucket=self.config.oci_bucket,
-                access_key_id=self.config.oci_access_key_id,
-                secret_access_key=self.config.oci_secret_access_key,
-                region=self.config.oci_region,
-            )
+            oci_store = self._oci_store()
             restored = self._lease_call(
                 "publisher_lock",
                 ttl_seconds=13 * 60,
