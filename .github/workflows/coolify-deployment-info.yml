@@ -53,6 +53,10 @@ jobs:
             if [ -n "$APP_UUID" ]; then
               curl -fsSL -H "Authorization: Bearer $TOKEN" \
                 "$BASE/api/v1/applications/$APP_UUID" -o "$RUNNER_TEMP/application.json" || true
+              # Coolify versions differ on the single-resource endpoint.  The
+              # supported collection endpoint is a read-only fallback.
+              curl -fsSL -H "Authorization: Bearer $TOKEN" \
+                "$BASE/api/v1/applications" -o "$RUNNER_TEMP/applications.json" || true
             fi
           fi
           python3 - <<'PY'
@@ -121,14 +125,46 @@ jobs:
               print("context_detail_marker_count=" + str(len(context_matches)))
               print("failure_fingerprint=" + fingerprint)
               app_path = os.path.join(os.environ["RUNNER_TEMP"], "application.json")
+              apps_path = os.path.join(os.environ["RUNNER_TEMP"], "applications.json")
               app = {}
+              app_origin = "UNAVAILABLE"
+              target_resource_uuid = str(
+                  d.get("resource_uuid") or d.get("application_uuid") or ""
+              )
               try:
                   if os.path.exists(app_path):
                       app = json.load(open(app_path, encoding="utf-8"))
                       if isinstance(app, dict) and isinstance(app.get("data"), dict):
                           app = app["data"]
+                      if (
+                          isinstance(app, dict)
+                          and target_resource_uuid
+                          and str(app.get("uuid") or "") == target_resource_uuid
+                      ):
+                          app_origin = "DIRECT_ENDPOINT"
+                      else:
+                          app = {}
               except Exception:
                   app = {}
+              if not app and target_resource_uuid and os.path.exists(apps_path):
+                  try:
+                      apps = json.load(open(apps_path, encoding="utf-8"))
+                      if isinstance(apps, dict):
+                          apps = apps.get("data") or apps.get("applications") or []
+                      if isinstance(apps, list):
+                          app = next(
+                              (
+                                  item
+                                  for item in apps
+                                  if isinstance(item, dict)
+                                  and str(item.get("uuid") or "") == target_resource_uuid
+                              ),
+                              {},
+                          )
+                          if app:
+                              app_origin = "APPLICATION_LIST"
+                  except Exception:
+                      app = {}
               if not isinstance(app, dict):
                   app = {}
               base = str(app.get("base_directory") or "").strip()
@@ -162,4 +198,9 @@ jobs:
               print("resource_base_directory_class=" + base_class)
               print("resource_compose_location_class=" + compose_class)
               print("resource_compose_source_class=" + source_class)
+              print(
+                  "resource_identifier_class="
+                  + ("PRESENT" if target_resource_uuid else "MISSING")
+              )
+              print("resource_config_origin=" + app_origin)
           PY
