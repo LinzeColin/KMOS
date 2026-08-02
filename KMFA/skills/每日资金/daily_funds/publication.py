@@ -24,7 +24,7 @@ from .contracts import (
     effective_risk,
     floating_month_lines,
 )
-from .ingestion import DownloadedAttachment, GitCommit
+from .ingestion import SPARSE_PATH, DownloadedAttachment, GitCommit
 from .reconcile import ReconciliationReport
 from .state import StatusWriter, atomic_json_write, iso_now
 
@@ -74,7 +74,14 @@ _PUBLICATION_FIELDS = frozenset({
     "oci_backup_state",
 })
 _R2_MANIFEST_FIELDS = frozenset({"schema_version", "git_commit_sha", "objects", "created_at"})
-_OCI_MANIFEST_FIELDS = frozenset({"schema_version", "publication_id", "publication_sha256", "artifacts", "created_at"})
+_OCI_MANIFEST_FIELDS = frozenset({
+    "schema_version",
+    "publication_id",
+    "publication_sha256",
+    "git_publication_commit_sha",
+    "artifacts",
+    "created_at",
+})
 
 
 def _is_lower_hex(value: object, length: int) -> bool:
@@ -167,7 +174,7 @@ def _validate_publication(publication: Mapping[str, Any]) -> dict[str, Any]:
     if difference != 0:
         raise PublicationError("PUBLICATION_NOT_PUBLISHABLE")
     source_versions = normalized["source_versions"]
-    if not isinstance(source_versions, list) or len(source_versions) < 2:
+    if not isinstance(source_versions, list) or len(source_versions) != 2:
         raise PublicationError("PUBLICATION_INVALID")
     seen_versions: set[str] = set()
     for source in source_versions:
@@ -303,11 +310,12 @@ def _validate_projection_inputs(
     normalized_transactions = _validate_transaction_rows(transactions, publication_day=publication_day)
     normalized_accounts = _validate_account_rows(accounts, publication_day=publication_day)
     declared_versions = {str(row["source_version"]) for row in normalized_publication["source_versions"]}
-    projected_versions = {
-        *(str(row["source_version"]) for row in normalized_transactions),
-        *(str(row["source_version"]) for row in normalized_accounts),
-    }
-    if not projected_versions.issubset(declared_versions):
+    transaction_versions = {str(row["source_version"]) for row in normalized_transactions}
+    account_versions = {str(row["source_version"]) for row in normalized_accounts}
+    if len(transaction_versions) != 1 or len(account_versions) != 1 or transaction_versions == account_versions:
+        raise PublicationError("PROJECTION_SOURCE_VERSION_PAIR_INVALID")
+    projected_versions = transaction_versions | account_versions
+    if projected_versions != declared_versions:
         raise PublicationError("PROJECTION_SOURCE_VERSION_MISMATCH")
     expected_ending = sum(int(row["ending_available_fen"]) for row in normalized_accounts)
     current_balance = next(balance for balance in normalized_balances if balance.business_day == publication_day)
@@ -565,12 +573,12 @@ class D1Projection:
             raise PublicationError("D1_ORACLE_PROJECTION_MISSING")
         check = checks[0]
         try:
-            account_count = int(check["account_count"])
-            transaction_count = int(check["transaction_count"])
-            balance_count = int(check["balance_count"])
-            account_ending = int(check["account_ending_fen"])
-            balance_ending = int(check["balance_ending_fen"])
-        except (KeyError, TypeError, ValueError) as exc:
+            account_count = _require_integer(check["account_count"], "D1_ORACLE_PROJECTION_MISSING")
+            transaction_count = _require_integer(check["transaction_count"], "D1_ORACLE_PROJECTION_MISSING")
+            balance_count = _require_integer(check["balance_count"], "D1_ORACLE_PROJECTION_MISSING")
+            account_ending = _require_integer(check["account_ending_fen"], "D1_ORACLE_PROJECTION_MISSING")
+            balance_ending = _require_integer(check["balance_ending_fen"], "D1_ORACLE_PROJECTION_MISSING")
+        except (KeyError, PublicationError) as exc:
             raise PublicationError("D1_ORACLE_PROJECTION_MISSING") from exc
         if account_count < 1 or transaction_count < 1 or balance_count != 1:
             raise PublicationError("D1_ORACLE_PROJECTION_MISSING")
@@ -791,7 +799,7 @@ class R2Mirror:
                 raise PublicationError("R2_MANIFEST_ATTACHMENT_MISMATCH")
         return manifest
 
-    def _put_and_verify(self, key: str, payload: bytes, *, digest: str) -> None:
+    def _put_and_verify(self, key: str, payload: bytes, *, digest: str) -> bytes:
         try:
             self.store.put_bytes(key, payload, metadata={"sha256": digest})
             readback = self.store.get_bytes(key)
@@ -869,6 +877,7 @@ class OciColdBackup:
             raise PublicationError("OCI_BACKUP_READBACK_FAILED") from exc
         if not isinstance(readback, bytes) or len(readback) != len(payload) or sha256(readback).hexdigest() != digest:
             raise PublicationError("OCI_BACKUP_READBACK_FAILED")
+        return readback
 
     def backup(
         self,
@@ -876,6 +885,7 @@ class OciColdBackup:
         publication_id: str,
         publication_sha256: str,
         publication_created_at: str,
+        git_publication_commit_sha: str,
         git_bundle: bytes,
         d1_export: bytes,
         r2_inventory: bytes,
@@ -883,6 +893,7 @@ class OciColdBackup:
         publication_id = _require_lower_hex(publication_id, 64, "OCI_BACKUP_INVALID")
         publication_sha256 = _require_lower_hex(publication_sha256, 64, "OCI_BACKUP_INVALID")
         publication_created_at = _require_iso_timestamp(publication_created_at, "OCI_BACKUP_INVALID")
+        git_publication_commit_sha = _require_lower_hex(git_publication_commit_sha, 40, "OCI_BACKUP_INVALID")
         if not all(isinstance(payload, bytes) and payload for payload in (git_bundle, d1_export, r2_inventory)):
             raise PublicationError("OCI_BACKUP_INVALID")
         artifacts = {
@@ -898,6 +909,7 @@ class OciColdBackup:
             "schema_version": "kmfa.daily_funds.oci_restore_manifest.v1",
             "publication_id": publication_id,
             "publication_sha256": publication_sha256,
+            "git_publication_commit_sha": git_publication_commit_sha,
             "artifacts": inventory,
             # The restore manifest is content-addressed by a specific
             # immutable publication.  Reusing the publication timestamp,
@@ -911,8 +923,34 @@ class OciColdBackup:
             "sha256": sha256(manifest_payload).hexdigest(),
             "size_bytes": len(manifest_payload),
         }
-        for name, payload in artifacts.items():
-            self._put_and_verify(inventory[name]["key"], payload, digest=inventory[name]["sha256"])
+        verified_artifacts = {
+            name: self._put_and_verify(inventory[name]["key"], payload, digest=inventory[name]["sha256"])
+            for name, payload in artifacts.items()
+        }
+        # Do not write a restore manifest (and therefore do not report a
+        # successful cold backup) until the just-read-back artifacts can prove
+        # the complete private publication chain.  A raw-source commit alone
+        # is insufficient: the canonical publication file must be present in
+        # the bundle and byte-identical to the D1 export.
+        try:
+            restored_publication, _, _, _ = RestoreOracle.decode_d1_export(
+                verified_artifacts["d1_export"],
+                publication_id=publication_id,
+                expected_publication_sha=publication_sha256,
+            )
+            R2Mirror.validate_manifest_payload(
+                str(restored_publication["r2_manifest_sha256"]),
+                verified_artifacts["r2_inventory"],
+                expected_git_commit_sha=str(restored_publication["git_commit_sha"]),
+            )
+            RestoreOracle.verify_private_publication_bundle(
+                verified_artifacts["git_bundle"],
+                expected_raw_commit_sha=str(restored_publication["git_commit_sha"]),
+                expected_publication_commit_sha=git_publication_commit_sha,
+                publication=restored_publication,
+            )
+        except (KeyError, PublicationError) as exc:
+            raise PublicationError("OCI_BACKUP_INVALID") from exc
         self._put_and_verify(
             inventory["restore_manifest"]["key"],
             manifest_payload,
@@ -949,6 +987,7 @@ class OciColdBackup:
         ):
             raise PublicationError("RESTORE_MANIFEST_INVALID")
         _require_lower_hex(manifest.get("publication_sha256"), 64, "RESTORE_MANIFEST_INVALID")
+        _require_lower_hex(manifest.get("git_publication_commit_sha"), 40, "RESTORE_MANIFEST_INVALID")
         _require_iso_timestamp(manifest.get("created_at"), "RESTORE_MANIFEST_INVALID")
         inventory = manifest.get("artifacts")
         if not isinstance(inventory, Mapping) or set(inventory) != {"git_bundle", "d1_export", "r2_inventory"}:
@@ -1184,6 +1223,7 @@ class PublicationCoordinator:
                 publication_id=str(publication["publication_id"]),
                 publication_sha256=sha256(_canonical_bytes(publication)).hexdigest(),
                 publication_created_at=str(publication["created_at"]),
+                git_publication_commit_sha=private_commit_sha,
                 git_bundle=offsite_bundle,
                 d1_export=d1_export,
                 r2_inventory=r2_inventory,
@@ -1270,6 +1310,85 @@ class RestoreOracle:
                         raise PublicationError("RESTORE_GIT_BUNDLE_INVALID")
         except (OSError, subprocess.TimeoutExpired):
             raise PublicationError("RESTORE_GIT_BUNDLE_INVALID") from None
+
+    @staticmethod
+    def verify_private_publication_bundle(
+        bundle: bytes,
+        *,
+        expected_raw_commit_sha: str,
+        expected_publication_commit_sha: str,
+        publication: Mapping[str, Any],
+    ) -> None:
+        """Bind an OCI bundle to the exact private canonical publication.
+
+        The raw-source commit proves input lineage, but it cannot by itself
+        prove that the formal publication which D1 is rebuilding was committed
+        to the private authority.  Restore therefore verifies the raw commit,
+        the later publication commit, their ancestry, and the canonical file
+        bytes in a disposable bare repository before D1 can be mutated.
+        """
+
+        try:
+            normalized = _validate_publication(publication)
+            raw_commit = _require_lower_hex(
+                expected_raw_commit_sha,
+                40,
+                "RESTORE_PRIVATE_PUBLICATION_INVALID",
+            )
+            publication_commit = _require_lower_hex(
+                expected_publication_commit_sha,
+                40,
+                "RESTORE_PRIVATE_PUBLICATION_INVALID",
+            )
+            publication_id = _require_lower_hex(
+                normalized["publication_id"],
+                64,
+                "RESTORE_PRIVATE_PUBLICATION_INVALID",
+            )
+            business_date = _require_iso_day(
+                normalized["business_date"],
+                "RESTORE_PRIVATE_PUBLICATION_INVALID",
+            ).isoformat()
+            expected_payload = _canonical_bytes(normalized)
+            if not isinstance(bundle, bytes) or not bundle:
+                raise PublicationError("RESTORE_PRIVATE_PUBLICATION_INVALID")
+            publication_path = (
+                SPARSE_PATH / "publications" / business_date / f"{publication_id}.json"
+            ).as_posix()
+            with tempfile.TemporaryDirectory(prefix="daily-funds-restore-publication-") as temp:
+                root = Path(temp)
+                bundle_path = root / "private-db.bundle"
+                bare_repo = root / "verify.git"
+                bundle_path.write_bytes(bundle)
+                commands = (
+                    (["git", "init", "--bare", "--quiet", str(bare_repo)], None),
+                    (["git", "bundle", "verify", str(bundle_path)], bare_repo),
+                    (["git", "bundle", "unbundle", str(bundle_path)], bare_repo),
+                    (["git", "cat-file", "-e", f"{raw_commit}^{{commit}}"], bare_repo),
+                    (["git", "cat-file", "-e", f"{publication_commit}^{{commit}}"], bare_repo),
+                    (["git", "merge-base", "--is-ancestor", raw_commit, publication_commit], bare_repo),
+                )
+                for command, cwd in commands:
+                    result = subprocess.run(
+                        command,
+                        cwd=str(cwd) if cwd is not None else None,
+                        capture_output=True,
+                        check=False,
+                        timeout=60,
+                    )
+                    if result.returncode != 0:
+                        raise PublicationError("RESTORE_PRIVATE_PUBLICATION_INVALID")
+                result = subprocess.run(
+                    ["git", "show", f"{publication_commit}:{publication_path}"],
+                    cwd=str(bare_repo),
+                    capture_output=True,
+                    check=False,
+                    timeout=60,
+                )
+                if result.returncode != 0 or result.stdout != expected_payload:
+                    raise PublicationError("RESTORE_PRIVATE_PUBLICATION_INVALID")
+        except (OSError, subprocess.TimeoutExpired, PublicationError):
+            raise PublicationError("RESTORE_PRIVATE_PUBLICATION_INVALID") from None
 
     @staticmethod
     def decode_d1_export(
@@ -1373,6 +1492,12 @@ class RestoreCoordinator:
         RestoreOracle.verify_git_bundle(
             artifacts["git_bundle"],
             expected_commit_sha=str(publication.get("git_commit_sha") or ""),
+        )
+        RestoreOracle.verify_private_publication_bundle(
+            artifacts["git_bundle"],
+            expected_raw_commit_sha=str(publication.get("git_commit_sha") or ""),
+            expected_publication_commit_sha=str(manifest.get("git_publication_commit_sha") or ""),
+            publication=publication,
         )
         self.d1.project(publication, balances, transactions, accounts)
         self.d1.oracle(publication_id)

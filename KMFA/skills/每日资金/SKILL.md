@@ -28,7 +28,7 @@ description: 独立云端每日资金纵向切片；仅从指定钉钉群历史�
 - 勾稽质量：账户、公司、银行、全局差异都必须为 `0` 分；禁止以跨账户抵销、静默去重、浮点/布尔金额、重复余额日或未来 `current` 余额形成假零差。3/6 月动态线须满足 95% 覆盖和 45/90 直接观测；自定义日期范围至少 7 日、覆盖至少 80%。
 - 余额日：仅北京周六、周日可承接上一 VALID 余额并计为承接天；缺失工作日一律标 `coverage_gap` 并从动态线覆盖计算排除。未确认的法定假日不擅自承接，宁可停用动态线。
 - 发布：Git 原始字节回读 → R2 → 解析 → 零分勾稽 → D1 事务/查询 Oracle → 私库 publication 与 Git bundle → atomic current pointer → OCI 异步冷备。publication 必须是严格 zero-fen canonical record；D1 只允许普通 `INSERT`，绑定参数只发送字符串（整数分为精确十进制），期初空值只使用固定 SQL `NULL`。R2/D1/Git 任一失败不切 pointer；OCI 失败只显示冷备滞后。
-- 恢复：只接受 OCI 不可变 restore manifest（同一 publication 的重试复用创建时刻以保持 bytes 稳定）；先逐件 hash/类型校验 Git bundle、D1 export、R2 inventory，再在空 bare Git 库实际导入 bundle 并确认 publication 引用的原始 commit，重建 D1 并通过查询 Oracle 后才切换 pointer。发布、冷备重试和恢复共用 `publisher_lock`。
+- 恢复：只接受 OCI 不可变 restore manifest（同一 publication 的重试复用创建时刻以保持 bytes 稳定）；manifest 必须绑定私库 publication commit。冷备在写 manifest 前、恢复在重建 D1 前，均逐件 hash/类型校验 Git bundle、D1 export、R2 inventory，再在空 bare Git 库实际导入 bundle，并确认 publication 引用的原始 commit、私库 publication commit 的祖先关系和 canonical 文件逐字节一致；重建 D1 并通过查询 Oracle 后才切换 pointer。发布、冷备重试和恢复共用 `publisher_lock`。
 - 演练：每月 1 日 05:00 北京时间将最新 immutable publication 恢复至**独立非生产 D1**并运行同一 Query Oracle；配置为空或误指向正式 D1 必须失败关闭。
 
 ## 三态与停止条件

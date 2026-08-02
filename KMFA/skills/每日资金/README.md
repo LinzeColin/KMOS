@@ -36,9 +36,9 @@
 
 ## 发布、镜像与恢复
 
-publication 是严格的零差、双来源、整数分 canonical record。D1 仅是读模型：同一 publication ID 使用普通 `INSERT`，不能用 replace 覆盖；D1 REST 的绑定参数统一为字符串，整数分保持精确十进制，允许为空的期初余额只写固定 SQL `NULL`。R2 先写入原件和 manifest，再逐件回读 bytes/hash/尺寸；D1 projection 与 query Oracle 通过后，还必须成功写入私库 publication 并生成可导入 Git bundle，才会原子替换 `current.json`。
+publication 是严格的零差、**唯一一对不同来源版本**、整数分 canonical record。D1 仅是读模型：同一 publication ID 使用普通 `INSERT`，不能用 replace 覆盖；D1 REST 的绑定参数统一为字符串，整数分保持精确十进制，允许为空的期初余额只写固定 SQL `NULL`。R2 先写入原件和 manifest，再逐件回读 bytes/hash/尺寸；D1 projection 与 query Oracle 通过后，还必须成功写入私库 publication 并生成可导入 Git bundle，才会原子替换 `current.json`。
 
-OCI 是最后一跳，故其失败只把 runtime 标为 `LAG`，不会撤销一份已验证的 VALID pointer。恢复 manifest 使用 publication 创建时刻而非每次重试的当前时间，以保证同一恢复输入的 bytes 稳定；冷备重试、发布与恢复共用 `publisher_lock`，避免并发写入或备份陈旧 pointer。恢复前会验证 OCI artifact、R2 inventory、D1 export 的严格结构和 hash，并在全新 bare Git 库实际导入 bundle、确认引用 commit，D1 重建与查询 Oracle 均成功后才允许切换 pointer。
+OCI 是最后一跳，故其失败只把 runtime 标为 `LAG`，不会撤销一份已验证的 VALID pointer。恢复 manifest 使用 publication 创建时刻而非每次重试的当前时间，以保证同一恢复输入的 bytes 稳定，并绑定私库 publication commit；冷备在写入该 manifest 前即会验证 OCI artifact、R2 inventory、D1 export 的严格结构和 hash，并在全新 bare Git 库实际导入 bundle、确认原始 commit 与其后私库 publication commit 的祖先关系及 canonical publication 文件逐字节一致。冷备重试、发布与恢复共用 `publisher_lock`，避免并发写入或备份陈旧 pointer；恢复会重复同一验证，且仅在 D1 重建与查询 Oracle 均成功后才允许切换 pointer。
 
 生产 OCI 入口使用专用 bucket 的 HTTPS `AnyObjectReadWrite` PAR；运行容器只持有这一个 bucket 范围内的回读能力，不持有用户级 HMAC。旧 S3/HMAC 仅保留为显式迁移/恢复兼容路径，和 PAR 同时出现即失败关闭，避免凭据范围不明确。
 
@@ -60,7 +60,7 @@ uv run --with-requirements KMFA/app/backend/requirements.txt \
   --out-dir "$(mktemp -d /tmp/kmfa-daily-funds-page-e2e.XXXXXX)"
 ```
 
-测试只使用合成数据，覆盖整数分边界、3/6 月覆盖门、双事实表、CSV/Excel 的 MIME+magic+lineage、重复/歧义列/公式/日期/标识符质量门、终页 cursor 清除与页二失败不推进高水位、回填空日窗、私有 Git 新 sparse-clone 回读后的不支持附件登记与实时零匹配失败关闭、精确 sparse checkout、重复/同名异字节/超大附件、消息与 manifest 篡改回读失败、D1 故障不移动 pointer 和旧阈值回流扫描。它不替代目标群真实采集验证。
+测试只使用合成数据，覆盖整数分边界、3/6 月覆盖门、双事实表、CSV/Excel 的 MIME+magic+lineage、重复/歧义列/公式/日期/标识符质量门、终页 cursor 清除与页二失败不推进高水位、回填空日窗、私有 Git 新 sparse-clone 回读后的不支持附件登记与实时零匹配失败关闭、精确 sparse checkout、重复/同名异字节/超大附件、消息与 manifest 篡改回读失败、唯一双来源投影、D1 故障不移动 pointer、OCI bundle 缺少私库 publication 时不生成 restore manifest，以及旧阈值回流扫描。它不替代目标群真实采集验证。
 
 若宿主 Python 尚未安装锁定的 `openpyxl==3.1.5`，XLSX 专项 pytest 会明确跳过；发布前必须在 daily-funds 容器镜像或已安装 `requirements.txt` 的环境中重跑，跳过不构成 XLSX 生产能力证据。
 
@@ -68,7 +68,7 @@ uv run --with-requirements KMFA/app/backend/requirements.txt \
 
 - 应用：从 Coolify 回滚到前一已知 image/source；保留所有 `kmfa-daily-funds-*` named volumes。
 - 发布：`current.json` 只在 D1 Oracle 后原子替换；失败时保留上一份 VALID snapshot。
-- 数据：以 OCI 不可变 restore manifest 回读 Git bundle、D1 export 和 R2 inventory；逐件 hash 校验后，在空 bare Git 库实际导入 bundle 并确认 publication 所引原始 commit。仅当 D1 重建和查询 Oracle 都成功，才原子替换 `current.json`。Git 私库仍是原始数据权威；禁止删除 Git/R2/OCI/SQLite 卷来“修复”。
+- 数据：以 OCI 不可变 restore manifest 回读 Git bundle、D1 export 和 R2 inventory；逐件 hash 校验后，在空 bare Git 库实际导入 bundle 并确认 publication 所引原始 commit、私库 publication commit 及 canonical 文件字节一致。仅当 D1 重建和查询 Oracle 都成功，才原子替换 `current.json`。Git 私库仍是原始数据权威；禁止删除 Git/R2/OCI/SQLite 卷来“修复”。
 
 恢复运行只接受不可变 publication ID：
 

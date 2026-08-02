@@ -1835,6 +1835,13 @@ class DailyFundsRuntime:
                 or any(char not in "0123456789abcdef" for char in r2_sha)
             ):
                 raise PublicationError("PUBLICATION_INVALID")
+            runtime = current.get("runtime") if isinstance(current.get("runtime"), Mapping) else {}
+            private_publication_commit_sha = self._lower_hex(
+                runtime.get("git_publication_commit_sha"),
+                40,
+            )
+            if private_publication_commit_sha is None:
+                raise PublicationError("PUBLICATION_INVALID")
             r2_store = S3CompatibleStore(
                 endpoint_url=self.config.r2_endpoint_url,
                 bucket=self.config.r2_bucket,
@@ -1852,6 +1859,7 @@ class DailyFundsRuntime:
                 publication_id=publication_id,
                 publication_sha256=sha256(json.dumps(publication, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8") + b"\n").hexdigest(),
                 publication_created_at=str(publication.get("created_at") or ""),
+                git_publication_commit_sha=private_publication_commit_sha,
                 git_bundle=self._lease_call(
                     "git_writer_lock",
                     ttl_seconds=13 * 60,
@@ -1863,7 +1871,6 @@ class DailyFundsRuntime:
             )
             # Keep the canonical publication byte-identical to its D1/Git
             # form; only the operational hand-off changes after a retry.
-            runtime = current.get("runtime") if isinstance(current.get("runtime"), Mapping) else {}
             current["runtime"] = {
                 **dict(runtime),
                 "oci_backup_state": "OK",

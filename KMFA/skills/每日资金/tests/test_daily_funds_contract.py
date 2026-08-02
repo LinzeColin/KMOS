@@ -2256,6 +2256,10 @@ def test_d1_query_oracle_requires_both_fact_families_and_matching_ending() -> No
         OracleD1({**healthy, "balance_ending_fen": 106}).oracle(publication_id)
     with pytest.raises(PublicationError, match="D1_ORACLE_PROJECTION_MISSING"):
         OracleD1({**healthy, "transaction_count": 0}).oracle(publication_id)
+    with pytest.raises(PublicationError, match="D1_ORACLE_PROJECTION_MISSING"):
+        OracleD1({**healthy, "account_count": True}).oracle(publication_id)
+    with pytest.raises(PublicationError, match="D1_ORACLE_PROJECTION_MISSING"):
+        OracleD1({**healthy, "balance_ending_fen": 107.0}).oracle(publication_id)
 
 
 def test_d1_projection_is_immutable_and_rejects_non_integer_projection_input() -> None:
@@ -2305,6 +2309,40 @@ def test_d1_projection_is_immutable_and_rejects_non_integer_projection_input() -
         )
 
 
+def test_d1_projection_requires_exact_distinct_source_pair(tmp_path: Path) -> None:
+    publication = _t06_publication()
+    balances, transactions, accounts = _t06_projection_rows()
+    d1 = D1Projection(_config(tmp_path))
+    with pytest.raises(PublicationError, match="PUBLICATION_INVALID"):
+        d1.project(
+            {**publication, "source_versions": [
+                {"source_version": "a" * 64},
+                {"source_version": "b" * 64},
+                {"source_version": "c" * 64},
+            ]},
+            balances,
+            transactions,
+            accounts,
+        )
+    with pytest.raises(PublicationError, match="PROJECTION_SOURCE_VERSION_PAIR_INVALID"):
+        d1.project(
+            publication,
+            balances,
+            tuple({**row, "source_version": "c" * 64} for row in transactions),
+            accounts,
+        )
+    with pytest.raises(PublicationError, match="PROJECTION_SOURCE_VERSION_MISMATCH"):
+        d1.project(
+            {**publication, "source_versions": [
+                {"source_version": "c" * 64},
+                {"source_version": "e" * 64},
+            ]},
+            balances,
+            transactions,
+            accounts,
+        )
+
+
 def test_r2_mirror_requires_exact_object_readback_and_manifest() -> None:
     class MemoryStore:
         def __init__(self, *, corrupt_reads: bool = False):
@@ -2344,6 +2382,7 @@ def test_oci_backup_requires_exact_readback() -> None:
             publication_id="a" * 64,
             publication_sha256="b" * 64,
             publication_created_at="2026-07-30T12:00:00Z",
+            git_publication_commit_sha="c" * 40,
             git_bundle=b"bundle",
             d1_export=b"export",
             r2_inventory=b"inventory",
@@ -2438,6 +2477,22 @@ def test_cold_backup_uses_the_same_publisher_lease_as_publication(tmp_path: Path
     assert status["machine_code"] == "PUBLISHER_LOCK_HELD"
 
 
+def test_cold_backup_requires_private_publication_commit_binding(tmp_path: Path) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    runtime.config.publication_dir.mkdir(parents=True, exist_ok=True)
+    (runtime.config.publication_dir / "current.json").write_text(json.dumps({
+        "publication": {
+            "status": "VALID",
+            "publication_id": "a" * 64,
+            "r2_manifest_sha256": "b" * 64,
+        },
+        "runtime": {"oci_backup_state": "LAG"},
+    }), encoding="utf-8")
+    status = runtime.cold_backup()
+    assert status["human_status"] == "需处理"
+    assert status["machine_code"] == "PUBLICATION_INVALID"
+
+
 def test_restore_decode_rejects_boolean_or_float_fen_without_coercion() -> None:
     publication = _t06_publication()
     publication_bytes = (json.dumps(publication, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode()
@@ -2513,8 +2568,8 @@ def test_oci_restore_rebuilds_d1_only_after_manifest_hash_checks(tmp_path: Path)
     git("add", "raw.txt")
     git("commit", "--quiet", "-m", "fixture raw")
     raw_commit = git("rev-parse", "HEAD")
-    bundle_path = tmp_path / "daily-funds.bundle"
-    git("bundle", "create", str(bundle_path), "HEAD")
+    raw_bundle_path = tmp_path / "daily-funds-raw-only.bundle"
+    git("bundle", "create", str(raw_bundle_path), "HEAD")
 
     publication = {
         "publication_id": "f" * 64,
@@ -2537,6 +2592,14 @@ def test_oci_restore_rebuilds_d1_only_after_manifest_hash_checks(tmp_path: Path)
     }, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode()
     publication["r2_manifest_sha256"] = __import__("hashlib").sha256(r2_inventory).hexdigest()
     publication_bytes = (json.dumps(publication, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    private_publication = source_repo / "Private-KMDatabase/KMFA/daily_funds/publications/2026-07-30" / ("f" * 64 + ".json")
+    private_publication.parent.mkdir(parents=True)
+    private_publication.write_bytes(publication_bytes)
+    git("add", str(private_publication.relative_to(source_repo)))
+    git("commit", "--quiet", "-m", "fixture publication")
+    publication_commit = git("rev-parse", "HEAD")
+    bundle_path = tmp_path / "daily-funds.bundle"
+    git("bundle", "create", str(bundle_path), "HEAD")
     d1_export = json.dumps({
         "publication": {
             "publication_id": publication["publication_id"],
@@ -2560,6 +2623,7 @@ def test_oci_restore_rebuilds_d1_only_after_manifest_hash_checks(tmp_path: Path)
         publication_id="f" * 64,
         publication_sha256=__import__("hashlib").sha256(publication_bytes).hexdigest(),
         publication_created_at=publication["created_at"],
+        git_publication_commit_sha=publication_commit,
         git_bundle=bundle_path.read_bytes(),
         d1_export=d1_export,
         r2_inventory=r2_inventory,
@@ -2568,6 +2632,7 @@ def test_oci_restore_rebuilds_d1_only_after_manifest_hash_checks(tmp_path: Path)
         publication_id="f" * 64,
         publication_sha256=__import__("hashlib").sha256(publication_bytes).hexdigest(),
         publication_created_at=publication["created_at"],
+        git_publication_commit_sha=publication_commit,
         git_bundle=bundle_path.read_bytes(),
         d1_export=d1_export,
         r2_inventory=r2_inventory,
@@ -2577,6 +2642,31 @@ def test_oci_restore_rebuilds_d1_only_after_manifest_hash_checks(tmp_path: Path)
     assert restored.publication["publication_id"] == "f" * 64
     assert len(d1.calls) == 1
     assert d1.calls[0][1][0].ending_available_fen == 107
+
+    legacy_manifest_key = f"daily-funds/{'f' * 64}/restore_manifest.json"
+    legacy_manifest = json.loads(store.values[legacy_manifest_key])
+    del legacy_manifest["git_publication_commit_sha"]
+    store.values[legacy_manifest_key] = (
+        json.dumps(legacy_manifest, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+    ).encode()
+    blocked_d1 = RestorableD1()
+    with pytest.raises(PublicationError, match="RESTORE_MANIFEST_INVALID"):
+        RestoreCoordinator(d1=blocked_d1, oci=backup).restore("f" * 64)
+    assert blocked_d1.calls == []
+
+    incomplete_store = MemoryStore()
+    incomplete_backup = OciColdBackup(incomplete_store)
+    with pytest.raises(PublicationError, match="OCI_BACKUP_INVALID"):
+        incomplete_backup.backup(
+            publication_id="f" * 64,
+            publication_sha256=__import__("hashlib").sha256(publication_bytes).hexdigest(),
+            publication_created_at=publication["created_at"],
+            git_publication_commit_sha=raw_commit,
+            git_bundle=raw_bundle_path.read_bytes(),
+            d1_export=d1_export,
+            r2_inventory=r2_inventory,
+        )
+    assert f"daily-funds/{'f' * 64}/restore_manifest.json" not in incomplete_store.values
 
 
 def test_restore_rejects_non_git_bundle() -> None:
