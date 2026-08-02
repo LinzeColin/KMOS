@@ -759,6 +759,38 @@ class RawMaterializer:
         manifest_path = Path("raw/chunks/sha256") / attachment.sha256 / "reassembly.json"
         return message_path, occurrence_path, blob_path, manifest_path
 
+    @classmethod
+    def _batch_rows(cls, attachments: Iterable[DownloadedAttachment]) -> list[dict[str, Any]]:
+        """Build the order-independent occurrence rows of one raw batch.
+
+        This is deliberately shared by staging, sparse-path selection and
+        fresh-clone readback.  If any of those three steps derived a batch ID
+        differently, a writer could validate an attachment while silently
+        omitting the batch manifest that binds its occurrence to the batch.
+        """
+
+        rows: list[dict[str, Any]] = []
+        for attachment in attachments:
+            _, occurrence_path, _, _ = cls._attachment_paths(attachment)
+            rows.append({
+                "message_id_hash": attachment.message_id_hash,
+                "attachment_index": attachment.index,
+                "attachment_sha256": attachment.sha256,
+                "occurrence_path": str(occurrence_path),
+            })
+        rows.sort(key=lambda row: (row["message_id_hash"], row["attachment_index"], row["attachment_sha256"]))
+        return rows
+
+    @classmethod
+    def _batch_details(cls, attachments: Iterable[DownloadedAttachment]) -> tuple[str, list[dict[str, Any]], Path]:
+        """Return the immutable batch ID, canonical rows and exact file path."""
+
+        rows = cls._batch_rows(attachments)
+        # Keep the existing default JSON separators: batch IDs already written
+        # by a prior worker must remain stable across this code revision.
+        batch_id = sha256(json.dumps(rows, sort_keys=True).encode("utf-8")).hexdigest()
+        return batch_id, rows, Path("raw/batches") / f"{batch_id}.json"
+
     @staticmethod
     def _suffix(filename: str) -> str:
         suffix = Path(filename).suffix.lower()
@@ -790,7 +822,6 @@ class RawMaterializer:
         paths: list[str] = []
         manifests: list[str] = []
         hash_list: list[str] = []
-        batch_rows: list[dict[str, Any]] = []
         for attachment in frozen:
             if sha256(attachment.payload).hexdigest() != attachment.sha256:
                 raise IngestionError("RAW_SOURCE_HASH_MISMATCH")
@@ -841,15 +872,7 @@ class RawMaterializer:
             self._write_once(self._safe_path(root, occurrence_path), self._json_text(occurrence, code="RAW_OCCURRENCE_SERIALIZATION_FAILED").encode("utf-8"))
             paths.extend([str(message_path), str(occurrence_path), *object_paths])
             hash_list.append(attachment.sha256)
-            batch_rows.append({
-                "message_id_hash": attachment.message_id_hash,
-                "attachment_index": attachment.index,
-                "attachment_sha256": attachment.sha256,
-                "occurrence_path": str(occurrence_path),
-            })
-        batch_rows.sort(key=lambda row: (row["message_id_hash"], row["attachment_index"], row["attachment_sha256"]))
-        batch_id = sha256(json.dumps(batch_rows, sort_keys=True).encode("utf-8")).hexdigest()
-        batch_path = Path("raw/batches") / f"{batch_id}.json"
+        batch_id, batch_rows, batch_path = self._batch_details(frozen)
         batch = {
             "schema_version": "kmfa.daily_funds.batch.v1",
             "batch_id": batch_id,
@@ -940,6 +963,39 @@ class RawMaterializer:
             if sha256(payload).hexdigest() != attachment.sha256:
                 raise IngestionError("GIT_READBACK_FAILED")
             return replace(attachment, payload=payload)
+        except (OSError, KeyError, TypeError, ValueError, IngestionError) as exc:
+            raise IngestionError("GIT_READBACK_FAILED") from exc
+
+    @classmethod
+    def readback_batch(
+        cls,
+        root: Path,
+        attachments: Iterable[DownloadedAttachment],
+        staged: StagedRawBatch,
+    ) -> None:
+        """Verify the occurrence-to-batch binding from a fresh sparse clone.
+
+        Attachment-level readback proves individual envelopes and payloads.
+        The immutable batch manifest is a separate raw-evidence object, so it
+        must also be materialised and byte-compared before downstream use.
+        """
+
+        try:
+            frozen = cls.canonical_attachments(attachments)
+            batch_id, rows, batch_path = cls._batch_details(frozen)
+            expected = cls._json_text({
+                "schema_version": "kmfa.daily_funds.batch.v1",
+                "batch_id": batch_id,
+                "occurrences": rows,
+            }, code="GIT_READBACK_FAILED")
+            if (
+                staged.batch_id != batch_id
+                or staged.occurrences != len(frozen)
+                or str(batch_path) not in staged.paths
+                or tuple(sorted({attachment.sha256 for attachment in frozen})) != staged.attachment_hashes
+                or cls._safe_path(root, batch_path).read_text(encoding="utf-8") != expected
+            ):
+                raise IngestionError("GIT_READBACK_FAILED")
         except (OSError, KeyError, TypeError, ValueError, IngestionError) as exc:
             raise IngestionError("GIT_READBACK_FAILED") from exc
 
@@ -1066,11 +1122,18 @@ class GitSparseWriter:
         each attachment's envelope, occurrence, blob and reassembly manifest.
         """
 
+        frozen = RawMaterializer.canonical_attachments(attachments)
         directories: set[Path] = set()
-        for attachment in attachments:
+        for attachment in frozen:
             for path in RawMaterializer._attachment_paths(attachment):
                 directories.add(SPARSE_PATH / path.parent)
-        return tuple(f"{path.as_posix()}/" for path in sorted(directories, key=lambda path: path.as_posix()))
+        _, _, batch_path = RawMaterializer._batch_details(frozen)
+        # The batch manifest is a single immutable evidence file, not a reason
+        # to materialise all historic batches.  A non-cone sparse pattern may
+        # select this exact file alongside the required object directories.
+        exact_batch_path = (SPARSE_PATH / batch_path).as_posix()
+        directory_patterns = [f"{path.as_posix()}/" for path in sorted(directories, key=lambda path: path.as_posix())]
+        return tuple(sorted((*directory_patterns, exact_batch_path)))
 
     @staticmethod
     def _publication_sparse_patterns(business_date: str) -> tuple[str, ...]:
@@ -1155,10 +1218,14 @@ class GitSparseWriter:
         env: Mapping[str, str],
         commit_sha: str,
         attachments: Iterable[DownloadedAttachment],
+        staged: StagedRawBatch,
         patterns: Sequence[str],
     ) -> tuple[DownloadedAttachment, ...]:
         root = self._readback_sparse_root(temp_root, env=env, commit_sha=commit_sha, patterns=patterns)
-        return tuple(RawMaterializer.readback_attachment(root, attachment) for attachment in attachments)
+        frozen = RawMaterializer.canonical_attachments(attachments)
+        verified = tuple(RawMaterializer.readback_attachment(root, attachment) for attachment in frozen)
+        RawMaterializer.readback_batch(root, frozen, staged)
+        return verified
 
     def persist(self, attachments: Iterable[DownloadedAttachment]) -> GitCommit:
         self.config.validate(include_storage=False)
@@ -1199,6 +1266,7 @@ class GitSparseWriter:
                 env=env,
                 commit_sha=commit_sha,
                 attachments=frozen_attachments,
+                staged=staged,
                 patterns=sparse_patterns,
             )
             # OCI's full recovery bundle is deliberately produced only after a

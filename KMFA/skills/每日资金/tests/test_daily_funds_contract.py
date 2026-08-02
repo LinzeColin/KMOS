@@ -1220,6 +1220,7 @@ def test_raw_writer_preserves_direct_and_oversize_bytes(tmp_path: Path, monkeypa
     assert RawMaterializer.reassemble(tmp_path, oversized.sha256) == payload
     assert RawMaterializer.readback_attachment(tmp_path, direct).payload == direct_payload
     assert RawMaterializer.readback_attachment(tmp_path, oversized).payload == payload
+    RawMaterializer.readback_batch(tmp_path, (direct, oversized), staged)
     # The 30-minute overlap must produce neither a collision nor a fresh
     # batch/object version for the same source occurrence.
     repeated = RawMaterializer().stage(tmp_path, (direct, oversized))
@@ -1257,6 +1258,7 @@ def test_raw_materializer_canonicalizes_duplicate_overlap_and_rejects_tampered_e
     assert RawMaterializer.readback_attachment(first_root, direct).payload == direct_payload
     assert RawMaterializer.readback_attachment(first_root, same_name_different_bytes).payload == changed_payload
     assert RawMaterializer.readback_attachment(first_root, oversize).payload == oversize_payload
+    RawMaterializer.readback_batch(first_root, (oversize, direct, same_name_different_bytes), first)
     message_path = second_root / "raw/messages/2026/07/30" / f"{direct.message_id_hash}.json"
     message_path.write_text("{}\n", encoding="utf-8")
     with pytest.raises(IngestionError, match="GIT_READBACK_FAILED"):
@@ -1271,6 +1273,10 @@ def test_raw_materializer_canonicalizes_duplicate_overlap_and_rejects_tampered_e
     direct_path.write_bytes(b"truncated")
     with pytest.raises(IngestionError, match="GIT_READBACK_FAILED"):
         RawMaterializer.readback_attachment(first_root, direct)
+    batch_path = first_root / "raw/batches" / f"{first.batch_id}.json"
+    batch_path.write_text("{}\n", encoding="utf-8")
+    with pytest.raises(IngestionError, match="GIT_READBACK_FAILED"):
+        RawMaterializer.readback_batch(first_root, (oversize, direct, same_name_different_bytes), first)
 
 
 def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1334,6 +1340,8 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     assert all(pattern.startswith(f"{SPARSE_PATH.as_posix()}/raw/") for pattern in narrow_patterns)
     assert f"{(SPARSE_PATH / 'raw/messages/2026/07/30').as_posix()}/" in narrow_patterns
     assert f"{(SPARSE_PATH / 'raw/blobs/sha256' / direct.sha256[:2]).as_posix()}/" in narrow_patterns
+    expected_batch_pattern = (SPARSE_PATH / "raw/batches" / f"{RawMaterializer._batch_details((oversize, direct, same_name_different_bytes))[0]}.json").as_posix()
+    assert expected_batch_pattern in narrow_patterns
     writer._clone_sparse(tmp_path / "narrow-sparse", env=env, ref="main", patterns=narrow_patterns)
     assert not (tmp_path / "narrow-sparse" / SPARSE_PATH / "baseline.txt").exists()
     raw_writer_commands: list[tuple[str, ...]] = []
@@ -1388,6 +1396,8 @@ def test_sparse_writer_uses_shallow_clone_for_narrow_raw_paths(tmp_path: Path, m
     assert commands[1] == ["sparse-checkout", "set", "--no-cone", *patterns]
     assert f"{SPARSE_PATH.as_posix()}/" not in patterns
     assert all(pattern.startswith(f"{SPARSE_PATH.as_posix()}/raw/") for pattern in patterns)
+    expected_batch_pattern = (SPARSE_PATH / "raw/batches" / f"{RawMaterializer._batch_details((attachment,))[0]}.json").as_posix()
+    assert expected_batch_pattern in patterns
     assert writer._publication_sparse_patterns("2026-07-31") == (
         f"{(SPARSE_PATH / 'publications/2026-07-31').as_posix()}/",
     )
