@@ -1040,6 +1040,10 @@ def test_source_gate_is_single_id_and_dws_environment_is_isolated(tmp_path: Path
     assert env["DWS_CLIENT_ID"] == config.dws_client_id
     assert "XDG_DATA_HOME" not in env
     assert "DWS_CLIENT_SECRET" not in env
+    default_client_config = replace(config, dws_client_id="")
+    assert default_client_config.validate() is None
+    assert default_client_config.validate_dws_bootstrap() is None
+    assert "DWS_CLIENT_ID" not in DwsHistoryClient(default_client_config)._environment()
 
 
 def test_runtime_audit_redacts_process_data_and_fails_on_coupled_skills(tmp_path: Path) -> None:
@@ -1157,8 +1161,8 @@ def test_dws_auth_without_recovery_bundle_requires_explicit_cloud_bootstrap(tmp_
     ]
 
 
-def test_dws_cloud_device_bootstrap_is_interactive_and_uses_only_its_own_volume(tmp_path: Path) -> None:
-    config = replace(_config(tmp_path), dws_auth_bundle_b64="")
+def test_dws_cloud_device_bootstrap_uses_dws_default_client_and_its_own_volume(tmp_path: Path) -> None:
+    config = replace(_config(tmp_path), dws_auth_bundle_b64="", dws_client_id="")
     statuses = iter((
         {"authenticated": False, "refresh_token_valid": False},
         {"authenticated": True, "refresh_token_valid": True},
@@ -1178,7 +1182,7 @@ def test_dws_cloud_device_bootstrap_is_interactive_and_uses_only_its_own_volume(
         assert env["DWS_CONFIG_DIR"] == str(config.dws_config_dir)
         assert env["DWS_KEYCHAIN_DIR"] == str(config.dws_keyring_dir)
         assert env["DWS_DISABLE_KEYCHAIN"] == "1"
-        assert env["DWS_CLIENT_ID"] == config.dws_client_id
+        assert "DWS_CLIENT_ID" not in env
         return subprocess.CompletedProcess(command, 0, "", "")
 
     DwsHistoryClient(
@@ -1199,7 +1203,7 @@ def test_dws_cloud_device_bootstrap_is_interactive_and_uses_only_its_own_volume(
 def test_runtime_bootstrap_writes_only_redacted_cloud_receipt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import daily_funds.runtime as runtime_module
 
-    config = replace(_config(tmp_path), dws_auth_bundle_b64="")
+    config = replace(_config(tmp_path), dws_auth_bundle_b64="", dws_client_id="")
 
     class ReadyDwsClient:
         def __init__(self, received, *, event_sink=None):
@@ -1216,8 +1220,9 @@ def test_runtime_bootstrap_writes_only_redacted_cloud_receipt(tmp_path: Path, mo
     receipt = json.loads(receipt_text)
     assert result == {"ok": True, "status": "DWS_BOOTSTRAP_READY", "human_status": "处理中"}
     assert receipt["cloud_volume_only"] is True
+    assert receipt["dws_client_mode"] == "official-default"
     assert receipt["configured_client_fingerprint"] != config.dws_client_id
-    assert config.dws_client_id not in receipt_text
+    assert "dws-official-default" not in receipt_text
     assert config.group_id not in receipt_text
     assert config.sender_id not in receipt_text
 
@@ -1970,8 +1975,9 @@ def test_daily_funds_deployment_keeps_its_auth_bundle_and_identifiers_private() 
     # replacement, but it is never read from GitHub Secrets or re-created.
     assert "DAILY_FUNDS_DWS_CLIENT_SECRET: ${{ secrets." not in ops
     assert '"DAILY_FUNDS_DWS_CLIENT_SECRET",' in ops
-    assert "每日资金 16 个必填 secret" in ops
-    assert "optional_keys=(DAILY_FUNDS_DWS_AUTH_BUNDLE_B64)" in ops
+    assert "每日资金 15 个必填 secret" in ops
+    assert "optional_keys=(DAILY_FUNDS_DWS_CLIENT_ID DAILY_FUNDS_DWS_AUTH_BUNDLE_B64)" in ops
+    assert "留空时使用 DWS 官方默认客户端" in env_example
     assert "kmfa-dws-auth" not in daily_service
     assert "sync-daily-funds-secrets" in ops
     assert "|^DAILY_FUNDS_" in ops

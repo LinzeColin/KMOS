@@ -467,8 +467,9 @@ class DailyFundsRuntime:
         The device code remains solely in the protected interactive terminal
         used to execute this command.  This method records only a redacted
         receipt after DWS independently reports a refreshable login.  The
-        client fingerprint identifies only the configured Coolify value; the
-        subsequent exact source query remains the authority for access.
+        receipt records whether DWS used its official default or an isolated
+        deployment override; the subsequent exact source query remains the
+        authority for access.
         """
 
         try:
@@ -488,12 +489,15 @@ class DailyFundsRuntime:
                 return self.status.write("处理中", exc.code)
             self.state.queue_incident(exc.code)
             return self.status.write("需处理", exc.code)
+        client_mode = "configured-override" if self.config.dws_client_id else "official-default"
+        client_identity = self.config.dws_client_id or "dws-official-default"
         atomic_json_write(
             self.config.control_dir / "dws_bootstrap.json",
             {
                 "schema_version": "kmfa.daily_funds.dws_bootstrap.v1",
                 "completed_at": iso_now(),
-                "configured_client_fingerprint": sha256(self.config.dws_client_id.encode("utf-8")).hexdigest(),
+                "configured_client_fingerprint": sha256(client_identity.encode("utf-8")).hexdigest(),
+                "dws_client_mode": client_mode,
                 "cloud_volume_only": True,
             },
         )

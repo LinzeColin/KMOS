@@ -241,17 +241,17 @@ class DwsHistoryClient:
             "HOME": str(home),
             "DWS_CONFIG_DIR": str(self.config.dws_config_dir),
             "DWS_KEYCHAIN_DIR": str(self.config.dws_keyring_dir),
-            # The command environment is constructed from an allowlist, so
-            # this is the dedicated Coolify configuration value rather than
-            # an inherited workstation/other-skill override.  DWS uses this
-            # AppKey for device login and later history requests; an AppSecret
-            # is deliberately never injected into this slice.
-            "DWS_CLIENT_ID": self.config.dws_client_id,
             # On the cloud Linux runtime this selects DWS's file-backed,
             # slice-local keyring.  It also makes an accidental macOS test
             # invocation refuse the host Keychain rather than inheriting it.
             "DWS_DISABLE_KEYCHAIN": "1",
         })
+        # An explicit client ID is an isolated deployment override, never an
+        # inherited host/other-skill value.  When it is absent, omit the
+        # variable entirely so DWS can use its own supported default client.
+        # An AppSecret is deliberately never injected into this slice.
+        if self.config.dws_client_id:
+            env["DWS_CLIENT_ID"] = self.config.dws_client_id
         return env
 
     def _auth_status(self) -> DwsAuthStatus:

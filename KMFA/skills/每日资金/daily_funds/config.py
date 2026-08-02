@@ -93,7 +93,6 @@ class DailyFundsConfig:
         required = {
             "DAILY_FUNDS_GROUP_ID": self.group_id,
             "DAILY_FUNDS_SENDER_ID": self.sender_id,
-            "DAILY_FUNDS_DWS_CLIENT_ID": self.dws_client_id,
             "DAILY_FUNDS_GIT_SSH_KEY_B64": self.git_ssh_key_b64,
         }
         if include_storage:
@@ -127,8 +126,6 @@ class DailyFundsConfig:
         an environment variable.
         """
 
-        if not self.dws_client_id:
-            raise ConfigError("CONFIG_INVALID:DAILY_FUNDS_DWS_CLIENT_ID")
         self._validate_runtime_paths()
 
     def validate(self, *, include_storage: bool = True) -> None:
