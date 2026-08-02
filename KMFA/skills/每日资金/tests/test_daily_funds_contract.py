@@ -1036,6 +1036,27 @@ def test_empty_live_poll_remains_fail_closed_but_backfill_can_record_a_complete_
     live = DailyFundsRuntime(_config(tmp_path / "live"))
     monkeypatch.setattr(live, "_dws_client", lambda: EmptyClient())
     assert live.poll(now=datetime(2026, 8, 1, tzinfo=UTC))["code"] == "SOURCE_MATCH_ZERO"
+    flow_text = (live.config.publication_dir / "flow_state.json").read_text(encoding="utf-8")
+    assert json.loads(flow_text)["source_discovery"] == {"state": "HISTORY_EMPTY"}
+    assert "group-fixture" not in flow_text
+
+
+def test_live_poll_exposes_a_values_free_target_document_gate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    class NonTargetClient:
+        def search(self, _start, _end, _cursor):
+            return DwsPage(messages=({"opaque": "message-fixture"},), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page):
+            return ()
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    monkeypatch.setattr(runtime, "_dws_client", lambda: NonTargetClient())
+
+    assert runtime.poll(now=datetime(2026, 8, 1, tzinfo=UTC))["code"] == "SOURCE_MATCH_ZERO"
+    flow_text = (runtime.config.publication_dir / "flow_state.json").read_text(encoding="utf-8")
+    assert json.loads(flow_text)["source_discovery"] == {"state": "TARGET_DOCUMENT_NOT_FOUND"}
+    assert "message-fixture" not in flow_text
 
 
 def test_auth_and_keepalive_locks_are_non_destructive(tmp_path: Path) -> None:

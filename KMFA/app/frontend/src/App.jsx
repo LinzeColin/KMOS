@@ -1833,6 +1833,7 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 范围, 设范围, 自�
   const 阈值审计 = Array.isArray(阈值?.control_audit?.entries) ? 阈值.control_audit.entries : []
   const 阈值审计可读 = 阈值?.control_audit?.available === true && Array.isArray(阈值?.control_audit?.entries)
   const 附件能力 = 来源?.parser_capability || {}
+  const 来源诊断 = 来源?.source_discovery || {}
   const 附件能力状态 = ['已支持', '待复核', '未观测', 'UNKNOWN'].includes(附件能力.状态) ? 附件能力.状态 : 'UNKNOWN'
   const 附件能力色 = 附件能力状态 === '已支持' ? 'ok' : 附件能力状态 === '未观测' ? 'muted' : 'bad'
   const 已支持附件数 = Number.isInteger(附件能力.已支持附件数) ? 附件能力.已支持附件数 : 0
@@ -2014,6 +2015,7 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 范围, 设范围, 自�
       <h3 className="sec">来源完整性与勾稽</h3>
       <Tbl><thead><tr><th>检查项</th><th>结果</th><th>说明</th></tr></thead><tbody>
         <tr><td>来源事实表</td><td>{来源?.source_families ? `${来源.source_families.published}/${来源.source_families.required}` : '未验证'}</td><td>账户余额与资金流水需成对进入正式 publication</td></tr>
+        <tr><td>来源读取诊断</td><td>{来源诊断.说明 || '未验证'}</td><td>仅显示当前轮询到达的阶段，不展示群、账号、文件名、附件或金额</td></tr>
         <tr><td>整数分勾稽</td><td className={摘要?.publication?.reconciliation_difference_fen === 0 ? 'ok' : 'warn'}>{摘要?.publication?.reconciliation_difference_fen === 0 ? '0 分' : '未验证'}</td><td>公司、银行、账户与全局汇总必须一致</td></tr>
         <tr><td>Git / R2 热镜像</td><td>{摘要?.publication?.git_evidence_available && 摘要?.publication?.r2_mirror_available ? '已验证' : '未验证'}</td><td>仅显示脱敏证据版本，不暴露原始附件、群或身份标识</td></tr>
         <tr><td>OCI 异地冷备</td><td>{来源?.backup_state || 摘要?.publication?.oci_backup_state || 'UNKNOWN'}</td><td>运行态与正式 publication 分离记录</td></tr>

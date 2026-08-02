@@ -83,6 +83,19 @@ _SOURCE_INTEGRITY_PARSE_CODES = frozenset({
     "SOURCE_VERSION_MISMATCH",
     "SOURCE_PAYLOAD_HASH_MISMATCH",
 })
+# This is intentionally an ordinal, values-free diagnostic.  It lets the
+# protected status surface distinguish an empty group-history window from a
+# selector, attachment, or account/transaction-pair gate without retaining a
+# group ID, sender ID, filename, message text, attachment hash, or count.
+_SOURCE_DISCOVERY_STATES = frozenset({
+    "UNKNOWN",
+    "HISTORY_EMPTY",
+    "TARGET_DOCUMENT_NOT_FOUND",
+    "TARGET_ATTACHMENT_MISSING",
+    "ATTACHMENT_ACQUIRED",
+    "DOCUMENT_PAIR_MISSING",
+    "COMPLETE_PAIR_READY",
+})
 
 
 @dataclass(frozen=True)
@@ -264,6 +277,13 @@ class DailyFundsRuntime:
             return "UNKNOWN", observed_at
         return result, observed_at
 
+    @staticmethod
+    def _source_discovery_state(value: object) -> str:
+        """Reduce a poll-stage diagnostic to a fixed values-free enum."""
+
+        candidate = str(value or "UNKNOWN").strip().upper()
+        return candidate if candidate in _SOURCE_DISCOVERY_STATES else "UNKNOWN"
+
     def _write_flow_state(
         self,
         *,
@@ -276,6 +296,7 @@ class DailyFundsRuntime:
         operation_code: str | None = None,
         operation_started_at: str | None = None,
         operation_finished_at: str | None = None,
+        source_discovery_state: str | None = None,
     ) -> dict[str, Any]:
         """Write the sole values-free business-flow hand-off for KMFA status.
 
@@ -292,6 +313,9 @@ class DailyFundsRuntime:
         prior_business = previous.get("business_flow")
         if not isinstance(prior_business, Mapping):
             prior_business = {}
+        prior_source_discovery = previous.get("source_discovery")
+        if not isinstance(prior_source_discovery, Mapping):
+            prior_source_discovery = {}
         current_status = dict(status or self.status.read() or {})
         human_status = str(current_status.get("human_status") or "需处理")
         if human_status not in {"已更新", "处理中", "需处理"}:
@@ -390,6 +414,11 @@ class DailyFundsRuntime:
                 "last_status_at": self._flow_timestamp(current_status.get("updated_at")),
                 "publication_present": current is not None,
             }
+        resolved_source_discovery = self._source_discovery_state(
+            source_discovery_state
+            if source_discovery_state is not None
+            else prior_source_discovery.get("state")
+        )
         payload = {
             "schema_version": _FLOW_STATE_SCHEMA,
             "updated_at": iso_now(),
@@ -403,6 +432,10 @@ class DailyFundsRuntime:
             },
             "schedules": dict(StatusWriter.SCHEDULES),
             "business_flow": business_flow,
+            # A narrow diagnostic of the last *live* source poll.  This is
+            # deliberately separate from publication truth: an acquired
+            # attachment is not a reconciled or published amount.
+            "source_discovery": {"state": resolved_source_discovery},
             "operations": operations,
             # This aggregate is intentionally values-free: it reveals only
             # parser type/outcome counts, never source IDs, filenames, hashes,
@@ -1198,15 +1231,29 @@ class DailyFundsRuntime:
         writer = GitSparseWriter(self.config)
         all_attachments: list[DownloadedAttachment] = []
         commits: list[GitCommit] = []
+        # Keep the source diagnosis deliberately ordinal.  The production
+        # status hand-off must explain which gate stopped without becoming a
+        # second archive of messages, identities, or attachment metadata.
+        history_nonempty = False
+        target_document_seen = False
+        target_attachment_seen = False
+        source_discovery_state = "UNKNOWN"
         self.status.write("处理中", "POLLING")
 
         def persist_page(page) -> None:
+            nonlocal history_nonempty, target_document_seen, target_attachment_seen, source_discovery_state
+            if page.messages:
+                history_nonempty = True
             selected = client.selected_messages(page)
+            if selected:
+                target_document_seen = True
             page_attachments: list[DownloadedAttachment] = []
             for message in selected:
                 attachment_count = client.attachment_count(message)
                 if attachment_count == 0:
+                    source_discovery_state = "TARGET_ATTACHMENT_MISSING"
                     raise IngestionError("SOURCE_ATTACHMENT_MISSING")
+                target_attachment_seen = True
                 for index in range(attachment_count):
                     page_attachments.append(client.download(message, index))
             if page_attachments:
@@ -1221,6 +1268,15 @@ class DailyFundsRuntime:
                     occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
                     self.state.note_inbox(occurrence_key, attachment.message_id_hash, attachment.sha256, "GIT_PERSISTED")
                 all_attachments.extend(commit.verified_attachments)
+
+        def empty_source_state() -> str:
+            if not history_nonempty:
+                return "HISTORY_EMPTY"
+            if not target_document_seen:
+                return "TARGET_DOCUMENT_NOT_FOUND"
+            if not target_attachment_seen:
+                return "TARGET_ATTACHMENT_MISSING"
+            return "ATTACHMENT_ACQUIRED"
 
         try:
             pages = poller.poll(
@@ -1250,8 +1306,10 @@ class DailyFundsRuntime:
                     if archive_only:
                         result["archive_only"] = True
                     return result
+                source_discovery_state = empty_source_state()
                 raise IngestionError("SOURCE_MATCH_ZERO")
             verified_attachments = self._deduplicated_attachments(all_attachments)
+            source_discovery_state = "ATTACHMENT_ACQUIRED"
             if archive_only:
                 # The raw Git authority has been re-opened before this point.
                 # A historical format census is allowed to retain a genuine
@@ -1294,7 +1352,13 @@ class DailyFundsRuntime:
                 callback=lambda: coordinator.r2.mirror(verified_attachments, git_commit_sha=commits[-1].commit_sha),
             )
             parsed = self._parse(verified_attachments)
-            account_facts, transaction_facts = self._latest_complete_pair(parsed)
+            try:
+                account_facts, transaction_facts = self._latest_complete_pair(parsed)
+            except ReconciliationError as exc:
+                if str(exc).split(":", 1)[0] == "SOURCE_MATCH_ZERO":
+                    source_discovery_state = "DOCUMENT_PAIR_MISSING"
+                raise
+            source_discovery_state = "COMPLETE_PAIR_READY"
             report = reconcile(
                 (account_facts.facts, transaction_facts.facts),
                 previous_ending_by_account=self._prior_account_balances(account_facts.facts.business_date),
@@ -1335,6 +1399,11 @@ class DailyFundsRuntime:
             for attachment in verified_attachments:
                 occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
                 self.state.mark_inbox(occurrence_key, "VALID_PUBLISHED")
+            if advance_pointer:
+                self._write_flow_state(
+                    stage=None,
+                    source_discovery_state=source_discovery_state,
+                )
             return {
                 "ok": True,
                 "pages": pages,
@@ -1354,6 +1423,10 @@ class DailyFundsRuntime:
                     else "POLL_NEEDS_ATTENTION"
                 ),
                 status=status,
+                # Bounded historical scans must not overwrite the current
+                # live-source diagnosis merely because a past business day is
+                # legitimately empty.
+                source_discovery_state=source_discovery_state if advance_pointer else None,
             )
             return {"ok": False, "code": str(code)}
 

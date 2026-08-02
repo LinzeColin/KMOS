@@ -2546,6 +2546,15 @@ DAILY_FUNDS_CAPABILITY_SUFFIXES = {
 }
 DAILY_FUNDS_CAPABILITY_MAGICS = {"TEXT", "ZIP", "OLE", "PDF", "PNG", "JPEG", "GIF", "BMP", "WEBP", "BINARY", "EMPTY"}
 DAILY_FUNDS_CAPABILITY_OUTCOMES = {"SUPPORTED", "NEEDS_REVIEW"}
+DAILY_FUNDS_SOURCE_DISCOVERY_STATES = {
+    "UNKNOWN",
+    "HISTORY_EMPTY",
+    "TARGET_DOCUMENT_NOT_FOUND",
+    "TARGET_ATTACHMENT_MISSING",
+    "ATTACHMENT_ACQUIRED",
+    "DOCUMENT_PAIR_MISSING",
+    "COMPLETE_PAIR_READY",
+}
 DAILY_FUNDS_BUSINESS_FLOW_STAGES = {
     "RUNTIME_AUDITED", "RUNTIME_NEEDS_ATTENTION", "WAITING_FOR_VALID_PUBLICATION",
     "PARSER_NEEDS_REVIEW", "POLL_NEEDS_ATTENTION", "POLL_PUBLISHED",
@@ -2610,6 +2619,27 @@ def _daily_funds_flow_token(value: object, *, allowed: set[str], default: str) -
         return default
     token = value.strip().upper()
     return token if token in allowed else default
+
+
+def _daily_funds_source_discovery(value: object) -> dict[str, str]:
+    """Expose only the poll gate reached, never source content or identity."""
+
+    row = value if isinstance(value, dict) else {}
+    state = _daily_funds_flow_token(
+        row.get("state"),
+        allowed=DAILY_FUNDS_SOURCE_DISCOVERY_STATES,
+        default="UNKNOWN",
+    )
+    labels = {
+        "UNKNOWN": "未验证",
+        "HISTORY_EMPTY": "历史窗口无消息",
+        "TARGET_DOCUMENT_NOT_FOUND": "历史已读取，目标文件未命中",
+        "TARGET_ATTACHMENT_MISSING": "目标文件缺少附件",
+        "ATTACHMENT_ACQUIRED": "附件已取得，等待确定性解析与勾稽",
+        "DOCUMENT_PAIR_MISSING": "附件已取得，账户/流水尚未成对",
+        "COMPLETE_PAIR_READY": "账户与流水已成对，等待后续勾稽与发布",
+    }
+    return {"状态": state, "说明": labels[state]}
 
 
 def _daily_funds_attachment_capability_summary(rows: object) -> dict[str, Any]:
@@ -2776,6 +2806,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
             "已验证发布": False,
         },
         "运行回执": _daily_funds_operation_receipts(None),
+        "来源诊断": _daily_funds_source_discovery(None),
         "附件能力": _daily_funds_attachment_capability_summary(None),
         "自愈": {
             "状态": "UNKNOWN",
@@ -2801,6 +2832,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
     deployment = payload.get("deployment") if isinstance(payload.get("deployment"), dict) else {}
     business = payload.get("business_flow") if isinstance(payload.get("business_flow"), dict) else {}
     operation_receipts = _daily_funds_operation_receipts(payload.get("operations"))
+    source_discovery = _daily_funds_source_discovery(payload.get("source_discovery"))
     attachment_capabilities = _daily_funds_attachment_capability_summary(payload.get("attachment_capabilities"))
     healing = payload.get("self_healing") if isinstance(payload.get("self_healing"), dict) else {}
     observer = payload.get("post_deploy_observer") if isinstance(payload.get("post_deploy_observer"), dict) else {}
@@ -2899,6 +2931,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
             "已验证发布": business.get("publication_present") is True,
         },
         "运行回执": operation_receipts,
+        "来源诊断": source_discovery,
         "附件能力": attachment_capabilities,
         "自愈": {
             "状态": _daily_funds_flow_token(
@@ -3405,6 +3438,7 @@ def _daily_funds_source_health_view() -> dict[str, Any]:
     status = _daily_funds_status()
     flow = _daily_funds_flow_state()
     parser_capability = flow["附件能力"]
+    source_discovery = flow["来源诊断"]
     view: dict[str, Any] = {
         "human_status": status["human_status"],
         "effective_business_date": status["effective_business_date"],
@@ -3414,6 +3448,7 @@ def _daily_funds_source_health_view() -> dict[str, Any]:
         # This is an operational parser receipt, not an attachment field:
         # no raw attachment metadata crosses the app boundary.
         "parser_capability": parser_capability,
+        "source_discovery": source_discovery,
         "has_trusted_publication": False,
         "message": "尚无可展示的已验证资金数据。",
     }

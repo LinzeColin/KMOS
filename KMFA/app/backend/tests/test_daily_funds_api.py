@@ -108,6 +108,10 @@ def _write_projection(root: Path) -> None:
             "last_status_at": "2026-07-30T12:05:00Z",
             "publication_present": True,
         },
+        "source_discovery": {
+            "state": "COMPLETE_PAIR_READY",
+            "raw_fixture_should_not_escape": "message-fixture",
+        },
         "operations": {
             "poll": {
                 "state": "SUCCEEDED",
@@ -217,6 +221,10 @@ def test_private_daily_funds_projection_range_and_no_raw_leak(tmp_path, monkeypa
     assert source_health["backup_state"] == "OK"
     assert source_health["has_trusted_publication"] is True
     assert source_health["source_families"] == {"required": 2, "published": 2}
+    assert source_health["source_discovery"] == {
+        "状态": "COMPLETE_PAIR_READY",
+        "说明": "账户与流水已成对，等待后续勾稽与发布",
+    }
     assert "machine_code" not in source_health and "publication_id" not in source_health
     body = response.text.lower()
     assert "attachment" not in body and "openmessage" not in body and "raw/messages" not in body
@@ -275,6 +283,10 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
         "状态": "成功",
         "结果": "AUTH_OK",
         "最近一次": "2026-07-30T12:05:30Z",
+    }
+    assert flow["来源诊断"] == {
+        "状态": "COMPLETE_PAIR_READY",
+        "说明": "账户与流水已成对，等待后续勾稽与发布",
     }
     assert flow["附件能力"] == {
         "状态": "待复核",
@@ -353,6 +365,7 @@ def test_daily_funds_attachment_capability_summary_fails_closed_on_malformed_row
     flow = json.loads(flow_path.read_text(encoding="utf-8"))
     flow["attachment_capabilities"][0]["count"] = "1"
     flow["business_flow"]["stage"] = "PARSER_NEEDS_REVIEW"
+    flow["source_discovery"] = {"state": "untrusted-source-state"}
     flow_path.write_text(json.dumps(flow), encoding="utf-8")
     monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
 
@@ -363,6 +376,7 @@ def test_daily_funds_attachment_capability_summary_fails_closed_on_malformed_row
         "待复核附件数": 0,
         "最近观测": None,
     }
+    assert source_health["source_discovery"] == {"状态": "UNKNOWN", "说明": "未验证"}
     status_center = client.get("/api/排程健康").json()
     daily = next(row for row in status_center["逐项"] if row["技能"] == "daily-funds")
     assert daily["每日资金状态"]["业务流"]["业务流"]["阶段"] == "PARSER_NEEDS_REVIEW"
