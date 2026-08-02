@@ -82,7 +82,6 @@ class StagedRawBatch:
 class GitCommit:
     commit_sha: str
     staged: StagedRawBatch
-    bundle_bytes: bytes
     # These bytes have been re-opened from a fresh sparse clone at
     # ``commit_sha``.  Downstream R2, parsing and reconciliation must consume
     # this list rather than the transient DWS download buffer.
@@ -1192,12 +1191,15 @@ class GitSparseWriter:
                 attachments=frozen_attachments,
                 patterns=sparse_patterns,
             )
-            bundle_path = temp_root / f"{staged.batch_id}.bundle"
-            self._git(["bundle", "create", str(bundle_path), "HEAD"], cwd=repo, env=env)
-            bundle_bytes = bundle_path.read_bytes()
-            if not bundle_bytes:
-                raise IngestionError("GIT_BUNDLE_EMPTY")
-            return GitCommit(commit_sha, staged, bundle_bytes, verified_attachments)
+            # OCI's full recovery bundle is deliberately produced only after a
+            # valid two-fact publication (``bundle_head``).  Creating a second
+            # bundle here is unused by every downstream consumer and can
+            # materialise the entire historic private tree during raw intake.
+            return GitCommit(
+                commit_sha=commit_sha,
+                staged=staged,
+                verified_attachments=verified_attachments,
+            )
 
     def persist_publication(self, publication: Mapping[str, Any]) -> str:
         """Persist the immutable formal publication before its UI pointer moves."""

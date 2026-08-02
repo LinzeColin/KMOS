@@ -1039,7 +1039,16 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     assert f"{(SPARSE_PATH / 'raw/blobs/sha256' / direct.sha256[:2]).as_posix()}/" in narrow_patterns
     writer._clone_sparse(tmp_path / "narrow-sparse", env=env, ref="main", patterns=narrow_patterns)
     assert not (tmp_path / "narrow-sparse" / SPARSE_PATH / "baseline.txt").exists()
+    raw_writer_commands: list[tuple[str, ...]] = []
+    original_git = writer._git
+
+    def record_git(args, **kwargs):
+        raw_writer_commands.append(tuple(args))
+        return original_git(args, **kwargs)
+
+    monkeypatch.setattr(writer, "_git", record_git)
     commit = writer.persist((oversize, direct, direct, same_name_different_bytes))
+    assert not any(command and command[0] == "bundle" for command in raw_writer_commands)
     assert len(commit.verified_attachments) == 3
     assert {attachment.sha256 for attachment in commit.verified_attachments} == {
         direct.sha256, same_name_different_bytes.sha256, oversize.sha256,
