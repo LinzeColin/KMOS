@@ -11,6 +11,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -32,6 +33,7 @@ SPARSE_PATH = Path("Private-KMDatabase/KMFA/daily_funds")
 DIRECT_BLOB_MAX_BYTES = 94_371_840
 CHUNK_BYTES = 48 * 1024 * 1024
 ALLOWED_SUFFIXES = frozenset({".csv", ".txt", ".xlsx", ".xlsm"})
+_MEDIA_ID_RE = re.compile(r"mediaId=([^\)\s]+)")
 
 
 class IngestionError(RuntimeError):
@@ -112,7 +114,12 @@ def _message_timestamp(message: Mapping[str, Any]) -> datetime:
         parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
     except ValueError as exc:
         raise IngestionError("MESSAGE_TIMESTAMP_INVALID") from exc
-    return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+    # ``chat message list`` returns a naïve Beijing-local ``createTime``.
+    # Treating it as UTC shifts the historical window by eight hours and can
+    # drop a report around the business-day boundary.
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=BEIJING)
+    return parsed.astimezone(UTC)
 
 
 def _attachments(message: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -129,7 +136,14 @@ def _attachments(message: Mapping[str, Any]) -> list[dict[str, Any]]:
             value = content.get(key)
             if isinstance(value, list):
                 return [dict(item) for item in value if isinstance(item, Mapping)]
-    return []
+    if not isinstance(content, str):
+        return []
+    # DWS v1.0.52 represents media attachments inside the message text as
+    # ``mediaId=<opaque-id>`` rather than in a top-level attachment array.
+    # Keep this narrowly scoped to the documented media token and never walk
+    # quoted-message JSON, which would turn an old quoted attachment into a
+    # fresh occurrence.
+    return [{"mediaId": match.group(1)} for match in _MEDIA_ID_RE.finditer(content)]
 
 
 def _dws_history_failure_code(*values: object, fallback: str = "DWS_HISTORY_FAILED") -> str:
@@ -202,7 +216,7 @@ def _family(message: Mapping[str, Any]) -> str | None:
     return None
 
 
-def _extract_page(payload: object) -> DwsPage:
+def _extract_page(payload: object, *, require_next_cursor: bool = True) -> DwsPage:
     """Find the DWS paged result without silently fabricating ``hasMore``."""
 
     candidates: list[Mapping[str, Any]] = []
@@ -237,7 +251,7 @@ def _extract_page(payload: object) -> DwsPage:
             else:
                 continue
         next_cursor = candidate.get("nextCursor", candidate.get("next_cursor"))
-        if raw_more and not isinstance(next_cursor, str):
+        if raw_more and require_next_cursor and not isinstance(next_cursor, str):
             raise IngestionError("NEXT_CURSOR_MISSING")
         return DwsPage(
             tuple(dict(item) for item in records if isinstance(item, Mapping)),
@@ -247,8 +261,24 @@ def _extract_page(payload: object) -> DwsPage:
     raise IngestionError("DWS_PAGE_SHAPE_INVALID")
 
 
+def _format_dws_history_time(value: datetime) -> str:
+    """Format the documented DWS list boundary in its Beijing-local syntax."""
+
+    return value.astimezone(BEIJING).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _parse_dws_history_cursor(value: str) -> datetime:
+    """Decode the durable list boundary without accepting opaque old cursors."""
+
+    try:
+        parsed = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+    except ValueError as exc:
+        raise IngestionError("DWS_HISTORY_CURSOR_INVALID") from exc
+    return parsed.replace(tzinfo=BEIJING).astimezone(UTC)
+
+
 class DwsHistoryClient:
-    """Exact history-search client; event delivery is intentionally absent."""
+    """Exact group-history client; event delivery is intentionally absent."""
 
     def __init__(
         self,
@@ -424,48 +454,78 @@ class DwsHistoryClient:
 
     def search(self, start: datetime, end: datetime, cursor: str | None) -> DwsPage:
         self.ensure_authenticated()
+        start = start.astimezone(UTC)
+        end = end.astimezone(UTC)
+        anchor = _parse_dws_history_cursor(cursor) if cursor else end
+        if anchor < start:
+            return DwsPage(messages=(), next_cursor=None, has_more=False)
         command = [
             self.config.dws_bin,
-            "chat", "message", "search-advanced",
-            "--conversation-ids", self.config.group_id,
-            "--user", self.config.sender_id,
-            "--start", start.astimezone(UTC).isoformat().replace("+00:00", "Z"),
-            "--end", end.astimezone(UTC).isoformat().replace("+00:00", "Z"),
-            "--limit", "100",
-            "--cursor", cursor if cursor is not None else "0",
+            "chat", "message", "list",
+            "--group", self.config.group_id,
+            # DWS documents list pagination as a boundary ``createTime``;
+            # the server returns newest-to-oldest for ``older``.  It is not
+            # the opaque cursor contract used by search-advanced.
+            "--time", _format_dws_history_time(anchor),
+            "--direction", "older",
+            "--limit", "30",
             "--format", "json",
         ]
         try:
             completed = self._run_dws(
                 command,
-                operation="HISTORY_SEARCH",
+                operation="HISTORY_LIST",
                 timeout=90,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise IngestionError("DWS_HISTORY_UNAVAILABLE") from exc
         if completed.returncode != 0:
             code = _dws_history_failure_code(completed.stdout, completed.stderr)
-            self._record_network_event("HISTORY_SEARCH", code)
+            self._record_network_event("HISTORY_LIST", code)
             raise IngestionError(code)
         try:
             payload = json.loads(completed.stdout)
-            page = _extract_page(_unwrap_dws_history_payload(payload))
+            raw_page = _extract_page(
+                _unwrap_dws_history_payload(payload),
+                require_next_cursor=False,
+            )
         except (IngestionError, json.JSONDecodeError) as exc:
             if isinstance(exc, IngestionError):
-                self._record_network_event("HISTORY_SEARCH", exc.code)
+                self._record_network_event("HISTORY_LIST", exc.code)
                 raise
-            self._record_network_event("HISTORY_SEARCH", "INVALID")
+            self._record_network_event("HISTORY_LIST", "INVALID")
             raise IngestionError("DWS_HISTORY_JSON_INVALID") from exc
-        self._record_network_event("HISTORY_SEARCH", "OK")
+        try:
+            timestamps = tuple(_message_timestamp(message) for message in raw_page.messages)
+        except IngestionError as exc:
+            self._record_network_event("HISTORY_LIST", exc.code)
+            raise
+        if raw_page.has_more and not timestamps:
+            self._record_network_event("HISTORY_LIST", "INVALID")
+            raise IngestionError("DWS_HISTORY_BOUNDARY_MISSING")
+        boundary = min(timestamps) if timestamps else None
+        if boundary is not None and boundary >= anchor and raw_page.has_more:
+            self._record_network_event("HISTORY_LIST", "INVALID")
+            raise IngestionError("DWS_HISTORY_CURSOR_STALLED")
+        page_messages = tuple(
+            message
+            for message, timestamp in zip(raw_page.messages, timestamps)
+            if start <= timestamp <= end
+        )
+        has_more = raw_page.has_more and boundary is not None and boundary > start
+        page = DwsPage(
+            messages=page_messages,
+            next_cursor=_format_dws_history_time(boundary) if has_more and boundary is not None else None,
+            has_more=has_more,
+        )
+        self._record_network_event("HISTORY_LIST", "OK")
         return page
 
     def assert_exact_source(self, message: Mapping[str, Any]) -> None:
         conversation_id = _message_field(message, ("openConversationId", "conversationId", "conversation_id"))
-        # DWS ``search-advanced --user`` accepts a userId and v1.0.52 returns
-        # that same value as ``sender``.  ``senderOpenDingTalkId`` is a
-        # distinct identifier family and must not be treated as a match for a
-        # configured userId.
-        sender_id = _message_field(message, ("senderId", "sender_id", "senderStaffId", "senderUserId", "sender"))
+        # ``sender`` is a display name.  The stable source gate must use the
+        # opaque senderOpenDingTalkId that DWS returns with group history.
+        sender_id = _message_field(message, ("senderOpenDingTalkId", "sender_open_dingtalk_id"))
         if conversation_id != self.config.group_id or sender_id != self.config.sender_id:
             raise IngestionError("AMBIGUOUS_SOURCE")
 
@@ -481,7 +541,7 @@ class DwsHistoryClient:
         selected: list[dict[str, Any]] = []
         for message in page.messages:
             conversation_id = _message_field(message, ("openConversationId", "conversationId", "conversation_id"))
-            sender_id = _message_field(message, ("senderId", "sender_id", "senderStaffId", "senderUserId", "sender"))
+            sender_id = _message_field(message, ("senderOpenDingTalkId", "sender_open_dingtalk_id"))
             if conversation_id != self.config.group_id:
                 raise IngestionError("AMBIGUOUS_SOURCE")
             if sender_id == self.config.sender_id and _family(message) is not None:
@@ -505,7 +565,7 @@ class DwsHistoryClient:
         message_id = _message_field(message, ("openMessageId", "messageId", "message_id", "id"))
         if not message_id:
             raise IngestionError("MESSAGE_ID_MISSING")
-        filename = _message_field(attachment, ("fileName", "name", "title")) or f"attachment-{index}.bin"
+        declared_filename = _message_field(attachment, ("fileName", "name", "title"))
         with tempfile.TemporaryDirectory(prefix="daily-funds-dws-", dir=self.config.state_dir) as temp:
             output = Path(temp) / "download"
             output.mkdir()
@@ -517,6 +577,7 @@ class DwsHistoryClient:
                 "--message-id", message_id,
                 "--open-conversation-id", self.config.group_id,
                 "--output", str(output),
+                "--format", "json",
             ]
             try:
                 completed = self._run_dws(
@@ -534,7 +595,14 @@ class DwsHistoryClient:
             if len(files) != 1:
                 self._record_network_event("ATTACHMENT_DOWNLOAD", "INVALID")
                 raise IngestionError("ATTACHMENT_DOWNLOAD_AMBIGUOUS")
-            payload = files[0].read_bytes()
+            downloaded = files[0]
+            payload = downloaded.read_bytes()
+            # Text-embedded media tokens lack a filename.  Prefer a declared
+            # source filename when it has a supported suffix; otherwise use
+            # DWS's downloaded filename so parsing remains evidence-based.
+            filename = declared_filename
+            if not filename or Path(filename).suffix.lower() not in ALLOWED_SUFFIXES:
+                filename = downloaded.name
         if not payload:
             self._record_network_event("ATTACHMENT_DOWNLOAD", "INVALID")
             raise IngestionError("CORRUPT_ATTACHMENT")

@@ -9,7 +9,7 @@ description: 独立云端每日资金纵向切片；仅从指定钉钉群历史�
 
 ## 唯一输入与输出
 
-- 输入：`dws chat message search-advanced` 对唯一群 ID 的历史消息；消息须同时匹配唯一发送人 ID 与允许文档族（资金账户明细表、资金流水明细/资金明细）。
+- 输入：`dws chat message list --group <唯一群ID> --direction older` 按北京时间 `createTime` 边界分页读取历史消息；消息须同时匹配唯一 `senderOpenDingTalkId` 与允许文档族（资金账户明细表、资金流水明细/资金明细）。显示名 `sender` 只能用于人工诊断，绝不能作为来源 ID。
 - DWS 身份：首次只在 daily-funds 的独立云端卷中显式执行一次 `bootstrap-dws-auth`；设备码不进入 cron、日志或状态面。`DAILY_FUNDS_DWS_AUTH_BUNDLE_B64` 仅是可选灾备恢复导入。未配置 `DAILY_FUNDS_DWS_CLIENT_ID` 时，受控 DWS 进程使用其官方默认客户端；如配置，该值只在本切片构造的环境中作为覆盖值使用，绝不继承宿主或其他 Skill。DWS v1.0.52 自主管理其 profile 文件；`auth status`、服务端群+发送人过滤及本地三重门禁任一失败即关闭。运行时不得另行注入 AppSecret；AppKey/AppSecret 不能替代登录态，也不得读取宿主或其他服务的登录态。
 - 原始权威：私有 GitHub `LinzeColin/Private-Database` 的 `Private-KMDatabase/KMFA/daily_funds`。仅本服务 single writer 获 Owner 窄例外使用 `--filter=blob:none --sparse --no-checkout` 的**非 cone 精确路径** clone；Git/SSH 进程只使用该服务 deploy key 与临时 known_hosts，不继承宿主 agent、全局配置或提示。禁止全库 clone 与 force push；推送后必须以全新 sparse clone 回读消息信封、occurrence、原始字节/分块 manifest 和 SHA-256。
 - 附件能力：`.csv`、`.txt`、`.xlsx`、`.xlsm` 仅为候选格式。只有目标群真实字节经私有 Git readback、SHA/lineage、MIME/magic、模板和 parser-open 全部成功后，运行时才以 SHA 写入受保护 `parser_evidence` 回执；合成测试不能把任何格式标为生产已支持。`.xls`、PDF、图片和 OCR 当前均为 `needs-review`，不发布金额。

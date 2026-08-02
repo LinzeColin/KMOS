@@ -1086,7 +1086,7 @@ class DailyFundsRuntime:
                 "auth_probe_lock",
                 ttl_seconds=55,
                 code="AUTH_PROBE_LOCK_HELD",
-                callback=lambda: client.search(now - timedelta(minutes=1), now, "0"),
+                callback=lambda: client.search(now - timedelta(minutes=1), now, None),
             )
         except IngestionError as exc:
             if exc.code == "AUTH_PROBE_LOCK_HELD":
