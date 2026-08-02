@@ -8,10 +8,10 @@ covered_categories:
   - "collection"
   - "receivable_aging"
   - "journal"
-raw_assets: 60
+raw_assets: 84
 raw_with_staging_edges: 13
 raw_deferred_all_sheets: 0
-raw_not_yet_extracted: 47
+raw_not_yet_extracted: 71
 staging_tables:
   - "_staging.bank_journal"
   - "_staging.collection"
@@ -315,6 +315,126 @@ nodes:
     domain: "KMOS真实数据快照"
     batch: "2026-07-26"
     size_bytes: 1556068
+    status: "not_yet_extracted"
+  - asset: "raw:34da8b6e2258"
+    domain: "project_cost_operational"
+    batch: "2026-07-31-cost-rebuild"
+    size_bytes: 93696
+    status: "not_yet_extracted"
+  - asset: "raw:0a93371fa563"
+    domain: "project_cost_operational"
+    batch: "2026-07-31-cost-rebuild"
+    size_bytes: 284387
+    status: "not_yet_extracted"
+  - asset: "raw:58414e9e3215"
+    domain: "project_cost_operational"
+    batch: "2026-07-31-cost-rebuild"
+    size_bytes: 153871
+    status: "not_yet_extracted"
+  - asset: "raw:a8909cc9d62b"
+    domain: "project_cost_operational"
+    batch: "2026-07-31-cost-rebuild"
+    size_bytes: 100352
+    status: "not_yet_extracted"
+  - asset: "raw:fcdce741e905"
+    domain: "project_cost_operational"
+    batch: "2026-07-31-cost-rebuild"
+    size_bytes: 34965
+    status: "not_yet_extracted"
+  - asset: "raw:d74c5e4b2bb8"
+    domain: "project_cost_operational"
+    batch: "2026-07-31-cost-rebuild"
+    size_bytes: 430611
+    status: "not_yet_extracted"
+  - asset: "raw:99a2832e3b62"
+    domain: "project_cost_operational"
+    batch: "2026-07-31-cost-rebuild"
+    size_bytes: 775680
+    status: "not_yet_extracted"
+  - asset: "raw:601635da3a4a"
+    domain: "project_cost_operational"
+    batch: "2026-07-31-cost-rebuild"
+    size_bytes: 42675
+    status: "not_yet_extracted"
+  - asset: "raw:32cdc7cafc10"
+    domain: "project_cost_operational"
+    batch: "2026-07-31-cost-rebuild"
+    size_bytes: 157195
+    status: "not_yet_extracted"
+  - asset: "raw:8b23d52b19e3"
+    domain: "project_cost_operational"
+    batch: "2026-07-31-cost-rebuild"
+    size_bytes: 77145
+    status: "not_yet_extracted"
+  - asset: "raw:50ed1e9dac13"
+    domain: "project_cost_operational"
+    batch: "2026-07-31-cost-rebuild"
+    size_bytes: 184784
+    status: "not_yet_extracted"
+  - asset: "raw:00a3ead6c867"
+    domain: "project_cost_operational"
+    batch: "2026-07-31-cost-rebuild"
+    size_bytes: 516780
+    status: "not_yet_extracted"
+  - asset: "raw:1a35010e7b7f"
+    domain: "project_cost_operational"
+    batch: "2026-07-31-cost-rebuild"
+    size_bytes: 844078
+    status: "not_yet_extracted"
+  - asset: "raw:b75a5f2a0948"
+    domain: "project_cost.funding_plan"
+    batch: "2026-07-31"
+    size_bytes: 24852
+    status: "not_yet_extracted"
+  - asset: "raw:74f9eb32bb28"
+    domain: "project_cost.funding_plan"
+    batch: "2026-07-31"
+    size_bytes: 16724
+    status: "not_yet_extracted"
+  - asset: "raw:4898b27fe0c0"
+    domain: "project_cost.funding_plan"
+    batch: "2026-07-31"
+    size_bytes: 20698
+    status: "not_yet_extracted"
+  - asset: "raw:5372eade73c1"
+    domain: "project_cost.funding_plan"
+    batch: "2026-07-31"
+    size_bytes: 19981
+    status: "not_yet_extracted"
+  - asset: "raw:9bb208274233"
+    domain: "project_cost.funding_plan"
+    batch: "2026-07-31"
+    size_bytes: 18547
+    status: "not_yet_extracted"
+  - asset: "raw:98398c2ba73a"
+    domain: "project_cost.funding_plan"
+    batch: "2026-07-31"
+    size_bytes: 18735
+    status: "not_yet_extracted"
+  - asset: "raw:48f88a33f29c"
+    domain: "project_cost.funding_plan"
+    batch: "2026-07-31"
+    size_bytes: 18513
+    status: "not_yet_extracted"
+  - asset: "raw:a7b401dc8deb"
+    domain: "project_cost.funding_plan"
+    batch: "2026-07-31"
+    size_bytes: 20596
+    status: "not_yet_extracted"
+  - asset: "raw:8cd1e98d77b1"
+    domain: "project_cost.funding_plan"
+    batch: "2026-07-31"
+    size_bytes: 22853
+    status: "not_yet_extracted"
+  - asset: "raw:e348a1d4bca2"
+    domain: "project_cost.funding_plan"
+    batch: "2026-07-31"
+    size_bytes: 21813
+    status: "not_yet_extracted"
+  - asset: "raw:c1e353fc2cc3"
+    domain: "project_cost.funding_plan"
+    batch: "2026-07-31"
+    size_bytes: 14705
     status: "not_yet_extracted"
 edges:
   - from: "raw:cc3963bcdfa0"
