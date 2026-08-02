@@ -215,4 +215,33 @@ jobs:
                   + ("PRESENT" if target_resource_uuid else "MISSING")
               )
               print("resource_config_origin=" + app_origin)
+              compose_raw = str(app.get("docker_compose_raw") or "")
+              expected_dockerfiles = (
+                  ("KMFA/skills/每日资金/Dockerfile", 1),
+                  ("KMFA/deploy/skills-runtime/Dockerfile", 1),
+                  ("KMFA/app/backend/Dockerfile", 2),
+              )
+              root_context_count = len(
+                  re.findall(
+                      r"(?m)^\s*context:\s*[\"']?\.\./\.\./\.\./?[\"']?\s*$",
+                      compose_raw,
+                  )
+              )
+              dockerfile_count = sum(
+                  min(compose_raw.count(path), expected_count)
+                  for path, expected_count in expected_dockerfiles
+              )
+              if not compose_raw:
+                  compose_contract_class = "UNAVAILABLE"
+              elif (
+                  root_context_count >= 4
+                  and dockerfile_count
+                  >= sum(expected_count for _, expected_count in expected_dockerfiles)
+              ):
+                  compose_contract_class = "ROOT_CONTEXT_AND_DOCKERFILES_MATCH"
+              else:
+                  compose_contract_class = "COMPOSE_BUILD_CONTRACT_DRIFT"
+              print("resource_compose_build_contract=" + compose_contract_class)
+              print("resource_compose_root_context_count=" + str(root_context_count))
+              print("resource_compose_dockerfile_path_count=" + str(dockerfile_count))
           PY
