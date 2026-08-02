@@ -847,19 +847,25 @@ def test_auth_incident_dedup_honors_the_frozen_six_hour_cooldown(tmp_path: Path,
 
 
 def test_cloud_scheduler_uses_the_bundled_entrypoint_and_frozen_cadence() -> None:
-    """Prevent a container that looks healthy while every cron row exits 127."""
+    """Cron must use the isolated, owner-only Coolify env snapshot."""
 
     command = "/opt/daily-funds/scripts/run_daily_funds.py"
+    wrapper = "/opt/daily-funds/scripts/run_cron_job.sh"
     cron = (ROOT / "crontab.txt").read_text(encoding="utf-8")
-    assert f"*/15 * * * * root {command} poll" in cron
-    assert f"* * * * * root {command} auth-probe" in cron
-    assert f"0 * * * * root {command} keepalive" in cron
-    assert f"15 2 * * * root {command} backfill --max-days 7" in cron
-    assert f"30 3 * * * root {command} observer" in cron
-    assert f"10 4 * * * root {command} cold-backup" in cron
-    assert f"45 5 * * * root {command} runtime-audit" in cron
-    assert f"0 5 1 * * root {command} restore-drill" in cron
-    assert command in (ROOT / "entrypoint.sh").read_text(encoding="utf-8")
+    assert f"*/15 * * * * root {wrapper} poll" in cron
+    assert f"* * * * * root {wrapper} auth-probe" in cron
+    assert f"0 * * * * root {wrapper} keepalive" in cron
+    assert f"15 2 * * * root {wrapper} backfill --max-days 7" in cron
+    assert f"30 3 * * * root {wrapper} observer" in cron
+    assert f"10 4 * * * root {wrapper} cold-backup" in cron
+    assert f"45 5 * * * root {wrapper} runtime-audit" in cron
+    assert f"0 5 1 * * root {wrapper} restore-drill" in cron
+    entrypoint = (ROOT / "entrypoint.sh").read_text(encoding="utf-8")
+    assert "CRON_ENV_FILE=\"$STATE_DIR/cron.env\"" in entrypoint
+    assert "chmod 0600 \"$CRON_ENV_FILE\"" in entrypoint
+    wrapper_text = (ROOT / "scripts" / "run_cron_job.sh").read_text(encoding="utf-8")
+    assert command in wrapper_text
+    assert '. "$CRON_ENV_FILE"' in wrapper_text
     assert command in (ROOT / "healthcheck.sh").read_text(encoding="utf-8")
 
 

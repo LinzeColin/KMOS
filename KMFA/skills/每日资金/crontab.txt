@@ -5,11 +5,11 @@
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-*/15 * * * * root /opt/daily-funds/scripts/run_daily_funds.py poll >> /var/log/daily-funds/cron.log 2>&1
-* * * * * root /opt/daily-funds/scripts/run_daily_funds.py auth-probe >> /var/log/daily-funds/cron.log 2>&1
-0 * * * * root /opt/daily-funds/scripts/run_daily_funds.py keepalive >> /var/log/daily-funds/cron.log 2>&1
-15 2 * * * root /opt/daily-funds/scripts/run_daily_funds.py backfill --max-days 7 >> /var/log/daily-funds/cron.log 2>&1
-30 3 * * * root /opt/daily-funds/scripts/run_daily_funds.py observer >> /var/log/daily-funds/cron.log 2>&1
-10 4 * * * root /opt/daily-funds/scripts/run_daily_funds.py cold-backup >> /var/log/daily-funds/cron.log 2>&1
-45 5 * * * root /opt/daily-funds/scripts/run_daily_funds.py runtime-audit >> /var/log/daily-funds/cron.log 2>&1
-0 5 1 * * root /opt/daily-funds/scripts/run_daily_funds.py restore-drill >> /var/log/daily-funds/cron.log 2>&1
+*/15 * * * * root /opt/daily-funds/scripts/run_cron_job.sh poll >> /var/log/daily-funds/cron.log 2>&1
+* * * * * root /opt/daily-funds/scripts/run_cron_job.sh auth-probe >> /var/log/daily-funds/cron.log 2>&1
+0 * * * * root /opt/daily-funds/scripts/run_cron_job.sh keepalive >> /var/log/daily-funds/cron.log 2>&1
+15 2 * * * root /opt/daily-funds/scripts/run_cron_job.sh backfill --max-days 7 >> /var/log/daily-funds/cron.log 2>&1
+30 3 * * * root /opt/daily-funds/scripts/run_cron_job.sh observer >> /var/log/daily-funds/cron.log 2>&1
+10 4 * * * root /opt/daily-funds/scripts/run_cron_job.sh cold-backup >> /var/log/daily-funds/cron.log 2>&1
+45 5 * * * root /opt/daily-funds/scripts/run_cron_job.sh runtime-audit >> /var/log/daily-funds/cron.log 2>&1
+0 5 1 * * root /opt/daily-funds/scripts/run_cron_job.sh restore-drill >> /var/log/daily-funds/cron.log 2>&1

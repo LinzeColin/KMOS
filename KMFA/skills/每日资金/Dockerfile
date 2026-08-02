@@ -18,6 +18,6 @@ COPY KMFA/skills/每日资金/install_dws.sh KMFA/skills/每日资金/dws.sha256
 RUN chmod 0755 /opt/daily-funds/install_dws.sh && /opt/daily-funds/install_dws.sh
 
 COPY KMFA/skills/每日资金 /opt/daily-funds
-RUN chmod 0755 /opt/daily-funds/entrypoint.sh /opt/daily-funds/healthcheck.sh /opt/daily-funds/scripts/run_daily_funds.py
+RUN chmod 0755 /opt/daily-funds/entrypoint.sh /opt/daily-funds/healthcheck.sh /opt/daily-funds/scripts/run_daily_funds.py /opt/daily-funds/scripts/run_cron_job.sh
 
 ENTRYPOINT ["/opt/daily-funds/entrypoint.sh"]
