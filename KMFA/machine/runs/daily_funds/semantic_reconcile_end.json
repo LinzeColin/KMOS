@@ -1,105 +1,114 @@
 {
   "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
-  "stage": "T10_POST_DEPLOY_LIVE_RECONCILE",
-  "observed_at": "2026-08-02T12:46:51Z",
+  "stage": "T10_POST_DEPLOY_CURRENT",
+  "observed_at": "2026-08-02T14:41:18Z",
   "taskpack": {
     "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
     "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
-    "verification": "PASS requirements=24 tasks=11 acceptance=17"
+    "verified": true
   },
   "git_baseline": {
-    "start_origin_main": "910d02763f01cc6db5263b0e1867c06b4f8f5933",
-    "runtime_source_commit": "275ea6242dbfe7000f0fbda9847b4a99158a065b",
-    "evidence_base_origin_main": "81337f0e45f75a82c1d4843cca91ee1955ca6a31",
+    "start_origin_main": "2e3621ecf361aa98f2c1dbb5bc3fcdea6b0b2b72",
+    "runtime_source_commit": "64adf0e339603034c35e95175b24a24056c5ec55",
     "deployment_mode": "DIRECT_MAIN_NO_BRANCH_NO_PR",
-    "runtime_source_observation": "VERIFIED_BY_COOLIFY_DEPLOYMENT_RECORD_AND_PUBLIC_STATIC_ASSET_MATCH",
-    "post_runtime_change_classification": "DIAGNOSTIC_EVIDENCE_ONLY_NO_RUNTIME_REDEPLOY"
+    "runtime_source_observation": "VERIFIED_BY_FINISHED_COOLIFY_DEPLOYMENT_RECORD",
+    "post_runtime_evidence_rule": "This record is evidence-only and must not be represented as a new runtime image."
   },
   "production_identity": {
+    "coolify_deployment_uuid": "ugequ5oju62z7e8t3gdiqmk3",
     "deployment_status": "finished",
-    "runtime_source_commit": "275ea6242dbfe7000f0fbda9847b4a99158a065b",
-    "image_digest": "sha256:96fa67217cc5ab12e3cd225fb900c9f284361d52dfc18ccf440606d7bede0192",
+    "deployment_completed_at": "2026-08-02T14:38:12Z",
+    "source_commit": "64adf0e339603034c35e95175b24a24056c5ec55",
+    "image_digest": "sha256:21e627549291c4331deaff6ce54a38a3096e295a3129da61f88266ad2e58f3d6",
+    "identity_receipt": "github-actions:30752557830",
+    "application_health": "OBSERVED_RUNNING_HEALTHY",
+    "application_inventory_receipt": "github-actions:30752653102"
+  },
+  "deployment_validation": {
+    "main_deploy_workflow": "SUCCESS github-actions:30751916050",
+    "remote_app_e2e_gate": "SUCCESS github-actions-job:91507332325",
+    "golden_path_verify": "SUCCESS github-actions-job:91508124909",
+    "golden_path_deploy": "SUCCESS github-actions-job:91508162053",
     "public_root_http": 200,
     "public_healthz_http": 200,
-    "static_asset_identity": "MATCH_RUNTIME_BUILD",
-    "protected_owner_ui": "VERIFIED_BY_EXISTING_AUTHENTICATED_CHROME_SESSION",
-    "daily_funds_worker_receipt": "VERIFIED_BY_NEW_VALUES_FREE_SOURCE_DISCOVERY_STATE",
-    "scheduled_primary_poll_cycle": "VERIFIED_BY_IN_PROGRESS_TO_TERMINAL_HISTORY_EMPTY_UI_TRANSITION"
+    "public_skill_health_http": 200,
+    "legacy_public_skill_ledger_daily_funds": "0 scheduled rows; this separate legacy ledger is not a daily-funds worker receipt",
+    "private_daily_funds_entry_without_access": "302_TO_CLOUDFLARE_ACCESS",
+    "protected_ui_browser": "ACCESS_LOGIN_REQUIRED_IN_AVAILABLE_IN_APP_BROWSER; NO_LOGIN_OR_DATA_ACCESS_ATTEMPTED"
+  },
+  "runtime_configuration": {
+    "daily_funds_required_secret_keys": "PRESENT_IN_COOLIFY_VALUES_NOT_EQUALITY_VERIFIED",
+    "optional_dws_client_override": "EMPTY_ALLOWED",
+    "optional_dws_recovery_bundle": "EMPTY_ALLOWED",
+    "configuration_inventory_receipt": "github-actions:30751690333"
+  },
+  "safety_state": {
+    "group_robot_credentials": "REMOVED_FROM_ALL_OBSERVED_CONTEXTS",
+    "delivery_enabled": false,
+    "receipt": "github-actions:30751749859",
+    "rule": "No DingTalk group delivery was performed during verification. Zhang Linze's account remains an allowed DWS identity only; it does not replace the fixed source triple gate."
   },
   "semantic_reconcile": [
     {
       "subject": "independent_daily_funds_runtime",
-      "classification": "DEPLOYED_AND_LIVE_RECEIPT_VERIFIED",
-      "evidence": "独立 daily-funds 服务、自己的 state/DWS/publication/control 卷、15 分钟历史轮询和 values-free source discovery 已在受保护 Owner 页面真实呈现；无运行时依赖本机、其他 Skill、Agent 或模型的证据。"
+      "classification": "DEPLOYED_CODE_AND_COMPOSE_CONTRACT_VERIFIED",
+      "decision": "No local mount, existing Skill runtime, Agent, or model is a valid production dependency."
     },
     {
-      "subject": "owner_authorized_dingtalk_identity",
-      "classification": "AUTHENTICATED_NOT_A_BUSINESS_SOURCE_SELECTOR",
-      "evidence": "张霖泽钉钉号只作为独立云端 DWS 授权身份；业务来源仍由任务包固定的群、逻辑发送人和两类文件三重门禁决定，身份授权不替换来源选择。"
+      "subject": "protected_status_and_ui",
+      "classification": "EDGE_BOUNDARY_VERIFIED_UI_CONTENT_UNKNOWN",
+      "decision": "A public 200 or an Access redirect is not a private UI receipt. The available browser had no Access session and no authentication was attempted."
     },
     {
-      "subject": "current_day_history_poll",
-      "classification": "SOURCE_HISTORY_EMPTY_FAIL_CLOSED",
-      "evidence": "已认证的当前北京日历史轮询返回 HISTORY_EMPTY；该状态证明查询完成但当前窗口没有消息，不展示、推断或发布任何金额。"
+      "subject": "cloud_worker_introspection",
+      "classification": "UNKNOWN",
+      "decision": "Coolify application execute endpoint returned HTTP 404; no process, cron, volume, or status-file result was inferred from it."
     },
     {
-      "subject": "historical_backfill",
-      "classification": "SELF_SCHEDULED_NOT_YET_RECEIPTED",
-      "evidence": "任务包规定当前日优先，随后由云端每日限额回填逐批覆盖至少 360 天或所有可用历史；本次部署发生在当日回填时点之后，尚无首个回填作业回执。"
+      "subject": "dingtalk_cloud_auth_and_current_history_poll",
+      "classification": "UNKNOWN",
+      "decision": "The deployment and configured-key presence do not prove an independent authenticated DWS profile or a completed 15-minute history query. No current-day source result is claimed."
     },
     {
-      "subject": "raw_evidence_authority",
-      "classification": "IMPLEMENTED_NOT_REAL_INPUT_VERIFIED",
-      "evidence": "代码仅允许 Private-Database/KMFA/daily_funds 窄范围 sparse single-writer；尚未取得目标来源附件，故没有真实原始 manifest、私库写入或解析能力可标为 PASS。"
+      "subject": "raw_evidence_private_git_and_attachment_capability",
+      "classification": "NOT_YET_LIVE_RECEIPTED",
+      "decision": "No verified raw manifest, sparse writer commit, real attachment parser receipt, or source triple-gate receipt was observed."
     },
     {
-      "subject": "integer_reconciliation_and_thresholds",
-      "classification": "IMPLEMENTED_AND_SYNTHETICALLY_VERIFIED_ONLY",
-      "evidence": "整数分账户/流水零差 Oracle、固定 60/120 万线以及 3/6 月和自定义阈值质量门通过受控 fixture 与 API 回归；真实资金金额仍未计算。"
-    },
-    {
-      "subject": "d1_r2_oci_and_restore",
-      "classification": "NO_REAL_PUBLICATION_OR_RESTORE_RECEIPT",
-      "evidence": "在没有目标来源附件和 VALID publication 的情况下，D1/R2/OCI 写入、查询 Oracle、冷备与空环境恢复均不得标为通过。"
-    },
-    {
-      "subject": "post_runtime_diagnostic_commit",
-      "classification": "NON_RUNTIME_EVIDENCE_ONLY",
-      "evidence": "后续 main 提交仅收窄 Coolify 脱敏诊断并校正仓根 context 分类；部署工作流显式忽略该路径，不能把该证据提交误写成新的运行镜像。"
+      "subject": "integer_reconciliation_thresholds_d1_r2_oci_restore",
+      "classification": "SYNTHETIC_CONTRACT_ONLY",
+      "decision": "Local contracts validate fail-closed logic, but no real money publication, D1 query Oracle, R2 readback, OCI backup, empty-environment restore, or five-business-day observation is PASS."
     }
   ],
   "validation": {
     "local": {
-      "daily_funds_contract": "PASS 75 passed, 1 skipped",
-      "affected_backend_regression": "PASS 24 passed",
+      "daily_funds_contract": "PASS 87 passed",
+      "affected_backend_regression": "PASS 45 passed",
       "frontend_production_build": "PASS",
-      "daily_funds_browser_oracle": "PASS synthetic-only",
-      "taskpack": "PASS requirements=24 tasks=11 acceptance=17",
-      "workflow_yaml_and_diff_check": "PASS"
+      "taskpack_projection": "PASS repository validator",
+      "synthetic_browser_oracle": "PASS 5 scenarios; production identity not evaluated"
     },
     "production": {
-      "remote_app_e2e_and_golden_deploy": "PASS",
-      "application_health_observation": "PASS public root and healthz HTTP 200",
-      "static_asset_identity": "PASS matches deployed runtime build",
-      "protected_daily_funds_ui": "PASS authenticated Owner UI rendered source discovery without an Access prompt",
-      "isolated_dws_auth": "PASS AUTH_OK receipt before history query",
-      "scheduled_primary_history_poll": "PASS one planned 15-minute cycle observed IN_PROGRESS then terminal HISTORY_EMPTY",
-      "current_day_source_gate": "HISTORY_EMPTY",
+      "runtime_source_and_image": "PASS finished Coolify record matches main runtime source",
+      "application_and_public_edge": "PASS limited to deployment workflow, Coolify running:healthy, and public HTTP probes",
+      "protected_daily_funds_ui": "UNKNOWN no authenticated Access session",
+      "isolated_dws_auth": "UNKNOWN",
+      "scheduled_primary_history_poll": "UNKNOWN",
       "trusted_money_publication": "NOT_PRESENT",
-      "container_execute_endpoint": "UNKNOWN_COOLIFY_EXEC_404"
+      "container_execute_endpoint": "HTTP_404"
     }
   },
   "real_data_chain": {
-    "independent_dws_auth_identity": "AUTH_OK",
-    "current_day_group_history": "HISTORY_EMPTY_AFTER_SCHEDULED_15_MINUTE_CYCLE",
     "business_source_selector": "TASKPACK_FIXED_TRIPLE_GATE",
-    "private_database_sparse_writer": "NOT_YET_EXERCISED_WITH_REAL_ATTACHMENT",
-    "real_attachment_parser_capability": "UNKNOWN_NO_TARGET_SAMPLE",
-    "real_money_reconciliation": "UNKNOWN_NOT_COMPUTED",
-    "d1_r2_oci_publication": "UNKNOWN_NO_VALID_PUBLICATION",
+    "independent_dws_auth_identity": "UNKNOWN",
+    "current_day_group_history": "UNKNOWN",
+    "private_database_sparse_writer": "NOT_YET_LIVE_RECEIPTED",
+    "real_attachment_parser_capability": "UNKNOWN",
+    "real_money_reconciliation": "UNKNOWN",
+    "d1_r2_oci_publication": "UNKNOWN",
     "restore_drill": "NOT_STARTED_NO_VALID_PUBLICATION",
     "five_business_day_shadow_observation": "NOT_STARTED_NO_VALID_PUBLICATION",
-    "rule": "HISTORY_EMPTY, UNKNOWN and a missing publication are not PASS; UI/status remain 需处理 until all source, raw-evidence, reconciliation and publication gates pass."
+    "rule": "UNKNOWN, a deployment success, a public 200, configured key presence, and a missing publication are never converted to PASS."
   },
-  "final_status": "T10_DEPLOYED__LIVE_UI_AND_AUTH_RECEIPT_VERIFIED__CURRENT_DAY_HISTORY_EMPTY__NO_VALID_PUBLICATION"
+  "final_status": "T10_RUNTIME_DEPLOYED_AND_IDENTIFIED__LIVE_SOURCE_TO_PUBLICATION_CHAIN_UNVERIFIED"
 }

@@ -19,7 +19,14 @@
   `e2e/public_shell_flow.py`、`public_accessibility_index.py`、`walking_skeleton_flow.py`、`abuse_control_flow.py`，
   以及 `frontend/index.html` **和已提交的 `frontend/dist/index.html`**（pytest 服务的是 committed dist，两边必须一致）。
 
-## 每日资金 v0.0.0.1（当前受控实现，2026-08-01）
+## 每日资金 v0.0.0.1（当前受控实现，2026-08-03）
+
+### 当前真实状态（T10 后，以此小节为准）
+
+- 运行代码已直接推送到 `main`（无分支、无 PR）：`64adf0e339603034c35e95175b24a24056c5ec55`。GitHub workflow `30751916050` 的远程 App E2E、Golden verify 和 Golden deploy 都成功；Coolify finished deployment `ugequ5oju62z7e8t3gdiqmk3` 回读的 source commit 精确匹配该 SHA，镜像为 `sha256:21e627549291c4331deaff6ce54a38a3096e295a3129da61f88266ad2e58f3d6`，完成时刻 `2026-08-02T14:38:12Z`。当前应用控制面为 `running:healthy`，根路径、`/healthz`、公共技能健康接口均为 HTTP 200；未认证访问每日资金私有入口为 Cloudflare Access 302。
+- 这只证明部署身份、公开边缘与隔离代码/compose 门禁，不证明真实资金链。可用 in-app browser 没有 Cloudflare Access 会话，打开私有页只进入登录页，未执行登录；Coolify 的 application execute 当前返回 HTTP 404。因此私有 UI 内容、worker/cron/卷状态、独立 DWS 认证、15 分钟真实历史轮询、私库原件、真实附件解析、整数分勾稽、D1/R2/OCI、恢复演练和五业务日影子观察均为 `UNKNOWN` 或未开始，绝不写 PASS。
+- 已执行测试：每日资金合约 `87 passed`、受影响后端 `45 passed`、前端 production build、任务包投影、5 个合成浏览器场景均通过；这些仅是本地/合成门。测试期安全态已由 Action `30751749859` 删除观测到的群机器人凭据并设置 `KMFA_DELIVERY_ENABLED=0`，未发送钉钉群消息。张霖泽钉钉号仅可作为独立云端 DWS 授权身份，不能替换任务包固定的群/发送人/附件三重来源门。
+- 下方较早的 T08/T09/T10/T11 条目均为历史记录；凡与本小节或 `machine/runs/daily_funds/semantic_reconcile_end.json` 冲突者，一律失效，不得作为当前生产或真实资金 PASS 依据。
 
 - 当前执行合同：`KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip`，SHA-256 `072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1`。2026-08-02 T08 重取移动基线：`origin/main=2e3621ecf361aa98f2c1dbb5bc3fcdea6b0b2b72`，是当前本地受控候选的祖先，候选尚未上传。此前 Coolify `running:healthy`、deployments 返回 0 条与 container execute 返回 404 都只是历史只读观察；T08 未重取生产身份，故当前 production source/image/deployment identity 仍为 `UNKNOWN`。`f75a1dc6…` 仅是最后一条历史源码记录，不能冒充现网身份，更不得把平台状态写成业务链路 PASS。
 - 实现位于 `skills/每日资金/`：独立 Docker/cron/SQLite cursor/inbox/outbox、独立 DWS config/keyring、每 15 分钟 `chat message list --direction older` 的群历史边界轮询、每分钟授权探测、每小时保活、受控回填/OCI 冷备/观察。来源发送人必须以 `senderOpenDingTalkId` 精确校验，禁止将显示名 `sender` 当作 ID；禁止让它调用既有 skills、复用 `kmfa-dws-auth`/`kmfa-dws-keyring`、读取本机或使用 Agent/模型。
