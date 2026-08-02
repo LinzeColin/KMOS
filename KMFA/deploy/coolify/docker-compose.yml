@@ -72,10 +72,12 @@ services:
       retries: 3
 
   skills:
-    build:
-      context: .                              # 仓根（Coolify --project-directory）
-      dockerfile: KMFA/deploy/skills-runtime/Dockerfile   # 复用 #109 Dockerfile，内仅复制 KMFA/KMDatabase
-    image: kmfa-skills:coolify
+    # 通用技能运行时与每日资金切片没有代码或认证依赖。小磁盘主机的每次
+    # App/每日资金发布都重装 OCR+中文字体会挤爆构建盘；这里明确复用当前
+    # 正在运行的本地镜像，而把该 Dockerfile 的新版本构建留给容量充足的 CI。
+    # 需要升级通用技能时，先在受控维护窗口刷新此镜像，不能借每日资金发布
+    # 触发一次高风险的全量重建。
+    image: "${KMFA_SKILLS_IMAGE:-kmfa-skills:coolify}"
     container_name: kmfa-skills
     restart: always
     environment:

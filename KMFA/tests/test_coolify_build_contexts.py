@@ -17,7 +17,6 @@ REPO = Path(__file__).resolve().parents[2]
 COMPOSE = REPO / "KMFA/deploy/coolify/docker-compose.yml"
 EXPECTED_DOCKERFILES = {
     "daily-funds": "KMFA/skills/每日资金/Dockerfile",
-    "skills": "KMFA/deploy/skills-runtime/Dockerfile",
     "app": "KMFA/app/backend/Dockerfile",
     "lifecycle-worker": "KMFA/app/backend/Dockerfile",
 }
@@ -57,3 +56,24 @@ def test_all_coolify_builds_use_repository_root_context():
         assert (context / dockerfile).is_file(), (
             f"{service} Dockerfile 不在 build context 内：{dockerfile}"
         )
+
+
+def test_shared_skills_reuses_existing_local_image_during_daily_funds_rollout():
+    """Do not rebuild unrelated OCR-heavy skills for an independent slice.
+
+    The generic runtime remains separately buildable in CI.  A compact
+    Coolify host instead reuses the image already referenced by its running
+    ``skills`` container, so an App/daily-funds release cannot exhaust disk
+    while downloading Chinese OCR dependencies that the slice never uses.
+    """
+
+    text = COMPOSE.read_text(encoding="utf-8")
+    match = re.search(
+        r"^  skills:\n(?P<body>.*?)(?=^  [A-Za-z0-9_-]+:|\\Z)",
+        text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    assert match, "compose 缺少 skills 服务"
+    body = match.group("body")
+    assert re.search(r"^    build:", body, flags=re.MULTILINE) is None
+    assert 'image: "${KMFA_SKILLS_IMAGE:-kmfa-skills:coolify}"' in body

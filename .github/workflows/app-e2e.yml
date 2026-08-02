@@ -81,6 +81,14 @@ jobs:
           curl -sf http://localhost:18098/healthz >/dev/null || {
             echo "::error::App 未起来"; docker logs kmfa-e2e; exit 1; }
 
+      # 通用技能镜像不随每日资金/App 发布在小磁盘生产主机重建，但其
+      # Dockerfile 仍必须在容量充足的 CI 真实构建，不能把“沿用旧镜像”
+      # 变成未验证的死代码。
+      - name: 构建通用技能运行时（CI 容量门）
+        run: |
+          set -euo pipefail
+          docker build -f KMFA/deploy/skills-runtime/Dockerfile -t kmfa-skills:e2e .
+
       - name: 验证每日资金独立容器（镜像、cron、健康检查）
         run: |
           set -euo pipefail
