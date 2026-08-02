@@ -13,6 +13,11 @@ on:
         description: "Coolify deployment uuid"
         required: true
         type: string
+      diagnostic:
+        description: "只输出脱敏失败类别，不输出原始构建日志"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   info:
@@ -25,13 +30,17 @@ jobs:
           BASE: ${{ secrets.COOLIFY_BASE_URL }}
           TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
           UUID: ${{ inputs.deployment_uuid }}
+          DIAGNOSTIC: ${{ inputs.diagnostic }}
         run: |
           set -euo pipefail
           # 响应含全量构建日志（数 MB）：环境变量会撞 execve 上限（二跑实测 Argument list
           # too long）、heredoc 会抢占 stdin（首跑实测）——落临时文件再读，文件绝不打印。
           curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/deployments/$UUID" -o "$RUNNER_TEMP/resp.json"
           python3 - <<'PY'
-          import json, os, re
+          import hashlib
+          import json
+          import os
+          import re
           d = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "resp.json"), encoding="utf-8"))
           # 兼容 {deployments:[...]} 与直接对象两种返回形状
           if isinstance(d, dict) and "deployments" in d:
@@ -45,6 +54,33 @@ jobs:
           completed = d.get("finished_at") or d.get("updated_at") or ""
           print("source_commit=" + str(d.get("commit") or ""))
           print("image_id_or_digest=" + (digests[-1] if digests else "未在响应中找到 sha256（构建日志可能未含 writing image 行）"))
-          print("deployment_uuid=" + str(d.get("deployment_uuid") or d.get("uuid") or ""))
+          deployment_uuid = str(d.get("deployment_uuid") or d.get("uuid") or "")
+          diagnostic = os.environ.get("DIAGNOSTIC", "false").lower() == "true"
+          print("deployment_uuid=" + ("present" if diagnostic and deployment_uuid else deployment_uuid))
           print("completed_at=" + str(completed) + "  status=" + str(d.get("status") or ""))
+          if diagnostic:
+              # The Coolify response can include complete build logs.  Never emit
+              # them: classify a small, explicit set of failure signatures only.
+              # This makes failure triage useful without turning Actions logs into
+              # a second storage location for credentials or private inputs.
+              normalized = re.sub(r"\s+", " ", raw).lower()
+              signatures = (
+                  ("DISK_CAPACITY", r"no space left on device|disk quota exceeded|insufficient disk|not enough space"),
+                  ("DOCKER_CONTEXT_OR_PATH", r"failed to read dockerfile|failed to calculate checksum|copy failed|lstat .* no such file|file not found in build context"),
+                  ("COMPOSE_SCHEMA", r"compose.*(invalid|unsupported|must be)|services\..*(invalid|must be)|validating .*compose"),
+                  ("REGISTRY_OR_NETWORK", r"failed to resolve source metadata|tls handshake timeout|network is unreachable|connection refused|i/o timeout|too many requests"),
+                  ("IMAGE_BUILD_COMMAND", r"failed to solve|error building|process .* did not complete successfully|executor failed running"),
+                  ("CONTAINER_START_OR_HEALTH", r"unhealthy|healthcheck|container .* exited|exit code [1-9]|could not start container"),
+                  ("PLATFORM_ORCHESTRATION", r"deployment failed|internal server error|could not deploy|deployment error"),
+              )
+              matches = [name for name, pattern in signatures if re.search(pattern, normalized)]
+              failure_class = matches[0] if matches else "UNCLASSIFIED"
+              # A fingerprint permits comparing a repeated platform failure while
+              # disclosing neither the failing line nor any surrounding log text.
+              markers = "|".join(matches) or "UNCLASSIFIED"
+              fingerprint = hashlib.sha256((str(d.get("status") or "") + "|" + markers).encode()).hexdigest()[:16]
+              print("diagnostic_enabled=true")
+              print("failure_class=" + failure_class)
+              print("failure_marker_count=" + str(len(matches)))
+              print("failure_fingerprint=" + fingerprint)
           PY

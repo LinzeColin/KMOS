@@ -19,6 +19,8 @@ on:
     paths-ignore:
       - ".github/workflows/deploy.yml"
       - ".github/workflows/dual-plane.yml"
+      # 只读部署诊断不会改变任一服务镜像或运行配置；不得为取回证据而滚动生产容器。
+      - ".github/workflows/coolify-deployment-info.yml"
       - ".gitattributes"
       - "KMFA/AGENTS.md"
       - "KMFA/HANDOFF.md"
