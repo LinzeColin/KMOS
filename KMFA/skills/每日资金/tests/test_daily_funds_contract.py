@@ -1102,6 +1102,7 @@ def test_successful_maintenance_probe_is_not_failed_before_first_publication(
     spec.loader.exec_module(module)
 
     calls: list[tuple[str, str, str, bool]] = []
+    receipts: list[tuple[str, bool, str]] = []
 
     class FakeState:
         def record_run(self, _run_id: str, kind: str, state: str, received_code: str, *, finished: bool = False) -> None:
@@ -1110,6 +1111,9 @@ def test_successful_maintenance_probe_is_not_failed_before_first_publication(
     class FakeRuntime:
         def __init__(self) -> None:
             self.state = FakeState()
+
+        def record_operation_receipt(self, *, job: str, succeeded: bool, code: str):
+            receipts.append((job, succeeded, code))
 
         def auth_probe(self):
             return {"human_status": "需处理", "machine_code": "AUTH_OK"}
@@ -1120,7 +1124,28 @@ def test_successful_maintenance_probe_is_not_failed_before_first_publication(
     monkeypatch.setattr(module, "DailyFundsRuntime", FakeRuntime)
     assert module.main([job]) == 0
     assert calls[-1] == (job, "SUCCEEDED", code, True)
+    assert receipts == [(job, True, code)]
     assert json.loads(capsys.readouterr().out)["machine_code"] == code
+
+
+def test_operation_receipt_preserves_source_poll_truth_when_auth_probe_succeeds(tmp_path: Path) -> None:
+    """DWS auth evidence cannot overwrite a prior no-source poll outcome."""
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    poll_status = runtime.status.write("需处理", "SOURCE_MATCH_ZERO")
+    runtime._write_flow_state(stage="POLL_NEEDS_ATTENTION", status=poll_status)
+    runtime.status.write("需处理", "AUTH_OK")
+
+    runtime.record_operation_receipt(job="auth-probe", succeeded=True, code="AUTH_OK")
+
+    flow_path = runtime.config.publication_dir / "flow_state.json"
+    flow_text = flow_path.read_text(encoding="utf-8")
+    flow = json.loads(flow_text)
+    assert flow["business_flow"]["stage"] == "POLL_NEEDS_ATTENTION"
+    assert flow["business_flow"]["machine_code"] == "SOURCE_MATCH_ZERO"
+    assert flow["operations"]["auth-probe"]["state"] == "SUCCEEDED"
+    assert flow["operations"]["auth-probe"]["code"] == "AUTH_OK"
+    assert "sender-fixture" not in flow_text
 
 
 def test_raw_writer_preserves_direct_and_oversize_bytes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -63,6 +63,21 @@ _COUPLED_PROCESS_MARKERS = (
 )
 _POST_DEPLOY_OBSERVER_REQUIRED_BUSINESS_DAYS = 5
 _FLOW_STATE_SCHEMA = "kmfa.daily_funds.flow_state.v1"
+_OPERATION_RECEIPT_JOBS = frozenset({
+    "preflight",
+    "bootstrap-dws-auth",
+    "runtime-audit",
+    "poll",
+    "auth-probe",
+    "keepalive",
+    "backfill",
+    "observer",
+    "cold-backup",
+    "restore-drill",
+    "restore",
+    "healthcheck",
+})
+_OPERATION_RECEIPT_STATES = frozenset({"SUCCEEDED", "FAILED"})
 _SOURCE_INTEGRITY_PARSE_CODES = frozenset({
     "SOURCE_LINEAGE_INVALID",
     "SOURCE_VERSION_MISMATCH",
@@ -252,10 +267,14 @@ class DailyFundsRuntime:
     def _write_flow_state(
         self,
         *,
-        stage: str,
+        stage: str | None,
         status: Mapping[str, Any] | None = None,
         observer_state: str | None = None,
         observer_result: str | None = None,
+        operation_job: str | None = None,
+        operation_state: str | None = None,
+        operation_code: str | None = None,
+        operation_finished_at: str | None = None,
     ) -> dict[str, Any]:
         """Write the sole values-free business-flow hand-off for KMFA status.
 
@@ -269,6 +288,9 @@ class DailyFundsRuntime:
         prior_observer = previous.get("post_deploy_observer")
         if not isinstance(prior_observer, Mapping):
             prior_observer = {}
+        prior_business = previous.get("business_flow")
+        if not isinstance(prior_business, Mapping):
+            prior_business = {}
         current_status = dict(status or self.status.read() or {})
         human_status = str(current_status.get("human_status") or "需处理")
         if human_status not in {"已更新", "处理中", "需处理"}:
@@ -294,6 +316,64 @@ class DailyFundsRuntime:
         last_observed_at = (
             comparisons[-1]["observed_at"] if comparisons else self._flow_timestamp(prior_observer.get("last_observed_at"))
         )
+        # Each cron invocation has a distinct operational meaning.  In
+        # particular a healthy minute-level auth probe must not overwrite the
+        # most recent 15-minute source-poll outcome just because both jobs
+        # share the same status writer.  Keep only a bounded, values-free last
+        # receipt per known job in the existing flow-state hand-off.
+        operations: dict[str, dict[str, str]] = {}
+        prior_operations = previous.get("operations")
+        if isinstance(prior_operations, Mapping):
+            for job in _OPERATION_RECEIPT_JOBS:
+                row = prior_operations.get(job)
+                if not isinstance(row, Mapping):
+                    continue
+                receipt_state = self._flow_code(row.get("state"))
+                receipt_code = self._flow_code(row.get("code"))
+                finished_at = self._flow_timestamp(row.get("finished_at"))
+                if receipt_state in _OPERATION_RECEIPT_STATES and finished_at is not None:
+                    operations[job] = {
+                        "state": receipt_state,
+                        "code": receipt_code,
+                        "finished_at": finished_at,
+                    }
+        if operation_job is not None:
+            if operation_job not in _OPERATION_RECEIPT_JOBS:
+                raise ValueError("invalid operation receipt job")
+            receipt_state = self._flow_code(operation_state)
+            finished_at = self._flow_timestamp(operation_finished_at) or iso_now()
+            if receipt_state not in _OPERATION_RECEIPT_STATES:
+                raise ValueError("invalid operation receipt state")
+            operations[operation_job] = {
+                "state": receipt_state,
+                "code": self._flow_code(operation_code),
+                "finished_at": finished_at,
+            }
+        if stage is None and prior_business:
+            prior_human_status = str(prior_business.get("human_status") or "需处理")
+            if prior_human_status not in {"已更新", "处理中", "需处理"}:
+                prior_human_status = "需处理"
+            business_flow = {
+                "stage": self._flow_code(prior_business.get("stage")),
+                "human_status": prior_human_status,
+                "machine_code": self._flow_code(prior_business.get("machine_code")),
+                "effective_business_date": str(prior_business.get("effective_business_date") or "")[:10] or None,
+                "last_verified_at": self._flow_timestamp(prior_business.get("last_verified_at")),
+                "last_status_at": self._flow_timestamp(prior_business.get("last_status_at")),
+                # The pointer is still read afresh: a stale flow receipt cannot
+                # claim that a current valid publication exists.
+                "publication_present": current is not None,
+            }
+        else:
+            business_flow = {
+                "stage": self._flow_code(stage),
+                "human_status": human_status,
+                "machine_code": self._flow_code(current_status.get("machine_code")),
+                "effective_business_date": str(current_status.get("effective_business_date") or "")[:10] or None,
+                "last_verified_at": self._flow_timestamp(current_status.get("last_verified_at")),
+                "last_status_at": self._flow_timestamp(current_status.get("updated_at")),
+                "publication_present": current is not None,
+            }
         payload = {
             "schema_version": _FLOW_STATE_SCHEMA,
             "updated_at": iso_now(),
@@ -306,15 +386,8 @@ class DailyFundsRuntime:
                 "runtime_audit_at": self._flow_timestamp(audit.get("observed_at")),
             },
             "schedules": dict(StatusWriter.SCHEDULES),
-            "business_flow": {
-                "stage": self._flow_code(stage),
-                "human_status": human_status,
-                "machine_code": self._flow_code(current_status.get("machine_code")),
-                "effective_business_date": str(current_status.get("effective_business_date") or "")[:10] or None,
-                "last_verified_at": self._flow_timestamp(current_status.get("last_verified_at")),
-                "last_status_at": self._flow_timestamp(current_status.get("updated_at")),
-                "publication_present": current is not None,
-            },
+            "business_flow": business_flow,
+            "operations": operations,
             # This aggregate is intentionally values-free: it reveals only
             # parser type/outcome counts, never source IDs, filenames, hashes,
             # document text or financial amounts.
@@ -339,6 +412,31 @@ class DailyFundsRuntime:
         }
         atomic_json_write(self.config.publication_dir / "flow_state.json", payload)
         return payload
+
+    def record_operation_receipt(self, *, job: str, succeeded: bool, code: str) -> dict[str, Any]:
+        """Persist one redacted scheduler receipt without changing business truth.
+
+        The runner calls this only after a job has reached a terminal result.
+        It records operational success separately from a financial publication:
+        ``auth-probe=SUCCEEDED`` means the isolated DWS session was usable, not
+        that any account balance or transaction pair was published.
+        """
+
+        if job not in _OPERATION_RECEIPT_JOBS:
+            raise ValueError("invalid operation receipt job")
+        stage = None
+        if job == "poll":
+            # A normal live poll only succeeds after a valid publication has
+            # been produced; all no-source/parse/storage outcomes are explicit
+            # non-publication states.
+            stage = "POLL_PUBLISHED" if succeeded else "POLL_NEEDS_ATTENTION"
+        return self._write_flow_state(
+            stage=stage,
+            operation_job=job,
+            operation_state="SUCCEEDED" if succeeded else "FAILED",
+            operation_code=code,
+            operation_finished_at=iso_now(),
+        )
 
     def _record_restore_drill(
         self,

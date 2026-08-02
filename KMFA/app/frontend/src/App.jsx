@@ -869,71 +869,93 @@ function 排程健康({ 排程 }) {
               <th className="num">距今</th><th>结果</th><th>投递</th>
               <th className="num">次数</th><th className="num">成功率</th>
             </tr></thead>
-            <tbody>{排程.逐项.filter(x => (x.业务模块 ?? '系统底座') === 模).map(x => (
-              <React.Fragment key={x.技能}>
-                <tr className="click" onClick={() => set展开(展开 === x.技能 ? null : x.技能)}>
-                  <td><code>{x.技能}</code></td>
-                  <td className="muted">{x.约定时刻}</td>
-                  <td>{x.最近一次 ?? <span className="tone-bad">从未跑过</span>}</td>
-                  <td className="num">{x.距今小时 == null ? '—' : `${x.距今小时} 小时前`}</td>
-                  <td>{x.成功 === true ? <span className="chip ok">成功</span>
-                    : x.成功 === false ? (
-                      // 只写「失败」等于没说：rc=5 对应十来种原因，把是哪一种摆在这一格。
-                      <span className="chip bad" title={`rc=${x.退出码}`}>
-                        失败{x.失败码 ? <> · <code className="why">{x.失败码}</code></> : null}
-                      </span>)
-                    : <span className="muted">—</span>}</td>
-                  <td>{x.投递开关 == null ? <span className="muted">—</span>
-                    : String(x.投递开关) === '1' ? <span className="chip ok">已开</span>
-                    : <span className="chip warn">空跑</span>}</td>
-                  <td className="num">{x.次数 || '—'}</td>
-                  <td className={`num ${x.失败次数 ? 'tone-warn' : ''}`}>
-                    {x.成功率 == null ? '—' : `${x.成功率}%`}</td>
-                </tr>
-                {展开 === x.技能 && (
-                  <tr className="detail"><td colSpan={8}>
-                    {(x.历史 ?? []).length === 0 ? <p className="empty">还没有运行记录。</p> : (
-                      <Tbl>
-                        <thead><tr><th>时间</th><th>结果</th><th>投递</th><th>这次干了什么</th><th>当时快照</th></tr></thead>
-                        <tbody>{x.历史.map((h, i) => {
-                          const 键 = `${x.技能}#${i}`
-                          const q = 快照[键]
-                          return (
-                            <React.Fragment key={键}>
-                              <tr>
-                                <td className="muted">{h.ts}</td>
-                                <td>{h.成功 ? <span className="chip ok">成功</span>
-                                  : <span className="chip bad" title={`rc=${h.rc}`}>
-                                      失败{h.失败码 ? <> · <code className="why">{h.失败码}</code></> : null}
-                                    </span>}</td>
-                                <td>{String(h.投递开关) === '1' ? <span className="chip ok">已开</span>
-                                  : <span className="chip warn">空跑</span>}</td>
-                                <td className="muted" style={{ maxWidth: '26rem' }}>{h.摘要 ?? '—'}</td>
-                                <td>{h.快照
-                                  ? <button type="button" className="btn" onClick={() => 看快照(键, h.快照)}>
-                                      {q ? '收起' : '看快照'}</button>
-                                  : <span className="muted">—</span>}</td>
+            <tbody>{排程.逐项.filter(x => (x.业务模块 ?? '系统底座') === 模).map(x => {
+              const 资金运行回执 = x.每日资金状态?.业务流?.运行回执
+              const 资金业务流 = x.每日资金状态?.业务流?.业务流
+              return (
+                <React.Fragment key={x.技能}>
+                  <tr className="click" onClick={() => set展开(展开 === x.技能 ? null : x.技能)}>
+                    <td><code>{x.技能}</code></td>
+                    <td className="muted">{x.约定时刻}</td>
+                    <td>{x.最近一次 ?? <span className="tone-bad">从未跑过</span>}</td>
+                    <td className="num">{x.距今小时 == null ? '—' : `${x.距今小时} 小时前`}</td>
+                    <td>{x.成功 === true ? <span className="chip ok">成功</span>
+                      : x.成功 === false ? (
+                        // 只写「失败」等于没说：rc=5 对应十来种原因，把是哪一种摆在这一格。
+                        <span className="chip bad" title={`rc=${x.退出码}`}>
+                          失败{x.失败码 ? <> · <code className="why">{x.失败码}</code></> : null}
+                        </span>)
+                      : <span className="muted">—</span>}</td>
+                    <td>{x.投递开关 == null ? <span className="muted">—</span>
+                      : String(x.投递开关) === '1' ? <span className="chip ok">已开</span>
+                      : <span className="chip warn">空跑</span>}</td>
+                    <td className="num">{x.次数 || '—'}</td>
+                    <td className={`num ${x.失败次数 ? 'tone-warn' : ''}`}>
+                      {x.成功率 == null ? '—' : `${x.成功率}%`}</td>
+                  </tr>
+                  {展开 === x.技能 && (
+                    <tr className="detail"><td colSpan={8}>
+                      {资金运行回执 && (
+                        <div className="card" style={{ marginBottom: 12 }}>
+                          <b>每日资金独立运行回执（不含金额）</b>
+                          <div className="sub">资金发布状态：{x.每日资金状态?.状态 ?? 'UNKNOWN'}｜业务阶段：{资金业务流?.阶段 ?? 'UNKNOWN'}</div>
+                          <Tbl>
+                            <thead><tr><th>独立作业</th><th>最近完成</th><th>结果</th></tr></thead>
+                            <tbody>{Object.entries(资金运行回执).map(([作业, 回执]) => (
+                              <tr key={作业}>
+                                <td>{作业}</td>
+                                <td className="muted">{回执?.最近一次 ?? '—'}</td>
+                                <td>{回执?.状态 === '成功' ? <span className="chip ok">成功 · <code className="why">{回执.结果}</code></span>
+                                  : 回执?.状态 === '失败' ? <span className="chip bad">失败 · <code className="why">{回执.结果}</code></span>
+                                  : <span className="muted">UNKNOWN</span>}</td>
                               </tr>
-                              {q && (
-                                <tr><td colSpan={5}>
-                                  {q.载入中 ? <div className="skel" style={{ height: 12 }} />
-                                    : q.错 ? <div className="alert bad">{q.错}</div>
-                                    : <>
-                                        <div className="muted">{q.路径}｜{q.总字节} 字节{q.截取 ? '（只显示尾部 64KB）' : ''}</div>
-                                        <pre style={{ marginTop: 8, maxHeight: '18rem', overflow: 'auto',
-                                                      fontSize: '.75rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{q.内容}</pre>
-                                      </>}
-                                </td></tr>
-                              )}
-                            </React.Fragment>
-                          )
-                        })}</tbody>
-                      </Tbl>
-                    )}
-                  </td></tr>
-                )}
-              </React.Fragment>
-            ))}</tbody>
+                            ))}</tbody>
+                          </Tbl>
+                        </div>
+                      )}
+                      {(x.历史 ?? []).length === 0 ? <p className="empty">还没有共享技能台账历史。</p> : (
+                        <Tbl>
+                          <thead><tr><th>时间</th><th>结果</th><th>投递</th><th>这次干了什么</th><th>当时快照</th></tr></thead>
+                          <tbody>{x.历史.map((h, i) => {
+                            const 键 = `${x.技能}#${i}`
+                            const q = 快照[键]
+                            return (
+                              <React.Fragment key={键}>
+                                <tr>
+                                  <td className="muted">{h.ts}</td>
+                                  <td>{h.成功 ? <span className="chip ok">成功</span>
+                                    : <span className="chip bad" title={`rc=${h.rc}`}>
+                                        失败{h.失败码 ? <> · <code className="why">{h.失败码}</code></> : null}
+                                      </span>}</td>
+                                  <td>{String(h.投递开关) === '1' ? <span className="chip ok">已开</span>
+                                    : <span className="chip warn">空跑</span>}</td>
+                                  <td className="muted" style={{ maxWidth: '26rem' }}>{h.摘要 ?? '—'}</td>
+                                  <td>{h.快照
+                                    ? <button type="button" className="btn" onClick={() => 看快照(键, h.快照)}>
+                                        {q ? '收起' : '看快照'}</button>
+                                    : <span className="muted">—</span>}</td>
+                                </tr>
+                                {q && (
+                                  <tr><td colSpan={5}>
+                                    {q.载入中 ? <div className="skel" style={{ height: 12 }} />
+                                      : q.错 ? <div className="alert bad">{q.错}</div>
+                                      : <>
+                                          <div className="muted">{q.路径}｜{q.总字节} 字节{q.截取 ? '（只显示尾部 64KB）' : ''}</div>
+                                          <pre style={{ marginTop: 8, maxHeight: '18rem', overflow: 'auto',
+                                                        fontSize: '.75rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{q.内容}</pre>
+                                        </>}
+                                  </td></tr>
+                                )}
+                              </React.Fragment>
+                            )
+                          })}</tbody>
+                        </Tbl>
+                      )}
+                    </td></tr>
+                  )}
+                </React.Fragment>
+              )
+            })}</tbody>
           </Tbl>
         </React.Fragment>
       ))}

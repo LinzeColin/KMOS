@@ -78,6 +78,19 @@ def main(argv: list[str] | None = None) -> int:
         # Status-only maintenance jobs are successful when they completed or
         # deliberately observed another holder; ``需处理`` remains non-zero.
         ok = result.get("human_status") in {"已更新", "处理中"}
+    try:
+        # The shared human status represents the financial publication gate.
+        # Record the terminal scheduler operation separately so a successful
+        # auth/keepalive probe cannot overwrite the most recent source-poll
+        # outcome in the existing KMFA status centre.
+        runtime.record_operation_receipt(job=args.job, succeeded=ok, code=code)
+    except Exception:
+        # A completed job without its values-free status receipt is not
+        # evidentially complete.  Keep the local journal terminal and fail
+        # closed instead of reporting a scheduler PASS that the owner UI
+        # cannot independently distinguish.
+        runtime.state.record_run(run_id, args.job, "FAILED", "OPERATION_RECEIPT_FAILED", finished=True)
+        raise
     runtime.state.record_run(run_id, args.job, "SUCCEEDED" if ok else "FAILED", code, finished=True)
     # The payload is intentionally values-free.  Cron logs must not become a
     # second raw-message archive or a place to leak identifiers/credentials.

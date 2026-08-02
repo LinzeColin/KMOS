@@ -102,10 +102,24 @@ def _write_projection(root: Path) -> None:
         "business_flow": {
             "stage": "POST_DEPLOY_OBSERVING",
             "human_status": "已更新",
+            "machine_code": "VALID_PUBLISHED",
             "effective_business_date": "2026-07-30",
             "last_verified_at": "2026-07-30T12:05:00Z",
             "last_status_at": "2026-07-30T12:05:00Z",
             "publication_present": True,
+        },
+        "operations": {
+            "poll": {
+                "state": "SUCCEEDED",
+                "code": "VALID_PUBLISHED",
+                "finished_at": "2026-07-30T12:05:00Z",
+                "raw_fixture_should_not_escape": "message-fixture",
+            },
+            "auth-probe": {
+                "state": "SUCCEEDED",
+                "code": "AUTH_OK",
+                "finished_at": "2026-07-30T12:05:30Z",
+            },
         },
         "attachment_capabilities": [
             {
@@ -224,6 +238,10 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
     response = client.get("/api/排程健康")
     assert response.status_code == 200
     daily = next(row for row in response.json()["逐项"] if row["技能"] == "daily-funds")
+    assert daily["跑过"] is True
+    assert daily["成功"] is True
+    assert daily["失败码"] is None
+    assert daily["投递开关"] is None
     assert daily["每日资金状态"]["状态"] == "已更新"
     assert daily["每日资金状态"]["有效业务日期"] == "2026-07-30"
     flow = daily["每日资金状态"]["业务流"]
@@ -248,6 +266,16 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
         "恢复": "NOT_YET_RUN",
         "延迟分钟": 5,
     }]
+    assert flow["运行回执"]["历史轮询"] == {
+        "状态": "成功",
+        "结果": "VALID_PUBLISHED",
+        "最近一次": "2026-07-30T12:05:00Z",
+    }
+    assert flow["运行回执"]["认证探测"] == {
+        "状态": "成功",
+        "结果": "AUTH_OK",
+        "最近一次": "2026-07-30T12:05:30Z",
+    }
     assert flow["附件能力"] == {
         "状态": "待复核",
         "已支持附件数": 1,
@@ -255,7 +283,40 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
         "最近观测": "2026-07-30T12:05:00Z",
     }
     assert "group-fixture" not in response.text and "attachment-fixture" not in response.text
+    assert "message-fixture" not in response.text
     assert response.json()["每日资金"]["业务流"]["部署"]["身份"] == "UNKNOWN"
+
+
+def test_daily_funds_schedule_does_not_treat_auth_success_as_source_poll_success(tmp_path, monkeypatch):
+    """The source-poll receipt remains the primary scheduler row."""
+
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    (publication / "current.json").unlink()
+    status_path = publication / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    status.update({"human_status": "需处理", "machine_code": "AUTH_OK", "updated_at": "2026-08-02T10:02:00Z"})
+    status_path.write_text(json.dumps(status), encoding="utf-8")
+    flow_path = publication / "flow_state.json"
+    flow = json.loads(flow_path.read_text(encoding="utf-8"))
+    flow["business_flow"].update({"stage": "POLL_NEEDS_ATTENTION", "machine_code": "SOURCE_MATCH_ZERO", "publication_present": False})
+    flow["operations"]["poll"] = {
+        "state": "FAILED", "code": "SOURCE_MATCH_ZERO", "finished_at": "2026-08-02T10:00:00Z",
+    }
+    flow["operations"]["auth-probe"] = {
+        "state": "SUCCEEDED", "code": "AUTH_OK", "finished_at": "2026-08-02T10:02:00Z",
+    }
+    flow_path.write_text(json.dumps(flow), encoding="utf-8")
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+    monkeypatch.setattr(main_module, "SKILL_LEDGER_PATH", tmp_path / "missing-ledger.jsonl")
+
+    response = client.get("/api/排程健康")
+    daily = next(row for row in response.json()["逐项"] if row["技能"] == "daily-funds")
+
+    assert daily["成功"] is False
+    assert daily["失败码"] == "SOURCE_MATCH_ZERO"
+    assert daily["每日资金状态"]["状态"] == "需处理"
+    assert daily["每日资金状态"]["业务流"]["运行回执"]["认证探测"]["状态"] == "成功"
 
 
 def test_daily_funds_attachment_capability_summary_fails_closed_on_malformed_row(tmp_path, monkeypatch):

@@ -2548,7 +2548,7 @@ DAILY_FUNDS_CAPABILITY_MAGICS = {"TEXT", "ZIP", "OLE", "PDF", "PNG", "JPEG", "GI
 DAILY_FUNDS_CAPABILITY_OUTCOMES = {"SUPPORTED", "NEEDS_REVIEW"}
 DAILY_FUNDS_BUSINESS_FLOW_STAGES = {
     "RUNTIME_AUDITED", "RUNTIME_NEEDS_ATTENTION", "WAITING_FOR_VALID_PUBLICATION",
-    "PARSER_NEEDS_REVIEW", "POLL_NEEDS_ATTENTION",
+    "PARSER_NEEDS_REVIEW", "POLL_NEEDS_ATTENTION", "POLL_PUBLISHED",
     # Historical raw-first discovery may prove a source attachment before a
     # deterministic parser supports it.  These are explicit non-publication
     # states, not aliases for a successful reconciliation.
@@ -2560,6 +2560,15 @@ DAILY_FUNDS_BUSINESS_FLOW_STAGES = {
     "POST_DEPLOY_OBSERVING", "POST_DEPLOY_OBSERVATION_COMPLETE",
     "RESTORE_DRILL", "RESTORE_DRILL_NEEDS_ATTENTION", "UNKNOWN",
 }
+DAILY_FUNDS_OPERATION_RECEIPTS = (
+    ("poll", "历史轮询"),
+    ("auth-probe", "认证探测"),
+    ("keepalive", "认证保活"),
+    ("backfill", "历史回填"),
+    ("cold-backup", "OCI 冷备"),
+    ("observer", "上线后观察"),
+    ("restore-drill", "恢复演练"),
+)
 
 
 def _read_daily_funds_json(name: str) -> dict[str, Any] | None:
@@ -2697,6 +2706,40 @@ def _daily_funds_attachment_capability_summary(rows: object) -> dict[str, Any]:
     }
 
 
+def _daily_funds_operation_receipts(rows: object) -> dict[str, dict[str, object]]:
+    """Project one values-free receipt per independently scheduled operation.
+
+    ``status.json`` describes publication truth.  A successful auth probe is
+    useful evidence about the isolated DWS session, but it is neither a money
+    publication nor a substitute for the source poll.  The worker writes the
+    two facts separately and this reducer keeps malformed entries explicit as
+    UNKNOWN rather than allowing an arbitrary shared-volume string into the
+    owner UI.
+    """
+
+    receipts: dict[str, dict[str, object]] = {
+        label: {"状态": "UNKNOWN", "结果": "UNKNOWN", "最近一次": None}
+        for _, label in DAILY_FUNDS_OPERATION_RECEIPTS
+    }
+    if not isinstance(rows, dict):
+        return receipts
+    for job, label in DAILY_FUNDS_OPERATION_RECEIPTS:
+        row = rows.get(job)
+        if not isinstance(row, dict):
+            continue
+        state = row.get("state")
+        code = _public_failure_code(row.get("code"))
+        finished_at = _daily_funds_timestamp(row.get("finished_at"))
+        if state not in {"SUCCEEDED", "FAILED"} or code is None or finished_at is None:
+            continue
+        receipts[label] = {
+            "状态": "成功" if state == "SUCCEEDED" else "失败",
+            "结果": code,
+            "最近一次": finished_at,
+        }
+    return receipts
+
+
 def _daily_funds_flow_state() -> dict[str, Any]:
     """Safely fold the worker's flow record into the existing status center.
 
@@ -2724,6 +2767,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
             "最近验证": status["last_verified_at"],
             "已验证发布": False,
         },
+        "运行回执": _daily_funds_operation_receipts(None),
         "附件能力": _daily_funds_attachment_capability_summary(None),
         "自愈": {
             "状态": "UNKNOWN",
@@ -2748,6 +2792,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
         return default
     deployment = payload.get("deployment") if isinstance(payload.get("deployment"), dict) else {}
     business = payload.get("business_flow") if isinstance(payload.get("business_flow"), dict) else {}
+    operation_receipts = _daily_funds_operation_receipts(payload.get("operations"))
     attachment_capabilities = _daily_funds_attachment_capability_summary(payload.get("attachment_capabilities"))
     healing = payload.get("self_healing") if isinstance(payload.get("self_healing"), dict) else {}
     observer = payload.get("post_deploy_observer") if isinstance(payload.get("post_deploy_observer"), dict) else {}
@@ -2845,6 +2890,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
             "最近验证": status["last_verified_at"],
             "已验证发布": business.get("publication_present") is True,
         },
+        "运行回执": operation_receipts,
         "附件能力": attachment_capabilities,
         "自愈": {
             "状态": _daily_funds_flow_token(
@@ -2898,22 +2944,30 @@ def _daily_funds_flow_state() -> dict[str, Any]:
 def _daily_funds_schedule_row() -> dict[str, Any]:
     status = _daily_funds_status()
     flow = _daily_funds_flow_state()
-    is_updated = status["human_status"] == "已更新"
+    poll = flow["运行回执"]["历史轮询"]
+    poll_state = poll["状态"]
+    poll_ran = poll_state in {"成功", "失败"} and poll["最近一次"] is not None
+    poll_succeeded = poll_state == "成功"
     return {
         "技能": "daily-funds",
         "业务模块": "每日资金",
         "约定时刻": SCHEDULE_CONTRACT["daily-funds"],
-        "跑过": status["updated_at"] is not None,
-        "最近一次": status["updated_at"],
+        # Publication truth and scheduler truth are deliberately separate:
+        # a minute-level AUTH_OK is not a 15-minute source-poll success, while
+        # a failed poll must not disappear behind a later successful probe.
+        "跑过": poll_ran,
+        "最近一次": poll["最近一次"] if poll_ran else None,
         "距今小时": None,
-        "退出码": 0 if is_updated else 1,
-        "成功": is_updated,
-        "失败码": None if is_updated else status["machine_code"],
-        "投递开关": "n/a",
+        "退出码": 0 if poll_succeeded else 1 if poll_state == "失败" else None,
+        "成功": poll_succeeded if poll_ran else None,
+        "失败码": poll["结果"] if poll_state == "失败" else None,
+        # This isolated worker has no delivery switch; ``None`` renders as an
+        # em dash rather than the misleading shared-skill "空跑" label.
+        "投递开关": None,
         "次数": None,
         "失败次数": None,
         "成功率": None,
-        "连续失败": 0 if is_updated else None,
+        "连续失败": 0 if poll_succeeded else 1 if poll_state == "失败" else None,
         "历史": [],
         "压测": None,
         "每日资金状态": {
