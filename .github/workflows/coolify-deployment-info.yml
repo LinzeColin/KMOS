@@ -244,4 +244,44 @@ jobs:
               print("resource_compose_build_contract=" + compose_contract_class)
               print("resource_compose_root_context_count=" + str(root_context_count))
               print("resource_compose_dockerfile_path_count=" + str(dockerfile_count))
+              deployment_log_text = json.dumps(
+                  d.get("logs") or d.get("output") or "",
+                  ensure_ascii=False,
+              ).lower()
+              failure_windows = []
+              for match in re.finditer(
+                  r"failed to read dockerfile|dockerfile .* (not found|no such file)",
+                  deployment_log_text,
+              ):
+                  failure_windows.append(
+                      deployment_log_text[
+                          max(0, match.start() - 1200) : match.end() + 1200
+                      ]
+                  )
+              target_markers = (
+                  ("DAILY_FUNDS", ("daily-funds", "每日资金")),
+                  ("SKILLS", ("kmfa-skills", "skills-runtime")),
+                  ("APP", ("kmfa-app", "app/backend")),
+                  ("LIFECYCLE_WORKER", ("lifecycle-worker",)),
+              )
+              target_matches = [
+                  name
+                  for name, markers in target_markers
+                  if any(
+                      marker in window
+                      for window in failure_windows
+                      for marker in markers
+                  )
+              ]
+              dockerfile_failure_service = (
+                  target_matches[0]
+                  if len(target_matches) == 1
+                  else "MULTIPLE_OR_AMBIGUOUS"
+                  if target_matches
+                  else "UNCLASSIFIED"
+              )
+              print(
+                  "dockerfile_failure_service_class="
+                  + dockerfile_failure_service
+              )
           PY
