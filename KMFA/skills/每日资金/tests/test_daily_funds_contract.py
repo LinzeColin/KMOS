@@ -986,7 +986,12 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
         direct.sha256, same_name_different_bytes.sha256, oversize.sha256,
     }
     verification = tmp_path / "verification"
-    git(None, "clone", "--quiet", str(origin), str(verification))
+    # A newly-created bare repository can retain a symbolic HEAD pointing at
+    # the server default (for example ``master``) even though this fixture
+    # intentionally writes only ``main``.  The production writer always
+    # selects ``private_branch`` explicitly, so this independent readback must
+    # do the same rather than depending on the Git implementation default.
+    git(None, "clone", "--quiet", "--branch", "main", str(origin), str(verification))
     changed_paths = git(verification, "diff-tree", "--no-commit-id", "--name-only", "-r", commit.commit_sha).splitlines()
     assert changed_paths and all(path.startswith(f"{SPARSE_PATH.as_posix()}/") for path in changed_paths)
     assert RawMaterializer.readback_attachment(verification / SPARSE_PATH, direct).payload == direct_payload
