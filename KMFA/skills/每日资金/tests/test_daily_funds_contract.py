@@ -1103,6 +1103,7 @@ def test_successful_maintenance_probe_is_not_failed_before_first_publication(
 
     calls: list[tuple[str, str, str, bool]] = []
     receipts: list[tuple[str, bool, str]] = []
+    starts: list[tuple[str, str]] = []
 
     class FakeState:
         def record_run(self, _run_id: str, kind: str, state: str, received_code: str, *, finished: bool = False) -> None:
@@ -1115,6 +1116,9 @@ def test_successful_maintenance_probe_is_not_failed_before_first_publication(
         def record_operation_receipt(self, *, job: str, succeeded: bool, code: str):
             receipts.append((job, succeeded, code))
 
+        def record_operation_start(self, *, job: str, code: str):
+            starts.append((job, code))
+
         def auth_probe(self):
             return {"human_status": "需处理", "machine_code": "AUTH_OK"}
 
@@ -1124,6 +1128,7 @@ def test_successful_maintenance_probe_is_not_failed_before_first_publication(
     monkeypatch.setattr(module, "DailyFundsRuntime", FakeRuntime)
     assert module.main([job]) == 0
     assert calls[-1] == (job, "SUCCEEDED", code, True)
+    assert starts == [(job, f"{job.upper().replace('-', '_')}_RUNNING")]
     assert receipts == [(job, True, code)]
     assert json.loads(capsys.readouterr().out)["machine_code"] == code
 
@@ -1146,6 +1151,36 @@ def test_operation_receipt_preserves_source_poll_truth_when_auth_probe_succeeds(
     assert flow["operations"]["auth-probe"]["state"] == "SUCCEEDED"
     assert flow["operations"]["auth-probe"]["code"] == "AUTH_OK"
     assert "sender-fixture" not in flow_text
+
+
+def test_operation_start_is_values_free_and_preserves_prior_poll_truth(tmp_path: Path) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    poll_status = runtime.status.write("需处理", "SOURCE_MATCH_ZERO")
+    runtime._write_flow_state(stage="POLL_NEEDS_ATTENTION", status=poll_status)
+
+    runtime.record_operation_start(job="poll", code="POLL_RUNNING")
+
+    flow_path = runtime.config.publication_dir / "flow_state.json"
+    flow_text = flow_path.read_text(encoding="utf-8")
+    flow = json.loads(flow_text)
+    assert flow["business_flow"]["stage"] == "POLL_NEEDS_ATTENTION"
+    assert flow["operations"]["poll"]["state"] == "RUNNING"
+    assert flow["operations"]["poll"]["code"] == "POLL_RUNNING"
+    assert flow["operations"]["poll"]["started_at"].endswith("Z")
+    assert "sender-fixture" not in flow_text
+
+
+def test_live_poll_lock_keeps_the_business_flow_in_progress(tmp_path: Path) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    assert runtime.state.acquire_lease("poll_lock", "other-holder", ttl_seconds=60)
+    try:
+        result = runtime.poll()
+    finally:
+        runtime.state.release_lease("poll_lock", "other-holder")
+    assert result == {"ok": False, "code": "POLL_LOCK_HELD"}
+    flow = json.loads((runtime.config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
+    assert flow["business_flow"]["stage"] == "POLLING"
+    assert flow["business_flow"]["human_status"] == "处理中"
 
 
 def test_raw_writer_preserves_direct_and_oversize_bytes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

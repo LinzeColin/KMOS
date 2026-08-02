@@ -319,6 +319,33 @@ def test_daily_funds_schedule_does_not_treat_auth_success_as_source_poll_success
     assert daily["每日资金状态"]["业务流"]["运行回执"]["认证探测"]["状态"] == "成功"
 
 
+def test_daily_funds_schedule_exposes_an_inflight_poll_without_guessing_success(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    flow_path = publication / "flow_state.json"
+    flow = json.loads(flow_path.read_text(encoding="utf-8"))
+    flow["operations"]["poll"] = {
+        "state": "RUNNING", "code": "POLL_RUNNING", "started_at": "2026-08-02T11:15:00Z",
+    }
+    flow_path.write_text(json.dumps(flow), encoding="utf-8")
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+    monkeypatch.setattr(main_module, "SKILL_LEDGER_PATH", tmp_path / "missing-ledger.jsonl")
+
+    response = client.get("/api/排程健康")
+    daily = next(row for row in response.json()["逐项"] if row["技能"] == "daily-funds")
+
+    assert daily["跑过"] is True
+    assert daily["成功"] is None
+    assert daily["运行中"] is True
+    assert daily["失败码"] is None
+    assert daily["最近一次"] == "2026-08-02T11:15:00Z"
+    assert daily["每日资金状态"]["业务流"]["运行回执"]["历史轮询"] == {
+        "状态": "处理中",
+        "结果": "POLL_RUNNING",
+        "最近一次": "2026-08-02T11:15:00Z",
+    }
+
+
 def test_daily_funds_attachment_capability_summary_fails_closed_on_malformed_row(tmp_path, monkeypatch):
     publication = tmp_path / "publication"
     _write_projection(publication)

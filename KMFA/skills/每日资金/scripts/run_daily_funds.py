@@ -16,6 +16,10 @@ if str(ROOT) not in sys.path:
 from daily_funds.runtime import DailyFundsRuntime  # noqa: E402
 
 
+def _running_code(job: str) -> str:
+    return f"{job.upper().replace('-', '_')}_RUNNING"
+
+
 def parser() -> argparse.ArgumentParser:
     command = argparse.ArgumentParser(description="KMFA daily-funds deterministic worker")
     command.add_argument(
@@ -32,6 +36,14 @@ def main(argv: list[str] | None = None) -> int:
     runtime = DailyFundsRuntime()
     run_id = uuid.uuid4().hex
     runtime.state.record_run(run_id, args.job, "RUNNING", "START")
+    try:
+        # Persist this before any source call.  If a process is interrupted,
+        # the shared owner UI can truthfully show an in-flight operation rather
+        # than treating an older terminal receipt as the current poll result.
+        runtime.record_operation_start(job=args.job, code=_running_code(args.job))
+    except Exception:
+        runtime.state.record_run(run_id, args.job, "FAILED", "OPERATION_START_RECEIPT_FAILED", finished=True)
+        raise
     try:
         if args.job == "preflight":
             result = runtime.preflight()
@@ -60,6 +72,11 @@ def main(argv: list[str] | None = None) -> int:
         else:
             result = runtime.healthcheck()
     except Exception:
+        try:
+            runtime.record_operation_receipt(job=args.job, succeeded=False, code="UNHANDLED")
+        except Exception:
+            runtime.state.record_run(run_id, args.job, "FAILED", "OPERATION_RECEIPT_FAILED", finished=True)
+            raise
         runtime.state.record_run(run_id, args.job, "FAILED", "UNHANDLED", finished=True)
         raise
     code = str(result.get("code") or result.get("machine_code") or result.get("status") or "UNKNOWN")
@@ -78,12 +95,14 @@ def main(argv: list[str] | None = None) -> int:
         # Status-only maintenance jobs are successful when they completed or
         # deliberately observed another holder; ``需处理`` remains non-zero.
         ok = result.get("human_status") in {"已更新", "处理中"}
+    lock_held = args.job == "poll" and code.endswith("_LOCK_HELD")
     try:
         # The shared human status represents the financial publication gate.
         # Record the terminal scheduler operation separately so a successful
         # auth/keepalive probe cannot overwrite the most recent source-poll
         # outcome in the existing KMFA status centre.
-        runtime.record_operation_receipt(job=args.job, succeeded=ok, code=code)
+        if not lock_held:
+            runtime.record_operation_receipt(job=args.job, succeeded=ok, code=code)
     except Exception:
         # A completed job without its values-free status receipt is not
         # evidentially complete.  Keep the local journal terminal and fail
@@ -91,11 +110,11 @@ def main(argv: list[str] | None = None) -> int:
         # cannot independently distinguish.
         runtime.state.record_run(run_id, args.job, "FAILED", "OPERATION_RECEIPT_FAILED", finished=True)
         raise
-    runtime.state.record_run(run_id, args.job, "SUCCEEDED" if ok else "FAILED", code, finished=True)
+    runtime.state.record_run(run_id, args.job, "SKIPPED" if lock_held else "SUCCEEDED" if ok else "FAILED", code, finished=True)
     # The payload is intentionally values-free.  Cron logs must not become a
     # second raw-message archive or a place to leak identifiers/credentials.
     print(json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
-    return 0 if ok else 2
+    return 75 if lock_held else 0 if ok else 2
 
 
 if __name__ == "__main__":

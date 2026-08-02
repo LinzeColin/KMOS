@@ -885,6 +885,7 @@ function 排程健康({ 排程 }) {
                         <span className="chip bad" title={`rc=${x.退出码}`}>
                           失败{x.失败码 ? <> · <code className="why">{x.失败码}</code></> : null}
                         </span>)
+                      : x.运行中 ? <span className="chip warn">处理中 · <code className="why">{资金运行回执?.历史轮询?.结果 ?? 'POLL_RUNNING'}</code></span>
                       : <span className="muted">—</span>}</td>
                     <td>{x.投递开关 == null ? <span className="muted">—</span>
                       : String(x.投递开关) === '1' ? <span className="chip ok">已开</span>
@@ -900,13 +901,14 @@ function 排程健康({ 排程 }) {
                           <b>每日资金独立运行回执（不含金额）</b>
                           <div className="sub">资金发布状态：{x.每日资金状态?.状态 ?? 'UNKNOWN'}｜业务阶段：{资金业务流?.阶段 ?? 'UNKNOWN'}</div>
                           <Tbl>
-                            <thead><tr><th>独立作业</th><th>最近完成</th><th>结果</th></tr></thead>
+                            <thead><tr><th>独立作业</th><th>最近状态</th><th>结果</th></tr></thead>
                             <tbody>{Object.entries(资金运行回执).map(([作业, 回执]) => (
                               <tr key={作业}>
                                 <td>{作业}</td>
                                 <td className="muted">{回执?.最近一次 ?? '—'}</td>
                                 <td>{回执?.状态 === '成功' ? <span className="chip ok">成功 · <code className="why">{回执.结果}</code></span>
                                   : 回执?.状态 === '失败' ? <span className="chip bad">失败 · <code className="why">{回执.结果}</code></span>
+                                  : 回执?.状态 === '处理中' ? <span className="chip warn">处理中 · <code className="why">{回执.结果}</code></span>
                                   : <span className="muted">UNKNOWN</span>}</td>
                               </tr>
                             ))}</tbody>

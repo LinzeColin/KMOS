@@ -77,7 +77,7 @@ _OPERATION_RECEIPT_JOBS = frozenset({
     "restore",
     "healthcheck",
 })
-_OPERATION_RECEIPT_STATES = frozenset({"SUCCEEDED", "FAILED"})
+_OPERATION_RECEIPT_STATES = frozenset({"RUNNING", "SUCCEEDED", "FAILED"})
 _SOURCE_INTEGRITY_PARSE_CODES = frozenset({
     "SOURCE_LINEAGE_INVALID",
     "SOURCE_VERSION_MISMATCH",
@@ -274,6 +274,7 @@ class DailyFundsRuntime:
         operation_job: str | None = None,
         operation_state: str | None = None,
         operation_code: str | None = None,
+        operation_started_at: str | None = None,
         operation_finished_at: str | None = None,
     ) -> dict[str, Any]:
         """Write the sole values-free business-flow hand-off for KMFA status.
@@ -320,7 +321,9 @@ class DailyFundsRuntime:
         # particular a healthy minute-level auth probe must not overwrite the
         # most recent 15-minute source-poll outcome just because both jobs
         # share the same status writer.  Keep only a bounded, values-free last
-        # receipt per known job in the existing flow-state hand-off.
+        # start or terminal receipt per known job in the existing flow-state
+        # hand-off.  A missing terminal receipt is operationally meaningful:
+        # the owner UI must not turn it into a guessed success or failure.
         operations: dict[str, dict[str, str]] = {}
         prior_operations = previous.get("operations")
         if isinstance(prior_operations, Mapping):
@@ -331,7 +334,14 @@ class DailyFundsRuntime:
                 receipt_state = self._flow_code(row.get("state"))
                 receipt_code = self._flow_code(row.get("code"))
                 finished_at = self._flow_timestamp(row.get("finished_at"))
-                if receipt_state in _OPERATION_RECEIPT_STATES and finished_at is not None:
+                started_at = self._flow_timestamp(row.get("started_at"))
+                if receipt_state == "RUNNING" and started_at is not None:
+                    operations[job] = {
+                        "state": receipt_state,
+                        "code": receipt_code,
+                        "started_at": started_at,
+                    }
+                elif receipt_state in {"SUCCEEDED", "FAILED"} and finished_at is not None:
                     operations[job] = {
                         "state": receipt_state,
                         "code": receipt_code,
@@ -341,14 +351,20 @@ class DailyFundsRuntime:
             if operation_job not in _OPERATION_RECEIPT_JOBS:
                 raise ValueError("invalid operation receipt job")
             receipt_state = self._flow_code(operation_state)
-            finished_at = self._flow_timestamp(operation_finished_at) or iso_now()
             if receipt_state not in _OPERATION_RECEIPT_STATES:
                 raise ValueError("invalid operation receipt state")
-            operations[operation_job] = {
-                "state": receipt_state,
-                "code": self._flow_code(operation_code),
-                "finished_at": finished_at,
-            }
+            if receipt_state == "RUNNING":
+                operations[operation_job] = {
+                    "state": receipt_state,
+                    "code": self._flow_code(operation_code),
+                    "started_at": self._flow_timestamp(operation_started_at) or iso_now(),
+                }
+            else:
+                operations[operation_job] = {
+                    "state": receipt_state,
+                    "code": self._flow_code(operation_code),
+                    "finished_at": self._flow_timestamp(operation_finished_at) or iso_now(),
+                }
         if stage is None and prior_business:
             prior_human_status = str(prior_business.get("human_status") or "需处理")
             if prior_human_status not in {"已更新", "处理中", "需处理"}:
@@ -412,6 +428,24 @@ class DailyFundsRuntime:
         }
         atomic_json_write(self.config.publication_dir / "flow_state.json", payload)
         return payload
+
+    def record_operation_start(self, *, job: str, code: str) -> dict[str, Any]:
+        """Persist a values-free start receipt before dispatching one cron job.
+
+        This makes a hung or interrupted source poll visible as ``RUNNING``
+        instead of silently retaining an older terminal receipt.  It does not
+        change financial publication truth; only a terminal poll receipt does.
+        """
+
+        if job not in _OPERATION_RECEIPT_JOBS:
+            raise ValueError("invalid operation receipt job")
+        return self._write_flow_state(
+            stage=None,
+            operation_job=job,
+            operation_state="RUNNING",
+            operation_code=code,
+            operation_started_at=iso_now(),
+        )
 
     def record_operation_receipt(self, *, job: str, succeeded: bool, code: str) -> dict[str, Any]:
         """Persist one redacted scheduler receipt without changing business truth.
@@ -1310,10 +1344,15 @@ class DailyFundsRuntime:
             }
         except (IngestionError, ParseError, ReconciliationError, PublicationError, ControlError) as exc:
             code = getattr(exc, "code", str(exc).split(":", 1)[0])
-            human_status = "处理中" if str(code).endswith("_LOCK_HELD") else "需处理"
+            lock_held = str(code).endswith("_LOCK_HELD")
+            human_status = "处理中" if lock_held else "需处理"
             status = self.status.write(human_status, str(code))
             self._write_flow_state(
-                stage="PARSER_NEEDS_REVIEW" if isinstance(exc, ParseError) else "POLL_NEEDS_ATTENTION",
+                stage=(
+                    "POLLING" if lock_held
+                    else "PARSER_NEEDS_REVIEW" if isinstance(exc, ParseError)
+                    else "POLL_NEEDS_ATTENTION"
+                ),
                 status=status,
             )
             return {"ok": False, "code": str(code)}

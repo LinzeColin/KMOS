@@ -2730,6 +2730,14 @@ def _daily_funds_operation_receipts(rows: object) -> dict[str, dict[str, object]
         state = row.get("state")
         code = _public_failure_code(row.get("code"))
         finished_at = _daily_funds_timestamp(row.get("finished_at"))
+        started_at = _daily_funds_timestamp(row.get("started_at"))
+        if state == "RUNNING" and code is not None and started_at is not None:
+            receipts[label] = {
+                "状态": "处理中",
+                "结果": code,
+                "最近一次": started_at,
+            }
+            continue
         if state not in {"SUCCEEDED", "FAILED"} or code is None or finished_at is None:
             continue
         receipts[label] = {
@@ -2946,7 +2954,8 @@ def _daily_funds_schedule_row() -> dict[str, Any]:
     flow = _daily_funds_flow_state()
     poll = flow["运行回执"]["历史轮询"]
     poll_state = poll["状态"]
-    poll_ran = poll_state in {"成功", "失败"} and poll["最近一次"] is not None
+    poll_ran = poll_state in {"成功", "失败", "处理中"} and poll["最近一次"] is not None
+    poll_terminal = poll_state in {"成功", "失败"} and poll["最近一次"] is not None
     poll_succeeded = poll_state == "成功"
     return {
         "技能": "daily-funds",
@@ -2959,7 +2968,8 @@ def _daily_funds_schedule_row() -> dict[str, Any]:
         "最近一次": poll["最近一次"] if poll_ran else None,
         "距今小时": None,
         "退出码": 0 if poll_succeeded else 1 if poll_state == "失败" else None,
-        "成功": poll_succeeded if poll_ran else None,
+        "成功": poll_succeeded if poll_terminal else None,
+        "运行中": poll_state == "处理中",
         "失败码": poll["结果"] if poll_state == "失败" else None,
         # This isolated worker has no delivery switch; ``None`` renders as an
         # em dash rather than the misleading shared-skill "空跑" label.
