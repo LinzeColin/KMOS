@@ -39,6 +39,7 @@ DAILY_PATHS = (
     "/ops/api/daily-funds/timeseries?range=30d",
     "/ops/api/daily-funds/source-health",
     "/ops/api/daily-funds/thresholds",
+    "/ops/api/daily-funds/auth-session",
 )
 STATUS_SCHEDULES = {
     "history_poll": "*/15 * * * * Asia/Shanghai",
@@ -342,7 +343,7 @@ def _assert_projection_is_redacted(page: Page, *, trusted_projection: bool) -> N
         RAW_SENTINEL, "source_version", "message_id_hash", "attachment", "raw/messages",
     ))
     for path, response in bodies.items():
-        expected_status = 200 if trusted_projection or "/source-health" in path else 503
+        expected_status = 200 if trusted_projection or "/source-health" in path or "/auth-session" in path else 503
         assert response["status"] == expected_status, f"{path} returned HTTP {response['status']}"
         assert not any(token in response["body"].lower() for token in forbidden), f"raw marker escaped from {path}"
     dom = page.content().lower()
@@ -448,9 +449,38 @@ def _exercise_case(
 
         if exercise_controls:
             # One desktop case proves keyboard range switching, custom range,
-            # legend toggling and tooltip behavior.  The mobile cases focus on
-            # their distinct state/layout contract instead of duplicating an
-            # imprecise pointer gesture on a touch-sized viewport.
+            # legend toggling, tooltip behavior, and the Access-gated DWS
+            # device-auth UI.  The mobile cases focus on their distinct
+            # state/layout contract instead of duplicating an imprecise
+            # pointer gesture on a touch-sized viewport.
+            auth_start = page.get_by_role("button", name="连接张霖泽的钉钉")
+            auth_start.wait_for(state="visible", timeout=10_000)
+            with page.expect_response(
+                lambda candidate: (
+                    urlsplit(candidate.url).path == "/ops/api/daily-funds/auth-session"
+                    and candidate.request.method == "POST"
+                ),
+                timeout=10_000,
+            ) as expected:
+                auth_start.click()
+            assert expected.value.status == 202
+            page.get_by_text("已在每日资金专用云端卷发起一次授权请求", exact=False).wait_for(
+                state="visible", timeout=10_000,
+            )
+            auth_cancel = page.get_by_role("button", name="撤销本次授权")
+            auth_cancel.wait_for(state="visible", timeout=10_000)
+            with page.expect_response(
+                lambda candidate: (
+                    urlsplit(candidate.url).path == "/ops/api/daily-funds/auth-session"
+                    and candidate.request.method == "DELETE"
+                ),
+                timeout=10_000,
+            ) as expected:
+                auth_cancel.click()
+            assert expected.value.status == 202
+            page.get_by_text("已请求撤销本次授权码", exact=False).wait_for(
+                state="visible", timeout=10_000,
+            )
             seven_days = range_group.get_by_role("button", name="7 天")
             seven_days.focus()
             with page.expect_response(lambda candidate: _summary_response(candidate, "7d"), timeout=10_000) as expected:
@@ -511,6 +541,7 @@ def _exercise_case(
             "/ops/api/daily-funds/timeseries",
             "/ops/api/daily-funds/source-health",
             "/ops/api/daily-funds/thresholds",
+            "/ops/api/daily-funds/auth-session",
         }
         assert expected_paths.issubset(daily_paths), f"missing daily projection requests: {expected_paths - daily_paths}"
         protected_paths = {

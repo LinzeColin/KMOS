@@ -74,4 +74,31 @@ python3 /opt/daily-funds/scripts/run_daily_funds.py preflight >> /var/log/daily-
 python3 /opt/daily-funds/scripts/run_daily_funds.py runtime-audit >> /var/log/daily-funds/cron.log 2>&1 || true
 cp /opt/daily-funds/crontab.txt /etc/cron.d/daily-funds
 chmod 0644 /etc/cron.d/daily-funds
-exec cron -f
+
+# Coolify's Bearer API deliberately has no container-exec endpoint, while the
+# official DWS device flow needs a cloud process that can hold its own DWS
+# volume.  This is not a second service, scheduler, shell, or public port:
+# the broker accepts only a strict request from the already Access-protected
+# KMFA app through the existing control volume.  Its terminal output is sent
+# to /dev/null so a device code can never appear in cron logs.
+python3 /opt/daily-funds/scripts/run_auth_broker.py >/dev/null 2>&1 &
+AUTH_BROKER_PID=$!
+cron -f &
+CRON_PID=$!
+
+shutdown() {
+  kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" 2>/dev/null || true
+  wait "$CRON_PID" "$AUTH_BROKER_PID" 2>/dev/null || true
+  exit 0
+}
+trap shutdown INT TERM
+
+# PID 1 supervises both fixed components.  If the narrow auth broker exits,
+# restart the whole isolated slice rather than silently running a cron that
+# cannot complete the owner-approved first authorization path.
+while kill -0 "$CRON_PID" 2>/dev/null && kill -0 "$AUTH_BROKER_PID" 2>/dev/null; do
+  sleep 2
+done
+kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" 2>/dev/null || true
+wait "$CRON_PID" "$AUTH_BROKER_PID" 2>/dev/null || true
+exit 1

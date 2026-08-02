@@ -14,7 +14,7 @@
 
 ## 专用 DWS 云端身份
 
-首次授权在 daily-funds 容器自己的云端 DWS 卷中执行一次 `run_daily_funds.py bootstrap-dws-auth`。该命令只可从受保护的云端交互终端运行，设备码只显示在该终端，绝不写入 cron、状态文件、日志或公开仓；授权成功后 15 分钟采集完全无人值守。`DAILY_FUNDS_DWS_AUTH_BUNDLE_B64` 是可选灾备恢复包（由专用身份执行 `dws auth export --base64` 生成的单行 base64），而非上线前置条件。未配置 `DAILY_FUNDS_DWS_CLIENT_ID` 时，受控 DWS 进程使用其官方默认客户端；如需覆盖，该值只由此切片构造的进程环境注入，不继承宿主或其他 Skill 的覆盖值。DWS v1.0.52 自己管理 profile 布局；群消息命令的 `--group`、`--user`、`--open-dingtalk-id` 互斥，因此运行时只向唯一群请求历史，再逐条以群 ID、稳定发送人 ID 和文档族执行本地三重门禁。`auth status` 或任一门禁失败即关闭。运行容器不接收 AppSecret；AppKey/AppSecret 不能单独建立该登录态，禁止把本机、既有 KMFA 服务或其他 Skill 的 DWS profile 复制进来。
+首次授权只在 daily-funds 容器自己的云端 DWS 卷中完成。首选从 Cloudflare Access 保护的 KMFA “每日资金”页发起一次固定设备授权：页面只能开始或取消一次 DWS device flow，不能传入命令、群 ID、profile、token 或原始输入；同容器 broker 只把短时确认链接和确认码回传给该私有页，撤销、完成或过期即清除，绝不写入 cron、状态、日志、Git 或公开面。若该私有入口临时不可用，才在同一容器的受保护云端终端运行 `run_daily_funds.py bootstrap-dws-auth`；禁止在本机或其他 Skill 中授权。授权成功后 15 分钟采集完全无人值守。`DAILY_FUNDS_DWS_AUTH_BUNDLE_B64` 是可选灾备恢复包（由专用身份执行 `dws auth export --base64` 生成的单行 base64），而非上线前置条件。未配置 `DAILY_FUNDS_DWS_CLIENT_ID` 时，受控 DWS 进程使用其官方默认客户端；如需覆盖，该值只由此切片构造的进程环境注入，不继承宿主或其他 Skill 的覆盖值。DWS v1.0.52 自己管理 profile 布局；群消息命令的 `--group`、`--user`、`--open-dingtalk-id` 互斥，因此运行时只向唯一群请求历史，再逐条以群 ID、稳定发送人 ID 和文档族执行本地三重门禁。`auth status` 或任一门禁失败即关闭。运行容器不接收 AppSecret；AppKey/AppSecret 不能单独建立该登录态，禁止把本机、既有 KMFA 服务或其他 Skill 的 DWS profile 复制进来。
 
 ## 原始证据写入边界
 

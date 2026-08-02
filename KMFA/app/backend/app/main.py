@@ -11,11 +11,12 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import tempfile
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from html import escape as html_escape
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 from pathlib import Path
 from typing import Any
 
@@ -2533,6 +2534,14 @@ DAILY_FUNDS_PUBLICATION_DIR = Path(os.environ.get(
     "DAILY_FUNDS_PUBLICATION_DIR", "/var/lib/kmfa/daily-funds"))
 DAILY_FUNDS_CONTROL_DIR = Path(os.environ.get(
     "DAILY_FUNDS_CONTROL_DIR", "/var/lib/kmfa/daily-funds-control"))
+DAILY_FUNDS_AUTH_REQUEST_SCHEMA = "kmfa.daily_funds.dws_auth_request.v1"
+DAILY_FUNDS_AUTH_SESSION_SCHEMA = "kmfa.daily_funds.dws_auth_session.v1"
+DAILY_FUNDS_AUTH_REQUEST_FILE = "dws_auth_request.json"
+DAILY_FUNDS_AUTH_SESSION_FILE = "dws_auth_session.json"
+DAILY_FUNDS_AUTH_ACTOR = "kmfa_private_owner_ui"
+DAILY_FUNDS_AUTH_LIVE_STATES = {"REQUESTED", "AWAITING_APPROVAL", "CANCELLING"}
+DAILY_FUNDS_AUTH_TERMINAL_STATES = {"SUCCEEDED", "FAILED", "EXPIRED", "CANCELLED"}
+DAILY_FUNDS_AUTH_CODE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{2,63}$")
 DAILY_FUNDS_ALLOWED_RANGES = {"1d": 1, "7d": 7, "30d": 30, "90d": 90, "180d": 180, "360d": 360}
 DAILY_FUNDS_HUMAN_STATUSES = {"已更新", "处理中", "需处理"}
 # This is an operational enum, not a failure code.  In particular, ``OK`` is
@@ -3680,6 +3689,317 @@ def daily_funds_transactions(page: int = 1, size: int = 100):
 @app.get("/api/daily-funds/source-health")
 def daily_funds_source_health():
     return _daily_funds_source_health_view()
+
+
+def _daily_funds_auth_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str) or len(value) > 40:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else None
+
+
+def _daily_funds_auth_iso(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _daily_funds_auth_code(value: object) -> str:
+    token = "".join(
+        character
+        for character in str(value or "UNKNOWN").strip().upper()
+        if character.isascii() and (character.isupper() or character.isdigit() or character == "_")
+    )
+    return token[:80] or "UNKNOWN"
+
+
+def _daily_funds_auth_url(value: object) -> str | None:
+    if not isinstance(value, str) or not value or len(value) > 2_048:
+        return None
+    try:
+        parsed = urlsplit(value)
+        hostname = (parsed.hostname or "").lower()
+    except ValueError:
+        return None
+    if (
+        parsed.scheme != "https"
+        or not hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or not (hostname == "dingtalk.com" or hostname.endswith(".dingtalk.com")
+                or hostname == "dingtalk.cn" or hostname.endswith(".dingtalk.cn"))
+    ):
+        return None
+    return value
+
+
+def _daily_funds_auth_control_path(name: str) -> Path:
+    if name not in {DAILY_FUNDS_AUTH_REQUEST_FILE, DAILY_FUNDS_AUTH_SESSION_FILE}:
+        raise ValueError("daily funds auth control filename invalid")
+    root = DAILY_FUNDS_CONTROL_DIR.resolve()
+    target = (root / name).resolve()
+    if target.parent != root:
+        raise ValueError("daily funds auth control path invalid")
+    return target
+
+
+def _daily_funds_auth_read_object(name: str) -> dict[str, Any] | None:
+    try:
+        target = _daily_funds_auth_control_path(name)
+    except (OSError, ValueError):
+        return None
+    if target.is_symlink() or not target.is_file():
+        return None
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _daily_funds_auth_read_request(now: datetime) -> dict[str, Any] | None:
+    payload = _daily_funds_auth_read_object(DAILY_FUNDS_AUTH_REQUEST_FILE)
+    if not isinstance(payload, dict) or set(payload) != {
+        "schema_version", "request_id", "action", "actor", "requested_at", "expires_at",
+    }:
+        return None
+    request_id = payload.get("request_id")
+    action = payload.get("action")
+    requested_at = _daily_funds_auth_timestamp(payload.get("requested_at"))
+    expires_at = _daily_funds_auth_timestamp(payload.get("expires_at"))
+    if (
+        payload.get("schema_version") != DAILY_FUNDS_AUTH_REQUEST_SCHEMA
+        or not isinstance(request_id, str)
+        or re.fullmatch(r"[0-9a-f]{64}", request_id) is None
+        or action not in {"START", "CANCEL"}
+        or payload.get("actor") != DAILY_FUNDS_AUTH_ACTOR
+        or requested_at is None
+        or expires_at is None
+        or expires_at <= requested_at
+        or (expires_at - requested_at).total_seconds() > 660
+    ):
+        return None
+    return {
+        "request_id": request_id,
+        "action": action,
+        "requested_at": requested_at,
+        "expires_at": expires_at,
+        "expired": expires_at.astimezone(timezone.utc) <= now.astimezone(timezone.utc),
+    }
+
+
+def _daily_funds_auth_read_session(now: datetime) -> dict[str, Any] | None:
+    payload = _daily_funds_auth_read_object(DAILY_FUNDS_AUTH_SESSION_FILE)
+    if not isinstance(payload, dict) or set(payload) != {
+        "schema_version", "request_id", "state", "machine_code", "created_at", "updated_at", "expires_at",
+        "authorization_url", "user_code",
+    }:
+        return None
+    request_id = payload.get("request_id")
+    state = payload.get("state")
+    created_at = _daily_funds_auth_timestamp(payload.get("created_at"))
+    updated_at = _daily_funds_auth_timestamp(payload.get("updated_at"))
+    expires_at = _daily_funds_auth_timestamp(payload.get("expires_at"))
+    if (
+        payload.get("schema_version") != DAILY_FUNDS_AUTH_SESSION_SCHEMA
+        or not isinstance(request_id, str)
+        or re.fullmatch(r"[0-9a-f]{64}", request_id) is None
+        or state not in DAILY_FUNDS_AUTH_LIVE_STATES | DAILY_FUNDS_AUTH_TERMINAL_STATES
+        or created_at is None
+        or updated_at is None
+        or expires_at is None
+    ):
+        return None
+    authorization_url = _daily_funds_auth_url(payload.get("authorization_url"))
+    user_code = payload.get("user_code")
+    if state == "AWAITING_APPROVAL":
+        if authorization_url is None or not isinstance(user_code, str) or DAILY_FUNDS_AUTH_CODE_RE.fullmatch(user_code) is None:
+            return None
+    elif authorization_url is not None or user_code is not None:
+        return None
+    if state in DAILY_FUNDS_AUTH_LIVE_STATES and expires_at.astimezone(timezone.utc) <= now.astimezone(timezone.utc):
+        return {
+            "state": "EXPIRED",
+            "machine_code": "DWS_AUTH_BOOTSTRAP_EXPIRED",
+            "updated_at": _daily_funds_auth_iso(now),
+            "expires_at": _daily_funds_auth_iso(expires_at),
+            "authorization_url": None,
+            "user_code": None,
+        }
+    return {
+        "state": state,
+        "machine_code": _daily_funds_auth_code(payload.get("machine_code")),
+        "updated_at": _daily_funds_auth_iso(updated_at),
+        "expires_at": _daily_funds_auth_iso(expires_at),
+        "authorization_url": authorization_url if state == "AWAITING_APPROVAL" else None,
+        "user_code": user_code if state == "AWAITING_APPROVAL" else None,
+    }
+
+
+def _daily_funds_auth_write_request(payload: dict[str, Any]) -> None:
+    DAILY_FUNDS_CONTROL_DIR.mkdir(parents=True, exist_ok=True)
+    target = _daily_funds_auth_control_path(DAILY_FUNDS_AUTH_REQUEST_FILE)
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=DAILY_FUNDS_CONTROL_DIR, delete=False) as handle:
+        json.dump(payload, handle, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        handle.write("\n")
+        temporary = Path(handle.name)
+    try:
+        os.replace(temporary, target)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def _daily_funds_auth_same_origin(request: Request) -> bool:
+    origin = request.headers.get("origin", "").strip()
+    host = request.headers.get("host", "").strip().lower()
+    if not origin or not host:
+        return False
+    try:
+        parsed = urlsplit(origin)
+    except ValueError:
+        return False
+    return parsed.scheme in {"https", "http"} and parsed.netloc.lower() == host
+
+
+def _daily_funds_auth_response(payload: dict[str, Any], *, status_code: int = 200) -> JSONResponse:
+    return JSONResponse(
+        payload,
+        status_code=status_code,
+        headers={
+            "Cache-Control": "private, no-store",
+            "Pragma": "no-cache",
+            "X-Robots-Tag": "noindex, nofollow, noarchive",
+        },
+    )
+
+
+@app.get("/ops/api/daily-funds/auth-session")
+def daily_funds_auth_session():
+    """Read only the short-lived owner-facing device authorization state."""
+
+    now = datetime.now(timezone.utc)
+    # A cancellation request must win over a stale AWAITING_APPROVAL record.
+    # The broker sees the shared-volume request asynchronously; returning the
+    # old prompt in that small interval would keep a device code visible after
+    # the owner explicitly chose to revoke it.
+    request = _daily_funds_auth_read_request(now)
+    if request is not None and not request["expired"] and request["action"] == "CANCEL":
+        return _daily_funds_auth_response({
+            "state": "CANCELLING",
+            "machine_code": "DWS_AUTH_BOOTSTRAP_CANCELLING",
+            "updated_at": _daily_funds_auth_iso(now),
+            "expires_at": _daily_funds_auth_iso(request["expires_at"]),
+            "authorization_url": None,
+            "user_code": None,
+        })
+    session = _daily_funds_auth_read_session(now)
+    if session is not None:
+        return _daily_funds_auth_response(session)
+    if request is not None and not request["expired"]:
+        return _daily_funds_auth_response({
+            "state": "REQUESTED",
+            "machine_code": "DWS_AUTH_BOOTSTRAP_STARTING",
+            "updated_at": _daily_funds_auth_iso(now),
+            "expires_at": _daily_funds_auth_iso(request["expires_at"]),
+            "authorization_url": None,
+            "user_code": None,
+        })
+    return _daily_funds_auth_response({
+        "state": "NOT_REQUESTED",
+        "machine_code": "DWS_BOOTSTRAP_REQUIRED",
+        "updated_at": _daily_funds_auth_iso(now),
+        "expires_at": None,
+        "authorization_url": None,
+        "user_code": None,
+    })
+
+
+@app.post("/ops/api/daily-funds/auth-session")
+def start_daily_funds_auth_session(request: Request):
+    """Queue exactly one Access-gated DWS device authorization; never a shell command."""
+
+    if not _daily_funds_auth_same_origin(request):
+        raise HTTPException(status_code=403, detail="daily_funds_auth_same_origin_required")
+    now = datetime.now(timezone.utc)
+    existing = _daily_funds_auth_read_session(now)
+    pending = _daily_funds_auth_read_request(now)
+    if (
+        (existing is not None and existing["state"] in DAILY_FUNDS_AUTH_LIVE_STATES)
+        or (pending is not None and not pending["expired"])
+    ):
+        raise HTTPException(status_code=409, detail="daily_funds_auth_already_pending")
+    expires_at = now + timedelta(minutes=10)
+    payload = {
+        "schema_version": DAILY_FUNDS_AUTH_REQUEST_SCHEMA,
+        "request_id": secrets.token_hex(32),
+        "action": "START",
+        "actor": DAILY_FUNDS_AUTH_ACTOR,
+        "requested_at": _daily_funds_auth_iso(now),
+        "expires_at": _daily_funds_auth_iso(expires_at),
+    }
+    try:
+        _daily_funds_auth_write_request(payload)
+    except OSError as exc:
+        raise HTTPException(status_code=503, detail="daily_funds_auth_control_unavailable") from exc
+    return _daily_funds_auth_response({
+        "state": "REQUESTED",
+        "machine_code": "DWS_AUTH_BOOTSTRAP_STARTING",
+        "updated_at": _daily_funds_auth_iso(now),
+        "expires_at": _daily_funds_auth_iso(expires_at),
+        "authorization_url": None,
+        "user_code": None,
+    }, status_code=202)
+
+
+@app.delete("/ops/api/daily-funds/auth-session")
+def cancel_daily_funds_auth_session(request: Request):
+    """Cancel the one permitted device authorization and wipe its UI prompt."""
+
+    if not _daily_funds_auth_same_origin(request):
+        raise HTTPException(status_code=403, detail="daily_funds_auth_same_origin_required")
+    now = datetime.now(timezone.utc)
+    session = _daily_funds_auth_read_session(now)
+    pending = _daily_funds_auth_read_request(now)
+    request_id: str | None = None
+    if session is not None and session["state"] in DAILY_FUNDS_AUTH_LIVE_STATES:
+        raw = _daily_funds_auth_read_object(DAILY_FUNDS_AUTH_SESSION_FILE) or {}
+        candidate = raw.get("request_id")
+        if isinstance(candidate, str) and re.fullmatch(r"[0-9a-f]{64}", candidate):
+            request_id = candidate
+    if request_id is None and pending is not None and not pending["expired"]:
+        request_id = str(pending["request_id"])
+    if request_id is None:
+        return _daily_funds_auth_response({
+            "state": "NOT_REQUESTED",
+            "machine_code": "DWS_BOOTSTRAP_REQUIRED",
+            "updated_at": _daily_funds_auth_iso(now),
+            "expires_at": None,
+            "authorization_url": None,
+            "user_code": None,
+        })
+    expires_at = now + timedelta(minutes=2)
+    payload = {
+        "schema_version": DAILY_FUNDS_AUTH_REQUEST_SCHEMA,
+        "request_id": request_id,
+        "action": "CANCEL",
+        "actor": DAILY_FUNDS_AUTH_ACTOR,
+        "requested_at": _daily_funds_auth_iso(now),
+        "expires_at": _daily_funds_auth_iso(expires_at),
+    }
+    try:
+        _daily_funds_auth_write_request(payload)
+    except OSError as exc:
+        raise HTTPException(status_code=503, detail="daily_funds_auth_control_unavailable") from exc
+    return _daily_funds_auth_response({
+        "state": "CANCELLING",
+        "machine_code": "DWS_AUTH_BOOTSTRAP_CANCELLING",
+        "updated_at": _daily_funds_auth_iso(now),
+        "expires_at": _daily_funds_auth_iso(expires_at),
+        "authorization_url": None,
+        "user_code": None,
+    }, status_code=202)
 
 
 def _read_daily_funds_control() -> dict[str, Any] | None:

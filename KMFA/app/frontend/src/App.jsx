@@ -1799,12 +1799,13 @@ const 阈值控制话 = value => {
   return value.mode === 'disabled' ? '已停用' : '未验证'
 }
 
-function 每日资金({ 摘要, 时序, 来源, 阈值, 范围, 设范围, 自定义, 设自定义, 刷新 }) {
+function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 范围, 设范围, 自定义, 设自定义, 刷新 }) {
   const [阈值模式, 设阈值模式] = useState('numeric')
   const [阈值金额, 设阈值金额] = useState('')
   const [阈值日期, 设阈值日期] = useState({ from: '', to: '' })
   const [阈值原因, 设阈值原因] = useState('')
   const [阈值提交, 设阈值提交] = useState(null)
+  const [授权提交, 设授权提交] = useState(null)
   const 主状态 = ['已更新', '处理中', '需处理'].includes(来源?.human_status) ? 来源.human_status : '需处理'
   const 状态色 = 主状态 === '需处理' ? 'bad' : 主状态 === '处理中' ? 'warn' : 'ok'
   const 取不到 = 摘要?.加载失败 || 时序?.加载失败
@@ -1914,12 +1915,61 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 范围, 设范围, 自�
       设阈值提交({ ok: false, text: `提交失败：${error.message || '未知错误'}` })
     }
   }
+  const 授权状态 = ['NOT_REQUESTED', 'REQUESTED', 'AWAITING_APPROVAL', 'CANCELLING', 'SUCCEEDED', 'FAILED', 'EXPIRED', 'CANCELLED'].includes(认证?.state)
+    ? 认证.state : 'NOT_REQUESTED'
+  const 授权进行中 = ['REQUESTED', 'AWAITING_APPROVAL', 'CANCELLING'].includes(授权状态)
+  const 发起钉钉授权 = async () => {
+    设授权提交(null)
+    try {
+      const response = await fetch('/ops/api/daily-funds/auth-session', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.detail || `HTTP ${response.status}`)
+      设授权提交({ ok: true, text: '已在每日资金专用云端卷发起一次授权请求，正在生成钉钉确认页。' })
+      刷新()
+    } catch (error) {
+      设授权提交({ ok: false, text: `发起失败：${error.message || '未知错误'}` })
+    }
+  }
+  const 取消钉钉授权 = async () => {
+    设授权提交(null)
+    try {
+      const response = await fetch('/ops/api/daily-funds/auth-session', { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.detail || `HTTP ${response.status}`)
+      设授权提交({ ok: true, text: '已请求撤销本次授权码；页面不会再保留授权码。' })
+      刷新()
+    } catch (error) {
+      设授权提交({ ok: false, text: `撤销失败：${error.message || '未知错误'}` })
+    }
+  }
   return (
     <>
       <div className={`card callout ${主状态 === '已更新' ? '' : 状态色}`}>
         <b>运行状态：<span className={`chip ${状态色}`}>{主状态}</span></b>
         <div className="sub">数据日期：{来源?.effective_business_date || 摘要?.publication?.business_date || '未验证'}｜最后验证：{来源?.last_verified_at || 摘要?.publication?.created_at || '未验证'}｜证据版本：{来源?.evidence_version || 摘要?.publication?.evidence_version || '未验证'}</div>
         <div className="sub">{来源?.message || '页面只展示已验证 publication；没有可信结果时明确提示需处理。'}</div>
+      </div>
+
+      <div className={`card callout ${授权状态 === 'SUCCEEDED' ? '' : 授权状态 === 'AWAITING_APPROVAL' ? 'warn' : 授权状态 === 'FAILED' ? 'bad' : ''}`} style={{ marginTop: 14 }}>
+        <b>钉钉采集授权：<span className={`chip ${授权状态 === 'SUCCEEDED' ? 'ok' : 授权状态 === 'AWAITING_APPROVAL' ? 'warn' : 授权状态 === 'FAILED' ? 'bad' : 'muted'}`}>{授权状态 === 'SUCCEEDED' ? '已完成' : 授权状态 === 'AWAITING_APPROVAL' ? '等待确认' : 授权状态 === 'REQUESTED' || 授权状态 === 'CANCELLING' ? '处理中' : '未完成'}</span></b>
+        {授权状态 === 'NOT_REQUESTED' && <div className="sub">仅对“每日资金”独立云端 DWS 卷发起一次设备授权；不会读取本机、其他 Skill 或现有钉钉登录态。</div>}
+        {授权状态 === 'REQUESTED' && <div className="sub">云端正在生成一次性钉钉确认页；本页会自动刷新。</div>}
+        {授权状态 === 'AWAITING_APPROVAL' && <div className="sub">请用张霖泽的钉钉账号完成一次确认。确认码不写入日志、状态或 Git，到期/撤销后立即清除。</div>}
+        {授权状态 === 'CANCELLING' && <div className="sub">正在撤销本次设备授权并清除临时确认码。</div>}
+        {授权状态 === 'SUCCEEDED' && <div className="sub">授权已写入每日资金专用云端卷；后续仅由该切片的 15 分钟历史轮询使用。真实来源、附件和发布链仍需各自通过。</div>}
+        {['FAILED', 'EXPIRED', 'CANCELLED'].includes(授权状态) && <div className="sub">本次授权未完成（{认证?.machine_code || 'UNKNOWN'}）；可重新发起，不会复用旧码或旧登录态。</div>}
+        {授权状态 === 'AWAITING_APPROVAL' && <div className="toolbar" style={{ marginTop: 10 }}>
+          <a className="btn active" href={认证.authorization_url} target="_blank" rel="noreferrer noopener">在钉钉中确认</a>
+          <code aria-label="钉钉授权码">{认证.user_code}</code>
+          <button type="button" className="btn" onClick={取消钉钉授权}>撤销本次授权</button>
+        </div>}
+        {!授权进行中 && 授权状态 !== 'SUCCEEDED' && <div className="toolbar" style={{ marginTop: 10 }}>
+          <button type="button" className="btn active" onClick={发起钉钉授权}>连接张霖泽的钉钉</button>
+        </div>}
+        {授权进行中 && 授权状态 !== 'AWAITING_APPROVAL' && <div className="toolbar" style={{ marginTop: 10 }}>
+          <button type="button" className="btn" onClick={取消钉钉授权}>撤销本次授权</button>
+        </div>}
+        {授权提交 && <div className={`alert ${授权提交.ok ? 'ok' : 'bad'}`} role="status">{授权提交.text}</div>}
       </div>
 
       <div className="grid" style={{ marginTop: 14 }}>
@@ -2081,6 +2131,7 @@ export default function App() {
   const [资金时序, set资金时序] = useState(null)
   const [资金来源, set资金来源] = useState(null)
   const [资金阈值, set资金阈值] = useState(null)
+  const [资金认证, set资金认证] = useState(null)
   const [资金范围状态, set资金范围] = useState('30d')
   const [资金自定义, set资金自定义] = useState({ from: '', to: '' })
   // 每日资金是独立的私有纵向切片。若深链直接进入它，不能先把二十多条
@@ -2139,6 +2190,7 @@ export default function App() {
     取(`/ops/api/daily-funds/timeseries${查询}`, set资金时序)
     取('/ops/api/daily-funds/source-health', set资金来源)
     取('/ops/api/daily-funds/thresholds', set资金阈值)
+    取('/ops/api/daily-funds/auth-session', set资金认证)
   }
   useEffect(() => {
     if (页 === '每日资金' || 通用数据已请求.current) return
@@ -2171,6 +2223,15 @@ export default function App() {
   useEffect(() => {
     if (页 === '每日资金') 取每日资金()
   }, [页, 资金范围状态])
+
+  // Device authorization is deliberately a short, owner-visible operation.
+  // Poll only while it is live; a completed/idle daily-funds page keeps the
+  // original one-shot projection request footprint.
+  useEffect(() => {
+    if (页 !== '每日资金' || !['REQUESTED', 'AWAITING_APPROVAL', 'CANCELLING'].includes(资金认证?.state)) return undefined
+    const timer = window.setInterval(() => 取('/ops/api/daily-funds/auth-session', set资金认证), 2000)
+    return () => window.clearInterval(timer)
+  }, [页, 资金认证?.state])
 
   const 去 = (p, 断言id) => { set拍板跳转(断言id ?? null); set页(p) }
 
@@ -2249,7 +2310,7 @@ export default function App() {
             {页 === '回款与账龄' && <回款与账龄 账龄={账龄} />}
             {页 === '开票与税务' && <开票与税务 开票={开票} />}
             {页 === '每日资金' && <每日资金 摘要={资金摘要} 时序={资金时序} 来源={资金来源} 阈值={资金阈值}
-              范围={资金范围状态} 设范围={set资金范围} 自定义={资金自定义} 设自定义={set资金自定义} 刷新={取每日资金} />}
+              认证={资金认证} 范围={资金范围状态} 设范围={set资金范围} 自定义={资金自定义} 设自定义={set资金自定义} 刷新={取每日资金} />}
             {页 === '今天' && <>
               <h3 className="sec">上游归档目标群</h3>
               <目标群 群={目标群数据} 刷新={取群} />

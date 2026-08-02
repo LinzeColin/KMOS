@@ -1273,6 +1273,9 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_frozen_cadence() -> Non
     entrypoint = (ROOT / "entrypoint.sh").read_text(encoding="utf-8")
     assert "CRON_ENV_FILE=\"$STATE_DIR/cron.env\"" in entrypoint
     assert "chmod 0600 \"$CRON_ENV_FILE\"" in entrypoint
+    assert "run_auth_broker.py >/dev/null 2>&1" in entrypoint
+    assert "AUTH_BROKER_PID" in entrypoint
+    assert "run_auth_broker.py" not in cron
     wrapper_text = (ROOT / "scripts" / "run_cron_job.sh").read_text(encoding="utf-8")
     assert command in wrapper_text
     assert '. "$CRON_ENV_FILE"' in wrapper_text

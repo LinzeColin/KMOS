@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -12,6 +13,10 @@ from app.main import app
 
 
 client = TestClient(app)
+
+
+def _same_origin_headers() -> dict[str, str]:
+    return {"Origin": "http://testserver", "Host": "testserver"}
 
 
 def _write_projection(root: Path) -> None:
@@ -201,6 +206,64 @@ def _write_projection(root: Path) -> None:
     (root / "current.json").write_text(json.dumps(current), encoding="utf-8")
     (root / "status.json").write_text(json.dumps(status), encoding="utf-8")
     (root / "flow_state.json").write_text(json.dumps(flow_state), encoding="utf-8")
+
+
+def test_daily_funds_auth_session_is_access_api_only_and_never_enters_source_projection(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    control = tmp_path / "control"
+    _write_projection(publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_CONTROL_DIR", control)
+
+    initial = client.get("/ops/api/daily-funds/auth-session")
+    assert initial.status_code == 200
+    assert initial.json()["state"] == "NOT_REQUESTED"
+    assert initial.headers["cache-control"] == "private, no-store"
+    assert client.post("/ops/api/daily-funds/auth-session").status_code == 403
+
+    started = client.post("/ops/api/daily-funds/auth-session", headers=_same_origin_headers())
+    assert started.status_code == 202
+    assert started.json() == {
+        "state": "REQUESTED",
+        "machine_code": "DWS_AUTH_BOOTSTRAP_STARTING",
+        "updated_at": started.json()["updated_at"],
+        "expires_at": started.json()["expires_at"],
+        "authorization_url": None,
+        "user_code": None,
+    }
+    request = json.loads((control / "dws_auth_request.json").read_text(encoding="utf-8"))
+    assert set(request) == {"schema_version", "request_id", "action", "actor", "requested_at", "expires_at"}
+    assert request["action"] == "START"
+    assert "token" not in json.dumps(request).lower()
+
+    now = datetime.now(timezone.utc)
+    (control / "dws_auth_session.json").write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.dws_auth_session.v1",
+        "request_id": request["request_id"],
+        "state": "AWAITING_APPROVAL",
+        "machine_code": "DWS_AUTH_WAITING_OWNER",
+        "created_at": now.isoformat().replace("+00:00", "Z"),
+        "updated_at": now.isoformat().replace("+00:00", "Z"),
+        "expires_at": (now + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+        "authorization_url": "https://login.dingtalk.com/device?userCode=ABCD-EFGH",
+        "user_code": "ABCD-EFGH",
+    }), encoding="utf-8")
+    waiting = client.get("/ops/api/daily-funds/auth-session")
+    assert waiting.status_code == 200
+    assert waiting.json()["state"] == "AWAITING_APPROVAL"
+    assert waiting.json()["user_code"] == "ABCD-EFGH"
+    assert waiting.headers["cache-control"] == "private, no-store"
+    source_health = client.get("/ops/api/daily-funds/source-health")
+    assert "ABCD-EFGH" not in source_health.text
+
+    cancelled = client.delete("/ops/api/daily-funds/auth-session", headers=_same_origin_headers())
+    assert cancelled.status_code == 202
+    assert cancelled.json()["state"] == "CANCELLING"
+    assert cancelled.json()["user_code"] is None
+    cancel_request = json.loads((control / "dws_auth_request.json").read_text(encoding="utf-8"))
+    assert cancel_request["action"] == "CANCEL"
+    assert cancel_request["request_id"] == request["request_id"]
+    assert client.get("/ops/api/daily-funds/auth-session").json()["state"] == "CANCELLING"
 
 
 def test_private_daily_funds_projection_range_and_no_raw_leak(tmp_path, monkeypatch):

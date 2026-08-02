@@ -12,15 +12,18 @@ import base64
 import json
 import os
 import re
+import select
 import shlex
 import shutil
 import subprocess
 import tempfile
+import time
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping, Sequence
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from .config import DailyFundsConfig
@@ -34,6 +37,12 @@ DIRECT_BLOB_MAX_BYTES = 94_371_840
 CHUNK_BYTES = 48 * 1024 * 1024
 ALLOWED_SUFFIXES = frozenset({".csv", ".txt", ".xlsx", ".xlsm"})
 _MEDIA_ID_RE = re.compile(r"mediaId=([^\)\s]+)")
+_ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+_DEVICE_CODE_RE = re.compile(
+    r"(?:user[ _-]?code|授权码)\s*[:：]\s*([A-Za-z0-9][A-Za-z0-9-]{2,63})",
+    re.IGNORECASE,
+)
+_DEVICE_URL_RE = re.compile(r"https://[^\s<>\"']+", re.IGNORECASE)
 
 
 class IngestionError(RuntimeError):
@@ -53,6 +62,20 @@ class DwsPage:
 class DwsAuthStatus:
     authenticated: bool
     refresh_token_valid: bool
+
+
+@dataclass(frozen=True)
+class DwsDevicePrompt:
+    """The short-lived, owner-visible half of a DWS device authorization.
+
+    This is deliberately *not* a token, refresh credential, group identifier,
+    or durable status record.  The auth broker holds it only in its private
+    control hand-off long enough for the Access-protected owner UI to display
+    it.  It must never be sent to a cron log or a publication/status surface.
+    """
+
+    authorization_url: str
+    user_code: str
 
 
 @dataclass(frozen=True)
@@ -176,6 +199,64 @@ def _dws_history_failure_code(*values: object, fallback: str = "DWS_HISTORY_FAIL
     if any(token in text for token in ("parameter", "argument", "invalid", "参数")):
         return "DWS_HISTORY_ARGUMENT_INVALID"
     return fallback
+
+
+def _strip_dws_terminal_style(value: str) -> str:
+    """Remove only ANSI terminal decoration before parsing a device prompt."""
+
+    return _ANSI_ESCAPE_RE.sub("", value)
+
+
+def _trusted_dws_authorization_url(value: str) -> str | None:
+    """Accept only an HTTPS DingTalk authorization URL from the pinned CLI.
+
+    The control-plane consumer renders this as an owner-clickable link.  A
+    malformed or unexpected URL must not turn a CLI-output parsing regression
+    into an open redirect from the protected KMFA page.
+    """
+
+    candidate = value.rstrip(".,;:)]}")
+    try:
+        parsed = urlsplit(candidate)
+        hostname = (parsed.hostname or "").lower()
+    except ValueError:
+        return None
+    if (
+        parsed.scheme != "https"
+        or not hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or not (hostname == "dingtalk.com" or hostname.endswith(".dingtalk.com")
+                or hostname == "dingtalk.cn" or hostname.endswith(".dingtalk.cn"))
+        or len(candidate) > 2_048
+    ):
+        return None
+    return candidate
+
+
+def _parse_dws_device_prompt(output: str) -> DwsDevicePrompt | None:
+    """Extract the device-flow prompt emitted by DWS without retaining output.
+
+    DWS v1.0.52 renders ``链接: <verificationUri>`` and
+    ``授权码: <userCode>`` to its device-flow output stream.  A complete URI is
+    rendered afterwards when available, so the last trusted URL is preferred:
+    that lets the owner open it directly instead of copying a code.  This
+    parser intentionally returns no diagnostic text on mismatch; command
+    output could contain OAuth, identity, or upstream error material.
+    """
+
+    clean = _strip_dws_terminal_style(output)
+    code_match = _DEVICE_CODE_RE.search(clean)
+    if code_match is None:
+        return None
+    urls = [
+        trusted
+        for match in _DEVICE_URL_RE.finditer(clean)
+        if (trusted := _trusted_dws_authorization_url(match.group(0))) is not None
+    ]
+    if not urls:
+        return None
+    return DwsDevicePrompt(authorization_url=urls[-1], user_code=code_match.group(1))
 
 
 def _unwrap_dws_history_payload(payload: object) -> object:
@@ -432,6 +513,133 @@ class DwsHistoryClient:
             raise IngestionError("DWS_AUTH_REQUIRED")
         self._auth_ready = True
         self._record_network_event("AUTH_BOOTSTRAP", "OK")
+
+    def bootstrap_device_auth_with_prompt(
+        self,
+        prompt_sink: Callable[[DwsDevicePrompt], None],
+        *,
+        cancel_requested: Callable[[], bool],
+        max_wait_seconds: int = 660,
+    ) -> str:
+        """Run one cloud-only device flow and surface only its short-lived prompt.
+
+        The normal bootstrap command keeps stdout/stderr attached to an
+        operator terminal.  The Access-protected broker has no terminal, so
+        it captures that stream in memory, extracts only the official
+        ``verificationUri``/``userCode`` prompt, and discards the rest.  It
+        never writes raw CLI output to a file, journal, status projection, or
+        cron log.  ``cancel_requested`` is checked at sub-second cadence so a
+        stale owner request cannot keep a device flow alive in the background.
+        """
+
+        if max_wait_seconds < 60 or max_wait_seconds > 900:
+            raise IngestionError("DWS_AUTH_BOOTSTRAP_TIMEOUT_INVALID")
+        self.config.validate_dws_bootstrap()
+        if cancel_requested():
+            raise IngestionError("DWS_AUTH_BOOTSTRAP_CANCELLED")
+        status = self._auth_status()
+        if status.authenticated and status.refresh_token_valid:
+            self._auth_ready = True
+            self._record_network_event("AUTH_BOOTSTRAP", "ALREADY_READY")
+            return "ALREADY_READY"
+
+        self._record_network_event("AUTH_BOOTSTRAP", "STARTED")
+        command = [
+            self.config.dws_bin,
+            "auth",
+            "login",
+            "--device",
+            "--no-browser",
+            "--yes",
+            "--format",
+            "json",
+        ]
+        try:
+            process = subprocess.Popen(
+                command,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                env=self._environment(),
+            )
+        except OSError as exc:
+            self._record_network_event("AUTH_BOOTSTRAP", "UNAVAILABLE")
+            raise IngestionError("DWS_AUTH_BOOTSTRAP_UNAVAILABLE") from exc
+
+        started = time.monotonic()
+        transcript = ""
+        emitted: tuple[str, str] | None = None
+
+        def absorb(value: str) -> None:
+            nonlocal transcript, emitted
+            if not value:
+                return
+            # Keep only a small rolling parse buffer in memory.  It is never
+            # persisted, logged, raised, or returned to the caller.
+            transcript = (transcript + _strip_dws_terminal_style(value))[-12_288:]
+            prompt = _parse_dws_device_prompt(transcript)
+            if prompt is None:
+                return
+            marker = (prompt.authorization_url, prompt.user_code)
+            if marker != emitted:
+                prompt_sink(prompt)
+                emitted = marker
+
+        def stop_process() -> None:
+            if process.poll() is not None:
+                return
+            try:
+                process.terminate()
+                process.wait(timeout=5)
+            except (OSError, subprocess.TimeoutExpired):
+                try:
+                    process.kill()
+                    process.wait(timeout=5)
+                except (OSError, subprocess.TimeoutExpired):
+                    pass
+
+        try:
+            while process.poll() is None:
+                if cancel_requested():
+                    stop_process()
+                    self._record_network_event("AUTH_BOOTSTRAP", "CANCELLED")
+                    raise IngestionError("DWS_AUTH_BOOTSTRAP_CANCELLED")
+                if time.monotonic() - started >= max_wait_seconds:
+                    stop_process()
+                    self._record_network_event("AUTH_BOOTSTRAP", "EXPIRED")
+                    raise IngestionError("DWS_AUTH_BOOTSTRAP_EXPIRED")
+                if process.stdout is None:
+                    stop_process()
+                    self._record_network_event("AUTH_BOOTSTRAP", "FAILED")
+                    raise IngestionError("DWS_AUTH_BOOTSTRAP_OUTPUT_UNAVAILABLE")
+                ready, _, _ = select.select([process.stdout], [], [], 0.25)
+                if ready:
+                    absorb(process.stdout.readline())
+            if process.stdout is not None:
+                try:
+                    remaining, _ = process.communicate(timeout=2)
+                except subprocess.TimeoutExpired:
+                    stop_process()
+                    self._record_network_event("AUTH_BOOTSTRAP", "FAILED")
+                    raise IngestionError("DWS_AUTH_BOOTSTRAP_OUTPUT_UNAVAILABLE")
+                absorb(remaining)
+            if process.returncode != 0:
+                self._record_network_event("AUTH_BOOTSTRAP", "FAILED")
+                raise IngestionError("DWS_AUTH_BOOTSTRAP_FAILED")
+        finally:
+            # A failed parser or cancellation must never leave a live DWS
+            # child behind after the broker loop moves on to another request.
+            stop_process()
+
+        status = self._auth_status()
+        if not (status.authenticated and status.refresh_token_valid):
+            self._record_network_event("AUTH_BOOTSTRAP", "AUTH_REQUIRED")
+            raise IngestionError("DWS_AUTH_REQUIRED")
+        self._auth_ready = True
+        self._record_network_event("AUTH_BOOTSTRAP", "OK")
+        return "OK"
 
     def ensure_authenticated(self) -> None:
         """Establish only this slice's portable DWS auth state, fail closed."""
