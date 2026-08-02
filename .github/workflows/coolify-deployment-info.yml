@@ -18,6 +18,11 @@ on:
         required: false
         default: false
         type: boolean
+      application_uuid:
+        description: "可选的 Coolify application uuid；仅诊断资源目录与 Compose 接线"
+        required: false
+        default: ""
+        type: string
 
 jobs:
   info:
@@ -31,6 +36,7 @@ jobs:
           TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
           UUID: ${{ inputs.deployment_uuid }}
           DIAGNOSTIC: ${{ inputs.diagnostic }}
+          APPLICATION_UUID: ${{ inputs.application_uuid }}
         run: |
           set -euo pipefail
           # 响应含全量构建日志（数 MB）：环境变量会撞 execve 上限（二跑实测 Argument list
@@ -40,7 +46,9 @@ jobs:
           # mode may read the resource configuration only to classify its base
           # directory and compose-file wiring; it never prints raw configuration.
           if [ "${DIAGNOSTIC:-false}" = "true" ]; then
-            APP_UUID="$(python3 - <<'PY'
+            APP_UUID="${APPLICATION_UUID:-}"
+            if [ -z "$APP_UUID" ]; then
+              APP_UUID="$(python3 - <<'PY'
           import json
           import os
           d = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "resp.json"), encoding="utf-8"))
@@ -49,7 +57,8 @@ jobs:
               d = arr[0] if arr else {}
           print(d.get("resource_uuid") or d.get("application_uuid") or "")
           PY
-            )"
+              )"
+            fi
             if [ -n "$APP_UUID" ]; then
               curl -fsSL -H "Authorization: Bearer $TOKEN" \
                 "$BASE/api/v1/applications/$APP_UUID" -o "$RUNNER_TEMP/application.json" || true
@@ -129,7 +138,10 @@ jobs:
               app = {}
               app_origin = "UNAVAILABLE"
               target_resource_uuid = str(
-                  d.get("resource_uuid") or d.get("application_uuid") or ""
+                  os.environ.get("APPLICATION_UUID")
+                  or d.get("resource_uuid")
+                  or d.get("application_uuid")
+                  or ""
               )
               try:
                   if os.path.exists(app_path):
