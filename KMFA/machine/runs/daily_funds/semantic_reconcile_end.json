@@ -1,7 +1,7 @@
 {
   "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
   "stage": "T10_POST_DEPLOY_LIVE_RECONCILE",
-  "observed_at": "2026-08-02T12:40:12Z",
+  "observed_at": "2026-08-02T12:46:51Z",
   "taskpack": {
     "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
     "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
@@ -23,7 +23,8 @@
     "public_healthz_http": 200,
     "static_asset_identity": "MATCH_RUNTIME_BUILD",
     "protected_owner_ui": "VERIFIED_BY_EXISTING_AUTHENTICATED_CHROME_SESSION",
-    "daily_funds_worker_receipt": "VERIFIED_BY_NEW_VALUES_FREE_SOURCE_DISCOVERY_STATE"
+    "daily_funds_worker_receipt": "VERIFIED_BY_NEW_VALUES_FREE_SOURCE_DISCOVERY_STATE",
+    "scheduled_primary_poll_cycle": "VERIFIED_BY_IN_PROGRESS_TO_TERMINAL_HISTORY_EMPTY_UI_TRANSITION"
   },
   "semantic_reconcile": [
     {
@@ -82,6 +83,7 @@
       "static_asset_identity": "PASS matches deployed runtime build",
       "protected_daily_funds_ui": "PASS authenticated Owner UI rendered source discovery without an Access prompt",
       "isolated_dws_auth": "PASS AUTH_OK receipt before history query",
+      "scheduled_primary_history_poll": "PASS one planned 15-minute cycle observed IN_PROGRESS then terminal HISTORY_EMPTY",
       "current_day_source_gate": "HISTORY_EMPTY",
       "trusted_money_publication": "NOT_PRESENT",
       "container_execute_endpoint": "UNKNOWN_COOLIFY_EXEC_404"
@@ -89,7 +91,7 @@
   },
   "real_data_chain": {
     "independent_dws_auth_identity": "AUTH_OK",
-    "current_day_group_history": "HISTORY_EMPTY",
+    "current_day_group_history": "HISTORY_EMPTY_AFTER_SCHEDULED_15_MINUTE_CYCLE",
     "business_source_selector": "TASKPACK_FIXED_TRIPLE_GATE",
     "private_database_sparse_writer": "NOT_YET_EXERCISED_WITH_REAL_ATTACHMENT",
     "real_attachment_parser_capability": "UNKNOWN_NO_TARGET_SAMPLE",
