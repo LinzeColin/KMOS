@@ -1,0 +1,23 @@
+{
+  "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
+  "phase": "publish-integration",
+  "recorded_at": "2026-08-02T02:38:49Z",
+  "moving_baseline": {
+    "origin_main": "bb51b9f0f54b3e78ce9c0b6b267f15565761342c",
+    "candidate_head": "fffc126cb81b3d3c64c9496eb6dc380208c76bae",
+    "candidate_fast_forwards_origin_main": true
+  },
+  "classified_scope": {
+    "isolated_cloud_dws_profile": "satisfied",
+    "official_default_dws_client": "apply",
+    "private_sparse_raw_writer": "satisfied",
+    "cloudflare_d1_r2_projection": "satisfied",
+    "oci_bucket_scoped_par_recovery": "apply",
+    "existing_production_dws_auth_state": "adapt"
+  },
+  "guardrails": [
+    "No credential, raw message, attachment, group, sender, account, or token value is recorded here.",
+    "The candidate may be pushed only after its targeted test and container configuration gates pass.",
+    "A production deployment is not PASS until source identity, DWS source readback, private raw write, D1, R2, OCI, and protected UI evidence are independently verified."
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
+  "phase": "publish-integration",
+  "recorded_at": "2026-08-02T02:39:59Z",
+  "revalidated_baseline": {
+    "origin_main": "bb51b9f0f54b3e78ce9c0b6b267f15565761342c",
+    "candidate_head": "fffc126cb81b3d3c64c9496eb6dc380208c76bae",
+    "candidate_fast_forwards_origin_main": true,
+    "working_tree_unrelated_changes": false
+  },
+  "validation": {
+    "python_compileall": "PASS",
+    "daily_funds_contract": {
+      "result": "PASS_WITH_DECLARED_SKIP",
+      "passed": 60,
+      "skipped": 1,
+      "skip_reason": "local Python environment lacks openpyxl; cloud image must still build and execute its own dependency gate"
+    },
+    "compose_config": "PASS",
+    "local_container_build": {
+      "result": "UNKNOWN",
+      "reason": "local Docker daemon was unavailable; this is not treated as a passing image build"
+    },
+    "diff_check": "PASS"
+  },
+  "release_boundary": {
+    "source_push": "permitted for the direct-main cloud build stage",
+    "production_acceptance": "UNKNOWN",
+    "remaining_evidence": [
+      "cloud image build and deployment source identity",
+      "daily-funds bootstrap receipt on the dedicated cloud DWS volume",
+      "exact DWS group and sender history readback",
+      "private sparse raw write and fresh readback",
+      "D1, R2, OCI and protected UI acceptance",
+      "five-business-day observer"
+    ]
+  }
+}
