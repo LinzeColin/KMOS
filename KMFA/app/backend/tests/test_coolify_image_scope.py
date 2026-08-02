@@ -25,3 +25,21 @@ def test_kmfa_images_copy_only_runtime_and_shared_contract_layers():
         assert "COPY . /opt/kmfa/KMOS" not in text
         assert "COPY KMDatabase /opt/kmfa/KMOS/KMDatabase" in text
         assert "COPY KMFA /opt/kmfa/KMOS/KMFA" in text
+
+
+def test_app_image_uses_ci_verified_frontend_dist_not_a_host_node_build():
+    """Keep the production build below the Coolify host's disk ceiling.
+
+    The matching GitHub Actions gate rebuilds this tracked ``dist`` with the
+    lockfile and rejects a diff before the image test runs.  The Dockerfile
+    must therefore consume that exact artifact rather than materialising a
+    second Node dependency tree on the constrained production builder.
+    """
+
+    text = APP_DOCKERFILE.read_text(encoding="utf-8")
+    assert "FROM node:" not in text
+    assert "npm ci" not in text
+    assert (
+        "COPY KMFA/app/frontend/dist "
+        "/opt/kmfa/KMOS/KMFA/app/frontend/dist"
+    ) in text

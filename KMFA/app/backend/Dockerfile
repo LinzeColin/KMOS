@@ -1,14 +1,6 @@
-# 阶段一：前端在镜像里现建——「任意提交，镜像内前端必是当次源码的产物」。
-# 曾拿仓里旧 dist 打镜像而不自知（e2e 工作流为此在 runner 上先 npm build 兜底）；
-# 把构建挪进 Dockerfile 后，Coolify / CI / 本地 docker build 三条路走同一保证，兜底可退役。
-# 仓里提交的 dist 从此只服务本机 .app 双击场景，镜像不再依赖它。
-FROM node:20-alpine AS frontend
-WORKDIR /fe
-COPY KMFA/app/frontend/package.json KMFA/app/frontend/package-lock.json ./
-RUN npm ci
-COPY KMFA/app/frontend/ .
-RUN npm run build
-
+# 前端 ``dist`` 是本提交的一部分；CI 会先以锁定依赖重建它，并拒绝任何
+# 未提交的差异。生产镜像只复制该受检产物，不在小磁盘 Coolify 主机临时展开
+# Node 依赖树，避免无关的构建缓存挤占每日资金运行空间。
 FROM python:3.12-slim-bookworm
 WORKDIR /opt/kmfa/KMOS/KMFA/app/backend
 # build context = 仓根（compose）。先装依赖（缓存友好）再烧代码。
@@ -19,8 +11,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 否则小磁盘 Coolify 宿主会在无缓存构建时耗尽空间。
 COPY KMDatabase /opt/kmfa/KMOS/KMDatabase
 COPY KMFA /opt/kmfa/KMOS/KMFA
-# 现建的 dist 最后落位，覆盖仓里那份——顺序在运行代码复制之后，不许倒。
-COPY --from=frontend /fe/dist /opt/kmfa/KMOS/KMFA/app/frontend/dist
+# 显式重复制受 CI 校验的静态产物，防止日后 ``COPY KMFA`` 范围变化时静默遗漏。
+COPY KMFA/app/frontend/dist /opt/kmfa/KMOS/KMFA/app/frontend/dist
 # Raw request-target access logs are disabled: a caller can control query
 # strings before application middleware runs. The app keeps structured,
 # capability-redacted audit events instead. Port 8000 is internal-only behind

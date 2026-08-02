@@ -55,10 +55,17 @@ jobs:
           python KMFA/machine/tools/test_validate_taskpack_mutations.py --root KMFA
           python KMFA/machine/tools/check_dual_plane_ci.py --root . --require-projects
 
-      # 前端不再在 runner 上预构建：Dockerfile 已改多阶段，镜像内由当次源码现建 dist
-      # （「曾拿仓里旧 dist 打镜像而不自知」的教训由 Dockerfile 结构性根治，兜底退役）。
-      # 前端构建失败会红在 docker build 这一步，红的语义不变。
-      - name: 起 App（零挂载，代码烧在镜像里，前端镜像内现建）
+      # ``dist`` 是生产镜像的一部分，必须由锁定依赖从同一提交源码重建后
+      # 保持零差异；否则拒绝把旧前端静态产物烧进镜像。把 Node 构建放在有
+      # 容量与缓存保障的 CI，而不是小磁盘 Coolify 构建宿主。
+      - name: 验证受检前端静态产物与当前源码一致
+        run: |
+          set -euo pipefail
+          npm ci --prefix KMFA/app/frontend --ignore-scripts
+          npm run build --prefix KMFA/app/frontend
+          git diff --exit-code -- KMFA/app/frontend/dist
+
+      - name: 起 App（零挂载，代码与受检前端产物均烧在镜像里）
         run: |
           set -euo pipefail
           docker build -f KMFA/app/backend/Dockerfile -t kmfa-app:e2e .
