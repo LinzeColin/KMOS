@@ -100,9 +100,13 @@ def test_every_scheduled_skill_is_visible():
     # redacted projection status instead.  Still require an actual frozen cron
     # row here so the contract cannot be declared visible without a scheduler.
     daily_cron = (ROOT_REPO / "skills" / "每日资金" / "crontab.txt").read_text(encoding="utf-8")
-    assert "*/15 * * * * root /opt/daily-funds/scripts/run_daily_funds.py poll" in daily_cron
-    assert "* * * * * root /opt/daily-funds/scripts/run_daily_funds.py auth-probe" in daily_cron
-    assert "0 * * * * root /opt/daily-funds/scripts/run_daily_funds.py keepalive" in daily_cron
+    # Cron has a deliberately minimal environment.  The private wrapper loads
+    # only the allow-listed DAILY_FUNDS_* snapshot before it invokes the
+    # immutable runner, so health visibility must require the actual scheduled
+    # wrapper rather than the pre-wrapper command form.
+    assert "*/15 * * * * root /opt/daily-funds/scripts/run_cron_job.sh poll" in daily_cron
+    assert "* * * * * root /opt/daily-funds/scripts/run_cron_job.sh auth-probe" in daily_cron
+    assert "0 * * * * root /opt/daily-funds/scripts/run_cron_job.sh keepalive" in daily_cron
     scheduled.add("daily-funds")
     missing = scheduled - set(main.SCHEDULE_CONTRACT)
     assert not missing, f"这些技能在排程表里跑，却不在健康面里，无人看得见：{sorted(missing)}"
