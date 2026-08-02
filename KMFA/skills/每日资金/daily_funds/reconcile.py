@@ -154,7 +154,9 @@ class ReconciliationReport:
         )
 
 
-def _collect_facts(facts: Iterable[ParsedFacts]) -> tuple[date, list[AccountSnapshot], list[Transaction], set[str]]:
+def _collect_facts(
+    facts: Iterable[ParsedFacts],
+) -> tuple[date, list[AccountSnapshot], list[Transaction], set[str], tuple[int, int]]:
     frozen = _validate_facts(facts)
     account_facts = [fact for fact in frozen if fact.accounts]
     transaction_facts = [fact for fact in frozen if fact.transactions]
@@ -170,7 +172,7 @@ def _collect_facts(facts: Iterable[ParsedFacts]) -> tuple[date, list[AccountSnap
     versions = {fact.source_version for fact in frozen if fact.accounts or fact.transactions}
     if len(versions) < 2:
         raise ReconciliationError("SOURCE_VERSION_PAIR_MISSING")
-    return next(iter(dates)), accounts, transactions, versions
+    return next(iter(dates)), accounts, transactions, versions, (len(account_facts), len(transaction_facts))
 
 
 def _unique_accounts(accounts: Iterable[AccountSnapshot]) -> dict[tuple[str, str, str], AccountSnapshot]:
@@ -221,9 +223,17 @@ def reconcile(
     source rather than guessing it from transactions.
     """
 
-    business_date, accounts, transactions, source_versions = _collect_facts(facts)
+    business_date, accounts, transactions, source_versions, fact_counts = _collect_facts(facts)
     indexed_accounts = _unique_accounts(accounts)
     unique_transactions = _unique_transactions(transactions)
+    # The runtime chooses exactly one attachment per fact family before
+    # reaching this function.  Preserve that invariant for direct callers as
+    # well: accepting a second non-duplicate source would silently blend two
+    # independently authoritative snapshots or ledgers into a fabricated
+    # result.  Structural duplicate checks intentionally run first so their
+    # more precise diagnostics remain available.
+    if fact_counts != (1, 1):
+        raise ReconciliationError("SOURCE_FACT_PAIR_AMBIGUOUS")
     _validate_internal_transfer_pairs(unique_transactions)
     previous = _validated_prior_balances(previous_ending_by_account)
     by_account: dict[tuple[str, str, str], list[Transaction]] = {key: [] for key in indexed_accounts}
@@ -241,9 +251,11 @@ def reconcile(
     for key, snapshot in sorted(indexed_accounts.items()):
         opening = snapshot.opening_available_fen
         if opening is None:
-            opening = previous.get(key)
-            if opening is None:
-                opening = previous.get(account_key_hash(key))
+            tuple_opening = previous.get(key)
+            hashed_opening = previous.get(account_key_hash(key))
+            if tuple_opening is not None and hashed_opening is not None and tuple_opening != hashed_opening:
+                raise ReconciliationError("PRIOR_BALANCE_CONFLICT")
+            opening = tuple_opening if tuple_opening is not None else hashed_opening
         if opening is None:
             raise ReconciliationError("OPENING_BALANCE_MISSING")
         external = [row for row in by_account[key] if not row.is_internal_transfer]

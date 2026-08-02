@@ -53,7 +53,7 @@ from daily_funds.ingestion import (
 from daily_funds.models import SourceRef
 from daily_funds.parsing import ACCOUNT_FAMILY, PARSER_VERSION, ParseError, parse_attachment
 from daily_funds.publication import D1Projection, OciColdBackup, OciParStore, PublicationCoordinator, PublicationError, R2Mirror, RestoreCoordinator, RestoreOracle
-from daily_funds.reconcile import AccountReconciliation, ReconciliationError, ReconciliationReport, reconcile
+from daily_funds.reconcile import AccountReconciliation, ReconciliationError, ReconciliationReport, account_key_hash, reconcile
 from daily_funds.runtime import DailyFundsRuntime, TimedFacts
 from daily_funds.state import RuntimeState, StatusWriter
 
@@ -386,6 +386,41 @@ def test_reconciliation_rejects_cross_source_duplicate_transactions() -> None:
         reconcile((accounts, first, repeated))
 
 
+def test_reconciliation_rejects_distinct_extra_fact_source_before_blending() -> None:
+    account_payload = (
+        "业务日期,公司,开户行,账号,期初余额,期末余额\n"
+        "2026-07-30,甲,乙,001,100.00,110.00\n"
+    ).encode()
+    accounts = parse_attachment(
+        family=ACCOUNT_FAMILY,
+        filename="资金账户明细表_20260730.csv",
+        payload=account_payload,
+        source=_source(account_payload, message_id_hash="a" * 64),
+    )
+    first_payload = (
+        "业务日期,公司,开户行,账号,流水号,流入,流出\n"
+        "2026-07-30,甲,乙,001,t-1,10.00,\n"
+    ).encode()
+    second_payload = (
+        "业务日期,公司,开户行,账号,流水号,流入,流出\n"
+        "2026-07-30,甲,乙,001,t-2,,\n"
+    ).encode()
+    first = parse_attachment(
+        family="资金流水明细",
+        filename="资金流水明细_20260730.csv",
+        payload=first_payload,
+        source=_source(first_payload, message_id_hash="b" * 64),
+    )
+    second = parse_attachment(
+        family="资金流水明细",
+        filename="资金流水明细_20260730_v2.csv",
+        payload=second_payload,
+        source=_source(second_payload, message_id_hash="c" * 64),
+    )
+    with pytest.raises(ReconciliationError, match="SOURCE_FACT_PAIR_AMBIGUOUS"):
+        reconcile((accounts, first, second))
+
+
 def test_reconciliation_counts_internal_transfer_adjustments_in_integer_fen() -> None:
     account_payload = (
         "业务日期,公司,开户行,账号,期初余额,期末余额\n"
@@ -450,7 +485,12 @@ def test_prior_balance_never_time_travels_from_a_newer_current_pointer(tmp_path:
     runtime = DailyFundsRuntime(_config(tmp_path))
     key = "a" * 64
     current = {
-        "publication": {"status": "VALID", "business_date": "2026-08-10"},
+        "publication": {
+            "status": "VALID",
+            "publication_id": "b" * 64,
+            "business_date": "2026-08-10",
+            "reconciliation_difference_fen": 0,
+        },
         "summary": {"account_ending_by_hash": {key: 100}},
     }
     (runtime.config.publication_dir / "current.json").write_text(json.dumps(current), encoding="utf-8")
@@ -463,6 +503,43 @@ def test_prior_balance_never_time_travels_from_a_newer_current_pointer(tmp_path:
     current["summary"]["account_ending_by_hash"][key] = True
     (runtime.config.publication_dir / "current.json").write_text(json.dumps(current), encoding="utf-8")
     with pytest.raises(ReconciliationError, match="PRIOR_BALANCE_NOT_INTEGER_FEN"):
+        runtime._prior_account_balances(date(2026, 8, 6))
+
+
+def test_prior_balance_rejects_unverified_history_and_nonzero_current_pointer(tmp_path: Path) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    key = "a" * 64
+    runtime._history_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime._history_path.write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.history.v1",
+        "days": {
+            "2026-08-05": {
+                "status": "VALID",
+                "publication_id": "b" * 64,
+                "direct_observation": True,
+                "coverage_gap": False,
+                "carried_forward": True,
+                "account_ending_by_hash": {key: 100},
+            },
+        },
+    }), encoding="utf-8")
+    with pytest.raises(ReconciliationError, match="PRIOR_HISTORY_NOT_VALID"):
+        runtime._prior_account_balances(date(2026, 8, 6))
+
+    runtime._history_path.write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.history.v1", "days": {},
+    }), encoding="utf-8")
+    current = {
+        "publication": {
+            "status": "VALID",
+            "publication_id": "b" * 64,
+            "business_date": "2026-08-05",
+            "reconciliation_difference_fen": 1,
+        },
+        "summary": {"account_ending_by_hash": {key: 100}},
+    }
+    (runtime.config.publication_dir / "current.json").write_text(json.dumps(current), encoding="utf-8")
+    with pytest.raises(ReconciliationError, match="PRIOR_PUBLICATION_INVALID"):
         runtime._prior_account_balances(date(2026, 8, 6))
 
 
@@ -491,6 +568,35 @@ def test_reconciliation_rejects_non_integer_prior_balance_before_zero_difference
         reconcile(
             (accounts, transactions),
             previous_ending_by_account={("甲", "乙", "001"): 10_000.0},
+        )
+
+
+def test_reconciliation_rejects_conflicting_hashed_and_clear_prior_balances() -> None:
+    account_payload = (
+        "业务日期,公司,开户行,账号,期末余额\n"
+        "2026-07-30,甲,乙,001,100.00\n"
+    ).encode()
+    accounts = parse_attachment(
+        family=ACCOUNT_FAMILY,
+        filename="资金账户明细表_20260730.csv",
+        payload=account_payload,
+        source=_source(account_payload, message_id_hash="a" * 64),
+    )
+    transaction_payload = (
+        "业务日期,公司,开户行,账号,流水号,流入,流出\n"
+        "2026-07-30,甲,乙,001,t-1,,\n"
+    ).encode()
+    transactions = parse_attachment(
+        family="资金流水明细",
+        filename="资金流水明细_20260730.csv",
+        payload=transaction_payload,
+        source=_source(transaction_payload, message_id_hash="b" * 64),
+    )
+    clear_key = ("甲", "乙", "001")
+    with pytest.raises(ReconciliationError, match="PRIOR_BALANCE_CONFLICT"):
+        reconcile(
+            (accounts, transactions),
+            previous_ending_by_account={clear_key: 10_000, account_key_hash(clear_key): 9_999},
         )
 
 

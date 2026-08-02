@@ -146,9 +146,12 @@ class DailyFundsRuntime:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             return None
-        if payload.get("publication", {}).get("status") != "VALID":
+        if not isinstance(payload, Mapping):
             return None
-        return payload
+        publication = payload.get("publication")
+        if not isinstance(publication, Mapping) or publication.get("status") != "VALID":
+            return None
+        return dict(payload)
 
     def _oci_store(self):
         """Return the one configured OCI cold-backup transport.
@@ -183,15 +186,21 @@ class DailyFundsRuntime:
             return {"schema_version": "kmfa.daily_funds.history.v1", "days": {}}
         return {"schema_version": "kmfa.daily_funds.history.v1", "days": dict(payload["days"])}
 
-    def _record_history(self, report: ReconciliationReport, publication_id: str | None = None) -> None:
+    def _record_history(self, report: ReconciliationReport, publication_id: str) -> None:
+        if not report.valid:
+            raise ReconciliationError("HISTORY_REPORT_NOT_VALID")
+        normalized_publication_id = self._lower_hex(publication_id, 64)
+        if normalized_publication_id is None:
+            raise ReconciliationError("HISTORY_PUBLICATION_ID_INVALID")
         history = self._history()
         history["days"][report.business_date.isoformat()] = {
+            "status": "VALID",
             "ending_available_fen": report.total_ending_fen,
             "direct_observation": True,
             "coverage_gap": False,
             "carried_forward": False,
             "account_ending_by_hash": {row.account_key_hash: row.ending_fen for row in report.account_reports},
-            "publication_id": publication_id,
+            "publication_id": normalized_publication_id,
         }
         atomic_json_write(self._history_path, history)
 
@@ -1009,23 +1018,37 @@ class DailyFundsRuntime:
             return {}
         result: dict[str, int] = {}
         for key, value in values.items():
-            if not isinstance(key, str) or not key:
+            if self._lower_hex(key, 64) is None:
                 raise ReconciliationError("PRIOR_BALANCE_KEY_INVALID")
             result[key] = self._journal_fen(value, "PRIOR_BALANCE_NOT_INTEGER_FEN")
         return result
 
-    def _prior_account_balances(self, business_date: date | None = None) -> Mapping[str, int]:
-        if business_date is not None:
-            previous_day = (business_date - timedelta(days=1)).isoformat()
-            record = self._history().get("days", {}).get(previous_day)
-            if isinstance(record, Mapping) and isinstance(record.get("account_ending_by_hash"), Mapping):
-                return self._prior_balance_mapping(record["account_ending_by_hash"])
-        current = self._current()
-        if not current:
-            return {}
+    def _history_prior_balances(self, record: Mapping[str, Any]) -> Mapping[str, int]:
+        """Return only a directly observed, identifiably VALID daily close."""
+
+        if record.get("status") != "VALID" or self._lower_hex(record.get("publication_id"), 64) is None:
+            raise ReconciliationError("PRIOR_HISTORY_NOT_VALID")
+        direct_observation = self._journal_flag(record.get("direct_observation"), "PRIOR_HISTORY_INVALID")
+        coverage_gap = self._journal_flag(record.get("coverage_gap"), "PRIOR_HISTORY_INVALID")
+        carried_forward = self._journal_flag(record.get("carried_forward"), "PRIOR_HISTORY_INVALID")
+        if not direct_observation or coverage_gap or carried_forward:
+            raise ReconciliationError("PRIOR_HISTORY_NOT_VALID")
+        values = record.get("account_ending_by_hash")
+        if not isinstance(values, Mapping):
+            raise ReconciliationError("PRIOR_HISTORY_INVALID")
+        return self._prior_balance_mapping(values)
+
+    def _current_prior_balances(
+        self,
+        current: Mapping[str, Any],
+        business_date: date | None,
+    ) -> Mapping[str, int]:
+        publication = current.get("publication")
+        if not isinstance(publication, Mapping):
+            raise ReconciliationError("PRIOR_PUBLICATION_INVALID")
         if business_date is not None:
             try:
-                current_business_date = date.fromisoformat(str(current["publication"]["business_date"]))
+                current_business_date = date.fromisoformat(str(publication["business_date"]))
             except (KeyError, TypeError, ValueError) as exc:
                 raise ReconciliationError("PRIOR_PUBLICATION_INVALID") from exc
             # Historical backfill must never borrow a newer (or older)
@@ -1033,8 +1056,28 @@ class DailyFundsRuntime:
             # the immediately preceding VALID date is a permissible fallback.
             if current_business_date != business_date - timedelta(days=1):
                 return {}
-        values = current.get("summary", {}).get("account_ending_by_hash")
+        if self._lower_hex(publication.get("publication_id"), 64) is None:
+            raise ReconciliationError("PRIOR_PUBLICATION_INVALID")
+        if self._journal_fen(publication.get("reconciliation_difference_fen"), "PRIOR_PUBLICATION_INVALID") != 0:
+            raise ReconciliationError("PRIOR_PUBLICATION_INVALID")
+        summary = current.get("summary")
+        if not isinstance(summary, Mapping):
+            raise ReconciliationError("PRIOR_PUBLICATION_INVALID")
+        values = summary.get("account_ending_by_hash")
+        if not isinstance(values, Mapping):
+            raise ReconciliationError("PRIOR_PUBLICATION_INVALID")
         return self._prior_balance_mapping(values)
+
+    def _prior_account_balances(self, business_date: date | None = None) -> Mapping[str, int]:
+        if business_date is not None:
+            previous_day = (business_date - timedelta(days=1)).isoformat()
+            record = self._history().get("days", {}).get(previous_day)
+            if isinstance(record, Mapping):
+                return self._history_prior_balances(record)
+        current = self._current()
+        if not current:
+            return {}
+        return self._current_prior_balances(current, business_date)
 
     def _daily_balances(self, report: ReconciliationReport) -> tuple[DailyBalance, ...]:
         """Build the daily-balance series without inventing missing business days.
