@@ -1669,7 +1669,7 @@ class DailyFundsRuntime:
             except IngestionError as exc:
                 if exc.code == "PUBLISHER_LOCK_HELD":
                     return self._observer_status(
-                        "处理中", "POLLING",
+                        "处理中", "PUBLISHER_LOCK_HELD",
                         stage="OBSERVER_WAITING_FOR_PUBLICATION_LOCK",
                         observer_state="WAITING_FOR_LOCK",
                         observer_result="PUBLISHER_LOCK_HELD",
@@ -1799,7 +1799,7 @@ class DailyFundsRuntime:
         except IngestionError as exc:
             if exc.code == "OBSERVER_LOCK_HELD":
                 return self._observer_status(
-                    "处理中", "POLLING",
+                    "处理中", "OBSERVER_LOCK_HELD",
                     stage="OBSERVER_WAITING_FOR_LOCK",
                     observer_state="WAITING_FOR_LOCK",
                     observer_result="OBSERVER_LOCK_HELD",

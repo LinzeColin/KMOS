@@ -84,13 +84,23 @@ def _write_projection(root: Path) -> None:
         },
     }
     status = {
+        "schema_version": "kmfa.daily_funds.status.v1",
         "human_status": "已更新",
         "machine_code": "VALID_PUBLISHED",
         "effective_business_date": "2026-07-30",
         "last_verified_at": "2026-07-30T12:00:00Z",
         "publication_id": "c" * 64,
         "updated_at": "2026-07-30T12:00:00Z",
-        "schedules": {"history_poll": "*/15 * * * * Asia/Shanghai"},
+        "schedules": {
+            "history_poll": "*/15 * * * * Asia/Shanghai",
+            "auth_probe": "* * * * * Asia/Shanghai",
+            "keepalive": "0 * * * * Asia/Shanghai",
+            "backfill": "15 2 * * * Asia/Shanghai",
+            "observer": "30 3 * * * Asia/Shanghai",
+            "cold_backup": "10 4 * * * Asia/Shanghai",
+            "runtime_audit": "45 5 * * * Asia/Shanghai",
+            "restore_drill": "0 5 1 * * Asia/Shanghai",
+        },
         "backup_state": "OK",
     }
     flow_state = {
@@ -319,6 +329,7 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
     assert daily["投递开关"] is None
     assert daily["每日资金状态"]["状态"] == "已更新"
     assert daily["每日资金状态"]["有效业务日期"] == "2026-07-30"
+    assert daily["每日资金状态"]["排程"] == main_module.DAILY_FUNDS_STATUS_SCHEDULES
     flow = daily["每日资金状态"]["业务流"]
     assert flow["部署"] == {
         "运行": "RUNTIME_AUDITED",
@@ -364,6 +375,34 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
     assert "group-fixture" not in response.text and "attachment-fixture" not in response.text
     assert "message-fixture" not in response.text
     assert response.json()["每日资金"]["业务流"]["部署"]["身份"] == "UNKNOWN"
+
+
+def test_daily_funds_status_schema_or_schedule_drift_fails_closed(tmp_path, monkeypatch):
+    mutations = (
+        lambda status: status.__setitem__("untrusted_raw_extension", "group-fixture"),
+        lambda status: status["schedules"].__setitem__("untrusted_schedule", "sender-fixture"),
+    )
+    for index, mutate in enumerate(mutations):
+        publication = tmp_path / f"publication-{index}"
+        _write_projection(publication)
+        status_path = publication / "status.json"
+        status = json.loads(status_path.read_text(encoding="utf-8"))
+        mutate(status)
+        status_path.write_text(json.dumps(status), encoding="utf-8")
+        monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+        monkeypatch.setattr(main_module, "SKILL_LEDGER_PATH", tmp_path / "missing-ledger.jsonl")
+
+        response = client.get("/api/排程健康")
+        daily = next(row for row in response.json()["逐项"] if row["技能"] == "daily-funds")
+        status_view = daily["每日资金状态"]
+        assert status_view["状态"] == "需处理"
+        assert status_view["有效业务日期"] is None
+        assert status_view["最近验证"] is None
+        assert status_view["备份"] == "UNKNOWN"
+        assert status_view["排程"] == {}
+        assert status_view["业务流"]["业务流"]["状态"] == "需处理"
+        assert response.json()["每日资金"]["machine_code"] == "STATUS_INVALID"
+        assert "group-fixture" not in response.text and "sender-fixture" not in response.text
 
 
 def test_daily_funds_schedule_does_not_treat_auth_success_as_source_poll_success(tmp_path, monkeypatch):

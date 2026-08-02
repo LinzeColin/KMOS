@@ -92,10 +92,15 @@ def main(argv: list[str] | None = None) -> int:
     elif result.get("status") == "ok":
         ok = True
     else:
-        # Status-only maintenance jobs are successful when they completed or
-        # deliberately observed another holder; ``需处理`` remains non-zero.
+        # Status-only maintenance jobs can complete while the financial
+        # publication remains pending; a separately detected lock holder
+        # below is not a terminal success.  ``需处理`` remains non-zero.
         ok = result.get("human_status") in {"已更新", "处理中"}
-    lock_held = args.job == "poll" and code.endswith("_LOCK_HELD")
+    # Seeing another holder is neither a successful terminal run nor a
+    # failure of the active holder.  Keep the pre-written RUNNING receipt for
+    # every job so the status centre reports an in-flight operation instead of
+    # manufacturing a terminal success for observer/backup/auth maintenance.
+    lock_held = code.endswith("_LOCK_HELD")
     try:
         # The shared human status represents the financial publication gate.
         # Record the terminal scheduler operation separately so a successful

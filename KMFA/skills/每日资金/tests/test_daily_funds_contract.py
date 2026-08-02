@@ -1326,6 +1326,57 @@ def test_successful_maintenance_probe_is_not_failed_before_first_publication(
     assert json.loads(capsys.readouterr().out)["machine_code"] == code
 
 
+@pytest.mark.parametrize("job,method,code", (
+    ("auth-probe", "auth_probe", "AUTH_PROBE_LOCK_HELD"),
+    ("observer", "observer", "OBSERVER_LOCK_HELD"),
+    ("cold-backup", "cold_backup", "PUBLISHER_LOCK_HELD"),
+))
+def test_runner_keeps_any_lock_held_operation_inflight(
+    job: str,
+    method: str,
+    code: str,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A competing holder cannot be recorded as this invocation's success."""
+
+    script = ROOT / "scripts" / "run_daily_funds.py"
+    spec = importlib.util.spec_from_file_location("daily_funds_runner_lock_test", script)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    runs: list[tuple[str, str, str, bool]] = []
+    starts: list[tuple[str, str]] = []
+    receipts: list[tuple[str, bool, str]] = []
+
+    class FakeState:
+        def record_run(self, _run_id: str, kind: str, state: str, received_code: str, *, finished: bool = False) -> None:
+            runs.append((kind, state, received_code, finished))
+
+    class FakeRuntime:
+        def __init__(self) -> None:
+            self.state = FakeState()
+
+        def record_operation_start(self, *, job: str, code: str) -> None:
+            starts.append((job, code))
+
+        def record_operation_receipt(self, *, job: str, succeeded: bool, code: str) -> None:
+            receipts.append((job, succeeded, code))
+
+        def __getattr__(self, name: str):
+            if name == method:
+                return lambda: {"human_status": "处理中", "machine_code": code}
+            raise AttributeError(name)
+
+    monkeypatch.setattr(module, "DailyFundsRuntime", FakeRuntime)
+    assert module.main([job]) == 75
+    assert starts == [(job, f"{job.upper().replace('-', '_')}_RUNNING")]
+    assert receipts == []
+    assert runs[-1] == (job, "SKIPPED", code, True)
+    assert json.loads(capsys.readouterr().out)["machine_code"] == code
+
+
 def test_operation_receipt_preserves_source_poll_truth_when_auth_probe_succeeds(tmp_path: Path) -> None:
     """DWS auth evidence cannot overwrite a prior no-source poll outcome."""
 
@@ -2139,6 +2190,25 @@ def test_post_deploy_observer_fails_closed_when_d1_disagrees_with_pointer(tmp_pa
     flow = json.loads((runtime.config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
     assert flow["post_deploy_observer"]["state"] == "NEEDS_ATTENTION"
     assert flow["post_deploy_observer"]["completed_business_days"] == 0
+
+
+def test_observer_lock_is_status_registered_as_inflight_not_success(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    monkeypatch.setenv("DAILY_FUNDS_DEPLOYMENT_MARKER", "t08-fixture-deployment")
+    runtime.record_operation_start(job="observer", code="OBSERVER_RUNNING")
+    assert runtime.state.acquire_lease("observer_lock", "other-holder", ttl_seconds=60)
+    try:
+        status = runtime.observer(now=datetime(2026, 8, 3, 12, tzinfo=UTC))
+    finally:
+        runtime.state.release_lease("observer_lock", "other-holder")
+
+    assert status["human_status"] == "处理中"
+    assert status["machine_code"] == "OBSERVER_LOCK_HELD"
+    flow = json.loads((runtime.config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
+    assert flow["operations"]["observer"]["state"] == "RUNNING"
+    assert flow["operations"]["observer"]["code"] == "OBSERVER_RUNNING"
+    assert flow["post_deploy_observer"]["state"] == "WAITING_FOR_LOCK"
+    assert flow["post_deploy_observer"]["last_comparison"] == "OBSERVER_LOCK_HELD"
 
 
 def _t06_projection_rows() -> tuple[tuple[DailyBalance, ...], tuple[dict[str, object], ...], tuple[dict[str, object], ...]]:

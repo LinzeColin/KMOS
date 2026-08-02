@@ -2539,6 +2539,26 @@ DAILY_FUNDS_HUMAN_STATUSES = {"已更新", "处理中", "需处理"}
 # deliberately two characters and must not be lost through the generic
 # public failure-code sanitizer.
 DAILY_FUNDS_BACKUP_STATES = {"OK", "LAG", "PENDING", "UNKNOWN"}
+DAILY_FUNDS_STATUS_SCHEMA = "kmfa.daily_funds.status.v1"
+# This is a read-side schema allowlist, not a second scheduler or health
+# authority.  The daily-funds worker remains the sole writer; the app only
+# displays the fixed worker contract after checking its exact shape so a
+# shared-volume extension cannot disclose an identifier or masquerade as an
+# alternative schedule.
+DAILY_FUNDS_STATUS_SCHEDULES = {
+    "history_poll": "*/15 * * * * Asia/Shanghai",
+    "auth_probe": "* * * * * Asia/Shanghai",
+    "keepalive": "0 * * * * Asia/Shanghai",
+    "backfill": "15 2 * * * Asia/Shanghai",
+    "observer": "30 3 * * * Asia/Shanghai",
+    "cold_backup": "10 4 * * * Asia/Shanghai",
+    "runtime_audit": "45 5 * * * Asia/Shanghai",
+    "restore_drill": "0 5 1 * * Asia/Shanghai",
+}
+DAILY_FUNDS_STATUS_FIELDS = frozenset({
+    "schema_version", "human_status", "machine_code", "effective_business_date",
+    "last_verified_at", "publication_id", "updated_at", "schedules", "backup_state",
+})
 DAILY_FUNDS_CAPABILITY_FAMILIES = {"资金账户明细表", "资金流水明细", "资金明细", "UNCLASSIFIED"}
 DAILY_FUNDS_CAPABILITY_SUFFIXES = {
     ".csv", ".txt", ".xlsx", ".xlsm", ".xls", ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp",
@@ -2594,22 +2614,59 @@ def _read_daily_funds_json(name: str) -> dict[str, Any] | None:
 
 
 def _daily_funds_status() -> dict[str, Any]:
-    payload = _read_daily_funds_json("status.json") or {}
-    status = str(payload.get("human_status") or "需处理")
-    if status not in DAILY_FUNDS_HUMAN_STATUSES:
-        status = "需处理"
-    raw_backup_state = str(payload.get("backup_state") or "UNKNOWN").strip().upper()
-    backup_state = raw_backup_state if raw_backup_state in DAILY_FUNDS_BACKUP_STATES else "UNKNOWN"
-    # Whitelist only the values-free worker handoff.  A malformed/extended
-    # status file cannot smuggle raw identifiers into a browser response.
+    def unavailable(code: str) -> dict[str, Any]:
+        return {
+            "human_status": "需处理",
+            "machine_code": code,
+            "effective_business_date": None,
+            "last_verified_at": None,
+            "publication_id": None,
+            "updated_at": None,
+            "schedules": {},
+            "backup_state": "UNKNOWN",
+        }
+
+    payload = _read_daily_funds_json("status.json")
+    if payload is None:
+        return unavailable("UNKNOWN")
+    # ``status.json`` is the worker's one hand-off into the existing KMFA
+    # status centre.  It is a versioned values-free record, not an opaque
+    # dict: fail closed on either schema drift or a schedule extension rather
+    # than reflecting arbitrary shared-volume strings in the owner UI.
+    if (
+        set(payload) != DAILY_FUNDS_STATUS_FIELDS
+        or payload.get("schema_version") != DAILY_FUNDS_STATUS_SCHEMA
+        or payload.get("schedules") != DAILY_FUNDS_STATUS_SCHEDULES
+    ):
+        return unavailable("STATUS_INVALID")
+
+    status = payload.get("human_status")
+    machine_code = _public_failure_code(payload.get("machine_code"))
+    effective_business_date = payload.get("effective_business_date")
+    last_verified_at = payload.get("last_verified_at")
+    publication_id = payload.get("publication_id")
+    updated_at = payload.get("updated_at")
+    backup_state = payload.get("backup_state")
+    if (
+        not isinstance(status, str)
+        or status not in DAILY_FUNDS_HUMAN_STATUSES
+        or machine_code is None
+        or (effective_business_date is not None and _daily_funds_date(effective_business_date) is None)
+        or (last_verified_at is not None and _daily_funds_timestamp(last_verified_at) is None)
+        or (publication_id is not None and not _daily_funds_lower_hex(publication_id, 64))
+        or _daily_funds_timestamp(updated_at) is None
+        or not isinstance(backup_state, str)
+        or backup_state not in DAILY_FUNDS_BACKUP_STATES
+    ):
+        return unavailable("STATUS_INVALID")
     return {
         "human_status": status,
-        "machine_code": _public_failure_code(payload.get("machine_code")) or "UNKNOWN",
-        "effective_business_date": str(payload.get("effective_business_date") or "")[:10] or None,
-        "last_verified_at": str(payload.get("last_verified_at") or "")[:40] or None,
-        "publication_id": str(payload.get("publication_id") or "")[:64] or None,
-        "updated_at": str(payload.get("updated_at") or "")[:40] or None,
-        "schedules": payload.get("schedules") if isinstance(payload.get("schedules"), dict) else {},
+        "machine_code": machine_code,
+        "effective_business_date": effective_business_date,
+        "last_verified_at": last_verified_at,
+        "publication_id": publication_id,
+        "updated_at": updated_at,
+        "schedules": dict(DAILY_FUNDS_STATUS_SCHEDULES),
         "backup_state": backup_state,
     }
 
