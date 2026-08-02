@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-"""防止 Coolify Compose 把镜像构建上下文误解析为 compose 文件目录。
+"""防止 Coolify 的 project-directory 让镜像构建上下文跳出仓库。
 
 所有 KMFA Dockerfile 都从仓库根目录 ``COPY KMFA/...``。Compose 的相对
-``build.context`` 却以 compose 文件所在目录为基准；写成 ``.`` 时，配置
-能通过 YAML 校验，实际构建才会找不到 Dockerfile 或源码。这条门禁不依赖
-Docker 守护进程，先在仓内阻止这种部署期失败。
+``build.context`` 在 Coolify 的实际调用中以 ``--project-directory=<仓根>``
+为基准；写成 ``../../..`` 会跳出仓库，配置仍能通过 YAML 校验，实际构建
+才会找不到 Dockerfile 或源码。这条门禁不依赖 Docker 守护进程，先在仓内
+阻止这种部署期失败。
 """
 from __future__ import annotations
 
@@ -46,7 +47,8 @@ def _build_mapping(service: str) -> tuple[str, str]:
 def test_all_coolify_builds_use_repository_root_context():
     for service, expected_dockerfile in EXPECTED_DOCKERFILES.items():
         relative_context, dockerfile = _build_mapping(service)
-        context = (COMPOSE.parent / relative_context).resolve()
+        # Coolify invokes Compose with --project-directory=<repository root>.
+        context = (REPO / relative_context).resolve()
         assert context == REPO, (
             f"{service} 的构建上下文不是仓库根目录：{context} != {REPO}；"
             "Dockerfile 的 COPY KMFA/... 会在真实部署时失败"
