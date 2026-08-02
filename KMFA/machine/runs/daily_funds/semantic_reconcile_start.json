@@ -1,69 +1,78 @@
 {
   "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
-  "stage": "T00_START",
-  "observed_at": "2026-08-01T11:22:02Z",
+  "stage": "T10_PRE_DEPLOY_CURRENT",
+  "observed_at": "2026-08-02T14:19:30Z",
   "taskpack": {
     "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
     "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
     "verified": true
   },
   "git_baseline": {
-    "origin_main": "910d02763f01cc6db5263b0e1867c06b4f8f5933",
-    "working_head": "910d02763f01cc6db5263b0e1867c06b4f8f5933",
-    "baseline_mode": "detached_origin_main",
-    "working_tree_clean": true
+    "origin_main": "2e3621ecf361aa98f2c1dbb5bc3fcdea6b0b2b72",
+    "candidate_head": "02812441c1a7ec7fd2b57330939028252769f610",
+    "origin_main_is_candidate_ancestor": true,
+    "candidate_commit_count": 8,
+    "working_tree_clean_before_evidence": true,
+    "baseline_mode": "DETACHED_CANDIDATE_ON_LATEST_ORIGIN_MAIN"
   },
   "production_identity": {
-    "source_commit": "910d02763f01cc6db5263b0e1867c06b4f8f5933",
-    "image_digest": "sha256:1a5d7a180dd3822fb31e073e70a465d34c429451bf317cb5c1ec227b4920c8bd",
-    "platform_status": "finished",
-    "application_health": "running:healthy",
-    "container_probe": "UNKNOWN_COOLIFY_EXEC_404",
-    "identity_receipt_sha256": "ac0bd08ab13b9bb318ce7c0e2c25be25665dd6564bf509ec17e40929de697982"
+    "application_health": "OBSERVED_RUNNING_HEALTHY",
+    "application_inventory_receipt": "github-actions:30751647405",
+    "source_commit": "UNKNOWN",
+    "image_digest": "UNKNOWN",
+    "deployment_uuid": "UNKNOWN",
+    "identity_reason": "Fresh Coolify deployments inventory was empty; running:healthy alone cannot identify source, image, or deployment.",
+    "deployment_inventory_receipt": "github-actions:30751822787"
+  },
+  "runtime_configuration": {
+    "daily_funds_required_secret_keys": "PRESENT_IN_COOLIFY_VALUES_NOT_EQUALITY_VERIFIED",
+    "optional_dws_client_override": "EMPTY_ALLOWED",
+    "optional_dws_recovery_bundle": "EMPTY_ALLOWED",
+    "configuration_inventory_receipt": "github-actions:30751690333"
+  },
+  "safety_state": {
+    "group_robot_credentials": "REMOVED_FROM_ALL_OBSERVED_CONTEXTS",
+    "delivery_enabled": false,
+    "receipt": "github-actions:30751749859",
+    "rule": "No group delivery is permitted during daily-funds verification."
   },
   "semantic_reconcile": [
     {
       "subject": "existing_upstream_dws_archive",
       "classification": "CONFLICT",
-      "decision": "do_not_depend_on_it",
-      "reason": "Daily-funds requires its own DWS identity, cursor, state and raw path."
+      "decision": "DO_NOT_DEPEND_ON_IT",
+      "reason": "Daily-funds retains its own DWS identity, cursor, state, raw path, and cloud volumes."
     },
     {
       "subject": "existing_skills_runtime",
       "classification": "CONFLICT",
-      "decision": "do_not_share_runtime_or_volumes",
-      "reason": "The task requires an independently schedulable cloud service and forbids reusing other skills or login state."
+      "decision": "DO_NOT_SHARE_RUNTIME_OR_VOLUMES",
+      "reason": "The task requires a separately scheduled cloud service with no other Skill, local, Agent, or model dependency."
     },
     {
       "subject": "KMFA_private_operations_app",
       "classification": "ADAPT",
-      "decision": "add_private_tab_and_read_only_projection",
-      "reason": "Reuse the protected KMFA UI shell only; do not expose raw messages or attachments."
+      "decision": "USE_EXISTING_PROTECTED_READ_ONLY_PROJECTION",
+      "reason": "Only the established private UI and status centre are reused; raw messages, attachments, IDs, and values remain private."
     },
     {
-      "subject": "Coolify_deployment_plane",
-      "classification": "ADAPT",
-      "decision": "add_independent_service_to_existing_compose",
-      "reason": "Coolify is the established cloud orchestration plane."
-    },
-    {
-      "subject": "Private_Database_no_clone_rule",
+      "subject": "Private_Database_raw_authority",
       "classification": "OWNER_EXCEPTION_APPLIES",
-      "decision": "narrow_single_writer_sparse_clone_only",
-      "reason": "The task pack explicitly permits only the daily-funds raw/manifest writer to use a private-repository sparse clone."
+      "decision": "NARROW_SINGLE_WRITER_SPARSE_CLONE_ONLY",
+      "reason": "The daily-funds service alone may write its fixed raw/manifest/publication path; no full clone or force push is permitted."
     },
     {
-      "subject": "Cloudflare_D1_R2",
-      "classification": "NEW_RESOURCE_REQUIRED",
-      "decision": "provision_only_after_code_gate",
-      "reason": "No dedicated daily-funds D1 database or R2 bucket was present in the production inventory."
+      "subject": "DingTalk_cloud_identity",
+      "classification": "NOT_YET_LIVE_VERIFIED",
+      "decision": "REQUIRE_INDEPENDENT_CLOUD_AUTH_STATUS",
+      "reason": "Zhang Linze's DingTalk account is the authorized cloud auth identity only and never replaces the fixed source triple gate."
     },
     {
-      "subject": "DingTalk_and_OCI_runtime_identity",
-      "classification": "UNKNOWN",
-      "decision": "fail_closed_and_register_need_action",
-      "reason": "No independent daily-funds credentials or target binding were found in the current production configuration."
+      "subject": "D1_R2_OCI_and_restore",
+      "classification": "NOT_YET_LIVE_VERIFIED",
+      "decision": "FAIL_CLOSED_UNTIL_VALID_PUBLICATION_AND_EMPTY_ENVIRONMENT_RESTORE",
+      "reason": "Configured key presence is not an object write/readback, D1 query Oracle, or OCI restore receipt."
     }
   ],
-  "release_rule": "UNKNOWN is never converted to PASS; end-of-run reconciliation must be written after deployment evidence is collected."
+  "release_rule": "UNKNOWN is never converted to PASS. Final evidence must be captured only after the candidate is deployed and independently observed."
 }
