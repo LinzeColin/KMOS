@@ -73,11 +73,15 @@ def _write_projection(root: Path) -> None:
                 "outflow_fen": 18_000_000,
                 "adjustment_fen": 0,
                 "internal_transfer": False,
-                "source_version": "b" * 64,
+                "source_version": "a" * 64,
                 "message_id_hash": "a" * 64,
             },
         ],
-        "runtime": {"oci_backup_state": "OK"},
+        "runtime": {
+            "oci_backup_state": "OK",
+            "git_publication_commit_sha": "f" * 40,
+            "oci_restore_manifest_sha": "e" * 64,
+        },
     }
     status = {
         "human_status": "已更新",
@@ -236,6 +240,69 @@ def test_private_daily_funds_projection_range_and_no_raw_leak(tmp_path, monkeypa
     anchored = client.get("/ops/api/daily-funds/summary", params={"range": "30d"}).json()
     assert anchored["from"] == "2026-07-01" and anchored["to"] == "2026-07-30"
     assert client.get("/api/daily-funds/summary", params={"range": "custom", "from": "2026-07-30", "to": "2026-07-30"}).status_code == 422
+
+
+def test_daily_funds_projection_rejects_source_pair_and_runtime_contract_drift(tmp_path, monkeypatch):
+    def load_current(root: Path) -> dict:
+        return json.loads((root / "current.json").read_text(encoding="utf-8"))
+
+    def write_current(root: Path, payload: dict) -> None:
+        (root / "current.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    mutations = (
+        lambda current: current["publication"]["source_versions"].append({"source_version": "c" * 64}),
+        lambda current: current["transactions"].__setitem__(1, {
+            **current["transactions"][1], "source_version": "b" * 64,
+        }),
+        lambda current: current["transactions"].__setitem__(0, {
+            **current["transactions"][0], "source_version": "c" * 64,
+        }),
+        lambda current: current.__setitem__("untrusted_raw_extension", "must-not-be-ignored"),
+        lambda current: current.__setitem__("runtime", {"oci_backup_state": "OK"}),
+        lambda current: current.__setitem__("runtime", {
+            "oci_backup_state": "OK", "git_publication_commit_sha": "f" * 40,
+        }),
+    )
+    for index, mutate in enumerate(mutations):
+        publication = tmp_path / f"publication-{index}"
+        _write_projection(publication)
+        current = load_current(publication)
+        mutate(current)
+        write_current(publication, current)
+        monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+        response = client.get("/ops/api/daily-funds/summary")
+        assert response.status_code == 503
+
+
+def test_daily_funds_projection_accepts_pending_and_restored_worker_shapes(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    current = json.loads((publication / "current.json").read_text(encoding="utf-8"))
+    del current["runtime"]
+    (publication / "current.json").write_text(json.dumps(current), encoding="utf-8")
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+    assert client.get("/ops/api/daily-funds/summary").json()["publication"]["oci_backup_state"] == "PENDING"
+
+    current["runtime"] = {"oci_backup_state": "OK", "restored_at": "2026-07-30T12:06:00Z"}
+    (publication / "current.json").write_text(json.dumps(current), encoding="utf-8")
+    assert client.get("/ops/api/daily-funds/summary").json()["publication"]["oci_backup_state"] == "OK"
+
+    current["runtime"] = {"oci_backup_state": "LAG", "git_publication_commit_sha": "f" * 40}
+    (publication / "current.json").write_text(json.dumps(current), encoding="utf-8")
+    assert client.get("/ops/api/daily-funds/summary").json()["publication"]["oci_backup_state"] == "LAG"
+
+
+def test_daily_funds_projection_paths_require_access_in_production(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+    monkeypatch.setenv("KMFA_PRIVATE_OPS_REQUIRE_ACCESS", "1")
+    monkeypatch.setenv("KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN", "test-team.cloudflareaccess.com")
+    monkeypatch.setenv("KMFA_CLOUDFLARE_ACCESS_AUD", "daily-funds-test-aud")
+
+    assert client.get("/api/daily-funds/summary").status_code == 403
+    assert client.get("/ops/api/daily-funds/summary").status_code == 403
+    assert client.get("/ops/daily-funds").status_code == 403
 
 
 def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, monkeypatch):

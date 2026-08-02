@@ -110,11 +110,15 @@ def _write_projection(root: Path, human_status: str) -> None:
                 "outflow_fen": 18_000_000,
                 "adjustment_fen": 0,
                 "internal_transfer": False,
-                "source_version": "b" * 64,
+                "source_version": "a" * 64,
                 "message_id_hash": "a" * 64,
             },
         ],
-        "runtime": {"oci_backup_state": "OK"},
+        "runtime": {
+            "oci_backup_state": "OK",
+            "git_publication_commit_sha": "f" * 40,
+            "oci_restore_manifest_sha": "e" * 64,
+        },
     }
     status = {
         "human_status": human_status,

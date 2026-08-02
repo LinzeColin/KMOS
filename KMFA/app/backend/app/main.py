@@ -3067,6 +3067,15 @@ def _daily_funds_current() -> dict[str, Any]:
     payload = _read_daily_funds_json("current.json")
     if not payload or not isinstance(payload.get("publication"), dict):
         raise HTTPException(status_code=503, detail="daily_funds_projection_unavailable")
+    expected_snapshot_fields = {
+        "schema_version", "publication", "summary", "daily_balances", "transactions",
+    }
+    snapshot_fields = set(payload)
+    if (
+        snapshot_fields != expected_snapshot_fields
+        and snapshot_fields != expected_snapshot_fields | {"runtime"}
+    ) or payload.get("schema_version") != "kmfa.daily_funds.current_projection.v1":
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
     publication = payload["publication"]
     source_versions = publication.get("source_versions")
     expected_fields = {
@@ -3086,7 +3095,7 @@ def _daily_funds_current() -> dict[str, Any]:
         or not _daily_funds_lower_hex(publication.get("r2_manifest_sha256"), 64)
         or publication.get("d1_projection_version") != "kmfa.daily_funds.d1.v1"
         or not isinstance(source_versions, list)
-        or len(source_versions) < 2
+        or len(source_versions) != 2
         or len({item.get("source_version") for item in source_versions if isinstance(item, dict)}) != len(source_versions)
         or any(
             not isinstance(item, dict)
@@ -3226,7 +3235,12 @@ def _daily_funds_safe_accounts(value: object, *, total: int) -> list[dict[str, A
     return sorted(safe, key=lambda row: (-abs(int(row["ending_available_fen"])), str(row["account_alias"])))
 
 
-def _daily_funds_safe_transactions(payload: dict[str, Any], *, publication_day: date) -> list[dict[str, Any]]:
+def _daily_funds_safe_transactions(
+    payload: dict[str, Any],
+    *,
+    publication_day: date,
+    declared_source_versions: set[str],
+) -> list[dict[str, Any]]:
     rows = payload.get("transactions")
     if not isinstance(rows, list) or not rows:
         raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
@@ -3236,6 +3250,7 @@ def _daily_funds_safe_transactions(payload: dict[str, Any], *, publication_day: 
     }
     safe: list[dict[str, Any]] = []
     seen: set[str] = set()
+    transaction_versions: set[str] = set()
     for row in rows:
         if not isinstance(row, dict) or set(row) != expected:
             raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
@@ -3255,10 +3270,12 @@ def _daily_funds_safe_transactions(payload: dict[str, Any], *, publication_day: 
             or (int(inflow) and int(outflow))
             or not isinstance(internal_transfer, bool)
             or not _daily_funds_lower_hex(row.get("source_version"), 64)
+            or row["source_version"] not in declared_source_versions
             or not _daily_funds_lower_hex(row.get("message_id_hash"), 64)
         ):
             raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
         seen.add(str(key))
+        transaction_versions.add(str(row["source_version"]))
         safe.append({
             "transaction_ref": str(key)[-8:],
             "business_date": observed.isoformat(),
@@ -3267,7 +3284,49 @@ def _daily_funds_safe_transactions(payload: dict[str, Any], *, publication_day: 
             "adjustment_fen": adjustment,
             "internal_transfer": internal_transfer,
         })
+    # Publication is a strictly paired account/transaction fact set.  The
+    # upstream D1 gate already verifies the complementary account source; the
+    # browser projection must at least reject a shared-volume snapshot that
+    # tries to mix several transaction source versions or cite a third source.
+    if len(transaction_versions) != 1:
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
     return sorted(safe, key=lambda row: (str(row["business_date"]), str(row["transaction_ref"])))
+
+
+def _daily_funds_runtime_backup_state(payload: dict[str, Any]) -> str:
+    """Validate the operational hand-off without exposing its identifiers.
+
+    The first pointer write is allowed to have no ``runtime`` member while
+    OCI is pending.  Final publications and restored pointers must otherwise
+    carry one of the exact writer-produced shapes; arbitrary fields are never
+    ignored on the shared projection volume.
+    """
+
+    if "runtime" not in payload:
+        return "PENDING"
+    runtime = payload.get("runtime")
+    if not isinstance(runtime, dict):
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    state = runtime.get("oci_backup_state")
+    if state not in {"OK", "LAG"}:
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    keys = set(runtime)
+    if keys == {"oci_backup_state", "git_publication_commit_sha"}:
+        if state != "LAG" or not _daily_funds_lower_hex(runtime.get("git_publication_commit_sha"), 40):
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    elif keys == {"oci_backup_state", "git_publication_commit_sha", "oci_restore_manifest_sha"}:
+        if (
+            state != "OK"
+            or not _daily_funds_lower_hex(runtime.get("git_publication_commit_sha"), 40)
+            or not _daily_funds_lower_hex(runtime.get("oci_restore_manifest_sha"), 64)
+        ):
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    elif keys == {"oci_backup_state", "restored_at"}:
+        if state != "OK" or _daily_funds_timestamp(runtime.get("restored_at")) is None:
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    else:
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    return state
 
 
 def _daily_funds_safe_thresholds(publication: dict[str, Any]) -> dict[str, Any]:
@@ -3353,14 +3412,19 @@ def _daily_funds_projection_view(payload: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
     if dynamic_flag not in {None, "动态明显偏低", "动态偏低"}:
         raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
-    runtime = payload.get("runtime") if isinstance(payload.get("runtime"), dict) else {}
-    backup_state = str(runtime.get("oci_backup_state") or publication.get("oci_backup_state") or "UNKNOWN").upper()
-    if backup_state not in DAILY_FUNDS_BACKUP_STATES:
-        backup_state = "UNKNOWN"
+    declared_source_versions = {
+        str(row["source_version"])
+        for row in publication["source_versions"]
+    }
+    backup_state = _daily_funds_runtime_backup_state(payload)
     return {
         "publication_day": publication_day,
         "points": points,
-        "transactions": _daily_funds_safe_transactions(payload, publication_day=publication_day),
+        "transactions": _daily_funds_safe_transactions(
+            payload,
+            publication_day=publication_day,
+            declared_source_versions=declared_source_versions,
+        ),
         "thresholds": _daily_funds_safe_thresholds(publication),
         "total_available_fen": total,
         "risk_label": risk_label,
