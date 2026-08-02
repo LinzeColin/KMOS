@@ -40,10 +40,25 @@ DAILY_PATHS = (
     "/ops/api/daily-funds/source-health",
     "/ops/api/daily-funds/thresholds",
 )
+STATUS_SCHEDULES = {
+    "history_poll": "*/15 * * * * Asia/Shanghai",
+    "auth_probe": "* * * * * Asia/Shanghai",
+    "keepalive": "0 * * * * Asia/Shanghai",
+    "backfill": "15 2 * * * Asia/Shanghai",
+    "observer": "30 3 * * * Asia/Shanghai",
+    "cold_backup": "10 4 * * * Asia/Shanghai",
+    "runtime_audit": "45 5 * * * Asia/Shanghai",
+    "restore_drill": "0 5 1 * * Asia/Shanghai",
+}
 
 
-def _write_projection(root: Path, human_status: str) -> None:
-    """Write a strict, synthetic projection accepted by the app read model."""
+def _write_projection(root: Path, human_status: str, *, restored: bool = False) -> None:
+    """Write a strict, synthetic projection accepted by the app read model.
+
+    ``restored`` mirrors the exact post-restore runtime shape written by the
+    worker.  That makes the browser Oracle cover both a normal published
+    pointer and a recovered pointer without implying that OCI was contacted.
+    """
 
     root.mkdir(parents=True, exist_ok=True)
     current: dict[str, Any] = {
@@ -114,20 +129,28 @@ def _write_projection(root: Path, human_status: str) -> None:
                 "message_id_hash": "a" * 64,
             },
         ],
-        "runtime": {
-            "oci_backup_state": "OK",
-            "git_publication_commit_sha": "f" * 40,
-            "oci_restore_manifest_sha": "e" * 64,
-        },
+        "runtime": (
+            {
+                "oci_backup_state": "OK",
+                "restored_at": "2026-07-30T12:06:00Z",
+            }
+            if restored
+            else {
+                "oci_backup_state": "OK",
+                "git_publication_commit_sha": "f" * 40,
+                "oci_restore_manifest_sha": "e" * 64,
+            }
+        ),
     }
     status = {
+        "schema_version": "kmfa.daily_funds.status.v1",
         "human_status": human_status,
         "machine_code": "SYNTHETIC_T09_ONLY",
         "effective_business_date": "2026-07-30",
         "last_verified_at": "2026-07-30T12:00:00Z",
         "publication_id": "c" * 64,
         "updated_at": "2026-07-30T12:00:00Z",
-        "schedules": {"history_poll": "*/15 * * * * Asia/Shanghai"},
+        "schedules": dict(STATUS_SCHEDULES),
         "backup_state": "OK",
     }
     # ``/api/排程健康`` reads this file on app mount.  The marker represents
@@ -359,9 +382,10 @@ def _exercise_case(
     exercise_controls: bool,
     out_dir: Path,
     trusted_projection: bool = True,
+    restored_projection: bool = False,
 ) -> dict[str, Any]:
     if trusted_projection:
-        _write_projection(publication_dir, status)
+        _write_projection(publication_dir, status, restored=restored_projection)
     else:
         _write_archived_needs_review_projection(publication_dir)
     context = browser.new_context(viewport=viewport, color_scheme=color_scheme, locale="zh-CN")
@@ -505,6 +529,7 @@ def _exercise_case(
             "color_scheme": color_scheme,
             "controls_exercised": exercise_controls,
             "trusted_projection": trusted_projection,
+            "restored_projection": restored_projection,
             "status": "PASS",
             "daily_projection_requests": sorted(daily_paths),
             "mobile_overflow_checked": viewport["width"] <= 480,
@@ -551,6 +576,12 @@ def main() -> int:
                         browser, base_url=base_url, publication_dir=publication_dir,
                         status="需处理", name="action-needed-desktop", viewport={"width": 1280, "height": 900},
                         color_scheme="light", exercise_controls=False, out_dir=args.out_dir,
+                    ))
+                    results.append(_exercise_case(
+                        browser, base_url=base_url, publication_dir=publication_dir,
+                        status="已更新", name="restored-desktop", viewport={"width": 1280, "height": 900},
+                        color_scheme="light", exercise_controls=False, out_dir=args.out_dir,
+                        restored_projection=True,
                     ))
                     results.append(_exercise_case(
                         browser, base_url=base_url, publication_dir=publication_dir,
