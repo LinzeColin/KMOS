@@ -1239,6 +1239,76 @@ def test_authenticated_dws_profile_does_not_require_an_invented_app_json(tmp_pat
     DwsHistoryClient(config, runner=runner).ensure_authenticated()
 
 
+def test_dws_history_accepts_successful_empty_v1_envelope_and_sender_user_id(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+
+    def runner(command, **kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "success": True,
+                "result": {"hasMore": False},
+            }), "")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    client = DwsHistoryClient(config, runner=runner)
+    page = client.search(datetime(2026, 8, 1, tzinfo=UTC), datetime(2026, 8, 1, 0, 1, tzinfo=UTC), "0")
+    assert page == DwsPage(messages=(), next_cursor=None, has_more=False)
+    message = {
+        "openConversationId": config.group_id,
+        "sender": config.sender_id,
+        "content": "资金明细",
+    }
+    client.assert_exact_source(message)
+    assert client.selected_messages(DwsPage(messages=(message,), next_cursor=None, has_more=False)) == (message,)
+
+
+def test_dws_history_permission_denial_is_not_misreported_as_auth_loss(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    events: list[tuple[str, str, str]] = []
+
+    def runner(command, **kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "success": False,
+                "errorCode": "PermissionDenied",
+                "errorMsg": "redacted",
+            }), "")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    with pytest.raises(IngestionError, match="DWS_HISTORY_PERMISSION_DENIED"):
+        DwsHistoryClient(config, runner=runner, event_sink=lambda *event: events.append(event)).search(
+            datetime(2026, 8, 1, tzinfo=UTC),
+            datetime(2026, 8, 1, 0, 1, tzinfo=UTC),
+            "0",
+        )
+    assert events == [
+        ("DWS", "AUTH_STATUS", "OK"),
+        ("DWS", "HISTORY_SEARCH", "DWS_HISTORY_PERMISSION_DENIED"),
+    ]
+
+
+def test_dws_history_stderr_permission_denial_is_not_misreported_as_auth_loss(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+
+    def runner(command, **kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            return subprocess.CompletedProcess(command, 1, "", "API PermissionDenied for current user")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    with pytest.raises(IngestionError, match="DWS_HISTORY_PERMISSION_DENIED"):
+        DwsHistoryClient(config, runner=runner).search(
+            datetime(2026, 8, 1, tzinfo=UTC),
+            datetime(2026, 8, 1, 0, 1, tzinfo=UTC),
+            "0",
+        )
+
+
 def test_keepalive_preserves_the_specific_dws_auth_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import daily_funds.runtime as runtime_module
 

@@ -132,6 +132,56 @@ def _attachments(message: Mapping[str, Any]) -> list[dict[str, Any]]:
     return []
 
 
+def _dws_history_failure_code(*values: object, fallback: str = "DWS_HISTORY_FAILED") -> str:
+    """Classify a DWS failure without retaining its potentially sensitive text.
+
+    DWS uses both process exit codes and a JSON business envelope.  A shell
+    exit status of ``1`` is not synonymous with an expired OAuth token: the
+    real service also uses it for a current-user permission denial.  Keep the
+    original diagnostic text in neither the state journal nor status surface;
+    reduce it to a stable, actionable machine code instead.
+    """
+
+    fragments: list[str] = []
+
+    def add(value: object) -> None:
+        if isinstance(value, Mapping):
+            for key in ("errorCode", "error_code", "code", "errorMsg", "error_msg", "message"):
+                candidate = value.get(key)
+                if candidate not in (None, ""):
+                    fragments.append(str(candidate))
+        elif value not in (None, ""):
+            fragments.append(str(value))
+
+    for value in values:
+        add(value)
+    text = " ".join(fragments).lower()
+    if any(token in text for token in ("permission", "denied", "forbidden", "无权限", "权限")):
+        return "DWS_HISTORY_PERMISSION_DENIED"
+    if any(token in text for token in ("auth", "token", "login", "unauthorized", "认证", "登录", "令牌")):
+        return "DWS_AUTH_REQUIRED"
+    if any(token in text for token in ("parameter", "argument", "invalid", "参数")):
+        return "DWS_HISTORY_ARGUMENT_INVALID"
+    return fallback
+
+
+def _unwrap_dws_history_payload(payload: object) -> object:
+    """Validate the DWS v1 business envelope before page extraction.
+
+    ``dws`` can exit zero while returning ``{"success": false, ...}``.  The
+    worker must never turn that response into an empty successful scan.
+    """
+
+    if not isinstance(payload, Mapping) or "success" not in payload:
+        return payload
+    if payload.get("success") is not True:
+        raise IngestionError(_dws_history_failure_code(payload, fallback="DWS_HISTORY_API_FAILED"))
+    result = payload.get("result")
+    if not isinstance(result, Mapping):
+        raise IngestionError("DWS_HISTORY_RESULT_INVALID")
+    return result
+
+
 def _family(message: Mapping[str, Any]) -> str | None:
     fragments: list[str] = []
     for key in ("text", "content", "msgContent", "title", "fileName", "name"):
@@ -178,7 +228,14 @@ def _extract_page(payload: object) -> DwsPage:
         if records is None and isinstance(candidate.get("data"), list):
             records = candidate["data"]
         if records is None:
-            continue
+            # DWS v1 represents a valid empty search page as
+            # ``{"hasMore": false}`` inside its successful ``result``
+            # envelope.  It is a real, bounded zero-result query, whereas a
+            # non-terminal page without a records list remains malformed.
+            if raw_more is False:
+                records = []
+            else:
+                continue
         next_cursor = candidate.get("nextCursor", candidate.get("next_cursor"))
         if raw_more and not isinstance(next_cursor, str):
             raise IngestionError("NEXT_CURSOR_MISSING")
@@ -387,22 +444,28 @@ class DwsHistoryClient:
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise IngestionError("DWS_HISTORY_UNAVAILABLE") from exc
         if completed.returncode != 0:
-            code = "AUTH_REQUIRED" if completed.returncode in {1, 401, 403} else "FAILED"
+            code = _dws_history_failure_code(completed.stdout, completed.stderr)
             self._record_network_event("HISTORY_SEARCH", code)
-            raise IngestionError("AUTH_REQUIRED" if code == "AUTH_REQUIRED" else "DWS_HISTORY_FAILED")
+            raise IngestionError(code)
         try:
-            page = _extract_page(json.loads(completed.stdout))
+            payload = json.loads(completed.stdout)
+            page = _extract_page(_unwrap_dws_history_payload(payload))
         except (IngestionError, json.JSONDecodeError) as exc:
-            self._record_network_event("HISTORY_SEARCH", "INVALID")
             if isinstance(exc, IngestionError):
+                self._record_network_event("HISTORY_SEARCH", exc.code)
                 raise
+            self._record_network_event("HISTORY_SEARCH", "INVALID")
             raise IngestionError("DWS_HISTORY_JSON_INVALID") from exc
         self._record_network_event("HISTORY_SEARCH", "OK")
         return page
 
     def assert_exact_source(self, message: Mapping[str, Any]) -> None:
         conversation_id = _message_field(message, ("openConversationId", "conversationId", "conversation_id"))
-        sender_id = _message_field(message, ("senderId", "sender_id", "senderStaffId", "senderUserId"))
+        # DWS ``search-advanced --user`` accepts a userId and v1.0.52 returns
+        # that same value as ``sender``.  ``senderOpenDingTalkId`` is a
+        # distinct identifier family and must not be treated as a match for a
+        # configured userId.
+        sender_id = _message_field(message, ("senderId", "sender_id", "senderStaffId", "senderUserId", "sender"))
         if conversation_id != self.config.group_id or sender_id != self.config.sender_id:
             raise IngestionError("AMBIGUOUS_SOURCE")
 
@@ -418,7 +481,7 @@ class DwsHistoryClient:
         selected: list[dict[str, Any]] = []
         for message in page.messages:
             conversation_id = _message_field(message, ("openConversationId", "conversationId", "conversation_id"))
-            sender_id = _message_field(message, ("senderId", "sender_id", "senderStaffId", "senderUserId"))
+            sender_id = _message_field(message, ("senderId", "sender_id", "senderStaffId", "senderUserId", "sender"))
             if conversation_id != self.config.group_id:
                 raise IngestionError("AMBIGUOUS_SOURCE")
             if sender_id == self.config.sender_id and _family(message) is not None:
