@@ -13,6 +13,7 @@ description: 独立云端每日资金纵向切片；仅从指定钉钉群历史�
 - DWS 身份：首次只在 daily-funds 的独立云端卷中显式执行一次 `bootstrap-dws-auth`；设备码不进入 cron、日志或状态面。`DAILY_FUNDS_DWS_AUTH_BUNDLE_B64` 仅是可选灾备恢复导入。未配置 `DAILY_FUNDS_DWS_CLIENT_ID` 时，受控 DWS 进程使用其官方默认客户端；如配置，该值只在本切片构造的环境中作为覆盖值使用，绝不继承宿主或其他 Skill。DWS v1.0.52 的群消息命令将 `--group`、`--user`、`--open-dingtalk-id` 视为互斥会话选择器，因此服务端只按唯一群读取；本地逐条以群 ID、稳定发送人 ID 与文档族完成三重门禁。`auth status` 或任一门禁失败即关闭。运行时不得另行注入 AppSecret；AppKey/AppSecret 不能替代登录态，也不得读取宿主或其他服务的登录态。
 - 原始权威：私有 GitHub `LinzeColin/Private-Database` 的 `Private-KMDatabase/KMFA/daily_funds`。仅本服务 single writer 获 Owner 窄例外使用 `--filter=blob:none --sparse --no-checkout` 的**非 cone 精确路径** clone；Git/SSH 进程只使用该服务 deploy key 与临时 known_hosts，不继承宿主 agent、全局配置或提示。禁止全库 clone 与 force push；推送后必须以全新 sparse clone 回读消息信封、occurrence、原始字节/分块 manifest 和 SHA-256。
 - 附件能力：`.csv`、`.txt`、`.xlsx`、`.xlsm` 仅为候选格式。只有目标群真实字节经私有 Git readback、SHA/lineage、MIME/magic、模板和 parser-open 全部成功后，运行时才以 SHA 写入受保护 `parser_evidence` 回执；合成测试不能把任何格式标为生产已支持。`.xls`、PDF、图片和 OCR 当前均为 `needs-review`，不发布金额。
+- 解析模板：未有目标群真实样本冻结多表模板前，任何多 sheet 工作簿以 `XLSX_WORKSHEET_AMBIGUOUS` 停止；“流入/流出”与“金额/方向”两套金额编码并存时以 `TRANSACTION_AMOUNT_MAPPING_AMBIGUOUS` 停止。解析规则升级后的旧 capability receipt 仅留审计，不能投影为当前支持，必须以新 parser version 重新打开私有原始字节。
 - 查询投影：Cloudflare D1；热镜像：Cloudflare R2；异地冷备：OCI Object Storage；本地 SQLite 仅含 cursor/inbox/idempotency/outbox/runtime journal。
 - 页面：KMFA 私有 `/ops/app?tab=每日资金` 或 `/ops/daily-funds`，Cloudflare Access 保护；根页和公共 API 不暴露金额、附件、ID 或下载链接。
 

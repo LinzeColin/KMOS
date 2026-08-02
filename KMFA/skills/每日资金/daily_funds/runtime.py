@@ -440,7 +440,11 @@ class DailyFundsRuntime:
             # This aggregate is intentionally values-free: it reveals only
             # parser type/outcome counts, never source IDs, filenames, hashes,
             # document text or financial amounts.
-            "attachment_capabilities": self.state.capability_matrix(),
+            # A parser rule upgrade invalidates old support receipts until the
+            # private raw bytes are re-opened under the current parser.  Keep
+            # prior records in SQLite for audit, but never project them as
+            # current production capability.
+            "attachment_capabilities": self.state.capability_matrix(parser_version=PARSER_VERSION),
             "self_healing": {
                 "state": "JOURNAL_READY",
                 "restart_recovery": "CURSOR_INBOX_LEASES",

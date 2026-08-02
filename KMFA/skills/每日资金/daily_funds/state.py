@@ -362,16 +362,32 @@ class RuntimeState:
                 (attachment_sha256, family, suffix, declared_mime, magic, parser_version, outcome, safe_code, iso_now()),
             )
 
-    def capability_matrix(self) -> list[dict[str, Any]]:
-        """Return a values-free aggregate for the protected KMFA status UI."""
+    def capability_matrix(self, *, parser_version: str | None = None) -> list[dict[str, Any]]:
+        """Return a values-free aggregate for the protected KMFA status UI.
+
+        When a parser version is supplied, it is an *evidence validity*
+        filter, not a destructive migration: older receipts remain in the
+        protected journal for audit but cannot assert support for changed
+        parsing rules.
+        """
+
+        if parser_version is not None and (
+            not isinstance(parser_version, str)
+            or not parser_version
+            or len(parser_version) > 128
+            or any(ord(character) < 32 for character in parser_version)
+        ):
+            raise ValueError("invalid capability parser version")
 
         with self.connection() as connection:
             rows = connection.execute(
                 """SELECT family,suffix,declared_mime,magic,parser_version,outcome,code,
                           COUNT(*) AS count,MAX(observed_at) AS last_observed_at
                    FROM capability_evidence
+                   WHERE (? IS NULL OR parser_version = ?)
                    GROUP BY family,suffix,declared_mime,magic,parser_version,outcome,code
-                   ORDER BY family,suffix,declared_mime,magic,parser_version,outcome,code"""
+                   ORDER BY family,suffix,declared_mime,magic,parser_version,outcome,code""",
+                (parser_version, parser_version),
             ).fetchall()
         return [
             {

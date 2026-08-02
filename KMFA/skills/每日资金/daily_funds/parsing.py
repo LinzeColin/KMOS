@@ -21,7 +21,10 @@ from .models import AccountSnapshot, ParsedFacts, ParserEvidence, SourceRef, Tra
 
 ACCOUNT_FAMILY = "资金账户明细表"
 TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
-PARSER_VERSION = "kmfa.daily_funds.parser.v2"
+# v3 rejects previously silent multi-sheet and competing amount encodings.
+# Capability receipts are versioned, so a rule change cannot inherit a prior
+# parser's production-support assertion.
+PARSER_VERSION = "kmfa.daily_funds.parser.v3"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -369,14 +372,23 @@ def _xlsx_rows(payload: bytes) -> list[dict[str, object]]:
     try:
         # Cached formula values must not be treated as an independently
         # verified financial source.  Open the same workbook in formula view
-        # first, then only read values if its active sheet contains no formula.
+        # first, then only read values if its sole worksheet contains no formula.
         formula_book = openpyxl.load_workbook(io.BytesIO(payload), read_only=True, data_only=False, keep_vba=False)
-        formula_sheet = formula_book.active
+        # Until a target-group real sample freezes an explicit multi-sheet
+        # template, selecting ``active`` would silently discard the remaining
+        # worksheets.  A financial source must be complete or fail closed;
+        # reject every multi-sheet workbook rather than guessing where facts
+        # belong (including a hidden or auxiliary sheet).
+        if len(formula_book.worksheets) != 1:
+            raise ParseError("XLSX_WORKSHEET_AMBIGUOUS")
+        formula_sheet = formula_book.worksheets[0]
         for formula_row in formula_sheet.iter_rows():
             if any(cell.data_type == "f" for cell in formula_row):
                 raise ParseError("XLSX_FORMULA_UNSUPPORTED")
         value_book = openpyxl.load_workbook(io.BytesIO(payload), read_only=True, data_only=True, keep_vba=False)
-        sheet = value_book.active
+        if len(value_book.worksheets) != 1:
+            raise ParseError("XLSX_WORKSHEET_AMBIGUOUS")
+        sheet = value_book.worksheets[0]
         iterator = sheet.iter_rows(values_only=True)
         headers = _validated_headers(_trim_trailing_blank(next(iterator)))
         rows: list[dict[str, object]] = []
@@ -494,7 +506,15 @@ def parse_attachment(
         return ParsedFacts(business_date, family, tuple(accounts), tuple(), source.source_version, parser_evidence)
 
     _required(mapped, ("company", "bank", "account", "transaction_id"))
-    if "inflow" not in mapped and "outflow" not in mapped and not ({"amount", "direction"} <= set(mapped)):
+    has_flow_columns = "inflow" in mapped or "outflow" in mapped
+    has_amount_direction = {"amount", "direction"} <= set(mapped)
+    # These are two alternative financial encodings.  Without a frozen real
+    # template proving their relationship, preferring one and ignoring the
+    # other could silently publish a different amount than the attachment
+    # states.  Treat coexistence as ambiguity rather than an implicit choice.
+    if has_flow_columns and has_amount_direction:
+        raise ParseError("TRANSACTION_AMOUNT_MAPPING_AMBIGUOUS")
+    if not has_flow_columns and not has_amount_direction:
         raise ParseError("TRANSACTION_AMOUNT_MAPPING_MISSING")
     transactions: list[Transaction] = []
     seen_transactions: set[tuple[date, str, str, str, str]] = set()
@@ -517,7 +537,7 @@ def parse_attachment(
         if key in seen_transactions:
             raise ParseError("TRANSACTION_DUPLICATE")
         seen_transactions.add(key)
-        if "inflow" in mapped or "outflow" in mapped:
+        if has_flow_columns:
             inflow = _amount_to_fen(row.get(mapped["inflow"])) if "inflow" in mapped and not _is_blank(row.get(mapped["inflow"])) else 0
             outflow = _amount_to_fen(row.get(mapped["outflow"])) if "outflow" in mapped and not _is_blank(row.get(mapped["outflow"])) else 0
         else:

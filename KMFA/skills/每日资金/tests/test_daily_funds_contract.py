@@ -51,7 +51,7 @@ from daily_funds.ingestion import (
     SPARSE_PATH,
 )
 from daily_funds.models import SourceRef
-from daily_funds.parsing import ACCOUNT_FAMILY, ParseError, parse_attachment
+from daily_funds.parsing import ACCOUNT_FAMILY, PARSER_VERSION, ParseError, parse_attachment
 from daily_funds.publication import D1Projection, OciColdBackup, OciParStore, PublicationCoordinator, PublicationError, R2Mirror, RestoreCoordinator, RestoreOracle
 from daily_funds.reconcile import AccountReconciliation, ReconciliationError, ReconciliationReport, reconcile
 from daily_funds.runtime import DailyFundsRuntime, TimedFacts
@@ -604,6 +604,20 @@ def test_parser_rejects_bad_magic_mime_and_duplicate_facts() -> None:
         )
 
 
+def test_parser_rejects_competing_transaction_amount_encodings() -> None:
+    payload = (
+        "业务日期,公司,开户行,账号,流水号,流入,流出,金额,收支方向\n"
+        "2026-07-30,甲,乙,001,t-1,1.00,,2.00,流入\n"
+    ).encode()
+    with pytest.raises(ParseError, match="TRANSACTION_AMOUNT_MAPPING_AMBIGUOUS"):
+        parse_attachment(
+            family="资金流水明细",
+            filename="资金流水明细_20260730.csv",
+            payload=payload,
+            source=_source(payload),
+        )
+
+
 def test_parser_accepts_gb18030_tab_delimited_text_with_exact_fen() -> None:
     payload = (
         "业务日期\t公司\t开户行\t账号\t期末余额\n"
@@ -624,11 +638,18 @@ def test_parser_accepts_gb18030_tab_delimited_text_with_exact_fen() -> None:
 def test_xlsx_parser_uses_integer_fen_and_rejects_formulas_or_numeric_identifiers() -> None:
     openpyxl = pytest.importorskip("openpyxl")
 
-    def workbook_payload(account: object, ending: object) -> bytes:
+    def workbook_payload(account: object, ending: object, *, extra_sheet: bool = False) -> bytes:
         book = openpyxl.Workbook()
         sheet = book.active
         sheet.append(["业务日期", "公司", "开户行", "账号", "期初余额", "期末余额", "币种"])
         sheet.append([date(2026, 7, 30), "甲", "乙", account, 1000.01, ending, "CNY"])
+        if extra_sheet:
+            # A future real-sample template may name and validate multiple
+            # sheets explicitly.  Until then, parsing only the active sheet
+            # would silently omit this content and must fail closed.
+            review = book.create_sheet("待确认")
+            review.append(["业务日期", "公司", "开户行", "账号", "期末余额"])
+            review.append([date(2026, 7, 30), "甲", "乙", "00999", 1.00])
         output = BytesIO()
         book.save(output)
         return output.getvalue()
@@ -662,6 +683,15 @@ def test_xlsx_parser_uses_integer_fen_and_rejects_formulas_or_numeric_identifier
             filename="资金账户明细表_20260730.xlsx",
             payload=formula_payload,
             source=_source(formula_payload),
+        )
+
+    multi_sheet_payload = workbook_payload("00123", 1000.11, extra_sheet=True)
+    with pytest.raises(ParseError, match="XLSX_WORKSHEET_AMBIGUOUS"):
+        parse_attachment(
+            family=ACCOUNT_FAMILY,
+            filename="资金账户明细表_20260730.xlsx",
+            payload=multi_sheet_payload,
+            source=_source(multi_sheet_payload),
         )
 
 
@@ -700,7 +730,7 @@ def test_runtime_records_parser_evidence_only_after_successful_parse(tmp_path: P
         ".csv",
         "text/csv",
         "TEXT",
-        "kmfa.daily_funds.parser.v2",
+        PARSER_VERSION,
     )
 
 
@@ -760,7 +790,7 @@ def test_runtime_capability_matrix_records_supported_and_needs_review_types(tmp_
             "suffix": ".csv",
             "declared_mime": "text/csv",
             "magic": "TEXT",
-            "parser_version": "kmfa.daily_funds.parser.v2",
+            "parser_version": PARSER_VERSION,
             "outcome": "SUPPORTED",
             "code": "PARSER_OPEN_OK",
             "count": 1,
@@ -771,7 +801,7 @@ def test_runtime_capability_matrix_records_supported_and_needs_review_types(tmp_
             "suffix": ".png",
             "declared_mime": "image/png",
             "magic": "PNG",
-            "parser_version": "kmfa.daily_funds.parser.v2",
+            "parser_version": PARSER_VERSION,
             "outcome": "NEEDS_REVIEW",
             "code": "UNSUPPORTED_ATTACHMENT",
             "count": 1,
@@ -781,6 +811,42 @@ def test_runtime_capability_matrix_records_supported_and_needs_review_types(tmp_
     flow_text = (runtime.config.publication_dir / "flow_state.json").read_text(encoding="utf-8")
     assert supported.sha256 not in flow_text
     assert unsupported.sha256 not in flow_text
+
+
+def test_capability_projection_excludes_stale_parser_rules(tmp_path: Path) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    state = runtime.state
+    digest = "a" * 64
+    state.record_capability_evidence(
+        attachment_sha256=digest,
+        family=ACCOUNT_FAMILY,
+        suffix=".xlsx",
+        declared_mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        magic="ZIP",
+        parser_version="kmfa.daily_funds.parser.v2",
+        outcome="SUPPORTED",
+        code="PARSER_OPEN_OK",
+    )
+    state.record_capability_evidence(
+        attachment_sha256=digest,
+        family=ACCOUNT_FAMILY,
+        suffix=".xlsx",
+        declared_mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        magic="ZIP",
+        parser_version=PARSER_VERSION,
+        outcome="NEEDS_REVIEW",
+        code="XLSX_WORKSHEET_AMBIGUOUS",
+    )
+    current = state.capability_matrix(parser_version=PARSER_VERSION)
+    assert len(current) == 1
+    assert current[0]["parser_version"] == PARSER_VERSION
+    assert current[0]["outcome"] == "NEEDS_REVIEW"
+    # The old receipt remains auditable, but no current status projection may
+    # interpret it as support under changed parser rules.
+    assert len(state.capability_matrix()) == 2
+    flow = runtime._write_flow_state(stage="PARSER_NEEDS_REVIEW")
+    assert len(flow["attachment_capabilities"]) == 1
+    assert flow["attachment_capabilities"][0]["parser_version"] == PARSER_VERSION
 
 
 def test_page_two_failure_never_advances_cursor(tmp_path: Path) -> None:

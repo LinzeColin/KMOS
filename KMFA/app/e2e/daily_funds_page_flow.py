@@ -201,7 +201,7 @@ def _write_archived_needs_review_projection(root: Path) -> None:
         "suffix": ".png",
         "declared_mime": "image/png",
         "magic": "PNG",
-        "parser_version": "kmfa.daily_funds.parser.v2",
+        "parser_version": "kmfa.daily_funds.parser.v3",
         "outcome": "NEEDS_REVIEW",
         "code": "UNSUPPORTED_ATTACHMENT",
         "count": 1,
