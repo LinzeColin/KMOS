@@ -35,6 +35,9 @@ _ZIP_MAGICS = (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")
 _TEXT_SUFFIXES = frozenset({".csv", ".txt"})
 _WORKBOOK_SUFFIXES = frozenset({".xlsx", ".xlsm"})
 _ALLOWED_SUFFIXES = _TEXT_SUFFIXES | _WORKBOOK_SUFFIXES
+_CAPABILITY_SUFFIXES = _ALLOWED_SUFFIXES | frozenset({
+    ".xls", ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp",
+})
 _CSV_MIME = frozenset({
     "text/csv",
     "application/csv",
@@ -231,6 +234,64 @@ def _declared_mime(mime: str | None) -> str | None:
     if not _MIME_TOKEN.fullmatch(normalized):
         raise ParseError("MIME_DECLARATION_INVALID")
     return normalized
+
+
+def _capability_magic(payload: bytes) -> str:
+    """Classify bytes for a values-free capability receipt, never parsing them.
+
+    This deliberately stops at stable file signatures.  In particular, a
+    recognised image or PDF signature is evidence that the attachment needs a
+    reviewed parser, *not* permission to OCR it or treat it as financial data.
+    """
+
+    if not payload:
+        return "EMPTY"
+    if payload.startswith(_ZIP_MAGICS):
+        return "ZIP"
+    if payload.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "PNG"
+    if payload.startswith(b"\xff\xd8\xff"):
+        return "JPEG"
+    if payload.startswith((b"GIF87a", b"GIF89a")):
+        return "GIF"
+    if payload.startswith(b"BM"):
+        return "BMP"
+    if payload.startswith(b"RIFF") and payload[8:12] == b"WEBP":
+        return "WEBP"
+    if payload.startswith(b"%PDF-"):
+        return "PDF"
+    if payload.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
+        return "OLE"
+    sample = payload[:4096]
+    if b"\x00" in sample:
+        return "BINARY"
+    for encoding in ("utf-8-sig", "gb18030"):
+        try:
+            sample.decode(encoding)
+            return "TEXT"
+        except UnicodeDecodeError:
+            continue
+    return "BINARY"
+
+
+def attachment_capability_metadata(*, filename: str, payload: bytes, mime: str | None = None) -> tuple[str, str | None, str]:
+    """Return bounded, values-free metadata for every Git-readback attachment.
+
+    The returned tuple can safely be persisted for a supported *or* rejected
+    type.  It intentionally does not inspect document text, OCR images, or
+    derive a financial family from a filename.
+    """
+
+    candidate_suffix = Path(filename).suffix.lower()
+    suffix = candidate_suffix if candidate_suffix in _CAPABILITY_SUFFIXES else "UNKNOWN_SUFFIX"
+    try:
+        declared_mime = _declared_mime(mime)
+    except ParseError:
+        # The parse path records MIME_DECLARATION_INVALID as the failure code;
+        # retaining an arbitrary malformed string would violate the redacted
+        # capability-journal contract.
+        declared_mime = None
+    return suffix, declared_mime, _capability_magic(payload)
 
 
 def inspect_attachment_format(*, filename: str, payload: bytes, mime: str | None = None) -> ParserEvidence:

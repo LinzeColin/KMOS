@@ -703,6 +703,85 @@ def test_runtime_records_parser_evidence_only_after_successful_parse(tmp_path: P
     )
 
 
+def test_runtime_capability_matrix_records_supported_and_needs_review_types(tmp_path: Path) -> None:
+    supported_payload = (
+        "业务日期,公司,开户行,账号,期末余额\n"
+        "2026-07-30,甲,乙,001,1.00\n"
+    ).encode()
+    unsupported_payload = b"\x89PNG\r\n\x1a\nfixture-image-bytes"
+    moment = datetime(2026, 7, 30, tzinfo=UTC)
+    supported = DownloadedAttachment(
+        message={},
+        message_id="supported-message",
+        message_id_hash="e" * 64,
+        message_at=moment,
+        index=0,
+        filename="资金账户明细表_20260730.csv",
+        family=ACCOUNT_FAMILY,
+        payload=supported_payload,
+        sha256=sha256(supported_payload).hexdigest(),
+        mime="text/csv",
+    )
+    unsupported = DownloadedAttachment(
+        message={},
+        message_id="unsupported-message",
+        message_id_hash="f" * 64,
+        message_at=moment,
+        index=0,
+        filename="资金账户明细表_20260730.png",
+        family=ACCOUNT_FAMILY,
+        payload=unsupported_payload,
+        sha256=sha256(unsupported_payload).hexdigest(),
+        mime="image/png",
+    )
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    with pytest.raises(ParseError, match="UNSUPPORTED_ATTACHMENT"):
+        runtime._parse((supported, unsupported))
+
+    with runtime.state.connection() as connection:
+        parser_count = connection.execute("SELECT COUNT(*) FROM parser_evidence").fetchone()[0]
+        capability_rows = connection.execute(
+            """SELECT family,suffix,declared_mime,magic,outcome,code
+               FROM capability_evidence ORDER BY suffix"""
+        ).fetchall()
+    assert parser_count == 1
+    assert [tuple(row) for row in capability_rows] == [
+        (ACCOUNT_FAMILY, ".csv", "text/csv", "TEXT", "SUPPORTED", "PARSER_OPEN_OK"),
+        (ACCOUNT_FAMILY, ".png", "image/png", "PNG", "NEEDS_REVIEW", "UNSUPPORTED_ATTACHMENT"),
+    ]
+
+    status = runtime.status.write("需处理", "UNSUPPORTED_ATTACHMENT")
+    flow = runtime._write_flow_state(stage="PARSER_NEEDS_REVIEW", status=status)
+    assert flow["business_flow"]["machine_code"] == "UNSUPPORTED_ATTACHMENT"
+    assert flow["attachment_capabilities"] == [
+        {
+            "family": ACCOUNT_FAMILY,
+            "suffix": ".csv",
+            "declared_mime": "text/csv",
+            "magic": "TEXT",
+            "parser_version": "kmfa.daily_funds.parser.v2",
+            "outcome": "SUPPORTED",
+            "code": "PARSER_OPEN_OK",
+            "count": 1,
+            "last_observed_at": flow["attachment_capabilities"][0]["last_observed_at"],
+        },
+        {
+            "family": ACCOUNT_FAMILY,
+            "suffix": ".png",
+            "declared_mime": "image/png",
+            "magic": "PNG",
+            "parser_version": "kmfa.daily_funds.parser.v2",
+            "outcome": "NEEDS_REVIEW",
+            "code": "UNSUPPORTED_ATTACHMENT",
+            "count": 1,
+            "last_observed_at": flow["attachment_capabilities"][1]["last_observed_at"],
+        },
+    ]
+    flow_text = (runtime.config.publication_dir / "flow_state.json").read_text(encoding="utf-8")
+    assert supported.sha256 not in flow_text
+    assert unsupported.sha256 not in flow_text
+
+
 def test_page_two_failure_never_advances_cursor(tmp_path: Path) -> None:
     config = _config(tmp_path)
     state = RuntimeState(config.state_dir)

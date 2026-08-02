@@ -151,6 +151,18 @@ class RuntimeState:
                   opened_at TEXT NOT NULL,
                   PRIMARY KEY(attachment_sha256, family)
                 );
+                CREATE TABLE IF NOT EXISTS capability_evidence (
+                  attachment_sha256 TEXT NOT NULL,
+                  family TEXT NOT NULL,
+                  suffix TEXT NOT NULL,
+                  declared_mime TEXT,
+                  magic TEXT NOT NULL,
+                  parser_version TEXT NOT NULL,
+                  outcome TEXT NOT NULL,
+                  code TEXT NOT NULL,
+                  observed_at TEXT NOT NULL,
+                  PRIMARY KEY(attachment_sha256, family, parser_version)
+                );
                 CREATE TABLE IF NOT EXISTS observer_days (
                   business_date TEXT PRIMARY KEY,
                   publication_id TEXT NOT NULL,
@@ -295,6 +307,86 @@ class RuntimeState:
                        opened_at=excluded.opened_at""",
                 (attachment_sha256, family, suffix, declared_mime, magic, parser_version, iso_now()),
             )
+
+    def record_capability_evidence(
+        self,
+        *,
+        attachment_sha256: str,
+        family: str,
+        suffix: str,
+        declared_mime: str | None,
+        magic: str,
+        parser_version: str,
+        outcome: str,
+        code: str,
+    ) -> None:
+        """Persist a values-free real-attachment capability receipt.
+
+        Unlike ``parser_evidence``, this records unsupported types as
+        ``NEEDS_REVIEW`` after the worker has read their bytes back from the
+        private Git authority.  The per-attachment SHA stays in the protected
+        journal; projections use :meth:`capability_matrix`, which aggregates
+        away that join key.
+        """
+
+        if len(attachment_sha256) != 64 or any(character not in "0123456789abcdef" for character in attachment_sha256):
+            raise ValueError("invalid capability evidence hash")
+        if not all(isinstance(value, str) and value and len(value) <= 128 for value in (family, suffix, magic, parser_version)):
+            raise ValueError("invalid capability evidence")
+        if any(ord(character) < 32 for value in (family, suffix, magic, parser_version) for character in value):
+            raise ValueError("invalid capability evidence")
+        if declared_mime is not None and (
+            not isinstance(declared_mime, str)
+            or not declared_mime
+            or len(declared_mime) > 128
+            or not declared_mime.isascii()
+        ):
+            raise ValueError("invalid capability evidence MIME")
+        if outcome not in {"SUPPORTED", "NEEDS_REVIEW"}:
+            raise ValueError("invalid capability outcome")
+        safe_code = _safe_code(code)
+        if safe_code == "UNKNOWN":
+            raise ValueError("invalid capability evidence code")
+        with self.connection() as connection:
+            connection.execute(
+                """INSERT INTO capability_evidence(
+                       attachment_sha256,family,suffix,declared_mime,magic,parser_version,outcome,code,observed_at
+                   ) VALUES(?,?,?,?,?,?,?,?,?)
+                   ON CONFLICT(attachment_sha256,family,parser_version) DO UPDATE SET
+                       suffix=excluded.suffix,
+                       declared_mime=excluded.declared_mime,
+                       magic=excluded.magic,
+                       outcome=excluded.outcome,
+                       code=excluded.code,
+                       observed_at=excluded.observed_at""",
+                (attachment_sha256, family, suffix, declared_mime, magic, parser_version, outcome, safe_code, iso_now()),
+            )
+
+    def capability_matrix(self) -> list[dict[str, Any]]:
+        """Return a values-free aggregate for the protected KMFA status UI."""
+
+        with self.connection() as connection:
+            rows = connection.execute(
+                """SELECT family,suffix,declared_mime,magic,parser_version,outcome,code,
+                          COUNT(*) AS count,MAX(observed_at) AS last_observed_at
+                   FROM capability_evidence
+                   GROUP BY family,suffix,declared_mime,magic,parser_version,outcome,code
+                   ORDER BY family,suffix,declared_mime,magic,parser_version,outcome,code"""
+            ).fetchall()
+        return [
+            {
+                "family": str(row["family"]),
+                "suffix": str(row["suffix"]),
+                "declared_mime": None if row["declared_mime"] is None else str(row["declared_mime"]),
+                "magic": _safe_code(row["magic"]),
+                "parser_version": str(row["parser_version"]),
+                "outcome": _safe_code(row["outcome"]),
+                "code": _safe_code(row["code"]),
+                "count": int(row["count"]),
+                "last_observed_at": str(row["last_observed_at"]),
+            }
+            for row in rows
+        ]
 
     def network_ledger_summary(self) -> list[dict[str, Any]]:
         """Return aggregate, values-free network evidence for the protected UI."""

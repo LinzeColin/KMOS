@@ -2539,6 +2539,13 @@ DAILY_FUNDS_HUMAN_STATUSES = {"已更新", "处理中", "需处理"}
 # deliberately two characters and must not be lost through the generic
 # public failure-code sanitizer.
 DAILY_FUNDS_BACKUP_STATES = {"OK", "LAG", "PENDING", "UNKNOWN"}
+DAILY_FUNDS_CAPABILITY_FAMILIES = {"资金账户明细表", "资金流水明细", "资金明细", "UNCLASSIFIED"}
+DAILY_FUNDS_CAPABILITY_SUFFIXES = {
+    ".csv", ".txt", ".xlsx", ".xlsm", ".xls", ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp",
+    "UNKNOWN_SUFFIX",
+}
+DAILY_FUNDS_CAPABILITY_MAGICS = {"TEXT", "ZIP", "OLE", "PDF", "PNG", "JPEG", "GIF", "BMP", "WEBP", "BINARY", "EMPTY"}
+DAILY_FUNDS_CAPABILITY_OUTCOMES = {"SUPPORTED", "NEEDS_REVIEW"}
 
 
 def _read_daily_funds_json(name: str) -> dict[str, Any] | None:
@@ -2582,6 +2589,100 @@ def _daily_funds_flow_token(value: object, *, allowed: set[str], default: str) -
     return token if token in allowed else default
 
 
+def _daily_funds_attachment_capability_summary(rows: object) -> dict[str, Any]:
+    """Reduce worker receipts to a browser-safe, fail-closed capability state.
+
+    The worker's SQLite matrix intentionally retains format detail so that an
+    operator can diagnose a parser gate on the protected worker volume.  The
+    KMFA app needs only the small answer required for the product status:
+    whether real private-Git readback samples were supported or need review.
+    It therefore does not forward MIME, filename, hash, parser version,
+    document text, attachment bytes, or parser failure details.
+    """
+
+    unobserved = {
+        "状态": "未观测",
+        "已支持附件数": 0,
+        "待复核附件数": 0,
+        "最近观测": None,
+    }
+    unknown = {
+        "状态": "UNKNOWN",
+        "已支持附件数": 0,
+        "待复核附件数": 0,
+        "最近观测": None,
+    }
+    if rows is None:
+        return unobserved
+    if not isinstance(rows, list) or len(rows) > 64:
+        return unknown
+
+    supported = 0
+    needs_review = 0
+    latest: tuple[datetime, str] | None = None
+    for row in rows:
+        if not isinstance(row, dict):
+            return unknown
+        family = row.get("family")
+        suffix = row.get("suffix")
+        magic = row.get("magic")
+        outcome = row.get("outcome")
+        code = row.get("code")
+        count = row.get("count")
+        observed_at = _daily_funds_timestamp(row.get("last_observed_at"))
+        declared_mime = row.get("declared_mime")
+        parser_version = row.get("parser_version")
+        if (
+            not isinstance(family, str)
+            or not isinstance(suffix, str)
+            or not isinstance(magic, str)
+            or not isinstance(outcome, str)
+            or family not in DAILY_FUNDS_CAPABILITY_FAMILIES
+            or suffix not in DAILY_FUNDS_CAPABILITY_SUFFIXES
+            or magic not in DAILY_FUNDS_CAPABILITY_MAGICS
+            or outcome not in DAILY_FUNDS_CAPABILITY_OUTCOMES
+            or not _daily_funds_is_integer(count)
+            or count < 1
+            or count > 100_000
+            or observed_at is None
+            or not isinstance(code, str)
+            or not code
+            or len(code) > 80
+            or not isinstance(parser_version, str)
+            or not parser_version
+            or len(parser_version) > 128
+            or (declared_mime is not None and (
+                not isinstance(declared_mime, str)
+                or not declared_mime.isascii()
+                or not declared_mime
+                or len(declared_mime) > 128
+            ))
+        ):
+            return unknown
+        if outcome == "SUPPORTED" and code != "PARSER_OPEN_OK":
+            return unknown
+        # A review result remains an explicit non-pass even if the worker has
+        # added a newer parser failure code than this app knows about.
+        if outcome == "NEEDS_REVIEW" and _public_failure_code(code) is None:
+            return unknown
+        parsed_at = datetime.fromisoformat(observed_at.replace("Z", "+00:00"))
+        if latest is None or parsed_at > latest[0]:
+            latest = (parsed_at, observed_at)
+        if outcome == "SUPPORTED":
+            supported += count
+        else:
+            needs_review += count
+
+    if not rows:
+        return unobserved
+    return {
+        "状态": "待复核" if needs_review else "已支持",
+        "已支持附件数": supported,
+        "待复核附件数": needs_review,
+        "最近观测": latest[1] if latest is not None else None,
+    }
+
+
 def _daily_funds_flow_state() -> dict[str, Any]:
     """Safely fold the worker's flow record into the existing status center.
 
@@ -2609,6 +2710,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
             "最近验证": status["last_verified_at"],
             "已验证发布": False,
         },
+        "附件能力": _daily_funds_attachment_capability_summary(None),
         "自愈": {
             "状态": "UNKNOWN",
             "重启恢复": "UNKNOWN",
@@ -2632,6 +2734,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
         return default
     deployment = payload.get("deployment") if isinstance(payload.get("deployment"), dict) else {}
     business = payload.get("business_flow") if isinstance(payload.get("business_flow"), dict) else {}
+    attachment_capabilities = _daily_funds_attachment_capability_summary(payload.get("attachment_capabilities"))
     healing = payload.get("self_healing") if isinstance(payload.get("self_healing"), dict) else {}
     observer = payload.get("post_deploy_observer") if isinstance(payload.get("post_deploy_observer"), dict) else {}
     comparison_rows = observer.get("comparisons")
@@ -2721,6 +2824,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
                 business.get("stage"),
                 allowed={
                     "RUNTIME_AUDITED", "RUNTIME_NEEDS_ATTENTION", "WAITING_FOR_VALID_PUBLICATION",
+                    "PARSER_NEEDS_REVIEW", "POLL_NEEDS_ATTENTION",
                     "OBSERVER_NEEDS_ATTENTION", "OBSERVER_WAITING_FOR_PUBLICATION_LOCK",
                     "OBSERVER_BASELINE_CAPTURED", "OBSERVER_WAITING_FOR_NEXT_BUSINESS_DATE",
                     "POST_DEPLOY_OBSERVING", "POST_DEPLOY_OBSERVATION_COMPLETE",
@@ -2734,6 +2838,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
             "最近验证": status["last_verified_at"],
             "已验证发布": business.get("publication_present") is True,
         },
+        "附件能力": attachment_capabilities,
         "自愈": {
             "状态": _daily_funds_flow_token(
                 healing.get("state"), allowed={"JOURNAL_READY", "UNKNOWN"}, default="UNKNOWN",
@@ -3227,12 +3332,16 @@ def _daily_funds_public_control() -> dict[str, Any] | None:
 
 def _daily_funds_source_health_view() -> dict[str, Any]:
     status = _daily_funds_status()
+    flow = _daily_funds_flow_state()
     view: dict[str, Any] = {
         "human_status": status["human_status"],
         "effective_business_date": status["effective_business_date"],
         "last_verified_at": status["last_verified_at"],
         "updated_at": status["updated_at"],
         "backup_state": status["backup_state"],
+        # This is an operational parser receipt, not an attachment field:
+        # no raw attachment metadata crosses the app boundary.
+        "parser_capability": flow["附件能力"],
         "has_trusted_publication": False,
         "message": "尚无可展示的已验证资金数据。",
     }

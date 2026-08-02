@@ -24,7 +24,14 @@ from .ingestion import (
     IngestionError,
 )
 from .models import ParsedFacts, SourceRef, Transaction
-from .parsing import ACCOUNT_FAMILY, ParseError, parse_attachment
+from .parsing import (
+    ACCOUNT_FAMILY,
+    PARSER_VERSION,
+    ParseError,
+    TRANSACTION_FAMILIES,
+    attachment_capability_metadata,
+    parse_attachment,
+)
 from .publication import (
     D1Projection,
     OciColdBackup,
@@ -56,6 +63,11 @@ _COUPLED_PROCESS_MARKERS = (
 )
 _POST_DEPLOY_OBSERVER_REQUIRED_BUSINESS_DAYS = 5
 _FLOW_STATE_SCHEMA = "kmfa.daily_funds.flow_state.v1"
+_SOURCE_INTEGRITY_PARSE_CODES = frozenset({
+    "SOURCE_LINEAGE_INVALID",
+    "SOURCE_VERSION_MISMATCH",
+    "SOURCE_PAYLOAD_HASH_MISMATCH",
+})
 
 
 @dataclass(frozen=True)
@@ -283,11 +295,16 @@ class DailyFundsRuntime:
             "business_flow": {
                 "stage": self._flow_code(stage),
                 "human_status": human_status,
+                "machine_code": self._flow_code(current_status.get("machine_code")),
                 "effective_business_date": str(current_status.get("effective_business_date") or "")[:10] or None,
                 "last_verified_at": self._flow_timestamp(current_status.get("last_verified_at")),
                 "last_status_at": self._flow_timestamp(current_status.get("updated_at")),
                 "publication_present": current is not None,
             },
+            # This aggregate is intentionally values-free: it reveals only
+            # parser type/outcome counts, never source IDs, filenames, hashes,
+            # document text or financial amounts.
+            "attachment_capabilities": self.state.capability_matrix(),
             "self_healing": {
                 "state": "JOURNAL_READY",
                 "restart_recovery": "CURSOR_INBOX_LEASES",
@@ -676,19 +693,46 @@ class DailyFundsRuntime:
 
     def _parse(self, attachments: Iterable[DownloadedAttachment]) -> list[TimedFacts]:
         parsed: list[TimedFacts] = []
+        failures: list[ParseError] = []
         for attachment in attachments:
-            if attachment.family is None or Path(attachment.filename).suffix.lower() not in ALLOWED_SUFFIXES:
-                raise ParseError("UNSUPPORTED_ATTACHMENT")
             # ``attachments`` here come only from GitSparseWriter's fresh
-            # sparse-clone readback.  Persist parser evidence after, never
-            # before, exact source SHA + MIME/magic + parser-open validation.
-            facts = parse_attachment(
-                family=attachment.family,
+            # sparse-clone readback.  The capability receipt covers supported
+            # and unsupported real types, but a type is marked SUPPORTED only
+            # after exact source SHA + MIME/magic + parser-open validation.
+            family = attachment.family if attachment.family in TRANSACTION_FAMILIES | {ACCOUNT_FAMILY} else "UNCLASSIFIED"
+            suffix, declared_mime, magic = attachment_capability_metadata(
                 filename=attachment.filename,
                 payload=attachment.payload,
-                source=self._source_ref(attachment),
                 mime=attachment.mime,
             )
+            try:
+                if attachment.family is None or Path(attachment.filename).suffix.lower() not in ALLOWED_SUFFIXES:
+                    raise ParseError("UNSUPPORTED_ATTACHMENT")
+                facts = parse_attachment(
+                    family=attachment.family,
+                    filename=attachment.filename,
+                    payload=attachment.payload,
+                    source=self._source_ref(attachment),
+                    mime=attachment.mime,
+                )
+            except ParseError as exc:
+                # A failed lineage check means this was not a proven Git
+                # readback object.  Do not let such bytes masquerade as real
+                # capability evidence even in NEEDS_REVIEW state.
+                failure_code = str(exc).split(":", 1)[0]
+                if failure_code not in _SOURCE_INTEGRITY_PARSE_CODES:
+                    self.state.record_capability_evidence(
+                        attachment_sha256=attachment.sha256,
+                        family=family,
+                        suffix=suffix,
+                        declared_mime=declared_mime,
+                        magic=magic,
+                        parser_version=PARSER_VERSION,
+                        outcome="NEEDS_REVIEW",
+                        code=failure_code,
+                    )
+                failures.append(exc)
+                continue
             evidence = facts.parser_evidence
             self.state.record_parser_evidence(
                 attachment_sha256=attachment.sha256,
@@ -698,10 +742,22 @@ class DailyFundsRuntime:
                 magic=evidence.magic,
                 parser_version=evidence.parser_version,
             )
+            self.state.record_capability_evidence(
+                attachment_sha256=attachment.sha256,
+                family=facts.family,
+                suffix=evidence.suffix,
+                declared_mime=evidence.declared_mime,
+                magic=evidence.magic,
+                parser_version=evidence.parser_version,
+                outcome="SUPPORTED",
+                code="PARSER_OPEN_OK",
+            )
             parsed.append(TimedFacts(
                 facts,
                 attachment.message_at,
             ))
+        if failures:
+            raise failures[0]
         return parsed
 
     @staticmethod
@@ -1071,7 +1127,11 @@ class DailyFundsRuntime:
         except (IngestionError, ParseError, ReconciliationError, PublicationError, ControlError) as exc:
             code = getattr(exc, "code", str(exc).split(":", 1)[0])
             human_status = "处理中" if str(code).endswith("_LOCK_HELD") else "需处理"
-            self.status.write(human_status, str(code))
+            status = self.status.write(human_status, str(code))
+            self._write_flow_state(
+                stage="PARSER_NEEDS_REVIEW" if isinstance(exc, ParseError) else "POLL_NEEDS_ATTENTION",
+                status=status,
+            )
             return {"ok": False, "code": str(code)}
 
     def auth_probe(self) -> dict[str, Any]:

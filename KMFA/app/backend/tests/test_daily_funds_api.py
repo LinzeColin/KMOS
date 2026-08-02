@@ -107,6 +107,32 @@ def _write_projection(root: Path) -> None:
             "last_status_at": "2026-07-30T12:05:00Z",
             "publication_present": True,
         },
+        "attachment_capabilities": [
+            {
+                "family": "资金账户明细表",
+                "suffix": ".csv",
+                "declared_mime": "text/csv",
+                "magic": "TEXT",
+                "parser_version": "kmfa.daily_funds.parser.v2",
+                "outcome": "SUPPORTED",
+                "code": "PARSER_OPEN_OK",
+                "count": 1,
+                "last_observed_at": "2026-07-30T12:04:00Z",
+            },
+            {
+                "family": "资金账户明细表",
+                "suffix": ".png",
+                "declared_mime": "image/png",
+                "magic": "PNG",
+                "parser_version": "kmfa.daily_funds.parser.v2",
+                "outcome": "NEEDS_REVIEW",
+                "code": "UNSUPPORTED_ATTACHMENT",
+                "count": 2,
+                "last_observed_at": "2026-07-30T12:05:00Z",
+                # Another untrusted extension must not cross the app boundary.
+                "raw_fixture_should_not_escape": "attachment-fixture",
+            },
+        ],
         "self_healing": {
             "state": "JOURNAL_READY",
             "restart_recovery": "CURSOR_INBOX_LEASES",
@@ -222,8 +248,36 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
         "恢复": "NOT_YET_RUN",
         "延迟分钟": 5,
     }]
-    assert "group-fixture" not in response.text
+    assert flow["附件能力"] == {
+        "状态": "待复核",
+        "已支持附件数": 1,
+        "待复核附件数": 2,
+        "最近观测": "2026-07-30T12:05:00Z",
+    }
+    assert "group-fixture" not in response.text and "attachment-fixture" not in response.text
     assert response.json()["每日资金"]["业务流"]["部署"]["身份"] == "UNKNOWN"
+
+
+def test_daily_funds_attachment_capability_summary_fails_closed_on_malformed_row(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    flow_path = publication / "flow_state.json"
+    flow = json.loads(flow_path.read_text(encoding="utf-8"))
+    flow["attachment_capabilities"][0]["count"] = "1"
+    flow["business_flow"]["stage"] = "PARSER_NEEDS_REVIEW"
+    flow_path.write_text(json.dumps(flow), encoding="utf-8")
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+
+    source_health = client.get("/ops/api/daily-funds/source-health").json()
+    assert source_health["parser_capability"] == {
+        "状态": "UNKNOWN",
+        "已支持附件数": 0,
+        "待复核附件数": 0,
+        "最近观测": None,
+    }
+    status_center = client.get("/api/排程健康").json()
+    daily = next(row for row in status_center["逐项"] if row["技能"] == "daily-funds")
+    assert daily["每日资金状态"]["业务流"]["业务流"]["阶段"] == "PARSER_NEEDS_REVIEW"
 
 
 def test_daily_funds_flow_remains_in_the_same_status_center_when_ledger_exists(tmp_path, monkeypatch):
