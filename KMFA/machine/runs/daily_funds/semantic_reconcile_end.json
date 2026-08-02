@@ -42,6 +42,16 @@
     "optional_dws_recovery_bundle": "EMPTY_ALLOWED",
     "configuration_inventory_receipt": "github-actions:30751690333"
   },
+  "cloud_control_plane_read_only": {
+    "receipt": "Cloudflare API read-only 2026-08-02T14:4xZ",
+    "d1_daily_funds_named_databases": 2,
+    "d1_primary_schema": "ONLY _cf_KV TABLE",
+    "d1_restore_schema": "ONLY _cf_KV TABLE",
+    "r2_daily_funds_bucket": "PRESENT",
+    "r2_daily_funds_returned_object_count": 0,
+    "r2_daily_funds_pagination_present": false,
+    "interpretation": "Control-plane resources are reachable, but no D1 daily-funds projection schema or R2 artifact was observed. This is not a source, worker, or publication PASS."
+  },
   "safety_state": {
     "group_robot_credentials": "REMOVED_FROM_ALL_OBSERVED_CONTEXTS",
     "delivery_enabled": false,
@@ -77,7 +87,7 @@
     {
       "subject": "integer_reconciliation_thresholds_d1_r2_oci_restore",
       "classification": "SYNTHETIC_CONTRACT_ONLY",
-      "decision": "Local contracts validate fail-closed logic, but no real money publication, D1 query Oracle, R2 readback, OCI backup, empty-environment restore, or five-business-day observation is PASS."
+      "decision": "Local contracts validate fail-closed logic. Read-only D1/R2 control-plane checks found no daily-funds projection or object; OCI backup, empty-environment restore, and five-business-day observation are not PASS."
     }
   ],
   "validation": {
@@ -94,7 +104,7 @@
       "protected_daily_funds_ui": "UNKNOWN no authenticated Access session",
       "isolated_dws_auth": "UNKNOWN",
       "scheduled_primary_history_poll": "UNKNOWN",
-      "trusted_money_publication": "NOT_PRESENT",
+      "trusted_money_publication": "NOT_PRESENT (D1/R2 read-only control-plane evidence)",
       "container_execute_endpoint": "HTTP_404"
     }
   },
@@ -105,7 +115,7 @@
     "private_database_sparse_writer": "NOT_YET_LIVE_RECEIPTED",
     "real_attachment_parser_capability": "UNKNOWN",
     "real_money_reconciliation": "UNKNOWN",
-    "d1_r2_oci_publication": "UNKNOWN",
+    "d1_r2_oci_publication": "D1_AND_R2_READABLE__NO_DAILY_FUNDS_ARTIFACT_OBSERVED__OCI_UNKNOWN",
     "restore_drill": "NOT_STARTED_NO_VALID_PUBLICATION",
     "five_business_day_shadow_observation": "NOT_STARTED_NO_VALID_PUBLICATION",
     "rule": "UNKNOWN, a deployment success, a public 200, configured key presence, and a missing publication are never converted to PASS."
