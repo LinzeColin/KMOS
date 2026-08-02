@@ -86,7 +86,9 @@ jobs:
           docker exec kmfa-daily-funds-e2e /opt/daily-funds/healthcheck.sh
           docker exec kmfa-daily-funds-e2e sh -c '
             test -f /etc/cron.d/daily-funds &&
-            grep -Fq "/opt/daily-funds/scripts/run_daily_funds.py poll" /etc/cron.d/daily-funds &&
+            test -x /opt/daily-funds/scripts/run_cron_job.sh &&
+            grep -Fq "/opt/daily-funds/scripts/run_cron_job.sh poll" /etc/cron.d/daily-funds &&
+            grep -Fq "exec python3 /opt/daily-funds/scripts/run_daily_funds.py \"\$@\"" /opt/daily-funds/scripts/run_cron_job.sh &&
             pgrep -x cron >/dev/null
           '
 
