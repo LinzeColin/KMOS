@@ -75,12 +75,30 @@ jobs:
               )
               matches = [name for name, pattern in signatures if re.search(pattern, normalized)]
               failure_class = matches[0] if matches else "UNCLASSIFIED"
+              context_signatures = (
+                  ("CONTEXT_OUTSIDE_ALLOWED_ROOT", r"outside the build context|forbidden path outside"),
+                  ("DOCKERFILE_PATH_MISSING", r"failed to read dockerfile|dockerfile .* (not found|no such file)"),
+                  ("COPY_SOURCE_MISSING", r"failed to calculate checksum|copy failed|lstat .* no such file"),
+                  ("BUILD_CONTEXT_PATH_MISSING", r"build context.*(does not exist|not found)|unable to prepare context"),
+              )
+              context_matches = [
+                  name
+                  for name, pattern in context_signatures
+                  if re.search(pattern, normalized)
+              ]
+              context_detail_class = (
+                  context_matches[0]
+                  if context_matches
+                  else "NONE_OR_NOT_APPLICABLE"
+              )
               # A fingerprint permits comparing a repeated platform failure while
               # disclosing neither the failing line nor any surrounding log text.
-              markers = "|".join(matches) or "UNCLASSIFIED"
+              markers = "|".join(matches + context_matches) or "UNCLASSIFIED"
               fingerprint = hashlib.sha256((str(d.get("status") or "") + "|" + markers).encode()).hexdigest()[:16]
               print("diagnostic_enabled=true")
               print("failure_class=" + failure_class)
               print("failure_marker_count=" + str(len(matches)))
+              print("context_detail_class=" + context_detail_class)
+              print("context_detail_marker_count=" + str(len(context_matches)))
               print("failure_fingerprint=" + fingerprint)
           PY
