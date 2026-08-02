@@ -1093,8 +1093,14 @@ class GitSparseWriter:
         sparse_root = SPARSE_PATH.as_posix() + "/"
         if any(not pattern.startswith(sparse_root) for pattern in selected):
             raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
+        # A shallow clone normally fetches only the remote symbolic HEAD.  A
+        # newly-created private repository can still have that HEAD pointing
+        # at ``master`` even though this single-writer contract permits only
+        # ``main``.  Bind the clone itself to ``ref`` so Git-version-specific
+        # shallow-clone behavior cannot turn that server-default mismatch into
+        # a write-path failure.
         self._git([
-            "clone", "--depth=1", "--filter=blob:none", "--sparse", "--no-checkout",
+            "clone", "--branch", ref, "--depth=1", "--filter=blob:none", "--sparse", "--no-checkout",
             self.config.private_repo, str(repo),
         ], env=env)
         # Cone mode always includes root-level files.  Non-cone mode is used

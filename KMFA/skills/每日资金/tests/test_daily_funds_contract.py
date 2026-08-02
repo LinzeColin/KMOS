@@ -1164,7 +1164,9 @@ def test_sparse_writer_uses_shallow_clone_for_narrow_raw_paths(tmp_path: Path, m
     patterns = writer._attachment_sparse_patterns((attachment,))
     writer._clone_sparse(tmp_path / "narrow-sparse", env={}, ref="main", patterns=patterns)
 
-    assert commands[0][:5] == ["clone", "--depth=1", "--filter=blob:none", "--sparse", "--no-checkout"]
+    assert commands[0][:7] == [
+        "clone", "--branch", "main", "--depth=1", "--filter=blob:none", "--sparse", "--no-checkout",
+    ]
     assert commands[1] == ["sparse-checkout", "set", "--no-cone", *patterns]
     assert f"{SPARSE_PATH.as_posix()}/" not in patterns
     assert all(pattern.startswith(f"{SPARSE_PATH.as_posix()}/raw/") for pattern in patterns)
