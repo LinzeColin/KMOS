@@ -16,16 +16,16 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
+        description: "list=资源与环境变量名 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
         required: true
         type: choice
-        options: [list, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, logs, exec]
+        options: [list, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs, exec]
       app_uuid:
         description: "目标应用 uuid（provision-backup-key / redeploy 必填；先用 list 查）"
         required: false
         type: string
       command:
-        description: "exec 模式的只读诊断命令（默认查 cron/台账/进程）"
+        description: "exec 模式的只读诊断命令；deployment-log / cancel-deployment 模式填写 deployment uuid"
         required: false
         type: string
       flag_key:
@@ -1136,6 +1136,27 @@ jobs:
           print(f"--- 共 {len(lines)} 行，打末尾 120 行 ---")
           for line in lines[-120:]:
               print(SECRET.sub("<redacted>", line))
+          PY
+
+      # Coolify 允许明确取消“queued / in_progress”的指定 deployment。只使用
+      # 不透明 UUID，既不读取 build args，也不改应用、卷或环境变量；用于释放
+      # 已明确失败却被平台遗留为 in_progress 的队列占位。
+      - name: 取消卡死的指定部署（仅 deployment uuid）
+        if: inputs.mode == 'cancel-deployment'
+        env:
+          DUUID: ${{ inputs.command }}
+        run: |
+          set -euo pipefail
+          test -n "${DUUID:-}" || {
+            echo "cancel-deployment 需要在 command 提供 deployment uuid"; exit 1; }
+          curl -fsSL -X POST -H "Authorization: Bearer $TOKEN" \
+            "$BASE/api/v1/deployments/$DUUID/cancel" -o "$RUNNER_TEMP/cancel.json"
+          python3 - <<'PY'
+          import json, os
+          data = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "cancel.json"), encoding="utf-8"))
+          print("cancel_message=" + str(data.get("message") or ""))
+          print("cancel_deployment_uuid=" + str(data.get("deployment_uuid") or ""))
+          print("cancel_status=" + str(data.get("status") or ""))
           PY
 
       - name: 触发重新部署
