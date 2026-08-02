@@ -181,6 +181,45 @@ def _write_projection(root: Path, human_status: str) -> None:
         (root / name).write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def _write_archived_needs_review_projection(root: Path) -> None:
+    """Model the real safe state: raw proof exists, but no money is publishable."""
+
+    _write_projection(root, "需处理")
+    (root / "current.json").unlink()
+    flow_path = root / "flow_state.json"
+    flow = json.loads(flow_path.read_text(encoding="utf-8"))
+    flow["business_flow"] = {
+        "stage": "BACKFILL_ARCHIVED_NEEDS_REVIEW",
+        "human_status": "需处理",
+        "effective_business_date": None,
+        "last_verified_at": None,
+        "last_status_at": "2026-07-30T12:05:00Z",
+        "publication_present": False,
+    }
+    flow["attachment_capabilities"] = [{
+        "family": "UNCLASSIFIED",
+        "suffix": ".png",
+        "declared_mime": "image/png",
+        "magic": "PNG",
+        "parser_version": "kmfa.daily_funds.parser.v2",
+        "outcome": "NEEDS_REVIEW",
+        "code": "UNSUPPORTED_ATTACHMENT",
+        "count": 1,
+        "last_observed_at": "2026-07-30T12:05:00Z",
+        "raw_fixture_should_not_escape": RAW_SENTINEL,
+    }]
+    flow_path.write_text(json.dumps(flow, ensure_ascii=False) + "\n", encoding="utf-8")
+    status_path = root / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    status.update({
+        "machine_code": "UNSUPPORTED_ATTACHMENT",
+        "effective_business_date": None,
+        "last_verified_at": None,
+        "publication_id": None,
+    })
+    status_path.write_text(json.dumps(status, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
 def _free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(("127.0.0.1", 0))
@@ -269,14 +308,15 @@ def _projection_bodies(page: Page) -> dict[str, dict[str, Any]]:
     )
 
 
-def _assert_projection_is_redacted(page: Page) -> None:
+def _assert_projection_is_redacted(page: Page, *, trusted_projection: bool) -> None:
     bodies = _projection_bodies(page)
     assert set(bodies) == set(DAILY_PATHS)
     forbidden = tuple(token.lower() for token in (
         RAW_SENTINEL, "source_version", "message_id_hash", "attachment", "raw/messages",
     ))
     for path, response in bodies.items():
-        assert response["status"] == 200, f"{path} returned HTTP {response['status']}"
+        expected_status = 200 if trusted_projection or "/source-health" in path else 503
+        assert response["status"] == expected_status, f"{path} returned HTTP {response['status']}"
         assert not any(token in response["body"].lower() for token in forbidden), f"raw marker escaped from {path}"
     dom = page.content().lower()
     assert not any(token in dom for token in forbidden), "raw marker escaped into rendered DOM"
@@ -314,8 +354,12 @@ def _exercise_case(
     color_scheme: str,
     exercise_controls: bool,
     out_dir: Path,
+    trusted_projection: bool = True,
 ) -> dict[str, Any]:
-    _write_projection(publication_dir, status)
+    if trusted_projection:
+        _write_projection(publication_dir, status)
+    else:
+        _write_archived_needs_review_projection(publication_dir)
     context = browser.new_context(viewport=viewport, color_scheme=color_scheme, locale="zh-CN")
     context.tracing.start(screenshots=True, snapshots=True, sources=False)
     page = context.new_page()
@@ -353,12 +397,12 @@ def _exercise_case(
         # conservative ``需处理`` placeholder.  Wait for a *loaded* callout,
         # otherwise that safe initial state could be mistaken for the actual
         # synthetic status under test.
-        callout = (
-            page.locator(".callout")
-            .filter(has_text=f"运行状态：{status}")
-            .filter(has_text="数据日期：2026-07-30")
-            .first
-        )
+        callout = page.locator(".callout").filter(has_text=f"运行状态：{status}")
+        if trusted_projection:
+            callout = callout.filter(has_text="数据日期：2026-07-30")
+        else:
+            callout = callout.filter(has_text="附件待确定性解析复核")
+        callout = callout.first
         try:
             callout.wait_for(state="visible", timeout=10_000)
         except PlaywrightTimeout as error:
@@ -393,13 +437,36 @@ def _exercise_case(
             assert expected.value.status == 200
             page.get_by_text("自定义区间至少 7 个自然日", exact=False).wait_for(state="visible")
             _assert_chart_interaction(page)
-        else:
+        elif trusted_projection:
             page.locator("svg").filter(has_text="可用资金").first.wait_for(state="visible", timeout=10_000)
-        _assert_projection_is_redacted(page)
+        else:
+            page.get_by_text("暂无可信 publication，需处理", exact=False).wait_for(state="visible", timeout=10_000)
+            page.get_by_text("附件解析能力", exact=False).wait_for(state="visible", timeout=10_000)
+            assert page.locator("svg").filter(has_text="可用资金").count() == 0
+            assert "UNSUPPORTED_ATTACHMENT" not in page.content()
+        _assert_projection_is_redacted(page, trusted_projection=trusted_projection)
         csp_violations = page.evaluate("() => window.__dailyFundsCspViolations || []")
         assert not csp_violations, f"CSP violations: {csp_violations}"
-        failed_responses = [(url, status) for url, status in responses if status >= 400]
-        assert not console_errors, f"console errors: {console_errors}; failed responses: {failed_responses}"
+        allowed_failure_paths = set() if trusted_projection else {
+            "/ops/api/daily-funds/summary", "/ops/api/daily-funds/timeseries", "/ops/api/daily-funds/thresholds",
+        }
+        failed_responses = [
+            (url, response_status)
+            for url, response_status in responses
+            if response_status >= 400 and urlsplit(url).path not in allowed_failure_paths
+        ]
+        unexpected_console_errors = [
+            error
+            for error in console_errors
+            if not (
+                not trusted_projection
+                and "Failed to load resource" in str(error.get("text") or "")
+                and urlsplit(str((error.get("location") or {}).get("url") or "")).path in allowed_failure_paths
+            )
+        ]
+        assert not unexpected_console_errors, (
+            f"console errors: {unexpected_console_errors}; unexpected failed responses: {failed_responses}"
+        )
         assert not page_errors, f"page errors: {page_errors}"
         if viewport["width"] <= 480:
             overflow = page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
@@ -433,6 +500,7 @@ def _exercise_case(
             "viewport": viewport,
             "color_scheme": color_scheme,
             "controls_exercised": exercise_controls,
+            "trusted_projection": trusted_projection,
             "status": "PASS",
             "daily_projection_requests": sorted(daily_paths),
             "mobile_overflow_checked": viewport["width"] <= 480,
@@ -479,6 +547,12 @@ def main() -> int:
                         browser, base_url=base_url, publication_dir=publication_dir,
                         status="需处理", name="action-needed-desktop", viewport={"width": 1280, "height": 900},
                         color_scheme="light", exercise_controls=False, out_dir=args.out_dir,
+                    ))
+                    results.append(_exercise_case(
+                        browser, base_url=base_url, publication_dir=publication_dir,
+                        status="需处理", name="archived-needs-review-mobile", viewport={"width": 390, "height": 844},
+                        color_scheme="dark", exercise_controls=False, out_dir=args.out_dir,
+                        trusted_projection=False,
                     ))
                 finally:
                     browser.close()

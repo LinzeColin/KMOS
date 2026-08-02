@@ -2546,6 +2546,20 @@ DAILY_FUNDS_CAPABILITY_SUFFIXES = {
 }
 DAILY_FUNDS_CAPABILITY_MAGICS = {"TEXT", "ZIP", "OLE", "PDF", "PNG", "JPEG", "GIF", "BMP", "WEBP", "BINARY", "EMPTY"}
 DAILY_FUNDS_CAPABILITY_OUTCOMES = {"SUPPORTED", "NEEDS_REVIEW"}
+DAILY_FUNDS_BUSINESS_FLOW_STAGES = {
+    "RUNTIME_AUDITED", "RUNTIME_NEEDS_ATTENTION", "WAITING_FOR_VALID_PUBLICATION",
+    "PARSER_NEEDS_REVIEW", "POLL_NEEDS_ATTENTION",
+    # Historical raw-first discovery may prove a source attachment before a
+    # deterministic parser supports it.  These are explicit non-publication
+    # states, not aliases for a successful reconciliation.
+    "BACKFILL_EMPTY_WINDOW", "BACKFILL_ARCHIVED", "BACKFILL_ARCHIVED_NEEDS_REVIEW",
+    "BACKFILLING", "BACKFILLING_NEEDS_REVIEW",
+    "BACKFILL_COMPLETE", "BACKFILL_COMPLETE_NEEDS_REVIEW",
+    "OBSERVER_NEEDS_ATTENTION", "OBSERVER_WAITING_FOR_PUBLICATION_LOCK",
+    "OBSERVER_BASELINE_CAPTURED", "OBSERVER_WAITING_FOR_NEXT_BUSINESS_DATE",
+    "POST_DEPLOY_OBSERVING", "POST_DEPLOY_OBSERVATION_COMPLETE",
+    "RESTORE_DRILL", "RESTORE_DRILL_NEEDS_ATTENTION", "UNKNOWN",
+}
 
 
 def _read_daily_funds_json(name: str) -> dict[str, Any] | None:
@@ -2822,14 +2836,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
         "业务流": {
             "阶段": _daily_funds_flow_token(
                 business.get("stage"),
-                allowed={
-                    "RUNTIME_AUDITED", "RUNTIME_NEEDS_ATTENTION", "WAITING_FOR_VALID_PUBLICATION",
-                    "PARSER_NEEDS_REVIEW", "POLL_NEEDS_ATTENTION",
-                    "OBSERVER_NEEDS_ATTENTION", "OBSERVER_WAITING_FOR_PUBLICATION_LOCK",
-                    "OBSERVER_BASELINE_CAPTURED", "OBSERVER_WAITING_FOR_NEXT_BUSINESS_DATE",
-                    "POST_DEPLOY_OBSERVING", "POST_DEPLOY_OBSERVATION_COMPLETE",
-                    "RESTORE_DRILL", "RESTORE_DRILL_NEEDS_ATTENTION", "UNKNOWN",
-                },
+                allowed=DAILY_FUNDS_BUSINESS_FLOW_STAGES,
                 default="UNKNOWN",
             ),
             # The main status writer remains the only primary human status.
@@ -3333,6 +3340,7 @@ def _daily_funds_public_control() -> dict[str, Any] | None:
 def _daily_funds_source_health_view() -> dict[str, Any]:
     status = _daily_funds_status()
     flow = _daily_funds_flow_state()
+    parser_capability = flow["附件能力"]
     view: dict[str, Any] = {
         "human_status": status["human_status"],
         "effective_business_date": status["effective_business_date"],
@@ -3341,7 +3349,7 @@ def _daily_funds_source_health_view() -> dict[str, Any]:
         "backup_state": status["backup_state"],
         # This is an operational parser receipt, not an attachment field:
         # no raw attachment metadata crosses the app boundary.
-        "parser_capability": flow["附件能力"],
+        "parser_capability": parser_capability,
         "has_trusted_publication": False,
         "message": "尚无可展示的已验证资金数据。",
     }
@@ -3355,10 +3363,13 @@ def _daily_funds_source_health_view() -> dict[str, Any]:
         if view["human_status"] == "已更新":
             view["human_status"] = "需处理"
         view["backup_state"] = "UNKNOWN"
-        view["message"] = (
-            "正在等待可验证的正式资金数据。" if view["human_status"] == "处理中"
-            else "正式资金 projection 未通过完整性校验，需处理。"
-        )
+        if parser_capability["状态"] == "待复核":
+            view["message"] = "已归档附件待确定性解析复核；在账户余额与资金流水成对勾稽并完成发布前，不展示或推断金额。"
+        else:
+            view["message"] = (
+                "正在等待可验证的正式资金数据。" if view["human_status"] == "处理中"
+                else "正式资金 projection 未通过完整性校验，需处理。"
+            )
         return view
     publication = payload["publication"]
     view.update({

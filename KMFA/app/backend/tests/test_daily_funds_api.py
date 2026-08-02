@@ -280,6 +280,40 @@ def test_daily_funds_attachment_capability_summary_fails_closed_on_malformed_row
     assert daily["每日资金状态"]["业务流"]["业务流"]["阶段"] == "PARSER_NEEDS_REVIEW"
 
 
+def test_archived_needs_review_is_visible_without_trusted_money(tmp_path, monkeypatch):
+    """A verified raw PNG must stay actionable, rather than degrading to UNKNOWN."""
+
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    (publication / "current.json").unlink()
+    flow_path = publication / "flow_state.json"
+    flow = json.loads(flow_path.read_text(encoding="utf-8"))
+    flow["business_flow"]["stage"] = "BACKFILL_ARCHIVED_NEEDS_REVIEW"
+    flow_path.write_text(json.dumps(flow), encoding="utf-8")
+    status_path = publication / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    status["human_status"] = "需处理"
+    status["machine_code"] = "UNSUPPORTED_ATTACHMENT"
+    status_path.write_text(json.dumps(status), encoding="utf-8")
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+    monkeypatch.setattr(main_module, "SKILL_LEDGER_PATH", tmp_path / "missing-ledger.jsonl")
+
+    source_health = client.get("/ops/api/daily-funds/source-health").json()
+    assert source_health["has_trusted_publication"] is False
+    assert source_health["human_status"] == "需处理"
+    assert source_health["parser_capability"] == {
+        "状态": "待复核",
+        "已支持附件数": 1,
+        "待复核附件数": 2,
+        "最近观测": "2026-07-30T12:05:00Z",
+    }
+    assert "待确定性解析复核" in source_health["message"]
+    assert "UNSUPPORTED_ATTACHMENT" not in json.dumps(source_health)
+    status_center = client.get("/api/排程健康").json()
+    daily = next(row for row in status_center["逐项"] if row["技能"] == "daily-funds")
+    assert daily["每日资金状态"]["业务流"]["业务流"]["阶段"] == "BACKFILL_ARCHIVED_NEEDS_REVIEW"
+
+
 def test_daily_funds_flow_remains_in_the_same_status_center_when_ledger_exists(tmp_path, monkeypatch):
     publication = tmp_path / "publication"
     ledger = tmp_path / "skill-ledger.jsonl"

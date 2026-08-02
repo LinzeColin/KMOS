@@ -43,6 +43,7 @@ from daily_funds.ingestion import (
     DownloadedAttachment,
     DwsPage,
     DwsHistoryClient,
+    GitCommit,
     GitSparseWriter,
     HistoryPoller,
     IngestionError,
@@ -873,8 +874,144 @@ def test_backfill_empty_window_advances_only_the_historical_planner(tmp_path: Pa
     assert result["ok"] is True
     assert result["completed_days"] == ["2025-08-06", "2025-08-07"]
     assert result["empty_days"] == result["completed_days"]
+    assert result["code"] == "BACKFILLING"
     assert runtime.state.get("backfill_next_business_date") == "2025-08-08"
-    assert all(row["advance_pointer"] is False and row["allow_empty_window"] is True for row in observed)
+    assert all(
+        row["advance_pointer"] is False
+        and row["allow_empty_window"] is True
+        and row["archive_only"] is True
+        for row in observed
+    )
+
+
+def test_backfill_advances_after_a_verified_needs_review_archive(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    observed: list[dict[str, object]] = []
+
+    def archived_poll(**kwargs):
+        observed.append(kwargs)
+        return {
+            "ok": True,
+            "pages": 1,
+            "attachments": 1,
+            "archive_only": True,
+            "capability_supported": 0,
+            "capability_needs_review": 1,
+        }
+
+    monkeypatch.setattr(runtime, "poll", archived_poll)
+    result = runtime.backfill(now=datetime(2026, 8, 1, 4, tzinfo=UTC), max_days=1)
+
+    assert result["ok"] is True
+    assert result["completed_days"] == ["2025-08-06"]
+    assert result["needs_review_days"] == result["completed_days"]
+    assert result["needs_review_attachments"] == 1
+    assert result["code"] == "BACKFILLING_NEEDS_REVIEW"
+    assert observed[0]["archive_only"] is True
+
+
+def test_archive_only_backfill_persists_readback_and_records_unsupported_format_without_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A historical image is evidence, not a false publication or a dead end."""
+
+    import daily_funds.runtime as runtime_module
+
+    config = replace(
+        _config(tmp_path),
+        cf_api_token="",
+        cf_account_id="",
+        d1_database_id="",
+        restore_drill_d1_database_id="",
+        r2_endpoint_url="",
+        r2_bucket="",
+        r2_access_key_id="",
+        r2_secret_access_key="",
+        oci_endpoint_url="",
+        oci_bucket="",
+        oci_access_key_id="",
+        oci_secret_access_key="",
+    )
+    payload = b"\x89PNG\r\n\x1a\nsynthetic-historical-image"
+    moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
+    attachment = DownloadedAttachment(
+        message={},
+        message_id="synthetic-unsupported-message",
+        message_id_hash="1" * 64,
+        message_at=moment,
+        index=0,
+        filename="资金明细_20260730.png",
+        family="资金明细",
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="image/png",
+    )
+    message = {"fixture": "historical"}
+
+    class ArchiveClient:
+        @staticmethod
+        def search(_start, _end, _cursor):
+            return DwsPage(messages=(message,), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page):
+            return (message,)
+
+        @staticmethod
+        def attachment_count(_message):
+            return 1
+
+        @staticmethod
+        def download(_message, _index):
+            return attachment
+
+    persisted: list[tuple[DownloadedAttachment, ...]] = []
+
+    class ReadbackWriter:
+        def __init__(self, _config):
+            pass
+
+        def persist(self, attachments):
+            reopened = tuple(attachments)
+            persisted.append(reopened)
+            return GitCommit("a" * 40, SimpleNamespace(), reopened)
+
+    runtime = DailyFundsRuntime(config)
+    monkeypatch.setattr(runtime, "_dws_client", lambda: ArchiveClient())
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ReadbackWriter)
+    monkeypatch.setattr(runtime, "_coordinator", lambda: pytest.fail("archive-only must not construct a publication coordinator"))
+
+    result = runtime.poll(
+        now=datetime(2026, 8, 1, tzinfo=UTC),
+        start_override=datetime(2026, 7, 30, tzinfo=UTC),
+        advance_pointer=False,
+        allow_empty_window=True,
+        archive_only=True,
+    )
+
+    assert result == {
+        "ok": True,
+        "pages": 1,
+        "attachments": 1,
+        "archive_only": True,
+        "capability_supported": 0,
+        "capability_needs_review": 1,
+    }
+    assert persisted == [(attachment,)]
+    assert not (config.publication_dir / "current.json").exists()
+    with runtime.state.connection() as connection:
+        inbox = connection.execute("SELECT state FROM inbox").fetchone()
+        capability = connection.execute("SELECT outcome,code FROM capability_evidence").fetchone()
+    assert tuple(inbox) == ("ARCHIVED_CAPABILITY_RECORDED",)
+    assert tuple(capability) == ("NEEDS_REVIEW", "UNSUPPORTED_ATTACHMENT")
+    flow = json.loads((config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
+    assert flow["business_flow"]["stage"] == "BACKFILL_ARCHIVED_NEEDS_REVIEW"
+    assert flow["attachment_capabilities"][0]["outcome"] == "NEEDS_REVIEW"
+
+
+def test_archive_only_never_permits_a_live_pointer_advance(tmp_path: Path) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    result = runtime.poll(archive_only=True)
+    assert result == {"ok": False, "code": "ARCHIVE_ONLY_POINTER_FORBIDDEN"}
+    assert runtime.status.read()["machine_code"] == "ARCHIVE_ONLY_POINTER_FORBIDDEN"
 
 
 def test_empty_live_poll_remains_fail_closed_but_backfill_can_record_a_complete_empty_scan(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

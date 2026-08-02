@@ -22,7 +22,7 @@ description: 独立云端每日资金纵向切片；仅从指定钉钉群历史�
 - `* * * * *`：授权探测，同一 incident 每 360 分钟最多一次 outbox 记录。
 - `0 * * * *`：DWS 显式认证状态保活。
 - 启动及每日 `05:45`：写入不含 argv、挂载来源或凭据的 runtime isolation audit；发现宿主挂载或其他 Skill 进程即失败关闭。
-- 每日：最大 7 天的回填、OCI 冷备重试、自主观察；回填永不替换较新的 live pointer。观察以当前 container deployment 的首份 D1/pointer/history 三方一致的 VALID publication 为基准，之后仅新的源侧业务日期计入五日影子对照；cron 重试、同日重跑和历史回填不能虚增。该 values-free `flow_state` 只由既有 KMFA 状态中枢读取，生产 source/image 身份无真实 Oracle 时保持 `UNKNOWN`。完整历史扫描确认没有候选附件的日窗仅作为 `BACKFILL_EMPTY_WINDOW` 推进回填计划；实时采集零匹配仍失败关闭。
+- 每日：最大 7 天的回填、OCI 冷备重试、自主观察；回填永不替换较新的 live pointer。观察以当前 container deployment 的首份 D1/pointer/history 三方一致的 VALID publication 为基准，之后仅新的源侧业务日期计入五日影子对照；cron 重试、同日重跑和历史回填不能虚增。该 values-free `flow_state` 只由既有 KMFA 状态中枢读取，生产 source/image 身份无真实 Oracle 时保持 `UNKNOWN`。完整历史扫描确认没有候选附件的日窗仅作为 `BACKFILL_EMPTY_WINDOW` 推进回填计划；经私有 Git 新 sparse-clone 回读、但未获确定性解析支持的附件登记为 `NEEDS_REVIEW` 后同样可推进历史计划，绝不构成勾稽或发布成功；来源谱系/哈希失败仍失败关闭。实时采集零匹配仍失败关闭。
 - 金额：只用整数分/Decimal。固定高风险线 `60_000_000` 分，固定关注线 `120_000_000` 分；动态线为完整自然月 3/6 月平均日可用余额，或经过版本控制的自定义日期/数值线。
 - 勾稽质量：账户、公司、银行、全局差异都必须为 `0` 分；禁止以跨账户抵销、静默去重、浮点/布尔金额、重复余额日或未来 `current` 余额形成假零差。3/6 月动态线须满足 95% 覆盖和 45/90 直接观测；自定义日期范围至少 7 日、覆盖至少 80%。
 - 余额日：仅北京周六、周日可承接上一 VALID 余额并计为承接天；缺失工作日一律标 `coverage_gap` 并从动态线覆盖计算排除。未确认的法定假日不擅自承接，宁可停用动态线。

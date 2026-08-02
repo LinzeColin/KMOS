@@ -58,7 +58,7 @@ uv run --with-requirements KMFA/app/backend/requirements.txt \
   --out-dir "$(mktemp -d /tmp/kmfa-daily-funds-page-e2e.XXXXXX)"
 ```
 
-测试只使用合成数据，覆盖整数分边界、3/6 月覆盖门、双事实表、CSV/Excel 的 MIME+magic+lineage、重复/歧义列/公式/日期/标识符质量门、终页 cursor 清除与页二失败不推进高水位、回填空日窗与实时零匹配失败关闭、精确 sparse checkout、重复/同名异字节/超大附件、消息与 manifest 篡改回读失败、D1 故障不移动 pointer 和旧阈值回流扫描。它不替代目标群真实采集验证。
+测试只使用合成数据，覆盖整数分边界、3/6 月覆盖门、双事实表、CSV/Excel 的 MIME+magic+lineage、重复/歧义列/公式/日期/标识符质量门、终页 cursor 清除与页二失败不推进高水位、回填空日窗、私有 Git 新 sparse-clone 回读后的不支持附件登记与实时零匹配失败关闭、精确 sparse checkout、重复/同名异字节/超大附件、消息与 manifest 篡改回读失败、D1 故障不移动 pointer 和旧阈值回流扫描。它不替代目标群真实采集验证。
 
 若宿主 Python 尚未安装锁定的 `openpyxl==3.1.5`，XLSX 专项 pytest 会明确跳过；发布前必须在 daily-funds 容器镜像或已安装 `requirements.txt` 的环境中重跑，跳过不构成 XLSX 生产能力证据。
 

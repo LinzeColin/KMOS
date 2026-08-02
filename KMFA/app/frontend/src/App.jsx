@@ -2077,15 +2077,28 @@ export default function App() {
   const 探公开面 = () => fetch('/healthz', { cache: 'no-store' })
     .then(r => r.ok).catch(() => false)
   const 取 = (url, set, 兜底) => fetch(url)
-    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
+    .then(r => {
+      if (r.ok) return r.json()
+      // An HTTP response proves that the private endpoint was reached.  In
+      // particular daily-funds uses 503 to say "no trusted publication";
+      // that must remain actionable rather than being mislabelled as Access.
+      const error = new Error(`HTTP ${r.status}`)
+      error.httpStatus = r.status
+      throw error
+    })
     .then(set)
     .catch(async e => {
       // 公开面失败时退回私有面：公开出口是新加的，旧镜像上还没有它，
       // 那种情况下整块空掉比要求登录更难查。
       if (兜底) return 取(兜底, set)
       const 私有面 = url.startsWith('/api/') || url.startsWith('/ops/api/')
-      const 站点还活着 = 私有面 ? await 探公开面() : false
-      set({ 加载失败: String(e), 需要登录: 私有面 && 站点还活着, 接口: url })
+      const 明确HTTP状态 = Number.isInteger(e?.httpStatus)
+      // Access redirect/cross-origin refusal has no readable HTTP status in
+      // fetch.  A readable 401/403 is also an authentication outcome; any
+      // other returned HTTP status is an application result, not login state.
+      const 可能是鉴权 = !明确HTTP状态 || e.httpStatus === 401 || e.httpStatus === 403
+      const 站点还活着 = 私有面 && 可能是鉴权 ? await 探公开面() : false
+      set({ 加载失败: String(e), 需要登录: 私有面 && 可能是鉴权 && 站点还活着, 接口: url })
     })
   const 取群 = () => 取('/api/归档目标群', set目标群)
   const 取审计 = () => 取('/api/审计日志', set审计)

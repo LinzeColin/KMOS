@@ -9,7 +9,7 @@
 #
 # 分批（3.7GB 容量 Gate）：默认只起 skills（app 在 `full` profile 后置）；观测内存无碍后再启 app。
 #
-# 自包含镜像：build.context = 仓根（`.`），Dockerfile 用 `COPY . /opt/kmfa/KMOS` 把代码烧进镜像。
+# 自包含镜像：Compose 相对本文件解析，故 build.context = 仓根（`../../..`）；Dockerfile 用 `COPY . /opt/kmfa/KMOS` 把代码烧进镜像。
 #   **不挂宿主仓**——真 Coolify 上 `./` 运行时挂载只含 compose、无代码（DT9 主机核验坐实），故弃之。
 #   代码随每次 push 重 build 更新。本机验证：build 后 `docker run`（不挂任何卷）跑 self-audit 应 rc=0。
 
@@ -18,7 +18,9 @@ services:
     # 完全独立的纵向切片：不依赖 skills/app 的启动顺序，也不共享现有 DWS profile、
     # keyring、台账或本机状态。唯一给 app 的是已验证 projection（只读）。
     build:
-      context: .
+      # Compose resolves relative contexts from this file's directory; all
+      # Dockerfiles COPY KMFA/... from the repository root.
+      context: ../../..
       dockerfile: KMFA/skills/每日资金/Dockerfile
     image: kmfa-daily-funds:coolify
     container_name: kmfa-daily-funds
@@ -69,7 +71,7 @@ services:
 
   skills:
     build:
-      context: .                              # 仓根（Coolify Golden Path project-dir）
+      context: ../../..                       # 仓根（Compose 相对本文件解析）
       dockerfile: KMFA/deploy/skills-runtime/Dockerfile   # 复用 #109 Dockerfile，内 COPY . 烧代码进镜像
     image: kmfa-skills:coolify
     container_name: kmfa-skills
@@ -146,7 +148,7 @@ services:
   app:
     profiles: ["full"]                            # P2：容量确认后于 Coolify 启用 full profile 再起
     build:
-      context: .
+      context: ../../..
       dockerfile: KMFA/app/backend/Dockerfile
     image: kmfa-app:coolify
     container_name: kmfa-app
@@ -237,7 +239,7 @@ services:
     # 与 app 分离且无公网路由；legacy filesystem 不支持生产 active lifecycle。
     profiles: ["lifecycle"]
     build:
-      context: .
+      context: ../../..
       dockerfile: KMFA/app/backend/Dockerfile
     image: kmfa-app:coolify
     container_name: kmfa-lifecycle-worker

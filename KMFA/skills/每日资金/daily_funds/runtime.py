@@ -76,6 +76,20 @@ class TimedFacts:
     received_at: datetime
 
 
+@dataclass(frozen=True)
+class AttachmentCapabilityInspection:
+    """Values-free outcome of opening Git-readback attachment bytes.
+
+    A successful parser-open is evidence that a format is available to the
+    deterministic pipeline.  A non-integrity parser failure is equally useful
+    evidence during historical discovery, but it must never be mistaken for a
+    reconciled, publishable fact set.
+    """
+
+    parsed: tuple[TimedFacts, ...]
+    failures: tuple[ParseError, ...]
+
+
 class DailyFundsRuntime:
     def __init__(self, config: DailyFundsConfig | None = None):
         self.config = config or DailyFundsConfig.from_env()
@@ -691,7 +705,23 @@ class DailyFundsRuntime:
             source_version=attachment.sha256,
         )
 
-    def _parse(self, attachments: Iterable[DownloadedAttachment]) -> list[TimedFacts]:
+    @staticmethod
+    def _parse_failure_code(error: ParseError) -> str:
+        return str(error).split(":", 1)[0]
+
+    def _inspect_attachment_capabilities(
+        self,
+        attachments: Iterable[DownloadedAttachment],
+    ) -> AttachmentCapabilityInspection:
+        """Open every Git-readback attachment and persist capability receipts.
+
+        This method is deliberately not a lenient parser: callers receive all
+        failures and must decide whether their contract permits a discovery
+        result.  The normal live path continues to fail closed through
+        :meth:`_parse`; only a historical raw-archive pass may retain a
+        non-integrity failure as ``NEEDS_REVIEW``.
+        """
+
         parsed: list[TimedFacts] = []
         failures: list[ParseError] = []
         for attachment in attachments:
@@ -719,7 +749,7 @@ class DailyFundsRuntime:
                 # A failed lineage check means this was not a proven Git
                 # readback object.  Do not let such bytes masquerade as real
                 # capability evidence even in NEEDS_REVIEW state.
-                failure_code = str(exc).split(":", 1)[0]
+                failure_code = self._parse_failure_code(exc)
                 if failure_code not in _SOURCE_INTEGRITY_PARSE_CODES:
                     self.state.record_capability_evidence(
                         attachment_sha256=attachment.sha256,
@@ -756,9 +786,15 @@ class DailyFundsRuntime:
                 facts,
                 attachment.message_at,
             ))
-        if failures:
-            raise failures[0]
-        return parsed
+        return AttachmentCapabilityInspection(tuple(parsed), tuple(failures))
+
+    def _parse(self, attachments: Iterable[DownloadedAttachment]) -> list[TimedFacts]:
+        """Strict live parse gate: one failed attachment rejects the batch."""
+
+        inspection = self._inspect_attachment_capabilities(attachments)
+        if inspection.failures:
+            raise inspection.failures[0]
+        return list(inspection.parsed)
 
     @staticmethod
     def _latest_complete_pair(parsed: Iterable[TimedFacts]) -> tuple[TimedFacts, TimedFacts]:
@@ -1005,9 +1041,22 @@ class DailyFundsRuntime:
         high_water_key: str = "history_high_water_at",
         advance_pointer: bool = True,
         allow_empty_window: bool = False,
+        archive_only: bool = False,
     ) -> dict[str, Any]:
+        # A caller must opt into the historical mode explicitly.  It is never
+        # legal for the current/live job to silently turn into a raw-only scan:
+        # that would make a missing publication look like successful funding
+        # processing.
+        if archive_only and advance_pointer:
+            status = self.status.write("需处理", "ARCHIVE_ONLY_POINTER_FORBIDDEN")
+            self._write_flow_state(stage="POLL_NEEDS_ATTENTION", status=status)
+            return {"ok": False, "code": "ARCHIVE_ONLY_POINTER_FORBIDDEN"}
         try:
-            self.config.validate()
+            # Historical discovery owns no R2/D1/OCI output.  It still
+            # validates the exact DWS source and private-Git writer contract,
+            # then persists and freshly re-opens the raw authority before any
+            # capability result is accepted.
+            self.config.validate(include_storage=not archive_only)
         except ConfigError:
             return self.status.write("需处理", "CONFIG_INVALID")
         now = now or datetime.now(UTC)
@@ -1057,15 +1106,52 @@ class DailyFundsRuntime:
                 # gate: only bounded backfill explicitly opts in and it never
                 # advances the current publication pointer.
                 if allow_empty_window and not advance_pointer:
-                    self._status_from_current(fallback_code="BACKFILL_EMPTY_WINDOW")
-                    return {
+                    status = self._status_from_current(fallback_code="BACKFILL_EMPTY_WINDOW")
+                    if archive_only:
+                        self._write_flow_state(stage="BACKFILL_EMPTY_WINDOW", status=status)
+                    result = {
                         "ok": True,
                         "pages": pages,
                         "attachments": 0,
                         "empty_window": True,
                     }
+                    if archive_only:
+                        result["archive_only"] = True
+                    return result
                 raise IngestionError("SOURCE_MATCH_ZERO")
             verified_attachments = self._deduplicated_attachments(all_attachments)
+            if archive_only:
+                # The raw Git authority has been re-opened before this point.
+                # A historical format census is allowed to retain a genuine
+                # unsupported file as NEEDS_REVIEW, but a source-lineage/hash
+                # failure is still fatal: no downstream receipt can upgrade
+                # unverified bytes into a successful archive scan.
+                inspection = self._inspect_attachment_capabilities(verified_attachments)
+                integrity_failures = tuple(
+                    failure
+                    for failure in inspection.failures
+                    if self._parse_failure_code(failure) in _SOURCE_INTEGRITY_PARSE_CODES
+                )
+                if integrity_failures:
+                    raise integrity_failures[0]
+                for attachment in verified_attachments:
+                    occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
+                    self.state.mark_inbox(occurrence_key, "ARCHIVED_CAPABILITY_RECORDED")
+                needs_review = len(inspection.failures)
+                code = "BACKFILL_ARCHIVED_NEEDS_REVIEW" if needs_review else "BACKFILL_ARCHIVED"
+                status = self._status_from_current(fallback_code=code)
+                self._write_flow_state(
+                    stage="BACKFILL_ARCHIVED_NEEDS_REVIEW" if needs_review else "BACKFILL_ARCHIVED",
+                    status=status,
+                )
+                return {
+                    "ok": True,
+                    "pages": pages,
+                    "attachments": len(verified_attachments),
+                    "archive_only": True,
+                    "capability_supported": len(inspection.parsed),
+                    "capability_needs_review": needs_review,
+                }
             # The raw Git authority has been re-opened before this point.  R2
             # must mirror those exact bytes before parsing or reconciliation.
             coordinator = self._coordinator()
@@ -1178,6 +1264,8 @@ class DailyFundsRuntime:
             return self.status.write("需处理", "BACKFILL_CURSOR_INVALID")
         completed: list[str] = []
         empty_days: list[str] = []
+        needs_review_days: list[str] = []
+        needs_review_attachments = 0
         for _ in range(max(1, min(max_days, 14))):
             if next_day >= local_today:
                 break
@@ -1191,21 +1279,39 @@ class DailyFundsRuntime:
                 high_water_key=f"backfill_high_water_{key_day}",
                 advance_pointer=False,
                 allow_empty_window=True,
+                archive_only=True,
             )
             if not result.get("ok"):
                 return {"ok": False, "completed_days": completed, "code": result.get("code", "BACKFILL_FAILED")}
             completed.append(next_day.isoformat())
             if result.get("empty_window"):
                 empty_days.append(next_day.isoformat())
+            needs_review = result.get("capability_needs_review", 0)
+            if isinstance(needs_review, bool) or not isinstance(needs_review, int) or needs_review < 0:
+                return {"ok": False, "completed_days": completed, "code": "BACKFILL_CAPABILITY_RESULT_INVALID"}
+            if needs_review:
+                needs_review_days.append(next_day.isoformat())
+                needs_review_attachments += needs_review
             next_day += timedelta(days=1)
             self.state.put("backfill_next_business_date", next_day.isoformat())
-        status = self._status_from_current(fallback_code="BACKFILL_COMPLETE" if next_day >= local_today else "BACKFILLING")
+        base_code = "BACKFILL_COMPLETE" if next_day >= local_today else "BACKFILLING"
+        outcome_code = f"{base_code}_NEEDS_REVIEW" if needs_review_attachments else base_code
+        status = self._status_from_current(fallback_code=outcome_code)
+        self._write_flow_state(
+            stage="BACKFILL_COMPLETE_NEEDS_REVIEW" if next_day >= local_today and needs_review_attachments else (
+                "BACKFILLING_NEEDS_REVIEW" if needs_review_attachments else base_code
+            ),
+            status=status,
+        )
         return {
             "ok": True,
             "completed_days": completed,
             "empty_days": empty_days,
+            "needs_review_days": needs_review_days,
+            "needs_review_attachments": needs_review_attachments,
             "next_business_date": next_day.isoformat(),
             "complete": next_day >= local_today,
+            "code": outcome_code,
             "status": status["human_status"],
         }
 
