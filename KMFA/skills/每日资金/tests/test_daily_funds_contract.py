@@ -1032,6 +1032,13 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
         {"openMessageId": "msg-oversize"}, "msg-oversize", "c" * 64, moment,
         1, "oversize.xlsx", "资金流水明细", oversize_payload, __import__("hashlib").sha256(oversize_payload).hexdigest(), None,
     )
+    narrow_patterns = writer._attachment_sparse_patterns((oversize, direct, same_name_different_bytes))
+    assert f"{SPARSE_PATH.as_posix()}/" not in narrow_patterns
+    assert all(pattern.startswith(f"{SPARSE_PATH.as_posix()}/raw/") for pattern in narrow_patterns)
+    assert f"{(SPARSE_PATH / 'raw/messages/2026/07/30').as_posix()}/" in narrow_patterns
+    assert f"{(SPARSE_PATH / 'raw/blobs/sha256' / direct.sha256[:2]).as_posix()}/" in narrow_patterns
+    writer._clone_sparse(tmp_path / "narrow-sparse", env=env, ref="main", patterns=narrow_patterns)
+    assert not (tmp_path / "narrow-sparse" / SPARSE_PATH / "baseline.txt").exists()
     commit = writer.persist((oversize, direct, direct, same_name_different_bytes))
     assert len(commit.verified_attachments) == 3
     assert {attachment.sha256 for attachment in commit.verified_attachments} == {
@@ -1049,6 +1056,33 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     assert RawMaterializer.readback_attachment(verification / SPARSE_PATH, direct).payload == direct_payload
     assert RawMaterializer.readback_attachment(verification / SPARSE_PATH, same_name_different_bytes).payload == changed_payload
     assert RawMaterializer.readback_attachment(verification / SPARSE_PATH, oversize).payload == oversize_payload
+
+
+def test_sparse_writer_uses_shallow_clone_for_narrow_raw_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    writer = GitSparseWriter(_config(tmp_path))
+    commands: list[list[str]] = []
+
+    def fake_git(args, **_kwargs):
+        commands.append(list(args))
+        return ""
+
+    monkeypatch.setattr(writer, "_git", fake_git)
+    moment = datetime(2026, 7, 31, 8, tzinfo=UTC)
+    payload = b"abc"
+    attachment = DownloadedAttachment(
+        {"openMessageId": "msg-narrow"}, "msg-narrow", "d" * 64, moment,
+        0, "funds.csv", ACCOUNT_FAMILY, payload, __import__("hashlib").sha256(payload).hexdigest(), "text/csv",
+    )
+    patterns = writer._attachment_sparse_patterns((attachment,))
+    writer._clone_sparse(tmp_path / "narrow-sparse", env={}, ref="main", patterns=patterns)
+
+    assert commands[0][:5] == ["clone", "--depth=1", "--filter=blob:none", "--sparse", "--no-checkout"]
+    assert commands[1] == ["sparse-checkout", "set", "--no-cone", *patterns]
+    assert f"{SPARSE_PATH.as_posix()}/" not in patterns
+    assert all(pattern.startswith(f"{SPARSE_PATH.as_posix()}/raw/") for pattern in patterns)
+    assert writer._publication_sparse_patterns("2026-07-31") == (
+        f"{(SPARSE_PATH / 'publications/2026-07-31').as_posix()}/",
+    )
 
 
 def test_sparse_writer_retries_standard_non_fast_forward_and_rejects_force_push(tmp_path: Path) -> None:

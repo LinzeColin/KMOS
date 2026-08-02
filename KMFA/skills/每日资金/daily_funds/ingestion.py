@@ -1052,15 +1052,56 @@ class GitSparseWriter:
         if any(path != SPARSE_PATH.as_posix() and not path.startswith(expected_prefix) for path in staged_paths):
             raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
 
-    def _clone_sparse(self, repo: Path, *, env: Mapping[str, str], ref: str) -> None:
+    @staticmethod
+    def _attachment_sparse_patterns(attachments: Iterable[DownloadedAttachment]) -> tuple[str, ...]:
+        """Return the smallest day/hash paths needed for one raw batch.
+
+        Checking out the whole ``daily_funds`` tree makes a nominally sparse
+        clone materialise every historic raw object.  That is both unnecessary
+        for a new immutable batch and unsafe on the bounded cloud worker disk.
+        The writer only needs the four deterministic directories which contain
+        each attachment's envelope, occurrence, blob and reassembly manifest.
+        """
+
+        directories: set[Path] = set()
+        for attachment in attachments:
+            for path in RawMaterializer._attachment_paths(attachment):
+                directories.add(SPARSE_PATH / path.parent)
+        return tuple(f"{path.as_posix()}/" for path in sorted(directories, key=lambda path: path.as_posix()))
+
+    @staticmethod
+    def _publication_sparse_patterns(business_date: str) -> tuple[str, ...]:
+        return (f"{(SPARSE_PATH / 'publications' / business_date).as_posix()}/",)
+
+    def _clone_sparse(
+        self,
+        repo: Path,
+        *,
+        env: Mapping[str, str],
+        ref: str,
+        patterns: Sequence[str] | None = None,
+    ) -> None:
+        """Clone only the caller's approved sparse materialisation paths.
+
+        ``patterns=None`` remains the compatibility/default path for callers
+        which really need the complete approved tree.  Raw ingestion and
+        publication callers always provide a narrow immutable path set.
+        """
+
+        selected = tuple(patterns) if patterns is not None else (f"{SPARSE_PATH.as_posix()}/",)
+        if not selected:
+            raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
+        sparse_root = SPARSE_PATH.as_posix() + "/"
+        if any(not pattern.startswith(sparse_root) for pattern in selected):
+            raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
         self._git([
-            "clone", "--filter=blob:none", "--sparse", "--no-checkout",
+            "clone", "--depth=1", "--filter=blob:none", "--sparse", "--no-checkout",
             self.config.private_repo, str(repo),
         ], env=env)
         # Cone mode always includes root-level files.  Non-cone mode is used
         # deliberately so an exact-path writer never checks out unrelated
         # repository material before it handles financial evidence.
-        self._git(["sparse-checkout", "set", "--no-cone", f"{SPARSE_PATH.as_posix()}/"], cwd=repo, env=env)
+        self._git(["sparse-checkout", "set", "--no-cone", *selected], cwd=repo, env=env)
         self._git(["checkout", ref], cwd=repo, env=env)
         self._assert_sparse_checkout_scope(repo)
 
@@ -1076,7 +1117,14 @@ class GitSparseWriter:
             self._git(["rebase", f"origin/{self.config.private_branch}"], cwd=repo, env=env)
             self._git(["push", "origin", f"HEAD:{self.config.private_branch}"], cwd=repo, env=env)
 
-    def _readback_sparse_root(self, temp_root: Path, *, env: Mapping[str, str], commit_sha: str) -> Path:
+    def _readback_sparse_root(
+        self,
+        temp_root: Path,
+        *,
+        env: Mapping[str, str],
+        commit_sha: str,
+        patterns: Sequence[str] | None = None,
+    ) -> Path:
         """Reopen the pushed commit through a new sparse clone.
 
         ``ls-remote`` only proves that a ref points at a SHA.  This extra clone
@@ -1087,7 +1135,7 @@ class GitSparseWriter:
         repo = temp_root / "private-db-readback"
         # Clone first on the permitted branch so sparse setup remains identical
         # to the writer, then detach at the pushed SHA for the actual readback.
-        self._clone_sparse(repo, env=env, ref=self.config.private_branch)
+        self._clone_sparse(repo, env=env, ref=self.config.private_branch, patterns=patterns)
         self._git(["checkout", "--detach", commit_sha], cwd=repo, env=env)
         return repo / SPARSE_PATH
 
@@ -1098,13 +1146,15 @@ class GitSparseWriter:
         env: Mapping[str, str],
         commit_sha: str,
         attachments: Iterable[DownloadedAttachment],
+        patterns: Sequence[str],
     ) -> tuple[DownloadedAttachment, ...]:
-        root = self._readback_sparse_root(temp_root, env=env, commit_sha=commit_sha)
+        root = self._readback_sparse_root(temp_root, env=env, commit_sha=commit_sha, patterns=patterns)
         return tuple(RawMaterializer.readback_attachment(root, attachment) for attachment in attachments)
 
     def persist(self, attachments: Iterable[DownloadedAttachment]) -> GitCommit:
         self.config.validate(include_storage=False)
         frozen_attachments = RawMaterializer.canonical_attachments(attachments)
+        sparse_patterns = self._attachment_sparse_patterns(frozen_attachments)
         if not self.config.state_dir.exists():
             self.config.state_dir.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="daily-funds-git-", dir=self.config.state_dir) as temp:
@@ -1112,12 +1162,12 @@ class GitSparseWriter:
             key_path = self._write_deploy_key(temp_root, self.config.git_ssh_key_b64)
             env = self._git_environment(temp_root, key_path)
             repo = temp_root / "private-db"
-            self._clone_sparse(repo, env=env, ref=self.config.private_branch)
+            self._clone_sparse(repo, env=env, ref=self.config.private_branch, patterns=sparse_patterns)
             self._git(["config", "user.name", "kmfa-daily-funds-writer"], cwd=repo, env=env)
             self._git(["config", "user.email", "kmfa-daily-funds@localhost"], cwd=repo, env=env)
             materializer = RawMaterializer()
             staged = materializer.stage(repo / SPARSE_PATH, frozen_attachments)
-            self._git(["add", "--", str(SPARSE_PATH)], cwd=repo, env=env)
+            self._git(["add", "--sparse", "--", str(SPARSE_PATH)], cwd=repo, env=env)
             self._assert_staged_scope(repo, env=env)
             try:
                 self._git(["diff", "--cached", "--quiet"], cwd=repo, env=env)
@@ -1140,6 +1190,7 @@ class GitSparseWriter:
                 env=env,
                 commit_sha=commit_sha,
                 attachments=frozen_attachments,
+                patterns=sparse_patterns,
             )
             bundle_path = temp_root / f"{staged.batch_id}.bundle"
             self._git(["bundle", "create", str(bundle_path), "HEAD"], cwd=repo, env=env)
@@ -1156,12 +1207,13 @@ class GitSparseWriter:
         business_date = str(publication.get("business_date") or "")
         if len(publication_id) != 64 or len(business_date) != 10:
             raise IngestionError("PUBLICATION_SHAPE_INVALID")
+        sparse_patterns = self._publication_sparse_patterns(business_date)
         with tempfile.TemporaryDirectory(prefix="daily-funds-publication-", dir=self.config.state_dir) as temp:
             temp_root = Path(temp)
             key_path = self._write_deploy_key(temp_root, self.config.git_ssh_key_b64)
             env = self._git_environment(temp_root, key_path)
             repo = temp_root / "private-db"
-            self._clone_sparse(repo, env=env, ref=self.config.private_branch)
+            self._clone_sparse(repo, env=env, ref=self.config.private_branch, patterns=sparse_patterns)
             self._git(["config", "user.name", "kmfa-daily-funds-writer"], cwd=repo, env=env)
             self._git(["config", "user.email", "kmfa-daily-funds@localhost"], cwd=repo, env=env)
             target = RawMaterializer._safe_path(
@@ -1172,7 +1224,7 @@ class GitSparseWriter:
             if target.exists() and target.read_text(encoding="utf-8") != payload:
                 raise IngestionError("PUBLICATION_ID_COLLISION")
             RawMaterializer._write_once(target, payload.encode("utf-8"))
-            self._git(["add", "--", str(SPARSE_PATH)], cwd=repo, env=env)
+            self._git(["add", "--sparse", "--", str(SPARSE_PATH)], cwd=repo, env=env)
             self._assert_staged_scope(repo, env=env)
             changed = bool(self._git(["status", "--porcelain"], cwd=repo, env=env))
             if changed:
@@ -1182,7 +1234,12 @@ class GitSparseWriter:
             remote = self._git(["ls-remote", "origin", f"refs/heads/{self.config.private_branch}"], cwd=repo, env=env).split()
             if not remote or remote[0] != commit_sha:
                 raise IngestionError("GIT_READBACK_FAILED")
-            readback_root = self._readback_sparse_root(temp_root, env=env, commit_sha=commit_sha)
+            readback_root = self._readback_sparse_root(
+                temp_root,
+                env=env,
+                commit_sha=commit_sha,
+                patterns=sparse_patterns,
+            )
             try:
                 readback = (readback_root / "publications" / business_date / f"{publication_id}.json").read_text(encoding="utf-8")
             except OSError as exc:
