@@ -21,11 +21,12 @@
 
 ## 每日资金 v0.0.0.1（当前受控实现，2026-08-03）
 
-### 当前真实状态（T10 后，以此小节为准）
+### 当前真实状态（T11 后，以此小节为准）
 
-- 运行代码已直接推送到 `main`（无分支、无 PR）：`64adf0e339603034c35e95175b24a24056c5ec55`。GitHub workflow `30751916050` 的远程 App E2E、Golden verify 和 Golden deploy 都成功；Coolify finished deployment `ugequ5oju62z7e8t3gdiqmk3` 回读的 source commit 精确匹配该 SHA，镜像为 `sha256:21e627549291c4331deaff6ce54a38a3096e295a3129da61f88266ad2e58f3d6`，完成时刻 `2026-08-02T14:38:12Z`。当前应用控制面为 `running:healthy`，根路径、`/healthz`、公共技能健康接口均为 HTTP 200；未认证访问每日资金私有入口为 Cloudflare Access 302。
-- 这只证明部署身份、公开边缘与隔离代码/compose 门禁，不证明真实资金链。可用 in-app browser 没有 Cloudflare Access 会话，打开私有页只进入登录页，未执行登录；Coolify 的 application execute 当前返回 HTTP 404。因此私有 UI 内容、worker/cron/卷状态、独立 DWS 认证、15 分钟真实历史轮询、私库原件、真实附件解析、整数分勾稽、OCI、恢复演练和五业务日影子观察均为 `UNKNOWN` 或未开始，绝不写 PASS。Cloudflare 只读复核还确认两套每日资金 D1 只有系统 `_cf_KV` 表、专用 R2 桶为 0 个对象：控制面可达但没有现成 D1/R2 资金发布物，不能拿它冒充真实金额结果。
-- 已执行测试：每日资金合约 `87 passed`、受影响后端 `45 passed`、前端 production build、任务包投影、5 个合成浏览器场景均通过；这些仅是本地/合成门。测试期安全态已由 Action `30751749859` 删除观测到的群机器人凭据并设置 `KMFA_DELIVERY_ENABLED=0`，未发送钉钉群消息。张霖泽钉钉号仅可作为独立云端 DWS 授权身份，不能替换任务包固定的群/发送人/附件三重来源门。
+- 唯一当前证据是 `machine/runs/daily_funds/semantic_reconcile_end.json`。运行代码已直接推送到 `main`（无分支、无 PR）：`7504a7f8cc2d74d3f4bac4f1181a29b00c2cb879`；其 Coolify finished deployment 为 `hmbs39c5kugld8d5nrmj0snf`，镜像为 `sha256:e76d6c0df06920a22be3d71118eb66b38de67a674573159da87a4426feb7f3ad`，完成于 `2026-08-03T01:43:48Z`。后续仅更新证据文档的 `main` 提交不得误写成运行镜像源码。
+- 当前实测：容器 `running/healthy`、worker healthcheck、独立 DWS `auth-probe`、DWS keepalive 与公开 `/healthz` 均正常；当前 15 分钟轮询终态为 `SOURCE_MATCH_ZERO`，最新无值来源诊断为 `HISTORY_EMPTY`。这证明调度和来源门正常失败关闭，绝不等同于任何资金金额、账户、附件解析或已发布结果。
+- 生产 `current.json` 与 `history.json` 均不存在，状态保持“需处理”；无完整账户余额加资金流水事实对，因此未运行整数分勾稽，D1/R2/OCI publication、恢复演练及五工作日观察均为 `NOT_RUN`。不允许从历史部署、DWS 授权、单一归档附件或健康 HTTP 推导为资金 publication PASS。
+- 每日资金合约 `87 passed, 1 skipped`、任务包原件校验 `PASS requirements=24 tasks=11 acceptance=17`；它们只证明实现和封包门。真实完成仍须由目标群的确定性双事实样本、零分差勾稽、D1/R2/OCI/私库回执、恢复 Oracle 与观察回执逐项闭合。
 - 下方较早的 T08/T09/T10/T11 条目均为历史记录；凡与本小节或 `machine/runs/daily_funds/semantic_reconcile_end.json` 冲突者，一律失效，不得作为当前生产或真实资金 PASS 依据。
 
 - 当前执行合同：`KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip`，SHA-256 `072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1`。2026-08-02 T08 重取移动基线：`origin/main=2e3621ecf361aa98f2c1dbb5bc3fcdea6b0b2b72`，是当前本地受控候选的祖先，候选尚未上传。此前 Coolify `running:healthy`、deployments 返回 0 条与 container execute 返回 404 都只是历史只读观察；T08 未重取生产身份，故当前 production source/image/deployment identity 仍为 `UNKNOWN`。`f75a1dc6…` 仅是最后一条历史源码记录，不能冒充现网身份，更不得把平台状态写成业务链路 PASS。
