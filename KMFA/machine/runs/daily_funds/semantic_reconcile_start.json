@@ -1,47 +1,34 @@
 {
   "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
-  "stage": "T10_PRE_DEPLOY_CURRENT",
-  "observed_at": "2026-08-02T14:19:30Z",
+  "stage": "T10_PRE_PUSH_CANDIDATE",
+  "observed_at": "2026-08-03T03:20:06Z",
   "taskpack": {
     "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
     "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
     "verified": true
   },
   "git_baseline": {
-    "origin_main": "2e3621ecf361aa98f2c1dbb5bc3fcdea6b0b2b72",
-    "candidate_head": "02812441c1a7ec7fd2b57330939028252769f610",
+    "origin_main_before_push": "802f7d9205d7738404fdc0a46d2bb1faf38b7767",
+    "candidate_runtime_commit": "89cb29fc834f38b8f759bbc957db53ce8be30cdc",
     "origin_main_is_candidate_ancestor": true,
-    "candidate_commit_count": 8,
-    "working_tree_clean_before_evidence": true,
-    "baseline_mode": "DETACHED_CANDIDATE_ON_LATEST_ORIGIN_MAIN"
+    "deployment_mode": "DIRECT_MAIN_NO_BRANCH_NO_PR",
+    "working_tree_clean_before_evidence": true
   },
-  "production_identity": {
-    "application_health": "OBSERVED_RUNNING_HEALTHY",
-    "application_inventory_receipt": "github-actions:30751647405",
-    "source_commit": "UNKNOWN",
-    "image_digest": "UNKNOWN",
-    "deployment_uuid": "UNKNOWN",
-    "identity_reason": "Fresh Coolify deployments inventory was empty; running:healthy alone cannot identify source, image, or deployment.",
-    "deployment_inventory_receipt": "github-actions:30751822787"
-  },
-  "runtime_configuration": {
-    "daily_funds_required_secret_keys": "PRESENT_IN_COOLIFY_VALUES_NOT_EQUALITY_VERIFIED",
-    "optional_dws_client_override": "EMPTY_ALLOWED",
-    "optional_dws_recovery_bundle": "EMPTY_ALLOWED",
-    "configuration_inventory_receipt": "github-actions:30751690333"
-  },
-  "safety_state": {
-    "group_robot_credentials": "REMOVED_FROM_ALL_OBSERVED_CONTEXTS",
-    "delivery_enabled": false,
-    "receipt": "github-actions:30751749859",
-    "rule": "No group delivery is permitted during daily-funds verification."
+  "local_validation": {
+    "daily_funds_contract_and_broker": "PASS 104 passed",
+    "daily_funds_taskpack_oracles": "PASS reconciliation_storage_threshold",
+    "daily_funds_browser_oracle": "PASS synthetic_only_production_identity_not_evaluated",
+    "kmfa_backend_regression": "PASS 867 passed",
+    "daily_funds_container_and_ocr_runtime": "PASS",
+    "compose_and_ci_yaml": "PASS",
+    "production_identity_for_new_candidate": "UNKNOWN_PENDING_DEPLOYMENT"
   },
   "semantic_reconcile": [
     {
       "subject": "existing_upstream_dws_archive",
       "classification": "CONFLICT",
       "decision": "DO_NOT_DEPEND_ON_IT",
-      "reason": "Daily-funds retains its own DWS identity, cursor, state, raw path, and cloud volumes."
+      "reason": "Daily-funds keeps its own DWS identity, cursor, state, raw path, and cloud volumes."
     },
     {
       "subject": "existing_skills_runtime",
@@ -53,26 +40,26 @@
       "subject": "KMFA_private_operations_app",
       "classification": "ADAPT",
       "decision": "USE_EXISTING_PROTECTED_READ_ONLY_PROJECTION",
-      "reason": "Only the established private UI and status centre are reused; raw messages, attachments, IDs, and values remain private."
+      "reason": "Only the existing protected UI and status centre are reused; raw messages, attachments, identifiers, and values remain private."
     },
     {
       "subject": "Private_Database_raw_authority",
       "classification": "OWNER_EXCEPTION_APPLIES",
       "decision": "NARROW_SINGLE_WRITER_SPARSE_CLONE_ONLY",
-      "reason": "The daily-funds service alone may write its fixed raw/manifest/publication path; no full clone or force push is permitted."
+      "reason": "The daily-funds service alone may write its fixed raw, manifest, and publication path; no full clone or force push is permitted."
     },
     {
-      "subject": "DingTalk_cloud_identity",
-      "classification": "NOT_YET_LIVE_VERIFIED",
-      "decision": "REQUIRE_INDEPENDENT_CLOUD_AUTH_STATUS",
-      "reason": "Zhang Linze's DingTalk account is the authorized cloud auth identity only and never replaces the fixed source triple gate."
+      "subject": "new_candidate_production_identity",
+      "classification": "UNKNOWN_PENDING_DEPLOYMENT",
+      "decision": "QUERY_SOURCE_IMAGE_DEPLOYMENT_AND_HEALTH_AFTER_MAIN_PUSH",
+      "reason": "A prior deployment identity cannot prove the newly committed runtime."
     },
     {
-      "subject": "D1_R2_OCI_and_restore",
-      "classification": "NOT_YET_LIVE_VERIFIED",
-      "decision": "FAIL_CLOSED_UNTIL_VALID_PUBLICATION_AND_EMPTY_ENVIRONMENT_RESTORE",
-      "reason": "Configured key presence is not an object write/readback, D1 query Oracle, or OCI restore receipt."
+      "subject": "real_money_publication_and_restore",
+      "classification": "UNKNOWN_PENDING_COMPLETE_SOURCE_PAIR",
+      "decision": "KEEP_FAIL_CLOSED",
+      "reason": "No local test, auth status, or deployment health check can replace a deterministic account-plus-transaction source pair and zero-fen reconciliation."
     }
   ],
-  "release_rule": "UNKNOWN is never converted to PASS. Final evidence must be captured only after the candidate is deployed and independently observed."
+  "release_rule": "UNKNOWN is never converted to PASS. The next record is written only after the pushed candidate and production identity are independently observed."
 }
