@@ -66,6 +66,12 @@ jobs:
           print("resource_raw_compose_mode_before=" + ("true" if raw_enabled is True else "false" if raw_enabled is False else "UNKNOWN"))
           if build_pack != "dockercompose" or location != expected:
               raise SystemExit("::error::资源不是预期的仓库 Docker Compose 配置；未改动")
+          # Self-hosted Coolify v4.1.2 may omit this mode bit from its public
+          # response.  An omitted value is not evidence that raw mode is on,
+          # therefore it must never be patched speculatively.
+          if raw_enabled is None:
+              print("reconcile_plan=BLOCKED_OPAQUE_COMPOSE_MODE")
+              raise SystemExit("::error::Coolify 未回传 Compose 模式；未改动")
           if raw_enabled is False:
               with open(os.path.join(os.environ["RUNNER_TEMP"], "reconcile-plan"), "w", encoding="utf-8") as handle:
                   handle.write("NO_CHANGE\n")
