@@ -8,9 +8,9 @@ Owner 2026-07-29：「我说了我只要我的项目成本！」「我没有看�
   · `/public-api/项目成本` 是 JSON——人打开看到的是一屏花括号；
   · 发 Excel 文件——卡片可能根本没在对话里露出来。
 
-所以判据是「通过 Access 后用浏览器打开这个地址，看到的是表格」。历史
-`/public-api/` 名称只为兼容旧链接，生产必须同时经过 Cloudflare Access 与 origin
-JWT，不能因路由名继续匿名暴露真实客户和金额。
+所以判据是「访客用浏览器打开 `/project-cost`，看到的是表格」。历史
+`/项目成本*` 与 `/public-api/项目成本*` 继续受 Cloudflare Access 与 origin JWT
+保护，公开页只读且不提供重算。
 """
 from __future__ import annotations
 
@@ -381,7 +381,7 @@ def test_the_homepage_link_survives_react_hydration():
     浏览器一加载 JS，React 接管就把整块换掉——「首页有链接」只在没有 JS 时成立。
     """
     shell = (REPO / "KMFA/app/frontend/src/PublicAppShell.jsx").read_text(encoding="utf-8")
-    assert shell.count('href="/项目成本"') >= 2, "React 壳里没有项目成本入口"
+    assert shell.count('href="/project-cost"') >= 2, "React 壳里没有项目成本入口"
     assert "data-shell-cost-entry" in shell, "入口没有可测锚点"
 
     built = list((REPO / "KMFA/app/frontend/dist/assets").glob("PublicAppShell-*.js"))
@@ -403,12 +403,12 @@ def test_the_entry_is_in_the_component_the_root_actually_renders():
         "路由结构变了——重新确认根路径到底渲染哪个组件，别再照着旧假设放入口"
 
     app_jsx = (REPO / "KMFA/app/frontend/src/App.jsx").read_text(encoding="utf-8")
-    assert 'href="/项目成本"' in app_jsx, "根路径渲染的组件里没有项目成本入口"
-    assert 'href="/项目成本/下载"' in app_jsx, "根路径渲染的组件里没有下载入口"
+    assert 'href="/project-cost"' in app_jsx, "根路径渲染的组件里没有项目成本入口"
+    assert 'href="/project-cost/download"' in app_jsx, "根路径渲染的组件里没有下载入口"
 
     built = list((REPO / "KMFA/app/frontend/dist/assets").glob("App-*.js"))
     assert built, "找不到 App 的构建产物"
-    assert any("/项目成本" in f.read_text(encoding="utf-8", errors="replace") for f in built), \
+    assert any("/project-cost" in f.read_text(encoding="utf-8", errors="replace") for f in built), \
         "改了源码但没重新构建，线上还是旧的"
 
 

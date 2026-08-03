@@ -52,6 +52,7 @@ def test_root_is_direct_canonical_app_entry():
     assert f'<link rel="canonical" href="{CANONICAL_ROOT}">' in response.text
     assert f'<meta property="og:url" content="{CANONICAL_ROOT}">' in response.text
     assert "/assets/" in response.text
+    assert 'href="/project-cost"' in response.text
     assert "/ui/" not in response.text
     assert 'id="kmfa-app-module"' in response.text
 
@@ -295,6 +296,13 @@ def test_private_paths_fail_closed_and_verify_access_jwt(monkeypatch):
     assert client.get("/").status_code == 200
     assert client.get("/healthz").status_code == 200
     assert client.get("/sitemap.xml").status_code == 200
+    public_cost_page = client.get("/project-cost")
+    assert public_cost_page.status_code == 200
+    assert public_cost_page.headers["x-kmfa-cost-access"] == "public-read"
+    assert client.head("/project-cost").status_code == 200
+    public_download = client.get("/project-cost/download")
+    assert public_download.status_code in (200, 503)
+    assert public_download.status_code != 403
 
     for path in (
         "/api",

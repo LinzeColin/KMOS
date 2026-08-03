@@ -4708,27 +4708,40 @@ def _safe_spreadsheet_text(value) -> str:
     return "'" + text if text.startswith(("=", "+", "-", "@")) else text
 
 
+PUBLIC_PROJECT_COST_PAGE_PATH = "/project-cost"
+PUBLIC_PROJECT_COST_DOWNLOAD_PATH = "/project-cost/download"
+
+
+@app.api_route(PUBLIC_PROJECT_COST_PAGE_PATH, methods=["GET", "HEAD"],
+               response_class=HTMLResponse, include_in_schema=False)
 @app.api_route("/项目成本", methods=["GET", "HEAD"], response_class=HTMLResponse,
                include_in_schema=False)
 @app.get("/public-api/项目成本表", response_class=HTMLResponse)
-def public_project_cost_page():
-    """项目成本——登录后打开就是数，也可下载封印工作簿。
+def public_project_cost_page(request: Request):
+    """项目成本——公开报表打开就是数，私有别名保留给既有操作流。
 
     为什么要有它（Owner 2026-07-29）：「我说了我只要我的项目成本！」「我没有看到
     你说的东西」「你不要放在本地，你推上网上去」。此前只有 `/public-api/项目成本`
     的 JSON——那是给机器读的，人打开看到的是一屏花括号。发文件也不行：卡片可能
     根本没露出来。所以出口必须是一个**打开就是数**的网页。
 
-    两个地址指同一个渲染器：
-      · `/项目成本` —— 给人用的。Owner 打开的是 kmfa.linzezhang.com，
-        「/public-api/项目成本表」这种地址他不会记也不该记。
-      · `/public-api/项目成本表` —— 保留，因为我先把这个地址给过 Owner，
-        换掉会让那条链接失效。
+    三个地址指向同一个受控渲染器：
+      · `/project-cost` —— 面向访客的公开、只读报表入口；无登录、无重算能力。
+      · `/项目成本` 与 `/public-api/项目成本表` —— 保留旧链接和受保护操作流。
 
-    两条路径都含真实客户与财务金额，必须同时在 origin guard 和 Cloudflare
-    Access 应用中受保护；``no-store``/``noindex`` 只是附加边界。
+    公开页只暴露已通过项目成本发布门的快照，始终 `no-store`/`noindex`；
+    JSON 兼容接口、重算和全部 `/api`、`/ops` 路由仍由 Cloudflare Access 与
+    origin guard 双重保护。
     """
-    headers = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow"}
+    public_view = request.url.path == PUBLIC_PROJECT_COST_PAGE_PATH
+    download_path = (
+        PUBLIC_PROJECT_COST_DOWNLOAD_PATH if public_view else "/项目成本/下载"
+    )
+    headers = {
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "noindex, nofollow",
+        "X-KMFA-Cost-Access": "public-read" if public_view else "access-required",
+    }
 
     def page(body: str) -> HTMLResponse:
         return HTMLResponse(_COST_PAGE_SHELL.replace("{{BODY}}", body), headers=headers)
@@ -4852,7 +4865,7 @@ def public_project_cost_page():
         return (
             '<td class="c" data-v=""><a class="one" '
             'title="只下载这一个已闭合合同" '
-            f'href="/项目成本/下载?合同={contract}">⬇</a></td>'
+            f'href="{download_path}?合同={contract}">⬇</a></td>'
         )
 
     rows = "\n".join(
@@ -4879,6 +4892,20 @@ def public_project_cost_page():
         + "</tr>"
         for p in projects)
 
+    recalc_control = (
+        ""
+        if public_view
+        else '<button class="dl alt" id="recalc" type="button">↻ 重新计算</button>'
+    )
+    recalc_message = (
+        "" if public_view else '<div class="hint" id="recalcmsg" role="status" aria-live="polite"></div>'
+    )
+    footer = (
+        "这是公开、只读的已发布项目成本报表；重算与机器接口继续受保护。"
+        if public_view
+        else "同一份数据的机器可读版在 <code>/public-api/项目成本</code>。"
+    )
+
     body = f"""
 <header>
   <div class="eb">KMFA · FORMAL PROJECT COST</div>
@@ -4903,12 +4930,12 @@ def public_project_cost_page():
 {review_warning}
 <div class="bar">
   <span class="grp">
-    <a class="dl" href="/项目成本/下载">⬇ 下载全部（Excel）</a>
-    <button class="dl alt" id="recalc" type="button">↻ 重新计算</button>
+    <a class="dl" href="{download_path}">⬇ 下载全部（Excel）</a>
+    {recalc_control}
   </span>
   <span class="hint">点表头按该列排序，再点一次反向　·　只有“已闭合”项目可单独下载</span>
 </div>
-<div class="hint" id="recalcmsg" role="status" aria-live="polite"></div>
+{recalc_message}
 <div class="tw"><table id="costtbl">
 <thead><tr>
 <th data-s="t">合同编号</th><th data-s="t">项目 / 甲方</th><th data-s="t">状态</th><th data-s="t">完工日</th>
@@ -4919,7 +4946,7 @@ def public_project_cost_page():
 <th>单独下载</th>
 </tr></thead>
 <tbody>{rows}</tbody></table></div>
-<footer>同一份数据的机器可读版在 <code>/public-api/项目成本</code>。
+<footer>{footer}
   收入、人工、审批费用和完工预计任一未闭合时，闭合项目成本、毛利与毛利率均保持空白；
   已发生成本只作为实际发生下限单独展示。</footer>"""
     return page(body)
@@ -5014,6 +5041,8 @@ def _computed_row(project: dict) -> list:
     return row
 
 
+@app.api_route(PUBLIC_PROJECT_COST_DOWNLOAD_PATH, methods=["GET", "HEAD"],
+               include_in_schema=False)
 @app.api_route("/项目成本/下载", methods=["GET", "HEAD"], include_in_schema=False)
 @app.get("/public-api/项目成本表/下载", include_in_schema=False)
 def public_project_cost_download(合同: str | None = None):

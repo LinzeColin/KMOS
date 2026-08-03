@@ -167,7 +167,7 @@ function PublicAppShell() {
           <span>KMFA <small>PUBLIC WORKSPACE</small></span>
         </a>
         <nav className="public-nav" aria-label="主要功能">
-          <a className="public-nav-link" href="/项目成本" data-shell-cost-entry="nav">项目成本</a>
+          <a className="public-nav-link" href="/project-cost" data-shell-cost-entry="nav">项目成本</a>
           {MODULES.map((item) => (
             <a
               key={item.key}
@@ -205,7 +205,7 @@ function PublicAppShell() {
                 此前链接只写在静态壳里，浏览器一加载 JS，React 接管就把它换掉了——
                 于是「首页有链接」这件事只在没有 JS 时成立，等于没有。 */}
             <div className="public-hero-actions">
-              <a className="public-primary-action" href="/项目成本" data-shell-cost-entry="hero">
+              <a className="public-primary-action" href="/project-cost" data-shell-cost-entry="hero">
                 打开项目成本表
               </a>
               <a className="public-secondary-action" href="#walking-skeleton">创建或恢复工作区</a>
