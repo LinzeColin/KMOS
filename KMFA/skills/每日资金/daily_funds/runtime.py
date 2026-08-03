@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta, timezone
 from hashlib import sha256
@@ -293,7 +295,63 @@ class DailyFundsRuntime:
         candidate = str(value or "UNKNOWN").strip().upper()
         return candidate if candidate in _SOURCE_DISCOVERY_STATES else "UNKNOWN"
 
+    @contextmanager
+    def _flow_state_write_lock(self):
+        """Serialize flow-state read/modify/write cycles across cron jobs.
+
+        ``atomic_json_write`` prevents a partially written projection, but it
+        cannot prevent two independently scheduled jobs from both reading an
+        old flow receipt and letting the later writer resurrect a stale
+        ``RUNNING`` operation.  The lock lives in the worker-only state volume
+        (rather than the app-readable projection volume) and contains no
+        source data or configuration.
+        """
+
+        self.config.state_dir.mkdir(parents=True, exist_ok=True)
+        descriptor = os.open(
+            self.config.state_dir / "flow_state.lock",
+            os.O_CREAT | os.O_RDWR,
+            0o600,
+        )
+        try:
+            os.fchmod(descriptor, 0o600)
+            fcntl.flock(descriptor, fcntl.LOCK_EX)
+            yield
+        finally:
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_UN)
+            finally:
+                os.close(descriptor)
+
     def _write_flow_state(
+        self,
+        *,
+        stage: str | None,
+        status: Mapping[str, Any] | None = None,
+        observer_state: str | None = None,
+        observer_result: str | None = None,
+        operation_job: str | None = None,
+        operation_state: str | None = None,
+        operation_code: str | None = None,
+        operation_started_at: str | None = None,
+        operation_finished_at: str | None = None,
+        source_discovery_state: str | None = None,
+    ) -> dict[str, Any]:
+        with self._flow_state_write_lock():
+            return self._write_flow_state_unlocked(
+                stage=stage,
+                status=status,
+                observer_state=observer_state,
+                observer_result=observer_result,
+                operation_job=operation_job,
+                operation_state=operation_state,
+                operation_code=operation_code,
+                operation_started_at=operation_started_at,
+                operation_finished_at=operation_finished_at,
+                source_discovery_state=source_discovery_state,
+            )
+
+    def _write_flow_state_unlocked(
         self,
         *,
         stage: str | None,

@@ -5,6 +5,7 @@ import importlib.util
 import json
 import subprocess
 import sys
+import threading
 import urllib.error
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
@@ -1420,6 +1421,66 @@ def test_operation_start_is_values_free_and_preserves_prior_poll_truth(tmp_path:
     assert flow["operations"]["poll"]["code"] == "POLL_RUNNING"
     assert flow["operations"]["poll"]["started_at"].endswith("Z")
     assert "sender-fixture" not in flow_text
+
+
+def test_flow_state_write_lock_prevents_stale_operation_receipt_overwrite(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Concurrent cron jobs must not resurrect a completed poll as RUNNING."""
+
+    config = _config(tmp_path)
+    poll_runtime = DailyFundsRuntime(config)
+    auth_runtime = DailyFundsRuntime(config)
+    status = poll_runtime.status.write("需处理", "SOURCE_MATCH_ZERO")
+    poll_runtime._write_flow_state(stage="POLL_NEEDS_ATTENTION", status=status)
+    poll_runtime.record_operation_start(job="poll", code="POLL_RUNNING")
+
+    poll_read_entered = threading.Event()
+    release_poll_read = threading.Event()
+    auth_read_entered = threading.Event()
+    original_poll_read = poll_runtime._read_json_object
+    original_auth_read = auth_runtime._read_json_object
+
+    def block_poll_read(path: Path) -> dict[str, object] | None:
+        if path.name == "flow_state.json" and not poll_read_entered.is_set():
+            poll_read_entered.set()
+            assert release_poll_read.wait(timeout=2)
+        return original_poll_read(path)
+
+    def track_auth_read(path: Path) -> dict[str, object] | None:
+        if path.name == "flow_state.json":
+            auth_read_entered.set()
+        return original_auth_read(path)
+
+    monkeypatch.setattr(poll_runtime, "_read_json_object", block_poll_read)
+    monkeypatch.setattr(auth_runtime, "_read_json_object", track_auth_read)
+
+    poll_thread = threading.Thread(
+        target=lambda: poll_runtime.record_operation_receipt(
+            job="poll", succeeded=False, code="SOURCE_MATCH_ZERO",
+        ),
+    )
+    auth_thread = threading.Thread(
+        target=lambda: auth_runtime.record_operation_receipt(
+            job="auth-probe", succeeded=True, code="AUTH_OK",
+        ),
+    )
+    poll_thread.start()
+    assert poll_read_entered.wait(timeout=2)
+    auth_thread.start()
+    assert not auth_read_entered.wait(timeout=0.2)
+    release_poll_read.set()
+    poll_thread.join(timeout=2)
+    auth_thread.join(timeout=2)
+    assert not poll_thread.is_alive()
+    assert not auth_thread.is_alive()
+
+    flow = json.loads((config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
+    assert flow["operations"]["poll"]["state"] == "FAILED"
+    assert flow["operations"]["poll"]["code"] == "SOURCE_MATCH_ZERO"
+    assert flow["operations"]["auth-probe"]["state"] == "SUCCEEDED"
+    assert flow["operations"]["auth-probe"]["code"] == "AUTH_OK"
 
 
 def test_live_poll_lock_keeps_the_business_flow_in_progress(tmp_path: Path) -> None:
