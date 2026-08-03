@@ -3095,6 +3095,51 @@ def _daily_funds_schedule_row() -> dict[str, Any]:
     }
 
 
+def _daily_funds_public_skill_health_row(now: datetime) -> dict[str, Any]:
+    """Expose the isolated worker's latest *values-free* poll receipt.
+
+    ``daily-funds`` deliberately does not write the shared ``kmfa-logs``
+    ledger: sharing it would also share the DWS profile and state that its
+    isolation contract forbids.  The public health endpoint must therefore
+    never manufacture a shared-ledger zero for this worker.  It may expose
+    only the already schema-checked latest poll receipt -- no business date,
+    amount, source metadata, raw log, or identifier crosses this boundary.
+
+    The worker retains one latest receipt rather than an append-only public
+    history.  ``运行次数`` below is consequently the count of *verifiable
+    retained poll receipts* (0 or 1), explicitly not a lifetime run count.
+    """
+
+    row = _daily_funds_schedule_row()
+    ran = bool(row["跑过"])
+    last = row["最近一次"] if ran else None
+    elapsed_hours = None
+    if last is not None:
+        try:
+            elapsed_hours = round(
+                (now - datetime.fromisoformat(str(last))).total_seconds() / 3600,
+                1,
+            )
+        except (TypeError, ValueError):
+            elapsed_hours = None
+
+    flow = row["每日资金状态"]["业务流"]
+    poll = flow["运行回执"]["历史轮询"]
+    outcome = _public_failure_code(poll.get("结果")) or "UNKNOWN"
+    return {
+        "技能": "daily-funds",
+        "最近一次": last,
+        "距今小时": elapsed_hours,
+        "退出码": row["退出码"],
+        "成功": row["成功"],
+        "运行次数": 1 if ran else 0,
+        "运行计数口径": "仅保留最近一次历史轮询回执，非累计历史次数",
+        "失败码": row["失败码"],
+        "本次状态": outcome,
+        "运行中": bool(row["运行中"]),
+    }
+
+
 def _daily_funds_is_integer(value: object) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
@@ -5309,12 +5354,17 @@ def public_skill_health():
     """
     headers = {"Cache-Control": "no-store"}
     now = datetime.now(BEIJING)
+    # Daily funds is intentionally outside the shared skills container and
+    # ledger.  Its worker-to-app hand-off is the only admissible health source
+    # for this one row; do not let a missing shared ledger turn that fact into
+    # a fabricated "0 runs" result.
+    daily_funds_row = _daily_funds_public_skill_health_row(now)
     if not SKILL_LEDGER_PATH.exists():
         return JSONResponse({
             "生成时间": now.isoformat(),
             "台账可读": False,
-            "原因": "排程台账不存在——排程从未完成过一次运行，或 app 容器没挂日志卷",
-            "技能": [],
+            "原因": "通用技能排程台账不存在——通用台账未验证；每日资金使用独立、无金额的轮询回执。",
+            "技能": [daily_funds_row],
             "诚实边界": "读不到就说读不到，不猜、不拿「没有坏消息」当好消息。",
         }, headers=headers)
 
@@ -5331,6 +5381,9 @@ def public_skill_health():
 
     出 = []
     for skill in sorted(SCHEDULE_CONTRACT):
+        if skill == "daily-funds":
+            出.append(daily_funds_row)
+            continue
         history = sorted(by_skill.get(skill, []), key=lambda r: str(r.get("ts")), reverse=True)
         # ✅/❌ 只由**排程跑**决定。压测跑（entrypoint 的全量压测）问的是另一个问题：
         # 「这个技能的机器还转不转」。混在一起，时间锚定的技能被拉到窗口外跑的合法失败

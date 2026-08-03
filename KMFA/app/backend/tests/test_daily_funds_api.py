@@ -443,6 +443,29 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
     assert "message-fixture" not in response.text
     assert response.json()["每日资金"]["业务流"]["部署"]["身份"] == "UNKNOWN"
 
+    # The public health endpoint cannot read the shared skills ledger as a
+    # proxy for this isolated worker.  It must expose only the safe latest
+    # history-poll receipt, never the projection, raw source, account data or
+    # private operation history.
+    public = client.get("/public-api/技能健康")
+    assert public.status_code == 200
+    public_daily = next(row for row in public.json()["技能"] if row["技能"] == "daily-funds")
+    assert isinstance(public_daily["距今小时"], float)
+    assert {key: value for key, value in public_daily.items() if key != "距今小时"} == {
+        "技能": "daily-funds",
+        "最近一次": "2026-07-30T12:05:00Z",
+        "退出码": 0,
+        "成功": True,
+        "运行次数": 1,
+        "运行计数口径": "仅保留最近一次历史轮询回执，非累计历史次数",
+        "失败码": None,
+        "本次状态": "VALID_PUBLISHED",
+        "运行中": False,
+    }
+    assert "group-fixture" not in public.text
+    assert "attachment-fixture" not in public.text
+    assert "message-fixture" not in public.text
+
 
 def test_daily_funds_status_keeps_weekend_observer_out_of_workday_progress(tmp_path, monkeypatch):
     publication = tmp_path / "publication"

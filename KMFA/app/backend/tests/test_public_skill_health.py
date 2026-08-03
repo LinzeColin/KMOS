@@ -39,7 +39,14 @@ def test_missing_ledger_says_so_instead_of_pretending_healthy(tmp_path, monkeypa
     monkeypatch.setattr(main, "SKILL_LEDGER_PATH", tmp_path / "nope.jsonl")
     body = client.get(URL).json()
     assert body["台账可读"] is False
-    assert body["技能"] == []
+    # ``daily-funds`` owns an isolated worker and never writes the generic
+    # ledger.  The public health surface must retain its values-free receipt
+    # rather than falsely reporting it as a generic-ledger zero.
+    assert [row["技能"] for row in body["技能"]] == ["daily-funds"]
+    daily = body["技能"][0]
+    assert daily["运行次数"] == 0
+    assert daily["成功"] is None
+    assert daily["本次状态"] == "UNKNOWN"
     assert "原因" in body
 
 
