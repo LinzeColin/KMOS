@@ -1,0 +1,120 @@
+# 将遗留 Raw Compose 资源切回仓库受控的 deployable Compose。
+#
+# 这是一个窄、显式、可审计的运行配置修复器：它绝不输出 compose 原文、环境变量、
+# token、构建日志或业务数据；也不创建/删除卷、网络、应用或资源。先 GET 分类，
+# 仅当 application 仍是预期的 Docker Compose 资源和预期 compose 路径时，才 PATCH
+# 一个布尔模式位，并立即 GET 回读。部署仍由既有 Golden Path 负责。
+name: coolify-compose-reconcile
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "false=只读预检；true=切换为 deployable Compose 并回读"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    # 防止 fork / 非 Owner 的 workflow_dispatch 误改生产资源。
+    if: github.actor == 'LinzeColin'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 预检并按需切换 Compose 模式
+        env:
+          BASE: ${{ secrets.COOLIFY_BASE_URL }}
+          TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          # 只允许已由 deploy.yml 登记的 KMFA 资源，绝不接受任意 UUID。
+          APP: "gz5qao2k0zrx3polpbwgcg51"
+          APPLY: ${{ inputs.apply }}
+        run: |
+          set -euo pipefail
+          expected_location="KMFA/deploy/coolify/docker-compose.yml"
+          test -s "$expected_location" || {
+            echo "::error::仓库受控 Compose 文件不存在"
+            exit 1
+          }
+          curl -fsSL -H "Authorization: Bearer $TOKEN" \
+            "$BASE/api/v1/applications/$APP" -o "$RUNNER_TEMP/before.json"
+          EXPECTED_LOCATION="$expected_location" APPLY="$APPLY" \
+            python3 - "$RUNNER_TEMP/before.json" <<'PY'
+          import json
+          import os
+          import sys
+
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          if isinstance(data, dict) and isinstance(data.get("data"), dict):
+              data = data["data"]
+          if not isinstance(data, dict):
+              raise SystemExit("::error::Coolify application 响应形状不受支持")
+
+          location = str(data.get("docker_compose_location") or "").strip().lstrip("/")
+          build_pack = str(data.get("build_pack") or "")
+          raw_enabled = data.get("is_raw_compose_deployment_enabled")
+          raw_present = bool(data.get("docker_compose_raw"))
+          expected = os.environ["EXPECTED_LOCATION"]
+          print("resource_build_pack=" + (build_pack or "UNKNOWN"))
+          print("resource_compose_location=" + ("EXPECTED" if location == expected else "UNEXPECTED"))
+          print("resource_raw_compose_present=" + ("true" if raw_present else "false"))
+          print("resource_raw_compose_mode_before=" + ("true" if raw_enabled is True else "false" if raw_enabled is False else "UNKNOWN"))
+          if build_pack != "dockercompose" or location != expected:
+              raise SystemExit("::error::资源不是预期的仓库 Docker Compose 配置；未改动")
+          if raw_enabled is False:
+              with open(os.path.join(os.environ["RUNNER_TEMP"], "reconcile-plan"), "w", encoding="utf-8") as handle:
+                  handle.write("NO_CHANGE\n")
+              print("reconcile_plan=NO_CHANGE_ALREADY_DEPLOYABLE")
+              raise SystemExit(0)
+          with open(os.path.join(os.environ["RUNNER_TEMP"], "reconcile-plan"), "w", encoding="utf-8") as handle:
+              handle.write("APPLY\n")
+          if os.environ["APPLY"].lower() != "true":
+              print("reconcile_plan=WOULD_DISABLE_RAW_COMPOSE_MODE")
+              raise SystemExit(0)
+          print("reconcile_plan=APPLY_DISABLE_RAW_COMPOSE_MODE")
+          PY
+
+          if [ "$(cat "$RUNNER_TEMP/reconcile-plan")" = "NO_CHANGE" ]; then
+            exit 0
+          fi
+          if [ "${APPLY,,}" != "true" ]; then
+            exit 0
+          fi
+
+          # PATCH 仅改变 documented raw/deployable 模式位；不携带或读取任何 env、
+          # compose 内容、卷、网络、域名或镜像配置。
+          printf '%s' '{"is_raw_compose_deployment_enabled":false}' \
+            > "$RUNNER_TEMP/patch.json"
+          curl -fsSL -X PATCH \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            --data-binary "@$RUNNER_TEMP/patch.json" \
+            "$BASE/api/v1/applications/$APP" \
+            -o "$RUNNER_TEMP/patch-response.json"
+          curl -fsSL -H "Authorization: Bearer $TOKEN" \
+            "$BASE/api/v1/applications/$APP" -o "$RUNNER_TEMP/after.json"
+          EXPECTED_LOCATION="$expected_location" \
+            python3 - "$RUNNER_TEMP/after.json" <<'PY'
+          import json
+          import os
+          import sys
+
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          if isinstance(data, dict) and isinstance(data.get("data"), dict):
+              data = data["data"]
+          if not isinstance(data, dict):
+              raise SystemExit("::error::Coolify application 回读形状不受支持")
+          location = str(data.get("docker_compose_location") or "").strip().lstrip("/")
+          raw_enabled = data.get("is_raw_compose_deployment_enabled")
+          if str(data.get("build_pack") or "") != "dockercompose" or location != os.environ["EXPECTED_LOCATION"]:
+              raise SystemExit("::error::切换后资源合同漂移；未触发部署")
+          if raw_enabled is not False:
+              raise SystemExit("::error::Compose 模式回读不是 deployable；未触发部署")
+          print("resource_raw_compose_mode_after=false")
+          print("reconcile_result=APPLIED_AND_READBACK_VERIFIED")
+          PY
