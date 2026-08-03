@@ -48,6 +48,7 @@ from daily_funds.ingestion import (
     GitSparseWriter,
     HistoryPoller,
     IngestionError,
+    PersistedRawAttachment,
     RawMaterializer,
     SPARSE_PATH,
     StagedRawBatch,
@@ -1411,7 +1412,7 @@ def test_archive_only_backfill_persists_readback_and_records_unsupported_format_
             return attachment.message_id_hash
 
         @staticmethod
-        def cached_attachment_stub(_message, _index, _attachment_sha256):
+        def reopen_candidate(_message, _index, _attachment_sha256):
             # This fixture exercises the normal first-download path.
             return None
 
@@ -1487,7 +1488,7 @@ def test_overlap_reopens_verified_raw_without_repeating_media_download(tmp_path:
     attachment = DownloadedAttachment(
         message={"fixture": "overlap"},
         message_id="overlap-message",
-        message_id_hash="3" * 64,
+        message_id_hash=sha256(b"overlap-message").hexdigest(),
         message_at=datetime(2026, 7, 30, 8, tzinfo=UTC),
         index=0,
         filename="资金明细_20260730.png",
@@ -1516,24 +1517,38 @@ def test_overlap_reopens_verified_raw_without_repeating_media_download(tmp_path:
             return attachment.message_id_hash
 
         @staticmethod
-        def cached_attachment_stub(_message, _index, attachment_sha256):
+        def reopen_candidate(_message, _index, attachment_sha256):
             assert attachment_sha256 == attachment.sha256
-            return replace(attachment, payload=b"")
+            return PersistedRawAttachment(
+                message=attachment.message,
+                message_id=attachment.message_id,
+                message_id_hash=attachment.message_id_hash,
+                message_at=attachment.message_at,
+                index=attachment.index,
+                sha256=attachment.sha256,
+            )
 
         @staticmethod
         def download(_message, _index):
             pytest.fail("a verified overlap must not repeat DWS media download")
 
-    reopened: list[tuple[DownloadedAttachment, ...]] = []
+    reopened: list[tuple[PersistedRawAttachment, ...]] = []
 
     class ReadbackWriter:
         def __init__(self, _config):
             pass
 
         def reopen_persisted(self, attachments):
-            stubs = tuple(attachments)
-            reopened.append(stubs)
-            assert stubs == (replace(attachment, payload=b""),)
+            candidates = tuple(attachments)
+            reopened.append(candidates)
+            assert candidates == (PersistedRawAttachment(
+                message=attachment.message,
+                message_id=attachment.message_id,
+                message_id_hash=attachment.message_id_hash,
+                message_at=attachment.message_at,
+                index=attachment.index,
+                sha256=attachment.sha256,
+            ),)
             return GitCommit("b" * 40, SimpleNamespace(), (attachment,))
 
         def persist(self, _attachments):
@@ -1561,7 +1576,7 @@ def test_overlap_reopens_verified_raw_without_repeating_media_download(tmp_path:
 
     assert result["ok"] is True
     assert result["attachments"] == 1
-    assert reopened == [(replace(attachment, payload=b""),)]
+    assert len(reopened) == 1
 
 
 def test_runtime_state_reuses_only_one_terminal_raw_receipt(tmp_path: Path) -> None:
@@ -2024,18 +2039,21 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
 
     moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
     direct_payload = b"abc"
+    direct_message_hash = sha256(b"msg-direct").hexdigest()
     direct = DownloadedAttachment(
-        {"openMessageId": "msg-direct"}, "msg-direct", "a" * 64, moment,
+        {"openMessageId": "msg-direct"}, "msg-direct", direct_message_hash, moment,
         0, "same.csv", ACCOUNT_FAMILY, direct_payload, __import__("hashlib").sha256(direct_payload).hexdigest(), "text/csv",
     )
     changed_payload = b"def"
+    changed_message_hash = sha256(b"msg-different").hexdigest()
     same_name_different_bytes = DownloadedAttachment(
-        {"openMessageId": "msg-different"}, "msg-different", "b" * 64, moment,
+        {"openMessageId": "msg-different"}, "msg-different", changed_message_hash, moment,
         0, "same.csv", ACCOUNT_FAMILY, changed_payload, __import__("hashlib").sha256(changed_payload).hexdigest(), "text/csv",
     )
     oversize_payload = b"0123456789abcdef"
+    oversize_message_hash = sha256(b"msg-oversize").hexdigest()
     oversize = DownloadedAttachment(
-        {"openMessageId": "msg-oversize"}, "msg-oversize", "c" * 64, moment,
+        {"openMessageId": "msg-oversize"}, "msg-oversize", oversize_message_hash, moment,
         1, "oversize.xlsx", "资金流水明细", oversize_payload, __import__("hashlib").sha256(oversize_payload).hexdigest(), None,
     )
     narrow_patterns = writer._attachment_sparse_patterns((oversize, direct, same_name_different_bytes))
@@ -2061,12 +2079,22 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     assert {attachment.sha256 for attachment in commit.verified_attachments} == {
         direct.sha256, same_name_different_bytes.sha256, oversize.sha256,
     }
+    persisted_references = tuple(
+        PersistedRawAttachment(
+            message=attachment.message,
+            message_id=attachment.message_id,
+            message_id_hash=attachment.message_id_hash,
+            message_at=attachment.message_at,
+            index=attachment.index,
+            sha256=attachment.sha256,
+        )
+        for attachment in (oversize, direct, same_name_different_bytes)
+    )
+    persisted_patterns = writer._persisted_raw_sparse_patterns(persisted_references)
+    assert f"{(SPARSE_PATH / 'raw/blobs/sha256' / direct.sha256[:2] / direct.sha256).as_posix()}*" in persisted_patterns
+    assert f"{(SPARSE_PATH / 'raw/chunks/sha256' / oversize.sha256).as_posix()}/" in persisted_patterns
     raw_writer_commands.clear()
-    reopened = writer.reopen_persisted((
-        replace(oversize, payload=b""),
-        replace(direct, payload=b""),
-        replace(same_name_different_bytes, payload=b""),
-    ))
+    reopened = writer.reopen_persisted(persisted_references)
     assert reopened.commit_sha == commit.commit_sha
     assert {attachment.sha256 for attachment in reopened.verified_attachments} == {
         direct.sha256, same_name_different_bytes.sha256, oversize.sha256,
@@ -2394,7 +2422,7 @@ def test_dws_history_accepts_successful_empty_v1_envelope_and_stable_sender_id(t
     assert client.selected_messages(DwsPage(messages=(message,), next_cursor=None, has_more=False)) == (message,)
 
 
-def test_dws_cached_stub_requires_exact_source_and_declared_supported_filename(tmp_path: Path) -> None:
+def test_dws_reopen_candidate_requires_exact_source_but_allows_embedded_media(tmp_path: Path) -> None:
     config = _config(tmp_path)
     client = DwsHistoryClient(config)
     message = {
@@ -2402,28 +2430,20 @@ def test_dws_cached_stub_requires_exact_source_and_declared_supported_filename(t
         "senderOpenDingTalkId": config.sender_id,
         "openMessageId": "cached-message",
         "createTime": "2026-08-01 08:00:00",
-        "content": "资金账户明细表",
-        "attachments": [{
-            "mediaId": "opaque-media-id",
-            "fileName": "资金账户明细表_20260801.csv",
-            "mimeType": "text/csv",
-        }],
+        # DWS may expose the media ID only in text, without a filename.  The
+        # immutable raw occurrence supplies the original filename later.
+        "content": "资金账户明细表 mediaId=opaque-media-id",
     }
     attachment_sha256 = "d" * 64
-    stub = client.cached_attachment_stub(message, 0, attachment_sha256)
-    assert stub is not None
-    assert stub.payload == b""
-    assert stub.sha256 == attachment_sha256
-    assert stub.message_id_hash == client.message_id_hash(message)
-    assert client.cached_attachment_stub(message, 0, "not-a-sha") is None
-
-    unsupported = dict(message)
-    unsupported["attachments"] = [{"mediaId": "opaque-media-id", "fileName": "source.pdf"}]
-    assert client.cached_attachment_stub(unsupported, 0, attachment_sha256) is None
+    candidate = client.reopen_candidate(message, 0, attachment_sha256)
+    assert candidate is not None
+    assert candidate.sha256 == attachment_sha256
+    assert candidate.message_id_hash == client.message_id_hash(message)
+    assert client.reopen_candidate(message, 0, "not-a-sha") is None
     ambiguous = dict(message)
     ambiguous["senderOpenDingTalkId"] = "other-sender"
     with pytest.raises(IngestionError, match="AMBIGUOUS_SOURCE"):
-        client.cached_attachment_stub(ambiguous, 0, attachment_sha256)
+        client.reopen_candidate(ambiguous, 0, attachment_sha256)
 
 
 def test_dws_list_uses_beijing_boundary_and_embedded_media_source(tmp_path: Path) -> None:

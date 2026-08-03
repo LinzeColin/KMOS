@@ -24,6 +24,7 @@ from .ingestion import (
     GitSparseWriter,
     HistoryPoller,
     IngestionError,
+    PersistedRawAttachment,
 )
 from .models import ParsedFacts, SourceRef, Transaction
 from .parsing import (
@@ -1432,11 +1433,11 @@ class DailyFundsRuntime:
                     raise IngestionError("SOURCE_ATTACHMENT_MISSING")
                 target_attachment_seen = True
                 message_id_hash = client.message_id_hash(message)
-                cached_attachments: list[DownloadedAttachment] = []
+                cached_attachments: list[PersistedRawAttachment] = []
                 for index in range(attachment_count):
                     attachment_sha256 = self.state.reusable_raw_attachment_sha(message_id_hash, index)
                     cached = (
-                        client.cached_attachment_stub(message, index, attachment_sha256)
+                        client.reopen_candidate(message, index, attachment_sha256)
                         if attachment_sha256 is not None
                         else None
                     )

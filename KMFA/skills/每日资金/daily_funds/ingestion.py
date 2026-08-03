@@ -93,6 +93,23 @@ class DownloadedAttachment:
 
 
 @dataclass(frozen=True)
+class PersistedRawAttachment:
+    """A repeated source occurrence, before raw metadata is re-opened.
+
+    The overlap journal has only this immutable identity.  Filename, family,
+    MIME and bytes must come from the fresh private-Git readback rather than
+    from a DWS listing, because embedded-media listings often omit a filename.
+    """
+
+    message: dict[str, Any]
+    message_id: str
+    message_id_hash: str
+    message_at: datetime
+    index: int
+    sha256: str
+
+
+@dataclass(frozen=True)
 class StagedRawBatch:
     batch_id: str
     paths: tuple[str, ...]
@@ -775,18 +792,18 @@ class DwsHistoryClient:
 
         return _hash_text(self._message_id(message))
 
-    def cached_attachment_stub(
+    def reopen_candidate(
         self,
         message: dict[str, Any],
         index: int,
         attachment_sha256: str,
-    ) -> DownloadedAttachment | None:
-        """Create a metadata-only candidate for an exact Git readback.
+    ) -> PersistedRawAttachment | None:
+        """Create a raw-identity candidate for an exact Git readback.
 
-        This is deliberately not a cache of source bytes.  It is usable only
-        for a declared supported filename, then ``GitSparseWriter`` opens the
-        immutable raw authority again and verifies the whole message envelope
-        before any parser or publisher sees a payload.
+        This is deliberately not a cache of source bytes or metadata.  DWS
+        can represent a document as an embedded media token with no declared
+        filename, so filename/family/MIME are recovered from the immutable raw
+        occurrence only after the current full message envelope is matched.
         """
 
         message_id = self._message_id(message)
@@ -801,24 +818,15 @@ class DwsHistoryClient:
         attachment = attachments[index]
         if not _message_field(attachment, ("mediaId", "media_id", "resourceId", "resource_id")):
             return None
-        filename = _message_field(attachment, ("fileName", "name", "title"))
-        family = _family(message)
-        if not filename or Path(filename).suffix.lower() not in ALLOWED_SUFFIXES or family is None:
+        if _family(message) is None:
             return None
-        return DownloadedAttachment(
+        return PersistedRawAttachment(
             message=message,
             message_id=message_id,
             message_id_hash=_hash_text(message_id),
             message_at=_message_timestamp(message),
             index=index,
-            filename=filename,
-            family=family,
-            # A zero-length marker cannot be parsed or published.  It forces
-            # the fresh sparse readback below to supply the authoritative
-            # bytes and makes accidental bypasses fail closed.
-            payload=b"",
             sha256=attachment_sha256,
-            mime=_message_field(attachment, ("mimeType", "mime", "contentType")),
         )
 
     def download(self, message: dict[str, Any], index: int) -> DownloadedAttachment:
@@ -1011,12 +1019,25 @@ class RawMaterializer:
         return tuple(unique)
 
     @staticmethod
-    def _attachment_paths(attachment: DownloadedAttachment) -> tuple[Path, Path, Path, Path]:
-        day = attachment.message_at.astimezone(BEIJING).date()
-        message_path = Path("raw/messages") / day.strftime("%Y/%m/%d") / f"{attachment.message_id_hash}.json"
+    def _message_and_occurrence_paths(
+        message_at: datetime,
+        message_id_hash: str,
+        attachment_index: int,
+    ) -> tuple[Path, Path]:
+        day = message_at.astimezone(BEIJING).date()
+        message_path = Path("raw/messages") / day.strftime("%Y/%m/%d") / f"{message_id_hash}.json"
         occurrence_path = (
             Path("raw/occurrences") / day.strftime("%Y/%m/%d") /
-            attachment.message_id_hash / f"{attachment.index}.json"
+            message_id_hash / f"{attachment_index}.json"
+        )
+        return message_path, occurrence_path
+
+    @classmethod
+    def _attachment_paths(cls, attachment: DownloadedAttachment) -> tuple[Path, Path, Path, Path]:
+        message_path, occurrence_path = cls._message_and_occurrence_paths(
+            attachment.message_at,
+            attachment.message_id_hash,
+            attachment.index,
         )
         blob_path = Path("raw/blobs/sha256") / attachment.sha256[:2] / f"{attachment.sha256}{RawMaterializer._suffix(attachment.filename)}"
         manifest_path = Path("raw/chunks/sha256") / attachment.sha256 / "reassembly.json"
@@ -1048,11 +1069,40 @@ class RawMaterializer:
     def _batch_details(cls, attachments: Iterable[DownloadedAttachment]) -> tuple[str, list[dict[str, Any]], Path]:
         """Return the immutable batch ID, canonical rows and exact file path."""
 
-        rows = cls._batch_rows(attachments)
+        return cls._batch_details_from_rows(cls._batch_rows(attachments))
+
+    @staticmethod
+    def _batch_details_from_rows(rows: Iterable[Mapping[str, Any]]) -> tuple[str, list[dict[str, Any]], Path]:
+        """Canonicalize pre-built rows without changing historic batch IDs."""
+
+        frozen = [dict(row) for row in rows]
+        frozen.sort(key=lambda row: (row["message_id_hash"], row["attachment_index"], row["attachment_sha256"]))
         # Keep the existing default JSON separators: batch IDs already written
         # by a prior worker must remain stable across this code revision.
-        batch_id = sha256(json.dumps(rows, sort_keys=True).encode("utf-8")).hexdigest()
-        return batch_id, rows, Path("raw/batches") / f"{batch_id}.json"
+        batch_id = sha256(json.dumps(frozen, sort_keys=True).encode("utf-8")).hexdigest()
+        return batch_id, frozen, Path("raw/batches") / f"{batch_id}.json"
+
+    @classmethod
+    def persisted_batch_details(
+        cls,
+        attachments: Iterable[PersistedRawAttachment],
+    ) -> tuple[str, list[dict[str, Any]], Path]:
+        """Derive a batch manifest location from durable occurrence identities."""
+
+        rows: list[dict[str, Any]] = []
+        for attachment in attachments:
+            _, occurrence_path = cls._message_and_occurrence_paths(
+                attachment.message_at,
+                attachment.message_id_hash,
+                attachment.index,
+            )
+            rows.append({
+                "message_id_hash": attachment.message_id_hash,
+                "attachment_index": attachment.index,
+                "attachment_sha256": attachment.sha256,
+                "occurrence_path": str(occurrence_path),
+            })
+        return cls._batch_details_from_rows(rows)
 
     @staticmethod
     def _suffix(filename: str) -> str:
@@ -1226,6 +1276,98 @@ class RawMaterializer:
             if sha256(payload).hexdigest() != attachment.sha256:
                 raise IngestionError("GIT_READBACK_FAILED")
             return replace(attachment, payload=payload)
+        except (OSError, KeyError, TypeError, ValueError, IngestionError) as exc:
+            raise IngestionError("GIT_READBACK_FAILED") from exc
+
+    @staticmethod
+    def validate_persisted_raw_attachment(attachment: PersistedRawAttachment) -> None:
+        """Validate the values-free identity that can be held in SQLite."""
+
+        for value, code in (
+            (attachment.message_id_hash, "RAW_MESSAGE_ID_HASH_INVALID"),
+            (attachment.sha256, "RAW_ATTACHMENT_HASH_INVALID"),
+        ):
+            if not isinstance(value, str) or len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+                raise IngestionError(code)
+        if not isinstance(attachment.message, dict) or not isinstance(attachment.message_id, str) or not attachment.message_id:
+            raise IngestionError("RAW_MESSAGE_ENVELOPE_INVALID")
+        if attachment.message_id_hash != _hash_text(attachment.message_id):
+            raise IngestionError("RAW_MESSAGE_ID_HASH_INVALID")
+        if not isinstance(attachment.index, int) or isinstance(attachment.index, bool) or attachment.index < 0:
+            raise IngestionError("RAW_ATTACHMENT_INDEX_INVALID")
+        if attachment.message_at.tzinfo is None or attachment.message_at.utcoffset() is None:
+            raise IngestionError("RAW_MESSAGE_TIMESTAMP_INVALID")
+
+    @classmethod
+    def hydrate_persisted_raw_attachment(
+        cls,
+        root: Path,
+        attachment: PersistedRawAttachment,
+    ) -> DownloadedAttachment:
+        """Recover metadata and bytes only from an exact raw-Git readback.
+
+        DWS embedded-media history rows may omit a filename.  The raw
+        occurrence is the only authority for that metadata, but its message
+        envelope must byte-match the current source result before any value is
+        recovered.  The final normal readback then verifies every stored field
+        and payload hash a second time.
+        """
+
+        try:
+            cls.validate_persisted_raw_attachment(attachment)
+            if root.is_symlink():
+                raise IngestionError("GIT_READBACK_FAILED")
+            message_path, occurrence_path = cls._message_and_occurrence_paths(
+                attachment.message_at,
+                attachment.message_id_hash,
+                attachment.index,
+            )
+            if cls._safe_path(root, message_path).read_text(encoding="utf-8") != cls._json_text(
+                attachment.message,
+                code="GIT_READBACK_FAILED",
+            ):
+                raise IngestionError("GIT_READBACK_FAILED")
+            occurrence = json.loads(cls._safe_path(root, occurrence_path).read_text(encoding="utf-8"))
+            required = {
+                "schema_version": "kmfa.daily_funds.occurrence.v1",
+                "message_id_hash": attachment.message_id_hash,
+                "attachment_index": attachment.index,
+                "attachment_sha256": attachment.sha256,
+                "message_path": str(message_path),
+                "message_at": attachment.message_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
+            }
+            if (
+                not isinstance(occurrence, Mapping)
+                or any(occurrence.get(key) != value for key, value in required.items())
+                or not isinstance(occurrence.get("attachment_size_bytes"), int)
+                or isinstance(occurrence.get("attachment_size_bytes"), bool)
+                or occurrence["attachment_size_bytes"] < 0
+                or not isinstance(occurrence.get("filename"), str)
+                or not occurrence["filename"]
+                or occurrence.get("family") is not None and not isinstance(occurrence.get("family"), str)
+                or occurrence.get("mime") is not None and not isinstance(occurrence.get("mime"), str)
+            ):
+                raise IngestionError("GIT_READBACK_FAILED")
+            recovered = DownloadedAttachment(
+                message=attachment.message,
+                message_id=attachment.message_id,
+                message_id_hash=attachment.message_id_hash,
+                message_at=attachment.message_at,
+                index=attachment.index,
+                filename=occurrence["filename"],
+                family=occurrence.get("family"),
+                payload=b"",
+                sha256=attachment.sha256,
+                mime=occurrence.get("mime"),
+            )
+            _, _, direct_path, _ = cls._attachment_paths(recovered)
+            if occurrence.get("reassembly_manifest") is None:
+                payload = cls._safe_path(root, direct_path).read_bytes()
+            else:
+                payload = cls.reassemble(root, attachment.sha256)
+            if len(payload) != occurrence["attachment_size_bytes"]:
+                raise IngestionError("GIT_READBACK_FAILED")
+            return cls.readback_attachment(root, replace(recovered, payload=payload))
         except (OSError, KeyError, TypeError, ValueError, IngestionError) as exc:
             raise IngestionError("GIT_READBACK_FAILED") from exc
 
@@ -1436,6 +1578,56 @@ class GitSparseWriter:
         return tuple(sorted((*directory_patterns, exact_batch_path)))
 
     @staticmethod
+    def _canonical_persisted_raw_attachments(
+        attachments: Iterable[PersistedRawAttachment],
+    ) -> tuple[PersistedRawAttachment, ...]:
+        """Canonicalize overlap identities without trusting their metadata."""
+
+        frozen = tuple(attachments)
+        if not frozen:
+            raise IngestionError("SOURCE_MISSING")
+        unique: list[PersistedRawAttachment] = []
+        by_occurrence: dict[tuple[str, int], PersistedRawAttachment] = {}
+        for attachment in frozen:
+            RawMaterializer.validate_persisted_raw_attachment(attachment)
+            key = (attachment.message_id_hash, attachment.index)
+            previous = by_occurrence.get(key)
+            if previous is None:
+                by_occurrence[key] = attachment
+                unique.append(attachment)
+                continue
+            if previous != attachment:
+                raise IngestionError("RAW_OCCURRENCE_COLLISION")
+        return tuple(unique)
+
+    @staticmethod
+    def _persisted_raw_sparse_patterns(
+        attachments: Iterable[PersistedRawAttachment],
+    ) -> tuple[str, ...]:
+        """Materialize only each known raw identity, not its historic peers.
+
+        The one trailing ``*`` is constrained by the complete SHA-256 prefix:
+        it selects the same direct blob under whichever original suffix DWS
+        supplied, while avoiding a checkout of the enclosing hash directory.
+        """
+
+        frozen = GitSparseWriter._canonical_persisted_raw_attachments(attachments)
+        patterns: set[str] = set()
+        for attachment in frozen:
+            message_path, occurrence_path = RawMaterializer._message_and_occurrence_paths(
+                attachment.message_at,
+                attachment.message_id_hash,
+                attachment.index,
+            )
+            patterns.add((SPARSE_PATH / message_path).as_posix())
+            patterns.add((SPARSE_PATH / occurrence_path).as_posix())
+            patterns.add(f"{(SPARSE_PATH / 'raw/blobs/sha256' / attachment.sha256[:2] / attachment.sha256).as_posix()}*")
+            patterns.add(f"{(SPARSE_PATH / 'raw/chunks/sha256' / attachment.sha256).as_posix()}/")
+        _, _, batch_path = RawMaterializer.persisted_batch_details(frozen)
+        patterns.add((SPARSE_PATH / batch_path).as_posix())
+        return tuple(sorted(patterns))
+
+    @staticmethod
     def _publication_sparse_patterns(business_date: str) -> tuple[str, ...]:
         return (f"{(SPARSE_PATH / 'publications' / business_date).as_posix()}/",)
 
@@ -1579,7 +1771,7 @@ class GitSparseWriter:
                 verified_attachments=verified_attachments,
             )
 
-    def reopen_persisted(self, attachments: Iterable[DownloadedAttachment]) -> GitCommit:
+    def reopen_persisted(self, attachments: Iterable[PersistedRawAttachment]) -> GitCommit:
         """Re-open already-persisted overlap evidence without a Git mutation.
 
         The live cadence deliberately re-queries a short historical window.
@@ -1589,8 +1781,8 @@ class GitSparseWriter:
         """
 
         self.config.validate(include_storage=False)
-        frozen_attachments = RawMaterializer.canonical_attachments(attachments)
-        sparse_patterns = self._attachment_sparse_patterns(frozen_attachments)
+        frozen_attachments = self._canonical_persisted_raw_attachments(attachments)
+        sparse_patterns = self._persisted_raw_sparse_patterns(frozen_attachments)
         if not self.config.state_dir.exists():
             self.config.state_dir.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="daily-funds-git-reopen-", dir=self.config.state_dir) as temp:
@@ -1602,7 +1794,7 @@ class GitSparseWriter:
             commit_sha = self._git(["rev-parse", "HEAD"], cwd=repo, env=env)
             root = repo / SPARSE_PATH
             verified_attachments = tuple(
-                RawMaterializer.hydrate_readback_attachment(root, attachment)
+                RawMaterializer.hydrate_persisted_raw_attachment(root, attachment)
                 for attachment in frozen_attachments
             )
             batch_id, _, batch_path = RawMaterializer._batch_details(verified_attachments)
