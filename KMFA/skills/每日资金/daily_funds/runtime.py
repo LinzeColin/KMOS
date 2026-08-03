@@ -32,7 +32,10 @@ from .parsing import (
     ParseError,
     TRANSACTION_FAMILIES,
     attachment_capability_metadata,
+    deterministic_ocr_runtime_ready,
+    is_ocr_attachment,
     parse_attachment,
+    parse_ocr_attachment,
 )
 from .publication import (
     D1Projection,
@@ -140,18 +143,24 @@ class DailyFundsRuntime:
     def _dws_client(self) -> DwsHistoryClient:
         return DwsHistoryClient(self.config, event_sink=self.state.record_network_event)
 
-    def _current(self) -> dict[str, Any] | None:
+    def _current(self, *, strict: bool = False) -> dict[str, Any] | None:
         path = self.config.publication_dir / "current.json"
         if not path.exists():
             return None
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        except (OSError, json.JSONDecodeError) as exc:
+            if strict:
+                raise ReconciliationError("CURRENT_PROJECTION_INVALID") from exc
             return None
         if not isinstance(payload, Mapping):
+            if strict:
+                raise ReconciliationError("CURRENT_PROJECTION_INVALID")
             return None
         publication = payload.get("publication")
         if not isinstance(publication, Mapping) or publication.get("status") != "VALID":
+            if strict:
+                raise ReconciliationError("CURRENT_PROJECTION_INVALID")
             return None
         return dict(payload)
 
@@ -177,14 +186,18 @@ class DailyFundsRuntime:
     def _history_path(self) -> Path:
         return self.config.publication_dir / "history.json"
 
-    def _history(self) -> dict[str, Any]:
+    def _history(self, *, strict: bool = False) -> dict[str, Any]:
         if not self._history_path.exists():
             return {"schema_version": "kmfa.daily_funds.history.v1", "days": {}}
         try:
             payload = json.loads(self._history_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        except (OSError, json.JSONDecodeError) as exc:
+            if strict:
+                raise ReconciliationError("HISTORY_INVALID") from exc
             return {"schema_version": "kmfa.daily_funds.history.v1", "days": {}}
         if not isinstance(payload, Mapping) or not isinstance(payload.get("days"), Mapping):
+            if strict:
+                raise ReconciliationError("HISTORY_INVALID")
             return {"schema_version": "kmfa.daily_funds.history.v1", "days": {}}
         return {"schema_version": "kmfa.daily_funds.history.v1", "days": dict(payload["days"])}
 
@@ -194,7 +207,7 @@ class DailyFundsRuntime:
         normalized_publication_id = self._lower_hex(publication_id, 64)
         if normalized_publication_id is None:
             raise ReconciliationError("HISTORY_PUBLICATION_ID_INVALID")
-        history = self._history()
+        history = self._history(strict=True)
         history["days"][report.business_date.isoformat()] = {
             "status": "VALID",
             "ending_available_fen": report.total_ending_fen,
@@ -729,6 +742,8 @@ class DailyFundsRuntime:
             self.config.validate()
         except ConfigError:
             return self.status.write("需处理", "CONFIG_INVALID", backup_state="UNKNOWN")
+        if self.config.ocr_enabled and not deterministic_ocr_runtime_ready():
+            return self.status.write("需处理", "OCR_RUNTIME_UNAVAILABLE", backup_state="UNKNOWN")
         # A new cloud volume has neither a profile receipt nor a recovery
         # bundle.  Do not describe that state as "CONFIG_READY": it needs the
         # one-time protected cloud-terminal bootstrap before any scheduled
@@ -873,12 +888,15 @@ class DailyFundsRuntime:
             for target in mount_targets
             for prefix in _FORBIDDEN_MOUNT_PREFIXES
         ))
+        ocr_runtime_state = "DISABLED"
         try:
             # A green topology receipt is meaningful only when every runtime
             # secret/config slot (including D1/R2/OCI) has a valid shape.
             self.config.validate()
             config_state = "VALID"
             config_fingerprint = self.config.redacted_fingerprint()
+            if self.config.ocr_enabled:
+                ocr_runtime_state = "READY" if deterministic_ocr_runtime_ready() else "UNAVAILABLE"
         except ConfigError:
             config_state = "INVALID"
             config_fingerprint = None
@@ -899,6 +917,8 @@ class DailyFundsRuntime:
             code = "DAILY_FUNDS_PROCESS_MISSING"
         elif config_state != "VALID":
             code = "CONFIG_INVALID"
+        elif ocr_runtime_state == "UNAVAILABLE":
+            code = "OCR_RUNTIME_UNAVAILABLE"
         else:
             code = "RUNTIME_AUDIT_OK"
 
@@ -908,6 +928,7 @@ class DailyFundsRuntime:
             "result": "OK" if code == "RUNTIME_AUDIT_OK" else "NEEDS_ATTENTION",
             "machine_code": code,
             "config_state": config_state,
+            "ocr_runtime_state": ocr_runtime_state,
             "redacted_config_fingerprint": config_fingerprint,
             "path_layout_exact": path_layout_exact,
             "dws_volume_shared": dws_volume_shared,
@@ -972,15 +993,40 @@ class DailyFundsRuntime:
                 mime=attachment.mime,
             )
             try:
-                if attachment.family is None or Path(attachment.filename).suffix.lower() not in ALLOWED_SUFFIXES:
+                if attachment.family is None:
                     raise ParseError("UNSUPPORTED_ATTACHMENT")
-                facts = parse_attachment(
-                    family=attachment.family,
-                    filename=attachment.filename,
-                    payload=attachment.payload,
-                    source=self._source_ref(attachment),
-                    mime=attachment.mime,
-                )
+                if Path(attachment.filename).suffix.lower() in ALLOWED_SUFFIXES:
+                    facts = parse_attachment(
+                        family=attachment.family,
+                        filename=attachment.filename,
+                        payload=attachment.payload,
+                        source=self._source_ref(attachment),
+                        mime=attachment.mime,
+                    )
+                elif self.config.ocr_enabled and is_ocr_attachment(attachment.filename):
+                    candidate = parse_ocr_attachment(
+                        family=attachment.family,
+                        filename=attachment.filename,
+                        payload=attachment.payload,
+                        source=self._source_ref(attachment),
+                        mime=attachment.mime,
+                        min_confidence_bps=self.config.ocr_min_confidence_bps,
+                    )
+                    profile = self.state.observe_ocr_layout(
+                        family=candidate.facts.family,
+                        layout_fingerprint=candidate.layout_fingerprint,
+                        parser_version=candidate.facts.parser_evidence.parser_version,
+                        business_date=candidate.facts.business_date,
+                    )
+                    # The candidate which establishes a two-day profile is
+                    # still calibration evidence, not a self-approved money
+                    # fact.  A later readback of the already-known layout is
+                    # required before the regular reconciliation path sees it.
+                    if not profile.ready_before:
+                        raise ParseError("OCR_PROFILE_CALIBRATING")
+                    facts = candidate.facts
+                else:
+                    raise ParseError("UNSUPPORTED_ATTACHMENT")
             except ParseError as exc:
                 # A failed lineage check means this was not a proven Git
                 # readback object.  Do not let such bytes masquerade as real
@@ -1129,10 +1175,10 @@ class DailyFundsRuntime:
     def _prior_account_balances(self, business_date: date | None = None) -> Mapping[str, int]:
         if business_date is not None:
             previous_day = (business_date - timedelta(days=1)).isoformat()
-            record = self._history().get("days", {}).get(previous_day)
+            record = self._history(strict=True).get("days", {}).get(previous_day)
             if isinstance(record, Mapping):
                 return self._history_prior_balances(record)
-        current = self._current()
+        current = self._current(strict=True)
         if not current:
             return {}
         return self._current_prior_balances(current, business_date)
@@ -1151,31 +1197,55 @@ class DailyFundsRuntime:
         """
 
         existing: dict[str, DailyBalance] = {}
-        for business_day, row in self._history().get("days", {}).items():
+
+        def add_direct_balance(balance: DailyBalance) -> None:
+            """Accept exact journal/pointer mirrors, never last-write-wins data."""
+
+            key = balance.business_day.isoformat()
+            prior = existing.get(key)
+            if prior is not None and prior != balance:
+                raise ReconciliationError("DAILY_BALANCE_MIRROR_CONFLICT")
+            existing[key] = balance
+
+        for business_day, row in self._history(strict=True).get("days", {}).items():
             try:
-                day = datetime.fromisoformat(str(business_day)).date()
+                if not isinstance(row, Mapping):
+                    raise ReconciliationError("HISTORY_BALANCE_INVALID")
+                day = date.fromisoformat(str(business_day))
                 if day > report.business_date:
                     continue
+                if row.get("status") != "VALID" or self._lower_hex(row.get("publication_id"), 64) is None:
+                    raise ReconciliationError("HISTORY_BALANCE_NOT_VALID")
                 ending = self._journal_fen(row["ending_available_fen"], "HISTORY_BALANCE_NOT_INTEGER_FEN")
                 direct_observation = self._journal_flag(row.get("direct_observation"), "HISTORY_BALANCE_FLAG_INVALID")
                 coverage_gap = self._journal_flag(row.get("coverage_gap", False), "HISTORY_BALANCE_FLAG_INVALID")
                 carried_forward = self._journal_flag(row.get("carried_forward", False), "HISTORY_BALANCE_FLAG_INVALID")
-                existing[day.isoformat()] = DailyBalance(
+                if not direct_observation or coverage_gap or carried_forward:
+                    raise ReconciliationError("HISTORY_BALANCE_NOT_VALID")
+                account_ending = self._prior_balance_mapping(row.get("account_ending_by_hash"))
+                if not account_ending or sum(account_ending.values()) != ending:
+                    raise ReconciliationError("HISTORY_BALANCE_TOTAL_MISMATCH")
+                add_direct_balance(DailyBalance(
                     day,
                     ending,
                     direct_observation,
                     coverage_gap,
                     carried_forward,
-                )
+                ))
             except ReconciliationError:
                 raise
-            except (KeyError, TypeError, ValueError):
-                continue
-        current = self._current()
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ReconciliationError("HISTORY_BALANCE_INVALID") from exc
+        current = self._current(strict=True)
         if current:
-            for row in current.get("daily_balances", []):
+            current_rows = current.get("daily_balances")
+            if not isinstance(current_rows, list):
+                raise ReconciliationError("CURRENT_BALANCE_INVALID")
+            for row in current_rows:
                 try:
-                    business_day = datetime.fromisoformat(str(row["business_date"])).date()
+                    if not isinstance(row, Mapping):
+                        raise ReconciliationError("CURRENT_BALANCE_INVALID")
+                    business_day = date.fromisoformat(str(row["business_date"]))
                     # A historical backfill publication must not include a
                     # later live day merely because the local UI pointer is
                     # newer.  Only direct rows are source evidence; gaps and
@@ -1188,19 +1258,21 @@ class DailyFundsRuntime:
                     ending = self._journal_fen(row["ending_available_fen"], "CURRENT_BALANCE_NOT_INTEGER_FEN")
                     coverage_gap = self._journal_flag(row.get("coverage_gap", False), "CURRENT_BALANCE_FLAG_INVALID")
                     carried_forward = self._journal_flag(row.get("carried_forward", False), "CURRENT_BALANCE_FLAG_INVALID")
-                    existing[business_day.isoformat()] = DailyBalance(
+                    if coverage_gap or carried_forward:
+                        raise ReconciliationError("CURRENT_BALANCE_INVALID")
+                    add_direct_balance(DailyBalance(
                         business_day,
                         ending,
                         direct_observation,
                         coverage_gap,
                         carried_forward,
-                    )
+                    ))
                 except ReconciliationError:
                     raise
-                except (KeyError, TypeError, ValueError):
-                    continue
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise ReconciliationError("CURRENT_BALANCE_INVALID") from exc
         report_ending = self._journal_fen(report.total_ending_fen, "REPORT_BALANCE_NOT_INTEGER_FEN")
-        existing[report.business_date.isoformat()] = DailyBalance(report.business_date, report_ending, True, False)
+        add_direct_balance(DailyBalance(report.business_date, report_ending, True, False))
         if not existing:
             return ()
         direct_days = sorted(date.fromisoformat(key) for key in existing)
@@ -1814,6 +1886,24 @@ class DailyFundsRuntime:
                     stage="OBSERVER_WAITING_FOR_NEXT_BUSINESS_DATE",
                     observer_state="WAITING_FOR_NEXT_BUSINESS_DATE",
                     observer_result="D1_AND_POINTER_VERIFIED",
+                    effective_business_date=business_date.isoformat(),
+                    last_verified_at=observed_at_text,
+                    publication_id=publication_id,
+                    backup_state=backup_state,
+                )
+
+            # DF-024 calls for five *real working days*, not merely five
+            # distinct calendar dates.  A valid weekend publication remains
+            # visible as a verified pointer/D1 comparison, but must never
+            # advance the deployment observer.  This deliberately uses the
+            # portable Monday--Friday definition: no external holiday feed or
+            # local calendar is allowed to become a hidden runtime dependency.
+            if business_date.weekday() >= 5:
+                return self._observer_status(
+                    "已更新", "VALID_PUBLISHED",
+                    stage="OBSERVER_WAITING_FOR_NEXT_BUSINESS_DATE",
+                    observer_state="WAITING_FOR_NEXT_BUSINESS_DATE",
+                    observer_result="NON_WORKING_DAY",
                     effective_business_date=business_date.isoformat(),
                     last_verified_at=observed_at_text,
                     publication_id=publication_id,

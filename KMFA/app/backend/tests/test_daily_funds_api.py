@@ -335,6 +335,10 @@ def test_daily_funds_projection_rejects_source_pair_and_runtime_contract_drift(t
         lambda current: current.__setitem__("runtime", {
             "oci_backup_state": "OK", "git_publication_commit_sha": "f" * 40,
         }),
+        lambda current: current["publication"]["threshold_snapshot"].__setitem__("untrusted_extension", "must-not-pass"),
+        lambda current: current["publication"]["threshold_snapshot"]["floating"][0].__setitem__("coverage", "0.99"),
+        lambda current: current["publication"]["threshold_snapshot"].__setitem__("fixed_risk", "关注"),
+        lambda current: current["summary"].__setitem__("risk_label", "关注"),
     )
     for index, mutate in enumerate(mutations):
         publication = tmp_path / f"publication-{index}"
@@ -438,6 +442,29 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
     assert "group-fixture" not in response.text and "attachment-fixture" not in response.text
     assert "message-fixture" not in response.text
     assert response.json()["每日资金"]["业务流"]["部署"]["身份"] == "UNKNOWN"
+
+
+def test_daily_funds_status_keeps_weekend_observer_out_of_workday_progress(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    flow_path = publication / "flow_state.json"
+    flow = json.loads(flow_path.read_text(encoding="utf-8"))
+    flow["post_deploy_observer"].update({
+        "state": "WAITING_FOR_NEXT_BUSINESS_DATE",
+        "last_comparison": "NON_WORKING_DAY",
+        "completed_business_days": 0,
+        "comparisons": [],
+    })
+    flow_path.write_text(json.dumps(flow), encoding="utf-8")
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+    monkeypatch.setattr(main_module, "SKILL_LEDGER_PATH", tmp_path / "missing-ledger.jsonl")
+
+    response = client.get("/api/排程健康")
+    daily = next(row for row in response.json()["逐项"] if row["技能"] == "daily-funds")
+    observer = daily["每日资金状态"]["业务流"]["上线后观察"]
+    assert observer["状态"] == "WAITING_FOR_NEXT_BUSINESS_DATE"
+    assert observer["最近对照"] == "NON_WORKING_DAY"
+    assert observer["已完成业务日"] == 0
 
 
 def test_daily_funds_status_schema_or_schedule_drift_fails_closed(tmp_path, monkeypatch):

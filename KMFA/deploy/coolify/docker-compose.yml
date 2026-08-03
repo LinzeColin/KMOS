@@ -36,6 +36,11 @@ services:
       DAILY_FUNDS_DWS_KEYRING_DIR: "/var/lib/kmfa/daily-funds-dws/keyring"
       DAILY_FUNDS_PRIVATE_REPO: "${DAILY_FUNDS_PRIVATE_REPO:-git@github.com:LinzeColin/Private-Database.git}"
       DAILY_FUNDS_PRIVATE_BRANCH: "${DAILY_FUNDS_PRIVATE_BRANCH:-main}"
+      # Offline deterministic OCR only; this is not a model/API dependency.
+      # A low-confidence or uncalibrated image/PDF remains needs-review and
+      # cannot reach the money publication path.
+      DAILY_FUNDS_OCR_ENABLED: "${DAILY_FUNDS_OCR_ENABLED:-1}"
+      DAILY_FUNDS_OCR_MIN_CONFIDENCE: "${DAILY_FUNDS_OCR_MIN_CONFIDENCE:-0.98}"
       DAILY_FUNDS_GROUP_ID: "${DAILY_FUNDS_GROUP_ID:-}"
       DAILY_FUNDS_SENDER_ID: "${DAILY_FUNDS_SENDER_ID:-}"
       DAILY_FUNDS_DWS_CLIENT_ID: "${DAILY_FUNDS_DWS_CLIENT_ID:-}"

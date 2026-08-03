@@ -2544,6 +2544,11 @@ DAILY_FUNDS_AUTH_TERMINAL_STATES = {"SUCCEEDED", "FAILED", "EXPIRED", "CANCELLED
 DAILY_FUNDS_AUTH_CODE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{2,63}$")
 DAILY_FUNDS_ALLOWED_RANGES = {"1d": 1, "7d": 7, "30d": 30, "90d": 90, "180d": 180, "360d": 360}
 DAILY_FUNDS_HUMAN_STATUSES = {"已更新", "处理中", "需处理"}
+DAILY_FUNDS_HARD_THRESHOLD_FEN = 60_000_000
+DAILY_FUNDS_SOFT_THRESHOLD_FEN = 120_000_000
+DAILY_FUNDS_FIXED_RISKS = {"正常", "关注", "高风险"}
+DAILY_FUNDS_DYNAMIC_FLAGS = {"动态偏低", "动态明显偏低"}
+DAILY_FUNDS_FLOATING_LINE_NAMES = {"three_month", "six_month", "custom_date_range", "custom_numeric"}
 # This is an operational enum, not a failure code.  In particular, ``OK`` is
 # deliberately two characters and must not be lost through the generic
 # public failure-code sanitizer.
@@ -3030,7 +3035,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
                     "NOT_STARTED", "SOURCE_MISSING", "CONFIG_INVALID", "DEPLOYMENT_MARKER_UNAVAILABLE",
                     "OBSERVATION_CLOCK_INVALID", "POINTER_OR_HISTORY_INVALID", "STALE",
                     "D1_ORACLE_FAILED", "D1_AND_POINTER_VERIFIED", "PUBLISHER_LOCK_HELD",
-                    "OBSERVER_LOCK_HELD", "POINTER_BEFORE_DEPLOYMENT_BASELINE", "OBSERVER_FAILED",
+                    "OBSERVER_LOCK_HELD", "POINTER_BEFORE_DEPLOYMENT_BASELINE", "NON_WORKING_DAY", "OBSERVER_FAILED",
                     "UNKNOWN",
                 },
                 default="UNKNOWN",
@@ -3395,18 +3400,31 @@ def _daily_funds_runtime_backup_state(payload: dict[str, Any]) -> str:
     return state
 
 
-def _daily_funds_safe_thresholds(publication: dict[str, Any]) -> dict[str, Any]:
+def _daily_funds_safe_thresholds(publication: dict[str, Any], *, total_available_fen: int) -> dict[str, Any]:
+    """Validate the frozen threshold decision before it reaches the owner UI.
+
+    The App reads a shared projection volume rather than the worker's private
+    Git/D1 authority.  It must therefore independently reject an extension or
+    semantic drift in ``threshold_snapshot`` instead of displaying otherwise
+    plausible money under a different decision rule.
+    """
+
     snapshot = publication.get("threshold_snapshot")
-    if not isinstance(snapshot, dict):
+    expected_snapshot_fields = {"currency", "fixed", "floating", "fixed_risk", "dynamic_flag"}
+    if not isinstance(snapshot, dict) or set(snapshot) != expected_snapshot_fields:
         raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
     fixed = snapshot.get("fixed")
     floating = snapshot.get("floating")
     if (
+        snapshot.get("currency") != "CNY"
+        or
         not isinstance(fixed, dict)
         or set(fixed) != {"hard_fen", "soft_fen"}
-        or fixed.get("hard_fen") != 60_000_000
-        or fixed.get("soft_fen") != 120_000_000
+        or fixed.get("hard_fen") != DAILY_FUNDS_HARD_THRESHOLD_FEN
+        or fixed.get("soft_fen") != DAILY_FUNDS_SOFT_THRESHOLD_FEN
         or not isinstance(floating, list)
+        or snapshot.get("fixed_risk") not in DAILY_FUNDS_FIXED_RISKS
+        or (snapshot.get("dynamic_flag") is not None and snapshot.get("dynamic_flag") not in DAILY_FUNDS_DYNAMIC_FLAGS)
     ):
         raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
     required = {
@@ -3427,18 +3445,43 @@ def _daily_funds_safe_thresholds(publication: dict[str, Any]) -> dict[str, Any]:
         reason = line.get("reason")
         if (
             name in seen
+            or name not in DAILY_FUNDS_FLOATING_LINE_NAMES
             or start is None
             or end is None
             or end < start
             or not all(_daily_funds_is_integer(value) and int(value) >= 0 for value in fields)
             or not isinstance(coverage, str)
+            or not coverage
+            or coverage != coverage.strip()
             or len(coverage) > 24
             or not isinstance(line.get("active"), bool)
             or (threshold is not None and not _daily_funds_is_integer(threshold))
             or (reason is not None and (not isinstance(reason, str) or len(reason) > 120))
         ):
             raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
-        if bool(line["active"]) != _daily_funds_is_integer(threshold):
+        days, direct, covered, carried = (int(value) for value in fields)
+        if (
+            days <= 0
+            or days != (end - start).days + 1
+            or direct + carried != covered
+            or covered > days
+        ):
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+        try:
+            coverage_value = Decimal(coverage)
+        except InvalidOperation as exc:
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid") from exc
+        if (
+            not coverage_value.is_finite()
+            or coverage_value < 0
+            or coverage_value > 1
+            or coverage_value != Decimal(covered) / Decimal(days)
+        ):
+            raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+        if line["active"]:
+            if not _daily_funds_is_integer(threshold) or int(threshold) < 0 or reason is not None:
+                raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+        elif threshold is not None or not isinstance(reason, str) or not reason.strip():
             raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
         seen.add(name)
         lines.append({
@@ -3454,7 +3497,29 @@ def _daily_funds_safe_thresholds(publication: dict[str, Any]) -> dict[str, Any]:
             "active": line["active"],
             "reason": reason,
         })
-    return {"fixed": {"hard_fen": 60_000_000, "soft_fen": 120_000_000}, "floating": lines}
+    fixed_risk = (
+        "高风险" if total_available_fen <= DAILY_FUNDS_HARD_THRESHOLD_FEN
+        else "关注" if total_available_fen <= DAILY_FUNDS_SOFT_THRESHOLD_FEN
+        else "正常"
+    )
+    active_thresholds = [int(line["threshold_fen"]) for line in lines if line["active"]]
+    dynamic_flag: str | None
+    if not active_thresholds:
+        dynamic_flag = None
+    elif all(total_available_fen <= threshold for threshold in active_thresholds):
+        dynamic_flag = "动态明显偏低"
+    elif any(total_available_fen <= threshold for threshold in active_thresholds):
+        dynamic_flag = "动态偏低"
+    else:
+        dynamic_flag = None
+    if snapshot["fixed_risk"] != fixed_risk or snapshot["dynamic_flag"] != dynamic_flag:
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
+    return {
+        "fixed": {"hard_fen": DAILY_FUNDS_HARD_THRESHOLD_FEN, "soft_fen": DAILY_FUNDS_SOFT_THRESHOLD_FEN},
+        "floating": lines,
+        "fixed_risk": fixed_risk,
+        "dynamic_flag": dynamic_flag,
+    }
 
 
 def _daily_funds_projection_view(payload: dict[str, Any]) -> dict[str, Any]:
@@ -3472,11 +3537,10 @@ def _daily_funds_projection_view(payload: dict[str, Any]) -> dict[str, Any]:
     total = int(summary["total_available_fen"])
     if current_point is None or not current_point["direct_observation"] or current_point["ending_available_fen"] != total:
         raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
-    risk_label = summary.get("risk_label")
-    dynamic_flag = summary.get("dynamic_flag")
-    if risk_label not in {"正常", "关注", "高风险", "动态明显偏低", "动态偏低"}:
-        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
-    if dynamic_flag not in {None, "动态明显偏低", "动态偏低"}:
+    thresholds = _daily_funds_safe_thresholds(publication, total_available_fen=total)
+    dynamic_flag = thresholds["dynamic_flag"]
+    expected_risk_label = thresholds["fixed_risk"] if thresholds["fixed_risk"] != "正常" else (dynamic_flag or "正常")
+    if summary.get("risk_label") != expected_risk_label or summary.get("dynamic_flag") != dynamic_flag:
         raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
     declared_source_versions = {
         str(row["source_version"])
@@ -3491,9 +3555,9 @@ def _daily_funds_projection_view(payload: dict[str, Any]) -> dict[str, Any]:
             publication_day=publication_day,
             declared_source_versions=declared_source_versions,
         ),
-        "thresholds": _daily_funds_safe_thresholds(publication),
+        "thresholds": thresholds,
         "total_available_fen": total,
-        "risk_label": risk_label,
+        "risk_label": expected_risk_label,
         "dynamic_flag": dynamic_flag,
         "by_company_ending_fen": _daily_funds_safe_breakdown(summary.get("by_company_ending_fen"), total=total),
         "by_bank_ending_fen": _daily_funds_safe_breakdown(summary.get("by_bank_ending_fen"), total=total),

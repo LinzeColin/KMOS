@@ -11,6 +11,7 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping, Protocol
@@ -21,7 +22,9 @@ from .contracts import (
     FloatingLine,
     HARD_THRESHOLD_FEN,
     SOFT_THRESHOLD_FEN,
+    dynamic_flag,
     effective_risk,
+    fixed_risk,
     floating_month_lines,
 )
 from .ingestion import SPARSE_PATH, DownloadedAttachment, GitCommit
@@ -82,6 +85,24 @@ _OCI_MANIFEST_FIELDS = frozenset({
     "artifacts",
     "created_at",
 })
+_THRESHOLD_SNAPSHOT_FIELDS = frozenset({"currency", "fixed", "floating", "fixed_risk", "dynamic_flag"})
+_FIXED_THRESHOLD_FIELDS = frozenset({"hard_fen", "soft_fen"})
+_FLOATING_LINE_FIELDS = frozenset({
+    "name",
+    "threshold_fen",
+    "start",
+    "end",
+    "days",
+    "direct_observations",
+    "covered_days",
+    "carried_forward_days",
+    "coverage",
+    "active",
+    "reason",
+})
+_FLOATING_LINE_NAMES = frozenset({"three_month", "six_month", "custom_date_range", "custom_numeric"})
+_FIXED_RISK_LABELS = frozenset({"正常", "关注", "高风险"})
+_DYNAMIC_FLAGS = frozenset({"动态偏低", "动态明显偏低"})
 
 
 def _is_lower_hex(value: object, length: int) -> bool:
@@ -135,6 +156,74 @@ def _require_iso_timestamp(value: object, code: str) -> str:
     return text
 
 
+def _validate_threshold_snapshot(snapshot: object) -> dict[str, Any]:
+    """Accept only a self-contained, replay-safe threshold decision record.
+
+    The threshold snapshot crosses the private Git, D1, R2, OCI and pointer
+    boundaries.  Permissively accepting an arbitrary mapping would let a
+    recovered projection retain its amounts but silently lose the decision
+    rule that classified them.  Keep this validator independent of the live
+    control file: it validates the frozen record, not today's configuration.
+    """
+
+    if not isinstance(snapshot, Mapping) or set(snapshot) != _THRESHOLD_SNAPSHOT_FIELDS:
+        raise PublicationError("PUBLICATION_INVALID")
+    normalized = dict(snapshot)
+    if normalized["currency"] != "CNY":
+        raise PublicationError("PUBLICATION_INVALID")
+    fixed = normalized["fixed"]
+    if not isinstance(fixed, Mapping) or set(fixed) != _FIXED_THRESHOLD_FIELDS:
+        raise PublicationError("PUBLICATION_INVALID")
+    if (
+        _require_integer(fixed.get("hard_fen"), "PUBLICATION_INVALID") != HARD_THRESHOLD_FEN
+        or _require_integer(fixed.get("soft_fen"), "PUBLICATION_INVALID") != SOFT_THRESHOLD_FEN
+    ):
+        raise PublicationError("PUBLICATION_INVALID")
+    if normalized["fixed_risk"] not in _FIXED_RISK_LABELS:
+        raise PublicationError("PUBLICATION_INVALID")
+    if normalized["dynamic_flag"] is not None and normalized["dynamic_flag"] not in _DYNAMIC_FLAGS:
+        raise PublicationError("PUBLICATION_INVALID")
+    floating = normalized["floating"]
+    if not isinstance(floating, list):
+        raise PublicationError("PUBLICATION_INVALID")
+    names: set[str] = set()
+    for item in floating:
+        if not isinstance(item, Mapping) or set(item) != _FLOATING_LINE_FIELDS:
+            raise PublicationError("PUBLICATION_INVALID")
+        name = item.get("name")
+        if not isinstance(name, str) or name not in _FLOATING_LINE_NAMES or name in names:
+            raise PublicationError("PUBLICATION_INVALID")
+        names.add(name)
+        start = _require_iso_day(item.get("start"), "PUBLICATION_INVALID")
+        end = _require_iso_day(item.get("end"), "PUBLICATION_INVALID")
+        days = _require_integer(item.get("days"), "PUBLICATION_INVALID")
+        if days <= 0 or end < start or days != (end - start).days + 1:
+            raise PublicationError("PUBLICATION_INVALID")
+        direct = _require_integer(item.get("direct_observations"), "PUBLICATION_INVALID")
+        covered = _require_integer(item.get("covered_days"), "PUBLICATION_INVALID")
+        carried = _require_integer(item.get("carried_forward_days"), "PUBLICATION_INVALID")
+        if min(direct, covered, carried) < 0 or direct + carried != covered or covered > days:
+            raise PublicationError("PUBLICATION_INVALID")
+        coverage_text = item.get("coverage")
+        if not isinstance(coverage_text, str) or not coverage_text:
+            raise PublicationError("PUBLICATION_INVALID")
+        try:
+            coverage = Decimal(coverage_text)
+        except InvalidOperation as exc:
+            raise PublicationError("PUBLICATION_INVALID") from exc
+        if not coverage.is_finite() or coverage < 0 or coverage > 1 or coverage != Decimal(covered) / Decimal(days):
+            raise PublicationError("PUBLICATION_INVALID")
+        active = _require_boolean(item.get("active"), "PUBLICATION_INVALID")
+        threshold = item.get("threshold_fen")
+        reason = item.get("reason")
+        if active:
+            if _require_integer(threshold, "PUBLICATION_INVALID") < 0 or reason is not None:
+                raise PublicationError("PUBLICATION_INVALID")
+        elif threshold is not None or not isinstance(reason, str) or not reason.strip():
+            raise PublicationError("PUBLICATION_INVALID")
+    return normalized
+
+
 def _d1_parameters(params: Iterable[object]) -> list[str]:
     """Serialize Cloudflare D1 REST bindings to its documented string array.
 
@@ -184,8 +273,7 @@ def _validate_publication(publication: Mapping[str, Any]) -> dict[str, Any]:
         if source_version in seen_versions:
             raise PublicationError("PUBLICATION_INVALID")
         seen_versions.add(source_version)
-    if not isinstance(normalized["threshold_snapshot"], Mapping):
-        raise PublicationError("PUBLICATION_INVALID")
+    normalized["threshold_snapshot"] = _validate_threshold_snapshot(normalized["threshold_snapshot"])
     _require_iso_timestamp(normalized["created_at"], "PUBLICATION_INVALID")
     _require_lower_hex(normalized["git_commit_sha"], 40, "PUBLICATION_INVALID")
     if normalized["d1_projection_version"] != "kmfa.daily_funds.d1.v1":
@@ -321,7 +409,82 @@ def _validate_projection_inputs(
     current_balance = next(balance for balance in normalized_balances if balance.business_day == publication_day)
     if current_balance.ending_available_fen != expected_ending:
         raise PublicationError("PROJECTION_RECONCILIATION_FAILED")
+    threshold = normalized_publication["threshold_snapshot"]
+    if threshold["fixed_risk"] != fixed_risk(expected_ending):
+        raise PublicationError("PROJECTION_THRESHOLD_MISMATCH")
+    active_thresholds = [
+        int(line["threshold_fen"])
+        for line in threshold["floating"]
+        if line["active"]
+    ]
+    if threshold["dynamic_flag"] != dynamic_flag(expected_ending, active_thresholds):
+        raise PublicationError("PROJECTION_THRESHOLD_MISMATCH")
     return normalized_publication, normalized_balances, normalized_transactions, normalized_accounts
+
+
+def _validate_report_matches_projection(
+    report: ReconciliationReport,
+    *,
+    publication: Mapping[str, Any],
+    account_rows: Iterable[Mapping[str, Any]],
+) -> None:
+    """Bind UI summary totals to the exact D1 account projection.
+
+    ``ReconciliationReport`` is the user-facing aggregate and D1 receives
+    independent projection rows.  They originate from the same parser in the
+    runtime, but this boundary must fail closed for direct callers, fakes and
+    future refactors so a valid-looking pointer can never publish a different
+    set of account totals from the one queryable in D1.
+    """
+
+    accounts = tuple(account_rows)
+    publication_day = _require_iso_day(publication.get("business_date"), "PROJECTION_REPORT_MISMATCH")
+    if report.business_date != publication_day:
+        raise PublicationError("PROJECTION_REPORT_MISMATCH")
+    expected_accounts = {
+        _require_lower_hex(row.get("account_key_hash"), 64, "PROJECTION_REPORT_MISMATCH"):
+        _require_integer(row.get("ending_available_fen"), "PROJECTION_REPORT_MISMATCH")
+        for row in accounts
+    }
+    if len(expected_accounts) != len(accounts):
+        # `_validate_projection_inputs` has already rejected duplicate rows;
+        # retain a local fail-closed guard in case this helper is reused.
+        raise PublicationError("PROJECTION_REPORT_MISMATCH")
+    expected_total = sum(expected_accounts.values())
+    if _require_integer(report.total_ending_fen, "PROJECTION_REPORT_MISMATCH") != expected_total:
+        raise PublicationError("PROJECTION_REPORT_MISMATCH")
+    report_accounts: dict[str, int] = {}
+    for item in report.account_reports:
+        account_hash = _require_lower_hex(item.account_key_hash, 64, "PROJECTION_REPORT_MISMATCH")
+        if account_hash in report_accounts:
+            raise PublicationError("PROJECTION_REPORT_MISMATCH")
+        report_accounts[account_hash] = _require_integer(item.ending_fen, "PROJECTION_REPORT_MISMATCH")
+    if report_accounts != expected_accounts:
+        raise PublicationError("PROJECTION_REPORT_MISMATCH")
+
+    def expected_totals(key: str) -> dict[str, int]:
+        totals: dict[str, int] = {}
+        for row in accounts:
+            value = _require_text(row.get(key), "PROJECTION_REPORT_MISMATCH")
+            ending = _require_integer(row.get("ending_available_fen"), "PROJECTION_REPORT_MISMATCH")
+            totals[value] = totals.get(value, 0) + ending
+        return totals
+
+    def report_totals(value: object) -> dict[str, int]:
+        if not isinstance(value, Mapping):
+            raise PublicationError("PROJECTION_REPORT_MISMATCH")
+        normalized: dict[str, int] = {}
+        for key, amount in value.items():
+            normalized[_require_text(key, "PROJECTION_REPORT_MISMATCH")] = _require_integer(
+                amount,
+                "PROJECTION_REPORT_MISMATCH",
+            )
+        return normalized
+
+    if report_totals(report.by_company_ending_fen) != expected_totals("company_id"):
+        raise PublicationError("PROJECTION_REPORT_MISMATCH")
+    if report_totals(report.by_bank_ending_fen) != expected_totals("bank_id"):
+        raise PublicationError("PROJECTION_REPORT_MISMATCH")
 
 
 class D1Projection:
@@ -1159,6 +1322,21 @@ class PublicationCoordinator:
             r2_manifest_sha=r2_sha,
             floating_lines=floating_lines,
         )
+        # Validate the exact canonical candidate before trusting a D1 adapter.
+        # The production adapter repeats this check, but the coordinator is the
+        # atomic-publication boundary and must fail closed even with a future
+        # adapter, a test double, or a partially implemented recovery target.
+        publication, balances, transactions, accounts = _validate_projection_inputs(
+            publication,
+            balances,
+            transactions,
+            accounts,
+        )
+        _validate_report_matches_projection(
+            report,
+            publication=publication,
+            account_rows=accounts,
+        )
         try:
             self.d1.project(publication, balances, transactions, accounts)
             self.d1.oracle(str(publication["publication_id"]))
@@ -1175,6 +1353,21 @@ class PublicationCoordinator:
             raise PublicationError("GIT_WRITE_FAILED") from exc
         if not isinstance(offsite_bundle, bytes) or not offsite_bundle:
             raise PublicationError("GIT_BUNDLE_EMPTY")
+        # A non-empty bundle is not proof of recoverability.  The private
+        # Git authority and the OCI copy must both be bound to the exact
+        # raw-source commit and canonical publication before the UI pointer
+        # is allowed to advance.  OCI transport failures remain a controlled
+        # post-publication lag; an invalid local bundle is a publication
+        # failure and must retain the prior trusted pointer.
+        try:
+            RestoreOracle.verify_private_publication_bundle(
+                offsite_bundle,
+                expected_raw_commit_sha=git_commit.commit_sha,
+                expected_publication_commit_sha=private_commit_sha,
+                publication=publication,
+            )
+        except PublicationError as exc:
+            raise PublicationError("GIT_BUNDLE_INVALID") from exc
         active_lines = [line.threshold_fen for line in floating_lines if line.active and line.threshold_fen is not None]
         risk, dynamic = effective_risk(report.total_ending_fen, active_lines)
         snapshot: dict[str, Any] = {

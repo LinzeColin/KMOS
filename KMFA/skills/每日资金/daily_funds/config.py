@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import os
+from decimal import Decimal, InvalidOperation, ROUND_FLOOR
 from urllib.parse import urlsplit
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,6 +28,26 @@ ALLOWED_PRIVATE_REPOSITORIES = frozenset({
 
 def _nonempty(env: Mapping[str, str], name: str, default: str = "") -> str:
     return str(env.get(name, default) or "").strip()
+
+
+def _flag(env: Mapping[str, str], name: str, default: bool) -> bool:
+    value = _nonempty(env, name, "1" if default else "0").lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise ConfigError(f"{name}_INVALID")
+
+
+def _ocr_confidence_bps(env: Mapping[str, str]) -> int:
+    raw = _nonempty(env, "DAILY_FUNDS_OCR_MIN_CONFIDENCE", "0.98")
+    try:
+        decimal = Decimal(raw)
+    except (InvalidOperation, ValueError) as exc:
+        raise ConfigError("DAILY_FUNDS_OCR_MIN_CONFIDENCE_INVALID") from exc
+    if not decimal.is_finite() or decimal < Decimal("0.98") or decimal > Decimal("1"):
+        raise ConfigError("DAILY_FUNDS_OCR_MIN_CONFIDENCE_INVALID")
+    return int((decimal * 10_000).to_integral_value(rounding=ROUND_FLOOR))
 
 
 @dataclass(frozen=True)
@@ -58,6 +79,8 @@ class DailyFundsConfig:
     oci_secret_access_key: str
     oci_region: str
     oci_par_url: str
+    ocr_enabled: bool
+    ocr_min_confidence_bps: int
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "DailyFundsConfig":
@@ -90,6 +113,8 @@ class DailyFundsConfig:
             oci_secret_access_key=_nonempty(source, "DAILY_FUNDS_OCI_SECRET_ACCESS_KEY"),
             oci_region=_nonempty(source, "DAILY_FUNDS_OCI_REGION", "ap-chuncheon-1"),
             oci_par_url=_nonempty(source, "DAILY_FUNDS_OCI_PAR_URL"),
+            ocr_enabled=_flag(source, "DAILY_FUNDS_OCR_ENABLED", True),
+            ocr_min_confidence_bps=_ocr_confidence_bps(source),
         )
 
     def missing(self, *, include_storage: bool = True) -> tuple[str, ...]:
@@ -146,6 +171,15 @@ class DailyFundsConfig:
             raise ConfigError("PRIVATE_BRANCH_MUST_BE_MAIN")
         if self.private_repo not in ALLOWED_PRIVATE_REPOSITORIES:
             raise ConfigError("PRIVATE_REPOSITORY_NOT_ALLOWED")
+        if isinstance(self.ocr_enabled, bool) is False:
+            raise ConfigError("DAILY_FUNDS_OCR_ENABLED_INVALID")
+        if (
+            isinstance(self.ocr_min_confidence_bps, bool)
+            or not isinstance(self.ocr_min_confidence_bps, int)
+            or self.ocr_min_confidence_bps < 9_800
+            or self.ocr_min_confidence_bps > 10_000
+        ):
+            raise ConfigError("DAILY_FUNDS_OCR_MIN_CONFIDENCE_INVALID")
         if include_storage and self.restore_drill_d1_database_id == self.d1_database_id:
             raise ConfigError("RESTORE_DRILL_D1_MUST_DIFFER")
         legacy_oci_values = (
@@ -210,5 +244,7 @@ class DailyFundsConfig:
             self.r2_bucket,
             self.oci_bucket,
             hashlib.sha256(self.oci_par_url.encode("utf-8")).hexdigest(),
+            "OCR_ENABLED" if self.ocr_enabled else "OCR_DISABLED",
+            str(self.ocr_min_confidence_bps),
         )
         return hashlib.sha256("\x1f".join(fields).encode("utf-8")).hexdigest()

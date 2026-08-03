@@ -24,7 +24,7 @@
 
 `.csv`、`.txt`、`.xlsx`、`.xlsm` 是**候选解析格式**，不是在代码合成测试通过后就可对生产宣称“已支持”。每份候选附件都必须先由唯一来源链下载、写入并从私有 Git sparse readback 回读；随后同时校验 source SHA、occurrence lineage、后缀、声明 MIME、字节 magic、列模板、业务日期和 parser-open。成功后，受保护 SQLite 才按附件 SHA 写入 values-free `parser_evidence` 回执；该回执与私有 raw manifest 一起构成真实能力证据。
 
-当前执行基线尚未取得目标钉钉群的真实附件字节，因此没有任何生产附件类型可被标记为已实证支持。`.xls`、PDF、图片及 OCR 目前一律 `needs-review`：不会 OCR 猜金额，也不会进入 publication；若将来要启用确定性 OCR，必须先补充目标样本、固定引擎版本、hash/置信度门和回归语料。
+当前执行基线尚未取得目标钉钉群的真实附件字节，因此没有任何生产附件类型可被标记为已实证支持。`.xls` 仍一律 `needs-review`。图片与扫描 PDF 只有在显式启用的离线确定性 Tesseract 回退路径中才会尝试打开；它不是模型/API，也不会猜测金额。该路径同时要求来源谱系、MIME/magic、关键字段至少 0.98 置信度、两个不同业务日的同版式校准，以及后续同版式私有 Git readback 成功；任一条件未满足即保持 `needs-review`，不能进入 publication。
 
 在真实样本冻结多工作表模板前，任何多 sheet 工作簿都会以 `XLSX_WORKSHEET_AMBIGUOUS` 停止；同一流水同时携带“流入/流出”与“金额/方向”两套金额编码时以 `TRANSACTION_AMOUNT_MAPPING_AMBIGUOUS` 停止。解析规则升级会更换 parser version，旧版本的 capability receipt 仅保留审计用途，不再投影为当前支持能力，直到原始字节在新版本下重新 parser-open。
 

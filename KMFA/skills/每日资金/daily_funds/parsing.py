@@ -1,30 +1,37 @@
 """Deterministic parsers for the two required daily-funds fact families.
 
-There is deliberately no heuristic OCR in this module.  PDFs/images, unknown
-column shapes, MIME/magic mismatches and unsupported identifiers are rejected
-with machine codes.  A later approved parser must bring its own real-sample
-evidence and regression corpus rather than silently inventing financial facts.
+There is deliberately no heuristic OCR in this module.  Only a bounded,
+deterministic offline OCR fallback may open a supported image or scanned PDF;
+unknown column shapes, MIME/magic mismatches and unsupported identifiers are
+rejected with machine codes.  OCR results remain unsupported until real-sample
+layout calibration proves the source profile, rather than silently inventing
+financial facts.
 """
 
 from __future__ import annotations
 
 import csv
 import io
+import json
 import re
+import subprocess
+import tempfile
+from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation, ROUND_FLOOR
 from datetime import date, datetime
 from hashlib import sha256
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Any, Callable, Iterable, Mapping
 
 from .contracts import ContractError, parse_amount_to_fen
 from .models import AccountSnapshot, ParsedFacts, ParserEvidence, SourceRef, Transaction
 
 ACCOUNT_FAMILY = "资金账户明细表"
 TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
-# v3 rejects previously silent multi-sheet and competing amount encodings.
-# Capability receipts are versioned, so a rule change cannot inherit a prior
-# parser's production-support assertion.
-PARSER_VERSION = "kmfa.daily_funds.parser.v3"
+# v4 adds a strictly bounded, deterministic, offline OCR fallback.  Capability
+# receipts are versioned, so a rule change cannot inherit a prior parser's
+# production-support assertion.
+PARSER_VERSION = "kmfa.daily_funds.parser.v4"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -38,6 +45,9 @@ _ZIP_MAGICS = (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")
 _TEXT_SUFFIXES = frozenset({".csv", ".txt"})
 _WORKBOOK_SUFFIXES = frozenset({".xlsx", ".xlsm"})
 _ALLOWED_SUFFIXES = _TEXT_SUFFIXES | _WORKBOOK_SUFFIXES
+_OCR_IMAGE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".bmp", ".webp"})
+_OCR_PDF_SUFFIXES = frozenset({".pdf"})
+_OCR_SUFFIXES = _OCR_IMAGE_SUFFIXES | _OCR_PDF_SUFFIXES
 _CAPABILITY_SUFFIXES = _ALLOWED_SUFFIXES | frozenset({
     ".xls", ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp",
 })
@@ -56,10 +66,69 @@ _XLSM_MIME = frozenset({
     "application/vnd.ms-excel.sheet.macroenabled.12",
     "application/octet-stream",
 })
+_OCR_IMAGE_MIME = {
+    ".png": frozenset({"image/png", "application/octet-stream"}),
+    ".jpg": frozenset({"image/jpeg", "application/octet-stream"}),
+    ".jpeg": frozenset({"image/jpeg", "application/octet-stream"}),
+    ".bmp": frozenset({"image/bmp", "image/x-ms-bmp", "application/octet-stream"}),
+    ".webp": frozenset({"image/webp", "application/octet-stream"}),
+    ".pdf": frozenset({"application/pdf", "application/octet-stream"}),
+}
+_OCR_MAGIC_BY_SUFFIX = {
+    ".png": "PNG",
+    ".jpg": "JPEG",
+    ".jpeg": "JPEG",
+    ".bmp": "BMP",
+    ".webp": "WEBP",
+    ".pdf": "PDF",
+}
+OCR_MIN_CONFIDENCE_BPS = 9_800
+OCR_MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024
+OCR_TIMEOUT_SECONDS = 90
+OCR_LANGUAGE = "chi_sim+eng"
 
 
 class ParseError(ContractError):
     pass
+
+
+@dataclass(frozen=True)
+class OcrParsedAttachment:
+    """A deterministic OCR result that has not yet crossed the runtime template gate.
+
+    The layout fingerprint deliberately contains only canonical field names,
+    geometry buckets and parser metadata.  It contains no OCR text, document
+    identifier, amount or account value, so the runtime may retain it in its
+    private journal as a calibration key without creating a second raw store.
+    """
+
+    facts: ParsedFacts
+    layout_fingerprint: str
+
+
+@dataclass(frozen=True)
+class _OcrWord:
+    text: str
+    confidence_bps: int
+    page: int
+    block: int
+    paragraph: int
+    line: int
+    left: int
+    top: int
+    width: int
+    height: int
+
+
+@dataclass(frozen=True)
+class _OcrHeaderCell:
+    label: str
+    field: str | None
+    left: int
+    right: int
+    top: int
+    bottom: int
+    confidence_bps: int
 
 
 def normalize_header(value: object) -> str:
@@ -421,6 +490,422 @@ def _rows_from_bytes(filename: str, payload: bytes, mime: str | None) -> tuple[l
     return _xlsx_rows(payload), evidence
 
 
+def _ocr_integer(value: object, *, code: str, minimum: int | None = None) -> int:
+    try:
+        parsed = int(str(value))
+    except (TypeError, ValueError) as exc:
+        raise ParseError(code) from exc
+    if minimum is not None and parsed < minimum:
+        raise ParseError(code)
+    return parsed
+
+
+def _ocr_confidence_bps(value: object) -> int:
+    try:
+        score = Decimal(str(value))
+    except (InvalidOperation, ValueError) as exc:
+        raise ParseError("OCR_CONFIDENCE_INVALID") from exc
+    if not score.is_finite() or score < 0 or score > 100:
+        raise ParseError("OCR_CONFIDENCE_INVALID")
+    return int((score * 100).to_integral_value(rounding=ROUND_FLOOR))
+
+
+def _validate_ocr_min_confidence(value: object) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1 or value > 10_000:
+        raise ParseError("OCR_CONFIDENCE_THRESHOLD_INVALID")
+    return value
+
+
+def inspect_ocr_attachment_format(*, filename: str, payload: bytes, mime: str | None = None) -> ParserEvidence:
+    """Validate one image or scanned-PDF before a deterministic OCR open.
+
+    OCR is not a bypass around the normal attachment contract: a suffix, magic
+    or declared MIME disagreement is a hard failure.  The result contains only
+    format metadata and can therefore be used in the existing redacted
+    capability journal.
+    """
+
+    suffix = Path(filename).suffix.lower()
+    if suffix not in _OCR_SUFFIXES:
+        raise ParseError("UNSUPPORTED_ATTACHMENT")
+    if len(payload) > OCR_MAX_ATTACHMENT_BYTES:
+        raise ParseError("OCR_ATTACHMENT_TOO_LARGE")
+    magic = _capability_magic(payload)
+    if magic != _OCR_MAGIC_BY_SUFFIX[suffix]:
+        raise ParseError("FORMAT_MAGIC_MISMATCH")
+    declared_mime = _declared_mime(mime)
+    if declared_mime is not None and declared_mime not in _OCR_IMAGE_MIME[suffix]:
+        raise ParseError("MIME_SUFFIX_MISMATCH")
+    return ParserEvidence(
+        format=f"OCR_{magic}",
+        suffix=suffix,
+        declared_mime=declared_mime,
+        magic=magic,
+        parser_version=PARSER_VERSION,
+    )
+
+
+def is_ocr_attachment(filename: str) -> bool:
+    """Whether a filename belongs to the explicit image/scanned-PDF fallback."""
+
+    return Path(filename).suffix.lower() in _OCR_SUFFIXES
+
+
+def _run_ocr_command(
+    command: list[str],
+    *,
+    runner: Callable[..., Any],
+    failure_code: str,
+) -> str:
+    """Run an offline OCR utility without retaining its diagnostic stream."""
+
+    try:
+        completed = runner(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=OCR_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        raise ParseError("OCR_RUNTIME_UNAVAILABLE") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise ParseError("OCR_TIMEOUT") from exc
+    except OSError as exc:
+        raise ParseError("OCR_RUNTIME_UNAVAILABLE") from exc
+    if getattr(completed, "returncode", 1) != 0:
+        raise ParseError(failure_code)
+    stdout = getattr(completed, "stdout", "")
+    return stdout if isinstance(stdout, str) else ""
+
+
+def _pdf_page_count(path: Path, *, runner: Callable[..., Any]) -> int:
+    output = _run_ocr_command(["pdfinfo", str(path)], runner=runner, failure_code="OCR_PDF_METADATA_FAILED")
+    pages: int | None = None
+    for line in output.splitlines():
+        key, separator, value = line.partition(":")
+        if separator and key.strip().lower() == "pages":
+            if pages is not None:
+                raise ParseError("OCR_PDF_METADATA_INVALID")
+            pages = _ocr_integer(value.strip(), code="OCR_PDF_METADATA_INVALID", minimum=1)
+    if pages is None:
+        raise ParseError("OCR_PDF_METADATA_INVALID")
+    return pages
+
+
+def _ocr_tsv(
+    *,
+    payload: bytes,
+    evidence: ParserEvidence,
+    runner: Callable[..., Any],
+) -> str:
+    """Generate in-memory Tesseract TSV for exactly one bounded document page.
+
+    The input file and rendered PDF page live only inside a temporary directory.
+    Neither OCR text nor utility stderr is written to a log, status file, Git
+    repository or exception message.
+    """
+
+    with tempfile.TemporaryDirectory(prefix="daily-funds-ocr-") as temporary:
+        root = Path(temporary)
+        source = root / f"input{evidence.suffix}"
+        source.write_bytes(payload)
+        image = source
+        if evidence.magic == "PDF":
+            if _pdf_page_count(source, runner=runner) != 1:
+                raise ParseError("OCR_PDF_PAGE_AMBIGUOUS")
+            prefix = root / "render"
+            _run_ocr_command(
+                ["pdftoppm", "-png", "-r", "300", "-f", "1", "-l", "1", str(source), str(prefix)],
+                runner=runner,
+                failure_code="OCR_PDF_RENDER_FAILED",
+            )
+            rendered = tuple(sorted(root.glob("render-*.png")))
+            if len(rendered) != 1 or rendered[0].is_symlink() or not rendered[0].is_file():
+                raise ParseError("OCR_PDF_RENDER_FAILED")
+            image = rendered[0]
+        return _run_ocr_command(
+            ["tesseract", str(image), "stdout", "-l", OCR_LANGUAGE, "--psm", "6", "tsv"],
+            runner=runner,
+            failure_code="OCR_ENGINE_FAILED",
+        )
+
+
+def _parse_tesseract_tsv(text: str) -> tuple[_OcrWord, ...]:
+    expected = {
+        "level", "page_num", "block_num", "par_num", "line_num", "word_num",
+        "left", "top", "width", "height", "conf", "text",
+    }
+    try:
+        reader = csv.DictReader(io.StringIO(text, newline=""), delimiter="\t", strict=True)
+    except csv.Error as exc:
+        raise ParseError("OCR_TSV_INVALID") from exc
+    if reader.fieldnames is None or set(reader.fieldnames) != expected or len(reader.fieldnames) != len(expected):
+        raise ParseError("OCR_TSV_INVALID")
+    words: list[_OcrWord] = []
+    try:
+        for raw in reader:
+            if raw.get("level") != "5":
+                continue
+            token = str(raw.get("text") or "").strip()
+            if not token:
+                continue
+            if len(token) > 512:
+                raise ParseError("OCR_TOKEN_INVALID")
+            words.append(_OcrWord(
+                text=token,
+                confidence_bps=_ocr_confidence_bps(raw.get("conf")),
+                page=_ocr_integer(raw.get("page_num"), code="OCR_TSV_INVALID", minimum=1),
+                block=_ocr_integer(raw.get("block_num"), code="OCR_TSV_INVALID", minimum=0),
+                paragraph=_ocr_integer(raw.get("par_num"), code="OCR_TSV_INVALID", minimum=0),
+                line=_ocr_integer(raw.get("line_num"), code="OCR_TSV_INVALID", minimum=0),
+                left=_ocr_integer(raw.get("left"), code="OCR_TSV_INVALID", minimum=0),
+                top=_ocr_integer(raw.get("top"), code="OCR_TSV_INVALID", minimum=0),
+                width=_ocr_integer(raw.get("width"), code="OCR_TSV_INVALID", minimum=1),
+                height=_ocr_integer(raw.get("height"), code="OCR_TSV_INVALID", minimum=1),
+            ))
+    except csv.Error as exc:
+        raise ParseError("OCR_TSV_INVALID") from exc
+    if not words:
+        raise ParseError("OCR_OUTPUT_EMPTY")
+    return tuple(words)
+
+
+def _ocr_lines(words: Iterable[_OcrWord]) -> tuple[tuple[_OcrWord, ...], ...]:
+    grouped: dict[tuple[int, int, int, int], list[_OcrWord]] = {}
+    for word in words:
+        grouped.setdefault((word.page, word.block, word.paragraph, word.line), []).append(word)
+    ordered = sorted(
+        grouped.values(),
+        key=lambda row: (
+            min(word.page for word in row),
+            min(word.top for word in row),
+            min(word.left for word in row),
+            min(word.block for word in row),
+            min(word.paragraph for word in row),
+            min(word.line for word in row),
+        ),
+    )
+    return tuple(tuple(sorted(row, key=lambda word: (word.left, word.top, word.text))) for row in ordered)
+
+
+def _ocr_alias_candidates(words: tuple[_OcrWord, ...]) -> list[tuple[int, int, str]]:
+    aliases: dict[str, set[str]] = {}
+    for field, values in ALIASES.items():
+        for alias in values:
+            aliases.setdefault(normalize_header(alias), set()).add(field)
+    candidates: list[tuple[int, int, str]] = []
+    for start in range(len(words)):
+        for end in range(start + 1, min(len(words), start + 3) + 1):
+            fields = aliases.get(normalize_header("".join(word.text for word in words[start:end])))
+            if fields is None:
+                continue
+            if len(fields) != 1:
+                raise ParseError("OCR_COLUMN_MAPPING_AMBIGUOUS")
+            candidates.append((start, end, next(iter(fields))))
+    return candidates
+
+
+def _ocr_header_cells(words: tuple[_OcrWord, ...]) -> tuple[_OcrHeaderCell, ...]:
+    candidates = _ocr_alias_candidates(words)
+    # Duplicate non-overlapping aliases are a source ambiguity, never a reason
+    # to select whichever one Tesseract happened to emit first.
+    for field in {field for _, _, field in candidates}:
+        positions = [(start, end) for start, end, candidate_field in candidates if candidate_field == field]
+        if any(end_a <= start_b or end_b <= start_a for index, (start_a, end_a) in enumerate(positions) for start_b, end_b in positions[index + 1:]):
+            raise ParseError("OCR_COLUMN_MAPPING_AMBIGUOUS")
+    selected: list[tuple[int, int, str]] = []
+    occupied: set[int] = set()
+    fields: set[str] = set()
+    for start, end, field in sorted(candidates, key=lambda item: (-(item[1] - item[0]), item[0], item[2])):
+        if field in fields or any(index in occupied for index in range(start, end)):
+            continue
+        selected.append((start, end, field))
+        occupied.update(range(start, end))
+        fields.add(field)
+    selected_by_start = {start: (end, field) for start, end, field in selected}
+    cells: list[_OcrHeaderCell] = []
+    index = 0
+    while index < len(words):
+        end, field = selected_by_start.get(index, (index + 1, None))
+        segment = words[index:end]
+        cells.append(_OcrHeaderCell(
+            label="".join(word.text for word in segment),
+            field=field,
+            left=min(word.left for word in segment),
+            right=max(word.left + word.width for word in segment),
+            top=min(word.top for word in segment),
+            bottom=max(word.top + word.height for word in segment),
+            confidence_bps=min(word.confidence_bps for word in segment),
+        ))
+        index = end
+    if len({cell.label for cell in cells}) != len(cells):
+        raise ParseError("COLUMN_HEADER_DUPLICATE")
+    return tuple(sorted(cells, key=lambda cell: (cell.left, cell.right, cell.label)))
+
+
+def _ocr_required_fields(family: str, fields: set[str]) -> bool:
+    if family == ACCOUNT_FAMILY:
+        return {"company", "bank", "account", "ending"} <= fields
+    if family in TRANSACTION_FAMILIES:
+        identity = {"company", "bank", "account", "transaction_id"} <= fields
+        flow = "inflow" in fields or "outflow" in fields
+        amount_direction = {"amount", "direction"} <= fields
+        return identity and (flow or amount_direction) and not (flow and amount_direction)
+    raise ParseError("DOCUMENT_FAMILY_UNSUPPORTED")
+
+
+def _select_ocr_header(
+    lines: tuple[tuple[_OcrWord, ...], ...],
+    *,
+    family: str,
+    min_confidence_bps: int,
+) -> tuple[int, tuple[_OcrHeaderCell, ...]]:
+    candidates: list[tuple[int, tuple[_OcrHeaderCell, ...], int]] = []
+    for index, words in enumerate(lines):
+        try:
+            cells = _ocr_header_cells(words)
+        except ParseError:
+            continue
+        fields = {cell.field for cell in cells if cell.field is not None}
+        if not _ocr_required_fields(family, fields):
+            continue
+        candidates.append((index, cells, len(fields)))
+    if not candidates:
+        raise ParseError("OCR_HEADER_MAPPING_MISSING")
+    candidates.sort(key=lambda item: item[2], reverse=True)
+    if len(candidates) > 1 and candidates[0][2] == candidates[1][2]:
+        raise ParseError("OCR_HEADER_ROW_AMBIGUOUS")
+    index, cells, _ = candidates[0]
+    if any(cell.field is not None and cell.confidence_bps < min_confidence_bps for cell in cells):
+        raise ParseError("OCR_LOW_CONFIDENCE")
+    return index, cells
+
+
+def _ocr_cell_index(word: _OcrWord, cells: tuple[_OcrHeaderCell, ...]) -> int:
+    center_twice = 2 * word.left + word.width
+    for index in range(len(cells) - 1):
+        # Compare both centers using integers.  ``center_twice`` is twice the
+        # word centre; the midpoint between adjacent header centres is one
+        # half of the sum below, so its equivalent scale is
+        # ``2 * center_twice < header_center_sum``.  Keeping this integral
+        # avoids a rounded boundary moving a money field into its neighbour.
+        header_center_sum = cells[index].left + cells[index].right + cells[index + 1].left + cells[index + 1].right
+        if 2 * center_twice < header_center_sum:
+            return index
+    return len(cells) - 1
+
+
+def _ocr_rows(
+    lines: tuple[tuple[_OcrWord, ...], ...],
+    *,
+    header_index: int,
+    cells: tuple[_OcrHeaderCell, ...],
+    family: str,
+    min_confidence_bps: int,
+) -> list[dict[str, object]]:
+    header_page = lines[header_index][0].page
+    header_bottom = max(cell.bottom for cell in cells)
+    field_by_label = {cell.label: cell.field for cell in cells}
+    rows: list[dict[str, object]] = []
+    for words in lines[header_index + 1:]:
+        if words[0].page != header_page or min(word.top for word in words) <= header_bottom:
+            continue
+        by_index: dict[int, list[_OcrWord]] = {index: [] for index in range(len(cells))}
+        for word in words:
+            by_index[_ocr_cell_index(word, cells)].append(word)
+        row: dict[str, object] = {}
+        confidence: dict[str, int | None] = {}
+        for index, cell in enumerate(cells):
+            values = sorted(by_index[index], key=lambda word: (word.left, word.top, word.text))
+            row[cell.label] = "".join(word.text for word in values)
+            confidence[cell.label] = min((word.confidence_bps for word in values), default=None)
+        mapped = {field: str(row[label] or "") for label, field in field_by_label.items() if field is not None}
+        if not any(value for value in mapped.values()):
+            continue
+        fields = {field for field, value in mapped.items() if value}
+        if not _ocr_required_fields(family, fields):
+            raise ParseError("OCR_ROW_REQUIRED_CELL_MISSING")
+        for label, field in field_by_label.items():
+            if field is not None and row[label] and (confidence[label] is None or confidence[label] < min_confidence_bps):
+                raise ParseError("OCR_LOW_CONFIDENCE")
+        rows.append(row)
+    if not rows:
+        raise ParseError("SOURCE_ROWS_EMPTY")
+    return rows
+
+
+def _ocr_layout_fingerprint(
+    *,
+    family: str,
+    evidence: ParserEvidence,
+    cells: tuple[_OcrHeaderCell, ...],
+) -> str:
+    width = max(cell.right for cell in cells)
+    if width <= 0:
+        raise ParseError("OCR_LAYOUT_INVALID")
+    layout = {
+        "family": family,
+        "format": evidence.format,
+        "magic": evidence.magic,
+        "columns": [cell.field or "UNMAPPED" for cell in cells],
+        "centers_bps": [((cell.left + cell.right) * 10_000) // (2 * width) for cell in cells],
+    }
+    return sha256(json.dumps(layout, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def deterministic_ocr_runtime_ready(*, runner: Callable[..., Any] = subprocess.run) -> bool:
+    """Return whether the isolated image has the two offline OCR tools.
+
+    This uses no document input and intentionally discards all command output.
+    It is suitable for the values-free runtime isolation audit, not as a claim
+    that any source layout or financial value has been verified.
+    """
+
+    try:
+        languages = _run_ocr_command(["tesseract", "--list-langs"], runner=runner, failure_code="OCR_RUNTIME_UNAVAILABLE")
+        _run_ocr_command(["pdfinfo", "-v"], runner=runner, failure_code="OCR_RUNTIME_UNAVAILABLE")
+        _run_ocr_command(["pdftoppm", "-v"], runner=runner, failure_code="OCR_RUNTIME_UNAVAILABLE")
+    except ParseError:
+        return False
+    return "chi_sim" in {line.strip() for line in languages.splitlines()}
+
+
+def parse_ocr_attachment(
+    *,
+    family: str,
+    filename: str,
+    payload: bytes,
+    source: SourceRef,
+    mime: str | None = None,
+    min_confidence_bps: int = OCR_MIN_CONFIDENCE_BPS,
+    runner: Callable[..., Any] = subprocess.run,
+) -> OcrParsedAttachment:
+    """Open one image/scanned-PDF through a deterministic offline OCR table path.
+
+    This function proves only a strict, in-memory parser-open.  The runtime
+    adds the separate two-business-day layout calibration gate before it can
+    treat the resulting facts as a supported source for reconciliation.
+    """
+
+    if family not in TRANSACTION_FAMILIES | {ACCOUNT_FAMILY}:
+        raise ParseError("DOCUMENT_FAMILY_UNSUPPORTED")
+    if not payload:
+        raise ParseError("CORRUPT_ATTACHMENT")
+    _validate_source(source, payload)
+    threshold = _validate_ocr_min_confidence(min_confidence_bps)
+    evidence = inspect_ocr_attachment_format(filename=filename, payload=payload, mime=mime)
+    words = _parse_tesseract_tsv(_ocr_tsv(payload=payload, evidence=evidence, runner=runner))
+    lines = _ocr_lines(words)
+    header_index, cells = _select_ocr_header(lines, family=family, min_confidence_bps=threshold)
+    rows = _ocr_rows(lines, header_index=header_index, cells=cells, family=family, min_confidence_bps=threshold)
+    facts = _facts_from_rows(family=family, filename=filename, source=source, rows=rows, parser_evidence=evidence)
+    return OcrParsedAttachment(
+        facts=facts,
+        layout_fingerprint=_ocr_layout_fingerprint(family=family, evidence=evidence, cells=cells),
+    )
+
+
 def _validate_source(source: SourceRef, payload: bytes) -> None:
     if not all(isinstance(value, str) and _SHA256.fullmatch(value) for value in (
         source.attachment_sha256,
@@ -456,26 +941,18 @@ def _business_date(rows: list[dict[str, object]], mapped: Mapping[str, str], fil
     return filename_date
 
 
-def parse_attachment(
+def _facts_from_rows(
     *,
     family: str,
     filename: str,
-    payload: bytes,
     source: SourceRef,
-    mime: str | None = None,
+    rows: list[dict[str, object]],
+    parser_evidence: ParserEvidence,
 ) -> ParsedFacts:
-    """Open and parse one source file into exactly one fact family.
-
-    A file named as one family cannot silently become the other.  Callers must
-    supply the source-gated family from the DWS message selection step.
-    """
+    """Build one fact family from rows already opened by a strict parser."""
 
     if family not in TRANSACTION_FAMILIES | {ACCOUNT_FAMILY}:
         raise ParseError("DOCUMENT_FAMILY_UNSUPPORTED")
-    if not payload:
-        raise ParseError("CORRUPT_ATTACHMENT")
-    _validate_source(source, payload)
-    rows, parser_evidence = _rows_from_bytes(filename, payload, mime)
     if not rows:
         raise ParseError("SOURCE_ROWS_EMPTY")
     mapped = _column_map(rows[0].keys())
@@ -571,3 +1048,34 @@ def parse_attachment(
             source,
         ))
     return ParsedFacts(business_date, family, tuple(), tuple(transactions), source.source_version, parser_evidence)
+
+
+def parse_attachment(
+    *,
+    family: str,
+    filename: str,
+    payload: bytes,
+    source: SourceRef,
+    mime: str | None = None,
+) -> ParsedFacts:
+    """Open and parse one structured source file into exactly one fact family.
+
+    Images and scanned PDFs deliberately use :func:`parse_ocr_attachment`
+    instead.  Keeping that route explicit prevents an unsupported binary from
+    silently becoming a financial fact merely because its filename resembles a
+    supported spreadsheet.
+    """
+
+    if family not in TRANSACTION_FAMILIES | {ACCOUNT_FAMILY}:
+        raise ParseError("DOCUMENT_FAMILY_UNSUPPORTED")
+    if not payload:
+        raise ParseError("CORRUPT_ATTACHMENT")
+    _validate_source(source, payload)
+    rows, parser_evidence = _rows_from_bytes(filename, payload, mime)
+    return _facts_from_rows(
+        family=family,
+        filename=filename,
+        source=source,
+        rows=rows,
+        parser_evidence=parser_evidence,
+    )

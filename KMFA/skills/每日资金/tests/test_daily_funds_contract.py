@@ -50,9 +50,10 @@ from daily_funds.ingestion import (
     IngestionError,
     RawMaterializer,
     SPARSE_PATH,
+    StagedRawBatch,
 )
 from daily_funds.models import SourceRef
-from daily_funds.parsing import ACCOUNT_FAMILY, PARSER_VERSION, ParseError, parse_attachment
+from daily_funds.parsing import ACCOUNT_FAMILY, PARSER_VERSION, ParseError, deterministic_ocr_runtime_ready, parse_attachment, parse_ocr_attachment
 from daily_funds.publication import D1Projection, OciColdBackup, OciParStore, PublicationCoordinator, PublicationError, R2Mirror, RestoreCoordinator, RestoreOracle
 from daily_funds.reconcile import AccountReconciliation, ReconciliationError, ReconciliationReport, account_key_hash, reconcile
 from daily_funds.runtime import DailyFundsRuntime, TimedFacts
@@ -77,6 +78,11 @@ def _config(tmp_path: Path) -> DailyFundsConfig:
         "DAILY_FUNDS_SENDER_ID": "sender-fixture",
         "DAILY_FUNDS_DWS_CLIENT_ID": "client-fixture",
         "DAILY_FUNDS_DWS_AUTH_BUNDLE_B64": base64.b64encode(b"fixture-dws-auth-bundle").decode(),
+        # The unit suite has no container-provisioned Tesseract binary.  OCR
+        # contract cases opt in with a mocked deterministic runner below;
+        # production Compose defaults this feature to enabled.
+        "DAILY_FUNDS_OCR_ENABLED": "0",
+        "DAILY_FUNDS_OCR_MIN_CONFIDENCE": "0.98",
         "DAILY_FUNDS_GIT_SSH_KEY_B64": pem,
         "DAILY_FUNDS_CLOUDFLARE_API_TOKEN": "cf-fixture",
         "DAILY_FUNDS_CF_ACCOUNT_ID": "account-fixture",
@@ -226,11 +232,13 @@ def test_daily_balance_calendar_carries_only_non_reporting_days_and_flags_weekda
         "schema_version": "kmfa.daily_funds.history.v1",
         "days": {
             "2026-07-31": {
+                "status": "VALID",
+                "publication_id": "a" * 64,
                 "ending_available_fen": 100,
                 "direct_observation": True,
                 "coverage_gap": False,
                 "carried_forward": False,
-                "account_ending_by_hash": {},
+                "account_ending_by_hash": {"b" * 64: 100},
             },
         },
     }), encoding="utf-8")
@@ -252,6 +260,88 @@ def test_daily_balance_calendar_carries_only_non_reporting_days_and_flags_weekda
     assert rows[date(2026, 8, 4)].coverage_gap and not rows[date(2026, 8, 4)].carried_forward
     assert rows[date(2026, 8, 6)].direct_observation and rows[date(2026, 8, 6)].ending_available_fen == 120
     assert not custom_date_line(date(2026, 7, 31), date(2026, 8, 6), rows.values()).active
+
+
+def test_daily_balance_rejects_nonvalid_or_inconsistent_history_rows(tmp_path: Path) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    runtime._history_path.parent.mkdir(parents=True, exist_ok=True)
+    report = SimpleNamespace(business_date=date(2026, 8, 1), total_ending_fen=100)
+    runtime._history_path.write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.history.v1",
+        "days": {
+            "2026-07-31": {
+                "status": "PENDING",
+                "publication_id": "a" * 64,
+                "ending_available_fen": 100,
+                "direct_observation": True,
+                "coverage_gap": False,
+                "carried_forward": False,
+                "account_ending_by_hash": {"b" * 64: 100},
+            },
+        },
+    }), encoding="utf-8")
+    with pytest.raises(ReconciliationError, match="HISTORY_BALANCE_NOT_VALID"):
+        runtime._daily_balances(report)
+
+    runtime._history_path.write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.history.v1",
+        "days": {
+            "2026-07-31": {
+                "status": "VALID",
+                "publication_id": "a" * 64,
+                "ending_available_fen": 100,
+                "direct_observation": True,
+                "coverage_gap": False,
+                "carried_forward": False,
+                "account_ending_by_hash": {"b" * 64: 99},
+            },
+        },
+    }), encoding="utf-8")
+    with pytest.raises(ReconciliationError, match="HISTORY_BALANCE_TOTAL_MISMATCH"):
+        runtime._daily_balances(report)
+
+    runtime._history_path.write_text("{", encoding="utf-8")
+    with pytest.raises(ReconciliationError, match="HISTORY_INVALID"):
+        runtime._daily_balances(report)
+
+    runtime._history_path.write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.history.v1", "days": {},
+    }), encoding="utf-8")
+    (runtime.config.publication_dir / "current.json").write_text("[]", encoding="utf-8")
+    with pytest.raises(ReconciliationError, match="CURRENT_PROJECTION_INVALID"):
+        runtime._daily_balances(report)
+
+
+def test_daily_balance_rejects_conflicting_current_pointer_mirror(tmp_path: Path) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    runtime._history_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime._history_path.write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.history.v1",
+        "days": {
+            "2026-07-31": {
+                "status": "VALID",
+                "publication_id": "a" * 64,
+                "ending_available_fen": 100,
+                "direct_observation": True,
+                "coverage_gap": False,
+                "carried_forward": False,
+                "account_ending_by_hash": {"b" * 64: 100},
+            },
+        },
+    }), encoding="utf-8")
+    (runtime.config.publication_dir / "current.json").write_text(json.dumps({
+        "publication": {"status": "VALID"},
+        "daily_balances": [{
+            "business_date": "2026-07-31",
+            "ending_available_fen": 101,
+            "direct_observation": True,
+            "coverage_gap": False,
+            "carried_forward": False,
+        }],
+    }), encoding="utf-8")
+    report = SimpleNamespace(business_date=date(2026, 8, 1), total_ending_fen=100)
+    with pytest.raises(ReconciliationError, match="DAILY_BALANCE_MIRROR_CONFLICT"):
+        runtime._daily_balances(report)
 
 
 def test_threshold_control_keeps_a_versioned_owner_audit(tmp_path: Path) -> None:
@@ -297,6 +387,25 @@ def test_threshold_control_rejects_invalid_active_revision_and_revision_collisio
     }), encoding="utf-8")
     with pytest.raises(ControlError, match="THRESHOLD_REVISION_COLLISION"):
         control.apply_pending()
+
+
+def test_threshold_control_rejects_corrupt_documents_instead_of_disabling_custom_lines(tmp_path: Path) -> None:
+    control = ThresholdControl(tmp_path / "control")
+    control.root.mkdir(parents=True)
+    control.request_path.write_text("{", encoding="utf-8")
+    with pytest.raises(ControlError, match="THRESHOLD_REQUEST_INVALID"):
+        control.apply_pending()
+
+    control.request_path.unlink()
+    control.active_path.write_text("[]", encoding="utf-8")
+    with pytest.raises(ControlError, match="THRESHOLD_ACTIVE_INVALID"):
+        control.line((), date(2026, 8, 1))
+
+    directory_control = ThresholdControl(tmp_path / "directory-control")
+    directory_control.root.mkdir(parents=True)
+    directory_control.request_path.mkdir()
+    with pytest.raises(ControlError, match="THRESHOLD_REQUEST_INVALID"):
+        directory_control.apply_pending()
 
 
 def test_threshold_control_surfaces_balance_quality_errors_instead_of_coverage(tmp_path: Path) -> None:
@@ -574,8 +683,8 @@ def test_reconciliation_rejects_non_integer_prior_balance_before_zero_difference
 
 def test_reconciliation_rejects_conflicting_hashed_and_clear_prior_balances() -> None:
     account_payload = (
-        "业务日期,公司,开户行,账号,期末余额\n"
-        "2026-07-30,甲,乙,001,100.00\n"
+        "业务日期,公司,开户行,账号,期初余额,期末余额\n"
+        "2026-07-30,甲,乙,001,100.00,100.00\n"
     ).encode()
     accounts = parse_attachment(
         family=ACCOUNT_FAMILY,
@@ -598,6 +707,39 @@ def test_reconciliation_rejects_conflicting_hashed_and_clear_prior_balances() ->
         reconcile(
             (accounts, transactions),
             previous_ending_by_account={clear_key: 10_000, account_key_hash(clear_key): 9_999},
+        )
+
+
+def test_reconciliation_rejects_prior_account_missing_from_current_snapshot() -> None:
+    account_payload = (
+        "业务日期,公司,开户行,账号,期末余额\n"
+        "2026-07-30,甲,乙,001,100.00\n"
+    ).encode()
+    accounts = parse_attachment(
+        family=ACCOUNT_FAMILY,
+        filename="资金账户明细表_20260730.csv",
+        payload=account_payload,
+        source=_source(account_payload, message_id_hash="a" * 64),
+    )
+    transaction_payload = (
+        "业务日期,公司,开户行,账号,流水号,流入,流出\n"
+        "2026-07-30,甲,乙,001,t-1,,\n"
+    ).encode()
+    transactions = parse_attachment(
+        family="资金流水明细",
+        filename="资金流水明细_20260730.csv",
+        payload=transaction_payload,
+        source=_source(transaction_payload, message_id_hash="b" * 64),
+    )
+    current_key = ("甲", "乙", "001")
+    prior_only_key = ("丙", "丁", "002")
+    with pytest.raises(ReconciliationError, match="PRIOR_ACCOUNT_MISSING_FROM_SNAPSHOT"):
+        reconcile(
+            (accounts, transactions),
+            previous_ending_by_account={
+                account_key_hash(current_key): 10_000,
+                account_key_hash(prior_only_key): 50_000,
+            },
         )
 
 
@@ -839,6 +981,138 @@ def test_runtime_records_parser_evidence_only_after_successful_parse(tmp_path: P
         "TEXT",
         PARSER_VERSION,
     )
+
+
+def _ocr_tsv(
+    headers: list[str],
+    values: list[str],
+    *,
+    value_confidence: str = "99.0",
+) -> str:
+    """Build a synthetic, value-free Tesseract TSV table fixture."""
+
+    columns = [
+        "level", "page_num", "block_num", "par_num", "line_num", "word_num",
+        "left", "top", "width", "height", "conf", "text",
+    ]
+    rows = ["\t".join(columns)]
+    for line_number, (tokens, confidence) in enumerate(((headers, "99.0"), (values, value_confidence)), 1):
+        for index, token in enumerate(tokens, 1):
+            rows.append("\t".join((
+                "5", "1", "1", "1", str(line_number), str(index),
+                str((index - 1) * 120), str(10 + (line_number - 1) * 50), "80", "20",
+                confidence, token,
+            )))
+    return "\n".join(rows) + "\n"
+
+
+def _ocr_runner(tsv: str):
+    def run(command, **_kwargs):
+        assert command[0] == "tesseract"
+        assert command[-1] == "tsv"
+        assert "chi_sim+eng" in command
+        return SimpleNamespace(returncode=0, stdout=tsv, stderr="")
+    return run
+
+
+def test_deterministic_ocr_requires_high_confidence_and_opens_a_strict_table() -> None:
+    headers = ["业务日期", "公司", "开户行", "账号", "期初余额", "期末余额", "币种"]
+    values = ["2026-07-30", "甲", "乙", "001", "100.00", "110.00", "CNY"]
+    payload = b"\x89PNG\r\n\x1a\nsynthetic-ocr-table"
+    candidate = parse_ocr_attachment(
+        family=ACCOUNT_FAMILY,
+        filename="资金账户明细表_20260730.png",
+        payload=payload,
+        source=_source(payload),
+        mime="image/png",
+        runner=_ocr_runner(_ocr_tsv(headers, values)),
+    )
+    assert len(candidate.facts.accounts) == 1
+    assert candidate.facts.parser_evidence.format == "OCR_PNG"
+    assert len(candidate.layout_fingerprint) == 64
+
+    with pytest.raises(ParseError, match="OCR_LOW_CONFIDENCE"):
+        parse_ocr_attachment(
+            family=ACCOUNT_FAMILY,
+            filename="资金账户明细表_20260730.png",
+            payload=payload,
+            source=_source(payload),
+            mime="image/png",
+            runner=_ocr_runner(_ocr_tsv(headers, values, value_confidence="97.99")),
+        )
+
+
+def test_deterministic_ocr_runtime_requires_all_pdf_tools() -> None:
+    def runner(command, **_kwargs):
+        if command[0] == "tesseract":
+            return SimpleNamespace(returncode=0, stdout="List of available languages (1):\nchi_sim\n", stderr="")
+        if command[0] == "pdfinfo":
+            raise FileNotFoundError(command[0])
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    assert deterministic_ocr_runtime_ready(runner=runner) is False
+
+
+def test_runtime_ocr_needs_two_days_of_layout_calibration_before_supporting(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import daily_funds.runtime as runtime_module
+
+    config = replace(_config(tmp_path), ocr_enabled=True)
+    runtime = DailyFundsRuntime(config)
+    headers = ["业务日期", "公司", "开户行", "账号", "期初余额", "期末余额", "币种"]
+
+    def attachment(day: str, marker: bytes, index: int) -> DownloadedAttachment:
+        payload = b"\x89PNG\r\n\x1a\n" + marker
+        moment = datetime.fromisoformat(day + "T00:00:00+00:00")
+        return DownloadedAttachment(
+            message={},
+            message_id="ocr-message-" + str(index),
+            message_id_hash=(str(index) * 64)[:64],
+            message_at=moment,
+            index=0,
+            filename="资金账户明细表_" + day.replace("-", "") + ".png",
+            family=ACCOUNT_FAMILY,
+            payload=payload,
+            sha256=sha256(payload).hexdigest(),
+            mime="image/png",
+        )
+
+    attachments = (
+        attachment("2026-07-30", b"first", 1),
+        attachment("2026-07-31", b"second", 2),
+        attachment("2026-08-01", b"third", 3),
+    )
+    candidates = []
+    for item, day in zip(attachments, ("2026-07-30", "2026-07-31", "2026-08-01")):
+        values = [day, "甲", "乙", "001", "100.00", "110.00", "CNY"]
+        candidates.append(parse_ocr_attachment(
+            family=ACCOUNT_FAMILY,
+            filename=item.filename,
+            payload=item.payload,
+            source=runtime._source_ref(item),
+            mime=item.mime,
+            runner=_ocr_runner(_ocr_tsv(headers, values)),
+        ))
+    iterator = iter(candidates)
+    monkeypatch.setattr(runtime_module, "parse_ocr_attachment", lambda **_kwargs: next(iterator))
+
+    with pytest.raises(ParseError, match="OCR_PROFILE_CALIBRATING"):
+        runtime._parse((attachments[0],))
+    with pytest.raises(ParseError, match="OCR_PROFILE_CALIBRATING"):
+        runtime._parse((attachments[1],))
+    parsed = runtime._parse((attachments[2],))
+    assert len(parsed) == 1
+    with runtime.state.connection() as connection:
+        profile_days = connection.execute("SELECT COUNT(*) FROM ocr_profile_observations").fetchone()[0]
+        outcomes = connection.execute("SELECT outcome,code FROM capability_evidence ORDER BY observed_at,attachment_sha256").fetchall()
+    # Every successful opening is retained as values-free evidence.  The first
+    # two distinct dates calibrate the layout; the third is the first one
+    # permitted to become a supported parse.
+    assert profile_days == 3
+    assert sorted(tuple(row) for row in outcomes) == sorted([
+        ("NEEDS_REVIEW", "OCR_PROFILE_CALIBRATING"),
+        ("NEEDS_REVIEW", "OCR_PROFILE_CALIBRATING"),
+        ("SUPPORTED", "PARSER_OPEN_OK"),
+    ])
 
 
 def test_runtime_capability_matrix_records_supported_and_needs_review_types(tmp_path: Path) -> None:
@@ -1595,10 +1869,11 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     git(seed, "remote", "add", "origin", str(origin))
     git(seed, "push", "--quiet", "-u", "origin", "main")
 
-    monkeypatch.setattr(config_module, "ALLOWED_PRIVATE_REPOSITORIES", frozenset({str(origin)}))
+    origin_url = origin.as_uri()
+    monkeypatch.setattr(config_module, "ALLOWED_PRIVATE_REPOSITORIES", frozenset({origin_url}))
     monkeypatch.setattr(ingestion, "DIRECT_BLOB_MAX_BYTES", 10)
     monkeypatch.setattr(ingestion, "CHUNK_BYTES", 4)
-    config = replace(_config(tmp_path), private_repo=str(origin))
+    config = replace(_config(tmp_path), private_repo=origin_url)
     writer = GitSparseWriter(config)
     scope_temp = tmp_path / "scope-temp"
     scope_temp.mkdir()
@@ -1662,6 +1937,17 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     assert RawMaterializer.readback_attachment(verification / SPARSE_PATH, direct).payload == direct_payload
     assert RawMaterializer.readback_attachment(verification / SPARSE_PATH, same_name_different_bytes).payload == changed_payload
     assert RawMaterializer.readback_attachment(verification / SPARSE_PATH, oversize).payload == oversize_payload
+
+    publication = _t06_publication()
+    publication["git_commit_sha"] = commit.commit_sha
+    publication_commit = writer.persist_publication(publication)
+    recovery_bundle = writer.bundle_head()
+    RestoreOracle.verify_private_publication_bundle(
+        recovery_bundle,
+        expected_raw_commit_sha=commit.commit_sha,
+        expected_publication_commit_sha=publication_commit,
+        publication=publication,
+    )
 
 
 def test_sparse_writer_uses_shallow_clone_for_narrow_raw_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -2111,6 +2397,21 @@ def test_source_gate_rejects_multiple_candidate_documents() -> None:
         ))
 
 
+def _t06_threshold_snapshot(
+    *,
+    fixed_risk_label: str = "高风险",
+    dynamic: str | None = None,
+    floating: list[dict[str, object]] | None = None,
+) -> dict[str, object]:
+    return {
+        "currency": "CNY",
+        "fixed": {"hard_fen": HARD_THRESHOLD_FEN, "soft_fen": SOFT_THRESHOLD_FEN},
+        "floating": [] if floating is None else floating,
+        "fixed_risk": fixed_risk_label,
+        "dynamic_flag": dynamic,
+    }
+
+
 def _t06_publication() -> dict[str, object]:
     return {
         "publication_id": "a" * 64,
@@ -2118,7 +2419,7 @@ def _t06_publication() -> dict[str, object]:
         "status": "VALID",
         "source_versions": [{"source_version": "c" * 64}, {"source_version": "d" * 64}],
         "reconciliation_difference_fen": 0,
-        "threshold_snapshot": {"fixed_risk": "正常", "dynamic_flag": None},
+        "threshold_snapshot": _t06_threshold_snapshot(),
         "created_at": "2026-07-30T12:00:00.000001Z",
         "git_commit_sha": "e" * 40,
         "d1_projection_version": "kmfa.daily_funds.d1.v1",
@@ -2135,13 +2436,7 @@ def _observer_projection(business_day: date, publication_id: str) -> dict[str, o
         "publication_id": publication_id,
         "business_date": business_day.isoformat(),
         "created_at": f"{business_day.isoformat()}T08:00:00Z",
-        "threshold_snapshot": {
-            "currency": "CNY",
-            "fixed": {"hard_fen": HARD_THRESHOLD_FEN, "soft_fen": SOFT_THRESHOLD_FEN},
-            "floating": [],
-            "fixed_risk": "正常",
-            "dynamic_flag": None,
-        },
+        "threshold_snapshot": _t06_threshold_snapshot(),
     })
     return {
         "schema_version": "kmfa.daily_funds.current_projection.v1",
@@ -2236,6 +2531,36 @@ def test_post_deploy_observer_counts_only_new_verified_business_dates(tmp_path: 
     assert runtime.config.sender_id not in json.dumps(flow, ensure_ascii=False)
 
 
+def test_post_deploy_observer_does_not_count_weekend_publications(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DF-024 needs five real working dates, not five calendar dates."""
+
+    import daily_funds.runtime as runtime_module
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    _observer_d1(runtime_module, monkeypatch)
+    monkeypatch.setenv("DAILY_FUNDS_DEPLOYMENT_MARKER", "t08-fixture-deployment")
+
+    friday = date(2026, 8, 7)
+    _write_observer_projection(runtime, friday, "a" * 64)
+    assert runtime.observer(now=datetime(2026, 8, 7, 12, tzinfo=UTC))["machine_code"] == "VALID_PUBLISHED"
+
+    saturday = date(2026, 8, 8)
+    _write_observer_projection(runtime, saturday, "b" * 64)
+    status = runtime.observer(now=datetime(2026, 8, 8, 12, tzinfo=UTC))
+    assert status["human_status"] == "已更新"
+    assert status["machine_code"] == "VALID_PUBLISHED"
+    assert runtime.state.observer_days(limit=5) == []
+    flow = json.loads((runtime.config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
+    assert flow["post_deploy_observer"]["state"] == "WAITING_FOR_NEXT_BUSINESS_DATE"
+    assert flow["post_deploy_observer"]["last_comparison"] == "NON_WORKING_DAY"
+    assert flow["post_deploy_observer"]["completed_business_days"] == 0
+
+    monday = date(2026, 8, 10)
+    _write_observer_projection(runtime, monday, "c" * 64)
+    assert runtime.observer(now=datetime(2026, 8, 10, 12, tzinfo=UTC))["machine_code"] == "VALID_PUBLISHED"
+    assert [row["business_date"] for row in runtime.state.observer_days(limit=5)] == [monday.isoformat()]
+
+
 def test_post_deploy_observer_fails_closed_when_d1_disagrees_with_pointer(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import daily_funds.runtime as runtime_module
 
@@ -2318,6 +2643,15 @@ def _t06_projection_rows() -> tuple[tuple[DailyBalance, ...], tuple[dict[str, ob
     return balances, transactions, accounts
 
 
+def _t06_report() -> ReconciliationReport:
+    return ReconciliationReport(
+        date(2026, 7, 30),
+        (AccountReconciliation("4" * 64, 100, 10, 3, 0, 0, 0, 107, 0, ("c" * 64, "d" * 64)),),
+        100, 10, 3, 0, 107, 0, {"company": 107}, {"bank": 107}, ("c" * 64, "d" * 64),
+        {"company": 0}, {"bank": 0},
+    )
+
+
 def _t06_attachment(payload: bytes = b"daily-funds-r2-fixture") -> DownloadedAttachment:
     return DownloadedAttachment(
         message={},
@@ -2357,7 +2691,7 @@ def test_d1_query_oracle_requires_both_fact_families_and_matching_ending() -> No
         "status": "VALID",
         "source_versions": [{"source_version": "a" * 64}, {"source_version": "b" * 64}],
         "reconciliation_difference_fen": 0,
-        "threshold_snapshot": {"fixed_risk": "正常", "dynamic_flag": None},
+        "threshold_snapshot": _t06_threshold_snapshot(),
         "created_at": "2026-07-30T12:00:00Z",
         "git_commit_sha": "c" * 40,
         "d1_projection_version": "kmfa.daily_funds.d1.v1",
@@ -2716,7 +3050,7 @@ def test_oci_restore_rebuilds_d1_only_after_manifest_hash_checks(tmp_path: Path)
         "status": "VALID",
         "source_versions": [{"source_version": "a" * 64}, {"source_version": "b" * 64}],
         "reconciliation_difference_fen": 0,
-        "threshold_snapshot": {"fixed_risk": "正常", "dynamic_flag": None},
+        "threshold_snapshot": _t06_threshold_snapshot(),
         "created_at": "2026-07-30T12:00:00Z",
         "git_commit_sha": raw_commit,
         "d1_projection_version": "kmfa.daily_funds.d1.v1",
@@ -2838,8 +3172,8 @@ def test_d1_failure_does_not_advance_existing_pointer(tmp_path: Path) -> None:
     pointer.write_text('{"old":true}\n', encoding="utf-8")
     report = ReconciliationReport(
         date(2026, 7, 30),
-        (AccountReconciliation("h" * 64, 100, 10, 3, 0, 0, 0, 107, 0, ("a" * 64, "b" * 64)),),
-        100, 10, 3, 0, 107, 0, {}, {}, ("a" * 64, "b" * 64),
+        (AccountReconciliation("4" * 64, 100, 10, 3, 0, 0, 0, 107, 0, ("c" * 64, "d" * 64)),),
+        100, 10, 3, 0, 107, 0, {"company": 107}, {"bank": 107}, ("c" * 64, "d" * 64),
     )
     from daily_funds.ingestion import GitCommit, StagedRawBatch
     commit = GitCommit("c" * 40, StagedRawBatch("d" * 64, (), (), 0, ()), b"bundle")
@@ -2850,13 +3184,15 @@ def test_d1_failure_does_not_advance_existing_pointer(tmp_path: Path) -> None:
         r2=_R2Okay(),
         oci=_OciUnused(),
     )
+    balances, transactions, accounts = _t06_projection_rows()
     with pytest.raises(PublicationError) as error:
         coordinator.publish(
             report=report,
             git_commit=commit,
             attachments=(),
-            daily_balances=(DailyBalance(date(2026, 7, 30), 107, True),),
-            transaction_rows=(),
+            daily_balances=balances,
+            transaction_rows=transactions,
+            account_rows=accounts,
             private_publication_sink=lambda publication: "f" * 40,
             git_bundle_sink=lambda: b"bundle",
         )
@@ -2864,7 +3200,138 @@ def test_d1_failure_does_not_advance_existing_pointer(tmp_path: Path) -> None:
     assert pointer.read_text(encoding="utf-8") == '{"old":true}\n'
 
 
-def test_r2_failure_and_oci_lag_have_distinct_pointer_semantics(tmp_path: Path) -> None:
+def test_d1_projection_rejects_non_replayable_or_inconsistent_threshold_snapshots(tmp_path: Path) -> None:
+    publication = _t06_publication()
+    balances, transactions, accounts = _t06_projection_rows()
+    d1 = D1Projection(_config(tmp_path))
+    with pytest.raises(PublicationError, match="PUBLICATION_INVALID"):
+        d1.project(
+            {**publication, "threshold_snapshot": {"currency": "CNY"}},
+            balances,
+            transactions,
+            accounts,
+        )
+    with pytest.raises(PublicationError, match="PROJECTION_THRESHOLD_MISMATCH"):
+        d1.project(
+            {**publication, "threshold_snapshot": _t06_threshold_snapshot(fixed_risk_label="正常")},
+            balances,
+            transactions,
+            accounts,
+        )
+
+
+def test_publication_rejects_report_projection_mismatch_before_any_pointer_swap(tmp_path: Path) -> None:
+    class D1MustNotRun:
+        def project(self, *args, **kwargs):
+            raise AssertionError("candidate validation must run before D1")
+
+    publication_dir = tmp_path / "publication"
+    publication_dir.mkdir()
+    pointer = publication_dir / "current.json"
+    pointer.write_text('{"old":true}\n', encoding="utf-8")
+    balances, transactions, accounts = _t06_projection_rows()
+    report = replace(_t06_report(), by_company_ending_fen={"company": 106})
+    coordinator = PublicationCoordinator(
+        publication_dir=publication_dir,
+        status=StatusWriter(publication_dir),
+        d1=D1MustNotRun(),
+        r2=_R2Okay(),
+        oci=_OciUnused(),
+    )
+    commit = GitCommit("e" * 40, StagedRawBatch("a" * 64, (), (), 0, ()), b"bundle")
+    with pytest.raises(PublicationError, match="PROJECTION_REPORT_MISMATCH"):
+        coordinator.publish(
+            report=report,
+            git_commit=commit,
+            attachments=(),
+            daily_balances=balances,
+            transaction_rows=transactions,
+            account_rows=accounts,
+            private_publication_sink=lambda publication: "f" * 40,
+            git_bundle_sink=lambda: b"bundle",
+        )
+    assert pointer.read_text(encoding="utf-8") == '{"old":true}\n'
+
+
+def test_git_publication_and_bundle_failures_retain_prior_pointer(tmp_path: Path) -> None:
+    class D1Okay:
+        def project(self, publication, balances, transactions, accounts):
+            self.publication = publication
+
+        def oracle(self, publication_id):
+            return {"publication_id": publication_id}
+
+    class OciMustNotRun:
+        def __init__(self):
+            self.calls = 0
+
+        def backup(self, **kwargs):
+            self.calls += 1
+            raise AssertionError("invalid Git stages must fail before OCI")
+
+    publication_dir = tmp_path / "publication"
+    publication_dir.mkdir()
+    pointer = publication_dir / "current.json"
+    pointer.write_text('{"old":true}\n', encoding="utf-8")
+    balances, transactions, accounts = _t06_projection_rows()
+    commit = GitCommit("e" * 40, StagedRawBatch("a" * 64, (), (), 0, ()), b"bundle")
+
+    def coordinator(oci):
+        return PublicationCoordinator(
+            publication_dir=publication_dir,
+            status=StatusWriter(publication_dir),
+            d1=D1Okay(),
+            r2=_R2Okay(),
+            oci=oci,
+        )
+
+    write_failure_oci = OciMustNotRun()
+    with pytest.raises(PublicationError, match="GIT_WRITE_FAILED"):
+        coordinator(write_failure_oci).publish(
+            report=_t06_report(),
+            git_commit=commit,
+            attachments=(),
+            daily_balances=balances,
+            transaction_rows=transactions,
+            account_rows=accounts,
+            private_publication_sink=lambda publication: (_ for _ in ()).throw(RuntimeError("fixture")),
+            git_bundle_sink=lambda: b"bundle",
+        )
+    assert write_failure_oci.calls == 0
+    assert pointer.read_text(encoding="utf-8") == '{"old":true}\n'
+
+    empty_bundle_oci = OciMustNotRun()
+    with pytest.raises(PublicationError, match="GIT_BUNDLE_EMPTY"):
+        coordinator(empty_bundle_oci).publish(
+            report=_t06_report(),
+            git_commit=commit,
+            attachments=(),
+            daily_balances=balances,
+            transaction_rows=transactions,
+            account_rows=accounts,
+            private_publication_sink=lambda publication: "f" * 40,
+            git_bundle_sink=lambda: b"",
+        )
+    assert empty_bundle_oci.calls == 0
+    assert pointer.read_text(encoding="utf-8") == '{"old":true}\n'
+
+    invalid_bundle_oci = OciMustNotRun()
+    with pytest.raises(PublicationError, match="GIT_BUNDLE_INVALID"):
+        coordinator(invalid_bundle_oci).publish(
+            report=_t06_report(),
+            git_commit=commit,
+            attachments=(),
+            daily_balances=balances,
+            transaction_rows=transactions,
+            account_rows=accounts,
+            private_publication_sink=lambda publication: "f" * 40,
+            git_bundle_sink=lambda: b"not-a-git-bundle",
+        )
+    assert invalid_bundle_oci.calls == 0
+    assert pointer.read_text(encoding="utf-8") == '{"old":true}\n'
+
+
+def test_r2_failure_and_oci_lag_have_distinct_pointer_semantics(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     class MemoryStore:
         def __init__(self):
             self.values = {}
@@ -2930,6 +3397,17 @@ def test_r2_failure_and_oci_lag_have_distinct_pointer_semantics(tmp_path: Path) 
 
     mirror = R2Mirror(MemoryStore())
     pre_mirrored = mirror.mirror((attachment,), git_commit_sha=commit.commit_sha)
+    verified_bundles: list[tuple[bytes, str, str]] = []
+
+    def verify_bundle(bundle, *, expected_raw_commit_sha, expected_publication_commit_sha, publication):
+        verified_bundles.append((bundle, expected_raw_commit_sha, expected_publication_commit_sha))
+        assert publication["status"] == "VALID"
+
+    monkeypatch.setattr(
+        RestoreOracle,
+        "verify_private_publication_bundle",
+        staticmethod(verify_bundle),
+    )
     lagging = PublicationCoordinator(
         publication_dir=publication_dir,
         status=StatusWriter(publication_dir),
@@ -2950,6 +3428,7 @@ def test_r2_failure_and_oci_lag_have_distinct_pointer_semantics(tmp_path: Path) 
     )
     current = json.loads(pointer.read_text(encoding="utf-8"))
     assert published.oci_backup_state == "LAG"
+    assert verified_bundles == [(b"bundle", "e" * 40, "f" * 40)]
     assert current["publication"]["status"] == "VALID"
     assert current["runtime"] == {"oci_backup_state": "LAG", "git_publication_commit_sha": "f" * 40}
 

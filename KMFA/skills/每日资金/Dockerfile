@@ -20,10 +20,13 @@ FROM python:3.12-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    TZ=Asia/Shanghai
+    TZ=Asia/Shanghai \
+    OMP_THREAD_LIMIT=1
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends cron git openssh-client \
+    && apt-get install -y --no-install-recommends \
+      cron git openssh-client \
+      tesseract-ocr tesseract-ocr-chi-sim poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/daily-funds

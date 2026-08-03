@@ -32,7 +32,9 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: KMFA/app/backend/requirements.txt
+          cache-dependency-path: |
+            KMFA/app/backend/requirements.txt
+            KMFA/skills/每日资金/requirements.txt
 
       - uses: actions/setup-node@v4
         with:
@@ -48,6 +50,7 @@ jobs:
           set -euo pipefail
           python -m pip install --quiet \
             -r KMFA/app/backend/requirements.txt \
+            -r KMFA/skills/每日资金/requirements.txt \
             pytest==9.1.1 httpx2==2.9.1
           python -m pytest -q KMFA/app/backend/tests
           PYTHONPATH=KMFA/skills/每日资金 python -m pytest -q KMFA/skills/每日资金/tests/test_daily_funds_contract.py
@@ -104,6 +107,10 @@ jobs:
             test -x /opt/daily-funds/scripts/run_cron_job.sh &&
             grep -Fq "/opt/daily-funds/scripts/run_cron_job.sh poll" /etc/cron.d/daily-funds &&
             grep -Fq "exec python3 /opt/daily-funds/scripts/run_daily_funds.py \"\$@\"" /opt/daily-funds/scripts/run_cron_job.sh &&
+            command -v tesseract &&
+            command -v pdfinfo &&
+            command -v pdftoppm &&
+            tesseract --list-langs | grep -Fxq chi_sim &&
             test -r /run/daily-funds-cron.pid &&
             pid=$(cat /run/daily-funds-cron.pid) &&
             test -r "/proc/$pid/comm" &&

@@ -25,17 +25,30 @@ class ThresholdControl:
         self.audit_path = self.root / "threshold_audit.jsonl"
 
     @staticmethod
-    def _read(path: Path) -> dict[str, Any] | None:
-        if not path.is_file():
+    def _read(path: Path, *, code: str) -> dict[str, Any] | None:
+        """Read one threshold-control document without converting corruption to absence.
+
+        A missing optional owner control means the frozen 3/6-month lines are
+        still usable.  A file that exists but cannot be parsed is materially
+        different: treating it as absent could silently remove a previously
+        approved custom line and lower the displayed risk.  The worker must
+        stop before publication in that case.
+        """
+
+        if path.is_symlink() or (path.exists() and not path.is_file()):
+            raise ControlError(code)
+        if not path.exists():
             return None
         try:
             value = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            return None
-        return value if isinstance(value, dict) else None
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ControlError(code) from exc
+        if not isinstance(value, dict):
+            raise ControlError(code)
+        return value
 
     def active(self) -> dict[str, Any] | None:
-        return self._read(self.active_path)
+        return self._read(self.active_path, code="THRESHOLD_ACTIVE_INVALID")
 
     @staticmethod
     def _revision(value: object, *, code: str) -> str:
@@ -68,7 +81,7 @@ class ThresholdControl:
         raise ControlError(code)
 
     def apply_pending(self) -> dict[str, Any] | None:
-        request = self._read(self.request_path)
+        request = self._read(self.request_path, code="THRESHOLD_REQUEST_INVALID")
         if request is None:
             current = self.active()
             if current is not None:

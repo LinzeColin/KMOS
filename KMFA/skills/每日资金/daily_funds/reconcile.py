@@ -236,6 +236,18 @@ def reconcile(
         raise ReconciliationError("SOURCE_FACT_PAIR_AMBIGUOUS")
     _validate_internal_transfer_pairs(unique_transactions)
     previous = _validated_prior_balances(previous_ending_by_account)
+    # A prior VALID publication is a complete account close, not an optional
+    # hint.  If it contains an account absent from the new snapshot, silently
+    # ignoring that balance could turn an omitted account into a false
+    # zero-fen reconciliation.  New accounts remain valid when their source
+    # supplies an explicit opening balance; only prior-only accounts block.
+    snapshot_hashes = {account_key_hash(key) for key in indexed_accounts}
+    prior_hashes = {
+        account_key_hash(key) if isinstance(key, tuple) else key
+        for key in previous
+    }
+    if not prior_hashes <= snapshot_hashes:
+        raise ReconciliationError("PRIOR_ACCOUNT_MISSING_FROM_SNAPSHOT")
     by_account: dict[tuple[str, str, str], list[Transaction]] = {key: [] for key in indexed_accounts}
     for transaction in unique_transactions:
         key = account_key(transaction.company, transaction.bank, transaction.account)
@@ -250,11 +262,14 @@ def reconcile(
     bank_difference: dict[str, int] = {}
     for key, snapshot in sorted(indexed_accounts.items()):
         opening = snapshot.opening_available_fen
+        tuple_opening = previous.get(key)
+        hashed_opening = previous.get(account_key_hash(key))
+        # Check the dual key representations even if the source itself has
+        # an opening balance.  Otherwise a corrupted prior journal can hide
+        # behind that source value and reappear on the next date.
+        if tuple_opening is not None and hashed_opening is not None and tuple_opening != hashed_opening:
+            raise ReconciliationError("PRIOR_BALANCE_CONFLICT")
         if opening is None:
-            tuple_opening = previous.get(key)
-            hashed_opening = previous.get(account_key_hash(key))
-            if tuple_opening is not None and hashed_opening is not None and tuple_opening != hashed_opening:
-                raise ReconciliationError("PRIOR_BALANCE_CONFLICT")
             opening = tuple_opening if tuple_opening is not None else hashed_opening
         if opening is None:
             raise ReconciliationError("OPENING_BALANCE_MISSING")

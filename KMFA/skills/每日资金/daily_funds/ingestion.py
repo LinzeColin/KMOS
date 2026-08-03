@@ -1537,7 +1537,14 @@ class GitSparseWriter:
             return commit_sha
 
     def bundle_head(self) -> bytes:
-        """Produce an ephemeral sparse-path Git bundle for OCI recovery."""
+        """Produce a self-contained private Git bundle for OCI recovery.
+
+        Normal raw writes deliberately use a shallow sparse clone.  A bundle
+        made directly from that clone can omit the raw commit's ancestry and
+        then fail ``git bundle verify`` in an empty recovery repository.  The
+        recovery-only path therefore completes the private history before
+        packing it; its temporary checkout is removed immediately afterwards.
+        """
 
         self.config.validate(include_storage=False)
         with tempfile.TemporaryDirectory(prefix="daily-funds-bundle-", dir=self.config.state_dir) as temp:
@@ -1546,6 +1553,15 @@ class GitSparseWriter:
             env = self._git_environment(temp_root, key_path)
             repo = temp_root / "private-db"
             self._clone_sparse(repo, env=env, ref=self.config.private_branch)
+            # Do not reuse the shallow raw-ingestion boundary for a disaster
+            # recovery artifact.  A standalone bundle must contain the raw
+            # commit and its full ancestor closure so an empty Git repository
+            # can verify it without depending on a live GitHub remote.
+            shallow = self._git(["rev-parse", "--is-shallow-repository"], cwd=repo, env=env).strip()
+            if shallow == "true":
+                self._git(["fetch", "--unshallow", "origin", self.config.private_branch], cwd=repo, env=env)
+            elif shallow != "false":
+                raise IngestionError("GIT_BUNDLE_INVALID")
             bundle = temp_root / "daily-funds.bundle"
             self._git(["bundle", "create", str(bundle), "HEAD"], cwd=repo, env=env)
             payload = bundle.read_bytes()

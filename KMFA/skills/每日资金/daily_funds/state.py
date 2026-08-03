@@ -73,6 +73,15 @@ class RuntimeStatus:
         }
 
 
+@dataclass(frozen=True)
+class OcrProfileDecision:
+    """Values-free result of a two-business-day OCR layout calibration."""
+
+    ready_before: bool
+    ready_after: bool
+    distinct_business_days: int
+
+
 class RuntimeState:
     """A small SQLite journal: cursors, locks, inbox, idempotency, outbox and values-free observer receipts only."""
 
@@ -162,6 +171,14 @@ class RuntimeState:
                   code TEXT NOT NULL,
                   observed_at TEXT NOT NULL,
                   PRIMARY KEY(attachment_sha256, family, parser_version)
+                );
+                CREATE TABLE IF NOT EXISTS ocr_profile_observations (
+                  family TEXT NOT NULL,
+                  layout_fingerprint TEXT NOT NULL,
+                  parser_version TEXT NOT NULL,
+                  business_date TEXT NOT NULL,
+                  observed_at TEXT NOT NULL,
+                  PRIMARY KEY(family, layout_fingerprint, parser_version, business_date)
                 );
                 CREATE TABLE IF NOT EXISTS observer_days (
                   business_date TEXT PRIMARY KEY,
@@ -403,6 +420,75 @@ class RuntimeState:
             }
             for row in rows
         ]
+
+    def observe_ocr_layout(
+        self,
+        *,
+        family: str,
+        layout_fingerprint: str,
+        parser_version: str,
+        business_date: date,
+    ) -> OcrProfileDecision:
+        """Record one redacted layout observation and enforce the calibration gate.
+
+        A deterministic OCR open alone is not a production template.  The
+        first two distinct business dates merely establish that a layout has
+        repeated.  Only a later attachment with the already-calibrated layout
+        can enter the regular parse/reconciliation path; all earlier samples
+        remain capability evidence, not publishable money facts.
+        """
+
+        if (
+            not isinstance(family, str)
+            or not family
+            or len(family) > 128
+            or any(ord(character) < 32 for character in family)
+        ):
+            raise ValueError("invalid OCR profile family")
+        if (
+            not isinstance(layout_fingerprint, str)
+            or len(layout_fingerprint) != 64
+            or any(character not in "0123456789abcdef" for character in layout_fingerprint)
+        ):
+            raise ValueError("invalid OCR layout fingerprint")
+        if (
+            not isinstance(parser_version, str)
+            or not parser_version
+            or len(parser_version) > 128
+            or any(ord(character) < 32 for character in parser_version)
+        ):
+            raise ValueError("invalid OCR parser version")
+        if not isinstance(business_date, date) or isinstance(business_date, datetime):
+            raise ValueError("invalid OCR business date")
+        business_date_text = business_date.isoformat()
+        with self.connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            try:
+                before = connection.execute(
+                    """SELECT COUNT(*) FROM ocr_profile_observations
+                       WHERE family=? AND layout_fingerprint=? AND parser_version=?""",
+                    (family, layout_fingerprint, parser_version),
+                ).fetchone()[0]
+                connection.execute(
+                    """INSERT OR IGNORE INTO ocr_profile_observations(
+                           family,layout_fingerprint,parser_version,business_date,observed_at
+                       ) VALUES(?,?,?,?,?)""",
+                    (family, layout_fingerprint, parser_version, business_date_text, iso_now()),
+                )
+                after = connection.execute(
+                    """SELECT COUNT(*) FROM ocr_profile_observations
+                       WHERE family=? AND layout_fingerprint=? AND parser_version=?""",
+                    (family, layout_fingerprint, parser_version),
+                ).fetchone()[0]
+                connection.execute("COMMIT")
+            except Exception:
+                connection.execute("ROLLBACK")
+                raise
+        return OcrProfileDecision(
+            ready_before=int(before) >= 2,
+            ready_after=int(after) >= 2,
+            distinct_business_days=int(after),
+        )
 
     def network_ledger_summary(self) -> list[dict[str, Any]]:
         """Return aggregate, values-free network evidence for the protected UI."""
