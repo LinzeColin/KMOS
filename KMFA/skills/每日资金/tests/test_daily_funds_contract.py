@@ -1497,35 +1497,53 @@ def test_overlap_reopens_verified_raw_without_repeating_media_download(tmp_path:
         sha256=sha256(payload).hexdigest(),
         mime="image/png",
     )
-    message = {"fixture": "overlap"}
+    second_payload = b"\x89PNG\r\n\x1a\nsynthetic-overlap-image-two"
+    second_attachment = DownloadedAttachment(
+        message={"fixture": "overlap-two"},
+        message_id="overlap-message-two",
+        message_id_hash=sha256(b"overlap-message-two").hexdigest(),
+        message_at=attachment.message_at,
+        index=0,
+        filename="资金明细_20260730_2.png",
+        family="资金明细",
+        payload=second_payload,
+        sha256=sha256(second_payload).hexdigest(),
+        mime="image/png",
+    )
+    attachments_by_message = {
+        attachment.message["fixture"]: attachment,
+        second_attachment.message["fixture"]: second_attachment,
+    }
+    messages = tuple(item.message for item in (attachment, second_attachment))
 
     class CachedClient:
         @staticmethod
         def search(_start, _end, _cursor):
-            return DwsPage(messages=(message,), next_cursor=None, has_more=False)
+            return DwsPage(messages=messages, next_cursor=None, has_more=False)
 
         @staticmethod
         def selected_messages(_page):
-            return (message,)
+            return messages
 
         @staticmethod
         def attachment_count(_message):
             return 1
 
         @staticmethod
-        def message_id_hash(_message):
-            return attachment.message_id_hash
+        def message_id_hash(message):
+            return attachments_by_message[message["fixture"]].message_id_hash
 
         @staticmethod
-        def reopen_candidate(_message, _index, attachment_sha256):
-            assert attachment_sha256 == attachment.sha256
+        def reopen_candidate(message, _index, attachment_sha256):
+            raw = attachments_by_message[message["fixture"]]
+            assert attachment_sha256 == raw.sha256
             return PersistedRawAttachment(
-                message=attachment.message,
-                message_id=attachment.message_id,
-                message_id_hash=attachment.message_id_hash,
-                message_at=attachment.message_at,
-                index=attachment.index,
-                sha256=attachment.sha256,
+                message=raw.message,
+                message_id=raw.message_id,
+                message_id_hash=raw.message_id_hash,
+                message_at=raw.message_at,
+                index=raw.index,
+                sha256=raw.sha256,
             )
 
         @staticmethod
@@ -1541,27 +1559,30 @@ def test_overlap_reopens_verified_raw_without_repeating_media_download(tmp_path:
         def reopen_persisted(self, attachments):
             candidates = tuple(attachments)
             reopened.append(candidates)
-            assert candidates == (PersistedRawAttachment(
-                message=attachment.message,
-                message_id=attachment.message_id,
-                message_id_hash=attachment.message_id_hash,
-                message_at=attachment.message_at,
-                index=attachment.index,
-                sha256=attachment.sha256,
-            ),)
-            return GitCommit("b" * 40, SimpleNamespace(), (attachment,))
+            assert candidates == tuple(
+                PersistedRawAttachment(
+                    message=raw.message,
+                    message_id=raw.message_id,
+                    message_id_hash=raw.message_id_hash,
+                    message_at=raw.message_at,
+                    index=raw.index,
+                    sha256=raw.sha256,
+                )
+                for raw in (attachment, second_attachment)
+            )
+            return GitCommit("b" * 40, SimpleNamespace(), (attachment, second_attachment))
 
         def persist(self, _attachments):
             pytest.fail("verified overlap must not create a second raw write")
 
     runtime = DailyFundsRuntime(config)
-    occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
-    assert runtime.state.note_inbox(
-        occurrence_key,
-        attachment.message_id_hash,
-        attachment.sha256,
-        "GIT_PERSISTED",
-    )
+    for raw in (attachment, second_attachment):
+        assert runtime.state.note_inbox(
+            f"{raw.message_id_hash}:{raw.index}:{raw.sha256}",
+            raw.message_id_hash,
+            raw.sha256,
+            "GIT_PERSISTED",
+        )
     monkeypatch.setattr(runtime, "_dws_client", lambda: CachedClient())
     monkeypatch.setattr(runtime_module, "GitSparseWriter", ReadbackWriter)
     monkeypatch.setattr(runtime, "_coordinator", lambda: pytest.fail("archive-only must not publish"))
@@ -1575,7 +1596,7 @@ def test_overlap_reopens_verified_raw_without_repeating_media_download(tmp_path:
     )
 
     assert result["ok"] is True
-    assert result["attachments"] == 1
+    assert result["attachments"] == 2
     assert len(reopened) == 1
 
 

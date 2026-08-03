@@ -1425,15 +1425,24 @@ class DailyFundsRuntime:
             selected = client.selected_messages(page)
             if selected:
                 target_document_seen = True
-            page_attachments: list[DownloadedAttachment] = []
+            selected_attachment_counts: list[tuple[dict[str, Any], int]] = []
             for message in selected:
                 attachment_count = client.attachment_count(message)
                 if attachment_count == 0:
                     source_discovery_state = "TARGET_ATTACHMENT_MISSING"
                     raise IngestionError("SOURCE_ATTACHMENT_MISSING")
                 target_attachment_seen = True
+                selected_attachment_counts.append((message, attachment_count))
+
+            # Raw batches bind the complete history page, not each message in
+            # isolation.  Re-open the whole page only when every occurrence
+            # has one durable raw receipt; otherwise retain the original
+            # all-source download/write behavior so a partial synthetic batch
+            # can never masquerade as the original evidence set.
+            cached_attachments: list[PersistedRawAttachment] = []
+            page_is_fully_reusable = bool(selected_attachment_counts)
+            for message, attachment_count in selected_attachment_counts:
                 message_id_hash = client.message_id_hash(message)
-                cached_attachments: list[PersistedRawAttachment] = []
                 for index in range(attachment_count):
                     attachment_sha256 = self.state.reusable_raw_attachment_sha(message_id_hash, index)
                     cached = (
@@ -1442,21 +1451,26 @@ class DailyFundsRuntime:
                         else None
                     )
                     if cached is None:
-                        cached_attachments = []
+                        page_is_fully_reusable = False
                         break
                     cached_attachments.append(cached)
-                if cached_attachments:
-                    commit = self._lease_call(
-                        "git_writer_lock",
-                        ttl_seconds=13 * 60,
-                        code="GIT_WRITER_LOCK_HELD",
-                        callback=lambda: writer.reopen_persisted(cached_attachments),
-                    )
-                    commits.append(commit)
-                    all_attachments.extend(commit.verified_attachments)
-                    continue
-                for index in range(attachment_count):
-                    page_attachments.append(client.download(message, index))
+                if not page_is_fully_reusable:
+                    break
+            if page_is_fully_reusable:
+                commit = self._lease_call(
+                    "git_writer_lock",
+                    ttl_seconds=13 * 60,
+                    code="GIT_WRITER_LOCK_HELD",
+                    callback=lambda: writer.reopen_persisted(cached_attachments),
+                )
+                commits.append(commit)
+                all_attachments.extend(commit.verified_attachments)
+                return
+            page_attachments = [
+                client.download(message, index)
+                for message, attachment_count in selected_attachment_counts
+                for index in range(attachment_count)
+            ]
             if page_attachments:
                 commit = self._lease_call(
                     "git_writer_lock",
