@@ -21,12 +21,14 @@
 
 ## 每日资金 v0.0.0.1（当前受控实现，2026-08-03）
 
-### 当前真实状态（T11 后，以此小节为准）
+### 当前真实状态（T12 后，以此小节为准）
 
-- 唯一当前证据是 `machine/runs/daily_funds/semantic_reconcile_end.json`。运行代码已直接推送到 `main`（无分支、无 PR）：`7504a7f8cc2d74d3f4bac4f1181a29b00c2cb879`；其 Coolify finished deployment 为 `hmbs39c5kugld8d5nrmj0snf`，镜像为 `sha256:e76d6c0df06920a22be3d71118eb66b38de67a674573159da87a4426feb7f3ad`，完成于 `2026-08-03T01:43:48Z`。后续仅更新证据文档的 `main` 提交不得误写成运行镜像源码。
-- 当前实测：容器 `running/healthy`、worker healthcheck、独立 DWS `auth-probe`、DWS keepalive 与公开 `/healthz` 均正常；当前 15 分钟轮询终态为 `SOURCE_MATCH_ZERO`，最新无值来源诊断为 `HISTORY_EMPTY`。这证明调度和来源门正常失败关闭，绝不等同于任何资金金额、账户、附件解析或已发布结果。
-- 生产 `current.json` 与 `history.json` 均不存在，状态保持“需处理”；无完整账户余额加资金流水事实对，因此未运行整数分勾稽，D1/R2/OCI publication、恢复演练及五工作日观察均为 `NOT_RUN`。不允许从历史部署、DWS 授权、单一归档附件或健康 HTTP 推导为资金 publication PASS。
-- 每日资金合约 `87 passed, 1 skipped`、任务包原件校验 `PASS requirements=24 tasks=11 acceptance=17`；它们只证明实现和封包门。真实完成仍须由目标群的确定性双事实样本、零分差勾稽、D1/R2/OCI/私库回执、恢复 Oracle 与观察回执逐项闭合。
+- 唯一当前证据是 `machine/runs/daily_funds/semantic_reconcile_end.json`。运行代码已直接推送到 `main`（无分支、无 PR）；生产溯源已确认运行源码精确匹配 `b8ac56ce75712f9937a209d9ad456b05e91e80e5`，GitHub 部署与独立容器门均成功，切换后公开 `/healthz` 为 HTTP 200。后续仅更新证据文档的 `main` 提交不得误写成运行镜像源码。
+- 新版后的首个真实 `*/15` 历史轮询已在 `2026-08-03T05:45:03Z` 终态返回 `SOURCE_MATCH_ZERO`；它不是 `DWS_AUTH_REQUIRED`、下载失败或部署失败。该结果只证明历史查询完成后未形成可发布的确定性双事实组合，绝不等同于任何资金金额、账户、附件解析或已发布结果。
+- 对私库固定 raw 路径作了只读、无值审计：当前 4 份候选 occurrence 的来源文档族均为“资金明细”，为 4 份 PNG；“资金账户明细表”候选为 0。因此不存在可供整数分勾稽的账户余额加资金流水事实对。不得从单一流水图片、历史部署、授权状态或 HTTP 健康推导资金 publication PASS。
+- 私库路径尚无正式 publication；D1/R2/OCI 的真实业务写入、恢复演练和五工作日观察均为 `NOT_RUN`。系统保持“需处理”并保留 fail-closed，不覆盖任何可信结果。
+- 本轮代码合约 `101 passed, 1 skipped`；任务包、GitHub 远程 E2E、独立每日资金容器、部署与治理门均通过。这些证明实现、隔离和发布，不替代来源双事实与零分差业务门。
+- 经 Owner 明确许可执行的基础设施清理只涉及 Docker build cache / 未使用镜像；卷和网络均未选择或清理。
 - 下方较早的 T08/T09/T10/T11 条目均为历史记录；凡与本小节或 `machine/runs/daily_funds/semantic_reconcile_end.json` 冲突者，一律失效，不得作为当前生产或真实资金 PASS 依据。
 
 - 当前执行合同：`KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip`，SHA-256 `072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1`。2026-08-02 T08 重取移动基线：`origin/main=2e3621ecf361aa98f2c1dbb5bc3fcdea6b0b2b72`，是当前本地受控候选的祖先，候选尚未上传。此前 Coolify `running:healthy`、deployments 返回 0 条与 container execute 返回 404 都只是历史只读观察；T08 未重取生产身份，故当前 production source/image/deployment identity 仍为 `UNKNOWN`。`f75a1dc6…` 仅是最后一条历史源码记录，不能冒充现网身份，更不得把平台状态写成业务链路 PASS。
