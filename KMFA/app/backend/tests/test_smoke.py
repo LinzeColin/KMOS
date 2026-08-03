@@ -57,14 +57,12 @@ def test_skills_enriched_fields():
     assert isinstance(attendance["本地路径硬编码"], int)
 
 
-def test_index_serves_the_cockpit_app_not_a_brochure():
-    # Owner 2026-07-27：「把这个恶心的页面彻底删除掉，不允许死而复活无数次，我只要我的软件」。
-    # 根路径不再是任何门面，而是驾驶舱应用本体；匿名公开壳仍在 /workspace（见下一个测试）。
-    # 根路径归属另有专门守卫 test_root_is_the_app_not_a_brochure.py，请勿改回。
+def test_index_serves_the_anonymous_public_entry():
+    # Owner 2026-08-03：默认 KMFA 网站是公开页面，不需要登录。
     r = client.get("/", follow_redirects=False)
     assert r.status_code == 200 and "location" not in r.headers
-    assert "KMFA｜经营驾驶舱" in r.text and '<div id="root">' in r.text
-    assert "把钱、票、成本与拍板" not in r.text, "宣传主张不得回到根路径"
+    assert "KMFA｜公开工作区" in r.text and '<div id="root">' in r.text
+    assert "一个入口，通往项目、文件与可验证进度。" in r.text
     assert r.text.count("data-static-shell-entry=") == 6
 
 

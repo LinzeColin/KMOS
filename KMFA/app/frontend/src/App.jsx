@@ -1625,10 +1625,8 @@ function 完工成本({ 完工, 展开, 设展开 }) {
         <Kpi 标="金蝶归集成本" 值={金额(合('金蝶归集直接成本'))} 小 注="按销售合同号归集" />
       </div>
 
-      {/* Owner 2026-07-29：「首页依旧进不去项目成本」。此前入口写在 PublicAppShell，
-          而根路径加载的是本文件（App.jsx）——PublicAppShell 只在 /workspace 用。
-          验的时候只 grep 了 JS 包里有没有那个字符串，没验它渲不渲得出来。
-          这里是 Owner 点「项目成本」真正落到的地方，入口必须在这。 */}
+      {/* 私有经营驾驶舱（/ops/app）也保留公开项目成本入口，供已有 Access 操作人员
+          直接切换。默认根路径由 PublicAppShell 承载，因此这里不再承担匿名入口职责。 */}
       <div className="card callout" style={{ borderLeftColor: '#1d5c8f' }}>
         <b>要看成本合计、毛利与毛利率 → <a href="/project-cost">打开项目成本表</a></b>
         <div className="sub">

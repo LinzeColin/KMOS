@@ -26,9 +26,8 @@ NO_INDEX = "noindex, nofollow, noarchive"
 
 
 def _goto_home(page: Page, base_url: str) -> None:
-    # Owner 2026-07-26：根路径已归位 KMFA 经营驾驶舱；本套测的是**匿名公共壳**的
-    # 无障碍与索引边界，故指向 /workspace（v1.5.2 契约在此完整保留）。
-    response = page.goto(f"{base_url}/workspace", wait_until="networkidle", timeout=30_000)
+    # Owner 2026-08-03：默认根路径必须是无需登录的匿名公共 App Shell。
+    response = page.goto(f"{base_url}/", wait_until="networkidle", timeout=30_000)
     assert response and response.status == 200
     page.locator('[data-shell-ready="true"]').wait_for(timeout=10_000)
     page.locator('[data-system-state="online"]').wait_for(timeout=10_000)

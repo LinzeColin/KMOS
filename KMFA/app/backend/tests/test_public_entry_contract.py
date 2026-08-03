@@ -62,10 +62,8 @@ def test_root_is_direct_canonical_app_entry():
 
 
 def test_root_contains_complete_static_shell_without_account_controls():
-    # Owner 2026-07-26（第二次）：根域名必须是 KMFA 经营驾驶舱门面，不是匿名工作区。
-    # v1.5.2 匿名 App Shell 契约**不删除**，平移到 /workspace 继续完整成立。
-    # 根路径归属由 test_root_is_kmfa_home.py 守卫，请勿改回。
-    html = client.get("/workspace").text
+    # Owner 2026-08-03：根域名就是匿名公开入口；/workspace 是兼容别名。
+    html = client.get("/").text
     entries = re.findall(r'data-static-shell-entry="([a-z]+)"', html)
     assert entries == ["project", "upload", "search", "progress", "report", "help"]
     for label in ("项目", "上传", "搜索", "进度", "报告", "帮助"):
@@ -173,7 +171,7 @@ def test_promoted_index_mode_allows_only_the_canonical_root(monkeypatch):
         '<meta name="robots" content="index,follow,max-snippet:-1">',
         '<meta property="og:type" content="website">',
         '<meta property="og:site_name" content="KMFA">',
-        '<meta property="og:title" content="KMFA｜经营驾驶舱">',
+        '<meta property="og:title" content="KMFA｜公开工作区">',
         '<meta property="og:locale" content="zh_CN">',
         '<meta name="twitter:card" content="summary">',
     ):

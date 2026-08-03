@@ -82,14 +82,11 @@ function loadPublicAppShell() {
   return import('./PublicAppShell.jsx')
 }
 
-// Owner 2026-07-27：「把这个恶心的页面彻底删除掉，不允许死而复活无数次，我只要我的软件」。
-// 根路径不再是任何门面/宣传页——它**就是**经营驾驶舱本体，与 /ops/app 同一个应用。
-// 真实经营数字仍由边缘层 Cloudflare Access 守在 /api* 与 /ops* 之后：未认证者拿到的是
-// 空数据的界面，不是数字；认证一次之后根路径直接可用。
-// v1.5.2 匿名 App Shell 不删除，仍在 /workspace（那是给外人看的公开面）。
-const isPublicWorkspace = pathname === '/workspace' || pathname.startsWith('/workspace/')
-
-const appModule = (isPrivateOperationsApp || !isPublicWorkspace)
+// Owner 2026-08-03：默认网站入口必须公开，访问者不需要登录。
+// 根路径与 /workspace 都只加载不读取经营数据的公共工作区；私有经营驾驶舱
+// 仅保留在 /ops/app，并继续由 Cloudflare Access 与源站 JWT 双重保护。
+// 这不是移除私有面守卫：公共壳只会调用 /healthz 和 public-api 命名空间。
+const appModule = isPrivateOperationsApp
   ? loadPrivateOperationsApp()
   : loadPublicAppShell()
 
