@@ -1,124 +1,98 @@
 {
   "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
-  "stage": "T10_POST_DEPLOY_CURRENT",
-  "observed_at": "2026-08-02T14:41:18Z",
+  "stage": "T11_LIVE_SOURCE_AND_RECEIPT_RECONCILE",
+  "observed_at": "2026-08-03T01:50:25Z",
   "taskpack": {
     "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
     "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
     "verified": true
   },
   "git_baseline": {
-    "start_origin_main": "2e3621ecf361aa98f2c1dbb5bc3fcdea6b0b2b72",
-    "runtime_source_commit": "64adf0e339603034c35e95175b24a24056c5ec55",
+    "start_origin_main": "19bb051c102162f02a019580a6b39d028065697e",
+    "runtime_source_commit": "7504a7f8cc2d74d3f4bac4f1181a29b00c2cb879",
     "deployment_mode": "DIRECT_MAIN_NO_BRANCH_NO_PR",
-    "runtime_source_observation": "VERIFIED_BY_FINISHED_COOLIFY_DEPLOYMENT_RECORD",
-    "post_runtime_evidence_rule": "This record is evidence-only and must not be represented as a new runtime image."
+    "semantic_reconcile": "LATEST_MAIN_FETCHED_BEFORE_PUSH__LINEAR_DIFF_ONLY__POST_PUSH_REMOTE_EQUALS_HEAD"
   },
   "production_identity": {
-    "coolify_deployment_uuid": "ugequ5oju62z7e8t3gdiqmk3",
+    "coolify_deployment_uuid": "hmbs39c5kugld8d5nrmj0snf",
     "deployment_status": "finished",
-    "deployment_completed_at": "2026-08-02T14:38:12Z",
-    "source_commit": "64adf0e339603034c35e95175b24a24056c5ec55",
-    "image_digest": "sha256:21e627549291c4331deaff6ce54a38a3096e295a3129da61f88266ad2e58f3d6",
-    "identity_receipt": "github-actions:30752557830",
-    "application_health": "OBSERVED_RUNNING_HEALTHY",
-    "application_inventory_receipt": "github-actions:30752653102"
+    "deployment_completed_at": "2026-08-03T01:43:48Z",
+    "source_commit": "7504a7f8cc2d74d3f4bac4f1181a29b00c2cb879",
+    "image_digest": "sha256:e76d6c0df06920a22be3d71118eb66b38de67a674573159da87a4426feb7f3ad",
+    "identity_receipt": "github-actions:30777650971",
+    "application_health": "OBSERVED_RUNNING_HEALTHY__PUBLIC_HEALTHZ_200_AFTER_SWITCHOVER"
   },
   "deployment_validation": {
-    "main_deploy_workflow": "SUCCESS github-actions:30751916050",
-    "remote_app_e2e_gate": "SUCCESS github-actions-job:91507332325",
-    "golden_path_verify": "SUCCESS github-actions-job:91508124909",
-    "golden_path_deploy": "SUCCESS github-actions-job:91508162053",
-    "public_root_http": 200,
+    "main_deploy_workflow": "SUCCESS github-actions:30777075458",
+    "governance_workflow": "SUCCESS github-actions:30777075252",
+    "daily_funds_contract": "PASS 87 passed, 1 skipped",
+    "daily_funds_image_build_and_standalone_cron_guard": "PASS",
+    "taskpack_projection_and_mutation_suite": "PASS",
+    "dual_plane_governance": "PASS",
     "public_healthz_http": 200,
-    "public_skill_health_http": 200,
-    "legacy_public_skill_ledger_daily_funds": "0 scheduled rows; this separate legacy ledger is not a daily-funds worker receipt",
-    "private_daily_funds_entry_without_access": "302_TO_CLOUDFLARE_ACCESS",
-    "protected_ui_browser": "ACCESS_LOGIN_REQUIRED_IN_AVAILABLE_IN_APP_BROWSER; NO_LOGIN_OR_DATA_ACCESS_ATTEMPTED"
-  },
-  "runtime_configuration": {
-    "daily_funds_required_secret_keys": "PRESENT_IN_COOLIFY_VALUES_NOT_EQUALITY_VERIFIED",
-    "optional_dws_client_override": "EMPTY_ALLOWED",
-    "optional_dws_recovery_bundle": "EMPTY_ALLOWED",
-    "configuration_inventory_receipt": "github-actions:30751690333"
-  },
-  "cloud_control_plane_read_only": {
-    "receipt": "Cloudflare API read-only 2026-08-02T14:4xZ",
-    "d1_daily_funds_named_databases": 2,
-    "d1_primary_schema": "ONLY _cf_KV TABLE",
-    "d1_restore_schema": "ONLY _cf_KV TABLE",
-    "r2_daily_funds_bucket": "PRESENT",
-    "r2_daily_funds_returned_object_count": 0,
-    "r2_daily_funds_pagination_present": false,
-    "interpretation": "Control-plane resources are reachable, but no D1 daily-funds projection schema or R2 artifact was observed. This is not a source, worker, or publication PASS."
+    "protected_daily_funds_ui": "UNKNOWN_NO_AUTHENTICATED_ACCESS_UI_RECEIPT"
   },
   "safety_state": {
-    "group_robot_credentials": "REMOVED_FROM_ALL_OBSERVED_CONTEXTS",
     "delivery_enabled": false,
-    "receipt": "github-actions:30751749859",
-    "rule": "No DingTalk group delivery was performed during verification. Zhang Linze's account remains an allowed DWS identity only; it does not replace the fixed source triple gate."
+    "group_delivery": "NOT_PERFORMED",
+    "raw_or_financial_values_in_public_record": false,
+    "rule": "This receipt contains only redacted operational outcomes; it contains no source identifiers, attachment bytes, financial values, account data, or credentials."
   },
   "semantic_reconcile": [
     {
       "subject": "independent_daily_funds_runtime",
-      "classification": "DEPLOYED_CODE_AND_COMPOSE_CONTRACT_VERIFIED",
-      "decision": "No local mount, existing Skill runtime, Agent, or model is a valid production dependency."
+      "classification": "VERIFIED_DEPLOYED_AND_ISOLATED",
+      "decision": "Container audit, named-volume layout, isolated DWS configuration, and no-other-skill process boundary were verified without using a local runtime dependency."
     },
     {
-      "subject": "protected_status_and_ui",
-      "classification": "EDGE_BOUNDARY_VERIFIED_UI_CONTENT_UNKNOWN",
-      "decision": "A public 200 or an Access redirect is not a private UI receipt. The available browser had no Access session and no authentication was attempted."
+      "subject": "status_receipt_serialization",
+      "classification": "VERIFIED_IN_PRODUCTION",
+      "decision": "The deployed flow-state file-lock code is present; poll, auth-probe, and keepalive terminal receipts match the durable SQLite run ledger."
     },
     {
-      "subject": "cloud_worker_introspection",
-      "classification": "UNKNOWN",
-      "decision": "Coolify application execute endpoint returned HTTP 404; no process, cron, volume, or status-file result was inferred from it."
-    },
-    {
-      "subject": "dingtalk_cloud_auth_and_current_history_poll",
-      "classification": "UNKNOWN",
-      "decision": "The deployment and configured-key presence do not prove an independent authenticated DWS profile or a completed 15-minute history query. No current-day source result is claimed."
+      "subject": "dingtalk_cloud_auth_and_history_poll",
+      "classification": "AUTH_VERIFIED__POLL_COMPLETED_FAIL_CLOSED",
+      "decision": "The slice-local DWS session reports authenticated and refresh-token-valid. The scheduled current-window history poll completed with SOURCE_MATCH_ZERO, so no source result was inferred or published."
     },
     {
       "subject": "raw_evidence_private_git_and_attachment_capability",
-      "classification": "NOT_YET_LIVE_RECEIPTED",
-      "decision": "No verified raw manifest, sparse writer commit, real attachment parser receipt, or source triple-gate receipt was observed."
+      "classification": "LIVE_ARCHIVE_VERIFIED__NEEDS_REVIEW",
+      "decision": "A sparse private-Git readback verified one archived transaction-family image occurrence. Image/OCR is intentionally unsupported by the deterministic parser, therefore its capability remains NEEDS_REVIEW rather than a financial fact."
     },
     {
-      "subject": "integer_reconciliation_thresholds_d1_r2_oci_restore",
-      "classification": "SYNTHETIC_CONTRACT_ONLY",
-      "decision": "Local contracts validate fail-closed logic. Read-only D1/R2 control-plane checks found no daily-funds projection or object; OCI backup, empty-environment restore, and five-business-day observation are not PASS."
+      "subject": "dual_fact_and_reconciliation_gate",
+      "classification": "NOT_RUN_NO_COMPLETE_FACT_PAIR",
+      "decision": "The verified archive slice contains a transaction fact family but not the required account-snapshot fact family. No amount was inferred from the image, no zero-fen reconciliation ran, and no publication pointer advanced."
+    },
+    {
+      "subject": "d1_r2_oci_restore_and_observer",
+      "classification": "NOT_RUN_NO_VALID_PUBLICATION",
+      "decision": "D1/R2/OCI publication, restore drill, and five-business-day observation remain unstarted until a deterministic, complete two-fact source pair passes the zero-fen gate."
     }
   ],
   "validation": {
-    "local": {
-      "daily_funds_contract": "PASS 87 passed",
-      "affected_backend_regression": "PASS 45 passed",
-      "frontend_production_build": "PASS",
-      "taskpack_projection": "PASS repository validator",
-      "synthetic_browser_oracle": "PASS 5 scenarios; production identity not evaluated"
-    },
     "production": {
-      "runtime_source_and_image": "PASS finished Coolify record matches main runtime source",
-      "application_and_public_edge": "PASS limited to deployment workflow, Coolify running:healthy, and public HTTP probes",
-      "protected_daily_funds_ui": "UNKNOWN no authenticated Access session",
-      "isolated_dws_auth": "UNKNOWN",
-      "scheduled_primary_history_poll": "UNKNOWN",
-      "trusted_money_publication": "NOT_PRESENT (D1/R2 read-only control-plane evidence)",
-      "container_execute_endpoint": "HTTP_404"
+      "runtime_source_and_image": "PASS_EXACT_DEPLOYMENT_IDENTITY",
+      "public_application_health": "PASS_LIMITED_TO_HEALTHZ",
+      "isolated_dws_auth": "PASS_VALUES_FREE_AUTH_STATUS",
+      "scheduled_primary_history_poll": "PASS_TERMINAL_RECEIPT__SOURCE_MATCH_ZERO",
+      "raw_private_git_authority": "PASS_VALUES_FREE_SPARSE_READBACK",
+      "trusted_money_publication": "NOT_PRESENT",
+      "protected_daily_funds_ui": "UNKNOWN_NO_AUTHENTICATED_BROWSER_RECEIPT"
     }
   },
   "real_data_chain": {
     "business_source_selector": "TASKPACK_FIXED_TRIPLE_GATE",
-    "independent_dws_auth_identity": "UNKNOWN",
-    "current_day_group_history": "UNKNOWN",
-    "private_database_sparse_writer": "NOT_YET_LIVE_RECEIPTED",
-    "real_attachment_parser_capability": "UNKNOWN",
-    "real_money_reconciliation": "UNKNOWN",
-    "d1_r2_oci_publication": "D1_AND_R2_READABLE__NO_DAILY_FUNDS_ARTIFACT_OBSERVED__OCI_UNKNOWN",
-    "restore_drill": "NOT_STARTED_NO_VALID_PUBLICATION",
+    "independent_dws_auth": "VERIFIED",
+    "current_window_history": "COMPLETED_SOURCE_MATCH_ZERO",
+    "private_database_sparse_writer": "VERIFIED_FOR_ARCHIVED_RAW_READBACK",
+    "real_attachment_capability": "PNG_TRANSACTION_FAMILY_NEEDS_REVIEW",
+    "source_fact_completeness": "TRANSACTION_PRESENT__ACCOUNT_SNAPSHOT_NOT_PRESENT_IN_VERIFIED_ARCHIVE_SLICE",
+    "real_money_reconciliation": "NOT_RUN",
+    "d1_r2_oci_publication": "NOT_RUN_NO_VALID_PUBLICATION",
+    "restore_drill": "NOT_RUN_NO_VALID_PUBLICATION",
     "five_business_day_shadow_observation": "NOT_STARTED_NO_VALID_PUBLICATION",
-    "rule": "UNKNOWN, a deployment success, a public 200, configured key presence, and a missing publication are never converted to PASS."
+    "rule": "A successful deployment, DWS authentication, or raw archive cannot be converted into a financial-publication PASS without a deterministic account-plus-transaction fact pair and zero-fen reconciliation."
   },
-  "final_status": "T10_RUNTIME_DEPLOYED_AND_IDENTIFIED__LIVE_SOURCE_TO_PUBLICATION_CHAIN_UNVERIFIED"
+  "final_status": "T11_CLOUD_RUNTIME_AUTH_AND_RAW_ARCHIVE_VERIFIED__NO_COMPLETE_FACT_PAIR__PUBLICATION_HELD_FAIL_CLOSED"
 }
