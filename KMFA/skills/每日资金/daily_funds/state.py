@@ -260,6 +260,44 @@ class RuntimeState:
         with self.connection() as connection:
             connection.execute("UPDATE inbox SET state=?,updated_at=? WHERE occurrence_key=?", (_safe_code(state), iso_now(), occurrence_key))
 
+    def reusable_raw_attachment_sha(self, message_id_hash: str, attachment_index: int) -> str | None:
+        """Return one previously verified raw object for a repeated occurrence.
+
+        The live poll intentionally overlaps its prior 30 minutes.  A media
+        URL in an already-archived DingTalk message can expire before that
+        overlap is fetched again, but a previous successful Git persistence is
+        still only reusable when it has one unambiguous durable receipt.  Any
+        malformed, conflicting, or non-terminal receipt falls back to the
+        normal source-download path instead of guessing.
+        """
+
+        if (
+            not isinstance(message_id_hash, str)
+            or len(message_id_hash) != 64
+            or any(character not in "0123456789abcdef" for character in message_id_hash)
+            or not isinstance(attachment_index, int)
+            or isinstance(attachment_index, bool)
+            or attachment_index < 0
+        ):
+            return None
+        with self.connection() as connection:
+            rows = connection.execute(
+                """SELECT attachment_sha256,state FROM inbox
+                   WHERE message_id_hash=? AND occurrence_key LIKE ?""",
+                (message_id_hash, f"{message_id_hash}:{attachment_index}:%"),
+            ).fetchall()
+        if len(rows) != 1:
+            return None
+        attachment_sha256 = str(rows[0]["attachment_sha256"] or "")
+        state = str(rows[0]["state"] or "")
+        if (
+            len(attachment_sha256) != 64
+            or any(character not in "0123456789abcdef" for character in attachment_sha256)
+            or state not in {"GIT_PERSISTED", "ARCHIVED_CAPABILITY_RECORDED", "VALID_PUBLISHED"}
+        ):
+            return None
+        return attachment_sha256
+
     def record_run(self, run_id: str, kind: str, state: str, code: str, *, finished: bool = False) -> None:
         now = iso_now()
         with self.connection() as connection:

@@ -763,8 +763,66 @@ class DwsHistoryClient:
     def attachment_count(message: Mapping[str, Any]) -> int:
         return len(_attachments(message))
 
-    def download(self, message: dict[str, Any], index: int) -> DownloadedAttachment:
+    def _message_id(self, message: Mapping[str, Any]) -> str:
         self.assert_exact_source(message)
+        message_id = _message_field(message, ("openMessageId", "messageId", "message_id", "id"))
+        if not message_id:
+            raise IngestionError("MESSAGE_ID_MISSING")
+        return message_id
+
+    def message_id_hash(self, message: Mapping[str, Any]) -> str:
+        """Derive the durable occurrence key only after the source gate."""
+
+        return _hash_text(self._message_id(message))
+
+    def cached_attachment_stub(
+        self,
+        message: dict[str, Any],
+        index: int,
+        attachment_sha256: str,
+    ) -> DownloadedAttachment | None:
+        """Create a metadata-only candidate for an exact Git readback.
+
+        This is deliberately not a cache of source bytes.  It is usable only
+        for a declared supported filename, then ``GitSparseWriter`` opens the
+        immutable raw authority again and verifies the whole message envelope
+        before any parser or publisher sees a payload.
+        """
+
+        message_id = self._message_id(message)
+        if (
+            len(attachment_sha256) != 64
+            or any(character not in "0123456789abcdef" for character in attachment_sha256)
+        ):
+            return None
+        attachments = _attachments(message)
+        if index < 0 or index >= len(attachments):
+            return None
+        attachment = attachments[index]
+        if not _message_field(attachment, ("mediaId", "media_id", "resourceId", "resource_id")):
+            return None
+        filename = _message_field(attachment, ("fileName", "name", "title"))
+        family = _family(message)
+        if not filename or Path(filename).suffix.lower() not in ALLOWED_SUFFIXES or family is None:
+            return None
+        return DownloadedAttachment(
+            message=message,
+            message_id=message_id,
+            message_id_hash=_hash_text(message_id),
+            message_at=_message_timestamp(message),
+            index=index,
+            filename=filename,
+            family=family,
+            # A zero-length marker cannot be parsed or published.  It forces
+            # the fresh sparse readback below to supply the authoritative
+            # bytes and makes accidental bypasses fail closed.
+            payload=b"",
+            sha256=attachment_sha256,
+            mime=_message_field(attachment, ("mimeType", "mime", "contentType")),
+        )
+
+    def download(self, message: dict[str, Any], index: int) -> DownloadedAttachment:
+        message_id = self._message_id(message)
         self.ensure_authenticated()
         attachments = _attachments(message)
         if index >= len(attachments):
@@ -773,9 +831,6 @@ class DwsHistoryClient:
         media_id = _message_field(attachment, ("mediaId", "media_id", "resourceId", "resource_id"))
         if not media_id:
             raise IngestionError("UNSUPPORTED_ATTACHMENT")
-        message_id = _message_field(message, ("openMessageId", "messageId", "message_id", "id"))
-        if not message_id:
-            raise IngestionError("MESSAGE_ID_MISSING")
         declared_filename = _message_field(attachment, ("fileName", "name", "title"))
         with tempfile.TemporaryDirectory(prefix="daily-funds-dws-", dir=self.config.state_dir) as temp:
             output = Path(temp) / "download"
@@ -1175,6 +1230,43 @@ class RawMaterializer:
             raise IngestionError("GIT_READBACK_FAILED") from exc
 
     @classmethod
+    def hydrate_readback_attachment(cls, root: Path, attachment: DownloadedAttachment) -> DownloadedAttachment:
+        """Load a metadata-only overlap candidate from the raw authority.
+
+        The SQLite journal intentionally retains just the known SHA, not
+        attachment bytes or a byte count.  This method obtains the byte count
+        and payload from a fresh sparse clone, then delegates to the normal
+        full-envelope readback verifier.  It is therefore not a local cache
+        shortcut and cannot turn stale metadata into published data.
+        """
+
+        try:
+            cls._validate_attachment(attachment)
+            if root.is_symlink():
+                raise IngestionError("GIT_READBACK_FAILED")
+            _, occurrence_path, direct_path, _ = cls._attachment_paths(attachment)
+            occurrence = json.loads(cls._safe_path(root, occurrence_path).read_text(encoding="utf-8"))
+            if (
+                not isinstance(occurrence, Mapping)
+                or occurrence.get("message_id_hash") != attachment.message_id_hash
+                or occurrence.get("attachment_index") != attachment.index
+                or occurrence.get("attachment_sha256") != attachment.sha256
+                or not isinstance(occurrence.get("attachment_size_bytes"), int)
+                or isinstance(occurrence.get("attachment_size_bytes"), bool)
+                or occurrence["attachment_size_bytes"] < 0
+            ):
+                raise IngestionError("GIT_READBACK_FAILED")
+            if occurrence.get("reassembly_manifest") is None:
+                payload = cls._safe_path(root, direct_path).read_bytes()
+            else:
+                payload = cls.reassemble(root, attachment.sha256)
+            if len(payload) != occurrence["attachment_size_bytes"]:
+                raise IngestionError("GIT_READBACK_FAILED")
+            return cls.readback_attachment(root, replace(attachment, payload=payload))
+        except (OSError, KeyError, TypeError, ValueError, IngestionError) as exc:
+            raise IngestionError("GIT_READBACK_FAILED") from exc
+
+    @classmethod
     def readback_batch(
         cls,
         root: Path,
@@ -1481,6 +1573,47 @@ class GitSparseWriter:
             # valid two-fact publication (``bundle_head``).  Creating a second
             # bundle here is unused by every downstream consumer and can
             # materialise the entire historic private tree during raw intake.
+            return GitCommit(
+                commit_sha=commit_sha,
+                staged=staged,
+                verified_attachments=verified_attachments,
+            )
+
+    def reopen_persisted(self, attachments: Iterable[DownloadedAttachment]) -> GitCommit:
+        """Re-open already-persisted overlap evidence without a Git mutation.
+
+        The live cadence deliberately re-queries a short historical window.
+        A repeated attachment is never trusted from the OVH journal: its
+        current source envelope and bytes must be proved again through a new,
+        exact-path sparse clone of the private Git authority.
+        """
+
+        self.config.validate(include_storage=False)
+        frozen_attachments = RawMaterializer.canonical_attachments(attachments)
+        sparse_patterns = self._attachment_sparse_patterns(frozen_attachments)
+        if not self.config.state_dir.exists():
+            self.config.state_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="daily-funds-git-reopen-", dir=self.config.state_dir) as temp:
+            temp_root = Path(temp)
+            key_path = self._write_deploy_key(temp_root, self.config.git_ssh_key_b64)
+            env = self._git_environment(temp_root, key_path)
+            repo = temp_root / "private-db-readback"
+            self._clone_sparse(repo, env=env, ref=self.config.private_branch, patterns=sparse_patterns)
+            commit_sha = self._git(["rev-parse", "HEAD"], cwd=repo, env=env)
+            root = repo / SPARSE_PATH
+            verified_attachments = tuple(
+                RawMaterializer.hydrate_readback_attachment(root, attachment)
+                for attachment in frozen_attachments
+            )
+            batch_id, _, batch_path = RawMaterializer._batch_details(verified_attachments)
+            staged = StagedRawBatch(
+                batch_id=batch_id,
+                paths=(str(batch_path),),
+                attachment_hashes=tuple(sorted({attachment.sha256 for attachment in verified_attachments})),
+                occurrences=len(verified_attachments),
+                reassembly_manifest_paths=(),
+            )
+            RawMaterializer.readback_batch(root, verified_attachments, staged)
             return GitCommit(
                 commit_sha=commit_sha,
                 staged=staged,

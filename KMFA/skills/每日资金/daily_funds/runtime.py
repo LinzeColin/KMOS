@@ -1431,6 +1431,29 @@ class DailyFundsRuntime:
                     source_discovery_state = "TARGET_ATTACHMENT_MISSING"
                     raise IngestionError("SOURCE_ATTACHMENT_MISSING")
                 target_attachment_seen = True
+                message_id_hash = client.message_id_hash(message)
+                cached_attachments: list[DownloadedAttachment] = []
+                for index in range(attachment_count):
+                    attachment_sha256 = self.state.reusable_raw_attachment_sha(message_id_hash, index)
+                    cached = (
+                        client.cached_attachment_stub(message, index, attachment_sha256)
+                        if attachment_sha256 is not None
+                        else None
+                    )
+                    if cached is None:
+                        cached_attachments = []
+                        break
+                    cached_attachments.append(cached)
+                if cached_attachments:
+                    commit = self._lease_call(
+                        "git_writer_lock",
+                        ttl_seconds=13 * 60,
+                        code="GIT_WRITER_LOCK_HELD",
+                        callback=lambda: writer.reopen_persisted(cached_attachments),
+                    )
+                    commits.append(commit)
+                    all_attachments.extend(commit.verified_attachments)
+                    continue
                 for index in range(attachment_count):
                     page_attachments.append(client.download(message, index))
             if page_attachments:

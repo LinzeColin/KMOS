@@ -1407,6 +1407,15 @@ def test_archive_only_backfill_persists_readback_and_records_unsupported_format_
             return 1
 
         @staticmethod
+        def message_id_hash(_message):
+            return attachment.message_id_hash
+
+        @staticmethod
+        def cached_attachment_stub(_message, _index, _attachment_sha256):
+            # This fixture exercises the normal first-download path.
+            return None
+
+        @staticmethod
         def download(_message, _index):
             return attachment
 
@@ -1452,6 +1461,130 @@ def test_archive_only_backfill_persists_readback_and_records_unsupported_format_
     flow = json.loads((config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
     assert flow["business_flow"]["stage"] == "BACKFILL_ARCHIVED_NEEDS_REVIEW"
     assert flow["attachment_capabilities"][0]["outcome"] == "NEEDS_REVIEW"
+
+
+def test_overlap_reopens_verified_raw_without_repeating_media_download(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 30-minute overlap must reopen immutable raw evidence, never guess."""
+
+    import daily_funds.runtime as runtime_module
+
+    config = replace(
+        _config(tmp_path),
+        cf_api_token="",
+        cf_account_id="",
+        d1_database_id="",
+        restore_drill_d1_database_id="",
+        r2_endpoint_url="",
+        r2_bucket="",
+        r2_access_key_id="",
+        r2_secret_access_key="",
+        oci_endpoint_url="",
+        oci_bucket="",
+        oci_access_key_id="",
+        oci_secret_access_key="",
+    )
+    payload = b"\x89PNG\r\n\x1a\nsynthetic-overlap-image"
+    attachment = DownloadedAttachment(
+        message={"fixture": "overlap"},
+        message_id="overlap-message",
+        message_id_hash="3" * 64,
+        message_at=datetime(2026, 7, 30, 8, tzinfo=UTC),
+        index=0,
+        filename="资金明细_20260730.png",
+        family="资金明细",
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="image/png",
+    )
+    message = {"fixture": "overlap"}
+
+    class CachedClient:
+        @staticmethod
+        def search(_start, _end, _cursor):
+            return DwsPage(messages=(message,), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page):
+            return (message,)
+
+        @staticmethod
+        def attachment_count(_message):
+            return 1
+
+        @staticmethod
+        def message_id_hash(_message):
+            return attachment.message_id_hash
+
+        @staticmethod
+        def cached_attachment_stub(_message, _index, attachment_sha256):
+            assert attachment_sha256 == attachment.sha256
+            return replace(attachment, payload=b"")
+
+        @staticmethod
+        def download(_message, _index):
+            pytest.fail("a verified overlap must not repeat DWS media download")
+
+    reopened: list[tuple[DownloadedAttachment, ...]] = []
+
+    class ReadbackWriter:
+        def __init__(self, _config):
+            pass
+
+        def reopen_persisted(self, attachments):
+            stubs = tuple(attachments)
+            reopened.append(stubs)
+            assert stubs == (replace(attachment, payload=b""),)
+            return GitCommit("b" * 40, SimpleNamespace(), (attachment,))
+
+        def persist(self, _attachments):
+            pytest.fail("verified overlap must not create a second raw write")
+
+    runtime = DailyFundsRuntime(config)
+    occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
+    assert runtime.state.note_inbox(
+        occurrence_key,
+        attachment.message_id_hash,
+        attachment.sha256,
+        "GIT_PERSISTED",
+    )
+    monkeypatch.setattr(runtime, "_dws_client", lambda: CachedClient())
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ReadbackWriter)
+    monkeypatch.setattr(runtime, "_coordinator", lambda: pytest.fail("archive-only must not publish"))
+
+    result = runtime.poll(
+        now=datetime(2026, 8, 1, tzinfo=UTC),
+        start_override=datetime(2026, 7, 30, tzinfo=UTC),
+        advance_pointer=False,
+        allow_empty_window=True,
+        archive_only=True,
+    )
+
+    assert result["ok"] is True
+    assert result["attachments"] == 1
+    assert reopened == [(replace(attachment, payload=b""),)]
+
+
+def test_runtime_state_reuses_only_one_terminal_raw_receipt(tmp_path: Path) -> None:
+    state = RuntimeState(tmp_path / "state")
+    message_id_hash = "a" * 64
+    attachment_sha256 = "b" * 64
+    occurrence_key = f"{message_id_hash}:0:{attachment_sha256}"
+
+    assert state.reusable_raw_attachment_sha(message_id_hash, 0) is None
+    assert state.note_inbox(occurrence_key, message_id_hash, attachment_sha256, "PENDING")
+    assert state.reusable_raw_attachment_sha(message_id_hash, 0) is None
+    state.mark_inbox(occurrence_key, "GIT_PERSISTED")
+    assert state.reusable_raw_attachment_sha(message_id_hash, 0) == attachment_sha256
+    assert state.reusable_raw_attachment_sha(message_id_hash, True) is None
+
+    conflicting_sha256 = "c" * 64
+    assert state.note_inbox(
+        f"{message_id_hash}:0:{conflicting_sha256}",
+        message_id_hash,
+        conflicting_sha256,
+        "VALID_PUBLISHED",
+    )
+    assert state.reusable_raw_attachment_sha(message_id_hash, 0) is None
 
 
 def test_archive_only_never_permits_a_live_pointer_advance(tmp_path: Path) -> None:
@@ -1822,6 +1955,7 @@ def test_raw_materializer_canonicalizes_duplicate_overlap_and_rejects_tampered_e
     assert first.batch_id == second.batch_id
     assert len(first.attachment_hashes) == 3
     assert RawMaterializer.readback_attachment(first_root, direct).payload == direct_payload
+    assert RawMaterializer.hydrate_readback_attachment(first_root, replace(direct, payload=b"")).payload == direct_payload
     assert RawMaterializer.readback_attachment(first_root, same_name_different_bytes).payload == changed_payload
     assert RawMaterializer.readback_attachment(first_root, oversize).payload == oversize_payload
     RawMaterializer.readback_batch(first_root, (oversize, direct, same_name_different_bytes), first)
@@ -1829,6 +1963,8 @@ def test_raw_materializer_canonicalizes_duplicate_overlap_and_rejects_tampered_e
     message_path.write_text("{}\n", encoding="utf-8")
     with pytest.raises(IngestionError, match="GIT_READBACK_FAILED"):
         RawMaterializer.readback_attachment(second_root, direct)
+    with pytest.raises(IngestionError, match="GIT_READBACK_FAILED"):
+        RawMaterializer.hydrate_readback_attachment(second_root, replace(direct, payload=b""))
     manifest_path = first_root / "raw/chunks/sha256" / oversize.sha256 / "reassembly.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["chunk_size_bytes"] = 999
@@ -1925,6 +2061,17 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     assert {attachment.sha256 for attachment in commit.verified_attachments} == {
         direct.sha256, same_name_different_bytes.sha256, oversize.sha256,
     }
+    raw_writer_commands.clear()
+    reopened = writer.reopen_persisted((
+        replace(oversize, payload=b""),
+        replace(direct, payload=b""),
+        replace(same_name_different_bytes, payload=b""),
+    ))
+    assert reopened.commit_sha == commit.commit_sha
+    assert {attachment.sha256 for attachment in reopened.verified_attachments} == {
+        direct.sha256, same_name_different_bytes.sha256, oversize.sha256,
+    }
+    assert not any(command and command[0] in {"add", "commit", "push"} for command in raw_writer_commands)
     verification = tmp_path / "verification"
     # A newly-created bare repository can retain a symbolic HEAD pointing at
     # the server default (for example ``master``) even though this fixture
@@ -2245,6 +2392,38 @@ def test_dws_history_accepts_successful_empty_v1_envelope_and_stable_sender_id(t
     }
     client.assert_exact_source(message)
     assert client.selected_messages(DwsPage(messages=(message,), next_cursor=None, has_more=False)) == (message,)
+
+
+def test_dws_cached_stub_requires_exact_source_and_declared_supported_filename(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    client = DwsHistoryClient(config)
+    message = {
+        "openConversationId": config.group_id,
+        "senderOpenDingTalkId": config.sender_id,
+        "openMessageId": "cached-message",
+        "createTime": "2026-08-01 08:00:00",
+        "content": "资金账户明细表",
+        "attachments": [{
+            "mediaId": "opaque-media-id",
+            "fileName": "资金账户明细表_20260801.csv",
+            "mimeType": "text/csv",
+        }],
+    }
+    attachment_sha256 = "d" * 64
+    stub = client.cached_attachment_stub(message, 0, attachment_sha256)
+    assert stub is not None
+    assert stub.payload == b""
+    assert stub.sha256 == attachment_sha256
+    assert stub.message_id_hash == client.message_id_hash(message)
+    assert client.cached_attachment_stub(message, 0, "not-a-sha") is None
+
+    unsupported = dict(message)
+    unsupported["attachments"] = [{"mediaId": "opaque-media-id", "fileName": "source.pdf"}]
+    assert client.cached_attachment_stub(unsupported, 0, attachment_sha256) is None
+    ambiguous = dict(message)
+    ambiguous["senderOpenDingTalkId"] = "other-sender"
+    with pytest.raises(IngestionError, match="AMBIGUOUS_SOURCE"):
+        client.cached_attachment_stub(ambiguous, 0, attachment_sha256)
 
 
 def test_dws_list_uses_beijing_boundary_and_embedded_media_source(tmp_path: Path) -> None:
