@@ -8,9 +8,10 @@ Owner 2026-07-29：「我说了我只要我的项目成本！」「我没有看�
   · `/public-api/项目成本` 是 JSON——人打开看到的是一屏花括号；
   · 发 Excel 文件——卡片可能根本没在对话里露出来。
 
-所以判据是「访客用浏览器打开 `/project-cost`，看到的是表格」。历史
-`/项目成本*` 与 `/public-api/项目成本*` 继续受 Cloudflare Access 与 origin JWT
-保护，公开页只读且不提供重算。
+所以判据是「访客用浏览器打开 `/project-cost`、`/项目成本` 或
+`/public-api/项目成本表`，看到的是同一份表格」。三条人类可读路径公开只读且
+不提供重算；JSON、重算、`/api` 与 `/ops` 继续受 Cloudflare Access 与 origin JWT
+保护。
 """
 from __future__ import annotations
 
@@ -133,17 +134,15 @@ def test_it_returns_html_not_json(tmp_path):
     assert "<table" in r.text
 
 
-def test_legacy_public_api_name_is_still_access_protected(tmp_path):
-    """兼容路径名不等于匿名授权；生产 origin guard 必须覆盖它。"""
+def test_legacy_human_page_is_an_explicit_public_read_exception(tmp_path):
+    """仅人类只读页例外；同名前缀的 JSON/重算不获得匿名授权。"""
     from app import main as m, private_access  # noqa: PLC0415
 
     _client(tmp_path)
     paths = {getattr(r, "path", "") for r in m.app.routes}
     assert "/public-api/项目成本表" in paths
-    assert any(
-        "/public-api/项目成本".startswith(prefix)
-        for prefix in private_access.PRIVATE_PATH_ROOTS
-    )
+    assert "/public-api/项目成本表" in private_access.PUBLIC_LEGACY_PROJECT_COST_READ_PATHS
+    assert "/public-api/项目成本" not in private_access.PUBLIC_LEGACY_PROJECT_COST_READ_PATHS
 
 
 def test_the_numbers_are_actually_on_the_page(tmp_path):
@@ -391,23 +390,24 @@ def test_the_homepage_link_survives_react_hydration():
 
 
 def test_the_entry_is_in_the_component_the_root_actually_renders():
-    """入口必须在 App.jsx——**根路径渲染的是它**，不是 PublicAppShell。
+    """入口必须在根路径实际加载的公开壳里。
 
-    2026-07-29 栽在这上面：入口写进了 PublicAppShell.jsx，而 main.jsx 里
-    只有 `/workspace` 才加载那个组件，根路径加载的是 App.jsx。
-    我当时只 grep 了 JS 包里有没有那个字符串，**没验它渲不渲得出来**——
-    包里有 ≠ 用户看得见。Owner 连着两次说「首页依旧进不去项目成本」。
+    根路径默认渲染 `PublicAppShell`；私有经营驾驶舱仅在 `/ops/app`。因此不能
+    只在 `App.jsx` 放入口再凭字符串误判用户看得见。
     """
     main_js = (REPO / "KMFA/app/frontend/src/main.jsx").read_text(encoding="utf-8")
-    assert "loadPrivateOperationsApp()" in main_js and "isPublicWorkspace" in main_js, \
+    assert "loadPrivateOperationsApp()" in main_js and "isPrivateOperationsApp" in main_js, \
         "路由结构变了——重新确认根路径到底渲染哪个组件，别再照着旧假设放入口"
+    assert "loadPublicAppShell()" in main_js
 
-    app_jsx = (REPO / "KMFA/app/frontend/src/App.jsx").read_text(encoding="utf-8")
-    assert 'href="/project-cost"' in app_jsx, "根路径渲染的组件里没有项目成本入口"
-    assert 'href="/project-cost/download"' in app_jsx, "根路径渲染的组件里没有下载入口"
+    public_shell = (REPO / "KMFA/app/frontend/src/PublicAppShell.jsx").read_text(
+        encoding="utf-8"
+    )
+    assert 'href="/project-cost"' in public_shell, "根路径渲染的组件里没有项目成本入口"
+    assert "data-shell-cost-entry" in public_shell, "入口没有可测锚点"
 
-    built = list((REPO / "KMFA/app/frontend/dist/assets").glob("App-*.js"))
-    assert built, "找不到 App 的构建产物"
+    built = list((REPO / "KMFA/app/frontend/dist/assets").glob("PublicAppShell-*.js"))
+    assert built, "找不到 PublicAppShell 的构建产物"
     assert any("/project-cost" in f.read_text(encoding="utf-8", errors="replace") for f in built), \
         "改了源码但没重新构建，线上还是旧的"
 

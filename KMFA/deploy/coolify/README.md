@@ -140,10 +140,10 @@
     GET/HEAD `/ui`、`/ui/` 均单跳 `308 → /`；错误路径无登录跳转/循环；匿名 `/api/状态`、
     `/ops/healthz`、`/ops/openapi.json` 均不可达。失败时立即把 host 级 Application 从 Bypass 恢复原
     Owner Allow 策略；这是原子边缘回滚，不删除路径应用、不回退数据，也不绕过源站守卫。
-    面向访客的项目成本只读页固定为 `/project-cost` 与 `/project-cost/download`：它们落在
-    host 级 Bypass 下，仍带 `no-store`/`noindex`，且源站不提供重算控件。旧的
-    `/项目成本*`、`/public-api/项目成本*` 路径继续是 Access 保护的兼容/操作面，
-    不得用“公开报表”名义放开 JSON、重算、`/api` 或 `/ops`。
+    面向访客的项目成本只读页为 `/project-cost`、`/项目成本`、`/public-api/项目成本表`
+    及各自下载路径：它们落在 host 级 Bypass 下，仍带 `no-store`/`noindex`，且源站不
+    提供重算控件。不得用“公开报表”名义放开 JSON `/public-api/项目成本`、重算、`/api`
+    或 `/ops`。
     Walking Skeleton 公开后仍只使用高熵恢复能力与短时会话，不使用账号；`/public-api/*` 必须
     `noindex`、`private, no-store`，未持有 capability 的工作区读取/写入/下载统一失败。此阶段只证明
     单节点 volume 跨容器重启；只有 source/image/deployment tuple 对应的 `TEST-WS-004` 也通过，

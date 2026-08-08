@@ -33,9 +33,7 @@ import urllib.request
 from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
-from playwright.sync_api import TimeoutError as PlaywrightTimeout
-
-COST_PATH = "/项目成本"
+COST_PATH = "/project-cost"
 
 # 刻意造出排序能看出差别的分布：数量级跨度大（按字符串排会错），且有一个空值。
 SAMPLE = {
@@ -210,25 +208,14 @@ def run_flow(page: Page, base_url: str, results: list[dict]) -> None:
     _check(results, "文本列也能排", _order(page) != name_before,
            f"{name_before} → {_order(page)}")
 
-    # ⑥ 「重新计算」必须**有结论**。
-    # 注意别只等「文本非空」——按下去立刻会显示「正在提交…」，那是过渡态，
-    # 真卡住时它会一直停在那儿，而「等非空」会当场变绿。要等的是**终态**。
-    page.locator("#recalc").click()
-    try:
-        page.wait_for_function(
-            "() => { var t = document.getElementById('recalcmsg').textContent.trim();"
-            "        return t.length > 0 && t !== '正在提交…'; }",
-            timeout=20_000)
-        msg = page.locator("#recalcmsg").inner_text().strip()
-    except PlaywrightTimeout:
-        # 超时本身就是结论之一（按钮是死的 / 请求挂住了），要落成**这一步**的红，
-        # 而不是抛出去让整套在这里断掉——那样报告里看不出是哪一步坏的。
-        msg = page.locator("#recalcmsg").inner_text().strip()
-        _check(results, "重新计算有结论（不是停在「正在提交…」）", False,
-               f"等了 20 秒没等到终态，当前文案：{msg[:80]!r}（空=按钮根本没响应）")
-        return
-    _check(results, "重新计算有结论（不是停在「正在提交…」）",
-           bool(msg) and msg != "正在提交…", msg[:140])
+    # ⑥ 匿名只读页不能把私有重算操作露给访客。重算端点仍在 Access 私有面，
+    # 由其自身的 API/源站双重鉴权测试覆盖；这里验证公共 UI 没有越权入口。
+    _check(
+        results,
+        "公开页不暴露重新计算",
+        page.locator("#recalc").count() == 0 and page.locator("#recalcmsg").count() == 0,
+        "未渲染私有重算控件",
+    )
 
 
 def main() -> int:

@@ -302,6 +302,25 @@ def test_private_paths_fail_closed_and_verify_access_jwt(monkeypatch):
     assert public_download.status_code in (200, 503)
     assert public_download.status_code != 403
 
+    for legacy_path in (
+        "/项目成本",
+        "/public-api/项目成本表",
+    ):
+        legacy_page = client.get(legacy_path, follow_redirects=False)
+        assert legacy_page.status_code == 200
+        assert legacy_page.headers["x-kmfa-cost-access"] == "public-read"
+        assert 'id="recalc"' not in legacy_page.text
+        assert client.head(legacy_path, follow_redirects=False).status_code == 200
+
+    for legacy_download in (
+        "/项目成本/下载",
+        "/public-api/项目成本表/下载",
+    ):
+        response = client.get(legacy_download, follow_redirects=False)
+        assert response.status_code in (200, 503)
+        assert response.status_code != 403
+        assert client.head(legacy_download, follow_redirects=False).status_code in (200, 503)
+
     for path in (
         "/api",
         "/api/状态",
@@ -309,17 +328,20 @@ def test_private_paths_fail_closed_and_verify_access_jwt(monkeypatch):
         "/ops/app",
         "/ops/healthz",
         "/ops/openapi.json",
-        "/项目成本",
-        "/项目成本/下载",
+        "/项目成本/重算",
+        "/项目成本/not-a-public-read",
         "/public-api/项目成本",
-        "/public-api/项目成本表",
-        "/public-api/项目成本表/下载",
+        "/public-api/项目成本表/重算",
+        "/public-api/项目成本表/not-a-public-read",
     ):
         denied = client.get(path)
         assert denied.status_code == 403
         assert denied.json() == {"detail": "cloudflare_access_required"}
         assert denied.headers["cache-control"] == "no-store"
         assert denied.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
+
+    assert client.post("/项目成本/重算").status_code == 403
+    assert client.post("/public-api/项目成本表/重算").status_code == 403
 
     assert client.get("/api-public-near-prefix").status_code == 404
 

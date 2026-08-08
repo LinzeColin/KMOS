@@ -28,6 +28,18 @@ PRIVATE_PATH_ROOTS = (
     "/public-api/项目成本",
     "/public-api/项目成本表",
 )
+# These legacy human-facing URLs are retained solely as permanent redirects to
+# the public, read-only project-cost page/download.  Keep this an exact-path
+# allowlist (rather than weakening a prefix) so recompute and machine JSON
+# endpoints remain fail-closed at the origin.
+PUBLIC_LEGACY_PROJECT_COST_READ_PATHS = frozenset(
+    {
+        "/项目成本",
+        "/项目成本/下载",
+        "/public-api/项目成本表",
+        "/public-api/项目成本表/下载",
+    }
+)
 _DISABLED = frozenset({"0", "false", "no", "off"})
 
 
@@ -89,6 +101,15 @@ def private_access_required() -> bool:
 def is_private_path(path: str) -> bool:
     return any(
         path == root or path.startswith(f"{root}/") for root in PRIVATE_PATH_ROOTS
+    )
+
+
+def is_public_legacy_project_cost_read(scope) -> bool:
+    """Allow only legacy safe reads through to their canonical redirect."""
+
+    return (
+        scope.get("method") in {"GET", "HEAD"}
+        and scope.get("path", "") in PUBLIC_LEGACY_PROJECT_COST_READ_PATHS
     )
 
 
@@ -173,6 +194,7 @@ class PrivateOperationsAccessMiddleware:
         if (
             scope.get("type") != "http"
             or not private_access_required()
+            or is_public_legacy_project_cost_read(scope)
             or not is_private_path(scope.get("path", ""))
         ):
             await self.app(scope, receive, send)

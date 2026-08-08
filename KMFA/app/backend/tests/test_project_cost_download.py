@@ -123,7 +123,7 @@ def test_blocked_project_cannot_download_a_formal_statement(
     payload = _write_runtime(tmp_path, monkeypatch)
     blocked = payload["项目"][1]
     response = client.get(
-        "/项目成本/下载",
+        "/project-cost/download",
         params={"合同": blocked["合同编号"]},
     )
     assert response.status_code == 409
@@ -140,9 +140,9 @@ def test_blocked_project_cannot_download_a_formal_statement(
 
 def test_page_only_links_closed_project_downloads(tmp_path, monkeypatch) -> None:
     _write_runtime(tmp_path, monkeypatch)
-    body = client.get("/项目成本").text
-    assert "/项目成本/下载?合同=SYNTHETIC-READY" in body
-    assert "/项目成本/下载?合同=SYNTHETIC-BLOCKED" not in body
+    body = client.get("/project-cost").text
+    assert "/project-cost/download?合同=SYNTHETIC-READY" in body
+    assert "/project-cost/download?合同=SYNTHETIC-BLOCKED" not in body
     assert "项目成本未闭合，不能生成正式项目财务分析表" in body
 
 
@@ -153,7 +153,7 @@ def test_ready_download_uses_closed_cost_and_margin_not_incurred_lower_bound(
     payload = _write_runtime(tmp_path, monkeypatch)
     ready = payload["项目"][0]
     response = client.get(
-        "/项目成本/下载",
+        "/project-cost/download",
         params={"合同": ready["合同编号"]},
     )
     assert response.status_code == 200
@@ -178,3 +178,23 @@ def test_ready_download_uses_closed_cost_and_margin_not_incurred_lower_bound(
         assert notes["毛利率"] == "60.00%"
     finally:
         book.close()
+
+
+def test_legacy_download_bookmark_is_the_same_public_read_only_download(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    payload = _write_runtime(tmp_path, monkeypatch)
+    ready = payload["项目"][0]
+    legacy = client.get(
+        "/项目成本/下载",
+        params={"合同": ready["合同编号"]},
+    )
+    canonical = client.get(
+        "/project-cost/download",
+        params={"合同": ready["合同编号"]},
+    )
+    assert legacy.status_code == canonical.status_code == 200
+    # XLSX ZIP metadata is timestamped per response, so raw bytes need not be
+    # equal.  The governed statement values must nevertheless be identical.
+    assert _amounts_by_label(legacy.content) == _amounts_by_label(canonical.content)

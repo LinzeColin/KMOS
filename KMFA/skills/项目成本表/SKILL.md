@@ -139,8 +139,10 @@ App 必须拒绝旧 schema、非可发布状态、项目数不一致、缺少来
 
 - 专用只读 `KMFA_PRIVATE_DB_READ_TOKEN`，不得回退到通用高权限 token；
 - `KMFA_PAYROLL_PASSWORD`；
-- `/项目成本`、兼容 `/public-api/项目成本*`、下载与重算路径均受 Cloudflare Access
-  和 origin JWT 双重保护；
+- `/project-cost`、`/项目成本`、`/public-api/项目成本表` 及其下载路径是同一份
+  已发布报表的公开只读入口；只允许 GET/HEAD，始终 `no-store`/`noindex`；
+- JSON `/public-api/项目成本`、重算、`/api` 与 `/ops` 仍受 Cloudflare Access 和
+  origin JWT 双重保护；
 - 运行态与输出仅落入私有共享卷，公开仓库只保留代码、schema 和合成测试。
 
 ## 治理内核兼容入口
