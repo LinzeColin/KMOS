@@ -1,0 +1,57 @@
+{
+  "schema_version": "kmfa.daily_funds.final_post_deploy_reconcile.v1",
+  "phase": "T10",
+  "observed_at_utc": "2026-08-09T16:49:57Z",
+  "final_subject": {
+    "origin_main": "6318b2d01648fde29bdfb23f6342becdeec5bcfd",
+    "deployment_workflow_run": "31324132082",
+    "deployment_workflow_result": "SUCCESS",
+    "runtime_source_commit": "6318b2d01648fde29bdfb23f6342becdeec5bcfd",
+    "runtime_image_digest": "sha256:227b76c085c5b711ceb631281f8259a87d44dff564501411bf3bc5cb0e4bd587",
+    "deployment_info_workflow_run": "31324713238",
+    "deployment_record_state": "FINISHED",
+    "deployment_completed_at_utc": "2026-08-09T16:46:31Z"
+  },
+  "final_runtime_observation": {
+    "history_probe_workflow_run": "31324754567",
+    "history_probe_workflow_result": "SUCCESS",
+    "transport": "OK",
+    "probe_state": "COMPLETED",
+    "machine_code": "DWS_GROUP_HISTORY_PROBE_COMPLETED",
+    "continuation_state": "GROUP_HISTORY_V2_FIRST_PAGE_TERMINAL",
+    "temporary_access_cleanup": "OK",
+    "raw_download": "NOT_RUN_BY_DESIGN",
+    "raw_write": "NOT_RUN_BY_DESIGN"
+  },
+  "public_boundary": {
+    "root_http_status": 200,
+    "private_ops_http_status_without_access": 403,
+    "result": "PASS"
+  },
+  "scheduler_and_build": {
+    "source_change_since_prior_two_poll_receipt": "TEST_AND_EVIDENCE_ONLY_NO_DAILY_FUNDS_RUNTIME_FILE_CHANGE",
+    "prior_runtime_cadence_receipt": "T10_CURRENT_MAIN_PRODUCTION_RECONCILE_20260810.json",
+    "final_ci_daily_funds_container_gate": "PASS",
+    "post_deploy_direct_cron_tick": "NOT_OBSERVED_IN_THIS_RECEIPT"
+  },
+  "financial_publication_gate": {
+    "real_supported_parser_open": "NOT_MET",
+    "same_day_balance_and_transaction_pair": "NOT_MET",
+    "integer_fen_reconciliation": "NOT_RUN",
+    "d1_projection": "NOT_RUN",
+    "r2_hot_mirror": "NOT_RUN",
+    "oci_backup": "NOT_RUN",
+    "restore_drill": "NOT_RUN",
+    "funds_publication": "NOT_RUN",
+    "decision": "DO_NOT_PUBLISH_FUNDS"
+  },
+  "data_safety": {
+    "message_content_recorded": false,
+    "attachment_content_recorded": false,
+    "group_or_sender_identifier_recorded": false,
+    "cursor_recorded": false,
+    "amount_recorded": false,
+    "credential_recorded": false
+  },
+  "conclusion": "FINAL_MAIN_DEPLOYED_AND_CONTROLLED_SOURCE_PATH_VERIFIED; FINANCIAL_RESULT_NOT_PUBLISHED"
+}
