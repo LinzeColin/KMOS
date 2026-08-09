@@ -28,10 +28,12 @@ from .models import AccountSnapshot, ParsedFacts, ParserEvidence, SourceRef, Tra
 
 ACCOUNT_FAMILY = "资金账户明细表"
 TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
-# v4 adds a strictly bounded, deterministic, offline OCR fallback.  Capability
-# receipts are versioned, so a rule change cannot inherit a prior parser's
-# production-support assertion.
-PARSER_VERSION = "kmfa.daily_funds.parser.v4"
+# v5 keeps the bounded deterministic OCR fallback and adds one narrow source
+# classification rule: a generic ``资金明细`` image may be treated as an account
+# snapshot only when its OCR table satisfies the account schema *and* cannot
+# satisfy the transaction schema.  Capability receipts are versioned, so a
+# rule change cannot inherit a prior parser's production-support assertion.
+PARSER_VERSION = "kmfa.daily_funds.parser.v5"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -871,6 +873,26 @@ def deterministic_ocr_runtime_ready(*, runner: Callable[..., Any] = subprocess.r
     return "chi_sim" in {line.strip() for line in languages.splitlines()}
 
 
+def _parse_ocr_table(
+    *,
+    family: str,
+    filename: str,
+    source: SourceRef,
+    evidence: ParserEvidence,
+    lines: tuple[tuple[_OcrWord, ...], ...],
+    min_confidence_bps: int,
+) -> OcrParsedAttachment:
+    """Parse one already-OCRed table under one exact source-family schema."""
+
+    header_index, cells = _select_ocr_header(lines, family=family, min_confidence_bps=min_confidence_bps)
+    rows = _ocr_rows(lines, header_index=header_index, cells=cells, family=family, min_confidence_bps=min_confidence_bps)
+    facts = _facts_from_rows(family=family, filename=filename, source=source, rows=rows, parser_evidence=evidence)
+    return OcrParsedAttachment(
+        facts=facts,
+        layout_fingerprint=_ocr_layout_fingerprint(family=family, evidence=evidence, cells=cells),
+    )
+
+
 def parse_ocr_attachment(
     *,
     family: str,
@@ -897,13 +919,38 @@ def parse_ocr_attachment(
     evidence = inspect_ocr_attachment_format(filename=filename, payload=payload, mime=mime)
     words = _parse_tesseract_tsv(_ocr_tsv(payload=payload, evidence=evidence, runner=runner))
     lines = _ocr_lines(words)
-    header_index, cells = _select_ocr_header(lines, family=family, min_confidence_bps=threshold)
-    rows = _ocr_rows(lines, header_index=header_index, cells=cells, family=family, min_confidence_bps=threshold)
-    facts = _facts_from_rows(family=family, filename=filename, source=source, rows=rows, parser_evidence=evidence)
-    return OcrParsedAttachment(
-        facts=facts,
-        layout_fingerprint=_ocr_layout_fingerprint(family=family, evidence=evidence, cells=cells),
-    )
+    # ``资金明细`` is an allowed transaction family, but it is also the one
+    # generic source label used by historical image messages.  Do not let that
+    # label force an account-looking table through the transaction schema.  We
+    # accept the image only when the already-produced OCR table validates under
+    # exactly one of the two complete fact schemas; zero or two matches remain
+    # fail-closed.  OCR itself executes once, so this adds no second raw read
+    # or a heuristic retry path.
+    candidate_families = (ACCOUNT_FAMILY, "资金明细") if family == "资金明细" else (family,)
+    candidates: list[OcrParsedAttachment] = []
+    failures: list[ParseError] = []
+    for candidate_family in candidate_families:
+        try:
+            candidates.append(_parse_ocr_table(
+                family=candidate_family,
+                filename=filename,
+                source=source,
+                evidence=evidence,
+                lines=lines,
+                min_confidence_bps=threshold,
+            ))
+        except ParseError as exc:
+            failures.append(exc)
+
+    if len(candidates) == 1:
+        return candidates[0]
+    if family == "资金明细":
+        if len(candidates) > 1:
+            raise ParseError("OCR_GENERIC_FAMILY_AMBIGUOUS")
+        raise ParseError("OCR_GENERIC_FAMILY_UNRESOLVED")
+    # A non-generic source family has exactly one candidate, so preserving the
+    # original strict parser code is both more precise and backward compatible.
+    raise failures[0]
 
 
 def _validate_source(source: SourceRef, payload: bytes) -> None:

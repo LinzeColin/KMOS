@@ -96,9 +96,17 @@ cron -f &
 CRON_PID=$!
 printf '%s\n' "$CRON_PID" > "$CRON_PID_FILE"
 
+# A parser version change must re-open already-acquired private raw evidence
+# before the next daily 05:20 audit.  This background job has the same bounded,
+# values-free contract as the scheduled audit: it never calls DWS, moves a
+# publication pointer, or touches D1/R2/OCI.  Running after cron starts keeps
+# scheduler readiness independent from a slow private-Git readback.
+python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1 &
+RAW_ARCHIVE_AUDIT_PID=$!
+
 shutdown() {
-  kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" 2>/dev/null || true
-  wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" 2>/dev/null || true
+  kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RAW_ARCHIVE_AUDIT_PID" 2>/dev/null || true
+  wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RAW_ARCHIVE_AUDIT_PID" 2>/dev/null || true
   rm -f "$CRON_PID_FILE"
   exit 0
 }

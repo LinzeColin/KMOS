@@ -1060,6 +1060,68 @@ def test_deterministic_ocr_requires_high_confidence_and_opens_a_strict_table() -
         )
 
 
+def test_generic_ocr_source_label_classifies_a_uniquely_matching_account_table() -> None:
+    headers = ["业务日期", "公司", "开户行", "账号", "期初余额", "期末余额", "币种"]
+    values = ["2026-07-30", "甲", "乙", "001", "100.00", "110.00", "CNY"]
+    payload = b"\x89PNG\r\n\x1a\ngeneric-account-table"
+
+    candidate = parse_ocr_attachment(
+        family="资金明细",
+        filename="资金明细_20260730.png",
+        payload=payload,
+        source=_source(payload),
+        mime="image/png",
+        runner=_ocr_runner(_ocr_tsv(headers, values)),
+    )
+
+    assert candidate.facts.family == ACCOUNT_FAMILY
+    assert len(candidate.facts.accounts) == 1
+    assert len(candidate.facts.transactions) == 0
+
+    transaction = parse_ocr_attachment(
+        family="资金明细",
+        filename="资金明细_20260730.png",
+        payload=payload,
+        source=_source(payload),
+        mime="image/png",
+        runner=_ocr_runner(_ocr_tsv(
+            ["业务日期", "公司", "开户行", "账号", "流水号", "流入", "流出"],
+            ["2026-07-30", "甲", "乙", "001", "T-1", "10.00", ""],
+        )),
+    )
+
+    assert transaction.facts.family == "资金明细"
+    assert len(transaction.facts.accounts) == 0
+    assert len(transaction.facts.transactions) == 1
+
+
+def test_generic_ocr_source_label_rejects_zero_or_multiple_complete_schemas() -> None:
+    payload = b"\x89PNG\r\n\x1a\ngeneric-schema-gate"
+
+    with pytest.raises(ParseError, match="OCR_GENERIC_FAMILY_UNRESOLVED"):
+        parse_ocr_attachment(
+            family="资金明细",
+            filename="资金明细_20260730.png",
+            payload=payload,
+            source=_source(payload),
+            mime="image/png",
+            runner=_ocr_runner(_ocr_tsv(["公司", "开户行", "账号"], ["甲", "乙", "001"])),
+        )
+
+    with pytest.raises(ParseError, match="OCR_GENERIC_FAMILY_AMBIGUOUS"):
+        parse_ocr_attachment(
+            family="资金明细",
+            filename="资金明细_20260730.png",
+            payload=payload,
+            source=_source(payload),
+            mime="image/png",
+            runner=_ocr_runner(_ocr_tsv(
+                ["业务日期", "公司", "开户行", "账号", "期末余额", "流水号", "流入"],
+                ["2026-07-30", "甲", "乙", "001", "110.00", "T-1", "10.00"],
+            )),
+        )
+
+
 def test_deterministic_ocr_runtime_requires_all_pdf_tools() -> None:
     def runner(command, **_kwargs):
         if command[0] == "tesseract":
@@ -1071,7 +1133,16 @@ def test_deterministic_ocr_runtime_requires_all_pdf_tools() -> None:
     assert deterministic_ocr_runtime_ready(runner=runner) is False
 
 
-def test_runtime_ocr_needs_two_days_of_layout_calibration_before_supporting(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize(
+    ("source_family", "expected_family"),
+    ((ACCOUNT_FAMILY, ACCOUNT_FAMILY), ("资金明细", ACCOUNT_FAMILY)),
+)
+def test_runtime_ocr_needs_two_days_of_layout_calibration_before_supporting(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    source_family: str,
+    expected_family: str,
+) -> None:
     import daily_funds.runtime as runtime_module
 
     config = replace(_config(tmp_path), ocr_enabled=True)
@@ -1087,8 +1158,8 @@ def test_runtime_ocr_needs_two_days_of_layout_calibration_before_supporting(tmp_
             message_id_hash=(str(index) * 64)[:64],
             message_at=moment,
             index=0,
-            filename="资金账户明细表_" + day.replace("-", "") + ".png",
-            family=ACCOUNT_FAMILY,
+            filename=("资金账户明细表_" if source_family == ACCOUNT_FAMILY else "资金明细_") + day.replace("-", "") + ".png",
+            family=source_family,
             payload=payload,
             sha256=sha256(payload).hexdigest(),
             mime="image/png",
@@ -1103,7 +1174,7 @@ def test_runtime_ocr_needs_two_days_of_layout_calibration_before_supporting(tmp_
     for item, day in zip(attachments, ("2026-07-30", "2026-07-31", "2026-08-01")):
         values = [day, "甲", "乙", "001", "100.00", "110.00", "CNY"]
         candidates.append(parse_ocr_attachment(
-            family=ACCOUNT_FAMILY,
+            family=source_family,
             filename=item.filename,
             payload=item.payload,
             source=runtime._source_ref(item),
@@ -1119,6 +1190,7 @@ def test_runtime_ocr_needs_two_days_of_layout_calibration_before_supporting(tmp_
         runtime._parse((attachments[1],))
     parsed = runtime._parse((attachments[2],))
     assert len(parsed) == 1
+    assert parsed[0].facts.family == expected_family
     with runtime.state.connection() as connection:
         profile_days = connection.execute("SELECT COUNT(*) FROM ocr_profile_observations").fetchone()[0]
         outcomes = connection.execute("SELECT outcome,code FROM capability_evidence ORDER BY observed_at,attachment_sha256").fetchall()
@@ -2318,6 +2390,8 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_nonblocking_backfill_ca
     assert "AUTH_BROKER_PID" in entrypoint
     assert "run_history_probe_broker.py >/dev/null 2>&1" in entrypoint
     assert "HISTORY_PROBE_BROKER_PID" in entrypoint
+    assert "run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1 &" in entrypoint
+    assert "RAW_ARCHIVE_AUDIT_PID" in entrypoint
     assert "run_auth_broker.py" not in cron
     assert "run_history_probe_broker.py" not in cron
     wrapper_text = (ROOT / "scripts" / "run_cron_job.sh").read_text(encoding="utf-8")
