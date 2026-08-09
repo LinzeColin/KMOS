@@ -345,22 +345,37 @@ def _family(message: Mapping[str, Any]) -> str | None:
 def _extract_page(payload: object, *, require_next_cursor: bool = True) -> DwsPage:
     """Find the DWS paged result without silently fabricating ``hasMore``."""
 
-    candidates: list[Mapping[str, Any]] = []
+    candidates: list[tuple[Mapping[str, Any], tuple[tuple[Mapping[str, Any], str], ...]]] = []
 
-    def visit(value: object) -> None:
+    def visit(
+        value: object,
+        ancestors: tuple[tuple[Mapping[str, Any], str], ...] = (),
+    ) -> None:
         if isinstance(value, Mapping):
             if "hasMore" in value or "has_more" in value:
-                candidates.append(value)
-            for child in value.values():
+                candidates.append((value, ancestors))
+            for key, child in value.items():
                 if isinstance(child, Mapping):
-                    visit(child)
+                    visit(child, ancestors + ((value, str(key)),))
 
     visit(payload)
-    for candidate in candidates:
+    for candidate, ancestors in candidates:
         raw_more = candidate.get("hasMore", candidate.get("has_more"))
         if not isinstance(raw_more, bool):
             continue
         records = _explicit_dws_page_records(candidate)
+        if records is None:
+            # Some official adapters keep the opaque cursor and ``hasMore``
+            # under a named pagination child while retaining the explicit
+            # result list in its immediate envelope.  Pair only those finite
+            # pagination-wrapper shapes; do not recursively scan arbitrary
+            # message payloads or quoted/forwarded content for a list.
+            for ancestor, child_key in reversed(ancestors):
+                if child_key not in _DWS_PAGINATION_CONTAINER_KEYS:
+                    continue
+                records = _explicit_dws_page_records(ancestor)
+                if records is not None:
+                    break
         if records is None:
             # A terminal page is only a proven zero-result page when DWS
             # explicitly supplies an empty records list.  ``hasMore: false``
@@ -391,6 +406,19 @@ _DWS_EXPLICIT_MESSAGE_LIST_KEYS = (
     # versions.  It is deliberately explicit rather than a guessed alias.
     "messageList",
 )
+
+
+# Page metadata is sometimes nested independently from an explicit list.
+# These are protocol wrapper names, not data-field guesses; any other nested
+# ``hasMore`` remains unpaired and fails closed.
+_DWS_PAGINATION_CONTAINER_KEYS = frozenset({
+    "page",
+    "pageData",
+    "pageInfo",
+    "pageResult",
+    "pagination",
+    "paging",
+})
 
 
 def _explicit_dws_page_records(candidate: Mapping[str, Any]) -> list[Any] | None:

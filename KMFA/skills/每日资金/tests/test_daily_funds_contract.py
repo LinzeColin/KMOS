@@ -2779,6 +2779,59 @@ def test_dws_history_accepts_official_grouped_search_messages_shape(tmp_path: Pa
     client.assert_exact_source(page.messages[0])
 
 
+def test_dws_history_accepts_explicit_list_with_nested_pagination_wrapper(tmp_path: Path) -> None:
+    """Cursor metadata may be nested while the official list stays at result level."""
+
+    config = _config(tmp_path)
+
+    def runner(command, **kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "success": True,
+                "result": {
+                    "messageList": [],
+                    "pagination": {"hasMore": False},
+                },
+            }), "")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    client = DwsHistoryClient(config, runner=runner)
+    assert client.search(
+        datetime(2026, 8, 1, tzinfo=UTC),
+        datetime(2026, 8, 1, 0, 1, tzinfo=UTC),
+        None,
+    ) == DwsPage(messages=(), next_cursor=None, has_more=False)
+
+
+def test_dws_history_rejects_list_outside_named_pagination_wrapper(tmp_path: Path) -> None:
+    """An arbitrary nested ``hasMore`` must not borrow its parent list."""
+
+    config = _config(tmp_path)
+
+    def runner(command, **kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "success": True,
+                "result": {
+                    "messageList": [],
+                    "unrelated": {"hasMore": False},
+                },
+            }), "")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    client = DwsHistoryClient(config, runner=runner)
+    with pytest.raises(IngestionError, match="DWS_PAGE_RECORDS_MISSING"):
+        client.search(
+            datetime(2026, 8, 1, tzinfo=UTC),
+            datetime(2026, 8, 1, 0, 1, tzinfo=UTC),
+            None,
+        )
+
+
 def test_recordless_terminal_dws_page_never_becomes_source_match_zero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config = _config(tmp_path)
 
