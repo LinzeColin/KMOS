@@ -308,6 +308,7 @@ def test_daily_funds_history_probe_is_a_fixed_access_api_and_never_enters_source
         "expires_at": started.json()["expires_at"],
         "continuation_state": "NOT_STARTED",
         "cursor_transcript": "NOT_STARTED",
+        "record_list_shape": "NOT_OBSERVED",
     }
     request = json.loads((control / "dws_history_probe_request.json").read_text(encoding="utf-8"))
     assert set(request) == {"schema_version", "request_id", "action", "actor", "requested_at", "expires_at"}
@@ -318,7 +319,7 @@ def test_daily_funds_history_probe_is_a_fixed_access_api_and_never_enters_source
     now = datetime.now(timezone.utc)
     raw_sentinel = "history-probe-source-value-must-not-escape"
     (control / "dws_history_probe_session.json").write_text(json.dumps({
-        "schema_version": "kmfa.daily_funds.dws_history_probe_session.v1",
+        "schema_version": "kmfa.daily_funds.dws_history_probe_session.v2",
         "request_id": request["request_id"],
         "state": "COMPLETED",
         "machine_code": "DWS_HISTORY_PROBE_COMPLETED",
@@ -327,6 +328,7 @@ def test_daily_funds_history_probe_is_a_fixed_access_api_and_never_enters_source
         "expires_at": (now + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
         "continuation_state": "SECOND_PAGE_TERMINAL",
         "cursor_transcript": "OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
+        "record_list_shape": "NOT_OBSERVED",
         "raw_source_value": raw_sentinel,
     }), encoding="utf-8")
     malformed = client.get("/ops/api/daily-funds/history-probe")
@@ -373,6 +375,31 @@ def test_daily_funds_history_probe_is_a_fixed_access_api_and_never_enters_source
         "expires_at": completed.json()["expires_at"],
         "continuation_state": "SECOND_PAGE_TERMINAL",
         "cursor_transcript": "OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
+        "record_list_shape": "NOT_OBSERVED",
+    }
+
+    (control / "dws_history_probe_session.json").write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.dws_history_probe_session.v2",
+        "request_id": request["request_id"],
+        "state": "FAILED",
+        "machine_code": "DWS_PAGE_RECORDS_MISSING",
+        "created_at": now.isoformat().replace("+00:00", "Z"),
+        "updated_at": now.isoformat().replace("+00:00", "Z"),
+        "expires_at": (now + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+        "continuation_state": "NOT_STARTED",
+        "cursor_transcript": "NOT_STARTED",
+        "record_list_shape": "NO_DIRECT_LIST",
+    }), encoding="utf-8")
+    classified = client.get("/ops/api/daily-funds/history-probe")
+    assert classified.status_code == 200
+    assert classified.json() == {
+        "state": "FAILED",
+        "machine_code": "DWS_PAGE_RECORDS_MISSING",
+        "updated_at": classified.json()["updated_at"],
+        "expires_at": classified.json()["expires_at"],
+        "continuation_state": "NOT_STARTED",
+        "cursor_transcript": "NOT_STARTED",
+        "record_list_shape": "NO_DIRECT_LIST",
     }
 
 

@@ -67,7 +67,12 @@ def _target_inputs(tmp_path: Path, *, apps: list[object] | None = None) -> tuple
     return envs, access_apps
 
 
-def _valid_probe(*, state: str = "COMPLETED", continuation: str = "SECOND_PAGE_TERMINAL") -> dict[str, object]:
+def _valid_probe(
+    *,
+    state: str = "COMPLETED",
+    continuation: str = "SECOND_PAGE_TERMINAL",
+    record_list_shape: str = "NOT_OBSERVED",
+) -> dict[str, object]:
     cursor = {
         "NOT_STARTED": "NOT_STARTED",
         "FIRST_PAGE_TERMINAL": "FIRST_PAGE_TERMINAL",
@@ -85,6 +90,7 @@ def _valid_probe(*, state: str = "COMPLETED", continuation: str = "SECOND_PAGE_T
         "expires_at": "2026-08-09T00:10:00Z",
         "continuation_state": continuation,
         "cursor_transcript": cursor,
+        "record_list_shape": record_list_shape,
     }
 
 
@@ -329,6 +335,7 @@ def test_probe_receipt_proves_cursor_reuse_without_storing_a_cursor(tmp_path: Pa
         "probe_state": "COMPLETED",
         "continuation_state": "SECOND_PAGE_TERMINAL",
         "cursor_transcript": "OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
+        "record_list_shape": "NOT_OBSERVED",
         "machine_code": "DWS_HISTORY_PROBE_COMPLETED",
         "result": "HISTORY_PROBE_COMPLETED",
     }
@@ -336,6 +343,22 @@ def test_probe_receipt_proves_cursor_reuse_without_storing_a_cursor(tmp_path: Pa
     _write(receipt, summary)
     assert probe_poll_state(receipt) == "COMPLETED"
     assert "opaque-page" not in json.dumps(summary)
+
+
+def test_probe_receipt_rejects_untrusted_record_list_shape(tmp_path: Path) -> None:
+    response = tmp_path / "probe.json"
+    raw_shape = "source-value-must-not-escape"
+    _write(response, _valid_probe(record_list_shape=raw_shape))
+
+    summary = summarize_probe_response(
+        response,
+        response_headers_path=_probe_headers(tmp_path / "probe.headers"),
+        http_status="200",
+        curl_exit=0,
+    )
+
+    assert summary["transport"] == "INVALID_RESPONSE"
+    assert raw_shape not in json.dumps(summary)
 
 
 def test_probe_receipt_keeps_the_recordless_window_fallback_explicit(tmp_path: Path) -> None:
@@ -406,6 +429,7 @@ def test_probe_start_accepts_only_the_fixed_queued_receipt(tmp_path: Path) -> No
         "expires_at": "2026-08-09T00:10:00Z",
         "continuation_state": "NOT_STARTED",
         "cursor_transcript": "NOT_STARTED",
+        "record_list_shape": "NOT_OBSERVED",
     })
 
     summary = summarize_probe_start_response(

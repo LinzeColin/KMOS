@@ -52,6 +52,10 @@ _CURSOR_TRANSCRIPTS = {
     "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL": "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
     "GROUP_HISTORY_FALLBACK_SECOND_PAGE_CONTINUES": "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_CONTINUES",
 }
+_RECORD_LIST_SHAPES = frozenset({
+    "NOT_OBSERVED", "NO_DIRECT_LIST", "UNRECOGNIZED_DIRECT_LIST",
+})
+_RECEIPT_RECORD_LIST_SHAPES = _RECORD_LIST_SHAPES | {"UNCLASSIFIED"}
 _MACHINE_CODES = frozenset({
     "DWS_HISTORY_PROBE_NOT_REQUESTED",
     "DWS_HISTORY_PROBE_QUEUED",
@@ -477,17 +481,20 @@ def summarize_probe_response(
         return _probe_summary("INVALID_RESPONSE")
     if set(payload) != {
         "state", "machine_code", "updated_at", "expires_at", "continuation_state", "cursor_transcript",
+        "record_list_shape",
     }:
         return _probe_summary("INVALID_RESPONSE")
     state = payload.get("state")
     continuation_state = payload.get("continuation_state")
     cursor_transcript = payload.get("cursor_transcript")
     machine_code = payload.get("machine_code")
+    record_list_shape = payload.get("record_list_shape")
     if (
         state not in _PROBE_STATES
         or continuation_state not in _CONTINUATION_STATES
         or cursor_transcript != _CURSOR_TRANSCRIPTS.get(continuation_state)
         or machine_code not in _MACHINE_CODES
+        or record_list_shape not in _RECORD_LIST_SHAPES
         or not isinstance(payload.get("updated_at"), str)
         or (payload.get("expires_at") is not None and not isinstance(payload.get("expires_at"), str))
     ):
@@ -496,6 +503,7 @@ def summarize_probe_response(
     assert isinstance(continuation_state, str)
     assert isinstance(cursor_transcript, str)
     assert isinstance(machine_code, str)
+    assert isinstance(record_list_shape, str)
     result = "HISTORY_PROBE_COMPLETED" if (
         state == "COMPLETED"
         and continuation_state in {
@@ -512,6 +520,7 @@ def summarize_probe_response(
         "probe_state": state,
         "continuation_state": continuation_state,
         "cursor_transcript": cursor_transcript,
+        "record_list_shape": record_list_shape,
         "machine_code": machine_code,
         "result": result,
     }
@@ -568,6 +577,7 @@ def summarize_probe_start_response(
         return _probe_start_summary("INVALID_RESPONSE", "HISTORY_PROBE_START_INVALID_RESPONSE")
     if set(payload) != {
         "state", "machine_code", "updated_at", "expires_at", "continuation_state", "cursor_transcript",
+        "record_list_shape",
     }:
         return _probe_start_summary("INVALID_RESPONSE", "HISTORY_PROBE_START_INVALID_RESPONSE")
     if (
@@ -575,6 +585,7 @@ def summarize_probe_start_response(
         or payload.get("machine_code") != "DWS_HISTORY_PROBE_QUEUED"
         or payload.get("continuation_state") != "NOT_STARTED"
         or payload.get("cursor_transcript") != "NOT_STARTED"
+        or payload.get("record_list_shape") != "NOT_OBSERVED"
         or not isinstance(payload.get("updated_at"), str)
         or not isinstance(payload.get("expires_at"), str)
     ):
@@ -611,6 +622,7 @@ def _probe_summary(transport: str) -> dict[str, str]:
         "probe_state": "UNCLASSIFIED",
         "continuation_state": "UNCLASSIFIED",
         "cursor_transcript": "UNCLASSIFIED",
+        "record_list_shape": "UNCLASSIFIED",
         "machine_code": "UNCLASSIFIED",
         "result": "NOT_MET",
     }
@@ -625,9 +637,11 @@ def probe_poll_state(receipt_path: str | Path) -> str:
         return "TERMINAL_NOT_MET"
     expected = {
         "schema_version", "transport", "probe_state", "continuation_state",
-        "cursor_transcript", "machine_code", "result",
+        "cursor_transcript", "record_list_shape", "machine_code", "result",
     }
     if set(payload) != expected or payload.get("schema_version") != ACCESS_BRIDGE_SCHEMA:
+        return "TERMINAL_NOT_MET"
+    if payload.get("record_list_shape") not in _RECEIPT_RECORD_LIST_SHAPES:
         return "TERMINAL_NOT_MET"
     if payload.get("result") == "HISTORY_PROBE_COMPLETED":
         return "COMPLETED"

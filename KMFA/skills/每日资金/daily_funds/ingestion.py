@@ -44,10 +44,24 @@ _DEVICE_CODE_RE = re.compile(
 )
 _DEVICE_URL_RE = re.compile(r"https://[^\s<>\"']+", re.IGNORECASE)
 
+# A history-probe receipt may report only this bounded protocol classification
+# when a terminal DWS page omits the explicit message list required by DF-002.
+# It deliberately contains neither a provider field name nor any source value.
+DWS_RECORD_LIST_SHAPES = frozenset({
+    "NOT_OBSERVED",
+    "NO_DIRECT_LIST",
+    "UNRECOGNIZED_DIRECT_LIST",
+})
+
 
 class IngestionError(RuntimeError):
-    def __init__(self, code: str):
+    def __init__(self, code: str, *, record_list_shape: str = "NOT_OBSERVED"):
+        if record_list_shape not in DWS_RECORD_LIST_SHAPES:
+            raise ValueError("invalid DWS record-list shape")
         self.code = code
+        # This is intentionally a finite, values-free protocol fact.  It is
+        # never interpolated into the exception text or any runtime log.
+        self.record_list_shape = record_list_shape
         super().__init__(code)
 
 
@@ -383,7 +397,10 @@ def _extract_page(payload: object, *, require_next_cursor: bool = True) -> DwsPa
             # field even when the selected conversation has history.  Never
             # turn that shape into SOURCE_MATCH_ZERO or advance a cursor.
             if raw_more is False:
-                raise IngestionError("DWS_PAGE_RECORDS_MISSING")
+                raise IngestionError(
+                    "DWS_PAGE_RECORDS_MISSING",
+                    record_list_shape=_record_list_shape(candidate),
+                )
             else:
                 continue
         next_cursor = candidate.get("nextCursor", candidate.get("next_cursor"))
@@ -405,6 +422,10 @@ _DWS_EXPLICIT_MESSAGE_LIST_KEYS = (
     # ``im/search_messages`` emits this official DWS field in some deployed
     # versions.  It is deliberately explicit rather than a guessed alias.
     "messageList",
+    # The official DWS search adapter also accepts a direct raw ``result``
+    # array (without the separate ``success`` business envelope).  This is an
+    # explicit list shape, not a fallback that infers emptiness from hasMore.
+    "result",
 )
 
 
@@ -419,6 +440,23 @@ _DWS_PAGINATION_CONTAINER_KEYS = frozenset({
     "pagination",
     "paging",
 })
+
+
+def _record_list_shape(candidate: Mapping[str, Any]) -> str:
+    """Classify a record-less terminal page without retaining source data.
+
+    The probe uses this only after the normal explicit-list parser has failed.
+    It inspects the finite page envelope scopes already permitted by that
+    parser and emits no field name, list size, value, identifier, cursor, or
+    message content.  It must never change the collector's fail-closed result.
+    """
+
+    for container in (candidate, candidate.get("data"), candidate.get("result")):
+        if not isinstance(container, Mapping):
+            continue
+        if any(isinstance(value, list) for value in container.values()):
+            return "UNRECOGNIZED_DIRECT_LIST"
+    return "NO_DIRECT_LIST"
 
 
 def _explicit_dws_page_records(candidate: Mapping[str, Any]) -> list[Any] | None:

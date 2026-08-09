@@ -21,13 +21,13 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .config import ConfigError, DailyFundsConfig
-from .ingestion import DwsHistoryClient, IngestionError
+from .ingestion import DWS_RECORD_LIST_SHAPES, DwsHistoryClient, IngestionError
 from .state import RuntimeState, atomic_json_write, iso_now
 
 UTC = timezone.utc
 
 REQUEST_SCHEMA = "kmfa.daily_funds.dws_history_probe_request.v1"
-SESSION_SCHEMA = "kmfa.daily_funds.dws_history_probe_session.v1"
+SESSION_SCHEMA = "kmfa.daily_funds.dws_history_probe_session.v2"
 REQUEST_FILE = "dws_history_probe_request.json"
 SESSION_FILE = "dws_history_probe_session.json"
 ACTOR = "kmfa_private_owner_ui"
@@ -153,11 +153,14 @@ class DailyFundsHistoryProbeBroker:
         state: str,
         machine_code: str,
         continuation_state: str,
+        record_list_shape: str = "NOT_OBSERVED",
     ) -> None:
         if state not in ALL_STATES:
             raise ValueError("invalid history probe state")
         if continuation_state not in CONTINUATION_STATES:
             raise ValueError("invalid history probe continuation state")
+        if record_list_shape not in DWS_RECORD_LIST_SHAPES:
+            raise ValueError("invalid history probe record-list shape")
         atomic_json_write(
             self._path(SESSION_FILE),
             {
@@ -173,6 +176,10 @@ class DailyFundsHistoryProbeBroker:
                 # opaque cursor was used for page two.  The cursor itself is
                 # never persisted, logged, or returned through the API.
                 "cursor_transcript": CURSOR_TRANSCRIPTS[continuation_state],
+                # A finite protocol-only diagnostic for DF-002.  It cannot
+                # carry a DWS key, list length, source identifier, message,
+                # attachment, cursor, or financial value.
+                "record_list_shape": record_list_shape,
             },
         )
 
@@ -313,6 +320,7 @@ class DailyFundsHistoryProbeBroker:
                 state=state,
                 machine_code="DWS_HISTORY_PROBE_EXPIRED" if state == "EXPIRED" else _safe_machine_code(exc.code),
                 continuation_state="NOT_STARTED",
+                record_list_shape=exc.record_list_shape,
             )
         except Exception:
             self._write_session(

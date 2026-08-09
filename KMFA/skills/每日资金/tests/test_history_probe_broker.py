@@ -97,6 +97,7 @@ def test_history_probe_reuses_the_opaque_cursor_without_retaining_source_values(
     assert set(session) == {
         "schema_version", "request_id", "state", "machine_code", "created_at",
         "updated_at", "expires_at", "continuation_state", "cursor_transcript",
+        "record_list_shape",
     }
     assert session == {
         "schema_version": SESSION_SCHEMA,
@@ -108,6 +109,7 @@ def test_history_probe_reuses_the_opaque_cursor_without_retaining_source_values(
         "expires_at": session["expires_at"],
         "continuation_state": "SECOND_PAGE_TERMINAL",
         "cursor_transcript": "OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
+        "record_list_shape": "NOT_OBSERVED",
     }
     assert [call[2] for call in calls] == [None, "opaque-page-2-cursor"]
     assert all((end - start) == timedelta(hours=24) for start, end, _cursor in calls)
@@ -144,6 +146,7 @@ def test_history_probe_reports_a_bounded_second_page_without_claiming_terminal_h
     assert session["continuation_state"] == "SECOND_PAGE_CONTINUES"
     assert session["cursor_transcript"] == "OPAQUE_CURSOR_REUSED_SECOND_PAGE_CONTINUES"
     assert session["machine_code"] == "DWS_HISTORY_PROBE_COMPLETED"
+    assert session["record_list_shape"] == "NOT_OBSERVED"
 
 
 def test_history_probe_retries_only_a_recordless_current_window_with_the_same_group_history_interface(
@@ -174,6 +177,7 @@ def test_history_probe_retries_only_a_recordless_current_window_with_the_same_gr
     session = json.loads((config.control_dir / SESSION_FILE).read_text(encoding="utf-8"))
     assert session["state"] == "COMPLETED"
     assert session["machine_code"] == "DWS_HISTORY_PROBE_COMPLETED"
+    assert session["record_list_shape"] == "NOT_OBSERVED"
     assert session["continuation_state"] == "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL"
     assert session["cursor_transcript"] == "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL"
     assert len(calls) == 3
@@ -230,7 +234,45 @@ def test_history_probe_failure_is_sanitized_and_never_reflects_source_output(
     assert session["machine_code"] == "DWS_HISTORY_PERMISSION_DENIED"
     assert session["continuation_state"] == "NOT_STARTED"
     assert session["cursor_transcript"] == "NOT_STARTED"
+    assert session["record_list_shape"] == "NOT_OBSERVED"
     assert "group-fixture" not in json.dumps(session)
+    assert not (config.control_dir / REQUEST_FILE).exists()
+
+
+def test_history_probe_preserves_only_the_finite_df002_shape_on_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _config(tmp_path)
+
+    class FakeClient:
+        def __init__(self, _config, *, event_sink):
+            assert callable(event_sink)
+
+        def search(self, _start: datetime, _end: datetime, _cursor: str | None) -> DwsPage:
+            raise IngestionError(
+                "DWS_PAGE_RECORDS_MISSING",
+                record_list_shape="UNRECOGNIZED_DIRECT_LIST",
+            )
+
+    monkeypatch.setattr(history_probe_module, "DwsHistoryClient", FakeClient)
+    _request(config, "f" * 64)
+    DailyFundsHistoryProbeBroker(config).run_once()
+
+    session = json.loads((config.control_dir / SESSION_FILE).read_text(encoding="utf-8"))
+    assert session["state"] == "FAILED"
+    assert session["machine_code"] == "DWS_PAGE_RECORDS_MISSING"
+    assert session["continuation_state"] == "NOT_STARTED"
+    assert session["cursor_transcript"] == "NOT_STARTED"
+    assert session["record_list_shape"] == "UNRECOGNIZED_DIRECT_LIST"
+    assert set(session) == {
+        "schema_version", "request_id", "state", "machine_code", "created_at",
+        "updated_at", "expires_at", "continuation_state", "cursor_transcript",
+        "record_list_shape",
+    }
+    rendered = json.dumps(session)
+    assert "group-fixture" not in rendered
+    assert "sender-fixture" not in rendered
     assert not (config.control_dir / REQUEST_FILE).exists()
 
 
@@ -250,6 +292,7 @@ def test_history_probe_configuration_failure_is_not_misreported_as_completion(tm
     assert session["machine_code"] == "CONFIG_INVALID"
     assert session["continuation_state"] == "NOT_STARTED"
     assert session["cursor_transcript"] == "NOT_STARTED"
+    assert session["record_list_shape"] == "NOT_OBSERVED"
 
 
 def test_entrypoint_supervises_the_fixed_history_probe_broker() -> None:

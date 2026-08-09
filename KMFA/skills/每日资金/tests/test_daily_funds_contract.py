@@ -2684,8 +2684,9 @@ def test_dws_history_rejects_recordless_terminal_v1_envelope(tmp_path: Path) -> 
         raise AssertionError(f"unexpected DWS command: {command}")
 
     client = DwsHistoryClient(config, runner=runner, event_sink=lambda *event: events.append(event))
-    with pytest.raises(IngestionError, match="DWS_PAGE_RECORDS_MISSING"):
+    with pytest.raises(IngestionError, match="DWS_PAGE_RECORDS_MISSING") as exc_info:
         client.search(datetime(2026, 8, 1, tzinfo=UTC), datetime(2026, 8, 1, 0, 1, tzinfo=UTC), None)
+    assert exc_info.value.record_list_shape == "NO_DIRECT_LIST"
     assert events == [
         ("DWS", "AUTH_STATUS", "OK"),
         ("DWS", "HISTORY_SEARCH_ADVANCED", "DWS_PAGE_RECORDS_MISSING"),
@@ -2731,6 +2732,29 @@ def test_dws_history_accepts_official_message_list_terminal_envelope(tmp_path: P
             return subprocess.CompletedProcess(command, 0, json.dumps({
                 "success": True,
                 "result": {"hasMore": False, "messageList": []},
+            }), "")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    client = DwsHistoryClient(config, runner=runner)
+    assert client.search(
+        datetime(2026, 8, 1, tzinfo=UTC),
+        datetime(2026, 8, 1, 0, 1, tzinfo=UTC),
+        None,
+    ) == DwsPage(messages=(), next_cursor=None, has_more=False)
+
+
+def test_dws_history_accepts_official_raw_result_array_terminal_envelope(tmp_path: Path) -> None:
+    """The official adapter also permits a direct raw ``result`` list."""
+
+    config = _config(tmp_path)
+
+    def runner(command, **kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "hasMore": False,
+                "result": [],
             }), "")
         raise AssertionError(f"unexpected DWS command: {command}")
 

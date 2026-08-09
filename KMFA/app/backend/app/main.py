@@ -2544,7 +2544,8 @@ DAILY_FUNDS_AUTH_LIVE_STATES = {"REQUESTED", "AWAITING_APPROVAL", "CANCELLING"}
 DAILY_FUNDS_AUTH_TERMINAL_STATES = {"SUCCEEDED", "FAILED", "EXPIRED", "CANCELLED"}
 DAILY_FUNDS_AUTH_CODE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{2,63}$")
 DAILY_FUNDS_HISTORY_PROBE_REQUEST_SCHEMA = "kmfa.daily_funds.dws_history_probe_request.v1"
-DAILY_FUNDS_HISTORY_PROBE_SESSION_SCHEMA = "kmfa.daily_funds.dws_history_probe_session.v1"
+DAILY_FUNDS_HISTORY_PROBE_SESSION_SCHEMA = "kmfa.daily_funds.dws_history_probe_session.v2"
+DAILY_FUNDS_HISTORY_PROBE_LEGACY_SESSION_SCHEMA = "kmfa.daily_funds.dws_history_probe_session.v1"
 DAILY_FUNDS_HISTORY_PROBE_REQUEST_FILE = "dws_history_probe_request.json"
 DAILY_FUNDS_HISTORY_PROBE_SESSION_FILE = "dws_history_probe_session.json"
 DAILY_FUNDS_HISTORY_PROBE_ACTOR = "kmfa_private_owner_ui"
@@ -2566,6 +2567,9 @@ DAILY_FUNDS_HISTORY_PROBE_CURSOR_TRANSCRIPTS = {
     "GROUP_HISTORY_FALLBACK_FIRST_PAGE_TERMINAL": "GROUP_HISTORY_FALLBACK_FIRST_PAGE_TERMINAL",
     "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL": "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
     "GROUP_HISTORY_FALLBACK_SECOND_PAGE_CONTINUES": "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_CONTINUES",
+}
+DAILY_FUNDS_HISTORY_PROBE_RECORD_LIST_SHAPES = {
+    "NOT_OBSERVED", "NO_DIRECT_LIST", "UNRECOGNIZED_DIRECT_LIST",
 }
 DAILY_FUNDS_ALLOWED_RANGES = {"1d": 1, "7d": 7, "30d": 30, "90d": 90, "180d": 180, "360d": 360}
 DAILY_FUNDS_HUMAN_STATUSES = {"已更新", "处理中", "需处理"}
@@ -4270,10 +4274,26 @@ def _daily_funds_history_probe_read_request(now: datetime) -> dict[str, Any] | N
 
 def _daily_funds_history_probe_read_session(now: datetime) -> dict[str, Any] | None:
     payload = _daily_funds_history_probe_read_object(DAILY_FUNDS_HISTORY_PROBE_SESSION_FILE)
-    if not isinstance(payload, dict) or set(payload) != {
+    session_keys = {
         "schema_version", "request_id", "state", "machine_code", "created_at", "updated_at", "expires_at",
-        "continuation_state", "cursor_transcript",
-    }:
+        "continuation_state", "cursor_transcript", "record_list_shape",
+    }
+    legacy_session_keys = session_keys - {"record_list_shape"}
+    if not isinstance(payload, dict):
+        return None
+    payload_keys = set(payload)
+    if payload_keys != session_keys and payload_keys != legacy_session_keys:
+        return None
+    schema_version = payload.get("schema_version")
+    if schema_version == DAILY_FUNDS_HISTORY_PROBE_SESSION_SCHEMA:
+        if set(payload) != session_keys:
+            return None
+        record_list_shape = payload.get("record_list_shape")
+    elif schema_version == DAILY_FUNDS_HISTORY_PROBE_LEGACY_SESSION_SCHEMA:
+        if set(payload) != legacy_session_keys:
+            return None
+        record_list_shape = "NOT_OBSERVED"
+    else:
         return None
     request_id = payload.get("request_id")
     state = payload.get("state")
@@ -4283,8 +4303,7 @@ def _daily_funds_history_probe_read_session(now: datetime) -> dict[str, Any] | N
     continuation_state = payload.get("continuation_state")
     cursor_transcript = payload.get("cursor_transcript")
     if (
-        payload.get("schema_version") != DAILY_FUNDS_HISTORY_PROBE_SESSION_SCHEMA
-        or not isinstance(request_id, str)
+        not isinstance(request_id, str)
         or re.fullmatch(r"[0-9a-f]{64}", request_id) is None
         or state not in DAILY_FUNDS_HISTORY_PROBE_LIVE_STATES | DAILY_FUNDS_HISTORY_PROBE_TERMINAL_STATES
         or created_at is None
@@ -4293,6 +4312,7 @@ def _daily_funds_history_probe_read_session(now: datetime) -> dict[str, Any] | N
         or expires_at <= created_at
         or continuation_state not in DAILY_FUNDS_HISTORY_PROBE_CONTINUATION_STATES
         or cursor_transcript != DAILY_FUNDS_HISTORY_PROBE_CURSOR_TRANSCRIPTS.get(continuation_state)
+        or record_list_shape not in DAILY_FUNDS_HISTORY_PROBE_RECORD_LIST_SHAPES
     ):
         return None
     if state in DAILY_FUNDS_HISTORY_PROBE_LIVE_STATES and expires_at.astimezone(timezone.utc) <= now.astimezone(timezone.utc):
@@ -4303,6 +4323,7 @@ def _daily_funds_history_probe_read_session(now: datetime) -> dict[str, Any] | N
             "expires_at": _daily_funds_auth_iso(expires_at),
             "continuation_state": "NOT_STARTED",
             "cursor_transcript": "NOT_STARTED",
+            "record_list_shape": "NOT_OBSERVED",
         }
     return {
         "state": state,
@@ -4311,6 +4332,7 @@ def _daily_funds_history_probe_read_session(now: datetime) -> dict[str, Any] | N
         "expires_at": _daily_funds_auth_iso(expires_at),
         "continuation_state": continuation_state,
         "cursor_transcript": cursor_transcript,
+        "record_list_shape": record_list_shape,
     }
 
 
@@ -4345,6 +4367,7 @@ def daily_funds_history_probe():
             "expires_at": _daily_funds_auth_iso(request["expires_at"]),
             "continuation_state": "NOT_STARTED",
             "cursor_transcript": "NOT_STARTED",
+            "record_list_shape": "NOT_OBSERVED",
         })
     return _daily_funds_history_probe_response({
         "state": "NOT_REQUESTED",
@@ -4353,6 +4376,7 @@ def daily_funds_history_probe():
         "expires_at": None,
         "continuation_state": "NOT_STARTED",
         "cursor_transcript": "NOT_STARTED",
+        "record_list_shape": "NOT_OBSERVED",
     })
 
 
@@ -4408,6 +4432,7 @@ async def start_daily_funds_history_probe(request: Request):
         "expires_at": _daily_funds_auth_iso(expires_at),
         "continuation_state": "NOT_STARTED",
         "cursor_transcript": "NOT_STARTED",
+        "record_list_shape": "NOT_OBSERVED",
     }, status_code=202)
 
 
