@@ -1,9 +1,9 @@
 # KMFA App（DT6，D2=A：KMIDS 同栈）
 
-后端骨架（PROD.0001）：根路径 `/` 是 canonical 公共 App Shell，默认无需登录；`/workspace` 是
-同一匿名入口的兼容路径，`/ui` 与 `/ui/` 单跳 `308` 回 `/`。`/healthz` 是不含内部细节的公共浅健康。
-既有 `/api*`、`/ops/openapi.json`、`/ops/docs` 与 `/ops/healthz` 属于私有运维面；既有经营仪表盘兼容入口
-为 `/ops/app`。生产由路径级 Cloudflare
+后端骨架（PROD.0001）：根路径 `/` 是 KMFA 经营驾驶舱应用；匿名公开 App Shell 仅在
+`/workspace`。`/ui` 与 `/ui/` 单跳 `308` 回 `/`；`/healthz` 是不含内部细节的公共浅健康。
+既有 `/api*`、`/ops/openapi.json`、`/ops/docs` 与 `/ops/healthz` 属于私有运维面；`/ops/app` 是
+经营驾驶舱兼容入口。生产由路径级 Cloudflare
 Access 加源站 JWT 校验双重保护。公共壳异常时把 `KMFA_PUBLIC_SHELL_ENABLED=0` 并重部署，可仅关闭
 增强 JavaScript、保留根路径六项稳定静态入口；该回滚不动数据，也不放松 `/api*`、`/ops*` 守卫。
 `KMFA_PUBLIC_INDEXING_ENABLED` 独立控制搜索索引且生产默认 `0`：hold 模式仍可直接访问主页，但

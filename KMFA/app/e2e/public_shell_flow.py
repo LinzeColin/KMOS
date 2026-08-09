@@ -18,7 +18,8 @@ from urllib.parse import urlsplit
 
 from playwright.sync_api import Browser, Page, sync_playwright
 
-# Owner 2026-08-03：默认根路径必须是无需登录的匿名公共 App Shell。
+# Owner 2026-07-26：根路径已归位 KMFA 经营驾驶舱门面；本套测的是**匿名公共 App Shell**，
+# 其 v1.5.2 契约在 /workspace 上完整保留，故本文件统一指向 /workspace。
 ENTRY_KEYS = ("project", "upload", "search", "progress", "report", "help")
 PRIVATE_PREFIXES = ("/api", "/ops")
 
@@ -71,7 +72,7 @@ def _run_interactive(
     page.on("console", lambda message: console_errors.append(message.text) if message.type == "error" else None)
     page.on("pageerror", lambda error: page_errors.append(str(error)))
     try:
-        response = page.goto(f"{base_url}/", wait_until="networkidle", timeout=30_000)
+        response = page.goto(f"{base_url}/workspace", wait_until="networkidle", timeout=30_000)
         assert response and response.status == 200
         assert "no-transform" in response.headers.get("cache-control", "")
         assert "static.cloudflareinsights.com" not in page.content()
@@ -128,7 +129,7 @@ def _run_no_javascript(browser: Browser, base_url: str, out_dir: Path) -> dict[s
     page_errors: list[str] = []
     page.on("pageerror", lambda error: page_errors.append(str(error)))
     try:
-        response = page.goto(f"{base_url}/", wait_until="load", timeout=30_000)
+        response = page.goto(f"{base_url}/workspace", wait_until="load", timeout=30_000)
         assert response and response.status == 200
         entries = page.locator("[data-static-shell-entry]")
         assert entries.count() == 6
@@ -165,7 +166,7 @@ def _run_degraded(browser: Browser, base_url: str, out_dir: Path) -> dict[str, o
         ),
     )
     try:
-        response = page.goto(f"{base_url}/", wait_until="networkidle", timeout=30_000)
+        response = page.goto(f"{base_url}/workspace", wait_until="networkidle", timeout=30_000)
         assert response and response.status == 200
         page.locator('[data-system-state="degraded"]').wait_for(timeout=10_000)
         assert "基础服务暂不可确认" in page.locator("#system-status").inner_text()
