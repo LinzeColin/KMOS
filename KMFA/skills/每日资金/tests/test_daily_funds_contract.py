@@ -2719,6 +2719,66 @@ def test_dws_history_accepts_explicit_empty_terminal_v1_envelope_and_stable_send
     assert client.selected_messages(DwsPage(messages=(message,), next_cursor=None, has_more=False)) == (message,)
 
 
+def test_dws_history_accepts_official_message_list_terminal_envelope(tmp_path: Path) -> None:
+    """The official ``im/search_messages`` adapter also emits ``messageList``."""
+
+    config = _config(tmp_path)
+
+    def runner(command, **kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "success": True,
+                "result": {"hasMore": False, "messageList": []},
+            }), "")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    client = DwsHistoryClient(config, runner=runner)
+    assert client.search(
+        datetime(2026, 8, 1, tzinfo=UTC),
+        datetime(2026, 8, 1, 0, 1, tzinfo=UTC),
+        None,
+    ) == DwsPage(messages=(), next_cursor=None, has_more=False)
+
+
+def test_dws_history_accepts_official_grouped_search_messages_shape(tmp_path: Path) -> None:
+    """A grouped official search result supplies its parent conversation ID."""
+
+    config = _config(tmp_path)
+
+    def runner(command, **kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "success": True,
+                "result": {
+                    "hasMore": False,
+                    "conversationMessagesList": [{
+                        "openConversationId": config.group_id,
+                        "messages": [{
+                            "openMessageId": "message-1",
+                            "senderOpenDingTalkId": config.sender_id,
+                            "createTime": "2026-08-01T00:00:00Z",
+                            "content": "资金明细",
+                        }],
+                    }],
+                },
+            }), "")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    client = DwsHistoryClient(config, runner=runner)
+    page = client.search(
+        datetime(2026, 8, 1, tzinfo=UTC),
+        datetime(2026, 8, 1, 0, 1, tzinfo=UTC),
+        None,
+    )
+    assert len(page.messages) == 1
+    assert page.messages[0]["openConversationId"] == config.group_id
+    client.assert_exact_source(page.messages[0])
+
+
 def test_recordless_terminal_dws_page_never_becomes_source_match_zero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config = _config(tmp_path)
 

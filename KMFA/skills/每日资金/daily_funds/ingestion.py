@@ -360,13 +360,7 @@ def _extract_page(payload: object, *, require_next_cursor: bool = True) -> DwsPa
         raw_more = candidate.get("hasMore", candidate.get("has_more"))
         if not isinstance(raw_more, bool):
             continue
-        records: object | None = None
-        for key in ("messages", "items", "records", "list"):
-            if isinstance(candidate.get(key), list):
-                records = candidate[key]
-                break
-        if records is None and isinstance(candidate.get("data"), list):
-            records = candidate["data"]
+        records = _explicit_dws_page_records(candidate)
         if records is None:
             # A terminal page is only a proven zero-result page when DWS
             # explicitly supplies an empty records list.  ``hasMore: false``
@@ -386,6 +380,62 @@ def _extract_page(payload: object, *, require_next_cursor: bool = True) -> DwsPa
             raw_more,
         )
     raise IngestionError("DWS_PAGE_SHAPE_INVALID")
+
+
+_DWS_EXPLICIT_MESSAGE_LIST_KEYS = (
+    "messages",
+    "items",
+    "records",
+    "list",
+    # ``im/search_messages`` emits this official DWS field in some deployed
+    # versions.  It is deliberately explicit rather than a guessed alias.
+    "messageList",
+)
+
+
+def _explicit_dws_page_records(candidate: Mapping[str, Any]) -> list[Any] | None:
+    """Return only an explicitly represented DWS search result list.
+
+    The underlying official ``im/search_messages`` adapter documents both a
+    direct ``messageList`` and a grouped ``conversationMessagesList`` shape.
+    It may also nest the direct list under ``data`` or ``result``.  We accept
+    those finite, documented shapes only.  In particular, an empty list is a
+    real terminal page; a missing list is still ambiguous and returns ``None``.
+    """
+
+    for container in (candidate, candidate.get("data"), candidate.get("result")):
+        if not isinstance(container, Mapping):
+            continue
+        for key in _DWS_EXPLICIT_MESSAGE_LIST_KEYS:
+            value = container.get(key)
+            if isinstance(value, list):
+                return value
+        if isinstance(container.get("data"), list):
+            return container["data"]
+        grouped = container.get("conversationMessagesList")
+        if isinstance(grouped, list):
+            messages: list[Any] = []
+            for group in grouped:
+                if not isinstance(group, Mapping):
+                    continue
+                group_messages = group.get("messages")
+                if not isinstance(group_messages, list):
+                    continue
+                group_conversation_id = group.get("openConversationId")
+                for raw_message in group_messages:
+                    if not isinstance(raw_message, Mapping):
+                        messages.append(raw_message)
+                        continue
+                    message = dict(raw_message)
+                    if (
+                        "openConversationId" not in message
+                        and isinstance(group_conversation_id, str)
+                        and group_conversation_id
+                    ):
+                        message["openConversationId"] = group_conversation_id
+                    messages.append(message)
+            return messages
+    return None
 
 
 class DwsHistoryClient:
