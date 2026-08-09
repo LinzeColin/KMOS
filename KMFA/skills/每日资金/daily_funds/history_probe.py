@@ -4,9 +4,9 @@ This is deliberately a diagnostic control plane, not a second collector and
 not a remote shell.  The private KMFA app may enqueue exactly one fixed probe;
 the request contains no command, source identifier, cursor, time range, or
 financial input.  The broker first uses only the slice's configured DWS
-identity against a fixed recent window.  If that page is recordless, it may
-retry the *same exact-source history interface* without time bounds and return
-only a small enum-only receipt.
+identity against a fixed recent window. If that page is recordless, it may
+use the official exact-group reader with its provider-owned millisecond
+continuation and return only a small enum-only receipt.
 """
 
 from __future__ import annotations
@@ -42,6 +42,9 @@ CONTINUATION_STATES = frozenset({
     "GROUP_HISTORY_FALLBACK_FIRST_PAGE_TERMINAL",
     "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL",
     "GROUP_HISTORY_FALLBACK_SECOND_PAGE_CONTINUES",
+    "GROUP_HISTORY_V2_FIRST_PAGE_TERMINAL",
+    "GROUP_HISTORY_V2_SECOND_PAGE_TERMINAL",
+    "GROUP_HISTORY_V2_SECOND_PAGE_CONTINUES",
 })
 CURSOR_TRANSCRIPTS = {
     "NOT_STARTED": "NOT_STARTED",
@@ -51,6 +54,9 @@ CURSOR_TRANSCRIPTS = {
     "GROUP_HISTORY_FALLBACK_FIRST_PAGE_TERMINAL": "GROUP_HISTORY_FALLBACK_FIRST_PAGE_TERMINAL",
     "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL": "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
     "GROUP_HISTORY_FALLBACK_SECOND_PAGE_CONTINUES": "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_CONTINUES",
+    "GROUP_HISTORY_V2_FIRST_PAGE_TERMINAL": "GROUP_HISTORY_V2_FIRST_PAGE_TERMINAL",
+    "GROUP_HISTORY_V2_SECOND_PAGE_TERMINAL": "GROUP_HISTORY_V2_PROVIDER_MILLISECOND_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
+    "GROUP_HISTORY_V2_SECOND_PAGE_CONTINUES": "GROUP_HISTORY_V2_PROVIDER_MILLISECOND_CURSOR_REUSED_SECOND_PAGE_CONTINUES",
 }
 _HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
 
@@ -201,9 +207,9 @@ class DailyFundsHistoryProbeBroker:
 
         A page that has ``hasMore=false`` but no explicit records list is not
         proof of an empty current day.  It must not be made into a zero result
-        or a cursor advance.  The only diagnostic retry is the documented
-        group-plus-sender form of the same opaque-cursor history interface;
-        its contents and cursor remain entirely in process memory.
+        or a cursor advance. The only diagnostic fallback is the official
+        exact-group reader with a two-page cap; its contents and cursor remain
+        entirely in process memory.
         """
 
         self.config.validate(include_storage=False)
@@ -230,26 +236,33 @@ class DailyFundsHistoryProbeBroker:
         # guard without broadening the source query.
         client.verify_exact_group_scope()
         start = now - timedelta(hours=24)
-        fallback_used = False
         try:
             first = client.search(start, now, None)
         except IngestionError as exc:
             if exc.code != "DWS_PAGE_RECORDS_MISSING":
                 raise
-            # The pinned DWS runtime permits ``search-advanced`` with both the
-            # configured conversation and stable sender.  Do not substitute the
-            # boundary-based message-list API or widen either selector.
-            fallback_used = True
-            first = client.search(None, None, None)
+            group_history = client.probe_group_history_v2(start, now)
+            if group_history.pages_fetched == 1 and not group_history.has_more:
+                continuation_state = "GROUP_HISTORY_V2_FIRST_PAGE_TERMINAL"
+            elif group_history.pages_fetched == 2 and not group_history.has_more:
+                continuation_state = "GROUP_HISTORY_V2_SECOND_PAGE_TERMINAL"
+            elif group_history.pages_fetched == 2 and group_history.has_more:
+                continuation_state = "GROUP_HISTORY_V2_SECOND_PAGE_CONTINUES"
+            else:  # Defensive: the client is strict, but never promote drift.
+                raise IngestionError("DWS_GROUP_HISTORY_PROBE_INVALID")
+            self._write_session(
+                request,
+                state="COMPLETED",
+                machine_code="DWS_GROUP_HISTORY_PROBE_COMPLETED",
+                continuation_state=continuation_state,
+            )
+            return
         if not first.has_more:
             self._write_session(
                 request,
                 state="COMPLETED",
                 machine_code="DWS_HISTORY_PROBE_COMPLETED",
-                continuation_state=(
-                    "GROUP_HISTORY_FALLBACK_FIRST_PAGE_TERMINAL"
-                    if fallback_used else "FIRST_PAGE_TERMINAL"
-                ),
+                continuation_state="FIRST_PAGE_TERMINAL",
             )
             return
         if not first.next_cursor:
@@ -262,14 +275,8 @@ class DailyFundsHistoryProbeBroker:
                 continuation_state="NOT_STARTED",
             )
             return
-        second = client.search(None, None, first.next_cursor) if fallback_used else client.search(start, now, first.next_cursor)
-        if fallback_used:
-            continuation_state = (
-                "GROUP_HISTORY_FALLBACK_SECOND_PAGE_CONTINUES"
-                if second.has_more else "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL"
-            )
-        else:
-            continuation_state = "SECOND_PAGE_CONTINUES" if second.has_more else "SECOND_PAGE_TERMINAL"
+        second = client.search(start, now, first.next_cursor)
+        continuation_state = "SECOND_PAGE_CONTINUES" if second.has_more else "SECOND_PAGE_TERMINAL"
         self._write_session(
             request,
             state="COMPLETED",

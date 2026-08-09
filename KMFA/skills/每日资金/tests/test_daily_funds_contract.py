@@ -3094,6 +3094,85 @@ def test_dws_history_group_scope_preflight_is_exact_and_discards_its_response(tm
     ]
 
 
+def test_dws_group_history_v2_probe_uses_only_the_fixed_window_and_discards_messages(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    events: list[tuple[str, str, str]] = []
+    commands: list[list[str]] = []
+    start = datetime(2026, 8, 1, tzinfo=UTC)
+    end = datetime(2026, 8, 2, tzinfo=UTC)
+    source_sentinel = "group-history-source-value-must-not-persist"
+
+    def runner(command, **_kwargs):
+        commands.append(command)
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        assert command == [
+            config.dws_bin,
+            "chat",
+            "+chat-messages",
+            "--group",
+            config.group_id,
+            "--start",
+            start.isoformat(),
+            "--end",
+            end.isoformat(),
+            "--order",
+            "asc",
+            "--page-all",
+            "--page-limit",
+            "2",
+            "--format",
+            "json",
+        ]
+        assert config.sender_id not in command
+        return subprocess.CompletedProcess(command, 0, json.dumps({
+            "messages": [{"text": source_sentinel}],
+            "pagesFetched": 2,
+            "paginationKnown": True,
+            "complete": True,
+            "hasMore": False,
+            "failedCount": 0,
+            "failures": [],
+        }), "")
+
+    result = DwsHistoryClient(
+        config,
+        runner=runner,
+        event_sink=lambda *event: events.append(event),
+    ).probe_group_history_v2(start, end)
+
+    assert result.pages_fetched == 2
+    assert result.has_more is False
+    assert source_sentinel not in repr(result)
+    assert len(commands) == 2
+    assert events == [
+        ("DWS", "AUTH_STATUS", "OK"),
+        ("DWS", "HISTORY_GROUP_V2", "OK"),
+    ]
+
+
+def test_dws_group_history_v2_probe_refuses_a_recordless_or_incomplete_page(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+
+    def runner(command, **_kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        return subprocess.CompletedProcess(command, 0, json.dumps({
+            "pagesFetched": 1,
+            "paginationKnown": True,
+            "complete": True,
+            "hasMore": False,
+            "failedCount": 0,
+            "failures": [],
+        }), "")
+
+    with pytest.raises(IngestionError, match="DWS_GROUP_HISTORY_PROBE_INVALID"):
+        DwsHistoryClient(config, runner=runner).probe_group_history_v2(
+            datetime(2026, 8, 1, tzinfo=UTC),
+            datetime(2026, 8, 2, tzinfo=UTC),
+        )
+
+
 def test_dws_history_group_scope_preflight_keeps_permission_failure_values_free(tmp_path: Path) -> None:
     config = _config(tmp_path)
 

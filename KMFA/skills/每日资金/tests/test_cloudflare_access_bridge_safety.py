@@ -81,8 +81,15 @@ def _valid_probe(
         "GROUP_HISTORY_FALLBACK_FIRST_PAGE_TERMINAL": "GROUP_HISTORY_FALLBACK_FIRST_PAGE_TERMINAL",
         "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL": "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
         "GROUP_HISTORY_FALLBACK_SECOND_PAGE_CONTINUES": "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_CONTINUES",
+        "GROUP_HISTORY_V2_FIRST_PAGE_TERMINAL": "GROUP_HISTORY_V2_FIRST_PAGE_TERMINAL",
+        "GROUP_HISTORY_V2_SECOND_PAGE_TERMINAL": "GROUP_HISTORY_V2_PROVIDER_MILLISECOND_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
+        "GROUP_HISTORY_V2_SECOND_PAGE_CONTINUES": "GROUP_HISTORY_V2_PROVIDER_MILLISECOND_CURSOR_REUSED_SECOND_PAGE_CONTINUES",
     }[continuation]
-    machine = "DWS_HISTORY_PROBE_COMPLETED" if state == "COMPLETED" else "DWS_HISTORY_PROBE_RUNNING"
+    machine = (
+        "DWS_GROUP_HISTORY_PROBE_COMPLETED"
+        if state == "COMPLETED" and continuation.startswith("GROUP_HISTORY_V2_")
+        else "DWS_HISTORY_PROBE_COMPLETED" if state == "COMPLETED" else "DWS_HISTORY_PROBE_RUNNING"
+    )
     return {
         "state": state,
         "machine_code": machine,
@@ -378,6 +385,27 @@ def test_probe_receipt_keeps_the_recordless_window_fallback_explicit(tmp_path: P
     receipt = tmp_path / "receipt.json"
     _write(receipt, summary)
     assert probe_poll_state(receipt) == "COMPLETED"
+
+
+def test_probe_receipt_keeps_provider_millisecond_continuation_distinct_from_opaque_search(tmp_path: Path) -> None:
+    response = tmp_path / "probe.json"
+    _write(response, _valid_probe(continuation="GROUP_HISTORY_V2_SECOND_PAGE_TERMINAL"))
+
+    summary = summarize_probe_response(
+        response,
+        response_headers_path=_probe_headers(tmp_path / "probe.headers"),
+        http_status="200",
+        curl_exit=0,
+    )
+
+    assert summary["result"] == "GROUP_HISTORY_PROBE_COMPLETED"
+    assert summary["machine_code"] == "DWS_GROUP_HISTORY_PROBE_COMPLETED"
+    assert summary["continuation_state"] == "GROUP_HISTORY_V2_SECOND_PAGE_TERMINAL"
+    assert summary["cursor_transcript"] == "GROUP_HISTORY_V2_PROVIDER_MILLISECOND_CURSOR_REUSED_SECOND_PAGE_TERMINAL"
+    receipt = tmp_path / "receipt.json"
+    _write(receipt, summary)
+    assert probe_poll_state(receipt) == "COMPLETED"
+    assert "nextCursor" not in json.dumps(summary)
 
 
 @pytest.mark.parametrize(

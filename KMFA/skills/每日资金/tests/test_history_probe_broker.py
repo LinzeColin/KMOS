@@ -24,7 +24,7 @@ from daily_funds.history_probe import (
     SESSION_SCHEMA,
     DailyFundsHistoryProbeBroker,
 )
-from daily_funds.ingestion import DwsPage, IngestionError
+from daily_funds.ingestion import DwsGroupHistoryProbe, DwsPage, IngestionError
 from daily_funds.state import atomic_json_write
 
 UTC = timezone.utc
@@ -156,12 +156,13 @@ def test_history_probe_reports_a_bounded_second_page_without_claiming_terminal_h
     assert session["record_list_shape"] == "NOT_OBSERVED"
 
 
-def test_history_probe_retries_only_a_recordless_current_window_with_the_same_group_history_interface(
+def test_history_probe_uses_the_official_group_history_reader_only_after_a_recordless_current_window(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     config = _config(tmp_path)
     calls: list[tuple[datetime | None, datetime | None, str | None]] = []
+    group_history_calls: list[tuple[datetime, datetime]] = []
 
     class FakeClient:
         def __init__(self, _config, *, event_sink):
@@ -175,10 +176,10 @@ def test_history_probe_retries_only_a_recordless_current_window_with_the_same_gr
             if start is not None:
                 assert end is not None and cursor is None
                 raise IngestionError("DWS_PAGE_RECORDS_MISSING")
-            if cursor is None:
-                return DwsPage(messages=(), next_cursor="opaque-history-page-2", has_more=True)
-            assert cursor == "opaque-history-page-2"
-            return DwsPage(messages=(), next_cursor=None, has_more=False)
+
+        def probe_group_history_v2(self, start: datetime, end: datetime) -> DwsGroupHistoryProbe:
+            group_history_calls.append((start, end))
+            return DwsGroupHistoryProbe(pages_fetched=2, has_more=False)
 
     monkeypatch.setattr(history_probe_module, "DwsHistoryClient", FakeClient)
     _request(config, "e" * 64)
@@ -186,18 +187,17 @@ def test_history_probe_retries_only_a_recordless_current_window_with_the_same_gr
 
     session = json.loads((config.control_dir / SESSION_FILE).read_text(encoding="utf-8"))
     assert session["state"] == "COMPLETED"
-    assert session["machine_code"] == "DWS_HISTORY_PROBE_COMPLETED"
+    assert session["machine_code"] == "DWS_GROUP_HISTORY_PROBE_COMPLETED"
     assert session["record_list_shape"] == "NOT_OBSERVED"
-    assert session["continuation_state"] == "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL"
-    assert session["cursor_transcript"] == "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL"
-    assert len(calls) == 3
+    assert session["continuation_state"] == "GROUP_HISTORY_V2_SECOND_PAGE_TERMINAL"
+    assert session["cursor_transcript"] == "GROUP_HISTORY_V2_PROVIDER_MILLISECOND_CURSOR_REUSED_SECOND_PAGE_TERMINAL"
+    assert len(calls) == 1
     assert calls[0][0] is not None and calls[0][1] is not None and calls[0][2] is None
-    assert calls[1] == (None, None, None)
-    assert calls[2] == (None, None, "opaque-history-page-2")
+    assert len(group_history_calls) == 1
+    assert group_history_calls[0][1] - group_history_calls[0][0] == timedelta(hours=24)
     serialized = json.dumps(session)
     assert "group-fixture" not in serialized
     assert "sender-fixture" not in serialized
-    assert "opaque-history-page-2" not in serialized
 
 
 def test_history_probe_rejects_malformed_control_volume_input_without_constructing_a_client(
@@ -266,6 +266,12 @@ def test_history_probe_preserves_only_the_finite_df002_shape_on_failure(
             return None
 
         def search(self, _start: datetime, _end: datetime, _cursor: str | None) -> DwsPage:
+            raise IngestionError(
+                "DWS_PAGE_RECORDS_MISSING",
+                record_list_shape="UNRECOGNIZED_DIRECT_LIST",
+            )
+
+        def probe_group_history_v2(self, _start: datetime, _end: datetime) -> DwsGroupHistoryProbe:
             raise IngestionError(
                 "DWS_PAGE_RECORDS_MISSING",
                 record_list_shape="UNRECOGNIZED_DIRECT_LIST",

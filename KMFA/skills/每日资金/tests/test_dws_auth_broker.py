@@ -35,9 +35,11 @@ def test_daily_funds_dws_installer_pins_both_linux_runtime_architectures() -> No
     assert 'Linux-x86_64)              ASSET="dws-linux-amd64.tar.gz" ;;' in installer
     assert 'Linux-aarch64|Linux-arm64) ASSET="dws-linux-arm64.tar.gz" ;;' in installer
     assert "DWS_PLATFORM_UNSUPPORTED" in installer
-    assert 'DWS_VERSION="${DWS_VERSION:-v1.0.57}"' in installer
+    assert 'DWS_VERSION="${DWS_VERSION:-v1.0.58-beta.1}"' in installer
     assert "v1.0.57 dws-linux-amd64.tar.gz f113ce3654f21d1f9ecc7c196f815aeafbca54d377a347b244a15116c5cba698" in lock
     assert "v1.0.57 dws-linux-arm64.tar.gz 0bbe9c233a3ff585077bae1ac5000937c32d967846d14cc44c46f98d49b95ae2" in lock
+    assert "v1.0.58-beta.1 dws-linux-amd64.tar.gz b384671440a62f1e5dca5dcdb49e51ef1aad816b601021ba363c8c69986ebd2f" in lock
+    assert "v1.0.58-beta.1 dws-linux-arm64.tar.gz 7dd5e38647c88e4b7936e0f41315cd612128faeb7960f50b28dbbd1fa9683d68" in lock
     assert "v1.0.52 dws-linux-amd64.tar.gz b7dfd9a4b3489211359261747ed0cb9c8c261434bb762ad3f76df33bdbabd5cb" in lock
     assert "v1.0.52 dws-linux-arm64.tar.gz 0d357ef0535f99f2f63b5ecbfdee9c32448be2a2c24f3096c03126b3b7570bc5" in lock
 

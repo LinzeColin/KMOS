@@ -73,6 +73,19 @@ class DwsPage:
 
 
 @dataclass(frozen=True)
+class DwsGroupHistoryProbe:
+    """Values-free summary of the official exact-group history reader.
+
+    The beta DWS shortcut owns the provider's millisecond cursor conversion
+    internally. This slice keeps no message, cursor, timestamp, or selector
+    from that command; the fixed control probe needs only bounded page facts.
+    """
+
+    pages_fetched: int
+    has_more: bool
+
+
+@dataclass(frozen=True)
 class DwsAuthStatus:
     authenticated: bool
     refresh_token_valid: bool
@@ -866,6 +879,118 @@ class DwsHistoryClient:
         # metadata would turn a probe-only source-scope check into a new data
         # surface; successful JSON execution is the only evidence recorded.
         self._record_network_event("HISTORY_GROUP_SCOPE", "OK")
+
+    def probe_group_history_v2(
+        self,
+        start: datetime,
+        end: datetime,
+    ) -> DwsGroupHistoryProbe:
+        """Exercise DWS's exact-group reader without retaining source data.
+
+        DWS v1.0.58-beta.1 added ``+chat-messages`` for a single group. Its
+        own tested implementation follows the authoritative millisecond
+        ``nextCursor`` by passing the derived RFC3339Nano boundary to the
+        lower message-list API, so this caller must not reconstruct a cursor
+        from projected message timestamps. The command is capped at two pages
+        and its stdout is parsed only into this finite control result.
+        """
+
+        start = start.astimezone(UTC)
+        end = end.astimezone(UTC)
+        if start >= end:
+            self._record_network_event("HISTORY_GROUP_V2", "INVALID")
+            raise IngestionError("DWS_HISTORY_WINDOW_INVALID")
+        self.ensure_authenticated()
+        command = [
+            self.config.dws_bin,
+            "chat",
+            "+chat-messages",
+            "--group",
+            self.config.group_id,
+            "--start",
+            start.isoformat(),
+            "--end",
+            end.isoformat(),
+            "--order",
+            "asc",
+            "--page-all",
+            "--page-limit",
+            "2",
+            "--format",
+            "json",
+        ]
+        try:
+            completed = self._run_dws(
+                command,
+                operation="HISTORY_GROUP_V2",
+                timeout=90,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise IngestionError("DWS_GROUP_HISTORY_PROBE_UNAVAILABLE") from exc
+        if completed.returncode != 0:
+            code = _dws_history_failure_code(
+                completed.stdout,
+                completed.stderr,
+                fallback="DWS_GROUP_HISTORY_PROBE_FAILED",
+            )
+            self._record_network_event("HISTORY_GROUP_V2", code)
+            raise IngestionError(code)
+        try:
+            payload = _unwrap_dws_history_payload(json.loads(completed.stdout))
+        except (IngestionError, json.JSONDecodeError) as exc:
+            if isinstance(exc, IngestionError):
+                self._record_network_event("HISTORY_GROUP_V2", exc.code)
+                raise
+            self._record_network_event("HISTORY_GROUP_V2", "INVALID")
+            raise IngestionError("DWS_GROUP_HISTORY_PROBE_INVALID") from exc
+        if not isinstance(payload, Mapping):
+            self._record_network_event("HISTORY_GROUP_V2", "INVALID")
+            raise IngestionError("DWS_GROUP_HISTORY_PROBE_INVALID")
+
+        # Require the explicit list even though it is deliberately discarded:
+        # an omitted list is the exact ambiguity that caused the primary
+        # search adapter to fail closed. Empty is valid; absent is not.
+        messages = payload.get("messages")
+        pages_fetched = payload.get("pagesFetched")
+        has_more = payload.get("hasMore")
+        complete = payload.get("complete")
+        pagination_known = payload.get("paginationKnown")
+        failed_count = payload.get("failedCount")
+        failures = payload.get("failures")
+        if (
+            not isinstance(messages, list)
+            or isinstance(pages_fetched, bool)
+            or not isinstance(pages_fetched, int)
+            or pages_fetched not in {1, 2}
+            or not isinstance(has_more, bool)
+            or not isinstance(complete, bool)
+            or pagination_known is not True
+            or isinstance(failed_count, bool)
+            or failed_count != 0
+            or not isinstance(failures, list)
+            or failures
+        ):
+            self._record_network_event("HISTORY_GROUP_V2", "INVALID")
+            raise IngestionError("DWS_GROUP_HISTORY_PROBE_INVALID")
+        if has_more:
+            next_page = payload.get("nextPage")
+            next_cursor = next_page.get("nextCursor") if isinstance(next_page, Mapping) else None
+            cursor_valid = (
+                isinstance(next_cursor, int) and not isinstance(next_cursor, bool) and next_cursor > 0
+            ) or (
+                isinstance(next_cursor, str)
+                and 1 <= len(next_cursor) <= 19
+                and next_cursor.isdecimal()
+                and int(next_cursor) > 0
+            )
+            if complete or pages_fetched != 2 or not cursor_valid:
+                self._record_network_event("HISTORY_GROUP_V2", "INVALID")
+                raise IngestionError("DWS_GROUP_HISTORY_PROBE_INVALID")
+        elif not complete:
+            self._record_network_event("HISTORY_GROUP_V2", "INVALID")
+            raise IngestionError("DWS_GROUP_HISTORY_PROBE_INVALID")
+        self._record_network_event("HISTORY_GROUP_V2", "OK")
+        return DwsGroupHistoryProbe(pages_fetched=pages_fetched, has_more=has_more)
 
     def search(
         self,

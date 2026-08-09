@@ -381,6 +381,30 @@ def test_daily_funds_history_probe_is_a_fixed_access_api_and_never_enters_source
     (control / "dws_history_probe_session.json").write_text(json.dumps({
         "schema_version": "kmfa.daily_funds.dws_history_probe_session.v2",
         "request_id": request["request_id"],
+        "state": "COMPLETED",
+        "machine_code": "DWS_GROUP_HISTORY_PROBE_COMPLETED",
+        "created_at": now.isoformat().replace("+00:00", "Z"),
+        "updated_at": now.isoformat().replace("+00:00", "Z"),
+        "expires_at": (now + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+        "continuation_state": "GROUP_HISTORY_V2_SECOND_PAGE_TERMINAL",
+        "cursor_transcript": "GROUP_HISTORY_V2_PROVIDER_MILLISECOND_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
+        "record_list_shape": "NOT_OBSERVED",
+    }), encoding="utf-8")
+    group_history_completed = client.get("/ops/api/daily-funds/history-probe")
+    assert group_history_completed.status_code == 200
+    assert group_history_completed.json() == {
+        "state": "COMPLETED",
+        "machine_code": "DWS_GROUP_HISTORY_PROBE_COMPLETED",
+        "updated_at": group_history_completed.json()["updated_at"],
+        "expires_at": group_history_completed.json()["expires_at"],
+        "continuation_state": "GROUP_HISTORY_V2_SECOND_PAGE_TERMINAL",
+        "cursor_transcript": "GROUP_HISTORY_V2_PROVIDER_MILLISECOND_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
+        "record_list_shape": "NOT_OBSERVED",
+    }
+
+    (control / "dws_history_probe_session.json").write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.dws_history_probe_session.v2",
+        "request_id": request["request_id"],
         "state": "FAILED",
         "machine_code": "DWS_PAGE_RECORDS_MISSING",
         "created_at": now.isoformat().replace("+00:00", "Z"),
