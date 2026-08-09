@@ -10,6 +10,10 @@
 
 同一卷还会写入 `flow_state.json`，由既有 KMFA `/api/排程健康` 汇总，而不建立第二套健康页面。它只登记运行审计、排程、业务流、自愈和恢复演练状态；worker 不具备现网 source SHA/image digest 证据时会明确保留 `identity_state=UNKNOWN`。
 
+每日 `05:20` 的 `raw-archive-audit` 只在该云端容器中读取已取得范围内的私库原件：先按 Git tree 名称受限枚举，再以精确 sparse 路径重新打开消息信封、occurrence、批次 manifest 和字节 SHA，最后才运行现有离线解析器。它不请求 DWS、不写 Git/R2/D1/OCI、不变更 `current.json`，也不把原件、ID、金额或文件名写入日志和页面。其结果仅更新 values-free 附件能力回执；即使全部 parser-open，也不能代表全量群历史、同日双事实、整数分勾稽或资金发布已通过。
+
+每 6 小时 `r2-guard` 使用 Cloudflare 控制面只读接口核验全账户 bucket 默认均为 Standard、无 IA 生命周期且 IA 指标为零；同时以 31 天、每 15 分钟全部为新对象的最坏情况验证 Class A/Class B/存储均低于 Standard 免费额度 40%。只写入不含 bucket、对象或金额的回执。任何一项为未知、过期或失败时，R2 镜像、冷备前的 R2 readback 与 publication 都会保持 fail-closed；新对象也显式写入 `STANDARD`，同 SHA 键绝不覆盖旧镜像字节。
+
 每日 `observer` 会在同一 container deployment 的首份经 D1 Oracle、pointer 与 history 三方比对的 VALID publication 上建立基准。只有此后每个**新的、源侧已确认的业务日期**才计入五日影子对照；重复 cron、重试、回填或同日版本刷新都不会加计。每个对照仅记录零差/覆盖/阈值/取数/重复/备份/恢复的状态码与延迟，不记录金额、账户或原始标识。D1/pointer/history 任一不一致时保持 `需处理`，不虚报观察完成。
 
 ## 专用 DWS 云端身份
@@ -30,7 +34,7 @@
 
 `.csv`、`.txt`、`.xlsx`、`.xlsm` 是**候选解析格式**，不是在代码合成测试通过后就可对生产宣称“已支持”。每份候选附件都必须先由唯一来源链下载、写入并从私有 Git sparse readback 回读；随后同时校验 source SHA、occurrence lineage、后缀、声明 MIME、字节 magic、列模板、业务日期和 parser-open。成功后，受保护 SQLite 才按附件 SHA 写入 values-free `parser_evidence` 回执；该回执与私有 raw manifest 一起构成真实能力证据。
 
-当前执行基线尚未取得目标钉钉群的真实附件字节，因此没有任何生产附件类型可被标记为已实证支持。`.xls` 仍一律 `needs-review`。图片与扫描 PDF 只有在显式启用的离线确定性 Tesseract 回退路径中才会尝试打开；它不是模型/API，也不会猜测金额。该路径同时要求来源谱系、MIME/magic、关键字段至少 0.98 置信度、两个不同业务日的同版式校准，以及后续同版式私有 Git readback 成功；任一条件未满足即保持 `needs-review`，不能进入 publication。
+当前已取得私库原件的范围与目标群完整历史仍须分别证明；在云端 `raw-archive-audit` 对真实字节完成 parser-open 前，没有任何附件类型可被标记为已实证支持。`.xls` 仍一律 `needs-review`。图片与扫描 PDF 只有在显式启用的离线确定性 Tesseract 回退路径中才会尝试打开；它不是模型/API，也不会猜测金额。该路径同时要求来源谱系、MIME/magic、关键字段至少 0.98 置信度、两个不同业务日的同版式校准，以及后续同版式私有 Git readback 成功；任一条件未满足即保持 `needs-review`，不能进入 publication。
 
 在真实样本冻结多工作表模板前，任何多 sheet 工作簿都会以 `XLSX_WORKSHEET_AMBIGUOUS` 停止；同一流水同时携带“流入/流出”与“金额/方向”两套金额编码时以 `TRANSACTION_AMOUNT_MAPPING_AMBIGUOUS` 停止。解析规则升级会更换 parser version，旧版本的 capability receipt 仅保留审计用途，不再投影为当前支持能力，直到原始字节在新版本下重新 parser-open。
 
@@ -42,7 +46,7 @@
 
 ## 发布、镜像与恢复
 
-publication 是严格的零差、**唯一一对不同来源版本**、整数分 canonical record。D1 仅是读模型：同一 publication ID 使用普通 `INSERT`，不能用 replace 覆盖；D1 REST 的绑定参数统一为字符串，整数分保持精确十进制，允许为空的期初余额只写固定 SQL `NULL`。R2 先写入原件和 manifest，再逐件回读 bytes/hash/尺寸；D1 projection 与 query Oracle 通过后，还必须成功写入私库 publication 并生成可导入 Git bundle，才会原子替换 `current.json`。
+publication 是严格的零差、**唯一一对不同来源版本**、整数分 canonical record。D1 仅是读模型：同一 publication ID 使用普通 `INSERT`，不能用 replace 覆盖；D1 REST 的绑定参数统一为字符串，整数分保持精确十进制，允许为空的期初余额只写固定 SQL `NULL`。R2 先写入原件和 manifest，再逐件回读 bytes/hash/尺寸；同 SHA 键先回读，完全一致才复用，不一致绝不覆盖。D1 projection 与 query Oracle 通过后，还必须成功写入私库 publication 并生成可导入 Git bundle，才会原子替换 `current.json`。
 
 OCI 是最后一跳，故其失败只把 runtime 标为 `LAG`，不会撤销一份已验证的 VALID pointer。恢复 manifest 使用 publication 创建时刻而非每次重试的当前时间，以保证同一恢复输入的 bytes 稳定，并绑定私库 publication commit；冷备在写入该 manifest 前即会验证 OCI artifact、R2 inventory、D1 export 的严格结构和 hash，并在全新 bare Git 库实际导入 bundle、确认原始 commit 与其后私库 publication commit 的祖先关系及 canonical publication 文件逐字节一致。冷备重试、发布与恢复共用 `publisher_lock`，避免并发写入或备份陈旧 pointer；恢复会重复同一验证，且仅在 D1 重建与查询 Oracle 均成功后才允许切换 pointer。
 

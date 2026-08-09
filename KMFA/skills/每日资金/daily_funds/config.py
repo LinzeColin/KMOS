@@ -25,6 +25,18 @@ ALLOWED_PRIVATE_REPOSITORIES = frozenset({
     "git@github.com:LinzeColin/Private-Database.git",
 })
 
+# GitHubProject rule 7 requires every new periodic R2 writer to remain below
+# 40% of the public Standard free tier under a pessimistic 31-day month.  The
+# guard keeps these values in one place so both configuration validation and
+# its values-free receipt use identical arithmetic.
+R2_FREE_TIER_CLASS_A_OPERATIONS = 1_000_000
+R2_FREE_TIER_CLASS_B_OPERATIONS = 10_000_000
+R2_FREE_TIER_STORAGE_BYTES = 10_000_000_000
+R2_FREE_TIER_MAX_UTILIZATION_BPS = 4_000
+R2_GUARD_MONTH_DAYS = 31
+R2_POLLS_PER_DAY = 96
+R2_MANIFEST_MAX_BYTES = 65_536
+
 
 def _nonempty(env: Mapping[str, str], name: str, default: str = "") -> str:
     return str(env.get(name, default) or "").strip()
@@ -50,6 +62,65 @@ def _ocr_confidence_bps(env: Mapping[str, str]) -> int:
     return int((decimal * 10_000).to_integral_value(rounding=ROUND_FLOOR))
 
 
+def _positive_int(env: Mapping[str, str], name: str, default: int) -> int:
+    raw = _nonempty(env, name, str(default))
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise ConfigError(f"{name}_INVALID") from exc
+    if value <= 0:
+        raise ConfigError(f"{name}_INVALID")
+    return value
+
+
+def r2_worst_case_monthly_usage(
+    *,
+    max_new_objects_per_poll: int,
+    max_new_bytes_per_poll: int,
+) -> tuple[int, int, int]:
+    """Return Class-A, Class-B and storage bounds for the scheduled slice.
+
+    Every new object is pessimistically assumed to require a preflight GET,
+    PUT, HEAD and byte-readback.  The normal publication then verifies the
+    manifest/object set once more, while the daily cold-backup job verifies
+    the most recent set.  The bound deliberately excludes any deduction for
+    hash reuse, so a valid receipt remains safe if every 15-minute cycle is
+    entirely new material.
+    """
+
+    if (
+        isinstance(max_new_objects_per_poll, bool)
+        or isinstance(max_new_bytes_per_poll, bool)
+        or not isinstance(max_new_objects_per_poll, int)
+        or not isinstance(max_new_bytes_per_poll, int)
+        or max_new_objects_per_poll <= 0
+        or max_new_bytes_per_poll <= 0
+    ):
+        raise ConfigError("R2_FREE_TIER_BUDGET_INVALID")
+    objects_per_cycle = max_new_objects_per_poll + 1  # plus one manifest
+    poll_cycles = R2_GUARD_MONTH_DAYS * R2_POLLS_PER_DAY
+    class_a = objects_per_cycle * poll_cycles
+    class_b = objects_per_cycle * ((4 * poll_cycles) + R2_GUARD_MONTH_DAYS)
+    storage = (max_new_bytes_per_poll + R2_MANIFEST_MAX_BYTES) * poll_cycles
+    return class_a, class_b, storage
+
+
+def r2_worst_case_is_within_free_tier(
+    *,
+    max_new_objects_per_poll: int,
+    max_new_bytes_per_poll: int,
+) -> bool:
+    class_a, class_b, storage = r2_worst_case_monthly_usage(
+        max_new_objects_per_poll=max_new_objects_per_poll,
+        max_new_bytes_per_poll=max_new_bytes_per_poll,
+    )
+    return (
+        class_a * 10_000 < R2_FREE_TIER_CLASS_A_OPERATIONS * R2_FREE_TIER_MAX_UTILIZATION_BPS
+        and class_b * 10_000 < R2_FREE_TIER_CLASS_B_OPERATIONS * R2_FREE_TIER_MAX_UTILIZATION_BPS
+        and storage * 10_000 < R2_FREE_TIER_STORAGE_BYTES * R2_FREE_TIER_MAX_UTILIZATION_BPS
+    )
+
+
 @dataclass(frozen=True)
 class DailyFundsConfig:
     state_dir: Path
@@ -73,6 +144,8 @@ class DailyFundsConfig:
     r2_bucket: str
     r2_access_key_id: str
     r2_secret_access_key: str
+    r2_max_new_objects_per_poll: int
+    r2_max_new_bytes_per_poll: int
     oci_endpoint_url: str
     oci_bucket: str
     oci_access_key_id: str
@@ -107,6 +180,8 @@ class DailyFundsConfig:
             r2_bucket=_nonempty(source, "DAILY_FUNDS_R2_BUCKET"),
             r2_access_key_id=_nonempty(source, "DAILY_FUNDS_R2_ACCESS_KEY_ID"),
             r2_secret_access_key=_nonempty(source, "DAILY_FUNDS_R2_SECRET_ACCESS_KEY"),
+            r2_max_new_objects_per_poll=_positive_int(source, "DAILY_FUNDS_R2_MAX_NEW_OBJECTS_PER_POLL", 100),
+            r2_max_new_bytes_per_poll=_positive_int(source, "DAILY_FUNDS_R2_MAX_NEW_BYTES_PER_POLL", 1_000_000),
             oci_endpoint_url=_nonempty(source, "DAILY_FUNDS_OCI_ENDPOINT_URL"),
             oci_bucket=_nonempty(source, "DAILY_FUNDS_OCI_BUCKET"),
             oci_access_key_id=_nonempty(source, "DAILY_FUNDS_OCI_ACCESS_KEY_ID"),
@@ -182,6 +257,11 @@ class DailyFundsConfig:
             raise ConfigError("DAILY_FUNDS_OCR_MIN_CONFIDENCE_INVALID")
         if include_storage and self.restore_drill_d1_database_id == self.d1_database_id:
             raise ConfigError("RESTORE_DRILL_D1_MUST_DIFFER")
+        if not r2_worst_case_is_within_free_tier(
+            max_new_objects_per_poll=self.r2_max_new_objects_per_poll,
+            max_new_bytes_per_poll=self.r2_max_new_bytes_per_poll,
+        ):
+            raise ConfigError("R2_FREE_TIER_BUDGET_EXCEEDED")
         legacy_oci_values = (
             self.oci_endpoint_url,
             self.oci_bucket,
@@ -242,6 +322,8 @@ class DailyFundsConfig:
             self.d1_database_id,
             self.restore_drill_d1_database_id,
             self.r2_bucket,
+            str(self.r2_max_new_objects_per_poll),
+            str(self.r2_max_new_bytes_per_poll),
             self.oci_bucket,
             hashlib.sha256(self.oci_par_url.encode("utf-8")).hexdigest(),
             "OCR_ENABLED" if self.ocr_enabled else "OCR_DISABLED",

@@ -28,8 +28,10 @@ from daily_funds.access_bridge import (  # noqa: E402
     capture_service_token_id,
     policy_payload,
     probe_poll_state,
+    probe_start_poll_state,
     resolve_bridge_target,
     service_token_payload,
+    summarize_probe_start_response,
     summarize_probe_response,
     validate_success_response,
     write_private_json,
@@ -116,11 +118,20 @@ def main(argv: list[str] | None = None) -> int:
     summary.add_argument("--curl-exit", required=True)
     summary.add_argument("--output")
 
+    start_summary = subparsers.add_parser("summarize-probe-start")
+    start_summary.add_argument("--response", required=True)
+    start_summary.add_argument("--http-status", required=True)
+    start_summary.add_argument("--curl-exit", required=True)
+    start_summary.add_argument("--output")
+
     success = subparsers.add_parser("validate-success")
     success.add_argument("--response", required=True)
 
     poll = subparsers.add_parser("probe-poll-state")
     poll.add_argument("--receipt", required=True)
+
+    start_poll = subparsers.add_parser("probe-start-poll-state")
+    start_poll.add_argument("--receipt", required=True)
 
     args = parser.parse_args(argv)
     try:
@@ -163,10 +174,22 @@ def main(argv: list[str] | None = None) -> int:
                 write_private_json(_private_output(parser, args), receipt)
             else:
                 print(json.dumps(receipt, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
+        elif args.command == "summarize-probe-start":
+            receipt = summarize_probe_start_response(
+                args.response,
+                http_status=args.http_status,
+                curl_exit=args.curl_exit,
+            )
+            if args.output:
+                write_private_json(_private_output(parser, args), receipt)
+            else:
+                print(json.dumps(receipt, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
         elif args.command == "validate-success":
             return 0 if validate_success_response(args.response) else 1
         elif args.command == "probe-poll-state":
             print(probe_poll_state(args.receipt))
+        elif args.command == "probe-start-poll-state":
+            print(probe_start_poll_state(args.receipt))
         else:  # pragma: no cover - argparse owns this branch.
             parser.error("unsupported command")
     except (AccessBridgeInputError, KeyError, OSError, ValueError):

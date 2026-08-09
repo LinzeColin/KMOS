@@ -2511,7 +2511,7 @@ SCHEDULE_CONTRACT = {
     "dws-data-auth": "每 15 分钟（闸在技能内：未卡住不请求、请求后静默 6 小时）",
     # 独立容器的状态只经受控 projection 卷进入本页；不借现有 skills 的台账、DWS
     # profile、登录态或任何本机排程。没有状态文件不是健康，而是「未跑通」。
-    "daily-funds": "历史轮询每 15 分钟；授权每分钟；保活每小时；回填/冷备/观察每日；非生产恢复演练每月",
+    "daily-funds": "历史轮询每 15 分钟；授权每分钟；保活每小时；R2 零费用守卫每 6 小时；回填/冷备/观察每日；非生产恢复演练每月",
 }
 # 技能归属业务模块（Owner 2026-07-21：「所有 skills 都需要整合进 kmfa 功能模块」）
 SKILL_MODULE = {
@@ -2582,7 +2582,9 @@ DAILY_FUNDS_STATUS_SCHEDULES = {
     "keepalive": "0 * * * * Asia/Shanghai",
     "backfill": "15 2 * * * Asia/Shanghai",
     "observer": "30 3 * * * Asia/Shanghai",
+    "r2_guard": "0 */6 * * * Asia/Shanghai",
     "cold_backup": "10 4 * * * Asia/Shanghai",
+    "raw_archive_audit": "20 5 * * * Asia/Shanghai",
     "runtime_audit": "45 5 * * * Asia/Shanghai",
     "restore_drill": "0 5 1 * * Asia/Shanghai",
 }
@@ -2618,6 +2620,7 @@ DAILY_FUNDS_BUSINESS_FLOW_STAGES = {
     "BACKFILL_EMPTY_WINDOW", "BACKFILL_ARCHIVED", "BACKFILL_ARCHIVED_NEEDS_REVIEW",
     "BACKFILLING", "BACKFILLING_NEEDS_REVIEW",
     "BACKFILL_COMPLETE", "BACKFILL_COMPLETE_NEEDS_REVIEW",
+    "RAW_ARCHIVE_AUDITED", "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW",
     "OBSERVER_NEEDS_ATTENTION", "OBSERVER_WAITING_FOR_PUBLICATION_LOCK",
     "OBSERVER_BASELINE_CAPTURED", "OBSERVER_WAITING_FOR_NEXT_BUSINESS_DATE",
     "POST_DEPLOY_OBSERVING", "POST_DEPLOY_OBSERVATION_COMPLETE",
@@ -2628,6 +2631,8 @@ DAILY_FUNDS_OPERATION_RECEIPTS = (
     ("auth-probe", "认证探测"),
     ("keepalive", "认证保活"),
     ("backfill", "历史回填"),
+    ("r2-guard", "R2 零费用守卫"),
+    ("raw-archive-audit", "归档原件复核"),
     ("cold-backup", "OCI 冷备"),
     ("observer", "上线后观察"),
     ("restore-drill", "恢复演练"),

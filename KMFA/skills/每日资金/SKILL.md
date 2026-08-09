@@ -25,6 +25,8 @@ description: 独立云端每日资金纵向切片；仅从指定钉钉群历史�
 - `*/15` 北京时间：历史轮询，只有包含显式记录列表的正常页 `hasMore=false` 才完成；缺少记录列表的终页必须以 `DWS_PAGE_RECORDS_MISSING` 失败关闭，不能写成零匹配或推进 cursor。仅在 `hasMore=true` 时逐字复用 opaque `nextCursor`，终页即使返回值也必须丢弃。任一页失败不得推进 durable high-water；增量重叠 30 分钟。
 - `* * * * *`：授权探测，同一 incident 每 360 分钟最多一次 outbox 记录。
 - `0 * * * *`：DWS 显式认证状态保活。
+- `0 */6 * * *`：R2 零付费守卫。只读 Cloudflare 控制面，核验全账户 bucket 默认 Standard、无 IA 生命周期、IA 指标为零，并按最坏 31 天/15 分钟写入量确认 Class A/Class B/存储均低于免费额度 40%。回执过期、未知或失败时，R2、冷备前 R2 readback 与 publication 一律 fail-closed；不会把 bucket、对象、金额或凭据写入回执。
+- `20 5 * * *`：只读 `raw-archive-audit`。它只从已取得范围的私库原件按精确 sparse 路径重新校验消息信封、occurrence、批次与 SHA，再运行离线确定性 parser；不请求 DWS、不写 Git/R2/D1/OCI、不切换 `current.json`。结果仅可更新 values-free 附件能力回执，不能代表群历史全量、双事实、勾稽或金额 publication PASS。
 - 启动及每日 `05:45`：写入不含 argv、挂载来源或凭据的 runtime isolation audit；发现宿主挂载或其他 Skill 进程即失败关闭。
 - 每日：最大 7 天的回填、OCI 冷备重试、自主观察；回填永不替换较新的 live pointer。观察以当前 container deployment 的首份 D1/pointer/history 三方一致的 VALID publication 为基准，之后仅新的**周一至周五**源侧业务日期计入五日影子对照；cron 重试、同日重跑、周末 publication 和历史回填不能虚增。该 values-free `flow_state` 只由既有 KMFA 状态中枢读取，生产 source/image 身份无真实 Oracle 时保持 `UNKNOWN`。完整历史扫描确认没有候选附件的日窗仅作为 `BACKFILL_EMPTY_WINDOW` 推进回填计划；经私有 Git 新 sparse-clone 回读、但未获确定性解析支持的附件登记为 `NEEDS_REVIEW` 后同样可推进历史计划，绝不构成勾稽或发布成功；来源谱系/哈希失败仍失败关闭。实时采集零匹配仍失败关闭。
 - 金额：只用整数分/Decimal。固定高风险线 `60_000_000` 分，固定关注线 `120_000_000` 分；动态线为完整自然月 3/6 月平均日可用余额，或经过版本控制的自定义日期/数值线。

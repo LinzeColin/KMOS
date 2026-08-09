@@ -103,7 +103,9 @@ def _write_projection(root: Path) -> None:
             "keepalive": "0 * * * * Asia/Shanghai",
             "backfill": "15 2 * * * Asia/Shanghai",
             "observer": "30 3 * * * Asia/Shanghai",
+            "r2_guard": "0 */6 * * * Asia/Shanghai",
             "cold_backup": "10 4 * * * Asia/Shanghai",
+            "raw_archive_audit": "20 5 * * * Asia/Shanghai",
             "runtime_audit": "45 5 * * * Asia/Shanghai",
             "restore_drill": "0 5 1 * * Asia/Shanghai",
         },
@@ -143,6 +145,11 @@ def _write_projection(root: Path) -> None:
                 "state": "SUCCEEDED",
                 "code": "AUTH_OK",
                 "finished_at": "2026-07-30T12:05:30Z",
+            },
+            "r2-guard": {
+                "state": "SUCCEEDED",
+                "code": "R2_ZERO_CHARGE_GUARD_OK",
+                "finished_at": "2026-07-30T12:06:00Z",
             },
         },
         "attachment_capabilities": [
@@ -524,6 +531,11 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
         "状态": "成功",
         "结果": "AUTH_OK",
         "最近一次": "2026-07-30T12:05:30Z",
+    }
+    assert flow["运行回执"]["R2 零费用守卫"] == {
+        "状态": "成功",
+        "结果": "R2_ZERO_CHARGE_GUARD_OK",
+        "最近一次": "2026-07-30T12:06:00Z",
     }
     assert flow["来源诊断"] == {
         "状态": "COMPLETE_PAIR_READY",

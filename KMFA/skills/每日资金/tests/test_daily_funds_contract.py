@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from daily_funds.config import ConfigError, DailyFundsConfig
+from daily_funds.config import ConfigError, DailyFundsConfig, r2_worst_case_monthly_usage
 from daily_funds.control import ControlError, ThresholdControl
 from daily_funds.contracts import (
     ContractError,
@@ -49,13 +49,15 @@ from daily_funds.ingestion import (
     HistoryPoller,
     IngestionError,
     PersistedRawAttachment,
+    RawArchiveAudit,
     RawMaterializer,
     SPARSE_PATH,
     StagedRawBatch,
 )
 from daily_funds.models import SourceRef
 from daily_funds.parsing import ACCOUNT_FAMILY, PARSER_VERSION, ParseError, deterministic_ocr_runtime_ready, parse_attachment, parse_ocr_attachment
-from daily_funds.publication import D1Projection, OciColdBackup, OciParStore, PublicationCoordinator, PublicationError, R2Mirror, RestoreCoordinator, RestoreOracle
+from daily_funds.publication import D1Projection, OciColdBackup, OciParStore, PublicationCoordinator, PublicationError, R2Mirror, RestoreCoordinator, RestoreOracle, S3CompatibleStore
+from daily_funds.r2_guard import R2FreeTierGuard, R2GuardError
 from daily_funds.reconcile import AccountReconciliation, ReconciliationError, ReconciliationReport, account_key_hash, reconcile
 from daily_funds.runtime import DailyFundsRuntime, TimedFacts
 from daily_funds.state import RuntimeState, StatusWriter
@@ -142,6 +144,21 @@ def test_config_allows_only_the_daily_funds_private_repository(tmp_path: Path) -
         replace(config, restore_drill_d1_database_id="").validate()
     with pytest.raises(ConfigError, match="RESTORE_DRILL_D1_MUST_DIFFER"):
         replace(config, restore_drill_d1_database_id=config.d1_database_id).validate()
+
+
+def test_r2_periodic_budget_is_pessimistic_and_capped_below_free_tier_40_percent(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    class_a, class_b, storage = r2_worst_case_monthly_usage(
+        max_new_objects_per_poll=config.r2_max_new_objects_per_poll,
+        max_new_bytes_per_poll=config.r2_max_new_bytes_per_poll,
+    )
+    assert class_a < 400_000
+    assert class_b < 4_000_000
+    assert storage < 4_000_000_000
+    with pytest.raises(ConfigError, match="R2_FREE_TIER_BUDGET_EXCEEDED"):
+        replace(config, r2_max_new_objects_per_poll=134).validate()
+    with pytest.raises(ConfigError, match="R2_FREE_TIER_BUDGET_EXCEEDED"):
+        replace(config, r2_max_new_bytes_per_poll=1_300_000).validate()
 
 
 def test_three_and_six_month_lines_require_contract_coverage() -> None:
@@ -1600,6 +1617,79 @@ def test_overlap_reopens_verified_raw_without_repeating_media_download(tmp_path:
     assert len(reopened) == 1
 
 
+def test_raw_archive_audit_records_only_readback_capability_and_never_publishes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """T04's cloud job consumes a fresh private-Git audit, not DWS bytes."""
+
+    import daily_funds.runtime as runtime_module
+
+    config = _config(tmp_path)
+    moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
+    payload = (
+        "业务日期,公司,开户行,账号,期初余额,期末余额,币种\n"
+        "2026-07-30,甲公司,甲银行,001,1500000.00,1570000.00,CNY\n"
+    ).encode()
+    message_id = "raw-archive-account"
+    attachment = DownloadedAttachment(
+        message={
+            "openConversationId": "group-fixture",
+            "senderOpenDingTalkId": "sender-fixture",
+            "openMessageId": message_id,
+            "createTime": moment.isoformat(),
+            "content": "资金账户明细表 mediaId=fixture-raw-archive",
+        },
+        message_id=message_id,
+        message_id_hash=sha256(message_id.encode()).hexdigest(),
+        message_at=moment,
+        index=0,
+        filename="资金账户明细表_20260730.csv",
+        family=ACCOUNT_FAMILY,
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="text/csv",
+    )
+    calls: list[str] = []
+
+    class ArchiveWriter:
+        def __init__(self, _config):
+            calls.append("init")
+
+        def audit_raw_archive(self):
+            calls.append("audit")
+            return RawArchiveAudit(
+                commit_sha="a" * 40,
+                verified_attachments=(attachment,),
+                occurrence_count=1,
+                batch_count=1,
+                batch_occurrence_references=1,
+            )
+
+    runtime = DailyFundsRuntime(config)
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ArchiveWriter)
+
+    result = runtime.raw_archive_audit()
+
+    assert result == {
+        "ok": True,
+        "code": "RAW_ARCHIVE_AUDITED",
+        "capability_supported": 1,
+        "capability_needs_review": 0,
+    }
+    assert calls == ["init", "audit"]
+    assert not (config.publication_dir / "current.json").exists()
+    with runtime.state.connection() as connection:
+        inbox = connection.execute("SELECT state FROM inbox").fetchone()
+        capability = connection.execute("SELECT outcome,code FROM capability_evidence").fetchone()
+    assert tuple(inbox) == ("ARCHIVED_CAPABILITY_RECORDED",)
+    assert tuple(capability) == ("SUPPORTED", "PARSER_OPEN_OK")
+    flow = json.loads((config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
+    assert flow["business_flow"]["stage"] == "RAW_ARCHIVE_AUDITED"
+    assert flow["source_discovery"] == {"state": "UNKNOWN"}
+    assert "raw-archive-account" not in json.dumps(flow, ensure_ascii=False)
+
+
 def test_runtime_state_reuses_only_one_terminal_raw_receipt(tmp_path: Path) -> None:
     state = RuntimeState(tmp_path / "state")
     message_id_hash = "a" * 64
@@ -1675,6 +1765,110 @@ def test_live_poll_exposes_a_values_free_target_document_gate(tmp_path: Path, mo
     assert "message-fixture" not in flow_text
 
 
+def test_live_poll_dws_auth_failure_retains_prior_publication(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """F-001: source authentication failure must never replace a valid pointer."""
+
+    class AuthDeniedClient:
+        @staticmethod
+        def search(_start, _end, _cursor):
+            raise IngestionError("DWS_AUTH_REQUIRED")
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    pointer = runtime.config.publication_dir / "current.json"
+    pointer.parent.mkdir(parents=True, exist_ok=True)
+    pointer.write_text(json.dumps({
+        "publication": {
+            "status": "VALID",
+            "publication_id": "a" * 64,
+            "business_date": "2026-07-30",
+            "created_at": "2026-07-30T12:00:00Z",
+            "oci_backup_state": "OK",
+        },
+    }, sort_keys=True) + "\n", encoding="utf-8")
+    before = pointer.read_bytes()
+    monkeypatch.setattr(runtime, "_dws_client", lambda: AuthDeniedClient())
+
+    assert runtime.poll(now=datetime(2026, 8, 1, tzinfo=UTC)) == {
+        "ok": False,
+        "code": "DWS_AUTH_REQUIRED",
+    }
+    assert pointer.read_bytes() == before
+    status = json.loads((runtime.config.publication_dir / "status.json").read_text(encoding="utf-8"))
+    assert status["human_status"] == "需处理"
+    assert status["machine_code"] == "DWS_AUTH_REQUIRED"
+
+
+def test_live_poll_raw_readback_failure_retains_prior_publication(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """F-005/F-008: a corrupt raw readback stops before a pointer swap."""
+
+    import daily_funds.runtime as runtime_module
+
+    class OneAttachmentClient:
+        @staticmethod
+        def search(_start, _end, _cursor):
+            return DwsPage(messages=({"opaque": "message-fixture"},), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(page):
+            return page.messages
+
+        @staticmethod
+        def attachment_count(_message):
+            return 1
+
+        @staticmethod
+        def message_id_hash(_message):
+            return "b" * 64
+
+        @staticmethod
+        def download(_message, _index):
+            payload = b"fixture-attachment"
+            return DownloadedAttachment(
+                message={},
+                message_id="fixture-message",
+                message_id_hash="b" * 64,
+                message_at=datetime(2026, 7, 30, tzinfo=UTC),
+                index=0,
+                filename="资金账户明细表_20260730.csv",
+                family=ACCOUNT_FAMILY,
+                payload=payload,
+                sha256=sha256(payload).hexdigest(),
+                mime="text/csv",
+            )
+
+    class ReadbackFailureWriter:
+        def __init__(self, _config):
+            pass
+
+        @staticmethod
+        def persist(_attachments):
+            raise IngestionError("GIT_READBACK_FAILED")
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    pointer = runtime.config.publication_dir / "current.json"
+    pointer.parent.mkdir(parents=True, exist_ok=True)
+    pointer.write_text(json.dumps({
+        "publication": {
+            "status": "VALID",
+            "publication_id": "c" * 64,
+            "business_date": "2026-07-30",
+            "created_at": "2026-07-30T12:00:00Z",
+            "oci_backup_state": "OK",
+        },
+    }, sort_keys=True) + "\n", encoding="utf-8")
+    before = pointer.read_bytes()
+    monkeypatch.setattr(runtime, "_dws_client", lambda: OneAttachmentClient())
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ReadbackFailureWriter)
+
+    assert runtime.poll(now=datetime(2026, 8, 1, tzinfo=UTC)) == {
+        "ok": False,
+        "code": "GIT_READBACK_FAILED",
+    }
+    assert pointer.read_bytes() == before
+    flow_text = (runtime.config.publication_dir / "flow_state.json").read_text(encoding="utf-8")
+    assert "message-fixture" not in flow_text
+
+
 def test_auth_and_keepalive_locks_are_non_destructive(tmp_path: Path) -> None:
     runtime = DailyFundsRuntime(_config(tmp_path))
     for job, lease, code in (
@@ -1711,7 +1905,9 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_frozen_cadence() -> Non
     assert f"0 * * * * root {wrapper} keepalive" in cron
     assert f"15 2 * * * root {wrapper} backfill --max-days 7" in cron
     assert f"30 3 * * * root {wrapper} observer" in cron
+    assert f"0 */6 * * * root {wrapper} r2-guard" in cron
     assert f"10 4 * * * root {wrapper} cold-backup" in cron
+    assert f"20 5 * * * root {wrapper} raw-archive-audit" in cron
     assert f"45 5 * * * root {wrapper} runtime-audit" in cron
     assert f"0 5 1 * * root {wrapper} restore-drill" in cron
     entrypoint = (ROOT / "entrypoint.sh").read_text(encoding="utf-8")
@@ -1783,6 +1979,7 @@ def test_successful_maintenance_probe_is_not_failed_before_first_publication(
 
 @pytest.mark.parametrize("job,method,code", (
     ("auth-probe", "auth_probe", "AUTH_PROBE_LOCK_HELD"),
+    ("raw-archive-audit", "raw_archive_audit", "RAW_ARCHIVE_AUDIT_LOCK_HELD"),
     ("observer", "observer", "OBSERVER_LOCK_HELD"),
     ("cold-backup", "cold_backup", "PUBLISHER_LOCK_HELD"),
 ))
@@ -2065,19 +2262,37 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     direct_payload = b"abc"
     direct_message_hash = sha256(b"msg-direct").hexdigest()
     direct = DownloadedAttachment(
-        {"openMessageId": "msg-direct"}, "msg-direct", direct_message_hash, moment,
+        {
+            "openConversationId": "group-fixture",
+            "senderOpenDingTalkId": "sender-fixture",
+            "openMessageId": "msg-direct",
+            "createTime": moment.isoformat(),
+            "content": "资金账户明细表 mediaId=fixture-direct",
+        }, "msg-direct", direct_message_hash, moment,
         0, "same.csv", ACCOUNT_FAMILY, direct_payload, __import__("hashlib").sha256(direct_payload).hexdigest(), "text/csv",
     )
     changed_payload = b"def"
     changed_message_hash = sha256(b"msg-different").hexdigest()
     same_name_different_bytes = DownloadedAttachment(
-        {"openMessageId": "msg-different"}, "msg-different", changed_message_hash, moment,
+        {
+            "openConversationId": "group-fixture",
+            "senderOpenDingTalkId": "sender-fixture",
+            "openMessageId": "msg-different",
+            "createTime": moment.isoformat(),
+            "content": "资金账户明细表 mediaId=fixture-different",
+        }, "msg-different", changed_message_hash, moment,
         0, "same.csv", ACCOUNT_FAMILY, changed_payload, __import__("hashlib").sha256(changed_payload).hexdigest(), "text/csv",
     )
     oversize_payload = b"0123456789abcdef"
     oversize_message_hash = sha256(b"msg-oversize").hexdigest()
     oversize = DownloadedAttachment(
-        {"openMessageId": "msg-oversize"}, "msg-oversize", oversize_message_hash, moment,
+        {
+            "openConversationId": "group-fixture",
+            "senderOpenDingTalkId": "sender-fixture",
+            "openMessageId": "msg-oversize",
+            "createTime": moment.isoformat(),
+            "content": "资金流水明细 mediaId=fixture-unused mediaId=fixture-oversize",
+        }, "msg-oversize", oversize_message_hash, moment,
         1, "oversize.xlsx", "资金流水明细", oversize_payload, __import__("hashlib").sha256(oversize_payload).hexdigest(), None,
     )
     narrow_patterns = writer._attachment_sparse_patterns((oversize, direct, same_name_different_bytes))
@@ -2121,6 +2336,16 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     reopened = writer.reopen_persisted(persisted_references)
     assert reopened.commit_sha == commit.commit_sha
     assert {attachment.sha256 for attachment in reopened.verified_attachments} == {
+        direct.sha256, same_name_different_bytes.sha256, oversize.sha256,
+    }
+    assert not any(command and command[0] in {"add", "commit", "push"} for command in raw_writer_commands)
+    raw_writer_commands.clear()
+    archive_audit = writer.audit_raw_archive()
+    assert archive_audit.commit_sha == commit.commit_sha
+    assert archive_audit.occurrence_count == 3
+    assert archive_audit.batch_count == 1
+    assert archive_audit.batch_occurrence_references == 3
+    assert {attachment.sha256 for attachment in archive_audit.verified_attachments} == {
         direct.sha256, same_name_different_bytes.sha256, oversize.sha256,
     }
     assert not any(command and command[0] in {"add", "commit", "push"} for command in raw_writer_commands)
@@ -2771,16 +2996,34 @@ def test_flow_state_preserves_values_free_missing_fact_family_gate(tmp_path: Pat
     assert "group-fixture" not in json.dumps(flow, ensure_ascii=False)
 
 
+def _threshold_line_payload(line) -> dict[str, object]:
+    return {
+        "name": line.name,
+        "threshold_fen": line.threshold_fen,
+        "start": line.start.isoformat(),
+        "end": line.end.isoformat(),
+        "days": line.days,
+        "direct_observations": line.direct_observations,
+        "covered_days": line.covered_days,
+        "carried_forward_days": line.carried_forward_days,
+        "coverage": str(line.coverage),
+        "active": line.active,
+        "reason": line.reason,
+    }
+
+
 def _t06_threshold_snapshot(
     *,
     fixed_risk_label: str = "高风险",
     dynamic: str | None = None,
     floating: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
+    if floating is None:
+        floating = [_threshold_line_payload(line) for line in floating_month_lines(date(2026, 7, 31), ())]
     return {
         "currency": "CNY",
         "fixed": {"hard_fen": HARD_THRESHOLD_FEN, "soft_fen": SOFT_THRESHOLD_FEN},
-        "floating": [] if floating is None else floating,
+        "floating": floating,
         "fixed_risk": fixed_risk_label,
         "dynamic_flag": dynamic,
     }
@@ -3216,6 +3459,175 @@ def test_r2_mirror_requires_exact_object_readback_and_manifest() -> None:
         R2Mirror(MemoryStore(corrupt_reads=True)).mirror((attachment,), git_commit_sha="e" * 40)
 
 
+def test_r2_mirror_reuses_exact_content_addressed_objects_and_refuses_overwrite() -> None:
+    class CountingStore:
+        def __init__(self):
+            self.values: dict[str, bytes] = {}
+            self.puts: list[str] = []
+
+        def put_bytes(self, key, payload, *, metadata=None):
+            self.puts.append(key)
+            self.values[key] = payload
+
+        def get_bytes(self, key):
+            return self.values[key]
+
+    attachment = _t06_attachment()
+    store = CountingStore()
+    mirror = R2Mirror(store)
+    mirror.mirror((attachment,), git_commit_sha="e" * 40)
+    raw_key = f"daily-funds/sha256/{attachment.sha256}"
+    assert store.puts.count(raw_key) == 1
+
+    # A second poll can mint a new publication manifest, but it must not
+    # charge a second write or replace bytes at the immutable raw hash key.
+    mirror.mirror((attachment,), git_commit_sha="e" * 40)
+    assert store.puts.count(raw_key) == 1
+
+    store.values[raw_key] = b"different bytes"
+    puts_before = len(store.puts)
+    with pytest.raises(PublicationError, match="R2_READBACK_FAILED"):
+        mirror.mirror((attachment,), git_commit_sha="e" * 40)
+    assert len(store.puts) == puts_before
+    assert store.values[raw_key] == b"different bytes"
+
+
+def test_r2_s3_store_pins_standard_storage_class(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeClient:
+        def __init__(self):
+            self.puts: list[dict[str, object]] = []
+
+        def put_object(self, **kwargs):
+            self.puts.append(kwargs)
+
+        def head_object(self, *, Bucket, Key):
+            put = next(row for row in reversed(self.puts) if row["Bucket"] == Bucket and row["Key"] == Key)
+            return {"ContentLength": len(put["Body"]), "Metadata": put["Metadata"]}
+
+    class FakeConfig:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    client = FakeClient()
+    monkeypatch.setitem(sys.modules, "boto3", SimpleNamespace(client=lambda *_args, **_kwargs: client))
+    monkeypatch.setitem(sys.modules, "botocore.config", SimpleNamespace(Config=FakeConfig))
+    digest = sha256(b"payload").hexdigest()
+
+    r2 = S3CompatibleStore(
+        endpoint_url="https://r2.invalid",
+        bucket="fixture",
+        access_key_id="key",
+        secret_access_key="secret",
+        region="auto",
+        storage_class="STANDARD",
+    )
+    r2.put_bytes("daily-funds/sha256/fixture", b"payload", metadata={"sha256": digest})
+    assert client.puts[-1]["StorageClass"] == "STANDARD"
+
+    with pytest.raises(PublicationError, match="OBJECT_STORE_STORAGE_CLASS_INVALID"):
+        S3CompatibleStore(
+            endpoint_url="https://r2.invalid",
+            bucket="fixture",
+            access_key_id="key",
+            secret_access_key="secret",
+            region="auto",
+            storage_class="STANDARD_IA",
+        )
+
+
+def test_r2_free_tier_guard_requires_standard_zero_ia_and_fresh_redacted_receipt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _config(tmp_path)
+
+    class Response:
+        status = 200
+
+        def __init__(self, payload):
+            self.payload = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
+        def read(self):
+            return self.payload
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    def fake_urlopen(request, *, timeout):
+        assert timeout == 30
+        url = request.full_url
+        if "/r2/buckets?per_page=1000" in url:
+            return Response({
+                "success": True,
+                "result": {"buckets": [{"name": "fixture", "storage_class": "Standard"}]},
+                "result_info": {},
+            })
+        if "/r2/buckets/fixture/lifecycle" in url:
+            return Response({"success": True, "result": {"rules": []}})
+        if url.endswith("/r2/metrics"):
+            return Response({"success": True, "result": {
+                "infrequentAccess": {
+                    "published": {"objects": 0, "payloadSize": 0, "metadataSize": 0},
+                    "uploaded": {"objects": 0, "payloadSize": 0, "metadataSize": 0},
+                },
+            }})
+        raise AssertionError(url)
+
+    monkeypatch.setattr("daily_funds.r2_guard.urllib.request.urlopen", fake_urlopen)
+    guard = R2FreeTierGuard(config)
+    receipt = guard.verify_and_write(now=datetime(2026, 8, 9, 0, tzinfo=UTC))
+    assert receipt["worst_case_state"] == "UNDER_FREE_TIER_40_PERCENT"
+    assert config.r2_bucket not in json.dumps(receipt, ensure_ascii=False)
+    assert guard.require_fresh_receipt(now=datetime(2026, 8, 9, 6, tzinfo=UTC)) == receipt
+    with pytest.raises(R2GuardError, match="R2_ZERO_CHARGE_GUARD_REQUIRED"):
+        guard.require_fresh_receipt(now=datetime(2026, 8, 9, 6, 1, tzinfo=UTC))
+
+
+def test_r2_free_tier_guard_rejects_any_infrequent_access_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _config(tmp_path)
+
+    class Response:
+        status = 200
+
+        def __init__(self, payload):
+            self.payload = json.dumps(payload).encode("utf-8")
+
+        def read(self):
+            return self.payload
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    def fake_urlopen(request, *, timeout):
+        url = request.full_url
+        if "/r2/buckets?per_page=1000" in url:
+            return Response({
+                "success": True,
+                "result": {"buckets": [{"name": "fixture", "storage_class": "Standard"}]},
+                "result_info": {},
+            })
+        if "/r2/buckets/fixture/lifecycle" in url:
+            return Response({"success": True, "result": {"rules": []}})
+        if url.endswith("/r2/metrics"):
+            return Response({"success": True, "result": {
+                "infrequentAccess": {"published": {"objects": 1, "payloadSize": 1, "metadataSize": 1}},
+            }})
+        raise AssertionError(url)
+
+    monkeypatch.setattr("daily_funds.r2_guard.urllib.request.urlopen", fake_urlopen)
+    with pytest.raises(R2GuardError, match="R2_ZERO_CHARGE_GUARD_IA_METRICS"):
+        R2FreeTierGuard(config).verify(now=datetime(2026, 8, 9, tzinfo=UTC))
+
+
 def test_oci_backup_requires_exact_readback() -> None:
     class CorruptStore:
         def put_bytes(self, key, payload, *, metadata=None):
@@ -3299,6 +3711,8 @@ def test_oci_par_store_writes_and_reads_only_escaped_object_paths(monkeypatch: p
     key = "daily-funds/a file.json"
     store.put_bytes(key, b"payload", metadata={"sha256": "abc"})
     assert store.get_bytes(key) == b"payload"
+    with pytest.raises(PublicationError, match="OBJECT_STORE_MISSING"):
+        store.get_bytes("daily-funds/missing")
     with pytest.raises(PublicationError, match="OBJECT_STORE_FAILED"):
         store.get_bytes("../outside")
 
@@ -3385,7 +3799,7 @@ def test_oci_restore_rebuilds_d1_only_after_manifest_hash_checks(tmp_path: Path)
             try:
                 return self.values[key]
             except KeyError as exc:
-                raise PublicationError("OBJECT_STORE_FAILED") from exc
+                raise PublicationError("OBJECT_STORE_MISSING") from exc
 
     class RestorableD1:
         def __init__(self):
@@ -3487,6 +3901,8 @@ def test_oci_restore_rebuilds_d1_only_after_manifest_hash_checks(tmp_path: Path)
     d1 = RestorableD1()
     restored = RestoreCoordinator(d1=d1, oci=backup).restore("f" * 64)
     assert restored.publication["publication_id"] == "f" * 64
+    assert restored.git_publication_commit_sha == publication_commit
+    assert restored.oci_restore_manifest_sha == manifest_sha
     assert len(d1.calls) == 1
     assert d1.calls[0][1][0].ending_available_fen == 107
 
@@ -3519,6 +3935,79 @@ def test_oci_restore_rebuilds_d1_only_after_manifest_hash_checks(tmp_path: Path)
 def test_restore_rejects_non_git_bundle() -> None:
     with pytest.raises(PublicationError, match="RESTORE_GIT_BUNDLE_INVALID"):
         RestoreOracle.verify_git_bundle(b"not-a-git-bundle", expected_commit_sha="c" * 40)
+
+
+def test_runtime_restore_keeps_verified_backup_bindings_in_new_pointer(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import daily_funds.runtime as runtime_module
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    publication = _t06_publication()
+    balances, transactions, accounts = _t06_projection_rows()
+
+    class VerifiedRestoreCoordinator:
+        def __init__(self, *, d1, oci):
+            self.d1 = d1
+            self.oci = oci
+
+        def restore(self, publication_id):
+            assert publication_id == publication["publication_id"]
+            return SimpleNamespace(
+                publication=publication,
+                daily_balances=balances,
+                transaction_rows=transactions,
+                account_rows=accounts,
+                git_publication_commit_sha="b" * 40,
+                oci_restore_manifest_sha="c" * 64,
+            )
+
+    monkeypatch.setattr(runtime_module, "RestoreCoordinator", VerifiedRestoreCoordinator)
+    monkeypatch.setattr(runtime, "_oci_store", lambda: object())
+    status = runtime.restore(publication_id="a" * 64)
+    current = json.loads((runtime.config.publication_dir / "current.json").read_text(encoding="utf-8"))
+
+    assert status["machine_code"] == "RESTORE_OK"
+    assert current["runtime"]["oci_backup_state"] == "OK"
+    assert current["runtime"]["git_publication_commit_sha"] == "b" * 40
+    assert current["runtime"]["oci_restore_manifest_sha"] == "c" * 64
+
+
+def test_runtime_restore_rejects_missing_backup_binding_without_pointer_swap(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import daily_funds.runtime as runtime_module
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    runtime.config.publication_dir.mkdir(parents=True, exist_ok=True)
+    pointer = runtime.config.publication_dir / "current.json"
+    pointer.write_text('{"old":true}\n', encoding="utf-8")
+    publication = _t06_publication()
+    balances, transactions, accounts = _t06_projection_rows()
+
+    class MissingBindingRestoreCoordinator:
+        def __init__(self, *, d1, oci):
+            self.d1 = d1
+            self.oci = oci
+
+        def restore(self, _publication_id):
+            return SimpleNamespace(
+                publication=publication,
+                daily_balances=balances,
+                transaction_rows=transactions,
+                account_rows=accounts,
+                git_publication_commit_sha="",
+                oci_restore_manifest_sha="",
+            )
+
+    monkeypatch.setattr(runtime_module, "RestoreCoordinator", MissingBindingRestoreCoordinator)
+    monkeypatch.setattr(runtime, "_oci_store", lambda: object())
+    status = runtime.restore(publication_id="a" * 64)
+
+    assert status["machine_code"] == "RESTORE_ARTIFACT_BINDING_INVALID"
+    assert pointer.read_text(encoding="utf-8") == '{"old":true}\n'
 
 
 class _R2Okay:
@@ -3594,6 +4083,109 @@ def test_d1_projection_rejects_non_replayable_or_inconsistent_threshold_snapshot
         )
 
 
+def test_d1_projection_rebuilds_floating_thresholds_from_balances_before_projecting(tmp_path: Path) -> None:
+    """A shape-valid but fabricated monthly line cannot cross the D1 boundary."""
+
+    publication = _t06_publication()
+    balances, transactions, accounts = _t06_projection_rows()
+    threshold = _t06_threshold_snapshot()
+    forged_line = dict(threshold["floating"][0])
+    forged_line.update({"active": True, "threshold_fen": 0, "reason": None})
+    threshold["floating"] = [forged_line, *threshold["floating"][1:]]
+    with pytest.raises(PublicationError, match="PROJECTION_THRESHOLD_MISMATCH"):
+        D1Projection(_config(tmp_path)).project(
+            {**publication, "threshold_snapshot": threshold},
+            balances,
+            transactions,
+            accounts,
+        )
+
+
+def test_d1_projection_rejects_custom_threshold_lines_that_do_not_match_their_frozen_rule(tmp_path: Path) -> None:
+    """Custom numeric/date rules are replayed instead of trusted by label."""
+
+    publication = _t06_publication()
+    balances, transactions, accounts = _t06_projection_rows()
+    forged_custom_lines = (
+        {
+            "name": "custom_numeric", "threshold_fen": 99,
+            "start": "2026-07-29", "end": "2026-07-29", "days": 1,
+            "direct_observations": 1, "covered_days": 1,
+            "carried_forward_days": 0, "coverage": "1",
+            "active": True, "reason": None,
+        },
+        {
+            "name": "custom_date_range", "threshold_fen": 99,
+            "start": "2026-07-01", "end": "2026-07-07", "days": 7,
+            "direct_observations": 7, "covered_days": 7,
+            "carried_forward_days": 0, "coverage": "1",
+            "active": True, "reason": None,
+        },
+    )
+    for custom in forged_custom_lines:
+        threshold = _t06_threshold_snapshot()
+        threshold["floating"] = [*threshold["floating"], custom]
+        with pytest.raises(PublicationError, match="PROJECTION_THRESHOLD_MISMATCH"):
+            D1Projection(_config(tmp_path)).project(
+                {**publication, "threshold_snapshot": threshold},
+                balances,
+                transactions,
+                accounts,
+            )
+
+
+def test_d1_projection_accepts_rederived_custom_numeric_and_date_range_lines() -> None:
+    """The new replay gate blocks forgery without rejecting valid owner rules."""
+
+    class CaptureD1(D1Projection):
+        def __init__(self):
+            self.schema_calls = 0
+            self.batches: list[tuple[tuple[str, list[object]], ...]] = []
+
+        def ensure_schema(self) -> None:
+            self.schema_calls += 1
+
+        def _batch(self, statements):
+            self.batches.append(tuple(statements))
+
+    publication = _t06_publication()
+    base_balances, transactions, accounts = _t06_projection_rows()
+
+    numeric_threshold = _t06_threshold_snapshot()
+    numeric_threshold["floating"] = [
+        *numeric_threshold["floating"],
+        {
+            "name": "custom_numeric", "threshold_fen": 99,
+            "start": "2026-07-30", "end": "2026-07-30", "days": 1,
+            "direct_observations": 1, "covered_days": 1,
+            "carried_forward_days": 0, "coverage": "1",
+            "active": True, "reason": None,
+        },
+    ]
+    numeric = CaptureD1()
+    numeric.project(
+        {**publication, "threshold_snapshot": numeric_threshold},
+        base_balances,
+        transactions,
+        accounts,
+    )
+    assert numeric.schema_calls == 1 and len(numeric.batches) == 1
+
+    start = date(2026, 7, 24)
+    date_balances = tuple(DailyBalance(start + timedelta(days=index), 107, True) for index in range(7))
+    date_line = custom_date_line(start, date(2026, 7, 30), date_balances)
+    date_threshold = _t06_threshold_snapshot(dynamic="动态明显偏低")
+    date_threshold["floating"] = [*date_threshold["floating"], _threshold_line_payload(date_line)]
+    date_range = CaptureD1()
+    date_range.project(
+        {**publication, "threshold_snapshot": date_threshold},
+        date_balances,
+        transactions,
+        accounts,
+    )
+    assert date_range.schema_calls == 1 and len(date_range.batches) == 1
+
+
 def test_publication_rejects_report_projection_mismatch_before_any_pointer_swap(tmp_path: Path) -> None:
     class D1MustNotRun:
         def project(self, *args, **kwargs):
@@ -3623,6 +4215,37 @@ def test_publication_rejects_report_projection_mismatch_before_any_pointer_swap(
             account_rows=accounts,
             private_publication_sink=lambda publication: "f" * 40,
             git_bundle_sink=lambda: b"bundle",
+        )
+    assert pointer.read_text(encoding="utf-8") == '{"old":true}\n'
+
+
+def test_one_fen_difference_cannot_replace_existing_pointer(tmp_path: Path) -> None:
+    """F-014: any non-zero integer-fen difference blocks the pointer swap."""
+
+    publication_dir = tmp_path / "publication"
+    publication_dir.mkdir()
+    pointer = publication_dir / "current.json"
+    pointer.write_text('{"old":true}\n', encoding="utf-8")
+    balances, transactions, accounts = _t06_projection_rows()
+    coordinator = PublicationCoordinator(
+        publication_dir=publication_dir,
+        status=StatusWriter(publication_dir),
+        d1=object(),
+        r2=object(),
+        oci=object(),
+    )
+    commit = GitCommit("e" * 40, StagedRawBatch("a" * 64, (), (), 0, ()), b"bundle")
+
+    with pytest.raises(PublicationError, match="RECONCILIATION_FAILED"):
+        coordinator.publish(
+            report=replace(_t06_report(), difference_fen=1),
+            git_commit=commit,
+            attachments=(),
+            daily_balances=balances,
+            transaction_rows=transactions,
+            account_rows=accounts,
+            private_publication_sink=lambda _publication: pytest.fail("must not write private publication"),
+            git_bundle_sink=lambda: pytest.fail("must not create recovery bundle"),
         )
     assert pointer.read_text(encoding="utf-8") == '{"old":true}\n'
 
@@ -3834,6 +4457,8 @@ def test_daily_funds_deployment_keeps_its_auth_bundle_and_identifiers_private() 
     assert "DAILY_FUNDS_OCI_PAR_URL" in ops
     assert "optional_keys=(DAILY_FUNDS_DWS_CLIENT_ID DAILY_FUNDS_DWS_AUTH_BUNDLE_B64)" in ops
     assert "留空时使用 DWS 官方默认客户端" in env_example
+    assert "DAILY_FUNDS_R2_MAX_NEW_OBJECTS_PER_POLL=100" in env_example
+    assert 'DAILY_FUNDS_R2_MAX_NEW_OBJECTS_PER_POLL: "${DAILY_FUNDS_R2_MAX_NEW_OBJECTS_PER_POLL:-100}"' in daily_service
     assert 'SOURCE_COMMIT: "${SOURCE_COMMIT:-}"' in daily_service
     assert "kmfa-dws-auth" not in daily_service
     assert "sync-daily-funds-secrets" in ops
@@ -3846,4 +4471,5 @@ def test_daily_funds_deployment_keeps_its_auth_bundle_and_identifiers_private() 
     runner = (ROOT / "scripts/run_daily_funds.py").read_text(encoding="utf-8")
     crontab = (ROOT / "crontab.txt").read_text(encoding="utf-8")
     assert "bootstrap-dws-auth" in runner
+    assert "r2-guard" in runner
     assert "root /opt/daily-funds/scripts/run_daily_funds.py bootstrap-dws-auth" not in crontab

@@ -96,6 +96,55 @@ def test_unknown_machine_code_is_not_copied_to_the_log_event() -> None:
     assert event["machine_code"] == "UNCLASSIFIED"
 
 
+def test_raw_archive_audit_uses_the_same_fixed_values_free_cron_contract() -> None:
+    event = cron_event("raw-archive-audit", "SUCCEEDED", "RAW_ARCHIVE_AUDITED")
+    assert event == {
+        "schema_version": CRON_EVENT_SCHEMA,
+        "job": "raw-archive-audit",
+        "outcome": "SUCCEEDED",
+        "machine_code": "RAW_ARCHIVE_AUDITED",
+    }
+
+
+def test_r2_guard_is_recorded_as_a_fixed_values_free_cron_event(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    module = _run_daily_funds_module()
+
+    class FakeState:
+        def record_run(self, *_args, **_kwargs) -> None:
+            return None
+
+    class FakeRuntime:
+        def __init__(self) -> None:
+            self.state = FakeState()
+
+        def record_operation_start(self, **_kwargs) -> None:
+            return None
+
+        def record_operation_receipt(self, **_kwargs) -> None:
+            return None
+
+        def r2_free_tier_guard(self) -> dict[str, object]:
+            return {
+                "ok": True,
+                "code": "R2_ZERO_CHARGE_GUARD_OK",
+                "sensitive_bucket": "must-not-escape",
+            }
+
+    monkeypatch.setattr(module, "DailyFundsRuntime", FakeRuntime)
+    assert module.main(["r2-guard"]) == 0
+    output = capsys.readouterr().out.strip()
+    assert json.loads(output) == {
+        "schema_version": CRON_EVENT_SCHEMA,
+        "job": "r2-guard",
+        "outcome": "SUCCEEDED",
+        "machine_code": "R2_ZERO_CHARGE_GUARD_OK",
+    }
+    assert "must-not-escape" not in output
+
+
 def test_coolify_log_summary_counts_only_exact_fixed_events(tmp_path: Path) -> None:
     secret = "敏感原文-and-a-long-private-token-like-string"
     event = json.dumps(

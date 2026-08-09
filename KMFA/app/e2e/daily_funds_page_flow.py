@@ -48,7 +48,9 @@ STATUS_SCHEDULES = {
     "keepalive": "0 * * * * Asia/Shanghai",
     "backfill": "15 2 * * * Asia/Shanghai",
     "observer": "30 3 * * * Asia/Shanghai",
+    "r2_guard": "0 */6 * * * Asia/Shanghai",
     "cold_backup": "10 4 * * * Asia/Shanghai",
+    "raw_archive_audit": "20 5 * * * Asia/Shanghai",
     "runtime_audit": "45 5 * * * Asia/Shanghai",
     "restore_drill": "0 5 1 * * Asia/Shanghai",
 }

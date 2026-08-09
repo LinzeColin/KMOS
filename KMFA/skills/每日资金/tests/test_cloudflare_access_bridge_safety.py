@@ -22,8 +22,10 @@ from daily_funds.access_bridge import (  # noqa: E402
     capture_service_token,
     policy_payload,
     probe_poll_state,
+    probe_start_poll_state,
     resolve_bridge_target,
     service_token_payload,
+    summarize_probe_start_response,
     summarize_probe_response,
 )
 
@@ -150,6 +152,54 @@ def test_bridge_rejects_an_effective_destination_broader_than_the_fixed_ops_prob
         resolve_bridge_target(envs, access_apps)
 
 
+def test_bridge_uses_new_destinations_when_legacy_domain_is_stale(tmp_path: Path) -> None:
+    """Cloudflare can retain a legacy root domain after a path migration."""
+
+    envs, access_apps = _target_inputs(tmp_path, apps=[{
+        "id": APP_ID,
+        "aud": AUDIENCE,
+        "type": "self_hosted",
+        "domain": "kmfa.example.com/",
+        "destinations": [
+            {"type": "public", "uri": "kmfa.example.com/ops"},
+            {"type": "public", "uri": "kmfa.example.com/ops/*"},
+        ],
+    }])
+
+    assert resolve_bridge_target(envs, access_apps) == {
+        "app_id": APP_ID,
+        "origin": "https://kmfa.example.com",
+    }
+
+
+def test_bridge_rejects_new_destinations_with_mixed_origins(tmp_path: Path) -> None:
+    envs, access_apps = _target_inputs(tmp_path, apps=[{
+        "id": APP_ID,
+        "aud": AUDIENCE,
+        "type": "self_hosted",
+        "destinations": [
+            {"type": "public", "uri": "kmfa.example.com/ops/*"},
+            {"type": "public", "uri": "other.example.com/ops/*"},
+        ],
+    }])
+
+    with pytest.raises(AccessBridgeInputError):
+        resolve_bridge_target(envs, access_apps)
+
+
+def test_bridge_requires_a_probe_covering_path_beside_exact_ops_landing_path(tmp_path: Path) -> None:
+    envs, access_apps = _target_inputs(tmp_path, apps=[{
+        "id": APP_ID,
+        "aud": AUDIENCE,
+        "type": "self_hosted",
+        "domain": "kmfa.example.com/ops",
+        "destinations": [{"type": "public", "uri": "kmfa.example.com/ops"}],
+    }])
+
+    with pytest.raises(AccessBridgeInputError):
+        resolve_bridge_target(envs, access_apps)
+
+
 def test_service_token_and_policy_payload_are_short_lived_and_app_specific() -> None:
     service = service_token_payload("12345-1")
     policy = policy_payload(SERVICE_TOKEN_ID, "12345-1")
@@ -213,6 +263,67 @@ def test_probe_receipt_proves_cursor_reuse_without_storing_a_cursor(tmp_path: Pa
     assert "opaque-page" not in json.dumps(summary)
 
 
+@pytest.mark.parametrize(
+    ("http_status", "curl_exit", "expected_transport", "expected_result", "expected_poll"),
+    [
+        ("401", 0, "HTTP_DENIED", "HISTORY_PROBE_START_ACCESS_OR_ORIGIN_DENIED", "TERMINAL_NOT_MET"),
+        ("403", 0, "HTTP_DENIED", "HISTORY_PROBE_START_ACCESS_OR_ORIGIN_DENIED", "TERMINAL_NOT_MET"),
+        ("409", 0, "HTTP_CONFLICT", "HISTORY_PROBE_ALREADY_PENDING", "POLL"),
+        ("422", 0, "HTTP_BODY_REJECTED", "HISTORY_PROBE_START_BODY_REJECTED", "TERMINAL_NOT_MET"),
+        ("503", 0, "HTTP_CONTROL_UNAVAILABLE", "HISTORY_PROBE_START_CONTROL_UNAVAILABLE", "TERMINAL_NOT_MET"),
+        ("000", 28, "TRANSPORT_FAILED", "HISTORY_PROBE_START_TRANSPORT_FAILED", "TERMINAL_NOT_MET"),
+    ],
+)
+def test_probe_start_receipt_is_finite_and_only_pending_is_pollable(
+    tmp_path: Path,
+    http_status: str,
+    curl_exit: int,
+    expected_transport: str,
+    expected_result: str,
+    expected_poll: str,
+) -> None:
+    response = tmp_path / "probe-start.json"
+    _write(response, {"untrusted": "source-value-must-not-escape"})
+
+    summary = summarize_probe_start_response(response, http_status=http_status, curl_exit=curl_exit)
+
+    assert summary == {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": expected_transport,
+        "result": expected_result,
+    }
+    _write(response, summary)
+    assert probe_start_poll_state(response) == expected_poll
+    assert "source-value-must-not-escape" not in json.dumps(summary)
+
+
+def test_probe_start_accepts_only_the_fixed_queued_receipt(tmp_path: Path) -> None:
+    response = tmp_path / "probe-start.json"
+    _write(response, {
+        "state": "REQUESTED",
+        "machine_code": "DWS_HISTORY_PROBE_QUEUED",
+        "updated_at": "2026-08-09T00:00:00Z",
+        "expires_at": "2026-08-09T00:10:00Z",
+        "continuation_state": "NOT_STARTED",
+        "cursor_transcript": "NOT_STARTED",
+    })
+
+    summary = summarize_probe_start_response(response, http_status="202", curl_exit=0)
+
+    assert summary == {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": "OK",
+        "result": "HISTORY_PROBE_REQUESTED",
+    }
+    _write(response, summary)
+    assert probe_start_poll_state(response) == "POLL"
+
+    _write(response, {"state": "REQUESTED", "opaque_request_id": "must-not-escape"})
+    malformed = summarize_probe_start_response(response, http_status="202", curl_exit=0)
+    assert malformed["result"] == "HISTORY_PROBE_START_INVALID_RESPONSE"
+    assert "must-not-escape" not in json.dumps(malformed)
+
+
 def test_bridge_manager_writes_private_material_and_only_prints_finite_receipt(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     manager = _load_script()
     envs, access_apps = _target_inputs(tmp_path)
@@ -249,6 +360,11 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert '"$PROBE_ORIGIN/ops/api/daily-funds/history-probe"' in step
     assert "capture-service-token-id" in step
     assert "capture-policy" in step
+    assert "summarize-probe-start" in step
+    assert "probe-start-poll-state" in step
+    assert "sleep 10" in step
+    assert '"$REQUEST_STATUS" = "200" ] && ! python3' in step
+    assert "204 has no JSON body" in step
     assert "request_cf DELETE" in step
     assert "duration" not in step  # duration is fixed in the Python allowlist, not workflow input.
     assert "inputs.command" not in step

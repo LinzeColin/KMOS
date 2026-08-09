@@ -18,14 +18,17 @@ from typing import Any, Callable, Iterable, Mapping, Protocol
 
 from .config import DailyFundsConfig
 from .contracts import (
+    ContractError,
     DailyBalance,
     FloatingLine,
     HARD_THRESHOLD_FEN,
     SOFT_THRESHOLD_FEN,
+    custom_date_line,
     dynamic_flag,
     effective_risk,
     fixed_risk,
     floating_month_lines,
+    validate_custom_numeric,
 )
 from .ingestion import SPARSE_PATH, DownloadedAttachment, GitCommit
 from .reconcile import ReconciliationReport
@@ -314,6 +317,88 @@ def _validate_daily_balances(
     return tuple(indexed[day] for day in sorted(indexed))
 
 
+def _floating_line_payload(line: FloatingLine) -> dict[str, Any]:
+    """Build the one canonical payload shape used in immutable publications."""
+
+    return _jsonable_lines((line,))[0]
+
+
+def _validate_floating_threshold_semantics(
+    threshold_snapshot: Mapping[str, Any],
+    *,
+    balances: tuple[DailyBalance, ...],
+    publication_day: date,
+) -> None:
+    """Bind a frozen threshold record to the exact daily-balance evidence.
+
+    Structural validation alone is not enough: a syntactically valid line can
+    claim a made-up 3/6-month window, coverage or average.  The candidate
+    projection must independently reconstruct the two mandated calendar-month
+    lines from its own balances.  A custom date range is reconstructed too;
+    a numeric custom line has a single, fixed self-describing shape.  This
+    makes a forged line fail before it reaches D1 or a publication pointer.
+    """
+
+    floating = threshold_snapshot.get("floating")
+    if not isinstance(floating, list):
+        raise PublicationError("PROJECTION_THRESHOLD_MISMATCH")
+    by_name = {
+        str(item.get("name")): item
+        for item in floating
+        if isinstance(item, Mapping)
+    }
+    required_monthly = ("three_month", "six_month")
+    custom_names = tuple(name for name in ("custom_date_range", "custom_numeric") if name in by_name)
+    expected_names = (*required_monthly, *custom_names)
+    if (
+        len(by_name) != len(floating)
+        or set(required_monthly) - set(by_name)
+        or len(custom_names) > 1
+        or tuple(str(item.get("name")) for item in floating if isinstance(item, Mapping)) != expected_names
+    ):
+        raise PublicationError("PROJECTION_THRESHOLD_MISMATCH")
+
+    try:
+        expected_monthly = {
+            line.name: line
+            for line in floating_month_lines(publication_day + timedelta(days=1), balances)
+        }
+    except ContractError as exc:
+        raise PublicationError("PROJECTION_THRESHOLD_MISMATCH") from exc
+    for name in required_monthly:
+        if by_name[name] != _floating_line_payload(expected_monthly[name]):
+            raise PublicationError("PROJECTION_THRESHOLD_MISMATCH")
+
+    if not custom_names:
+        return
+    custom_name = custom_names[0]
+    custom = by_name[custom_name]
+    try:
+        if custom_name == "custom_numeric":
+            amount = validate_custom_numeric(custom.get("threshold_fen"))
+            expected_custom = FloatingLine(
+                "custom_numeric",
+                amount,
+                publication_day,
+                publication_day,
+                1,
+                1,
+                Decimal("1"),
+                True,
+                None,
+                1,
+                0,
+            )
+        else:
+            start = _require_iso_day(custom.get("start"), "PROJECTION_THRESHOLD_MISMATCH")
+            end = _require_iso_day(custom.get("end"), "PROJECTION_THRESHOLD_MISMATCH")
+            expected_custom = custom_date_line(start, end, balances)
+    except (ContractError, PublicationError) as exc:
+        raise PublicationError("PROJECTION_THRESHOLD_MISMATCH") from exc
+    if custom != _floating_line_payload(expected_custom):
+        raise PublicationError("PROJECTION_THRESHOLD_MISMATCH")
+
+
 def _validate_transaction_rows(
     rows: Iterable[Mapping[str, Any]],
     *,
@@ -395,6 +480,11 @@ def _validate_projection_inputs(
     normalized_publication = _validate_publication(publication)
     publication_day = _require_iso_day(normalized_publication["business_date"], "PUBLICATION_INVALID")
     normalized_balances = _validate_daily_balances(balances, publication_day=publication_day)
+    _validate_floating_threshold_semantics(
+        normalized_publication["threshold_snapshot"],
+        balances=normalized_balances,
+        publication_day=publication_day,
+    )
     normalized_transactions = _validate_transaction_rows(transactions, publication_day=publication_day)
     normalized_accounts = _validate_account_rows(accounts, publication_day=publication_day)
     declared_versions = {str(row["source_version"]) for row in normalized_publication["source_versions"]}
@@ -771,16 +861,58 @@ class ObjectStore(Protocol):
     def get_bytes(self, key: str) -> bytes: ...
 
 
+def _existing_object_bytes(
+    store: ObjectStore,
+    key: str,
+    *,
+    failure_code: str,
+) -> bytes | None:
+    """Return a verified-readable object, or only a definite absence.
+
+    The hot/cold stores are immutable once an artifact key has been published.
+    A transient read failure must therefore not be treated as permission to
+    write over an object that may still be trusted.  ``KeyError`` is accepted
+    solely for minimal in-memory test stores; production transports surface a
+    typed ``OBJECT_STORE_MISSING`` only for a real 404.
+    """
+
+    try:
+        payload = store.get_bytes(key)
+    except KeyError:
+        return None
+    except PublicationError as exc:
+        if exc.code == "OBJECT_STORE_MISSING":
+            return None
+        raise PublicationError(failure_code) from exc
+    except Exception as exc:
+        raise PublicationError(failure_code) from exc
+    if not isinstance(payload, bytes):
+        raise PublicationError(failure_code)
+    return payload
+
+
 class S3CompatibleStore:
     """Used for both Cloudflare R2 and OCI Object Storage endpoints."""
 
-    def __init__(self, *, endpoint_url: str, bucket: str, access_key_id: str, secret_access_key: str, region: str):
+    def __init__(
+        self,
+        *,
+        endpoint_url: str,
+        bucket: str,
+        access_key_id: str,
+        secret_access_key: str,
+        region: str,
+        storage_class: str | None = None,
+    ):
         try:
             import boto3  # type: ignore[import-not-found]
             from botocore.config import Config  # type: ignore[import-not-found]
         except ImportError as exc:
             raise PublicationError("OBJECT_STORE_RUNTIME_DEPENDENCY_MISSING") from exc
+        if storage_class not in {None, "STANDARD"}:
+            raise PublicationError("OBJECT_STORE_STORAGE_CLASS_INVALID")
         self.bucket = bucket
+        self.storage_class = storage_class
         self.client = boto3.client(
             "s3",
             endpoint_url=endpoint_url,
@@ -791,8 +923,20 @@ class S3CompatibleStore:
         )
 
     def put_bytes(self, key: str, payload: bytes, *, metadata: Mapping[str, str] | None = None) -> None:
+        put_kwargs: dict[str, Any] = {
+            "Bucket": self.bucket,
+            "Key": key,
+            "Body": payload,
+            "Metadata": dict(metadata or {}),
+        }
+        if self.storage_class is not None:
+            # R2 can inherit a bucket default of STANDARD_IA.  Daily-funds
+            # hot objects are read during every publication/restore oracle,
+            # so the runtime pins STANDARD instead of accepting a billable
+            # retrieval tier through an ambient bucket setting.
+            put_kwargs["StorageClass"] = self.storage_class
         try:
-            self.client.put_object(Bucket=self.bucket, Key=key, Body=payload, Metadata=dict(metadata or {}))
+            self.client.put_object(**put_kwargs)
             head = self.client.head_object(Bucket=self.bucket, Key=key)
         except Exception as exc:
             raise PublicationError("OBJECT_STORE_FAILED") from exc
@@ -808,6 +952,13 @@ class S3CompatibleStore:
             response = self.client.get_object(Bucket=self.bucket, Key=key)
             return response["Body"].read()
         except Exception as exc:
+            response = getattr(exc, "response", None)
+            error = response.get("Error", {}) if isinstance(response, Mapping) else {}
+            metadata = response.get("ResponseMetadata", {}) if isinstance(response, Mapping) else {}
+            error_code = str(error.get("Code") or "") if isinstance(error, Mapping) else ""
+            status_code = metadata.get("HTTPStatusCode") if isinstance(metadata, Mapping) else None
+            if error_code in {"404", "NoSuchKey", "NotFound", "NoSuchObject"} or status_code == 404:
+                raise PublicationError("OBJECT_STORE_MISSING") from exc
             raise PublicationError("OBJECT_STORE_FAILED") from exc
 
 
@@ -888,6 +1039,10 @@ class OciParStore:
                 if self._response_status(response) != 200:
                     raise PublicationError("OBJECT_STORE_FAILED")
                 payload = response.read()
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                raise PublicationError("OBJECT_STORE_MISSING") from exc
+            raise PublicationError("OBJECT_STORE_FAILED") from exc
         except PublicationError:
             raise
         except Exception as exc:
@@ -962,7 +1117,20 @@ class R2Mirror:
                 raise PublicationError("R2_MANIFEST_ATTACHMENT_MISMATCH")
         return manifest
 
-    def _put_and_verify(self, key: str, payload: bytes, *, digest: str) -> bytes:
+    def _put_and_verify(self, key: str, payload: bytes, *, digest: str) -> None:
+        existing = _existing_object_bytes(
+            self.store,
+            key,
+            failure_code="R2_READBACK_FAILED",
+        )
+        if existing is not None:
+            # Content-addressed raw objects and manifests are immutable.  An
+            # exact retry performs no Class-A write; a mismatch is evidence
+            # of an unsafe overwrite attempt, not a condition to repair by
+            # replacing prior mirror evidence.
+            if len(existing) == len(payload) and sha256(existing).hexdigest() == digest:
+                return
+            raise PublicationError("R2_READBACK_FAILED")
         try:
             self.store.put_bytes(key, payload, metadata={"sha256": digest})
             readback = self.store.get_bytes(key)
@@ -1032,7 +1200,19 @@ class OciColdBackup:
     def __init__(self, store: ObjectStore):
         self.store = store
 
-    def _put_and_verify(self, key: str, payload: bytes, *, digest: str) -> None:
+    def _put_and_verify(self, key: str, payload: bytes, *, digest: str) -> bytes:
+        existing = _existing_object_bytes(
+            self.store,
+            key,
+            failure_code="OCI_BACKUP_READBACK_FAILED",
+        )
+        if existing is not None:
+            # A retry of one immutable publication may reuse an exact OCI
+            # artifact, but it may never replace a trusted artifact under the
+            # same key with different bytes.
+            if len(existing) == len(payload) and sha256(existing).hexdigest() == digest:
+                return existing
+            raise PublicationError("OCI_BACKUP_READBACK_FAILED")
         try:
             self.store.put_bytes(key, payload, metadata={"sha256": digest})
             readback = self.store.get_bytes(key)
@@ -1657,6 +1837,8 @@ class RestoredProjection:
     daily_balances: tuple[DailyBalance, ...]
     transaction_rows: tuple[dict[str, Any], ...]
     account_rows: tuple[dict[str, Any], ...]
+    git_publication_commit_sha: str
+    oci_restore_manifest_sha: str
 
 
 class RestoreCoordinator:
@@ -1694,4 +1876,15 @@ class RestoreCoordinator:
         )
         self.d1.project(publication, balances, transactions, accounts)
         self.d1.oracle(publication_id)
-        return RestoredProjection(publication, balances, transactions, accounts)
+        # ``restore_artifacts`` has already established canonical manifest
+        # bytes.  Preserve its two immutable bindings through the hand-off to
+        # the runtime pointer; otherwise a successful restore would silently
+        # lose the provenance required by later OCI retry/rollback work.
+        return RestoredProjection(
+            publication,
+            balances,
+            transactions,
+            accounts,
+            str(manifest["git_publication_commit_sha"]),
+            sha256(_canonical_bytes(manifest)).hexdigest(),
+        )

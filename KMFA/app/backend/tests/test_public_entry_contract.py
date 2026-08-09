@@ -328,6 +328,7 @@ def test_private_paths_fail_closed_and_verify_access_jwt(monkeypatch):
         "/ops/app",
         "/ops/healthz",
         "/ops/openapi.json",
+        "/ops/api/daily-funds/history-probe",
         "/项目成本/重算",
         "/项目成本/not-a-public-read",
         "/public-api/项目成本",

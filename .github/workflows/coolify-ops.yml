@@ -641,7 +641,11 @@ jobs:
                 unset CF_ACCESS_POLICY_ID
                 . "$bridge_dir/policy.env"
                 request_cf DELETE "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps/${CF_ACCESS_APP_ID}/policies/${CF_ACCESS_POLICY_ID}" "$bridge_dir/policy-delete.json"
-                if [ "$REQUEST_EXIT" -ne 0 ] || { [ "$REQUEST_STATUS" != "200" ] && [ "$REQUEST_STATUS" != "204" ]; } || ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" validate-success --response "$bridge_dir/policy-delete.json" >/dev/null 2>&1; then
+                # Cloudflare legitimately returns 204 with an empty response
+                # for a successful delete.  Validate JSON only on 200; making
+                # a 204 pass through the JSON parser would create a false
+                # cleanup alarm after the resource is already gone.
+                if [ "$REQUEST_EXIT" -ne 0 ] || { [ "$REQUEST_STATUS" != "200" ] && [ "$REQUEST_STATUS" != "204" ]; } || { [ "$REQUEST_STATUS" = "200" ] && ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" validate-success --response "$bridge_dir/policy-delete.json" >/dev/null 2>&1; }; then
                   cleanup_result=NEEDS_ATTENTION
                 fi
                 unset CF_ACCESS_POLICY_ID
@@ -654,7 +658,9 @@ jobs:
                 unset CF_ACCESS_SERVICE_TOKEN_ID
                 . "$bridge_dir/service-token-id.env"
                 request_cf DELETE "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/service_tokens/${CF_ACCESS_SERVICE_TOKEN_ID}" "$bridge_dir/service-token-delete.json"
-                if [ "$REQUEST_EXIT" -ne 0 ] || { [ "$REQUEST_STATUS" != "200" ] && [ "$REQUEST_STATUS" != "204" ]; } || ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" validate-success --response "$bridge_dir/service-token-delete.json" >/dev/null 2>&1; then
+                # See the policy-delete branch above: 204 has no JSON body
+                # and is a successful deletion, not a cleanup failure.
+                if [ "$REQUEST_EXIT" -ne 0 ] || { [ "$REQUEST_STATUS" != "200" ] && [ "$REQUEST_STATUS" != "204" ]; } || { [ "$REQUEST_STATUS" = "200" ] && ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" validate-success --response "$bridge_dir/service-token-delete.json" >/dev/null 2>&1; }; then
                   cleanup_result=NEEDS_ATTENTION
                 fi
                 unset CF_ACCESS_SERVICE_TOKEN_ID
@@ -669,7 +675,7 @@ jobs:
               "$bridge_dir/service-token-response.json" "$bridge_dir/service-token-id.env" \
               "$bridge_dir/service-token.env" "$bridge_dir/policy-payload.json" \
               "$bridge_dir/policy-response.json" "$bridge_dir/policy.env" \
-              "$bridge_dir/probe-post.json" "$bridge_dir/probe-get.json" \
+              "$bridge_dir/probe-post.json" "$bridge_dir/probe-start-receipt.json" "$bridge_dir/probe-get.json" \
               "$bridge_dir/probe-receipt.json" "$bridge_dir/policy-delete.json" \
               "$bridge_dir/service-token-delete.json"
             if ! rmdir "$bridge_dir" 2>/dev/null; then
@@ -747,8 +753,19 @@ jobs:
           echo "::add-mask::$CF_ACCESS_POLICY_ID"
           policy_created=1
 
+          # A newly-created Service Auth policy is evaluated at the Access
+          # edge.  Give that fixed, short window to settle before the only
+          # allowed POST; this is not an unbounded retry and accepts no input.
+          sleep 10
           request_probe POST "$bridge_dir/probe-post.json"
-          if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "202" ]; then
+          python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" summarize-probe-start \
+            --response "$bridge_dir/probe-post.json" --http-status "$REQUEST_STATUS" \
+            --curl-exit "$REQUEST_EXIT" --output "$bridge_dir/probe-start-receipt.json"
+          start_poll_state="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" probe-start-poll-state \
+            --receipt "$bridge_dir/probe-start-receipt.json")"
+          if [ "$start_poll_state" != "POLL" ]; then
+            python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" summarize-probe-start \
+              --response "$bridge_dir/probe-post.json" --http-status "$REQUEST_STATUS" --curl-exit "$REQUEST_EXIT"
             echo "daily_funds_history_probe_bridge=HISTORY_PROBE_REQUEST_NOT_ACCEPTED"
             exit 1
           fi

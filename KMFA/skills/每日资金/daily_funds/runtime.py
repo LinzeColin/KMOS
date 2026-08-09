@@ -48,6 +48,7 @@ from .publication import (
     RestoreCoordinator,
     S3CompatibleStore,
 )
+from .r2_guard import R2FreeTierGuard, R2GuardError
 from .reconcile import ReconciliationError, ReconciliationReport, account_key, account_key_hash, reconcile
 from .state import RuntimeState, StatusWriter, atomic_json_write, iso_now
 
@@ -74,6 +75,8 @@ _OPERATION_RECEIPT_JOBS = frozenset({
     "preflight",
     "bootstrap-dws-auth",
     "runtime-audit",
+    "r2-guard",
+    "raw-archive-audit",
     "poll",
     "auth-probe",
     "keepalive",
@@ -976,6 +979,45 @@ class DailyFundsRuntime:
         )
         return {"ok": code == "RUNTIME_AUDIT_OK", "code": code}
 
+    def r2_free_tier_guard(self, *, now: datetime | None = None) -> dict[str, Any]:
+        """Refresh the values-free proof required before R2 writes/readback.
+
+        The check is intentionally independent of the 15-minute hot path: it
+        issues only Cloudflare control-plane reads every six hours, stores no
+        bucket names or amounts, and makes a stale/missing receipt block R2
+        rather than guessing that a bucket remains free-tier safe.
+        """
+
+        try:
+            self.config.validate()
+        except ConfigError:
+            return self.status.write("需处理", "CONFIG_INVALID", backup_state="UNKNOWN")
+        try:
+            self._lease_call(
+                "r2_guard_lock",
+                ttl_seconds=13 * 60,
+                code="R2_GUARD_LOCK_HELD",
+                callback=lambda: R2FreeTierGuard(self.config).verify_and_write(now=now),
+            )
+        except IngestionError as exc:
+            if exc.code == "R2_GUARD_LOCK_HELD":
+                return self.status.write("处理中", exc.code)
+            return self.status.write("需处理", "R2_ZERO_CHARGE_GUARD_REQUIRED")
+        except R2GuardError as exc:
+            self.state.queue_incident(exc.code)
+            return self._status_from_current(
+                fallback_code=exc.code,
+                backup_state="UNKNOWN",
+            )
+        status = self._status_from_current(
+            fallback_code="R2_ZERO_CHARGE_GUARD_OK",
+        )
+        return {
+            "ok": True,
+            "code": "R2_ZERO_CHARGE_GUARD_OK",
+            "human_status": status["human_status"],
+        }
+
     @staticmethod
     def _source_ref(attachment: DownloadedAttachment) -> SourceRef:
         from zoneinfo import ZoneInfo
@@ -1099,6 +1141,77 @@ class DailyFundsRuntime:
                 attachment.message_at,
             ))
         return AttachmentCapabilityInspection(tuple(parsed), tuple(failures))
+
+    def raw_archive_audit(self) -> dict[str, Any]:
+        """Audit acquired private raw bytes without reading DWS or publishing money.
+
+        T04 needs a real cloud attachment capability receipt even when a
+        bounded DWS history query cannot currently retrieve older pages.  The
+        writer therefore re-opens only the acquired private-Git authority,
+        validates every source envelope/occurrence/batch/object link, and
+        passes those fresh bytes through the existing deterministic parser
+        gate.  A parser result here is capability evidence only: it never
+        updates D1/R2/OCI, a financial pointer, or source-discovery state.
+        """
+
+        try:
+            self.config.validate(include_storage=False)
+        except ConfigError:
+            return self.status.write("需处理", "CONFIG_INVALID")
+        writer = GitSparseWriter(self.config)
+        try:
+            audit = self._lease_call(
+                "git_writer_lock",
+                ttl_seconds=13 * 60,
+                code="RAW_ARCHIVE_AUDIT_LOCK_HELD",
+                callback=writer.audit_raw_archive,
+            )
+        except IngestionError as exc:
+            if exc.code == "RAW_ARCHIVE_AUDIT_LOCK_HELD":
+                return self.status.write("处理中", exc.code)
+            # The precise private-Git/DWS-envelope error remains in neither
+            # cron output nor the shared status projection.  This controlled
+            # result is still an explicit non-pass and cannot be promoted to
+            # a real parser, source-pair or financial publication receipt.
+            self.state.queue_incident("RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
+            status = self._status_from_current(fallback_code="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
+            self._write_flow_state(stage="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW", status=status)
+            return {"ok": False, "code": "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW"}
+
+        inspection = self._inspect_attachment_capabilities(audit.verified_attachments)
+        integrity_failures = tuple(
+            failure
+            for failure in inspection.failures
+            if self._parse_failure_code(failure) in _SOURCE_INTEGRITY_PARSE_CODES
+        )
+        if integrity_failures:
+            self.state.queue_incident("RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
+            status = self._status_from_current(fallback_code="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
+            self._write_flow_state(stage="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW", status=status)
+            return {"ok": False, "code": "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW"}
+
+        for attachment in audit.verified_attachments:
+            occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
+            self.state.note_inbox(
+                occurrence_key,
+                attachment.message_id_hash,
+                attachment.sha256,
+                "GIT_PERSISTED",
+            )
+            self.state.mark_inbox(occurrence_key, "ARCHIVED_CAPABILITY_RECORDED")
+        needs_review = len(inspection.failures)
+        code = "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW" if needs_review else "RAW_ARCHIVE_AUDITED"
+        status = self._status_from_current(fallback_code=code)
+        self._write_flow_state(
+            stage="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW" if needs_review else "RAW_ARCHIVE_AUDITED",
+            status=status,
+        )
+        return {
+            "ok": True,
+            "code": code,
+            "capability_supported": len(inspection.parsed),
+            "capability_needs_review": needs_review,
+        }
 
     def _parse(self, attachments: Iterable[DownloadedAttachment]) -> list[TimedFacts]:
         """Strict live parse gate: one failed attachment rejects the batch."""
@@ -1406,6 +1519,7 @@ class DailyFundsRuntime:
             access_key_id=self.config.r2_access_key_id,
             secret_access_key=self.config.r2_secret_access_key,
             region="auto",
+            storage_class="STANDARD",
         )
         oci = self._oci_store()
         return PublicationCoordinator(
@@ -1600,6 +1714,7 @@ class DailyFundsRuntime:
                 }
             # The raw Git authority has been re-opened before this point.  R2
             # must mirror those exact bytes before parsing or reconciliation.
+            R2FreeTierGuard(self.config).require_fresh_receipt(now=now)
             coordinator = self._coordinator()
             r2_result = self._lease_call(
                 "publisher_lock",
@@ -1672,7 +1787,7 @@ class DailyFundsRuntime:
                 "publication_id": projection.publication["publication_id"],
                 "backup_state": projection.oci_backup_state,
             }
-        except (IngestionError, ParseError, ReconciliationError, PublicationError, ControlError) as exc:
+        except (IngestionError, ParseError, ReconciliationError, PublicationError, R2GuardError, ControlError) as exc:
             code = getattr(exc, "code", str(exc).split(":", 1)[0])
             lock_held = str(code).endswith("_LOCK_HELD")
             human_status = "处理中" if lock_held else "需处理"
@@ -2074,12 +2189,17 @@ class DailyFundsRuntime:
             )
             if private_publication_commit_sha is None:
                 raise PublicationError("PUBLICATION_INVALID")
+            try:
+                R2FreeTierGuard(self.config).require_fresh_receipt()
+            except R2GuardError as exc:
+                raise PublicationError(exc.code) from exc
             r2_store = S3CompatibleStore(
                 endpoint_url=self.config.r2_endpoint_url,
                 bucket=self.config.r2_bucket,
                 access_key_id=self.config.r2_access_key_id,
                 secret_access_key=self.config.r2_secret_access_key,
                 region="auto",
+                storage_class="STANDARD",
             )
             d1 = D1Projection(self.config)
             oci_store = self._oci_store()
@@ -2132,6 +2252,8 @@ class DailyFundsRuntime:
         except PublicationError as exc:
             if exc.code in {"SOURCE_MISSING", "PUBLICATION_INVALID"}:
                 return self.status.write("需处理", exc.code, backup_state="LAG")
+            if exc.code.startswith("R2_ZERO_CHARGE_GUARD_"):
+                return self._status_from_current(fallback_code=exc.code, backup_state="UNKNOWN")
             return self._status_from_current(fallback_code="OCI_BACKUP_LAG", backup_state="LAG")
 
     def restore_drill(self) -> dict[str, Any]:
@@ -2211,14 +2333,24 @@ class DailyFundsRuntime:
             return self.status.write("需处理", "RESTORE_PUBLICATION_ID_INVALID")
         try:
             oci_store = self._oci_store()
+
+            def restore_under_publisher_lock():
+                restored = RestoreCoordinator(
+                    d1=D1Projection(self.config),
+                    oci=OciColdBackup(oci_store),
+                ).restore(publication_id)
+                if (
+                    self._lower_hex(getattr(restored, "git_publication_commit_sha", None), 40) is None
+                    or self._lower_hex(getattr(restored, "oci_restore_manifest_sha", None), 64) is None
+                ):
+                    raise PublicationError("RESTORE_ARTIFACT_BINDING_INVALID")
+                return restored
+
             restored = self._lease_call(
                 "publisher_lock",
                 ttl_seconds=13 * 60,
                 code="PUBLISHER_LOCK_HELD",
-                callback=lambda: RestoreCoordinator(
-                    d1=D1Projection(self.config),
-                    oci=OciColdBackup(oci_store),
-                ).restore(publication_id),
+                callback=restore_under_publisher_lock,
             )
         except (IngestionError, PublicationError) as exc:
             code = getattr(exc, "code", "RESTORE_FAILED")
@@ -2255,7 +2387,12 @@ class DailyFundsRuntime:
                 for row in restored.daily_balances
             ],
             "transactions": [dict(row) for row in restored.transaction_rows],
-            "runtime": {"oci_backup_state": "OK", "restored_at": iso_now()},
+            "runtime": {
+                "oci_backup_state": "OK",
+                "git_publication_commit_sha": restored.git_publication_commit_sha,
+                "oci_restore_manifest_sha": restored.oci_restore_manifest_sha,
+                "restored_at": iso_now(),
+            },
         }
         atomic_json_write(self.config.publication_dir / "current.json", snapshot)
         return self.status.write(

@@ -10,6 +10,8 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 0 * * * * root /opt/daily-funds/scripts/run_cron_job.sh keepalive >> /var/log/daily-funds/cron.log 2>&1
 15 2 * * * root /opt/daily-funds/scripts/run_cron_job.sh backfill --max-days 7 >> /var/log/daily-funds/cron.log 2>&1
 30 3 * * * root /opt/daily-funds/scripts/run_cron_job.sh observer >> /var/log/daily-funds/cron.log 2>&1
+0 */6 * * * root /opt/daily-funds/scripts/run_cron_job.sh r2-guard >> /var/log/daily-funds/cron.log 2>&1
 10 4 * * * root /opt/daily-funds/scripts/run_cron_job.sh cold-backup >> /var/log/daily-funds/cron.log 2>&1
+20 5 * * * root /opt/daily-funds/scripts/run_cron_job.sh raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1
 45 5 * * * root /opt/daily-funds/scripts/run_cron_job.sh runtime-audit >> /var/log/daily-funds/cron.log 2>&1
 0 5 1 * * root /opt/daily-funds/scripts/run_cron_job.sh restore-drill >> /var/log/daily-funds/cron.log 2>&1

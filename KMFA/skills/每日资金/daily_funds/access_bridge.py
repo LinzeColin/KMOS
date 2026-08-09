@@ -179,43 +179,72 @@ def _path_covers_probe(path: str) -> bool:
     return path in prefixes
 
 
-def _app_scope_is_narrow(app: Mapping[str, Any], *, origin: str) -> bool:
-    """Reject an app that could give the short-lived token a broader target.
+def _path_is_narrow_ops_scope(path: str) -> bool:
+    """Allow the exact ``/ops`` landing path alongside probe-capable paths.
 
-    Cloudflare's newer ``destinations`` field supersedes the legacy
-    ``self_hosted_domains`` list.  If either is present, every effective
-    destination must be the same HTTPS origin and an explicitly narrow /ops
-    pattern; a token must never be attached to a mixed or host-wide app.
+    An exact landing path does not cover the fixed history-probe route, but it
+    also cannot extend a short-lived service token outside the operational
+    namespace.  Callers must separately require at least one destination that
+    does cover ``PROBE_PATH``.
+    """
+
+    return path == "/ops" or _path_covers_probe(path)
+
+
+def _narrow_app_origin(app: Mapping[str, Any]) -> str | None:
+    """Return a validated narrow origin, or ``None`` for an unsafe app.
+
+    Cloudflare's newer ``destinations`` field is authoritative when present.
+    Some provider responses retain a stale legacy ``domain`` field after a
+    path migration, so using that field as a second routing authority would
+    incorrectly reject an otherwise narrow application.  We still require
+    every effective destination to share one HTTPS origin and an explicit
+    /ops pattern; a token can never be attached to a mixed or host-wide app.
     """
 
     destinations = app.get("destinations")
     if destinations is not None:
         if not isinstance(destinations, list) or not destinations:
-            return False
+            return None
+        origin: str | None = None
+        probe_covered = False
         for destination in destinations:
             if not isinstance(destination, Mapping) or destination.get("type") != "public":
-                return False
+                return None
             try:
                 candidate_origin, candidate_path = _parse_public_domain(destination.get("uri"))
             except AccessBridgeInputError:
-                return False
-            if candidate_origin != origin or not _path_covers_probe(candidate_path):
-                return False
-        return True
+                return None
+            if not _path_is_narrow_ops_scope(candidate_path):
+                return None
+            probe_covered = probe_covered or _path_covers_probe(candidate_path)
+            if origin is None:
+                origin = candidate_origin
+            elif candidate_origin != origin:
+                return None
+        return origin if probe_covered else None
 
+    try:
+        origin, path = _parse_public_domain(app.get("domain"))
+    except AccessBridgeInputError:
+        return None
+    if not _path_is_narrow_ops_scope(path):
+        return None
     legacy_domains = app.get("self_hosted_domains")
     if legacy_domains is None:
-        return True
+        return origin if _path_covers_probe(path) else None
     if not isinstance(legacy_domains, list) or not legacy_domains:
-        return False
+        return None
+    probe_covered = _path_covers_probe(path)
     for domain in legacy_domains:
         try:
             candidate_origin, candidate_path = _parse_public_domain(domain)
         except AccessBridgeInputError:
-            return False
-        if candidate_origin != origin or not _path_covers_probe(candidate_path):
-            return False
-    return True
+            return None
+        if candidate_origin != origin or not _path_is_narrow_ops_scope(candidate_path):
+            return None
+        probe_covered = probe_covered or _path_covers_probe(candidate_path)
+    return origin if probe_covered else None
 
 
 def resolve_bridge_target(coolify_env_path: str | Path, access_apps_path: str | Path) -> dict[str, str]:
@@ -247,11 +276,8 @@ def resolve_bridge_target(coolify_env_path: str | Path, access_apps_path: str | 
             or audience not in audiences
         ):
             continue
-        try:
-            origin, path = _parse_public_domain(app.get("domain"))
-        except AccessBridgeInputError:
-            continue
-        if not _path_covers_probe(path) or not _app_scope_is_narrow(app, origin=origin):
+        origin = _narrow_app_origin(app)
+        if origin is None:
             continue
         matches.append({"app_id": app_id.lower(), "origin": origin})
     if len(matches) != 1:
@@ -384,6 +410,80 @@ def summarize_probe_response(
         "machine_code": machine_code,
         "result": result,
     }
+
+
+def summarize_probe_start_response(
+    response_path: str | Path,
+    *,
+    http_status: object,
+    curl_exit: object,
+) -> dict[str, str]:
+    """Classify the fixed no-body start request without exposing its reply.
+
+    The bridge must not print an Access deny page, an API error body, or the
+    backend's opaque request ID.  It only emits enough finite state to decide
+    whether a GET poll is safe.  A 409 is deliberately pollable: it means the
+    fixed request was already live, so issuing a second start would add no
+    value and risks racing the single-flight guard.
+    """
+
+    try:
+        curl_ok = int(curl_exit) == 0
+    except (TypeError, ValueError):
+        curl_ok = False
+    status = str(http_status)
+    if not curl_ok or _HTTP_STATUS_RE.fullmatch(status) is None:
+        return _probe_start_summary("TRANSPORT_FAILED", "HISTORY_PROBE_START_TRANSPORT_FAILED")
+    if status in {"401", "403"}:
+        return _probe_start_summary("HTTP_DENIED", "HISTORY_PROBE_START_ACCESS_OR_ORIGIN_DENIED")
+    if status == "409":
+        return _probe_start_summary("HTTP_CONFLICT", "HISTORY_PROBE_ALREADY_PENDING")
+    if status == "422":
+        return _probe_start_summary("HTTP_BODY_REJECTED", "HISTORY_PROBE_START_BODY_REJECTED")
+    if status == "503":
+        return _probe_start_summary("HTTP_CONTROL_UNAVAILABLE", "HISTORY_PROBE_START_CONTROL_UNAVAILABLE")
+    if status != "202":
+        return _probe_start_summary("HTTP_UNAVAILABLE", "HISTORY_PROBE_START_HTTP_UNAVAILABLE")
+    try:
+        payload = _read_object(response_path)
+    except AccessBridgeInputError:
+        return _probe_start_summary("INVALID_RESPONSE", "HISTORY_PROBE_START_INVALID_RESPONSE")
+    if set(payload) != {
+        "state", "machine_code", "updated_at", "expires_at", "continuation_state", "cursor_transcript",
+    }:
+        return _probe_start_summary("INVALID_RESPONSE", "HISTORY_PROBE_START_INVALID_RESPONSE")
+    if (
+        payload.get("state") != "REQUESTED"
+        or payload.get("machine_code") != "DWS_HISTORY_PROBE_QUEUED"
+        or payload.get("continuation_state") != "NOT_STARTED"
+        or payload.get("cursor_transcript") != "NOT_STARTED"
+        or not isinstance(payload.get("updated_at"), str)
+        or not isinstance(payload.get("expires_at"), str)
+    ):
+        return _probe_start_summary("INVALID_RESPONSE", "HISTORY_PROBE_START_INVALID_RESPONSE")
+    return _probe_start_summary("OK", "HISTORY_PROBE_REQUESTED")
+
+
+def _probe_start_summary(transport: str, result: str) -> dict[str, str]:
+    return {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": transport,
+        "result": result,
+    }
+
+
+def probe_start_poll_state(receipt_path: str | Path) -> str:
+    """Return whether a values-free start receipt permits the fixed GET poll."""
+
+    try:
+        payload = _read_object(receipt_path)
+    except AccessBridgeInputError:
+        return "TERMINAL_NOT_MET"
+    if set(payload) != {"schema_version", "transport", "result"} or payload.get("schema_version") != ACCESS_BRIDGE_SCHEMA:
+        return "TERMINAL_NOT_MET"
+    if payload.get("result") in {"HISTORY_PROBE_REQUESTED", "HISTORY_PROBE_ALREADY_PENDING"}:
+        return "POLL"
+    return "TERMINAL_NOT_MET"
 
 
 def _probe_summary(transport: str) -> dict[str, str]:
