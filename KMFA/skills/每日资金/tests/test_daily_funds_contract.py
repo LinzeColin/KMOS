@@ -4612,11 +4612,13 @@ def test_daily_funds_deployment_keeps_its_auth_bundle_and_identifiers_private() 
     assert "DAILY_FUNDS_R2_MAX_NEW_OBJECTS_PER_POLL=100" in env_example
     assert 'DAILY_FUNDS_R2_MAX_NEW_OBJECTS_PER_POLL: "${DAILY_FUNDS_R2_MAX_NEW_OBJECTS_PER_POLL:-100}"' in daily_service
     assert 'SOURCE_COMMIT: "${SOURCE_COMMIT:-}"' in daily_service
+    assert 'user: "0:0"' in daily_service
     assert "kmfa-dws-auth" not in daily_service
     assert "sync-daily-funds-secrets" in ops
     assert "|^DAILY_FUNDS_" in ops
     entrypoint = (ROOT / "entrypoint.sh").read_text(encoding="utf-8")
     assert "chmod 0700" in entrypoint
+    assert 'chmod 0770 "$CONTROL_DIR"' in entrypoint
     assert "DAILY_FUNDS_DWS_KEYRING_DIR" in entrypoint
     assert "DAILY_FUNDS_RUNTIME_PATH_INVALID" in entrypoint
     assert "runtime-audit" in entrypoint

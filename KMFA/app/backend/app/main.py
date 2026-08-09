@@ -2548,6 +2548,8 @@ DAILY_FUNDS_HISTORY_PROBE_SESSION_SCHEMA = "kmfa.daily_funds.dws_history_probe_s
 DAILY_FUNDS_HISTORY_PROBE_REQUEST_FILE = "dws_history_probe_request.json"
 DAILY_FUNDS_HISTORY_PROBE_SESSION_FILE = "dws_history_probe_session.json"
 DAILY_FUNDS_HISTORY_PROBE_ACTOR = "kmfa_private_owner_ui"
+DAILY_FUNDS_HISTORY_PROBE_ENDPOINT_HEADER = "X-KMFA-Daily-Funds-Probe"
+DAILY_FUNDS_HISTORY_PROBE_ENDPOINT_VALUE = "v1"
 DAILY_FUNDS_HISTORY_PROBE_LIVE_STATES = {"REQUESTED", "RUNNING"}
 DAILY_FUNDS_HISTORY_PROBE_TERMINAL_STATES = {"COMPLETED", "FAILED", "EXPIRED"}
 DAILY_FUNDS_HISTORY_PROBE_CONTINUATION_STATES = {
@@ -4061,6 +4063,29 @@ def _daily_funds_auth_response(payload: dict[str, Any], *, status_code: int = 20
     )
 
 
+def _daily_funds_history_probe_response(payload: dict[str, Any], *, status_code: int = 200) -> JSONResponse:
+    """Mark a values-free history-probe reply as originating from this app.
+
+    The Access bridge retains response bodies only in a mode-0700 temporary
+    directory, but a generic edge 503 has no reliable body contract.  This
+    fixed marker lets it distinguish a deliberate app control-volume failure
+    from an upstream/edge failure without disclosing a path, request ID,
+    source value, or credential.
+    """
+
+    response = _daily_funds_auth_response(payload, status_code=status_code)
+    response.headers[DAILY_FUNDS_HISTORY_PROBE_ENDPOINT_HEADER] = DAILY_FUNDS_HISTORY_PROBE_ENDPOINT_VALUE
+    return response
+
+
+def _daily_funds_history_probe_error(*, status_code: int, detail: str) -> JSONResponse:
+    """Return a fixed, non-cacheable error from the narrow history-probe API."""
+
+    response = _daily_funds_auth_response({"detail": detail}, status_code=status_code)
+    response.headers[DAILY_FUNDS_HISTORY_PROBE_ENDPOINT_HEADER] = DAILY_FUNDS_HISTORY_PROBE_ENDPOINT_VALUE
+    return response
+
+
 @app.get("/ops/api/daily-funds/auth-session")
 def daily_funds_auth_session():
     """Read only the short-lived owner-facing device authorization state."""
@@ -4310,10 +4335,10 @@ def daily_funds_history_probe():
     now = datetime.now(timezone.utc)
     session = _daily_funds_history_probe_read_session(now)
     if session is not None:
-        return _daily_funds_auth_response(session)
+        return _daily_funds_history_probe_response(session)
     request = _daily_funds_history_probe_read_request(now)
     if request is not None and not request["expired"]:
-        return _daily_funds_auth_response({
+        return _daily_funds_history_probe_response({
             "state": "REQUESTED",
             "machine_code": "DWS_HISTORY_PROBE_QUEUED",
             "updated_at": _daily_funds_auth_iso(now),
@@ -4321,7 +4346,7 @@ def daily_funds_history_probe():
             "continuation_state": "NOT_STARTED",
             "cursor_transcript": "NOT_STARTED",
         })
-    return _daily_funds_auth_response({
+    return _daily_funds_history_probe_response({
         "state": "NOT_REQUESTED",
         "machine_code": "DWS_HISTORY_PROBE_NOT_REQUESTED",
         "updated_at": _daily_funds_auth_iso(now),
@@ -4336,13 +4361,19 @@ async def start_daily_funds_history_probe(request: Request):
     """Queue one pre-defined cloud history probe; this endpoint accepts no input."""
 
     if not _daily_funds_auth_same_origin(request):
-        raise HTTPException(status_code=403, detail="daily_funds_history_probe_same_origin_required")
+        return _daily_funds_history_probe_error(
+            status_code=403,
+            detail="daily_funds_history_probe_same_origin_required",
+        )
     # Reject payload-bearing requests without reading their body.  This keeps
     # the route from becoming an accidental transport for a command, group ID,
     # source payload, or financial value.  The sole allowed action is encoded
     # below in the exact shared-volume schema.
     if request.headers.get("content-length", "").strip() not in {"", "0"} or request.headers.get("transfer-encoding", "").strip():
-        raise HTTPException(status_code=422, detail="daily_funds_history_probe_body_forbidden")
+        return _daily_funds_history_probe_error(
+            status_code=422,
+            detail="daily_funds_history_probe_body_forbidden",
+        )
     now = datetime.now(timezone.utc)
     existing = _daily_funds_history_probe_read_session(now)
     pending = _daily_funds_history_probe_read_request(now)
@@ -4350,7 +4381,10 @@ async def start_daily_funds_history_probe(request: Request):
         (existing is not None and existing["state"] in DAILY_FUNDS_HISTORY_PROBE_LIVE_STATES)
         or (pending is not None and not pending["expired"])
     ):
-        raise HTTPException(status_code=409, detail="daily_funds_history_probe_already_pending")
+        return _daily_funds_history_probe_error(
+            status_code=409,
+            detail="daily_funds_history_probe_already_pending",
+        )
     expires_at = now + timedelta(minutes=10)
     payload = {
         "schema_version": DAILY_FUNDS_HISTORY_PROBE_REQUEST_SCHEMA,
@@ -4362,9 +4396,12 @@ async def start_daily_funds_history_probe(request: Request):
     }
     try:
         _daily_funds_history_probe_write_request(payload)
-    except OSError as exc:
-        raise HTTPException(status_code=503, detail="daily_funds_history_probe_control_unavailable") from exc
-    return _daily_funds_auth_response({
+    except OSError:
+        return _daily_funds_history_probe_error(
+            status_code=503,
+            detail="daily_funds_history_probe_control_unavailable",
+        )
+    return _daily_funds_history_probe_response({
         "state": "REQUESTED",
         "machine_code": "DWS_HISTORY_PROBE_QUEUED",
         "updated_at": _daily_funds_auth_iso(now),

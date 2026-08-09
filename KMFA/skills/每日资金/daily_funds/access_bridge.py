@@ -66,6 +66,9 @@ _MACHINE_CODES = frozenset({
     "DWS_HISTORY_PROBE_UNHANDLED",
 })
 _HTTP_STATUS_RE = re.compile(r"^(?:[1-5][0-9]{2}|000)$")
+_PROBE_ORIGIN_HEADER = b"x-kmfa-daily-funds-probe"
+_PROBE_ORIGIN_VALUE = b"v1"
+_MAX_RESPONSE_HEADER_BYTES = 65_536
 
 
 class AccessBridgeInputError(ValueError):
@@ -419,9 +422,37 @@ def validate_success_response(response_path: str | Path) -> bool:
         return False
 
 
+def _probe_origin_confirmed(response_headers_path: str | Path) -> bool:
+    """Accept only the fixed marker from the final HTTP response block.
+
+    A Cloudflare or proxy 503 may share an HTTP status with the application's
+    deliberate control-volume response.  The headers stay in the runner's
+    private temporary directory and this helper extracts only one constant,
+    so the public receipt does not attribute an upstream failure to the app.
+    """
+
+    try:
+        raw = Path(response_headers_path).read_bytes()
+    except OSError:
+        return False
+    if len(raw) > _MAX_RESPONSE_HEADER_BYTES:
+        return False
+    blocks = re.split(rb"\r?\n\r?\n", raw)
+    final_block = next((block for block in reversed(blocks) if block.startswith(b"HTTP/")), b"")
+    if not final_block:
+        return False
+    values: list[bytes] = []
+    for line in final_block.splitlines()[1:]:
+        name, separator, value = line.partition(b":")
+        if separator and name.lower() == _PROBE_ORIGIN_HEADER:
+            values.append(value.strip())
+    return values == [_PROBE_ORIGIN_VALUE]
+
+
 def summarize_probe_response(
     response_path: str | Path,
     *,
+    response_headers_path: str | Path,
     http_status: object,
     curl_exit: object,
 ) -> dict[str, str]:
@@ -438,6 +469,8 @@ def summarize_probe_response(
         return _probe_summary("HTTP_DENIED")
     if status != "200":
         return _probe_summary("HTTP_UNAVAILABLE")
+    if not _probe_origin_confirmed(response_headers_path):
+        return _probe_summary("HTTP_ORIGIN_UNVERIFIED")
     try:
         payload = _read_object(response_path)
     except AccessBridgeInputError:
@@ -487,6 +520,7 @@ def summarize_probe_response(
 def summarize_probe_start_response(
     response_path: str | Path,
     *,
+    response_headers_path: str | Path,
     http_status: object,
     curl_exit: object,
 ) -> dict[str, str]:
@@ -508,14 +542,26 @@ def summarize_probe_start_response(
         return _probe_start_summary("TRANSPORT_FAILED", "HISTORY_PROBE_START_TRANSPORT_FAILED")
     if status in {"401", "403"}:
         return _probe_start_summary("HTTP_DENIED", "HISTORY_PROBE_START_ACCESS_OR_ORIGIN_DENIED")
+    origin_confirmed = _probe_origin_confirmed(response_headers_path)
     if status == "409":
-        return _probe_start_summary("HTTP_CONFLICT", "HISTORY_PROBE_ALREADY_PENDING")
+        return _probe_start_summary(
+            "HTTP_CONFLICT" if origin_confirmed else "HTTP_UPSTREAM_UNAVAILABLE",
+            "HISTORY_PROBE_ALREADY_PENDING" if origin_confirmed else "HISTORY_PROBE_START_UPSTREAM_UNAVAILABLE",
+        )
     if status == "422":
-        return _probe_start_summary("HTTP_BODY_REJECTED", "HISTORY_PROBE_START_BODY_REJECTED")
+        return _probe_start_summary(
+            "HTTP_BODY_REJECTED" if origin_confirmed else "HTTP_UPSTREAM_UNAVAILABLE",
+            "HISTORY_PROBE_START_BODY_REJECTED" if origin_confirmed else "HISTORY_PROBE_START_UPSTREAM_UNAVAILABLE",
+        )
     if status == "503":
-        return _probe_start_summary("HTTP_CONTROL_UNAVAILABLE", "HISTORY_PROBE_START_CONTROL_UNAVAILABLE")
+        return _probe_start_summary(
+            "HTTP_CONTROL_UNAVAILABLE" if origin_confirmed else "HTTP_UPSTREAM_UNAVAILABLE",
+            "HISTORY_PROBE_START_CONTROL_UNAVAILABLE" if origin_confirmed else "HISTORY_PROBE_START_UPSTREAM_UNAVAILABLE",
+        )
     if status != "202":
         return _probe_start_summary("HTTP_UNAVAILABLE", "HISTORY_PROBE_START_HTTP_UNAVAILABLE")
+    if not origin_confirmed:
+        return _probe_start_summary("HTTP_ORIGIN_UNVERIFIED", "HISTORY_PROBE_START_ORIGIN_UNVERIFIED")
     try:
         payload = _read_object(response_path)
     except AccessBridgeInputError:

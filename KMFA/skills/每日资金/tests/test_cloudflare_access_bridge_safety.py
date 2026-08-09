@@ -41,6 +41,12 @@ def _write(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
 
 
+def _probe_headers(path: Path, *, origin_marker: bool = True) -> Path:
+    marker = b"X-KMFA-Daily-Funds-Probe: v1\r\n" if origin_marker else b""
+    path.write_bytes(b"HTTP/2 200\r\n" + marker + b"Cache-Control: private, no-store\r\n\r\n")
+    return path
+
+
 def _target_inputs(tmp_path: Path, *, apps: list[object] | None = None) -> tuple[Path, Path]:
     envs = tmp_path / "envs.json"
     access_apps = tmp_path / "apps.json"
@@ -295,7 +301,12 @@ def test_capture_and_summary_never_expose_service_secret_or_source_value(tmp_pat
     payload = _valid_probe()
     payload["raw_source_value"] = "source-value-must-not-escape"
     _write(probe, payload)
-    summary = summarize_probe_response(probe, http_status="200", curl_exit=0)
+    summary = summarize_probe_response(
+        probe,
+        response_headers_path=_probe_headers(tmp_path / "probe.headers"),
+        http_status="200",
+        curl_exit=0,
+    )
     rendered = json.dumps(summary)
     assert summary["transport"] == "INVALID_RESPONSE"
     assert secret not in rendered
@@ -306,7 +317,12 @@ def test_probe_receipt_proves_cursor_reuse_without_storing_a_cursor(tmp_path: Pa
     response = tmp_path / "probe.json"
     _write(response, _valid_probe())
 
-    summary = summarize_probe_response(response, http_status="200", curl_exit=0)
+    summary = summarize_probe_response(
+        response,
+        response_headers_path=_probe_headers(tmp_path / "probe.headers"),
+        http_status="200",
+        curl_exit=0,
+    )
     assert summary == {
         "schema_version": ACCESS_BRIDGE_SCHEMA,
         "transport": "OK",
@@ -326,7 +342,12 @@ def test_probe_receipt_keeps_the_recordless_window_fallback_explicit(tmp_path: P
     response = tmp_path / "probe.json"
     _write(response, _valid_probe(continuation="GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL"))
 
-    summary = summarize_probe_response(response, http_status="200", curl_exit=0)
+    summary = summarize_probe_response(
+        response,
+        response_headers_path=_probe_headers(tmp_path / "probe.headers"),
+        http_status="200",
+        curl_exit=0,
+    )
 
     assert summary["result"] == "HISTORY_PROBE_COMPLETED"
     assert summary["continuation_state"] == "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL"
@@ -358,7 +379,12 @@ def test_probe_start_receipt_is_finite_and_only_pending_is_pollable(
     response = tmp_path / "probe-start.json"
     _write(response, {"untrusted": "source-value-must-not-escape"})
 
-    summary = summarize_probe_start_response(response, http_status=http_status, curl_exit=curl_exit)
+    summary = summarize_probe_start_response(
+        response,
+        response_headers_path=_probe_headers(tmp_path / "probe-start.headers"),
+        http_status=http_status,
+        curl_exit=curl_exit,
+    )
 
     assert summary == {
         "schema_version": ACCESS_BRIDGE_SCHEMA,
@@ -372,6 +398,7 @@ def test_probe_start_receipt_is_finite_and_only_pending_is_pollable(
 
 def test_probe_start_accepts_only_the_fixed_queued_receipt(tmp_path: Path) -> None:
     response = tmp_path / "probe-start.json"
+    headers = _probe_headers(tmp_path / "probe-start.headers")
     _write(response, {
         "state": "REQUESTED",
         "machine_code": "DWS_HISTORY_PROBE_QUEUED",
@@ -381,7 +408,12 @@ def test_probe_start_accepts_only_the_fixed_queued_receipt(tmp_path: Path) -> No
         "cursor_transcript": "NOT_STARTED",
     })
 
-    summary = summarize_probe_start_response(response, http_status="202", curl_exit=0)
+    summary = summarize_probe_start_response(
+        response,
+        response_headers_path=headers,
+        http_status="202",
+        curl_exit=0,
+    )
 
     assert summary == {
         "schema_version": ACCESS_BRIDGE_SCHEMA,
@@ -392,9 +424,33 @@ def test_probe_start_accepts_only_the_fixed_queued_receipt(tmp_path: Path) -> No
     assert probe_start_poll_state(response) == "POLL"
 
     _write(response, {"state": "REQUESTED", "opaque_request_id": "must-not-escape"})
-    malformed = summarize_probe_start_response(response, http_status="202", curl_exit=0)
+    malformed = summarize_probe_start_response(
+        response,
+        response_headers_path=headers,
+        http_status="202",
+        curl_exit=0,
+    )
     assert malformed["result"] == "HISTORY_PROBE_START_INVALID_RESPONSE"
     assert "must-not-escape" not in json.dumps(malformed)
+
+
+def test_probe_start_does_not_attribute_an_unmarked_503_to_the_control_volume(tmp_path: Path) -> None:
+    response = tmp_path / "probe-start.json"
+    _write(response, {"untrusted": "edge-body-must-not-escape"})
+
+    summary = summarize_probe_start_response(
+        response,
+        response_headers_path=_probe_headers(tmp_path / "probe-start.headers", origin_marker=False),
+        http_status="503",
+        curl_exit=0,
+    )
+
+    assert summary == {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": "HTTP_UPSTREAM_UNAVAILABLE",
+        "result": "HISTORY_PROBE_START_UPSTREAM_UNAVAILABLE",
+    }
+    assert "edge-body-must-not-escape" not in json.dumps(summary)
 
 
 def test_bridge_manager_writes_private_material_and_only_prints_finite_receipt(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -409,9 +465,10 @@ def test_bridge_manager_writes_private_material_and_only_prints_finite_receipt(t
     assert capsys.readouterr().out == ""
 
     response = tmp_path / "probe.json"
+    headers = _probe_headers(tmp_path / "probe.headers")
     _write(response, _valid_probe())
     assert manager.main([
-        "summarize-probe", "--response", str(response), "--http-status", "200", "--curl-exit", "0",
+        "summarize-probe", "--response", str(response), "--headers", str(headers), "--http-status", "200", "--curl-exit", "0",
     ]) == 0
     output = capsys.readouterr().out
     assert json.loads(output)["result"] == "HISTORY_PROBE_COMPLETED"
@@ -434,6 +491,9 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "capture-service-token-id" in step
     assert "capture-policy" in step
     assert "summarize-probe-start" in step
+    assert '-D "$output.headers"' in step
+    assert "probe-post.json.headers" in step
+    assert "probe-get.json.headers" in step
     assert "probe-start-poll-state" in step
     assert "sleep 10" in step
     assert "reconcile_owned_resources()" in step

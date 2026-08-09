@@ -28,6 +28,10 @@ services:
         SOURCE_COMMIT: "${SOURCE_COMMIT:-}"
     image: kmfa-daily-funds:coolify
     container_name: kmfa-daily-funds
+    # The strict control volume is shared only with the protected app.  Make
+    # the image's existing root runtime explicit so a platform-level default
+    # user cannot make a persisted owner-only control directory unwritable.
+    user: "0:0"
     restart: always
     environment:
       TZ: Asia/Shanghai
@@ -167,6 +171,9 @@ services:
         SOURCE_COMMIT: "${SOURCE_COMMIT:-}"
     image: kmfa-app:coolify
     container_name: kmfa-app
+    # See daily-funds: both sides of the values-free control contract must
+    # retain the same explicit runtime identity across a Coolify redeploy.
+    user: "0:0"
     restart: always
     environment:
       TZ: Asia/Shanghai

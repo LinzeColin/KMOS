@@ -629,7 +629,7 @@ jobs:
             local method="$1"
             local output="$2"
             if REQUEST_STATUS="$(curl -sS --request "$method" --connect-timeout 2 --max-time 3 \
-              -o "$output" -w '%{http_code}' \
+              -D "$output.headers" -o "$output" -w '%{http_code}' \
               -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
               -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
               -H "Origin: $PROBE_ORIGIN" "$PROBE_ORIGIN/ops/api/daily-funds/history-probe" 2>/dev/null)"; then
@@ -699,7 +699,8 @@ jobs:
               "$bridge_dir/service-token-response.json" "$bridge_dir/service-token-id.env" \
               "$bridge_dir/service-token.env" "$bridge_dir/policy-payload.json" \
               "$bridge_dir/policy-response.json" "$bridge_dir/policy.env" \
-              "$bridge_dir/probe-post.json" "$bridge_dir/probe-start-receipt.json" "$bridge_dir/probe-get.json" \
+              "$bridge_dir/probe-post.json" "$bridge_dir/probe-post.json.headers" "$bridge_dir/probe-start-receipt.json" \
+              "$bridge_dir/probe-get.json" "$bridge_dir/probe-get.json.headers" \
               "$bridge_dir/probe-receipt.json" "$bridge_dir/policy-delete.json" \
               "$bridge_dir/service-token-delete.json" "$bridge_dir/service-token-list-before.json" \
               "$bridge_dir/policy-list-before.json" "$bridge_dir/owned-resources.env" \
@@ -786,13 +787,13 @@ jobs:
           sleep 10
           request_probe POST "$bridge_dir/probe-post.json"
           python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" summarize-probe-start \
-            --response "$bridge_dir/probe-post.json" --http-status "$REQUEST_STATUS" \
+            --response "$bridge_dir/probe-post.json" --headers "$bridge_dir/probe-post.json.headers" --http-status "$REQUEST_STATUS" \
             --curl-exit "$REQUEST_EXIT" --output "$bridge_dir/probe-start-receipt.json"
           start_poll_state="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" probe-start-poll-state \
             --receipt "$bridge_dir/probe-start-receipt.json")"
           if [ "$start_poll_state" != "POLL" ]; then
             python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" summarize-probe-start \
-              --response "$bridge_dir/probe-post.json" --http-status "$REQUEST_STATUS" --curl-exit "$REQUEST_EXIT"
+              --response "$bridge_dir/probe-post.json" --headers "$bridge_dir/probe-post.json.headers" --http-status "$REQUEST_STATUS" --curl-exit "$REQUEST_EXIT"
             echo "daily_funds_history_probe_bridge=HISTORY_PROBE_REQUEST_NOT_ACCEPTED"
             exit 1
           fi
@@ -801,7 +802,7 @@ jobs:
           for attempt in $(seq 1 15); do
             request_probe GET "$bridge_dir/probe-get.json"
             python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" summarize-probe \
-              --response "$bridge_dir/probe-get.json" --http-status "$REQUEST_STATUS" \
+              --response "$bridge_dir/probe-get.json" --headers "$bridge_dir/probe-get.json.headers" --http-status "$REQUEST_STATUS" \
               --curl-exit "$REQUEST_EXIT" --output "$bridge_dir/probe-receipt.json"
             poll_state="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" probe-poll-state --receipt "$bridge_dir/probe-receipt.json")"
             case "$poll_state" in
@@ -818,7 +819,7 @@ jobs:
             esac
           done
           python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" summarize-probe \
-            --response "$bridge_dir/probe-get.json" --http-status "$REQUEST_STATUS" --curl-exit "$REQUEST_EXIT"
+            --response "$bridge_dir/probe-get.json" --headers "$bridge_dir/probe-get.json.headers" --http-status "$REQUEST_STATUS" --curl-exit "$REQUEST_EXIT"
           echo "daily_funds_history_probe_bridge=$probe_outcome"
           test "$probe_outcome" = "HISTORY_PROBE_COMPLETED"
 

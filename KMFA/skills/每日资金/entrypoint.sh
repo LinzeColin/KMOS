@@ -31,6 +31,12 @@ mkdir -p /var/log/daily-funds \
   "$DWS_CONFIG_DIR" \
   "$DWS_KEYRING_DIR"
 
+# The control volume contains only fixed request/session envelopes, never raw
+# source data or credentials.  It can survive a prior deployment whose image
+# used a different default UID, so normalize it to the explicit app/worker
+# root group on every startup without altering any existing bytes.
+chmod 0770 "$CONTROL_DIR"
+
 # The state journal and the dedicated DWS config/keyring contain cursors or
 # refreshable authentication material.  They are never shared with the app
 # service, so make their volume roots owner-only even when a Docker volume was

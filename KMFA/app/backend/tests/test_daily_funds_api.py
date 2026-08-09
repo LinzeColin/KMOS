@@ -285,16 +285,22 @@ def test_daily_funds_history_probe_is_a_fixed_access_api_and_never_enters_source
     assert initial.status_code == 200
     assert initial.json()["state"] == "NOT_REQUESTED"
     assert initial.headers["cache-control"] == "private, no-store"
-    assert client.post("/ops/api/daily-funds/history-probe").status_code == 403
-    assert client.post(
+    assert initial.headers["x-kmfa-daily-funds-probe"] == "v1"
+    origin_denied = client.post("/ops/api/daily-funds/history-probe")
+    assert origin_denied.status_code == 403
+    assert origin_denied.headers["x-kmfa-daily-funds-probe"] == "v1"
+    body_rejected = client.post(
         "/ops/api/daily-funds/history-probe",
         headers=_same_origin_headers(),
         json={"command": "must-not-cross-the-control-volume"},
-    ).status_code == 422
+    )
+    assert body_rejected.status_code == 422
+    assert body_rejected.headers["x-kmfa-daily-funds-probe"] == "v1"
     assert not (control / "dws_history_probe_request.json").exists()
 
     started = client.post("/ops/api/daily-funds/history-probe", headers=_same_origin_headers())
     assert started.status_code == 202
+    assert started.headers["x-kmfa-daily-funds-probe"] == "v1"
     assert started.json() == {
         "state": "REQUESTED",
         "machine_code": "DWS_HISTORY_PROBE_QUEUED",
@@ -359,6 +365,7 @@ def test_daily_funds_history_probe_is_a_fixed_access_api_and_never_enters_source
     }), encoding="utf-8")
     completed = client.get("/ops/api/daily-funds/history-probe")
     assert completed.status_code == 200
+    assert completed.headers["x-kmfa-daily-funds-probe"] == "v1"
     assert completed.json() == {
         "state": "COMPLETED",
         "machine_code": "DWS_HISTORY_PROBE_COMPLETED",
@@ -367,6 +374,21 @@ def test_daily_funds_history_probe_is_a_fixed_access_api_and_never_enters_source
         "continuation_state": "SECOND_PAGE_TERMINAL",
         "cursor_transcript": "OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
     }
+
+
+def test_daily_funds_history_probe_marks_a_real_control_volume_failure(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    control_file = tmp_path / "control-file"
+    _write_projection(publication)
+    control_file.write_text("not-a-directory\n", encoding="utf-8")
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_CONTROL_DIR", control_file)
+
+    response = client.post("/ops/api/daily-funds/history-probe", headers=_same_origin_headers())
+
+    assert response.status_code == 503
+    assert response.headers["x-kmfa-daily-funds-probe"] == "v1"
+    assert response.json() == {"detail": "daily_funds_history_probe_control_unavailable"}
 
 
 def test_private_daily_funds_projection_range_and_no_raw_leak(tmp_path, monkeypatch):

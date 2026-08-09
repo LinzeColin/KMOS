@@ -158,12 +158,14 @@ def main(argv: list[str] | None = None) -> int:
 
     summary = subparsers.add_parser("summarize-probe")
     summary.add_argument("--response", required=True)
+    summary.add_argument("--headers", required=True)
     summary.add_argument("--http-status", required=True)
     summary.add_argument("--curl-exit", required=True)
     summary.add_argument("--output")
 
     start_summary = subparsers.add_parser("summarize-probe-start")
     start_summary.add_argument("--response", required=True)
+    start_summary.add_argument("--headers", required=True)
     start_summary.add_argument("--http-status", required=True)
     start_summary.add_argument("--curl-exit", required=True)
     start_summary.add_argument("--output")
@@ -222,6 +224,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "summarize-probe":
             receipt = summarize_probe_response(
                 args.response,
+                response_headers_path=args.headers,
                 http_status=args.http_status,
                 curl_exit=args.curl_exit,
             )
@@ -232,6 +235,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "summarize-probe-start":
             receipt = summarize_probe_start_response(
                 args.response,
+                response_headers_path=args.headers,
                 http_status=args.http_status,
                 curl_exit=args.curl_exit,
             )
