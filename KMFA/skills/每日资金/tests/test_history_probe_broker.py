@@ -72,6 +72,9 @@ def test_history_probe_reuses_the_opaque_cursor_without_retaining_source_values(
             assert actual_config is config
             assert callable(event_sink)
 
+        def verify_exact_group_scope(self) -> None:
+            self.event_sink("DWS", "HISTORY_GROUP_SCOPE", "OK")
+
         def search(self, start: datetime, end: datetime, cursor: str | None) -> DwsPage:
             calls.append((start, end, cursor))
             self.event_sink("DWS", "HISTORY_SEARCH_ADVANCED", "OK")
@@ -114,6 +117,7 @@ def test_history_probe_reuses_the_opaque_cursor_without_retaining_source_values(
     assert [call[2] for call in calls] == [None, "opaque-page-2-cursor"]
     assert all((end - start) == timedelta(hours=24) for start, end, _cursor in calls)
     assert events == [
+        ("DWS_HISTORY_PROBE", "HISTORY_GROUP_SCOPE", "OK"),
         ("DWS_HISTORY_PROBE", "HISTORY_SEARCH_ADVANCED", "OK"),
         ("DWS_HISTORY_PROBE", "HISTORY_SEARCH_ADVANCED", "OK"),
     ]
@@ -133,6 +137,9 @@ def test_history_probe_reports_a_bounded_second_page_without_claiming_terminal_h
     class FakeClient:
         def __init__(self, _config, *, event_sink):
             assert callable(event_sink)
+
+        def verify_exact_group_scope(self) -> None:
+            return None
 
         def search(self, _start: datetime, _end: datetime, cursor: str | None) -> DwsPage:
             return DwsPage(messages=(), next_cursor="opaque-next" if cursor is None else "opaque-later", has_more=True)
@@ -159,6 +166,9 @@ def test_history_probe_retries_only_a_recordless_current_window_with_the_same_gr
     class FakeClient:
         def __init__(self, _config, *, event_sink):
             assert callable(event_sink)
+
+        def verify_exact_group_scope(self) -> None:
+            return None
 
         def search(self, start: datetime | None, end: datetime | None, cursor: str | None) -> DwsPage:
             calls.append((start, end, cursor))
@@ -222,6 +232,9 @@ def test_history_probe_failure_is_sanitized_and_never_reflects_source_output(
         def __init__(self, _config, *, event_sink):
             assert callable(event_sink)
 
+        def verify_exact_group_scope(self) -> None:
+            return None
+
         def search(self, _start: datetime, _end: datetime, _cursor: str | None) -> DwsPage:
             raise IngestionError("DWS_HISTORY_PERMISSION_DENIED")
 
@@ -248,6 +261,9 @@ def test_history_probe_preserves_only_the_finite_df002_shape_on_failure(
     class FakeClient:
         def __init__(self, _config, *, event_sink):
             assert callable(event_sink)
+
+        def verify_exact_group_scope(self) -> None:
+            return None
 
         def search(self, _start: datetime, _end: datetime, _cursor: str | None) -> DwsPage:
             raise IngestionError(

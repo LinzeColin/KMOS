@@ -3062,6 +3062,48 @@ def test_dws_history_permission_denial_is_not_misreported_as_auth_loss(tmp_path:
     ]
 
 
+def test_dws_history_group_scope_preflight_is_exact_and_discards_its_response(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    events: list[tuple[str, str, str]] = []
+    commands: list[list[str]] = []
+
+    def runner(command, **_kwargs):
+        commands.append(command)
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        assert command == [
+            config.dws_bin,
+            "chat",
+            "conversation-info",
+            "--group",
+            config.group_id,
+            "--format",
+            "json",
+        ]
+        return subprocess.CompletedProcess(command, 0, json.dumps({"result": {"opaque": "discarded"}}), "")
+
+    DwsHistoryClient(config, runner=runner, event_sink=lambda *event: events.append(event)).verify_exact_group_scope()
+
+    assert len(commands) == 2
+    assert events == [
+        ("DWS", "AUTH_STATUS", "OK"),
+        ("DWS", "HISTORY_GROUP_SCOPE", "OK"),
+    ]
+
+
+def test_dws_history_group_scope_preflight_keeps_permission_failure_values_free(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+
+    def runner(command, **_kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        return subprocess.CompletedProcess(command, 1, "", "PermissionDenied target-group-private-detail")
+
+    with pytest.raises(IngestionError, match="DWS_HISTORY_PERMISSION_DENIED") as exc_info:
+        DwsHistoryClient(config, runner=runner).verify_exact_group_scope()
+    assert "target-group-private-detail" not in str(exc_info.value)
+
+
 def test_dws_history_stderr_permission_denial_is_not_misreported_as_auth_loss(tmp_path: Path) -> None:
     config = _config(tmp_path)
 

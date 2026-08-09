@@ -223,6 +223,12 @@ class DailyFundsHistoryProbeBroker:
             continuation_state="NOT_STARTED",
         )
         client = DwsHistoryClient(self.config, event_sink=self._record_probe_network_event)
+        # Validate only the configured group through the pinned DWS read
+        # command before interpreting a record-less ``search-advanced`` page.
+        # This is not a second collector and it retains no response fields;
+        # it isolates wrong/unreadable group scope from DF-002's page-shape
+        # guard without broadening the source query.
+        client.verify_exact_group_scope()
         start = now - timedelta(hours=24)
         fallback_used = False
         try:

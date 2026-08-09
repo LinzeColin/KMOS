@@ -806,6 +806,67 @@ class DwsHistoryClient:
             raise IngestionError("DWS_AUTH_REQUIRED")
         self._auth_ready = True
 
+    def verify_exact_group_scope(self) -> None:
+        """Prove that this DWS identity can resolve the configured group.
+
+        This is a values-free control preflight for the one-off history probe,
+        not an alternate collection source.  It calls the pinned DWS
+        ``conversation-info`` read command with the same configured group ID,
+        retains no response field, and does not alter the primary
+        ``search-advanced --conversation-ids`` collector.  A successful
+        command is the upstream CLI's own validation contract for a
+        conversation ID; anything else fails closed before a record-less
+        search page can be misdiagnosed as an empty group.
+        """
+
+        self.ensure_authenticated()
+        command = [
+            self.config.dws_bin,
+            "chat",
+            "conversation-info",
+            "--group",
+            self.config.group_id,
+            "--format",
+            "json",
+        ]
+        try:
+            completed = self._run_dws(
+                command,
+                operation="HISTORY_GROUP_SCOPE",
+                timeout=90,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise IngestionError("DWS_HISTORY_GROUP_SCOPE_UNAVAILABLE") from exc
+        if completed.returncode != 0:
+            code = _dws_history_failure_code(
+                completed.stdout,
+                completed.stderr,
+                fallback="DWS_HISTORY_GROUP_SCOPE_UNVERIFIABLE",
+            )
+            self._record_network_event("HISTORY_GROUP_SCOPE", code)
+            raise IngestionError(code)
+        try:
+            payload = json.loads(completed.stdout)
+        except json.JSONDecodeError as exc:
+            self._record_network_event("HISTORY_GROUP_SCOPE", "INVALID")
+            raise IngestionError("DWS_HISTORY_GROUP_SCOPE_UNVERIFIABLE") from exc
+        if not isinstance(payload, Mapping):
+            self._record_network_event("HISTORY_GROUP_SCOPE", "INVALID")
+            raise IngestionError("DWS_HISTORY_GROUP_SCOPE_UNVERIFIABLE")
+        # DWS normally converts this business envelope into a non-zero exit,
+        # but keep the caller fail-closed if a future CLI returns it on stdout.
+        if payload.get("success") is False:
+            code = _dws_history_failure_code(
+                payload,
+                fallback="DWS_HISTORY_GROUP_SCOPE_UNVERIFIABLE",
+            )
+            self._record_network_event("HISTORY_GROUP_SCOPE", code)
+            raise IngestionError(code)
+        # The response is intentionally discarded.  Retaining even its
+        # metadata would turn a probe-only source-scope check into a new data
+        # surface; successful JSON execution is the only evidence recorded.
+        self._record_network_event("HISTORY_GROUP_SCOPE", "OK")
+
     def search(
         self,
         start: datetime | None,
