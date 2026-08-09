@@ -26,6 +26,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     capture_policy,
     capture_service_token,
     capture_service_token_id,
+    owned_bridge_resource_ids,
     policy_payload,
     probe_poll_state,
     probe_start_poll_state,
@@ -67,6 +68,49 @@ def _write_shell_material(path: Path, values: dict[str, str]) -> None:
     ):
         raise AccessBridgeInputError("runner material invalid")
     lines = [f"{key}={shlex.quote(value)}" for key, value in sorted(values.items())]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+    try:
+        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(lines) + "\n")
+        os.replace(temporary, path)
+        path.chmod(0o600)
+    finally:
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def _write_owned_resource_material(path: Path, values: dict[str, tuple[str, ...]]) -> None:
+    """Write only validated opaque IDs for a shell-only cleanup loop.
+
+    Empty values are intentional: they mean the final provider read saw no
+    resource for this exact run tag.  The workflow never prints this file.
+    """
+
+    expected = {"service_token_ids", "policy_ids"}
+    if set(values) != expected:
+        raise AccessBridgeInputError("owned resource material invalid")
+    rendered: dict[str, str] = {}
+    for source_key, target_key in (
+        ("service_token_ids", "CF_ACCESS_OWNED_SERVICE_TOKEN_IDS"),
+        ("policy_ids", "CF_ACCESS_OWNED_POLICY_IDS"),
+    ):
+        identifiers = values[source_key]
+        if (
+            not isinstance(identifiers, tuple)
+            or any(
+                not isinstance(identifier, str)
+                or len(identifier) != 36
+                or any(character not in "0123456789abcdef-" for character in identifier)
+                for identifier in identifiers
+            )
+        ):
+            raise AccessBridgeInputError("owned resource material invalid")
+        rendered[target_key] = " ".join(identifiers)
+    lines = [f"{key}={shlex.quote(value)}" for key, value in sorted(rendered.items())]
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
     try:
@@ -133,6 +177,17 @@ def main(argv: list[str] | None = None) -> int:
     start_poll = subparsers.add_parser("probe-start-poll-state")
     start_poll.add_argument("--receipt", required=True)
 
+    owned = subparsers.add_parser("write-owned-resource-env")
+    owned.add_argument("--service-tokens", required=True)
+    owned.add_argument("--policies", required=True)
+    owned.add_argument("--run-tag", required=True)
+    owned.add_argument("--output", required=True)
+
+    owned_state = subparsers.add_parser("owned-resource-state")
+    owned_state.add_argument("--service-tokens", required=True)
+    owned_state.add_argument("--policies", required=True)
+    owned_state.add_argument("--run-tag", required=True)
+
     args = parser.parse_args(argv)
     try:
         if args.command == "resolve-target":
@@ -190,6 +245,26 @@ def main(argv: list[str] | None = None) -> int:
             print(probe_poll_state(args.receipt))
         elif args.command == "probe-start-poll-state":
             print(probe_start_poll_state(args.receipt))
+        elif args.command == "write-owned-resource-env":
+            _write_owned_resource_material(
+                _private_output(parser, args),
+                owned_bridge_resource_ids(
+                    args.service_tokens,
+                    args.policies,
+                    args.run_tag,
+                ),
+            )
+        elif args.command == "owned-resource-state":
+            resources = owned_bridge_resource_ids(
+                args.service_tokens,
+                args.policies,
+                args.run_tag,
+            )
+            print(
+                "ABSENT"
+                if not resources["service_token_ids"] and not resources["policy_ids"]
+                else "PRESENT"
+            )
         else:  # pragma: no cover - argparse owns this branch.
             parser.error("unsupported command")
     except (AccessBridgeInputError, KeyError, OSError, ValueError):

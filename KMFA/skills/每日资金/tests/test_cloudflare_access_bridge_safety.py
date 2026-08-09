@@ -20,6 +20,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     AccessBridgeInputError,
     capture_policy,
     capture_service_token,
+    owned_bridge_resource_ids,
     policy_payload,
     probe_poll_state,
     probe_start_poll_state,
@@ -217,6 +218,61 @@ def test_service_token_and_policy_payload_are_short_lived_and_app_specific() -> 
     assert "exclude" not in policy
 
 
+def test_owned_resource_reconcile_selects_only_the_exact_run_tag(tmp_path: Path) -> None:
+    service_tokens = tmp_path / "service-tokens.json"
+    policies = tmp_path / "policies.json"
+    _write(service_tokens, {
+        "success": True,
+        "result_info": {"total_pages": 1},
+        "result": [
+            {"id": SERVICE_TOKEN_ID, "name": "kmfa-daily-funds-history-probe-312-1"},
+            {"id": POLICY_ID, "name": "kmfa-daily-funds-history-probe-unrelated"},
+        ],
+    })
+    _write(policies, {
+        "success": True,
+        "result_info": {"total_pages": 1},
+        "result": [
+            {"id": POLICY_ID, "name": "kmfa-daily-funds-history-probe-312-1"},
+            {"id": SERVICE_TOKEN_ID, "name": "kmfa-daily-funds-history-probe-312-10"},
+        ],
+    })
+
+    assert owned_bridge_resource_ids(service_tokens, policies, "312-1") == {
+        "service_token_ids": (SERVICE_TOKEN_ID,),
+        "policy_ids": (POLICY_ID,),
+    }
+
+    manager = _load_script()
+    material = tmp_path / "owned.env"
+    assert manager.main([
+        "write-owned-resource-env", "--service-tokens", str(service_tokens),
+        "--policies", str(policies), "--run-tag", "312-1", "--output", str(material),
+    ]) == 0
+    assert stat.S_IMODE(material.stat().st_mode) == 0o600
+    text = material.read_text(encoding="utf-8")
+    assert SERVICE_TOKEN_ID in text and POLICY_ID in text
+    assert "unrelated" not in text
+    assert manager.main([
+        "owned-resource-state", "--service-tokens", str(service_tokens),
+        "--policies", str(policies), "--run-tag", "312-1",
+    ]) == 0
+
+
+def test_owned_resource_reconcile_rejects_a_paginated_provider_list(tmp_path: Path) -> None:
+    service_tokens = tmp_path / "service-tokens.json"
+    policies = tmp_path / "policies.json"
+    _write(service_tokens, {
+        "success": True,
+        "result_info": {"total_pages": 2},
+        "result": [],
+    })
+    _write(policies, {"success": True, "result": []})
+
+    with pytest.raises(AccessBridgeInputError):
+        owned_bridge_resource_ids(service_tokens, policies, "312-1")
+
+
 def test_capture_and_summary_never_expose_service_secret_or_source_value(tmp_path: Path) -> None:
     secret = "service-secret-must-not-escape"
     response = tmp_path / "service-token.json"
@@ -363,10 +419,15 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "summarize-probe-start" in step
     assert "probe-start-poll-state" in step
     assert "sleep 10" in step
-    assert '"$REQUEST_STATUS" = "200" ] && ! python3' in step
-    assert "204 has no JSON body" in step
+    assert "reconcile_owned_resources()" in step
+    assert "write-owned-resource-env" in step
+    assert "owned-resource-state" in step
     assert "request_cf DELETE" in step
     assert "duration" not in step  # duration is fixed in the Python allowlist, not workflow input.
     assert "inputs.command" not in step
     assert "--data @\"$payload\"" in step
     assert "rm -rf" not in step
+
+    assert "daily-funds-history-probe-cleanup" in workflow
+    assert "inputs.bridge_run_tag" in workflow
+    assert "RUN_TAG_INVALID" in workflow

@@ -31,6 +31,7 @@ _UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 _HOST_LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 _RUN_TAG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 _CREDENTIAL_RE = re.compile(r"^[A-Za-z0-9._-]{1,256}$")
+_BRIDGE_RESOURCE_PREFIX = "kmfa-daily-funds-history-probe-"
 
 _PROBE_STATES = frozenset({"NOT_REQUESTED", "REQUESTED", "RUNNING", "COMPLETED", "FAILED", "EXPIRED"})
 _CONTINUATION_STATES = frozenset({
@@ -93,6 +94,34 @@ def _cloudflare_result(path: str | Path, *, expected_type: type[object]) -> obje
     if payload.get("success") is not True or not isinstance(result, expected_type):
         raise AccessBridgeInputError("cloudflare result invalid")
     return result
+
+
+def _cloudflare_single_page_result(path: str | Path) -> list[Mapping[str, Any]]:
+    """Return a fully observed provider list, never a partial cleanup view.
+
+    Cleanup is safe only if the runner saw every candidate resource for the
+    exact run tag.  The workflow requests ``per_page=1000`` and this parser
+    rejects a response that declares another page/cursor rather than silently
+    declaring an orphan absent.
+    """
+
+    payload = _read_object(path)
+    result = _cloudflare_result(path, expected_type=list)
+    assert isinstance(result, list)
+    if not all(isinstance(item, Mapping) for item in result):
+        raise AccessBridgeInputError("cloudflare list invalid")
+    result_info = payload.get("result_info")
+    if result_info is not None:
+        if not isinstance(result_info, Mapping):
+            raise AccessBridgeInputError("cloudflare list invalid")
+        total_pages = result_info.get("total_pages")
+        cursor = result_info.get("cursor")
+        if (
+            total_pages not in (None, 0, 1)
+            or cursor not in (None, "")
+        ):
+            raise AccessBridgeInputError("cloudflare list incomplete")
+    return [dict(item) for item in result]
 
 
 def _coolify_rows(path: str | Path) -> list[Mapping[str, Any]]:
@@ -285,22 +314,54 @@ def resolve_bridge_target(coolify_env_path: str | Path, access_apps_path: str | 
     return matches[0]
 
 
-def service_token_payload(run_tag: str) -> dict[str, str]:
+def bridge_resource_name(run_tag: str) -> str:
     if _RUN_TAG_RE.fullmatch(run_tag) is None:
         raise AccessBridgeInputError("run tag invalid")
+    return f"{_BRIDGE_RESOURCE_PREFIX}{run_tag}"
+
+
+def service_token_payload(run_tag: str) -> dict[str, str]:
     return {
-        "name": f"kmfa-daily-funds-history-probe-{run_tag}",
+        "name": bridge_resource_name(run_tag),
         "duration": SERVICE_TOKEN_DURATION,
     }
 
 
 def policy_payload(service_token_id: str, run_tag: str) -> dict[str, object]:
-    if _UUID_RE.fullmatch(service_token_id.lower()) is None or _RUN_TAG_RE.fullmatch(run_tag) is None:
+    if _UUID_RE.fullmatch(service_token_id.lower()) is None:
         raise AccessBridgeInputError("policy input invalid")
     return {
-        "name": f"kmfa-daily-funds-history-probe-{run_tag}",
+        "name": bridge_resource_name(run_tag),
         "decision": "non_identity",
         "include": [{"service_token": {"token_id": service_token_id.lower()}}],
+    }
+
+
+def _owned_resource_ids(path: str | Path, run_tag: str) -> tuple[str, ...]:
+    """Find only the exact, run-scoped Access resources in one API list."""
+
+    expected_name = bridge_resource_name(run_tag)
+    identifiers: set[str] = set()
+    for item in _cloudflare_single_page_result(path):
+        if item.get("name") != expected_name:
+            continue
+        identifier = item.get("id")
+        if not isinstance(identifier, str) or _UUID_RE.fullmatch(identifier.lower()) is None:
+            raise AccessBridgeInputError("owned resource invalid")
+        identifiers.add(identifier.lower())
+    return tuple(sorted(identifiers))
+
+
+def owned_bridge_resource_ids(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+    run_tag: str,
+) -> dict[str, tuple[str, ...]]:
+    """Return opaque IDs for one run only; callers must keep them private."""
+
+    return {
+        "service_token_ids": _owned_resource_ids(service_tokens_path, run_tag),
+        "policy_ids": _owned_resource_ids(policies_path, run_tag),
     }
 
 
