@@ -9,7 +9,7 @@ description: 独立云端每日资金纵向切片；仅从指定钉钉群历史�
 
 ## 唯一输入与输出
 
-- 输入：`dws chat message search-advanced --conversation-ids <唯一群ID> --sender-ids <唯一发送人ID>` 按固定时间窗与 opaque `nextCursor` 分页读取历史消息；消息仍须逐条匹配唯一 `senderOpenDingTalkId` 与允许文档族（资金账户明细表、资金流水明细/资金明细）。显示名 `sender` 只能用于人工诊断，绝不能作为来源 ID。
+- 输入：固定 DWS `v1.0.57` 的 `dws chat message search-advanced --conversation-ids <唯一群ID> --conversation-type group --sender-ids <唯一发送人ID>` 按固定时间窗与 opaque `nextCursor` 分页读取历史消息；消息仍须逐条匹配唯一 `senderOpenDingTalkId` 与允许文档族（资金账户明细表、资金流水明细/资金明细）。显示名 `sender` 只能用于人工诊断，绝不能作为来源 ID。
 - DWS 身份：首次只在 daily-funds 的独立云端卷中显式完成一次 `bootstrap-dws-auth`。当 Coolify 的 Bearer API 没有容器执行能力时，已通过 Cloudflare Access 的 KMFA 私有页面可经既有控制卷发出**唯一固定的**开始/取消请求；同容器 broker 只运行 DWS 设备流、只回传短时 `verificationUri`/`userCode` 给该私有页面，不能执行任意命令，不能读取原始数据，且设备码不进入 cron、日志、status、Git 或公开面。`DAILY_FUNDS_DWS_AUTH_BUNDLE_B64` 仅是可选灾备恢复导入。未配置 `DAILY_FUNDS_DWS_CLIENT_ID` 时，受控 DWS 进程使用其官方默认客户端；如配置，该值只在本切片构造的环境中作为覆盖值使用，绝不继承宿主或其他 Skill。`search-advanced` 只按唯一群与唯一发送人的交集远程读取；群 ID、发送人和文档族三重门禁仍逐条在本地执行，远端筛选不能替代本地验真。`auth status` 或任一门禁失败即关闭。运行时不得另行注入 AppSecret；AppKey/AppSecret 不能替代登录态，也不得读取宿主或其他服务的登录态。
 - 受控历史验证：私有页面可发起**一次固定的**最近 24 小时、最多两页 `search-advanced` 探针。请求不含命令、群 ID、发送人、cursor、时间范围、消息、附件或金额；broker 仅返回 `REQUESTED/RUNNING/COMPLETED/FAILED/EXPIRED`、固定 continuation 枚举，以及 `NOT_OBSERVED/NO_DIRECT_LIST/UNRECOGNIZED_DIRECT_LIST` 三态的协议结构枚举。结构枚举不含字段名、数组长度、ID、消息、附件、cursor 或金额。它不下载附件、不写 raw、不改变 15 分钟主采集链，也绝不构成 DF-008/DF-022、整数分勾稽、金额或 publication PASS。
 - Access 控制面预检：若私有 history-probe 入口尚无可验证的云端身份，受控 `coolify-ops` 的 `daily-funds-access-audit` 只能对 Cloudflare 的 token、Access application、service-token 与 policy 列表发出四个 `GET`；每个响应仅在临时 runner 文件中分类为有限状态。它不得创建 token/策略、调用探针或公开任何 Access 标识；即使四项读取成功，写权限仍为 `UNKNOWN_NOT_TESTED`，不能把它写成授权、DWS 历史或资金结果 PASS。

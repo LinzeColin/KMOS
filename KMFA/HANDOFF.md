@@ -23,6 +23,8 @@
 
 ### 当前真实状态（T12 后，以此小节为准）
 
+- **2026-08-09 T13 精确群聊类型兼容候选（本地，尚非生产证据）**：为消除固定群/发送人 `search-advanced` 回包无记录数组的唯一已知兼容歧义，默认受控运行时升级为官方稳定 DWS `v1.0.57`，其 Linux 两架构发布资产已按官方 SHA-256 表核验；同一条远端窄查询显式增加该命令上游测试使用的 `--conversation-type group`，仍同时绑定唯一 `--conversation-ids` 和唯一 `--sender-ids`，本地群/发送人/文档族三重门禁未改变。它不使用 beta、关键词、全局搜索、时间边界 list 或本机资料。尚未取得这条候选的云端 history-probe 回执前，DF-002 与后续采集/勾稽/发布均不得写 PASS。
+
 - **2026-08-09 T11 精确来源选择器兼容修复（本地已验证，尚非生产证据）**：固定的 DWS `v1.0.52` 已在其命令实现中明确支持将 `--conversation-ids` 与 `--sender-ids` 组合到同一条 `search-advanced` 调用，并保持 opaque `nextCursor`。每日资金现用唯一群与唯一 `senderOpenDingTalkId` 的交集作为远端窄选择器，回包仍逐条执行群/发送人/文档族本地三重门禁；不使用全会话、时间边界 list 或本机来源。隔离 Python 3.12 回归为 `205 passed`，原任务包 verifier 为 `24 requirements / 11 tasks / 17 acceptance`，仓库 TaskPack projection 与变异门禁均通过。它只修复了满足 DF-002/DF-004 的请求形态，尚未取得新的云端 DWS 结果，原始写入、解析、整数分勾稽、D1/R2/OCI、恢复和资金发布仍不能写 PASS。
 
 - **2026-08-09 T10 生产复核（当前，优先于本节内较早的“UNKNOWN/未部署”表述）**：本轮生产运行源码为 `a337d8512fdf2b64037e65698eda196e35dfaee2`，已经完整 E2E、Golden verify 与 Coolify deploy 成功；随后仅归档证据的文档提交不触发重新部署，也不得被误认成运行源码。平台部署 `bq93hzgxapmdb3wsniyq126t` 状态为 `finished`，完成于 `2026-08-09T07:12:47Z`；只读身份回执确认运行 source commit 精确为该 SHA、镜像摘要为 `sha256:0231e4b2013ac3c81fcfdba3da6615c87cb1a18c1363242cc710502605c84a5d`，应用读回 `running:healthy`。同一已部署版本的固定 Access history-probe 真正到达独立云端 DWS 身份，但返回 `DWS_PAGE_RECORDS_MISSING`（`FAILED/NOT_MET`、未开始 cursor）；这不是认证、Access 传输或临时资源清理失败——Access bridge transport 为 `OK` 且最终 run-tag 精确清理为 `OK`。按 DF-002，终页没有显式记录列表不能写成“群没有消息”、不能推进 opaque cursor，也不能以时间边界分页接口替代主链。因此本轮原始消息/附件新采集、整数分勾稽、D1、R2、OCI、空环境恢复和资金发布一律为 `NOT_RUN`，绝不写 PASS；只读日志通道是 `HTTP 200` 但未观察到可归类的每日资金事件，也不构成 scheduler 或业务成功。详见 `machine/runs/daily_funds/T10_PRODUCTION_RECONCILE_20260809.json`。

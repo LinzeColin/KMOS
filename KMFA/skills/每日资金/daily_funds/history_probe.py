@@ -236,8 +236,8 @@ class DailyFundsHistoryProbeBroker:
         except IngestionError as exc:
             if exc.code != "DWS_PAGE_RECORDS_MISSING":
                 raise
-            # DWS v1.0.52 permits ``search-advanced`` with both the configured
-            # conversation and stable sender.  Do not substitute the
+            # The pinned DWS runtime permits ``search-advanced`` with both the
+            # configured conversation and stable sender.  Do not substitute the
             # boundary-based message-list API or widen either selector.
             fallback_used = True
             first = client.search(None, None, None)

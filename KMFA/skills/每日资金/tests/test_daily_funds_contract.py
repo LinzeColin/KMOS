@@ -2957,6 +2957,7 @@ def test_dws_search_advanced_uses_opaque_cursor_and_embedded_media_source(tmp_pa
     assert all(call[call.index("--end") + 1] == "2026-08-01T00:10:00+00:00" for call in history_calls)
     # The remote selector is the exact group/sender intersection, while the
     # local triple gate remains mandatory before any raw write.
+    assert all(call[call.index("--conversation-type") + 1] == "group" for call in history_calls)
     assert all(call[call.index("--sender-ids") + 1] == config.sender_id for call in history_calls)
     assert all("--group" not in call and "--user" not in call and "--open-dingtalk-id" not in call for call in history_calls)
 
@@ -2990,6 +2991,7 @@ def test_dws_exact_source_history_fallback_omits_time_bounds_but_keeps_group_and
     assert len(page.messages) == 1
     history_call = next(call for call in calls if call[1:4] == ["chat", "message", "search-advanced"])
     assert history_call[history_call.index("--conversation-ids") + 1] == config.group_id
+    assert history_call[history_call.index("--conversation-type") + 1] == "group"
     assert "--start" not in history_call and "--end" not in history_call
     assert history_call[history_call.index("--sender-ids") + 1] == config.sender_id
 

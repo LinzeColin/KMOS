@@ -220,7 +220,7 @@ def _attachments(message: Mapping[str, Any]) -> list[dict[str, Any]]:
                 return [dict(item) for item in value if isinstance(item, Mapping)]
     if not isinstance(content, str):
         return []
-    # DWS v1.0.52 represents media attachments inside the message text as
+    # The pinned DWS runtime represents media attachments inside the message text as
     # ``mediaId=<opaque-id>`` rather than in a top-level attachment array.
     # Keep this narrowly scoped to the documented media token and never walk
     # quoted-message JSON, which would turn an old quoted attachment into a
@@ -297,7 +297,7 @@ def _trusted_dws_authorization_url(value: str) -> str | None:
 def _parse_dws_device_prompt(output: str) -> DwsDevicePrompt | None:
     """Extract the device-flow prompt emitted by DWS without retaining output.
 
-    DWS v1.0.52 renders ``链接: <verificationUri>`` and
+    The pinned DWS runtime renders ``链接: <verificationUri>`` and
     ``授权码: <userCode>`` to its device-flow output stream.  A complete URI is
     rendered afterwards when available, so the last trusted URL is preferred:
     that lets the owner open it directly instead of copying a code.  This
@@ -901,6 +901,10 @@ class DwsHistoryClient:
             self.config.dws_bin,
             "chat", "message", "search-advanced",
             "--conversation-ids", self.config.group_id,
+            # DWS v1.0.57 exposes this server-side selector.  It keeps the
+            # query within the configured group source rather than
+            # accepting a broader conversation family.
+            "--conversation-type", "group",
             "--sender-ids", self.config.sender_id,
         ]
         if start is not None:

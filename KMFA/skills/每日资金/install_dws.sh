@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-DWS_VERSION="${DWS_VERSION:-v1.0.52}"
+DWS_VERSION="${DWS_VERSION:-v1.0.57}"
 case "$(uname -s)-$(uname -m)" in
   Linux-x86_64)              ASSET="dws-linux-amd64.tar.gz" ;;
   Linux-aarch64|Linux-arm64) ASSET="dws-linux-arm64.tar.gz" ;;

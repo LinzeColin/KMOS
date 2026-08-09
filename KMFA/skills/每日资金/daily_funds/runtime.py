@@ -780,8 +780,8 @@ class DailyFundsRuntime:
         # A new cloud volume has neither a profile receipt nor a recovery
         # bundle.  Do not describe that state as "CONFIG_READY": it needs the
         # one-time protected cloud-terminal bootstrap before any scheduled
-        # source work can legitimately begin.  The DWS CLI owns its profile
-        # layout (v1.0.52 creates identity.json, not a public app.json).
+        # source work can legitimately begin.  The pinned DWS CLI owns its
+        # profile layout, so preflight must not invent an app.json requirement.
         if not self.config.dws_auth_bundle_b64 and not (self.config.control_dir / "dws_bootstrap.json").is_file():
             return self.status.write("需处理", "DWS_BOOTSTRAP_REQUIRED", backup_state="UNKNOWN")
         # This only proves configuration shape, not credentials or source access.
