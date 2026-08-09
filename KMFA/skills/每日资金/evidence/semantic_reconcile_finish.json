@@ -1,38 +1,35 @@
 {
   "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
-  "phase": "publish-integration",
-  "recorded_at": "2026-08-02T02:39:59Z",
+  "phase": "daily-funds-recovery",
+  "recorded_at": "2026-08-09T22:47:56Z",
   "revalidated_baseline": {
-    "origin_main": "bb51b9f0f54b3e78ce9c0b6b267f15565761342c",
-    "candidate_head": "fffc126cb81b3d3c64c9496eb6dc380208c76bae",
+    "origin_main": "8fd1901ea12f13e9c38654c1ad2093ac3eba689b",
+    "candidate_head": "8c7e90af4eee0fb4e149d2631e0ec59272b9edcd",
     "candidate_fast_forwards_origin_main": true,
     "working_tree_unrelated_changes": false
   },
   "validation": {
-    "python_compileall": "PASS",
+    "taskpack_verifier": "PASS requirements=24 tasks=11 acceptance=17",
+    "parser_compile_and_shell_syntax": "PASS",
     "daily_funds_contract": {
       "result": "PASS_WITH_DECLARED_SKIP",
-      "passed": 60,
+      "passed": 207,
       "skipped": 1,
-      "skip_reason": "local Python environment lacks openpyxl; cloud image must still build and execute its own dependency gate"
+      "skip_reason": "local Python environment lacks openpyxl; the cloud image and GitHub deployment gates remain required"
     },
-    "compose_config": "PASS",
-    "local_container_build": {
-      "result": "UNKNOWN",
-      "reason": "local Docker daemon was unavailable; this is not treated as a passing image build"
-    },
+    "generic_image_family_gate": "PASS exact-one-schema-only",
     "diff_check": "PASS"
   },
   "release_boundary": {
-    "source_push": "permitted for the direct-main cloud build stage",
-    "production_acceptance": "UNKNOWN",
+    "source_direct_main_delivery": "permitted by current Owner instruction after latest-main rebase; no pull request",
+    "production_acceptance": "NOT_MET",
     "remaining_evidence": [
       "cloud image build and deployment source identity",
-      "daily-funds bootstrap receipt on the dedicated cloud DWS volume",
-      "exact DWS group and sender history readback",
-      "private sparse raw write and fresh readback",
-      "D1, R2, OCI and protected UI acceptance",
-      "five-business-day observer"
+      "fresh private raw readback under parser v5",
+      "one same-business-date account and transaction fact pair",
+      "zero-fen reconciliation before publication pointer advancement",
+      "D1/R2/OCI and public dashboard evidence after a valid publication",
+      "five-business-day autonomous observer"
     ]
   }
 }
