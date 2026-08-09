@@ -96,7 +96,14 @@
 
 6. 观测 P1 内存无碍后，在 Coolify 为本资源**启用 `full` profile**（Compose profiles → 勾 `full`）或设 `COMPOSE_PROFILES=full`，重部署 → `kmfa-app` 起。
 7. **域名**：Coolify 给 `app` 服务设 `kmfa.linzezhang.com`（Coolify Traefik 自动签发/路由）；**Cloudflare** 加一条**代理（橙云）** A 记录 `kmfa` → OVH 公网 IP（或按 Coolify 提示的 CNAME）。App 仅经 Traefik 暴露，主机不额外开放端口。
-8. **先建更具体的路径锁，整站登录墙不动**：保留现有 host 级 Self-hosted Application 的 Owner
+> **Owner override（2026-08-10，当前有效）**：KMFA 驾驶舱按 Owner 要求公开且无需登录。
+> 生产只通过 GitHub Actions `coolify-ops` 的 `public-dashboard` 模式实施：它先确认
+> `kmfa.linzezhang.com` 下实际覆盖 `/api`、`/ops` 与项目成本路径的精确 Access Application，
+> 写入 `Bypass / Include Everyone`，再将源站 `KMFA_PRIVATE_OPS_REQUIRE_ACCESS` 设为 `0` 并触发
+> 重部署。不得仅改边缘或仅改源站；完成后仍须以匿名实时请求不再出现登录重定向为准。以下第 8–10
+> 步是已被此 Owner override 取代的历史私有面方案，未经新的 Owner 指令不得执行或恢复。
+
+8. **历史私有面方案（已被 Owner override 取代，不执行）**：先建更具体的路径锁，整站登录墙不动：保留现有 host 级 Self-hosted Application 的 Owner
    Allow 策略作为一键回滚杆，为下列四个模式建立更具体的 Self-hosted Application，并沿用现有私有
    Owner Allow 策略：
    - `/api` 与 `/api/*`

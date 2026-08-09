@@ -3,14 +3,19 @@
 > **注：此为 fallback 路径（无 Coolify 时）。** 云端主路径＝Coolify Traefik + Cloudflare 代理 DNS，见 `../coolify/README.md`；同一节点二选一，勿并用。
 >
 > 设计（任务包 09 第七节 + 修订 R5）：实例**零开放端口**（安全组只留 SSH），出网全走 Tunnel；
-> 根域名公开，`/api*` 与 `/ops*` 由路径级 Cloudflare Access 加源站 JWT 校验保护。App 容器仅监听
+> **当前 Owner override（2026-08-10）**：KMFA 驾驶舱公开且无需登录。不要在本 fallback 路径新增
+> `/api*`、`/ops*` 登录墙或启用源站 JWT 守卫；应使用主路径 `../coolify/README.md` 所述
+> `public-dashboard` 流程同步精确 Access Bypass 与 `KMFA_PRIVATE_OPS_REQUIRE_ACCESS=0`，并以匿名实时请求复核。
+> 下列原私有面步骤仅供历史回溯，未经新的 Owner 指令不得执行。
+>
+> 历史上根域名公开，`/api*` 与 `/ops*` 由路径级 Cloudflare Access 加源站 JWT 校验保护。App 容器仅监听
 > `127.0.0.1:8000`，`cloudflared` 以 host 网络直达回环。
 
 ## Owner 步骤（一次性，约 5 分钟，在 Cloudflare Zero Trust 面板）
 
 1. **建 Tunnel**：Zero Trust → Networks → Tunnels → Create tunnel（连接器选 Docker）→ 复制 **token**。
 2. **配公共主机名**：该 Tunnel → Public Hostname → `kmfa.linzezhang.com` → Service `http://127.0.0.1:8000`。
-3. **上路径 Access 锁**：按主路径 `../coolify/README.md` 的 P2 第 8–10 步覆盖 `/api`、
+3. **历史私有面 Access 锁（当前不执行）**：按主路径 `../coolify/README.md` 的 P2 第 8–10 步覆盖 `/api`、
    `/api/*`、`/ops`、`/ops/*`；host 级应用只对公共面 Bypass。生产 App compose 必须同时设置
    `KMFA_PRIVATE_OPS_REQUIRE_ACCESS=1`、team domain 与全部私有应用 Audience tags。
 4. 把 Tunnel token 交给实例侧（agent 执行）：

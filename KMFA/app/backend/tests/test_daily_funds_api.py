@@ -564,6 +564,17 @@ def test_daily_funds_projection_paths_require_access_in_production(tmp_path, mon
     assert client.get("/ops/daily-funds").status_code == 403
 
 
+def test_daily_funds_projection_paths_are_available_under_owner_public_override(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+    monkeypatch.setenv("KMFA_PRIVATE_OPS_REQUIRE_ACCESS", "0")
+
+    assert client.get("/api/daily-funds/summary").status_code == 200
+    assert client.get("/ops/api/daily-funds/summary").status_code == 200
+    assert client.get("/ops/daily-funds").status_code == 200
+
+
 def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, monkeypatch):
     publication = tmp_path / "publication"
     _write_projection(publication)

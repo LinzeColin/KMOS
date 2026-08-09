@@ -16,10 +16,10 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-history-probe-cleanup=按唯一 run tag 清理遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
+        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-history-probe-cleanup=按唯一 run tag 清理遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
         required: true
         type: choice
-        options: [list, deployment-identity, daily-funds-access-audit, daily-funds-history-probe-bridge, daily-funds-history-probe-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs, exec]
+        options: [list, deployment-identity, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-history-probe-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs, exec]
       app_uuid:
         description: "目标应用 uuid（provision-backup-key / redeploy 必填；先用 list 查）"
         required: false
@@ -57,7 +57,7 @@ jobs:
       APP: ${{ inputs.app_uuid }}
     steps:
       - name: 检出诊断代码
-        if: inputs.mode == 'project-cost-diagnostic' || inputs.mode == 'logs' || inputs.mode == 'daily-funds-access-audit' || inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-history-probe-cleanup'
+        if: inputs.mode == 'project-cost-diagnostic' || inputs.mode == 'logs' || inputs.mode == 'daily-funds-access-audit' || inputs.mode == 'public-dashboard' || inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-history-probe-cleanup'
         uses: actions/checkout@v4
 
       - name: 安装项目成本诊断依赖
@@ -563,6 +563,126 @@ jobs:
             args+=(--response "$check" "$status" "$curl_exit" "$response")
           done
           python3 "KMFA/skills/每日资金/scripts/summarize_cloudflare_access_audit.py" "${args[@]}"
+
+      # Owner 2026-08-10 明确要求 KMFA 网站不需要登录。只匹配当前驾驶舱
+      # 实际使用的 KMFA 域名与路径；根域泛化、其他域名和未知 Access 应用一律
+      # 不碰。Cloudflare Bypass 需要与源站 JWT 守卫一起关闭，否则边缘公开后
+      # 源站仍会 403，页面照样不可用。
+      - name: 应用 Owner 批准的 KMFA 无登录公开面（精确 Access 覆盖）
+        if: inputs.mode == 'public-dashboard'
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.DAILY_FUNDS_CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.DAILY_FUNDS_CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF:-}" = "refs/heads/main" || { echo "public_dashboard=MAIN_REF_REQUIRED"; exit 1; }
+          test -n "${APP:-}" || { echo "public_dashboard=APP_REQUIRED"; exit 1; }
+          test -n "${BASE:-}" || { echo "public_dashboard=CONFIG_UNAVAILABLE"; exit 1; }
+          test -n "${TOKEN:-}" || { echo "public_dashboard=CONFIG_UNAVAILABLE"; exit 1; }
+          test -n "${CF_ACCOUNT_ID:-}" || { echo "public_dashboard=CONFIG_UNAVAILABLE"; exit 1; }
+          test -n "${CF_API_TOKEN:-}" || { echo "public_dashboard=CONFIG_UNAVAILABLE"; exit 1; }
+          echo "::add-mask::$TOKEN"
+          echo "::add-mask::$CF_ACCOUNT_ID"
+          echo "::add-mask::$CF_API_TOKEN"
+          public_dir="$(mktemp -d "$RUNNER_TEMP/kmfa-public-dashboard.XXXXXX")"
+          chmod 700 "$public_dir"
+          cleanup() {
+            unset CF_ACCOUNT_ID CF_API_TOKEN TOKEN
+            rm -f -- "$public_dir/coolify-envs-before.json" "$public_dir/origin-guard-ids.txt" \
+              "$public_dir/origin-guard.json" "$public_dir/coolify-envs-after.json" \
+              "$public_dir/access-apps.json" "$public_dir/access-app-ids.txt" \
+              "$public_dir/policy-payload.json" "$public_dir/policies-before.json" \
+              "$public_dir/policies-after.json" "$public_dir/delete-env.json" \
+              "$public_dir/post-env.json" "$public_dir/policy-post.json" "$public_dir/deploy.json"
+            rmdir "$public_dir" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          request_coolify() {
+            local method="$1" url="$2" output="$3" payload="${4:-}"
+            if [ -n "$payload" ]; then
+              REQUEST_STATUS="$(curl -sS --request "$method" --connect-timeout 5 --max-time 30 \
+                -o "$output" -w '%{http_code}' -H "Authorization: Bearer $TOKEN" \
+                -H 'Content-Type: application/json' --data @"$payload" "$url" 2>/dev/null)"
+            else
+              REQUEST_STATUS="$(curl -sS --request "$method" --connect-timeout 5 --max-time 30 \
+                -o "$output" -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$url" 2>/dev/null)"
+            fi
+          }
+          request_cf() {
+            local method="$1" url="$2" output="$3" payload="${4:-}"
+            if [ -n "$payload" ]; then
+              REQUEST_STATUS="$(curl -sS --request "$method" --connect-timeout 5 --max-time 30 \
+                -o "$output" -w '%{http_code}' -H "Authorization: Bearer $CF_API_TOKEN" \
+                -H 'Content-Type: application/json' --data @"$payload" "$url" 2>/dev/null)"
+            else
+              REQUEST_STATUS="$(curl -sS --request "$method" --connect-timeout 5 --max-time 30 \
+                -o "$output" -w '%{http_code}' -H "Authorization: Bearer $CF_API_TOKEN" "$url" 2>/dev/null)"
+            fi
+          }
+          request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps?per_page=1000" "$public_dir/access-apps.json"
+          test "$REQUEST_STATUS" = "200" || { echo "public_dashboard=ACCESS_APP_NOT_READABLE"; exit 1; }
+          PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access \
+            select-apps "$public_dir/access-apps.json" "$public_dir/access-app-ids.txt" \
+            || { echo "public_dashboard=ACCESS_TARGET_NOT_RESOLVED"; exit 1; }
+          PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access \
+            policy-payload "$public_dir/policy-payload.json" \
+            || { echo "public_dashboard=ACCESS_POLICY_PAYLOAD_INVALID"; exit 1; }
+          app_count=0
+          while IFS= read -r access_app_id; do
+            [ -n "$access_app_id" ] || continue
+            app_count=$((app_count + 1))
+            echo "::add-mask::$access_app_id"
+            request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps/${access_app_id}/policies?per_page=1000" "$public_dir/policies-before.json"
+            test "$REQUEST_STATUS" = "200" || { echo "public_dashboard=ACCESS_POLICY_NOT_READABLE"; exit 1; }
+            policy_state="$(PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access policy-state "$public_dir/policies-before.json")" \
+              || { echo "public_dashboard=ACCESS_POLICY_INVALID"; exit 1; }
+            case "$policy_state" in
+              MISSING)
+                request_cf POST "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps/${access_app_id}/policies" "$public_dir/policy-post.json" "$public_dir/policy-payload.json"
+                test "$REQUEST_STATUS" = "200" || test "$REQUEST_STATUS" = "201" || { echo "public_dashboard=ACCESS_POLICY_WRITE_FAILED"; exit 1; }
+                rm -f -- "$public_dir/policy-post.json"
+                ;;
+              PRESENT) ;;
+              *) echo "public_dashboard=ACCESS_POLICY_INVALID"; exit 1 ;;
+            esac
+            request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps/${access_app_id}/policies?per_page=1000" "$public_dir/policies-after.json"
+            test "$REQUEST_STATUS" = "200" || { echo "public_dashboard=ACCESS_POLICY_POSTREAD_FAILED"; exit 1; }
+            test "$(PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access policy-state "$public_dir/policies-after.json")" = "PRESENT" \
+              || { echo "public_dashboard=ACCESS_POLICY_POSTREAD_INVALID"; exit 1; }
+          done < "$public_dir/access-app-ids.txt"
+          test "$app_count" -gt 0 || { echo "public_dashboard=ACCESS_TARGET_NOT_RESOLVED"; exit 1; }
+          # Do the source-side change only after each exact Access application
+          # is confirmed Bypass.  A later Coolify failure therefore preserves
+          # the existing source guard instead of exposing an unverified edge.
+          request_coolify GET "$BASE/api/v1/applications/$APP/envs" "$public_dir/coolify-envs-before.json"
+          test "$REQUEST_STATUS" = "200" || { echo "public_dashboard=COOLIFY_ENV_NOT_READABLE"; exit 1; }
+          PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access \
+            origin-guard-entry-ids "$public_dir/coolify-envs-before.json" "$public_dir/origin-guard-ids.txt" \
+            || { echo "public_dashboard=ORIGIN_GUARD_TARGET_INVALID"; exit 1; }
+          while IFS= read -r environment_id; do
+            [ -n "$environment_id" ] || continue
+            request_coolify DELETE "$BASE/api/v1/applications/$APP/envs/$environment_id" "$public_dir/delete-env.json"
+            test "$REQUEST_STATUS" = "200" || test "$REQUEST_STATUS" = "204" || { echo "public_dashboard=ORIGIN_GUARD_DELETE_FAILED"; exit 1; }
+            rm -f -- "$public_dir/delete-env.json"
+          done < "$public_dir/origin-guard-ids.txt"
+          python3 - <<'PY' > "$public_dir/origin-guard.json"
+          import json
+          print(json.dumps({"key": "KMFA_PRIVATE_OPS_REQUIRE_ACCESS", "value": "0"}))
+          PY
+          request_coolify POST "$BASE/api/v1/applications/$APP/envs" "$public_dir/post-env.json" "$public_dir/origin-guard.json"
+          test "$REQUEST_STATUS" = "200" || test "$REQUEST_STATUS" = "201" || { echo "public_dashboard=ORIGIN_GUARD_WRITE_FAILED"; exit 1; }
+          rm -f -- "$public_dir/post-env.json"
+          request_coolify GET "$BASE/api/v1/applications/$APP/envs" "$public_dir/coolify-envs-after.json"
+          test "$REQUEST_STATUS" = "200" || { echo "public_dashboard=ORIGIN_GUARD_POSTREAD_FAILED"; exit 1; }
+          test "$(PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access origin-guard-state "$public_dir/coolify-envs-after.json")" = "PRESENT" \
+            || { echo "public_dashboard=ORIGIN_GUARD_POSTREAD_INVALID"; exit 1; }
+          request_coolify POST "$BASE/api/v1/deploy?uuid=$APP" "$public_dir/deploy.json"
+          test "$REQUEST_STATUS" = "200" || test "$REQUEST_STATUS" = "201" || test "$REQUEST_STATUS" = "202" \
+            || { echo "public_dashboard=REDEPLOY_NOT_TRIGGERED"; exit 1; }
+          echo "public_dashboard=APPLIED"
+          echo "public_dashboard_access_applications=$app_count"
+          echo "public_dashboard_origin_guard=DISABLED"
+          echo "public_dashboard_redeploy=TRIGGERED"
 
       # This is the sole mutating Access operation for the fixed DWS history
       # probe.  It never accepts a command or source argument: first resolve
