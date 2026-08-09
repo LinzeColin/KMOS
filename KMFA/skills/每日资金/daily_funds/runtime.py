@@ -69,6 +69,7 @@ _COUPLED_PROCESS_MARKERS = (
 )
 _POST_DEPLOY_OBSERVER_REQUIRED_BUSINESS_DAYS = 5
 _FLOW_STATE_SCHEMA = "kmfa.daily_funds.flow_state.v1"
+_BUILD_SOURCE_COMMIT_FILE = Path(__file__).with_name(".kmfa-source-commit")
 _OPERATION_RECEIPT_JOBS = frozenset({
     "preflight",
     "bootstrap-dws-auth",
@@ -100,6 +101,9 @@ _SOURCE_DISCOVERY_STATES = frozenset({
     "TARGET_ATTACHMENT_MISSING",
     "ATTACHMENT_ACQUIRED",
     "DOCUMENT_PAIR_MISSING",
+    "ACCOUNT_SNAPSHOT_MISSING",
+    "TRANSACTION_FACT_MISSING",
+    "SOURCE_FACT_DATE_MISMATCH",
     "COMPLETE_PAIR_READY",
 })
 
@@ -291,6 +295,28 @@ class DailyFundsRuntime:
         if not raw or len(raw) > 512:
             return None
         return sha256(raw.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _build_source_identity() -> tuple[str, str | None]:
+        """Return only a one-way image-layer source marker, or fail closed.
+
+        ``SOURCE_COMMIT`` is supplied by Coolify only while building an image.
+        The Dockerfile embeds a precisely formatted source SHA in the image
+        layer; the runtime neither reads an environment value nor copies the
+        raw SHA into a volume.  A malformed/missing marker is deliberately
+        indistinguishable from unavailable build evidence.
+        """
+
+        try:
+            raw = _BUILD_SOURCE_COMMIT_FILE.read_text(encoding="ascii")
+        except (OSError, UnicodeError):
+            return "UNKNOWN", None
+        if len(raw) != 41 or not raw.endswith("\n"):
+            return "UNKNOWN", None
+        commit = raw[:-1]
+        if len(commit) != 40 or not all(character in "0123456789abcdef" for character in commit):
+            return "UNKNOWN", None
+        return "BUILD_SOURCE_COMMIT_EMBEDDED", sha256(commit.encode("ascii")).hexdigest()
 
     def _restore_drill_state(self) -> tuple[str, str | None]:
         receipt = self._read_json_object(self.config.publication_dir / "restore_drill.json")
@@ -500,15 +526,18 @@ class DailyFundsRuntime:
             if source_discovery_state is not None
             else prior_source_discovery.get("state")
         )
+        identity_state, source_commit_fingerprint = self._build_source_identity()
         payload = {
             "schema_version": _FLOW_STATE_SCHEMA,
             "updated_at": iso_now(),
             "deployment": {
                 "runtime_state": runtime_state,
                 "instance_state": "OBSERVED" if window is not None else "UNKNOWN",
-                # The worker can prove a running instance but cannot infer the
-                # live source SHA/image digest from that fact.
-                "identity_state": "UNKNOWN",
+                # This is limited build evidence.  It does not prove the live
+                # image digest or deployment record, and no raw source SHA is
+                # written outside this immutable container layer.
+                "identity_state": identity_state,
+                "source_commit_fingerprint": source_commit_fingerprint,
                 "runtime_audit_at": self._flow_timestamp(audit.get("observed_at")),
             },
             "schedules": dict(StatusWriter.SCHEDULES),
@@ -1095,6 +1124,18 @@ class DailyFundsRuntime:
             buckets.setdefault(item.facts.business_date.isoformat(), {}).setdefault(category, []).append(item)
         candidates = [business_day for business_day, groups in buckets.items() if groups.get("accounts") and groups.get("transactions")]
         if not candidates:
+            # A parsed real attachment is enough to distinguish a missing
+            # source fact family from an empty history window.  Keep that
+            # diagnostic values-free: no amount, message, filename, hash or
+            # account identifier crosses the status boundary.
+            has_accounts = any(groups.get("accounts") for groups in buckets.values())
+            has_transactions = any(groups.get("transactions") for groups in buckets.values())
+            if not has_accounts and has_transactions:
+                raise ReconciliationError("ACCOUNT_SNAPSHOT_MISSING")
+            if has_accounts and not has_transactions:
+                raise ReconciliationError("TRANSACTION_FACT_MISSING")
+            if has_accounts and has_transactions:
+                raise ReconciliationError("SOURCE_FACT_DATE_MISMATCH")
             raise ReconciliationError("SOURCE_MATCH_ZERO")
         selected_day = max(candidates)
         groups = buckets[selected_day]
@@ -1570,8 +1611,13 @@ class DailyFundsRuntime:
             try:
                 account_facts, transaction_facts = self._latest_complete_pair(parsed)
             except ReconciliationError as exc:
-                if str(exc).split(":", 1)[0] == "SOURCE_MATCH_ZERO":
-                    source_discovery_state = "DOCUMENT_PAIR_MISSING"
+                code = str(exc).split(":", 1)[0]
+                source_discovery_state = {
+                    "SOURCE_MATCH_ZERO": "DOCUMENT_PAIR_MISSING",
+                    "ACCOUNT_SNAPSHOT_MISSING": "ACCOUNT_SNAPSHOT_MISSING",
+                    "TRANSACTION_FACT_MISSING": "TRANSACTION_FACT_MISSING",
+                    "SOURCE_FACT_DATE_MISMATCH": "SOURCE_FACT_DATE_MISMATCH",
+                }.get(code, source_discovery_state)
                 raise
             source_discovery_state = "COMPLETE_PAIR_READY"
             report = reconcile(

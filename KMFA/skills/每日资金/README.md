@@ -16,6 +16,12 @@
 
 首次授权只在 daily-funds 容器自己的云端 DWS 卷中完成。首选从 Cloudflare Access 保护的 KMFA “每日资金”页发起一次固定设备授权：页面只能开始或取消一次 DWS device flow，不能传入命令、群 ID、profile、token 或原始输入；同容器 broker 只把短时确认链接和确认码回传给该私有页，撤销、完成或过期即清除，绝不写入 cron、状态、日志、Git 或公开面。若该私有入口临时不可用，才在同一容器的受保护云端终端运行 `run_daily_funds.py bootstrap-dws-auth`；禁止在本机或其他 Skill 中授权。授权成功后 15 分钟采集完全无人值守。`DAILY_FUNDS_DWS_AUTH_BUNDLE_B64` 是可选灾备恢复包（由专用身份执行 `dws auth export --base64` 生成的单行 base64），而非上线前置条件。未配置 `DAILY_FUNDS_DWS_CLIENT_ID` 时，受控 DWS 进程使用其官方默认客户端；如需覆盖，该值只由此切片构造的进程环境注入，不继承宿主或其他 Skill 的覆盖值。DWS v1.0.52 自己管理 profile 布局；群消息命令的 `--group`、`--user`、`--open-dingtalk-id` 互斥，因此运行时只向唯一群请求历史，再逐条以群 ID、稳定发送人 ID 和文档族执行本地三重门禁。`auth status` 或任一门禁失败即关闭。运行容器不接收 AppSecret；AppKey/AppSecret 不能单独建立该登录态，禁止把本机、既有 KMFA 服务或其他 Skill 的 DWS profile 复制进来。
 
+当没有通用容器终端时，Access 私有页还可向同一容器发起一次严格固定的“云端历史读取验证”：只查配置好的唯一群、固定最近 24 小时窗口、最多两页，并逐字复用第一次返回的 opaque cursor。控制请求不包含命令、群/发送人 ID、cursor、时间范围、消息、附件或金额；回应只显示状态与 continuation 枚举，不能下载附件或写 raw。它只是云端 DWS 读取路径的诊断，不替代 15 分钟主采集，也不表示附件解析、双事实、勾稽、金额或 publication 已通过。
+
+若该私有入口的 Cloudflare Access 身份尚未证明可用，`coolify-ops` 的手动 `daily-funds-access-audit` 只执行四个 Cloudflare `GET`（token 验证、Access application、service-token、policy 列表）。各 API 响应只在 Actions 临时文件内解析，日志只得到有限分类；它不会创建 service token 或 policy，不会调用 DWS/历史探针，也不会输出账户、应用、策略、令牌、消息或金额。该预检即使全部为 `OK`，也只说明读能力已验证；创建受控服务身份所需的写权限仍必须保持 `UNKNOWN_NOT_TESTED`，不能据此宣称任何真实历史或资金结果。
+
+在代码完成统一主线发布后，才可由 `coolify-ops` 的 `daily-funds-history-probe-bridge` 手动执行一次受控验证。它只从 Coolify 当前 `KMFA_CLOUDFLARE_ACCESS_AUD` 与 Cloudflare Access 的返回中解析**唯一**覆盖 `/ops/*` 的 self-hosted 应用；任何多匹配、根路径通配、分页不完整、非 HTTPS 或配置不一致都会拒绝运行。随后 runner 创建一个 `60m` service token 与只绑定该应用的 `non_identity` Service Auth policy，以固定同源、无 body 的 `POST /ops/api/daily-funds/history-probe` 启动探针，最多轮询两分钟的 values-free `GET` 回执。退出时只删除本次创建的 policy 和 token；任一资源无法精确追踪或删除即 `NEEDS_ATTENTION`，绝不写 PASS。该回执会枚举 `OPAQUE_CURSOR_REUSED_SECOND_PAGE_*`，仅证明页一 opaque cursor 被用于页二，**不保存或展示 cursor 本体**。它仍只是 DWS 读取路径验证，不能替代附件、双事实、勾稽、金额或 publication 验收。
+
 ## 原始证据写入边界
 
 唯一 writer 对 `Private-KMDatabase/KMFA/daily_funds` 使用精确非 cone sparse checkout，不落地仓库根或其他业务路径。Git/SSH 仅使用 daily-funds deploy key、临时 `HOME` 和临时 `known_hosts`，拒绝宿主 SSH agent、全局 Git 配置、交互式凭据提示与 force push。每次写入后均从全新 sparse clone 回读原始附件、消息信封、occurrence 和分块重组 manifest；任何 SHA、消息、manifest、路径范围或回读不一致均停止后续 R2/解析/发布。
@@ -55,7 +61,7 @@ python3 KMFA/tools/check_baseline_slices.py
 
 ```bash
 uv run --with-requirements KMFA/app/backend/requirements.txt \
-  --with 'playwright>=1.50' --with 'httpx<0.28' \
+  --with 'playwright>=1.50' --with 'httpx2==2.9.1' \
   python KMFA/app/e2e/daily_funds_page_flow.py \
   --out-dir "$(mktemp -d /tmp/kmfa-daily-funds-page-e2e.XXXXXX)"
 ```

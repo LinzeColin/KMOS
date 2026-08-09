@@ -1,0 +1,53 @@
+{
+  "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
+  "stage": "T04_REAL_ATTACHMENT_CAPABILITY_AUDIT_START",
+  "observed_on": "2026-08-09",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "verification": "PASS requirements=24 tasks=11 acceptance=17"
+  },
+  "moving_baseline": {
+    "origin_main": "f85764d119e6e9623490edc033e6e73941ee8ecd",
+    "worktree_head": "0623296826f5a4b2bf9b480d408249cb40bd73bb",
+    "candidate_scope": "uncommitted daily-funds T04 diagnostics only; no main update in this phase",
+    "deployment_mode_if_and_only_if_final_gate_closes": "DIRECT_MAIN_NO_BRANCH_NO_PR"
+  },
+  "production_identity": {
+    "current_source_image_deployment_chain": "UNKNOWN",
+    "reason": "Current evidence does not directly bind the running isolated container to one deployment record and source revision."
+  },
+  "semantic_reconcile": [
+    {
+      "subject": "T03_private_raw_sparse_authority",
+      "classification": "SATISFIED_FOR_RAW_READBACK_ONLY",
+      "decision": "RETAIN_AS_PRECONDITION",
+      "reason": "Raw attachment preservation and fresh sparse readback are not proof of a parsable dual-fact source pair."
+    },
+    {
+      "subject": "T04_real_attachment_capability",
+      "classification": "BLOCKED_BY_REAL_FORMAT_EVIDENCE",
+      "decision": "KEEP_NEEDS_REVIEW",
+      "reason": "Current real attachment evidence has no deterministic parser-open that yields both account snapshots and transaction facts."
+    },
+    {
+      "subject": "uncommitted_T04_source_discovery_diagnostics",
+      "classification": "ADAPT",
+      "decision": "VALIDATE_VALUES_FREE_FAILURE_DETAIL",
+      "reason": "Missing account, missing transaction, and date-mismatch states improve diagnosis without forwarding source identities, content, or financial values."
+    },
+    {
+      "subject": "D1_R2_OCI_publication_and_restore",
+      "classification": "BLOCKED_BY_NO_VALID_PUBLICATION",
+      "decision": "DO_NOT_RUN_BUSINESS_WRITE_OR_RESTORE_CLAIM",
+      "reason": "T04 cannot promote an unsupported or unpaired source into an integer-fen reconciled publication."
+    }
+  ],
+  "phase_guard": {
+    "human_status": "需处理",
+    "no_real_values_or_identifiers_in_this_record": true,
+    "no_private_raw_or_cloud_write": true,
+    "no_push_or_deploy": true,
+    "next_evidence": "Run focused T04 regression and verify that unsupported real formats remain fail-closed."
+  }
+}

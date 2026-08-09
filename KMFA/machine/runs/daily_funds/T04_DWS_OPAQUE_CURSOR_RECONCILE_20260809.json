@@ -1,0 +1,77 @@
+{
+  "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
+  "stage": "T04_DWS_OPAQUE_CURSOR_CONTRACT_RECONCILE",
+  "observed_on": "2026-08-09",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "relevant_requirements": [
+      "DF-002",
+      "DF-004",
+      "DF-018"
+    ]
+  },
+  "moving_baseline": {
+    "origin_main": "f85764d119e6e9623490edc033e6e73941ee8ecd",
+    "worktree_head": "0623296826f5a4b2bf9b480d408249cb40bd73bb",
+    "current_production_source_image_deployment_chain": "UNKNOWN"
+  },
+  "semantic_reconcile": {
+    "previous_candidate_behavior": "message_list_time_boundary_pagination",
+    "taskpack_cursor_contract": "opaque_nextCursor_passed_verbatim_until_hasMore_false",
+    "reconciled_candidate_behavior": "search_advanced_constrained_to_exact_configured_conversation",
+    "source_scope": "one_configured_group_only; stable_sender_and_document_family_gates_remain_local_and_mandatory",
+    "overlap_window": "retained_by_start_end_window_after_terminal_page",
+    "event_trigger_dependency": "ABSENT"
+  },
+  "candidate_verification": {
+    "daily_funds_contract": "PASS 107 passed",
+    "daily_funds_status_api": "PASS 17 passed",
+    "affected_contract_suite": "PASS 160 passed",
+    "python_compile": "PASS",
+    "git_diff_check": "PASS",
+    "taskpack_repository_projection": "PASS requirements=49 acceptance_contracts=49 tasks=56 errors=0 warnings=0",
+    "covered_fail_closed_cases": [
+      "exact_group_scope",
+      "opaque_cursor_forwarding",
+      "terminal_cursor_reset",
+      "page_two_failure_does_not_advance_durable_state",
+      "stalled_cursor_rejected",
+      "permission_denial_not_misreported_as_auth_loss",
+      "recordless_terminal_page_rejected",
+      "explicit_empty_records_list_accepted",
+      "recordless_terminal_never_becomes_source_match_zero"
+    ]
+  },
+  "recordless_terminal_remediation": {
+    "observed_conflict": "A read-only local diagnostic saw a non-empty direct timeline but search-advanced returned a terminal result without a records array; this shape is not proof of an empty configured-group history.",
+    "new_contract": "A terminal search-advanced page must contain an explicit list field (messages, items, records, list, or data) before it can be treated as empty.",
+    "ambiguous_terminal_result": "DWS_PAGE_RECORDS_MISSING",
+    "explicit_empty_result": "VALID_EMPTY_PAGE",
+    "cursor_or_source_effect": "No durable cursor advance and no SOURCE_MATCH_ZERO classification occur for the ambiguous result.",
+    "runtime_effect": "The live poll records 需处理 with DWS_PAGE_RECORDS_MISSING and preserves fail-closed behavior.",
+    "production_status": "NOT_DEPLOYED_NOT_RUN_REMOTE"
+  },
+  "production_evidence": {
+    "current_application_source_commit_observed": "f85764d119e6e9623490edc033e6e73941ee8ecd",
+    "current_daily_funds_container_image_identity": "UNKNOWN",
+    "cloud_search_advanced_probe": "NOT_RUN_REMOTE_EXECUTION_TRANSPORT_UNAVAILABLE",
+    "remote_execution_transport": {
+      "application_terminal": "CONNECTION_FAILED_BEFORE_COMMAND",
+      "server_terminal": "CONNECTION_FAILED_BEFORE_COMMAND",
+      "raw_messages_or_attachments_read": false
+    },
+    "group_history_visibility_changed": false,
+    "credential_or_permission_changed": false,
+    "real_attachment_parser_open": "NOT_ESTABLISHED",
+    "same_day_dual_fact_pair": "NOT_ESTABLISHED",
+    "financial_publication": "NOT_RUN"
+  },
+  "decision": {
+    "local_contract_alignment": "PASS",
+    "t04_acceptance": "NOT_MET",
+    "human_status": "需处理",
+    "push_or_deploy": "NOT_PERFORMED",
+    "reason": "The correction removes a verified pagination-contract mismatch, but only an independent cloud probe can establish the server-side history behavior. Both available Coolify terminal transports failed before a command started, so neither server authorization nor parser capability nor a reconciled financial result can be inferred."
+  }
+}

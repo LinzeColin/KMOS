@@ -2534,6 +2534,7 @@ DAILY_FUNDS_PUBLICATION_DIR = Path(os.environ.get(
     "DAILY_FUNDS_PUBLICATION_DIR", "/var/lib/kmfa/daily-funds"))
 DAILY_FUNDS_CONTROL_DIR = Path(os.environ.get(
     "DAILY_FUNDS_CONTROL_DIR", "/var/lib/kmfa/daily-funds-control"))
+DAILY_FUNDS_APP_BUILD_SOURCE_COMMIT_FILE = Path(__file__).with_name(".kmfa-source-commit")
 DAILY_FUNDS_AUTH_REQUEST_SCHEMA = "kmfa.daily_funds.dws_auth_request.v1"
 DAILY_FUNDS_AUTH_SESSION_SCHEMA = "kmfa.daily_funds.dws_auth_session.v1"
 DAILY_FUNDS_AUTH_REQUEST_FILE = "dws_auth_request.json"
@@ -2542,6 +2543,22 @@ DAILY_FUNDS_AUTH_ACTOR = "kmfa_private_owner_ui"
 DAILY_FUNDS_AUTH_LIVE_STATES = {"REQUESTED", "AWAITING_APPROVAL", "CANCELLING"}
 DAILY_FUNDS_AUTH_TERMINAL_STATES = {"SUCCEEDED", "FAILED", "EXPIRED", "CANCELLED"}
 DAILY_FUNDS_AUTH_CODE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{2,63}$")
+DAILY_FUNDS_HISTORY_PROBE_REQUEST_SCHEMA = "kmfa.daily_funds.dws_history_probe_request.v1"
+DAILY_FUNDS_HISTORY_PROBE_SESSION_SCHEMA = "kmfa.daily_funds.dws_history_probe_session.v1"
+DAILY_FUNDS_HISTORY_PROBE_REQUEST_FILE = "dws_history_probe_request.json"
+DAILY_FUNDS_HISTORY_PROBE_SESSION_FILE = "dws_history_probe_session.json"
+DAILY_FUNDS_HISTORY_PROBE_ACTOR = "kmfa_private_owner_ui"
+DAILY_FUNDS_HISTORY_PROBE_LIVE_STATES = {"REQUESTED", "RUNNING"}
+DAILY_FUNDS_HISTORY_PROBE_TERMINAL_STATES = {"COMPLETED", "FAILED", "EXPIRED"}
+DAILY_FUNDS_HISTORY_PROBE_CONTINUATION_STATES = {
+    "NOT_STARTED", "FIRST_PAGE_TERMINAL", "SECOND_PAGE_TERMINAL", "SECOND_PAGE_CONTINUES",
+}
+DAILY_FUNDS_HISTORY_PROBE_CURSOR_TRANSCRIPTS = {
+    "NOT_STARTED": "NOT_STARTED",
+    "FIRST_PAGE_TERMINAL": "FIRST_PAGE_TERMINAL",
+    "SECOND_PAGE_TERMINAL": "OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
+    "SECOND_PAGE_CONTINUES": "OPAQUE_CURSOR_REUSED_SECOND_PAGE_CONTINUES",
+}
 DAILY_FUNDS_ALLOWED_RANGES = {"1d": 1, "7d": 7, "30d": 30, "90d": 90, "180d": 180, "360d": 360}
 DAILY_FUNDS_HUMAN_STATUSES = {"已更新", "处理中", "需处理"}
 DAILY_FUNDS_HARD_THRESHOLD_FEN = 60_000_000
@@ -2587,6 +2604,9 @@ DAILY_FUNDS_SOURCE_DISCOVERY_STATES = {
     "TARGET_ATTACHMENT_MISSING",
     "ATTACHMENT_ACQUIRED",
     "DOCUMENT_PAIR_MISSING",
+    "ACCOUNT_SNAPSHOT_MISSING",
+    "TRANSACTION_FACT_MISSING",
+    "SOURCE_FACT_DATE_MISMATCH",
     "COMPLETE_PAIR_READY",
 }
 DAILY_FUNDS_BUSINESS_FLOW_STAGES = {
@@ -2692,6 +2712,50 @@ def _daily_funds_flow_token(value: object, *, allowed: set[str], default: str) -
     return token if token in allowed else default
 
 
+def _daily_funds_app_build_source_fingerprint() -> str | None:
+    """Read a strictly validated build-layer source fact without exposing it."""
+
+    try:
+        raw = DAILY_FUNDS_APP_BUILD_SOURCE_COMMIT_FILE.read_text(encoding="ascii")
+    except (OSError, UnicodeError):
+        return None
+    if len(raw) != 41 or not raw.endswith("\n"):
+        return None
+    commit = raw[:-1]
+    if not _daily_funds_lower_hex(commit, 40):
+        return None
+    return hashlib.sha256(commit.encode("ascii")).hexdigest()
+
+
+def _daily_funds_embedded_source_identity(deployment: object) -> str:
+    """Compare two image-layer source fingerprints without leaking either.
+
+    Matching fingerprints establish only that the app and worker were built
+    from the same validated source commit.  A deployment record/image digest
+    is intentionally outside this local comparison and remains unknown.
+    """
+
+    row = deployment if isinstance(deployment, dict) else {}
+    worker_state = _daily_funds_flow_token(
+        row.get("identity_state"),
+        allowed={"BUILD_SOURCE_COMMIT_EMBEDDED"},
+        default="UNKNOWN",
+    )
+    worker_fingerprint = row.get("source_commit_fingerprint")
+    app_fingerprint = _daily_funds_app_build_source_fingerprint()
+    if (
+        worker_state != "BUILD_SOURCE_COMMIT_EMBEDDED"
+        or not _daily_funds_lower_hex(worker_fingerprint, 64)
+        or app_fingerprint is None
+    ):
+        return "UNKNOWN"
+    return (
+        "SOURCE_COMMIT_MATCHED_IMAGE_DIGEST_UNKNOWN"
+        if worker_fingerprint == app_fingerprint
+        else "SOURCE_COMMIT_FINGERPRINT_MISMATCH"
+    )
+
+
 def _daily_funds_source_discovery(value: object) -> dict[str, str]:
     """Expose only the poll gate reached, never source content or identity."""
 
@@ -2708,6 +2772,9 @@ def _daily_funds_source_discovery(value: object) -> dict[str, str]:
         "TARGET_ATTACHMENT_MISSING": "目标文件缺少附件",
         "ATTACHMENT_ACQUIRED": "附件已取得，等待确定性解析与勾稽",
         "DOCUMENT_PAIR_MISSING": "附件已取得，账户/流水尚未成对",
+        "ACCOUNT_SNAPSHOT_MISSING": "附件已取得，缺少账户余额事实",
+        "TRANSACTION_FACT_MISSING": "附件已取得，缺少资金流水事实",
+        "SOURCE_FACT_DATE_MISMATCH": "附件已取得，但账户与流水业务日期未成对",
         "COMPLETE_PAIR_READY": "账户与流水已成对，等待后续勾稽与发布",
     }
     return {"状态": state, "说明": labels[state]}
@@ -2985,8 +3052,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
                 allowed={"OBSERVED", "UNKNOWN"},
                 default="UNKNOWN",
             ),
-            # The worker has no authority to invent source SHA/image digest.
-            "身份": "UNKNOWN",
+            "身份": _daily_funds_embedded_source_identity(deployment),
             "最近运行审计": _daily_funds_timestamp(deployment.get("runtime_audit_at")),
         },
         "业务流": {
@@ -4108,6 +4174,192 @@ def cancel_daily_funds_auth_session(request: Request):
         "expires_at": _daily_funds_auth_iso(expires_at),
         "authorization_url": None,
         "user_code": None,
+    }, status_code=202)
+
+
+def _daily_funds_history_probe_control_path(name: str) -> Path:
+    if name not in {DAILY_FUNDS_HISTORY_PROBE_REQUEST_FILE, DAILY_FUNDS_HISTORY_PROBE_SESSION_FILE}:
+        raise ValueError("daily funds history probe control filename invalid")
+    root = DAILY_FUNDS_CONTROL_DIR.resolve()
+    target = (root / name).resolve()
+    if target.parent != root:
+        raise ValueError("daily funds history probe control path invalid")
+    return target
+
+
+def _daily_funds_history_probe_read_object(name: str) -> dict[str, Any] | None:
+    try:
+        target = _daily_funds_history_probe_control_path(name)
+    except (OSError, ValueError):
+        return None
+    if target.is_symlink() or not target.is_file():
+        return None
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _daily_funds_history_probe_read_request(now: datetime) -> dict[str, Any] | None:
+    payload = _daily_funds_history_probe_read_object(DAILY_FUNDS_HISTORY_PROBE_REQUEST_FILE)
+    if not isinstance(payload, dict) or set(payload) != {
+        "schema_version", "request_id", "action", "actor", "requested_at", "expires_at",
+    }:
+        return None
+    request_id = payload.get("request_id")
+    requested_at = _daily_funds_auth_timestamp(payload.get("requested_at"))
+    expires_at = _daily_funds_auth_timestamp(payload.get("expires_at"))
+    if (
+        payload.get("schema_version") != DAILY_FUNDS_HISTORY_PROBE_REQUEST_SCHEMA
+        or not isinstance(request_id, str)
+        or re.fullmatch(r"[0-9a-f]{64}", request_id) is None
+        or payload.get("action") != "PROBE"
+        or payload.get("actor") != DAILY_FUNDS_HISTORY_PROBE_ACTOR
+        or requested_at is None
+        or expires_at is None
+        or requested_at > now + timedelta(minutes=2)
+        or requested_at < now - timedelta(hours=1)
+        or expires_at <= requested_at
+        or (expires_at - requested_at).total_seconds() > 660
+    ):
+        return None
+    return {
+        "request_id": request_id,
+        "requested_at": requested_at,
+        "expires_at": expires_at,
+        "expired": expires_at.astimezone(timezone.utc) <= now.astimezone(timezone.utc),
+    }
+
+
+def _daily_funds_history_probe_read_session(now: datetime) -> dict[str, Any] | None:
+    payload = _daily_funds_history_probe_read_object(DAILY_FUNDS_HISTORY_PROBE_SESSION_FILE)
+    if not isinstance(payload, dict) or set(payload) != {
+        "schema_version", "request_id", "state", "machine_code", "created_at", "updated_at", "expires_at",
+        "continuation_state", "cursor_transcript",
+    }:
+        return None
+    request_id = payload.get("request_id")
+    state = payload.get("state")
+    created_at = _daily_funds_auth_timestamp(payload.get("created_at"))
+    updated_at = _daily_funds_auth_timestamp(payload.get("updated_at"))
+    expires_at = _daily_funds_auth_timestamp(payload.get("expires_at"))
+    continuation_state = payload.get("continuation_state")
+    cursor_transcript = payload.get("cursor_transcript")
+    if (
+        payload.get("schema_version") != DAILY_FUNDS_HISTORY_PROBE_SESSION_SCHEMA
+        or not isinstance(request_id, str)
+        or re.fullmatch(r"[0-9a-f]{64}", request_id) is None
+        or state not in DAILY_FUNDS_HISTORY_PROBE_LIVE_STATES | DAILY_FUNDS_HISTORY_PROBE_TERMINAL_STATES
+        or created_at is None
+        or updated_at is None
+        or expires_at is None
+        or expires_at <= created_at
+        or continuation_state not in DAILY_FUNDS_HISTORY_PROBE_CONTINUATION_STATES
+        or cursor_transcript != DAILY_FUNDS_HISTORY_PROBE_CURSOR_TRANSCRIPTS.get(continuation_state)
+    ):
+        return None
+    if state in DAILY_FUNDS_HISTORY_PROBE_LIVE_STATES and expires_at.astimezone(timezone.utc) <= now.astimezone(timezone.utc):
+        return {
+            "state": "EXPIRED",
+            "machine_code": "DWS_HISTORY_PROBE_EXPIRED",
+            "updated_at": _daily_funds_auth_iso(now),
+            "expires_at": _daily_funds_auth_iso(expires_at),
+            "continuation_state": "NOT_STARTED",
+            "cursor_transcript": "NOT_STARTED",
+        }
+    return {
+        "state": state,
+        "machine_code": _daily_funds_auth_code(payload.get("machine_code")),
+        "updated_at": _daily_funds_auth_iso(updated_at),
+        "expires_at": _daily_funds_auth_iso(expires_at),
+        "continuation_state": continuation_state,
+        "cursor_transcript": cursor_transcript,
+    }
+
+
+def _daily_funds_history_probe_write_request(payload: dict[str, Any]) -> None:
+    DAILY_FUNDS_CONTROL_DIR.mkdir(parents=True, exist_ok=True)
+    target = _daily_funds_history_probe_control_path(DAILY_FUNDS_HISTORY_PROBE_REQUEST_FILE)
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=DAILY_FUNDS_CONTROL_DIR, delete=False) as handle:
+        json.dump(payload, handle, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        handle.write("\n")
+        temporary = Path(handle.name)
+    try:
+        os.replace(temporary, target)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+@app.get("/ops/api/daily-funds/history-probe")
+def daily_funds_history_probe():
+    """Return only the latest fixed history-probe state, never source values."""
+
+    now = datetime.now(timezone.utc)
+    session = _daily_funds_history_probe_read_session(now)
+    if session is not None:
+        return _daily_funds_auth_response(session)
+    request = _daily_funds_history_probe_read_request(now)
+    if request is not None and not request["expired"]:
+        return _daily_funds_auth_response({
+            "state": "REQUESTED",
+            "machine_code": "DWS_HISTORY_PROBE_QUEUED",
+            "updated_at": _daily_funds_auth_iso(now),
+            "expires_at": _daily_funds_auth_iso(request["expires_at"]),
+            "continuation_state": "NOT_STARTED",
+            "cursor_transcript": "NOT_STARTED",
+        })
+    return _daily_funds_auth_response({
+        "state": "NOT_REQUESTED",
+        "machine_code": "DWS_HISTORY_PROBE_NOT_REQUESTED",
+        "updated_at": _daily_funds_auth_iso(now),
+        "expires_at": None,
+        "continuation_state": "NOT_STARTED",
+        "cursor_transcript": "NOT_STARTED",
+    })
+
+
+@app.post("/ops/api/daily-funds/history-probe")
+async def start_daily_funds_history_probe(request: Request):
+    """Queue one pre-defined cloud history probe; this endpoint accepts no input."""
+
+    if not _daily_funds_auth_same_origin(request):
+        raise HTTPException(status_code=403, detail="daily_funds_history_probe_same_origin_required")
+    # Reject payload-bearing requests without reading their body.  This keeps
+    # the route from becoming an accidental transport for a command, group ID,
+    # source payload, or financial value.  The sole allowed action is encoded
+    # below in the exact shared-volume schema.
+    if request.headers.get("content-length", "").strip() not in {"", "0"} or request.headers.get("transfer-encoding", "").strip():
+        raise HTTPException(status_code=422, detail="daily_funds_history_probe_body_forbidden")
+    now = datetime.now(timezone.utc)
+    existing = _daily_funds_history_probe_read_session(now)
+    pending = _daily_funds_history_probe_read_request(now)
+    if (
+        (existing is not None and existing["state"] in DAILY_FUNDS_HISTORY_PROBE_LIVE_STATES)
+        or (pending is not None and not pending["expired"])
+    ):
+        raise HTTPException(status_code=409, detail="daily_funds_history_probe_already_pending")
+    expires_at = now + timedelta(minutes=10)
+    payload = {
+        "schema_version": DAILY_FUNDS_HISTORY_PROBE_REQUEST_SCHEMA,
+        "request_id": secrets.token_hex(32),
+        "action": "PROBE",
+        "actor": DAILY_FUNDS_HISTORY_PROBE_ACTOR,
+        "requested_at": _daily_funds_auth_iso(now),
+        "expires_at": _daily_funds_auth_iso(expires_at),
+    }
+    try:
+        _daily_funds_history_probe_write_request(payload)
+    except OSError as exc:
+        raise HTTPException(status_code=503, detail="daily_funds_history_probe_control_unavailable") from exc
+    return _daily_funds_auth_response({
+        "state": "REQUESTED",
+        "machine_code": "DWS_HISTORY_PROBE_QUEUED",
+        "updated_at": _daily_funds_auth_iso(now),
+        "expires_at": _daily_funds_auth_iso(expires_at),
+        "continuation_state": "NOT_STARTED",
+        "cursor_transcript": "NOT_STARTED",
     }, status_code=202)
 
 

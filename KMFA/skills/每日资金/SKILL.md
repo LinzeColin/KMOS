@@ -9,8 +9,11 @@ description: 独立云端每日资金纵向切片；仅从指定钉钉群历史�
 
 ## 唯一输入与输出
 
-- 输入：`dws chat message list --group <唯一群ID> --direction older` 按北京时间 `createTime` 边界分页读取历史消息；消息须同时匹配唯一 `senderOpenDingTalkId` 与允许文档族（资金账户明细表、资金流水明细/资金明细）。显示名 `sender` 只能用于人工诊断，绝不能作为来源 ID。
-- DWS 身份：首次只在 daily-funds 的独立云端卷中显式完成一次 `bootstrap-dws-auth`。当 Coolify 的 Bearer API 没有容器执行能力时，已通过 Cloudflare Access 的 KMFA 私有页面可经既有控制卷发出**唯一固定的**开始/取消请求；同容器 broker 只运行 DWS 设备流、只回传短时 `verificationUri`/`userCode` 给该私有页面，不能执行任意命令，不能读取原始数据，且设备码不进入 cron、日志、status、Git 或公开面。`DAILY_FUNDS_DWS_AUTH_BUNDLE_B64` 仅是可选灾备恢复导入。未配置 `DAILY_FUNDS_DWS_CLIENT_ID` 时，受控 DWS 进程使用其官方默认客户端；如配置，该值只在本切片构造的环境中作为覆盖值使用，绝不继承宿主或其他 Skill。DWS v1.0.52 的群消息命令将 `--group`、`--user`、`--open-dingtalk-id` 视为互斥会话选择器，因此服务端只按唯一群读取；本地逐条以群 ID、稳定发送人 ID 与文档族完成三重门禁。`auth status` 或任一门禁失败即关闭。运行时不得另行注入 AppSecret；AppKey/AppSecret 不能替代登录态，也不得读取宿主或其他服务的登录态。
+- 输入：`dws chat message search-advanced --conversation-ids <唯一群ID>` 按固定时间窗与 opaque `nextCursor` 分页读取历史消息；消息须同时匹配唯一 `senderOpenDingTalkId` 与允许文档族（资金账户明细表、资金流水明细/资金明细）。显示名 `sender` 只能用于人工诊断，绝不能作为来源 ID。
+- DWS 身份：首次只在 daily-funds 的独立云端卷中显式完成一次 `bootstrap-dws-auth`。当 Coolify 的 Bearer API 没有容器执行能力时，已通过 Cloudflare Access 的 KMFA 私有页面可经既有控制卷发出**唯一固定的**开始/取消请求；同容器 broker 只运行 DWS 设备流、只回传短时 `verificationUri`/`userCode` 给该私有页面，不能执行任意命令，不能读取原始数据，且设备码不进入 cron、日志、status、Git 或公开面。`DAILY_FUNDS_DWS_AUTH_BUNDLE_B64` 仅是可选灾备恢复导入。未配置 `DAILY_FUNDS_DWS_CLIENT_ID` 时，受控 DWS 进程使用其官方默认客户端；如配置，该值只在本切片构造的环境中作为覆盖值使用，绝不继承宿主或其他 Skill。`search-advanced` 只按唯一 `--conversation-ids` 远程读取；发送人、群 ID与文档族三重门禁仍逐条在本地执行。`auth status` 或任一门禁失败即关闭。运行时不得另行注入 AppSecret；AppKey/AppSecret 不能替代登录态，也不得读取宿主或其他服务的登录态。
+- 受控历史验证：私有页面可发起**一次固定的**最近 24 小时、最多两页 `search-advanced` 探针。请求不含命令、群 ID、发送人、cursor、时间范围、消息、附件或金额；broker 仅返回 `REQUESTED/RUNNING/COMPLETED/FAILED/EXPIRED` 与固定 continuation 枚举。它不下载附件、不写 raw、不改变 15 分钟主采集链，也绝不构成 DF-008/DF-022、整数分勾稽、金额或 publication PASS。
+- Access 控制面预检：若私有 history-probe 入口尚无可验证的云端身份，受控 `coolify-ops` 的 `daily-funds-access-audit` 只能对 Cloudflare 的 token、Access application、service-token 与 policy 列表发出四个 `GET`；每个响应仅在临时 runner 文件中分类为有限状态。它不得创建 token/策略、调用探针或公开任何 Access 标识；即使四项读取成功，写权限仍为 `UNKNOWN_NOT_TESTED`，不能把它写成授权、DWS 历史或资金结果 PASS。
+- 受控 Access 探针桥：统一主线发布后，`daily-funds-history-probe-bridge` 才可手动运行。它只能选择当前 Coolify audience 对应的**唯一** HTTPS `/ops/*` self-hosted Access 应用，临时创建 `60m` service token 和该应用独占的 `non_identity` Service Auth policy，随后固定同源无 body 地调用一次 `/ops/api/daily-funds/history-probe`，最多两分钟轮询 values-free 回执。流程退出时精确删除本次 policy 与 token；任何识别、调用或清理失败均为 `NOT_MET`/`NEEDS_ATTENTION`。回执中的 `OPAQUE_CURSOR_REUSED_SECOND_PAGE_*` 仅证明 opaque cursor 控制流被复用，cursor 字符串、群 ID、消息和金额永不保存或输出。
 - 原始权威：私有 GitHub `LinzeColin/Private-Database` 的 `Private-KMDatabase/KMFA/daily_funds`。仅本服务 single writer 获 Owner 窄例外使用 `--filter=blob:none --sparse --no-checkout` 的**非 cone 精确路径** clone；Git/SSH 进程只使用该服务 deploy key 与临时 known_hosts，不继承宿主 agent、全局配置或提示。禁止全库 clone 与 force push；推送后必须以全新 sparse clone 回读消息信封、occurrence、原始字节/分块 manifest 和 SHA-256。
 - 附件能力：`.csv`、`.txt`、`.xlsx`、`.xlsm` 仅为候选格式。只有目标群真实字节经私有 Git readback、SHA/lineage、MIME/magic、模板和 parser-open 全部成功后，运行时才以 SHA 写入受保护 `parser_evidence` 回执；合成测试不能把任何格式标为生产已支持。`.xls` 继续为 `needs-review`。图片与扫描 PDF 仅可走显式启用的离线确定性 Tesseract 回退：来源校验、关键字段至少 0.98 置信度、两个不同业务日同版式校准和后续同版式 readback 缺一不可；它不是模型/API，任何缺口均保持 `needs-review`，不得发布金额。
 - 解析模板：未有目标群真实样本冻结多表模板前，任何多 sheet 工作簿以 `XLSX_WORKSHEET_AMBIGUOUS` 停止；“流入/流出”与“金额/方向”两套金额编码并存时以 `TRANSACTION_AMOUNT_MAPPING_AMBIGUOUS` 停止。解析规则升级后的旧 capability receipt 仅留审计，不能投影为当前支持，必须以新 parser version 重新打开私有原始字节。
@@ -19,7 +22,7 @@ description: 独立云端每日资金纵向切片；仅从指定钉钉群历史�
 
 ## 固定运行合同
 
-- `*/15` 北京时间：历史轮询，正常页的 `hasMore=false` 才完成；仅在 `hasMore=true` 时逐字复用 opaque `nextCursor`，终页即使返回值也必须丢弃。任一页失败不得推进 durable high-water；增量重叠 30 分钟。
+- `*/15` 北京时间：历史轮询，只有包含显式记录列表的正常页 `hasMore=false` 才完成；缺少记录列表的终页必须以 `DWS_PAGE_RECORDS_MISSING` 失败关闭，不能写成零匹配或推进 cursor。仅在 `hasMore=true` 时逐字复用 opaque `nextCursor`，终页即使返回值也必须丢弃。任一页失败不得推进 durable high-water；增量重叠 30 分钟。
 - `* * * * *`：授权探测，同一 incident 每 360 分钟最多一次 outbox 记录。
 - `0 * * * *`：DWS 显式认证状态保活。
 - 启动及每日 `05:45`：写入不含 argv、挂载来源或凭据的 runtime isolation audit；发现宿主挂载或其他 Skill 进程即失败关闭。

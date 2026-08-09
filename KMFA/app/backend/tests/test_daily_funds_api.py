@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -266,6 +267,101 @@ def test_daily_funds_auth_session_is_access_api_only_and_never_enters_source_pro
     assert client.get("/ops/api/daily-funds/auth-session").json()["state"] == "CANCELLING"
 
 
+def test_daily_funds_history_probe_is_a_fixed_access_api_and_never_enters_source_projection(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    control = tmp_path / "control"
+    _write_projection(publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_CONTROL_DIR", control)
+
+    initial = client.get("/ops/api/daily-funds/history-probe")
+    assert initial.status_code == 200
+    assert initial.json()["state"] == "NOT_REQUESTED"
+    assert initial.headers["cache-control"] == "private, no-store"
+    assert client.post("/ops/api/daily-funds/history-probe").status_code == 403
+    assert client.post(
+        "/ops/api/daily-funds/history-probe",
+        headers=_same_origin_headers(),
+        json={"command": "must-not-cross-the-control-volume"},
+    ).status_code == 422
+    assert not (control / "dws_history_probe_request.json").exists()
+
+    started = client.post("/ops/api/daily-funds/history-probe", headers=_same_origin_headers())
+    assert started.status_code == 202
+    assert started.json() == {
+        "state": "REQUESTED",
+        "machine_code": "DWS_HISTORY_PROBE_QUEUED",
+        "updated_at": started.json()["updated_at"],
+        "expires_at": started.json()["expires_at"],
+        "continuation_state": "NOT_STARTED",
+        "cursor_transcript": "NOT_STARTED",
+    }
+    request = json.loads((control / "dws_history_probe_request.json").read_text(encoding="utf-8"))
+    assert set(request) == {"schema_version", "request_id", "action", "actor", "requested_at", "expires_at"}
+    assert request["schema_version"] == "kmfa.daily_funds.dws_history_probe_request.v1"
+    assert request["action"] == "PROBE"
+    assert not {"command", "group", "sender", "cursor", "amount"}.intersection(request)
+
+    now = datetime.now(timezone.utc)
+    raw_sentinel = "history-probe-source-value-must-not-escape"
+    (control / "dws_history_probe_session.json").write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.dws_history_probe_session.v1",
+        "request_id": request["request_id"],
+        "state": "COMPLETED",
+        "machine_code": "DWS_HISTORY_PROBE_COMPLETED",
+        "created_at": now.isoformat().replace("+00:00", "Z"),
+        "updated_at": now.isoformat().replace("+00:00", "Z"),
+        "expires_at": (now + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+        "continuation_state": "SECOND_PAGE_TERMINAL",
+        "cursor_transcript": "OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
+        "raw_source_value": raw_sentinel,
+    }), encoding="utf-8")
+    malformed = client.get("/ops/api/daily-funds/history-probe")
+    assert malformed.status_code == 200
+    assert malformed.json()["state"] == "REQUESTED"
+    assert raw_sentinel not in malformed.text
+    assert raw_sentinel not in client.get("/ops/api/daily-funds/source-health").text
+
+    cursor_sentinel = "opaque-provider-cursor-must-not-escape"
+    (control / "dws_history_probe_session.json").write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.dws_history_probe_session.v1",
+        "request_id": request["request_id"],
+        "state": "COMPLETED",
+        "machine_code": "DWS_HISTORY_PROBE_COMPLETED",
+        "created_at": now.isoformat().replace("+00:00", "Z"),
+        "updated_at": now.isoformat().replace("+00:00", "Z"),
+        "expires_at": (now + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+        "continuation_state": "SECOND_PAGE_TERMINAL",
+        "cursor_transcript": cursor_sentinel,
+    }), encoding="utf-8")
+    invalid_cursor = client.get("/ops/api/daily-funds/history-probe")
+    assert invalid_cursor.status_code == 200
+    assert invalid_cursor.json()["state"] == "REQUESTED"
+    assert cursor_sentinel not in invalid_cursor.text
+
+    (control / "dws_history_probe_session.json").write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.dws_history_probe_session.v1",
+        "request_id": request["request_id"],
+        "state": "COMPLETED",
+        "machine_code": "DWS_HISTORY_PROBE_COMPLETED",
+        "created_at": now.isoformat().replace("+00:00", "Z"),
+        "updated_at": now.isoformat().replace("+00:00", "Z"),
+        "expires_at": (now + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+        "continuation_state": "SECOND_PAGE_TERMINAL",
+        "cursor_transcript": "OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
+    }), encoding="utf-8")
+    completed = client.get("/ops/api/daily-funds/history-probe")
+    assert completed.status_code == 200
+    assert completed.json() == {
+        "state": "COMPLETED",
+        "machine_code": "DWS_HISTORY_PROBE_COMPLETED",
+        "updated_at": completed.json()["updated_at"],
+        "expires_at": completed.json()["expires_at"],
+        "continuation_state": "SECOND_PAGE_TERMINAL",
+        "cursor_transcript": "OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
+    }
+
+
 def test_private_daily_funds_projection_range_and_no_raw_leak(tmp_path, monkeypatch):
     publication = tmp_path / "publication"
     control = tmp_path / "control"
@@ -467,6 +563,39 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
     assert "message-fixture" not in public.text
 
 
+def test_daily_funds_embedded_source_identity_is_partial_and_fails_closed(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    source_commit = "1" * 40
+    marker = tmp_path / "app-source-commit"
+    marker.write_text(source_commit + "\n", encoding="ascii")
+    worker_fingerprint = hashlib.sha256(source_commit.encode("ascii")).hexdigest()
+    flow_path = publication / "flow_state.json"
+    flow = json.loads(flow_path.read_text(encoding="utf-8"))
+    flow["deployment"].update({
+        "identity_state": "BUILD_SOURCE_COMMIT_EMBEDDED",
+        "source_commit_fingerprint": worker_fingerprint,
+    })
+    flow_path.write_text(json.dumps(flow), encoding="utf-8")
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_APP_BUILD_SOURCE_COMMIT_FILE", marker)
+    monkeypatch.setattr(main_module, "SKILL_LEDGER_PATH", tmp_path / "missing-ledger.jsonl")
+
+    response = client.get("/api/排程健康")
+    assert response.status_code == 200
+    deployment = response.json()["每日资金"]["业务流"]["部署"]
+    assert deployment["身份"] == "SOURCE_COMMIT_MATCHED_IMAGE_DIGEST_UNKNOWN"
+    assert source_commit not in response.text
+    assert worker_fingerprint not in response.text
+
+    flow["deployment"]["source_commit_fingerprint"] = hashlib.sha256(("2" * 40).encode("ascii")).hexdigest()
+    flow_path.write_text(json.dumps(flow), encoding="utf-8")
+    assert main_module._daily_funds_flow_state()["部署"]["身份"] == "SOURCE_COMMIT_FINGERPRINT_MISMATCH"
+
+    marker.write_text("UNKNOWN\n", encoding="ascii")
+    assert main_module._daily_funds_flow_state()["部署"]["身份"] == "UNKNOWN"
+
+
 def test_daily_funds_status_keeps_weekend_observer_out_of_workday_progress(tmp_path, monkeypatch):
     publication = tmp_path / "publication"
     _write_projection(publication)
@@ -599,6 +728,25 @@ def test_daily_funds_attachment_capability_summary_fails_closed_on_malformed_row
     status_center = client.get("/api/排程健康").json()
     daily = next(row for row in status_center["逐项"] if row["技能"] == "daily-funds")
     assert daily["每日资金状态"]["业务流"]["业务流"]["阶段"] == "PARSER_NEEDS_REVIEW"
+
+
+def test_daily_funds_source_discovery_distinguishes_missing_fact_gates(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    flow_path = publication / "flow_state.json"
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+
+    expected = {
+        "ACCOUNT_SNAPSHOT_MISSING": "附件已取得，缺少账户余额事实",
+        "TRANSACTION_FACT_MISSING": "附件已取得，缺少资金流水事实",
+        "SOURCE_FACT_DATE_MISMATCH": "附件已取得，但账户与流水业务日期未成对",
+    }
+    for state, label in expected.items():
+        flow = json.loads(flow_path.read_text(encoding="utf-8"))
+        flow["source_discovery"] = {"state": state}
+        flow_path.write_text(json.dumps(flow), encoding="utf-8")
+        source_health = client.get("/ops/api/daily-funds/source-health").json()
+        assert source_health["source_discovery"] == {"状态": state, "说明": label}
 
 
 def test_archived_needs_review_is_visible_without_trusted_money(tmp_path, monkeypatch):

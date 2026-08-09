@@ -1,0 +1,56 @@
+{
+  "schema_version": "kmfa.daily_funds.t03_raw_sparse_readback.v1",
+  "stage": "T03_GITHUB_RAW_SPARSE_WRITER_PRODUCTION_READBACK",
+  "observed_at": "2026-08-08T21:10:48Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "verified": true
+  },
+  "moving_baseline": {
+    "origin_main": "f2b66b63e1991038cffa4aefbbcd52ca3ab02ca5",
+    "current_container_image_id": "sha256:6925a82a96003e2b634bd2fea1844ade9d75260c7a2eb06c765b8a2554897f87",
+    "production_source_commit": "UNKNOWN_NO_SOURCE_LABEL_OR_MATCHED_DEPLOYMENT_RECORD"
+  },
+  "raw_authority_readback": {
+    "private_path": "Private-KMDatabase/KMFA/daily_funds/raw",
+    "writer_ssh": "REACHABLE",
+    "scope": "NON_CONE_EXACT_RAW_PATHS_ONLY",
+    "private_commit": "VERIFIED_IN_PRIVATE_RUNTIME_NOT_COPIED_TO_PUBLIC_RECORD",
+    "private_occurrences": 8,
+    "verified_occurrences": 8,
+    "batch_manifests": 7,
+    "batch_occurrence_references_verified": 10,
+    "message_envelopes": "EXACT_SOURCE_GATE_AND_JSON_MATCH_VERIFIED",
+    "byte_integrity": "BLOB_OR_CHUNK_REASSEMBLY_SHA256_VERIFIED"
+  },
+  "journal_reconciliation": {
+    "private_occurrences_matched_by_journal": 7,
+    "private_occurrences_not_in_journal": 1,
+    "journal_occurrences_not_in_private_authority": 0,
+    "decision": "PRIVATE_GIT_REMAINS_AUTHORITATIVE__JOURNAL_NOT_MANUALLY_BACKFILLED"
+  },
+  "deterministic_validation": {
+    "t03_fixture_regression": "PASS_7",
+    "taskpack_verifier": "PASS_24_REQUIREMENTS_11_TASKS_17_ACCEPTANCE",
+    "fixture_coverage": [
+      "direct_and_oversize_bytes",
+      "duplicate_and_tamper_rejection",
+      "exact_sparse_round_trip",
+      "narrow_shallow_sparse_paths",
+      "non_fast_forward_retry_without_force_push",
+      "archive_only_readback",
+      "overlap_reopen_without_repeat_download"
+    ]
+  },
+  "scope_limit": {
+    "source_history_completeness": "UNKNOWN_DWS_HISTORY_PERMISSION_DENIED",
+    "account_transaction_fact_pair": "NOT_ESTABLISHED",
+    "financial_publication": "NOT_RUN"
+  },
+  "safety": {
+    "raw_values_or_identifiers_in_public_record": false,
+    "runtime_write_performed_by_this_audit": false,
+    "result": "T03_CURRENT_ACQUIRED_RAW_INTEGRITY_VERIFIED_FAIL_CLOSED_FOR_UNPROVEN_HISTORY"
+  }
+}

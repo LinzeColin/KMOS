@@ -40,6 +40,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY --from=dws-installer /usr/local/bin/dws /usr/local/bin/dws
 
 COPY KMFA/skills/每日资金 /opt/daily-funds
-RUN chmod 0755 /opt/daily-funds/entrypoint.sh /opt/daily-funds/healthcheck.sh /opt/daily-funds/scripts/run_daily_funds.py /opt/daily-funds/scripts/run_cron_job.sh
+ARG SOURCE_COMMIT
+# This file is an image-layer fact, not a runtime environment value.  The
+# worker hashes it before writing any app-readable projection so neither a
+# source SHA nor a container identity can escape through the status UI.
+RUN python3 -c "from pathlib import Path; import os; value = os.environ.get('SOURCE_COMMIT', '').strip(); valid = len(value) == 40 and all(ch in '0123456789abcdef' for ch in value); Path('/opt/daily-funds/daily_funds/.kmfa-source-commit').write_text((value if valid else 'UNKNOWN') + chr(10), encoding='ascii')" \
+    && chmod 0444 /opt/daily-funds/daily_funds/.kmfa-source-commit
+RUN chmod 0755 /opt/daily-funds/entrypoint.sh /opt/daily-funds/healthcheck.sh /opt/daily-funds/scripts/run_daily_funds.py /opt/daily-funds/scripts/run_cron_job.sh /opt/daily-funds/scripts/run_history_probe_broker.py
 
 ENTRYPOINT ["/opt/daily-funds/entrypoint.sh"]

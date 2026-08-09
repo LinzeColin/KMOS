@@ -84,25 +84,27 @@ chmod 0644 /etc/cron.d/daily-funds
 CRON_PID_FILE="/run/daily-funds-cron.pid"
 python3 /opt/daily-funds/scripts/run_auth_broker.py >/dev/null 2>&1 &
 AUTH_BROKER_PID=$!
+python3 /opt/daily-funds/scripts/run_history_probe_broker.py >/dev/null 2>&1 &
+HISTORY_PROBE_BROKER_PID=$!
 cron -f &
 CRON_PID=$!
 printf '%s\n' "$CRON_PID" > "$CRON_PID_FILE"
 
 shutdown() {
-  kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" 2>/dev/null || true
-  wait "$CRON_PID" "$AUTH_BROKER_PID" 2>/dev/null || true
+  kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" 2>/dev/null || true
+  wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" 2>/dev/null || true
   rm -f "$CRON_PID_FILE"
   exit 0
 }
 trap shutdown INT TERM
 
-# PID 1 supervises both fixed components.  If the narrow auth broker exits,
-# restart the whole isolated slice rather than silently running a cron that
-# cannot complete the owner-approved first authorization path.
-while kill -0 "$CRON_PID" 2>/dev/null && kill -0 "$AUTH_BROKER_PID" 2>/dev/null; do
+# PID 1 supervises every fixed component.  If either narrow control broker
+# exits, restart the isolated slice rather than silently keeping a partial
+# control plane beside the scheduled collector.
+while kill -0 "$CRON_PID" 2>/dev/null && kill -0 "$AUTH_BROKER_PID" 2>/dev/null && kill -0 "$HISTORY_PROBE_BROKER_PID" 2>/dev/null; do
   sleep 2
 done
-kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" 2>/dev/null || true
-wait "$CRON_PID" "$AUTH_BROKER_PID" 2>/dev/null || true
+kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" 2>/dev/null || true
+wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" 2>/dev/null || true
 rm -f "$CRON_PID_FILE"
 exit 1

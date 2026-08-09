@@ -40,6 +40,7 @@ DAILY_PATHS = (
     "/ops/api/daily-funds/source-health",
     "/ops/api/daily-funds/thresholds",
     "/ops/api/daily-funds/auth-session",
+    "/ops/api/daily-funds/history-probe",
 )
 STATUS_SCHEDULES = {
     "history_poll": "*/15 * * * * Asia/Shanghai",
@@ -343,7 +344,7 @@ def _assert_projection_is_redacted(page: Page, *, trusted_projection: bool) -> N
         RAW_SENTINEL, "source_version", "message_id_hash", "attachment", "raw/messages",
     ))
     for path, response in bodies.items():
-        expected_status = 200 if trusted_projection or "/source-health" in path or "/auth-session" in path else 503
+        expected_status = 200 if trusted_projection or "/source-health" in path or "/auth-session" in path or "/history-probe" in path else 503
         assert response["status"] == expected_status, f"{path} returned HTTP {response['status']}"
         assert not any(token in response["body"].lower() for token in forbidden), f"raw marker escaped from {path}"
     dom = page.content().lower()
@@ -481,6 +482,20 @@ def _exercise_case(
             page.get_by_text("已请求撤销本次授权码", exact=False).wait_for(
                 state="visible", timeout=10_000,
             )
+            probe_start = page.get_by_role("button", name="验证云端历史读取")
+            probe_start.wait_for(state="visible", timeout=10_000)
+            with page.expect_response(
+                lambda candidate: (
+                    urlsplit(candidate.url).path == "/ops/api/daily-funds/history-probe"
+                    and candidate.request.method == "POST"
+                ),
+                timeout=10_000,
+            ) as expected:
+                probe_start.click()
+            assert expected.value.status == 202
+            page.get_by_text("已向独立云端容器提交一次固定的脱敏历史读取验证", exact=False).wait_for(
+                state="visible", timeout=10_000,
+            )
             seven_days = range_group.get_by_role("button", name="7 天")
             seven_days.focus()
             with page.expect_response(lambda candidate: _summary_response(candidate, "7d"), timeout=10_000) as expected:
@@ -542,6 +557,7 @@ def _exercise_case(
             "/ops/api/daily-funds/source-health",
             "/ops/api/daily-funds/thresholds",
             "/ops/api/daily-funds/auth-session",
+            "/ops/api/daily-funds/history-probe",
         }
         assert expected_paths.issubset(daily_paths), f"missing daily projection requests: {expected_paths - daily_paths}"
         protected_paths = {

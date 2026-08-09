@@ -1,0 +1,54 @@
+{
+  "schema_version": "kmfa.daily_funds.cloudflare_access_audit_candidate.v1",
+  "stage": "T02_CLOUD_PRIMARY_COLLECTION_ACCESS_CAPABILITY",
+  "observed_on": "2026-08-09",
+  "moving_baseline": {
+    "origin_main_at_reconcile": "f85764d119e6e9623490edc033e6e73941ee8ecd",
+    "production_source_image_deployment_chain": "UNKNOWN"
+  },
+  "scope": {
+    "deployment_vault_credential_content_read_or_reused": false,
+    "cloudflare_api_request_executed": false,
+    "cloudflare_access_mutation_executed": false,
+    "dws_or_history_probe_executed": false,
+    "raw_message_or_attachment_read": false,
+    "push_or_deploy": "NOT_PERFORMED"
+  },
+  "candidate_contract": {
+    "workflow_mode": "daily-funds-access-audit",
+    "dispatch_ref": "refs/heads/main_only",
+    "allowed_http_method": "GET",
+    "checks": [
+      "token_verify",
+      "apps_read",
+      "service_tokens_read",
+      "policies_read"
+    ],
+    "response_handling": "ephemeral_runner_files_bounded_and_deleted_on_exit",
+    "public_output": "finite_statuses_only_no_response_fields_or_identifiers",
+    "forbidden_actions": [
+      "create_service_token",
+      "create_or_modify_policy",
+      "call_history_probe",
+      "read_dws_messages_or_attachments",
+      "publish_funds_result"
+    ],
+    "write_scope": "UNKNOWN_NOT_TESTED"
+  },
+  "verification": {
+    "daily_funds_regression": "130_PASSED",
+    "backend_api_and_audit_regression": "30_PASSED",
+    "values_free_sentinel_oracle": "PASS",
+    "workflow_yaml_parse": "PASS",
+    "git_diff_check": "PASS",
+    "taskpack_projection": "PASS_49_REQUIREMENTS_49_ACCEPTANCE_56_PHASES_56_TASKS",
+    "taskpack_mutation_suite": "PASS_1_POSITIVE_4_NEGATIVE"
+  },
+  "acceptance_boundary": {
+    "cloudflare_access_read_capability": "NOT_RUN",
+    "cloudflare_access_write_capability": "UNKNOWN_NOT_TESTED",
+    "t02_real_target_group_probe": "NOT_RUN",
+    "ac_002": "NOT_MET",
+    "reason": "This local candidate prepares a safe, main-only, GET-only capability preflight. It cannot prove deployed code, a Cloudflare Access identity, an opaque-cursor history sequence, source completeness, parsing, reconciliation, D1/R2/OCI, or a funds publication."
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "schema_version": "kmfa.daily_funds.values_free_log_evidence.v1",
+  "stage": "T02_CLOUD_PRIMARY_COLLECTION_EVIDENCE_TRANSPORT",
+  "observed_on": "2026-08-09",
+  "moving_baseline": {
+    "origin_main": "f85764d119e6e9623490edc033e6e73941ee8ecd",
+    "production_source_image_deployment_chain": "UNKNOWN"
+  },
+  "scope": {
+    "cloud_deployment_vault": "METADATA_ONLY_NO_CREDENTIAL_CONTENT_READ_OR_REUSED",
+    "real_message_or_attachment_read": false,
+    "real_funds_write": false,
+    "push_or_deploy": "NOT_PERFORMED"
+  },
+  "candidate_contract": {
+    "cron_event_schema": "kmfa.daily_funds.cron_event.v1",
+    "allowed_cron_fields": [
+      "schema_version",
+      "job",
+      "outcome",
+      "machine_code"
+    ],
+    "machine_code_policy": "FINITE_ALLOWLIST_OR_UNCLASSIFIED",
+    "exception_text_in_cron_output": "SUPPRESSED",
+    "coolify_logs_output": "COUNTS_AND_FIXED_CODES_ONLY_NO_RAW_LINE_OUTPUT",
+    "coolify_response_handling": "EPHEMERAL_RUNNER_FILE_BOUNDED_AND_REMOVED"
+  },
+  "verification": {
+    "daily_funds_and_api_regression": "131_PASSED",
+    "python_compile": "PASS",
+    "workflow_yaml_parse": "PASS",
+    "git_diff_check": "PASS",
+    "taskpack_projection": "PASS_49_REQUIREMENTS_49_ACCEPTANCE_56_PHASES_56_TASKS"
+  },
+  "acceptance_boundary": {
+    "t02_real_target_group_probe": "NOT_REVALIDATED_BY_THIS_LOCAL_CANDIDATE",
+    "ac_002": "NOT_MET",
+    "production_scheduler_or_source_readiness": "UNKNOWN",
+    "reason": "The candidate closes a public-log disclosure path and prepares a safe observation channel. It cannot prove a deployed container, a real opaque-cursor page sequence, source completeness, parsing, reconciliation, or publication until the final controlled deployment and subsequent live evidence run."
+  }
+}

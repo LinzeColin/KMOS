@@ -214,13 +214,14 @@ class RuntimeState:
 
     def get_cursor(self, key: str = "history_next_cursor") -> str | None:
         # ``commit_cursor(None)`` deliberately retains the KV key as an empty
-        # value.  Daily-funds stores only a Beijing-local DWS history boundary
-        # here, never an opaque server token or raw message data.
+        # value.  Daily-funds stores only a DWS continuation cursor (which can
+        # be opaque) here, never a raw message, attachment, or source payload.
         return self.get(key) or None
 
     def commit_cursor(self, cursor: str | None, key: str = "history_next_cursor") -> None:
-        # The non-secret DWS time boundary is state, not a publication.  It is
-        # only advanced at the end of a fully persisted batch by the poller.
+        # The non-secret DWS continuation cursor is state, not a publication.
+        # It is only advanced at the end of a fully persisted batch by the
+        # poller.
         self.put(key, cursor or "")
 
     def acquire_lease(self, name: str, holder: str, *, ttl_seconds: int) -> bool:

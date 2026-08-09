@@ -1,0 +1,72 @@
+{
+  "schema_version": "kmfa.daily_funds.private_raw_census.v1",
+  "stage": "T04_PRIVATE_RAW_CENSUS",
+  "observed_on": "2026-08-09",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1"
+  },
+  "moving_baseline": {
+    "origin_main": "f85764d119e6e9623490edc033e6e73941ee8ecd",
+    "worktree_head": "0623296826f5a4b2bf9b480d408249cb40bd73bb",
+    "production_source_image_deployment_chain": "UNKNOWN"
+  },
+  "scope": {
+    "authority": "PRIVATE_DATABASE_CURRENT_ACQUIRED_RAW_ONLY",
+    "dws_history_completeness": "UNKNOWN_DWS_HISTORY_PERMISSION_DENIED",
+    "method": "READ_ONLY_PRIVATE_CLIENT_RECURSIVE_CENSUS_AND_EPHEMERAL_HASH_READBACK",
+    "raw_values_or_identifiers_emitted": false
+  },
+  "raw_structure": {
+    "occurrence_records": 8,
+    "valid_occurrence_schema_records": 8,
+    "invalid_occurrence_schema_records": 0,
+    "hash_verified_attachment_readbacks": 8,
+    "failed_attachment_readbacks": 0,
+    "transaction_fact_candidates": 8,
+    "account_snapshot_fact_candidates": 0,
+    "attachment_format": "PNG_ONLY",
+    "storage_layout": "DIRECT_OBJECT_ONLY"
+  },
+  "parser_capability": {
+    "local_ocr_runtime": "NOT_RUN_LOCAL_OCR_RUNTIME_UNAVAILABLE",
+    "real_attachment_parser_open": "NOT_ESTABLISHED",
+    "interpretation": "No local OCR failure code is attributed to the real attachment format because the required worker runtime was absent."
+  },
+  "dws_command_contract": {
+    "cli_version": "v1.0.52",
+    "search_advanced_schema": "AVAILABLE_READ_IDEMPOTENT",
+    "opaque_cursor_parameters": "conversation-ids,start,end,cursor,limit",
+    "real_dws_query_executed_in_this_census": false
+  },
+  "cloud_authorization_recheck": {
+    "coolify_resource_inventory": "READ_ONLY_WORKFLOW_SUCCEEDED_AT_ORIGIN_MAIN",
+    "production_source_image_deployment_chain": "UNKNOWN",
+    "local_dws_profile_inventory": "ZERO_CONFIGURED_PROFILES",
+    "cloudflare_access_private_entry": "AUTHENTICATED_BROWSER_SESSION_NOT_AVAILABLE",
+    "chrome_navigation": "CLIENT_BLOCKED_BEFORE_ACCESS_CHECK",
+    "github_secret_name_inventory": "NO_DISCOVERED_NAMED_ACCESS_SERVICE_TOKEN_PAIR",
+    "protected_directory_key_only_probe": "NO_DISCOVERED_DAILY_FUNDS_AUTH_BUNDLE_OR_TARGET_PARAMETER_KEY",
+    "coolify_daily_funds_required_configuration": "12_OF_12_NONEMPTY_BY_VALUES_HIDDEN_FLAGS_READBACK",
+    "coolify_optional_dws_client_id": "EMPTY",
+    "coolify_optional_dws_auth_bundle": "EMPTY",
+    "public_skill_health_projection": "PROCESS_HEALTHY_NOT_A_DWS_SOURCE_OR_FINANCIAL_RECEIPT",
+    "credentials_or_protected_payload_read": false,
+    "authorization_or_group_visibility_changed": false,
+    "interpretation": "The checked routes do not create a cloud DWS authorization receipt. Required configuration is nonempty, but the optional recovery bundle is empty; a resource-list success, absent local profile, process-health projection, or browser login boundary cannot be promoted to DWS history access, parser capability, or financial publication."
+  },
+  "focused_regression": {
+    "daily_funds_contract_and_brokers": "PASS_116",
+    "private_access_and_daily_funds_api": "PASS_42",
+    "taskpack_projection": "PASS_49_REQUIREMENTS_49_ACCEPTANCE_56_PHASES",
+    "scope": "LOCAL_CONTRACT_ONLY_NOT_A_CLOUD_DWS_OR_FINANCIAL_RECEIPT"
+  },
+  "decision": {
+    "same_day_account_and_transaction_pair": "NOT_ESTABLISHED_ACCOUNT_FACT_COUNT_ZERO_IN_ACQUIRED_RANGE",
+    "integer_fen_reconciliation": "NOT_RUN",
+    "d1_r2_oci_business_publication": "NOT_RUN",
+    "t04_acceptance": "NOT_MET",
+    "human_status": "需处理",
+    "push_or_deploy": "NOT_PERFORMED"
+  }
+}

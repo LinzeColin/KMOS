@@ -1,0 +1,92 @@
+{
+  "schema_version": "kmfa.daily_funds.dws_permission_channel_audit.v1",
+  "stage": "T04_DWS_PERMISSION_CHANNEL_AUDIT",
+  "observed_on": "2026-08-09",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "relevant_requirements": ["DF-002", "DF-004", "DF-008", "DF-022"]
+  },
+  "moving_baseline": {
+    "origin_main": "f85764d119e6e9623490edc033e6e73941ee8ecd",
+    "worktree_head": "0623296826f5a4b2bf9b480d408249cb40bd73bb",
+    "production_source_image_deployment_chain": "UNKNOWN"
+  },
+  "local_dws_capability": {
+    "profile_presence": "INTERACTIVE_PROFILE_PRESENT",
+    "authentication_state": "VALID_AT_CHECK_TIME",
+    "group_or_message_access_used": true,
+    "local_use_scope": "READ_ONLY_MESSAGE_METADATA_PROBES_IN_MEMORY_ONLY_NO_RAW_PERSISTENCE",
+    "runtime_dependency": "PROHIBITED_BY_DF_001",
+    "interpretation": "A local interactive identity is not evidence of, and must not be copied into, the isolated cloud daily-funds identity."
+  },
+  "authorization_contract": {
+    "narrow_candidate_scope": "chat.message:list scoped to the configured conversation",
+    "chmod_host_confirmation": "REQUIRED_EACH_EXECUTION",
+    "model_silent_bypass": "NOT_AVAILABLE",
+    "cross_org_data_auth": "NOT_ATTEMPTED_BROAD_ORGANIZATION_SCOPE_NOT_NEEDED_TO_PROVE_SINGLE_GROUP_HISTORY",
+    "group_history_visibility_all": "NOT_ATTEMPTED_PRIVACY_SCOPE_EXPANSION",
+    "prior_cloud_evidence": "PERMANENT_CHAT_MESSAGE_LIST_GRANT_DID_NOT_CLEAR_DWS_HISTORY_PERMISSION_DENIED"
+  },
+  "owner_authorized_local_attempt": {
+    "owner_confirmation": "EXPLICIT_NARROW_SCOPE_ONLY",
+    "target_resolution": "UNIQUE_CONFIGURED_LOGICAL_GROUP_WITHOUT_IDENTIFIER_PUBLICATION",
+    "attempted_operation": "chat_chmod_chat_message_list",
+    "grant_type": "permanent",
+    "real_write_result": "EXIT_1_ERROR_NO_SUCCESS_RECEIPT",
+    "audit_result": "ERROR_API_CATEGORY_NO_SAFE_ERROR_CODE",
+    "dry_run_result": "EXIT_0_NO_WRITE_PREVIEW",
+    "host_owned_agent_bridge": "ABSENT_AT_CHECK_TIME",
+    "confirmed_authorization_change": false,
+    "unconfirmed_write_effect": "UNKNOWN_NO_SUCCESS_RECEIPT"
+  },
+  "local_dws_source_contract_probe": {
+    "target_resolution": "UNIQUE_CONFIGURED_LOGICAL_GROUP_WITHOUT_IDENTIFIER_PUBLICATION",
+    "direct_message_list": {
+      "direction": "older",
+      "page_limit": 5,
+      "result": "SUCCESS",
+      "message_count": 5,
+      "has_more": true,
+      "usable_next_cursor": "ABSENT",
+      "boundary_contract": "TIMESTAMP_BOUNDARY_DIAGNOSTIC_ONLY"
+    },
+    "search_advanced": {
+      "seven_day_unfiltered_probe": "SUCCESS_TERMINAL_EMPTY_PAGE",
+      "three_hundred_sixty_day_unfiltered_probe": "SUCCESS_TERMINAL_EMPTY_PAGE",
+      "three_exact_document_family_first_pages": "SUCCESS_TERMINAL_EMPTY_PAGE",
+      "opaque_cursor_observed": false
+    },
+    "safety": {
+      "message_content_or_identifiers_emitted": false,
+      "attachments_downloaded_or_persisted": false,
+      "runtime_configuration_changed": false
+    },
+    "interpretation": "The direct timeline operation proves that the local diagnostic identity can see group history, but it supplies only a timestamp-boundary continuation. The task-pack-required search-advanced opaque-cursor operation returned terminal empty pages under the tested exact group, windows and document-family queries. Neither result proves full history is empty or creates a compliant cloud primary collector."
+  },
+  "protected_local_metadata_audit": {
+    "mounted_external_volume": "NOT_PRESENT_AT_CHECK_TIME",
+    "protected_spreadsheet_candidates": 48,
+    "protected_cash_named_archive_workbooks": 8,
+    "source_provenance": "UNVERIFIED_LOCAL_ARCHIVE_NOT_A_DWS_RUNTIME_SOURCE",
+    "header_audit": "NO_COMPLETE_DUAL_FACT_SCHEMA_CANDIDATE_IN_SCANNED_HEADER_ROWS",
+    "business_values_or_identifiers_emitted": false,
+    "runtime_source_use": "NOT_USED"
+  },
+  "cloud_control_plane": {
+    "coolify_generic_container_exec": "HTTP_404_COMMAND_NOT_EXECUTED",
+    "fixed_history_probe": "LOCAL_CANDIDATE_ONLY_NOT_DEPLOYED",
+    "cloud_dws_deep_history_receipt": "NOT_ESTABLISHED"
+  },
+  "decision": {
+    "confirmed_authorization_or_group_visibility_changed": false,
+    "authorization_attempt_effect": "UNKNOWN_NO_SUCCESS_RECEIPT",
+    "local_message_metadata_read": "READ_ONLY_IN_MEMORY_DISCARDED",
+    "business_values_attachments_or_identifiers_persisted_or_emitted": false,
+    "real_attachment_parser_open": "NOT_ESTABLISHED",
+    "same_day_account_and_transaction_pair": "NOT_ESTABLISHED",
+    "t04_acceptance": "NOT_MET",
+    "human_status": "需处理",
+    "reason": "After the Owner explicitly authorized only the narrow group scope, the exact local chat chmod command returned an error and no success receipt. The current host has no verified host-owned agent bridge to complete the mandatory per-execution host-UI confirmation. A no-write dry run returned normally but cannot prove an authorization. The later local read-only source probes exposed a pagination-contract mismatch: direct message list is timestamp-boundary only, while task-pack-required search-advanced returned terminal empty pages. Broader cross-organization or group-history visibility changes were not attempted."
+  }
+}

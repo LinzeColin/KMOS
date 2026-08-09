@@ -24,6 +24,8 @@ services:
       # COPY KMFA/... from that same repository root.
       context: .
       dockerfile: KMFA/skills/每日资金/Dockerfile
+      args:
+        SOURCE_COMMIT: "${SOURCE_COMMIT:-}"
     image: kmfa-daily-funds:coolify
     container_name: kmfa-daily-funds
     restart: always
@@ -159,6 +161,8 @@ services:
     build:
       context: .
       dockerfile: KMFA/app/backend/Dockerfile
+      args:
+        SOURCE_COMMIT: "${SOURCE_COMMIT:-}"
     image: kmfa-app:coolify
     container_name: kmfa-app
     restart: always
@@ -250,6 +254,8 @@ services:
     build:
       context: .
       dockerfile: KMFA/app/backend/Dockerfile
+      args:
+        SOURCE_COMMIT: "${SOURCE_COMMIT:-}"
     image: kmfa-app:coolify
     container_name: kmfa-lifecycle-worker
     restart: always

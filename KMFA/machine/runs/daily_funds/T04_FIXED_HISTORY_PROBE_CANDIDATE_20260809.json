@@ -1,0 +1,49 @@
+{
+  "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
+  "stage": "T04_FIXED_HISTORY_PROBE_CANDIDATE_RECONCILE",
+  "observed_on": "2026-08-09",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "repository_projection": "PASS requirements=49 acceptance_contracts=49 stages=14 phases=56 tasks=56 trace_rows=49 promotion_gates=6"
+  },
+  "moving_baseline": {
+    "origin_main": "f85764d119e6e9623490edc033e6e73941ee8ecd",
+    "worktree_head": "0623296826f5a4b2bf9b480d408249cb40bd73bb",
+    "production_source_image_deployment_chain": "UNKNOWN",
+    "candidate_delivery_policy": "NO_PUSH_NO_DEPLOY_UNTIL_THE_TASKPACK_FINAL_GATE"
+  },
+  "candidate_control_plane": {
+    "remote_shell": "ABSENT",
+    "route": "ACCESS_PROTECTED_OPS_API_ONLY",
+    "request_contract": "FIXED_SCHEMA_NO_BODY_NO_COMMAND_NO_SOURCE_IDENTIFIER_NO_CURSOR_NO_TIME_RANGE_NO_VALUES",
+    "container_operation": "CONFIGURED_SINGLE_GROUP_FIXED_24H_WINDOW_MAX_TWO_SEARCH_ADVANCED_PAGES",
+    "cursor_contract": "OPAQUE_FIRST_PAGE_CURSOR_REUSED_VERBATIM_ON_PAGE_TWO_ONLY",
+    "raw_or_attachment_write": "ABSENT",
+    "main_collection_dependency": "ABSENT",
+    "network_receipt_namespace": "DWS_HISTORY_PROBE",
+    "ui_claim_boundary": "NOT_A_PARSER_DUAL_FACT_RECONCILIATION_AMOUNT_OR_PUBLICATION_PASS"
+  },
+  "candidate_validation": {
+    "daily_funds_contract": "PASS 115 passed, 1 skipped",
+    "affected_backend_and_access_contract": "PASS 42 passed",
+    "frontend_production_build": "PASS",
+    "daily_funds_browser_oracle": "PASS 5 synthetic scenarios",
+    "python_compile_shell_syntax_git_diff_check": "PASS",
+    "container_start_oracle": "NOT_RUN_DOCKER_DAEMON_UNAVAILABLE"
+  },
+  "production_and_t04_evidence": {
+    "cloud_history_probe": "NOT_RUN_NOT_DEPLOYED",
+    "real_attachment_parser_open": "NOT_ESTABLISHED",
+    "same_day_account_and_transaction_pair": "NOT_ESTABLISHED",
+    "integer_fen_reconciliation": "NOT_RUN",
+    "d1_r2_oci_business_publication": "NOT_RUN",
+    "restore_drill_and_post_deploy_observation": "NOT_RUN"
+  },
+  "decision": {
+    "t04_acceptance": "NOT_MET",
+    "human_status": "需处理",
+    "push_or_deploy": "NOT_PERFORMED",
+    "reason": "The fixed diagnostic closes neither the real attachment parser-open gate nor the same-day dual-fact and integer-fen reconciliation gates. Local controls must not be promoted into a production or financial-result claim."
+  }
+}

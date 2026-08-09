@@ -1234,12 +1234,13 @@ def test_capability_projection_excludes_stale_parser_rules(tmp_path: Path) -> No
 def test_page_two_failure_never_advances_cursor(tmp_path: Path) -> None:
     config = _config(tmp_path)
     state = RuntimeState(config.state_dir)
-    state.commit_cursor("2026-08-01 20:00:00")
+    state.commit_cursor("opaque-resume-cursor")
     responses = [
         {
             "success": True,
             "result": {
                 "hasMore": True,
+                "nextCursor": "opaque-page-2",
                 "messages": [{
                     "openMessageId": "page-1",
                     "openConversationId": config.group_id,
@@ -1258,9 +1259,8 @@ def test_page_two_failure_never_advances_cursor(tmp_path: Path) -> None:
         if command[1:3] == ["auth", "status"]:
             auth_calls += 1
             return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
-        if command[1:4] == ["chat", "message", "list"]:
-            assert command[command.index("--group") + 1] == config.group_id
-            assert command[command.index("--direction") + 1] == "older"
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            assert command[command.index("--conversation-ids") + 1] == config.group_id
             return subprocess.CompletedProcess(command, 0, json.dumps(responses.pop(0)), "")
         raise AssertionError(f"unexpected DWS command: {command}")
 
@@ -1277,15 +1277,15 @@ def test_page_two_failure_never_advances_cursor(tmp_path: Path) -> None:
     with pytest.raises(IngestionError):
         poller.poll(now=datetime(2026, 8, 1, 12, tzinfo=UTC), persist_page=persist, holder="fixture")
     assert auth_calls == 1
-    assert state.get_cursor() == "2026-08-01 20:00:00"
+    assert state.get_cursor() == "opaque-resume-cursor"
     assert state.get("history_high_water_at") is None
 
 
 def test_terminal_cursor_is_not_reused_for_the_next_overlap_window(tmp_path: Path) -> None:
     config = _config(tmp_path)
     state = RuntimeState(config.state_dir)
-    state.commit_cursor("2026-08-01 08:00:00")
-    times: list[str] = []
+    state.commit_cursor("opaque-resume-cursor")
+    cursors: list[str] = []
     responses = [
         {"success": True, "result": {"hasMore": False, "messages": []}},
         {"success": True, "result": {"hasMore": False, "messages": []}},
@@ -1294,8 +1294,8 @@ def test_terminal_cursor_is_not_reused_for_the_next_overlap_window(tmp_path: Pat
     def runner(command, **kwargs):
         if command[1:3] == ["auth", "status"]:
             return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
-        if command[1:4] == ["chat", "message", "list"]:
-            times.append(command[command.index("--time") + 1])
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            cursors.append(command[command.index("--cursor") + 1])
             return subprocess.CompletedProcess(command, 0, json.dumps(responses.pop(0)), "")
         raise AssertionError(f"unexpected DWS command: {command}")
 
@@ -1304,7 +1304,7 @@ def test_terminal_cursor_is_not_reused_for_the_next_overlap_window(tmp_path: Pat
     poller.poll(now=first_now, persist_page=lambda _page: None, holder="fixture-1")
     poller.poll(now=datetime(2026, 8, 1, 1, 0, tzinfo=UTC), persist_page=lambda _page: None, holder="fixture-2")
 
-    assert times == ["2026-08-01 08:00:00", "2026-08-01 09:00:00"]
+    assert cursors == ["opaque-resume-cursor", "0"]
     assert state.get_cursor() is None
 
 
@@ -1719,7 +1719,10 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_frozen_cadence() -> Non
     assert "chmod 0600 \"$CRON_ENV_FILE\"" in entrypoint
     assert "run_auth_broker.py >/dev/null 2>&1" in entrypoint
     assert "AUTH_BROKER_PID" in entrypoint
+    assert "run_history_probe_broker.py >/dev/null 2>&1" in entrypoint
+    assert "HISTORY_PROBE_BROKER_PID" in entrypoint
     assert "run_auth_broker.py" not in cron
+    assert "run_history_probe_broker.py" not in cron
     wrapper_text = (ROOT / "scripts" / "run_cron_job.sh").read_text(encoding="utf-8")
     assert command in wrapper_text
     assert '. "$CRON_ENV_FILE"' in wrapper_text
@@ -2285,6 +2288,30 @@ def test_runtime_audit_redacts_process_data_and_fails_on_coupled_skills(tmp_path
     assert "/opt/kmfa/KMOS/KMFA/skills/other" not in (config.publication_dir / "runtime_audit.json").read_text(encoding="utf-8")
 
 
+def test_embedded_build_source_identity_is_hashed_and_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import daily_funds.runtime as runtime_module
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    marker = tmp_path / "embedded-source-commit"
+    source_commit = "a" * 40
+    marker.write_text(source_commit + "\n", encoding="ascii")
+    monkeypatch.setattr(runtime_module, "_BUILD_SOURCE_COMMIT_FILE", marker)
+
+    runtime._write_flow_state(stage="RUNTIME_AUDITED")
+    flow_text = (runtime.config.publication_dir / "flow_state.json").read_text(encoding="utf-8")
+    flow = json.loads(flow_text)
+    deployment = flow["deployment"]
+    assert deployment["identity_state"] == "BUILD_SOURCE_COMMIT_EMBEDDED"
+    assert deployment["source_commit_fingerprint"] == sha256(source_commit.encode("ascii")).hexdigest()
+    assert source_commit not in flow_text
+
+    marker.write_text("UNKNOWN\n", encoding="ascii")
+    runtime._write_flow_state(stage="RUNTIME_AUDITED")
+    flow = json.loads((runtime.config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
+    assert flow["deployment"]["identity_state"] == "UNKNOWN"
+    assert flow["deployment"]["source_commit_fingerprint"] is None
+
+
 def test_dws_auth_imports_only_the_dedicated_bundle_and_removes_temporary_input(tmp_path: Path) -> None:
     config = _config(tmp_path)
     commands: list[list[str]] = []
@@ -2416,17 +2443,41 @@ def test_authenticated_dws_profile_does_not_require_an_invented_app_json(tmp_pat
     DwsHistoryClient(config, runner=runner).ensure_authenticated()
 
 
-def test_dws_history_accepts_successful_empty_v1_envelope_and_stable_sender_id(tmp_path: Path) -> None:
+def test_dws_history_rejects_recordless_terminal_v1_envelope(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    events: list[tuple[str, str, str]] = []
+
+    def runner(command, **kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            assert command[command.index("--conversation-ids") + 1] == config.group_id
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "success": True,
+                "result": {"hasMore": False},
+            }), "")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    client = DwsHistoryClient(config, runner=runner, event_sink=lambda *event: events.append(event))
+    with pytest.raises(IngestionError, match="DWS_PAGE_RECORDS_MISSING"):
+        client.search(datetime(2026, 8, 1, tzinfo=UTC), datetime(2026, 8, 1, 0, 1, tzinfo=UTC), None)
+    assert events == [
+        ("DWS", "AUTH_STATUS", "OK"),
+        ("DWS", "HISTORY_SEARCH_ADVANCED", "DWS_PAGE_RECORDS_MISSING"),
+    ]
+
+
+def test_dws_history_accepts_explicit_empty_terminal_v1_envelope_and_stable_sender_id(tmp_path: Path) -> None:
     config = _config(tmp_path)
 
     def runner(command, **kwargs):
         if command[1:3] == ["auth", "status"]:
             return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
-        if command[1:4] == ["chat", "message", "list"]:
-            assert command[command.index("--group") + 1] == config.group_id
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            assert command[command.index("--conversation-ids") + 1] == config.group_id
             return subprocess.CompletedProcess(command, 0, json.dumps({
                 "success": True,
-                "result": {"hasMore": False},
+                "result": {"hasMore": False, "messages": []},
             }), "")
         raise AssertionError(f"unexpected DWS command: {command}")
 
@@ -2441,6 +2492,29 @@ def test_dws_history_accepts_successful_empty_v1_envelope_and_stable_sender_id(t
     }
     client.assert_exact_source(message)
     assert client.selected_messages(DwsPage(messages=(message,), next_cursor=None, has_more=False)) == (message,)
+
+
+def test_recordless_terminal_dws_page_never_becomes_source_match_zero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config = _config(tmp_path)
+
+    def runner(command, **kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "success": True,
+                "result": {"hasMore": False},
+            }), "")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    runtime = DailyFundsRuntime(config)
+    client = DwsHistoryClient(config, runner=runner)
+    monkeypatch.setattr(runtime, "_dws_client", lambda: client)
+
+    assert runtime.poll(now=datetime(2026, 8, 1, tzinfo=UTC)) == {
+        "ok": False,
+        "code": "DWS_PAGE_RECORDS_MISSING",
+    }
 
 
 def test_dws_reopen_candidate_requires_exact_source_but_allows_embedded_media(tmp_path: Path) -> None:
@@ -2467,7 +2541,7 @@ def test_dws_reopen_candidate_requires_exact_source_but_allows_embedded_media(tm
         client.reopen_candidate(ambiguous, 0, attachment_sha256)
 
 
-def test_dws_list_uses_beijing_boundary_and_embedded_media_source(tmp_path: Path) -> None:
+def test_dws_search_advanced_uses_opaque_cursor_and_embedded_media_source(tmp_path: Path) -> None:
     config = _config(tmp_path)
     calls: list[list[str]] = []
     responses = [
@@ -2475,6 +2549,7 @@ def test_dws_list_uses_beijing_boundary_and_embedded_media_source(tmp_path: Path
             "success": True,
             "result": {
                 "hasMore": True,
+                "nextCursor": "opaque-page-2",
                 "messages": [
                     {
                         "openMessageId": "message-2",
@@ -2500,29 +2575,63 @@ def test_dws_list_uses_beijing_boundary_and_embedded_media_source(tmp_path: Path
         calls.append(command)
         if command[1:3] == ["auth", "status"]:
             return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
-        if command[1:4] == ["chat", "message", "list"]:
+        if command[1:4] == ["chat", "message", "search-advanced"]:
             return subprocess.CompletedProcess(command, 0, json.dumps(responses.pop(0)), "")
         raise AssertionError(f"unexpected DWS command: {command}")
 
     client = DwsHistoryClient(config, runner=runner)
     start = datetime(2026, 8, 1, tzinfo=UTC)
     first = client.search(start, datetime(2026, 8, 1, 0, 10, tzinfo=UTC), None)
-    assert first.next_cursor == "2026-08-01 08:01:00"
+    assert first.next_cursor == "opaque-page-2"
     assert first.has_more is True
     assert client.attachment_count(first.messages[0]) == 1
     assert client.selected_messages(first) == first.messages
     second = client.search(start, datetime(2026, 8, 1, 0, 10, tzinfo=UTC), first.next_cursor)
     assert second == DwsPage(messages=(), next_cursor=None, has_more=False)
-    history_calls = [call for call in calls if call[1:4] == ["chat", "message", "list"]]
-    assert history_calls[0][history_calls[0].index("--time") + 1] == "2026-08-01 08:10:00"
-    assert history_calls[1][history_calls[1].index("--time") + 1] == "2026-08-01 08:01:00"
-    assert all(call[call.index("--direction") + 1] == "older" for call in history_calls)
-    # The DWS contract makes group, user and open-DingTalk-id mutually
-    # exclusive conversation selectors.  Sender filtering must stay local
-    # and exact rather than turning the production request into an invalid
-    # mixed-selector call.
-    assert all("--group" in call for call in history_calls)
-    assert all("--user" not in call and "--open-dingtalk-id" not in call for call in history_calls)
+    history_calls = [call for call in calls if call[1:4] == ["chat", "message", "search-advanced"]]
+    assert [call[call.index("--cursor") + 1] for call in history_calls] == ["0", "opaque-page-2"]
+    assert all(call[call.index("--conversation-ids") + 1] == config.group_id for call in history_calls)
+    assert all(call[call.index("--start") + 1] == "2026-08-01T00:00:00+00:00" for call in history_calls)
+    assert all(call[call.index("--end") + 1] == "2026-08-01T00:10:00+00:00" for call in history_calls)
+    # Sender filtering stays local and exact; the remote selector is the
+    # configured group alone, never a mixed conversation/user query.
+    assert all("--group" not in call and "--user" not in call and "--open-dingtalk-id" not in call for call in history_calls)
+
+
+def test_dws_search_advanced_rejects_a_stalled_opaque_cursor(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    events: list[tuple[str, str, str]] = []
+
+    def runner(command, **kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            assert command[command.index("--cursor") + 1] == "opaque-stalled"
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "success": True,
+                "result": {
+                    "hasMore": True,
+                    "nextCursor": "opaque-stalled",
+                    "messages": [{
+                        "openMessageId": "message-1",
+                        "openConversationId": config.group_id,
+                        "senderOpenDingTalkId": config.sender_id,
+                        "createTime": "2026-08-01 08:01:00",
+                    }],
+                },
+            }), "")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    with pytest.raises(IngestionError, match="DWS_HISTORY_CURSOR_STALLED"):
+        DwsHistoryClient(config, runner=runner, event_sink=lambda *event: events.append(event)).search(
+            datetime(2026, 8, 1, tzinfo=UTC),
+            datetime(2026, 8, 1, 0, 10, tzinfo=UTC),
+            "opaque-stalled",
+        )
+    assert events == [
+        ("DWS", "AUTH_STATUS", "OK"),
+        ("DWS", "HISTORY_SEARCH_ADVANCED", "INVALID"),
+    ]
 
 
 def test_dws_history_permission_denial_is_not_misreported_as_auth_loss(tmp_path: Path) -> None:
@@ -2532,7 +2641,7 @@ def test_dws_history_permission_denial_is_not_misreported_as_auth_loss(tmp_path:
     def runner(command, **kwargs):
         if command[1:3] == ["auth", "status"]:
             return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
-        if command[1:4] == ["chat", "message", "list"]:
+        if command[1:4] == ["chat", "message", "search-advanced"]:
             return subprocess.CompletedProcess(command, 0, json.dumps({
                 "success": False,
                 "errorCode": "PermissionDenied",
@@ -2548,7 +2657,7 @@ def test_dws_history_permission_denial_is_not_misreported_as_auth_loss(tmp_path:
         )
     assert events == [
         ("DWS", "AUTH_STATUS", "OK"),
-        ("DWS", "HISTORY_LIST", "DWS_HISTORY_PERMISSION_DENIED"),
+        ("DWS", "HISTORY_SEARCH_ADVANCED", "DWS_HISTORY_PERMISSION_DENIED"),
     ]
 
 
@@ -2558,7 +2667,7 @@ def test_dws_history_stderr_permission_denial_is_not_misreported_as_auth_loss(tm
     def runner(command, **kwargs):
         if command[1:3] == ["auth", "status"]:
             return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
-        if command[1:4] == ["chat", "message", "list"]:
+        if command[1:4] == ["chat", "message", "search-advanced"]:
             return subprocess.CompletedProcess(command, 1, "", "API PermissionDenied for current user")
         raise AssertionError(f"unexpected DWS command: {command}")
 
@@ -2615,6 +2724,51 @@ def test_source_gate_rejects_multiple_candidate_documents() -> None:
         DailyFundsRuntime._latest_complete_pair((
             TimedFacts(accounts, moment), TimedFacts(duplicate_accounts, moment), TimedFacts(transactions, moment),
         ))
+
+
+def test_source_gate_preserves_missing_fact_family_and_business_date_diagnostics() -> None:
+    account_payload = "业务日期,公司,开户行,账号,期初余额,期末余额\n2026-07-30,甲,乙,001,1.00,1.00\n".encode()
+    transaction_payload = "业务日期,公司,开户行,账号,流水号,流入,流出\n2026-07-30,甲,乙,001,t,,\n".encode()
+    accounts = parse_attachment(
+        family=ACCOUNT_FAMILY,
+        filename="资金账户明细表_20260730.csv",
+        payload=account_payload,
+        source=_source(account_payload, message_id_hash="d" * 64),
+    )
+    transactions = parse_attachment(
+        family="资金流水明细",
+        filename="资金流水明细_20260730.csv",
+        payload=transaction_payload,
+        source=_source(transaction_payload, message_id_hash="e" * 64),
+    )
+    moment = datetime(2026, 7, 30, tzinfo=UTC)
+    with pytest.raises(ReconciliationError, match="ACCOUNT_SNAPSHOT_MISSING"):
+        DailyFundsRuntime._latest_complete_pair((TimedFacts(transactions, moment),))
+    with pytest.raises(ReconciliationError, match="TRANSACTION_FACT_MISSING"):
+        DailyFundsRuntime._latest_complete_pair((TimedFacts(accounts, moment),))
+    older_account_payload = account_payload.replace(b"2026-07-30", b"2026-07-29")
+    older_accounts = parse_attachment(
+        family=ACCOUNT_FAMILY,
+        filename="资金账户明细表_20260729.csv",
+        payload=older_account_payload,
+        source=_source(older_account_payload, message_id_hash="f" * 64),
+    )
+    with pytest.raises(ReconciliationError, match="SOURCE_FACT_DATE_MISMATCH"):
+        DailyFundsRuntime._latest_complete_pair((
+            TimedFacts(older_accounts, moment), TimedFacts(transactions, moment),
+        ))
+
+
+def test_flow_state_preserves_values_free_missing_fact_family_gate(tmp_path: Path) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    status = runtime.status.write("需处理", "ACCOUNT_SNAPSHOT_MISSING")
+    flow = runtime._write_flow_state(
+        stage="POLL_NEEDS_ATTENTION",
+        status=status,
+        source_discovery_state="ACCOUNT_SNAPSHOT_MISSING",
+    )
+    assert flow["source_discovery"] == {"state": "ACCOUNT_SNAPSHOT_MISSING"}
+    assert "group-fixture" not in json.dumps(flow, ensure_ascii=False)
 
 
 def _t06_threshold_snapshot(
@@ -3680,6 +3834,7 @@ def test_daily_funds_deployment_keeps_its_auth_bundle_and_identifiers_private() 
     assert "DAILY_FUNDS_OCI_PAR_URL" in ops
     assert "optional_keys=(DAILY_FUNDS_DWS_CLIENT_ID DAILY_FUNDS_DWS_AUTH_BUNDLE_B64)" in ops
     assert "留空时使用 DWS 官方默认客户端" in env_example
+    assert 'SOURCE_COMMIT: "${SOURCE_COMMIT:-}"' in daily_service
     assert "kmfa-dws-auth" not in daily_service
     assert "sync-daily-funds-secrets" in ops
     assert "|^DAILY_FUNDS_" in ops

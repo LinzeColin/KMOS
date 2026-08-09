@@ -1,0 +1,73 @@
+{
+  "schema_version": "kmfa.daily_funds.cloud_control_plane_audit.v1",
+  "stage": "T02_CLOUD_PRIMARY_COLLECTION_CONTROL_PLANE",
+  "observed_on": "2026-08-09",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "requirements": ["DF-001", "DF-002", "DF-003", "DF-023"],
+    "acceptance": "AC-002"
+  },
+  "moving_baseline": {
+    "origin_main": "f85764d119e6e9623490edc033e6e73941ee8ecd",
+    "worktree_head": "0623296826f5a4b2bf9b480d408249cb40bd73bb",
+    "production_source_image_deployment_chain": "UNKNOWN"
+  },
+  "cloud_deployment_vault": {
+    "archive_review": "METADATA_AND_NONSECRET_TOPICS_ONLY",
+    "credential_content_accessed": false,
+    "credential_content_reused": false,
+    "coolify_application_get_contract": "CONFIRMED_OFFICIAL_API_DOCUMENTATION"
+  },
+  "read_only_cloud_receipts": {
+    "resource_inventory_run": "31288034609",
+    "resource_status": "RUNNING_HEALTHY",
+    "recent_deployments_run": "31288062617",
+    "recent_deployments_result": "ZERO_RECORDS",
+    "container_readonly_diagnostic_run": "31288086289",
+    "container_execute_endpoint": "HTTP_404_COMMAND_NOT_EXECUTED",
+    "resource_inventory_reconcile_run": "31288488139",
+    "environment_name_inventory_run": "31288509054",
+    "nonsecret_flag_inventory_run": "31288537692",
+    "daily_funds_required_environment_key_names": "PRESENT_VALUES_NOT_READ",
+    "compose_profiles": "FULL",
+    "public_root_route": "HTTP_200",
+    "private_fixed_history_probe_route": "HTTP_302_ACCESS_REDIRECT"
+  },
+  "access_boundary": {
+    "repository_secret_metadata": "NO_IDENTIFIED_CLOUDFLARE_ACCESS_SERVICE_TOKEN_PAIR",
+    "authenticated_private_control_request": "NOT_RUN_NO_VERIFIED_CLOUD_ACCESS_IDENTITY",
+    "access_service_token_provisioning": "NOT_RUN_REQUIRED_SCOPE_AND_POLICY_UNVERIFIED",
+    "local_profile_or_browser_session_used": false,
+    "dws_message_or_attachment_read": false,
+    "dws_auth_or_group_visibility_changed": false
+  },
+  "configuration_identity_control": {
+    "implementation": "LOCAL_CANDIDATE_NOT_PUSHED",
+    "workflow_mode": "deployment-identity",
+    "allowed_output": "FULL_SHA_OR_UNKNOWN_ONLY",
+    "actual_running_image_or_container_identity": "UNKNOWN"
+  },
+  "build_source_identity_candidate": {
+    "implementation": "LOCAL_CANDIDATE_NOT_PUSHED",
+    "build_input": "COOLIFY_SOURCE_COMMIT_IF_ENABLED",
+    "worker_projection": "SHA256_FINGERPRINT_ONLY_NO_RAW_SOURCE_SHA",
+    "app_status": "MATCHED_SOURCE_COMMIT_IMAGE_DIGEST_UNKNOWN_OR_FAIL_CLOSED_UNKNOWN",
+    "local_contract_tests": "127_PASSED",
+    "compose_validation": "DEFAULT_FULL_AND_LIFECYCLE_PROFILES_PARSED",
+    "current_production_chain": "UNKNOWN_NOT_DEPLOYED"
+  },
+  "ac_002_evidence": {
+    "local_opaque_cursor_fixture": "PASS_SEPARATE_LOCAL_EVIDENCE",
+    "real_target_group_probe": "NOT_RUN_CONTROL_PLANE_UNAVAILABLE",
+    "redacted_cursor_transcript": "NOT_AVAILABLE_NO_REAL_PAGE_EXECUTED",
+    "scheduler_ledger": "PREVIOUS_EXISTING_RECEIPT_NOT_REVALIDATED_AS_FULL_HISTORY_PROOF"
+  },
+  "decision": {
+    "t02_acceptance": "NOT_MET",
+    "human_status": "需处理",
+    "machine_status": "DWS_HISTORY_PROBE_ACCESS_IDENTITY_UNAVAILABLE",
+    "push_or_deploy": "NOT_PERFORMED",
+    "reason": "The current production resource is healthy, has the daily-funds environment key names present, and has the full compose profile configured, but neither fact proves the running worker or source/image identity. The only fixed probe route remains Cloudflare Access-protected, while the Coolify execute endpoint returned HTTP 404 before the values-free command could start. The deployment vault was inspected only for nonsecret topology; no credential content was accessed or reused. A local-only workflow candidate can verify a configured source revision without exposing the application response, but it deliberately cannot certify the running image and has not been pushed or run. No cloud Access service identity or policy scope has been verified. A local DWS profile, browser session, or time-boundary fallback was not used as a substitute."
+  }
+}

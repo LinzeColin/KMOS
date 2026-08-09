@@ -1797,13 +1797,14 @@ const 阈值控制话 = value => {
   return value.mode === 'disabled' ? '已停用' : '未验证'
 }
 
-function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 范围, 设范围, 自定义, 设自定义, 刷新 }) {
+function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 设范围, 自定义, 设自定义, 刷新 }) {
   const [阈值模式, 设阈值模式] = useState('numeric')
   const [阈值金额, 设阈值金额] = useState('')
   const [阈值日期, 设阈值日期] = useState({ from: '', to: '' })
   const [阈值原因, 设阈值原因] = useState('')
   const [阈值提交, 设阈值提交] = useState(null)
   const [授权提交, 设授权提交] = useState(null)
+  const [探针提交, 设探针提交] = useState(null)
   const 主状态 = ['已更新', '处理中', '需处理'].includes(来源?.human_status) ? 来源.human_status : '需处理'
   const 状态色 = 主状态 === '需处理' ? 'bad' : 主状态 === '处理中' ? 'warn' : 'ok'
   const 取不到 = 摘要?.加载失败 || 时序?.加载失败
@@ -1940,6 +1941,26 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 范围, 设范�
       设授权提交({ ok: false, text: `撤销失败：${error.message || '未知错误'}` })
     }
   }
+  const 历史探针状态 = ['NOT_REQUESTED', 'REQUESTED', 'RUNNING', 'COMPLETED', 'FAILED', 'EXPIRED'].includes(探针?.state)
+    ? 探针.state : 'NOT_REQUESTED'
+  const 历史探针进行中 = ['REQUESTED', 'RUNNING'].includes(历史探针状态)
+  const 历史探针色 = 历史探针状态 === 'COMPLETED' ? 'ok'
+    : 历史探针状态 === 'FAILED' || 历史探针状态 === 'EXPIRED' ? 'bad'
+      : 历史探针进行中 ? 'warn' : 'muted'
+  const 发起云端历史读取验证 = async () => {
+    设探针提交(null)
+    try {
+      // Deliberately no body or content type: the endpoint accepts no group,
+      // cursor, time range, command, attachment, message, or financial input.
+      const response = await fetch('/ops/api/daily-funds/history-probe', { method: 'POST' })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.detail || `HTTP ${response.status}`)
+      设探针提交({ ok: true, text: '已向独立云端容器提交一次固定的脱敏历史读取验证。' })
+      刷新()
+    } catch (error) {
+      设探针提交({ ok: false, text: `验证请求失败：${error.message || '未知错误'}` })
+    }
+  }
   return (
     <>
       <div className={`card callout ${主状态 === '已更新' ? '' : 状态色}`}>
@@ -1968,6 +1989,19 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 范围, 设范�
           <button type="button" className="btn" onClick={取消钉钉授权}>撤销本次授权</button>
         </div>}
         {授权提交 && <div className={`alert ${授权提交.ok ? 'ok' : 'bad'}`} role="status">{授权提交.text}</div>}
+      </div>
+
+      <div className={`card callout ${历史探针色 === 'ok' ? '' : 历史探针色}`} style={{ marginTop: 14 }}>
+        <b>云端历史读取验证：<span className={`chip ${历史探针色}`}>{历史探针状态 === 'COMPLETED' ? '已执行' : 历史探针进行中 ? '处理中' : 历史探针状态 === 'FAILED' || 历史探针状态 === 'EXPIRED' ? '未完成' : '未发起'}</span></b>
+        {历史探针状态 === 'NOT_REQUESTED' && <div className="sub">仅在每日资金容器自己的 DWS 卷内读取固定 24 小时窗口，最多两页；请求不携带命令、群 ID、时间范围、消息、附件或金额。</div>}
+        {历史探针状态 === 'REQUESTED' && <div className="sub">一次性固定探针已排队，容器会在独立 DWS 身份下执行并自动刷新结果。</div>}
+        {历史探针状态 === 'RUNNING' && <div className="sub">容器正在执行固定窗口、最多两页的脱敏历史读取；不会下载附件或写入原始数据。</div>}
+        {历史探针状态 === 'COMPLETED' && <div className="sub">本次读取已执行（{探针?.continuation_state || 'NOT_STARTED'}）。这只验证受限读取路径，不代表附件解析、双事实、整数分勾稽、金额或发布已通过。</div>}
+        {['FAILED', 'EXPIRED'].includes(历史探针状态) && <div className="sub">本次验证未完成（{探针?.machine_code || 'UNKNOWN'}）；系统没有把它写成来源、解析或发布通过。</div>}
+        {!历史探针进行中 && 历史探针状态 !== 'COMPLETED' && <div className="toolbar" style={{ marginTop: 10 }}>
+          <button type="button" className="btn active" onClick={发起云端历史读取验证}>验证云端历史读取</button>
+        </div>}
+        {探针提交 && <div className={`alert ${探针提交.ok ? 'ok' : 'bad'}`} role="status">{探针提交.text}</div>}
       </div>
 
       <div className="grid" style={{ marginTop: 14 }}>
@@ -2130,6 +2164,7 @@ export default function App() {
   const [资金来源, set资金来源] = useState(null)
   const [资金阈值, set资金阈值] = useState(null)
   const [资金认证, set资金认证] = useState(null)
+  const [资金历史探针, set资金历史探针] = useState(null)
   const [资金范围状态, set资金范围] = useState('30d')
   const [资金自定义, set资金自定义] = useState({ from: '', to: '' })
   // 每日资金是独立的私有纵向切片。若深链直接进入它，不能先把二十多条
@@ -2189,6 +2224,7 @@ export default function App() {
     取('/ops/api/daily-funds/source-health', set资金来源)
     取('/ops/api/daily-funds/thresholds', set资金阈值)
     取('/ops/api/daily-funds/auth-session', set资金认证)
+    取('/ops/api/daily-funds/history-probe', set资金历史探针)
   }
   useEffect(() => {
     if (页 === '每日资金' || 通用数据已请求.current) return
@@ -2222,14 +2258,19 @@ export default function App() {
     if (页 === '每日资金') 取每日资金()
   }, [页, 资金范围状态])
 
-  // Device authorization is deliberately a short, owner-visible operation.
-  // Poll only while it is live; a completed/idle daily-funds page keeps the
-  // original one-shot projection request footprint.
+  // Device authorization and the fixed history probe are deliberately short,
+  // owner-visible operations.  Poll only while either is live; a completed or
+  // idle page keeps the original one-shot projection request footprint.
   useEffect(() => {
-    if (页 !== '每日资金' || !['REQUESTED', 'AWAITING_APPROVAL', 'CANCELLING'].includes(资金认证?.state)) return undefined
-    const timer = window.setInterval(() => 取('/ops/api/daily-funds/auth-session', set资金认证), 2000)
+    const 授权需轮询 = ['REQUESTED', 'AWAITING_APPROVAL', 'CANCELLING'].includes(资金认证?.state)
+    const 探针需轮询 = ['REQUESTED', 'RUNNING'].includes(资金历史探针?.state)
+    if (页 !== '每日资金' || (!授权需轮询 && !探针需轮询)) return undefined
+    const timer = window.setInterval(() => {
+      if (授权需轮询) 取('/ops/api/daily-funds/auth-session', set资金认证)
+      if (探针需轮询) 取('/ops/api/daily-funds/history-probe', set资金历史探针)
+    }, 2000)
     return () => window.clearInterval(timer)
-  }, [页, 资金认证?.state])
+  }, [页, 资金认证?.state, 资金历史探针?.state])
 
   const 去 = (p, 断言id) => { set拍板跳转(断言id ?? null); set页(p) }
 
@@ -2308,7 +2349,7 @@ export default function App() {
             {页 === '回款与账龄' && <回款与账龄 账龄={账龄} />}
             {页 === '开票与税务' && <开票与税务 开票={开票} />}
             {页 === '每日资金' && <每日资金 摘要={资金摘要} 时序={资金时序} 来源={资金来源} 阈值={资金阈值}
-              认证={资金认证} 范围={资金范围状态} 设范围={set资金范围} 自定义={资金自定义} 设自定义={set资金自定义} 刷新={取每日资金} />}
+              认证={资金认证} 探针={资金历史探针} 范围={资金范围状态} 设范围={set资金范围} 自定义={资金自定义} 设自定义={set资金自定义} 刷新={取每日资金} />}
             {页 === '今天' && <>
               <h3 className="sec">上游归档目标群</h3>
               <目标群 群={目标群数据} 刷新={取群} />

@@ -1,0 +1,56 @@
+{
+  "schema_version": "kmfa.daily_funds.cloudflare_access_bridge_candidate.v1",
+  "stage": "T02_CLOUD_PRIMARY_COLLECTION_FIXED_HISTORY_PROBE",
+  "observed_on": "2026-08-09",
+  "moving_baseline": {
+    "origin_main_at_reconcile": "f85764d119e6e9623490edc033e6e73941ee8ecd",
+    "worktree_head": "0623296826f5a4b2bf9b480d408249cb40bd73bb",
+    "head_is_ancestor_of_origin_main": true,
+    "production_source_image_deployment_chain": "UNKNOWN"
+  },
+  "scope": {
+    "deployment_vault_credential_content_read_or_reused": false,
+    "cloudflare_api_request_executed": false,
+    "cloudflare_access_mutation_executed": false,
+    "dws_or_history_probe_executed": false,
+    "raw_message_or_attachment_read": false,
+    "push_or_deploy": "NOT_PERFORMED"
+  },
+  "candidate_contract": {
+    "workflow_mode": "daily-funds-history-probe-bridge",
+    "dispatch_ref": "refs/heads/main_only",
+    "target_resolution": "exactly_one_configured_https_self_hosted_ops_path_application",
+    "forbidden_target_shapes": [
+      "root_path",
+      "root_wildcard",
+      "non_https",
+      "ambiguous_match",
+      "incomplete_pagination"
+    ],
+    "temporary_service_token_duration": "60m",
+    "policy": "app_specific_non_identity_service_token_only",
+    "request": "fixed_same_origin_no_body_POST_then_values_free_GET_only",
+    "max_polling": "15_attempts_within_2_minutes",
+    "cursor_evidence": "finite_opaque_cursor_reuse_enum_only_no_cursor_value",
+    "cleanup": "delete_created_policy_then_created_service_token_or_NEEDS_ATTENTION"
+  },
+  "verification": {
+    "history_probe_backend_access_and_bridge_regression": "161_PASSED",
+    "python_compile": "PASS",
+    "workflow_yaml_parse": "PASS",
+    "values_free_secret_and_raw_sentinel_oracles": "PASS",
+    "taskpack_repository_projection": "PASS_49_REQUIREMENTS_49_ACCEPTANCE_56_PHASES_56_TASKS",
+    "taskpack_mutation_suite": "PASS_1_POSITIVE_4_NEGATIVE",
+    "git_diff_check": "PASS",
+    "daily_funds_browser_oracle": "PASS_5_SYNTHETIC_SCENARIOS_PRODUCTION_IDENTITY_NOT_EVALUATED",
+    "coolify_compose_full_and_lifecycle_profile_parse": "PASS",
+    "credential_pattern_filename_scan": "PASS_NO_HIT"
+  },
+  "acceptance_boundary": {
+    "cloudflare_access_write_capability": "NOT_RUN",
+    "real_target_group_history_probe": "NOT_RUN",
+    "opaque_cursor_transcript_from_real_provider_page": "NOT_RUN",
+    "ac_002": "NOT_MET",
+    "reason": "This is a local, main-only candidate with automatic cleanup. It has not been pushed, deployed, dispatched, or used to read DWS history; no financial source, attachment, reconciliation, D1/R2/OCI, or publication result is evidenced."
+  }
+}

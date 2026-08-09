@@ -153,7 +153,7 @@ def _message_timestamp(message: Mapping[str, Any]) -> datetime:
         parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
     except ValueError as exc:
         raise IngestionError("MESSAGE_TIMESTAMP_INVALID") from exc
-    # ``chat message list`` returns a naïve Beijing-local ``createTime``.
+    # DWS can return a naïve Beijing-local ``createTime``.
     # Treating it as UTC shifts the historical window by eight hours and can
     # drop a report around the business-day boundary.
     if parsed.tzinfo is None:
@@ -339,12 +339,13 @@ def _extract_page(payload: object, *, require_next_cursor: bool = True) -> DwsPa
         if records is None and isinstance(candidate.get("data"), list):
             records = candidate["data"]
         if records is None:
-            # DWS v1 represents a valid empty search page as
-            # ``{"hasMore": false}`` inside its successful ``result``
-            # envelope.  It is a real, bounded zero-result query, whereas a
-            # non-terminal page without a records list remains malformed.
+            # A terminal page is only a proven zero-result page when DWS
+            # explicitly supplies an empty records list.  ``hasMore: false``
+            # alone is ambiguous: some DWS query variants omit the records
+            # field even when the selected conversation has history.  Never
+            # turn that shape into SOURCE_MATCH_ZERO or advance a cursor.
             if raw_more is False:
-                records = []
+                raise IngestionError("DWS_PAGE_RECORDS_MISSING")
             else:
                 continue
         next_cursor = candidate.get("nextCursor", candidate.get("next_cursor"))
@@ -356,22 +357,6 @@ def _extract_page(payload: object, *, require_next_cursor: bool = True) -> DwsPa
             raw_more,
         )
     raise IngestionError("DWS_PAGE_SHAPE_INVALID")
-
-
-def _format_dws_history_time(value: datetime) -> str:
-    """Format the documented DWS list boundary in its Beijing-local syntax."""
-
-    return value.astimezone(BEIJING).strftime("%Y-%m-%d %H:%M:%S")
-
-
-def _parse_dws_history_cursor(value: str) -> datetime:
-    """Decode the durable list boundary without accepting opaque old cursors."""
-
-    try:
-        parsed = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
-    except ValueError as exc:
-        raise IngestionError("DWS_HISTORY_CURSOR_INVALID") from exc
-    return parsed.replace(tzinfo=BEIJING).astimezone(UTC)
 
 
 class DwsHistoryClient:
@@ -680,73 +665,68 @@ class DwsHistoryClient:
         self.ensure_authenticated()
         start = start.astimezone(UTC)
         end = end.astimezone(UTC)
-        anchor = _parse_dws_history_cursor(cursor) if cursor else end
-        if anchor < start:
-            return DwsPage(messages=(), next_cursor=None, has_more=False)
-        # DWS v1.0.52 defines ``--group`` and ``--user`` as mutually
-        # exclusive conversation selectors.  The cloud request is therefore
-        # group-scoped only; ``selected_messages`` applies the configured
-        # stable sender ID and document-family gates to every returned row.
+        # ``search-advanced`` is a history query when constrained to this
+        # exact conversation.  Unlike ``message list``, it preserves DWS's
+        # opaque ``nextCursor`` contract required by the task pack.  The
+        # group is still the sole remote source selector; the local stable
+        # sender and document-family checks remain mandatory below.
+        request_cursor = cursor or "0"
         command = [
             self.config.dws_bin,
-            "chat", "message", "list",
-            "--group", self.config.group_id,
-            # DWS documents list pagination as a boundary ``createTime``;
-            # the server returns newest-to-oldest for ``older``.  It is not
-            # the opaque cursor contract used by search-advanced.
-            "--time", _format_dws_history_time(anchor),
-            "--direction", "older",
+            "chat", "message", "search-advanced",
+            "--conversation-ids", self.config.group_id,
+            "--start", start.isoformat(),
+            "--end", end.isoformat(),
+            "--cursor", request_cursor,
             "--limit", "30",
             "--format", "json",
         ]
         try:
             completed = self._run_dws(
                 command,
-                operation="HISTORY_LIST",
+                operation="HISTORY_SEARCH_ADVANCED",
                 timeout=90,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise IngestionError("DWS_HISTORY_UNAVAILABLE") from exc
         if completed.returncode != 0:
             code = _dws_history_failure_code(completed.stdout, completed.stderr)
-            self._record_network_event("HISTORY_LIST", code)
+            self._record_network_event("HISTORY_SEARCH_ADVANCED", code)
             raise IngestionError(code)
         try:
             payload = json.loads(completed.stdout)
             raw_page = _extract_page(
                 _unwrap_dws_history_payload(payload),
-                require_next_cursor=False,
+                require_next_cursor=True,
             )
         except (IngestionError, json.JSONDecodeError) as exc:
             if isinstance(exc, IngestionError):
-                self._record_network_event("HISTORY_LIST", exc.code)
+                self._record_network_event("HISTORY_SEARCH_ADVANCED", exc.code)
                 raise
-            self._record_network_event("HISTORY_LIST", "INVALID")
+            self._record_network_event("HISTORY_SEARCH_ADVANCED", "INVALID")
             raise IngestionError("DWS_HISTORY_JSON_INVALID") from exc
         try:
             timestamps = tuple(_message_timestamp(message) for message in raw_page.messages)
         except IngestionError as exc:
-            self._record_network_event("HISTORY_LIST", exc.code)
+            self._record_network_event("HISTORY_SEARCH_ADVANCED", exc.code)
             raise
         if raw_page.has_more and not timestamps:
-            self._record_network_event("HISTORY_LIST", "INVALID")
+            self._record_network_event("HISTORY_SEARCH_ADVANCED", "INVALID")
             raise IngestionError("DWS_HISTORY_BOUNDARY_MISSING")
-        boundary = min(timestamps) if timestamps else None
-        if boundary is not None and boundary >= anchor and raw_page.has_more:
-            self._record_network_event("HISTORY_LIST", "INVALID")
+        if raw_page.has_more and raw_page.next_cursor == request_cursor:
+            self._record_network_event("HISTORY_SEARCH_ADVANCED", "INVALID")
             raise IngestionError("DWS_HISTORY_CURSOR_STALLED")
         page_messages = tuple(
             message
             for message, timestamp in zip(raw_page.messages, timestamps)
             if start <= timestamp <= end
         )
-        has_more = raw_page.has_more and boundary is not None and boundary > start
         page = DwsPage(
             messages=page_messages,
-            next_cursor=_format_dws_history_time(boundary) if has_more and boundary is not None else None,
-            has_more=has_more,
+            next_cursor=raw_page.next_cursor if raw_page.has_more else None,
+            has_more=raw_page.has_more,
         )
-        self._record_network_event("HISTORY_LIST", "OK")
+        self._record_network_event("HISTORY_SEARCH_ADVANCED", "OK")
         return page
 
     def assert_exact_source(self, message: Mapping[str, Any]) -> None:

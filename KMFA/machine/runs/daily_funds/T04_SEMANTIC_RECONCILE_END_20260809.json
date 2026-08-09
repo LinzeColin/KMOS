@@ -1,0 +1,42 @@
+{
+  "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
+  "stage": "T04_REAL_ATTACHMENT_CAPABILITY_AUDIT_END",
+  "observed_on": "2026-08-09",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "verification": "PASS requirements=24 tasks=11 acceptance=17"
+  },
+  "moving_baseline": {
+    "origin_main": "f85764d119e6e9623490edc033e6e73941ee8ecd",
+    "latest_deploy_workflow_for_origin_main": "SUCCESS",
+    "anonymous_healthz": "HTTP_200",
+    "current_container_source_image_deployment_chain": "UNKNOWN"
+  },
+  "t04_evidence": {
+    "private_raw_authority_readback": "VERIFIED_FOR_ACQUIRED_RAW_ONLY",
+    "real_attachment_capability": "NEEDS_REVIEW",
+    "deterministic_parser_open_for_complete_dual_fact_pair": "NOT_ESTABLISHED",
+    "account_snapshot_and_transaction_pair": "NOT_ESTABLISHED",
+    "integer_fen_reconciliation": "NOT_RUN",
+    "d1_r2_oci_business_publication": "NOT_RUN",
+    "restore_drill_and_post_deploy_observation": "NOT_RUN",
+    "historical_source_completeness": "UNKNOWN_DWS_HISTORY_PERMISSION_DENIED",
+    "protected_status_receipt": "UNKNOWN_ACCESS_REQUIRED"
+  },
+  "candidate_validation": {
+    "daily_funds_contract": "PASS 104 passed",
+    "daily_funds_status_api": "PASS 17 passed",
+    "python_compile": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "decision": {
+    "t04_acceptance": "NOT_MET",
+    "human_status": "需处理",
+    "candidate_scope": "values-free source-discovery diagnostics only",
+    "publication_or_data_write": "NOT_PERFORMED",
+    "push_or_deploy": "NOT_PERFORMED",
+    "reason": "A raw attachment archive, successful local regression, deployment workflow, or health response cannot substitute for a target-group real sample that deterministically yields same-day account snapshots plus transaction facts."
+  },
+  "next_gate": "Only a fresh independent-cloud source receipt proving deterministic parser-open and one unambiguous same-day dual-fact pair may advance to T05; otherwise T04 remains needs-review."
+}

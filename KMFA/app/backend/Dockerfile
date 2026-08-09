@@ -13,6 +13,13 @@ COPY KMDatabase /opt/kmfa/KMOS/KMDatabase
 COPY KMFA /opt/kmfa/KMOS/KMFA
 # 显式重复制受 CI 校验的静态产物，防止日后 ``COPY KMFA`` 范围变化时静默遗漏。
 COPY KMFA/app/frontend/dist /opt/kmfa/KMOS/KMFA/app/frontend/dist
+# Coolify may provide the checked-out source commit only at build time.  Keep
+# a strictly validated copy in the immutable image layer instead of an
+# environment variable or a shared volume; the application will expose only
+# a one-way fingerprint comparison and never the raw SHA.
+ARG SOURCE_COMMIT
+RUN python3 -c "from pathlib import Path; import os; value = os.environ.get('SOURCE_COMMIT', '').strip(); valid = len(value) == 40 and all(ch in '0123456789abcdef' for ch in value); Path('/opt/kmfa/KMOS/KMFA/app/backend/app/.kmfa-source-commit').write_text((value if valid else 'UNKNOWN') + chr(10), encoding='ascii')" \
+    && chmod 0444 /opt/kmfa/KMOS/KMFA/app/backend/app/.kmfa-source-commit
 # Raw request-target access logs are disabled: a caller can control query
 # strings before application middleware runs. The app keeps structured,
 # capability-redacted audit events instead. Port 8000 is internal-only behind
