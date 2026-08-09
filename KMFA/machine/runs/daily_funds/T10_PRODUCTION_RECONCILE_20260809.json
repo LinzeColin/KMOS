@@ -1,0 +1,65 @@
+{
+  "schema_version": "kmfa.daily_funds.production_reconcile.v1",
+  "stage": "T10_PRODUCTION_RECONCILE",
+  "observed_at": "2026-08-09T07:16:48Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "verification": "PASS requirements=24 tasks=11 acceptance=17"
+  },
+  "moving_baseline": {
+    "origin_main_at_finish": "a337d8512fdf2b64037e65698eda196e35dfaee2",
+    "worktree_head_at_finish": "a337d8512fdf2b64037e65698eda196e35dfaee2",
+    "head_matches_origin_main": true
+  },
+  "production": {
+    "application_status": "running:healthy",
+    "deploy_workflow_run": "31300177823",
+    "deploy_workflow_result": "SUCCESS",
+    "deployment_uuid": "bq93hzgxapmdb3wsniyq126t",
+    "deployment_status": "finished",
+    "deployment_completed_at": "2026-08-09T07:12:47Z",
+    "source_commit": "a337d8512fdf2b64037e65698eda196e35dfaee2",
+    "image_digest": "sha256:0231e4b2013ac3c81fcfdba3da6615c87cb1a18c1363242cc710502605c84a5d",
+    "identity_receipt_workflow_run": "31300660772",
+    "identity_receipt_result": "SUCCESS",
+    "deploy_smoke_job": "SKIPPED",
+    "deploy_home_sync_job": "SKIPPED"
+  },
+  "cloud_control": {
+    "readback_workflow_run": "31300683090",
+    "application_list_result": "SUCCESS",
+    "history_probe_bridge_workflow_run": "31300699543",
+    "history_probe_transport": "OK",
+    "history_probe_result": "NOT_MET",
+    "history_probe_state": "FAILED",
+    "history_probe_machine_code": "DWS_PAGE_RECORDS_MISSING",
+    "history_probe_continuation_state": "NOT_STARTED",
+    "history_probe_cursor_transcript": "NOT_STARTED",
+    "history_probe_access_cleanup": "OK",
+    "values_free_log_workflow_run": "31300747825",
+    "values_free_log_transport": "OK",
+    "values_free_log_http_status": "200",
+    "values_free_log_daily_funds_events": "NONE_OBSERVED"
+  },
+  "acceptance": {
+    "cloud_independent_runtime_and_production_identity": "VERIFIED",
+    "configured_source_history_page": "NOT_MET",
+    "opaque_cursor_page_sequence": "NOT_MET",
+    "raw_message_and_attachment_acquisition_after_this_deploy": "NOT_RUN",
+    "integer_fen_reconciliation": "NOT_RUN",
+    "d1_projection": "NOT_RUN",
+    "r2_hot_mirror": "NOT_RUN",
+    "oci_offsite_backup": "NOT_RUN",
+    "empty_environment_restore": "NOT_RUN",
+    "financial_publication": "NOT_RUN"
+  },
+  "decision": {
+    "status": "DEPLOYED_WITH_SOURCE_GATE_UNMET",
+    "human_status": "需处理",
+    "reason": "The sole configured DWS history operation reached the independent cloud identity but returned a terminal page without an explicit record list. Under DF-002 this is ambiguous, cannot be treated as an empty source, and cannot advance an opaque cursor or be substituted with timestamp-boundary pagination.",
+    "business_data_or_secret_written_to_public_repository": false,
+    "temporary_access_identity_left_after_probe": false
+  },
+  "next_gate": "A real configured-source response that includes an explicit record list and the required opaque pagination contract is required before raw acquisition, reconciliation, D1/R2/OCI writes, restore evidence, or any financial publication can be evaluated."
+}
