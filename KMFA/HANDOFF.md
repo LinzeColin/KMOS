@@ -23,6 +23,8 @@
 
 ### 当前真实状态（T12 后，以此小节为准）
 
+- **2026-08-09 T14 精确群历史采集适配（当前待部署候选）**：现网 `0c6e65a8…` 已由 deployment-info 回读为实际运行源码；其固定 Access probe 成功证明同一独立 DWS 身份可以用官方 `+chat-messages` 在精确群、固定窗口中得到 `GROUP_HISTORY_V2_FIRST_PAGE_TERMINAL`，临时 Access policy/token 均已精确清理。为处理同一来源的 `search-advanced` 终页缺少显式记录列表，候选运行时保留原 opaque-cursor 路径；仅该特定失败才调用官方精确群 full-ledger reader，并强制 `complete=true`、`hasMore=false`、已知分页、零失败/零截断、精确群和稳定发送人门禁后才交给 raw 流程。它不从投影时间构造 cursor；full-ledger 不完整、群/候选发送人身份不确定或任一页异常时不推进 durable cursor/high-water。当前本地每日资金回归 `189 passed, 1 skipped`、任务包投影/变异门禁和每日资金 API `20 passed`；该候选尚未部署，故真实采集、raw、解析、双事实、整数分勾稽、D1/R2/OCI、恢复和资金 publication 仍均为 `NOT_RUN`，不可写 PASS。详见 `machine/runs/daily_funds/T14_GROUP_HISTORY_COLLECTOR_RECONCILE_20260809.json`。
+
 - **2026-08-09 T13 精确群聊类型兼容候选（本地，尚非生产证据）**：为消除固定群/发送人 `search-advanced` 回包无记录数组的唯一已知兼容歧义，默认受控运行时升级为官方稳定 DWS `v1.0.57`，其 Linux 两架构发布资产已按官方 SHA-256 表核验；同一条远端窄查询显式增加该命令上游测试使用的 `--conversation-type group`，仍同时绑定唯一 `--conversation-ids` 和唯一 `--sender-ids`，本地群/发送人/文档族三重门禁未改变。它不使用 beta、关键词、全局搜索、时间边界 list 或本机资料。尚未取得这条候选的云端 history-probe 回执前，DF-002 与后续采集/勾稽/发布均不得写 PASS。
 
 - **2026-08-09 T11 精确来源选择器兼容修复（本地已验证，尚非生产证据）**：固定的 DWS `v1.0.52` 已在其命令实现中明确支持将 `--conversation-ids` 与 `--sender-ids` 组合到同一条 `search-advanced` 调用，并保持 opaque `nextCursor`。每日资金现用唯一群与唯一 `senderOpenDingTalkId` 的交集作为远端窄选择器，回包仍逐条执行群/发送人/文档族本地三重门禁；不使用全会话、时间边界 list 或本机来源。隔离 Python 3.12 回归为 `205 passed`，原任务包 verifier 为 `24 requirements / 11 tasks / 17 acceptance`，仓库 TaskPack projection 与变异门禁均通过。它只修复了满足 DF-002/DF-004 的请求形态，尚未取得新的云端 DWS 结果，原始写入、解析、整数分勾稽、D1/R2/OCI、恢复和资金发布仍不能写 PASS。

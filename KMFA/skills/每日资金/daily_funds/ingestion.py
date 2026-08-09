@@ -880,6 +880,210 @@ class DwsHistoryClient:
         # surface; successful JSON execution is the only evidence recorded.
         self._record_network_event("HISTORY_GROUP_SCOPE", "OK")
 
+    def _group_history_v2_payload(
+        self,
+        start: datetime,
+        end: datetime,
+        *,
+        page_limit: int,
+        operation: str,
+        unavailable_code: str,
+        failed_code: str,
+        invalid_code: str,
+        timeout: int,
+    ) -> Mapping[str, Any]:
+        """Read a bounded exact-group ledger from the official DWS shortcut.
+
+        ``+chat-messages`` owns the provider's millisecond continuation
+        internally.  This helper deliberately returns its in-memory typed
+        ledger only to the caller that can prove completion; no provider
+        cursor, message, selector or diagnostics are recorded in state/logs.
+        """
+
+        start = start.astimezone(UTC)
+        end = end.astimezone(UTC)
+        if start >= end or not 1 <= page_limit <= 500:
+            self._record_network_event(operation, "INVALID")
+            raise IngestionError("DWS_HISTORY_WINDOW_INVALID")
+        self.ensure_authenticated()
+        command = [
+            self.config.dws_bin,
+            "chat",
+            "+chat-messages",
+            "--group",
+            self.config.group_id,
+            "--start",
+            start.isoformat(),
+            "--end",
+            end.isoformat(),
+            "--order",
+            "asc",
+            # The shortcut's reviewed full-ledger mode follows only the
+            # provider's authoritative millisecond cursor.  It never derives
+            # a continuation from projected second-precision createTime.
+            "--limit",
+            "100",
+            "--page-all",
+            "--page-limit",
+            str(page_limit),
+            "--format",
+            "json",
+        ]
+        try:
+            completed = self._run_dws(command, operation=operation, timeout=timeout)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise IngestionError(unavailable_code) from exc
+        if completed.returncode != 0:
+            code = _dws_history_failure_code(
+                completed.stdout,
+                completed.stderr,
+                fallback=failed_code,
+            )
+            self._record_network_event(operation, code)
+            raise IngestionError(code)
+        try:
+            payload = _unwrap_dws_history_payload(json.loads(completed.stdout))
+        except (IngestionError, json.JSONDecodeError) as exc:
+            if isinstance(exc, IngestionError):
+                self._record_network_event(operation, exc.code)
+                raise
+            self._record_network_event(operation, "INVALID")
+            raise IngestionError(invalid_code) from exc
+        if not isinstance(payload, Mapping):
+            self._record_network_event(operation, "INVALID")
+            raise IngestionError(invalid_code)
+        return payload
+
+    def collect_group_history_v2(self, start: datetime, end: datetime) -> DwsPage:
+        """Return one complete exact-group window or fail before persistence.
+
+        This is the production fallback for a DWS ``search-advanced`` page
+        that omits its required explicit record list.  Unlike a timestamp
+        pagination workaround, the official shortcut follows the provider's
+        own millisecond continuation while collecting the entire requested
+        range.  A page cap, partial ledger, failure ledger, unknown
+        pagination flag, or source-identity loss is fatal; callers receive a
+        terminal page only after the whole requested range is complete.
+        """
+
+        payload = self._group_history_v2_payload(
+            start,
+            end,
+            page_limit=500,
+            operation="HISTORY_GROUP_V2_COLLECT",
+            unavailable_code="DWS_GROUP_HISTORY_COLLECT_UNAVAILABLE",
+            failed_code="DWS_GROUP_HISTORY_COLLECT_FAILED",
+            invalid_code="DWS_GROUP_HISTORY_COLLECT_INVALID",
+            timeout=720,
+        )
+        messages = payload.get("messages")
+        pages_fetched = payload.get("pagesFetched")
+        count = payload.get("count")
+        has_more = payload.get("hasMore")
+        complete = payload.get("complete")
+        pagination_known = payload.get("paginationKnown")
+        failed_count = payload.get("failedCount")
+        failures = payload.get("failures")
+        partial = payload.get("partial")
+        truncated_by_page_limit = payload.get("truncatedByPageLimit")
+        truncated_by_result_limit = payload.get("truncatedByResultLimit")
+        stop_reason = payload.get("stopReason")
+        if (
+            not isinstance(messages, list)
+            or any(not isinstance(message, Mapping) for message in messages)
+            or isinstance(pages_fetched, bool)
+            or not isinstance(pages_fetched, int)
+            or not 1 <= pages_fetched <= 500
+            or isinstance(count, bool)
+            or not isinstance(count, int)
+            or count != len(messages)
+            or not isinstance(has_more, bool)
+            or not isinstance(complete, bool)
+            or not isinstance(failed_count, int)
+            or isinstance(failed_count, bool)
+            or not isinstance(failures, list)
+            or not isinstance(partial, bool)
+            or not isinstance(truncated_by_page_limit, bool)
+            or not isinstance(truncated_by_result_limit, bool)
+            or not isinstance(stop_reason, str)
+        ):
+            self._record_network_event("HISTORY_GROUP_V2_COLLECT", "INVALID")
+            raise IngestionError("DWS_GROUP_HISTORY_COLLECT_INVALID")
+        if (
+            complete is not True
+            or has_more is not False
+            or pagination_known is not True
+            or failed_count != 0
+            or failures
+            or partial
+            or truncated_by_page_limit
+            or truncated_by_result_limit
+            or stop_reason not in {"source_complete", "range_end"}
+        ):
+            self._record_network_event("HISTORY_GROUP_V2_COLLECT", "INCOMPLETE")
+            raise IngestionError("DWS_GROUP_HISTORY_COLLECT_INCOMPLETE")
+
+        normalized: list[dict[str, Any]] = []
+        for message in messages:
+            # The shortcut exposes a stable, deliberately narrow projection.
+            # Preserve it verbatim and add only compatibility aliases needed
+            # by the existing raw attachment/download gate.  A missing or
+            # different group/sender identity cannot be safely filtered and
+            # therefore fails the entire source window.
+            canonical = dict(message)
+            conversation_id = _message_field(
+                canonical,
+                ("openConversationId", "conversationId", "conversation_id"),
+            )
+            sender_id = _message_field(
+                canonical,
+                ("senderOpenDingTalkId", "sender_open_dingtalk_id", "senderId", "sender_id"),
+            )
+            if conversation_id != self.config.group_id:
+                self._record_network_event("HISTORY_GROUP_V2_COLLECT", "SOURCE_INVALID")
+                raise IngestionError("AMBIGUOUS_SOURCE")
+            canonical["openConversationId"] = conversation_id
+            # System rows can have no stable sender identity.  They cannot be
+            # candidates unless they advertise one of the allowed document
+            # families; a candidate without that identity is ambiguous and
+            # must close the entire source window rather than be skipped.
+            if not sender_id:
+                if _family(canonical) is not None:
+                    self._record_network_event("HISTORY_GROUP_V2_COLLECT", "SOURCE_INVALID")
+                    raise IngestionError("AMBIGUOUS_SOURCE")
+            else:
+                canonical["senderOpenDingTalkId"] = sender_id
+            message_id = _message_field(
+                canonical,
+                ("openMessageId", "messageId", "message_id", "id"),
+            )
+            if message_id:
+                canonical["openMessageId"] = message_id
+
+            resource_refs = canonical.get("resourceRefs")
+            if resource_refs is not None:
+                if not isinstance(resource_refs, list):
+                    self._record_network_event("HISTORY_GROUP_V2_COLLECT", "INVALID")
+                    raise IngestionError("DWS_GROUP_HISTORY_COLLECT_INVALID")
+                attachments: list[dict[str, Any]] = []
+                for resource in resource_refs:
+                    if not isinstance(resource, Mapping):
+                        self._record_network_event("HISTORY_GROUP_V2_COLLECT", "INVALID")
+                        raise IngestionError("DWS_GROUP_HISTORY_COLLECT_INVALID")
+                    resource_type = _message_field(resource, ("type", "resourceType", "resource_type"))
+                    resource_id = _message_field(resource, ("resourceId", "resource_id", "mediaId", "media_id"))
+                    if resource_type == "mediaId":
+                        if not resource_id:
+                            self._record_network_event("HISTORY_GROUP_V2_COLLECT", "INVALID")
+                            raise IngestionError("DWS_GROUP_HISTORY_COLLECT_INVALID")
+                        attachments.append({"mediaId": resource_id})
+                if attachments:
+                    canonical["attachments"] = attachments
+            normalized.append(canonical)
+
+        self._record_network_event("HISTORY_GROUP_V2_COLLECT", "OK")
+        return DwsPage(messages=tuple(normalized), next_cursor=None, has_more=False)
+
     def probe_group_history_v2(
         self,
         start: datetime,
@@ -895,57 +1099,16 @@ class DwsHistoryClient:
         and its stdout is parsed only into this finite control result.
         """
 
-        start = start.astimezone(UTC)
-        end = end.astimezone(UTC)
-        if start >= end:
-            self._record_network_event("HISTORY_GROUP_V2", "INVALID")
-            raise IngestionError("DWS_HISTORY_WINDOW_INVALID")
-        self.ensure_authenticated()
-        command = [
-            self.config.dws_bin,
-            "chat",
-            "+chat-messages",
-            "--group",
-            self.config.group_id,
-            "--start",
-            start.isoformat(),
-            "--end",
-            end.isoformat(),
-            "--order",
-            "asc",
-            "--page-all",
-            "--page-limit",
-            "2",
-            "--format",
-            "json",
-        ]
-        try:
-            completed = self._run_dws(
-                command,
-                operation="HISTORY_GROUP_V2",
-                timeout=90,
-            )
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            raise IngestionError("DWS_GROUP_HISTORY_PROBE_UNAVAILABLE") from exc
-        if completed.returncode != 0:
-            code = _dws_history_failure_code(
-                completed.stdout,
-                completed.stderr,
-                fallback="DWS_GROUP_HISTORY_PROBE_FAILED",
-            )
-            self._record_network_event("HISTORY_GROUP_V2", code)
-            raise IngestionError(code)
-        try:
-            payload = _unwrap_dws_history_payload(json.loads(completed.stdout))
-        except (IngestionError, json.JSONDecodeError) as exc:
-            if isinstance(exc, IngestionError):
-                self._record_network_event("HISTORY_GROUP_V2", exc.code)
-                raise
-            self._record_network_event("HISTORY_GROUP_V2", "INVALID")
-            raise IngestionError("DWS_GROUP_HISTORY_PROBE_INVALID") from exc
-        if not isinstance(payload, Mapping):
-            self._record_network_event("HISTORY_GROUP_V2", "INVALID")
-            raise IngestionError("DWS_GROUP_HISTORY_PROBE_INVALID")
+        payload = self._group_history_v2_payload(
+            start,
+            end,
+            page_limit=2,
+            operation="HISTORY_GROUP_V2",
+            unavailable_code="DWS_GROUP_HISTORY_PROBE_UNAVAILABLE",
+            failed_code="DWS_GROUP_HISTORY_PROBE_FAILED",
+            invalid_code="DWS_GROUP_HISTORY_PROBE_INVALID",
+            timeout=90,
+        )
 
         # Require the explicit list even though it is deliberately discarded:
         # an omitted list is the exact ambiguity that caused the primary
@@ -1270,8 +1433,21 @@ class HistoryPoller:
             cursor = self.state.get_cursor(cursor_key) or None
             pages = 0
             candidate_cursor = cursor
+            group_history_fallback_used = False
             while True:
-                page = self.client.search(start, now, candidate_cursor)
+                try:
+                    page = self.client.search(start, now, candidate_cursor)
+                except IngestionError as exc:
+                    # A record-less terminal search page is explicitly
+                    # ambiguous under DF-002.  The official exact-group
+                    # reader is the only compatible fallback: it follows the
+                    # provider cursor internally and returns a terminal page
+                    # only after the complete requested window.  Never retry
+                    # it after a failure or synthesize a cursor from time.
+                    if exc.code != "DWS_PAGE_RECORDS_MISSING" or group_history_fallback_used:
+                        raise
+                    page = self.client.collect_group_history_v2(start, now)
+                    group_history_fallback_used = True
                 persist_page(page)
                 pages += 1
                 if not page.has_more:

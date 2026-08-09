@@ -1813,12 +1813,25 @@ class DailyFundsRuntime:
             return self.status.write("需处理", "CONFIG_INVALID")
         client = self._dws_client()
         now = datetime.now(UTC)
+
+        def probe_history_read() -> None:
+            try:
+                client.search(now - timedelta(minutes=1), now, None)
+            except IngestionError as exc:
+                # Keep the per-minute authorization signal aligned with the
+                # scheduled collector.  A record-less legacy search response
+                # is not an auth failure; only the exact-group, provider-owned
+                # full-window reader can settle that protocol ambiguity.
+                if exc.code != "DWS_PAGE_RECORDS_MISSING":
+                    raise
+                client.collect_group_history_v2(now - timedelta(minutes=1), now)
+
         try:
             self._lease_call(
                 "auth_probe_lock",
                 ttl_seconds=55,
                 code="AUTH_PROBE_LOCK_HELD",
-                callback=lambda: client.search(now - timedelta(minutes=1), now, None),
+                callback=probe_history_read,
             )
         except IngestionError as exc:
             if exc.code == "AUTH_PROBE_LOCK_HELD":

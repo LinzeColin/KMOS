@@ -2856,7 +2856,7 @@ def test_dws_history_rejects_list_outside_named_pagination_wrapper(tmp_path: Pat
         )
 
 
-def test_recordless_terminal_dws_page_never_becomes_source_match_zero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_recordless_terminal_dws_page_never_becomes_source_match_zero_without_a_complete_group_ledger(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config = _config(tmp_path)
 
     def runner(command, **kwargs):
@@ -2867,6 +2867,22 @@ def test_recordless_terminal_dws_page_never_becomes_source_match_zero(tmp_path: 
                 "success": True,
                 "result": {"hasMore": False},
             }), "")
+        if command[1:3] == ["chat", "+chat-messages"]:
+            # A page limit is a partial ledger, not a valid empty source.
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "messages": [],
+                "count": 0,
+                "pagesFetched": 500,
+                "paginationKnown": True,
+                "complete": False,
+                "hasMore": True,
+                "stopReason": "page_limit",
+                "truncatedByPageLimit": True,
+                "truncatedByResultLimit": False,
+                "failedCount": 0,
+                "failures": [],
+                "partial": False,
+            }), "")
         raise AssertionError(f"unexpected DWS command: {command}")
 
     runtime = DailyFundsRuntime(config)
@@ -2875,7 +2891,7 @@ def test_recordless_terminal_dws_page_never_becomes_source_match_zero(tmp_path: 
 
     assert runtime.poll(now=datetime(2026, 8, 1, tzinfo=UTC)) == {
         "ok": False,
-        "code": "DWS_PAGE_RECORDS_MISSING",
+        "code": "DWS_GROUP_HISTORY_COLLECT_INCOMPLETE",
     }
 
 
@@ -3118,6 +3134,8 @@ def test_dws_group_history_v2_probe_uses_only_the_fixed_window_and_discards_mess
             end.isoformat(),
             "--order",
             "asc",
+            "--limit",
+            "100",
             "--page-all",
             "--page-limit",
             "2",
@@ -3149,6 +3167,141 @@ def test_dws_group_history_v2_probe_uses_only_the_fixed_window_and_discards_mess
         ("DWS", "AUTH_STATUS", "OK"),
         ("DWS", "HISTORY_GROUP_V2", "OK"),
     ]
+
+
+def test_history_poller_falls_back_to_complete_exact_group_ledger_after_recordless_search(tmp_path: Path) -> None:
+    """The compatibility path must be complete before it clears any cursor."""
+
+    config = _config(tmp_path)
+    state = RuntimeState(config.state_dir)
+    state.commit_cursor("opaque-resume-cursor")
+    events: list[tuple[str, str, str]] = []
+    commands: list[list[str]] = []
+    start = datetime(2026, 8, 1, tzinfo=UTC)
+    end = datetime(2026, 8, 1, 0, 10, tzinfo=UTC)
+    source_sentinel = "exact-group-source-value-stays-in-memory"
+
+    def runner(command, **_kwargs):
+        commands.append(command)
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "success": True,
+                "result": {"hasMore": False},
+            }), "")
+        assert command == [
+            config.dws_bin,
+            "chat",
+            "+chat-messages",
+            "--group",
+            config.group_id,
+            "--start",
+            start.isoformat(),
+            "--end",
+            end.isoformat(),
+            "--order",
+            "asc",
+            "--limit",
+            "100",
+            "--page-all",
+            "--page-limit",
+            "500",
+            "--format",
+            "json",
+        ]
+        return subprocess.CompletedProcess(command, 0, json.dumps({
+            "messages": [{
+                "conversationId": config.group_id,
+                "senderId": config.sender_id,
+                "messageId": "message-1",
+                "createTime": "2026-08-01T00:05:00Z",
+                "text": f"资金明细 {source_sentinel}",
+                "resourceRefs": [{"type": "mediaId", "resourceId": "media-1"}],
+            }],
+            "count": 1,
+            "pagesFetched": 2,
+            "paginationKnown": True,
+            "complete": True,
+            "hasMore": False,
+            "stopReason": "range_end",
+            "truncatedByPageLimit": False,
+            "truncatedByResultLimit": False,
+            "failedCount": 0,
+            "failures": [],
+            "partial": False,
+        }), "")
+
+    client = DwsHistoryClient(config, runner=runner, event_sink=lambda *event: events.append(event))
+    seen: list[DwsPage] = []
+    pages = HistoryPoller(state, client).poll(
+        now=end,
+        persist_page=seen.append,
+        holder="fixture",
+        start_override=start,
+    )
+
+    assert pages == 1
+    assert len(seen) == 1
+    page = seen[0]
+    assert page.has_more is False and page.next_cursor is None
+    assert len(page.messages) == 1
+    message = page.messages[0]
+    assert message["openConversationId"] == config.group_id
+    assert message["senderOpenDingTalkId"] == config.sender_id
+    assert message["openMessageId"] == "message-1"
+    assert message["attachments"] == [{"mediaId": "media-1"}]
+    assert client.selected_messages(page) == (message,)
+    assert state.get_cursor() is None
+    assert state.get("history_high_water_at") == end.isoformat().replace("+00:00", "Z")
+    assert events == [
+        ("DWS", "AUTH_STATUS", "OK"),
+        ("DWS", "HISTORY_SEARCH_ADVANCED", "DWS_PAGE_RECORDS_MISSING"),
+        ("DWS", "HISTORY_GROUP_V2_COLLECT", "OK"),
+    ]
+    assert source_sentinel not in json.dumps(events)
+
+
+def test_incomplete_group_history_fallback_never_advances_durable_cursor(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    state = RuntimeState(config.state_dir)
+    state.commit_cursor("opaque-resume-cursor")
+
+    def runner(command, **_kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "success": True,
+                "result": {"hasMore": False},
+            }), "")
+        if command[1:3] == ["chat", "+chat-messages"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "messages": [],
+                "count": 0,
+                "pagesFetched": 500,
+                "paginationKnown": True,
+                "complete": False,
+                "hasMore": True,
+                "stopReason": "page_limit",
+                "truncatedByPageLimit": True,
+                "truncatedByResultLimit": False,
+                "failedCount": 0,
+                "failures": [],
+                "partial": False,
+            }), "")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    poller = HistoryPoller(state, DwsHistoryClient(config, runner=runner))
+    with pytest.raises(IngestionError, match="DWS_GROUP_HISTORY_COLLECT_INCOMPLETE"):
+        poller.poll(
+            now=datetime(2026, 8, 1, 0, 10, tzinfo=UTC),
+            persist_page=lambda _page: None,
+            holder="fixture",
+            start_override=datetime(2026, 8, 1, tzinfo=UTC),
+        )
+    assert state.get_cursor() == "opaque-resume-cursor"
+    assert state.get("history_high_water_at") is None
 
 
 def test_dws_group_history_v2_probe_refuses_a_recordless_or_incomplete_page(tmp_path: Path) -> None:

@@ -1,0 +1,53 @@
+{
+  "schema_version": "kmfa.daily_funds.semantic_reconcile.v1",
+  "stage": "T14_GROUP_HISTORY_COLLECTOR_RECONCILE",
+  "observed_at": "2026-08-09T12:14:49Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "relevant_requirements": ["DF-002", "DF-004", "DF-005", "DF-018", "DF-022"]
+  },
+  "moving_baseline": {
+    "origin_main_before_candidate": "0c6e65a8a0169d50b4ae3dd8398300cfb0a747f8",
+    "candidate_is_uncommitted": true,
+    "whole_file_overwrite": false
+  },
+  "production_control_evidence": {
+    "source_commit": "0c6e65a8a0169d50b4ae3dd8398300cfb0a747f8",
+    "deploy_workflow_run": "31312103532",
+    "deploy_workflow_result": "SUCCESS",
+    "deployment_uuid": "i11uglb8ry2sz771qekeysf7",
+    "deployment_status": "finished",
+    "deployment_identity_workflow_run": "31312745740",
+    "deployment_identity_result": "SUCCESS",
+    "history_probe_bridge_workflow_run": "31312772728",
+    "history_probe_transport": "OK",
+    "history_probe_machine_code": "DWS_GROUP_HISTORY_PROBE_COMPLETED",
+    "history_probe_continuation_state": "GROUP_HISTORY_V2_FIRST_PAGE_TERMINAL",
+    "history_probe_access_cleanup": "OK"
+  },
+  "semantic_reconcile": {
+    "observed_legacy_behavior": "search_advanced_terminal_page_without_explicit_records",
+    "legacy_interpretation": "NOT_EMPTY_NOT_CURSOR_ADVANCE",
+    "official_compatible_reader": "dws_chat_plus_chat_messages_exact_group",
+    "provider_continuation": "authoritative_millisecond_cursor_owned_by_dws",
+    "collector_acceptance_rule": "complete_true_and_hasMore_false_and_paginationKnown_true_and_zero_failures_and_zero_truncation",
+    "source_gate_after_projection": "exact_group_then_stable_sender_then_document_family",
+    "literal_opaque_cursor_contract": "LEGACY_PATH_ONLY; GROUP_HISTORY_V2_IS_SEMANTIC_RECONCILE_NOT_LITERAL_OPAQUE",
+    "fallback_on_incomplete": "FAIL_CLOSED_NO_DURABLE_CURSOR_OR_HIGH_WATER_ADVANCE"
+  },
+  "candidate_validation": {
+    "daily_funds_targeted_contract": "PASS 176 passed, 1 skipped",
+    "python_compile": "PASS",
+    "production_collector_run": "NOT_RUN",
+    "raw_message_or_attachment_write_by_this_candidate": "NOT_RUN",
+    "financial_publication": "NOT_RUN"
+  },
+  "decision": {
+    "status": "CANDIDATE_READY_FOR_DEPLOYMENT",
+    "human_status": "需处理",
+    "unknown_as_pass": false,
+    "reason": "The deployed fixed probe proved only that the exact-group DWS reader can return a complete terminal ledger without exposing source values. The production collector adaptation is locally validated but has not yet been deployed or run against the configured source."
+  },
+  "next_gate": "Deploy this candidate, re-read deployed source identity, then observe one real scheduled collector receipt. Only a complete source window followed by real raw bytes, deterministic parser-open, same-day dual facts, zero-fen reconciliation, D1/R2/OCI and restore evidence may advance financial publication."
+}
