@@ -1,0 +1,62 @@
+{
+  "schema_version": "kmfa.daily_funds.t07_private_projection_and_ui_contract.v1",
+  "stage": "T07_API_AND_OWNER_UI",
+  "observed_at": "2026-08-09T15:56:50Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "requirements": ["DF-013", "DF-014", "DF-017"]
+  },
+  "moving_baseline": {
+    "origin_main": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "worktree_head": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "match": true,
+    "fetch_completed_before_validation": true
+  },
+  "local_contract": {
+    "daily_funds_api_regression": "PASS_20_OF_20",
+    "public_private_access_regression": "PASS_24_OF_24",
+    "frontend_production_build": "PASS",
+    "browser_oracle": {
+      "fixture": "SYNTHETIC_ONLY",
+      "cases": 5,
+      "passed": 5,
+      "states": ["已更新", "处理中", "需处理"],
+      "viewports": ["desktop", "mobile"],
+      "color_schemes": ["light", "dark"],
+      "default_range": "30d",
+      "range_and_chart_controls": "EXERCISED",
+      "mobile_overflow": "CHECKED",
+      "raw_data_boundary": "NO_RAW_MARKERS_IN_API_OR_DOM"
+    },
+    "projection_boundary": {
+      "read_input": "VERSIONED_VALIDATED_PUBLICATION_ONLY",
+      "rejection": "MALFORMED_OR_UNPAIRED_OR_NON_INTEGER_OR_THRESHOLD_DRIFT_RETURNS_503",
+      "browser_identifiers": "HASH_OR_SHORT_REFERENCE_ONLY",
+      "human_status": "EXACTLY_已更新_处理中_需处理",
+      "risk_label": "SEPARATE_FROM_HUMAN_STATUS",
+      "ranges": ["1d", "7d", "30d", "90d", "180d", "360d", "custom"],
+      "production_path_guard": "CLOUDFLARE_ACCESS_REQUIRED_FOR_API_AND_OPS"
+    }
+  },
+  "real_environment_acceptance": {
+    "production_access_policy_and_origin_jwt": "NOT_PROVEN",
+    "production_browser_session": "NOT_RUN",
+    "real_published_financial_projection": "NOT_RUN",
+    "real_d1_api_snapshot": "NOT_RUN",
+    "real_owner_ui_screenshot": "NOT_RUN",
+    "unknown_as_pass": false
+  },
+  "task_graph_stage_state": {
+    "task": "T07",
+    "local_implementation": "LOCAL_READY_FOR_T08",
+    "synthetic_browser_contract": "LOCALLY_VERIFIED",
+    "production_oracle": "NOT_PROVEN_DEFERRED_TO_T09_AND_T10"
+  },
+  "decision": {
+    "result": "CONTINUE_FAIL_CLOSED",
+    "reason": "The projection and owner UI behave correctly for validated synthetic publications, but no real production Access session or real financial publication has been observed.",
+    "next_gate": "Implement and locally verify T08 status, autonomous observer, self-healing and rollback registration while retaining real production evidence for T09/T10.",
+    "push_or_deploy": "NOT_PERFORMED"
+  }
+}

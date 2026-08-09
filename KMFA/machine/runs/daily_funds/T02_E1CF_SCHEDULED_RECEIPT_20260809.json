@@ -1,0 +1,99 @@
+{
+  "schema_version": "kmfa.daily_funds.t02_e1cf_scheduled_receipt.v1",
+  "stage": "T02_SCHEDULER_CADENCE",
+  "observed_at": "2026-08-09T14:24:41Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1"
+  },
+  "moving_baseline": {
+    "origin_main": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "worktree_head": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "match": true
+  },
+  "production_identity": {
+    "source_commit": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "image_digest": "sha256:2edef2633761aa9ad14bbe1d75af17e30a6b8d2d8f18fbdbefd1fd619a9091f9",
+    "deployment_uuid": "hho2wzx2hfk8ppp38u7v8uyw",
+    "deployment_completed_at": "2026-08-09T13:37:07.000000Z",
+    "identity_evidence": "T14_PRODUCTION_GROUP_HISTORY_PROBE_20260809.json"
+  },
+  "observation_method": {
+    "authority": "CURRENT_PRODUCTION_PUBLIC_SAFE_SKILL_HEALTH_PROJECTION",
+    "endpoint": "/public-api/技能健康",
+    "read_scope": "allowlisted daily-funds status fields only",
+    "transport": "OK",
+    "raw_messages_or_attachments_read": false,
+    "raw_values_or_identifiers_emitted": false,
+    "cloud_runtime_changed": false,
+    "coolify_log_channel": "EMPTY_NOT_A_SCHEDULER_NEGATIVE_PROOF"
+  },
+  "scheduled_poll_receipt": {
+    "latest_receipt_at": "2026-08-09T14:15:04Z",
+    "receipt_is_after_current_deploy": true,
+    "retained_receipt_count": 1,
+    "retained_count_semantics": "latest retained historical-poll receipt only; not a lifetime run count",
+    "exit_code": 1,
+    "succeeded": false,
+    "machine_code": "SOURCE_MATCH_ZERO",
+    "public_status": "SOURCE_MATCH_ZERO",
+    "interpretation": "The current 15-minute cloud worker reached a terminal poll receipt but did not obtain a valid complete account-and-transaction document pair. This receipt proves a scheduled poll after the current deployment; it does not prove raw write, parser-open, reconciliation, or money publication."
+  },
+  "scheduled_backfill_receipt": {
+    "latest_receipt_at": "2026-08-09T14:20:11Z",
+    "receipt_is_after_current_deploy": true,
+    "retained_receipt_count": 1,
+    "retained_count_semantics": "latest retained historical-backfill receipt only; not a lifetime run count",
+    "exit_code": 0,
+    "succeeded": true,
+    "machine_code": "BACKFILLING",
+    "public_status": "BACKFILLING",
+    "interpretation": "The bounded cloud backfill scheduler ran successfully after the current deployment and remains in progress. A successful backfill receipt can represent a valid empty historical window; it is not evidence that any attachment was acquired, parsed, reconciled, or published."
+  },
+  "private_raw_metadata_recheck": {
+    "authority": "PRIVATE_DATABASE_CURRENT_ACQUIRED_RAW_METADATA_ONLY",
+    "transport": "GITHUB_GIT_TREE_API_READ_ONLY",
+    "raw_content_bytes_downloaded": 0,
+    "tree_truncated": false,
+    "raw_blob_count": 31,
+    "file_counts_by_raw_area": {
+      "batches": 7,
+      "blobs": 8,
+      "chunks": 0,
+      "messages": 8,
+      "occurrences": 8,
+      "other": 0
+    },
+    "file_counts_by_suffix": {
+      ".json": 23,
+      ".png": 8
+    },
+    "observed_at": "2026-08-09T14:24:41Z",
+    "relation_to_t04_metadata_census": "STRUCTURALLY_UNCHANGED_AFTER_CURRENT_BACKFILL_RECEIPT",
+    "limitation": "Metadata equality does not prove raw-byte equality, document semantics, parser-open, or same-day double-fact completeness."
+  },
+  "acceptance": {
+    "current_production_15_minute_scheduler_receipt": "PROVEN",
+    "current_production_bounded_backfill_scheduler_receipt": "PROVEN",
+    "65_minute_auth_probe_keepalive_observation": "NOT_RUN_FOR_CURRENT_DEPLOYMENT",
+    "exact_15_minute_cadence_over_multiple_intervals": "NOT_PROVEN_BY_SINGLE_RETAINED_RECEIPT",
+    "current_collector_raw_sparse_write": "NOT_PROVEN_SOURCE_MATCH_ZERO",
+    "real_attachment_parser_open": "NOT_PROVEN",
+    "same_day_account_and_transaction_double_fact": "NOT_ESTABLISHED",
+    "integer_fen_reconciliation": "NOT_RUN",
+    "fixed_and_floating_thresholds": "NOT_RUN",
+    "d1_query_projection": "NOT_RUN",
+    "r2_hot_mirror": "NOT_RUN",
+    "oci_offsite_backup": "NOT_RUN",
+    "kmfa_final_ui_business_data": "NOT_RUN",
+    "status_registration": "NOT_RUN",
+    "rollback_drill": "NOT_RUN",
+    "unknown_as_pass": false
+  },
+  "decision": {
+    "result": "CONTINUE_FAIL_CLOSED",
+    "reason": "The latest deployed scheduler has now produced both a live-poll receipt and a bounded-backfill receipt, but the live receipt is SOURCE_MATCH_ZERO and the acquired raw metadata remains structurally unchanged. The TaskPack cannot advance from scheduler execution to a financial PASS without a real validated document pair and downstream evidence.",
+    "next_gate": "The autonomous bounded backfill must reach a values-free receipt that proves valid raw acquisition and current parser-open under this deployment. Only then may the double-fact and integer-fen reconciliation gates be evaluated.",
+    "push_or_deploy": "NOT_PERFORMED_BY_THIS_PHASE"
+  }
+}

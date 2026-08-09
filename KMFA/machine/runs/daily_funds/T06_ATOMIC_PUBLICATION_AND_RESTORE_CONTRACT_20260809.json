@@ -1,0 +1,56 @@
+{
+  "schema_version": "kmfa.daily_funds.t06_atomic_publication_and_restore_contract.v1",
+  "stage": "T06_D1_R2_OCI_AND_ATOMIC_PUBLICATION",
+  "observed_at": "2026-08-09T15:50:32Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "native_storage_oracle": "PASS",
+    "native_reconciliation_oracle": "PASS_DIFFERENCE_FEN_ZERO"
+  },
+  "moving_baseline": {
+    "origin_main": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "worktree_head": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "match": true,
+    "fetch_completed_before_validation": true
+  },
+  "local_contract": {
+    "targeted_fault_and_recovery_regression": "PASS_30_OF_30",
+    "atomic_pointer_order": "R2_MIRROR_THEN_D1_PROJECT_AND_QUERY_ORACLE_THEN_PRIVATE_GIT_PUBLICATION_AND_VERIFIED_BUNDLE_THEN_POINTER",
+    "d1": "IMMUTABLE_READ_MODEL_WITH_QUERY_ORACLE_AND_INTEGER_FEN_BINDINGS",
+    "r2": "CONTENT_ADDRESSED_HOT_MIRROR_WITH_EXACT_READBACK_AND_MANIFEST",
+    "oci": "OFFSITE_GIT_BUNDLE_D1_EXPORT_R2_INVENTORY_AND_HASHED_RESTORE_MANIFEST",
+    "failure_semantics": {
+      "git_r2_d1_or_bundle_failure": "PRIOR_POINTER_RETAINED",
+      "oci_transport_failure_after_valid_publication": "EXPLICIT_LAG_WITHOUT_CANONICAL_PUBLICATION_MUTATION",
+      "restore": "VERIFY_MANIFEST_HASHES_AND_GIT_PUBLICATION_CHAIN_BEFORE_D1_REBUILD_AND_POINTER_SWAP"
+    },
+    "storage_roles": {
+      "github_private": "RAW_AND_IMMUTABLE_PUBLICATION_AUTHORITY",
+      "d1": "QUERY_PROJECTION_ONLY",
+      "r2": "HOT_MIRROR_ONLY",
+      "oci": "OFFSITE_COLD_BACKUP_ONLY",
+      "ovh_sqlite": "RUNTIME_JOURNAL_ONLY"
+    }
+  },
+  "real_environment_acceptance": {
+    "real_private_publication_commit": "NOT_RUN",
+    "real_d1_transaction_and_query_oracle": "NOT_RUN",
+    "real_r2_mirror_readback": "NOT_RUN",
+    "real_oci_backup_readback": "NOT_RUN",
+    "empty_cloud_restore_and_browser_oracle": "NOT_RUN",
+    "unknown_as_pass": false
+  },
+  "task_graph_stage_state": {
+    "task": "T06",
+    "local_implementation": "LOCAL_READY_FOR_T07",
+    "fault_injection_and_restore_contract": "LOCALLY_VERIFIED",
+    "production_oracle": "NOT_PROVEN_DEFERRED_TO_T09_AND_T10"
+  },
+  "decision": {
+    "result": "CONTINUE_FAIL_CLOSED",
+    "reason": "The atomic publication and recovery behavior is locally verified against the frozen contract, but no real D1, R2, OCI, private publication, or empty-cloud restore evidence has been produced.",
+    "next_gate": "Implement and locally verify T07 KMFA query projection and final UI without asserting a live financial publication; reserve cloud execution proof for T09/T10.",
+    "push_or_deploy": "NOT_PERFORMED"
+  }
+}

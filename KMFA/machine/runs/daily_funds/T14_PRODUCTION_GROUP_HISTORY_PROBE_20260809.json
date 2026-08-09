@@ -1,0 +1,77 @@
+{
+  "schema_version": "kmfa.daily_funds.t14_production_group_history_probe.v1",
+  "stage": "T14_PRODUCTION_GROUP_HISTORY_PROBE",
+  "observed_at": "2026-08-09T14:08:59Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "relevant_requirements": [
+      "DF-002",
+      "DF-004",
+      "DF-005",
+      "DF-018",
+      "DF-022"
+    ]
+  },
+  "moving_baseline": {
+    "origin_main": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "worktree_head": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "match": true
+  },
+  "production_identity": {
+    "deploy_workflow_run": "31315752857",
+    "deploy_workflow_result": "SUCCESS",
+    "deployment_info_run": "31317481627",
+    "deployment_info_result": "SUCCESS",
+    "source_commit": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "image_digest": "sha256:2edef2633761aa9ad14bbe1d75af17e30a6b8d2d8f18fbdbefd1fd619a9091f9",
+    "deployment_uuid": "hho2wzx2hfk8ppp38u7v8uyw",
+    "deployment_completed_at": "2026-08-09T13:37:07.000000Z"
+  },
+  "validation": {
+    "production_ci_run": "31315752857",
+    "production_ci_source_commit": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "daily_funds_contract_group": "879 passed",
+    "application_test_group": "137 passed",
+    "taskpack_projection": "PASS (0 errors, 0 warning(s))",
+    "local_backend_replay": "NOT_RUN_LOCAL_TEST_DEPENDENCIES_UNAVAILABLE"
+  },
+  "probe_execution": {
+    "first_invocation": {
+      "workflow_run": "31317532356",
+      "result": "APP_REQUIRED",
+      "interpretation": "Invocation validation stopped before the Access-resource creation path; it is not a source, parser, or financial failure."
+    },
+    "application_inventory_run": "31317591730",
+    "application_inventory_result": "RUNNING_HEALTHY",
+    "fixed_probe_run": "31317613966",
+    "fixed_probe_result": "SUCCESS",
+    "transport": "OK",
+    "probe_state": "COMPLETED",
+    "machine_code": "DWS_GROUP_HISTORY_PROBE_COMPLETED",
+    "result": "GROUP_HISTORY_PROBE_COMPLETED",
+    "continuation_state": "GROUP_HISTORY_V2_FIRST_PAGE_TERMINAL",
+    "cursor_transcript": "GROUP_HISTORY_V2_FIRST_PAGE_TERMINAL",
+    "record_list_shape": "NOT_OBSERVED",
+    "temporary_access_cleanup": "OK",
+    "source_values_or_identifiers_emitted": false,
+    "raw_message_or_attachment_write_by_probe": false
+  },
+  "acceptance": {
+    "current_production_identity": "PROVEN",
+    "exact_group_history_protocol": "PROVEN_FOR_FIXED_24H_PROBE",
+    "scheduled_15_minute_collector_receipt_after_current_deploy": "NOT_EVALUATED_IN_THIS_PHASE",
+    "raw_sparse_write_by_current_collector": "NOT_RUN_IN_THIS_PHASE",
+    "real_attachment_parser_open": "NOT_RUN_IN_THIS_PHASE",
+    "same_day_account_and_transaction_double_fact": "NOT_ESTABLISHED",
+    "integer_fen_reconciliation": "NOT_RUN",
+    "d1_r2_oci_business_publication": "NOT_RUN",
+    "unknown_as_pass": false
+  },
+  "decision": {
+    "result": "CONTINUE_FAIL_CLOSED",
+    "reason": "The deployed collector's exact-group protocol is now verified without source disclosure, but a diagnostic probe is not the scheduled raw-ingestion, parsing, reconciliation, or publication chain.",
+    "next_gate": "Observe a real current-production 15-minute collector or bounded backfill receipt using this deployed path, then re-read the private raw structure before advancing T04/T05.",
+    "push_or_deploy": "NOT_PERFORMED_BY_THIS_PHASE"
+  }
+}

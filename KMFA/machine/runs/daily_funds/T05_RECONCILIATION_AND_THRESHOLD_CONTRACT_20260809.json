@@ -1,0 +1,59 @@
+{
+  "schema_version": "kmfa.daily_funds.t05_reconciliation_and_threshold_contract.v1",
+  "stage": "T05_RECONCILIATION_AND_THRESHOLDS",
+  "observed_at": "2026-08-09T15:45:57Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "native_threshold_oracle": "PASS"
+  },
+  "moving_baseline": {
+    "origin_main": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "worktree_head": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "match": true,
+    "fetch_completed_before_validation": true
+  },
+  "local_contract": {
+    "targeted_regression": "PASS_14_OF_14",
+    "amount_representation": "INTEGER_FEN_ONLY",
+    "fixed_thresholds": {
+      "hard_fen": 60000000,
+      "hard_operator": "<=",
+      "soft_fen": 120000000,
+      "soft_operator": "> hard AND <= soft",
+      "runtime_scope_legacy_fixed_literals": "ABSENT"
+    },
+    "reconciliation": {
+      "account_company_bank_global_zero_checks": "IMPLEMENTED_AND_SYNTHETICALLY_TESTED",
+      "same_day_two_fact_source_pair": "REQUIRED",
+      "internal_transfer_adjustment": "INCLUDED"
+    },
+    "floating_thresholds": {
+      "three_complete_calendar_months": "95_PERCENT_COVERAGE_AND_45_DIRECT_OBSERVATIONS",
+      "six_complete_calendar_months": "95_PERCENT_COVERAGE_AND_90_DIRECT_OBSERVATIONS",
+      "custom_date_range": "MIN_7_CALENDAR_DAYS_AND_80_PERCENT_COVERAGE",
+      "custom_numeric_fen": "0_TO_999999999999999",
+      "versioned_owner_audit_and_rollback": "SYNTHETICALLY_TESTED"
+    },
+    "precedence": "DYNAMIC_RULES_MAY_INCREASE_ATTENTION_BUT_NEVER_DOWNGRADE_FIXED_HARD_OR_SOFT_RISK"
+  },
+  "real_financial_acceptance": {
+    "real_same_day_account_and_transaction_fact_pair": "NOT_PROVEN",
+    "real_integer_fen_reconciliation": "NOT_RUN",
+    "real_account_company_bank_global_zero_difference": "NOT_RUN",
+    "business_publication": "NOT_RUN",
+    "unknown_as_pass": false
+  },
+  "task_graph_stage_state": {
+    "task": "T05",
+    "local_implementation": "LOCAL_READY_FOR_T06_AND_T07",
+    "real_reconciliation": "NOT_PROVEN_DEFERRED_TO_T09_AND_T10",
+    "production_oracle": "NOT_PROVEN_DEFERRED_TO_T10"
+  },
+  "decision": {
+    "result": "CONTINUE_FAIL_CLOSED",
+    "reason": "The frozen arithmetic and threshold contract is locally verified, but no real same-day double-fact pair or production reconciliation result has been established.",
+    "next_gate": "Implement and locally verify T06 atomic D1/R2/OCI publication without treating it as financial publication; retain real-data and production proof for T09/T10.",
+    "push_or_deploy": "NOT_PERFORMED"
+  }
+}

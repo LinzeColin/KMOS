@@ -1380,6 +1380,53 @@ def test_backfill_empty_window_advances_only_the_historical_planner(tmp_path: Pa
     )
 
 
+def test_backfill_scans_the_exact_360_day_range_without_gaps(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Bounded runs must eventually cover every required historical calendar day."""
+
+    from zoneinfo import ZoneInfo
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    observed_days: list[date] = []
+
+    def empty_poll(**kwargs):
+        observed_days.append(kwargs["start_override"].astimezone(ZoneInfo("Asia/Shanghai")).date())
+        return {"ok": True, "pages": 1, "attachments": 0, "empty_window": True}
+
+    monkeypatch.setattr(runtime, "poll", empty_poll)
+    now = datetime(2026, 8, 1, 4, tzinfo=UTC)
+    runs = [runtime.backfill(now=now, max_days=14) for _ in range(26)]
+
+    first_required = date(2025, 8, 6)
+    assert all(run["ok"] is True for run in runs)
+    assert runs[-1]["complete"] is True
+    assert observed_days == [first_required + timedelta(days=offset) for offset in range(360)]
+    assert runtime.state.get("backfill_next_business_date") == "2026-08-01"
+
+
+def test_backfill_failure_keeps_the_failed_day_pending(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A failed historical day cannot be advanced or silently skipped."""
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    calls = 0
+
+    def failing_second_poll(**_kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            return {"ok": False, "code": "BACKFILL_TEST_FAILURE"}
+        return {"ok": True, "pages": 1, "attachments": 0, "empty_window": True}
+
+    monkeypatch.setattr(runtime, "poll", failing_second_poll)
+    result = runtime.backfill(now=datetime(2026, 8, 1, 4, tzinfo=UTC), max_days=7)
+
+    assert result == {
+        "ok": False,
+        "completed_days": ["2025-08-06"],
+        "code": "BACKFILL_TEST_FAILURE",
+    }
+    assert runtime.state.get("backfill_next_business_date") == "2025-08-07"
+
+
 def test_backfill_advances_after_a_verified_needs_review_archive(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     runtime = DailyFundsRuntime(_config(tmp_path))
     observed: list[dict[str, object]] = []
@@ -1648,6 +1695,171 @@ def test_overlap_reopens_verified_raw_without_repeating_media_download(tmp_path:
     assert len(reopened) == 1
 
 
+def test_restart_after_raw_persist_reopens_the_exact_durable_attachment_without_redownload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """F-015: an interrupted batch resumes from immutable raw evidence only.
+
+    The first runtime is interrupted immediately after the private-Git writer
+    returns.  A fresh runtime object must reuse that durable ``GIT_PERSISTED``
+    receipt, never fetch the expired DWS media again and never create a second
+    raw write.  The fixture remains archive-only, so this proves recovery and
+    idempotency without manufacturing a money publication.
+    """
+
+    import daily_funds.runtime as runtime_module
+
+    config = replace(
+        _config(tmp_path),
+        cf_api_token="",
+        cf_account_id="",
+        d1_database_id="",
+        restore_drill_d1_database_id="",
+        r2_endpoint_url="",
+        r2_bucket="",
+        r2_access_key_id="",
+        r2_secret_access_key="",
+        oci_endpoint_url="",
+        oci_bucket="",
+        oci_access_key_id="",
+        oci_secret_access_key="",
+    )
+    payload = b"\x89PNG\r\n\x1a\nsynthetic-restart-raw"
+    attachment = DownloadedAttachment(
+        message={"fixture": "restart"},
+        message_id="restart-message",
+        message_id_hash=sha256(b"restart-message").hexdigest(),
+        message_at=datetime(2026, 7, 30, 8, tzinfo=UTC),
+        index=0,
+        filename="资金明细_20260730.png",
+        family="资金明细",
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="image/png",
+    )
+
+    class FirstClient:
+        @staticmethod
+        def search(_start, _end, _cursor):
+            return DwsPage(messages=(attachment.message,), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page):
+            return (attachment.message,)
+
+        @staticmethod
+        def attachment_count(_message):
+            return 1
+
+        @staticmethod
+        def message_id_hash(_message):
+            return attachment.message_id_hash
+
+        @staticmethod
+        def reopen_candidate(_message, _index, _attachment_sha256):
+            return None
+
+        @staticmethod
+        def download(_message, _index):
+            return attachment
+
+    initial_writes: list[tuple[DownloadedAttachment, ...]] = []
+
+    class FirstWriter:
+        def __init__(self, _config):
+            pass
+
+        def persist(self, attachments):
+            staged = tuple(attachments)
+            initial_writes.append(staged)
+            return GitCommit("a" * 40, SimpleNamespace(), staged)
+
+    first_runtime = DailyFundsRuntime(config)
+    monkeypatch.setattr(first_runtime, "_dws_client", lambda: FirstClient())
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", FirstWriter)
+    monkeypatch.setattr(
+        first_runtime,
+        "_inspect_attachment_capabilities",
+        lambda _attachments: (_ for _ in ()).throw(KeyboardInterrupt()),
+    )
+
+    with pytest.raises(KeyboardInterrupt):
+        first_runtime.poll(
+            now=datetime(2026, 8, 1, tzinfo=UTC),
+            start_override=datetime(2026, 7, 30, tzinfo=UTC),
+            advance_pointer=False,
+            allow_empty_window=True,
+            archive_only=True,
+        )
+
+    occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
+    with first_runtime.state.connection() as connection:
+        assert tuple(connection.execute("SELECT state FROM inbox WHERE occurrence_key=?", (occurrence_key,)).fetchone()) == (
+            "GIT_PERSISTED",
+        )
+    assert initial_writes == [(attachment,)]
+
+    class RestartedClient(FirstClient):
+        @staticmethod
+        def reopen_candidate(_message, _index, attachment_sha256):
+            assert attachment_sha256 == attachment.sha256
+            return PersistedRawAttachment(
+                message=attachment.message,
+                message_id=attachment.message_id,
+                message_id_hash=attachment.message_id_hash,
+                message_at=attachment.message_at,
+                index=attachment.index,
+                sha256=attachment.sha256,
+            )
+
+        @staticmethod
+        def download(_message, _index):
+            pytest.fail("restart recovery must not redownload an already persisted attachment")
+
+    reopened: list[tuple[PersistedRawAttachment, ...]] = []
+
+    class RestartWriter:
+        def __init__(self, _config):
+            pass
+
+        def persist(self, _attachments):
+            pytest.fail("restart recovery must not create a second raw write")
+
+        def reopen_persisted(self, attachments):
+            cached = tuple(attachments)
+            reopened.append(cached)
+            return GitCommit("b" * 40, SimpleNamespace(), (attachment,))
+
+    restarted_runtime = DailyFundsRuntime(config)
+    monkeypatch.setattr(restarted_runtime, "_dws_client", lambda: RestartedClient())
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", RestartWriter)
+    result = restarted_runtime.poll(
+        now=datetime(2026, 8, 1, tzinfo=UTC),
+        start_override=datetime(2026, 7, 30, tzinfo=UTC),
+        advance_pointer=False,
+        allow_empty_window=True,
+        archive_only=True,
+    )
+
+    assert result == {
+        "ok": True,
+        "pages": 1,
+        "attachments": 1,
+        "archive_only": True,
+        "capability_supported": 0,
+        "capability_needs_review": 1,
+    }
+    assert len(reopened) == 1
+    assert len(reopened[0]) == 1
+    assert reopened[0][0].sha256 == attachment.sha256
+    with restarted_runtime.state.connection() as connection:
+        assert tuple(connection.execute("SELECT state FROM inbox WHERE occurrence_key=?", (occurrence_key,)).fetchone()) == (
+            "ARCHIVED_CAPABILITY_RECORDED",
+        )
+    assert not (config.publication_dir / "current.json").exists()
+
+
 def test_raw_archive_audit_records_only_readback_capability_and_never_publishes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1699,6 +1911,7 @@ def test_raw_archive_audit_records_only_readback_capability_and_never_publishes(
 
     runtime = DailyFundsRuntime(config)
     monkeypatch.setattr(runtime_module, "GitSparseWriter", ArchiveWriter)
+    monkeypatch.setattr(runtime, "_dws_client", lambda: pytest.fail("raw archive audit must not call DWS"))
 
     result = runtime.raw_archive_audit()
 
@@ -1719,6 +1932,160 @@ def test_raw_archive_audit_records_only_readback_capability_and_never_publishes(
     assert flow["business_flow"]["stage"] == "RAW_ARCHIVE_AUDITED"
     assert flow["source_discovery"] == {"state": "UNKNOWN"}
     assert "raw-archive-account" not in json.dumps(flow, ensure_ascii=False)
+
+
+def test_raw_archive_audit_fails_closed_when_private_raw_census_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unreadable raw census cannot create a capability or money receipt."""
+
+    import daily_funds.runtime as runtime_module
+
+    config = _config(tmp_path)
+
+    class MissingArchiveWriter:
+        def __init__(self, _config):
+            pass
+
+        def audit_raw_archive(self):
+            raise IngestionError("SOURCE_MISSING")
+
+    runtime = DailyFundsRuntime(config)
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", MissingArchiveWriter)
+
+    assert runtime.raw_archive_audit() == {
+        "ok": False,
+        "code": "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW",
+    }
+    assert not (config.publication_dir / "current.json").exists()
+    with runtime.state.connection() as connection:
+        assert connection.execute("SELECT count(*) FROM parser_evidence").fetchone()[0] == 0
+        assert connection.execute("SELECT count(*) FROM capability_evidence").fetchone()[0] == 0
+
+
+def test_raw_archive_audit_marks_unparseable_readback_needs_review_without_publication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A real readback that lacks a deterministic parser is not a money pass."""
+
+    import daily_funds.runtime as runtime_module
+
+    config = _config(tmp_path)
+    payload = b"synthetic-unparseable-raw-attachment"
+    message_id = "raw-archive-needs-review"
+    attachment = DownloadedAttachment(
+        message={
+            "openConversationId": "group-fixture",
+            "senderOpenDingTalkId": "sender-fixture",
+            "openMessageId": message_id,
+            "createTime": "2026-07-30T08:00:00+00:00",
+            "content": "fixture",
+        },
+        message_id=message_id,
+        message_id_hash=sha256(message_id.encode()).hexdigest(),
+        message_at=datetime(2026, 7, 30, 8, tzinfo=UTC),
+        index=0,
+        filename="fixture.bin",
+        family=ACCOUNT_FAMILY,
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="application/octet-stream",
+    )
+
+    class ArchiveWriter:
+        def __init__(self, _config):
+            pass
+
+        def audit_raw_archive(self):
+            return RawArchiveAudit(
+                commit_sha="a" * 40,
+                verified_attachments=(attachment,),
+                occurrence_count=1,
+                batch_count=1,
+                batch_occurrence_references=1,
+            )
+
+    runtime = DailyFundsRuntime(config)
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ArchiveWriter)
+
+    assert runtime.raw_archive_audit() == {
+        "ok": True,
+        "code": "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW",
+        "capability_supported": 0,
+        "capability_needs_review": 1,
+    }
+    assert not (config.publication_dir / "current.json").exists()
+    with runtime.state.connection() as connection:
+        assert connection.execute("SELECT count(*) FROM parser_evidence").fetchone()[0] == 0
+        assert tuple(connection.execute("SELECT outcome,code FROM capability_evidence").fetchone()) == (
+            "NEEDS_REVIEW",
+            "UNSUPPORTED_ATTACHMENT",
+        )
+    flow = json.loads((config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
+    assert flow["business_flow"]["stage"] == "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW"
+
+
+def test_raw_archive_audit_rejects_readback_payload_hash_mismatch_without_receipt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A tampered raw object cannot be downgraded to a capability review."""
+
+    import daily_funds.runtime as runtime_module
+
+    config = _config(tmp_path)
+    payload = (
+        "业务日期,公司,开户行,账号,期初余额,期末余额,币种\n"
+        "2026-07-30,甲公司,甲银行,001,1500000.00,1570000.00,CNY\n"
+    ).encode()
+    message_id = "raw-archive-integrity-failure"
+    attachment = DownloadedAttachment(
+        message={
+            "openConversationId": "group-fixture",
+            "senderOpenDingTalkId": "sender-fixture",
+            "openMessageId": message_id,
+            "createTime": "2026-07-30T08:00:00+00:00",
+            "content": "fixture",
+        },
+        message_id=message_id,
+        message_id_hash=sha256(message_id.encode()).hexdigest(),
+        message_at=datetime(2026, 7, 30, 8, tzinfo=UTC),
+        index=0,
+        filename="资金账户明细表_20260730.csv",
+        family=ACCOUNT_FAMILY,
+        payload=payload,
+        sha256="a" * 64,
+        mime="text/csv",
+    )
+
+    class ArchiveWriter:
+        def __init__(self, _config):
+            pass
+
+        def audit_raw_archive(self):
+            return RawArchiveAudit(
+                commit_sha="a" * 40,
+                verified_attachments=(attachment,),
+                occurrence_count=1,
+                batch_count=1,
+                batch_occurrence_references=1,
+            )
+
+    runtime = DailyFundsRuntime(config)
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ArchiveWriter)
+
+    assert runtime.raw_archive_audit() == {
+        "ok": False,
+        "code": "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW",
+    }
+    assert not (config.publication_dir / "current.json").exists()
+    with runtime.state.connection() as connection:
+        assert connection.execute("SELECT count(*) FROM parser_evidence").fetchone()[0] == 0
+        assert connection.execute("SELECT count(*) FROM capability_evidence").fetchone()[0] == 0
+    flow = json.loads((config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
+    assert flow["business_flow"]["stage"] == "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW"
 
 
 def test_runtime_state_reuses_only_one_terminal_raw_receipt(tmp_path: Path) -> None:
@@ -1943,6 +2310,8 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_nonblocking_backfill_ca
     assert f"45 5 * * * root {wrapper} runtime-audit" in cron
     assert f"0 5 1 * * root {wrapper} restore-drill" in cron
     entrypoint = (ROOT / "entrypoint.sh").read_text(encoding="utf-8")
+    assert '[ "$(date +%z)" != "+0800" ]' in entrypoint
+    assert 'keys = ["TZ"]' in entrypoint
     assert "CRON_ENV_FILE=\"$STATE_DIR/cron.env\"" in entrypoint
     assert "chmod 0600 \"$CRON_ENV_FILE\"" in entrypoint
     assert "run_auth_broker.py >/dev/null 2>&1" in entrypoint

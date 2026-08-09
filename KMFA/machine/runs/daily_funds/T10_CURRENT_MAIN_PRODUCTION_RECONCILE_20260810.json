@@ -1,0 +1,83 @@
+{
+  "schema_version": "kmfa.daily_funds.production_reconcile.v1",
+  "phase": "T10",
+  "observed_at_utc": "2026-08-09T16:23:34Z",
+  "baseline": {
+    "origin_main": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "runtime_source_commit": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "runtime_image_digest": "sha256:2edef2633761aa9ad14bbe1d75af17e30a6b8d2d8f18fbdbefd1fd619a9091f9",
+    "deployment_record_state": "FINISHED",
+    "deployment_identity_receipt": "github-actions:31320985249"
+  },
+  "public_boundary": {
+    "root_http_status": 200,
+    "private_ops_http_status_without_access": 403,
+    "result": "PASS"
+  },
+  "scheduled_collector": {
+    "contract": "*/15 * * * * Asia/Shanghai",
+    "observed_polls": [
+      {
+        "at_utc": "2026-08-09T16:15:03Z",
+        "status": "SOURCE_MATCH_ZERO",
+        "running": false
+      },
+      {
+        "at_utc": "2026-08-09T16:30:06Z",
+        "status": "SOURCE_MATCH_ZERO",
+        "running": false
+      }
+    ],
+    "observed_interval_seconds": 903,
+    "cadence_result": "TWO_CONSECUTIVE_POST_DEPLOY_POLLS_OBSERVED",
+    "financial_interpretation": "NO_TARGET_DOCUMENT_FACT_FORMED_IN_THE_OBSERVED_POLLS"
+  },
+  "fixed_history_probe": {
+    "github_actions_run": "31323528803",
+    "action_result": "SUCCESS",
+    "transport": "OK",
+    "probe_state": "COMPLETED",
+    "machine_code": "DWS_GROUP_HISTORY_PROBE_COMPLETED",
+    "continuation_state": "GROUP_HISTORY_V2_FIRST_PAGE_TERMINAL",
+    "raw_download": "NOT_RUN_BY_DESIGN",
+    "raw_write": "NOT_RUN_BY_DESIGN",
+    "temporary_access_cleanup": "OK"
+  },
+  "safe_log_receipt": {
+    "github_actions_run": "31323604398",
+    "action_result": "SUCCESS",
+    "transport": "OK",
+    "raw_log_content_exposed": false,
+    "current_log_window_daily_funds_event_count": 0,
+    "interpretation": "LOG_WINDOW_NOT_A_SCHEDULER_OR_FINANCIAL_ORACLE"
+  },
+  "validation": {
+    "daily_funds_contract_tests": "196_PASSED_1_SKIPPED",
+    "backend_daily_funds_api_tests": "20_PASSED",
+    "frontend_production_build": "PASSED",
+    "repository_taskpack_projection": "PASS_49_REQUIREMENTS_49_ACCEPTANCE_56_TASKS",
+    "original_taskpack_verifier": "PASS_24_REQUIREMENTS_11_TASKS_17_ACCEPTANCE",
+    "generic_verifier_taskpack_ingest": "NOT_RUN_UNSUPPORTED_PURSUING_GOAL_TXT_ROLE_FILENAME",
+    "generic_verifier_interpretation": "TOOL_COMPATIBILITY_GAP_NOT_A_PRODUCT_OR_FINANCIAL_PASS"
+  },
+  "financial_publication_gate": {
+    "real_supported_parser_open": "NOT_MET",
+    "same_day_balance_and_transaction_pair": "NOT_MET",
+    "integer_fen_reconciliation": "NOT_RUN",
+    "d1_projection": "NOT_RUN",
+    "r2_hot_mirror": "NOT_RUN",
+    "oci_backup": "NOT_RUN",
+    "restore_drill": "NOT_RUN",
+    "funds_publication": "NOT_RUN",
+    "decision": "DO_NOT_PUBLISH_FUNDS"
+  },
+  "data_safety": {
+    "message_content_recorded": false,
+    "attachment_content_recorded": false,
+    "group_or_sender_identifier_recorded": false,
+    "cursor_recorded": false,
+    "amount_recorded": false,
+    "credential_recorded": false
+  },
+  "conclusion": "PRODUCTION_RUNTIME_AND_FIXED_HISTORY_PATH_VERIFIED; FINANCIAL_RESULT_NOT_PUBLISHED"
+}

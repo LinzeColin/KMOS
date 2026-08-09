@@ -1,0 +1,166 @@
+{
+  "schema_version": "kmfa.daily_funds.t09_deterministic_fault_and_real_sample_gate.v1",
+  "stage": "T09_DETERMINISTIC_TESTS_AND_FAULT_INJECTION",
+  "observed_at": "2026-08-09T16:13:12Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "requirements": [
+      "DF-001",
+      "DF-002",
+      "DF-005",
+      "DF-009",
+      "DF-010",
+      "DF-011",
+      "DF-013",
+      "DF-014",
+      "DF-015",
+      "DF-017",
+      "DF-020",
+      "DF-021",
+      "DF-022"
+    ],
+    "acceptance": [
+      "AC-001",
+      "AC-002",
+      "AC-005",
+      "AC-006",
+      "AC-007",
+      "AC-008",
+      "AC-009",
+      "AC-010",
+      "AC-011",
+      "AC-014",
+      "AC-015"
+    ]
+  },
+  "moving_baseline": {
+    "origin_main": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "worktree_head": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "match": true,
+    "fetch_completed_before_validation": true,
+    "dirty_subject": {
+      "path": "KMFA/skills/每日资金/tests/test_daily_funds_contract.py",
+      "file_sha256": "a84a5346f86422dae185d0aec6d7cf2cdf6a986a25bd6ba8b06d71ab1f303a5f",
+      "git_diff_sha256": "050e01f4d7cfef169e597f15bdae59874db10fdb0b331aa5739e430c061fe693",
+      "meaning": "T09 synthetic recovery and prior local contract additions are not yet a GitHub subject."
+    }
+  },
+  "independent_discovery": {
+    "method": "VERIFIER_READ_ONLY_DOCTOR",
+    "target": "KMFA/skills/每日资金",
+    "profile": "DEEP",
+    "risk_signals": ["AUTHORIZATION", "DEPLOYMENT", "CONTRACT", "RECOVERY"],
+    "product_or_cloud_side_effects": "NONE"
+  },
+  "deterministic_oracles": {
+    "taskpack_integrity": "PASS_24_REQUIREMENTS_11_TASKS_17_ACCEPTANCE",
+    "threshold_oracle": "PASS",
+    "reconciliation_oracle": "PASS_ZERO_FEN_SYNTHETIC_FIXTURE",
+    "storage_oracle": "PASS_SYNTHETIC_FIXTURE",
+    "daily_funds_contract_regression": "PASS_197_OF_197",
+    "private_projection_api_regression": "PASS_20_OF_20",
+    "git_diff_check": "PASS"
+  },
+  "isolation_and_privacy": {
+    "compose_daily_funds": {
+      "depends_on": [],
+      "host_ports": [],
+      "volume_type": "NAMED_VOLUMES_ONLY",
+      "daily_funds_host_dependency_file_count": 0,
+      "app_receives": "READ_ONLY_VERIFIED_PROJECTION_AND_CONTROL_VOLUME_ONLY"
+    },
+    "private_access_regression": "PASS_5_OF_5",
+    "embedded_private_key_pattern_file_count": 0,
+    "production_runtime_dependency_via_mac_or_other_skill": "NOT_OBSERVED_IN_CURRENT_SOURCE_AND_COMPOSE",
+    "real_network_or_storage_operation": "NOT_RUN"
+  },
+  "fault_injection_matrix": {
+    "scope": "ALL_CASES_SYNTHETIC_AND_LOCAL; A PASS HERE IS NOT A PRODUCTION-WORLD-STATE PASS",
+    "cases": {
+      "F-001": "PASS_DWS_AUTH_DENIED_RETAINS_PRIOR_POINTER",
+      "F-002": "PASS_SECOND_PAGE_FAILURE_DOES_NOT_ADVANCE_CURSOR",
+      "F-003": "PASS_DUPLICATE_OVERLAP_CANONICALIZED_WITH_OCCURRENCE_PRESERVED",
+      "F-004": "PASS_SAME_FILENAME_DIFFERENT_SHA_REMAINS_DISTINCT",
+      "F-005": "PASS_TRUNCATED_OR_TAMPERED_RAW_READBACK_BLOCKS",
+      "F-006": "PASS_OVERSIZE_CHUNKS_REASSEMBLE_TO_EXACT_SHA",
+      "F-007": "PASS_NON_FAST_FORWARD_RETRIES_WITHOUT_FORCE_PUSH",
+      "F-008": "PASS_GIT_PUBLICATION_OR_READBACK_FAILURE_RETAINS_PRIOR_POINTER",
+      "F-009": "PASS_R2_UNAVAILABLE_BLOCKS_POINTER_ADVANCE",
+      "F-010": "PASS_D1_FAILURE_RETAINS_PRIOR_POINTER",
+      "F-011": "PASS_OCI_LAG_IS_VISIBLE_WITHOUT_MUTATING_VALID_POINTER",
+      "F-012": "PASS_LOW_CONFIDENCE_OCR_IS_NEEDS_REVIEW",
+      "F-013": "PASS_DATE_OR_FACT_FAMILY_MISMATCH_BLOCKS_CROSS_DATE_MERGE",
+      "F-014": "PASS_ONE_FEN_DIFFERENCE_CANNOT_PUBLISH",
+      "F-015": "PASS_INTERRUPTED_AFTER_GIT_PERSIST_RESTARTS_FROM_DURABLE_RAW_WITHOUT_REDOWNLOAD_OR_SECOND_WRITE",
+      "F-016": "PASS_LEASE_PERMITS_ONLY_ONE_ACTIVE_WRITER",
+      "F-017": "PASS_ANONYMOUS_OR_NON_ACCESS_REQUEST_IS_DENIED_WITHOUT_FACTS",
+      "F-018": "PASS_EMPTY_D1_RESTORE_REBUILDS_ONLY_AFTER_MANIFEST_AND_HASH_ORACLES"
+    }
+  },
+  "ui_and_supply_chain": {
+    "frontend_build": "PASS_VITE",
+    "playwright_browser_oracle": {
+      "status": "PASS",
+      "fixture": "SYNTHETIC_ONLY",
+      "production_identity": "NOT_EVALUATED",
+      "scenarios": [
+        "UPDATED_DESKTOP",
+        "PROCESSING_MOBILE_DARK",
+        "ACTION_NEEDED_DESKTOP",
+        "RESTORED_DESKTOP",
+        "ARCHIVED_NEEDS_REVIEW_MOBILE_DARK"
+      ],
+      "assertions": [
+        "THREE_HUMAN_STATUSES",
+        "RANGE_AND_KEYBOARD_CONTROLS",
+        "CHART_AND_TOOLTIP",
+        "MOBILE_NO_HORIZONTAL_OVERFLOW",
+        "NO_RAW_PROJECTION_FIELD_ESCAPE"
+      ]
+    },
+    "npm_audit_production_dependencies": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0
+    },
+    "non_blocking_build_observation": "VITE_REPORTED_A_MINIFIED_APP_CHUNK_OVER_500_KB; TASKPACK_HAS_NO_NUMERICAL_PERFORMANCE_ACCEPTANCE_THRESHOLD, SO THIS IS NOT PROMOTED_TO_PASS_OR_FAIL."
+  },
+  "real_sample_capability_gate": {
+    "evidence": "KMFA/machine/runs/daily_funds/T04_PRIVATE_RAW_METADATA_CENSUS_20260809.json",
+    "authority": "PRIVATE_DATABASE_CURRENT_ACQUIRED_RAW_METADATA_ONLY",
+    "raw_content_bytes_downloaded_for_this_gate": 0,
+    "metadata_observed_attachment_suffixes": {".png": 8},
+    "confirmed_supported_real_attachment_types": 0,
+    "real_parser_open": "NOT_PROVEN_METADATA_ONLY",
+    "same_day_account_and_transaction_fact_pair": "NOT_PROVEN_METADATA_ONLY",
+    "integer_fen_real_reconciliation": "NOT_RUN",
+    "AC-015": "NOT_MET",
+    "financial_publication": "NOT_RUN",
+    "human_status": "需处理",
+    "unknown_as_pass": false
+  },
+  "acceptance_boundary": {
+    "local_deterministic_and_fault_contract": "LOCALLY_VERIFIED",
+    "real_target_group_two_page_history_probe": "NOT_MET",
+    "real_private_raw_parser_open_and_double_facts": "NOT_MET",
+    "real_d1_r2_oci_publication_and_restore": "NOT_RUN",
+    "current_production_deployment_identity_for_this_subject": "NOT_EVALUATED",
+    "production_financial_result": "NOT_RUN"
+  },
+  "task_graph_stage_state": {
+    "task": "T09",
+    "local_implementation": "LOCAL_READY_FOR_T10",
+    "fault_injection_and_regression": "LOCALLY_VERIFIED",
+    "real_sample_gate": "FAIL_CLOSED_NOT_MET",
+    "production_oracle": "NOT_PROVEN_DEFERRED_TO_T10"
+  },
+  "decision": {
+    "result": "CONTINUE_FAIL_CLOSED",
+    "reason": "The current implementation passes deterministic fixture, failure, privacy, restart, restore and browser contracts. The acquired private metadata still proves no supported real parser-open or same-day double-fact pair, so money, publication and production claims remain unmade.",
+    "next_gate": "T10: re-fetch moving main, bind the actual deployment identity, deploy the complete subject, and collect bounded cloud-only production receipts without treating missing real facts as success.",
+    "push_or_deploy": "NOT_PERFORMED"
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "schema_version": "kmfa.daily_funds.t03_current_raw_writer_semantic_reconcile.v1",
+  "stage": "T03_GITHUB_RAW_SPARSE_WRITER",
+  "observed_at": "2026-08-09T15:29:10Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "same_run_verification": "PASS_24_REQUIREMENTS_11_TASKS_17_ACCEPTANCE",
+    "native_oracles": "PASS_STORAGE_RECONCILIATION_THRESHOLD"
+  },
+  "moving_baseline": {
+    "origin_main": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "worktree_head": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "match": true,
+    "production_identity_evidence": {
+      "workflow": "coolify-deployment-info",
+      "workflow_run": 31320985249,
+      "workflow_ref": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+      "source_commit": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+      "image_id_or_digest": "sha256:2edef2633761aa9ad14bbe1d75af17e30a6b8d2d8f18fbdbefd1fd619a9091f9",
+      "deployment_uuid": "hho2wzx2hfk8ppp38u7v8uyw",
+      "completed_at": "2026-08-09T13:37:07.000000Z",
+      "status": "finished",
+      "scope": "READ_ONLY_DEPLOYMENT_IDENTITY_ONLY"
+    }
+  },
+  "prior_real_readback_evidence": {
+    "reference": "T03_RAW_SPARSE_READBACK_20260809.json",
+    "observed_at": "2026-08-08T21:10:48Z",
+    "scope": "CURRENT_ACQUIRED_RAW_RANGE_AT_THAT_TIME",
+    "verified_occurrences": 8,
+    "batch_manifests": 7,
+    "batch_occurrence_references_verified": 10,
+    "message_envelopes": "EXACT_SOURCE_GATE_AND_JSON_MATCH_VERIFIED",
+    "byte_integrity": "BLOB_OR_CHUNK_REASSEMBLY_SHA256_VERIFIED",
+    "limitation": "The prior runtime did not have a production source-commit identity, so this historical cloud readback cannot be automatically promoted to a post-e1cf production proof."
+  },
+  "current_code_delta": {
+    "comparison_base": "f2b66b63e1991038cffa4aefbbcd52ca3ab02ca5",
+    "comparison_head": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "raw_writer_boundary_files_changed": [
+      "Dockerfile",
+      "crontab.txt",
+      "daily_funds/config.py",
+      "daily_funds/ingestion.py",
+      "daily_funds/runtime.py",
+      "daily_funds/state.py",
+      "entrypoint.sh"
+    ],
+    "decision": "ADAPT_REQUIRES_FRESH_CURRENT_PRODUCTION_READBACK",
+    "reason": "All raw-writer boundary files changed materially after the historical T03 proof; semantic compatibility is supported by current regression only, not by assumption."
+  },
+  "current_implementation_contract": {
+    "candidate_range": "UNIQUE_GROUP_SENDER_DOCUMENT_FAMILY_GATE",
+    "selected_attachment_bytes": "PERSISTED_BEFORE_DETERMINISTIC_PARSER_CAPABILITY_CLASSIFICATION",
+    "exact_private_sparse_path": "PASS",
+    "blob_none_sparse_no_checkout_clone": "PASS",
+    "non_cone_exact_sparse_checkout": "PASS",
+    "force_push_runtime_rejection": "PASS",
+    "fresh_raw_archive_audit_method": "PASS",
+    "sha256_readback_failure_guard": "PASS",
+    "focused_raw_writer_regression": "PASS_5_AC005_SPARSE_WRITER"
+  },
+  "current_scheduled_execution_contract": {
+    "scope": "STATIC_CURRENT_IMAGE_CONFIGURATION_ONLY",
+    "business_clock": "Asia/Shanghai",
+    "entrypoint_offset_gate": "+0800",
+    "cron_environment": "OWNER_ONLY_CRON_ENV_INCLUDES_TZ",
+    "raw_archive_audit_schedule": "20 5 * * *",
+    "latest_public_health_receipt": {
+      "observed_at": "2026-08-09T15:15:04Z",
+      "result": "FAIL_CLOSED",
+      "code": "SOURCE_MATCH_ZERO",
+      "evidence_scope": "SCHEDULED_WORKER_LIVENESS_ONLY",
+      "does_not_prove": "RAW_ARCHIVE_AUDIT_OR_HISTORY_COMPLETENESS_OR_FINANCIAL_FACTS"
+    },
+    "production_execution": "NOT_PROVEN"
+  },
+  "current_local_validation": {
+    "raw_archive_fail_closed_regression": "PASS_5",
+    "raw_archive_dws_isolation_regression": "PASS",
+    "schedule_timezone_contract_regression": "PASS_1",
+    "combined_t03_targeted_regression": "PASS_11",
+    "private_projection_boundary_regression": "PASS_4_EPHEMERAL_PYTHON312",
+    "daily_funds_full_regression": "PASS_195_SKIPPED_1",
+    "scope": "SYNTHETIC_FIXTURES_AND_LOCAL_CONTRACTS_ONLY",
+    "does_not_prove": "CURRENT_PRODUCTION_ACCESS_OR_RAW_READBACK_OR_REAL_FINANCIAL_FACTS"
+  },
+  "current_private_metadata": {
+    "authority": "PRIVATE_DATABASE_CURRENT_ACQUIRED_RAW_METADATA_ONLY",
+    "transport": "GITHUB_GIT_TREE_API_READ_ONLY",
+    "exact_private_sparse_path": "Private-KMDatabase/KMFA/daily_funds",
+    "metadata_recheck_at": "2026-08-09T15:29:10Z",
+    "raw_content_bytes_downloaded": 0,
+    "tree_truncated": false,
+    "raw_blob_count": 31,
+    "file_counts_by_raw_area": {
+      "batches": 7,
+      "blobs": 8,
+      "chunks": 0,
+      "messages": 8,
+      "occurrences": 8,
+      "other": 0
+    },
+    "relation_to_prior_t03_structure": "CONSISTENT_METADATA_ONLY",
+    "limitation": "Metadata cannot prove private byte reassembly, source envelope validation, parser-open, or current cloud writer execution."
+  },
+  "acceptance": {
+    "prior_acquired_raw_byte_integrity": "HISTORICAL_PRODUCTION_EVIDENCE_RETAINED",
+    "current_raw_writer_local_contract": "PROVEN_BY_FOCUSED_REGRESSION",
+    "current_production_raw_archive_readback_after_e1cf": "NOT_RUN",
+    "current_collector_new_raw_write_after_e1cf": "NOT_PROVEN",
+    "source_history_completeness": "NOT_PROVEN",
+    "real_attachment_parser_open": "NOT_RUN",
+    "account_transaction_fact_pair": "NOT_ESTABLISHED",
+    "integer_fen_reconciliation": "NOT_RUN",
+    "financial_publication": "NOT_RUN",
+    "unknown_as_pass": false
+  },
+  "task_graph_stage_exit": {
+    "task": "T03",
+    "implementation_deliverable": "LOCAL_READY_FOR_T04",
+    "production_oracle": "NOT_PROVEN_AND_DEFERRED_TO_T10",
+    "basis": "FROZEN_TASK_GRAPH_ASSIGNES_DEPLOYMENT_AND_PRODUCTION_ORACLE_TO_T10",
+    "unknown_as_pass": false
+  },
+  "decision": {
+    "result": "CONTINUE_FAIL_CLOSED",
+    "reason": "The current e1cf raw-writer contract has focused regression coverage and the private raw structure is still present, but the taskpack requires a fresh cloud sparse re-open under the current deployed code before T03 can be claimed current-production complete.",
+    "next_gate": "The autonomous current-production raw-archive-audit must produce a values-free readback/capability receipt; its result may advance T03/T04 evidence only and cannot by itself establish a double fact, reconciliation, or publication.",
+    "push_or_deploy": "NOT_PERFORMED_BY_THIS_PHASE"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "schema_version": "kmfa.daily_funds.t08_status_autorecovery_and_observer_contract.v1",
+  "stage": "T08_STATUS_REGISTRATION_AND_AUTONOMOUS_OBSERVATION",
+  "observed_at": "2026-08-09T16:00:27Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "requirements": ["DF-019", "DF-024"],
+    "acceptance": ["AC-013", "AC-017"]
+  },
+  "moving_baseline": {
+    "origin_main": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "worktree_head": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "match": true,
+    "fetch_completed_before_validation": true
+  },
+  "independent_discovery": {
+    "method": "VERIFIER_READ_ONLY_DOCTOR",
+    "target": "KMFA/skills/每日资金",
+    "profile": "DEEP",
+    "risk_signals": ["AUTHORIZATION", "DEPLOYMENT", "CONTRACT", "RECOVERY"],
+    "product_or_cloud_side_effects": "NONE"
+  },
+  "local_contract": {
+    "worker_status_observer_and_recovery_regression": "PASS_20_OF_20",
+    "kmfa_existing_status_center_regression": "PASS_7_OF_7",
+    "single_status_authority": "EXISTING_KMFA_SCHEDULE_CENTER_ONLY",
+    "human_statuses": ["已更新", "处理中", "需处理"],
+    "scheduler": {
+      "history_poll": "EVERY_15_MINUTES",
+      "observer": "SCHEDULED_AUTONOMOUSLY",
+      "no_agent_or_event_trigger": true,
+      "live_poll_precedence_over_backfill": "TESTED"
+    },
+    "failure_and_recovery": {
+      "lock_holder": "REMAINS_IN_FLIGHT_NOT_SUCCESS",
+      "auth_success": "CANNOT_OVERWRITE_SOURCE_POLL_TRUTH",
+      "runtime_audit": "REDACTS_PROCESS_DETAILS_AND_DETECTS_COUPLED_SKILLS_OR_HOST_MOUNTS",
+      "d1_pointer_disagreement": "FAILS_CLOSED_WITHOUT_OBSERVER_PROGRESS",
+      "restore_drill": "NON_PRODUCTION_AND_STATUS_REGISTERED",
+      "cold_backup": "USES_PUBLISHER_LEASE"
+    },
+    "post_deploy_observer": {
+      "required_business_days": 5,
+      "baseline_not_counted": true,
+      "retry_not_counted": true,
+      "weekend_not_counted": true,
+      "distinct_new_business_dates_only": true
+    }
+  },
+  "real_environment_acceptance": {
+    "production_status_api_snapshot": "NOT_RUN",
+    "production_runtime_audit": "NOT_RUN",
+    "production_deployment_bound_observer_baseline": "NOT_RUN",
+    "five_real_working_day_comparisons": "NOT_RUN",
+    "production_restore_drill": "NOT_RUN",
+    "unknown_as_pass": false
+  },
+  "task_graph_stage_state": {
+    "task": "T08",
+    "local_implementation": "LOCAL_READY_FOR_T09",
+    "status_and_autonomous_observer_contract": "LOCALLY_VERIFIED",
+    "production_oracle": "NOT_PROVEN_DEFERRED_TO_T10"
+  },
+  "decision": {
+    "result": "CONTINUE_FAIL_CLOSED",
+    "reason": "The single status hand-off, autonomous scheduler semantics, and five-working-day counter are locally verified, but no real production deployment window or real working-day observation has occurred.",
+    "next_gate": "Execute T09 deterministic end-to-end regression and fault-injection closure against the frozen taskpack; preserve all production world-state claims for T10.",
+    "push_or_deploy": "NOT_PERFORMED"
+  }
+}

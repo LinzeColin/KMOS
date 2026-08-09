@@ -1,0 +1,74 @@
+{
+  "schema_version": "kmfa.daily_funds.t02_scheduler_cadence.v1",
+  "stage": "T02_15_MINUTE_HISTORY_COLLECTION",
+  "observed_at": "2026-08-09T13:51:02Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1",
+    "relevant_requirements": ["DF-002", "DF-003", "DF-023"]
+  },
+  "moving_baseline": {
+    "origin_main_at_start_and_finish": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "worktree_head_at_finish": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "head_matches_origin_main": true,
+    "whole_file_overwrite": false
+  },
+  "production_identity": {
+    "deploy_workflow_run": "31315752857",
+    "deploy_workflow_result": "SUCCESS",
+    "deployment_uuid": "hho2wzx2hfk8ppp38u7v8uyw",
+    "deployment_status": "finished",
+    "deployment_log_readback_run": "31316353789",
+    "deployment_source_commit": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "daily_funds_container": "STARTED",
+    "image_digest": "UNKNOWN_NOT_QUERIED_IN_THIS_PHASE"
+  },
+  "values_free_scheduler_observation": {
+    "public_health_endpoint": "/public-api/技能健康",
+    "primary_history_polls": [
+      {
+        "finished_at": "2026-08-09T13:30:11Z",
+        "outcome": "SOURCE_MATCH_ZERO",
+        "success": false
+      },
+      {
+        "finished_at": "2026-08-09T13:45:04Z",
+        "outcome": "SOURCE_MATCH_ZERO",
+        "success": false
+      }
+    ],
+    "historical_backfill_batches": [
+      {
+        "finished_at": "2026-08-09T13:35:19Z",
+        "outcome": "BACKFILLING",
+        "success": true
+      },
+      {
+        "finished_at": "2026-08-09T13:50:13Z",
+        "outcome": "BACKFILLING",
+        "success": true
+      }
+    ],
+    "primary_poll_interval_seconds": 893,
+    "backfill_interval_seconds": 894,
+    "primary_to_backfill_offsets_seconds": [308, 309],
+    "overlap_or_lock_held_observed": false
+  },
+  "acceptance_boundary": {
+    "fifteen_minute_primary_scheduler": "OBSERVED_TWO_CONSECUTIVE_CYCLES",
+    "backfill_is_offset_from_primary_and_does_not_delay_observed_live_polls": "OBSERVED_TWO_CONSECUTIVE_CYCLES",
+    "opaque_cursor_full_history": "NOT_PROVEN_BY_THIS_PHASE",
+    "sixty_five_minute_auth_and_keepalive_window": "NOT_REASSESSED_BY_THIS_PHASE",
+    "real_target_group_source_window": "NOT_PROVEN_BY_THIS_PHASE",
+    "raw_message_or_attachment_acquisition": "NOT_EVALUATED_BY_THIS_PHASE",
+    "financial_publication": "NOT_RUN"
+  },
+  "decision": {
+    "status": "SCHEDULER_CADENCE_OBSERVED_CONTINUE_FAIL_CLOSED",
+    "human_status": "需处理",
+    "unknown_as_pass": false,
+    "reason": "Two consecutive live polls and two offset backfill batches ran on the deployed cloud worker. SOURCE_MATCH_ZERO remains a failed source gate, not a zero balance or financial result; BACKFILLING only proves the bounded scheduler batch completed and continues, not that target raw data, parsing, reconciliation or publication passed."
+  },
+  "next_gate": "Keep the cloud-native backfill running. Only a real target-group raw attachment with deterministic parser-open, same-day account-and-transaction facts, zero-fen reconciliation, D1/R2/OCI and restore evidence can advance T04-T10 or financial publication.",
+  "public_repository_business_data_or_secret_written": false
+}

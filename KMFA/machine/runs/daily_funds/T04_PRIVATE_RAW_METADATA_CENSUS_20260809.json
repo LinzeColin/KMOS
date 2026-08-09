@@ -1,0 +1,66 @@
+{
+  "schema_version": "kmfa.daily_funds.t04_private_raw_metadata_census.v1",
+  "stage": "T04_ATTACHMENT_PARSING_AND_DOUBLE_FACTS",
+  "observed_at": "2026-08-09T15:38:30Z",
+  "taskpack": {
+    "name": "KMFA_每日资金_v0.0.0.1_FINAL_TASKPACK.zip",
+    "sha256": "072ab87c8d48acbd1732f47ff2edc76cf819c4537e60637f6bd5bf39233252b1"
+  },
+  "moving_baseline": {
+    "origin_main": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "worktree_head": "e1cf006b6483ecb9323f15d3f9f9cc992cfaee17",
+    "match": true
+  },
+  "method": {
+    "authority": "PRIVATE_DATABASE_CURRENT_ACQUIRED_RAW_METADATA_ONLY",
+    "transport": "GITHUB_CONTENTS_API_READ_ONLY",
+    "directories_scanned": 40,
+    "api_calls": 40,
+    "bytes_downloaded": 0,
+    "raw_values_or_identifiers_emitted": false,
+    "raw_bytes_persisted_locally": false,
+    "cloud_runtime_changed": false
+  },
+  "metadata_result": {
+    "result": "OK",
+    "errors": 0,
+    "file_counts_by_raw_area": {
+      "batches": 7,
+      "blobs": 8,
+      "messages": 8,
+      "occurrences": 8
+    },
+    "file_counts_by_suffix": {
+      ".json": 23,
+      ".png": 8
+    }
+  },
+  "comparison": {
+    "reference": "KMFA/machine/runs/daily_funds/T04_PRIVATE_RAW_CENSUS_20260809.json",
+    "structural_relation": "CONSISTENT_WITH_PRIOR_ACQUIRED_RANGE_CENSUS",
+    "limitation": "Metadata equality cannot prove raw-byte equality, attachment semantics, parser success, or a same-day account-and-transaction fact pair."
+  },
+  "t04_acceptance": {
+    "local_parser_and_double_fact_contract": "PASS_9_TARGETED_REGRESSION",
+    "local_contract_scope": "CSV_XLSX_AND_DETERMINISTIC_OCR_GATES_WITH_SYNTHETIC_FIXTURES",
+    "real_attachment_parser_open": "NOT_PROVEN_METADATA_ONLY",
+    "same_day_account_and_transaction_double_fact": "NOT_PROVEN_METADATA_ONLY",
+    "integer_fen_reconciliation": "NOT_RUN",
+    "d1_r2_oci_business_publication": "NOT_RUN",
+    "status": "NOT_MET",
+    "human_status": "需处理"
+  },
+  "task_graph_stage_state": {
+    "task": "T04",
+    "local_implementation": "LOCAL_READY_FOR_T05",
+    "real_template_and_same_day_pair": "NOT_PROVEN_DEFERRED_TO_T09_T10",
+    "production_oracle": "NOT_PROVEN_DEFERRED_TO_T10",
+    "unknown_as_pass": false
+  },
+  "decision": {
+    "result": "CONTINUE_FAIL_CLOSED",
+    "reason": "The current acquired range is structurally consistent with the prior census, but a directory-metadata audit is not evidence of cloud parser-open or double-fact completeness.",
+    "next_gate": "The cloud-only scheduled collection and raw-archive audit must produce a values-free capability receipt for real attachment parser-open and a valid same-day account-and-transaction fact pair before reconciliation or publication can run.",
+    "push_or_deploy": "NOT_PERFORMED"
+  }
+}
