@@ -47,6 +47,16 @@ def test_missing_ledger_says_so_instead_of_pretending_healthy(tmp_path, monkeypa
     assert daily["运行次数"] == 0
     assert daily["成功"] is None
     assert daily["本次状态"] == "UNKNOWN"
+    assert daily["历史回填"] == {
+        "最近一次": None,
+        "退出码": None,
+        "成功": None,
+        "运行次数": 0,
+        "运行计数口径": "仅保留最近一次历史回填回执，非累计历史次数",
+        "失败码": None,
+        "本次状态": "UNKNOWN",
+        "运行中": False,
+    }
     assert "原因" in body
 
 

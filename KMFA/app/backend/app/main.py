@@ -3185,14 +3185,15 @@ def _daily_funds_schedule_row() -> dict[str, Any]:
 
 
 def _daily_funds_public_skill_health_row(now: datetime) -> dict[str, Any]:
-    """Expose the isolated worker's latest *values-free* poll receipt.
+    """Expose the isolated worker's latest *values-free* poll/backfill receipts.
 
     ``daily-funds`` deliberately does not write the shared ``kmfa-logs``
     ledger: sharing it would also share the DWS profile and state that its
     isolation contract forbids.  The public health endpoint must therefore
     never manufacture a shared-ledger zero for this worker.  It may expose
-    only the already schema-checked latest poll receipt -- no business date,
-    amount, source metadata, raw log, or identifier crosses this boundary.
+    only the already schema-checked latest poll and historical-backfill
+    receipts -- no business date, amount, source metadata, raw log, or
+    identifier crosses this boundary.
 
     The worker retains one latest receipt rather than an append-only public
     history.  ``运行次数`` below is consequently the count of *verifiable
@@ -3215,6 +3216,17 @@ def _daily_funds_public_skill_health_row(now: datetime) -> dict[str, Any]:
     flow = row["每日资金状态"]["业务流"]
     poll = flow["运行回执"]["历史轮询"]
     outcome = _public_failure_code(poll.get("结果")) or "UNKNOWN"
+    backfill = flow["运行回执"]["历史回填"]
+    backfill_state = backfill["状态"]
+    backfill_ran = (
+        backfill_state in {"成功", "失败", "处理中"}
+        and backfill["最近一次"] is not None
+    )
+    backfill_terminal = (
+        backfill_state in {"成功", "失败"}
+        and backfill["最近一次"] is not None
+    )
+    backfill_outcome = _public_failure_code(backfill.get("结果")) or "UNKNOWN"
     return {
         "技能": "daily-funds",
         "最近一次": last,
@@ -3226,6 +3238,20 @@ def _daily_funds_public_skill_health_row(now: datetime) -> dict[str, Any]:
         "失败码": row["失败码"],
         "本次状态": outcome,
         "运行中": bool(row["运行中"]),
+        # Coolify currently exposes neither a usable container exec endpoint
+        # nor stdout cron logs.  This independently schema-checked receipt is
+        # therefore the values-free evidence that the cloud-native backfill
+        # scheduler actually ran; it is never publication or money evidence.
+        "历史回填": {
+            "最近一次": backfill["最近一次"] if backfill_ran else None,
+            "退出码": 0 if backfill_state == "成功" else 1 if backfill_state == "失败" else None,
+            "成功": backfill_state == "成功" if backfill_terminal else None,
+            "运行次数": 1 if backfill_ran else 0,
+            "运行计数口径": "仅保留最近一次历史回填回执，非累计历史次数",
+            "失败码": backfill_outcome if backfill_state == "失败" else None,
+            "本次状态": backfill_outcome,
+            "运行中": backfill_state == "处理中",
+        },
     }
 
 

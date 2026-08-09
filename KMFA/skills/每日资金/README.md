@@ -8,7 +8,7 @@
 
 启动和每日 `runtime-audit` 会在受保护 publication 卷写入脱敏隔离回执：仅包含固定卷挂载、是否发现其他 Skill 进程、配置指纹和 DWS 操作计数；不包含命令参数、挂载来源、群/发送人 ID、URL、附件或凭据。该回执不能替代真实采集/发布验收。
 
-同一卷还会写入 `flow_state.json`，由既有 KMFA `/api/排程健康` 汇总，而不建立第二套健康页面。它只登记运行审计、排程、业务流、自愈和恢复演练状态；worker 不具备现网 source SHA/image digest 证据时会明确保留 `identity_state=UNKNOWN`。
+同一卷还会写入 `flow_state.json`，由既有 KMFA `/api/排程健康` 汇总，而不建立第二套健康页面。它只登记运行审计、排程、业务流、自愈和恢复演练状态；公开 `/public-api/技能健康` 仅额外投影最近一次历史轮询和历史回填的脱敏回执（状态、时间、退出码），不投影业务日期、金额、来源、附件或标识。worker 不具备现网 source SHA/image digest 证据时会明确保留 `identity_state=UNKNOWN`。
 
 首次历史回填在云端原生 cron 的 `05,20,35,50` 分钟错峰运行，每批最多处理 7 个自然日，按从当前日向前 360 天的持久 planner 推进。它使用独立于实时 `poll_lock` 的长租约，因此慢速历史读取只会让下一批回填等待，不会阻塞 15 分钟当前日采集；原始 Git 写仍严格复用单一 `git_writer_lock`。
 

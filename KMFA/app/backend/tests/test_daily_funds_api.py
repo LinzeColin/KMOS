@@ -146,6 +146,12 @@ def _write_projection(root: Path) -> None:
                 "code": "AUTH_OK",
                 "finished_at": "2026-07-30T12:05:30Z",
             },
+            "backfill": {
+                "state": "SUCCEEDED",
+                "code": "BACKFILL_EMPTY_WINDOW",
+                "finished_at": "2026-07-30T12:06:30Z",
+                "raw_fixture_should_not_escape": "backfill-fixture",
+            },
             "r2-guard": {
                 "state": "SUCCEEDED",
                 "code": "R2_ZERO_CHARGE_GUARD_OK",
@@ -625,9 +631,9 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
     assert response.json()["每日资金"]["业务流"]["部署"]["身份"] == "UNKNOWN"
 
     # The public health endpoint cannot read the shared skills ledger as a
-    # proxy for this isolated worker.  It must expose only the safe latest
-    # history-poll receipt, never the projection, raw source, account data or
-    # private operation history.
+    # proxy for this isolated worker.  It may expose only the safe latest
+    # history-poll and historical-backfill receipts, never the projection,
+    # raw source, account data or private operation history.
     public = client.get("/public-api/技能健康")
     assert public.status_code == 200
     public_daily = next(row for row in public.json()["技能"] if row["技能"] == "daily-funds")
@@ -642,10 +648,21 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
         "失败码": None,
         "本次状态": "VALID_PUBLISHED",
         "运行中": False,
+        "历史回填": {
+            "最近一次": "2026-07-30T12:06:30Z",
+            "退出码": 0,
+            "成功": True,
+            "运行次数": 1,
+            "运行计数口径": "仅保留最近一次历史回填回执，非累计历史次数",
+            "失败码": None,
+            "本次状态": "BACKFILL_EMPTY_WINDOW",
+            "运行中": False,
+        },
     }
     assert "group-fixture" not in public.text
     assert "attachment-fixture" not in public.text
     assert "message-fixture" not in public.text
+    assert "backfill-fixture" not in public.text
 
 
 def test_daily_funds_embedded_source_identity_is_partial_and_fails_closed(tmp_path, monkeypatch):
