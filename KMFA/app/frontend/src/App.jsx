@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import './app.css'
 import * as echarts from 'echarts/core'
 import { BarChart, LineChart, PieChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, GraphicComponent } from 'echarts/components'
 import { SVGRenderer } from 'echarts/renderers'
 
-echarts.use([BarChart, LineChart, PieChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, SVGRenderer])
+echarts.use([BarChart, LineChart, PieChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, GraphicComponent, SVGRenderer])
 
 function Chart({ option, height = '16rem' }) {
   const ref = useRef(null)
@@ -1791,6 +1791,12 @@ function 项目成本({ 成本 }) {
 const 资金范围 = ['1d', '7d', '30d', '90d', '180d', '360d']
 const 资金范围话 = { '1d': '1 天', '7d': '7 天', '30d': '30 天', '90d': '90 天', '180d': '180 天', '360d': '360 天' }
 const 资金金额 = fen => Number.isInteger(fen) ? `¥${金额(fen / 100)}` : '—'
+const 浮动阈值话 = {
+  three_month: '过去 3 个完整月平均日余额',
+  six_month: '过去 6 个完整月平均日余额',
+  custom_date_range: '自定义区间平均日余额',
+  custom_numeric: '自定义数值',
+}
 const 阈值控制话 = value => {
   if (!value) return '无'
   if (value.mode === 'numeric') return `数值 ${资金金额(value.amount_fen)}`
@@ -1840,17 +1846,64 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 
   const 已支持附件数 = Number.isInteger(附件能力.已支持附件数) ? 附件能力.已支持附件数 : 0
   const 待复核附件数 = Number.isInteger(附件能力.待复核附件数) ? 附件能力.待复核附件数 : 0
   const option = useMemo(() => {
-    if (!图点.length) return null
     const 阈值说明 = [
       Number.isInteger(fixed.hard_fen) && `固定高风险线：${资金金额(fixed.hard_fen)}`,
       Number.isInteger(fixed.soft_fen) && `固定关注线：${资金金额(fixed.soft_fen)}`,
-      ...floating.map(line => `浮动 ${line.name}：${资金金额(line.threshold_fen)}（${line.start} 至 ${line.end}；覆盖 ${line.coverage || '—'}）`),
+      ...floating.map(line => `浮动 ${浮动阈值话[line.name] || line.name}：${资金金额(line.threshold_fen)}（${line.start} 至 ${line.end}；覆盖 ${line.coverage || '—'}）`),
     ].filter(Boolean).join('<br/>')
     const 阈值线 = [
       Number.isInteger(fixed.hard_fen) && { name: '固定高风险线', value: fixed.hard_fen, color: '#c2410c', type: 'dashed' },
       Number.isInteger(fixed.soft_fen) && { name: '固定关注线', value: fixed.soft_fen, color: '#b7791f', type: 'dashed' },
-      ...floating.map(line => ({ name: line.name, value: line.threshold_fen, color: '#64748b', type: 'dotted' })),
+      ...floating.map(line => ({ name: 浮动阈值话[line.name] || line.name, value: line.threshold_fen, color: '#64748b', type: 'dotted' })),
     ].filter(Boolean)
+    if (!图点.length) {
+      if (!无可信发布) return null
+      const 最大阈值元 = Math.max(...阈值线.map(line => line.value / 100), 1)
+      const 纵轴上限 = Math.ceil(最大阈值元 * 1.1 / 100000) * 100000
+      return {
+        legend: {
+          top: 0,
+          type: 'scroll',
+          data: ['可用资金（待发布）', ...阈值线.map(line => line.name)],
+          textStyle: { fontSize: 10 },
+        },
+        tooltip: { show: false },
+        grid: { left: 8, right: 12, top: 42, bottom: 16, containLabel: true },
+        xAxis: {
+          type: 'category', data: ['等待验证', '正式发布后'],
+          axisLabel: { fontSize: 10 }, axisTick: { show: false },
+        },
+        yAxis: {
+          type: 'value', min: 0, max: 纵轴上限,
+          axisLabel: { formatter: value => `¥${(value / 10000).toFixed(0)}万`, fontSize: 10 },
+        },
+        series: [
+          {
+            type: 'line', name: '可用资金（待发布）', data: [null, null], showSymbol: false,
+            connectNulls: false, silent: true, lineStyle: { opacity: 0 },
+            markLine: {
+              symbol: ['none', 'none'], silent: true,
+              label: { formatter: '{b}', fontSize: 10 },
+              data: 阈值线.map(line => ({
+                name: line.name, yAxis: line.value / 100,
+                lineStyle: { color: line.color, type: line.type, width: 1.25 },
+              })),
+            },
+          },
+          ...阈值线.map(line => ({
+            type: 'line', name: line.name, data: [line.value / 100, line.value / 100],
+            showSymbol: false, silent: true, lineStyle: { opacity: 0 }, itemStyle: { opacity: 0 },
+          })),
+        ],
+        graphic: {
+          type: 'group', left: 'center', top: 'middle', silent: true,
+          children: [
+            { type: 'text', style: { text: '尚无已验证资金曲线', textAlign: 'center', font: '600 14px sans-serif', fill: '#334155' } },
+            { type: 'text', top: 25, style: { text: '系统不会估算或补造金额；固定阈值按已冻结规则展示', textAlign: 'center', font: '12px sans-serif', fill: '#64748b' } },
+          ],
+        },
+      }
+    }
     return {
       legend: { top: 0, type: 'scroll', textStyle: { fontSize: 10 } },
       tooltip: { trigger: 'axis', formatter: rows => {
@@ -1882,7 +1935,7 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 
         })),
       ],
     }
-  }, [图点, fixed.hard_fen, fixed.soft_fen, floating])
+  }, [图点, fixed.hard_fen, fixed.soft_fen, floating, 无可信发布])
 
   const 应用自定义 = () => {
     if (自定义.from && 自定义.to) { 设范围('custom'); 刷新('custom', 自定义.from, 自定义.to) }
@@ -1962,6 +2015,40 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 
       设探针提交({ ok: false, text: `验证请求失败：${error.message || '未知错误'}` })
     }
   }
+  const 授权状态话 = 授权状态 === 'SUCCEEDED' ? '已完成'
+    : 授权状态 === 'AWAITING_APPROVAL' ? '待确认'
+      : 授权状态 === 'REQUESTED' || 授权状态 === 'CANCELLING' ? '处理中'
+        : ['FAILED', 'EXPIRED', 'CANCELLED'].includes(授权状态) ? '需处理' : '未开始'
+  const 授权状态色 = 授权状态 === 'SUCCEEDED' ? 'ok'
+    : 授权状态 === 'AWAITING_APPROVAL' || 授权进行中 ? 'warn'
+      : ['FAILED', 'EXPIRED', 'CANCELLED'].includes(授权状态) ? 'bad' : 'muted'
+  const 探针状态话 = 历史探针状态 === 'COMPLETED' ? '已执行'
+    : 历史探针进行中 ? '处理中'
+      : ['FAILED', 'EXPIRED'].includes(历史探针状态) ? '需处理' : '未开始'
+  const 发布进度 = [
+    {
+      名称: '独立授权', 状态: 授权状态话, 色: 授权状态色,
+      说明: 授权状态 === 'SUCCEEDED' ? '专用云端身份已就绪' : '仅在需要时发起一次设备授权',
+    },
+    {
+      名称: '历史读取', 状态: 探针状态话, 色: 历史探针色,
+      说明: 历史探针状态 === 'COMPLETED' ? '受限读取路径已验证' : '固定窗口读取尚未完成',
+    },
+    {
+      名称: '附件解析', 状态: 附件能力状态, 色: 附件能力色,
+      说明: 附件能力状态 === '已支持' ? '确定性解析能力已验证' : '不把待复核附件写成已解析',
+    },
+    {
+      名称: '成对勾稽', 状态: 来源?.has_trusted_publication ? '已完成' : '未通过',
+      色: 来源?.has_trusted_publication ? 'ok' : 无可信发布 ? 'bad' : 'muted',
+      说明: 来源?.has_trusted_publication ? '余额与流水已完成整数分勾稽' : 来源诊断.说明 || '等待来源、解析与勾稽同时通过',
+    },
+    {
+      名称: '正式发布', 状态: 来源?.has_trusted_publication ? '已发布' : 无可信发布 ? '待发布' : '未验证',
+      色: 来源?.has_trusted_publication ? 'ok' : 无可信发布 ? 'bad' : 'muted',
+      说明: 来源?.has_trusted_publication ? '已形成可用的日级资金投影' : '未通过前不显示或推断真实金额',
+    },
+  ]
   return (
     <>
       <div className={`card callout ${主状态 === '已更新' ? '' : 状态色}`}>
@@ -1970,40 +2057,51 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 
         <div className="sub">{来源?.message || '页面只展示已验证 publication；没有可信结果时明确提示需处理。'}</div>
       </div>
 
-      <div className={`card callout ${授权状态 === 'SUCCEEDED' ? '' : 授权状态 === 'AWAITING_APPROVAL' ? 'warn' : 授权状态 === 'FAILED' ? 'bad' : ''}`} style={{ marginTop: 14 }}>
-        <b>钉钉采集授权：<span className={`chip ${授权状态 === 'SUCCEEDED' ? 'ok' : 授权状态 === 'AWAITING_APPROVAL' ? 'warn' : 授权状态 === 'FAILED' ? 'bad' : 'muted'}`}>{授权状态 === 'SUCCEEDED' ? '已完成' : 授权状态 === 'AWAITING_APPROVAL' ? '等待确认' : 授权状态 === 'REQUESTED' || 授权状态 === 'CANCELLING' ? '处理中' : '未完成'}</span></b>
+      <section className="card daily-funds-pipeline" aria-label="资金发布进度">
+        <div className="daily-funds-pipeline-head">
+          <div><b>资金发布进度</b><div className="sub">每个关口独立验证；未同时通过时，不显示或推断真实金额。</div></div>
+          <span className={`chip ${无可信发布 ? 'bad' : 主状态 === '已更新' ? 'ok' : 'muted'}`}>{无可信发布 ? '待发布' : 主状态}</span>
+        </div>
+        <ol className="daily-funds-gates">
+          {发布进度.map((gate, index) => <li key={gate.名称} className={`daily-funds-gate ${gate.色}`}>
+            <span className="daily-funds-gate-index" aria-hidden="true">{index + 1}</span>
+            <div><b>{gate.名称}</b><span className={`chip ${gate.色}`}>{gate.状态}</span><p>{gate.说明}</p></div>
+          </li>)}
+        </ol>
+      </section>
+
+      {授权状态 !== 'SUCCEEDED' && <div className={`card callout ${授权状态 === 'AWAITING_APPROVAL' ? 'warn' : 授权状态 === 'FAILED' ? 'bad' : ''}`} style={{ marginTop: 14 }}>
+        <b>钉钉采集授权：<span className={`chip ${授权状态色}`}>{授权状态话}</span></b>
         {授权状态 === 'NOT_REQUESTED' && <div className="sub">仅对“每日资金”独立云端 DWS 卷发起一次设备授权；不会读取本机、其他 Skill 或现有钉钉登录态。</div>}
         {授权状态 === 'REQUESTED' && <div className="sub">云端正在生成一次性钉钉确认页；本页会自动刷新。</div>}
         {授权状态 === 'AWAITING_APPROVAL' && <div className="sub">请用张霖泽的钉钉账号完成一次确认。确认码不写入日志、状态或 Git，到期/撤销后立即清除。</div>}
         {授权状态 === 'CANCELLING' && <div className="sub">正在撤销本次设备授权并清除临时确认码。</div>}
-        {授权状态 === 'SUCCEEDED' && <div className="sub">授权已写入每日资金专用云端卷；后续仅由该切片的 15 分钟历史轮询使用。真实来源、附件和发布链仍需各自通过。</div>}
         {['FAILED', 'EXPIRED', 'CANCELLED'].includes(授权状态) && <div className="sub">本次授权未完成（{认证?.machine_code || 'UNKNOWN'}）；可重新发起，不会复用旧码或旧登录态。</div>}
         {授权状态 === 'AWAITING_APPROVAL' && <div className="toolbar" style={{ marginTop: 10 }}>
           <a className="btn active" href={认证.authorization_url} target="_blank" rel="noreferrer noopener">在钉钉中确认</a>
           <code aria-label="钉钉授权码">{认证.user_code}</code>
           <button type="button" className="btn" onClick={取消钉钉授权}>撤销本次授权</button>
         </div>}
-        {!授权进行中 && 授权状态 !== 'SUCCEEDED' && <div className="toolbar" style={{ marginTop: 10 }}>
+        {!授权进行中 && <div className="toolbar" style={{ marginTop: 10 }}>
           <button type="button" className="btn active" onClick={发起钉钉授权}>连接张霖泽的钉钉</button>
         </div>}
         {授权进行中 && 授权状态 !== 'AWAITING_APPROVAL' && <div className="toolbar" style={{ marginTop: 10 }}>
           <button type="button" className="btn" onClick={取消钉钉授权}>撤销本次授权</button>
         </div>}
         {授权提交 && <div className={`alert ${授权提交.ok ? 'ok' : 'bad'}`} role="status">{授权提交.text}</div>}
-      </div>
+      </div>}
 
-      <div className={`card callout ${历史探针色 === 'ok' ? '' : 历史探针色}`} style={{ marginTop: 14 }}>
-        <b>云端历史读取验证：<span className={`chip ${历史探针色}`}>{历史探针状态 === 'COMPLETED' ? '已执行' : 历史探针进行中 ? '处理中' : 历史探针状态 === 'FAILED' || 历史探针状态 === 'EXPIRED' ? '未完成' : '未发起'}</span></b>
+      {历史探针状态 !== 'COMPLETED' && <div className={`card callout ${历史探针色 === 'ok' ? '' : 历史探针色}`} style={{ marginTop: 14 }}>
+        <b>云端历史读取验证：<span className={`chip ${历史探针色}`}>{探针状态话}</span></b>
         {历史探针状态 === 'NOT_REQUESTED' && <div className="sub">仅在每日资金容器自己的 DWS 卷内读取固定 24 小时窗口，最多两页；请求不携带命令、群 ID、时间范围、消息、附件或金额。</div>}
         {历史探针状态 === 'REQUESTED' && <div className="sub">一次性固定探针已排队，容器会在独立 DWS 身份下执行并自动刷新结果。</div>}
         {历史探针状态 === 'RUNNING' && <div className="sub">容器正在执行固定窗口、最多两页的脱敏历史读取；不会下载附件或写入原始数据。</div>}
-        {历史探针状态 === 'COMPLETED' && <div className="sub">本次读取已执行（{探针?.continuation_state || 'NOT_STARTED'}）。这只验证受限读取路径，不代表附件解析、双事实、整数分勾稽、金额或发布已通过。</div>}
         {['FAILED', 'EXPIRED'].includes(历史探针状态) && <div className="sub">本次验证未完成（{探针?.machine_code || 'UNKNOWN'}）；系统没有把它写成来源、解析或发布通过。</div>}
-        {!历史探针进行中 && 历史探针状态 !== 'COMPLETED' && <div className="toolbar" style={{ marginTop: 10 }}>
+        {!历史探针进行中 && <div className="toolbar" style={{ marginTop: 10 }}>
           <button type="button" className="btn active" onClick={发起云端历史读取验证}>验证云端历史读取</button>
         </div>}
         {探针提交 && <div className={`alert ${探针提交.ok ? 'ok' : 'bad'}`} role="status">{探针提交.text}</div>}
-      </div>
+      </div>}
 
       <div className="grid" style={{ marginTop: 14 }}>
         <Kpi 标="当前可用资金" 值={资金金额(摘要?.total_available_fen)} 小 />
@@ -2021,10 +2119,16 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 
           <button type="button" className="btn" onClick={应用自定义} disabled={!自定义.from || !自定义.to}>应用</button>
         </div>
         {范围 === 'custom' && <p className="hint">自定义区间至少 7 个自然日；数据覆盖不足时动态线会自动停用。</p>}
-        {无可信发布 && <div className="card callout bad" style={{ marginTop: 12 }}><b>暂无可信 publication，需处理</b><div className="sub">来源、附件、整数分勾稽及发布链未同时通过前，系统不绘制或补造资金数据。</div></div>}
+        {无可信发布 && <div className="card callout bad" style={{ marginTop: 12 }}><b>暂无可信 publication，需处理</b><div className="sub">资金曲线保留为待发布状态；来源、附件、整数分勾稽及发布链未同时通过前，系统不会估算或补造金额。</div></div>}
         {取不到 && !无可信发布 && <加载失败卡 详情={(摘要?.加载失败 || 时序?.加载失败)} 需要登录={需要登录} 接口={摘要?.接口 || 时序?.接口} />}
-        {!取不到 && !points.length && <div className="card callout warn" style={{ marginTop: 12 }}><b>暂无已验证的资金时点</b><div className="sub">先看运行状态；在来源、附件、勾稽与发布链全部通过前，系统不绘制猜测曲线。</div></div>}
-        {option && <><div className="muted" style={{ marginTop: 12 }}>可用资金趋势（{范围 === '1d' ? '当日仍仅显示已发布日级结果；小时数据未发布' : '日级期末可用资金'}；固定 60/120 万线与已激活浮动线均可在图例独立开关）</div><Chart option={option} height="22rem" /></>}
+        {!取不到 && !points.length && !无可信发布 && <div className="card callout warn" style={{ marginTop: 12 }}><b>暂无已验证的资金时点</b><div className="sub">先看运行状态；在来源、附件、勾稽与发布链全部通过前，系统不绘制猜测曲线。</div></div>}
+        {option && <div className="daily-funds-chart" aria-label="可用资金走势">
+          <div className="daily-funds-chart-head">
+            <div><b>可用资金走势</b><div className="muted">{无可信发布 ? '待首份可信发布：仅展示冻结阈值，不展示资金金额' : (范围 === '1d' ? '当日仍仅显示已发布日级结果；小时数据未发布' : '日级期末可用资金')}</div></div>
+            <span className={`chip ${无可信发布 ? 'warn' : 'ok'}`}>{无可信发布 ? '待发布图表' : '已发布曲线'}</span>
+          </div>
+          <Chart option={option} height="22rem" />
+        </div>}
         {option && (覆盖.missing_dates?.length > 0 || 覆盖.coverage_gap_dates?.length > 0) && <div className="hint" role="status">{覆盖.missing_dates?.length > 0 && `未发布断档 ${覆盖.missing_dates.length} 天`}{覆盖.missing_dates?.length > 0 && 覆盖.coverage_gap_dates?.length > 0 ? '；' : ''}{覆盖.coverage_gap_dates?.length > 0 && `覆盖缺口 ${覆盖.coverage_gap_dates.length} 天（图中菱形标记，不参与浮动阈值）`}</div>}
       </div>
 
@@ -2035,7 +2139,7 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 
           <tr><td>固定高风险线</td><td className="num">{Number.isInteger(fixed.hard_fen) ? 金额(fixed.hard_fen / 100) : '—'}</td><td>≤ 固定线</td><td>固定</td></tr>
           <tr><td>固定关注线</td><td className="num">{Number.isInteger(fixed.soft_fen) ? 金额(fixed.soft_fen / 100) : '—'}</td><td>高风险线以上且 ≤ 固定线</td><td>固定</td></tr>
           {(threshold.floating || []).map(line => <tr key={line.name}>
-            <td>{line.name}</td><td className="num">{Number.isInteger(line.threshold_fen) ? 金额(line.threshold_fen / 100) : '数据不足'}</td>
+            <td>{浮动阈值话[line.name] || line.name}</td><td className="num">{Number.isInteger(line.threshold_fen) ? 金额(line.threshold_fen / 100) : '数据不足'}</td>
             <td>{line.start && line.end ? `${line.start} 至 ${line.end}｜覆盖 ${line.coverage || '—'}｜直测 ${line.direct_observations ?? '—'} 天｜承接 ${line.carried_forward_days ?? '—'} 天` : line.reason || '—'}</td>
             <td>{line.active ? <span className="chip ok">启用</span> : <span className="chip warn">停用</span>}</td>
           </tr>)}

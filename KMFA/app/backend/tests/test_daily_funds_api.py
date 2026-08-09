@@ -891,6 +891,21 @@ def test_archived_needs_review_is_visible_without_trusted_money(tmp_path, monkey
     }
     assert "待确定性解析复核" in source_health["message"]
     assert "UNSUPPORTED_ATTACHMENT" not in json.dumps(source_health)
+    thresholds = client.get("/ops/api/daily-funds/thresholds")
+    assert thresholds.status_code == 200
+    threshold_payload = thresholds.json()
+    assert threshold_payload["data_available"] is False
+    assert threshold_payload["active"]["fixed"] == {
+        "hard_fen": main_module.DAILY_FUNDS_HARD_THRESHOLD_FEN,
+        "soft_fen": main_module.DAILY_FUNDS_SOFT_THRESHOLD_FEN,
+    }
+    assert all(
+        line["active"] is False
+        and line["threshold_fen"] is None
+        and line["reason"] == "尚无足够已验证日余额"
+        for line in threshold_payload["active"]["floating"]
+    )
+    assert "ending_available_fen" not in thresholds.text
     status_center = client.get("/api/排程健康").json()
     daily = next(row for row in status_center["逐项"] if row["技能"] == "daily-funds")
     assert daily["每日资金状态"]["业务流"]["业务流"]["阶段"] == "BACKFILL_ARCHIVED_NEEDS_REVIEW"
@@ -970,6 +985,7 @@ def test_threshold_read_model_exposes_versioned_redacted_audit(tmp_path, monkeyp
     response = client.get("/ops/api/daily-funds/thresholds")
     assert response.status_code == 200
     payload = response.json()
+    assert payload["data_available"] is True
     assert payload["control"] == {
         "mode": "numeric",
         "revision": "2" * 64,

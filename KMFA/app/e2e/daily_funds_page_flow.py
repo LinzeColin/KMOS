@@ -517,13 +517,18 @@ def _exercise_case(
         else:
             page.get_by_text("暂无可信 publication，需处理", exact=False).wait_for(state="visible", timeout=10_000)
             page.get_by_text("附件解析能力", exact=False).wait_for(state="visible", timeout=10_000)
-            assert page.locator("svg").filter(has_text="可用资金").count() == 0
+            page.get_by_text("尚无已验证资金曲线", exact=False).wait_for(state="visible", timeout=10_000)
+            chart = page.locator("svg").filter(has_text="可用资金")
+            chart.first.wait_for(state="visible", timeout=10_000)
+            assert chart.count() == 1, f"expected one gated daily-funds SVG chart, got {chart.count()}"
+            page.get_by_text("固定高风险线", exact=False).first.wait_for(state="visible", timeout=10_000)
+            page.get_by_text("固定关注线", exact=False).first.wait_for(state="visible", timeout=10_000)
             assert "UNSUPPORTED_ATTACHMENT" not in page.content()
         _assert_projection_is_redacted(page, trusted_projection=trusted_projection)
         csp_violations = page.evaluate("() => window.__dailyFundsCspViolations || []")
         assert not csp_violations, f"CSP violations: {csp_violations}"
         allowed_failure_paths = set() if trusted_projection else {
-            "/ops/api/daily-funds/summary", "/ops/api/daily-funds/timeseries", "/ops/api/daily-funds/thresholds",
+            "/ops/api/daily-funds/summary", "/ops/api/daily-funds/timeseries",
         }
         failed_responses = [
             (url, response_status)

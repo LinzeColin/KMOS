@@ -3,7 +3,10 @@ uvicorn[standard]>=0.30
 pyyaml>=6.0
 reportlab>=4.0
 PyJWT[crypto]>=2.10,<3
-psycopg[binary]==3.3.4
+# 3.3.4 is not present on the public index used by the production Docker
+# build.  Keep the latest available binary-compatible 3.2 release so a cold
+# rebuild remains reproducible.
+psycopg[binary]==3.2.13
 # 1.43.51 is not published by the configured package index, so a clean
 # production image rebuild fails before KMFA starts.  Pin the compatible
 # public release used by the worker's S3-compatible API calls.

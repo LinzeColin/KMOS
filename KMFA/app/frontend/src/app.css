@@ -220,7 +220,7 @@ table.tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size
 .chip.ok { color: var(--okc); background: var(--ok-bg); }
 .chip.warn { color: var(--warnc); background: var(--warn-bg); }
 .chip.bad { color: var(--badc); background: var(--bad-bg); }
-.chip.mut { color: var(--text-2); background: var(--surface-2); }
+.chip.mut, .chip.muted { color: var(--text-2); background: var(--surface-2); }
 
 /* ---------- 按钮 / 输入 ---------- */
 
@@ -263,6 +263,34 @@ table.tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size
 .daily-funds-structure { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .daily-funds-flows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
 .daily-funds-structure .tblwrap, .daily-funds-flows .tblwrap { margin-top: 10px; }
+.daily-funds-pipeline { margin-top: 14px; }
+.daily-funds-pipeline-head, .daily-funds-chart-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+}
+.daily-funds-pipeline-head .sub, .daily-funds-chart-head .muted { margin-top: 4px; line-height: 1.5; }
+.daily-funds-gates {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0;
+  list-style: none; margin: 14px 0 0; padding: 0;
+  border: 1px solid var(--line); border-radius: var(--radius-s); overflow: hidden;
+}
+.daily-funds-gate {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 8px;
+  min-width: 0; padding: 10px; background: var(--surface);
+  border-left: 1px solid var(--line);
+}
+.daily-funds-gate:first-child { border-left: 0; }
+.daily-funds-gate-index {
+  display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  color: var(--text-2); background: var(--surface-2); font-size: 11px; font-weight: 750;
+}
+.daily-funds-gate.ok .daily-funds-gate-index { color: var(--okc); background: var(--ok-bg); }
+.daily-funds-gate.warn .daily-funds-gate-index { color: var(--warnc); background: var(--warn-bg); }
+.daily-funds-gate.bad .daily-funds-gate-index { color: var(--badc); background: var(--bad-bg); }
+.daily-funds-gate b { display: block; font-size: 12.5px; line-height: 1.35; }
+.daily-funds-gate .chip { margin-top: 5px; }
+.daily-funds-gate p { margin-top: 6px; color: var(--text-2); font-size: 11.5px; line-height: 1.45; }
+.daily-funds-chart { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.daily-funds-chart-head { margin-bottom: 2px; }
 
 /* ---------- 提示 / 空态 / 骨架 ---------- */
 
@@ -322,6 +350,17 @@ ul.muted li { margin-top: 4px; }
   .grid { grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); gap: 10px; }
   .kpi .val { font-size: 22px; }
   .daily-funds-structure, .daily-funds-flows { grid-template-columns: 1fr; }
+  .daily-funds-gates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .daily-funds-gate { border-left: 0; border-top: 1px solid var(--line); }
+  .daily-funds-gate:nth-child(-n + 2) { border-top: 0; }
+}
+
+@media (max-width: 540px) {
+  .daily-funds-pipeline-head, .daily-funds-chart-head { flex-direction: column; }
+  .daily-funds-gates { grid-template-columns: 1fr; }
+  .daily-funds-gate { border-top: 1px solid var(--line); }
+  .daily-funds-gate:nth-child(-n + 2) { border-top: 1px solid var(--line); }
+  .daily-funds-gate:first-child { border-top: 0; }
 }
 
 @media print { .side, .topbar { display: none; } .content { max-width: none; padding: 0; } }

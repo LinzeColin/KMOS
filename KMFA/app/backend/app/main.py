@@ -2530,7 +2530,13 @@ DAILY_FUNDS_HARD_THRESHOLD_FEN = 60_000_000
 DAILY_FUNDS_SOFT_THRESHOLD_FEN = 120_000_000
 DAILY_FUNDS_FIXED_RISKS = {"正常", "关注", "高风险"}
 DAILY_FUNDS_DYNAMIC_FLAGS = {"动态偏低", "动态明显偏低"}
-DAILY_FUNDS_FLOATING_LINE_NAMES = {"three_month", "six_month", "custom_date_range", "custom_numeric"}
+DAILY_FUNDS_FLOATING_LINE_ORDER = (
+    "three_month",
+    "six_month",
+    "custom_date_range",
+    "custom_numeric",
+)
+DAILY_FUNDS_FLOATING_LINE_NAMES = set(DAILY_FUNDS_FLOATING_LINE_ORDER)
 # This is an operational enum, not a failure code.  In particular, ``OK`` is
 # deliberately two characters and must not be lost through the generic
 # public failure-code sanitizer.
@@ -3629,6 +3635,42 @@ def _daily_funds_safe_thresholds(publication: dict[str, Any], *, total_available
     }
 
 
+def _daily_funds_unpublished_thresholds() -> dict[str, Any]:
+    """Expose the frozen policy without implying that a money projection exists.
+
+    The fixed 60/120 万 lines are task-pack configuration, rather than an
+    observation from an account or transaction.  They remain useful to orient
+    the UI while the publication gate is closed.  Dynamic lines intentionally
+    stay inactive: deriving one requires verified daily balances and must never
+    be guessed from an incomplete source chain.
+    """
+
+    return {
+        "fixed": {
+            "hard_fen": DAILY_FUNDS_HARD_THRESHOLD_FEN,
+            "soft_fen": DAILY_FUNDS_SOFT_THRESHOLD_FEN,
+        },
+        "floating": [
+            {
+                "name": name,
+                "threshold_fen": None,
+                "start": None,
+                "end": None,
+                "days": 0,
+                "direct_observations": 0,
+                "covered_days": 0,
+                "carried_forward_days": 0,
+                "coverage": "0",
+                "active": False,
+                "reason": "尚无足够已验证日余额",
+            }
+            for name in DAILY_FUNDS_FLOATING_LINE_ORDER
+        ],
+        "fixed_risk": None,
+        "dynamic_flag": None,
+    }
+
+
 def _daily_funds_projection_view(payload: dict[str, Any]) -> dict[str, Any]:
     """Validate the entire browser projection before exposing any financial value."""
     publication = payload["publication"]
@@ -4491,13 +4533,28 @@ def _daily_funds_control_audit() -> dict[str, Any]:
 @app.get("/ops/api/daily-funds/thresholds")
 @app.get("/api/daily-funds/thresholds")
 def daily_funds_thresholds():
-    payload = _daily_funds_current()
-    projection = _daily_funds_projection_view(payload)
+    try:
+        payload = _daily_funds_current()
+        projection = _daily_funds_projection_view(payload)
+        thresholds = projection["thresholds"]
+        data_available = True
+    except HTTPException as exc:
+        # A missing or invalid projection must still not conceal the two frozen
+        # policy lines.  Return no account, transaction, risk or dynamic amount
+        # here; the summary and timeseries endpoints remain fail-closed.
+        if exc.status_code != 503 or exc.detail not in {
+            "daily_funds_projection_unavailable",
+            "daily_funds_projection_not_valid",
+        }:
+            raise
+        thresholds = _daily_funds_unpublished_thresholds()
+        data_available = False
     return {
-        "active": projection["thresholds"],
+        "active": thresholds,
         "control": _daily_funds_public_control(),
         "control_audit": _daily_funds_control_audit(),
         "fixed_editable": False,
+        "data_available": data_available,
     }
 
 

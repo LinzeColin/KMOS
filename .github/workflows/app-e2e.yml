@@ -172,6 +172,12 @@ jobs:
             --base-url http://localhost:18098 \
             --out-dir workspace-removal-e2e
 
+      - name: 跑每日资金页面交互（待发布图表 / 阈值 / 三态 / 脱敏）
+        run: |
+          set -euo pipefail
+          python KMFA/app/e2e/daily_funds_page_flow.py \
+            --out-dir daily-funds-page-e2e
+
       # 真浏览器真点击。纯文本断言看不见 CSP 拦截——脚本被拒的时刻，
       # 字符串早已在 HTML 里了。2026-07-29「排序功能无法使用」就是这么漏过去的。
       - name: 跑项目成本页交互（CSP 违规 / 点表头真排序 / 重算有回话）
@@ -214,6 +220,7 @@ jobs:
           path: |
             e2e_result.csv
             workspace-removal-e2e/
+            daily-funds-page-e2e/
             structured-database-e2e/
             object-storage-e2e/
             consistency-state-e2e/
