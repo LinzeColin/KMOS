@@ -1540,6 +1540,7 @@ class DailyFundsRuntime:
         advance_pointer: bool = True,
         allow_empty_window: bool = False,
         archive_only: bool = False,
+        lease_profile: str = "live",
     ) -> dict[str, Any]:
         # A caller must opt into the historical mode explicitly.  It is never
         # legal for the current/live job to silently turn into a raw-only scan:
@@ -1656,6 +1657,7 @@ class DailyFundsRuntime:
                 cursor_key=cursor_key,
                 high_water_key=high_water_key,
                 start_override=start_override,
+                lease_profile=lease_profile,
             )
             if not all_attachments:
                 # A historic calendar day can be a complete, valid scan with
@@ -1879,6 +1881,7 @@ class DailyFundsRuntime:
                 advance_pointer=False,
                 allow_empty_window=True,
                 archive_only=True,
+                lease_profile="backfill",
             )
             if not result.get("ok"):
                 return {"ok": False, "completed_days": completed, "code": result.get("code", "BACKFILL_FAILED")}

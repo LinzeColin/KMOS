@@ -2598,7 +2598,7 @@ DAILY_FUNDS_STATUS_SCHEDULES = {
     "history_poll": "*/15 * * * * Asia/Shanghai",
     "auth_probe": "* * * * * Asia/Shanghai",
     "keepalive": "0 * * * * Asia/Shanghai",
-    "backfill": "15 2 * * * Asia/Shanghai",
+    "backfill": "5,20,35,50 * * * * Asia/Shanghai",
     "observer": "30 3 * * * Asia/Shanghai",
     "r2_guard": "0 */6 * * * Asia/Shanghai",
     "cold_backup": "10 4 * * * Asia/Shanghai",

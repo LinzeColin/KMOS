@@ -10,6 +10,8 @@
 
 同一卷还会写入 `flow_state.json`，由既有 KMFA `/api/排程健康` 汇总，而不建立第二套健康页面。它只登记运行审计、排程、业务流、自愈和恢复演练状态；worker 不具备现网 source SHA/image digest 证据时会明确保留 `identity_state=UNKNOWN`。
 
+首次历史回填在云端原生 cron 的 `05,20,35,50` 分钟错峰运行，每批最多处理 7 个自然日，按从当前日向前 360 天的持久 planner 推进。它使用独立于实时 `poll_lock` 的长租约，因此慢速历史读取只会让下一批回填等待，不会阻塞 15 分钟当前日采集；原始 Git 写仍严格复用单一 `git_writer_lock`。
+
 每日 `05:20` 的 `raw-archive-audit` 只在该云端容器中读取已取得范围内的私库原件：先按 Git tree 名称受限枚举，再以精确 sparse 路径重新打开消息信封、occurrence、批次 manifest 和字节 SHA，最后才运行现有离线解析器。它不请求 DWS、不写 Git/R2/D1/OCI、不变更 `current.json`，也不把原件、ID、金额或文件名写入日志和页面。其结果仅更新 values-free 附件能力回执；即使全部 parser-open，也不能代表全量群历史、同日双事实、整数分勾稽或资金发布已通过。
 
 每 6 小时 `r2-guard` 使用 Cloudflare 控制面只读接口核验全账户 bucket 默认均为 Standard、无 IA 生命周期且 IA 指标为零；同时以 31 天、每 15 分钟全部为新对象的最坏情况验证 Class A/Class B/存储均低于 Standard 免费额度 40%。只写入不含 bucket、对象或金额的回执。任何一项为未知、过期或失败时，R2 镜像、冷备前的 R2 readback 与 publication 都会保持 fail-closed；新对象也显式写入 `STANDARD`，同 SHA 键绝不覆盖旧镜像字节。

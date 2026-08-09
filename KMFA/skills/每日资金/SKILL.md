@@ -23,12 +23,13 @@ description: 独立云端每日资金纵向切片；仅从指定钉钉群历史�
 ## 固定运行合同
 
 - `*/15` 北京时间：历史轮询，正常路径只有包含显式记录列表的页才处理，且仅在 `hasMore=true` 时逐字复用 opaque `nextCursor`；终页即使返回值也必须丢弃。终页缺少记录列表时不能写成零匹配或推进 cursor，而是只尝试同群官方完整 ledger；它必须无失败、无截断、`complete=true`、`hasMore=false` 才作为一个终页处理，否则保持 `DWS_GROUP_HISTORY_COLLECT_INCOMPLETE` 或更具体失败。任一页失败不得推进 durable high-water；增量重叠 30 分钟。
+- `5,20,35,50 * * * *` 北京时间：每次最多 7 天的历史回填，起点为当前日向前 360 天；回填与实时轮询使用独立 lease，因而慢速历史 sparse-Git 回读只能让下一批回填等待，绝不占用实时 `poll_lock`。所有原始 Git 写仍共用 `git_writer_lock`，回填只在私库 readback 后登记能力，永不替换 live pointer。
 - `* * * * *`：授权探测，同一 incident 每 360 分钟最多一次 outbox 记录。
 - `0 * * * *`：DWS 显式认证状态保活。
 - `0 */6 * * *`：R2 零付费守卫。只读 Cloudflare 控制面，核验全账户 bucket 默认 Standard、无 IA 生命周期、IA 指标为零，并按最坏 31 天/15 分钟写入量确认 Class A/Class B/存储均低于免费额度 40%。回执过期、未知或失败时，R2、冷备前 R2 readback 与 publication 一律 fail-closed；不会把 bucket、对象、金额或凭据写入回执。
 - `20 5 * * *`：只读 `raw-archive-audit`。它只从已取得范围的私库原件按精确 sparse 路径重新校验消息信封、occurrence、批次与 SHA，再运行离线确定性 parser；不请求 DWS、不写 Git/R2/D1/OCI、不切换 `current.json`。结果仅可更新 values-free 附件能力回执，不能代表群历史全量、双事实、勾稽或金额 publication PASS。
 - 启动及每日 `05:45`：写入不含 argv、挂载来源或凭据的 runtime isolation audit；发现宿主挂载或其他 Skill 进程即失败关闭。
-- 每日：最大 7 天的回填、OCI 冷备重试、自主观察；回填永不替换较新的 live pointer。观察以当前 container deployment 的首份 D1/pointer/history 三方一致的 VALID publication 为基准，之后仅新的**周一至周五**源侧业务日期计入五日影子对照；cron 重试、同日重跑、周末 publication 和历史回填不能虚增。该 values-free `flow_state` 只由既有 KMFA 状态中枢读取，生产 source/image 身份无真实 Oracle 时保持 `UNKNOWN`。完整历史扫描确认没有候选附件的日窗仅作为 `BACKFILL_EMPTY_WINDOW` 推进回填计划；经私有 Git 新 sparse-clone 回读、但未获确定性解析支持的附件登记为 `NEEDS_REVIEW` 后同样可推进历史计划，绝不构成勾稽或发布成功；来源谱系/哈希失败仍失败关闭。实时采集零匹配仍失败关闭。
+- 回填、OCI 冷备重试、自主观察均由云端 cron 完成；回填每批最多 7 天、错峰每 15 分钟推进，永不替换较新的 live pointer。观察以当前 container deployment 的首份 D1/pointer/history 三方一致的 VALID publication 为基准，之后仅新的**周一至周五**源侧业务日期计入五日影子对照；cron 重试、同日重跑、周末 publication 和历史回填不能虚增。该 values-free `flow_state` 只由既有 KMFA 状态中枢读取，生产 source/image 身份无真实 Oracle 时保持 `UNKNOWN`。完整历史扫描确认没有候选附件的日窗仅作为 `BACKFILL_EMPTY_WINDOW` 推进回填计划；经私有 Git 新 sparse-clone 回读、但未获确定性解析支持的附件登记为 `NEEDS_REVIEW` 后同样可推进历史计划，绝不构成勾稽或发布成功；来源谱系/哈希失败仍失败关闭。实时采集零匹配仍失败关闭。
 - 金额：只用整数分/Decimal。固定高风险线 `60_000_000` 分，固定关注线 `120_000_000` 分；动态线为完整自然月 3/6 月平均日可用余额，或经过版本控制的自定义日期/数值线。
 - 勾稽质量：账户、公司、银行、全局差异都必须为 `0` 分；禁止以跨账户抵销、静默去重、浮点/布尔金额、重复余额日或未来 `current` 余额形成假零差。3/6 月动态线须满足 95% 覆盖和 45/90 直接观测；自定义日期范围至少 7 日、覆盖至少 80%。
 - 余额日：仅北京周六、周日可承接上一 VALID 余额并计为承接天；缺失工作日一律标 `coverage_gap` 并从动态线覆盖计算排除。未确认的法定假日不擅自承接，宁可停用动态线。

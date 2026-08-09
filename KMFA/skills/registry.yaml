@@ -156,7 +156,7 @@ schedules:
     name_zh: 每日资金回填
     skill: daily-funds-skill
     configured_in: coolify_daily_funds_container
-    schedule: "15 2 * * * Asia/Shanghai"
+    schedule: "5,20,35,50 * * * * Asia/Shanghai"
     cwd_exists: null
     fixable_by_agent: true
 

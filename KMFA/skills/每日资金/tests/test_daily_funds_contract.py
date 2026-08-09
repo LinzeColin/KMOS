@@ -1325,6 +1325,36 @@ def test_terminal_cursor_is_not_reused_for_the_next_overlap_window(tmp_path: Pat
     assert state.get_cursor() is None
 
 
+def test_backfill_lease_never_blocks_the_live_history_poll(tmp_path: Path) -> None:
+    """Historical batches may wait, but the current-day source poll may not."""
+
+    state = RuntimeState(_config(tmp_path).state_dir)
+
+    class EmptyClient:
+        @staticmethod
+        def search(_start, _end, _cursor):
+            return DwsPage(messages=(), next_cursor=None, has_more=False)
+
+    assert state.acquire_lease("backfill_lock", "historical-holder", ttl_seconds=60)
+    try:
+        pages = HistoryPoller(state, EmptyClient()).poll(
+            now=datetime(2026, 8, 1, tzinfo=UTC),
+            persist_page=lambda _page: None,
+            holder="live-holder",
+            lease_profile="live",
+        )
+        assert pages == 1
+        with pytest.raises(IngestionError, match="BACKFILL_LOCK_HELD"):
+            HistoryPoller(state, EmptyClient()).poll(
+                now=datetime(2026, 8, 1, tzinfo=UTC),
+                persist_page=lambda _page: None,
+                holder="other-historical-holder",
+                lease_profile="backfill",
+            )
+    finally:
+        state.release_lease("backfill_lock", "historical-holder")
+
+
 def test_backfill_empty_window_advances_only_the_historical_planner(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     runtime = DailyFundsRuntime(_config(tmp_path))
     observed: list[dict[str, object]] = []
@@ -1345,6 +1375,7 @@ def test_backfill_empty_window_advances_only_the_historical_planner(tmp_path: Pa
         row["advance_pointer"] is False
         and row["allow_empty_window"] is True
         and row["archive_only"] is True
+        and row["lease_profile"] == "backfill"
         for row in observed
     )
 
@@ -1894,7 +1925,7 @@ def test_auth_incident_dedup_honors_the_frozen_six_hour_cooldown(tmp_path: Path,
     assert state.queue_incident("DWS_AUTH_REQUIRED") is True
 
 
-def test_cloud_scheduler_uses_the_bundled_entrypoint_and_frozen_cadence() -> None:
+def test_cloud_scheduler_uses_the_bundled_entrypoint_and_nonblocking_backfill_cadence() -> None:
     """Cron must use the isolated, owner-only Coolify env snapshot."""
 
     command = "/opt/daily-funds/scripts/run_daily_funds.py"
@@ -1903,7 +1934,8 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_frozen_cadence() -> Non
     assert f"*/15 * * * * root {wrapper} poll" in cron
     assert f"* * * * * root {wrapper} auth-probe" in cron
     assert f"0 * * * * root {wrapper} keepalive" in cron
-    assert f"15 2 * * * root {wrapper} backfill --max-days 7" in cron
+    assert f"5,20,35,50 * * * * root {wrapper} backfill --max-days 7" in cron
+    assert "15 2 * * * root" not in cron
     assert f"30 3 * * * root {wrapper} observer" in cron
     assert f"0 */6 * * * root {wrapper} r2-guard" in cron
     assert f"10 4 * * * root {wrapper} cold-backup" in cron
