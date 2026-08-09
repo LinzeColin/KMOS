@@ -2955,12 +2955,13 @@ def test_dws_search_advanced_uses_opaque_cursor_and_embedded_media_source(tmp_pa
     assert all(call[call.index("--conversation-ids") + 1] == config.group_id for call in history_calls)
     assert all(call[call.index("--start") + 1] == "2026-08-01T00:00:00+00:00" for call in history_calls)
     assert all(call[call.index("--end") + 1] == "2026-08-01T00:10:00+00:00" for call in history_calls)
-    # Sender filtering stays local and exact; the remote selector is the
-    # configured group alone, never a mixed conversation/user query.
+    # The remote selector is the exact group/sender intersection, while the
+    # local triple gate remains mandatory before any raw write.
+    assert all(call[call.index("--sender-ids") + 1] == config.sender_id for call in history_calls)
     assert all("--group" not in call and "--user" not in call and "--open-dingtalk-id" not in call for call in history_calls)
 
 
-def test_dws_group_history_fallback_omits_time_bounds_but_keeps_the_exact_group(tmp_path: Path) -> None:
+def test_dws_exact_source_history_fallback_omits_time_bounds_but_keeps_group_and_sender(tmp_path: Path) -> None:
     """The diagnostic fallback stays on search-advanced and exposes no broad selector."""
 
     config = _config(tmp_path)
@@ -2990,7 +2991,7 @@ def test_dws_group_history_fallback_omits_time_bounds_but_keeps_the_exact_group(
     history_call = next(call for call in calls if call[1:4] == ["chat", "message", "search-advanced"])
     assert history_call[history_call.index("--conversation-ids") + 1] == config.group_id
     assert "--start" not in history_call and "--end" not in history_call
-    assert "--sender-ids" not in history_call
+    assert history_call[history_call.index("--sender-ids") + 1] == config.sender_id
 
 
 def test_dws_history_rejects_a_half_bounded_window_before_authentication(tmp_path: Path) -> None:

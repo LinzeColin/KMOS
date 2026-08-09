@@ -5,7 +5,7 @@ not a remote shell.  The private KMFA app may enqueue exactly one fixed probe;
 the request contains no command, source identifier, cursor, time range, or
 financial input.  The broker first uses only the slice's configured DWS
 identity against a fixed recent window.  If that page is recordless, it may
-retry the *same exact-group history interface* without time bounds and return
+retry the *same exact-source history interface* without time bounds and return
 only a small enum-only receipt.
 """
 
@@ -202,8 +202,8 @@ class DailyFundsHistoryProbeBroker:
         A page that has ``hasMore=false`` but no explicit records list is not
         proof of an empty current day.  It must not be made into a zero result
         or a cursor advance.  The only diagnostic retry is the documented
-        group-only form of the same opaque-cursor history interface; its
-        contents and cursor remain entirely in process memory.
+        group-plus-sender form of the same opaque-cursor history interface;
+        its contents and cursor remain entirely in process memory.
         """
 
         self.config.validate(include_storage=False)
@@ -223,7 +223,7 @@ class DailyFundsHistoryProbeBroker:
             continuation_state="NOT_STARTED",
         )
         client = DwsHistoryClient(self.config, event_sink=self._record_probe_network_event)
-        # Validate only the configured group through the pinned DWS read
+        # Validate the configured group through the pinned DWS read
         # command before interpreting a record-less ``search-advanced`` page.
         # This is not a second collector and it retains no response fields;
         # it isolates wrong/unreadable group scope from DF-002's page-shape
@@ -236,9 +236,9 @@ class DailyFundsHistoryProbeBroker:
         except IngestionError as exc:
             if exc.code != "DWS_PAGE_RECORDS_MISSING":
                 raise
-            # DWS v1.0.52 permits ``search-advanced`` with the configured
-            # conversation alone.  Do not substitute the boundary-based
-            # message-list API or a remote sender filter.
+            # DWS v1.0.52 permits ``search-advanced`` with both the configured
+            # conversation and stable sender.  Do not substitute the
+            # boundary-based message-list API or widen either selector.
             fallback_used = True
             first = client.search(None, None, None)
         if not first.has_more:

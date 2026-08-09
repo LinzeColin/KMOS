@@ -889,16 +889,19 @@ class DwsHistoryClient:
             start = start.astimezone(UTC)
             end = end.astimezone(UTC)
         self.ensure_authenticated()
-        # ``search-advanced`` is a history query when constrained to this
-        # exact conversation.  Unlike ``message list``, it preserves DWS's
-        # opaque ``nextCursor`` contract required by the task pack.  The
-        # group is still the sole remote source selector; the local stable
-        # sender and document-family checks remain mandatory below.
+        # ``search-advanced`` is a history query when constrained to the
+        # configured group *and* stable sender.  Unlike ``message list``, it
+        # preserves DWS's opaque ``nextCursor`` contract required by the task
+        # pack.  This is a narrower remote selector, never a substitute for
+        # the local group, sender and document-family gates below: the
+        # provider response is independently verified before it can enter the
+        # raw writer.
         request_cursor = cursor or "0"
         command = [
             self.config.dws_bin,
             "chat", "message", "search-advanced",
             "--conversation-ids", self.config.group_id,
+            "--sender-ids", self.config.sender_id,
         ]
         if start is not None:
             # ``end`` is necessarily present after the paired-bound check.
@@ -968,10 +971,10 @@ class DwsHistoryClient:
     def selected_messages(self, page: DwsPage) -> tuple[dict[str, Any], ...]:
         """Keep only the configured sender's two document families.
 
-        A history search is group-scoped and therefore normally contains other
-        participants.  Other senders are not an error and must not make the
-        job unavailable.  A returned *different group* is a source-integrity
-        failure because it contradicts the command's exact conversation ID.
+        The remote request is already constrained to the configured group and
+        sender, but its reply remains untrusted.  An unexpected sender is
+        ignored and a returned *different group* is a source-integrity failure
+        because it contradicts the command's exact conversation ID.
         """
 
         selected: list[dict[str, Any]] = []
