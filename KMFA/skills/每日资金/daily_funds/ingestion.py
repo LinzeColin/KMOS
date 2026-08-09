@@ -768,10 +768,28 @@ class DwsHistoryClient:
             raise IngestionError("DWS_AUTH_REQUIRED")
         self._auth_ready = True
 
-    def search(self, start: datetime, end: datetime, cursor: str | None) -> DwsPage:
+    def search(
+        self,
+        start: datetime | None,
+        end: datetime | None,
+        cursor: str | None,
+    ) -> DwsPage:
+        """Read one exact-group history page, with either both bounds or none.
+
+        The normal collector always supplies a bounded time range.  The
+        values-free control probe may, after a recordless current-window
+        result, issue the same exact-group history request without time bounds
+        to distinguish that response shape from an unavailable history
+        interface.  A caller can never accidentally send a half-bounded query.
+        """
+
+        if (start is None) != (end is None):
+            self._record_network_event("HISTORY_SEARCH_ADVANCED", "INVALID")
+            raise IngestionError("DWS_HISTORY_WINDOW_INVALID")
+        if start is not None:
+            start = start.astimezone(UTC)
+            end = end.astimezone(UTC)
         self.ensure_authenticated()
-        start = start.astimezone(UTC)
-        end = end.astimezone(UTC)
         # ``search-advanced`` is a history query when constrained to this
         # exact conversation.  Unlike ``message list``, it preserves DWS's
         # opaque ``nextCursor`` contract required by the task pack.  The
@@ -782,12 +800,12 @@ class DwsHistoryClient:
             self.config.dws_bin,
             "chat", "message", "search-advanced",
             "--conversation-ids", self.config.group_id,
-            "--start", start.isoformat(),
-            "--end", end.isoformat(),
-            "--cursor", request_cursor,
-            "--limit", "30",
-            "--format", "json",
         ]
+        if start is not None:
+            # ``end`` is necessarily present after the paired-bound check.
+            assert end is not None
+            command.extend(("--start", start.isoformat(), "--end", end.isoformat()))
+        command.extend(("--cursor", request_cursor, "--limit", "30", "--format", "json"))
         try:
             completed = self._run_dws(
                 command,
@@ -823,10 +841,14 @@ class DwsHistoryClient:
         if raw_page.has_more and raw_page.next_cursor == request_cursor:
             self._record_network_event("HISTORY_SEARCH_ADVANCED", "INVALID")
             raise IngestionError("DWS_HISTORY_CURSOR_STALLED")
-        page_messages = tuple(
-            message
-            for message, timestamp in zip(raw_page.messages, timestamps)
-            if start <= timestamp <= end
+        page_messages = (
+            tuple(
+                message
+                for message, timestamp in zip(raw_page.messages, timestamps)
+                if start <= timestamp <= end
+            )
+            if start is not None
+            else raw_page.messages
         )
         page = DwsPage(
             messages=page_messages,

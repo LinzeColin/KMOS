@@ -146,6 +146,46 @@ def test_history_probe_reports_a_bounded_second_page_without_claiming_terminal_h
     assert session["machine_code"] == "DWS_HISTORY_PROBE_COMPLETED"
 
 
+def test_history_probe_retries_only_a_recordless_current_window_with_the_same_group_history_interface(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _config(tmp_path)
+    calls: list[tuple[datetime | None, datetime | None, str | None]] = []
+
+    class FakeClient:
+        def __init__(self, _config, *, event_sink):
+            assert callable(event_sink)
+
+        def search(self, start: datetime | None, end: datetime | None, cursor: str | None) -> DwsPage:
+            calls.append((start, end, cursor))
+            if start is not None:
+                assert end is not None and cursor is None
+                raise IngestionError("DWS_PAGE_RECORDS_MISSING")
+            if cursor is None:
+                return DwsPage(messages=(), next_cursor="opaque-history-page-2", has_more=True)
+            assert cursor == "opaque-history-page-2"
+            return DwsPage(messages=(), next_cursor=None, has_more=False)
+
+    monkeypatch.setattr(history_probe_module, "DwsHistoryClient", FakeClient)
+    _request(config, "e" * 64)
+    DailyFundsHistoryProbeBroker(config).run_once()
+
+    session = json.loads((config.control_dir / SESSION_FILE).read_text(encoding="utf-8"))
+    assert session["state"] == "COMPLETED"
+    assert session["machine_code"] == "DWS_HISTORY_PROBE_COMPLETED"
+    assert session["continuation_state"] == "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL"
+    assert session["cursor_transcript"] == "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL"
+    assert len(calls) == 3
+    assert calls[0][0] is not None and calls[0][1] is not None and calls[0][2] is None
+    assert calls[1] == (None, None, None)
+    assert calls[2] == (None, None, "opaque-history-page-2")
+    serialized = json.dumps(session)
+    assert "group-fixture" not in serialized
+    assert "sender-fixture" not in serialized
+    assert "opaque-history-page-2" not in serialized
+
+
 def test_history_probe_rejects_malformed_control_volume_input_without_constructing_a_client(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

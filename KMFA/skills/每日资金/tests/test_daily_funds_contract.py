@@ -2936,6 +2936,45 @@ def test_dws_search_advanced_uses_opaque_cursor_and_embedded_media_source(tmp_pa
     assert all("--group" not in call and "--user" not in call and "--open-dingtalk-id" not in call for call in history_calls)
 
 
+def test_dws_group_history_fallback_omits_time_bounds_but_keeps_the_exact_group(tmp_path: Path) -> None:
+    """The diagnostic fallback stays on search-advanced and exposes no broad selector."""
+
+    config = _config(tmp_path)
+    calls: list[list[str]] = []
+
+    def runner(command, **kwargs):
+        calls.append(command)
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({"authenticated": True, "refresh_token_valid": True}), "")
+        if command[1:4] == ["chat", "message", "search-advanced"]:
+            return subprocess.CompletedProcess(command, 0, json.dumps({
+                "success": True,
+                "result": {
+                    "hasMore": False,
+                    "messages": [{
+                        "openMessageId": "history-message",
+                        "openConversationId": config.group_id,
+                        "senderOpenDingTalkId": config.sender_id,
+                        "createTime": "2026-07-01T00:00:00Z",
+                    }],
+                },
+            }), "")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    page = DwsHistoryClient(config, runner=runner).search(None, None, None)
+    assert len(page.messages) == 1
+    history_call = next(call for call in calls if call[1:4] == ["chat", "message", "search-advanced"])
+    assert history_call[history_call.index("--conversation-ids") + 1] == config.group_id
+    assert "--start" not in history_call and "--end" not in history_call
+    assert "--sender-ids" not in history_call
+
+
+def test_dws_history_rejects_a_half_bounded_window_before_authentication(tmp_path: Path) -> None:
+    client = DwsHistoryClient(_config(tmp_path))
+    with pytest.raises(IngestionError, match="DWS_HISTORY_WINDOW_INVALID"):
+        client.search(None, datetime(2026, 8, 1, tzinfo=UTC), None)
+
+
 def test_dws_search_advanced_rejects_a_stalled_opaque_cursor(tmp_path: Path) -> None:
     config = _config(tmp_path)
     events: list[tuple[str, str, str]] = []

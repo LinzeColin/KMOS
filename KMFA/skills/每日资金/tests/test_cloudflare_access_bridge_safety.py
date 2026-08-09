@@ -67,6 +67,9 @@ def _valid_probe(*, state: str = "COMPLETED", continuation: str = "SECOND_PAGE_T
         "FIRST_PAGE_TERMINAL": "FIRST_PAGE_TERMINAL",
         "SECOND_PAGE_TERMINAL": "OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
         "SECOND_PAGE_CONTINUES": "OPAQUE_CURSOR_REUSED_SECOND_PAGE_CONTINUES",
+        "GROUP_HISTORY_FALLBACK_FIRST_PAGE_TERMINAL": "GROUP_HISTORY_FALLBACK_FIRST_PAGE_TERMINAL",
+        "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL": "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
+        "GROUP_HISTORY_FALLBACK_SECOND_PAGE_CONTINUES": "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_CONTINUES",
     }[continuation]
     machine = "DWS_HISTORY_PROBE_COMPLETED" if state == "COMPLETED" else "DWS_HISTORY_PROBE_RUNNING"
     return {
@@ -317,6 +320,20 @@ def test_probe_receipt_proves_cursor_reuse_without_storing_a_cursor(tmp_path: Pa
     _write(receipt, summary)
     assert probe_poll_state(receipt) == "COMPLETED"
     assert "opaque-page" not in json.dumps(summary)
+
+
+def test_probe_receipt_keeps_the_recordless_window_fallback_explicit(tmp_path: Path) -> None:
+    response = tmp_path / "probe.json"
+    _write(response, _valid_probe(continuation="GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL"))
+
+    summary = summarize_probe_response(response, http_status="200", curl_exit=0)
+
+    assert summary["result"] == "HISTORY_PROBE_COMPLETED"
+    assert summary["continuation_state"] == "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL"
+    assert summary["cursor_transcript"] == "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL"
+    receipt = tmp_path / "receipt.json"
+    _write(receipt, summary)
+    assert probe_poll_state(receipt) == "COMPLETED"
 
 
 @pytest.mark.parametrize(

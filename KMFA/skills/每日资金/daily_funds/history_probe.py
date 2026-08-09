@@ -3,8 +3,10 @@
 This is deliberately a diagnostic control plane, not a second collector and
 not a remote shell.  The private KMFA app may enqueue exactly one fixed probe;
 the request contains no command, source identifier, cursor, time range, or
-financial input.  The broker uses only the slice's configured DWS identity,
-looks at a fixed recent window, and returns a small enum-only receipt.
+financial input.  The broker first uses only the slice's configured DWS
+identity against a fixed recent window.  If that page is recordless, it may
+retry the *same exact-group history interface* without time bounds and return
+only a small enum-only receipt.
 """
 
 from __future__ import annotations
@@ -37,12 +39,18 @@ CONTINUATION_STATES = frozenset({
     "FIRST_PAGE_TERMINAL",
     "SECOND_PAGE_TERMINAL",
     "SECOND_PAGE_CONTINUES",
+    "GROUP_HISTORY_FALLBACK_FIRST_PAGE_TERMINAL",
+    "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL",
+    "GROUP_HISTORY_FALLBACK_SECOND_PAGE_CONTINUES",
 })
 CURSOR_TRANSCRIPTS = {
     "NOT_STARTED": "NOT_STARTED",
     "FIRST_PAGE_TERMINAL": "FIRST_PAGE_TERMINAL",
     "SECOND_PAGE_TERMINAL": "OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
     "SECOND_PAGE_CONTINUES": "OPAQUE_CURSOR_REUSED_SECOND_PAGE_CONTINUES",
+    "GROUP_HISTORY_FALLBACK_FIRST_PAGE_TERMINAL": "GROUP_HISTORY_FALLBACK_FIRST_PAGE_TERMINAL",
+    "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL": "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_TERMINAL",
+    "GROUP_HISTORY_FALLBACK_SECOND_PAGE_CONTINUES": "GROUP_HISTORY_FALLBACK_OPAQUE_CURSOR_REUSED_SECOND_PAGE_CONTINUES",
 }
 _HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
 
@@ -182,7 +190,14 @@ class DailyFundsHistoryProbeBroker:
         self.state.record_network_event("DWS_HISTORY_PROBE", operation, outcome)
 
     def _run_probe(self, request: HistoryProbeRequest) -> None:
-        """Run one fixed current-window probe and retain no page contents."""
+        """Probe the current window, then a same-source fallback if necessary.
+
+        A page that has ``hasMore=false`` but no explicit records list is not
+        proof of an empty current day.  It must not be made into a zero result
+        or a cursor advance.  The only diagnostic retry is the documented
+        group-only form of the same opaque-cursor history interface; its
+        contents and cursor remain entirely in process memory.
+        """
 
         self.config.validate(include_storage=False)
         now = datetime.now(UTC)
@@ -202,13 +217,26 @@ class DailyFundsHistoryProbeBroker:
         )
         client = DwsHistoryClient(self.config, event_sink=self._record_probe_network_event)
         start = now - timedelta(hours=24)
-        first = client.search(start, now, None)
+        fallback_used = False
+        try:
+            first = client.search(start, now, None)
+        except IngestionError as exc:
+            if exc.code != "DWS_PAGE_RECORDS_MISSING":
+                raise
+            # DWS v1.0.52 permits ``search-advanced`` with the configured
+            # conversation alone.  Do not substitute the boundary-based
+            # message-list API or a remote sender filter.
+            fallback_used = True
+            first = client.search(None, None, None)
         if not first.has_more:
             self._write_session(
                 request,
                 state="COMPLETED",
                 machine_code="DWS_HISTORY_PROBE_COMPLETED",
-                continuation_state="FIRST_PAGE_TERMINAL",
+                continuation_state=(
+                    "GROUP_HISTORY_FALLBACK_FIRST_PAGE_TERMINAL"
+                    if fallback_used else "FIRST_PAGE_TERMINAL"
+                ),
             )
             return
         if not first.next_cursor:
@@ -221,8 +249,14 @@ class DailyFundsHistoryProbeBroker:
                 continuation_state="NOT_STARTED",
             )
             return
-        second = client.search(start, now, first.next_cursor)
-        continuation_state = "SECOND_PAGE_CONTINUES" if second.has_more else "SECOND_PAGE_TERMINAL"
+        second = client.search(None, None, first.next_cursor) if fallback_used else client.search(start, now, first.next_cursor)
+        if fallback_used:
+            continuation_state = (
+                "GROUP_HISTORY_FALLBACK_SECOND_PAGE_CONTINUES"
+                if second.has_more else "GROUP_HISTORY_FALLBACK_SECOND_PAGE_TERMINAL"
+            )
+        else:
+            continuation_state = "SECOND_PAGE_CONTINUES" if second.has_more else "SECOND_PAGE_TERMINAL"
         self._write_session(
             request,
             state="COMPLETED",
