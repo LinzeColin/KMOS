@@ -7,17 +7,9 @@
 
 已发生的实际冲突，作为判例记录：
 
-- **根路径被误改，Owner 三次投诉。** v1.5.2 写「`/` 是完整匿名 App Shell」，交付线据此删掉了
-  `app/frontend/src/KmfaHome.jsx` 并把匿名壳挂到根。Owner 看到后原话：
-  「这根本不是我的东西 你不要搞这些恶心人的东西来恶心我」「主页还是没有恢复 我看到这个主页就恶心」。
-  **已于 #211 归位**：`/` = KMFA 经营驾驶舱；匿名 App Shell / Walking Skeleton / 匿名反滥用挑战全部迁 `/workspace`。
-  合同该条**作废**，不得再以合同为由回退。
-- **门禁**：`app/backend/tests/test_root_is_kmfa_home.py`（根必须是驾驶舱 / `/workspace` 必须保留匿名壳 / 两者必须不同）。
-  该测试红了**只许改代码，不许改测试**。
-- **随迁清单**（改根路径相关内容时必须同步，否则 CI 会在这些地方红）：
-  `backend/tests/test_smoke.py`、`test_public_entry_contract.py`、
-  `e2e/public_shell_flow.py`、`public_accessibility_index.py`、`walking_skeleton_flow.py`、`abuse_control_flow.py`，
-  以及 `frontend/index.html` **和已提交的 `frontend/dist/index.html`**（pytest 服务的是 committed dist，两边必须一致）。
+- **根路径与 workspace 页面已最终定案。** v1.5.2 写「`/` 是完整匿名 App Shell」已经被 Owner 覆写作废。`/` = KMFA 经营驾驶舱；2026-08-10 Owner 进一步明令删除此前放在 `/workspace` 的匿名页面，且不得以兼容、跳转或备用壳形式恢复。`/workspace`、`/workspace/` 及任意子路径必须返回 `404`。
+- **门禁**：`app/backend/tests/test_root_is_the_app_not_a_brochure.py`、`test_smoke.py`、`test_public_entry_contract.py` 与 `e2e/workspace_removal_flow.py`。它们共同锁定驾驶舱根路径、删除的源文件与 `/workspace*` 的 `404` 行为；测试红了**只许改代码，不许改测试**。
+- **同步范围**：`backend/app/main.py`、`frontend/src/main.jsx`、`frontend/index.html`、`frontend/dist/` 和上述门禁必须同改。现有 walking-skeleton / anti-abuse API 不是公开页面，也不授权重新挂载 `/workspace`。
 
 ## 每日资金 v0.0.0.1（当前受控实现，2026-08-09 已重取）
 

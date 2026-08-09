@@ -165,12 +165,12 @@ jobs:
           pip install --quiet playwright==1.60.0
           python -m playwright install --with-deps chromium firefox webkit
 
-      - name: 跑公共 App Shell（桌面 / 移动 / 无 JS / 依赖降级）
+      - name: 验证已删除的 workspace 页面不会复活
         run: |
           set -euo pipefail
-          python KMFA/app/e2e/public_shell_flow.py \
+          python KMFA/app/e2e/workspace_removal_flow.py \
             --base-url http://localhost:18098 \
-            --out-dir public-shell-e2e
+            --out-dir workspace-removal-e2e
 
       # 真浏览器真点击。纯文本断言看不见 CSP 拦截——脚本被拒的时刻，
       # 字符串早已在 HTML 里了。2026-07-29「排序功能无法使用」就是这么漏过去的。
@@ -182,35 +182,6 @@ jobs:
             --out-dir project-cost-page-e2e \
             --container-name kmfa-cost-e2e \
             --port 18106
-
-      - name: 跑公开页可访问性与索引边界（三浏览器）
-        run: |
-          set -euo pipefail
-          python KMFA/app/e2e/public_accessibility_index.py \
-            --base-url http://localhost:18098 \
-            --out-dir public-accessibility-index-e2e
-
-      - name: 跑匿名恢复与 secret hygiene（会话撤销 / 泄露扫描 / 重启 / hash / Flag 回滚）
-        run: |
-          set -euo pipefail
-          p34_state=$(mktemp -d /tmp/kmfa-p34-state.XXXXXX)
-          python KMFA/app/e2e/walking_skeleton_flow.py \
-            --image kmfa-app:e2e \
-            --state-dir "$p34_state" \
-            --out-dir walking-skeleton-e2e \
-            --container-name kmfa-p34-e2e \
-            --port 18099
-
-      - name: 跑匿名反滥用（正常误伤 / 五类攻击 / 并发预算 / 恢复）
-        run: |
-          set -euo pipefail
-          p44_state=$(mktemp -d /tmp/kmfa-p44-state.XXXXXX)
-          python KMFA/app/e2e/abuse_control_flow.py \
-            --image kmfa-app:e2e \
-            --state-dir "$p44_state" \
-            --out-dir abuse-control-e2e \
-            --container-name kmfa-p44-e2e \
-            --port 18105
 
       - name: 跑私有经营 App 全流端到端
         run: |
@@ -242,10 +213,7 @@ jobs:
           name: app-e2e-result
           path: |
             e2e_result.csv
-            public-shell-e2e/
-            public-accessibility-index-e2e/
-            walking-skeleton-e2e/
-            abuse-control-e2e/
+            workspace-removal-e2e/
             structured-database-e2e/
             object-storage-e2e/
             consistency-state-e2e/
@@ -256,8 +224,6 @@ jobs:
         run: |
           docker rm -f kmfa-e2e || true
           docker rm -f kmfa-daily-funds-e2e || true
-          docker rm -f kmfa-p34-e2e || true
-          docker rm -f kmfa-p44-e2e || true
           docker rm -f kmfa-p51-ci-app-a || true
           docker rm -f kmfa-p51-ci-app-b || true
           docker rm -f kmfa-p51-ci-app-c || true

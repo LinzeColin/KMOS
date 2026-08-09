@@ -121,29 +121,6 @@ def _public_shell_enabled() -> bool:
     }
 
 
-# /workspace 换壳区间：从 kicker 到入口网格结束（含标题与导语），
-# 这样匿名工作区的完整文案在 /workspace 上原样保留。
-STATIC_GRID_RE = re.compile(r'<p class="static-kicker">.*?</section>', re.S)
-
-# 换壳只改正文不改 <head>，会让 /workspace 顶着驾驶舱的标题与分享卡片。
-# 这里把 head 里的身份文案一并换成匿名工作区的，两条路由的身份才真正分开。
-WORKSPACE_HEAD_SWAPS = (
-    ("<title>KMFA｜经营驾驶舱</title>", "<title>KMFA｜公开工作区</title>"),
-    (
-        '<meta property="og:title" content="KMFA｜经营驾驶舱">',
-        '<meta property="og:title" content="KMFA｜公开工作区">',
-    ),
-    (
-        '<meta property="og:description" content="回款、开票、成本、拍板与报告，跑在同一条四层可验证链上；经营数据默认私有。">',
-        '<meta property="og:description" content="一个入口，通往项目、文件与可验证进度；不含任何经营数字。">',
-    ),
-    (
-        '<meta name="description" content="KMFA 经营驾驶舱：回款、开票、成本、拍板与报告，跑在同一条四层可验证链上；经营数据默认私有。">',
-        '<meta name="description" content="KMFA 公开工作区：一个入口，通往项目、文件与可验证进度；不含任何经营数字。">',
-    ),
-)
-
-
 def _frontend_index() -> Path:
     index_path = FRONTEND_DIST / "index.html"
     if not index_path.exists():
@@ -203,36 +180,6 @@ def private_operations_app(app_path: str | None = None):
 def daily_funds_private_entry():
     """Stable private deep link; the actual UI remains the shared KMFA app."""
     return RedirectResponse(url="/ops/app?tab=%E6%AF%8F%E6%97%A5%E8%B5%84%E9%87%91", status_code=307)
-
-
-@app.api_route("/workspace/{workspace_path:path}", methods=["GET", "HEAD"], include_in_schema=False)
-@app.api_route("/workspace", methods=["GET", "HEAD"], include_in_schema=False)
-@app.api_route("/workspace/", methods=["GET", "HEAD"], include_in_schema=False)
-def public_workspace(workspace_path: str | None = None):
-    """匿名工作区兼容入口；根路径同样提供完整公共 App Shell。
-
-    索引边界中间件对非根路径 fail-closed(noindex + private no-store),
-    robots 仅放行根,故本路由无需额外抓取控制。
-    """
-    # 根路径是 KMFA 经营驾驶舱门面（Owner 指令）；本兼容入口把静态壳换成匿名工作区六入口，
-    # 这样 v1.5.2 的匿名 App Shell 契约在 /workspace 上完整保留，不因根路径归位而丢失。
-    html = _frontend_index().read_text(encoding="utf-8")
-    fragment = Path(__file__).with_name("workspace_shell_fragment.html")
-    if fragment.is_file():
-        replaced, n = STATIC_GRID_RE.subn(fragment.read_text(encoding="utf-8").strip(), html, count=1)
-        if n == 1:
-            html = replaced
-    for cockpit_meta, workspace_meta in WORKSPACE_HEAD_SWAPS:
-        # 找不到就跳过：前端改文案时 /workspace 退化成沿用驾驶舱 head，也不该 500。
-        html = html.replace(cockpit_meta, workspace_meta, 1)
-    return Response(
-        html,
-        media_type="text/html",
-        headers={
-            "Cache-Control": "no-cache, must-revalidate, no-transform",
-            "X-KMFA-Shell-Mode": "public-workspace",
-        },
-    )
 
 
 @app.api_route("/ui/{legacy_path:path}", methods=["GET", "HEAD"], include_in_schema=False)

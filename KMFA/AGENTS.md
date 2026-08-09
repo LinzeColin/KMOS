@@ -7,12 +7,12 @@
 **冲突裁决顺序：Owner 在会话中的直接指令 > 本节 > v1.5.2 sealed taskpack > 其余一切文档。**
 sealed 合同只在 Owner 没有另行指令的题目上有效；**下列条目 Owner 已直接指令，任何 agent 不得以「合同这么写」为由回退。**
 
-- **O-1 根路径归属（2026-07-26 Owner 三次投诉后定案）**
-  `/` = **KMFA 经营驾驶舱**（`app/frontend/src/KmfaHome.jsx`，标题 `KMFA｜经营驾驶舱`，六入口 `today/cash/tax/cost/decide/report`）。
-  v1.5.2 里「`/` 是完整匿名 App Shell」**已被 Owner 覆写作废**；匿名 App Shell / Walking Skeleton / 匿名反滥用挑战一律归 **`/workspace`**。
-  - 禁止删除或改写 `KmfaHome.jsx`、`index.html` / `dist/index.html` 的驾驶舱首屏、`workspace_shell_fragment.html`。
-  - 门禁：`app/backend/tests/test_root_is_kmfa_home.py`。**它红了要改代码，不许改它来"修复"**；确需变更须 Owner 在会话中明说。
-  - Owner 原话：「这根本不是我的东西 你不要搞这些恶心人的东西来恶心我」「主页还是没有恢复 我看到这个主页就恶心」。
+- **O-1 根路径归属与已删除页面（2026-08-10 Owner 最终指令）**
+  `/` = **KMFA 经营驾驶舱**（`app/frontend/src/App.jsx` 与 `index.html` 的驾驶舱兜底，标题 `KMFA｜经营驾驶舱`）。
+  v1.5.2 里「`/` 是完整匿名 App Shell」**已被 Owner 覆写作废**；此前放在 **`/workspace`** 的匿名页面亦已被 Owner 明令删除。`/workspace`、`/workspace/` 及其任意子路径必须为 `404`，不得作为兼容入口、跳转页或备用壳复活。
+  - 禁止新增或恢复 `PublicAppShell.jsx`、`public-shell.css`、`workspace_shell_fragment.html` 或任何 `/workspace` 页面路由。现有 walking-skeleton / anti-abuse API 不构成恢复该页面的授权。
+  - 门禁：`app/backend/tests/test_root_is_the_app_not_a_brochure.py`。**它红了要改代码，不许改它来"修复"**；确需变更须 Owner 在会话中明说。
+  - Owner 原话：「这根本不是我的东西 你不要搞这些恶心人的东西来恶心我」「主页还是没有恢复 我看到这个主页就恶心」「删除你之前添加的那个workspace页，不允许任何恢复」。
 - **O-2 永不新建 repo。** 禁 `gh repo create`。一切私有数据进唯一私有库 `LinzeColin/Private-Database` 的 `Private-KMDatabase/` 分区；体量问题用 sparse / blobless clone 解决，不用开新仓。
 - **O-3 测试期禁发钉钉群。** 未经 Owner 当场授权，投递收件人只能是**张霖泽本人**（个人通道）。安全态 = `KMFA_DELIVERY_ENABLED=0` **且** Coolify 内无群机器人凭据；一键恢复见 `.github/workflows/coolify-ops.yml` 的 `testing-safe-mode`。
 - **O-4 本机零占用。** 禁 launchd / 本机定时任务 / 本机大缓存。定时与增量同步只能跑在云端容器（Coolify / GitHub Actions）。

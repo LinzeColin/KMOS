@@ -374,40 +374,31 @@ def test_the_download_says_no_when_there_is_no_artifact(tmp_path):
 
 
 def test_the_homepage_link_survives_react_hydration():
-    """链接必须写在 React 壳里，不能只写在静态壳里。
+    """链接必须写在根路径实际加载的 React 应用里，不能只写在静态壳里。
 
     2026-07-29 Owner：「和主页没有连接在一起」。此前链接只在 index.html 的静态壳，
     浏览器一加载 JS，React 接管就把整块换掉——「首页有链接」只在没有 JS 时成立。
     """
-    shell = (REPO / "KMFA/app/frontend/src/PublicAppShell.jsx").read_text(encoding="utf-8")
-    assert shell.count('href="/project-cost"') >= 2, "React 壳里没有项目成本入口"
-    assert "data-shell-cost-entry" in shell, "入口没有可测锚点"
+    app = (REPO / "KMFA/app/frontend/src/App.jsx").read_text(encoding="utf-8")
+    assert app.count('href="/project-cost"') >= 2, "根路径 React 应用里没有项目成本入口"
 
-    built = list((REPO / "KMFA/app/frontend/dist/assets").glob("PublicAppShell-*.js"))
+    built = list((REPO / "KMFA/app/frontend/dist/assets").glob("App-*.js"))
     assert built, "找不到构建产物"
-    assert any("shell-cost-entry" in f.read_text(encoding="utf-8", errors="replace")
+    assert any("/project-cost" in f.read_text(encoding="utf-8", errors="replace")
                for f in built), "改了源码但没重新构建，线上还是旧的"
 
 
 def test_the_entry_is_in_the_component_the_root_actually_renders():
-    """入口必须在根路径实际加载的公开壳里。
-
-    根路径默认渲染 `PublicAppShell`；私有经营驾驶舱仅在 `/ops/app`。因此不能
-    只在 `App.jsx` 放入口再凭字符串误判用户看得见。
-    """
+    """入口必须在根路径实际加载的驾驶舱组件里。"""
     main_js = (REPO / "KMFA/app/frontend/src/main.jsx").read_text(encoding="utf-8")
-    assert "loadPrivateOperationsApp()" in main_js and "isPrivateOperationsApp" in main_js, \
-        "路由结构变了——重新确认根路径到底渲染哪个组件，别再照着旧假设放入口"
-    assert "loadPublicAppShell()" in main_js
+    assert "import('./App.jsx')" in main_js, "根路径必须直接加载 App.jsx"
+    assert "PublicAppShell" not in main_js, "不得依赖已删除的 workspace 页面"
 
-    public_shell = (REPO / "KMFA/app/frontend/src/PublicAppShell.jsx").read_text(
-        encoding="utf-8"
-    )
-    assert 'href="/project-cost"' in public_shell, "根路径渲染的组件里没有项目成本入口"
-    assert "data-shell-cost-entry" in public_shell, "入口没有可测锚点"
+    app = (REPO / "KMFA/app/frontend/src/App.jsx").read_text(encoding="utf-8")
+    assert 'href="/project-cost"' in app, "根路径渲染的组件里没有项目成本入口"
 
-    built = list((REPO / "KMFA/app/frontend/dist/assets").glob("PublicAppShell-*.js"))
-    assert built, "找不到 PublicAppShell 的构建产物"
+    built = list((REPO / "KMFA/app/frontend/dist/assets").glob("App-*.js"))
+    assert built, "找不到 App 的构建产物"
     assert any("/project-cost" in f.read_text(encoding="utf-8", errors="replace") for f in built), \
         "改了源码但没重新构建，线上还是旧的"
 

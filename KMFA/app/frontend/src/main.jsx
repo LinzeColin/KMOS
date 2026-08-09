@@ -70,28 +70,15 @@ class VisibleErrorBoundary extends React.Component {
 }
 
 const root = document.getElementById('root')
-const pathname = window.location.pathname
-const isPrivateOperationsApp = pathname === '/ops/app'
-  || pathname.startsWith('/ops/app/')
 
-function loadPrivateOperationsApp() {
+function loadKmfaApp() {
   return import('./App.jsx')
 }
 
-function loadPublicAppShell() {
-  return import('./PublicAppShell.jsx')
-}
-
 // Owner 2026-07-27：「把这个恶心的页面彻底删除掉，不允许死而复活无数次，我只要我的软件」。
-// 根路径不再是任何门面/宣传页——它**就是**经营驾驶舱本体，与 /ops/app 同一个应用。
-// 真实经营数字仍由边缘层 Cloudflare Access 守在 /api* 与 /ops* 之后：未认证者拿到的是
-// 空数据的界面，不是数字；认证一次之后根路径直接可用。
-// v1.5.2 匿名 App Shell 不删除，仍在 /workspace（那是给外人看的公开面）。
-const isPublicWorkspace = pathname === '/workspace' || pathname.startsWith('/workspace/')
-
-const appModule = (isPrivateOperationsApp || !isPublicWorkspace)
-  ? loadPrivateOperationsApp()
-  : loadPublicAppShell()
+// 根路径与 /ops/app 都加载同一个经营驾驶舱；2026-08-10 Owner 已要求删除 /workspace
+// 页面，因此这里不得再保留按路径切换到匿名壳的分支。
+const appModule = loadKmfaApp()
 
 appModule
   .then(({ default: App }) => {

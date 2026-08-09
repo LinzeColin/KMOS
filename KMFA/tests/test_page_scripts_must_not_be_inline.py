@@ -172,10 +172,6 @@ def test_no_html_template_in_the_source_carries_an_inline_script():
         ("main.py 的字符串字面量", text)
         for text in literals if text not in docstrings
     ]
-    fragment = BACKEND / "app/workspace_shell_fragment.html"
-    if fragment.exists():
-        sources.append((fragment.name, fragment.read_text(encoding="utf-8")))
-
     for label, text in sources:
         for body in _inline_scripts(text):
             raise AssertionError(

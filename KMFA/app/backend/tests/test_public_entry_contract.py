@@ -61,20 +61,12 @@ def test_root_is_direct_canonical_app_entry():
     assert head.headers["x-kmfa-shell-mode"] == "public-app"
 
 
-def test_root_contains_complete_static_shell_without_account_controls():
-    # Owner 2026-07-26（第二次）：根域名必须是 KMFA 经营驾驶舱门面，不是匿名工作区。
-    # v1.5.2 匿名 App Shell 契约**不删除**，平移到 /workspace 继续完整成立。
-    # 根路径归属由 test_root_is_kmfa_home.py 守卫，请勿改回。
-    html = client.get("/workspace").text
-    entries = re.findall(r'data-static-shell-entry="([a-z]+)"', html)
-    assert entries == ["project", "upload", "search", "progress", "report", "help"]
-    for label in ("项目", "上传", "搜索", "进度", "报告", "帮助"):
-        assert label in html
-    assert 'data-no-js-state="visible"' in html
-    assert "JavaScript 已停用" in html
-    assert not re.search(r'<input\b[^>]*type=["\'](?:email|password)["\']', html, re.I)
-    assert not re.search(r"<(?:button|a)\b[^>]*>\s*(?:登录|注册|OAuth)", html, re.I)
-    assert "/api" not in html and "/ops" not in html
+def test_workspace_page_has_no_compatibility_alias():
+    """Owner 已删除页面；不能把它改成根路径的副本或 noindex 兼容壳。"""
+    for path in ("/workspace", "/workspace/", "/workspace/legacy/deep-link"):
+        response = client.get(path, follow_redirects=False)
+        assert response.status_code == 404
+        assert "location" not in response.headers
 
 
 def test_public_shell_flag_rolls_back_only_to_stable_static_entry(monkeypatch):
@@ -509,13 +501,14 @@ def test_deployment_waits_for_application_and_governance_gates():
     assert golden_path["needs"] == "app-e2e-gate"
 
 
-def test_walking_skeleton_oracle_preserves_linux_bind_mount_ownership():
-    oracle = (REPO / "KMFA/app/e2e/walking_skeleton_flow.py").read_text(
+def test_workspace_removal_oracle_covers_every_former_page_form():
+    oracle = (REPO / "KMFA/app/e2e/workspace_removal_flow.py").read_text(
         encoding="utf-8"
     )
-    assert 'f"{os.getuid()}:{os.getgid()}"' in oracle
-    assert '("--user", self.user_spec)' in oracle
-    assert "Production keeps the image's default user" in oracle
+    for path in ('"/workspace"', '"/workspace/"', '"/workspace/anything"'):
+        assert path in oracle
+    assert '"HEAD"' in oracle
+    assert "status == 404" in oracle
 
 
 def test_healthz_stays_anonymous_because_the_ui_diagnosis_depends_on_it():

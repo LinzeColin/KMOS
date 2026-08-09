@@ -23,6 +23,7 @@ from app.main import app
 
 client = TestClient(app)
 FRONTEND_SRC = Path(__file__).resolve().parents[3] / "app" / "frontend" / "src"
+BACKEND_APP = Path(__file__).resolve().parents[1] / "app"
 
 # 三次被 Owner 点名"恶心"的东西的共同特征：营销主张、能力自夸、模块推介文案。
 BROCHURE_PHRASES = [
@@ -57,9 +58,8 @@ def test_brochure_component_stays_deleted():
 def test_root_boots_the_operations_app_not_a_landing_page():
     main_jsx = (FRONTEND_SRC / "main.jsx").read_text(encoding="utf-8")
     assert "loadKmfaHome" not in main_jsx, "根路径不得再挂任何门面组件"
-    # 根路径必须落到私有经营应用；只有 /workspace 走匿名公开壳。
-    assert "loadPrivateOperationsApp()" in main_jsx
-    assert "isPublicWorkspace" in main_jsx
+    assert "import('./App.jsx')" in main_jsx, "根路径必须加载经营驾驶舱应用"
+    assert "PublicAppShell" not in main_jsx, "不得按路径重新挂载已删除页面"
 
 
 def test_root_still_meets_the_public_boundary():
@@ -82,9 +82,11 @@ def test_no_js_fallback_is_a_module_list_not_a_pitch():
         assert "数字" in para or "JavaScript" in para, f"兜底出现长篇推介文案：{para[:40]}…"
 
 
-def test_workspace_still_serves_the_anonymous_shell():
-    """v1.5.2 的匿名公开面不删除，只是不再占用根路径。"""
-    r = client.get("/workspace")
-    assert r.status_code == 200
-    assert r.headers.get("x-kmfa-shell-mode") == "public-workspace"
-    assert "<title>KMFA｜公开工作区</title>" in r.text
+def test_workspace_page_and_its_recovery_assets_stay_deleted():
+    """Owner 明令删除的页面没有兼容路由，也没有可重新挂载的源文件。"""
+    for path in ("/workspace", "/workspace/", "/workspace/anything"):
+        assert client.get(path, follow_redirects=False).status_code == 404
+    assert not (FRONTEND_SRC / "PublicAppShell.jsx").exists()
+    assert not (FRONTEND_SRC / "public-shell.css").exists()
+    assert not (BACKEND_APP / "workspace_shell_fragment.html").exists()
+    assert '"/workspace' not in (BACKEND_APP / "main.py").read_text(encoding="utf-8")

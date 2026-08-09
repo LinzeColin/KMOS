@@ -59,7 +59,7 @@ def test_skills_enriched_fields():
 
 def test_index_serves_the_cockpit_app_not_a_brochure():
     # Owner 2026-07-27：「把这个恶心的页面彻底删除掉，不允许死而复活无数次，我只要我的软件」。
-    # 根路径不再是任何门面，而是驾驶舱应用本体；匿名公开壳仍在 /workspace（见下一个测试）。
+    # 根路径不再是任何门面，而是驾驶舱应用本体。
     # 根路径归属另有专门守卫 test_root_is_the_app_not_a_brochure.py，请勿改回。
     r = client.get("/", follow_redirects=False)
     assert r.status_code == 200 and "location" not in r.headers
@@ -68,25 +68,11 @@ def test_index_serves_the_cockpit_app_not_a_brochure():
     assert r.text.count("data-static-shell-entry=") == 6
 
 
-def test_workspace_serves_anonymous_public_shell():
-    """v1.5.2 匿名 App Shell 契约在 /workspace 上继续完整成立。"""
-    r = client.get("/workspace", follow_redirects=False)
-    assert r.status_code == 200
-    assert "一个入口，通往项目、文件与可验证进度。" in r.text
-    assert r.text.count("data-static-shell-entry=") == 6
-
-
-def test_workspace_route_serves_shell_with_noindex():
-    # 匿名工作区独立于根路径;索引边界中间件对它 fail-closed。
-    r = client.get("/workspace", follow_redirects=False)
-    assert r.status_code == 200
-    assert r.headers["x-kmfa-shell-mode"] == "public-workspace"
-    assert r.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
-    assert "no-store" in r.headers["cache-control"]
-    assert "no-transform" in r.headers["cache-control"]
-    assert '<div id="root">' in r.text
-    deep = client.get("/workspace/anything", follow_redirects=False)
-    assert deep.status_code == 200
+def test_workspace_page_is_deleted_on_every_former_entry_path():
+    for path in ("/workspace", "/workspace/", "/workspace/anything"):
+        r = client.get(path, follow_redirects=False)
+        assert r.status_code == 404
+        assert r.headers.get("x-kmfa-shell-mode") != "public-workspace"
 
 
 def test_legacy_ui_redirects_once_to_root():
