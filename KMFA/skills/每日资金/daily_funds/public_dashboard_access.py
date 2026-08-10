@@ -114,9 +114,10 @@ def _application_destinations(application: Mapping[str, Any]) -> tuple[tuple[str
 
 def _is_public_dashboard_path(path: str) -> bool:
     # The Owner's explicit no-login override covers the dashboard landing page
-    # itself.  A root-path Access application is still exact-host scoped; it
-    # does not authorize a wildcard host or a different domain.
-    if path == "/":
+    # itself.  Cloudflare represents an exact-host root application as either
+    # ``/`` or ``/*``; neither form authorizes a wildcard host or a different
+    # domain.
+    if path in {"/", "/*"}:
         return True
     return any(path == root or path.startswith(f"{root}/") for root in _TARGET_ROOTS)
 
@@ -125,9 +126,9 @@ def select_public_dashboard_application_ids(payload: object) -> tuple[str, ...]:
     """Return only exact-host Access apps covering the public dashboard.
 
     Only applications on the exact KMFA host are selected.  The Owner's
-    explicit no-login override includes an exact-host root application as
-    well as the dashboard's named routes; wildcard hosts and different hosts
-    remain outside this boundary.
+    explicit no-login override includes either representation of an
+    exact-host root application as well as the dashboard's named routes;
+    wildcard hosts and different hosts remain outside this boundary.
     """
 
     selected: set[str] = set()
