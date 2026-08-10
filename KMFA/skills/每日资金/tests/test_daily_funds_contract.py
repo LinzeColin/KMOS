@@ -5414,6 +5414,11 @@ def test_daily_funds_deployment_keeps_its_auth_bundle_and_identifiers_private() 
     assert "DAILY_FUNDS_R2_MAX_NEW_OBJECTS_PER_POLL=100" in env_example
     assert 'DAILY_FUNDS_R2_MAX_NEW_OBJECTS_PER_POLL: "${DAILY_FUNDS_R2_MAX_NEW_OBJECTS_PER_POLL:-100}"' in daily_service
     assert 'SOURCE_COMMIT: "${SOURCE_COMMIT:-}"' in daily_service
+    assert "enable-source-commit-build" in ops
+    assert 'include_source_commit_in_build": True' in ops
+    assert "source_commit_build_setting=ENABLED" in ops
+    assert "source_commit_build_setting=UNKNOWN" in ops
+    assert "MAIN_REF_REQUIRED" in ops
     assert 'user: "0:0"' in daily_service
     assert "kmfa-dws-auth" not in daily_service
     assert "sync-daily-funds-secrets" in ops

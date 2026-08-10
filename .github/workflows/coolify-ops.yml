@@ -16,12 +16,12 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-history-probe-cleanup=按唯一 run tag 清理遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
+        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-history-probe-cleanup=按唯一 run tag 清理遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify | exec=容器内只读诊断"
         required: true
         type: choice
-        options: [list, deployment-identity, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-history-probe-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs, exec]
+        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-history-probe-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs, exec]
       app_uuid:
-        description: "目标应用 uuid（provision-backup-key / redeploy 必填；先用 list 查）"
+        description: "目标应用 uuid（enable-source-commit-build / provision-backup-key / redeploy 必填；先用 list 查）"
         required: false
         type: string
       command:
@@ -513,6 +513,79 @@ jobs:
           print("configured_source_revision=UNKNOWN")
           print("configured_source_identity_status=UNKNOWN")
           sys.exit(1)
+          PY
+
+      # Coolify 默认不把 SOURCE_COMMIT 放进 Docker 构建；那会令 worker/App
+      # 只能报告 UNKNOWN，不能把同一镜像层的源码身份和 GitHub deploy run
+      # 绑定。此模式是唯一允许的配置写入：精确 PATCH 一个非秘密布尔值，
+      # 随即用 GET 回读。它不改环境变量、域名、卷、认证或业务数据。
+      - name: 开启构建源码身份并只读回执
+        if: inputs.mode == 'enable-source-commit-build'
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF:-}" = "refs/heads/main" || {
+            echo "source_commit_build_setting=MAIN_REF_REQUIRED"; exit 1; }
+          test -n "${APP:-}" || {
+            echo "source_commit_build_setting=APP_UUID_REQUIRED"; exit 1; }
+          python3 - <<'PY' > "$RUNNER_TEMP/source-commit-build.json"
+          import json
+          print(json.dumps({"include_source_commit_in_build": True}))
+          PY
+          code=$(curl -sS -o "$RUNNER_TEMP/source-commit-build.patch.json" -w '%{http_code}' \
+            -X PATCH -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            --data @"$RUNNER_TEMP/source-commit-build.json" \
+            "$BASE/api/v1/applications/$APP" || true)
+          if [ "$code" != "200" ] && [ "$code" != "201" ]; then
+            echo "source_commit_build_setting=PATCH_HTTP_$code"
+            exit 1
+          fi
+          curl -fsSL -H "Authorization: Bearer $TOKEN" \
+            "$BASE/api/v1/applications/$APP" -o "$RUNNER_TEMP/source-commit-build.application.json"
+          curl -fsSL -H "Authorization: Bearer $TOKEN" \
+            "$BASE/api/v1/applications" -o "$RUNNER_TEMP/source-commit-build.applications.json"
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          target = os.environ.get("APP", "")
+
+          def unwrap(payload):
+              if isinstance(payload, dict) and isinstance(payload.get("data"), (dict, list)):
+                  return payload["data"]
+              return payload
+
+          def setting_value(row):
+              if not isinstance(row, dict):
+                  return None
+              direct = row.get("include_source_commit_in_build")
+              if isinstance(direct, bool):
+                  return direct
+              settings = row.get("settings")
+              if isinstance(settings, dict) and isinstance(settings.get("include_source_commit_in_build"), bool):
+                  return settings["include_source_commit_in_build"]
+              return None
+
+          direct_payload = unwrap(json.load(open(
+              os.path.join(os.environ["RUNNER_TEMP"], "source-commit-build.application.json"),
+              encoding="utf-8",
+          )))
+          list_payload = unwrap(json.load(open(
+              os.path.join(os.environ["RUNNER_TEMP"], "source-commit-build.applications.json"),
+              encoding="utf-8",
+          )))
+          candidates = [direct_payload]
+          if isinstance(list_payload, list):
+              candidates.extend(
+                  row for row in list_payload
+                  if isinstance(row, dict) and row.get("uuid") == target
+              )
+          observed = [setting_value(row) for row in candidates]
+          if any(value is True for value in observed):
+              print("source_commit_build_setting=ENABLED")
+              raise SystemExit(0)
+          print("source_commit_build_setting=UNKNOWN")
+          raise SystemExit(1)
           PY
 
       # This is deliberately a read-only preflight.  It does not create an
