@@ -163,7 +163,14 @@ services:
       start_period: 1m
 
   app:
-    profiles: ["full"]                            # P2：容量确认后于 Coolify 启用 full profile 再起
+    # 2026-08-10 去掉 profiles: ["full"]。这道开关当初是 P2 阶段为 VPS-1 设的:
+    # 那台机器只有 3.7 GB 内存、磁盘常年 86%,不敢让 app 跟 skills / daily-funds
+    # 一起常驻。迁到 VPS-3 之后前提没了 —— 12 GB 内存,三个服务全起也只用到 17%。
+    #
+    # 而且带 profile 有个隐蔽后果:Coolify 不会把 COMPOSE_PROFILES 写进它启动
+    # compose 时用的 .env,于是 app 永远被跳过;手动用 profile 起虽然能跑,但绕过了
+    # Coolify 的标签注入,容器拿不到 Traefik 路由,kmfa.linzezhang.com 直接 404。
+    # 让它默认启动,才能走标准部署流程拿到路由。
     build:
       context: .
       dockerfile: KMFA/app/backend/Dockerfile
