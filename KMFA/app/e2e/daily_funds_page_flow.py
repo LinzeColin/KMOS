@@ -346,7 +346,16 @@ def _assert_projection_is_redacted(page: Page, *, trusted_projection: bool) -> N
         RAW_SENTINEL, "source_version", "message_id_hash", "attachment", "raw/messages",
     ))
     for path, response in bodies.items():
-        expected_status = 200 if trusted_projection or "/source-health" in path or "/auth-session" in path or "/history-probe" in path else 503
+        # The untrusted page deliberately receives only the frozen threshold
+        # configuration (not a financial projection), so it can render a
+        # truthful waiting chart without leaking or inventing money.
+        expected_status = 200 if (
+            trusted_projection
+            or "/source-health" in path
+            or "/auth-session" in path
+            or "/history-probe" in path
+            or "/thresholds" in path
+        ) else 503
         assert response["status"] == expected_status, f"{path} returned HTTP {response['status']}"
         assert not any(token in response["body"].lower() for token in forbidden), f"raw marker escaped from {path}"
     dom = page.content().lower()
