@@ -2570,6 +2570,39 @@ DAILY_FUNDS_CAPABILITY_SUFFIXES = {
 }
 DAILY_FUNDS_CAPABILITY_MAGICS = {"TEXT", "ZIP", "OLE", "PDF", "PNG", "JPEG", "GIF", "BMP", "WEBP", "BINARY", "EMPTY"}
 DAILY_FUNDS_CAPABILITY_OUTCOMES = {"SUPPORTED", "NEEDS_REVIEW"}
+# The worker journal needs precise machine codes to support a protected
+# incident investigation.  The browser does not: raw codes make it too easy
+# to accidentally turn a future parser implementation detail into a public
+# source-data channel.  These fixed labels retain the one decision-relevant
+# distinction (what kind of work is blocked) without forwarding a code,
+# filename, document field, source ID, or amount.
+DAILY_FUNDS_CAPABILITY_DIAGNOSTIC_LABELS = {
+    "OCR_GENERIC_FAMILY_UNRESOLVED": "图片无法确定为余额或流水",
+    "OCR_GENERIC_FAMILY_AMBIGUOUS": "图片同时匹配余额与流水",
+    "OCR_PROFILE_CALIBRATING": "图片版式校准中",
+    "OCR_LOW_CONFIDENCE": "图片关键字段置信度不足",
+    "OCR_CONFIDENCE_INVALID": "图片关键字段置信度不足",
+    "OCR_CONFIDENCE_THRESHOLD_INVALID": "图片关键字段置信度不足",
+    "OCR_RUNTIME_UNAVAILABLE": "云端图片解析运行环境不可用",
+    "UNSUPPORTED_ATTACHMENT": "文件格式或表格结构未通过确定性校验",
+    "DOCUMENT_FAMILY_UNSUPPORTED": "文件格式或表格结构未通过确定性校验",
+    "CORRUPT_ATTACHMENT": "文件格式或表格结构未通过确定性校验",
+    "FORMAT_MAGIC_MISMATCH": "文件格式或表格结构未通过确定性校验",
+    "MIME_DECLARATION_INVALID": "文件格式或表格结构未通过确定性校验",
+    "MIME_SUFFIX_MISMATCH": "文件格式或表格结构未通过确定性校验",
+}
+DAILY_FUNDS_CAPABILITY_DIAGNOSTIC_ORDER = {
+    "图片无法确定为余额或流水": 1,
+    "图片同时匹配余额与流水": 2,
+    "图片版式校准中": 3,
+    "图片关键字段置信度不足": 4,
+    "云端图片解析运行环境不可用": 5,
+    "图片表格结构未通过确定性校验": 6,
+    "文件格式或表格结构未通过确定性校验": 7,
+    "来源或字节校验未通过": 8,
+    "表格字段或业务规则未通过确定性校验": 9,
+    "其他确定性解析门未通过": 10,
+}
 DAILY_FUNDS_SOURCE_DISCOVERY_STATES = {
     "UNKNOWN",
     "HISTORY_EMPTY",
@@ -2771,12 +2804,14 @@ def _daily_funds_attachment_capability_summary(rows: object) -> dict[str, Any]:
         "状态": "未观测",
         "已支持附件数": 0,
         "待复核附件数": 0,
+        "待复核原因": [],
         "最近观测": None,
     }
     unknown = {
         "状态": "UNKNOWN",
         "已支持附件数": 0,
         "待复核附件数": 0,
+        "待复核原因": [],
         "最近观测": None,
     }
     if rows is None:
@@ -2786,6 +2821,7 @@ def _daily_funds_attachment_capability_summary(rows: object) -> dict[str, Any]:
 
     supported = 0
     needs_review = 0
+    review_reasons: dict[str, int] = {}
     latest: tuple[datetime, str] | None = None
     for row in rows:
         if not isinstance(row, dict):
@@ -2839,6 +2875,8 @@ def _daily_funds_attachment_capability_summary(rows: object) -> dict[str, Any]:
             supported += count
         else:
             needs_review += count
+            label = _daily_funds_capability_diagnostic_label(code)
+            review_reasons[label] = review_reasons.get(label, 0) + count
 
     if not rows:
         return unobserved
@@ -2846,8 +2884,29 @@ def _daily_funds_attachment_capability_summary(rows: object) -> dict[str, Any]:
         "状态": "待复核" if needs_review else "已支持",
         "已支持附件数": supported,
         "待复核附件数": needs_review,
+        "待复核原因": [
+            {"类别": label, "数量": review_reasons[label]}
+            for label in sorted(
+                review_reasons,
+                key=lambda item: (DAILY_FUNDS_CAPABILITY_DIAGNOSTIC_ORDER.get(item, 99), item),
+            )
+        ],
         "最近观测": latest[1] if latest is not None else None,
     }
+
+
+def _daily_funds_capability_diagnostic_label(code: str) -> str:
+    """Return a fixed public-safe category for a protected parser code."""
+
+    if code in DAILY_FUNDS_CAPABILITY_DIAGNOSTIC_LABELS:
+        return DAILY_FUNDS_CAPABILITY_DIAGNOSTIC_LABELS[code]
+    if code.startswith("OCR_"):
+        return "图片表格结构未通过确定性校验"
+    if code.startswith("SOURCE_"):
+        return "来源或字节校验未通过"
+    if code.startswith(("CSV_", "XLSX_", "COLUMN_", "BUSINESS_DATE_", "TRANSACTION_", "ACCOUNT_", "CURRENCY_", "INTERNAL_TRANSFER_")):
+        return "表格字段或业务规则未通过确定性校验"
+    return "其他确定性解析门未通过"
 
 
 def _daily_funds_operation_receipts(rows: object) -> dict[str, dict[str, object]]:

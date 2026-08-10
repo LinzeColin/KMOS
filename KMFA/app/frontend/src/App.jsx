@@ -1845,6 +1845,14 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 
   const 附件能力色 = 附件能力状态 === '已支持' ? 'ok' : 附件能力状态 === '未观测' ? 'muted' : 'bad'
   const 已支持附件数 = Number.isInteger(附件能力.已支持附件数) ? 附件能力.已支持附件数 : 0
   const 待复核附件数 = Number.isInteger(附件能力.待复核附件数) ? 附件能力.待复核附件数 : 0
+  const 待复核原因 = Array.isArray(附件能力.待复核原因)
+    ? 附件能力.待复核原因
+      .filter((item) => item && typeof item.类别 === 'string' && item.类别.length > 0 && item.类别.length <= 40 && Number.isInteger(item.数量) && item.数量 > 0 && item.数量 <= 100000)
+      .slice(0, 10)
+    : []
+  const 待复核原因文本 = 待复核原因.length
+    ? 待复核原因.map((item) => `${item.类别} ${item.数量} 份`).join('；')
+    : 附件能力状态 === '待复核' ? '待生成脱敏解析回执' : '—'
   const option = useMemo(() => {
     const 阈值说明 = [
       Number.isInteger(fixed.hard_fen) && `固定高风险线：${资金金额(fixed.hard_fen)}`,
@@ -2206,7 +2214,7 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 
         <tr><td>整数分勾稽</td><td className={摘要?.publication?.reconciliation_difference_fen === 0 ? 'ok' : 'warn'}>{摘要?.publication?.reconciliation_difference_fen === 0 ? '0 分' : '未验证'}</td><td>公司、银行、账户与全局汇总必须一致</td></tr>
         <tr><td>Git / R2 热镜像</td><td>{摘要?.publication?.git_evidence_available && 摘要?.publication?.r2_mirror_available ? '已验证' : '未验证'}</td><td>仅显示脱敏证据版本，不暴露原始附件、群或身份标识</td></tr>
         <tr><td>OCI 异地冷备</td><td>{来源?.backup_state || 摘要?.publication?.oci_backup_state || 'UNKNOWN'}</td><td>运行态与正式 publication 分离记录</td></tr>
-        <tr><td>附件解析能力</td><td className={附件能力色}>{附件能力状态}（已支持 {已支持附件数}｜待复核 {待复核附件数}）</td><td>仅统计已由私有 Git 回读且完成确定性解析校验的附件；无观测或 UNKNOWN 均不代表支持。</td></tr>
+        <tr><td>附件解析能力</td><td className={附件能力色}>{附件能力状态}（已支持 {已支持附件数}｜待复核 {待复核附件数}）</td><td>{待复核原因文本}。仅统计已由私有 Git 回读且完成确定性解析校验的附件；无观测或 UNKNOWN 均不代表支持。</td></tr>
         <tr><td>风险判断</td><td className={摘要?.risk_label === '高风险' ? 'bad' : 摘要?.risk_label === '关注' || 摘要?.risk_label?.includes('动态') ? 'warn' : 'ok'}>{摘要?.risk_label || '未验证'}{摘要?.dynamic_flag ? `｜${摘要.dynamic_flag}` : ''}</td><td>与三态运行状态分离，不以状态替代风险</td></tr>
       </tbody></Tbl>
     </>

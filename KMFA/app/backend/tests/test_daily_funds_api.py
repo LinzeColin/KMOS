@@ -635,6 +635,7 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
         "状态": "待复核",
         "已支持附件数": 1,
         "待复核附件数": 2,
+        "待复核原因": [{"类别": "文件格式或表格结构未通过确定性校验", "数量": 2}],
         "最近观测": "2026-07-30T12:05:00Z",
     }
     assert "group-fixture" not in response.text and "attachment-fixture" not in response.text
@@ -835,6 +836,7 @@ def test_daily_funds_attachment_capability_summary_fails_closed_on_malformed_row
         "状态": "UNKNOWN",
         "已支持附件数": 0,
         "待复核附件数": 0,
+        "待复核原因": [],
         "最近观测": None,
     }
     assert source_health["source_discovery"] == {"状态": "UNKNOWN", "说明": "未验证"}
@@ -862,6 +864,25 @@ def test_daily_funds_source_discovery_distinguishes_missing_fact_gates(tmp_path,
         assert source_health["source_discovery"] == {"状态": state, "说明": label}
 
 
+def test_attachment_capability_exposes_fixed_ocr_category_not_parser_code(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    flow_path = publication / "flow_state.json"
+    flow = json.loads(flow_path.read_text(encoding="utf-8"))
+    flow["attachment_capabilities"][1].update({
+        "family": "资金明细",
+        "code": "OCR_GENERIC_FAMILY_UNRESOLVED",
+    })
+    flow_path.write_text(json.dumps(flow), encoding="utf-8")
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+
+    response = client.get("/ops/api/daily-funds/source-health")
+    assert response.status_code == 200
+    capability = response.json()["parser_capability"]
+    assert capability["待复核原因"] == [{"类别": "图片无法确定为余额或流水", "数量": 2}]
+    assert "OCR_GENERIC_FAMILY_UNRESOLVED" not in response.text
+
+
 def test_archived_needs_review_is_visible_without_trusted_money(tmp_path, monkeypatch):
     """A verified raw PNG must stay actionable, rather than degrading to UNKNOWN."""
 
@@ -887,10 +908,12 @@ def test_archived_needs_review_is_visible_without_trusted_money(tmp_path, monkey
         "状态": "待复核",
         "已支持附件数": 1,
         "待复核附件数": 2,
+        "待复核原因": [{"类别": "文件格式或表格结构未通过确定性校验", "数量": 2}],
         "最近观测": "2026-07-30T12:05:00Z",
     }
     assert "待确定性解析复核" in source_health["message"]
     assert "UNSUPPORTED_ATTACHMENT" not in json.dumps(source_health)
+    assert "文件格式或表格结构未通过确定性校验" in json.dumps(source_health, ensure_ascii=False)
     thresholds = client.get("/ops/api/daily-funds/thresholds")
     assert thresholds.status_code == 200
     threshold_payload = thresholds.json()
