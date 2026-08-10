@@ -28,17 +28,20 @@ from .models import AccountSnapshot, ParsedFacts, ParserEvidence, SourceRef, Tra
 
 ACCOUNT_FAMILY = "资金账户明细表"
 TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
-# v6 keeps the bounded deterministic OCR fallback and aligns transaction
+# v7 keeps the bounded deterministic OCR fallback and aligns transaction
 # identity requirements to the frozen task-pack schema: bank_id is optional
 # and a source-row fact identifier is used only when a source does not expose
 # a transaction identifier.
 #
 # It retains v5's narrow source-classification rule: a generic ``资金明细``
 # image may be treated as an account snapshot only when its OCR table satisfies
-# the account schema *and* cannot satisfy the transaction schema.  Capability
-# receipts are versioned, so a rule change cannot inherit a prior parser's
-# production-support assertion.
-PARSER_VERSION = "kmfa.daily_funds.parser.v6"
+# the account schema *and* cannot satisfy the transaction schema.  When both
+# candidates fail at the same values-free OCR phase, v7 retains that bounded
+# diagnosis for the protected capability receipt.  It never turns a failed
+# candidate into a fact or relaxes either schema.  Capability receipts are
+# versioned, so a rule change cannot inherit a prior parser's production-
+# support assertion.
+PARSER_VERSION = "kmfa.daily_funds.parser.v7"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -97,6 +100,24 @@ OCR_LANGUAGE = "chi_sim+eng"
 
 class ParseError(ContractError):
     pass
+
+
+# A generic source label is intentionally never enough to classify a financial
+# fact.  These sets describe only a uniform *parser phase* across the two
+# candidate schemas; they contain no OCR text, field name, account, amount or
+# source identifier.  Mixed phases remain the existing generic unresolved
+# result so that a diagnostic cannot overstate what was observed.
+_GENERIC_OCR_HEADER_PHASE_CODES = frozenset({
+    "OCR_HEADER_MAPPING_MISSING",
+    "OCR_HEADER_ROW_AMBIGUOUS",
+    "OCR_COLUMN_MAPPING_AMBIGUOUS",
+    "COLUMN_HEADER_DUPLICATE",
+})
+_GENERIC_OCR_ROW_PHASE_CODES = frozenset({
+    "OCR_ROW_REQUIRED_CELL_MISSING",
+    "SOURCE_ROWS_EMPTY",
+})
+_GENERIC_OCR_CONFIDENCE_PHASE_CODES = frozenset({"OCR_LOW_CONFIDENCE"})
 
 
 @dataclass(frozen=True)
@@ -902,6 +923,24 @@ def _parse_ocr_table(
     )
 
 
+def _generic_ocr_unresolved_code(failures: Iterable[ParseError]) -> str:
+    """Return a conservative values-free reason for zero generic candidates.
+
+    The two strict schemas are still both required to fail.  A more specific
+    code is returned only if every failed candidate stopped in the same broad
+    OCR phase; mixed or unknown failures retain the original fail-closed code.
+    """
+
+    codes = {str(failure).split(":", 1)[0] for failure in failures}
+    if codes and codes <= _GENERIC_OCR_HEADER_PHASE_CODES:
+        return "OCR_GENERIC_HEADER_SCHEMA_MISSING"
+    if codes and codes <= _GENERIC_OCR_ROW_PHASE_CODES:
+        return "OCR_GENERIC_ROW_SCHEMA_MISSING"
+    if codes and codes <= _GENERIC_OCR_CONFIDENCE_PHASE_CODES:
+        return "OCR_GENERIC_CONFIDENCE_BLOCKED"
+    return "OCR_GENERIC_FAMILY_UNRESOLVED"
+
+
 def parse_ocr_attachment(
     *,
     family: str,
@@ -956,7 +995,7 @@ def parse_ocr_attachment(
     if family == "资金明细":
         if len(candidates) > 1:
             raise ParseError("OCR_GENERIC_FAMILY_AMBIGUOUS")
-        raise ParseError("OCR_GENERIC_FAMILY_UNRESOLVED")
+        raise ParseError(_generic_ocr_unresolved_code(failures))
     # A non-generic source family has exactly one candidate, so preserving the
     # original strict parser code is both more precise and backward compatible.
     raise failures[0]

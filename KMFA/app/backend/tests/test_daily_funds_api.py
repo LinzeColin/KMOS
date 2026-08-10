@@ -871,7 +871,7 @@ def test_attachment_capability_exposes_fixed_ocr_category_not_parser_code(tmp_pa
     flow = json.loads(flow_path.read_text(encoding="utf-8"))
     flow["attachment_capabilities"][1].update({
         "family": "资金明细",
-        "code": "OCR_GENERIC_FAMILY_UNRESOLVED",
+        "code": "OCR_GENERIC_HEADER_SCHEMA_MISSING",
     })
     flow_path.write_text(json.dumps(flow), encoding="utf-8")
     monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
@@ -879,8 +879,8 @@ def test_attachment_capability_exposes_fixed_ocr_category_not_parser_code(tmp_pa
     response = client.get("/ops/api/daily-funds/source-health")
     assert response.status_code == 200
     capability = response.json()["parser_capability"]
-    assert capability["待复核原因"] == [{"类别": "图片无法确定为余额或流水", "数量": 2}]
-    assert "OCR_GENERIC_FAMILY_UNRESOLVED" not in response.text
+    assert capability["待复核原因"] == [{"类别": "图片表头未形成余额或流水完整结构", "数量": 2}]
+    assert "OCR_GENERIC_HEADER_SCHEMA_MISSING" not in response.text
 
 
 def test_archived_needs_review_is_visible_without_trusted_money(tmp_path, monkeypatch):

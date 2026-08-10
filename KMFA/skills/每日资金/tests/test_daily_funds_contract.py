@@ -1153,7 +1153,10 @@ def test_generic_ocr_source_label_classifies_a_uniquely_matching_account_table()
 def test_generic_ocr_source_label_rejects_zero_or_multiple_complete_schemas() -> None:
     payload = b"\x89PNG\r\n\x1a\ngeneric-schema-gate"
 
-    with pytest.raises(ParseError, match="OCR_GENERIC_FAMILY_UNRESOLVED"):
+    # Both schemas stop before a complete header can be formed.  The code is
+    # more useful for a values-free capability receipt, but remains a failed
+    # generic source classification rather than a fact.
+    with pytest.raises(ParseError, match="OCR_GENERIC_HEADER_SCHEMA_MISSING"):
         parse_ocr_attachment(
             family="资金明细",
             filename="资金明细_20260730.png",
@@ -1161,6 +1164,21 @@ def test_generic_ocr_source_label_rejects_zero_or_multiple_complete_schemas() ->
             source=_source(payload),
             mime="image/png",
             runner=_ocr_runner(_ocr_tsv(["公司", "开户行", "账号"], ["甲", "乙", "001"])),
+        )
+
+    # A row-level failure for one candidate plus a header failure for the
+    # other is deliberately not collapsed into a misleading single phase.
+    with pytest.raises(ParseError, match="OCR_GENERIC_FAMILY_UNRESOLVED"):
+        parse_ocr_attachment(
+            family="资金明细",
+            filename="资金明细_20260730.png",
+            payload=payload,
+            source=_source(payload),
+            mime="image/png",
+            runner=_ocr_runner(_ocr_tsv(
+                ["业务日期", "公司", "开户行", "账号", "期初余额", "期末余额", "币种"],
+                ["2026-07-30", "甲", "乙", "001", "100.00", "", "CNY"],
+            )),
         )
 
     with pytest.raises(ParseError, match="OCR_GENERIC_FAMILY_AMBIGUOUS"):

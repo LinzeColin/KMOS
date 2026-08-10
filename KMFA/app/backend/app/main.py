@@ -2577,6 +2577,9 @@ DAILY_FUNDS_CAPABILITY_OUTCOMES = {"SUPPORTED", "NEEDS_REVIEW"}
 # distinction (what kind of work is blocked) without forwarding a code,
 # filename, document field, source ID, or amount.
 DAILY_FUNDS_CAPABILITY_DIAGNOSTIC_LABELS = {
+    "OCR_GENERIC_HEADER_SCHEMA_MISSING": "图片表头未形成余额或流水完整结构",
+    "OCR_GENERIC_ROW_SCHEMA_MISSING": "图片数据行未形成余额或流水完整结构",
+    "OCR_GENERIC_CONFIDENCE_BLOCKED": "图片关键字段置信度不足",
     "OCR_GENERIC_FAMILY_UNRESOLVED": "图片无法确定为余额或流水",
     "OCR_GENERIC_FAMILY_AMBIGUOUS": "图片同时匹配余额与流水",
     "OCR_PROFILE_CALIBRATING": "图片版式校准中",
@@ -2592,16 +2595,18 @@ DAILY_FUNDS_CAPABILITY_DIAGNOSTIC_LABELS = {
     "MIME_SUFFIX_MISMATCH": "文件格式或表格结构未通过确定性校验",
 }
 DAILY_FUNDS_CAPABILITY_DIAGNOSTIC_ORDER = {
-    "图片无法确定为余额或流水": 1,
-    "图片同时匹配余额与流水": 2,
-    "图片版式校准中": 3,
-    "图片关键字段置信度不足": 4,
-    "云端图片解析运行环境不可用": 5,
-    "图片表格结构未通过确定性校验": 6,
-    "文件格式或表格结构未通过确定性校验": 7,
-    "来源或字节校验未通过": 8,
-    "表格字段或业务规则未通过确定性校验": 9,
-    "其他确定性解析门未通过": 10,
+    "图片表头未形成余额或流水完整结构": 1,
+    "图片数据行未形成余额或流水完整结构": 2,
+    "图片无法确定为余额或流水": 3,
+    "图片同时匹配余额与流水": 4,
+    "图片版式校准中": 5,
+    "图片关键字段置信度不足": 6,
+    "云端图片解析运行环境不可用": 7,
+    "图片表格结构未通过确定性校验": 8,
+    "文件格式或表格结构未通过确定性校验": 9,
+    "来源或字节校验未通过": 10,
+    "表格字段或业务规则未通过确定性校验": 11,
+    "其他确定性解析门未通过": 12,
 }
 DAILY_FUNDS_SOURCE_DISCOVERY_STATES = {
     "UNKNOWN",
