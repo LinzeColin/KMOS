@@ -28,6 +28,7 @@ from daily_funds.public_dashboard_access import (  # noqa: E402
 
 OPS_ID = "2d7ac813-4f60-4d2f-9c69-8d5294e4c7fe"
 API_ID = "20b0c6f3-77f1-4591-8f4a-d643709b42cf"
+ROOT_ID = "b2b3c4d5-1e2f-4a5b-8c9d-0e1f2a3b4c5d"
 POLICY_ID = "a2b3c4d5-1e2f-4a5b-8c9d-0e1f2a3b4c5d"
 
 
@@ -44,15 +45,15 @@ def test_selects_only_exact_host_dashboard_access_applications() -> None:
         {"id": OPS_ID, "type": "self_hosted", "domain": "kmfa.linzezhang.com/ops/*"},
         {"id": API_ID, "type": "self_hosted", "destinations": [{"type": "public", "uri": "kmfa.linzezhang.com/api/*"}]},
         {"id": POLICY_ID, "type": "self_hosted", "domain": "other.linzezhang.com/api/*"},
-        {"id": "b2b3c4d5-1e2f-4a5b-8c9d-0e1f2a3b4c5d", "type": "self_hosted", "domain": "kmfa.linzezhang.com/"},
+        {"id": ROOT_ID, "type": "self_hosted", "domain": "kmfa.linzezhang.com/"},
     ])
 
-    assert select_public_dashboard_application_ids(payload) == tuple(sorted((OPS_ID, API_ID)))
+    assert select_public_dashboard_application_ids(payload) == tuple(sorted((OPS_ID, API_ID, ROOT_ID)))
 
 
 @pytest.mark.parametrize("payload", [
     _apps([]),
-    _apps([{"id": OPS_ID, "type": "self_hosted", "domain": "kmfa.linzezhang.com/"}]),
+    _apps([{"id": OPS_ID, "type": "self_hosted", "domain": "kmfa.linzezhang.com/unrelated"}]),
     _apps([{"id": OPS_ID, "type": "self_hosted", "domain": "kmfa.linzezhang.com:8443/ops/*"}]),
     {"success": True, "result_info": {"total_pages": 2}, "result": []},
 ])

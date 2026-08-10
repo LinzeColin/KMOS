@@ -23,6 +23,7 @@ PUBLIC_DASHBOARD_HOST = "kmfa.linzezhang.com"
 PUBLIC_DASHBOARD_BYPASS_POLICY_NAME = "kmfa-public-dashboard-owner-override"
 _UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 _TARGET_ROOTS = (
+    "/",
     "/api",
     "/ops",
     "/project-cost",
@@ -112,15 +113,21 @@ def _application_destinations(application: Mapping[str, Any]) -> tuple[tuple[str
 
 
 def _is_public_dashboard_path(path: str) -> bool:
+    # The Owner's explicit no-login override covers the dashboard landing page
+    # itself.  A root-path Access application is still exact-host scoped; it
+    # does not authorize a wildcard host or a different domain.
+    if path == "/":
+        return True
     return any(path == root or path.startswith(f"{root}/") for root in _TARGET_ROOTS)
 
 
 def select_public_dashboard_application_ids(payload: object) -> tuple[str, ...]:
     """Return only exact-host Access apps covering the public dashboard.
 
-    A host-wide or a different-host application is deliberately not selected.
-    The narrow public routes are sufficient to make every current KMFA page
-    work without changing unrelated Cloudflare applications.
+    Only applications on the exact KMFA host are selected.  The Owner's
+    explicit no-login override includes an exact-host root application as
+    well as the dashboard's named routes; wildcard hosts and different hosts
+    remain outside this boundary.
     """
 
     selected: set[str] = set()
