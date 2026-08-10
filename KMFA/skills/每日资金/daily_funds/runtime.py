@@ -93,6 +93,12 @@ _SOURCE_INTEGRITY_PARSE_CODES = frozenset({
     "SOURCE_VERSION_MISMATCH",
     "SOURCE_PAYLOAD_HASH_MISMATCH",
 })
+# Historical discovery cannot manufacture an attachment that a source message
+# did not contain.  It must retain that gap as an incident, but one malformed
+# old source message must not strand the durable 360-day planner before it can
+# inspect later dates.  Integrity, transport and parser failures are *not* in
+# this set and continue to stop the planner fail-closed.
+_BACKFILL_CONTINUABLE_SOURCE_CODES = frozenset({"SOURCE_ATTACHMENT_MISSING"})
 # This is intentionally an ordinal, values-free diagnostic.  It lets the
 # protected status surface distinguish an empty group-history window from a
 # selector, attachment, or account/transaction-pair gate without retaining a
@@ -1866,6 +1872,7 @@ class DailyFundsRuntime:
         completed: list[str] = []
         empty_days: list[str] = []
         needs_review_days: list[str] = []
+        source_gap_days: list[str] = []
         needs_review_attachments = 0
         for _ in range(max(1, min(max_days, 14))):
             if next_day >= local_today:
@@ -1884,7 +1891,20 @@ class DailyFundsRuntime:
                 lease_profile="backfill",
             )
             if not result.get("ok"):
-                return {"ok": False, "completed_days": completed, "code": result.get("code", "BACKFILL_FAILED")}
+                code = result.get("code", "BACKFILL_FAILED")
+                if code not in _BACKFILL_CONTINUABLE_SOURCE_CODES:
+                    return {"ok": False, "completed_days": completed, "code": code}
+                # Preserve the missing attachment as an explicit review item
+                # and incident, then advance only this bounded historical day.
+                # No facts, balances, publication pointer or replacement
+                # source are produced by this path.
+                self.state.queue_incident(code)
+                completed.append(next_day.isoformat())
+                needs_review_days.append(next_day.isoformat())
+                source_gap_days.append(next_day.isoformat())
+                next_day += timedelta(days=1)
+                self.state.put("backfill_next_business_date", next_day.isoformat())
+                continue
             completed.append(next_day.isoformat())
             if result.get("empty_window"):
                 empty_days.append(next_day.isoformat())
@@ -1897,11 +1917,12 @@ class DailyFundsRuntime:
             next_day += timedelta(days=1)
             self.state.put("backfill_next_business_date", next_day.isoformat())
         base_code = "BACKFILL_COMPLETE" if next_day >= local_today else "BACKFILLING"
-        outcome_code = f"{base_code}_NEEDS_REVIEW" if needs_review_attachments else base_code
+        has_review = bool(needs_review_days)
+        outcome_code = f"{base_code}_NEEDS_REVIEW" if has_review else base_code
         status = self._status_from_current(fallback_code=outcome_code)
         self._write_flow_state(
-            stage="BACKFILL_COMPLETE_NEEDS_REVIEW" if next_day >= local_today and needs_review_attachments else (
-                "BACKFILLING_NEEDS_REVIEW" if needs_review_attachments else base_code
+            stage="BACKFILL_COMPLETE_NEEDS_REVIEW" if next_day >= local_today and has_review else (
+                "BACKFILLING_NEEDS_REVIEW" if has_review else base_code
             ),
             status=status,
         )
@@ -1910,6 +1931,7 @@ class DailyFundsRuntime:
             "completed_days": completed,
             "empty_days": empty_days,
             "needs_review_days": needs_review_days,
+            "source_gap_days": source_gap_days,
             "needs_review_attachments": needs_review_attachments,
             "next_business_date": next_day.isoformat(),
             "complete": next_day >= local_today,

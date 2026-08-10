@@ -1525,6 +1525,32 @@ def test_backfill_advances_after_a_verified_needs_review_archive(tmp_path: Path,
     assert observed[0]["archive_only"] is True
 
 
+def test_backfill_records_a_missing_historical_attachment_and_continues(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """One attachment-less source message must not strand later history scans."""
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    calls = 0
+
+    def source_gap_then_empty(**_kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return {"ok": False, "code": "SOURCE_ATTACHMENT_MISSING"}
+        return {"ok": True, "pages": 1, "attachments": 0, "empty_window": True}
+
+    monkeypatch.setattr(runtime, "poll", source_gap_then_empty)
+    result = runtime.backfill(now=datetime(2026, 8, 1, 4, tzinfo=UTC), max_days=2)
+
+    assert result["ok"] is True
+    assert result["completed_days"] == ["2025-08-06", "2025-08-07"]
+    assert result["source_gap_days"] == ["2025-08-06"]
+    assert result["needs_review_days"] == ["2025-08-06"]
+    assert result["needs_review_attachments"] == 0
+    assert result["empty_days"] == ["2025-08-07"]
+    assert result["code"] == "BACKFILLING_NEEDS_REVIEW"
+    assert runtime.state.get("backfill_next_business_date") == "2025-08-08"
+
+
 def test_archive_only_backfill_persists_readback_and_records_unsupported_format_without_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A historical image is evidence, not a false publication or a dead end."""
 
