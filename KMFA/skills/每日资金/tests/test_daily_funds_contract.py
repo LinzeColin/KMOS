@@ -5418,6 +5418,7 @@ def test_daily_funds_deployment_keeps_its_auth_bundle_and_identifiers_private() 
     assert 'include_source_commit_in_build": True' in ops
     assert "source_commit_build_setting=ENABLED" in ops
     assert "source_commit_build_setting=UNKNOWN" in ops
+    assert "source_commit_build_error_fields=INCLUDE_SOURCE_COMMIT_FIELD" in ops
     assert "MAIN_REF_REQUIRED" in ops
     assert 'user: "0:0"' in daily_service
     assert "kmfa-dws-auth" not in daily_service
