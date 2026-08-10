@@ -539,27 +539,27 @@ jobs:
             # The response can contain provider-specific details.  The public
             # receipt deliberately exposes only whether the requested setting
             # field itself was rejected, never the response body or values.
-            python3 - <<'PY'
-            import json
-            import os
+          python3 - <<'PY'
+          import json
+          import os
 
-            try:
-                response = json.load(open(
-                    os.path.join(os.environ["RUNNER_TEMP"], "source-commit-build.patch.json"),
-                    encoding="utf-8",
-                ))
-            except (OSError, ValueError, TypeError):
-                print("source_commit_build_error_fields=UNPARSEABLE")
-                raise SystemExit(0)
+          try:
+              response = json.load(open(
+                  os.path.join(os.environ["RUNNER_TEMP"], "source-commit-build.patch.json"),
+                  encoding="utf-8",
+              ))
+          except (OSError, ValueError, TypeError):
+              print("source_commit_build_error_fields=UNPARSEABLE")
+              raise SystemExit(0)
 
-            errors = response.get("errors") if isinstance(response, dict) else None
-            if not isinstance(errors, dict) or not errors:
-                print("source_commit_build_error_fields=NONE")
-            elif "include_source_commit_in_build" in errors:
-                print("source_commit_build_error_fields=INCLUDE_SOURCE_COMMIT_FIELD")
-            else:
-                print("source_commit_build_error_fields=OTHER_FIELD")
-            PY
+          errors = response.get("errors") if isinstance(response, dict) else None
+          if not isinstance(errors, dict) or not errors:
+              print("source_commit_build_error_fields=NONE")
+          elif "include_source_commit_in_build" in errors:
+              print("source_commit_build_error_fields=INCLUDE_SOURCE_COMMIT_FIELD")
+          else:
+              print("source_commit_build_error_fields=OTHER_FIELD")
+          PY
             echo "source_commit_build_setting=PATCH_HTTP_$code"
             exit 1
           fi
