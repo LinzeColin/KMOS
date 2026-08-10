@@ -1196,6 +1196,23 @@ class DailyFundsRuntime:
             self._write_flow_state(stage="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW", status=status)
             return {"ok": False, "code": "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW"}
 
+        # A capability receipt becomes visible only after this exact complete
+        # private-Git census succeeds.  Retaining historic evidence is useful
+        # for audit, but projecting it after its raw object has disappeared
+        # would overstate the current source coverage.
+        self.state.replace_capability_scope(
+            parser_version=PARSER_VERSION,
+            attachments=(
+                (
+                    attachment.sha256,
+                    attachment.family
+                    if attachment.family in TRANSACTION_FAMILIES | {ACCOUNT_FAMILY}
+                    else "UNCLASSIFIED",
+                )
+                for attachment in audit.verified_attachments
+            ),
+        )
+
         for attachment in audit.verified_attachments:
             occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
             self.state.note_inbox(

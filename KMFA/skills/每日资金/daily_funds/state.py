@@ -172,6 +172,13 @@ class RuntimeState:
                   observed_at TEXT NOT NULL,
                   PRIMARY KEY(attachment_sha256, family, parser_version)
                 );
+                CREATE TABLE IF NOT EXISTS capability_scope (
+                  attachment_sha256 TEXT NOT NULL,
+                  family TEXT NOT NULL,
+                  parser_version TEXT NOT NULL,
+                  scoped_at TEXT NOT NULL,
+                  PRIMARY KEY(attachment_sha256, family, parser_version)
+                );
                 CREATE TABLE IF NOT EXISTS ocr_profile_observations (
                   family TEXT NOT NULL,
                   layout_fingerprint TEXT NOT NULL,
@@ -418,13 +425,65 @@ class RuntimeState:
                 (attachment_sha256, family, suffix, declared_mime, magic, parser_version, outcome, safe_code, iso_now()),
             )
 
+    def replace_capability_scope(
+        self,
+        *,
+        parser_version: str,
+        attachments: Iterable[tuple[str, str]],
+    ) -> None:
+        """Atomically bind the current parser view to one full raw-Git census.
+
+        Capability evidence is deliberately retained for audit, but the UI
+        must not count an attachment merely because it was observed by this
+        parser version at some point in the past.  A completed full raw
+        archive audit is the only authority allowed to replace this scope.
+        """
+
+        if (
+            not isinstance(parser_version, str)
+            or not parser_version
+            or len(parser_version) > 128
+            or any(ord(character) < 32 for character in parser_version)
+        ):
+            raise ValueError("invalid capability parser version")
+        scoped: set[tuple[str, str]] = set()
+        for attachment_sha256, family in attachments:
+            if (
+                not isinstance(attachment_sha256, str)
+                or len(attachment_sha256) != 64
+                or any(character not in "0123456789abcdef" for character in attachment_sha256)
+                or not isinstance(family, str)
+                or not family
+                or len(family) > 128
+                or any(ord(character) < 32 for character in family)
+            ):
+                raise ValueError("invalid capability scope")
+            scoped.add((attachment_sha256, family))
+        if not scoped:
+            raise ValueError("empty capability scope")
+        with self.connection() as connection:
+            connection.execute(
+                "DELETE FROM capability_scope WHERE parser_version=?",
+                (parser_version,),
+            )
+            connection.executemany(
+                """INSERT INTO capability_scope(
+                       attachment_sha256,family,parser_version,scoped_at
+                   ) VALUES(?,?,?,?)""",
+                [
+                    (attachment_sha256, family, parser_version, iso_now())
+                    for attachment_sha256, family in sorted(scoped)
+                ],
+            )
+
     def capability_matrix(self, *, parser_version: str | None = None) -> list[dict[str, Any]]:
         """Return a values-free aggregate for the protected KMFA status UI.
 
         When a parser version is supplied, it is an *evidence validity*
-        filter, not a destructive migration: older receipts remain in the
-        protected journal for audit but cannot assert support for changed
-        parsing rules.
+        and full-raw-census filter, not a destructive migration: older
+        receipts remain in the protected journal for audit but cannot assert
+        support for changed parsing rules or for bytes absent from the latest
+        verified private-Git census.
         """
 
         if parser_version is not None and (
@@ -436,15 +495,39 @@ class RuntimeState:
             raise ValueError("invalid capability parser version")
 
         with self.connection() as connection:
-            rows = connection.execute(
-                """SELECT family,suffix,declared_mime,magic,parser_version,outcome,code,
-                          COUNT(*) AS count,MAX(observed_at) AS last_observed_at
-                   FROM capability_evidence
-                   WHERE (? IS NULL OR parser_version = ?)
-                   GROUP BY family,suffix,declared_mime,magic,parser_version,outcome,code
-                   ORDER BY family,suffix,declared_mime,magic,parser_version,outcome,code""",
-                (parser_version, parser_version),
-            ).fetchall()
+            scope_exists = False
+            if parser_version is not None:
+                scope_exists = bool(connection.execute(
+                    "SELECT 1 FROM capability_scope WHERE parser_version=? LIMIT 1",
+                    (parser_version,),
+                ).fetchone())
+            if parser_version is None or not scope_exists:
+                rows = connection.execute(
+                    """SELECT family,suffix,declared_mime,magic,parser_version,outcome,code,
+                              COUNT(*) AS count,MAX(observed_at) AS last_observed_at
+                       FROM capability_evidence
+                       WHERE (? IS NULL OR parser_version = ?)
+                       GROUP BY family,suffix,declared_mime,magic,parser_version,outcome,code
+                       ORDER BY family,suffix,declared_mime,magic,parser_version,outcome,code""",
+                    (parser_version, parser_version),
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    """SELECT evidence.family,evidence.suffix,evidence.declared_mime,evidence.magic,
+                              evidence.parser_version,evidence.outcome,evidence.code,
+                              COUNT(*) AS count,MAX(evidence.observed_at) AS last_observed_at
+                       FROM capability_evidence AS evidence
+                       INNER JOIN capability_scope AS scope
+                         ON scope.attachment_sha256 = evidence.attachment_sha256
+                        AND scope.family = evidence.family
+                        AND scope.parser_version = evidence.parser_version
+                       WHERE evidence.parser_version = ?
+                       GROUP BY evidence.family,evidence.suffix,evidence.declared_mime,evidence.magic,
+                                evidence.parser_version,evidence.outcome,evidence.code
+                       ORDER BY evidence.family,evidence.suffix,evidence.declared_mime,evidence.magic,
+                                evidence.parser_version,evidence.outcome,evidence.code""",
+                    (parser_version,),
+                ).fetchall()
         return [
             {
                 "family": str(row["family"]),

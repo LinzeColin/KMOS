@@ -1308,6 +1308,10 @@ def test_capability_projection_excludes_stale_parser_rules(tmp_path: Path) -> No
         outcome="NEEDS_REVIEW",
         code="XLSX_WORKSHEET_AMBIGUOUS",
     )
+    state.replace_capability_scope(
+        parser_version=PARSER_VERSION,
+        attachments=((digest, ACCOUNT_FAMILY),),
+    )
     current = state.capability_matrix(parser_version=PARSER_VERSION)
     assert len(current) == 1
     assert current[0]["parser_version"] == PARSER_VERSION
@@ -1318,6 +1322,33 @@ def test_capability_projection_excludes_stale_parser_rules(tmp_path: Path) -> No
     flow = runtime._write_flow_state(stage="PARSER_NEEDS_REVIEW")
     assert len(flow["attachment_capabilities"]) == 1
     assert flow["attachment_capabilities"][0]["parser_version"] == PARSER_VERSION
+
+
+def test_capability_projection_excludes_current_parser_receipts_outside_latest_raw_census(tmp_path: Path) -> None:
+    state = RuntimeState(tmp_path / "state")
+    current = "a" * 64
+    stale = "b" * 64
+    for digest in (current, stale):
+        state.record_capability_evidence(
+            attachment_sha256=digest,
+            family=ACCOUNT_FAMILY,
+            suffix=".png",
+            declared_mime="image/png",
+            magic="PNG",
+            parser_version=PARSER_VERSION,
+            outcome="NEEDS_REVIEW",
+            code="OCR_GENERIC_FAMILY_UNRESOLVED",
+        )
+    state.replace_capability_scope(
+        parser_version=PARSER_VERSION,
+        attachments=((current, ACCOUNT_FAMILY),),
+    )
+    scoped = state.capability_matrix(parser_version=PARSER_VERSION)
+    assert len(scoped) == 1
+    assert scoped[0]["count"] == 1
+    # The historic same-version row is retained for audit but cannot alter
+    # the browser's current-source count.
+    assert sum(row["count"] for row in state.capability_matrix()) == 2
 
 
 def test_page_two_failure_never_advances_cursor(tmp_path: Path) -> None:
@@ -2024,8 +2055,10 @@ def test_raw_archive_audit_records_only_readback_capability_and_never_publishes(
     with runtime.state.connection() as connection:
         inbox = connection.execute("SELECT state FROM inbox").fetchone()
         capability = connection.execute("SELECT outcome,code FROM capability_evidence").fetchone()
+        scope = connection.execute("SELECT attachment_sha256,family,parser_version FROM capability_scope").fetchone()
     assert tuple(inbox) == ("ARCHIVED_CAPABILITY_RECORDED",)
     assert tuple(capability) == ("SUPPORTED", "PARSER_OPEN_OK")
+    assert tuple(scope) == (attachment.sha256, ACCOUNT_FAMILY, PARSER_VERSION)
     flow = json.loads((config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
     assert flow["business_flow"]["stage"] == "RAW_ARCHIVE_AUDITED"
     assert flow["source_discovery"] == {"state": "UNKNOWN"}
