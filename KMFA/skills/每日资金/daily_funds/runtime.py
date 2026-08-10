@@ -1491,7 +1491,13 @@ class DailyFundsRuntime:
     def _transaction_projection_rows(facts: ParsedFacts) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
         for transaction in facts.transactions:
-            identity = "\x1f".join((transaction.source.attachment_sha256, transaction.company, transaction.bank, transaction.account, transaction.transaction_id))
+            identity = "\x1f".join((
+                transaction.source.attachment_sha256,
+                transaction.company,
+                transaction.bank or "",
+                transaction.account,
+                transaction.transaction_id,
+            ))
             rows.append({
                 "transaction_key_hash": sha256(identity.encode("utf-8")).hexdigest(),
                 "business_date": transaction.business_date.isoformat(),

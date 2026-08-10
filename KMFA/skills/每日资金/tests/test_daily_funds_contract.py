@@ -483,6 +483,61 @@ def test_two_fact_families_never_merge_and_reconcile_to_zero() -> None:
     assert report.difference_fen == 0
 
 
+def test_transaction_parser_accepts_taskpack_optional_bank_and_source_row_identity() -> None:
+    account_payload = (
+        "业务日期,公司,开户行,账号,期初余额,期末余额\n"
+        "2026-07-30,甲公司,甲银行,001,100.00,110.00\n"
+    ).encode()
+    accounts = parse_attachment(
+        family=ACCOUNT_FAMILY,
+        filename="资金账户明细表_20260730.csv",
+        payload=account_payload,
+        source=_source(account_payload, message_id_hash="a" * 64),
+    )
+    transaction_payload = (
+        "业务日期,公司,账号,流入,流出\n"
+        "2026-07-30,甲公司,001,10.00,\n"
+    ).encode()
+    transactions = parse_attachment(
+        family="资金流水明细",
+        filename="资金流水明细_20260730.csv",
+        payload=transaction_payload,
+        source=_source(transaction_payload, message_id_hash="b" * 64),
+    )
+
+    transaction = transactions.transactions[0]
+    assert transaction.bank is None
+    assert transaction.transaction_id == "source-row-1"
+    assert reconcile((accounts, transactions)).valid
+
+
+def test_reconciliation_rejects_bankless_transaction_with_ambiguous_account_alias() -> None:
+    account_payload = (
+        "业务日期,公司,开户行,账号,期初余额,期末余额\n"
+        "2026-07-30,甲公司,甲银行,001,100.00,100.00\n"
+        "2026-07-30,甲公司,乙银行,001,100.00,100.00\n"
+    ).encode()
+    accounts = parse_attachment(
+        family=ACCOUNT_FAMILY,
+        filename="资金账户明细表_20260730.csv",
+        payload=account_payload,
+        source=_source(account_payload, message_id_hash="a" * 64),
+    )
+    transaction_payload = (
+        "业务日期,公司,账号,流入,流出\n"
+        "2026-07-30,甲公司,001,1.00,\n"
+    ).encode()
+    transactions = parse_attachment(
+        family="资金流水明细",
+        filename="资金流水明细_20260730.csv",
+        payload=transaction_payload,
+        source=_source(transaction_payload, message_id_hash="b" * 64),
+    )
+
+    with pytest.raises(ReconciliationError, match="TRANSACTION_ACCOUNT_AMBIGUOUS"):
+        reconcile((accounts, transactions))
+
+
 def test_reconciliation_rejects_cross_source_duplicate_transactions() -> None:
     account_payload = (
         "业务日期,公司,开户行,账号,期初余额,期末余额\n"
@@ -1085,8 +1140,8 @@ def test_generic_ocr_source_label_classifies_a_uniquely_matching_account_table()
         source=_source(payload),
         mime="image/png",
         runner=_ocr_runner(_ocr_tsv(
-            ["业务日期", "公司", "开户行", "账号", "流水号", "流入", "流出"],
-            ["2026-07-30", "甲", "乙", "001", "T-1", "10.00", ""],
+            ["业务日期", "公司", "账号", "流入", "流出"],
+            ["2026-07-30", "甲", "001", "10.00", ""],
         )),
     )
 

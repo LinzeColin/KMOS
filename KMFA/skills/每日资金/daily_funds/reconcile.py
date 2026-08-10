@@ -73,7 +73,8 @@ def _validate_facts(facts: Iterable[ParsedFacts]) -> list[ParsedFacts]:
             if transaction.business_date != business_date:
                 raise ReconciliationError("FACT_BUSINESS_DATE_MISMATCH")
             _require_text(transaction.company, "TRANSACTION_COMPANY_INVALID")
-            _require_text(transaction.bank, "TRANSACTION_BANK_INVALID")
+            if transaction.bank is not None:
+                _require_text(transaction.bank, "TRANSACTION_BANK_INVALID")
             _require_text(transaction.account, "TRANSACTION_ACCOUNT_INVALID")
             _require_text(transaction.transaction_id, "TRANSACTION_ID_INVALID")
             inflow = _require_fen(transaction.inflow_fen, "TRANSACTION_INFLOW_NOT_INTEGER_FEN")
@@ -185,11 +186,41 @@ def _unique_accounts(accounts: Iterable[AccountSnapshot]) -> dict[tuple[str, str
     return indexed
 
 
-def _unique_transactions(transactions: Iterable[Transaction]) -> list[Transaction]:
+def _transaction_account_key(
+    transaction: Transaction,
+    indexed_accounts: Mapping[tuple[str, str, str], AccountSnapshot],
+) -> tuple[str, str, str]:
+    """Resolve an optional transaction bank without guessing an account.
+
+    The task-pack permits a transaction without ``bank_id``.  It is safe to
+    join that record only when ``company + account`` selects exactly one
+    account snapshot for the same business date.  Missing and ambiguous joins
+    remain hard reconciliation failures rather than silently selecting a bank.
+    """
+
+    company = _require_text(transaction.company, "TRANSACTION_COMPANY_INVALID")
+    account = _require_text(transaction.account, "TRANSACTION_ACCOUNT_INVALID")
+    if transaction.bank is not None:
+        key = account_key(company, _require_text(transaction.bank, "TRANSACTION_BANK_INVALID"), account)
+        if key not in indexed_accounts:
+            raise ReconciliationError("TRANSACTION_ACCOUNT_NOT_IN_SNAPSHOT")
+        return key
+    matches = [key for key in indexed_accounts if key[0] == company and key[2] == account]
+    if not matches:
+        raise ReconciliationError("TRANSACTION_ACCOUNT_NOT_IN_SNAPSHOT")
+    if len(matches) != 1:
+        raise ReconciliationError("TRANSACTION_ACCOUNT_AMBIGUOUS")
+    return matches[0]
+
+
+def _unique_transactions(
+    transactions: Iterable[Transaction],
+    indexed_accounts: Mapping[tuple[str, str, str], AccountSnapshot],
+) -> list[Transaction]:
     seen: set[tuple[str, str, str, str]] = set()
     unique: list[Transaction] = []
     for transaction in transactions:
-        key = (*account_key(transaction.company, transaction.bank, transaction.account), transaction.transaction_id)
+        key = (*_transaction_account_key(transaction, indexed_accounts), transaction.transaction_id)
         if key in seen:
             raise ReconciliationError("DUPLICATE_TRANSACTION")
         unique.append(transaction)
@@ -225,7 +256,7 @@ def reconcile(
 
     business_date, accounts, transactions, source_versions, fact_counts = _collect_facts(facts)
     indexed_accounts = _unique_accounts(accounts)
-    unique_transactions = _unique_transactions(transactions)
+    unique_transactions = _unique_transactions(transactions, indexed_accounts)
     # The runtime chooses exactly one attachment per fact family before
     # reaching this function.  Preserve that invariant for direct callers as
     # well: accepting a second non-duplicate source would silently blend two
@@ -250,9 +281,7 @@ def reconcile(
         raise ReconciliationError("PRIOR_ACCOUNT_MISSING_FROM_SNAPSHOT")
     by_account: dict[tuple[str, str, str], list[Transaction]] = {key: [] for key in indexed_accounts}
     for transaction in unique_transactions:
-        key = account_key(transaction.company, transaction.bank, transaction.account)
-        if key not in by_account:
-            raise ReconciliationError("TRANSACTION_ACCOUNT_NOT_IN_SNAPSHOT")
+        key = _transaction_account_key(transaction, indexed_accounts)
         by_account[key].append(transaction)
 
     reports: list[AccountReconciliation] = []

@@ -47,7 +47,10 @@ class AccountSnapshot:
 class Transaction:
     business_date: date
     company: str
-    bank: str
+    # The frozen transaction schema makes bank_id optional.  A transaction
+    # without it may still be joined only when its company/account alias maps
+    # to exactly one account snapshot; reconciliation owns that check.
+    bank: str | None
     account: str
     transaction_id: str
     occurred_at: datetime | None

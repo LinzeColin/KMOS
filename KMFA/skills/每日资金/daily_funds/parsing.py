@@ -28,12 +28,17 @@ from .models import AccountSnapshot, ParsedFacts, ParserEvidence, SourceRef, Tra
 
 ACCOUNT_FAMILY = "资金账户明细表"
 TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
-# v5 keeps the bounded deterministic OCR fallback and adds one narrow source
-# classification rule: a generic ``资金明细`` image may be treated as an account
-# snapshot only when its OCR table satisfies the account schema *and* cannot
-# satisfy the transaction schema.  Capability receipts are versioned, so a
-# rule change cannot inherit a prior parser's production-support assertion.
-PARSER_VERSION = "kmfa.daily_funds.parser.v5"
+# v6 keeps the bounded deterministic OCR fallback and aligns transaction
+# identity requirements to the frozen task-pack schema: bank_id is optional
+# and a source-row fact identifier is used only when a source does not expose
+# a transaction identifier.
+#
+# It retains v5's narrow source-classification rule: a generic ``资金明细``
+# image may be treated as an account snapshot only when its OCR table satisfies
+# the account schema *and* cannot satisfy the transaction schema.  Capability
+# receipts are versioned, so a rule change cannot inherit a prior parser's
+# production-support assertion.
+PARSER_VERSION = "kmfa.daily_funds.parser.v6"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -750,7 +755,11 @@ def _ocr_required_fields(family: str, fields: set[str]) -> bool:
     if family == ACCOUNT_FAMILY:
         return {"company", "bank", "account", "ending"} <= fields
     if family in TRANSACTION_FAMILIES:
-        identity = {"company", "bank", "account", "transaction_id"} <= fields
+        # ``bank_id`` is optional and the sealed transaction schema has no
+        # required source transaction identifier.  A deterministic source-row
+        # identity is assigned later only for deduplication; it is never a
+        # fabricated business identifier or financial value.
+        identity = {"company", "account"} <= fields
         flow = "inflow" in fields or "outflow" in fields
         amount_direction = {"amount", "direction"} <= fields
         return identity and (flow or amount_direction) and not (flow and amount_direction)
@@ -1029,7 +1038,12 @@ def _facts_from_rows(
             accounts.append(AccountSnapshot(business_date, company, bank, account, ending, opening, currency, source))
         return ParsedFacts(business_date, family, tuple(accounts), tuple(), source.source_version, parser_evidence)
 
-    _required(mapped, ("company", "bank", "account", "transaction_id"))
+    # The sealed transaction schema requires a company/account alias but makes
+    # bank_id optional and does not require a source transaction identifier.
+    # Retain a provided identifier when present; otherwise the stable row
+    # position within this immutable attachment is a fact-local identity used
+    # exclusively for deduplication.
+    _required(mapped, ("company", "account"))
     has_flow_columns = "inflow" in mapped or "outflow" in mapped
     has_amount_direction = {"amount", "direction"} <= set(mapped)
     # These are two alternative financial encodings.  Without a frozen real
@@ -1041,21 +1055,29 @@ def _facts_from_rows(
     if not has_flow_columns and not has_amount_direction:
         raise ParseError("TRANSACTION_AMOUNT_MAPPING_MISSING")
     transactions: list[Transaction] = []
-    seen_transactions: set[tuple[date, str, str, str, str]] = set()
-    for row in rows:
+    seen_transactions: set[tuple[date, str, str | None, str, str]] = set()
+    for row_index, row in enumerate(rows, start=1):
         company = _required_text(row, mapped["company"], "TRANSACTION_COMPANY_MISSING")
-        bank = _required_text(row, mapped["bank"], "TRANSACTION_BANK_MISSING")
+        bank = (
+            _required_text(row, mapped["bank"], "TRANSACTION_BANK_MISSING")
+            if "bank" in mapped and not _is_blank(row.get(mapped["bank"]))
+            else None
+        )
         account = _required_identifier(
             row,
             mapped["account"],
             "TRANSACTION_ACCOUNT_MISSING",
             "TRANSACTION_ACCOUNT_NON_TEXT",
         )
-        transaction_id = _required_identifier(
-            row,
-            mapped["transaction_id"],
-            "TRANSACTION_ID_MISSING",
-            "TRANSACTION_ID_NON_TEXT",
+        transaction_id = (
+            _required_identifier(
+                row,
+                mapped["transaction_id"],
+                "TRANSACTION_ID_MISSING",
+                "TRANSACTION_ID_NON_TEXT",
+            )
+            if "transaction_id" in mapped and not _is_blank(row.get(mapped["transaction_id"]))
+            else f"source-row-{row_index}"
         )
         key = (business_date, company, bank, account, transaction_id)
         if key in seen_transactions:
