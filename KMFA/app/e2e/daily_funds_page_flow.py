@@ -358,6 +358,13 @@ def _assert_chart_interaction(page: Page) -> None:
     chart.first.wait_for(state="visible", timeout=10_000)
     assert chart.count() == 1, f"expected one daily-funds SVG chart, got {chart.count()}"
 
+    # The page deliberately puts the decision chart before operational details,
+    # but it can still sit below the initial viewport on a compact desktop.
+    # A raw page-coordinate mouse move then lands outside the browser window and
+    # falsely proves nothing.  Scroll the real SVG into view and interact via
+    # its coordinate system, exactly as an operator would.
+    chart.scroll_into_view_if_needed(timeout=10_000)
+
     # ECharts SVG legend is a user-facing control.  A true click must change
     # its rendered state; merely finding the label is not sufficient evidence.
     legend = chart.locator("text").filter(has_text="固定高风险线").first
@@ -370,7 +377,7 @@ def _assert_chart_interaction(page: Page) -> None:
 
     box = chart.bounding_box()
     assert box is not None and box["width"] > 100 and box["height"] > 100
-    page.mouse.move(box["x"] + box["width"] * 0.82, box["y"] + box["height"] * 0.5)
+    chart.hover(position={"x": box["width"] * 0.82, "y": box["height"] * 0.5}, timeout=10_000)
     page.get_by_text("数据状态：", exact=False).last.wait_for(state="visible", timeout=5_000)
 
 
@@ -521,6 +528,12 @@ def _exercise_case(
             chart = page.locator("svg").filter(has_text="可用资金")
             chart.first.wait_for(state="visible", timeout=10_000)
             assert chart.count() == 1, f"expected one gated daily-funds SVG chart, got {chart.count()}"
+            if viewport["width"] >= 1024:
+                box = chart.first.bounding_box()
+                assert box is not None and 0 <= box["y"] < viewport["height"], (
+                    "gated daily-funds chart must enter the initial desktop viewport; "
+                    f"box={box}, viewport={viewport}"
+                )
             page.get_by_text("固定高风险线", exact=False).first.wait_for(state="visible", timeout=10_000)
             page.get_by_text("固定关注线", exact=False).first.wait_for(state="visible", timeout=10_000)
             assert "UNSUPPORTED_ATTACHMENT" not in page.content()
@@ -636,6 +649,12 @@ def main() -> int:
                         status="已更新", name="restored-desktop", viewport={"width": 1280, "height": 900},
                         color_scheme="light", exercise_controls=False, out_dir=args.out_dir,
                         restored_projection=True,
+                    ))
+                    results.append(_exercise_case(
+                        browser, base_url=base_url, publication_dir=publication_dir,
+                        status="需处理", name="archived-needs-review-desktop", viewport={"width": 1280, "height": 1000},
+                        color_scheme="light", exercise_controls=False, out_dir=args.out_dir,
+                        trusted_projection=False,
                     ))
                     results.append(_exercise_case(
                         browser, base_url=base_url, publication_dir=publication_dir,

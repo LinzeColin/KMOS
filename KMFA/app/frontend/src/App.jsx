@@ -2057,6 +2057,35 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 
         <div className="sub">{来源?.message || '页面只展示已验证 publication；没有可信结果时明确提示需处理。'}</div>
       </div>
 
+      <div className="grid" style={{ marginTop: 14 }}>
+        <Kpi 标="当前可用资金" 值={资金金额(摘要?.total_available_fen)} 小 />
+        <Kpi 标="今日流入" 值={资金金额(今日.inflow_fen)} 小 />
+        <Kpi 标="今日流出" 值={资金金额(今日.outflow_fen)} 小 />
+        <Kpi 标="今日净变动" 值={资金金额(今日.net_change_fen)} 小 色={Number.isInteger(今日.net_change_fen) ? (今日.net_change_fen < 0 ? 'bad' : 'ok') : undefined} />
+      </div>
+
+      <div className="card" style={{ marginTop: 14 }}>
+        <div className="toolbar" role="group" aria-label="资金时间范围">
+          {资金范围.map(key => <button key={key} type="button" className={范围 === key ? 'btn active' : 'btn'} aria-pressed={范围 === key}
+            onClick={() => { 设范围(key); 刷新(key) }}>{资金范围话[key]}</button>)}
+          <label className="muted">自定义开始 <input aria-label="自定义开始日期" type="date" value={自定义.from} onChange={e => 设自定义({ ...自定义, from: e.target.value })} /></label>
+          <label className="muted">结束 <input aria-label="自定义结束日期" type="date" value={自定义.to} onChange={e => 设自定义({ ...自定义, to: e.target.value })} /></label>
+          <button type="button" className="btn" onClick={应用自定义} disabled={!自定义.from || !自定义.to}>应用</button>
+        </div>
+        {范围 === 'custom' && <p className="hint">自定义区间至少 7 个自然日；数据覆盖不足时动态线会自动停用。</p>}
+        {无可信发布 && <div className="card callout bad" style={{ marginTop: 12 }}><b>暂无可信 publication，需处理</b><div className="sub">资金曲线保留为待发布状态；来源、附件、整数分勾稽及发布链未同时通过前，系统不会估算或补造金额。</div></div>}
+        {取不到 && !无可信发布 && <加载失败卡 详情={(摘要?.加载失败 || 时序?.加载失败)} 需要登录={需要登录} 接口={摘要?.接口 || 时序?.接口} />}
+        {!取不到 && !points.length && !无可信发布 && <div className="card callout warn" style={{ marginTop: 12 }}><b>暂无已验证的资金时点</b><div className="sub">先看运行状态；在来源、附件、勾稽与发布链全部通过前，系统不绘制猜测曲线。</div></div>}
+        {option && <div className="daily-funds-chart" aria-label="可用资金走势">
+          <div className="daily-funds-chart-head">
+            <div><b>可用资金走势</b><div className="muted">{无可信发布 ? '待首份可信发布：仅展示冻结阈值，不展示资金金额' : (范围 === '1d' ? '当日仍仅显示已发布日级结果；小时数据未发布' : '日级期末可用资金')}</div></div>
+            <span className={`chip ${无可信发布 ? 'warn' : 'ok'}`}>{无可信发布 ? '待发布图表' : '已发布曲线'}</span>
+          </div>
+          <Chart option={option} height="22rem" />
+        </div>}
+        {option && (覆盖.missing_dates?.length > 0 || 覆盖.coverage_gap_dates?.length > 0) && <div className="hint" role="status">{覆盖.missing_dates?.length > 0 && `未发布断档 ${覆盖.missing_dates.length} 天`}{覆盖.missing_dates?.length > 0 && 覆盖.coverage_gap_dates?.length > 0 ? '；' : ''}{覆盖.coverage_gap_dates?.length > 0 && `覆盖缺口 ${覆盖.coverage_gap_dates.length} 天（图中菱形标记，不参与浮动阈值）`}</div>}
+      </div>
+
       <section className="card daily-funds-pipeline" aria-label="资金发布进度">
         <div className="daily-funds-pipeline-head">
           <div><b>资金发布进度</b><div className="sub">每个关口独立验证；未同时通过时，不显示或推断真实金额。</div></div>
@@ -2102,35 +2131,6 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 
         </div>}
         {探针提交 && <div className={`alert ${探针提交.ok ? 'ok' : 'bad'}`} role="status">{探针提交.text}</div>}
       </div>}
-
-      <div className="grid" style={{ marginTop: 14 }}>
-        <Kpi 标="当前可用资金" 值={资金金额(摘要?.total_available_fen)} 小 />
-        <Kpi 标="今日流入" 值={资金金额(今日.inflow_fen)} 小 />
-        <Kpi 标="今日流出" 值={资金金额(今日.outflow_fen)} 小 />
-        <Kpi 标="今日净变动" 值={资金金额(今日.net_change_fen)} 小 色={Number.isInteger(今日.net_change_fen) ? (今日.net_change_fen < 0 ? 'bad' : 'ok') : undefined} />
-      </div>
-
-      <div className="card" style={{ marginTop: 14 }}>
-        <div className="toolbar" role="group" aria-label="资金时间范围">
-          {资金范围.map(key => <button key={key} type="button" className={范围 === key ? 'btn active' : 'btn'} aria-pressed={范围 === key}
-            onClick={() => { 设范围(key); 刷新(key) }}>{资金范围话[key]}</button>)}
-          <label className="muted">自定义开始 <input aria-label="自定义开始日期" type="date" value={自定义.from} onChange={e => 设自定义({ ...自定义, from: e.target.value })} /></label>
-          <label className="muted">结束 <input aria-label="自定义结束日期" type="date" value={自定义.to} onChange={e => 设自定义({ ...自定义, to: e.target.value })} /></label>
-          <button type="button" className="btn" onClick={应用自定义} disabled={!自定义.from || !自定义.to}>应用</button>
-        </div>
-        {范围 === 'custom' && <p className="hint">自定义区间至少 7 个自然日；数据覆盖不足时动态线会自动停用。</p>}
-        {无可信发布 && <div className="card callout bad" style={{ marginTop: 12 }}><b>暂无可信 publication，需处理</b><div className="sub">资金曲线保留为待发布状态；来源、附件、整数分勾稽及发布链未同时通过前，系统不会估算或补造金额。</div></div>}
-        {取不到 && !无可信发布 && <加载失败卡 详情={(摘要?.加载失败 || 时序?.加载失败)} 需要登录={需要登录} 接口={摘要?.接口 || 时序?.接口} />}
-        {!取不到 && !points.length && !无可信发布 && <div className="card callout warn" style={{ marginTop: 12 }}><b>暂无已验证的资金时点</b><div className="sub">先看运行状态；在来源、附件、勾稽与发布链全部通过前，系统不绘制猜测曲线。</div></div>}
-        {option && <div className="daily-funds-chart" aria-label="可用资金走势">
-          <div className="daily-funds-chart-head">
-            <div><b>可用资金走势</b><div className="muted">{无可信发布 ? '待首份可信发布：仅展示冻结阈值，不展示资金金额' : (范围 === '1d' ? '当日仍仅显示已发布日级结果；小时数据未发布' : '日级期末可用资金')}</div></div>
-            <span className={`chip ${无可信发布 ? 'warn' : 'ok'}`}>{无可信发布 ? '待发布图表' : '已发布曲线'}</span>
-          </div>
-          <Chart option={option} height="22rem" />
-        </div>}
-        {option && (覆盖.missing_dates?.length > 0 || 覆盖.coverage_gap_dates?.length > 0) && <div className="hint" role="status">{覆盖.missing_dates?.length > 0 && `未发布断档 ${覆盖.missing_dates.length} 天`}{覆盖.missing_dates?.length > 0 && 覆盖.coverage_gap_dates?.length > 0 ? '；' : ''}{覆盖.coverage_gap_dates?.length > 0 && `覆盖缺口 ${覆盖.coverage_gap_dates.length} 天（图中菱形标记，不参与浮动阈值）`}</div>}
-      </div>
 
       <h3 className="sec">阈值与数据覆盖</h3>
       <Tbl>
