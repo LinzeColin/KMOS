@@ -422,24 +422,25 @@ def test_enabled_guard_with_missing_or_invalid_config_is_unavailable(monkeypatch
     assert client.get("/ops/healthz").status_code == 503
 
 
-def test_deployment_contract_enables_origin_guard_before_public_bypass():
-    compose_path = REPO / "KMFA" / "deploy" / "coolify" / "docker-compose.yml"
-    compose = yaml.safe_load(compose_path.read_text(encoding="utf-8"))
-    environment = compose["services"]["app"]["environment"]
-    assert environment["KMFA_PUBLIC_SHELL_ENABLED"] == (
-        "${KMFA_PUBLIC_SHELL_ENABLED:-1}"
-    )
-    assert environment["KMFA_PUBLIC_INDEXING_ENABLED"] == (
-        "${KMFA_PUBLIC_INDEXING_ENABLED:-0}"
-    )
-    assert environment["KMFA_ABUSE_POLICY_MODE"] == (
-        "${KMFA_ABUSE_POLICY_MODE:-enforced}"
-    )
-    assert environment["KMFA_PRIVATE_OPS_REQUIRE_ACCESS"] == (
-        "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
-    )
-    assert "KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN" in environment
-    assert "KMFA_CLOUDFLARE_ACCESS_AUD" in environment
+def test_deployment_contract_honors_owner_public_dashboard_override():
+    for compose_path in (
+        REPO / "KMFA" / "deploy" / "coolify" / "docker-compose.yml",
+        REPO / "KMFA" / "app" / "docker-compose.yml",
+    ):
+        compose = yaml.safe_load(compose_path.read_text(encoding="utf-8"))
+        environment = compose["services"]["app"]["environment"]
+        assert environment["KMFA_PUBLIC_SHELL_ENABLED"] == (
+            "${KMFA_PUBLIC_SHELL_ENABLED:-1}"
+        )
+        assert environment["KMFA_PUBLIC_INDEXING_ENABLED"] == (
+            "${KMFA_PUBLIC_INDEXING_ENABLED:-0}"
+        )
+        assert environment["KMFA_ABUSE_POLICY_MODE"] == (
+            "${KMFA_ABUSE_POLICY_MODE:-enforced}"
+        )
+        assert environment["KMFA_PRIVATE_OPS_REQUIRE_ACCESS"] == "0"
+        assert "KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN" in environment
+        assert "KMFA_CLOUDFLARE_ACCESS_AUD" in environment
 
     runbook = (REPO / "KMFA" / "deploy" / "coolify" / "README.md").read_text(
         encoding="utf-8"
@@ -449,6 +450,7 @@ def test_deployment_contract_enables_origin_guard_before_public_bypass():
     assert "Bypass / Include Everyone" in runbook
     assert "KMFA_PUBLIC_INDEXING_ENABLED=0" in runbook
     assert "KMFA_PUBLIC_INDEXING_ENABLED=1" in runbook
+    assert "KMFA_PRIVATE_OPS_REQUIRE_ACCESS` 设为 `0`" in runbook
     assert "X-KMFA-Index-Mode: public-root" in runbook
     assert "恢复原" in runbook and "Owner Allow 策略" in runbook
     assert (

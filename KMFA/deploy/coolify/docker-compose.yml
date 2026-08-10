@@ -211,7 +211,9 @@ services:
       KMFA_S3_ALLOW_INSECURE_LOCAL: "${KMFA_S3_ALLOW_INSECURE_LOCAL:-0}"
       # P4.4 匿名反滥用策略；未知值 fail-closed，紧急回滚只能切 expensive-only。
       KMFA_ABUSE_POLICY_MODE: "${KMFA_ABUSE_POLICY_MODE:-enforced}"
-      KMFA_PRIVATE_OPS_REQUIRE_ACCESS: "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
+      # Owner 2026-08-10 已明确 KMFA 驾驶舱公开且无需登录。必须是字面量，
+      # 不能再退回 Coolify 中遗留的私有守卫变量，否则公开 UI 会在源站报 503。
+      KMFA_PRIVATE_OPS_REQUIRE_ACCESS: "0"
       KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN: "${KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}"
       KMFA_CLOUDFLARE_ACCESS_AUD: "${KMFA_CLOUDFLARE_ACCESS_AUD:-}"
       DAILY_FUNDS_PUBLICATION_DIR: "/var/lib/kmfa/daily-funds"

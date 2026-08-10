@@ -29,7 +29,9 @@ services:
       # 只供本 compose 的 object-store 私网；公网/生产 endpoint 必须 HTTPS。
       KMFA_S3_ALLOW_INSECURE_LOCAL: "${KMFA_S3_ALLOW_INSECURE_LOCAL:-0}"
       KMFA_ABUSE_POLICY_MODE: "${KMFA_ABUSE_POLICY_MODE:-enforced}"
-      KMFA_PRIVATE_OPS_REQUIRE_ACCESS: "${KMFA_PRIVATE_OPS_REQUIRE_ACCESS:-1}"
+      # 与 Coolify 生产合同一致：Owner 已要求 KMFA 驾驶舱公开且无需登录。
+      # 使用字面量，避免遗留环境变量把公开 UI 恢复为不可用的私有守卫。
+      KMFA_PRIVATE_OPS_REQUIRE_ACCESS: "0"
       KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN: "${KMFA_CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}"
       KMFA_CLOUDFLARE_ACCESS_AUD: "${KMFA_CLOUDFLARE_ACCESS_AUD:-}"
     volumes:

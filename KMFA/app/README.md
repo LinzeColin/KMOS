@@ -170,5 +170,6 @@ volume 不等于灾难恢复，完成目录还必须复制到独立加密故障�
 `KMFA_PRIVATE_OPS_REQUIRE_ACCESS` 时仅用于本机开发，私有面守卫关闭）。
 测试：`python -m pytest KMFA/app/backend/tests`
 前端（React/Vite/ECharts）与 docker-compose 集成随 PROD.0002/0003；
-生产 compose 强制 `KMFA_PRIVATE_OPS_REQUIRE_ACCESS=1`；team domain 或 Audience tags 缺失时私有面
-fail-closed。上线与回滚顺序见 `deploy/coolify/README.md`；Tunnel 仅为 fallback。
+当前 Owner 公开面合同下，生产 Compose 固定 `KMFA_PRIVATE_OPS_REQUIRE_ACCESS=0`，避免遗留环境变量
+把公开驾驶舱恢复为不可用的登录守卫；不得据此展示未经余额、流水与整数分勾稽验证的资金金额。上线与
+回滚顺序见 `deploy/coolify/README.md`；Tunnel 仅为 fallback。
