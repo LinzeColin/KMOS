@@ -554,6 +554,56 @@ def test_private_daily_funds_projection_range_and_no_raw_leak(tmp_path, monkeypa
     assert client.get("/api/daily-funds/summary", params={"range": "custom", "from": "2026-07-30", "to": "2026-07-30"}).status_code == 422
 
 
+def test_unpublished_daily_funds_projection_is_values_free_but_usable(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    publication.mkdir()
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+
+    summary = client.get("/ops/api/daily-funds/summary", params={"range": "30d"})
+    timeseries = client.get("/ops/api/daily-funds/timeseries", params={"range": "30d"})
+
+    assert summary.status_code == 200
+    assert summary.json() == {
+        "data_available": False,
+        "range": "30d",
+        "from": None,
+        "to": None,
+        "scope": "global",
+        "granularity": "daily",
+        "range_health": {
+            "expected_days": 0,
+            "published_days": 0,
+            "expected_dates": [],
+            "missing_dates": [],
+            "coverage_gap_dates": [],
+        },
+        "publication": None,
+        "total_available_fen": None,
+        "risk_label": None,
+        "dynamic_flag": None,
+        "by_company_ending_fen": [],
+        "by_bank_ending_fen": [],
+        "account_breakdown": [],
+        "today": {},
+        "top_inflows": [],
+        "top_outflows": [],
+        "points": [],
+    }
+    assert timeseries.status_code == 200
+    time_payload = timeseries.json()
+    assert time_payload["data_available"] is False
+    assert time_payload["points"] == []
+    assert time_payload["range_health"]["expected_days"] == 0
+    assert time_payload["thresholds"]["fixed"]["hard_fen"] == 60_000_000
+    assert time_payload["thresholds"]["fixed"]["soft_fen"] == 120_000_000
+    assert all(item["active"] is False for item in time_payload["thresholds"]["floating"])
+    assert client.get("/ops/api/daily-funds/summary", params={"range": "unknown"}).status_code == 422
+    assert client.get(
+        "/ops/api/daily-funds/timeseries",
+        params={"range": "custom", "from": "2026-07-30", "to": "2026-07-30"},
+    ).status_code == 422
+
+
 def test_daily_funds_projection_rejects_source_pair_and_runtime_contract_drift(tmp_path, monkeypatch):
     def load_current(root: Path) -> dict:
         return json.loads((root / "current.json").read_text(encoding="utf-8"))

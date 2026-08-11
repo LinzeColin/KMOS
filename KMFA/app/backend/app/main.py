@@ -3318,9 +3318,18 @@ def _daily_funds_current() -> dict[str, Any]:
     shared read-only volume.
     """
 
-    payload = _read_daily_funds_json("current.json")
-    if not payload or not isinstance(payload.get("publication"), dict):
+    target = (DAILY_FUNDS_PUBLICATION_DIR / "current.json").resolve()
+    root = DAILY_FUNDS_PUBLICATION_DIR.resolve()
+    # A missing projection is the normal pre-publication state.  It is not a
+    # malformed publication and the owner page must be able to render its
+    # values-free waiting view without turning that state into a transport
+    # failure.  Anything present but unreadable/structurally wrong remains a
+    # hard failure below.
+    if target.parent != root or not target.is_file():
         raise HTTPException(status_code=503, detail="daily_funds_projection_unavailable")
+    payload = _read_daily_funds_json("current.json")
+    if not isinstance(payload, dict) or not isinstance(payload.get("publication"), dict):
+        raise HTTPException(status_code=503, detail="daily_funds_projection_not_valid")
     expected_snapshot_fields = {
         "schema_version", "publication", "summary", "daily_balances", "transactions",
     }
@@ -3375,6 +3384,31 @@ def _daily_funds_range_days(
     if range_value in DAILY_FUNDS_ALLOWED_RANGES:
         start = publication_day - timedelta(days=DAILY_FUNDS_ALLOWED_RANGES[range_value] - 1)
         return start.isoformat(), publication_day.isoformat()
+    if range_value != "custom" or not from_date or not to_date:
+        raise HTTPException(status_code=422, detail="daily_funds_range_invalid")
+    start = _daily_funds_date(from_date)
+    end = _daily_funds_date(to_date)
+    if start is None or end is None or end < start or (end - start).days + 1 < 7:
+        raise HTTPException(status_code=422, detail="daily_funds_custom_range_invalid")
+    return start.isoformat(), end.isoformat()
+
+
+def _daily_funds_unpublished_range_days(
+    range_value: str,
+    from_date: str | None,
+    to_date: str | None,
+) -> tuple[str | None, str | None]:
+    """Validate a UI range before a first publication exists.
+
+    Preset ranges are normally anchored to the last trusted business date.
+    That anchor does not exist before the first publication, so returning
+    dates would make an empty chart look like a zero-balance interval.  A
+    valid custom range may still be echoed as an operator-selected filter;
+    no source or monetary fact is implied by it.
+    """
+
+    if range_value in DAILY_FUNDS_ALLOWED_RANGES:
+        return None, None
     if range_value != "custom" or not from_date or not to_date:
         raise HTTPException(status_code=422, detail="daily_funds_range_invalid")
     start = _daily_funds_date(from_date)
@@ -3741,6 +3775,74 @@ def _daily_funds_unpublished_thresholds() -> dict[str, Any]:
     }
 
 
+def _daily_funds_unpublished_summary(
+    *,
+    range_value: str,
+    from_date: str | None,
+    to_date: str | None,
+) -> dict[str, Any]:
+    """Return the stable, values-free contract used before first publication.
+
+    This is deliberately a successful API response, not a synthetic zero
+    projection.  The page needs enough shape to render its frozen policy and
+    publication gates, while every financial field stays absent/empty until
+    the worker has written a fully validated integer-fen publication.
+    """
+
+    start, end = _daily_funds_unpublished_range_days(range_value, from_date, to_date)
+    return {
+        "data_available": False,
+        "range": range_value,
+        "from": start,
+        "to": end,
+        "scope": "global",
+        "granularity": "daily",
+        "range_health": {
+            "expected_days": 0,
+            "published_days": 0,
+            "expected_dates": [],
+            "missing_dates": [],
+            "coverage_gap_dates": [],
+        },
+        "publication": None,
+        "total_available_fen": None,
+        "risk_label": None,
+        "dynamic_flag": None,
+        "by_company_ending_fen": [],
+        "by_bank_ending_fen": [],
+        "account_breakdown": [],
+        "today": {},
+        "top_inflows": [],
+        "top_outflows": [],
+        "points": [],
+    }
+
+
+def _daily_funds_unpublished_timeseries(
+    *,
+    range_value: str,
+    from_date: str | None,
+    to_date: str | None,
+) -> dict[str, Any]:
+    start, end = _daily_funds_unpublished_range_days(range_value, from_date, to_date)
+    return {
+        "data_available": False,
+        "range": range_value,
+        "from": start,
+        "to": end,
+        "granularity": "daily",
+        "range_health": {
+            "expected_days": 0,
+            "published_days": 0,
+            "expected_dates": [],
+            "missing_dates": [],
+            "coverage_gap_dates": [],
+        },
+        "points": [],
+        "thresholds": _daily_funds_unpublished_thresholds(),
+    }
+
+
 def _daily_funds_projection_view(payload: dict[str, Any]) -> dict[str, Any]:
     """Validate the entire browser projection before exposing any financial value."""
     publication = payload["publication"]
@@ -4061,7 +4163,16 @@ def _daily_funds_cashflow_observation_range(
 def daily_funds_summary(range: str = "30d", from_: str | None = Query(None, alias="from"), to: str | None = None, scope: str = "global"):
     if scope != "global":
         raise HTTPException(status_code=422, detail="daily_funds_scope_invalid")
-    payload = _daily_funds_current()
+    try:
+        payload = _daily_funds_current()
+    except HTTPException as exc:
+        if exc.status_code == 503 and exc.detail == "daily_funds_projection_unavailable":
+            return _daily_funds_unpublished_summary(
+                range_value=range,
+                from_date=from_,
+                to_date=to,
+            )
+        raise
     projection = _daily_funds_projection_view(payload)
     start, end = _daily_funds_range_days(range, from_, to, publication_day=projection["publication_day"])
     points = [point for point in projection["points"] if start <= point["business_date"] <= end]
@@ -4097,7 +4208,16 @@ def daily_funds_summary(range: str = "30d", from_: str | None = Query(None, alia
 @app.get("/ops/api/daily-funds/timeseries")
 @app.get("/api/daily-funds/timeseries")
 def daily_funds_timeseries(range: str = "30d", from_: str | None = Query(None, alias="from"), to: str | None = None):
-    payload = _daily_funds_current()
+    try:
+        payload = _daily_funds_current()
+    except HTTPException as exc:
+        if exc.status_code == 503 and exc.detail == "daily_funds_projection_unavailable":
+            return _daily_funds_unpublished_timeseries(
+                range_value=range,
+                from_date=from_,
+                to_date=to,
+            )
+        raise
     projection = _daily_funds_projection_view(payload)
     start, end = _daily_funds_range_days(range, from_, to, publication_day=projection["publication_day"])
     points = [point for point in projection["points"] if start <= point["business_date"] <= end]
