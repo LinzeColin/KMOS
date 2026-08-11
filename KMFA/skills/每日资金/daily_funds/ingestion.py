@@ -1280,6 +1280,30 @@ class DwsHistoryClient:
                 selected.append(message)
         return tuple(selected)
 
+    def quarantine_messages(self, page: DwsPage) -> tuple[dict[str, Any], ...]:
+        """Return exact-source attachments whose declared family is unknown.
+
+        These messages are deliberately kept out of the financial fact lane:
+        a missing title must never be guessed into a document family.  The
+        raw-ingestion lane still preserves their bytes and immutable envelope
+        so a later deterministic parser can establish (or reject) a family
+        from the document itself.
+        """
+
+        quarantined: list[dict[str, Any]] = []
+        for message in page.messages:
+            conversation_id = _message_field(message, ("openConversationId", "conversationId", "conversation_id"))
+            sender_id = _message_field(message, ("senderOpenDingTalkId", "sender_open_dingtalk_id"))
+            if conversation_id != self.config.group_id:
+                raise IngestionError("AMBIGUOUS_SOURCE")
+            if (
+                sender_id == self.config.sender_id
+                and _family(message) is None
+                and self.attachment_count(message) > 0
+            ):
+                quarantined.append(message)
+        return tuple(quarantined)
+
     @staticmethod
     def attachment_count(message: Mapping[str, Any]) -> int:
         return len(_attachments(message))
@@ -1321,8 +1345,6 @@ class DwsHistoryClient:
             return None
         attachment = attachments[index]
         if not _message_field(attachment, ("mediaId", "media_id", "resourceId", "resource_id")):
-            return None
-        if _family(message) is None:
             return None
         return PersistedRawAttachment(
             message=message,

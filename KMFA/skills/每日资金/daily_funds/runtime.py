@@ -1702,6 +1702,7 @@ class DailyFundsRuntime:
         poller = HistoryPoller(self.state, client)
         writer = GitSparseWriter(self.config)
         all_attachments: list[DownloadedAttachment] = []
+        formal_attachments: list[DownloadedAttachment] = []
         commits: list[GitCommit] = []
         # Keep the source diagnosis deliberately ordinal.  The production
         # status hand-off must explain which gate stopped without becoming a
@@ -1717,6 +1718,7 @@ class DailyFundsRuntime:
             if page.messages:
                 history_nonempty = True
             selected = client.selected_messages(page)
+            quarantined = client.quarantine_messages(page)
             if selected:
                 target_document_seen = True
             selected_attachment_counts: list[tuple[dict[str, Any], int]] = []
@@ -1727,6 +1729,8 @@ class DailyFundsRuntime:
                     raise IngestionError("SOURCE_ATTACHMENT_MISSING")
                 target_attachment_seen = True
                 selected_attachment_counts.append((message, attachment_count))
+            for message in quarantined:
+                selected_attachment_counts.append((message, client.attachment_count(message)))
 
             # Raw batches bind the complete history page, not each message in
             # isolation.  Re-open the whole page only when every occurrence
@@ -1759,6 +1763,10 @@ class DailyFundsRuntime:
                 )
                 commits.append(commit)
                 all_attachments.extend(commit.verified_attachments)
+                formal_attachments.extend(
+                    attachment for attachment in commit.verified_attachments
+                    if attachment.family is not None
+                )
                 return
             page_attachments = [
                 client.download(message, index)
@@ -1777,6 +1785,10 @@ class DailyFundsRuntime:
                     occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
                     self.state.note_inbox(occurrence_key, attachment.message_id_hash, attachment.sha256, "GIT_PERSISTED")
                 all_attachments.extend(commit.verified_attachments)
+                formal_attachments.extend(
+                    attachment for attachment in commit.verified_attachments
+                    if attachment.family is not None
+                )
 
         def empty_source_state() -> str:
             if not history_nonempty:
@@ -1852,6 +1864,10 @@ class DailyFundsRuntime:
                     "capability_supported": len(inspection.parsed),
                     "capability_needs_review": needs_review,
                 }
+            if not formal_attachments:
+                source_discovery_state = empty_source_state()
+                raise IngestionError("SOURCE_MATCH_ZERO")
+            verified_attachments = self._deduplicated_attachments(formal_attachments)
             # The raw Git authority has been re-opened before this point.  R2
             # must mirror those exact bytes before parsing or reconciliation.
             R2FreeTierGuard(self.config).require_fresh_receipt(now=now)

@@ -1878,6 +1878,10 @@ def test_archive_only_backfill_persists_readback_and_records_unsupported_format_
             return (message,)
 
         @staticmethod
+        def quarantine_messages(_page):
+            return ()
+
+        @staticmethod
         def attachment_count(_message):
             return 1
 
@@ -1936,6 +1940,185 @@ def test_archive_only_backfill_persists_readback_and_records_unsupported_format_
     flow = json.loads((config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
     assert flow["business_flow"]["stage"] == "BACKFILL_ARCHIVED_NEEDS_REVIEW"
     assert flow["attachment_capabilities"][0]["outcome"] == "NEEDS_REVIEW"
+
+
+def test_archive_only_backfill_quarantines_unclassified_source_without_creating_facts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Unknown titles are preserved as raw evidence, never guessed into facts."""
+
+    import daily_funds.runtime as runtime_module
+
+    config = replace(
+        _config(tmp_path),
+        cf_api_token="",
+        cf_account_id="",
+        d1_database_id="",
+        restore_drill_d1_database_id="",
+        r2_endpoint_url="",
+        r2_bucket="",
+        r2_access_key_id="",
+        r2_secret_access_key="",
+        oci_endpoint_url="",
+        oci_bucket="",
+        oci_access_key_id="",
+        oci_secret_access_key="",
+    )
+    payload = b"\x89PNG\r\n\x1a\nsynthetic-unclassified-image"
+    moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
+    attachment = DownloadedAttachment(
+        message={},
+        message_id="synthetic-unclassified-message",
+        message_id_hash="5" * 64,
+        message_at=moment,
+        index=0,
+        filename="unclassified.png",
+        family=None,
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="image/png",
+    )
+    message = {"fixture": "unclassified"}
+
+    class QuarantineClient:
+        @staticmethod
+        def search(_start, _end, _cursor):
+            return DwsPage(messages=(message,), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page):
+            return ()
+
+        @staticmethod
+        def quarantine_messages(_page):
+            return (message,)
+
+        @staticmethod
+        def attachment_count(_message):
+            return 1
+
+        @staticmethod
+        def message_id_hash(_message):
+            return attachment.message_id_hash
+
+        @staticmethod
+        def reopen_candidate(_message, _index, _attachment_sha256):
+            return None
+
+        @staticmethod
+        def download(_message, _index):
+            return attachment
+
+    persisted: list[tuple[DownloadedAttachment, ...]] = []
+
+    class ReadbackWriter:
+        def __init__(self, _config):
+            pass
+
+        def persist(self, attachments):
+            reopened = tuple(attachments)
+            persisted.append(reopened)
+            return GitCommit("e" * 40, SimpleNamespace(), reopened)
+
+    runtime = DailyFundsRuntime(config)
+    monkeypatch.setattr(runtime, "_dws_client", lambda: QuarantineClient())
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ReadbackWriter)
+    monkeypatch.setattr(runtime, "_coordinator", lambda: pytest.fail("quarantine archive must not construct a publication coordinator"))
+
+    result = runtime.poll(
+        now=datetime(2026, 8, 1, tzinfo=UTC),
+        start_override=datetime(2026, 7, 30, tzinfo=UTC),
+        advance_pointer=False,
+        allow_empty_window=True,
+        archive_only=True,
+    )
+
+    assert result == {
+        "ok": True,
+        "pages": 1,
+        "attachments": 1,
+        "archive_only": True,
+        "capability_supported": 0,
+        "capability_needs_review": 1,
+    }
+    assert persisted == [(attachment,)]
+    assert not (config.publication_dir / "current.json").exists()
+    with runtime.state.connection() as connection:
+        capability = connection.execute("SELECT family,outcome,code FROM capability_evidence").fetchone()
+    assert tuple(capability) == ("UNCLASSIFIED", "NEEDS_REVIEW", "UNSUPPORTED_ATTACHMENT")
+
+
+def test_live_poll_archives_quarantine_but_never_sends_it_to_publication(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A title-less attachment may enrich raw evidence but cannot become money."""
+
+    import daily_funds.runtime as runtime_module
+
+    payload = b"\x89PNG\r\n\x1a\nlive-unclassified-image"
+    attachment = DownloadedAttachment(
+        message={},
+        message_id="live-unclassified-message",
+        message_id_hash="6" * 64,
+        message_at=datetime(2026, 8, 1, 8, tzinfo=UTC),
+        index=0,
+        filename="unclassified.png",
+        family=None,
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="image/png",
+    )
+    message = {"fixture": "live-unclassified"}
+
+    class QuarantineClient:
+        @staticmethod
+        def search(_start, _end, _cursor):
+            return DwsPage(messages=(message,), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page):
+            return ()
+
+        @staticmethod
+        def quarantine_messages(_page):
+            return (message,)
+
+        @staticmethod
+        def attachment_count(_message):
+            return 1
+
+        @staticmethod
+        def message_id_hash(_message):
+            return attachment.message_id_hash
+
+        @staticmethod
+        def reopen_candidate(_message, _index, _attachment_sha256):
+            return None
+
+        @staticmethod
+        def download(_message, _index):
+            return attachment
+
+    persisted: list[tuple[DownloadedAttachment, ...]] = []
+
+    class ReadbackWriter:
+        def __init__(self, _config):
+            pass
+
+        def persist(self, attachments):
+            reopened = tuple(attachments)
+            persisted.append(reopened)
+            return GitCommit("f" * 40, SimpleNamespace(), reopened)
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    monkeypatch.setattr(runtime, "_dws_client", lambda: QuarantineClient())
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ReadbackWriter)
+    monkeypatch.setattr(runtime, "_coordinator", lambda: pytest.fail("quarantine must not reach publication"))
+
+    assert runtime.poll(now=datetime(2026, 8, 1, tzinfo=UTC)) == {
+        "ok": False,
+        "code": "SOURCE_MATCH_ZERO",
+    }
+    assert persisted == [(attachment,)]
+    assert not (runtime.config.publication_dir / "current.json").exists()
+    flow = json.loads((runtime.config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
+    assert flow["source_discovery"] == {"state": "TARGET_DOCUMENT_NOT_FOUND"}
 
 
 def test_overlap_reopens_verified_raw_without_repeating_media_download(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1998,6 +2181,10 @@ def test_overlap_reopens_verified_raw_without_repeating_media_download(tmp_path:
         @staticmethod
         def selected_messages(_page):
             return messages
+
+        @staticmethod
+        def quarantine_messages(_page):
+            return ()
 
         @staticmethod
         def attachment_count(_message):
@@ -2126,6 +2313,10 @@ def test_restart_after_raw_persist_reopens_the_exact_durable_attachment_without_
         @staticmethod
         def selected_messages(_page):
             return (attachment.message,)
+
+        @staticmethod
+        def quarantine_messages(_page):
+            return ()
 
         @staticmethod
         def attachment_count(_message):
@@ -2508,6 +2699,10 @@ def test_empty_live_poll_remains_fail_closed_but_backfill_can_record_a_complete_
         def selected_messages(_page):
             return ()
 
+        @staticmethod
+        def quarantine_messages(_page):
+            return ()
+
     runtime = DailyFundsRuntime(_config(tmp_path))
     monkeypatch.setattr(runtime, "_dws_client", lambda: EmptyClient())
     historical = runtime.poll(
@@ -2533,6 +2728,10 @@ def test_live_poll_exposes_a_values_free_target_document_gate(tmp_path: Path, mo
 
         @staticmethod
         def selected_messages(_page):
+            return ()
+
+        @staticmethod
+        def quarantine_messages(_page):
             return ()
 
     runtime = DailyFundsRuntime(_config(tmp_path))
@@ -2590,6 +2789,10 @@ def test_live_poll_raw_readback_failure_retains_prior_publication(tmp_path: Path
         @staticmethod
         def selected_messages(page):
             return page.messages
+
+        @staticmethod
+        def quarantine_messages(_page):
+            return ()
 
         @staticmethod
         def attachment_count(_message):
@@ -3504,6 +3707,29 @@ def test_dws_history_accepts_explicit_empty_terminal_v1_envelope_and_stable_send
     assert client.selected_messages(DwsPage(messages=(message,), next_cursor=None, has_more=False)) == (message,)
 
 
+def test_dws_quarantine_messages_keeps_exact_source_attachment_without_declared_family(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    client = DwsHistoryClient(config)
+    message = {
+        "openConversationId": config.group_id,
+        "senderOpenDingTalkId": config.sender_id,
+        "openMessageId": "unclassified-fixture-message",
+        "createTime": datetime(2026, 8, 1, tzinfo=UTC).isoformat(),
+        "content": "opaque attachment notice",
+        "attachments": [{"mediaId": "unclassified-fixture-media"}],
+    }
+    page = DwsPage(messages=(message,), next_cursor=None, has_more=False)
+    assert client.selected_messages(page) == ()
+    assert client.quarantine_messages(page) == (message,)
+
+    other_sender = dict(message, senderOpenDingTalkId="other-sender")
+    assert client.quarantine_messages(DwsPage(messages=(other_sender,), next_cursor=None, has_more=False)) == ()
+
+    wrong_group = dict(message, openConversationId="other-group")
+    with pytest.raises(IngestionError, match="AMBIGUOUS_SOURCE"):
+        client.quarantine_messages(DwsPage(messages=(wrong_group,), next_cursor=None, has_more=False))
+
+
 def test_dws_history_accepts_official_message_list_terminal_envelope(tmp_path: Path) -> None:
     """The official ``im/search_messages`` adapter also emits ``messageList``."""
 
@@ -3697,6 +3923,8 @@ def test_dws_reopen_candidate_requires_exact_source_but_allows_embedded_media(tm
     assert candidate.sha256 == attachment_sha256
     assert candidate.message_id_hash == client.message_id_hash(message)
     assert client.reopen_candidate(message, 0, "not-a-sha") is None
+    unclassified = dict(message, content="opaque mediaId=unclassified-media")
+    assert client.reopen_candidate(unclassified, 0, attachment_sha256) is not None
     ambiguous = dict(message)
     ambiguous["senderOpenDingTalkId"] = "other-sender"
     with pytest.raises(IngestionError, match="AMBIGUOUS_SOURCE"):
