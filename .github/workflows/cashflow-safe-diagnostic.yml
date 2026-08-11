@@ -4,9 +4,6 @@ name: cashflow-safe-diagnostic
 # it publishes only parser/category status and coverage counts, never raw OCR,
 # filenames, account identifiers, counterparties, or money values.
 on:
-  push:
-    branches:
-      - codex/daily-funds-flow-visual-20260811
   workflow_dispatch:
 
 permissions:
