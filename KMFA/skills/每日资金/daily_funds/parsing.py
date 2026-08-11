@@ -722,6 +722,54 @@ def _ocr_lines(words: Iterable[_OcrWord]) -> tuple[tuple[_OcrWord, ...], ...]:
     return tuple(tuple(sorted(row, key=lambda word: (word.left, word.top, word.text))) for row in ordered)
 
 
+def _ocr_visual_rows(lines: tuple[tuple[_OcrWord, ...], ...]) -> tuple[tuple[int, tuple[_OcrWord, ...]], ...]:
+    """Reassemble one visually aligned row when Tesseract splits its columns.
+
+    Tesseract can assign separate ``line_num`` values to cells that share one
+    rendered table row.  Group only OCR lines whose vertical boxes overlap;
+    adjacent rows remain separate, and callers still apply the same strict
+    alias, confidence, and row-total gates after this layout-only repair.
+    """
+
+    grouped: list[tuple[int, tuple[_OcrWord, ...]]] = []
+    current_index: int | None = None
+    current_top: int | None = None
+    current_bottom: int | None = None
+    current_words: list[_OcrWord] = []
+
+    def flush() -> None:
+        nonlocal current_index, current_top, current_bottom, current_words
+        if current_index is not None and current_words:
+            grouped.append((current_index, tuple(sorted(current_words, key=lambda word: (word.left, word.top, word.text)))))
+        current_index = None
+        current_top = None
+        current_bottom = None
+        current_words = []
+
+    for index, words in enumerate(lines):
+        line_top = min(word.top for word in words)
+        line_bottom = max(word.top + word.height for word in words)
+        if current_index is None:
+            current_index = index
+            current_top = line_top
+            current_bottom = line_bottom
+            current_words.extend(words)
+            continue
+        assert current_top is not None and current_bottom is not None
+        if line_top <= current_bottom and line_bottom >= current_top:
+            current_top = min(current_top, line_top)
+            current_bottom = max(current_bottom, line_bottom)
+            current_words.extend(words)
+            continue
+        flush()
+        current_index = index
+        current_top = line_top
+        current_bottom = line_bottom
+        current_words.extend(words)
+    flush()
+    return tuple(grouped)
+
+
 def _ocr_alias_candidates(words: tuple[_OcrWord, ...]) -> list[tuple[int, int, str]]:
     aliases: dict[str, set[str]] = {}
     for field, values in ALIASES.items():
@@ -952,6 +1000,19 @@ def _select_ocr_cashflow_header(
         if not required <= fields:
             continue
         candidates.append((index, cells, len(fields)))
+    # Receipt/payment screenshots can put each heading cell in a distinct
+    # Tesseract line despite their boxes being vertically aligned.  This is a
+    # layout reassembly only; no looser alias or amount rule is introduced.
+    if not candidates:
+        for index, words in _ocr_visual_rows(lines):
+            try:
+                cells = _ocr_header_cells(words)
+            except ParseError:
+                continue
+            fields = {cell.field for cell in cells if cell.field is not None}
+            if not required <= fields:
+                continue
+            candidates.append((index, cells, len(fields)))
     if not candidates:
         raise ParseError("CASHFLOW_OBSERVATION_HEADER_MISSING")
     candidates.sort(key=lambda item: item[2], reverse=True)

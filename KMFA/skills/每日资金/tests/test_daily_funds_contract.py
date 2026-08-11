@@ -1101,6 +1101,28 @@ def _ocr_runner(tsv: str):
     return run
 
 
+def _ocr_tsv_split_header(headers: list[str], rows: list[list[str]]) -> str:
+    """Make a table whose visual header shares a row but not Tesseract lines."""
+
+    columns = [
+        "level", "page_num", "block_num", "par_num", "line_num", "word_num",
+        "left", "top", "width", "height", "conf", "text",
+    ]
+    output = ["\t".join(columns)]
+    for index, token in enumerate(headers, 1):
+        output.append("\t".join((
+            "5", "1", "1", "1", str(index), "1",
+            str((index - 1) * 120), "10", "80", "20", "99.0", token,
+        )))
+    for row_index, tokens in enumerate(rows, len(headers) + 1):
+        for index, token in enumerate(tokens, 1):
+            output.append("\t".join((
+                "5", "1", "1", "2", str(row_index), str(index),
+                str((index - 1) * 120), str(60 + (row_index - len(headers) - 1) * 50), "80", "20", "99.0", token,
+            )))
+    return "\n".join(output) + "\n"
+
+
 def test_deterministic_ocr_requires_high_confidence_and_opens_a_strict_table() -> None:
     headers = ["业务日期", "公司", "开户行", "账号", "期初余额", "期末余额", "币种"]
     values = ["2026-07-30", "甲", "乙", "001", "100.00", "110.00", "CNY"]
@@ -1243,6 +1265,29 @@ def test_cashflow_observation_ocr_requires_footer_reconciliation_without_creatin
             mime="image/png",
             runner=_ocr_runner(_ocr_tsv(headers, mismatched_total[0], extra_rows=mismatched_total[1:])),
         )
+
+
+def test_cashflow_observation_reassembles_a_visually_aligned_split_ocr_header() -> None:
+    headers = ["日期", "事由", "收（付）款人", "收支类别", "转出", "收入", "银行"]
+    rows = [
+        ["08月07日", "付款", "", "项目成本", "40.00", "", "银行A"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "银行A"],
+        ["", "", "", "合计", "40.00", "50.00", ""],
+    ]
+    payload = b"\x89PNG\r\n\x1a\nsplit-ocr-header"
+    observation = parse_cashflow_observation(
+        family="资金明细",
+        filename="资金明细_20260807.png",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 10, tzinfo=UTC),
+        mime="image/png",
+        runner=_ocr_runner(_ocr_tsv_split_header(headers, rows)),
+    )
+
+    assert observation.business_date.isoformat() == "2026-08-07"
+    assert observation.inflow_fen == 5_000
+    assert observation.outflow_fen == 4_000
 
 
 def test_runtime_cashflow_observation_requires_complete_unique_day_coverage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
