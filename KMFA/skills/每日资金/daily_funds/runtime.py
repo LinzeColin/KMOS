@@ -1076,8 +1076,33 @@ class DailyFundsRuntime:
             )
             try:
                 if attachment.family is None:
-                    raise ParseError("UNSUPPORTED_ATTACHMENT")
-                if Path(attachment.filename).suffix.lower() in ALLOWED_SUFFIXES:
+                    # A missing message title is never a financial family by
+                    # itself.  It may, however, be a real image report from
+                    # the exact configured source.  Allow only the existing
+                    # dual-schema OCR gate to establish a family: one and
+                    # only one complete account/transaction schema must pass.
+                    # All other unknown attachments remain capability-only
+                    # NEEDS_REVIEW evidence.
+                    if not (self.config.ocr_enabled and is_ocr_attachment(attachment.filename)):
+                        raise ParseError("UNSUPPORTED_ATTACHMENT")
+                    candidate = parse_ocr_attachment(
+                        family="资金明细",
+                        filename=attachment.filename,
+                        payload=attachment.payload,
+                        source=self._source_ref(attachment),
+                        mime=attachment.mime,
+                        min_confidence_bps=self.config.ocr_min_confidence_bps,
+                    )
+                    profile = self.state.observe_ocr_layout(
+                        family=candidate.facts.family,
+                        layout_fingerprint=candidate.layout_fingerprint,
+                        parser_version=candidate.facts.parser_evidence.parser_version,
+                        business_date=candidate.facts.business_date,
+                    )
+                    if not profile.ready_before:
+                        raise ParseError("OCR_PROFILE_CALIBRATING")
+                    facts = candidate.facts
+                elif Path(attachment.filename).suffix.lower() in ALLOWED_SUFFIXES:
                     facts = parse_attachment(
                         family=attachment.family,
                         filename=attachment.filename,
@@ -1151,6 +1176,46 @@ class DailyFundsRuntime:
                 attachment.message_at,
             ))
         return AttachmentCapabilityInspection(tuple(parsed), tuple(failures))
+
+    def _resolved_unclassified_ocr_attachments(
+        self,
+        attachments: Iterable[DownloadedAttachment],
+    ) -> tuple[DownloadedAttachment, ...]:
+        """Resolve only byte-proven unknown OCR reports into a fact family.
+
+        This is capability preflight, not monetary publication: each returned
+        source still goes through the normal post-mirror parse and
+        reconciliation path.  Unknown files that fail semantic OCR remain
+        raw evidence only, while a source-lineage failure still blocks the
+        complete batch.
+        """
+
+        unknown = tuple(attachment for attachment in attachments if attachment.family is None)
+        if not unknown:
+            return ()
+        inspection = self._inspect_attachment_capabilities(unknown)
+        integrity_failures = tuple(
+            failure
+            for failure in inspection.failures
+            if self._parse_failure_code(failure) in _SOURCE_INTEGRITY_PARSE_CODES
+        )
+        if integrity_failures:
+            raise integrity_failures[0]
+        resolved_families: dict[str, str] = {}
+        for item in inspection.parsed:
+            source_version = item.facts.source_version
+            family = item.facts.family
+            if (
+                source_version in resolved_families
+                or family not in TRANSACTION_FAMILIES | {ACCOUNT_FAMILY}
+            ):
+                raise ParseError("UNCLASSIFIED_FAMILY_RESOLUTION_INVALID")
+            resolved_families[source_version] = family
+        return tuple(
+            replace(attachment, family=resolved_families[attachment.sha256])
+            for attachment in unknown
+            if attachment.sha256 in resolved_families
+        )
 
     def _write_cashflow_observation(
         self,
@@ -1309,14 +1374,21 @@ class DailyFundsRuntime:
         # private-Git census succeeds.  Retaining historic evidence is useful
         # for audit, but projecting it after its raw object has disappeared
         # would overstate the current source coverage.
+        parsed_families = {
+            item.facts.source_version: item.facts.family
+            for item in inspection.parsed
+        }
         self.state.replace_capability_scope(
             parser_version=PARSER_VERSION,
             attachments=(
                 (
                     attachment.sha256,
-                    attachment.family
-                    if attachment.family in TRANSACTION_FAMILIES | {ACCOUNT_FAMILY}
-                    else "UNCLASSIFIED",
+                    parsed_families.get(
+                        attachment.sha256,
+                        attachment.family
+                        if attachment.family in TRANSACTION_FAMILIES | {ACCOUNT_FAMILY}
+                        else "UNCLASSIFIED",
+                    ),
                 )
                 for attachment in audit.verified_attachments
             ),
@@ -1864,10 +1936,14 @@ class DailyFundsRuntime:
                     "capability_supported": len(inspection.parsed),
                     "capability_needs_review": needs_review,
                 }
-            if not formal_attachments:
+            resolved_unclassified = self._resolved_unclassified_ocr_attachments(verified_attachments)
+            candidate_attachments = self._deduplicated_attachments(
+                (*formal_attachments, *resolved_unclassified),
+            )
+            if not candidate_attachments:
                 source_discovery_state = empty_source_state()
                 raise IngestionError("SOURCE_MATCH_ZERO")
-            verified_attachments = self._deduplicated_attachments(formal_attachments)
+            verified_attachments = candidate_attachments
             # The raw Git authority has been re-opened before this point.  R2
             # must mirror those exact bytes before parsing or reconciliation.
             R2FreeTierGuard(self.config).require_fresh_receipt(now=now)

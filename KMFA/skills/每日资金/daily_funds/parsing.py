@@ -28,7 +28,7 @@ from .models import CashflowObservation, AccountSnapshot, ParsedFacts, ParserEvi
 
 ACCOUNT_FAMILY = "资金账户明细表"
 TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
-# v7 keeps the bounded deterministic OCR fallback and aligns transaction
+# v8 keeps the bounded deterministic OCR fallback and aligns transaction
 # identity requirements to the frozen task-pack schema: bank_id is optional
 # and a source-row fact identifier is used only when a source does not expose
 # a transaction identifier.
@@ -36,12 +36,12 @@ TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
 # It retains v5's narrow source-classification rule: a generic ``资金明细``
 # image may be treated as an account snapshot only when its OCR table satisfies
 # the account schema *and* cannot satisfy the transaction schema.  When both
-# candidates fail at the same values-free OCR phase, v7 retains that bounded
+# candidates fail at the same values-free OCR phase, v8 retains that bounded
 # diagnosis for the protected capability receipt.  It never turns a failed
 # candidate into a fact or relaxes either schema.  Capability receipts are
 # versioned, so a rule change cannot inherit a prior parser's production-
 # support assertion.
-PARSER_VERSION = "kmfa.daily_funds.parser.v7"
+PARSER_VERSION = "kmfa.daily_funds.parser.v8"
 # This parser is deliberately separate from ``PARSER_VERSION``.  It can
 # create a chart-only receipt from a narrow receipt/payment screenshot without
 # weakening the two-fact account-balance publication contract.

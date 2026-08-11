@@ -1455,6 +1455,69 @@ def test_runtime_ocr_needs_two_days_of_layout_calibration_before_supporting(
     ])
 
 
+def test_runtime_resolves_unclassified_ocr_only_after_dual_schema_and_calibration(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A title-less source needs byte-proven family plus an established layout."""
+
+    import daily_funds.runtime as runtime_module
+
+    runtime = DailyFundsRuntime(replace(_config(tmp_path), ocr_enabled=True))
+    headers = ["业务日期", "公司", "开户行", "账号", "期初余额", "期末余额", "币种"]
+
+    def attachment(day: str, marker: bytes, index: int) -> DownloadedAttachment:
+        payload = b"\x89PNG\r\n\x1a\n" + marker
+        moment = datetime.fromisoformat(day + "T00:00:00+00:00")
+        return DownloadedAttachment(
+            message={},
+            message_id="unclassified-ocr-" + str(index),
+            message_id_hash=(str(index) * 64)[:64],
+            message_at=moment,
+            index=0,
+            filename="archive_" + day.replace("-", "") + ".png",
+            family=None,
+            payload=payload,
+            sha256=sha256(payload).hexdigest(),
+            mime="image/png",
+        )
+
+    attachments = (
+        attachment("2026-07-30", b"first", 1),
+        attachment("2026-07-31", b"second", 2),
+        attachment("2026-08-01", b"third", 3),
+    )
+    candidates = []
+    for item, day in zip(attachments, ("2026-07-30", "2026-07-31", "2026-08-01")):
+        candidates.append(parse_ocr_attachment(
+            family="资金明细",
+            filename=item.filename,
+            payload=item.payload,
+            source=runtime._source_ref(item),
+            mime=item.mime,
+            runner=_ocr_runner(_ocr_tsv(headers, [day, "甲", "乙", "001", "100.00", "110.00", "CNY"])),
+        ))
+    iterator = iter(candidates)
+    monkeypatch.setattr(runtime_module, "parse_ocr_attachment", lambda **_kwargs: next(iterator))
+
+    assert runtime._resolved_unclassified_ocr_attachments((attachments[0],)) == ()
+    assert runtime._resolved_unclassified_ocr_attachments((attachments[1],)) == ()
+    resolved = runtime._resolved_unclassified_ocr_attachments((attachments[2],))
+
+    assert len(resolved) == 1
+    assert resolved[0].family == ACCOUNT_FAMILY
+    assert resolved[0].sha256 == attachments[2].sha256
+    with runtime.state.connection() as connection:
+        rows = connection.execute(
+            "SELECT family,outcome,code FROM capability_evidence ORDER BY observed_at,attachment_sha256"
+        ).fetchall()
+    assert sorted(tuple(row) for row in rows) == sorted([
+        ("UNCLASSIFIED", "NEEDS_REVIEW", "OCR_PROFILE_CALIBRATING"),
+        ("UNCLASSIFIED", "NEEDS_REVIEW", "OCR_PROFILE_CALIBRATING"),
+        (ACCOUNT_FAMILY, "SUPPORTED", "PARSER_OPEN_OK"),
+    ])
+
+
 def test_runtime_capability_matrix_records_supported_and_needs_review_types(tmp_path: Path) -> None:
     supported_payload = (
         "业务日期,公司,开户行,账号,期末余额\n"
@@ -2119,6 +2182,92 @@ def test_live_poll_archives_quarantine_but_never_sends_it_to_publication(tmp_pat
     assert not (runtime.config.publication_dir / "current.json").exists()
     flow = json.loads((runtime.config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
     assert flow["source_discovery"] == {"state": "TARGET_DOCUMENT_NOT_FOUND"}
+
+
+def test_live_poll_uses_only_byte_proven_unclassified_candidate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A resolved unknown enters the normal mirror/parse gates, never facts directly."""
+
+    import daily_funds.runtime as runtime_module
+
+    payload = b"\x89PNG\r\n\x1a\nstrict-unclassified-image"
+    attachment = DownloadedAttachment(
+        message={},
+        message_id="resolved-unclassified-message",
+        message_id_hash="7" * 64,
+        message_at=datetime(2026, 8, 1, 8, tzinfo=UTC),
+        index=0,
+        filename="archive_20260801.png",
+        family=None,
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="image/png",
+    )
+    resolved = replace(attachment, family=ACCOUNT_FAMILY)
+    message = {"fixture": "resolved-unclassified"}
+
+    class QuarantineClient:
+        @staticmethod
+        def search(_start, _end, _cursor):
+            return DwsPage(messages=(message,), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page):
+            return ()
+
+        @staticmethod
+        def quarantine_messages(_page):
+            return (message,)
+
+        @staticmethod
+        def attachment_count(_message):
+            return 1
+
+        @staticmethod
+        def message_id_hash(_message):
+            return attachment.message_id_hash
+
+        @staticmethod
+        def reopen_candidate(_message, _index, _attachment_sha256):
+            return None
+
+        @staticmethod
+        def download(_message, _index):
+            return attachment
+
+    class ReadbackWriter:
+        def __init__(self, _config):
+            pass
+
+        @staticmethod
+        def persist(attachments):
+            reopened = tuple(attachments)
+            return GitCommit("a" * 40, SimpleNamespace(), reopened)
+
+    mirrored: list[tuple[DownloadedAttachment, ...]] = []
+
+    class FakeR2:
+        @staticmethod
+        def mirror(attachments, *, git_commit_sha):
+            assert git_commit_sha == "a" * 40
+            mirrored.append(tuple(attachments))
+            return SimpleNamespace()
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    monkeypatch.setattr(runtime, "_dws_client", lambda: QuarantineClient())
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ReadbackWriter)
+    monkeypatch.setattr(runtime, "_resolved_unclassified_ocr_attachments", lambda _attachments: (resolved,))
+    monkeypatch.setattr(runtime_module.R2FreeTierGuard, "require_fresh_receipt", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(runtime, "_coordinator", lambda: SimpleNamespace(r2=FakeR2()))
+    parsed_inputs: list[tuple[DownloadedAttachment, ...]] = []
+    monkeypatch.setattr(runtime, "_parse", lambda attachments: parsed_inputs.append(tuple(attachments)) or [])
+
+    assert runtime.poll(now=datetime(2026, 8, 1, tzinfo=UTC)) == {
+        "ok": False,
+        "code": "SOURCE_MATCH_ZERO",
+    }
+    assert mirrored == [(resolved,)]
+    assert parsed_inputs == [(resolved,)]
+    assert not (runtime.config.publication_dir / "current.json").exists()
 
 
 def test_overlap_reopens_verified_raw_without_repeating_media_download(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
