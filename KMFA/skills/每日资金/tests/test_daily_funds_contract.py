@@ -1290,6 +1290,31 @@ def test_cashflow_observation_reassembles_a_visually_aligned_split_ocr_header() 
     assert observation.outflow_fen == 4_000
 
 
+def test_cashflow_observation_uses_fixed_layout_template_when_money_headers_are_unreadable() -> None:
+    headers = ["日期", "事由", "收（付）款人", "收支类别", "出列", "入列", "机构"]
+    rows = [
+        ["08月07日", "付款", "", "项目成本", "40.00", "", "机构甲"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "机构甲"],
+        ["", "", "", "合计", "40.00", "50.00", ""],
+    ]
+    payload = b"\x89PNG\r\n\x1a\nfixed-layout-cashflow-observation"
+
+    observation = parse_cashflow_observation(
+        family="资金明细",
+        filename="资金明细_20260807.png",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 10, tzinfo=UTC),
+        mime="image/png",
+        runner=_ocr_runner(_ocr_tsv(headers, rows[0], extra_rows=rows[1:])),
+    )
+
+    assert observation.business_date.isoformat() == "2026-08-07"
+    assert observation.inflow_fen == 5_000
+    assert observation.outflow_fen == 4_000
+    assert observation.parser_evidence.parser_version == CASHFLOW_OBSERVATION_PARSER_VERSION
+
+
 def test_runtime_cashflow_observation_requires_complete_unique_day_coverage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import daily_funds.runtime as runtime_module
 

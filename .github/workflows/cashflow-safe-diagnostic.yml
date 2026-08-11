@@ -4,6 +4,12 @@ name: cashflow-safe-diagnostic
 # it publishes only parser/category status and coverage counts, never raw OCR,
 # filenames, account identifiers, counterparties, or money values.
 on:
+  push:
+    branches:
+      - codex/daily-funds-flow-visual-20260811
+    paths:
+      - KMFA/skills/每日资金/daily_funds/parsing.py
+      - KMFA/skills/每日资金/tests/test_daily_funds_contract.py
   workflow_dispatch:
 
 permissions:

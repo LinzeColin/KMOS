@@ -45,7 +45,7 @@ PARSER_VERSION = "kmfa.daily_funds.parser.v7"
 # This parser is deliberately separate from ``PARSER_VERSION``.  It can
 # create a chart-only receipt from a narrow receipt/payment screenshot without
 # weakening the two-fact account-balance publication contract.
-CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v1"
+CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v2"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -1014,7 +1014,10 @@ def _select_ocr_cashflow_header(
                 continue
             candidates.append((index, cells, len(fields)))
     if not candidates:
-        raise ParseError("CASHFLOW_OBSERVATION_HEADER_MISSING")
+        return _select_ocr_cashflow_template_header(
+            lines,
+            min_confidence_bps=min_confidence_bps,
+        )
     candidates.sort(key=lambda item: item[2], reverse=True)
     if len(candidates) > 1 and candidates[0][2] == candidates[1][2]:
         raise ParseError("CASHFLOW_OBSERVATION_HEADER_AMBIGUOUS")
@@ -1022,6 +1025,192 @@ def _select_ocr_cashflow_header(
     if any(cell.field in required and cell.confidence_bps < min_confidence_bps for cell in cells):
         raise ParseError("OCR_LOW_CONFIDENCE")
     return index, cells
+
+
+_CASHFLOW_TEMPLATE_MAX_ANCHOR_VERTICAL_SPAN = 160
+_CASHFLOW_TEMPLATE_EDGE_TOLERANCE = 16
+_CASHFLOW_TEMPLATE_MIN_EDGE_OBSERVATIONS = 2
+_CASHFLOW_TEMPLATE_MIN_MONEY_COLUMN_GAP = 32
+
+
+def _cashflow_template_anchor_pair(
+    lines: tuple[tuple[_OcrWord, ...], ...],
+) -> tuple[int, _OcrHeaderCell, _OcrHeaderCell]:
+    """Return the single exact date and category anchor pair for the layout.
+
+    The source's date and category captions are explicit table labels.  They
+    are not inferred from row content, and the pair must occur once on one
+    page in left-to-right order.  This leaves all source layouts with a
+    duplicated or incomplete anchor fail-closed.
+    """
+
+    anchors: dict[str, list[tuple[int, int, _OcrHeaderCell]]] = {
+        "business_date": [],
+        "category": [],
+    }
+    for line_index, words in enumerate(lines):
+        try:
+            cells = _ocr_header_cells(words)
+        except ParseError:
+            continue
+        page = words[0].page
+        for cell in cells:
+            if cell.field in anchors:
+                anchors[cell.field].append((page, line_index, cell))
+
+    candidates: list[tuple[int, _OcrHeaderCell, _OcrHeaderCell]] = []
+    for date_page, date_index, date_cell in anchors["business_date"]:
+        for category_page, category_index, category_cell in anchors["category"]:
+            if date_page != category_page or date_cell.right >= category_cell.left:
+                continue
+            vertical_span = abs(
+                (date_cell.top + date_cell.bottom) - (category_cell.top + category_cell.bottom)
+            )
+            if vertical_span > _CASHFLOW_TEMPLATE_MAX_ANCHOR_VERTICAL_SPAN:
+                continue
+            candidates.append((min(date_index, category_index), date_cell, category_cell))
+
+    if not candidates:
+        raise ParseError("CASHFLOW_OBSERVATION_HEADER_MISSING")
+    if len(candidates) != 1:
+        raise ParseError("CASHFLOW_OBSERVATION_HEADER_AMBIGUOUS")
+    return candidates[0]
+
+
+def _cashflow_template_money_cells(
+    lines: tuple[tuple[_OcrWord, ...], ...],
+    *,
+    header_index: int,
+    date_cell: _OcrHeaderCell,
+    category_cell: _OcrHeaderCell,
+    min_confidence_bps: int,
+) -> tuple[_OcrHeaderCell, ...]:
+    """Derive two fixed money columns from repeated right-aligned values.
+
+    This is a bounded layout calibration, not value inference: only
+    parseable high-confidence numeric OCR words to the right of the category
+    anchor take part, each retained column needs repeated observations, and
+    the first two stable columns must be materially separated.  The resulting
+    cells are then subject to the existing per-row and footer-total gates.
+    """
+
+    header_page = lines[header_index][0].page
+    header_bottom = max(date_cell.bottom, category_cell.bottom)
+    numeric_words: list[_OcrWord] = []
+    for words in lines[header_index + 1:]:
+        if words[0].page != header_page or min(word.top for word in words) <= header_bottom:
+            continue
+        for word in words:
+            if word.left + word.width <= category_cell.right or word.confidence_bps < min_confidence_bps:
+                continue
+            try:
+                _cashflow_observation_amount(word.text)
+            except ParseError:
+                continue
+            numeric_words.append(word)
+
+    clusters: list[list[_OcrWord]] = []
+    for word in sorted(numeric_words, key=lambda item: (item.left + item.width, item.left, item.top)):
+        right = word.left + word.width
+        if not clusters or right - (clusters[-1][-1].left + clusters[-1][-1].width) > _CASHFLOW_TEMPLATE_EDGE_TOLERANCE:
+            clusters.append([word])
+            continue
+        clusters[-1].append(word)
+
+    right_edges = [
+        sorted(word.left + word.width for word in cluster)[len(cluster) // 2]
+        for cluster in clusters
+        if len(cluster) >= _CASHFLOW_TEMPLATE_MIN_EDGE_OBSERVATIONS
+    ]
+    if len(right_edges) < 2:
+        raise ParseError("CASHFLOW_OBSERVATION_HEADER_MISSING")
+    outflow_right, inflow_right = right_edges[:2]
+    if inflow_right - outflow_right < _CASHFLOW_TEMPLATE_MIN_MONEY_COLUMN_GAP:
+        raise ParseError("CASHFLOW_OBSERVATION_HEADER_MISSING")
+    detail_left = date_cell.right + 1
+    detail_right = category_cell.left - 1
+    if detail_left >= detail_right:
+        raise ParseError("CASHFLOW_OBSERVATION_HEADER_MISSING")
+
+    tail_center = inflow_right + ((inflow_right - outflow_right) // 2)
+    return (
+        _OcrHeaderCell(
+            label="cashflow_template_date",
+            field="business_date",
+            left=date_cell.left,
+            right=date_cell.right,
+            top=date_cell.top,
+            bottom=date_cell.bottom,
+            confidence_bps=date_cell.confidence_bps,
+        ),
+        _OcrHeaderCell(
+            label="cashflow_template_details",
+            field=None,
+            left=detail_left,
+            right=detail_right,
+            top=category_cell.top,
+            bottom=category_cell.bottom,
+            confidence_bps=min_confidence_bps,
+        ),
+        _OcrHeaderCell(
+            label="cashflow_template_category",
+            field=None,
+            left=category_cell.left,
+            right=category_cell.right,
+            top=category_cell.top,
+            bottom=category_cell.bottom,
+            confidence_bps=category_cell.confidence_bps,
+        ),
+        _OcrHeaderCell(
+            label="cashflow_template_outflow",
+            field="outflow",
+            left=category_cell.right + 1,
+            right=outflow_right,
+            top=category_cell.top,
+            bottom=category_cell.bottom,
+            confidence_bps=min_confidence_bps,
+        ),
+        _OcrHeaderCell(
+            label="cashflow_template_inflow",
+            field="inflow",
+            left=outflow_right + 1,
+            right=inflow_right,
+            top=category_cell.top,
+            bottom=category_cell.bottom,
+            confidence_bps=min_confidence_bps,
+        ),
+        _OcrHeaderCell(
+            label="cashflow_template_tail",
+            field=None,
+            left=tail_center - 1,
+            right=tail_center + 1,
+            top=category_cell.top,
+            bottom=category_cell.bottom,
+            confidence_bps=min_confidence_bps,
+        ),
+    )
+
+
+def _select_ocr_cashflow_template_header(
+    lines: tuple[tuple[_OcrWord, ...], ...],
+    *,
+    min_confidence_bps: int,
+) -> tuple[int, tuple[_OcrHeaderCell, ...]]:
+    """Build the verified fixed-layout profile when header aliases are split."""
+
+    header_index, date_cell, category_cell = _cashflow_template_anchor_pair(lines)
+    if date_cell.confidence_bps < min_confidence_bps or category_cell.confidence_bps < min_confidence_bps:
+        raise ParseError("OCR_LOW_CONFIDENCE")
+    return (
+        header_index,
+        _cashflow_template_money_cells(
+            lines,
+            header_index=header_index,
+            date_cell=date_cell,
+            category_cell=category_cell,
+            min_confidence_bps=min_confidence_bps,
+        ),
+    )
 
 
 def _cashflow_observation_amount(value: object) -> int:
