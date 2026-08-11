@@ -3034,7 +3034,7 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_nonblocking_backfill_ca
     assert f"*/15 * * * * root {wrapper} poll" in cron
     assert f"* * * * * root {wrapper} auth-probe" in cron
     assert f"0 * * * * root {wrapper} keepalive" in cron
-    assert f"5,20,35,50 * * * * root {wrapper} backfill --max-days 7" in cron
+    assert f"5,20,35,50 * * * * root {wrapper} backfill --max-days 14" in cron
     assert "15 2 * * * root" not in cron
     assert f"30 3 * * * root {wrapper} observer" in cron
     assert f"0 */6 * * * root {wrapper} r2-guard" in cron

@@ -11,7 +11,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Start each bounded historical batch five minutes after a live poll.  It has
 # its own long lease, so a slow sparse-Git readback cannot postpone current-day
 # ingestion; Git writes remain protected by the existing single-writer lock.
-5,20,35,50 * * * * root /opt/daily-funds/scripts/run_cron_job.sh backfill --max-days 7 >> /var/log/daily-funds/cron.log 2>&1
+5,20,35,50 * * * * root /opt/daily-funds/scripts/run_cron_job.sh backfill --max-days 14 >> /var/log/daily-funds/cron.log 2>&1
 30 3 * * * root /opt/daily-funds/scripts/run_cron_job.sh observer >> /var/log/daily-funds/cron.log 2>&1
 0 */6 * * * root /opt/daily-funds/scripts/run_cron_job.sh r2-guard >> /var/log/daily-funds/cron.log 2>&1
 10 4 * * * root /opt/daily-funds/scripts/run_cron_job.sh cold-backup >> /var/log/daily-funds/cron.log 2>&1
