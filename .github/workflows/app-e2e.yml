@@ -290,17 +290,30 @@ jobs:
             -e DAILY_FUNDS_OCR_MIN_CONFIDENCE \
             --entrypoint /bin/sh \
             kmfa-daily-funds:raw-observation -ec '
-              python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit
               python3 - <<"PY"
               import json
-              from pathlib import Path
+              from daily_funds.config import DailyFundsConfig
+              from daily_funds.ingestion import GitSparseWriter, IngestionError
+              from daily_funds.runtime import DailyFundsRuntime
 
-              target = Path("/var/lib/kmfa/daily-funds-publication/cashflow_observation.json")
-              payload = json.loads(target.read_text(encoding="utf-8"))
+              config = DailyFundsConfig.from_env()
+              try:
+                  audit = GitSparseWriter(config).audit_raw_archive()
+              except IngestionError as exc:
+                  print(json.dumps({
+                      "raw_archive_status": "FAILED",
+                      "machine_code": exc.code,
+                  }, ensure_ascii=True, sort_keys=True))
+                  raise SystemExit("RAW_ARCHIVE_AUDIT_DIAGNOSTIC_FAILED")
+
+              payload = DailyFundsRuntime(config)._write_cashflow_observation(audit.verified_attachments)
               coverage = payload.get("source_coverage") if isinstance(payload, dict) else None
               if not isinstance(coverage, dict):
                   raise SystemExit("CASHFLOW_OBSERVATION_RECEIPT_INVALID")
               result = {
+                  "raw_archive_status": "VERIFIED",
+                  "occurrence_count": audit.occurrence_count,
+                  "batch_count": audit.batch_count,
                   "status": payload.get("status"),
                   "machine_code": payload.get("machine_code"),
                   "eligible_documents": coverage.get("eligible_documents"),
