@@ -39,7 +39,7 @@ ALLOWED_SUFFIXES = frozenset({".csv", ".txt", ".xlsx", ".xlsm"})
 _MEDIA_ID_RE = re.compile(r"mediaId=([^\)\s]+)")
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 _DEVICE_CODE_RE = re.compile(
-    r"(?:user[ _-]?code|授权码)\s*[:：]\s*([A-Za-z0-9][A-Za-z0-9-]{2,63})",
+    r"(?:user[ _-]?code|authorization[ _-]?code|授权码)\s*[:：]\s*([A-Za-z0-9][A-Za-z0-9-]{2,63})",
     re.IGNORECASE,
 )
 _DEVICE_URL_RE = re.compile(r"https://[^\s<>\"']+", re.IGNORECASE)
@@ -310,12 +310,13 @@ def _trusted_dws_authorization_url(value: str) -> str | None:
 def _parse_dws_device_prompt(output: str) -> DwsDevicePrompt | None:
     """Extract the device-flow prompt emitted by DWS without retaining output.
 
-    The pinned DWS runtime renders ``链接: <verificationUri>`` and
-    ``授权码: <userCode>`` to its device-flow output stream.  A complete URI is
-    rendered afterwards when available, so the last trusted URL is preferred:
-    that lets the owner open it directly instead of copying a code.  This
-    parser intentionally returns no diagnostic text on mismatch; command
-    output could contain OAuth, identity, or upstream error material.
+    The pinned DWS runtime renders a short authorization URL and a user code
+    to its device-flow output stream.  Depending on the runtime locale the
+    code label is either ``授权码``, ``user code``, or ``authorization code``.
+    A complete URI is rendered afterwards when available, so the last trusted
+    URL is preferred: that lets the owner open it directly instead of copying
+    a code.  This parser intentionally returns no diagnostic text on mismatch;
+    command output could contain OAuth, identity, or upstream error material.
     """
 
     clean = _strip_dws_terminal_style(output)

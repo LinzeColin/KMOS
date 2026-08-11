@@ -92,6 +92,15 @@ def test_device_prompt_parser_accepts_only_the_official_short_lived_fields() -> 
         authorization_url="https://login.dingtalk.com/device?userCode=ABCD-EFGH",
         user_code="ABCD-EFGH",
     )
+    english_prompt = _parse_dws_device_prompt(
+        "link: https://login.dingtalk.com/oauth2/device/verify.htm\n"
+        "authorization code: WXYZ-1234\n"
+        "https://login.dingtalk.com/oauth2/device/verify.htm?user_code=WXYZ-1234\n"
+    )
+    assert english_prompt == DwsDevicePrompt(
+        authorization_url="https://login.dingtalk.com/oauth2/device/verify.htm?user_code=WXYZ-1234",
+        user_code="WXYZ-1234",
+    )
     assert _parse_dws_device_prompt("授权码: ABCD-EFGH\nhttps://example.invalid/verify") is None
     assert _parse_dws_device_prompt("https://login.dingtalk.com/device\n") is None
 
