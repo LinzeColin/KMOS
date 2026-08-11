@@ -1,0 +1,120 @@
+name: cashflow-header-tuple-diagnostic
+
+# Temporary branch-only layout diagnostic.  Its only external signal is
+# pass/fail coverage of fixed header geometry; it never emits source text,
+# image bytes, identifiers, filenames, or monetary values.
+on:
+  push:
+    branches:
+      - codex/daily-funds-flow-visual-20260811
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: safe-cashflow-header-tuple
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      DAILY_FUNDS_GROUP_ID: ${{ secrets.DAILY_FUNDS_GROUP_ID }}
+      DAILY_FUNDS_SENDER_ID: ${{ secrets.DAILY_FUNDS_SENDER_ID }}
+      DAILY_FUNDS_GIT_SSH_KEY_B64: ${{ secrets.DAILY_FUNDS_GIT_SSH_KEY_B64 }}
+      DAILY_FUNDS_OCR_ENABLED: "1"
+      DAILY_FUNDS_OCR_MIN_CONFIDENCE: "0.98"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build isolated daily-funds parser
+        run: docker build -f KMFA/skills/每日资金/Dockerfile -t kmfa-daily-funds:header-tuple-diagnostic .
+
+      - name: Compute source-safe header tuple receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -e DAILY_FUNDS_GROUP_ID \
+            -e DAILY_FUNDS_SENDER_ID \
+            -e DAILY_FUNDS_GIT_SSH_KEY_B64 \
+            -e DAILY_FUNDS_OCR_ENABLED \
+            -e DAILY_FUNDS_OCR_MIN_CONFIDENCE \
+            -v "${RUNNER_TEMP}:/audit" \
+            --entrypoint /bin/sh \
+            kmfa-daily-funds:header-tuple-diagnostic -ec '
+              python3 -c "import base64; exec(compile(base64.b64decode(\"aW1wb3J0IGpzb24KZnJvbSBjb2xsZWN0aW9ucyBpbXBvcnQgQ291bnRlcgpmcm9tIGl0ZXJ0b29scyBpbXBvcnQgcHJvZHVjdApmcm9tIHBhdGhsaWIgaW1wb3J0IFBhdGgKCmZyb20gZGFpbHlfZnVuZHMuY29uZmlnIGltcG9ydCBEYWlseUZ1bmRzQ29uZmlnCmZyb20gZGFpbHlfZnVuZHMuaW5nZXN0aW9uIGltcG9ydCBHaXRTcGFyc2VXcml0ZXIKZnJvbSBkYWlseV9mdW5kcy5wYXJzaW5nIGltcG9ydCAoCiAgICBQYXJzZUVycm9yLAogICAgX29jcl9oZWFkZXJfY2VsbHMsCiAgICBfb2NyX2xpbmVzLAogICAgX29jcl90c3YsCiAgICBfcGFyc2VfdGVzc2VyYWN0X3RzdiwKICAgIGluc3BlY3Rfb2NyX2F0dGFjaG1lbnRfZm9ybWF0LAopCgpzYWZlX3BhdGggPSBQYXRoKCcvYXVkaXQvY2FzaGZsb3ctaGVhZGVyLXR1cGxlLXNhZmUuanNvbicpCm9yZGVyID0gKCdidXNpbmVzc19kYXRlJywgJ291dGZsb3cnLCAnaW5mbG93JywgJ2JhbmsnKQp0aHJlc2hvbGRzID0gKDE2LCAzMiwgNDgsIDY0LCA5NiwgMTI4LCAxOTIsIDI1NikKCgpkZWYgdHVwbGVfbWV0cmljcyhsaW5lcyk6CiAgICBieV9maWVsZCA9IHtmaWVsZDogW10gZm9yIGZpZWxkIGluIG9yZGVyfQogICAgcGFnZV9ib3R0b20gPSB7fQogICAgZm9yIGxpbmVfaW5kZXgsIHdvcmRzIGluIGVudW1lcmF0ZShsaW5lcyk6CiAgICAgICAgcGFnZSA9IHdvcmRzWzBdLnBhZ2UKICAgICAgICBwYWdlX2JvdHRvbVtwYWdlXSA9IG1heChwYWdlX2JvdHRvbS5nZXQocGFnZSwgMCksIG1heCh3b3JkLnRvcCArIHdvcmQuaGVpZ2h0IGZvciB3b3JkIGluIHdvcmRzKSkKICAgICAgICB0cnk6CiAgICAgICAgICAgIGNlbGxzID0gX29jcl9oZWFkZXJfY2VsbHMod29yZHMpCiAgICAgICAgZXhjZXB0IFBhcnNlRXJyb3I6CiAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgZm9yIGNlbGwgaW4gY2VsbHM6CiAgICAgICAgICAgIGlmIGNlbGwuZmllbGQgaW4gYnlfZmllbGQ6CiAgICAgICAgICAgICAgICBieV9maWVsZFtjZWxsLmZpZWxkXS5hcHBlbmQoKHBhZ2UsIGxpbmVfaW5kZXgsIGNlbGwpKQogICAgZmllbGRfcHJlc2VuY2UgPSB7ZmllbGQgZm9yIGZpZWxkLCBjZWxscyBpbiBieV9maWVsZC5pdGVtcygpIGlmIGNlbGxzfQogICAgYmVzdF9hbnkgPSBOb25lCiAgICBiZXN0X3RvcF9maWZ0aCA9IE5vbmUKICAgIGZvciBkYXRlX2NlbGwsIG91dGZsb3dfY2VsbCwgaW5mbG93X2NlbGwsIGJhbmtfY2VsbCBpbiBwcm9kdWN0KCooYnlfZmllbGRbZmllbGRdIGZvciBmaWVsZCBpbiBvcmRlcikpOgogICAgICAgIGVudHJpZXMgPSAoZGF0ZV9jZWxsLCBvdXRmbG93X2NlbGwsIGluZmxvd19jZWxsLCBiYW5rX2NlbGwpCiAgICAgICAgcGFnZXMgPSB7ZW50cnlbMF0gZm9yIGVudHJ5IGluIGVudHJpZXN9CiAgICAgICAgaWYgbGVuKHBhZ2VzKSAhPSAxOgogICAgICAgICAgICBjb250aW51ZQogICAgICAgIGNlbGxzID0gdHVwbGUoZW50cnlbMl0gZm9yIGVudHJ5IGluIGVudHJpZXMpCiAgICAgICAgY2VudGVycyA9IHR1cGxlKGNlbGwubGVmdCArIGNlbGwucmlnaHQgZm9yIGNlbGwgaW4gY2VsbHMpCiAgICAgICAgaWYgbm90IGNlbnRlcnNbMF0gPCBjZW50ZXJzWzFdIDwgY2VudGVyc1syXSA8IGNlbnRlcnNbM106CiAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgdmVydGljYWxfY2VudGVycyA9IHR1cGxlKGNlbGwudG9wICsgY2VsbC5ib3R0b20gZm9yIGNlbGwgaW4gY2VsbHMpCiAgICAgICAgc3BhbiA9IG1heCh2ZXJ0aWNhbF9jZW50ZXJzKSAtIG1pbih2ZXJ0aWNhbF9jZW50ZXJzKQogICAgICAgIGlmIGJlc3RfYW55IGlzIE5vbmUgb3Igc3BhbiA8IGJlc3RfYW55OgogICAgICAgICAgICBiZXN0X2FueSA9IHNwYW4KICAgICAgICBwYWdlID0gZW50cmllc1swXVswXQogICAgICAgIGlmIG1heChjZWxsLmJvdHRvbSBmb3IgY2VsbCBpbiBjZWxscykgKiA1IDw9IHBhZ2VfYm90dG9tW3BhZ2VdOgogICAgICAgICAgICBpZiBiZXN0X3RvcF9maWZ0aCBpcyBOb25lIG9yIHNwYW4gPCBiZXN0X3RvcF9maWZ0aDoKICAgICAgICAgICAgICAgIGJlc3RfdG9wX2ZpZnRoID0gc3BhbgogICAgcmV0dXJuIGZpZWxkX3ByZXNlbmNlLCBiZXN0X2FueSwgYmVzdF90b3BfZmlmdGgKCgpzYWZlID0ge30KdHJ5OgogICAgY29uZmlnID0gRGFpbHlGdW5kc0NvbmZpZy5mcm9tX2VudigpCiAgICBhdWRpdCA9IEdpdFNwYXJzZVdyaXRlcihjb25maWcpLmF1ZGl0X3Jhd19hcmNoaXZlKCkKICAgIGZpZWxkX2NvdmVyYWdlID0gQ291bnRlcigpCiAgICBvcmRlcmVkX2FueV9kb2N1bWVudHMgPSAwCiAgICBvcmRlcmVkX3RvcF9maWZ0aF9kb2N1bWVudHMgPSAwCiAgICBzcHJlYWRfY292ZXJhZ2UgPSBDb3VudGVyKCkKICAgIGZvciBhdHRhY2htZW50IGluIGF1ZGl0LnZlcmlmaWVkX2F0dGFjaG1lbnRzOgogICAgICAgIGV2aWRlbmNlID0gaW5zcGVjdF9vY3JfYXR0YWNobWVudF9mb3JtYXQoCiAgICAgICAgICAgIGZpbGVuYW1lPWF0dGFjaG1lbnQuZmlsZW5hbWUsCiAgICAgICAgICAgIHBheWxvYWQ9YXR0YWNobWVudC5wYXlsb2FkLAogICAgICAgICAgICBtaW1lPWF0dGFjaG1lbnQubWltZSwKICAgICAgICApCiAgICAgICAgd29yZHMgPSBfcGFyc2VfdGVzc2VyYWN0X3Rzdihfb2NyX3RzdihwYXlsb2FkPWF0dGFjaG1lbnQucGF5bG9hZCwgZXZpZGVuY2U9ZXZpZGVuY2UsIHJ1bm5lcj1fX2ltcG9ydF9fKCdzdWJwcm9jZXNzJykucnVuKSkKICAgICAgICBmaWVsZHMsIGJlc3RfYW55LCBiZXN0X3RvcF9maWZ0aCA9IHR1cGxlX21ldHJpY3MoX29jcl9saW5lcyh3b3JkcykpCiAgICAgICAgZmllbGRfY292ZXJhZ2UudXBkYXRlKGZpZWxkcykKICAgICAgICBpZiBiZXN0X2FueSBpcyBub3QgTm9uZToKICAgICAgICAgICAgb3JkZXJlZF9hbnlfZG9jdW1lbnRzICs9IDEKICAgICAgICBpZiBiZXN0X3RvcF9maWZ0aCBpcyBub3QgTm9uZToKICAgICAgICAgICAgb3JkZXJlZF90b3BfZmlmdGhfZG9jdW1lbnRzICs9IDEKICAgICAgICAgICAgc3ByZWFkX2NvdmVyYWdlLnVwZGF0ZShzdHIodGhyZXNob2xkKSBmb3IgdGhyZXNob2xkIGluIHRocmVzaG9sZHMgaWYgYmVzdF90b3BfZmlmdGggPD0gdGhyZXNob2xkKQogICAgc2FmZSA9IHsKICAgICAgICAnYXJjaGl2ZV92ZXJpZmllZCc6IFRydWUsCiAgICAgICAgJ2VsaWdpYmxlX2RvY3VtZW50cyc6IGxlbihhdWRpdC52ZXJpZmllZF9hdHRhY2htZW50cyksCiAgICAgICAgJ2ZpZWxkX2NvdmVyYWdlJzogZGljdChzb3J0ZWQoZmllbGRfY292ZXJhZ2UuaXRlbXMoKSkpLAogICAgICAgICdvcmRlcmVkX2FueV9kb2N1bWVudHMnOiBvcmRlcmVkX2FueV9kb2N1bWVudHMsCiAgICAgICAgJ29yZGVyZWRfdG9wX2ZpZnRoX2RvY3VtZW50cyc6IG9yZGVyZWRfdG9wX2ZpZnRoX2RvY3VtZW50cywKICAgICAgICAnc3ByZWFkX2NvdmVyYWdlJzogZGljdChzb3J0ZWQoc3ByZWFkX2NvdmVyYWdlLml0ZW1zKCkpKSwKICAgIH0KZXhjZXB0IEV4Y2VwdGlvbiBhcyBleGM6CiAgICBzYWZlID0gewogICAgICAgICdhcmNoaXZlX3ZlcmlmaWVkJzogRmFsc2UsCiAgICAgICAgJ2Jvb3RzdHJhcF9jb2RlJzogc3RyKGV4YykgaWYgaXNpbnN0YW5jZShleGMsIFBhcnNlRXJyb3IpIGVsc2UgdHlwZShleGMpLl9fbmFtZV9fLAogICAgfQpzYWZlX3BhdGgud3JpdGVfdGV4dChqc29uLmR1bXBzKHNhZmUsIGVuc3VyZV9hc2NpaT1UcnVlLCBzb3J0X2tleXM9VHJ1ZSksIGVuY29kaW5nPSd1dGYtOCcpCg==\"), \"<cashflow-header-tuple-diagnostic>\", \"exec\"))"
+            '
+
+      - name: Raw archive is verified
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(not d.get('archive_verified'))"
+
+      - name: Every source has a business-date alias
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(d.get('field_coverage', {}).get('business_date') != d.get('eligible_documents'))"
+
+      - name: Every source has an inflow alias
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(d.get('field_coverage', {}).get('inflow') != d.get('eligible_documents'))"
+
+      - name: Every source has an outflow alias
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(d.get('field_coverage', {}).get('outflow') != d.get('eligible_documents'))"
+
+      - name: Every source has a bank alias
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(d.get('field_coverage', {}).get('bank') != d.get('eligible_documents'))"
+
+      - name: Every source has an ordered four-field candidate
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(d.get('ordered_any_documents') != d.get('eligible_documents'))"
+
+      - name: Every source places the ordered candidate in the top fifth
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(d.get('ordered_top_fifth_documents') != d.get('eligible_documents'))"
+
+      - name: All source header tuples fit sixteen pixels
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(d.get('spread_coverage', {}).get('16') != d.get('eligible_documents'))"
+
+      - name: All source header tuples fit thirty-two pixels
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(d.get('spread_coverage', {}).get('32') != d.get('eligible_documents'))"
+
+      - name: All source header tuples fit forty-eight pixels
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(d.get('spread_coverage', {}).get('48') != d.get('eligible_documents'))"
+
+      - name: All source header tuples fit sixty-four pixels
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(d.get('spread_coverage', {}).get('64') != d.get('eligible_documents'))"
+
+      - name: All source header tuples fit ninety-six pixels
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(d.get('spread_coverage', {}).get('96') != d.get('eligible_documents'))"
+
+      - name: All source header tuples fit one-hundred-twenty-eight pixels
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(d.get('spread_coverage', {}).get('128') != d.get('eligible_documents'))"
+
+      - name: All source header tuples fit one-hundred-ninety-two pixels
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(d.get('spread_coverage', {}).get('192') != d.get('eligible_documents'))"
+
+      - name: All source header tuples fit two-hundred-fifty-six pixels
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-header-tuple-safe.json').read_text()); raise SystemExit(d.get('spread_coverage', {}).get('256') != d.get('eligible_documents'))"
