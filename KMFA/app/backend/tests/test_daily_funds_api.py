@@ -220,6 +220,63 @@ def _write_projection(root: Path) -> None:
     (root / "current.json").write_text(json.dumps(current), encoding="utf-8")
     (root / "status.json").write_text(json.dumps(status), encoding="utf-8")
     (root / "flow_state.json").write_text(json.dumps(flow_state), encoding="utf-8")
+    cashflow_observation = {
+        "schema_version": "kmfa.daily_funds.cashflow_observation.v1",
+        "generated_at": "2026-07-30T12:05:00Z",
+        "parser_version": "kmfa.daily_funds.cashflow_observation.v1",
+        "source_coverage": {
+            "eligible_documents": 2,
+            "parsed_documents": 2,
+            "rejected_documents": 0,
+            "distinct_business_days": 2,
+        },
+        "evidence_version": "a" * 12,
+        "status": "VERIFIED",
+        "machine_code": "CASHFLOW_OBSERVATION_VERIFIED",
+        "points": [
+            {
+                "business_date": "2026-07-29",
+                "inflow_fen": 1_000,
+                "outflow_fen": 400,
+                "net_change_fen": 600,
+            },
+            {
+                "business_date": "2026-07-30",
+                "inflow_fen": 800,
+                "outflow_fen": 1_200,
+                "net_change_fen": -400,
+            },
+        ],
+    }
+    (root / "cashflow_observation.json").write_text(json.dumps(cashflow_observation), encoding="utf-8")
+
+
+def test_cashflow_observation_is_read_only_footer_reconciled_and_not_a_balance_fallback(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+
+    response = client.get("/ops/api/daily-funds/cashflow-observations?range=30d")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "VERIFIED"
+    assert body["message"].startswith("已按截图逐行与合计复核")
+    assert body["points"] == [
+        {"business_date": "2026-07-29", "inflow_fen": 1_000, "outflow_fen": 400, "net_change_fen": 600},
+        {"business_date": "2026-07-30", "inflow_fen": 800, "outflow_fen": 1_200, "net_change_fen": -400},
+    ]
+    assert "machine_code" not in body
+    assert "parser_version" not in body
+
+    observation_path = publication / "cashflow_observation.json"
+    malformed = json.loads(observation_path.read_text(encoding="utf-8"))
+    malformed["raw_fixture_should_not_escape"] = "cashflow-raw-fixture"
+    observation_path.write_text(json.dumps(malformed), encoding="utf-8")
+    blocked = client.get("/ops/api/daily-funds/cashflow-observations?range=30d")
+    assert blocked.status_code == 200
+    assert blocked.json()["status"] == "NEEDS_REVIEW"
+    assert blocked.json()["points"] == []
+    assert "cashflow-raw-fixture" not in blocked.text
 
 
 def test_daily_funds_auth_session_is_access_api_only_and_never_enters_source_projection(tmp_path, monkeypatch):
@@ -561,6 +618,7 @@ def test_daily_funds_projection_paths_require_access_in_production(tmp_path, mon
 
     assert client.get("/api/daily-funds/summary").status_code == 403
     assert client.get("/ops/api/daily-funds/summary").status_code == 403
+    assert client.get("/ops/api/daily-funds/cashflow-observations").status_code == 403
     assert client.get("/ops/daily-funds").status_code == 403
 
 
@@ -572,6 +630,7 @@ def test_daily_funds_projection_paths_are_available_under_owner_public_override(
 
     assert client.get("/api/daily-funds/summary").status_code == 200
     assert client.get("/ops/api/daily-funds/summary").status_code == 200
+    assert client.get("/ops/api/daily-funds/cashflow-observations").status_code == 200
     assert client.get("/ops/daily-funds").status_code == 200
 
 

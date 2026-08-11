@@ -2542,6 +2542,12 @@ DAILY_FUNDS_FLOATING_LINE_NAMES = set(DAILY_FUNDS_FLOATING_LINE_ORDER)
 # public failure-code sanitizer.
 DAILY_FUNDS_BACKUP_STATES = {"OK", "LAG", "PENDING", "UNKNOWN"}
 DAILY_FUNDS_STATUS_SCHEMA = "kmfa.daily_funds.status.v1"
+DAILY_FUNDS_CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v1"
+DAILY_FUNDS_CASHFLOW_OBSERVATION_STATUSES = {"VERIFIED", "NEEDS_REVIEW", "NOT_AVAILABLE"}
+DAILY_FUNDS_CASHFLOW_OBSERVATION_FIELDS = frozenset({
+    "schema_version", "generated_at", "parser_version", "source_coverage",
+    "evidence_version", "points", "status", "machine_code",
+})
 # This is a read-side schema allowlist, not a second scheduler or health
 # authority.  The daily-funds worker remains the sole writer; the app only
 # displays the fixed worker contract after checking its exact shape so a
@@ -3897,6 +3903,159 @@ def _daily_funds_source_health_view() -> dict[str, Any]:
     return view
 
 
+def _daily_funds_cashflow_observation_view() -> dict[str, Any]:
+    """Read the independent, chart-only receipt/payment projection safely.
+
+    It is never a fallback for ``current.json``.  The point series is exposed
+    only after every current eligible screenshot passed its own footer
+    reconciliation, and the response deliberately excludes raw source IDs,
+    attachment metadata, banks, counterparties and parser internals.
+    """
+
+    unavailable = {
+        "status": "NOT_AVAILABLE",
+        "message": "尚未形成已采集收支流水观察。",
+        "generated_at": None,
+        "evidence_version": None,
+        "source_coverage": {
+            "eligible_documents": 0,
+            "parsed_documents": 0,
+            "rejected_documents": 0,
+            "distinct_business_days": 0,
+        },
+        "points": [],
+    }
+    needs_review = {
+        **unavailable,
+        "status": "NEEDS_REVIEW",
+        "message": "收支截图尚未完整通过逐行与合计复核；不显示金额。",
+    }
+    payload = _read_daily_funds_json("cashflow_observation.json")
+    if not isinstance(payload, dict) or set(payload) != DAILY_FUNDS_CASHFLOW_OBSERVATION_FIELDS:
+        return unavailable if payload is None else needs_review
+    if payload.get("schema_version") != DAILY_FUNDS_CASHFLOW_OBSERVATION_SCHEMA:
+        return needs_review
+    status = payload.get("status")
+    generated_at = _daily_funds_timestamp(payload.get("generated_at"))
+    evidence_version = payload.get("evidence_version")
+    coverage = payload.get("source_coverage")
+    if (
+        status not in DAILY_FUNDS_CASHFLOW_OBSERVATION_STATUSES
+        or generated_at is None
+        or not isinstance(evidence_version, (str, type(None)))
+        or (isinstance(evidence_version, str) and not _daily_funds_lower_hex(evidence_version, 12))
+        or not isinstance(coverage, dict)
+        or set(coverage) != {"eligible_documents", "parsed_documents", "rejected_documents", "distinct_business_days"}
+        or not all(_daily_funds_is_integer(coverage.get(key)) and 0 <= coverage[key] <= 100_000 for key in coverage)
+        or coverage["parsed_documents"] + coverage["rejected_documents"] != coverage["eligible_documents"]
+        or not isinstance(payload.get("parser_version"), str)
+        or not payload["parser_version"].startswith("kmfa.daily_funds.cashflow_observation.")
+        or not isinstance(payload.get("machine_code"), str)
+        or not payload["machine_code"].startswith("CASHFLOW_OBSERVATION_")
+        or not isinstance(payload.get("points"), list)
+    ):
+        return needs_review
+    public_base = {
+        "status": status,
+        "generated_at": generated_at,
+        "evidence_version": evidence_version,
+        "source_coverage": dict(coverage),
+        "points": [],
+    }
+    if status != "VERIFIED":
+        return {
+            **public_base,
+            "message": "收支截图尚未完整通过逐行与合计复核；不显示金额。"
+            if status == "NEEDS_REVIEW" else "尚未形成已采集收支流水观察。",
+        }
+    if (
+        payload["machine_code"] != "CASHFLOW_OBSERVATION_VERIFIED"
+        or coverage["eligible_documents"] < 1
+        or coverage["parsed_documents"] != coverage["eligible_documents"]
+        or coverage["rejected_documents"] != 0
+        or coverage["distinct_business_days"] < 2
+        or len(payload["points"]) != coverage["distinct_business_days"]
+        or len(payload["points"]) > 366
+    ):
+        return needs_review
+    points: list[dict[str, Any]] = []
+    prior: date | None = None
+    for row in payload["points"]:
+        if not isinstance(row, dict) or set(row) != {
+            "business_date", "inflow_fen", "outflow_fen", "net_change_fen",
+        }:
+            return needs_review
+        business_date = _daily_funds_date(row.get("business_date"))
+        inflow = row.get("inflow_fen")
+        outflow = row.get("outflow_fen")
+        net = row.get("net_change_fen")
+        if (
+            business_date is None
+            or prior is not None and business_date <= prior
+            or not all(_daily_funds_is_integer(value) for value in (inflow, outflow, net))
+            or inflow < 0
+            or outflow < 0
+            or net != inflow - outflow
+        ):
+            return needs_review
+        prior = business_date
+        points.append({
+            "business_date": business_date.isoformat(),
+            "inflow_fen": inflow,
+            "outflow_fen": outflow,
+            "net_change_fen": net,
+        })
+    return {
+        **public_base,
+        "points": points,
+        "message": "已按截图逐行与合计复核的收支流水；它不代表可用资金或账户余额。",
+    }
+
+
+def _daily_funds_cashflow_observation_range(
+    *,
+    range_value: str,
+    from_date: str | None,
+    to_date: str | None,
+) -> dict[str, Any]:
+    view = _daily_funds_cashflow_observation_view()
+    if view["status"] != "VERIFIED":
+        # Preserve range validation semantics even while no money is exposed.
+        if range_value not in set(DAILY_FUNDS_ALLOWED_RANGES) | {"custom"}:
+            raise HTTPException(status_code=422, detail="daily_funds_range_invalid")
+        if range_value == "custom":
+            start = _daily_funds_date(from_date)
+            end = _daily_funds_date(to_date)
+            if start is None or end is None or end < start:
+                raise HTTPException(status_code=422, detail="daily_funds_custom_range_invalid")
+            return {"range": range_value, "from": start.isoformat(), "to": end.isoformat(), **view}
+        return {"range": range_value, "from": None, "to": None, **view}
+    latest = _daily_funds_date(view["points"][-1]["business_date"])
+    if latest is None:
+        return {
+            "range": range_value,
+            "from": None,
+            "to": None,
+            "status": "NEEDS_REVIEW",
+            "message": "收支截图尚未完整通过逐行与合计复核；不显示金额。",
+            "generated_at": view["generated_at"],
+            "evidence_version": view["evidence_version"],
+            "source_coverage": view["source_coverage"],
+            "points": [],
+        }
+    start, end = _daily_funds_range_days(range_value, from_date, to_date, publication_day=latest)
+    return {
+        "range": range_value,
+        "from": start,
+        "to": end,
+        **view,
+        "points": [
+            point for point in view["points"]
+            if start <= point["business_date"] <= end
+        ],
+    }
+
+
 @app.get("/ops/api/daily-funds/summary")
 @app.get("/api/daily-funds/summary")
 def daily_funds_summary(range: str = "30d", from_: str | None = Query(None, alias="from"), to: str | None = None, scope: str = "global"):
@@ -3966,6 +4125,20 @@ def daily_funds_transactions(page: int = 1, size: int = 100):
 @app.get("/api/daily-funds/source-health")
 def daily_funds_source_health():
     return _daily_funds_source_health_view()
+
+
+@app.get("/ops/api/daily-funds/cashflow-observations")
+@app.get("/api/daily-funds/cashflow-observations")
+def daily_funds_cashflow_observations(
+    range: str = "30d",
+    from_: str | None = Query(None, alias="from"),
+    to: str | None = None,
+):
+    return _daily_funds_cashflow_observation_range(
+        range_value=range,
+        from_date=from_,
+        to_date=to,
+    )
 
 
 def _daily_funds_auth_timestamp(value: object) -> datetime | None:

@@ -55,7 +55,16 @@ from daily_funds.ingestion import (
     StagedRawBatch,
 )
 from daily_funds.models import SourceRef
-from daily_funds.parsing import ACCOUNT_FAMILY, PARSER_VERSION, ParseError, deterministic_ocr_runtime_ready, parse_attachment, parse_ocr_attachment
+from daily_funds.parsing import (
+    ACCOUNT_FAMILY,
+    CASHFLOW_OBSERVATION_PARSER_VERSION,
+    PARSER_VERSION,
+    ParseError,
+    deterministic_ocr_runtime_ready,
+    parse_attachment,
+    parse_cashflow_observation,
+    parse_ocr_attachment,
+)
 from daily_funds.publication import D1Projection, OciColdBackup, OciParStore, PublicationCoordinator, PublicationError, R2Mirror, RestoreCoordinator, RestoreOracle, S3CompatibleStore
 from daily_funds.r2_guard import R2FreeTierGuard, R2GuardError
 from daily_funds.reconcile import AccountReconciliation, ReconciliationError, ReconciliationReport, account_key_hash, reconcile
@@ -1061,6 +1070,7 @@ def _ocr_tsv(
     values: list[str],
     *,
     value_confidence: str = "99.0",
+    extra_rows: list[list[str]] | None = None,
 ) -> str:
     """Build a synthetic, value-free Tesseract TSV table fixture."""
 
@@ -1069,7 +1079,10 @@ def _ocr_tsv(
         "left", "top", "width", "height", "conf", "text",
     ]
     rows = ["\t".join(columns)]
-    for line_number, (tokens, confidence) in enumerate(((headers, "99.0"), (values, value_confidence)), 1):
+    all_rows = [(headers, "99.0"), (values, value_confidence)] + [
+        (tokens, value_confidence) for tokens in (extra_rows or [])
+    ]
+    for line_number, (tokens, confidence) in enumerate(all_rows, 1):
         for index, token in enumerate(tokens, 1):
             rows.append("\t".join((
                 "5", "1", "1", "1", str(line_number), str(index),
@@ -1086,6 +1099,28 @@ def _ocr_runner(tsv: str):
         assert "chi_sim+eng" in command
         return SimpleNamespace(returncode=0, stdout=tsv, stderr="")
     return run
+
+
+def _ocr_tsv_split_header(headers: list[str], rows: list[list[str]]) -> str:
+    """Make a table whose visual header shares a row but not Tesseract lines."""
+
+    columns = [
+        "level", "page_num", "block_num", "par_num", "line_num", "word_num",
+        "left", "top", "width", "height", "conf", "text",
+    ]
+    output = ["\t".join(columns)]
+    for index, token in enumerate(headers, 1):
+        output.append("\t".join((
+            "5", "1", "1", "1", str(index), "1",
+            str((index - 1) * 120), "10", "80", "20", "99.0", token,
+        )))
+    for row_index, tokens in enumerate(rows, len(headers) + 1):
+        for index, token in enumerate(tokens, 1):
+            output.append("\t".join((
+                "5", "1", "1", "2", str(row_index), str(index),
+                str((index - 1) * 120), str(60 + (row_index - len(headers) - 1) * 50), "80", "20", "99.0", token,
+            )))
+    return "\n".join(output) + "\n"
 
 
 def test_deterministic_ocr_requires_high_confidence_and_opens_a_strict_table() -> None:
@@ -1193,6 +1228,148 @@ def test_generic_ocr_source_label_rejects_zero_or_multiple_complete_schemas() ->
                 ["2026-07-30", "甲", "乙", "001", "110.00", "T-1", "10.00"],
             )),
         )
+
+
+def test_cashflow_observation_ocr_requires_footer_reconciliation_without_creating_balance_facts() -> None:
+    headers = ["日期", "事由", "收（付）款人", "收支类别", "转出", "收入", "银行"]
+    rows = [
+        ["08月07日", "付款", "", "项目成本", "40.00", "", "银行A"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "银行A"],
+        ["", "", "", "合计", "40.00", "50.00", ""],
+    ]
+    payload = b"\x89PNG\r\n\x1a\nreceipt-payment-observation"
+    observation = parse_cashflow_observation(
+        family="资金明细",
+        filename="资金明细_20260807.png",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 10, tzinfo=UTC),
+        mime="image/png",
+        runner=_ocr_runner(_ocr_tsv(headers, rows[0], extra_rows=rows[1:])),
+    )
+
+    assert observation.business_date.isoformat() == "2026-08-07"
+    assert observation.inflow_fen == 5_000
+    assert observation.outflow_fen == 4_000
+    assert observation.parser_evidence.parser_version == CASHFLOW_OBSERVATION_PARSER_VERSION
+    assert len(observation.layout_fingerprint) == 64
+
+    mismatched_total = rows[:-1] + [["", "", "", "合计", "40.00", "49.00", ""]]
+    with pytest.raises(ParseError, match="CASHFLOW_OBSERVATION_TOTAL_MISMATCH"):
+        parse_cashflow_observation(
+            family="资金明细",
+            filename="资金明细_20260807.png",
+            payload=payload,
+            source=_source(payload),
+            received_at=datetime(2026, 8, 10, tzinfo=UTC),
+            mime="image/png",
+            runner=_ocr_runner(_ocr_tsv(headers, mismatched_total[0], extra_rows=mismatched_total[1:])),
+        )
+
+
+def test_cashflow_observation_reassembles_a_visually_aligned_split_ocr_header() -> None:
+    headers = ["日期", "事由", "收（付）款人", "收支类别", "转出", "收入", "银行"]
+    rows = [
+        ["08月07日", "付款", "", "项目成本", "40.00", "", "银行A"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "银行A"],
+        ["", "", "", "合计", "40.00", "50.00", ""],
+    ]
+    payload = b"\x89PNG\r\n\x1a\nsplit-ocr-header"
+    observation = parse_cashflow_observation(
+        family="资金明细",
+        filename="资金明细_20260807.png",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 10, tzinfo=UTC),
+        mime="image/png",
+        runner=_ocr_runner(_ocr_tsv_split_header(headers, rows)),
+    )
+
+    assert observation.business_date.isoformat() == "2026-08-07"
+    assert observation.inflow_fen == 5_000
+    assert observation.outflow_fen == 4_000
+
+
+def test_cashflow_observation_uses_fixed_layout_template_when_money_headers_are_unreadable() -> None:
+    headers = ["日期", "事由", "收（付）款人", "收支类别", "出列", "入列", "机构"]
+    rows = [
+        ["08月07日", "付款", "", "项目成本", "40.00", "", "机构甲"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "机构甲"],
+        ["", "", "", "合计", "40.00", "50.00", ""],
+    ]
+    payload = b"\x89PNG\r\n\x1a\nfixed-layout-cashflow-observation"
+
+    observation = parse_cashflow_observation(
+        family="资金明细",
+        filename="资金明细_20260807.png",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 10, tzinfo=UTC),
+        mime="image/png",
+        runner=_ocr_runner(_ocr_tsv(headers, rows[0], extra_rows=rows[1:])),
+    )
+
+    assert observation.business_date.isoformat() == "2026-08-07"
+    assert observation.inflow_fen == 5_000
+    assert observation.outflow_fen == 4_000
+    assert observation.parser_evidence.parser_version == CASHFLOW_OBSERVATION_PARSER_VERSION
+
+
+def test_runtime_cashflow_observation_requires_complete_unique_day_coverage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import daily_funds.runtime as runtime_module
+
+    config = replace(_config(tmp_path), ocr_enabled=True)
+    runtime = DailyFundsRuntime(config)
+
+    def attachment(day: str, marker: bytes, index: int) -> DownloadedAttachment:
+        payload = b"\x89PNG\r\n\x1a\n" + marker
+        return DownloadedAttachment(
+            message={},
+            message_id=f"cashflow-{index}",
+            message_id_hash=(str(index) * 64)[:64],
+            message_at=datetime.fromisoformat(day + "T12:00:00+00:00"),
+            index=0,
+            filename=f"资金明细_{day.replace('-', '')}.png",
+            family="资金明细",
+            payload=payload,
+            sha256=sha256(payload).hexdigest(),
+            mime="image/png",
+        )
+
+    first = attachment("2026-08-07", b"first", 1)
+    second = attachment("2026-08-08", b"second", 2)
+    monkeypatch.setattr(runtime_module, "deterministic_ocr_runtime_ready", lambda: True)
+
+    def observed(**kwargs):
+        source = kwargs["source"]
+        received_at = kwargs["received_at"]
+        amount = 1_000 if source.attachment_sha256 == first.sha256 else 2_000
+        return SimpleNamespace(
+            business_date=received_at.date(),
+            inflow_fen=amount,
+            outflow_fen=amount // 2,
+        )
+
+    monkeypatch.setattr(runtime_module, "parse_cashflow_observation", observed)
+    verified = runtime._write_cashflow_observation((first, second))
+    assert verified["status"] == "VERIFIED"
+    assert verified["machine_code"] == "CASHFLOW_OBSERVATION_VERIFIED"
+    assert verified["source_coverage"] == {
+        "eligible_documents": 2,
+        "parsed_documents": 2,
+        "rejected_documents": 0,
+        "distinct_business_days": 2,
+    }
+    saved = (config.publication_dir / "cashflow_observation.json").read_text(encoding="utf-8")
+    assert first.sha256 not in saved
+    assert second.sha256 not in saved
+    assert "cashflow-1" not in saved
+
+    duplicate = attachment("2026-08-07", b"duplicate", 3)
+    blocked = runtime._write_cashflow_observation((first, duplicate))
+    assert blocked["status"] == "NEEDS_REVIEW"
+    assert blocked["machine_code"] == "CASHFLOW_OBSERVATION_DUPLICATE_DAY"
+    assert blocked["points"] == []
 
 
 def test_deterministic_ocr_runtime_requires_all_pdf_tools() -> None:

@@ -83,6 +83,26 @@ class ParsedFacts:
         }
 
 
+@dataclass(frozen=True)
+class CashflowObservation:
+    """A bounded daily inflow/outflow observation from one source document.
+
+    This is intentionally *not* a ``Transaction`` and cannot enter the
+    account-balance reconciliation or the formal publication pointer.  The
+    source screenshot format carries daily receipt/payment totals but no
+    account identity or ending available balance.  Keeping this type separate
+    prevents a useful operational chart from being misrepresented as a cash
+    balance fact.
+    """
+
+    business_date: date
+    inflow_fen: int
+    outflow_fen: int
+    source: SourceRef
+    parser_evidence: ParserEvidence
+    layout_fingerprint: str
+
+
 def jsonable(value: Any) -> Any:
     if isinstance(value, (date, datetime)):
         return value.isoformat()
