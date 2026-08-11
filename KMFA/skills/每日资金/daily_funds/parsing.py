@@ -16,7 +16,7 @@ import json
 import re
 import subprocess
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal, InvalidOperation, ROUND_FLOOR
 from datetime import date, datetime
 from hashlib import sha256
@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 
 from .contracts import ContractError, parse_amount_to_fen
-from .models import AccountSnapshot, ParsedFacts, ParserEvidence, SourceRef, Transaction
+from .models import CashflowObservation, AccountSnapshot, ParsedFacts, ParserEvidence, SourceRef, Transaction
 
 ACCOUNT_FAMILY = "资金账户明细表"
 TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
@@ -42,6 +42,10 @@ TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
 # versioned, so a rule change cannot inherit a prior parser's production-
 # support assertion.
 PARSER_VERSION = "kmfa.daily_funds.parser.v7"
+# This parser is deliberately separate from ``PARSER_VERSION``.  It can
+# create a chart-only receipt from a narrow receipt/payment screenshot without
+# weakening the two-fact account-balance publication contract.
+CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v1"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -174,7 +178,8 @@ ALIASES: Mapping[str, tuple[str, ...]] = {
     "transaction_id": ("流水号", "交易流水号", "交易编号", "凭证号", "业务编号"),
     "occurred_at": ("发生时间", "交易时间", "记账时间", "时间"),
     "inflow": ("流入", "收入", "贷方发生额", "入账金额"),
-    "outflow": ("流出", "支出", "借方发生额", "出账金额"),
+    "outflow": ("流出", "支出", "转出", "借方发生额", "出账金额"),
+    "category": ("收支类别", "类别", "费用类别"),
     "amount": ("金额", "发生额", "交易金额"),
     "direction": ("收支方向", "方向", "借贷方向", "交易方向"),
     "adjustment": ("调整", "调整金额", "其他调整"),
@@ -920,6 +925,222 @@ def _parse_ocr_table(
     return OcrParsedAttachment(
         facts=facts,
         layout_fingerprint=_ocr_layout_fingerprint(family=family, evidence=evidence, cells=cells),
+    )
+
+
+def _select_ocr_cashflow_header(
+    lines: tuple[tuple[_OcrWord, ...], ...],
+    *,
+    min_confidence_bps: int,
+) -> tuple[int, tuple[_OcrHeaderCell, ...]]:
+    """Select the one strict receipt/payment table header in an OCR image.
+
+    The chart-only profile deliberately requires both money directions, a
+    date, and a bank column.  That is narrow enough to avoid treating an
+    arbitrary image containing a number as financial evidence, while still
+    matching the existing daily ``资金明细`` screenshot layout.
+    """
+
+    required = {"business_date", "inflow", "outflow", "bank"}
+    candidates: list[tuple[int, tuple[_OcrHeaderCell, ...], int]] = []
+    for index, words in enumerate(lines):
+        try:
+            cells = _ocr_header_cells(words)
+        except ParseError:
+            continue
+        fields = {cell.field for cell in cells if cell.field is not None}
+        if not required <= fields:
+            continue
+        candidates.append((index, cells, len(fields)))
+    if not candidates:
+        raise ParseError("CASHFLOW_OBSERVATION_HEADER_MISSING")
+    candidates.sort(key=lambda item: item[2], reverse=True)
+    if len(candidates) > 1 and candidates[0][2] == candidates[1][2]:
+        raise ParseError("CASHFLOW_OBSERVATION_HEADER_AMBIGUOUS")
+    index, cells, _ = candidates[0]
+    if any(cell.field in required and cell.confidence_bps < min_confidence_bps for cell in cells):
+        raise ParseError("OCR_LOW_CONFIDENCE")
+    return index, cells
+
+
+def _cashflow_observation_amount(value: object) -> int:
+    text = str(value or "").strip()
+    if not text:
+        return 0
+    try:
+        amount = parse_amount_to_fen(text)
+    except ContractError as exc:
+        raise ParseError("CASHFLOW_OBSERVATION_AMOUNT_INVALID") from exc
+    if amount < 0:
+        raise ParseError("CASHFLOW_OBSERVATION_AMOUNT_NEGATIVE")
+    return amount
+
+
+_CASHFLOW_SHORT_DATE = re.compile(r"^(?P<month>0?[1-9]|1[0-2])月(?P<day>0?[1-9]|[12]\d|3[01])日?$")
+
+
+def _cashflow_observation_date(value: object, *, received_at: datetime) -> date:
+    """Resolve a screenshot's month/day cell against its source-message date.
+
+    A source image regularly renders ``08月07日`` rather than a full year.
+    The received timestamp supplies only the calendar year boundary; the
+    parser rejects dates more than a year away instead of silently guessing an
+    arbitrary period.
+    """
+
+    text = str(value or "").strip().replace(" ", "")
+    if not text:
+        raise ParseError("CASHFLOW_OBSERVATION_DATE_MISSING")
+    try:
+        parsed = _parse_date(text)
+    except ParseError:
+        matched = _CASHFLOW_SHORT_DATE.fullmatch(text)
+        if matched is None:
+            raise ParseError("CASHFLOW_OBSERVATION_DATE_INVALID")
+        reference = received_at.date()
+        try:
+            parsed = date(reference.year, int(matched.group("month")), int(matched.group("day")))
+        except ValueError as exc:
+            raise ParseError("CASHFLOW_OBSERVATION_DATE_INVALID") from exc
+        # A December report received in January belongs to the immediately
+        # preceding year.  No other year inference is allowed.
+        if (parsed - reference).days > 31:
+            try:
+                parsed = date(parsed.year - 1, parsed.month, parsed.day)
+            except ValueError as exc:
+                raise ParseError("CASHFLOW_OBSERVATION_DATE_INVALID") from exc
+    reference = received_at.date()
+    if abs((reference - parsed).days) > 366:
+        raise ParseError("CASHFLOW_OBSERVATION_DATE_OUT_OF_RANGE")
+    return parsed
+
+
+def _ocr_cashflow_observation_totals(
+    lines: tuple[tuple[_OcrWord, ...], ...],
+    *,
+    header_index: int,
+    cells: tuple[_OcrHeaderCell, ...],
+    received_at: datetime,
+    min_confidence_bps: int,
+) -> tuple[date, int, int]:
+    """Return a zero-leak, footer-reconciled daily receipt/payment total.
+
+    Individual receipt/payment rows are read only long enough to recompute the
+    visible ``合计`` footer.  No row description, bank, counterparty or amount
+    text is returned or persisted by this function.
+    """
+
+    header_page = lines[header_index][0].page
+    header_bottom = max(cell.bottom for cell in cells)
+    field_by_label = {cell.label: cell.field for cell in cells}
+    row_inflow = 0
+    row_outflow = 0
+    business_dates: set[date] = set()
+    total: tuple[int, int] | None = None
+    row_count = 0
+    for words in lines[header_index + 1:]:
+        if words[0].page != header_page or min(word.top for word in words) <= header_bottom:
+            continue
+        by_index: dict[int, list[_OcrWord]] = {index: [] for index in range(len(cells))}
+        for word in words:
+            by_index[_ocr_cell_index(word, cells)].append(word)
+        row: dict[str, str] = {}
+        confidence: dict[str, int | None] = {}
+        for index, cell in enumerate(cells):
+            values = sorted(by_index[index], key=lambda word: (word.left, word.top, word.text))
+            row[cell.label] = "".join(word.text for word in values)
+            confidence[cell.label] = min((word.confidence_bps for word in values), default=None)
+        mapped = {field: row[label] for label, field in field_by_label.items() if field is not None}
+        inflow_text = mapped.get("inflow", "")
+        outflow_text = mapped.get("outflow", "")
+        row_text = normalize_header("".join(row.values()))
+        is_total = "合计" in row_text
+        if not inflow_text and not outflow_text:
+            # Wrapped descriptions have neither money direction.  They cannot
+            # change a footer total and are intentionally not treated as rows.
+            if is_total:
+                raise ParseError("CASHFLOW_OBSERVATION_TOTAL_MISSING")
+            continue
+        for label, field in field_by_label.items():
+            if field in {"business_date", "inflow", "outflow", "bank"} and row[label] and (
+                confidence[label] is None or confidence[label] < min_confidence_bps
+            ):
+                raise ParseError("OCR_LOW_CONFIDENCE")
+        inflow = _cashflow_observation_amount(inflow_text)
+        outflow = _cashflow_observation_amount(outflow_text)
+        if inflow == 0 and outflow == 0:
+            raise ParseError("CASHFLOW_OBSERVATION_ZERO_ROW")
+        if is_total:
+            if total is not None:
+                raise ParseError("CASHFLOW_OBSERVATION_TOTAL_AMBIGUOUS")
+            total = (inflow, outflow)
+            continue
+        business_dates.add(_cashflow_observation_date(mapped.get("business_date"), received_at=received_at))
+        row_inflow += inflow
+        row_outflow += outflow
+        row_count += 1
+    if row_count == 0:
+        raise ParseError("CASHFLOW_OBSERVATION_ROWS_EMPTY")
+    if len(business_dates) != 1:
+        raise ParseError("CASHFLOW_OBSERVATION_DATE_AMBIGUOUS")
+    if total is None:
+        raise ParseError("CASHFLOW_OBSERVATION_TOTAL_MISSING")
+    if total != (row_inflow, row_outflow):
+        raise ParseError("CASHFLOW_OBSERVATION_TOTAL_MISMATCH")
+    return next(iter(business_dates)), row_inflow, row_outflow
+
+
+def parse_cashflow_observation(
+    *,
+    family: str,
+    filename: str,
+    payload: bytes,
+    source: SourceRef,
+    received_at: datetime,
+    mime: str | None = None,
+    min_confidence_bps: int = OCR_MIN_CONFIDENCE_BPS,
+    runner: Callable[..., Any] = subprocess.run,
+) -> CashflowObservation:
+    """Parse one footer-reconciled receipt/payment screenshot for the UI only.
+
+    It requires an explicit flow document family and does not return account,
+    counterparty, bank, or individual-row fields.  Calling code must keep the
+    result out of formal account/transaction reconciliation and publication.
+    """
+
+    if family not in TRANSACTION_FAMILIES:
+        raise ParseError("CASHFLOW_OBSERVATION_FAMILY_UNSUPPORTED")
+    if not isinstance(received_at, datetime):
+        raise ParseError("CASHFLOW_OBSERVATION_RECEIVED_AT_INVALID")
+    if not payload:
+        raise ParseError("CORRUPT_ATTACHMENT")
+    _validate_source(source, payload)
+    threshold = _validate_ocr_min_confidence(min_confidence_bps)
+    evidence = replace(
+        inspect_ocr_attachment_format(filename=filename, payload=payload, mime=mime),
+        parser_version=CASHFLOW_OBSERVATION_PARSER_VERSION,
+    )
+    words = _parse_tesseract_tsv(_ocr_tsv(payload=payload, evidence=evidence, runner=runner))
+    lines = _ocr_lines(words)
+    header_index, cells = _select_ocr_cashflow_header(lines, min_confidence_bps=threshold)
+    business_date, inflow_fen, outflow_fen = _ocr_cashflow_observation_totals(
+        lines,
+        header_index=header_index,
+        cells=cells,
+        received_at=received_at,
+        min_confidence_bps=threshold,
+    )
+    return CashflowObservation(
+        business_date=business_date,
+        inflow_fen=inflow_fen,
+        outflow_fen=outflow_fen,
+        source=source,
+        parser_evidence=evidence,
+        layout_fingerprint=_ocr_layout_fingerprint(
+            family="cashflow_observation",
+            evidence=evidence,
+            cells=cells,
+        ),
     )
 
 

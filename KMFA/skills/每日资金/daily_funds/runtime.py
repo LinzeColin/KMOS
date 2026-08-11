@@ -26,9 +26,10 @@ from .ingestion import (
     IngestionError,
     PersistedRawAttachment,
 )
-from .models import ParsedFacts, SourceRef, Transaction
+from .models import CashflowObservation, ParsedFacts, SourceRef, Transaction
 from .parsing import (
     ACCOUNT_FAMILY,
+    CASHFLOW_OBSERVATION_PARSER_VERSION,
     PARSER_VERSION,
     ParseError,
     TRANSACTION_FAMILIES,
@@ -36,6 +37,7 @@ from .parsing import (
     deterministic_ocr_runtime_ready,
     is_ocr_attachment,
     parse_attachment,
+    parse_cashflow_observation,
     parse_ocr_attachment,
 )
 from .publication import (
@@ -70,6 +72,8 @@ _COUPLED_PROCESS_MARKERS = (
 )
 _POST_DEPLOY_OBSERVER_REQUIRED_BUSINESS_DAYS = 5
 _FLOW_STATE_SCHEMA = "kmfa.daily_funds.flow_state.v1"
+_CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v1"
+_CASHFLOW_OBSERVATION_MIN_DAYS = 2
 _BUILD_SOURCE_COMMIT_FILE = Path(__file__).with_name(".kmfa-source-commit")
 _OPERATION_RECEIPT_JOBS = frozenset({
     "preflight",
@@ -1148,6 +1152,110 @@ class DailyFundsRuntime:
             ))
         return AttachmentCapabilityInspection(tuple(parsed), tuple(failures))
 
+    def _write_cashflow_observation(
+        self,
+        attachments: Iterable[DownloadedAttachment],
+    ) -> dict[str, Any]:
+        """Write a chart-only receipt/payment observation from read-back bytes.
+
+        This projection is intentionally isolated from ``current.json``:
+        screenshot receipts can prove daily inflow/outflow totals, but they do
+        not carry the account snapshots required for available-balance
+        reconciliation.  Any parse gap clears points rather than retaining a
+        stale or partial cash-flow chart.
+        """
+
+        eligible_by_sha: dict[str, DownloadedAttachment] = {}
+        for attachment in attachments:
+            if attachment.family in TRANSACTION_FAMILIES and is_ocr_attachment(attachment.filename):
+                existing = eligible_by_sha.get(attachment.sha256)
+                if existing is None:
+                    eligible_by_sha[attachment.sha256] = attachment
+                elif existing.payload != attachment.payload:
+                    # This should already be impossible after Git readback,
+                    # but never pick one of two different byte strings merely
+                    # because they carry the same asserted digest.
+                    eligible_by_sha[attachment.sha256] = attachment
+
+        eligible = tuple(eligible_by_sha[key] for key in sorted(eligible_by_sha))
+        source_fingerprint = sha256("\n".join(item.sha256 for item in eligible).encode("ascii")).hexdigest() if eligible else None
+        coverage: dict[str, int] = {
+            "eligible_documents": len(eligible),
+            "parsed_documents": 0,
+            "rejected_documents": 0,
+            "distinct_business_days": 0,
+        }
+        base: dict[str, Any] = {
+            "schema_version": _CASHFLOW_OBSERVATION_SCHEMA,
+            "generated_at": iso_now(),
+            "parser_version": CASHFLOW_OBSERVATION_PARSER_VERSION,
+            "source_coverage": coverage,
+            "evidence_version": source_fingerprint[-12:] if source_fingerprint is not None else None,
+            "points": [],
+        }
+        if not eligible:
+            payload = {**base, "status": "NOT_AVAILABLE", "machine_code": "CASHFLOW_OBSERVATION_SOURCE_EMPTY"}
+            atomic_json_write(self.config.publication_dir / "cashflow_observation.json", payload)
+            return payload
+        if not self.config.ocr_enabled:
+            coverage["rejected_documents"] = len(eligible)
+            payload = {**base, "status": "NEEDS_REVIEW", "machine_code": "CASHFLOW_OBSERVATION_OCR_DISABLED"}
+            atomic_json_write(self.config.publication_dir / "cashflow_observation.json", payload)
+            return payload
+        if not deterministic_ocr_runtime_ready():
+            coverage["rejected_documents"] = len(eligible)
+            payload = {**base, "status": "NEEDS_REVIEW", "machine_code": "CASHFLOW_OBSERVATION_OCR_UNAVAILABLE"}
+            atomic_json_write(self.config.publication_dir / "cashflow_observation.json", payload)
+            return payload
+
+        observations: list[CashflowObservation] = []
+        for attachment in eligible:
+            try:
+                observations.append(parse_cashflow_observation(
+                    family=attachment.family or "",
+                    filename=attachment.filename,
+                    payload=attachment.payload,
+                    source=self._source_ref(attachment),
+                    received_at=attachment.message_at,
+                    mime=attachment.mime,
+                    min_confidence_bps=self.config.ocr_min_confidence_bps,
+                ))
+            except ParseError:
+                coverage["rejected_documents"] += 1
+        coverage["parsed_documents"] = len(observations)
+        by_day: dict[date, CashflowObservation] = {}
+        duplicate_day = False
+        for observation in observations:
+            if observation.business_date in by_day:
+                duplicate_day = True
+                continue
+            by_day[observation.business_date] = observation
+        coverage["distinct_business_days"] = len(by_day)
+        if coverage["rejected_documents"]:
+            code = "CASHFLOW_OBSERVATION_PARSE_NEEDS_REVIEW"
+        elif duplicate_day:
+            code = "CASHFLOW_OBSERVATION_DUPLICATE_DAY"
+        elif len(by_day) < _CASHFLOW_OBSERVATION_MIN_DAYS:
+            code = "CASHFLOW_OBSERVATION_COVERAGE_INSUFFICIENT"
+        else:
+            code = "CASHFLOW_OBSERVATION_VERIFIED"
+        if code != "CASHFLOW_OBSERVATION_VERIFIED":
+            payload = {**base, "status": "NEEDS_REVIEW", "machine_code": code}
+            atomic_json_write(self.config.publication_dir / "cashflow_observation.json", payload)
+            return payload
+        points = [
+            {
+                "business_date": business_day.isoformat(),
+                "inflow_fen": observation.inflow_fen,
+                "outflow_fen": observation.outflow_fen,
+                "net_change_fen": observation.inflow_fen - observation.outflow_fen,
+            }
+            for business_day, observation in sorted(by_day.items())
+        ]
+        payload = {**base, "status": "VERIFIED", "machine_code": code, "points": points}
+        atomic_json_write(self.config.publication_dir / "cashflow_observation.json", payload)
+        return payload
+
     def raw_archive_audit(self) -> dict[str, Any]:
         """Audit acquired private raw bytes without reading DWS or publishing money.
 
@@ -1185,6 +1293,7 @@ class DailyFundsRuntime:
             return {"ok": False, "code": "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW"}
 
         inspection = self._inspect_attachment_capabilities(audit.verified_attachments)
+        self._write_cashflow_observation(audit.verified_attachments)
         integrity_failures = tuple(
             failure
             for failure in inspection.failures

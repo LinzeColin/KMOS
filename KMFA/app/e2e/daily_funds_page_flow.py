@@ -37,6 +37,7 @@ RAW_SENTINEL = "RAW_DWS_FIXTURE_MUST_NEVER_ESCAPE"
 DAILY_PATHS = (
     "/ops/api/daily-funds/summary?range=30d",
     "/ops/api/daily-funds/timeseries?range=30d",
+    "/ops/api/daily-funds/cashflow-observations?range=30d",
     "/ops/api/daily-funds/source-health",
     "/ops/api/daily-funds/thresholds",
     "/ops/api/daily-funds/auth-session",
@@ -208,7 +209,38 @@ def _write_projection(root: Path, human_status: str, *, restored: bool = False) 
             }],
         },
     }
-    for name, payload in (("current.json", current), ("status.json", status), ("flow_state.json", flow_state)):
+    cashflow_observation = {
+        "schema_version": "kmfa.daily_funds.cashflow_observation.v1",
+        "generated_at": "2026-07-30T12:05:00Z",
+        "parser_version": "kmfa.daily_funds.cashflow_observation.v1",
+        "source_coverage": {
+            "eligible_documents": 2,
+            "parsed_documents": 2,
+            "rejected_documents": 0,
+            "distinct_business_days": 2,
+        },
+        "evidence_version": "a" * 12,
+        "status": "VERIFIED",
+        "machine_code": "CASHFLOW_OBSERVATION_VERIFIED",
+        "points": [
+            {
+                "business_date": "2026-07-29",
+                "inflow_fen": 1_000,
+                "outflow_fen": 400,
+                "net_change_fen": 600,
+            },
+            {
+                "business_date": "2026-07-30",
+                "inflow_fen": 800,
+                "outflow_fen": 1_200,
+                "net_change_fen": -400,
+            },
+        ],
+    }
+    for name, payload in (
+        ("current.json", current), ("status.json", status), ("flow_state.json", flow_state),
+        ("cashflow_observation.json", cashflow_observation),
+    ):
         (root / name).write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
@@ -352,6 +384,7 @@ def _assert_projection_is_redacted(page: Page, *, trusted_projection: bool) -> N
         expected_status = 200 if (
             trusted_projection
             or "/source-health" in path
+            or "/cashflow-observations" in path
             or "/auth-session" in path
             or "/history-probe" in path
             or "/thresholds" in path
@@ -534,6 +567,8 @@ def _exercise_case(
             page.get_by_text("暂无可信 publication，需处理", exact=False).wait_for(state="visible", timeout=10_000)
             page.get_by_text("附件解析能力", exact=False).wait_for(state="visible", timeout=10_000)
             page.get_by_text("尚无已验证资金曲线", exact=False).wait_for(state="visible", timeout=10_000)
+            page.get_by_text("已采集收支流水（非可用资金）", exact=False).wait_for(state="visible", timeout=10_000)
+            page.get_by_text("已验证流水", exact=False).wait_for(state="visible", timeout=10_000)
             chart = page.locator("svg").filter(has_text="可用资金")
             chart.first.wait_for(state="visible", timeout=10_000)
             assert chart.count() == 1, f"expected one gated daily-funds SVG chart, got {chart.count()}"
@@ -583,6 +618,7 @@ def _exercise_case(
         expected_paths = {
             "/ops/api/daily-funds/summary",
             "/ops/api/daily-funds/timeseries",
+            "/ops/api/daily-funds/cashflow-observations",
             "/ops/api/daily-funds/source-health",
             "/ops/api/daily-funds/thresholds",
             "/ops/api/daily-funds/auth-session",

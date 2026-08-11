@@ -1804,7 +1804,7 @@ const 阈值控制话 = value => {
   return value.mode === 'disabled' ? '已停用' : '未验证'
 }
 
-function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 设范围, 自定义, 设自定义, 刷新 }) {
+function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水观察, 范围, 设范围, 自定义, 设自定义, 刷新 }) {
   const [阈值模式, 设阈值模式] = useState('numeric')
   const [阈值金额, 设阈值金额] = useState('')
   const [阈值日期, 设阈值日期] = useState({ from: '', to: '' })
@@ -1817,6 +1817,17 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 
   const 取不到 = 摘要?.加载失败 || 时序?.加载失败
   const 需要登录 = 摘要?.需要登录 || 时序?.需要登录
   const 无可信发布 = !需要登录 && 来源 && !来源.加载失败 && 来源.has_trusted_publication === false
+  const 收支观察状态 = ['VERIFIED', 'NEEDS_REVIEW', 'NOT_AVAILABLE'].includes(流水观察?.status)
+    ? 流水观察.status : 'NOT_AVAILABLE'
+  const 收支观察已验证 = 收支观察状态 === 'VERIFIED'
+  const 收支观察点 = 收支观察已验证 && Array.isArray(流水观察?.points)
+    ? 流水观察.points.filter(point => point && typeof point.business_date === 'string'
+      && Number.isInteger(point.inflow_fen) && point.inflow_fen >= 0
+      && Number.isInteger(point.outflow_fen) && point.outflow_fen >= 0
+      && Number.isInteger(point.net_change_fen) && point.net_change_fen === point.inflow_fen - point.outflow_fen)
+    : []
+  const 收支观察最新 = 收支观察点.length ? 收支观察点[收支观察点.length - 1] : null
+  const 收支观察覆盖 = 流水观察?.source_coverage || {}
   const points = (时序?.points || 摘要?.points || []).filter(p => Number.isInteger(p.ending_available_fen))
   const threshold = 时序?.thresholds || 阈值?.active || {}
   const fixed = threshold.fixed || {}
@@ -1944,6 +1955,35 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 
       ],
     }
   }, [图点, fixed.hard_fen, fixed.soft_fen, floating, 无可信发布])
+
+  const 收支观察图 = useMemo(() => {
+    if (!收支观察点.length) return null
+    return {
+      legend: { top: 0, type: 'scroll', textStyle: { fontSize: 10 } },
+      tooltip: { trigger: 'axis', formatter: rows => {
+        const row = 收支观察点[rows?.[0]?.dataIndex]
+        if (!row) return ''
+        return `${row.business_date}<br/>已采集流入：${资金金额(row.inflow_fen)}<br/>已采集流出：${资金金额(row.outflow_fen)}<br/>净流动：${资金金额(row.net_change_fen)}`
+      } },
+      grid: { left: 8, right: 12, top: 42, bottom: 16, containLabel: true },
+      xAxis: { type: 'category', data: 收支观察点.map(point => point.business_date.slice(5)), axisLabel: { fontSize: 10 } },
+      yAxis: { type: 'value', axisLabel: { formatter: value => `¥${(value / 10000).toFixed(0)}万`, fontSize: 10 } },
+      series: [
+        {
+          type: 'bar', name: '已采集流入', data: 收支观察点.map(point => point.inflow_fen / 100),
+          itemStyle: { color: '#15803d' },
+        },
+        {
+          type: 'bar', name: '已采集流出', data: 收支观察点.map(point => point.outflow_fen / 100),
+          itemStyle: { color: '#c2410c' },
+        },
+        {
+          type: 'line', name: '已采集净流动', data: 收支观察点.map(point => point.net_change_fen / 100),
+          lineStyle: { color: '#1d5c8f', width: 2 }, itemStyle: { color: '#1d5c8f' },
+        },
+      ],
+    }
+  }, [收支观察点])
 
   const 应用自定义 = () => {
     if (自定义.from && 自定义.to) { 设范围('custom'); 刷新('custom', 自定义.from, 自定义.to) }
@@ -2093,6 +2133,31 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 范围, 
         </div>}
         {option && (覆盖.missing_dates?.length > 0 || 覆盖.coverage_gap_dates?.length > 0) && <div className="hint" role="status">{覆盖.missing_dates?.length > 0 && `未发布断档 ${覆盖.missing_dates.length} 天`}{覆盖.missing_dates?.length > 0 && 覆盖.coverage_gap_dates?.length > 0 ? '；' : ''}{覆盖.coverage_gap_dates?.length > 0 && `覆盖缺口 ${覆盖.coverage_gap_dates.length} 天（图中菱形标记，不参与浮动阈值）`}</div>}
       </div>
+
+      <section className="card daily-funds-chart" aria-label="已采集收支流水走势" style={{ marginTop: 14 }}>
+        <div className="daily-funds-chart-head">
+          <div>
+            <b>已采集收支流水（非可用资金）</b>
+            <div className="muted">逐行金额与截图“合计”一致时才展示；不含账户余额，不能替代可用资金。</div>
+          </div>
+          <span className={`chip ${收支观察已验证 ? 'ok' : 收支观察状态 === 'NEEDS_REVIEW' ? 'bad' : 'muted'}`}>
+            {收支观察已验证 ? '已验证流水' : 收支观察状态 === 'NEEDS_REVIEW' ? '待复核' : '暂无观察'}
+          </span>
+        </div>
+        {收支观察已验证 && 收支观察图 ? <>
+          <div className="grid" style={{ margin: '10px 0 0' }}>
+            <Kpi 标="最新观察日" 值={收支观察最新?.business_date || '—'} 小 />
+            <Kpi 标="最新已采集流入" 值={资金金额(收支观察最新?.inflow_fen)} 小 />
+            <Kpi 标="最新已采集流出" 值={资金金额(收支观察最新?.outflow_fen)} 小 />
+            <Kpi 标="最新净流动" 值={资金金额(收支观察最新?.net_change_fen)} 小 色={收支观察最新?.net_change_fen < 0 ? 'bad' : 'ok'} />
+          </div>
+          <Chart option={收支观察图} height="22rem" />
+          <div className="hint" role="status">已逐份复核 {收支观察覆盖.parsed_documents ?? '—'} / {收支观察覆盖.eligible_documents ?? '—'} 份原件，覆盖 {收支观察覆盖.distinct_business_days ?? '—'} 个业务日；这不是账户余额或风险阈值依据。</div>
+        </> : <div className="card callout warn" style={{ marginTop: 12 }}>
+          <b>收支流水暂不展示金额</b>
+          <div className="sub">{流水观察?.message || '尚未形成已采集收支流水观察。'}</div>
+        </div>}
+      </section>
 
       <section className="card daily-funds-pipeline" aria-label="资金发布进度">
         <div className="daily-funds-pipeline-head">
@@ -2278,6 +2343,7 @@ export default function App() {
   const [资金阈值, set资金阈值] = useState(null)
   const [资金认证, set资金认证] = useState(null)
   const [资金历史探针, set资金历史探针] = useState(null)
+  const [资金流水观察, set资金流水观察] = useState(null)
   const [资金范围状态, set资金范围] = useState('30d')
   const [资金自定义, set资金自定义] = useState({ from: '', to: '' })
   // 每日资金是独立的私有纵向切片。若深链直接进入它，不能先把二十多条
@@ -2334,6 +2400,7 @@ export default function App() {
     const 查询 = `?${参数.toString()}`
     取(`/ops/api/daily-funds/summary${查询}`, set资金摘要)
     取(`/ops/api/daily-funds/timeseries${查询}`, set资金时序)
+    取(`/ops/api/daily-funds/cashflow-observations${查询}`, set资金流水观察)
     取('/ops/api/daily-funds/source-health', set资金来源)
     取('/ops/api/daily-funds/thresholds', set资金阈值)
     取('/ops/api/daily-funds/auth-session', set资金认证)
@@ -2462,7 +2529,7 @@ export default function App() {
             {页 === '回款与账龄' && <回款与账龄 账龄={账龄} />}
             {页 === '开票与税务' && <开票与税务 开票={开票} />}
             {页 === '每日资金' && <每日资金 摘要={资金摘要} 时序={资金时序} 来源={资金来源} 阈值={资金阈值}
-              认证={资金认证} 探针={资金历史探针} 范围={资金范围状态} 设范围={set资金范围} 自定义={资金自定义} 设自定义={set资金自定义} 刷新={取每日资金} />}
+              认证={资金认证} 探针={资金历史探针} 流水观察={资金流水观察} 范围={资金范围状态} 设范围={set资金范围} 自定义={资金自定义} 设自定义={set资金自定义} 刷新={取每日资金} />}
             {页 === '今天' && <>
               <h3 className="sec">上游归档目标群</h3>
               <目标群 群={目标群数据} 刷新={取群} />
