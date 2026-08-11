@@ -1,0 +1,111 @@
+name: cashflow-safe-diagnostic
+
+# Temporary branch-only diagnostic.  It is deliberately excluded from main:
+# it publishes only parser/category status and coverage counts, never raw OCR,
+# filenames, account identifiers, counterparties, or money values.
+on:
+  push:
+    branches:
+      - codex/daily-funds-flow-visual-20260811
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: safe-cashflow-diagnostic
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DAILY_FUNDS_GROUP_ID: ${{ secrets.DAILY_FUNDS_GROUP_ID }}
+      DAILY_FUNDS_SENDER_ID: ${{ secrets.DAILY_FUNDS_SENDER_ID }}
+      DAILY_FUNDS_GIT_SSH_KEY_B64: ${{ secrets.DAILY_FUNDS_GIT_SSH_KEY_B64 }}
+      DAILY_FUNDS_OCR_ENABLED: "1"
+      DAILY_FUNDS_OCR_MIN_CONFIDENCE: "0.98"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build isolated daily-funds parser
+        run: docker build -f KMFA/skills/每日资金/Dockerfile -t kmfa-daily-funds:safe-diagnostic .
+
+      - name: Compute safe source and parser receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -e DAILY_FUNDS_GROUP_ID \
+            -e DAILY_FUNDS_SENDER_ID \
+            -e DAILY_FUNDS_GIT_SSH_KEY_B64 \
+            -e DAILY_FUNDS_OCR_ENABLED \
+            -e DAILY_FUNDS_OCR_MIN_CONFIDENCE \
+            -v "${RUNNER_TEMP}:/audit" \
+            --entrypoint /bin/sh \
+            kmfa-daily-funds:safe-diagnostic -ec '
+              python3 -c "import base64; exec(compile(base64.b64decode(\"aW1wb3J0IGpzb24KZnJvbSBjb2xsZWN0aW9ucyBpbXBvcnQgQ291bnRlcgpmcm9tIHBhdGhsaWIgaW1wb3J0IFBhdGgKCmZyb20gZGFpbHlfZnVuZHMuY29uZmlnIGltcG9ydCBEYWlseUZ1bmRzQ29uZmlnCmZyb20gZGFpbHlfZnVuZHMuaW5nZXN0aW9uIGltcG9ydCBHaXRTcGFyc2VXcml0ZXIKZnJvbSBkYWlseV9mdW5kcy5wYXJzaW5nIGltcG9ydCBQYXJzZUVycm9yLCBwYXJzZV9jYXNoZmxvd19vYnNlcnZhdGlvbgpmcm9tIGRhaWx5X2Z1bmRzLnJ1bnRpbWUgaW1wb3J0IERhaWx5RnVuZHNSdW50aW1lCgpzYWZlX3BhdGggPSBQYXRoKCcvYXVkaXQvY2FzaGZsb3ctc2FmZS5qc29uJykKc2FmZSA9IHt9CnRyeToKICAgIGNvbmZpZyA9IERhaWx5RnVuZHNDb25maWcuZnJvbV9lbnYoKQogICAgYXVkaXQgPSBHaXRTcGFyc2VXcml0ZXIoY29uZmlnKS5hdWRpdF9yYXdfYXJjaGl2ZSgpCiAgICBydW50aW1lID0gRGFpbHlGdW5kc1J1bnRpbWUoY29uZmlnKQogICAgZmFpbHVyZXMgPSBDb3VudGVyKCkKICAgIGZvciBhdHRhY2htZW50IGluIGF1ZGl0LnZlcmlmaWVkX2F0dGFjaG1lbnRzOgogICAgICAgIHRyeToKICAgICAgICAgICAgcGFyc2VfY2FzaGZsb3dfb2JzZXJ2YXRpb24oCiAgICAgICAgICAgICAgICBmYW1pbHk9YXR0YWNobWVudC5mYW1pbHkgb3IgJycsCiAgICAgICAgICAgICAgICBmaWxlbmFtZT1hdHRhY2htZW50LmZpbGVuYW1lLAogICAgICAgICAgICAgICAgcGF5bG9hZD1hdHRhY2htZW50LnBheWxvYWQsCiAgICAgICAgICAgICAgICBzb3VyY2U9cnVudGltZS5fc291cmNlX3JlZihhdHRhY2htZW50KSwKICAgICAgICAgICAgICAgIHJlY2VpdmVkX2F0PWF0dGFjaG1lbnQubWVzc2FnZV9hdCwKICAgICAgICAgICAgICAgIG1pbWU9YXR0YWNobWVudC5taW1lLAogICAgICAgICAgICAgICAgbWluX2NvbmZpZGVuY2VfYnBzPWNvbmZpZy5vY3JfbWluX2NvbmZpZGVuY2VfYnBzLAogICAgICAgICAgICApCiAgICAgICAgZXhjZXB0IFBhcnNlRXJyb3IgYXMgZXhjOgogICAgICAgICAgICBmYWlsdXJlc1tzdHIoZXhjKV0gKz0gMQogICAgY292ZXJhZ2UgPSB7CiAgICAgICAgJ29jY3VycmVuY2VfY291bnQnOiBpbnQoYXVkaXQub2NjdXJyZW5jZV9jb3VudCksCiAgICAgICAgJ2JhdGNoX2NvdW50JzogaW50KGF1ZGl0LmJhdGNoX2NvdW50KSwKICAgICAgICAnZWxpZ2libGVfZG9jdW1lbnRzJzogbGVuKGF1ZGl0LnZlcmlmaWVkX2F0dGFjaG1lbnRzKSwKICAgICAgICAncGFyc2VkX2RvY3VtZW50cyc6IGxlbihhdWRpdC52ZXJpZmllZF9hdHRhY2htZW50cykgLSBzdW0oZmFpbHVyZXMudmFsdWVzKCkpLAogICAgICAgICdyZWplY3RlZF9kb2N1bWVudHMnOiBzdW0oZmFpbHVyZXMudmFsdWVzKCkpLAogICAgfQogICAgaWYgZmFpbHVyZXM6CiAgICAgICAgYWdncmVnYXRpb24gPSB7CiAgICAgICAgICAgICdzdGF0dXMnOiAnU0tJUFBFRF9QQVJTRV9GQUlMVVJFJywKICAgICAgICAgICAgJ21hY2hpbmVfY29kZSc6ICdDQVNIRkxPV19PQlNFUlZBVElPTl9QQVJTRV9ORUVEU19SRVZJRVcnLAogICAgICAgICAgICAnY292ZXJhZ2UnOiBjb3ZlcmFnZSwKICAgICAgICB9CiAgICBlbHNlOgogICAgICAgIHBheWxvYWQgPSBydW50aW1lLl93cml0ZV9jYXNoZmxvd19vYnNlcnZhdGlvbihhdWRpdC52ZXJpZmllZF9hdHRhY2htZW50cykKICAgICAgICBhZ2dyZWdhdGlvbiA9IHsKICAgICAgICAgICAgJ3N0YXR1cyc6IHN0cihwYXlsb2FkLmdldCgnc3RhdHVzJykpLAogICAgICAgICAgICAnbWFjaGluZV9jb2RlJzogc3RyKHBheWxvYWQuZ2V0KCdtYWNoaW5lX2NvZGUnKSksCiAgICAgICAgICAgICdjb3ZlcmFnZSc6IHsKICAgICAgICAgICAgICAgIHN0cihrZXkpOiBpbnQodmFsdWUpCiAgICAgICAgICAgICAgICBmb3Iga2V5LCB2YWx1ZSBpbiBkaWN0KHBheWxvYWQuZ2V0KCdzb3VyY2VfY292ZXJhZ2UnKSBvciB7fSkuaXRlbXMoKQogICAgICAgICAgICAgICAgaWYgaXNpbnN0YW5jZSh2YWx1ZSwgaW50KQogICAgICAgICAgICB9LAogICAgICAgIH0KICAgIHNhZmUgPSB7CiAgICAgICAgJ2FyY2hpdmVfdmVyaWZpZWQnOiBUcnVlLAogICAgICAgICdjb3ZlcmFnZSc6IGNvdmVyYWdlLAogICAgICAgICdwYXJzZXJfZmFpbHVyZV9jb2Rlcyc6IGRpY3Qoc29ydGVkKGZhaWx1cmVzLml0ZW1zKCkpKSwKICAgICAgICAnYWdncmVnYXRpb24nOiBhZ2dyZWdhdGlvbiwKICAgIH0KZXhjZXB0IEV4Y2VwdGlvbiBhcyBleGM6CiAgICBzYWZlID0gewogICAgICAgICdhcmNoaXZlX3ZlcmlmaWVkJzogRmFsc2UsCiAgICAgICAgJ2Jvb3RzdHJhcF9jb2RlJzogc3RyKGV4YykgaWYgaXNpbnN0YW5jZShleGMsIFBhcnNlRXJyb3IpIGVsc2UgdHlwZShleGMpLl9fbmFtZV9fLAogICAgfQpzYWZlX3BhdGgud3JpdGVfdGV4dChqc29uLmR1bXBzKHNhZmUsIGVuc3VyZV9hc2NpaT1UcnVlLCBzb3J0X2tleXM9VHJ1ZSksIGVuY29kaW5nPSd1dGYtOCcpCg==\"), \"<cashflow-safe-diagnostic>\", \"exec\"))"
+            '
+
+      - name: Raw archive is verified
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; raise SystemExit(not json.loads(Path('${RUNNER_TEMP}/cashflow-safe.json').read_text())['archive_verified'])"
+
+      - name: No CASHFLOW_OBSERVATION_HEADER_MISSING failures
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-safe.json').read_text()); raise SystemExit(bool(d.get('parser_failure_codes', {}).get('CASHFLOW_OBSERVATION_HEADER_MISSING')))"
+
+      - name: No CASHFLOW_OBSERVATION_HEADER_AMBIGUOUS failures
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-safe.json').read_text()); raise SystemExit(bool(d.get('parser_failure_codes', {}).get('CASHFLOW_OBSERVATION_HEADER_AMBIGUOUS')))"
+
+      - name: No OCR_LOW_CONFIDENCE failures
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-safe.json').read_text()); raise SystemExit(bool(d.get('parser_failure_codes', {}).get('OCR_LOW_CONFIDENCE')))"
+
+      - name: No CASHFLOW_OBSERVATION_ROWS_EMPTY failures
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-safe.json').read_text()); raise SystemExit(bool(d.get('parser_failure_codes', {}).get('CASHFLOW_OBSERVATION_ROWS_EMPTY')))"
+
+      - name: No CASHFLOW_OBSERVATION_TOTAL_MISSING failures
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-safe.json').read_text()); raise SystemExit(bool(d.get('parser_failure_codes', {}).get('CASHFLOW_OBSERVATION_TOTAL_MISSING')))"
+
+      - name: No CASHFLOW_OBSERVATION_TOTAL_MISMATCH failures
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-safe.json').read_text()); raise SystemExit(bool(d.get('parser_failure_codes', {}).get('CASHFLOW_OBSERVATION_TOTAL_MISMATCH')))"
+
+      - name: No CASHFLOW_OBSERVATION_DATE failures
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-safe.json').read_text()); c=d.get('parser_failure_codes', {}); raise SystemExit(any(c.get(k) for k in ('CASHFLOW_OBSERVATION_DATE_MISSING', 'CASHFLOW_OBSERVATION_DATE_INVALID', 'CASHFLOW_OBSERVATION_DATE_OUT_OF_RANGE', 'CASHFLOW_OBSERVATION_DATE_AMBIGUOUS')))"
+
+      - name: No CASHFLOW_OBSERVATION_AMOUNT failures
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-safe.json').read_text()); c=d.get('parser_failure_codes', {}); raise SystemExit(any(c.get(k) for k in ('CASHFLOW_OBSERVATION_AMOUNT_INVALID', 'CASHFLOW_OBSERVATION_AMOUNT_NEGATIVE', 'CASHFLOW_OBSERVATION_ZERO_ROW')))"
+
+      - name: No unclassified parser failures
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-safe.json').read_text()); known={'CASHFLOW_OBSERVATION_HEADER_MISSING','CASHFLOW_OBSERVATION_HEADER_AMBIGUOUS','OCR_LOW_CONFIDENCE','CASHFLOW_OBSERVATION_ROWS_EMPTY','CASHFLOW_OBSERVATION_TOTAL_MISSING','CASHFLOW_OBSERVATION_TOTAL_MISMATCH','CASHFLOW_OBSERVATION_DATE_MISSING','CASHFLOW_OBSERVATION_DATE_INVALID','CASHFLOW_OBSERVATION_DATE_OUT_OF_RANGE','CASHFLOW_OBSERVATION_DATE_AMBIGUOUS','CASHFLOW_OBSERVATION_AMOUNT_INVALID','CASHFLOW_OBSERVATION_AMOUNT_NEGATIVE','CASHFLOW_OBSERVATION_ZERO_ROW'}; raise SystemExit(bool(set(d.get('parser_failure_codes', {})) - known))"
+
+      - name: Observation aggregation is VERIFIED
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-safe.json').read_text()); raise SystemExit(d.get('aggregation', {}).get('machine_code') != 'CASHFLOW_OBSERVATION_VERIFIED')"
+
+      - name: Aggregation has no duplicate business day
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-safe.json').read_text()); raise SystemExit(d.get('aggregation', {}).get('machine_code') == 'CASHFLOW_OBSERVATION_DUPLICATE_DAY')"
+
+      - name: Aggregation has sufficient business-day coverage
+        if: always()
+        continue-on-error: true
+        run: python3 -c "import json; from pathlib import Path; d=json.loads(Path('${RUNNER_TEMP}/cashflow-safe.json').read_text()); raise SystemExit(d.get('aggregation', {}).get('machine_code') == 'CASHFLOW_OBSERVATION_COVERAGE_INSUFFICIENT')"
