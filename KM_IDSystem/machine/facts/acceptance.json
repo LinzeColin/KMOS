@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "ACC-STAGE055-P2-01",
+      "criteria": "Stage055 P2 只以冻结任务包、P1 静态合同和 Stage054 已复审工件为合同上下文；五条输入均为固定十字段 reference-only control 记录，不包含业务资料、授权 fixture、来源正文、真实路径、页面、图片、表格单元或 OCR 文本，未建立第二权威事实源。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE055-P2-02",
+      "criteria": "纯内存适配器为五条 control 形成 QUEUED/PROCESSING/COMPLETED 队列状态、十一字段逐页结构、置信度记录和原样保留的来源页引用；符号化 OCR 输出、图片引用和失败分类均不是真实内容或持久记录。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE055-P2-03",
+      "criteria": "模糊 LOW、混合中英文和低质量失败 control 均进入可解释且未排队的 Stage054 受控复核或失败状态，不能直接进入高可信证据层；扫描件和表格件仍为 CANDIDATE/UNASSESSED，未执行表格提取、语言检测、置信度评估或质量门。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE055-P2-04",
+      "criteria": "未读取或创建真实资料、fixture、样本、页面、图片或 OCR 文本；未调用 OCR、执行真实回归、创建持久队列/输出/缓存/复核/审计或持久状态，未执行 Agent、模型调用、模型 Token、OVH、生产、上传或推送。",
+      "status": "已遵守"
+    },
+    {
       "id": "ACC-STAGE055-P1-01",
       "criteria": "Stage055 P1 只以冻结任务包和 Stage054 已复审工件为唯一合同上下文；五类回归语料类别、十字段输入和十一字段未来输出均为引用结构，不包含业务资料、授权 fixture、来源正文、真实路径、页面、图片、OCR 文本、引擎配置或回归结果，未建立第二权威事实源。",
       "status": "已通过"

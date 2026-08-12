@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE055"
-current_phase_id: "IDS-STAGE055-P1"
-current_task_id: "IDS-V0_1-STAGE055-P1"
-next_gate_id: "IDS-STAGE055-P2-GATE"
+current_phase_id: "IDS-STAGE055-P2"
+current_task_id: "IDS-V0_1-STAGE055-P2"
+next_gate_id: "IDS-STAGE055-P3-GATE"
 current_transition_history:
+  stage055_phase2_state:
+    current_stage_id: "IDS-STAGE055"
+    current_phase_id: "IDS-STAGE055-P2"
+    current_task_id: "IDS-V0_1-STAGE055-P2"
+    next_gate_id: "IDS-STAGE055-P3-GATE"
   stage055_phase1_state:
     current_stage_id: "IDS-STAGE055"
     current_phase_id: "IDS-STAGE055-P1"
@@ -14872,19 +14877,19 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-055"
     status: "in_progress"
-    pursuing_goal: "只完成 OCR 回归语料的 Phase 1 静态合同：登记五类 reference-only 类别、未来按页输出字段、默认中英文、置信度隔离、未来引擎映射字段、缓存与复核路由边界；不创建或读取样本，不进入 Phase 2。"
+    pursuing_goal: "只完成 OCR 回归语料的 Phase 2 纯内存 control 切片：把五条固定非业务 reference-only 记录投影为队列状态、十一字段按页结构、置信度、来源页引用和可解释状态；不读取样本、不调用 OCR 引擎、不进入 Phase 3。"
     stop_gate:
-      gate_id: "IDS-STAGE055-P1-GATE"
+      gate_id: "IDS-STAGE055-P2-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE055-P2-GATE"
+      next_gate_id: "IDS-STAGE055-P3-GATE"
       github_upload_allowed: false
       pass_conditions:
-        - "只以冻结 Stage055 任务包和 Stage054 已复审工件为合同上下文；类别和字段只描述未来结构，不含业务资料、真实路径、页面、图片、OCR 文本、引擎配置或回归结果。"
-        - "扫描件、模糊件、表格件、混合中英文文件和低质量件只登记为五个 reference-only 类别；实际 fixture 数为零，未读取、创建、复制、移动或评估样本。"
-        - "默认语言为中文简体与英文；LOW、UNKNOWN、中英文混合和失败页不能直接进入高可信证据层，未来复核状态仍归 Stage054。"
-        - "Stage055 只定义未来引擎映射字段，不选择、配置、调用或比较 OCR 引擎；缓存只为可重建引用边界，保留和清理仍归 Stage056。"
-        - "真实资料、OCR、队列、按页输出、缓存、复核、质量门、持久化、Agent、模型 Token、OVH、生产、上传和推送均未执行且保持关闭。"
-        - "唯一后续门为 IDS-STAGE055-P2-GATE，必须由独立 run 进入。"
+        - "只以冻结 Stage055 任务包、P1 静态合同和 Stage054 已复审工件为合同上下文；五条输入均为固定非业务 control 记录，不含业务资料、真实路径、页面、图片、OCR 文本、引擎配置或回归结果。"
+        - "纯内存切片形成受控队列状态、十一字段按页结构、置信度记录与来源页引用；符号化 OCR 输出、符号化图片引用和失败分类均不是真实内容或持久记录。"
+        - "模糊、混合中英文和低质量控制页均有可解释的未排队复核或失败状态，不能直接进入高可信证据层；扫描件和表格件仍为 CANDIDATE/UNASSESSED。"
+        - "Stage055 不选择、配置、调用或比较 OCR 引擎，不执行真实回归；缓存仅内存可重建且不持久化，保留和清理仍归 Stage056。"
+        - "真实资料、OCR、持久队列/输出/缓存、实际复核、质量门、持久化、Agent、模型 Token、OVH、生产、上传和推送均未执行且保持关闭。"
+        - "唯一后续门为 IDS-STAGE055-P3-GATE，必须由独立 run 进入。"
     phases:
       - phase_id: "IDS-STAGE055-P1"
         name: "Phase 1 · OCR 回归语料范围、输入输出与边界确认"
@@ -14928,3 +14933,50 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
             risk: "若把五类类别、字段合同、中文反馈或聚焦用例通过误作真实样本、OCR 引擎映射、识别准确率、队列、缓存清理、OVH 或生产能力，会绕开业务线白箱控制和后续阶段所有权。"
             rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影与治理路线，恢复到 STAGE054_REVIEWED_LOCAL_LOW_CONFIDENCE_REVIEW_ROUTE_RUNTIME_DISABLED；不改变真实资料、fixture、持久运行状态、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE055-P2"
+        name: "Phase 2 · OCR 回归语料受控切片"
+        objective: "只将五条固定非业务 reference-only control 记录投影为纯内存队列状态、十一字段逐页结构、置信度、来源页引用和可解释状态；不读取样本、不调用 OCR 引擎、不持久化。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE055-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE055-P2-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE055-P3-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改或评估任何 IDS 业务资料、原始元数据、授权 fixture、样本文件、PDF、图片、页面、表格、来源正文或 OCR 文本"
+          - "执行文件检测、真实路由、parser、PDF 栅格化、图像处理、表格提取、语言检测、置信度评估、OCR 引擎选择/配置/调用/比较、真实 OCR、真实回归或识别准确率评估"
+          - "创建持久队列、持久按页输出、真实图片引用、真实失败记录、缓存、实际人工复核任务/结果、质量门、证据提升、manifest、evidence ledger、audit、report、数据库或持久状态"
+          - "进入 Phase 3、整阶段复审、批次复审、上传、推送、Agent、模型调用、模型 Token、OVH、生产服务或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE055-P2"
+            name: "实现 OCR 回归语料纯内存队列与逐页输出控制切片"
+            objective: "只复用 P1 十字段 reference-only 输入和 Stage053 十一字段输出形状，实现五条固定非业务 control 的内存队列、来源页引用、符号化逐页输出、置信度记录、低置信/混合/失败可解释状态和中文反馈，保持全局上传锁。"
+            status: "completed"
+            estimated_hours: 2
+            total_hours_percent: "50.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE055-P1"
+              - "IDS-V0_1-STAGE054-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-055"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus_slice"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch041_050_review_gate"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "聚焦 Stage055 P2 直接单元用例通过 8/8；Stage055 P1、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041-050 的显式前序兼容回归通过 234/234；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE055_PHASE1_OCR_REGRESSION_CORPUS_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE055_PHASE2_OCR_REGRESSION_CORPUS_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage055_ocr_regression_corpus_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage055_ocr_regression_corpus_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage055_ocr_regression_corpus_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage055_ocr_regression_corpus_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-13-stage055-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE054_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+            risk: "若把五条 control、符号化 OCR 文本、符号化图片引用、内存队列状态、测试通过或中文反馈误作真实样本、真实 OCR、识别准确率、缓存清理、人工复核、OVH 或生产能力，会绕开业务线白箱控制。"
+            rollback: "只回滚本 P2 说明、切片合同、纯内存适配器、聚焦用例、machine run、事件、事实投影与治理路线，恢复到 PHASE1_OCR_REGRESSION_CORPUS_BOUNDARY_RUNTIME_DISABLED；不改变真实资料、fixture、持久运行状态、GitHub、OVH 或应用状态。"

@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-055 Phase 2 - 2026-08-13
+
+- 完成 `IDS-V0_1-STAGE055-P2`：以五条固定非业务 reference-only control 记录实现纯内存 OCR 回归队列状态、十一字段逐页结构、符号化 OCR 输出、符号化图片引用、置信度、来源页引用以及低置信、中英文混合和失败页的中文可解释状态。
+- 本地验证通过：Stage055 P2 聚焦用例 `8/8`；Stage055 P1、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 `234/234`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；治理报告 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 控制标记不是样本、真实 OCR 文本、真实图片引用或实际失败记录；未读取真实资料、调用 OCR 引擎或执行真实回归，未创建持久队列/输出/缓存/复核，未执行 Agent、模型 Token、OVH、生产、上传或推送；后续仅允许在新的独立 run 进入 `IDS-STAGE055-P3-GATE`。
+
 ## IDS v0.1 STAGE-055 Phase 1 - 2026-08-13
 
 - 完成 `IDS-V0_1-STAGE055-P1`：只定义五类 reference-only OCR 回归语料类别、十字段引用输入、十一字段未来按页输出、默认中文简体与英文、置信度隔离、未来引擎映射字段、缓存边界、Stage054 复核路由和回滚范围。
