@@ -215,19 +215,21 @@ class Stage048ParserFallbackPhase2Tests(unittest.TestCase):
             (batch, 'current_task_id: "IDS-V0_1-STAGE048-P2"'),
             (batch, 'next_gate: "IDS-STAGE048-P3-GATE"'),
             (batch, 'current_task_id: "IDS-V0_1-STAGE048-P3"'),
-            (batch, 'next_gate: "IDS-STAGE048-P4-GATE"'),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE048-P4"'),
+            (batch, 'next_gate: "IDS-STAGE048-REVIEW-GATE"'),
             (batch, 'model_token_consumption_performed: false'),
             (batch, 'ovh_deployment_performed: false'),
             (roadmap, 'phase_id: "IDS-STAGE048-P2"'),
             (roadmap, 'next_gate_id: "IDS-STAGE048-P3-GATE"'),
-            (roadmap, 'current_phase_id: "IDS-STAGE048-P3"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE048-P4-GATE"'),
+            (roadmap, 'phase_id: "IDS-STAGE048-P3"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE048-P4"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE048-REVIEW-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE048-P3", status["phase"])
+        self.assertEqual("IDS-STAGE048-P4", status["phase"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

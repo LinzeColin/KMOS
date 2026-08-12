@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE048-P4-01`",
+      "criteria": "P3 的 14 个受控场景已派生为 8 个仅结构的 parser 输出样例和 14 条非运行时处置记录；样例不保留正文、表格、页面、路径或原始异常",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE048-P4-02`",
+      "criteria": "质量指标记录 14/14 场景通过、14/14 明确处置、静默丢弃为零；六个互斥失败分类完整覆盖全部场景，parser/fallback/持久写入均为零",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE048-P4-03`",
+      "criteria": "八个控制格式与空的运行时支持集合明确分离；control-fixture parser 版本仅作证据记录，未创建或修改 parser 配置，回滚目标为 P3 受控场景",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE048-P4-04`",
+      "criteria": "未读取真实资料，未执行真实 parser、fallback、运行时日志、队列、质量门、持久化、Agent、模型调用、OVH、生产激活、整阶段复审、上传或推送",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE048-P3-01`",
       "criteria": "14 个格式标签化、仅引用控制场景覆盖 PDF、DOCX、XLSX、CSV、TXT、三类图片、未知、坏文件、冲突、低置信、未支持格式与指令样文本；未打开真实文件",
       "status": "已通过"

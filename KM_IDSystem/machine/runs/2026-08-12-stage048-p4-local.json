@@ -1,0 +1,86 @@
+{
+  "schema_version": "ids.stage048.parser_fallback.phase4.run.v1",
+  "run_id": "`RUN-IDS-STAGE048-P4-LOCAL-20260812-001`",
+  "stage": "STAGE-048",
+  "phase": "Phase 4",
+  "task_id": "IDS-V0_1-STAGE048-P4",
+  "acceptance_id": "ACC-STAGE-048",
+  "action": "从 P3 受控场景派生结构 parser 输出样例、非运行时处置记录、质量指标、失败分类、支持边界和 parser 配置回滚说明",
+  "result": "`PASS_ISOLATED_FALLBACK_CLOSEOUT_RUNTIME_DISABLED`",
+  "contract_state": "PHASE4_CLOSEOUT_EVIDENCE_ENABLED_REAL_PARSER_FALLBACK_QUALITY_AND_PERSISTENCE_DISABLED",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_FALLBACK_CLOSEOUT",
+  "phase3_controlled_scenarios_replayed": true,
+  "phase3_scenario_count": 14,
+  "phase3_passed_scenario_count": 14,
+  "parser_output_schema_sample_count": 8,
+  "fallback_log_sample_count": 14,
+  "quality_metric_scenario_count": 14,
+  "failure_classification_count": 6,
+  "control_supported_format_count": 8,
+  "runtime_supported_format_count": 0,
+  "explicit_disposition_count": 14,
+  "silent_drop_count": 0,
+  "next_gate": "IDS-STAGE048-REVIEW-GATE",
+  "whole_stage_review_performed": false,
+  "evidence_iterations": [
+    {
+      "gate": "stage048_phase4_direct_unit",
+      "result": "PASS",
+      "tests": 13,
+      "passed": 13,
+      "reason": "交付合同、结构样例、非运行时处置记录、指标、失败分类、支持边界、回滚和阶段治理一致"
+    },
+    {
+      "gate": "stage048_phase1_to_phase4_compatibility",
+      "result": "PASS",
+      "tests": 38,
+      "passed": 38,
+      "reason": "P4 直接用例与 P3/P2/P1 前序证据共同运行，未改变任何历史场景或运行时边界"
+    },
+    {
+      "gate": "stage048_current_governance",
+      "result": "PASS",
+      "checks": 17,
+      "passed": 17,
+      "reason": "当前路线停在独立整阶段复审门，上传和运行时动作仍关闭"
+    },
+    {
+      "gate": "owner_view_render",
+      "result": "PASS",
+      "documents": 7,
+      "reason": "机器事实已重渲染为全局中文负责人视图"
+    }
+  ],
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage048-p1",
+    "scope": "KM_IDSystem Stage048 Phase4 only",
+    "outside_scope_paths": 0
+  },
+  "observed_work": {
+    "taskpack_source_read_performed": true,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "source_file_open_performed": false,
+    "file_signature_detection_performed": false,
+    "route_evaluation_performed": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "parser_output_produced": false,
+    "fallback_execution_performed": false,
+    "runtime_fallback_log_produced": false,
+    "human_review_queue_write_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "evidence_promotion_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "local_service_start_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "whole_stage_review_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  }
+}

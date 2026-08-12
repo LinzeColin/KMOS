@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-048 Phase 4 - 2026-08-12
+
+- 从 P3 的 14 个格式标签化、仅引用控制场景派生 8 个 `SCHEMA_ONLY_PARSER_OUTPUT_SAMPLE_NOT_EXECUTED` 结构样例和 14 条 `DERIVED_CONTROL_DISPOSITION_LOG_NOT_RUNTIME` 处置记录；不保留正文、表格、页面、路径或原始异常。
+- 派生指标为场景 `14/14`、明确处置 `14/14`、静默丢弃 `0`、控制格式 `8/8`、运行时格式 `0`、parser/fallback/持久写入均为 `0`；六个互斥失败分类完整覆盖所有场景。
+- 记录 control-fixture parser 版本、控制格式与空的运行时支持边界以及回到 P3 的回滚说明。未读取真实资料，未执行真实 parser、fallback、运行时日志、队列、质量门、持久化、Agent、模型调用、OVH、生产、整阶段复审、上传或推送；下一门仅为独立 `IDS-STAGE048-REVIEW-GATE`。
+
 ## IDS v0.1 STAGE-048 Phase 3 - 2026-08-12
 
 - 以 14 个纯内存、格式标签化的受控引用场景验证 P2 降级处置：覆盖 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF、未知、坏文件、冲突、低置信、未支持格式和指令样文本。

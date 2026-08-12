@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-08-12T08:00:00Z"
-status: "stage048_phase3_completed"
+updated_at_utc: "2026-08-12T09:00:00Z"
+status: "stage048_phase4_completed_review_pending"
 
 transition_history:
+  stage048_phase4_state:
+    status: "stage048_phase4_completed_review_pending"
+    current_task_id: "IDS-V0_1-STAGE048-P4"
+    next_gate: "IDS-STAGE048-REVIEW-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE048-REVIEW"
+    github_upload_allowed: false
   stage048_phase3_state:
     status: "stage048_phase3_completed"
     current_task_id: "IDS-V0_1-STAGE048-P3"
@@ -1354,21 +1360,24 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
   STAGE-048:
-    status: "stage048_phase3_completed"
+    status: "stage048_phase4_completed_review_pending"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
+      - "Phase 4"
     next_stage: "STAGE-048"
-    next_phase: "Phase 4"
-    next_gate: "IDS-STAGE048-P4-GATE"
-    current_task_id: "IDS-V0_1-STAGE048-P3"
+    next_phase: "stage_review_gate"
+    next_gate: "IDS-STAGE048-REVIEW-GATE"
+    current_task_id: "IDS-V0_1-STAGE048-P4"
     acceptance_id: "ACC-STAGE-048"
-    acceptance_status: "phase3_controlled_fallback_scenarios_complete"
+    acceptance_status: "phase4_fallback_closeout_evidence_complete"
     review_status: "pending"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
     phase4_entry_authorized: true
+    stage_review_entry_authorized: true
+    stage049_entry_authorized: false
     source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE047_REVIEW_ARTIFACTS"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
@@ -1402,16 +1411,18 @@ stage_progress:
     production_runtime_activation_performed: false
     phase2_started: true
     phase3_started: true
-    phase4_started: false
+    phase4_started: true
     whole_stage_review_performed: false
     batch_review_performed: false
     github_upload_allowed: false
     app_reinstall_allowed: false
     push_allowed: false
-    contract_state: "PHASE3_CONTROLLED_FALLBACK_SCENARIOS_RUNTIME_DISABLED"
+    contract_state: "PHASE4_CLOSEOUT_EVIDENCE_ENABLED_REAL_PARSER_FALLBACK_QUALITY_AND_PERSISTENCE_DISABLED"
     parser_fallback_contract_schema: "ids.stage048.parser_fallback.phase3.scenarios.v1"
+    parser_fallback_delivery_contract_schema: "ids.stage048.parser_fallback.phase4.delivery.v1"
     fallback_disposition_slice_module: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_slice.py"
     fallback_scenarios_module: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_scenarios.py"
+    fallback_delivery_module: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_delivery.py"
     reference_only_input_field_count: 7
     control_envelope_field_count: 2
     explicit_disposition_count: 14
@@ -1426,6 +1437,23 @@ stage_progress:
     parser_confidence_recorded: true
     evidence_text_classification_enforced: true
     instruction_route_invariance_evaluated: true
+    phase4_delivery_valid: true
+    delivery_result: "PASS_ISOLATED_FALLBACK_CLOSEOUT_RUNTIME_DISABLED"
+    parser_output_schema_sample_count: 8
+    fallback_log_sample_count: 14
+    failure_classification_count: 6
+    control_supported_format_count: 8
+    control_supported_format_coverage_ratio: 1.0
+    runtime_supported_format_count: 0
+    parser_execution_count: 0
+    fallback_execution_count: 0
+    persistent_write_count: 0
+    parser_output_schema_samples_composed: true
+    fallback_log_samples_derived: true
+    quality_metrics_derived: true
+    failure_classification_composed: true
+    support_boundary_documented: true
+    configuration_rollback_documented: true
     silent_drop_allowed: false
     automatic_fallback_execution_allowed: false
     fallback_may_bypass_quality_gate: false
@@ -1447,12 +1475,17 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_scenarios.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_scenarios.py"
       - "KM_IDSystem/machine/runs/2026-08-12-stage048-p3-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_PHASE4_CLOSEOUT.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_parser_fallback_delivery_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_delivery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_delivery.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-stage048-p4-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE048-P3"
-  next_allowed_task_id: "IDS-V0_1-STAGE048-P4"
+  current_task_id: "IDS-V0_1-STAGE048-P4"
+  next_allowed_task_id: "IDS-V0_1-STAGE048-REVIEW"
   github_upload_allowed: false
-  current_run: "STAGE-048 Phase 3 replayed fourteen format-labelled, reference-only controls through the Phase2 in-memory fallback disposition slice. Every scenario has an explicit disposition, no silent drop, and instruction-like text keeps the ordinary TXT disposition and cannot override system policy. No source file, signature detection, real route, parser, fallback, human-review queue, quality gate, persistence, Agent, model, OVH or production action ran."
+  current_run: "STAGE-048 Phase 4 replayed the fourteen format-labelled, reference-only Phase3 controls into eight schema-only parser-output samples, fourteen non-runtime disposition logs, quality metrics, six fail-closed classifications, format boundaries and rollback evidence. No source file, signature detection, real route, parser, fallback, human-review queue, quality gate, persistence, Agent, model, OVH or production action ran."
   no_upload_reason: "BATCH041_050 has seven completed and individually reviewed Stages; STAGE-048..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."
