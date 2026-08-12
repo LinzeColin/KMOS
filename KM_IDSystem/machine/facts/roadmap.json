@@ -63,8 +63,8 @@
   {
     "id": "`IDS-STAGE050`",
     "name": "解析阶段提示注入标记",
-    "gate": "Phase 1 静态合同本地通过；下一步须独立进入 Stage050 Phase 2",
-    "status": "Phase 1 本地完成；真实文件检测、真实路由、真实 parser、标记应用、质量门、持久化、OVH 与生产仍禁用"
+    "gate": "Phase 1 静态合同与 Phase 2 仅内存标记切片本地通过；下一步须独立进入 Stage050 Phase 3",
+    "status": "Phase 2 本地完成；真实文件检测、真实路由、真实 parser、运行时标记、质量门、持久化、OVH 与生产仍禁用"
   }
 ]
 }

@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-08-12T10:31:00Z"
-status: "stage050_phase1_completed"
+updated_at_utc: "2026-08-12T10:52:00Z"
+status: "stage050_phase2_completed"
 
 transition_history:
+  stage050_phase2_state:
+    status: "stage050_phase2_completed"
+    current_task_id: "IDS-V0_1-STAGE050-P2"
+    next_gate: "IDS-STAGE050-P3-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE050-P3"
+    github_upload_allowed: false
   stage050_phase1_state:
     status: "stage050_phase1_completed"
     current_task_id: "IDS-V0_1-STAGE050-P1"
@@ -1706,17 +1712,19 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
   STAGE-050:
-    status: "stage050_phase1_completed"
+    status: "stage050_phase2_completed"
     completed_phases:
       - "Phase 1"
+      - "Phase 2"
     next_stage: "STAGE-050"
-    next_phase: "Phase 2"
-    next_gate: "IDS-STAGE050-P2-GATE"
-    current_task_id: "IDS-V0_1-STAGE050-P1"
+    next_phase: "Phase 3"
+    next_gate: "IDS-STAGE050-P3-GATE"
+    current_task_id: "IDS-V0_1-STAGE050-P2"
     acceptance_id: "ACC-STAGE-050"
-    acceptance_status: "phase1_prompt_injection_marker_boundary_complete"
+    acceptance_status: "phase2_controlled_prompt_injection_marker_slice_complete"
     review_status: "not_started"
     phase2_entry_authorized: true
+    phase3_entry_authorized: true
     source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE049_REVIEW_ARTIFACTS"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
@@ -1731,6 +1739,9 @@ stage_progress:
     parser_output_created: false
     fallback_execution_performed: false
     differential_evaluation_performed: false
+    synthetic_instruction_text_classification_performed: true
+    in_memory_controlled_marker_application_performed: true
+    runtime_prompt_injection_marker_application_performed: false
     prompt_injection_marker_application_performed: false
     prompt_injection_marker_result_written: false
     quality_gate_evaluation_performed: false
@@ -1750,16 +1761,22 @@ stage_progress:
     local_service_start_performed: false
     ovh_deployment_performed: false
     production_runtime_activation_performed: false
-    phase2_started: false
+    phase2_started: true
+    phase3_started: false
     whole_stage_review_performed: false
     batch_review_performed: false
     github_upload_allowed: false
     app_reinstall_allowed: false
     push_allowed: false
-    contract_state: "PHASE1_PROMPT_INJECTION_MARKER_BOUNDARY_RUNTIME_DISABLED"
-    prompt_injection_marker_contract_schema: "ids.stage050.prompt_injection_marker.phase1.v1"
+    contract_state: "PHASE2_CONTROLLED_PROMPT_INJECTION_MARKER_SLICE_RUNTIME_DISABLED"
+    prompt_injection_marker_contract_schema: "ids.stage050.prompt_injection_marker.phase2.v1"
     reference_only_candidate_field_count: 7
     parse_product_core_field_count: 6
+    synthetic_control_marker_slice_implemented: true
+    control_parser_versions_recorded: true
+    control_parser_confidences_recorded: true
+    control_text_retained: false
+    control_text_returned: false
     evidence_text_label: "UNTRUSTED_EVIDENCE_TEXT"
     evidence_text_interpretation: "EVIDENCE_ONLY"
     document_text_may_override_system_rule: false
@@ -1777,12 +1794,17 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/prompt_injection_marker/stage050_prompt_injection_marker_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage050_prompt_injection_marker.py"
       - "KM_IDSystem/machine/runs/2026-08-12-stage050-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE050_PHASE2_PROMPT_INJECTION_MARKER_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/prompt_injection_marker/stage050_prompt_injection_marker_slice_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/prompt_injection_marker/stage050_prompt_injection_marker_slice.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage050_prompt_injection_marker_slice.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-stage050-p2-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE050-P1"
-  next_allowed_task_id: "IDS-V0_1-STAGE050-P2"
+  current_task_id: "IDS-V0_1-STAGE050-P2"
+  next_allowed_task_id: "IDS-V0_1-STAGE050-P3"
   github_upload_allowed: false
-  current_run: "STAGE-050 Phase 1 defines only the prompt-injection-marker boundary over reference-only candidate metadata and a future six-field parse-product shape. It keeps source access, file detection, routing, parsing, fallback, differential evaluation, marker application, quality, persistence, Agent, model, OVH and production actions disabled."
-  no_upload_reason: "BATCH041_050 has nine completed and individually reviewed Stages plus only Stage050 Phase 1; Stage050 Phase 2 through review, the independent ten-stage review and batch upload gate are incomplete, so single-phase upload remains unavailable."
+  current_run: "STAGE-050 Phase 2 runs only an in-memory controlled prompt-injection-marker slice over fixed non-business control text and reference-only candidate metadata. It records control parser version and confidence, keeps evidence text unable to override rules, and leaves source access, file detection, routing, parsing, fallback, differential evaluation, runtime marker application, quality, persistence, Agent, model, OVH and production actions disabled."
+  no_upload_reason: "BATCH041_050 has nine completed and individually reviewed Stages plus Stage050 Phase 1 and Phase 2 only; Stage050 Phase 3 through review, the independent ten-stage review and batch upload gate are incomplete, so single-phase upload remains unavailable."

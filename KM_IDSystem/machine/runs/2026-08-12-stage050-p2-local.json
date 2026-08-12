@@ -1,0 +1,80 @@
+{
+  "run_id": "RUN-IDS-STAGE050-P2-LOCAL-20260812-001",
+  "stage": "IDS-STAGE050",
+  "phase": "IDS-STAGE050-P2",
+  "task_id": "IDS-V0_1-STAGE050-P2",
+  "acceptance_id": "ACC-STAGE-050",
+  "occurred_at": "2026-08-12T10:52:00Z",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_IN_MEMORY_PROMPT_INJECTION_MARKER_SLICE",
+  "result": "PASS_PHASE2_CONTROLLED_PROMPT_INJECTION_MARKER_SLICE",
+  "predecessor": "PHASE1_PROMPT_INJECTION_MARKER_BOUNDARY_RUNTIME_DISABLED",
+  "source_authority": "FROZEN_TASKPACK_TEXT_AND_STAGE049_REVIEW_ARTIFACTS",
+  "contract": {
+    "schema_version": "ids.stage050.prompt_injection_marker.phase2.v1",
+    "contract_state": "PHASE2_CONTROLLED_PROMPT_INJECTION_MARKER_SLICE_RUNTIME_DISABLED",
+    "second_authoritative_source_created": false,
+    "reference_only_candidate_field_count": 7,
+    "parse_product_core_field_count": 6,
+    "synthetic_control_marker_slice_implemented": true,
+    "control_parser_versions_recorded": true,
+    "control_parser_confidences_recorded": true,
+    "execution_ready": false,
+    "next_gate": "IDS-STAGE050-P3-GATE"
+  },
+  "observed_work": {
+    "ids_business_source_read_performed": false,
+    "source_file_open_performed": false,
+    "file_signature_detection_performed": false,
+    "route_evaluation_performed": false,
+    "parser_selection_performed": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "actual_parse_product_created": false,
+    "fallback_execution_performed": false,
+    "differential_evaluation_performed": false,
+    "synthetic_instruction_text_classification_performed": true,
+    "in_memory_controlled_marker_application_performed": true,
+    "runtime_prompt_injection_marker_application_performed": false,
+    "prompt_injection_marker_application_performed": false,
+    "marker_result_persisted": false,
+    "quality_gate_evaluation_performed": false,
+    "evidence_promotion_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "phase3_started": false
+  },
+  "evidence_iterations": [
+    {
+      "scope": "Stage050 P2 focused unit suite",
+      "result": "9/9 passed"
+    },
+    {
+      "scope": "Stage050 P1 predecessor compatibility suite",
+      "result": "8/8 passed"
+    },
+    {
+      "scope": "Stage049 P1-P4 and review predecessor compatibility suites",
+      "result": "47/47 passed"
+    },
+    {
+      "scope": "Stage048 P1-P4 and review predecessor compatibility suites",
+      "result": "48/48 passed"
+    },
+    {
+      "scope": "Stage005 governance regression",
+      "result": "valid=true"
+    }
+  ],
+  "rollback": {
+    "return_to": "PHASE1_PROMPT_INJECTION_MARKER_BOUNDARY_RUNTIME_DISABLED",
+    "revertable_scope": "Stage050 P2 slice, contract, focused tests and governance projection only",
+    "source_or_raw_data_change_allowed": false,
+    "persistent_runtime_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

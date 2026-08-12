@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE050",
-  "phase": "IDS-STAGE050-P1",
-  "task": "IDS-V0_1-STAGE050-P1",
-  "real_progress": "Stage050 已完成 P1 静态提示注入标记合同：定义 Stage045--Stage049 职责交界、七字段仅引用候选输入、六字段解析产物结构、不可信证据文本解释、质量隔离、中文反馈与回滚范围；下一步只能在独立 run 进入 Stage050 Phase 2",
-  "report_grade": "冻结 Stage050 任务包、Stage049 本地复审、静态标记合同、聚焦用例与治理投影一致",
-  "business_verdict": "Stage050 P1 只证明提示注入标记的受控静态合同可解释、可恢复且业务线可复审；该结论不证明真实文件检测、真实路由、parser、解析正文、标记应用、质量门、持久化、OVH 或生产能力已启用",
-  "evidence_status": "LOCAL_STAGE050_PHASE1_PROMPT_INJECTION_MARKER_BOUNDARY_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE050-P2",
+  "task": "IDS-V0_1-STAGE050-P2",
+  "real_progress": "Stage050 已完成 P2 仅内存提示注入标记切片：固定非业务 control 文本在七字段仅引用候选元数据上记录 control parser 版本与解析置信度，并一律解释为不可信证据文本；下一步只能在独立 run 进入 Stage050 Phase 3",
+  "report_grade": "冻结 Stage050 任务包、P1 边界、P2 仅内存切片、聚焦用例与治理投影一致",
+  "business_verdict": "Stage050 P2 只证明受控非业务文本可被标记为证据解释、记录版本与置信度且可回滚；该结论不证明真实文件检测、真实路由、parser、解析正文、运行时标记、质量门、持久化、OVH 或生产能力已启用",
+  "evidence_status": "LOCAL_STAGE050_PHASE2_CONTROLLED_PROMPT_INJECTION_MARKER_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-12",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE050-P2-GATE",
+  "next_gate": "IDS-STAGE050-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

@@ -190,7 +190,7 @@ class Stage049DifferentialParserEvaluationStageReviewTests(unittest.TestCase):
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertIn(
-            status["phase"], ("IDS-STAGE049-REVIEW", "IDS-STAGE050-P1")
+            status["phase"], ("IDS-STAGE049-REVIEW", "IDS-STAGE050-P1", "IDS-STAGE050-P2")
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])

@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE050-P2-01`",
+      "criteria": "冻结 Stage050 任务包、P1 边界与 Stage049 已复审工件保持为唯一合同上下文；P2 只使用固定非业务 control 与七字段 reference-only 候选元数据，未建立第二权威事实源",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE050-P2-02`",
+      "criteria": "仅内存切片记录 control-fixture parser 版本与解析置信度；不打开来源、文件、页面或原始元数据，不执行真实检测、路由、parser、fallback 或差异评估",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE050-P2-03`",
+      "criteria": "指令样与普通 control 文本均固定为 UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY；它们不能成为系统指令、工具授权或策略覆盖，也不能改变路线、触发 fallback、绕过质量门或提升证据",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE050-P2-04`",
+      "criteria": "未运行运行时标记、质量门、证据提升、持久化、Agent、模型调用、本地服务、OVH、生产、Phase3、整阶段复审、批次复审、上传或推送",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE050-P1-01`",
       "criteria": "冻结 Stage050 任务包与 Stage049 已复审工件保持为唯一合同上下文；未建立第二权威事实源，未保留来源正文、路径、原始异常或真实解析输出",
       "status": "已通过"

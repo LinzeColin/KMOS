@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-050 Phase 2 - 2026-08-12
+
+- 交付仅内存提示注入标记切片：只接受 P1 的七字段 reference-only 候选元数据、受控解析置信度和两个固定非业务 control 文本；每个可接受 control 都记录 control-fixture parser 版本与置信度，且不回显 control 文本。
+- 指令样文本返回 `CONTROL_INSTRUCTION_TEXT_MARKED_EVIDENCE_ONLY`，普通 control 返回 `CONTROL_EVIDENCE_TEXT_RETAINED_EVIDENCE_ONLY`；二者均固定为 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`，不能成为系统指令、工具授权或策略覆盖，也不能改变路线、触发 fallback、绕过质量门或提升证据。
+- 聚焦 P2 直接单元用例通过 `9/9`，Stage050 P1 前序兼容用例通过 `8/8`，Stage049 P1--P4 及复审前序兼容用例通过 `47/47`，Stage048 P1--P4 及复审前序兼容用例通过 `48/48`；下一门仅为独立 `IDS-STAGE050-P3-GATE`，上传锁继续保持。
+
 ## IDS v0.1 STAGE-050 Phase 1 - 2026-08-12
 
 - 定义提示注入标记静态合同：未来候选输入固定为七字段 reference-only 元数据，解析产物核心字段固定为 `text`、`tables`、`pages`、`sections`、`confidence`、`errors`；Stage045--Stage049 既有职责不被改写。
