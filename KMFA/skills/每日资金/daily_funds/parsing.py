@@ -57,9 +57,12 @@ PARSER_VERSION = "kmfa.daily_funds.parser.v12"
 # passes are missing, and both recovery modes must independently satisfy the
 # unchanged date, row, amount-confidence and footer-total rules with exactly
 # the same result.  A single alternate OCR reading can therefore never create
-# a chart point.  Chart admission never relaxes these rules or produces a
-# formal account-balance publication.
-CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v7"
+# a chart point.  v8 adds a bounded headerless fixed-table recovery for the
+# known source family only: it requires repeated same-day date cells, one
+# visible ``合计`` footer, exactly two stable right-aligned money columns and exact
+# independent OCR agreement.  Chart admission never produces a formal
+# account-balance publication.
+CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v8"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -1123,6 +1126,7 @@ _CASHFLOW_TEMPLATE_MAX_ANCHOR_VERTICAL_SPAN = 160
 _CASHFLOW_TEMPLATE_EDGE_TOLERANCE = 16
 _CASHFLOW_TEMPLATE_MIN_EDGE_OBSERVATIONS = 2
 _CASHFLOW_TEMPLATE_MIN_MONEY_COLUMN_GAP = 32
+_CASHFLOW_HEADERLESS_MIN_DATE_OBSERVATIONS = 2
 
 
 def _cashflow_template_anchor_pair(
@@ -1305,6 +1309,212 @@ def _select_ocr_cashflow_template_header(
     )
 
 
+def _select_ocr_cashflow_headerless_template(
+    lines: tuple[tuple[_OcrWord, ...], ...],
+    *,
+    received_at: datetime,
+    min_confidence_bps: int,
+) -> tuple[tuple[tuple[_OcrWord, ...], ...], tuple[_OcrHeaderCell, ...]]:
+    """Recover one fixed receipt/payment table whose header OCR is unreadable.
+
+    This is deliberately narrower than the visible-header path.  It has no
+    semantic alias expansion: the source must expose at least two date cells
+    in one stable column, exactly one visible ``合计`` footer, and exactly two
+    stable right-aligned amount columns.  The normal row/footer reconciliation then
+    reuses those derived column boundaries.  A title, a lone date, a summary
+    card, or an arbitrary image with numbers therefore cannot create a chart
+    point through this recovery.
+    """
+
+    visual_rows = _ocr_visual_rows(lines)
+    date_candidates: list[tuple[int, _OcrWord, date]] = []
+    for row_index, words in visual_rows:
+        for word in words:
+            try:
+                parsed = _cashflow_observation_date(word.text, received_at=received_at)
+            except ParseError:
+                continue
+            date_candidates.append((row_index, word, parsed))
+
+    date_clusters: list[list[tuple[int, _OcrWord, date]]] = []
+    for candidate in sorted(date_candidates, key=lambda item: (item[1].page, item[1].left + item[1].width, item[1].top)):
+        row_index, word, _ = candidate
+        right = word.left + word.width
+        if not date_clusters:
+            date_clusters.append([candidate])
+            continue
+        previous = date_clusters[-1][-1][1]
+        previous_right = previous.left + previous.width
+        if word.page != previous.page or right - previous_right > _CASHFLOW_TEMPLATE_EDGE_TOLERANCE:
+            date_clusters.append([candidate])
+        else:
+            date_clusters[-1].append(candidate)
+
+    stable_date_clusters = [
+        cluster
+        for cluster in date_clusters
+        if len({row_index for row_index, _, _ in cluster}) >= _CASHFLOW_HEADERLESS_MIN_DATE_OBSERVATIONS
+        and len({parsed for _, _, parsed in cluster}) == 1
+    ]
+    if not stable_date_clusters:
+        raise ParseError("CASHFLOW_OBSERVATION_HEADER_MISSING")
+    if len(stable_date_clusters) != 1:
+        raise ParseError("CASHFLOW_OBSERVATION_HEADER_AMBIGUOUS")
+
+    date_cluster = stable_date_clusters[0]
+    if any(word.confidence_bps < min_confidence_bps for _, word, _ in date_cluster):
+        raise ParseError("OCR_LOW_CONFIDENCE")
+    date_page = date_cluster[0][1].page
+    date_rows = {row_index for row_index, _, _ in date_cluster}
+    date_left = min(word.left for _, word, _ in date_cluster)
+    date_right = max(word.left + word.width for _, word, _ in date_cluster)
+
+    footer_candidates = [
+        (row_index, words)
+        for row_index, words in visual_rows
+        if words[0].page == date_page and "合计" in normalize_header("".join(word.text for word in words))
+    ]
+    if not footer_candidates:
+        raise ParseError("CASHFLOW_OBSERVATION_TOTAL_MISSING")
+    if len(footer_candidates) != 1:
+        raise ParseError("CASHFLOW_OBSERVATION_TOTAL_AMBIGUOUS")
+    footer_index, footer_words = footer_candidates[0]
+    if not date_rows or max(date_rows) >= footer_index:
+        raise ParseError("CASHFLOW_OBSERVATION_HEADER_MISSING")
+
+    body_rows = tuple(
+        words
+        for row_index, words in visual_rows
+        if words[0].page == date_page and min(date_rows) <= row_index <= footer_index
+    )
+    footer_amount_words: list[_OcrWord] = []
+    for word in footer_words:
+        if word.left + word.width <= date_right:
+            continue
+        try:
+            _cashflow_observation_amount(word.text)
+        except ParseError:
+            continue
+        footer_amount_words.append(word)
+    if len(footer_amount_words) < 2:
+        raise ParseError("CASHFLOW_OBSERVATION_TOTAL_MISSING")
+    # Geometry alone cannot safely assign an outflow/inflow meaning when a
+    # footer has a third money-like column (for example a running balance).
+    # The headerless path is deliberately unavailable in that shape; a
+    # readable header must establish field identity instead.
+    if len(footer_amount_words) != 2:
+        raise ParseError("CASHFLOW_OBSERVATION_HEADER_AMBIGUOUS")
+    footer_amount_words.sort(key=lambda word: (word.left + word.width, word.left, word.top))
+    outflow_footer, inflow_footer = footer_amount_words[-2:]
+    outflow_footer_right = outflow_footer.left + outflow_footer.width
+    inflow_footer_right = inflow_footer.left + inflow_footer.width
+    if inflow_footer_right - outflow_footer_right < _CASHFLOW_TEMPLATE_MIN_MONEY_COLUMN_GAP:
+        raise ParseError("CASHFLOW_OBSERVATION_HEADER_MISSING")
+    if outflow_footer.confidence_bps < min_confidence_bps or inflow_footer.confidence_bps < min_confidence_bps:
+        raise ParseError("OCR_LOW_CONFIDENCE")
+
+    def column_words(right_edge: int) -> tuple[_OcrWord, ...]:
+        matched: list[_OcrWord] = []
+        for words in body_rows:
+            for word in words:
+                if abs((word.left + word.width) - right_edge) > _CASHFLOW_TEMPLATE_EDGE_TOLERANCE:
+                    continue
+                try:
+                    _cashflow_observation_amount(word.text)
+                except ParseError:
+                    continue
+                matched.append(word)
+        return tuple(matched)
+
+    outflow_words = column_words(outflow_footer_right)
+    inflow_words = column_words(inflow_footer_right)
+    if not outflow_words or not inflow_words:
+        raise ParseError("CASHFLOW_OBSERVATION_HEADER_MISSING")
+    if any(word.confidence_bps < min_confidence_bps for word in (*outflow_words, *inflow_words)):
+        raise ParseError("OCR_LOW_CONFIDENCE")
+    if len(outflow_words) + len(inflow_words) < _CASHFLOW_HEADERLESS_MIN_DATE_OBSERVATIONS + 2:
+        raise ParseError("CASHFLOW_OBSERVATION_ROWS_EMPTY")
+
+    outflow_left = min(word.left for word in outflow_words)
+    outflow_right = max(word.left + word.width for word in outflow_words)
+    inflow_left = min(word.left for word in inflow_words)
+    inflow_right = max(word.left + word.width for word in inflow_words)
+    if date_right + 1 >= outflow_left or outflow_right >= inflow_left:
+        raise ParseError("CASHFLOW_OBSERVATION_HEADER_MISSING")
+    width = max(word.left + word.width for words in body_rows for word in words)
+    if width <= inflow_right:
+        width = inflow_right
+
+    cells: list[_OcrHeaderCell] = []
+    if date_left > 0:
+        cells.append(_OcrHeaderCell(
+            label="cashflow_headerless_prefix",
+            field=None,
+            left=0,
+            right=date_left - 1,
+            top=0,
+            bottom=0,
+            confidence_bps=min_confidence_bps,
+        ))
+    cells.append(_OcrHeaderCell(
+        label="cashflow_headerless_date",
+        field="business_date",
+        left=date_left,
+        right=date_right,
+        top=0,
+        bottom=0,
+        confidence_bps=min(word.confidence_bps for _, word, _ in date_cluster),
+    ))
+    cells.append(_OcrHeaderCell(
+        label="cashflow_headerless_details",
+        field=None,
+        left=date_right + 1,
+        right=outflow_left - 1,
+        top=0,
+        bottom=0,
+        confidence_bps=min_confidence_bps,
+    ))
+    cells.append(_OcrHeaderCell(
+        label="cashflow_headerless_outflow",
+        field="outflow",
+        left=outflow_left,
+        right=outflow_right,
+        top=0,
+        bottom=0,
+        confidence_bps=min(word.confidence_bps for word in outflow_words),
+    ))
+    if outflow_right + 1 <= inflow_left - 1:
+        cells.append(_OcrHeaderCell(
+            label="cashflow_headerless_gap",
+            field=None,
+            left=outflow_right + 1,
+            right=inflow_left - 1,
+            top=0,
+            bottom=0,
+            confidence_bps=min_confidence_bps,
+        ))
+    cells.append(_OcrHeaderCell(
+        label="cashflow_headerless_inflow",
+        field="inflow",
+        left=inflow_left,
+        right=inflow_right,
+        top=0,
+        bottom=0,
+        confidence_bps=min(word.confidence_bps for word in inflow_words),
+    ))
+    if inflow_right < width:
+        cells.append(_OcrHeaderCell(
+            label="cashflow_headerless_tail",
+            field=None,
+            left=inflow_right + 1,
+            right=width,
+            top=0,
+            bottom=0,
+            confidence_bps=min_confidence_bps,
+        ))
+    return body_rows, tuple(cells)
+
+
 def _cashflow_observation_amount(value: object) -> int:
     text = str(value or "").strip()
     if not text:
@@ -1374,15 +1584,41 @@ def _ocr_cashflow_observation_totals(
 
     header_page = lines[header_index][0].page
     header_bottom = max(cell.bottom for cell in cells)
+    body_rows = tuple(
+        words
+        for words in lines[header_index + 1:]
+        if words[0].page == header_page and min(word.top for word in words) > header_bottom
+    )
+    return _ocr_cashflow_observation_totals_from_rows(
+        body_rows,
+        cells=cells,
+        received_at=received_at,
+        min_confidence_bps=min_confidence_bps,
+    )
+
+
+def _ocr_cashflow_observation_totals_from_rows(
+    rows: Iterable[tuple[_OcrWord, ...]],
+    *,
+    cells: tuple[_OcrHeaderCell, ...],
+    received_at: datetime,
+    min_confidence_bps: int,
+) -> tuple[date, int, int]:
+    """Reconcile one already-bounded set of table rows against its footer.
+
+    The normal header path derives its rows from the selected OCR header.  The
+    narrow headerless recovery below derives an equally bounded row span from
+    repeated date cells and a visible footer.  Both paths deliberately share
+    this exact amount/date/footer gate so the fallback cannot weaken it.
+    """
+
     field_by_label = {cell.label: cell.field for cell in cells}
     row_inflow = 0
     row_outflow = 0
     business_dates: set[date] = set()
     total: tuple[int, int] | None = None
     row_count = 0
-    for words in lines[header_index + 1:]:
-        if words[0].page != header_page or min(word.top for word in words) <= header_bottom:
-            continue
+    for words in rows:
         by_index: dict[int, list[_OcrWord]] = {index: [] for index in range(len(cells))}
         for word in words:
             by_index[_ocr_cell_index(word, cells)].append(word)
@@ -1440,7 +1676,7 @@ def _cashflow_observation_from_ocr(
     psm: int,
     received_at: datetime,
     min_confidence_bps: int,
-) -> tuple[date, int, int, tuple[_OcrHeaderCell, ...]]:
+) -> tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]:
     """Apply one fixed OCR segmentation mode to the unchanged cashflow gate.
 
     This helper intentionally returns only the final date/totals and the
@@ -1455,18 +1691,40 @@ def _cashflow_observation_from_ocr(
         psm=psm,
     ))
     lines = _ocr_lines(words)
-    header_index, cells = _select_ocr_cashflow_header(
-        lines,
-        min_confidence_bps=min_confidence_bps,
-    )
-    business_date, inflow_fen, outflow_fen = _ocr_cashflow_observation_totals(
-        lines,
-        header_index=header_index,
-        cells=cells,
-        received_at=received_at,
-        min_confidence_bps=min_confidence_bps,
-    )
-    return business_date, inflow_fen, outflow_fen, cells
+    headerless = False
+    try:
+        header_index, cells = _select_ocr_cashflow_header(
+            lines,
+            min_confidence_bps=min_confidence_bps,
+        )
+    except ParseError as exc:
+        # The source can retain a verified, footer-reconciled table while OCR
+        # cannot read its header captions.  Only the exact missing-header
+        # case reaches the fixed geometry recovery; ambiguity, low confidence
+        # or any row/footer failure stays a hard failure.
+        if str(exc).split(":", 1)[0] != "CASHFLOW_OBSERVATION_HEADER_MISSING":
+            raise
+        headerless = True
+        body_rows, cells = _select_ocr_cashflow_headerless_template(
+            lines,
+            received_at=received_at,
+            min_confidence_bps=min_confidence_bps,
+        )
+        business_date, inflow_fen, outflow_fen = _ocr_cashflow_observation_totals_from_rows(
+            body_rows,
+            cells=cells,
+            received_at=received_at,
+            min_confidence_bps=min_confidence_bps,
+        )
+    else:
+        business_date, inflow_fen, outflow_fen = _ocr_cashflow_observation_totals(
+            lines,
+            header_index=header_index,
+            cells=cells,
+            received_at=received_at,
+            min_confidence_bps=min_confidence_bps,
+        )
+    return business_date, inflow_fen, outflow_fen, cells, headerless
 
 
 def parse_cashflow_observation(
@@ -1499,8 +1757,31 @@ def parse_cashflow_observation(
         inspect_ocr_attachment_format(filename=filename, payload=payload, mime=mime),
         parser_version=CASHFLOW_OBSERVATION_PARSER_VERSION,
     )
+
+    def require_headerless_consensus(
+        candidate: tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool],
+    ) -> tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]:
+        """Require two independent layout passes for a headerless result."""
+
+        consensus: list[tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]] = []
+        for consensus_psm in OCR_CASHFLOW_CONSENSUS_PSMS:
+            try:
+                consensus.append(_cashflow_observation_from_ocr(
+                    payload=payload,
+                    evidence=evidence,
+                    runner=runner,
+                    psm=consensus_psm,
+                    received_at=received_at,
+                    min_confidence_bps=threshold,
+                ))
+            except ParseError:
+                raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING") from None
+        if any(result[:3] != candidate[:3] for result in consensus):
+            raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING")
+        return candidate
+
     try:
-        business_date, inflow_fen, outflow_fen, cells = _cashflow_observation_from_ocr(
+        primary = _cashflow_observation_from_ocr(
             payload=payload,
             evidence=evidence,
             runner=runner,
@@ -1517,7 +1798,7 @@ def parse_cashflow_observation(
         if str(exc).split(":", 1)[0] != "CASHFLOW_OBSERVATION_HEADER_MISSING":
             raise
         try:
-            business_date, inflow_fen, outflow_fen, cells = _cashflow_observation_from_ocr(
+            fallback = _cashflow_observation_from_ocr(
                 payload=payload,
                 evidence=evidence,
                 runner=runner,
@@ -1532,7 +1813,7 @@ def parse_cashflow_observation(
             # retries.  Both must independently reach the complete strict
             # result and agree exactly; this remains a layout-only recovery
             # rather than a way to choose whichever OCR output has a value.
-            consensus: list[tuple[date, int, int, tuple[_OcrHeaderCell, ...]]] = []
+            consensus: list[tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]] = []
             for consensus_psm in OCR_CASHFLOW_CONSENSUS_PSMS:
                 try:
                     consensus.append(_cashflow_observation_from_ocr(
@@ -1550,7 +1831,15 @@ def parse_cashflow_observation(
             first, second = consensus
             if first[:3] != second[:3]:
                 raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING")
-            business_date, inflow_fen, outflow_fen, cells = first
+            business_date, inflow_fen, outflow_fen, cells, _ = first
+        else:
+            if fallback[4]:
+                fallback = require_headerless_consensus(fallback)
+            business_date, inflow_fen, outflow_fen, cells, _ = fallback
+    else:
+        if primary[4]:
+            primary = require_headerless_consensus(primary)
+        business_date, inflow_fen, outflow_fen, cells, _ = primary
     return CashflowObservation(
         business_date=business_date,
         inflow_fen=inflow_fen,

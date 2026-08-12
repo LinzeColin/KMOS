@@ -1422,8 +1422,9 @@ class DailyFundsRuntime:
         An explicitly classified ``资金流水明细`` or ``资金明细`` keeps its
         chart-only review path.  The latter is not promoted into formal
         account/transaction facts merely by this admission: the isolated
-        cashflow parser still requires its own date, bank, two-direction and
-        footer-total proof before any chart point exists.  A title-less
+        cashflow parser still requires its own visible-header identity or
+        fixed-table geometry, same-day two-direction and footer-total proof
+        before any chart point exists.  A title-less
         attachment remains admissible only after the same raw-byte parser
         census has resolved it to a transaction family.  This preserves the
         strict formal-reconciliation boundary while allowing an actual

@@ -1654,6 +1654,105 @@ def test_cashflow_observation_uses_fixed_layout_template_when_money_headers_are_
     assert observation.parser_evidence.parser_version == CASHFLOW_OBSERVATION_PARSER_VERSION
 
 
+def test_cashflow_observation_uses_headerless_geometry_only_with_repeated_dates_and_footer() -> None:
+    """Unreadable captions still need a reproducible same-day table shape."""
+
+    headers = ["列一", "列二", "列三", "列四", "列五"]
+    rows = [
+        ["08月07日", "付款", "40.00", "", "机构甲"],
+        ["08月07日", "收款", "", "50.00", "机构甲"],
+        ["", "合计", "40.00", "50.00", ""],
+    ]
+    payload = b"\x89PNG\r\n\x1a\nheaderless-cashflow-observation"
+
+    observation = parse_cashflow_observation(
+        family="资金明细",
+        filename="资金明细_20260807.png",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 10, tzinfo=UTC),
+        mime="image/png",
+        runner=_ocr_runner(_ocr_tsv(headers, rows[0], extra_rows=rows[1:])),
+    )
+
+    assert observation.business_date.isoformat() == "2026-08-07"
+    assert observation.inflow_fen == 5_000
+    assert observation.outflow_fen == 4_000
+
+    with pytest.raises(ParseError, match="CASHFLOW_OBSERVATION_TOTAL_MISSING"):
+        parse_cashflow_observation(
+            family="资金明细",
+            filename="资金明细_20260807.png",
+            payload=payload,
+            source=_source(payload),
+            received_at=datetime(2026, 8, 10, tzinfo=UTC),
+            mime="image/png",
+            runner=_ocr_runner(_ocr_tsv(headers, rows[0], extra_rows=rows[1:-1])),
+        )
+
+
+def test_cashflow_observation_headerless_geometry_requires_independent_agreement() -> None:
+    """A headerless result must be reproduced by both alternate segmenters."""
+
+    headers = ["列一", "列二", "列三", "列四", "列五"]
+    rows = [
+        ["08月07日", "付款", "40.00", "", "机构甲"],
+        ["08月07日", "收款", "", "50.00", "机构甲"],
+        ["", "合计", "40.00", "50.00", ""],
+    ]
+    alternate_rows = [
+        ["08月07日", "付款", "41.00", "", "机构甲"],
+        ["08月07日", "收款", "", "50.00", "机构甲"],
+        ["", "合计", "41.00", "50.00", ""],
+    ]
+    payload = b"\x89PNG\r\n\x1a\nheaderless-cashflow-consensus"
+    primary = _ocr_tsv(headers, rows[0], extra_rows=rows[1:])
+    alternate = _ocr_tsv(headers, alternate_rows[0], extra_rows=alternate_rows[1:])
+    calls: list[str] = []
+
+    def runner(command, **_kwargs):
+        psm = command[command.index("--psm") + 1]
+        calls.append(psm)
+        assert psm in {"4", "6", "12"}
+        return SimpleNamespace(returncode=0, stdout=alternate if psm == "12" else primary, stderr="")
+
+    with pytest.raises(ParseError, match="CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING"):
+        parse_cashflow_observation(
+            family="资金明细",
+            filename="资金明细_20260807.png",
+            payload=payload,
+            source=_source(payload),
+            received_at=datetime(2026, 8, 10, tzinfo=UTC),
+            mime="image/png",
+            runner=runner,
+        )
+
+    assert calls == ["6", "4", "12"]
+
+
+def test_cashflow_observation_headerless_geometry_rejects_third_money_column() -> None:
+    """A third money column has no safe outflow/inflow identity without captions."""
+
+    headers = ["列一", "列二", "列三", "列四", "列五", "列六"]
+    rows = [
+        ["08月07日", "付款", "40.00", "", "100.00", "机构甲"],
+        ["08月07日", "收款", "", "50.00", "150.00", "机构甲"],
+        ["", "合计", "40.00", "50.00", "150.00", ""],
+    ]
+    payload = b"\x89PNG\r\n\x1a\nheaderless-cashflow-third-money-column"
+
+    with pytest.raises(ParseError, match="CASHFLOW_OBSERVATION_HEADER_AMBIGUOUS"):
+        parse_cashflow_observation(
+            family="资金明细",
+            filename="资金明细_20260807.png",
+            payload=payload,
+            source=_source(payload),
+            received_at=datetime(2026, 8, 10, tzinfo=UTC),
+            mime="image/png",
+            runner=_ocr_runner(_ocr_tsv(headers, rows[0], extra_rows=rows[1:])),
+        )
+
+
 def test_runtime_cashflow_observation_requires_complete_unique_day_coverage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import daily_funds.runtime as runtime_module
 
