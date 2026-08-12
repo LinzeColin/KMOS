@@ -1431,8 +1431,15 @@ class DailyFundsRuntime:
             callback=writer.audit_raw_archive,
         )
 
-        inspection = self._inspect_attachment_capabilities(audit.verified_attachments)
+        # The chart-only cashflow projection is independently fail-closed: it
+        # consumes the same freshly verified raw readback, checks every
+        # eligible image and atomically clears all points on a single failure.
+        # Run it before the broader capability census so a long formal OCR
+        # review cannot leave the owner page with no truthful chart receipt at
+        # all.  This does not weaken or shortcut the later capability scope,
+        # the two-fact publication gate, or any integer-fen reconciliation.
         self._write_cashflow_observation(audit.verified_attachments)
+        inspection = self._inspect_attachment_capabilities(audit.verified_attachments)
         integrity_failures = tuple(
             failure
             for failure in inspection.failures

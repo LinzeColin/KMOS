@@ -2783,6 +2783,19 @@ def test_raw_archive_audit_records_only_readback_capability_and_never_publishes(
     runtime = DailyFundsRuntime(config)
     monkeypatch.setattr(runtime_module, "GitSparseWriter", ArchiveWriter)
     monkeypatch.setattr(runtime, "_dws_client", lambda: pytest.fail("raw archive audit must not call DWS"))
+    raw_cashflow_write = runtime._write_cashflow_observation
+    raw_capability_inspect = runtime._inspect_attachment_capabilities
+
+    def cashflow_before_capability(attachments):
+        calls.append("cashflow")
+        return raw_cashflow_write(attachments)
+
+    def capability_after_cashflow(attachments):
+        calls.append("capability")
+        return raw_capability_inspect(attachments)
+
+    monkeypatch.setattr(runtime, "_write_cashflow_observation", cashflow_before_capability)
+    monkeypatch.setattr(runtime, "_inspect_attachment_capabilities", capability_after_cashflow)
 
     result = runtime.raw_archive_audit()
 
@@ -2792,7 +2805,7 @@ def test_raw_archive_audit_records_only_readback_capability_and_never_publishes(
         "capability_supported": 1,
         "capability_needs_review": 0,
     }
-    assert calls == ["init", "audit"]
+    assert calls == ["init", "audit", "cashflow", "capability"]
     assert not (config.publication_dir / "current.json").exists()
     with runtime.state.connection() as connection:
         inbox = connection.execute("SELECT state FROM inbox").fetchone()
