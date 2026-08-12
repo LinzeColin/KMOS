@@ -6324,11 +6324,12 @@ def test_daily_funds_deployment_keeps_its_auth_bundle_and_identifiers_private() 
     assert "DAILY_FUNDS_DWS_AUTH_BUNDLE_B64=" in env_example
     assert "DAILY_FUNDS_DWS_CLIENT_SECRET" not in daily_service
     assert "DAILY_FUNDS_DWS_CLIENT_SECRET" not in env_example
-    # A stale legacy AppSecret is explicitly pruned during the atomic-ish
-    # replacement, but it is never read from GitHub Secrets or re-created.
+    # A stale legacy AppSecret is never read from GitHub Secrets or re-created.
+    # The official Coolify key-update API avoids requiring DELETE permission;
+    # Compose does not declare this legacy key, so it cannot reach the worker.
     assert "DAILY_FUNDS_DWS_CLIENT_SECRET: ${{ secrets." not in ops
-    assert '"DAILY_FUNDS_DWS_CLIENT_SECRET",' in ops
-    assert "每日资金 12 个必填 secret" in ops
+    assert "每日资金 12 个必填 secret 已通过官方 PATCH" in ops
+    assert '"$BASE/api/v1/applications/$APP/envs" || true)' in ops
     assert "DAILY_FUNDS_OCI_PAR_URL" in ops
     assert "optional_keys=(DAILY_FUNDS_DWS_CLIENT_ID DAILY_FUNDS_DWS_AUTH_BUNDLE_B64)" in ops
     assert "留空时使用 DWS 官方默认客户端" in env_example

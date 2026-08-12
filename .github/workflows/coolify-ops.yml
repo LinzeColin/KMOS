@@ -1502,9 +1502,9 @@ jobs:
       # 每日资金是一条独立的数据面：不能借用项目成本或其他 KMFA 服务的
       # 凭据。12 个运行必填值先在 GitHub Secret Store 完整存在才开始写
       # Coolify；可选 DWS client override 与 recovery bundle 只在显式配置时
-      # 一并同步。Coolify
-      # 没有跨 env 的事务，任何 HTTP 失败都停止并要求整次重跑，不会把不完整
-      # 回写宣称为完成。
+      # 一并同步。使用 Coolify 官方按应用 PATCH 接口更新同名键，而不是
+      # 先删除后重建：部署 token 可以安全更新配置，但未必拥有删除权限；
+      # 同步失败时不会触发部署，运行中的容器继续保留上一份完整配置。
       - name: 同步每日资金专用 secrets（必填全量、可选 DWS 覆盖/恢复包、值不回显）
         if: inputs.mode == 'sync-daily-funds-secrets'
         env:
@@ -1557,44 +1557,6 @@ jobs:
             printf '仓库缺每日资金 secret：%s\n' "${missing[*]}"
             exit 1
           fi
-          curl -fsSL -H "Authorization: Bearer $TOKEN" \
-            "$BASE/api/v1/applications/$APP/envs" -o "$RUNNER_TEMP/daily-funds-envs-before.json"
-          python3 - <<'PY' > "$RUNNER_TEMP/daily-funds-targets.txt"
-          import json
-          import os
-
-          target = {
-              "DAILY_FUNDS_GROUP_ID", "DAILY_FUNDS_SENDER_ID",
-              "DAILY_FUNDS_DWS_CLIENT_ID",
-              # 旧实现遗留的 AppSecret 只允许在一次完整的、可回读的重建
-              # 中删除，绝不重新写入 daily-funds 的独立 DWS profile。
-              "DAILY_FUNDS_DWS_CLIENT_SECRET",
-              "DAILY_FUNDS_DWS_AUTH_BUNDLE_B64", "DAILY_FUNDS_GIT_SSH_KEY_B64",
-              "DAILY_FUNDS_CLOUDFLARE_API_TOKEN", "DAILY_FUNDS_CF_ACCOUNT_ID",
-              "DAILY_FUNDS_D1_DATABASE_ID", "DAILY_FUNDS_RESTORE_DRILL_D1_DATABASE_ID",
-              "DAILY_FUNDS_R2_ENDPOINT_URL", "DAILY_FUNDS_R2_BUCKET",
-              "DAILY_FUNDS_R2_ACCESS_KEY_ID", "DAILY_FUNDS_R2_SECRET_ACCESS_KEY",
-              "DAILY_FUNDS_OCI_ENDPOINT_URL", "DAILY_FUNDS_OCI_BUCKET",
-              "DAILY_FUNDS_OCI_ACCESS_KEY_ID", "DAILY_FUNDS_OCI_SECRET_ACCESS_KEY",
-              "DAILY_FUNDS_OCI_PAR_URL",
-          }
-          data = json.load(open(
-              os.path.join(os.environ["RUNNER_TEMP"], "daily-funds-envs-before.json"),
-              encoding="utf-8",
-          ))
-          envs = data if isinstance(data, list) else data.get("data") or []
-          for item in envs:
-              if str(item.get("key")) in target:
-                  print(item.get("uuid") or "")
-          PY
-          while IFS= read -r uuid; do
-            [ -n "$uuid" ] || continue
-            code=$(curl -sS -o /dev/null -w '%{http_code}' -X DELETE \
-              -H "Authorization: Bearer $TOKEN" \
-              "$BASE/api/v1/applications/$APP/envs/$uuid" || true)
-            [ "$code" = "200" ] || [ "$code" = "204" ] || {
-              echo "删除旧每日资金 secret 条目失败：HTTP $code"; exit 1; }
-          done < "$RUNNER_TEMP/daily-funds-targets.txt"
           python3 - <<'PY' > "$RUNNER_TEMP/daily-funds-payloads.jsonl"
           import json
           import os
@@ -1615,13 +1577,13 @@ jobs:
           PY
           while IFS= read -r payload; do
             printf '%s\n' "$payload" > "$RUNNER_TEMP/daily-funds-payload.json"
-            code=$(curl -sS -o "$RUNNER_TEMP/daily-funds-post.out" -w '%{http_code}' -X POST \
+            code=$(curl -sS -o "$RUNNER_TEMP/daily-funds-patch.out" -w '%{http_code}' -X PATCH \
               -H "Authorization: Bearer $TOKEN" \
               -H "Content-Type: application/json" \
               --data @"$RUNNER_TEMP/daily-funds-payload.json" \
               "$BASE/api/v1/applications/$APP/envs" || true)
             [ "$code" = "200" ] || [ "$code" = "201" ] || {
-              echo "重建每日资金 secret 条目失败：HTTP $code"; exit 1; }
+              echo "更新每日资金 secret 条目失败：HTTP $code"; exit 1; }
           done < "$RUNNER_TEMP/daily-funds-payloads.jsonl"
           curl -fsSL -H "Authorization: Bearer $TOKEN" \
             "$BASE/api/v1/applications/$APP/envs" -o "$RUNNER_TEMP/daily-funds-envs-after.json"
@@ -1663,7 +1625,7 @@ jobs:
               if counts[key] != representation_count:
                   print(f"{key} 回读失败：未覆盖全部正常应用上下文。")
                   sys.exit(1)
-          print("每日资金 12 个必填 secret 已覆盖全部正常应用上下文；可选 DWS 客户端覆盖和恢复包仅在显式配置时同步，值一致性待运行时验收。")
+          print("每日资金 12 个必填 secret 已通过官方 PATCH 覆盖全部正常应用上下文；可选 DWS 客户端覆盖和恢复包仅在显式配置时同步，值一致性待运行时验收。")
           PY
 
       - name: 测试期安全态——清空群机器人 + 关投递（去重后重写，杜绝同名残留）
