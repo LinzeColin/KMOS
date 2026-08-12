@@ -101,7 +101,24 @@ printf '%s\n' "$CRON_PID" > "$CRON_PID_FILE"
 # values-free contract as the scheduled audit: it never calls DWS, moves a
 # publication pointer, or touches D1/R2/OCI.  Running after cron starts keeps
 # scheduler readiness independent from a slow private-Git readback.
-python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1 &
+#
+# A rolling deployment can overlap a prior container's final sparse-Git read.
+# The worker deliberately returns 75 for that *specific* lease collision, but
+# leaving the first RUNNING receipt untouched until tomorrow's fixed audit
+# makes a finished old holder look like a hung current audit.  Retry exactly
+# once after the maximum 13-minute lease plus a small scheduling margin.  Do
+# not retry any source, integrity, parser, or credential failure.
+STARTUP_RAW_ARCHIVE_RETRY_DELAY_SECONDS=800
+(
+  set +e
+  python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1
+  RAW_ARCHIVE_AUDIT_RC=$?
+  if [ "$RAW_ARCHIVE_AUDIT_RC" -eq 75 ]; then
+    sleep "$STARTUP_RAW_ARCHIVE_RETRY_DELAY_SECONDS"
+    python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1 || true
+  fi
+  exit 0
+) &
 RAW_ARCHIVE_AUDIT_PID=$!
 
 shutdown() {
