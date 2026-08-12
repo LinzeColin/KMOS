@@ -1150,6 +1150,25 @@ def test_deterministic_ocr_requires_high_confidence_and_opens_a_strict_table() -
         )
 
 
+def test_generic_ocr_reassembles_a_visually_aligned_split_header_without_relaxing_schema() -> None:
+    headers = ["业务日期", "公司", "开户行", "账号", "期初余额", "期末余额", "币种"]
+    values = ["2026-07-30", "甲", "乙", "001", "100.00", "110.00", "CNY"]
+    payload = b"\x89PNG\r\n\x1a\nsplit-formal-ocr-header"
+
+    candidate = parse_ocr_attachment(
+        family="资金明细",
+        filename="资金明细_20260730.png",
+        payload=payload,
+        source=_source(payload),
+        mime="image/png",
+        runner=_ocr_runner(_ocr_tsv_split_header(headers, [values])),
+    )
+
+    assert candidate.facts.family == ACCOUNT_FAMILY
+    assert len(candidate.facts.accounts) == 1
+    assert len(candidate.facts.transactions) == 0
+
+
 def test_generic_ocr_source_label_classifies_a_uniquely_matching_account_table() -> None:
     headers = ["业务日期", "公司", "开户行", "账号", "期初余额", "期末余额", "币种"]
     values = ["2026-07-30", "甲", "乙", "001", "100.00", "110.00", "CNY"]

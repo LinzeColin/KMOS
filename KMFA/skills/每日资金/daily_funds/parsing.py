@@ -28,7 +28,7 @@ from .models import CashflowObservation, AccountSnapshot, ParsedFacts, ParserEvi
 
 ACCOUNT_FAMILY = "资金账户明细表"
 TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
-# v8 keeps the bounded deterministic OCR fallback and aligns transaction
+# v9 keeps the bounded deterministic OCR fallback and aligns transaction
 # identity requirements to the frozen task-pack schema: bank_id is optional
 # and a source-row fact identifier is used only when a source does not expose
 # a transaction identifier.
@@ -36,12 +36,14 @@ TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
 # It retains v5's narrow source-classification rule: a generic ``资金明细``
 # image may be treated as an account snapshot only when its OCR table satisfies
 # the account schema *and* cannot satisfy the transaction schema.  When both
-# candidates fail at the same values-free OCR phase, v8 retains that bounded
+# candidates fail at the same values-free OCR phase, v9 retains that bounded
 # diagnosis for the protected capability receipt.  It never turns a failed
-# candidate into a fact or relaxes either schema.  Capability receipts are
-# versioned, so a rule change cannot inherit a prior parser's production-
-# support assertion.
-PARSER_VERSION = "kmfa.daily_funds.parser.v8"
+# candidate into a fact or relaxes either schema.  When a complete header is
+# visually aligned but Tesseract splits its cells into separate lines, v9
+# reassembles only those overlapping OCR lines and then applies the same exact
+# aliases, confidence, row and fact rules.  Capability receipts are versioned,
+# so a rule change cannot inherit a prior parser's production-support assertion.
+PARSER_VERSION = "kmfa.daily_funds.parser.v9"
 # This parser is deliberately separate from ``PARSER_VERSION``.  It can
 # create a chart-only receipt from a narrow receipt/payment screenshot without
 # weakening the two-fact account-balance publication contract.
@@ -967,8 +969,38 @@ def _parse_ocr_table(
 ) -> OcrParsedAttachment:
     """Parse one already-OCRed table under one exact source-family schema."""
 
-    header_index, cells = _select_ocr_header(lines, family=family, min_confidence_bps=min_confidence_bps)
-    rows = _ocr_rows(lines, header_index=header_index, cells=cells, family=family, min_confidence_bps=min_confidence_bps)
+    active_lines = lines
+    try:
+        header_index, cells = _select_ocr_header(
+            active_lines,
+            family=family,
+            min_confidence_bps=min_confidence_bps,
+        )
+    except ParseError as exc:
+        # This is a layout-only repair for a known Tesseract behaviour: cells
+        # that visually share a table row may be emitted as distinct OCR
+        # lines.  It is deliberately available only when the original pass
+        # found no complete header at all.  An ambiguous header, low
+        # confidence header or row/fact error remains a hard failure rather
+        # than a reason to try a different semantic interpretation.
+        if str(exc).split(":", 1)[0] != "OCR_HEADER_MAPPING_MISSING":
+            raise
+        visual_lines = tuple(words for _, words in _ocr_visual_rows(lines))
+        if visual_lines == lines:
+            raise
+        active_lines = visual_lines
+        header_index, cells = _select_ocr_header(
+            active_lines,
+            family=family,
+            min_confidence_bps=min_confidence_bps,
+        )
+    rows = _ocr_rows(
+        active_lines,
+        header_index=header_index,
+        cells=cells,
+        family=family,
+        min_confidence_bps=min_confidence_bps,
+    )
     facts = _facts_from_rows(family=family, filename=filename, source=source, rows=rows, parser_evidence=evidence)
     return OcrParsedAttachment(
         facts=facts,
