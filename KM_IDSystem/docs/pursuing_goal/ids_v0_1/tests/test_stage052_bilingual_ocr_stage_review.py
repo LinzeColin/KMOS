@@ -6,26 +6,28 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-REVIEW = BASE / "STAGE051_STAGE_REVIEW.md"
-REVIEW_MODULE = BASE / "ocr_queue" / "stage051_ocr_queue_stage_review.py"
-P1_CONTRACT = BASE / "ocr_queue" / "stage051_ocr_queue_contract.json"
-P2_CONTRACT = BASE / "ocr_queue" / "stage051_ocr_queue_slice_contract.json"
-P3_CONTRACT = BASE / "ocr_queue" / "stage051_ocr_queue_quality_scenarios_contract.json"
-P4_CONTRACT = BASE / "ocr_queue" / "stage051_ocr_queue_delivery_contract.json"
+REVIEW = BASE / "STAGE052_STAGE_REVIEW.md"
+REVIEW_MODULE = BASE / "ocr_queue" / "stage052_bilingual_ocr_stage_review.py"
+P1_CONTRACT = BASE / "ocr_queue" / "stage052_bilingual_ocr_contract.json"
+P2_CONTRACT = BASE / "ocr_queue" / "stage052_bilingual_ocr_slice_contract.json"
+P3_CONTRACT = BASE / "ocr_queue" / "stage052_bilingual_ocr_quality_scenarios_contract.json"
+P4_CONTRACT = BASE / "ocr_queue" / "stage052_bilingual_ocr_delivery_contract.json"
 BATCH = BASE / "BATCH051_060_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-13-stage051-review-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-13-stage052-review-local.json"
 
 
-class Stage051OcrQueueStageReviewTests(unittest.TestCase):
+class Stage052BilingualOcrStageReviewTests(unittest.TestCase):
     _module_value = None
     _report_value = None
 
     def _module(self):
         if self.__class__._module_value is None:
-            spec = importlib.util.spec_from_file_location("stage051_review", REVIEW_MODULE)
+            spec = importlib.util.spec_from_file_location(
+                "stage052_review", REVIEW_MODULE
+            )
             module = importlib.util.module_from_spec(spec)
             self.assertIsNotNone(spec.loader)
             spec.loader.exec_module(module)
@@ -34,7 +36,9 @@ class Stage051OcrQueueStageReviewTests(unittest.TestCase):
 
     def _report(self):
         if self.__class__._report_value is None:
-            self.__class__._report_value = self._module().build_stage051_review_report()
+            self.__class__._report_value = (
+                self._module().build_stage052_review_report()
+            )
         return self.__class__._report_value
 
     def test_review_artifacts_exist(self):
@@ -56,25 +60,31 @@ class Stage051OcrQueueStageReviewTests(unittest.TestCase):
 
     def test_review_identity_and_local_result(self):
         report = self._report()
-        self.assertEqual("ids.stage051.ocr_queue.stage_review.v1", report["schema_version"])
-        self.assertEqual("IDS-V0_1-STAGE051-REVIEW", report["task_id"])
-        self.assertEqual("ACC-STAGE-051", report["acceptance_id"])
+        self.assertEqual(
+            "ids.stage052.bilingual_ocr.stage_review.v1",
+            report["schema_version"],
+        )
+        self.assertEqual("IDS-V0_1-STAGE052-REVIEW", report["task_id"])
+        self.assertEqual("ACC-STAGE-052", report["acceptance_id"])
         self.assertTrue(report["review_valid"], report)
         self.assertEqual(
-            "PASS_REVIEWED_LOCAL_OCR_QUEUE_RUNTIME_DISABLED", report["result"]
+            "PASS_REVIEWED_LOCAL_BILINGUAL_OCR_RUNTIME_DISABLED",
+            report["result"],
         )
-        self.assertEqual("IDS-STAGE052-P1-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE053-P1-GATE", report["next_gate"])
 
     def test_review_preserves_single_authority_reference_only_boundary(self):
         report = self._report()
         self.assertEqual(
-            "FROZEN_TASKPACK_TEXT_STAGE051_P1_TO_P4_AND_BATCH041_050_REVIEW_ARTIFACTS",
+            "FROZEN_TASKPACK_TEXT_STAGE052_P1_TO_P4_AND_STAGE051_REVIEW_ARTIFACTS",
             report["source_authority"],
         )
         self.assertFalse(report["second_authoritative_source_created"])
         self.assertFalse(report["source_body_or_path_allowed"])
         self.assertFalse(report["raw_metadata_content_accessed"])
-        self.assertTrue(report["review_invariants"]["single_authority_boundary_preserved"])
+        self.assertTrue(
+            report["review_invariants"]["single_authority_boundary_preserved"]
+        )
 
     def test_review_checks_phase1_and_phase2_shape_without_returning_control_text(self):
         report = self._report()
@@ -119,8 +129,7 @@ class Stage051OcrQueueStageReviewTests(unittest.TestCase):
         )
 
     def test_review_preserves_quality_limit_cache_and_rollback_chain(self):
-        report = self._report()
-        invariants = report["review_invariants"]
+        invariants = self._report()["review_invariants"]
         self.assertTrue(invariants["quality_limit_and_confirmation_boundary_preserved"])
         self.assertTrue(invariants["cache_and_rerun_boundary_preserved"])
         self.assertTrue(invariants["rollback_chain_preserved"])
@@ -132,12 +141,14 @@ class Stage051OcrQueueStageReviewTests(unittest.TestCase):
             "phase3": json.loads(P3_CONTRACT.read_text(encoding="utf-8")),
             "phase4": {},
         }
-        report = self._module().build_stage051_review_report(
+        report = self._module().build_stage052_review_report(
             contract_provider=lambda: contracts
         )
         self.assertFalse(report["review_valid"])
-        self.assertEqual("FAIL_CLOSED_STAGE051_OCR_QUEUE_REVIEW", report["result"])
-        self.assertEqual("IDS-STAGE051-REVIEW-GATE", report["next_gate"])
+        self.assertEqual(
+            "FAIL_CLOSED_STAGE052_BILINGUAL_OCR_REVIEW", report["result"]
+        )
+        self.assertEqual("IDS-STAGE052-REVIEW-GATE", report["next_gate"])
 
     def test_review_has_no_runtime_or_external_actions(self):
         report = self._report()
@@ -158,8 +169,8 @@ class Stage051OcrQueueStageReviewTests(unittest.TestCase):
             "model_token_consumption_performed",
             "ovh_deployment_performed",
             "production_runtime_activation_performed",
-            "stage052_started",
-            "stage052_entry_allowed",
+            "stage053_started",
+            "stage053_entry_allowed",
             "batch_review_performed",
             "github_upload_performed",
             "github_upload_allowed",
@@ -169,67 +180,52 @@ class Stage051OcrQueueStageReviewTests(unittest.TestCase):
                 self.assertFalse(report[field])
         self.assertTrue(report["whole_stage_review_performed"])
 
-    def test_governance_closes_stage051_only_to_a_separate_stage052_run(self):
+    def test_governance_closes_stage052_only_to_a_separate_stage053_run(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage051_completed_reviewed_local"'),
-            (batch, "stage051_review_state:"),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE051-REVIEW"'),
-            (batch, 'next_allowed_task_id: "IDS-V0_1-STAGE052-P1"'),
-            (batch, "stage052_entry_authorized: false"),
-            (roadmap, 'current_phase_id: "IDS-STAGE051-REVIEW"'),
-            (roadmap, 'current_task_id: "IDS-V0_1-STAGE051-REVIEW"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE052-P1-GATE"'),
+            (batch, 'status: "stage052_completed_reviewed_local"'),
+            (batch, "stage052_review_state:"),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE052-REVIEW"'),
+            (batch, 'next_allowed_task_id: "IDS-V0_1-STAGE053-P1"'),
+            (batch, "stage053_entry_authorized: false"),
+            (roadmap, 'current_phase_id: "IDS-STAGE052-REVIEW"'),
+            (roadmap, 'current_task_id: "IDS-V0_1-STAGE052-REVIEW"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE053-P1-GATE"'),
             (roadmap, 'status: "completed_reviewed_local"'),
-            (batch, 'status: "stage052_phase1_completed"'),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE052-P1"'),
-            (batch, 'next_gate: "IDS-STAGE052-P2-GATE"'),
-            (roadmap, 'current_stage_id: "IDS-STAGE052"'),
-            (roadmap, 'current_phase_id: "IDS-STAGE052-P1"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertIn(
-            status["phase"],
-            (
-                "IDS-V0_1-STAGE051-REVIEW",
-                "IDS-V0_1-STAGE052-P1",
-                "IDS-V0_1-STAGE052-P2",
-                "IDS-V0_1-STAGE052-P3",
-                "IDS-V0_1-STAGE052-P4",
-                "IDS-V0_1-STAGE052-REVIEW",
-            ),
-        )
+        self.assertEqual("IDS-STAGE052", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE052-REVIEW", status["phase"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
     def test_machine_run_and_event_record_only_local_review_evidence(self):
         run = json.loads(RUN.read_text(encoding="utf-8"))
         self.assertEqual(
-            "PASS_REVIEWED_LOCAL_OCR_QUEUE_RUNTIME_DISABLED",
-            run["result"].strip("`"),
+            "PASS_REVIEWED_LOCAL_BILINGUAL_OCR_RUNTIME_DISABLED",
+            run["result"].strip(),
         )
         self.assertEqual(11, run["evidence_iterations"][0]["passed"])
         self.assertFalse(run["observed_work"]["ocr_engine_invocation_performed"])
-        self.assertFalse(run["observed_work"]["review_queue_write_performed"])
-        self.assertFalse(run["observed_work"]["model_token_consumption_performed"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
-        self.assertFalse(run["observed_work"]["stage052_started"])
+        self.assertTrue(run["observed_work"]["whole_stage_review_performed"])
+        self.assertFalse(run["observed_work"]["stage053_started"])
 
         events = [
-            json.loads(line)
-            for line in EVENTS.read_text(encoding="utf-8").splitlines()
+            json.loads(line) for line in EVENTS.read_text(encoding="utf-8").splitlines()
         ]
         event = next(
             item
             for item in events
-            if item.get("event_id") == "EVT-IDS-V0_1-STAGE051-REVIEW-20260813-001"
+            if item.get("event_id") == "EVT-IDS-V0_1-STAGE052-REVIEW-20260813-001"
         )
-        self.assertEqual("IDS-V0_1-STAGE051-REVIEW", event["task_id"])
-        self.assertIn("next_gate=IDS-STAGE052-P1-GATE", event["notes"])
+        self.assertEqual("stage_review", event["event_type"])
+        self.assertEqual("IDS-V0_1-STAGE052-REVIEW", event["task_id"])
+        self.assertIn("next_gate=IDS-STAGE053-P1-GATE", event["notes"])
         self.assertIn(
             "KM_IDSystem/" + str(REVIEW.relative_to(ROOT)),
             {item["ref"] for item in event["evidence_refs"]},
