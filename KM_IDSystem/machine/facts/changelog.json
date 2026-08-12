@@ -1,5 +1,10 @@
 [ 
   {
+    "version": "v0.1-stage053-review-local",
+    "date": "2026-08-13",
+    "summary": "完成 Stage053 按页 OCR 输出整阶段本地白箱复审：P1--P4 合同、十一字段按页结构、五类显式质量处置、5 个 metadata-only 交付样例、中文确认、缓存边界和 P4 到 P3 到 P2 到 P1 到 Stage052 review 回滚链一致。未读取真实资料，未调用 OCR 引擎、创建队列/缓存/复核记录或生产运行，未执行 Agent、模型 Token、OVH、上传或推送；下一步仅可在新的独立 run 进入 Stage054 P1。"
+  },
+  {
     "version": "v0.1-stage053-p4-local",
     "date": "2026-08-13",
     "summary": "完成 Stage053 P4 按页 OCR 输出交付证据：从 P3 五类固定非业务 control 质量报告派生 5 个 metadata-only 样例、HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1 控制置信度汇总、1 条显式失败、2 条未排队复核路由、3 条中文人工确认提示与零临时产物重跑说明。未打开真实样本、未保留 OCR 文本或来源路径，未执行 OCR、复核、质量门、缓存清理、智能体、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage053 整阶段复审。"

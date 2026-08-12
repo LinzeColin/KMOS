@@ -1444,6 +1444,25 @@ def evaluate_stage038_source_reverification(
                 and stage_review.get("task_id") == "IDS-V0_1-STAGE038-REVIEW"
                 and stage_review.get("status") == "completed"
             )
+            or (
+                roadmap.get("current_stage_id") == "IDS-STAGE053"
+                and roadmap.get("current_phase_id") == "IDS-STAGE053-REVIEW"
+                and roadmap.get("current_task_id") == "IDS-V0_1-STAGE053-REVIEW"
+                and roadmap.get("next_gate_id") == "IDS-STAGE054-P1-GATE"
+                and source_gate.get("gate_id")
+                == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
+                and source_gate.get("status") == "passed"
+                and source_gate.get("task_id")
+                == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY"
+                and source_gate.get("phase2_entry_authorized") is True
+                and phase2.get("entry_authorized") is True
+                and phase2.get("status") == "passed_with_local_evidence"
+                and phase3.get("status") == "passed_with_local_evidence"
+                and phase4.get("status") == "passed_with_local_evidence"
+                and stage_review.get("review_id") == "IDS-STAGE038-REVIEW"
+                and stage_review.get("task_id") == "IDS-V0_1-STAGE038-REVIEW"
+                and stage_review.get("status") == "completed"
+            )
         ),
         "no_mixed_yaml_state": not any(
             token in batch_text or token in roadmap_text
@@ -2182,6 +2201,7 @@ REQUIRED_EVENT_IDS = (
     "EVT-IDS-V0_1-STAGE053-P2-20260813-001",
     "EVT-IDS-V0_1-STAGE053-P3-20260813-001",
     "EVT-IDS-V0_1-STAGE053-P4-20260813-001",
+    "EVT-IDS-V0_1-STAGE053-REVIEW-20260813-001",
 )
 
 FORBIDDEN_RUNTIME_PREFIXES = (
@@ -7758,6 +7778,67 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
                 "next_gate": "IDS-STAGE053-REVIEW-GATE",
             },
         },
+        "EVT-IDS-V0_1-STAGE053-REVIEW-20260813-001": {
+            "event_type": "stage_review",
+            "allow_stage_gate": True,
+            "task_id": "IDS-V0_1-STAGE053-REVIEW",
+            "acceptance_id": "ACC-STAGE-053",
+            "required_changed_files": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE053_STAGE_REVIEW.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage053_per_page_ocr_output_stage_review.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage053_per_page_ocr_output_stage_review.py",
+                "KM_IDSystem/machine/runs/2026-08-13-stage053-review-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+                "KM_IDSystem/docs/governance/roadmap.yaml",
+                "KM_IDSystem/docs/governance/events.jsonl",
+            },
+            "required_refs": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE053_STAGE_REVIEW.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage053_per_page_ocr_output_stage_review.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage053_per_page_ocr_output_stage_review.py",
+                "KM_IDSystem/machine/runs/2026-08-13-stage053-review-local.json",
+            },
+            "required_note_assignments": {
+                "contract_state": "STAGE053_REVIEWED_LOCAL_PER_PAGE_OCR_OUTPUT_RUNTIME_DISABLED",
+                "second_authoritative_source_created": "false",
+                "p1_to_p4_contracts_reviewed": "true",
+                "per_page_output_shape_preserved": "true",
+                "phase3_control_report_replayed": "true",
+                "per_page_ocr_output_delivery_evidence_derived": "true",
+                "delivery_metadata_only_sample_count": "5",
+                "controlled_per_page_ocr_confidence_report_created": "true",
+                "controlled_per_page_ocr_failure_list_count": "1",
+                "declared_per_page_ocr_review_route_proof_count": "2",
+                "quality_limitations_recorded_in_chinese": "true",
+                "human_confirmation_prompt_count": "3",
+                "stage053_review_valid": "true",
+                "stage053_review_finding_count": "0",
+                "actual_ocr_delivery_implemented": "false",
+                "temporary_artifact_count": "0",
+                "cache_cleanup_action": "NO_TEMPORARY_ARTIFACT_CREATED",
+                "ocr_engine_invocation_performed": "false",
+                "review_queue_created": "false",
+                "quality_gate_evaluation_performed": "false",
+                "persistent_state_write_performed": "false",
+                "agent_execution_performed": "false",
+                "model_call_performed": "false",
+                "model_token_consumption_performed": "false",
+                "ovh_deployment_performed": "false",
+                "production_runtime_activation_performed": "false",
+                "stage053_started": "true",
+                "phase2_started": "true",
+                "phase3_started": "true",
+                "phase4_started": "true",
+                "whole_stage_review_performed": "true",
+                "stage054_started": "false",
+                "stage054_entry_authorized": "false",
+                "batch_review_performed": "false",
+                "github_upload_allowed": "false",
+                "push_allowed": "false",
+                "next_gate": "IDS-STAGE054-P1-GATE",
+            },
+        },
     }
 
     errors: list[str] = []
@@ -8417,6 +8498,12 @@ def evaluate_current_state_consistency(
             and roadmap.get("current_task_id") == "IDS-V0_1-STAGE053-P4"
             and roadmap.get("next_gate_id") == "IDS-STAGE053-REVIEW-GATE"
         )
+        or (
+            current_stage_id == "IDS-STAGE053"
+            and roadmap_phase == "IDS-STAGE053-REVIEW"
+            and roadmap.get("current_task_id") == "IDS-V0_1-STAGE053-REVIEW"
+            and roadmap.get("next_gate_id") == "IDS-STAGE054-P1-GATE"
+        )
     ) and (
         batch.get("batch_id") == "IDS-V0_1-BATCH-031-040"
         and batch.get("status") == "uploaded_to_github_main"
@@ -8735,6 +8822,10 @@ def evaluate_current_state_consistency(
         current_stage_id == "IDS-STAGE053"
         and roadmap_phase == "IDS-STAGE053-P4"
     )
+    stage053_review_current = (
+        current_stage_id == "IDS-STAGE053"
+        and roadmap_phase == "IDS-STAGE053-REVIEW"
+    )
     batch041_050_review_current = (
         current_stage_id == "IDS-STAGE050"
         and batch.get("batch_id") == "IDS-V0_1-BATCH-041-050"
@@ -8816,6 +8907,7 @@ def evaluate_current_state_consistency(
         or stage053_phase2_current
         or stage053_phase3_current
         or stage053_phase4_current
+        or stage053_review_current
         or batch041_050_review_current
     )
 
@@ -8897,6 +8989,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE053-P2": "Phase 2",
         "IDS-STAGE053-P3": "Phase 3",
         "IDS-STAGE053-P4": "Phase 4",
+        "IDS-STAGE053-REVIEW": "Phase 4",
         "IDS-V0_1-BATCH-041-050-REVIEW-GATE": "Phase 4",
     }.get(roadmap_phase)
     batch_current_phase_completed = (
@@ -9890,6 +9983,9 @@ def evaluate_current_state_consistency(
     expected_stage053_phase4_result_block = (
         "聚焦 Stage053 P4 直接单元用例通过 14/14；Stage053 P3/P2/P1 与 Stage052 Review/P1-P4 前序兼容用例通过 81/81；Stage051 Review 与 P1-P4 前序兼容用例通过 53/53；Stage041-050 批次复审前序兼容用例通过 6/6；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
     )
+    expected_stage053_review_result_block = (
+        "聚焦 Stage053 复审直接单元用例通过 11/11；Stage053 P1-P4 前序兼容用例通过 42/42；Stage052 Review 与 P1-P4 前序兼容用例通过 53/53；Stage051 Review 与 P1-P4 前序兼容用例通过 53/53；Stage041-050 批次复审前序兼容用例通过 6/6；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+    )
     expected_governed_result_block = {
         "IDS-STAGE037-P1": expected_stage037_phase1_result_block,
         "IDS-STAGE037-P2": expected_stage037_phase2_result_block,
@@ -9966,6 +10062,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE053-P2": expected_stage053_phase2_result_block,
         "IDS-STAGE053-P3": expected_stage053_phase3_result_block,
         "IDS-STAGE053-P4": expected_stage053_phase4_result_block,
+        "IDS-STAGE053-REVIEW": expected_stage053_review_result_block,
         "IDS-V0_1-BATCH-041-050-REVIEW-GATE": expected_batch041_050_review_result_block,
     }.get(roadmap_phase)
     if roadmap_task == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY":
@@ -10635,6 +10732,14 @@ def evaluate_current_state_consistency(
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE053_PHASE3_PER_PAGE_OCR_OUTPUT_QUALITY_SCENARIOS.md",
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
     }
+    required_stage053_review_evidence = {
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE053_STAGE_REVIEW.md",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage053_per_page_ocr_output_stage_review.py",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage053_per_page_ocr_output_stage_review.py",
+        "KM_IDSystem/machine/runs/2026-08-13-stage053-review-local.json",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE053_PHASE4_PER_PAGE_OCR_OUTPUT_DELIVERY_CLOSEOUT.md",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+    }
     required_governed_evidence = {
         "IDS-STAGE037-P1": required_stage037_phase1_evidence,
         "IDS-STAGE037-P2": required_stage037_phase2_evidence,
@@ -10712,6 +10817,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE053-P2": required_stage053_phase2_evidence,
         "IDS-STAGE053-P3": required_stage053_phase3_evidence,
         "IDS-STAGE053-P4": required_stage053_phase4_evidence,
+        "IDS-STAGE053-REVIEW": required_stage053_review_evidence,
         "IDS-V0_1-BATCH-041-050-REVIEW-GATE": required_batch041_050_review_evidence,
     }.get(roadmap_phase, set())
     if roadmap_task == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY":
@@ -20052,6 +20158,61 @@ def evaluate_phase_state(
         and 'current_task_id: "IDS-V0_1-STAGE053-P4"' in roadmap_text
         and 'next_gate_id: "IDS-STAGE053-REVIEW-GATE"' in roadmap_text
     )
+    stage053_review_active = (
+        'batch_id: "IDS-V0_1-BATCH-051-060"' in batch_text
+        and 'status: "stage053_completed_reviewed_local"' in batch_text
+        and 'current_task_id: "IDS-V0_1-STAGE053-REVIEW"' in batch_text
+        and 'next_phase: "Stage054 Phase 1"' in batch_text
+        and 'next_gate: "IDS-STAGE054-P1-GATE"' in batch_text
+        and 'next_allowed_task_id: "IDS-V0_1-STAGE054-P1"' in batch_text
+        and 'acceptance_status: "stage053_per_page_ocr_output_reviewed_local"'
+        in batch_text
+        and 'contract_state: "STAGE053_REVIEWED_LOCAL_PER_PAGE_OCR_OUTPUT_RUNTIME_DISABLED"'
+        in batch_text
+        and 'source_authority: "FROZEN_TASKPACK_TEXT_STAGE053_P1_TO_P4_AND_STAGE052_REVIEW_ARTIFACTS"'
+        in batch_text
+        and 'second_authoritative_source_created: false' in batch_text
+        and 'source_body_or_path_allowed: false' in batch_text
+        and 'p1_to_p4_contracts_reviewed: true' in batch_text
+        and 'per_page_output_shape_preserved: true' in batch_text
+        and 'stage053_review_valid: true' in batch_text
+        and 'stage053_review_finding_count: 0' in batch_text
+        and 'phase3_control_report_replayed: true' in batch_text
+        and 'delivery_metadata_only_sample_count: 5' in batch_text
+        and 'confidence_high_count: 2' in batch_text
+        and 'confidence_medium_count: 1' in batch_text
+        and 'confidence_low_count: 1' in batch_text
+        and 'confidence_unknown_count: 1' in batch_text
+        and 'controlled_per_page_ocr_failure_list_count: 1' in batch_text
+        and 'declared_per_page_ocr_review_route_proof_count: 2' in batch_text
+        and 'human_confirmation_prompt_count: 3' in batch_text
+        and 'actual_ocr_delivery_implemented: false' in batch_text
+        and 'temporary_artifact_count: 0' in batch_text
+        and 'cache_cleanup_action: "NO_TEMPORARY_ARTIFACT_CREATED"' in batch_text
+        and 'ocr_engine_invocation_performed: false' in batch_text
+        and 'review_queue_created: false' in batch_text
+        and 'quality_gate_evaluation_performed: false' in batch_text
+        and 'persistent_state_write_performed: false' in batch_text
+        and 'agent_execution_performed: false' in batch_text
+        and 'model_call_performed: false' in batch_text
+        and 'model_token_consumption_performed: false' in batch_text
+        and 'ovh_deployment_performed: false' in batch_text
+        and 'production_runtime_activation_performed: false' in batch_text
+        and 'stage053_started: true' in batch_text
+        and 'phase2_started: true' in batch_text
+        and 'phase3_started: true' in batch_text
+        and 'phase4_started: true' in batch_text
+        and 'whole_stage_review_performed: true' in batch_text
+        and 'stage054_started: false' in batch_text
+        and 'stage054_entry_authorized: false' in batch_text
+        and 'batch_review_performed: false' in batch_text
+        and 'github_upload_allowed: false' in batch_text
+        and 'push_allowed: false' in batch_text
+        and 'current_stage_id: "IDS-STAGE053"' in roadmap_text
+        and 'current_phase_id: "IDS-STAGE053-REVIEW"' in roadmap_text
+        and 'current_task_id: "IDS-V0_1-STAGE053-REVIEW"' in roadmap_text
+        and 'next_gate_id: "IDS-STAGE054-P1-GATE"' in roadmap_text
+    )
     batch_terminal_state = batch_upload_gate_active or batch_uploaded_to_main
     later_stage_state = (
         batch_terminal_state
@@ -20260,6 +20421,7 @@ def evaluate_phase_state(
         or stage053_phase2_active
         or stage053_phase3_active
         or stage053_phase4_active
+        or stage053_review_active
     )
     phase2_completed = '      - "Phase 2"' in batch_text or later_stage_state
     stage005_active_or_complete = (
@@ -20279,6 +20441,7 @@ def evaluate_phase_state(
         or 'next_phase: "Phase 4"' in batch_text
         or 'next_phase: "Stage052 Review"' in batch_text
         or 'next_phase: "Stage053 Review"' in batch_text
+        or 'next_phase: "Stage054 Phase 1"' in batch_text
         or 'next_phase: "stage_review_gate"' in batch_text
         or 'next_phase: "batch_review_gate"' in batch_text
         or 'next_stage: "STAGE-006"' in batch_text

@@ -1,14 +1,20 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-051-060"
 created_at_utc: "2026-08-12T13:19:44Z"
-updated_at_utc: "2026-08-12T19:13:20Z"
-status: "stage053_phase4_completed_review_pending"
+updated_at_utc: "2026-08-12T19:40:19Z"
+status: "stage053_completed_reviewed_local"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-041-050"
 predecessor_review_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
 
 transition_history:
+  stage053_review_state:
+    status: "stage053_completed_reviewed_local"
+    current_task_id: "IDS-V0_1-STAGE053-REVIEW"
+    next_gate: "IDS-STAGE054-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE054-P1"
+    github_upload_allowed: false
   stage053_phase4_state:
     status: "stage053_phase4_completed_review_pending"
     current_task_id: "IDS-V0_1-STAGE053-P4"
@@ -429,22 +435,23 @@ stage_progress:
       - "KM_IDSystem/machine/runs/2026-08-13-stage052-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
   STAGE-053:
-    status: "stage053_phase4_completed_review_pending"
+    status: "stage053_completed_reviewed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_phase: "Stage053 Review"
-    next_gate: "IDS-STAGE053-REVIEW-GATE"
-    current_task_id: "IDS-V0_1-STAGE053-P4"
+    next_phase: "Stage054 Phase 1"
+    next_gate: "IDS-STAGE054-P1-GATE"
+    current_task_id: "IDS-V0_1-STAGE053-REVIEW"
     acceptance_id: "ACC-STAGE-053"
-    acceptance_status: "stage053_per_page_ocr_output_phase4_delivery_local"
+    acceptance_status: "stage053_per_page_ocr_output_reviewed_local"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
     phase4_entry_authorized: true
+    stage_review_entry_authorized: true
     taskpack_context_read_performed: true
-    source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE052_REVIEW_AND_STAGE053_PHASE1_PHASE2_PHASE3_ARTIFACTS"
+    source_authority: "FROZEN_TASKPACK_TEXT_STAGE053_P1_TO_P4_AND_STAGE052_REVIEW_ARTIFACTS"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
     raw_metadata_content_accessed: false
@@ -454,8 +461,8 @@ stage_progress:
     route_evaluation_performed: false
     parser_execution_performed: false
     bilingual_ocr_contract_reused_as_reference_only: true
-    per_page_ocr_output_contract_schema: "ids.stage053.per_page_ocr_output.phase4.delivery.v1"
-    contract_state: "PHASE4_PER_PAGE_OCR_DELIVERY_EVIDENCE_RUNTIME_DISABLED"
+    per_page_ocr_output_contract_schema: "ids.stage053.per_page_ocr_output.stage_review.v1"
+    contract_state: "STAGE053_REVIEWED_LOCAL_PER_PAGE_OCR_OUTPUT_RUNTIME_DISABLED"
     slice_executable: true
     quality_scenario_executable: true
     delivery_evidence_executable: true
@@ -495,6 +502,11 @@ stage_progress:
     human_confirmation_prompt_count: 3
     automatic_confirmation_performed: false
     actual_ocr_delivery_implemented: false
+    p1_to_p4_contracts_reviewed: true
+    per_page_output_shape_preserved: true
+    stage053_review_valid: true
+    stage053_review_finding_count: 0
+    stage053_review_controlled_replay_metadata_only: true
     real_pdf_or_image_opened: false
     table_structure_extraction_performed: false
     recognition_accuracy_evaluated: false
@@ -554,7 +566,9 @@ stage_progress:
     phase2_started: true
     phase3_started: true
     phase4_started: true
-    whole_stage_review_performed: false
+    whole_stage_review_performed: true
+    stage054_started: false
+    stage054_entry_authorized: false
     batch_review_performed: false
     github_upload_allowed: false
     push_allowed: false
@@ -579,14 +593,18 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage053_per_page_ocr_output_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage053_per_page_ocr_output_delivery.py"
       - "KM_IDSystem/machine/runs/2026-08-13-stage053-p4-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE053_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage053_per_page_ocr_output_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage053_per_page_ocr_output_stage_review.py"
+      - "KM_IDSystem/machine/runs/2026-08-13-stage053-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE052_STAGE_REVIEW.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE053-P4"
-  next_allowed_task_id: "IDS-V0_1-STAGE053-REVIEW"
+  current_task_id: "IDS-V0_1-STAGE053-REVIEW"
+  next_allowed_task_id: "IDS-V0_1-STAGE054-P1"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-053 P4 只从 P3 五类固定非业务按页 OCR 质量 control 报告派生 metadata-only 交付样例、置信度汇总、失败清单、未排队复核路由、中文人工确认和零临时产物重跑边界；未打开真实样本、调用 OCR 或创建持久运行时。"
+  current_run: "STAGE-053 Review 只复审 P1--P4 已提交合同与 P3/P4 固定非业务 control 报告，输出字段、场景、处置、置信度、失败、复核路由计数和边界结论；未打开真实样本、调用 OCR 或创建持久运行时。"
   no_upload_reason: "冻结任务包要求完成至 ACC-STAGE-168 且经独立全局发布验收后，才可重新考虑任何上传路径。"

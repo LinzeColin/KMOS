@@ -9,7 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage053 Phase 4 - 2026-08-13
+## Current Gate - Stage053 Review - 2026-08-13
+
+- 本节覆盖下方 Stage053 P4/P3/P2/P1、Stage052 Review、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成 `IDS-V0_1-STAGE053-REVIEW`：只读取冻结 Stage053 任务包、Stage052 已复审工件和 P1--P4 已提交合同，重放 P3/P4 固定非业务 control 报告，独立复审十一字段按页结构、五类显式处置、metadata-only 交付、中文确认、缓存边界与回滚链。
+- 复审输出仅保留字段、场景、处置、置信度、失败和复核路由的计数与边界结论。P1 维持七字段输入和十一字段输出，P2 为四页受控切片，P3 为五类显式处置且静默丢弃为零，P4 为五个 metadata-only 样例、HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1、1 条失败、2 条未排队复核路由与 3 条中文确认提示。
+- 缓存继续为 `IN_MEMORY_REBUILDABLE_NOT_PERSISTED`，临时产物为 `0`，清理结论为 `NO_TEMPORARY_ARTIFACT_CREATED`；重跑只重放已提交的固定 control 报告，不扫描、删除或移动目录。低置信、中英文混合和失败页仍不能直接进入高可信证据层，实际复核仍由后续 Stage054 管理。
+- 没有读取 IDS 业务源、原始元数据、正文、文件路径、真实 PDF、图像、页面或表格内容；没有打开样本、调用 OCR、图像处理、语言检测、表格提取、识别准确率评估、实际复核、质量门、本地服务、OVH 或生产运行；运行时保持零 Agent、零模型 Token。
+- 回滚只撤回本复审说明、复审模块、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图，恢复到 `PHASE4_PER_PAGE_OCR_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；P1--P4、冻结任务包、Stage052 已复审证据、真实资料、既有运行状态、GitHub、OVH 与应用状态不在回滚范围内。
+- 已验证：Stage053 Review 聚焦用例 `11/11`、Stage053 P1--P4 前序兼容 `42/42`、Stage052 Review 与 P1--P4 前序兼容 `53/53`、Stage051 Review 与 P1--P4 前序兼容 `53/53`、BATCH041_050 前序兼容 `6/6`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理报告为 `valid=true`。
+- 下一步只允许在新的独立 run 进入 `IDS-STAGE054-P1`，门为 `IDS-STAGE054-P1-GATE`。所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage053 Phase 4 - 2026-08-13
 
 - 本节覆盖下方 Stage053 P3/P2/P1、Stage052 Review、P4、P3、P2、P1、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
 - 本轮完成 `IDS-V0_1-STAGE053-P4`：只以冻结 Stage053 任务包、Stage052 已复审中英文 OCR 工件和 Stage053 P1--P3 已提交工件为唯一上下文，从 P3 的五类固定非业务按页 OCR 质量 control 报告派生五个 metadata-only 交付样例、置信度汇总、一条显式失败清单、两条未排队复核路由证明、质量限制说明、三条中文人工确认提示和缓存重跑说明。

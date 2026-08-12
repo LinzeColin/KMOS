@@ -1,0 +1,55 @@
+{
+  "schema_version": "ids.machine_run.v1",
+  "run_id": "RUN-IDS-STAGE053-REVIEW-LOCAL-20260813-001",
+  "stage": "IDS-STAGE053",
+  "task_id": "IDS-V0_1-STAGE053-REVIEW",
+  "acceptance_id": "ACC-STAGE-053",
+  "result": "PASS_REVIEWED_LOCAL_PER_PAGE_OCR_OUTPUT_RUNTIME_DISABLED",
+  "fact_level": "VERIFIED",
+  "evidence_iterations": [
+    {
+      "name": "stage053_review_report",
+      "command": "python3 -B -c 'from KM_IDSystem.docs.pursuing_goal.ids_v0_1.ocr_queue.stage053_per_page_ocr_output_stage_review import build_stage053_review_report; assert build_stage053_review_report()[\"review_valid\"]'",
+      "passed": 1,
+      "total": 1,
+      "result": "PASS_REVIEWED_LOCAL_PER_PAGE_OCR_OUTPUT_RUNTIME_DISABLED"
+    },
+    {
+      "name": "focused_review_tests",
+      "command": "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_stage_review",
+      "passed": 11,
+      "total": 11,
+      "result": "PASS_REVIEWED_LOCAL_PER_PAGE_OCR_OUTPUT_RUNTIME_DISABLED"
+    }
+  ],
+  "observed_work": {
+    "p1_to_p4_contracts_reviewed": true,
+    "fixed_non_business_control_reports_replayed": true,
+    "whole_stage_review_performed": true,
+    "second_authoritative_source_created": false,
+    "ids_business_source_read_performed": false,
+    "source_file_open_performed": false,
+    "ocr_engine_invocation_performed": false,
+    "review_queue_write_performed": false,
+    "cache_cleanup_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "stage054_started": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "rollback": {
+    "return_to": "PHASE4_PER_PAGE_OCR_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+    "source_or_raw_data_change_allowed": false,
+    "persistent_runtime_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  },
+  "next_gate": "IDS-STAGE054-P1-GATE",
+  "github_upload_allowed": false,
+  "push_allowed": false
+}
