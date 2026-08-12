@@ -1403,6 +1403,111 @@ def test_cashflow_observation_uses_sparse_layout_fallback_only_after_missing_hea
     assert observation.outflow_fen == 4_000
 
 
+def test_cashflow_observation_uses_alternate_layout_only_with_exact_consensus() -> None:
+    """Two alternate segmenters may repair a missing header, never one alone."""
+
+    headers = ["日期", "事由", "收（付）款人", "收支类别", "转出", "收入", "银行"]
+    rows = [
+        ["08月07日", "付款", "", "项目成本", "40.00", "", "银行A"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "银行A"],
+        ["", "", "", "合计", "40.00", "50.00", ""],
+    ]
+    payload = b"\x89PNG\r\n\x1a\nconsensus-cashflow-layout"
+    missing_header = _ocr_tsv(["日期", "事由", "收支类别"], ["08月07日", "付款", "项目成本"])
+    consensus = _ocr_tsv(headers, rows[0], extra_rows=rows[1:])
+    calls: list[str] = []
+
+    def runner(command, **_kwargs):
+        psm = command[command.index("--psm") + 1]
+        calls.append(psm)
+        assert psm in {"4", "6", "11", "12"}
+        return SimpleNamespace(returncode=0, stdout=consensus if psm in {"4", "12"} else missing_header, stderr="")
+
+    observation = parse_cashflow_observation(
+        family="资金明细",
+        filename="资金明细_20260807.png",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 10, tzinfo=UTC),
+        mime="image/png",
+        runner=runner,
+    )
+
+    assert calls == ["6", "11", "4", "12"]
+    assert observation.business_date.isoformat() == "2026-08-07"
+    assert observation.inflow_fen == 5_000
+    assert observation.outflow_fen == 4_000
+
+
+def test_cashflow_observation_rejects_disagreeing_alternate_layouts() -> None:
+    headers = ["日期", "事由", "收（付）款人", "收支类别", "转出", "收入", "银行"]
+    primary_rows = [
+        ["08月07日", "付款", "", "项目成本", "40.00", "", "银行A"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "银行A"],
+        ["", "", "", "合计", "40.00", "50.00", ""],
+    ]
+    alternate_rows = [
+        ["08月07日", "付款", "", "项目成本", "41.00", "", "银行A"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "银行A"],
+        ["", "", "", "合计", "41.00", "50.00", ""],
+    ]
+    payload = b"\x89PNG\r\n\x1a\ndisagreeing-cashflow-layout"
+    missing_header = _ocr_tsv(["日期", "事由", "收支类别"], ["08月07日", "付款", "项目成本"])
+    psm4 = _ocr_tsv(headers, primary_rows[0], extra_rows=primary_rows[1:])
+    psm12 = _ocr_tsv(headers, alternate_rows[0], extra_rows=alternate_rows[1:])
+    calls: list[str] = []
+
+    def runner(command, **_kwargs):
+        psm = command[command.index("--psm") + 1]
+        calls.append(psm)
+        output = {"4": psm4, "12": psm12}.get(psm, missing_header)
+        return SimpleNamespace(returncode=0, stdout=output, stderr="")
+
+    with pytest.raises(ParseError, match="CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING"):
+        parse_cashflow_observation(
+            family="资金明细",
+            filename="资金明细_20260807.png",
+            payload=payload,
+            source=_source(payload),
+            received_at=datetime(2026, 8, 10, tzinfo=UTC),
+            mime="image/png",
+            runner=runner,
+        )
+
+    assert calls == ["6", "11", "4", "12"]
+
+
+def test_cashflow_observation_does_not_try_alternates_after_fallback_footer_failure() -> None:
+    headers = ["日期", "事由", "收（付）款人", "收支类别", "转出", "收入", "银行"]
+    rows = [
+        ["08月07日", "付款", "", "项目成本", "40.00", "", "银行A"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "银行A"],
+        ["", "", "", "合计", "40.00", "49.00", ""],
+    ]
+    payload = b"\x89PNG\r\n\x1a\nno-alternate-after-fallback-footer"
+    missing_header = _ocr_tsv(["日期", "事由", "收支类别"], ["08月07日", "付款", "项目成本"])
+    fallback = _ocr_tsv(headers, rows[0], extra_rows=rows[1:])
+    calls: list[str] = []
+
+    def runner(command, **_kwargs):
+        psm = command[command.index("--psm") + 1]
+        calls.append(psm)
+        return SimpleNamespace(returncode=0, stdout=fallback if psm == "11" else missing_header, stderr="")
+
+    with pytest.raises(ParseError, match="CASHFLOW_OBSERVATION_TOTAL_MISMATCH"):
+        parse_cashflow_observation(
+            family="资金明细",
+            filename="资金明细_20260807.png",
+            payload=payload,
+            source=_source(payload),
+            received_at=datetime(2026, 8, 10, tzinfo=UTC),
+            mime="image/png",
+            runner=runner,
+        )
+
+    assert calls == ["6", "11"]
+
+
 def test_cashflow_observation_does_not_retry_sparse_layout_after_footer_failure() -> None:
     """A visible but inconsistent total must remain a hard failure."""
 

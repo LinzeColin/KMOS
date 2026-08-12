@@ -47,10 +47,13 @@ PARSER_VERSION = "kmfa.daily_funds.parser.v10"
 # This parser is deliberately separate from ``PARSER_VERSION``.  It can
 # create a chart-only receipt from a narrow receipt/payment screenshot without
 # weakening the two-fact account-balance publication contract.
-# v3 adds the same bounded sparse-layout OCR fallback already used by the
-# formal fact parser.  It is available only when the primary pass cannot form
-# a header at all; it does not relax row, date, amount or footer checks.
-CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v3"
+# v4 keeps v3's bounded sparse-layout fallback and adds one *consensus-only*
+# table-layout recovery pair.  It is reached only after both existing header
+# passes are missing, and both recovery modes must independently satisfy the
+# unchanged date, row, amount-confidence and footer-total rules with exactly
+# the same result.  A single alternate OCR reading can therefore never create
+# a chart point.
+CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v4"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -111,6 +114,12 @@ OCR_PRIMARY_PSM = 6
 # source-family candidate stopped at the exact missing-header gate under the
 # primary table mode.
 OCR_HEADER_FALLBACK_PSM = 11
+# A bounded pair of alternative table segmenters used only for the cashflow
+# observation's consensus recovery.  They are deliberately not a general
+# retry set for formal facts, and cannot be reached after a visible row or
+# footer failure.
+OCR_CASHFLOW_CONSENSUS_PSMS = (4, 12)
+_OCR_ALLOWED_PSMS = frozenset({OCR_PRIMARY_PSM, OCR_HEADER_FALLBACK_PSM, *OCR_CASHFLOW_CONSENSUS_PSMS})
 
 
 class ParseError(ContractError):
@@ -651,7 +660,7 @@ def _ocr_tsv(
     repository or exception message.
     """
 
-    if psm not in {OCR_PRIMARY_PSM, OCR_HEADER_FALLBACK_PSM}:
+    if psm not in _OCR_ALLOWED_PSMS:
         raise ParseError("OCR_PSM_INVALID")
     with tempfile.TemporaryDirectory(prefix="daily-funds-ocr-") as temporary:
         root = Path(temporary)
@@ -1384,6 +1393,43 @@ def _ocr_cashflow_observation_totals(
     return next(iter(business_dates)), row_inflow, row_outflow
 
 
+def _cashflow_observation_from_ocr(
+    *,
+    payload: bytes,
+    evidence: ParserEvidence,
+    runner: Callable[..., Any],
+    psm: int,
+    received_at: datetime,
+    min_confidence_bps: int,
+) -> tuple[date, int, int, tuple[_OcrHeaderCell, ...]]:
+    """Apply one fixed OCR segmentation mode to the unchanged cashflow gate.
+
+    This helper intentionally returns only the final date/totals and the
+    layout cells needed for a non-sensitive layout fingerprint.  Individual
+    OCR rows never escape the parser, including for the consensus fallback.
+    """
+
+    words = _parse_tesseract_tsv(_ocr_tsv(
+        payload=payload,
+        evidence=evidence,
+        runner=runner,
+        psm=psm,
+    ))
+    lines = _ocr_lines(words)
+    header_index, cells = _select_ocr_cashflow_header(
+        lines,
+        min_confidence_bps=min_confidence_bps,
+    )
+    business_date, inflow_fen, outflow_fen = _ocr_cashflow_observation_totals(
+        lines,
+        header_index=header_index,
+        cells=cells,
+        received_at=received_at,
+        min_confidence_bps=min_confidence_bps,
+    )
+    return business_date, inflow_fen, outflow_fen, cells
+
+
 def parse_cashflow_observation(
     *,
     family: str,
@@ -1414,10 +1460,15 @@ def parse_cashflow_observation(
         inspect_ocr_attachment_format(filename=filename, payload=payload, mime=mime),
         parser_version=CASHFLOW_OBSERVATION_PARSER_VERSION,
     )
-    words = _parse_tesseract_tsv(_ocr_tsv(payload=payload, evidence=evidence, runner=runner))
-    lines = _ocr_lines(words)
     try:
-        header_index, cells = _select_ocr_cashflow_header(lines, min_confidence_bps=threshold)
+        business_date, inflow_fen, outflow_fen, cells = _cashflow_observation_from_ocr(
+            payload=payload,
+            evidence=evidence,
+            runner=runner,
+            psm=OCR_PRIMARY_PSM,
+            received_at=received_at,
+            min_confidence_bps=threshold,
+        )
     except ParseError as exc:
         # Some real screenshot tables have a complete visual header but PSM 6
         # emits it as sparse text.  Re-run exactly once under PSM 11 only when
@@ -1426,21 +1477,41 @@ def parse_cashflow_observation(
         # retried under a different interpretation.
         if str(exc).split(":", 1)[0] != "CASHFLOW_OBSERVATION_HEADER_MISSING":
             raise
-        fallback_words = _parse_tesseract_tsv(_ocr_tsv(
-            payload=payload,
-            evidence=evidence,
-            runner=runner,
-            psm=OCR_HEADER_FALLBACK_PSM,
-        ))
-        lines = _ocr_lines(fallback_words)
-        header_index, cells = _select_ocr_cashflow_header(lines, min_confidence_bps=threshold)
-    business_date, inflow_fen, outflow_fen = _ocr_cashflow_observation_totals(
-        lines,
-        header_index=header_index,
-        cells=cells,
-        received_at=received_at,
-        min_confidence_bps=threshold,
-    )
+        try:
+            business_date, inflow_fen, outflow_fen, cells = _cashflow_observation_from_ocr(
+                payload=payload,
+                evidence=evidence,
+                runner=runner,
+                psm=OCR_HEADER_FALLBACK_PSM,
+                received_at=received_at,
+                min_confidence_bps=threshold,
+            )
+        except ParseError as fallback_exc:
+            if str(fallback_exc).split(":", 1)[0] != "CASHFLOW_OBSERVATION_HEADER_MISSING":
+                raise
+            # The two alternate page-segmentation modes are not ordinary
+            # retries.  Both must independently reach the complete strict
+            # result and agree exactly; this remains a layout-only recovery
+            # rather than a way to choose whichever OCR output has a value.
+            consensus: list[tuple[date, int, int, tuple[_OcrHeaderCell, ...]]] = []
+            for consensus_psm in OCR_CASHFLOW_CONSENSUS_PSMS:
+                try:
+                    consensus.append(_cashflow_observation_from_ocr(
+                        payload=payload,
+                        evidence=evidence,
+                        runner=runner,
+                        psm=consensus_psm,
+                        received_at=received_at,
+                        min_confidence_bps=threshold,
+                    ))
+                except ParseError:
+                    continue
+            if len(consensus) != len(OCR_CASHFLOW_CONSENSUS_PSMS):
+                raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING")
+            first, second = consensus
+            if first[:3] != second[:3]:
+                raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING")
+            business_date, inflow_fen, outflow_fen, cells = first
     return CashflowObservation(
         business_date=business_date,
         inflow_fen=inflow_fen,
