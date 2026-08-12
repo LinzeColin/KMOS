@@ -2071,7 +2071,21 @@ class GitSparseWriter:
         key_path.chmod(0o600)
         return key_path
 
-    def _git(self, args: Sequence[str], *, cwd: Path | None = None, env: Mapping[str, str] | None = None) -> str:
+    @classmethod
+    def _is_retryable_audit_transport(cls, stderr: object) -> bool:
+        """Recognise only a bounded Git/OpenSSH transport interruption."""
+
+        text = str(stderr or "").lower()
+        return any(marker in text for marker in cls._AUDIT_RETRYABLE_GIT_MARKERS)
+
+    def _git(
+        self,
+        args: Sequence[str],
+        *,
+        cwd: Path | None = None,
+        env: Mapping[str, str] | None = None,
+        audit_read: bool = False,
+    ) -> str:
         if self._is_force_push(args):
             raise IngestionError("GIT_FORCE_PUSH_FORBIDDEN")
         try:
@@ -2085,8 +2099,11 @@ class GitSparseWriter:
                 timeout=180,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
-            raise IngestionError("GIT_WRITE_FAILED") from exc
+            code = "GIT_AUDIT_TRANSPORT_RETRYABLE" if audit_read else "GIT_WRITE_FAILED"
+            raise IngestionError(code) from exc
         if completed.returncode != 0:
+            if audit_read and self._is_retryable_audit_transport(completed.stderr):
+                raise IngestionError("GIT_AUDIT_TRANSPORT_RETRYABLE")
             raise IngestionError("GIT_NON_FAST_FORWARD" if self._is_non_fast_forward(args, completed.stderr or "") else "GIT_WRITE_FAILED")
         return completed.stdout.strip()
 
@@ -2193,6 +2210,27 @@ class GitSparseWriter:
     _RAW_ARCHIVE_MAX_BATCHES = 512
     _RAW_ARCHIVE_MAX_TREE_OUTPUT_BYTES = 512 * 1024
 
+    # The raw-archive audit is strictly read-only.  A single Git/OpenSSH
+    # transport interruption should be retried from a fresh sparse clone, but
+    # neither a raw-integrity failure nor a configuration/scope error may be
+    # retried or downgraded.  Keep this marker set deliberately narrow.
+    _AUDIT_RETRYABLE_GIT_MARKERS = (
+        "connection reset",
+        "connection timed out",
+        "connection refused",
+        "connection closed",
+        "connection unexpectedly closed",
+        "could not resolve host",
+        "early eof",
+        "failed to connect",
+        "kex_exchange_identification",
+        "network is unreachable",
+        "operation timed out",
+        "remote end hung up unexpectedly",
+        "remote hung up unexpectedly",
+        "ssh_exchange_identification",
+    )
+
     @staticmethod
     def _raw_archive_occurrence_path(path: str) -> tuple[int, int, int, str, int]:
         """Validate one exact raw occurrence path from ``git ls-tree``."""
@@ -2260,6 +2298,7 @@ class GitSparseWriter:
         env: Mapping[str, str],
         commit_sha: str,
         relative_root: Path,
+        audit_read: bool = False,
     ) -> tuple[str, ...]:
         """List only names below one approved raw subtree, never its values."""
 
@@ -2268,6 +2307,7 @@ class GitSparseWriter:
             ["ls-tree", "-r", "--name-only", commit_sha, "--", tree_root],
             cwd=repo,
             env=env,
+            audit_read=audit_read,
         )
         if len(output.encode("utf-8", errors="ignore")) > self._RAW_ARCHIVE_MAX_TREE_OUTPUT_BYTES:
             raise IngestionError("RAW_ARCHIVE_CENSUS_LIMIT_EXCEEDED")
@@ -2487,6 +2527,21 @@ class GitSparseWriter:
         parser.
         """
 
+        try:
+            return self._audit_raw_archive_once()
+        except IngestionError as exc:
+            # The retry creates a new temporary HOME, deploy-key file,
+            # known-hosts file and sparse checkout.  No partial checkout or
+            # failed transport state is carried into the second attempt.
+            # Integrity, source, scope and every second-attempt error remain
+            # fail-closed.
+            if exc.code != "GIT_AUDIT_TRANSPORT_RETRYABLE":
+                raise
+        return self._audit_raw_archive_once()
+
+    def _audit_raw_archive_once(self) -> RawArchiveAudit:
+        """Perform one fresh, bounded sparse read of the private raw authority."""
+
         self.config.validate(include_storage=False)
         if not self.config.state_dir.exists():
             self.config.state_dir.mkdir(parents=True, exist_ok=True)
@@ -2499,19 +2554,27 @@ class GitSparseWriter:
             # following ``ls-tree`` examines names only and is bounded before
             # any selected manifest or blob is checked out.
             sentinel = (SPARSE_PATH / "raw" / ".raw-audit-sentinel").as_posix()
-            self._clone_sparse(tree_repo, env=env, ref=self.config.private_branch, patterns=(sentinel,))
-            commit_sha = self._git(["rev-parse", "HEAD"], cwd=tree_repo, env=env)
+            self._clone_sparse(
+                tree_repo,
+                env=env,
+                ref=self.config.private_branch,
+                patterns=(sentinel,),
+                audit_read=True,
+            )
+            commit_sha = self._git(["rev-parse", "HEAD"], cwd=tree_repo, env=env, audit_read=True)
             occurrence_paths = self._raw_archive_tree_paths(
                 tree_repo,
                 env=env,
                 commit_sha=commit_sha,
                 relative_root=Path("raw/occurrences"),
+                audit_read=True,
             )
             batch_paths = self._raw_archive_tree_paths(
                 tree_repo,
                 env=env,
                 commit_sha=commit_sha,
                 relative_root=Path("raw/batches"),
+                audit_read=True,
             )
             if (
                 not occurrence_paths
@@ -2530,8 +2593,14 @@ class GitSparseWriter:
 
             metadata_repo = temp_root / "private-db-metadata"
             metadata_patterns = tuple(sorted((*occurrence_paths, *batch_paths)))
-            self._clone_sparse(metadata_repo, env=env, ref=self.config.private_branch, patterns=metadata_patterns)
-            if self._git(["rev-parse", "HEAD"], cwd=metadata_repo, env=env) != commit_sha:
+            self._clone_sparse(
+                metadata_repo,
+                env=env,
+                ref=self.config.private_branch,
+                patterns=metadata_patterns,
+                audit_read=True,
+            )
+            if self._git(["rev-parse", "HEAD"], cwd=metadata_repo, env=env, audit_read=True) != commit_sha:
                 raise IngestionError("GIT_READBACK_FAILED")
             metadata_root = metadata_repo / SPARSE_PATH
             occurrences = tuple(
@@ -2541,8 +2610,14 @@ class GitSparseWriter:
 
             readback_repo = temp_root / "private-db-readback"
             readback_patterns = self._raw_archive_sparse_patterns(occurrences, batch_paths)
-            self._clone_sparse(readback_repo, env=env, ref=self.config.private_branch, patterns=readback_patterns)
-            if self._git(["rev-parse", "HEAD"], cwd=readback_repo, env=env) != commit_sha:
+            self._clone_sparse(
+                readback_repo,
+                env=env,
+                ref=self.config.private_branch,
+                patterns=readback_patterns,
+                audit_read=True,
+            )
+            if self._git(["rev-parse", "HEAD"], cwd=readback_repo, env=env, audit_read=True) != commit_sha:
                 raise IngestionError("GIT_READBACK_FAILED")
             root = readback_repo / SPARSE_PATH
             references = self._archive_persisted_references(root, occurrences)
@@ -2570,6 +2645,7 @@ class GitSparseWriter:
         env: Mapping[str, str],
         ref: str,
         patterns: Sequence[str] | None = None,
+        audit_read: bool = False,
     ) -> None:
         """Clone only the caller's approved sparse materialisation paths.
 
@@ -2593,12 +2669,12 @@ class GitSparseWriter:
         self._git([
             "clone", "--branch", ref, "--depth=1", "--filter=blob:none", "--sparse", "--no-checkout",
             self.config.private_repo, str(repo),
-        ], env=env)
+        ], env=env, audit_read=audit_read)
         # Cone mode always includes root-level files.  Non-cone mode is used
         # deliberately so an exact-path writer never checks out unrelated
         # repository material before it handles financial evidence.
-        self._git(["sparse-checkout", "set", "--no-cone", *selected], cwd=repo, env=env)
-        self._git(["checkout", ref], cwd=repo, env=env)
+        self._git(["sparse-checkout", "set", "--no-cone", *selected], cwd=repo, env=env, audit_read=audit_read)
+        self._git(["checkout", ref], cwd=repo, env=env, audit_read=audit_read)
         self._assert_sparse_checkout_scope(repo)
 
     def _push_with_single_rebase(self, repo: Path, *, env: Mapping[str, str]) -> None:

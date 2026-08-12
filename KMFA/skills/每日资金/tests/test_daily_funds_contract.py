@@ -3644,6 +3644,68 @@ def test_sparse_writer_retries_standard_non_fast_forward_and_rejects_force_push(
         writer._git(["push", "--force", "origin", "HEAD:main"])
 
 
+def test_raw_archive_audit_retries_one_fresh_read_only_transport_attempt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A transient sparse-read transport failure gets one retry, nothing more."""
+
+    writer = GitSparseWriter(_config(tmp_path))
+    expected = RawArchiveAudit(
+        commit_sha="a" * 40,
+        verified_attachments=(),
+        occurrence_count=0,
+        batch_count=0,
+        batch_occurrence_references=0,
+    )
+    attempts: list[str] = []
+
+    def transient_then_success() -> RawArchiveAudit:
+        attempts.append("attempt")
+        if len(attempts) == 1:
+            raise IngestionError("GIT_AUDIT_TRANSPORT_RETRYABLE")
+        return expected
+
+    monkeypatch.setattr(writer, "_audit_raw_archive_once", transient_then_success)
+
+    assert writer.audit_raw_archive() is expected
+    assert attempts == ["attempt", "attempt"]
+
+
+def test_raw_archive_audit_does_not_retry_integrity_readback_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A malformed/mismatched raw readback stays fail-closed on first sight."""
+
+    writer = GitSparseWriter(_config(tmp_path))
+    attempts: list[str] = []
+
+    def integrity_failure() -> RawArchiveAudit:
+        attempts.append("attempt")
+        raise IngestionError("GIT_READBACK_FAILED")
+
+    monkeypatch.setattr(writer, "_audit_raw_archive_once", integrity_failure)
+
+    with pytest.raises(IngestionError, match="GIT_READBACK_FAILED"):
+        writer.audit_raw_archive()
+    assert attempts == ["attempt"]
+
+
+def test_sparse_writer_marks_only_transport_stderr_retryable_for_audit_reads(tmp_path: Path) -> None:
+    command: list[str] = []
+
+    def runner(args, **_kwargs):
+        command.extend(args)
+        return subprocess.CompletedProcess(args, 1, "", "Connection reset by peer")
+
+    writer = GitSparseWriter(_config(tmp_path), runner=runner)
+
+    with pytest.raises(IngestionError, match="GIT_AUDIT_TRANSPORT_RETRYABLE"):
+        writer._git(["clone", "fixture"], audit_read=True)
+    assert command[:2] == ["git", "clone"]
+
+
 def test_source_gate_is_single_id_and_dws_environment_is_isolated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config = _config(tmp_path)
     assert config.validate() is None
