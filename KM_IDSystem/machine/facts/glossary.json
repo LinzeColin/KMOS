@@ -4,6 +4,16 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "schema-only candidate parse product sample",
+      "中文": "仅结构候选解析产物样例",
+      "说明": "由 Stage049 P3 control 候选版本派生的空结构交付证据；只保留受控版本、置信度和处置标签，不保留来源引用、正文、表格、页面、章节或运行时输出"
+    },
+    {
+      "英文": "derived control disposition log",
+      "中文": "派生控制处置记录",
+      "说明": "从已验证 control 场景派生的非运行时处置证据，明确记录零尝试、未切换 parser、未写人工复核队列和未写运行时日志；不证明真实 fallback 已执行"
+    },
+    {
       "英文": "format-labelled differential scenario",
       "中文": "格式标签化差异评估场景",
       "说明": "只用格式标签和两个 reference-only control 候选重放 Stage049 P2 资格处置的纯内存报告；格式标签不代表文件检测、真实路线、真实 parser 或解析正文"

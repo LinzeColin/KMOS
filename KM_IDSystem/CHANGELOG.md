@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-049 Phase 4 - 2026-08-12
+
+- 从 11 个格式标签化、仅引用的 P3 control 场景派生 20 个 `SCHEMA_ONLY_CANDIDATE_PARSE_PRODUCT_SAMPLE_NOT_EXECUTED` 结构样例和 11 条 `DERIVED_CONTROL_DISPOSITION_LOG_NOT_RUNTIME` 处置记录；不保留正文、表格、页面、章节、路径或来源引用。
+- 派生指标为场景 `11/11`、明确处置 `11/11`、静默丢弃 `0`、控制格式标签 `8/8`、运行时格式 `0`、parser/候选正文比较/fallback/质量门/持久写入均为 `0`；五个互斥失败分类完整覆盖全部场景。
+- 记录 control-fixture parser 版本、控制格式标签与空的运行时支持边界以及回到 P3 的回滚说明。聚焦 P4 直接单元用例通过 `13/13`，Stage049 P1-P3 兼容用例通过 `24/24`，Stage048 P1-P4 及复审兼容用例通过 `48/48`，治理回归为 `valid=true`；下一门仅为独立 `IDS-STAGE049-REVIEW-GATE`。
+
 ## IDS v0.1 STAGE-049 Phase 3 - 2026-08-12
 
 - 以 11 个格式标签化、仅引用的双候选 control 场景重放 P2 资格处置：覆盖 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF、未知、坏文件和指令样文本；全部返回明确候选、复核、不具资格或无效输入处置，静默丢弃为零。
