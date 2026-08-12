@@ -1539,22 +1539,24 @@ class HistoryPoller:
         start_override: datetime | None = None,
         lease_profile: str = "live",
     ) -> int:
-        # Live ingestion and historical backfill use independent durable
-        # cursors.  They must also use independent leases: an extended
-        # historical archive pass is allowed to wait for the Git single writer,
-        # but must never make the next 15-minute current-day poll report a
-        # false lock-held result.  Raw Git writes remain serialised separately
-        # by ``git_writer_lock``.
+        # Live ingestion keeps a durable short lease because it owns a single
+        # current-day cursor.  Historical backfill is serialized by the
+        # worker-volume process lock in ``DailyFundsRuntime.backfill`` instead:
+        # an abruptly replaced container releases that OS lock automatically,
+        # whereas a two-hour SQLite lease can survive a deployment and falsely
+        # suppress every subsequent scheduled historical batch.  Raw Git
+        # writes remain serialised separately by ``git_writer_lock``.
         profiles = {
             "live": ("poll_lock", "POLL_LOCK_HELD", 14 * 60),
-            "backfill": ("backfill_lock", "BACKFILL_LOCK_HELD", 2 * 60 * 60),
+            "backfill": (None, "BACKFILL_LOCK_HELD", None),
         }
         try:
             lease_key, lock_code, lease_ttl_seconds = profiles[lease_profile]
         except KeyError as exc:
             raise IngestionError("POLL_LEASE_PROFILE_INVALID") from exc
-        if not self.state.acquire_lease(lease_key, holder, ttl_seconds=lease_ttl_seconds):
-            raise IngestionError(lock_code)
+        if lease_key is not None:
+            if not self.state.acquire_lease(lease_key, holder, ttl_seconds=lease_ttl_seconds):
+                raise IngestionError(lock_code)
         try:
             previous_high_water = self.state.get(high_water_key)
             if start_override is not None:
@@ -1602,7 +1604,8 @@ class HistoryPoller:
             self.state.put(high_water_key, now.astimezone(UTC).isoformat().replace("+00:00", "Z"))
             return pages
         finally:
-            self.state.release_lease(lease_key, holder)
+            if lease_key is not None:
+                self.state.release_lease(lease_key, holder)
 
 
 class RawMaterializer:

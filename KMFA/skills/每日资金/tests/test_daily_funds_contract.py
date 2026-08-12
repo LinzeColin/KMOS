@@ -2082,8 +2082,8 @@ def test_terminal_cursor_is_not_reused_for_the_next_overlap_window(tmp_path: Pat
     assert state.get_cursor() is None
 
 
-def test_backfill_lease_never_blocks_the_live_history_poll(tmp_path: Path) -> None:
-    """Historical batches may wait, but the current-day source poll may not."""
+def test_legacy_backfill_lease_never_blocks_live_or_new_historical_poll(tmp_path: Path) -> None:
+    """A deployment-interrupted legacy lease must not strand the next batch."""
 
     state = RuntimeState(_config(tmp_path).state_dir)
 
@@ -2101,15 +2101,29 @@ def test_backfill_lease_never_blocks_the_live_history_poll(tmp_path: Path) -> No
             lease_profile="live",
         )
         assert pages == 1
-        with pytest.raises(IngestionError, match="BACKFILL_LOCK_HELD"):
-            HistoryPoller(state, EmptyClient()).poll(
-                now=datetime(2026, 8, 1, tzinfo=UTC),
-                persist_page=lambda _page: None,
-                holder="other-historical-holder",
-                lease_profile="backfill",
-            )
+        pages = HistoryPoller(state, EmptyClient()).poll(
+            now=datetime(2026, 8, 1, tzinfo=UTC),
+            persist_page=lambda _page: None,
+            holder="other-historical-holder",
+            lease_profile="backfill",
+        )
+        assert pages == 1
     finally:
         state.release_lease("backfill_lock", "historical-holder")
+
+
+def test_backfill_process_lock_serializes_a_real_competing_batch(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Only a live process, never an abandoned lease, may hold backfill."""
+
+    config = _config(tmp_path)
+    holder = DailyFundsRuntime(config)
+    contender = DailyFundsRuntime(config)
+    monkeypatch.setattr(contender, "poll", lambda **_kwargs: pytest.fail("competing backfill must not poll"))
+
+    with holder._backfill_process_lock():
+        result = contender.backfill(now=datetime(2026, 8, 1, 4, tzinfo=UTC), max_days=1)
+
+    assert result == {"ok": False, "completed_days": [], "code": "BACKFILL_LOCK_HELD"}
 
 
 def test_backfill_empty_window_advances_only_the_historical_planner(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

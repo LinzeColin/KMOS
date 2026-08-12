@@ -473,6 +473,40 @@ class DailyFundsRuntime:
             finally:
                 os.close(descriptor)
 
+    @contextmanager
+    def _backfill_process_lock(self):
+        """Serialize one historical batch with an automatically releasable lock.
+
+        A historical batch may legitimately take longer than a 15-minute
+        trigger interval.  A process lock on the worker-only named volume
+        serializes those invocations without leaving an active-looking lease
+        behind when Coolify replaces or terminates the container.  The lock is
+        deliberately separate from raw-audit and Git-writer locks: audits are
+        commit-pinned reads, while Git persists only a short critical section.
+        """
+
+        self.config.state_dir.mkdir(parents=True, exist_ok=True)
+        descriptor = os.open(
+            self.config.state_dir / "backfill.lock",
+            os.O_CREAT | os.O_RDWR,
+            0o600,
+        )
+        locked = False
+        try:
+            os.fchmod(descriptor, 0o600)
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise IngestionError("BACKFILL_LOCK_HELD") from exc
+            locked = True
+            yield
+        finally:
+            try:
+                if locked:
+                    fcntl.flock(descriptor, fcntl.LOCK_UN)
+            finally:
+                os.close(descriptor)
+
     def _write_flow_state(
         self,
         *,
@@ -2292,6 +2326,21 @@ class DailyFundsRuntime:
         the oldest required day and advances its durable planner only after a
         full window has been handled, so a restart cannot skip a date.
         """
+
+        try:
+            with self._backfill_process_lock():
+                return self._backfill_locked(now=now, max_days=max_days)
+        except IngestionError as exc:
+            if exc.code != "BACKFILL_LOCK_HELD":
+                raise
+            # The runner keeps this invocation's receipt in RUNNING only when
+            # a real process still owns the flock.  Unlike the former durable
+            # lease, a terminated/replaced worker cannot leave this state
+            # behind after its process exits.
+            return {"ok": False, "completed_days": [], "code": exc.code}
+
+    def _backfill_locked(self, *, now: datetime | None, max_days: int) -> dict[str, Any]:
+        """Run a bounded historical batch while ``_backfill_process_lock`` is held."""
 
         now = now or datetime.now(UTC)
         try:
