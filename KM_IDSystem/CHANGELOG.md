@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-055 Phase 3 - 2026-08-13
+
+- 完成 `IDS-V0_1-STAGE055-P3`：重放 P2 的五条固定非业务 control，覆盖扫描 PDF、模糊图片、表格图片、中英文混合和低质量五类的候选保留、降级复核提示或显式失败；五类均有处置，静默丢弃为 `0`。
+- 本地验证通过：Stage055 P3 聚焦用例 `11/11`；Stage055 P2/P1、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 `245/245`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；治理报告 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 类别和控制页引用不是样本、OCR 文本、真实图片引用、实际失败记录或真实缓存容量证明；未读取真实资料、调用 OCR 引擎、执行真实回归、创建缓存或人工复核任务，未执行 Agent、模型 Token、OVH、生产、上传或推送；后续仅允许在新的独立 run 进入 `IDS-STAGE055-P4-GATE`。
+
 ## IDS v0.1 STAGE-055 Phase 2 - 2026-08-13
 
 - 完成 `IDS-V0_1-STAGE055-P2`：以五条固定非业务 reference-only control 记录实现纯内存 OCR 回归队列状态、十一字段逐页结构、符号化 OCR 输出、符号化图片引用、置信度、来源页引用以及低置信、中英文混合和失败页的中文可解释状态。

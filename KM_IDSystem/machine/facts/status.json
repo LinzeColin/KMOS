@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE055",
-  "phase": "IDS-V0_1-STAGE055-P2",
-  "task": "IDS-V0_1-STAGE055-P2",
-  "real_progress": "Stage055 P2 已把五条固定非业务 reference-only control 记录投影为纯内存 OCR 回归队列状态、十一字段逐页结构、置信度、来源页引用和低置信/混合/失败可解释状态；下一步只能在新的独立 run 进入 Stage055 P3，上传路径继续关闭",
-  "report_grade": "冻结 Stage055 任务包、P1 静态合同和 Stage054 已复审工件为唯一合同上下文；P2 纯内存切片、聚焦用例、显式前序兼容回归、批次锁和治理投影均只保留本地证据",
-  "business_verdict": "本阶段只证明固定 control 的队列/逐页输出形状、置信度记录、来源页引用和隔离状态可解释；不证明真实样本、真实 OCR、识别准确率、实际队列、缓存清理、人工复核、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE055_PHASE2_OCR_REGRESSION_CORPUS_CONTROL_SLICE_ENGINE_DISABLED",
+  "phase": "IDS-V0_1-STAGE055-P3",
+  "task": "IDS-V0_1-STAGE055-P3",
+  "real_progress": "Stage055 P3 已重放五条固定非业务 control，覆盖扫描 PDF、模糊图片、表格图片、中英文混合和低质量的显式候选、降级或失败处置；下一步只能在新的独立 run 进入 Stage055 P4，上传路径继续关闭",
+  "report_grade": "冻结 Stage055 任务包、P1/P2 合同和 Stage054 已复审工件为唯一合同上下文；P3 纯内存专项场景、聚焦用例、显式前序兼容回归、批次锁和治理投影均只保留本地证据",
+  "business_verdict": "本阶段只证明固定 control 的五类场景覆盖、来源页引用、显式处置和零静默丢弃；不证明真实样本、真实 OCR、识别准确率、实际人工复核、真实缓存容量或清理、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE055_PHASE3_OCR_REGRESSION_CORPUS_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE055-P3-GATE",
+  "next_gate": "IDS-STAGE055-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

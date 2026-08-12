@@ -197,7 +197,11 @@ class Stage055OcrRegressionCorpusPhase1Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE055", status["stage"])
         self.assertIn(
             status["phase"],
-            ("IDS-V0_1-STAGE055-P1", "IDS-V0_1-STAGE055-P2"),
+            (
+                "IDS-V0_1-STAGE055-P1",
+                "IDS-V0_1-STAGE055-P2",
+                "IDS-V0_1-STAGE055-P3",
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])

@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "ACC-STAGE055-P3-01",
+      "criteria": "Stage055 P3 只以冻结任务包、P1/P2 合同和 Stage054 已复审工件为合同上下文；扫描 PDF、模糊图片、表格图片、中英文混合和低质量均为固定非业务 control 类别，不包含业务资料、授权 fixture、来源正文、真实路径、页面、图片、表格单元或 OCR 文本，未建立第二权威事实源。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE055-P3-02",
+      "criteria": "纯内存专项模块重放 P2 五条 control，五类均有明确候选、降级或失败处置，来源页引用保留且静默丢弃为零；低置信和中英文混合只保持未排队的 Stage054 复核状态，低质量页显式失败，均不允许直接进入高可信证据层。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE055-P3-03",
+      "criteria": "缓存保持仅内存可重建且临时产物为零，清理结论为 NO_TEMPORARY_ARTIFACT_CREATED；当前只证明 control 重放没有创建缓存，不把它表述为真实 OCR 缓存容量、真实识别准确率或实际人工复核证明，容量、保留和清理仍归 Stage056。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE055-P3-04",
+      "criteria": "未读取或创建真实资料、fixture、样本、页面、图片或 OCR 文本；未调用 OCR、执行真实回归、创建持久队列/输出/缓存/复核/审计或持久状态，未执行 Agent、模型调用、模型 Token、OVH、生产、上传或推送。",
+      "status": "已遵守"
+    },
+    {
       "id": "ACC-STAGE055-P2-01",
       "criteria": "Stage055 P2 只以冻结任务包、P1 静态合同和 Stage054 已复审工件为合同上下文；五条输入均为固定十字段 reference-only control 记录，不包含业务资料、授权 fixture、来源正文、真实路径、页面、图片、表格单元或 OCR 文本，未建立第二权威事实源。",
       "status": "已通过"
