@@ -1855,6 +1855,7 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
   const 阈值审计可读 = 阈值?.control_audit?.available === true && Array.isArray(阈值?.control_audit?.entries)
   const 附件能力 = 来源?.parser_capability || {}
   const 来源诊断 = 来源?.source_discovery || {}
+  const 历史回填 = 来源?.historical_backfill || {}
   const 附件能力状态 = ['已支持', '待复核', '未观测', 'UNKNOWN'].includes(附件能力.状态) ? 附件能力.状态 : 'UNKNOWN'
   const 附件能力色 = 附件能力状态 === '已支持' ? 'ok' : 附件能力状态 === '未观测' ? 'muted' : 'bad'
   const 已支持附件数 = Number.isInteger(附件能力.已支持附件数) ? 附件能力.已支持附件数 : 0
@@ -1867,6 +1868,50 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
   const 待复核原因文本 = 待复核原因.length
     ? 待复核原因.map((item) => `${item.类别} ${item.数量} 份`).join('；')
     : 附件能力状态 === '待复核' ? '待生成脱敏解析回执' : '—'
+  const 历史回填状态 = ['未开始', '进行中', '已完成', '需处理', 'UNKNOWN'].includes(历史回填.状态)
+    ? 历史回填.状态 : 'UNKNOWN'
+  const 历史窗口天数 = Number.isInteger(历史回填.窗口天数) && 历史回填.窗口天数 === 360
+    ? 历史回填.窗口天数 : null
+  const 历史已覆盖天数 = Number.isInteger(历史回填.已覆盖天数) && 历史窗口天数 != null
+    && 历史回填.已覆盖天数 >= 0 && 历史回填.已覆盖天数 <= 历史窗口天数
+    ? 历史回填.已覆盖天数 : null
+  const 历史待覆盖天数 = Number.isInteger(历史回填.待覆盖天数) && 历史窗口天数 != null
+    && 历史回填.待覆盖天数 >= 0 && 历史回填.待覆盖天数 <= 历史窗口天数
+    && 历史已覆盖天数 != null && 历史回填.待覆盖天数 + 历史已覆盖天数 === 历史窗口天数
+    ? 历史回填.待覆盖天数 : null
+  const 历史覆盖可读 = 历史窗口天数 != null && 历史已覆盖天数 != null && 历史待覆盖天数 != null
+  const 历史覆盖百分比 = 历史覆盖可读 ? Math.round((历史已覆盖天数 / 历史窗口天数) * 100) : null
+  const 历史回填作业 = 历史回填.最近作业 || {}
+  const 历史回填作业状态 = ['成功', '失败', '处理中', 'UNKNOWN'].includes(历史回填作业.状态)
+    ? 历史回填作业.状态 : 'UNKNOWN'
+  const 历史回填作业说明 = {
+    DWS_AUTH_REQUIRED: '云端历史读取授权暂未通过',
+    DWS_ATTACHMENT_PERMISSION_DENIED: '云端附件读取权限不足',
+    ATTACHMENT_DOWNLOAD_ARGUMENT_INVALID: '云端附件读取参数未通过确定性校验',
+    ATTACHMENT_DOWNLOAD_TRANSPORT_FAILED: '云端附件读取传输失败',
+    ATTACHMENT_DOWNLOAD_READ_FAILED: '云端附件已下载但安全读取失败',
+    ATTACHMENT_DOWNLOAD_AMBIGUOUS: '云端附件返回结构不唯一',
+    ATTACHMENT_DOWNLOAD_FAILED: '云端附件读取未通过确定性校验',
+    GIT_WRITE_FAILED: '原始归档写入待复核（旧回执）',
+    GIT_ARCHIVE_PREPARE_FAILED: '私库归档准备未通过',
+    GIT_ARCHIVE_STAGE_FAILED: '私库归档暂存未通过',
+    GIT_ARCHIVE_COMMIT_FAILED: '私库归档提交未通过',
+    GIT_ARCHIVE_PUSH_FAILED: '私库归档推送未通过',
+    GIT_ARCHIVE_REBASE_FAILED: '私库归档并发合并未通过',
+    GIT_ARCHIVE_VERIFY_FAILED: '私库归档远端校验未通过',
+    GIT_ARCHIVE_READBACK_FAILED: '私库归档回读未通过',
+    BACKFILL_LOCK_HELD: '已有历史回填作业正在处理',
+    BACKFILLING: '本批历史窗口已处理，继续推进',
+    BACKFILLING_NEEDS_REVIEW: '本批已归档，但附件仍待确定性复核',
+    BACKFILL_COMPLETE: '历史窗口已全部覆盖',
+    BACKFILL_COMPLETE_NEEDS_REVIEW: '历史窗口已全部覆盖，但附件仍待确定性复核',
+  }[历史回填作业.结果] || (历史回填作业状态 === '失败' ? '上一批未完成，待云端排程重试' : '尚无可信的最近作业回执')
+  const 历史回填色 = !历史覆盖可读 || 历史回填状态 === 'UNKNOWN' ? 'muted'
+    : 历史回填状态 === '需处理' || 历史回填作业状态 === '失败' ? 'bad'
+      : 历史回填状态 === '已完成' ? 'ok' : 'warn'
+  const 历史回填进度话 = 历史覆盖可读
+    ? `已覆盖 ${历史已覆盖天数} / ${历史窗口天数} 天；待覆盖 ${历史待覆盖天数} 天`
+    : '尚无可信的历史覆盖回执'
   const option = useMemo(() => {
     const 阈值说明 = [
       Number.isInteger(fixed.hard_fen) && `固定高风险线：${资金金额(fixed.hard_fen)}`,
@@ -2086,6 +2131,11 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
       说明: 历史探针状态 === 'COMPLETED' ? '受限读取路径已验证' : '固定窗口读取尚未完成',
     },
     {
+      名称: '历史回填', 状态: 历史覆盖可读 ? `${历史已覆盖天数}/${历史窗口天数} 天` : 历史回填状态,
+      色: 历史回填色,
+      说明: 历史覆盖可读 ? `${历史回填进度话}；${历史回填作业说明}` : 历史回填进度话,
+    },
+    {
       名称: '附件解析', 状态: 附件能力状态, 色: 附件能力色,
       说明: 附件能力状态 === '已支持' ? '确定性解析能力已验证' : '不把待复核附件写成已解析',
     },
@@ -2114,6 +2164,29 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
         <Kpi 标="今日流出" 值={资金金额(今日.outflow_fen)} 小 />
         <Kpi 标="今日净变动" 值={资金金额(今日.net_change_fen)} 小 色={Number.isInteger(今日.net_change_fen) ? (今日.net_change_fen < 0 ? 'bad' : 'ok') : undefined} />
       </div>
+
+      <section className={`card daily-funds-coverage ${历史回填色}`} aria-label="历史来源覆盖" style={{ marginTop: 14 }}>
+        <div className="daily-funds-coverage-head">
+          <div>
+            <b>历史来源覆盖（不含金额）</b>
+            <div className="sub">仅表示云端回填已扫描的历史范围，不代表账户余额、资金流水、逐分勾稽或正式资金发布。</div>
+          </div>
+          <span className={`chip ${历史回填色}`}>{历史覆盖可读 ? `${历史覆盖百分比}% 已覆盖` : '覆盖待验证'}</span>
+        </div>
+        {历史覆盖可读 ? <>
+          <div className="daily-funds-coverage-meter" role="progressbar" aria-label="历史来源覆盖进度"
+            aria-valuemin="0" aria-valuemax={历史窗口天数} aria-valuenow={历史已覆盖天数}>
+            <span className={历史回填色} style={{ width: `${历史覆盖百分比}%` }} />
+          </div>
+          <div className="daily-funds-coverage-stats">
+            <b>{历史回填进度话}</b>
+            <span className={`chip ${历史回填作业状态 === '成功' ? 'ok' : 历史回填作业状态 === '处理中' ? 'warn' : 历史回填作业状态 === '失败' ? 'bad' : 'muted'}`}>
+              最近作业：{历史回填作业状态}
+            </span>
+          </div>
+          <div className="hint" role="status">{历史回填作业说明}。固定 15 分钟回填排程继续保留；本卡不把扫描覆盖写成资金已可用。</div>
+        </> : <div className="daily-funds-coverage-empty">尚无可信覆盖回执；系统不以空值猜测“0 天”或“已完成”。</div>}
+      </section>
 
       <div className="card" style={{ marginTop: 14 }}>
         <div className="toolbar" role="group" aria-label="资金时间范围">

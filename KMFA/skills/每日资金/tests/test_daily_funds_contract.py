@@ -2053,6 +2053,25 @@ def test_backfill_empty_window_advances_only_the_historical_planner(tmp_path: Pa
     )
 
 
+def test_historical_backfill_coverage_is_values_free_and_never_exposes_cursor(tmp_path: Path) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    runtime.state.put("backfill_next_business_date", "2025-10-05")
+    now = datetime(2026, 8, 1, 4, tzinfo=UTC)
+
+    coverage = runtime._historical_backfill_coverage(now=now)
+
+    assert coverage == {
+        "state": "IN_PROGRESS",
+        "window_days": 360,
+        "completed_days": 60,
+        "remaining_days": 300,
+    }
+    runtime._write_flow_state(stage="BACKFILLING")
+    flow_text = (runtime.config.publication_dir / "flow_state.json").read_text(encoding="utf-8")
+    assert json.loads(flow_text)["historical_backfill"]["window_days"] == 360
+    assert "2025-10-05" not in flow_text
+
+
 def test_backfill_scans_the_exact_360_day_range_without_gaps(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Bounded runs must eventually cover every required historical calendar day."""
 
@@ -3865,6 +3884,21 @@ def test_sparse_writer_retries_standard_non_fast_forward_and_rejects_force_push(
         writer._git(["push", "--force", "origin", "HEAD:main"])
 
 
+def test_sparse_writer_exposes_only_fixed_archive_stage_code_on_write_failure(tmp_path: Path) -> None:
+    """Write diagnostics name the pipeline stage, never Git stderr content."""
+
+    def runner(command, **_kwargs):
+        return subprocess.CompletedProcess(command, 1, "", "private remote diagnostic")
+
+    writer = GitSparseWriter(_config(tmp_path), runner=runner)
+    with pytest.raises(IngestionError, match="^GIT_ARCHIVE_STAGE_FAILED$") as error:
+        writer._git(
+            ["add", "--sparse", "--", str(SPARSE_PATH)],
+            failure_code="GIT_ARCHIVE_STAGE_FAILED",
+        )
+    assert "private" not in str(error.value)
+
+
 def test_raw_archive_audit_retries_one_fresh_read_only_transport_attempt(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -4605,6 +4639,81 @@ def test_dws_history_permission_denial_is_not_misreported_as_auth_loss(tmp_path:
     assert events == [
         ("DWS", "AUTH_STATUS", "OK"),
         ("DWS", "HISTORY_SEARCH_ADVANCED", "DWS_HISTORY_PERMISSION_DENIED"),
+    ]
+
+
+def test_dws_attachment_permission_denial_is_not_misreported_as_auth_loss(tmp_path: Path) -> None:
+    """DWS exit 1 can be a media permission denial, not an expired login."""
+
+    config = _config(tmp_path)
+    events: list[tuple[str, str, str]] = []
+
+    def runner(command, **_kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                json.dumps({"authenticated": True, "refresh_token_valid": True}),
+                "",
+            )
+        if command[1:4] == ["chat", "message", "download-media"]:
+            assert command[command.index("--timeout") + 1] == "150"
+            return subprocess.CompletedProcess(command, 1, "", "PermissionDenied attachment-private-detail")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    message = {
+        "openConversationId": config.group_id,
+        "senderOpenDingTalkId": config.sender_id,
+        "openMessageId": "attachment-permission-fixture",
+        "createTime": "2026-08-01T00:00:00Z",
+        "attachments": [{"mediaId": "attachment-permission-media"}],
+    }
+    with pytest.raises(IngestionError, match="^DWS_ATTACHMENT_PERMISSION_DENIED$") as exc_info:
+        DwsHistoryClient(
+            config,
+            runner=runner,
+            event_sink=lambda *event: events.append(event),
+        ).download(message, 0)
+    assert "attachment-private-detail" not in str(exc_info.value)
+    assert events == [
+        ("DWS", "AUTH_STATUS", "OK"),
+        ("DWS", "ATTACHMENT_DOWNLOAD", "DWS_ATTACHMENT_PERMISSION_DENIED"),
+    ]
+
+
+def test_dws_attachment_transport_timeout_has_a_fixed_safe_stage_code(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    events: list[tuple[str, str, str]] = []
+
+    def runner(command, **_kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                json.dumps({"authenticated": True, "refresh_token_valid": True}),
+                "",
+            )
+        if command[1:4] == ["chat", "message", "download-media"]:
+            raise subprocess.TimeoutExpired(command, timeout=180)
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    message = {
+        "openConversationId": config.group_id,
+        "senderOpenDingTalkId": config.sender_id,
+        "openMessageId": "attachment-timeout-fixture",
+        "createTime": "2026-08-01T00:00:00Z",
+        "attachments": [{"mediaId": "attachment-timeout-media"}],
+    }
+    with pytest.raises(IngestionError, match="^ATTACHMENT_DOWNLOAD_TRANSPORT_FAILED$"):
+        DwsHistoryClient(
+            config,
+            runner=runner,
+            event_sink=lambda *event: events.append(event),
+        ).download(message, 0)
+    assert events == [
+        ("DWS", "AUTH_STATUS", "OK"),
+        ("DWS", "ATTACHMENT_DOWNLOAD", "UNAVAILABLE"),
+        ("DWS", "ATTACHMENT_DOWNLOAD", "TRANSPORT_FAILED"),
     ]
 
 

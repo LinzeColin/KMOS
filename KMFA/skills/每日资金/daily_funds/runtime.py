@@ -71,6 +71,7 @@ _COUPLED_PROCESS_MARKERS = (
     b"launchd",
 )
 _POST_DEPLOY_OBSERVER_REQUIRED_BUSINESS_DAYS = 5
+_BACKFILL_WINDOW_DAYS = 360
 _FLOW_STATE_SCHEMA = "kmfa.daily_funds.flow_state.v1"
 _CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v2"
 _CASHFLOW_OBSERVATION_MIN_DAYS = 2
@@ -348,6 +349,57 @@ class DailyFundsRuntime:
         candidate = str(value or "UNKNOWN").strip().upper()
         return candidate if candidate in _SOURCE_DISCOVERY_STATES else "UNKNOWN"
 
+    def _historical_backfill_coverage(self, *, now: datetime | None = None) -> dict[str, int | str]:
+        """Project only planner coverage, never the historical cursor or dates.
+
+        The cursor is private operational state: exposing it would disclose a
+        business-date boundary without proving that any financial fact passed
+        parsing or reconciliation.  The owner UI needs the bounded coverage
+        count instead, so it can distinguish a healthy scheduler from a
+        complete money publication without inventing an amount.
+        """
+
+        now = now or datetime.now(UTC)
+        try:
+            from zoneinfo import ZoneInfo
+
+            local_today = now.astimezone(ZoneInfo("Asia/Shanghai")).date()
+        except Exception:
+            return {
+                "state": "NEEDS_ATTENTION",
+                "window_days": _BACKFILL_WINDOW_DAYS,
+                "completed_days": 0,
+                "remaining_days": _BACKFILL_WINDOW_DAYS,
+            }
+        first_required = local_today - timedelta(days=_BACKFILL_WINDOW_DAYS)
+        raw_cursor = self.state.get("backfill_next_business_date")
+        if raw_cursor is None:
+            return {
+                "state": "NOT_STARTED",
+                "window_days": _BACKFILL_WINDOW_DAYS,
+                "completed_days": 0,
+                "remaining_days": _BACKFILL_WINDOW_DAYS,
+            }
+        try:
+            next_day = date.fromisoformat(raw_cursor)
+        except ValueError:
+            return {
+                "state": "NEEDS_ATTENTION",
+                "window_days": _BACKFILL_WINDOW_DAYS,
+                "completed_days": 0,
+                "remaining_days": _BACKFILL_WINDOW_DAYS,
+            }
+        completed_days = min(
+            _BACKFILL_WINDOW_DAYS,
+            max(0, (next_day - first_required).days),
+        )
+        return {
+            "state": "COMPLETE" if completed_days == _BACKFILL_WINDOW_DAYS else "IN_PROGRESS",
+            "window_days": _BACKFILL_WINDOW_DAYS,
+            "completed_days": completed_days,
+            "remaining_days": _BACKFILL_WINDOW_DAYS - completed_days,
+        }
+
     @contextmanager
     def _flow_state_write_lock(self):
         """Serialize flow-state read/modify/write cycles across cron jobs.
@@ -575,6 +627,7 @@ class DailyFundsRuntime:
             if source_discovery_state is not None
             else prior_source_discovery.get("state")
         )
+        historical_backfill = self._historical_backfill_coverage()
         identity_state, source_commit_fingerprint = self._build_source_identity()
         payload = {
             "schema_version": _FLOW_STATE_SCHEMA,
@@ -596,6 +649,10 @@ class DailyFundsRuntime:
             # attachment is not a reconciled or published amount.
             "source_discovery": {"state": resolved_source_discovery},
             "operations": operations,
+            # This omits the durable cursor and every date/identifier.  It is
+            # operational coverage only, never evidence of parsed financial
+            # facts or an eligible publication.
+            "historical_backfill": historical_backfill,
             # This aggregate is intentionally values-free: it reveals only
             # parser type/outcome counts, never source IDs, filenames, hashes,
             # document text or financial amounts.
@@ -2168,7 +2225,7 @@ class DailyFundsRuntime:
             local_zone = ZoneInfo("Asia/Shanghai")
         except Exception:  # zoneinfo is part of Python, but keep fail-closed
             return self.status.write("需处理", "TIMEZONE_UNAVAILABLE")
-        first_required = local_today - timedelta(days=360)
+        first_required = local_today - timedelta(days=_BACKFILL_WINDOW_DAYS)
         raw_cursor = self.state.get("backfill_next_business_date")
         try:
             next_day = date.fromisoformat(raw_cursor) if raw_cursor else first_required

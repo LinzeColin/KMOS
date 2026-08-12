@@ -53,6 +53,21 @@ DWS_RECORD_LIST_SHAPES = frozenset({
     "UNRECOGNIZED_DIRECT_LIST",
 })
 
+# Git and SSH stderr can contain remote paths, account diagnostics or other
+# implementation detail.  A scheduled worker must not collapse every write
+# failure into one opaque result, but it also must never forward that stderr
+# into a status/publication surface.  These fixed tokens identify only the
+# safe pipeline stage that needs attention.
+_ARCHIVE_WRITE_FAILURE_CODES = frozenset({
+    "GIT_ARCHIVE_PREPARE_FAILED",
+    "GIT_ARCHIVE_STAGE_FAILED",
+    "GIT_ARCHIVE_COMMIT_FAILED",
+    "GIT_ARCHIVE_PUSH_FAILED",
+    "GIT_ARCHIVE_REBASE_FAILED",
+    "GIT_ARCHIVE_VERIFY_FAILED",
+    "GIT_ARCHIVE_READBACK_FAILED",
+})
+
 
 class IngestionError(RuntimeError):
     def __init__(self, code: str, *, record_list_shape: str = "NOT_OBSERVED"):
@@ -272,6 +287,27 @@ def _dws_history_failure_code(*values: object, fallback: str = "DWS_HISTORY_FAIL
     if any(token in text for token in ("parameter", "argument", "invalid", "参数")):
         return "DWS_HISTORY_ARGUMENT_INVALID"
     return fallback
+
+
+def _dws_attachment_download_failure_code(
+    *values: object,
+    fallback: str = "ATTACHMENT_DOWNLOAD_FAILED",
+) -> str:
+    """Reduce a media-download failure to a finite attachment-stage code.
+
+    The download command has the same OAuth and DingTalk authorization
+    semantics as the history collector, but its repair surface is different:
+    a group-history permission and an attachment-media permission must not be
+    presented as the same action item.  The underlying diagnostic is examined
+    only in process memory and is never retained, logged, or returned.
+    """
+
+    code = _dws_history_failure_code(*values, fallback=fallback)
+    if code == "DWS_HISTORY_PERMISSION_DENIED":
+        return "DWS_ATTACHMENT_PERMISSION_DENIED"
+    if code == "DWS_HISTORY_ARGUMENT_INVALID":
+        return "ATTACHMENT_DOWNLOAD_ARGUMENT_INVALID"
+    return code
 
 
 def _strip_dws_terminal_style(value: str) -> str:
@@ -1366,6 +1402,10 @@ class DwsHistoryClient:
         if not media_id:
             raise IngestionError("UNSUPPORTED_ATTACHMENT")
         declared_filename = _message_field(attachment, ("fileName", "name", "title"))
+        # The dedicated cloud volume is normally made by entrypoint, but a
+        # restarted/sparse runtime must not translate a missing empty state
+        # directory into an attachment-download failure before DWS is called.
+        self.config.state_dir.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="daily-funds-dws-", dir=self.config.state_dir) as temp:
             output = Path(temp) / "download"
             output.mkdir()
@@ -1378,6 +1418,12 @@ class DwsHistoryClient:
                 "--open-conversation-id", self.config.group_id,
                 "--output", str(output),
                 "--format", "json",
+                # ``download-media`` defaults to a 30-second HTTP timeout,
+                # while this cloud-only worker already grants the bounded
+                # media operation 180 seconds.  Use most of that approved
+                # budget so a legitimate large attachment is not converted
+                # into a false parser/source failure by a client default.
+                "--timeout", "150",
             ]
             try:
                 completed = self._run_dws(
@@ -1386,17 +1432,25 @@ class DwsHistoryClient:
                     timeout=180,
                 )
             except (OSError, subprocess.TimeoutExpired) as exc:
-                raise IngestionError("ATTACHMENT_DOWNLOAD_FAILED") from exc
+                self._record_network_event("ATTACHMENT_DOWNLOAD", "TRANSPORT_FAILED")
+                raise IngestionError("ATTACHMENT_DOWNLOAD_TRANSPORT_FAILED") from exc
             if completed.returncode != 0:
-                code = "AUTH_REQUIRED" if completed.returncode in {1, 401, 403} else "FAILED"
+                code = _dws_attachment_download_failure_code(
+                    completed.stdout,
+                    completed.stderr,
+                )
                 self._record_network_event("ATTACHMENT_DOWNLOAD", code)
-                raise IngestionError("AUTH_REQUIRED" if code == "AUTH_REQUIRED" else "ATTACHMENT_DOWNLOAD_FAILED")
+                raise IngestionError(code)
             files = [path for path in output.rglob("*") if path.is_file()]
             if len(files) != 1:
                 self._record_network_event("ATTACHMENT_DOWNLOAD", "INVALID")
                 raise IngestionError("ATTACHMENT_DOWNLOAD_AMBIGUOUS")
             downloaded = files[0]
-            payload = downloaded.read_bytes()
+            try:
+                payload = downloaded.read_bytes()
+            except OSError as exc:
+                self._record_network_event("ATTACHMENT_DOWNLOAD", "READ_FAILED")
+                raise IngestionError("ATTACHMENT_DOWNLOAD_READ_FAILED") from exc
             # Text-embedded media tokens lack a filename.  Prefer a declared
             # source filename when it has a supported suffix; otherwise use
             # DWS's downloaded filename so parsing remains evidence-based.
@@ -2085,7 +2139,10 @@ class GitSparseWriter:
         cwd: Path | None = None,
         env: Mapping[str, str] | None = None,
         audit_read: bool = False,
+        failure_code: str = "GIT_WRITE_FAILED",
     ) -> str:
+        if failure_code not in _ARCHIVE_WRITE_FAILURE_CODES | {"GIT_WRITE_FAILED"}:
+            raise ValueError("invalid git failure code")
         if self._is_force_push(args):
             raise IngestionError("GIT_FORCE_PUSH_FORBIDDEN")
         try:
@@ -2099,12 +2156,16 @@ class GitSparseWriter:
                 timeout=180,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
-            code = "GIT_AUDIT_TRANSPORT_RETRYABLE" if audit_read else "GIT_WRITE_FAILED"
+            code = "GIT_AUDIT_TRANSPORT_RETRYABLE" if audit_read else failure_code
             raise IngestionError(code) from exc
         if completed.returncode != 0:
             if audit_read and self._is_retryable_audit_transport(completed.stderr):
                 raise IngestionError("GIT_AUDIT_TRANSPORT_RETRYABLE")
-            raise IngestionError("GIT_NON_FAST_FORWARD" if self._is_non_fast_forward(args, completed.stderr or "") else "GIT_WRITE_FAILED")
+            raise IngestionError(
+                "GIT_NON_FAST_FORWARD"
+                if self._is_non_fast_forward(args, completed.stderr or "")
+                else failure_code
+            )
         return completed.stdout.strip()
 
     @staticmethod
@@ -2646,6 +2707,7 @@ class GitSparseWriter:
         ref: str,
         patterns: Sequence[str] | None = None,
         audit_read: bool = False,
+        failure_code: str = "GIT_WRITE_FAILED",
     ) -> None:
         """Clone only the caller's approved sparse materialisation paths.
 
@@ -2669,25 +2731,57 @@ class GitSparseWriter:
         self._git([
             "clone", "--branch", ref, "--depth=1", "--filter=blob:none", "--sparse", "--no-checkout",
             self.config.private_repo, str(repo),
-        ], env=env, audit_read=audit_read)
+        ], env=env, audit_read=audit_read, failure_code=failure_code)
         # Cone mode always includes root-level files.  Non-cone mode is used
         # deliberately so an exact-path writer never checks out unrelated
         # repository material before it handles financial evidence.
-        self._git(["sparse-checkout", "set", "--no-cone", *selected], cwd=repo, env=env, audit_read=audit_read)
-        self._git(["checkout", ref], cwd=repo, env=env, audit_read=audit_read)
+        self._git(
+            ["sparse-checkout", "set", "--no-cone", *selected],
+            cwd=repo,
+            env=env,
+            audit_read=audit_read,
+            failure_code=failure_code,
+        )
+        self._git(["checkout", ref], cwd=repo, env=env, audit_read=audit_read, failure_code=failure_code)
         self._assert_sparse_checkout_scope(repo)
 
-    def _push_with_single_rebase(self, repo: Path, *, env: Mapping[str, str]) -> None:
+    def _push_with_single_rebase(
+        self,
+        repo: Path,
+        *,
+        env: Mapping[str, str],
+        failure_code: str = "GIT_WRITE_FAILED",
+    ) -> None:
         """Retry the expected main race once, never with a force push."""
 
         try:
-            self._git(["push", "origin", f"HEAD:{self.config.private_branch}"], cwd=repo, env=env)
+            self._git(
+                ["push", "origin", f"HEAD:{self.config.private_branch}"],
+                cwd=repo,
+                env=env,
+                failure_code=failure_code,
+            )
         except IngestionError as exc:
             if exc.code != "GIT_NON_FAST_FORWARD":
                 raise
-            self._git(["fetch", "origin", self.config.private_branch], cwd=repo, env=env)
-            self._git(["rebase", f"origin/{self.config.private_branch}"], cwd=repo, env=env)
-            self._git(["push", "origin", f"HEAD:{self.config.private_branch}"], cwd=repo, env=env)
+            self._git(
+                ["fetch", "origin", self.config.private_branch],
+                cwd=repo,
+                env=env,
+                failure_code="GIT_ARCHIVE_REBASE_FAILED",
+            )
+            self._git(
+                ["rebase", f"origin/{self.config.private_branch}"],
+                cwd=repo,
+                env=env,
+                failure_code="GIT_ARCHIVE_REBASE_FAILED",
+            )
+            self._git(
+                ["push", "origin", f"HEAD:{self.config.private_branch}"],
+                cwd=repo,
+                env=env,
+                failure_code=failure_code,
+            )
 
     def _readback_sparse_root(
         self,
@@ -2696,6 +2790,7 @@ class GitSparseWriter:
         env: Mapping[str, str],
         commit_sha: str,
         patterns: Sequence[str] | None = None,
+        failure_code: str = "GIT_WRITE_FAILED",
     ) -> Path:
         """Reopen the pushed commit through a new sparse clone.
 
@@ -2707,8 +2802,19 @@ class GitSparseWriter:
         repo = temp_root / "private-db-readback"
         # Clone first on the permitted branch so sparse setup remains identical
         # to the writer, then detach at the pushed SHA for the actual readback.
-        self._clone_sparse(repo, env=env, ref=self.config.private_branch, patterns=patterns)
-        self._git(["checkout", "--detach", commit_sha], cwd=repo, env=env)
+        self._clone_sparse(
+            repo,
+            env=env,
+            ref=self.config.private_branch,
+            patterns=patterns,
+            failure_code=failure_code,
+        )
+        self._git(
+            ["checkout", "--detach", commit_sha],
+            cwd=repo,
+            env=env,
+            failure_code=failure_code,
+        )
         return repo / SPARSE_PATH
 
     def _readback_attachments(
@@ -2721,7 +2827,13 @@ class GitSparseWriter:
         staged: StagedRawBatch,
         patterns: Sequence[str],
     ) -> tuple[DownloadedAttachment, ...]:
-        root = self._readback_sparse_root(temp_root, env=env, commit_sha=commit_sha, patterns=patterns)
+        root = self._readback_sparse_root(
+            temp_root,
+            env=env,
+            commit_sha=commit_sha,
+            patterns=patterns,
+            failure_code="GIT_ARCHIVE_READBACK_FAILED",
+        )
         frozen = RawMaterializer.canonical_attachments(attachments)
         verified = tuple(RawMaterializer.readback_attachment(root, attachment) for attachment in frozen)
         RawMaterializer.readback_batch(root, frozen, staged)
@@ -2738,12 +2850,33 @@ class GitSparseWriter:
             key_path = self._write_deploy_key(temp_root, self.config.git_ssh_key_b64)
             env = self._git_environment(temp_root, key_path)
             repo = temp_root / "private-db"
-            self._clone_sparse(repo, env=env, ref=self.config.private_branch, patterns=sparse_patterns)
-            self._git(["config", "user.name", "kmfa-daily-funds-writer"], cwd=repo, env=env)
-            self._git(["config", "user.email", "kmfa-daily-funds@localhost"], cwd=repo, env=env)
+            self._clone_sparse(
+                repo,
+                env=env,
+                ref=self.config.private_branch,
+                patterns=sparse_patterns,
+                failure_code="GIT_ARCHIVE_PREPARE_FAILED",
+            )
+            self._git(
+                ["config", "user.name", "kmfa-daily-funds-writer"],
+                cwd=repo,
+                env=env,
+                failure_code="GIT_ARCHIVE_PREPARE_FAILED",
+            )
+            self._git(
+                ["config", "user.email", "kmfa-daily-funds@localhost"],
+                cwd=repo,
+                env=env,
+                failure_code="GIT_ARCHIVE_PREPARE_FAILED",
+            )
             materializer = RawMaterializer()
             staged = materializer.stage(repo / SPARSE_PATH, frozen_attachments)
-            self._git(["add", "--sparse", "--", str(SPARSE_PATH)], cwd=repo, env=env)
+            self._git(
+                ["add", "--sparse", "--", str(SPARSE_PATH)],
+                cwd=repo,
+                env=env,
+                failure_code="GIT_ARCHIVE_STAGE_FAILED",
+            )
             self._assert_staged_scope(repo, env=env)
             try:
                 self._git(["diff", "--cached", "--quiet"], cwd=repo, env=env)
@@ -2755,10 +2888,29 @@ class GitSparseWriter:
                 # parsing a potentially sensitive filename into logs.
                 changed = bool(self._git(["status", "--porcelain"], cwd=repo, env=env))
             if changed:
-                self._git(["commit", "-m", f"data(kmfa): daily funds raw batch {staged.batch_id[:12]}"], cwd=repo, env=env)
-                self._push_with_single_rebase(repo, env=env)
-            commit_sha = self._git(["rev-parse", "HEAD"], cwd=repo, env=env)
-            remote_head = self._git(["ls-remote", "origin", f"refs/heads/{self.config.private_branch}"], cwd=repo, env=env).split()
+                self._git(
+                    ["commit", "-m", f"data(kmfa): daily funds raw batch {staged.batch_id[:12]}"],
+                    cwd=repo,
+                    env=env,
+                    failure_code="GIT_ARCHIVE_COMMIT_FAILED",
+                )
+                self._push_with_single_rebase(
+                    repo,
+                    env=env,
+                    failure_code="GIT_ARCHIVE_PUSH_FAILED",
+                )
+            commit_sha = self._git(
+                ["rev-parse", "HEAD"],
+                cwd=repo,
+                env=env,
+                failure_code="GIT_ARCHIVE_VERIFY_FAILED",
+            )
+            remote_head = self._git(
+                ["ls-remote", "origin", f"refs/heads/{self.config.private_branch}"],
+                cwd=repo,
+                env=env,
+                failure_code="GIT_ARCHIVE_VERIFY_FAILED",
+            ).split()
             if not remote_head or remote_head[0] != commit_sha:
                 raise IngestionError("GIT_READBACK_FAILED")
             verified_attachments = self._readback_attachments(

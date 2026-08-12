@@ -96,6 +96,29 @@ def test_unknown_machine_code_is_not_copied_to_the_log_event() -> None:
     assert event["machine_code"] == "UNCLASSIFIED"
 
 
+@pytest.mark.parametrize(
+    "machine_code",
+    (
+        "DWS_ATTACHMENT_PERMISSION_DENIED",
+        "ATTACHMENT_DOWNLOAD_ARGUMENT_INVALID",
+        "ATTACHMENT_DOWNLOAD_TRANSPORT_FAILED",
+        "ATTACHMENT_DOWNLOAD_READ_FAILED",
+        "ATTACHMENT_DOWNLOAD_AMBIGUOUS",
+        "ATTACHMENT_DOWNLOAD_FAILED",
+        "GIT_ARCHIVE_PREPARE_FAILED",
+        "GIT_ARCHIVE_STAGE_FAILED",
+        "GIT_ARCHIVE_COMMIT_FAILED",
+        "GIT_ARCHIVE_PUSH_FAILED",
+        "GIT_ARCHIVE_REBASE_FAILED",
+        "GIT_ARCHIVE_VERIFY_FAILED",
+        "GIT_ARCHIVE_READBACK_FAILED",
+    ),
+)
+def test_daily_funds_actionable_backfill_codes_are_admitted_without_raw_detail(machine_code: str) -> None:
+    event = cron_event("backfill", "NEEDS_ATTENTION", machine_code)
+    assert event["machine_code"] == machine_code
+
+
 def test_raw_archive_audit_uses_the_same_fixed_values_free_cron_contract() -> None:
     event = cron_event("raw-archive-audit", "SUCCEEDED", "RAW_ARCHIVE_AUDITED")
     assert event == {

@@ -975,6 +975,45 @@ def test_daily_funds_attachment_capability_summary_fails_closed_on_malformed_row
     assert daily["每日资金状态"]["业务流"]["业务流"]["阶段"] == "PARSER_NEEDS_REVIEW"
 
 
+def test_daily_funds_source_health_exposes_values_free_historical_backfill_coverage(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    flow_path = publication / "flow_state.json"
+    flow = json.loads(flow_path.read_text(encoding="utf-8"))
+    flow["historical_backfill"] = {
+        "state": "IN_PROGRESS",
+        "window_days": 360,
+        "completed_days": 196,
+        "remaining_days": 164,
+        "private_cursor_must_not_escape": "cursor-fixture",
+    }
+    flow["operations"]["backfill"] = {
+        "state": "FAILED",
+        "code": "DWS_AUTH_REQUIRED",
+        "finished_at": "2026-08-02T10:05:00Z",
+        "private_detail_must_not_escape": "backfill-fixture",
+    }
+    flow_path.write_text(json.dumps(flow), encoding="utf-8")
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+
+    response = client.get("/ops/api/daily-funds/source-health")
+
+    assert response.status_code == 200
+    assert response.json()["historical_backfill"] == {
+        "状态": "进行中",
+        "窗口天数": 360,
+        "已覆盖天数": 196,
+        "待覆盖天数": 164,
+        "最近作业": {
+            "状态": "失败",
+            "结果": "DWS_AUTH_REQUIRED",
+            "最近一次": "2026-08-02T10:05:00Z",
+        },
+    }
+    assert "cursor-fixture" not in response.text
+    assert "backfill-fixture" not in response.text
+
+
 def test_daily_funds_source_discovery_distinguishes_missing_fact_gates(tmp_path, monkeypatch):
     publication = tmp_path / "publication"
     _write_projection(publication)

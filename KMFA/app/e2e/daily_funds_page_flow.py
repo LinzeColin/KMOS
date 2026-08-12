@@ -260,6 +260,23 @@ def _write_archived_needs_review_projection(root: Path) -> None:
         "last_status_at": "2026-07-30T12:05:00Z",
         "publication_present": False,
     }
+    # This is values-free operational coverage only.  It must stay visibly
+    # distinct from the synthetic cashflow chart below: a scanned historical
+    # day is not an account snapshot, transaction fact, zero-fen
+    # reconciliation, or money publication.
+    flow["historical_backfill"] = {
+        "state": "NEEDS_ATTENTION",
+        "window_days": 360,
+        "completed_days": 200,
+        "remaining_days": 160,
+    }
+    flow["operations"] = {
+        "backfill": {
+            "state": "FAILED",
+            "code": "ATTACHMENT_DOWNLOAD_TRANSPORT_FAILED",
+            "finished_at": "2026-07-30T12:05:00Z",
+        },
+    }
     flow["attachment_capabilities"] = [{
         "family": "UNCLASSIFIED",
         "suffix": ".png",
@@ -375,8 +392,12 @@ def _projection_bodies(page: Page) -> dict[str, dict[str, Any]]:
 def _assert_projection_is_redacted(page: Page, *, trusted_projection: bool) -> None:
     bodies = _projection_bodies(page)
     assert set(bodies) == set(DAILY_PATHS)
+    # ``ATTACHMENT_DOWNLOAD_*`` is now a finite values-free operational
+    # result.  Do not treat the ordinary word ``attachment`` as a raw-data
+    # marker; the injected sentinel below proves unknown worker fields still
+    # cannot cross this boundary.
     forbidden = tuple(token.lower() for token in (
-        RAW_SENTINEL, "source_version", "message_id_hash", "attachment", "raw/messages",
+        RAW_SENTINEL, "source_version", "message_id_hash", "raw/messages",
     ))
     for path, response in bodies.items():
         # An unpublished page receives a values-free, schema-stable response
@@ -562,6 +583,9 @@ def _exercise_case(
             page.get_by_text("暂无可信 publication，需处理", exact=False).wait_for(state="visible", timeout=10_000)
             page.get_by_text("附件解析能力", exact=False).wait_for(state="visible", timeout=10_000)
             page.get_by_text("尚无已验证资金曲线", exact=False).wait_for(state="visible", timeout=10_000)
+            page.get_by_text("历史来源覆盖（不含金额）", exact=True).wait_for(state="visible", timeout=10_000)
+            page.get_by_text("已覆盖 200 / 360 天；待覆盖 160 天", exact=True).wait_for(state="visible", timeout=10_000)
+            page.get_by_text("云端附件读取传输失败", exact=False).first.wait_for(state="visible", timeout=10_000)
             page.get_by_text("已采集收支流水（非可用资金）", exact=False).wait_for(state="visible", timeout=10_000)
             page.get_by_text("已验证流水", exact=False).wait_for(state="visible", timeout=10_000)
             chart = page.locator("svg").filter(has_text="可用资金")

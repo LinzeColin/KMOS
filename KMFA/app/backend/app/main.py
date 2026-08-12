@@ -2971,6 +2971,60 @@ def _daily_funds_operation_receipts(rows: object) -> dict[str, dict[str, object]
     return receipts
 
 
+def _daily_funds_historical_backfill(
+    value: object,
+    receipt: dict[str, object],
+) -> dict[str, object]:
+    """Expose only values-free historical coverage and its latest job receipt.
+
+    The worker keeps its next business-date cursor in a private SQLite volume.
+    This boundary deliberately projects aggregate coverage only; neither a
+    source date nor an attachment/message identifier reaches the app.
+    """
+
+    unknown = {
+        "状态": "UNKNOWN",
+        "窗口天数": 360,
+        "已覆盖天数": None,
+        "待覆盖天数": None,
+        "最近作业": dict(receipt),
+    }
+    if not isinstance(value, dict):
+        return unknown
+    state = value.get("state")
+    window_days = value.get("window_days")
+    completed_days = value.get("completed_days")
+    remaining_days = value.get("remaining_days")
+    if (
+        state not in {"NOT_STARTED", "IN_PROGRESS", "COMPLETE", "NEEDS_ATTENTION"}
+        or not _daily_funds_is_integer(window_days)
+        or window_days != 360
+        or not _daily_funds_is_integer(completed_days)
+        or not _daily_funds_is_integer(remaining_days)
+        or completed_days < 0
+        or completed_days > window_days
+        or remaining_days < 0
+        or remaining_days > window_days
+        or completed_days + remaining_days != window_days
+        or (state == "NOT_STARTED" and completed_days != 0)
+        or (state == "COMPLETE" and remaining_days != 0)
+    ):
+        return unknown
+    status = {
+        "NOT_STARTED": "未开始",
+        "IN_PROGRESS": "进行中",
+        "COMPLETE": "已完成",
+        "NEEDS_ATTENTION": "需处理",
+    }[state]
+    return {
+        "状态": status,
+        "窗口天数": window_days,
+        "已覆盖天数": completed_days,
+        "待覆盖天数": remaining_days,
+        "最近作业": dict(receipt),
+    }
+
+
 def _daily_funds_flow_state() -> dict[str, Any]:
     """Safely fold the worker's flow record into the existing status center.
 
@@ -2984,6 +3038,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
     observer_schedule = str(status["schedules"].get("observer") or "")
     if observer_schedule != "30 3 * * * Asia/Shanghai":
         observer_schedule = "30 3 * * * Asia/Shanghai"
+    default_receipts = _daily_funds_operation_receipts(None)
     default = {
         "部署": {
             "运行": "UNKNOWN",
@@ -2998,7 +3053,8 @@ def _daily_funds_flow_state() -> dict[str, Any]:
             "最近验证": status["last_verified_at"],
             "已验证发布": False,
         },
-        "运行回执": _daily_funds_operation_receipts(None),
+        "运行回执": default_receipts,
+        "历史回填": _daily_funds_historical_backfill(None, default_receipts["历史回填"]),
         "来源诊断": _daily_funds_source_discovery(None),
         "附件能力": _daily_funds_attachment_capability_summary(None),
         "自愈": {
@@ -3025,6 +3081,10 @@ def _daily_funds_flow_state() -> dict[str, Any]:
     deployment = payload.get("deployment") if isinstance(payload.get("deployment"), dict) else {}
     business = payload.get("business_flow") if isinstance(payload.get("business_flow"), dict) else {}
     operation_receipts = _daily_funds_operation_receipts(payload.get("operations"))
+    historical_backfill = _daily_funds_historical_backfill(
+        payload.get("historical_backfill"),
+        operation_receipts["历史回填"],
+    )
     source_discovery = _daily_funds_source_discovery(payload.get("source_discovery"))
     attachment_capabilities = _daily_funds_attachment_capability_summary(payload.get("attachment_capabilities"))
     healing = payload.get("self_healing") if isinstance(payload.get("self_healing"), dict) else {}
@@ -3123,6 +3183,7 @@ def _daily_funds_flow_state() -> dict[str, Any]:
             "已验证发布": business.get("publication_present") is True,
         },
         "运行回执": operation_receipts,
+        "历史回填": historical_backfill,
         "来源诊断": source_discovery,
         "附件能力": attachment_capabilities,
         "自愈": {
@@ -3963,6 +4024,7 @@ def _daily_funds_source_health_view() -> dict[str, Any]:
     flow = _daily_funds_flow_state()
     parser_capability = flow["附件能力"]
     source_discovery = flow["来源诊断"]
+    historical_backfill = flow["历史回填"]
     view: dict[str, Any] = {
         "human_status": status["human_status"],
         "effective_business_date": status["effective_business_date"],
@@ -3973,6 +4035,7 @@ def _daily_funds_source_health_view() -> dict[str, Any]:
         # no raw attachment metadata crosses the app boundary.
         "parser_capability": parser_capability,
         "source_discovery": source_discovery,
+        "historical_backfill": historical_backfill,
         "has_trusted_publication": False,
         "message": "尚无可展示的已验证资金数据。",
     }

@@ -264,12 +264,22 @@ table.tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size
 .daily-funds-flows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
 .daily-funds-structure .tblwrap, .daily-funds-flows .tblwrap { margin-top: 10px; }
 .daily-funds-pipeline { margin-top: 14px; }
-.daily-funds-pipeline-head, .daily-funds-chart-head {
+.daily-funds-pipeline-head, .daily-funds-chart-head, .daily-funds-coverage-head {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
 }
-.daily-funds-pipeline-head .sub, .daily-funds-chart-head .muted { margin-top: 4px; line-height: 1.5; }
+.daily-funds-pipeline-head .sub, .daily-funds-chart-head .muted, .daily-funds-coverage-head .sub { margin-top: 4px; line-height: 1.5; }
+.daily-funds-coverage-meter {
+  height: 10px; margin-top: 14px; overflow: hidden; border-radius: 999px;
+  background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line);
+}
+.daily-funds-coverage-meter > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .2s ease; }
+.daily-funds-coverage-meter > span.ok { background: var(--okc); }
+.daily-funds-coverage-meter > span.warn { background: var(--warnc); }
+.daily-funds-coverage-meter > span.bad { background: var(--badc); }
+.daily-funds-coverage-stats { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; font-size: 13px; }
+.daily-funds-coverage-empty { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-s); background: var(--surface-2); color: var(--text-2); font-size: 12.5px; }
 .daily-funds-gates {
-  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0;
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0;
   list-style: none; margin: 14px 0 0; padding: 0;
   border: 1px solid var(--line); border-radius: var(--radius-s); overflow: hidden;
 }
@@ -356,7 +366,8 @@ ul.muted li { margin-top: 4px; }
 }
 
 @media (max-width: 540px) {
-  .daily-funds-pipeline-head, .daily-funds-chart-head { flex-direction: column; }
+  .daily-funds-pipeline-head, .daily-funds-chart-head, .daily-funds-coverage-head { flex-direction: column; }
+  .daily-funds-coverage-stats { align-items: flex-start; flex-direction: column; }
   .daily-funds-gates { grid-template-columns: 1fr; }
   .daily-funds-gate { border-top: 1px solid var(--line); }
   .daily-funds-gate:nth-child(-n + 2) { border-top: 1px solid var(--line); }
