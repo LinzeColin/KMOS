@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-08-12T10:15:00Z"
-status: "stage049_phase1_completed"
+updated_at_utc: "2026-08-12T10:30:00Z"
+status: "stage049_phase2_completed"
 
 transition_history:
+  stage049_phase2_state:
+    status: "stage049_phase2_completed"
+    current_task_id: "IDS-V0_1-STAGE049-P2"
+    next_gate: "IDS-STAGE049-P3-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE049-P3"
+    github_upload_allowed: false
   stage049_phase1_state:
     status: "stage049_phase1_completed"
     current_task_id: "IDS-V0_1-STAGE049-P1"
@@ -1509,18 +1515,19 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
   STAGE-049:
-    status: "phase1_completed"
+    status: "phase2_completed"
     completed_phases:
       - "Phase 1"
+      - "Phase 2"
     next_stage: "STAGE-049"
-    next_phase: "Phase 2"
-    next_gate: "IDS-STAGE049-P2-GATE"
-    current_task_id: "IDS-V0_1-STAGE049-P1"
+    next_phase: "Phase 3"
+    next_gate: "IDS-STAGE049-P3-GATE"
+    current_task_id: "IDS-V0_1-STAGE049-P2"
     acceptance_id: "ACC-STAGE-049"
-    acceptance_status: "phase1_differential_parser_evaluation_boundary_complete"
+    acceptance_status: "phase2_controlled_differential_eligibility_slice_complete"
     review_status: "pending"
     phase2_entry_authorized: true
-    phase3_entry_authorized: false
+    phase3_entry_authorized: true
     phase4_entry_authorized: false
     stage_review_entry_authorized: false
     source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE048_REVIEW_ARTIFACTS"
@@ -1557,19 +1564,28 @@ stage_progress:
     local_service_start_performed: false
     ovh_deployment_performed: false
     production_runtime_activation_performed: false
-    phase2_started: false
+    phase2_started: true
+    phase3_started: false
     whole_stage_review_performed: false
     batch_review_performed: false
     github_upload_allowed: false
     app_reinstall_allowed: false
     push_allowed: false
-    contract_state: "PHASE1_DIFFERENTIAL_PARSER_EVALUATION_BOUNDARY_RUNTIME_DISABLED"
-    differential_parser_evaluation_contract_schema: "ids.stage049.differential_parser_evaluation.phase1.v1"
+    contract_state: "PHASE2_CONTROLLED_DIFFERENTIAL_ELIGIBILITY_RUNTIME_DISABLED"
+    differential_parser_evaluation_contract_schema: "ids.stage049.differential_parser_evaluation.phase2.v1"
     reference_only_candidate_field_count: 7
     parse_product_core_field_count: 6
     minimum_candidate_parser_versions: 2
+    control_candidate_count: 2
+    control_candidate_pair_evaluated: true
+    control_candidate_pair_persisted: false
     candidate_parser_set_created: false
-    parser_version_recorded: false
+    parser_version_recorded: true
+    parser_confidence_recorded: true
+    differential_parser_eligibility_slice_implemented: true
+    in_memory_controlled_differential_eligibility_evaluated: true
+    metadata_consistency_evaluated: true
+    actual_parse_product_comparison_performed: false
     comparison_execution_allowed: false
     comparison_result_created: false
     comparison_result_persisted: false
@@ -1581,19 +1597,24 @@ stage_progress:
     quality_gate_initial_state: "UNASSESSED"
     evidence_text_classification_enforced: true
     prompt_marker_state: "REQUIRED_NOT_APPLIED_STAGE050_OWNED"
-    chinese_feedback_message_count: 4
+    chinese_feedback_message_count: 5
     execution_ready: false
     evidence_refs:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE049_PHASE1_DIFFERENTIAL_PARSER_EVALUATION_SCOPE_BOUNDARY.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/differential_parser_evaluation/stage049_differential_parser_evaluation_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage049_differential_parser_evaluation.py"
       - "KM_IDSystem/machine/runs/2026-08-12-stage049-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE049_PHASE2_DIFFERENTIAL_PARSER_EVALUATION_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/differential_parser_evaluation/stage049_differential_parser_evaluation_slice_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/differential_parser_evaluation/stage049_differential_parser_evaluation_slice.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage049_differential_parser_evaluation_slice.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-stage049-p2-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE049-P1"
-  next_allowed_task_id: "IDS-V0_1-STAGE049-P2"
+  current_task_id: "IDS-V0_1-STAGE049-P2"
+  next_allowed_task_id: "IDS-V0_1-STAGE049-P3"
   github_upload_allowed: false
-  current_run: "STAGE-049 Phase 1 defined reference-only candidate metadata, the six-field future parse-product shape, a two-candidate comparison threshold, quality isolation, controlled Chinese feedback and rollback scope. No source file, route, parser, fallback, comparison, quality gate, persistence, Agent, model, OVH or production action ran."
-  no_upload_reason: "BATCH041_050 has eight completed and individually reviewed Stages plus only Stage049 Phase 1; the remaining Stage049 phases, Stage050, the separate ten-stage review and batch upload gate are incomplete, so single-phase upload remains unavailable."
+  current_run: "STAGE-049 Phase 2 implemented a control-only in-memory differential eligibility slice for two reference-only candidates. It records control parser versions and confidence, returns explicit candidate, review or ineligible dispositions, and keeps real parsing, semantic output comparison, quality, persistence, Agent, model, OVH and production actions disabled."
+  no_upload_reason: "BATCH041_050 has eight completed and individually reviewed Stages plus only Stage049 Phase 1 and Phase 2; the remaining Stage049 phases, Stage050, the separate ten-stage review and batch upload gate are incomplete, so single-phase upload remains unavailable."

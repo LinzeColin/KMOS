@@ -1,0 +1,152 @@
+{
+  "schema_version": "ids.stage049.differential_parser_evaluation.phase2.v1",
+  "stage": "STAGE-049",
+  "phase": "Phase 2",
+  "task_id": "IDS-V0_1-STAGE049-P2",
+  "acceptance_id": "ACC-STAGE-049",
+  "local_code": "D08-S005",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_IN_MEMORY_DIFFERENTIAL_ELIGIBILITY_SLICE",
+  "contract_state": "PHASE2_CONTROLLED_DIFFERENTIAL_ELIGIBILITY_RUNTIME_DISABLED",
+  "slice_executable": true,
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE049-P3-GATE",
+  "source_authority": {
+    "authority": "FROZEN_TASKPACK_TEXT_AND_STAGE048_REVIEW_ARTIFACTS",
+    "phase1_predecessor_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/differential_parser_evaluation/stage049_differential_parser_evaluation_contract.json",
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false
+  },
+  "phase1_boundary": {
+    "required_reference_fields": [
+      "source_identity_ref",
+      "route_action",
+      "parser_output_status",
+      "parser_family",
+      "parser_version",
+      "output_schema_version",
+      "evidence_text_label"
+    ],
+    "reference_field_count": 7,
+    "additional_reference_fields_allowed": false,
+    "reference_record_write_allowed": false,
+    "parse_product_core_fields": [
+      "text",
+      "tables",
+      "pages",
+      "sections",
+      "confidence",
+      "errors"
+    ],
+    "actual_parse_product_created": false
+  },
+  "control_input_contract": {
+    "required_top_level_fields": [
+      "candidate_controls"
+    ],
+    "candidate_count_exact": 2,
+    "candidate_control_required_fields": [
+      "candidate_reference",
+      "parser_confidence"
+    ],
+    "control_source_identity_prefix": "source:control:",
+    "control_route_action": "ROUTE_CANDIDATE_READY_NOT_EXECUTED",
+    "control_parser_family": "CONTROL_DIFFERENTIAL_FIXTURE_ADAPTER",
+    "control_parser_version_prefix": "ids.parser.control_fixture.v0_1.stage049.p2.",
+    "output_schema_version": "ids.parser_output.v0_1.stage047.p1",
+    "allowed_parser_output_statuses": [
+      "OUTPUT_CANDIDATE_NOT_VALIDATED",
+      "OUTPUT_PARTIAL_REVIEW_REQUIRED"
+    ],
+    "allowed_parser_confidence": [
+      "HIGH",
+      "MEDIUM",
+      "LOW",
+      "UNKNOWN"
+    ],
+    "source_body_or_path_allowed": false,
+    "raw_exception_allowed": false
+  },
+  "implementation": {
+    "module": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/differential_parser_evaluation/stage049_differential_parser_evaluation_slice.py",
+    "entrypoint": "evaluate_controlled_differential_eligibility",
+    "control_adapter_version": "ids.parser.differential_control_adapter.v0_1.stage049.p2",
+    "record_kind": "CONTROL_ONLY_IN_MEMORY_DIFFERENTIAL_ELIGIBILITY",
+    "file_signature_detection_implemented": false,
+    "parser_route_implemented": false,
+    "fallback_chain_implemented": false,
+    "differential_parser_eligibility_slice_implemented": true,
+    "actual_parse_product_comparison_implemented": false,
+    "control_parser_versions_recorded": true,
+    "control_parser_confidences_recorded": true,
+    "parser_configuration_write_performed": false,
+    "candidate_set_persisted": false
+  },
+  "comparison_disposition_contract": {
+    "minimum_distinct_parser_versions": 2,
+    "metadata_consistency_only": true,
+    "semantic_parse_product_comparison_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "evidence_promotion_performed": false,
+    "human_review_queue_write_performed": false,
+    "automatic_parser_switch_allowed": false,
+    "automatic_fallback_execution_allowed": false,
+    "dispositions": [
+      "CONTROL_CANDIDATES_RETAINED_FOR_QUALITY_REVIEW",
+      "CONTROL_METADATA_DIVERGENCE_REVIEW_REQUIRED_NOT_QUEUED",
+      "COMPARISON_NOT_ELIGIBLE_INSUFFICIENT_DISTINCT_VERSIONS",
+      "COMPARISON_NOT_ELIGIBLE_CONTROL_CONTEXT_MISMATCH",
+      "COMPARISON_INVALID_CONTROL_REJECTED"
+    ]
+  },
+  "evidence_text_contract": {
+    "label": "UNTRUSTED_EVIDENCE_TEXT",
+    "interpretation": "EVIDENCE_ONLY",
+    "system_instruction_allowed": false,
+    "tool_authorization_allowed": false,
+    "policy_override_allowed": false,
+    "stage050_marker_application_allowed": false
+  },
+  "runtime_boundary": {
+    "source_file_open_allowed": false,
+    "file_signature_detection_allowed": false,
+    "route_evaluation_allowed": false,
+    "parser_selection_allowed": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "fallback_execution_allowed": false,
+    "actual_parse_product_comparison_allowed": false,
+    "comparison_result_persisted": false,
+    "human_review_queue_write_allowed": false,
+    "prompt_injection_marker_application_allowed": false,
+    "quality_gate_evaluation_allowed": false,
+    "evidence_promotion_allowed": false,
+    "persistent_state_write_allowed": false,
+    "database_connection_allowed": false,
+    "agent_execution_allowed": false,
+    "model_call_allowed": false,
+    "model_token_consumption_allowed": false,
+    "local_service_start_allowed": false,
+    "ovh_deployment_allowed": false,
+    "production_runtime_activation_allowed": false,
+    "phase3_started": false,
+    "whole_stage_review_started": false,
+    "batch_review_started": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "rollback_contract": {
+    "return_to": "PHASE1_DIFFERENTIAL_PARSER_EVALUATION_BOUNDARY_RUNTIME_DISABLED",
+    "revertable_artifacts": [
+      "Stage049 Phase2 differential eligibility slice",
+      "Stage049 Phase2 slice contract",
+      "Stage049 Phase2 focused tests",
+      "Stage049 Phase2 governance projection"
+    ],
+    "source_or_raw_data_change_allowed": false,
+    "persistent_runtime_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

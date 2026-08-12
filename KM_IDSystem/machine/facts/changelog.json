@@ -1,5 +1,10 @@
 [
   {
+    "version": "`v0.1-stage049-p2-local`",
+    "date": "2026-08-12",
+    "summary": "完成 Stage049 P2 仅内存差异化资格切片：两个 reference-only control 候选记录 control-fixture parser 版本与置信度，并对合格、复核、版本不足、上下文不一致及非法输入返回明确中文处置；聚焦用例通过 8/8，P1 兼容用例通过 7/7，Stage048 P1-P4 及复审兼容用例通过 48/48。未读取真实资料，未执行 parser、解析正文比较、fallback、质量门、持久化、Agent、模型调用、OVH、上传或生产动作。"
+  },
+  {
     "version": "`v0.1-stage049-p1-local`",
     "date": "2026-08-12",
     "summary": "完成 Stage049 P1 静态工程合同：固定七字段 reference-only 候选输入、六字段解析产物形状、至少两个候选版本的未来比较资格、质量隔离、中文反馈与回滚范围；聚焦用例通过 7/7，Stage048 P1-P4 及复审兼容用例通过 48/48。未读取真实资料，未执行 parser、比较、质量门、持久化、Agent、模型调用、OVH、上传或生产动作。"

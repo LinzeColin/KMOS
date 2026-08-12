@@ -4,6 +4,16 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "control differential eligibility slice",
+      "中文": "受控差异化资格切片",
+      "说明": "只对两个 reference-only control 候选的版本、置信度和元数据一致性作纯内存资格判断的确定性函数；不读取文件、不比较解析正文、不运行 parser 或质量门"
+    },
+    {
+      "英文": "metadata-only comparison",
+      "中文": "仅元数据比较",
+      "说明": "只检查候选引用、路线、输出合同、版本、状态和置信度等受控字段的比较方式；不读取或比较 text、tables、pages、sections、confidence、errors 的实际内容"
+    },
+    {
       "英文": "differential parser evaluation",
       "中文": "差异化解析器评估",
       "说明": "对同一受控候选解析产物的多个 parser 版本进行交叉比较的工程边界；Stage049 步骤一只定义合同，不运行 parser、比较或质量门"
@@ -16,7 +26,7 @@
     {
       "英文": "comparison eligibility",
       "中文": "比较资格",
-      "说明": "未来进入差异化评估前必须满足的受控条件；本阶段规定至少两个候选 parser 版本，但不创建候选集合或实际比较"
+      "说明": "进入后续差异化评估前必须满足的受控条件；P2 只以两个 control-fixture 候选验证版本数量和元数据一致性，不创建持久候选集合或比较解析正文"
     },
     {
       "英文": "controlled fallback scenario",

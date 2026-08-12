@@ -57,8 +57,8 @@
   {
     "id": "`IDS-STAGE049`",
     "name": "差异化解析器评估",
-    "gate": "Phase 1 静态合同本地通过；后续须独立进入 Stage049 Phase 2",
-    "status": "候选产物比较、真实 parser、质量门、持久化、OVH 与生产仍禁用"
+    "gate": "Phase 2 受控资格切片本地通过；后续须独立进入 Stage049 Phase 3",
+    "status": "仅内存 control 资格判断已实现；解析正文比较、真实 parser、质量门、持久化、OVH 与生产仍禁用"
   }
 ]
 }

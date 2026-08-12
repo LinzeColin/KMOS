@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE049-P2-01`",
+      "criteria": "P2 仅内存切片只接收两个受控七字段 reference-only 候选 wrapper，并在内存结果记录 control-fixture parser 版本与 parser_confidence；未建立第二权威事实源",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE049-P2-02`",
+      "criteria": "版本不足、元数据不一致和非法输入均有明确中文处置；合格候选仍为 CANDIDATE，质量状态为 UNASSESSED，未创建复核任务或自动 fallback",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE049-P2-03`",
+      "criteria": "证据文本固定为 UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY；系统指令、工具授权与策略覆盖均未允许，Stage050 运行时提示标记职责未提前执行",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE049-P2-04`",
+      "criteria": "未读取真实资料，未执行真实 parser、解析正文比较、fallback、质量门、持久化、Agent、模型调用、OVH、生产、上传或推送",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE049-P1-01`",
       "criteria": "冻结 Stage049 任务包与 Stage048 已复审工件保持为唯一合同上下文；未建立第二权威事实源，未保留来源正文、路径或原始异常",
       "status": "已通过"

@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-049 Phase 2 - 2026-08-12
+
+- 实现仅内存的差异化解析器资格切片：只接收两个七字段 reference-only control 候选，记录 control-fixture parser 版本与解析置信度，并对合格、需复核、版本不足、控制上下文不一致和非法输入返回明确中文处置。
+- 资格检查只判断受控元数据，不比较解析正文；候选仍为 `CANDIDATE`、质量状态仍为 `UNASSESSED`，`UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY` 不能成为系统指令、工具授权或策略覆盖，Stage048 fallback 与 Stage050 提示标记职责均未改变。
+- 聚焦 P2 直接单元用例通过 `8/8`，Stage049 P1 前序兼容用例通过 `7/7`，Stage048 P1-P4 及复审前序兼容用例通过 `48/48`。未读取真实资料，未执行真实 parser、解析正文比较、fallback、质量门、持久化、Agent、模型调用、OVH、生产、上传或推送；下一门仅为独立 `IDS-STAGE049-P3-GATE`。
+
 ## IDS v0.1 STAGE-049 Phase 1 - 2026-08-12
 
 - 定义差异化解析器评估静态合同：未来候选输入固定为七字段 reference-only 元数据，解析产物核心字段固定为 `text`、`tables`、`pages`、`sections`、`confidence`、`errors`；比较至少需要两个候选 parser 版本。

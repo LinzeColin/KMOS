@@ -1,0 +1,71 @@
+{
+  "run_id": "`RUN-IDS-STAGE049-P2-LOCAL-20260812-001`",
+  "task_id": "IDS-V0_1-STAGE049-P2",
+  "acceptance_id": "ACC-STAGE-049",
+  "action": "实现两个 reference-only control 候选的仅内存差异化资格评估，记录 control-fixture parser 版本与置信度并返回明确中文处置",
+  "result": "`PASS_PHASE2_CONTROLLED_DIFFERENTIAL_ELIGIBILITY_SLICE`",
+  "branch": "codex/kmids-stage048-p1",
+  "predecessor": "PHASE1_DIFFERENTIAL_PARSER_EVALUATION_BOUNDARY_RUNTIME_DISABLED",
+  "source_authority": "FROZEN_TASKPACK_TEXT_AND_STAGE048_REVIEW_ARTIFACTS",
+  "contract": {
+    "schema_version": "ids.stage049.differential_parser_evaluation.phase2.v1",
+    "contract_state": "PHASE2_CONTROLLED_DIFFERENTIAL_ELIGIBILITY_RUNTIME_DISABLED",
+    "second_authoritative_source_created": false,
+    "control_candidate_count": 2,
+    "minimum_distinct_parser_versions": 2,
+    "differential_parser_eligibility_slice_implemented": true,
+    "actual_parse_product_comparison_allowed": false,
+    "execution_ready": false
+  },
+  "observed_work": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "source_file_open_performed": false,
+    "file_type_redetection_performed": false,
+    "route_evaluation_performed": false,
+    "parser_selection_performed": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "actual_candidate_parse_product_created": false,
+    "fallback_execution_performed": false,
+    "in_memory_controlled_differential_eligibility_evaluated": true,
+    "metadata_consistency_evaluated": true,
+    "actual_parse_product_comparison_performed": false,
+    "comparison_result_persisted": false,
+    "human_review_queue_write_performed": false,
+    "prompt_injection_marker_application_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "evidence_promotion_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "phase3_started": false
+  },
+  "evidence_iterations": [
+    {
+      "result": "PASS_CORE_SLICE_BEHAVIOR",
+      "focused_unit_cases": 5,
+      "passed": 5
+    },
+    {
+      "result": "PENDING_GOVERNANCE_EVENT_AND_FINAL_RUN_STATUS",
+      "focused_unit_cases": 7,
+      "failures": 1,
+      "governance_valid": false
+    },
+    {
+      "result": "PASS",
+      "focused_unit_cases": 8,
+      "passed": 8,
+      "phase1_compatibility_cases": 7,
+      "stage048_compatibility_cases": 48,
+      "governance_valid": true
+    }
+  ],
+  "next_gate": "IDS-STAGE049-P3-GATE",
+  "rollback": "仅回滚 Stage049 P2 切片、合同、聚焦单元用例、machine run 和治理投影，回到 PHASE1_DIFFERENTIAL_PARSER_EVALUATION_BOUNDARY_RUNTIME_DISABLED；不改变真实资料、持久运行状态、GitHub、OVH 或应用状态。"
+}

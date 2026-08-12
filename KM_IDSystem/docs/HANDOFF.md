@@ -12,13 +12,14 @@
 ## Current Gate - 2026-08-12
 
 - 本节覆盖下方较早的“Current Gate”和 GitHub handoff 对当前任务的指向；下方未特别标为当前的内容只保留为历史交接证据。
-- 本轮完成任务：`IDS-V0_1-STAGE049-P1`。当前状态为 `PHASE1_DIFFERENTIAL_PARSER_EVALUATION_BOUNDARY_RUNTIME_DISABLED`：只定义未来差异化解析器评估如何接入既有文件识别、路由、输出、fallback 和提示注入标记边界；未创建或执行 parser、比较、质量门、证据提升、持久化或任何服务。
-- 唯一合同上下文是冻结的 Stage049 任务包文本与 Stage048 已复审工件；没有建立第二权威事实源，也没有保留业务正文、文件路径、原始异常或原始元数据内容。候选输入严格限定为七个 reference-only 字段，解析产物严格限定为 `text/tables/pages/sections/confidence/errors` 六字段；未来比较至少要求两个候选 parser 版本，但本轮没有指定、选择、执行或写入任何版本与结果。
-- 解析产物始终为候选，状态为 `UNASSESSED`；中文反馈、质量门与高可信证据提升保持隔离。提示注入标记仅固定未来归属，不能授权工具、覆盖系统规则或改变业务线白箱控制。
-- 回滚只撤回 Stage049 P1 的合同、范围说明、聚焦用例、machine run 和治理投影，回到 `STAGE048_REVIEWED_LOCAL_FALLBACK_RUNTIME_DISABLED`；必须保留既有阶段工件、原始资料、manifest、evidence ledger、audit 与已交付报告。
-- 聚焦 Stage049 P1 直接单元用例通过 `7/7`，Stage048 P1--P4 及复审前序兼容用例通过 `48/48`，治理回归报告为 `valid=true`，中文视图已重渲染 7 个文件。证据为 Stage049 范围边界、差异化解析器合同、聚焦用例、本轮 machine run、event、batch/roadmap、机器事实与生成的中文视图。
-- 未读取 IDS 业务源或原始元数据；未执行文件识别、真实路线、parser、fallback、差异化评估、提示注入扫描、运行时日志、人工复核队列、质量门、证据提升、持久化、Agent、模型调用、OVH 部署、生产激活、Stage049 P2、批次复审、上传或推送。
-- 下一步仅允许在独立 run 进入 `IDS-V0_1-STAGE049-P2`，门为 `IDS-STAGE049-P2-GATE`。Stage049 P1 静态合同完成不等于解析器运行、OVH 部署、生产就绪或 GitHub 上传。
+- 本轮完成任务：`IDS-V0_1-STAGE049-P2`。当前状态为 `PHASE2_CONTROLLED_DIFFERENTIAL_ELIGIBILITY_RUNTIME_DISABLED`：实现一个只在内存处理两个 reference-only control 候选的差异化资格切片，记录 control-fixture parser 版本与置信度，并返回明确中文处置；它不读取文件、不比较解析正文、不创建实际解析产物或任何服务。
+- 唯一合同上下文仍是冻结的 Stage049 任务包文本、Stage049 P1 合同与 Stage048 已复审工件；没有建立第二权威事实源，也没有保留业务正文、文件路径、原始异常或原始元数据内容。每个候选继续严格限定为七个 reference-only 字段，Stage047 六字段解析产物形状保持为后续合同，P2 不创建或比较其中的实际内容。
+- 合格控制对需要两个不同版本，且只返回 `CONTROL_CANDIDATES_RETAINED_FOR_QUALITY_REVIEW`；版本不足、元数据不一致和非法输入均有明确处置。所有候选仍为 `CANDIDATE`，质量状态仍为 `UNASSESSED`，没有创建人工复核任务、自动 fallback 或高可信证据。
+- `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY` 继续固定为数据标签；系统指令、工具授权和策略覆盖均为 `false`。Stage048 仍拥有 fallback，Stage050 仍拥有运行时提示注入标记，P2 没有改写上游路由、输出或降级结论。
+- 回滚只撤回 Stage049 P2 的切片、合同、范围说明、聚焦用例、machine run 和治理投影，回到 `PHASE1_DIFFERENTIAL_PARSER_EVALUATION_BOUNDARY_RUNTIME_DISABLED`；必须保留 P1、既有阶段工件、原始资料、manifest、evidence ledger、audit 与已交付报告。
+- 聚焦 Stage049 P2 直接单元用例通过 `8/8`，P1 前序兼容用例通过 `7/7`，Stage048 P1--P4 及复审前序兼容用例通过 `48/48`，治理回归报告为 `valid=true`，中文视图已重渲染 7 个文件。证据为 P2 范围边界、切片合同、切片实现、聚焦用例、本轮 machine run、event、batch/roadmap、机器事实与生成的中文视图。
+- 未读取 IDS 业务源或原始元数据；未执行文件识别、真实路线、真实 parser、解析正文比较、真实 fallback、提示注入扫描、运行时日志、人工复核队列、质量门、证据提升、持久化、Agent、模型调用、OVH 部署、生产激活、Stage049 P3、批次复审、上传或推送。
+- 下一步仅允许在独立 run 进入 `IDS-V0_1-STAGE049-P3`，门为 `IDS-STAGE049-P3-GATE`。Stage049 P2 受控资格切片完成不等于解析器运行、实际解析质量、OVH 部署、生产就绪或 GitHub 上传。
 
 ## Final GitHub Handoff - 2026-07-26
 

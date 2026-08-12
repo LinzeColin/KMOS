@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE049",
-  "phase": "IDS-STAGE049-P1",
-  "task": "IDS-V0_1-STAGE049-P1",
-  "real_progress": "Stage049 已完成 P1 静态工程合同：未来候选解析产物使用七字段仅引用元数据与六个核心输出字段，比较至少需要两个候选版本且始终与质量门隔离；下一步只能在独立 run 进入 Stage049 Phase 2",
-  "report_grade": "冻结任务包、Stage048 本地复审、Stage049 P1 静态合同、聚焦单元用例与前序兼容用例一致",
-  "business_verdict": "Stage049 P1 只定义差异化解析器比较的白箱边界和回滚路径；该结论不证明真实文件、真实 parser、实际比较、质量门、持久化、OVH 或生产能力已启用",
-  "evidence_status": "LOCAL_STAGE049_P1_DIFFERENTIAL_PARSER_EVALUATION_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE049-P2",
+  "task": "IDS-V0_1-STAGE049-P2",
+  "real_progress": "Stage049 已完成 P2 受控资格切片：两个 reference-only control 候选的 parser 版本和置信度只在内存记录，资格与元数据处置不比较解析正文，且始终与质量门隔离；下一步只能在独立 run 进入 Stage049 Phase 3",
+  "report_grade": "冻结任务包、Stage048 本地复审、Stage049 P1 合同、P2 受控资格切片、聚焦单元用例与前序兼容用例一致",
+  "business_verdict": "Stage049 P2 证明控制候选资格判断可解释、可回滚且业务线可复审；该结论不证明真实文件、真实 parser、实际解析正文比较、质量门、持久化、OVH 或生产能力已启用",
+  "evidence_status": "LOCAL_STAGE049_P2_CONTROLLED_DIFFERENTIAL_ELIGIBILITY_RUNTIME_DISABLED",
   "rendered_at": "2026-08-12",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE049-P2-GATE",
+  "next_gate": "IDS-STAGE049-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
