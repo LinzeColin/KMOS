@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE052",
-  "phase": "IDS-V0_1-STAGE052-P2",
-  "task": "IDS-V0_1-STAGE052-P2",
-  "real_progress": "Stage052 P2 已在 P1 静态合同上实现四个固定非业务控制页的纯内存中英文 OCR 队列记录、符号化八字段按页结构、来源页引用、置信度和低置信/失败/中英混合可解释状态；下一步只能在新的独立 run 进入 Stage052 P3 门，上传路径继续关闭",
-  "report_grade": "冻结 Stage052 任务包、P1 静态合同、P2 控制切片、聚焦用例、治理路线与中文事实投影一致",
-  "business_verdict": "本 P2 只证明双语 OCR 控制队列结构、来源页引用、状态隔离、缓存边界和回滚路径可被本地复核；不证明真实 OCR、语言检测、识别准确率、实际人工复核、缓存清理、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE052_PHASE2_BILINGUAL_OCR_CONTROL_SLICE_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE052-P3",
+  "task": "IDS-V0_1-STAGE052-P3",
+  "real_progress": "Stage052 P3 已重放 P2 的纯内存双语 OCR 控制队列，并以五个固定非业务质量类别形成候选、降级复核提示、表格未评估和显式失败处置；下一步只能在新的独立 run 进入 Stage052 P4 门，上传路径继续关闭",
+  "report_grade": "冻结 Stage052 任务包、P1/P2 合同、P3 受控质量场景、聚焦用例、治理路线与中文事实投影一致",
+  "business_verdict": "本 P3 只证明五类控制质量情形的明确处置、零静默丢弃、低置信与中英混合的未排队降级、失败页显式隔离和零临时产物边界可被本地复核；不证明真实 OCR、真实样本质量、语言检测、识别准确率、表格提取、实际人工复核、缓存清理、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE052_PHASE3_BILINGUAL_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE052-P3-GATE",
+  "next_gate": "IDS-STAGE052-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

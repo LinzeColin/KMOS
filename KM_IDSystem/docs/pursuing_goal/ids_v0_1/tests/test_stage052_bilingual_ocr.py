@@ -232,7 +232,11 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE052", status["stage"])
         self.assertIn(
             status["phase"],
-            ("IDS-V0_1-STAGE052-P1", "IDS-V0_1-STAGE052-P2"),
+            (
+                "IDS-V0_1-STAGE052-P1",
+                "IDS-V0_1-STAGE052-P2",
+                "IDS-V0_1-STAGE052-P3",
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])

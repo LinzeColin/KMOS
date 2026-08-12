@@ -6,16 +6,17 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-EVIDENCE = BASE / "STAGE051_PHASE3_OCR_QUALITY_SCENARIOS.md"
-CONTRACT = BASE / "ocr_queue" / "stage051_ocr_queue_quality_scenarios_contract.json"
-SCENARIOS = BASE / "ocr_queue" / "stage051_ocr_queue_quality_scenarios.py"
-P2_SLICE = BASE / "ocr_queue" / "stage051_ocr_queue_slice.py"
-P2_CONTRACT = BASE / "ocr_queue" / "stage051_ocr_queue_slice_contract.json"
+PHASE1_CONTRACT = BASE / "ocr_queue" / "stage052_bilingual_ocr_contract.json"
+PHASE2_CONTRACT = BASE / "ocr_queue" / "stage052_bilingual_ocr_slice_contract.json"
+EVIDENCE = BASE / "STAGE052_PHASE3_BILINGUAL_OCR_QUALITY_SCENARIOS.md"
+CONTRACT = BASE / "ocr_queue" / "stage052_bilingual_ocr_quality_scenarios_contract.json"
+SCENARIOS = BASE / "ocr_queue" / "stage052_bilingual_ocr_quality_scenarios.py"
+P2_SLICE = BASE / "ocr_queue" / "stage052_bilingual_ocr_slice.py"
 BATCH = BASE / "BATCH051_060_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-13-stage051-p3-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-13-stage052-p3-local.json"
 
 EXPECTED_SCENARIOS = [
     "scanned-pdf-control-baseline",
@@ -26,13 +27,13 @@ EXPECTED_SCENARIOS = [
 ]
 
 
-class Stage051OcrQueuePhase3Tests(unittest.TestCase):
+class Stage052BilingualOcrPhase3Tests(unittest.TestCase):
     _module_value = None
     _report_value = None
 
     def _module(self):
         if self.__class__._module_value is None:
-            spec = importlib.util.spec_from_file_location("stage051_p3", SCENARIOS)
+            spec = importlib.util.spec_from_file_location("stage052_p3", SCENARIOS)
             module = importlib.util.module_from_spec(spec)
             self.assertIsNotNone(spec.loader)
             spec.loader.exec_module(module)
@@ -41,7 +42,9 @@ class Stage051OcrQueuePhase3Tests(unittest.TestCase):
 
     def _report(self):
         if self.__class__._report_value is None:
-            self.__class__._report_value = self._module().build_phase3_quality_report()
+            self.__class__._report_value = (
+                self._module().build_bilingual_phase3_quality_report()
+            )
         return self.__class__._report_value
 
     def _contract(self):
@@ -49,11 +52,12 @@ class Stage051OcrQueuePhase3Tests(unittest.TestCase):
 
     def test_phase3_artifacts_exist(self):
         for artifact in (
+            PHASE1_CONTRACT,
+            PHASE2_CONTRACT,
             EVIDENCE,
             CONTRACT,
             SCENARIOS,
             P2_SLICE,
-            P2_CONTRACT,
             BATCH,
             ROADMAP,
             EVENTS,
@@ -66,13 +70,13 @@ class Stage051OcrQueuePhase3Tests(unittest.TestCase):
     def test_contract_identity_and_non_runtime_boundary(self):
         contract = self._contract()
         self.assertEqual(
-            "ids.stage051.ocr_queue.phase3.quality_scenarios.v1",
+            "ids.stage052.bilingual_ocr.phase3.quality_scenarios.v1",
             contract["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE051-P3", contract["task_id"])
+        self.assertEqual("IDS-V0_1-STAGE052-P3", contract["task_id"])
         self.assertTrue(contract["scenario_executable"])
         self.assertFalse(contract["execution_ready"])
-        self.assertEqual("IDS-STAGE051-P4-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE052-P4-GATE", contract["next_gate"])
         self.assertFalse(
             contract["source_authority"]["second_authoritative_source_created"]
         )
@@ -101,9 +105,8 @@ class Stage051OcrQueuePhase3Tests(unittest.TestCase):
             contract["scenario_input_boundary"]["scenario_categories"],
         )
         self.assertTrue(
-            contract["quality_scenario_validation"][
-                "all_taskpack_quality_categories_covered"
-            ]
+            contract["quality_scenario_validation"]
+            ["all_taskpack_quality_categories_covered"]
         )
         self.assertTrue(
             contract["scenario_input_boundary"]["scenario_category_is_control_metadata"]
@@ -113,7 +116,7 @@ class Stage051OcrQueuePhase3Tests(unittest.TestCase):
         report = self._report()
         self.assertTrue(report["valid"])
         self.assertEqual(
-            "PASS_PHASE3_CONTROLLED_OCR_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+            "PASS_PHASE3_BILINGUAL_CONTROLLED_OCR_QUALITY_SCENARIOS_RUNTIME_DISABLED",
             report["result"],
         )
         self.assertEqual(5, report["scenario_count"])
@@ -154,7 +157,10 @@ class Stage051OcrQueuePhase3Tests(unittest.TestCase):
             item["quality_disposition"],
         )
         self.assertTrue(item["review_required_not_queued"])
-        self.assertEqual("STAGE054_CONTROLLED_REVIEW_ROUTE_REQUIRED", item["review_route_declared"])
+        self.assertEqual(
+            "STAGE054_CONTROLLED_REVIEW_ROUTE_REQUIRED",
+            item["review_route_declared"],
+        )
         self.assertFalse(item["high_trust_direct_entry_allowed"])
 
     def test_mixed_language_and_low_quality_controls_have_explicit_outcomes(self):
@@ -175,21 +181,22 @@ class Stage051OcrQueuePhase3Tests(unittest.TestCase):
         )
         self.assertFalse(failed["high_trust_direct_entry_allowed"])
 
-    def test_report_retains_no_control_text_or_real_sample(self):
+    def test_report_retains_no_control_symbol_or_real_sample(self):
         report = self._report()
         report_text = repr(report)
-        for control_text in (
-            "中文控制页",
-            "English control page",
-            "中英 mixed control page",
+        for control_symbol in (
+            "CONTROL_ZH_PAGE",
+            "CONTROL_EN_PAGE",
+            "CONTROL_MIXED_ZH_EN_PAGE",
         ):
-            with self.subTest(control_text=control_text):
-                self.assertNotIn(control_text, report_text)
+            with self.subTest(control_symbol=control_symbol):
+                self.assertNotIn(control_symbol, report_text)
         for item in report["scenario_results"]:
             with self.subTest(scenario=item["scenario_id"]):
                 self.assertTrue(item["control_scenario_metadata_only"])
+                self.assertFalse(item["symbolic_output_retained"])
+                self.assertFalse(item["actual_ocr_text_created"])
                 self.assertFalse(item["actual_pdf_or_image_opened"])
-                self.assertFalse(item["recognition_text_retained"])
 
     def test_cache_boundary_and_all_external_actions_remain_disabled(self):
         report = self._report()
@@ -222,9 +229,11 @@ class Stage051OcrQueuePhase3Tests(unittest.TestCase):
                 self.assertFalse(report[field])
 
     def test_invalid_predecessor_result_fails_closed(self):
-        report = self._module().build_phase3_quality_report(lambda _: {})
+        report = self._module().build_bilingual_phase3_quality_report(lambda _: {})
         self.assertFalse(report["valid"])
-        self.assertEqual("FAIL_CONTROLLED_OCR_QUALITY_SCENARIOS", report["result"])
+        self.assertEqual(
+            "FAIL_BILINGUAL_CONTROLLED_OCR_QUALITY_SCENARIOS", report["result"]
+        )
         self.assertEqual(0, report["passed_scenario_count"])
 
     def test_contract_and_governance_projection_preserve_phase3(self):
@@ -236,43 +245,36 @@ class Stage051OcrQueuePhase3Tests(unittest.TestCase):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, "stage051_phase3_state:"),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE051-P3"'),
-            (batch, 'next_gate: "IDS-STAGE051-P4-GATE"'),
-            (batch, "controlled_ocr_quality_scenarios_evaluated: true"),
+            (batch, 'status: "stage052_phase3_completed"'),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE052-P3"'),
+            (batch, 'next_gate: "IDS-STAGE052-P4-GATE"'),
+            (batch, "controlled_bilingual_ocr_quality_scenarios_evaluated: true"),
             (batch, "ocr_engine_invocation_performed: false"),
             (batch, "model_token_consumption_performed: false"),
             (batch, "ovh_deployment_performed: false"),
-            (roadmap, 'phase_id: "IDS-STAGE051-P3"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE051-P4-GATE"'),
+            (roadmap, 'phase_id: "IDS-STAGE052-P3"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE052-P4-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertIn(status["stage"], ("IDS-STAGE051", "IDS-STAGE052"))
-        self.assertIn(
-            status["phase"],
-            (
-                "IDS-V0_1-STAGE051-P3",
-                "IDS-V0_1-STAGE051-P4",
-                "IDS-V0_1-STAGE051-REVIEW",
-                "IDS-V0_1-STAGE052-P1",
-                "IDS-V0_1-STAGE052-P2",
-                "IDS-V0_1-STAGE052-P3",
-            ),
-        )
+        self.assertEqual("IDS-STAGE052", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE052-P3", status["phase"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
         run = json.loads(RUN.read_text(encoding="utf-8"))
         self.assertEqual(
-            "PASS_PHASE3_CONTROLLED_OCR_QUALITY_SCENARIOS_RUNTIME_DISABLED",
-            run["result"].strip("`"),
+            "PASS_PHASE3_BILINGUAL_CONTROLLED_OCR_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+            run["result"],
         )
-        self.assertTrue(run["observed_work"]["controlled_ocr_quality_scenarios_evaluated"])
+        self.assertTrue(
+            run["observed_work"]["controlled_bilingual_ocr_quality_scenarios_evaluated"]
+        )
         self.assertFalse(run["observed_work"]["ocr_engine_invocation_performed"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
+        self.assertFalse(run["observed_work"]["phase4_started"])
 
         events = [
             json.loads(line) for line in EVENTS.read_text(encoding="utf-8").splitlines()
@@ -280,11 +282,11 @@ class Stage051OcrQueuePhase3Tests(unittest.TestCase):
         event = next(
             item
             for item in events
-            if item.get("event_id") == "EVT-IDS-V0_1-STAGE051-P3-20260813-001"
+            if item.get("event_id") == "EVT-IDS-V0_1-STAGE052-P3-20260813-001"
         )
-        self.assertEqual("IDS-V0_1-STAGE051-P3", event["task_id"])
-        self.assertEqual(["ACC-STAGE-051"], event["acceptance_ids"])
-        self.assertIn("next_gate=IDS-STAGE051-P4-GATE", event["notes"])
+        self.assertEqual("IDS-V0_1-STAGE052-P3", event["task_id"])
+        self.assertEqual(["ACC-STAGE-052"], event["acceptance_ids"])
+        self.assertIn("next_gate=IDS-STAGE052-P4-GATE", event["notes"])
 
 
 if __name__ == "__main__":
