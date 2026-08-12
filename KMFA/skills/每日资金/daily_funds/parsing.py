@@ -28,7 +28,7 @@ from .models import CashflowObservation, AccountSnapshot, ParsedFacts, ParserEvi
 
 ACCOUNT_FAMILY = "资金账户明细表"
 TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
-# v9 keeps the bounded deterministic OCR fallback and aligns transaction
+# v10 keeps the bounded deterministic OCR fallback and aligns transaction
 # identity requirements to the frozen task-pack schema: bank_id is optional
 # and a source-row fact identifier is used only when a source does not expose
 # a transaction identifier.
@@ -36,14 +36,14 @@ TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
 # It retains v5's narrow source-classification rule: a generic ``资金明细``
 # image may be treated as an account snapshot only when its OCR table satisfies
 # the account schema *and* cannot satisfy the transaction schema.  When both
-# candidates fail at the same values-free OCR phase, v9 retains that bounded
+# candidates fail at the same values-free OCR phase, v10 retains that bounded
 # diagnosis for the protected capability receipt.  It never turns a failed
 # candidate into a fact or relaxes either schema.  When a complete header is
-# visually aligned but Tesseract splits its cells into separate lines, v9
+# visually aligned but Tesseract splits its cells into separate lines, v10
 # reassembles only those overlapping OCR lines and then applies the same exact
 # aliases, confidence, row and fact rules.  Capability receipts are versioned,
 # so a rule change cannot inherit a prior parser's production-support assertion.
-PARSER_VERSION = "kmfa.daily_funds.parser.v9"
+PARSER_VERSION = "kmfa.daily_funds.parser.v10"
 # This parser is deliberately separate from ``PARSER_VERSION``.  It can
 # create a chart-only receipt from a narrow receipt/payment screenshot without
 # weakening the two-fact account-balance publication contract.
@@ -102,6 +102,12 @@ OCR_MIN_CONFIDENCE_BPS = 9_800
 OCR_MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024
 OCR_TIMEOUT_SECONDS = 90
 OCR_LANGUAGE = "chi_sim+eng"
+OCR_PRIMARY_PSM = 6
+# PSM 11 is a bounded, deterministic sparse-text layout fallback.  It is not
+# a general OCR search: formal parsing can reach it only after every required
+# source-family candidate stopped at the exact missing-header gate under the
+# primary table mode.
+OCR_HEADER_FALLBACK_PSM = 11
 
 
 class ParseError(ContractError):
@@ -633,6 +639,7 @@ def _ocr_tsv(
     payload: bytes,
     evidence: ParserEvidence,
     runner: Callable[..., Any],
+    psm: int = OCR_PRIMARY_PSM,
 ) -> str:
     """Generate in-memory Tesseract TSV for exactly one bounded document page.
 
@@ -641,6 +648,8 @@ def _ocr_tsv(
     repository or exception message.
     """
 
+    if psm not in {OCR_PRIMARY_PSM, OCR_HEADER_FALLBACK_PSM}:
+        raise ParseError("OCR_PSM_INVALID")
     with tempfile.TemporaryDirectory(prefix="daily-funds-ocr-") as temporary:
         root = Path(temporary)
         source = root / f"input{evidence.suffix}"
@@ -660,7 +669,7 @@ def _ocr_tsv(
                 raise ParseError("OCR_PDF_RENDER_FAILED")
             image = rendered[0]
         return _run_ocr_command(
-            ["tesseract", str(image), "stdout", "-l", OCR_LANGUAGE, "--psm", "6", "tsv"],
+            ["tesseract", str(image), "stdout", "-l", OCR_LANGUAGE, "--psm", str(psm), "tsv"],
             runner=runner,
             failure_code="OCR_ENGINE_FAILED",
         )
@@ -1478,20 +1487,41 @@ def parse_ocr_attachment(
     # fail-closed.  OCR itself executes once, so this adds no second raw read
     # or a heuristic retry path.
     candidate_families = (ACCOUNT_FAMILY, "资金明细") if family == "资金明细" else (family,)
-    candidates: list[OcrParsedAttachment] = []
-    failures: list[ParseError] = []
-    for candidate_family in candidate_families:
-        try:
-            candidates.append(_parse_ocr_table(
-                family=candidate_family,
-                filename=filename,
-                source=source,
-                evidence=evidence,
-                lines=lines,
-                min_confidence_bps=threshold,
-            ))
-        except ParseError as exc:
-            failures.append(exc)
+    def parse_candidates(active_lines: tuple[tuple[_OcrWord, ...], ...]) -> tuple[list[OcrParsedAttachment], list[ParseError]]:
+        candidates: list[OcrParsedAttachment] = []
+        failures: list[ParseError] = []
+        for candidate_family in candidate_families:
+            try:
+                candidates.append(_parse_ocr_table(
+                    family=candidate_family,
+                    filename=filename,
+                    source=source,
+                    evidence=evidence,
+                    lines=active_lines,
+                    min_confidence_bps=threshold,
+                ))
+            except ParseError as exc:
+                failures.append(exc)
+        return candidates, failures
+
+    candidates, failures = parse_candidates(lines)
+    # Some real table screenshots emit a sparse, non-tabular OCR layout under
+    # PSM 6 even though their standard headers and rows are visible under the
+    # deterministic sparse-text mode.  This fallback is intentionally narrow:
+    # it runs once, only after *every* candidate reached the exact header-missing
+    # gate.  Any ambiguity, low confidence, invalid row, amount or source
+    # integrity condition remains a hard failure without a second OCR attempt.
+    if candidates == [] and failures and all(
+        str(failure).split(":", 1)[0] == "OCR_HEADER_MAPPING_MISSING"
+        for failure in failures
+    ):
+        fallback_words = _parse_tesseract_tsv(_ocr_tsv(
+            payload=payload,
+            evidence=evidence,
+            runner=runner,
+            psm=OCR_HEADER_FALLBACK_PSM,
+        ))
+        candidates, failures = parse_candidates(_ocr_lines(fallback_words))
 
     if len(candidates) == 1:
         return candidates[0]

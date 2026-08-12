@@ -1101,6 +1101,21 @@ def _ocr_runner(tsv: str):
     return run
 
 
+def _ocr_runner_by_psm(primary_tsv: str, fallback_tsv: str, calls: list[str]):
+    """Return distinct deterministic OCR layouts for the two allowed PSM modes."""
+
+    def run(command, **_kwargs):
+        assert command[0] == "tesseract"
+        assert command[-1] == "tsv"
+        assert "chi_sim+eng" in command
+        psm = command[command.index("--psm") + 1]
+        calls.append(psm)
+        assert psm in {"6", "11"}
+        return SimpleNamespace(returncode=0, stdout=primary_tsv if psm == "6" else fallback_tsv, stderr="")
+
+    return run
+
+
 def _ocr_tsv_split_header(headers: list[str], rows: list[list[str]]) -> str:
     """Make a table whose visual header shares a row but not Tesseract lines."""
 
@@ -1167,6 +1182,55 @@ def test_generic_ocr_reassembles_a_visually_aligned_split_header_without_relaxin
     assert candidate.facts.family == ACCOUNT_FAMILY
     assert len(candidate.facts.accounts) == 1
     assert len(candidate.facts.transactions) == 0
+
+
+def test_generic_ocr_uses_sparse_layout_fallback_only_after_both_primary_headers_are_missing() -> None:
+    payload = b"\x89PNG\r\n\x1a\nsparse-layout-fallback"
+    primary = _ocr_tsv(["公司", "开户行", "账号"], ["甲", "乙", "001"])
+    fallback = _ocr_tsv(
+        ["业务日期", "公司", "账号", "流出"],
+        ["2026-07-30", "甲", "001", "10.00"],
+    )
+    calls: list[str] = []
+
+    candidate = parse_ocr_attachment(
+        family="资金明细",
+        filename="资金明细_20260730.png",
+        payload=payload,
+        source=_source(payload),
+        mime="image/png",
+        runner=_ocr_runner_by_psm(primary, fallback, calls),
+    )
+
+    assert calls == ["6", "11"]
+    assert candidate.facts.family == "资金明细"
+    assert len(candidate.facts.accounts) == 0
+    assert len(candidate.facts.transactions) == 1
+
+
+def test_generic_ocr_does_not_try_sparse_layout_after_a_primary_row_failure() -> None:
+    payload = b"\x89PNG\r\n\x1a\nno-layout-retry-after-row-failure"
+    primary = _ocr_tsv(
+        ["业务日期", "公司", "账号", "流出"],
+        ["2026-07-30", "甲", "001", ""],
+    )
+    fallback = _ocr_tsv(
+        ["业务日期", "公司", "账号", "流出"],
+        ["2026-07-30", "甲", "001", "10.00"],
+    )
+    calls: list[str] = []
+
+    with pytest.raises(ParseError, match="OCR_GENERIC_FAMILY_UNRESOLVED"):
+        parse_ocr_attachment(
+            family="资金明细",
+            filename="资金明细_20260730.png",
+            payload=payload,
+            source=_source(payload),
+            mime="image/png",
+            runner=_ocr_runner_by_psm(primary, fallback, calls),
+        )
+
+    assert calls == ["6"]
 
 
 def test_generic_ocr_source_label_classifies_a_uniquely_matching_account_table() -> None:
