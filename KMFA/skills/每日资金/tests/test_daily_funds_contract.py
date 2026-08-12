@@ -6330,13 +6330,15 @@ def test_daily_funds_deployment_keeps_its_auth_bundle_and_identifiers_private() 
     # needs DELETE permission. Compose does not declare this legacy key, so it
     # cannot reach the worker.
     assert "DAILY_FUNDS_DWS_CLIENT_SECRET: ${{ secrets." not in ops
-    assert "每日资金 12 个必填 secret 已通过 Coolify PATCH/POST" in ops
+    assert "每日资金 12 个必填 secret 已通过 Coolify PATCH/POST 覆盖生产运行上下文" in ops
     assert '"$BASE/api/v1/applications/$APP/envs" || true)' in ops
     sync_block = ops.split("- name: 同步每日资金专用 secrets", 1)[1].split("      - name:", 1)[0]
     assert '[ "$code" = "404" ]' in sync_block
     assert '"$RUNNER_TEMP/daily-funds-post.out"' in sync_block
     assert '"$RUNNER_TEMP/daily-funds-patch-retry.out"' in sync_block
     assert '[ "$code" = "409" ]' in sync_block
+    assert 'not bool(item.get("is_preview", False))' in sync_block
+    assert "生产运行上下文不是恰好一条" in sync_block
     assert "DAILY_FUNDS_OCI_PAR_URL" in ops
     assert "optional_keys=(DAILY_FUNDS_DWS_CLIENT_ID DAILY_FUNDS_DWS_AUTH_BUNDLE_B64)" in ops
     assert "留空时使用 DWS 官方默认客户端" in env_example

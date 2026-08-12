@@ -1624,23 +1624,23 @@ jobs:
               encoding="utf-8",
           ))
           envs = data if isinstance(data, list) else data.get("data") or []
-          counts = collections.Counter(str(item.get("key")) for item in envs)
-          ordinary = [count for key, count in counts.items() if key not in expected]
-          if not ordinary:
-              print("回读失败：无法识别应用正常环境上下文数。")
-              sys.exit(1)
-          representation_count = collections.Counter(ordinary).most_common(1)[0][0]
-          if representation_count not in (1, 2):
-              print("回读失败：应用环境上下文数量异常。")
-              sys.exit(1)
+          # The endpoint merges production and preview variables.  The daily
+          # funds worker only runs in the production context, so requiring a
+          # mirrored preview row would both misreport a valid deployment and
+          # needlessly copy financial credentials into preview environments.
+          production = [
+              item for item in envs
+              if isinstance(item, dict) and not bool(item.get("is_preview", False))
+          ]
+          counts = collections.Counter(str(item.get("key")) for item in production)
           for key in expected:
               # Coolify readback may hide secret values.  This proves all
-              # normal contexts received exactly one row; value equality is
+              # production runtime entries exist exactly once; value equality is
               # intentionally left for a later in-container acceptance run.
-              if counts[key] != representation_count:
-                  print(f"{key} 回读失败：未覆盖全部正常应用上下文。")
+              if counts[key] != 1:
+                  print(f"{key} 回读失败：生产运行上下文不是恰好一条。")
                   sys.exit(1)
-          print("每日资金 12 个必填 secret 已通过 Coolify PATCH/POST 覆盖全部正常应用上下文；可选 DWS 客户端覆盖和恢复包仅在显式配置时同步，值一致性待运行时验收。")
+          print("每日资金 12 个必填 secret 已通过 Coolify PATCH/POST 覆盖生产运行上下文；可选 DWS 客户端覆盖和恢复包仅在显式配置时同步，值一致性待运行时验收。")
           PY
 
       - name: 测试期安全态——清空群机器人 + 关投递（去重后重写，杜绝同名残留）
