@@ -250,17 +250,23 @@ class Stage054LowConfidenceReviewRoutePhase2Tests(unittest.TestCase):
         self.assertTrue(
             'current_phase_id: "IDS-STAGE054-P2"' in roadmap
             or 'current_phase_id: "IDS-STAGE054-P3"' in roadmap
+            or 'current_phase_id: "IDS-STAGE054-P4"' in roadmap
         )
         self.assertTrue(
             'next_gate_id: "IDS-STAGE054-P3-GATE"' in roadmap
             or 'next_gate_id: "IDS-STAGE054-P4-GATE"' in roadmap
+            or 'next_gate_id: "IDS-STAGE054-REVIEW-GATE"' in roadmap
         )
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE054", status["stage"])
         self.assertIn(
             status["phase"],
-            ("IDS-V0_1-STAGE054-P2", "IDS-V0_1-STAGE054-P3"),
+            (
+                "IDS-V0_1-STAGE054-P2",
+                "IDS-V0_1-STAGE054-P3",
+                "IDS-V0_1-STAGE054-P4",
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])

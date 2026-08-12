@@ -6,33 +6,42 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-CLOSEOUT = BASE / "STAGE052_PHASE4_BILINGUAL_OCR_DELIVERY_CLOSEOUT.md"
-CONTRACT = BASE / "ocr_queue" / "stage052_bilingual_ocr_delivery_contract.json"
-DELIVERY = BASE / "ocr_queue" / "stage052_bilingual_ocr_delivery.py"
-P3_SCENARIOS = BASE / "ocr_queue" / "stage052_bilingual_ocr_quality_scenarios.py"
-P3_CONTRACT = BASE / "ocr_queue" / "stage052_bilingual_ocr_quality_scenarios_contract.json"
+CLOSEOUT = BASE / "STAGE054_PHASE4_LOW_CONFIDENCE_REVIEW_ROUTE_DELIVERY_CLOSEOUT.md"
+CONTRACT = BASE / "ocr_queue" / "stage054_low_confidence_review_route_delivery_contract.json"
+DELIVERY = BASE / "ocr_queue" / "stage054_low_confidence_review_route_delivery.py"
+P3_SCENARIOS = BASE / "ocr_queue" / "stage054_low_confidence_review_route_quality_scenarios.py"
+P3_CONTRACT = (
+    BASE
+    / "ocr_queue"
+    / "stage054_low_confidence_review_route_quality_scenarios_contract.json"
+)
 BATCH = BASE / "BATCH051_060_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-13-stage052-p4-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-13-stage054-p4-local.json"
 
 EXPECTED_SCENARIOS = [
-    "scanned-pdf-control-baseline",
+    "scanned-pdf-control-unassessed",
     "blurred-image-control-degraded",
     "table-image-control-unassessed",
     "mixed-zh-en-control-degraded",
     "low-quality-control-failed",
 ]
+EXPECTED_REVIEW_SCENARIOS = [
+    "blurred-image-control-degraded",
+    "mixed-zh-en-control-degraded",
+    "low-quality-control-failed",
+]
 
 
-class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
+class Stage054LowConfidenceReviewRoutePhase4Tests(unittest.TestCase):
     _module_value = None
     _report_value = None
 
     def _module(self):
         if self.__class__._module_value is None:
-            spec = importlib.util.spec_from_file_location("stage052_p4", DELIVERY)
+            spec = importlib.util.spec_from_file_location("stage054_p4", DELIVERY)
             module = importlib.util.module_from_spec(spec)
             self.assertIsNotNone(spec.loader)
             spec.loader.exec_module(module)
@@ -42,7 +51,7 @@ class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
     def _report(self):
         if self.__class__._report_value is None:
             self.__class__._report_value = (
-                self._module().build_bilingual_phase4_delivery_report()
+                self._module().build_low_confidence_review_route_phase4_delivery_report()
             )
         return self.__class__._report_value
 
@@ -68,15 +77,15 @@ class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
     def test_contract_identity_and_isolated_boundary(self):
         contract = self._contract()
         self.assertEqual(
-            "ids.stage052.bilingual_ocr.phase4.delivery.v1",
+            "ids.stage054.low_confidence_review_route.phase4.delivery.v1",
             contract["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE052-P4", contract["task_id"])
+        self.assertEqual("IDS-V0_1-STAGE054-P4", contract["task_id"])
         self.assertEqual(
-            "PASS_PHASE4_BILINGUAL_OCR_DELIVERY_RUNTIME_DISABLED",
+            "PASS_PHASE4_LOW_CONFIDENCE_REVIEW_ROUTE_DELIVERY_RUNTIME_DISABLED",
             contract["valid_result"],
         )
-        self.assertEqual("IDS-STAGE052-REVIEW-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE054-REVIEW-GATE", contract["next_gate"])
         self.assertFalse(
             contract["source_authority"]["second_authoritative_source_created"]
         )
@@ -91,10 +100,12 @@ class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
         for item in samples:
             with self.subTest(sample=item["sample_id"]):
                 self.assertEqual(
-                    "DELIVERY_METADATA_ONLY_BILINGUAL_OCR_OUTPUT_SAMPLE_NOT_REAL_OCR",
+                    "DELIVERY_METADATA_ONLY_LOW_CONFIDENCE_REVIEW_ROUTE_SAMPLE_NOT_REAL_OCR",
                     item["sample_kind"],
                 )
                 self.assertTrue(item["source_page_ref"].startswith("source-page:control:"))
+                self.assertEqual("CANDIDATE", item["fact_level"])
+                self.assertEqual("UNASSESSED", item["quality_state"])
                 self.assertFalse(item["ocr_text_retained"])
                 self.assertFalse(item["source_content_retained"])
                 self.assertFalse(item["actual_ocr_output_produced"])
@@ -102,12 +113,11 @@ class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
                 self.assertNotIn("ocr_text", item)
                 self.assertNotIn("source_identity_ref", item)
 
-    def test_delivery_report_does_not_echo_control_text_or_real_paths(self):
+    def test_delivery_report_does_not_echo_candidate_payload_or_real_paths(self):
         rendered = json.dumps(self._report(), ensure_ascii=False, sort_keys=True)
         for forbidden in (
-            "CONTROL_ZH_PAGE",
-            "CONTROL_EN_PAGE",
-            "CONTROL_MIXED_ZH_EN_PAGE",
+            "review_request_candidate",
+            "source_identity_ref",
             "/Users/",
             "IDS_MetaData",
         ):
@@ -117,7 +127,7 @@ class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
     def test_confidence_report_matches_controlled_predecessor(self):
         report = self._report()["confidence_report"]
         self.assertEqual(
-            "CONTROLLED_BILINGUAL_CONFIDENCE_SUMMARY_NOT_REAL_OCR_ACCURACY",
+            "CONTROLLED_LOW_CONFIDENCE_REVIEW_ROUTE_CONFIDENCE_SUMMARY_NOT_REAL_OCR_ACCURACY",
             report["report_kind"],
         )
         self.assertEqual(5, report["scenario_count"])
@@ -126,7 +136,7 @@ class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
             report["confidence_counts"],
         )
         self.assertEqual(2, report["candidate_sample_count"])
-        self.assertEqual(2, report["degraded_review_required_count"])
+        self.assertEqual(3, report["review_route_candidate_count"])
         self.assertEqual(1, report["explicit_failure_count"])
         self.assertFalse(report["recognition_accuracy_evaluated"])
         self.assertFalse(report["quality_gate_evaluated"])
@@ -138,42 +148,45 @@ class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
         failure = failures[0]
         self.assertEqual("low-quality-control-failed", failure["failure_id"])
         self.assertEqual(
-            "CONTROLLED_BILINGUAL_OCR_FAILURE_LIST_ENTRY_NOT_RUNTIME",
+            "CONTROLLED_LOW_CONFIDENCE_REVIEW_ROUTE_FAILURE_LIST_ENTRY_NOT_RUNTIME",
             failure["record_kind"],
         )
-        self.assertEqual("OCR_PAGE_FAILED_EXPLICIT", failure["page_state"])
+        self.assertEqual("FAILED_PAGE_REVIEW_REQUIRED", failure["route_state"])
         self.assertEqual(
-            "FAILED_PAGE_EXPLICIT_NO_EVIDENCE_PROMOTION",
+            "FAILED_PAGE_DEGRADED_EVIDENCE_CANDIDATE_ONLY",
             failure["quality_disposition"],
         )
         self.assertTrue(failure["failure_is_control_metadata_only"])
+        self.assertFalse(failure["actual_failure_record_created"])
         self.assertFalse(failure["evidence_promotion_performed"])
         self.assertFalse(failure["review_queue_write_performed"])
         self.assertFalse(failure["silent_drop"])
 
-    def test_review_route_proofs_remain_declared_not_queued(self):
+    def test_review_route_proofs_remain_candidates_not_queued(self):
         proofs = self._report()["review_route_proofs"]
         self.assertEqual(
-            [
-                "blurred-image-control-degraded",
-                "mixed-zh-en-control-degraded",
-            ],
+            EXPECTED_REVIEW_SCENARIOS,
             [item["scenario_id"] for item in proofs],
         )
+        expected_states = [
+            "LOW_CONFIDENCE_REVIEW_REQUIRED",
+            "MIXED_LANGUAGE_REVIEW_REQUIRED",
+            "FAILED_PAGE_REVIEW_REQUIRED",
+        ]
+        self.assertEqual(expected_states, [item["route_state"] for item in proofs])
         for proof in proofs:
             with self.subTest(scenario=proof["scenario_id"]):
                 self.assertEqual(
-                    "DECLARED_BILINGUAL_REVIEW_ROUTE_PROOF_NOT_QUEUED",
+                    "DECLARED_LOW_CONFIDENCE_REVIEW_ROUTE_PROOF_CANDIDATE_ONLY_NOT_QUEUED",
                     proof["record_kind"],
                 )
-                self.assertEqual(
-                    "STAGE054_CONTROLLED_REVIEW_ROUTE_REQUIRED",
-                    proof["review_route_declared"],
-                )
-                self.assertTrue(proof["review_required_not_queued"])
+                self.assertTrue(proof["candidate_route_state_created_in_memory"])
+                self.assertTrue(proof["candidate_evidence_only"])
                 self.assertTrue(proof["human_confirmation_required"])
+                self.assertFalse(proof["automatic_human_review_assignment_performed"])
                 self.assertFalse(proof["review_queue_created"])
                 self.assertFalse(proof["review_queue_write_performed"])
+                self.assertFalse(proof["human_review_task_created"])
 
     def test_quality_limitations_and_confirmation_prompts_are_chinese_and_manual(self):
         report = self._report()
@@ -199,7 +212,7 @@ class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
     def test_rollback_returns_to_phase3(self):
         rollback = self._report()["rollback"]
         self.assertEqual(
-            "PHASE3_BILINGUAL_CONTROLLED_QUALITY_SCENARIOS_ENGINE_DISABLED",
+            "PHASE3_LOW_CONFIDENCE_REVIEW_ROUTE_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
             rollback["return_to"],
         )
         self.assertTrue(rollback["preserve_predecessor_evidence"])
@@ -211,7 +224,7 @@ class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
         report = self._report()
         self.assertTrue(report["valid"])
         self.assertEqual(
-            "PASS_PHASE4_BILINGUAL_OCR_DELIVERY_RUNTIME_DISABLED",
+            "PASS_PHASE4_LOW_CONFIDENCE_REVIEW_ROUTE_DELIVERY_RUNTIME_DISABLED",
             report["result"],
         )
         for field in (
@@ -226,7 +239,12 @@ class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
             "recognition_accuracy_evaluated",
             "ocr_engine_selected",
             "ocr_engine_invocation_performed",
+            "review_queue_created",
             "human_review_queue_write_performed",
+            "human_review_task_created",
+            "human_review_result_created",
+            "actual_ocr_text_created",
+            "actual_failure_record_created",
             "cache_created",
             "cache_write_performed",
             "cache_cleanup_performed",
@@ -239,15 +257,18 @@ class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
             "ovh_deployment_performed",
             "production_runtime_activation_performed",
             "whole_stage_review_performed",
+            "batch_review_performed",
             "github_upload_performed",
         ):
             with self.subTest(field=field):
                 self.assertFalse(report[field])
 
     def test_invalid_predecessor_fails_closed(self):
-        report = self._module().build_bilingual_phase4_delivery_report(lambda: {})
+        report = self._module().build_low_confidence_review_route_phase4_delivery_report(
+            lambda: {}
+        )
         self.assertFalse(report["valid"])
-        self.assertEqual("FAIL_BILINGUAL_OCR_DELIVERY_EVIDENCE", report["result"])
+        self.assertEqual("FAIL_LOW_CONFIDENCE_REVIEW_ROUTE_DELIVERY", report["result"])
         self.assertEqual([], report["delivery_samples"])
         self.assertEqual([], report["failure_list"])
 
@@ -256,8 +277,8 @@ class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
         for expected in (
             "metadata-only",
             "NO_TEMPORARY_ARTIFACT_CREATED",
-            "PHASE3_BILINGUAL_CONTROLLED_QUALITY_SCENARIOS_ENGINE_DISABLED",
-            "IDS-STAGE052-REVIEW-GATE",
+            "PHASE3_LOW_CONFIDENCE_REVIEW_ROUTE_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+            "IDS-STAGE054-REVIEW-GATE",
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, closeout)
@@ -266,47 +287,36 @@ class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage052_phase4_completed_review_pending"'),
-            (batch, "stage052_phase4_state:"),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE052-P4"'),
-            (batch, 'next_gate: "IDS-STAGE052-REVIEW-GATE"'),
-            (batch, "bilingual_delivery_evidence_derived: true"),
+            (batch, 'status: "stage054_phase4_completed_review_pending"'),
+            (batch, "stage054_phase4_state:"),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE054-P4"'),
+            (batch, 'next_gate: "IDS-STAGE054-REVIEW-GATE"'),
+            (batch, "low_confidence_review_route_delivery_evidence_derived: true"),
             (batch, "ocr_engine_invocation_performed: false"),
             (batch, "model_token_consumption_performed: false"),
             (batch, "ovh_deployment_performed: false"),
-            (roadmap, 'phase_id: "IDS-STAGE052-P4"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE052-REVIEW-GATE"'),
+            (roadmap, 'current_stage_id: "IDS-STAGE054"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE054-P4"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE054-REVIEW-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertIn(status["stage"], ("IDS-STAGE052", "IDS-STAGE053", "IDS-STAGE054"))
-        self.assertIn(
-            status["phase"],
-            (
-                "IDS-V0_1-STAGE052-P4",
-                "IDS-V0_1-STAGE052-REVIEW",
-                "IDS-V0_1-STAGE053-P1",
-                "IDS-V0_1-STAGE053-P2",
-                "IDS-V0_1-STAGE053-P3",
-                "IDS-V0_1-STAGE053-P4",
-                "IDS-V0_1-STAGE053-REVIEW",
-                "IDS-V0_1-STAGE054-P1",
-                "IDS-V0_1-STAGE054-P2",
-                "IDS-V0_1-STAGE054-P3",
-                "IDS-V0_1-STAGE054-P4",
-            ),
-        )
+        self.assertEqual("IDS-STAGE054", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE054-P4", status["phase"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
         run = json.loads(RUN.read_text(encoding="utf-8"))
         self.assertEqual(
-            "PASS_PHASE4_BILINGUAL_OCR_DELIVERY_RUNTIME_DISABLED",
-            run["result"].strip(),
+            "PASS_PHASE4_LOW_CONFIDENCE_REVIEW_ROUTE_DELIVERY_RUNTIME_DISABLED",
+            run["result"],
         )
         self.assertEqual(14, run["evidence_iterations"][0]["passed"])
+        self.assertTrue(
+            run["observed_work"]["low_confidence_review_route_delivery_evidence_derived"]
+        )
         self.assertFalse(run["observed_work"]["ocr_engine_invocation_performed"])
         self.assertFalse(run["observed_work"]["cache_cleanup_performed"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
@@ -318,10 +328,10 @@ class Stage052BilingualOcrPhase4Tests(unittest.TestCase):
         event = next(
             item
             for item in events
-            if item.get("event_id") == "EVT-IDS-V0_1-STAGE052-P4-20260813-001"
+            if item.get("event_id") == "EVT-IDS-V0_1-STAGE054-P4-20260813-001"
         )
-        self.assertEqual("IDS-V0_1-STAGE052-P4", event["task_id"])
-        self.assertIn("next_gate=IDS-STAGE052-REVIEW-GATE", event["notes"])
+        self.assertEqual("IDS-V0_1-STAGE054-P4", event["task_id"])
+        self.assertIn("next_gate=IDS-STAGE054-REVIEW-GATE", event["notes"])
         self.assertIn(
             "KM_IDSystem/" + str(CLOSEOUT.relative_to(ROOT)),
             {item["ref"] for item in event["evidence_refs"]},

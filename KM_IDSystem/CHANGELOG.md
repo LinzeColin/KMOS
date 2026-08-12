@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-054 Phase 4 - 2026-08-13
+
+- 完成 `IDS-V0_1-STAGE054-P4`：只从 P3 的五类固定非业务低置信度复核路由 control 报告派生五个 metadata-only 交付样例、`HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1` 置信度汇总、一条显式失败、三条候选复核路由证明、质量限制、三条中文人工确认提示和缓存重跑说明。
+- 本地验证通过：Stage054 P4 聚焦用例 `14/14`，与 Stage054 P3/P2/P1、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 和 BATCH041_050 的合并前序回归 `207/207`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 样例不包含 OCR 文本、业务正文、真实路径、页面图像、表格单元、真实来源内容或人工意见；未读取真实资料、调用 OCR、创建实际复核、持久队列、缓存或运行时，未执行 Agent、模型 Token、OVH、生产、上传或推送。缓存保持 `IN_MEMORY_REBUILDABLE_NOT_PERSISTED`，临时产物为 `0`，清理结论为 `NO_TEMPORARY_ARTIFACT_CREATED`；后续仅允许在新的独立 run 进入 `IDS-STAGE054-REVIEW-GATE`。
+
 ## IDS v0.1 STAGE-054 Phase 3 - 2026-08-13
 
 - 完成 `IDS-V0_1-STAGE054-P3`：重放 P2 四条固定非业务 reference-only 控制路由，覆盖扫描 PDF、模糊图片、表格图片、中英文混合和低质量五类标量场景；五类均有明确候选、降级或失败处置，静默丢弃为 `0`，三条降级路径只形成仅内存候选路由状态。

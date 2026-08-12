@@ -9,7 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage054 Phase 3 - 2026-08-13
+## Current Gate - Stage054 Phase 4 - 2026-08-13
+
+- 本节覆盖下方 Stage054 P3/P2/P1、Stage053 Review、P1--P4、Stage052 Review、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成 `IDS-V0_1-STAGE054-P4`：只重放 P3 的五类固定非业务低置信度复核路由 control 报告，派生五个 metadata-only 交付样例、置信度汇总、一个显式失败清单、三条候选复核路由证明、质量限制、三条中文人工确认提示与缓存重跑说明。
+- 五个样例均为 `CANDIDATE` / `UNASSESSED` 控制元数据，置信度为 `HIGH=2`、`MEDIUM=1`、`LOW=1`、`UNKNOWN=1`；低质量 control 保持显式失败，低置信、中英文混合和失败 control 只保留候选复核路径，不创建人工任务、队列、意见或结论，且不能直接进入高可信证据层。
+- 缓存固定为 `IN_MEMORY_REBUILDABLE_NOT_PERSISTED`，未创建缓存路径或临时产物，清理结论为 `NO_TEMPORARY_ARTIFACT_CREATED`；重跑只在内存中重放 P3 的固定 control，不扫描、删除或移动目录。缓存保留、容量和实际清理仍由 Stage056 负责。
+- 没有读取 IDS 业务源、原始元数据、正文、文件路径、真实 PDF、图像、页面或表格内容；没有打开样本、调用 OCR、创建实际复核、持久队列、缓存、审计或运行时；没有启动 Agent、模型调用、模型 Token、OVH、生产、上传或推送。
+- 已验证：Stage054 P4 聚焦用例 `14/14`，与 Stage054 P3/P2/P1、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 和 BATCH041_050 的合并前序回归 `207/207`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理报告为 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 回滚只撤回本 P4 说明、交付合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `PHASE3_LOW_CONFIDENCE_REVIEW_ROUTE_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED`；真实资料、既有证据、运行状态、GitHub、OVH 与应用状态不在回滚范围内。
+- 下一步只允许在新的独立 run 进入 `IDS-STAGE054-REVIEW-GATE`。所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage054 Phase 3 - 2026-08-13
 
 - 本节覆盖下方 Stage054 P2/P1、Stage053 Review、P1--P4、Stage052 Review、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
 - 本轮完成 `IDS-V0_1-STAGE054-P3`：只以冻结 Stage054 任务包与 P1/P2 合同为合同上下文，重放 P2 的四条固定非业务 reference-only 控制路由，为扫描 PDF、模糊图片、表格图片、中英文混合和低质量五类标量场景形成明确候选、降级或失败处置。
