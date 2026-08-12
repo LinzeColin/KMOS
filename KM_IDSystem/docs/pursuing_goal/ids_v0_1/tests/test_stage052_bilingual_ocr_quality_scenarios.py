@@ -245,22 +245,26 @@ class Stage052BilingualOcrPhase3Tests(unittest.TestCase):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage052_phase3_completed"'),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE052-P3"'),
-            (batch, 'next_gate: "IDS-STAGE052-P4-GATE"'),
+            (batch, 'status: "stage052_phase4_completed_review_pending"'),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE052-P4"'),
+            (batch, 'next_gate: "IDS-STAGE052-REVIEW-GATE"'),
             (batch, "controlled_bilingual_ocr_quality_scenarios_evaluated: true"),
             (batch, "ocr_engine_invocation_performed: false"),
             (batch, "model_token_consumption_performed: false"),
             (batch, "ovh_deployment_performed: false"),
             (roadmap, 'phase_id: "IDS-STAGE052-P3"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE052-P4-GATE"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE052-P4"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE052-REVIEW-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE052", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE052-P3", status["phase"])
+        self.assertIn(
+            status["phase"],
+            ("IDS-V0_1-STAGE052-P3", "IDS-V0_1-STAGE052-P4"),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

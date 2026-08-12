@@ -9,9 +9,20 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage052 P3 - 2026-08-13
+## Current Gate - Stage052 P4 - 2026-08-13
 
-- 本节覆盖下方 Stage052 P2、P1、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
+- 本节覆盖下方 Stage052 P3、P2、P1、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成 `IDS-V0_1-STAGE052-P4`：只从 P3 的五类固定非业务中英文 OCR 质量 control 报告派生五个 metadata-only 交付样例、置信度汇总、一条显式失败清单、两条未排队复核路由证明、质量限制说明、三条中文人工确认提示和缓存重跑说明。
+- 唯一合同上下文是冻结 Stage052 任务包、P1--P3 合同与 Stage051 已复审控制证据。没有建立第二权威事实源，也没有读取 IDS 业务源、原始元数据、正文、文件路径、真实 PDF、图像、页面或表格内容；样例不保留 OCR 文本、业务正文、真实路径、页面图像、表格单元或真实来源内容。
+- 五个样例只保留场景、控制页引用、语言、置信度、状态与处置；置信度汇总为 HIGH=2、MEDIUM=1、LOW=1、UNKNOWN=1，不是识别准确率或质量门。低置信和中英文混合 control 只声明 Stage054 后续复核路径，未创建实际任务；失败页显式隔离，所有结果均不能直接进入高可信证据层。
+- 缓存保持 `IN_MEMORY_REBUILDABLE_NOT_PERSISTED`，临时产物数为 `0`，清理结论为 `NO_TEMPORARY_ARTIFACT_CREATED`；重跑只能在内存中重放 P3 control 报告，不扫描、删除或移动目录。没有打开真实样本、调用 OCR、进行图像处理、创建持久队列/按页输出/缓存/复核记录、执行质量门、证据提升、持久状态、本地服务、OVH 或生产运行；运行时保持零 Agent、零模型 Token。
+- 回滚只撤回 Stage052 P4 说明、交付合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图，恢复到 `PHASE3_BILINGUAL_CONTROLLED_QUALITY_SCENARIOS_ENGINE_DISABLED`；真实资料、既有证据、运行状态、GitHub、OVH 与应用状态不在回滚范围内。
+- 已验证：Stage052 P4 聚焦用例 `14/14`、Stage052 P3/P2/P1 与 Stage051 Review 前序兼容 `39/39`、Stage051 P1--P4 前序兼容 `42/42`、BATCH041_050 前序兼容 `6/6`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理报告为 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 下一步只允许在新的独立 run 进入 `IDS-STAGE052-REVIEW`，门为 `IDS-STAGE052-REVIEW-GATE`。所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage052 P3 - 2026-08-13
+
+- 本节仅保留 Stage052 P3 的历史交接证据；当前门已转为 Stage052 P4。
 - 本轮完成 `IDS-V0_1-STAGE052-P3`：重放 P2 的四页固定非业务纯内存中英文 OCR control 队列，并以扫描 PDF、模糊图片、表格图片、中英文混合和低质量五类标量类别形成候选保留、降级复核提示、表格未评估和显式失败处置；五类均明确，静默丢弃为零。
 - 唯一合同上下文是冻结 Stage052 任务包、P1/P2 合同与 Stage051 已复审控制证据。没有建立第二权威事实源，也没有读取 IDS 业务源、原始元数据、正文、文件路径、真实 PDF、图像、页面或表格内容。质量类别不是文件、页面、图像、表格或真实 OCR 结果；P3 报告不保留 P2 符号化输出、来源正文或 OCR 文本。
 - 扫描 PDF 与表格图片 control 仅为未评估候选；英文低置信和中英文混合 control 均显式降级为后续 `Stage054` 复核路径但未创建复核任务；低质量 control 显式失败，全部都不能直接进入高可信证据层。没有形成真实识别准确率或表格提取结论。

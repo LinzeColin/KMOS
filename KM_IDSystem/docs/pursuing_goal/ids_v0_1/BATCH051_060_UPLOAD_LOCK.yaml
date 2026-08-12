@@ -1,14 +1,20 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-051-060"
 created_at_utc: "2026-08-12T13:19:44Z"
-updated_at_utc: "2026-08-12T16:38:31Z"
-status: "stage052_phase3_completed"
+updated_at_utc: "2026-08-12T17:01:15Z"
+status: "stage052_phase4_completed_review_pending"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-041-050"
 predecessor_review_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
 
 transition_history:
+  stage052_phase4_state:
+    status: "stage052_phase4_completed_review_pending"
+    current_task_id: "IDS-V0_1-STAGE052-P4"
+    next_gate: "IDS-STAGE052-REVIEW-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE052-REVIEW"
+    github_upload_allowed: false
   stage052_phase3_state:
     status: "stage052_phase3_completed"
     current_task_id: "IDS-V0_1-STAGE052-P3"
@@ -245,21 +251,23 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
   STAGE-052:
-    status: "stage052_phase3_completed"
+    status: "stage052_phase4_completed_review_pending"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
-    next_phase: "Phase 4"
-    next_gate: "IDS-STAGE052-P4-GATE"
-    current_task_id: "IDS-V0_1-STAGE052-P3"
+      - "Phase 4"
+    next_phase: "Stage052 Review"
+    next_gate: "IDS-STAGE052-REVIEW-GATE"
+    current_task_id: "IDS-V0_1-STAGE052-P4"
     acceptance_id: "ACC-STAGE-052"
-    acceptance_status: "phase3_bilingual_ocr_quality_scenarios_complete"
+    acceptance_status: "phase4_bilingual_ocr_delivery_evidence_complete"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
-    phase4_entry_authorized: false
+    phase4_entry_authorized: true
+    stage_review_entry_authorized: false
     taskpack_context_read_performed: true
-    source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE052_PHASE1_PHASE2_ARTIFACTS"
+    source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE052_PHASE1_PHASE3_ARTIFACTS"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
     raw_metadata_content_accessed: false
@@ -269,8 +277,8 @@ stage_progress:
     route_evaluation_performed: false
     parser_execution_performed: false
     ocr_queue_baseline_reused_as_reference_only: true
-    bilingual_ocr_contract_schema: "ids.stage052.bilingual_ocr.phase3.quality_scenarios.v1"
-    contract_state: "PHASE3_BILINGUAL_CONTROLLED_QUALITY_SCENARIOS_ENGINE_DISABLED"
+    bilingual_ocr_contract_schema: "ids.stage052.bilingual_ocr.phase4.delivery.v1"
+    contract_state: "PHASE4_BILINGUAL_OCR_DELIVERY_EVIDENCE_RUNTIME_DISABLED"
     execution_ready: false
     reference_only_ocr_input_field_count: 7
     per_page_output_field_count: 8
@@ -307,6 +315,21 @@ stage_progress:
     real_pdf_or_image_opened: false
     table_structure_extraction_performed: false
     recognition_accuracy_evaluated: false
+    bilingual_delivery_evidence_derived: true
+    delivery_metadata_only_sample_count: 5
+    delivery_sample_kind: "DELIVERY_METADATA_ONLY_BILINGUAL_OCR_OUTPUT_SAMPLE_NOT_REAL_OCR"
+    controlled_bilingual_confidence_report_created: true
+    confidence_count_high: 2
+    confidence_count_medium: 1
+    confidence_count_low: 1
+    confidence_count_unknown: 1
+    controlled_bilingual_failure_list_count: 1
+    declared_bilingual_review_route_proof_count: 2
+    quality_limitations_recorded_in_chinese: true
+    human_confirmation_prompt_count: 3
+    automatic_confirmation_performed: false
+    actual_ocr_delivery_implemented: false
+    high_trust_evidence_promotion_allowed: false
     cache_policy: "IN_MEMORY_REBUILDABLE_NOT_PERSISTED"
     cache_created: false
     cache_write_performed: false
@@ -341,13 +364,18 @@ stage_progress:
     stage052_started: true
     phase2_started: true
     phase3_started: true
-    phase4_started: false
+    phase4_started: true
     whole_stage_review_performed: false
     batch_review_performed: false
     github_upload_allowed: false
     push_allowed: false
     app_reinstall_allowed: false
     evidence_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE052_PHASE4_BILINGUAL_OCR_DELIVERY_CLOSEOUT.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage052_bilingual_ocr_delivery_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage052_bilingual_ocr_delivery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage052_bilingual_ocr_delivery.py"
+      - "KM_IDSystem/machine/runs/2026-08-13-stage052-p4-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE052_PHASE3_BILINGUAL_OCR_QUALITY_SCENARIOS.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage052_bilingual_ocr_quality_scenarios_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage052_bilingual_ocr_quality_scenarios.py"
@@ -366,10 +394,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE052-P3"
-  next_allowed_task_id: "IDS-V0_1-STAGE052-P4"
+  current_task_id: "IDS-V0_1-STAGE052-P4"
+  next_allowed_task_id: "IDS-V0_1-STAGE052-REVIEW"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-052 Phase 3 只重放 P2 的纯内存双语 control 队列，以扫描 PDF、模糊图片、表格图片、中英文混合和低质量五类固定非业务类别形成明确处置；未打开真实样本，未调用 OCR，未创建持久队列、缓存、复核记录或运行时。"
+  current_run: "STAGE-052 Phase 4 只从 P3 的五类固定非业务中英文 OCR 质量 control 报告派生五个 metadata-only 交付样例、置信度汇总、失败清单、未排队复核路由证明、中文人工确认和零临时产物重跑说明；未打开真实样本，未调用 OCR，未创建持久队列、缓存、复核记录或运行时。"
   no_upload_reason: "冻结任务包要求完成至 ACC-STAGE-168 且经独立全局发布验收后，才可重新考虑任何上传路径。"

@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-052 Phase 4 - 2026-08-13
+
+- 完成 `IDS-V0_1-STAGE052-P4`：从 P3 的五类固定非业务中英文 OCR 质量 control 报告派生五个 metadata-only 交付样例、HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1 的置信度汇总、一条显式失败、两条声明但未排队的 Stage054 复核路由、三条中文人工确认提示和零临时产物缓存重跑说明。
+- 本地验证通过：Stage052 P4 聚焦用例 `14/14`、Stage052 P3/P2/P1 与 Stage051 Review 前序兼容 `39/39`、Stage051 P1--P4 前序兼容 `42/42`、BATCH041_050 前序兼容 `6/6`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影重渲染 `7` 个文件。
+- 交付样例不包含 OCR 文本、业务正文、真实路径、页面图像、表格单元或真实来源内容。未打开真实样本、未调用 OCR、未做图像处理/表格提取/准确率评估、未创建持久队列/缓存/复核、未执行质量门、缓存清理或持久化；Agent、模型 Token、OVH、生产、上传与推送均保持关闭。后续仅允许在新的独立 run 进入 `IDS-STAGE052-REVIEW-GATE`。
+
 ## IDS v0.1 STAGE-052 Phase 3 - 2026-08-13
 
 - 完成 `IDS-V0_1-STAGE052-P3`：重放 P2 的纯内存中英文 OCR 控制队列，以扫描 PDF、模糊图片、表格图片、中英文混合和低质量五类固定非业务类别形成候选保留、降级复核提示、表格未评估和显式失败处置；五类均明确，静默丢弃为零。
