@@ -1502,9 +1502,10 @@ jobs:
       # 每日资金是一条独立的数据面：不能借用项目成本或其他 KMFA 服务的
       # 凭据。12 个运行必填值先在 GitHub Secret Store 完整存在才开始写
       # Coolify；可选 DWS client override 与 recovery bundle 只在显式配置时
-      # 一并同步。使用 Coolify 官方按应用 PATCH 接口更新同名键，而不是
-      # 先删除后重建：部署 token 可以安全更新配置，但未必拥有删除权限；
-      # 同步失败时不会触发部署，运行中的容器继续保留上一份完整配置。
+      # 一并同步。Coolify 的 PATCH 只更新既有键、缺失键明确返回 404；因此
+      # 对每个键先 PATCH，且仅在该 404 时 POST 创建。POST 因并发创建返回
+      # 409 时再 PATCH 一次。全程不删除既有变量；同步失败时不会触发部署，
+      # 运行中的容器继续保留上一份完整配置。
       - name: 同步每日资金专用 secrets（必填全量、可选 DWS 覆盖/恢复包、值不回显）
         if: inputs.mode == 'sync-daily-funds-secrets'
         env:
@@ -1582,6 +1583,20 @@ jobs:
               -H "Content-Type: application/json" \
               --data @"$RUNNER_TEMP/daily-funds-payload.json" \
               "$BASE/api/v1/applications/$APP/envs" || true)
+            if [ "$code" = "404" ]; then
+              code=$(curl -sS -o "$RUNNER_TEMP/daily-funds-post.out" -w '%{http_code}' -X POST \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Content-Type: application/json" \
+                --data @"$RUNNER_TEMP/daily-funds-payload.json" \
+                "$BASE/api/v1/applications/$APP/envs" || true)
+              if [ "$code" = "409" ]; then
+                code=$(curl -sS -o "$RUNNER_TEMP/daily-funds-patch-retry.out" -w '%{http_code}' -X PATCH \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "Content-Type: application/json" \
+                  --data @"$RUNNER_TEMP/daily-funds-payload.json" \
+                  "$BASE/api/v1/applications/$APP/envs" || true)
+              fi
+            fi
             [ "$code" = "200" ] || [ "$code" = "201" ] || {
               echo "更新每日资金 secret 条目失败：HTTP $code"; exit 1; }
           done < "$RUNNER_TEMP/daily-funds-payloads.jsonl"
@@ -1625,7 +1640,7 @@ jobs:
               if counts[key] != representation_count:
                   print(f"{key} 回读失败：未覆盖全部正常应用上下文。")
                   sys.exit(1)
-          print("每日资金 12 个必填 secret 已通过官方 PATCH 覆盖全部正常应用上下文；可选 DWS 客户端覆盖和恢复包仅在显式配置时同步，值一致性待运行时验收。")
+          print("每日资金 12 个必填 secret 已通过 Coolify PATCH/POST 覆盖全部正常应用上下文；可选 DWS 客户端覆盖和恢复包仅在显式配置时同步，值一致性待运行时验收。")
           PY
 
       - name: 测试期安全态——清空群机器人 + 关投递（去重后重写，杜绝同名残留）
