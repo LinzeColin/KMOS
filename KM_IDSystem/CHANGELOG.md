@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-054 Phase 2 - 2026-08-13
+
+- 完成 `IDS-V0_1-STAGE054-P2`：重放四条固定非业务九字段 reference-only 控制记录，在内存中形成三个十字段候选复核请求、三种受控路由状态、四条中文反馈和来源页引用保留；四种结果均不能直接进入高可信证据层。
+- 本地验证通过：Stage054 P2 聚焦用例 `9/9`、Stage054 P1 与 Stage053 Review/P1--P4 前序兼容 `61/61`、Stage052 Review/P1--P4 `53/53`、Stage051 Review/P1--P4 `53/53`、BATCH041_050 `6/6`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`。
+- 未读取真实资料或打开 PDF/图片，未调用 OCR、创建实际复核请求/队列/任务/结果、持久缓存、审计或持久状态，未执行 Agent、模型 Token、OVH、生产、上传或推送；后续仅允许在新的独立 run 进入 `IDS-STAGE054-P3-GATE`。
+
 ## IDS v0.1 STAGE-054 Phase 1 - 2026-08-13
 
 - 完成 `IDS-V0_1-STAGE054-P1`：定义低置信度复核路由的九字段 reference-only 输入、十字段未来请求、默认中文简体与英文、LOW/UNKNOWN/中英文混合/失败页隔离、三种未来复核状态、缓存边界、中文反馈与回滚范围。

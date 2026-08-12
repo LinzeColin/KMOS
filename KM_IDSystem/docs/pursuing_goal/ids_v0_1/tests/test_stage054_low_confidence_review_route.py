@@ -139,7 +139,7 @@ class Stage054LowConfidenceReviewRoutePhase1Tests(unittest.TestCase):
                 self.assertFalse(runtime[field])
         self.assertTrue(runtime["stage054_started"])
 
-    def test_governance_run_and_event_advance_only_to_phase2(self):
+    def test_phase1_history_run_and_event_remain_available_after_successor_entry(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
@@ -157,7 +157,14 @@ class Stage054LowConfidenceReviewRoutePhase1Tests(unittest.TestCase):
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE054", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE054-P1", status["phase"])
+        self.assertIn(
+            status["phase"],
+            ("IDS-V0_1-STAGE054-P1", "IDS-V0_1-STAGE054-P2"),
+        )
+        self.assertIn(
+            status["next_gate"],
+            ("IDS-STAGE054-P2-GATE", "IDS-STAGE054-P3-GATE"),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
