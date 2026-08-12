@@ -212,7 +212,7 @@ def _write_projection(root: Path, human_status: str, *, restored: bool = False) 
     cashflow_observation = {
         "schema_version": "kmfa.daily_funds.cashflow_observation.v2",
         "generated_at": "2026-07-30T12:05:00Z",
-        "parser_version": "kmfa.daily_funds.cashflow_observation.v1",
+        "parser_version": "kmfa.daily_funds.cashflow_observation.v5",
         "source_coverage": {
             "eligible_documents": 2,
             "parsed_documents": 2,
@@ -260,6 +260,7 @@ def _write_archived_needs_review_projection(root: Path) -> None:
         "last_status_at": "2026-07-30T12:05:00Z",
         "publication_present": False,
     }
+    flow["source_discovery"] = {"state": "GENERIC_DOCUMENT_UNRESOLVED"}
     # This is values-free operational coverage only.  It must stay visibly
     # distinct from the synthetic cashflow chart below: a scanned historical
     # day is not an account snapshot, transaction fact, zero-fen
@@ -299,6 +300,21 @@ def _write_archived_needs_review_projection(root: Path) -> None:
         "publication_id": None,
     })
     status_path.write_text(json.dumps(status, ensure_ascii=False) + "\n", encoding="utf-8")
+    observation_path = root / "cashflow_observation.json"
+    observation = json.loads(observation_path.read_text(encoding="utf-8"))
+    observation.update({
+        "source_coverage": {
+            "eligible_documents": 0,
+            "parsed_documents": 0,
+            "rejected_documents": 0,
+            "distinct_business_days": 0,
+        },
+        "rejection_categories": {},
+        "status": "NOT_AVAILABLE",
+        "machine_code": "CASHFLOW_OBSERVATION_SOURCE_MISSING",
+        "points": [],
+    })
+    observation_path.write_text(json.dumps(observation, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def _free_port() -> int:
@@ -498,7 +514,7 @@ def _exercise_case(
         if trusted_projection:
             callout = callout.filter(has_text="数据日期：2026-07-30")
         else:
-            callout = callout.filter(has_text="附件待确定性解析复核")
+            callout = callout.filter(has_text="已归档通用候选附件尚未确认是账户余额或资金流水")
         callout = callout.first
         try:
             callout.wait_for(state="visible", timeout=10_000)
@@ -587,7 +603,9 @@ def _exercise_case(
             page.get_by_text("已覆盖 200 / 360 天；待覆盖 160 天", exact=True).wait_for(state="visible", timeout=10_000)
             page.get_by_text("云端附件读取传输失败", exact=False).first.wait_for(state="visible", timeout=10_000)
             page.get_by_text("已采集收支流水（非可用资金）", exact=False).wait_for(state="visible", timeout=10_000)
-            page.get_by_text("已验证流水", exact=False).wait_for(state="visible", timeout=10_000)
+            page.get_by_text("收支流水暂不展示金额", exact=False).wait_for(state="visible", timeout=10_000)
+            page.get_by_text("归档待分类", exact=False).first.wait_for(state="visible", timeout=10_000)
+            page.get_by_text("尚未确认其为资金流水；因此不写入收支图表或金额", exact=False).wait_for(state="visible", timeout=10_000)
             chart = page.locator("svg").filter(has_text="可用资金")
             chart.first.wait_for(state="visible", timeout=10_000)
             assert chart.count() == 1, f"expected one gated daily-funds SVG chart, got {chart.count()}"

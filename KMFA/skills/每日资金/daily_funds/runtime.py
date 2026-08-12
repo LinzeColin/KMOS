@@ -38,6 +38,7 @@ from .parsing import (
     is_ocr_attachment,
     parse_attachment,
     parse_cashflow_observation,
+    parse_generic_structured_attachment,
     parse_ocr_attachment,
 )
 from .publication import (
@@ -123,7 +124,10 @@ _SOURCE_DISCOVERY_STATES = frozenset({
     "TRANSACTION_FACT_MISSING",
     "SOURCE_FACT_DATE_MISMATCH",
     "COMPLETE_PAIR_READY",
+    "GENERIC_DOCUMENT_UNRESOLVED",
 })
+_EXPLICIT_FACT_FAMILIES = frozenset({ACCOUNT_FAMILY, "资金流水明细"})
+_GENERIC_DOCUMENT_FAMILY = "资金明细"
 
 
 @dataclass(frozen=True)
@@ -1227,6 +1231,31 @@ class DailyFundsRuntime:
                     if not profile.ready_before:
                         raise ParseError("OCR_PROFILE_CALIBRATING")
                     facts = candidate.facts
+                elif attachment.family == _GENERIC_DOCUMENT_FAMILY and Path(attachment.filename).suffix.lower() in ALLOWED_SUFFIXES:
+                    facts = parse_generic_structured_attachment(
+                        filename=attachment.filename,
+                        payload=attachment.payload,
+                        source=self._source_ref(attachment),
+                        mime=attachment.mime,
+                    )
+                elif attachment.family == _GENERIC_DOCUMENT_FAMILY and self.config.ocr_enabled and is_ocr_attachment(attachment.filename):
+                    candidate = parse_ocr_attachment(
+                        family=_GENERIC_DOCUMENT_FAMILY,
+                        filename=attachment.filename,
+                        payload=attachment.payload,
+                        source=self._source_ref(attachment),
+                        mime=attachment.mime,
+                        min_confidence_bps=self.config.ocr_min_confidence_bps,
+                    )
+                    profile = self.state.observe_ocr_layout(
+                        family=candidate.facts.family,
+                        layout_fingerprint=candidate.layout_fingerprint,
+                        parser_version=candidate.facts.parser_evidence.parser_version,
+                        business_date=candidate.facts.business_date,
+                    )
+                    if not profile.ready_before:
+                        raise ParseError("OCR_PROFILE_CALIBRATING")
+                    facts = candidate.facts
                 elif Path(attachment.filename).suffix.lower() in ALLOWED_SUFFIXES:
                     facts = parse_attachment(
                         family=attachment.family,
@@ -1302,23 +1331,29 @@ class DailyFundsRuntime:
             ))
         return AttachmentCapabilityInspection(tuple(parsed), tuple(failures))
 
-    def _resolved_unclassified_ocr_attachments(
+    def _resolved_ambiguous_source_attachments(
         self,
         attachments: Iterable[DownloadedAttachment],
     ) -> tuple[DownloadedAttachment, ...]:
-        """Resolve only byte-proven unknown OCR reports into a fact family.
+        """Resolve generic or title-less documents only after byte-proven schema checks.
 
         This is capability preflight, not monetary publication: each returned
         source still goes through the normal post-mirror parse and
-        reconciliation path.  Unknown files that fail semantic OCR remain
-        raw evidence only, while a source-lineage failure still blocks the
-        complete batch.
+        reconciliation path.  A generic ``资金明细`` label is not promoted
+        merely because it was text-matched in a message; title-less reports
+        retain the existing OCR-only route.  Any item that cannot establish
+        exactly one fact schema remains raw evidence only, while a
+        source-lineage failure still blocks the complete batch.
         """
 
-        unknown = tuple(attachment for attachment in attachments if attachment.family is None)
-        if not unknown:
+        ambiguous = tuple(
+            attachment
+            for attachment in attachments
+            if attachment.family is None or attachment.family == _GENERIC_DOCUMENT_FAMILY
+        )
+        if not ambiguous:
             return ()
-        inspection = self._inspect_attachment_capabilities(unknown)
+        inspection = self._inspect_attachment_capabilities(ambiguous)
         integrity_failures = tuple(
             failure
             for failure in inspection.failures
@@ -1338,9 +1373,39 @@ class DailyFundsRuntime:
             resolved_families[source_version] = family
         return tuple(
             replace(attachment, family=resolved_families[attachment.sha256])
-            for attachment in unknown
+            for attachment in ambiguous
             if attachment.sha256 in resolved_families
         )
+
+    @staticmethod
+    def _cashflow_observation_candidates(
+        attachments: Iterable[DownloadedAttachment],
+        inspection: AttachmentCapabilityInspection,
+    ) -> tuple[DownloadedAttachment, ...]:
+        """Admit screenshots only after their source family is deterministic.
+
+        An explicitly labelled ``资金流水明细`` keeps its chart-only review
+        path.  A generic ``资金明细`` (or title-less) attachment is admissible
+        only after the same raw-byte parser census has resolved it to the
+        transaction family.  This keeps generic project screenshots in the
+        private archive without misrepresenting them as failed cashflow input.
+        """
+
+        resolved = {
+            item.facts.source_version: item.facts.family
+            for item in inspection.parsed
+        }
+        candidates: list[DownloadedAttachment] = []
+        for attachment in attachments:
+            resolved_family = resolved.get(attachment.sha256)
+            if attachment.family == "资金流水明细":
+                candidates.append(attachment)
+            elif (
+                attachment.family in {None, _GENERIC_DOCUMENT_FAMILY}
+                and resolved_family in TRANSACTION_FAMILIES
+            ):
+                candidates.append(replace(attachment, family=resolved_family))
+        return tuple(candidates)
 
     def _write_cashflow_observation(
         self,
@@ -1492,15 +1557,16 @@ class DailyFundsRuntime:
             callback=writer.audit_raw_archive,
         )
 
-        # The chart-only cashflow projection is independently fail-closed: it
-        # consumes the same freshly verified raw readback, checks every
-        # eligible image and atomically clears all points on a single failure.
-        # Run it before the broader capability census so a long formal OCR
-        # review cannot leave the owner page with no truthful chart receipt at
-        # all.  This does not weaken or shortcut the later capability scope,
-        # the two-fact publication gate, or any integer-fen reconciliation.
-        self._write_cashflow_observation(audit.verified_attachments)
         inspection = self._inspect_attachment_capabilities(audit.verified_attachments)
+        # The chart-only cashflow projection is independently fail-closed.  It
+        # consumes only explicitly labelled transaction screenshots or generic
+        # attachments that the just-completed raw-byte census resolved to a
+        # transaction schema.  Generic archive evidence that cannot establish
+        # a financial family stays private and cannot make the public chart
+        # look like a failed money calculation.
+        self._write_cashflow_observation(
+            self._cashflow_observation_candidates(audit.verified_attachments, inspection),
+        )
         integrity_failures = tuple(
             failure
             for failure in inspection.failures
@@ -1979,7 +2045,7 @@ class DailyFundsRuntime:
                 all_attachments.extend(commit.verified_attachments)
                 formal_attachments.extend(
                     attachment for attachment in commit.verified_attachments
-                    if attachment.family is not None
+                    if attachment.family in _EXPLICIT_FACT_FAMILIES
                 )
                 return
             page_attachments = [
@@ -2001,7 +2067,7 @@ class DailyFundsRuntime:
                 all_attachments.extend(commit.verified_attachments)
                 formal_attachments.extend(
                     attachment for attachment in commit.verified_attachments
-                    if attachment.family is not None
+                    if attachment.family in _EXPLICIT_FACT_FAMILIES
                 )
 
         def empty_source_state() -> str:
@@ -2078,12 +2144,16 @@ class DailyFundsRuntime:
                     "capability_supported": len(inspection.parsed),
                     "capability_needs_review": needs_review,
                 }
-            resolved_unclassified = self._resolved_unclassified_ocr_attachments(verified_attachments)
+            resolved_ambiguous = self._resolved_ambiguous_source_attachments(verified_attachments)
             candidate_attachments = self._deduplicated_attachments(
-                (*formal_attachments, *resolved_unclassified),
+                (*formal_attachments, *resolved_ambiguous),
             )
             if not candidate_attachments:
-                source_discovery_state = empty_source_state()
+                source_discovery_state = (
+                    "GENERIC_DOCUMENT_UNRESOLVED"
+                    if any(attachment.family == _GENERIC_DOCUMENT_FAMILY for attachment in verified_attachments)
+                    else empty_source_state()
+                )
                 raise IngestionError("SOURCE_MATCH_ZERO")
             verified_attachments = candidate_attachments
             # The raw Git authority has been re-opened before this point.  R2

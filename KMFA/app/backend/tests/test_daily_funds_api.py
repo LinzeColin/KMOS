@@ -223,7 +223,7 @@ def _write_projection(root: Path) -> None:
     cashflow_observation = {
         "schema_version": "kmfa.daily_funds.cashflow_observation.v2",
         "generated_at": "2026-07-30T12:05:00Z",
-        "parser_version": "kmfa.daily_funds.cashflow_observation.v1",
+        "parser_version": "kmfa.daily_funds.cashflow_observation.v5",
         "source_coverage": {
             "eligible_documents": 2,
             "parsed_documents": 2,
@@ -290,7 +290,16 @@ def test_cashflow_observation_is_read_only_footer_reconciled_and_not_a_balance_f
     assert review.json()["rejection_categories"] == {"合计勾稽": 2}
     assert "FOOTER_RECONCILIATION" not in review.text
 
+    stale = json.loads(observation_path.read_text(encoding="utf-8"))
+    stale["parser_version"] = "kmfa.daily_funds.cashflow_observation.v4"
+    observation_path.write_text(json.dumps(stale), encoding="utf-8")
+    stale_response = client.get("/ops/api/daily-funds/cashflow-observations?range=30d")
+    assert stale_response.status_code == 200
+    assert stale_response.json()["status"] == "NEEDS_REVIEW"
+    assert stale_response.json()["points"] == []
+
     malformed = json.loads(observation_path.read_text(encoding="utf-8"))
+    malformed["parser_version"] = main_module.DAILY_FUNDS_CASHFLOW_OBSERVATION_PARSER_VERSION
     malformed["raw_fixture_should_not_escape"] = "cashflow-raw-fixture"
     observation_path.write_text(json.dumps(malformed), encoding="utf-8")
     blocked = client.get("/ops/api/daily-funds/cashflow-observations?range=30d")
@@ -765,6 +774,8 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
         "状态": "待复核",
         "已支持附件数": 1,
         "待复核附件数": 2,
+        "正式候选待复核附件数": 2,
+        "归档待分类附件数": 0,
         "待复核原因": [{"类别": "文件格式或表格结构未通过确定性校验", "数量": 2}],
         "最近观测": "2026-07-30T12:05:00Z",
     }
@@ -966,6 +977,8 @@ def test_daily_funds_attachment_capability_summary_fails_closed_on_malformed_row
         "状态": "UNKNOWN",
         "已支持附件数": 0,
         "待复核附件数": 0,
+        "正式候选待复核附件数": 0,
+        "归档待分类附件数": 0,
         "待复核原因": [],
         "最近观测": None,
     }
@@ -1024,6 +1037,7 @@ def test_daily_funds_source_discovery_distinguishes_missing_fact_gates(tmp_path,
         "ACCOUNT_SNAPSHOT_MISSING": "附件已取得，缺少账户余额事实",
         "TRANSACTION_FACT_MISSING": "附件已取得，缺少资金流水事实",
         "SOURCE_FACT_DATE_MISMATCH": "附件已取得，但账户与流水业务日期未成对",
+        "GENERIC_DOCUMENT_UNRESOLVED": "已归档候选附件，尚未确定为资金账户或流水",
     }
     for state, label in expected.items():
         flow = json.loads(flow_path.read_text(encoding="utf-8"))
@@ -1052,6 +1066,43 @@ def test_attachment_capability_exposes_fixed_ocr_category_not_parser_code(tmp_pa
     assert "OCR_GENERIC_HEADER_SCHEMA_MISSING" not in response.text
 
 
+def test_generic_attachment_capability_stays_archived_until_a_fact_schema_is_proven(tmp_path, monkeypatch):
+    """A generic label is a private archive class, never a cashflow claim."""
+
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    (publication / "current.json").unlink()
+    flow_path = publication / "flow_state.json"
+    flow = json.loads(flow_path.read_text(encoding="utf-8"))
+    flow["attachment_capabilities"][1].update({
+        "family": "资金明细",
+        "code": "GENERIC_SOURCE_SCHEMA_UNRESOLVED",
+    })
+    flow["source_discovery"] = {"state": "GENERIC_DOCUMENT_UNRESOLVED"}
+    flow_path.write_text(json.dumps(flow), encoding="utf-8")
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+
+    response = client.get("/ops/api/daily-funds/source-health")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["parser_capability"] == {
+        "状态": "归档待分类",
+        "已支持附件数": 1,
+        "待复核附件数": 2,
+        "正式候选待复核附件数": 0,
+        "归档待分类附件数": 2,
+        "待复核原因": [{"类别": "通用表格未形成余额或流水完整结构", "数量": 2}],
+        "最近观测": "2026-07-30T12:05:00Z",
+    }
+    assert payload["source_discovery"] == {
+        "状态": "GENERIC_DOCUMENT_UNRESOLVED",
+        "说明": "已归档候选附件，尚未确定为资金账户或流水",
+    }
+    assert "不写入收支图表" in payload["message"]
+    assert "GENERIC_SOURCE_SCHEMA_UNRESOLVED" not in response.text
+
+
 def test_archived_needs_review_is_visible_without_trusted_money(tmp_path, monkeypatch):
     """A verified raw PNG must stay actionable, rather than degrading to UNKNOWN."""
 
@@ -1077,6 +1128,8 @@ def test_archived_needs_review_is_visible_without_trusted_money(tmp_path, monkey
         "状态": "待复核",
         "已支持附件数": 1,
         "待复核附件数": 2,
+        "正式候选待复核附件数": 2,
+        "归档待分类附件数": 0,
         "待复核原因": [{"类别": "文件格式或表格结构未通过确定性校验", "数量": 2}],
         "最近观测": "2026-07-30T12:05:00Z",
     }

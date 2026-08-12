@@ -2543,6 +2543,7 @@ DAILY_FUNDS_FLOATING_LINE_NAMES = set(DAILY_FUNDS_FLOATING_LINE_ORDER)
 DAILY_FUNDS_BACKUP_STATES = {"OK", "LAG", "PENDING", "UNKNOWN"}
 DAILY_FUNDS_STATUS_SCHEMA = "kmfa.daily_funds.status.v1"
 DAILY_FUNDS_CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v2"
+DAILY_FUNDS_CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v5"
 DAILY_FUNDS_CASHFLOW_OBSERVATION_STATUSES = {"VERIFIED", "NEEDS_REVIEW", "NOT_AVAILABLE"}
 DAILY_FUNDS_CASHFLOW_REJECTION_CATEGORY_LABELS = {
     "HEADER_LAYOUT": "表头布局",
@@ -2592,6 +2593,8 @@ DAILY_FUNDS_CAPABILITY_OUTCOMES = {"SUPPORTED", "NEEDS_REVIEW"}
 # distinction (what kind of work is blocked) without forwarding a code,
 # filename, document field, source ID, or amount.
 DAILY_FUNDS_CAPABILITY_DIAGNOSTIC_LABELS = {
+    "GENERIC_SOURCE_SCHEMA_UNRESOLVED": "通用表格未形成余额或流水完整结构",
+    "GENERIC_SOURCE_SCHEMA_AMBIGUOUS": "通用表格同时匹配余额与流水",
     "OCR_GENERIC_HEADER_SCHEMA_MISSING": "图片表头未形成余额或流水完整结构",
     "OCR_GENERIC_ROW_SCHEMA_MISSING": "图片数据行未形成余额或流水完整结构",
     "OCR_GENERIC_CONFIDENCE_BLOCKED": "图片关键字段置信度不足",
@@ -2610,18 +2613,20 @@ DAILY_FUNDS_CAPABILITY_DIAGNOSTIC_LABELS = {
     "MIME_SUFFIX_MISMATCH": "文件格式或表格结构未通过确定性校验",
 }
 DAILY_FUNDS_CAPABILITY_DIAGNOSTIC_ORDER = {
-    "图片表头未形成余额或流水完整结构": 1,
-    "图片数据行未形成余额或流水完整结构": 2,
-    "图片无法确定为余额或流水": 3,
-    "图片同时匹配余额与流水": 4,
-    "图片版式校准中": 5,
-    "图片关键字段置信度不足": 6,
-    "云端图片解析运行环境不可用": 7,
-    "图片表格结构未通过确定性校验": 8,
-    "文件格式或表格结构未通过确定性校验": 9,
-    "来源或字节校验未通过": 10,
-    "表格字段或业务规则未通过确定性校验": 11,
-    "其他确定性解析门未通过": 12,
+    "通用表格未形成余额或流水完整结构": 1,
+    "通用表格同时匹配余额与流水": 2,
+    "图片表头未形成余额或流水完整结构": 3,
+    "图片数据行未形成余额或流水完整结构": 4,
+    "图片无法确定为余额或流水": 5,
+    "图片同时匹配余额与流水": 6,
+    "图片版式校准中": 7,
+    "图片关键字段置信度不足": 8,
+    "云端图片解析运行环境不可用": 9,
+    "图片表格结构未通过确定性校验": 10,
+    "文件格式或表格结构未通过确定性校验": 11,
+    "来源或字节校验未通过": 12,
+    "表格字段或业务规则未通过确定性校验": 13,
+    "其他确定性解析门未通过": 14,
 }
 DAILY_FUNDS_SOURCE_DISCOVERY_STATES = {
     "UNKNOWN",
@@ -2634,6 +2639,7 @@ DAILY_FUNDS_SOURCE_DISCOVERY_STATES = {
     "TRANSACTION_FACT_MISSING",
     "SOURCE_FACT_DATE_MISMATCH",
     "COMPLETE_PAIR_READY",
+    "GENERIC_DOCUMENT_UNRESOLVED",
 }
 DAILY_FUNDS_BUSINESS_FLOW_STAGES = {
     "RUNTIME_AUDITED", "RUNTIME_NEEDS_ATTENTION", "WAITING_FOR_VALID_PUBLICATION",
@@ -2805,6 +2811,7 @@ def _daily_funds_source_discovery(value: object) -> dict[str, str]:
         "TRANSACTION_FACT_MISSING": "附件已取得，缺少资金流水事实",
         "SOURCE_FACT_DATE_MISMATCH": "附件已取得，但账户与流水业务日期未成对",
         "COMPLETE_PAIR_READY": "账户与流水已成对，等待后续勾稽与发布",
+        "GENERIC_DOCUMENT_UNRESOLVED": "已归档候选附件，尚未确定为资金账户或流水",
     }
     return {"状态": state, "说明": labels[state]}
 
@@ -2824,6 +2831,8 @@ def _daily_funds_attachment_capability_summary(rows: object) -> dict[str, Any]:
         "状态": "未观测",
         "已支持附件数": 0,
         "待复核附件数": 0,
+        "正式候选待复核附件数": 0,
+        "归档待分类附件数": 0,
         "待复核原因": [],
         "最近观测": None,
     }
@@ -2831,6 +2840,8 @@ def _daily_funds_attachment_capability_summary(rows: object) -> dict[str, Any]:
         "状态": "UNKNOWN",
         "已支持附件数": 0,
         "待复核附件数": 0,
+        "正式候选待复核附件数": 0,
+        "归档待分类附件数": 0,
         "待复核原因": [],
         "最近观测": None,
     }
@@ -2841,6 +2852,8 @@ def _daily_funds_attachment_capability_summary(rows: object) -> dict[str, Any]:
 
     supported = 0
     needs_review = 0
+    formal_needs_review = 0
+    archive_needs_classification = 0
     review_reasons: dict[str, int] = {}
     latest: tuple[datetime, str] | None = None
     for row in rows:
@@ -2895,15 +2908,25 @@ def _daily_funds_attachment_capability_summary(rows: object) -> dict[str, Any]:
             supported += count
         else:
             needs_review += count
+            if family in {"资金明细", "UNCLASSIFIED"}:
+                archive_needs_classification += count
+            else:
+                formal_needs_review += count
             label = _daily_funds_capability_diagnostic_label(code)
             review_reasons[label] = review_reasons.get(label, 0) + count
 
     if not rows:
         return unobserved
     return {
-        "状态": "待复核" if needs_review else "已支持",
+        "状态": (
+            "待复核" if formal_needs_review
+            else "归档待分类" if archive_needs_classification
+            else "已支持"
+        ),
         "已支持附件数": supported,
         "待复核附件数": needs_review,
+        "正式候选待复核附件数": formal_needs_review,
+        "归档待分类附件数": archive_needs_classification,
         "待复核原因": [
             {"类别": label, "数量": review_reasons[label]}
             for label in sorted(
@@ -4049,7 +4072,9 @@ def _daily_funds_source_health_view() -> dict[str, Any]:
         if view["human_status"] == "已更新":
             view["human_status"] = "需处理"
         view["backup_state"] = "UNKNOWN"
-        if parser_capability["状态"] == "待复核":
+        if parser_capability["状态"] == "归档待分类":
+            view["message"] = "已归档通用候选附件尚未确认是账户余额或资金流水；不展示或推断金额，也不写入收支图表。"
+        elif parser_capability["状态"] == "待复核":
             view["message"] = "已归档附件待确定性解析复核；在账户余额与资金流水成对勾稽并完成发布前，不展示或推断金额。"
         else:
             view["message"] = (
@@ -4128,8 +4153,7 @@ def _daily_funds_cashflow_observation_view() -> dict[str, Any]:
         or not set(rejection_categories) <= set(DAILY_FUNDS_CASHFLOW_REJECTION_CATEGORY_LABELS)
         or not all(_daily_funds_is_integer(value) and value > 0 for value in rejection_categories.values())
         or sum(rejection_categories.values()) != coverage["rejected_documents"]
-        or not isinstance(payload.get("parser_version"), str)
-        or not payload["parser_version"].startswith("kmfa.daily_funds.cashflow_observation.")
+        or payload.get("parser_version") != DAILY_FUNDS_CASHFLOW_OBSERVATION_PARSER_VERSION
         or not isinstance(payload.get("machine_code"), str)
         or not payload["machine_code"].startswith("CASHFLOW_OBSERVATION_")
         or not isinstance(payload.get("points"), list)

@@ -28,10 +28,12 @@ from .models import CashflowObservation, AccountSnapshot, ParsedFacts, ParserEvi
 
 ACCOUNT_FAMILY = "资金账户明细表"
 TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
-# v10 keeps the bounded deterministic OCR fallback and aligns transaction
+# v11 keeps the bounded deterministic OCR fallback and aligns transaction
 # identity requirements to the frozen task-pack schema: bank_id is optional
 # and a source-row fact identifier is used only when a source does not expose
-# a transaction identifier.
+# a transaction identifier.  It also requires an ambiguously titled structured
+# ``资金明细`` document to open exactly one complete fact schema, matching the
+# existing generic-image gate.
 #
 # It retains v5's narrow source-classification rule: a generic ``资金明细``
 # image may be treated as an account snapshot only when its OCR table satisfies
@@ -43,17 +45,20 @@ TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
 # reassembles only those overlapping OCR lines and then applies the same exact
 # aliases, confidence, row and fact rules.  Capability receipts are versioned,
 # so a rule change cannot inherit a prior parser's production-support assertion.
-PARSER_VERSION = "kmfa.daily_funds.parser.v10"
+PARSER_VERSION = "kmfa.daily_funds.parser.v11"
 # This parser is deliberately separate from ``PARSER_VERSION``.  It can
 # create a chart-only receipt from a narrow receipt/payment screenshot without
 # weakening the two-fact account-balance publication contract.
-# v4 keeps v3's bounded sparse-layout fallback and adds one *consensus-only*
+# v5 keeps v4's bounded sparse-layout fallback and adds a source-family
+# admission gate: a generic archive image cannot reach a chart unless the
+# current parser census first established it as a transaction fact.  It still
+# adds one *consensus-only*
 # table-layout recovery pair.  It is reached only after both existing header
 # passes are missing, and both recovery modes must independently satisfy the
 # unchanged date, row, amount-confidence and footer-total rules with exactly
 # the same result.  A single alternate OCR reading can therefore never create
 # a chart point.
-CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v4"
+CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v5"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -142,6 +147,11 @@ _GENERIC_OCR_ROW_PHASE_CODES = frozenset({
     "SOURCE_ROWS_EMPTY",
 })
 _GENERIC_OCR_CONFIDENCE_PHASE_CODES = frozenset({"OCR_LOW_CONFIDENCE"})
+_SOURCE_INTEGRITY_PARSE_CODES = frozenset({
+    "SOURCE_LINEAGE_INVALID",
+    "SOURCE_VERSION_MISMATCH",
+    "SOURCE_PAYLOAD_HASH_MISMATCH",
+})
 
 
 @dataclass(frozen=True)
@@ -1811,3 +1821,48 @@ def parse_attachment(
         rows=rows,
         parser_evidence=parser_evidence,
     )
+
+
+def parse_generic_structured_attachment(
+    *,
+    filename: str,
+    payload: bytes,
+    source: SourceRef,
+    mime: str | None = None,
+) -> ParsedFacts:
+    """Resolve a ``资金明细`` spreadsheet through both frozen fact schemas.
+
+    ``资金明细`` is an allowed source label, but it is not itself proof that
+    a spreadsheet contains a transaction fact rather than an account snapshot.
+    A structured file is therefore accepted only when exactly one complete
+    schema opens.  This mirrors the existing generic-image gate without
+    inventing a filename-based family or silently preferring one valid schema
+    over another.
+
+    Images and scanned PDFs remain on :func:`parse_ocr_attachment`, because
+    that path retains the layout fingerprint required for the separate OCR
+    calibration gate.
+    """
+
+    candidates: list[ParsedFacts] = []
+    for candidate_family in (ACCOUNT_FAMILY, "资金明细"):
+        try:
+            candidates.append(parse_attachment(
+                family=candidate_family,
+                filename=filename,
+                payload=payload,
+                source=source,
+                mime=mime,
+            ))
+        except ParseError as exc:
+            # A generic label may be unresolved, but it must never downgrade a
+            # broken raw-readback lineage into an ordinary schema miss.  The
+            # caller needs the original integrity error to fail the batch.
+            if str(exc).split(":", 1)[0] in _SOURCE_INTEGRITY_PARSE_CODES:
+                raise
+            continue
+    if len(candidates) == 1:
+        return candidates[0]
+    if len(candidates) > 1:
+        raise ParseError("GENERIC_SOURCE_SCHEMA_AMBIGUOUS")
+    raise ParseError("GENERIC_SOURCE_SCHEMA_UNRESOLVED")

@@ -63,12 +63,13 @@ from daily_funds.parsing import (
     deterministic_ocr_runtime_ready,
     parse_attachment,
     parse_cashflow_observation,
+    parse_generic_structured_attachment,
     parse_ocr_attachment,
 )
 from daily_funds.publication import D1Projection, OciColdBackup, OciParStore, PublicationCoordinator, PublicationError, R2Mirror, RestoreCoordinator, RestoreOracle, S3CompatibleStore
 from daily_funds.r2_guard import R2FreeTierGuard, R2GuardError
 from daily_funds.reconcile import AccountReconciliation, ReconciliationError, ReconciliationReport, account_key_hash, reconcile
-from daily_funds.runtime import DailyFundsRuntime, TimedFacts
+from daily_funds.runtime import AttachmentCapabilityInspection, DailyFundsRuntime, TimedFacts
 from daily_funds.state import RuntimeState, StatusWriter
 
 UTC = timezone.utc
@@ -1268,6 +1269,60 @@ def test_generic_ocr_source_label_classifies_a_uniquely_matching_account_table()
     assert len(transaction.facts.transactions) == 1
 
 
+def test_generic_structured_source_label_requires_exactly_one_complete_schema() -> None:
+    account_payload = (
+        "业务日期,公司,开户行,账号,期末余额\n"
+        "2026-07-30,甲,乙,001,110.00\n"
+    ).encode()
+    account = parse_generic_structured_attachment(
+        filename="资金明细_20260730.csv",
+        payload=account_payload,
+        source=_source(account_payload),
+        mime="text/csv",
+    )
+    assert account.family == ACCOUNT_FAMILY
+    assert len(account.accounts) == 1
+
+    transaction_payload = (
+        "业务日期,公司,账号,流入,流出\n"
+        "2026-07-30,甲,001,10.00,\n"
+    ).encode()
+    transaction = parse_generic_structured_attachment(
+        filename="资金明细_20260730.csv",
+        payload=transaction_payload,
+        source=_source(transaction_payload),
+        mime="text/csv",
+    )
+    assert transaction.family == "资金明细"
+    assert len(transaction.transactions) == 1
+
+    ambiguous_payload = (
+        "业务日期,公司,开户行,账号,期末余额,流入\n"
+        "2026-07-30,甲,乙,001,110.00,10.00\n"
+    ).encode()
+    with pytest.raises(ParseError, match="GENERIC_SOURCE_SCHEMA_AMBIGUOUS"):
+        parse_generic_structured_attachment(
+            filename="资金明细_20260730.csv",
+            payload=ambiguous_payload,
+            source=_source(ambiguous_payload),
+            mime="text/csv",
+        )
+
+    broken_source = _source(account_payload)
+    broken_source = replace(
+        broken_source,
+        attachment_sha256="0" * 64,
+        source_version="0" * 64,
+    )
+    with pytest.raises(ParseError, match="SOURCE_PAYLOAD_HASH_MISMATCH"):
+        parse_generic_structured_attachment(
+            filename="资金明细_20260730.csv",
+            payload=account_payload,
+            source=broken_source,
+            mime="text/csv",
+        )
+
+
 def test_generic_ocr_source_label_rejects_zero_or_multiple_complete_schemas() -> None:
     payload = b"\x89PNG\r\n\x1a\ngeneric-schema-gate"
 
@@ -1629,6 +1684,35 @@ def test_runtime_cashflow_observation_requires_complete_unique_day_coverage(tmp_
     assert rejected["rejection_categories"] == {"FOOTER_RECONCILIATION": 2}
 
 
+def test_cashflow_observation_excludes_unresolved_generic_source_labels(tmp_path: Path) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    moment = datetime(2026, 8, 1, tzinfo=UTC)
+
+    def attachment(family: str, marker: bytes, index: int) -> DownloadedAttachment:
+        payload = b"\x89PNG\r\n\x1a\n" + marker
+        return DownloadedAttachment(
+            message={},
+            message_id=f"candidate-{index}",
+            message_id_hash=(str(index) * 64)[:64],
+            message_at=moment,
+            index=0,
+            filename=f"candidate-{index}.png",
+            family=family,
+            payload=payload,
+            sha256=sha256(payload).hexdigest(),
+            mime="image/png",
+        )
+
+    generic = attachment("资金明细", b"generic", 1)
+    explicit_flow = attachment("资金流水明细", b"flow", 2)
+    unresolved = AttachmentCapabilityInspection(
+        parsed=(),
+        failures=(ParseError("OCR_GENERIC_FAMILY_UNRESOLVED"),),
+    )
+
+    assert runtime._cashflow_observation_candidates((generic, explicit_flow), unresolved) == (explicit_flow,)
+
+
 def test_deterministic_ocr_runtime_requires_all_pdf_tools() -> None:
     def runner(command, **_kwargs):
         if command[0] == "tesseract":
@@ -1757,9 +1841,9 @@ def test_runtime_resolves_unclassified_ocr_only_after_dual_schema_and_calibratio
     iterator = iter(candidates)
     monkeypatch.setattr(runtime_module, "parse_ocr_attachment", lambda **_kwargs: next(iterator))
 
-    assert runtime._resolved_unclassified_ocr_attachments((attachments[0],)) == ()
-    assert runtime._resolved_unclassified_ocr_attachments((attachments[1],)) == ()
-    resolved = runtime._resolved_unclassified_ocr_attachments((attachments[2],))
+    assert runtime._resolved_ambiguous_source_attachments((attachments[0],)) == ()
+    assert runtime._resolved_ambiguous_source_attachments((attachments[1],)) == ()
+    resolved = runtime._resolved_ambiguous_source_attachments((attachments[2],))
 
     assert len(resolved) == 1
     assert resolved[0].family == ACCOUNT_FAMILY
@@ -2550,7 +2634,7 @@ def test_live_poll_uses_only_byte_proven_unclassified_candidate(tmp_path: Path, 
     runtime = DailyFundsRuntime(_config(tmp_path))
     monkeypatch.setattr(runtime, "_dws_client", lambda: QuarantineClient())
     monkeypatch.setattr(runtime_module, "GitSparseWriter", ReadbackWriter)
-    monkeypatch.setattr(runtime, "_resolved_unclassified_ocr_attachments", lambda _attachments: (resolved,))
+    monkeypatch.setattr(runtime, "_resolved_ambiguous_source_attachments", lambda _attachments: (resolved,))
     monkeypatch.setattr(runtime_module.R2FreeTierGuard, "require_fresh_receipt", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(runtime, "_coordinator", lambda: SimpleNamespace(r2=FakeR2()))
     parsed_inputs: list[tuple[DownloadedAttachment, ...]] = []
@@ -2562,6 +2646,85 @@ def test_live_poll_uses_only_byte_proven_unclassified_candidate(tmp_path: Path, 
     }
     assert mirrored == [(resolved,)]
     assert parsed_inputs == [(resolved,)]
+    assert not (runtime.config.publication_dir / "current.json").exists()
+
+
+def test_live_poll_keeps_unresolved_generic_document_out_of_financial_candidates(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A generic title preserves raw evidence but cannot reach R2 or publication."""
+
+    import daily_funds.runtime as runtime_module
+
+    payload = b"\x89PNG\r\n\x1a\nunresolved-generic-image"
+    attachment = DownloadedAttachment(
+        message={},
+        message_id="generic-message",
+        message_id_hash="6" * 64,
+        message_at=datetime(2026, 8, 1, 8, tzinfo=UTC),
+        index=0,
+        filename="资金明细_20260801.png",
+        family="资金明细",
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="image/png",
+    )
+    message = {"fixture": "generic"}
+
+    class GenericClient:
+        @staticmethod
+        def search(_start, _end, _cursor):
+            return DwsPage(messages=(message,), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page):
+            return (message,)
+
+        @staticmethod
+        def quarantine_messages(_page):
+            return ()
+
+        @staticmethod
+        def attachment_count(_message):
+            return 1
+
+        @staticmethod
+        def message_id_hash(_message):
+            return attachment.message_id_hash
+
+        @staticmethod
+        def reopen_candidate(_message, _index, _attachment_sha256):
+            return None
+
+        @staticmethod
+        def download(_message, _index):
+            return attachment
+
+    class ReadbackWriter:
+        def __init__(self, _config):
+            pass
+
+        @staticmethod
+        def persist(attachments):
+            return GitCommit("a" * 40, SimpleNamespace(), tuple(attachments))
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    monkeypatch.setattr(runtime, "_dws_client", lambda: GenericClient())
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ReadbackWriter)
+    monkeypatch.setattr(runtime, "_resolved_ambiguous_source_attachments", lambda _attachments: ())
+    monkeypatch.setattr(
+        runtime_module.R2FreeTierGuard,
+        "require_fresh_receipt",
+        lambda *_args, **_kwargs: pytest.fail("unresolved generic source must not reach R2"),
+    )
+
+    assert runtime.poll(now=datetime(2026, 8, 1, tzinfo=UTC)) == {
+        "ok": False,
+        "code": "SOURCE_MATCH_ZERO",
+    }
+    flow = json.loads((runtime.config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
+    assert flow["source_discovery"] == {"state": "GENERIC_DOCUMENT_UNRESOLVED"}
     assert not (runtime.config.publication_dir / "current.json").exists()
 
 
@@ -2929,16 +3092,16 @@ def test_raw_archive_audit_records_only_readback_capability_and_never_publishes(
     raw_cashflow_write = runtime._write_cashflow_observation
     raw_capability_inspect = runtime._inspect_attachment_capabilities
 
-    def cashflow_before_capability(attachments):
+    def cashflow_after_capability(attachments):
         calls.append("cashflow")
         return raw_cashflow_write(attachments)
 
-    def capability_after_cashflow(attachments):
+    def capability_before_cashflow(attachments):
         calls.append("capability")
         return raw_capability_inspect(attachments)
 
-    monkeypatch.setattr(runtime, "_write_cashflow_observation", cashflow_before_capability)
-    monkeypatch.setattr(runtime, "_inspect_attachment_capabilities", capability_after_cashflow)
+    monkeypatch.setattr(runtime, "_write_cashflow_observation", cashflow_after_capability)
+    monkeypatch.setattr(runtime, "_inspect_attachment_capabilities", capability_before_cashflow)
 
     result = runtime.raw_archive_audit()
 
@@ -2948,7 +3111,7 @@ def test_raw_archive_audit_records_only_readback_capability_and_never_publishes(
         "capability_supported": 1,
         "capability_needs_review": 0,
     }
-    assert calls == ["init", "audit", "cashflow", "capability"]
+    assert calls == ["init", "audit", "capability", "cashflow"]
     assert not (config.publication_dir / "current.json").exists()
     with runtime.state.connection() as connection:
         inbox = connection.execute("SELECT state FROM inbox").fetchone()

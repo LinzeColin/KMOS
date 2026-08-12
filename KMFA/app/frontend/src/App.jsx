@@ -1856,10 +1856,16 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
   const 附件能力 = 来源?.parser_capability || {}
   const 来源诊断 = 来源?.source_discovery || {}
   const 历史回填 = 来源?.historical_backfill || {}
-  const 附件能力状态 = ['已支持', '待复核', '未观测', 'UNKNOWN'].includes(附件能力.状态) ? 附件能力.状态 : 'UNKNOWN'
-  const 附件能力色 = 附件能力状态 === '已支持' ? 'ok' : 附件能力状态 === '未观测' ? 'muted' : 'bad'
+  const 附件能力状态 = ['已支持', '待复核', '归档待分类', '未观测', 'UNKNOWN'].includes(附件能力.状态) ? 附件能力.状态 : 'UNKNOWN'
+  const 附件能力色 = 附件能力状态 === '已支持' ? 'ok' : 附件能力状态 === '归档待分类' ? 'warn' : 附件能力状态 === '未观测' ? 'muted' : 'bad'
   const 已支持附件数 = Number.isInteger(附件能力.已支持附件数) ? 附件能力.已支持附件数 : 0
   const 待复核附件数 = Number.isInteger(附件能力.待复核附件数) ? 附件能力.待复核附件数 : 0
+  const 正式候选待复核附件数 = Number.isInteger(附件能力.正式候选待复核附件数)
+    ? 附件能力.正式候选待复核附件数
+    : 附件能力状态 === '待复核' ? 待复核附件数 : 0
+  const 归档待分类附件数 = Number.isInteger(附件能力.归档待分类附件数)
+    ? 附件能力.归档待分类附件数
+    : 附件能力状态 === '归档待分类' ? 待复核附件数 : 0
   const 待复核原因 = Array.isArray(附件能力.待复核原因)
     ? 附件能力.待复核原因
       .filter((item) => item && typeof item.类别 === 'string' && item.类别.length > 0 && item.类别.length <= 40 && Number.isInteger(item.数量) && item.数量 > 0 && item.数量 <= 100000)
@@ -1867,7 +1873,8 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
     : []
   const 待复核原因文本 = 待复核原因.length
     ? 待复核原因.map((item) => `${item.类别} ${item.数量} 份`).join('；')
-    : 附件能力状态 === '待复核' ? '待生成脱敏解析回执' : '—'
+    : 附件能力状态 === '归档待分类' ? '通用归档尚未形成余额或流水完整结构'
+      : 附件能力状态 === '待复核' ? '待生成脱敏解析回执' : '—'
   const 历史回填状态 = ['未开始', '进行中', '已完成', '需处理', 'UNKNOWN'].includes(历史回填.状态)
     ? 历史回填.状态 : 'UNKNOWN'
   const 历史窗口天数 = Number.isInteger(历史回填.窗口天数) && 历史回填.窗口天数 === 360
@@ -2137,7 +2144,9 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
     },
     {
       名称: '附件解析', 状态: 附件能力状态, 色: 附件能力色,
-      说明: 附件能力状态 === '已支持' ? '确定性解析能力已验证' : '不把待复核附件写成已解析',
+      说明: 附件能力状态 === '已支持' ? '确定性解析能力已验证'
+        : 附件能力状态 === '归档待分类' ? '通用归档尚未确认余额或流水，不进入金额或收支图表'
+          : '不把待复核附件写成已解析',
     },
     {
       名称: '成对勾稽', 状态: 来源?.has_trusted_publication ? '已完成' : '未通过',
@@ -2231,7 +2240,8 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
           <div className="hint" role="status">已逐份复核 {收支观察覆盖.parsed_documents ?? '—'} / {收支观察覆盖.eligible_documents ?? '—'} 份原件，覆盖 {收支观察覆盖.distinct_business_days ?? '—'} 个业务日；这不是账户余额或风险阈值依据。</div>
         </> : <div className="card callout warn" style={{ marginTop: 12 }}>
           <b>收支流水暂不展示金额</b>
-          <div className="sub">{流水观察?.message || '尚未形成已采集收支流水观察。'}</div>
+        <div className="sub">{流水观察?.message || '尚未形成已采集收支流水观察。'}</div>
+          {归档待分类附件数 > 0 && <div className="hint" role="status">已归档 {归档待分类附件数} 份通用候选附件，尚未确认其为资金流水；因此不写入收支图表或金额。</div>}
           {收支观察拒绝类别.length > 0 && <div className="hint" role="status">本次确定性复核定位：{收支观察拒绝类别.join('；')}。不含原始附件、文本或金额。</div>}
         </div>}
       </section>
@@ -2356,7 +2366,7 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
         <tr><td>整数分勾稽</td><td className={摘要?.publication?.reconciliation_difference_fen === 0 ? 'ok' : 'warn'}>{摘要?.publication?.reconciliation_difference_fen === 0 ? '0 分' : '未验证'}</td><td>公司、银行、账户与全局汇总必须一致</td></tr>
         <tr><td>Git / R2 热镜像</td><td>{摘要?.publication?.git_evidence_available && 摘要?.publication?.r2_mirror_available ? '已验证' : '未验证'}</td><td>仅显示脱敏证据版本，不暴露原始附件、群或身份标识</td></tr>
         <tr><td>OCI 异地冷备</td><td>{来源?.backup_state || 摘要?.publication?.oci_backup_state || 'UNKNOWN'}</td><td>运行态与正式 publication 分离记录</td></tr>
-        <tr><td>附件解析能力</td><td className={附件能力色}>{附件能力状态}（已支持 {已支持附件数}｜待复核 {待复核附件数}）</td><td>{待复核原因文本}。仅统计已由私有 Git 回读且完成确定性解析校验的附件；无观测或 UNKNOWN 均不代表支持。</td></tr>
+        <tr><td>附件解析能力</td><td className={附件能力色}>{附件能力状态}（已支持 {已支持附件数}｜正式待复核 {正式候选待复核附件数}｜归档待分类 {归档待分类附件数}）</td><td>{待复核原因文本}。通用归档待分类不计作正式余额或流水，也不会写入收支图表；无观测或 UNKNOWN 均不代表支持。</td></tr>
         <tr><td>风险判断</td><td className={摘要?.risk_label === '高风险' ? 'bad' : 摘要?.risk_label === '关注' || 摘要?.risk_label?.includes('动态') ? 'warn' : 'ok'}>{摘要?.risk_label || '未验证'}{摘要?.dynamic_flag ? `｜${摘要.dynamic_flag}` : ''}</td><td>与三态运行状态分离，不以状态替代风险</td></tr>
       </tbody></Tbl>
     </>
