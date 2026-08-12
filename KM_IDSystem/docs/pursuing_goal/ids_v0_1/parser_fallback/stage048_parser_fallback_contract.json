@@ -1,0 +1,208 @@
+{
+  "schema_version": "ids.stage048.parser_fallback.phase1.v1",
+  "stage": "STAGE-048",
+  "phase": "Phase 1",
+  "task_id": "IDS-V0_1-STAGE048-P1",
+  "acceptance_id": "ACC-STAGE-048",
+  "local_code": "D08-S004",
+  "domain": "D08 · 解析器路由",
+  "entrance": "IDS 系统运营入口",
+  "pursuing_goal": "定义主 parser 失败时的可解释降级边界，禁止静默丢弃与绕过质量门。",
+  "contract_state": "PHASE1_PARSER_FALLBACK_BOUNDARY_RUNTIME_DISABLED",
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE048-P2-GATE",
+  "source_authority": {
+    "authority": "FROZEN_TASKPACK_TEXT_AND_STAGE047_REVIEW_ARTIFACTS",
+    "frozen_taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-048_解析器失败降级链.md",
+    "predecessor_review_refs": [
+      "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_STAGE_REVIEW.md",
+      "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_output/stage047_parser_output_delivery_contract.json",
+      "KM_IDSystem/machine/runs/2026-07-24-stage047-review-local.json"
+    ],
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false
+  },
+  "predecessor_context": {
+    "stage": "STAGE-047",
+    "status": "completed_reviewed_local",
+    "parser_output_contract_owner": "STAGE-047",
+    "fallback_runtime_owner": "STAGE-048",
+    "differential_evaluation_owner": "STAGE-049",
+    "prompt_injection_marker_owner": "STAGE-050"
+  },
+  "fallback_input_contract": {
+    "mode": "REFERENCE_ONLY_STAGE047_RESULT",
+    "required_fields": [
+      "source_identity_ref",
+      "route_action",
+      "parser_output_status",
+      "parser_family",
+      "parser_version",
+      "failure_class",
+      "evidence_text_label"
+    ],
+    "additional_fields_allowed": false,
+    "source_body_or_path_allowed": false,
+    "raw_exception_allowed": false,
+    "reference_record_write_allowed": false,
+    "eligible_route_actions": [
+      "ROUTE_CANDIDATE_READY_NOT_EXECUTED",
+      "ROUTE_REVIEW_REQUIRED",
+      "ROUTE_BLOCKED_PARSER_IMPLEMENTATION_UNAVAILABLE",
+      "ROUTE_UNSUPPORTED",
+      "ROUTE_BLOCKED"
+    ],
+    "eligible_parser_output_statuses": [
+      "OUTPUT_CANDIDATE_NOT_VALIDATED",
+      "OUTPUT_PARTIAL_REVIEW_REQUIRED",
+      "OUTPUT_FAILED_EXPLICIT",
+      "NO_OUTPUT"
+    ]
+  },
+  "fallback_disposition_contract": {
+    "silent_drop_allowed": false,
+    "automatic_parser_switch_allowed": false,
+    "automatic_fallback_execution_allowed": false,
+    "fallback_executor_configured": false,
+    "runtime_log_write_allowed": false,
+    "dispositions": [
+      {
+        "code": "NO_FALLBACK_CANDIDATE_RETAINED",
+        "trigger": "OUTPUT_CANDIDATE_NOT_VALIDATED",
+        "route": "保留候选并等待独立质量门",
+        "explicit": true,
+        "actual_execution_performed": false
+      },
+      {
+        "code": "HUMAN_REVIEW_REQUIRED_NOT_QUEUED",
+        "trigger": "OUTPUT_PARTIAL_REVIEW_REQUIRED 或 ROUTE_REVIEW_REQUIRED",
+        "route": "标记人工复核需要，但不创建任务或队列",
+        "explicit": true,
+        "actual_execution_performed": false
+      },
+      {
+        "code": "EXPLICIT_FAILURE_RETAINED_NOT_DROPPED",
+        "trigger": "OUTPUT_FAILED_EXPLICIT",
+        "route": "保留受控失败状态，不自动切换 parser",
+        "explicit": true,
+        "actual_execution_performed": false
+      },
+      {
+        "code": "BLOCKED_OR_UNSUPPORTED_NO_FALLBACK",
+        "trigger": "ROUTE_BLOCKED_PARSER_IMPLEMENTATION_UNAVAILABLE、ROUTE_UNSUPPORTED 或 ROUTE_BLOCKED",
+        "route": "明确阻断，不执行通用 parser 或隐式回退",
+        "explicit": true,
+        "actual_execution_performed": false
+      },
+      {
+        "code": "INVALID_OUTPUT_REJECTED_NO_FALLBACK",
+        "trigger": "输入引用、路线或输出状态不符合合同",
+        "route": "拒绝无效输入，不回显正文、路径或原始异常",
+        "explicit": true,
+        "actual_execution_performed": false
+      }
+    ]
+  },
+  "fallback_record_contract": {
+    "record_kind": "NON_RUNTIME_DISPOSITION_TEMPLATE",
+    "required_fields": [
+      "source_identity_ref",
+      "route_action",
+      "parser_output_status",
+      "failure_class",
+      "disposition",
+      "human_feedback_code",
+      "runtime_execution_performed"
+    ],
+    "persistent_record_write_allowed": false,
+    "actual_fallback_log_created": false,
+    "actual_parser_version_recorded": false
+  },
+  "quality_and_evidence_boundary": {
+    "quality_gate_execution_allowed": false,
+    "evidence_promotion_allowed": false,
+    "high_trust_evidence_promotion_allowed": false,
+    "fallback_may_bypass_quality_gate": false,
+    "candidate_fact_level": "CANDIDATE",
+    "failed_or_review_fact_level": "REVIEW_OR_BLOCKED"
+  },
+  "prompt_injection_marker_boundary": {
+    "state": "REQUIRED_NOT_APPLIED_STAGE050_OWNED",
+    "evidence_text_label": "UNTRUSTED_EVIDENCE_TEXT",
+    "document_text_may_override_system_rule": false,
+    "marker_application_allowed": false
+  },
+  "chinese_feedback_contract": {
+    "messages": [
+      {
+        "code": "FALLBACK_CANDIDATE_RETAINED",
+        "message": "当前结果保持候选状态，不执行自动回退。"
+      },
+      {
+        "code": "FALLBACK_HUMAN_REVIEW_REQUIRED",
+        "message": "该结果需要人工复核，当前未创建复核任务。"
+      },
+      {
+        "code": "FALLBACK_EXPLICIT_FAILURE",
+        "message": "解析失败已保留，不执行自动回退或丢弃。"
+      },
+      {
+        "code": "FALLBACK_BLOCKED_OR_UNSUPPORTED",
+        "message": "不支持或受阻的路线不执行回退，请人工复核。"
+      },
+      {
+        "code": "FALLBACK_INVALID_INPUT",
+        "message": "输入状态无效，不执行回退并请人工复核。"
+      }
+    ],
+    "automation_claim_allowed": false,
+    "production_availability_claim_allowed": false
+  },
+  "runtime_boundary": {
+    "source_file_open_allowed": false,
+    "file_type_redetection_allowed": false,
+    "route_evaluation_allowed": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "fallback_execution_allowed": false,
+    "automatic_parser_switch_allowed": false,
+    "human_review_queue_write_allowed": false,
+    "prompt_injection_marker_application_allowed": false,
+    "quality_gate_execution_allowed": false,
+    "evidence_promotion_allowed": false,
+    "persistent_state_write_allowed": false,
+    "database_connection_allowed": false,
+    "agent_execution_allowed": false,
+    "model_call_allowed": false,
+    "model_token_consumption_allowed": false,
+    "local_service_start_allowed": false,
+    "ovh_deployment_allowed": false,
+    "production_runtime_activation_allowed": false,
+    "phase2_started": false,
+    "whole_stage_review_started": false,
+    "batch_review_started": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "stop_conditions": [
+    "需要读取真实文件、页面、图像、原始元数据或 Owner fixture",
+    "需要执行 parser、自动 fallback、解析器切换、人工复核队列、质量门或提示注入标记",
+    "需要写入 manifest、evidence ledger、audit、index、report、database、job 或持久运行状态",
+    "需要进入 Phase 2、Stage048 整阶段复审、批次复审、GitHub 上传、OVH 部署或生产激活"
+  ],
+  "rollback_contract": {
+    "return_to": "STAGE047_REVIEWED_LOCAL",
+    "revertable_artifacts": [
+      "Stage048 Phase1 scope boundary",
+      "Stage048 Phase1 contract",
+      "Stage048 Phase1 focused test",
+      "最小治理与中文事实投影"
+    ],
+    "source_or_raw_data_change_allowed": false,
+    "persistent_runtime_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

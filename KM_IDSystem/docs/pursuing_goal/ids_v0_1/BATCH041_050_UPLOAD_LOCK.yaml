@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-07-24T03:41:08Z"
-status: "stage047_completed_reviewed_local"
+updated_at_utc: "2026-08-12T06:33:29Z"
+status: "stage048_phase1_completed"
 
 transition_history:
+  stage048_phase1_state:
+    status: "stage048_phase1_completed"
+    current_task_id: "IDS-V0_1-STAGE048-P1"
+    next_gate: "IDS-STAGE048-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE048-P2"
+    github_upload_allowed: false
   stage047_review_state:
     status: "stage047_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE047-REVIEW"
@@ -1335,9 +1341,76 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
+  STAGE-048:
+    status: "stage048_phase1_completed"
+    completed_phases:
+      - "Phase 1"
+    next_stage: "STAGE-048"
+    next_phase: "Phase 2"
+    next_gate: "IDS-STAGE048-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE048-P1"
+    acceptance_id: "ACC-STAGE-048"
+    acceptance_status: "phase1_fallback_boundary_complete"
+    review_status: "pending"
+    phase2_entry_authorized: true
+    source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE047_REVIEW_ARTIFACTS"
+    second_authoritative_source_created: false
+    source_body_or_path_allowed: false
+    raw_metadata_content_accessed: false
+    ids_business_source_read_performed: false
+    source_file_open_performed: false
+    file_type_redetection_performed: false
+    route_evaluation_performed: false
+    parser_dispatch_performed: false
+    parser_execution_performed: false
+    fallback_execution_performed: false
+    automatic_parser_switch_performed: false
+    human_review_queue_write_performed: false
+    prompt_injection_marker_application_performed: false
+    quality_gate_evaluation_performed: false
+    evidence_promotion_performed: false
+    manifest_write_performed: false
+    evidence_ledger_write_performed: false
+    audit_write_performed: false
+    index_write_performed: false
+    report_write_performed: false
+    job_creation_performed: false
+    state_transition_performed: false
+    persistent_state_write_performed: false
+    database_connection_performed: false
+    agent_execution_performed: false
+    model_call_performed: false
+    model_token_consumption_performed: false
+    local_service_start_performed: false
+    ovh_deployment_performed: false
+    production_runtime_activation_performed: false
+    phase2_started: false
+    whole_stage_review_performed: false
+    batch_review_performed: false
+    github_upload_allowed: false
+    app_reinstall_allowed: false
+    push_allowed: false
+    contract_state: "PHASE1_PARSER_FALLBACK_BOUNDARY_RUNTIME_DISABLED"
+    parser_fallback_contract_schema: "ids.stage048.parser_fallback.phase1.v1"
+    reference_only_input_field_count: 7
+    explicit_disposition_count: 5
+    silent_drop_allowed: false
+    automatic_fallback_execution_allowed: false
+    fallback_may_bypass_quality_gate: false
+    prompt_marker_state: "REQUIRED_NOT_APPLIED_STAGE050_OWNED"
+    chinese_feedback_message_count: 5
+    execution_ready: false
+    evidence_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_PHASE1_PARSER_FALLBACK_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_parser_fallback_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-stage048-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+
 decision:
-  current_task_id: "IDS-V0_1-STAGE047-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-STAGE048-P1"
+  current_task_id: "IDS-V0_1-STAGE048-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE048-P2"
   github_upload_allowed: false
-  current_run: "STAGE-047 whole-stage review reverified the approved source, immutable Phase4 commit/artifacts and all four phase checkers, then repaired six fail-closed contract gaps. No source file, runtime parser, fallback, quality gate, persistence or production action ran."
+  current_run: "STAGE-048 Phase 1 defined the reference-only fallback boundary, five explicit dispositions, Chinese feedback and quality/prompt ownership. No source file, parser, fallback, human-review queue, quality gate, persistence, Agent, model, OVH or production action ran."
   no_upload_reason: "BATCH041_050 has seven completed and individually reviewed Stages; STAGE-048..050, the separate ten-stage review and batch upload gate remain incomplete; single-stage upload is forbidden."

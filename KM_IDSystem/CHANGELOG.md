@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-048 Phase 1 - 2026-08-12
+
+- 定义主 parser 失败时的仅引用降级合同：七字段输入、五种显式处置、克制中文反馈、质量边界与提示文本职责均明确，静默丢弃和自动 parser 切换被禁止。
+- 保持 Stage045 类型检测、Stage046 路线、Stage047 输出、Stage049 差异评估与 Stage050 提示标记的职责边界；本轮没有执行真实资料读取、parser、fallback、人工复核队列、质量门、持久化、Agent、模型调用、OVH、上传或生产动作。
+- 聚焦单元用例先记录缺失工件结果，完成合同与治理投影后通过 `6/6`；下一步仅为独立 `IDS-STAGE048-P2-GATE`，本阶段可回滚至 `STAGE047_REVIEWED_LOCAL`。
+
 ## IDS v0.1 STAGE-047 Review - 2026-07-24
 
 - Completed the independent Stage047 whole-stage review under `ACC-STAGE-047`, live-rehashing the approved archive, unique task-pack member, roadmap and instructions; binding immutable Phase4 commit/tree/parent/ancestry and five artifact hashes; and replaying Phase1-4.

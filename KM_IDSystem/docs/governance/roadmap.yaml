@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE047"
-current_phase_id: "IDS-STAGE047-REVIEW"
-current_task_id: "IDS-V0_1-STAGE047-REVIEW"
-next_gate_id: "IDS-STAGE048-P1-GATE"
+current_stage_id: "IDS-STAGE048"
+current_phase_id: "IDS-STAGE048-P1"
+current_task_id: "IDS-V0_1-STAGE048-P1"
+next_gate_id: "IDS-STAGE048-P2-GATE"
 current_transition_history:
+  stage048_phase1_state:
+    current_stage_id: "IDS-STAGE048"
+    current_phase_id: "IDS-STAGE048-P1"
+    current_task_id: "IDS-V0_1-STAGE048-P1"
+    next_gate_id: "IDS-STAGE048-P2-GATE"
   stage047_review_state:
     current_stage_id: "IDS-STAGE047"
     current_phase_id: "IDS-STAGE047-REVIEW"
@@ -12645,3 +12650,72 @@ stages:
         - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       test_results: "Independent review found and repaired six findings (2 Critical / 4 Important): complete request/result/source lineage, structured invalid-Unicode rejection, lower-ASCII canonical references, reciprocal table reference graphs, bounded exact route/error text and monotonic request/production time. Final layered validation is recorded in the Stage047 review machine run."
       decision: "ACC-STAGE-047 completed_reviewed_local after all six findings were repaired; next gate is IDS-STAGE048-P1-GATE, push_allowed=false, and this run did not enter STAGE-048."
+  - stage_id: "IDS-STAGE048"
+    name: "STAGE-048 · 解析器失败降级链"
+    task_id: "IDS-V0_1-STAGE048"
+    acceptance_ids:
+      - "ACC-STAGE-048"
+    status: "phase1_completed_local"
+    pursuing_goal: "主 parser 失败时进入受控降级或人工复核，不静默丢弃，也不绕过质量门。"
+    stop_gate:
+      gate_id: "IDS-STAGE048-P1-GATE"
+      status: "passed_with_local_evidence"
+      next_gate_id: "IDS-STAGE048-P2-GATE"
+      github_upload_allowed: false
+    artifacts:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_PHASE1_PARSER_FALLBACK_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_parser_fallback_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-stage048-p1-local.json"
+    phases:
+      - phase_id: "IDS-STAGE048-P1"
+        name: "解析器失败降级范围、输入输出与边界确认"
+        objective: "定义主 parser 失败时的仅引用输入、明确降级处置、中文反馈、质量边界与提示标记职责；不读取真实资料或执行 parser、fallback。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        phase2_entry_authorized: true
+        push_allowed: false
+        stop_conditions:
+          - "打开、读取、遍历、检测或保留任何 IDS 业务文件、原始元数据、页面、图像或 Owner fixture"
+          - "评估路线、选择、分派或执行 parser，执行 fallback、自动切换或写入人工复核队列"
+          - "运行质量门、证据提升、提示注入标记、持久化、Agent、模型调用、OVH 或生产激活"
+          - "进入 Phase 2、整阶段复审、批次复审、GitHub 上传、合并或应用重装"
+        stop_gate:
+          gate_id: "IDS-STAGE048-P1-GATE"
+          status: "passed_with_local_evidence"
+          pass_conditions:
+            - "冻结任务包文本与 Stage047 已复审工件仅作为合同上下文，未建立第二权威事实源"
+            - "未来输入固定为七字段仅引用结果，不允许来源正文、路径、原始异常或额外字段"
+            - "候选、待复核、明确失败、受阻或不支持、无效输入均有明确处置，禁止静默丢弃和自动解析器切换"
+            - "回退不能绕过质量门或提升为高可信证据；Stage050 提示标记职责未提前执行"
+            - "中文反馈不承诺自动化、人工队列或生产可用"
+            - "未读取真实资料，未执行 parser、fallback、人工复核队列、质量门、持久化、Agent、模型、OVH 或生产动作"
+            - "唯一后续门为 IDS-STAGE048-P2-GATE，步骤二必须在独立 run 进入"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_PHASE1_PARSER_FALLBACK_SCOPE_BOUNDARY.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_parser_fallback_contract.json"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback.py"
+            - "KM_IDSystem/machine/runs/2026-08-12-stage048-p1-local.json"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE048-P1"
+            name: "定义解析器失败降级 Phase 1 工程合同"
+            objective: "定义可解释、可回滚且不扩大运行能力声明的 parser 失败降级边界。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE047-REVIEW"
+              - "ids.stage047.parser_output.stage_review.v1"
+            acceptance_ids:
+              - "ACC-STAGE-048"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage048_parser_fallback"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "聚焦单元用例先记录 1 个缺失工件失败和 4 个缺失工件错误；合同、范围说明与事实投影完成后通过 6/6。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_PHASE1_PARSER_FALLBACK_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_parser_fallback_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback.py"
+              - "KM_IDSystem/machine/runs/2026-08-12-stage048-p1-local.json"
+            risk: "若失败结果被静默丢弃、自动切换 parser 或越过质量门，会把未确认内容误作可用证据或掩盖人工复核需求。"
+            rollback: "只回滚 Stage048 P1 合同、范围说明、聚焦单元用例与治理投影，回到 Stage047 reviewed-local；不改变真实资料、持久状态、GitHub、OVH 或应用状态。"

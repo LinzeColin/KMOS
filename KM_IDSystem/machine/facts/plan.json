@@ -1,21 +1,20 @@
 {
-  "stage": "`IDS-STAGE047`",
-  "phase": "`IDS-STAGE047-REVIEW`",
-  "task": "`IDS-V0_1-STAGE047-REVIEW`",
-  "owner": "Codex 专属 KMOS worktree，Stage047 解析器输出合同整阶段独立复审",
-  "objective": "实时重验批准来源、不可变 Phase4 快照与 Phase1-4，独立发现并修复解析器输出合同的失败关闭缺口，完成本地整阶段复审。",
+  "stage": "`IDS-STAGE048`",
+  "phase": "`IDS-STAGE048-P1`",
+  "task": "`IDS-V0_1-STAGE048-P1`",
+  "owner": "Codex 专属 KMOS worktree，Stage048 解析器失败降级链步骤一",
+  "objective": "定义主解析器失败后的显式降级处置、中文反馈与质量边界，不读取真实资料或执行任何解析、回退与持久操作。",
   "scope": [
-    "实时重验批准来源、已提交 Stage047 Phase4 commit/root/KM_IDSystem tree/parent/ancestry 与五项不可变工件",
-    "重放 Phase1 至 Phase4，并用六项独立反例验证完整来源链、非法 Unicode、规范引用、互惠引用图、安全状态/错误与时间顺序",
-    "同步 review 文档、checker/tests、batch/roadmap/event、machine facts、owner views 与 Git-index binding",
-    "只关闭 ACC-STAGE-047 并指向独立 Stage048 P1 gate，不进入 Stage048"
+    "以冻结 Stage048 任务包和 Stage047 已复审工件为唯一合同上下文，不建立第二权威事实源",
+    "定义七字段仅引用输入、五种明确降级处置、中文反馈、质量边界与 Stage050 提示标记职责",
+    "同步合同、范围说明、聚焦单元用例、批次锁、路线图、事件、机器事实、中文视图与交接",
+    "只关闭 ACC-STAGE-048 的步骤一并指向独立 P2 gate，不进入步骤二"
   ],
   "non_goals": [
-    "不执行 Stage048、十阶段批次复审或上传门禁",
-    "不打开真实业务源文件，不重新检测类型或实际评估路线，不选择、分派或执行解析器，不创建 IDS 业务解析输出",
-    "不运行回退、差异评估、提示注入扫描、公式或质量门，不把控制结果冒充运行时结果、来源事实或高可信证据",
+    "不打开真实业务源、原始元数据、页面、图像或 Owner fixture，不重新检测类型、评估路线或创建业务解析输出",
+    "不选择、分派或执行解析器，不运行回退、解析器切换、人工复核队列、差异评估、提示注入标记或质量门",
     "不提升证据，不写 manifest、evidence ledger、audit、index、report、database、job、state 或持久运行状态",
-    "不读取原始元数据，不创建虚构 IDS 业务数据，不上传、合并或重装应用"
+    "不进入步骤二、整阶段复审、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage047 整阶段独立复审与分层治理验证通过后，停止并仅允许下一轮进入 IDS-STAGE048-P1-GATE；任一来源、Phase4 快照、phase replay、finding、治理、索引或无副作用证据失配均回到 IDS-STAGE047-REVIEW-GATE。"
+  "stop_condition": "P1 合同、范围、事实投影与聚焦单元用例完成后停止，下一轮只允许进入 IDS-STAGE048-P2-GATE；任何真实资料访问、运行时执行、持久写入、OVH 或生产动作请求都不属于本步骤。"
 }

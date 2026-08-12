@@ -9,6 +9,17 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
+## Current Gate - 2026-08-12
+
+- 本节覆盖下方较早的“Current Gate”和 GitHub handoff 对当前任务的指向；下方未特别标为当前的内容只保留为历史交接证据。
+- 本轮完成任务：`IDS-V0_1-STAGE048-P1`。当前状态为 `PHASE1_PARSER_FALLBACK_BOUNDARY_RUNTIME_DISABLED`，只完成主解析器失败后的静态降级边界，不代表实际 parser、fallback、人工复核队列、质量门、持久化、OVH 或生产服务已启用。
+- 唯一合同上下文是冻结的 Stage048 任务包文本与 Stage047 已复审工件；本轮没有建立第二权威事实源，也没有保留业务正文、文件路径、原始异常或原始元数据内容。
+- 合同固定七字段仅引用输入和五种明确处置：保留候选、提示人工复核需要、保留显式失败、阻断受阻或不支持路线、拒绝无效输入。静默丢弃、自动 parser 切换、自动回退和运行时日志写入均未授权。
+- 质量门与高可信证据提升保持关闭；文档文本仅是 `UNTRUSTED_EVIDENCE_TEXT`，提示注入标记仍由 Stage050 拥有且本轮未应用。中文反馈只说明“未执行”或“需要人工复核”，不承诺自动化或生产可用。
+- 聚焦单元用例已通过 `6/6`。证据为 `STAGE048_PHASE1_PARSER_FALLBACK_SCOPE_BOUNDARY.md`、`parser_fallback/stage048_parser_fallback_contract.json`、`tests/test_stage048_parser_fallback.py`、本轮 machine run、batch/roadmap、机器事实与生成的中文视图。
+- 未读取 IDS 业务源或原始元数据；未执行类型检测、路线评估、parser、fallback、人工复核队列、质量门、持久化、Agent、模型调用、OVH 部署、生产激活、上传、合并或 P2。
+- 下一步仅允许在独立 run 进入 `IDS-V0_1-STAGE048-P2`，门为 `IDS-STAGE048-P2-GATE`。回滚只撤销 Stage048 P1 合同、范围说明、聚焦用例和治理投影，回到 `STAGE047_REVIEWED_LOCAL`；不改变真实资料、运行态、GitHub、OVH 或应用状态。
+
 ## Final GitHub Handoff - 2026-07-26
 
 - Owner explicitly ended this thread and authorized a final GitHub handoff of all existing KMIDS progress, the taskpack and key iteration information.

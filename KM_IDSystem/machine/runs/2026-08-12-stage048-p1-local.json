@@ -1,0 +1,59 @@
+{
+  "run_id": "`RUN-IDS-STAGE048-P1-LOCAL-20260812-001`",
+  "task_id": "IDS-V0_1-STAGE048-P1",
+  "acceptance_id": "ACC-STAGE-048",
+  "action": "定义主解析器失败后的仅引用降级合同、五种明确处置、中文反馈、质量边界与回滚范围",
+  "result": "`PASS_PHASE1_PARSER_FALLBACK_BOUNDARY_RUNTIME_DISABLED`",
+  "branch": "codex/kmids-stage048-p1",
+  "predecessor": "STAGE047_REVIEWED_LOCAL",
+  "source_authority": "FROZEN_TASKPACK_TEXT_AND_STAGE047_REVIEW_ARTIFACTS",
+  "contract": {
+    "schema_version": "ids.stage048.parser_fallback.phase1.v1",
+    "contract_state": "PHASE1_PARSER_FALLBACK_BOUNDARY_RUNTIME_DISABLED",
+    "second_authoritative_source_created": false,
+    "reference_only_input_field_count": 7,
+    "explicit_disposition_count": 5,
+    "silent_drop_allowed": false,
+    "automatic_parser_switch_allowed": false,
+    "quality_gate_execution_allowed": false,
+    "evidence_promotion_allowed": false,
+    "prompt_marker_application_allowed": false,
+    "execution_ready": false
+  },
+  "observed_work": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "source_file_open_performed": false,
+    "file_type_redetection_performed": false,
+    "route_evaluation_performed": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "fallback_execution_performed": false,
+    "human_review_queue_write_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "evidence_promotion_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "phase2_started": false
+  },
+  "evidence_iterations": [
+    {
+      "result": "EXPECTED_MISSING_ARTIFACTS",
+      "focused_unit_cases": 5,
+      "failures": 1,
+      "errors": 4
+    },
+    {
+      "result": "PASS",
+      "focused_unit_cases": 6,
+      "passed": 6
+    }
+  ],
+  "next_gate": "IDS-STAGE048-P2-GATE",
+  "rollback": "仅回滚 Stage048 P1 合同、范围说明、聚焦单元用例和治理投影，回到 STAGE047_REVIEWED_LOCAL；不改变真实资料、持久运行状态、GitHub、OVH 或应用状态。"
+}
