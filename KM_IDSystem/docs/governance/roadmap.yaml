@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE053"
-current_phase_id: "IDS-STAGE053-P3"
-current_task_id: "IDS-V0_1-STAGE053-P3"
-next_gate_id: "IDS-STAGE053-P4-GATE"
+current_phase_id: "IDS-STAGE053-P4"
+current_task_id: "IDS-V0_1-STAGE053-P4"
+next_gate_id: "IDS-STAGE053-REVIEW-GATE"
 current_transition_history:
+  stage053_phase4_state:
+    current_stage_id: "IDS-STAGE053"
+    current_phase_id: "IDS-STAGE053-P4"
+    current_task_id: "IDS-V0_1-STAGE053-P4"
+    next_gate_id: "IDS-STAGE053-REVIEW-GATE"
   stage053_phase3_state:
     current_stage_id: "IDS-STAGE053"
     current_phase_id: "IDS-STAGE053-P3"
@@ -14303,19 +14308,19 @@ stages:
     task_id: "IDS-V0_1-STAGE053"
     acceptance_ids:
       - "ACC-STAGE-053"
-    status: "phase3_completed_local"
-    pursuing_goal: "以五个固定非业务质量类别重放 P2 纯内存按页输出，验证候选、降级复核提示、表格未评估、显式失败、零静默丢弃与零临时产物边界；只关闭 Stage053 Phase 3，不创建实际 OCR 输出或进入 Phase 4。"
+    status: "phase4_completed_review_pending"
+    pursuing_goal: "只从 P3 五类固定非业务按页 OCR 质量 control 报告派生 metadata-only 交付样例、置信度汇总、失败清单、未排队复核路由、中文人工确认和缓存重跑边界；只关闭 Stage053 Phase 4，不进入整阶段复审。"
     stop_gate:
-      gate_id: "IDS-STAGE053-P3-GATE"
+      gate_id: "IDS-STAGE053-P4-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE053-P4-GATE"
+      next_gate_id: "IDS-STAGE053-REVIEW-GATE"
       github_upload_allowed: false
       pass_conditions:
-        - "只以冻结 Stage053 任务包、Stage052 已复审工件和 Stage053 P1/P2 已提交工件为唯一上下文，不建立第二权威事实源，不读取业务资料、不保留来源正文、真实路径、页面、图片、OCR 文本、失败详情或运行结果。"
-        - "五个固定非业务质量类别只重放 P2 四页纯内存输出：扫描 PDF、模糊图片、表格图片、中英文混合和低质量均有明确候选、降级或失败处置，静默丢弃为零。"
-        - "低置信度和中英文混合只降级为待后续复核候选，失败页不提升证据；当前不创建 Stage054 实际复核任务，所有结果不能直接进入高可信证据层。"
-        - "缓存仅内存可重建、未落盘；临时产物为零且清理结论为 NO_TEMPORARY_ARTIFACT_CREATED，未创建实际队列、缓存、audit、manifest、evidence ledger、report、数据库或持久状态。"
-        - "真实 OCR、语言检测、质量门、人工复核、Agent、模型 Token、OVH、生产、上传和推送均未执行且保持关闭；唯一后续门为 IDS-STAGE053-P4-GATE。"
+        - "只以冻结 Stage053 任务包、Stage052 已复审工件和 Stage053 P1--P3 已提交工件为唯一上下文，不建立第二权威事实源，不读取业务资料、不保留来源正文、真实路径、页面、图片、OCR 文本、失败详情或运行结果。"
+        - "P4 只从 P3 五类固定非业务质量 control 报告派生五个 metadata-only 样例、HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1 置信度汇总、一条显式失败和两条未排队 Stage054 复核路由证明。"
+        - "质量限制和三条人工确认提示均为中文且不自动确认；候选、降级和失败均不能直接进入高可信证据层，未创建实际复核任务或队列。"
+        - "缓存仅内存可重建、未落盘；临时产物为零且清理结论为 NO_TEMPORARY_ARTIFACT_CREATED，重跑说明不扫描、删除或移动目录。"
+        - "真实 OCR、语言检测、质量门、人工复核、Agent、模型 Token、OVH、生产、上传和推送均未执行且保持关闭；唯一后续门为 IDS-STAGE053-REVIEW-GATE。"
     phases:
       - phase_id: "IDS-STAGE053-P1"
         name: "Phase 1 · 按页 OCR 输出范围、输入输出与边界确认"
@@ -14454,3 +14459,49 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
             risk: "若把固定质量类别、降级处置、表格未评估、失败状态、零临时产物或聚焦用例通过误作真实 OCR、真实图片、识别准确率、实际人工复核、缓存清理、OVH 或生产能力，会绕开业务线白箱控制和后续阶段所有权。"
             rollback: "只回滚本 P3 说明、场景合同、纯内存模块、聚焦用例、machine run、事件、事实投影与治理路线，恢复到 PHASE2_PER_PAGE_OCR_CONTROLLED_OUTPUT_SLICE_ENGINE_DISABLED；不改变真实资料、持久运行状态、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE053-P4"
+        name: "Phase 4 · 按页 OCR 输出交付证据、回滚与中文反馈"
+        objective: "只从 P3 五类固定非业务按页 OCR 质量 control 报告派生 metadata-only 交付样例、置信度汇总、失败清单、未排队复核路由、中文人工确认和零临时产物重跑边界；不调用 OCR 引擎或创建持久输出。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE053-REVIEW-GATE"
+        gate:
+          gate_id: "IDS-STAGE053-P4-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE053-REVIEW-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、列举、打开、复制、散列或保留任何 IDS 业务资料、原始元数据、PDF、图片、页面、表格、来源正文或 Owner fixture"
+          - "回显 P2 control text 或任何 OCR 文本，执行真实 OCR、文件检测、路线、PDF 栅格化、图像处理、语言检测、表格提取、识别准确率评估或实际人工复核"
+          - "创建持久队列、缓存、按页输出、复核记录、质量门、证据提升、manifest/evidence ledger/report/数据库写入、审计或持久运行状态"
+          - "启动 Agent、模型调用、模型 Token、OVH、生产服务、整阶段复审、批次复审、GitHub 上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE053-P4"
+            name: "交付按页 OCR metadata-only 样例、置信度、失败清单、复核证明与中文反馈"
+            objective: "只用冻结任务包、Stage052 已复审工件和 Stage053 P1--P3 已提交合同重放 P3 五类固定非业务 control 报告，建立可机器验证的交付元数据、中文确认、缓存重跑与回滚链，保留全局上传锁。"
+            status: "completed"
+            estimated_hours: 2
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE053-P3"
+            acceptance_ids:
+              - "ACC-STAGE-053"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_delivery"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch041_050_review_gate"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "聚焦 Stage053 P4 直接单元用例通过 14/14；Stage053 P3/P2/P1 与 Stage052 Review/P1-P4 前序兼容用例通过 81/81；Stage051 Review 与 P1-P4 前序兼容用例通过 53/53；Stage041-050 批次复审前序兼容用例通过 6/6；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE053_PHASE4_PER_PAGE_OCR_OUTPUT_DELIVERY_CLOSEOUT.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage053_per_page_ocr_output_delivery_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage053_per_page_ocr_output_delivery.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage053_per_page_ocr_output_delivery.py"
+              - "KM_IDSystem/machine/runs/2026-08-13-stage053-p4-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE053_PHASE3_PER_PAGE_OCR_OUTPUT_QUALITY_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+            risk: "若把 metadata-only 样例、控制置信度、失败清单、未排队复核证明、中文确认或零临时产物说明误作真实 OCR、识别准确率、实际人工复核、缓存清理、OVH 或生产能力，会绕开业务线白箱控制和后续阶段所有权。"
+            rollback: "只回滚本 P4 说明、交付合同、纯内存模块、聚焦用例、machine run、事件、事实投影与治理路线，恢复到 PHASE3_PER_PAGE_OCR_CONTROLLED_QUALITY_SCENARIOS_ENGINE_DISABLED；不改变真实资料、持久运行状态、GitHub、OVH 或应用状态。"

@@ -1,21 +1,21 @@
 {
   "stage": "IDS-STAGE053",
-  "phase": "IDS-V0_1-STAGE053-P3",
-  "task": "IDS-V0_1-STAGE053-P3",
-  "owner": "Codex 专属 KMOS worktree，Stage053 Phase 3",
-  "objective": "重放 P2 纯内存按页输出，以五个固定非业务质量类别验证候选、降级复核提示、表格未评估、显式失败和缓存临时产物边界；不打开真实样本、不调用 OCR 或进入 Phase4。",
+  "phase": "IDS-V0_1-STAGE053-P4",
+  "task": "IDS-V0_1-STAGE053-P4",
+  "owner": "Codex 专属 KMOS worktree，Stage053 Phase 4",
+  "objective": "从 P3 五类固定非业务按页 OCR 质量 control 报告派生 metadata-only 交付样例、置信度汇总、失败清单、未排队复核路由、中文人工确认和缓存重跑边界；不打开真实样本、不调用 OCR 或进入整阶段复审。",
   "scope": [
-    "以冻结 Stage053 任务包、Stage052 已复审工件和 Stage053 P1/P2 合同为唯一合同上下文，不建立第二权威事实源",
-    "只重放 P2 四页纯内存控制输出，以扫描 PDF、模糊图片、表格图片、中英文混合和低质量五个固定标量类别验证处置；类别不承载来源正文、真实路径、页面、图片、OCR 文本、失败详情或运行结果",
-    "扫描 PDF 与表格图片只保留未评估候选；低置信和中英文混合只降级为未排队的后续复核提示；低质量保持显式失败，所有结果不能直接进入高可信证据层",
+    "以冻结 Stage053 任务包、Stage052 已复审工件和 Stage053 P1--P3 合同为唯一合同上下文，不建立第二权威事实源",
+    "只重放 P3 五类固定非业务按页 OCR 质量 control 报告，派生五个 metadata-only 样例、HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1 置信度汇总、一条失败清单和两条声明但未排队的 Stage054 复核路由证明",
+    "质量限制和三条人工确认提示使用中文且不自动确认；候选、降级和失败均不能直接进入高可信证据层，未创建实际人工复核任务",
     "缓存仅内存可重建且不落盘，临时产物为零，清理结论为 NO_TEMPORARY_ARTIFACT_CREATED；未创建实际缓存、audit、manifest、evidence ledger、report、数据库或持久状态",
-    "同步 P3 说明、合同、纯内存模块、聚焦单元用例、machine run、事件、机器事实、中文视图与交接，并只完成 ACC-STAGE-053 的 Phase 3"
+    "同步 P4 说明、合同、纯内存模块、聚焦单元用例、machine run、事件、机器事实、中文视图与交接，并只完成 ACC-STAGE-053 的 Phase 4"
   ],
   "non_goals": [
     "不打开真实业务源、原始元数据、PDF、图片、页面、表格、来源正文或 Owner fixture，不执行文件检测、真实路线、语言检测或创建业务解析输出",
     "不选择或调用 OCR 引擎，不执行 PDF 栅格化、图像处理、表格提取、准确率评估、实际人工复核、实际按页输出、真实图片引用、实际失败记录、持久队列、缓存、质量门、证据提升或持久化",
     "不写 manifest、evidence ledger、audit、index、report、database、持久 job、持久 state 或运行状态",
-    "不进入 Stage053 Phase4、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不进入 Stage053 整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage053 Phase3 纯内存质量场景、事实投影和聚焦单元用例验证完成后停止；下一轮只允许进入 IDS-STAGE053-P4-GATE。任何真实资料访问、真实 OCR 文本/图片引用/失败记录或引擎、缓存/审计/复核写入、质量门、持久写入、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "Stage053 Phase4 metadata-only 交付证据、事实投影和聚焦单元用例验证完成后停止；下一轮只允许进入 IDS-STAGE053-REVIEW-GATE。任何真实资料访问、真实 OCR 文本/图片引用/失败记录或引擎、缓存/审计/复核写入、质量门、持久写入、OVH、生产或上传动作都不属于本步骤。"
 }

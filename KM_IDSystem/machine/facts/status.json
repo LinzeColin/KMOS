@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE053",
-  "phase": "IDS-V0_1-STAGE053-P3",
-  "task": "IDS-V0_1-STAGE053-P3",
-  "real_progress": "Stage053 P3 已以五个固定非业务质量类别重放 P2 纯内存按页输出，完成候选、降级复核提示、表格未评估、显式失败、零静默丢弃与零临时产物边界验证；下一步只能在新的独立 run 进入 Stage053 Phase 4，上传路径继续关闭",
-  "report_grade": "冻结 Stage053 任务包、Stage052 已复审工件、Stage053 P1/P2 合同、P3 质量受控场景、聚焦用例、治理路线与中文事实投影一致",
-  "business_verdict": "本阶段只证明五类固定非业务质量类别可在内存中得到明确候选、降级或失败处置，且低置信和中英文混合不会直接进入高可信证据层；不证明真实 OCR、真实图片引用、真实 OCR 文本、实际失败记录、语言检测、识别准确率、实际人工复核、缓存清理、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE053_PHASE3_PER_PAGE_OCR_QUALITY_SCENARIOS_ENGINE_DISABLED",
+  "phase": "IDS-V0_1-STAGE053-P4",
+  "task": "IDS-V0_1-STAGE053-P4",
+  "real_progress": "Stage053 P4 已从 P3 五类固定非业务按页 OCR 质量 control 报告派生五个 metadata-only 交付样例、置信度汇总、失败清单、未排队复核路由、中文人工确认和零临时产物重跑边界；下一步只能在新的独立 run 进入 Stage053 Review，上传路径继续关闭",
+  "report_grade": "冻结 Stage053 任务包、Stage052 已复审工件、Stage053 P1--P3 合同、P4 metadata-only 交付、聚焦用例、治理路线与中文事实投影一致",
+  "business_verdict": "本阶段只证明五类固定非业务 control 可派生可解释的 metadata-only 交付证据，且低置信和中英文混合仍不能直接进入高可信证据层；不证明真实 OCR、真实图片引用、真实 OCR 文本、实际失败记录、语言检测、识别准确率、实际人工复核、缓存清理、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE053_PHASE4_PER_PAGE_OCR_DELIVERY_RUNTIME_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE053-P4-GATE",
+  "next_gate": "IDS-STAGE053-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
