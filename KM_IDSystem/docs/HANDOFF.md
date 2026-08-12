@@ -9,7 +9,19 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage053 Phase 1 - 2026-08-13
+## Current Gate - Stage053 Phase 2 - 2026-08-13
+
+- 本节覆盖下方 Stage053 P1、Stage052 Review、P4、P3、P2、P1、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成 `IDS-V0_1-STAGE053-P2`：只以冻结 Stage053 任务包、Stage052 已复审中英文 OCR 工件和 Stage053 P1 已提交合同为唯一上下文，将四个固定非业务控制页映射为纯内存十一字段按页结构、符号化 OCR 文本、符号化图片引用、受控失败分类、置信度与中文可解释状态。
+- 控制输入继续固定为七字段 reference-only 元数据；四个控制页顺序为中文简体候选、英文低置信、中英文混合和显式失败。它们不是文件、图像、真实页面、真实 OCR 结果、业务正文、来源路径、真实图片引用或实际失败记录；三个符号化 OCR 文本、三个符号化图片引用和一条 `OCR_EXECUTION_NOT_STARTED` 受控分类仅验证形状。
+- 每页均返回 P1 声明的 11 个字段：`source_identity_ref`、`source_page_ref`、`page_image_ref`、`ocr_text`、`language_profile`、`confidence_level`、`failure_reason`、`output_status`、`evidence_eligibility`、`cache_ref`、`review_route`。来源页与图片引用只在内存中由控制标识和页号派生；没有保存、解释或回显真实 OCR 文本、图片、失败详情、来源正文、路径、页面或业务资料。
+- 默认语言仍为中文简体与英文；英文低置信、中英文混合和失败控制页均进入独立可解释状态，均不能直接进入高可信证据层，只声明而不创建 Stage054 受控复核路由。缓存保持 `IN_MEMORY_REBUILDABLE_NOT_PERSISTED`，没有创建实际队列、缓存、audit、manifest、evidence ledger、report、数据库或持久状态。
+- 没有读取 IDS 业务源、原始元数据、正文、文件路径、真实 PDF、图像、页面或表格内容；没有打开样本、调用 OCR、图像处理、语言检测、创建实际按页输出/图片引用/失败记录、复核、质量门、本地服务、OVH 或生产运行；运行时保持零 Agent、零模型 Token。
+- 回滚只撤回本 P2 说明、切片合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图，恢复到 `PHASE1_PER_PAGE_OCR_OUTPUT_BOUNDARY_RUNTIME_DISABLED`；真实资料、既有证据、运行状态、GitHub、OVH 与应用状态不在回滚范围内。
+- 已验证：Stage053 P2 聚焦用例 `9/9`、Stage053 P1 与 Stage052 Review/P1--P4 前序兼容 `61/61`、Stage051 Review 与 P1--P4 前序兼容 `53/53`、BATCH041_050 前序兼容 `6/6`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理报告为 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 下一步只允许在新的独立 run 进入 `IDS-STAGE053-P3`，门为 `IDS-STAGE053-P3-GATE`。所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage053 Phase 1 - 2026-08-13
 
 - 本节覆盖下方 Stage052 Review、P4、P3、P2、P1、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
 - 本轮完成 `IDS-V0_1-STAGE053-P1`：以冻结 Stage053 任务包与 Stage052 已复审中英文 OCR 合同为唯一上下文，固化未来按页 OCR 文本、置信度、图片引用、失败原因、默认中英文、低置信度隔离、缓存、审计引用、中文反馈和回滚边界的静态工程合同。

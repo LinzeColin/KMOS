@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE053",
-  "phase": "IDS-V0_1-STAGE053-P1",
-  "task": "IDS-V0_1-STAGE053-P1",
-  "real_progress": "Stage053 P1 已定义未来按页 OCR 文本、置信度、图片引用、失败原因、默认中文简体与英文、低置信度隔离、缓存、审计引用和 Stage054 后续复核路由的静态合同；下一步只能在新的独立 run 进入 Stage053 Phase 2，上传路径继续关闭",
-  "report_grade": "冻结 Stage053 任务包、Stage052 已复审工件、按页输出静态合同、聚焦用例、治理路线与中文事实投影一致",
-  "business_verdict": "本阶段只证明按页 OCR 输出工程合同的字段、失败状态、低置信度隔离、缓存/审计边界、中文反馈与回滚路径可被复核；不证明真实 OCR、真实图片引用、真实 OCR 文本、真实失败记录、语言检测、识别准确率、实际人工复核、缓存清理、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE053_PHASE1_PER_PAGE_OCR_OUTPUT_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE053-P2",
+  "task": "IDS-V0_1-STAGE053-P2",
+  "real_progress": "Stage053 P2 已用四个固定非业务控制页完成纯内存十一字段按页 OCR 输出受控切片，覆盖符号化 OCR 文本、符号化图片引用、受控失败分类、置信度和中文可解释状态；下一步只能在新的独立 run 进入 Stage053 Phase 3，上传路径继续关闭",
+  "report_grade": "冻结 Stage053 任务包、Stage052 已复审工件、Stage053 P1 合同、P2 纯内存控制切片、聚焦用例、治理路线与中文事实投影一致",
+  "business_verdict": "本阶段只证明固定非业务控制输入可在内存中形成十一字段按页结构、符号化 OCR 文本/图片引用、受控失败分类与低置信度隔离；不证明真实 OCR、真实图片引用、真实 OCR 文本、实际失败记录、语言检测、识别准确率、实际人工复核、缓存清理、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE053_PHASE2_PER_PAGE_OCR_CONTROL_SLICE_ENGINE_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE053-P2-GATE",
+  "next_gate": "IDS-STAGE053-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

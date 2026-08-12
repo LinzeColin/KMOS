@@ -1,0 +1,234 @@
+{
+  "schema_version": "ids.stage053.per_page_ocr_output.phase2.v1",
+  "stage": "STAGE-053",
+  "phase": "Phase 2",
+  "task_id": "IDS-V0_1-STAGE053-P2",
+  "acceptance_id": "ACC-STAGE-053",
+  "local_code": "D09-S003",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_IN_MEMORY_PER_PAGE_OCR_OUTPUT_CONTROL_SLICE",
+  "contract_state": "PHASE2_PER_PAGE_OCR_CONTROLLED_OUTPUT_SLICE_ENGINE_DISABLED",
+  "slice_executable": true,
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE053-P3-GATE",
+  "source_authority": {
+    "authority": "FROZEN_TASKPACK_TEXT_AND_STAGE052_REVIEW_AND_STAGE053_P1_ARTIFACTS",
+    "phase1_predecessor_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage053_per_page_ocr_output_contract.json",
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false
+  },
+  "ownership_boundary": {
+    "ocr_queue_baseline_owner": "STAGE-051",
+    "bilingual_ocr_contract_owner": "STAGE-052",
+    "per_page_ocr_output_control_slice_owner": "STAGE-053",
+    "low_confidence_review_route_owner": "STAGE-054",
+    "ocr_engine_mapping_owner": "STAGE-055",
+    "ocr_cache_retention_owner": "STAGE-056",
+    "actual_ocr_text_created": false,
+    "actual_page_image_reference_created": false,
+    "actual_failure_record_created": false,
+    "upstream_result_rewrite_allowed": false,
+    "queue_or_engine_activation_allowed": false
+  },
+  "phase1_reference_input_contract": {
+    "required_fields": [
+      "source_identity_ref",
+      "input_kind_hint",
+      "parser_output_status",
+      "source_page_count_ref",
+      "language_profile",
+      "ocr_request_reason",
+      "cache_policy_ref"
+    ],
+    "field_count": 7,
+    "input_kind_hints": [
+      "SCANNED_PDF",
+      "IMAGE",
+      "LOW_TEXT_COVERAGE_PDF"
+    ],
+    "source_body_or_path_allowed": false,
+    "source_page_content_allowed": false,
+    "image_content_allowed": false
+  },
+  "control_input_contract": {
+    "required_top_level_fields": [
+      "ocr_input_reference",
+      "page_controls"
+    ],
+    "control_source_identity_ref": "source:control:stage053-p2",
+    "control_input_kind_hint": "SCANNED_PDF",
+    "control_parser_output_status": "CONTROL_PER_PAGE_OCR_OUTPUT_CANDIDATE",
+    "control_source_page_count_ref": "page-count:control:4",
+    "control_language_profile": "SIMPLIFIED_CHINESE_AND_ENGLISH",
+    "control_ocr_request_reason": "CONTROL_PER_PAGE_OUTPUT_SHAPE",
+    "control_cache_policy_ref": "cache-policy:stage053-p2:in-memory",
+    "page_control_fields": [
+      "page_number",
+      "control_output_token",
+      "control_page_image_token",
+      "language_profile",
+      "confidence_level",
+      "page_outcome",
+      "failure_reason"
+    ],
+    "allowed_control_output_tokens": [
+      "CONTROL_ZH_PAGE",
+      "CONTROL_EN_LOW_CONFIDENCE_PAGE",
+      "CONTROL_MIXED_ZH_EN_PAGE"
+    ],
+    "allowed_control_page_image_tokens": [
+      "CONTROL_PAGE_IMAGE_REFERENCE_1",
+      "CONTROL_PAGE_IMAGE_REFERENCE_2",
+      "CONTROL_PAGE_IMAGE_REFERENCE_3"
+    ],
+    "allowed_language_profiles": [
+      "SIMPLIFIED_CHINESE",
+      "ENGLISH",
+      "SIMPLIFIED_CHINESE_AND_ENGLISH",
+      "UNKNOWN"
+    ],
+    "allowed_confidence_levels": [
+      "HIGH",
+      "MEDIUM",
+      "LOW",
+      "UNKNOWN"
+    ],
+    "allowed_page_outcomes": [
+      "OCR_OUTPUT_CONTROL_READY",
+      "OCR_PAGE_FAILED"
+    ],
+    "allowed_failure_reasons": [
+      "OCR_EXECUTION_NOT_STARTED",
+      "PAGE_IMAGE_REFERENCE_UNAVAILABLE",
+      "OCR_ENGINE_UNAVAILABLE",
+      "LOW_CONFIDENCE_REVIEW_REQUIRED",
+      "MIXED_LANGUAGE_REVIEW_REQUIRED"
+    ],
+    "control_page_count": 4,
+    "real_source_text_allowed": false,
+    "real_image_or_pdf_allowed": false,
+    "control_input_persisted": false
+  },
+  "per_page_output_contract": {
+    "required_fields": [
+      "source_identity_ref",
+      "source_page_ref",
+      "page_image_ref",
+      "ocr_text",
+      "language_profile",
+      "confidence_level",
+      "failure_reason",
+      "output_status",
+      "evidence_eligibility",
+      "cache_ref",
+      "review_route"
+    ],
+    "field_count": 11,
+    "source_page_reference_derived_in_memory": true,
+    "control_page_image_reference_derived_in_memory": true,
+    "control_page_output_created_in_memory": true,
+    "control_symbolic_output_created_in_memory": true,
+    "control_failure_classification_created_in_memory": true,
+    "control_symbolic_output_is_not_real_ocr_text": true,
+    "control_page_image_reference_is_not_real_image_reference": true,
+    "control_failure_classification_is_not_actual_failure_record": true,
+    "actual_page_output_created": false,
+    "persistent_page_output_created": false,
+    "source_page_content_persisted": false
+  },
+  "state_contract": {
+    "queue_state_history": [
+      "QUEUED",
+      "PROCESSING",
+      "COMPLETED"
+    ],
+    "candidate_page_state": "OCR_PAGE_CANDIDATE_RETAINED",
+    "low_confidence_page_state": "OCR_LOW_CONFIDENCE_REVIEW_REQUIRED_NOT_QUEUED",
+    "failed_page_state": "OCR_PAGE_FAILED_EXPLICIT",
+    "mixed_language_page_state": "OCR_MIXED_ZH_EN_REVIEW_REQUIRED_NOT_QUEUED",
+    "low_confidence_direct_high_trust_allowed": false,
+    "mixed_language_direct_high_trust_allowed": false,
+    "failure_page_direct_high_trust_allowed": false,
+    "high_trust_evidence_promotion_allowed": false,
+    "review_queue_record_creation_allowed": false,
+    "actual_human_review_route_created": false
+  },
+  "cache_boundary": {
+    "policy": "IN_MEMORY_REBUILDABLE_NOT_PERSISTED",
+    "cache_ref_value": null,
+    "cache_created": false,
+    "cache_write_performed": false,
+    "cache_storage_location_assigned": false,
+    "cache_cleanup_performed": false,
+    "cache_retention_owner": "STAGE-056"
+  },
+  "implementation": {
+    "module": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage053_per_page_ocr_output_slice.py",
+    "entrypoint": "execute_per_page_controlled_ocr_output",
+    "record_kind": "CONTROL_ONLY_IN_MEMORY_PER_PAGE_OCR_OUTPUT",
+    "in_memory_per_page_ocr_control_slice_implemented": true,
+    "in_memory_queue_record_created": true,
+    "source_page_reference_derived": true,
+    "control_page_image_reference_derived": true,
+    "control_symbolic_output_created": true,
+    "control_failure_classification_created": true,
+    "low_confidence_state_recorded": true,
+    "failed_page_state_recorded": true,
+    "mixed_language_state_recorded": true,
+    "ocr_engine_selected": false,
+    "ocr_engine_configuration_performed": false,
+    "ocr_engine_invocation_performed": false,
+    "persistent_queue_created": false,
+    "persistent_page_output_created": false,
+    "persistent_cache_created": false
+  },
+  "runtime_boundary": {
+    "source_file_open_allowed": false,
+    "file_type_detection_allowed": false,
+    "route_evaluation_allowed": false,
+    "parser_execution_allowed": false,
+    "pdf_rasterization_allowed": false,
+    "image_processing_allowed": false,
+    "language_detection_allowed": false,
+    "ocr_engine_selection_allowed": false,
+    "ocr_engine_invocation_allowed": false,
+    "in_memory_controlled_queue_execution_allowed": true,
+    "control_page_output_creation_allowed": true,
+    "control_page_image_reference_derivation_allowed": true,
+    "control_failure_classification_allowed": true,
+    "persistent_queue_write_allowed": false,
+    "persistent_page_output_write_allowed": false,
+    "cache_write_allowed": false,
+    "review_queue_write_allowed": false,
+    "quality_gate_execution_allowed": false,
+    "evidence_promotion_allowed": false,
+    "audit_write_allowed": false,
+    "persistent_state_write_allowed": false,
+    "database_connection_allowed": false,
+    "agent_execution_allowed": false,
+    "model_call_allowed": false,
+    "model_token_consumption_allowed": false,
+    "local_service_start_allowed": false,
+    "ovh_deployment_allowed": false,
+    "production_runtime_activation_allowed": false,
+    "phase3_started": false,
+    "whole_stage_review_started": false,
+    "batch_review_started": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "rollback_contract": {
+    "return_to": "PHASE1_PER_PAGE_OCR_OUTPUT_BOUNDARY_RUNTIME_DISABLED",
+    "revertable_artifacts": [
+      "Stage053 Phase2 per-page OCR output control slice",
+      "Stage053 Phase2 slice contract",
+      "Stage053 Phase2 focused tests",
+      "Stage053 Phase2 governance projection"
+    ],
+    "source_or_raw_data_change_allowed": false,
+    "persistent_runtime_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

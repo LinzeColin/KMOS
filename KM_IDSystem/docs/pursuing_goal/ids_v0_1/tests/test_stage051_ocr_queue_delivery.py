@@ -291,6 +291,7 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE052-P4",
                 "IDS-V0_1-STAGE052-REVIEW",
                 "IDS-V0_1-STAGE053-P1",
+                "IDS-V0_1-STAGE053-P2",
             ),
         )
         self.assertFalse(status["runtime_enabled"])
