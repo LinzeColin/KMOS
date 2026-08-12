@@ -1373,6 +1373,64 @@ def test_cashflow_observation_reassembles_a_visually_aligned_split_ocr_header() 
     assert observation.outflow_fen == 4_000
 
 
+def test_cashflow_observation_uses_sparse_layout_fallback_only_after_missing_header() -> None:
+    """PSM 11 is a layout repair, never a retry after a financial failure."""
+
+    headers = ["日期", "事由", "收（付）款人", "收支类别", "转出", "收入", "银行"]
+    rows = [
+        ["08月07日", "付款", "", "项目成本", "40.00", "", "银行A"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "银行A"],
+        ["", "", "", "合计", "40.00", "50.00", ""],
+    ]
+    payload = b"\x89PNG\r\n\x1a\nsparse-cashflow-layout"
+    primary = _ocr_tsv(["日期", "事由", "收支类别"], ["08月07日", "付款", "项目成本"])
+    fallback = _ocr_tsv(headers, rows[0], extra_rows=rows[1:])
+    calls: list[str] = []
+
+    observation = parse_cashflow_observation(
+        family="资金明细",
+        filename="资金明细_20260807.png",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 10, tzinfo=UTC),
+        mime="image/png",
+        runner=_ocr_runner_by_psm(primary, fallback, calls),
+    )
+
+    assert calls == ["6", "11"]
+    assert observation.business_date.isoformat() == "2026-08-07"
+    assert observation.inflow_fen == 5_000
+    assert observation.outflow_fen == 4_000
+
+
+def test_cashflow_observation_does_not_retry_sparse_layout_after_footer_failure() -> None:
+    """A visible but inconsistent total must remain a hard failure."""
+
+    headers = ["日期", "事由", "收（付）款人", "收支类别", "转出", "收入", "银行"]
+    mismatched_rows = [
+        ["08月07日", "付款", "", "项目成本", "40.00", "", "银行A"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "银行A"],
+        ["", "", "", "合计", "40.00", "49.00", ""],
+    ]
+    payload = b"\x89PNG\r\n\x1a\nno-cashflow-footer-retry"
+    primary = _ocr_tsv(headers, mismatched_rows[0], extra_rows=mismatched_rows[1:])
+    fallback = _ocr_tsv(headers, mismatched_rows[0], extra_rows=mismatched_rows[1:])
+    calls: list[str] = []
+
+    with pytest.raises(ParseError, match="CASHFLOW_OBSERVATION_TOTAL_MISMATCH"):
+        parse_cashflow_observation(
+            family="资金明细",
+            filename="资金明细_20260807.png",
+            payload=payload,
+            source=_source(payload),
+            received_at=datetime(2026, 8, 10, tzinfo=UTC),
+            mime="image/png",
+            runner=_ocr_runner_by_psm(primary, fallback, calls),
+        )
+
+    assert calls == ["6"]
+
+
 def test_cashflow_observation_uses_fixed_layout_template_when_money_headers_are_unreadable() -> None:
     headers = ["日期", "事由", "收（付）款人", "收支类别", "出列", "入列", "机构"]
     rows = [

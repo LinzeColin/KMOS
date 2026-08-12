@@ -47,7 +47,10 @@ PARSER_VERSION = "kmfa.daily_funds.parser.v10"
 # This parser is deliberately separate from ``PARSER_VERSION``.  It can
 # create a chart-only receipt from a narrow receipt/payment screenshot without
 # weakening the two-fact account-balance publication contract.
-CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v2"
+# v3 adds the same bounded sparse-layout OCR fallback already used by the
+# formal fact parser.  It is available only when the primary pass cannot form
+# a header at all; it does not relax row, date, amount or footer checks.
+CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v3"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -1413,7 +1416,24 @@ def parse_cashflow_observation(
     )
     words = _parse_tesseract_tsv(_ocr_tsv(payload=payload, evidence=evidence, runner=runner))
     lines = _ocr_lines(words)
-    header_index, cells = _select_ocr_cashflow_header(lines, min_confidence_bps=threshold)
+    try:
+        header_index, cells = _select_ocr_cashflow_header(lines, min_confidence_bps=threshold)
+    except ParseError as exc:
+        # Some real screenshot tables have a complete visual header but PSM 6
+        # emits it as sparse text.  Re-run exactly once under PSM 11 only when
+        # the first pass reached the missing-header gate.  A header ambiguity,
+        # low confidence result, or any later row/footer error must never be
+        # retried under a different interpretation.
+        if str(exc).split(":", 1)[0] != "CASHFLOW_OBSERVATION_HEADER_MISSING":
+            raise
+        fallback_words = _parse_tesseract_tsv(_ocr_tsv(
+            payload=payload,
+            evidence=evidence,
+            runner=runner,
+            psm=OCR_HEADER_FALLBACK_PSM,
+        ))
+        lines = _ocr_lines(fallback_words)
+        header_index, cells = _select_ocr_cashflow_header(lines, min_confidence_bps=threshold)
     business_date, inflow_fen, outflow_fen = _ocr_cashflow_observation_totals(
         lines,
         header_index=header_index,
