@@ -2086,13 +2086,32 @@ def test_backfill_scans_the_exact_360_day_range_without_gaps(tmp_path: Path, mon
 
     monkeypatch.setattr(runtime, "poll", empty_poll)
     now = datetime(2026, 8, 1, 4, tzinfo=UTC)
-    runs = [runtime.backfill(now=now, max_days=14) for _ in range(26)]
+    runs = [runtime.backfill(now=now, max_days=7) for _ in range(52)]
 
     first_required = date(2025, 8, 6)
     assert all(run["ok"] is True for run in runs)
     assert runs[-1]["complete"] is True
     assert observed_days == [first_required + timedelta(days=offset) for offset in range(360)]
     assert runtime.state.get("backfill_next_business_date") == "2026-08-01"
+
+
+def test_backfill_runtime_caps_a_direct_call_at_seven_days(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The scheduler contract cannot be bypassed by a direct runtime caller."""
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    calls = 0
+
+    def empty_poll(**_kwargs):
+        nonlocal calls
+        calls += 1
+        return {"ok": True, "pages": 1, "attachments": 0, "empty_window": True}
+
+    monkeypatch.setattr(runtime, "poll", empty_poll)
+    result = runtime.backfill(now=datetime(2026, 8, 1, 4, tzinfo=UTC), max_days=99)
+
+    assert result["ok"] is True
+    assert len(result["completed_days"]) == 7
+    assert calls == 7
 
 
 def test_backfill_failure_keeps_the_failed_day_pending(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -3354,7 +3373,7 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_nonblocking_backfill_ca
     assert f"*/15 * * * * root {wrapper} poll" in cron
     assert f"* * * * * root {wrapper} auth-probe" in cron
     assert f"0 * * * * root {wrapper} keepalive" in cron
-    assert f"5,20,35,50 * * * * root {wrapper} backfill --max-days 14" in cron
+    assert f"5,20,35,50 * * * * root {wrapper} backfill --max-days 7" in cron
     assert "15 2 * * * root" not in cron
     assert f"30 3 * * * root {wrapper} observer" in cron
     assert f"0 */6 * * * root {wrapper} r2-guard" in cron

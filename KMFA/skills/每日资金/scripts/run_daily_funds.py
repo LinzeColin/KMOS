@@ -33,7 +33,13 @@ def parser() -> argparse.ArgumentParser:
         "job",
         choices=("preflight", "bootstrap-dws-auth", "runtime-audit", "r2-guard", "raw-archive-audit", "poll", "auth-probe", "keepalive", "backfill", "observer", "cold-backup", "restore-drill", "restore", "healthcheck"),
     )
-    command.add_argument("--max-days", type=int, default=7, help="bounded backfill days (1-14)")
+    command.add_argument(
+        "--max-days",
+        type=int,
+        choices=range(1, 8),
+        default=7,
+        help="bounded backfill days (1-7)",
+    )
     command.add_argument("--publication-id", help="64-char immutable publication ID for a verified restore")
     return command
 

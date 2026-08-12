@@ -72,6 +72,10 @@ _COUPLED_PROCESS_MARKERS = (
 )
 _POST_DEPLOY_OBSERVER_REQUIRED_BUSINESS_DAYS = 5
 _BACKFILL_WINDOW_DAYS = 360
+# The sealed daily-funds contract permits at most seven historical calendar
+# days per staggered batch.  Keep the runtime cap independent of the CLI so a
+# direct caller cannot silently schedule a longer run than the cloud contract.
+_BACKFILL_BATCH_MAX_DAYS = 7
 _FLOW_STATE_SCHEMA = "kmfa.daily_funds.flow_state.v1"
 _CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v2"
 _CASHFLOW_OBSERVATION_MIN_DAYS = 2
@@ -2236,7 +2240,7 @@ class DailyFundsRuntime:
         needs_review_days: list[str] = []
         source_gap_days: list[str] = []
         needs_review_attachments = 0
-        for _ in range(max(1, min(max_days, 14))):
+        for _ in range(max(1, min(max_days, _BACKFILL_BATCH_MAX_DAYS))):
             if next_day >= local_today:
                 break
             start = datetime.combine(next_day, time.min, tzinfo=local_zone).astimezone(UTC)
