@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterable, Iterator
 
 from .contracts import HUMAN_STATUSES
 
@@ -475,6 +475,86 @@ class RuntimeState:
                     for attachment_sha256, family in sorted(scoped)
                 ],
             )
+
+    def reusable_capability_scope_receipts(
+        self,
+        *,
+        parser_version: str,
+        attachment_sha256s: Iterable[str],
+    ) -> dict[str, tuple[str, str]]:
+        """Return same-version scoped capability receipts for exact raw bytes.
+
+        This is deliberately a narrow journal lookup, not a source check.  A
+        caller may reuse a receipt only *after* it has completed a fresh
+        private-Git raw census for the requested bytes.  The lookup joins the
+        full-census scope to a matching parser receipt, so an orphaned scope,
+        a changed parser version, or a byte hash outside the prior census is
+        never reusable.
+        """
+
+        if (
+            not isinstance(parser_version, str)
+            or not parser_version
+            or len(parser_version) > 128
+            or any(ord(character) < 32 for character in parser_version)
+        ):
+            raise ValueError("invalid capability parser version")
+        requested = sorted(set(attachment_sha256s))
+        for attachment_sha256 in requested:
+            if (
+                not isinstance(attachment_sha256, str)
+                or len(attachment_sha256) != 64
+                or any(character not in "0123456789abcdef" for character in attachment_sha256)
+            ):
+                raise ValueError("invalid capability evidence hash")
+        if not requested:
+            return {}
+
+        reusable: dict[str, tuple[str, str]] = {}
+        # SQLite commonly accepts 999 bind parameters.  The raw-audit upper
+        # bound is higher, so keep each IN query below that portable ceiling.
+        with self.connection() as connection:
+            for start in range(0, len(requested), 500):
+                batch = requested[start:start + 500]
+                placeholders = ",".join("?" for _ in batch)
+                rows = connection.execute(
+                    f"""SELECT scope.attachment_sha256,scope.family,evidence.outcome,evidence.code,
+                                      parser.attachment_sha256 AS parser_receipt_sha256
+                          FROM capability_scope AS scope
+                          INNER JOIN capability_evidence AS evidence
+                            ON evidence.attachment_sha256 = scope.attachment_sha256
+                           AND evidence.family = scope.family
+                           AND evidence.parser_version = scope.parser_version
+                           LEFT JOIN parser_evidence AS parser
+                             ON parser.attachment_sha256 = evidence.attachment_sha256
+                            AND parser.family = evidence.family
+                            AND parser.parser_version = evidence.parser_version
+                         WHERE scope.parser_version = ?
+                           AND scope.attachment_sha256 IN ({placeholders})""",
+                    (parser_version, *batch),
+                ).fetchall()
+                for row in rows:
+                    attachment_sha256 = str(row["attachment_sha256"])
+                    family = str(row["family"])
+                    outcome = str(row["outcome"])
+                    if (
+                        not family
+                        or len(family) > 128
+                        or any(ord(character) < 32 for character in family)
+                        or outcome not in {"SUPPORTED", "NEEDS_REVIEW"}
+                    ):
+                        # A malformed protected-journal row is never an
+                        # excuse to skip a parser run.
+                        continue
+                    if outcome == "SUPPORTED" and (
+                        str(row["code"]) != "PARSER_OPEN_OK"
+                        or row["parser_receipt_sha256"] is None
+                    ):
+                        # A successful capability result must also retain the
+                        # corresponding exact-version parser-open receipt.
+                        continue
+                    reusable[attachment_sha256] = (family, outcome)
+        return reusable
 
     def capability_matrix(self, *, parser_version: str | None = None) -> list[dict[str, Any]]:
         """Return a values-free aggregate for the protected KMFA status UI.

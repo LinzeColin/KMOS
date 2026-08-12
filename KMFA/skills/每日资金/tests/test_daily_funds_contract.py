@@ -1753,10 +1753,7 @@ def test_cashflow_observation_admits_explicit_generic_source_labels_to_the_stric
 
     generic = attachment("资金明细", b"generic", 1)
     explicit_flow = attachment("资金流水明细", b"flow", 2)
-    unresolved = AttachmentCapabilityInspection(
-        parsed=(),
-        failures=(ParseError("OCR_GENERIC_FAMILY_UNRESOLVED"),),
-    )
+    unresolved: dict[str, str] = {}
 
     # ``资金明细`` is an explicitly allowed source family.  Its chart-only
     # admission cannot make it a formal fact: ``_write_cashflow_observation``
@@ -3199,6 +3196,137 @@ def test_raw_archive_audit_records_only_readback_capability_and_never_publishes(
     assert flow["business_flow"]["stage"] == "RAW_ARCHIVE_AUDITED"
     assert flow["source_discovery"] == {"state": "UNKNOWN"}
     assert "raw-archive-account" not in json.dumps(flow, ensure_ascii=False)
+
+
+def test_raw_archive_audit_reuses_only_same_version_receipts_after_fresh_raw_census(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A chart-only parser change must not OCR an unchanged formal census twice."""
+
+    import daily_funds.runtime as runtime_module
+
+    config = _config(tmp_path)
+    moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
+
+    def attachment(marker: str) -> DownloadedAttachment:
+        payload = (
+            "业务日期,公司,开户行,账号,期初余额,期末余额,币种\n"
+            f"2026-07-30,甲公司,甲银行,{marker},1500000.00,1570000.00,CNY\n"
+        ).encode()
+        message_id = f"raw-archive-{marker}"
+        return DownloadedAttachment(
+            message={
+                "openConversationId": "group-fixture",
+                "senderOpenDingTalkId": "sender-fixture",
+                "openMessageId": message_id,
+                "createTime": moment.isoformat(),
+                "content": "资金账户明细表 mediaId=fixture-raw-archive",
+            },
+            message_id=message_id,
+            message_id_hash=sha256(message_id.encode()).hexdigest(),
+            message_at=moment,
+            index=0,
+            filename=f"资金账户明细表_{marker}.csv",
+            family=ACCOUNT_FAMILY,
+            payload=payload,
+            sha256=sha256(payload).hexdigest(),
+            mime="text/csv",
+        )
+
+    cached = attachment("001")
+    fresh = attachment("002")
+
+    class ArchiveWriter:
+        def __init__(self, _config):
+            pass
+
+        def audit_raw_archive(self):
+            # This is the mandatory fresh private-Git census.  The optimization
+            # is allowed only after it returns both verified byte strings.
+            return RawArchiveAudit(
+                commit_sha="a" * 40,
+                verified_attachments=(cached, fresh),
+                occurrence_count=2,
+                batch_count=1,
+                batch_occurrence_references=2,
+            )
+
+    runtime = DailyFundsRuntime(config)
+    runtime.state.record_parser_evidence(
+        attachment_sha256=cached.sha256,
+        family=ACCOUNT_FAMILY,
+        suffix=".csv",
+        declared_mime="text/csv",
+        magic="TEXT",
+        parser_version=PARSER_VERSION,
+    )
+    runtime.state.record_capability_evidence(
+        attachment_sha256=cached.sha256,
+        family=ACCOUNT_FAMILY,
+        suffix=".csv",
+        declared_mime="text/csv",
+        magic="TEXT",
+        parser_version=PARSER_VERSION,
+        outcome="SUPPORTED",
+        code="PARSER_OPEN_OK",
+    )
+    runtime.state.replace_capability_scope(
+        parser_version=PARSER_VERSION,
+        attachments=((cached.sha256, ACCOUNT_FAMILY),),
+    )
+    inspected: list[str] = []
+    original_inspect = runtime._inspect_attachment_capabilities
+
+    def inspect_only_unscoped(attachments):
+        materialized = tuple(attachments)
+        inspected.extend(item.sha256 for item in materialized)
+        return original_inspect(materialized)
+
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ArchiveWriter)
+    monkeypatch.setattr(runtime, "_inspect_attachment_capabilities", inspect_only_unscoped)
+
+    result = runtime.raw_archive_audit()
+
+    assert inspected == [fresh.sha256]
+    assert result == {
+        "ok": True,
+        "code": "RAW_ARCHIVE_AUDITED",
+        "capability_supported": 2,
+        "capability_needs_review": 0,
+    }
+    with runtime.state.connection() as connection:
+        scope_count = connection.execute(
+            "SELECT COUNT(*) FROM capability_scope WHERE parser_version=?",
+            (PARSER_VERSION,),
+        ).fetchone()[0]
+    assert scope_count == 2
+
+
+def test_capability_scope_does_not_reuse_an_orphaned_success_receipt(tmp_path: Path) -> None:
+    state = RuntimeState(tmp_path / "state")
+    digest = "a" * 64
+    state.record_capability_evidence(
+        attachment_sha256=digest,
+        family=ACCOUNT_FAMILY,
+        suffix=".csv",
+        declared_mime="text/csv",
+        magic="TEXT",
+        parser_version=PARSER_VERSION,
+        outcome="SUPPORTED",
+        code="PARSER_OPEN_OK",
+    )
+    state.replace_capability_scope(
+        parser_version=PARSER_VERSION,
+        attachments=((digest, ACCOUNT_FAMILY),),
+    )
+
+    # A capability result without the matching exact-version parser evidence
+    # cannot suppress another parser run.
+    assert state.reusable_capability_scope_receipts(
+        parser_version=PARSER_VERSION,
+        attachment_sha256s=(digest,),
+    ) == {}
 
 
 def test_raw_archive_audit_fails_closed_when_private_raw_census_is_missing(

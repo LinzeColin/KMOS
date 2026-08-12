@@ -1415,7 +1415,7 @@ class DailyFundsRuntime:
     @staticmethod
     def _cashflow_observation_candidates(
         attachments: Iterable[DownloadedAttachment],
-        inspection: AttachmentCapabilityInspection,
+        resolved_families: Mapping[str, str],
     ) -> tuple[DownloadedAttachment, ...]:
         """Admit screenshots only after their source family is deterministic.
 
@@ -1431,13 +1431,9 @@ class DailyFundsRuntime:
         chart parser.
         """
 
-        resolved = {
-            item.facts.source_version: item.facts.family
-            for item in inspection.parsed
-        }
         candidates: list[DownloadedAttachment] = []
         for attachment in attachments:
-            resolved_family = resolved.get(attachment.sha256)
+            resolved_family = resolved_families.get(attachment.sha256)
             if attachment.family in TRANSACTION_FAMILIES:
                 candidates.append(attachment)
             elif attachment.family is None and resolved_family in TRANSACTION_FAMILIES:
@@ -1594,7 +1590,31 @@ class DailyFundsRuntime:
         # which is safer than serializing a long reader with financial writes.
         audit = writer.audit_raw_archive()
 
-        inspection = self._inspect_attachment_capabilities(audit.verified_attachments)
+        # The private-Git census above has freshly re-opened and verified each
+        # raw byte.  Reuse a prior formal capability receipt only when that
+        # exact SHA was also in the prior *complete* scope under the unchanged
+        # formal parser version.  This avoids needlessly OCRing an unchanged
+        # history every time a separate chart-only parser changes, while new,
+        # unscoped, or version-mismatched bytes still take the full parser
+        # path below.
+        prior_receipts = self.state.reusable_capability_scope_receipts(
+            parser_version=PARSER_VERSION,
+            attachment_sha256s=(attachment.sha256 for attachment in audit.verified_attachments),
+        )
+        attachments_to_inspect = tuple(
+            attachment
+            for attachment in audit.verified_attachments
+            if attachment.sha256 not in prior_receipts
+        )
+        inspection = self._inspect_attachment_capabilities(attachments_to_inspect)
+        resolved_families = {
+            attachment_sha256: family
+            for attachment_sha256, (family, _outcome) in prior_receipts.items()
+        }
+        resolved_families.update({
+            item.facts.source_version: item.facts.family
+            for item in inspection.parsed
+        })
         # The chart-only cashflow projection is independently fail-closed.  It
         # consumes only explicitly labelled transaction screenshots or generic
         # attachments that the just-completed raw-byte census resolved to a
@@ -1602,7 +1622,7 @@ class DailyFundsRuntime:
         # a financial family stays private and cannot make the public chart
         # look like a failed money calculation.
         self._write_cashflow_observation(
-            self._cashflow_observation_candidates(audit.verified_attachments, inspection),
+            self._cashflow_observation_candidates(audit.verified_attachments, resolved_families),
         )
         integrity_failures = tuple(
             failure
@@ -1619,16 +1639,12 @@ class DailyFundsRuntime:
         # private-Git census succeeds.  Retaining historic evidence is useful
         # for audit, but projecting it after its raw object has disappeared
         # would overstate the current source coverage.
-        parsed_families = {
-            item.facts.source_version: item.facts.family
-            for item in inspection.parsed
-        }
         self.state.replace_capability_scope(
             parser_version=PARSER_VERSION,
             attachments=(
                 (
                     attachment.sha256,
-                    parsed_families.get(
+                    resolved_families.get(
                         attachment.sha256,
                         attachment.family
                         if attachment.family in TRANSACTION_FAMILIES | {ACCOUNT_FAMILY}
@@ -1648,7 +1664,16 @@ class DailyFundsRuntime:
                 "GIT_PERSISTED",
             )
             self.state.mark_inbox(occurrence_key, "ARCHIVED_CAPABILITY_RECORDED")
-        needs_review = len(inspection.failures)
+        capability_supported = sum(
+            1
+            for attachment in audit.verified_attachments
+            if prior_receipts.get(attachment.sha256, ("", ""))[1] == "SUPPORTED"
+        ) + len(inspection.parsed)
+        needs_review = sum(
+            1
+            for attachment in audit.verified_attachments
+            if prior_receipts.get(attachment.sha256, ("", ""))[1] == "NEEDS_REVIEW"
+        ) + len(inspection.failures)
         code = "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW" if needs_review else "RAW_ARCHIVE_AUDITED"
         status = self._status_from_current(fallback_code=code)
         self._write_flow_state(
@@ -1658,7 +1683,7 @@ class DailyFundsRuntime:
         return {
             "ok": True,
             "code": code,
-            "capability_supported": len(inspection.parsed),
+            "capability_supported": capability_supported,
             "capability_needs_review": needs_review,
         }
 
