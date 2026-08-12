@@ -440,14 +440,15 @@ class DailyFundsRuntime:
     def _raw_archive_audit_process_lock(self):
         """Keep a private raw-archive audit single-process for its full lifetime.
 
-        The persisted Git-writer lease prevents ordinary concurrent writers,
-        but it deliberately has a bounded expiry.  A sparse readback can take
-        longer than that bound, especially while a rolling deployment is
-        draining an older worker.  This worker-volume lock has no expiry and
-        therefore remains held until the running audit actually exits.  It is
-        non-blocking so cron and the startup retry can record the existing
-        ``RAW_ARCHIVE_AUDIT_LOCK_HELD`` state rather than accumulating waiting
-        processes.
+        This lock only serializes read-only audits.  It deliberately does not
+        share the bounded ``git_writer_lock`` used by a live/archive writer:
+        a full sparse census plus deterministic OCR can legitimately outlast a
+        15-minute collection window.  The audit pins and rechecks one immutable
+        Git commit, so a concurrent writer advancing ``main`` makes the audit
+        fail closed rather than mixing snapshots or blocking source intake.
+        The process lock has no expiry and remains held until the running audit
+        actually exits; a second cron/startup attempt records
+        ``RAW_ARCHIVE_AUDIT_LOCK_HELD`` instead of accumulating readers.
         """
 
         self.config.state_dir.mkdir(parents=True, exist_ok=True)
@@ -1550,12 +1551,12 @@ class DailyFundsRuntime:
         """Run one full raw-archive audit while its process lock is held."""
 
         writer = GitSparseWriter(self.config)
-        audit = self._lease_call(
-            "git_writer_lock",
-            ttl_seconds=13 * 60,
-            code="RAW_ARCHIVE_AUDIT_LOCK_HELD",
-            callback=writer.audit_raw_archive,
-        )
+        # ``audit_raw_archive`` is a read-only, commit-pinned census.  Holding
+        # the writer lease through its full OCR pass would starve the 15-minute
+        # poll/backfill path, despite the audit never changing Git.  The
+        # writer's independent commit-identity checks reject a moving head,
+        # which is safer than serializing a long reader with financial writes.
+        audit = writer.audit_raw_archive()
 
         inspection = self._inspect_attachment_capabilities(audit.verified_attachments)
         # The chart-only cashflow projection is independently fail-closed.  It

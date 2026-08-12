@@ -3103,6 +3103,10 @@ def test_raw_archive_audit_records_only_readback_capability_and_never_publishes(
     monkeypatch.setattr(runtime, "_write_cashflow_observation", cashflow_after_capability)
     monkeypatch.setattr(runtime, "_inspect_attachment_capabilities", capability_before_cashflow)
 
+    # A full OCR census can run longer than one 15-minute collection window.
+    # It reads a commit-pinned snapshot and must therefore not occupy the
+    # single-writer Git lease used by the live/backfill persistence path.
+    assert runtime.state.acquire_lease("git_writer_lock", "live-writer", ttl_seconds=13 * 60)
     result = runtime.raw_archive_audit()
 
     assert result == {
