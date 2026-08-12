@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE053",
-  "phase": "IDS-V0_1-STAGE053-P2",
-  "task": "IDS-V0_1-STAGE053-P2",
-  "real_progress": "Stage053 P2 已用四个固定非业务控制页完成纯内存十一字段按页 OCR 输出受控切片，覆盖符号化 OCR 文本、符号化图片引用、受控失败分类、置信度和中文可解释状态；下一步只能在新的独立 run 进入 Stage053 Phase 3，上传路径继续关闭",
-  "report_grade": "冻结 Stage053 任务包、Stage052 已复审工件、Stage053 P1 合同、P2 纯内存控制切片、聚焦用例、治理路线与中文事实投影一致",
-  "business_verdict": "本阶段只证明固定非业务控制输入可在内存中形成十一字段按页结构、符号化 OCR 文本/图片引用、受控失败分类与低置信度隔离；不证明真实 OCR、真实图片引用、真实 OCR 文本、实际失败记录、语言检测、识别准确率、实际人工复核、缓存清理、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE053_PHASE2_PER_PAGE_OCR_CONTROL_SLICE_ENGINE_DISABLED",
+  "phase": "IDS-V0_1-STAGE053-P3",
+  "task": "IDS-V0_1-STAGE053-P3",
+  "real_progress": "Stage053 P3 已以五个固定非业务质量类别重放 P2 纯内存按页输出，完成候选、降级复核提示、表格未评估、显式失败、零静默丢弃与零临时产物边界验证；下一步只能在新的独立 run 进入 Stage053 Phase 4，上传路径继续关闭",
+  "report_grade": "冻结 Stage053 任务包、Stage052 已复审工件、Stage053 P1/P2 合同、P3 质量受控场景、聚焦用例、治理路线与中文事实投影一致",
+  "business_verdict": "本阶段只证明五类固定非业务质量类别可在内存中得到明确候选、降级或失败处置，且低置信和中英文混合不会直接进入高可信证据层；不证明真实 OCR、真实图片引用、真实 OCR 文本、实际失败记录、语言检测、识别准确率、实际人工复核、缓存清理、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE053_PHASE3_PER_PAGE_OCR_QUALITY_SCENARIOS_ENGINE_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE053-P3-GATE",
+  "next_gate": "IDS-STAGE053-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

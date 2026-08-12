@@ -275,7 +275,11 @@ class Stage053PerPageOcrOutputPhase1Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE053", status["stage"])
         self.assertIn(
             status["phase"],
-            ("IDS-V0_1-STAGE053-P1", "IDS-V0_1-STAGE053-P2"),
+            (
+                "IDS-V0_1-STAGE053-P1",
+                "IDS-V0_1-STAGE053-P2",
+                "IDS-V0_1-STAGE053-P3",
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
