@@ -2792,6 +2792,47 @@ class GitSparseWriter:
         self._git(["checkout", ref], cwd=repo, env=env, audit_read=audit_read, failure_code=failure_code)
         self._assert_sparse_checkout_scope(repo)
 
+    def _prepare_sparse_clone_with_single_retry(
+        self,
+        repo: Path,
+        *,
+        env: Mapping[str, str],
+        ref: str,
+        patterns: Sequence[str] | None = None,
+        failure_code: str = "GIT_ARCHIVE_PREPARE_FAILED",
+    ) -> Path:
+        """Make one fresh retry of the pre-mutation sparse preparation.
+
+        A GitHub/OpenSSH transport can transiently fail while the private
+        authority is being cloned.  At this point neither raw bytes nor a Git
+        commit have been written, so one retry in a separate empty directory
+        is safe and idempotent.  Scope/integrity failures retain their own
+        codes and are never retried; a second prepare failure remains
+        fail-closed with the same fixed public-safe stage code.
+        """
+
+        try:
+            self._clone_sparse(
+                repo,
+                env=env,
+                ref=ref,
+                patterns=patterns,
+                failure_code=failure_code,
+            )
+            return repo
+        except IngestionError as exc:
+            if exc.code != failure_code:
+                raise
+        retry_repo = repo.with_name(f"{repo.name}-retry")
+        self._clone_sparse(
+            retry_repo,
+            env=env,
+            ref=ref,
+            patterns=patterns,
+            failure_code=failure_code,
+        )
+        return retry_repo
+
     def _push_with_single_rebase(
         self,
         repo: Path,
@@ -2896,9 +2937,8 @@ class GitSparseWriter:
             temp_root = Path(temp)
             key_path = self._write_deploy_key(temp_root, self.config.git_ssh_key_b64)
             env = self._git_environment(temp_root, key_path)
-            repo = temp_root / "private-db"
-            self._clone_sparse(
-                repo,
+            repo = self._prepare_sparse_clone_with_single_retry(
+                temp_root / "private-db",
                 env=env,
                 ref=self.config.private_branch,
                 patterns=sparse_patterns,

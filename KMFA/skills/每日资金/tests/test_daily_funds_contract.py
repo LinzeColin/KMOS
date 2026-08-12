@@ -4064,6 +4064,73 @@ def test_sparse_writer_uses_shallow_clone_for_narrow_raw_paths(tmp_path: Path, m
     )
 
 
+def test_sparse_writer_retries_only_the_pre_mutation_prepare_phase_once(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A transient pre-write clone failure gets one fresh isolated retry."""
+
+    writer = GitSparseWriter(_config(tmp_path))
+    attempts: list[str] = []
+
+    def transient_clone(repo: Path, **_kwargs) -> None:
+        attempts.append(repo.name)
+        if len(attempts) == 1:
+            raise IngestionError("GIT_ARCHIVE_PREPARE_FAILED")
+
+    monkeypatch.setattr(writer, "_clone_sparse", transient_clone)
+
+    prepared = writer._prepare_sparse_clone_with_single_retry(
+        tmp_path / "private-db",
+        env={},
+        ref="main",
+        patterns=(f"{SPARSE_PATH.as_posix()}/raw/",),
+    )
+
+    assert prepared == tmp_path / "private-db-retry"
+    assert attempts == ["private-db", "private-db-retry"]
+
+
+def test_sparse_writer_does_not_retry_scope_or_second_prepare_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Only the fixed prepare-stage failure may retry, and only once."""
+
+    writer = GitSparseWriter(_config(tmp_path))
+    attempts: list[str] = []
+
+    def scope_failure(repo: Path, **_kwargs) -> None:
+        attempts.append(repo.name)
+        raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
+
+    monkeypatch.setattr(writer, "_clone_sparse", scope_failure)
+    with pytest.raises(IngestionError, match="^GIT_SPARSE_SCOPE_VIOLATION$"):
+        writer._prepare_sparse_clone_with_single_retry(
+            tmp_path / "private-db",
+            env={},
+            ref="main",
+            patterns=(f"{SPARSE_PATH.as_posix()}/raw/",),
+        )
+    assert attempts == ["private-db"]
+
+    attempts.clear()
+
+    def repeated_prepare_failure(repo: Path, **_kwargs) -> None:
+        attempts.append(repo.name)
+        raise IngestionError("GIT_ARCHIVE_PREPARE_FAILED")
+
+    monkeypatch.setattr(writer, "_clone_sparse", repeated_prepare_failure)
+    with pytest.raises(IngestionError, match="^GIT_ARCHIVE_PREPARE_FAILED$"):
+        writer._prepare_sparse_clone_with_single_retry(
+            tmp_path / "private-db",
+            env={},
+            ref="main",
+            patterns=(f"{SPARSE_PATH.as_posix()}/raw/",),
+        )
+    assert attempts == ["private-db", "private-db-retry"]
+
+
 def test_sparse_writer_retries_standard_non_fast_forward_and_rejects_force_push(tmp_path: Path) -> None:
     commands: list[list[str]] = []
     push_attempts = 0
