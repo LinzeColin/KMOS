@@ -229,7 +229,7 @@ class Stage054LowConfidenceReviewRoutePhase2Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(result[field])
 
-    def test_phase2_governance_projection_and_evidence_are_current(self):
+    def test_phase2_governance_projection_and_evidence_remain_historical_or_current(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
@@ -242,15 +242,26 @@ class Stage054LowConfidenceReviewRoutePhase2Tests(unittest.TestCase):
             (batch, "model_token_consumption_performed: false"),
             (batch, "ovh_deployment_performed: false"),
             (roadmap, 'current_stage_id: "IDS-STAGE054"'),
-            (roadmap, 'current_phase_id: "IDS-STAGE054-P2"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE054-P3-GATE"'),
+            (roadmap, 'phase_id: "IDS-STAGE054-P2"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
+        self.assertTrue(
+            'current_phase_id: "IDS-STAGE054-P2"' in roadmap
+            or 'current_phase_id: "IDS-STAGE054-P3"' in roadmap
+        )
+        self.assertTrue(
+            'next_gate_id: "IDS-STAGE054-P3-GATE"' in roadmap
+            or 'next_gate_id: "IDS-STAGE054-P4-GATE"' in roadmap
+        )
+
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE054", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE054-P2", status["phase"])
+        self.assertIn(
+            status["phase"],
+            ("IDS-V0_1-STAGE054-P2", "IDS-V0_1-STAGE054-P3"),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

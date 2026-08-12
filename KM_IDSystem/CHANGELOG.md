@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-054 Phase 3 - 2026-08-13
+
+- 完成 `IDS-V0_1-STAGE054-P3`：重放 P2 四条固定非业务 reference-only 控制路由，覆盖扫描 PDF、模糊图片、表格图片、中英文混合和低质量五类标量场景；五类均有明确候选、降级或失败处置，静默丢弃为 `0`，三条降级路径只形成仅内存候选路由状态。
+- 本地验证通过：Stage054 P3 聚焦用例 `11/11`、Stage054 P2/P1 与 Stage053 Review/P1--P4 前序兼容 `70/70`、Stage052 Review/P1--P4 `53/53`、Stage051 Review/P1--P4 `53/53`、BATCH041_050 `6/6`，合并回归 `193/193`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 缓存保持仅内存可重建、临时产物为 `0`，清理动作为 `NO_TEMPORARY_ARTIFACT_CREATED`，容量、保留和清理仍归 Stage056。未读取真实资料或打开 PDF/图片，未调用 OCR、创建实际人工复核任务/结果、持久队列、缓存、审计或持久状态，未执行 Agent、模型 Token、OVH、生产、上传或推送；后续仅允许在新的独立 run 进入 `IDS-STAGE054-P4-GATE`。
+
 ## IDS v0.1 STAGE-054 Phase 2 - 2026-08-13
 
 - 完成 `IDS-V0_1-STAGE054-P2`：重放四条固定非业务九字段 reference-only 控制记录，在内存中形成三个十字段候选复核请求、三种受控路由状态、四条中文反馈和来源页引用保留；四种结果均不能直接进入高可信证据层。
