@@ -9,16 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage051 P1 - 2026-08-12
+## Current Gate - Stage051 P2 - 2026-08-13
 
-- 本节覆盖下方 BATCH041_050 Review 与 Stage050 Review 的当前指向；下方未特别标为当前的内容仅保留为历史阶段证据。
-- 本轮完成 `IDS-V0_1-STAGE051-P1`：仅固化 OCR 队列的七字段引用输入、三类输入提示、八字段按页输出、默认中文简体与英文、低置信度隔离、未来可重建缓存、中文反馈和回滚边界。
-- 唯一合同上下文是冻结的 Stage051 任务包与 BATCH041_050 已完成本地复审工件；没有建立第二权威事实源，也没有读取 IDS 业务源、原始元数据、正文、文件路径、页面或图像内容。
-- 当前工件为 Phase1 范围说明、静态合同、聚焦单元用例、BATCH051_060 锁、machine run、事件、治理路线、机器事实及生成中文视图。低置信度页面固定不能直接进入高可信证据层，后续复核所有权保留给 Stage054。
-- 未选择或调用 OCR 引擎，未创建 OCR 队列、按页输出、缓存、复核记录、质量门、证据提升、持久状态、Agent、模型调用、本地服务、OVH、生产运行、上传、推送或应用重装。运行时保持零 Agent、零模型 Token。
-- 回滚只撤回 Stage051 P1 范围说明、静态合同、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图，恢复到 BATCH041_050 本地复审完成；必须保留已复审证据、冻结任务包和历史交接。
-- 验证通过：Stage051 P1 聚焦用例 `8/8`、BATCH041_050 前序兼容用例 `6/6`、Stage005 治理回归、治理报告 `valid=true`、中文事实投影重渲染 `7` 个文件且 KM_IDSystem 双平面检查通过。
-- 下一步仅允许在新的独立 run 进入 `IDS-V0_1-STAGE051-P2`，门为 `IDS-STAGE051-P2-GATE`。所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
+- 本节覆盖下方 Stage051 P1、BATCH041_050 Review 与 Stage050 Review 的当前指向；下方未特别标为当前的内容仅保留为历史阶段证据。
+- 本轮完成 `IDS-V0_1-STAGE051-P2`：只在内存中执行四个固定非业务控制页，基于 P1 七字段引用输入形成逐页八字段结构、来源页引用、语言与置信度记录，以及低置信、失败和中英混合的可解释中文状态。
+- 唯一合同上下文是冻结的 Stage051 任务包、P1 合同与 BATCH041_050 已完成本地复审工件；没有建立第二权威事实源，也没有读取 IDS 业务源、原始元数据、正文、文件路径、页面或图像内容。
+- 当前工件为 P2 说明、控制切片合同、纯内存模块、聚焦单元用例、BATCH051_060 锁、machine run、事件、治理路线和机器事实。所有逐页结果仍为候选，低置信、失败和中英混合页不能直接进入高可信证据层，后续实际复核所有权保留给 Stage054。
+- 未选择或调用 OCR 引擎，未打开真实 PDF 或图片，未创建持久队列、持久按页输出、缓存、实际复核记录、质量门、证据提升、持久状态、智能体、模型调用、本地服务、OVH、生产运行、上传、推送或应用重装。运行时保持零智能体、零模型 Token。
+- 回滚只撤回 Stage051 P2 说明、控制切片合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图，恢复到 `PHASE1_OCR_QUEUE_BOUNDARY_RUNTIME_DISABLED`；必须保留 P1、已复审证据、冻结任务包和历史交接。
+- 已验证：Stage051 P2 聚焦用例 `9/9`、Stage051 P1 前序兼容用例 `8/8`、BATCH041_050 前序兼容用例 `6/6`，Stage005 治理报告为 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 下一步仅允许在新的独立 run 进入 `IDS-V0_1-STAGE051-P3`，门为 `IDS-STAGE051-P3-GATE`。所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
 
 ## Superseded Gate - BATCH041_050 Review - 2026-08-12
 

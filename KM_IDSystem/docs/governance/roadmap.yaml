@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE051"
-current_phase_id: "IDS-STAGE051-P1"
-current_task_id: "IDS-V0_1-STAGE051-P1"
-next_gate_id: "IDS-STAGE051-P2-GATE"
+current_phase_id: "IDS-STAGE051-P2"
+current_task_id: "IDS-V0_1-STAGE051-P2"
+next_gate_id: "IDS-STAGE051-P3-GATE"
 current_transition_history:
+  stage051_phase2_state:
+    current_stage_id: "IDS-STAGE051"
+    current_phase_id: "IDS-STAGE051-P2"
+    current_task_id: "IDS-V0_1-STAGE051-P2"
+    next_gate_id: "IDS-STAGE051-P3-GATE"
   stage051_phase1_state:
     current_stage_id: "IDS-STAGE051"
     current_phase_id: "IDS-STAGE051-P1"
@@ -13749,17 +13754,17 @@ stages:
     task_id: "IDS-V0_1-STAGE051"
     acceptance_ids:
       - "ACC-STAGE-051"
-    status: "phase1_completed"
-    pursuing_goal: "在不读取业务资料、不创建队列或运行时的前提下，白箱定义扫描 PDF、图片和低文本覆盖 PDF 的 OCR 队列输入、按页输出、默认语言、低置信度与缓存边界。"
+    status: "phase2_completed"
+    pursuing_goal: "在不读取业务资料、不选择或调用 OCR 引擎、不创建持久队列或运行时的前提下，以固定非业务控制页实现 OCR 队列、按页输出、可解释状态与来源页引用的最小内存切片。"
     stop_gate:
-      gate_id: "IDS-STAGE051-P1-GATE"
+      gate_id: "IDS-STAGE051-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE051-P2-GATE"
+      next_gate_id: "IDS-STAGE051-P3-GATE"
       github_upload_allowed: false
       pass_conditions:
-        - "OCR 输入、按页输出、默认中文简体与英文、低置信度隔离和可重建缓存边界均有唯一静态合同。"
-        - "低置信度页面不得直接进入高可信证据层；后续受控复核路由仍归 STAGE-054。"
-        - "未选择或调用 OCR 引擎，未创建队列、按页输出、缓存、复核记录、持久状态、Agent、模型、OVH 或生产运行。"
+        - "纯内存控制队列只处理固定四页非业务 control，逐页结构含来源页引用、语言与置信度记录。"
+        - "低置信、失败和中英混合页均有明确状态，不能直接进入高可信证据层，未创建实际复核队列。"
+        - "未读取业务资料，未选择或调用 OCR 引擎，未写入持久队列、按页输出、缓存、复核记录、持久状态、智能体、模型、OVH 或生产运行。"
         - "上传与推送继续关闭，最终 ACC-STAGE-168 前不进入任何上传动作。"
     phases:
       - phase_id: "IDS-STAGE051-P1"
@@ -13768,6 +13773,11 @@ stages:
         status: "passed_with_local_evidence"
         entry_authorized: true
         next_gate_id: "IDS-STAGE051-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE051-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE051-P2-GATE"
+          github_upload_allowed: false
         stop_conditions:
           - "读取真实资料、原始元数据、真实文件、页面、图像、来源正文或 Owner fixture"
           - "创建 OCR 队列、选择或调用 OCR 引擎、处理页面或图片、输出 OCR 文本、写入缓存或创建复核记录"
@@ -13799,3 +13809,47 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
             risk: "若把静态 OCR 合同误解为已运行的 OCR、生产服务或部署就绪，会绕开业务线复核与可回滚边界。"
             rollback: "只回滚本 P1 范围说明、静态合同、聚焦用例、machine run、事件、事实投影与治理路线，恢复到 BATCH041-050 本地复审完成；不改变业务资料、持久运行状态、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE051-P2"
+        name: "Phase 2 · OCR 队列最小可运行切片"
+        objective: "只用 P1 七字段引用输入和四个固定非业务控制页，在内存中形成逐页输出、置信度记录、可解释状态与来源页引用；不调用 OCR 引擎或写入运行时状态。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE051-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE051-P2-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE051-P3-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取真实资料、原始元数据、真实文件、页面、图像、来源正文或 Owner fixture"
+          - "选择或调用 OCR 引擎，处理真实 PDF 或图片，创建持久队列、缓存、实际复核任务或生产按页输出"
+          - "执行质量门、证据提升、持久化、智能体、模型调用、OVH、生产服务、上传或推送"
+          - "进入 P3、P4、整阶段复审、批次复审或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE051-P2"
+            name: "实现 OCR 队列最小内存切片与逐页可解释状态"
+            objective: "在冻结任务包范围内执行可测试、可回滚的控制切片，保留全局上传锁和后续 OCR 质量验证门。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE051-P1"
+            acceptance_ids:
+              - "ACC-STAGE-051"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_slice"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch041_050_review_gate"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage005_governance_regression"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "聚焦 Stage051 P2 直接单元用例通过 9/9；Stage051 P1 前序兼容用例通过 8/8；Stage041-050 批次复审前序兼容用例通过 6/6；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_PHASE2_OCR_QUEUE_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage051_ocr_queue_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage051_ocr_queue_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_ocr_queue_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-12-stage051-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+            risk: "若把控制页输出误作真实 OCR、真实人工复核、缓存、OVH 或生产能力，会绕开业务线白箱控制和后续质量验证。"
+            rollback: "只回滚本 P2 说明、合同、纯内存切片、聚焦用例、machine run、事件、事实投影与治理路线，恢复到 P1 OCR 队列边界；不改变真实资料、持久运行状态、GitHub、OVH 或应用状态。"

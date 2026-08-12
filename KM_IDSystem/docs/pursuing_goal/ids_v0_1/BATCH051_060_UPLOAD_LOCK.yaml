@@ -1,14 +1,20 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-051-060"
 created_at_utc: "2026-08-12T13:19:44Z"
-updated_at_utc: "2026-08-12T13:19:44Z"
-status: "stage051_phase1_completed"
+updated_at_utc: "2026-08-12T13:54:14Z"
+status: "stage051_phase2_completed"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-041-050"
 predecessor_review_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
 
 transition_history:
+  stage051_phase2_state:
+    status: "stage051_phase2_completed"
+    current_task_id: "IDS-V0_1-STAGE051-P2"
+    next_gate: "IDS-STAGE051-P3-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE051-P3"
+    github_upload_allowed: false
   stage051_phase1_state:
     status: "stage051_phase1_completed"
     current_task_id: "IDS-V0_1-STAGE051-P1"
@@ -51,16 +57,18 @@ upload_gate:
 
 stage_progress:
   STAGE-051:
-    status: "stage051_phase1_completed"
+    status: "stage051_phase2_completed"
     completed_phases:
       - "Phase 1"
-    next_phase: "Phase 2"
-    next_gate: "IDS-STAGE051-P2-GATE"
-    current_task_id: "IDS-V0_1-STAGE051-P1"
+      - "Phase 2"
+    next_phase: "Phase 3"
+    next_gate: "IDS-STAGE051-P3-GATE"
+    current_task_id: "IDS-V0_1-STAGE051-P2"
     acceptance_id: "ACC-STAGE-051"
-    acceptance_status: "phase1_ocr_queue_boundary_complete"
+    acceptance_status: "phase2_controlled_ocr_queue_slice_complete"
     review_status: "pending"
     phase2_entry_authorized: true
+    phase3_entry_authorized: true
     taskpack_context_read_performed: true
     source_authority: "FROZEN_TASKPACK_TEXT_AND_BATCH041_050_REVIEW_ARTIFACTS"
     second_authoritative_source_created: false
@@ -73,21 +81,32 @@ stage_progress:
     parser_execution_performed: false
     parser_output_created: false
     prompt_injection_marker_application_performed: false
-    ocr_queue_contract_schema: "ids.stage051.ocr_queue.phase1.v1"
-    contract_state: "PHASE1_OCR_QUEUE_BOUNDARY_RUNTIME_DISABLED"
+    ocr_queue_contract_schema: "ids.stage051.ocr_queue.phase2.v1"
+    contract_state: "PHASE2_CONTROLLED_OCR_QUEUE_SLICE_ENGINE_DISABLED"
     execution_ready: false
     reference_only_ocr_input_field_count: 7
     per_page_output_field_count: 8
     declared_input_kind_count: 3
     default_language_count: 2
     default_simplified_chinese_and_english_declared: true
+    in_memory_ocr_queue_slice_implemented: true
+    in_memory_queue_record_created: true
+    in_memory_page_output_created: true
+    source_page_reference_derived: true
+    control_page_output_count: 4
+    low_confidence_state_recorded: true
+    failed_page_state_recorded: true
+    mixed_language_state_recorded: true
+    cache_policy: "IN_MEMORY_REBUILDABLE_NOT_PERSISTED"
     ocr_engine_selected: false
     ocr_engine_configuration_performed: false
     ocr_queue_created: false
+    persistent_queue_created: false
     ocr_engine_invocation_performed: false
     pdf_rasterization_performed: false
     image_processing_performed: false
     page_output_created: false
+    persistent_page_output_created: false
     confidence_threshold_assigned: false
     low_confidence_direct_high_trust_allowed: false
     review_queue_created: false
@@ -103,6 +122,8 @@ stage_progress:
     report_write_performed: false
     job_creation_performed: false
     state_transition_performed: false
+    in_memory_control_job_created: true
+    in_memory_state_transition_recorded: true
     persistent_state_write_performed: false
     database_connection_performed: false
     agent_execution_performed: false
@@ -111,7 +132,8 @@ stage_progress:
     local_service_start_performed: false
     ovh_deployment_performed: false
     production_runtime_activation_performed: false
-    phase2_started: false
+    phase2_started: true
+    phase3_started: false
     whole_stage_review_performed: false
     batch_review_performed: false
     github_upload_allowed: false
@@ -122,15 +144,20 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage051_ocr_queue_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_ocr_queue.py"
       - "KM_IDSystem/machine/runs/2026-08-12-stage051-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_PHASE2_OCR_QUEUE_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage051_ocr_queue_slice_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage051_ocr_queue_slice.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_ocr_queue_slice.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-stage051-p2-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE051-P1"
-  next_allowed_task_id: "IDS-V0_1-STAGE051-P2"
+  current_task_id: "IDS-V0_1-STAGE051-P2"
+  next_allowed_task_id: "IDS-V0_1-STAGE051-P3"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-051 Phase 1 only defines the OCR queue input, per-page output, default language, confidence, cache and review-routing contract. It does not open sources, create a queue, select an OCR engine, invoke OCR, write cache or activate any runtime."
+  current_run: "STAGE-051 Phase 2 executes only a fixed four-page, non-business control slice in memory. It derives source-page references and explainable candidate, low-confidence, mixed-language and failure states without opening sources, selecting or invoking an OCR engine, creating a persistent queue or cache, or activating runtime."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."

@@ -1,21 +1,22 @@
 {
   "stage": "IDS-STAGE051",
-  "phase": "IDS-V0_1-STAGE051-P1",
-  "task": "IDS-V0_1-STAGE051-P1",
-  "owner": "Codex 专属 KMOS worktree，Stage051 P1",
-  "objective": "只定义 OCR 队列的引用输入、按页输出、默认语言、低置信度、缓存和中文反馈边界，不创建 OCR 运行能力。",
+  "phase": "IDS-V0_1-STAGE051-P2",
+  "task": "IDS-V0_1-STAGE051-P2",
+  "owner": "Codex 专属 KMOS worktree，Stage051 P2",
+  "objective": "只用 P1 七字段引用输入和四个固定非业务控制页，执行可测试、可回滚的纯内存 OCR 队列切片；不调用 OCR 引擎或创建持久运行能力。",
   "scope": [
     "以冻结 Stage051 任务包与 BATCH041-050 已复审工件为唯一合同上下文，不建立第二权威事实源",
-    "固定七字段引用输入、三类输入提示、八字段按页输出、默认中文简体与英文、低置信度隔离和未来可重建缓存边界",
+    "固定七字段引用输入、四页非业务控制记录与八字段按页输出，派生来源页引用、语言和置信度记录",
+    "以低置信、失败和中英混合控制页验证可解释状态，所有结果仍为候选且不直接进入高可信证据层",
     "保留 Stage045-050 上游责任，明确 Stage052、053、054 与 056 的后续所有权",
-    "同步 P1 范围说明、静态合同、聚焦单元用例、BATCH051-060 锁、路线图、machine run、事件、机器事实、中文视图与交接",
-    "只完成 ACC-STAGE-051 的 Phase 1 本地白箱合同并指向 Stage051 P2 门"
+    "同步 P2 说明、控制切片合同、纯内存模块、聚焦单元用例、BATCH051-060 锁、路线图、machine run、事件、机器事实、中文视图与交接",
+    "只完成 ACC-STAGE-051 的 Phase 2 本地白箱切片并指向 Stage051 P3 门"
   ],
   "non_goals": [
     "不打开真实业务源、原始元数据、页面、图像、来源正文或 Owner fixture，不执行文件签名识别、真实路线评估或创建业务解析输出",
-    "不选择或调用 OCR 引擎，不创建 OCR 队列、按页输出、缓存、复核记录、真实 parser、真实 fallback 或质量门",
-    "不提升证据，不写 manifest、evidence ledger、audit、index、report、database、job、state 或持久运行状态",
-    "不进入 Stage051 P2、P3、P4、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不选择或调用 OCR 引擎，不处理真实 PDF 或图片，不创建持久 OCR 队列、缓存、复核记录、真实 parser、真实 fallback 或质量门",
+    "不提升证据，不写 manifest、evidence ledger、audit、index、report、database、持久 job、持久 state 或运行状态",
+    "不进入 Stage051 P3、P4、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "P1 OCR 队列合同、事实投影与聚焦单元用例验证完成后停止，下一轮只允许进入 IDS-STAGE051-P2-GATE；任何真实资料访问、OCR 引擎选择或调用、队列/缓存/复核创建、质量门、持久写入、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "P2 纯内存控制切片、事实投影与聚焦单元用例验证完成后停止，下一轮只允许进入 IDS-STAGE051-P3-GATE；任何真实资料访问、OCR 引擎选择或调用、持久队列/缓存/复核创建、质量门、持久写入、OVH、生产或上传动作都不属于本步骤。"
 }
