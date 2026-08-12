@@ -1732,7 +1732,7 @@ def test_runtime_cashflow_observation_requires_complete_unique_day_coverage(tmp_
     assert rejected["rejection_categories"] == {"FOOTER_RECONCILIATION": 2}
 
 
-def test_cashflow_observation_excludes_unresolved_generic_source_labels(tmp_path: Path) -> None:
+def test_cashflow_observation_admits_explicit_generic_source_labels_to_the_strict_chart_gate(tmp_path: Path) -> None:
     runtime = DailyFundsRuntime(_config(tmp_path))
     moment = datetime(2026, 8, 1, tzinfo=UTC)
 
@@ -1758,7 +1758,16 @@ def test_cashflow_observation_excludes_unresolved_generic_source_labels(tmp_path
         failures=(ParseError("OCR_GENERIC_FAMILY_UNRESOLVED"),),
     )
 
-    assert runtime._cashflow_observation_candidates((generic, explicit_flow), unresolved) == (explicit_flow,)
+    # ``资金明细`` is an explicitly allowed source family.  Its chart-only
+    # admission cannot make it a formal fact: ``_write_cashflow_observation``
+    # still runs the independent strict date/bank/inflow/outflow/footer gate.
+    assert runtime._cashflow_observation_candidates((generic, explicit_flow), unresolved) == (generic, explicit_flow)
+
+    # A title-less document does not inherit the permissive route.  It must
+    # first have a deterministic raw-byte family resolution; otherwise it
+    # remains outside both the formal and chart-only paths.
+    titleless = replace(generic, family=None)
+    assert runtime._cashflow_observation_candidates((titleless,), unresolved) == ()
 
 
 def test_deterministic_ocr_runtime_requires_all_pdf_tools() -> None:

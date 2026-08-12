@@ -1419,11 +1419,16 @@ class DailyFundsRuntime:
     ) -> tuple[DownloadedAttachment, ...]:
         """Admit screenshots only after their source family is deterministic.
 
-        An explicitly labelled ``资金流水明细`` keeps its chart-only review
-        path.  A generic ``资金明细`` (or title-less) attachment is admissible
-        only after the same raw-byte parser census has resolved it to the
-        transaction family.  This keeps generic project screenshots in the
-        private archive without misrepresenting them as failed cashflow input.
+        An explicitly classified ``资金流水明细`` or ``资金明细`` keeps its
+        chart-only review path.  The latter is not promoted into formal
+        account/transaction facts merely by this admission: the isolated
+        cashflow parser still requires its own date, bank, two-direction and
+        footer-total proof before any chart point exists.  A title-less
+        attachment remains admissible only after the same raw-byte parser
+        census has resolved it to a transaction family.  This preserves the
+        strict formal-reconciliation boundary while allowing an actual
+        receipt/payment screenshot to be evaluated by the purpose-built
+        chart parser.
         """
 
         resolved = {
@@ -1433,12 +1438,9 @@ class DailyFundsRuntime:
         candidates: list[DownloadedAttachment] = []
         for attachment in attachments:
             resolved_family = resolved.get(attachment.sha256)
-            if attachment.family == "资金流水明细":
+            if attachment.family in TRANSACTION_FAMILIES:
                 candidates.append(attachment)
-            elif (
-                attachment.family in {None, _GENERIC_DOCUMENT_FAMILY}
-                and resolved_family in TRANSACTION_FAMILIES
-            ):
+            elif attachment.family is None and resolved_family in TRANSACTION_FAMILIES:
                 candidates.append(replace(attachment, family=resolved_family))
         return tuple(candidates)
 

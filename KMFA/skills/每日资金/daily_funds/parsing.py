@@ -50,15 +50,16 @@ PARSER_VERSION = "kmfa.daily_funds.parser.v12"
 # create a chart-only receipt from a narrow receipt/payment screenshot without
 # weakening the two-fact account-balance publication contract.
 # v5 keeps v4's bounded sparse-layout fallback and adds a source-family
-# admission gate: a generic archive image cannot reach a chart unless the
-# current parser census first established it as a transaction fact.  It still
-# adds one *consensus-only*
+# admission gate.  v7 permits the explicitly allowed ``资金明细`` document
+# family to reach this *separate* chart-only parser even when it cannot form a
+# formal account/transaction fact.  It still adds one *consensus-only*
 # table-layout recovery pair.  It is reached only after both existing header
 # passes are missing, and both recovery modes must independently satisfy the
 # unchanged date, row, amount-confidence and footer-total rules with exactly
 # the same result.  A single alternate OCR reading can therefore never create
-# a chart point.
-CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v6"
+# a chart point.  Chart admission never relaxes these rules or produces a
+# formal account-balance publication.
+CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v7"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
