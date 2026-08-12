@@ -1,11 +1,7 @@
 name: kmfa-heartbeat
-# 技能心跳：每小时探公开健康端点，发现失败就**自动触发重新部署**——
-# 而部署会让容器冷启动重跑失败技能（见 entrypoint），于是这条链是自愈的，不是只报警。
-#
-# 为什么必须自愈而不是只报警（Owner 2026-07-27）：
-#   「你已经浪费了我一个月的时间都还没有修好考勤」。
-#   一个月是这么没的：修好代码 → 等下一次排程 → 一天 → 又发现别的问题 → 再等一天。
-#   报警只是把等待变成"有人知道的等待"，时间照样在流。所以这里直接动手。
+# 站点心跳：每小时以匿名 `/healthz` 判定 KMFA 应用是否可用。只有该浅健康
+# 探测自身不可达时才允许触发重新部署；业务技能红色是需要处理的真实状态，
+# 但不是容器宕机的证据，重启也不能制造来源、登录态或勾稽事实。
 #
 # 防抖动三条（不做的话它会把自己变成噪音源）：
 #   · 只有距上次部署 ≥2 小时才允许再次触发，避免部署风暴；
@@ -84,65 +80,45 @@ jobs:
               print("REASON=公开技能健康不可读，但浅健康已通过；不重启以掩盖业务状态")
               raise SystemExit(0)
 
-          if not d.get("台账可读"):
+          if not isinstance(d, dict) or not d.get("台账可读"):
               print("RED=1")
               print("NEED_HEAL=0")
               print("REASON=台账不可读，但浅健康已通过；需修复运行态而非重复重启")
               raise SystemExit(0)
 
-          # 重新部署能修的，只有「代码/配置换了一版，但容器还跑着旧的」这一类。
-          # 它修不了的：数据侧的发现（新资产没抽取）、外部登录态失效、业务对不平。
-          # 对这些码还去部署，就是每小时白烧一次部署 + 一次冷启动重试，而症状一动不动。
-          # 2026-07-28 实测：self-audit(STALE) 与 upstream-archive(NO_TARGET_GROUPS)
-          # 两条都属此类，于是心跳连着几十轮无脑重部署——噪音盖住了真问题。
-          NO_HEAL = {
-              "STALE", "LINEAGE_STALE",            # 数据发现：要跑抽取，不是重启
-              "MANIFEST_UNAVAILABLE", "NO_GRAPH",  # 数据源读不到：重启读不出来
-              "NO_TARGET_GROUPS", "NO_GROUPS_LISTED",  # 上游没登录/没清单：重启不会登录
-              "DWS_AUTH_REQUIRED", "NOT_SENT_DWS_AUTH_REQUIRED",
-              "DEPLOY_KEY_MISSING",                # 密钥要注入，不是重启
-          }
-
           rows = d.get("技能", [])
+          if not isinstance(rows, list) or not all(
+              isinstance(r, dict) and isinstance(r.get("技能"), str) and r.get("技能")
+              for r in rows
+          ):
+              print("RED=1")
+              print("NEED_HEAL=0")
+              print("REASON=公开技能健康返回结构异常，但浅健康已通过；不重启以掩盖未知业务状态")
+              raise SystemExit(0)
           failing = [r for r in rows if r.get("退出码") not in (0, None)]
           never = [r for r in rows if (r.get("运行次数") or 0) == 0]
           stale = [r for r in rows
                    if r.get("距今小时") is not None and r["距今小时"] > 30
                    and r.get("运行次数")]
           for r in rows:
-              print(f"  {r['技能']:<24} rc={r.get('退出码')} 次数={r.get('运行次数')} "
+              print(f"  {r.get('技能'):<24} rc={r.get('退出码')} 次数={r.get('运行次数')} "
                     f"距今h={r.get('距今小时')} 码={r.get('失败码')}")
-          # Daily funds owns a separate cloud worker and its source evidence
-          # chain.  Its red result is essential operational truth, but a web
-          # app restart neither logs into DWS nor creates a matching account /
-          # transaction pair.  Treat every such result as non-healable here.
+          # 业务红色永远要留在心跳结果里，但浅健康通过时，它们全部不可由本
+          # 工作流自愈。尤其每日资金的来源/解析/勾稽链由独立云端 worker
+          # 负责，重启 Web 应用既不能登录 DWS，也不能生成账户与流水事实对。
           isolated_business = [r for r in failing if r.get("技能") == "daily-funds"]
-          healable = [
-              r for r in failing
-              if r.get("技能") != "daily-funds"
-              and (r.get("失败码") or "UNKNOWN") not in NO_HEAL
-          ]
-          blocked = [
-              r for r in failing
-              if r.get("技能") == "daily-funds"
-              or (r.get("失败码") or "UNKNOWN") in NO_HEAL
-          ]
           print(f"FAILING={len(failing)} NEVER_RAN={len(never)} STALE={len(stale)} "
-                f"HEALABLE={len(healable)} NO_HEAL={len(blocked)} "
+                f"HEALABLE=0 NO_HEAL={len(failing)} "
                 f"ISOLATED_BUSINESS={len(isolated_business)}")
           # RED 与 NEED_HEAL 分家：前者管"这轮心跳红不红"，后者管"要不要动手部署"。
           # 合在一起就只有两种姿势——要么假绿，要么无脑部署，两种都被实测证伪过。
           print("RED=1" if failing else "RED=0")
-          if healable:
-              print("NEED_HEAL=1")
-              print("REASON=可自愈失败：" + "、".join(
-                  f"{r['技能']}({r.get('失败码') or 'UNKNOWN'})" for r in healable))
-          elif blocked:
-              print("NEED_HEAL=0")
-              print("REASON=有失败但重新部署修不了，需人/agent 处理：" + "、".join(
-                  f"{r['技能']}({r.get('失败码')})" for r in blocked))
+          print("NEED_HEAL=0")
+          if failing:
+              print("REASON=业务技能存在失败，但浅健康已通过；不重启以掩盖业务状态：" + "、".join(
+                  f"{r.get('技能') or 'UNKNOWN'}({r.get('失败码') or 'UNKNOWN'})"
+                  for r in failing))
           else:
-              print("NEED_HEAL=0")
               print("REASON=全部技能退出码为 0")
           PY
           grep -E '^(NEED_HEAL|REASON|RED)=' /tmp/beat.txt >> "$GITHUB_OUTPUT"
