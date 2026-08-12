@@ -1,10 +1,20 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-08-12T11:52:29Z"
-status: "stage050_completed_reviewed_local"
+updated_at_utc: "2026-08-12T12:31:55Z"
+status: "batch041_050_reviewed_local_global_upload_locked"
+
+review_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+review_evidence_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
+review_contract_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/batch_review/stage041_050_batch_review_contract.json"
 
 transition_history:
+  batch041_050_review_state:
+    status: "batch041_050_reviewed_local_global_upload_locked"
+    current_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+    next_gate: "IDS-STAGE051-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE051-P1"
+    github_upload_allowed: false
   stage050_review_state:
     status: "stage050_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE050-REVIEW"
@@ -331,15 +341,17 @@ data_boundary:
 
 upload_gate:
   push_allowed: false
+  github_upload_allowed: false
+  batch_upload_gate_deferred: true
+  global_release_acceptance_required: "ACC-STAGE-168"
   blocked_until:
-    - "STAGE-041 through STAGE-050 all completed."
-    - "Every completed Stage has durable local evidence and a whole-stage review."
-    - "The independent ten-stage review completes and repairs all findings."
-    - "A separate batch upload gate runs; no single-stage GitHub upload gate."
-    - "App entries are reinstalled only after the whole batch is merged to GitHub main."
+    - "The frozen taskpack is completed through STAGE-168 and final acceptance is passed."
+    - "A separate global release review confirms all local evidence and rollback evidence."
+    - "A separately authorized global upload gate is completed; no stage or batch gate enables upload."
+    - "App entries remain unchanged until the final global release route is completed."
   github_target: "main"
-  next_batch_review_gate: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
-  next_batch_upload_gate: "IDS-V0_1-BATCH-041-050-UPLOAD-GATE"
+  completed_batch_review_gate: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+  deferred_batch_upload_gate: "IDS-V0_1-BATCH-041-050-UPLOAD-GATE"
 
 stage_progress:
   STAGE-041:
@@ -434,7 +446,7 @@ stage_progress:
     raw_metadata_content_accessed: false
     fake_ids_business_data_used: false
     whole_stage_review_performed: true
-    batch_review_performed: false
+    batch_review_performed: true
     stage042_entry_allowed: false
     production_runtime_activation_performed: false
     github_upload_allowed: false
@@ -569,7 +581,7 @@ stage_progress:
     external_api_call_performed: false
     production_runtime_activation_performed: false
     whole_stage_review_performed: true
-    batch_review_performed: false
+    batch_review_performed: true
     github_upload_allowed: false
     app_reinstall_allowed: false
     evidence_refs:
@@ -715,7 +727,7 @@ stage_progress:
     runtime_output_written: false
     production_runtime_activation_performed: false
     whole_stage_review_performed: true
-    batch_review_performed: false
+    batch_review_performed: true
     stage044_entry_allowed: false
     github_upload_allowed: false
     app_reinstall_allowed: false
@@ -889,7 +901,7 @@ stage_progress:
     runtime_output_written: false
     production_runtime_activation_performed: false
     whole_stage_review_performed: true
-    batch_review_performed: false
+    batch_review_performed: true
     github_upload_allowed: false
     app_reinstall_allowed: false
     stage045_entry_allowed: false
@@ -1035,7 +1047,7 @@ stage_progress:
     runtime_output_written: false
     production_runtime_activation_performed: false
     whole_stage_review_performed: true
-    batch_review_performed: false
+    batch_review_performed: true
     github_upload_allowed: false
     app_reinstall_allowed: false
     stage046_entry_allowed: false
@@ -1198,7 +1210,7 @@ stage_progress:
     phase4_started: true
     whole_stage_review_performed: true
     stage047_entry_allowed: false
-    batch_review_performed: false
+    batch_review_performed: true
     github_upload_allowed: false
     app_reinstall_allowed: false
     evidence_refs:
@@ -1392,7 +1404,7 @@ stage_progress:
     phase4_started: true
     whole_stage_review_performed: true
     stage048_entry_allowed: false
-    batch_review_performed: false
+    batch_review_performed: true
     github_upload_allowed: false
     app_reinstall_allowed: false
     evidence_refs:
@@ -1480,7 +1492,7 @@ stage_progress:
     phase4_started: true
     whole_stage_review_performed: true
     stage049_started: false
-    batch_review_performed: false
+    batch_review_performed: true
     github_upload_allowed: false
     app_reinstall_allowed: false
     push_allowed: false
@@ -1620,7 +1632,7 @@ stage_progress:
     whole_stage_review_performed: true
     stage050_started: false
     stage050_entry_authorized: false
-    batch_review_performed: false
+    batch_review_performed: true
     github_upload_allowed: false
     app_reinstall_allowed: false
     push_allowed: false
@@ -1736,9 +1748,9 @@ stage_progress:
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_stage: "BATCH-041-050"
-    next_phase: "batch_review"
-    next_gate: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+    next_stage: "STAGE-051"
+    next_phase: "Phase 1"
+    next_gate: "IDS-STAGE051-P1-GATE"
     current_task_id: "IDS-V0_1-STAGE050-REVIEW"
     acceptance_id: "ACC-STAGE-050"
     acceptance_status: "completed_reviewed_local"
@@ -1812,7 +1824,7 @@ stage_progress:
     whole_stage_review_performed: true
     stage051_started: false
     stage051_entry_authorized: false
-    batch_review_performed: false
+    batch_review_performed: true
     github_upload_allowed: false
     app_reinstall_allowed: false
     push_allowed: false
@@ -1854,6 +1866,11 @@ stage_progress:
     stage_review_rollback_chain_preserved: true
     stage_review_runtime_and_external_actions_disabled: true
     stage_review_result: "PASS_REVIEWED_LOCAL_PROMPT_INJECTION_MARKER_RUNTIME_DISABLED"
+    batch_review_contract_schema: "ids.v0_1.batch041_050.review_contract.v1"
+    batch_review_valid: true
+    batch_review_result: "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
+    batch_upload_gate_started: false
+    global_upload_deferred: true
     execution_ready: false
     evidence_refs:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE050_PHASE1_PROMPT_INJECTION_MARKER_SCOPE_BOUNDARY.md"
@@ -1879,12 +1896,19 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/prompt_injection_marker/stage050_prompt_injection_marker_stage_review.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage050_prompt_injection_marker_stage_review.py"
       - "KM_IDSystem/machine/runs/2026-08-12-stage050-review-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/batch_review/stage041_050_batch_review_contract.json"
+      - "KM_IDSystem/scripts/check_batch041_050_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_batch041_050_review_gate.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-batch041-050-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE050-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+  current_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+  next_allowed_task_id: "IDS-V0_1-STAGE051-P1"
   github_upload_allowed: false
-  current_run: "STAGE-050 Review replays the Phase 1 through Phase 4 control-only evidence chain and validates the single-authority boundary, evidence-only instruction handling, explicit dispositions, schema-only samples, empty runtime support, rollback chain and local-only limits. It leaves source access, file detection, routing, parsing, fallback, runtime marker application, quality, persistence, Agent, model, OVH and production actions disabled."
-  no_upload_reason: "BATCH041_050 has ten individually reviewed Stages, but the independent ten-stage batch review and batch upload gate are incomplete, so upload remains unavailable."
+  push_allowed: false
+  global_upload_deferred: true
+  current_run: "BATCH041_050 独立复审只核验冻结任务包投影、十个既有 Stage 复审工件、接口责任链、治理路线和中文事实投影。它不读取业务资料，不执行检测、路由、解析、降级、质量门、持久化、Agent、模型、OVH 或生产动作。"
+  no_upload_reason: "冻结目标要求所有任务包 Stage 与最终 ACC-STAGE-168 完成并通过独立全局验收后才可重新评估上传；本批次仅完成本地复审，所有上传路径继续关闭。"

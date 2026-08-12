@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE050",
-  "phase": "IDS-STAGE050-REVIEW",
-  "task": "IDS-V0_1-STAGE050-REVIEW",
-  "real_progress": "Stage050 已完成 P1-P4 本地白箱复审：提示注入证据文本边界、11 个格式标签化 control 场景、8 个仅结构 parser 输出样例、11 条非运行时处置记录、质量指标、五类失败分类、空运行时格式集合与回滚链一致；下一步只能在独立 run 进入十阶段批次复审",
-  "report_grade": "冻结任务包、Stage049 本地复审、Stage050 P1-P4 合同、纯内存重放、复审不变量与聚焦用例一致",
-  "business_verdict": "Stage050 本地复审证明受控提示注入标记合同可解释、可回滚且业务线可复审；该结论不证明真实文件检测、真实路由、真实 parser、运行时标记、质量门、持久化、OVH 或生产能力已启用",
-  "evidence_status": "LOCAL_STAGE050_REVIEWED_PROMPT_INJECTION_MARKER_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-BATCH-041-050-REVIEW-GATE",
+  "task": "IDS-V0_1-BATCH-041-050-REVIEW-GATE",
+  "real_progress": "Stage041-050 的十个本地复审已完成独立批次复审：工件矩阵、接口责任链、回滚范围、治理路线与中文事实投影一致；下一步只能在独立 run 进入 Stage051 P1 门，所有上传路径继续关闭",
+  "report_grade": "冻结任务包投影、十个既有 Stage 复审工件、批次合同、白箱检查器、治理路线和事实投影一致",
+  "business_verdict": "本批次复审只证明十个受控 Stage 的本地证据和职责边界可复核、可恢复；不证明真实文件处理、OCR、解析质量、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_BATCH041_050_REVIEWED_GLOBAL_UPLOAD_LOCKED_RUNTIME_DISABLED",
   "rendered_at": "2026-08-12",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-V0_1-BATCH-041-050-REVIEW-GATE",
+  "next_gate": "IDS-STAGE051-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

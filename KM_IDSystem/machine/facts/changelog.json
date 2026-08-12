@@ -1,5 +1,10 @@
 [
   {
+    "version": "`v0.1-batch041-050-review-local`",
+    "date": "2026-08-12",
+    "summary": "完成 Stage041-050 本地白箱批次复审：十个既有 Stage 复审工件、接口责任链、批次治理路线和中文事实投影一致；不读取真实资料，不执行文件检测、路由、parser、fallback、质量门、持久化、Agent、模型调用、OVH、生产、Stage051 或上传，所有上传路径保持关闭直到最终 ACC-STAGE-168。"
+  },
+  {
     "version": "`v0.1-stage050-review-local`",
     "date": "2026-08-12",
     "summary": "完成 Stage050 P1-P4 本地白箱复审：单一事实源、P2 evidence-only 标记、11 个明确场景、8 个仅结构样例、11 条非运行时记录、五类失败关闭、指令文本边界、空运行时格式集合与完整回滚链一致；不读取真实资料，不执行真实检测、路线、parser、fallback、运行时标记、质量门、持久化、Agent、模型调用、OVH、批次复审、上传或生产动作。"

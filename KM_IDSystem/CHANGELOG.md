@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 BATCH041--050 Review - 2026-08-12
+
+- 完成 `IDS-V0_1-BATCH-041-050-REVIEW-GATE`：独立核验 Stage041--050 的十份既有整阶段复审工件、跨阶段责任链、单一事实源边界和批次治理投影，结果为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。
+- 批次结论仅允许后续独立进入 `IDS-STAGE051-P1-GATE`；所有 GitHub 上传/推送路径继续关闭，最终上传仍依赖完整冻结任务包至 `ACC-STAGE-168`。
+- 本地验证通过：批次聚焦用例 `6/6`、治理回归 `178/178`、治理报告 `valid=true`、中文事实投影已渲染 `7` 个文件且双平面检查通过。未读取业务源或原始元数据，未执行 parser、fallback、持久化、Agent、模型调用、OVH、生产运行、Stage051、上传或推送。
+
 ## IDS v0.1 STAGE-050 Review - 2026-08-12
 
 - 完成 P1--P4 本地白箱复审：P2 evidence-only 标记、P3 的 `11/11` 明确场景、P4 的 `8` 个仅结构样例、`11` 条非运行时记录、五类失败关闭、指令文本边界、空运行时格式集合与回滚链均一致。

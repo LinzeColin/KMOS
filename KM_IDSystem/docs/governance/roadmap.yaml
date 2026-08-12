@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE050"
-current_phase_id: "IDS-STAGE050-REVIEW"
-current_task_id: "IDS-V0_1-STAGE050-REVIEW"
-next_gate_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+current_phase_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+current_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+next_gate_id: "IDS-STAGE051-P1-GATE"
 current_transition_history:
+  batch041_050_review_state:
+    current_stage_id: "IDS-STAGE050"
+    current_phase_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+    current_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+    next_gate_id: "IDS-STAGE051-P1-GATE"
   stage050_review_state:
     current_stage_id: "IDS-STAGE050"
     current_phase_id: "IDS-STAGE050-REVIEW"
@@ -13339,12 +13344,12 @@ stages:
     task_id: "IDS-V0_1-STAGE050"
     acceptance_ids:
       - "ACC-STAGE-050"
-    status: "completed_reviewed_local"
+    status: "batch041_050_reviewed_local_global_upload_locked"
     pursuing_goal: "将未来解析产物固定为不可信证据文本，并定义不覆盖受控规则、不绕过质量门的提示注入标记边界。"
     stop_gate:
-      gate_id: "IDS-STAGE050-REVIEW-GATE"
-      status: "passed_with_local_evidence"
-      next_gate_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+      gate_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+      status: "completed"
+      next_gate_id: "IDS-STAGE051-P1-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE050_PHASE1_PROMPT_INJECTION_MARKER_SCOPE_BOUNDARY.md"
@@ -13370,6 +13375,11 @@ stages:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/prompt_injection_marker/stage050_prompt_injection_marker_stage_review.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage050_prompt_injection_marker_stage_review.py"
       - "KM_IDSystem/machine/runs/2026-08-12-stage050-review-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/batch_review/stage041_050_batch_review_contract.json"
+      - "KM_IDSystem/scripts/check_batch041_050_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_batch041_050_review_gate.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-batch041-050-review-local.json"
     phases:
       - phase_id: "IDS-STAGE050-P1"
         name: "提示注入标记范围、输入输出与边界确认"
@@ -13657,3 +13667,75 @@ stages:
               - "KM_IDSystem/machine/runs/2026-08-12-stage050-review-local.json"
             risk: "若把 P1--P4 控制证据误作真实文件检测、真实 parser、运行时提示注入标记或生产能力，遗漏回滚链，或提前进入批次复审，会让业务线对质量、可用性或部署状态形成错误预期。"
             rollback: "只回滚本复审文档、模块、聚焦单元用例、machine run、事件、事实投影与治理状态，恢复到 Stage050 P4 待复审；保留 P1--P4、原始资料、manifest、evidence ledger、audit、既有报告、GitHub、OVH 和应用状态。"
+      - phase_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+        name: "STAGE-041 至 STAGE-050 独立批次复审"
+        objective: "将十个既有 Stage 本地复审工件、接口责任链、治理路线与中文事实投影汇总为可重放的批次门；只关闭本地批次复审，不启动 Stage051、运行时、部署或上传。"
+        status: "completed"
+        entry_authorized: true
+        stage051_entry_authorized: false
+        push_allowed: false
+        stop_conditions:
+          - "读取、列举、打开、复制、散列或修改 IDS 业务资料、原始元数据、页面、图像、来源正文或 Owner fixture"
+          - "执行真实文件检测、路由、parser、fallback、质量门、人工队列、证据提升、持久化、Agent、模型调用、OVH、生产服务或应用重装"
+          - "进入 Stage051、任何上传门、GitHub 上传、合并或推送"
+        stop_gate:
+          gate_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+          status: "completed"
+          next_gate_id: "IDS-STAGE051-P1-GATE"
+          github_upload_allowed: false
+          pass_conditions:
+            - "十个 Stage 的冻结任务包引用、既有复审说明、检查器、聚焦用例和 machine run 引用形成完整连续矩阵"
+            - "041→042→043→044→045→046→047→048→049→050 接口责任链明确，且不把控制证据升级为运行时能力"
+            - "批次锁、路线图、事件、中文事实投影均指向 Stage051 的独立入口，Stage051 在本轮未启动"
+            - "所有上传路径保持关闭；冻结任务包整体完成并通过最终 ACC-STAGE-168 前，不得进入任何上传动作"
+            - "未读取业务资料或原始元数据，未执行运行时、Agent、模型、OVH、生产、上传、推送或应用重装"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/batch_review/stage041_050_batch_review_contract.json"
+            - "KM_IDSystem/scripts/check_batch041_050_review.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_batch041_050_review_gate.py"
+            - "KM_IDSystem/machine/runs/2026-08-12-batch041-050-review-local.json"
+        tasks:
+          - task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+            name: "复审 Stage041 至 Stage050 的本地批次证据"
+            objective: "确认十个 Stage 的本地复审、接口责任边界、回滚范围和全局上传锁一致，使业务线能白箱查看批次结论而不扩展实际运行能力。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE041-REVIEW"
+              - "IDS-V0_1-STAGE042-REVIEW"
+              - "IDS-V0_1-STAGE043-REVIEW"
+              - "IDS-V0_1-STAGE044-REVIEW"
+              - "IDS-V0_1-STAGE045-REVIEW"
+              - "IDS-V0_1-STAGE046-REVIEW"
+              - "IDS-V0_1-STAGE047-REVIEW"
+              - "IDS-V0_1-STAGE048-REVIEW"
+              - "IDS-V0_1-STAGE049-REVIEW"
+              - "IDS-V0_1-STAGE050-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-041"
+              - "ACC-STAGE-042"
+              - "ACC-STAGE-043"
+              - "ACC-STAGE-044"
+              - "ACC-STAGE-045"
+              - "ACC-STAGE-046"
+              - "ACC-STAGE-047"
+              - "ACC-STAGE-048"
+              - "ACC-STAGE-049"
+              - "ACC-STAGE-050"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch041_050_review_gate"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage005_governance_regression"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "批次复审聚焦用例通过 6/6；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/batch_review/stage041_050_batch_review_contract.json"
+              - "KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_batch041_050_review_gate.py"
+              - "KM_IDSystem/machine/runs/2026-08-12-batch041-050-review-local.json"
+            risk: "若把已审查的控制证据误作真实运行、真实解析质量、部署就绪或上传许可，或在最终全局验收前打开上传路径，会破坏业务线白箱控制和可回滚边界。"
+            rollback: "只回滚本批次复审说明、合同、检查器、聚焦用例、machine run、事件、事实投影与治理路线，恢复到 Stage050 本地复审完成；保留 Stage041–050 已有证据、冻结任务包、原始资料、外部系统状态和后续 Stage 状态。"

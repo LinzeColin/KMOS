@@ -22,14 +22,24 @@ class Stage005GovernanceRegressionTests(unittest.TestCase):
         return module
 
     def _tamper_current_stage046_phase1_route(self, batch_text: str) -> str:
-        tampered = batch_text.replace(
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE047-REVIEW"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE048-P1"',
-            'decision:\n  current_task_id: "IDS-V0_1-STAGE047-REVIEW"\n'
-            '  next_allowed_task_id: "IDS-V0_1-STAGE048-P1-BROKEN"',
+        route_variants = (
+            (
+                'decision:\n  current_task_id: "IDS-V0_1-STAGE047-REVIEW"\n'
+                '  next_allowed_task_id: "IDS-V0_1-STAGE048-P1"',
+                'decision:\n  current_task_id: "IDS-V0_1-STAGE047-REVIEW"\n'
+                '  next_allowed_task_id: "IDS-V0_1-STAGE048-P1-BROKEN"',
+            ),
+            (
+                'decision:\n  current_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"\n'
+                '  next_allowed_task_id: "IDS-V0_1-STAGE051-P1"',
+                'decision:\n  current_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"\n'
+                '  next_allowed_task_id: "IDS-V0_1-STAGE051-P1-BROKEN"',
+            ),
         )
-        self.assertNotEqual(batch_text, tampered)
-        return tampered
+        for expected, replacement in route_variants:
+            if expected in batch_text:
+                return batch_text.replace(expected, replacement, 1)
+        self.fail("current governed decision route not found")
 
     # Historical tests use the old helper name but must tamper the live route.
     def _tamper_current_stage045_phase4_route(self, batch_text: str) -> str:

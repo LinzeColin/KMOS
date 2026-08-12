@@ -9,6 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
+## Current Gate - BATCH041_050 Review - 2026-08-12
+
+- 本节覆盖下方 Stage050 Review 的当前指向；下方未特别标为当前的内容仅保留为阶段证据。
+- 本轮完成 `IDS-V0_1-BATCH-041-050-REVIEW-GATE`，结论为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`：十个既有整阶段复审工件、Stage041→050 责任链、治理路线、中文事实投影和回滚边界均已独立核验，批次内发现的上传路线表达缺口已修复。
+- 唯一事实来源仍为冻结任务包、既有复审证据及当前治理投影；没有建立第二权威事实源，也没有读取 IDS 业务源、原始元数据、正文、文件路径或来源内容。
+- 验证通过：批次聚焦用例 `6/6`、治理回归 `178/178`、治理报告 `valid=true`、批次检查器 `review_valid=true` 且复审阶段数为 `10`，中文事实投影已渲染 `7` 个文件且双平面检查通过。
+- 未执行文件检测、真实路线、parser、fallback、质量门、持久化、Agent、模型调用、本地服务、OVH、生产运行、Stage051、批次上传、GitHub 上传、推送或应用重装。运行时保持零 Agent、零模型 Token。
+- 回滚仅撤回本批次复审说明、合同、检查器、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图；必须保留 Stage041--050 的既有证据、任务包投影、审计记录和历史交接。
+- 下一步仅允许在新的独立 run 进入 `IDS-V0_1-STAGE051-P1`，门为 `IDS-STAGE051-P1-GATE`。所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
+
 ## Current Gate - Stage050 Review - 2026-08-12
 
 - 本节覆盖下方的 Stage050 P4 历史交接；下方未特别标为当前的内容只保留为阶段证据。

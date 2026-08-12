@@ -1,0 +1,181 @@
+{
+  "schema_version": "ids.v0_1.batch041_050.review_contract.v1",
+  "batch_id": "IDS-V0_1-BATCH-041-050",
+  "task_id": "IDS-V0_1-BATCH-041-050-REVIEW-GATE",
+  "stage_range": "STAGE-041..STAGE-050",
+  "acceptance_range": "ACC-STAGE-041..ACC-STAGE-050",
+  "authority_context": "FROZEN_IDS_V0_1_TASKPACK_AND_EXISTING_STAGE_REVIEW_EVIDENCE",
+  "second_authoritative_source_created": false,
+  "stage_reviews": [
+    {
+      "stage_id": "STAGE-041",
+      "acceptance_id": "ACC-STAGE-041",
+      "expected_status": "stage041_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE041-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-041_锁注册与竞态控制.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE041_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/scripts/check_lock_registry_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage041_lock_registry_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-07-18-stage041-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-042",
+      "acceptance_id": "ACC-STAGE-042",
+      "expected_status": "stage042_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE042-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-042_自动运行、暂停、恢复与关闭.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE042_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/scripts/check_automatic_lifecycle_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage042_automatic_lifecycle_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-07-18-stage042-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-043",
+      "acceptance_id": "ACC-STAGE-043",
+      "expected_status": "stage043_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE043-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-043_Worker崩溃恢复.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE043_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/scripts/check_worker_crash_recovery_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage043_worker_crash_recovery_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-07-19-stage043-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-044",
+      "acceptance_id": "ACC-STAGE-044",
+      "expected_status": "stage044_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE044-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-044_半成品输出清理.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE044_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/scripts/check_half_product_cleanup_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage044_half_product_cleanup_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-07-19-stage044-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-045",
+      "acceptance_id": "ACC-STAGE-045",
+      "expected_status": "stage045_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE045-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-045_文件类型检测.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE045_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/scripts/check_file_type_detection_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage045_file_type_detection_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-07-20-stage045-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-046",
+      "acceptance_id": "ACC-STAGE-046",
+      "expected_status": "stage046_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE046-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-046_解析器路由合同.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE046_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/scripts/check_parser_routing_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage046_parser_routing_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-07-22-stage046-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-047",
+      "acceptance_id": "ACC-STAGE-047",
+      "expected_status": "stage047_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE047-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-047_解析器输出合同.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE047_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/scripts/check_parser_output_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage047_parser_output_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-07-24-stage047-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-048",
+      "acceptance_id": "ACC-STAGE-048",
+      "expected_status": "stage048_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE048-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-048_解析器失败降级链.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-08-12-stage048-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-049",
+      "acceptance_id": "ACC-STAGE-049",
+      "expected_status": "stage049_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE049-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-049_差异化解析器评估.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE049_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/differential_parser_evaluation/stage049_differential_parser_evaluation_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage049_differential_parser_evaluation_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-08-12-stage049-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-050",
+      "acceptance_id": "ACC-STAGE-050",
+      "expected_status": "stage050_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE050-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-050_解析阶段提示注入标记.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE050_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/prompt_injection_marker/stage050_prompt_injection_marker_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage050_prompt_injection_marker_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-08-12-stage050-review-local.json"
+    }
+  ],
+  "cross_stage_contract": {
+    "interface_chain": [
+      "STAGE-041 lock registration and race control -> STAGE-042 automatic lifecycle",
+      "STAGE-042 automatic lifecycle -> STAGE-043 worker crash recovery",
+      "STAGE-043 worker crash recovery -> STAGE-044 half-product cleanup",
+      "STAGE-044 cleanup boundary -> STAGE-045 file type detection",
+      "STAGE-045 file type detection -> STAGE-046 parser routing",
+      "STAGE-046 parser routing -> STAGE-047 parser output contract",
+      "STAGE-047 parser output contract -> STAGE-048 parser fallback boundary",
+      "STAGE-048 parser fallback boundary -> STAGE-049 differential parser evaluation",
+      "STAGE-049 differential parser evaluation -> STAGE-050 prompt-injection marker boundary"
+    ],
+    "runtime_execution_allowed": false,
+    "production_runtime_allowed": false,
+    "stage051_started": false,
+    "stage051_entry_gate": "IDS-STAGE051-P1-GATE"
+  },
+  "governance_gate": {
+    "review_status": "batch041_050_reviewed_local_global_upload_locked",
+    "reviewed_stage_count": 10,
+    "current_gate": "IDS-V0_1-BATCH-041-050-REVIEW-GATE",
+    "next_gate": "IDS-STAGE051-P1-GATE",
+    "push_allowed": false,
+    "github_upload_allowed": false,
+    "batch_upload_gate_deferred": "IDS-V0_1-BATCH-041-050-UPLOAD-GATE",
+    "global_release_acceptance_required": "ACC-STAGE-168",
+    "app_reinstall_allowed": false
+  },
+  "findings": [
+    {
+      "finding_id": "BATCH041-050-REVIEW-F1",
+      "severity": "Important",
+      "status": "repaired",
+      "summary": "The prior per-batch upload route did not express the frozen all-taskpack completion condition.",
+      "repair": "Batch review advances only to the Stage051 entry gate while all upload paths remain deferred."
+    }
+  ],
+  "truth_contract": {
+    "taskpack_context_read_performed": true,
+    "prior_stage_review_evidence_read_performed": true,
+    "second_authoritative_source_created": false,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "source_file_open_performed": false,
+    "file_detection_performed": false,
+    "parser_execution_performed": false,
+    "fallback_execution_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "stage051_started": false,
+    "batch_upload_gate_started": false,
+    "github_upload_performed": false,
+    "push_performed": false,
+    "app_reinstall_performed": false
+  }
+}
