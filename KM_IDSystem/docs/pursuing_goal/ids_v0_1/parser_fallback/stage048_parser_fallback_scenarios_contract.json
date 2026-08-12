@@ -1,0 +1,146 @@
+{
+  "schema_version": "ids.stage048.parser_fallback.phase3.scenarios.v1",
+  "stage": "STAGE-048",
+  "phase": "Phase 3",
+  "task_id": "IDS-V0_1-STAGE048-P3",
+  "acceptance_id": "ACC-STAGE-048",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_CONTROLLED_FALLBACK_SCENARIOS",
+  "execution_ready": false,
+  "scenario_executable": true,
+  "next_gate": "IDS-STAGE048-P4-GATE",
+  "source_authority": {
+    "authority": "FROZEN_TASKPACK_TEXT_AND_STAGE047_REVIEW_ARTIFACTS",
+    "phase2_predecessor_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_parser_fallback_slice_contract.json",
+    "route_context_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_routing/stage046_parser_routing_scenarios_contract.json",
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false
+  },
+  "scenario_input_boundary": {
+    "input_kind": "FORMAT_LABELLED_REFERENCE_ONLY_CONTROL",
+    "scenario_count": 14,
+    "source_identity_prefix": "source:control:",
+    "source_body_or_path_allowed": false,
+    "raw_exception_allowed": false,
+    "actual_file_open_allowed": false,
+    "file_signature_detection_allowed": false,
+    "route_evaluation_allowed": false,
+    "route_context_recomputed": false
+  },
+  "scenario_catalog": [
+    "pdf-parser-unavailable",
+    "docx-parser-unavailable",
+    "xlsx-parser-unavailable",
+    "csv-quality-review",
+    "txt-quality-review",
+    "png-parser-unavailable",
+    "jpeg-parser-unavailable",
+    "tiff-parser-unavailable",
+    "unknown-owner-review",
+    "corrupt-explicit-block",
+    "signal-conflict-owner-review",
+    "extension-low-owner-review",
+    "unsupported-explicit-block",
+    "instruction-like-txt-review"
+  ],
+  "format_coverage": {
+    "taskpack_format_families": [
+      "PDF",
+      "DOCX",
+      "XLSX",
+      "CSV",
+      "TXT",
+      "IMAGE",
+      "UNKNOWN",
+      "CORRUPT_OR_UNREADABLE"
+    ],
+    "controlled_format_labels": [
+      "PDF",
+      "DOCX",
+      "XLSX",
+      "CSV",
+      "TXT",
+      "PNG",
+      "JPEG",
+      "TIFF",
+      "UNKNOWN",
+      "CORRUPT_OR_UNREADABLE",
+      "UNSUPPORTED"
+    ],
+    "all_taskpack_format_families_covered": true,
+    "image_variants": [
+      "PNG",
+      "JPEG",
+      "TIFF"
+    ]
+  },
+  "implementation": {
+    "module": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_scenarios.py",
+    "entrypoint": "build_phase3_scenario_report",
+    "phase2_entrypoint_reused": "resolve_control_fallback",
+    "phase2_disposition_slice_reexecuted": true,
+    "actual_file_type_detection_implemented": false,
+    "actual_parser_route_implemented": false,
+    "parser_dispatch_implemented": false,
+    "fallback_execution_implemented": false
+  },
+  "fallback_validation": {
+    "every_scenario_requires_explicit_disposition": true,
+    "explicit_disposition_count": 14,
+    "silent_drop_allowed_count": 0,
+    "blocked_or_unsupported_scenario_count": 8,
+    "human_review_scenario_count": 6,
+    "low_quality_or_unknown_review_scenario_count": 6,
+    "automatic_parser_switch_allowed": false,
+    "actual_fallback_execution_allowed": false,
+    "human_review_queue_write_allowed": false,
+    "quality_gate_execution_allowed": false,
+    "evidence_promotion_allowed": false
+  },
+  "instruction_text_contract": {
+    "instruction_like_scenario_count": 1,
+    "label": "UNTRUSTED_EVIDENCE_TEXT",
+    "interpretation": "EVIDENCE_ONLY",
+    "route_must_match_non_instruction_baseline": true,
+    "system_instruction_allowed": false,
+    "tool_authorization_allowed": false,
+    "policy_override_allowed": false,
+    "prompt_injection_scan_allowed": false,
+    "stage050_marker_application_allowed": false,
+    "raw_text_retained": false
+  },
+  "runtime_boundary": {
+    "source_file_open_allowed": false,
+    "file_signature_detection_allowed": false,
+    "route_evaluation_allowed": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "fallback_execution_allowed": false,
+    "human_review_queue_write_allowed": false,
+    "quality_gate_evaluation_allowed": false,
+    "evidence_promotion_allowed": false,
+    "persistent_state_write_allowed": false,
+    "agent_execution_allowed": false,
+    "model_call_allowed": false,
+    "model_token_consumption_allowed": false,
+    "local_service_start_allowed": false,
+    "ovh_deployment_allowed": false,
+    "production_runtime_activation_allowed": false,
+    "phase4_started": false,
+    "github_upload_allowed": false,
+    "push_allowed": false
+  },
+  "rollback_contract": {
+    "return_to": "STAGE048_PHASE2_IN_MEMORY_FALLBACK_DISPOSITION_SLICE_RUNTIME_DISABLED",
+    "revertable_artifacts": [
+      "Stage048 Phase3 controlled fallback scenario report",
+      "Stage048 Phase3 scenario contract",
+      "Stage048 Phase3 focused tests",
+      "Stage048 Phase3 governance projection"
+    ],
+    "source_or_raw_data_change_allowed": false,
+    "persistent_runtime_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

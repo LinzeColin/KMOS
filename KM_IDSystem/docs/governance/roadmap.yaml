@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE048"
-current_phase_id: "IDS-STAGE048-P2"
-current_task_id: "IDS-V0_1-STAGE048-P2"
-next_gate_id: "IDS-STAGE048-P3-GATE"
+current_phase_id: "IDS-STAGE048-P3"
+current_task_id: "IDS-V0_1-STAGE048-P3"
+next_gate_id: "IDS-STAGE048-P4-GATE"
 current_transition_history:
+  stage048_phase3_state:
+    current_stage_id: "IDS-STAGE048"
+    current_phase_id: "IDS-STAGE048-P3"
+    current_task_id: "IDS-V0_1-STAGE048-P3"
+    next_gate_id: "IDS-STAGE048-P4-GATE"
   stage048_phase2_state:
     current_stage_id: "IDS-STAGE048"
     current_phase_id: "IDS-STAGE048-P2"
@@ -12660,12 +12665,12 @@ stages:
     task_id: "IDS-V0_1-STAGE048"
     acceptance_ids:
       - "ACC-STAGE-048"
-    status: "phase2_completed_local"
+    status: "phase3_completed_local"
     pursuing_goal: "主 parser 失败时进入受控降级或人工复核，不静默丢弃，也不绕过质量门。"
     stop_gate:
-      gate_id: "IDS-STAGE048-P2-GATE"
+      gate_id: "IDS-STAGE048-P3-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE048-P3-GATE"
+      next_gate_id: "IDS-STAGE048-P4-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_PHASE1_PARSER_FALLBACK_SCOPE_BOUNDARY.md"
@@ -12677,6 +12682,11 @@ stages:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_slice.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_slice.py"
       - "KM_IDSystem/machine/runs/2026-08-12-stage048-p2-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_PHASE3_CONTROLLED_FALLBACK_SCENARIOS.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_parser_fallback_scenarios_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_scenarios.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_scenarios.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-stage048-p3-local.json"
     phases:
       - phase_id: "IDS-STAGE048-P1"
         name: "解析器失败降级范围、输入输出与边界确认"
@@ -12781,3 +12791,57 @@ stages:
               - "KM_IDSystem/machine/runs/2026-08-12-stage048-p2-local.json"
             risk: "若无效或受阻结果没有明确处置，可能形成静默丢弃、未授权的 parser 切换或对人工复核的虚假承诺。"
             rollback: "只回滚 Stage048 P2 切片、合同、聚焦单元用例与治理投影，恢复到 Stage048 P1 静态边界；不改变真实资料、持久状态、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE048-P3"
+        name: "解析失败降级受控格式与异常场景"
+        objective: "以格式标签化、仅引用控制场景验证 P2 降级处置覆盖 PDF、DOCX、XLSX、CSV、TXT、图片、未知、坏文件与指令样文本，确保不静默丢弃且不改变系统规则。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        phase4_entry_authorized: true
+        push_allowed: false
+        stop_conditions:
+          - "打开、读取、遍历、检测或保留任何 IDS 业务文件、原始元数据、页面、图像或 Owner fixture"
+          - "重新评估真实路线、选择、分派或执行 parser，执行真实 fallback、自动切换或写入人工复核队列"
+          - "运行质量门、证据提升、提示注入标记、持久化、Agent、模型调用、OVH 或生产激活"
+          - "进入 Phase 4、整阶段复审、批次复审、GitHub 上传、合并或应用重装"
+        stop_gate:
+          gate_id: "IDS-STAGE048-P3-GATE"
+          status: "passed_with_local_evidence"
+          pass_conditions:
+            - "14 个格式标签化、仅引用控制场景覆盖任务包所列格式族、图片、未知和坏文件，不读取真实文件或重新计算路线"
+            - "每个场景通过 P2 纯内存处置获得明确结果，静默丢弃为零；低质量或未知场景提示未排队的人工复核，坏文件和未支持格式保持显式阻断"
+            - "指令样 TXT 与普通 TXT 处置相同，全部结果为 UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY，不能覆盖系统规则、工具授权或策略"
+            - "未执行文件检测、真实路线、parser、真实 fallback、人工复核队列、质量门、持久化、Agent、模型、OVH 或生产动作"
+            - "唯一后续门为 IDS-STAGE048-P4-GATE，步骤四必须在独立 run 进入"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_PHASE3_CONTROLLED_FALLBACK_SCENARIOS.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_parser_fallback_scenarios_contract.json"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_scenarios.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_scenarios.py"
+            - "KM_IDSystem/machine/runs/2026-08-12-stage048-p3-local.json"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE048-P3"
+            name: "验证解析失败降级受控格式与异常场景"
+            objective: "在不读取真实资料或执行真实 parser/fallback 的前提下，验证全部受控格式与异常结果都具有明确、可回滚的降级处置。"
+            status: "completed"
+            estimated_hours: 4
+            total_hours_percent: "75.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE048-P2"
+              - "ids.stage048.parser_fallback.phase2.v1"
+              - "ids.stage046.parser_routing.phase3.scenarios.v1"
+            acceptance_ids:
+              - "ACC-STAGE-048"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage048_parser_fallback_scenarios"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage048_parser_fallback_slice"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage048_parser_fallback"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "聚焦 P3 直接单元用例通过 11/11；P2/P1 前序兼容用例通过 14/14；当前治理状态 17/17；中文视图已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_PHASE3_CONTROLLED_FALLBACK_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_parser_fallback_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_scenarios.py"
+              - "KM_IDSystem/machine/runs/2026-08-12-stage048-p3-local.json"
+            risk: "若格式或异常结果没有明确处置、低质量被误作成功，或指令样文本改变系统规则，会掩盖复核需求、产生静默丢弃或越权行为。"
+            rollback: "只回滚 Stage048 P3 场景模块、合同、聚焦单元用例与治理投影，恢复到 Stage048 P2 纯内存处置切片；不改变真实资料、持久状态、GitHub、OVH 或应用状态。"

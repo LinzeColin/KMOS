@@ -1,21 +1,22 @@
 {
   "stage": "`IDS-STAGE048`",
-  "phase": "`IDS-STAGE048-P2`",
-  "task": "`IDS-V0_1-STAGE048-P2`",
-  "owner": "Codex 专属 KMOS worktree，Stage048 解析器失败降级链步骤二",
-  "objective": "实现仅处理受控引用记录的纯内存降级处置切片，记录 control-fixture parser 版本与解析置信度，不启动真实解析、回退或持久操作。",
+  "phase": "`IDS-STAGE048-P3`",
+  "task": "`IDS-V0_1-STAGE048-P3`",
+  "owner": "Codex 专属 KMOS worktree，Stage048 解析器失败降级链步骤三",
+  "objective": "以 14 个格式标签化、仅引用的控制场景验证 P2 纯内存降级处置，证明异常不会静默丢弃且指令样文本不能改变系统规则。",
   "scope": [
     "以冻结 Stage048 任务包和 Stage047 已复审工件为唯一合同上下文，不建立第二权威事实源",
-    "以 P1 七字段仅引用结果加受控 parser_confidence 运行确定性内存处置，覆盖候选、复核、显式失败、受阻或不支持、无效输入",
-    "记录 control-fixture parser 版本和解析置信度；将全部文本固定标记为 UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY",
-    "同步切片、合同、聚焦单元用例、批次锁、路线图、事件、机器事实、中文视图与交接",
-    "只关闭 ACC-STAGE-048 的步骤二并指向独立 P3 gate，不进入步骤三"
+    "复用 P2 纯内存处置切片，对 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF、未知、坏文件、冲突、低置信、未支持和指令样场景执行受控引用验证",
+    "确保全部 14 个场景有明确处置、静默丢弃为零，低质量或未知场景只进入未排队的人工复核，坏文件与未支持格式保持显式阻断",
+    "验证指令样 TXT 与普通 TXT 的处置不变，全部文本固定为 UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY",
+    "同步场景模块、合同、聚焦单元用例、批次锁、路线图、事件、机器事实、中文视图与交接",
+    "只关闭 ACC-STAGE-048 的步骤三并指向独立 P4 gate，不进入步骤四"
   ],
   "non_goals": [
-    "不打开真实业务源、原始元数据、页面、图像或 Owner fixture，不执行文件签名识别、真实路线评估或创建业务解析输出",
+    "不打开真实业务源、原始元数据、页面、图像或 Owner fixture，不执行文件签名识别、真实路线评估或创建业务解析输出；格式名仅为受控标签",
     "不选择、分派或执行解析器，不执行真实回退、解析器切换、人工复核队列、差异评估、提示注入标记或质量门",
     "不提升证据，不写 manifest、evidence ledger、audit、index、report、database、job、state 或持久运行状态",
-    "不进入步骤三、整阶段复审、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
+    "不进入步骤四、整阶段复审、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "P2 纯内存处置切片、合同、事实投影与聚焦单元用例完成后停止，下一轮只允许进入 IDS-STAGE048-P3-GATE；任何真实资料访问、真实解析或回退、持久写入、OVH 或生产动作请求都不属于本步骤。"
+  "stop_condition": "P3 受控场景、合同、事实投影与聚焦单元用例完成后停止，下一轮只允许进入 IDS-STAGE048-P4-GATE；任何真实资料访问、真实解析或回退、持久写入、OVH 或生产动作请求都不属于本步骤。"
 }

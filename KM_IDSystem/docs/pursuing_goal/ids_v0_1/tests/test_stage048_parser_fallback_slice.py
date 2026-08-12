@@ -192,7 +192,7 @@ class Stage048ParserFallbackPhase2Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(result[field])
 
-    def test_contract_and_governance_projection_are_phase2_current(self):
+    def test_contract_and_governance_projection_preserve_phase2_predecessor(self):
         contract = self._contract()
         self.assertEqual("ids.stage048.parser_fallback.phase2.v1", contract["schema_version"])
         self.assertEqual("IDS-V0_1-STAGE048-P2", contract["task_id"])
@@ -211,19 +211,23 @@ class Stage048ParserFallbackPhase2Tests(unittest.TestCase):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage048_phase2_completed"'),
+            (batch, "stage048_phase2_state:"),
             (batch, 'current_task_id: "IDS-V0_1-STAGE048-P2"'),
             (batch, 'next_gate: "IDS-STAGE048-P3-GATE"'),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE048-P3"'),
+            (batch, 'next_gate: "IDS-STAGE048-P4-GATE"'),
             (batch, 'model_token_consumption_performed: false'),
             (batch, 'ovh_deployment_performed: false'),
-            (roadmap, 'current_phase_id: "IDS-STAGE048-P2"'),
+            (roadmap, 'phase_id: "IDS-STAGE048-P2"'),
             (roadmap, 'next_gate_id: "IDS-STAGE048-P3-GATE"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE048-P3"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE048-P4-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE048-P2", status["phase"])
+        self.assertEqual("IDS-STAGE048-P3", status["phase"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

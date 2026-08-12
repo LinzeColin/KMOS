@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-048 Phase 3 - 2026-08-12
+
+- 以 14 个纯内存、格式标签化的受控引用场景验证 P2 降级处置：覆盖 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF、未知、坏文件、冲突、低置信、未支持格式和指令样文本。
+- 全部场景得到明确处置且静默丢弃为零：低质量、未知、冲突和低置信结果只提示人工复核；坏文件和未支持格式保持显式阻断，不触发通用 parser、自动切换或真实 fallback。
+- 指令样 TXT 与普通 TXT 保持相同处置并固定为 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`。未读取真实资料，未执行真实路线、parser、fallback、人工复核队列、质量门、持久化、Agent、模型调用、OVH、上传或生产动作。
+
 ## IDS v0.1 STAGE-048 Phase 2 - 2026-08-12
 
 - 实现纯内存解析器降级处置切片：只对 P1 七字段 reference-only 控制记录加受控解析置信度返回候选、复核、显式失败、受阻或不支持、无效输入五类明确中文处置。

@@ -1,0 +1,72 @@
+{
+  "run_id": "`RUN-IDS-STAGE048-P3-LOCAL-20260812-001`",
+  "task_id": "IDS-V0_1-STAGE048-P3",
+  "acceptance_id": "ACC-STAGE-048",
+  "action": "以十四个格式标签化、仅引用控制场景重放 P2 纯内存降级处置，验证格式与异常结果不静默丢弃、低质量进入未排队复核且指令样文本不改变系统规则",
+  "result": "`PASS_PHASE3_CONTROLLED_FALLBACK_SCENARIOS_RUNTIME_DISABLED`",
+  "branch": "codex/kmids-stage048-p1",
+  "predecessor": "STAGE048_PHASE2_IN_MEMORY_FALLBACK_DISPOSITION_SLICE_RUNTIME_DISABLED",
+  "source_authority": "FROZEN_TASKPACK_TEXT_AND_STAGE047_REVIEW_ARTIFACTS",
+  "contract": {
+    "schema_version": "ids.stage048.parser_fallback.phase3.scenarios.v1",
+    "execution_mode": "ISOLATED_NON_PRODUCTION_CONTROLLED_FALLBACK_SCENARIOS",
+    "second_authoritative_source_created": false,
+    "scenario_count": 14,
+    "taskpack_format_family_count": 8,
+    "image_variant_count": 3,
+    "explicit_disposition_count": 14,
+    "silent_drop_count": 0,
+    "human_review_scenario_count": 6,
+    "blocked_or_unsupported_scenario_count": 8,
+    "instruction_route_invariance": true,
+    "execution_ready": false
+  },
+  "observed_work": {
+    "controlled_fallback_scenarios_evaluated": true,
+    "phase2_in_memory_disposition_slice_reused": true,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "source_file_open_performed": false,
+    "file_signature_detection_performed": false,
+    "route_evaluation_performed": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "fallback_execution_performed": false,
+    "automatic_parser_switch_performed": false,
+    "human_review_queue_write_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "evidence_promotion_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "local_service_start_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "phase4_started": false
+  },
+  "evidence_iterations": [
+    {
+      "result": "PASS",
+      "focused_unit_cases": 11,
+      "passed": 11
+    },
+    {
+      "result": "PASS",
+      "predecessor_compatibility_unit_cases": 14,
+      "passed": 14
+    },
+    {
+      "result": "PASS",
+      "governance_state_fields": 17,
+      "passed": 17
+    },
+    {
+      "result": "RENDERED",
+      "human_projection_files": 7
+    }
+  ],
+  "next_gate": "IDS-STAGE048-P4-GATE",
+  "rollback": "仅回滚 Stage048 P3 受控场景模块、合同、聚焦单元用例和治理投影，恢复到 Stage048 P2 纯内存处置切片；不改变真实资料、持久运行状态、GitHub、OVH 或应用状态。"
+}

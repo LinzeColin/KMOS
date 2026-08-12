@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE048-P3-01`",
+      "criteria": "14 个格式标签化、仅引用控制场景覆盖 PDF、DOCX、XLSX、CSV、TXT、三类图片、未知、坏文件、冲突、低置信、未支持格式与指令样文本；未打开真实文件",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE048-P3-02`",
+      "criteria": "14 个场景均返回明确降级处置，静默丢弃为零；低质量、未知、冲突与低置信结果只标记人工复核，坏文件和未支持格式保持显式阻断",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE048-P3-03`",
+      "criteria": "指令样 TXT 与普通 TXT 场景处置一致，固定为不可信证据文本；系统指令、工具授权和策略覆盖均未允许，Stage050 职责未提前执行",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE048-P3-04`",
+      "criteria": "未重新检测或评估真实路线，未执行 parser、fallback、人工复核队列、质量门、持久化、Agent、模型调用、OVH、生产激活、上传或步骤四",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE048-P2-01`",
       "criteria": "P2 纯内存降级处置切片只接收 P1 七字段仅引用记录和受控 parser_confidence；control-fixture parser 版本与置信度在内存结果中明确记录",
       "status": "已通过"
