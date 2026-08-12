@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE054",
-  "phase": "IDS-V0_1-STAGE054-REVIEW",
-  "task": "IDS-V0_1-STAGE054-REVIEW",
-  "real_progress": "Stage054 已完成 P1--P4 本地白箱复审：九字段复核输入、十字段候选请求、五类 control 处置、metadata-only 交付、中文确认、缓存边界与回滚链一致；下一步只能在新的独立 run 进入 Stage055 P1，上传路径继续关闭",
-  "report_grade": "冻结 Stage054 任务包、Stage053 已复审工件、P1/P2/P3/P4 合同、复审模块、聚焦用例、治理路线和中文事实投影一致",
-  "business_verdict": "本阶段只证明低置信复核路由的控制合同、候选/降级/失败处置、来源页引用保留、中文确认、缓存边界和回滚链可解释且不能直接进入高可信证据层；不证明真实 OCR、真实人工复核、队列写入、缓存清理、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE054_REVIEWED_LOW_CONFIDENCE_REVIEW_ROUTE_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE055",
+  "phase": "IDS-V0_1-STAGE055-P1",
+  "task": "IDS-V0_1-STAGE055-P1",
+  "real_progress": "Stage055 P1 已定义五类 reference-only OCR 回归语料类别、十字段引用输入、十一字段未来按页输出、默认中文简体与英文、置信度隔离、未来引擎映射字段、缓存和复核路由边界；下一步只能在新的独立 run 进入 Stage055 P2，上传路径继续关闭",
+  "report_grade": "冻结 Stage055 任务包和 Stage054 已复审工件为唯一合同上下文；P1 静态合同、聚焦用例 8/8、显式前序兼容回归 226/226、批次锁和治理投影均已本地通过，中文事实投影已重渲染",
+  "business_verdict": "本阶段只证明 OCR 回归语料的类别、字段、语言、置信度、未来映射、缓存和复核边界可解释；不证明真实样本、OCR 引擎、识别准确率、队列、缓存清理、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE055_PHASE1_OCR_REGRESSION_CORPUS_BOUNDARY_RUNTIME_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE055-P1-GATE",
+  "next_gate": "IDS-STAGE055-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

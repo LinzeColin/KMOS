@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-055 Phase 1 - 2026-08-13
+
+- 完成 `IDS-V0_1-STAGE055-P1`：只定义五类 reference-only OCR 回归语料类别、十字段引用输入、十一字段未来按页输出、默认中文简体与英文、置信度隔离、未来引擎映射字段、缓存边界、Stage054 复核路由和回滚范围。
+- 本地验证通过：Stage055 P1 聚焦用例 `8/8`；Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 `226/226`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；治理报告 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 未创建或读取样本，未选择或调用 OCR 引擎，未执行回归、队列、缓存、复核、质量门、持久化、Agent、模型 Token、OVH、生产、上传或推送；后续仅允许在新的独立 run 进入 `IDS-STAGE055-P2-GATE`。
+
 ## IDS v0.1 STAGE-054 Review - 2026-08-13
 
 - 完成 `IDS-V0_1-STAGE054-REVIEW`：只复审 P1--P4 已提交合同并重放 P3/P4 固定非业务 control 报告，确认九字段复核输入、十字段候选请求、五类明确处置、metadata-only 交付、中文确认、缓存边界和回滚链一致。

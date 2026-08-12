@@ -261,7 +261,7 @@ class Stage054LowConfidenceReviewRoutePhase2Tests(unittest.TestCase):
         )
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE054", status["stage"])
+        self.assertIn(status["stage"], ("IDS-STAGE054", "IDS-STAGE055"))
         self.assertIn(
             status["phase"],
             (
@@ -269,6 +269,7 @@ class Stage054LowConfidenceReviewRoutePhase2Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE054-P3",
                 "IDS-V0_1-STAGE054-P4",
                 "IDS-V0_1-STAGE054-REVIEW",
+                "IDS-V0_1-STAGE055-P1",
             ),
         )
         self.assertFalse(status["runtime_enabled"])

@@ -1,0 +1,85 @@
+{
+  "schema_version": "ids.machine_run.v1",
+  "run_id": "RUN-IDS-STAGE055-P1-LOCAL-20260813-001",
+  "stage": "IDS-STAGE055",
+  "task_id": "IDS-V0_1-STAGE055-P1",
+  "acceptance_id": "ACC-STAGE-055",
+  "action": "定义 OCR 回归语料、未来按页输出、默认语言、置信度、未来引擎映射、缓存和复核路由静态合同",
+  "result": "PASS_PHASE1_OCR_REGRESSION_CORPUS_BOUNDARY_RUNTIME_DISABLED",
+  "fact_level": "VERIFIED",
+  "evidence_iterations": [
+    {
+      "name": "stage055_phase1_focused_unit",
+      "command": "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus",
+      "passed": 8,
+      "total": 8,
+      "result": "PASS_PHASE1_OCR_REGRESSION_CORPUS_BOUNDARY_RUNTIME_DISABLED"
+    },
+    {
+      "name": "stage055_phase1_and_predecessor_regression",
+      "command": "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch041_050_review_gate",
+      "passed": 226,
+      "total": 226,
+      "result": "PASS_PHASE1_AND_PREDECESSOR_REGRESSION"
+    },
+    {
+      "name": "batch041_050_predecessor_checker",
+      "command": "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py",
+      "passed": 1,
+      "total": 1,
+      "result": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
+    },
+    {
+      "name": "stage005_governance_regression",
+      "command": "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+      "passed": 1,
+      "total": 1,
+      "result": "valid=true"
+    },
+    {
+      "name": "human_projection_render",
+      "command": "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem",
+      "passed": 7,
+      "total": 7,
+      "result": "PASS_HUMAN_PROJECTION_RENDERED"
+    }
+  ],
+  "observed_work": {
+    "stage055_phase1_contract_defined": true,
+    "stage054_review_artifacts_reused_as_reference_only": true,
+    "second_authoritative_source_created": false,
+    "ids_business_source_read_performed": false,
+    "authorized_fixture_access_performed": false,
+    "source_file_open_performed": false,
+    "ocr_engine_selected": false,
+    "ocr_engine_invocation_performed": false,
+    "ocr_engine_comparison_performed": false,
+    "regression_execution_performed": false,
+    "actual_page_output_created": false,
+    "review_queue_created": false,
+    "human_review_task_created": false,
+    "cache_write_performed": false,
+    "cache_cleanup_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "phase2_started": false,
+    "whole_stage_review_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "rollback": {
+    "return_to": "STAGE054_REVIEWED_LOCAL_LOW_CONFIDENCE_REVIEW_ROUTE_RUNTIME_DISABLED",
+    "source_or_raw_data_change_allowed": false,
+    "fixture_change_allowed": false,
+    "persistent_runtime_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  },
+  "next_gate": "IDS-STAGE055-P2-GATE",
+  "github_upload_allowed": false,
+  "push_allowed": false
+}
