@@ -152,7 +152,7 @@ jobs:
           echo "判据：${{ steps.probe.outputs.REASON }}"
           echo "上次自愈：${{ steps.cooldown.outputs.LAST_HEAL }}（${{ steps.cooldown.outputs.AGE_H }} 小时前）"
           curl -fsSL -X POST -H "Authorization: Bearer $TOKEN" \
-            "$BASE/api/v1/deploy?uuid=gz5qao2k0zrx3polpbwgcg51" | head -c 400
+            "$BASE/api/v1/deploy?uuid=96b5df9c-a211-45d4-a7e1-cc264c209d75" | head -c 400
           echo
           echo "已触发重新部署——容器起来后会立刻重跑失败技能"
           mkdir -p /tmp/heal-stamp
