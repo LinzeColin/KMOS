@@ -12,14 +12,14 @@
 ## Current Gate - 2026-08-12
 
 - 本节覆盖下方较早的“Current Gate”和 GitHub handoff 对当前任务的指向；下方未特别标为当前的内容只保留为历史交接证据。
-- 本轮完成任务：`IDS-V0_1-STAGE048-P1`。当前状态为 `PHASE1_PARSER_FALLBACK_BOUNDARY_RUNTIME_DISABLED`，只完成主解析器失败后的静态降级边界，不代表实际 parser、fallback、人工复核队列、质量门、持久化、OVH 或生产服务已启用。
-- 唯一合同上下文是冻结的 Stage048 任务包文本与 Stage047 已复审工件；本轮没有建立第二权威事实源，也没有保留业务正文、文件路径、原始异常或原始元数据内容。
-- 合同固定七字段仅引用输入和五种明确处置：保留候选、提示人工复核需要、保留显式失败、阻断受阻或不支持路线、拒绝无效输入。静默丢弃、自动 parser 切换、自动回退和运行时日志写入均未授权。
-- 质量门与高可信证据提升保持关闭；文档文本仅是 `UNTRUSTED_EVIDENCE_TEXT`，提示注入标记仍由 Stage050 拥有且本轮未应用。中文反馈只说明“未执行”或“需要人工复核”，不承诺自动化或生产可用。
-- 聚焦单元用例已通过 `6/6`。证据为 `STAGE048_PHASE1_PARSER_FALLBACK_SCOPE_BOUNDARY.md`、`parser_fallback/stage048_parser_fallback_contract.json`、`tests/test_stage048_parser_fallback.py`、本轮 machine run、batch/roadmap、机器事实与生成的中文视图。
-- 未读取 IDS 业务源或原始元数据；未执行类型检测、路线评估、parser、fallback、人工复核队列、质量门、持久化、Agent、模型调用、OVH 部署、生产激活、上传、合并或 P2。
-- 下一步仅允许在独立 run 进入 `IDS-V0_1-STAGE048-P2`，门为 `IDS-STAGE048-P2-GATE`。回滚只撤销 Stage048 P1 合同、范围说明、聚焦用例和治理投影，回到 `STAGE047_REVIEWED_LOCAL`；不改变真实资料、运行态、GitHub、OVH 或应用状态。
-
+- 本轮完成任务：`IDS-V0_1-STAGE048-P2`。当前状态为 `PHASE2_IN_MEMORY_FALLBACK_DISPOSITION_SLICE_RUNTIME_DISABLED`：只完成对受控引用记录的纯内存降级处置切片，不代表实际 parser、真实 fallback、人工复核队列、质量门、持久化、OVH 或生产服务已启用。
+- 唯一合同上下文继续是冻结的 Stage048 任务包文本与 Stage047 已复审工件；P1 的七字段 reference-only 边界被作为前序合同使用，本轮没有建立第二权威事实源，也没有保留业务正文、文件路径、原始异常或原始元数据内容。
+- `parser_fallback/stage048_fallback_slice.py` 只接收 P1 七字段结果加 `parser_confidence` 的控制 envelope，并只接受 `source:control:` 引用和固定的 control-fixture parser 族/版本。它返回五种明确中文处置：保留候选、提示人工复核、保留显式失败、阻断受阻或不支持路线、拒绝无效输入。
+- control-fixture parser 版本与置信度只在返回的内存记录中保留；无效输入不回显其引用。静默丢弃、自动 parser 切换、真实 fallback、人工复核队列和运行时日志写入均未发生。
+- 所有结果固定为 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`；系统指令、工具授权与策略覆盖均为 false。质量门和高可信证据提升仍关闭，Stage050 提示注入标记职责未提前执行。
+- 聚焦 P2 直接单元用例通过 `8/8`，P1 前序兼容用例通过 `6/6`，当前治理状态为 `17/17`，中文视图已重渲染 7 个文件。证据为 `STAGE048_PHASE2_PARSER_FALLBACK_SLICE.md`、`parser_fallback/stage048_parser_fallback_slice_contract.json`、`parser_fallback/stage048_fallback_slice.py`、`tests/test_stage048_parser_fallback_slice.py`、本轮 machine run、batch/roadmap、机器事实与生成的中文视图。
+- 未读取 IDS 业务源或原始元数据；未执行文件签名识别、真实路线、parser、真实 fallback、人工复核队列、质量门、持久化、Agent、模型调用、OVH 部署、生产激活、上传、合并或 P3。
+- 下一步仅允许在独立 run 进入 `IDS-STAGE048-P3`，门为 `IDS-STAGE048-P3-GATE`。回滚只撤销 Stage048 P2 切片、合同、聚焦用例和治理投影，恢复到 Stage048 P1 静态边界；不改变真实资料、运行态、GitHub、OVH 或应用状态。
 ## Final GitHub Handoff - 2026-07-26
 
 - Owner explicitly ended this thread and authorized a final GitHub handoff of all existing KMIDS progress, the taskpack and key iteration information.

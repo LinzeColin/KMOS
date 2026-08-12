@@ -4,6 +4,16 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "in-memory fallback disposition slice",
+      "中文": "纯内存降级处置切片",
+      "说明": "只把受控的 reference-only 结果映射为明确中文处置的确定性函数；不读取文件、不运行真实 fallback，也不写队列或持久状态"
+    },
+    {
+      "英文": "parser confidence record",
+      "中文": "解析置信度记录",
+      "说明": "与 control-fixture parser 版本一起保留在纯内存处置结果中的受控字段；它不等于质量门通过、来源证明或高可信证据"
+    },
+    {
       "英文": "parser output envelope",
       "中文": "解析器输出封套",
       "说明": "绑定来源、检测、路线、解析器版本、六个核心字段、安全标签和质量门的精确输出结构；步骤四只派生不含业务正文的控制投影"
