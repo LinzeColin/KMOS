@@ -198,7 +198,12 @@ class Stage050PromptInjectionMarkerPhase2Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE050", status["stage"])
         self.assertIn(
             status["phase"],
-            ("IDS-STAGE050-P2", "IDS-STAGE050-P3", "IDS-STAGE050-P4"),
+            (
+                "IDS-STAGE050-P2",
+                "IDS-STAGE050-P3",
+                "IDS-STAGE050-P4",
+                "IDS-STAGE050-REVIEW",
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])

@@ -1,0 +1,104 @@
+{
+  "schema_version": "ids.stage050.prompt_injection_marker.stage_review.run.v1",
+  "run_id": "`RUN-IDS-STAGE050-REVIEW-LOCAL-20260812-001`",
+  "stage": "STAGE-050",
+  "phase": "Stage Review",
+  "task_id": "IDS-V0_1-STAGE050-REVIEW",
+  "acceptance_id": "ACC-STAGE-050",
+  "action": "复审 Stage050 P1-P4 的单一事实源、提示注入证据文本边界、格式标签化场景、仅结构样例、非运行时处置、中文反馈、运行时边界和回滚链",
+  "result": "`PASS_REVIEWED_LOCAL_PROMPT_INJECTION_MARKER_RUNTIME_DISABLED`",
+  "contract_state": "STAGE050_REVIEWED_LOCAL_PROMPT_INJECTION_MARKER_RUNTIME_DISABLED",
+  "review": {
+    "schema_version": "ids.stage050.prompt_injection_marker.stage_review.v1",
+    "finding_count": 0,
+    "phase1_contract_valid": true,
+    "phase2_slice_valid": true,
+    "phase3_scenarios_valid": true,
+    "phase4_delivery_valid": true,
+    "single_authority_boundary_preserved": true,
+    "phase2_evidence_only_boundary_preserved": true,
+    "explicit_disposition_and_no_silent_drop_preserved": true,
+    "instruction_text_invariance_preserved": true,
+    "schema_sample_and_log_boundary_preserved": true,
+    "format_and_runtime_boundary_preserved": true,
+    "rollback_chain_preserved": true,
+    "runtime_and_external_actions_disabled": true
+  },
+  "evidence_iterations": [
+    {
+      "name": "聚焦 Stage050 复审直接单元用例",
+      "passed": 10,
+      "total": 10
+    },
+    {
+      "name": "P1-P4 前序兼容单元用例",
+      "passed": 39,
+      "total": 39
+    },
+    {
+      "name": "Stage049 差异化评估回归单元用例",
+      "passed": 47,
+      "total": 47
+    },
+    {
+      "name": "Stage048 fallback 回归单元用例",
+      "passed": 48,
+      "total": 48
+    },
+    {
+      "name": "治理回归报告",
+      "result": "valid=true"
+    },
+    {
+      "name": "中文视图渲染",
+      "passed": 7,
+      "total": 7
+    },
+    {
+      "name": "根项目及相邻白箱项目双平面检查",
+      "result": "PASS",
+      "root_execution_acceptance_lines": 50,
+      "root_execution_acceptance_limit": 100
+    }
+  ],
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage048-p1",
+    "scope": "KM_IDSystem Stage050 Review only",
+    "outside_scope_paths": 0
+  },
+  "observed_work": {
+    "taskpack_source_read_performed": true,
+    "phase1_to_phase4_controlled_evidence_replayed": true,
+    "phase2_controlled_marker_replayed": true,
+    "phase3_controlled_scenarios_replayed": true,
+    "phase4_delivery_evidence_replayed": true,
+    "review_invariants_evaluated": true,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "source_file_open_performed": false,
+    "file_signature_detection_performed": false,
+    "route_evaluation_performed": false,
+    "parser_selection_performed": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "parser_output_produced": false,
+    "fallback_execution_performed": false,
+    "runtime_prompt_injection_marker_application_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "evidence_promotion_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "local_service_start_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "whole_stage_review_performed": true,
+    "stage051_started": false,
+    "batch_review_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "rollback": "只回滚 Stage050 复审文档、复审模块、聚焦用例、machine run、事件、事实投影与治理状态，恢复为 Stage050 P4 待复审；保留 P1-P4、原始资料、manifest、evidence ledger、audit、既有报告、GitHub、OVH 与应用状态。"
+}

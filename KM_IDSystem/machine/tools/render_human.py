@@ -363,14 +363,42 @@ def render_05(facts: Path, runs_dir: Path):
     now = " · ".join(x for x in [plan.get("stage"), plan.get("phase"),
                                  plan.get("task")] if x) or None
     owner = plan.get("owner")
+    all_acceptance = acceptance.get("items", [])
+    current_stage = str(plan.get("stage", "")).strip("`")
+    current_prefix = current_stage.replace("IDS-", "ACC-", 1)
+    current_acceptance = [
+        item for item in all_acceptance
+        if current_stage and str(item.get("id", "")).strip("`").startswith(current_prefix)
+    ]
+    displayed_acceptance = current_acceptance or all_acceptance[:45]
     acc_rows = [(a.get("id", "?"), a.get("criteria", ""), a.get("status", ""))
-                for a in acceptance.get("items", [])]
-    # 05 has a hard 100-line budget. Keep every acceptance fact and shrink only
-    # the rolling run-history projection as acceptance evidence grows.
-    run_limit = max(0, 77 - len(acc_rows))
-    recent_runs = runs[-run_limit:] if run_limit else []
-    run_rows = [(r.get("run_id", "?"), r.get("action", ""), r.get("result", ""))
-                for r in recent_runs]
+                for a in displayed_acceptance]
+    # 05 is an owner view with a hard 100-line budget. The machine fact file
+    # remains the sole complete acceptance ledger; this view projects the
+    # current stage and reserves the remaining lines for recent run evidence.
+    omitted_acceptance = len(all_acceptance) - len(displayed_acceptance)
+    if current_acceptance:
+        acceptance_scope = (
+            f"当前阶段显示 {len(displayed_acceptance)} 项；另有 {omitted_acceptance} 项历史验收事实仍以 "
+            "`machine/facts/acceptance.json` 为准。"
+        )
+    else:
+        acceptance_scope = (
+            f"未识别当前阶段，显示 {len(displayed_acceptance)} 项；其余 {omitted_acceptance} 项验收事实仍以 "
+            "`machine/facts/acceptance.json` 为准。"
+        )
+    run_limit = max(0, 75 - len(acc_rows))
+    current_run_marker = current_stage.replace("IDS-", "RUN-IDS-", 1)
+    current_runs = [
+        run for run in runs
+        if current_stage and current_run_marker in str(run.get("run_id", "")).strip("`")
+    ]
+    recent_runs = (current_runs[-run_limit:] if current_stage else runs[-run_limit:]) if run_limit else []
+    run_rows = [
+        (f"`{str(r.get('run_id', '?')).strip('`')}`", r.get("action", ""),
+         f"`{str(r.get('result', '')).strip('`')}`")
+        for r in recent_runs
+    ]
 
     this_round = (f"**在做：** {now}\n\n**负责：** {owner or '待定'}"
                   if now else blank_note("当前任务", "把这一轮的计划写进机器平面（machine/facts/plan.json）"))
@@ -389,10 +417,12 @@ def render_05(facts: Path, runs_dir: Path):
 
 ## 二、怎么算做完
 
+{acceptance_scope}
+
 {table(acc_rows, ["编号", "达成标准", "状态"],
        empty=blank_note("验收标准", "把这一轮的验收标准写进机器平面（machine/facts/acceptance.json）"))}
 
-## 三、已经做了什么（最近 {len(run_rows)} 条）
+## 三、已经做了什么（当前阶段 {len(run_rows)} 条）
 
 {table(run_rows, ["记录", "做了什么", "结果"],
        empty="> 还没有运行记录。每完成一步会自动追加一条，这里就有了。")}

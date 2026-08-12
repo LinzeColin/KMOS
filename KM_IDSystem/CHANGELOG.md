@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-050 Review - 2026-08-12
+
+- 完成 P1--P4 本地白箱复审：P2 evidence-only 标记、P3 的 `11/11` 明确场景、P4 的 `8` 个仅结构样例、`11` 条非运行时记录、五类失败关闭、指令文本边界、空运行时格式集合与回滚链均一致。
+- `ACC-STAGE-050` 达到 `completed_reviewed_local`。该结论只证明受控提示注入标记合同可解释、可回滚并可供业务线复审；不证明真实文件检测、真实路由、真实 parser、运行时标记、质量门、持久化、OVH 或生产服务已启用。
+- 聚焦复审用例通过 `10/10`，P1--P4 前序兼容用例通过 `39/39`，治理回归为 `valid=true`；后续仅为独立 `IDS-V0_1-BATCH-041-050-REVIEW-GATE`，上传锁继续保持。
+
 ## IDS v0.1 STAGE-050 Phase 4 - 2026-08-12
 
 - 从 P3 的 11 个格式标签化非业务 control 派生 8 个 `SCHEMA_ONLY_PROMPT_MARKER_PARSE_PRODUCT_SAMPLE_NOT_EXECUTED` 结构样例和 11 条 `DERIVED_CONTROL_DISPOSITION_LOG_NOT_RUNTIME` 处置记录；不保留正文、表格、页面、路径或来源引用。

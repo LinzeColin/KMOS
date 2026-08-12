@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-08-12T11:42:00Z"
-status: "stage050_phase4_completed_review_pending"
+updated_at_utc: "2026-08-12T11:52:29Z"
+status: "stage050_completed_reviewed_local"
 
 transition_history:
+  stage050_review_state:
+    status: "stage050_completed_reviewed_local"
+    current_task_id: "IDS-V0_1-STAGE050-REVIEW"
+    next_gate: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+    next_allowed_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+    github_upload_allowed: false
   stage050_phase4_state:
     status: "stage050_phase4_completed_review_pending"
     current_task_id: "IDS-V0_1-STAGE050-P4"
@@ -1724,24 +1730,24 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
   STAGE-050:
-    status: "stage050_phase4_completed_review_pending"
+    status: "stage050_completed_reviewed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_stage: "STAGE-050"
-    next_phase: "stage_review"
-    next_gate: "IDS-STAGE050-REVIEW-GATE"
-    current_task_id: "IDS-V0_1-STAGE050-P4"
+    next_stage: "BATCH-041-050"
+    next_phase: "batch_review"
+    next_gate: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+    current_task_id: "IDS-V0_1-STAGE050-REVIEW"
     acceptance_id: "ACC-STAGE-050"
-    acceptance_status: "phase4_prompt_injection_marker_closeout_complete"
-    review_status: "pending_next_run"
+    acceptance_status: "completed_reviewed_local"
+    review_status: "passed"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
     phase4_entry_authorized: true
     stage_review_entry_authorized: true
-    source_authority: "FROZEN_TASKPACK_TEXT_STAGE050_P1_P3_AND_STAGE049_REVIEW_ARTIFACTS"
+    source_authority: "FROZEN_TASKPACK_TEXT_STAGE050_P1_TO_P4_AND_STAGE049_REVIEW_ARTIFACTS"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
     raw_metadata_content_accessed: false
@@ -1803,13 +1809,16 @@ stage_progress:
     phase2_started: true
     phase3_started: true
     phase4_started: true
-    whole_stage_review_performed: false
+    whole_stage_review_performed: true
+    stage051_started: false
+    stage051_entry_authorized: false
     batch_review_performed: false
     github_upload_allowed: false
     app_reinstall_allowed: false
     push_allowed: false
-    contract_state: "PHASE4_PROMPT_INJECTION_MARKER_CLOSEOUT_EVIDENCE_ENABLED_REAL_PARSER_QUALITY_AND_PERSISTENCE_DISABLED"
-    prompt_injection_marker_contract_schema: "ids.stage050.prompt_injection_marker.phase4.delivery.v1"
+    contract_state: "STAGE050_REVIEWED_LOCAL_PROMPT_INJECTION_MARKER_RUNTIME_DISABLED"
+    prompt_injection_marker_contract_schema: "ids.stage050.prompt_injection_marker.stage_review.v1"
+    prompt_injection_marker_delivery_contract_schema: "ids.stage050.prompt_injection_marker.phase4.delivery.v1"
     reference_only_candidate_field_count: 7
     parse_product_core_field_count: 6
     synthetic_control_marker_slice_implemented: true
@@ -1828,6 +1837,23 @@ stage_progress:
     quality_gate_initial_state: "UNASSESSED"
     evidence_text_classification_enforced: true
     chinese_feedback_message_count: 5
+    prompt_injection_marker_stage_review_schema: "ids.stage050.prompt_injection_marker.stage_review.v1"
+    stage_review_valid: true
+    stage_review_finding_count: 0
+    stage_review_phase1_contract_valid: true
+    stage_review_phase2_slice_valid: true
+    stage_review_phase3_scenarios_valid: true
+    stage_review_phase4_delivery_valid: true
+    stage_review_phase1_to_phase4_contracts_valid: true
+    stage_review_single_authority_boundary_preserved: true
+    stage_review_phase2_evidence_only_boundary_preserved: true
+    stage_review_explicit_disposition_and_no_silent_drop_preserved: true
+    stage_review_instruction_text_invariance_preserved: true
+    stage_review_schema_sample_and_log_boundary_preserved: true
+    stage_review_format_and_runtime_boundary_preserved: true
+    stage_review_rollback_chain_preserved: true
+    stage_review_runtime_and_external_actions_disabled: true
+    stage_review_result: "PASS_REVIEWED_LOCAL_PROMPT_INJECTION_MARKER_RUNTIME_DISABLED"
     execution_ready: false
     evidence_refs:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE050_PHASE1_PROMPT_INJECTION_MARKER_SCOPE_BOUNDARY.md"
@@ -1849,12 +1875,16 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/prompt_injection_marker/stage050_prompt_injection_marker_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage050_prompt_injection_marker_delivery.py"
       - "KM_IDSystem/machine/runs/2026-08-12-stage050-p4-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE050_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/prompt_injection_marker/stage050_prompt_injection_marker_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage050_prompt_injection_marker_stage_review.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-stage050-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE050-P4"
-  next_allowed_task_id: "IDS-V0_1-STAGE050-REVIEW"
+  current_task_id: "IDS-V0_1-STAGE050-REVIEW"
+  next_allowed_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
   github_upload_allowed: false
-  current_run: "STAGE-050 Phase 4 replays only the eleven fixed non-business format-labelled P3 controls and derives eight schema-only parser output samples, eleven non-runtime fallback disposition records, quality metrics, five failure classifications, support boundaries and configuration rollback evidence. It leaves source access, file detection, routing, parsing, fallback, runtime marker application, quality, persistence, Agent, model, OVH and production actions disabled."
-  no_upload_reason: "BATCH041_050 has nine completed and individually reviewed Stages plus Stage050 Phase 1 through Phase 4 only; the independent Stage050 review, ten-stage batch review and batch upload gate are incomplete, so single-phase upload remains unavailable."
+  current_run: "STAGE-050 Review replays the Phase 1 through Phase 4 control-only evidence chain and validates the single-authority boundary, evidence-only instruction handling, explicit dispositions, schema-only samples, empty runtime support, rollback chain and local-only limits. It leaves source access, file detection, routing, parsing, fallback, runtime marker application, quality, persistence, Agent, model, OVH and production actions disabled."
+  no_upload_reason: "BATCH041_050 has ten individually reviewed Stages, but the independent ten-stage batch review and batch upload gate are incomplete, so upload remains unavailable."

@@ -9,7 +9,19 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage050 P4 - 2026-08-12
+## Current Gate - Stage050 Review - 2026-08-12
+
+- 本节覆盖下方的 Stage050 P4 历史交接；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成任务：`IDS-V0_1-STAGE050-REVIEW`。当前状态为 `STAGE050_REVIEWED_LOCAL_PROMPT_INJECTION_MARKER_RUNTIME_DISABLED`：独立重放 P1--P4 合同、P2 evidence-only 标记、P3 的 11 个格式标签化 control 场景，以及 P4 的 8 个 parser 输出结构样例、11 条非运行时处置记录、质量指标和五类失败分类。
+- 唯一合同上下文仍是冻结的 Stage050 任务包文本、Stage050 P1--P4 合同与 Stage049 已复审工件；没有建立第二权威事实源，也没有保留业务正文、文件路径、来源引用、原始异常或原始元数据内容。复审样例只含空的 `text/tables/pages/sections` 结构和受控版本、置信度、处置标签。
+- 复审确认 11/11 场景均明确处置、静默丢弃为零；指令样 control 只作 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`，不能成为系统规则、工具授权或策略覆盖。所有候选仍为 `CANDIDATE`，质量状态仍为 `UNASSESSED`，没有创建人工复核任务、自动 fallback 或高可信证据。
+- 控制格式标签为 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF；运行时支持格式集合为空。control-fixture parser 版本仅作交付证据，不是运行时 parser 版本；Stage045 仍拥有文件检测，Stage046 仍拥有真实路由，Stage048 仍拥有 fallback，复审没有改写任何上游结论。
+- 回滚只撤回 Stage050 复审文档、模块、聚焦用例、machine run、事件、事实投影和治理状态，恢复为 P4 待复审；必须保留 P1--P4 证据、原始资料、manifest、evidence ledger、audit 与已交付报告。
+- 聚焦 Stage050 复审直接单元用例通过 `10/10`，P1--P4 前序兼容用例通过 `39/39`，Stage049 P1--P4 及复审前序兼容用例通过 `47/47`，Stage048 P1--P4 及复审前序兼容用例通过 `48/48`，治理回归报告为 `valid=true`。根项目与相邻白箱项目的双平面检查通过；根项目“执行与验收”投影为 `50/100` 行。证据为复审范围说明、复审实现、聚焦用例、本轮 machine run、event、batch/roadmap、机器事实与生成的中文视图。
+- 未读取 IDS 业务源或原始元数据；未执行文件识别、真实路线、真实 parser、解析正文比较、真实 fallback、运行时提示注入标记、人工复核队列、质量门、证据提升、持久化、Agent、模型调用、本地服务、OVH 部署、生产激活、Stage051、批次复审、上传或推送。
+- 下一步仅允许在独立 run 进入 `IDS-V0_1-BATCH-041-050-REVIEW-GATE`。Stage050 本地复审完成不等于真实标记应用、解析器运行、实际解析质量、OVH 部署、生产就绪或 GitHub 上传。
+
+## Superseded Gate - Stage050 P4 - 2026-08-12
 
 - 本节覆盖下方的 Stage050 P3 历史交接；下方未特别标为当前的内容只保留为阶段证据。
 - 本轮完成任务：`IDS-V0_1-STAGE050-P4`。当前状态为 `PHASE4_PROMPT_INJECTION_MARKER_CLOSEOUT_EVIDENCE_ENABLED_REAL_PARSER_QUALITY_AND_PERSISTENCE_DISABLED`：只从 P3 的 11 个固定非业务、格式标签化 control 场景派生 8 个 parser 输出结构样例、11 条非运行时处置记录、质量指标、五类互斥失败分类、格式边界和 parser 配置回滚说明。

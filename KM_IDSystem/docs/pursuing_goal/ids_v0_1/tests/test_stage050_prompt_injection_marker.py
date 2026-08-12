@@ -167,6 +167,7 @@ class Stage050PromptInjectionMarkerPhase1Tests(unittest.TestCase):
                 "IDS-STAGE050-P2",
                 "IDS-STAGE050-P3",
                 "IDS-STAGE050-P4",
+                "IDS-STAGE050-REVIEW",
             ),
         )
         self.assertFalse(status["runtime_enabled"])

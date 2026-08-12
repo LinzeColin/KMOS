@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE050",
-  "phase": "IDS-STAGE050-P4",
-  "task": "IDS-V0_1-STAGE050-P4",
-  "real_progress": "Stage050 已完成 P4 提示注入标记收口：从 P3 的 11 个非业务 control 派生 8 个仅结构 parser 输出样例、11 条非运行时处置记录、质量指标、五类失败分类、格式边界和配置回滚说明；下一步只能在独立 run 进入 Stage050 整阶段复审",
-  "report_grade": "冻结 Stage050 任务包、P1--P3 合同、P4 受控收口、聚焦用例与治理投影一致",
-  "business_verdict": "Stage050 P4 只证明受控结构样例、非运行时处置记录、质量指标、失败分类与回滚说明可复核；该结论不证明真实文件检测、真实路由、parser、解析正文、运行时标记、质量门、持久化、OVH 或生产能力已启用",
-  "evidence_status": "LOCAL_STAGE050_PHASE4_PROMPT_INJECTION_MARKER_CLOSEOUT_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE050-REVIEW",
+  "task": "IDS-V0_1-STAGE050-REVIEW",
+  "real_progress": "Stage050 已完成 P1-P4 本地白箱复审：提示注入证据文本边界、11 个格式标签化 control 场景、8 个仅结构 parser 输出样例、11 条非运行时处置记录、质量指标、五类失败分类、空运行时格式集合与回滚链一致；下一步只能在独立 run 进入十阶段批次复审",
+  "report_grade": "冻结任务包、Stage049 本地复审、Stage050 P1-P4 合同、纯内存重放、复审不变量与聚焦用例一致",
+  "business_verdict": "Stage050 本地复审证明受控提示注入标记合同可解释、可回滚且业务线可复审；该结论不证明真实文件检测、真实路由、真实 parser、运行时标记、质量门、持久化、OVH 或生产能力已启用",
+  "evidence_status": "LOCAL_STAGE050_REVIEWED_PROMPT_INJECTION_MARKER_RUNTIME_DISABLED",
   "rendered_at": "2026-08-12",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE050-REVIEW-GATE",
+  "next_gate": "IDS-V0_1-BATCH-041-050-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

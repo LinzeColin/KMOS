@@ -6,46 +6,44 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-REVIEW = BASE / "STAGE049_STAGE_REVIEW.md"
+REVIEW = BASE / "STAGE050_STAGE_REVIEW.md"
 REVIEW_MODULE = (
     BASE
-    / "differential_parser_evaluation"
-    / "stage049_differential_parser_evaluation_stage_review.py"
+    / "prompt_injection_marker"
+    / "stage050_prompt_injection_marker_stage_review.py"
 )
 P1_CONTRACT = (
-    BASE
-    / "differential_parser_evaluation"
-    / "stage049_differential_parser_evaluation_contract.json"
+    BASE / "prompt_injection_marker" / "stage050_prompt_injection_marker_contract.json"
 )
 P2_CONTRACT = (
     BASE
-    / "differential_parser_evaluation"
-    / "stage049_differential_parser_evaluation_slice_contract.json"
+    / "prompt_injection_marker"
+    / "stage050_prompt_injection_marker_slice_contract.json"
 )
 P3_CONTRACT = (
     BASE
-    / "differential_parser_evaluation"
-    / "stage049_differential_parser_evaluation_scenarios_contract.json"
+    / "prompt_injection_marker"
+    / "stage050_prompt_injection_marker_scenarios_contract.json"
 )
 P4_CONTRACT = (
     BASE
-    / "differential_parser_evaluation"
-    / "stage049_differential_parser_evaluation_delivery_contract.json"
+    / "prompt_injection_marker"
+    / "stage050_prompt_injection_marker_delivery_contract.json"
 )
 BATCH = BASE / "BATCH041_050_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-12-stage049-review-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-12-stage050-review-local.json"
 
 
-class Stage049DifferentialParserEvaluationStageReviewTests(unittest.TestCase):
+class Stage050PromptInjectionMarkerStageReviewTests(unittest.TestCase):
     _module_value = None
     _report_value = None
 
     def _module(self):
         if self.__class__._module_value is None:
-            spec = importlib.util.spec_from_file_location("stage049_review", REVIEW_MODULE)
+            spec = importlib.util.spec_from_file_location("stage050_review", REVIEW_MODULE)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             self.__class__._module_value = module
@@ -53,7 +51,7 @@ class Stage049DifferentialParserEvaluationStageReviewTests(unittest.TestCase):
 
     def _report(self):
         if self.__class__._report_value is None:
-            self.__class__._report_value = self._module().build_stage049_review_report()
+            self.__class__._report_value = self._module().build_stage050_review_report()
         return self.__class__._report_value
 
     def test_review_artifacts_exist(self):
@@ -76,22 +74,22 @@ class Stage049DifferentialParserEvaluationStageReviewTests(unittest.TestCase):
     def test_review_identity_and_local_result(self):
         report = self._report()
         self.assertEqual(
-            "ids.stage049.differential_parser_evaluation.stage_review.v1",
+            "ids.stage050.prompt_injection_marker.stage_review.v1",
             report["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE049-REVIEW", report["task_id"])
-        self.assertEqual("ACC-STAGE-049", report["acceptance_id"])
+        self.assertEqual("IDS-V0_1-STAGE050-REVIEW", report["task_id"])
+        self.assertEqual("ACC-STAGE-050", report["acceptance_id"])
         self.assertTrue(report["review_valid"], report)
         self.assertEqual(
-            "PASS_REVIEWED_LOCAL_DIFFERENTIAL_EVALUATION_RUNTIME_DISABLED",
+            "PASS_REVIEWED_LOCAL_PROMPT_INJECTION_MARKER_RUNTIME_DISABLED",
             report["result"],
         )
-        self.assertEqual("IDS-STAGE050-P1-GATE", report["next_gate"])
+        self.assertEqual("IDS-V0_1-BATCH-041-050-REVIEW-GATE", report["next_gate"])
 
     def test_review_preserves_single_authority_reference_only_boundary(self):
         report = self._report()
         self.assertEqual(
-            "FROZEN_TASKPACK_TEXT_STAGE049_P1_TO_P4_AND_STAGE048_REVIEW_ARTIFACTS",
+            "FROZEN_TASKPACK_TEXT_STAGE050_P1_TO_P4_AND_STAGE049_REVIEW_ARTIFACTS",
             report["source_authority"],
         )
         self.assertFalse(report["second_authoritative_source_created"])
@@ -99,18 +97,20 @@ class Stage049DifferentialParserEvaluationStageReviewTests(unittest.TestCase):
         self.assertFalse(report["raw_metadata_content_accessed"])
         self.assertTrue(report["review_invariants"]["single_authority_boundary_preserved"])
 
-    def test_review_replays_the_phase2_candidate_control_without_runtime(self):
+    def test_review_replays_phase2_evidence_only_marker_without_runtime(self):
         report = self._report()
         replay = report["controlled_replay"]
         self.assertEqual(
-            "CONTROL_CANDIDATES_RETAINED_FOR_QUALITY_REVIEW",
-            replay["phase2_candidate_disposition"],
+            "CONTROL_INSTRUCTION_TEXT_MARKED_EVIDENCE_ONLY",
+            replay["phase2_marker_disposition"],
         )
-        self.assertEqual(
-            "DIFFERENTIAL_CONTROL_QUALITY_REVIEW_REQUIRED",
-            replay["phase2_candidate_feedback_code"],
-        )
+        self.assertEqual("CONTROL_INSTRUCTION_TEXT_MARKED_EVIDENCE_ONLY", replay["phase2_marker_state"])
+        self.assertFalse(replay["phase2_control_text_retained"])
+        self.assertFalse(replay["phase2_control_text_returned"])
         self.assertTrue(report["phase_results"]["phase2_slice_valid"])
+        self.assertTrue(
+            report["review_invariants"]["phase2_evidence_only_boundary_preserved"]
+        )
 
     def test_review_replays_phase3_explicit_dispositions_and_instruction_invariance(self):
         report = self._report()
@@ -126,7 +126,7 @@ class Stage049DifferentialParserEvaluationStageReviewTests(unittest.TestCase):
     def test_review_replays_phase4_delivery_boundary(self):
         report = self._report()
         replay = report["controlled_replay"]
-        self.assertEqual(20, replay["phase4_candidate_parse_product_sample_count"])
+        self.assertEqual(8, replay["phase4_parser_output_sample_count"])
         self.assertEqual(11, replay["phase4_fallback_log_sample_count"])
         self.assertEqual(5, replay["phase4_failure_classification_count"])
         self.assertTrue(report["phase_results"]["phase4_delivery_valid"])
@@ -151,8 +151,8 @@ class Stage049DifferentialParserEvaluationStageReviewTests(unittest.TestCase):
             "ids_business_source_read_performed",
             "source_file_open_performed",
             "parser_execution_performed",
-            "actual_parse_product_comparison_performed",
             "fallback_execution_performed",
+            "runtime_prompt_injection_marker_application_performed",
             "quality_gate_evaluation_performed",
             "persistent_state_write_performed",
             "agent_execution_performed",
@@ -160,8 +160,8 @@ class Stage049DifferentialParserEvaluationStageReviewTests(unittest.TestCase):
             "model_token_consumption_performed",
             "ovh_deployment_performed",
             "production_runtime_activation_performed",
-            "stage050_started",
-            "stage050_entry_allowed",
+            "stage051_started",
+            "stage051_entry_allowed",
             "batch_review_performed",
             "github_upload_performed",
             "github_upload_allowed",
@@ -171,46 +171,43 @@ class Stage049DifferentialParserEvaluationStageReviewTests(unittest.TestCase):
                 self.assertFalse(report[field])
         self.assertTrue(report["whole_stage_review_performed"])
 
-    def test_governance_closes_stage049_only_to_a_separate_stage050_phase1_run(self):
+    def test_governance_closes_stage050_only_to_a_separate_batch_review_run(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage049_completed_reviewed_local"'),
-            (batch, "stage049_review_state:"),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE049-REVIEW"'),
-            (batch, 'next_allowed_task_id: "IDS-V0_1-STAGE050-P1"'),
-            (batch, 'stage050_entry_authorized: false'),
-            (roadmap, 'current_phase_id: "IDS-STAGE049-REVIEW"'),
-            (roadmap, 'current_task_id: "IDS-V0_1-STAGE049-REVIEW"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE050-P1-GATE"'),
+            (batch, 'status: "stage050_completed_reviewed_local"'),
+            (batch, "stage050_review_state:"),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE050-REVIEW"'),
+            (batch, 'next_allowed_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"'),
+            (batch, "stage051_entry_authorized: false"),
+            (roadmap, 'current_phase_id: "IDS-STAGE050-REVIEW"'),
+            (roadmap, 'current_task_id: "IDS-V0_1-STAGE050-REVIEW"'),
+            (roadmap, 'next_gate_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"'),
             (roadmap, 'status: "completed_reviewed_local"'),
         ):
             with self.subTest(expected=expected):
-                self.assertTrue(expected in text, expected)
+                self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertIn(
-            status["phase"],
-            ("IDS-STAGE049-REVIEW", "IDS-STAGE050-P1", "IDS-STAGE050-P2", "IDS-STAGE050-P3", "IDS-STAGE050-P4", "IDS-STAGE050-REVIEW"),
-        )
+        self.assertEqual("IDS-STAGE050-REVIEW", status["phase"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
     def test_machine_run_and_event_record_only_local_review_evidence(self):
         run = json.loads(RUN.read_text(encoding="utf-8"))
         self.assertEqual(
-            "PASS_REVIEWED_LOCAL_DIFFERENTIAL_EVALUATION_RUNTIME_DISABLED",
+            "PASS_REVIEWED_LOCAL_PROMPT_INJECTION_MARKER_RUNTIME_DISABLED",
             run["result"].strip("`"),
         )
         self.assertEqual(10, run["evidence_iterations"][0]["passed"])
         self.assertFalse(run["observed_work"]["parser_execution_performed"])
-        self.assertFalse(
-            run["observed_work"]["actual_parse_product_comparison_performed"]
-        )
         self.assertFalse(run["observed_work"]["fallback_execution_performed"])
+        self.assertFalse(
+            run["observed_work"]["runtime_prompt_injection_marker_application_performed"]
+        )
         self.assertFalse(run["observed_work"]["model_token_consumption_performed"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
-        self.assertFalse(run["observed_work"]["stage050_started"])
+        self.assertFalse(run["observed_work"]["stage051_started"])
 
         events = [
             json.loads(line)
@@ -219,10 +216,12 @@ class Stage049DifferentialParserEvaluationStageReviewTests(unittest.TestCase):
         event = next(
             item
             for item in events
-            if item.get("event_id") == "EVT-IDS-V0_1-STAGE049-REVIEW-20260812-001"
+            if item.get("event_id") == "EVT-IDS-V0_1-STAGE050-REVIEW-20260812-001"
         )
-        self.assertEqual("IDS-V0_1-STAGE049-REVIEW", event["task_id"])
-        self.assertIn("next_gate=IDS-STAGE050-P1-GATE", event["notes"])
+        self.assertEqual("IDS-V0_1-STAGE050-REVIEW", event["task_id"])
+        self.assertIn(
+            "next_gate=IDS-V0_1-BATCH-041-050-REVIEW-GATE", event["notes"]
+        )
         self.assertIn(
             "KM_IDSystem/" + str(REVIEW.relative_to(ROOT)),
             {item["ref"] for item in event["evidence_refs"]},

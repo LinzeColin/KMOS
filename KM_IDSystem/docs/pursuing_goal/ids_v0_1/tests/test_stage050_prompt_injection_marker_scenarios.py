@@ -228,7 +228,10 @@ class Stage050PromptInjectionMarkerPhase3Tests(unittest.TestCase):
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE050", status["stage"])
-        self.assertIn(status["phase"], ("IDS-STAGE050-P3", "IDS-STAGE050-P4"))
+        self.assertIn(
+            status["phase"],
+            ("IDS-STAGE050-P3", "IDS-STAGE050-P4", "IDS-STAGE050-REVIEW"),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
