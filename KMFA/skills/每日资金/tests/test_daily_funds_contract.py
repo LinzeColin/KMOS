@@ -4024,6 +4024,19 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     publication = _t06_publication()
     publication["git_commit_sha"] = commit.commit_sha
     publication_commit = writer.persist_publication(publication)
+    # The publication commit advances the branch after the raw batch.  A
+    # later audit must still reopen the immutable raw-batch commit rather than
+    # silently reading whichever branch tip happened to arrive next.
+    pinned = tmp_path / "pinned-raw-audit-sparse"
+    writer._clone_sparse(
+        pinned,
+        env=env,
+        ref="main",
+        patterns=narrow_patterns,
+        commit_sha=commit.commit_sha,
+    )
+    assert RawMaterializer.readback_attachment(pinned / SPARSE_PATH, direct).payload == direct_payload
+    assert not (pinned / SPARSE_PATH / "baseline.txt").exists()
     recovery_bundle = writer.bundle_head()
     RestoreOracle.verify_private_publication_bundle(
         recovery_bundle,
@@ -4055,6 +4068,7 @@ def test_sparse_writer_uses_shallow_clone_for_narrow_raw_paths(tmp_path: Path, m
         "clone", "--branch", "main", "--depth=1", "--filter=blob:none", "--sparse", "--no-checkout",
     ]
     assert commands[1] == ["sparse-checkout", "set", "--no-cone", *patterns]
+    assert commands[2] == ["checkout", "main"]
     assert f"{SPARSE_PATH.as_posix()}/" not in patterns
     assert all(pattern.startswith(f"{SPARSE_PATH.as_posix()}/raw/") for pattern in patterns)
     expected_batch_pattern = (SPARSE_PATH / "raw/batches" / f"{RawMaterializer._batch_details((attachment,))[0]}.json").as_posix()
@@ -4062,6 +4076,38 @@ def test_sparse_writer_uses_shallow_clone_for_narrow_raw_paths(tmp_path: Path, m
     assert writer._publication_sparse_patterns("2026-07-31") == (
         f"{(SPARSE_PATH / 'publications/2026-07-31').as_posix()}/",
     )
+
+
+def test_sparse_writer_pins_a_sparse_checkout_to_an_exact_audited_commit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    writer = GitSparseWriter(_config(tmp_path))
+    commands: list[list[str]] = []
+
+    def fake_git(args, **_kwargs):
+        commands.append(list(args))
+        return ""
+
+    monkeypatch.setattr(writer, "_git", fake_git)
+    commit_sha = "a" * 40
+    patterns = (f"{SPARSE_PATH.as_posix()}/raw/",)
+
+    writer._clone_sparse(
+        tmp_path / "pinned-sparse",
+        env={},
+        ref="main",
+        patterns=patterns,
+        audit_read=True,
+        commit_sha=commit_sha,
+    )
+
+    assert commands[0][:7] == [
+        "clone", "--branch", "main", "--depth=1", "--filter=blob:none", "--sparse", "--no-checkout",
+    ]
+    assert commands[1] == ["sparse-checkout", "set", "--no-cone", *patterns]
+    assert commands[2] == ["fetch", "--depth=1", "origin", commit_sha]
+    assert commands[3] == ["checkout", "--detach", commit_sha]
 
 
 def test_sparse_writer_retries_only_the_pre_mutation_prepare_phase_once(
@@ -4243,34 +4289,6 @@ def test_raw_archive_audit_retries_one_fresh_read_only_transport_attempt(
         return expected
 
     monkeypatch.setattr(writer, "_audit_raw_archive_once", transient_then_success)
-
-    assert writer.audit_raw_archive() is expected
-    assert attempts == ["attempt", "attempt"]
-
-
-def test_raw_archive_audit_retries_one_fresh_snapshot_after_branch_advance(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A branch advance before raw materialisation restarts the audit once."""
-
-    writer = GitSparseWriter(_config(tmp_path))
-    expected = RawArchiveAudit(
-        commit_sha="a" * 40,
-        verified_attachments=(),
-        occurrence_count=0,
-        batch_count=0,
-        batch_occurrence_references=0,
-    )
-    attempts: list[str] = []
-
-    def snapshot_advance_then_success() -> RawArchiveAudit:
-        attempts.append("attempt")
-        if len(attempts) == 1:
-            raise IngestionError("GIT_AUDIT_SNAPSHOT_ADVANCED")
-        return expected
-
-    monkeypatch.setattr(writer, "_audit_raw_archive_once", snapshot_advance_then_success)
 
     assert writer.audit_raw_archive() is expected
     assert attempts == ["attempt", "attempt"]

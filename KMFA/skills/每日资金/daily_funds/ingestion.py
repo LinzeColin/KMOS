@@ -2319,10 +2319,10 @@ class GitSparseWriter:
     _RAW_ARCHIVE_MAX_TREE_OUTPUT_BYTES = 512 * 1024
 
     # The raw-archive audit is strictly read-only.  A single Git/OpenSSH
-    # transport interruption, or a branch advance observed *between* two
-    # fresh clones before any raw manifest is opened, may be retried from a
-    # fresh sparse clone.  Neither a raw-integrity failure nor a
-    # configuration/scope error may be retried or downgraded.
+    # transport interruption may be retried from a fresh sparse clone, but
+    # raw-integrity, configuration and scope failures may never be retried or
+    # downgraded.  Each audit pins its later clones to the first tree commit,
+    # so a normal branch advance cannot be misclassified as an integrity error.
     _AUDIT_RETRYABLE_GIT_MARKERS = (
         "connection reset",
         "connection timed out",
@@ -2644,10 +2644,7 @@ class GitSparseWriter:
             # failed transport state is carried into the second attempt.
             # Integrity, source, scope and every second-attempt error remain
             # fail-closed.
-            if exc.code not in {
-                "GIT_AUDIT_TRANSPORT_RETRYABLE",
-                "GIT_AUDIT_SNAPSHOT_ADVANCED",
-            }:
+            if exc.code != "GIT_AUDIT_TRANSPORT_RETRYABLE":
                 raise
         return self._audit_raw_archive_once()
 
@@ -2711,13 +2708,10 @@ class GitSparseWriter:
                 ref=self.config.private_branch,
                 patterns=metadata_patterns,
                 audit_read=True,
+                commit_sha=commit_sha,
             )
             if self._git(["rev-parse", "HEAD"], cwd=metadata_repo, env=env, audit_read=True) != commit_sha:
-                # The private branch advanced after the name-only census.
-                # This is not an integrity mismatch: no selected raw object
-                # has been opened yet.  Restart the full read-only audit once
-                # so every clone refers to one fresh immutable snapshot.
-                raise IngestionError("GIT_AUDIT_SNAPSHOT_ADVANCED")
+                raise IngestionError("GIT_READBACK_FAILED")
             metadata_root = metadata_repo / SPARSE_PATH
             occurrences = tuple(
                 self._archive_occurrence_metadata(metadata_root, path)
@@ -2732,11 +2726,10 @@ class GitSparseWriter:
                 ref=self.config.private_branch,
                 patterns=readback_patterns,
                 audit_read=True,
+                commit_sha=commit_sha,
             )
             if self._git(["rev-parse", "HEAD"], cwd=readback_repo, env=env, audit_read=True) != commit_sha:
-                # Same pre-materialisation snapshot rule as the metadata
-                # clone above.  A second advance remains fail-closed.
-                raise IngestionError("GIT_AUDIT_SNAPSHOT_ADVANCED")
+                raise IngestionError("GIT_READBACK_FAILED")
             root = readback_repo / SPARSE_PATH
             references = self._archive_persisted_references(root, occurrences)
             verified = tuple(
@@ -2765,6 +2758,7 @@ class GitSparseWriter:
         patterns: Sequence[str] | None = None,
         audit_read: bool = False,
         failure_code: str = "GIT_WRITE_FAILED",
+        commit_sha: str | None = None,
     ) -> None:
         """Clone only the caller's approved sparse materialisation paths.
 
@@ -2784,7 +2778,11 @@ class GitSparseWriter:
         # at ``master`` even though this single-writer contract permits only
         # ``main``.  Bind the clone itself to ``ref`` so Git-version-specific
         # shallow-clone behavior cannot turn that server-default mismatch into
-        # a write-path failure.
+        # a write-path failure.  When an audit already selected one immutable
+        # tree commit, it fetches and detaches that commit *before* checkout so
+        # a concurrent branch advance cannot mix manifests across snapshots.
+        if commit_sha is not None and not re.fullmatch(r"[0-9a-f]{40}", commit_sha):
+            raise IngestionError("GIT_READBACK_FAILED")
         self._git([
             "clone", "--branch", ref, "--depth=1", "--filter=blob:none", "--sparse", "--no-checkout",
             self.config.private_repo, str(repo),
@@ -2799,7 +2797,23 @@ class GitSparseWriter:
             audit_read=audit_read,
             failure_code=failure_code,
         )
-        self._git(["checkout", ref], cwd=repo, env=env, audit_read=audit_read, failure_code=failure_code)
+        if commit_sha is not None:
+            self._git(
+                ["fetch", "--depth=1", "origin", commit_sha],
+                cwd=repo,
+                env=env,
+                audit_read=audit_read,
+                failure_code=failure_code,
+            )
+            self._git(
+                ["checkout", "--detach", commit_sha],
+                cwd=repo,
+                env=env,
+                audit_read=audit_read,
+                failure_code=failure_code,
+            )
+        else:
+            self._git(["checkout", ref], cwd=repo, env=env, audit_read=audit_read, failure_code=failure_code)
         self._assert_sparse_checkout_scope(repo)
 
     def _prepare_sparse_clone_with_single_retry(
@@ -2911,12 +2925,7 @@ class GitSparseWriter:
                     ref=self.config.private_branch,
                     patterns=patterns,
                     failure_code=failure_code,
-                )
-                self._git(
-                    ["checkout", "--detach", commit_sha],
-                    cwd=candidate,
-                    env=env,
-                    failure_code=failure_code,
+                    commit_sha=commit_sha,
                 )
                 return candidate / SPARSE_PATH
             except IngestionError as exc:
