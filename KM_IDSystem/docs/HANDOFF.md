@@ -9,9 +9,20 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage052 P1 - 2026-08-13
+## Current Gate - Stage052 P2 - 2026-08-13
 
-- 本节覆盖下方 Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
+- 本节覆盖下方 Stage052 P1、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成 `IDS-V0_1-STAGE052-P2`：在 P1 静态合同上，以四个固定非业务控制页实现纯内存中英文 OCR 队列记录、符号化八字段逐页结构、内存派生来源页引用、置信度和低置信/失败/中英混合可解释状态。
+- 唯一合同上下文是冻结 Stage052 任务包、P1 静态合同与 Stage051 已复审合同/控制证据。没有建立第二权威事实源，也没有读取 IDS 业务源、原始元数据、正文、文件路径、真实 PDF、图像、页面或表格内容。三个符号化控制输出只验证结构，不是 OCR 识别文本、来源正文或真实页面内容。
+- 控制输入保持七字段 reference-only 合同；四个控制页只覆盖中文简体候选、英文低置信、中英混合和显式失败。低置信、失败和中英文混合均不能直接进入高可信证据层，当前未创建实际复核任务，后续实际复核仍归 Stage054。
+- 缓存固定为仅内存可重建且未持久化，保留与清理所有权仍归 Stage056。本轮只返回内存值；没有创建真实队列、持久按页输出、缓存、复核记录、质量门、证据提升、持久状态、本地服务、OVH 或生产运行；运行时保持零 Agent、零模型 Token。
+- 回滚只撤回 Stage052 P2 说明、切片合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图，恢复到 `PHASE1_BILINGUAL_OCR_BOUNDARY_RUNTIME_DISABLED`；真实资料、既有证据、运行状态、GitHub、OVH 与应用状态不在回滚范围内。
+- 已验证：Stage052 P2 聚焦用例 `9/9`、Stage052 P1 与 Stage051 Review 前序兼容 `19/19`、Stage051 P1--P4 前序兼容 `42/42`、BATCH041_050 前序兼容 `6/6`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理报告为 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 下一步只允许在新的独立 run 进入 `IDS-STAGE052-P3`，门为 `IDS-STAGE052-P3-GATE`。所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage052 P1 - 2026-08-13
+
+- 本节仅保留 Stage052 P1 的历史交接证据；当前门已转为 Stage052 P2。
 - 本轮完成 `IDS-V0_1-STAGE052-P1`：在 Stage051 已复审 OCR 队列基线上，定义中文简体、英文和中英文混合页面的 reference-only 输入、八字段按页输出引用、低置信/混合语言隔离、缓存边界与后续复核路由。
 - 唯一合同上下文是冻结 Stage052 任务包与 Stage051 已复审合同/控制证据。没有建立第二权威事实源，也没有读取 IDS 业务源、原始元数据、正文、文件路径、真实 PDF、图像、页面或表格内容；本步骤不返回 OCR 文本。
 - 默认语言为中文简体和英文，允许中文简体、英文及中英文混合三种语言档案。未选择或配置 OCR 引擎，也未进行语言检测；低置信和中英文混合页面均不能直接进入高可信证据层，后续仅声明为 Stage054 受控复核路由。

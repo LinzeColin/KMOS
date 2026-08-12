@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-052 Phase 2 - 2026-08-13
+
+- 完成 `IDS-V0_1-STAGE052-P2`：在 P1 静态合同上实现纯内存中英文 OCR 控制队列切片。四个固定非业务控制页形成符号化八字段逐页结构、来源页引用、置信度记录，以及低置信、失败和中英文混合的可解释状态。
+- 本地验证通过：Stage052 P2 聚焦用例 `9/9`、Stage052 P1 与 Stage051 Review 前序兼容 `19/19`、Stage051 P1--P4 前序兼容 `42/42`、BATCH041_050 前序兼容 `6/6`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影重渲染 `7` 个文件。
+- 控制标记不是 OCR 识别文本、业务资料、真实路径或第二权威事实源。未读取真实资料、检测语言、选择或调用 OCR 引擎、创建持久队列/缓存/复核、执行质量门或持久化；Agent、模型 Token、OVH、生产、上传与推送均保持关闭。后续仅允许在新的独立 run 进入 `IDS-STAGE052-P3-GATE`。
+
 ## IDS v0.1 STAGE-052 Phase 1 - 2026-08-13
 
 - 完成 `IDS-V0_1-STAGE052-P1`：在 Stage051 已复审 OCR 队列基线上，固化中文简体、英文和中英文混合页面的 reference-only 输入、八字段按页输出引用、低置信/混合语言隔离、可重建缓存边界与 Stage054 后续复核路由。
