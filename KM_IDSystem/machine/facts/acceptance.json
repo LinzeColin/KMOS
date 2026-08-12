@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE049-P3-01`",
+      "criteria": "11 个格式标签化、仅引用的双候选控制场景覆盖 PDF、DOCX、XLSX、CSV、TXT、三类图片、未知、坏文件和指令样文本；格式标签不是文件检测或真实路线结果",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE049-P3-02`",
+      "criteria": "全部场景返回明确候选、复核、不具资格或无效输入处置，静默丢弃为零；低质量控制仍为 CANDIDATE/UNASSESSED，未创建复核队列或实际 fallback",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE049-P3-03`",
+      "criteria": "指令样 TXT 与普通 TXT 控制处置一致，固定为 UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY；系统指令、工具授权与策略覆盖均未允许，Stage050 职责未提前执行",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE049-P3-04`",
+      "criteria": "未读取真实资料，未执行真实路线、parser、解析正文比较、fallback、质量门、持久化、Agent、模型调用、OVH、生产、上传或推送",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE049-P2-01`",
       "criteria": "P2 仅内存切片只接收两个受控七字段 reference-only 候选 wrapper，并在内存结果记录 control-fixture parser 版本与 parser_confidence；未建立第二权威事实源",
       "status": "已通过"

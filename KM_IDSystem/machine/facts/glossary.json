@@ -4,6 +4,11 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "format-labelled differential scenario",
+      "中文": "格式标签化差异评估场景",
+      "说明": "只用格式标签和两个 reference-only control 候选重放 Stage049 P2 资格处置的纯内存报告；格式标签不代表文件检测、真实路线、真实 parser 或解析正文"
+    },
+    {
       "英文": "control differential eligibility slice",
       "中文": "受控差异化资格切片",
       "说明": "只对两个 reference-only control 候选的版本、置信度和元数据一致性作纯内存资格判断的确定性函数；不读取文件、不比较解析正文、不运行 parser 或质量门"

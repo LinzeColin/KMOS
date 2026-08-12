@@ -1,22 +1,22 @@
 {
   "stage": "`IDS-STAGE049`",
-  "phase": "`IDS-STAGE049-P2`",
-  "task": "`IDS-V0_1-STAGE049-P2`",
-  "owner": "Codex 专属 KMOS worktree，Stage049 差异化解析器评估受控资格切片",
-  "objective": "实现双候选 reference-only control 的仅内存资格评估，记录 parser 版本和置信度，并保持质量与证据边界。",
+  "phase": "`IDS-STAGE049-P3`",
+  "task": "`IDS-V0_1-STAGE049-P3`",
+  "owner": "Codex 专属 KMOS worktree，Stage049 差异化解析器评估受控场景",
+  "objective": "重放格式标签化、仅引用的双候选控制场景，验证明确处置、低质量复核、异常控制与指令样文本边界。",
   "scope": [
     "以冻结 Stage049 任务包、P1 合同和 Stage048 已复审工件为唯一合同上下文，不建立第二权威事实源",
-    "实现只接收两个七字段 reference-only 候选 wrapper 的纯内存差异化资格切片，并在内存记录 control-fixture parser 版本和置信度",
-    "对版本不足、元数据不一致和非法输入返回明确中文处置；合格候选仍为 CANDIDATE，质量状态仍为 UNASSESSED",
-    "确认切片不比较解析正文，不改写输出或路线，不触发 fallback、不创建复核任务，也不绕过质量门或提升证据",
-    "同步 P2 范围说明、合同、聚焦单元用例、批次锁、路线图、机器事实、中文视图与交接",
-    "只完成 ACC-STAGE-049 的 P2 工程切片并指向独立 Stage049 Phase 3 gate"
+    "重放 11 个格式标签化、仅引用的双候选 control 场景；格式标签不是文件检测或真实路线结果",
+    "对候选、低质量复核、未知控制上下文和坏文件无效控制返回明确中文处置；候选仍为 CANDIDATE，质量状态仍为 UNASSESSED",
+    "确认场景不比较解析正文，不改写输出或路线，不触发 fallback、不创建复核任务，也不绕过质量门或提升证据",
+    "同步 P3 范围说明、合同、聚焦单元用例、批次锁、路线图、机器事实、中文视图与交接",
+    "只完成 ACC-STAGE-049 的 P3 受控场景并指向独立 Stage049 Phase 4 gate"
   ],
   "non_goals": [
     "不打开真实业务源、原始元数据、页面、图像、来源正文或 Owner fixture，不执行文件签名识别、真实路线评估或创建业务解析输出",
     "不选择、分派或执行 parser，不比较解析正文，不执行真实 fallback、人工复核队列、提示注入标记或质量门",
     "不提升证据，不写 manifest、evidence ledger、audit、index、report、database、job、state 或持久运行状态",
-    "不进入 Stage049 Phase 3、整阶段复审、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
+    "不进入 Stage049 Phase 4、整阶段复审、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "P2 的控制资格切片、事实投影与聚焦单元用例验证完成后停止，下一轮只允许进入 IDS-STAGE049-P3-GATE；任何真实资料访问、真实解析正文比较、持久写入、OVH 或生产动作都不属于本步骤。"
+  "stop_condition": "P3 的受控场景、事实投影与聚焦单元用例验证完成后停止，下一轮只允许进入 IDS-STAGE049-P4-GATE；任何真实资料访问、真实路线或解析正文比较、持久写入、OVH 或生产动作都不属于本步骤。"
 }

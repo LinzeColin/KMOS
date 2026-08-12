@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-049 Phase 3 - 2026-08-12
+
+- 以 11 个格式标签化、仅引用的双候选 control 场景重放 P2 资格处置：覆盖 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF、未知、坏文件和指令样文本；全部返回明确候选、复核、不具资格或无效输入处置，静默丢弃为零。
+- 三项低质量控制只返回未排队复核，未知与坏文件控制保持不具资格或无效输入处置；Stage048 fallback 所有权未改变，真实路线、parser、解析正文比较、fallback、质量门与持久化均未执行。
+- 指令样 TXT 与普通 TXT 控制处置一致并固定为 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`。聚焦 P3 直接单元用例通过 `9/9`，Stage049 P1/P2 前序兼容用例通过 `15/15`，Stage048 P1-P4 及复审前序兼容用例通过 `48/48`；下一门仅为独立 `IDS-STAGE049-P4-GATE`。
+
 ## IDS v0.1 STAGE-049 Phase 2 - 2026-08-12
 
 - 实现仅内存的差异化解析器资格切片：只接收两个七字段 reference-only control 候选，记录 control-fixture parser 版本与解析置信度，并对合格、需复核、版本不足、控制上下文不一致和非法输入返回明确中文处置。
