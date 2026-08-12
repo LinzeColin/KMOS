@@ -5,17 +5,18 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-BOUNDARY = BASE / "STAGE052_PHASE1_BILINGUAL_OCR_SCOPE_BOUNDARY.md"
-CONTRACT = BASE / "ocr_queue" / "stage052_bilingual_ocr_contract.json"
-PREDECESSOR_REVIEW = BASE / "STAGE051_STAGE_REVIEW.md"
+BOUNDARY = BASE / "STAGE053_PHASE1_PER_PAGE_OCR_OUTPUT_SCOPE_BOUNDARY.md"
+CONTRACT = BASE / "ocr_queue" / "stage053_per_page_ocr_output_contract.json"
+TASKPACK = ROOT / "docs" / "taskpacks" / "IDS_v0_1_Final_Chinese_Revised" / "stages" / "STAGE-053_按页OCR输出.md"
+PREDECESSOR_REVIEW = BASE / "STAGE052_STAGE_REVIEW.md"
 BATCH = BASE / "BATCH051_060_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-13-stage052-p1-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-13-stage053-p1-local.json"
 
 
-class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
+class Stage053PerPageOcrOutputPhase1Tests(unittest.TestCase):
     def _contract(self):
         return json.loads(CONTRACT.read_text(encoding="utf-8"))
 
@@ -23,6 +24,7 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
         for artifact in (
             BOUNDARY,
             CONTRACT,
+            TASKPACK,
             PREDECESSOR_REVIEW,
             BATCH,
             ROADMAP,
@@ -35,16 +37,16 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
 
     def test_identity_authority_and_forward_gate_are_exact(self):
         contract = self._contract()
-        self.assertEqual("ids.stage052.bilingual_ocr.phase1.v1", contract["schema_version"])
-        self.assertEqual("STAGE-052", contract["stage"])
+        self.assertEqual("ids.stage053.per_page_ocr_output.phase1.v1", contract["schema_version"])
+        self.assertEqual("STAGE-053", contract["stage"])
         self.assertEqual("Phase 1", contract["phase"])
-        self.assertEqual("IDS-V0_1-STAGE052-P1", contract["task_id"])
-        self.assertEqual("ACC-STAGE-052", contract["acceptance_id"])
+        self.assertEqual("IDS-V0_1-STAGE053-P1", contract["task_id"])
+        self.assertEqual("ACC-STAGE-053", contract["acceptance_id"])
         self.assertFalse(contract["execution_ready"])
-        self.assertEqual("IDS-STAGE052-P2-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE053-P2-GATE", contract["next_gate"])
         authority = contract["source_authority"]
         self.assertEqual(
-            "FROZEN_TASKPACK_TEXT_AND_STAGE051_REVIEW_ARTIFACTS",
+            "FROZEN_TASKPACK_TEXT_AND_STAGE052_REVIEW_ARTIFACTS",
             authority["authority"],
         )
         for field in (
@@ -96,10 +98,26 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(incoming[field])
 
-    def test_bilingual_profiles_and_output_reference_are_exact(self):
+    def test_per_page_output_image_reference_and_failure_boundary_are_exact(self):
         contract = self._contract()
-        output = contract["per_page_output_reference"]
-        self.assertEqual(8, output["field_count"])
+        output = contract["per_page_output_contract"]
+        self.assertEqual(
+            [
+                "source_identity_ref",
+                "source_page_ref",
+                "page_image_ref",
+                "ocr_text",
+                "language_profile",
+                "confidence_level",
+                "failure_reason",
+                "output_status",
+                "evidence_eligibility",
+                "cache_ref",
+                "review_route",
+            ],
+            output["required_fields"],
+        )
+        self.assertEqual(11, output["field_count"])
         self.assertEqual("CANDIDATE", output["initial_fact_level"])
         self.assertEqual("UNASSESSED", output["initial_quality_state"])
         for field in (
@@ -111,6 +129,30 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(output[field])
 
+        image_ref = contract["page_image_reference_boundary"]
+        self.assertEqual("page_image_ref", image_ref["field"])
+        for field in (
+            "actual_image_reference_created",
+            "image_binary_created",
+            "image_content_allowed",
+            "absolute_or_raw_path_allowed",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(image_ref[field])
+
+        failure = contract["failure_reason_contract"]
+        self.assertEqual("failure_reason", failure["field"])
+        self.assertEqual(5, len(failure["allowed_future_classifications"]))
+        for field in (
+            "actual_failure_record_created",
+            "raw_exception_allowed",
+            "source_body_or_path_allowed",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(failure[field])
+
+    def test_bilingual_profiles_confidence_and_review_remain_fail_closed(self):
+        contract = self._contract()
         language = contract["bilingual_language_contract"]
         self.assertEqual(
             ["SIMPLIFIED_CHINESE", "ENGLISH"], language["default_languages"]
@@ -125,7 +167,6 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
             ],
             language["allowed_language_profiles"],
         )
-        self.assertTrue(language["mixed_language_profile_declared"])
         for field in (
             "ocr_engine_selected",
             "ocr_engine_configuration_allowed",
@@ -136,14 +177,14 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(language[field])
 
-    def test_low_confidence_mixed_language_and_cache_remain_fail_closed(self):
-        contract = self._contract()
         confidence = contract["confidence_and_review_boundary"]
+        self.assertEqual(["HIGH", "MEDIUM", "LOW", "UNKNOWN"], confidence["confidence_levels"])
         for field in (
             "numeric_threshold_assigned",
             "confidence_evaluation_performed",
             "low_confidence_direct_high_trust_allowed",
             "mixed_language_direct_high_trust_allowed",
+            "failure_page_direct_high_trust_allowed",
             "review_queue_record_creation_allowed",
             "quality_gate_execution_allowed",
             "evidence_promotion_allowed",
@@ -152,20 +193,13 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(confidence[field])
         self.assertEqual(
-            "NOT_ELIGIBLE_FOR_HIGH_TRUST_DIRECT_ENTRY",
-            confidence["low_confidence_evidence_eligibility"],
-        )
-        self.assertEqual(
-            "NOT_ELIGIBLE_FOR_HIGH_TRUST_DIRECT_ENTRY",
-            confidence["mixed_language_evidence_eligibility"],
-        )
-        self.assertEqual(
             "STAGE054_CONTROLLED_REVIEW_ROUTE_REQUIRED",
             confidence["future_review_route"],
         )
 
+    def test_cache_audit_runtime_and_external_actions_remain_disabled(self):
+        contract = self._contract()
         cache = contract["cache_boundary"]
-        self.assertEqual("FUTURE_REBUILDABLE_DERIVED_CACHE_ONLY", cache["mode"])
         self.assertEqual("STAGE-056", cache["cache_cleanup_owner"])
         for field in (
             "cache_created",
@@ -179,8 +213,17 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(cache[field])
 
-    def test_runtime_and_external_actions_remain_disabled(self):
-        runtime = self._contract()["runtime_boundary"]
+        audit = contract["audit_boundary"]
+        self.assertEqual(6, len(audit["future_record_fields"]))
+        for field in (
+            "audit_record_created",
+            "audit_write_allowed",
+            "audit_content_or_path_allowed",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(audit[field])
+
+        runtime = contract["runtime_boundary"]
         self.assertTrue(all(value is False for value in runtime.values()))
 
     def test_chinese_feedback_and_rollback_are_bounded(self):
@@ -195,7 +238,7 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
 
         rollback = contract["rollback_contract"]
         self.assertEqual(
-            "STAGE051_REVIEWED_LOCAL_OCR_QUEUE_RUNTIME_DISABLED",
+            "STAGE052_REVIEWED_LOCAL_BILINGUAL_OCR_RUNTIME_DISABLED",
             rollback["return_to"],
         )
         for field in (
@@ -210,43 +253,33 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(rollback[field])
 
-    def test_governance_and_local_run_preserve_stage052_phase1(self):
+    def test_governance_and_local_run_preserve_stage053_phase1(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage052_phase1_completed"'),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE052-P1"'),
-            (batch, 'next_gate: "IDS-STAGE052-P2-GATE"'),
-            (batch, "stage052_started: true"),
+            (batch, 'status: "stage053_phase1_completed"'),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE053-P1"'),
+            (batch, 'next_gate: "IDS-STAGE053-P2-GATE"'),
+            (batch, "stage053_started: true"),
             (batch, "ocr_engine_invocation_performed: false"),
             (batch, "model_token_consumption_performed: false"),
             (batch, "ovh_deployment_performed: false"),
-            (roadmap, 'current_stage_id: "IDS-STAGE052"'),
-            (roadmap, 'current_phase_id: "IDS-STAGE052-P1"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE052-P2-GATE"'),
+            (roadmap, 'current_stage_id: "IDS-STAGE053"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE053-P1"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE053-P2-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertIn(status["stage"], ("IDS-STAGE052", "IDS-STAGE053"))
-        self.assertIn(
-            status["phase"],
-            (
-                "IDS-V0_1-STAGE052-P1",
-                "IDS-V0_1-STAGE052-P2",
-                "IDS-V0_1-STAGE052-P3",
-                "IDS-V0_1-STAGE052-P4",
-                "IDS-V0_1-STAGE052-REVIEW",
-                "IDS-V0_1-STAGE053-P1",
-            ),
-        )
+        self.assertEqual("IDS-STAGE053", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE053-P1", status["phase"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
         run = json.loads(RUN.read_text(encoding="utf-8"))
         self.assertEqual(
-            "PASS_PHASE1_BILINGUAL_OCR_BOUNDARY_RUNTIME_DISABLED",
+            "PASS_PHASE1_PER_PAGE_OCR_OUTPUT_BOUNDARY_RUNTIME_DISABLED",
             run["result"],
         )
         self.assertFalse(run["observed_work"]["ocr_engine_invocation_performed"])
@@ -260,11 +293,11 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
         event = next(
             item
             for item in events
-            if item.get("event_id") == "EVT-IDS-V0_1-STAGE052-P1-20260813-001"
+            if item.get("event_id") == "EVT-IDS-V0_1-STAGE053-P1-20260813-001"
         )
-        self.assertEqual("IDS-V0_1-STAGE052-P1", event["task_id"])
-        self.assertEqual(["ACC-STAGE-052"], event["acceptance_ids"])
-        self.assertIn("next_gate=IDS-STAGE052-P2-GATE", event["notes"])
+        self.assertEqual("IDS-V0_1-STAGE053-P1", event["task_id"])
+        self.assertEqual(["ACC-STAGE-053"], event["acceptance_ids"])
+        self.assertIn("next_gate=IDS-STAGE053-P2-GATE", event["notes"])
 
 
 if __name__ == "__main__":

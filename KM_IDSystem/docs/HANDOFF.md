@@ -9,7 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage052 Review - 2026-08-13
+## Current Gate - Stage053 Phase 1 - 2026-08-13
+
+- 本节覆盖下方 Stage052 Review、P4、P3、P2、P1、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成 `IDS-V0_1-STAGE053-P1`：以冻结 Stage053 任务包与 Stage052 已复审中英文 OCR 合同为唯一上下文，固化未来按页 OCR 文本、置信度、图片引用、失败原因、默认中英文、低置信度隔离、缓存、审计引用、中文反馈和回滚边界的静态工程合同。
+- 未来按页输出固定为 11 个字段：`source_identity_ref`、`source_page_ref`、`page_image_ref`、`ocr_text`、`language_profile`、`confidence_level`、`failure_reason`、`output_status`、`evidence_eligibility`、`cache_ref`、`review_route`。字段只是未来结构，未创建、保存、解释或回显 OCR 文本、图片引用、失败记录、来源正文、真实路径、页面或图片内容。
+- 默认语言为中文简体与英文，允许中文简体、英文和中英文混合。未来置信度仅定义 `HIGH`、`MEDIUM`、`LOW`、`UNKNOWN` 四种状态且没有数值阈值；低置信度、中英文混合和失败页均不能直接进入高可信证据层，只声明后续 Stage054 受控复核路由。
+- 缓存与审计均为 future reference-only 边界，缓存保留/清理仍归 Stage056；没有创建缓存、audit、manifest、evidence ledger、report、数据库或持久状态。没有读取 IDS 业务源、原始元数据、正文、文件路径、真实 PDF、图像、页面或表格内容；没有打开样本、调用 OCR、图像处理、语言检测、创建实际按页输出/图片引用/失败记录、复核、质量门、本地服务、OVH 或生产运行；运行时保持零 Agent、零模型 Token。
+- 回滚只撤回本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图，恢复到 `STAGE052_REVIEWED_LOCAL_BILINGUAL_OCR_RUNTIME_DISABLED`；真实资料、既有证据、运行状态、GitHub、OVH 与应用状态不在回滚范围内。
+- 已验证：Stage053 P1 聚焦用例 `8/8`、Stage052 Review 与 P1--P4 前序兼容 `53/53`、Stage051 Review 与 P1--P4 前序兼容 `53/53`、BATCH041_050 前序兼容 `6/6`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理报告为 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 下一步只允许在新的独立 run 进入 `IDS-STAGE053-P2`，门为 `IDS-STAGE053-P2-GATE`。所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage052 Review - 2026-08-13
 
 - 本节覆盖下方 Stage052 P4、P3、P2、P1、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
 - 本轮完成 IDS-V0_1-STAGE052-REVIEW：独立复审 P1--P4 已提交合同与 P3/P4 固定非业务中英文 OCR control 报告的字段形状、双语边界、显式处置、metadata-only 交付、中文人工确认、缓存边界和回滚链。

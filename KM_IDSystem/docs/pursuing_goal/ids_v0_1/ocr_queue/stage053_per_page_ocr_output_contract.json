@@ -1,0 +1,255 @@
+{
+  "schema_version": "ids.stage053.per_page_ocr_output.phase1.v1",
+  "stage": "STAGE-053",
+  "phase": "Phase 1",
+  "task_id": "IDS-V0_1-STAGE053-P1",
+  "acceptance_id": "ACC-STAGE-053",
+  "local_code": "D09-S003",
+  "domain": "D09 · OCR 管线",
+  "entrance": "IDS 系统运营入口",
+  "pursuing_goal": "在 Stage052 已复审中英文 OCR 合同基线上定义按页 OCR 文本、置信度、图片引用和失败原因的可解释、可回滚且不扩大运行能力的静态合同。",
+  "contract_state": "PHASE1_PER_PAGE_OCR_OUTPUT_BOUNDARY_RUNTIME_DISABLED",
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE053-P2-GATE",
+  "source_authority": {
+    "authority": "FROZEN_TASKPACK_TEXT_AND_STAGE052_REVIEW_ARTIFACTS",
+    "frozen_taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-053_按页OCR输出.md",
+    "predecessor_review_refs": [
+      "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE052_STAGE_REVIEW.md",
+      "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage052_bilingual_ocr_stage_review.py",
+      "KM_IDSystem/machine/runs/2026-08-13-stage052-review-local.json"
+    ],
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false
+  },
+  "ownership_boundary": {
+    "ocr_queue_baseline_owner": "STAGE-051",
+    "bilingual_ocr_contract_owner": "STAGE-052",
+    "per_page_ocr_output_owner": "STAGE-053",
+    "low_confidence_review_route_owner": "STAGE-054",
+    "ocr_engine_mapping_owner": "STAGE-055",
+    "ocr_cache_retention_owner": "STAGE-056",
+    "upstream_result_rewrite_allowed": false,
+    "queue_or_engine_activation_allowed": false
+  },
+  "reference_only_input_contract": {
+    "base_contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage052_bilingual_ocr_contract.json",
+    "mode": "REFERENCE_ONLY_FUTURE_PER_PAGE_OCR_CANDIDATE",
+    "required_fields": [
+      "source_identity_ref",
+      "input_kind_hint",
+      "parser_output_status",
+      "source_page_count_ref",
+      "language_profile",
+      "ocr_request_reason",
+      "cache_policy_ref"
+    ],
+    "input_kind_hints": [
+      "SCANNED_PDF",
+      "IMAGE",
+      "LOW_TEXT_COVERAGE_PDF"
+    ],
+    "additional_fields_allowed": false,
+    "source_body_or_path_allowed": false,
+    "source_page_content_allowed": false,
+    "image_content_allowed": false,
+    "language_detection_performed": false,
+    "candidate_record_write_allowed": false
+  },
+  "per_page_output_contract": {
+    "mode": "FUTURE_SCHEMA_REFERENCE_ONLY_NO_PAGE_OUTPUT_CREATED",
+    "required_fields": [
+      "source_identity_ref",
+      "source_page_ref",
+      "page_image_ref",
+      "ocr_text",
+      "language_profile",
+      "confidence_level",
+      "failure_reason",
+      "output_status",
+      "evidence_eligibility",
+      "cache_ref",
+      "review_route"
+    ],
+    "field_count": 11,
+    "actual_page_output_created": false,
+    "actual_page_output_persisted": false,
+    "ocr_text_created": false,
+    "page_content_return_allowed": false,
+    "initial_fact_level": "CANDIDATE",
+    "initial_quality_state": "UNASSESSED"
+  },
+  "page_image_reference_boundary": {
+    "field": "page_image_ref",
+    "mode": "FUTURE_REFERENCE_ONLY_NO_IMAGE_PATH_OR_BINARY_CREATED",
+    "actual_image_reference_created": false,
+    "image_binary_created": false,
+    "image_content_allowed": false,
+    "absolute_or_raw_path_allowed": false
+  },
+  "failure_reason_contract": {
+    "field": "failure_reason",
+    "mode": "FUTURE_CONTROLLED_CLASSIFICATION_NO_FAILURE_RECORD_CREATED",
+    "allowed_future_classifications": [
+      "OCR_EXECUTION_NOT_STARTED",
+      "PAGE_IMAGE_REFERENCE_UNAVAILABLE",
+      "OCR_ENGINE_UNAVAILABLE",
+      "LOW_CONFIDENCE_REVIEW_REQUIRED",
+      "MIXED_LANGUAGE_REVIEW_REQUIRED"
+    ],
+    "actual_failure_record_created": false,
+    "raw_exception_allowed": false,
+    "source_body_or_path_allowed": false
+  },
+  "bilingual_language_contract": {
+    "default_languages": [
+      "SIMPLIFIED_CHINESE",
+      "ENGLISH"
+    ],
+    "default_language_count": 2,
+    "default_simplified_chinese_and_english_confirmed": true,
+    "allowed_language_profiles": [
+      "SIMPLIFIED_CHINESE",
+      "ENGLISH",
+      "SIMPLIFIED_CHINESE_AND_ENGLISH"
+    ],
+    "mixed_language_profile_declared": true,
+    "ocr_engine_selected": false,
+    "ocr_engine_configuration_allowed": false,
+    "language_engine_mapping_defined": false,
+    "language_detection_performed": false,
+    "mixed_language_runtime_processing_performed": false
+  },
+  "confidence_and_review_boundary": {
+    "confidence_levels": [
+      "HIGH",
+      "MEDIUM",
+      "LOW",
+      "UNKNOWN"
+    ],
+    "numeric_threshold_assigned": false,
+    "confidence_evaluation_performed": false,
+    "low_confidence_direct_high_trust_allowed": false,
+    "mixed_language_direct_high_trust_allowed": false,
+    "failure_page_direct_high_trust_allowed": false,
+    "low_confidence_evidence_eligibility": "NOT_ELIGIBLE_FOR_HIGH_TRUST_DIRECT_ENTRY",
+    "mixed_language_evidence_eligibility": "NOT_ELIGIBLE_FOR_HIGH_TRUST_DIRECT_ENTRY",
+    "failure_page_evidence_eligibility": "NOT_ELIGIBLE_FOR_HIGH_TRUST_DIRECT_ENTRY",
+    "future_review_route": "STAGE054_CONTROLLED_REVIEW_ROUTE_REQUIRED",
+    "review_queue_record_creation_allowed": false,
+    "quality_gate_execution_allowed": false,
+    "evidence_promotion_allowed": false,
+    "high_trust_evidence_promotion_allowed": false
+  },
+  "cache_boundary": {
+    "mode": "FUTURE_REBUILDABLE_DERIVED_CACHE_ONLY",
+    "cache_created": false,
+    "cache_write_allowed": false,
+    "cache_storage_location_assigned": false,
+    "cache_retention_policy_defined": false,
+    "cache_cleanup_allowed": false,
+    "cache_cleanup_owner": "STAGE-056",
+    "raw_source_cache_allowed": false,
+    "persistent_cache_evidence_allowed": false
+  },
+  "audit_boundary": {
+    "mode": "FUTURE_REFERENCE_ONLY_AUDIT_LINK_NO_RECORD_CREATED",
+    "future_record_fields": [
+      "source_identity_ref",
+      "source_page_ref",
+      "output_status",
+      "failure_reason",
+      "review_route",
+      "contract_version"
+    ],
+    "audit_record_created": false,
+    "audit_write_allowed": false,
+    "audit_content_or_path_allowed": false
+  },
+  "chinese_feedback_contract": {
+    "messages": [
+      {
+        "code": "PER_PAGE_OCR_OUTPUT_CONTRACT_DEFINED",
+        "message": "当前仅定义按页 OCR 输出合同，未创建页面输出或读取资料。"
+      },
+      {
+        "code": "PER_PAGE_OCR_DEFAULT_LANGUAGE_DECLARED",
+        "message": "默认识别语言为中文简体与英文，当前尚未配置 OCR 引擎。"
+      },
+      {
+        "code": "PER_PAGE_OCR_IMAGE_REFERENCE_NOT_CREATED",
+        "message": "当前未创建页面图片引用，后续引用不得携带原始路径或图片内容。"
+      },
+      {
+        "code": "PER_PAGE_OCR_LOW_CONFIDENCE_NOT_HIGH_TRUST",
+        "message": "低置信度、中英文混合或失败页面不能直接进入高可信证据层，需由后续复核链处理。"
+      },
+      {
+        "code": "PER_PAGE_OCR_CACHE_NOT_CREATED",
+        "message": "当前未创建 OCR 缓存，后续缓存只能作为可重建的派生产物受控管理。"
+      }
+    ],
+    "automation_claim_allowed": false,
+    "production_availability_claim_allowed": false
+  },
+  "runtime_boundary": {
+    "source_file_open_allowed": false,
+    "file_type_detection_allowed": false,
+    "route_evaluation_allowed": false,
+    "parser_execution_allowed": false,
+    "pdf_rasterization_allowed": false,
+    "image_processing_allowed": false,
+    "language_detection_allowed": false,
+    "ocr_engine_selection_allowed": false,
+    "ocr_engine_invocation_allowed": false,
+    "ocr_queue_creation_allowed": false,
+    "per_page_output_creation_allowed": false,
+    "page_image_reference_creation_allowed": false,
+    "failure_record_creation_allowed": false,
+    "cache_write_allowed": false,
+    "review_queue_write_allowed": false,
+    "quality_gate_execution_allowed": false,
+    "evidence_promotion_allowed": false,
+    "audit_write_allowed": false,
+    "persistent_state_write_allowed": false,
+    "database_connection_allowed": false,
+    "agent_execution_allowed": false,
+    "model_call_allowed": false,
+    "model_token_consumption_allowed": false,
+    "local_service_start_allowed": false,
+    "ovh_deployment_allowed": false,
+    "production_runtime_activation_allowed": false,
+    "phase2_started": false,
+    "whole_stage_review_started": false,
+    "batch_review_started": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "stop_conditions": [
+    "需要读取真实资料、原始元数据、真实文件、页面、图像、来源正文或 Owner fixture",
+    "需要重新检测文件类型、评估真实路由、渲染页面、处理图片、检测语言、选择或调用 OCR 引擎、创建按页输出、图片引用、失败记录、缓存或复核记录",
+    "需要写入 audit、manifest、evidence ledger、report、数据库、质量门、证据提升、持久化、Agent、模型、OVH 或生产服务",
+    "需要进入 Phase 2、整阶段复审、批次复审、GitHub 上传、推送或应用重装"
+  ],
+  "rollback_contract": {
+    "return_to": "STAGE052_REVIEWED_LOCAL_BILINGUAL_OCR_RUNTIME_DISABLED",
+    "allowed_scope": [
+      "STAGE053_PHASE1_SCOPE_BOUNDARY",
+      "STAGE053_STATIC_CONTRACT",
+      "STAGE053_FOCUSED_TEST",
+      "STAGE053_MACHINE_RUN",
+      "STAGE053_GOVERNANCE_PROJECTION",
+      "STAGE053_RENDERED_CHINESE_VIEW"
+    ],
+    "source_or_raw_data_change_allowed": false,
+    "manifest_change_allowed": false,
+    "evidence_ledger_change_allowed": false,
+    "audit_log_change_allowed": false,
+    "delivered_report_change_allowed": false,
+    "persistent_runtime_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

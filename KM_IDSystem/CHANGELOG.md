@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-053 Phase 1 - 2026-08-13
+
+- 完成 `IDS-V0_1-STAGE053-P1`：以冻结 Stage053 任务包与 Stage052 已复审工件定义未来按页 OCR 11 字段输出、默认中文简体与英文、四种置信度状态、图片引用、失败原因、低置信度/混合/失败页隔离、缓存与审计引用边界、中文反馈和回滚范围。
+- 本地验证通过：Stage053 P1 聚焦用例 `8/8`、Stage052 Review 与 P1--P4 前序兼容 `53/53`、Stage051 Review 与 P1--P4 前序兼容 `53/53`、BATCH041_050 前序兼容 `6/6`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 字段合同不包含 OCR 文本、图片引用、失败记录、来源正文、真实路径或运行结果；未读取真实资料或打开 PDF/图片，未调用 OCR、创建缓存/审计/复核/持久状态、执行 Agent 或模型调用、消耗模型 Token、部署 OVH、激活生产、进入 Phase2、上传或推送；后续仅允许在新的独立 run 进入 `IDS-STAGE053-P2-GATE`。
+
 ## IDS v0.1 STAGE-052 Review - 2026-08-13
 
 - 完成 IDS-V0_1-STAGE052-REVIEW：独立复审 P1--P4 的单一合同上下文、双语输入输出边界、五类质量 control、5 个 metadata-only 交付样例、中文人工确认、缓存边界和 P4 到 P3 到 P2 到 P1 到 Stage051 review 回滚链。
