@@ -1,14 +1,20 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-051-060"
 created_at_utc: "2026-08-12T13:19:44Z"
-updated_at_utc: "2026-08-13T02:08:00Z"
-status: "stage051_phase4_completed_review_pending"
+updated_at_utc: "2026-08-12T15:26:49Z"
+status: "stage051_completed_reviewed_local"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-041-050"
 predecessor_review_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
 
 transition_history:
+  stage051_review_state:
+    status: "stage051_completed_reviewed_local"
+    current_task_id: "IDS-V0_1-STAGE051-REVIEW"
+    next_gate: "IDS-STAGE052-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE052-P1"
+    github_upload_allowed: false
   stage051_phase4_state:
     status: "stage051_phase4_completed_review_pending"
     current_task_id: "IDS-V0_1-STAGE051-P4"
@@ -69,23 +75,23 @@ upload_gate:
 
 stage_progress:
   STAGE-051:
-    status: "stage051_phase4_completed_review_pending"
+    status: "stage051_completed_reviewed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_phase: "Stage review"
-    next_gate: "IDS-STAGE051-REVIEW-GATE"
-    current_task_id: "IDS-V0_1-STAGE051-P4"
+    next_phase: "Stage052 Phase 1"
+    next_gate: "IDS-STAGE052-P1-GATE"
+    current_task_id: "IDS-V0_1-STAGE051-REVIEW"
     acceptance_id: "ACC-STAGE-051"
-    acceptance_status: "phase4_ocr_queue_delivery_evidence_complete"
-    review_status: "pending"
+    acceptance_status: "stage051_ocr_queue_reviewed_local"
+    review_status: "passed"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
     phase4_entry_authorized: true
     taskpack_context_read_performed: true
-    source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE051_PHASE1_PHASE3_ARTIFACTS"
+    source_authority: "FROZEN_TASKPACK_TEXT_STAGE051_P1_TO_P4_AND_BATCH041_050_REVIEW_ARTIFACTS"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
     raw_metadata_content_accessed: false
@@ -96,8 +102,8 @@ stage_progress:
     parser_execution_performed: false
     parser_output_created: false
     prompt_injection_marker_application_performed: false
-    ocr_queue_contract_schema: "ids.stage051.ocr_queue.phase4.delivery.v1"
-    contract_state: "PHASE4_OCR_QUEUE_DELIVERY_EVIDENCE_RUNTIME_DISABLED"
+    ocr_queue_contract_schema: "ids.stage051.ocr_queue.stage_review.v1"
+    contract_state: "STAGE051_REVIEWED_LOCAL_OCR_QUEUE_RUNTIME_DISABLED"
     execution_ready: false
     reference_only_ocr_input_field_count: 7
     per_page_output_field_count: 8
@@ -171,11 +177,28 @@ stage_progress:
     phase2_started: true
     phase3_started: true
     phase4_started: true
-    whole_stage_review_performed: false
+    whole_stage_review_performed: true
+    stage052_started: false
+    stage052_entry_authorized: false
     batch_review_performed: false
     github_upload_allowed: false
     push_allowed: false
     app_reinstall_allowed: false
+    stage_review_schema: "ids.stage051.ocr_queue.stage_review.v1"
+    stage_review_result: "PASS_REVIEWED_LOCAL_OCR_QUEUE_RUNTIME_DISABLED"
+    review_finding_count: 0
+    phase1_contract_valid: true
+    phase2_slice_valid: true
+    phase3_scenarios_valid: true
+    phase4_delivery_valid: true
+    single_authority_boundary_preserved: true
+    phase1_to_phase4_contracts_valid: true
+    explicit_disposition_and_no_silent_drop_preserved: true
+    metadata_only_delivery_boundary_preserved: true
+    quality_limit_and_confirmation_boundary_preserved: true
+    cache_and_rerun_boundary_preserved: true
+    rollback_chain_preserved: true
+    runtime_and_external_actions_disabled: true
     evidence_refs:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_PHASE1_OCR_QUEUE_SCOPE_BOUNDARY.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage051_ocr_queue_contract.json"
@@ -196,15 +219,19 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage051_ocr_queue_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_ocr_queue_delivery.py"
       - "KM_IDSystem/machine/runs/2026-08-13-stage051-p4-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage051_ocr_queue_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_ocr_queue_stage_review.py"
+      - "KM_IDSystem/machine/runs/2026-08-13-stage051-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE051-P4"
-  next_allowed_task_id: "IDS-V0_1-STAGE051-REVIEW"
+  current_task_id: "IDS-V0_1-STAGE051-REVIEW"
+  next_allowed_task_id: "IDS-V0_1-STAGE052-P1"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-051 Phase 4 只从 P3 五类固定非业务标量 control 报告派生 metadata-only 交付样例、置信度汇总、失败清单、未排队复核路由证明、中文人工确认提示与缓存重跑说明；未打开文件或图片，未调用 OCR 引擎，未创建缓存、复核记录或运行时。"
+  current_run: "STAGE-051 整阶段本地复审只核验 P1--P4 冻结合同与无正文控制报告的字段数、场景数、处置数、交付计数、质量限制、缓存边界和回滚链；未读取真实资料，未回显控制文本，未调用 OCR 引擎，未创建队列、缓存、复核记录或运行时。"
   no_upload_reason: "冻结任务包要求完成至 ACC-STAGE-168 且经独立全局发布验收后，才可重新考虑任何上传路径。"

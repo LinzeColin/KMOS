@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-051 Review - 2026-08-13
+
+- 完成 `IDS-V0_1-STAGE051-REVIEW`：独立复审 P1--P4 的单一合同上下文、字段与状态边界、五类质量 control、5 个 metadata-only 交付样例、中文人工确认、缓存边界和 P4→P3→P2→P1→BATCH041_050 回滚链。
+- 本地验证通过：Stage051 Review 聚焦用例 `11/11`、P1--P4 前序兼容 `42/42`、BATCH041_050 前序兼容 `6/6`，批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影重渲染 `7` 个文件。
+- 未读取真实资料或打开 PDF/图片，未调用 OCR 引擎、创建队列/缓存/实际复核、执行 Agent 或模型调用、消耗模型 Token、部署 OVH、激活生产、进入 Stage052、上传或推送；后续仅允许在新的独立 run 进入 `IDS-STAGE052-P1-GATE`。
+
 ## IDS v0.1 STAGE-051 Phase 4 - 2026-08-13
 
 - 从 P3 的五类固定非业务标量 control 报告派生 5 个 metadata-only 交付样例、置信度汇总、1 条显式失败、2 条声明但未排队的复核路由、3 条中文人工确认提示，以及零临时产物的缓存重跑说明。

@@ -253,7 +253,11 @@ class Stage051OcrQueuePhase3Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE051", status["stage"])
         self.assertIn(
             status["phase"],
-            ("IDS-V0_1-STAGE051-P3", "IDS-V0_1-STAGE051-P4"),
+            (
+                "IDS-V0_1-STAGE051-P3",
+                "IDS-V0_1-STAGE051-P4",
+                "IDS-V0_1-STAGE051-REVIEW",
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])

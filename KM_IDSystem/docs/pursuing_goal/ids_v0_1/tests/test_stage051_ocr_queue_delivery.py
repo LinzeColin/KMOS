@@ -264,7 +264,7 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage051_phase4_completed_review_pending"'),
+            (batch, 'status: "stage051_completed_reviewed_local"'),
             (batch, "stage051_phase4_state:"),
             (batch, 'current_task_id: "IDS-V0_1-STAGE051-P4"'),
             (batch, 'next_gate: "IDS-STAGE051-REVIEW-GATE"'),
@@ -272,8 +272,8 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
             (batch, "ocr_engine_invocation_performed: false"),
             (batch, "model_token_consumption_performed: false"),
             (batch, "ovh_deployment_performed: false"),
-            (roadmap, 'current_phase_id: "IDS-STAGE051-P4"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE051-REVIEW-GATE"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE051-REVIEW"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE052-P1-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
