@@ -1,0 +1,187 @@
+{
+  "schema_version": "ids.stage049.differential_parser_evaluation.phase1.v1",
+  "stage": "STAGE-049",
+  "phase": "Phase 1",
+  "task_id": "IDS-V0_1-STAGE049-P1",
+  "acceptance_id": "ACC-STAGE-049",
+  "local_code": "D08-S005",
+  "domain": "D08 · 解析器路由",
+  "entrance": "IDS 系统运营入口",
+  "pursuing_goal": "定义关键文档多 parser 交叉比较的候选产物边界，不使比较绕过质量门或创建第二权威事实源。",
+  "contract_state": "PHASE1_DIFFERENTIAL_PARSER_EVALUATION_BOUNDARY_RUNTIME_DISABLED",
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE049-P2-GATE",
+  "source_authority": {
+    "authority": "FROZEN_TASKPACK_TEXT_AND_STAGE048_REVIEW_ARTIFACTS",
+    "frozen_taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-049_差异化解析器评估.md",
+    "predecessor_review_refs": [
+      "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_STAGE_REVIEW.md",
+      "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_stage_review.py",
+      "KM_IDSystem/machine/runs/2026-08-12-stage048-review-local.json"
+    ],
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false
+  },
+  "upstream_ownership_boundary": {
+    "file_type_detection_owner": "STAGE-045",
+    "parser_routing_owner": "STAGE-046",
+    "parser_output_envelope_owner": "STAGE-047",
+    "parser_fallback_owner": "STAGE-048",
+    "differential_evaluation_owner": "STAGE-049",
+    "prompt_injection_marker_owner": "STAGE-050",
+    "upstream_result_rewrite_allowed": false,
+    "fallback_trigger_allowed": false
+  },
+  "reference_only_candidate_contract": {
+    "mode": "REFERENCE_ONLY_STAGE047_CANDIDATE_METADATA",
+    "required_fields": [
+      "source_identity_ref",
+      "route_action",
+      "parser_output_status",
+      "parser_family",
+      "parser_version",
+      "output_schema_version",
+      "evidence_text_label"
+    ],
+    "additional_fields_allowed": false,
+    "source_body_or_path_allowed": false,
+    "raw_parser_output_allowed": false,
+    "raw_exception_allowed": false,
+    "candidate_record_write_allowed": false,
+    "eligible_parser_output_statuses": [
+      "OUTPUT_CANDIDATE_NOT_VALIDATED",
+      "OUTPUT_PARTIAL_REVIEW_REQUIRED",
+      "OUTPUT_FAILED_EXPLICIT"
+    ]
+  },
+  "parse_product_output_contract": {
+    "mode": "FUTURE_SCHEMA_ONLY_NO_OUTPUT_CREATED",
+    "required_core_fields": [
+      "text",
+      "tables",
+      "pages",
+      "sections",
+      "confidence",
+      "errors"
+    ],
+    "core_field_count": 6,
+    "actual_output_created": false,
+    "actual_output_persisted": false,
+    "text_is_untrusted_evidence": true,
+    "instruction_interpretation_allowed": false,
+    "quality_approval_implied": false
+  },
+  "differential_comparison_contract": {
+    "mode": "FUTURE_STATIC_CANDIDATE_COMPARISON_TEMPLATE",
+    "minimum_candidate_parser_versions": 2,
+    "candidate_parser_set_created": false,
+    "parser_version_recorded": false,
+    "comparison_execution_allowed": false,
+    "comparison_result_created": false,
+    "comparison_result_persisted": false,
+    "allowed_candidate_conclusions": [
+      "COMPARISON_NOT_STARTED",
+      "COMPARISON_REVIEW_REQUIRED",
+      "COMPARISON_NOT_ELIGIBLE"
+    ],
+    "comparison_may_rewrite_parser_output": false,
+    "comparison_may_change_route": false,
+    "comparison_may_trigger_fallback": false,
+    "comparison_may_promote_evidence": false
+  },
+  "quality_and_evidence_boundary": {
+    "parser_product_fact_level": "CANDIDATE",
+    "quality_gate_initial_state": "UNASSESSED",
+    "quality_gate_execution_allowed": false,
+    "evidence_promotion_allowed": false,
+    "high_trust_evidence_promotion_allowed": false,
+    "comparison_may_bypass_quality_gate": false,
+    "manifest_write_allowed": false,
+    "evidence_ledger_write_allowed": false,
+    "audit_write_allowed": false,
+    "report_write_allowed": false
+  },
+  "prompt_injection_marker_boundary": {
+    "state": "REQUIRED_NOT_APPLIED_STAGE050_OWNED",
+    "evidence_text_label": "UNTRUSTED_EVIDENCE_TEXT",
+    "document_text_may_override_system_rule": false,
+    "marker_application_allowed": false
+  },
+  "chinese_feedback_contract": {
+    "messages": [
+      {
+        "code": "DIFFERENTIAL_COMPARISON_NOT_STARTED",
+        "message": "当前未启动差异化解析比较。"
+      },
+      {
+        "code": "CANDIDATE_PRODUCT_NOT_HIGH_TRUST",
+        "message": "当前解析结果仍为候选，不能直接作为高可信证据。"
+      },
+      {
+        "code": "COMPARISON_REVIEW_REQUIRED",
+        "message": "比较结论需要质量复核，当前未创建复核任务。"
+      },
+      {
+        "code": "COMPARISON_INPUT_NOT_ELIGIBLE",
+        "message": "当前输入不具备比较条件，请保留受控处置并人工复核。"
+      }
+    ],
+    "automation_claim_allowed": false,
+    "production_availability_claim_allowed": false
+  },
+  "runtime_boundary": {
+    "source_file_open_allowed": false,
+    "file_type_redetection_allowed": false,
+    "route_evaluation_allowed": false,
+    "parser_selection_allowed": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "parser_output_creation_allowed": false,
+    "fallback_execution_allowed": false,
+    "differential_evaluation_allowed": false,
+    "comparison_result_write_allowed": false,
+    "human_review_queue_write_allowed": false,
+    "prompt_injection_marker_application_allowed": false,
+    "quality_gate_execution_allowed": false,
+    "evidence_promotion_allowed": false,
+    "persistent_state_write_allowed": false,
+    "database_connection_allowed": false,
+    "agent_execution_allowed": false,
+    "model_call_allowed": false,
+    "model_token_consumption_allowed": false,
+    "local_service_start_allowed": false,
+    "ovh_deployment_allowed": false,
+    "production_runtime_activation_allowed": false,
+    "phase2_started": false,
+    "whole_stage_review_started": false,
+    "batch_review_started": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "stop_conditions": [
+    "需要读取真实资料、原始元数据、真实文件、页面、图像、来源正文或 Owner fixture",
+    "需要选择、运行或比较真实 parser，创建候选解析产物、比较结果、人工复核队列或 fallback",
+    "需要执行质量门、证据提升、提示注入标记、持久化、Agent、模型、OVH 或生产服务",
+    "需要进入 Phase 2、整阶段复审、批次复审、GitHub 上传、推送或应用重装"
+  ],
+  "rollback_contract": {
+    "return_to": "STAGE048_REVIEWED_LOCAL_FALLBACK_RUNTIME_DISABLED",
+    "allowed_scope": [
+      "STAGE049_PHASE1_SCOPE_BOUNDARY",
+      "STAGE049_STATIC_CONTRACT",
+      "STAGE049_FOCUSED_TEST",
+      "STAGE049_MACHINE_RUN",
+      "STAGE049_GOVERNANCE_PROJECTION"
+    ],
+    "source_or_raw_data_change_allowed": false,
+    "manifest_change_allowed": false,
+    "evidence_ledger_change_allowed": false,
+    "audit_log_change_allowed": false,
+    "delivered_report_change_allowed": false,
+    "persistent_runtime_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

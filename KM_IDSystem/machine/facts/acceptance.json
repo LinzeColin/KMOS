@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE049-P1-01`",
+      "criteria": "冻结 Stage049 任务包与 Stage048 已复审工件保持为唯一合同上下文；未建立第二权威事实源，未保留来源正文、路径或原始异常",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE049-P1-02`",
+      "criteria": "未来候选输入固定为七字段 reference-only 元数据，解析产物核心字段固定为 text、tables、pages、sections、confidence、errors；本轮未创建实际输出",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE049-P1-03`",
+      "criteria": "未来比较至少需要两个候选 parser 版本，不能改写输出、改变路线、触发 fallback、绕过质量门或提升为高可信证据；中文反馈与回滚范围明确",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE049-P1-04`",
+      "criteria": "未读取真实资料，未执行 parser、fallback、差异化比较、质量门、持久化、Agent、模型调用、OVH、生产、上传或推送",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE048-REVIEW-01`",
       "criteria": "P1-P4 保持冻结任务包与 Stage047 已复审工件这一唯一合同上下文；未建立第二权威事实源，未保留来源正文、路径或原始异常",
       "status": "已通过"

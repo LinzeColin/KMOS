@@ -12,14 +12,13 @@
 ## Current Gate - 2026-08-12
 
 - 本节覆盖下方较早的“Current Gate”和 GitHub handoff 对当前任务的指向；下方未特别标为当前的内容只保留为历史交接证据。
-- 本轮完成任务：`IDS-V0_1-STAGE048-REVIEW`。当前状态为 `STAGE048_REVIEWED_LOCAL_FALLBACK_RUNTIME_DISABLED`：P1--P4 的单一合同上下文、候选处置、14 个格式标签化控制场景、8 个仅结构样例、14 条非运行时记录、六类失败分类、中文反馈边界、空运行时格式集合与回滚链均已本地复审。该结论不代表真实文件路由、实际 parser、真实 fallback、人工复核队列、质量门、持久化、OVH 或生产服务已启用。
-- 唯一合同上下文仍是冻结的 Stage048 任务包文本与 Stage047 已复审工件；没有建立第二权威事实源，也没有保留业务正文、文件路径、原始异常或原始元数据内容。P1 的七字段 reference-only 边界、P2 纯内存处置、P3 受控场景与 P4 交付投影均只作合同证据。
-- 白箱复审重放 P2 的候选控制，结果为 `NO_FALLBACK_CANDIDATE_RETAINED`；重放 P3 得到场景 `14/14`、明确处置 `14/14`、静默丢弃 `0`，指令样 TXT 保持 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`，不能覆盖系统规则、工具授权或策略。
-- P4 的 8 个 `SCHEMA_ONLY_PARSER_OUTPUT_SAMPLE_NOT_EXECUTED` 样例、14 条 `DERIVED_CONTROL_DISPOSITION_LOG_NOT_RUNTIME` 记录和六类失败关闭分类保持原样；运行时支持格式集合为空，parser/fallback/持久写入计数均为 `0`。control-fixture parser 版本只是受控证据记录，未创建或修改 parser 配置。
-- 回滚链完整：P4 回到 `PHASE3_CONTROLLED_FALLBACK_SCENARIOS_RUNTIME_DISABLED`，P3 回到 P2，P2 回到 P1，P1 回到 `STAGE047_REVIEWED_LOCAL`。若复审结论失效，只回滚本复审工件和治理投影回到 Stage048 P4 待复审；必须保留 P1--P4、原始资料、manifest、evidence ledger、audit 与已交付报告。
-- 聚焦 Stage048 复审直接单元用例通过 `10/10`，P1--P4 前序兼容用例通过 `38/38`，治理回归报告为 `valid=true`，中文视图已重渲染 7 个文件。证据为 `STAGE048_STAGE_REVIEW.md`、review module、聚焦用例、本轮 machine run、batch/roadmap、机器事实与生成的中文视图。
-- 未读取 IDS 业务源或原始元数据；未执行文件签名识别、真实路线、parser、真实 fallback、运行时日志、人工复核队列、质量门、持久化、Agent、模型调用、OVH 部署、生产激活、Stage049、批次复审、上传或推送。
-- 下一步仅允许在独立 run 进入 `IDS-V0_1-STAGE049-P1`，门为 `IDS-STAGE049-P1-GATE`。Stage048 本地复审不等于 Stage049、批次复审、GitHub 上传、OVH 部署或生产就绪。
+- 本轮完成任务：`IDS-V0_1-STAGE049-P1`。当前状态为 `PHASE1_DIFFERENTIAL_PARSER_EVALUATION_BOUNDARY_RUNTIME_DISABLED`：只定义未来差异化解析器评估如何接入既有文件识别、路由、输出、fallback 和提示注入标记边界；未创建或执行 parser、比较、质量门、证据提升、持久化或任何服务。
+- 唯一合同上下文是冻结的 Stage049 任务包文本与 Stage048 已复审工件；没有建立第二权威事实源，也没有保留业务正文、文件路径、原始异常或原始元数据内容。候选输入严格限定为七个 reference-only 字段，解析产物严格限定为 `text/tables/pages/sections/confidence/errors` 六字段；未来比较至少要求两个候选 parser 版本，但本轮没有指定、选择、执行或写入任何版本与结果。
+- 解析产物始终为候选，状态为 `UNASSESSED`；中文反馈、质量门与高可信证据提升保持隔离。提示注入标记仅固定未来归属，不能授权工具、覆盖系统规则或改变业务线白箱控制。
+- 回滚只撤回 Stage049 P1 的合同、范围说明、聚焦用例、machine run 和治理投影，回到 `STAGE048_REVIEWED_LOCAL_FALLBACK_RUNTIME_DISABLED`；必须保留既有阶段工件、原始资料、manifest、evidence ledger、audit 与已交付报告。
+- 聚焦 Stage049 P1 直接单元用例通过 `7/7`，Stage048 P1--P4 及复审前序兼容用例通过 `48/48`，治理回归报告为 `valid=true`，中文视图已重渲染 7 个文件。证据为 Stage049 范围边界、差异化解析器合同、聚焦用例、本轮 machine run、event、batch/roadmap、机器事实与生成的中文视图。
+- 未读取 IDS 业务源或原始元数据；未执行文件识别、真实路线、parser、fallback、差异化评估、提示注入扫描、运行时日志、人工复核队列、质量门、证据提升、持久化、Agent、模型调用、OVH 部署、生产激活、Stage049 P2、批次复审、上传或推送。
+- 下一步仅允许在独立 run 进入 `IDS-V0_1-STAGE049-P2`，门为 `IDS-STAGE049-P2-GATE`。Stage049 P1 静态合同完成不等于解析器运行、OVH 部署、生产就绪或 GitHub 上传。
 
 ## Final GitHub Handoff - 2026-07-26
 
