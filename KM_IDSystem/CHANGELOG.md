@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-050 Phase 4 - 2026-08-12
+
+- 从 P3 的 11 个格式标签化非业务 control 派生 8 个 `SCHEMA_ONLY_PROMPT_MARKER_PARSE_PRODUCT_SAMPLE_NOT_EXECUTED` 结构样例和 11 条 `DERIVED_CONTROL_DISPOSITION_LOG_NOT_RUNTIME` 处置记录；不保留正文、表格、页面、路径或来源引用。
+- 派生指标为场景 `11/11`、明确处置 `11/11`、静默丢弃 `0`、控制格式 `8/8`、运行时格式 `0`、parser/fallback/质量门/持久写入均为 `0`；五个互斥失败分类完整覆盖全部场景。
+- 记录 control-fixture parser 版本、控制格式与空的运行时支持边界以及回到 P3 的配置回滚说明。聚焦 P4 直接单元用例通过 `13/13`，Stage050 P1-P3 前序兼容用例通过 `26/26`，Stage049 P1--P4 及复审前序兼容用例通过 `47/47`，Stage048 P1--P4 及复审前序兼容用例通过 `48/48`；下一门仅为独立 `IDS-STAGE050-REVIEW-GATE`，上传锁继续保持。
+
 ## IDS v0.1 STAGE-050 Phase 3 - 2026-08-12
 
 - 交付格式标签化提示注入标记场景：11 个固定非业务 control 覆盖 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF、未知、坏输入与指令样文本；格式标签不是文件、文件签名或路线结果。

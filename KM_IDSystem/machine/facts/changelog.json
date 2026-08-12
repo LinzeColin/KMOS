@@ -1,5 +1,10 @@
 [
   {
+    "version": "`v0.1-stage050-p4-local`",
+    "date": "2026-08-12",
+    "summary": "完成 Stage050 P4 提示注入标记收口证据：从 P3 的 11 个格式标签化非业务 control 派生 8 个仅结构 parser 输出样例、11 条非运行时 fallback 处置记录、质量指标、五类失败分类、格式边界与配置回滚说明。聚焦用例通过 13/13，Stage050 P1-P3 前序兼容用例通过 26/26，Stage049 P1-P4 及复审前序兼容用例通过 47/47，Stage048 P1-P4 及复审前序兼容用例通过 48/48。未读取真实资料，未执行真实检测、路线、parser、fallback、运行时标记、质量门、持久化、Agent、模型调用、OVH、生产、整阶段复审、上传或推送。"
+  },
+  {
     "version": "`v0.1-stage050-p3-local`",
     "date": "2026-08-12",
     "summary": "完成 Stage050 P3 格式标签化提示注入标记受控场景：11 个非业务 control 覆盖 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF、未知、坏输入和指令样文本；全部返回明确 evidence-only、未排队复核或拒绝处置，静默丢弃为零。聚焦用例通过 9/9，Stage050 P1/P2 前序兼容用例通过 17/17，Stage049 P1-P4 及复审前序兼容用例通过 47/47，Stage048 P1-P4 及复审前序兼容用例通过 48/48。未读取真实资料，未执行真实检测、路线、parser、fallback、运行时标记、质量门、持久化、Agent、模型调用、OVH、生产、上传或推送。"

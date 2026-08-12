@@ -9,7 +9,19 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage050 P3 - 2026-08-12
+## Current Gate - Stage050 P4 - 2026-08-12
+
+- 本节覆盖下方的 Stage050 P3 历史交接；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成任务：`IDS-V0_1-STAGE050-P4`。当前状态为 `PHASE4_PROMPT_INJECTION_MARKER_CLOSEOUT_EVIDENCE_ENABLED_REAL_PARSER_QUALITY_AND_PERSISTENCE_DISABLED`：只从 P3 的 11 个固定非业务、格式标签化 control 场景派生 8 个 parser 输出结构样例、11 条非运行时处置记录、质量指标、五类互斥失败分类、格式边界和 parser 配置回滚说明。
+- 唯一合同上下文是冻结的 Stage050 任务包、P1--P3 合同与 Stage049 已复审工件；没有建立第二权威事实源，也没有打开或保留业务正文、文件路径、来源引用、原始异常、原始元数据、图像页面或真实解析输出。结构样例只含空的 `text/tables/pages/sections`、受控置信度、错误标签和处置标签。
+- 8 个结构样例覆盖 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF；11/11 场景均有明确处置、静默丢弃为零。六项候选只保留 evidence-only 结构，两项低质量 control 仅记录未排队复核，指令样 TXT 继续为 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`，未知与坏输入保持明确关闭。
+- control-fixture parser 版本仅是交付证据，不是运行时 parser 版本；运行时支持格式集合为空，未创建或改写 parser 配置。Stage048 继续拥有 fallback，Stage050 继续拥有提示注入标记职责；P4 没有改写上游结论。
+- 回滚只撤回 Stage050 P4 的结构样例、非运行时处置记录、质量指标、失败分类、合同、聚焦用例、machine run、事件、事实投影和治理状态，恢复为 `PHASE3_CONTROLLED_PROMPT_INJECTION_MARKER_SCENARIOS_RUNTIME_DISABLED`；必须保留 P1--P3 证据、原始资料、manifest、evidence ledger、audit 与已交付报告。
+- 聚焦 Stage050 P4 用例通过 `13/13`，Stage050 P1--P3 前序兼容用例通过 `26/26`，Stage049 P1--P4 及复审前序兼容用例通过 `47/47`，Stage048 P1--P4 及复审前序兼容用例通过 `48/48`；治理回归报告为 `valid=true`，中文视图已重渲染 `7` 个文件。证据为 P4 说明、合同、实现、聚焦用例、本轮 machine run、event、batch/roadmap 与机器事实。
+- 未读取 IDS 业务源或原始元数据；未执行文件检测、真实路线、真实 parser、解析正文比较、真实 fallback、运行时提示注入标记、人工复核队列、质量门、证据提升、持久化、Agent、模型调用、本地服务、OVH 部署、生产激活、整阶段复审、批次复审、上传或推送。
+- 下一步仅允许在独立 run 进入 `IDS-V0_1-STAGE050-REVIEW`，门为 `IDS-STAGE050-REVIEW-GATE`。P4 收口证据完成不等于真实标记应用、解析器运行、实际解析质量、OVH 部署、生产就绪或 GitHub 上传。
+
+## Superseded Gate - Stage050 P3 - 2026-08-12
 
 - 本节覆盖下方的 Stage050 P2 历史交接；下方未特别标为当前的内容只保留为阶段证据。
 - 本轮完成任务：`IDS-V0_1-STAGE050-P3`。当前状态为 `PHASE3_CONTROLLED_PROMPT_INJECTION_MARKER_SCENARIOS_RUNTIME_DISABLED`：只重放 P2 的仅内存标记切片，以 11 个固定非业务、格式标签化 control 场景验证明确处置、零静默丢弃、低质量未排队复核与指令样文本规则不变性。

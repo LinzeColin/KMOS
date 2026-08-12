@@ -18,6 +18,7 @@ PARSER_PRODUCT_FACT_LEVEL = "CANDIDATE"
 QUALITY_GATE_INITIAL_STATE = "UNASSESSED"
 EVIDENCE_TEXT_LABEL = "UNTRUSTED_EVIDENCE_TEXT"
 EVIDENCE_TEXT_INTERPRETATION = "EVIDENCE_ONLY"
+CONTROL_PARSER_VERSION = "ids.parser.control_fixture.v0_1.stage050.p2.phase3"
 PASS_RESULT = "PASS_PHASE3_CONTROLLED_PROMPT_INJECTION_MARKER_SCENARIOS_RUNTIME_DISABLED"
 NEXT_GATE = "IDS-STAGE050-P4-GATE"
 
@@ -341,7 +342,7 @@ def _control_input(scenario: Mapping[str, object]) -> dict[str, object]:
             "route_action": "ROUTE_CANDIDATE_READY_NOT_EXECUTED",
             "parser_output_status": str(scenario["parser_output_status"]),
             "parser_family": "CONTROL_PROMPT_MARKER_FIXTURE_ADAPTER",
-            "parser_version": "ids.parser.control_fixture.v0_1.stage050.p2.phase3",
+            "parser_version": CONTROL_PARSER_VERSION,
             "output_schema_version": "ids.parser_output.v0_1.stage047.p1",
             "evidence_text_label": EVIDENCE_TEXT_LABEL,
         },

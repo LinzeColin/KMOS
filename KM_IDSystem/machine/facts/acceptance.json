@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE050-P4-01`",
+      "criteria": "冻结 Stage050 任务包、P1--P3 合同与 Stage049 已复审工件保持为唯一合同上下文；P4 只重放 11 个非业务 control 并派生 8 个仅结构 parser 输出样例和 11 条非运行时处置记录，未建立第二权威事实源",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE050-P4-02`",
+      "criteria": "质量指标记录 11/11 场景通过、11/11 明确处置、静默丢弃为零；五类互斥失败分类完整覆盖所有 control，parser、fallback、质量门和持久写入均为零",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE050-P4-03`",
+      "criteria": "八个控制格式标签与空的运行时支持集合明确分离；control-fixture parser 版本仅作交付证据，未创建或修改 parser 配置，回滚目标为 P3 受控场景",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE050-P4-04`",
+      "criteria": "未读取真实资料，未执行真实检测、路线、parser、fallback、运行时标记、队列、质量门、持久化、Agent、模型调用、本地服务、OVH、生产、整阶段复审、上传或推送",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE050-P3-01`",
       "criteria": "冻结 Stage050 任务包、P1/P2 合同与 Stage049 已复审工件保持为唯一合同上下文；P3 只重放格式标签化的非业务 control，未建立第二权威事实源",
       "status": "已通过"

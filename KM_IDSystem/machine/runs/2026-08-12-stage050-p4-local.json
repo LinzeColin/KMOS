@@ -1,0 +1,107 @@
+{
+  "schema_version": "ids.stage050.prompt_injection_marker.phase4.run.v1",
+  "run_id": "`RUN-IDS-STAGE050-P4-LOCAL-20260812-001`",
+  "stage": "STAGE-050",
+  "phase": "Phase 4",
+  "task_id": "IDS-V0_1-STAGE050-P4",
+  "acceptance_id": "ACC-STAGE-050",
+  "action": "从 P3 受控场景派生结构 parser 输出样例、非运行时 fallback 处置记录、质量指标、失败分类、格式边界和 parser 配置回滚说明",
+  "result": "`PASS_ISOLATED_PROMPT_INJECTION_MARKER_CLOSEOUT_RUNTIME_DISABLED`",
+  "contract_state": "PHASE4_PROMPT_INJECTION_MARKER_CLOSEOUT_EVIDENCE_ENABLED_REAL_PARSER_QUALITY_AND_PERSISTENCE_DISABLED",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_PROMPT_INJECTION_MARKER_CLOSEOUT",
+  "phase3_controlled_scenarios_replayed": true,
+  "phase3_scenario_count": 11,
+  "phase3_passed_scenario_count": 11,
+  "parser_output_schema_sample_count": 8,
+  "fallback_log_sample_count": 11,
+  "quality_metric_scenario_count": 11,
+  "failure_classification_count": 5,
+  "control_format_label_count": 8,
+  "runtime_supported_format_count": 0,
+  "explicit_disposition_count": 11,
+  "silent_drop_count": 0,
+  "next_gate": "IDS-STAGE050-REVIEW-GATE",
+  "whole_stage_review_performed": false,
+  "evidence_iterations": [
+    {
+      "gate": "stage050_phase4_direct_unit",
+      "result": "PASS",
+      "tests": 13,
+      "passed": 13,
+      "reason": "交付合同、结构样例、非运行时处置记录、指标、失败分类、格式边界、回滚和阶段治理一致"
+    },
+    {
+      "gate": "stage050_phase1_to_phase4_compatibility",
+      "result": "PASS",
+      "tests": 39,
+      "passed": 39,
+      "reason": "P4 直接用例与 P3/P2/P1 前序证据共同运行，未改变控制场景或运行时边界"
+    },
+    {
+      "gate": "stage049_compatibility",
+      "result": "PASS",
+      "tests": 47,
+      "passed": 47,
+      "reason": "Stage049 P1-P4 与整阶段复审前序证据保持兼容，未改变差异评估职责"
+    },
+    {
+      "gate": "stage048_compatibility",
+      "result": "PASS",
+      "tests": 48,
+      "passed": 48,
+      "reason": "Stage048 P1-P4 与整阶段复审前序证据保持兼容，未改变 fallback 所有权"
+    },
+    {
+      "gate": "stage005_governance_regression",
+      "result": "PASS",
+      "valid": true,
+      "reason": "当前路线停在独立 Stage050 整阶段复审门，上传与运行时动作仍关闭"
+    },
+    {
+      "gate": "owner_view_render",
+      "result": "PASS",
+      "documents": 7,
+      "reason": "机器事实已重渲染为全局中文负责人视图"
+    }
+  ],
+  "workspace_isolation": {
+    "read_only_main_tree": "/Users/linzezhang/Documents/Codex/GithubProject/KMOS",
+    "task_worktree": "/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage048-p1",
+    "scope": "KM_IDSystem Stage050 Phase4 only",
+    "outside_scope_paths": 0
+  },
+  "observed_work": {
+    "taskpack_source_read_performed": true,
+    "phase3_controlled_scenarios_replayed": true,
+    "parser_output_schema_samples_derived": true,
+    "fallback_log_samples_derived": true,
+    "quality_metrics_derived": true,
+    "failure_classification_composed": true,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "source_file_open_performed": false,
+    "file_signature_detection_performed": false,
+    "route_evaluation_performed": false,
+    "parser_selection_performed": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "parser_output_produced": false,
+    "fallback_execution_performed": false,
+    "runtime_fallback_log_produced": false,
+    "human_review_queue_write_performed": false,
+    "runtime_prompt_injection_marker_application_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "evidence_promotion_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "local_service_start_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "whole_stage_review_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "rollback": "仅回滚 Stage050 P4 的结构样例、非运行时处置记录、质量指标、失败分类、合同、测试、machine run 和治理投影，回到 PHASE3_CONTROLLED_PROMPT_INJECTION_MARKER_SCENARIOS_RUNTIME_DISABLED；不改变真实资料、持久运行状态、GitHub、OVH 或应用状态。"
+}

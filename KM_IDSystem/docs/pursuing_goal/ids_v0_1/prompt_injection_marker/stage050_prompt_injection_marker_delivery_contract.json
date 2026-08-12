@@ -1,0 +1,194 @@
+{
+  "schema_version": "ids.stage050.prompt_injection_marker.phase4.delivery.v1",
+  "stage": "STAGE-050",
+  "phase": "Phase 4",
+  "task_id": "IDS-V0_1-STAGE050-P4",
+  "acceptance_id": "ACC-STAGE-050",
+  "local_code": "D08-S006",
+  "execution_mode": "ISOLATED_NON_PRODUCTION_PROMPT_INJECTION_MARKER_CLOSEOUT",
+  "valid_result": "PASS_ISOLATED_PROMPT_INJECTION_MARKER_CLOSEOUT_RUNTIME_DISABLED",
+  "contract_state": "PHASE4_PROMPT_INJECTION_MARKER_CLOSEOUT_EVIDENCE_ENABLED_REAL_PARSER_QUALITY_AND_PERSISTENCE_DISABLED",
+  "stage_review_status": "pending_next_run",
+  "next_gate": "IDS-STAGE050-REVIEW-GATE",
+  "source_authority": {
+    "authority": "FROZEN_TASKPACK_TEXT_STAGE050_P1_P3_AND_STAGE049_REVIEW_ARTIFACTS",
+    "phase3_predecessor_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/prompt_injection_marker/stage050_prompt_injection_marker_scenarios_contract.json",
+    "phase3_implementation_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/prompt_injection_marker/stage050_prompt_injection_marker_scenarios.py",
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false
+  },
+  "delivery_implementation": {
+    "module": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/prompt_injection_marker/stage050_prompt_injection_marker_delivery.py",
+    "entrypoint": "build_phase4_delivery_report",
+    "phase3_controlled_scenarios_replayed": true,
+    "actual_file_type_detection_implemented": false,
+    "actual_parser_route_implemented": false,
+    "actual_parser_execution_implemented": false,
+    "actual_fallback_execution_implemented": false,
+    "runtime_prompt_injection_marker_implemented": false
+  },
+  "parser_output_samples_contract": {
+    "sample_kind": "SCHEMA_ONLY_PROMPT_MARKER_PARSE_PRODUCT_SAMPLE_NOT_EXECUTED",
+    "sample_count": 8,
+    "format_labels": [
+      "PDF",
+      "DOCX",
+      "XLSX",
+      "CSV",
+      "TXT",
+      "PNG",
+      "JPEG",
+      "TIFF"
+    ],
+    "required_fields": [
+      "text",
+      "tables",
+      "pages",
+      "sections",
+      "confidence",
+      "errors"
+    ],
+    "source_content_retained": false,
+    "source_reference_retained": false,
+    "runtime_output_produced": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "parser_output_write_allowed": false
+  },
+  "fallback_log_contract": {
+    "sample_kind": "DERIVED_CONTROL_DISPOSITION_LOG_NOT_RUNTIME",
+    "sample_count": 11,
+    "required_fields": [
+      "scenario_id",
+      "format_label",
+      "parser_output_status",
+      "parser_confidence",
+      "marker_disposition",
+      "scenario_disposition",
+      "failure_classification",
+      "fallback_owner",
+      "fallback_state",
+      "attempted",
+      "attempt_count",
+      "silent_drop",
+      "parser_switch_performed"
+    ],
+    "runtime_log_written": false,
+    "fallback_runtime_owner": "STAGE048",
+    "fallback_execution_allowed": false,
+    "automatic_parser_switch_allowed": false,
+    "human_review_queue_write_allowed": false,
+    "silent_drop_allowed_count": 0
+  },
+  "quality_metrics_contract": {
+    "required_scenario_count": 11,
+    "required_passed_scenario_count": 11,
+    "required_explicit_disposition_count": 11,
+    "required_silent_drop_count": 0,
+    "required_control_format_label_count": 8,
+    "required_control_format_label_coverage_ratio": 1.0,
+    "required_runtime_supported_format_count": 0,
+    "required_parser_output_sample_count": 8,
+    "required_fallback_log_sample_count": 11,
+    "required_confidence_counts": {
+      "HIGH": 6,
+      "MEDIUM": 2,
+      "LOW": 1,
+      "UNKNOWN": 2
+    },
+    "required_scenario_disposition_counts": {
+      "CONTROL_CANDIDATE_MARKED_EVIDENCE_ONLY": 6,
+      "CONTROL_LOW_QUALITY_REVIEW_REQUIRED_NOT_QUEUED": 2,
+      "CONTROL_INSTRUCTION_TEXT_MARKED_EVIDENCE_ONLY": 1,
+      "CONTROL_UNKNOWN_FORMAT_NOT_ELIGIBLE": 1,
+      "CONTROL_BAD_INPUT_REJECTED": 1
+    },
+    "required_parser_execution_count": 0,
+    "required_fallback_execution_count": 0,
+    "required_quality_gate_evaluation_count": 0,
+    "required_persistent_write_count": 0
+  },
+  "failure_classification_contract": {
+    "classifications": [
+      "CONTROL_CANDIDATE_EVIDENCE_ONLY",
+      "LOW_QUALITY_CONTROL_REVIEW_REQUIRED",
+      "UNTRUSTED_INSTRUCTION_TEXT_EVIDENCE_ONLY",
+      "UNKNOWN_FORMAT_NOT_ELIGIBLE",
+      "INVALID_CONTROL_REJECTED"
+    ],
+    "classification_count": 5,
+    "scenario_coverage_count": 11,
+    "classification_overlap_allowed": false,
+    "all_classifications_fail_closed": true,
+    "fallback_execution_allowed": false
+  },
+  "support_boundary": {
+    "control_format_labels": [
+      "PDF",
+      "DOCX",
+      "XLSX",
+      "CSV",
+      "TXT",
+      "PNG",
+      "JPEG",
+      "TIFF"
+    ],
+    "format_label_is_runtime_file_detection": false,
+    "runtime_supported_formats": [],
+    "unsupported_or_exception_labels": [
+      "UNKNOWN",
+      "CORRUPT_OR_UNREADABLE"
+    ],
+    "parser_runtime_available": false,
+    "fallback_runtime_available": false,
+    "generic_parser_allowed": false,
+    "control_format_labels_do_not_imply_runtime_support": true
+  },
+  "version_and_rollback": {
+    "control_parser_version": "ids.parser.control_fixture.v0_1.stage050.p2.phase3",
+    "control_parser_version_is_runtime_version": false,
+    "parser_configuration_change_performed": false,
+    "parser_configuration_file_created": false,
+    "rollback_target_state": "PHASE3_CONTROLLED_PROMPT_INJECTION_MARKER_SCENARIOS_RUNTIME_DISABLED",
+    "rollback_steps": [
+      "RESTORE_PHASE3_CONTROLLED_PROMPT_MARKER_SCENARIOS",
+      "DISCARD_PHASE4_SCHEMA_SAMPLES_NON_RUNTIME_LOGS_METRICS_AND_CLASSIFICATIONS",
+      "PRESERVE_STAGE050_PHASE1_TO_PHASE3_EVIDENCE",
+      "KEEP_PARSER_FALLBACK_QUALITY_AND_PERSISTENCE_DISABLED",
+      "PRESERVE_ORIGINAL_MANIFEST_EVIDENCE_LEDGER_AUDIT_AND_REPORTS"
+    ]
+  },
+  "runtime_boundary": {
+    "source_file_open_allowed": false,
+    "file_signature_detection_allowed": false,
+    "route_evaluation_allowed": false,
+    "parser_selection_allowed": false,
+    "parser_dispatch_allowed": false,
+    "parser_execution_allowed": false,
+    "fallback_execution_allowed": false,
+    "runtime_prompt_injection_marker_application_allowed": false,
+    "human_review_queue_write_allowed": false,
+    "quality_gate_evaluation_allowed": false,
+    "evidence_promotion_allowed": false,
+    "persistent_state_write_allowed": false,
+    "agent_execution_allowed": false,
+    "model_call_allowed": false,
+    "model_token_consumption_allowed": false,
+    "local_service_start_allowed": false,
+    "ovh_deployment_allowed": false,
+    "production_runtime_activation_allowed": false,
+    "whole_stage_review_started": false,
+    "batch_review_started": false,
+    "github_upload_allowed": false,
+    "push_allowed": false
+  },
+  "review_gate": {
+    "next_task_id": "IDS-V0_1-STAGE050-REVIEW",
+    "must_run_separately": true,
+    "phase4_may_mark_stage_reviewed": false,
+    "batch_review_allowed": false,
+    "github_upload_allowed": false
+  }
+}

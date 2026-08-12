@@ -1,22 +1,22 @@
 {
   "stage": "`IDS-STAGE050`",
-  "phase": "`IDS-STAGE050-P3`",
-  "task": "`IDS-V0_1-STAGE050-P3`",
-  "owner": "Codex 专属 KMOS worktree，Stage050 解析阶段提示注入标记 Phase 3",
-  "objective": "以格式标签化、仅内存的非业务 control 场景验证提示注入标记、明确处置、低质量未排队复核、无静默丢弃与系统规则不可覆盖，只关闭 Stage050 Phase 3。",
+  "phase": "`IDS-STAGE050-P4`",
+  "task": "`IDS-V0_1-STAGE050-P4`",
+  "owner": "Codex 专属 KMOS worktree，Stage050 解析阶段提示注入标记 Phase 4",
+  "objective": "从 P3 格式标签化、仅内存的非业务 control 场景派生可复核的结构样例、非运行时处置记录、质量指标、失败分类、格式边界与配置回滚说明，只关闭 Stage050 Phase 4。",
   "scope": [
-    "以冻结 Stage050 任务包与 Stage049 已复审工件为唯一合同上下文，不建立第二权威事实源",
-    "只重放 P2 的仅内存标记入口，使用 11 个格式标签化的非业务 control；格式标签不是文件检测、路线、页面、图像、异常或解析正文",
-    "覆盖 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF、未知、坏输入与指令样文本，保持每项明确处置与静默丢弃为零",
-    "固定低质量 control 为未排队复核、Stage048 为唯一 fallback 所有者、UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY 与系统规则不可覆盖",
-    "同步 P3 说明、场景合同、聚焦单元用例、批次锁、路线图、machine run、事件、机器事实、中文视图与交接",
-    "只完成 ACC-STAGE-050 的本地 Phase 3 并指向独立 Stage050 P4 gate"
+    "以冻结 Stage050 任务包、P1--P3 合同与 Stage049 已复审工件为唯一合同上下文，不建立第二权威事实源",
+    "只重放 P3 的 11 个格式标签化非业务 control，派生 8 个 schema-only parser 输出样例和 11 条非运行时 fallback 处置记录；样例不是文件检测、路线、页面、图像、异常或解析正文",
+    "派生 11/11 明确处置、零静默丢弃、质量指标、五类互斥失败分类、控制格式与空运行时格式边界以及 parser 配置回滚说明",
+    "固定 Stage048 为唯一 fallback 所有者、UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY 与系统规则不可覆盖，未创建 runtime parser 或 marker 配置",
+    "同步 P4 说明、交付合同、聚焦单元用例、批次锁、路线图、machine run、事件、机器事实、中文视图与交接",
+    "只完成 ACC-STAGE-050 的本地 Phase 4 并指向独立 Stage050 Review gate"
   ],
   "non_goals": [
     "不打开真实业务源、原始元数据、页面、图像、来源正文或 Owner fixture，不执行文件签名识别、真实路线评估或创建业务解析输出",
     "不选择、分派或执行 parser，不比较解析正文，不执行真实 fallback、人工复核队列、运行时提示注入标记或质量门",
     "不提升证据，不写 manifest、evidence ledger、audit、index、report、database、job、state 或持久运行状态",
-    "不进入 Stage050 Phase 4、整阶段复审、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
+    "不进入 Stage050 整阶段复审、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage050 P3 仅内存场景、事实投影与聚焦单元用例验证完成后停止，下一轮只允许进入 IDS-STAGE050-P4-GATE；任何真实资料访问、真实路线、解析正文、运行时标记、质量门、持久写入、OVH 或生产动作都不属于本步骤。"
+  "stop_condition": "Stage050 P4 结构样例、非运行时处置记录、质量指标、失败分类、事实投影与聚焦单元用例验证完成后停止，下一轮只允许进入 IDS-STAGE050-REVIEW-GATE；任何真实资料访问、真实路线、解析正文、运行时标记、质量门、持久写入、OVH 或生产动作都不属于本步骤。"
 }
