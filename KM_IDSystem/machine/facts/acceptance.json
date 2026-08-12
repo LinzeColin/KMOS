@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE050-P3-01`",
+      "criteria": "冻结 Stage050 任务包、P1/P2 合同与 Stage049 已复审工件保持为唯一合同上下文；P3 只重放格式标签化的非业务 control，未建立第二权威事实源",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE050-P3-02`",
+      "criteria": "11 个 control 覆盖 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF、未知、坏输入和指令样文本；格式标签不是文件检测或真实路由结果，未打开来源、文件或原始元数据",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE050-P3-03`",
+      "criteria": "全部场景有明确处置且静默丢弃为零；低质量 control 只得到未排队复核处置，Stage048 fallback 未执行，候选仍为 CANDIDATE/UNASSESSED",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE050-P3-04`",
+      "criteria": "指令样 control 固定为 UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY，不能覆盖系统规则、工具授权或策略；未运行运行时标记、质量门、持久化、Agent、模型调用、本地服务、OVH、生产、Phase4、复审、上传或推送",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE050-P2-01`",
       "criteria": "冻结 Stage050 任务包、P1 边界与 Stage049 已复审工件保持为唯一合同上下文；P2 只使用固定非业务 control 与七字段 reference-only 候选元数据，未建立第二权威事实源",
       "status": "已通过"

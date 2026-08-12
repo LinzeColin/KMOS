@@ -1,5 +1,10 @@
 [
   {
+    "version": "`v0.1-stage050-p3-local`",
+    "date": "2026-08-12",
+    "summary": "完成 Stage050 P3 格式标签化提示注入标记受控场景：11 个非业务 control 覆盖 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF、未知、坏输入和指令样文本；全部返回明确 evidence-only、未排队复核或拒绝处置，静默丢弃为零。聚焦用例通过 9/9，Stage050 P1/P2 前序兼容用例通过 17/17，Stage049 P1-P4 及复审前序兼容用例通过 47/47，Stage048 P1-P4 及复审前序兼容用例通过 48/48。未读取真实资料，未执行真实检测、路线、parser、fallback、运行时标记、质量门、持久化、Agent、模型调用、OVH、生产、上传或推送。"
+  },
+  {
     "version": "`v0.1-stage050-p2-local`",
     "date": "2026-08-12",
     "summary": "完成 Stage050 P2 仅内存提示注入标记切片：两个固定非业务 control 在七字段 reference-only 候选元数据上记录 control-fixture parser 版本与解析置信度；指令样文本只作 UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY 解释且不回显输入。聚焦用例通过 9/9，Stage050 P1 前序兼容用例通过 8/8，Stage049 P1-P4 及复审前序兼容用例通过 47/47，Stage048 P1-P4 及复审前序兼容用例通过 48/48。未读取真实资料，未执行真实检测、路线、parser、fallback、差异评估、运行时标记、质量门、持久化、Agent、模型调用、OVH、生产、上传或推送。"

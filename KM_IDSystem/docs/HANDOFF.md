@@ -9,7 +9,20 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - 2026-08-12
+## Current Gate - Stage050 P3 - 2026-08-12
+
+- 本节覆盖下方的 Stage050 P2 历史交接；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成任务：`IDS-V0_1-STAGE050-P3`。当前状态为 `PHASE3_CONTROLLED_PROMPT_INJECTION_MARKER_SCENARIOS_RUNTIME_DISABLED`：只重放 P2 的仅内存标记切片，以 11 个固定非业务、格式标签化 control 场景验证明确处置、零静默丢弃、低质量未排队复核与指令样文本规则不变性。
+- 唯一合同上下文是冻结的 Stage050 任务包、P1/P2 合同与 Stage049 已复审工件；没有建立第二权威事实源，也没有打开或保留业务正文、文件路径、来源引用、原始异常、原始元数据内容、图像页面或真实解析输出。格式标签不是文件、签名、路线、解析正文或运行时支持声明。
+- 场景覆盖 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF、未知、坏输入和指令样文本。11/11 均有明确处置；六项普通 control 维持 `CANDIDATE`/evidence-only，两项低质量 control 返回未排队复核，两项未知或坏输入明确拒绝，指令样 TXT control 固定为 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`。
+- Stage045 继续拥有文件类型检测，Stage046 继续拥有 parser 路由，Stage047 继续拥有解析产物结构，Stage048 继续拥有 fallback，Stage049 继续拥有差异评估；P3 没有调用或改写任何上游职责。Stage048 仍是唯一 fallback 所有者，所有场景的 fallback 执行均为 `false`。
+- 指令样 control 不能覆盖系统规则、工具授权或策略，也不能改变路线、触发 fallback、绕过质量门或提升为高可信证据。control 文本不返回或持久化；全部结果保持 `CANDIDATE` 与 `UNASSESSED`，无人工复核队列、质量门、证据提升、持久化或实际解析产物。
+- 聚焦 Stage050 P3 用例通过 `9/9`，Stage050 P1/P2 前序兼容用例通过 `17/17`，Stage049 P1--P4 及复审前序兼容用例通过 `47/47`，Stage048 P1--P4 及复审前序兼容用例通过 `48/48`；治理回归报告为 `valid=true`，中文视图已重渲染 `7` 个文件。证据为 P3 说明、场景合同、实现、聚焦用例、本轮 machine run、event、batch/roadmap 与机器事实。
+- 未读取 IDS 业务源或原始元数据；未执行文件检测、真实路线、真实 parser、解析正文比较、真实 fallback、运行时提示注入标记、人工复核队列、质量门、证据提升、持久化、Agent、模型调用、本地服务、OVH 部署、生产激活、Phase4、整阶段复审、批次复审、上传或推送。
+- 回滚只撤回 Stage050 P3 场景模块、合同、聚焦用例、machine run、事件、事实投影和治理状态，恢复为 `PHASE2_CONTROLLED_PROMPT_INJECTION_MARKER_SLICE_RUNTIME_DISABLED`；必须保留真实资料、既有证据、manifest、evidence ledger、audit、已交付报告、GitHub、OVH 和应用状态。
+- 下一步仅允许在独立 run 进入 `IDS-V0_1-STAGE050-P4`，门为 `IDS-STAGE050-P4-GATE`。Stage050 P3 场景验证完成不等于真实标记应用、解析器运行、实际解析质量、OVH 部署、生产就绪或 GitHub 上传。
+
+## Superseded Gate - Stage050 P2 - 2026-08-12
 
 - 本节覆盖下方的 Stage050 P1 历史交接；下方未特别标为当前的内容只保留为阶段证据。
 - 本轮完成任务：`IDS-V0_1-STAGE050-P2`。当前状态为 `PHASE2_CONTROLLED_PROMPT_INJECTION_MARKER_SLICE_RUNTIME_DISABLED`：仅在内存中处理两个固定非业务 control 文本和 P1 的七字段 reference-only 候选元数据，记录 control-fixture parser 版本与解析置信度，不创建实际解析产物。

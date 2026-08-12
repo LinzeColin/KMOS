@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-050 Phase 3 - 2026-08-12
+
+- 交付格式标签化提示注入标记场景：11 个固定非业务 control 覆盖 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF、未知、坏输入与指令样文本；格式标签不是文件、文件签名或路线结果。
+- 每个场景都有明确处置，静默丢弃为 `0`；CSV/TXT 低质量 control 只返回未排队复核，Stage048 fallback 仍未执行。指令样 control 固定为 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`，不能覆盖系统规则、工具授权或策略。
+- 聚焦 P3 直接单元用例通过 `9/9`，Stage050 P1/P2 前序兼容用例通过 `17/17`，Stage049 P1--P4 及复审前序兼容用例通过 `47/47`，Stage048 P1--P4 及复审前序兼容用例通过 `48/48`；下一门仅为独立 `IDS-STAGE050-P4-GATE`，上传锁继续保持。
+
 ## IDS v0.1 STAGE-050 Phase 2 - 2026-08-12
 
 - 交付仅内存提示注入标记切片：只接受 P1 的七字段 reference-only 候选元数据、受控解析置信度和两个固定非业务 control 文本；每个可接受 control 都记录 control-fixture parser 版本与置信度，且不回显 control 文本。
