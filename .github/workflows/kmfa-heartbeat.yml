@@ -32,36 +32,62 @@ jobs:
         run: |
           python3 - <<'PY' | tee /tmp/beat.txt
           import json, urllib.request, urllib.parse, urllib.error, os, sys
-          url = "https://kmfa.linzezhang.com/public-api/" + urllib.parse.quote("技能健康")
-          # **必须显式设 User-Agent。**站点在 Cloudflare 后面，而 CF 对默认的
-          # `Python-urllib/3.x` 直接回 403（error 1010，UA 黑名单）。
-          # 2026-07-28 实测：本探针从上线起每一轮都拿到 403 → 判「站点异常」→ 触发部署。
-          # 也就是说心跳**一次都没真正读到过技能健康**，几十轮部署全是对着一个 403 打的。
-          # curl 能过、urllib 过不了，正是这个差别让它在人工复核时看起来"没问题"。
-          req = urllib.request.Request(url, headers={
+          base = "https://kmfa.linzezhang.com"
+          # Availability and business truth are separate probes.  A daily-funds
+          # source/reconciliation failure is red, but restarting an otherwise
+          # reachable application cannot manufacture a valid source fact.
+          availability_url = base + "/healthz"
+          skill_health_url = base + "/public-api/" + urllib.parse.quote("技能健康")
+          headers = {
               "User-Agent": "KMFA-Heartbeat/1.0 (+https://github.com/LinzeColin/KMOS)",
-              "Accept": "application/json"})
+              "Accept": "application/json"}
+
+          # `/healthz` is deliberately anonymous and values-free.  It is the
+          # only probe allowed to request a Coolify restart: a 5xx or transport
+          # failure here means the application itself is unavailable.  A 4xx is
+          # an edge/policy defect and must not cause a useless restart.
           try:
-              with urllib.request.urlopen(req, timeout=25) as r:
+              with urllib.request.urlopen(
+                  urllib.request.Request(availability_url, headers=headers), timeout=25,
+              ) as r:
+                  availability = json.loads(r.read().decode())
+          except Exception as e:
+              code = getattr(e, "code", None)
+              print(f"AVAILABILITY_PROBE_FAILED={type(e).__name__} HTTP={code}")
+              print("RED=1")
+              if code is not None and 400 <= code < 500:
+                  print("NEED_HEAL=0")
+                  print(f"REASON=浅健康端点返回 {code}——边缘/策略异常，部署修不了")
+              else:
+                  print("NEED_HEAL=1")
+                  print(f"REASON=浅健康端点探测失败（HTTP={code}）——站点或应用不可达")
+              raise SystemExit(0)
+
+          if not isinstance(availability, dict) or availability.get("status") != "ok":
+              print("RED=1")
+              print("NEED_HEAL=0")
+              print("REASON=浅健康返回形状异常——不把未知响应当作可重启故障")
+              raise SystemExit(0)
+
+          # This second probe carries business status only.  It must never
+          # itself trigger a restart after the anonymous liveness probe passed.
+          try:
+              with urllib.request.urlopen(
+                  urllib.request.Request(skill_health_url, headers=headers), timeout=25,
+              ) as r:
                   d = json.loads(r.read().decode())
           except Exception as e:
               code = getattr(e, "code", None)
-              print(f"PROBE_FAILED={type(e).__name__} HTTP={code}")
+              print(f"SKILL_HEALTH_PROBE_FAILED={type(e).__name__} HTTP={code}")
               print("RED=1")
-              # 4xx 是**我们被挡在门外**（UA/权限/路径），重新部署应用治不了它；
-              # 5xx / 连不上才是应用自己的事，那才值得冷启动一次。
-              if code is not None and 400 <= code < 500:
-                  print("NEED_HEAL=0")
-                  print(f"REASON=健康端点返回 {code}——探针被拒（UA/权限/路径），部署修不了，需改探针")
-              else:
-                  print("NEED_HEAL=1")
-                  print(f"REASON=健康端点探测失败（HTTP={code}）——站点或应用异常")
+              print("NEED_HEAL=0")
+              print("REASON=公开技能健康不可读，但浅健康已通过；不重启以掩盖业务状态")
               raise SystemExit(0)
 
           if not d.get("台账可读"):
               print("RED=1")
-              print("NEED_HEAL=1")
-              print(f"REASON=台账读不到：{d.get('原因')}")
+              print("NEED_HEAL=0")
+              print("REASON=台账不可读，但浅健康已通过；需修复运行态而非重复重启")
               raise SystemExit(0)
 
           # 重新部署能修的，只有「代码/配置换了一版，但容器还跑着旧的」这一类。
@@ -86,10 +112,24 @@ jobs:
           for r in rows:
               print(f"  {r['技能']:<24} rc={r.get('退出码')} 次数={r.get('运行次数')} "
                     f"距今h={r.get('距今小时')} 码={r.get('失败码')}")
-          healable = [r for r in failing if (r.get("失败码") or "UNKNOWN") not in NO_HEAL]
-          blocked = [r for r in failing if (r.get("失败码") or "UNKNOWN") in NO_HEAL]
+          # Daily funds owns a separate cloud worker and its source evidence
+          # chain.  Its red result is essential operational truth, but a web
+          # app restart neither logs into DWS nor creates a matching account /
+          # transaction pair.  Treat every such result as non-healable here.
+          isolated_business = [r for r in failing if r.get("技能") == "daily-funds"]
+          healable = [
+              r for r in failing
+              if r.get("技能") != "daily-funds"
+              and (r.get("失败码") or "UNKNOWN") not in NO_HEAL
+          ]
+          blocked = [
+              r for r in failing
+              if r.get("技能") == "daily-funds"
+              or (r.get("失败码") or "UNKNOWN") in NO_HEAL
+          ]
           print(f"FAILING={len(failing)} NEVER_RAN={len(never)} STALE={len(stale)} "
-                f"HEALABLE={len(healable)} NO_HEAL={len(blocked)}")
+                f"HEALABLE={len(healable)} NO_HEAL={len(blocked)} "
+                f"ISOLATED_BUSINESS={len(isolated_business)}")
           # RED 与 NEED_HEAL 分家：前者管"这轮心跳红不红"，后者管"要不要动手部署"。
           # 合在一起就只有两种姿势——要么假绿，要么无脑部署，两种都被实测证伪过。
           print("RED=1" if failing else "RED=0")
