@@ -212,7 +212,7 @@ def _write_projection(root: Path, human_status: str, *, restored: bool = False) 
     cashflow_observation = {
         "schema_version": "kmfa.daily_funds.cashflow_observation.v2",
         "generated_at": "2026-07-30T12:05:00Z",
-        "parser_version": "kmfa.daily_funds.cashflow_observation.v5",
+        "parser_version": "kmfa.daily_funds.cashflow_observation.v6",
         "source_coverage": {
             "eligible_documents": 2,
             "parsed_documents": 2,

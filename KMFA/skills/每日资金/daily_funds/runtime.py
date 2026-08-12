@@ -1247,7 +1247,7 @@ class DailyFundsRuntime:
                     # only one complete account/transaction schema must pass.
                     # All other unknown attachments remain capability-only
                     # NEEDS_REVIEW evidence.
-                    if not (self.config.ocr_enabled and is_ocr_attachment(attachment.filename)):
+                    if not (self.config.ocr_enabled and is_ocr_attachment(attachment.filename, payload=attachment.payload)):
                         raise ParseError("UNSUPPORTED_ATTACHMENT")
                     candidate = parse_ocr_attachment(
                         family="资金明细",
@@ -1273,7 +1273,7 @@ class DailyFundsRuntime:
                         source=self._source_ref(attachment),
                         mime=attachment.mime,
                     )
-                elif attachment.family == _GENERIC_DOCUMENT_FAMILY and self.config.ocr_enabled and is_ocr_attachment(attachment.filename):
+                elif attachment.family == _GENERIC_DOCUMENT_FAMILY and self.config.ocr_enabled and is_ocr_attachment(attachment.filename, payload=attachment.payload):
                     candidate = parse_ocr_attachment(
                         family=_GENERIC_DOCUMENT_FAMILY,
                         filename=attachment.filename,
@@ -1299,7 +1299,7 @@ class DailyFundsRuntime:
                         source=self._source_ref(attachment),
                         mime=attachment.mime,
                     )
-                elif self.config.ocr_enabled and is_ocr_attachment(attachment.filename):
+                elif self.config.ocr_enabled and is_ocr_attachment(attachment.filename, payload=attachment.payload):
                     candidate = parse_ocr_attachment(
                         family=attachment.family,
                         filename=attachment.filename,
@@ -1457,7 +1457,7 @@ class DailyFundsRuntime:
 
         eligible_by_sha: dict[str, DownloadedAttachment] = {}
         for attachment in attachments:
-            if attachment.family in TRANSACTION_FAMILIES and is_ocr_attachment(attachment.filename):
+            if attachment.family in TRANSACTION_FAMILIES and is_ocr_attachment(attachment.filename, payload=attachment.payload):
                 existing = eligible_by_sha.get(attachment.sha256)
                 if existing is None:
                     eligible_by_sha[attachment.sha256] = attachment

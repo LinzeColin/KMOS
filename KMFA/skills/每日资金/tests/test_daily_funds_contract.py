@@ -61,6 +61,7 @@ from daily_funds.parsing import (
     PARSER_VERSION,
     ParseError,
     deterministic_ocr_runtime_ready,
+    is_ocr_attachment,
     parse_attachment,
     parse_cashflow_observation,
     parse_generic_structured_attachment,
@@ -1166,6 +1167,43 @@ def test_deterministic_ocr_requires_high_confidence_and_opens_a_strict_table() -
         )
 
 
+def test_deterministic_ocr_normalizes_an_opaque_suffix_only_from_verified_magic() -> None:
+    headers = ["业务日期", "公司", "开户行", "账号", "期初余额", "期末余额", "币种"]
+    values = ["2026-07-30", "甲", "乙", "001", "100.00", "110.00", "CNY"]
+    payload = b"\x89PNG\r\n\x1a\nopaque-client-suffix"
+
+    assert is_ocr_attachment("opaque.client-upload", payload=payload)
+    candidate = parse_ocr_attachment(
+        family=ACCOUNT_FAMILY,
+        filename="opaque.client-upload",
+        payload=payload,
+        source=_source(payload),
+        mime="image/png",
+        runner=_ocr_runner(_ocr_tsv(headers, values)),
+    )
+    assert candidate.facts.parser_evidence.suffix == ".png"
+
+    assert not is_ocr_attachment("opaque.csv", payload=payload)
+    with pytest.raises(ParseError, match="UNSUPPORTED_ATTACHMENT"):
+        parse_ocr_attachment(
+            family=ACCOUNT_FAMILY,
+            filename="opaque.csv",
+            payload=payload,
+            source=_source(payload),
+            mime="image/png",
+            runner=_ocr_runner(_ocr_tsv(headers, values)),
+        )
+    with pytest.raises(ParseError, match="MIME_SUFFIX_MISMATCH"):
+        parse_ocr_attachment(
+            family=ACCOUNT_FAMILY,
+            filename="opaque.client-upload",
+            payload=payload,
+            source=_source(payload),
+            mime="text/plain",
+            runner=_ocr_runner(_ocr_tsv(headers, values)),
+        )
+
+
 def test_generic_ocr_reassembles_a_visually_aligned_split_header_without_relaxing_schema() -> None:
     headers = ["业务日期", "公司", "开户行", "账号", "期初余额", "期末余额", "币种"]
     values = ["2026-07-30", "甲", "乙", "001", "100.00", "110.00", "CNY"]
@@ -1666,6 +1704,16 @@ def test_runtime_cashflow_observation_requires_complete_unique_day_coverage(tmp_
     assert first.sha256 not in saved
     assert second.sha256 not in saved
     assert "cashflow-1" not in saved
+
+    opaque_first = replace(first, filename="opaque.client-upload")
+    opaque_verified = runtime._write_cashflow_observation((opaque_first, second))
+    assert opaque_verified["status"] == "VERIFIED"
+    assert opaque_verified["source_coverage"] == {
+        "eligible_documents": 2,
+        "parsed_documents": 2,
+        "rejected_documents": 0,
+        "distinct_business_days": 2,
+    }
 
     duplicate = attachment("2026-08-07", b"duplicate", 3)
     blocked = runtime._write_cashflow_observation((first, duplicate))

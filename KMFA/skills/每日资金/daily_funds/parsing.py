@@ -28,7 +28,7 @@ from .models import CashflowObservation, AccountSnapshot, ParsedFacts, ParserEvi
 
 ACCOUNT_FAMILY = "资金账户明细表"
 TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
-# v11 keeps the bounded deterministic OCR fallback and aligns transaction
+# v12 keeps the bounded deterministic OCR fallback and aligns transaction
 # identity requirements to the frozen task-pack schema: bank_id is optional
 # and a source-row fact identifier is used only when a source does not expose
 # a transaction identifier.  It also requires an ambiguously titled structured
@@ -45,7 +45,7 @@ TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
 # reassembles only those overlapping OCR lines and then applies the same exact
 # aliases, confidence, row and fact rules.  Capability receipts are versioned,
 # so a rule change cannot inherit a prior parser's production-support assertion.
-PARSER_VERSION = "kmfa.daily_funds.parser.v11"
+PARSER_VERSION = "kmfa.daily_funds.parser.v12"
 # This parser is deliberately separate from ``PARSER_VERSION``.  It can
 # create a chart-only receipt from a narrow receipt/payment screenshot without
 # weakening the two-fact account-balance publication contract.
@@ -58,7 +58,7 @@ PARSER_VERSION = "kmfa.daily_funds.parser.v11"
 # unchanged date, row, amount-confidence and footer-total rules with exactly
 # the same result.  A single alternate OCR reading can therefore never create
 # a chart point.
-CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v5"
+CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v6"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -108,6 +108,13 @@ _OCR_MAGIC_BY_SUFFIX = {
     ".bmp": "BMP",
     ".webp": "WEBP",
     ".pdf": "PDF",
+}
+_OCR_CANONICAL_SUFFIX_BY_MAGIC = {
+    "PNG": ".png",
+    "JPEG": ".jpg",
+    "BMP": ".bmp",
+    "WEBP": ".webp",
+    "PDF": ".pdf",
 }
 OCR_MIN_CONFIDENCE_BPS = 9_800
 OCR_MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024
@@ -582,20 +589,30 @@ def _validate_ocr_min_confidence(value: object) -> int:
 def inspect_ocr_attachment_format(*, filename: str, payload: bytes, mime: str | None = None) -> ParserEvidence:
     """Validate one image or scanned-PDF before a deterministic OCR open.
 
-    OCR is not a bypass around the normal attachment contract: a suffix, magic
-    or declared MIME disagreement is a hard failure.  The result contains only
-    format metadata and can therefore be used in the existing redacted
-    capability journal.
+    OCR is not a bypass around the normal attachment contract.  A recognised
+    filename type, byte magic or declared MIME disagreement is a hard failure.
+    An opaque, unrecognised client-side suffix may be normalised only from the
+    verified byte signature, then remains subject to the same MIME and parser
+    gates.  The result contains only format metadata and can therefore be used
+    in the existing redacted capability journal.
     """
 
-    suffix = Path(filename).suffix.lower()
-    if suffix not in _OCR_SUFFIXES:
-        raise ParseError("UNSUPPORTED_ATTACHMENT")
     if len(payload) > OCR_MAX_ATTACHMENT_BYTES:
         raise ParseError("OCR_ATTACHMENT_TOO_LARGE")
+    candidate_suffix = Path(filename).suffix.lower()
     magic = _capability_magic(payload)
-    if magic != _OCR_MAGIC_BY_SUFFIX[suffix]:
-        raise ParseError("FORMAT_MAGIC_MISMATCH")
+    if candidate_suffix in _OCR_SUFFIXES:
+        suffix = candidate_suffix
+        if magic != _OCR_MAGIC_BY_SUFFIX[suffix]:
+            raise ParseError("FORMAT_MAGIC_MISMATCH")
+    elif candidate_suffix in _CAPABILITY_SUFFIXES:
+        # A recognised non-OCR type (for example a workbook or GIF) is a
+        # concrete contradictory declaration, not an opaque transport suffix.
+        raise ParseError("UNSUPPORTED_ATTACHMENT")
+    else:
+        suffix = _OCR_CANONICAL_SUFFIX_BY_MAGIC.get(magic)
+        if suffix is None:
+            raise ParseError("UNSUPPORTED_ATTACHMENT")
     declared_mime = _declared_mime(mime)
     if declared_mime is not None and declared_mime not in _OCR_IMAGE_MIME[suffix]:
         raise ParseError("MIME_SUFFIX_MISMATCH")
@@ -608,10 +625,21 @@ def inspect_ocr_attachment_format(*, filename: str, payload: bytes, mime: str | 
     )
 
 
-def is_ocr_attachment(filename: str) -> bool:
-    """Whether a filename belongs to the explicit image/scanned-PDF fallback."""
+def is_ocr_attachment(filename: str, *, payload: bytes | None = None) -> bool:
+    """Whether an attachment can enter the explicit image/scanned-PDF fallback.
 
-    return Path(filename).suffix.lower() in _OCR_SUFFIXES
+    Known OCR suffixes retain their existing parser-time magic validation.  A
+    non-capability suffix is admitted only when raw bytes establish one of the
+    same bounded OCR formats; a known conflicting capability suffix cannot be
+    converted into an OCR input by its payload.
+    """
+
+    suffix = Path(filename).suffix.lower()
+    if suffix in _OCR_SUFFIXES:
+        return True
+    if payload is None or suffix in _CAPABILITY_SUFFIXES:
+        return False
+    return _capability_magic(payload) in _OCR_CANONICAL_SUFFIX_BY_MAGIC
 
 
 def _run_ocr_command(
