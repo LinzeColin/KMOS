@@ -17,7 +17,12 @@ EXPECTED="$(awk -v version="$DWS_VERSION" -v asset="$ASSET" '$1==version && $2==
 [ -n "$EXPECTED" ] || { echo "DWS_LOCK_MISSING" >&2; exit 1; }
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
-curl -fsSL -o "$tmp/$ASSET" "https://github.com/DingTalk-Real-AI/dingtalk-workspace-cli/releases/download/$DWS_VERSION/$ASSET"
+# The asset and SHA remain pinned below.  This only absorbs transient CDN
+# transport failures during a reproducible image build; it never falls back
+# to an unpinned version or bypasses the checksum gate.
+curl -fsSL --retry 4 --retry-all-errors --retry-delay 2 \
+  --connect-timeout 20 --max-time 180 \
+  -o "$tmp/$ASSET" "https://github.com/DingTalk-Real-AI/dingtalk-workspace-cli/releases/download/$DWS_VERSION/$ASSET"
 echo "$EXPECTED  $tmp/$ASSET" | sha256sum -c -
 tar -xzf "$tmp/$ASSET" -C "$tmp"
 binary="$(find "$tmp" -type f -name dws | head -1)"
