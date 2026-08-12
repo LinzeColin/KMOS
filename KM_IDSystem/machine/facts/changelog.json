@@ -1,5 +1,10 @@
 [ 
   {
+    "version": "v0.1-stage052-p1-local",
+    "date": "2026-08-13",
+    "summary": "完成 Stage052 P1 中英文 OCR 静态合同：在 Stage051 已复审队列基线上声明中文简体、英文和中英文混合页面的 reference-only 输入、按页输出引用、置信度隔离、缓存边界和 Stage054 后续复核路由。未读取真实资料，未执行语言检测或 OCR 引擎、队列、缓存、复核、质量门、持久化、智能体、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage052 P2。"
+  },
+  {
     "version": "v0.1-stage051-review-local",
     "date": "2026-08-13",
     "summary": "完成 Stage051 OCR 队列基线整阶段本地白箱复审：P1--P4 合同、四页控制切片、五类显式质量处置、5 个 metadata-only 交付样例、中文确认、缓存边界和 P4→P3→P2→P1→BATCH041_050 回滚链一致。未读取真实资料，未调用 OCR 引擎、创建队列/缓存/复核记录或生产运行，未执行智能体、模型 Token、OVH、上传或推送；下一步仅可在新的独立 run 进入 Stage052 P1。"

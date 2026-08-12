@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-052 Phase 1 - 2026-08-13
+
+- 完成 `IDS-V0_1-STAGE052-P1`：在 Stage051 已复审 OCR 队列基线上，固化中文简体、英文和中英文混合页面的 reference-only 输入、八字段按页输出引用、低置信/混合语言隔离、可重建缓存边界与 Stage054 后续复核路由。
+- 本地验证通过：Stage052 P1 聚焦用例 `8/8`、Stage051 Review 前序兼容 `11/11`、Stage051 P1--P4 前序兼容 `42/42`、BATCH041_050 前序兼容 `6/6`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影重渲染 `7` 个文件。
+- 未读取真实资料、检测语言、选择或调用 OCR 引擎、创建队列/缓存/复核、执行质量门或持久化；Agent、模型 Token、OVH、生产、上传与推送均保持关闭。后续仅允许在新的独立 run 进入 `IDS-STAGE052-P2-GATE`。
+
 ## IDS v0.1 STAGE-051 Review - 2026-08-13
 
 - 完成 `IDS-V0_1-STAGE051-REVIEW`：独立复审 P1--P4 的单一合同上下文、字段与状态边界、五类质量 control、5 个 metadata-only 交付样例、中文人工确认、缓存边界和 P4→P3→P2→P1→BATCH041_050 回滚链。

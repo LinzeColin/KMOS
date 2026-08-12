@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE051",
-  "phase": "IDS-V0_1-STAGE051-REVIEW",
-  "task": "IDS-V0_1-STAGE051-REVIEW",
-  "real_progress": "Stage051 P1--P4 已完成独立本地白箱复审：合同字段、四页控制切片、五类显式质量处置、metadata-only 交付、中文确认、缓存边界与回滚链一致；下一步只能在新的独立 run 进入 Stage052 P1 门，上传路径继续关闭",
-  "report_grade": "冻结任务包、P1--P4 合同、整阶段复审、聚焦用例、批次检查器、治理路线与中文事实投影一致",
-  "business_verdict": "本复审只证明固定非业务 control 的本地合同和交付边界一致；不证明真实 OCR、识别准确率、表格提取、实际人工复核、缓存清理、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE051_REVIEWED_OCR_QUEUE_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE052",
+  "phase": "IDS-V0_1-STAGE052-P1",
+  "task": "IDS-V0_1-STAGE052-P1",
+  "real_progress": "Stage052 P1 已在 Stage051 OCR 队列基线复审上定义中文简体、英文和中英文混合页面的 reference-only 输入、按页输出引用、置信度隔离、缓存和后续复核路由；下一步只能在新的独立 run 进入 Stage052 P2 门，上传路径继续关闭",
+  "report_grade": "冻结 Stage052 任务包、Stage051 已复审合同、Stage052 静态合同、聚焦用例、治理路线与中文事实投影一致",
+  "business_verdict": "本 P1 只证明中英文 OCR 的静态合同、边界和回滚路径可被本地复核；不证明真实 OCR、语言检测、识别准确率、实际人工复核、缓存清理、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE052_PHASE1_BILINGUAL_OCR_CONTRACT_RUNTIME_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE052-P1-GATE",
+  "next_gate": "IDS-STAGE052-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

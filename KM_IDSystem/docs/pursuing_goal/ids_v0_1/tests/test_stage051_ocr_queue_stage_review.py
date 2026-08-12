@@ -182,12 +182,20 @@ class Stage051OcrQueueStageReviewTests(unittest.TestCase):
             (roadmap, 'current_task_id: "IDS-V0_1-STAGE051-REVIEW"'),
             (roadmap, 'next_gate_id: "IDS-STAGE052-P1-GATE"'),
             (roadmap, 'status: "completed_reviewed_local"'),
+            (batch, 'status: "stage052_phase1_completed"'),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE052-P1"'),
+            (batch, 'next_gate: "IDS-STAGE052-P2-GATE"'),
+            (roadmap, 'current_stage_id: "IDS-STAGE052"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE052-P1"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-V0_1-STAGE051-REVIEW", status["phase"])
+        self.assertIn(
+            status["phase"],
+            ("IDS-V0_1-STAGE051-REVIEW", "IDS-V0_1-STAGE052-P1"),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

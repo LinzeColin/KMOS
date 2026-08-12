@@ -9,9 +9,20 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage051 Review - 2026-08-13
+## Current Gate - Stage052 P1 - 2026-08-13
 
-- 本节覆盖下方 Stage051 P4/P3/P2/P1、BATCH041_050 Review 与 Stage050 Review 的历史指向；下方未特别标为当前的内容只保留为阶段证据。
+- 本节覆盖下方 Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成 `IDS-V0_1-STAGE052-P1`：在 Stage051 已复审 OCR 队列基线上，定义中文简体、英文和中英文混合页面的 reference-only 输入、八字段按页输出引用、低置信/混合语言隔离、缓存边界与后续复核路由。
+- 唯一合同上下文是冻结 Stage052 任务包与 Stage051 已复审合同/控制证据。没有建立第二权威事实源，也没有读取 IDS 业务源、原始元数据、正文、文件路径、真实 PDF、图像、页面或表格内容；本步骤不返回 OCR 文本。
+- 默认语言为中文简体和英文，允许中文简体、英文及中英文混合三种语言档案。未选择或配置 OCR 引擎，也未进行语言检测；低置信和中英文混合页面均不能直接进入高可信证据层，后续仅声明为 Stage054 受控复核路由。
+- 缓存仅声明为 Stage056 负责的可重建派生产物。本轮没有创建队列、按页输出、缓存、复核记录、质量门、证据提升、持久状态、本地服务、OVH 或生产运行；运行时保持零 Agent、零模型 Token。
+- 回滚只撤回 Stage052 P1 范围说明、静态合同、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图，恢复到 `STAGE051_REVIEWED_LOCAL_OCR_QUEUE_RUNTIME_DISABLED`；真实资料、既有证据、运行状态、GitHub、OVH 与应用状态不在回滚范围内。
+- 已验证：Stage052 P1 聚焦用例 `8/8`、Stage051 Review 前序兼容 `11/11`、Stage051 P1--P4 前序兼容 `42/42`、BATCH041_050 前序兼容 `6/6`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理报告为 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 下一步只允许在新的独立 run 进入 `IDS-V0_1-STAGE052-P2`，门为 `IDS-STAGE052-P2-GATE`。所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage051 Review - 2026-08-13
+
+- 本节仅保留 Stage051 Review 的历史交接证据；当前门已转为 Stage052 P1。
 - 本轮完成 `IDS-V0_1-STAGE051-REVIEW`：独立复审 P1--P4 已提交合同与固定非业务控制报告的字段形状、明确处置、metadata-only 交付、中文确认、缓存边界和 P4→P3→P2→P1→BATCH041_050 回滚链。
 - 唯一合同上下文是冻结的 Stage051 任务包、P1--P4 工件与 BATCH041_050 已完成本地复审工件；没有建立第二权威事实源，也没有读取 IDS 业务源、原始元数据、正文、文件路径、真实 PDF、图像、页面或表格内容。复审输出只保留字段数、场景数、处置数、置信度计数、失败计数、复核路由计数和边界结论。
 - P1 七字段/八字段/中英文默认声明、P2 四页显式状态、P3 五类明确处置且静默丢弃为零，以及 P4 的 5 个 metadata-only 样例、HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1、1 条失败、2 条未排队复核路由和 3 条中文确认提示均已复审；这些 control 汇总不是识别准确率、质量门或实际人工复核结论。
