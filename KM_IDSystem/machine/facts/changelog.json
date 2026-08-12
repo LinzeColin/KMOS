@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage054-review-local",
+    "date": "2026-08-13",
+    "summary": "完成 Stage054 低置信度复核路由整阶段本地白箱复审：P1--P4 的九字段输入、十字段候选请求、五类 control 处置、5 个 metadata-only 样例、HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1、1 条失败、3 条候选复核路由、中文确认、缓存边界和回滚链一致。未读取真实资料、未调用 OCR、未创建实际人工任务、持久队列、缓存或运行时，未执行 Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage055 P1。"
+  },
+  {
     "version": "v0.1-stage054-p4-local",
     "date": "2026-08-13",
     "summary": "完成 Stage054 P4 低置信度复核路由交付证据：从 P3 五类固定非业务 control 报告派生 5 个 metadata-only 样例、HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1 控制置信度汇总、1 条显式失败、3 条候选复核路由证明、3 条中文人工确认提示与零临时产物重跑说明。未打开真实样本、未保留 OCR 文本或来源路径，未执行 OCR、复核、质量门、缓存清理、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage054 整阶段复审。"

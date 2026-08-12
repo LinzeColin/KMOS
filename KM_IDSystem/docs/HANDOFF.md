@@ -9,7 +9,17 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage054 Phase 4 - 2026-08-13
+## Current Gate - Stage054 Review - 2026-08-13
+
+- 本节覆盖下方 Stage054 P4/P3/P2/P1、Stage053 Review、P1--P4、Stage052 Review、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成 `IDS-V0_1-STAGE054-REVIEW`：只复审 P1--P4 已提交合同并重放 P3/P4 固定非业务 control 报告，核验九字段复核输入、十字段候选请求、五类明确处置、metadata-only 交付、中文确认、缓存边界和回滚链。
+- 复审只输出字段数、场景数、处置数、置信度计数、失败计数、候选复核路由计数和边界结论。P1/P2 的 9/10 字段结构、P3 的五个明确处置与零静默丢弃，以及 P4 的五个 metadata-only 样例、`HIGH=2`、`MEDIUM=1`、`LOW=1`、`UNKNOWN=1`、一条失败、三条候选路由和三条中文提示均保持一致。
+- 候选复核路由仍不构成实际人工任务或队列；缓存仍为 `IN_MEMORY_REBUILDABLE_NOT_PERSISTED`、临时产物为 `0`、清理结论为 `NO_TEMPORARY_ARTIFACT_CREATED`，回滚点为 `PHASE4_LOW_CONFIDENCE_REVIEW_ROUTE_DELIVERY_EVIDENCE_RUNTIME_DISABLED`。
+- 没有读取 IDS 业务源、原始元数据、正文、文件路径、真实 PDF、图像、页面或表格内容；没有打开样本、调用 OCR、创建实际复核、持久队列、缓存、审计或运行时；没有启动 Agent、模型调用、模型 Token、OVH、生产、上传或推送。
+- 已验证：Stage054 Review 聚焦用例 `11/11`，与 Stage054 P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 和 BATCH041_050 的合并前序回归 `218/218`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理报告为 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 下一步只允许在新的独立 run 进入 `IDS-STAGE055-P1-GATE`。本 run 不进入 Stage055；所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage054 Phase 4 - 2026-08-13
 
 - 本节覆盖下方 Stage054 P3/P2/P1、Stage053 Review、P1--P4、Stage052 Review、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
 - 本轮完成 `IDS-V0_1-STAGE054-P4`：只重放 P3 的五类固定非业务低置信度复核路由 control 报告，派生五个 metadata-only 交付样例、置信度汇总、一个显式失败清单、三条候选复核路由证明、质量限制、三条中文人工确认提示与缓存重跑说明。
