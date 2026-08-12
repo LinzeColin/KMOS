@@ -9,7 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage053 Review - 2026-08-13
+## Current Gate - Stage054 Phase 1 - 2026-08-13
+
+- 本节覆盖下方 Stage053 Review、P1--P4、Stage052 Review、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成 `IDS-V0_1-STAGE054-P1`：只以冻结 Stage054 任务包和 Stage053 已复审工件为合同上下文，定义低置信 OCR 复核路由的九字段 reference-only 输入、十字段未来复核请求、默认中文简体与英文、四种置信度引用、三种未来复核状态、缓存边界、中文反馈与回滚范围。
+- LOW、UNKNOWN、中英文混合和失败页均不能直接进入高可信证据层；不设数值阈值、不执行语言检测、准确率评估、自动分派、人工复核或证据提升。未来复核状态只作合同定义，未创建请求、队列、任务或结果。
+- 缓存只保留 `FUTURE_REBUILDABLE_DERIVED_CACHE_REFERENCE_ONLY` 边界，保留与清理所有权仍归 Stage056；未创建缓存、审计、manifest、evidence ledger、report、数据库或持久状态。
+- 没有读取 IDS 业务源、原始元数据、正文、文件路径、真实 PDF、图像、页面或表格内容；没有打开样本、调用 OCR、创建实际按页输出、图片引用、失败记录、复核任务/结果、队列、质量门、本地服务、OVH 或生产运行；运行时保持零 Agent、零模型 Token。
+- 回滚只撤回本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `STAGE053_REVIEWED_LOCAL_PER_PAGE_OCR_OUTPUT_RUNTIME_DISABLED`；真实资料、既有运行状态、GitHub、OVH 与应用状态不在回滚范围内。
+- 已验证：Stage054 P1 聚焦用例 `8/8`，加 Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的回归共 `173/173`；Stage005 治理报告为 `valid=true`。
+- 下一步只允许在新的独立 run 进入 `IDS-STAGE054-P2`，门为 `IDS-STAGE054-P2-GATE`。所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage053 Review - 2026-08-13
 
 - 本节覆盖下方 Stage053 P4/P3/P2/P1、Stage052 Review、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
 - 本轮完成 `IDS-V0_1-STAGE053-REVIEW`：只读取冻结 Stage053 任务包、Stage052 已复审工件和 P1--P4 已提交合同，重放 P3/P4 固定非业务 control 报告，独立复审十一字段按页结构、五类显式处置、metadata-only 交付、中文确认、缓存边界与回滚链。

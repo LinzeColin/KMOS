@@ -229,7 +229,7 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertIn(status["stage"], ("IDS-STAGE052", "IDS-STAGE053"))
+        self.assertIn(status["stage"], ("IDS-STAGE052", "IDS-STAGE053", "IDS-STAGE054"))
         self.assertIn(
             status["phase"],
             (
@@ -243,6 +243,7 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE053-P3",
                 "IDS-V0_1-STAGE053-P4",
                 "IDS-V0_1-STAGE053-REVIEW",
+                "IDS-V0_1-STAGE054-P1",
             ),
         )
         self.assertFalse(status["runtime_enabled"])

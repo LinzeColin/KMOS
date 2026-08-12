@@ -175,6 +175,10 @@ class Batch041050ReviewGateTests(unittest.TestCase):
                 'current_phase_id: "IDS-STAGE053-REVIEW"' in roadmap
                 and 'next_gate_id: "IDS-STAGE054-P1-GATE"' in roadmap
             )
+            or (
+                'current_phase_id: "IDS-STAGE054-P1"' in roadmap
+                and 'next_gate_id: "IDS-STAGE054-P2-GATE"' in roadmap
+            )
         )
 
     def test_cli_emits_local_review_report(self):

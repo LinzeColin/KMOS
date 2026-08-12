@@ -1,21 +1,21 @@
 {
-  "stage": "IDS-STAGE053",
-  "phase": "IDS-V0_1-STAGE053-REVIEW",
-  "task": "IDS-V0_1-STAGE053-REVIEW",
-  "owner": "Codex 专属 KMOS worktree，Stage053 Review",
-  "objective": "独立复审 P1--P4 的单一合同上下文、十一字段按页结构、五类显式质量处置、metadata-only 交付、中文确认、缓存边界与回滚链；不打开真实样本、不调用 OCR 或进入 Stage054。",
+  "stage": "IDS-STAGE054",
+  "phase": "IDS-V0_1-STAGE054-P1",
+  "task": "IDS-V0_1-STAGE054-P1",
+  "owner": "Codex 专属 KMOS worktree，Stage054 Phase 1",
+  "objective": "定义低置信 OCR 复核路由的引用输入、未来请求字段、默认中英文、置信度隔离、缓存边界、中文反馈与回滚范围；不打开真实样本、不调用 OCR 或创建复核任务。",
   "scope": [
-    "以冻结 Stage053 任务包、Stage052 已复审工件和 Stage053 P1--P4 合同为唯一合同上下文，不建立第二权威事实源",
-    "只重放 P3/P4 固定非业务 control 报告，核验 P1 七字段引用输入、十一字段按页结构、四页受控切片、五类显式处置、五个 metadata-only 样例、HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1、一条失败和两条未排队复核路由",
-    "质量限制和三条人工确认提示保持中文且不自动确认；候选、降级和失败均不能直接进入高可信证据层，未创建实际人工复核任务",
-    "缓存保持仅内存可重建且不落盘，临时产物为零，清理结论为 NO_TEMPORARY_ARTIFACT_CREATED；未创建实际缓存、audit、manifest、evidence ledger、report、数据库或持久状态",
-    "同步整阶段复审说明、纯内存模块、聚焦单元用例、machine run、事件、机器事实、中文视图与交接，并只关闭 ACC-STAGE-053 的本地整阶段复审"
+    "以冻结 Stage054 任务包和 Stage053 已复审工件为唯一合同上下文，不建立第二权威事实源",
+    "只定义九字段 reference-only 复核输入和十字段未来复核请求结构，引用按页身份、语言、置信度、状态、失败原因、证据资格、路由和缓存策略，不创建请求实例",
+    "默认中文简体与英文，允许中英文混合；LOW、UNKNOWN、中英文混合与失败页均不能直接进入高可信证据层，只定义未来受控复核状态",
+    "缓存保持可重建引用边界且不落盘，保留和清理所有权归 Stage056；未创建队列、人工复核任务/结果、audit、manifest、evidence ledger、report、数据库或持久状态",
+    "同步 P1 说明、静态合同、聚焦单元用例、machine run、事件、机器事实、中文视图与交接，并只完成 ACC-STAGE-054 的 Phase 1"
   ],
   "non_goals": [
     "不打开真实业务源、原始元数据、PDF、图片、页面、表格、来源正文或 Owner fixture，不执行文件检测、真实路线、语言检测或创建业务解析输出",
     "不选择或调用 OCR 引擎，不执行 PDF 栅格化、图像处理、表格提取、准确率评估、实际人工复核、实际按页输出、真实图片引用、实际失败记录、持久队列、缓存、质量门、证据提升或持久化",
     "不写 manifest、evidence ledger、audit、index、report、database、持久 job、持久 state 或运行状态",
-    "不进入 Stage054、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不进入 Stage054 Phase 2、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage053 P1--P4 合同、整阶段复审、事实投影和聚焦单元用例验证完成后停止；下一轮只允许进入 IDS-STAGE054-P1-GATE。任何真实资料访问、真实 OCR 文本/图片引用/失败记录或引擎、缓存/审计/复核写入、质量门、持久写入、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "Stage054 Phase 1 静态复核路由合同、事实投影和聚焦单元用例验证完成后停止；下一轮只允许进入 IDS-STAGE054-P2-GATE。任何真实资料访问、真实 OCR 文本/图片引用/失败记录或引擎、人工复核任务/结果、队列/缓存/审计写入、质量门、持久写入、OVH、生产或上传动作都不属于本步骤。"
 }

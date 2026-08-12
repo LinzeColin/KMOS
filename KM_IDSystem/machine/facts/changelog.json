@@ -1,5 +1,10 @@
 [ 
   {
+    "version": "v0.1-stage054-p1-local",
+    "date": "2026-08-13",
+    "summary": "完成 Stage054 P1 低置信度复核路由静态合同：定义九字段 reference-only 复核输入、十字段未来复核请求、默认中文简体与英文、LOW/UNKNOWN/中英文混合/失败页隔离、三种未来复核状态、缓存边界、中文反馈与回滚范围。未读取真实资料，未调用 OCR、创建复核任务/结果、队列、缓存或生产运行，未执行 Agent、模型 Token、OVH、上传或推送；下一步仅可在新的独立 run 进入 Stage054 P2。"
+  },
+  {
     "version": "v0.1-stage053-review-local",
     "date": "2026-08-13",
     "summary": "完成 Stage053 按页 OCR 输出整阶段本地白箱复审：P1--P4 合同、十一字段按页结构、五类显式质量处置、5 个 metadata-only 交付样例、中文确认、缓存边界和 P4 到 P3 到 P2 到 P1 到 Stage052 review 回滚链一致。未读取真实资料，未调用 OCR 引擎、创建队列/缓存/复核记录或生产运行，未执行 Agent、模型 Token、OVH、上传或推送；下一步仅可在新的独立 run 进入 Stage054 P1。"

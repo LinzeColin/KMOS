@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-054 Phase 1 - 2026-08-13
+
+- 完成 `IDS-V0_1-STAGE054-P1`：定义低置信度复核路由的九字段 reference-only 输入、十字段未来请求、默认中文简体与英文、LOW/UNKNOWN/中英文混合/失败页隔离、三种未来复核状态、缓存边界、中文反馈与回滚范围。
+- 本地验证通过：Stage054 P1 聚焦用例 `8/8`，加 Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的回归 `173/173`；Stage005 治理报告 `valid=true`。
+- 未读取真实资料或打开 PDF/图片，未调用 OCR、创建复核请求/队列/任务/结果、缓存、审计或持久状态，未执行 Agent、模型 Token、OVH、生产、上传或推送；后续仅允许在新的独立 run 进入 `IDS-STAGE054-P2-GATE`。
+
 ## IDS v0.1 STAGE-053 Review - 2026-08-13
 
 - 完成 `IDS-V0_1-STAGE053-REVIEW`：独立复审 P1--P4 的单一合同上下文、十一字段按页结构、五类显式质量处置、5 个 metadata-only 交付样例、中文人工确认、缓存边界和 P4→P3→P2→P1→Stage052 review 回滚链。

@@ -199,8 +199,11 @@ class Stage053PerPageOcrOutputStageReviewTests(unittest.TestCase):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE053", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE053-REVIEW", status["phase"])
+        self.assertIn(status["stage"], ("IDS-STAGE053", "IDS-STAGE054"))
+        self.assertIn(
+            status["phase"],
+            ("IDS-V0_1-STAGE053-REVIEW", "IDS-V0_1-STAGE054-P1"),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

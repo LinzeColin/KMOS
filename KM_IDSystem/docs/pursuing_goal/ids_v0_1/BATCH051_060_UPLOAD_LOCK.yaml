@@ -1,14 +1,20 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-051-060"
 created_at_utc: "2026-08-12T13:19:44Z"
-updated_at_utc: "2026-08-12T19:40:19Z"
-status: "stage053_completed_reviewed_local"
+updated_at_utc: "2026-08-12T20:06:12Z"
+status: "stage054_phase1_completed"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-041-050"
 predecessor_review_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
 
 transition_history:
+  stage054_phase1_state:
+    status: "stage054_phase1_completed"
+    current_task_id: "IDS-V0_1-STAGE054-P1"
+    next_gate: "IDS-STAGE054-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE054-P2"
+    github_upload_allowed: false
   stage053_review_state:
     status: "stage053_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE053-REVIEW"
@@ -599,12 +605,105 @@ stage_progress:
       - "KM_IDSystem/machine/runs/2026-08-13-stage053-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE052_STAGE_REVIEW.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+  STAGE-054:
+    status: "stage054_phase1_completed"
+    completed_phases:
+      - "Phase 1"
+    next_phase: "Phase 2"
+    next_gate: "IDS-STAGE054-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE054-P1"
+    acceptance_id: "ACC-STAGE-054"
+    acceptance_status: "stage054_low_confidence_review_route_phase1_local"
+    phase2_entry_authorized: true
+    taskpack_context_read_performed: true
+    source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE053_REVIEW_ARTIFACTS"
+    second_authoritative_source_created: false
+    source_body_or_path_allowed: false
+    raw_metadata_content_accessed: false
+    ids_business_source_read_performed: false
+    source_file_open_performed: false
+    file_type_detection_performed: false
+    route_evaluation_performed: false
+    parser_execution_performed: false
+    stage053_review_artifacts_reused_as_reference_only: true
+    low_confidence_review_route_contract_schema: "ids.stage054.low_confidence_review_route.phase1.v1"
+    contract_state: "PHASE1_LOW_CONFIDENCE_REVIEW_ROUTE_BOUNDARY_RUNTIME_DISABLED"
+    execution_ready: false
+    reference_only_review_input_field_count: 9
+    future_review_request_field_count: 10
+    future_review_route_state_count: 3
+    default_language_count: 2
+    default_simplified_chinese_and_english_confirmed: true
+    allowed_language_profile_count: 3
+    mixed_language_profile_declared: true
+    confidence_level_count: 4
+    confidence_threshold_assigned: false
+    confidence_evaluation_performed: false
+    low_confidence_direct_high_trust_allowed: false
+    mixed_language_direct_high_trust_allowed: false
+    failure_page_direct_high_trust_allowed: false
+    automatic_human_review_assignment_allowed: false
+    future_low_confidence_review_route_declared: true
+    actual_review_request_created: false
+    actual_review_request_persisted: false
+    review_queue_created: false
+    human_review_task_created: false
+    human_review_result_created: false
+    actual_page_output_created: false
+    actual_ocr_text_created: false
+    actual_page_image_reference_created: false
+    actual_failure_record_created: false
+    cache_policy: "FUTURE_REBUILDABLE_DERIVED_CACHE_REFERENCE_ONLY"
+    cache_created: false
+    cache_write_performed: false
+    cache_storage_location_assigned: false
+    cache_retention_policy_defined: false
+    cache_cleanup_performed: false
+    cache_cleanup_allowed: false
+    cache_cleanup_owner: "STAGE-056"
+    audit_record_created: false
+    audit_write_performed: false
+    manifest_write_performed: false
+    evidence_ledger_write_performed: false
+    report_write_performed: false
+    persistent_state_write_performed: false
+    database_connection_performed: false
+    ocr_engine_selected: false
+    ocr_engine_configuration_performed: false
+    ocr_engine_invocation_performed: false
+    language_detection_performed: false
+    pdf_rasterization_performed: false
+    image_processing_performed: false
+    table_structure_extraction_performed: false
+    quality_gate_evaluation_performed: false
+    evidence_promotion_performed: false
+    agent_execution_performed: false
+    model_call_performed: false
+    model_token_consumption_performed: false
+    local_service_start_performed: false
+    ovh_deployment_performed: false
+    production_runtime_activation_performed: false
+    stage054_started: true
+    stage054_entry_authorized: true
+    phase2_started: false
+    whole_stage_review_performed: false
+    batch_review_performed: false
+    github_upload_allowed: false
+    push_allowed: false
+    app_reinstall_allowed: false
+    evidence_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE054_PHASE1_LOW_CONFIDENCE_REVIEW_ROUTE_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage054_low_confidence_review_route_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage054_low_confidence_review_route.py"
+      - "KM_IDSystem/machine/runs/2026-08-13-stage054-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE053_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE053-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-STAGE054-P1"
+  current_task_id: "IDS-V0_1-STAGE054-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE054-P2"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-053 Review 只复审 P1--P4 已提交合同与 P3/P4 固定非业务 control 报告，输出字段、场景、处置、置信度、失败、复核路由计数和边界结论；未打开真实样本、调用 OCR 或创建持久运行时。"
+  current_run: "STAGE-054 P1 只定义低置信度复核路由的引用输入、未来请求字段、默认中英文、置信度隔离、缓存边界、中文反馈与回滚范围；未打开真实样本、调用 OCR 或创建人工复核任务。"
   no_upload_reason: "冻结任务包要求完成至 ACC-STAGE-168 且经独立全局发布验收后，才可重新考虑任何上传路径。"
