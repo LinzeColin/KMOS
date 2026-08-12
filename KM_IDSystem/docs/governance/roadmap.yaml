@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE050"
-current_phase_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
-current_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
-next_gate_id: "IDS-STAGE051-P1-GATE"
+current_stage_id: "IDS-STAGE051"
+current_phase_id: "IDS-STAGE051-P1"
+current_task_id: "IDS-V0_1-STAGE051-P1"
+next_gate_id: "IDS-STAGE051-P2-GATE"
 current_transition_history:
+  stage051_phase1_state:
+    current_stage_id: "IDS-STAGE051"
+    current_phase_id: "IDS-STAGE051-P1"
+    current_task_id: "IDS-V0_1-STAGE051-P1"
+    next_gate_id: "IDS-STAGE051-P2-GATE"
   batch041_050_review_state:
     current_stage_id: "IDS-STAGE050"
     current_phase_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
@@ -13739,3 +13744,58 @@ stages:
               - "KM_IDSystem/machine/runs/2026-08-12-batch041-050-review-local.json"
             risk: "若把已审查的控制证据误作真实运行、真实解析质量、部署就绪或上传许可，或在最终全局验收前打开上传路径，会破坏业务线白箱控制和可回滚边界。"
             rollback: "只回滚本批次复审说明、合同、检查器、聚焦用例、machine run、事件、事实投影与治理路线，恢复到 Stage050 本地复审完成；保留 Stage041–050 已有证据、冻结任务包、原始资料、外部系统状态和后续 Stage 状态。"
+  - stage_id: "IDS-STAGE051"
+    name: "STAGE-051 · OCR 队列基线"
+    task_id: "IDS-V0_1-STAGE051"
+    acceptance_ids:
+      - "ACC-STAGE-051"
+    status: "phase1_completed"
+    pursuing_goal: "在不读取业务资料、不创建队列或运行时的前提下，白箱定义扫描 PDF、图片和低文本覆盖 PDF 的 OCR 队列输入、按页输出、默认语言、低置信度与缓存边界。"
+    stop_gate:
+      gate_id: "IDS-STAGE051-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE051-P2-GATE"
+      github_upload_allowed: false
+      pass_conditions:
+        - "OCR 输入、按页输出、默认中文简体与英文、低置信度隔离和可重建缓存边界均有唯一静态合同。"
+        - "低置信度页面不得直接进入高可信证据层；后续受控复核路由仍归 STAGE-054。"
+        - "未选择或调用 OCR 引擎，未创建队列、按页输出、缓存、复核记录、持久状态、Agent、模型、OVH 或生产运行。"
+        - "上传与推送继续关闭，最终 ACC-STAGE-168 前不进入任何上传动作。"
+    phases:
+      - phase_id: "IDS-STAGE051-P1"
+        name: "Phase 1 · OCR 队列白箱合同"
+        objective: "定义 OCR 输入、按页输出、语言、置信度、缓存和复核路由的静态边界；确认默认中文简体与英文；禁止低置信度直接进入高可信证据。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE051-P2-GATE"
+        stop_conditions:
+          - "读取真实资料、原始元数据、真实文件、页面、图像、来源正文或 Owner fixture"
+          - "创建 OCR 队列、选择或调用 OCR 引擎、处理页面或图片、输出 OCR 文本、写入缓存或创建复核记录"
+          - "执行质量门、证据提升、持久化、Agent、模型调用、OVH、生产服务、上传或推送"
+          - "进入 P2、P3、P4、整阶段复审、批次复审或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE051-P1"
+            name: "固化 OCR 队列输入、按页输出与语言边界"
+            objective: "只用冻结任务包与已完成 BATCH041-050 本地复审工件建立可机器验证的 OCR 队列合同，保留全局上传锁和回滚边界。"
+            status: "completed"
+            estimated_hours: 2
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+            acceptance_ids:
+              - "ACC-STAGE-051"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch041_050_review_gate"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage005_governance_regression"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "聚焦 Stage051 P1 直接单元用例通过 8/8；Stage041-050 批次复审前序兼容用例通过 6/6；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_PHASE1_OCR_QUEUE_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage051_ocr_queue_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_ocr_queue.py"
+              - "KM_IDSystem/machine/runs/2026-08-12-stage051-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+            risk: "若把静态 OCR 合同误解为已运行的 OCR、生产服务或部署就绪，会绕开业务线复核与可回滚边界。"
+            rollback: "只回滚本 P1 范围说明、静态合同、聚焦用例、machine run、事件、事实投影与治理路线，恢复到 BATCH041-050 本地复审完成；不改变业务资料、持久运行状态、GitHub、OVH 或应用状态。"

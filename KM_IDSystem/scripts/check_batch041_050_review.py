@@ -33,6 +33,10 @@ ACCEPTANCE_PATH = PROJECT_ROOT / "machine" / "facts" / "acceptance.json"
 TASK_ID = "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
 REVIEW_GATE = TASK_ID
 NEXT_GATE = "IDS-STAGE051-P1-GATE"
+SUCCESSOR_STAGE = "IDS-STAGE051"
+SUCCESSOR_PHASE = "IDS-STAGE051-P1"
+SUCCESSOR_TASK = "IDS-V0_1-STAGE051-P1"
+SUCCESSOR_NEXT_GATE = "IDS-STAGE051-P2-GATE"
 PASS_RESULT = "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
 EXPECTED_STAGE_IDS = [f"STAGE-{stage:03d}" for stage in range(41, 51)]
 EXPECTED_ACCEPTANCE_IDS = [f"ACC-STAGE-{stage:03d}" for stage in range(41, 51)]
@@ -326,10 +330,18 @@ def _governance_checks(
             and upload_gate.get("global_release_acceptance_required") == "ACC-STAGE-168"
         ),
         "roadmap_current_route_exact": (
-            roadmap.get("current_stage_id") == "IDS-STAGE050"
-            and roadmap.get("current_phase_id") == TASK_ID
-            and roadmap.get("current_task_id") == TASK_ID
-            and roadmap.get("next_gate_id") == NEXT_GATE
+            (
+                roadmap.get("current_stage_id") == "IDS-STAGE050"
+                and roadmap.get("current_phase_id") == TASK_ID
+                and roadmap.get("current_task_id") == TASK_ID
+                and roadmap.get("next_gate_id") == NEXT_GATE
+            )
+            or (
+                roadmap.get("current_stage_id") == SUCCESSOR_STAGE
+                and roadmap.get("current_phase_id") == SUCCESSOR_PHASE
+                and roadmap.get("current_task_id") == SUCCESSOR_TASK
+                and roadmap.get("next_gate_id") == SUCCESSOR_NEXT_GATE
+            )
         ),
         "roadmap_phase_and_task_evidence_exact": (
             isinstance(phase, dict)
@@ -374,20 +386,42 @@ def _projection_checks() -> dict[str, bool]:
         ),
         {},
     ) if isinstance(fact_stages, list) else {}
+    successor_status = (
+        isinstance(status, dict)
+        and status.get("stage") == SUCCESSOR_STAGE
+        and status.get("phase") == SUCCESSOR_TASK
+        and status.get("task") == SUCCESSOR_TASK
+        and status.get("next_gate") == SUCCESSOR_NEXT_GATE
+        and status.get("runtime_enabled") is False
+        and status.get("push_allowed") is False
+    )
+    successor_plan = (
+        isinstance(plan, dict)
+        and plan.get("stage") == SUCCESSOR_STAGE
+        and plan.get("phase") == SUCCESSOR_TASK
+        and plan.get("task") == SUCCESSOR_TASK
+        and SUCCESSOR_NEXT_GATE in str(plan.get("stop_condition"))
+    )
     return {
         "status_projection_exact": (
-            isinstance(status, dict)
-            and status.get("phase") == TASK_ID
-            and status.get("task") == TASK_ID
-            and status.get("next_gate") == NEXT_GATE
-            and status.get("runtime_enabled") is False
-            and status.get("push_allowed") is False
+            successor_status
+            or (
+                isinstance(status, dict)
+                and status.get("phase") == TASK_ID
+                and status.get("task") == TASK_ID
+                and status.get("next_gate") == NEXT_GATE
+                and status.get("runtime_enabled") is False
+                and status.get("push_allowed") is False
+            )
         ),
         "plan_projection_exact": (
-            isinstance(plan, dict)
-            and plan.get("phase") == f"`{TASK_ID}`"
-            and plan.get("task") == f"`{TASK_ID}`"
-            and NEXT_GATE in str(plan.get("stop_condition"))
+            successor_plan
+            or (
+                isinstance(plan, dict)
+                and plan.get("phase") == f"`{TASK_ID}`"
+                and plan.get("task") == f"`{TASK_ID}`"
+                and NEXT_GATE in str(plan.get("stop_condition"))
+            )
         ),
         "roadmap_projection_exact": (
             isinstance(stage050, dict)

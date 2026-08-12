@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE050",
-  "phase": "IDS-V0_1-BATCH-041-050-REVIEW-GATE",
-  "task": "IDS-V0_1-BATCH-041-050-REVIEW-GATE",
-  "real_progress": "Stage041-050 的十个本地复审已完成独立批次复审：工件矩阵、接口责任链、回滚范围、治理路线与中文事实投影一致；下一步只能在独立 run 进入 Stage051 P1 门，所有上传路径继续关闭",
-  "report_grade": "冻结任务包投影、十个既有 Stage 复审工件、批次合同、白箱检查器、治理路线和事实投影一致",
-  "business_verdict": "本批次复审只证明十个受控 Stage 的本地证据和职责边界可复核、可恢复；不证明真实文件处理、OCR、解析质量、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_BATCH041_050_REVIEWED_GLOBAL_UPLOAD_LOCKED_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE051",
+  "phase": "IDS-V0_1-STAGE051-P1",
+  "task": "IDS-V0_1-STAGE051-P1",
+  "real_progress": "Stage051 P1 已完成 OCR 队列的引用输入、按页输出、默认中文简体与英文、低置信度隔离、可重建缓存、中文反馈和回滚边界；下一步只能在独立 run 进入 Stage051 P2 门，所有上传路径继续关闭",
+  "report_grade": "冻结任务包、BATCH041-050 本地复审、Stage051 静态合同、聚焦用例、治理路线与中文事实投影一致",
+  "business_verdict": "本 P1 只证明 OCR 队列边界可白箱核验、可恢复且不扩大运行能力；不证明真实 OCR、队列、按页输出、缓存、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE051_PHASE1_OCR_QUEUE_BOUNDARY_RUNTIME_DISABLED",
   "rendered_at": "2026-08-12",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE051-P1-GATE",
+  "next_gate": "IDS-STAGE051-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

@@ -1,0 +1,136 @@
+schema_version: "ids.v0_1.batch_upload_lock.v1"
+batch_id: "IDS-V0_1-BATCH-051-060"
+created_at_utc: "2026-08-12T13:19:44Z"
+updated_at_utc: "2026-08-12T13:19:44Z"
+status: "stage051_phase1_completed"
+
+predecessor_batch_id: "IDS-V0_1-BATCH-041-050"
+predecessor_review_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
+
+transition_history:
+  stage051_phase1_state:
+    status: "stage051_phase1_completed"
+    current_task_id: "IDS-V0_1-STAGE051-P1"
+    next_gate: "IDS-STAGE051-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE051-P2"
+    github_upload_allowed: false
+  batch041_050_review_entry_state:
+    status: "batch041_050_reviewed_local_global_upload_locked"
+    current_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+    next_gate: "IDS-STAGE051-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE051-P1"
+    github_upload_allowed: false
+
+batch_scope:
+  version: "v0.1"
+  stage_range: "STAGE-051..STAGE-060"
+  acceptance_range: "ACC-STAGE-051..ACC-STAGE-060"
+  source_index: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/V0_1_STAGE_EXECUTION_INDEX.csv"
+  previous_batch_evidence_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+
+data_boundary:
+  ids_metadata_raw_root: "/Users/linzezhang/Downloads/IDS_MetaData"
+  boundary_record: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+  raw_root_policy: "read-only path-only boundary; do not modify, delete, move, scan, dump, hash, list, open, or copy raw database content"
+  real_data_only_policy: "All IDS runtime corpus, database-backed content, analytics inputs, reports, indexes, manifests, and committed examples must use real user-approved data; fake business data and fabricated evidence are forbidden."
+
+upload_gate:
+  push_allowed: false
+  github_upload_allowed: false
+  batch_upload_gate_deferred: true
+  global_release_acceptance_required: "ACC-STAGE-168"
+  blocked_until:
+    - "The frozen taskpack is completed through STAGE-168 and final acceptance is passed."
+    - "A separate global release review confirms all local evidence and rollback evidence."
+    - "A separately authorized global upload gate is completed; no stage or batch gate enables upload."
+    - "App entries remain unchanged until the final global release route is completed."
+  github_target: "main"
+  deferred_batch_review_gate: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+  deferred_batch_upload_gate: "IDS-V0_1-BATCH-051-060-UPLOAD-GATE"
+
+stage_progress:
+  STAGE-051:
+    status: "stage051_phase1_completed"
+    completed_phases:
+      - "Phase 1"
+    next_phase: "Phase 2"
+    next_gate: "IDS-STAGE051-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE051-P1"
+    acceptance_id: "ACC-STAGE-051"
+    acceptance_status: "phase1_ocr_queue_boundary_complete"
+    review_status: "pending"
+    phase2_entry_authorized: true
+    taskpack_context_read_performed: true
+    source_authority: "FROZEN_TASKPACK_TEXT_AND_BATCH041_050_REVIEW_ARTIFACTS"
+    second_authoritative_source_created: false
+    source_body_or_path_allowed: false
+    raw_metadata_content_accessed: false
+    ids_business_source_read_performed: false
+    source_file_open_performed: false
+    file_type_detection_performed: false
+    route_evaluation_performed: false
+    parser_execution_performed: false
+    parser_output_created: false
+    prompt_injection_marker_application_performed: false
+    ocr_queue_contract_schema: "ids.stage051.ocr_queue.phase1.v1"
+    contract_state: "PHASE1_OCR_QUEUE_BOUNDARY_RUNTIME_DISABLED"
+    execution_ready: false
+    reference_only_ocr_input_field_count: 7
+    per_page_output_field_count: 8
+    declared_input_kind_count: 3
+    default_language_count: 2
+    default_simplified_chinese_and_english_declared: true
+    ocr_engine_selected: false
+    ocr_engine_configuration_performed: false
+    ocr_queue_created: false
+    ocr_engine_invocation_performed: false
+    pdf_rasterization_performed: false
+    image_processing_performed: false
+    page_output_created: false
+    confidence_threshold_assigned: false
+    low_confidence_direct_high_trust_allowed: false
+    review_queue_created: false
+    cache_created: false
+    cache_write_performed: false
+    cache_cleanup_performed: false
+    quality_gate_evaluation_performed: false
+    evidence_promotion_performed: false
+    manifest_write_performed: false
+    evidence_ledger_write_performed: false
+    audit_write_performed: false
+    index_write_performed: false
+    report_write_performed: false
+    job_creation_performed: false
+    state_transition_performed: false
+    persistent_state_write_performed: false
+    database_connection_performed: false
+    agent_execution_performed: false
+    model_call_performed: false
+    model_token_consumption_performed: false
+    local_service_start_performed: false
+    ovh_deployment_performed: false
+    production_runtime_activation_performed: false
+    phase2_started: false
+    whole_stage_review_performed: false
+    batch_review_performed: false
+    github_upload_allowed: false
+    push_allowed: false
+    app_reinstall_allowed: false
+    evidence_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_PHASE1_OCR_QUEUE_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage051_ocr_queue_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_ocr_queue.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-stage051-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+
+decision:
+  current_task_id: "IDS-V0_1-STAGE051-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE051-P2"
+  github_upload_allowed: false
+  push_allowed: false
+  global_upload_deferred: true
+  current_run: "STAGE-051 Phase 1 only defines the OCR queue input, per-page output, default language, confidence, cache and review-routing contract. It does not open sources, create a queue, select an OCR engine, invoke OCR, write cache or activate any runtime."
+  no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."

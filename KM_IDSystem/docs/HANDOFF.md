@@ -9,17 +9,26 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - BATCH041_050 Review - 2026-08-12
+## Current Gate - Stage051 P1 - 2026-08-12
 
-- 本节覆盖下方 Stage050 Review 的当前指向；下方未特别标为当前的内容仅保留为阶段证据。
-- 本轮完成 `IDS-V0_1-BATCH-041-050-REVIEW-GATE`，结论为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`：十个既有整阶段复审工件、Stage041→050 责任链、治理路线、中文事实投影和回滚边界均已独立核验，批次内发现的上传路线表达缺口已修复。
+- 本节覆盖下方 BATCH041_050 Review 与 Stage050 Review 的当前指向；下方未特别标为当前的内容仅保留为历史阶段证据。
+- 本轮完成 `IDS-V0_1-STAGE051-P1`：仅固化 OCR 队列的七字段引用输入、三类输入提示、八字段按页输出、默认中文简体与英文、低置信度隔离、未来可重建缓存、中文反馈和回滚边界。
+- 唯一合同上下文是冻结的 Stage051 任务包与 BATCH041_050 已完成本地复审工件；没有建立第二权威事实源，也没有读取 IDS 业务源、原始元数据、正文、文件路径、页面或图像内容。
+- 当前工件为 Phase1 范围说明、静态合同、聚焦单元用例、BATCH051_060 锁、machine run、事件、治理路线、机器事实及生成中文视图。低置信度页面固定不能直接进入高可信证据层，后续复核所有权保留给 Stage054。
+- 未选择或调用 OCR 引擎，未创建 OCR 队列、按页输出、缓存、复核记录、质量门、证据提升、持久状态、Agent、模型调用、本地服务、OVH、生产运行、上传、推送或应用重装。运行时保持零 Agent、零模型 Token。
+- 回滚只撤回 Stage051 P1 范围说明、静态合同、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图，恢复到 BATCH041_050 本地复审完成；必须保留已复审证据、冻结任务包和历史交接。
+- 验证通过：Stage051 P1 聚焦用例 `8/8`、BATCH041_050 前序兼容用例 `6/6`、Stage005 治理回归、治理报告 `valid=true`、中文事实投影重渲染 `7` 个文件且 KM_IDSystem 双平面检查通过。
+- 下一步仅允许在新的独立 run 进入 `IDS-V0_1-STAGE051-P2`，门为 `IDS-STAGE051-P2-GATE`。所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - BATCH041_050 Review - 2026-08-12
+
+- 本轮完成 `IDS-V0_1-BATCH-041-050-REVIEW-GATE`，结论为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`：十个既有整阶段复审工件、Stage041→050 责任链、治理路线、中文事实投影和回滚边界均已独立核验。
 - 唯一事实来源仍为冻结任务包、既有复审证据及当前治理投影；没有建立第二权威事实源，也没有读取 IDS 业务源、原始元数据、正文、文件路径或来源内容。
-- 验证通过：批次聚焦用例 `6/6`、治理回归 `178/178`、治理报告 `valid=true`、批次检查器 `review_valid=true` 且复审阶段数为 `10`，中文事实投影已渲染 `7` 个文件且双平面检查通过。
-- 未执行文件检测、真实路线、parser、fallback、质量门、持久化、Agent、模型调用、本地服务、OVH、生产运行、Stage051、批次上传、GitHub 上传、推送或应用重装。运行时保持零 Agent、零模型 Token。
+- 历史验证：批次聚焦用例 `6/6`、治理回归 `178/178`、治理报告 `valid=true`、批次检查器 `review_valid=true` 且复审阶段数为 `10`，中文事实投影已渲染 `7` 个文件且双平面检查通过。
+- 未执行文件检测、真实路线、parser、fallback、质量门、持久化、Agent、模型调用、本地服务、OVH、生产运行、批次上传、GitHub 上传、推送或应用重装。运行时保持零 Agent、零模型 Token。
 - 回滚仅撤回本批次复审说明、合同、检查器、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图；必须保留 Stage041--050 的既有证据、任务包投影、审计记录和历史交接。
-- 下一步仅允许在新的独立 run 进入 `IDS-V0_1-STAGE051-P1`，门为 `IDS-STAGE051-P1-GATE`。所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
 
-## Current Gate - Stage050 Review - 2026-08-12
+## Superseded Gate - Stage050 Review - 2026-08-12
 
 - 本节覆盖下方的 Stage050 P4 历史交接；下方未特别标为当前的内容只保留为阶段证据。
 - 本轮完成任务：`IDS-V0_1-STAGE050-REVIEW`。当前状态为 `STAGE050_REVIEWED_LOCAL_PROMPT_INJECTION_MARKER_RUNTIME_DISABLED`：独立重放 P1--P4 合同、P2 evidence-only 标记、P3 的 11 个格式标签化 control 场景，以及 P4 的 8 个 parser 输出结构样例、11 条非运行时处置记录、质量指标和五类失败分类。
