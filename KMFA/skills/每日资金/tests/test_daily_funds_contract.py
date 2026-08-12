@@ -2837,6 +2837,37 @@ def test_raw_archive_audit_fails_closed_when_private_raw_census_is_missing(
         assert connection.execute("SELECT count(*) FROM capability_evidence").fetchone()[0] == 0
 
 
+def test_raw_archive_audit_process_lock_prevents_an_expired_lease_from_starting_a_second_audit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The process lock outlives the bounded Git-writer lease."""
+
+    import daily_funds.runtime as runtime_module
+
+    config = _config(tmp_path)
+    first_runtime = DailyFundsRuntime(config)
+    second_runtime = DailyFundsRuntime(config)
+    writer_calls: list[str] = []
+
+    class ArchiveWriter:
+        def __init__(self, _config):
+            writer_calls.append("init")
+
+        def audit_raw_archive(self):
+            pytest.fail("a competing audit must not begin a second raw readback")
+
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ArchiveWriter)
+
+    with first_runtime._raw_archive_audit_process_lock():
+        result = second_runtime.raw_archive_audit()
+
+    assert result["human_status"] == "处理中"
+    assert result["machine_code"] == "RAW_ARCHIVE_AUDIT_LOCK_HELD"
+
+    assert writer_calls == []
+
+
 def test_raw_archive_audit_marks_unparseable_readback_needs_review_without_publication(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

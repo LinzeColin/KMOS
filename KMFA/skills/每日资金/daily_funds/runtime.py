@@ -376,6 +376,42 @@ class DailyFundsRuntime:
             finally:
                 os.close(descriptor)
 
+    @contextmanager
+    def _raw_archive_audit_process_lock(self):
+        """Keep a private raw-archive audit single-process for its full lifetime.
+
+        The persisted Git-writer lease prevents ordinary concurrent writers,
+        but it deliberately has a bounded expiry.  A sparse readback can take
+        longer than that bound, especially while a rolling deployment is
+        draining an older worker.  This worker-volume lock has no expiry and
+        therefore remains held until the running audit actually exits.  It is
+        non-blocking so cron and the startup retry can record the existing
+        ``RAW_ARCHIVE_AUDIT_LOCK_HELD`` state rather than accumulating waiting
+        processes.
+        """
+
+        self.config.state_dir.mkdir(parents=True, exist_ok=True)
+        descriptor = os.open(
+            self.config.state_dir / "raw_archive_audit.lock",
+            os.O_CREAT | os.O_RDWR,
+            0o600,
+        )
+        locked = False
+        try:
+            os.fchmod(descriptor, 0o600)
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise IngestionError("RAW_ARCHIVE_AUDIT_LOCK_HELD") from exc
+            locked = True
+            yield
+        finally:
+            try:
+                if locked:
+                    fcntl.flock(descriptor, fcntl.LOCK_UN)
+            finally:
+                os.close(descriptor)
+
     def _write_flow_state(
         self,
         *,
@@ -1369,14 +1405,9 @@ class DailyFundsRuntime:
             self.config.validate(include_storage=False)
         except ConfigError:
             return self.status.write("需处理", "CONFIG_INVALID")
-        writer = GitSparseWriter(self.config)
         try:
-            audit = self._lease_call(
-                "git_writer_lock",
-                ttl_seconds=13 * 60,
-                code="RAW_ARCHIVE_AUDIT_LOCK_HELD",
-                callback=writer.audit_raw_archive,
-            )
+            with self._raw_archive_audit_process_lock():
+                return self._raw_archive_audit_locked()
         except IngestionError as exc:
             if exc.code == "RAW_ARCHIVE_AUDIT_LOCK_HELD":
                 return self.status.write("处理中", exc.code)
@@ -1388,6 +1419,17 @@ class DailyFundsRuntime:
             status = self._status_from_current(fallback_code="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
             self._write_flow_state(stage="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW", status=status)
             return {"ok": False, "code": "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW"}
+
+    def _raw_archive_audit_locked(self) -> dict[str, Any]:
+        """Run one full raw-archive audit while its process lock is held."""
+
+        writer = GitSparseWriter(self.config)
+        audit = self._lease_call(
+            "git_writer_lock",
+            ttl_seconds=13 * 60,
+            code="RAW_ARCHIVE_AUDIT_LOCK_HELD",
+            callback=writer.audit_raw_archive,
+        )
 
         inspection = self._inspect_attachment_capabilities(audit.verified_attachments)
         self._write_cashflow_observation(audit.verified_attachments)
