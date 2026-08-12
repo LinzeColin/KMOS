@@ -4314,6 +4314,16 @@ def test_raw_archive_audit_does_not_retry_integrity_readback_failure(
     assert attempts == ["attempt"]
 
 
+def test_raw_archive_audit_capacity_covers_the_current_private_history_census(tmp_path: Path) -> None:
+    """The bounded auditor must accept the verified 526-record source census."""
+
+    writer = GitSparseWriter(_config(tmp_path))
+
+    assert writer._RAW_ARCHIVE_MAX_OCCURRENCES == 1024
+    assert 526 <= writer._RAW_ARCHIVE_MAX_OCCURRENCES
+    assert writer._RAW_ARCHIVE_MAX_BATCHES == 512
+
+
 def test_sparse_writer_marks_only_transport_stderr_retryable_for_audit_reads(tmp_path: Path) -> None:
     command: list[str] = []
 

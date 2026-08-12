@@ -2314,7 +2314,10 @@ class GitSparseWriter:
     # then materialises an exact, bounded set of manifests and blobs.  This
     # keeps the worker from turning a routine parser-capability check into an
     # uncontrolled historic raw checkout as the private authority grows.
-    _RAW_ARCHIVE_MAX_OCCURRENCES = 512
+    # The first production full-history census contains 526 occurrences.  Keep
+    # the audit explicitly bounded while leaving enough headroom for ordinary
+    # growth instead of rejecting that verified source set before readback.
+    _RAW_ARCHIVE_MAX_OCCURRENCES = 1024
     _RAW_ARCHIVE_MAX_BATCHES = 512
     _RAW_ARCHIVE_MAX_TREE_OUTPUT_BYTES = 512 * 1024
 
