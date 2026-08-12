@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE051",
-  "phase": "IDS-V0_1-STAGE051-P2",
-  "task": "IDS-V0_1-STAGE051-P2",
-  "real_progress": "Stage051 P2 已完成四页固定非业务控制记录的纯内存 OCR 队列切片：逐页结构包含来源页引用、语言和置信度记录，低置信、失败与中英混合状态均可解释；下一步只能在独立 run 进入 Stage051 P3 门，所有上传路径继续关闭",
-  "report_grade": "冻结任务包、BATCH041-050 本地复审、Stage051 P1 合同、P2 纯内存控制切片、聚焦用例、治理路线与中文事实投影一致",
-  "business_verdict": "本 P2 只证明固定控制页可经纯内存切片形成候选逐页结构和可解释状态；不证明真实 OCR、真实队列、真实缓存、实际人工复核、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE051_PHASE2_CONTROLLED_OCR_QUEUE_SLICE_ENGINE_DISABLED",
+  "phase": "IDS-V0_1-STAGE051-P3",
+  "task": "IDS-V0_1-STAGE051-P3",
+  "real_progress": "Stage051 P3 已重放 P2 的四页固定非业务控制队列，以扫描 PDF、模糊图片、表格图片、中英文混合和低质量五类标量类别验证候选、降级、失败与零临时缓存产物处置；下一步只能在独立 run 进入 Stage051 P4 门，所有上传路径继续关闭",
+  "report_grade": "冻结任务包、Stage051 P1/P2 合同、P3 五类质量控制场景、聚焦用例、治理路线与中文事实投影一致",
+  "business_verdict": "本 P3 只证明固定标量 control 可触发明确候选、降级或失败处置且没有缓存临时产物；不证明真实扫描件、真实 OCR 准确率、表格提取、实际人工复核、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE051_PHASE3_CONTROLLED_OCR_QUALITY_SCENARIOS_ENGINE_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE051-P3-GATE",
+  "next_gate": "IDS-STAGE051-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
