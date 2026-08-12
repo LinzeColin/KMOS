@@ -221,7 +221,7 @@ def _write_projection(root: Path) -> None:
     (root / "status.json").write_text(json.dumps(status), encoding="utf-8")
     (root / "flow_state.json").write_text(json.dumps(flow_state), encoding="utf-8")
     cashflow_observation = {
-        "schema_version": "kmfa.daily_funds.cashflow_observation.v1",
+        "schema_version": "kmfa.daily_funds.cashflow_observation.v2",
         "generated_at": "2026-07-30T12:05:00Z",
         "parser_version": "kmfa.daily_funds.cashflow_observation.v1",
         "source_coverage": {
@@ -230,6 +230,7 @@ def _write_projection(root: Path) -> None:
             "rejected_documents": 0,
             "distinct_business_days": 2,
         },
+        "rejection_categories": {},
         "evidence_version": "a" * 12,
         "status": "VERIFIED",
         "machine_code": "CASHFLOW_OBSERVATION_VERIFIED",
@@ -267,8 +268,28 @@ def test_cashflow_observation_is_read_only_footer_reconciled_and_not_a_balance_f
     ]
     assert "machine_code" not in body
     assert "parser_version" not in body
+    assert body["rejection_categories"] == {}
 
     observation_path = publication / "cashflow_observation.json"
+    needs_review = json.loads(observation_path.read_text(encoding="utf-8"))
+    needs_review.update({
+        "status": "NEEDS_REVIEW",
+        "machine_code": "CASHFLOW_OBSERVATION_PARSE_NEEDS_REVIEW",
+        "points": [],
+        "source_coverage": {
+            "eligible_documents": 2,
+            "parsed_documents": 0,
+            "rejected_documents": 2,
+            "distinct_business_days": 0,
+        },
+        "rejection_categories": {"FOOTER_RECONCILIATION": 2},
+    })
+    observation_path.write_text(json.dumps(needs_review), encoding="utf-8")
+    review = client.get("/ops/api/daily-funds/cashflow-observations?range=30d")
+    assert review.status_code == 200
+    assert review.json()["rejection_categories"] == {"合计勾稽": 2}
+    assert "FOOTER_RECONCILIATION" not in review.text
+
     malformed = json.loads(observation_path.read_text(encoding="utf-8"))
     malformed["raw_fixture_should_not_escape"] = "cashflow-raw-fixture"
     observation_path.write_text(json.dumps(malformed), encoding="utf-8")

@@ -2542,11 +2542,20 @@ DAILY_FUNDS_FLOATING_LINE_NAMES = set(DAILY_FUNDS_FLOATING_LINE_ORDER)
 # public failure-code sanitizer.
 DAILY_FUNDS_BACKUP_STATES = {"OK", "LAG", "PENDING", "UNKNOWN"}
 DAILY_FUNDS_STATUS_SCHEMA = "kmfa.daily_funds.status.v1"
-DAILY_FUNDS_CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v1"
+DAILY_FUNDS_CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v2"
 DAILY_FUNDS_CASHFLOW_OBSERVATION_STATUSES = {"VERIFIED", "NEEDS_REVIEW", "NOT_AVAILABLE"}
+DAILY_FUNDS_CASHFLOW_REJECTION_CATEGORY_LABELS = {
+    "HEADER_LAYOUT": "表头布局",
+    "OCR_CONFIDENCE": "文字清晰度",
+    "FOOTER_RECONCILIATION": "合计勾稽",
+    "DATE_FIELD": "日期字段",
+    "ROW_AMOUNT": "收支行金额",
+    "OCR_FORMAT": "表格识别",
+    "OTHER_REVIEW": "其他确定性复核",
+}
 DAILY_FUNDS_CASHFLOW_OBSERVATION_FIELDS = frozenset({
     "schema_version", "generated_at", "parser_version", "source_coverage",
-    "evidence_version", "points", "status", "machine_code",
+    "rejection_categories", "evidence_version", "points", "status", "machine_code",
 })
 # This is a read-side schema allowlist, not a second scheduler or health
 # authority.  The daily-funds worker remains the sole writer; the app only
@@ -4025,6 +4034,7 @@ def _daily_funds_cashflow_observation_view() -> dict[str, Any]:
             "rejected_documents": 0,
             "distinct_business_days": 0,
         },
+        "rejection_categories": {},
         "points": [],
     }
     needs_review = {
@@ -4041,6 +4051,7 @@ def _daily_funds_cashflow_observation_view() -> dict[str, Any]:
     generated_at = _daily_funds_timestamp(payload.get("generated_at"))
     evidence_version = payload.get("evidence_version")
     coverage = payload.get("source_coverage")
+    rejection_categories = payload.get("rejection_categories")
     if (
         status not in DAILY_FUNDS_CASHFLOW_OBSERVATION_STATUSES
         or generated_at is None
@@ -4050,6 +4061,10 @@ def _daily_funds_cashflow_observation_view() -> dict[str, Any]:
         or set(coverage) != {"eligible_documents", "parsed_documents", "rejected_documents", "distinct_business_days"}
         or not all(_daily_funds_is_integer(coverage.get(key)) and 0 <= coverage[key] <= 100_000 for key in coverage)
         or coverage["parsed_documents"] + coverage["rejected_documents"] != coverage["eligible_documents"]
+        or not isinstance(rejection_categories, dict)
+        or not set(rejection_categories) <= set(DAILY_FUNDS_CASHFLOW_REJECTION_CATEGORY_LABELS)
+        or not all(_daily_funds_is_integer(value) and value > 0 for value in rejection_categories.values())
+        or sum(rejection_categories.values()) != coverage["rejected_documents"]
         or not isinstance(payload.get("parser_version"), str)
         or not payload["parser_version"].startswith("kmfa.daily_funds.cashflow_observation.")
         or not isinstance(payload.get("machine_code"), str)
@@ -4062,6 +4077,10 @@ def _daily_funds_cashflow_observation_view() -> dict[str, Any]:
         "generated_at": generated_at,
         "evidence_version": evidence_version,
         "source_coverage": dict(coverage),
+        "rejection_categories": {
+            DAILY_FUNDS_CASHFLOW_REJECTION_CATEGORY_LABELS[key]: value
+            for key, value in rejection_categories.items()
+        },
         "points": [],
     }
     if status != "VERIFIED":
@@ -4076,6 +4095,7 @@ def _daily_funds_cashflow_observation_view() -> dict[str, Any]:
         or coverage["parsed_documents"] != coverage["eligible_documents"]
         or coverage["rejected_documents"] != 0
         or coverage["distinct_business_days"] < 2
+        or rejection_categories
         or len(payload["points"]) != coverage["distinct_business_days"]
         or len(payload["points"]) > 366
     ):
@@ -4143,6 +4163,7 @@ def _daily_funds_cashflow_observation_range(
             "generated_at": view["generated_at"],
             "evidence_version": view["evidence_version"],
             "source_coverage": view["source_coverage"],
+            "rejection_categories": view["rejection_categories"],
             "points": [],
         }
     start, end = _daily_funds_range_days(range_value, from_date, to_date, publication_day=latest)

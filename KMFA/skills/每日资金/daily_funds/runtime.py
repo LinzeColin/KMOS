@@ -72,7 +72,7 @@ _COUPLED_PROCESS_MARKERS = (
 )
 _POST_DEPLOY_OBSERVER_REQUIRED_BUSINESS_DAYS = 5
 _FLOW_STATE_SCHEMA = "kmfa.daily_funds.flow_state.v1"
-_CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v1"
+_CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v2"
 _CASHFLOW_OBSERVATION_MIN_DAYS = 2
 _BUILD_SOURCE_COMMIT_FILE = Path(__file__).with_name(".kmfa-source-commit")
 _OPERATION_RECEIPT_JOBS = frozenset({
@@ -1048,6 +1048,34 @@ class DailyFundsRuntime:
     def _parse_failure_code(error: ParseError) -> str:
         return str(error).split(":", 1)[0]
 
+    @classmethod
+    def _cashflow_observation_rejection_category(cls, error: ParseError) -> str:
+        """Reduce a parser failure to one values-free public-safe category.
+
+        The chart projection needs a concrete next repair target, but neither
+        attachment metadata nor OCR text can cross the worker boundary.  Keep
+        this mapping intentionally small and exhaustive: an unrecognised
+        parser error is visible only as ``OTHER_REVIEW``.
+        """
+
+        code = cls._parse_failure_code(error)
+        if code.startswith("CASHFLOW_OBSERVATION_HEADER") or code == "OCR_HEADER_MAPPING_MISSING":
+            return "HEADER_LAYOUT"
+        if code == "OCR_LOW_CONFIDENCE":
+            return "OCR_CONFIDENCE"
+        if code.startswith("CASHFLOW_OBSERVATION_TOTAL"):
+            return "FOOTER_RECONCILIATION"
+        if code.startswith("CASHFLOW_OBSERVATION_DATE"):
+            return "DATE_FIELD"
+        if code.startswith("CASHFLOW_OBSERVATION_AMOUNT") or code in {
+            "CASHFLOW_OBSERVATION_ZERO_ROW",
+            "CASHFLOW_OBSERVATION_ROWS_EMPTY",
+        }:
+            return "ROW_AMOUNT"
+        if code.startswith("OCR_"):
+            return "OCR_FORMAT"
+        return "OTHER_REVIEW"
+
     def _inspect_attachment_capabilities(
         self,
         attachments: Iterable[DownloadedAttachment],
@@ -1250,11 +1278,13 @@ class DailyFundsRuntime:
             "rejected_documents": 0,
             "distinct_business_days": 0,
         }
+        rejection_categories: dict[str, int] = {}
         base: dict[str, Any] = {
             "schema_version": _CASHFLOW_OBSERVATION_SCHEMA,
             "generated_at": iso_now(),
             "parser_version": CASHFLOW_OBSERVATION_PARSER_VERSION,
             "source_coverage": coverage,
+            "rejection_categories": rejection_categories,
             "evidence_version": source_fingerprint[-12:] if source_fingerprint is not None else None,
             "points": [],
         }
@@ -1285,8 +1315,10 @@ class DailyFundsRuntime:
                     mime=attachment.mime,
                     min_confidence_bps=self.config.ocr_min_confidence_bps,
                 ))
-            except ParseError:
+            except ParseError as exc:
                 coverage["rejected_documents"] += 1
+                category = self._cashflow_observation_rejection_category(exc)
+                rejection_categories[category] = rejection_categories.get(category, 0) + 1
         coverage["parsed_documents"] = len(observations)
         by_day: dict[date, CashflowObservation] = {}
         duplicate_day = False

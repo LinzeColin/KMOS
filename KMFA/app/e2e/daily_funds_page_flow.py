@@ -210,7 +210,7 @@ def _write_projection(root: Path, human_status: str, *, restored: bool = False) 
         },
     }
     cashflow_observation = {
-        "schema_version": "kmfa.daily_funds.cashflow_observation.v1",
+        "schema_version": "kmfa.daily_funds.cashflow_observation.v2",
         "generated_at": "2026-07-30T12:05:00Z",
         "parser_version": "kmfa.daily_funds.cashflow_observation.v1",
         "source_coverage": {
@@ -219,6 +219,7 @@ def _write_projection(root: Path, human_status: str, *, restored: bool = False) 
             "rejected_documents": 0,
             "distinct_business_days": 2,
         },
+        "rejection_categories": {},
         "evidence_version": "a" * 12,
         "status": "VERIFIED",
         "machine_code": "CASHFLOW_OBSERVATION_VERIFIED",

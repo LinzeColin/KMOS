@@ -1501,6 +1501,7 @@ def test_runtime_cashflow_observation_requires_complete_unique_day_coverage(tmp_
         "rejected_documents": 0,
         "distinct_business_days": 2,
     }
+    assert verified["rejection_categories"] == {}
     saved = (config.publication_dir / "cashflow_observation.json").read_text(encoding="utf-8")
     assert first.sha256 not in saved
     assert second.sha256 not in saved
@@ -1510,7 +1511,17 @@ def test_runtime_cashflow_observation_requires_complete_unique_day_coverage(tmp_
     blocked = runtime._write_cashflow_observation((first, duplicate))
     assert blocked["status"] == "NEEDS_REVIEW"
     assert blocked["machine_code"] == "CASHFLOW_OBSERVATION_DUPLICATE_DAY"
+    assert blocked["rejection_categories"] == {}
     assert blocked["points"] == []
+
+    def footer_rejected(**_kwargs):
+        raise ParseError("CASHFLOW_OBSERVATION_TOTAL_MISMATCH")
+
+    monkeypatch.setattr(runtime_module, "parse_cashflow_observation", footer_rejected)
+    rejected = runtime._write_cashflow_observation((first, second))
+    assert rejected["status"] == "NEEDS_REVIEW"
+    assert rejected["machine_code"] == "CASHFLOW_OBSERVATION_PARSE_NEEDS_REVIEW"
+    assert rejected["rejection_categories"] == {"FOOTER_RECONCILIATION": 2}
 
 
 def test_deterministic_ocr_runtime_requires_all_pdf_tools() -> None:

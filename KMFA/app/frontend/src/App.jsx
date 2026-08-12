@@ -1828,6 +1828,9 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
     : []
   const 收支观察最新 = 收支观察点.length ? 收支观察点[收支观察点.length - 1] : null
   const 收支观察覆盖 = 流水观察?.source_coverage || {}
+  const 收支观察拒绝类别 = Object.entries(流水观察?.rejection_categories || {})
+    .filter(([label, count]) => typeof label === 'string' && Number.isInteger(count) && count > 0)
+    .map(([label, count]) => `${label} ${count} 份`)
   const points = (时序?.points || 摘要?.points || []).filter(p => Number.isInteger(p.ending_available_fen))
   const threshold = 时序?.thresholds || 阈值?.active || {}
   const fixed = threshold.fixed || {}
@@ -2156,6 +2159,7 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
         </> : <div className="card callout warn" style={{ marginTop: 12 }}>
           <b>收支流水暂不展示金额</b>
           <div className="sub">{流水观察?.message || '尚未形成已采集收支流水观察。'}</div>
+          {收支观察拒绝类别.length > 0 && <div className="hint" role="status">本次确定性复核定位：{收支观察拒绝类别.join('；')}。不含原始附件、文本或金额。</div>}
         </div>}
       </section>
 
