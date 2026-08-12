@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-048 Review - 2026-08-12
+
+- 完成 P1--P4 本地白箱复审：单一合同上下文、P2 候选处置、P3 的 `14/14` 明确场景、P4 的 `8` 个仅结构样例、`14` 条非运行时记录、`6` 类失败关闭、指令文本边界、空运行时格式集合和回滚链均一致。
+- `ACC-STAGE-048` 达到 `completed_reviewed_local`。该结论只证明受控降级合同可解释、可回滚和可供业务线复审；不证明真实文件路由、真实 parser、真实 fallback、人工复核队列、质量门、持久化、OVH 或生产服务已启用。
+- 未读取真实资料，未执行真实 parser、fallback、队列、质量门、持久化、Agent、模型调用、OVH、生产、Stage049、上传或推送；后续仅为独立 `IDS-STAGE049-P1-GATE`。
+
 ## IDS v0.1 STAGE-048 Phase 4 - 2026-08-12
 
 - 从 P3 的 14 个格式标签化、仅引用控制场景派生 8 个 `SCHEMA_ONLY_PARSER_OUTPUT_SAMPLE_NOT_EXECUTED` 结构样例和 14 条 `DERIVED_CONTROL_DISPOSITION_LOG_NOT_RUNTIME` 处置记录；不保留正文、表格、页面、路径或原始异常。

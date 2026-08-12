@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "`ACC-STAGE048-REVIEW-01`",
+      "criteria": "P1-P4 保持冻结任务包与 Stage047 已复审工件这一唯一合同上下文；未建立第二权威事实源，未保留来源正文、路径或原始异常",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE048-REVIEW-02`",
+      "criteria": "P2 候选控制、P3 的 14 个场景与 P4 的 8 个结构样例、14 条非运行时处置记录和六类失败分类均已白箱重放；14/14 明确处置且静默丢弃为零",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE048-REVIEW-03`",
+      "criteria": "指令样文本继续只能作为不可信证据，控制格式与空运行时支持集合分离，P4→P3→P2→P1→Stage047 回滚链完整",
+      "status": "已通过"
+    },
+    {
+      "id": "`ACC-STAGE048-REVIEW-04`",
+      "criteria": "未读取真实资料，未执行真实 parser、fallback、队列、质量门、持久化、Agent、模型调用、OVH、生产、Stage049、上传或推送",
+      "status": "已遵守"
+    },
+    {
       "id": "`ACC-STAGE048-P4-01`",
       "criteria": "P3 的 14 个受控场景已派生为 8 个仅结构的 parser 输出样例和 14 条非运行时处置记录；样例不保留正文、表格、页面、路径或原始异常",
       "status": "已通过"

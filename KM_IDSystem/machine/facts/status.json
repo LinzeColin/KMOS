@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE048",
-  "phase": "IDS-STAGE048-P4",
-  "task": "IDS-V0_1-STAGE048-P4",
-  "real_progress": "Stage048 步骤四已完成 P3 受控场景的结构样例、非运行时处置记录、指标、失败分类、格式边界和回滚说明；下一步只能独立进入整阶段复审",
-  "report_grade": "冻结任务包、Stage048 P1-P4 合同、中文说明与聚焦单元用例一致",
-  "business_verdict": "Stage048 P4 证明受控场景的交付证据完整、失败分类明确且可回滚；该结论不证明真实文件路由、真实解析器、真实回退、人工复核队列、质量门、持久化、上传、OVH 或生产能力已启用",
-  "evidence_status": "LOCAL_STAGE048_P4_FALLBACK_CLOSEOUT_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE048-REVIEW",
+  "task": "IDS-V0_1-STAGE048-REVIEW",
+  "real_progress": "Stage048 已完成 P1-P4 本地白箱复审：单一事实源、14 个明确处置、零静默丢弃、指令文本边界、空运行时格式集合和回滚链一致；下一步只能在独立 run 进入 Stage049 Phase 1",
+  "report_grade": "冻结任务包、Stage048 P1-P4 合同、整阶段复审、中文说明与聚焦单元用例一致",
+  "business_verdict": "Stage048 本地复审证明受控降级合同可解释、可回滚且业务线可复审；该结论不证明真实文件路由、真实解析器、真实回退、人工复核队列、质量门、持久化、上传、OVH 或生产能力已启用",
+  "evidence_status": "LOCAL_STAGE048_REVIEWED_FALLBACK_RUNTIME_DISABLED",
   "rendered_at": "2026-08-12",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE048-REVIEW-GATE",
+  "next_gate": "IDS-STAGE049-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

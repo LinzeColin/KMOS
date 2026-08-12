@@ -1031,6 +1031,15 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE048-REVIEW-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE048"
+                        and roadmap.get("current_phase_id")
+                        == "IDS-STAGE048-REVIEW"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE048-REVIEW"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE049-P1-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -1715,6 +1724,7 @@ REQUIRED_EVENT_IDS = (
     "EVT-IDS-V0_1-STAGE048-P2-20260812-001",
     "EVT-IDS-V0_1-STAGE048-P3-20260812-001",
     "EVT-IDS-V0_1-STAGE048-P4-20260812-001",
+    "EVT-IDS-V0_1-STAGE048-REVIEW-20260812-001",
 )
 
 FORBIDDEN_RUNTIME_PREFIXES = (
@@ -5909,6 +5919,49 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
                 "next_gate": "IDS-STAGE048-REVIEW-GATE",
             },
         },
+        "EVT-IDS-V0_1-STAGE048-REVIEW-20260812-001": {
+            "event_type": "stage_review",
+            "allow_stage_gate": True,
+            "task_id": "IDS-V0_1-STAGE048-REVIEW",
+            "acceptance_id": "ACC-STAGE-048",
+            "required_changed_files": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_STAGE_REVIEW.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_stage_review.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_stage_review.py",
+                "KM_IDSystem/machine/runs/2026-08-12-stage048-review-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml",
+                "KM_IDSystem/docs/governance/roadmap.yaml",
+                "KM_IDSystem/docs/governance/events.jsonl",
+            },
+            "required_refs": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_STAGE_REVIEW.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_stage_review.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_stage_review.py",
+                "KM_IDSystem/machine/runs/2026-08-12-stage048-review-local.json",
+            },
+            "required_note_assignments": {
+                "contract_state": "STAGE048_REVIEWED_LOCAL_FALLBACK_RUNTIME_DISABLED",
+                "review_valid": "true",
+                "review_finding_count": "0",
+                "phase1_contract_valid": "true",
+                "phase2_slice_valid": "true",
+                "phase3_scenarios_valid": "true",
+                "phase4_delivery_valid": "true",
+                "rollback_chain_preserved": "true",
+                "source_file_open_performed": "false",
+                "parser_execution_performed": "false",
+                "fallback_execution_performed": "false",
+                "quality_gate_evaluation_performed": "false",
+                "persistent_state_write_performed": "false",
+                "model_token_consumption_performed": "false",
+                "ovh_deployment_performed": "false",
+                "whole_stage_review_performed": "true",
+                "stage049_started": "false",
+                "github_upload_allowed": "false",
+                "push_allowed": "false",
+                "next_gate": "IDS-STAGE049-P1-GATE",
+            },
+        },
     }
 
     errors: list[str] = []
@@ -6703,6 +6756,10 @@ def evaluate_current_state_consistency(
         current_stage_id == "IDS-STAGE048"
         and roadmap_phase == "IDS-STAGE048-P4"
     )
+    stage048_review_current = (
+        current_stage_id == "IDS-STAGE048"
+        and roadmap_phase == "IDS-STAGE048-REVIEW"
+    )
     governed_current = (
         stage037_current
         or stage038_phase1_current
@@ -6752,6 +6809,7 @@ def evaluate_current_state_consistency(
         or stage048_phase2_current
         or stage048_phase3_current
         or stage048_phase4_current
+        or stage048_review_current
     )
 
     completed_phases = stage_node.get("completed_phases")
@@ -6807,6 +6865,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE048-P2": "Phase 2",
         "IDS-STAGE048-P3": "Phase 3",
         "IDS-STAGE048-P4": "Phase 4",
+        "IDS-STAGE048-REVIEW": "Phase 4",
     }.get(roadmap_phase)
     batch_current_phase_completed = (
         not governed_current
@@ -6840,7 +6899,11 @@ def evaluate_current_state_consistency(
             ),
             {},
         )
-    if stage045_review_current or stage046_review_current or stage047_review_current:
+    if (
+        stage045_review_current
+        or stage046_review_current
+        or stage047_review_current
+    ):
         candidate_review = roadmap_stage_node.get("review")
         roadmap_phase_node = (
             candidate_review if isinstance(candidate_review, dict) else {}
@@ -7656,6 +7719,9 @@ def evaluate_current_state_consistency(
     expected_stage048_phase4_result_block = (
         "聚焦 P4 直接单元用例通过 13/13；P3/P2/P1 前序兼容用例通过 25/25；当前治理状态 17/17；中文视图已重渲染 7 个文件。"
     )
+    expected_stage048_review_result_block = (
+        "聚焦 Stage048 复审直接单元用例通过 10/10；P1-P4 前序兼容用例通过 38/38；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+    )
     expected_governed_result_block = {
         "IDS-STAGE037-P1": expected_stage037_phase1_result_block,
         "IDS-STAGE037-P2": expected_stage037_phase2_result_block,
@@ -7707,6 +7773,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE048-P2": expected_stage048_phase2_result_block,
         "IDS-STAGE048-P3": expected_stage048_phase3_result_block,
         "IDS-STAGE048-P4": expected_stage048_phase4_result_block,
+        "IDS-STAGE048-REVIEW": expected_stage048_review_result_block,
     }.get(roadmap_phase)
     if roadmap_task == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY":
         expected_governed_result_block = (
@@ -8185,6 +8252,12 @@ def evaluate_current_state_consistency(
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_delivery.py",
         "KM_IDSystem/machine/runs/2026-08-12-stage048-p4-local.json",
     }
+    required_stage048_review_evidence = {
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_STAGE_REVIEW.md",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_stage_review.py",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_stage_review.py",
+        "KM_IDSystem/machine/runs/2026-08-12-stage048-review-local.json",
+    }
     required_governed_evidence = {
         "IDS-STAGE037-P1": required_stage037_phase1_evidence,
         "IDS-STAGE037-P2": required_stage037_phase2_evidence,
@@ -8237,6 +8310,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE048-P2": required_stage048_phase2_evidence,
         "IDS-STAGE048-P3": required_stage048_phase3_evidence,
         "IDS-STAGE048-P4": required_stage048_phase4_evidence,
+        "IDS-STAGE048-REVIEW": required_stage048_review_evidence,
     }.get(roadmap_phase, set())
     if roadmap_task == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY":
         required_governed_evidence = (
@@ -16101,6 +16175,15 @@ def evaluate_phase_state(
                 and 'next_gate_id: "IDS-STAGE048-REVIEW-GATE"'
                 in roadmap_text
             )
+            or (
+                'current_stage_id: "IDS-STAGE048"' in roadmap_text
+                and 'current_phase_id: "IDS-STAGE048-REVIEW"'
+                in roadmap_text
+                and 'current_task_id: "IDS-V0_1-STAGE048-REVIEW"'
+                in roadmap_text
+                and 'next_gate_id: "IDS-STAGE049-P1-GATE"'
+                in roadmap_text
+            )
         )
     )
     stage048_phase1_active = (
@@ -16230,6 +16313,41 @@ def evaluate_phase_state(
         and 'current_phase_id: "IDS-STAGE048-P4"' in roadmap_text
         and 'current_task_id: "IDS-V0_1-STAGE048-P4"' in roadmap_text
         and 'next_gate_id: "IDS-STAGE048-REVIEW-GATE"' in roadmap_text
+    )
+    stage048_reviewed_local = (
+        'batch_id: "IDS-V0_1-BATCH-041-050"' in batch_text
+        and 'status: "stage048_completed_reviewed_local"' in batch_text
+        and 'current_task_id: "IDS-V0_1-STAGE048-REVIEW"' in batch_text
+        and 'next_gate: "IDS-STAGE049-P1-GATE"' in batch_text
+        and 'next_allowed_task_id: "IDS-V0_1-STAGE049-P1"' in batch_text
+        and 'acceptance_status: "completed_reviewed_local"' in batch_text
+        and 'review_status: "passed"' in batch_text
+        and 'contract_state: "STAGE048_REVIEWED_LOCAL_FALLBACK_RUNTIME_DISABLED"'
+        in batch_text
+        and 'parser_fallback_stage_review_schema: "ids.stage048.parser_fallback.stage_review.v1"'
+        in batch_text
+        and 'stage_review_valid: true' in batch_text
+        and 'stage_review_finding_count: 0' in batch_text
+        and 'stage_review_phase1_to_phase4_contracts_valid: true' in batch_text
+        and 'stage_review_rollback_chain_preserved: true' in batch_text
+        and 'stage_review_instruction_text_invariance_preserved: true' in batch_text
+        and 'stage_review_runtime_and_external_actions_disabled: true' in batch_text
+        and 'second_authoritative_source_created: false' in batch_text
+        and 'source_body_or_path_allowed: false' in batch_text
+        and 'parser_execution_performed: false' in batch_text
+        and 'fallback_execution_performed: false' in batch_text
+        and 'quality_gate_evaluation_performed: false' in batch_text
+        and 'model_token_consumption_performed: false' in batch_text
+        and 'ovh_deployment_performed: false' in batch_text
+        and 'whole_stage_review_performed: true' in batch_text
+        and 'stage049_started: false' in batch_text
+        and 'stage049_entry_authorized: false' in batch_text
+        and 'github_upload_allowed: false' in batch_text
+        and 'push_allowed: false' in batch_text
+        and 'current_stage_id: "IDS-STAGE048"' in roadmap_text
+        and 'current_phase_id: "IDS-STAGE048-REVIEW"' in roadmap_text
+        and 'current_task_id: "IDS-V0_1-STAGE048-REVIEW"' in roadmap_text
+        and 'next_gate_id: "IDS-STAGE049-P1-GATE"' in roadmap_text
     )
     batch_terminal_state = batch_upload_gate_active or batch_uploaded_to_main
     later_stage_state = (
@@ -16413,6 +16531,7 @@ def evaluate_phase_state(
         or stage048_phase2_active
         or stage048_phase3_active
         or stage048_phase4_active
+        or stage048_reviewed_local
     )
     phase2_completed = '      - "Phase 2"' in batch_text or later_stage_state
     stage005_active_or_complete = (

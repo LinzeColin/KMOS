@@ -1,0 +1,69 @@
+{
+  "run_id": "RUN-IDS-STAGE048-REVIEW-LOCAL-20260812-001",
+  "task_id": "IDS-V0_1-STAGE048-REVIEW",
+  "acceptance_id": "ACC-STAGE-048",
+  "action": "复审 Stage048 P1-P4 的单一事实源、纯内存受控处置、中文反馈、非运行时边界和回滚链",
+  "result": "PASS_REVIEWED_LOCAL_FALLBACK_RUNTIME_DISABLED",
+  "branch": "codex/kmids-stage048-p1",
+  "review": {
+    "schema_version": "ids.stage048.parser_fallback.stage_review.v1",
+    "finding_count": 0,
+    "phase1_contract_valid": true,
+    "phase2_slice_valid": true,
+    "phase3_scenarios_valid": true,
+    "phase4_delivery_valid": true,
+    "single_authority_boundary_preserved": true,
+    "explicit_disposition_and_no_silent_drop_preserved": true,
+    "instruction_text_invariance_preserved": true,
+    "format_and_runtime_boundary_preserved": true,
+    "rollback_chain_preserved": true,
+    "runtime_and_external_actions_disabled": true
+  },
+  "evidence_iterations": [
+    {
+      "name": "聚焦 Stage048 复审直接单元用例",
+      "passed": 10,
+      "total": 10
+    },
+    {
+      "name": "P1-P4 前序兼容单元用例",
+      "passed": 38,
+      "total": 38
+    },
+    {
+      "name": "治理回归报告",
+      "result": "valid=true"
+    },
+    {
+      "name": "中文视图渲染",
+      "passed": 7,
+      "total": 7
+    }
+  ],
+  "observed_work": {
+    "taskpack_source_read_performed": true,
+    "ids_business_source_read_performed": false,
+    "source_file_open_performed": false,
+    "file_signature_detection_performed": false,
+    "route_evaluation_performed": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "fallback_execution_performed": false,
+    "automatic_parser_switch_performed": false,
+    "human_review_queue_write_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "evidence_promotion_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "whole_stage_review_performed": true,
+    "stage049_started": false,
+    "batch_review_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "next_gate": "IDS-STAGE049-P1-GATE"
+}

@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE048"
-current_phase_id: "IDS-STAGE048-P4"
-current_task_id: "IDS-V0_1-STAGE048-P4"
-next_gate_id: "IDS-STAGE048-REVIEW-GATE"
+current_phase_id: "IDS-STAGE048-REVIEW"
+current_task_id: "IDS-V0_1-STAGE048-REVIEW"
+next_gate_id: "IDS-STAGE049-P1-GATE"
 current_transition_history:
+  stage048_review_state:
+    current_stage_id: "IDS-STAGE048"
+    current_phase_id: "IDS-STAGE048-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE048-REVIEW"
+    next_gate_id: "IDS-STAGE049-P1-GATE"
   stage048_phase4_state:
     current_stage_id: "IDS-STAGE048"
     current_phase_id: "IDS-STAGE048-P4"
@@ -12670,12 +12675,12 @@ stages:
     task_id: "IDS-V0_1-STAGE048"
     acceptance_ids:
       - "ACC-STAGE-048"
-    status: "phase4_completed_local_review_pending"
+    status: "completed_reviewed_local"
     pursuing_goal: "主 parser 失败时进入受控降级或人工复核，不静默丢弃，也不绕过质量门。"
     stop_gate:
-      gate_id: "IDS-STAGE048-P4-GATE"
+      gate_id: "IDS-STAGE048-REVIEW-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE048-REVIEW-GATE"
+      next_gate_id: "IDS-STAGE049-P1-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_PHASE1_PARSER_FALLBACK_SCOPE_BOUNDARY.md"
@@ -12697,6 +12702,10 @@ stages:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_delivery.py"
       - "KM_IDSystem/machine/runs/2026-08-12-stage048-p4-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_stage_review.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-stage048-review-local.json"
     phases:
       - phase_id: "IDS-STAGE048-P1"
         name: "解析器失败降级范围、输入输出与边界确认"
@@ -12910,3 +12919,56 @@ stages:
               - "KM_IDSystem/machine/runs/2026-08-12-stage048-p4-local.json"
             risk: "若把控制样例误称为运行时输出、遗漏失败分类或把回滚扩展到原始资料和运行态，会制造错误的可用性承诺或破坏既有证据。"
             rollback: "只回滚 Stage048 P4 结构样例、非运行时处置记录、指标、分类、合同、说明、聚焦单元用例与治理投影，恢复到 P3 受控场景；不改变真实资料、持久状态、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE048-REVIEW"
+        name: "解析器失败降级链整阶段本地复审"
+        objective: "复审 P1--P4 的单一事实源、受控处置、中文反馈、非运行时边界和回滚链，只关闭 Stage048 本地复审，不进入 Stage049。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        stage049_entry_authorized: false
+        push_allowed: false
+        stop_conditions:
+          - "打开、读取、遍历、检测或保留任何 IDS 业务文件、原始元数据、页面、图像或 Owner fixture"
+          - "执行文件签名识别、真实路线、parser、真实 fallback、自动切换、人工复核队列、质量门、提示注入标记或持久化"
+          - "启动 Agent、模型调用、模型 Token、OVH、生产服务、Stage049、批次复审、GitHub 上传、合并或应用重装"
+        stop_gate:
+          gate_id: "IDS-STAGE048-REVIEW-GATE"
+          status: "passed_with_local_evidence"
+          next_gate_id: "IDS-STAGE049-P1-GATE"
+          github_upload_allowed: false
+          pass_conditions:
+            - "P1--P4 合同继续只以冻结任务包文本和 Stage047 已复审工件为上下文，未建立第二权威事实源，也未保留来源正文、路径或原始异常"
+            - "P2 候选控制、P3 十四个场景和 P4 结构样例、非运行时记录、指标、失败分类均在内存中重放，明确处置为 14/14、静默丢弃为 0"
+            - "指令样文本保持 UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY，不能覆盖系统规则、工具授权或策略；控制格式支持不等于运行时支持"
+            - "P4 到 P3、P3 到 P2、P2 到 P1、P1 到 Stage047 的回滚链完整；复审回滚只恢复 P4 待复审状态并保留既有证据"
+            - "未读取真实资料，未执行真实 parser、fallback、队列、质量门、持久化、Agent、模型、OVH、生产、Stage049、上传或推送"
+            - "唯一后续门为 IDS-STAGE049-P1-GATE，Stage049 Phase 1 必须在独立 run 进入"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_STAGE_REVIEW.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_stage_review.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_stage_review.py"
+            - "KM_IDSystem/machine/runs/2026-08-12-stage048-review-local.json"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE048-REVIEW"
+            name: "复审解析器失败降级链的本地受控证据"
+            objective: "确认 P1--P4 的处置、边界、回滚与中文反馈一致，形成业务线可读的本地复审结论而不扩大运行能力。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE048-P4"
+              - "ids.stage048.parser_fallback.phase4.delivery.v1"
+            acceptance_ids:
+              - "ACC-STAGE-048"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage048_parser_fallback_stage_review"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage048_parser_fallback_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage048_parser_fallback_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage048_parser_fallback_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage048_parser_fallback_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage048_parser_fallback"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "聚焦 Stage048 复审直接单元用例通过 10/10；P1-P4 前序兼容用例通过 38/38；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE048_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/parser_fallback/stage048_fallback_stage_review.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage048_parser_fallback_stage_review.py"
+              - "KM_IDSystem/machine/runs/2026-08-12-stage048-review-local.json"
+            risk: "若把 P1--P4 控制证据误作真实解析或回退能力、遗漏回滚链或提前开始 Stage049，会让业务线对质量、可用性或部署状态形成错误预期。"
+            rollback: "只回滚本复审文档、模块、聚焦单元用例、machine run、事件、事实投影与治理状态，恢复到 Stage048 P4 待复审；保留 P1--P4、原始资料、manifest、evidence ledger、audit、既有报告、GitHub、OVH 和应用状态。"

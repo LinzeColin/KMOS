@@ -244,24 +244,27 @@ class Stage048ParserFallbackPhase4Tests(unittest.TestCase):
             with self.subTest(expected=expected):
                 self.assertIn(expected, closeout)
 
-    def test_governance_makes_phase4_current_and_preserves_phase3(self):
+    def test_governance_preserves_phase4_after_local_stage_review(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage048_phase4_completed_review_pending"'),
+            (batch, 'status: "stage048_completed_reviewed_local"'),
+            (batch, "stage048_review_state:"),
+            (batch, "stage048_phase4_state:"),
             (batch, "stage048_phase3_state:"),
             (batch, 'current_task_id: "IDS-V0_1-STAGE048-P4"'),
-            (batch, 'next_gate: "IDS-STAGE048-REVIEW-GATE"'),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE048-REVIEW"'),
+            (batch, 'next_gate: "IDS-STAGE049-P1-GATE"'),
             (batch, 'model_token_consumption_performed: false'),
             (batch, 'ovh_deployment_performed: false'),
-            (roadmap, 'current_phase_id: "IDS-STAGE048-P4"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE048-REVIEW-GATE"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE048-REVIEW"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE049-P1-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE048-P4", status["phase"])
+        self.assertEqual("IDS-STAGE048-REVIEW", status["phase"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
