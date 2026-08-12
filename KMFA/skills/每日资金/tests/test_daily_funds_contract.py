@@ -4681,6 +4681,73 @@ def test_dws_attachment_permission_denial_is_not_misreported_as_auth_loss(tmp_pa
     ]
 
 
+@pytest.mark.parametrize(
+    ("attachment", "expected_output_name", "expected_filename"),
+    (
+        (
+            {
+                "mediaId": "attachment-workbook-media",
+                "fileName": "daily-balance.xlsx",
+                "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            },
+            "attachment.xlsx",
+            "daily-balance.xlsx",
+        ),
+        (
+            {
+                "mediaId": "attachment-image-media",
+                "mimeType": "image/jpeg",
+            },
+            "attachment.jpg",
+            "attachment.jpg",
+        ),
+        (
+            {"mediaId": "attachment-unknown-media"},
+            "attachment.bin",
+            "attachment.bin",
+        ),
+    ),
+)
+def test_dws_attachment_download_uses_an_explicit_file_output_path(
+    tmp_path: Path,
+    attachment: dict[str, str],
+    expected_output_name: str,
+    expected_filename: str,
+) -> None:
+    """A legacy DWS downloader rejects a directory supplied as ``--output``."""
+
+    config = _config(tmp_path)
+
+    def runner(command, **_kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                json.dumps({"authenticated": True, "refresh_token_valid": True}),
+                "",
+            )
+        if command[1:4] == ["chat", "message", "download-media"]:
+            output = Path(command[command.index("--output") + 1])
+            assert output.name == expected_output_name
+            assert output.parent.name == "download"
+            output.write_bytes(b"fixture-media")
+            return subprocess.CompletedProcess(command, 0, "", "")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    message = {
+        "openConversationId": config.group_id,
+        "senderOpenDingTalkId": config.sender_id,
+        "openMessageId": "attachment-output-fixture",
+        "createTime": "2026-08-01T00:00:00Z",
+        "attachments": [attachment],
+    }
+
+    downloaded = DwsHistoryClient(config, runner=runner).download(message, 0)
+
+    assert downloaded.filename == expected_filename
+    assert downloaded.payload == b"fixture-media"
+
+
 def test_dws_attachment_transport_timeout_has_a_fixed_safe_stage_code(tmp_path: Path) -> None:
     config = _config(tmp_path)
     events: list[tuple[str, str, str]] = []

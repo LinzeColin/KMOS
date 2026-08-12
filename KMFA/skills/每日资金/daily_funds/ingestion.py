@@ -36,6 +36,25 @@ SPARSE_PATH = Path("Private-KMDatabase/KMFA/daily_funds")
 DIRECT_BLOB_MAX_BYTES = 94_371_840
 CHUNK_BYTES = 48 * 1024 * 1024
 ALLOWED_SUFFIXES = frozenset({".csv", ".txt", ".xlsx", ".xlsm"})
+_DOWNLOAD_OUTPUT_SUFFIXES = ALLOWED_SUFFIXES | frozenset({
+    ".xls", ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp",
+})
+_DOWNLOAD_OUTPUT_SUFFIX_BY_MIME = {
+    "text/csv": ".csv",
+    "application/csv": ".csv",
+    "text/plain": ".txt",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+    "application/vnd.ms-excel.sheet.macroenabled.12": ".xlsm",
+    "application/vnd.ms-excel": ".xls",
+    "application/pdf": ".pdf",
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/jpg": ".jpg",
+    "image/gif": ".gif",
+    "image/bmp": ".bmp",
+    "image/x-ms-bmp": ".bmp",
+    "image/webp": ".webp",
+}
 _MEDIA_ID_RE = re.compile(r"mediaId=([^\)\s]+)")
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 _DEVICE_CODE_RE = re.compile(
@@ -209,6 +228,26 @@ def _message_field(message: Mapping[str, Any], names: Sequence[str]) -> str | No
         if value not in (None, ""):
             return str(value)
     return None
+
+
+def _dws_download_output_name(
+    declared_filename: str | None,
+    declared_mime: str | None,
+) -> str:
+    """Return a safe, explicit output filename for DWS media downloads.
+
+    DWS's older downloader treats a directory passed to ``--output`` as a
+    failed download.  The source filename must not be reused as a filesystem
+    path, so retain only an allow-listed extension and use a fixed basename.
+    A missing or unrecognized type stays ``.bin``; later capability parsing
+    may review it but must not guess a financial document format.
+    """
+
+    suffix = Path(declared_filename or "").suffix.lower()
+    if suffix not in _DOWNLOAD_OUTPUT_SUFFIXES:
+        normalized_mime = (declared_mime or "").split(";", 1)[0].strip().lower()
+        suffix = _DOWNLOAD_OUTPUT_SUFFIX_BY_MIME.get(normalized_mime, ".bin")
+    return f"attachment{suffix}"
 
 
 def _message_timestamp(message: Mapping[str, Any]) -> datetime:
@@ -1402,13 +1441,18 @@ class DwsHistoryClient:
         if not media_id:
             raise IngestionError("UNSUPPORTED_ATTACHMENT")
         declared_filename = _message_field(attachment, ("fileName", "name", "title"))
+        declared_mime = _message_field(attachment, ("mimeType", "mime", "contentType"))
         # The dedicated cloud volume is normally made by entrypoint, but a
         # restarted/sparse runtime must not translate a missing empty state
         # directory into an attachment-download failure before DWS is called.
         self.config.state_dir.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="daily-funds-dws-", dir=self.config.state_dir) as temp:
-            output = Path(temp) / "download"
-            output.mkdir()
+            output_dir = Path(temp) / "download"
+            output_dir.mkdir()
+            # The DWS contract requires a full file path here.  Never pass
+            # only the directory: legacy DWS releases report that form as a
+            # generic media download failure before any parser can run.
+            output = output_dir / _dws_download_output_name(declared_filename, declared_mime)
             command = [
                 self.config.dws_bin,
                 "chat", "message", "download-media",
@@ -1441,7 +1485,7 @@ class DwsHistoryClient:
                 )
                 self._record_network_event("ATTACHMENT_DOWNLOAD", code)
                 raise IngestionError(code)
-            files = [path for path in output.rglob("*") if path.is_file()]
+            files = [path for path in output_dir.rglob("*") if path.is_file()]
             if len(files) != 1:
                 self._record_network_event("ATTACHMENT_DOWNLOAD", "INVALID")
                 raise IngestionError("ATTACHMENT_DOWNLOAD_AMBIGUOUS")
@@ -1471,7 +1515,7 @@ class DwsHistoryClient:
             family=_family(message),
             payload=payload,
             sha256=sha256(payload).hexdigest(),
-            mime=_message_field(attachment, ("mimeType", "mime", "contentType")),
+            mime=declared_mime,
         )
 
 
