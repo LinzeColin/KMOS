@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE049"
-current_phase_id: "IDS-STAGE049-P4"
-current_task_id: "IDS-V0_1-STAGE049-P4"
-next_gate_id: "IDS-STAGE049-REVIEW-GATE"
+current_phase_id: "IDS-STAGE049-REVIEW"
+current_task_id: "IDS-V0_1-STAGE049-REVIEW"
+next_gate_id: "IDS-STAGE050-P1-GATE"
 current_transition_history:
+  stage049_review_state:
+    current_stage_id: "IDS-STAGE049"
+    current_phase_id: "IDS-STAGE049-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE049-REVIEW"
+    next_gate_id: "IDS-STAGE050-P1-GATE"
   stage049_phase4_state:
     current_stage_id: "IDS-STAGE049"
     current_phase_id: "IDS-STAGE049-P4"
@@ -12997,12 +13002,12 @@ stages:
     task_id: "IDS-V0_1-STAGE049"
     acceptance_ids:
       - "ACC-STAGE-049"
-    status: "phase4_completed_review_pending"
+    status: "completed_reviewed_local"
     pursuing_goal: "对关键文档的多个 parser 候选产物建立可比较、可复核且不绕过质量门的工程边界。"
     stop_gate:
-      gate_id: "IDS-STAGE049-P4-GATE"
+      gate_id: "IDS-STAGE049-REVIEW-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE049-REVIEW-GATE"
+      next_gate_id: "IDS-STAGE050-P1-GATE"
       github_upload_allowed: false
     artifacts:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE049_PHASE1_DIFFERENTIAL_PARSER_EVALUATION_SCOPE_BOUNDARY.md"
@@ -13024,6 +13029,10 @@ stages:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/differential_parser_evaluation/stage049_differential_parser_evaluation_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage049_differential_parser_evaluation_delivery.py"
       - "KM_IDSystem/machine/runs/2026-08-12-stage049-p4-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE049_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/differential_parser_evaluation/stage049_differential_parser_evaluation_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage049_differential_parser_evaluation_stage_review.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-stage049-review-local.json"
     phases:
       - phase_id: "IDS-STAGE049-P1"
         name: "差异化解析器评估范围、输入输出与边界确认"
@@ -13246,3 +13255,57 @@ stages:
               - "KM_IDSystem/machine/runs/2026-08-12-stage049-p4-local.json"
             risk: "若把结构样例或处置记录误称为运行时解析结果、遗漏失败分类或把回滚扩展到原始资料和运行态，会制造错误的可用性承诺或破坏既有证据。"
             rollback: "只回滚 Stage049 P4 结构样例、非运行时处置记录、指标、分类、合同、说明、聚焦单元用例与治理投影，恢复到 P3 受控场景；不改变真实资料、持久状态、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE049-REVIEW"
+        name: "差异化解析器评估整阶段本地复审"
+        objective: "独立复审 P1--P4 的单一事实源、双候选资格、格式标签化场景、仅结构交付证据、中文反馈、非运行时边界和回滚链，只关闭 Stage049 本地复审，不进入 Stage050。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        stage050_entry_authorized: false
+        push_allowed: false
+        stop_conditions:
+          - "打开、读取、遍历、检测或保留任何 IDS 业务文件、原始元数据、页面、图像、来源正文或 Owner fixture"
+          - "执行真实路线、parser、候选正文比较、fallback、自动切换、人工复核队列、质量门、提示注入标记或持久化"
+          - "启动 Agent、模型调用、模型 Token、OVH、生产服务、Stage050、批次复审、GitHub 上传、合并或应用重装"
+        stop_gate:
+          gate_id: "IDS-STAGE049-REVIEW-GATE"
+          status: "passed_with_local_evidence"
+          next_gate_id: "IDS-STAGE050-P1-GATE"
+          github_upload_allowed: false
+          pass_conditions:
+            - "P1--P4 合同继续以冻结 Stage049 任务包、P1--P4 合同与 Stage048 已复审工件为上下文，未建立第二权威事实源，也未保留来源正文、路径或原始异常"
+            - "P2 双候选 control、P3 十一个场景和 P4 二十个仅结构样例、十一条非运行时记录、指标、五类失败分类均在内存中重放，明确处置为 11/11、静默丢弃为 0"
+            - "指令样文本保持 UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY，不能覆盖系统规则、工具授权或策略；控制格式支持不等于运行时支持"
+            - "P4 到 P3、P3 到 P2、P2 到 P1、P1 到 Stage048 已复审状态的回滚链完整；复审回滚只恢复 P4 待复审状态并保留既有证据"
+            - "未读取真实资料，未执行真实 parser、候选正文比较、fallback、队列、质量门、持久化、Agent、模型、OVH、生产、Stage050、上传或推送"
+            - "唯一后续门为 IDS-STAGE050-P1-GATE，Stage050 Phase 1 必须在独立 run 进入"
+          evidence_refs:
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE049_STAGE_REVIEW.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/differential_parser_evaluation/stage049_differential_parser_evaluation_stage_review.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage049_differential_parser_evaluation_stage_review.py"
+            - "KM_IDSystem/machine/runs/2026-08-12-stage049-review-local.json"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE049-REVIEW"
+            name: "复审差异化解析器评估的本地受控证据"
+            objective: "确认 P1--P4 的候选资格、场景、样例、边界、回滚与中文反馈一致，形成业务线可读的本地复审结论而不扩大运行能力。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE049-P4"
+              - "ids.stage049.differential_parser_evaluation.phase4.delivery.v1"
+            acceptance_ids:
+              - "ACC-STAGE-049"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage049_differential_parser_evaluation_stage_review"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage049_differential_parser_evaluation_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage049_differential_parser_evaluation_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage049_differential_parser_evaluation_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage049_differential_parser_evaluation_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage049_differential_parser_evaluation"
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage048_parser_fallback*.py'"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "聚焦 Stage049 复审直接单元用例通过 10/10；P1-P4 前序兼容用例通过 37/37；Stage048 P1-P4 及复审兼容用例通过 48/48；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE049_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/differential_parser_evaluation/stage049_differential_parser_evaluation_stage_review.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage049_differential_parser_evaluation_stage_review.py"
+              - "KM_IDSystem/machine/runs/2026-08-12-stage049-review-local.json"
+            risk: "若把 P1--P4 控制证据误作真实解析、真实候选正文比较或生产能力，遗漏回滚链，或提前进入 Stage050，会让业务线对质量、可用性或部署状态形成错误预期。"
+            rollback: "只回滚本复审文档、模块、聚焦单元用例、machine run、事件、事实投影与治理状态，恢复到 Stage049 P4 待复审；保留 P1--P4、原始资料、manifest、evidence ledger、audit、既有报告、GitHub、OVH 和应用状态。"

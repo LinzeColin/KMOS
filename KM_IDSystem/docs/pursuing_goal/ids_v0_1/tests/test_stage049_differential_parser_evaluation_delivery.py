@@ -296,7 +296,7 @@ class Stage049DifferentialParserEvaluationPhase4Tests(unittest.TestCase):
             with self.subTest(expected=expected):
                 self.assertIn(expected, closeout)
 
-    def test_governance_projects_phase4_without_starting_review(self):
+    def test_governance_retains_phase4_evidence_after_local_review(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
@@ -316,7 +316,9 @@ class Stage049DifferentialParserEvaluationPhase4Tests(unittest.TestCase):
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE049", status["stage"])
-        self.assertEqual("IDS-STAGE049-P4", status["phase"])
+        self.assertIn(
+            status["phase"], ("IDS-STAGE049-P4", "IDS-STAGE049-REVIEW")
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

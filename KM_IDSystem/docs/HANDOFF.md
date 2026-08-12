@@ -11,6 +11,18 @@
 
 ## Current Gate - 2026-08-12
 
+- 本节覆盖下方的 Stage049 P4 历史交接；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成任务：`IDS-V0_1-STAGE049-REVIEW`。当前状态为 `STAGE049_REVIEWED_LOCAL_DIFFERENTIAL_EVALUATION_RUNTIME_DISABLED`：独立重放 P1--P4 合同、P2 双候选资格、P3 的 11 个格式标签化 control 场景，以及 P4 的 20 个候选解析产物结构样例、11 条非运行时处置记录、质量指标和五类失败分类。
+- 唯一合同上下文仍是冻结的 Stage049 任务包文本、Stage049 P1--P4 合同与 Stage048 已复审工件；没有建立第二权威事实源，也没有保留业务正文、文件路径、来源引用、原始异常或原始元数据内容。复审样例只含空的 `text/tables/pages/sections` 结构和受控版本、置信度、处置标签。
+- 复审确认 11/11 场景均明确处置、静默丢弃为零；六项候选保留于质量边界、三项低质量 control 均不进入队列、指令样文本只作 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`、未知与坏文件控制维持明确关闭。所有候选仍为 `CANDIDATE`，质量状态仍为 `UNASSESSED`，没有创建人工复核任务、自动 fallback 或高可信证据。
+- 控制格式标签为 PDF、DOCX、XLSX、CSV、TXT、PNG、JPEG、TIFF；运行时支持格式集合为空。control-fixture parser 版本仅作交付证据，不是运行时 parser 版本；Stage046 仍拥有真实路由，Stage048 仍拥有 fallback，Stage050 仍拥有提示注入标记，复审没有改写任何上游结论。
+- 回滚只撤回 Stage049 复审文档、模块、聚焦用例、machine run、事件、事实投影和治理状态，恢复为 P4 待复审；必须保留 P1--P4 证据、原始资料、manifest、evidence ledger、audit 与已交付报告。
+- 聚焦 Stage049 复审直接单元用例通过 `10/10`，P1--P4 前序兼容用例通过 `37/37`，Stage048 P1--P4 及复审前序兼容用例通过 `48/48`，治理回归报告为 `valid=true`。证据为复审范围说明、复审实现、聚焦用例、本轮 machine run、event、batch/roadmap、机器事实与生成的中文视图。
+- 未读取 IDS 业务源或原始元数据；未执行文件识别、真实路线、真实 parser、解析正文比较、真实 fallback、提示注入标记、运行时日志、人工复核队列、质量门、证据提升、持久化、Agent、模型调用、OVH 部署、生产激活、Stage050、批次复审、上传或推送。
+- 下一步仅允许在独立 run 进入 `IDS-V0_1-STAGE050-P1`，门为 `IDS-STAGE050-P1-GATE`。Stage049 本地复审完成不等于真实路由、解析器运行、实际解析质量、OVH 部署、生产就绪或 GitHub 上传。
+
+## Superseded Gate - Stage049 P4 - 2026-08-12
+
 - 本节覆盖下方较早的“Current Gate”和 GitHub handoff 对当前任务的指向；下方未特别标为当前的内容只保留为历史交接证据。
 - 本轮完成任务：`IDS-V0_1-STAGE049-P4`。当前状态为 `PHASE4_DIFFERENTIAL_EVALUATION_CLOSEOUT_EVIDENCE_ENABLED_REAL_PARSER_QUALITY_AND_PERSISTENCE_DISABLED`：从 P3 的 11 个格式标签化、reference-only control 场景派生 20 个候选解析产物结构样例、11 条非运行时处置记录、质量指标、五类失败分类、格式边界和回滚说明；它们不是文件、文件签名、真实路线、真实 parser 或解析正文。
 - 唯一合同上下文仍是冻结的 Stage049 任务包文本、Stage049 P1--P3 合同与 Stage048 已复审工件；没有建立第二权威事实源，也没有保留业务正文、文件路径、来源引用、原始异常或原始元数据内容。所有样例只含空的 `text/tables/pages/sections` 结构和受控版本、置信度、处置标签。

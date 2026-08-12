@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-08-12T09:43:16Z"
-status: "stage049_phase4_completed_review_pending"
+updated_at_utc: "2026-08-12T10:05:45Z"
+status: "stage049_completed_reviewed_local"
 
 transition_history:
+  stage049_review_state:
+    status: "stage049_completed_reviewed_local"
+    current_task_id: "IDS-V0_1-STAGE049-REVIEW"
+    next_gate: "IDS-STAGE050-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE050-P1"
+    github_upload_allowed: false
   stage049_phase4_state:
     status: "stage049_phase4_completed_review_pending"
     current_task_id: "IDS-V0_1-STAGE049-P4"
@@ -1527,24 +1533,24 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
   STAGE-049:
-    status: "phase4_completed_review_pending"
+    status: "stage049_completed_reviewed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_stage: "STAGE-049"
-    next_phase: "Stage Review"
-    next_gate: "IDS-STAGE049-REVIEW-GATE"
-    current_task_id: "IDS-V0_1-STAGE049-P4"
+    next_stage: "STAGE-050"
+    next_phase: "Phase 1"
+    next_gate: "IDS-STAGE050-P1-GATE"
+    current_task_id: "IDS-V0_1-STAGE049-REVIEW"
     acceptance_id: "ACC-STAGE-049"
-    acceptance_status: "phase4_differential_evaluation_closeout_complete"
-    review_status: "pending"
+    acceptance_status: "completed_reviewed_local"
+    review_status: "passed"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
     phase4_entry_authorized: true
     stage_review_entry_authorized: true
-    source_authority: "FROZEN_TASKPACK_TEXT_STAGE049_P1_P3_AND_STAGE048_REVIEW_ARTIFACTS"
+    source_authority: "FROZEN_TASKPACK_TEXT_STAGE049_P1_TO_P4_AND_STAGE048_REVIEW_ARTIFACTS"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
     raw_metadata_content_accessed: false
@@ -1581,12 +1587,14 @@ stage_progress:
     phase2_started: true
     phase3_started: true
     phase4_started: true
-    whole_stage_review_performed: false
+    whole_stage_review_performed: true
+    stage050_started: false
+    stage050_entry_authorized: false
     batch_review_performed: false
     github_upload_allowed: false
     app_reinstall_allowed: false
     push_allowed: false
-    contract_state: "PHASE4_DIFFERENTIAL_EVALUATION_CLOSEOUT_EVIDENCE_ENABLED_REAL_PARSER_QUALITY_AND_PERSISTENCE_DISABLED"
+    contract_state: "STAGE049_REVIEWED_LOCAL_DIFFERENTIAL_EVALUATION_RUNTIME_DISABLED"
     differential_parser_evaluation_contract_schema: "ids.stage049.differential_parser_evaluation.phase3.scenarios.v1"
     differential_parser_evaluation_delivery_contract_schema: "ids.stage049.differential_parser_evaluation.phase4.delivery.v1"
     reference_only_candidate_field_count: 7
@@ -1634,6 +1642,22 @@ stage_progress:
     failure_classification_composed: true
     support_boundary_documented: true
     configuration_rollback_documented: true
+    differential_parser_evaluation_stage_review_schema: "ids.stage049.differential_parser_evaluation.stage_review.v1"
+    stage_review_valid: true
+    stage_review_finding_count: 0
+    stage_review_phase1_contract_valid: true
+    stage_review_phase2_slice_valid: true
+    stage_review_phase3_scenarios_valid: true
+    stage_review_phase4_delivery_valid: true
+    stage_review_phase1_to_phase4_contracts_valid: true
+    stage_review_single_authority_boundary_preserved: true
+    stage_review_explicit_disposition_and_no_silent_drop_preserved: true
+    stage_review_instruction_text_invariance_preserved: true
+    stage_review_schema_sample_and_log_boundary_preserved: true
+    stage_review_format_and_runtime_boundary_preserved: true
+    stage_review_rollback_chain_preserved: true
+    stage_review_runtime_and_external_actions_disabled: true
+    stage_review_result: "PASS_REVIEWED_LOCAL_DIFFERENTIAL_EVALUATION_RUNTIME_DISABLED"
     actual_parse_product_comparison_performed: false
     comparison_execution_allowed: false
     comparison_result_created: false
@@ -1668,12 +1692,16 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/differential_parser_evaluation/stage049_differential_parser_evaluation_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage049_differential_parser_evaluation_delivery.py"
       - "KM_IDSystem/machine/runs/2026-08-12-stage049-p4-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE049_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/differential_parser_evaluation/stage049_differential_parser_evaluation_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage049_differential_parser_evaluation_stage_review.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-stage049-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE049-P4"
-  next_allowed_task_id: "IDS-V0_1-STAGE049-REVIEW"
+  current_task_id: "IDS-V0_1-STAGE049-REVIEW"
+  next_allowed_task_id: "IDS-V0_1-STAGE050-P1"
   github_upload_allowed: false
-  current_run: "STAGE-049 Phase 4 replays the Phase 3 control-only scenario report and derives schema-only candidate parse-product samples, non-runtime disposition logs, quality metrics, failure classifications, support boundaries and configuration rollback guidance. It keeps real routing, parsing, semantic output comparison, fallback, quality, persistence, Agent, model, OVH and production actions disabled."
-  no_upload_reason: "BATCH041_050 has eight completed and individually reviewed Stages plus Stage049 Phase 1 through Phase 4 pending its separate review; Stage050, the independent ten-stage review and batch upload gate are incomplete, so single-phase upload remains unavailable."
+  current_run: "STAGE-049 Review replays the Phase 1 through Phase 4 control-only evidence chain and validates the single-authority boundary, explicit dispositions, instruction-text invariance, schema-only samples, empty runtime support, rollback chain and local-only limits. It keeps real routing, parsing, semantic output comparison, fallback, quality, persistence, Agent, model, OVH and production actions disabled."
+  no_upload_reason: "BATCH041_050 has nine completed and individually reviewed Stages; Stage050, the independent ten-stage review and batch upload gate are incomplete, so single-phase upload remains unavailable."

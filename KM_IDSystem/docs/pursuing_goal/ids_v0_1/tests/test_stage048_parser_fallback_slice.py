@@ -229,7 +229,9 @@ class Stage048ParserFallbackPhase2Tests(unittest.TestCase):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE049-P4", status["phase"])
+        self.assertIn(
+            status["phase"], ("IDS-STAGE049-P4", "IDS-STAGE049-REVIEW")
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE049",
-  "phase": "IDS-STAGE049-P4",
-  "task": "IDS-V0_1-STAGE049-P4",
-  "real_progress": "Stage049 已完成 P4 非运行时交付证据：P3 的 11 个格式标签化 control 场景已派生为 20 个候选解析产物结构样例、11 条非运行时处置记录、质量指标、五类失败分类、格式边界与回滚说明；下一步只能在独立 run 进入 Stage049 整阶段复审",
-  "report_grade": "冻结任务包、Stage048 本地复审、Stage049 P1-P3 合同、P4 交付投影、聚焦单元用例与前序兼容用例一致",
-  "business_verdict": "Stage049 P4 证明受控交付证据可解释、可回滚且业务线可复审；该结论不证明真实文件、真实路由、真实 parser、实际解析正文比较、质量门、持久化、OVH 或生产能力已启用",
-  "evidence_status": "LOCAL_STAGE049_P4_DIFFERENTIAL_EVALUATION_CLOSEOUT_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE049-REVIEW",
+  "task": "IDS-V0_1-STAGE049-REVIEW",
+  "real_progress": "Stage049 已完成 P1-P4 本地白箱复审：双候选资格、11 个格式标签化 control 场景、20 个候选解析产物结构样例、11 条非运行时处置记录、质量指标、五类失败分类、格式边界与回滚链一致；下一步只能在独立 run 进入 Stage050 Phase 1",
+  "report_grade": "冻结任务包、Stage048 本地复审、Stage049 P1-P4 合同、纯内存重放、复审不变量与聚焦用例一致",
+  "business_verdict": "Stage049 本地复审证明受控差异化评估合同可解释、可回滚且业务线可复审；该结论不证明真实文件、真实路由、真实 parser、实际解析正文比较、质量门、持久化、OVH 或生产能力已启用",
+  "evidence_status": "LOCAL_STAGE049_REVIEWED_DIFFERENTIAL_EVALUATION_RUNTIME_DISABLED",
   "rendered_at": "2026-08-12",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE049-REVIEW-GATE",
+  "next_gate": "IDS-STAGE050-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

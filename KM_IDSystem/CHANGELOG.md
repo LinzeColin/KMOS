@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-049 Review - 2026-08-12
+
+- 完成 P1--P4 本地白箱复审：P2 双候选 control、P3 的 `11/11` 明确场景、P4 的 `20` 个仅结构样例、`11` 条非运行时记录、五类失败关闭、指令文本边界、空运行时格式集合与回滚链均一致。
+- `ACC-STAGE-049` 达到 `completed_reviewed_local`。该结论只证明受控差异化评估合同可解释、可回滚并可供业务线复审；不证明真实文件路由、真实 parser、候选正文比较、真实 fallback、人工复核队列、质量门、持久化、OVH 或生产服务已启用。
+- 聚焦复审用例通过 `10/10`，P1--P4 前序兼容用例通过 `37/37`，治理回归为 `valid=true`；后续仅为独立 `IDS-STAGE050-P1-GATE`，上传锁继续保持。
+
 ## IDS v0.1 STAGE-049 Phase 4 - 2026-08-12
 
 - 从 11 个格式标签化、仅引用的 P3 control 场景派生 20 个 `SCHEMA_ONLY_CANDIDATE_PARSE_PRODUCT_SAMPLE_NOT_EXECUTED` 结构样例和 11 条 `DERIVED_CONTROL_DISPOSITION_LOG_NOT_RUNTIME` 处置记录；不保留正文、表格、页面、章节、路径或来源引用。
