@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-050 Phase 1 - 2026-08-12
+
+- 定义提示注入标记静态合同：未来候选输入固定为七字段 reference-only 元数据，解析产物核心字段固定为 `text`、`tables`、`pages`、`sections`、`confidence`、`errors`；Stage045--Stage049 既有职责不被改写。
+- `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY` 固定为证据文本解释，文档文本不能覆盖系统规则、工具授权或策略，也不能绕过质量门或提升为高可信证据；当前未应用标记、未创建解析产物。
+- 聚焦 P1 直接单元用例通过 `8/8`；Stage049 P1--P4 及复审前序兼容用例通过 `47/47`；Stage048 P1--P4 及复审前序兼容用例通过 `48/48`；后续仅为独立 `IDS-STAGE050-P2-GATE`，上传锁继续保持。
+
 ## IDS v0.1 STAGE-049 Review - 2026-08-12
 
 - 完成 P1--P4 本地白箱复审：P2 双候选 control、P3 的 `11/11` 明确场景、P4 的 `20` 个仅结构样例、`11` 条非运行时记录、五类失败关闭、指令文本边界、空运行时格式集合与回滚链均一致。

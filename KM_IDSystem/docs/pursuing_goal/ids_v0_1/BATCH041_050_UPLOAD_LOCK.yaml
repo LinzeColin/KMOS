@@ -1,10 +1,16 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-041-050"
 created_at_utc: "2026-07-14T12:04:41Z"
-updated_at_utc: "2026-08-12T10:05:45Z"
-status: "stage049_completed_reviewed_local"
+updated_at_utc: "2026-08-12T10:31:00Z"
+status: "stage050_phase1_completed"
 
 transition_history:
+  stage050_phase1_state:
+    status: "stage050_phase1_completed"
+    current_task_id: "IDS-V0_1-STAGE050-P1"
+    next_gate: "IDS-STAGE050-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE050-P2"
+    github_upload_allowed: false
   stage049_review_state:
     status: "stage049_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE049-REVIEW"
@@ -1699,9 +1705,84 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
+  STAGE-050:
+    status: "stage050_phase1_completed"
+    completed_phases:
+      - "Phase 1"
+    next_stage: "STAGE-050"
+    next_phase: "Phase 2"
+    next_gate: "IDS-STAGE050-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE050-P1"
+    acceptance_id: "ACC-STAGE-050"
+    acceptance_status: "phase1_prompt_injection_marker_boundary_complete"
+    review_status: "not_started"
+    phase2_entry_authorized: true
+    source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE049_REVIEW_ARTIFACTS"
+    second_authoritative_source_created: false
+    source_body_or_path_allowed: false
+    raw_metadata_content_accessed: false
+    ids_business_source_read_performed: false
+    source_file_open_performed: false
+    file_type_redetection_performed: false
+    route_evaluation_performed: false
+    parser_selection_performed: false
+    parser_dispatch_performed: false
+    parser_execution_performed: false
+    parser_output_created: false
+    fallback_execution_performed: false
+    differential_evaluation_performed: false
+    prompt_injection_marker_application_performed: false
+    prompt_injection_marker_result_written: false
+    quality_gate_evaluation_performed: false
+    evidence_promotion_performed: false
+    manifest_write_performed: false
+    evidence_ledger_write_performed: false
+    audit_write_performed: false
+    index_write_performed: false
+    report_write_performed: false
+    job_creation_performed: false
+    state_transition_performed: false
+    persistent_state_write_performed: false
+    database_connection_performed: false
+    agent_execution_performed: false
+    model_call_performed: false
+    model_token_consumption_performed: false
+    local_service_start_performed: false
+    ovh_deployment_performed: false
+    production_runtime_activation_performed: false
+    phase2_started: false
+    whole_stage_review_performed: false
+    batch_review_performed: false
+    github_upload_allowed: false
+    app_reinstall_allowed: false
+    push_allowed: false
+    contract_state: "PHASE1_PROMPT_INJECTION_MARKER_BOUNDARY_RUNTIME_DISABLED"
+    prompt_injection_marker_contract_schema: "ids.stage050.prompt_injection_marker.phase1.v1"
+    reference_only_candidate_field_count: 7
+    parse_product_core_field_count: 6
+    evidence_text_label: "UNTRUSTED_EVIDENCE_TEXT"
+    evidence_text_interpretation: "EVIDENCE_ONLY"
+    document_text_may_override_system_rule: false
+    system_instruction_allowed: false
+    tool_authorization_allowed: false
+    policy_override_allowed: false
+    marker_may_bypass_quality_gate: false
+    parser_product_fact_level: "CANDIDATE"
+    quality_gate_initial_state: "UNASSESSED"
+    evidence_text_classification_enforced: true
+    chinese_feedback_message_count: 4
+    execution_ready: false
+    evidence_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE050_PHASE1_PROMPT_INJECTION_MARKER_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/prompt_injection_marker/stage050_prompt_injection_marker_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage050_prompt_injection_marker.py"
+      - "KM_IDSystem/machine/runs/2026-08-12-stage050-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+
 decision:
-  current_task_id: "IDS-V0_1-STAGE049-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-STAGE050-P1"
+  current_task_id: "IDS-V0_1-STAGE050-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE050-P2"
   github_upload_allowed: false
-  current_run: "STAGE-049 Review replays the Phase 1 through Phase 4 control-only evidence chain and validates the single-authority boundary, explicit dispositions, instruction-text invariance, schema-only samples, empty runtime support, rollback chain and local-only limits. It keeps real routing, parsing, semantic output comparison, fallback, quality, persistence, Agent, model, OVH and production actions disabled."
-  no_upload_reason: "BATCH041_050 has nine completed and individually reviewed Stages; Stage050, the independent ten-stage review and batch upload gate are incomplete, so single-phase upload remains unavailable."
+  current_run: "STAGE-050 Phase 1 defines only the prompt-injection-marker boundary over reference-only candidate metadata and a future six-field parse-product shape. It keeps source access, file detection, routing, parsing, fallback, differential evaluation, marker application, quality, persistence, Agent, model, OVH and production actions disabled."
+  no_upload_reason: "BATCH041_050 has nine completed and individually reviewed Stages plus only Stage050 Phase 1; Stage050 Phase 2 through review, the independent ten-stage review and batch upload gate are incomplete, so single-phase upload remains unavailable."

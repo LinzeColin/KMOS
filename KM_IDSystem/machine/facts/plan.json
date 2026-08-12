@@ -1,21 +1,21 @@
 {
-  "stage": "`IDS-STAGE049`",
-  "phase": "`IDS-STAGE049-REVIEW`",
-  "task": "`IDS-V0_1-STAGE049-REVIEW`",
-  "owner": "Codex 专属 KMOS worktree，Stage049 差异化解析器评估整阶段复审",
-  "objective": "独立复审 P1-P4 的受控差异化评估证据、中文反馈、运行时边界与回滚链，只关闭 Stage049 本地复审。",
+  "stage": "`IDS-STAGE050`",
+  "phase": "`IDS-STAGE050-P1`",
+  "task": "`IDS-V0_1-STAGE050-P1`",
+  "owner": "Codex 专属 KMOS worktree，Stage050 解析阶段提示注入标记 Phase 1",
+  "objective": "定义解析产物提示注入标记的仅引用输入、六字段输出结构、证据文本解释、质量边界与回滚范围，只关闭 Stage050 Phase 1。",
   "scope": [
-    "以冻结 Stage049 任务包、P1-P4 合同和 Stage048 已复审工件为唯一合同上下文，不建立第二权威事实源",
-    "重放 P2 双候选资格、P3 的 11 个格式标签化场景与 P4 的 20 个仅结构样例、11 条非运行时处置记录、质量指标和五类失败分类",
-    "核验 11/11 明确处置、零静默丢弃、指令样文本不变性、控制格式与空运行时支持集合分离，以及 P4→P3→P2→P1→Stage048 的回滚链",
-    "同步复审说明、复审模块、聚焦单元用例、批次锁、路线图、machine run、事件、机器事实、中文视图与交接",
-    "只完成 ACC-STAGE-049 的本地整阶段复审并指向独立 Stage050 P1 gate"
+    "以冻结 Stage050 任务包与 Stage049 已复审工件为唯一合同上下文，不建立第二权威事实源",
+    "定义 Stage045 文件类型检测、Stage046 parser 路由、Stage047 输出、Stage048 fallback、Stage049 差异评估与 Stage050 标记的职责交界",
+    "固定七字段仅引用候选输入、六字段未来解析产物结构、UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY 解释、质量隔离、中文反馈和回滚范围",
+    "同步范围说明、静态合同、聚焦单元用例、批次锁、路线图、machine run、事件、机器事实、中文视图与交接",
+    "只完成 ACC-STAGE-050 的本地 Phase 1 并指向独立 Stage050 P2 gate"
   ],
   "non_goals": [
     "不打开真实业务源、原始元数据、页面、图像、来源正文或 Owner fixture，不执行文件签名识别、真实路线评估或创建业务解析输出",
     "不选择、分派或执行 parser，不比较解析正文，不执行真实 fallback、人工复核队列、提示注入标记或质量门",
     "不提升证据，不写 manifest、evidence ledger、audit、index、report、database、job、state 或持久运行状态",
-    "不进入 Stage050、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
+    "不进入 Stage050 Phase 2、整阶段复审、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage049 P1-P4 复审、事实投影与聚焦单元用例验证完成后停止，下一轮只允许进入 IDS-STAGE050-P1-GATE；任何真实资料访问、真实路线、解析正文比较、持久写入、OVH 或生产动作都不属于本步骤。"
+  "stop_condition": "Stage050 P1 静态合同、事实投影与聚焦单元用例验证完成后停止，下一轮只允许进入 IDS-STAGE050-P2-GATE；任何真实资料访问、真实路线、解析正文、标记应用、质量门、持久写入、OVH 或生产动作都不属于本步骤。"
 }

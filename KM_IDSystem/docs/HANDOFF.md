@@ -11,6 +11,19 @@
 
 ## Current Gate - 2026-08-12
 
+- 本节覆盖下方的 Stage049 Review 历史交接；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成任务：`IDS-V0_1-STAGE050-P1`。当前状态为 `PHASE1_PROMPT_INJECTION_MARKER_BOUNDARY_RUNTIME_DISABLED`：只定义解析阶段提示注入标记的静态合同，不创建解析产物、不应用标记、不启动任何运行时服务。
+- 唯一合同上下文是冻结的 Stage050 任务包文本与 Stage049 已复审工件；没有建立第二权威事实源，也没有保留业务正文、文件路径、来源引用、原始异常、原始元数据内容或真实解析输出。
+- Stage045 继续拥有文件类型检测，Stage046 继续拥有 parser 路由，Stage047 继续拥有解析产物结构，Stage048 继续拥有 fallback，Stage049 继续拥有差异评估，Stage050 只定义标记边界；本轮没有改写任何上游结论。
+- 未来候选输入只能是七字段 reference-only 元数据，未来解析产物核心字段固定为 `text/tables/pages/sections/confidence/errors`。提示文本固定为 `UNTRUSTED_EVIDENCE_TEXT/EVIDENCE_ONLY`：它不能覆盖系统规则、工具授权或策略，也不能绕过质量门、改变路线、触发 fallback 或提升为高可信证据。
+- 解析产物事实等级仍为 `CANDIDATE`、质量初始状态仍为 `UNASSESSED`。中文反馈只说明未应用标记、文本不是系统指令、产物仍为候选、质量复核尚未执行；不承诺自动化、人工任务或生产可用。
+- 回滚只撤回 Stage050 P1 范围说明、静态合同、聚焦用例、machine run、事件、事实投影和治理状态，恢复为 `STAGE049_REVIEWED_LOCAL_DIFFERENTIAL_EVALUATION_RUNTIME_DISABLED`；必须保留真实资料、既有证据、manifest、evidence ledger、audit、已交付报告、GitHub、OVH 和应用状态。
+- 聚焦 Stage050 P1 用例已通过 `8/8`，治理回归报告为 `valid=true`，中文视图已重渲染 `7` 个文件。证据为范围说明、静态合同、聚焦用例、本轮 machine run、event、batch/roadmap 与机器事实。
+- 未读取 IDS 业务源或原始元数据；未执行文件检测、真实路线、真实 parser、解析正文比较、真实 fallback、差异评估、提示注入标记、人工复核队列、质量门、证据提升、持久化、Agent、模型调用、OVH 部署、生产激活、Phase2、整阶段复审、批次复审、上传或推送。
+- 下一步仅允许在独立 run 进入 `IDS-V0_1-STAGE050-P2`，门为 `IDS-STAGE050-P2-GATE`。Stage050 P1 静态合同完成不等于真实标记应用、解析器运行、实际解析质量、OVH 部署、生产就绪或 GitHub 上传。
+
+## Superseded Gate - Stage049 Review - 2026-08-12
+
 - 本节覆盖下方的 Stage049 P4 历史交接；下方未特别标为当前的内容只保留为阶段证据。
 - 本轮完成任务：`IDS-V0_1-STAGE049-REVIEW`。当前状态为 `STAGE049_REVIEWED_LOCAL_DIFFERENTIAL_EVALUATION_RUNTIME_DISABLED`：独立重放 P1--P4 合同、P2 双候选资格、P3 的 11 个格式标签化 control 场景，以及 P4 的 20 个候选解析产物结构样例、11 条非运行时处置记录、质量指标和五类失败分类。
 - 唯一合同上下文仍是冻结的 Stage049 任务包文本、Stage049 P1--P4 合同与 Stage048 已复审工件；没有建立第二权威事实源，也没有保留业务正文、文件路径、来源引用、原始异常或原始元数据内容。复审样例只含空的 `text/tables/pages/sections` 结构和受控版本、置信度、处置标签。

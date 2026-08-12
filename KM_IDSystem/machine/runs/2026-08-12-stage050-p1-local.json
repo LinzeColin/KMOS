@@ -1,0 +1,57 @@
+{
+  "run_id": "`RUN-IDS-STAGE050-P1-LOCAL-20260812-001`",
+  "task_id": "IDS-V0_1-STAGE050-P1",
+  "acceptance_id": "ACC-STAGE-050",
+  "action": "定义解析阶段提示注入标记的仅引用输入、六字段候选解析产物、证据文本解释、质量隔离、中文反馈与回滚范围",
+  "result": "`PASS_PHASE1_PROMPT_INJECTION_MARKER_BOUNDARY_RUNTIME_DISABLED`",
+  "branch": "codex/kmids-stage048-p1",
+  "predecessor": "STAGE049_REVIEWED_LOCAL_DIFFERENTIAL_EVALUATION_RUNTIME_DISABLED",
+  "source_authority": "FROZEN_TASKPACK_TEXT_AND_STAGE049_REVIEW_ARTIFACTS",
+  "contract": {
+    "schema_version": "ids.stage050.prompt_injection_marker.phase1.v1",
+    "contract_state": "PHASE1_PROMPT_INJECTION_MARKER_BOUNDARY_RUNTIME_DISABLED",
+    "second_authoritative_source_created": false,
+    "reference_only_candidate_field_count": 7,
+    "parse_product_core_field_count": 6,
+    "evidence_text_label": "UNTRUSTED_EVIDENCE_TEXT",
+    "evidence_text_interpretation": "EVIDENCE_ONLY",
+    "prompt_injection_marker_application_allowed": false,
+    "quality_gate_execution_allowed": false,
+    "evidence_promotion_allowed": false,
+    "execution_ready": false
+  },
+  "observed_work": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "source_file_open_performed": false,
+    "file_type_redetection_performed": false,
+    "route_evaluation_performed": false,
+    "parser_selection_performed": false,
+    "parser_dispatch_performed": false,
+    "parser_execution_performed": false,
+    "parser_output_created": false,
+    "fallback_execution_performed": false,
+    "differential_evaluation_performed": false,
+    "prompt_injection_marker_application_performed": false,
+    "prompt_injection_marker_result_written": false,
+    "quality_gate_evaluation_performed": false,
+    "evidence_promotion_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "phase2_started": false
+  },
+  "evidence_iterations": [
+    {
+      "result": "PASS",
+      "focused_unit_cases": 8,
+      "passed": 8
+    }
+  ],
+  "next_gate": "IDS-STAGE050-P2-GATE",
+  "rollback": "仅回滚 Stage050 P1 合同、范围说明、聚焦单元用例、machine run 和治理投影，回到 STAGE049_REVIEWED_LOCAL_DIFFERENTIAL_EVALUATION_RUNTIME_DISABLED；不改变真实资料、持久运行状态、GitHub、OVH 或应用状态。"
+}
