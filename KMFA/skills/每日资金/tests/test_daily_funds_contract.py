@@ -4248,6 +4248,34 @@ def test_raw_archive_audit_retries_one_fresh_read_only_transport_attempt(
     assert attempts == ["attempt", "attempt"]
 
 
+def test_raw_archive_audit_retries_one_fresh_snapshot_after_branch_advance(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A branch advance before raw materialisation restarts the audit once."""
+
+    writer = GitSparseWriter(_config(tmp_path))
+    expected = RawArchiveAudit(
+        commit_sha="a" * 40,
+        verified_attachments=(),
+        occurrence_count=0,
+        batch_count=0,
+        batch_occurrence_references=0,
+    )
+    attempts: list[str] = []
+
+    def snapshot_advance_then_success() -> RawArchiveAudit:
+        attempts.append("attempt")
+        if len(attempts) == 1:
+            raise IngestionError("GIT_AUDIT_SNAPSHOT_ADVANCED")
+        return expected
+
+    monkeypatch.setattr(writer, "_audit_raw_archive_once", snapshot_advance_then_success)
+
+    assert writer.audit_raw_archive() is expected
+    assert attempts == ["attempt", "attempt"]
+
+
 def test_raw_archive_audit_does_not_retry_integrity_readback_failure(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -2319,9 +2319,10 @@ class GitSparseWriter:
     _RAW_ARCHIVE_MAX_TREE_OUTPUT_BYTES = 512 * 1024
 
     # The raw-archive audit is strictly read-only.  A single Git/OpenSSH
-    # transport interruption should be retried from a fresh sparse clone, but
-    # neither a raw-integrity failure nor a configuration/scope error may be
-    # retried or downgraded.  Keep this marker set deliberately narrow.
+    # transport interruption, or a branch advance observed *between* two
+    # fresh clones before any raw manifest is opened, may be retried from a
+    # fresh sparse clone.  Neither a raw-integrity failure nor a
+    # configuration/scope error may be retried or downgraded.
     _AUDIT_RETRYABLE_GIT_MARKERS = (
         "connection reset",
         "connection timed out",
@@ -2643,7 +2644,10 @@ class GitSparseWriter:
             # failed transport state is carried into the second attempt.
             # Integrity, source, scope and every second-attempt error remain
             # fail-closed.
-            if exc.code != "GIT_AUDIT_TRANSPORT_RETRYABLE":
+            if exc.code not in {
+                "GIT_AUDIT_TRANSPORT_RETRYABLE",
+                "GIT_AUDIT_SNAPSHOT_ADVANCED",
+            }:
                 raise
         return self._audit_raw_archive_once()
 
@@ -2709,7 +2713,11 @@ class GitSparseWriter:
                 audit_read=True,
             )
             if self._git(["rev-parse", "HEAD"], cwd=metadata_repo, env=env, audit_read=True) != commit_sha:
-                raise IngestionError("GIT_READBACK_FAILED")
+                # The private branch advanced after the name-only census.
+                # This is not an integrity mismatch: no selected raw object
+                # has been opened yet.  Restart the full read-only audit once
+                # so every clone refers to one fresh immutable snapshot.
+                raise IngestionError("GIT_AUDIT_SNAPSHOT_ADVANCED")
             metadata_root = metadata_repo / SPARSE_PATH
             occurrences = tuple(
                 self._archive_occurrence_metadata(metadata_root, path)
@@ -2726,7 +2734,9 @@ class GitSparseWriter:
                 audit_read=True,
             )
             if self._git(["rev-parse", "HEAD"], cwd=readback_repo, env=env, audit_read=True) != commit_sha:
-                raise IngestionError("GIT_READBACK_FAILED")
+                # Same pre-materialisation snapshot rule as the metadata
+                # clone above.  A second advance remains fail-closed.
+                raise IngestionError("GIT_AUDIT_SNAPSHOT_ADVANCED")
             root = readback_repo / SPARSE_PATH
             references = self._archive_persisted_references(root, occurrences)
             verified = tuple(
