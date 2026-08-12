@@ -4131,6 +4131,60 @@ def test_sparse_writer_does_not_retry_scope_or_second_prepare_failure(
     assert attempts == ["private-db", "private-db-retry"]
 
 
+def test_sparse_writer_retries_only_pre_validation_readback_preparation_once(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A fresh sparse readback setup may retry once before any bytes are read."""
+
+    writer = GitSparseWriter(_config(tmp_path))
+    attempts: list[str] = []
+
+    def transient_clone(repo: Path, **_kwargs) -> None:
+        attempts.append(repo.name)
+        if len(attempts) == 1:
+            raise IngestionError("GIT_ARCHIVE_READBACK_FAILED")
+
+    monkeypatch.setattr(writer, "_clone_sparse", transient_clone)
+    monkeypatch.setattr(writer, "_git", lambda *_args, **_kwargs: "")
+
+    root = writer._readback_sparse_root(
+        tmp_path,
+        env={},
+        commit_sha="a" * 40,
+        patterns=(f"{SPARSE_PATH.as_posix()}/raw/",),
+        failure_code="GIT_ARCHIVE_READBACK_FAILED",
+    )
+
+    assert root == tmp_path / "private-db-readback-retry" / SPARSE_PATH
+    assert attempts == ["private-db-readback", "private-db-readback-retry"]
+
+
+def test_sparse_writer_does_not_retry_readback_scope_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Scope errors remain fail-closed before any readback bytes are opened."""
+
+    writer = GitSparseWriter(_config(tmp_path))
+    attempts: list[str] = []
+
+    def scope_failure(repo: Path, **_kwargs) -> None:
+        attempts.append(repo.name)
+        raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
+
+    monkeypatch.setattr(writer, "_clone_sparse", scope_failure)
+    with pytest.raises(IngestionError, match="^GIT_SPARSE_SCOPE_VIOLATION$"):
+        writer._readback_sparse_root(
+            tmp_path,
+            env={},
+            commit_sha="a" * 40,
+            patterns=(f"{SPARSE_PATH.as_posix()}/raw/",),
+            failure_code="GIT_ARCHIVE_READBACK_FAILED",
+        )
+    assert attempts == ["private-db-readback"]
+
+
 def test_sparse_writer_retries_standard_non_fast_forward_and_rejects_force_push(tmp_path: Path) -> None:
     commands: list[list[str]] = []
     push_attempts = 0

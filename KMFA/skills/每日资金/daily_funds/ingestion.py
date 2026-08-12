@@ -2890,20 +2890,30 @@ class GitSparseWriter:
         repo = temp_root / "private-db-readback"
         # Clone first on the permitted branch so sparse setup remains identical
         # to the writer, then detach at the pushed SHA for the actual readback.
-        self._clone_sparse(
-            repo,
-            env=env,
-            ref=self.config.private_branch,
-            patterns=patterns,
-            failure_code=failure_code,
-        )
-        self._git(
-            ["checkout", "--detach", commit_sha],
-            cwd=repo,
-            env=env,
-            failure_code=failure_code,
-        )
-        return repo / SPARSE_PATH
+        # This is still strictly pre-validation: one failed network/checkout
+        # preparation can be retried in a fresh directory, but no materialized
+        # raw object or integrity assertion is ever retried or downgraded.
+        for candidate in (repo, repo.with_name(f"{repo.name}-retry")):
+            try:
+                self._clone_sparse(
+                    candidate,
+                    env=env,
+                    ref=self.config.private_branch,
+                    patterns=patterns,
+                    failure_code=failure_code,
+                )
+                self._git(
+                    ["checkout", "--detach", commit_sha],
+                    cwd=candidate,
+                    env=env,
+                    failure_code=failure_code,
+                )
+                return candidate / SPARSE_PATH
+            except IngestionError as exc:
+                if candidate == repo and exc.code == failure_code:
+                    continue
+                raise
+        raise IngestionError(failure_code)
 
     def _readback_attachments(
         self,
