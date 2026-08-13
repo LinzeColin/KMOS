@@ -290,6 +290,7 @@ class Stage054LowConfidenceReviewRoutePhase3Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE055-REVIEW",
                 "IDS-V0_1-STAGE056-P1",
                 "IDS-V0_1-STAGE056-P2",
+                "IDS-V0_1-STAGE056-P3",
             ),
         )
         self.assertFalse(status["runtime_enabled"])

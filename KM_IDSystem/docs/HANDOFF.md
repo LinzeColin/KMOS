@@ -9,7 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage056 Phase 2 - 2026-08-13
+## Current Gate - Stage056 Phase 3 - 2026-08-13
+
+- 本节是唯一当前交接；下方 Stage056 P2/P1、Stage055 Review 及更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE056-P3`：只以冻结 Stage056 任务包、P1/P2 合同和 Stage055 已复审工件为合同上下文，重放四条固定非业务、reference-only 缓存策略候选，并以扫描 PDF、模糊图片、表格图片、中英文混合和低质量五类控制元数据形成显式候选、降级或失败处置；没有建立第二权威事实源。
+- 五类均只保留类别、候选引用、语言、置信度、策略状态和处置，不包含样本、OCR 文本、来源正文、真实路径、页面、图像、表格内容、失败内容或实际缓存条目。扫描 PDF 与表格图片只为未评估候选；低置信和中英文混合为降级证据且声明 Stage054 复核路径但未排队；低质量为明确失败、禁止自动清理且不得提升高可信证据。
+- P3 只重放 P2 内存候选，物理缓存条目为零，未创建缓存、路径、写入、清理、磁盘扫描或容量评估。`NO_PHYSICAL_CACHE_CREATED_NO_CLEANUP_EXECUTED` 仅证明控制重放无物理副作用，不证明真实 OCR、内置盘容量或真实缓存清理已验证。
+- 已验证：Stage056 P3 聚焦用例 12/12；Stage056 P2/P1、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 298/298；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理报告 `valid=true`；中文事实投影已重渲染 7 个文件。
+- 没有执行 Agent、模型调用、模型 Token、OCR 运行时、真实队列、真实按页输出、真实缓存、人工任务、OVH、生产、GitHub 上传或推送；`stage056_started=true`、`phase2_started=true`、`phase3_started=true`，但 `phase4_started=false`、`whole_stage_review_performed=false`。
+- 回滚只撤回本 P3 说明、场景合同、纯内存专项模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `PHASE2_OCR_CACHE_RETENTION_POLICY_CONTROL_SLICE_RUNTIME_DISABLED`；不触及真实资料、缓存、磁盘、运行状态、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE056-P4-GATE`。本 run 不进入 P4、整阶段复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage056 Phase 2 - 2026-08-13
 
 - 本节是唯一当前交接；下方 Stage056 P1、Stage055 Review 及更早章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE056-P2`：只以冻结 Stage056 任务包、P1 静态合同和 Stage055 已复审工件为合同上下文，用四条固定非业务、reference-only 控制记录投影 OCR 缓存保留策略的内存候选、来源页引用和中文可解释状态；没有建立第二权威事实源。

@@ -1562,6 +1562,11 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("current_task_id") == "IDS-V0_1-STAGE056-P2"
                         and roadmap.get("next_gate_id") == "IDS-STAGE056-P3-GATE"
                     )
+                    or (
+                        roadmap.get("current_phase_id") == "IDS-STAGE056-P3"
+                        and roadmap.get("current_task_id") == "IDS-V0_1-STAGE056-P3"
+                        and roadmap.get("next_gate_id") == "IDS-STAGE056-P4-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -2328,6 +2333,7 @@ REQUIRED_EVENT_IDS = (
     "EVT-IDS-V0_1-STAGE055-REVIEW-20260813-001",
     "EVT-IDS-V0_1-STAGE056-P1-20260813-001",
     "EVT-IDS-V0_1-STAGE056-P2-20260813-001",
+    "EVT-IDS-V0_1-STAGE056-P3-20260813-001",
 )
 
 FORBIDDEN_RUNTIME_PREFIXES = (
@@ -8760,6 +8766,82 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
                 "next_gate": "IDS-STAGE056-P3-GATE",
             },
         },
+        "EVT-IDS-V0_1-STAGE056-P3-20260813-001": {
+            "event_type": "phase_completed",
+            "allow_stage_gate": True,
+            "task_id": "IDS-V0_1-STAGE056-P3",
+            "acceptance_id": "ACC-STAGE-056",
+            "required_changed_files": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE056_PHASE3_OCR_CACHE_RETENTION_POLICY_QUALITY_SCENARIOS.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage056_ocr_cache_retention_policy_quality_scenarios_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage056_ocr_cache_retention_policy_quality_scenarios.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage056_ocr_cache_retention_policy_quality_scenarios.py",
+                "KM_IDSystem/machine/runs/2026-08-13-stage056-p3-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+                "KM_IDSystem/docs/governance/roadmap.yaml",
+                "KM_IDSystem/docs/governance/events.jsonl",
+            },
+            "required_refs": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE056_PHASE3_OCR_CACHE_RETENTION_POLICY_QUALITY_SCENARIOS.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage056_ocr_cache_retention_policy_quality_scenarios_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage056_ocr_cache_retention_policy_quality_scenarios.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage056_ocr_cache_retention_policy_quality_scenarios.py",
+                "KM_IDSystem/machine/runs/2026-08-13-stage056-p3-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage056_ocr_cache_retention_policy_slice_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE055_STAGE_REVIEW.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+            },
+            "required_note_assignments": {
+                "contract_state": "PHASE3_OCR_CACHE_RETENTION_POLICY_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+                "second_authoritative_source_created": "false",
+                "stage056_phase2_control_slice_reexecuted": "true",
+                "reference_only_cache_input_field_count": "11",
+                "cache_policy_output_field_count": "10",
+                "phase2_control_record_count": "4",
+                "unique_policy_candidate_count": "4",
+                "controlled_quality_scenario_count": "5",
+                "controlled_quality_scenario_passed_count": "5",
+                "controlled_quality_scenario_explicit_disposition_count": "5",
+                "controlled_quality_scenario_silent_drop_count": "0",
+                "scenario_category_is_control_metadata": "true",
+                "actual_fixture_count": "0",
+                "candidate_retained_unassessed_count": "2",
+                "low_confidence_degraded_not_queued_count": "1",
+                "mixed_language_degraded_not_queued_count": "1",
+                "declared_review_route_count": "3",
+                "failed_page_quality_scenario_count": "1",
+                "source_page_reference_preserved": "true",
+                "physical_cache_item_count": "0",
+                "actual_disk_capacity_proof_produced": "false",
+                "cache_cleanup_action": "NO_PHYSICAL_CACHE_CREATED_NO_CLEANUP_EXECUTED",
+                "cache_cleanup_execution_performed": "false",
+                "temporary_cleanup_policy_candidate_count": "3",
+                "failure_automatic_cleanup_block_count": "1",
+                "low_confidence_direct_high_trust_allowed": "false",
+                "mixed_language_direct_high_trust_allowed": "false",
+                "failure_page_direct_high_trust_allowed": "false",
+                "future_review_route_owner": "STAGE-054",
+                "review_queue_created": "false",
+                "quality_gate_evaluation_performed": "false",
+                "persistent_state_write_performed": "false",
+                "agent_execution_performed": "false",
+                "model_call_performed": "false",
+                "model_token_consumption_performed": "false",
+                "ovh_deployment_performed": "false",
+                "production_runtime_activation_performed": "false",
+                "stage056_started": "true",
+                "stage056_entry_authorized": "true",
+                "phase2_started": "true",
+                "phase3_started": "true",
+                "phase4_started": "false",
+                "whole_stage_review_performed": "false",
+                "batch_review_performed": "false",
+                "github_upload_allowed": "false",
+                "push_allowed": "false",
+                "next_gate": "IDS-STAGE056-P4-GATE",
+            },
+        },
     }
 
     errors: list[str] = []
@@ -9828,6 +9910,10 @@ def evaluate_current_state_consistency(
         current_stage_id == "IDS-STAGE056"
         and roadmap_phase == "IDS-STAGE056-P2"
     )
+    stage056_phase3_current = (
+        current_stage_id == "IDS-STAGE056"
+        and roadmap_phase == "IDS-STAGE056-P3"
+    )
     batch041_050_review_current = (
         current_stage_id == "IDS-STAGE050"
         and batch.get("batch_id") == "IDS-V0_1-BATCH-041-050"
@@ -9922,6 +10008,7 @@ def evaluate_current_state_consistency(
         or stage055_review_current
         or stage056_phase1_current
         or stage056_phase2_current
+        or stage056_phase3_current
         or batch041_050_review_current
     )
 
@@ -10016,6 +10103,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE055-REVIEW": "Phase 4",
         "IDS-STAGE056-P1": "Phase 1",
         "IDS-STAGE056-P2": "Phase 2",
+        "IDS-STAGE056-P3": "Phase 3",
         "IDS-V0_1-BATCH-041-050-REVIEW-GATE": "Phase 4",
     }.get(roadmap_phase)
     batch_current_phase_completed = (
@@ -11048,6 +11136,9 @@ def evaluate_current_state_consistency(
     expected_stage056_phase2_result_block = (
         "聚焦 Stage056 P2 直接单元用例通过 8/8；Stage056 P1、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041-050 的显式前序兼容回归通过 286/286；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
     )
+    expected_stage056_phase3_result_block = (
+        "聚焦 Stage056 P3 直接单元用例通过 12/12；Stage056 P2/P1、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041-050 的显式前序兼容回归通过 298/298；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+    )
     expected_governed_result_block = {
         "IDS-STAGE037-P1": expected_stage037_phase1_result_block,
         "IDS-STAGE037-P2": expected_stage037_phase2_result_block,
@@ -11137,6 +11228,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE055-REVIEW": expected_stage055_review_result_block,
         "IDS-STAGE056-P1": expected_stage056_phase1_result_block,
         "IDS-STAGE056-P2": expected_stage056_phase2_result_block,
+        "IDS-STAGE056-P3": expected_stage056_phase3_result_block,
         "IDS-V0_1-BATCH-041-050-REVIEW-GATE": expected_batch041_050_review_result_block,
     }.get(roadmap_phase)
     if roadmap_task == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY":
@@ -11924,6 +12016,16 @@ def evaluate_current_state_consistency(
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE055_STAGE_REVIEW.md",
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
     }
+    required_stage056_phase3_evidence = {
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE056_PHASE3_OCR_CACHE_RETENTION_POLICY_QUALITY_SCENARIOS.md",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage056_ocr_cache_retention_policy_quality_scenarios_contract.json",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage056_ocr_cache_retention_policy_quality_scenarios.py",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage056_ocr_cache_retention_policy_quality_scenarios.py",
+        "KM_IDSystem/machine/runs/2026-08-13-stage056-p3-local.json",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage056_ocr_cache_retention_policy_slice_contract.json",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE055_STAGE_REVIEW.md",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+    }
     required_governed_evidence = {
         "IDS-STAGE037-P1": required_stage037_phase1_evidence,
         "IDS-STAGE037-P2": required_stage037_phase2_evidence,
@@ -12014,6 +12116,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE055-REVIEW": required_stage055_review_evidence,
         "IDS-STAGE056-P1": required_stage056_phase1_evidence,
         "IDS-STAGE056-P2": required_stage056_phase2_evidence,
+        "IDS-STAGE056-P3": required_stage056_phase3_evidence,
         "IDS-V0_1-BATCH-041-050-REVIEW-GATE": required_batch041_050_review_evidence,
     }.get(roadmap_phase, set())
     if roadmap_task == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY":
@@ -22163,6 +22266,74 @@ def evaluate_phase_state(
         and 'current_task_id: "IDS-V0_1-STAGE056-P2"' in roadmap_text
         and 'next_gate_id: "IDS-STAGE056-P3-GATE"' in roadmap_text
     )
+    stage056_phase3_active = (
+        'batch_id: "IDS-V0_1-BATCH-051-060"' in batch_text
+        and 'status: "stage056_phase3_completed"' in batch_text
+        and 'current_task_id: "IDS-V0_1-STAGE056-P3"' in batch_text
+        and 'next_phase: "Stage056 Phase 4"' in batch_text
+        and 'next_gate: "IDS-STAGE056-P4-GATE"' in batch_text
+        and 'next_allowed_task_id: "IDS-V0_1-STAGE056-P4"' in batch_text
+        and 'acceptance_status: "stage056_ocr_cache_retention_policy_phase3_controlled_quality_scenarios_local"'
+        in batch_text
+        and 'contract_state: "PHASE3_OCR_CACHE_RETENTION_POLICY_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED"'
+        in batch_text
+        and 'source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE056_PHASE1_AND_STAGE055_REVIEW_ARTIFACTS"'
+        in batch_text
+        and 'second_authoritative_source_created: false' in batch_text
+        and 'source_body_or_path_allowed: false' in batch_text
+        and 'stage056_phase2_control_slice_reexecuted: true' in batch_text
+        and 'ocr_cache_retention_policy_quality_scenarios_contract_schema: "ids.stage056.ocr_cache_retention_policy.phase3.quality_scenarios.v1"'
+        in batch_text
+        and 'scenario_executable: true' in batch_text
+        and 'reference_only_cache_input_field_count: 11' in batch_text
+        and 'cache_policy_output_field_count: 10' in batch_text
+        and 'phase2_control_record_count: 4' in batch_text
+        and 'unique_policy_candidate_count: 4' in batch_text
+        and 'controlled_quality_scenario_count: 5' in batch_text
+        and 'controlled_quality_scenario_passed_count: 5' in batch_text
+        and 'controlled_quality_scenario_explicit_disposition_count: 5' in batch_text
+        and 'controlled_quality_scenario_silent_drop_count: 0' in batch_text
+        and 'scenario_category_is_control_metadata: true' in batch_text
+        and 'actual_fixture_count: 0' in batch_text
+        and 'candidate_retained_unassessed_count: 2' in batch_text
+        and 'low_confidence_degraded_not_queued_count: 1' in batch_text
+        and 'mixed_language_degraded_not_queued_count: 1' in batch_text
+        and 'declared_review_route_count: 3' in batch_text
+        and 'failed_page_quality_scenario_count: 1' in batch_text
+        and 'source_page_reference_preserved: true' in batch_text
+        and 'physical_cache_item_count: 0' in batch_text
+        and 'actual_disk_capacity_proof_produced: false' in batch_text
+        and 'cache_cleanup_action: "NO_PHYSICAL_CACHE_CREATED_NO_CLEANUP_EXECUTED"'
+        in batch_text
+        and 'cache_cleanup_execution_performed: false' in batch_text
+        and 'temporary_cleanup_policy_candidate_count: 3' in batch_text
+        and 'failure_automatic_cleanup_block_count: 1' in batch_text
+        and 'low_confidence_direct_high_trust_allowed: false' in batch_text
+        and 'mixed_language_direct_high_trust_allowed: false' in batch_text
+        and 'failure_page_direct_high_trust_allowed: false' in batch_text
+        and 'future_review_route_owner: "STAGE-054"' in batch_text
+        and 'review_queue_created: false' in batch_text
+        and 'quality_gate_evaluation_performed: false' in batch_text
+        and 'persistent_state_write_performed: false' in batch_text
+        and 'agent_execution_performed: false' in batch_text
+        and 'model_call_performed: false' in batch_text
+        and 'model_token_consumption_performed: false' in batch_text
+        and 'ovh_deployment_performed: false' in batch_text
+        and 'production_runtime_activation_performed: false' in batch_text
+        and 'stage056_started: true' in batch_text
+        and 'stage056_entry_authorized: true' in batch_text
+        and 'phase2_started: true' in batch_text
+        and 'phase3_started: true' in batch_text
+        and 'phase4_started: false' in batch_text
+        and 'whole_stage_review_performed: false' in batch_text
+        and 'batch_review_performed: false' in batch_text
+        and 'github_upload_allowed: false' in batch_text
+        and 'push_allowed: false' in batch_text
+        and 'current_stage_id: "IDS-STAGE056"' in roadmap_text
+        and 'current_phase_id: "IDS-STAGE056-P3"' in roadmap_text
+        and 'current_task_id: "IDS-V0_1-STAGE056-P3"' in roadmap_text
+        and 'next_gate_id: "IDS-STAGE056-P4-GATE"' in roadmap_text
+    )
     batch_terminal_state = batch_upload_gate_active or batch_uploaded_to_main
     later_stage_state = (
         batch_terminal_state
@@ -22384,6 +22555,7 @@ def evaluate_phase_state(
         or stage055_review_active
         or stage056_phase1_active
         or stage056_phase2_active
+        or stage056_phase3_active
     )
     phase2_completed = '      - "Phase 2"' in batch_text or later_stage_state
     stage005_active_or_complete = (
