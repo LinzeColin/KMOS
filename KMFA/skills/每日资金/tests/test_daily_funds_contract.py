@@ -1570,6 +1570,134 @@ def test_cashflow_observation_rejects_disagreeing_alternate_layouts() -> None:
     assert calls == ["6", "11", "4", "12"]
 
 
+def test_cashflow_observation_recovers_a_synthetic_ruled_table_only_after_normalized_consensus() -> None:
+    """Grid removal is deterministic and still requires both strict OCR modes."""
+
+    image_module = pytest.importorskip("PIL.Image")
+    draw_module = pytest.importorskip("PIL.ImageDraw")
+    width, height = 224, 128
+    image = image_module.new("L", (width, height), 255)
+    draw = draw_module.Draw(image)
+    for x in range(0, width, 32):
+        draw.line((x, 0, x, height - 1), fill=0, width=1)
+    for y in range(0, height, 32):
+        draw.line((0, y, width - 1, y), fill=0, width=1)
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    payload = buffer.getvalue()
+
+    headers = ["日期", "事由", "收（付）款人", "收支类别", "转出", "收入", "银行"]
+    rows = [
+        ["08月07日", "付款", "", "项目成本", "40.00", "", "银行A"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "银行A"],
+        ["", "", "", "合计", "40.00", "50.00", ""],
+    ]
+    missing_header = _ocr_tsv(["日期", "事由", "收支类别"], ["08月07日", "付款", "项目成本"])
+    strict_table = _ocr_tsv(headers, rows[0], extra_rows=rows[1:])
+    calls: list[tuple[str, str]] = []
+
+    def runner(command, **_kwargs):
+        psm = command[command.index("--psm") + 1]
+        source_name = Path(command[1]).name
+        normalized = source_name == "ocr-grid-normalized.png"
+        calls.append(("normalized" if normalized else "raw", psm))
+        if normalized:
+            with image_module.open(command[1]) as normalized_image:
+                assert normalized_image.size == (width * 2, height * 2)
+                assert all(pixel == 255 for pixel in normalized_image.convert("L").getdata())
+            assert psm in {"6", "11"}
+            return SimpleNamespace(returncode=0, stdout=strict_table, stderr="")
+        assert psm in {"4", "6", "11", "12"}
+        return SimpleNamespace(returncode=0, stdout=missing_header, stderr="")
+
+    observation = parse_cashflow_observation(
+        family="资金明细",
+        filename="synthetic-ruled-table.png",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 10, tzinfo=UTC),
+        mime="image/png",
+        runner=runner,
+    )
+
+    assert calls == [
+        ("raw", "6"),
+        ("raw", "11"),
+        ("raw", "4"),
+        ("raw", "12"),
+        ("normalized", "6"),
+        ("normalized", "11"),
+    ]
+    assert observation.business_date.isoformat() == "2026-08-07"
+    assert observation.inflow_fen == 5_000
+    assert observation.outflow_fen == 4_000
+    assert observation.parser_evidence.parser_version == CASHFLOW_OBSERVATION_PARSER_VERSION
+
+
+def test_cashflow_observation_rejects_disagreeing_normalized_table_readings() -> None:
+    """The normalized path cannot choose a convenient amount from one OCR mode."""
+
+    image_module = pytest.importorskip("PIL.Image")
+    draw_module = pytest.importorskip("PIL.ImageDraw")
+    image = image_module.new("L", (224, 128), 255)
+    draw = draw_module.Draw(image)
+    for x in range(0, 224, 32):
+        draw.line((x, 0, x, 127), fill=0, width=1)
+    for y in range(0, 128, 32):
+        draw.line((0, y, 223, y), fill=0, width=1)
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    payload = buffer.getvalue()
+
+    headers = ["日期", "事由", "收（付）款人", "收支类别", "转出", "收入", "银行"]
+    first_rows = [
+        ["08月07日", "付款", "", "项目成本", "40.00", "", "银行A"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "银行A"],
+        ["", "", "", "合计", "40.00", "50.00", ""],
+    ]
+    second_rows = [
+        ["08月07日", "付款", "", "项目成本", "41.00", "", "银行A"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "银行A"],
+        ["", "", "", "合计", "41.00", "50.00", ""],
+    ]
+    missing_header = _ocr_tsv(["日期", "事由", "收支类别"], ["08月07日", "付款", "项目成本"])
+    normalized_by_psm = {
+        "6": _ocr_tsv(headers, first_rows[0], extra_rows=first_rows[1:]),
+        "11": _ocr_tsv(headers, second_rows[0], extra_rows=second_rows[1:]),
+    }
+    calls: list[tuple[str, str]] = []
+
+    def runner(command, **_kwargs):
+        psm = command[command.index("--psm") + 1]
+        normalized = Path(command[1]).name == "ocr-grid-normalized.png"
+        calls.append(("normalized" if normalized else "raw", psm))
+        return SimpleNamespace(
+            returncode=0,
+            stdout=normalized_by_psm[psm] if normalized else missing_header,
+            stderr="",
+        )
+
+    with pytest.raises(ParseError, match="CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING"):
+        parse_cashflow_observation(
+            family="资金明细",
+            filename="synthetic-ruled-table-disagreement.png",
+            payload=payload,
+            source=_source(payload),
+            received_at=datetime(2026, 8, 10, tzinfo=UTC),
+            mime="image/png",
+            runner=runner,
+        )
+
+    assert calls == [
+        ("raw", "6"),
+        ("raw", "11"),
+        ("raw", "4"),
+        ("raw", "12"),
+        ("normalized", "6"),
+        ("normalized", "11"),
+    ]
+
+
 def test_cashflow_observation_does_not_try_alternates_after_fallback_footer_failure() -> None:
     headers = ["日期", "事由", "收（付）款人", "收支类别", "转出", "收入", "银行"]
     rows = [

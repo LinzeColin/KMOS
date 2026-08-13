@@ -60,9 +60,12 @@ PARSER_VERSION = "kmfa.daily_funds.parser.v12"
 # a chart point.  v8 adds a bounded headerless fixed-table recovery for the
 # known source family only: it requires repeated same-day date cells, one
 # visible ``合计`` footer, exactly two stable right-aligned money columns and exact
-# independent OCR agreement.  Chart admission never produces a formal
-# account-balance publication.
-CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v8"
+# independent OCR agreement.  v9 adds a deterministic grid-removal image
+# normalization only after every original layout pass stops in a layout/OCR
+# gate.  The normalized image must still pass two independent segmenters with
+# exactly the same date and totals, then the unchanged row/footer checks.
+# Chart admission never produces a formal account-balance publication.
+CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v9"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -136,6 +139,15 @@ OCR_HEADER_FALLBACK_PSM = 11
 # footer failure.
 OCR_CASHFLOW_CONSENSUS_PSMS = (4, 12)
 _OCR_ALLOWED_PSMS = frozenset({OCR_PRIMARY_PSM, OCR_HEADER_FALLBACK_PSM, *OCR_CASHFLOW_CONSENSUS_PSMS})
+# Grid screenshots are not a new source format.  These fixed, independent
+# Tesseract modes are only used after the untouched image exhausted its
+# existing layout-only recovery path.  Requiring both results avoids choosing
+# whichever preprocessed reading produces a convenient number.
+OCR_GRID_PREPROCESS_PSMS = (OCR_PRIMARY_PSM, OCR_HEADER_FALLBACK_PSM)
+_OCR_GRID_THRESHOLD = 192
+_OCR_GRID_LINE_COVERAGE_BPS = 7_000
+_OCR_GRID_MAX_PIXELS = 20_000_000
+_OCR_GRID_SCALE = 2
 
 
 class ParseError(ContractError):
@@ -688,12 +700,82 @@ def _pdf_page_count(path: Path, *, runner: Callable[..., Any]) -> int:
     return pages
 
 
+def _preprocess_ocr_grid_image(*, image: Path, root: Path) -> Path:
+    """Remove only long table rules from one bounded OCR image.
+
+    Historical daily-funds screenshots are compact ruled tables.  Tesseract
+    can otherwise merge every cell into one logical line even though the text
+    itself is legible.  This is deliberately an image-format repair, not a
+    semantic OCR fallback: it thresholds pixels, erases only rows/columns
+    whose dark coverage proves a table rule, doubles the scale, and keeps the
+    transformed bytes inside the existing temporary directory.
+
+    The caller still has to pass the unchanged header, confidence, row and
+    footer-total gates twice under independent page-segmentation modes.
+    """
+
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise ParseError("OCR_PREPROCESS_RUNTIME_UNAVAILABLE") from exc
+    try:
+        with Image.open(image) as source:
+            width, height = source.size
+            if (
+                width < 16
+                or height < 16
+                or width * height > _OCR_GRID_MAX_PIXELS
+            ):
+                raise ParseError("OCR_IMAGE_DIMENSIONS_UNSUPPORTED")
+            source.load()
+            binary = source.convert("L").point(
+                lambda value: 0 if value < _OCR_GRID_THRESHOLD else 255,
+                mode="L",
+            )
+    except ParseError:
+        raise
+    except (OSError, ValueError) as exc:
+        raise ParseError("OCR_IMAGE_PREPROCESS_INVALID") from exc
+
+    pixels = binary.load()
+    minimum_row_dark = (width * _OCR_GRID_LINE_COVERAGE_BPS + 9_999) // 10_000
+    minimum_column_dark = (height * _OCR_GRID_LINE_COVERAGE_BPS + 9_999) // 10_000
+    rule_rows = tuple(
+        y for y in range(height)
+        if sum(1 for x in range(width) if pixels[x, y] == 0) >= minimum_row_dark
+    )
+    rule_columns = tuple(
+        x for x in range(width)
+        if sum(1 for y in range(height) if pixels[x, y] == 0) >= minimum_column_dark
+    )
+    if not rule_rows or not rule_columns:
+        raise ParseError("OCR_GRID_RULES_NOT_FOUND")
+    for y in rule_rows:
+        for x in range(width):
+            pixels[x, y] = 255
+    for x in rule_columns:
+        for y in range(height):
+            pixels[x, y] = 255
+
+    normalized = binary.resize(
+        (width * _OCR_GRID_SCALE, height * _OCR_GRID_SCALE),
+        resample=Image.Resampling.NEAREST,
+    )
+    output = root / "ocr-grid-normalized.png"
+    try:
+        normalized.save(output, format="PNG")
+    except OSError as exc:
+        raise ParseError("OCR_IMAGE_PREPROCESS_INVALID") from exc
+    return output
+
+
 def _ocr_tsv(
     *,
     payload: bytes,
     evidence: ParserEvidence,
     runner: Callable[..., Any],
     psm: int = OCR_PRIMARY_PSM,
+    preprocess_grid: bool = False,
 ) -> str:
     """Generate in-memory Tesseract TSV for exactly one bounded document page.
 
@@ -722,6 +804,8 @@ def _ocr_tsv(
             if len(rendered) != 1 or rendered[0].is_symlink() or not rendered[0].is_file():
                 raise ParseError("OCR_PDF_RENDER_FAILED")
             image = rendered[0]
+        if preprocess_grid:
+            image = _preprocess_ocr_grid_image(image=image, root=root)
         return _run_ocr_command(
             ["tesseract", str(image), "stdout", "-l", OCR_LANGUAGE, "--psm", str(psm), "tsv"],
             runner=runner,
@@ -1676,6 +1760,7 @@ def _cashflow_observation_from_ocr(
     psm: int,
     received_at: datetime,
     min_confidence_bps: int,
+    preprocess_grid: bool = False,
 ) -> tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]:
     """Apply one fixed OCR segmentation mode to the unchanged cashflow gate.
 
@@ -1689,6 +1774,7 @@ def _cashflow_observation_from_ocr(
         evidence=evidence,
         runner=runner,
         psm=psm,
+        preprocess_grid=preprocess_grid,
     ))
     lines = _ocr_lines(words)
     headerless = False
@@ -1725,6 +1811,42 @@ def _cashflow_observation_from_ocr(
             min_confidence_bps=min_confidence_bps,
         )
     return business_date, inflow_fen, outflow_fen, cells, headerless
+
+
+def _cashflow_observation_from_grid_preprocessed_ocr(
+    *,
+    payload: bytes,
+    evidence: ParserEvidence,
+    runner: Callable[..., Any],
+    received_at: datetime,
+    min_confidence_bps: int,
+) -> tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]:
+    """Require two strict OCR readings after deterministic grid removal.
+
+    This route is intentionally unavailable until the original image exhausted
+    the established layout path.  Each result still independently validates
+    its source table and footer; agreement is only over the three derived
+    chart values, never over raw OCR text.
+    """
+
+    results: list[tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]] = []
+    for psm in OCR_GRID_PREPROCESS_PSMS:
+        try:
+            results.append(_cashflow_observation_from_ocr(
+                payload=payload,
+                evidence=evidence,
+                runner=runner,
+                psm=psm,
+                received_at=received_at,
+                min_confidence_bps=min_confidence_bps,
+                preprocess_grid=True,
+            ))
+        except ParseError:
+            raise ParseError("CASHFLOW_OBSERVATION_GRID_PREPROCESS_CONSENSUS_MISSING") from None
+    first, second = results
+    if first[:3] != second[:3]:
+        raise ParseError("CASHFLOW_OBSERVATION_GRID_PREPROCESS_CONSENSUS_MISSING")
+    return first
 
 
 def parse_cashflow_observation(
@@ -1780,66 +1902,97 @@ def parse_cashflow_observation(
             raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING")
         return candidate
 
-    try:
-        primary = _cashflow_observation_from_ocr(
-            payload=payload,
-            evidence=evidence,
-            runner=runner,
-            psm=OCR_PRIMARY_PSM,
-            received_at=received_at,
-            min_confidence_bps=threshold,
-        )
-    except ParseError as exc:
-        # Some real screenshot tables have a complete visual header but PSM 6
-        # emits it as sparse text.  Re-run exactly once under PSM 11 only when
-        # the first pass reached the missing-header gate.  A header ambiguity,
-        # low confidence result, or any later row/footer error must never be
-        # retried under a different interpretation.
-        if str(exc).split(":", 1)[0] != "CASHFLOW_OBSERVATION_HEADER_MISSING":
-            raise
+    def parse_original_layout() -> tuple[date, int, int, tuple[_OcrHeaderCell, ...]]:
+        """Run the pre-v9 strict layout path without altering its semantics."""
+
         try:
-            fallback = _cashflow_observation_from_ocr(
+            primary = _cashflow_observation_from_ocr(
                 payload=payload,
                 evidence=evidence,
                 runner=runner,
-                psm=OCR_HEADER_FALLBACK_PSM,
+                psm=OCR_PRIMARY_PSM,
                 received_at=received_at,
                 min_confidence_bps=threshold,
             )
-        except ParseError as fallback_exc:
-            if str(fallback_exc).split(":", 1)[0] != "CASHFLOW_OBSERVATION_HEADER_MISSING":
+        except ParseError as exc:
+            # Some real screenshot tables have a complete visual header but
+            # PSM 6 emits it as sparse text.  Re-run exactly once under PSM 11
+            # only when the first pass reached the missing-header gate.  A
+            # header ambiguity, low confidence result, or any later row/footer
+            # error must never be retried under a different interpretation.
+            if str(exc).split(":", 1)[0] != "CASHFLOW_OBSERVATION_HEADER_MISSING":
                 raise
-            # The two alternate page-segmentation modes are not ordinary
-            # retries.  Both must independently reach the complete strict
-            # result and agree exactly; this remains a layout-only recovery
-            # rather than a way to choose whichever OCR output has a value.
-            consensus: list[tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]] = []
-            for consensus_psm in OCR_CASHFLOW_CONSENSUS_PSMS:
-                try:
-                    consensus.append(_cashflow_observation_from_ocr(
-                        payload=payload,
-                        evidence=evidence,
-                        runner=runner,
-                        psm=consensus_psm,
-                        received_at=received_at,
-                        min_confidence_bps=threshold,
-                    ))
-                except ParseError:
-                    continue
-            if len(consensus) != len(OCR_CASHFLOW_CONSENSUS_PSMS):
-                raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING")
-            first, second = consensus
-            if first[:3] != second[:3]:
-                raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING")
-            business_date, inflow_fen, outflow_fen, cells, _ = first
+            try:
+                fallback = _cashflow_observation_from_ocr(
+                    payload=payload,
+                    evidence=evidence,
+                    runner=runner,
+                    psm=OCR_HEADER_FALLBACK_PSM,
+                    received_at=received_at,
+                    min_confidence_bps=threshold,
+                )
+            except ParseError as fallback_exc:
+                if str(fallback_exc).split(":", 1)[0] != "CASHFLOW_OBSERVATION_HEADER_MISSING":
+                    raise
+                # The two alternate page-segmentation modes are not ordinary
+                # retries.  Both must independently reach the complete strict
+                # result and agree exactly; this remains a layout-only recovery
+                # rather than a way to choose whichever OCR output has a value.
+                consensus: list[tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]] = []
+                for consensus_psm in OCR_CASHFLOW_CONSENSUS_PSMS:
+                    try:
+                        consensus.append(_cashflow_observation_from_ocr(
+                            payload=payload,
+                            evidence=evidence,
+                            runner=runner,
+                            psm=consensus_psm,
+                            received_at=received_at,
+                            min_confidence_bps=threshold,
+                        ))
+                    except ParseError:
+                        continue
+                if len(consensus) != len(OCR_CASHFLOW_CONSENSUS_PSMS):
+                    raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING")
+                first, second = consensus
+                if first[:3] != second[:3]:
+                    raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING")
+                business_date, inflow_fen, outflow_fen, cells, _ = first
+            else:
+                if fallback[4]:
+                    fallback = require_headerless_consensus(fallback)
+                business_date, inflow_fen, outflow_fen, cells, _ = fallback
         else:
-            if fallback[4]:
-                fallback = require_headerless_consensus(fallback)
-            business_date, inflow_fen, outflow_fen, cells, _ = fallback
-    else:
-        if primary[4]:
-            primary = require_headerless_consensus(primary)
-        business_date, inflow_fen, outflow_fen, cells, _ = primary
+            if primary[4]:
+                primary = require_headerless_consensus(primary)
+            business_date, inflow_fen, outflow_fen, cells, _ = primary
+        return business_date, inflow_fen, outflow_fen, cells
+
+    try:
+        business_date, inflow_fen, outflow_fen, cells = parse_original_layout()
+    except ParseError as original_error:
+        # Grid removal is purely a deterministic image-layout repair.  It is
+        # not allowed after a date, amount, field identity, row, or footer
+        # decision.  When it cannot reproduce a strict result, preserve the
+        # original public-safe failure rather than exposing preprocessing
+        # internals or weakening the original gate.
+        original_code = str(original_error).split(":", 1)[0]
+        if original_code not in {
+            "CASHFLOW_OBSERVATION_HEADER_MISSING",
+            "CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING",
+            "OCR_LOW_CONFIDENCE",
+            "OCR_TSV_INVALID",
+        }:
+            raise
+        try:
+            business_date, inflow_fen, outflow_fen, cells, _ = _cashflow_observation_from_grid_preprocessed_ocr(
+                payload=payload,
+                evidence=evidence,
+                runner=runner,
+                received_at=received_at,
+                min_confidence_bps=threshold,
+            )
+        except ParseError:
+            raise original_error from None
     return CashflowObservation(
         business_date=business_date,
         inflow_fen=inflow_fen,
