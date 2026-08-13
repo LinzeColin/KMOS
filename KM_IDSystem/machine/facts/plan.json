@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE062",
-  "phase": "IDS-V0_1-STAGE062-P4",
-  "task": "IDS-V0_1-STAGE062-P4",
-  "owner": "Codex 专属 KMOS worktree，Stage062 Phase 4",
-  "objective": "只从 P3 六类固定、非业务、reference-only 表格证据绑定场景派生 metadata-only 表格事实样例、字段推断引用报告、质量测试结果、人工处理建议和重解析/事实回滚说明；不读取、验证或写入真实来源位置、表格事实或证据。",
+  "phase": "IDS-STAGE062-REVIEW",
+  "task": "IDS-V0_1-STAGE062-REVIEW",
+  "owner": "Codex 专属 KMOS worktree，Stage062 Review",
+  "objective": "只机械复审冻结 Stage062 P1--P4 静态合同、P3/P4 control 报告和 metadata-only 交付证据，确认 19/17 绑定形状、2/2 control 请求/候选、六类人工处置、中文反馈与 P4→P3 回滚说明一致；不读取真实表格或启动 Stage063。",
   "scope": [
-    "以冻结 Stage062 任务包、Stage062 P1/P2/P3 控制工件、Stage061 Review 与 Batch061-070 上传锁为唯一合同上下文，不建立第二权威事实源",
-    "仅从六个固定、非业务、:control: 场景派生六个 metadata-only 交付样例、六个字段引用标签、六条控制质量结果、六条人工处理建议和三条中文确认",
-    "保留 Stage057--061 的接入、Schema、事实、RAG 和质量所有权；Stage062 P4 不重做真实 Schema 推断、字段识别、事实抽取、来源位置验证或摘要",
-    "同步 P4 说明、交付合同、纯内存模块、聚焦单元用例、BATCH061-070 锁、路线图、machine run、事件、机器事实、中文视图与交接",
-    "只完成 ACC-STAGE-062 的 Phase 4 交付证据并指向 Stage062 Review 门"
+    "以冻结 Stage062 任务包、Stage062 P1--P4 control 工件、Stage061 Review 与 Batch061-070 上传锁为唯一合同上下文，不建立第二权威事实源",
+    "只复审 19/17 绑定形状、2/2 control 请求/候选、6 类场景、6 个交付样例、6 个字段标签、6 条质量结果、6 条人工建议、3 条中文确认及 P4→P3 回滚链",
+    "保留 Stage057--061 的接入、Schema、事实、RAG 和质量所有权；Review 不重做真实 Schema 推断、字段识别、事实抽取、来源位置验证或摘要",
+    "同步 Review 说明、纯内存复审模块、聚焦单元用例、BATCH061-070 锁、路线图、machine run、事件、机器事实、中文视图与交接",
+    "只完成 ACC-STAGE-062 的整阶段复审并指向 Stage063 Phase 1 门"
   ],
   "non_goals": [
     "不打开、创建、复制、移动、删除、修改、检测、解析或评估真实业务源、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、实际 URI、质量结果库、事实库、证据账本、数据库或报告",
     "不执行真实 schema 推断、字段识别、事实抽取、typed value 抽取、RAG 摘要正文、数值统计、质量验证、来源或证据绑定、数据库连接或 migration、持久化、Agent、模型调用、模型 Token、OVH、生产或上传",
-    "不进入 Stage062 整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不启动 Stage063、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "P4 对六个 metadata-only 交付样例、字段推断引用报告、控制质量结果、无法识别结构人工建议、中文反馈与 P4→P3 回滚说明完成后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE062-REVIEW-GATE；任何真实表格或 fixture 访问、真实来源位置验证、真实字段或事实抽取、typed value、RAG、数值统计、真实来源/证据绑定、数据库、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "Stage062 Review 对 P1--P4 control 合同、报告、单一权威、六维引用形状、数值关闭、六类人工处置、metadata-only 交付与 P4→P3 回滚链完成机械复审后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE063-P1-GATE；任何真实表格或 fixture 访问、真实来源位置验证、真实字段或事实抽取、typed value、RAG、数值统计、真实来源/证据绑定、数据库、OVH、生产或上传动作都不属于本步骤。"
 }

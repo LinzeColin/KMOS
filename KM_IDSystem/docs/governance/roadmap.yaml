@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE062"
-current_phase_id: "IDS-STAGE062-P4"
-current_task_id: "IDS-V0_1-STAGE062-P4"
-next_gate_id: "IDS-STAGE062-REVIEW-GATE"
+current_phase_id: "IDS-STAGE062-REVIEW"
+current_task_id: "IDS-V0_1-STAGE062-REVIEW"
+next_gate_id: "IDS-STAGE063-P1-GATE"
 current_transition_history:
+  stage062_review_state:
+    current_stage_id: "IDS-STAGE062"
+    current_phase_id: "IDS-STAGE062-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE062-REVIEW"
+    next_gate_id: "IDS-STAGE063-P1-GATE"
   stage062_phase4_state:
     current_stage_id: "IDS-STAGE062"
     current_phase_id: "IDS-STAGE062-P4"
@@ -16787,20 +16792,20 @@ stages:
     task_id: "IDS-V0_1-STAGE062"
     acceptance_ids:
       - "ACC-STAGE-062"
-    status: "phase4_completed_review_pending"
-    pursuing_goal: "只从 Stage062 P3 的六类固定、非业务、reference-only 场景派生 metadata-only 表格事实样例、字段推断引用报告、质量测试结果、人工处理建议与 P4→P3 重解析/事实回滚说明；不读取、解析、验证实际来源位置、绑定或写入真实资料。"
+    status: "completed_reviewed_local"
+    pursuing_goal: "只机械复审冻结 Stage062 P1--P4 静态合同、P3/P4 control 报告和 metadata-only 交付证据，确认 19/17 绑定形状、2/2 控制记录/候选、六类人工处置、中文反馈与 P4→P3 回滚说明一致；不读取真实表格或启动 Stage063。"
     stop_gate:
-      gate_id: "IDS-STAGE062-P4-GATE"
+      gate_id: "IDS-STAGE062-REVIEW-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE062-REVIEW-GATE"
+      next_gate_id: "IDS-STAGE063-P1-GATE"
       github_upload_allowed: false
-      pass_conditions:
-        - "六个 metadata-only 交付样例、六个字段引用标签、六条控制质量结果、六条人工处理建议和三条中文确认均从 P3 固定控制场景派生。"
-        - "交付只保留 evidence_id、document_id、sheet、row、column 和 source_uri 的控制引用形状；该形状不能解释为真实文件或来源位置已经验证。"
-        - "表格重解析和事实回滚只回到 P3 control 状态；未验证数值不得形成统计或模型确定性数值结论。"
-      stop_conditions:
+    pass_conditions:
+        - "P1--P4 的绑定形状、控制计数、人工处置、中文反馈和 P4→P3 回滚链由只读复审模块一致确认。"
+        - "复审结果保持来源文档唯一权威、六维 control 引用和未验证数值禁止形成统计或模型确定性结论。"
+        - "复审没有读取真实资料、创建真实表格事实或证据绑定，且下一门仅为 Stage063 Phase 1。"
+    stop_conditions:
         - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、实际 URI、事实库、证据账本、数据库或报告"
-        - "执行真实 Schema 推断、字段识别、事实抽取、typed value 抽取、表格摘要、数值统计、质量门、来源位置或证据绑定、持久化、数据库 migration、Agent、模型调用、模型 Token、OVH、生产服务、整阶段复审、批次复审、上传、推送或应用重装"
+        - "执行真实 Schema 推断、字段识别、事实抽取、typed value 抽取、表格摘要、数值统计、质量门、来源位置或证据绑定、持久化、数据库 migration、Agent、模型调用、模型 Token、OVH、生产服务、启动 Stage063、批次复审、上传、推送或应用重装"
     phases:
       - phase_id: "IDS-STAGE062-P1"
         name: "Phase 1 · 表格证据绑定范围、输入输出与边界确认"
@@ -16982,3 +16987,50 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
             risk: "若把 metadata-only 交付、控制引用形状或聚焦用例通过误作真实表格质量验证、真实来源位置追溯、真实证据绑定、真实统计、数据库、OVH、生产或上传能力，会绕开业务线人工白箱处理和单一权威边界。"
             rollback: "只回滚本 P4 说明、交付合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE3_TABLE_EVIDENCE_BINDING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；不改变 P1/P2/P3、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE062-REVIEW"
+        name: "Stage Review · 表格证据绑定整阶段机械复审"
+        objective: "只机械复审冻结 Stage062 P1--P4 静态合同、P3/P4 control 报告和 metadata-only 交付证据，确认 19/17 绑定形状、2/2 控制记录/候选、六类人工处置、中文反馈与 P4→P3 回滚说明一致；不读取真实表格或启动 Stage063。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE063-P1-GATE"
+        gate:
+          gate_id: "IDS-STAGE062-REVIEW-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE063-P1-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、实际 URI、事实库、证据账本、数据库或报告"
+          - "执行真实 Schema 推断、字段识别、事实抽取、typed value 抽取、表格摘要、数值统计、质量门、来源位置或证据绑定、真实重解析或事实回滚、持久化、数据库 migration、Agent、模型调用、模型 Token、OVH、生产服务、Stage063、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE062-REVIEW"
+            name: "复审表格证据绑定 P1--P4 控制链"
+            objective: "输出只读的 P1--P4 合同、控制计数、单一权威、数值边界、六类人工处理、metadata-only 交付和 P4→P3 回滚链复审结论；不把 control 结果表述为真实表格、真实证据、真实事实或生产验证。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE062-P4"
+            acceptance_ids:
+              - "ACC-STAGE-062"
+              - "ACC-STAGE062-REVIEW-01"
+              - "ACC-STAGE062-REVIEW-02"
+              - "ACC-STAGE062-REVIEW-03"
+              - "ACC-STAGE062-REVIEW-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage062_table_evidence_binding_stage_review"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage062_table_evidence_binding_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage062_table_evidence_binding_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage062_table_evidence_binding_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage062_table_evidence_binding_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage062_table_evidence_binding_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch051_060_review_gate KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch041_050_review_gate KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage060_table_rag_summary_stage_review"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "PASS: 复审模块返回 PASS_REVIEWED_LOCAL_TABLE_EVIDENCE_BINDING_RUNTIME_DISABLED；聚焦用例 10/10；P1--P4、Stage061 Review、两个批次与 Stage060 Review 阶段链路 129/129；两个批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；Stage005 治理回归 valid=true；中文事实投影重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE062_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage062_table_evidence_binding_stage_review.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage062_table_evidence_binding_stage_review.py"
+              - "KM_IDSystem/machine/runs/2026-08-14-stage062-review-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage062_table_evidence_binding_delivery_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage062_table_evidence_binding_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把静态合同、control 计数、metadata-only 交付或本地复审通过误作真实表格质量验证、真实来源追溯、真实证据绑定、真实统计、数据库、OVH、生产或上传能力，会绕开业务线人工白箱处理和单一权威边界。"
+            rollback: "只回滚本 Review 说明、只读复审模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PHASE4_TABLE_EVIDENCE_BINDING_DELIVERY_EVIDENCE_RUNTIME_DISABLED；不改变 P1--P4、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 或应用状态。"

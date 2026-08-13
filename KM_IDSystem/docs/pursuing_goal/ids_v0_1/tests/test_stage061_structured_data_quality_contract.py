@@ -344,6 +344,7 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE062-P2", "IDS-STAGE062-P3-GATE"),
                 ("IDS-V0_1-STAGE062-P3", "IDS-STAGE062-P4-GATE"),
                 ("IDS-V0_1-STAGE062-P4", "IDS-STAGE062-REVIEW-GATE"),
+                ("IDS-STAGE062-REVIEW", "IDS-STAGE063-P1-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -360,6 +361,7 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE062-P2",
                 "IDS-V0_1-STAGE062-P3",
                 "IDS-V0_1-STAGE062-P4",
+                "IDS-V0_1-STAGE062-REVIEW",
             ),
         )
         self.assertIn(status["next_gate"], plan["stop_condition"])
@@ -414,6 +416,10 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
             or (
                 'current_phase_id: "IDS-STAGE062-P3"' in roadmap_text
                 and 'next_gate_id: "IDS-STAGE062-P4-GATE"' in roadmap_text
+            )
+            or (
+                'current_phase_id: "IDS-STAGE062-REVIEW"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE063-P1-GATE"' in roadmap_text
             )
         )
         self.assertEqual("phase_completed", event["event_type"])

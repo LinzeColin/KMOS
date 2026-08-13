@@ -322,6 +322,7 @@ class Stage062TableEvidenceBindingContractPhase1Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE062-P2", "IDS-V0_1-STAGE062-P2", "IDS-STAGE062-P3-GATE"),
                 ("IDS-V0_1-STAGE062-P3", "IDS-V0_1-STAGE062-P3", "IDS-STAGE062-P4-GATE"),
                 ("IDS-V0_1-STAGE062-P4", "IDS-V0_1-STAGE062-P4", "IDS-STAGE062-REVIEW-GATE"),
+                ("IDS-STAGE062-REVIEW", "IDS-V0_1-STAGE062-REVIEW", "IDS-STAGE063-P1-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -329,13 +330,14 @@ class Stage062TableEvidenceBindingContractPhase1Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE062", plan["stage"])
         self.assertIn(
             plan["task"],
-            ("IDS-V0_1-STAGE062-P1", "IDS-V0_1-STAGE062-P2", "IDS-V0_1-STAGE062-P3", "IDS-V0_1-STAGE062-P4"),
+            ("IDS-V0_1-STAGE062-P1", "IDS-V0_1-STAGE062-P2", "IDS-V0_1-STAGE062-P3", "IDS-V0_1-STAGE062-P4", "IDS-V0_1-STAGE062-REVIEW"),
         )
         self.assertTrue(
             "IDS-STAGE062-P2-GATE" in plan["stop_condition"]
             or "IDS-STAGE062-P3-GATE" in plan["stop_condition"]
             or "IDS-STAGE062-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE062-REVIEW-GATE" in plan["stop_condition"]
+            or "IDS-STAGE063-P1-GATE" in plan["stop_condition"]
         )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
@@ -361,6 +363,10 @@ class Stage062TableEvidenceBindingContractPhase1Tests(unittest.TestCase):
             or (
                 'current_phase_id: "IDS-STAGE062-P3"' in roadmap_text
                 and 'next_gate_id: "IDS-STAGE062-P4-GATE"' in roadmap_text
+            )
+            or (
+                'current_phase_id: "IDS-STAGE062-REVIEW"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE063-P1-GATE"' in roadmap_text
             )
         )
         self.assertEqual("phase_completed", event["event_type"])

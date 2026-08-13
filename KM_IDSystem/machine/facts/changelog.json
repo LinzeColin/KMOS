@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage062-review-local",
+    "date": "2026-08-14",
+    "summary": "完成 Stage062 表格证据绑定整阶段本地机械复审：核验 P1--P4 的 19/17 绑定形状、2/2 control 请求与候选、六类显式人工处置、6 个 metadata-only 交付样例、6 个字段引用标签、6 条质量结果、6 条人工建议、3 条中文确认和 P4→P3 回滚链，发现数为零。Stage062 Review 聚焦用例通过 10/10，阶段链路回归通过 129/129，两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理回归 valid=true，中文事实投影已重渲染 7 个文件；未读取、打开、检测、解析或评估真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行真实 schema/字段/事实/质量验证、统计、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage063 Phase 1。"
+  },
+  {
     "version": "v0.1-stage062-p4-local",
     "date": "2026-08-14",
     "summary": "完成 Stage062 P4 表格证据绑定 metadata-only 交付证据：从 P3 六类固定、非业务、reference-only 场景派生 6 个表格事实交付样例、6 个字段引用标签、6 条控制质量结果、6 条人工处理建议、3 条中文确认和回到 P3 control 状态的表格重解析/事实回滚说明。P4 聚焦用例通过 13/13，阶段链路回归通过 119/119，两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理回归 valid=true，中文事实投影已重渲染 7 个文件；未读取、打开、检测、解析或评估真实 XLSX/CSV、生产记录、质检记录、事实、证据或 fixture，未执行真实 schema/字段/事实、统计、数据库、Agent、模型 Token、OVH、生产、整阶段复审、上传或推送；下一步仅可在新的独立 run 进入 Stage062 Review。"

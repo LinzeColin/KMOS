@@ -4,6 +4,11 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "Stage062 table evidence binding review",
+      "中文": "Stage062 表格证据绑定整阶段机械复审",
+      "说明": "只机械复审冻结 Stage062 P1--P4 control 合同、报告与 metadata-only 交付的固定计数、人工处理、数值关闭和 P4→P3 回滚说明；它不读取真实表格、不创建真实事实或证据绑定，也不启动 Stage063、OVH、生产或上传。"
+    },
+    {
       "英文": "metadata-only table evidence binding delivery",
       "中文": "仅元数据表格证据绑定交付",
       "说明": "Stage062 P4 从固定控制场景派生的交付样例、字段引用、质量结果、人工建议和回滚说明；它不包含真实表格内容、真实字段映射、真实事实、来源绑定或证据记录，不能成为第二权威事实源。"

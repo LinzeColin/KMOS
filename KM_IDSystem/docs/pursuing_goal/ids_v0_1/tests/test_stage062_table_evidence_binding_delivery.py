@@ -257,7 +257,7 @@ class Stage062TableEvidenceBindingPhase4DeliveryTests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(report[field])
 
-    def test_governance_projection_advances_only_to_stage_review_gate(self):
+    def test_governance_projection_preserves_phase4_evidence_or_review_successor(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
@@ -265,9 +265,18 @@ class Stage062TableEvidenceBindingPhase4DeliveryTests(unittest.TestCase):
         batch = BATCH.read_text(encoding="utf-8")
         events = EVENTS.read_text(encoding="utf-8")
         self.assertEqual("IDS-STAGE062", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE062-P4", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE062-P4", plan["phase"])
-        self.assertIn("IDS-STAGE062-REVIEW-GATE", plan["stop_condition"])
+        self.assertIn(
+            (status["phase"], status["task"], status["next_gate"]),
+            (
+                ("IDS-V0_1-STAGE062-P4", "IDS-V0_1-STAGE062-P4", "IDS-STAGE062-REVIEW-GATE"),
+                ("IDS-STAGE062-REVIEW", "IDS-V0_1-STAGE062-REVIEW", "IDS-STAGE063-P1-GATE"),
+            ),
+        )
+        self.assertIn(plan["phase"], ("IDS-V0_1-STAGE062-P4", "IDS-STAGE062-REVIEW"))
+        self.assertTrue(
+            "IDS-STAGE062-REVIEW-GATE" in plan["stop_condition"]
+            or "IDS-STAGE063-P1-GATE" in plan["stop_condition"]
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertIn(
