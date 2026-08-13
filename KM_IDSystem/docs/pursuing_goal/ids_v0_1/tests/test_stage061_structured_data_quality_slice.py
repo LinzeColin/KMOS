@@ -252,7 +252,7 @@ class Stage061StructuredDataQualityPhase2Tests(unittest.TestCase):
         self.assertFalse(result["summary_can_replace_structured_fact"])
         self.assertFalse(result["summary_can_become_numeric_statistical_evidence"])
 
-    def test_phase2_governance_and_local_run_keep_only_phase3_as_next_gate(self):
+    def test_phase2_historical_evidence_and_current_governance_preserve_a_legal_successor(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
@@ -268,12 +268,19 @@ class Stage061StructuredDataQualityPhase2Tests(unittest.TestCase):
             if item.get("event_id") == "EVT-IDS-V0_1-STAGE061-P2-20260814-001"
         )
 
-        self.assertEqual("IDS-V0_1-STAGE061-P2", status["phase"])
-        self.assertEqual("IDS-STAGE061-P3-GATE", status["next_gate"])
+        self.assertIn(
+            (status["phase"], status["next_gate"]),
+            (
+                ("IDS-V0_1-STAGE061-P2", "IDS-STAGE061-P3-GATE"),
+                ("IDS-V0_1-STAGE061-P3", "IDS-STAGE061-P4-GATE"),
+            ),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE061-P2", plan["task"])
-        self.assertIn("IDS-STAGE061-P3-GATE", plan["stop_condition"])
+        self.assertIn(
+            plan["task"], ("IDS-V0_1-STAGE061-P2", "IDS-V0_1-STAGE061-P3")
+        )
+        self.assertIn(status["next_gate"], plan["stop_condition"])
         self.assertIn("OVH", plan["stop_condition"])
         self.assertEqual("IDS-V0_1-STAGE061-P2", run["task_id"])
         self.assertEqual("RUN-IDS-STAGE061-P2-LOCAL-20260814-001", run["run_id"])

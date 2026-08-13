@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE061",
-  "phase": "IDS-V0_1-STAGE061-P2",
-  "task": "IDS-V0_1-STAGE061-P2",
-  "real_progress": "Stage061 P2 已以两条固定、非业务、reference-only 控制记录在内存中投影十条待人工确认的质量结果候选；下一步仅可在新的独立 run 进入 Stage061 P3，上传路径继续关闭",
-  "report_grade": "冻结 Stage061 任务包、P1 静态合同、Batch051-060 本地复审、P2 聚焦用例、治理路线与中文事实投影一致",
-  "business_verdict": "本 P2 只证明固定控制引用的字段形状、五类质量维度、来源位置引用、人工复核和数值关闭边界可白箱核验；不证明真实表格质量验证、真实事实、数值统计、数据库、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE061_PHASE2_STRUCTURED_DATA_QUALITY_CONTROL_SLICE_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE061-P3",
+  "task": "IDS-V0_1-STAGE061-P3",
+  "real_progress": "Stage061 P3 已重放两条固定、非业务、reference-only 控制输入与十条未评估质量候选，对六类任务包异常输出显式人工处置；下一步仅可在新的独立 run 进入 Stage061 P4，上传路径继续关闭",
+  "report_grade": "冻结 Stage061 任务包、P1/P2 合同、Batch051-060 本地复审、P3 受控场景、治理路线与中文事实投影一致",
+  "business_verdict": "本 P3 只证明固定控制候选的六类异常处置、控制来源位置引用形状、人工复核和数值/模型结论关闭边界可白箱核验；不证明真实表格质量验证、真实来源追溯、真实事实、数值统计、数据库、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE061_PHASE3_STRUCTURED_DATA_QUALITY_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE061-P3-GATE",
+  "next_gate": "IDS-STAGE061-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

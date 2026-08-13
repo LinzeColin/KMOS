@@ -1,0 +1,174 @@
+{
+  "schema_version": "ids.stage061.structured_data_quality.phase3.quality_scenarios.v1",
+  "stage": "STAGE-061",
+  "phase": "Phase 3",
+  "task_id": "IDS-V0_1-STAGE061-P3",
+  "acceptance_id": "ACC-STAGE-061",
+  "local_code": "D10-S005",
+  "domain": "D10 · 结构化数据与表格事实库",
+  "entrance": "IDS 系统运营入口",
+  "pursuing_goal": "重放两条固定、非业务、reference-only Stage061 P2 质量控制记录与十条未评估质量候选，覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类异常；只输出显式处置和控制来源位置引用，不读取或解析真实表格。",
+  "contract_state": "PHASE3_STRUCTURED_DATA_QUALITY_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+  "scenario_executable": true,
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE061-P4-GATE",
+  "source_authority": {
+    "authority": "FROZEN_TASKPACK_TEXT_AND_STAGE061_PHASE1_PHASE2_AND_BATCH051_060_REVIEW_ARTIFACTS",
+    "frozen_taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-061_结构化数据质量测试.md",
+    "phase1_contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_contract.json",
+    "phase2_contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_slice_contract.json",
+    "phase2_module_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_slice.py",
+    "predecessor_review_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md",
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false,
+    "authorized_fixture_access_performed": false
+  },
+  "ownership_boundary": {
+    "stage061_phase1_contract_reused_as_reference_only": true,
+    "stage061_phase2_control_slice_reused_as_reference_only": true,
+    "controlled_quality_scenario_owner": "STAGE-061 Phase 3",
+    "real_table_quality_validation_owner": "FUTURE_OWNER_AUTHORIZED_INPUT_GATE",
+    "evidence_binding_owner": "STAGE-062",
+    "upstream_contract_rewrite_allowed": false,
+    "real_file_or_database_activation_allowed": false,
+    "in_memory_controlled_quality_scenario_execution_allowed": true
+  },
+  "scenario_input_boundary": {
+    "scenario_count": 6,
+    "scenario_categories": [
+      "EMPTY_TABLE_CONTROL",
+      "MERGED_CELLS_CONTROL",
+      "UNIT_CONFUSION_CONTROL",
+      "DATE_FORMAT_VARIATION_CONTROL",
+      "OUTLIER_VALUE_CONTROL",
+      "DUPLICATE_ROW_CONTROL"
+    ],
+    "scenario_category_is_control_metadata": true,
+    "phase2_control_record_count": 2,
+    "phase2_quality_result_candidate_count": 10,
+    "phase2_quality_dimension_count": 5,
+    "source_body_or_header_or_cell_content_allowed": false,
+    "actual_input_record_count": 0,
+    "actual_table_count": 0
+  },
+  "quality_scenario_validation": {
+    "all_taskpack_exception_categories_covered": true,
+    "explicit_disposition_count": 6,
+    "silent_drop_count": 0,
+    "human_handling_required_count": 6,
+    "empty_table_human_handling_count": 1,
+    "merged_cell_human_handling_count": 1,
+    "unit_confusion_human_handling_count": 1,
+    "date_variation_human_handling_count": 1,
+    "outlier_numeric_block_count": 1,
+    "duplicate_row_human_handling_count": 1,
+    "field_completeness_evaluation_performed": false,
+    "unit_consistency_evaluation_performed": false,
+    "date_validity_evaluation_performed": false,
+    "primary_key_duplication_evaluation_performed": false,
+    "outlier_evaluation_performed": false,
+    "actual_table_quality_validation_performed": false
+  },
+  "traceability_boundary": {
+    "control_source_location_field_count": 6,
+    "control_source_location_reference_check_count": 6,
+    "control_source_location_traceability_preserved": true,
+    "source_document_remains_authoritative": true,
+    "physical_path_or_uri_allowed": false,
+    "actual_source_file_traceability_validated": false,
+    "actual_source_location_binding_created": false,
+    "actual_evidence_record_created": false
+  },
+  "numeric_and_model_authority_boundary": {
+    "unverified_numeric_value_as_definitive_fact_allowed": false,
+    "numeric_statistical_conclusion_allowed": false,
+    "model_direct_text_guessing_allowed": false,
+    "model_definitive_numeric_conclusion_allowed": false,
+    "unverified_numeric_value_blocks_statistical_conclusion": true,
+    "numeric_statistic_computation_performed": false,
+    "actual_numeric_fact_count": 0,
+    "summary_can_replace_structured_fact": false,
+    "summary_can_become_numeric_statistical_evidence": false
+  },
+  "chinese_feedback_contract": {
+    "messages": [
+      {
+        "code": "STRUCTURED_DATA_QUALITY_CONTROL_SCENARIOS_PASSED",
+        "message": "已完成固定质量候选的异常场景验证；结果只说明控制处置和引用形状，不代表真实表格质量结论。"
+      },
+      {
+        "code": "STRUCTURED_DATA_QUALITY_EXCEPTION_REQUIRES_HUMAN_HANDLING",
+        "message": "空表、合并单元格、单位混乱、日期格式不一和重复行均需人工处理，系统不会自动修正或写入。"
+      },
+      {
+        "code": "STRUCTURED_DATA_QUALITY_UNVERIFIED_NUMERIC_BLOCKED",
+        "message": "未验证数值不得形成统计结论或模型确定性数值结论，须等待可追溯的结构化事实与证据流程。"
+      },
+      {
+        "code": "STRUCTURED_DATA_QUALITY_CONTROL_TRACEABILITY_ONLY",
+        "message": "每个控制场景保留来源文档、工作表、表头行、行列范围和证据引用；这些是控制引用，不是已验证的真实文件位置。"
+      }
+    ],
+    "all_messages_chinese": true,
+    "automation_claim_allowed": false,
+    "numeric_accuracy_claim_allowed": false,
+    "production_availability_claim_allowed": false
+  },
+  "protected_surface_boundary": {
+    "raw_data_modified": false,
+    "raw_data_opened": false,
+    "manifest_modified": false,
+    "evidence_ledger_modified": false,
+    "audit_log_modified": false,
+    "delivered_report_modified": false
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "authorized_fixture_access_performed": false,
+    "source_file_open_performed": false,
+    "file_type_detection_performed": false,
+    "xlsx_or_csv_parse_performed": false,
+    "table_schema_inference_performed": false,
+    "field_identification_performed": false,
+    "structured_fact_extraction_performed": false,
+    "typed_value_extraction_performed": false,
+    "table_summary_generation_performed": false,
+    "field_completeness_evaluation_performed": false,
+    "unit_consistency_evaluation_performed": false,
+    "date_validity_evaluation_performed": false,
+    "primary_key_duplication_evaluation_performed": false,
+    "outlier_evaluation_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "numeric_statistic_computation_performed": false,
+    "database_connection_performed": false,
+    "database_schema_migration_performed": false,
+    "structured_fact_write_performed": false,
+    "quality_result_write_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "local_service_start_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "stage061_started": true,
+    "phase2_started": true,
+    "phase3_started": true,
+    "phase4_started": false,
+    "whole_stage_review_performed": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "rollback_contract": {
+    "return_to": "PHASE2_STRUCTURED_DATA_QUALITY_CONTROL_SLICE_RUNTIME_DISABLED",
+    "phase1_contract_preserved": true,
+    "phase2_control_slice_preserved": true,
+    "source_or_raw_data_change_allowed": false,
+    "fixture_change_allowed": false,
+    "database_or_persistent_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

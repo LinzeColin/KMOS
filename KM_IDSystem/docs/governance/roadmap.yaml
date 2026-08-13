@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE061"
-current_phase_id: "IDS-STAGE061-P2"
-current_task_id: "IDS-V0_1-STAGE061-P2"
-next_gate_id: "IDS-STAGE061-P3-GATE"
+current_phase_id: "IDS-STAGE061-P3"
+current_task_id: "IDS-V0_1-STAGE061-P3"
+next_gate_id: "IDS-STAGE061-P4-GATE"
 current_transition_history:
+  stage061_phase3_state:
+    current_stage_id: "IDS-STAGE061"
+    current_phase_id: "IDS-STAGE061-P3"
+    current_task_id: "IDS-V0_1-STAGE061-P3"
+    next_gate_id: "IDS-STAGE061-P4-GATE"
   stage061_phase2_state:
     current_stage_id: "IDS-STAGE061"
     current_phase_id: "IDS-STAGE061-P2"
@@ -16531,17 +16536,17 @@ stages:
     task_id: "IDS-V0_1-STAGE061"
     acceptance_ids:
       - "ACC-STAGE-061"
-    status: "phase2_completed"
-    pursuing_goal: "在不读取业务资料、不执行真实表格质量验证或运行时的前提下，白箱投影五类结构化数据质量结果控制候选，并保持输入、结果、来源位置、数值权威、人工处理和回滚边界。"
+    status: "phase3_completed"
+    pursuing_goal: "在不读取业务资料、不执行真实表格质量验证或运行时的前提下，白箱重放固定质量控制候选，明确六类异常的人工作业处置、控制来源位置引用与数值/模型结论关闭边界。"
     stop_gate:
-      gate_id: "IDS-STAGE061-P2-GATE"
+      gate_id: "IDS-STAGE061-P3-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE061-P3-GATE"
+      next_gate_id: "IDS-STAGE061-P4-GATE"
       github_upload_allowed: false
       pass_conditions:
-        - "两条固定、非业务、reference-only 质量输入在内存中投影十条十八字段质量结果控制候选，覆盖字段完整性、单位一致性、日期合法性、主键重复和异常值。"
-        - "候选均为未评估、待人工确认且统计结论关闭；字段、主键、事实集、来源位置和 evidence 仅为控制引用。"
-        - "未读取或解析真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行真实质量验证，未创建质量结果、事实、统计、数据库、Agent、模型、OVH 或生产运行。"
+        - "P2 两条固定、非业务、reference-only 输入和十条未评估质量候选被纯内存重放，空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类均有显式人工处置，静默丢弃为零。"
+        - "每个场景保留来源文档、工作簿、工作表、表头行、行列范围和 evidence 的控制引用形状；该形状不声称真实文件、真实行列、真实来源绑定或证据已验证。"
+        - "未验证数值始终关闭统计和模型确定性结论；未读取或解析真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行真实质量验证，未创建质量结果、事实、统计、数据库、Agent、模型、OVH 或生产运行。"
         - "上传与推送继续关闭，最终 ACC-STAGE-168 前不进入任何上传动作。"
     phases:
       - phase_id: "IDS-STAGE061-P1"
@@ -16622,3 +16627,42 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_contract.json"
             risk: "若把控制候选误解为真实质量验证、真实表格、真实事实、数值统计、数据库、OVH、生产或上传能力，会绕开业务线人工复核、单一权威和可回滚边界。"
             rollback: "只回滚本 P2 说明、切片模块、切片合同、聚焦用例、machine run、事件、事实投影与治理路线，恢复到 P1 静态合同状态；不改变业务资料、事实库、持久运行状态、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE061-P3"
+        name: "Phase 3 · 结构化数据质量专项验证与异常场景"
+        objective: "只重放 P2 的两条固定、非业务、reference-only 控制输入与十条未评估质量候选，覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类异常；只输出显式人工处置和控制来源位置引用，不读取、解析、评估或写入真实表格、事实或质量结果。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE061-P4-GATE"
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、事实库、数据库或报告"
+          - "执行真实 Schema 推断、字段识别、事实抽取、typed value 抽取、字段完整性、单位一致性、日期合法性、主键重复、异常值、数值统计、质量门、来源或证据写入、持久化、数据库 migration、Agent、模型调用、模型 Token、OVH、生产服务、上传、推送或应用重装"
+          - "进入 P4、整阶段复审、批次复审或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE061-P3"
+            name: "验证结构化数据质量受控异常场景"
+            objective: "重放 P2 固定控制候选，为六类任务包异常输出显式人工处置并核验控制来源位置引用形状，阻断未验证数值统计和模型确定性结论，不将控制结果解释为真实质量验证。"
+            status: "completed"
+            estimated_hours: 3
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE061-P2"
+            acceptance_ids:
+              - "ACC-STAGE-061"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_scenarios"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch051_060_review_gate KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch041_050_review_gate KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage060_table_rag_summary_stage_review"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage061 P3 聚焦用例通过 13/13；包含 P2 切片、P1 合同、Batch051-060、Batch041-050 与 Stage060 Review 的聚焦兼容用例通过 55/55；两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；Stage005 治理回归 valid=true；中文事实投影已重渲染 7 个文件。本步骤不进入 P4、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE061_PHASE3_STRUCTURED_DATA_QUALITY_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage061_structured_data_quality_scenarios.py"
+              - "KM_IDSystem/machine/runs/2026-08-14-stage061-p3-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_slice_contract.json"
+            risk: "若把控制场景的显式处置或控制来源位置引用误解为已验证真实表格、真实来源追溯、真实质量结论、统计、数据库、OVH、生产或上传能力，会绕开业务线人工复核与单一权威边界。"
+            rollback: "只回滚本 P3 说明、场景合同、纯内存模块、聚焦用例、machine run、事件、事实投影与治理路线，恢复到 P2 控制切片状态；不改变业务资料、事实库、持久运行状态、GitHub、OVH 或应用状态。"

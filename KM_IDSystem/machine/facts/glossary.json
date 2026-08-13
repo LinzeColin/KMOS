@@ -4,6 +4,16 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "controlled structured-data quality scenario",
+      "中文": "受控结构化数据质量场景",
+      "说明": "Stage061 P3 对固定、非业务、reference-only 质量候选的纯内存异常处置；空表、合并单元格、单位混乱、日期格式不一、异常值和重复行只作为控制类别，不能代表真实表格质量验证。"
+    },
+    {
+      "英文": "control traceability shape",
+      "中文": "控制可追溯引用形状",
+      "说明": "来源文档、工作簿、工作表、表头行、行列范围和 evidence 的 :control: 引用形状；它帮助人工复核控制合同，但不证明真实文件位置、来源绑定或证据已验证。"
+    },
+    {
       "英文": "reference-only quality control candidate",
       "中文": "仅引用质量控制候选",
       "说明": "Stage061 P2 对固定、非业务引用记录投影的内存候选；它不包含真实表格、业务事实、来源绑定或证据记录，也不能成为第二权威事实源。"
