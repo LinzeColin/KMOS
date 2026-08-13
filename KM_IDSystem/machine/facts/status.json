@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE062",
-  "phase": "IDS-V0_1-STAGE062-P2",
-  "task": "IDS-V0_1-STAGE062-P2",
-  "real_progress": "Stage062 P2 已在内存中以两条固定、非业务、reference-only 请求投影两条未绑定表格证据候选，机械验证十九字段输入、十七字段输出、XLSX/CSV 标签、生产/质检记录类别、evidence_id/document_id/sheet/row/column/source_uri 六维引用、人工确认与数值关闭；下一步仅可在新的独立 run 进入 Stage062 Phase 3，上传路径继续关闭",
-  "report_grade": "冻结 Stage062 任务包、Stage061 本地复审、Stage062 P1 静态合同、Stage062 P2 控制切片、治理路线与中文事实投影一致",
-  "business_verdict": "本 P2 只证明固定控制请求的内存候选投影、单一权威、人工处理和数值关闭可白箱核验；不证明真实表格处理、真实来源追溯、真实证据绑定、真实事实、数值统计、数据库、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE062_PHASE2_TABLE_EVIDENCE_BINDING_CONTROL_SLICE_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE062-P3",
+  "task": "IDS-V0_1-STAGE062-P3",
+  "real_progress": "Stage062 P3 已在内存中重放两条固定、非业务、reference-only 未绑定表格证据候选，机械覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置，并保留 evidence_id/document_id/sheet/row/column/source_uri 六维控制引用形状与数值关闭；下一步仅可在新的独立 run 进入 Stage062 Phase 4，上传路径继续关闭",
+  "report_grade": "冻结 Stage062 任务包、Stage061 本地复审、Stage062 P1/P2 控制工件、Stage062 P3 场景合同、治理路线与中文事实投影一致",
+  "business_verdict": "本 P3 只证明固定控制候选的内存场景处置、单一权威、人工处理、控制引用形状和数值关闭可白箱核验；不证明真实表格处理、真实来源位置验证、真实证据绑定、真实事实、数值统计、数据库、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE062_PHASE3_TABLE_EVIDENCE_BINDING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE062-P3-GATE",
+  "next_gate": "IDS-STAGE062-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

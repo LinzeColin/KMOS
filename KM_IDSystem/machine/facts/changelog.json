@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage062-p3-local",
+    "date": "2026-08-14",
+    "summary": "完成 Stage062 P3 表格证据绑定受控异常场景：重放 P2 两条固定、非业务、reference-only 未绑定候选，覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置；静默丢弃为零，保留 evidence_id/document_id/sheet/row/column/source_uri 六维控制引用形状，未验证数值阻断统计和模型确定性结论。Stage062 P3 聚焦用例通过 11/11，阶段链路回归通过 106/106，两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理回归 valid=true，中文事实投影已重渲染 7 个文件；未读取、打开、检测、解析或评估真实 XLSX/CSV、生产记录、质检记录、事实、证据或 fixture，未执行真实 schema/字段/事实、统计、数据库、Agent、模型 Token、OVH、生产、P4、上传或推送；下一步仅可在新的独立 run 进入 Stage062 P4。"
+  },
+  {
     "version": "v0.1-stage062-p2-local",
     "date": "2026-08-14",
     "summary": "完成 Stage062 P2 表格证据绑定纯内存控制切片：两条固定、非业务、reference-only 十九字段请求投影两条十七字段未绑定候选，覆盖 XLSX/CSV、生产/质检类别、evidence_id/document_id/sheet/row/column/source_uri 六维控制引用、人工确认和数值关闭。Stage062 P2 聚焦用例通过 8/8，阶段链路回归通过 95/95，两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理回归 valid=true，中文事实投影已重渲染 7 个文件；未读取、打开、检测、解析或评估真实 XLSX/CSV、生产记录、质检记录、事实、证据或 fixture，未执行真实 schema/字段/事实、统计、数据库、Agent、模型 Token、OVH、生产、P3、上传或推送；下一步仅可在新的独立 run 进入 Stage062 P3。"

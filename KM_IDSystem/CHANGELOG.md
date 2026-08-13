@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage062 Phase 3（本地）
+
+- 完成表格证据绑定受控异常场景：重放 P2 两条固定、非业务、reference-only `UNBOUND_REFERENCE_ONLY` 候选，覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置；静默丢弃为 `0`，没有建立第二权威事实源。
+- 每个场景只保留 `evidence_id/document_id/sheet/row/column/source_uri` 六维 `:control:` 引用形状，不代表真实文件、真实来源位置、真实证据、真实表格质量或真实业务结论已验证。未验证数值继续阻断统计和模型确定性结论。
+- 本地验证通过：Stage062 P3 聚焦用例 `11/11`；Stage062 P3/P2/P1、Stage061 Review/P4/P3/P2/P1、Batch051-060、Batch041-050 与 Stage060 Review 阶段链路回归 `106/106`；两个批次检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影已重渲染 `7` 个文件。未读取、打开、检测、解析或评估真实 XLSX/CSV、生产记录、质检记录、事实、证据或 fixture；未执行真实 Schema/字段/事实、统计、数据库、Agent、模型 Token、OVH、生产、P4、整阶段复审、批次复审、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE062-P4-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage062 Phase 2（本地）
 
 - 完成表格证据绑定纯内存控制切片：两条固定、非业务、reference-only 十九字段请求投影两条十七字段 `UNBOUND_REFERENCE_ONLY` 候选，覆盖 XLSX/CSV、生产/质检记录类别、`evidence_id/document_id/sheet/row/column/source_uri` 六维控制引用、人工确认和数值关闭；没有建立第二权威事实源。
