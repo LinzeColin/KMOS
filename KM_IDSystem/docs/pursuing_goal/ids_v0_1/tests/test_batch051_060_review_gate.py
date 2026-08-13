@@ -95,7 +95,11 @@ class Batch051060ReviewGateTests(unittest.TestCase):
             "ACC-STAGE061-P1-01" in text
             and "RUN-IDS-STAGE061-P1-LOCAL-20260814-001" in text
         )
-        self.assertTrue(predecessor_visible or successor_visible, text)
+        phase2_visible = (
+            "ACC-STAGE061-P2-01" in text
+            and "RUN-IDS-STAGE061-P2-LOCAL-20260814-001" in text
+        )
+        self.assertTrue(predecessor_visible or successor_visible or phase2_visible, text)
 
     def test_cli_emits_local_review_report(self):
         completed = subprocess.run(
