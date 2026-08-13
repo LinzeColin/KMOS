@@ -201,10 +201,19 @@ class Stage059FactExtractionStageReviewTests(unittest.TestCase):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE059", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE059-REVIEW", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE059-REVIEW", status["task"])
-        self.assertEqual("IDS-STAGE060-P1-GATE", status["next_gate"])
+        self.assertIn(status["stage"], ("IDS-STAGE059", "IDS-STAGE060"))
+        self.assertIn(
+            status["phase"],
+            ("IDS-V0_1-STAGE059-REVIEW", "IDS-V0_1-STAGE060-P1"),
+        )
+        self.assertIn(
+            status["task"],
+            ("IDS-V0_1-STAGE059-REVIEW", "IDS-V0_1-STAGE060-P1"),
+        )
+        self.assertIn(
+            status["next_gate"],
+            ("IDS-STAGE060-P1-GATE", "IDS-STAGE060-P2-GATE"),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

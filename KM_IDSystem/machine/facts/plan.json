@@ -1,19 +1,19 @@
 {
-  "stage": "IDS-STAGE059",
-  "phase": "IDS-V0_1-STAGE059-REVIEW",
-  "task": "IDS-V0_1-STAGE059-REVIEW",
-  "owner": "Codex 专属 KMOS worktree，Stage059 Review",
-  "objective": "只以冻结 Stage059 任务包、P1--P4 合同、P3 固定 control 报告和 P4 metadata-only 交付为合同上下文，机械复审字段形状、单一权威、数值/RAG 边界、异常处置、人工处理与重解析/事实回滚说明；不读取、打开、检测、解析或写入真实表格事实。",
+  "stage": "IDS-STAGE060",
+  "phase": "IDS-V0_1-STAGE060-P1",
+  "task": "IDS-V0_1-STAGE060-P1",
+  "owner": "Codex 专属 KMOS worktree，Stage060 Phase 1",
+  "objective": "只以冻结 Stage060 任务包和 Stage059 已复审工件为合同上下文，定义未来表格到 RAG 摘要的 future fact/source 引用输入、中文摘要输出接口、结构化事实与数值权威边界、失败关闭和回滚合同；不读取、打开、检测、解析、生成或写入真实表格、事实或摘要。",
   "scope": [
-    "以冻结 Stage059 任务包、P1--P4 合同和固定 control 报告为唯一合同上下文，不建立第二权威事实源",
-    "白箱复审 12/25/3/7/6/10 静态形状、2 条 control 输入、3 条 typed fact 控制候选、6 类异常场景、零静默丢弃和 6 个 metadata-only 交付样例",
-    "确认 typed value、真实来源/证据、数值统计、真实 RAG、数据库和持久状态均未创建，RAG 继续归 Stage060",
-    "同步 Review 说明、只读复审模块、聚焦用例、machine run、事件、机器事实、中文视图与交接；下一步只交接至 Stage060 Phase 1"
+    "以冻结 Stage060 任务包和 Stage059 已复审工件为唯一合同上下文，不建立第二权威事实源",
+    "定义十三字段 reference-only 摘要输入、十字段未来中文摘要输出、七类表格语义、六类来源位置、十类失败关闭及未来结构化事实引用边界",
+    "确认真实 typed value、真实来源/证据、数值统计、事实库、真实 RAG 摘要正文、数据库和持久状态均未创建，摘要不能替代结构化事实或成为数值权威",
+    "同步 P1 范围说明、静态合同、聚焦用例、machine run、事件、机器事实、中文视图与交接；下一步只交接至 Stage060 Phase 2"
   ],
   "non_goals": [
     "不打开、创建、复制、移动、删除、修改、检测、解析或评估真实业务源、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、事实库、数据库或报告",
-    "不执行真实 schema 推断、字段识别、事实抽取、typed value 抽取、RAG 摘要、数值统计、质量验证、来源或证据写入、真实重解析或事实回滚、数据库连接或 migration、持久化、Agent、模型调用、模型 Token、OVH、生产或上传",
-    "不进入 Stage060、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不执行真实 schema 推断、字段识别、事实抽取、typed value 抽取、RAG 摘要正文、数值统计、质量验证、来源或证据写入、真实重解析或事实回滚、数据库连接或 migration、持久化、Agent、模型调用、模型 Token、OVH、生产或上传",
+    "不进入 Stage060 Phase 2、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage059 Review 的 P1--P4 合同复审、控制计数、边界、回滚、聚焦单元用例和治理验证完成后停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE060-P1-GATE。任何真实表格或 fixture 访问、真实重解析或事实回滚、真实字段或事实抽取、typed value、RAG、数值统计、真实来源/证据绑定、数据库、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "Stage060 P1 的静态摘要合同、结构化事实与数值边界、失败关闭、回滚、聚焦单元用例和治理验证完成后停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE060-P2-GATE。任何真实表格、事实或 fixture 访问、实际摘要生成或写入、真实字段或事实抽取、typed value、数值统计、真实来源/证据绑定、数据库、OVH、生产或上传动作都不属于本步骤。"
 }

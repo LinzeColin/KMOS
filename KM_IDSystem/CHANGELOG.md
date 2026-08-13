@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-13 · IDS v0.1 Stage060 Phase 1（本地）
+
+- 完成表格到 RAG 摘要静态合同：定义 future fact/source 的 `13/10/7/6/10` 形状，即十三字段 reference-only 摘要输入、十字段未来中文摘要输出、七类表格语义、六类来源位置和十类失败关闭，并固定结构化事实与数值权威边界、中文反馈和回滚范围；没有建立第二权威事实源。
+- 本地验证通过：Stage060 P1 聚焦用例 `8/8`；Stage060 P1、Stage059 Review/P1--P4、Stage058 Review/P1--P4、Stage057 Review/P1--P4、Stage056 Review/P1--P4、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的合并回归 `484/484`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 未读取、打开、检测、解析、生成或写入真实 XLSX/CSV、生产记录、质检记录、fixture、事实或摘要，未执行真实 schema、字段、事实、typed value、RAG、统计、质量验证、来源/证据绑定、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE060-P2-GATE`。
+
 ## 2026-08-13 · IDS v0.1 Stage059 Review（本地）
 
 - 完成事实抽取基线整阶段白箱复审：机械核验 P1--P4 的 `12/25/3/7/6/10` 静态形状、两条固定非业务 control、三条 typed fact 控制候选、六类显式人工处置、`6` 个 metadata-only 交付样例、中文确认及重解析/事实回滚链；没有建立第二权威事实源。

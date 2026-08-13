@@ -1,0 +1,97 @@
+{
+  "schema_version": "ids.machine_run.v1",
+  "run_id": "RUN-IDS-STAGE060-P1-LOCAL-20260813-001",
+  "stage": "IDS-STAGE060",
+  "task_id": "IDS-V0_1-STAGE060-P1",
+  "acceptance_id": "ACC-STAGE-060",
+  "action": "定义表格到 RAG 摘要的 future fact/source 引用输入、中文摘要输出接口、结构化事实与数值权威边界、来源定位、失败关闭与回滚静态合同",
+  "result": "PASS_PHASE1_TABLE_RAG_SUMMARY_CONTRACT_RUNTIME_DISABLED",
+  "fact_level": "VERIFIED",
+  "evidence_iterations": [
+    {
+      "name": "stage060_phase1_focused_unit",
+      "command": "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage060_table_rag_summary_contract",
+      "passed": 8,
+      "total": 8,
+      "result": "PASS_PHASE1_TABLE_RAG_SUMMARY_CONTRACT_RUNTIME_DISABLED"
+    },
+    {
+      "name": "stage060_phase1_and_predecessor_regression",
+      "command": "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage060_table_rag_summary_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage059_fact_extraction_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage059_fact_extraction_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage059_fact_extraction_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage059_fact_extraction_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage059_fact_extraction_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage058_table_schema_inference_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage058_table_schema_inference_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage058_table_schema_inference_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage058_table_schema_inference_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage058_table_schema_inference_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage057_xlsx_csv_ingestion_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage057_xlsx_csv_ingestion_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage057_xlsx_csv_ingestion_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage057_xlsx_csv_ingestion_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage057_xlsx_csv_ingestion_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage056_ocr_cache_retention_policy_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage056_ocr_cache_retention_policy_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage056_ocr_cache_retention_policy_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage056_ocr_cache_retention_policy_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage056_ocr_cache_retention_policy KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch041_050_review_gate",
+      "passed": 484,
+      "total": 484,
+      "result": "PASS_STAGE060_PHASE1_AND_PREDECESSOR_REGRESSION"
+    },
+    {
+      "name": "batch041_050_predecessor_checker",
+      "command": "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py",
+      "passed": 1,
+      "total": 1,
+      "result": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
+    },
+    {
+      "name": "stage005_governance_regression",
+      "command": "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+      "passed": 1,
+      "total": 1,
+      "result": "valid=true"
+    },
+    {
+      "name": "human_projection_render",
+      "command": "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem",
+      "passed": 7,
+      "total": 7,
+      "result": "PASS_HUMAN_PROJECTION_RENDERED"
+    }
+  ],
+  "observed_work": {
+    "stage060_phase1_contract_defined": true,
+    "stage059_review_reused_as_reference_only": true,
+    "second_authoritative_source_created": false,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "authorized_fixture_access_performed": false,
+    "source_file_open_performed": false,
+    "file_type_detection_performed": false,
+    "xlsx_or_csv_parse_performed": false,
+    "table_schema_inference_performed": false,
+    "field_identification_performed": false,
+    "structured_fact_extraction_performed": false,
+    "typed_value_extraction_performed": false,
+    "table_summary_generation_performed": false,
+    "rag_summary_generation_performed": false,
+    "numeric_statistic_computation_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "source_location_binding_performed": false,
+    "evidence_binding_performed": false,
+    "database_connection_performed": false,
+    "database_schema_migration_performed": false,
+    "structured_fact_write_performed": false,
+    "rag_summary_write_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "local_service_start_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "stage060_started": true,
+    "stage060_entry_authorized": true,
+    "phase2_started": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "rollback": {
+    "return_to": "STAGE059_REVIEWED_LOCAL_FACT_EXTRACTION_RUNTIME_DISABLED",
+    "source_or_raw_data_change_allowed": false,
+    "fixture_change_allowed": false,
+    "database_schema_change_allowed": false,
+    "persistent_runtime_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  },
+  "next_gate": "IDS-STAGE060-P2-GATE",
+  "github_upload_allowed": false,
+  "push_allowed": false
+}

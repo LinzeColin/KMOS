@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE059",
-  "phase": "IDS-V0_1-STAGE059-REVIEW",
-  "task": "IDS-V0_1-STAGE059-REVIEW",
-  "real_progress": "Stage059 已完成 P1--P4 本地白箱复审：十二字段引用输入、二十五字段 future typed fact、三类事实、六类异常场景、metadata-only 交付、人工处理和回滚链一致；下一步仅可在新的独立 run 进入 Stage060 Phase 1，上传路径继续关闭",
-  "report_grade": "冻结 Stage059 任务包、P1--P4 合同与固定 control 报告为唯一合同上下文；当前只保留字段形状、control 计数、质量限制、人工处理、回滚范围和本地复审证据",
-  "business_verdict": "本阶段只证明 Stage059 control 合同与交付证据在本地复审一致，不证明真实 production、quality 或 inspection facts、真实 typed value、真实字段推断、真实来源可追溯、真实异常表格验证、数值统计、RAG、数据库、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE059_FACT_EXTRACTION_REVIEW_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE060",
+  "phase": "IDS-V0_1-STAGE060-P1",
+  "task": "IDS-V0_1-STAGE060-P1",
+  "real_progress": "Stage060 已完成 P1 静态合同：十三字段 future fact/source 引用输入、十字段未来中文摘要输出、七类表格语义、六类来源位置、十类失败关闭、结构化事实与数值权威边界及回滚范围已定义；下一步仅可在新的独立 run 进入 Stage060 Phase 2，上传路径继续关闭",
+  "report_grade": "冻结 Stage060 任务包与 Stage059 已复审工件为唯一合同上下文；当前只保留引用字段形状、权威边界、失败关闭、回滚范围和本地合同证据",
+  "business_verdict": "本阶段只证明 Stage060 P1 静态摘要合同与治理投影一致，不证明真实 production、quality 或 inspection facts、真实 typed value、真实字段推断、真实来源可追溯、真实 RAG 摘要、数值统计、数据库、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE060_TABLE_RAG_SUMMARY_CONTRACT_RUNTIME_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE060-P1-GATE",
+  "next_gate": "IDS-STAGE060-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

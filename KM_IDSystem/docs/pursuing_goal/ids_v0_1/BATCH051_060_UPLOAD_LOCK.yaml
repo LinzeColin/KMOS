@@ -1,14 +1,24 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-051-060"
 created_at_utc: "2026-08-12T13:19:44Z"
-updated_at_utc: "2026-08-13T12:02:52Z"
-status: "stage059_completed_reviewed_local"
+updated_at_utc: "2026-08-13T12:27:30Z"
+status: "stage060_phase1_completed"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-041-050"
 predecessor_review_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
 
 transition_history:
+  stage060_phase1_state:
+    status: "stage060_phase1_completed"
+    current_task_id: "IDS-V0_1-STAGE060-P1"
+    next_gate: "IDS-STAGE060-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE060-P2"
+    stage059_entry_authorized: true
+    stage059_review_entry_authorized: true
+    stage060_entry_authorized: true
+    stage060_phase2_entry_authorized: false
+    github_upload_allowed: false
   stage059_review_state:
     status: "stage059_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE059-REVIEW"
@@ -1872,11 +1882,101 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage058_table_schema_inference_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
 
+  STAGE-060:
+    status: "stage060_phase1_completed"
+    completed_phases:
+      - "Phase 1"
+    next_phase: "Stage060 Phase 2"
+    next_gate: "IDS-STAGE060-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE060-P1"
+    acceptance_id: "ACC-STAGE-060"
+    acceptance_status: "stage060_table_rag_summary_contract_phase1_local"
+    phase2_entry_authorized: false
+    taskpack_context_read_performed: true
+    source_authority: "FROZEN_TASKPACK_AND_STAGE059_REVIEW_ARTIFACTS_ONLY"
+    second_authoritative_source_created: false
+    source_body_or_path_allowed: false
+    raw_metadata_content_accessed: false
+    ids_business_source_read_performed: false
+    authorized_fixture_access_performed: false
+    source_file_open_performed: false
+    file_type_detection_performed: false
+    route_evaluation_performed: false
+    parser_execution_performed: false
+    stage059_review_artifacts_reused_as_reference_only: true
+    contract_state: "PHASE1_TABLE_RAG_SUMMARY_CONTRACT_RUNTIME_DISABLED"
+    execution_ready: false
+    reference_only_summary_input_field_count: 13
+    future_rag_summary_output_field_count: 10
+    typed_semantic_category_count: 7
+    source_location_field_count: 6
+    declared_failure_state_count: 10
+    actual_input_record_count: 0
+    actual_structured_fact_count: 0
+    actual_numeric_fact_count: 0
+    actual_rag_summary_count: 0
+    actual_source_location_binding_count: 0
+    actual_evidence_record_count: 0
+    source_document_remains_authoritative: true
+    model_direct_text_guessing_allowed: false
+    model_definitive_numeric_conclusion_allowed: false
+    unverified_numeric_value_as_definitive_fact_allowed: false
+    numeric_aggregation_requires_source_location_and_evidence: true
+    summary_can_replace_structured_fact: false
+    summary_can_become_numeric_statistical_evidence: false
+    summary_requires_fact_reference_before_future_use: true
+    unrecognized_structure_requires_human_handling: true
+    unverified_numeric_value_blocks_statistical_conclusion: true
+    xlsx_or_csv_parse_performed: false
+    table_schema_inference_performed: false
+    field_identification_performed: false
+    structured_fact_extraction_performed: false
+    typed_value_extraction_performed: false
+    table_summary_generation_performed: false
+    rag_summary_generation_performed: false
+    numeric_statistic_computation_performed: false
+    quality_gate_evaluation_performed: false
+    source_location_binding_performed: false
+    evidence_binding_performed: false
+    database_connection_performed: false
+    database_schema_migration_performed: false
+    structured_fact_write_performed: false
+    rag_summary_write_performed: false
+    manifest_write_performed: false
+    evidence_ledger_write_performed: false
+    audit_write_performed: false
+    report_write_performed: false
+    persistent_state_write_performed: false
+    agent_execution_performed: false
+    model_call_performed: false
+    model_token_consumption_performed: false
+    local_service_start_performed: false
+    ovh_deployment_performed: false
+    production_runtime_activation_performed: false
+    stage059_review_reused_as_reference_only: true
+    stage060_started: true
+    stage060_entry_authorized: true
+    phase2_started: false
+    whole_stage_review_performed: false
+    batch_review_performed: false
+    github_upload_allowed: false
+    push_allowed: false
+    app_reinstall_allowed: false
+    evidence_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE060_PHASE1_TABLE_RAG_SUMMARY_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage060_table_rag_summary_contract.py"
+      - "KM_IDSystem/machine/runs/2026-08-13-stage060-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE059_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage059_fact_extraction_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage059_fact_extraction_delivery_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+
 decision:
-  current_task_id: "IDS-V0_1-STAGE059-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-STAGE060-P1"
+  current_task_id: "IDS-V0_1-STAGE060-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE060-P2"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-059 Review 只复审 P1--P4 的冻结合同和固定 control 报告，确认字段、事实、数值/RAG、人工处理和回滚边界；真实表格、事实、typed value、RAG、统计、数据库、OVH、生产和上传均未执行。"
+  current_run: "STAGE-060 P1 只定义表格到 RAG 摘要的 future fact/source 引用输入、未来中文摘要输出、结构化事实与数值权威边界、失败关闭和回滚合同；未读取、打开、检测、解析、生成或写入任何真实表格、事实或摘要，未进入 Phase2、OVH、生产或上传。"
   no_upload_reason: "冻结任务包要求完成至 ACC-STAGE-168 且经独立全局发布验收后，才可重新考虑任何上传路径。"
