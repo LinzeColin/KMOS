@@ -135,8 +135,8 @@
   {
     "id": "IDS-STAGE062",
     "name": "表格证据绑定",
-    "gate": "P1 静态合同、P2 纯内存控制切片与 P3 六类受控异常场景已完成；下一步须在新的独立 run 进入 Stage062 Phase 4",
-    "status": "已定义 19 字段引用式绑定输入、17 字段未来绑定输出、evidence_id/document_id/sheet/row/column/source_uri 六维绑定、字段语义、数值关闭、人工处理和回滚边界；并以两条固定非业务 control 重放空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置。真实表格、真实来源位置验证、真实证据绑定、数值统计、数据库、OVH 与生产仍禁用，上传锁保持关闭"
+    "gate": "P1--P4 静态合同、P3 受控内存报告、metadata-only 交付、中文确认和 P4→P3 重解析/事实回滚说明已完成；下一步须在新的独立 run 进入 Stage062 Review",
+    "status": "已定义 19 字段引用式绑定输入、17 字段未来绑定输出、evidence_id/document_id/sheet/row/column/source_uri 六维绑定、字段语义、数值关闭、人工处理和回滚边界；并从六类固定 control 场景派生 6 个 metadata-only 交付样例、字段引用、质量结果、人工建议和中文确认。真实表格、真实来源位置验证、真实证据绑定、数值统计、数据库、OVH 与生产仍禁用，上传锁保持关闭"
   }
 ]
 }

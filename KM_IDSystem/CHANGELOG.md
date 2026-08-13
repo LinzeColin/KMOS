@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage062 Phase 4（本地）
+
+- 完成表格证据绑定 metadata-only 交付证据：从 P3 六类固定、非业务、reference-only control 场景派生 `6` 个表格事实交付样例、`6` 个字段引用标签、`6` 条控制质量结果、`6` 条人工处理建议、`3` 条中文确认和回到 P3 control 状态的表格重解析/事实回滚说明；没有建立第二权威事实源。
+- 六个样例、字段引用和质量结果只保留 `table_evidence_binding_ref/binding_request_ref/fact_ref/evidence_id/document_id/sheet/row/column/source_uri` 的 `:control:` 引用形状；合并单元格控制类别明确保留人工处理，所有条目都不代表真实表格、真实字段映射、真实事实、真实来源绑定、真实证据、真实重解析或真实回滚。
+- 本地验证通过：Stage062 P4 聚焦用例 `13/13`；Stage062 P4/P3/P2/P1、Stage061 Review/P4/P3/P2/P1、Batch051-060、Batch041-050 与 Stage060 Review 阶段链路回归 `119/119`；两个批次检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影已重渲染 `7` 个文件。未读取、打开、检测、解析或评估真实 XLSX/CSV、生产记录、质检记录、事实、证据或 fixture；未执行真实 Schema/字段/事实、统计、数据库、Agent、模型 Token、OVH、生产、整阶段复审、批次复审、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE062-REVIEW-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage062 Phase 3（本地）
 
 - 完成表格证据绑定受控异常场景：重放 P2 两条固定、非业务、reference-only `UNBOUND_REFERENCE_ONLY` 候选，覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置；静默丢弃为 `0`，没有建立第二权威事实源。

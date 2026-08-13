@@ -9,7 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage062 Phase 3 - 2026-08-14
+## Current Gate - Stage062 Phase 4 - 2026-08-14
+
+- 本节是唯一当前交接；Stage062 P1/P2/P3 与下方 Stage061 Review、Stage061 P4/P3/P2/P1、Batch051-060 Review 和所有更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE062-P4`：只从 P3 的六类固定、非业务、`:control:` 表格证据绑定场景派生 `6` 个 metadata-only 表格事实交付样例、`6` 个字段推断引用标签、`6` 条控制质量结果、`6` 条人工处理建议、`3` 条中文确认和回到 P3 control 状态的表格重解析/事实回滚说明；没有建立第二权威事实源。
+- 六个样例、字段引用和质量结果只保留 `table_evidence_binding_ref`、`binding_request_ref`、`fact_ref`、`evidence_id`、`document_id`、`sheet`、`row`、`column` 与 `source_uri` 的 `:control:` 引用形状。合并单元格控制类别明确标记为 `UNRECOGNIZED_STRUCTURE_REQUIRES_HUMAN_HANDLING`；所有条目都要求业务线白箱人工处理，不代表真实表格、真实来源位置、真实证据、真实结构化事实、真实质量结果、真实重解析或真实回滚已经验证或执行。
+- 未验证数值继续阻断统计及模型确定性数值结论；来源文档保持唯一权威，RAG 摘要与模型文本都不能替代结构化事实或数值权威。已验证：Stage062 P4 聚焦用例 `13/13`；Stage062 P4/P3/P2/P1、Stage061 Review/P4/P3/P2/P1、Batch051-060、Batch041-050 与 Stage060 Review 阶段链路回归 `119/119`；两个批次检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影已重渲染 `7` 个文件。外部运行、OVH、生产与上传均未进入。
+- 回滚只撤回本 P4 说明、交付合同、纯内存模块、聚焦用例、BATCH061-070 锁、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `PHASE3_TABLE_EVIDENCE_BINDING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；不改变 P1/P2/P3、真实资料、manifest、evidence ledger、audit log、事实库、数据库、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE062-REVIEW-GATE`。本 run 不进入整阶段复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage062 Phase 3 - 2026-08-14
 
 - 本节是唯一当前交接；Stage062 P1/P2 与下方 Stage061 Review、Stage061 P4/P3/P2/P1、Batch051-060 Review 和所有更早章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE062-P3`：只重放 P2 的两条固定、非业务、`:control:` 未绑定候选，对空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类控制异常输出显式人工处置；没有建立第二权威事实源。

@@ -1,14 +1,21 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
-updated_at_utc: "2026-08-13T19:11:58Z"
-status: "stage062_phase3_completed"
+updated_at_utc: "2026-08-13T19:35:02Z"
+status: "stage062_phase4_completed_review_pending"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage062_phase4_state:
+    status: "stage062_phase4_completed_review_pending"
+    current_task_id: "IDS-V0_1-STAGE062-P4"
+    next_gate: "IDS-STAGE062-REVIEW-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE062-REVIEW"
+    stage062_review_entry_authorized: true
+    github_upload_allowed: false
   stage062_phase3_state:
     status: "stage062_phase3_completed"
     current_task_id: "IDS-V0_1-STAGE062-P3"
@@ -97,19 +104,21 @@ upload_gate:
 
 stage_progress:
   STAGE-062:
-    status: "stage062_phase3_completed"
+    status: "stage062_phase4_completed_review_pending"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
-    next_phase: "Phase 4"
-    next_gate: "IDS-STAGE062-P4-GATE"
-    current_task_id: "IDS-V0_1-STAGE062-P3"
+      - "Phase 4"
+    next_phase: "Stage Review"
+    next_gate: "IDS-STAGE062-REVIEW-GATE"
+    current_task_id: "IDS-V0_1-STAGE062-P4"
     acceptance_id: "ACC-STAGE-062"
-    acceptance_status: "phase3_completed_local"
+    acceptance_status: "phase4_completed_review_pending"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
     phase4_entry_authorized: true
+    review_entry_authorized: true
     taskpack_context_read_performed: true
     source_authority: "FROZEN_STAGE062_TASKPACK_AND_STAGE061_REVIEW_ARTIFACTS"
     second_authoritative_source_created: false
@@ -127,9 +136,11 @@ stage_progress:
     table_evidence_binding_contract_schema: "ids.stage062.table_evidence_binding.phase1.v1"
     table_evidence_binding_slice_contract_schema: "ids.stage062.table_evidence_binding.phase2.v1"
     table_evidence_binding_scenarios_contract_schema: "ids.stage062.table_evidence_binding.phase3.controlled_scenarios_contract.v1"
-    contract_state: "PHASE3_TABLE_EVIDENCE_BINDING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED"
+    table_evidence_binding_delivery_contract_schema: "ids.stage062.table_evidence_binding.phase4.delivery.v1"
+    contract_state: "PHASE4_TABLE_EVIDENCE_BINDING_DELIVERY_EVIDENCE_RUNTIME_DISABLED"
     slice_executable: true
     scenario_executable: true
+    delivery_evidence_executable: true
     execution_ready: false
     reference_only_binding_input_field_count: 19
     control_binding_request_count: 2
@@ -166,6 +177,12 @@ stage_progress:
     date_variation_human_handling_count: 1
     outlier_numeric_block_count: 1
     duplicate_row_human_handling_count: 1
+    metadata_only_table_evidence_binding_delivery_sample_count: 6
+    field_reference_label_count: 6
+    quality_test_result_delivery_count: 6
+    unrecognized_structure_human_handling_count: 6
+    human_confirmation_prompt_count: 3
+    table_reparse_and_fact_rollback_instructions_created: true
     control_source_location_reference_check_count: 6
     control_source_location_traceability_preserved: true
     actual_source_file_traceability_validated: false
@@ -189,7 +206,7 @@ stage_progress:
     stage062_entry_authorized: true
     phase2_started: true
     phase3_started: true
-    phase4_started: false
+    phase4_started: true
     whole_stage_review_performed: false
     batch_review_performed: false
     github_upload_allowed: false
@@ -211,6 +228,11 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage062_table_evidence_binding_scenarios.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage062_table_evidence_binding_scenarios.py"
       - "KM_IDSystem/machine/runs/2026-08-14-stage062-p3-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE062_PHASE4_TABLE_EVIDENCE_BINDING_DELIVERY_CLOSEOUT.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage062_table_evidence_binding_delivery_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage062_table_evidence_binding_delivery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage062_table_evidence_binding_delivery.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage062-p4-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE061_STAGE_REVIEW.md"
       - "KM_IDSystem/machine/runs/2026-08-14-stage061-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
@@ -357,10 +379,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE062-P3"
-  next_allowed_task_id: "IDS-V0_1-STAGE062-P4"
+  current_task_id: "IDS-V0_1-STAGE062-P4"
+  next_allowed_task_id: "IDS-V0_1-STAGE062-REVIEW"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-062 P3 only replays two fixed non-business reference-only table evidence binding candidates through six explicit control anomaly dispositions. It does not open sources, parse tables, infer schemas, extract facts, validate actual source locations, bind facts or evidence, write persistent state, call a model, deploy OVH or activate any runtime."
+  current_run: "STAGE-062 P4 only derives metadata-only table-evidence binding delivery samples, field-reference labels, control quality results, human handling advice and P4-to-P3 reparse/rollback instructions from six fixed non-business reference-only scenarios. It does not open sources, parse tables, infer schemas, extract facts, validate actual source locations, bind facts or evidence, write persistent state, call a model, deploy OVH or activate any runtime."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."

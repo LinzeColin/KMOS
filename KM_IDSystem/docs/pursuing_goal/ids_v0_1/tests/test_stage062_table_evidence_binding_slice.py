@@ -221,7 +221,7 @@ class Stage062TableEvidenceBindingPhase2Tests(unittest.TestCase):
         self.assertFalse(result["summary_can_replace_structured_fact"])
         self.assertFalse(result["summary_can_become_numeric_statistical_evidence"])
 
-    def test_current_governance_preserves_phase2_evidence_or_phase3_successor(self):
+    def test_current_governance_preserves_phase2_evidence_or_legal_successor(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
@@ -243,6 +243,7 @@ class Stage062TableEvidenceBindingPhase2Tests(unittest.TestCase):
             (
                 ("IDS-V0_1-STAGE062-P2", "IDS-V0_1-STAGE062-P2", "IDS-STAGE062-P3-GATE"),
                 ("IDS-V0_1-STAGE062-P3", "IDS-V0_1-STAGE062-P3", "IDS-STAGE062-P4-GATE"),
+                ("IDS-V0_1-STAGE062-P4", "IDS-V0_1-STAGE062-P4", "IDS-STAGE062-REVIEW-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -250,11 +251,12 @@ class Stage062TableEvidenceBindingPhase2Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE062", plan["stage"])
         self.assertIn(
             plan["task"],
-            ("IDS-V0_1-STAGE062-P2", "IDS-V0_1-STAGE062-P3"),
+            ("IDS-V0_1-STAGE062-P2", "IDS-V0_1-STAGE062-P3", "IDS-V0_1-STAGE062-P4"),
         )
         self.assertTrue(
             "IDS-STAGE062-P3-GATE" in plan["stop_condition"]
             or "IDS-STAGE062-P4-GATE" in plan["stop_condition"]
+            or "IDS-STAGE062-REVIEW-GATE" in plan["stop_condition"]
         )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}

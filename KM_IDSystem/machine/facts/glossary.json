@@ -4,6 +4,11 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "metadata-only table evidence binding delivery",
+      "中文": "仅元数据表格证据绑定交付",
+      "说明": "Stage062 P4 从固定控制场景派生的交付样例、字段引用、质量结果、人工建议和回滚说明；它不包含真实表格内容、真实字段映射、真实事实、来源绑定或证据记录，不能成为第二权威事实源。"
+    },
+    {
       "英文": "controlled table evidence binding scenario",
       "中文": "受控表格证据绑定场景",
       "说明": "Stage062 P3 对两条固定、非业务、reference-only 未绑定候选的纯内存异常处置；空表、合并单元格、单位混乱、日期格式不一、异常值和重复行均只表示控制类别，不读取真实表格或形成业务结论。"
