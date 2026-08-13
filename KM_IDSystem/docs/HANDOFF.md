@@ -9,9 +9,19 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage061 Phase 3 - 2026-08-14
+## Current Gate - Stage061 Phase 4 - 2026-08-14
 
-- 本节是唯一当前交接；下方 Stage061 P2/P1、Batch051-060 Review 与所有更早章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；下方 Stage061 P3/P2/P1、Batch051-060 Review 与所有更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE061-P4`：只从 P3 的六类固定、非业务、reference-only 结构化数据质量控制场景派生 `6` 个 metadata-only 交付样例、`6` 个字段引用标签、`6` 条控制质量结果、`6` 条人工处理建议、`3` 条中文确认和回到 P3 control 状态的表格重解析/事实回滚说明；没有建立第二权威事实源。
+- 六个交付样例、字段引用和质量结果只保留 `:control:` 引用形状；合并单元格被明确标记为 `UNRECOGNIZED_STRUCTURE_REQUIRES_HUMAN_HANDLING`，其余异常也均保留人工建议。它们不证明真实表格、真实字段映射、真实质量结果、真实事实、真实来源绑定、真实重解析或真实回滚已被读取、验证、创建或执行。
+- 已验证：Stage061 P4 聚焦用例 `13/13`；P4/P3/P2/P1、Batch051-060、Batch041-050 与 Stage060 Review 阶段链路回归 `68/68`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归为 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 没有读取、打开、检测、解析、验证、生成或写入真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、事实、质量结果、摘要正文、来源正文或物理路径；没有执行真实 Schema/字段/事实/typed value、字段完整性、单位一致性、日期合法性、主键重复、异常值、数值统计、质量门、来源/证据绑定、数据库、持久化、Agent、模型调用、模型 Token、服务启动、OVH、生产、上传或推送；`phase2_started=true`、`phase3_started=true`、`phase4_started=true`、`whole_stage_review_performed=false`、`github_upload_allowed=false`、`push_allowed=false`。
+- 回滚只撤回本 P4 说明、交付合同、纯内存模块、聚焦用例、BATCH061-070 锁、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `PHASE3_STRUCTURED_DATA_QUALITY_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；不改变 P1/P2/P3、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE061-REVIEW-GATE`。本 run 不进入整阶段复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage061 Phase 3 - 2026-08-14
+
+- 本节保留 Stage061 P3 的已提交历史证据；当前门已转为上方 Stage061 P4，不重写下方 Stage061 P2/P1、Batch051-060 Review 与更早章节的事实。
 - 本轮完成 `IDS-V0_1-STAGE061-P3`：只重放 P2 两条固定、非业务、reference-only 十六字段质量控制输入与十条十八字段 `UNASSESSED` 候选，为空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类冻结异常输出显式人工处置；没有建立第二权威事实源。
 - 六类处置均要求人工处理，静默丢弃为 `0`。每个场景只保留质量候选、字段、主键、事实集、来源文档、工作簿、工作表、表头行、行列范围和 evidence 的 `:control:` 引用形状；该形状不证明真实文件、真实行列、真实来源绑定或真实证据已被读取、验证或创建。
 - 已验证：Stage061 P3 聚焦用例 `13/13`；P2 切片、P1 合同、Batch051-060、Batch041-050 与 Stage060 Review 聚焦兼容用例合计 `55/55`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归为 `valid=true`；中文事实投影已重渲染 `7` 个文件。

@@ -314,12 +314,19 @@ class Stage061StructuredDataQualityPhase3Tests(unittest.TestCase):
         )
 
         self.assertEqual("IDS-STAGE061", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE061-P3", status["phase"])
-        self.assertEqual("IDS-STAGE061-P4-GATE", status["next_gate"])
+        self.assertIn(
+            (status["phase"], status["next_gate"]),
+            (
+                ("IDS-V0_1-STAGE061-P3", "IDS-STAGE061-P4-GATE"),
+                ("IDS-V0_1-STAGE061-P4", "IDS-STAGE061-REVIEW-GATE"),
+            ),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE061-P3", plan["task"])
-        self.assertIn("IDS-STAGE061-P4-GATE", plan["stop_condition"])
+        self.assertIn(
+            plan["task"], ("IDS-V0_1-STAGE061-P3", "IDS-V0_1-STAGE061-P4")
+        )
+        self.assertIn(status["next_gate"], plan["stop_condition"])
         self.assertIn("OVH", plan["stop_condition"])
         self.assertEqual("IDS-V0_1-STAGE061-P3", run["task_id"])
         self.assertEqual("RUN-IDS-STAGE061-P3-LOCAL-20260814-001", run["run_id"])
