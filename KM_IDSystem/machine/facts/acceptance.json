@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "ACC-STAGE055-REVIEW-01",
+      "criteria": "Stage055 整阶段复审只以冻结任务包、Stage054 已复审工件与 P1/P2/P3/P4 合同为唯一合同上下文；复审只输出字段数、类别数、场景数、处置数、置信度计数、失败计数、候选复核路由计数和边界结论，不包含业务资料、来源正文、真实路径、页面、图片、OCR 文本或人工意见，未建立第二权威事实源。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE055-REVIEW-02",
+      "criteria": "P1/P2 的十字段引用输入与十一字段未来逐页输出、P3 五类明确处置且静默丢弃为零，以及 P4 五个 metadata-only 样例、HIGH 1/MEDIUM 2/LOW 1/UNKNOWN 1、1 条失败、3 条候选复核路由和 3 条中文确认提示均已白箱复审。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE055-REVIEW-03",
+      "criteria": "缓存保持仅内存可重建且临时产物为零；P4 到 P3 到 P2 到 P1 到 Stage054 review 回滚链完整，唯一后续入口为独立的 Stage056 P1 门。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE055-REVIEW-04",
+      "criteria": "未读取真实资料，未打开 PDF/图片，未调用 OCR 引擎、执行实际人工复核、创建缓存或持久状态、启动 Agent 或模型调用、消耗模型 Token、部署 OVH、激活生产、进入 Stage056、上传或推送。",
+      "status": "已遵守"
+    },
+    {
       "id": "ACC-STAGE055-P4-01",
       "criteria": "Stage055 P4 只以冻结任务包、P1/P2/P3 合同和 Stage054 已复审工件为合同上下文；五个交付样例只保留固定非业务 control 元数据，不包含业务资料、授权 fixture、来源正文、真实路径、页面、图片、表格单元、OCR 文本、失败原因或人工意见，未建立第二权威事实源。",
       "status": "已通过"

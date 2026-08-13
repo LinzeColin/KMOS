@@ -202,6 +202,7 @@ class Stage055OcrRegressionCorpusPhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE055-P2",
                 "IDS-V0_1-STAGE055-P3",
                 "IDS-V0_1-STAGE055-P4",
+                "IDS-V0_1-STAGE055-REVIEW",
             ),
         )
         self.assertFalse(status["runtime_enabled"])

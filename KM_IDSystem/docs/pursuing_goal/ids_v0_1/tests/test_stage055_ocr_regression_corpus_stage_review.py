@@ -6,29 +6,29 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-REVIEW = BASE / "STAGE054_STAGE_REVIEW.md"
-REVIEW_MODULE = BASE / "ocr_queue" / "stage054_low_confidence_review_route_stage_review.py"
-P1_CONTRACT = BASE / "ocr_queue" / "stage054_low_confidence_review_route_contract.json"
-P2_CONTRACT = BASE / "ocr_queue" / "stage054_low_confidence_review_route_slice_contract.json"
+REVIEW = BASE / "STAGE055_STAGE_REVIEW.md"
+REVIEW_MODULE = BASE / "ocr_queue" / "stage055_ocr_regression_corpus_stage_review.py"
+P1_CONTRACT = BASE / "ocr_queue" / "stage055_ocr_regression_corpus_contract.json"
+P2_CONTRACT = BASE / "ocr_queue" / "stage055_ocr_regression_corpus_slice_contract.json"
 P3_CONTRACT = (
-    BASE / "ocr_queue" / "stage054_low_confidence_review_route_quality_scenarios_contract.json"
+    BASE / "ocr_queue" / "stage055_ocr_regression_corpus_quality_scenarios_contract.json"
 )
-P4_CONTRACT = BASE / "ocr_queue" / "stage054_low_confidence_review_route_delivery_contract.json"
+P4_CONTRACT = BASE / "ocr_queue" / "stage055_ocr_regression_corpus_delivery_contract.json"
 BATCH = BASE / "BATCH051_060_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-13-stage054-review-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-13-stage055-review-local.json"
 
 
-class Stage054LowConfidenceReviewRouteStageReviewTests(unittest.TestCase):
+class Stage055OcrRegressionCorpusStageReviewTests(unittest.TestCase):
     _module_value = None
     _report_value = None
 
     def _module(self):
         if self.__class__._module_value is None:
             spec = importlib.util.spec_from_file_location(
-                "stage054_review", REVIEW_MODULE
+                "stage055_review", REVIEW_MODULE
             )
             module = importlib.util.module_from_spec(spec)
             self.assertIsNotNone(spec.loader)
@@ -38,7 +38,7 @@ class Stage054LowConfidenceReviewRouteStageReviewTests(unittest.TestCase):
 
     def _report(self):
         if self.__class__._report_value is None:
-            self.__class__._report_value = self._module().build_stage054_review_report()
+            self.__class__._report_value = self._module().build_stage055_review_report()
         return self.__class__._report_value
 
     def test_review_artifacts_exist(self):
@@ -61,22 +61,22 @@ class Stage054LowConfidenceReviewRouteStageReviewTests(unittest.TestCase):
     def test_review_identity_and_local_result(self):
         report = self._report()
         self.assertEqual(
-            "ids.stage054.low_confidence_review_route.stage_review.v1",
+            "ids.stage055.ocr_regression_corpus.stage_review.v1",
             report["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE054-REVIEW", report["task_id"])
-        self.assertEqual("ACC-STAGE-054", report["acceptance_id"])
+        self.assertEqual("IDS-V0_1-STAGE055-REVIEW", report["task_id"])
+        self.assertEqual("ACC-STAGE-055", report["acceptance_id"])
         self.assertTrue(report["review_valid"], report)
         self.assertEqual(
-            "PASS_REVIEWED_LOCAL_LOW_CONFIDENCE_REVIEW_ROUTE_RUNTIME_DISABLED",
+            "PASS_REVIEWED_LOCAL_OCR_REGRESSION_CORPUS_RUNTIME_DISABLED",
             report["result"],
         )
-        self.assertEqual("IDS-STAGE055-P1-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE056-P1-GATE", report["next_gate"])
 
     def test_review_preserves_single_authority_reference_only_boundary(self):
         report = self._report()
         self.assertEqual(
-            "FROZEN_TASKPACK_TEXT_STAGE054_P1_TO_P4_AND_STAGE053_REVIEW_ARTIFACTS",
+            "FROZEN_TASKPACK_TEXT_STAGE055_P1_TO_P4_AND_STAGE054_REVIEW_ARTIFACTS",
             report["source_authority"],
         )
         self.assertFalse(report["second_authoritative_source_created"])
@@ -87,20 +87,26 @@ class Stage054LowConfidenceReviewRouteStageReviewTests(unittest.TestCase):
         )
         rendered = json.dumps(report, ensure_ascii=False, sort_keys=True)
         self.assertNotIn("source-page:control:", rendered)
-        self.assertNotIn('"review_request_candidate":', rendered)
+        self.assertNotIn("CONTROL_SYMBOLIC_OUTPUT", rendered)
+        self.assertNotIn('"source_identity_ref"', rendered)
 
-    def test_review_checks_phase1_and_phase2_shape_without_returning_candidates(self):
+    def test_review_checks_phase1_and_phase2_shape_without_returning_outputs(self):
         report = self._report()
         replay = report["controlled_replay"]
-        self.assertEqual(9, replay["phase1_reference_input_field_count"])
-        self.assertEqual(10, replay["phase1_future_review_request_field_count"])
+        self.assertEqual(10, replay["phase1_reference_input_field_count"])
+        self.assertEqual(11, replay["phase1_future_per_page_output_field_count"])
+        self.assertEqual(5, replay["phase1_control_category_count"])
         self.assertEqual(2, replay["phase1_default_language_count"])
-        self.assertEqual(4, replay["phase2_control_record_count"])
-        self.assertEqual(10, replay["phase2_review_request_candidate_field_count"])
-        self.assertEqual(3, replay["phase2_in_memory_review_route_candidate_count"])
+        self.assertEqual(5, replay["phase1_future_engine_mapping_field_count"])
+        self.assertEqual(5, replay["phase2_control_record_count"])
+        self.assertEqual(11, replay["phase2_per_page_output_field_count"])
+        self.assertEqual(2, replay["phase2_candidate_page_count"])
+        self.assertEqual(1, replay["phase2_low_confidence_page_count"])
+        self.assertEqual(1, replay["phase2_mixed_language_page_count"])
+        self.assertEqual(1, replay["phase2_failed_page_count"])
         self.assertTrue(report["phase_results"]["phase1_contract_valid"])
         self.assertTrue(report["phase_results"]["phase2_slice_valid"])
-        self.assertTrue(report["review_invariants"]["review_request_shape_preserved"])
+        self.assertTrue(report["review_invariants"]["input_and_output_shape_preserved"])
 
     def test_review_replays_phase3_explicit_dispositions_without_silent_drop(self):
         report = self._report()
@@ -108,12 +114,11 @@ class Stage054LowConfidenceReviewRouteStageReviewTests(unittest.TestCase):
         self.assertEqual(5, replay["phase3_scenario_count"])
         self.assertEqual(5, replay["phase3_explicit_disposition_count"])
         self.assertEqual(0, replay["phase3_silent_drop_count"])
-        self.assertEqual(3, replay["phase3_review_route_candidate_count"])
+        self.assertEqual(3, replay["phase3_declared_review_route_count"])
         self.assertTrue(report["phase_results"]["phase3_scenarios_valid"])
         self.assertTrue(
-            report["review_invariants"][
-                "explicit_disposition_and_no_silent_drop_preserved"
-            ]
+            report["review_invariants"]
+            ["explicit_disposition_and_no_silent_drop_preserved"]
         )
 
     def test_review_replays_metadata_only_phase4_delivery_boundary(self):
@@ -121,7 +126,7 @@ class Stage054LowConfidenceReviewRouteStageReviewTests(unittest.TestCase):
         replay = report["controlled_replay"]
         self.assertEqual(5, replay["phase4_delivery_metadata_only_sample_count"])
         self.assertEqual(
-            {"HIGH": 2, "MEDIUM": 1, "LOW": 1, "UNKNOWN": 1},
+            {"HIGH": 1, "MEDIUM": 2, "LOW": 1, "UNKNOWN": 1},
             replay["phase4_confidence_counts"],
         )
         self.assertEqual(1, replay["phase4_failure_list_count"])
@@ -145,15 +150,15 @@ class Stage054LowConfidenceReviewRouteStageReviewTests(unittest.TestCase):
             "phase3": json.loads(P3_CONTRACT.read_text(encoding="utf-8")),
             "phase4": {},
         }
-        report = self._module().build_stage054_review_report(
+        report = self._module().build_stage055_review_report(
             contract_provider=lambda: contracts
         )
         self.assertFalse(report["review_valid"])
         self.assertEqual(
-            "FAIL_CLOSED_STAGE054_LOW_CONFIDENCE_REVIEW_ROUTE_REVIEW",
+            "FAIL_CLOSED_STAGE055_OCR_REGRESSION_CORPUS_REVIEW",
             report["result"],
         )
-        self.assertEqual("IDS-STAGE054-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE055-REVIEW-GATE", report["next_gate"])
 
     def test_review_has_no_runtime_or_external_actions(self):
         report = self._report()
@@ -175,8 +180,8 @@ class Stage054LowConfidenceReviewRouteStageReviewTests(unittest.TestCase):
             "model_token_consumption_performed",
             "ovh_deployment_performed",
             "production_runtime_activation_performed",
-            "stage055_started",
-            "stage055_entry_allowed",
+            "stage056_started",
+            "stage056_entry_allowed",
             "batch_review_performed",
             "github_upload_performed",
             "github_upload_allowed",
@@ -186,49 +191,39 @@ class Stage054LowConfidenceReviewRouteStageReviewTests(unittest.TestCase):
                 self.assertFalse(report[field])
         self.assertTrue(report["whole_stage_review_performed"])
 
-    def test_governance_closes_stage054_only_to_a_separate_stage055_run(self):
+    def test_governance_closes_stage055_only_to_a_separate_stage056_run(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage054_completed_reviewed_local"'),
-            (batch, "stage054_review_state:"),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE054-REVIEW"'),
-            (batch, 'next_allowed_task_id: "IDS-V0_1-STAGE055-P1"'),
-            (batch, "stage055_entry_authorized: false"),
-            (roadmap, 'current_phase_id: "IDS-STAGE054-REVIEW"'),
-            (roadmap, 'current_task_id: "IDS-V0_1-STAGE054-REVIEW"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE055-P1-GATE"'),
+            (batch, 'status: "stage055_completed_reviewed_local"'),
+            (batch, "stage055_review_state:"),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE055-REVIEW"'),
+            (batch, 'next_allowed_task_id: "IDS-V0_1-STAGE056-P1"'),
+            (batch, "stage056_entry_authorized: false"),
+            (roadmap, 'current_phase_id: "IDS-STAGE055-REVIEW"'),
+            (roadmap, 'current_task_id: "IDS-V0_1-STAGE055-REVIEW"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE056-P1-GATE"'),
             (roadmap, 'status: "completed_reviewed_local"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertIn(status["stage"], ("IDS-STAGE054", "IDS-STAGE055"))
-        self.assertIn(
-            status["phase"],
-            (
-                "IDS-V0_1-STAGE054-REVIEW",
-                "IDS-V0_1-STAGE055-P1",
-                "IDS-V0_1-STAGE055-P2",
-                "IDS-V0_1-STAGE055-P3",
-                "IDS-V0_1-STAGE055-P4",
-                "IDS-V0_1-STAGE055-REVIEW",
-            ),
-        )
+        self.assertEqual("IDS-STAGE055", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE055-REVIEW", status["phase"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
     def test_machine_run_and_event_record_only_local_review_evidence(self):
         run = json.loads(RUN.read_text(encoding="utf-8"))
         self.assertEqual(
-            "PASS_REVIEWED_LOCAL_LOW_CONFIDENCE_REVIEW_ROUTE_RUNTIME_DISABLED",
+            "PASS_REVIEWED_LOCAL_OCR_REGRESSION_CORPUS_RUNTIME_DISABLED",
             run["result"].strip(),
         )
         self.assertFalse(run["observed_work"]["ocr_engine_invocation_performed"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
         self.assertTrue(run["observed_work"]["whole_stage_review_performed"])
-        self.assertFalse(run["observed_work"]["stage055_started"])
+        self.assertFalse(run["observed_work"]["stage056_started"])
 
         events = [
             json.loads(line) for line in EVENTS.read_text(encoding="utf-8").splitlines()
@@ -236,11 +231,11 @@ class Stage054LowConfidenceReviewRouteStageReviewTests(unittest.TestCase):
         event = next(
             item
             for item in events
-            if item.get("event_id") == "EVT-IDS-V0_1-STAGE054-REVIEW-20260813-001"
+            if item.get("event_id") == "EVT-IDS-V0_1-STAGE055-REVIEW-20260813-001"
         )
         self.assertEqual("stage_review", event["event_type"])
-        self.assertEqual("IDS-V0_1-STAGE054-REVIEW", event["task_id"])
-        self.assertIn("next_gate=IDS-STAGE055-P1-GATE", event["notes"])
+        self.assertEqual("IDS-V0_1-STAGE055-REVIEW", event["task_id"])
+        self.assertIn("next_gate=IDS-STAGE056-P1-GATE", event["notes"])
         self.assertIn(
             "KM_IDSystem/" + str(REVIEW.relative_to(ROOT)),
             {item["ref"] for item in event["evidence_refs"]},
