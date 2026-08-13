@@ -242,11 +242,18 @@ class Stage063ChapterAwareChunkingPhase3Tests(unittest.TestCase):
         batch = BATCH.read_text(encoding="utf-8")
         events = EVENTS.read_text(encoding="utf-8")
         self.assertEqual("IDS-STAGE063", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE063-P3", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE063-P3", status["task"])
-        self.assertEqual("IDS-STAGE063-P4-GATE", status["next_gate"])
-        self.assertEqual("IDS-V0_1-STAGE063-P3", plan["phase"])
-        self.assertIn("IDS-STAGE063-P4-GATE", plan["stop_condition"])
+        self.assertIn(
+            (status["phase"], status["task"], status["next_gate"]),
+            (
+                ("IDS-V0_1-STAGE063-P3", "IDS-V0_1-STAGE063-P3", "IDS-STAGE063-P4-GATE"),
+                ("IDS-V0_1-STAGE063-P4", "IDS-V0_1-STAGE063-P4", "IDS-STAGE063-REVIEW-GATE"),
+            ),
+        )
+        self.assertIn(plan["phase"], ("IDS-V0_1-STAGE063-P3", "IDS-V0_1-STAGE063-P4"))
+        self.assertTrue(
+            "IDS-STAGE063-P4-GATE" in plan["stop_condition"]
+            or "IDS-STAGE063-REVIEW-GATE" in plan["stop_condition"]
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
@@ -258,9 +265,20 @@ class Stage063ChapterAwareChunkingPhase3Tests(unittest.TestCase):
                 "ACC-STAGE063-P3-04",
             }.issubset(acceptance_ids)
         )
-        self.assertIn('current_phase_id: "IDS-STAGE063-P3"', roadmap)
-        self.assertIn('next_gate_id: "IDS-STAGE063-P4-GATE"', roadmap)
-        self.assertIn('status: "stage063_phase3_completed"', batch)
+        self.assertTrue(
+            (
+                'current_phase_id: "IDS-STAGE063-P3"' in roadmap
+                and 'next_gate_id: "IDS-STAGE063-P4-GATE"' in roadmap
+            )
+            or (
+                'current_phase_id: "IDS-STAGE063-P4"' in roadmap
+                and 'next_gate_id: "IDS-STAGE063-REVIEW-GATE"' in roadmap
+            )
+        )
+        self.assertTrue(
+            'status: "stage063_phase3_completed"' in batch
+            or 'status: "stage063_phase4_completed_review_pending"' in batch
+        )
         self.assertIn("EVT-IDS-V0_1-STAGE063-P3-20260814-001", events)
 
     def test_local_run_is_phase3_only(self):

@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage063 Phase 3 - 2026-08-14
+## Current Gate - Stage063 Phase 4 - 2026-08-14
 
-- 本节是唯一当前交接；Stage063 P2/P1、Stage062 Review、Stage062 P1/P2/P3/P4 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；Stage063 P3/P2/P1、Stage062 Review、Stage062 P1/P2/P3/P4 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE063-P4`：只从 P3 六类固定、非业务、`:control:` 章节感知切块控制场景派生六条 metadata-only JSONL 样例、控制覆盖率报告、六条低质量待人工清单、控制回归结果、策略适用边界、回到 P3 的重生成/版本回退说明和三条中文确认；没有建立第二权威事实源。
+- 所有样例和清单只保留控制引用形状，全部要求业务线白箱人工复核。它们不代表真实 chunk、真实文档覆盖率、真实低质量、真实质量回归、真实来源追溯、真实去重、真实重生成或版本回退；不读取真实资料，也不产生持久化 JSONL、chunk、索引或业务事实。Stage047、Stage062 与 Stage064--068 的既有或后续唯一职责保持不变；来源文档与业务线白箱人工复核保持权威。
+- 已验证：Stage063 P4 聚焦用例 `12/12`；含 P4、Stage063 P3/P2/P1、Stage062 P1--Review、Stage061 P1--Review、两个批次与 Stage060 Review 的受影响阶段链路用例 `153/153`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影已重渲染 `7` 个文件。执行范围没有进入真实 parser、章节检测、切块、身份/版本、分类、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产或上传。
+- 回滚只撤回本 P4 说明、交付合同、纯内存模块、聚焦用例、BATCH061-070 锁、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `PHASE3_CHAPTER_AWARE_CHUNKING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；不改变 P1/P2/P3、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE063-REVIEW-GATE`。本 run 不进入整阶段复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage063 Phase 3 - 2026-08-14
+
+- 本节保留 Stage063 P3 的已提交历史证据；唯一当前交接位于上方 Stage063 Phase 4，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE063-P3`：只重放 P2 的三条固定、非业务、`:control:` 章节感知切块候选，为长文档、跨页参数表、施工步骤、参数表、引用页码和重复 chunk 写入边界输出六类显式人工处置，并保留 `document/page/section/parser output/表格上下文/来源片段` 六维控制引用；没有建立第二权威事实源。
 - 六类场景均要求业务线白箱人工复核，静默丢弃为 `0`。控制引用不含真实路径、URL、正文、页面、章节、表格、来源片段或 parser 输出，且不代表真实长文档质量、真实跨页关系、真实施工步骤、真实页码反查或真实来源追溯。重复场景只确认控制模块没有发起 embedding 或索引写入；没有检测真实重复项、生成身份/版本或计算哈希，不能表述为真实去重效果。Stage047、Stage062 与 Stage064--068 的既有或后续唯一职责保持不变；来源文档与业务线白箱人工复核保持权威。
 - 已验证：Stage063 P3 聚焦用例 `10/10`；含 Stage063 P3/P2/P1、Stage062 P1--Review、Stage061 P1--Review、两个批次与 Stage060 Review 的阶段链路回归 `154/154`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影已重渲染 `7` 个文件。执行范围没有进入真实 parser、章节检测、切块、重复检测或去重、身份/版本、分类、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产或上传。

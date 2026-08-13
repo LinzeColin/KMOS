@@ -1,0 +1,322 @@
+import importlib.util
+import json
+from pathlib import Path
+import unittest
+
+
+ROOT = Path(__file__).resolve().parents[4]
+BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
+PHASE1_CONTRACT = (
+    BASE / "chapter_aware_chunking" / "stage063_chapter_aware_chunking_contract.json"
+)
+PHASE2_CONTRACT = (
+    BASE / "chapter_aware_chunking" / "stage063_chapter_aware_chunking_slice_contract.json"
+)
+PHASE2_MODULE = (
+    BASE / "chapter_aware_chunking" / "stage063_chapter_aware_chunking_slice.py"
+)
+PHASE3_DOCUMENT = BASE / "STAGE063_PHASE3_CHAPTER_AWARE_CHUNKING_SCENARIOS.md"
+PHASE3_CONTRACT = (
+    BASE / "chapter_aware_chunking" / "stage063_chapter_aware_chunking_scenarios_contract.json"
+)
+PHASE3_MODULE = (
+    BASE / "chapter_aware_chunking" / "stage063_chapter_aware_chunking_scenarios.py"
+)
+CLOSEOUT = BASE / "STAGE063_PHASE4_CHAPTER_AWARE_CHUNKING_DELIVERY_CLOSEOUT.md"
+CONTRACT = (
+    BASE / "chapter_aware_chunking" / "stage063_chapter_aware_chunking_delivery_contract.json"
+)
+DELIVERY = BASE / "chapter_aware_chunking" / "stage063_chapter_aware_chunking_delivery.py"
+BATCH = BASE / "BATCH061_070_UPLOAD_LOCK.yaml"
+ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
+EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
+STATUS = ROOT / "machine" / "facts" / "status.json"
+PLAN = ROOT / "machine" / "facts" / "plan.json"
+ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-14-stage063-p4-local.json"
+
+EXPECTED_SCENARIO_IDS = [
+    "long-document-chunking-control-human-review",
+    "cross-page-parameter-table-control-human-handling",
+    "engineering-procedure-step-control-human-review",
+    "parameter-table-control-human-review",
+    "page-reference-reverse-trace-control-human-confirmation",
+    "duplicate-chunk-embedding-index-control-human-review",
+]
+
+
+class Stage063ChapterAwareChunkingPhase4DeliveryTests(unittest.TestCase):
+    _module_value = None
+    _report_value = None
+
+    def _module(self):
+        if self.__class__._module_value is None:
+            spec = importlib.util.spec_from_file_location("stage063_p4", DELIVERY)
+            module = importlib.util.module_from_spec(spec)
+            self.assertIsNotNone(spec.loader)
+            spec.loader.exec_module(module)
+            self.__class__._module_value = module
+        return self.__class__._module_value
+
+    def _report(self):
+        if self.__class__._report_value is None:
+            self.__class__._report_value = (
+                self._module().build_chapter_aware_chunking_phase4_delivery_report()
+            )
+        return self.__class__._report_value
+
+    def _contract(self):
+        return json.loads(CONTRACT.read_text(encoding="utf-8"))
+
+    def test_phase4_primary_artifacts_exist(self):
+        for artifact in (
+            PHASE1_CONTRACT,
+            PHASE2_CONTRACT,
+            PHASE2_MODULE,
+            PHASE3_DOCUMENT,
+            PHASE3_CONTRACT,
+            PHASE3_MODULE,
+            CLOSEOUT,
+            CONTRACT,
+            DELIVERY,
+            BATCH,
+            ROADMAP,
+            EVENTS,
+            STATUS,
+            PLAN,
+            ACCEPTANCE,
+            RUN,
+        ):
+            with self.subTest(artifact=artifact):
+                self.assertTrue(artifact.is_file())
+
+    def test_contract_identity_and_runtime_boundary(self):
+        contract = self._contract()
+        self.assertEqual(
+            "ids.stage063.chapter_aware_chunking.phase4.delivery.v1",
+            contract["schema_version"],
+        )
+        self.assertEqual("IDS-V0_1-STAGE063-P4", contract["task_id"])
+        self.assertTrue(contract["delivery_evidence_executable"])
+        self.assertFalse(contract["execution_ready"])
+        self.assertEqual("IDS-STAGE063-REVIEW-GATE", contract["next_gate"])
+        self.assertFalse(contract["source_authority"]["second_authoritative_source_created"])
+        self.assertTrue(
+            contract["ownership_boundary"]
+            ["stage063_phase1_phase2_phase3_reused_as_reference_only"]
+        )
+        self.assertEqual(6, contract["delivery_boundary"]["chunk_jsonl_sample_count"])
+        self.assertFalse(contract["runtime_boundary"]["ovh_deployment_performed"])
+
+    def test_delivery_report_derives_six_metadata_only_jsonl_samples(self):
+        report = self._report()
+        self.assertTrue(report["valid"])
+        self.assertEqual(
+            "PASS_PHASE4_CHAPTER_AWARE_CHUNKING_DELIVERY_RUNTIME_DISABLED",
+            report["result"],
+        )
+        self.assertEqual("IDS-STAGE063-REVIEW-GATE", report["next_gate"])
+        self.assertEqual(6, report["chunk_jsonl_sample_count"])
+        self.assertEqual(
+            EXPECTED_SCENARIO_IDS,
+            [item["scenario_id"] for item in report["chunk_jsonl_samples"]],
+        )
+
+    def test_jsonl_samples_preserve_control_references_without_real_chunk_content(self):
+        samples = self._report()["chunk_jsonl_samples"]
+        lines = self._report()["chunk_jsonl_sample_lines"]
+        self.assertEqual(len(samples), len(lines))
+        for sample, line in zip(samples, lines):
+            with self.subTest(sample=sample["sample_id"]):
+                self.assertEqual(
+                    "DELIVERY_METADATA_ONLY_CHUNK_JSONL_SAMPLE_NOT_REAL_CHUNK",
+                    sample["sample_kind"],
+                )
+                self.assertEqual(sample, json.loads(line))
+                self.assertTrue(sample["control_metadata_only"])
+                self.assertTrue(sample["human_review_required"])
+                self.assertFalse(sample["source_content_retained"])
+                self.assertFalse(sample["actual_chunk_created"])
+                self.assertFalse(sample["actual_chunk_persisted"])
+                self.assertFalse(sample["actual_embedding_written"])
+                self.assertFalse(sample["actual_index_written"])
+                for field in (
+                    "chunk_ref",
+                    "chunking_request_ref",
+                    "document_ref",
+                    "page_ref",
+                    "section_ref",
+                    "parser_output_ref",
+                    "table_context_ref",
+                    "source_fragment_ref",
+                ):
+                    self.assertIn(":control:", sample[field])
+
+    def test_coverage_report_is_complete_control_coverage_not_real_coverage(self):
+        coverage = self._report()["coverage_report"]
+        self.assertEqual(
+            "CONTROLLED_CHUNK_COVERAGE_REPORT_NOT_REAL_COVERAGE",
+            coverage["report_kind"],
+        )
+        self.assertEqual(6, coverage["control_scenario_count"])
+        self.assertEqual(6, coverage["chunk_jsonl_sample_count"])
+        self.assertEqual(36, coverage["control_traceability_reference_check_count"])
+        self.assertTrue(coverage["control_coverage_complete"])
+        self.assertTrue(coverage["control_coverage_only"])
+        self.assertFalse(coverage["actual_document_coverage_calculated"])
+        self.assertFalse(coverage["actual_chunk_coverage_calculated"])
+        self.assertFalse(coverage["coverage_can_support_real_quality_claim"])
+
+    def test_low_quality_chunk_list_stays_human_control_only(self):
+        records = self._report()["low_quality_chunk_list"]
+        self.assertEqual(6, len(records))
+        for record in records:
+            with self.subTest(record=record["record_id"]):
+                self.assertEqual(
+                    "CONTROLLED_LOW_QUALITY_CHUNK_LIST_NOT_REAL_QUALITY_MEASUREMENT",
+                    record["record_kind"],
+                )
+                self.assertEqual(
+                    "CONTROL_BOUNDARY_UNVERIFIED_REQUIRES_HUMAN_REVIEW",
+                    record["quality_disposition"],
+                )
+                self.assertTrue(record["human_handling_required"])
+                self.assertTrue(record["control_metadata_only"])
+                self.assertIn("人工", record["recommendation_zh"])
+                self.assertFalse(record["actual_low_quality_chunk_observed"])
+                self.assertFalse(record["actual_quality_measurement_performed"])
+                self.assertFalse(record["automatic_quality_degradation_action_performed"])
+
+    def test_regression_result_reuses_control_outcome_only(self):
+        result = self._report()["regression_test_results"]
+        self.assertEqual(
+            "CONTROLLED_CHUNKING_REGRESSION_RESULT_NOT_REAL_QUALITY_REGRESSION",
+            result["report_kind"],
+        )
+        self.assertEqual(6, result["control_scenario_count"])
+        self.assertEqual(6, result["passed_control_scenario_count"])
+        self.assertEqual(0, result["silent_drop_count"])
+        self.assertTrue(result["control_regression_consistent"])
+        self.assertFalse(result["actual_quality_regression_performed"])
+        self.assertFalse(result["actual_chunking_quality_baseline_loaded"])
+        self.assertFalse(result["actual_duplicate_detection_performed"])
+        self.assertFalse(result["actual_embedding_or_index_write_performed"])
+
+    def test_strategy_boundary_and_rollback_are_non_operational(self):
+        boundary = self._report()["strategy_applicability_boundary"]
+        self.assertTrue(boundary["fixed_control_scenarios_only"])
+        self.assertTrue(boundary["long_document_requires_human_boundary_review"])
+        self.assertTrue(boundary["cross_page_parameter_table_requires_human_handling"])
+        self.assertTrue(boundary["unverified_boundary_cannot_trigger_automatic_chunk_write"])
+        self.assertFalse(boundary["actual_chunking_strategy_applicability_validated"])
+        self.assertFalse(boundary["actual_production_acceptance_claim_allowed"])
+
+        instructions = self._report()["regeneration_and_version_rollback_instructions"]
+        self.assertEqual(
+            "CHAPTER_AWARE_CHUNK_REGENERATION_AND_VERSION_ROLLBACK_INSTRUCTIONS_CONTROL_REPLAY_ONLY",
+            instructions["record_kind"],
+        )
+        self.assertEqual(
+            "PHASE3_CHAPTER_AWARE_CHUNKING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+            instructions["return_to"],
+        )
+        self.assertTrue(instructions["in_memory_control_replay_only"])
+        self.assertFalse(instructions["actual_chunk_regeneration_performed"])
+        self.assertFalse(instructions["actual_chunk_version_rollback_performed"])
+        self.assertFalse(instructions["actual_identity_or_version_implementation_performed"])
+        self.assertFalse(instructions["source_or_raw_data_change_allowed"])
+        self.assertFalse(instructions["database_or_persistent_state_change_allowed"])
+        self.assertFalse(instructions["embedding_or_index_write_allowed"])
+
+    def test_chinese_prompts_require_human_confirmation_without_auto_action(self):
+        prompts = self._report()["human_confirmation_prompts_zh"]
+        self.assertEqual(3, len(prompts))
+        for prompt in prompts:
+            with self.subTest(prompt=prompt["prompt_id"]):
+                self.assertIn("请", prompt["text"])
+                self.assertFalse(prompt["automatic_confirmation_performed"])
+
+    def test_all_runtime_side_effects_remain_false(self):
+        report = self._report()
+        for field in (
+            "ids_business_source_read_performed",
+            "raw_metadata_content_accessed",
+            "authorized_fixture_access_performed",
+            "source_file_open_performed",
+            "parser_execution_performed",
+            "chapter_detection_performed",
+            "chunking_execution_performed",
+            "chunk_identity_or_version_implementation_performed",
+            "semantic_asset_classification_performed",
+            "coverage_calculation_performed",
+            "quality_regression_performed",
+            "quality_degradation_performed",
+            "source_traceability_binding_performed",
+            "embedding_or_index_write_performed",
+            "database_connection_performed",
+            "persistent_state_write_performed",
+            "agent_execution_performed",
+            "model_call_performed",
+            "model_token_consumption_performed",
+            "local_service_start_performed",
+            "ovh_deployment_performed",
+            "production_runtime_activation_performed",
+            "whole_stage_review_performed",
+            "batch_review_performed",
+            "github_upload_performed",
+            "push_performed",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(report[field])
+
+    def test_invalid_predecessor_fails_closed(self):
+        report = self._module().build_chapter_aware_chunking_phase4_delivery_report(
+            lambda: {"valid": True, "result": "tampered"}
+        )
+        self.assertFalse(report["valid"])
+        self.assertEqual(
+            "FAIL_CHAPTER_AWARE_CHUNKING_DELIVERY_EVIDENCE", report["result"]
+        )
+        self.assertEqual([], report["chunk_jsonl_samples"])
+        self.assertEqual([], report["low_quality_chunk_list"])
+
+    def test_governance_projection_preserves_phase4_delivery(self):
+        status = json.loads(STATUS.read_text(encoding="utf-8"))
+        plan = json.loads(PLAN.read_text(encoding="utf-8"))
+        acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
+        run = json.loads(RUN.read_text(encoding="utf-8"))
+        events = [
+            json.loads(line)
+            for line in EVENTS.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        self.assertEqual("IDS-STAGE063", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE063-P4", status["phase"])
+        self.assertEqual("IDS-V0_1-STAGE063-P4", status["task"])
+        self.assertEqual("IDS-STAGE063-REVIEW-GATE", status["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE063-P4", plan["task"])
+        self.assertIn("IDS-STAGE063-REVIEW-GATE", plan["stop_condition"])
+        self.assertTrue(
+            {
+                "ACC-STAGE063-P4-01",
+                "ACC-STAGE063-P4-02",
+                "ACC-STAGE063-P4-03",
+                "ACC-STAGE063-P4-04",
+            }.issubset({item["id"] for item in acceptance["items"]})
+        )
+        self.assertEqual("IDS-V0_1-STAGE063-P4", run["task_id"])
+        self.assertEqual("IDS-STAGE063-REVIEW-GATE", run["next_gate"])
+        self.assertTrue(run["result"].startswith("PASS_LOCAL_"))
+        self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
+        self.assertIn("stage063_phase4", BATCH.read_text(encoding="utf-8"))
+        self.assertIn("IDS-V0_1-STAGE063-P4", ROADMAP.read_text(encoding="utf-8"))
+        self.assertTrue(
+            any(
+                item.get("event_id") == "EVT-IDS-V0_1-STAGE063-P4-20260814-001"
+                for item in events
+            )
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
