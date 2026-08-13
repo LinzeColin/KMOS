@@ -105,8 +105,8 @@
   {
     "id": "IDS-STAGE057",
     "name": "XLSX/CSV 接入合同",
-    "gate": "Phase 1 本地静态合同已通过；下一步须在新的独立 run 进入 Stage057 Phase 2",
-    "status": "已定义 12 字段引用输入、19 字段未来事实输出、七类字段语义、五类来源定位、数值不得由模型猜测、事实与 RAG 摘要分离、六类失败关闭、中文反馈和回滚边界；真实 XLSX/CSV、生产记录、质检记录、事实库、数据库、OVH 和生产仍禁用，上传锁保持关闭"
+      "gate": "Phase 1 静态合同与 Phase 2 本地控制切片已通过；下一步须在新的独立 run 进入 Stage057 Phase 3",
+      "status": "已以两条固定非业务 reference-only 控制记录投影 2 个 schema profile、10 个字段/空值事实候选、2 个 metadata-only RAG 摘要候选及来源定位；真实 XLSX/CSV、生产记录、质检记录、真实 schema 推断、真实事实抽取、数值统计、事实库、数据库、OVH 和生产仍禁用，上传锁保持关闭"
   }
 ]
 }

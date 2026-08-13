@@ -293,7 +293,13 @@ class Stage056OcrCacheRetentionPolicyPhase3Tests(unittest.TestCase):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertIn(
             status["task"],
-            ("IDS-V0_1-STAGE056-P3", "IDS-V0_1-STAGE056-P4", "IDS-V0_1-STAGE056-REVIEW", "IDS-V0_1-STAGE057-P1"),
+            (
+                "IDS-V0_1-STAGE056-P3",
+                "IDS-V0_1-STAGE056-P4",
+                "IDS-V0_1-STAGE056-REVIEW",
+                "IDS-V0_1-STAGE057-P1",
+                "IDS-V0_1-STAGE057-P2",
+            ),
         )
         self.assertIn(
             status["next_gate"],
@@ -302,6 +308,7 @@ class Stage056OcrCacheRetentionPolicyPhase3Tests(unittest.TestCase):
                 "IDS-STAGE056-REVIEW-GATE",
                 "IDS-STAGE057-P1-GATE",
                 "IDS-STAGE057-P2-GATE",
+                "IDS-STAGE057-P3-GATE",
             ),
         )
         events = [

@@ -1,0 +1,271 @@
+{
+  "schema_version": "ids.stage057.xlsx_csv_ingestion.phase2.v1",
+  "stage": "STAGE-057",
+  "phase": "Phase 2",
+  "task_id": "IDS-V0_1-STAGE057-P2",
+  "acceptance_id": "ACC-STAGE-057",
+  "local_code": "D10-S001",
+  "domain": "D10 · 结构化数据与表格事实库",
+  "entrance": "IDS 系统运营入口",
+  "pursuing_goal": "以两条固定、非业务、reference-only 控制记录在内存中投影 XLSX/CSV schema、字段映射、结构化事实候选和 RAG 摘要候选，证明其分层、来源定位与数值边界可执行；不读取或解析真实表格。",
+  "contract_state": "PHASE2_XLSX_CSV_INGESTION_CONTROL_SLICE_RUNTIME_DISABLED",
+  "slice_executable": true,
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE057-P3-GATE",
+  "source_authority": {
+    "authority": "FROZEN_TASKPACK_TEXT_AND_STAGE057_PHASE1_AND_STAGE056_REVIEW_ARTIFACTS",
+    "frozen_taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-057_XLSX_CSV接入合同.md",
+    "phase1_contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage057_xlsx_csv_ingestion_contract.json",
+    "predecessor_review_refs": [
+      "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE056_STAGE_REVIEW.md",
+      "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage056_ocr_cache_retention_policy_stage_review.py",
+      "KM_IDSystem/machine/runs/2026-08-13-stage056-review-local.json"
+    ],
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false,
+    "authorized_fixture_access_performed": false
+  },
+  "ownership_boundary": {
+    "stage057_phase1_contract_reused_as_reference_only": true,
+    "control_slice_owner": "STAGE-057 Phase 2",
+    "real_schema_inference_owner": "FUTURE_OWNER_AUTHORIZED_INPUT_GATE",
+    "real_fact_extraction_owner": "FUTURE_OWNER_AUTHORIZED_INPUT_GATE",
+    "rag_summary_implementation_owner": "STAGE-060",
+    "evidence_binding_owner": "STAGE-062",
+    "upstream_contract_rewrite_allowed": false,
+    "real_file_or_database_activation_allowed": false,
+    "in_memory_control_schema_projection_allowed": true
+  },
+  "reference_only_table_input_contract": {
+    "mode": "FIXED_NON_BUSINESS_IN_MEMORY_XLSX_CSV_INGESTION_CONTROL",
+    "required_fields": [
+      "source_identity_ref",
+      "source_document_ref",
+      "file_format",
+      "workbook_ref",
+      "worksheet_ref",
+      "row_range_ref",
+      "column_range_ref",
+      "record_type",
+      "schema_profile_ref",
+      "fact_type",
+      "evidence_ref",
+      "ingestion_state"
+    ],
+    "field_count": 12,
+    "control_record_count": 2,
+    "control_input_persisted": false,
+    "allowed_file_formats": [
+      "XLSX",
+      "CSV"
+    ],
+    "record_types": [
+      "PRODUCTION_RECORD",
+      "QUALITY_INSPECTION_RECORD"
+    ],
+    "additional_fields_allowed": false,
+    "source_body_or_path_allowed": false,
+    "worksheet_content_allowed": false,
+    "cell_value_content_allowed": false,
+    "formula_value_allowed": false,
+    "actual_input_record_count": 0
+  },
+  "schema_profile_candidate_contract": {
+    "mode": "CONTROL_REFERENCE_SCHEMA_PROFILE_NOT_SOURCE_SCHEMA",
+    "profile_count": 2,
+    "profile_refs": [
+      "schema-profile:control:stage057-p2:production",
+      "schema-profile:control:stage057-p2:quality"
+    ],
+    "production_identified_fields": [
+      "record_date",
+      "equipment_ref",
+      "material_ref",
+      "measurement_value",
+      "unit_ref",
+      "fact_type"
+    ],
+    "quality_identified_fields": [
+      "record_date",
+      "equipment_ref",
+      "quality_result",
+      "fact_type"
+    ],
+    "identified_field_candidate_count": 10,
+    "in_memory_control_schema_profile_inference_performed": true,
+    "in_memory_control_field_identification_performed": true,
+    "actual_table_schema_created": false,
+    "real_table_schema_inference_performed": false,
+    "real_field_identification_performed": false
+  },
+  "structured_fact_candidate_contract": {
+    "mode": "IN_MEMORY_REFERENCE_ONLY_CANDIDATE_NOT_PERSISTED_NO_TYPED_VALUE",
+    "required_fields": [
+      "fact_id",
+      "source_identity_ref",
+      "source_document_ref",
+      "file_format",
+      "worksheet_ref",
+      "row_range_ref",
+      "column_range_ref",
+      "field_name",
+      "field_type",
+      "typed_value",
+      "unit_ref",
+      "record_date",
+      "equipment_ref",
+      "material_ref",
+      "quality_result",
+      "fact_type",
+      "quality_state",
+      "evidence_ref",
+      "rag_summary_eligibility"
+    ],
+    "field_count": 19,
+    "candidate_count": 10,
+    "in_memory_candidate_projection_created": true,
+    "actual_structured_fact_created": false,
+    "actual_structured_fact_persisted": false,
+    "actual_typed_value_retained": false,
+    "actual_source_location_binding_created": false,
+    "actual_evidence_record_created": false,
+    "real_structured_fact_extraction_performed": false,
+    "direct_high_trust_evidence_promotion_allowed": false,
+    "initial_fact_level": "CANDIDATE",
+    "initial_quality_state": "UNASSESSED"
+  },
+  "field_semantic_contract": {
+    "field_types": {
+      "measurement_value": "DECIMAL_OR_INTEGER",
+      "unit_ref": "UNIT_REFERENCE",
+      "record_date": "DATE_OR_DATETIME",
+      "equipment_ref": "IDENTIFIER_REFERENCE",
+      "material_ref": "IDENTIFIER_REFERENCE",
+      "quality_result": "ENUMERATED_QUALITY_RESULT",
+      "fact_type": "ENUMERATED_FACT_TYPE"
+    },
+    "semantic_field_count": 7,
+    "numeric_field_candidate_count": 1,
+    "actual_value_normalization_performed": false,
+    "actual_unit_normalization_performed": false,
+    "actual_date_normalization_performed": false,
+    "actual_equipment_or_material_resolution_performed": false,
+    "actual_quality_result_evaluation_performed": false
+  },
+  "source_location_and_evidence_contract": {
+    "required_location_fields": [
+      "source_document_ref",
+      "worksheet_ref",
+      "row_range_ref",
+      "column_range_ref",
+      "evidence_ref"
+    ],
+    "location_field_count": 5,
+    "candidate_binding_count": 10,
+    "source_location_references_preserved": true,
+    "physical_path_or_uri_allowed": false,
+    "source_body_or_cell_content_allowed": false,
+    "actual_source_location_binding_created": false,
+    "actual_evidence_record_created": false
+  },
+  "fact_and_rag_summary_boundary": {
+    "structured_fact_layer": "IN_MEMORY_CANDIDATE_FIELDS_WITH_REFERENCE_LOCATION",
+    "rag_summary_layer": "METADATA_ONLY_CANDIDATE_REQUIRES_FACT_REFERENCES",
+    "rag_summary_candidate_count": 2,
+    "rag_summary_candidates_separated_from_facts": true,
+    "summary_can_replace_structured_fact": false,
+    "summary_can_become_numeric_statistical_evidence": false,
+    "summary_requires_fact_reference_before_future_use": true,
+    "actual_rag_summary_created": false,
+    "actual_summary_write_performed": false
+  },
+  "numeric_fact_authority_boundary": {
+    "mode": "DERIVED_CANDIDATE_PROJECTION_NOT_SECOND_AUTHORITATIVE_SOURCE",
+    "source_document_remains_authoritative": true,
+    "model_direct_text_guessing_allowed": false,
+    "unverified_numeric_value_as_definitive_fact_allowed": false,
+    "numeric_aggregation_requires_source_location_and_evidence": true,
+    "numeric_statistic_computation_performed": false,
+    "actual_numeric_fact_count": 0,
+    "structured_fact_store_created": false
+  },
+  "failure_and_stop_contract": {
+    "invalid_control_input_state": "REJECTED",
+    "unrecognized_real_table_requires_human_handling": true,
+    "unverified_numeric_value_blocks_statistical_conclusion": true,
+    "schema_migration_without_rollback_allowed": false,
+    "automatic_business_write_allowed": false,
+    "real_input_or_fixture_missing_requires_phase3_or_owner_route": true
+  },
+  "chinese_feedback_contract": {
+    "messages": [
+      {
+        "code": "TABLE_CONTROL_SCHEMA_PROJECTED",
+        "message": "当前仅在内存中投影固定控制 schema 与字段候选，未读取或解析任何真实 XLSX、CSV、生产记录或质检记录。"
+      },
+      {
+        "code": "TABLE_FACT_CANDIDATE_NOT_PERSISTED",
+        "message": "字段候选不包含单元格值或业务事实，未写入事实库、证据记录或数据库。"
+      },
+      {
+        "code": "TABLE_RAG_SUMMARY_NOT_NUMERIC_AUTHORITY",
+        "message": "RAG 摘要候选只保留事实候选引用，不能替代结构化事实或成为数值统计依据。"
+      },
+      {
+        "code": "TABLE_REAL_INPUT_REQUIRES_CONTROLLED_ROUTE",
+        "message": "真实表格结构无法识别或缺少授权输入时必须保留为待人工处理，不能自动写入或形成统计结论。"
+      }
+    ],
+    "all_messages_chinese": true,
+    "automation_claim_allowed": false,
+    "numeric_accuracy_claim_allowed": false,
+    "production_availability_claim_allowed": false
+  },
+  "protected_surface_boundary": {
+    "raw_data_modified": false,
+    "raw_data_opened": false,
+    "manifest_modified": false,
+    "evidence_ledger_modified": false,
+    "audit_log_modified": false,
+    "delivered_report_modified": false
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "authorized_fixture_access_performed": false,
+    "source_file_open_performed": false,
+    "file_type_detection_performed": false,
+    "xlsx_or_csv_parse_performed": false,
+    "real_table_schema_inference_performed": false,
+    "real_field_identification_performed": false,
+    "real_structured_fact_extraction_performed": false,
+    "numeric_statistic_computation_performed": false,
+    "database_connection_performed": false,
+    "database_schema_migration_performed": false,
+    "structured_fact_write_performed": false,
+    "rag_summary_write_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "local_service_start_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "stage057_started": true,
+    "phase2_started": true,
+    "phase3_started": false,
+    "whole_stage_review_performed": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "rollback_contract": {
+    "return_to": "PHASE1_XLSX_CSV_INGESTION_CONTRACT_RUNTIME_DISABLED",
+    "phase1_contract_preserved": true,
+    "source_or_raw_data_change_allowed": false,
+    "fixture_change_allowed": false,
+    "database_or_persistent_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-13 · IDS v0.1 Stage057 Phase 2（本地）
+
+- 完成 XLSX/CSV 受控最小切片：两条固定、非业务、reference-only 控制记录在内存中投影 `2` 个 schema profile、`10` 个 19 字段空值事实候选、`10` 个来源定位绑定候选、`1` 个数值字段候选和 `2` 个 metadata-only RAG 摘要候选；事实与 RAG 摘要严格分层，源文档仍为唯一权威。
+- 本地验证通过：Stage057 P2 聚焦用例 `8/8`；与 Stage057 P1、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 及 BATCH041_050 的合并回归 `339/339`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 未读取、检测或解析真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、单元格、公式、来源正文或物理路径；未创建真实 schema、事实、typed value、数值统计、RAG 内容、证据记录、数据库或持久化状态，也未执行 Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE057-P3-GATE`。
+
 ## 2026-08-13 · IDS v0.1 Stage057 Phase 1（本地）
 
 - 完成 XLSX/CSV 接入静态合同：定义 12 个 reference-only 输入字段、19 个未来事实字段、7 个语义字段、5 个来源定位字段与 6 类显式失败，并固定生产记录、质量检验记录、字段类型/单位/日期/设备/物料/质量/事实类型、事实/RAG 分离、数值只从可追溯结构化事实统计及回滚边界。

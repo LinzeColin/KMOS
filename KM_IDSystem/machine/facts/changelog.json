@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage057-p2-local",
+    "date": "2026-08-13",
+    "summary": "完成 Stage057 P2 XLSX/CSV 接入纯内存控制切片：两条固定非业务 reference-only 控制记录严格使用 P1 12 字段，投影 2 个 schema profile、10 个字段/19 字段空值事实候选和 2 个 metadata-only RAG 摘要候选，并保留来源定位和数值边界。未读取、检测或解析真实表格或 fixture，未执行真实 schema 推断、真实事实抽取、统计、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage057 P3。"
+  },
+  {
     "version": "v0.1-stage057-p1-local",
     "date": "2026-08-13",
     "summary": "完成 Stage057 P1 XLSX/CSV 接入静态合同：定义 12 字段引用输入、19 字段未来事实输出、七类字段语义、五类来源定位、数值不得由模型猜测、事实与 RAG 摘要分离、六类失败关闭、中文反馈和回滚范围。未读取或解析真实表格、生产记录、质检记录或 fixture，未执行 schema 推断、事实抽取、摘要、统计、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage057 P2。"

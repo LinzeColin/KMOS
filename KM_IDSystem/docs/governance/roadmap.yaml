@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE057"
-current_phase_id: "IDS-STAGE057-P1"
-current_task_id: "IDS-V0_1-STAGE057-P1"
-next_gate_id: "IDS-STAGE057-P2-GATE"
+current_phase_id: "IDS-STAGE057-P2"
+current_task_id: "IDS-V0_1-STAGE057-P2"
+next_gate_id: "IDS-STAGE057-P3-GATE"
 current_transition_history:
+  stage057_phase2_state:
+    current_stage_id: "IDS-STAGE057"
+    current_phase_id: "IDS-STAGE057-P2"
+    current_task_id: "IDS-V0_1-STAGE057-P2"
+    next_gate_id: "IDS-STAGE057-P3-GATE"
   stage057_phase1_state:
     current_stage_id: "IDS-STAGE057"
     current_phase_id: "IDS-STAGE057-P1"
@@ -15395,19 +15400,19 @@ stages:
     task_id: "IDS-V0_1-STAGE057"
     acceptance_ids:
       - "ACC-STAGE-057"
-    status: "phase1_completed"
-    pursuing_goal: "只定义 XLSX/CSV、生产记录和质检记录的结构化接入合同、字段语义、来源定位、事实与 RAG 摘要分离、数值事实边界与回滚范围；不读取、解析或写入真实表格，不启动 Phase 2。"
+    status: "phase2_completed"
+    pursuing_goal: "以两条固定、非业务、reference-only 控制记录在内存中投影 XLSX/CSV schema、字段候选、19 字段事实候选和 RAG 摘要候选，证明分层与来源定位可执行；不读取、解析或写入真实表格，不启动 Phase 3。"
     stop_gate:
-      gate_id: "IDS-STAGE057-P1-GATE"
+      gate_id: "IDS-STAGE057-P2-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE057-P2-GATE"
+      next_gate_id: "IDS-STAGE057-P3-GATE"
       github_upload_allowed: false
       pass_conditions:
         - "冻结 Stage057 任务包和 Stage056 已复审工件是唯一合同上下文，未建立第二权威事实源。"
-        - "输入与未来事实字段、数值统计、RAG 摘要、来源文档/工作表/行列和证据引用边界明确，且不包含表格内容、单元格、公式、物理路径或业务事实。"
-        - "模型不得从文本猜测数值；未验证数值不得形成确定事实或统计结论；摘要不得替代结构化事实或成为数值权威。"
-        - "未读取真实 XLSX/CSV、生产记录、质检表或 fixture，未执行解析、schema 推断、事实抽取、摘要、统计、数据库、Agent、模型 Token、OVH、生产、上传或推送。"
-        - "唯一后续门为 IDS-STAGE057-P2-GATE，必须由新的独立 run 进入。"
+        - "两条固定、非业务、reference-only 控制记录严格使用 P1 的 12 字段输入，形成 2 个 schema 候选、10 个字段/事实候选和 2 个 RAG 摘要候选；候选不含表格内容、单元格、公式、物理路径、typed value 或业务事实。"
+        - "每个事实候选保留来源文档、工作表、行列范围和证据引用；RAG 摘要候选只能引用事实候选，不能替代事实或成为数值权威，数值统计保持关闭。"
+        - "未读取真实 XLSX/CSV、生产记录、质检表或 fixture，未执行真实解析、真实 schema 推断、真实事实抽取、数据库、Agent、模型 Token、OVH、生产、上传或推送。"
+        - "唯一后续门为 IDS-STAGE057-P3-GATE，必须由新的独立 run 进入。"
     phases:
       - phase_id: "IDS-STAGE057-P1"
         name: "Phase 1 · XLSX/CSV 接入合同范围、字段与边界确认"
@@ -15449,3 +15454,45 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
             risk: "若把静态字段、合同用例或本地验证通过误作真实表格接入、真实数值、事实库、RAG、数据库、OVH、生产或上传能力，会破坏业务线白箱控制。"
             rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 STAGE056_REVIEWED_LOCAL_OCR_CACHE_RETENTION_POLICY_RUNTIME_DISABLED；不改变真实资料、数据库、运行状态、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE057-P2"
+        name: "Phase 2 · XLSX/CSV 接入最小可运行切片"
+        objective: "只以两条固定、非业务、reference-only 控制记录和 P1 合同在内存中投影 schema、字段候选、19 字段事实候选及 RAG 摘要候选；保持候选空值、来源定位、数值边界和零持久化，不读取真实表格。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE057-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE057-P2-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE057-P3-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、单元格、公式、来源正文、物理路径、数据库或报告"
+          - "创建真实 schema、真实事实、typed value、来源/证据记录、数值统计、数据库 migration、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Phase 3、整阶段复审、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE057-P2"
+            name: "实现 XLSX/CSV 控制 schema、事实候选与 RAG 分离切片"
+            objective: "严格接受两条 P1 12 字段的固定非业务控制记录，在内存中形成 2 个 schema profile、10 个字段/事实候选和 2 个 metadata-only RAG 摘要候选，保留来源引用但不保留 typed value 或业务内容。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "50.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE057-P1"
+            acceptance_ids:
+              - "ACC-STAGE-057"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage057_xlsx_csv_ingestion_slice"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "聚焦 Stage057 P2 直接单元用例通过 8/8；Stage057 P1、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041-050 的显式前序兼容回归通过 339/339；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE057_PHASE2_XLSX_CSV_INGESTION_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage057_xlsx_csv_ingestion_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage057_xlsx_csv_ingestion_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage057_xlsx_csv_ingestion_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-13-stage057-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage057_xlsx_csv_ingestion_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE056_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+            risk: "若把控制 schema、字段候选、空值事实候选、metadata-only 摘要或聚焦用例通过误作真实 XLSX/CSV 接入、真实数值、事实库、RAG、数据库、OVH、生产或上传能力，会破坏业务线白箱控制。"
+            rollback: "只回滚本 P2 说明、切片模块、切片合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE1_XLSX_CSV_INGESTION_CONTRACT_RUNTIME_DISABLED；不改变真实资料、manifest、evidence ledger、audit log、已交付报告、数据库、运行状态、GitHub、OVH 或应用状态。"

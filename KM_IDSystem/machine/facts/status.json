@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE057",
-  "phase": "IDS-V0_1-STAGE057-P1",
-  "task": "IDS-V0_1-STAGE057-P1",
-  "real_progress": "Stage057 P1 已定义 XLSX/CSV、生产记录和质检记录的静态结构化接入合同；下一步仅可在新的独立 run 进入 Stage057 P2，上传路径继续关闭",
-  "report_grade": "冻结 Stage057 任务包和 Stage056 已复审工件仍为唯一合同上下文；字段语义、来源定位、数值事实、RAG 摘要、失败关闭、聚焦用例、显式前序兼容回归、批次锁和治理投影均只保留本地静态证据",
-  "business_verdict": "本阶段只证明结构化表格接入合同、数值不得由模型猜测、事实与 RAG 摘要分离以及回滚边界已定义；不证明真实 XLSX/CSV、生产记录、质检记录、数值统计、事实库、数据库、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE057_PHASE1_XLSX_CSV_INGESTION_CONTRACT_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE057-P2",
+  "task": "IDS-V0_1-STAGE057-P2",
+  "real_progress": "Stage057 P2 已用两条固定、非业务、reference-only 控制记录在内存中投影 XLSX/CSV schema、字段候选、事实候选与 RAG 摘要候选；下一步仅可在新的独立 run 进入 Stage057 P3，上传路径继续关闭",
+  "report_grade": "冻结 Stage057 任务包、P1 合同和 Stage056 已复审工件仍为唯一合同上下文；控制 schema、字段候选、来源定位、事实/RAG 分层、数值边界、聚焦用例、前序兼容回归、批次锁和治理投影均只保留本地受控证据",
+  "business_verdict": "本阶段只证明 reference-only 控制切片可投影 schema、字段候选、空值事实候选和 metadata-only RAG 摘要候选；不证明真实 XLSX/CSV、生产记录、质检记录、真实 schema 推断、真实事实抽取、数值统计、事实库、数据库、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE057_PHASE2_XLSX_CSV_INGESTION_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE057-P2-GATE",
+  "next_gate": "IDS-STAGE057-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
