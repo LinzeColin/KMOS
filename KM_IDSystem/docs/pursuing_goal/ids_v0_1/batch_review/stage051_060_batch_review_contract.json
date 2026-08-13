@@ -1,0 +1,173 @@
+{
+  "schema_version": "ids.v0_1.batch051_060.review_contract.v1",
+  "batch_id": "IDS-V0_1-BATCH-051-060",
+  "task_id": "IDS-V0_1-BATCH-051-060-REVIEW-GATE",
+  "stage_range": "STAGE-051..STAGE-060",
+  "acceptance_range": "ACC-STAGE-051..ACC-STAGE-060",
+  "authority_context": "FROZEN_IDS_V0_1_TASKPACK_AND_EXISTING_STAGE_REVIEW_EVIDENCE",
+  "second_authoritative_source_created": false,
+  "stage_reviews": [
+    {
+      "stage_id": "STAGE-051",
+      "acceptance_id": "ACC-STAGE-051",
+      "expected_status": "stage051_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE051-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-051_OCR队列基线.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage051_ocr_queue_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_ocr_queue_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-08-13-stage051-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-052",
+      "acceptance_id": "ACC-STAGE-052",
+      "expected_status": "stage052_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE052-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-052_中英文OCR合同.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE052_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage052_bilingual_ocr_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage052_bilingual_ocr_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-08-13-stage052-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-053",
+      "acceptance_id": "ACC-STAGE-053",
+      "expected_status": "stage053_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE053-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-053_按页OCR输出.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE053_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage053_per_page_ocr_output_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage053_per_page_ocr_output_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-08-13-stage053-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-054",
+      "acceptance_id": "ACC-STAGE-054",
+      "expected_status": "stage054_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE054-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-054_低置信度复核路由.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE054_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage054_low_confidence_review_route_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage054_low_confidence_review_route_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-08-13-stage054-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-055",
+      "acceptance_id": "ACC-STAGE-055",
+      "expected_status": "stage055_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE055-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-055_OCR回归语料.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE055_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage055_ocr_regression_corpus_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage055_ocr_regression_corpus_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-08-13-stage055-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-056",
+      "acceptance_id": "ACC-STAGE-056",
+      "expected_status": "stage056_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE056-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-056_OCR缓存保留策略.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE056_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage056_ocr_cache_retention_policy_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage056_ocr_cache_retention_policy_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-08-13-stage056-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-057",
+      "acceptance_id": "ACC-STAGE-057",
+      "expected_status": "stage057_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE057-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-057_XLSX_CSV接入合同.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE057_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage057_xlsx_csv_ingestion_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage057_xlsx_csv_ingestion_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-08-13-stage057-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-058",
+      "acceptance_id": "ACC-STAGE-058",
+      "expected_status": "stage058_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE058-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-058_表格Schema推断.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE058_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage058_table_schema_inference_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage058_table_schema_inference_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-08-13-stage058-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-059",
+      "acceptance_id": "ACC-STAGE-059",
+      "expected_status": "stage059_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE059-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-059_事实抽取基线.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE059_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage059_fact_extraction_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage059_fact_extraction_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-08-13-stage059-review-local.json"
+    },
+    {
+      "stage_id": "STAGE-060",
+      "acceptance_id": "ACC-STAGE-060",
+      "expected_status": "stage060_completed_reviewed_local",
+      "review_task_id": "IDS-V0_1-STAGE060-REVIEW",
+      "taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-060_表格到RAG摘要.md",
+      "review_artifact_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE060_STAGE_REVIEW.md",
+      "checker_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_stage_review.py",
+      "test_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage060_table_rag_summary_stage_review.py",
+      "machine_run_ref": "KM_IDSystem/machine/runs/2026-08-14-stage060-review-local.json"
+    }
+  ],
+  "cross_stage_contract": {
+    "interface_chain": [
+      "STAGE-051 OCR queue baseline -> STAGE-052 bilingual OCR contract",
+      "STAGE-052 bilingual OCR contract -> STAGE-053 per-page OCR output",
+      "STAGE-053 per-page OCR output -> STAGE-054 low-confidence review route",
+      "STAGE-054 low-confidence review route -> STAGE-055 OCR regression corpus",
+      "STAGE-055 OCR regression corpus -> STAGE-056 OCR cache retention policy",
+      "STAGE-056 OCR cache retention policy -> STAGE-057 XLSX/CSV ingestion contract",
+      "STAGE-057 XLSX/CSV ingestion contract -> STAGE-058 table schema inference",
+      "STAGE-058 table schema inference -> STAGE-059 fact extraction baseline",
+      "STAGE-059 fact extraction baseline -> STAGE-060 table-to-RAG summary"
+    ],
+    "runtime_execution_allowed": false,
+    "production_runtime_allowed": false,
+    "stage061_started": false,
+    "stage061_entry_gate": "IDS-STAGE061-P1-GATE"
+  },
+  "governance_gate": {
+    "review_status": "batch051_060_reviewed_local_global_upload_locked",
+    "reviewed_stage_count": 10,
+    "current_gate": "IDS-V0_1-BATCH-051-060-REVIEW-GATE",
+    "next_gate": "IDS-STAGE061-P1-GATE",
+    "push_allowed": false,
+    "github_upload_allowed": false,
+    "batch_upload_gate_deferred": "IDS-V0_1-BATCH-051-060-UPLOAD-GATE",
+    "global_release_acceptance_required": "ACC-STAGE-168",
+    "app_reinstall_allowed": false
+  },
+  "findings": [],
+  "truth_contract": {
+    "taskpack_context_read_performed": true,
+    "prior_stage_review_evidence_read_performed": true,
+    "second_authoritative_source_created": false,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "source_file_open_performed": false,
+    "ocr_engine_invocation_performed": false,
+    "xlsx_or_csv_parse_performed": false,
+    "parser_execution_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "stage061_started": false,
+    "batch_upload_gate_started": false,
+    "github_upload_performed": false,
+    "push_performed": false,
+    "app_reinstall_performed": false
+  }
+}

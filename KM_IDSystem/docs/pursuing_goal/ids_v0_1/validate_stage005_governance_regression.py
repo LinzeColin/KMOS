@@ -1734,6 +1734,13 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
                     )
+                    or (
+                        roadmap.get("current_phase_id")
+                        == "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+                        and roadmap.get("next_gate_id") == "IDS-STAGE061-P1-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -2517,6 +2524,7 @@ REQUIRED_EVENT_IDS = (
     "EVT-IDS-V0_1-STAGE060-P3-20260813-001",
     "EVT-IDS-V0_1-STAGE060-P4-20260813-001",
     "EVT-IDS-V0_1-STAGE060-REVIEW-20260814-001",
+    "EVT-IDS-V0_1-BATCH051-060-REVIEW-20260814-001",
 )
 
 FORBIDDEN_RUNTIME_PREFIXES = (
@@ -2555,7 +2563,9 @@ ALLOWED_CHANGED_PATHS = {
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_UPLOAD_LOCK.yaml",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_batch041_050_review_gate.py",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_batch051_060_review_gate.py",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/batch_review/",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/batch_review/stage031_040_batch_review_contract.json",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_batch031_040_review_gate.py",
@@ -2570,6 +2580,8 @@ ALLOWED_CHANGED_PATHS = {
     "KM_IDSystem/scripts/check_import_risk_estimator.py",
     "KM_IDSystem/scripts/check_batch031_040_review.py",
     "KM_IDSystem/scripts/check_batch041_050_review.py",
+    "KM_IDSystem/scripts/check_batch051_060_review.py",
+    "KM_IDSystem/machine/tools/render_human.py",
     "KM_IDSystem/scripts/check_import_cost_estimator.py",
     "KM_IDSystem/scripts/check_safe_extraction_engine.py",
     "KM_IDSystem/scripts/check_archive_manifest.py",
@@ -10897,6 +10909,92 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
                 "next_gate": "IDS-V0_1-BATCH-051-060-REVIEW-GATE",
             },
         },
+        "EVT-IDS-V0_1-BATCH051-060-REVIEW-20260814-001": {
+            "event_type": "batch_review",
+            "allow_stage_gate": True,
+            "task_id": "IDS-V0_1-BATCH-051-060-REVIEW-GATE",
+            "acceptance_ids": [
+                "ACC-STAGE-051",
+                "ACC-STAGE-052",
+                "ACC-STAGE-053",
+                "ACC-STAGE-054",
+                "ACC-STAGE-055",
+                "ACC-STAGE-056",
+                "ACC-STAGE-057",
+                "ACC-STAGE-058",
+                "ACC-STAGE-059",
+                "ACC-STAGE-060",
+            ],
+            "required_changed_files": {
+                "KM_IDSystem/CHANGELOG.md",
+                "KM_IDSystem/docs/HANDOFF.md",
+                "KM_IDSystem/docs/governance/events.jsonl",
+                "KM_IDSystem/docs/governance/roadmap.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/batch_review/stage051_060_batch_review_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_batch051_060_review_gate.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+                "KM_IDSystem/machine/facts/acceptance.json",
+                "KM_IDSystem/machine/facts/changelog.json",
+                "KM_IDSystem/machine/facts/glossary.json",
+                "KM_IDSystem/machine/facts/plan.json",
+                "KM_IDSystem/machine/facts/roadmap.json",
+                "KM_IDSystem/machine/facts/status.json",
+                "KM_IDSystem/machine/runs/2026-08-14-batch051-060-review-local.json",
+                "KM_IDSystem/machine/tools/render_human.py",
+                "KM_IDSystem/scripts/check_batch051_060_review.py",
+                "KM_IDSystem/文档/03_口径字典.md",
+                "KM_IDSystem/文档/05_执行与验收.md",
+            },
+            "required_refs": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/batch_review/stage051_060_batch_review_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_batch051_060_review_gate.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+                "KM_IDSystem/machine/runs/2026-08-14-batch051-060-review-local.json",
+                "KM_IDSystem/scripts/check_batch051_060_review.py",
+            },
+            "required_note_assignments": {
+                "contract_state": "BATCH051_060_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+                "reviewed_stage_count": "10",
+                "batch_review_valid": "true",
+                "review_finding_count": "0",
+                "batch051_060_review_tests": "7/7",
+                "stage_review_compatibility_tests": "110/110",
+                "batch041_050_review_tests": "6/6",
+                "batch051_060_checker": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+                "batch041_050_checker": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+                "governance_regression_valid": "true",
+                "human_projection_rendered_files": "7",
+                "taskpack_context_read_performed": "true",
+                "prior_stage_review_evidence_read_performed": "true",
+                "second_authoritative_source_created": "false",
+                "ids_business_source_read_performed": "false",
+                "raw_metadata_content_accessed": "false",
+                "source_file_open_performed": "false",
+                "ocr_engine_invocation_performed": "false",
+                "xlsx_or_csv_parse_performed": "false",
+                "parser_execution_performed": "false",
+                "quality_gate_evaluation_performed": "false",
+                "persistent_state_write_performed": "false",
+                "agent_execution_performed": "false",
+                "model_call_performed": "false",
+                "model_token_consumption_performed": "false",
+                "ovh_deployment_performed": "false",
+                "production_runtime_activation_performed": "false",
+                "runtime_execution_allowed": "false",
+                "production_runtime_allowed": "false",
+                "stage061_started": "false",
+                "stage061_entry_authorized": "false",
+                "batch_upload_gate_started": "false",
+                "github_upload_performed": "false",
+                "github_upload_allowed": "false",
+                "push_allowed": "false",
+                "next_gate": "IDS-STAGE061-P1-GATE",
+            },
+        },
     }
 
     errors: list[str] = []
@@ -11235,6 +11333,13 @@ def evaluate_current_state_consistency(
         and roadmap_phase == "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
         and roadmap.get("current_task_id")
         == "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+    )
+    batch051_060_review_current = (
+        current_stage_id == "IDS-STAGE060"
+        and batch.get("batch_id") == "IDS-V0_1-BATCH-051-060"
+        and roadmap_phase == "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+        and roadmap.get("current_task_id")
+        == "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
     )
     batch031_040_historical_projection_current = (
         batch.get("batch_id") == "IDS-V0_1-BATCH-031-040"
@@ -14507,15 +14612,24 @@ def evaluate_current_state_consistency(
             else batch.get("status")
             == "batch041_050_reviewed_local_global_upload_locked"
             if batch041_050_review_current
+            else batch.get("status")
+            == "batch051_060_reviewed_local_global_upload_locked"
+            if batch051_060_review_current
             else batch.get("status") in expected_batch_statuses
         ),
         "batch_stage_task_matches_roadmap": (
             decision.get("current_task_id") == roadmap_task
-            if batch031_040_gate_current or batch041_050_review_current
+            if (
+                batch031_040_gate_current
+                or batch041_050_review_current
+                or batch051_060_review_current
+            )
             else stage_node.get("current_task_id") == roadmap_task
         ),
         "batch_stage_gate_matches_roadmap": (
-            decision.get("next_allowed_task_id") == "IDS-V0_1-STAGE051-P1"
+            decision.get("next_allowed_task_id") == "IDS-V0_1-STAGE061-P1"
+            if batch051_060_review_current
+            else decision.get("next_allowed_task_id") == "IDS-V0_1-STAGE051-P1"
             if batch041_050_review_current
             else decision.get("next_allowed_task_id") == roadmap_gate
             if batch031_040_gate_current
@@ -14524,6 +14638,7 @@ def evaluate_current_state_consistency(
         "roadmap_phase_matches_stage": (
             batch031_040_gate_current
             or batch041_050_review_current
+            or batch051_060_review_current
             or (
                 isinstance(roadmap_phase, str)
                 and roadmap_phase.startswith(f"IDS-STAGE{stage_suffix}")
@@ -14565,6 +14680,28 @@ def evaluate_current_state_consistency(
         "stage038_source_gate_consistent": stage038_source_gate_consistent,
         "batch031_040_review_consistent": batch031_040_gate_consistent,
         "batch041_050_review_consistent": batch041_050_review_consistent,
+        "batch051_060_review_consistent": not batch051_060_review_current
+        or (
+            batch.get("status")
+            == "batch051_060_reviewed_local_global_upload_locked"
+            and batch.get("review_task_id")
+            == "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+            and batch.get("review_evidence_ref")
+            == "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
+            and batch.get("review_contract_ref")
+            == "KM_IDSystem/docs/pursuing_goal/ids_v0_1/batch_review/stage051_060_batch_review_contract.json"
+            and decision.get("current_task_id")
+            == "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+            and decision.get("next_allowed_task_id") == "IDS-V0_1-STAGE061-P1"
+            and decision.get("github_upload_allowed") is False
+            and decision.get("push_allowed") is False
+            and upload_gate.get("push_allowed") is False
+            and upload_gate.get("github_upload_allowed") is False
+            and stage_node.get("batch_review_performed") is True
+            and stage_node.get("stage061_started") is False
+            and stage_node.get("stage061_entry_authorized") is False
+            and roadmap.get("next_gate_id") == "IDS-STAGE061-P1-GATE"
+        ),
     }
 
 

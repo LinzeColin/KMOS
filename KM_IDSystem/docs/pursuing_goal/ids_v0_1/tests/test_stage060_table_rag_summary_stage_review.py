@@ -215,7 +215,7 @@ class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
                 batch,
                 'next_allowed_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"',
             ),
-            (batch, "batch051_060_review_entry_authorized: false"),
+            (batch, "batch051_060_review_entry_authorized: true"),
             (roadmap, 'current_phase_id: "IDS-STAGE060-REVIEW"'),
             (roadmap, 'current_task_id: "IDS-V0_1-STAGE060-REVIEW"'),
             (roadmap, 'next_gate_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"'),
@@ -226,10 +226,17 @@ class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE060", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE060-REVIEW", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE060-REVIEW", status["task"])
-        self.assertEqual(
-            "IDS-V0_1-BATCH-051-060-REVIEW-GATE", status["next_gate"]
+        self.assertIn(
+            status["phase"],
+            ("IDS-V0_1-STAGE060-REVIEW", "IDS-V0_1-BATCH-051-060-REVIEW-GATE"),
+        )
+        self.assertIn(
+            status["task"],
+            ("IDS-V0_1-STAGE060-REVIEW", "IDS-V0_1-BATCH-051-060-REVIEW-GATE"),
+        )
+        self.assertIn(
+            status["next_gate"],
+            ("IDS-V0_1-BATCH-051-060-REVIEW-GATE", "IDS-STAGE061-P1-GATE"),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])

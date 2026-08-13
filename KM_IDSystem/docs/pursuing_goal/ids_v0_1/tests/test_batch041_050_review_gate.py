@@ -127,6 +127,11 @@ class Batch041050ReviewGateTests(unittest.TestCase):
         self.assertIn('next_allowed_task_id: "IDS-V0_1-STAGE051-P1"', batch)
         self.assertTrue(
             (
+                'current_phase_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"'
+                in roadmap
+                and 'next_gate_id: "IDS-STAGE061-P1-GATE"' in roadmap
+            )
+            or (
                 'current_phase_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"'
                 in roadmap
                 and 'next_gate_id: "IDS-STAGE051-P1-GATE"' in roadmap

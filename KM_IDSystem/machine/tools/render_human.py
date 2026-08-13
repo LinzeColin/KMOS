@@ -365,10 +365,21 @@ def render_05(facts: Path, runs_dir: Path):
     owner = plan.get("owner")
     all_acceptance = acceptance.get("items", [])
     current_stage = str(plan.get("stage", "")).strip("`")
+    current_phase = str(plan.get("phase", "")).strip("`")
     current_prefix = current_stage.replace("IDS-", "ACC-", 1)
+    batch_prefix = (
+        current_phase.replace("IDS-V0_1-BATCH-", "ACC-BATCH", 1)
+        .removesuffix("-GATE")
+        + "-"
+        if current_phase.startswith("IDS-V0_1-BATCH-")
+        and current_phase.endswith("-GATE")
+        else ""
+    )
+    acceptance_prefix = batch_prefix or current_prefix
     current_acceptance = [
         item for item in all_acceptance
-        if current_stage and str(item.get("id", "")).strip("`").startswith(current_prefix)
+        if acceptance_prefix
+        and str(item.get("id", "")).strip("`").startswith(acceptance_prefix)
     ]
     displayed_acceptance = current_acceptance or all_acceptance[:45]
     acc_rows = [(a.get("id", "?"), a.get("criteria", ""), a.get("status", ""))
@@ -388,10 +399,15 @@ def render_05(facts: Path, runs_dir: Path):
             "`machine/facts/acceptance.json` 为准。"
         )
     run_limit = max(0, 75 - len(acc_rows))
-    current_run_marker = current_stage.replace("IDS-", "RUN-IDS-", 1)
+    current_run_marker = (
+        "RUN-" + current_phase.removesuffix("-GATE")
+        if batch_prefix
+        else current_stage.replace("IDS-", "RUN-IDS-", 1)
+    )
     current_runs = [
         run for run in runs
-        if current_stage and current_run_marker in str(run.get("run_id", "")).strip("`")
+        if current_run_marker
+        and current_run_marker in str(run.get("run_id", "")).strip("`")
     ]
     recent_runs = (current_runs[-run_limit:] if current_stage else runs[-run_limit:]) if run_limit else []
     run_rows = [

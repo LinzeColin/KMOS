@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "ACC-BATCH051-060-REVIEW-01",
+      "criteria": "Batch051-060 只以冻结任务包和十个既有整阶段复审工件为唯一合同上下文，连续绑定 Stage051--060、十个验收 ID、任务包、复审说明、检查器、聚焦用例和既有 machine run 引用；不建立第二权威事实源。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-BATCH051-060-REVIEW-02",
+      "criteria": "051→052→053→054→055→056→057→058→059→060 的接口责任链与十个本地复审状态均已白箱复审，批次矩阵不将任何控制证据解释为真实 OCR、表格、事实、数值或 RAG 运行结果。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-BATCH051-060-REVIEW-03",
+      "criteria": "本批次可仅撤回批次说明、合同、检查器、用例、machine run、事件和治理投影而恢复 Stage060 本地复审完成状态；Stage061 尚未启动，后续唯一入口为独立 run 的 IDS-STAGE061-P1-GATE。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-BATCH051-060-REVIEW-04",
+      "criteria": "未读取、打开、检测、解析或评估真实 OCR、XLSX/CSV、生产记录、质检记录或 fixture，未执行真实质量门、持久化、Agent、模型 Token、OVH、生产、上传或推送；全局上传锁保持关闭，最终 ACC-STAGE-168 前不进入上传路径。",
+      "status": "已遵守"
+    },
+    {
       "id": "ACC-STAGE060-REVIEW-01",
       "criteria": "Stage060 Review 只以冻结任务包、P1--P4 静态合同和 P3/P4 受控内存报告为唯一合同上下文；复审只输出字段形状、control 计数、边界和回滚结论，不包含业务资料、真实表格、工作表、单元格、公式、来源正文、物理路径或第二权威事实源。",
       "status": "已通过"

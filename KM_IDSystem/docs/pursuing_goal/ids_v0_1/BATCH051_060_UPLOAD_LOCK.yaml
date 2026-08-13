@@ -1,14 +1,25 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-051-060"
 created_at_utc: "2026-08-12T13:19:44Z"
-updated_at_utc: "2026-08-13T14:33:10Z"
-status: "stage060_completed_reviewed_local"
+updated_at_utc: "2026-08-13T15:21:18Z"
+status: "batch051_060_reviewed_local_global_upload_locked"
+
+review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+review_evidence_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
+review_contract_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/batch_review/stage051_060_batch_review_contract.json"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-041-050"
 predecessor_review_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
 
 transition_history:
+  batch051_060_review_state:
+    status: "batch051_060_reviewed_local_global_upload_locked"
+    current_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+    next_gate: "IDS-STAGE061-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE061-P1"
+    stage061_entry_authorized: false
+    github_upload_allowed: false
   stage060_review_state:
     status: "stage060_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE060-REVIEW"
@@ -21,7 +32,7 @@ transition_history:
     stage060_phase3_entry_authorized: true
     stage060_phase4_entry_authorized: true
     stage060_review_entry_authorized: true
-    batch051_060_review_entry_authorized: false
+    batch051_060_review_entry_authorized: true
     github_upload_allowed: false
   stage060_phase4_state:
     status: "stage060_phase4_completed_review_pending"
@@ -576,7 +587,12 @@ stage_progress:
     whole_stage_review_performed: true
     stage052_started: false
     stage052_entry_authorized: false
-    batch_review_performed: false
+    batch_review_performed: true
+    batch_review_contract_schema: "ids.v0_1.batch051_060.review_contract.v1"
+    batch_review_valid: true
+    batch_review_result: "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
+    batch_upload_gate_started: false
+    global_upload_deferred: true
     github_upload_allowed: false
     push_allowed: false
     app_reinstall_allowed: false
@@ -740,7 +756,12 @@ stage_progress:
     whole_stage_review_performed: true
     stage053_started: false
     stage053_entry_authorized: false
-    batch_review_performed: false
+    batch_review_performed: true
+    batch_review_contract_schema: "ids.v0_1.batch051_060.review_contract.v1"
+    batch_review_valid: true
+    batch_review_result: "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
+    batch_upload_gate_started: false
+    global_upload_deferred: true
     github_upload_allowed: false
     push_allowed: false
     app_reinstall_allowed: false
@@ -905,7 +926,12 @@ stage_progress:
     whole_stage_review_performed: true
     stage054_started: false
     stage054_entry_authorized: false
-    batch_review_performed: false
+    batch_review_performed: true
+    batch_review_contract_schema: "ids.v0_1.batch051_060.review_contract.v1"
+    batch_review_valid: true
+    batch_review_result: "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
+    batch_upload_gate_started: false
+    global_upload_deferred: true
     github_upload_allowed: false
     push_allowed: false
     app_reinstall_allowed: false
@@ -1070,7 +1096,12 @@ stage_progress:
     whole_stage_review_performed: true
     stage055_started: false
     stage055_entry_authorized: false
-    batch_review_performed: false
+    batch_review_performed: true
+    batch_review_contract_schema: "ids.v0_1.batch051_060.review_contract.v1"
+    batch_review_valid: true
+    batch_review_result: "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
+    batch_upload_gate_started: false
+    global_upload_deferred: true
     github_upload_allowed: false
     push_allowed: false
     app_reinstall_allowed: false
@@ -1249,7 +1280,12 @@ stage_progress:
     whole_stage_review_performed: true
     stage056_started: false
     stage056_entry_authorized: false
-    batch_review_performed: false
+    batch_review_performed: true
+    batch_review_contract_schema: "ids.v0_1.batch051_060.review_contract.v1"
+    batch_review_valid: true
+    batch_review_result: "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
+    batch_upload_gate_started: false
+    global_upload_deferred: true
     github_upload_allowed: false
     push_allowed: false
     app_reinstall_allowed: false
@@ -1414,7 +1450,12 @@ stage_progress:
     whole_stage_review_performed: true
     stage057_started: false
     stage057_entry_authorized: false
-    batch_review_performed: false
+    batch_review_performed: true
+    batch_review_contract_schema: "ids.v0_1.batch051_060.review_contract.v1"
+    batch_review_valid: true
+    batch_review_result: "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
+    batch_upload_gate_started: false
+    global_upload_deferred: true
     github_upload_allowed: false
     push_allowed: false
     app_reinstall_allowed: false
@@ -1576,7 +1617,12 @@ stage_progress:
     phase4_started: true
     whole_stage_review_performed: true
     stage058_started: false
-    batch_review_performed: false
+    batch_review_performed: true
+    batch_review_contract_schema: "ids.v0_1.batch051_060.review_contract.v1"
+    batch_review_valid: true
+    batch_review_result: "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
+    batch_upload_gate_started: false
+    global_upload_deferred: true
     github_upload_allowed: false
     push_allowed: false
     app_reinstall_allowed: false
@@ -1743,7 +1789,12 @@ stage_progress:
     phase4_started: true
     whole_stage_review_performed: true
     stage059_started: false
-    batch_review_performed: false
+    batch_review_performed: true
+    batch_review_contract_schema: "ids.v0_1.batch051_060.review_contract.v1"
+    batch_review_valid: true
+    batch_review_result: "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
+    batch_upload_gate_started: false
+    global_upload_deferred: true
     github_upload_allowed: false
     push_allowed: false
     app_reinstall_allowed: false
@@ -1900,7 +1951,12 @@ stage_progress:
     phase4_started: true
     whole_stage_review_performed: true
     stage060_started: false
-    batch_review_performed: false
+    batch_review_performed: true
+    batch_review_contract_schema: "ids.v0_1.batch051_060.review_contract.v1"
+    batch_review_valid: true
+    batch_review_result: "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
+    batch_upload_gate_started: false
+    global_upload_deferred: true
     github_upload_allowed: false
     push_allowed: false
     app_reinstall_allowed: false
@@ -1940,8 +1996,9 @@ stage_progress:
       - "Phase 3"
       - "Phase 4"
       - "Review"
-    next_phase: "BATCH051-060 Review"
-    next_gate: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+    next_stage: "STAGE-061"
+    next_phase: "Stage061 Phase 1"
+    next_gate: "IDS-STAGE061-P1-GATE"
     current_task_id: "IDS-V0_1-STAGE060-REVIEW"
     acceptance_id: "ACC-STAGE-060"
     acceptance_status: "stage060_table_rag_summary_reviewed_local"
@@ -1949,7 +2006,7 @@ stage_progress:
     phase3_entry_authorized: true
     phase4_entry_authorized: true
     stage060_review_entry_authorized: true
-    batch051_060_review_entry_authorized: false
+    batch051_060_review_entry_authorized: true
     taskpack_context_read_performed: true
     source_authority: "FROZEN_TASKPACK_AND_STAGE060_P1_TO_P4_AND_STAGE059_REVIEW_ARTIFACTS_ONLY"
     second_authoritative_source_created: false
@@ -2060,7 +2117,12 @@ stage_progress:
     phase3_started: true
     phase4_started: true
     whole_stage_review_performed: true
-    batch_review_performed: false
+    batch_review_performed: true
+    batch_review_contract_schema: "ids.v0_1.batch051_060.review_contract.v1"
+    batch_review_valid: true
+    batch_review_result: "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
+    batch_upload_gate_started: false
+    global_upload_deferred: true
     stage061_started: false
     stage061_entry_authorized: false
     github_upload_allowed: false
@@ -2096,10 +2158,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE060-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+  current_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+  next_allowed_task_id: "IDS-V0_1-STAGE061-P1"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-060 Review 只机械复审 P1--P4 静态合同、P3 固定 control 报告与 P4 metadata-only 交付证据，确认十三/十字段形状、二条 control、六类显式处置、单一权威、数值与 RAG 边界、中文人工处理和 P4 到 P3 control 回滚链；未读取、打开、检测、解析、生成或写入任何真实表格、事实或摘要，未进入 BATCH051-060 Review、Stage061、OVH、生产或上传。"
+  current_run: "BATCH051-060 独立复审只核验冻结任务包投影、十个既有 Stage 复审工件、接口责任链、治理路线和中文事实投影；未读取、打开、检测、解析、生成或写入任何真实 OCR、表格、事实或摘要，未进入 Stage061、OVH、生产或上传。"
   no_upload_reason: "冻结任务包要求完成至 ACC-STAGE-168 且经独立全局发布验收后，才可重新考虑任何上传路径。"
