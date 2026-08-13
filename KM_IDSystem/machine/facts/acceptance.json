@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "ACC-STAGE058-P2-01",
+      "criteria": "Stage058 P2 只以冻结任务包、P1 静态合同和 Stage057 已复审工件为唯一合同上下文；两条输入均为固定、非业务、reference-only 十字段控制记录，不包含业务资料、真实表头、单元格、公式、来源正文、物理路径或第二权威事实源。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE058-P2-02",
+      "criteria": "纯内存切片形成 2 个 Schema profile 组、11 条 18 字段候选、9 类字段语义、6 类候选字段类型与 11 条来源位置引用；候选列名只使用 control handle，不构成真实列名、真实 schema 或真实字段映射。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE058-P2-03",
+      "criteria": "来源文档继续保持权威；事实抽取和 RAG 摘要分别仍归 Stage059/060，本 P2 不创建事实、摘要、数值统计、证据、数据库或持久状态；无效控制输入必须 REJECTED。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE058-P2-04",
+      "criteria": "未读取、打开、检测或解析真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行真实 schema/字段/事实、统计、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage058 P3。",
+      "status": "已遵守"
+    },
+    {
       "id": "ACC-STAGE058-P1-01",
       "criteria": "Stage058 P1 只以冻结任务包和 Stage057 已复审工件为唯一合同上下文；XLSX/CSV、生产记录和质检记录只登记引用字段、接口名称与静态边界，不包含业务资料、表格内容、单元格、公式、来源正文、物理路径或第二权威事实源。",
       "status": "已通过"

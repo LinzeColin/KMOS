@@ -333,6 +333,7 @@ class Stage056OcrCacheRetentionPolicyPhase4Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE057-P4",
                 "IDS-V0_1-STAGE057-REVIEW",
                 "IDS-V0_1-STAGE058-P1",
+                "IDS-V0_1-STAGE058-P2",
             ),
         )
         self.assertIn(
@@ -345,6 +346,7 @@ class Stage056OcrCacheRetentionPolicyPhase4Tests(unittest.TestCase):
                 "IDS-STAGE057-REVIEW-GATE",
                 "IDS-STAGE058-P1-GATE",
                 "IDS-STAGE058-P2-GATE",
+                "IDS-STAGE058-P3-GATE",
             ),
         )
         self.assertFalse(status["runtime_enabled"])

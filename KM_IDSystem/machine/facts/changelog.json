@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage058-p2-local",
+    "date": "2026-08-13",
+    "summary": "完成 Stage058 P2 表格 Schema 推断纯内存控制切片：两条固定非业务十字段 reference-only 控制记录投影 2 个 Schema profile 组、11 条 18 字段候选、9 类字段语义、6 类字段类型和来源位置引用；事实抽取与 RAG 摘要仍分别归 Stage059/060。未读取、打开、检测或解析真实表格或 fixture，未创建真实 schema、事实、摘要、统计、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage058 P3。"
+  },
+  {
     "version": "v0.1-stage058-p1-local",
     "date": "2026-08-13",
     "summary": "完成 Stage058 P1 表格 Schema 推断静态合同：定义十字段引用输入、十八字段未来 Schema profile、九类字段候选、六类候选字段类型、六类来源位置、八类失败关闭、数值与 RAG 权威边界、中文反馈和回滚范围。未读取、打开、解析或推断真实表格或 fixture，未执行事实抽取、统计、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage058 P2。"

@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE058"
-current_phase_id: "IDS-STAGE058-P1"
-current_task_id: "IDS-V0_1-STAGE058-P1"
-next_gate_id: "IDS-STAGE058-P2-GATE"
+current_phase_id: "IDS-STAGE058-P2"
+current_task_id: "IDS-V0_1-STAGE058-P2"
+next_gate_id: "IDS-STAGE058-P3-GATE"
 current_transition_history:
+  stage058_phase2_state:
+    current_stage_id: "IDS-STAGE058"
+    current_phase_id: "IDS-STAGE058-P2"
+    current_task_id: "IDS-V0_1-STAGE058-P2"
+    next_gate_id: "IDS-STAGE058-P3-GATE"
   stage058_phase1_state:
     current_stage_id: "IDS-STAGE058"
     current_phase_id: "IDS-STAGE058-P1"
@@ -15657,19 +15662,19 @@ stages:
     task_id: "IDS-V0_1-STAGE058"
     acceptance_ids:
       - "ACC-STAGE-058"
-    status: "phase1_completed"
-    pursuing_goal: "只完成表格 Schema 推断的 Phase1 静态合同，明确未来列名、字段类型、日期、单位、材料、设备、工序、质量结果和事实类型候选的可追溯边界；不读取、打开、解析或推断真实表格。"
+    status: "phase2_completed"
+    pursuing_goal: "只完成表格 Schema 推断的 Phase2 纯内存控制切片：以两条固定、非业务、reference-only 控制记录投影 Schema profile 与字段候选，验证来源位置与字段类型边界；不读取、打开、检测或解析真实表格。"
     stop_gate:
-      gate_id: "IDS-STAGE058-P1-GATE"
+      gate_id: "IDS-STAGE058-P2-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE058-P2-GATE"
+      next_gate_id: "IDS-STAGE058-P3-GATE"
       github_upload_allowed: false
       pass_conditions:
-        - "十字段 reference-only 输入、十八字段未来 Schema profile、九类字段候选、六类候选字段类型、六类来源位置与八类失败关闭均有静态合同。"
-        - "来源文档保持权威，数值统计只能建立在带来源位置和证据绑定的结构化事实上；模型文本猜测与 RAG 数值权威均被禁止。"
-        - "未创建 schema profile、字段映射、事实、数值、证据或持久状态；回滚只恢复 Stage057 已复审本地投影。"
-        - "未读取、打开、解析或推断真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行数据库、Agent、模型 Token、OVH、生产、上传或推送。"
-        - "唯一后续门为 IDS-STAGE058-P2-GATE，必须由新的独立 run 进入。"
+        - "两条固定非业务十字段 control 输入在内存中形成两个 Schema profile 组、十一条十八字段候选、九类字段语义、六类候选字段类型与十一条来源位置引用。"
+        - "候选列名仅为 control handle，来源文档保持权威；事实抽取与 RAG 摘要分别继续归 Stage059/060，模型文本猜测和数值统计仍被禁止。"
+        - "未创建真实 schema profile、真实字段映射、事实、数值、证据、数据库或持久状态；回滚只恢复 P1 静态合同。"
+        - "未读取、打开、检测或解析真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行数据库、Agent、模型 Token、OVH、生产、上传或推送。"
+        - "唯一后续门为 IDS-STAGE058-P3-GATE，必须由新的独立 run 进入。"
     phases:
       - phase_id: "IDS-STAGE058-P1"
         name: "Phase 1 · 表格 Schema 推断范围、输入输出与边界确认"
@@ -15712,3 +15717,46 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
             risk: "若把静态字段候选或聚焦用例通过误作真实列名、真实字段类型、真实 schema、真实事实、真实统计、数据库、OVH、生产或上传能力，会破坏业务线白箱控制。"
             rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 STAGE057_REVIEWED_LOCAL_XLSX_CSV_INGESTION_RUNTIME_DISABLED；不改变真实资料、fixture、事实库、数据库、运行状态、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE058-P2"
+        name: "Phase 2 · 表格 Schema 推断最小可运行控制切片"
+        objective: "只以 Stage058 P1 合同的十字段 reference-only 输入和两条固定非业务控制记录，在内存中投影十八字段 Schema profile 与字段候选、字段类型和来源位置引用；不读取、打开、检测或解析真实表格。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE058-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE058-P2-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE058-P3-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、数据库或报告"
+          - "执行真实 Schema 推断、真实字段识别、真实事实抽取、RAG 摘要、数值统计、质量门、来源/证据写入、持久化、数据库 migration、Agent、模型调用、模型 Token、OVH、生产服务、Phase 3、整阶段复审、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE058-P2"
+            name: "实现表格 Schema 推断纯内存控制切片"
+            objective: "严格接受两条十字段固定非业务 control 输入，形成两个 Schema profile 组、十一条十八字段候选、九类字段语义、六类候选字段类型和十一条来源位置引用；事实抽取与 RAG 摘要仍分别归 Stage059/060。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "50.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE058-P1"
+            acceptance_ids:
+              - "ACC-STAGE-058"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage058_table_schema_inference_slice"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage058_table_schema_inference_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage058_table_schema_inference_slice"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "聚焦 Stage058 P2 直接单元用例通过 8/8；Stage058 P2/P1、Stage057 Review/P1-P4、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041-050 的显式前序兼容回归通过 389/389；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE058_PHASE2_TABLE_SCHEMA_INFERENCE_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage058_table_schema_inference_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage058_table_schema_inference_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage058_table_schema_inference_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-13-stage058-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage058_table_schema_inference_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE057_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+            risk: "若把控制候选、引用位置或聚焦用例通过误作真实表头、真实字段类型、真实 schema、真实事实、统计、数据库、OVH、生产或上传能力，会破坏业务线白箱控制。"
+            rollback: "只回滚本 P2 说明、纯内存切片、切片合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE1_TABLE_SCHEMA_INFERENCE_CONTRACT_RUNTIME_DISABLED；不改变真实资料、fixture、事实库、数据库、运行状态、GitHub、OVH 或应用状态。"

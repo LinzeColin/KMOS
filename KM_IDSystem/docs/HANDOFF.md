@@ -9,15 +9,15 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage058 Phase 1 - 2026-08-13
+## Current Gate - Stage058 Phase 2 - 2026-08-13
 
-- 本节是唯一当前交接；下方 Stage057 Review/P4/P3/P2/P1、Stage056 Review 及更早章节均为已提交的历史证据，不重写其事实。
-- 本轮完成 `IDS-V0_1-STAGE058-P1`：只以冻结 Stage058 任务包和 Stage057 已复审工件为唯一合同上下文，定义十字段 reference-only 输入、十八字段未来 Schema profile、九类字段候选、六类候选字段类型、六类来源位置、八类失败关闭、数值与 RAG 权威边界、中文反馈与回滚范围；没有建立第二权威事实源。
-- 静态字段候选、接口、枚举和计数不是实际列名、真实字段类型、真实 schema、业务事实、数值、日期、单位、设备、材料、工序、质量结果、来源正文、物理路径或统计结论。来源文档继续保持权威；模型不能按文本猜测数值或统计结论，RAG 摘要不能成为数值权威。
-- 已验证：Stage058 P1 聚焦用例 `7/7`；Stage058 P1、Stage057 Review/P1-P4、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041_050 的显式前序兼容回归 `381/381`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归为 `valid=true`；中文事实投影已重渲染 `7` 个文件。
-- 没有读取、打开、检测、解析或推断真实 XLSX/CSV、生产记录、质量检验记录、授权 fixture、工作表、单元格、公式、来源正文或物理路径；没有执行真实 Schema/字段/事实/质量验证、数值统计、数据库、持久化、Agent、模型调用、模型 Token、服务启动、OVH、生产、GitHub 上传或推送；`stage058_started=true`、`stage058_entry_authorized=true`、`phase2_started=false`、`github_upload_allowed=false`、`push_allowed=false`。
-- 回滚只撤回本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `STAGE057_REVIEWED_LOCAL_XLSX_CSV_INGESTION_RUNTIME_DISABLED`；保留冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 和应用状态。
-- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE058-P2-GATE`。本 run 不进入 Phase2、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+- 本节是唯一当前交接；下方 Stage058 P1、Stage057 Review/P4/P3/P2/P1、Stage056 Review 及更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE058-P2`：只以冻结 Stage058 任务包、P1 静态合同和 Stage057 已复审工件为唯一合同上下文，接受两条固定、非业务、reference-only 十字段控制记录，在内存中投影两个 Schema profile 组、十一条十八字段候选、九类字段语义、六类候选字段类型和十一条来源位置引用；没有建立第二权威事实源。
+- 候选列名均为 `column-handle:control:*`，不是实际表头、真实字段类型、真实 schema、业务事实、数值、日期、单位、设备、材料、工序、质量结果、来源正文、物理路径或统计结论。来源文档继续保持权威；模型不能按文本猜测数值或统计结论，事实抽取和 RAG 摘要仍分别归后续 Stage059/060。
+- 已验证：Stage058 P2 聚焦用例 `8/8`；Stage058 P2/P1、Stage057 Review/P1-P4、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041_050 的显式前序兼容回归 `389/389`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归为 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 没有读取、打开、检测或解析真实 XLSX/CSV、生产记录、质量检验记录、授权 fixture、工作表、表头、单元格、公式、来源正文或物理路径；没有执行真实 Schema/字段/事实/质量验证、RAG 摘要、数值统计、数据库、持久化、Agent、模型调用、模型 Token、服务启动、OVH、生产、GitHub 上传或推送；`stage058_started=true`、`phase2_started=true`、`phase3_started=false`、`github_upload_allowed=false`、`push_allowed=false`。
+- 回滚只撤回本 P2 说明、纯内存切片、切片合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `PHASE1_TABLE_SCHEMA_INFERENCE_CONTRACT_RUNTIME_DISABLED`；保留 P1、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 和应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE058-P3-GATE`。本 run 不进入 Phase3、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
 
 ## Superseded Gate - Stage057 Review - 2026-08-13
 
