@@ -51,6 +51,7 @@ from daily_funds.ingestion import (
     PersistedRawAttachment,
     RawArchiveAudit,
     RawMaterializer,
+    ReopenedRawEvidence,
     SPARSE_PATH,
     StagedRawBatch,
 )
@@ -4501,6 +4502,56 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     replayed = writer.persist((filename_drift,))
     assert replayed.commit_sha != commit.commit_sha
     assert replayed.verified_attachments == (direct,)
+
+    # A later overlap can combine occurrences that were originally written in
+    # separate immutable raw batches.  Reopening must prove each original
+    # batch membership, not invent a page-level batch manifest that never
+    # existed in the private authority.
+    separate_payload = b"separate-batch"
+    separate_message_hash = sha256(b"msg-separate-batch").hexdigest()
+    separate = DownloadedAttachment(
+        {
+            "openConversationId": "group-fixture",
+            "senderOpenDingTalkId": "sender-fixture",
+            "openMessageId": "msg-separate-batch",
+            "createTime": moment.isoformat(),
+            "content": "资金流水明细 mediaId=fixture-separate",
+        },
+        "msg-separate-batch",
+        separate_message_hash,
+        moment,
+        0,
+        "separate.csv",
+        "资金流水明细",
+        separate_payload,
+        __import__("hashlib").sha256(separate_payload).hexdigest(),
+        "text/csv",
+    )
+    writer.persist((separate,))
+    cross_batch_reopen = writer.reopen_persisted((
+        PersistedRawAttachment(
+            message=direct.message,
+            message_id=direct.message_id,
+            message_id_hash=direct.message_id_hash,
+            message_at=direct.message_at,
+            index=direct.index,
+            sha256=direct.sha256,
+        ),
+        PersistedRawAttachment(
+            message=separate.message,
+            message_id=separate.message_id,
+            message_id_hash=separate.message_id_hash,
+            message_at=separate.message_at,
+            index=separate.index,
+            sha256=separate.sha256,
+        ),
+    ))
+    assert {attachment.sha256 for attachment in cross_batch_reopen.verified_attachments} == {
+        direct.sha256,
+        separate.sha256,
+    }
+    assert isinstance(cross_batch_reopen.staged, ReopenedRawEvidence)
+    assert len(cross_batch_reopen.staged.source_batch_paths) == 2
 
 
 def test_sparse_writer_uses_shallow_clone_for_narrow_raw_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

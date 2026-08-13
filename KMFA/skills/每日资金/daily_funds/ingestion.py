@@ -180,9 +180,24 @@ class StagedRawBatch:
 
 
 @dataclass(frozen=True)
+class ReopenedRawEvidence:
+    """Read-only evidence for an overlap assembled from prior raw batches.
+
+    A later DWS overlap can legitimately return occurrences that were first
+    archived in different pages and therefore different immutable batch
+    manifests.  It is deliberately not represented as a new raw batch in
+    Private-Database.
+    """
+
+    source_batch_paths: tuple[str, ...]
+    attachment_hashes: tuple[str, ...]
+    occurrences: int
+
+
+@dataclass(frozen=True)
 class GitCommit:
     commit_sha: str
-    staged: StagedRawBatch
+    staged: StagedRawBatch | ReopenedRawEvidence
     # These bytes have been re-opened from a fresh sparse clone at
     # ``commit_sha``.  Downstream R2, parsing and reconciliation must consume
     # this list rather than the transient DWS download buffer.
@@ -2329,6 +2344,10 @@ class GitSparseWriter:
         The one trailing ``*`` is constrained by the complete SHA-256 prefix:
         it selects the same direct blob under whichever original suffix DWS
         supplied, while avoiding a checkout of the enclosing hash directory.
+        Batch membership is resolved separately from a commit-pinned metadata
+        clone: one current DWS page may combine occurrences that were archived
+        in more than one historic batch, so there is no safe synthetic batch
+        filename to include here.
         """
 
         frozen = GitSparseWriter._canonical_persisted_raw_attachments(attachments)
@@ -2343,9 +2362,27 @@ class GitSparseWriter:
             patterns.add((SPARSE_PATH / occurrence_path).as_posix())
             patterns.add(f"{(SPARSE_PATH / 'raw/blobs/sha256' / attachment.sha256[:2] / attachment.sha256).as_posix()}*")
             patterns.add(f"{(SPARSE_PATH / 'raw/chunks/sha256' / attachment.sha256).as_posix()}/")
-        _, _, batch_path = RawMaterializer.persisted_batch_details(frozen)
-        patterns.add((SPARSE_PATH / batch_path).as_posix())
         return tuple(sorted(patterns))
+
+    @staticmethod
+    def _persisted_occurrence_targets(
+        attachments: Iterable[PersistedRawAttachment],
+    ) -> dict[str, str]:
+        """Return exact raw occurrence paths with the expected immutable hash."""
+
+        frozen = GitSparseWriter._canonical_persisted_raw_attachments(attachments)
+        targets: dict[str, str] = {}
+        for attachment in frozen:
+            _, occurrence_path = RawMaterializer._message_and_occurrence_paths(
+                attachment.message_at,
+                attachment.message_id_hash,
+                attachment.index,
+            )
+            key = str(occurrence_path)
+            if key in targets and targets[key] != attachment.sha256:
+                raise IngestionError("RAW_OCCURRENCE_COLLISION")
+            targets[key] = attachment.sha256
+        return targets
 
     @staticmethod
     def _publication_sparse_patterns(business_date: str) -> tuple[str, ...]:
@@ -3000,6 +3037,137 @@ class GitSparseWriter:
         RawMaterializer.readback_batch(root, frozen, staged)
         return verified
 
+    def _readback_persisted_batch_membership(
+        self,
+        temp_root: Path,
+        *,
+        repo: Path,
+        env: Mapping[str, str],
+        commit_sha: str,
+        attachments: Iterable[PersistedRawAttachment],
+    ) -> tuple[str, ...]:
+        """Prove each reopened occurrence belongs to a real raw batch.
+
+        A DWS overlap is a query result, not an immutable archive batch.  It
+        can span batches that were first persisted by earlier pages, so a
+        synthetic combined batch manifest must never be required or invented.
+        This method reads only bounded batch manifests from the same pinned
+        commit as the exact attachment clone and verifies every target
+        occurrence/hash pair against at least one canonical stored batch.
+        """
+
+        targets = self._persisted_occurrence_targets(attachments)
+        tree_root = (SPARSE_PATH / "raw/batches").as_posix()
+        output = self._git(
+            ["ls-tree", "-r", "--name-only", commit_sha, "--", tree_root],
+            cwd=repo,
+            env=env,
+            failure_code="GIT_ARCHIVE_READBACK_FAILED",
+        )
+        if len(output.encode("utf-8", errors="ignore")) > self._RAW_ARCHIVE_MAX_TREE_OUTPUT_BYTES:
+            raise IngestionError("GIT_ARCHIVE_READBACK_FAILED")
+        batch_paths = tuple(line for line in output.splitlines() if line)
+        if not batch_paths or len(batch_paths) > self._RAW_ARCHIVE_MAX_BATCHES:
+            raise IngestionError("GIT_ARCHIVE_READBACK_FAILED")
+        for path in batch_paths:
+            self._raw_archive_batch_path(path)
+
+        metadata_repo = temp_root / "private-db-reopen-batches"
+        self._clone_sparse(
+            metadata_repo,
+            env=env,
+            ref=self.config.private_branch,
+            patterns=batch_paths,
+            failure_code="GIT_ARCHIVE_READBACK_FAILED",
+            commit_sha=commit_sha,
+        )
+        if self._git(
+            ["rev-parse", "HEAD"],
+            cwd=metadata_repo,
+            env=env,
+            failure_code="GIT_ARCHIVE_READBACK_FAILED",
+        ) != commit_sha:
+            raise IngestionError("GIT_ARCHIVE_READBACK_FAILED")
+
+        covered: dict[str, str] = {}
+        root = metadata_repo / SPARSE_PATH
+        try:
+            for full_path in batch_paths:
+                batch_id = self._raw_archive_batch_path(full_path)
+                relative_path = Path(full_path).relative_to(SPARSE_PATH)
+                payload = json.loads(RawMaterializer._safe_path(root, relative_path).read_text(encoding="utf-8"))
+                if (
+                    not isinstance(payload, Mapping)
+                    or set(payload) != {"schema_version", "batch_id", "occurrences"}
+                    or payload.get("schema_version") != "kmfa.daily_funds.batch.v1"
+                    or payload.get("batch_id") != batch_id
+                    or not isinstance(payload.get("occurrences"), list)
+                    or not payload["occurrences"]
+                ):
+                    raise IngestionError("GIT_ARCHIVE_READBACK_FAILED")
+
+                rows: list[dict[str, Any]] = []
+                seen_rows: set[tuple[str, int, str, str]] = set()
+                for raw_row in payload["occurrences"]:
+                    if not isinstance(raw_row, Mapping) or set(raw_row) != {
+                        "message_id_hash", "attachment_index", "attachment_sha256", "occurrence_path",
+                    }:
+                        raise IngestionError("GIT_ARCHIVE_READBACK_FAILED")
+                    message_id_hash = raw_row.get("message_id_hash")
+                    index = raw_row.get("attachment_index")
+                    attachment_sha256 = raw_row.get("attachment_sha256")
+                    occurrence_path = raw_row.get("occurrence_path")
+                    if (
+                        not isinstance(message_id_hash, str)
+                        or len(message_id_hash) != 64
+                        or any(character not in "0123456789abcdef" for character in message_id_hash)
+                        or not isinstance(index, int)
+                        or isinstance(index, bool)
+                        or index < 0
+                        or not isinstance(attachment_sha256, str)
+                        or len(attachment_sha256) != 64
+                        or any(character not in "0123456789abcdef" for character in attachment_sha256)
+                        or not isinstance(occurrence_path, str)
+                    ):
+                        raise IngestionError("GIT_ARCHIVE_READBACK_FAILED")
+                    year, month, day, path_message_hash, path_index = self._raw_archive_occurrence_path(
+                        (SPARSE_PATH / occurrence_path).as_posix()
+                    )
+                    if (
+                        path_message_hash != message_id_hash
+                        or path_index != index
+                        or not (2000 <= year <= 2999)
+                        or not (1 <= month <= 12)
+                        or not (1 <= day <= 31)
+                    ):
+                        raise IngestionError("GIT_ARCHIVE_READBACK_FAILED")
+                    identity = (message_id_hash, index, attachment_sha256, occurrence_path)
+                    if identity in seen_rows:
+                        raise IngestionError("GIT_ARCHIVE_READBACK_FAILED")
+                    seen_rows.add(identity)
+                    rows.append(dict(raw_row))
+
+                computed_batch_id, computed_rows, computed_path = RawMaterializer._batch_details_from_rows(rows)
+                if (
+                    computed_batch_id != batch_id
+                    or str(computed_path) != str(relative_path)
+                    or rows != computed_rows
+                ):
+                    raise IngestionError("GIT_ARCHIVE_READBACK_FAILED")
+                for row in computed_rows:
+                    expected_hash = targets.get(row["occurrence_path"])
+                    if expected_hash is None:
+                        continue
+                    if row["attachment_sha256"] != expected_hash:
+                        raise IngestionError("GIT_ARCHIVE_READBACK_FAILED")
+                    covered.setdefault(row["occurrence_path"], str(relative_path))
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError, IngestionError) as exc:
+            raise IngestionError("GIT_ARCHIVE_READBACK_FAILED") from exc
+
+        if set(covered) != set(targets):
+            raise IngestionError("GIT_ARCHIVE_READBACK_FAILED")
+        return tuple(sorted(set(covered.values())))
+
     def persist(self, attachments: Iterable[DownloadedAttachment]) -> GitCommit:
         self.config.validate(include_storage=False)
         frozen_attachments = RawMaterializer.canonical_attachments(attachments)
@@ -3114,27 +3282,46 @@ class GitSparseWriter:
             key_path = self._write_deploy_key(temp_root, self.config.git_ssh_key_b64)
             env = self._git_environment(temp_root, key_path)
             repo = temp_root / "private-db-readback"
-            self._clone_sparse(repo, env=env, ref=self.config.private_branch, patterns=sparse_patterns)
-            commit_sha = self._git(["rev-parse", "HEAD"], cwd=repo, env=env)
-            root = repo / SPARSE_PATH
-            verified_attachments = tuple(
-                RawMaterializer.hydrate_persisted_raw_attachment(root, attachment)
-                for attachment in frozen_attachments
-            )
-            batch_id, _, batch_path = RawMaterializer._batch_details(verified_attachments)
-            staged = StagedRawBatch(
-                batch_id=batch_id,
-                paths=(str(batch_path),),
-                attachment_hashes=tuple(sorted({attachment.sha256 for attachment in verified_attachments})),
-                occurrences=len(verified_attachments),
-                reassembly_manifest_paths=(),
-            )
-            RawMaterializer.readback_batch(root, verified_attachments, staged)
-            return GitCommit(
-                commit_sha=commit_sha,
-                staged=staged,
-                verified_attachments=verified_attachments,
-            )
+            try:
+                self._clone_sparse(
+                    repo,
+                    env=env,
+                    ref=self.config.private_branch,
+                    patterns=sparse_patterns,
+                    failure_code="GIT_ARCHIVE_READBACK_FAILED",
+                )
+                commit_sha = self._git(
+                    ["rev-parse", "HEAD"],
+                    cwd=repo,
+                    env=env,
+                    failure_code="GIT_ARCHIVE_READBACK_FAILED",
+                )
+                source_batch_paths = self._readback_persisted_batch_membership(
+                    temp_root,
+                    repo=repo,
+                    env=env,
+                    commit_sha=commit_sha,
+                    attachments=frozen_attachments,
+                )
+                root = repo / SPARSE_PATH
+                verified_attachments = tuple(
+                    RawMaterializer.hydrate_persisted_raw_attachment(root, attachment)
+                    for attachment in frozen_attachments
+                )
+                reopened = ReopenedRawEvidence(
+                    source_batch_paths=source_batch_paths,
+                    attachment_hashes=tuple(sorted({attachment.sha256 for attachment in verified_attachments})),
+                    occurrences=len(verified_attachments),
+                )
+                return GitCommit(
+                    commit_sha=commit_sha,
+                    staged=reopened,
+                    verified_attachments=verified_attachments,
+                )
+            except IngestionError as exc:
+                if exc.code == "GIT_ARCHIVE_READBACK_FAILED":
+                    raise
+                raise IngestionError("GIT_ARCHIVE_READBACK_FAILED") from exc
 
     def persist_publication(self, publication: Mapping[str, Any]) -> str:
         """Persist the immutable formal publication before its UI pointer moves."""
