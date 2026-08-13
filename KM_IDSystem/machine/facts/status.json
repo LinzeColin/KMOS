@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE060",
-  "phase": "IDS-V0_1-STAGE060-P4",
-  "task": "IDS-V0_1-STAGE060-P4",
-  "real_progress": "Stage060 已完成 P4 纯内存 metadata-only 交付证据派生：从 P3 六类固定非业务控制场景形成六个表格事实引用样例、六个字段引用标签、六条质量结果、六条人工处理建议、三条中文确认以及回到 P3 control 状态的重解析/事实回滚说明；下一步仅可在新的独立 run 进入 Stage060 Review，上传路径继续关闭",
-  "report_grade": "冻结 Stage060 任务包、P1/P2/P3 合同与 Stage059 已复审工件为唯一合同上下文；当前只保留固定 control 引用、metadata-only 交付、显式人工处置、权威边界、失败关闭、回滚范围和本地交付证据",
-  "business_verdict": "本阶段只证明 Stage060 P4 的 metadata-only 交付证据与 P3 控制引用形状一致，不证明真实表格、真实字段推断、真实结构化事实、真实 RAG 摘要正文、真实来源可追溯、数值统计、数据库、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE060_TABLE_RAG_SUMMARY_DELIVERY_RUNTIME_DISABLED",
-  "rendered_at": "2026-08-13",
+  "phase": "IDS-V0_1-STAGE060-REVIEW",
+  "task": "IDS-V0_1-STAGE060-REVIEW",
+  "real_progress": "Stage060 已完成 P1--P4 本地白箱复审：十三字段引用输入、十字段未来 RAG 摘要、两条固定非业务 control、六类显式处置、metadata-only 交付、中文人工处理和回滚链一致；下一步仅可在新的独立 run 进入 BATCH051-060 Review，上传路径继续关闭",
+  "report_grade": "冻结 Stage060 任务包、P1--P4 合同与 P3/P4 受控内存报告为唯一合同上下文；当前只保留字段形状、control 计数、质量限制、人工处理、回滚范围和本地复审证据",
+  "business_verdict": "本阶段只证明 Stage060 control 合同与交付证据在本地复审一致，不证明真实表格、真实字段推断、真实结构化事实、真实 RAG 摘要正文、真实来源可追溯、数值统计、数据库、OVH、生产服务、批次复审或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE060_TABLE_RAG_SUMMARY_REVIEW_RUNTIME_DISABLED",
+  "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE060-REVIEW-GATE",
+  "next_gate": "IDS-V0_1-BATCH-051-060-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

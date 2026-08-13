@@ -6,26 +6,40 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-REVIEW = BASE / "STAGE059_STAGE_REVIEW.md"
-REVIEW_MODULE = BASE / "structured_table_facts" / "stage059_fact_extraction_stage_review.py"
-P1_CONTRACT = BASE / "structured_table_facts" / "stage059_fact_extraction_contract.json"
-P2_CONTRACT = BASE / "structured_table_facts" / "stage059_fact_extraction_slice_contract.json"
-P3_CONTRACT = BASE / "structured_table_facts" / "stage059_fact_extraction_quality_scenarios_contract.json"
-P4_CONTRACT = BASE / "structured_table_facts" / "stage059_fact_extraction_delivery_contract.json"
+REVIEW = BASE / "STAGE060_STAGE_REVIEW.md"
+REVIEW_MODULE = (
+    BASE
+    / "structured_table_facts"
+    / "stage060_table_rag_summary_stage_review.py"
+)
+P1_CONTRACT = BASE / "structured_table_facts" / "stage060_table_rag_summary_contract.json"
+P2_CONTRACT = (
+    BASE / "structured_table_facts" / "stage060_table_rag_summary_slice_contract.json"
+)
+P3_CONTRACT = (
+    BASE
+    / "structured_table_facts"
+    / "stage060_table_rag_summary_quality_scenarios_contract.json"
+)
+P4_CONTRACT = (
+    BASE
+    / "structured_table_facts"
+    / "stage060_table_rag_summary_delivery_contract.json"
+)
 BATCH = BASE / "BATCH051_060_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-13-stage059-review-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-14-stage060-review-local.json"
 
 
-class Stage059FactExtractionStageReviewTests(unittest.TestCase):
+class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
     _module_value = None
     _report_value = None
 
     def _module(self):
         if self.__class__._module_value is None:
-            spec = importlib.util.spec_from_file_location("stage059_review", REVIEW_MODULE)
+            spec = importlib.util.spec_from_file_location("stage060_review", REVIEW_MODULE)
             module = importlib.util.module_from_spec(spec)
             self.assertIsNotNone(spec.loader)
             spec.loader.exec_module(module)
@@ -34,7 +48,7 @@ class Stage059FactExtractionStageReviewTests(unittest.TestCase):
 
     def _report(self):
         if self.__class__._report_value is None:
-            self.__class__._report_value = self._module().build_stage059_review_report()
+            self.__class__._report_value = self._module().build_stage060_review_report()
         return self.__class__._report_value
 
     def test_review_artifacts_exist(self):
@@ -56,19 +70,25 @@ class Stage059FactExtractionStageReviewTests(unittest.TestCase):
 
     def test_review_identity_and_local_result(self):
         report = self._report()
-        self.assertEqual("ids.stage059.fact_extraction.stage_review.v1", report["schema_version"])
-        self.assertEqual("IDS-V0_1-STAGE059-REVIEW", report["task_id"])
-        self.assertEqual("ACC-STAGE-059", report["acceptance_id"])
+        self.assertEqual(
+            "ids.stage060.table_rag_summary.stage_review.v1",
+            report["schema_version"],
+        )
+        self.assertEqual("IDS-V0_1-STAGE060-REVIEW", report["task_id"])
+        self.assertEqual("ACC-STAGE-060", report["acceptance_id"])
         self.assertTrue(report["review_valid"], report)
         self.assertEqual(
-            "PASS_REVIEWED_LOCAL_FACT_EXTRACTION_RUNTIME_DISABLED", report["result"]
+            "PASS_REVIEWED_LOCAL_TABLE_RAG_SUMMARY_RUNTIME_DISABLED",
+            report["result"],
         )
-        self.assertEqual("IDS-STAGE060-P1-GATE", report["next_gate"])
+        self.assertEqual(
+            "IDS-V0_1-BATCH-051-060-REVIEW-GATE", report["next_gate"]
+        )
 
     def test_review_preserves_single_authority_boundary(self):
         report = self._report()
         self.assertEqual(
-            "FROZEN_TASKPACK_AND_STAGE059_P1_TO_P4_CONTROLLED_ARTIFACTS_ONLY",
+            "FROZEN_TASKPACK_AND_STAGE060_P1_TO_P4_AND_STAGE059_REVIEW_ARTIFACTS_ONLY",
             report["source_authority"],
         )
         self.assertFalse(report["secondary_authority_created"])
@@ -82,21 +102,20 @@ class Stage059FactExtractionStageReviewTests(unittest.TestCase):
         replay = report["controlled_replay"]
         self.assertEqual(4, replay["phase_contract_count"])
         self.assertEqual(4, replay["phase_contract_passed_count"])
-        self.assertEqual(12, replay["phase1_reference_input_field_count"])
-        self.assertEqual(25, replay["phase1_future_typed_fact_output_field_count"])
-        self.assertEqual(3, replay["phase1_fact_category_count"])
+        self.assertEqual(13, replay["phase1_reference_input_field_count"])
+        self.assertEqual(10, replay["phase1_future_rag_summary_output_field_count"])
         self.assertEqual(7, replay["phase1_typed_semantic_category_count"])
         self.assertEqual(6, replay["phase1_source_location_field_count"])
         self.assertEqual(10, replay["phase1_declared_failure_state_count"])
         self.assertEqual(2, replay["phase2_control_record_count"])
-        self.assertEqual(3, replay["phase2_fact_candidate_count"])
-        self.assertEqual(3, replay["phase2_candidate_field_type_count"])
-        self.assertEqual(1, replay["phase2_numeric_field_candidate_count"])
-        self.assertEqual(3, replay["phase2_source_location_binding_candidate_count"])
+        self.assertEqual(2, replay["phase2_rag_summary_candidate_count"])
+        self.assertEqual(2, replay["phase2_fact_reference_count"])
+        self.assertEqual(6, replay["phase2_source_location_field_count"])
+        self.assertEqual(2, replay["phase2_source_location_binding_candidate_count"])
         self.assertTrue(report["phase_results"]["P1"])
         self.assertTrue(report["phase_results"]["P2"])
         self.assertTrue(
-            report["review_invariants"]["typed_fact_and_source_location_boundary_preserved"]
+            report["review_invariants"]["fact_and_source_location_boundary_preserved"]
         )
 
     def test_review_replays_phase3_explicit_dispositions_without_silent_drop(self):
@@ -121,22 +140,24 @@ class Stage059FactExtractionStageReviewTests(unittest.TestCase):
         self.assertEqual(6, replay["delivery_human_handling_record_count"])
         self.assertEqual(3, replay["delivery_human_confirmation_prompt_count"])
         self.assertTrue(report["phase_results"]["P4"])
-        self.assertTrue(report["review_invariants"]["metadata_only_delivery_boundary"])
+        self.assertTrue(
+            report["review_invariants"]["metadata_only_delivery_boundary_preserved"]
+        )
 
-    def test_review_preserves_fact_rag_and_rollback_boundaries(self):
+    def test_review_preserves_summary_numeric_and_rollback_boundaries(self):
         report = self._report()
         self.assertTrue(
-            report["review_invariants"]["fact_and_rag_authority_boundary_preserved"]
+            report["review_invariants"]["summary_and_numeric_authority_boundary_preserved"]
         )
         self.assertTrue(
             report["controlled_replay"]["reparse_and_fact_rollback_instructions_created"]
         )
         self.assertEqual(
-            "PHASE4_FACT_EXTRACTION_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+            "PHASE4_TABLE_RAG_SUMMARY_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
             report["rollback"]["return_to"],
         )
         self.assertEqual(
-            "PHASE3_FACT_EXTRACTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+            "PHASE3_TABLE_RAG_SUMMARY_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
             report["controlled_replay"]["reparse_and_fact_rollback_return_to"],
         )
         self.assertTrue(
@@ -146,16 +167,16 @@ class Stage059FactExtractionStageReviewTests(unittest.TestCase):
     def test_review_fails_closed_when_a_contract_or_report_is_incomplete(self):
         module = self._module()
         for report in (
-            module.build_stage059_review_report(phase4_contract_provider=lambda: {}),
-            module.build_stage059_review_report(phase3_report_provider=lambda: {}),
+            module.build_stage060_review_report(phase4_contract_provider=lambda: {}),
+            module.build_stage060_review_report(phase3_report_provider=lambda: {}),
         ):
             with self.subTest(result=report["result"]):
                 self.assertFalse(report["review_valid"])
                 self.assertEqual(
-                    "FAIL_REVIEWED_LOCAL_FACT_EXTRACTION_RUNTIME_DISABLED",
+                    "FAIL_REVIEWED_LOCAL_TABLE_RAG_SUMMARY_RUNTIME_DISABLED",
                     report["result"],
                 )
-                self.assertEqual("IDS-STAGE060-P1-GATE", report["next_gate"])
+                self.assertEqual("IDS-STAGE060-REVIEW-GATE", report["next_gate"])
 
     def test_review_has_no_runtime_or_external_actions(self):
         report = self._report()
@@ -173,9 +194,9 @@ class Stage059FactExtractionStageReviewTests(unittest.TestCase):
             "model_token_consumption_performed",
             "ovh_deployment_performed",
             "production_runtime_activation_performed",
-            "stage060_started",
-            "stage060_entry_allowed",
             "batch_review_performed",
+            "stage061_started",
+            "stage061_entry_allowed",
             "github_upload_allowed",
             "push_allowed",
         ):
@@ -183,36 +204,32 @@ class Stage059FactExtractionStageReviewTests(unittest.TestCase):
                 self.assertFalse(report[field])
         self.assertTrue(report["whole_stage_review_performed"])
 
-    def test_governance_closes_stage059_only_to_a_separate_stage060_run(self):
+    def test_governance_closes_stage060_only_to_a_separate_batch_review_run(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage059_completed_reviewed_local"'),
-            (batch, "stage059_review_state:"),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE059-REVIEW"'),
-            (batch, 'next_allowed_task_id: "IDS-V0_1-STAGE060-P1"'),
-            (batch, "stage060_entry_authorized: false"),
-            (roadmap, 'current_phase_id: "IDS-STAGE059-REVIEW"'),
-            (roadmap, 'current_task_id: "IDS-V0_1-STAGE059-REVIEW"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE060-P1-GATE"'),
+            (batch, 'status: "stage060_completed_reviewed_local"'),
+            (batch, "stage060_review_state:"),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE060-REVIEW"'),
+            (
+                batch,
+                'next_allowed_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"',
+            ),
+            (batch, "batch051_060_review_entry_authorized: false"),
+            (roadmap, 'current_phase_id: "IDS-STAGE060-REVIEW"'),
+            (roadmap, 'current_task_id: "IDS-V0_1-STAGE060-REVIEW"'),
+            (roadmap, 'next_gate_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"'),
             (roadmap, 'status: "completed_reviewed_local"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertIn(status["stage"], ("IDS-STAGE059", "IDS-STAGE060"))
-        self.assertIn(
-            status["phase"],
-            ("IDS-V0_1-STAGE059-REVIEW", "IDS-V0_1-STAGE060-P1", "IDS-V0_1-STAGE060-P2", "IDS-V0_1-STAGE060-P3", "IDS-V0_1-STAGE060-P4", "IDS-V0_1-STAGE060-REVIEW"),
-        )
-        self.assertIn(
-            status["task"],
-            ("IDS-V0_1-STAGE059-REVIEW", "IDS-V0_1-STAGE060-P1", "IDS-V0_1-STAGE060-P2", "IDS-V0_1-STAGE060-P3", "IDS-V0_1-STAGE060-P4", "IDS-V0_1-STAGE060-REVIEW"),
-        )
-        self.assertIn(
-            status["next_gate"],
-            ("IDS-STAGE060-P1-GATE", "IDS-STAGE060-P2-GATE", "IDS-STAGE060-P3-GATE", "IDS-STAGE060-P4-GATE", "IDS-STAGE060-REVIEW-GATE", "IDS-V0_1-BATCH-051-060-REVIEW-GATE"),
+        self.assertEqual("IDS-STAGE060", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE060-REVIEW", status["phase"])
+        self.assertEqual("IDS-V0_1-STAGE060-REVIEW", status["task"])
+        self.assertEqual(
+            "IDS-V0_1-BATCH-051-060-REVIEW-GATE", status["next_gate"]
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
@@ -220,12 +237,14 @@ class Stage059FactExtractionStageReviewTests(unittest.TestCase):
     def test_machine_run_and_event_record_only_local_review_evidence(self):
         run = json.loads(RUN.read_text(encoding="utf-8"))
         self.assertEqual(
-            "PASS_REVIEWED_LOCAL_FACT_EXTRACTION_RUNTIME_DISABLED", run["result"].strip()
+            "PASS_REVIEWED_LOCAL_TABLE_RAG_SUMMARY_RUNTIME_DISABLED",
+            run["result"].strip(),
         )
         self.assertFalse(run["observed_work"]["xlsx_or_csv_parse_performed"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
         self.assertTrue(run["observed_work"]["whole_stage_review_performed"])
-        self.assertFalse(run["observed_work"]["stage060_started"])
+        self.assertFalse(run["observed_work"]["batch_review_performed"])
+        self.assertFalse(run["observed_work"]["stage061_started"])
 
         events = [
             json.loads(line) for line in EVENTS.read_text(encoding="utf-8").splitlines()
@@ -233,11 +252,13 @@ class Stage059FactExtractionStageReviewTests(unittest.TestCase):
         event = next(
             item
             for item in events
-            if item.get("event_id") == "EVT-IDS-V0_1-STAGE059-REVIEW-20260813-001"
+            if item.get("event_id") == "EVT-IDS-V0_1-STAGE060-REVIEW-20260814-001"
         )
         self.assertEqual("stage_review", event["event_type"])
-        self.assertEqual("IDS-V0_1-STAGE059-REVIEW", event["task_id"])
-        self.assertIn("next_gate=IDS-STAGE060-P1-GATE", event["notes"])
+        self.assertEqual("IDS-V0_1-STAGE060-REVIEW", event["task_id"])
+        self.assertIn(
+            "next_gate=IDS-V0_1-BATCH-051-060-REVIEW-GATE", event["notes"]
+        )
         self.assertIn(
             "KM_IDSystem/" + str(REVIEW.relative_to(ROOT)),
             {item["ref"] for item in event["evidence_refs"]},

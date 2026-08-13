@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE060"
-current_phase_id: "IDS-STAGE060-P4"
-current_task_id: "IDS-V0_1-STAGE060-P4"
-next_gate_id: "IDS-STAGE060-REVIEW-GATE"
+current_phase_id: "IDS-STAGE060-REVIEW"
+current_task_id: "IDS-V0_1-STAGE060-REVIEW"
+next_gate_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 current_transition_history:
+  stage060_review_state:
+    current_stage_id: "IDS-STAGE060"
+    current_phase_id: "IDS-STAGE060-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE060-REVIEW"
+    next_gate_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
   stage060_phase4_state:
     current_stage_id: "IDS-STAGE060"
     current_phase_id: "IDS-STAGE060-P4"
@@ -16205,21 +16210,20 @@ stages:
     task_id: "IDS-V0_1-STAGE060"
     acceptance_ids:
       - "ACC-STAGE-060"
-    status: "phase4_completed_review_pending"
-    pursuing_goal: "只以冻结 Stage060 任务包、P1/P2/P3 合同和 Stage059 已复审工件为合同上下文，从六类固定非业务 reference-only 表格摘要控制场景派生 metadata-only 表格事实引用样例、字段推断引用报告、质量结果、人工处理建议和表格重解析/事实回滚说明；不读取、打开、解析、生成或写入真实表格、事实或摘要。"
+    status: "completed_reviewed_local"
+    pursuing_goal: "只机械复审冻结 Stage060 任务包、P1--P4 合同及 P3/P4 受控内存报告，确认表格到 RAG 摘要的字段形状、单一权威、结构化事实与数值边界、六类显式处置、metadata-only 交付、中文人工处理和回滚链一致；不读取、打开、解析、生成或写入真实表格、事实或摘要。"
     stop_gate:
-      gate_id: "IDS-STAGE060-P4-GATE"
+      gate_id: "IDS-STAGE060-REVIEW-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE060-REVIEW-GATE"
+      next_gate_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
       github_upload_allowed: false
       pass_conditions:
-        - "P3 六类固定非业务控制场景已派生六个 metadata-only 表格事实引用样例、六个字段引用标签、六条质量结果、六条人工处理建议和三条中文确认提示。"
-        - "样例、字段推断引用报告与质量结果只保留 :control: 引用形状，不构成真实表格、真实字段、真实事实、真实摘要、真实来源追溯、真实证据或第二权威事实源。"
-        - "无法识别的结构均保留人工处理建议；表格重解析和事实回滚说明只回到 P3 control 状态，不执行实际文件重解析、事实/摘要删除、覆写、迁移或回滚。"
-        - "来源文档保持权威，未验证数值阻断统计与模型确定性数值结论；RAG 摘要不能替代结构化事实或成为数值证据。"
-        - "未创建真实表格、结构化事实、typed value、数值、摘要正文、证据、数据库或持久状态；回滚只撤回 P4 派生证据。"
-        - "未读取、打开、解析或处理真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行数据库、Agent、模型 Token、OVH、生产、上传或推送。"
-        - "唯一后续门为 IDS-STAGE060-REVIEW-GATE，必须由新的独立 run 进入。"
+        - "P1--P4 的十三字段引用输入、十字段未来 RAG 摘要、七类表格语义、六类来源位置、十类失败关闭、两条 control、六类显式处置与六个 metadata-only 样例形状一致。"
+        - "P3 六类控制异常均有显式处置、零静默丢弃与人工处理；P4 复审六个字段标签、六条质量结果、六条人工建议和三条中文确认。"
+        - "来源文档保持权威；RAG 摘要不能替代结构化事实或成为数值统计证据，未验证数值不得形成统计或模型确定性结论。"
+        - "P4 到 P3、P3 到 P2、P2 到 P1、P1 到 Stage059 Review 的回滚链完整；复审回滚只恢复 P4 待复审状态并保留 P1--P4 证据。"
+        - "未读取、打开、检测、解析或评估真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行真实字段/事实/质量验证、RAG、数据库、Agent、模型 Token、OVH、生产、批次复审、上传或推送。"
+        - "唯一后续门为 IDS-V0_1-BATCH-051-060-REVIEW-GATE，必须由新的独立 run 进入。"
     phases:
       - phase_id: "IDS-STAGE060-P1"
         name: "Phase 1 · 表格到 RAG 摘要范围、输入输出与边界确认"
@@ -16398,3 +16402,51 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
             risk: "若把 metadata-only 样例、字段引用、质量结果、人工建议、重解析/回滚说明或聚焦用例通过误作真实表格事实、真实字段推断、真实 RAG 摘要、真实来源追溯、真实数值统计、数据库、OVH、生产或上传能力，会破坏业务线白箱控制。"
             rollback: "只回滚本 P4 说明、交付合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE3_TABLE_RAG_SUMMARY_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED；不改变 P1/P2/P3、真实资料、fixture、事实库、数据库、运行状态、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE060-REVIEW"
+        name: "Stage060 整阶段本地白箱复审"
+        objective: "独立复审 Stage060 P1--P4 静态合同和 P3/P4 受控内存报告，核验十三字段引用输入、十字段未来 RAG 摘要、结构化事实与数值边界、六类显式处置、metadata-only 交付、中文人工处理、重解析/事实回滚说明和零运行面；不启动 BATCH051-060 Review 或 Stage061。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        batch051_060_review_entry_authorized: false
+        push_allowed: false
+        next_gate_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+        gate:
+          gate_id: "IDS-STAGE060-REVIEW-GATE"
+          status: "passed"
+          next_gate_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、事实库、数据库或报告"
+          - "执行真实 Schema 推断、字段识别、事实抽取、typed value 抽取、RAG 摘要、数值统计、质量门、来源或证据写入、实际文件重解析、事实回滚、持久化、数据库 migration、Agent、模型调用、模型 Token、OVH、生产服务、BATCH051-060 Review、Stage061、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE060-REVIEW"
+            name: "复审表格到 RAG 摘要控制合同与回滚链"
+            objective: "只复审 P1--P4 的静态合同、P3 受控质量报告和 P4 metadata-only 交付；输出字段、场景、处置、人工处理、回滚和边界计数，不产生真实事实、摘要、数值、来源证据或运行时。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE060-P4"
+            acceptance_ids:
+              - "ACC-STAGE-060"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage060_table_rag_summary_stage_review"
+              - "Stage060 Review 与显式前序兼容回归命令记录在 machine run"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage060 Review 聚焦用例通过 11/11；Stage060 Review/P1-P4、Stage059 Review/P1-P4、Stage058 Review/P1-P4、Stage057 Review/P1-P4、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041_050 的显式前序兼容回归通过 528/528；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；Stage005 治理回归 valid=true；中文事实投影已重渲染 7 个文件。本复审不授权 BATCH051-060 Review、Stage061、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE060_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_stage_review.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage060_table_rag_summary_stage_review.py"
+              - "KM_IDSystem/machine/runs/2026-08-14-stage060-review-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE060_PHASE4_TABLE_RAG_SUMMARY_DELIVERY_CLOSEOUT.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_delivery_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_quality_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE059_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+            risk: "若把本地合同复审通过误作真实表格、真实字段推断、真实结构化事实、真实 RAG 摘要、真实来源追溯、真实数值统计、数据库、OVH、生产、批次复审或上传能力，会破坏业务线白箱控制。"
+            rollback: "只回滚本 Review 说明、复审模块、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图，恢复到 PHASE4_TABLE_RAG_SUMMARY_DELIVERY_EVIDENCE_RUNTIME_DISABLED；保留 P1--P4、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 和应用状态。"

@@ -1,14 +1,28 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-051-060"
 created_at_utc: "2026-08-12T13:19:44Z"
-updated_at_utc: "2026-08-13T14:03:16Z"
-status: "stage060_phase4_completed_review_pending"
+updated_at_utc: "2026-08-13T14:33:10Z"
+status: "stage060_completed_reviewed_local"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-041-050"
 predecessor_review_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
 
 transition_history:
+  stage060_review_state:
+    status: "stage060_completed_reviewed_local"
+    current_task_id: "IDS-V0_1-STAGE060-REVIEW"
+    next_gate: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+    next_allowed_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+    stage059_entry_authorized: true
+    stage059_review_entry_authorized: true
+    stage060_entry_authorized: true
+    stage060_phase2_entry_authorized: true
+    stage060_phase3_entry_authorized: true
+    stage060_phase4_entry_authorized: true
+    stage060_review_entry_authorized: true
+    batch051_060_review_entry_authorized: false
+    github_upload_allowed: false
   stage060_phase4_state:
     status: "stage060_phase4_completed_review_pending"
     current_task_id: "IDS-V0_1-STAGE060-P4"
@@ -1919,23 +1933,25 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
 
   STAGE-060:
-    status: "stage060_phase4_completed_review_pending"
+    status: "stage060_completed_reviewed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_phase: "Stage060 Review"
-    next_gate: "IDS-STAGE060-REVIEW-GATE"
-    current_task_id: "IDS-V0_1-STAGE060-P4"
+      - "Review"
+    next_phase: "BATCH051-060 Review"
+    next_gate: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+    current_task_id: "IDS-V0_1-STAGE060-REVIEW"
     acceptance_id: "ACC-STAGE-060"
-    acceptance_status: "stage060_table_rag_summary_delivery_phase4_local"
+    acceptance_status: "stage060_table_rag_summary_reviewed_local"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
     phase4_entry_authorized: true
-    stage060_review_entry_authorized: false
+    stage060_review_entry_authorized: true
+    batch051_060_review_entry_authorized: false
     taskpack_context_read_performed: true
-    source_authority: "FROZEN_TASKPACK_AND_STAGE060_PHASE1_PHASE2_PHASE3_AND_STAGE059_REVIEW_ARTIFACTS_ONLY"
+    source_authority: "FROZEN_TASKPACK_AND_STAGE060_P1_TO_P4_AND_STAGE059_REVIEW_ARTIFACTS_ONLY"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
     raw_metadata_content_accessed: false
@@ -1946,7 +1962,14 @@ stage_progress:
     route_evaluation_performed: false
     parser_execution_performed: false
     stage059_review_artifacts_reused_as_reference_only: true
-    contract_state: "PHASE4_TABLE_RAG_SUMMARY_DELIVERY_EVIDENCE_RUNTIME_DISABLED"
+    stage060_phase1_contract_reused_as_reference_only: true
+    stage060_phase2_control_slice_reused_as_reference_only: true
+    stage060_phase3_quality_scenarios_reused_as_reference_only: true
+    stage060_phase4_delivery_evidence_reused_as_reference_only: true
+    contract_state: "STAGE060_REVIEWED_LOCAL_TABLE_RAG_SUMMARY_RUNTIME_DISABLED"
+    stage060_review_valid: true
+    p1_to_p4_contracts_reviewed: true
+    review_finding_count: 0
     slice_executable: true
     scenario_executable: true
     delivery_evidence_executable: true
@@ -1974,6 +1997,7 @@ stage_progress:
     unrecognized_structure_human_handling_count: 6
     human_confirmation_prompt_count: 3
     table_reparse_and_fact_rollback_instructions_created: true
+    chinese_feedback_boundary_preserved: true
     actual_source_file_traceability_validated: false
     actual_file_reparse_performed: false
     actual_fact_store_present: false
@@ -2035,8 +2059,10 @@ stage_progress:
     phase2_started: true
     phase3_started: true
     phase4_started: true
-    whole_stage_review_performed: false
+    whole_stage_review_performed: true
     batch_review_performed: false
+    stage061_started: false
+    stage061_entry_authorized: false
     github_upload_allowed: false
     push_allowed: false
     app_reinstall_allowed: false
@@ -2060,16 +2086,20 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage060_table_rag_summary_delivery.py"
       - "KM_IDSystem/machine/runs/2026-08-13-stage060-p4-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE060_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage060_table_rag_summary_stage_review.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage060-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE059_STAGE_REVIEW.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage059_fact_extraction_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage059_fact_extraction_delivery_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE060-P4"
-  next_allowed_task_id: "IDS-V0_1-STAGE060-REVIEW"
+  current_task_id: "IDS-V0_1-STAGE060-REVIEW"
+  next_allowed_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-060 P4 只从 P3 六类固定非业务 reference-only 控制场景派生六个 metadata-only 表格事实引用样例、六个字段引用标签、六条质量结果、六条人工处理建议、三条中文确认和回到 P3 control 状态的重解析/事实回滚说明；未读取、打开、检测、解析、生成或写入任何真实表格、事实或摘要，未进入整阶段复审、OVH、生产或上传。"
+  current_run: "STAGE-060 Review 只机械复审 P1--P4 静态合同、P3 固定 control 报告与 P4 metadata-only 交付证据，确认十三/十字段形状、二条 control、六类显式处置、单一权威、数值与 RAG 边界、中文人工处理和 P4 到 P3 control 回滚链；未读取、打开、检测、解析、生成或写入任何真实表格、事实或摘要，未进入 BATCH051-060 Review、Stage061、OVH、生产或上传。"
   no_upload_reason: "冻结任务包要求完成至 ACC-STAGE-168 且经独立全局发布验收后，才可重新考虑任何上传路径。"

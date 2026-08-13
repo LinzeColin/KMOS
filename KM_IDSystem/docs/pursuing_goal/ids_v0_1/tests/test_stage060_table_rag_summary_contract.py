@@ -268,15 +268,15 @@ class Stage060TableRagSummaryContractPhase1Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE060", status["stage"])
         self.assertIn(
             status["phase"],
-            ("IDS-V0_1-STAGE060-P1", "IDS-V0_1-STAGE060-P2", "IDS-V0_1-STAGE060-P3", "IDS-V0_1-STAGE060-P4"),
+            ("IDS-V0_1-STAGE060-P1", "IDS-V0_1-STAGE060-P2", "IDS-V0_1-STAGE060-P3", "IDS-V0_1-STAGE060-P4", "IDS-V0_1-STAGE060-REVIEW"),
         )
         self.assertIn(
             status["task"],
-            ("IDS-V0_1-STAGE060-P1", "IDS-V0_1-STAGE060-P2", "IDS-V0_1-STAGE060-P3", "IDS-V0_1-STAGE060-P4"),
+            ("IDS-V0_1-STAGE060-P1", "IDS-V0_1-STAGE060-P2", "IDS-V0_1-STAGE060-P3", "IDS-V0_1-STAGE060-P4", "IDS-V0_1-STAGE060-REVIEW"),
         )
         self.assertIn(
             status["next_gate"],
-            ("IDS-STAGE060-P2-GATE", "IDS-STAGE060-P3-GATE", "IDS-STAGE060-P4-GATE", "IDS-STAGE060-REVIEW-GATE"),
+            ("IDS-STAGE060-P2-GATE", "IDS-STAGE060-P3-GATE", "IDS-STAGE060-P4-GATE", "IDS-STAGE060-REVIEW-GATE", "IDS-V0_1-BATCH-051-060-REVIEW-GATE"),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])

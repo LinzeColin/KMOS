@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage060 Phase 4 - 2026-08-13
+## Current Gate - Stage060 Review - 2026-08-14
 
-- 本节是唯一当前交接；下方 Stage060 P3/P2/P1、Stage059 Review/P4/P3/P2/P1、Stage058 Review/P4/P3/P2/P1、Stage057 Review/P4/P3/P2/P1 与更早章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；下方 Stage060 P4/P3/P2/P1、Stage059 Review/P4/P3/P2/P1、Stage058 Review/P4/P3/P2/P1、Stage057 Review/P4/P3/P2/P1 与更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE060-REVIEW`：只机械复审 P1--P4 冻结合同、P3 六类固定非业务 control 报告和 P4 metadata-only 交付证据，确认 `13/10/7/6/10` 形状、两条 control、六类显式人工处置、单一权威、结构化事实与数值边界、中文人工处理和 P4 到 P3 control 回滚链一致；没有建立第二权威事实源。
+- 已验证：Stage060 Review 聚焦用例 `11/11`；Stage060 Review/P1--P4、Stage059 Review/P1--P4、Stage058 Review/P1--P4、Stage057 Review/P1--P4、Stage056 Review/P1--P4、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 `528/528`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归为 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 没有读取、打开、检测、解析、生成或写入真实 XLSX/CSV、生产记录、质量检验记录、授权 fixture、工作表、表头、单元格、公式、事实、摘要正文、来源正文或物理路径；没有执行真实 Schema/字段/事实/typed value、RAG 摘要、数值统计、质量验证、来源/证据绑定、实际重解析、事实回滚、数据库、持久化、Agent、模型调用、模型 Token、服务启动、OVH、生产、批次复审、GitHub 上传或推送；`whole_stage_review_performed=true`、`batch_review_performed=false`、`stage061_started=false`、`github_upload_allowed=false`、`push_allowed=false`。
+- 回滚只撤回本 Review 说明、只读复审模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `PHASE4_TABLE_RAG_SUMMARY_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；保留 P1--P4、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 与应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-V0_1-BATCH-051-060-REVIEW-GATE`。本 run 不进入批次复审、Stage061、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage060 Phase 4 - 2026-08-13
+
+- 本节为已提交的历史证据；下方 Stage060 P3/P2/P1、Stage059 Review/P4/P3/P2/P1、Stage058 Review/P4/P3/P2/P1、Stage057 Review/P4/P3/P2/P1 与更早章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE060-P4`：只从 P3 六类固定、非业务、reference-only 表格摘要 control 场景派生六个 metadata-only 表格事实引用样例、六个字段引用标签、六条质量结果、六条人工处理建议、三条中文确认与回到 P3 control 状态的表格重解析/事实回滚说明；没有建立第二权威事实源。
 - 六个样例、字段推断引用报告与质量结果只保留 `:control:` 引用形状，摘要正文、typed value 和真实事实均未保留；无法识别的结构均保留人工处置。它们不证明真实 XLSX/CSV、真实字段推断、真实事实、真实来源绑定、真实证据、真实重解析或真实回滚已被读取、验证、创建或执行。
 - 已验证：Stage060 P4 聚焦用例 `12/12`；Stage060 P4/P3/P2/P1、Stage059 Review/P1--P4、Stage058 Review/P1--P4、Stage057 Review/P1--P4、Stage056 Review/P1--P4、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 `517/517`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归为 `valid=true`；中文事实投影已重渲染 `7` 个文件。

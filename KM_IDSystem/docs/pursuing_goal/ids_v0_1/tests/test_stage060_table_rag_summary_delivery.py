@@ -275,9 +275,9 @@ class Stage060TableRagSummaryPhase4DeliveryTests(unittest.TestCase):
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE060", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE060-P4", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE060-P4", status["task"])
-        self.assertEqual("IDS-STAGE060-REVIEW-GATE", status["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE060-REVIEW", status["phase"])
+        self.assertEqual("IDS-V0_1-STAGE060-REVIEW", status["task"])
+        self.assertEqual("IDS-V0_1-BATCH-051-060-REVIEW-GATE", status["next_gate"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
