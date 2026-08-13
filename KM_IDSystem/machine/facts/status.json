@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE060",
-  "phase": "IDS-V0_1-STAGE060-P1",
-  "task": "IDS-V0_1-STAGE060-P1",
-  "real_progress": "Stage060 已完成 P1 静态合同：十三字段 future fact/source 引用输入、十字段未来中文摘要输出、七类表格语义、六类来源位置、十类失败关闭、结构化事实与数值权威边界及回滚范围已定义；下一步仅可在新的独立 run 进入 Stage060 Phase 2，上传路径继续关闭",
-  "report_grade": "冻结 Stage060 任务包与 Stage059 已复审工件为唯一合同上下文；当前只保留引用字段形状、权威边界、失败关闭、回滚范围和本地合同证据",
-  "business_verdict": "本阶段只证明 Stage060 P1 静态摘要合同与治理投影一致，不证明真实 production、quality 或 inspection facts、真实 typed value、真实字段推断、真实来源可追溯、真实 RAG 摘要、数值统计、数据库、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE060_TABLE_RAG_SUMMARY_CONTRACT_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE060-P2",
+  "task": "IDS-V0_1-STAGE060-P2",
+  "real_progress": "Stage060 已完成 P2 纯内存控制切片：两条固定非业务十三字段 reference-only 输入投影两条十字段中文 RAG 摘要控制候选，事实引用与来源文档、工作簿、工作表、行列范围和 evidence 引用保持分离；下一步仅可在新的独立 run 进入 Stage060 Phase 3，上传路径继续关闭",
+  "report_grade": "冻结 Stage060 任务包、P1 静态合同与 Stage059 已复审工件为唯一合同上下文；当前只保留固定控制引用、候选接口、权威边界、失败关闭、回滚范围和本地控制切片证据",
+  "business_verdict": "本阶段只证明 Stage060 P2 的固定引用式控制候选与治理投影一致，不证明真实 production 或 quality facts、真实 typed value、真实字段推断、真实来源可追溯、真实 RAG 摘要正文、数值统计、数据库、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE060_TABLE_RAG_SUMMARY_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE060-P2-GATE",
+  "next_gate": "IDS-STAGE060-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

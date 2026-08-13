@@ -1706,6 +1706,13 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE060-P2-GATE"
                     )
+                    or (
+                        roadmap.get("current_phase_id") == "IDS-STAGE060-P2"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE060-P2"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE060-P3-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -2485,6 +2492,7 @@ REQUIRED_EVENT_IDS = (
     "EVT-IDS-V0_1-STAGE059-P4-20260813-001",
     "EVT-IDS-V0_1-STAGE059-REVIEW-20260813-001",
     "EVT-IDS-V0_1-STAGE060-P1-20260813-001",
+    "EVT-IDS-V0_1-STAGE060-P2-20260813-001",
 )
 
 FORBIDDEN_RUNTIME_PREFIXES = (
@@ -10490,6 +10498,86 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
                 "github_upload_allowed": "false",
                 "push_allowed": "false",
                 "next_gate": "IDS-STAGE060-P2-GATE",
+            },
+        },
+        "EVT-IDS-V0_1-STAGE060-P2-20260813-001": {
+            "event_type": "phase_completed",
+            "allow_stage_gate": True,
+            "task_id": "IDS-V0_1-STAGE060-P2",
+            "acceptance_id": "ACC-STAGE-060",
+            "required_changed_files": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE060_PHASE2_TABLE_RAG_SUMMARY_CONTROL_SLICE.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_slice_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_slice.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage060_table_rag_summary_slice.py",
+                "KM_IDSystem/machine/runs/2026-08-13-stage060-p2-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+                "KM_IDSystem/docs/governance/roadmap.yaml",
+                "KM_IDSystem/docs/governance/events.jsonl",
+                "KM_IDSystem/scripts/check_batch041_050_review.py",
+                "KM_IDSystem/machine/facts/status.json",
+                "KM_IDSystem/machine/facts/plan.json",
+                "KM_IDSystem/machine/facts/roadmap.json",
+                "KM_IDSystem/machine/facts/acceptance.json",
+                "KM_IDSystem/machine/facts/changelog.json",
+                "KM_IDSystem/docs/HANDOFF.md",
+                "KM_IDSystem/CHANGELOG.md",
+            },
+            "required_refs": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE060_PHASE2_TABLE_RAG_SUMMARY_CONTROL_SLICE.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_slice_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_slice.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage060_table_rag_summary_slice.py",
+                "KM_IDSystem/machine/runs/2026-08-13-stage060-p2-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE059_STAGE_REVIEW.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+            },
+            "required_note_assignments": {
+                "contract_state": "PHASE2_TABLE_RAG_SUMMARY_CONTROL_SLICE_RUNTIME_DISABLED",
+                "second_authoritative_source_created": "false",
+                "reference_only_summary_input_field_count": "13",
+                "future_rag_summary_output_field_count": "10",
+                "control_summary_input_record_count": "2",
+                "control_rag_summary_candidate_count": "2",
+                "fact_reference_count": "2",
+                "control_source_location_binding_candidate_count": "2",
+                "actual_input_record_count": "0",
+                "actual_structured_fact_count": "0",
+                "actual_numeric_fact_count": "0",
+                "actual_rag_summary_count": "0",
+                "actual_source_location_binding_count": "0",
+                "actual_evidence_record_count": "0",
+                "source_document_remains_authoritative": "true",
+                "model_direct_text_guessing_allowed": "false",
+                "unverified_numeric_value_as_definitive_fact_allowed": "false",
+                "summary_can_replace_structured_fact": "false",
+                "summary_can_become_numeric_statistical_evidence": "false",
+                "xlsx_or_csv_parse_performed": "false",
+                "table_schema_inference_performed": "false",
+                "field_identification_performed": "false",
+                "structured_fact_extraction_performed": "false",
+                "typed_value_extraction_performed": "false",
+                "table_summary_generation_performed": "false",
+                "rag_summary_generation_performed": "false",
+                "numeric_statistic_computation_performed": "false",
+                "database_connection_performed": "false",
+                "structured_fact_write_performed": "false",
+                "rag_summary_write_performed": "false",
+                "agent_execution_performed": "false",
+                "model_token_consumption_performed": "false",
+                "ovh_deployment_performed": "false",
+                "production_runtime_activation_performed": "false",
+                "stage060_started": "true",
+                "stage060_entry_authorized": "true",
+                "phase2_started": "true",
+                "phase3_started": "false",
+                "whole_stage_review_performed": "false",
+                "batch_review_performed": "false",
+                "github_upload_allowed": "false",
+                "push_allowed": "false",
+                "next_gate": "IDS-STAGE060-P3-GATE",
             },
         },
     }

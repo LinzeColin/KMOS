@@ -9,7 +9,17 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage060 Phase 1 - 2026-08-13
+## Current Gate - Stage060 Phase 2 - 2026-08-13
+
+- 本节是唯一当前交接；下方 Stage060 P1、Stage059 Review/P4/P3/P2/P1、Stage058 Review/P4/P3/P2/P1、Stage057 Review/P4/P3/P2/P1 与更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE060-P2`：仅将两条固定、非业务、reference-only 十三字段控制输入在内存中投影为两条十字段中文 RAG 摘要控制候选；保持结构化事实引用与来源文档、工作簿、工作表、行列范围和 evidence 引用的形状分离，没有建立第二权威事实源。
+- 控制输入与候选均只含 `:control:` 引用；摘要正文始终为空，数值结论为零。两条候选各保留一个事实引用和一个来源位置控制绑定；它们不是已读取的业务表格、真实事实、真实来源绑定、真实证据或可用于统计的摘要。
+- 已验证：Stage060 P2 聚焦用例 `9/9`；Stage060 P2/P1、Stage059 Review/P1--P4、Stage058 Review/P1--P4、Stage057 Review/P1--P4、Stage056 Review/P1--P4、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 `493/493`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归为 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 没有读取、打开、检测、解析、生成或写入真实 XLSX/CSV、生产记录、质量检验记录、授权 fixture、工作表、表头、单元格、公式、事实、摘要正文、来源正文或物理路径；没有执行真实 Schema/字段/事实/typed value、RAG 摘要、数值统计、质量验证、来源/证据绑定、实际重解析、事实回滚、数据库、持久化、Agent、模型调用、模型 Token、服务启动、OVH、生产、GitHub 上传或推送；`stage060_started=true`、`phase2_started=true`、`phase3_started=false`、`github_upload_allowed=false`、`push_allowed=false`。
+- 回滚只撤回本 P2 说明、切片合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `PHASE1_TABLE_RAG_SUMMARY_CONTRACT_RUNTIME_DISABLED`；不改变 P1、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE060-P3-GATE`。本 run 不进入 Phase3、整阶段复审、批次复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage060 Phase 1 - 2026-08-13
 
 - 本节是唯一当前交接；下方 Stage059 Review/P4/P3/P2/P1、Stage058 Review/P4/P3/P2/P1、Stage057 Review/P4/P3/P2/P1 与更早章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE060-P1`：只定义表格到 RAG 摘要的 future fact/source 引用输入、未来中文摘要输出、结构化事实与数值权威边界、来源定位、失败关闭和回滚合同；没有建立第二权威事实源。

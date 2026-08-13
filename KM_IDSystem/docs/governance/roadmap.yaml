@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE060"
-current_phase_id: "IDS-STAGE060-P1"
-current_task_id: "IDS-V0_1-STAGE060-P1"
-next_gate_id: "IDS-STAGE060-P2-GATE"
+current_phase_id: "IDS-STAGE060-P2"
+current_task_id: "IDS-V0_1-STAGE060-P2"
+next_gate_id: "IDS-STAGE060-P3-GATE"
 current_transition_history:
+  stage060_phase2_state:
+    current_stage_id: "IDS-STAGE060"
+    current_phase_id: "IDS-STAGE060-P2"
+    current_task_id: "IDS-V0_1-STAGE060-P2"
+    next_gate_id: "IDS-STAGE060-P3-GATE"
   stage060_phase1_state:
     current_stage_id: "IDS-STAGE060"
     current_phase_id: "IDS-STAGE060-P1"
@@ -16190,19 +16195,20 @@ stages:
     task_id: "IDS-V0_1-STAGE060"
     acceptance_ids:
       - "ACC-STAGE-060"
-    status: "phase1_completed"
-    pursuing_goal: "只完成表格到 RAG 摘要的 Phase1 静态合同，明确 future fact/source 引用输入、未来中文摘要输出、结构化事实与数值权威边界、来源定位、失败关闭和回滚；不读取、打开、解析、生成或写入真实表格、事实或摘要。"
+    status: "phase2_completed"
+    pursuing_goal: "只以冻结 Stage060 任务包、P1 静态合同和 Stage059 已复审工件为合同上下文，用两条固定非业务 reference-only 表格摘要输入在内存中投影两条中文 RAG 摘要控制候选，保持结构化事实分离、来源位置引用、失败关闭和回滚；不读取、打开、解析、生成或写入真实表格、事实或摘要。"
     stop_gate:
-      gate_id: "IDS-STAGE060-P1-GATE"
+      gate_id: "IDS-STAGE060-P2-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE060-P2-GATE"
+      next_gate_id: "IDS-STAGE060-P3-GATE"
       github_upload_allowed: false
       pass_conditions:
-        - "十三字段 reference-only 摘要输入、十字段未来中文摘要输出、七类表格语义、六类来源位置与十类失败关闭均有静态合同。"
+        - "两条固定非业务十三字段 reference-only 摘要输入在内存中投影两条十字段中文 RAG 摘要控制候选，并与结构化事实引用分离。"
+        - "每个候选保留来源文档、工作簿、工作表、行列范围和 evidence 的控制引用；候选不构成真实事实、来源绑定、证据记录或第二权威事实源。"
         - "来源文档保持权威，数值统计只能建立在带来源位置和证据绑定的结构化事实上；模型文本猜测与 RAG 数值权威均被禁止。"
-        - "未创建真实表格、结构化事实、typed value、数值、摘要正文、证据、数据库或持久状态；回滚只恢复 Stage059 已复审本地投影。"
+        - "未创建真实表格、结构化事实、typed value、数值、摘要正文、证据、数据库或持久状态；回滚只恢复 P1 静态合同。"
         - "未读取、打开、解析或处理真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行数据库、Agent、模型 Token、OVH、生产、上传或推送。"
-        - "唯一后续门为 IDS-STAGE060-P2-GATE，必须由新的独立 run 进入。"
+        - "唯一后续门为 IDS-STAGE060-P3-GATE，必须由新的独立 run 进入。"
     phases:
       - phase_id: "IDS-STAGE060-P1"
         name: "Phase 1 · 表格到 RAG 摘要范围、输入输出与边界确认"
@@ -16247,3 +16253,46 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
             risk: "若把未来摘要字段、聚焦用例通过或引用接口误作真实 RAG 摘要、真实 production/quality/inspection facts、真实 typed value、真实来源追溯、真实数值统计、数据库、OVH、生产或上传能力，会破坏业务线白箱控制。"
             rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 STAGE059_REVIEWED_LOCAL_FACT_EXTRACTION_RUNTIME_DISABLED；不改变真实资料、fixture、事实库、数据库、运行状态、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE060-P2"
+        name: "Phase 2 · 表格到 RAG 摘要最小可运行控制切片"
+        objective: "只以冻结 Stage060 任务包、P1 静态合同和 Stage059 已复审工件为合同上下文，用两条固定非业务 reference-only 输入在内存中投影两条十字段中文 RAG 摘要控制候选；候选保留结构化事实、来源文档、工作簿、工作表、行列范围和证据控制引用，不生成摘要正文、数值结论或持久状态。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE060-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE060-P2-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE060-P3-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、事实库、数据库或报告"
+          - "执行真实 Schema 推断、字段识别、事实抽取、typed value 抽取、RAG 摘要正文、数值统计、质量门、来源或证据写入、真实重解析或事实回滚、持久化、数据库 migration、Agent、模型调用、模型 Token、OVH、生产服务、Phase 3、整阶段复审、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE060-P2"
+            name: "投影表格到 RAG 摘要控制候选"
+            objective: "严格验证 P1 的十三字段固定控制输入，在内存中投影两条十字段中文 RAG 摘要控制候选，保持事实引用与来源文档、工作簿、工作表、行列范围和 evidence 引用形状；不产生真实摘要正文、业务事实、数值结论、来源绑定或持久化。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "50.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE060-P1"
+            acceptance_ids:
+              - "ACC-STAGE-060"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage060_table_rag_summary_slice"
+              - "Stage060 P2 与显式前序兼容回归命令记录在 machine run"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage060 P2 聚焦用例通过 9/9；Stage060 P2/P1、Stage059 Review/P1--P4、Stage058 Review/P1--P4、Stage057 Review/P1--P4、Stage056 Review/P1--P4、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归通过 493/493；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；Stage005 治理回归 valid=true；中文事实投影已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE060_PHASE2_TABLE_RAG_SUMMARY_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage060_table_rag_summary_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-13-stage060-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE059_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+            risk: "若把控制候选、引用形状或聚焦用例通过误作真实 RAG 摘要、真实 production/quality facts、真实 typed value、真实来源追溯、真实数值统计、数据库、OVH、生产或上传能力，会破坏业务线白箱控制。"
+            rollback: "只回滚本 P2 说明、切片合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE1_TABLE_RAG_SUMMARY_CONTRACT_RUNTIME_DISABLED；不改变 P1、真实资料、fixture、事实库、数据库、运行状态、GitHub、OVH 或应用状态。"
