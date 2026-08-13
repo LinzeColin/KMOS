@@ -332,7 +332,7 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
         )
         run = json.loads(RUN.read_text(encoding="utf-8"))
 
-        self.assertEqual("IDS-STAGE061", status["stage"])
+        self.assertIn(status["stage"], ("IDS-STAGE061", "IDS-STAGE062"))
         self.assertIn(
             (status["phase"], status["next_gate"]),
             (
@@ -340,11 +340,12 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE061-P3", "IDS-STAGE061-P4-GATE"),
                 ("IDS-V0_1-STAGE061-P4", "IDS-STAGE061-REVIEW-GATE"),
                 ("IDS-V0_1-STAGE061-REVIEW", "IDS-STAGE062-P1-GATE"),
+                ("IDS-V0_1-STAGE062-P1", "IDS-STAGE062-P2-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-STAGE061", plan["stage"])
+        self.assertIn(plan["stage"], ("IDS-STAGE061", "IDS-STAGE062"))
         self.assertIn(
             plan["task"],
             (
@@ -352,6 +353,7 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE061-P3",
                 "IDS-V0_1-STAGE061-P4",
                 "IDS-V0_1-STAGE061-REVIEW",
+                "IDS-V0_1-STAGE062-P1",
             ),
         )
         self.assertIn(status["next_gate"], plan["stop_condition"])
@@ -402,8 +404,17 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE061-P2-GATE", run["next_gate"])
         self.assertTrue(run["result"].startswith("PASS_LOCAL_"))
         human_acceptance = HUMAN_ACCEPTANCE.read_text(encoding="utf-8")
-        self.assertIn("ACC-STAGE061-P1-01", human_acceptance)
-        self.assertIn("RUN-IDS-STAGE061-P1-LOCAL-20260814-001", human_acceptance)
+        self.assertTrue(
+            (
+                "ACC-STAGE061-P1-01" in human_acceptance
+                and "RUN-IDS-STAGE061-P1-LOCAL-20260814-001" in human_acceptance
+            )
+            or (
+                "ACC-STAGE062-P1-01" in human_acceptance
+                and "RUN-IDS-STAGE062-P1-LOCAL-20260814-001" in human_acceptance
+            ),
+            human_acceptance,
+        )
 
 
 if __name__ == "__main__":

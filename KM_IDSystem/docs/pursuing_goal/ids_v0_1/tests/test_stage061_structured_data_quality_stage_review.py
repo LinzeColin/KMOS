@@ -223,10 +223,23 @@ class Stage061StructuredDataQualityStageReviewTests(unittest.TestCase):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE061", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE061-REVIEW", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE061-REVIEW", status["task"])
-        self.assertEqual("IDS-STAGE062-P1-GATE", status["next_gate"])
+        self.assertIn(
+            (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-STAGE061",
+                    "IDS-V0_1-STAGE061-REVIEW",
+                    "IDS-V0_1-STAGE061-REVIEW",
+                    "IDS-STAGE062-P1-GATE",
+                ),
+                (
+                    "IDS-STAGE062",
+                    "IDS-V0_1-STAGE062-P1",
+                    "IDS-V0_1-STAGE062-P1",
+                    "IDS-STAGE062-P2-GATE",
+                ),
+            ),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

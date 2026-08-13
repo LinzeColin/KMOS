@@ -298,13 +298,20 @@ class Stage061StructuredDataQualityPhase4DeliveryTests(unittest.TestCase):
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         run = json.loads(RUN.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE061", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE061-REVIEW", status["phase"])
-        self.assertEqual("IDS-STAGE062-P1-GATE", status["next_gate"])
+        self.assertIn(status["stage"], ("IDS-STAGE061", "IDS-STAGE062"))
+        self.assertIn(
+            (status["phase"], status["next_gate"]),
+            (
+                ("IDS-V0_1-STAGE061-REVIEW", "IDS-STAGE062-P1-GATE"),
+                ("IDS-V0_1-STAGE062-P1", "IDS-STAGE062-P2-GATE"),
+            ),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE061-REVIEW", plan["task"])
-        self.assertIn("IDS-STAGE062-P1-GATE", plan["stop_condition"])
+        self.assertIn(
+            plan["task"], ("IDS-V0_1-STAGE061-REVIEW", "IDS-V0_1-STAGE062-P1")
+        )
+        self.assertIn(status["next_gate"], plan["stop_condition"])
         self.assertEqual("IDS-V0_1-STAGE061-P4", run["task_id"])
         self.assertEqual("IDS-STAGE061-REVIEW-GATE", run["next_gate"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])

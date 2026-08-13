@@ -4,6 +4,21 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "table evidence binding",
+      "中文": "表格证据绑定",
+      "说明": "未来把结构化表格事实关联到 evidence_id、document_id、sheet、row、column 和 source_uri 的受控接口；Stage062 P1 只定义静态合同，不读取真实表格、不创建事实、证据或来源绑定，也不建立第二权威事实源。"
+    },
+    {
+      "英文": "opaque source URI reference",
+      "中文": "不透明来源 URI 引用",
+      "说明": "Stage062 P1 中 source_uri 的字段语义：只允许受控引用标识，不能填入真实 URL、文件路径、网络位置、来源正文或业务内容。"
+    },
+    {
+      "英文": "six-dimension fact traceability",
+      "中文": "六维事实可追溯",
+      "说明": "未来数值统计前必须同时具备 evidence_id、document_id、sheet、row、column 和 source_uri 的绑定形状；在真实来源、数值或证据未验证时，统计结论和模型确定性回答保持关闭。"
+    },
+    {
       "英文": "Stage061 structured-data quality review",
       "中文": "Stage061 结构化数据质量整阶段复审",
       "说明": "只机械复审 P1--P4 静态合同、受控内存报告和 metadata-only 交付的字段形状、人工处理与回滚说明；不读取真实表格、不形成真实质量结论，也不启动 Stage062、OVH 或生产运行。"

@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage062-p1-local",
+    "date": "2026-08-14",
+    "summary": "完成 Stage062 P1 表格证据绑定静态合同：定义十九字段引用式绑定输入、十七字段未来绑定输出、evidence_id/document_id/sheet/row/column/source_uri 六维绑定、八类字段语义、数值不得由模型猜测、结构化事实与 RAG 摘要分离、十三类失败关闭、中文反馈和回滚范围。Stage062 P1 聚焦用例通过 8/8，阶段链路回归通过 87/87，两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理回归 valid=true，中文事实投影已重渲染 7 个文件；未读取或绑定真实表格、生产记录、质检记录、事实、证据或 fixture，下一步仅可在新的独立 run 进入 Stage062 P2。"
+  },
+  {
     "version": "v0.1-stage061-review-local",
     "date": "2026-08-14",
     "summary": "完成 Stage061 结构化数据质量整阶段本地白箱复审：机械核验 P1--P4 的 16/18/5/8/6/11 静态形状、两条固定非业务 control、十条未评估候选、六类显式人工处置、6 份 metadata-only 交付、3 条中文确认、单一权威、数值关闭与 P4→P3 重解析/事实回滚链。Stage061 Review 聚焦用例通过 11/11，阶段链路回归通过 79/79，两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理回归 valid=true，中文事实投影已重渲染 7 个文件；未读取、打开、检测、解析或评估真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行真实 schema/字段/事实/质量验证、统计、数据库、Agent、模型 Token、OVH、生产、批次复审、上传或推送；下一步仅可在新的独立 run 进入 Stage062 Phase 1。"

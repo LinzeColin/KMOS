@@ -313,20 +313,26 @@ class Stage061StructuredDataQualityPhase3Tests(unittest.TestCase):
             if item.get("event_id") == "EVT-IDS-V0_1-STAGE061-P3-20260814-001"
         )
 
-        self.assertEqual("IDS-STAGE061", status["stage"])
+        self.assertIn(status["stage"], ("IDS-STAGE061", "IDS-STAGE062"))
         self.assertIn(
             (status["phase"], status["next_gate"]),
             (
                 ("IDS-V0_1-STAGE061-P3", "IDS-STAGE061-P4-GATE"),
                 ("IDS-V0_1-STAGE061-P4", "IDS-STAGE061-REVIEW-GATE"),
                 ("IDS-V0_1-STAGE061-REVIEW", "IDS-STAGE062-P1-GATE"),
+                ("IDS-V0_1-STAGE062-P1", "IDS-STAGE062-P2-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertIn(
             plan["task"],
-            ("IDS-V0_1-STAGE061-P3", "IDS-V0_1-STAGE061-P4", "IDS-V0_1-STAGE061-REVIEW"),
+            (
+                "IDS-V0_1-STAGE061-P3",
+                "IDS-V0_1-STAGE061-P4",
+                "IDS-V0_1-STAGE061-REVIEW",
+                "IDS-V0_1-STAGE062-P1",
+            ),
         )
         self.assertIn(status["next_gate"], plan["stop_condition"])
         self.assertIn("OVH", plan["stop_condition"])

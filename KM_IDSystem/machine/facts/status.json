@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE061",
-  "phase": "IDS-V0_1-STAGE061-REVIEW",
-  "task": "IDS-V0_1-STAGE061-REVIEW",
-  "real_progress": "Stage061 P1--P4 静态合同、P3/P4 受控内存报告、六类显式人工处置、metadata-only 交付、中文反馈与 P4→P3 回滚说明已机械复审；下一步仅可在新的独立 run 进入 Stage062 Phase 1，上传路径继续关闭",
-  "report_grade": "冻结 Stage061 任务包、P1--P4 合同、Batch051-060 本地复审、Stage061 本地复审、治理路线与中文事实投影一致",
-  "business_verdict": "本 Review 只证明固定 control 的字段形状、人工处理边界、metadata-only 交付与 P4→P3 的撤回说明可白箱核验；不证明真实表格质量验证、真实来源追溯、真实质量结果、真实事实、数值统计、数据库、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE061_REVIEWED_STRUCTURED_DATA_QUALITY_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE062",
+  "phase": "IDS-V0_1-STAGE062-P1",
+  "task": "IDS-V0_1-STAGE062-P1",
+  "real_progress": "Stage062 P1 已定义表格事实的十九字段引用式绑定输入、十七字段未来绑定输出、evidence_id/document_id/sheet/row/column/source_uri 六维绑定、八类字段语义、数值权威、失败关闭、中文反馈与回滚边界；下一步仅可在新的独立 run 进入 Stage062 Phase 2，上传路径继续关闭",
+  "report_grade": "冻结 Stage062 任务包、Stage061 本地复审、Stage062 P1 静态合同、治理路线与中文事实投影一致",
+  "business_verdict": "本 P1 只证明表格证据绑定的静态接口、单一权威、数值关闭、人工处理和回滚边界可白箱核验；不证明真实表格处理、真实来源追溯、真实证据绑定、真实事实、数值统计、数据库、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE062_PHASE1_TABLE_EVIDENCE_BINDING_RUNTIME_DISABLED",
   "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE062-P1-GATE",
+  "next_gate": "IDS-STAGE062-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

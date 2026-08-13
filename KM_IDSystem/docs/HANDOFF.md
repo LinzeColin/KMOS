@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage061 Review - 2026-08-14
+## Current Gate - Stage062 Phase 1 - 2026-08-14
 
-- 本节是唯一当前交接；下方 Stage061 P4/P3/P2/P1、Batch051-060 Review 与所有更早章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；下方 Stage061 Review、Stage061 P4/P3/P2/P1、Batch051-060 Review 与所有更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE062-P1` 的静态合同：只定义十九字段引用式绑定输入、十七字段未来绑定输出、`evidence_id`、`document_id`、`sheet`、`row`、`column` 与 `source_uri` 六维绑定、八类字段语义、数值权威、十三类失败关闭、中文反馈和回滚边界；没有建立第二权威事实源。
+- `source_uri` 当前只允许作为不透明引用标识，不能填入真实 URL、物理路径、网络位置、来源正文、工作表、单元格或业务内容。来源文档持续保持权威；未验证数值、RAG 摘要和模型文本都不能形成确定统计结论。
+- 已验证：Stage062 P1 聚焦用例 `8/8`；Stage062 P1、Stage061 Review/P4/P3/P2/P1、Batch051-060、Batch041-050 与 Stage060 Review 阶段链路回归 `87/87`；两个批次检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影已重渲染 `7` 个文件。任何真实表格或 fixture 访问、真实字段或事实抽取、真实来源/证据绑定、数值统计、数据库、Agent、模型 Token、OVH、生产、P2、整阶段复审、批次复审、上传或推送都不属于本步骤。
+- 回滚只撤回本 P1 说明、静态合同、聚焦用例、BATCH061-070 锁、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `STAGE061_REVIEWED_LOCAL_STRUCTURED_DATA_QUALITY_RUNTIME_DISABLED`；不改变真实资料、manifest、evidence ledger、audit log、已交付报告、事实库、数据库、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE062-P2-GATE`。本 run 不进入 P2、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage061 Review - 2026-08-14
+
+- 本节保留 Stage061 Review 的已提交历史证据；唯一当前交接位于上方 Stage062 Phase 1，且不重写下方 Stage061 P4/P3/P2/P1、Batch051-060 Review 与所有更早章节的事实。
 - 本轮完成 `IDS-V0_1-STAGE061-REVIEW`：只机械复审冻结 Stage061 P1--P4 静态合同、P3/P4 受控内存报告和 metadata-only 交付证据，确认 `16/18/5/8/6/11` 静态形状、两条固定 control、十条未评估候选、六类显式人工处置、六份交付、三条中文确认与 P4→P3 的重解析/事实回滚说明一致；没有建立第二权威事实源，发现数为 `0`。
 - 复审只输出计数、边界和回滚结论。control 来源位置和字段引用继续只是 `:control:` 形状，不能证明真实文件、真实行列、真实来源绑定、真实质量结论、真实事实、真实重解析或真实回滚已被读取、验证、创建或执行。
 - 已验证：Stage061 Review 聚焦用例 `11/11`；Review/P4/P3/P2/P1、Batch051-060、Batch041-050 与 Stage060 Review 阶段链路回归 `79/79`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归为 `valid=true`；中文事实投影已重渲染 `7` 个文件。

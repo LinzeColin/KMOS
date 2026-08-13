@@ -47,6 +47,10 @@ SUCCESSOR_NEXT_GATE4 = "IDS-STAGE061-REVIEW-GATE"
 SUCCESSOR_REVIEW = "IDS-STAGE061-REVIEW"
 SUCCESSOR_REVIEW_TASK = "IDS-V0_1-STAGE061-REVIEW"
 SUCCESSOR_REVIEW_NEXT_GATE = "IDS-STAGE062-P1-GATE"
+SUCCESSOR_STAGE062 = "IDS-STAGE062"
+SUCCESSOR_PHASE062 = "IDS-STAGE062-P1"
+SUCCESSOR_TASK062 = "IDS-V0_1-STAGE062-P1"
+SUCCESSOR_NEXT_GATE062 = "IDS-STAGE062-P2-GATE"
 RESULT = "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
 CONTRACT_SCHEMA = "ids.v0_1.batch051_060.review_contract.v1"
 EXPECTED_STAGE_IDS = [f"STAGE-{number:03d}" for number in range(51, 61)]
@@ -359,6 +363,20 @@ def _governance_checks(batch: Mapping[str, Any], roadmap: Mapping[str, Any]) -> 
                     "next_gate_id": SUCCESSOR_REVIEW_NEXT_GATE,
                 }
             )
+            or (
+                roadmap.get("current_stage_id") == SUCCESSOR_STAGE062
+                and phase == SUCCESSOR_PHASE062
+                and task == SUCCESSOR_TASK062
+                and roadmap.get("next_gate_id") == SUCCESSOR_NEXT_GATE062
+                and isinstance(roadmap.get("current_transition_history"), dict)
+                and roadmap["current_transition_history"].get("stage062_phase1_state")
+                == {
+                    "current_stage_id": SUCCESSOR_STAGE062,
+                    "current_phase_id": SUCCESSOR_PHASE062,
+                    "current_task_id": SUCCESSOR_TASK062,
+                    "next_gate_id": SUCCESSOR_NEXT_GATE062,
+                }
+            )
         ),
         "stage060_route_exact": (
             stage060.get("next_stage") == "STAGE-061"
@@ -391,6 +409,10 @@ def _projection_checks() -> dict[str, bool]:
     )
     stage061 = next(
         (item for item in stages if isinstance(item, dict) and item.get("id") == SUCCESSOR_STAGE),
+        {},
+    )
+    stage062 = next(
+        (item for item in stages if isinstance(item, dict) and item.get("id") == SUCCESSOR_STAGE062),
         {},
     )
     successor_status = (
@@ -473,6 +495,22 @@ def _projection_checks() -> dict[str, bool]:
         and plan.get("task") == SUCCESSOR_REVIEW_TASK
         and SUCCESSOR_REVIEW_NEXT_GATE in str(plan.get("stop_condition", ""))
     )
+    successor_stage062_status = (
+        isinstance(status, dict)
+        and status.get("stage") == SUCCESSOR_STAGE062
+        and status.get("phase") == SUCCESSOR_TASK062
+        and status.get("task") == SUCCESSOR_TASK062
+        and status.get("next_gate") == SUCCESSOR_NEXT_GATE062
+        and status.get("runtime_enabled") is False
+        and status.get("push_allowed") is False
+    )
+    successor_stage062_plan = (
+        isinstance(plan, dict)
+        and plan.get("stage") == SUCCESSOR_STAGE062
+        and plan.get("phase") == SUCCESSOR_TASK062
+        and plan.get("task") == SUCCESSOR_TASK062
+        and SUCCESSOR_NEXT_GATE062 in str(plan.get("stop_condition", ""))
+    )
     return {
         "status_projection": (
             successor_status
@@ -480,6 +518,7 @@ def _projection_checks() -> dict[str, bool]:
             or successor_phase3_status
             or successor_phase4_status
             or successor_review_status
+            or successor_stage062_status
             or (
                 status.get("stage") == "IDS-STAGE060"
                 and status.get("phase") == TASK_ID
@@ -495,6 +534,7 @@ def _projection_checks() -> dict[str, bool]:
             or successor_phase3_plan
             or successor_phase4_plan
             or successor_review_plan
+            or successor_stage062_plan
             or (
                 plan.get("stage") == "IDS-STAGE060"
                 and plan.get("phase") == TASK_ID
@@ -533,6 +573,11 @@ def _projection_checks() -> dict[str, bool]:
                 isinstance(stage061, dict)
                 and "Stage062 Phase 1" in str(stage061.get("gate", ""))
                 and "整阶段本地复审完成" in str(stage061.get("status", ""))
+            )
+            or (
+                isinstance(stage062, dict)
+                and "Stage062 Phase 2" in str(stage062.get("gate", ""))
+                and "19 字段" in str(stage062.get("status", ""))
             )
         ),
         "acceptance_projection": {
