@@ -142,6 +142,9 @@ SUCCESSOR_NEXT_GATE057_P3 = "IDS-STAGE057-P4-GATE"
 SUCCESSOR_PHASE057_P4 = "IDS-STAGE057-P4"
 SUCCESSOR_TASK057_P4 = "IDS-V0_1-STAGE057-P4"
 SUCCESSOR_NEXT_GATE057_P4 = "IDS-STAGE057-REVIEW-GATE"
+SUCCESSOR_PHASE057_REVIEW = "IDS-STAGE057-REVIEW"
+SUCCESSOR_TASK057_REVIEW = "IDS-V0_1-STAGE057-REVIEW"
+SUCCESSOR_NEXT_GATE057_REVIEW = "IDS-STAGE058-P1-GATE"
 PASS_RESULT = "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
 EXPECTED_STAGE_IDS = [f"STAGE-{stage:03d}" for stage in range(41, 51)]
 EXPECTED_ACCEPTANCE_IDS = [f"ACC-STAGE-{stage:03d}" for stage in range(41, 51)]
@@ -645,6 +648,12 @@ def _governance_checks(
                 and roadmap.get("current_task_id") == SUCCESSOR_TASK057_P4
                 and roadmap.get("next_gate_id") == SUCCESSOR_NEXT_GATE057_P4
             )
+            or (
+                roadmap.get("current_stage_id") == SUCCESSOR_STAGE057
+                and roadmap.get("current_phase_id") == SUCCESSOR_PHASE057_REVIEW
+                and roadmap.get("current_task_id") == SUCCESSOR_TASK057_REVIEW
+                and roadmap.get("next_gate_id") == SUCCESSOR_NEXT_GATE057_REVIEW
+            )
         ),
         "roadmap_phase_and_task_evidence_exact": (
             isinstance(phase, dict)
@@ -983,6 +992,11 @@ def _projection_checks() -> dict[str, bool]:
                 and status.get("task") == SUCCESSOR_TASK057_P4
                 and status.get("next_gate") == SUCCESSOR_NEXT_GATE057_P4
             )
+            or (
+                status.get("phase") == SUCCESSOR_TASK057_REVIEW
+                and status.get("task") == SUCCESSOR_TASK057_REVIEW
+                and status.get("next_gate") == SUCCESSOR_NEXT_GATE057_REVIEW
+            )
         )
         and status.get("runtime_enabled") is False
         and status.get("push_allowed") is False
@@ -1220,6 +1234,11 @@ def _projection_checks() -> dict[str, bool]:
                 plan.get("phase") == SUCCESSOR_TASK057_P4
                 and plan.get("task") == SUCCESSOR_TASK057_P4
                 and SUCCESSOR_NEXT_GATE057_P4 in str(plan.get("stop_condition"))
+            )
+            or (
+                plan.get("phase") == SUCCESSOR_TASK057_REVIEW
+                and plan.get("task") == SUCCESSOR_TASK057_REVIEW
+                and SUCCESSOR_NEXT_GATE057_REVIEW in str(plan.get("stop_condition"))
             )
         )
     )

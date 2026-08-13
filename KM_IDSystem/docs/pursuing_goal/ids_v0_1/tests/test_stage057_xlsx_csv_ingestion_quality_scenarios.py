@@ -274,11 +274,19 @@ class Stage057XlsxCsvIngestionPhase3Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE057", status["stage"])
         self.assertIn(
             status["phase"],
-            ("IDS-V0_1-STAGE057-P3", "IDS-V0_1-STAGE057-P4"),
+            (
+                "IDS-V0_1-STAGE057-P3",
+                "IDS-V0_1-STAGE057-P4",
+                "IDS-V0_1-STAGE057-REVIEW",
+            ),
         )
         self.assertIn(
             status["next_gate"],
-            ("IDS-STAGE057-P4-GATE", "IDS-STAGE057-REVIEW-GATE"),
+            (
+                "IDS-STAGE057-P4-GATE",
+                "IDS-STAGE057-REVIEW-GATE",
+                "IDS-STAGE058-P1-GATE",
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])

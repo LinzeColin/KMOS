@@ -9,15 +9,22 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage057 Phase 4 - 2026-08-13
+## Current Gate - Stage057 Review - 2026-08-13
 
-- 本节是唯一当前交接；下方 Stage057 P3/P2/P1、Stage056 Review、Stage056 P4/P3/P2/P1、Stage055 Review 及更早章节均为已提交的历史证据，不重写其事实。
-- 本轮完成 `IDS-V0_1-STAGE057-P4`：只从 P3 六类固定、非业务、reference-only 控制场景派生 `6` 个 metadata-only 交付样例、`5` 个字段引用标签、`6` 条质量结果、`6` 条人工处理建议、`3` 条中文确认提示和重解析/事实回滚说明；没有建立第二权威事实源。
-- 交付样例、字段推断和质量结果均为控制元数据，不是实际 XLSX/CSV、真实 schema、真实字段、真实事实、真实数值、真实来源追溯或事实库。无法识别结构均要求人工处理；重解析和事实回滚仅为未来控制重放说明，不能替代真实文件重解析或真实事实回滚。
-- 已验证：Stage057 P4 聚焦用例 `12/12`；Stage057 P3/P2/P1、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041_050 的显式前序兼容回归 `363/363`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理报告 `valid=true`；中文事实投影已重渲染 `7` 个文件。
-- 没有读取、打开、检测或解析真实 XLSX/CSV、生产记录、质量检验记录、授权 fixture、工作表、单元格、公式、来源正文或物理路径；没有执行真实质量验证、真实来源追溯、数值统计、数据库、持久化、Agent、模型调用、模型 Token、服务启动、OVH、生产、GitHub 上传或推送；`github_upload_allowed=false`、`push_allowed=false`，整阶段 Review 尚未开始。
-- 回滚只撤回本 P4 说明、交付合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `PHASE3_XLSX_CSV_INGESTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED`；不触及真实资料、fixture、事实库、数据库、运行状态、GitHub、OVH 或应用状态。
-- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE057-REVIEW-GATE`。本 run 不进入整阶段复审、Stage058、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+- 本节是唯一当前交接；下方 Stage057 P4/P3/P2/P1、Stage056 Review、Stage056 P4/P3/P2/P1、Stage055 Review 及更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE057-REVIEW`：只以冻结任务包、P1--P4 合同和 Stage056 已复审工件为唯一合同上下文，机械复审 `12/19/7/5/6` 静态形状、两条固定非业务控制记录、六类显式质量处置、六个 metadata-only 交付样例、人工处理、中文确认与重解析/事实回滚链；没有建立第二权威事实源。
+- 复审只输出受控计数、边界和回滚结论，不是实际 XLSX/CSV、真实 schema、真实字段、真实事实、真实数值、真实来源追溯、真实质量验证或事实库。无法识别结构仍要求人工处理；重解析和事实回滚只回到 P3 control 状态，不能替代真实文件重解析或真实事实回滚。
+- 已验证：Stage057 Review 聚焦用例 `11/11`；Stage057 Review/P1-P4、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041_050 的显式前序兼容回归 `374/374`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理报告 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 没有读取、打开、检测或解析真实 XLSX/CSV、生产记录、质量检验记录、授权 fixture、工作表、单元格、公式、来源正文或物理路径；没有执行真实质量验证、真实来源追溯、数值统计、数据库、持久化、Agent、模型调用、模型 Token、服务启动、OVH、生产、GitHub 上传或推送；`whole_stage_review_performed=true`、`stage058_started=false`、`github_upload_allowed=false`、`push_allowed=false`。
+- 回滚只撤回本 Review 说明、只读复审模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `PHASE4_XLSX_CSV_INGESTION_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；保留 P1--P4、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 和应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE058-P1-GATE`。本 run 不进入 Stage058、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage057 Phase 4 - 2026-08-13
+
+- 本节仅保留 `IDS-V0_1-STAGE057-P4` 的历史交付证据：从 P3 六类固定、非业务、reference-only 控制场景派生 `6` 个 metadata-only 交付样例、`5` 个字段引用标签、`6` 条质量结果、`6` 条人工处理建议、`3` 条中文确认提示和重解析/事实回滚说明。
+- 交付样例、字段推断和质量结果均为控制元数据，不是实际 XLSX/CSV、真实 schema、真实字段、真实事实、真实数值、真实来源追溯或事实库；重解析和事实回滚仅为未来控制重放说明。
+- P4 聚焦用例历史记录为 `12/12`，且其前序兼容回归为 `363/363`；本阶段未读取、检测或解析真实表格、fixture、来源正文或物理路径，未执行真实质量验证、来源追溯、数值统计、数据库、持久化、Agent、模型 Token、OVH、生产、上传或推送。
+- P4 的本地回滚只撤回其说明、交付合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `PHASE3_XLSX_CSV_INGESTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED`；不触及真实资料、fixture、事实库、数据库、运行状态、GitHub、OVH 或应用状态。
 
 ## Superseded Gate - Stage057 Phase 3 - 2026-08-13
 

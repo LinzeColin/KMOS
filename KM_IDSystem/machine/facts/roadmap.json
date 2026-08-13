@@ -105,8 +105,8 @@
   {
     "id": "IDS-STAGE057",
     "name": "XLSX/CSV 接入合同",
-      "gate": "Phase 1 静态合同、Phase 2 本地控制切片、Phase 3 六类受控异常场景与 Phase 4 metadata-only 交付证据已通过；下一步须在新的独立 run 进入 Stage057 Review",
-      "status": "已从六类固定非业务 reference-only control 场景派生 6 个 metadata-only 交付样例、字段引用报告、质量结果、6 条人工处理建议和控制重放/事实回滚说明；控制引用不声称真实来源追溯或真实 schema/事实，真实 XLSX/CSV、质量验证、数值统计、事实库、数据库、OVH 和生产仍禁用，上传锁保持关闭"
+      "gate": "P1--P4 与整阶段本地白箱复审已通过；下一步须在新的独立 run 进入 Stage058 Phase 1",
+      "status": "已复审 12/19/7/5/6 静态形状、两条固定非业务控制记录、六类显式质量处置、6 个 metadata-only 交付样例、中文人工处理和重解析/事实回滚链；真实 XLSX/CSV、质量验证、数值统计、事实库、数据库、OVH 和生产仍禁用，上传锁保持关闭"
   }
 ]
 }

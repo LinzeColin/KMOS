@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage057-review-local",
+    "date": "2026-08-13",
+    "summary": "完成 Stage057 XLSX/CSV 接入合同整阶段本地白箱复审：P1--P4 静态合同、两条固定非业务 control、六类显式质量处置、6 个 metadata-only 交付样例、中文人工处理和重解析/事实回滚链一致。未读取、检测或解析真实表格或 fixture，未执行真实 schema/质量验证、事实或证据写入、数值统计、真实重解析或事实回滚、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage058 P1。"
+  },
+  {
     "version": "v0.1-stage057-p4-local",
     "date": "2026-08-13",
     "summary": "完成 Stage057 P4 XLSX/CSV 接入交付证据：从 P3 六类固定非业务 reference-only control 场景派生 6 个 metadata-only 非真实表格事实样例、5 个字段引用标签、控制质量结果、6 条人工处理建议、3 条中文人工确认提示与控制重放/事实回滚说明。未读取、检测或解析真实表格或 fixture，未执行真实 schema/质量验证、事实或证据写入、数值统计、真实重解析或事实回滚、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage057 Review。"
