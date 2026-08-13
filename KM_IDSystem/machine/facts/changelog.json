@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage057-p1-local",
+    "date": "2026-08-13",
+    "summary": "完成 Stage057 P1 XLSX/CSV 接入静态合同：定义 12 字段引用输入、19 字段未来事实输出、七类字段语义、五类来源定位、数值不得由模型猜测、事实与 RAG 摘要分离、六类失败关闭、中文反馈和回滚范围。未读取或解析真实表格、生产记录、质检记录或 fixture，未执行 schema 推断、事实抽取、摘要、统计、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage057 P2。"
+  },
+  {
     "version": "v0.1-stage056-review-local",
     "date": "2026-08-13",
     "summary": "完成 Stage056 OCR 缓存保留策略整阶段本地白箱复审：P1--P4 静态合同、四条固定非业务 control、五类显式质量处置、5 个 metadata-only 交付样例、HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1、1 条显式失败、3 条候选复核路由、中文确认、零物理缓存和回滚链一致。未读取真实资料、调用 OCR、创建或清理缓存、执行人工复核、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage057 P1。"

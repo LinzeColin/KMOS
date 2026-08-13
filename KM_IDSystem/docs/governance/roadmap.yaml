@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE056"
-current_phase_id: "IDS-STAGE056-REVIEW"
-current_task_id: "IDS-V0_1-STAGE056-REVIEW"
-next_gate_id: "IDS-STAGE057-P1-GATE"
+current_stage_id: "IDS-STAGE057"
+current_phase_id: "IDS-STAGE057-P1"
+current_task_id: "IDS-V0_1-STAGE057-P1"
+next_gate_id: "IDS-STAGE057-P2-GATE"
 current_transition_history:
+  stage057_phase1_state:
+    current_stage_id: "IDS-STAGE057"
+    current_phase_id: "IDS-STAGE057-P1"
+    current_task_id: "IDS-V0_1-STAGE057-P1"
+    next_gate_id: "IDS-STAGE057-P2-GATE"
   stage056_review_state:
     current_stage_id: "IDS-STAGE056"
     current_phase_id: "IDS-STAGE056-REVIEW"
@@ -15385,3 +15390,62 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
             risk: "若把本地合同复审通过误作真实 OCR、真实缓存、容量、清理、人工复核、OVH、生产或上传能力，会破坏业务线白箱控制。"
             rollback: "只回滚本 Review 说明、复审模块、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图，恢复到 PHASE4_OCR_CACHE_RETENTION_POLICY_DELIVERY_EVIDENCE_RUNTIME_DISABLED；保留 P1--P4、冻结任务包、Stage055 已复审证据、原始资料、GitHub、OVH 和应用状态。"
+  - stage_id: "IDS-STAGE057"
+    name: "STAGE-057 · XLSX/CSV 接入合同"
+    task_id: "IDS-V0_1-STAGE057"
+    acceptance_ids:
+      - "ACC-STAGE-057"
+    status: "phase1_completed"
+    pursuing_goal: "只定义 XLSX/CSV、生产记录和质检记录的结构化接入合同、字段语义、来源定位、事实与 RAG 摘要分离、数值事实边界与回滚范围；不读取、解析或写入真实表格，不启动 Phase 2。"
+    stop_gate:
+      gate_id: "IDS-STAGE057-P1-GATE"
+      status: "passed_with_local_evidence"
+      next_gate_id: "IDS-STAGE057-P2-GATE"
+      github_upload_allowed: false
+      pass_conditions:
+        - "冻结 Stage057 任务包和 Stage056 已复审工件是唯一合同上下文，未建立第二权威事实源。"
+        - "输入与未来事实字段、数值统计、RAG 摘要、来源文档/工作表/行列和证据引用边界明确，且不包含表格内容、单元格、公式、物理路径或业务事实。"
+        - "模型不得从文本猜测数值；未验证数值不得形成确定事实或统计结论；摘要不得替代结构化事实或成为数值权威。"
+        - "未读取真实 XLSX/CSV、生产记录、质检表或 fixture，未执行解析、schema 推断、事实抽取、摘要、统计、数据库、Agent、模型 Token、OVH、生产、上传或推送。"
+        - "唯一后续门为 IDS-STAGE057-P2-GATE，必须由新的独立 run 进入。"
+    phases:
+      - phase_id: "IDS-STAGE057-P1"
+        name: "Phase 1 · XLSX/CSV 接入合同范围、字段与边界确认"
+        objective: "以冻结任务包和 Stage056 已复审工件为唯一合同上下文，定义 XLSX/CSV、生产记录、质检记录、字段语义、来源定位、事实与 RAG 摘要分离、数值事实边界、中文反馈和回滚合同；不读取或解析真实表格。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE057-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE057-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE057-P2-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、解析或评估任何 IDS 业务资料、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、单元格、公式、来源正文、物理路径、数据库或报告"
+          - "执行文件检测、parser、schema 推断、字段识别、事实抽取、RAG 摘要、数值统计、质量门、来源/证据写入、持久化、数据库 migration、Agent、模型调用、模型 Token、OVH、生产服务、Phase 2、整阶段复审、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE057-P1"
+            name: "定义 XLSX/CSV 结构化接入与事实边界静态合同"
+            objective: "只用冻结 Stage057 任务包和 Stage056 已复审工件定义 12 字段引用输入、19 字段未来事实输出、七类字段语义、五类来源位置、六类失败关闭、数值统计和 RAG 摘要边界及中文反馈，保持全局上传锁。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE056-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-057"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage057_xlsx_csv_ingestion_contract"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "聚焦 Stage057 P1 直接单元用例通过 8/8；Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041-050 的显式前序兼容回归通过 331/331；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE057_PHASE1_XLSX_CSV_INGESTION_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage057_xlsx_csv_ingestion_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage057_xlsx_csv_ingestion_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-13-stage057-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE056_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+            risk: "若把静态字段、合同用例或本地验证通过误作真实表格接入、真实数值、事实库、RAG、数据库、OVH、生产或上传能力，会破坏业务线白箱控制。"
+            rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 STAGE056_REVIEWED_LOCAL_OCR_CACHE_RETENTION_POLICY_RUNTIME_DISABLED；不改变真实资料、数据库、运行状态、GitHub、OVH 或应用状态。"

@@ -322,9 +322,15 @@ class Stage056OcrCacheRetentionPolicyPhase4Tests(unittest.TestCase):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE056", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE056-REVIEW", status["phase"])
-        self.assertEqual("IDS-STAGE057-P1-GATE", status["next_gate"])
+        self.assertIn(status["stage"], ("IDS-STAGE056", "IDS-STAGE057"))
+        self.assertIn(
+            status["phase"],
+            ("IDS-V0_1-STAGE056-REVIEW", "IDS-V0_1-STAGE057-P1"),
+        )
+        self.assertIn(
+            status["next_gate"],
+            ("IDS-STAGE057-P1-GATE", "IDS-STAGE057-P2-GATE"),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

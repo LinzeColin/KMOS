@@ -9,7 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage056 Review - 2026-08-13
+## Current Gate - Stage057 Phase 1 - 2026-08-13
+
+- 本节是唯一当前交接；下方 Stage056 Review、Stage056 P4/P3/P2/P1、Stage055 Review 及更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE057-P1`：只以冻结 Stage057 任务包和 Stage056 已复审工件为合同上下文，定义 XLSX/CSV、生产记录、质量检验记录、字段类型/单位/日期/设备/物料/质量/事实类型、来源定位、事实与 RAG 摘要分离、数值统计边界及回滚范围；没有建立第二权威事实源。
+- P1 固化 12 个 reference-only 输入字段、19 个未来事实字段、7 个语义字段、5 个来源定位字段和 6 类显式失败。字段定义不包含真实工作簿、表单、行列、表格内容、公式、统计结果、业务数据、样本或来源正文；P2 才能在新的独立 run 中进行实际 schema 推断、字段识别、事实提取、表格摘要或 RAG 绑定。
+- 数值统计只允许引用具备来源位置和证据引用的结构化事实；模型不得由文本猜测数值事实。RAG 只能提供可追溯摘要，不能替代事实层或统计层；P1 没有解析 XLSX/CSV、读取真实表格、建立数据源、持久化事实、启动服务或执行运行时。
+- 已验证：Stage057 P1 聚焦用例 `8/8`；Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041_050 的显式前序兼容回归 `331/331`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理报告 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 没有执行 Agent、模型调用、模型 Token、真实数据读取、XLSX/CSV 解析、模式推断、事实抽取、统计、RAG 绑定、数据库或服务运行时、OVH、生产、GitHub 上传或推送。
+- 回滚只撤回本 P1 静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到已提交的 Stage056 Review 状态；不触及前序工件、真实资料、运行状态、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE057-P2-GATE`。本 run 不进入 P2、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage056 Review - 2026-08-13
 
 - 本节是唯一当前交接；下方 Stage056 P4/P3/P2/P1、Stage055 Review 及更早章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE056-REVIEW`：只以冻结 Stage056 任务包、已提交的 P1--P4 合同和 Stage055 已复审工件为合同上下文，机械复审字段形状、五类受控场景、五个 metadata-only 样例、置信度、显式失败、候选复核、中文确认、零物理缓存与回滚链；没有建立第二权威事实源。

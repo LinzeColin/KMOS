@@ -1593,6 +1593,25 @@ def evaluate_stage038_source_reverification(
                 and stage_review.get("task_id") == "IDS-V0_1-STAGE038-REVIEW"
                 and stage_review.get("status") == "completed"
             )
+            or (
+                roadmap.get("current_stage_id") == "IDS-STAGE057"
+                and roadmap.get("current_phase_id") == "IDS-STAGE057-P1"
+                and roadmap.get("current_task_id") == "IDS-V0_1-STAGE057-P1"
+                and roadmap.get("next_gate_id") == "IDS-STAGE057-P2-GATE"
+                and source_gate.get("gate_id")
+                == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
+                and source_gate.get("status") == "passed"
+                and source_gate.get("task_id")
+                == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY"
+                and source_gate.get("phase2_entry_authorized") is True
+                and phase2.get("entry_authorized") is True
+                and phase2.get("status") == "passed_with_local_evidence"
+                and phase3.get("status") == "passed_with_local_evidence"
+                and phase4.get("status") == "passed_with_local_evidence"
+                and stage_review.get("review_id") == "IDS-STAGE038-REVIEW"
+                and stage_review.get("task_id") == "IDS-V0_1-STAGE038-REVIEW"
+                and stage_review.get("status") == "completed"
+            )
         ),
         "no_mixed_yaml_state": not any(
             token in batch_text or token in roadmap_text
@@ -2346,6 +2365,7 @@ REQUIRED_EVENT_IDS = (
     "EVT-IDS-V0_1-STAGE056-P2-20260813-001",
     "EVT-IDS-V0_1-STAGE056-P3-20260813-001",
     "EVT-IDS-V0_1-STAGE056-P4-20260813-001",
+    "EVT-IDS-V0_1-STAGE057-P1-20260813-001",
 )
 
 FORBIDDEN_RUNTIME_PREFIXES = (
@@ -2572,6 +2592,7 @@ ALLOWED_CHANGED_PREFIXES = (
     "KM_IDSystem/machine/runs/",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/batch_review/",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE052_",
@@ -2584,6 +2605,8 @@ ALLOWED_CHANGED_PREFIXES = (
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage055_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE056_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage056_",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE057_",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage057_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE005_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE011_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE012_",
@@ -8977,6 +9000,64 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
                 "next_gate": "IDS-STAGE057-P1-GATE",
             },
         },
+        "EVT-IDS-V0_1-STAGE057-P1-20260813-001": {
+            "event_type": "phase_completed",
+            "allow_stage_gate": True,
+            "task_id": "IDS-V0_1-STAGE057-P1",
+            "acceptance_id": "ACC-STAGE-057",
+            "required_changed_files": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE057_PHASE1_XLSX_CSV_INGESTION_SCOPE_BOUNDARY.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage057_xlsx_csv_ingestion_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage057_xlsx_csv_ingestion_contract.py",
+                "KM_IDSystem/machine/runs/2026-08-13-stage057-p1-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+                "KM_IDSystem/docs/governance/roadmap.yaml",
+                "KM_IDSystem/docs/governance/events.jsonl",
+            },
+            "required_refs": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE057_PHASE1_XLSX_CSV_INGESTION_SCOPE_BOUNDARY.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage057_xlsx_csv_ingestion_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage057_xlsx_csv_ingestion_contract.py",
+                "KM_IDSystem/machine/runs/2026-08-13-stage057-p1-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE056_STAGE_REVIEW.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+            },
+            "required_note_assignments": {
+                "contract_state": "PHASE1_XLSX_CSV_INGESTION_CONTRACT_RUNTIME_DISABLED",
+                "second_authoritative_source_created": "false",
+                "reference_only_table_input_field_count": "12",
+                "future_structured_fact_output_field_count": "19",
+                "field_semantic_count": "7",
+                "source_location_field_count": "5",
+                "declared_failure_state_count": "6",
+                "actual_input_record_count": "0",
+                "actual_structured_fact_count": "0",
+                "actual_numeric_fact_count": "0",
+                "model_direct_text_guessing_allowed": "false",
+                "unverified_numeric_value_as_definitive_fact_allowed": "false",
+                "summary_can_replace_structured_fact": "false",
+                "summary_can_become_numeric_statistical_evidence": "false",
+                "xlsx_or_csv_parse_performed": "false",
+                "structured_fact_extraction_performed": "false",
+                "numeric_statistic_computation_performed": "false",
+                "database_connection_performed": "false",
+                "structured_fact_write_performed": "false",
+                "agent_execution_performed": "false",
+                "model_token_consumption_performed": "false",
+                "ovh_deployment_performed": "false",
+                "production_runtime_activation_performed": "false",
+                "stage056_review_reused_as_reference_only": "true",
+                "stage057_started": "true",
+                "stage057_entry_authorized": "true",
+                "phase2_started": "false",
+                "whole_stage_review_performed": "false",
+                "batch_review_performed": "false",
+                "github_upload_allowed": "false",
+                "push_allowed": "false",
+                "next_gate": "IDS-STAGE057-P2-GATE",
+            },
+        },
     }
 
     errors: list[str] = []
@@ -9219,6 +9300,7 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
             "STAGE054",
             "STAGE055",
             "STAGE056",
+            "STAGE057",
         )
     }
     for event in events:
@@ -10053,6 +10135,10 @@ def evaluate_current_state_consistency(
         current_stage_id == "IDS-STAGE056"
         and roadmap_phase == "IDS-STAGE056-P4"
     )
+    stage057_phase1_current = (
+        current_stage_id == "IDS-STAGE057"
+        and roadmap_phase == "IDS-STAGE057-P1"
+    )
     batch041_050_review_current = (
         current_stage_id == "IDS-STAGE050"
         and batch.get("batch_id") == "IDS-V0_1-BATCH-041-050"
@@ -10149,6 +10235,7 @@ def evaluate_current_state_consistency(
         or stage056_phase2_current
         or stage056_phase3_current
         or stage056_phase4_current
+        or stage057_phase1_current
         or batch041_050_review_current
     )
 
@@ -10245,6 +10332,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE056-P2": "Phase 2",
         "IDS-STAGE056-P3": "Phase 3",
         "IDS-STAGE056-P4": "Phase 4",
+        "IDS-STAGE057-P1": "Phase 1",
         "IDS-V0_1-BATCH-041-050-REVIEW-GATE": "Phase 4",
     }.get(roadmap_phase)
     batch_current_phase_completed = (
@@ -11283,6 +11371,9 @@ def evaluate_current_state_consistency(
     expected_stage056_phase4_result_block = (
         "聚焦 Stage056 P4 直接单元用例通过 14/14；Stage056 P3/P2/P1、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041-050 的显式前序兼容回归通过 312/312；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
     )
+    expected_stage057_phase1_result_block = (
+        "聚焦 Stage057 P1 直接单元用例通过 8/8；Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041-050 的显式前序兼容回归通过 331/331；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+    )
     expected_governed_result_block = {
         "IDS-STAGE037-P1": expected_stage037_phase1_result_block,
         "IDS-STAGE037-P2": expected_stage037_phase2_result_block,
@@ -11374,6 +11465,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE056-P2": expected_stage056_phase2_result_block,
         "IDS-STAGE056-P3": expected_stage056_phase3_result_block,
         "IDS-STAGE056-P4": expected_stage056_phase4_result_block,
+        "IDS-STAGE057-P1": expected_stage057_phase1_result_block,
         "IDS-V0_1-BATCH-041-050-REVIEW-GATE": expected_batch041_050_review_result_block,
     }.get(roadmap_phase)
     if roadmap_task == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY":
@@ -12181,6 +12273,14 @@ def evaluate_current_state_consistency(
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE055_STAGE_REVIEW.md",
         "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
     }
+    required_stage057_phase1_evidence = {
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE057_PHASE1_XLSX_CSV_INGESTION_SCOPE_BOUNDARY.md",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage057_xlsx_csv_ingestion_contract.json",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage057_xlsx_csv_ingestion_contract.py",
+        "KM_IDSystem/machine/runs/2026-08-13-stage057-p1-local.json",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE056_STAGE_REVIEW.md",
+        "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+    }
     required_governed_evidence = {
         "IDS-STAGE037-P1": required_stage037_phase1_evidence,
         "IDS-STAGE037-P2": required_stage037_phase2_evidence,
@@ -12273,6 +12373,7 @@ def evaluate_current_state_consistency(
         "IDS-STAGE056-P2": required_stage056_phase2_evidence,
         "IDS-STAGE056-P3": required_stage056_phase3_evidence,
         "IDS-STAGE056-P4": required_stage056_phase4_evidence,
+        "IDS-STAGE057-P1": required_stage057_phase1_evidence,
         "IDS-V0_1-BATCH-041-050-REVIEW-GATE": required_batch041_050_review_evidence,
     }.get(roadmap_phase, set())
     if roadmap_task == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY":
@@ -22602,6 +22703,70 @@ def evaluate_phase_state(
         and 'next_gate_id: "IDS-STAGE057-P1-GATE"' in roadmap_text
         and 'status: "completed_reviewed_local"' in roadmap_text
     )
+    stage057_phase1_active = (
+        'batch_id: "IDS-V0_1-BATCH-051-060"' in batch_text
+        and 'status: "stage057_phase1_completed"' in batch_text
+        and 'current_task_id: "IDS-V0_1-STAGE057-P1"' in batch_text
+        and 'next_phase: "Stage057 Phase 2"' in batch_text
+        and 'next_gate: "IDS-STAGE057-P2-GATE"' in batch_text
+        and 'next_allowed_task_id: "IDS-V0_1-STAGE057-P2"' in batch_text
+        and 'acceptance_status: "stage057_xlsx_csv_ingestion_contract_phase1_local"'
+        in batch_text
+        and 'contract_state: "PHASE1_XLSX_CSV_INGESTION_CONTRACT_RUNTIME_DISABLED"'
+        in batch_text
+        and 'source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE056_REVIEW_ARTIFACTS"'
+        in batch_text
+        and 'second_authoritative_source_created: false' in batch_text
+        and 'source_body_or_path_allowed: false' in batch_text
+        and 'stage056_review_artifacts_reused_as_reference_only: true' in batch_text
+        and 'reference_only_table_input_field_count: 12' in batch_text
+        and 'future_structured_fact_output_field_count: 19' in batch_text
+        and 'field_semantic_count: 7' in batch_text
+        and 'source_location_field_count: 5' in batch_text
+        and 'declared_failure_state_count: 6' in batch_text
+        and 'actual_input_record_count: 0' in batch_text
+        and 'actual_structured_fact_count: 0' in batch_text
+        and 'actual_numeric_fact_count: 0' in batch_text
+        and 'source_document_remains_authoritative: true' in batch_text
+        and 'model_direct_text_guessing_allowed: false' in batch_text
+        and 'unverified_numeric_value_as_definitive_fact_allowed: false'
+        in batch_text
+        and 'numeric_aggregation_requires_source_location_and_evidence: true'
+        in batch_text
+        and 'summary_can_replace_structured_fact: false' in batch_text
+        and 'summary_can_become_numeric_statistical_evidence: false' in batch_text
+        and 'unrecognized_structure_requires_human_handling: true' in batch_text
+        and 'unverified_numeric_value_blocks_statistical_conclusion: true'
+        in batch_text
+        and 'xlsx_or_csv_parse_performed: false' in batch_text
+        and 'table_schema_inference_performed: false' in batch_text
+        and 'field_identification_performed: false' in batch_text
+        and 'structured_fact_extraction_performed: false' in batch_text
+        and 'numeric_statistic_computation_performed: false' in batch_text
+        and 'database_connection_performed: false' in batch_text
+        and 'database_schema_migration_performed: false' in batch_text
+        and 'structured_fact_write_performed: false' in batch_text
+        and 'rag_summary_write_performed: false' in batch_text
+        and 'persistent_state_write_performed: false' in batch_text
+        and 'agent_execution_performed: false' in batch_text
+        and 'model_call_performed: false' in batch_text
+        and 'model_token_consumption_performed: false' in batch_text
+        and 'ovh_deployment_performed: false' in batch_text
+        and 'production_runtime_activation_performed: false' in batch_text
+        and 'stage056_review_reused_as_reference_only: true' in batch_text
+        and 'stage057_started: true' in batch_text
+        and 'stage057_entry_authorized: true' in batch_text
+        and 'phase2_started: false' in batch_text
+        and 'whole_stage_review_performed: false' in batch_text
+        and 'batch_review_performed: false' in batch_text
+        and 'github_upload_allowed: false' in batch_text
+        and 'push_allowed: false' in batch_text
+        and 'current_stage_id: "IDS-STAGE057"' in roadmap_text
+        and 'current_phase_id: "IDS-STAGE057-P1"' in roadmap_text
+        and 'current_task_id: "IDS-V0_1-STAGE057-P1"' in roadmap_text
+        and 'next_gate_id: "IDS-STAGE057-P2-GATE"' in roadmap_text
+        and 'status: "phase1_completed"' in roadmap_text
+    )
     batch_terminal_state = batch_upload_gate_active or batch_uploaded_to_main
     later_stage_state = (
         batch_terminal_state
@@ -22826,6 +22991,7 @@ def evaluate_phase_state(
         or stage056_phase3_active
         or stage056_phase4_active
         or stage056_review_active
+        or stage057_phase1_active
     )
     phase2_completed = '      - "Phase 2"' in batch_text or later_stage_state
     stage005_active_or_complete = (

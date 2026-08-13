@@ -1,14 +1,22 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-051-060"
 created_at_utc: "2026-08-12T13:19:44Z"
-updated_at_utc: "2026-08-13T02:47:10Z"
-status: "stage056_completed_reviewed_local"
+updated_at_utc: "2026-08-13T03:21:31Z"
+status: "stage057_phase1_completed"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-041-050"
 predecessor_review_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
 
 transition_history:
+  stage057_phase1_state:
+    status: "stage057_phase1_completed"
+    current_task_id: "IDS-V0_1-STAGE057-P1"
+    next_gate: "IDS-STAGE057-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE057-P2"
+    stage057_entry_authorized: true
+    stage057_phase2_entry_authorized: false
+    github_upload_allowed: false
   stage056_review_state:
     status: "stage056_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE056-REVIEW"
@@ -1200,11 +1208,93 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE055_STAGE_REVIEW.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
 
+  STAGE-057:
+    status: "stage057_phase1_completed"
+    completed_phases:
+      - "Phase 1"
+    next_phase: "Stage057 Phase 2"
+    next_gate: "IDS-STAGE057-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE057-P1"
+    acceptance_id: "ACC-STAGE-057"
+    acceptance_status: "stage057_xlsx_csv_ingestion_contract_phase1_local"
+    phase2_entry_authorized: false
+    taskpack_context_read_performed: true
+    source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE056_REVIEW_ARTIFACTS"
+    second_authoritative_source_created: false
+    source_body_or_path_allowed: false
+    raw_metadata_content_accessed: false
+    ids_business_source_read_performed: false
+    authorized_fixture_access_performed: false
+    source_file_open_performed: false
+    file_type_detection_performed: false
+    route_evaluation_performed: false
+    parser_execution_performed: false
+    stage056_review_artifacts_reused_as_reference_only: true
+    contract_state: "PHASE1_XLSX_CSV_INGESTION_CONTRACT_RUNTIME_DISABLED"
+    execution_ready: false
+    reference_only_table_input_field_count: 12
+    future_structured_fact_output_field_count: 19
+    field_semantic_count: 7
+    source_location_field_count: 5
+    declared_failure_state_count: 6
+    actual_input_record_count: 0
+    actual_structured_fact_count: 0
+    actual_numeric_fact_count: 0
+    actual_source_location_binding_count: 0
+    actual_evidence_record_count: 0
+    source_document_remains_authoritative: true
+    model_direct_text_guessing_allowed: false
+    unverified_numeric_value_as_definitive_fact_allowed: false
+    numeric_aggregation_requires_source_location_and_evidence: true
+    summary_can_replace_structured_fact: false
+    summary_can_become_numeric_statistical_evidence: false
+    summary_requires_fact_reference_before_future_use: true
+    unrecognized_structure_requires_human_handling: true
+    unverified_numeric_value_blocks_statistical_conclusion: true
+    actual_rag_summary_created: false
+    xlsx_or_csv_parse_performed: false
+    table_schema_inference_performed: false
+    field_identification_performed: false
+    structured_fact_extraction_performed: false
+    numeric_statistic_computation_performed: false
+    source_location_binding_performed: false
+    database_connection_performed: false
+    database_schema_migration_performed: false
+    structured_fact_write_performed: false
+    rag_summary_write_performed: false
+    manifest_write_performed: false
+    evidence_ledger_write_performed: false
+    audit_write_performed: false
+    report_write_performed: false
+    persistent_state_write_performed: false
+    agent_execution_performed: false
+    model_call_performed: false
+    model_token_consumption_performed: false
+    local_service_start_performed: false
+    ovh_deployment_performed: false
+    production_runtime_activation_performed: false
+    stage056_review_reused_as_reference_only: true
+    stage057_started: true
+    stage057_entry_authorized: true
+    phase2_started: false
+    whole_stage_review_performed: false
+    batch_review_performed: false
+    github_upload_allowed: false
+    push_allowed: false
+    app_reinstall_allowed: false
+    evidence_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE057_PHASE1_XLSX_CSV_INGESTION_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage057_xlsx_csv_ingestion_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage057_xlsx_csv_ingestion_contract.py"
+      - "KM_IDSystem/machine/runs/2026-08-13-stage057-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE056_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+
 decision:
-  current_task_id: "IDS-V0_1-STAGE056-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-STAGE057-P1"
+  current_task_id: "IDS-V0_1-STAGE057-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE057-P2"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-056 Review 已复审 P1--P4 静态合同和 P3/P4 受控内存报告；未读取样本、执行 OCR、扫描磁盘、创建、写入或清理缓存，也未启动 Stage057。"
+  current_run: "STAGE-057 P1 已定义 XLSX/CSV、生产记录和质检记录的静态结构化接入合同、来源定位、事实与 RAG 摘要分离及数值事实边界；未读取或解析任何表格，也未启动 Stage057 P2。"
   no_upload_reason: "冻结任务包要求完成至 ACC-STAGE-168 且经独立全局发布验收后，才可重新考虑任何上传路径。"
