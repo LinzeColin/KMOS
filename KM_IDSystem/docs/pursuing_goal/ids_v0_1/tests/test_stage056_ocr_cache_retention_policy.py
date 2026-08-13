@@ -219,23 +219,28 @@ class Stage056OcrCacheRetentionPolicyPhase1Tests(unittest.TestCase):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage056_phase1_completed"'),
             (batch, "stage056_phase1_state:"),
             (batch, 'current_task_id: "IDS-V0_1-STAGE056-P1"'),
             (batch, 'next_gate: "IDS-STAGE056-P2-GATE"'),
+            (batch, "stage056_phase2_state:"),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE056-P2"'),
+            (batch, 'next_gate: "IDS-STAGE056-P3-GATE"'),
             (batch, "stage056_started: true"),
             (batch, "stage056_entry_authorized: true"),
             (roadmap, 'current_stage_id: "IDS-STAGE056"'),
-            (roadmap, 'current_phase_id: "IDS-STAGE056-P1"'),
-            (roadmap, 'current_task_id: "IDS-V0_1-STAGE056-P1"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE056-P2-GATE"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE056-P2"'),
+            (roadmap, 'current_task_id: "IDS-V0_1-STAGE056-P2"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE056-P3-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE056", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE056-P1", status["phase"])
+        self.assertIn(
+            status["phase"],
+            ("IDS-V0_1-STAGE056-P1", "IDS-V0_1-STAGE056-P2"),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

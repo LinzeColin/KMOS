@@ -9,16 +9,22 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage056 Phase 1 - 2026-08-13
+## Current Gate - Stage056 Phase 2 - 2026-08-13
 
-- 本节是唯一当前交接；下方 Stage055 Review 及更早章节均为已提交的历史证据，不重写其事实。
-- 本轮完成 IDS-V0_1-STAGE056-P1：只定义 OCR 临时图片、中间文本和失败产物的引用式缓存保留与清理合同、11 字段未来缓存输入、10 字段未来策略输出、中文简体/英文默认语言、低置信隔离、未来容量前置条件和中文反馈；没有建立第二权威事实源。
-- 三类缓存产物只有标量类别和引用字段，当前条目数为 0。未来可清理范围仅可能包括经明确标识的可重建临时图片和中间文本；失败产物、原始资料、manifest、evidence ledger、audit log 和已交付报告均不属于自动清理范围。
-- 没有指定物理路径、数值保留窗口、容量阈值或清理目标；没有读取缓存、扫描磁盘、评估容量、创建/写入/保留/移动/删除/清理任何缓存。LOW、UNKNOWN、中英文混合和失败页不能因缓存策略直接进入高可信证据层，仍受 Stage054 受控复核所有权约束。
-- 已验证：Stage056 P1 聚焦用例 8/8；Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 278/278；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；Stage005 治理报告 valid=true。
-- 没有执行 Agent、模型调用、模型 Token、OCR 运行时、持久队列、持久按页输出、缓存、人工任务、OVH、生产、GitHub 上传或推送；stage056_started=true、stage056_entry_authorized=true，但 phase2_started=false、whole_stage_review_performed=false。
-- 回滚只撤回本 P1 范围说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 STAGE055_REVIEWED_LOCAL_OCR_REGRESSION_CORPUS_RUNTIME_DISABLED；不触及真实资料、缓存、运行状态、GitHub、OVH 或应用状态。
-- 下一步唯一允许项是在新的独立 run 进入 IDS-STAGE056-P2-GATE。本 run 不进入 P2、整阶段复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 ACC-STAGE-168。
+- 本节是唯一当前交接；下方 Stage056 P1、Stage055 Review 及更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE056-P2`：只以冻结 Stage056 任务包、P1 静态合同和 Stage055 已复审工件为合同上下文，用四条固定非业务、reference-only 控制记录投影 OCR 缓存保留策略的内存候选、来源页引用和中文可解释状态；没有建立第二权威事实源。
+- 切片严格接受 P1 固定的 11 字段引用输入，返回 P1 定义的 10 字段策略候选。四条 control 只含标量引用，不含 OCR 文本、图片、业务正文、来源路径、失败内容或实际缓存条目；所有候选状态均为 `CANDIDATE_NOT_PERSISTED`。
+- 中文简体临时页面图片、英文低置信中间文本、中英文混合中间文本与 UNKNOWN 失败产物分别覆盖可重建临时、低置信复核、混合语言复核和失败禁止自动清理边界。低置信、中英文混合和失败候选均未排队，不能直接进入高可信证据层，Stage054 仍为未来复核所有者。
+- 临时候选仍需未来 owner 保留批准、容量批准和明确的临时产物标识；失败产物不得自动清理。没有指定物理路径、数值保留窗口、容量阈值或清理目标，没有创建或读取真实缓存、扫描磁盘、评估容量、写入缓存或执行清理。
+- 已验证：Stage056 P2 聚焦用例 8/8；Stage056 P1、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 286/286；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理报告 `valid=true`；中文事实投影已重渲染 7 个文件。
+- 没有执行 Agent、模型调用、模型 Token、OCR 运行时、真实队列、真实按页输出、真实缓存、人工任务、OVH、生产、GitHub 上传或推送；`stage056_started=true`、`stage056_entry_authorized=true`、`phase2_started=true`，但 `phase3_started=false`、`whole_stage_review_performed=false`。
+- 回滚只撤回本 P2 说明、切片合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `PHASE1_OCR_CACHE_RETENTION_POLICY_BOUNDARY_RUNTIME_DISABLED`；不触及真实资料、缓存、运行状态、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE056-P3-GATE`。本 run 不进入 P3、整阶段复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage056 Phase 1 - 2026-08-13
+
+- 本节只保留 `IDS-V0_1-STAGE056-P1` 的历史证据：P1 已定义 OCR 临时图片、中间文本和失败产物的引用式缓存保留与清理合同、11 字段未来输入、10 字段未来输出、双语默认、低置信隔离、未来容量前置条件和回滚边界。
+- P1 没有创建或读取缓存、扫描磁盘、评估容量、写入或清理任何缓存；P2 只复用其静态合同，不改写其历史结论。P1 交接、合同、测试、machine run、事件和事实投影仍是 P2 的可追溯前序证据。
 
 ## Superseded Gate - Stage055 Review - 2026-08-13
 

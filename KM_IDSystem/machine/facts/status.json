@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE056",
-  "phase": "IDS-V0_1-STAGE056-P1",
-  "task": "IDS-V0_1-STAGE056-P1",
-  "real_progress": "Stage056 P1 已定义 OCR 临时图片、中间文本和失败产物的引用式缓存保留与清理合同：类别、未来输入输出字段、双语默认、低置信隔离、未来容量前置条件和回滚边界均已固定；下一步只能在新的独立 run 进入 Stage056 Phase 2，上传路径继续关闭",
-  "report_grade": "冻结 Stage056 任务包和 Stage055 已复审工件为唯一合同上下文；静态合同、聚焦用例、显式前序兼容回归、批次锁和治理投影均只保留本地证据",
-  "business_verdict": "本阶段只证明缓存策略的静态字段、类别、保留/清理资格、双语和低置信边界；不证明物理缓存、保留时长、容量、清理、真实 OCR、人工复核、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE056_PHASE1_OCR_CACHE_RETENTION_POLICY_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE056-P2",
+  "task": "IDS-V0_1-STAGE056-P2",
+  "real_progress": "Stage056 P2 已以四条固定非业务 reference-only control 完成内存 OCR 缓存保留策略候选切片：11 字段输入、10 字段候选输出、来源页引用、低置信/中英文混合/失败可解释状态和临时/失败清理边界均已验证；下一步只能在新的独立 run 进入 Stage056 Phase 3，上传路径继续关闭",
+  "report_grade": "冻结 Stage056 任务包、P1 静态合同和 Stage055 已复审工件为唯一合同上下文；内存候选、聚焦用例、显式前序兼容回归、批次锁和治理投影均只保留本地证据",
+  "business_verdict": "本阶段只证明四条非业务 control 的内存缓存策略候选、来源页引用与状态边界；不证明物理缓存、保留时长、容量、清理、真实 OCR、人工复核、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE056_PHASE2_OCR_CACHE_RETENTION_POLICY_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE056-P2-GATE",
+  "next_gate": "IDS-STAGE056-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
