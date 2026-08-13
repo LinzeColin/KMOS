@@ -126,6 +126,9 @@ SUCCESSOR_NEXT_GATE056_P3 = "IDS-STAGE056-P4-GATE"
 SUCCESSOR_PHASE056_P4 = "IDS-STAGE056-P4"
 SUCCESSOR_TASK056_P4 = "IDS-V0_1-STAGE056-P4"
 SUCCESSOR_NEXT_GATE056_P4 = "IDS-STAGE056-REVIEW-GATE"
+SUCCESSOR_PHASE056_REVIEW = "IDS-STAGE056-REVIEW"
+SUCCESSOR_TASK056_REVIEW = "IDS-V0_1-STAGE056-REVIEW"
+SUCCESSOR_NEXT_GATE056_REVIEW = "IDS-STAGE057-P1-GATE"
 PASS_RESULT = "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
 EXPECTED_STAGE_IDS = [f"STAGE-{stage:03d}" for stage in range(41, 51)]
 EXPECTED_ACCEPTANCE_IDS = [f"ACC-STAGE-{stage:03d}" for stage in range(41, 51)]
@@ -599,6 +602,12 @@ def _governance_checks(
                 and roadmap.get("current_task_id") == SUCCESSOR_TASK056_P4
                 and roadmap.get("next_gate_id") == SUCCESSOR_NEXT_GATE056_P4
             )
+            or (
+                roadmap.get("current_stage_id") == SUCCESSOR_STAGE056
+                and roadmap.get("current_phase_id") == SUCCESSOR_PHASE056_REVIEW
+                and roadmap.get("current_task_id") == SUCCESSOR_TASK056_REVIEW
+                and roadmap.get("next_gate_id") == SUCCESSOR_NEXT_GATE056_REVIEW
+            )
         ),
         "roadmap_phase_and_task_evidence_exact": (
             isinstance(phase, dict)
@@ -904,6 +913,15 @@ def _projection_checks() -> dict[str, bool]:
         and status.get("runtime_enabled") is False
         and status.get("push_allowed") is False
     )
+    successor_stage056_review_status = (
+        isinstance(status, dict)
+        and status.get("stage") == SUCCESSOR_STAGE056
+        and status.get("phase") == SUCCESSOR_TASK056_REVIEW
+        and status.get("task") == SUCCESSOR_TASK056_REVIEW
+        and status.get("next_gate") == SUCCESSOR_NEXT_GATE056_REVIEW
+        and status.get("runtime_enabled") is False
+        and status.get("push_allowed") is False
+    )
     successor_plan = (
         isinstance(plan, dict)
         and plan.get("stage") == SUCCESSOR_STAGE
@@ -1107,6 +1125,13 @@ def _projection_checks() -> dict[str, bool]:
         and plan.get("task") == SUCCESSOR_TASK056_P4
         and SUCCESSOR_NEXT_GATE056_P4 in str(plan.get("stop_condition"))
     )
+    successor_stage056_review_plan = (
+        isinstance(plan, dict)
+        and plan.get("stage") == SUCCESSOR_STAGE056
+        and plan.get("phase") == SUCCESSOR_TASK056_REVIEW
+        and plan.get("task") == SUCCESSOR_TASK056_REVIEW
+        and SUCCESSOR_NEXT_GATE056_REVIEW in str(plan.get("stop_condition"))
+    )
     return {
         "status_projection_exact": (
             successor_status
@@ -1138,6 +1163,7 @@ def _projection_checks() -> dict[str, bool]:
             or successor_stage056_phase2_status
             or successor_stage056_phase3_status
             or successor_stage056_phase4_status
+            or successor_stage056_review_status
             or (
                 isinstance(status, dict)
                 and status.get("phase") == TASK_ID
@@ -1177,6 +1203,7 @@ def _projection_checks() -> dict[str, bool]:
             or successor_stage056_phase2_plan
             or successor_stage056_phase3_plan
             or successor_stage056_phase4_plan
+            or successor_stage056_review_plan
             or (
                 isinstance(plan, dict)
                 and plan.get("phase") == f"`{TASK_ID}`"

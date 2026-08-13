@@ -99,8 +99,8 @@
   {
     "id": "IDS-STAGE056",
     "name": "OCR 缓存保留策略",
-    "gate": "P1/P2/P3 合同与 P4 metadata-only 交付证据已本地通过；下一步须在新的独立 run 进入 Stage056 整阶段复审",
-    "status": "已从 P3 五类固定非业务 reference-only 缓存策略 control 场景派生 metadata-only 样例、HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1 控制置信度汇总、显式失败、三条候选复核路由、中文确认和非物理缓存重跑说明；未创建或读取真实缓存，未扫描磁盘、评估容量、执行清理、调用 OCR、启用 OVH 或生产，上传锁保持关闭"
+    "gate": "P1--P4 与整阶段本地白箱复审已通过；下一步须在新的独立 run 进入 Stage057 Phase 1",
+    "status": "已复审 11 字段缓存引用输入、10 字段策略候选、四条固定非业务 control、五类显式质量处置、5 个 metadata-only 交付样例、HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1 控制置信度汇总、显式失败、三条候选复核路由、中文确认、零物理缓存和回滚链；真实资料、OCR、真实缓存容量/清理、人工复核、OVH 和生产仍禁用，上传锁保持关闭"
   }
 ]
 }

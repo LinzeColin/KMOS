@@ -315,16 +315,16 @@ class Stage056OcrCacheRetentionPolicyPhase4Tests(unittest.TestCase):
             (batch, "model_token_consumption_performed: false"),
             (batch, "ovh_deployment_performed: false"),
             (roadmap, 'current_stage_id: "IDS-STAGE056"'),
-            (roadmap, 'current_phase_id: "IDS-STAGE056-P4"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE056-REVIEW-GATE"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE056-REVIEW"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE057-P1-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE056", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE056-P4", status["phase"])
-        self.assertEqual("IDS-STAGE056-REVIEW-GATE", status["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE056-REVIEW", status["phase"])
+        self.assertEqual("IDS-STAGE057-P1-GATE", status["next_gate"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

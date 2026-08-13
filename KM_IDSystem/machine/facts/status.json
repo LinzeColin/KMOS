@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE056",
-  "phase": "IDS-V0_1-STAGE056-P4",
-  "task": "IDS-V0_1-STAGE056-P4",
-  "real_progress": "Stage056 P4 已从 P3 的五类固定非业务 reference-only 缓存策略 control 场景派生 metadata-only 交付样例、控制置信度汇总、失败清单、候选复核路由证明、中文确认提示和非物理缓存重跑说明；下一步只能在新的独立 run 进入 Stage056 整阶段复审，上传路径继续关闭",
-  "report_grade": "冻结 Stage056 任务包、P1/P2/P3 合同和 Stage055 已复审工件为唯一合同上下文；交付证据、聚焦用例、显式前序兼容回归、批次锁和治理投影均只保留本地证据",
-  "business_verdict": "本阶段只证明五类非业务 control 的缓存策略交付证据、降级边界、失败禁止自动清理与零物理缓存说明；不证明真实 OCR、真实样本、磁盘容量、实际缓存清理、人工复核、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE056_PHASE4_OCR_CACHE_RETENTION_POLICY_DELIVERY_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE056-REVIEW",
+  "task": "IDS-V0_1-STAGE056-REVIEW",
+  "real_progress": "Stage056 Review 已独立复审 P1--P4 静态合同与 P3/P4 受控内存报告；下一步仅可在新的独立 run 进入 Stage057 P1，上传路径继续关闭",
+  "report_grade": "冻结 Stage056 任务包、P1--P4 合同和 Stage055 已复审工件仍为唯一合同上下文；整阶段复审、聚焦用例、显式前序兼容回归、批次锁和治理投影均只保留本地证据",
+  "business_verdict": "本阶段只证明固定非业务 control 的缓存策略合同、metadata-only 交付边界、失败禁止自动清理与零物理缓存复审成立；不证明真实 OCR、真实样本、磁盘容量、实际缓存清理、人工复核、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE056_REVIEWED_OCR_CACHE_RETENTION_POLICY_RUNTIME_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE056-REVIEW-GATE",
+  "next_gate": "IDS-STAGE057-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-13 · IDS v0.1 Stage056 Review（本地）
+
+- 完成 OCR 缓存保留策略整阶段复审：机械核验 P1--P4 静态合同、P3 五类受控处置、P4 五个 metadata-only 样例、`HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1`、一条显式失败、三条候选复核路由、三条中文人工确认提示、零物理缓存和 P4→P3→P2→P1→Stage055 Review 回滚链。
+- 本地验证通过：Stage056 Review 聚焦用例 `11/11`；与 Stage056 P1--P4、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 及 BATCH041_050 的合并回归 `323/323`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 未读取真实资料、样本、缓存或磁盘信息，未执行 OCR、实际复核、创建/写入/清理缓存、磁盘扫描、容量评估、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE057-P1-GATE`。
+
 ## 2026-08-13 · IDS v0.1 Stage056 Phase 4（本地）
 
 - 完成 OCR 缓存保留策略交付证据：从 P3 五类固定非业务 reference-only control 场景派生 5 个 metadata-only 样例、`HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1` 控制置信度汇总、一条显式失败、三条候选复核路由证明、质量限制、三条中文人工确认提示和非物理缓存重跑说明。

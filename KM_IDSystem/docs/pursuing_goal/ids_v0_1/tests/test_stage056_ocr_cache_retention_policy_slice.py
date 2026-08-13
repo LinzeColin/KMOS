@@ -296,6 +296,7 @@ class Stage056OcrCacheRetentionPolicyPhase2Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE056-P2",
                 "IDS-V0_1-STAGE056-P3",
                 "IDS-V0_1-STAGE056-P4",
+                "IDS-V0_1-STAGE056-REVIEW",
             ),
         )
         self.assertFalse(status["runtime_enabled"])

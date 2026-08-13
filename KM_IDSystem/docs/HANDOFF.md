@@ -9,9 +9,19 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage056 Phase 4 - 2026-08-13
+## Current Gate - Stage056 Review - 2026-08-13
 
-- 本节是唯一当前交接；下方 Stage056 P3/P2/P1、Stage055 Review 及更早章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；下方 Stage056 P4/P3/P2/P1、Stage055 Review 及更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE056-REVIEW`：只以冻结 Stage056 任务包、已提交的 P1--P4 合同和 Stage055 已复审工件为合同上下文，机械复审字段形状、五类受控场景、五个 metadata-only 样例、置信度、显式失败、候选复核、中文确认、零物理缓存与回滚链；没有建立第二权威事实源。
+- 复审只输出字段和受控计数，不包含业务资料、授权 fixture、来源正文、真实路径、页面、图片、表格内容、OCR 文本、失败内容、实际缓存条目或磁盘信息。P3 五类均有显式处置、静默丢弃为零；P4 控制汇总为 `HIGH=2`、`MEDIUM=1`、`LOW=1`、`UNKNOWN=1`，一条失败保持禁止自动清理，三条 Stage054 候选复核路由均未排队且不能直接进入高可信证据层。
+- 已验证：Stage056 Review 聚焦用例 `11/11`；Stage056 Review/P1--P4、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 `323/323`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理报告 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 没有执行 Agent、模型调用、模型 Token、OCR 运行时、真实队列、真实按页输出、真实缓存、人工任务、OVH、生产、GitHub 上传或推送；`whole_stage_review_performed=true`，但 `stage057_started=false`、`stage057_entry_allowed=false`。
+- 回滚只撤回本 Review 说明、只读复审模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `PHASE4_OCR_CACHE_RETENTION_POLICY_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；不触及 P1--P4、真实资料、缓存、磁盘、运行状态、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE057-P1-GATE`。本 run 不进入 Stage057、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage056 Phase 4 - 2026-08-13
+
+- 本节仅保留 Stage056 P4 的历史交接证据；当前门已转为 Stage056 Review。
 - 本轮完成 `IDS-V0_1-STAGE056-P4`：只以冻结 Stage056 任务包、P1/P2/P3 合同和 Stage055 已复审工件为合同上下文，从 P3 五类固定非业务缓存策略 control 场景派生五个 metadata-only 交付样例、控制置信度汇总、显式失败清单、候选复核路由证明、中文人工确认提示与非物理缓存重跑说明；没有建立第二权威事实源。
 - 五个样例只保留固定场景、引用、语言、置信度、策略状态和处置，不包含业务资料、授权 fixture、来源正文、真实路径、页面、图片、表格内容、OCR 文本、失败内容、实际缓存条目或磁盘信息。控制置信度为 `HIGH=2`、`MEDIUM=1`、`LOW=1`、`UNKNOWN=1`；低质量 control 保持一条显式失败，低置信、中英文混合和失败 control 只保留三条未排队的 Stage054 复核候选，均不能直接进入高可信证据层。
 - 质量限制与三条人工确认提示均为中文且不会自动确认。物理缓存条目为零；三条临时候选仍须未来 owner、明确标识和容量批准，失败产物禁止自动清理。重跑只重放内存 control，不扫描、删除、移动或写入任何目录；`NO_PHYSICAL_CACHE_CREATED_NO_CLEANUP_EXECUTED` 不是实际 OCR、实际缓存容量或真实清理证明。
