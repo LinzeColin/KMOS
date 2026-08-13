@@ -4233,6 +4233,42 @@ def test_raw_writer_preserves_direct_and_oversize_bytes(tmp_path: Path, monkeypa
     assert repeated.batch_id == staged.batch_id
 
 
+def test_raw_materializer_reuses_only_a_verified_historic_filename(tmp_path: Path) -> None:
+    moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
+    message = {"openMessageId": "msg-filename-drift", "createTime": moment.isoformat()}
+    payload = b"same-media-bytes"
+    original = DownloadedAttachment(
+        message, "msg-filename-drift", "d" * 64, moment,
+        0, "historic.bin", ACCOUNT_FAMILY, payload,
+        __import__("hashlib").sha256(payload).hexdigest(), "image/png",
+    )
+    staged = RawMaterializer().stage(tmp_path, (original,))
+    replay = replace(original, filename="current.png")
+
+    canonical = RawMaterializer.canonicalize_existing_occurrences(tmp_path, (replay,))
+    assert canonical == (original,)
+    assert RawMaterializer().stage(tmp_path, canonical).batch_id == staged.batch_id
+
+    # A filename is delivery metadata.  Every other occurrence field remains
+    # immutable and must still reject a replay that differs from the existing
+    # raw authority.
+    with pytest.raises(IngestionError, match="RAW_PATH_HASH_COLLISION"):
+        RawMaterializer.canonicalize_existing_occurrences(
+            tmp_path,
+            (replace(replay, mime="image/jpeg"),),
+        )
+    changed_payload = b"different-media-bytes"
+    with pytest.raises(IngestionError, match="RAW_PATH_HASH_COLLISION"):
+        RawMaterializer.canonicalize_existing_occurrences(
+            tmp_path,
+            (replace(
+                replay,
+                payload=changed_payload,
+                sha256=__import__("hashlib").sha256(changed_payload).hexdigest(),
+            ),),
+        )
+
+
 def test_raw_materializer_canonicalizes_duplicate_overlap_and_rejects_tampered_evidence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import daily_funds.ingestion as ingestion
 
@@ -4456,6 +4492,15 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
         expected_publication_commit_sha=publication_commit,
         publication=publication,
     )
+
+    # A later DWS replay can retain the same source identity and bytes while
+    # changing only the downloader-supplied filename.  It must create a fresh
+    # batch receipt if needed, never collide with or overwrite the first raw
+    # occurrence, and the readback must use the historic canonical filename.
+    filename_drift = replace(direct, filename="same.png")
+    replayed = writer.persist((filename_drift,))
+    assert replayed.commit_sha != commit.commit_sha
+    assert replayed.verified_attachments == (direct,)
 
 
 def test_sparse_writer_uses_shallow_clone_for_narrow_raw_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

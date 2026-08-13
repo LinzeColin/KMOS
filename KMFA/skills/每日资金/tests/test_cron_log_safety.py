@@ -112,6 +112,7 @@ def test_unknown_machine_code_is_not_copied_to_the_log_event() -> None:
         "GIT_ARCHIVE_REBASE_FAILED",
         "GIT_ARCHIVE_VERIFY_FAILED",
         "GIT_ARCHIVE_READBACK_FAILED",
+        "RAW_PATH_HASH_COLLISION",
     ),
 )
 def test_daily_funds_actionable_backfill_codes_are_admitted_without_raw_detail(machine_code: str) -> None:

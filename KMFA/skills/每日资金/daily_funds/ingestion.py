@@ -1673,6 +1673,47 @@ class RawMaterializer:
                 raise IngestionError("RAW_OCCURRENCE_COLLISION")
         return tuple(unique)
 
+    @classmethod
+    def canonicalize_existing_occurrences(
+        cls,
+        root: Path,
+        attachments: Iterable[DownloadedAttachment],
+    ) -> tuple[DownloadedAttachment, ...]:
+        """Reuse only a verified historic filename for an identical occurrence.
+
+        DWS can return the same media bytes under a different downloaded file
+        name on a later history read.  The filename determines the legacy blob
+        suffix, so treating that delivery-only change as a new immutable
+        occurrence would either create a conflicting manifest or overwrite an
+        existing raw record.  Re-open the existing raw object instead: every
+        identity, message, byte, size, MIME and family field must still match;
+        only the already-recorded filename is allowed to become canonical.
+        """
+
+        frozen = cls.canonical_attachments(attachments)
+        canonical: list[DownloadedAttachment] = []
+        for attachment in frozen:
+            _, occurrence_path, _, _ = cls._attachment_paths(attachment)
+            occurrence_absolute = cls._safe_path(root, occurrence_path)
+            if not occurrence_absolute.exists():
+                canonical.append(attachment)
+                continue
+            try:
+                existing = json.loads(occurrence_absolute.read_text(encoding="utf-8"))
+                filename = existing.get("filename") if isinstance(existing, Mapping) else None
+                if not isinstance(filename, str) or not filename:
+                    raise ValueError("invalid historic filename")
+                recovered = replace(attachment, filename=filename)
+                # This validates the current complete message envelope, all
+                # immutable occurrence fields, the historic object path and
+                # the original bytes.  It therefore cannot turn a changed
+                # source attachment or metadata into a successful replay.
+                cls.readback_attachment(root, recovered)
+            except (OSError, TypeError, ValueError, json.JSONDecodeError, IngestionError) as exc:
+                raise IngestionError("RAW_PATH_HASH_COLLISION") from exc
+            canonical.append(recovered)
+        return tuple(canonical)
+
     @staticmethod
     def _message_and_occurrence_paths(
         message_at: datetime,
@@ -2989,7 +3030,11 @@ class GitSparseWriter:
                 failure_code="GIT_ARCHIVE_PREPARE_FAILED",
             )
             materializer = RawMaterializer()
-            staged = materializer.stage(repo / SPARSE_PATH, frozen_attachments)
+            canonical_attachments = materializer.canonicalize_existing_occurrences(
+                repo / SPARSE_PATH,
+                frozen_attachments,
+            )
+            staged = materializer.stage(repo / SPARSE_PATH, canonical_attachments)
             self._git(
                 ["add", "--sparse", "--", str(SPARSE_PATH)],
                 cwd=repo,
@@ -3036,7 +3081,7 @@ class GitSparseWriter:
                 temp_root,
                 env=env,
                 commit_sha=commit_sha,
-                attachments=frozen_attachments,
+                attachments=canonical_attachments,
                 staged=staged,
                 patterns=sparse_patterns,
             )
