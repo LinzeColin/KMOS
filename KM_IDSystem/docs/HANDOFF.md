@@ -9,9 +9,19 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage061 Phase 4 - 2026-08-14
+## Current Gate - Stage061 Review - 2026-08-14
 
-- 本节是唯一当前交接；下方 Stage061 P3/P2/P1、Batch051-060 Review 与所有更早章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；下方 Stage061 P4/P3/P2/P1、Batch051-060 Review 与所有更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE061-REVIEW`：只机械复审冻结 Stage061 P1--P4 静态合同、P3/P4 受控内存报告和 metadata-only 交付证据，确认 `16/18/5/8/6/11` 静态形状、两条固定 control、十条未评估候选、六类显式人工处置、六份交付、三条中文确认与 P4→P3 的重解析/事实回滚说明一致；没有建立第二权威事实源，发现数为 `0`。
+- 复审只输出计数、边界和回滚结论。control 来源位置和字段引用继续只是 `:control:` 形状，不能证明真实文件、真实行列、真实来源绑定、真实质量结论、真实事实、真实重解析或真实回滚已被读取、验证、创建或执行。
+- 已验证：Stage061 Review 聚焦用例 `11/11`；Review/P4/P3/P2/P1、Batch051-060、Batch041-050 与 Stage060 Review 阶段链路回归 `79/79`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归为 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 没有读取、打开、检测、解析、验证、生成或写入真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、事实、质量结果、摘要正文、来源正文或物理路径；没有执行真实 Schema/字段/事实/typed value、字段完整性、单位一致性、日期合法性、主键重复、异常值、数值统计、质量门、来源/证据绑定、真实重解析、真实事实回滚、数据库、持久化、Agent、模型调用、模型 Token、服务启动、OVH、生产、批次复审、上传或推送；`whole_stage_review_performed=true`、`stage062_started=false`、`github_upload_allowed=false`、`push_allowed=false`。
+- 回滚只撤回本 Review 说明、只读复审模块、聚焦用例、BATCH061-070 锁、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `PHASE4_STRUCTURED_DATA_QUALITY_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；不改变 P1--P4、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE062-P1-GATE`。本 run 不进入 Stage062、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage061 Phase 4 - 2026-08-14
+
+- 本节保留 Stage061 P4 的已提交历史证据；当前门已转为上方 Stage061 Review，不重写下方 Stage061 P3/P2/P1、Batch051-060 Review 与更早章节的事实。
 - 本轮完成 `IDS-V0_1-STAGE061-P4`：只从 P3 的六类固定、非业务、reference-only 结构化数据质量控制场景派生 `6` 个 metadata-only 交付样例、`6` 个字段引用标签、`6` 条控制质量结果、`6` 条人工处理建议、`3` 条中文确认和回到 P3 control 状态的表格重解析/事实回滚说明；没有建立第二权威事实源。
 - 六个交付样例、字段引用和质量结果只保留 `:control:` 引用形状；合并单元格被明确标记为 `UNRECOGNIZED_STRUCTURE_REQUIRES_HUMAN_HANDLING`，其余异常也均保留人工建议。它们不证明真实表格、真实字段映射、真实质量结果、真实事实、真实来源绑定、真实重解析或真实回滚已被读取、验证、创建或执行。
 - 已验证：Stage061 P4 聚焦用例 `13/13`；P4/P3/P2/P1、Batch051-060、Batch041-050 与 Stage060 Review 阶段链路回归 `68/68`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归为 `valid=true`；中文事实投影已重渲染 `7` 个文件。

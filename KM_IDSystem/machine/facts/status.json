@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE061",
-  "phase": "IDS-V0_1-STAGE061-P4",
-  "task": "IDS-V0_1-STAGE061-P4",
-  "real_progress": "Stage061 P4 已从 P3 六类固定、非业务、reference-only 场景派生 metadata-only 交付样例、字段引用、质量结果、人工建议、中文确认与重解析/事实回滚说明；下一步仅可在新的独立 run 进入 Stage061 Review，上传路径继续关闭",
-  "report_grade": "冻结 Stage061 任务包、P1/P2/P3 合同、Batch051-060 本地复审、P4 交付证据、治理路线与中文事实投影一致",
-  "business_verdict": "本 P4 只证明固定 control 的六份交付证据、人工处理边界和回到 P3 的撤回说明可白箱核验；不证明真实表格质量验证、真实来源追溯、真实质量结果、真实事实、数值统计、数据库、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE061_PHASE4_STRUCTURED_DATA_QUALITY_DELIVERY_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE061-REVIEW",
+  "task": "IDS-V0_1-STAGE061-REVIEW",
+  "real_progress": "Stage061 P1--P4 静态合同、P3/P4 受控内存报告、六类显式人工处置、metadata-only 交付、中文反馈与 P4→P3 回滚说明已机械复审；下一步仅可在新的独立 run 进入 Stage062 Phase 1，上传路径继续关闭",
+  "report_grade": "冻结 Stage061 任务包、P1--P4 合同、Batch051-060 本地复审、Stage061 本地复审、治理路线与中文事实投影一致",
+  "business_verdict": "本 Review 只证明固定 control 的字段形状、人工处理边界、metadata-only 交付与 P4→P3 的撤回说明可白箱核验；不证明真实表格质量验证、真实来源追溯、真实质量结果、真实事实、数值统计、数据库、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE061_REVIEWED_STRUCTURED_DATA_QUALITY_RUNTIME_DISABLED",
   "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE061-REVIEW-GATE",
+  "next_gate": "IDS-STAGE062-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

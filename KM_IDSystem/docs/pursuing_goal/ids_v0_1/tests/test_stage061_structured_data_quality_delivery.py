@@ -279,17 +279,17 @@ class Stage061StructuredDataQualityPhase4DeliveryTests(unittest.TestCase):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage061_phase4_completed_review_pending"'),
-            (batch, "stage061_phase4_state:"),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE061-P4"'),
-            (batch, 'next_gate: "IDS-STAGE061-REVIEW-GATE"'),
+            (batch, 'status: "stage061_completed_reviewed_local"'),
+            (batch, "stage061_review_state:"),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE061-REVIEW"'),
+            (batch, 'next_gate: "IDS-STAGE062-P1-GATE"'),
             (batch, "structured_data_quality_delivery_evidence_derived: true"),
             (batch, "xlsx_or_csv_parse_performed: false"),
             (batch, "model_token_consumption_performed: false"),
             (batch, "ovh_deployment_performed: false"),
             (roadmap, 'current_stage_id: "IDS-STAGE061"'),
-            (roadmap, 'current_phase_id: "IDS-STAGE061-P4"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE061-REVIEW-GATE"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE061-REVIEW"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE062-P1-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
@@ -299,12 +299,12 @@ class Stage061StructuredDataQualityPhase4DeliveryTests(unittest.TestCase):
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         run = json.loads(RUN.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE061", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE061-P4", status["phase"])
-        self.assertEqual("IDS-STAGE061-REVIEW-GATE", status["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE061-REVIEW", status["phase"])
+        self.assertEqual("IDS-STAGE062-P1-GATE", status["next_gate"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE061-P4", plan["task"])
-        self.assertIn("IDS-STAGE061-REVIEW-GATE", plan["stop_condition"])
+        self.assertEqual("IDS-V0_1-STAGE061-REVIEW", plan["task"])
+        self.assertIn("IDS-STAGE062-P1-GATE", plan["stop_condition"])
         self.assertEqual("IDS-V0_1-STAGE061-P4", run["task_id"])
         self.assertEqual("IDS-STAGE061-REVIEW-GATE", run["next_gate"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])

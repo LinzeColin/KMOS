@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE061",
-  "phase": "IDS-V0_1-STAGE061-P4",
-  "task": "IDS-V0_1-STAGE061-P4",
-  "owner": "Codex 专属 KMOS worktree，Stage061 P4",
-  "objective": "只从六类固定、非业务、reference-only 质量控制场景派生 metadata-only 交付样例、字段引用、质量结果、人工处理建议、中文确认与重解析/事实回滚说明；不创建真实质量验证、来源追溯或运行能力。",
+  "phase": "IDS-V0_1-STAGE061-REVIEW",
+  "task": "IDS-V0_1-STAGE061-REVIEW",
+  "owner": "Codex 专属 KMOS worktree，Stage061 Review",
+  "objective": "只机械复审 Stage061 P1--P4 的静态合同、P3/P4 受控内存报告、metadata-only 交付、中文反馈与回滚说明；不创建真实质量验证、来源追溯或运行能力。",
   "scope": [
-    "以冻结 Stage061 任务包、P1 静态合同与 Batch051-060 已复审工件为唯一合同上下文，不建立第二权威事实源",
-    "仅重放 P3 六类固定 control 场景，派生 6 个 metadata-only 交付样例、6 个字段引用标签、6 条控制质量结果、6 条人工处理建议、3 条中文确认和回到 P3 的控制重放/回滚说明",
+    "以冻结 Stage061 任务包、P1--P4 静态合同、P3/P4 受控内存报告与 Batch051-060 已复审工件为唯一合同上下文，不建立第二权威事实源",
+    "仅复审 16/18/5/8/6/11 静态形状、两条 control、十条未评估候选、六类显式人工处置、六份 metadata-only 交付、三条中文确认和 P4→P3 控制重放/回滚说明",
     "保留 Stage057--060 的输入、Schema、事实与 RAG 所有权，保留 Stage062 的未来证据绑定所有权",
-    "同步 P4 说明、交付合同、纯内存模块、聚焦单元用例、BATCH061-070 锁、路线图、machine run、事件、机器事实、中文视图与交接",
-    "只完成 ACC-STAGE-061 的 Phase 4 本地白箱交付证据并指向 Stage061 Review 门"
+    "同步 Review 说明、只读复审模块、聚焦单元用例、BATCH061-070 锁、路线图、machine run、事件、机器事实、中文视图与交接",
+    "只完成 ACC-STAGE-061 整阶段本地白箱复审并指向 Stage062 P1 门"
   ],
   "non_goals": [
     "不打开、创建、复制、移动、删除、修改、检测、解析或评估真实业务源、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、质量结果库、事实库、数据库或报告",
     "不执行真实 schema 推断、字段识别、事实抽取、typed value 抽取、字段完整性、单位一致性、日期合法性、主键重复、异常值、RAG 摘要正文、数值统计、质量验证、来源或证据写入、数据库连接或 migration、持久化、Agent、模型调用、模型 Token、OVH、生产或上传",
-    "不进入 Stage061 Review、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不进入 Stage062、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "P4 的六个 metadata-only 交付样例、字段引用、质量结果、人工建议、中文确认与回到 P3 的控制重放/回滚说明完成后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE061-REVIEW-GATE；任何真实表格或 fixture 访问、真实质量验证、真实字段或事实抽取、typed value、RAG、数值统计、真实来源/证据绑定、数据库、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "Review 对 P1--P4 静态合同、P3/P4 control 报告、六份 metadata-only 交付、中文确认与 P4→P3 回滚说明完成后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE062-P1-GATE；任何真实表格或 fixture 访问、真实质量验证、真实字段或事实抽取、typed value、RAG、数值统计、真实来源/证据绑定、数据库、OVH、生产或上传动作都不属于本步骤。"
 }

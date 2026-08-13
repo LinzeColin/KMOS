@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE061"
-current_phase_id: "IDS-STAGE061-P4"
-current_task_id: "IDS-V0_1-STAGE061-P4"
-next_gate_id: "IDS-STAGE061-REVIEW-GATE"
+current_phase_id: "IDS-STAGE061-REVIEW"
+current_task_id: "IDS-V0_1-STAGE061-REVIEW"
+next_gate_id: "IDS-STAGE062-P1-GATE"
 current_transition_history:
+  stage061_review_state:
+    current_stage_id: "IDS-STAGE061"
+    current_phase_id: "IDS-STAGE061-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE061-REVIEW"
+    next_gate_id: "IDS-STAGE062-P1-GATE"
   stage061_phase4_state:
     current_stage_id: "IDS-STAGE061"
     current_phase_id: "IDS-STAGE061-P4"
@@ -16541,15 +16546,15 @@ stages:
     task_id: "IDS-V0_1-STAGE061"
     acceptance_ids:
       - "ACC-STAGE-061"
-    status: "phase4_completed_review_pending"
-    pursuing_goal: "在不读取业务资料、不执行真实表格质量验证或运行时的前提下，白箱派生固定质量控制场景的 metadata-only 交付证据、字段引用、质量结果、人工建议、中文反馈与回滚说明。"
+    status: "completed_reviewed_local"
+    pursuing_goal: "在不读取业务资料、不执行真实表格质量验证或运行时的前提下，机械复审 Stage061 P1--P4 的静态合同、受控内存报告、metadata-only 交付证据、人工建议、中文反馈与回滚说明。"
     stop_gate:
-      gate_id: "IDS-STAGE061-P4-GATE"
+      gate_id: "IDS-STAGE061-REVIEW-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE061-REVIEW-GATE"
+      next_gate_id: "IDS-STAGE062-P1-GATE"
       github_upload_allowed: false
       pass_conditions:
-        - "P3 六类固定、非业务、reference-only 场景被纯内存重放为六个 metadata-only 交付样例、六个字段引用标签、六条控制质量结果、六条人工处理建议和三条中文确认提示。"
+        - "P1--P4 的 16/18/5/8/6/11 静态形状、两条固定 control、十条未评估候选、六类显式人工处置与 metadata-only 交付证据均已机械复审。"
         - "无法识别结构、单位、日期、异常值和重复行均保留明确人工建议；控制来源位置引用形状不声称真实文件、真实行列、真实来源绑定或证据已验证。"
         - "表格重解析和事实回滚说明只回到 P3 control 状态；未读取或解析真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行真实质量验证、质量结果或事实写入、数据库、Agent、模型、OVH 或生产运行。"
         - "上传与推送继续关闭，最终 ACC-STAGE-168 前不进入任何上传动作。"
@@ -16714,3 +16719,46 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_scenarios_contract.json"
             risk: "若把 metadata-only 样例、字段推断引用报告、控制质量结果、人工建议、重解析说明或聚焦用例通过误作真实表格、真实质量验证、真实事实、真实回滚、数据库、OVH、生产或上传能力，会破坏业务线白箱控制。"
             rollback: "只回滚本 P4 说明、交付合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE3_STRUCTURED_DATA_QUALITY_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；不改变 P1/P2/P3、真实资料、fixture、事实库、数据库、运行状态、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE061-REVIEW"
+        name: "Stage061 Review · 结构化数据质量整阶段白箱复审"
+        objective: "只机械复审冻结 Stage061 P1--P4 静态合同、P3/P4 受控内存报告和 metadata-only 交付证据，确认字段形状、单一权威、数值边界、六类显式人工处置、中文反馈与 P4→P3 重解析/事实回滚说明一致；不读取真实表格或启动 Stage062。"
+        status: "completed_reviewed_local"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE062-P1-GATE"
+        gate:
+          gate_id: "IDS-STAGE061-REVIEW-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE062-P1-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、事实库、数据库或报告"
+          - "执行真实 Schema 推断、字段识别、事实抽取、typed value 抽取、字段完整性、单位一致性、日期合法性、主键重复、异常值、数值统计、质量门、来源或证据写入、真实重解析、真实事实或质量结果回滚、持久化、数据库 migration、Agent、模型调用、模型 Token、OVH、生产服务、Stage062、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE061-REVIEW"
+            name: "机械复审结构化数据质量 P1--P4 合同与控制交付"
+            objective: "只加载 P1--P4 已提交合同及 P3/P4 纯内存报告，复审 16/18/5/8/6/11 静态形状、2 条 control、10 条候选、6 类显式人工处置、6 份 metadata-only 交付、3 条中文确认和 P4→P3 回滚链；不形成真实质量结论或运行时。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE061-P4"
+            acceptance_ids:
+              - "ACC-STAGE-061"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_stage_review"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch051_060_review_gate KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch041_050_review_gate KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage060_table_rag_summary_stage_review"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage061 Review 聚焦用例通过 11/11；Review/P4/P3/P2/P1、Batch051-060、Batch041-050 与 Stage060 Review 阶段链路回归通过 79/79；两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；Stage005 治理回归 valid=true；中文事实投影已重渲染 7 个文件。本 Review 不进入 Stage062、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE061_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_stage_review.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage061_structured_data_quality_stage_review.py"
+              - "KM_IDSystem/machine/runs/2026-08-14-stage061-review-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_delivery_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把静态合同、控制计数、metadata-only 交付或本地复审通过误作真实表格质量验证、真实来源追溯、真实质量结果、真实事实、统计、数据库、OVH、生产或上传能力，会绕开业务线人工复核与单一权威边界。"
+            rollback: "只回滚本 Review 说明、只读复审模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE4_STRUCTURED_DATA_QUALITY_DELIVERY_EVIDENCE_RUNTIME_DISABLED；不改变 P1--P4、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 或应用状态。"

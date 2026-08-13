@@ -4,6 +4,11 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "Stage061 structured-data quality review",
+      "中文": "Stage061 结构化数据质量整阶段复审",
+      "说明": "只机械复审 P1--P4 静态合同、受控内存报告和 metadata-only 交付的字段形状、人工处理与回滚说明；不读取真实表格、不形成真实质量结论，也不启动 Stage062、OVH 或生产运行。"
+    },
+    {
       "英文": "metadata-only structured-data quality delivery",
       "中文": "仅元数据结构化数据质量交付",
       "说明": "Stage061 P4 从固定控制场景派生的交付样例、字段引用、质量结果和人工建议；它不包含真实表格内容、真实质量结果、真实事实、来源绑定或证据记录，不能成为第二权威事实源。"

@@ -2,13 +2,20 @@ schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
 updated_at_utc: "2026-08-14T00:00:00Z"
-status: "stage061_phase4_completed_review_pending"
+status: "stage061_completed_reviewed_local"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage061_review_state:
+    status: "stage061_completed_reviewed_local"
+    current_task_id: "IDS-V0_1-STAGE061-REVIEW"
+    next_gate: "IDS-STAGE062-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE062-P1"
+    stage062_phase1_entry_authorized: true
+    github_upload_allowed: false
   stage061_phase4_state:
     status: "stage061_phase4_completed_review_pending"
     current_task_id: "IDS-V0_1-STAGE061-P4"
@@ -69,21 +76,22 @@ upload_gate:
 
 stage_progress:
   STAGE-061:
-    status: "stage061_phase4_completed_review_pending"
+    status: "stage061_completed_reviewed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_phase: "Stage061 Review"
-    next_gate: "IDS-STAGE061-REVIEW-GATE"
-    current_task_id: "IDS-V0_1-STAGE061-P4"
+    next_phase: "Stage062 Phase 1"
+    next_gate: "IDS-STAGE062-P1-GATE"
+    current_task_id: "IDS-V0_1-STAGE061-REVIEW"
     acceptance_id: "ACC-STAGE-061"
-    acceptance_status: "phase4_structured_data_quality_delivery_evidence_complete"
-    review_status: "pending"
+    acceptance_status: "completed_reviewed_local"
+    review_status: "completed_reviewed_local"
     phase3_entry_authorized: true
     phase4_entry_authorized: true
     review_entry_authorized: true
+    stage062_phase1_entry_authorized: true
     taskpack_context_read_performed: true
     source_authority: "FROZEN_TASKPACK_TEXT_AND_BATCH051_060_REVIEW_ARTIFACTS"
     second_authoritative_source_created: false
@@ -100,7 +108,7 @@ stage_progress:
     quality_contract_schema: "ids.stage061.structured_data_quality.phase4.delivery.v1"
     phase1_quality_contract_schema: "ids.stage061.structured_data_quality.phase1.v1"
     phase2_quality_contract_schema: "ids.stage061.structured_data_quality.phase2.v1"
-    contract_state: "PHASE4_STRUCTURED_DATA_QUALITY_DELIVERY_EVIDENCE_RUNTIME_DISABLED"
+    contract_state: "STAGE061_REVIEWED_LOCAL_STRUCTURED_DATA_QUALITY_RUNTIME_DISABLED"
     delivery_evidence_executable: true
     structured_data_quality_delivery_evidence_derived: true
     execution_ready: false
@@ -174,8 +182,9 @@ stage_progress:
     phase2_started: true
     phase3_started: true
     phase4_started: true
-    whole_stage_review_performed: false
+    whole_stage_review_performed: true
     batch_review_performed: false
+    stage062_started: false
     github_upload_allowed: false
     push_allowed: false
     app_reinstall_allowed: false
@@ -199,15 +208,19 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage061_structured_data_quality_delivery.py"
       - "KM_IDSystem/machine/runs/2026-08-14-stage061-p4-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE061_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage061_structured_data_quality_stage_review.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage061-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE061-P4"
-  next_allowed_task_id: "IDS-V0_1-STAGE061-REVIEW"
+  current_task_id: "IDS-V0_1-STAGE061-REVIEW"
+  next_allowed_task_id: "IDS-V0_1-STAGE062-P1"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-061 Phase 4 only derives metadata-only delivery evidence, field-reference labels, control quality results, human-handling recommendations, Chinese confirmations and a control replay/rollback explanation from the six fixed P3 scenarios. It does not open sources, parse tables, evaluate real quality, write facts or quality results, or activate any runtime."
+  current_run: "STAGE-061 Review only mechanically rechecks P1--P4 static contracts and control reports. It confirms the reference-only shapes, explicit human handling, Chinese feedback and P4-to-P3 rollback instruction without opening sources, parsing tables, evaluating real quality, writing facts or quality results, or activating any runtime."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."
