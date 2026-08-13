@@ -1720,6 +1720,13 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE060-P4-GATE"
                     )
+                    or (
+                        roadmap.get("current_phase_id") == "IDS-STAGE060-P4"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE060-P4"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE060-REVIEW-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -2501,6 +2508,7 @@ REQUIRED_EVENT_IDS = (
     "EVT-IDS-V0_1-STAGE060-P1-20260813-001",
     "EVT-IDS-V0_1-STAGE060-P2-20260813-001",
     "EVT-IDS-V0_1-STAGE060-P3-20260813-001",
+    "EVT-IDS-V0_1-STAGE060-P4-20260813-001",
 )
 
 FORBIDDEN_RUNTIME_PREFIXES = (
@@ -10677,6 +10685,103 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
                 "next_gate": "IDS-STAGE060-P4-GATE",
             },
         },
+        "EVT-IDS-V0_1-STAGE060-P4-20260813-001": {
+            "event_type": "phase_completed",
+            "allow_stage_gate": True,
+            "task_id": "IDS-V0_1-STAGE060-P4",
+            "acceptance_id": "ACC-STAGE-060",
+            "required_changed_files": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE060_PHASE4_TABLE_RAG_SUMMARY_DELIVERY_CLOSEOUT.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_delivery_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_delivery.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage060_table_rag_summary_delivery.py",
+                "KM_IDSystem/machine/runs/2026-08-13-stage060-p4-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+                "KM_IDSystem/docs/governance/roadmap.yaml",
+                "KM_IDSystem/docs/governance/events.jsonl",
+                "KM_IDSystem/scripts/check_batch041_050_review.py",
+                "KM_IDSystem/machine/facts/status.json",
+                "KM_IDSystem/machine/facts/plan.json",
+                "KM_IDSystem/machine/facts/roadmap.json",
+                "KM_IDSystem/machine/facts/acceptance.json",
+                "KM_IDSystem/machine/facts/changelog.json",
+                "KM_IDSystem/docs/HANDOFF.md",
+                "KM_IDSystem/CHANGELOG.md",
+            },
+            "required_refs": {
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE060_PHASE4_TABLE_RAG_SUMMARY_DELIVERY_CLOSEOUT.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_delivery_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_delivery.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage060_table_rag_summary_delivery.py",
+                "KM_IDSystem/machine/runs/2026-08-13-stage060-p4-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_quality_scenarios_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_quality_scenarios.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_slice_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage060_table_rag_summary_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE059_STAGE_REVIEW.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
+            },
+            "required_note_assignments": {
+                "contract_state": "PHASE4_TABLE_RAG_SUMMARY_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+                "second_authoritative_source_created": "false",
+                "reference_only_summary_input_field_count": "13",
+                "future_rag_summary_output_field_count": "10",
+                "control_summary_input_record_count": "2",
+                "control_rag_summary_candidate_count": "2",
+                "fact_reference_count": "2",
+                "control_source_location_binding_candidate_count": "2",
+                "control_quality_scenario_count": "6",
+                "metadata_only_table_fact_reference_sample_count": "6",
+                "field_reference_label_count": "6",
+                "control_quality_test_result_count": "6",
+                "unrecognized_structure_human_handling_count": "6",
+                "human_confirmation_prompt_count": "3",
+                "actual_input_record_count": "0",
+                "actual_structured_fact_count": "0",
+                "actual_numeric_fact_count": "0",
+                "actual_rag_summary_count": "0",
+                "actual_source_location_binding_count": "0",
+                "actual_evidence_record_count": "0",
+                "actual_source_file_traceability_validated": "false",
+                "actual_file_reparse_performed": "false",
+                "actual_fact_store_present": "false",
+                "actual_fact_rollback_performed": "false",
+                "actual_rag_summary_rollback_performed": "false",
+                "source_document_remains_authoritative": "true",
+                "model_direct_text_guessing_allowed": "false",
+                "unverified_numeric_value_as_definitive_fact_allowed": "false",
+                "summary_can_replace_structured_fact": "false",
+                "summary_can_become_numeric_statistical_evidence": "false",
+                "xlsx_or_csv_parse_performed": "false",
+                "table_schema_inference_performed": "false",
+                "field_identification_performed": "false",
+                "structured_fact_extraction_performed": "false",
+                "typed_value_extraction_performed": "false",
+                "table_summary_generation_performed": "false",
+                "rag_summary_generation_performed": "false",
+                "numeric_statistic_computation_performed": "false",
+                "quality_gate_evaluation_performed": "false",
+                "database_connection_performed": "false",
+                "structured_fact_write_performed": "false",
+                "rag_summary_write_performed": "false",
+                "agent_execution_performed": "false",
+                "model_call_performed": "false",
+                "model_token_consumption_performed": "false",
+                "ovh_deployment_performed": "false",
+                "production_runtime_activation_performed": "false",
+                "stage060_started": "true",
+                "stage060_entry_authorized": "true",
+                "phase2_started": "true",
+                "phase3_started": "true",
+                "phase4_started": "true",
+                "whole_stage_review_performed": "false",
+                "batch_review_performed": "false",
+                "github_upload_allowed": "false",
+                "push_allowed": "false",
+                "next_gate": "IDS-STAGE060-REVIEW-GATE",
+            },
+        },
     }
 
     errors: list[str] = []
@@ -10922,6 +11027,7 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
             "STAGE057",
             "STAGE058",
             "STAGE059",
+            "STAGE060",
         )
     }
     for event in events:

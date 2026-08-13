@@ -261,7 +261,7 @@ class Stage060TableRagSummaryPhase3Tests(unittest.TestCase):
         )
         self.assertEqual(0, report["passed_scenario_count"])
 
-    def test_phase3_governance_projection_and_evidence_are_current(self):
+    def test_phase3_governance_projection_and_evidence_are_historical_or_current(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
@@ -280,9 +280,21 @@ class Stage060TableRagSummaryPhase3Tests(unittest.TestCase):
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE060", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE060-P3", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE060-P3", status["task"])
-        self.assertEqual("IDS-STAGE060-P4-GATE", status["next_gate"])
+        self.assertIn(
+            (status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-V0_1-STAGE060-P3",
+                    "IDS-V0_1-STAGE060-P3",
+                    "IDS-STAGE060-P4-GATE",
+                ),
+                (
+                    "IDS-V0_1-STAGE060-P4",
+                    "IDS-V0_1-STAGE060-P4",
+                    "IDS-STAGE060-REVIEW-GATE",
+                ),
+            ),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

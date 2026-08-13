@@ -292,6 +292,7 @@ class Stage057XlsxCsvIngestionPhase4DeliveryTests(unittest.TestCase):
             "IDS-V0_1-STAGE059-P4",
             "IDS-V0_1-STAGE059-REVIEW",
             "IDS-V0_1-STAGE060-P1", "IDS-V0_1-STAGE060-P2", "IDS-V0_1-STAGE060-P3",
+            "IDS-V0_1-STAGE060-P4",
             ),
         )
         self.assertIn(
@@ -310,6 +311,7 @@ class Stage057XlsxCsvIngestionPhase4DeliveryTests(unittest.TestCase):
             "IDS-STAGE059-REVIEW-GATE",
             "IDS-STAGE060-P1-GATE",
             "IDS-STAGE060-P2-GATE", "IDS-STAGE060-P3-GATE", "IDS-STAGE060-P4-GATE",
+            "IDS-STAGE060-REVIEW-GATE",
             ),
         )
         self.assertFalse(status["runtime_enabled"])
