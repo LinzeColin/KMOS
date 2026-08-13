@@ -1863,6 +1863,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE064-P2-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE064"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE064-P2"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE064-P2"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE064-P3-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -2214,6 +2222,11 @@ REQUIRED_FILES = (
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_contract.json",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage064_chunk_identity_version_contract.py",
     "KM_IDSystem/machine/runs/2026-08-14-stage064-p1-local.json",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE064_PHASE2_CHUNK_IDENTITY_VERSION_CONTROL_SLICE.md",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_slice_contract.json",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_slice.py",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage064_chunk_identity_version_slice.py",
+    "KM_IDSystem/machine/runs/2026-08-14-stage064-p2-local.json",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_PHASE1_OCR_QUEUE_SCOPE_BOUNDARY.md",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage051_ocr_queue_contract.json",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_ocr_queue.py",
@@ -2718,6 +2731,7 @@ REQUIRED_EVENT_IDS = (
     "EVT-IDS-V0_1-STAGE063-P4-20260814-001",
     "EVT-IDS-V0_1-STAGE063-REVIEW-20260814-001",
     "EVT-IDS-V0_1-STAGE064-P1-20260814-001",
+    "EVT-IDS-V0_1-STAGE064-P2-20260814-001",
 )
 
 FORBIDDEN_RUNTIME_PREFIXES = (
@@ -12680,6 +12694,90 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
                 "github_upload_allowed": "false",
                 "push_allowed": "false",
                 "next_gate": "IDS-STAGE064-P2-GATE",
+            },
+        },
+        "EVT-IDS-V0_1-STAGE064-P2-20260814-001": {
+            "event_type": "phase_completed",
+            "allow_stage_gate": True,
+            "task_id": "IDS-V0_1-STAGE064-P2",
+            "acceptance_id": "ACC-STAGE-064",
+            "required_changed_files": {
+                "KM_IDSystem/CHANGELOG.md",
+                "KM_IDSystem/docs/HANDOFF.md",
+                "KM_IDSystem/docs/governance/events.jsonl",
+                "KM_IDSystem/docs/governance/roadmap.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE064_PHASE2_CHUNK_IDENTITY_VERSION_CONTROL_SLICE.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_slice_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_slice.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage064_chunk_identity_version_slice.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+                "KM_IDSystem/machine/facts/acceptance.json",
+                "KM_IDSystem/machine/facts/changelog.json",
+                "KM_IDSystem/machine/facts/glossary.json",
+                "KM_IDSystem/machine/facts/plan.json",
+                "KM_IDSystem/machine/facts/roadmap.json",
+                "KM_IDSystem/machine/facts/status.json",
+                "KM_IDSystem/machine/runs/2026-08-14-stage064-p2-local.json",
+            },
+            "required_refs": {
+                "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-064_Chunk身份与版本.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE064_PHASE2_CHUNK_IDENTITY_VERSION_CONTROL_SLICE.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_slice_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_slice.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage064_chunk_identity_version_slice.py",
+                "KM_IDSystem/machine/runs/2026-08-14-stage064-p2-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE063_STAGE_REVIEW.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+            },
+            "required_note_assignments": {
+                "contract_state": "PHASE2_CHUNK_IDENTITY_AND_VERSION_CONTROL_SLICE_RUNTIME_DISABLED",
+                "second_authoritative_source_created": "false",
+                "reference_only_identity_and_version_input_field_count": "10",
+                "control_chunk_identity_and_version_record_field_count": "14",
+                "required_identity_and_version_field_count": "6",
+                "control_identity_version_request_count": "3",
+                "control_identity_version_record_count": "3",
+                "protected_semantic_asset_type_count": "3",
+                "traceability_field_count": "6",
+                "control_traceability_reference_count": "18",
+                "declared_failure_state_count": "10",
+                "actual_input_request_count": "0",
+                "actual_chunk_count": "0",
+                "actual_chunk_id_count": "0",
+                "actual_chunk_hash_count": "0",
+                "actual_chunk_version_count": "0",
+                "actual_traceability_binding_count": "0",
+                "source_document_remains_authoritative": "true",
+                "parser_execution_performed": "false",
+                "chapter_detection_performed": "false",
+                "chunking_execution_performed": "false",
+                "chunk_id_generation_performed": "false",
+                "chunk_hash_computation_performed": "false",
+                "chunk_version_generation_performed": "false",
+                "control_identity_version_record_projection_performed": "true",
+                "semantic_asset_classification_performed": "false",
+                "coverage_calculation_performed": "false",
+                "quality_regression_performed": "false",
+                "quality_degradation_performed": "false",
+                "source_traceability_binding_performed": "false",
+                "embedding_or_index_write_performed": "false",
+                "database_connection_performed": "false",
+                "persistent_state_write_performed": "false",
+                "agent_execution_performed": "false",
+                "model_call_performed": "false",
+                "model_token_consumption_performed": "false",
+                "ovh_deployment_performed": "false",
+                "production_runtime_activation_performed": "false",
+                "stage064_started": "true",
+                "phase2_started": "true",
+                "phase3_started": "false",
+                "whole_stage_review_performed": "false",
+                "batch_review_performed": "false",
+                "github_upload_allowed": "false",
+                "push_allowed": "false",
+                "next_gate": "IDS-STAGE064-P3-GATE",
             },
         },
     }

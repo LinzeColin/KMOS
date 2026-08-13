@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage064 Phase 2（本地）
+
+- 完成 Chunk 身份与版本纯内存控制切片：三条固定、非业务、reference-only 十字段请求投影三条十四字段待人工复核控制记录，保留 `chunk_id/chunk_hash/document_id/page/section/version` 控制标签、工程步骤/验收条款/参数表三类保护语义面、六维追溯和十类失败关闭；没有建立第二权威事实源。
+- 控制记录、控制字段标签和控制计数不能替代来源文档或业务线白箱人工复核，也不代表真实 chunk、真实身份、真实 Hash、真实 document 绑定、真实版本、真实分类、真实覆盖率、真实质量、OVH、生产或上传能力。
+- 本地验证通过：Stage064 P2 聚焦用例 `8/8`；受影响阶段链路回归 `183/183`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影已重渲染 `7` 个文件。本 run 未读取、打开、检测、解析、切分、计算或创建真实资料、chunk、身份、哈希、document 绑定、版本、索引、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE064-P3-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage064 Phase 1（本地）
 
 - 完成 Chunk 身份与版本静态合同：定义 `10/14/3/6/9` 形状，即十个仅引用输入、十四个未来身份/版本字段、`chunk_id/chunk_hash/document_id/page/section/version` 字段标签、工程步骤/验收条款/参数表三类保护语义面、六维追溯和九类失败关闭；没有建立第二权威事实源。

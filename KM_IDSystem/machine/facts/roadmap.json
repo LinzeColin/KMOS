@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE064",
       "name": "Chunk 身份与版本",
-      "gate": "P1 静态身份/版本合同已本地通过；下一步须独立进入 Stage064 Phase 2",
-      "status": "P1 本地合同完成；真实 chunk、ID、Hash、版本、分类、覆盖率、质量、索引、OVH 与生产仍禁用"
+      "gate": "P2 纯内存身份/版本控制切片已本地通过；下一步须独立进入 Stage064 Phase 3",
+      "status": "P1 静态合同与 P2 受控投影完成；真实 chunk、ID、Hash、版本、分类、覆盖率、质量、索引、OVH 与生产仍禁用"
     },
     {
       "id": "`IDS-STAGE040`",

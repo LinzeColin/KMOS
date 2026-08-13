@@ -286,15 +286,27 @@ class Stage064ChunkIdentityVersionPhase1Tests(unittest.TestCase):
         run = json.loads(RUN.read_text(encoding="utf-8"))
 
         self.assertEqual("IDS-STAGE064", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE064-P1", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE064-P1", status["task"])
-        self.assertEqual("IDS-STAGE064-P2-GATE", status["next_gate"])
+        self.assertIn(
+            (status["phase"], status["task"], status["next_gate"]),
+            (
+                ("IDS-V0_1-STAGE064-P1", "IDS-V0_1-STAGE064-P1", "IDS-STAGE064-P2-GATE"),
+                ("IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P2", "IDS-STAGE064-P3-GATE"),
+            ),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertEqual("IDS-STAGE064", plan["stage"])
-        self.assertEqual("IDS-V0_1-STAGE064-P1", plan["phase"])
-        self.assertEqual("IDS-V0_1-STAGE064-P1", plan["task"])
-        self.assertIn("IDS-STAGE064-P2-GATE", plan["stop_condition"])
+        self.assertIn(
+            (plan["phase"], plan["task"]),
+            (
+                ("IDS-V0_1-STAGE064-P1", "IDS-V0_1-STAGE064-P1"),
+                ("IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P2"),
+            ),
+        )
+        self.assertTrue(
+            "IDS-STAGE064-P2-GATE" in plan["stop_condition"]
+            or "IDS-STAGE064-P3-GATE" in plan["stop_condition"]
+        )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -307,8 +319,16 @@ class Stage064ChunkIdentityVersionPhase1Tests(unittest.TestCase):
         )
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         self.assertIn('current_stage_id: "IDS-STAGE064"', roadmap_text)
-        self.assertIn('current_phase_id: "IDS-STAGE064-P1"', roadmap_text)
-        self.assertIn('next_gate_id: "IDS-STAGE064-P2-GATE"', roadmap_text)
+        self.assertTrue(
+            (
+                'current_phase_id: "IDS-STAGE064-P1"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE064-P2-GATE"' in roadmap_text
+            )
+            or (
+                'current_phase_id: "IDS-STAGE064-P2"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE064-P3-GATE"' in roadmap_text
+            )
+        )
         self.assertEqual("IDS-V0_1-STAGE064-P1", event["task_id"])
         self.assertEqual(["ACC-STAGE-064"], event["acceptance_ids"])
         self.assertEqual("IDS-V0_1-STAGE064-P1", run["task_id"])

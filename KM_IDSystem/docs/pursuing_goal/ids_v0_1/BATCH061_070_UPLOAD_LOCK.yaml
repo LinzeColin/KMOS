@@ -1,14 +1,21 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
-updated_at_utc: "2026-08-13T23:03:56Z"
-status: "stage064_phase1_completed"
+updated_at_utc: "2026-08-13T23:38:10Z"
+status: "stage064_phase2_completed"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage064_phase2_state:
+    status: "stage064_phase2_completed"
+    current_task_id: "IDS-V0_1-STAGE064-P2"
+    next_gate: "IDS-STAGE064-P3-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE064-P3"
+    stage064_phase3_entry_authorized: true
+    github_upload_allowed: false
   stage064_phase1_state:
     status: "stage064_phase1_completed"
     current_task_id: "IDS-V0_1-STAGE064-P1"
@@ -153,17 +160,19 @@ upload_gate:
 
 stage_progress:
   STAGE-064:
-    status: "stage064_phase1_completed"
+    status: "stage064_phase2_completed"
     completed_phases:
       - "Phase 1"
-    next_phase: "Stage064 Phase 2"
-    next_gate: "IDS-STAGE064-P2-GATE"
-    current_task_id: "IDS-V0_1-STAGE064-P1"
+      - "Phase 2"
+    next_phase: "Stage064 Phase 3"
+    next_gate: "IDS-STAGE064-P3-GATE"
+    current_task_id: "IDS-V0_1-STAGE064-P2"
     acceptance_id: "ACC-STAGE-064"
-    acceptance_status: "phase1_completed_local"
+    acceptance_status: "phase2_completed_local"
     phase2_entry_authorized: true
+    phase3_entry_authorized: true
     taskpack_context_read_performed: true
-    source_authority: "FROZEN_STAGE064_TASKPACK_AND_STAGE063_REVIEW_ARTIFACTS_ONLY"
+    source_authority: "FROZEN_STAGE064_TASKPACK_AND_PHASE1_AND_STAGE063_REVIEW_ARTIFACTS_ONLY"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
     raw_metadata_content_accessed: false
@@ -172,15 +181,19 @@ stage_progress:
     parser_execution_performed: false
     chapter_detection_performed: false
     chunking_execution_performed: false
-    chunk_identity_and_version_contract_schema: "ids.stage064.chunk_identity_and_version.phase1.v1"
-    contract_state: "PHASE1_CHUNK_IDENTITY_AND_VERSION_CONTRACT_RUNTIME_DISABLED"
+    chunk_identity_and_version_contract_schema: "ids.stage064.chunk_identity_and_version.phase2.v1"
+    contract_state: "PHASE2_CHUNK_IDENTITY_AND_VERSION_CONTROL_SLICE_RUNTIME_DISABLED"
+    slice_executable: true
     execution_ready: false
     reference_only_identity_and_version_input_field_count: 10
-    future_chunk_identity_and_version_output_field_count: 14
+    control_chunk_identity_and_version_record_field_count: 14
     required_identity_and_version_field_count: 6
+    control_identity_version_request_count: 3
+    control_identity_version_record_count: 3
     protected_semantic_asset_type_count: 3
     traceability_field_count: 6
-    declared_failure_state_count: 9
+    control_traceability_reference_count: 18
+    declared_failure_state_count: 10
     actual_input_request_count: 0
     actual_chunk_count: 0
     actual_chunk_id_count: 0
@@ -188,13 +201,14 @@ stage_progress:
     actual_chunk_version_count: 0
     actual_traceability_binding_count: 0
     source_document_remains_authoritative: true
-    chunk_identity_or_version_can_replace_source_document: false
-    chunk_identity_or_version_can_become_business_fact_authority: false
+    control_record_can_replace_source_document: false
+    control_record_can_become_business_fact_authority: false
     model_direct_text_guessing_allowed: false
     model_decision_conclusion_authoritative: false
     chunk_id_generation_performed: false
     chunk_hash_computation_performed: false
     chunk_version_generation_performed: false
+    control_identity_version_record_projection_performed: true
     semantic_asset_classification_performed: false
     coverage_calculation_performed: false
     quality_regression_performed: false
@@ -211,7 +225,8 @@ stage_progress:
     production_runtime_activation_performed: false
     stage064_started: true
     stage064_entry_authorized: true
-    phase2_started: false
+    phase2_started: true
+    phase3_started: false
     whole_stage_review_performed: false
     batch_review_performed: false
     github_upload_allowed: false
@@ -223,6 +238,11 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage064_chunk_identity_version_contract.py"
       - "KM_IDSystem/machine/runs/2026-08-14-stage064-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE064_PHASE2_CHUNK_IDENTITY_VERSION_CONTROL_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_slice_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_slice.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage064_chunk_identity_version_slice.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage064-p2-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE063_STAGE_REVIEW.md"
       - "KM_IDSystem/machine/runs/2026-08-14-stage063-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
@@ -651,10 +671,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE064-P1"
-  next_allowed_task_id: "IDS-V0_1-STAGE064-P2"
+  current_task_id: "IDS-V0_1-STAGE064-P2"
+  next_allowed_task_id: "IDS-V0_1-STAGE064-P3"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-064 Phase 1 only defines the frozen reference-only Chunk identity and version contract: 10 input references, 14 future identity/version fields, chunk_id/chunk_hash/document_id/page/section/version labels, three protected semantic surfaces, six traceability references and nine fail-closed states. It does not open sources, run a parser, create chunks, generate IDs, calculate hashes, bind documents, issue versions, classify assets, calculate coverage, evaluate quality, write persistent state, call a model, deploy OVH or activate any runtime."
+  current_run: "STAGE-064 Phase 2 only projects three fixed, non-business, reference-only identity/version control records in memory from ten input references. Its 14 fields retain control labels for chunk_id/chunk_hash/document_id/page/section/version, three protected semantic surfaces and six traceability labels; it does not open sources, run a parser, create chunks, generate IDs, calculate hashes, bind documents, issue versions, classify assets, calculate coverage, evaluate quality, write persistent state, call a model, deploy OVH or activate any runtime."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."

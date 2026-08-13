@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage064-p2-local",
+    "date": "2026-08-14",
+    "summary": "完成 Stage064 P2 Chunk 身份与版本纯内存控制切片：三条固定、非业务、reference-only 十字段请求投影三条十四字段待人工复核控制记录，保留 chunk_id/chunk_hash/document_id/page/section/version 控制标签、工程步骤/验收条款/参数表三类保护语义面、六维追溯、十类失败关闭、中文反馈和回滚范围。Stage064 P2 聚焦用例通过 8/8，受影响阶段链路回归通过 183/183，两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理回归 valid=true，中文事实投影已重渲染 7 个文件。未读取、打开、解析、切分、计算或创建真实资料、chunk、身份、哈希、document 绑定、版本、分类、覆盖率、质量、索引、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage064 P3。"
+  },
+  {
     "version": "v0.1-stage064-p1-local",
     "date": "2026-08-14",
     "summary": "完成 Stage064 P1 Chunk 身份与版本静态合同：定义 10 个仅引用输入、14 个未来身份/版本字段、chunk_id/chunk_hash/document_id/page/section/version 字段标签、工程步骤/验收条款/参数表三类保护语义面、document/page/section/parser output 六维追溯、9 类失败关闭、中文反馈和回滚范围。Stage064 P1 聚焦用例通过 7/7，受影响阶段链路回归通过 181/181，两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理回归 valid=true，中文事实投影已重渲染 7 个文件。未读取、打开、解析、切分、计算或创建真实资料、chunk、身份、哈希、document 绑定、版本、分类、覆盖率、质量、索引、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage064 P2。"
