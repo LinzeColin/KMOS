@@ -275,7 +275,6 @@ class Stage056OcrCacheRetentionPolicyPhase3Tests(unittest.TestCase):
             'current_task_id: "IDS-V0_1-STAGE056-P3"',
             'next_gate: "IDS-STAGE056-P4-GATE"',
             'phase3_started: true',
-            'phase4_started: false',
             'ovh_deployment_performed: false',
         ):
             with self.subTest(expected=expected):
@@ -292,8 +291,14 @@ class Stage056OcrCacheRetentionPolicyPhase3Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE056-P4-GATE", run["next_gate"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-V0_1-STAGE056-P3", status["task"])
-        self.assertEqual("IDS-STAGE056-P4-GATE", status["next_gate"])
+        self.assertIn(
+            status["task"],
+            ("IDS-V0_1-STAGE056-P3", "IDS-V0_1-STAGE056-P4"),
+        )
+        self.assertIn(
+            status["next_gate"],
+            ("IDS-STAGE056-P4-GATE", "IDS-STAGE056-REVIEW-GATE"),
+        )
         events = [
             json.loads(line)
             for line in EVENTS.read_text(encoding="utf-8").splitlines()

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-13 · IDS v0.1 Stage056 Phase 4（本地）
+
+- 完成 OCR 缓存保留策略交付证据：从 P3 五类固定非业务 reference-only control 场景派生 5 个 metadata-only 样例、`HIGH=2/MEDIUM=1/LOW=1/UNKNOWN=1` 控制置信度汇总、一条显式失败、三条候选复核路由证明、质量限制、三条中文人工确认提示和非物理缓存重跑说明。
+- 未读取真实资料、样本、缓存或磁盘信息，未执行 OCR、实际复核、创建/写入/清理缓存、磁盘扫描、容量评估、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE056-REVIEW-GATE`。
+
 ## 2026-08-13 · IDS v0.1 Stage056 Phase 3（本地）
 
 - 完成 OCR 缓存保留策略受控专项：重放四条固定非业务 reference-only 缓存策略候选，覆盖扫描 PDF、模糊图片、表格图片、中英文混合和低质量五类控制处置、低置信/混合降级、失败禁止自动清理与零静默丢弃。

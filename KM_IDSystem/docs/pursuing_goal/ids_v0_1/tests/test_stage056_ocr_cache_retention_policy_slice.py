@@ -292,7 +292,11 @@ class Stage056OcrCacheRetentionPolicyPhase2Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE056", status["stage"])
         self.assertIn(
             status["phase"],
-            ("IDS-V0_1-STAGE056-P2", "IDS-V0_1-STAGE056-P3"),
+            (
+                "IDS-V0_1-STAGE056-P2",
+                "IDS-V0_1-STAGE056-P3",
+                "IDS-V0_1-STAGE056-P4",
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])

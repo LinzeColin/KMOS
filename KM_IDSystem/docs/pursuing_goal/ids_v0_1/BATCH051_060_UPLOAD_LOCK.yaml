@@ -1,14 +1,20 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-051-060"
 created_at_utc: "2026-08-12T13:19:44Z"
-updated_at_utc: "2026-08-13T01:46:55Z"
-status: "stage056_phase3_completed"
+updated_at_utc: "2026-08-13T02:12:00Z"
+status: "stage056_phase4_completed_review_pending"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-041-050"
 predecessor_review_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
 
 transition_history:
+  stage056_phase4_state:
+    status: "stage056_phase4_completed_review_pending"
+    current_task_id: "IDS-V0_1-STAGE056-P4"
+    next_gate: "IDS-STAGE056-REVIEW-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE056-REVIEW"
+    github_upload_allowed: false
   stage056_phase3_state:
     status: "stage056_phase3_completed"
     current_task_id: "IDS-V0_1-STAGE056-P3"
@@ -1022,19 +1028,21 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE054_STAGE_REVIEW.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
   STAGE-056:
-    status: "stage056_phase3_completed"
+    status: "stage056_phase4_completed_review_pending"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
-    next_phase: "Stage056 Phase 4"
-    next_gate: "IDS-STAGE056-P4-GATE"
-    current_task_id: "IDS-V0_1-STAGE056-P3"
+      - "Phase 4"
+    next_phase: "Stage056 Review"
+    next_gate: "IDS-STAGE056-REVIEW-GATE"
+    current_task_id: "IDS-V0_1-STAGE056-P4"
     acceptance_id: "ACC-STAGE-056"
-    acceptance_status: "stage056_ocr_cache_retention_policy_phase3_controlled_quality_scenarios_local"
+    acceptance_status: "stage056_ocr_cache_retention_policy_phase4_delivery_local"
     phase4_entry_authorized: true
+    stage056_review_entry_authorized: true
     taskpack_context_read_performed: true
-    source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE056_PHASE1_AND_STAGE055_REVIEW_ARTIFACTS"
+    source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE056_PHASE1_PHASE2_PHASE3_AND_STAGE055_REVIEW_ARTIFACTS"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
     raw_metadata_content_accessed: false
@@ -1047,8 +1055,10 @@ stage_progress:
     stage055_review_artifacts_reused_as_reference_only: true
     stage056_phase1_contract_reused_as_reference_only: true
     stage056_phase2_control_slice_reexecuted: true
+    stage056_phase3_control_report_replayed: true
     ocr_cache_retention_policy_quality_scenarios_contract_schema: "ids.stage056.ocr_cache_retention_policy.phase3.quality_scenarios.v1"
-    contract_state: "PHASE3_OCR_CACHE_RETENTION_POLICY_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED"
+    ocr_cache_retention_policy_delivery_contract_schema: "ids.stage056.ocr_cache_retention_policy.phase4.delivery.v1"
+    contract_state: "PHASE4_OCR_CACHE_RETENTION_POLICY_DELIVERY_EVIDENCE_RUNTIME_DISABLED"
     scenario_executable: true
     execution_ready: false
     reference_only_cache_input_field_count: 11
@@ -1066,12 +1076,28 @@ stage_progress:
     mixed_language_degraded_not_queued_count: 1
     declared_review_route_count: 3
     failed_page_quality_scenario_count: 1
+    ocr_cache_retention_policy_delivery_evidence_derived: true
+    delivery_metadata_only_sample_count: 5
+    delivery_sample_kind: "DELIVERY_METADATA_ONLY_OCR_CACHE_RETENTION_POLICY_SAMPLE_NOT_REAL_OCR"
+    controlled_ocr_cache_retention_policy_confidence_report_created: true
+    confidence_count_high: 2
+    confidence_count_medium: 1
+    confidence_count_low: 1
+    confidence_count_unknown: 1
+    controlled_ocr_cache_retention_policy_failure_list_count: 1
+    declared_ocr_cache_retention_policy_review_route_proof_count: 3
+    quality_limitations_recorded_in_chinese: true
+    human_confirmation_prompt_count: 3
+    automatic_confirmation_performed: false
+    actual_ocr_delivery_implemented: false
+    high_trust_evidence_promotion_allowed: false
     source_page_reference_preserved: true
     in_memory_candidate_policy_output_created: true
     actual_cache_decision_created: false
     actual_cache_decision_persisted: false
     actual_cache_item_count: 0
     actual_cache_item_created: false
+    cache_policy: "IN_MEMORY_CONTROLLED_CANDIDATE_NOT_PERSISTED"
     artifact_content_or_path_allowed: false
     default_language_count: 2
     default_simplified_chinese_and_english_confirmed: true
@@ -1098,6 +1124,7 @@ stage_progress:
     actual_disk_capacity_proof_produced: false
     cache_cleanup_action: "NO_PHYSICAL_CACHE_CREATED_NO_CLEANUP_EXECUTED"
     cache_cleanup_execution_performed: false
+    cache_rerun_in_memory_only: true
     temporary_cleanup_policy_candidate_count: 3
     failure_automatic_cleanup_block_count: 1
     cache_cleanup_owner: "STAGE-056"
@@ -1127,7 +1154,7 @@ stage_progress:
     stage056_entry_authorized: true
     phase2_started: true
     phase3_started: true
-    phase4_started: false
+    phase4_started: true
     whole_stage_review_performed: false
     batch_review_performed: false
     github_upload_allowed: false
@@ -1148,14 +1175,19 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage056_ocr_cache_retention_policy_quality_scenarios.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage056_ocr_cache_retention_policy_quality_scenarios.py"
       - "KM_IDSystem/machine/runs/2026-08-13-stage056-p3-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE056_PHASE4_OCR_CACHE_RETENTION_POLICY_DELIVERY_CLOSEOUT.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage056_ocr_cache_retention_policy_delivery_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage056_ocr_cache_retention_policy_delivery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage056_ocr_cache_retention_policy_delivery.py"
+      - "KM_IDSystem/machine/runs/2026-08-13-stage056-p4-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE055_STAGE_REVIEW.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE056-P3"
-  next_allowed_task_id: "IDS-V0_1-STAGE056-P4"
+  current_task_id: "IDS-V0_1-STAGE056-P4"
+  next_allowed_task_id: "IDS-V0_1-STAGE056-REVIEW"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-056 Phase 3 只重放四条固定非业务 reference-only 缓存策略候选，并以扫描 PDF、模糊图片、表格图片、中英文混合和低质量五类控制元数据验证显式候选、降级或失败处置；未读取样本、执行 OCR、扫描磁盘、创建、写入或清理缓存。"
+  current_run: "STAGE-056 Phase 4 只从 P3 五类固定非业务 reference-only 缓存策略 control 场景派生 metadata-only 交付样例、控制置信度汇总、失败清单、候选复核路由证明、中文确认提示和非物理缓存重跑说明；未读取样本、执行 OCR、扫描磁盘、创建、写入或清理缓存。"
   no_upload_reason: "冻结任务包要求完成至 ACC-STAGE-168 且经独立全局发布验收后，才可重新考虑任何上传路径。"

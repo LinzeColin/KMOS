@@ -6,33 +6,44 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-CLOSEOUT = BASE / "STAGE051_PHASE4_OCR_QUEUE_DELIVERY_CLOSEOUT.md"
-CONTRACT = BASE / "ocr_queue" / "stage051_ocr_queue_delivery_contract.json"
-DELIVERY = BASE / "ocr_queue" / "stage051_ocr_queue_delivery.py"
-P3_SCENARIOS = BASE / "ocr_queue" / "stage051_ocr_queue_quality_scenarios.py"
-P3_CONTRACT = BASE / "ocr_queue" / "stage051_ocr_queue_quality_scenarios_contract.json"
+CLOSEOUT = BASE / "STAGE056_PHASE4_OCR_CACHE_RETENTION_POLICY_DELIVERY_CLOSEOUT.md"
+CONTRACT = BASE / "ocr_queue" / "stage056_ocr_cache_retention_policy_delivery_contract.json"
+DELIVERY = BASE / "ocr_queue" / "stage056_ocr_cache_retention_policy_delivery.py"
+P3_SCENARIOS = (
+    BASE / "ocr_queue" / "stage056_ocr_cache_retention_policy_quality_scenarios.py"
+)
+P3_CONTRACT = (
+    BASE
+    / "ocr_queue"
+    / "stage056_ocr_cache_retention_policy_quality_scenarios_contract.json"
+)
 BATCH = BASE / "BATCH051_060_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-13-stage051-p4-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-13-stage056-p4-local.json"
 
 EXPECTED_SCENARIOS = [
-    "scanned-pdf-control-baseline",
-    "blurred-image-control-degraded",
-    "table-image-control-unassessed",
-    "mixed-zh-en-control-degraded",
-    "low-quality-control-failed",
+    "scanned-pdf-cache-policy-control-candidate",
+    "blurred-image-cache-policy-control-degraded",
+    "table-image-cache-policy-control-unassessed",
+    "mixed-zh-en-cache-policy-control-degraded",
+    "low-quality-cache-policy-control-failed",
+]
+EXPECTED_REVIEW_SCENARIOS = [
+    "blurred-image-cache-policy-control-degraded",
+    "mixed-zh-en-cache-policy-control-degraded",
+    "low-quality-cache-policy-control-failed",
 ]
 
 
-class Stage051OcrQueuePhase4Tests(unittest.TestCase):
+class Stage056OcrCacheRetentionPolicyPhase4Tests(unittest.TestCase):
     _module_value = None
     _report_value = None
 
     def _module(self):
         if self.__class__._module_value is None:
-            spec = importlib.util.spec_from_file_location("stage051_p4", DELIVERY)
+            spec = importlib.util.spec_from_file_location("stage056_p4", DELIVERY)
             module = importlib.util.module_from_spec(spec)
             self.assertIsNotNone(spec.loader)
             spec.loader.exec_module(module)
@@ -41,7 +52,9 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
 
     def _report(self):
         if self.__class__._report_value is None:
-            self.__class__._report_value = self._module().build_phase4_delivery_report()
+            self.__class__._report_value = (
+                self._module().build_ocr_cache_retention_policy_phase4_delivery_report()
+            )
         return self.__class__._report_value
 
     def _contract(self):
@@ -66,15 +79,15 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
     def test_contract_identity_and_isolated_boundary(self):
         contract = self._contract()
         self.assertEqual(
-            "ids.stage051.ocr_queue.phase4.delivery.v1",
+            "ids.stage056.ocr_cache_retention_policy.phase4.delivery.v1",
             contract["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE051-P4", contract["task_id"])
+        self.assertEqual("IDS-V0_1-STAGE056-P4", contract["task_id"])
         self.assertEqual(
-            "PASS_PHASE4_OCR_QUEUE_DELIVERY_RUNTIME_DISABLED",
+            "PASS_PHASE4_OCR_CACHE_RETENTION_POLICY_DELIVERY_RUNTIME_DISABLED",
             contract["valid_result"],
         )
-        self.assertEqual("IDS-STAGE051-REVIEW-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE056-REVIEW-GATE", contract["next_gate"])
         self.assertFalse(
             contract["source_authority"]["second_authoritative_source_created"]
         )
@@ -85,29 +98,30 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
     def test_delivery_samples_preserve_only_control_metadata(self):
         samples = self._report()["delivery_samples"]
         self.assertEqual(5, len(samples))
-        self.assertEqual(EXPECTED_SCENARIOS, [item["scenario_id"] for item in samples])
-        for item in samples:
-            with self.subTest(sample=item["sample_id"]):
+        self.assertEqual(
+            EXPECTED_SCENARIOS,
+            [sample["scenario_id"] for sample in samples],
+        )
+        for sample in samples:
+            with self.subTest(sample=sample["sample_id"]):
                 self.assertEqual(
-                    "DELIVERY_METADATA_ONLY_OCR_OUTPUT_SAMPLE_NOT_REAL_OCR",
-                    item["sample_kind"],
+                    "DELIVERY_METADATA_ONLY_OCR_CACHE_RETENTION_POLICY_SAMPLE_NOT_REAL_OCR",
+                    sample["sample_kind"],
                 )
-                self.assertTrue(item["source_page_ref"].startswith("source-page:control:"))
-                self.assertFalse(item["ocr_text_retained"])
-                self.assertFalse(item["source_content_retained"])
-                self.assertFalse(item["actual_ocr_output_produced"])
-                self.assertFalse(item["high_trust_direct_entry_allowed"])
-                self.assertNotIn("ocr_text", item)
-                self.assertNotIn("source_identity_ref", item)
+                self.assertIsNotNone(sample["source_page_ref"])
+                self.assertFalse(sample["source_content_retained"])
+                self.assertFalse(sample["ocr_text_retained"])
+                self.assertFalse(sample["actual_ocr_output_produced"])
+                self.assertFalse(sample["actual_cache_item_created"])
+                self.assertFalse(sample["high_trust_direct_entry_allowed"])
 
-    def test_delivery_report_does_not_echo_control_text_or_real_paths(self):
-        rendered = json.dumps(self._report(), ensure_ascii=False, sort_keys=True)
+    def test_delivery_report_does_not_echo_real_payload_or_paths(self):
+        rendered = repr(self._report())
         for forbidden in (
-            "中文控制页",
-            "English control page",
-            "中英 mixed control page",
+            "OCR_EXECUTION_NOT_STARTED",
             "/Users/",
             "IDS_MetaData",
+            "cache-entry:",
         ):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, rendered)
@@ -115,7 +129,7 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
     def test_confidence_report_matches_controlled_predecessor(self):
         report = self._report()["confidence_report"]
         self.assertEqual(
-            "CONTROLLED_CONFIDENCE_SUMMARY_NOT_REAL_OCR_ACCURACY",
+            "CONTROLLED_OCR_CACHE_RETENTION_POLICY_CONFIDENCE_SUMMARY_NOT_REAL_OCR_ACCURACY",
             report["report_kind"],
         )
         self.assertEqual(5, report["scenario_count"])
@@ -124,44 +138,46 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
             report["confidence_counts"],
         )
         self.assertEqual(2, report["candidate_sample_count"])
-        self.assertEqual(2, report["degraded_review_required_count"])
+        self.assertEqual(3, report["declared_review_route_count"])
         self.assertEqual(1, report["explicit_failure_count"])
+        self.assertEqual(3, report["temporary_cleanup_policy_candidate_count"])
+        self.assertEqual(1, report["failure_automatic_cleanup_block_count"])
         self.assertFalse(report["recognition_accuracy_evaluated"])
         self.assertFalse(report["quality_gate_evaluated"])
         self.assertFalse(report["high_trust_evidence_promoted"])
+        self.assertFalse(report["actual_disk_capacity_proof_produced"])
 
-    def test_failure_list_is_explicit_and_non_runtime(self):
+    def test_failure_list_is_explicit_non_runtime_and_not_auto_cleaned(self):
         failures = self._report()["failure_list"]
         self.assertEqual(1, len(failures))
         failure = failures[0]
-        self.assertEqual("low-quality-control-failed", failure["failure_id"])
+        self.assertEqual("low-quality-cache-policy-control-failed", failure["failure_id"])
         self.assertEqual(
-            "CONTROLLED_OCR_FAILURE_LIST_ENTRY_NOT_RUNTIME",
+            "CONTROLLED_OCR_CACHE_RETENTION_POLICY_FAILURE_LIST_ENTRY_NOT_RUNTIME",
             failure["record_kind"],
         )
-        self.assertEqual("OCR_PAGE_FAILED_EXPLICIT", failure["page_state"])
+        self.assertEqual("FAILURE_ARTIFACT", failure["artifact_class"])
         self.assertEqual(
-            "FAILED_PAGE_EXPLICIT_NO_EVIDENCE_PROMOTION",
+            "FAILED_PAGE_EXPLICIT_NO_AUTOMATIC_CLEANUP_OR_EVIDENCE_PROMOTION",
             failure["quality_disposition"],
         )
         self.assertTrue(failure["failure_is_control_metadata_only"])
+        self.assertTrue(failure["automatic_cleanup_blocked"])
+        self.assertFalse(failure["actual_failure_record_created"])
         self.assertFalse(failure["evidence_promotion_performed"])
         self.assertFalse(failure["review_queue_write_performed"])
         self.assertFalse(failure["silent_drop"])
 
-    def test_review_route_proofs_remain_declared_not_queued(self):
+    def test_review_route_proofs_remain_candidates_not_queued(self):
         proofs = self._report()["review_route_proofs"]
         self.assertEqual(
-            [
-                "blurred-image-control-degraded",
-                "mixed-zh-en-control-degraded",
-            ],
+            EXPECTED_REVIEW_SCENARIOS,
             [item["scenario_id"] for item in proofs],
         )
         for proof in proofs:
             with self.subTest(scenario=proof["scenario_id"]):
                 self.assertEqual(
-                    "DECLARED_REVIEW_ROUTE_PROOF_NOT_QUEUED",
+                    "DECLARED_OCR_CACHE_RETENTION_POLICY_REVIEW_ROUTE_PROOF_CANDIDATE_ONLY_NOT_QUEUED",
                     proof["record_kind"],
                 )
                 self.assertEqual(
@@ -172,6 +188,7 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
                 self.assertTrue(proof["human_confirmation_required"])
                 self.assertFalse(proof["review_queue_created"])
                 self.assertFalse(proof["review_queue_write_performed"])
+                self.assertFalse(proof["human_review_task_created"])
 
     def test_quality_limitations_and_confirmation_prompts_are_chinese_and_manual(self):
         report = self._report()
@@ -185,11 +202,17 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
 
     def test_cache_cleanup_and_rerun_instructions_are_non_destructive(self):
         cache = self._report()["cache_rerun_instructions"]
-        self.assertEqual("IN_MEMORY_REBUILDABLE_NOT_PERSISTED", cache["cache_policy"])
-        self.assertEqual(0, cache["temporary_artifact_count"])
+        self.assertEqual("IN_MEMORY_CONTROLLED_CANDIDATE_NOT_PERSISTED", cache["cache_policy"])
+        self.assertEqual(0, cache["physical_cache_item_count"])
         self.assertFalse(cache["cache_storage_location_assigned"])
-        self.assertEqual("NO_TEMPORARY_ARTIFACT_CREATED", cache["cleanup_action"])
+        self.assertEqual(3, cache["temporary_cleanup_policy_candidate_count"])
+        self.assertEqual(1, cache["failure_automatic_cleanup_block_count"])
+        self.assertEqual(
+            "NO_PHYSICAL_CACHE_CREATED_NO_CLEANUP_EXECUTED",
+            cache["cleanup_action"],
+        )
         self.assertFalse(cache["actual_cleanup_performed"])
+        self.assertFalse(cache["actual_disk_capacity_proof_produced"])
         self.assertTrue(cache["rerun_is_in_memory_only"])
         self.assertEqual("STAGE-056", cache["cache_retention_owner"])
         self.assertTrue(any("不得扫描" in item for item in cache["cleanup_instructions_zh"]))
@@ -197,11 +220,12 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
     def test_rollback_returns_to_phase3(self):
         rollback = self._report()["rollback"]
         self.assertEqual(
-            "PHASE3_CONTROLLED_OCR_QUALITY_SCENARIOS_ENGINE_DISABLED",
+            "PHASE3_OCR_CACHE_RETENTION_POLICY_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
             rollback["return_to"],
         )
         self.assertTrue(rollback["preserve_predecessor_evidence"])
         self.assertFalse(rollback["source_or_raw_data_change_allowed"])
+        self.assertFalse(rollback["physical_cache_change_allowed"])
         self.assertFalse(rollback["persistent_runtime_state_change_allowed"])
         self.assertFalse(rollback["github_or_ovh_change_allowed"])
 
@@ -209,10 +233,11 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
         report = self._report()
         self.assertTrue(report["valid"])
         self.assertEqual(
-            "PASS_PHASE4_OCR_QUEUE_DELIVERY_RUNTIME_DISABLED",
+            "PASS_PHASE4_OCR_CACHE_RETENTION_POLICY_DELIVERY_RUNTIME_DISABLED",
             report["result"],
         )
         for field in (
+            "authorized_fixture_access_performed",
             "real_pdf_or_image_opened",
             "source_file_open_performed",
             "file_type_detection_performed",
@@ -221,13 +246,25 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
             "pdf_rasterization_performed",
             "image_processing_performed",
             "table_structure_extraction_performed",
+            "language_detection_performed",
+            "confidence_evaluation_performed",
             "recognition_accuracy_evaluated",
             "ocr_engine_selected",
             "ocr_engine_invocation_performed",
+            "review_queue_created",
             "human_review_queue_write_performed",
+            "human_review_task_created",
+            "human_review_result_created",
+            "actual_ocr_text_created",
+            "actual_page_image_reference_created",
+            "actual_failure_record_created",
             "cache_created",
             "cache_write_performed",
             "cache_cleanup_performed",
+            "cache_cleanup_execution_performed",
+            "disk_scan_performed",
+            "cache_capacity_evaluation_performed",
+            "actual_disk_capacity_proof_produced",
             "quality_gate_evaluation_performed",
             "evidence_promotion_performed",
             "persistent_state_write_performed",
@@ -237,15 +274,20 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
             "ovh_deployment_performed",
             "production_runtime_activation_performed",
             "whole_stage_review_performed",
+            "batch_review_performed",
             "github_upload_performed",
         ):
             with self.subTest(field=field):
                 self.assertFalse(report[field])
 
     def test_invalid_predecessor_fails_closed(self):
-        report = self._module().build_phase4_delivery_report(lambda: {})
+        report = self._module().build_ocr_cache_retention_policy_phase4_delivery_report(
+            lambda: {}
+        )
         self.assertFalse(report["valid"])
-        self.assertEqual("FAIL_OCR_QUEUE_DELIVERY_EVIDENCE", report["result"])
+        self.assertEqual(
+            "FAIL_OCR_CACHE_RETENTION_POLICY_DELIVERY_EVIDENCE", report["result"]
+        )
         self.assertEqual([], report["delivery_samples"])
         self.assertEqual([], report["failure_list"])
 
@@ -253,9 +295,9 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
         closeout = CLOSEOUT.read_text(encoding="utf-8")
         for expected in (
             "metadata-only",
-            "NO_TEMPORARY_ARTIFACT_CREATED",
-            "PHASE3_CONTROLLED_OCR_QUALITY_SCENARIOS_ENGINE_DISABLED",
-            "IDS-STAGE051-REVIEW-GATE",
+            "NO_PHYSICAL_CACHE_CREATED_NO_CLEANUP_EXECUTED",
+            "PHASE3_OCR_CACHE_RETENTION_POLICY_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+            "IDS-STAGE056-REVIEW-GATE",
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, closeout)
@@ -264,65 +306,40 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage051_completed_reviewed_local"'),
-            (batch, "stage051_phase4_state:"),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE051-P4"'),
-            (batch, 'next_gate: "IDS-STAGE051-REVIEW-GATE"'),
-            (batch, "delivery_evidence_derived: true"),
+            (batch, 'status: "stage056_phase4_completed_review_pending"'),
+            (batch, "stage056_phase4_state:"),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE056-P4"'),
+            (batch, 'next_gate: "IDS-STAGE056-REVIEW-GATE"'),
+            (batch, "ocr_cache_retention_policy_delivery_evidence_derived: true"),
             (batch, "ocr_engine_invocation_performed: false"),
             (batch, "model_token_consumption_performed: false"),
             (batch, "ovh_deployment_performed: false"),
-            (roadmap, 'current_phase_id: "IDS-STAGE051-REVIEW"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE052-P1-GATE"'),
+            (roadmap, 'current_stage_id: "IDS-STAGE056"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE056-P4"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE056-REVIEW-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertIn(status["stage"], ("IDS-STAGE051", "IDS-STAGE052", "IDS-STAGE053", "IDS-STAGE054", "IDS-STAGE055", "IDS-STAGE056"))
-        self.assertIn(
-            status["phase"],
-            (
-                "IDS-V0_1-STAGE051-P4",
-                "IDS-V0_1-STAGE051-REVIEW",
-                "IDS-V0_1-STAGE052-P1",
-                "IDS-V0_1-STAGE052-P2",
-                "IDS-V0_1-STAGE052-P3",
-                "IDS-V0_1-STAGE052-P4",
-                "IDS-V0_1-STAGE052-REVIEW",
-                "IDS-V0_1-STAGE053-P1",
-                "IDS-V0_1-STAGE053-P2",
-                "IDS-V0_1-STAGE053-P3",
-                "IDS-V0_1-STAGE053-P4",
-                "IDS-V0_1-STAGE053-REVIEW",
-                "IDS-V0_1-STAGE054-P1",
-                "IDS-V0_1-STAGE054-P2",
-                "IDS-V0_1-STAGE054-P3",
-                "IDS-V0_1-STAGE054-P4",
-                "IDS-V0_1-STAGE054-REVIEW",
-                "IDS-V0_1-STAGE055-P1",
-                "IDS-V0_1-STAGE055-P2",
-                "IDS-V0_1-STAGE055-P3",
-                "IDS-V0_1-STAGE055-P4",
-                "IDS-V0_1-STAGE055-REVIEW",
-                "IDS-V0_1-STAGE056-P1",
-                "IDS-V0_1-STAGE056-P2",
-                "IDS-V0_1-STAGE056-P3",
-                "IDS-V0_1-STAGE056-P4",
-            ),
-        )
+        self.assertEqual("IDS-STAGE056", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE056-P4", status["phase"])
+        self.assertEqual("IDS-STAGE056-REVIEW-GATE", status["next_gate"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
         run = json.loads(RUN.read_text(encoding="utf-8"))
         self.assertEqual(
-            "PASS_PHASE4_OCR_QUEUE_DELIVERY_RUNTIME_DISABLED",
-            run["result"].strip(),
+            "PASS_PHASE4_OCR_CACHE_RETENTION_POLICY_DELIVERY_RUNTIME_DISABLED",
+            run["result"],
         )
-        self.assertEqual(14, run["evidence_iterations"][0]["passed"])
+        self.assertTrue(
+            run["observed_work"]["ocr_cache_retention_policy_delivery_evidence_derived"]
+        )
         self.assertFalse(run["observed_work"]["ocr_engine_invocation_performed"])
-        self.assertFalse(run["observed_work"]["cache_cleanup_performed"])
+        self.assertFalse(run["observed_work"]["human_review_task_created"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
+        self.assertFalse(run["observed_work"]["whole_stage_review_performed"])
 
         events = [
             json.loads(line) for line in EVENTS.read_text(encoding="utf-8").splitlines()
@@ -330,14 +347,11 @@ class Stage051OcrQueuePhase4Tests(unittest.TestCase):
         event = next(
             item
             for item in events
-            if item.get("event_id") == "EVT-IDS-V0_1-STAGE051-P4-20260813-001"
+            if item.get("event_id") == "EVT-IDS-V0_1-STAGE056-P4-20260813-001"
         )
-        self.assertEqual("IDS-V0_1-STAGE051-P4", event["task_id"])
-        self.assertIn("next_gate=IDS-STAGE051-REVIEW-GATE", event["notes"])
-        self.assertIn(
-            "KM_IDSystem/" + str(CLOSEOUT.relative_to(ROOT)),
-            {item["ref"] for item in event["evidence_refs"]},
-        )
+        self.assertEqual("IDS-V0_1-STAGE056-P4", event["task_id"])
+        self.assertEqual(["ACC-STAGE-056"], event["acceptance_ids"])
+        self.assertIn("next_gate=IDS-STAGE056-REVIEW-GATE", event["notes"])
 
 
 if __name__ == "__main__":

@@ -173,6 +173,7 @@ class Stage054LowConfidenceReviewRoutePhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE056-P1",
                 "IDS-V0_1-STAGE056-P2",
                 "IDS-V0_1-STAGE056-P3",
+                "IDS-V0_1-STAGE056-P4",
             ),
         )
         self.assertIn(
@@ -191,6 +192,7 @@ class Stage054LowConfidenceReviewRoutePhase1Tests(unittest.TestCase):
                 "IDS-STAGE056-P2-GATE",
                 "IDS-STAGE056-P3-GATE",
                 "IDS-STAGE056-P4-GATE",
+                "IDS-STAGE056-REVIEW-GATE",
             ),
         )
         self.assertFalse(status["runtime_enabled"])
