@@ -4,6 +4,21 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "reference-only chunk identity and version contract",
+      "中文": "仅引用 Chunk 身份与版本合同",
+      "说明": "Stage064 P1 对未来 chunk_id、chunk_hash、document_id、page、section 和 version 的静态 schema 定义；它不读取来源、不生成真实 ID、Hash、版本或业务事实，也不替代来源文档。"
+    },
+    {
+      "英文": "future chunk identity and version schema field",
+      "中文": "未来 Chunk 身份与版本字段",
+      "说明": "chunk_id、chunk_hash、document_id、page、section 和 version 仅作为未来字段标签；当前不填入实际值，不执行身份生成、Hash 计算、document 绑定或版本生成。"
+    },
+    {
+      "英文": "chunk identity and version human handling",
+      "中文": "Chunk 身份与版本人工处理",
+      "说明": "当章节边界、来源追溯、身份引用、Hash 或版本依据无法确认时，必须保持关闭并交由业务线白箱复核；不能自动形成事实、索引、决策或生产状态。"
+    },
+    {
       "英文": "Stage063 chapter-aware chunking review",
       "中文": "Stage063 章节感知切块整阶段机械复审",
       "说明": "只机械复审冻结 Stage063 P1--P4 控制合同、纯内存报告和 P4→P3 控制回退链的固定计数、人工处置、单一权威与零运行时边界；它不读取真实文档、不创建真实 chunk、身份或版本，也不启动 Stage064、OVH、生产或上传。"

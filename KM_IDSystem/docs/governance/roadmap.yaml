@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE063"
-current_phase_id: "IDS-STAGE063-REVIEW"
-current_task_id: "IDS-V0_1-STAGE063-REVIEW"
-next_gate_id: "IDS-STAGE064-P1-GATE"
+current_stage_id: "IDS-STAGE064"
+current_phase_id: "IDS-STAGE064-P1"
+current_task_id: "IDS-V0_1-STAGE064-P1"
+next_gate_id: "IDS-STAGE064-P2-GATE"
 current_transition_history:
+  stage064_phase1_state:
+    current_stage_id: "IDS-STAGE064"
+    current_phase_id: "IDS-STAGE064-P1"
+    current_task_id: "IDS-V0_1-STAGE064-P1"
+    next_gate_id: "IDS-STAGE064-P2-GATE"
   stage063_review_state:
     current_stage_id: "IDS-STAGE063"
     current_phase_id: "IDS-STAGE063-REVIEW"
@@ -17313,3 +17318,69 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
             risk: "若把静态合同、control 计数、metadata-only 交付或本地复审通过误作真实章节检测、真实切块、真实身份/版本、真实质量、真实来源追溯、OVH、生产或上传能力，会绕开业务线人工白箱处理和单一权威边界。"
             rollback: "只回滚本 Review 说明、只读复审模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PHASE4_CHAPTER_AWARE_CHUNKING_DELIVERY_EVIDENCE_RUNTIME_DISABLED；不改变 P1--P4、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 或应用状态。"
+  - stage_id: "IDS-STAGE064"
+    name: "STAGE-064 · Chunk 身份与版本"
+    task_id: "IDS-V0_1-STAGE064"
+    acceptance_ids:
+      - "ACC-STAGE-064"
+    status: "phase1_completed_local"
+    pursuing_goal: "只定义未来章节感知 chunk 的身份、版本、覆盖率和工程语义资产类型接口，固定 chunk_id、chunk_hash、document_id、page、section、version 与 document/page/section/parser output 追溯关系；不读取、计算或创建真实资料、chunk、身份、哈希或版本。"
+    stop_gate:
+      gate_id: "IDS-STAGE064-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE064-P2-GATE"
+      github_upload_allowed: false
+    pass_conditions:
+      - "十个仅引用输入、十四个未来身份/版本字段、chunk_id/chunk_hash/document_id/page/section/version 字段标签、三类保护语义面、六维追溯和九类失败关闭均明确。"
+      - "所有字段、引用和计数只定义静态 schema 形状，不代表真实 chunk、真实身份、真实 Hash、真实 document 绑定、真实版本、真实分类、真实覆盖率、真实质量或第二权威事实源。"
+      - "运行时、Agent、模型 Token、OVH、生产和上传均保持关闭，下一门仅为 Stage064 Phase 2。"
+    stop_conditions:
+      - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、身份、哈希、版本、索引、数据库或报告"
+      - "执行真实 parser、章节检测、切块、chunk_id 生成、chunk_hash 计算、document_id 绑定、版本生成、重复检测或去重、语义资产分类、覆盖率、质量回归、质量降级、来源追溯绑定、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Stage064 Phase 2、整阶段复审、批次复审、上传、推送或应用重装"
+    phases:
+      - phase_id: "IDS-STAGE064-P1"
+        name: "Phase 1 · Chunk 身份、版本、输入输出与边界确认"
+        objective: "只以冻结 Stage064 任务包、Stage063 本地复审与 Batch061-070 上传锁为唯一合同上下文，定义未来 chunk 身份、哈希、版本、覆盖率、工程语义资产类型、document/page/section/parser output 追溯、失败关闭、中文反馈和回滚边界；不读取、计算或创建真实资料、chunk、身份、哈希或版本。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE064-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE064-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE064-P2-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、chunk_id、chunk_hash、document_id、version、索引、数据库或报告"
+          - "执行真实 parser、章节检测、切块、chunk_id 生成、chunk_hash 计算、document_id 绑定、版本生成、重复检测或去重、语义资产分类、覆盖率、质量回归、质量降级、来源追溯绑定、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Phase2、整阶段复审、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE064-P1"
+            name: "定义 Chunk 身份与版本范围、输入输出和边界"
+            objective: "固定十个仅引用输入、十四个未来身份/版本字段、chunk_id/chunk_hash/document_id/page/section/version 字段标签、三类保护语义面、六维追溯、失败关闭、中文反馈和回滚边界；不创建真实 chunk、身份、Hash、document 绑定、版本、分类、覆盖率或持久化状态。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE063-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-064"
+              - "ACC-STAGE064-P1-01"
+              - "ACC-STAGE064-P1-02"
+              - "ACC-STAGE064-P1-03"
+              - "ACC-STAGE064-P1-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage064_chunk_identity_version_contract"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage064 P1 聚焦用例 7/7、受影响阶段链路 181/181、两个批次检查器 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED、Stage005 治理回归 valid=true、中文事实投影 7 个文件；本 P1 不进入 Stage064 P2、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-064_Chunk身份与版本.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE064_PHASE1_CHUNK_IDENTITY_VERSION_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage064_chunk_identity_version_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-14-stage064-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE063_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把静态字段、引用、计数或聚焦用例通过误作真实 chunk、真实身份、真实 Hash、真实 document 绑定、真实版本、真实分类、真实覆盖率、OVH、生产或上传能力，会绕开业务线人工白箱处理和单一权威边界。"
+            rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 STAGE063_REVIEWED_LOCAL_CHAPTER_AWARE_CHUNKING_RUNTIME_DISABLED；不改变 Stage063 工件、冻结任务包、真实资料、fixture、事实库、数据库、索引、GitHub、OVH 或应用状态。"

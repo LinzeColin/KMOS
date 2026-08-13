@@ -1,20 +1,20 @@
 {
-  "stage": "IDS-STAGE063",
-  "phase": "IDS-V0_1-STAGE063-REVIEW",
-  "task": "IDS-V0_1-STAGE063-REVIEW",
-  "owner": "Codex 专属 KMOS worktree，Stage063 Review",
-  "objective": "只机械复审冻结 Stage063 P1--P4 合同与纯内存控制报告的固定形状、控制计数、人工处置、单一权威、零运行时边界和 P4→P3 控制回退链；不读取或处理真实资料。",
+  "stage": "IDS-STAGE064",
+  "phase": "IDS-V0_1-STAGE064-P1",
+  "task": "IDS-V0_1-STAGE064-P1",
+  "owner": "Codex 专属 KMOS worktree，Stage064 Phase 1",
+  "objective": "只以冻结 Stage064 任务包、Stage063 本地复审与 Batch061-070 上传锁为唯一合同上下文，定义未来 chunk 身份、哈希、版本、覆盖率、工程语义资产类型、document/page/section/parser output 追溯、失败关闭和回滚边界；不读取、计算或创建真实资料、chunk、身份、哈希或版本。",
   "scope": [
-    "以冻结 Stage063 任务包、P1/P2/P3/P4 控制工件、Stage062 Review 与 Batch061-070 上传锁为唯一合同上下文，不建立第二权威事实源",
-    "只读取 P1--P4 合同和纯内存报告，核验 8/14、3/3、6 类、6 条 metadata-only 样例、6 条低质量待人工记录、3 条中文确认及 P4→P3 控制回退链",
-    "所有控制引用和计数只说明固定 control 形状，不计算真实文档/chunk 覆盖率、不观测真实低质量、不形成真实质量或版本结论",
-    "同步复审说明、只读复审模块、聚焦用例、BATCH061-070 锁、路线图、machine run、事件、机器事实、中文视图与交接",
-    "只完成 ACC-STAGE-063 的整阶段本地复审并指向 Stage064 P1 门"
+    "以冻结 Stage064 任务包、Stage063 Review、Batch061-070 上传锁为唯一合同上下文，不建立第二权威事实源",
+    "只定义十个仅引用输入、十四个未来身份/版本字段、chunk_id/chunk_hash/document_id/page/section/version 字段标签、三类保护语义面、六维追溯和九类失败关闭",
+    "所有字段、引用和计数只说明静态 schema 形状，不生成真实 chunk、身份、哈希、document 绑定、版本、分类、覆盖率、质量或业务结论",
+    "同步范围说明、静态合同、聚焦用例、BATCH061-070 锁、路线图、machine run、事件、机器事实、中文视图与交接",
+    "只完成 ACC-STAGE-064 的 Phase 1 本地合同并指向 Stage064 P2 门"
   ],
   "non_goals": [
-    "不打开、创建、复制、移动、删除、修改、检测、解析、评估或保留真实业务源、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、索引、事实库、证据账本、数据库或报告",
-    "不执行真实 parser、章节检测、切块、chunk 身份/版本、重复检测或去重、语义资产分类、覆盖率、质量回归、质量降级、来源追溯绑定、重生成、版本回退、embedding、索引、数据库连接或 migration、持久化、Agent、模型调用、模型 Token、OVH、生产或上传",
-    "不启动 Stage064 Phase 1、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不打开、创建、复制、移动、删除、修改、检测、解析、评估或保留真实业务源、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、身份、哈希、版本、索引、事实库、证据账本、数据库或报告",
+    "不执行真实 parser、章节检测、切块、chunk_id 生成、chunk_hash 计算、document_id 绑定、版本生成、重复检测或去重、语义资产分类、覆盖率、质量回归、质量降级、来源追溯绑定、embedding、索引、数据库连接或 migration、持久化、Agent、模型调用、模型 Token、OVH、生产或上传",
+    "不启动 Stage064 Phase 2、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage063 Review 对 P1--P4 固定合同、控制计数、六类显式人工处置、metadata-only 交付、单一权威、零运行时边界和 P4→P3 控制回退链完成本地白箱验证后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE064-P1-GATE；任何真实资料访问、实际章节检测或切块、身份/版本、覆盖率、质量、索引、数据库、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "Stage064 P1 对静态身份/版本字段、保护语义面、六维追溯、失败关闭、单一权威、零运行时边界和回滚路径完成本地验证后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE064-P2-GATE；任何真实资料访问、实际章节检测或切块、真实身份/哈希/版本、分类、覆盖率、质量、索引、数据库、OVH、生产或上传动作都不属于本步骤。"
 }

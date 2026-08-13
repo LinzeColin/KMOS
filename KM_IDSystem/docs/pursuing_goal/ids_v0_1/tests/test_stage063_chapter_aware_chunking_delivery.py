@@ -290,18 +290,20 @@ class Stage063ChapterAwareChunkingPhase4DeliveryTests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        self.assertEqual("IDS-STAGE063", status["stage"])
+        self.assertIn(status["stage"], ("IDS-STAGE063", "IDS-STAGE064"))
         self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
             (
                 ("IDS-V0_1-STAGE063-P4", "IDS-V0_1-STAGE063-P4", "IDS-STAGE063-REVIEW-GATE"),
                 ("IDS-V0_1-STAGE063-REVIEW", "IDS-V0_1-STAGE063-REVIEW", "IDS-STAGE064-P1-GATE"),
+                ("IDS-V0_1-STAGE064-P1", "IDS-V0_1-STAGE064-P1", "IDS-STAGE064-P2-GATE"),
             ),
         )
-        self.assertIn(plan["task"], ("IDS-V0_1-STAGE063-P4", "IDS-V0_1-STAGE063-REVIEW"))
+        self.assertIn(plan["task"], ("IDS-V0_1-STAGE063-P4", "IDS-V0_1-STAGE063-REVIEW", "IDS-V0_1-STAGE064-P1"))
         self.assertTrue(
             "IDS-STAGE063-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE064-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE064-P2-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             {

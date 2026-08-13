@@ -1,14 +1,21 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
-updated_at_utc: "2026-08-13T22:44:54Z"
-status: "stage063_completed_reviewed_local"
+updated_at_utc: "2026-08-13T23:03:56Z"
+status: "stage064_phase1_completed"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage064_phase1_state:
+    status: "stage064_phase1_completed"
+    current_task_id: "IDS-V0_1-STAGE064-P1"
+    next_gate: "IDS-STAGE064-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE064-P2"
+    stage064_phase2_entry_authorized: true
+    github_upload_allowed: false
   stage063_review_state:
     status: "stage063_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE063-REVIEW"
@@ -145,6 +152,81 @@ upload_gate:
   deferred_batch_upload_gate: "IDS-V0_1-BATCH-061-070-UPLOAD-GATE"
 
 stage_progress:
+  STAGE-064:
+    status: "stage064_phase1_completed"
+    completed_phases:
+      - "Phase 1"
+    next_phase: "Stage064 Phase 2"
+    next_gate: "IDS-STAGE064-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE064-P1"
+    acceptance_id: "ACC-STAGE-064"
+    acceptance_status: "phase1_completed_local"
+    phase2_entry_authorized: true
+    taskpack_context_read_performed: true
+    source_authority: "FROZEN_STAGE064_TASKPACK_AND_STAGE063_REVIEW_ARTIFACTS_ONLY"
+    second_authoritative_source_created: false
+    source_body_or_path_allowed: false
+    raw_metadata_content_accessed: false
+    ids_business_source_read_performed: false
+    source_file_open_performed: false
+    parser_execution_performed: false
+    chapter_detection_performed: false
+    chunking_execution_performed: false
+    chunk_identity_and_version_contract_schema: "ids.stage064.chunk_identity_and_version.phase1.v1"
+    contract_state: "PHASE1_CHUNK_IDENTITY_AND_VERSION_CONTRACT_RUNTIME_DISABLED"
+    execution_ready: false
+    reference_only_identity_and_version_input_field_count: 10
+    future_chunk_identity_and_version_output_field_count: 14
+    required_identity_and_version_field_count: 6
+    protected_semantic_asset_type_count: 3
+    traceability_field_count: 6
+    declared_failure_state_count: 9
+    actual_input_request_count: 0
+    actual_chunk_count: 0
+    actual_chunk_id_count: 0
+    actual_chunk_hash_count: 0
+    actual_chunk_version_count: 0
+    actual_traceability_binding_count: 0
+    source_document_remains_authoritative: true
+    chunk_identity_or_version_can_replace_source_document: false
+    chunk_identity_or_version_can_become_business_fact_authority: false
+    model_direct_text_guessing_allowed: false
+    model_decision_conclusion_authoritative: false
+    chunk_id_generation_performed: false
+    chunk_hash_computation_performed: false
+    chunk_version_generation_performed: false
+    semantic_asset_classification_performed: false
+    coverage_calculation_performed: false
+    quality_regression_performed: false
+    quality_degradation_performed: false
+    source_traceability_binding_performed: false
+    embedding_or_index_write_performed: false
+    database_connection_performed: false
+    persistent_state_write_performed: false
+    agent_execution_performed: false
+    model_call_performed: false
+    model_token_consumption_performed: false
+    local_service_start_performed: false
+    ovh_deployment_performed: false
+    production_runtime_activation_performed: false
+    stage064_started: true
+    stage064_entry_authorized: true
+    phase2_started: false
+    whole_stage_review_performed: false
+    batch_review_performed: false
+    github_upload_allowed: false
+    push_allowed: false
+    app_reinstall_allowed: false
+    evidence_refs:
+      - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-064_Chunk身份与版本.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE064_PHASE1_CHUNK_IDENTITY_VERSION_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage064_chunk_identity_version_contract.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage064-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE063_STAGE_REVIEW.md"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage063-review-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
   STAGE-063:
     status: "stage063_completed_reviewed_local"
     completed_phases:
@@ -569,10 +651,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE063-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-STAGE064-P1"
+  current_task_id: "IDS-V0_1-STAGE064-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE064-P2"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-063 Review only mechanically rechecks the frozen P1--P4 contracts and their in-memory control reports: 8/14 static fields, 3/3 control requests and candidates, six explicit human dispositions, six metadata-only JSONL samples, six low-quality human-review records, three Chinese confirmations and the P4-to-P3 control rollback chain. It does not open sources, run a parser, create chunks, implement identity or version, calculate real coverage, evaluate real quality, write persistent state, call a model, deploy OVH or activate any runtime."
+  current_run: "STAGE-064 Phase 1 only defines the frozen reference-only Chunk identity and version contract: 10 input references, 14 future identity/version fields, chunk_id/chunk_hash/document_id/page/section/version labels, three protected semantic surfaces, six traceability references and nine fail-closed states. It does not open sources, run a parser, create chunks, generate IDs, calculate hashes, bind documents, issue versions, classify assets, calculate coverage, evaluate quality, write persistent state, call a model, deploy OVH or activate any runtime."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."

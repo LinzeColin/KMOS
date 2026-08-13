@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage063 Review - 2026-08-14
+## Current Gate - Stage064 Phase 1 - 2026-08-14
 
-- 本节是唯一当前交接；Stage063 P4/P3/P2/P1、Stage062 Review、Stage062 P1/P2/P3/P4 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；Stage063 Review/P4/P3/P2/P1、Stage062 Review、Stage062 P1/P2/P3/P4 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE064-P1`：只定义未来 Chunk 身份与版本静态合同，固定 `10/14/3/6/9` 形状，即十个仅引用输入、十四个未来身份/版本字段、`chunk_id/chunk_hash/document_id/page/section/version` 字段标签、工程步骤/验收条款/参数表三类保护语义面、六维追溯和九类失败关闭；没有建立第二权威事实源。
+- 静态字段、引用、计数和中文反馈不代表真实 chunk、真实 `chunk_id`、真实 `chunk_hash`、真实 `document_id`、真实页码/章节、真实版本、真实分类、真实覆盖率、真实质量或业务事实。Stage063 保留章节边界职责，Stage065--068 保留分类、覆盖率、质量回归和质量降级职责；来源文档与业务线白箱人工复核保持权威。
+- 已验证：Stage064 P1 聚焦用例 `7/7`、受影响阶段链路 `181/181`、两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、Stage005 治理回归 `valid=true`；中文事实投影已重渲染 `7` 个文件。执行范围没有进入真实 parser、章节检测、切块、chunk 身份/哈希/版本、分类、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产或上传。
+- 回滚只撤回本 P1 说明、静态合同、聚焦用例、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `STAGE063_REVIEWED_LOCAL_CHAPTER_AWARE_CHUNKING_RUNTIME_DISABLED`；不改变 Stage063 工件、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE064-P2-GATE`。本 run 不进入 P2、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage063 Review - 2026-08-14
+
+- 本节保留 Stage063 Review 的已提交历史证据；唯一当前交接位于上方 Stage064 Phase 1，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE063-REVIEW`：只机械复审冻结 Stage063 P1--P4 合同和纯内存控制报告的 `8/14/3/6/8` 形状、三条控制请求、三条候选、六类显式人工处置、六条 metadata-only JSONL 样例、六条低质量待人工记录、三条中文确认和 P4→P3 控制回退链；发现数为零，没有建立第二权威事实源。
 - 复审模块只读取合同与控制报告。控制引用、控制覆盖率、低质量清单、回归结果、门禁和回退说明不代表真实章节、真实 chunk、真实身份或版本、真实覆盖率、真实质量、真实来源追溯、真实去重或业务事实。Stage047、Stage062 与 Stage064--068 的既有或后续唯一职责保持不变；来源文档与业务线白箱人工复核保持权威。
 - 已验证：复审模块返回 `PASS_REVIEWED_LOCAL_CHAPTER_AWARE_CHUNKING_RUNTIME_DISABLED`，且 P1/P4 注入异常时失败关闭；聚焦用例 `8/8`、受影响阶段链路 `174/174`、两个批次检查器 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、Stage005 治理回归 `valid=true`、中文事实投影 `7` 个文件。执行范围没有进入真实 parser、章节检测、切块、身份/版本、分类、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产或上传。

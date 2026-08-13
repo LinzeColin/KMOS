@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE063",
-  "phase": "IDS-V0_1-STAGE063-REVIEW",
-  "task": "IDS-V0_1-STAGE063-REVIEW",
-  "real_progress": "Stage063 已完成 P1--P4 本地机械复审：8/14 静态形状、3/3 控制请求与候选、6 类显式人工处置、6 条 metadata-only JSONL 样例、6 条低质量待人工记录、3 条中文确认和 P4→P3 控制回退链一致；下一步仅可在新的独立 run 进入 Stage064 Phase 1，上传路径继续关闭",
-  "report_grade": "冻结 Stage063 任务包、Stage063 P1/P2/P3/P4 控制工件、Stage062 本地复审、Batch061-070 上传锁、治理路线与中文事实投影一致",
-  "business_verdict": "本整阶段复审只证明控制合同、控制引用形状、人工白箱处置、零运行时边界和 P4→P3 控制回退链可复核；不证明真实章节检测、真实 chunk、真实身份或版本、真实覆盖率、真实质量、真实来源反查、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE063_REVIEWED_CHAPTER_AWARE_CHUNKING_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE064",
+  "phase": "IDS-V0_1-STAGE064-P1",
+  "task": "IDS-V0_1-STAGE064-P1",
+  "real_progress": "Stage064 已完成 P1 静态合同：10 个仅引用输入、14 个未来身份/版本字段、chunk_id/chunk_hash/document_id/page/section/version 字段标签、3 类保护语义面、6 维追溯和 9 类失败关闭；下一步仅可在新的独立 run 进入 Stage064 Phase 2，上传路径继续关闭",
+  "report_grade": "冻结 Stage064 任务包、Stage063 本地复审、Batch061-070 上传锁、静态身份/版本合同、治理路线与中文事实投影一致",
+  "business_verdict": "本 P1 只证明未来 chunk 身份、哈希、版本、追溯、覆盖率与工程语义接口的静态合同可复核；不证明真实 chunk、chunk_id、chunk_hash、document_id、版本、分类、覆盖率、质量、来源反查、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE064_PHASE1_CHUNK_IDENTITY_VERSION_CONTRACT_RUNTIME_DISABLED",
   "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE064-P1-GATE",
+  "next_gate": "IDS-STAGE064-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

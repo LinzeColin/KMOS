@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "ACC-STAGE064-P1-01",
+      "criteria": "冻结 Stage064 任务包、Stage063 本地复审与 Batch061-070 上传锁保持为唯一合同上下文；十个仅引用输入和十四个未来身份/版本字段只定义接口，不建立第二权威事实源，未读取或保留业务资料、原始元数据、来源正文、物理路径、页面、章节、表格、parser 输出或 chunk。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE064-P1-02",
+      "criteria": "未来 chunk 身份与版本 schema 明确包含 chunk_id、chunk_hash、document_id、page、section、version 字段标签，并保留 document、page、section、parser output、表格上下文和来源片段六维追溯；当前未创建真实 chunk、身份、哈希、document 绑定、版本、分类、覆盖率、索引或 embedding。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE064-P1-03",
+      "criteria": "工程步骤、验收条款和参数表不得因身份、哈希或版本规则被任意切断；来源文档和业务线人工复核保持权威，缺少引用、无法确认版本依据或遇到跨页参数表时必须关闭并转人工处理。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE064-P1-04",
+      "criteria": "未读取、打开、检测、解析、切分、计算或创建真实资料、chunk、chunk_id、chunk_hash、document_id 或 version，未执行 parser、章节检测、分类、覆盖率、质量、来源追溯、索引、数据库、持久化、Agent、模型 Token、OVH、生产、整阶段复审、批次复审、上传或推送；下一步仅可在新的独立 run 进入 Stage064 P2。",
+      "status": "已遵守"
+    },
+    {
       "id": "ACC-STAGE063-REVIEW-01",
       "criteria": "冻结 Stage063 任务包、P1--P4 合同、P3/P4 纯内存控制报告、Stage062 本地复审与 Batch061-070 上传锁保持为唯一合同上下文；复审只输出控制计数、边界、门禁和回退结论，未建立第二权威事实源，未读取或保留业务资料、原始元数据、来源正文、物理路径、页面、章节、表格、parser 输出或 chunk。",
       "status": "已通过"
