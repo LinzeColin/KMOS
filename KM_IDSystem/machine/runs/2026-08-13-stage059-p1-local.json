@@ -1,0 +1,96 @@
+{
+  "schema_version": "ids.machine_run.v1",
+  "run_id": "RUN-IDS-STAGE059-P1-LOCAL-20260813-001",
+  "stage": "IDS-STAGE059",
+  "task_id": "IDS-V0_1-STAGE059-P1",
+  "acceptance_id": "ACC-STAGE-059",
+  "action": "定义生产、质量和检验事实抽取的引用输入、未来 typed fact 输出、事实类型、数值与 RAG 权威边界、来源位置、失败关闭与回滚静态合同",
+  "result": "PASS_PHASE1_FACT_EXTRACTION_BASELINE_CONTRACT_RUNTIME_DISABLED",
+  "fact_level": "VERIFIED",
+  "evidence_iterations": [
+    {
+      "name": "stage059_phase1_focused_unit",
+      "command": "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage059_fact_extraction_contract",
+      "passed": 8,
+      "total": 8,
+      "result": "PASS_PHASE1_FACT_EXTRACTION_BASELINE_CONTRACT_RUNTIME_DISABLED"
+    },
+    {
+      "name": "stage059_phase1_and_predecessor_regression",
+      "command": "KM_IDSystem/docs/governance/roadmap.yaml :: IDS-V0_1-STAGE059-P1 test_commands[1]",
+      "passed": 432,
+      "total": 432,
+      "result": "PASS_STAGE059_PHASE1_AND_PREDECESSOR_REGRESSION"
+    },
+    {
+      "name": "batch041_050_predecessor_checker",
+      "command": "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py",
+      "passed": 1,
+      "total": 1,
+      "result": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
+    },
+    {
+      "name": "stage005_governance_regression",
+      "command": "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+      "passed": 1,
+      "total": 1,
+      "result": "valid=true"
+    },
+    {
+      "name": "human_projection_render",
+      "command": "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem",
+      "passed": 7,
+      "total": 7,
+      "result": "PASS_HUMAN_PROJECTION_RENDERED"
+    }
+  ],
+  "observed_work": {
+    "stage059_phase1_contract_defined": true,
+    "stage058_review_reused_as_reference_only": true,
+    "second_authoritative_source_created": false,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "authorized_fixture_access_performed": false,
+    "source_file_open_performed": false,
+    "file_type_detection_performed": false,
+    "xlsx_or_csv_parse_performed": false,
+    "table_schema_inference_performed": false,
+    "field_identification_performed": false,
+    "structured_fact_extraction_performed": false,
+    "typed_value_extraction_performed": false,
+    "table_summary_generation_performed": false,
+    "numeric_statistic_computation_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "source_location_binding_performed": false,
+    "evidence_binding_performed": false,
+    "database_connection_performed": false,
+    "database_schema_migration_performed": false,
+    "structured_fact_write_performed": false,
+    "rag_summary_write_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "local_service_start_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "stage059_started": true,
+    "stage059_entry_authorized": true,
+    "phase2_started": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "rollback": {
+    "return_to": "STAGE058_REVIEWED_LOCAL_TABLE_SCHEMA_INFERENCE_RUNTIME_DISABLED",
+    "source_or_raw_data_change_allowed": false,
+    "fixture_change_allowed": false,
+    "database_schema_change_allowed": false,
+    "persistent_runtime_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  },
+  "next_gate": "IDS-STAGE059-P2-GATE",
+  "github_upload_allowed": false,
+  "push_allowed": false
+}

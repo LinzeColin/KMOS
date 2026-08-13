@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-13 · IDS v0.1 Stage059 Phase 1（本地）
+
+- 完成事实抽取基线静态合同：定义生产、质量和检验事实的 `12/25/3/7/6/10` 形状，即十二字段引用输入、二十五字段未来 typed fact 输出、三类事实、七类 typed 语义、六类来源位置和十类失败关闭，并固定数值与 RAG 的权威边界、中文反馈和回滚范围。
+- 本地验证通过：Stage059 P1 聚焦用例 `8/8`；Stage059 P1、Stage058 Review/P1--P4、Stage057 Review/P1--P4、Stage056 Review/P1--P4、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的合并回归 `432/432`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；治理报告 `valid=true`。
+- 未读取、打开、检测、解析或抽取真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行真实 schema、字段、事实、typed value、RAG、统计、质量验证、来源/证据绑定、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE059-P2-GATE`。
+
 ## 2026-08-13 · IDS v0.1 Stage058 Review（本地）
 
 - 完成表格 Schema 推断整阶段白箱复审：机械核验 P1--P4 的 `10/18/9/6/6/8` 静态形状、两条固定非业务 control、两组 Schema profile、十一条候选/映射/来源绑定、六类显式人工处置、`6` 个 metadata-only 交付样例、中文确认及重解析/事实回滚链；没有建立第二权威事实源。

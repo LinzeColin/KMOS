@@ -9,7 +9,17 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage058 Review - 2026-08-13
+## Current Gate - Stage059 Phase 1 - 2026-08-13
+
+- 本节是唯一当前交接；下方 Stage058 Review/P4/P3/P2/P1、Stage057 Review/P4/P3/P2/P1 与更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE059-P1`：只以冻结 Stage059 任务包和 Stage058 已复审工件为唯一合同上下文，定义生产、质量和检验事实抽取的引用输入、未来 typed fact 输出、字段语义、数值/RAG 边界、来源定位、失败关闭、中文反馈与回滚合同；没有建立第二权威事实源。
+- P1 静态合同确认 `12/25/3/7/6/10`：十二字段 reference-only 输入、二十五字段未来 typed fact 输出、三类事实、七类 typed 语义、六类来源位置与十类失败关闭。当前真实输入、结构化事实、数值、来源绑定与证据记录均为 `0`；来源文档继续保持权威，模型文本猜测和未验证数值结论被禁止，RAG 不得替代结构化事实或成为数值权威。
+- 已验证：Stage059 P1 聚焦用例 `8/8`；Stage059 P1、Stage058 Review/P1--P4、Stage057 Review/P1--P4、Stage056 Review/P1--P4、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 `432/432`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归为 `valid=true`。
+- 没有读取、打开、检测、解析或抽取真实 XLSX/CSV、生产记录、质量检验记录、授权 fixture、工作表、表头、单元格、公式、来源正文或物理路径；没有执行真实 Schema/字段/事实/typed value、RAG 摘要、数值统计、质量验证、来源/证据绑定、数据库、持久化、Agent、模型调用、模型 Token、服务启动、OVH、生产、GitHub 上传或推送；`phase2_started=false`、`github_upload_allowed=false`、`push_allowed=false`。
+- 回滚只撤回本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `STAGE058_REVIEWED_LOCAL_TABLE_SCHEMA_INFERENCE_RUNTIME_DISABLED`；不改变冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE059-P2-GATE`。本 run 不进入 P2、整阶段复审、批次复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage058 Review - 2026-08-13
 
 - 本节是唯一当前交接；下方 Stage058 P4/P3/P2/P1、Stage057 Review/P4/P3/P2/P1 与更早章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE058-REVIEW`：只以冻结 Stage058 任务包和已提交 P1--P4 control 工件为唯一合同上下文，机械复审表格 Schema 推断的字段形状、单一权威、事实/RAG 边界、六类显式人工处置、metadata-only 交付、中文确认与重解析/事实回滚链；没有建立第二权威事实源。

@@ -1,0 +1,309 @@
+{
+  "schema_version": "ids.stage059.fact_extraction.phase1.v1",
+  "stage": "STAGE-059",
+  "phase": "Phase 1",
+  "task_id": "IDS-V0_1-STAGE059-P1",
+  "acceptance_id": "ACC-STAGE-059",
+  "local_code": "D10-S003",
+  "domain": "D10 · 结构化数据与表格事实库",
+  "entrance": "IDS 系统运营入口",
+  "pursuing_goal": "在 Stage058 已复审表格 Schema 推断基线上，定义生产、质量和检验事实的引用输入、未来 typed fact 输出、字段语义、来源定位、数值统计、RAG 分离与回滚边界；不读取或抽取真实表格事实。",
+  "contract_state": "PHASE1_FACT_EXTRACTION_BASELINE_CONTRACT_RUNTIME_DISABLED",
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE059-P2-GATE",
+  "source_authority": {
+    "authority": "FROZEN_TASKPACK_AND_STAGE058_REVIEW_ARTIFACTS_ONLY",
+    "frozen_taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-059_事实抽取基线.md",
+    "predecessor_review_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE058_STAGE_REVIEW.md",
+    "predecessor_schema_contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage058_table_schema_inference_contract.json",
+    "predecessor_delivery_contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage058_table_schema_inference_delivery_contract.json",
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false,
+    "authorized_fixture_access_performed": false
+  },
+  "ownership_boundary": {
+    "xlsx_csv_ingestion_contract_owner": "STAGE-057",
+    "table_schema_inference_owner": "STAGE-058",
+    "fact_extraction_baseline_owner": "STAGE-059",
+    "table_rag_summary_owner": "STAGE-060",
+    "structured_data_quality_owner": "STAGE-061",
+    "evidence_binding_owner": "STAGE-062",
+    "stage058_review_reused_as_reference_only": true,
+    "actual_fact_extraction_performed": false,
+    "cross_stage_owner_override_allowed": false
+  },
+  "reference_only_fact_extraction_input_contract": {
+    "mode": "REFERENCE_ONLY_FACT_EXTRACTION_INPUT_NO_TABLE_OR_FACT_OPENED",
+    "required_fields": [
+      "source_identity_ref",
+      "source_document_ref",
+      "file_format",
+      "workbook_ref",
+      "worksheet_ref",
+      "header_row_ref",
+      "row_range_ref",
+      "column_range_ref",
+      "schema_profile_ref",
+      "field_candidate_ref",
+      "record_type",
+      "evidence_ref"
+    ],
+    "field_count": 12,
+    "allowed_file_formats": [
+      "XLSX",
+      "CSV"
+    ],
+    "record_types": [
+      "PRODUCTION_RECORD",
+      "QUALITY_INSPECTION_RECORD"
+    ],
+    "additional_fields_allowed": false,
+    "source_body_or_path_allowed": false,
+    "worksheet_content_allowed": false,
+    "header_cell_content_allowed": false,
+    "cell_value_content_allowed": false,
+    "formula_value_allowed": false,
+    "fixture_record_write_allowed": false,
+    "actual_input_record_count": 0
+  },
+  "future_typed_fact_output_contract": {
+    "mode": "FUTURE_TYPED_FACT_SCHEMA_REFERENCE_ONLY_NO_FACT_CREATED",
+    "required_fields": [
+      "fact_id",
+      "fact_type",
+      "record_type",
+      "source_identity_ref",
+      "source_document_ref",
+      "file_format",
+      "workbook_ref",
+      "worksheet_ref",
+      "header_row_ref",
+      "row_range_ref",
+      "column_range_ref",
+      "schema_profile_ref",
+      "field_candidate_ref",
+      "field_name_ref",
+      "field_type",
+      "typed_value",
+      "unit_ref",
+      "record_date_ref",
+      "equipment_ref",
+      "material_ref",
+      "quality_result_ref",
+      "quality_state",
+      "evidence_ref",
+      "extraction_state",
+      "rag_summary_eligibility"
+    ],
+    "field_count": 25,
+    "additional_fields_allowed": false,
+    "actual_structured_fact_created": false,
+    "actual_structured_fact_persisted": false,
+    "actual_typed_value_retained": false,
+    "actual_database_schema_created": false,
+    "initial_extraction_state": "CANDIDATE",
+    "initial_quality_state": "UNASSESSED",
+    "direct_high_trust_evidence_promotion_allowed": false
+  },
+  "fact_semantic_contract": {
+    "required_fact_categories": [
+      "PRODUCTION_FACT",
+      "QUALITY_FACT",
+      "INSPECTION_FACT"
+    ],
+    "fact_category_count": 3,
+    "required_typed_semantic_categories": [
+      "measurement_value",
+      "unit_ref",
+      "record_date_ref",
+      "equipment_ref",
+      "material_ref",
+      "quality_result_ref",
+      "fact_type"
+    ],
+    "typed_semantic_category_count": 7,
+    "field_types": {
+      "measurement_value": {
+        "data_type": "DECIMAL_OR_INTEGER",
+        "unit_required": true,
+        "numeric_value_inference_performed": false
+      },
+      "unit_ref": {
+        "data_type": "UNIT_REFERENCE",
+        "unit_normalization_performed": false
+      },
+      "record_date_ref": {
+        "data_type": "DATE_OR_DATETIME_REFERENCE",
+        "date_normalization_performed": false
+      },
+      "equipment_ref": {
+        "data_type": "IDENTIFIER_REFERENCE",
+        "equipment_resolution_performed": false
+      },
+      "material_ref": {
+        "data_type": "IDENTIFIER_REFERENCE",
+        "material_resolution_performed": false
+      },
+      "quality_result_ref": {
+        "data_type": "ENUMERATED_QUALITY_RESULT_REFERENCE",
+        "quality_result_evaluation_performed": false
+      },
+      "fact_type": {
+        "data_type": "ENUMERATED_FACT_TYPE",
+        "fact_type_inference_performed": false
+      }
+    },
+    "schema_inference_owner": "STAGE-058",
+    "fact_extraction_owner": "STAGE-059",
+    "field_identification_performed": false,
+    "actual_field_mapping_created": false
+  },
+  "numeric_fact_authority_boundary": {
+    "mode": "DERIVED_STRUCTURED_FACT_PROJECTION_NOT_SECOND_AUTHORITATIVE_SOURCE",
+    "source_document_remains_authoritative": true,
+    "numeric_statistics_input": "STRUCTURED_FACTS_WITH_SOURCE_LOCATION_AND_EVIDENCE_BINDING_ONLY",
+    "model_direct_text_guessing_allowed": false,
+    "model_text_statistic_authoritative": false,
+    "unverified_numeric_value_as_definitive_fact_allowed": false,
+    "numeric_aggregation_requires_source_location_and_evidence": true,
+    "actual_structured_fact_count": 0,
+    "actual_numeric_fact_count": 0,
+    "numeric_statistic_computation_performed": false,
+    "database_connection_performed": false,
+    "structured_fact_store_created": false
+  },
+  "fact_and_rag_summary_boundary": {
+    "structured_fact_layer": "FUTURE_TYPED_FACTS_WITH_SOURCE_LOCATION_AND_EVIDENCE",
+    "rag_summary_layer": "FUTURE_CONTEXTUAL_SUMMARY_NOT_NUMERIC_AUTHORITY",
+    "rag_summary_owner": "STAGE-060",
+    "summary_can_replace_structured_fact": false,
+    "summary_can_become_numeric_statistical_evidence": false,
+    "summary_requires_fact_reference_before_future_use": true,
+    "actual_rag_summary_created": false,
+    "actual_summary_write_performed": false
+  },
+  "source_location_and_evidence_contract": {
+    "required_future_location_fields": [
+      "source_document_ref",
+      "worksheet_ref",
+      "header_row_ref",
+      "row_range_ref",
+      "column_range_ref",
+      "evidence_ref"
+    ],
+    "location_field_count": 6,
+    "source_document_worksheet_header_row_column_binding_required": true,
+    "physical_path_or_uri_allowed": false,
+    "source_body_or_cell_content_allowed": false,
+    "actual_source_location_binding_count": 0,
+    "actual_evidence_record_created": false,
+    "evidence_binding_owner": "STAGE-062"
+  },
+  "failure_and_stop_contract": {
+    "declared_failure_states": [
+      "SCHEMA_PROFILE_MISSING",
+      "FIELD_CANDIDATE_UNRESOLVED",
+      "SOURCE_LOCATION_MISSING",
+      "FIELD_TYPE_UNRECOGNIZED",
+      "UNIT_UNRESOLVED",
+      "DATE_FORMAT_UNRESOLVED",
+      "QUALITY_RESULT_UNRESOLVED",
+      "FACT_TYPE_UNRESOLVED",
+      "NUMERIC_VALUE_UNVERIFIED",
+      "EVIDENCE_REFERENCE_MISSING"
+    ],
+    "failure_state_count": 10,
+    "unrecognized_structure_requires_human_handling": true,
+    "unverified_numeric_value_blocks_statistical_conclusion": true,
+    "schema_migration_without_rollback_allowed": false,
+    "automatic_business_write_allowed": false,
+    "actual_failure_record_created": false
+  },
+  "protected_surface_boundary": {
+    "raw_source_change_allowed": false,
+    "manifest_change_allowed": false,
+    "evidence_ledger_change_allowed": false,
+    "audit_log_change_allowed": false,
+    "delivered_report_change_allowed": false,
+    "persistent_database_change_allowed": false,
+    "source_or_raw_data_cleanup_allowed": false
+  },
+  "chinese_feedback_contract": {
+    "messages": [
+      {
+        "code": "TABLE_FACT_CONTRACT_DEFINED",
+        "message": "当前只定义生产、质量和检验事实抽取合同，未读取、打开、解析或写入任何真实表格、生产记录或质检记录。"
+      },
+      {
+        "code": "FACT_TRACEABILITY_REQUIRED",
+        "message": "未来每条事实必须关联 Schema profile、字段候选、来源文档、工作表、表头行、行列范围和证据引用；当前未创建任何事实或绑定。"
+      },
+      {
+        "code": "NUMERIC_FACTS_REQUIRE_STRUCTURED_EVIDENCE",
+        "message": "数值统计未来只能基于带有来源位置和证据绑定的结构化事实，不能由模型根据文本猜测。"
+      },
+      {
+        "code": "FACT_EXTRACTION_REVIEW_REQUIRED",
+        "message": "无法确认 Schema、字段、单位、日期、质量结果、事实类型、数值或证据引用时必须等待人工处理，不能自动写入事实层。"
+      }
+    ],
+    "all_messages_chinese": true,
+    "automation_claim_allowed": false,
+    "numeric_accuracy_claim_allowed": false,
+    "production_availability_claim_allowed": false
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "authorized_fixture_access_performed": false,
+    "source_file_open_performed": false,
+    "file_type_detection_performed": false,
+    "route_evaluation_performed": false,
+    "parser_execution_performed": false,
+    "xlsx_or_csv_parse_performed": false,
+    "table_schema_inference_performed": false,
+    "field_identification_performed": false,
+    "structured_fact_extraction_performed": false,
+    "typed_value_extraction_performed": false,
+    "table_summary_generation_performed": false,
+    "numeric_statistic_computation_performed": false,
+    "quality_gate_evaluation_performed": false,
+    "source_location_binding_performed": false,
+    "evidence_binding_performed": false,
+    "database_connection_performed": false,
+    "database_schema_migration_performed": false,
+    "structured_fact_write_performed": false,
+    "rag_summary_write_performed": false,
+    "manifest_write_performed": false,
+    "evidence_ledger_write_performed": false,
+    "audit_write_performed": false,
+    "report_write_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "local_service_start_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "stage058_review_reused_as_reference_only": true,
+    "stage059_started": true,
+    "stage059_entry_authorized": true,
+    "phase2_started": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "rollback_contract": {
+    "return_to": "STAGE058_REVIEWED_LOCAL_TABLE_SCHEMA_INFERENCE_RUNTIME_DISABLED",
+    "rollback_scope": "STAGE059_PHASE1_STATIC_CONTRACT_AND_LOCAL_GOVERNANCE_EVIDENCE_ONLY",
+    "source_or_raw_data_change_allowed": false,
+    "fixture_change_allowed": false,
+    "database_schema_change_allowed": false,
+    "persistent_runtime_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

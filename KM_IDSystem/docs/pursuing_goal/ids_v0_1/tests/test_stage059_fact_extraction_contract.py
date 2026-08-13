@@ -5,18 +5,16 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-SCOPE = BASE / "STAGE057_PHASE1_XLSX_CSV_INGESTION_SCOPE_BOUNDARY.md"
-CONTRACT = (
-    BASE / "structured_table_facts" / "stage057_xlsx_csv_ingestion_contract.json"
-)
+SCOPE = BASE / "STAGE059_PHASE1_FACT_EXTRACTION_SCOPE_BOUNDARY.md"
+CONTRACT = BASE / "structured_table_facts" / "stage059_fact_extraction_contract.json"
 BATCH = BASE / "BATCH051_060_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-13-stage057-p1-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-13-stage059-p1-local.json"
 
 
-class Stage057XlsxCsvIngestionContractPhase1Tests(unittest.TestCase):
+class Stage059FactExtractionContractPhase1Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
@@ -29,19 +27,19 @@ class Stage057XlsxCsvIngestionContractPhase1Tests(unittest.TestCase):
     def test_identity_and_single_authority_boundary_are_explicit(self):
         contract = self.contract
         self.assertEqual(
-            "ids.stage057.xlsx_csv_ingestion.phase1.v1", contract["schema_version"]
+            "ids.stage059.fact_extraction.phase1.v1", contract["schema_version"]
         )
-        self.assertEqual("STAGE-057", contract["stage"])
-        self.assertEqual("IDS-V0_1-STAGE057-P1", contract["task_id"])
-        self.assertEqual("ACC-STAGE-057", contract["acceptance_id"])
+        self.assertEqual("STAGE-059", contract["stage"])
+        self.assertEqual("IDS-V0_1-STAGE059-P1", contract["task_id"])
+        self.assertEqual("ACC-STAGE-059", contract["acceptance_id"])
         self.assertEqual(
-            "PHASE1_XLSX_CSV_INGESTION_CONTRACT_RUNTIME_DISABLED",
+            "PHASE1_FACT_EXTRACTION_BASELINE_CONTRACT_RUNTIME_DISABLED",
             contract["contract_state"],
         )
-        self.assertEqual("IDS-STAGE057-P2-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE059-P2-GATE", contract["next_gate"])
         source = contract["source_authority"]
         self.assertEqual(
-            "FROZEN_TASKPACK_TEXT_AND_STAGE056_REVIEW_ARTIFACTS",
+            "FROZEN_TASKPACK_AND_STAGE058_REVIEW_ARTIFACTS_ONLY",
             source["authority"],
         )
         for field in (
@@ -54,8 +52,8 @@ class Stage057XlsxCsvIngestionContractPhase1Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(source[field])
 
-    def test_reference_only_xlsx_csv_inputs_are_content_free(self):
-        input_contract = self.contract["reference_only_table_input_contract"]
+    def test_reference_only_fact_inputs_are_content_free(self):
+        input_contract = self.contract["reference_only_fact_extraction_input_contract"]
         self.assertEqual(12, input_contract["field_count"])
         self.assertEqual(
             [
@@ -64,13 +62,13 @@ class Stage057XlsxCsvIngestionContractPhase1Tests(unittest.TestCase):
                 "file_format",
                 "workbook_ref",
                 "worksheet_ref",
+                "header_row_ref",
                 "row_range_ref",
                 "column_range_ref",
-                "record_type",
                 "schema_profile_ref",
-                "fact_type",
+                "field_candidate_ref",
+                "record_type",
                 "evidence_ref",
-                "ingestion_state",
             ],
             input_contract["required_fields"],
         )
@@ -84,6 +82,7 @@ class Stage057XlsxCsvIngestionContractPhase1Tests(unittest.TestCase):
             "additional_fields_allowed",
             "source_body_or_path_allowed",
             "worksheet_content_allowed",
+            "header_cell_content_allowed",
             "cell_value_content_allowed",
             "formula_value_allowed",
             "fixture_record_write_allowed",
@@ -91,34 +90,41 @@ class Stage057XlsxCsvIngestionContractPhase1Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(input_contract[field])
 
-    def test_future_fact_fields_and_semantic_types_are_declared_only(self):
-        output = self.contract["future_structured_fact_output_contract"]
-        self.assertEqual(19, output["field_count"])
+    def test_future_typed_fact_fields_and_semantics_are_declared_only(self):
+        output = self.contract["future_typed_fact_output_contract"]
+        self.assertEqual(25, output["field_count"])
         self.assertEqual(
             [
                 "fact_id",
+                "fact_type",
+                "record_type",
                 "source_identity_ref",
                 "source_document_ref",
                 "file_format",
+                "workbook_ref",
                 "worksheet_ref",
+                "header_row_ref",
                 "row_range_ref",
                 "column_range_ref",
-                "field_name",
+                "schema_profile_ref",
+                "field_candidate_ref",
+                "field_name_ref",
                 "field_type",
                 "typed_value",
                 "unit_ref",
-                "record_date",
+                "record_date_ref",
                 "equipment_ref",
                 "material_ref",
-                "quality_result",
-                "fact_type",
+                "quality_result_ref",
                 "quality_state",
                 "evidence_ref",
+                "extraction_state",
                 "rag_summary_eligibility",
             ],
             output["required_fields"],
         )
         for field in (
+            "additional_fields_allowed",
             "actual_structured_fact_created",
             "actual_structured_fact_persisted",
             "actual_typed_value_retained",
@@ -128,25 +134,22 @@ class Stage057XlsxCsvIngestionContractPhase1Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(output[field])
 
-        semantics = self.contract["field_semantic_contract"]
+        semantics = self.contract["fact_semantic_contract"]
         self.assertEqual(
-            [
-                "measurement_value",
-                "unit_ref",
-                "record_date",
-                "equipment_ref",
-                "material_ref",
-                "quality_result",
-                "fact_type",
-            ],
-            semantics["required_business_fields"],
+            ["PRODUCTION_FACT", "QUALITY_FACT", "INSPECTION_FACT"],
+            semantics["required_fact_categories"],
         )
-        self.assertEqual(7, semantics["field_count"])
-        self.assertEqual("DECIMAL_OR_INTEGER", semantics["field_types"]["measurement_value"]["data_type"])
+        self.assertEqual(3, semantics["fact_category_count"])
+        self.assertEqual(7, semantics["typed_semantic_category_count"])
+        self.assertEqual(
+            "DECIMAL_OR_INTEGER",
+            semantics["field_types"]["measurement_value"]["data_type"],
+        )
         self.assertTrue(semantics["field_types"]["measurement_value"]["unit_required"])
-        self.assertEqual("DATE_OR_DATETIME", semantics["field_types"]["record_date"]["data_type"])
-        self.assertEqual("ENUMERATED_QUALITY_RESULT", semantics["field_types"]["quality_result"]["data_type"])
-        self.assertEqual("ENUMERATED_FACT_TYPE", semantics["field_types"]["fact_type"]["data_type"])
+        self.assertEqual(
+            "DATE_OR_DATETIME_REFERENCE",
+            semantics["field_types"]["record_date_ref"]["data_type"],
+        )
         self.assertEqual("STAGE-058", semantics["schema_inference_owner"])
         self.assertEqual("STAGE-059", semantics["fact_extraction_owner"])
         self.assertFalse(semantics["field_identification_performed"])
@@ -163,6 +166,7 @@ class Stage057XlsxCsvIngestionContractPhase1Tests(unittest.TestCase):
         self.assertFalse(numeric["model_text_statistic_authoritative"])
         self.assertFalse(numeric["unverified_numeric_value_as_definitive_fact_allowed"])
         self.assertTrue(numeric["numeric_aggregation_requires_source_location_and_evidence"])
+        self.assertEqual(0, numeric["actual_structured_fact_count"])
         self.assertEqual(0, numeric["actual_numeric_fact_count"])
         self.assertFalse(numeric["numeric_statistic_computation_performed"])
         self.assertFalse(numeric["structured_fact_store_created"])
@@ -175,20 +179,12 @@ class Stage057XlsxCsvIngestionContractPhase1Tests(unittest.TestCase):
         self.assertFalse(summary["actual_rag_summary_created"])
         self.assertFalse(summary["actual_summary_write_performed"])
 
-    def test_source_traceability_and_failure_closure_are_declared(self):
+    def test_source_traceability_failure_closure_and_rollback_are_declared(self):
         location = self.contract["source_location_and_evidence_contract"]
-        self.assertEqual(
-            [
-                "source_document_ref",
-                "worksheet_ref",
-                "row_range_ref",
-                "column_range_ref",
-                "evidence_ref",
-            ],
-            location["required_future_location_fields"],
+        self.assertEqual(6, location["location_field_count"])
+        self.assertTrue(
+            location["source_document_worksheet_header_row_column_binding_required"]
         )
-        self.assertEqual(5, location["location_field_count"])
-        self.assertTrue(location["source_document_worksheet_row_column_binding_required"])
         self.assertFalse(location["physical_path_or_uri_allowed"])
         self.assertFalse(location["source_body_or_cell_content_allowed"])
         self.assertEqual(0, location["actual_source_location_binding_count"])
@@ -196,22 +192,30 @@ class Stage057XlsxCsvIngestionContractPhase1Tests(unittest.TestCase):
         self.assertEqual("STAGE-062", location["evidence_binding_owner"])
 
         failures = self.contract["failure_and_stop_contract"]
-        self.assertEqual(
-            [
-                "SOURCE_LOCATION_MISSING",
-                "FIELD_TYPE_UNRECOGNIZED",
-                "UNIT_UNRESOLVED",
-                "DATE_FORMAT_UNRESOLVED",
-                "QUALITY_RESULT_UNRESOLVED",
-                "NUMERIC_VALUE_UNVERIFIED",
-            ],
-            failures["declared_failure_states"],
-        )
-        self.assertEqual(6, failures["failure_state_count"])
+        self.assertEqual(10, failures["failure_state_count"])
+        self.assertIn("SCHEMA_PROFILE_MISSING", failures["declared_failure_states"])
+        self.assertIn("NUMERIC_VALUE_UNVERIFIED", failures["declared_failure_states"])
+        self.assertIn("EVIDENCE_REFERENCE_MISSING", failures["declared_failure_states"])
         self.assertTrue(failures["unrecognized_structure_requires_human_handling"])
         self.assertTrue(failures["unverified_numeric_value_blocks_statistical_conclusion"])
         self.assertFalse(failures["schema_migration_without_rollback_allowed"])
         self.assertFalse(failures["automatic_business_write_allowed"])
+        self.assertFalse(failures["actual_failure_record_created"])
+
+        rollback = self.contract["rollback_contract"]
+        self.assertEqual(
+            "STAGE058_REVIEWED_LOCAL_TABLE_SCHEMA_INFERENCE_RUNTIME_DISABLED",
+            rollback["return_to"],
+        )
+        for field in (
+            "source_or_raw_data_change_allowed",
+            "fixture_change_allowed",
+            "database_schema_change_allowed",
+            "persistent_runtime_state_change_allowed",
+            "github_or_ovh_change_allowed",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(rollback[field])
 
     def test_chinese_feedback_and_runtime_boundary_do_not_claim_runtime(self):
         feedback = self.contract["chinese_feedback_contract"]
@@ -224,6 +228,7 @@ class Stage057XlsxCsvIngestionContractPhase1Tests(unittest.TestCase):
         runtime = self.contract["runtime_boundary"]
         for field in (
             "ids_business_source_read_performed",
+            "raw_metadata_content_accessed",
             "authorized_fixture_access_performed",
             "source_file_open_performed",
             "file_type_detection_performed",
@@ -233,10 +238,12 @@ class Stage057XlsxCsvIngestionContractPhase1Tests(unittest.TestCase):
             "table_schema_inference_performed",
             "field_identification_performed",
             "structured_fact_extraction_performed",
+            "typed_value_extraction_performed",
             "table_summary_generation_performed",
             "numeric_statistic_computation_performed",
             "quality_gate_evaluation_performed",
             "source_location_binding_performed",
+            "evidence_binding_performed",
             "database_connection_performed",
             "database_schema_migration_performed",
             "structured_fact_write_performed",
@@ -256,92 +263,58 @@ class Stage057XlsxCsvIngestionContractPhase1Tests(unittest.TestCase):
         ):
             with self.subTest(field=field):
                 self.assertFalse(runtime[field])
-        self.assertTrue(runtime["stage056_review_reused_as_reference_only"])
-        self.assertTrue(runtime["stage057_started"])
-        self.assertTrue(runtime["stage057_entry_authorized"])
+        self.assertTrue(runtime["stage058_review_reused_as_reference_only"])
+        self.assertTrue(runtime["stage059_started"])
+        self.assertTrue(runtime["stage059_entry_authorized"])
 
     def test_governance_run_and_event_record_only_local_phase1_evidence(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, "stage057_phase1_state:"),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE057-P1"'),
-            (batch, 'next_gate: "IDS-STAGE057-P2-GATE"'),
-            (batch, "stage057_started: true"),
-            (batch, "stage057_entry_authorized: true"),
-            (roadmap, 'current_stage_id: "IDS-STAGE057"'),
-            (roadmap, 'current_phase_id: "IDS-STAGE057-P1"'),
-            (roadmap, 'current_task_id: "IDS-V0_1-STAGE057-P1"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE057-P2-GATE"'),
+            (batch, "stage059_phase1_state:"),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE059-P1"'),
+            (batch, 'next_gate: "IDS-STAGE059-P2-GATE"'),
+            (batch, "stage059_started: true"),
+            (batch, "stage059_entry_authorized: true"),
+            (roadmap, 'current_stage_id: "IDS-STAGE059"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE059-P1"'),
+            (roadmap, 'current_task_id: "IDS-V0_1-STAGE059-P1"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE059-P2-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertIn(status["stage"], ("IDS-STAGE057", "IDS-STAGE058", "IDS-STAGE059"))
-        self.assertIn(
-            status["phase"],
-            (
-                "IDS-V0_1-STAGE057-P1",
-                "IDS-V0_1-STAGE057-P2",
-                "IDS-V0_1-STAGE057-P3",
-                "IDS-V0_1-STAGE057-P4",
-                "IDS-V0_1-STAGE057-REVIEW",
-                "IDS-V0_1-STAGE058-P1",
-            "IDS-V0_1-STAGE058-P2",
-            "IDS-V0_1-STAGE058-P3",
-            "IDS-V0_1-STAGE058-P4",
-            "IDS-V0_1-STAGE058-REVIEW",
-            "IDS-V0_1-STAGE059-P1",
-            ),
-        )
-        self.assertIn(
-            status["next_gate"],
-            (
-                "IDS-STAGE057-P2-GATE",
-                "IDS-STAGE057-P3-GATE",
-                "IDS-STAGE057-P4-GATE",
-                "IDS-STAGE057-REVIEW-GATE",
-                "IDS-STAGE058-P1-GATE",
-                "IDS-STAGE058-P2-GATE",
-                "IDS-STAGE058-P3-GATE",
-                "IDS-STAGE058-P4-GATE",
-                "IDS-STAGE058-REVIEW-GATE",
-                "IDS-STAGE059-P1-GATE",
-                "IDS-STAGE059-P2-GATE",
-            ),
-        )
+        self.assertEqual("IDS-STAGE059", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE059-P1", status["phase"])
+        self.assertEqual("IDS-V0_1-STAGE059-P1", status["task"])
+        self.assertEqual("IDS-STAGE059-P2-GATE", status["next_gate"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
         run = json.loads(RUN.read_text(encoding="utf-8"))
         self.assertEqual(
-            "PASS_PHASE1_XLSX_CSV_INGESTION_CONTRACT_RUNTIME_DISABLED", run["result"]
+            "PASS_PHASE1_FACT_EXTRACTION_BASELINE_CONTRACT_RUNTIME_DISABLED",
+            run["result"],
         )
-        self.assertEqual([8, 331, 1, 1, 7], [item["passed"] for item in run["evidence_iterations"]])
-        self.assertEqual([8, 331, 1, 1, 7], [item["total"] for item in run["evidence_iterations"]])
-        self.assertEqual(
-            "PASS_PHASE1_AND_PREDECESSOR_REGRESSION",
-            run["evidence_iterations"][1]["result"],
-        )
-        self.assertFalse(run["observed_work"]["authorized_fixture_access_performed"])
-        self.assertFalse(run["observed_work"]["xlsx_or_csv_parse_performed"])
-        self.assertFalse(run["observed_work"]["structured_fact_write_performed"])
-        self.assertFalse(run["observed_work"]["numeric_statistic_computation_performed"])
+        self.assertEqual([8, 432, 1, 1, 7], [item["passed"] for item in run["evidence_iterations"]])
+        self.assertEqual([8, 432, 1, 1, 7], [item["total"] for item in run["evidence_iterations"]])
+        self.assertFalse(run["observed_work"]["structured_fact_extraction_performed"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
         self.assertFalse(run["observed_work"]["phase2_started"])
 
         events = [
-            json.loads(line) for line in EVENTS.read_text(encoding="utf-8").splitlines()
+            json.loads(line)
+            for line in EVENTS.read_text(encoding="utf-8").splitlines()
+            if line.strip()
         ]
         event = next(
             item
             for item in events
-            if item.get("event_id") == "EVT-IDS-V0_1-STAGE057-P1-20260813-001"
+            if item["event_id"] == "EVT-IDS-V0_1-STAGE059-P1-20260813-001"
         )
-        self.assertEqual("IDS-V0_1-STAGE057-P1", event["task_id"])
-        self.assertEqual(["ACC-STAGE-057"], event["acceptance_ids"])
-        self.assertIn("next_gate=IDS-STAGE057-P2-GATE", event["notes"])
+        self.assertEqual("IDS-V0_1-STAGE059-P1", event["task_id"])
+        self.assertIn("next_gate=IDS-STAGE059-P2-GATE", event["notes"])
 
 
 if __name__ == "__main__":

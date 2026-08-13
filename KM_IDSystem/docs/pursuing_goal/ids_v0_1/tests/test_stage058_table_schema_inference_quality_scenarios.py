@@ -256,13 +256,14 @@ class Stage058TableSchemaInferencePhase3Tests(unittest.TestCase):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE058", status["stage"])
+        self.assertIn(status["stage"], ("IDS-STAGE058", "IDS-STAGE059"))
         self.assertIn(
             status["phase"],
             (
                 "IDS-V0_1-STAGE058-P3",
                 "IDS-V0_1-STAGE058-P4",
                 "IDS-V0_1-STAGE058-REVIEW",
+                "IDS-V0_1-STAGE059-P1",
             ),
         )
         self.assertIn(
@@ -271,6 +272,7 @@ class Stage058TableSchemaInferencePhase3Tests(unittest.TestCase):
                 "IDS-STAGE058-P4-GATE",
                 "IDS-STAGE058-REVIEW-GATE",
                 "IDS-STAGE059-P1-GATE",
+                "IDS-STAGE059-P2-GATE",
             ),
         )
         self.assertFalse(status["runtime_enabled"])
