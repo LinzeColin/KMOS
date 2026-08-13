@@ -117,8 +117,8 @@
   {
     "id": "IDS-STAGE059",
     "name": "事实抽取基线",
-    "gate": "Phase 4 metadata-only 交付证据已通过；下一步须在新的独立 run 进入 Stage059 Review",
-    "status": "已从六类固定非业务 reference-only control 场景派生六个 metadata-only 事实样例、六个字段引用标签、六条质量结果、六条人工处理建议、三条中文确认提示和回到 P3 control 状态的重解析/事实回滚说明；真实 XLSX/CSV、真实 production/quality/inspection facts、真实字段推断、真实异常验证、来源/证据绑定、数值统计、RAG、数据库、OVH 和生产仍禁用，上传锁保持关闭"
+    "gate": "P1--P4 与整阶段本地白箱复审已通过；下一步须在新的独立 run 进入 Stage060 Phase 1",
+    "status": "已复审十二字段引用输入、二十五字段 future typed fact、三类事实、七类 typed 语义、两条固定非业务 control、三条控制候选、六类显式质量处置、6 个 metadata-only 交付样例、中文人工处理和重解析/事实回滚链；真实 XLSX/CSV、真实 production/quality/inspection facts、真实字段推断、真实异常验证、来源/证据绑定、数值统计、RAG、数据库、OVH 和生产仍禁用，上传锁保持关闭"
   }
 ]
 }

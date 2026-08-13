@@ -1,0 +1,707 @@
+"""Stage059 的只读整阶段复审，不读取真实表格或启动 Stage060 运行时。"""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+from collections.abc import Callable, Mapping
+from pathlib import Path
+from typing import Any
+
+
+BASE = Path(__file__).resolve().parent
+P1_CONTRACT = BASE / "stage059_fact_extraction_contract.json"
+P2_CONTRACT = BASE / "stage059_fact_extraction_slice_contract.json"
+P3_CONTRACT = BASE / "stage059_fact_extraction_quality_scenarios_contract.json"
+P4_CONTRACT = BASE / "stage059_fact_extraction_delivery_contract.json"
+
+SCHEMA_VERSION = "ids.stage059.fact_extraction.stage_review.v1"
+TASK_ID = "IDS-V0_1-STAGE059-REVIEW"
+ACCEPTANCE_ID = "ACC-STAGE-059"
+PASS_RESULT = "PASS_REVIEWED_LOCAL_FACT_EXTRACTION_RUNTIME_DISABLED"
+FAIL_RESULT = "FAIL_REVIEWED_LOCAL_FACT_EXTRACTION_RUNTIME_DISABLED"
+NEXT_GATE = "IDS-STAGE060-P1-GATE"
+RETURN_STATE = "PHASE4_FACT_EXTRACTION_DELIVERY_EVIDENCE_RUNTIME_DISABLED"
+
+ContractProvider = Callable[[], Mapping[str, Any]]
+ReportProvider = Callable[[], Mapping[str, Any]]
+
+
+def build_stage059_review_report(
+    phase1_contract_provider: ContractProvider | None = None,
+    phase2_contract_provider: ContractProvider | None = None,
+    phase3_contract_provider: ContractProvider | None = None,
+    phase4_contract_provider: ContractProvider | None = None,
+    phase3_report_provider: ReportProvider | None = None,
+    phase4_report_provider: ReportProvider | None = None,
+) -> dict[str, Any]:
+    """机械复审 Stage059 P1--P4，只返回控制计数、边界与回滚结论。"""
+
+    phase1 = _as_mapping((phase1_contract_provider or _json_provider(P1_CONTRACT))())
+    phase2 = _as_mapping((phase2_contract_provider or _json_provider(P2_CONTRACT))())
+    phase3 = _as_mapping((phase3_contract_provider or _json_provider(P3_CONTRACT))())
+    phase4 = _as_mapping((phase4_contract_provider or _json_provider(P4_CONTRACT))())
+    quality_report = _as_mapping((phase3_report_provider or _load_phase3_report_provider())())
+    delivery_report = _as_mapping((phase4_report_provider or _load_phase4_report_provider())())
+
+    phase_results = {
+        "P1": _phase1_contract_valid(phase1),
+        "P2": _phase2_contract_valid(phase2),
+        "P3": _phase3_contract_valid(phase3) and _quality_report_valid(quality_report),
+        "P4": _phase4_contract_valid(phase4) and _delivery_report_valid(delivery_report),
+    }
+    controlled_replay = _controlled_replay(phase1, phase2, quality_report, delivery_report)
+    invariants = {
+        "single_authority_boundary_preserved": _single_authority_boundary_preserved(
+            phase1, phase2, phase3, phase4
+        ),
+        "fact_and_rag_authority_boundary_preserved": _fact_and_rag_authority_boundary_preserved(
+            phase1, phase2, phase3, phase4
+        ),
+        "typed_fact_and_source_location_boundary_preserved": _typed_fact_and_source_location_boundary_preserved(
+            phase1, phase2, phase3
+        ),
+        "quality_and_human_handling_boundary_preserved": _quality_and_human_handling_boundary_preserved(
+            quality_report, delivery_report
+        ),
+        "metadata_only_delivery_boundary": _metadata_only_delivery_boundary(delivery_report),
+        "reparse_and_rollback_chain_preserved": _reparse_and_rollback_chain_preserved(
+            phase1, phase2, phase3, phase4, delivery_report
+        ),
+        "runtime_actions_disabled": _contracts_have_no_runtime_actions(
+            phase1, phase2, phase3, phase4
+        ),
+        "stage060_not_started": True,
+    }
+    report: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "task_id": TASK_ID,
+        "acceptance_id": ACCEPTANCE_ID,
+        "source_authority": "FROZEN_TASKPACK_AND_STAGE059_P1_TO_P4_CONTROLLED_ARTIFACTS_ONLY",
+        "secondary_authority_created": False,
+        "source_body_or_path_allowed": False,
+        "phase_results": phase_results,
+        "controlled_replay": controlled_replay,
+        "review_invariants": invariants,
+        "review_finding_count": 0,
+        "review_valid": False,
+        "result": FAIL_RESULT,
+        "rollback": {
+            "return_to": RETURN_STATE,
+            "revertable_artifacts": [
+                "Stage059 review document",
+                "Stage059 review module",
+                "Stage059 review focused tests",
+                "Stage059 review governance projection",
+            ],
+            "preserve_phase1_to_phase4_evidence": True,
+            "source_or_raw_data_change_allowed": False,
+            "fixture_change_allowed": False,
+            "database_or_persistent_state_change_allowed": False,
+            "github_or_ovh_change_allowed": False,
+        },
+        "next_gate": NEXT_GATE,
+        "ids_business_source_read_performed": False,
+        "raw_metadata_content_accessed": False,
+        "authorized_fixture_access_performed": False,
+        "source_file_open_performed": False,
+        "file_type_detection_performed": False,
+        "xlsx_or_csv_parse_performed": False,
+        "real_table_schema_inference_performed": False,
+        "real_field_identification_performed": False,
+        "real_structured_fact_extraction_performed": False,
+        "real_table_quality_validation_performed": False,
+        "typed_value_extraction_performed": False,
+        "merged_cell_resolution_performed": False,
+        "unit_normalization_performed": False,
+        "date_normalization_performed": False,
+        "outlier_evaluation_performed": False,
+        "duplicate_row_evaluation_performed": False,
+        "numeric_statistic_computation_performed": False,
+        "actual_file_reparse_performed": False,
+        "actual_fact_store_present": False,
+        "actual_fact_rollback_performed": False,
+        "database_connection_performed": False,
+        "database_schema_migration_performed": False,
+        "structured_fact_write_performed": False,
+        "rag_summary_write_performed": False,
+        "persistent_state_write_performed": False,
+        "agent_execution_performed": False,
+        "model_call_performed": False,
+        "model_token_consumption_performed": False,
+        "local_service_start_performed": False,
+        "ovh_deployment_performed": False,
+        "production_runtime_activation_performed": False,
+        "stage059_started": True,
+        "phase2_started": True,
+        "phase3_started": True,
+        "phase4_started": True,
+        "whole_stage_review_performed": True,
+        "stage060_started": False,
+        "stage060_entry_allowed": False,
+        "batch_review_performed": False,
+        "github_upload_performed": False,
+        "github_upload_allowed": False,
+        "push_allowed": False,
+    }
+    report["review_invariants"]["runtime_actions_disabled"] = all(
+        report[field] is False for field in _review_runtime_fields()
+    ) and report["review_invariants"]["runtime_actions_disabled"]
+    report["review_valid"] = all(report["phase_results"].values()) and all(
+        report["review_invariants"].values()
+    )
+    report["review_finding_count"] = 0 if report["review_valid"] else 1
+    report["result"] = PASS_RESULT if report["review_valid"] else FAIL_RESULT
+    return report
+
+
+def _json_provider(path: Path) -> ContractProvider:
+    def provider() -> Mapping[str, Any]:
+        return _as_mapping(json.loads(path.read_text(encoding="utf-8")))
+
+    return provider
+
+
+def _load_phase3_report_provider() -> ReportProvider:
+    return _module_callable_provider(
+        "stage059_fact_extraction_quality_scenarios.py",
+        "build_fact_extraction_phase3_report",
+    )
+
+
+def _load_phase4_report_provider() -> ReportProvider:
+    return _module_callable_provider(
+        "stage059_fact_extraction_delivery.py",
+        "build_fact_extraction_phase4_delivery_report",
+    )
+
+
+def _module_callable_provider(filename: str, callable_name: str) -> ReportProvider:
+    path = BASE / filename
+    spec = importlib.util.spec_from_file_location(f"stage059_review_{path.stem}", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Stage059 review dependency is unavailable: {filename}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    candidate = getattr(module, callable_name, None)
+    if not callable(candidate):
+        raise RuntimeError(f"Stage059 review dependency is invalid: {filename}")
+    return candidate
+
+
+def _phase1_contract_valid(contract: Mapping[str, Any]) -> bool:
+    input_contract = _as_mapping(contract.get("reference_only_fact_extraction_input_contract"))
+    output_contract = _as_mapping(contract.get("future_typed_fact_output_contract"))
+    semantic_contract = _as_mapping(contract.get("fact_semantic_contract"))
+    location_contract = _as_mapping(contract.get("source_location_and_evidence_contract"))
+    failures = _as_mapping(contract.get("failure_and_stop_contract"))
+    authority = _as_mapping(contract.get("source_authority"))
+    return all(
+        (
+            contract.get("schema_version") == "ids.stage059.fact_extraction.phase1.v1",
+            contract.get("contract_state")
+            == "PHASE1_FACT_EXTRACTION_BASELINE_CONTRACT_RUNTIME_DISABLED",
+            contract.get("task_id") == "IDS-V0_1-STAGE059-P1",
+            contract.get("next_gate") == "IDS-STAGE059-P2-GATE",
+            _single_authority_contract(authority),
+            input_contract.get("field_count") == 12,
+            input_contract.get("actual_input_record_count") == 0,
+            output_contract.get("field_count") == 25,
+            output_contract.get("actual_structured_fact_created") is False,
+            output_contract.get("actual_typed_value_retained") is False,
+            semantic_contract.get("fact_category_count") == 3,
+            semantic_contract.get("typed_semantic_category_count") == 7,
+            len(_as_mapping(semantic_contract.get("field_types"))) == 7,
+            location_contract.get("location_field_count") == 6,
+            location_contract.get("actual_source_location_binding_count") == 0,
+            location_contract.get("actual_evidence_record_created") is False,
+            failures.get("failure_state_count") == 10,
+            failures.get("unverified_numeric_value_blocks_statistical_conclusion") is True,
+            _contract_runtime_disabled(contract),
+        )
+    )
+
+
+def _phase2_contract_valid(contract: Mapping[str, Any]) -> bool:
+    input_contract = _as_mapping(contract.get("reference_only_fact_extraction_input_contract"))
+    candidates = _as_mapping(contract.get("structured_fact_candidate_contract"))
+    location_contract = _as_mapping(contract.get("source_location_and_evidence_contract"))
+    rag_boundary = _as_mapping(contract.get("fact_and_rag_summary_boundary"))
+    authority = _as_mapping(contract.get("source_authority"))
+    return all(
+        (
+            contract.get("schema_version") == "ids.stage059.fact_extraction.phase2.v1",
+            contract.get("contract_state")
+            == "PHASE2_FACT_EXTRACTION_CONTROL_SLICE_RUNTIME_DISABLED",
+            contract.get("task_id") == "IDS-V0_1-STAGE059-P2",
+            contract.get("next_gate") == "IDS-STAGE059-P3-GATE",
+            contract.get("slice_executable") is True,
+            _single_authority_contract(authority),
+            input_contract.get("field_count") == 12,
+            input_contract.get("control_record_count") == 2,
+            input_contract.get("actual_input_record_count") == 0,
+            candidates.get("field_count") == 25,
+            candidates.get("control_fact_candidate_count") == 3,
+            candidates.get("fact_category_count") == 3,
+            candidates.get("typed_semantic_category_count") == 7,
+            candidates.get("candidate_field_type_count") == 3,
+            candidates.get("numeric_field_candidate_count") == 1,
+            candidates.get("all_control_typed_values_unset") is True,
+            candidates.get("actual_structured_fact_created") is False,
+            location_contract.get("location_field_count") == 6,
+            location_contract.get("candidate_binding_count") == 3,
+            rag_boundary.get("rag_summary_candidate_count") == 0,
+            rag_boundary.get("rag_summary_deferred_to_stage060") is True,
+            _contract_runtime_disabled(contract),
+        )
+    )
+
+
+def _phase3_contract_valid(contract: Mapping[str, Any]) -> bool:
+    input_boundary = _as_mapping(contract.get("scenario_input_boundary"))
+    quality = _as_mapping(contract.get("quality_scenario_validation"))
+    traceability = _as_mapping(contract.get("traceability_boundary"))
+    numeric = _as_mapping(contract.get("numeric_and_model_authority_boundary"))
+    authority = _as_mapping(contract.get("source_authority"))
+    return all(
+        (
+            contract.get("schema_version")
+            == "ids.stage059.fact_extraction.phase3.quality_scenarios.v1",
+            contract.get("contract_state")
+            == "PHASE3_FACT_EXTRACTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+            contract.get("task_id") == "IDS-V0_1-STAGE059-P3",
+            contract.get("next_gate") == "IDS-STAGE059-P4-GATE",
+            contract.get("scenario_executable") is True,
+            _single_authority_contract(authority),
+            input_boundary.get("scenario_count") == 6,
+            input_boundary.get("phase2_control_record_count") == 2,
+            input_boundary.get("phase2_structured_fact_candidate_count") == 3,
+            input_boundary.get("actual_table_count") == 0,
+            quality.get("explicit_disposition_count") == 6,
+            quality.get("silent_drop_count") == 0,
+            quality.get("human_handling_required_count") == 6,
+            quality.get("outlier_numeric_block_count") == 1,
+            traceability.get("control_source_location_reference_check_count") == 6,
+            traceability.get("actual_evidence_record_created") is False,
+            numeric.get("actual_typed_value_created") is False,
+            numeric.get("unverified_numeric_value_as_definitive_fact_allowed") is False,
+            numeric.get("rag_summary_deferred_to_stage060") is True,
+            _contract_runtime_disabled(contract),
+        )
+    )
+
+
+def _phase4_contract_valid(contract: Mapping[str, Any]) -> bool:
+    input_boundary = _as_mapping(contract.get("delivery_input_boundary"))
+    delivery = _as_mapping(contract.get("delivery_evidence"))
+    feedback = _as_mapping(contract.get("chinese_feedback_contract"))
+    authority = _as_mapping(contract.get("source_authority"))
+    return all(
+        (
+            contract.get("schema_version") == "ids.stage059.fact_extraction.phase4.delivery.v1",
+            contract.get("contract_state")
+            == "PHASE4_FACT_EXTRACTION_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+            contract.get("task_id") == "IDS-V0_1-STAGE059-P4",
+            contract.get("next_gate") == "IDS-STAGE059-REVIEW-GATE",
+            contract.get("delivery_evidence_executable") is True,
+            contract.get("execution_ready") is False,
+            _single_authority_contract(authority),
+            input_boundary.get("expected_control_scenario_count") == 6,
+            input_boundary.get("expected_fact_candidate_pool_count") == 3,
+            input_boundary.get("metadata_only_delivery_sample_count") == 6,
+            input_boundary.get("field_reference_label_count") == 6,
+            input_boundary.get("quality_disposition_count") == 6,
+            input_boundary.get("human_handling_recommendation_count") == 6,
+            input_boundary.get("human_confirmation_prompt_count") == 3,
+            input_boundary.get("actual_table_count") == 0,
+            delivery.get("reparse_and_fact_rollback_instructions_created") is True,
+            delivery.get("actual_structured_fact_created") is False,
+            delivery.get("rag_summary_deferred_to_stage060") is True,
+            feedback.get("message_count") == 3,
+            feedback.get("all_messages_chinese") is True,
+            feedback.get("automatic_confirmation_performed") is False,
+            _contract_runtime_disabled(contract),
+        )
+    )
+
+
+def _quality_report_valid(report: Mapping[str, Any]) -> bool:
+    results = _list_of_mappings(report.get("scenario_results"))
+    return all(
+        (
+            report.get("schema_version")
+            == "ids.stage059.fact_extraction.phase3.quality_scenarios.v1",
+            report.get("valid") is True,
+            report.get("result")
+            == "PASS_PHASE3_FACT_EXTRACTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+            report.get("next_gate") == "IDS-STAGE059-P4-GATE",
+            report.get("scenario_count") == 6,
+            report.get("passed_scenario_count") == 6,
+            report.get("explicit_disposition_count") == 6,
+            report.get("silent_drop_count") == 0,
+            report.get("human_handling_required_count") == 6,
+            report.get("outlier_numeric_block_count") == 1,
+            report.get("unique_fact_candidate_count") == 3,
+            report.get("rag_summary_deferred_to_stage060") is True,
+            len(results) == 6,
+            all(
+                item.get("explicit_disposition") is True
+                and item.get("silent_drop") is False
+                and item.get("human_handling_required") is True
+                and item.get("typed_value_unset") is True
+                and item.get("actual_structured_fact_created") is False
+                for item in results
+            ),
+            _report_runtime_disabled(report),
+        )
+    )
+
+
+def _delivery_report_valid(report: Mapping[str, Any]) -> bool:
+    samples = _list_of_mappings(report.get("delivery_samples"))
+    inference = _as_mapping(report.get("field_inference_report"))
+    quality = _as_mapping(report.get("quality_test_results"))
+    handling = _list_of_mappings(report.get("unrecognized_structure_and_human_handling"))
+    prompts = _list_of_mappings(report.get("human_confirmation_prompts_zh"))
+    rollback = _as_mapping(report.get("reparse_and_fact_rollback_instructions"))
+    return all(
+        (
+            report.get("schema_version") == "ids.stage059.fact_extraction.phase4.delivery.v1",
+            report.get("valid") is True,
+            report.get("result")
+            == "PASS_PHASE4_FACT_EXTRACTION_DELIVERY_RUNTIME_DISABLED",
+            report.get("next_gate") == "IDS-STAGE059-REVIEW-GATE",
+            len(samples) == 6,
+            all(
+                item.get("control_metadata_only") is True
+                and item.get("source_content_retained") is False
+                and item.get("typed_value_retained") is False
+                and item.get("actual_structured_fact_created") is False
+                and item.get("actual_table_fact_sample_created") is False
+                for item in samples
+            ),
+            inference.get("fact_candidate_pool_count") == 3,
+            inference.get("referenced_field_candidate_count") == 6,
+            inference.get("actual_field_mapping_created") is False,
+            quality.get("scenario_count") == 6,
+            quality.get("explicit_disposition_count") == 6,
+            quality.get("silent_drop_count") == 0,
+            len(handling) == 6,
+            all(item.get("human_handling_required") is True for item in handling),
+            len(prompts) == 3,
+            all(item.get("automatic_confirmation_performed") is False for item in prompts),
+            rollback.get("return_to")
+            == "PHASE3_FACT_EXTRACTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+            rollback.get("actual_file_reparse_performed") is False,
+            rollback.get("actual_fact_rollback_performed") is False,
+            _report_runtime_disabled(report),
+        )
+    )
+
+
+def _single_authority_contract(authority: Mapping[str, Any]) -> bool:
+    return bool(authority) and all(
+        (
+            authority.get("second_authoritative_source_created") is False,
+            authority.get("source_body_or_path_allowed") is False,
+            authority.get("raw_metadata_content_access_allowed", False) is False,
+            authority.get("live_source_read_performed", False) is False,
+            authority.get("authorized_fixture_access_performed", False) is False,
+        )
+    )
+
+
+def _single_authority_boundary_preserved(*contracts: Mapping[str, Any]) -> bool:
+    return all(
+        _single_authority_contract(_as_mapping(contract.get("source_authority")))
+        for contract in contracts
+    )
+
+
+def _fact_and_rag_authority_boundary_preserved(
+    phase1: Mapping[str, Any],
+    phase2: Mapping[str, Any],
+    phase3: Mapping[str, Any],
+    phase4: Mapping[str, Any],
+) -> bool:
+    phase1_boundary = _as_mapping(phase1.get("fact_and_rag_summary_boundary"))
+    phase2_boundary = _as_mapping(phase2.get("fact_and_rag_summary_boundary"))
+    phase3_boundary = _as_mapping(phase3.get("numeric_and_model_authority_boundary"))
+    phase4_delivery = _as_mapping(phase4.get("delivery_evidence"))
+    return all(
+        (
+            phase1_boundary.get("rag_summary_owner") == "STAGE-060",
+            phase1_boundary.get("summary_can_replace_structured_fact") is False,
+            phase1_boundary.get("summary_can_become_numeric_statistical_evidence") is False,
+            phase2_boundary.get("rag_summary_candidate_count") == 0,
+            phase2_boundary.get("rag_summary_deferred_to_stage060") is True,
+            phase2_boundary.get("summary_can_replace_structured_fact") is False,
+            phase3_boundary.get("unverified_numeric_value_as_definitive_fact_allowed")
+            is False,
+            phase3_boundary.get("model_direct_text_guessing_allowed") is False,
+            phase3_boundary.get("rag_summary_deferred_to_stage060") is True,
+            phase4_delivery.get("rag_summary_deferred_to_stage060") is True,
+            phase4_delivery.get("summary_can_replace_structured_fact") is False,
+            phase4_delivery.get("summary_can_become_numeric_statistical_evidence")
+            is False,
+        )
+    )
+
+
+def _typed_fact_and_source_location_boundary_preserved(
+    phase1: Mapping[str, Any], phase2: Mapping[str, Any], phase3: Mapping[str, Any]
+) -> bool:
+    p1_output = _as_mapping(phase1.get("future_typed_fact_output_contract"))
+    p1_location = _as_mapping(phase1.get("source_location_and_evidence_contract"))
+    p2_candidates = _as_mapping(phase2.get("structured_fact_candidate_contract"))
+    p2_location = _as_mapping(phase2.get("source_location_and_evidence_contract"))
+    p3_traceability = _as_mapping(phase3.get("traceability_boundary"))
+    return all(
+        (
+            p1_output.get("actual_structured_fact_created") is False,
+            p1_output.get("actual_typed_value_retained") is False,
+            p1_location.get("actual_source_location_binding_count") == 0,
+            p1_location.get("actual_evidence_record_created") is False,
+            p2_candidates.get("all_control_typed_values_unset") is True,
+            p2_candidates.get("actual_structured_fact_created") is False,
+            p2_candidates.get("actual_typed_value_retained") is False,
+            p2_location.get("actual_source_location_binding_created") is False,
+            p2_location.get("actual_evidence_record_created") is False,
+            p3_traceability.get("control_source_location_traceability_preserved")
+            is True,
+            p3_traceability.get("actual_source_file_traceability_validated") is False,
+            p3_traceability.get("actual_evidence_record_created") is False,
+        )
+    )
+
+
+def _quality_and_human_handling_boundary_preserved(
+    quality_report: Mapping[str, Any], delivery_report: Mapping[str, Any]
+) -> bool:
+    quality = _as_mapping(delivery_report.get("quality_test_results"))
+    handling = _list_of_mappings(delivery_report.get("unrecognized_structure_and_human_handling"))
+    prompts = _list_of_mappings(delivery_report.get("human_confirmation_prompts_zh"))
+    return all(
+        (
+            quality_report.get("scenario_count") == 6,
+            quality_report.get("explicit_disposition_count") == 6,
+            quality_report.get("silent_drop_count") == 0,
+            quality_report.get("human_handling_required_count") == 6,
+            quality_report.get("outlier_numeric_block_count") == 1,
+            quality.get("scenario_count") == 6,
+            quality.get("explicit_disposition_count") == 6,
+            quality.get("silent_drop_count") == 0,
+            len(handling) == 6,
+            all(item.get("human_handling_required") is True for item in handling),
+            len(prompts) == 3,
+            all("请" in str(item.get("text")) for item in prompts),
+            all(item.get("automatic_confirmation_performed") is False for item in prompts),
+        )
+    )
+
+
+def _metadata_only_delivery_boundary(report: Mapping[str, Any]) -> bool:
+    samples = _list_of_mappings(report.get("delivery_samples"))
+    inference = _as_mapping(report.get("field_inference_report"))
+    quality = _as_mapping(report.get("quality_test_results"))
+    return all(
+        (
+            len(samples) == 6,
+            all(
+                item.get("sample_kind")
+                == "DELIVERY_METADATA_ONLY_FACT_SAMPLE_NOT_REAL_STRUCTURED_FACT"
+                and item.get("control_metadata_only") is True
+                and item.get("source_content_retained") is False
+                and item.get("typed_value_retained") is False
+                and item.get("actual_structured_fact_created") is False
+                for item in samples
+            ),
+            inference.get("control_reference_only") is True,
+            inference.get("actual_field_mapping_created") is False,
+            quality.get("actual_table_quality_validation_performed") is False,
+            quality.get("actual_evidence_record_created") is False,
+        )
+    )
+
+
+def _reparse_and_rollback_chain_preserved(
+    phase1: Mapping[str, Any],
+    phase2: Mapping[str, Any],
+    phase3: Mapping[str, Any],
+    phase4: Mapping[str, Any],
+    delivery_report: Mapping[str, Any],
+) -> bool:
+    returns = (
+        _rollback_return(phase1),
+        _rollback_return(phase2),
+        _rollback_return(phase3),
+        _rollback_return(phase4),
+        _as_mapping(delivery_report.get("reparse_and_fact_rollback_instructions")).get(
+            "return_to"
+        ),
+    )
+    return all(isinstance(value, str) and bool(value) for value in returns) and (
+        returns[-1] == "PHASE3_FACT_EXTRACTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED"
+    )
+
+
+def _rollback_return(contract: Mapping[str, Any]) -> object:
+    return _as_mapping(contract.get("rollback_contract")).get("return_to")
+
+
+def _contracts_have_no_runtime_actions(*contracts: Mapping[str, Any]) -> bool:
+    return all(_contract_runtime_disabled(contract) for contract in contracts)
+
+
+def _contract_runtime_disabled(contract: Mapping[str, Any]) -> bool:
+    runtime = _as_mapping(contract.get("runtime_boundary"))
+    return bool(runtime) and all(
+        value is False
+        for key, value in runtime.items()
+        if key.endswith("_performed") or key in {"github_upload_allowed", "push_allowed"}
+    )
+
+
+def _report_runtime_disabled(report: Mapping[str, Any]) -> bool:
+    return all(report.get(field) is False for field in _report_runtime_fields())
+
+
+def _controlled_replay(
+    phase1: Mapping[str, Any],
+    phase2: Mapping[str, Any],
+    quality_report: Mapping[str, Any],
+    delivery_report: Mapping[str, Any],
+) -> dict[str, Any]:
+    p1_input = _as_mapping(phase1.get("reference_only_fact_extraction_input_contract"))
+    p1_output = _as_mapping(phase1.get("future_typed_fact_output_contract"))
+    p1_semantics = _as_mapping(phase1.get("fact_semantic_contract"))
+    p1_location = _as_mapping(phase1.get("source_location_and_evidence_contract"))
+    p1_failures = _as_mapping(phase1.get("failure_and_stop_contract"))
+    p2_input = _as_mapping(phase2.get("reference_only_fact_extraction_input_contract"))
+    p2_candidates = _as_mapping(phase2.get("structured_fact_candidate_contract"))
+    p2_location = _as_mapping(phase2.get("source_location_and_evidence_contract"))
+    inference = _as_mapping(delivery_report.get("field_inference_report"))
+    quality = _as_mapping(delivery_report.get("quality_test_results"))
+    rollback = _as_mapping(delivery_report.get("reparse_and_fact_rollback_instructions"))
+    return {
+        "phase_contract_count": 4,
+        "phase_contract_passed_count": 4,
+        "phase1_reference_input_field_count": _nonnegative_int(p1_input.get("field_count")),
+        "phase1_future_typed_fact_output_field_count": _nonnegative_int(p1_output.get("field_count")),
+        "phase1_fact_category_count": _nonnegative_int(p1_semantics.get("fact_category_count")),
+        "phase1_typed_semantic_category_count": _nonnegative_int(
+            p1_semantics.get("typed_semantic_category_count")
+        ),
+        "phase1_source_location_field_count": _nonnegative_int(p1_location.get("location_field_count")),
+        "phase1_declared_failure_state_count": _nonnegative_int(p1_failures.get("failure_state_count")),
+        "phase2_control_record_count": _nonnegative_int(p2_input.get("control_record_count")),
+        "phase2_fact_candidate_count": _nonnegative_int(p2_candidates.get("control_fact_candidate_count")),
+        "phase2_candidate_field_type_count": _nonnegative_int(p2_candidates.get("candidate_field_type_count")),
+        "phase2_numeric_field_candidate_count": _nonnegative_int(p2_candidates.get("numeric_field_candidate_count")),
+        "phase2_source_location_binding_candidate_count": _nonnegative_int(p2_location.get("candidate_binding_count")),
+        "quality_scenario_count": _nonnegative_int(quality_report.get("scenario_count")),
+        "quality_explicit_disposition_count": _nonnegative_int(quality_report.get("explicit_disposition_count")),
+        "quality_silent_drop_count": _nonnegative_int(quality_report.get("silent_drop_count")),
+        "quality_human_handling_required_count": _nonnegative_int(quality_report.get("human_handling_required_count")),
+        "quality_outlier_numeric_block_count": _nonnegative_int(quality_report.get("outlier_numeric_block_count")),
+        "delivery_sample_count": len(_list_of_mappings(delivery_report.get("delivery_samples"))),
+        "delivery_field_reference_label_count": _nonnegative_int(inference.get("referenced_field_candidate_count")),
+        "delivery_quality_result_count": _nonnegative_int(quality.get("scenario_count")),
+        "delivery_human_handling_record_count": len(
+            _list_of_mappings(delivery_report.get("unrecognized_structure_and_human_handling"))
+        ),
+        "delivery_human_confirmation_prompt_count": len(
+            _list_of_mappings(delivery_report.get("human_confirmation_prompts_zh"))
+        ),
+        "reparse_and_fact_rollback_instructions_created": bool(rollback),
+        "reparse_and_fact_rollback_return_to": rollback.get("return_to"),
+    }
+
+
+def _review_runtime_fields() -> tuple[str, ...]:
+    return (
+        "ids_business_source_read_performed",
+        "raw_metadata_content_accessed",
+        "authorized_fixture_access_performed",
+        "source_file_open_performed",
+        "file_type_detection_performed",
+        "xlsx_or_csv_parse_performed",
+        "real_table_schema_inference_performed",
+        "real_field_identification_performed",
+        "real_structured_fact_extraction_performed",
+        "real_table_quality_validation_performed",
+        "typed_value_extraction_performed",
+        "merged_cell_resolution_performed",
+        "unit_normalization_performed",
+        "date_normalization_performed",
+        "outlier_evaluation_performed",
+        "duplicate_row_evaluation_performed",
+        "numeric_statistic_computation_performed",
+        "actual_file_reparse_performed",
+        "actual_fact_rollback_performed",
+        "database_connection_performed",
+        "database_schema_migration_performed",
+        "structured_fact_write_performed",
+        "rag_summary_write_performed",
+        "persistent_state_write_performed",
+        "agent_execution_performed",
+        "model_call_performed",
+        "model_token_consumption_performed",
+        "local_service_start_performed",
+        "ovh_deployment_performed",
+        "production_runtime_activation_performed",
+        "stage060_started",
+        "stage060_entry_allowed",
+        "batch_review_performed",
+        "github_upload_performed",
+        "github_upload_allowed",
+        "push_allowed",
+    )
+
+
+def _report_runtime_fields() -> tuple[str, ...]:
+    return (
+        "ids_business_source_read_performed",
+        "authorized_fixture_access_performed",
+        "source_file_open_performed",
+        "file_type_detection_performed",
+        "xlsx_or_csv_parse_performed",
+        "real_table_schema_inference_performed",
+        "real_field_identification_performed",
+        "real_structured_fact_extraction_performed",
+        "real_table_content_evaluated",
+        "typed_value_extraction_performed",
+        "merged_cell_resolution_performed",
+        "unit_normalization_performed",
+        "date_normalization_performed",
+        "outlier_evaluation_performed",
+        "duplicate_row_evaluation_performed",
+        "numeric_statistic_computation_performed",
+        "database_connection_performed",
+        "database_schema_migration_performed",
+        "structured_fact_write_performed",
+        "rag_summary_write_performed",
+        "persistent_state_write_performed",
+        "agent_execution_performed",
+        "model_call_performed",
+        "model_token_consumption_performed",
+        "local_service_start_performed",
+        "ovh_deployment_performed",
+        "production_runtime_activation_performed",
+        "github_upload_performed",
+        "push_performed",
+    )
+
+
+def _as_mapping(value: object) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
+
+
+def _list_of_mappings(value: object) -> list[Mapping[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, Mapping)]
+
+
+def _nonnegative_int(value: object) -> int:
+    return value if isinstance(value, int) and value >= 0 else 0

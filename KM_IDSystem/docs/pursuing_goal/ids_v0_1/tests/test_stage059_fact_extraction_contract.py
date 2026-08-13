@@ -288,15 +288,15 @@ class Stage059FactExtractionContractPhase1Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE059", status["stage"])
         self.assertIn(
             status["phase"],
-            ("IDS-V0_1-STAGE059-P1", "IDS-V0_1-STAGE059-P2", "IDS-V0_1-STAGE059-P3", "IDS-V0_1-STAGE059-P4"),
+            ("IDS-V0_1-STAGE059-P1", "IDS-V0_1-STAGE059-P2", "IDS-V0_1-STAGE059-P3", "IDS-V0_1-STAGE059-P4", "IDS-V0_1-STAGE059-REVIEW"),
         )
         self.assertIn(
             status["task"],
-            ("IDS-V0_1-STAGE059-P1", "IDS-V0_1-STAGE059-P2", "IDS-V0_1-STAGE059-P3", "IDS-V0_1-STAGE059-P4"),
+            ("IDS-V0_1-STAGE059-P1", "IDS-V0_1-STAGE059-P2", "IDS-V0_1-STAGE059-P3", "IDS-V0_1-STAGE059-P4", "IDS-V0_1-STAGE059-REVIEW"),
         )
         self.assertIn(
             status["next_gate"],
-            ("IDS-STAGE059-P2-GATE", "IDS-STAGE059-P3-GATE", "IDS-STAGE059-P4-GATE", "IDS-STAGE059-REVIEW-GATE"),
+            ("IDS-STAGE059-P2-GATE", "IDS-STAGE059-P3-GATE", "IDS-STAGE059-P4-GATE", "IDS-STAGE059-REVIEW-GATE", "IDS-STAGE060-P1-GATE"),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
