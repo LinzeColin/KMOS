@@ -117,8 +117,8 @@
   {
     "id": "IDS-STAGE059",
     "name": "事实抽取基线",
-    "gate": "Phase 2 控制候选切片已通过；下一步须在新的独立 run 进入 Stage059 Phase 3",
-    "status": "已以两条固定非业务 reference-only 输入在内存中投影三条二十五字段 typed fact 控制候选，覆盖生产/质量/检验三类事实、七类 typed 语义、六类来源位置、RAG/数值权威边界和十类失败关闭；typed value 始终为空，真实 XLSX/CSV、真实 production/quality/inspection facts、来源/证据绑定、数值统计、RAG、数据库、OVH 和生产仍禁用，上传锁保持关闭"
+    "gate": "Phase 3 六类异常控制场景已通过；下一步须在新的独立 run 进入 Stage059 Phase 4",
+    "status": "已重放两条固定非业务 reference-only 输入和三条二十五字段 typed fact 控制候选，覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置，静默丢弃为零，控制来源位置引用形状保持可追溯，未验证数值阻断统计和模型确定性结论；真实 XLSX/CSV、真实 production/quality/inspection facts、真实异常验证、来源/证据绑定、数值统计、RAG、数据库、OVH 和生产仍禁用，上传锁保持关闭"
   }
 ]
 }
