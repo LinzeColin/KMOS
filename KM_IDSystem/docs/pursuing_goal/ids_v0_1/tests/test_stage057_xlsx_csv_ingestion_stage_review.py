@@ -206,7 +206,8 @@ class Stage057XlsxCsvIngestionStageReviewTests(unittest.TestCase):
             (
                 "IDS-V0_1-STAGE057-REVIEW",
                 "IDS-V0_1-STAGE058-P1",
-                "IDS-V0_1-STAGE058-P2",
+            "IDS-V0_1-STAGE058-P2",
+            "IDS-V0_1-STAGE058-P3",
             ),
         )
         self.assertFalse(status["runtime_enabled"])

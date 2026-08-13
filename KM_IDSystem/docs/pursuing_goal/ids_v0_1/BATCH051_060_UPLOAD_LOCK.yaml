@@ -1,14 +1,29 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-051-060"
 created_at_utc: "2026-08-12T13:19:44Z"
-updated_at_utc: "2026-08-13T06:18:00Z"
-status: "stage058_phase2_completed"
+updated_at_utc: "2026-08-13T07:03:00Z"
+status: "stage058_phase3_completed"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-041-050"
 predecessor_review_task_id: "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md"
 
 transition_history:
+  stage058_phase3_state:
+    status: "stage058_phase3_completed"
+    current_task_id: "IDS-V0_1-STAGE058-P3"
+    next_gate: "IDS-STAGE058-P4-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE058-P4"
+    stage057_entry_authorized: true
+    stage057_phase2_entry_authorized: true
+    stage057_phase3_entry_authorized: true
+    stage057_phase4_entry_authorized: true
+    stage057_review_entry_authorized: true
+    stage058_entry_authorized: true
+    stage058_phase2_entry_authorized: true
+    stage058_phase3_entry_authorized: true
+    stage058_phase4_entry_authorized: false
+    github_upload_allowed: false
   stage058_phase2_state:
     status: "stage058_phase2_completed"
     current_task_id: "IDS-V0_1-STAGE058-P2"
@@ -1440,19 +1455,21 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
 
   STAGE-058:
-    status: "stage058_phase2_completed"
+    status: "stage058_phase3_completed"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
-    next_phase: "Stage058 Phase 3"
-    next_gate: "IDS-STAGE058-P3-GATE"
-    current_task_id: "IDS-V0_1-STAGE058-P2"
+      - "Phase 3"
+    next_phase: "Stage058 Phase 4"
+    next_gate: "IDS-STAGE058-P4-GATE"
+    current_task_id: "IDS-V0_1-STAGE058-P3"
     acceptance_id: "ACC-STAGE-058"
-    acceptance_status: "stage058_table_schema_inference_control_slice_phase2_local"
+    acceptance_status: "stage058_table_schema_inference_quality_scenarios_phase3_local"
     phase2_entry_authorized: true
-    phase3_entry_authorized: false
+    phase3_entry_authorized: true
+    phase4_entry_authorized: false
     taskpack_context_read_performed: true
-    source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE058_PHASE1_AND_STAGE057_REVIEW_ARTIFACTS"
+    source_authority: "FROZEN_TASKPACK_TEXT_AND_STAGE058_PHASE1_PHASE2_AND_STAGE057_REVIEW_ARTIFACTS"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
     raw_metadata_content_accessed: false
@@ -1463,7 +1480,7 @@ stage_progress:
     route_evaluation_performed: false
     parser_execution_performed: false
     stage057_review_artifacts_reused_as_reference_only: true
-    contract_state: "PHASE2_TABLE_SCHEMA_INFERENCE_CONTROL_SLICE_RUNTIME_DISABLED"
+    contract_state: "PHASE3_TABLE_SCHEMA_INFERENCE_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED"
     execution_ready: false
     reference_only_schema_inference_input_field_count: 10
     control_schema_input_record_count: 2
@@ -1474,7 +1491,20 @@ stage_progress:
     field_candidate_semantic_category_count: 9
     candidate_field_type_count: 6
     source_location_field_count: 6
+    control_source_location_field_count: 6
     declared_failure_state_count: 8
+    control_quality_scenario_count: 6
+    explicit_disposition_count: 6
+    silent_drop_count: 0
+    human_handling_required_count: 6
+    empty_table_human_handling_count: 1
+    merged_cell_human_handling_count: 1
+    unit_confusion_human_handling_count: 1
+    date_variation_human_handling_count: 1
+    outlier_numeric_block_count: 1
+    duplicate_row_human_handling_count: 1
+    control_source_location_reference_check_count: 6
+    control_source_location_traceability_preserved: true
     actual_input_record_count: 0
     actual_schema_profile_count: 0
     actual_field_mapping_count: 0
@@ -1488,6 +1518,7 @@ stage_progress:
     model_direct_text_guessing_allowed: false
     model_definitive_numeric_conclusion_allowed: false
     unverified_numeric_value_as_definitive_fact_allowed: false
+    numeric_statistical_conclusion_allowed: false
     numeric_aggregation_requires_source_location_and_evidence: true
     summary_can_replace_structured_fact: false
     summary_can_become_numeric_statistical_evidence: false
@@ -1496,6 +1527,16 @@ stage_progress:
     rag_summary_deferred_to_stage060: true
     unrecognized_structure_requires_human_handling: true
     unverified_numeric_value_blocks_statistical_conclusion: true
+    stage058_phase2_control_slice_reused_as_reference_only: true
+    control_quality_scenario_validation_performed: true
+    actual_source_file_traceability_validated: false
+    actual_table_quality_validation_performed: false
+    real_table_content_evaluated: false
+    merged_cell_resolution_performed: false
+    unit_normalization_performed: false
+    date_normalization_performed: false
+    outlier_evaluation_performed: false
+    duplicate_row_evaluation_performed: false
     xlsx_or_csv_parse_performed: false
     control_schema_profile_inference_performed: true
     control_field_identification_performed: true
@@ -1526,7 +1567,8 @@ stage_progress:
     stage058_started: true
     stage058_entry_authorized: true
     phase2_started: true
-    phase3_started: false
+    phase3_started: true
+    phase4_started: false
     whole_stage_review_performed: false
     batch_review_performed: false
     github_upload_allowed: false
@@ -1542,14 +1584,19 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage058_table_schema_inference_slice.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage058_table_schema_inference_slice.py"
       - "KM_IDSystem/machine/runs/2026-08-13-stage058-p2-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE058_PHASE3_TABLE_SCHEMA_INFERENCE_QUALITY_SCENARIOS.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage058_table_schema_inference_quality_scenarios_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage058_table_schema_inference_quality_scenarios.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage058_table_schema_inference_quality_scenarios.py"
+      - "KM_IDSystem/machine/runs/2026-08-13-stage058-p3-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE057_STAGE_REVIEW.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE058-P2"
-  next_allowed_task_id: "IDS-V0_1-STAGE058-P3"
+  current_task_id: "IDS-V0_1-STAGE058-P3"
+  next_allowed_task_id: "IDS-V0_1-STAGE058-P4"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-058 Phase 2 只用两条固定、非业务、reference-only 控制记录在内存中投影两个 Schema profile 组和十一条十八字段候选；未读取、打开、检测或解析任何真实表格，未创建事实、RAG 摘要、统计、数据库或持久状态，未进入 Phase 3。"
+  current_run: "STAGE-058 Phase 3 只重放 Phase 2 的两条固定、非业务、reference-only 控制记录和十一条 Schema profile 候选，覆盖六类异常控制处置与来源位置引用形状；未读取、打开、检测、解析或评估任何真实表格，未创建事实、RAG 摘要、统计、数据库或持久状态，未进入 Phase 4。"
   no_upload_reason: "冻结任务包要求完成至 ACC-STAGE-168 且经独立全局发布验收后，才可重新考虑任何上传路径。"

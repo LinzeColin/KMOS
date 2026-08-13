@@ -111,8 +111,8 @@
   {
     "id": "IDS-STAGE058",
     "name": "表格 Schema 推断",
-    "gate": "Phase 1 静态合同与 Phase 2 纯内存控制切片本地通过；下一步须在新的独立 run 进入 Stage058 Phase 3",
-    "status": "已定义十字段引用输入、十八字段未来 Schema profile、九类字段候选、数值/RAG 权威边界、八类失败关闭，并在两条固定非业务 control 上投影两个 profile 组、十一条候选和来源位置引用；真实 XLSX/CSV、真实 schema、事实库、数据库、OVH 和生产仍禁用，上传锁保持关闭"
+    "gate": "Phase 1 静态合同、Phase 2 纯内存控制切片与 Phase 3 六类异常控制场景本地通过；下一步须在新的独立 run 进入 Stage058 Phase 4",
+    "status": "已定义十字段引用输入、十八字段未来 Schema profile、九类字段候选、数值/RAG 权威边界、八类失败关闭，并重放两条固定非业务 control 的十一条候选，完成空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置与控制引用检查；真实 XLSX/CSV、真实质量验证、真实 schema、事实库、数据库、OVH 和生产仍禁用，上传锁保持关闭"
   }
 ]
 }

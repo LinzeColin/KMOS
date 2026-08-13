@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-13 · IDS v0.1 Stage058 Phase 3（本地）
+
+- 完成表格 Schema 推断受控异常场景验证：重放 P2 两条固定非业务 control 和 `11` 条 Schema profile 候选，覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置；静默丢弃为 `0`，控制来源位置引用形状保持可追溯，未验证数值阻断统计和模型确定性数值结论。
+- 本地验证通过：Stage058 P3 聚焦用例 `12/12`；Stage058 P3/P2/P1、Stage057 Review/P1-P4、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041_050 的合并回归 `401/401`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 未读取、打开、检测、解析或评估真实 XLSX/CSV，未执行真实质量验证、合并解析、单位/日期规范化、去重、异常值评估、事实、RAG 摘要、数值统计、数据库或持久状态；未执行 Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE058-P4-GATE`。
+
 ## 2026-08-13 · IDS v0.1 Stage058 Phase 2（本地）
 
 - 完成表格 Schema 推断纯内存控制切片：两条固定非业务十字段 reference-only 控制记录投影 `2` 个 Schema profile 组、`11` 条十八字段候选、`9` 类字段语义、`6` 类候选字段类型和 `11` 条来源位置引用；候选列名均为 control handle，事实抽取与 RAG 摘要仍分别归 Stage059/060。
