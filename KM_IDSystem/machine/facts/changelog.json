@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage055-p4-local",
+    "date": "2026-08-13",
+    "summary": "完成 Stage055 P4 OCR 回归语料交付证据：从 P3 五类固定非业务 control 报告派生 5 个 metadata-only 样例、HIGH=1/MEDIUM=2/LOW=1/UNKNOWN=1 控制置信度汇总、1 条显式失败、3 条候选复核路由证明、3 条中文人工确认提示与零临时产物重跑说明。未打开真实样本、未保留 OCR 文本或来源路径，未执行 OCR、复核、质量门、缓存清理、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage055 整阶段复审。"
+  },
+  {
     "version": "v0.1-stage055-p3-local",
     "date": "2026-08-13",
     "summary": "完成 Stage055 P3 OCR 回归语料受控专项场景：重放五条固定非业务 control，覆盖扫描 PDF、模糊图片、表格图片、中英文混合和低质量的显式候选、降级或失败处置与零静默丢弃。未读取样本、调用 OCR 引擎、执行真实回归、创建缓存/人工复核/持久状态，未执行 Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage055 P4。"

@@ -9,17 +9,17 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage055 Phase 3 - 2026-08-13
+## Current Gate - Stage055 Phase 4 - 2026-08-13
 
-- 本节覆盖下方 Stage055 P2/P1、Stage054 Review、P1--P4、Stage053 Review、P1--P4、Stage052 Review、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
-- 本轮完成 `IDS-V0_1-STAGE055-P3`：只重放 P2 的五条固定非业务 control，覆盖扫描 PDF、模糊图片、表格图片、中英文混合和低质量五类的候选保留、降级复核提示或显式失败；五类均有处置，静默丢弃为 `0`。
-- 扫描 PDF、模糊图片、表格图片、中英文混合和低质量均只是类别标签，来源页仅是 control 引用；P3 报告不保留 P2 的符号化 OCR 输出、图片引用或失败原因，因此没有建立第二权威事实源，也不形成真实样本或真实 OCR 结果。
-- 模糊 LOW 和中英文混合保持降级且未排队的 Stage054 受控复核状态；低质量页保持显式失败；扫描 PDF 和表格图片保持 `CANDIDATE` / `UNASSESSED`，表格结构未提取。五类均不能直接进入高可信证据层，且没有创建人工任务、队列或结果。
-- 缓存仍为 `IN_MEMORY_REBUILDABLE_NOT_PERSISTED`，本 control 重放未创建缓存或临时产物，清理结论为 `NO_TEMPORARY_ARTIFACT_CREATED`；这不构成真实 OCR 缓存容量、真实识别准确率或实际人工复核证明，容量、保留与清理仍归 Stage056。
+- 本节覆盖下方 Stage055 P3/P2/P1、Stage054 Review、P1--P4、Stage053 Review、P1--P4、Stage052 Review、Stage051 Review 及更早交接的历史指向；下方未特别标为当前的内容只保留为阶段证据。
+- 本轮完成 `IDS-V0_1-STAGE055-P4`：只从 P3 的五条固定非业务 OCR 回归语料 control 报告派生五个 metadata-only 交付样例、控制置信度汇总、显式失败清单、候选复核路由证明、质量限制、三条中文人工确认提示和缓存重跑说明。
+- 五个样例只保留场景、control 来源页引用、语言、置信度、状态与处置；不含 OCR 文本、业务正文、真实文件路径、页面图像、表格单元、真实来源内容、失败原因或人工意见。它们不是真实 OCR 输出、准确率报告、实际人工复核记录或生产验收，因此没有建立第二权威事实源。
+- 控制置信度为 `HIGH=1`、`MEDIUM=2`、`LOW=1`、`UNKNOWN=1`；低质量 control 保持一条显式失败，低置信、中英文混合和失败 control 只保留三条未排队的 Stage054 候选复核路由。候选、降级与失败均不能直接进入高可信证据层，且没有创建人工任务、队列或结果。
+- 缓存仍为 `IN_MEMORY_REBUILDABLE_NOT_PERSISTED`，未创建缓存或临时产物，清理结论为 `NO_TEMPORARY_ARTIFACT_CREATED`；重跑只在内存中重放固定 control，不扫描、删除或移动目录。这不构成真实 OCR 缓存容量、真实识别准确率或实际人工复核证明，容量、保留与清理仍归 Stage056。
 - 没有读取、创建或评估真实资料、授权 fixture、样本、PDF、图片、页面、表格或 OCR 文本；没有选择、配置、调用或比较 OCR 引擎，也没有执行真实回归、持久队列、持久按页输出、缓存、复核、质量门、持久化、Agent、模型调用、模型 Token、OVH、生产、上传或推送。
-- 已验证：Stage055 P3 聚焦用例 `11/11`；Stage055 P2/P1、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 `245/245`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理报告 `valid=true`；中文事实投影已重渲染 `7` 个文件。
-- 回滚只撤回本 P3 说明、场景合同、纯内存模块、聚焦用例、machine run、治理投影和生成的中文视图，恢复到 `PHASE2_OCR_REGRESSION_CORPUS_CONTROL_SLICE_ENGINE_DISABLED`；真实资料、既有 P1/P2 证据、运行状态、GitHub、OVH 与应用状态不在回滚范围内。
-- 下一步只允许在新的独立 run 进入 `IDS-STAGE055-P4-GATE`；本 run 不进入 P4，所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
+- 已验证：Stage055 P4 聚焦用例 `14/14`；Stage055 P3/P2/P1、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 `259/259`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理报告 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 回滚只撤回本 P4 说明、交付合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图，恢复到 `PHASE3_OCR_REGRESSION_CORPUS_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED`；真实资料、既有 P1/P2/P3 证据、运行状态、GitHub、OVH 与应用状态不在回滚范围内。
+- 下一步只允许在新的独立 run 进入 `IDS-STAGE055-REVIEW-GATE`；本 run 不进入整阶段复审，所有上传继续延后，直至完整冻结任务包完成 `ACC-STAGE-168`。
 
 ## Superseded Gate - Stage054 Review - 2026-08-13
 

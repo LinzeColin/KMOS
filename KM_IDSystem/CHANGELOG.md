@@ -1,5 +1,11 @@
 # Changelog
 
+## IDS v0.1 STAGE-055 Phase 4 - 2026-08-13
+
+- 完成 `IDS-V0_1-STAGE055-P4`：只从 P3 的五条固定非业务 OCR 回归语料 control 报告派生五个 metadata-only 交付样例、`HIGH=1/MEDIUM=2/LOW=1/UNKNOWN=1` 控制置信度汇总、一条显式失败、三条候选复核路由证明、质量限制、三条中文人工确认提示和缓存重跑说明。
+- 本地验证通过：Stage055 P4 聚焦用例 `14/14`；Stage055 P3/P2/P1、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 `259/259`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；治理报告 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 样例不包含 OCR 文本、业务正文、真实路径、页面图像、表格单元、真实来源内容、失败原因或人工意见；未读取真实资料、调用 OCR、创建实际复核、持久队列、缓存或运行时，未执行 Agent、模型 Token、OVH、生产、上传或推送。缓存保持 `IN_MEMORY_REBUILDABLE_NOT_PERSISTED`，临时产物为 `0`，清理结论为 `NO_TEMPORARY_ARTIFACT_CREATED`；后续仅允许在新的独立 run 进入 `IDS-STAGE055-REVIEW-GATE`。
+
 ## IDS v0.1 STAGE-055 Phase 3 - 2026-08-13
 
 - 完成 `IDS-V0_1-STAGE055-P3`：重放 P2 的五条固定非业务 control，覆盖扫描 PDF、模糊图片、表格图片、中英文混合和低质量五类的候选保留、降级复核提示或显式失败；五类均有处置，静默丢弃为 `0`。
