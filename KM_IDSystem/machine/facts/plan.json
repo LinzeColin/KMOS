@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE063",
-  "phase": "IDS-V0_1-STAGE063-P1",
-  "task": "IDS-V0_1-STAGE063-P1",
-  "owner": "Codex 专属 KMOS worktree，Stage063 Phase 1",
-  "objective": "只定义冻结 Stage063 章节感知切块的静态合同，明确八个仅引用输入、十四个未来输出、工程步骤/验收条款/参数表保护面、document/page/section/parser output 追溯、失败关闭、中文反馈和回滚边界；不读取、解析或切分真实资料。",
+  "phase": "IDS-V0_1-STAGE063-P2",
+  "task": "IDS-V0_1-STAGE063-P2",
+  "owner": "Codex 专属 KMOS worktree，Stage063 Phase 2",
+  "objective": "只在内存中验证三条固定、非业务、reference-only 章节感知切块请求，并投影三条待人工复核候选以机械覆盖 P1 的八字段输入、十四字段输出、三类工程语义保护面、六维追溯引用与关闭边界；不创建真实章节、切块、身份、版本、哈希、分类、覆盖率、质量、索引或运行能力。",
   "scope": [
-    "以冻结 Stage063 任务包、Stage062 Review 与 Batch061-070 上传锁为唯一合同上下文，不建立第二权威事实源",
-    "只定义 8/14 引用接口、3 类保护语义面、6 个追溯引用和 8 类失败关闭，不创建真实 chunk、来源绑定、索引或业务结论",
-    "保留 Stage047 parser 输出、Stage062 表格证据绑定、Stage064 身份/版本、Stage065 分类、Stage066 覆盖率、Stage067 回归和 Stage068 降级的唯一职责",
-    "同步 P1 说明、静态合同、聚焦单元用例、BATCH061-070 锁、路线图、machine run、事件、机器事实、中文视图与交接",
-    "只完成 ACC-STAGE-063 的 Phase 1 并指向 Stage063 Phase 2 门"
+    "以冻结 Stage063 任务包、Stage063 P1 静态合同、Stage062 Review 与 Batch061-070 上传锁为唯一合同上下文，不建立第二权威事实源",
+    "仅使用三条固定、非业务、:control: 引用的八字段请求，投影三条严格十四字段候选，保留三类保护语义面和十八个控制追溯引用",
+    "保留 Stage047 parser 输出、Stage062 表格证据绑定、Stage064 身份/版本/哈希、Stage065 分类、Stage066 覆盖率、Stage067 回归和 Stage068 降级的唯一职责",
+    "同步 P2 说明、切片合同、纯内存模块、聚焦单元用例、BATCH061-070 锁、路线图、machine run、事件、机器事实、中文视图与交接",
+    "只完成 ACC-STAGE-063 的 Phase 2 控制切片并指向 Stage063 Phase 3 门"
   ],
   "non_goals": [
     "不打开、创建、复制、移动、删除、修改、检测、解析或评估真实业务源、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、索引、事实库、证据账本、数据库或报告",
-    "不执行真实 parser、章节检测、切块、chunk 身份/版本、语义资产分类、覆盖率、质量回归、质量降级、来源追溯绑定、embedding、索引、数据库连接或 migration、持久化、Agent、模型调用、模型 Token、OVH、生产或上传",
-    "不启动 Stage063 Phase 2、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不执行真实 parser、章节检测、切块、chunk 身份/版本/哈希、语义资产分类、覆盖率、质量回归、质量降级、来源追溯绑定、embedding、索引、数据库连接或 migration、持久化、Agent、模型调用、模型 Token、OVH、生产或上传",
+    "不启动 Stage063 Phase 3、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage063 Phase 1 对静态章节感知切块合同、单一权威、8/14 引用接口、三类保护语义面、六个追溯引用、八类失败关闭、人工复核与回滚范围完成本地白箱验证后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE063-P2-GATE；任何真实文档或 parser 输出访问、章节检测、切块、chunk 身份/版本、分类、覆盖率、质量、来源追溯、索引、数据库、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "Stage063 Phase 2 对三条固定控制请求、8/14/3/6/18 形状、单一权威、保护表面、人工复核、中文反馈与回滚边界完成本地白箱验证后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE063-P3-GATE；任何真实文档或 parser 输出访问、章节检测、切块、chunk 身份/版本/哈希、分类、覆盖率、质量、来源追溯、索引、数据库、OVH、生产或上传动作都不属于本步骤。"
 }

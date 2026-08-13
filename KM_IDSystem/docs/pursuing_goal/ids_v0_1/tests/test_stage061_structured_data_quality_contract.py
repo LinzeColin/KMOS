@@ -346,6 +346,7 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE062-P4", "IDS-STAGE062-REVIEW-GATE"),
                 ("IDS-STAGE062-REVIEW", "IDS-STAGE063-P1-GATE"),
                 ("IDS-V0_1-STAGE063-P1", "IDS-STAGE063-P2-GATE"),
+                ("IDS-V0_1-STAGE063-P2", "IDS-STAGE063-P3-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -364,6 +365,7 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE062-P4",
                 "IDS-V0_1-STAGE062-REVIEW",
                 "IDS-V0_1-STAGE063-P1",
+                "IDS-V0_1-STAGE063-P2",
             ),
         )
         self.assertIn(status["next_gate"], plan["stop_condition"])
@@ -389,6 +391,7 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
         self.assertTrue(
             'current_stage_id: "IDS-STAGE061"' in roadmap_text
             or 'current_stage_id: "IDS-STAGE062"' in roadmap_text
+            or 'current_stage_id: "IDS-STAGE063"' in roadmap_text
         )
         self.assertTrue(
             (
@@ -423,6 +426,14 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
                 'current_phase_id: "IDS-STAGE062-REVIEW"' in roadmap_text
                 and 'next_gate_id: "IDS-STAGE063-P1-GATE"' in roadmap_text
             )
+            or (
+                'current_phase_id: "IDS-STAGE063-P1"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE063-P2-GATE"' in roadmap_text
+            )
+            or (
+                'current_phase_id: "IDS-STAGE063-P2"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE063-P3-GATE"' in roadmap_text
+            )
         )
         self.assertEqual("phase_completed", event["event_type"])
         self.assertEqual("IDS-V0_1-STAGE061-P1", event["task_id"])
@@ -445,6 +456,10 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
             or (
                 "ACC-STAGE063-P1-01" in human_acceptance
                 and "RUN-IDS-STAGE063-P1-LOCAL-20260814-001" in human_acceptance
+            )
+            or (
+                "ACC-STAGE063-P2-01" in human_acceptance
+                and "RUN-IDS-STAGE063-P2-LOCAL-20260814-001" in human_acceptance
             ),
             human_acceptance,
         )

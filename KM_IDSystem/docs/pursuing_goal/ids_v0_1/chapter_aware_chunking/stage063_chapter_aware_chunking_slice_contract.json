@@ -1,0 +1,239 @@
+{
+  "schema_version": "ids.stage063.chapter_aware_chunking.phase2.v1",
+  "stage": "STAGE-063",
+  "phase": "Phase 2",
+  "task_id": "IDS-V0_1-STAGE063-P2",
+  "acceptance_id": "ACC-STAGE-063",
+  "local_code": "D11-S001",
+  "domain": "D11 · Chunking 与语义资产",
+  "entrance": "IDS 系统运营入口",
+  "pursuing_goal": "以三条固定、非业务、reference-only 章节感知切块控制请求在内存中投影三条待人工复核候选，机械验证 P1 的八字段输入、十四字段输出、三类工程语义保护面和六维追溯引用；不读取、解析、检测、切分、分类、计算或写入真实文档、chunk、索引或事实。",
+  "contract_state": "PHASE2_CHAPTER_AWARE_CHUNKING_CONTROL_SLICE_RUNTIME_DISABLED",
+  "slice_executable": true,
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE063-P3-GATE",
+  "source_authority": {
+    "authority": "FROZEN_STAGE063_TASKPACK_AND_PHASE1_AND_STAGE062_REVIEW_ARTIFACTS_ONLY",
+    "frozen_taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-063_章节感知切块.md",
+    "phase1_contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chapter_aware_chunking/stage063_chapter_aware_chunking_contract.json",
+    "predecessor_stage_review_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE062_STAGE_REVIEW.md",
+    "predecessor_stage_review_run_ref": "KM_IDSystem/machine/runs/2026-08-14-stage062-review-local.json",
+    "predecessor_batch_lock_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false,
+    "authorized_fixture_access_performed": false
+  },
+  "ownership_boundary": {
+    "stage063_phase1_contract_reused_as_reference_only": true,
+    "predecessor_stage062_review_reused_as_reference_only": true,
+    "chapter_aware_chunking_control_candidate_slice_owner": "STAGE-063 Phase 2",
+    "parser_output_contract_owner": "STAGE-047",
+    "table_evidence_binding_owner": "STAGE-062",
+    "chunk_identity_and_version_owner": "STAGE-064",
+    "engineering_semantic_asset_classification_owner": "STAGE-065",
+    "chunk_coverage_metrics_owner": "STAGE-066",
+    "chunk_quality_regression_owner": "STAGE-067",
+    "quality_degradation_and_human_review_owner": "STAGE-068",
+    "upstream_contract_rewrite_allowed": false,
+    "real_source_or_persistent_runtime_activation_allowed": false,
+    "in_memory_control_candidate_projection_allowed": true
+  },
+  "reference_only_chunking_input_control_contract": {
+    "mode": "FIXED_NON_BUSINESS_IN_MEMORY_CHAPTER_AWARE_CHUNKING_CONTROL",
+    "required_fields": [
+      "chunking_request_ref",
+      "document_ref",
+      "page_ref",
+      "section_ref",
+      "parser_output_ref",
+      "table_context_ref",
+      "engineering_semantic_asset_ref",
+      "source_fragment_ref"
+    ],
+    "field_count": 8,
+    "control_request_count": 3,
+    "protected_semantic_asset_types": [
+      "ENGINEERING_PROCEDURE_STEP",
+      "ACCEPTANCE_CLAUSE",
+      "PARAMETER_TABLE"
+    ],
+    "protected_semantic_asset_type_count": 3,
+    "additional_fields_allowed": false,
+    "source_body_or_path_allowed": false,
+    "page_content_allowed": false,
+    "section_text_allowed": false,
+    "table_content_allowed": false,
+    "parser_output_content_allowed": false,
+    "source_fragment_content_allowed": false,
+    "actual_input_request_count": 0,
+    "actual_document_or_parser_output_read_performed": false
+  },
+  "chapter_aware_chunk_candidate_contract": {
+    "mode": "IN_MEMORY_REFERENCE_ONLY_CHAPTER_AWARE_CHUNK_CANDIDATE_NOT_CHUNKED_NOT_PERSISTED",
+    "required_fields": [
+      "chapter_aware_chunk_ref",
+      "chunking_request_ref",
+      "document_ref",
+      "page_ref",
+      "section_ref",
+      "parser_output_ref",
+      "table_context_ref",
+      "source_fragment_ref",
+      "chunk_identity_ref",
+      "chunk_version_ref",
+      "semantic_asset_type_ref",
+      "coverage_reference_ref",
+      "quality_disposition_ref",
+      "human_review_state"
+    ],
+    "field_count": 14,
+    "control_candidate_count": 3,
+    "initial_human_review_state": "REQUIRED_WHEN_TRACEABILITY_OR_BOUNDARY_UNVERIFIED",
+    "additional_fields_allowed": false,
+    "actual_chunk_created": false,
+    "actual_chunk_persisted": false,
+    "actual_chunk_identity_created": false,
+    "actual_chunk_version_created": false,
+    "actual_semantic_asset_classification_created": false,
+    "actual_coverage_metric_created": false,
+    "actual_quality_disposition_created": false
+  },
+  "chapter_and_protected_surface_control_contract": {
+    "one_control_candidate_per_protected_semantic_asset_type": true,
+    "protected_surface_split_allowed": false,
+    "arbitrary_fixed_character_cut_allowed": false,
+    "control_label_is_not_actual_chapter_detection": true,
+    "control_label_is_not_actual_semantic_asset_classification": true,
+    "cross_page_parameter_table_requires_human_handling": true,
+    "actual_chapter_boundary_detected": false,
+    "actual_protected_surface_split_detected": false
+  },
+  "traceability_control_contract": {
+    "required_traceability_fields": [
+      "document_ref",
+      "page_ref",
+      "section_ref",
+      "parser_output_ref",
+      "table_context_ref",
+      "source_fragment_ref"
+    ],
+    "traceability_field_count": 6,
+    "control_traceability_reference_count": 18,
+    "control_traceability_reference_shape_validation_performed": true,
+    "actual_traceability_binding_count": 0,
+    "actual_document_traceability_validated": false,
+    "actual_page_traceability_validated": false,
+    "actual_section_traceability_validated": false,
+    "actual_parser_output_traceability_validated": false,
+    "actual_table_context_traceability_validated": false,
+    "actual_source_fragment_traceability_validated": false
+  },
+  "future_stage_interface_boundary": {
+    "chunk_id_or_chunk_hash_implementation_owner": "STAGE-064",
+    "chunk_version_implementation_owner": "STAGE-064",
+    "semantic_asset_type_implementation_owner": "STAGE-065",
+    "coverage_calculation_owner": "STAGE-066",
+    "quality_regression_execution_owner": "STAGE-067",
+    "quality_degradation_execution_owner": "STAGE-068",
+    "control_reference_projection_performed": true,
+    "chunk_identity_or_version_implementation_performed": false,
+    "chunk_hash_computation_performed": false,
+    "semantic_asset_classification_performed": false,
+    "coverage_calculation_performed": false,
+    "quality_regression_performed": false,
+    "quality_degradation_performed": false,
+    "embedding_or_index_write_performed": false
+  },
+  "authority_and_decision_boundary": {
+    "source_document_remains_authoritative": true,
+    "chunk_candidate_can_replace_source_document": false,
+    "chunk_candidate_can_become_business_fact_authority": false,
+    "model_direct_text_guessing_allowed": false,
+    "model_decision_conclusion_authoritative": false,
+    "all_control_candidates_require_human_review": true,
+    "actual_business_decision_created": false
+  },
+  "failure_and_stop_contract": {
+    "invalid_control_input_state": "REJECTED",
+    "declared_failure_states": [
+      "CHUNKING_REQUEST_REFERENCE_MISSING",
+      "DOCUMENT_REFERENCE_MISSING",
+      "PAGE_REFERENCE_MISSING",
+      "SECTION_REFERENCE_MISSING",
+      "PARSER_OUTPUT_REFERENCE_MISSING",
+      "SOURCE_FRAGMENT_REFERENCE_MISSING",
+      "SAFE_CHAPTER_BOUNDARY_UNRESOLVED",
+      "PROTECTED_SEMANTIC_SURFACE_REQUIRES_HUMAN_HANDLING"
+    ],
+    "failure_state_count": 8,
+    "unknown_or_reordered_control_input_rejected": true,
+    "unverified_traceability_blocks_chunk_output": true,
+    "automatic_business_write_allowed": false,
+    "actual_failure_record_created": false
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "authorized_fixture_access_performed": false,
+    "source_file_open_performed": false,
+    "parser_execution_performed": false,
+    "chapter_detection_performed": false,
+    "chunking_execution_performed": false,
+    "chunk_hash_computation_performed": false,
+    "semantic_asset_classification_performed": false,
+    "coverage_calculation_performed": false,
+    "quality_regression_performed": false,
+    "quality_degradation_performed": false,
+    "source_traceability_binding_performed": false,
+    "embedding_or_index_write_performed": false,
+    "database_connection_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "local_service_start_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "stage063_started": true,
+    "phase2_started": true,
+    "phase3_started": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "chinese_feedback_contract": {
+    "all_messages_chinese": true,
+    "automation_claim_allowed": false,
+    "production_availability_claim_allowed": false,
+    "messages": [
+      {
+        "code": "CHAPTER_AWARE_CONTROL_CANDIDATES_PROJECTED",
+        "message": "当前只在内存中投影固定章节感知切块控制候选，未读取、打开、解析、检测或切分任何真实文档、页面、章节、表格、来源片段或 parser 输出。"
+      },
+      {
+        "code": "TRACEABILITY_REFERENCE_SHAPE_PRESERVED",
+        "message": "候选只保留文档、页面、章节、解析输出、表格上下文和来源片段的控制引用，未创建真实 chunk、追溯绑定、索引或业务事实。"
+      },
+      {
+        "code": "PROTECTED_SURFACES_REQUIRE_HUMAN_REVIEW",
+        "message": "工程步骤、验收条款和参数表控制候选均保持原子且待人工复核；控制标签不构成真实章节检测或语义分类。"
+      },
+      {
+        "code": "LATER_STAGE_OWNERSHIP_REMAINS_CLOSED",
+        "message": "chunk 身份、版本、哈希、真实语义分类、覆盖率、质量回归和质量降级仍由后续阶段负责；无法确认边界或追溯时必须交由人工处理。"
+      }
+    ]
+  },
+  "rollback_contract": {
+    "return_to": "PHASE1_CHAPTER_AWARE_CHUNKING_CONTRACT_RUNTIME_DISABLED",
+    "phase1_contract_preserved": true,
+    "source_or_raw_data_change_allowed": false,
+    "fixture_change_allowed": false,
+    "database_or_persistent_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

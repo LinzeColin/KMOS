@@ -217,7 +217,7 @@ class Stage063ChapterAwareChunkingContractPhase1Tests(unittest.TestCase):
         self.assertTrue(runtime["stage063_started"])
         self.assertTrue(runtime["stage063_entry_authorized"])
 
-    def test_current_governance_records_phase1_and_only_phase2_next(self):
+    def test_current_governance_preserves_phase1_evidence_or_legal_phase2_successor(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
@@ -226,22 +226,37 @@ class Stage063ChapterAwareChunkingContractPhase1Tests(unittest.TestCase):
         run = json.loads(RUN.read_text(encoding="utf-8"))
 
         self.assertEqual("IDS-STAGE063", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE063-P1", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE063-P1", status["task"])
-        self.assertEqual("IDS-STAGE063-P2-GATE", status["next_gate"])
+        self.assertIn(
+            (status["phase"], status["task"], status["next_gate"]),
+            (
+                ("IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P1", "IDS-STAGE063-P2-GATE"),
+                ("IDS-V0_1-STAGE063-P2", "IDS-V0_1-STAGE063-P2", "IDS-STAGE063-P3-GATE"),
+            ),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertEqual("IDS-STAGE063", plan["stage"])
-        self.assertEqual("IDS-V0_1-STAGE063-P1", plan["phase"])
-        self.assertEqual("IDS-V0_1-STAGE063-P1", plan["task"])
-        self.assertIn("IDS-STAGE063-P2-GATE", plan["stop_condition"])
+        self.assertIn(plan["phase"], ("IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P2"))
+        self.assertIn(plan["task"], ("IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P2"))
+        self.assertTrue(
+            "IDS-STAGE063-P2-GATE" in plan["stop_condition"]
+            or "IDS-STAGE063-P3-GATE" in plan["stop_condition"]
+        )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue({"ACC-STAGE063-P1-01", "ACC-STAGE063-P1-02", "ACC-STAGE063-P1-03", "ACC-STAGE063-P1-04"}.issubset(acceptance_ids))
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         self.assertIn('current_stage_id: "IDS-STAGE063"', roadmap_text)
-        self.assertIn('current_phase_id: "IDS-STAGE063-P1"', roadmap_text)
-        self.assertIn('next_gate_id: "IDS-STAGE063-P2-GATE"', roadmap_text)
+        self.assertTrue(
+            (
+                'current_phase_id: "IDS-STAGE063-P1"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE063-P2-GATE"' in roadmap_text
+            )
+            or (
+                'current_phase_id: "IDS-STAGE063-P2"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE063-P3-GATE"' in roadmap_text
+            )
+        )
         self.assertEqual("phase_completed", event["event_type"])
         self.assertEqual("IDS-V0_1-STAGE063-P1", event["task_id"])
         self.assertEqual(["ACC-STAGE-063"], event["acceptance_ids"])

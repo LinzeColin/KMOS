@@ -1,0 +1,299 @@
+import importlib.util
+import json
+from pathlib import Path
+import unittest
+
+
+ROOT = Path(__file__).resolve().parents[4]
+BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
+PHASE1_CONTRACT = (
+    BASE / "chapter_aware_chunking" / "stage063_chapter_aware_chunking_contract.json"
+)
+PHASE2 = BASE / "STAGE063_PHASE2_CHAPTER_AWARE_CHUNKING_CONTROL_SLICE.md"
+CONTRACT = (
+    BASE / "chapter_aware_chunking" / "stage063_chapter_aware_chunking_slice_contract.json"
+)
+SLICE = BASE / "chapter_aware_chunking" / "stage063_chapter_aware_chunking_slice.py"
+BATCH = BASE / "BATCH061_070_UPLOAD_LOCK.yaml"
+ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
+EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
+STATUS = ROOT / "machine" / "facts" / "status.json"
+PLAN = ROOT / "machine" / "facts" / "plan.json"
+ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-14-stage063-p2-local.json"
+
+
+class Stage063ChapterAwareChunkingPhase2Tests(unittest.TestCase):
+    def _slice(self):
+        spec = importlib.util.spec_from_file_location(
+            "stage063_chapter_aware_chunking_slice", SLICE
+        )
+        module = importlib.util.module_from_spec(spec)
+        self.assertIsNotNone(spec.loader)
+        spec.loader.exec_module(module)
+        return module
+
+    def _contract(self):
+        return json.loads(CONTRACT.read_text(encoding="utf-8"))
+
+    def _control(self):
+        return {
+            "chapter_aware_chunking_requests": [
+                {
+                    "chunking_request_ref": "chunking-request:control:stage063-p2:procedure",
+                    "document_ref": "document:control:stage063-p2:procedure",
+                    "page_ref": "page:control:stage063-p2:procedure",
+                    "section_ref": "section:control:stage063-p2:procedure",
+                    "parser_output_ref": "parser-output:control:stage063-p2:procedure",
+                    "table_context_ref": "table-context:control:stage063-p2:procedure",
+                    "engineering_semantic_asset_ref": "engineering-semantic-asset:control:stage063-p2:ENGINEERING_PROCEDURE_STEP",
+                    "source_fragment_ref": "source-fragment:control:stage063-p2:procedure",
+                },
+                {
+                    "chunking_request_ref": "chunking-request:control:stage063-p2:acceptance",
+                    "document_ref": "document:control:stage063-p2:acceptance",
+                    "page_ref": "page:control:stage063-p2:acceptance",
+                    "section_ref": "section:control:stage063-p2:acceptance",
+                    "parser_output_ref": "parser-output:control:stage063-p2:acceptance",
+                    "table_context_ref": "table-context:control:stage063-p2:acceptance",
+                    "engineering_semantic_asset_ref": "engineering-semantic-asset:control:stage063-p2:ACCEPTANCE_CLAUSE",
+                    "source_fragment_ref": "source-fragment:control:stage063-p2:acceptance",
+                },
+                {
+                    "chunking_request_ref": "chunking-request:control:stage063-p2:parameter-table",
+                    "document_ref": "document:control:stage063-p2:parameter-table",
+                    "page_ref": "page:control:stage063-p2:parameter-table",
+                    "section_ref": "section:control:stage063-p2:parameter-table",
+                    "parser_output_ref": "parser-output:control:stage063-p2:parameter-table",
+                    "table_context_ref": "table-context:control:stage063-p2:parameter-table",
+                    "engineering_semantic_asset_ref": "engineering-semantic-asset:control:stage063-p2:PARAMETER_TABLE",
+                    "source_fragment_ref": "source-fragment:control:stage063-p2:parameter-table",
+                },
+            ]
+        }
+
+    def test_phase2_artifacts_exist(self):
+        for artifact in (
+            PHASE1_CONTRACT,
+            PHASE2,
+            CONTRACT,
+            SLICE,
+            BATCH,
+            ROADMAP,
+            EVENTS,
+            STATUS,
+            PLAN,
+            ACCEPTANCE,
+            RUN,
+        ):
+            with self.subTest(artifact=artifact):
+                self.assertTrue(artifact.is_file())
+
+    def test_contract_is_executable_but_real_sources_and_runtime_remain_disabled(self):
+        contract = self._contract()
+        self.assertEqual(
+            "ids.stage063.chapter_aware_chunking.phase2.v1",
+            contract["schema_version"],
+        )
+        self.assertEqual("IDS-V0_1-STAGE063-P2", contract["task_id"])
+        self.assertTrue(contract["slice_executable"])
+        self.assertFalse(contract["execution_ready"])
+        self.assertEqual("IDS-STAGE063-P3-GATE", contract["next_gate"])
+        self.assertFalse(contract["source_authority"]["second_authoritative_source_created"])
+        inputs = contract["reference_only_chunking_input_control_contract"]
+        self.assertEqual(8, inputs["field_count"])
+        self.assertEqual(3, inputs["control_request_count"])
+        candidates = contract["chapter_aware_chunk_candidate_contract"]
+        self.assertEqual(14, candidates["field_count"])
+        self.assertEqual(3, candidates["control_candidate_count"])
+        self.assertEqual(6, contract["traceability_control_contract"]["traceability_field_count"])
+        self.assertFalse(contract["runtime_boundary"]["chunking_execution_performed"])
+        self.assertFalse(contract["runtime_boundary"]["production_runtime_activation_performed"])
+
+    def test_control_slice_projects_three_atomic_candidates_from_phase1_shape(self):
+        result = self._slice().execute_chapter_aware_chunking_control_slice(self._control())
+        self.assertTrue(result["input_accepted"])
+        self.assertEqual(
+            "COMPLETED_IN_MEMORY_CHAPTER_AWARE_CHUNKING_CANDIDATE_CONTROL_SLICE",
+            result["execution_state"],
+        )
+        self.assertEqual(3, result["control_chunking_request_count"])
+        self.assertEqual(0, result["actual_input_request_count"])
+        self.assertEqual(3, result["chapter_aware_chunk_candidate_count"])
+        self.assertEqual(
+            ["ENGINEERING_PROCEDURE_STEP", "ACCEPTANCE_CLAUSE", "PARAMETER_TABLE"],
+            result["protected_semantic_asset_types_covered"],
+        )
+        self.assertTrue(result["one_control_candidate_per_protected_semantic_asset_type"])
+        self.assertTrue(result["all_protected_surfaces_atomic"])
+        self.assertTrue(result["control_chapter_aware_chunk_candidate_projection_performed"])
+
+    def test_candidates_keep_exact_output_shape_and_control_traceability(self):
+        result = self._slice().execute_chapter_aware_chunking_control_slice(self._control())
+        candidate = result["chapter_aware_chunk_candidates"][0]
+        self.assertEqual(
+            {
+                "chapter_aware_chunk_ref",
+                "chunking_request_ref",
+                "document_ref",
+                "page_ref",
+                "section_ref",
+                "parser_output_ref",
+                "table_context_ref",
+                "source_fragment_ref",
+                "chunk_identity_ref",
+                "chunk_version_ref",
+                "semantic_asset_type_ref",
+                "coverage_reference_ref",
+                "quality_disposition_ref",
+                "human_review_state",
+            },
+            set(candidate),
+        )
+        for field in (
+            "document_ref",
+            "page_ref",
+            "section_ref",
+            "parser_output_ref",
+            "table_context_ref",
+            "source_fragment_ref",
+        ):
+            with self.subTest(field=field):
+                self.assertIn(":control:", candidate[field])
+        self.assertEqual(
+            "REQUIRED_WHEN_TRACEABILITY_OR_BOUNDARY_UNVERIFIED",
+            candidate["human_review_state"],
+        )
+        self.assertTrue(result["control_traceability_reference_shape_preserved"])
+        self.assertEqual(18, result["control_traceability_reference_count"])
+        self.assertFalse(result["source_body_or_parser_output_or_fragment_content_retained"])
+
+    def test_later_stage_implementations_and_external_actions_remain_closed(self):
+        result = self._slice().execute_chapter_aware_chunking_control_slice(self._control())
+        self.assertTrue(result["all_human_review_required"])
+        for field in (
+            "actual_chapter_boundary_detected",
+            "actual_protected_surface_split_detected",
+            "chunk_identity_or_version_implementation_performed",
+            "chunk_hash_computation_performed",
+            "semantic_asset_classification_performed",
+            "coverage_calculation_performed",
+            "quality_regression_performed",
+            "quality_degradation_performed",
+            "source_traceability_binding_performed",
+            "actual_chunk_created",
+            "actual_chunk_persisted",
+            "embedding_or_index_write_performed",
+            "database_connection_performed",
+            "persistent_state_write_performed",
+            "ids_business_source_read_performed",
+            "raw_metadata_content_accessed",
+            "authorized_fixture_access_performed",
+            "source_file_open_performed",
+            "parser_execution_performed",
+            "agent_execution_performed",
+            "model_call_performed",
+            "model_token_consumption_performed",
+            "local_service_start_performed",
+            "ovh_deployment_performed",
+            "production_runtime_activation_performed",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(result[field])
+        self.assertFalse(result["model_direct_text_guessing_allowed"])
+
+    def test_invalid_reordered_or_tampered_control_input_rejects(self):
+        slice_module = self._slice()
+        unexpected = self._control()
+        unexpected["unexpected"] = "not accepted"
+        rejected = slice_module.execute_chapter_aware_chunking_control_slice(unexpected)
+        self.assertFalse(rejected["input_accepted"])
+        self.assertEqual("REJECTED", rejected["execution_state"])
+        self.assertEqual([], rejected["chapter_aware_chunk_candidates"])
+        self.assertFalse(
+            rejected["control_chapter_aware_chunk_candidate_projection_performed"]
+        )
+
+        reordered = self._control()
+        reordered["chapter_aware_chunking_requests"].reverse()
+        self.assertFalse(
+            slice_module.execute_chapter_aware_chunking_control_slice(reordered)[
+                "input_accepted"
+            ]
+        )
+
+        tampered = self._control()
+        tampered["chapter_aware_chunking_requests"][0]["source_fragment_ref"] = (
+            "source-fragment:control:stage063-p2:unexpected"
+        )
+        self.assertFalse(
+            slice_module.execute_chapter_aware_chunking_control_slice(tampered)[
+                "input_accepted"
+            ]
+        )
+
+    def test_chinese_feedback_is_present(self):
+        result = self._slice().execute_chapter_aware_chunking_control_slice(self._control())
+        self.assertEqual(4, len(result["chinese_feedback"]))
+        self.assertTrue(
+            all(
+                any("\u4e00" <= char <= "\u9fff" for char in message)
+                for message in result["chinese_feedback"]
+            )
+        )
+
+    def test_current_governance_event_and_run_close_only_phase2(self):
+        status = json.loads(STATUS.read_text(encoding="utf-8"))
+        plan = json.loads(PLAN.read_text(encoding="utf-8"))
+        acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
+        run = json.loads(RUN.read_text(encoding="utf-8"))
+        events = [
+            json.loads(line)
+            for line in EVENTS.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        event = next(
+            item
+            for item in events
+            if item.get("event_id") == "EVT-IDS-V0_1-STAGE063-P2-20260814-001"
+        )
+
+        self.assertEqual("IDS-STAGE063", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE063-P2", status["phase"])
+        self.assertEqual("IDS-V0_1-STAGE063-P2", status["task"])
+        self.assertEqual("IDS-STAGE063-P3-GATE", status["next_gate"])
+        self.assertFalse(status["runtime_enabled"])
+        self.assertFalse(status["push_allowed"])
+        self.assertEqual("IDS-STAGE063", plan["stage"])
+        self.assertEqual("IDS-V0_1-STAGE063-P2", plan["phase"])
+        self.assertEqual("IDS-V0_1-STAGE063-P2", plan["task"])
+        self.assertIn("IDS-STAGE063-P3-GATE", plan["stop_condition"])
+        self.assertIn("OVH", plan["stop_condition"])
+        acceptance_ids = {item["id"] for item in acceptance["items"]}
+        self.assertTrue(
+            {
+                "ACC-STAGE063-P2-01",
+                "ACC-STAGE063-P2-02",
+                "ACC-STAGE063-P2-03",
+                "ACC-STAGE063-P2-04",
+            }.issubset(acceptance_ids)
+        )
+        roadmap_text = ROADMAP.read_text(encoding="utf-8")
+        self.assertIn('current_phase_id: "IDS-STAGE063-P2"', roadmap_text)
+        self.assertIn('next_gate_id: "IDS-STAGE063-P3-GATE"', roadmap_text)
+        batch_text = BATCH.read_text(encoding="utf-8")
+        self.assertIn('status: "stage063_phase2_completed"', batch_text)
+        self.assertIn('current_task_id: "IDS-V0_1-STAGE063-P2"', batch_text)
+        self.assertIn('next_allowed_task_id: "IDS-V0_1-STAGE063-P3"', batch_text)
+        self.assertEqual("phase_completed", event["event_type"])
+        self.assertEqual("IDS-V0_1-STAGE063-P2", event["task_id"])
+        self.assertEqual(["ACC-STAGE-063"], event["acceptance_ids"])
+        self.assertEqual("RUN-IDS-STAGE063-P2-LOCAL-20260814-001", run["run_id"])
+        self.assertEqual("IDS-STAGE063", run["stage"])
+        self.assertEqual("IDS-V0_1-STAGE063-P2", run["task_id"])
+        self.assertEqual("IDS-STAGE063-P3-GATE", run["next_gate"])
+        self.assertTrue(run["result"].startswith("PASS_LOCAL_"))
+
+
+if __name__ == "__main__":
+    unittest.main()
