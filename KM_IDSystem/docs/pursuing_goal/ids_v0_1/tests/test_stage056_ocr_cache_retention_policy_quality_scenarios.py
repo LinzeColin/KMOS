@@ -308,6 +308,7 @@ class Stage056OcrCacheRetentionPolicyPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE058-P4",
             "IDS-V0_1-STAGE058-REVIEW",
             "IDS-V0_1-STAGE059-P1",
+            "IDS-V0_1-STAGE059-P2",
             ),
         )
         self.assertIn(
@@ -327,6 +328,7 @@ class Stage056OcrCacheRetentionPolicyPhase3Tests(unittest.TestCase):
                 "IDS-STAGE058-REVIEW-GATE",
                 "IDS-STAGE059-P1-GATE",
                 "IDS-STAGE059-P2-GATE",
+                "IDS-STAGE059-P3-GATE",
             ),
         )
         events = [

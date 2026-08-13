@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-13 · IDS v0.1 Stage059 Phase 2（本地）
+
+- 完成事实抽取纯内存控制切片：两条固定非业务 reference-only 十二字段输入投影 `3` 条二十五字段 typed fact 控制候选，覆盖生产、质量和检验三类事实、七类 typed 语义、三类候选字段类型、一个数值字段候选、六类来源位置和 RAG/数值权威边界；`typed_value` 始终为空。
+- 本地验证通过：Stage059 P2 聚焦用例 `9/9`；Stage059 P2/P1、Stage058 Review/P1--P4、Stage057 Review/P1-P4、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041_050 的合并回归 `441/441`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 未读取、打开、检测、解析或抽取真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行真实 schema、字段、事实、typed value、RAG、统计、质量验证、来源/证据绑定、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE059-P3-GATE`。
+
 ## 2026-08-13 · IDS v0.1 Stage059 Phase 1（本地）
 
 - 完成事实抽取基线静态合同：定义生产、质量和检验事实的 `12/25/3/7/6/10` 形状，即十二字段引用输入、二十五字段未来 typed fact 输出、三类事实、七类 typed 语义、六类来源位置和十类失败关闭，并固定数值与 RAG 的权威边界、中文反馈和回滚范围。

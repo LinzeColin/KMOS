@@ -9,7 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage059 Phase 1 - 2026-08-13
+## Current Gate - Stage059 Phase 2 - 2026-08-13
+
+- 本节是唯一当前交接；下方 Stage059 P1、Stage058 Review/P4/P3/P2/P1、Stage057 Review/P4/P3/P2/P1 与更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE059-P2`：只以冻结 Stage059 任务包、P1 静态合同和 Stage058 已复审工件为合同上下文，用两条固定、非业务、reference-only 十二字段输入在内存中投影三条二十五字段 typed fact 控制候选；没有建立第二权威事实源。
+- 三条控制候选覆盖 `PRODUCTION_FACT`、`QUALITY_FACT` 与 `INSPECTION_FACT`，并保留 Schema profile、字段候选、来源文档、工作表、表头行、行列范围和 evidence 的控制引用。`typed_value` 始终为空；候选、引用和字段类型均不构成真实业务事实、真实表头、真实来源绑定或证据记录。
+- RAG 摘要候选为 `0` 且继续归 Stage060；摘要不能替代结构化事实或成为数值统计依据。数值候选仅用于验证字段形状，未执行统计；无效控制输入返回 `REJECTED`，真实字段、typed value、来源位置或证据无法确认时仍须人工处理。
+- 已验证：Stage059 P2 聚焦用例 `9/9`；Stage059 P2/P1、Stage058 Review/P1--P4、Stage057 Review/P1--P4、Stage056 Review/P1--P4、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 `441/441`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归为 `valid=true`；中文事实投影重渲染 `7` 个文件。
+- 没有读取、打开、检测、解析或抽取真实 XLSX/CSV、生产记录、质量检验记录、授权 fixture、工作表、表头、单元格、公式、来源正文或物理路径；没有执行真实 Schema/字段/事实/typed value、RAG 摘要、数值统计、质量验证、来源/证据绑定、数据库、持久化、Agent、模型调用、模型 Token、服务启动、OVH、生产、GitHub 上传或推送；`phase2_started=true`、`phase3_started=false`、`github_upload_allowed=false`、`push_allowed=false`。
+- 回滚只撤回本 P2 说明、切片合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `PHASE1_FACT_EXTRACTION_BASELINE_CONTRACT_RUNTIME_DISABLED`；不改变 P1、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE059-P3-GATE`。本 run 不进入 P3、整阶段复审、批次复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage059 Phase 1 - 2026-08-13
 
 - 本节是唯一当前交接；下方 Stage058 Review/P4/P3/P2/P1、Stage057 Review/P4/P3/P2/P1 与更早章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE059-P1`：只以冻结 Stage059 任务包和 Stage058 已复审工件为唯一合同上下文，定义生产、质量和检验事实抽取的引用输入、未来 typed fact 输出、字段语义、数值/RAG 边界、来源定位、失败关闭、中文反馈与回滚合同；没有建立第二权威事实源。

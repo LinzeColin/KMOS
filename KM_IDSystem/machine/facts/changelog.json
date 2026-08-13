@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage059-p2-local",
+    "date": "2026-08-13",
+    "summary": "完成 Stage059 P2 事实抽取控制切片：以两条固定非业务 reference-only 输入在内存中投影三条二十五字段 typed fact 控制候选，覆盖生产、质量和检验三类事实、七类 typed 语义、六类来源位置、RAG 分离与数值权威边界；typed value 始终为空。未读取、打开、解析或抽取真实表格、生产记录、质检记录或 fixture，未执行真实 schema/字段/事实、摘要、统计、质量验证、来源/证据写入、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage059 P3。"
+  },
+  {
     "version": "v0.1-stage059-p1-local",
     "date": "2026-08-13",
     "summary": "完成 Stage059 P1 事实抽取基线静态合同：定义生产、质量和检验事实的十二字段引用输入、二十五字段未来 typed fact 输出、三类事实、七类 typed 语义、六类来源位置、十类失败关闭、数值与 RAG 权威边界、中文反馈和回滚范围。未读取、打开、解析或抽取真实表格、生产记录、质检记录或 fixture，未执行 schema 推断、字段识别、typed value、事实、摘要、统计、质量验证、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage059 P2。"

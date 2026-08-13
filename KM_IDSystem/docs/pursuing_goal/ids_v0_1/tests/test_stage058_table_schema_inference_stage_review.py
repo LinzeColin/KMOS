@@ -210,15 +210,15 @@ class Stage058TableSchemaInferenceStageReviewTests(unittest.TestCase):
         self.assertIn(status["stage"], ("IDS-STAGE058", "IDS-STAGE059"))
         self.assertIn(
             status["phase"],
-            ("IDS-V0_1-STAGE058-REVIEW", "IDS-V0_1-STAGE059-P1"),
+            ("IDS-V0_1-STAGE058-REVIEW", "IDS-V0_1-STAGE059-P1", "IDS-V0_1-STAGE059-P2"),
         )
         self.assertIn(
             status["task"],
-            ("IDS-V0_1-STAGE058-REVIEW", "IDS-V0_1-STAGE059-P1"),
+            ("IDS-V0_1-STAGE058-REVIEW", "IDS-V0_1-STAGE059-P1", "IDS-V0_1-STAGE059-P2"),
         )
         self.assertIn(
             status["next_gate"],
-            ("IDS-STAGE059-P1-GATE", "IDS-STAGE059-P2-GATE"),
+            ("IDS-STAGE059-P1-GATE", "IDS-STAGE059-P2-GATE", "IDS-STAGE059-P3-GATE"),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
