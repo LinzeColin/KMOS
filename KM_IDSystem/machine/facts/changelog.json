@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage057-p3-local",
+    "date": "2026-08-13",
+    "summary": "完成 Stage057 P3 XLSX/CSV 接入受控质量场景：重放 P2 两条固定非业务 reference-only 控制记录形成的候选，覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置，控制来源引用形状可重放且未验证数值阻断统计和模型确定性结论。未读取、检测或解析真实表格或 fixture，未执行真实质量验证、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage057 P4。"
+  },
+  {
     "version": "v0.1-stage057-p2-local",
     "date": "2026-08-13",
     "summary": "完成 Stage057 P2 XLSX/CSV 接入纯内存控制切片：两条固定非业务 reference-only 控制记录严格使用 P1 12 字段，投影 2 个 schema profile、10 个字段/19 字段空值事实候选和 2 个 metadata-only RAG 摘要候选，并保留来源定位和数值边界。未读取、检测或解析真实表格或 fixture，未执行真实 schema 推断、真实事实抽取、统计、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage057 P3。"

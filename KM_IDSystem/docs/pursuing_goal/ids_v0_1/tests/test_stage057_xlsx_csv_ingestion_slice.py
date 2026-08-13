@@ -239,7 +239,7 @@ class Stage057XlsxCsvIngestionPhase2Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(result[field])
 
-    def test_phase2_governance_projection_and_evidence_are_current(self):
+    def test_phase2_governance_projection_and_evidence_remain_historical_or_current(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
@@ -258,8 +258,14 @@ class Stage057XlsxCsvIngestionPhase2Tests(unittest.TestCase):
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE057", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE057-P2", status["phase"])
-        self.assertEqual("IDS-STAGE057-P3-GATE", status["next_gate"])
+        self.assertIn(
+            status["phase"],
+            ("IDS-V0_1-STAGE057-P2", "IDS-V0_1-STAGE057-P3"),
+        )
+        self.assertIn(
+            status["next_gate"],
+            ("IDS-STAGE057-P3-GATE", "IDS-STAGE057-P4-GATE"),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

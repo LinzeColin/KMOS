@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE057",
-  "phase": "IDS-V0_1-STAGE057-P2",
-  "task": "IDS-V0_1-STAGE057-P2",
-  "real_progress": "Stage057 P2 已用两条固定、非业务、reference-only 控制记录在内存中投影 XLSX/CSV schema、字段候选、事实候选与 RAG 摘要候选；下一步仅可在新的独立 run 进入 Stage057 P3，上传路径继续关闭",
-  "report_grade": "冻结 Stage057 任务包、P1 合同和 Stage056 已复审工件仍为唯一合同上下文；控制 schema、字段候选、来源定位、事实/RAG 分层、数值边界、聚焦用例、前序兼容回归、批次锁和治理投影均只保留本地受控证据",
-  "business_verdict": "本阶段只证明 reference-only 控制切片可投影 schema、字段候选、空值事实候选和 metadata-only RAG 摘要候选；不证明真实 XLSX/CSV、生产记录、质检记录、真实 schema 推断、真实事实抽取、数值统计、事实库、数据库、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE057_PHASE2_XLSX_CSV_INGESTION_CONTROL_SLICE_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE057-P3",
+  "task": "IDS-V0_1-STAGE057-P3",
+  "real_progress": "Stage057 P3 已重放 P2 两条固定、非业务、reference-only 控制记录的候选，完成空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置；下一步仅可在新的独立 run 进入 Stage057 P4，上传路径继续关闭",
+  "report_grade": "冻结 Stage057 任务包、P1/P2 合同和 Stage056 已复审工件仍为唯一合同上下文；六类控制异常、控制来源引用形状、数值结论关闭、聚焦用例、前序兼容回归、批次锁和治理投影均只保留本地受控证据",
+  "business_verdict": "本阶段只证明六类 reference-only 控制异常均有显式处置、控制来源引用形状可重放且未验证数值会阻断统计和模型确定性结论；不证明真实 XLSX/CSV、真实来源追溯、真实质量验证、数值统计、事实库、数据库、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE057_PHASE3_XLSX_CSV_INGESTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE057-P3-GATE",
+  "next_gate": "IDS-STAGE057-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

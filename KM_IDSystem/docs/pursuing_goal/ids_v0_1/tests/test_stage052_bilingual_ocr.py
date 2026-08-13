@@ -260,6 +260,7 @@ class Stage052BilingualOcrPhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE056-REVIEW",
                 "IDS-V0_1-STAGE057-P1",
                 "IDS-V0_1-STAGE057-P2",
+                "IDS-V0_1-STAGE057-P3",
             ),
         )
         self.assertFalse(status["runtime_enabled"])
