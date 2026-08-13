@@ -9,7 +9,17 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage058 Phase 4 - 2026-08-13
+## Current Gate - Stage058 Review - 2026-08-13
+
+- 本节是唯一当前交接；下方 Stage058 P4/P3/P2/P1、Stage057 Review/P4/P3/P2/P1 与更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE058-REVIEW`：只以冻结 Stage058 任务包和已提交 P1--P4 control 工件为唯一合同上下文，机械复审表格 Schema 推断的字段形状、单一权威、事实/RAG 边界、六类显式人工处置、metadata-only 交付、中文确认与重解析/事实回滚链；没有建立第二权威事实源。
+- 复审确认 P1 的 `10/18/9/6/6/8` 静态形状，P2 的 `2` 条固定非业务 control、`2` 组 Schema profile 与 `11` 条候选/字段映射/来源绑定，P3 的 `6` 类显式人工处置和 `0` 静默丢弃，以及 P4 的 `6` 个 metadata-only 样例、`6` 个字段引用标签、`6` 条质量结果、`6` 条人工建议和 `3` 条中文确认提示。它们都是 control 元数据，不是实际表格、真实 schema、真实字段、真实事实、真实数值、真实来源追溯或事实库。
+- 已验证：Stage058 Review 聚焦用例 `11/11`；Stage058 Review/P1--P4、Stage057 Review/P1--P4、Stage056 Review/P1--P4、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 `424/424`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归为 `valid=true`；中文事实投影重渲染 `7` 个文件。
+- 没有读取、打开、检测、解析或评估真实 XLSX/CSV、生产记录、质量检验记录、授权 fixture、工作表、表头、单元格、公式、来源正文或物理路径；没有执行真实 Schema/字段/事实/质量验证、RAG 摘要、数值统计、真实重解析、真实事实回滚、数据库、持久化、Agent、模型调用、模型 Token、服务启动、OVH、生产、GitHub 上传或推送；`whole_stage_review_performed=true`、`stage059_started=false`、`github_upload_allowed=false`、`push_allowed=false`。
+- 回滚只撤回本 Review 说明、只读复审模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `PHASE4_TABLE_SCHEMA_INFERENCE_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；保留 P1--P4、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 和应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE059-P1-GATE`。本 run 不进入 Stage059、批次复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage058 Phase 4 - 2026-08-13
 
 - 本节是唯一当前交接；下方 Stage058 P3/P2/P1、Stage057 Review/P4/P3/P2/P1、Stage056 Review 及更早章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE058-P4`：只以冻结 Stage058 任务包、P1--P3 合同和 Stage057 已复审工件为唯一合同上下文，从 P3 六类固定、非业务、reference-only 控制场景派生表格 Schema 推断交付元数据；没有建立第二权威事实源。

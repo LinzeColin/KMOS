@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-13 · IDS v0.1 Stage058 Review（本地）
+
+- 完成表格 Schema 推断整阶段白箱复审：机械核验 P1--P4 的 `10/18/9/6/6/8` 静态形状、两条固定非业务 control、两组 Schema profile、十一条候选/映射/来源绑定、六类显式人工处置、`6` 个 metadata-only 交付样例、中文确认及重解析/事实回滚链；没有建立第二权威事实源。
+- 本地验证通过：Stage058 Review 聚焦用例 `11/11`；Stage058 Review/P1--P4、Stage057 Review/P1-P4、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041_050 的合并回归 `424/424`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 未读取、打开、检测、解析或评估真实 XLSX/CSV，未执行真实 Schema/字段/事实/质量验证、数值统计、真实重解析或事实回滚、数据库、持久化、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE059-P1-GATE`。
+
 ## 2026-08-13 · IDS v0.1 Stage058 Phase 4（本地）
 
 - 完成表格 Schema 推断交付证据：从 P3 六类固定非业务、reference-only 控制场景派生 `6` 个 metadata-only Schema profile 样例、`6` 个字段引用标签、`6` 条质量结果、`6` 条人工处理建议、`3` 条中文确认提示和受控重解析/事实回滚说明；所有无法识别结构均保留给人工处理，未建立第二权威事实源。

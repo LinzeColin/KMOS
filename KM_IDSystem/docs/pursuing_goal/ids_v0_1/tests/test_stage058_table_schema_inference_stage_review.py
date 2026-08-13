@@ -6,26 +6,26 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-REVIEW = BASE / "STAGE057_STAGE_REVIEW.md"
-REVIEW_MODULE = BASE / "structured_table_facts" / "stage057_xlsx_csv_ingestion_stage_review.py"
-P1_CONTRACT = BASE / "structured_table_facts" / "stage057_xlsx_csv_ingestion_contract.json"
-P2_CONTRACT = BASE / "structured_table_facts" / "stage057_xlsx_csv_ingestion_slice_contract.json"
-P3_CONTRACT = BASE / "structured_table_facts" / "stage057_xlsx_csv_ingestion_quality_scenarios_contract.json"
-P4_CONTRACT = BASE / "structured_table_facts" / "stage057_xlsx_csv_ingestion_delivery_contract.json"
+REVIEW = BASE / "STAGE058_STAGE_REVIEW.md"
+REVIEW_MODULE = BASE / "structured_table_facts" / "stage058_table_schema_inference_stage_review.py"
+P1_CONTRACT = BASE / "structured_table_facts" / "stage058_table_schema_inference_contract.json"
+P2_CONTRACT = BASE / "structured_table_facts" / "stage058_table_schema_inference_slice_contract.json"
+P3_CONTRACT = BASE / "structured_table_facts" / "stage058_table_schema_inference_quality_scenarios_contract.json"
+P4_CONTRACT = BASE / "structured_table_facts" / "stage058_table_schema_inference_delivery_contract.json"
 BATCH = BASE / "BATCH051_060_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-13-stage057-review-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-13-stage058-review-local.json"
 
 
-class Stage057XlsxCsvIngestionStageReviewTests(unittest.TestCase):
+class Stage058TableSchemaInferenceStageReviewTests(unittest.TestCase):
     _module_value = None
     _report_value = None
 
     def _module(self):
         if self.__class__._module_value is None:
-            spec = importlib.util.spec_from_file_location("stage057_review", REVIEW_MODULE)
+            spec = importlib.util.spec_from_file_location("stage058_review", REVIEW_MODULE)
             module = importlib.util.module_from_spec(spec)
             self.assertIsNotNone(spec.loader)
             spec.loader.exec_module(module)
@@ -34,7 +34,7 @@ class Stage057XlsxCsvIngestionStageReviewTests(unittest.TestCase):
 
     def _report(self):
         if self.__class__._report_value is None:
-            self.__class__._report_value = self._module().build_stage057_review_report()
+            self.__class__._report_value = self._module().build_stage058_review_report()
         return self.__class__._report_value
 
     def test_review_artifacts_exist(self):
@@ -57,22 +57,22 @@ class Stage057XlsxCsvIngestionStageReviewTests(unittest.TestCase):
     def test_review_identity_and_local_result(self):
         report = self._report()
         self.assertEqual(
-            "ids.stage057.xlsx_csv_ingestion.stage_review.v1",
+            "ids.stage058.table_schema_inference.stage_review.v1",
             report["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE057-REVIEW", report["task_id"])
-        self.assertEqual("ACC-STAGE-057", report["acceptance_id"])
+        self.assertEqual("IDS-V0_1-STAGE058-REVIEW", report["task_id"])
+        self.assertEqual("ACC-STAGE-058", report["acceptance_id"])
         self.assertTrue(report["review_valid"], report)
         self.assertEqual(
-            "PASS_REVIEWED_LOCAL_XLSX_CSV_INGESTION_RUNTIME_DISABLED",
+            "PASS_REVIEWED_LOCAL_TABLE_SCHEMA_INFERENCE_RUNTIME_DISABLED",
             report["result"],
         )
-        self.assertEqual("IDS-STAGE058-P1-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE059-P1-GATE", report["next_gate"])
 
     def test_review_preserves_single_authority_boundary(self):
         report = self._report()
         self.assertEqual(
-            "FROZEN_TASKPACK_AND_STAGE057_P1_TO_P4_CONTROLLED_ARTIFACTS_ONLY",
+            "FROZEN_TASKPACK_AND_STAGE058_P1_TO_P4_CONTROLLED_ARTIFACTS_ONLY",
             report["source_authority"],
         )
         self.assertFalse(report["secondary_authority_created"])
@@ -80,28 +80,30 @@ class Stage057XlsxCsvIngestionStageReviewTests(unittest.TestCase):
         self.assertTrue(
             report["review_invariants"]["single_authority_boundary_preserved"]
         )
-        rendered = json.dumps(report, ensure_ascii=False, sort_keys=True)
-        self.assertNotIn("source-document:control:", rendered)
-        self.assertNotIn("worksheet:control:", rendered)
 
     def test_review_checks_phase1_and_phase2_contract_shapes(self):
         report = self._report()
         replay = report["controlled_replay"]
         self.assertEqual(4, replay["phase_contract_count"])
         self.assertEqual(4, replay["phase_contract_passed_count"])
-        self.assertEqual(12, replay["phase1_reference_input_field_count"])
-        self.assertEqual(19, replay["phase1_future_structured_fact_output_field_count"])
-        self.assertEqual(7, replay["phase1_field_semantic_count"])
-        self.assertEqual(5, replay["phase1_source_location_field_count"])
-        self.assertEqual(6, replay["phase1_declared_failure_state_count"])
+        self.assertEqual(10, replay["phase1_reference_input_field_count"])
+        self.assertEqual(18, replay["phase1_future_schema_profile_field_count"])
+        self.assertEqual(9, replay["phase1_field_semantic_category_count"])
+        self.assertEqual(6, replay["phase1_candidate_field_type_count"])
+        self.assertEqual(6, replay["phase1_source_location_field_count"])
+        self.assertEqual(8, replay["phase1_declared_failure_state_count"])
         self.assertEqual(2, replay["phase2_control_record_count"])
-        self.assertEqual(2, replay["phase2_schema_profile_candidate_count"])
-        self.assertEqual(10, replay["phase2_structured_fact_candidate_count"])
-        self.assertEqual(2, replay["phase2_rag_summary_candidate_count"])
+        self.assertEqual(2, replay["phase2_schema_profile_group_count"])
+        self.assertEqual(11, replay["phase2_schema_profile_candidate_count"])
+        self.assertEqual(11, replay["phase2_candidate_field_mapping_count"])
+        self.assertEqual(11, replay["phase2_source_location_binding_candidate_count"])
         self.assertTrue(report["phase_results"]["P1"])
         self.assertTrue(report["phase_results"]["P2"])
         self.assertTrue(
-            report["review_invariants"]["input_and_output_shape_preserved"]
+            report["review_invariants"]["input_and_schema_profile_shape_preserved"]
+        )
+        self.assertTrue(
+            report["review_invariants"]["fact_and_rag_authority_boundary_preserved"]
         )
 
     def test_review_replays_phase3_explicit_dispositions_without_silent_drop(self):
@@ -110,6 +112,7 @@ class Stage057XlsxCsvIngestionStageReviewTests(unittest.TestCase):
         self.assertEqual(6, replay["quality_scenario_count"])
         self.assertEqual(6, replay["quality_explicit_disposition_count"])
         self.assertEqual(0, replay["quality_silent_drop_count"])
+        self.assertEqual(6, replay["quality_human_handling_required_count"])
         self.assertEqual(1, replay["quality_outlier_numeric_block_count"])
         self.assertTrue(report["phase_results"]["P3"])
         self.assertTrue(
@@ -120,7 +123,7 @@ class Stage057XlsxCsvIngestionStageReviewTests(unittest.TestCase):
         report = self._report()
         replay = report["controlled_replay"]
         self.assertEqual(6, replay["delivery_sample_count"])
-        self.assertEqual(5, replay["delivery_field_reference_label_count"])
+        self.assertEqual(6, replay["delivery_field_reference_label_count"])
         self.assertEqual(6, replay["delivery_quality_result_count"])
         self.assertEqual(6, replay["delivery_human_handling_record_count"])
         self.assertEqual(3, replay["delivery_human_confirmation_prompt_count"])
@@ -135,8 +138,12 @@ class Stage057XlsxCsvIngestionStageReviewTests(unittest.TestCase):
             report["controlled_replay"]["reparse_and_fact_rollback_instructions_created"]
         )
         self.assertEqual(
-            "PHASE4_XLSX_CSV_INGESTION_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+            "PHASE4_TABLE_SCHEMA_INFERENCE_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
             report["rollback"]["return_to"],
+        )
+        self.assertEqual(
+            "PHASE3_TABLE_SCHEMA_INFERENCE_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+            report["controlled_replay"]["reparse_and_fact_rollback_return_to"],
         )
         self.assertTrue(
             report["review_invariants"]["reparse_and_rollback_chain_preserved"]
@@ -145,16 +152,16 @@ class Stage057XlsxCsvIngestionStageReviewTests(unittest.TestCase):
     def test_review_fails_closed_when_a_contract_or_report_is_incomplete(self):
         module = self._module()
         for report in (
-            module.build_stage057_review_report(phase4_contract_provider=lambda: {}),
-            module.build_stage057_review_report(phase3_report_provider=lambda: {}),
+            module.build_stage058_review_report(phase4_contract_provider=lambda: {}),
+            module.build_stage058_review_report(phase3_report_provider=lambda: {}),
         ):
             with self.subTest(result=report["result"]):
                 self.assertFalse(report["review_valid"])
                 self.assertEqual(
-                    "FAIL_REVIEWED_LOCAL_XLSX_CSV_INGESTION_RUNTIME_DISABLED",
+                    "FAIL_REVIEWED_LOCAL_TABLE_SCHEMA_INFERENCE_RUNTIME_DISABLED",
                     report["result"],
                 )
-                self.assertEqual("IDS-STAGE058-P1-GATE", report["next_gate"])
+                self.assertEqual("IDS-STAGE059-P1-GATE", report["next_gate"])
 
     def test_review_has_no_runtime_or_external_actions(self):
         report = self._report()
@@ -172,8 +179,8 @@ class Stage057XlsxCsvIngestionStageReviewTests(unittest.TestCase):
             "model_token_consumption_performed",
             "ovh_deployment_performed",
             "production_runtime_activation_performed",
-            "stage058_started",
-            "stage058_entry_allowed",
+            "stage059_started",
+            "stage059_entry_allowed",
             "batch_review_performed",
             "github_upload_allowed",
             "push_allowed",
@@ -182,49 +189,41 @@ class Stage057XlsxCsvIngestionStageReviewTests(unittest.TestCase):
                 self.assertFalse(report[field])
         self.assertTrue(report["whole_stage_review_performed"])
 
-    def test_governance_closes_stage057_only_to_a_separate_stage058_run(self):
+    def test_governance_closes_stage058_only_to_a_separate_stage059_run(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage057_completed_reviewed_local"'),
-            (batch, "stage057_review_state:"),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE057-REVIEW"'),
-            (batch, 'next_allowed_task_id: "IDS-V0_1-STAGE058-P1"'),
-            (batch, "stage058_entry_authorized: false"),
-            (roadmap, 'current_phase_id: "IDS-STAGE057-REVIEW"'),
-            (roadmap, 'current_task_id: "IDS-V0_1-STAGE057-REVIEW"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE058-P1-GATE"'),
+            (batch, 'status: "stage058_completed_reviewed_local"'),
+            (batch, "stage058_review_state:"),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE058-REVIEW"'),
+            (batch, 'next_allowed_task_id: "IDS-V0_1-STAGE059-P1"'),
+            (batch, "stage059_entry_authorized: false"),
+            (roadmap, 'current_phase_id: "IDS-STAGE058-REVIEW"'),
+            (roadmap, 'current_task_id: "IDS-V0_1-STAGE058-REVIEW"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE059-P1-GATE"'),
             (roadmap, 'status: "completed_reviewed_local"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertIn(status["stage"], ("IDS-STAGE057", "IDS-STAGE058"))
-        self.assertIn(
-            status["phase"],
-            (
-                "IDS-V0_1-STAGE057-REVIEW",
-                "IDS-V0_1-STAGE058-P1",
-            "IDS-V0_1-STAGE058-P2",
-            "IDS-V0_1-STAGE058-P3",
-            "IDS-V0_1-STAGE058-P4",
-            "IDS-V0_1-STAGE058-REVIEW",
-            ),
-        )
+        self.assertEqual("IDS-STAGE058", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE058-REVIEW", status["phase"])
+        self.assertEqual("IDS-V0_1-STAGE058-REVIEW", status["task"])
+        self.assertEqual("IDS-STAGE059-P1-GATE", status["next_gate"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
     def test_machine_run_and_event_record_only_local_review_evidence(self):
         run = json.loads(RUN.read_text(encoding="utf-8"))
         self.assertEqual(
-            "PASS_REVIEWED_LOCAL_XLSX_CSV_INGESTION_RUNTIME_DISABLED",
+            "PASS_REVIEWED_LOCAL_TABLE_SCHEMA_INFERENCE_RUNTIME_DISABLED",
             run["result"].strip(),
         )
         self.assertFalse(run["observed_work"]["xlsx_or_csv_parse_performed"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
         self.assertTrue(run["observed_work"]["whole_stage_review_performed"])
-        self.assertFalse(run["observed_work"]["stage058_started"])
+        self.assertFalse(run["observed_work"]["stage059_started"])
 
         events = [
             json.loads(line) for line in EVENTS.read_text(encoding="utf-8").splitlines()
@@ -232,11 +231,11 @@ class Stage057XlsxCsvIngestionStageReviewTests(unittest.TestCase):
         event = next(
             item
             for item in events
-            if item.get("event_id") == "EVT-IDS-V0_1-STAGE057-REVIEW-20260813-001"
+            if item.get("event_id") == "EVT-IDS-V0_1-STAGE058-REVIEW-20260813-001"
         )
         self.assertEqual("stage_review", event["event_type"])
-        self.assertEqual("IDS-V0_1-STAGE057-REVIEW", event["task_id"])
-        self.assertIn("next_gate=IDS-STAGE058-P1-GATE", event["notes"])
+        self.assertEqual("IDS-V0_1-STAGE058-REVIEW", event["task_id"])
+        self.assertIn("next_gate=IDS-STAGE059-P1-GATE", event["notes"])
         self.assertIn(
             "KM_IDSystem/" + str(REVIEW.relative_to(ROOT)),
             {item["ref"] for item in event["evidence_refs"]},

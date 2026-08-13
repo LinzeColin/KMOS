@@ -228,6 +228,7 @@ class Stage053PerPageOcrOutputStageReviewTests(unittest.TestCase):
             "IDS-V0_1-STAGE058-P2",
             "IDS-V0_1-STAGE058-P3",
             "IDS-V0_1-STAGE058-P4",
+            "IDS-V0_1-STAGE058-REVIEW",
             ),
         )
         self.assertFalse(status["runtime_enabled"])
