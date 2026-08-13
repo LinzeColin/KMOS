@@ -200,8 +200,11 @@ class Stage057XlsxCsvIngestionStageReviewTests(unittest.TestCase):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE057", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE057-REVIEW", status["phase"])
+        self.assertIn(status["stage"], ("IDS-STAGE057", "IDS-STAGE058"))
+        self.assertIn(
+            status["phase"],
+            ("IDS-V0_1-STAGE057-REVIEW", "IDS-V0_1-STAGE058-P1"),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

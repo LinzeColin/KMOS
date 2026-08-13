@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-13 · IDS v0.1 Stage058 Phase 1（本地）
+
+- 完成表格 Schema 推断静态合同：定义 `10` 个 reference-only 输入字段、`18` 个未来 Schema profile 字段、`9` 类字段候选、`6` 类候选字段类型、`6` 类来源位置与 `8` 类显式失败，并固定数值不得由模型猜测、事实与 RAG 摘要分离、中文反馈及回滚边界。
+- 本地验证通过：Stage058 P1 聚焦用例 `7/7`；Stage058 P1、Stage057 Review/P1-P4、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041_050 的合并回归 `381/381`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 未读取、打开、检测、解析或推断真实 XLSX/CSV，未执行真实 schema/字段/事实/质量、数值统计、数据库、持久化、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE058-P2-GATE`。
+
 ## 2026-08-13 · IDS v0.1 Stage057 Review（本地）
 
 - 完成 XLSX/CSV 接入合同整阶段本地白箱复审：核验 P1--P4 的 `12/19/7/5/6` 静态形状、两条固定非业务 control、六类显式质量处置、`6` 个 metadata-only 交付样例、人工处理、中文确认和重解析/事实回滚链；没有建立第二权威事实源。

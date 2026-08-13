@@ -9,9 +9,19 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage057 Review - 2026-08-13
+## Current Gate - Stage058 Phase 1 - 2026-08-13
 
-- 本节是唯一当前交接；下方 Stage057 P4/P3/P2/P1、Stage056 Review、Stage056 P4/P3/P2/P1、Stage055 Review 及更早章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；下方 Stage057 Review/P4/P3/P2/P1、Stage056 Review 及更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE058-P1`：只以冻结 Stage058 任务包和 Stage057 已复审工件为唯一合同上下文，定义十字段 reference-only 输入、十八字段未来 Schema profile、九类字段候选、六类候选字段类型、六类来源位置、八类失败关闭、数值与 RAG 权威边界、中文反馈与回滚范围；没有建立第二权威事实源。
+- 静态字段候选、接口、枚举和计数不是实际列名、真实字段类型、真实 schema、业务事实、数值、日期、单位、设备、材料、工序、质量结果、来源正文、物理路径或统计结论。来源文档继续保持权威；模型不能按文本猜测数值或统计结论，RAG 摘要不能成为数值权威。
+- 已验证：Stage058 P1 聚焦用例 `7/7`；Stage058 P1、Stage057 Review/P1-P4、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041_050 的显式前序兼容回归 `381/381`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归为 `valid=true`；中文事实投影已重渲染 `7` 个文件。
+- 没有读取、打开、检测、解析或推断真实 XLSX/CSV、生产记录、质量检验记录、授权 fixture、工作表、单元格、公式、来源正文或物理路径；没有执行真实 Schema/字段/事实/质量验证、数值统计、数据库、持久化、Agent、模型调用、模型 Token、服务启动、OVH、生产、GitHub 上传或推送；`stage058_started=true`、`stage058_entry_authorized=true`、`phase2_started=false`、`github_upload_allowed=false`、`push_allowed=false`。
+- 回滚只撤回本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 `STAGE057_REVIEWED_LOCAL_XLSX_CSV_INGESTION_RUNTIME_DISABLED`；保留冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 和应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE058-P2-GATE`。本 run 不进入 Phase2、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage057 Review - 2026-08-13
+
+- 本节保留 Stage057 Review 的历史交接；下方 Stage057 P4/P3/P2/P1、Stage056 Review、Stage056 P4/P3/P2/P1、Stage055 Review 及更早章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE057-REVIEW`：只以冻结任务包、P1--P4 合同和 Stage056 已复审工件为唯一合同上下文，机械复审 `12/19/7/5/6` 静态形状、两条固定非业务控制记录、六类显式质量处置、六个 metadata-only 交付样例、人工处理、中文确认与重解析/事实回滚链；没有建立第二权威事实源。
 - 复审只输出受控计数、边界和回滚结论，不是实际 XLSX/CSV、真实 schema、真实字段、真实事实、真实数值、真实来源追溯、真实质量验证或事实库。无法识别结构仍要求人工处理；重解析和事实回滚只回到 P3 control 状态，不能替代真实文件重解析或真实事实回滚。
 - 已验证：Stage057 Review 聚焦用例 `11/11`；Stage057 Review/P1-P4、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041_050 的显式前序兼容回归 `374/374`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理报告 `valid=true`；中文事实投影已重渲染 `7` 个文件。

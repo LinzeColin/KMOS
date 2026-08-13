@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage058-p1-local",
+    "date": "2026-08-13",
+    "summary": "完成 Stage058 P1 表格 Schema 推断静态合同：定义十字段引用输入、十八字段未来 Schema profile、九类字段候选、六类候选字段类型、六类来源位置、八类失败关闭、数值与 RAG 权威边界、中文反馈和回滚范围。未读取、打开、解析或推断真实表格或 fixture，未执行事实抽取、统计、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage058 P2。"
+  },
+  {
     "version": "v0.1-stage057-review-local",
     "date": "2026-08-13",
     "summary": "完成 Stage057 XLSX/CSV 接入合同整阶段本地白箱复审：P1--P4 静态合同、两条固定非业务 control、六类显式质量处置、6 个 metadata-only 交付样例、中文人工处理和重解析/事实回滚链一致。未读取、检测或解析真实表格或 fixture，未执行真实 schema/质量验证、事实或证据写入、数值统计、真实重解析或事实回滚、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage058 P1。"
