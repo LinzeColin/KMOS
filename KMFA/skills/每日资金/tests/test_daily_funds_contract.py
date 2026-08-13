@@ -3372,31 +3372,28 @@ def test_raw_archive_audit_records_only_readback_capability_and_never_publishes(
         def __init__(self, _config):
             calls.append("init")
 
-        def audit_raw_archive(self):
+        def audit_raw_archive(self, *, on_attachment=None):
             calls.append("audit")
-            return RawArchiveAudit(
+            result = RawArchiveAudit(
                 commit_sha="a" * 40,
                 verified_attachments=(attachment,),
                 occurrence_count=1,
                 batch_count=1,
                 batch_occurrence_references=1,
             )
+            if on_attachment is not None:
+                on_attachment(attachment)
+            return result
 
     runtime = DailyFundsRuntime(config)
     monkeypatch.setattr(runtime_module, "GitSparseWriter", ArchiveWriter)
     monkeypatch.setattr(runtime, "_dws_client", lambda: pytest.fail("raw archive audit must not call DWS"))
-    raw_cashflow_write = runtime._write_cashflow_observation
     raw_capability_inspect = runtime._inspect_attachment_capabilities
-
-    def cashflow_after_capability(attachments):
-        calls.append("cashflow")
-        return raw_cashflow_write(attachments)
 
     def capability_before_cashflow(attachments):
         calls.append("capability")
         return raw_capability_inspect(attachments)
 
-    monkeypatch.setattr(runtime, "_write_cashflow_observation", cashflow_after_capability)
     monkeypatch.setattr(runtime, "_inspect_attachment_capabilities", capability_before_cashflow)
 
     # A full OCR census can run longer than one 15-minute collection window.
@@ -3411,7 +3408,7 @@ def test_raw_archive_audit_records_only_readback_capability_and_never_publishes(
         "capability_supported": 1,
         "capability_needs_review": 0,
     }
-    assert calls == ["init", "audit", "capability", "cashflow"]
+    assert calls == ["init", "audit", "capability"]
     assert not (config.publication_dir / "current.json").exists()
     with runtime.state.connection() as connection:
         inbox = connection.execute("SELECT state FROM inbox").fetchone()
@@ -3469,16 +3466,20 @@ def test_raw_archive_audit_reuses_only_same_version_receipts_after_fresh_raw_cen
         def __init__(self, _config):
             pass
 
-        def audit_raw_archive(self):
+        def audit_raw_archive(self, *, on_attachment=None):
             # This is the mandatory fresh private-Git census.  The optimization
             # is allowed only after it returns both verified byte strings.
-            return RawArchiveAudit(
+            result = RawArchiveAudit(
                 commit_sha="a" * 40,
                 verified_attachments=(cached, fresh),
                 occurrence_count=2,
                 batch_count=1,
                 batch_occurrence_references=2,
             )
+            if on_attachment is not None:
+                on_attachment(cached)
+                on_attachment(fresh)
+            return result
 
     runtime = DailyFundsRuntime(config)
     runtime.state.record_parser_evidence(
@@ -3571,7 +3572,7 @@ def test_raw_archive_audit_fails_closed_when_private_raw_census_is_missing(
         def __init__(self, _config):
             pass
 
-        def audit_raw_archive(self):
+        def audit_raw_archive(self, *, on_attachment=None):
             raise IngestionError("SOURCE_MISSING")
 
     runtime = DailyFundsRuntime(config)
@@ -3604,7 +3605,7 @@ def test_raw_archive_audit_process_lock_prevents_an_expired_lease_from_starting_
         def __init__(self, _config):
             writer_calls.append("init")
 
-        def audit_raw_archive(self):
+        def audit_raw_archive(self, *, on_attachment=None):
             pytest.fail("a competing audit must not begin a second raw readback")
 
     monkeypatch.setattr(runtime_module, "GitSparseWriter", ArchiveWriter)
@@ -3652,14 +3653,17 @@ def test_raw_archive_audit_marks_unparseable_readback_needs_review_without_publi
         def __init__(self, _config):
             pass
 
-        def audit_raw_archive(self):
-            return RawArchiveAudit(
+        def audit_raw_archive(self, *, on_attachment=None):
+            result = RawArchiveAudit(
                 commit_sha="a" * 40,
                 verified_attachments=(attachment,),
                 occurrence_count=1,
                 batch_count=1,
                 batch_occurrence_references=1,
             )
+            if on_attachment is not None:
+                on_attachment(attachment)
+            return result
 
     runtime = DailyFundsRuntime(config)
     monkeypatch.setattr(runtime_module, "GitSparseWriter", ArchiveWriter)
@@ -3718,14 +3722,17 @@ def test_raw_archive_audit_rejects_readback_payload_hash_mismatch_without_receip
         def __init__(self, _config):
             pass
 
-        def audit_raw_archive(self):
-            return RawArchiveAudit(
+        def audit_raw_archive(self, *, on_attachment=None):
+            result = RawArchiveAudit(
                 commit_sha="a" * 40,
                 verified_attachments=(attachment,),
                 occurrence_count=1,
                 batch_count=1,
                 batch_occurrence_references=1,
             )
+            if on_attachment is not None:
+                on_attachment(attachment)
+            return result
 
     runtime = DailyFundsRuntime(config)
     monkeypatch.setattr(runtime_module, "GitSparseWriter", ArchiveWriter)
@@ -4454,6 +4461,16 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     assert archive_audit.batch_count == 1
     assert archive_audit.batch_occurrence_references == 3
     assert {attachment.sha256 for attachment in archive_audit.verified_attachments} == {
+        direct.sha256, same_name_different_bytes.sha256, oversize.sha256,
+    }
+    assert not any(command and command[0] in {"add", "commit", "push"} for command in raw_writer_commands)
+    raw_writer_commands.clear()
+    streamed: list[DownloadedAttachment] = []
+    streamed_audit = writer.audit_raw_archive(on_attachment=streamed.append)
+    assert streamed_audit.commit_sha == commit.commit_sha
+    assert streamed_audit.verified_attachments == ()
+    assert streamed_audit.occurrence_count == 3
+    assert {attachment.sha256 for attachment in streamed} == {
         direct.sha256, same_name_different_bytes.sha256, oversize.sha256,
     }
     assert not any(command and command[0] in {"add", "commit", "push"} for command in raw_writer_commands)
@@ -5541,7 +5558,7 @@ def test_dws_attachment_permission_denial_is_not_misreported_as_auth_loss(tmp_pa
                 json.dumps({"authenticated": True, "refresh_token_valid": True}),
                 "",
             )
-        if command[1:4] == ["chat", "message", "download-media"]:
+        if command[1:3] == ["chat", "+messages-resource-download"]:
             assert command[command.index("--timeout") + 1] == "150"
             return subprocess.CompletedProcess(command, 1, "", "PermissionDenied attachment-private-detail")
         raise AssertionError(f"unexpected DWS command: {command}")
@@ -5567,7 +5584,7 @@ def test_dws_attachment_permission_denial_is_not_misreported_as_auth_loss(tmp_pa
 
 
 @pytest.mark.parametrize(
-    ("attachment", "expected_output_name", "expected_filename"),
+    ("attachment", "downloaded_name", "expected_filename", "expected_resource_type"),
     (
         (
             {
@@ -5575,35 +5592,49 @@ def test_dws_attachment_permission_denial_is_not_misreported_as_auth_loss(tmp_pa
                 "fileName": "daily-balance.xlsx",
                 "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             },
-            "attachment.xlsx",
+            "delivered.xlsx",
             "daily-balance.xlsx",
+            "mediaId",
         ),
         (
             {
                 "mediaId": "attachment-image-media",
                 "mimeType": "image/jpeg",
             },
-            "attachment.jpg",
-            "attachment.jpg",
+            "delivered.jpg",
+            "delivered.jpg",
+            "mediaId",
         ),
         (
             {"mediaId": "attachment-unknown-media"},
-            "attachment.bin",
-            "attachment.bin",
+            "delivered.bin",
+            "delivered.bin",
+            "mediaId",
+        ),
+        (
+            {
+                "type": "fileId",
+                "resourceId": "attachment-native-workbook",
+                "fileName": "daily-balance.xls",
+            },
+            "delivered.xls",
+            "delivered.xls",
+            "fileId",
         ),
     ),
 )
-def test_dws_attachment_download_uses_an_explicit_file_output_path(
+def test_dws_attachment_download_uses_an_isolated_relative_output_directory(
     tmp_path: Path,
     attachment: dict[str, str],
-    expected_output_name: str,
+    downloaded_name: str,
     expected_filename: str,
+    expected_resource_type: str,
 ) -> None:
-    """A legacy DWS downloader rejects a directory supplied as ``--output``."""
+    """The current DWS downloader supports both native files and media."""
 
     config = _config(tmp_path)
 
-    def runner(command, **_kwargs):
+    def runner(command, **kwargs):
         if command[1:3] == ["auth", "status"]:
             return subprocess.CompletedProcess(
                 command,
@@ -5611,11 +5642,18 @@ def test_dws_attachment_download_uses_an_explicit_file_output_path(
                 json.dumps({"authenticated": True, "refresh_token_valid": True}),
                 "",
             )
-        if command[1:4] == ["chat", "message", "download-media"]:
-            output = Path(command[command.index("--output") + 1])
-            assert output.name == expected_output_name
-            assert output.parent.name == "download"
-            output.write_bytes(b"fixture-media")
+        if command[1:3] == ["chat", "+messages-resource-download"]:
+            assert command[command.index("--type") + 1] == expected_resource_type
+            assert command[command.index("--output") + 1] == "."
+            output_dir = Path(kwargs["cwd"])
+            assert output_dir.name == "download"
+            if expected_resource_type == "mediaId":
+                assert command[command.index("--message-id") + 1] == "attachment-output-fixture"
+                assert command[command.index("--open-conversation-id") + 1] == config.group_id
+            else:
+                assert "--message-id" not in command
+                assert "--open-conversation-id" not in command
+            (output_dir / downloaded_name).write_bytes(b"fixture-media")
             return subprocess.CompletedProcess(command, 0, "", "")
         raise AssertionError(f"unexpected DWS command: {command}")
 
@@ -5645,7 +5683,7 @@ def test_dws_attachment_transport_timeout_has_a_fixed_safe_stage_code(tmp_path: 
                 json.dumps({"authenticated": True, "refresh_token_valid": True}),
                 "",
             )
-        if command[1:4] == ["chat", "message", "download-media"]:
+        if command[1:3] == ["chat", "+messages-resource-download"]:
             raise subprocess.TimeoutExpired(command, timeout=180)
         raise AssertionError(f"unexpected DWS command: {command}")
 
@@ -5805,7 +5843,10 @@ def test_history_poller_falls_back_to_complete_exact_group_ledger_after_recordle
                 "messageId": "message-1",
                 "createTime": "2026-08-01T00:05:00Z",
                 "text": f"资金明细 {source_sentinel}",
-                "resourceRefs": [{"type": "mediaId", "resourceId": "media-1"}],
+                "resourceRefs": [
+                    {"type": "mediaId", "resourceId": "media-1"},
+                    {"type": "fileId", "resourceId": "file-1"},
+                ],
             }],
             "count": 1,
             "pagesFetched": 2,
@@ -5838,7 +5879,10 @@ def test_history_poller_falls_back_to_complete_exact_group_ledger_after_recordle
     assert message["openConversationId"] == config.group_id
     assert message["senderOpenDingTalkId"] == config.sender_id
     assert message["openMessageId"] == "message-1"
-    assert message["attachments"] == [{"mediaId": "media-1"}]
+    assert message["attachments"] == [
+        {"type": "mediaId", "resourceId": "media-1"},
+        {"type": "fileId", "resourceId": "file-1"},
+    ]
     assert client.selected_messages(page) == (message,)
     assert state.get_cursor() is None
     assert state.get("history_high_water_at") == end.isoformat().replace("+00:00", "Z")

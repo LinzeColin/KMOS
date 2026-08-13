@@ -150,6 +150,177 @@ class AttachmentCapabilityInspection:
     failures: tuple[ParseError, ...]
 
 
+class _CashflowObservationAccumulator:
+    """Build one chart-only result without retaining raw screenshot bytes."""
+
+    def __init__(self, runtime: "DailyFundsRuntime"):
+        self.runtime = runtime
+        self.eligible_shas: set[str] = set()
+        self.observations: list[CashflowObservation] = []
+        self.rejection_categories: dict[str, int] = {}
+        self.ocr_ready: bool | None = None
+
+    def add(self, attachment: DownloadedAttachment) -> None:
+        if (
+            attachment.family not in TRANSACTION_FAMILIES
+            or not is_ocr_attachment(attachment.filename, payload=attachment.payload)
+            or attachment.sha256 in self.eligible_shas
+        ):
+            return
+        self.eligible_shas.add(attachment.sha256)
+        if not self.runtime.config.ocr_enabled:
+            return
+        if self.ocr_ready is None:
+            self.ocr_ready = deterministic_ocr_runtime_ready()
+        if not self.ocr_ready:
+            return
+        try:
+            self.observations.append(parse_cashflow_observation(
+                family=attachment.family or "",
+                filename=attachment.filename,
+                payload=attachment.payload,
+                source=self.runtime._source_ref(attachment),
+                received_at=attachment.message_at,
+                mime=attachment.mime,
+                min_confidence_bps=self.runtime.config.ocr_min_confidence_bps,
+            ))
+        except ParseError as exc:
+            category = self.runtime._cashflow_observation_rejection_category(exc)
+            self.rejection_categories[category] = self.rejection_categories.get(category, 0) + 1
+
+    def write(self) -> dict[str, Any]:
+        source_fingerprint = (
+            sha256("\n".join(sorted(self.eligible_shas)).encode("ascii")).hexdigest()
+            if self.eligible_shas else None
+        )
+        coverage: dict[str, int] = {
+            "eligible_documents": len(self.eligible_shas),
+            "parsed_documents": len(self.observations),
+            "rejected_documents": sum(self.rejection_categories.values()),
+            "distinct_business_days": 0,
+        }
+        base: dict[str, Any] = {
+            "schema_version": _CASHFLOW_OBSERVATION_SCHEMA,
+            "generated_at": iso_now(),
+            "parser_version": CASHFLOW_OBSERVATION_PARSER_VERSION,
+            "source_coverage": coverage,
+            "rejection_categories": self.rejection_categories,
+            "evidence_version": source_fingerprint[-12:] if source_fingerprint is not None else None,
+            "points": [],
+        }
+        if not self.eligible_shas:
+            payload = {**base, "status": "NOT_AVAILABLE", "machine_code": "CASHFLOW_OBSERVATION_SOURCE_EMPTY"}
+            atomic_json_write(self.runtime.config.publication_dir / "cashflow_observation.json", payload)
+            return payload
+        if not self.runtime.config.ocr_enabled:
+            coverage["rejected_documents"] = len(self.eligible_shas)
+            payload = {**base, "status": "NEEDS_REVIEW", "machine_code": "CASHFLOW_OBSERVATION_OCR_DISABLED"}
+            atomic_json_write(self.runtime.config.publication_dir / "cashflow_observation.json", payload)
+            return payload
+        if self.ocr_ready is False:
+            coverage["rejected_documents"] = len(self.eligible_shas)
+            payload = {**base, "status": "NEEDS_REVIEW", "machine_code": "CASHFLOW_OBSERVATION_OCR_UNAVAILABLE"}
+            atomic_json_write(self.runtime.config.publication_dir / "cashflow_observation.json", payload)
+            return payload
+
+        by_day: dict[date, CashflowObservation] = {}
+        duplicate_day = False
+        for observation in self.observations:
+            if observation.business_date in by_day:
+                duplicate_day = True
+                continue
+            by_day[observation.business_date] = observation
+        coverage["distinct_business_days"] = len(by_day)
+        if coverage["rejected_documents"]:
+            code = "CASHFLOW_OBSERVATION_PARSE_NEEDS_REVIEW"
+        elif duplicate_day:
+            code = "CASHFLOW_OBSERVATION_DUPLICATE_DAY"
+        elif len(by_day) < _CASHFLOW_OBSERVATION_MIN_DAYS:
+            code = "CASHFLOW_OBSERVATION_COVERAGE_INSUFFICIENT"
+        else:
+            code = "CASHFLOW_OBSERVATION_VERIFIED"
+        if code != "CASHFLOW_OBSERVATION_VERIFIED":
+            payload = {**base, "status": "NEEDS_REVIEW", "machine_code": code}
+            atomic_json_write(self.runtime.config.publication_dir / "cashflow_observation.json", payload)
+            return payload
+        points = [
+            {
+                "business_date": business_day.isoformat(),
+                "inflow_fen": observation.inflow_fen,
+                "outflow_fen": observation.outflow_fen,
+                "net_change_fen": observation.inflow_fen - observation.outflow_fen,
+            }
+            for business_day, observation in sorted(by_day.items())
+        ]
+        payload = {**base, "status": "VERIFIED", "machine_code": code, "points": points}
+        atomic_json_write(self.runtime.config.publication_dir / "cashflow_observation.json", payload)
+        return payload
+
+
+class _RawArchiveAuditAccumulator:
+    """Consume one fully verified raw attachment at a time.
+
+    The object keeps only capability outcomes, immutable digest/family pairs
+    and chart observations.  It deliberately never retains a collection of
+    source payloads, so the complete historic audit remains feasible inside a
+    bounded cloud worker.
+    """
+
+    def __init__(self, runtime: "DailyFundsRuntime"):
+        self.runtime = runtime
+        self.cashflow = _CashflowObservationAccumulator(runtime)
+        self.occurrence_count = 0
+        self.capability_supported = 0
+        self.capability_needs_review = 0
+        self.integrity_failures: list[ParseError] = []
+        self.resolved_families: dict[str, str] = {}
+        self.scope: list[tuple[str, str]] = []
+        self.inbox: list[tuple[str, int, str]] = []
+
+    def consume(self, attachment: DownloadedAttachment) -> None:
+        self.occurrence_count += 1
+        self.inbox.append((attachment.message_id_hash, attachment.index, attachment.sha256))
+        family = (
+            attachment.family
+            if attachment.family in TRANSACTION_FAMILIES | {ACCOUNT_FAMILY}
+            else "UNCLASSIFIED"
+        )
+        prior = self.runtime.state.reusable_capability_scope_receipts(
+            parser_version=PARSER_VERSION,
+            attachment_sha256s=(attachment.sha256,),
+        )
+        previous = prior.get(attachment.sha256)
+        if previous is not None:
+            resolved_family, outcome = previous
+            self.resolved_families[attachment.sha256] = resolved_family
+            if outcome == "SUPPORTED":
+                self.capability_supported += 1
+            else:
+                self.capability_needs_review += 1
+        else:
+            inspection = self.runtime._inspect_attachment_capabilities((attachment,))
+            if len(inspection.parsed) + len(inspection.failures) != 1:
+                raise IngestionError("GIT_READBACK_FAILED")
+            self.capability_supported += len(inspection.parsed)
+            self.capability_needs_review += len(inspection.failures)
+            for item in inspection.parsed:
+                if item.facts.source_version != attachment.sha256:
+                    raise IngestionError("GIT_READBACK_FAILED")
+                self.resolved_families[attachment.sha256] = item.facts.family
+            self.integrity_failures.extend(
+                failure
+                for failure in inspection.failures
+                if self.runtime._parse_failure_code(failure) in _SOURCE_INTEGRITY_PARSE_CODES
+            )
+
+        resolved_family = self.resolved_families.get(attachment.sha256)
+        self.scope.append((attachment.sha256, resolved_family or family))
+        if attachment.family in TRANSACTION_FAMILIES:
+            self.cashflow.add(attachment)
+        elif attachment.family is None and resolved_family in TRANSACTION_FAMILIES:
+            self.cashflow.add(replace(attachment, family=resolved_family))
+
+
 class DailyFundsRuntime:
     def __init__(self, config: DailyFundsConfig | None = None):
         self.config = config or DailyFundsConfig.from_env()
@@ -1454,100 +1625,10 @@ class DailyFundsRuntime:
         stale or partial cash-flow chart.
         """
 
-        eligible_by_sha: dict[str, DownloadedAttachment] = {}
+        accumulator = _CashflowObservationAccumulator(self)
         for attachment in attachments:
-            if attachment.family in TRANSACTION_FAMILIES and is_ocr_attachment(attachment.filename, payload=attachment.payload):
-                existing = eligible_by_sha.get(attachment.sha256)
-                if existing is None:
-                    eligible_by_sha[attachment.sha256] = attachment
-                elif existing.payload != attachment.payload:
-                    # This should already be impossible after Git readback,
-                    # but never pick one of two different byte strings merely
-                    # because they carry the same asserted digest.
-                    eligible_by_sha[attachment.sha256] = attachment
-
-        eligible = tuple(eligible_by_sha[key] for key in sorted(eligible_by_sha))
-        source_fingerprint = sha256("\n".join(item.sha256 for item in eligible).encode("ascii")).hexdigest() if eligible else None
-        coverage: dict[str, int] = {
-            "eligible_documents": len(eligible),
-            "parsed_documents": 0,
-            "rejected_documents": 0,
-            "distinct_business_days": 0,
-        }
-        rejection_categories: dict[str, int] = {}
-        base: dict[str, Any] = {
-            "schema_version": _CASHFLOW_OBSERVATION_SCHEMA,
-            "generated_at": iso_now(),
-            "parser_version": CASHFLOW_OBSERVATION_PARSER_VERSION,
-            "source_coverage": coverage,
-            "rejection_categories": rejection_categories,
-            "evidence_version": source_fingerprint[-12:] if source_fingerprint is not None else None,
-            "points": [],
-        }
-        if not eligible:
-            payload = {**base, "status": "NOT_AVAILABLE", "machine_code": "CASHFLOW_OBSERVATION_SOURCE_EMPTY"}
-            atomic_json_write(self.config.publication_dir / "cashflow_observation.json", payload)
-            return payload
-        if not self.config.ocr_enabled:
-            coverage["rejected_documents"] = len(eligible)
-            payload = {**base, "status": "NEEDS_REVIEW", "machine_code": "CASHFLOW_OBSERVATION_OCR_DISABLED"}
-            atomic_json_write(self.config.publication_dir / "cashflow_observation.json", payload)
-            return payload
-        if not deterministic_ocr_runtime_ready():
-            coverage["rejected_documents"] = len(eligible)
-            payload = {**base, "status": "NEEDS_REVIEW", "machine_code": "CASHFLOW_OBSERVATION_OCR_UNAVAILABLE"}
-            atomic_json_write(self.config.publication_dir / "cashflow_observation.json", payload)
-            return payload
-
-        observations: list[CashflowObservation] = []
-        for attachment in eligible:
-            try:
-                observations.append(parse_cashflow_observation(
-                    family=attachment.family or "",
-                    filename=attachment.filename,
-                    payload=attachment.payload,
-                    source=self._source_ref(attachment),
-                    received_at=attachment.message_at,
-                    mime=attachment.mime,
-                    min_confidence_bps=self.config.ocr_min_confidence_bps,
-                ))
-            except ParseError as exc:
-                coverage["rejected_documents"] += 1
-                category = self._cashflow_observation_rejection_category(exc)
-                rejection_categories[category] = rejection_categories.get(category, 0) + 1
-        coverage["parsed_documents"] = len(observations)
-        by_day: dict[date, CashflowObservation] = {}
-        duplicate_day = False
-        for observation in observations:
-            if observation.business_date in by_day:
-                duplicate_day = True
-                continue
-            by_day[observation.business_date] = observation
-        coverage["distinct_business_days"] = len(by_day)
-        if coverage["rejected_documents"]:
-            code = "CASHFLOW_OBSERVATION_PARSE_NEEDS_REVIEW"
-        elif duplicate_day:
-            code = "CASHFLOW_OBSERVATION_DUPLICATE_DAY"
-        elif len(by_day) < _CASHFLOW_OBSERVATION_MIN_DAYS:
-            code = "CASHFLOW_OBSERVATION_COVERAGE_INSUFFICIENT"
-        else:
-            code = "CASHFLOW_OBSERVATION_VERIFIED"
-        if code != "CASHFLOW_OBSERVATION_VERIFIED":
-            payload = {**base, "status": "NEEDS_REVIEW", "machine_code": code}
-            atomic_json_write(self.config.publication_dir / "cashflow_observation.json", payload)
-            return payload
-        points = [
-            {
-                "business_date": business_day.isoformat(),
-                "inflow_fen": observation.inflow_fen,
-                "outflow_fen": observation.outflow_fen,
-                "net_change_fen": observation.inflow_fen - observation.outflow_fen,
-            }
-            for business_day, observation in sorted(by_day.items())
-        ]
-        payload = {**base, "status": "VERIFIED", "machine_code": code, "points": points}
-        atomic_json_write(self.config.publication_dir / "cashflow_observation.json", payload)
-        return payload
+            accumulator.add(attachment)
+        return accumulator.write()
 
     def raw_archive_audit(self) -> dict[str, Any]:
         """Audit acquired private raw bytes without reading DWS or publishing money.
@@ -1584,53 +1665,20 @@ class DailyFundsRuntime:
         """Run one full raw-archive audit while its process lock is held."""
 
         writer = GitSparseWriter(self.config)
-        # ``audit_raw_archive`` is a read-only, commit-pinned census.  Holding
-        # the writer lease through its full OCR pass would starve the 15-minute
-        # poll/backfill path, despite the audit never changing Git.  The
-        # writer's independent commit-identity checks reject a moving head,
-        # which is safer than serializing a long reader with financial writes.
-        audit = writer.audit_raw_archive()
+        accumulator = _RawArchiveAuditAccumulator(self)
+        # The raw writer pins one private Git commit, validates the complete
+        # metadata census, then reopens each bounded payload group from that
+        # same commit.  The callback receives a byte-proven attachment only
+        # while that small group is resident; it cannot accidentally retain
+        # the historic image corpus in memory.
+        audit = writer.audit_raw_archive(on_attachment=accumulator.consume)
+        if accumulator.occurrence_count != audit.occurrence_count:
+            raise IngestionError("GIT_READBACK_FAILED")
 
-        # The private-Git census above has freshly re-opened and verified each
-        # raw byte.  Reuse a prior formal capability receipt only when that
-        # exact SHA was also in the prior *complete* scope under the unchanged
-        # formal parser version.  This avoids needlessly OCRing an unchanged
-        # history every time a separate chart-only parser changes, while new,
-        # unscoped, or version-mismatched bytes still take the full parser
-        # path below.
-        prior_receipts = self.state.reusable_capability_scope_receipts(
-            parser_version=PARSER_VERSION,
-            attachment_sha256s=(attachment.sha256 for attachment in audit.verified_attachments),
-        )
-        attachments_to_inspect = tuple(
-            attachment
-            for attachment in audit.verified_attachments
-            if attachment.sha256 not in prior_receipts
-        )
-        inspection = self._inspect_attachment_capabilities(attachments_to_inspect)
-        resolved_families = {
-            attachment_sha256: family
-            for attachment_sha256, (family, _outcome) in prior_receipts.items()
-        }
-        resolved_families.update({
-            item.facts.source_version: item.facts.family
-            for item in inspection.parsed
-        })
-        # The chart-only cashflow projection is independently fail-closed.  It
-        # consumes only explicitly labelled transaction screenshots or generic
-        # attachments that the just-completed raw-byte census resolved to a
-        # transaction schema.  Generic archive evidence that cannot establish
-        # a financial family stays private and cannot make the public chart
-        # look like a failed money calculation.
-        self._write_cashflow_observation(
-            self._cashflow_observation_candidates(audit.verified_attachments, resolved_families),
-        )
-        integrity_failures = tuple(
-            failure
-            for failure in inspection.failures
-            if self._parse_failure_code(failure) in _SOURCE_INTEGRITY_PARSE_CODES
-        )
-        if integrity_failures:
+        # The chart-only projection has its own OCR/footer gate and remains
+        # separate from the formal account-balance publication path.
+        accumulator.cashflow.write()
+        if accumulator.integrity_failures:
             self.state.queue_incident("RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
             status = self._status_from_current(fallback_code="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
             self._write_flow_state(stage="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW", status=status)
@@ -1642,50 +1690,29 @@ class DailyFundsRuntime:
         # would overstate the current source coverage.
         self.state.replace_capability_scope(
             parser_version=PARSER_VERSION,
-            attachments=(
-                (
-                    attachment.sha256,
-                    resolved_families.get(
-                        attachment.sha256,
-                        attachment.family
-                        if attachment.family in TRANSACTION_FAMILIES | {ACCOUNT_FAMILY}
-                        else "UNCLASSIFIED",
-                    ),
-                )
-                for attachment in audit.verified_attachments
-            ),
+            attachments=accumulator.scope,
         )
 
-        for attachment in audit.verified_attachments:
-            occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
+        for message_id_hash, index, attachment_sha256 in accumulator.inbox:
+            occurrence_key = f"{message_id_hash}:{index}:{attachment_sha256}"
             self.state.note_inbox(
                 occurrence_key,
-                attachment.message_id_hash,
-                attachment.sha256,
+                message_id_hash,
+                attachment_sha256,
                 "GIT_PERSISTED",
             )
             self.state.mark_inbox(occurrence_key, "ARCHIVED_CAPABILITY_RECORDED")
-        capability_supported = sum(
-            1
-            for attachment in audit.verified_attachments
-            if prior_receipts.get(attachment.sha256, ("", ""))[1] == "SUPPORTED"
-        ) + len(inspection.parsed)
-        needs_review = sum(
-            1
-            for attachment in audit.verified_attachments
-            if prior_receipts.get(attachment.sha256, ("", ""))[1] == "NEEDS_REVIEW"
-        ) + len(inspection.failures)
-        code = "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW" if needs_review else "RAW_ARCHIVE_AUDITED"
+        code = "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW" if accumulator.capability_needs_review else "RAW_ARCHIVE_AUDITED"
         status = self._status_from_current(fallback_code=code)
         self._write_flow_state(
-            stage="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW" if needs_review else "RAW_ARCHIVE_AUDITED",
+            stage="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW" if accumulator.capability_needs_review else "RAW_ARCHIVE_AUDITED",
             status=status,
         )
         return {
             "ok": True,
             "code": code,
-            "capability_supported": capability_supported,
-            "capability_needs_review": needs_review,
+            "capability_supported": accumulator.capability_supported,
+            "capability_needs_review": accumulator.capability_needs_review,
         }
 
     def _parse(self, attachments: Iterable[DownloadedAttachment]) -> list[TimedFacts]:

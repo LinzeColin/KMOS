@@ -36,25 +36,7 @@ SPARSE_PATH = Path("Private-KMDatabase/KMFA/daily_funds")
 DIRECT_BLOB_MAX_BYTES = 94_371_840
 CHUNK_BYTES = 48 * 1024 * 1024
 ALLOWED_SUFFIXES = frozenset({".csv", ".txt", ".xlsx", ".xlsm"})
-_DOWNLOAD_OUTPUT_SUFFIXES = ALLOWED_SUFFIXES | frozenset({
-    ".xls", ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp",
-})
-_DOWNLOAD_OUTPUT_SUFFIX_BY_MIME = {
-    "text/csv": ".csv",
-    "application/csv": ".csv",
-    "text/plain": ".txt",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
-    "application/vnd.ms-excel.sheet.macroenabled.12": ".xlsm",
-    "application/vnd.ms-excel": ".xls",
-    "application/pdf": ".pdf",
-    "image/png": ".png",
-    "image/jpeg": ".jpg",
-    "image/jpg": ".jpg",
-    "image/gif": ".gif",
-    "image/bmp": ".bmp",
-    "image/x-ms-bmp": ".bmp",
-    "image/webp": ".webp",
-}
+_DWS_RESOURCE_TYPES = frozenset({"mediaId", "fileId"})
 _MEDIA_ID_RE = re.compile(r"mediaId=([^\)\s]+)")
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 _DEVICE_CODE_RE = re.compile(
@@ -245,26 +227,6 @@ def _message_field(message: Mapping[str, Any], names: Sequence[str]) -> str | No
     return None
 
 
-def _dws_download_output_name(
-    declared_filename: str | None,
-    declared_mime: str | None,
-) -> str:
-    """Return a safe, explicit output filename for DWS media downloads.
-
-    DWS's older downloader treats a directory passed to ``--output`` as a
-    failed download.  The source filename must not be reused as a filesystem
-    path, so retain only an allow-listed extension and use a fixed basename.
-    A missing or unrecognized type stays ``.bin``; later capability parsing
-    may review it but must not guess a financial document format.
-    """
-
-    suffix = Path(declared_filename or "").suffix.lower()
-    if suffix not in _DOWNLOAD_OUTPUT_SUFFIXES:
-        normalized_mime = (declared_mime or "").split(";", 1)[0].strip().lower()
-        suffix = _DOWNLOAD_OUTPUT_SUFFIX_BY_MIME.get(normalized_mime, ".bin")
-    return f"attachment{suffix}"
-
-
 def _message_timestamp(message: Mapping[str, Any]) -> datetime:
     raw = _message_field(message, ("createTime", "createdAt", "timestamp", "sendTime", "msgTime"))
     if not raw:
@@ -308,6 +270,36 @@ def _attachments(message: Mapping[str, Any]) -> list[dict[str, Any]]:
     # quoted-message JSON, which would turn an old quoted attachment into a
     # fresh occurrence.
     return [{"mediaId": match.group(1)} for match in _MEDIA_ID_RE.finditer(content)]
+
+
+def _attachment_resource(attachment: Mapping[str, Any]) -> tuple[str, str] | None:
+    """Return one supported DWS resource identity without guessing its type.
+
+    The exact-group history endpoint emits ``resourceRefs`` with an explicit
+    ``type``/``resourceId`` pair.  Older message representations retain only a
+    ``mediaId`` token.  A ``fileId`` must stay a file resource: coercing it to
+    media loses the provider's download contract and silently excludes native
+    account or transaction workbooks from the private raw archive.
+    """
+
+    declared_type = _message_field(attachment, ("type", "resourceType", "resource_type"))
+    if declared_type is not None:
+        if declared_type not in _DWS_RESOURCE_TYPES:
+            return None
+        resource_id = _message_field(
+            attachment,
+            ("resourceId", "resource_id", declared_type, declared_type.lower()),
+        )
+        return (declared_type, resource_id) if resource_id else None
+
+    file_id = _message_field(attachment, ("fileId", "file_id"))
+    if file_id:
+        return "fileId", file_id
+    media_id = _message_field(attachment, ("mediaId", "media_id", "resourceId", "resource_id"))
+    if media_id:
+        # Untyped historical resource IDs are the legacy media representation.
+        return "mediaId", media_id
+    return None
 
 
 def _dws_history_failure_code(*values: object, fallback: str = "DWS_HISTORY_FAILED") -> str:
@@ -629,15 +621,27 @@ class DwsHistoryClient:
         if self._event_sink is not None:
             self._event_sink("DWS", operation, outcome)
 
-    def _run_dws(self, command: list[str], *, operation: str, timeout: int) -> subprocess.CompletedProcess[str]:
+    def _run_dws(
+        self,
+        command: list[str],
+        *,
+        operation: str,
+        timeout: int,
+        cwd: Path | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         try:
+            kwargs: dict[str, Any] = {
+                "capture_output": True,
+                "text": True,
+                "check": False,
+                "env": self._environment(),
+                "timeout": timeout,
+            }
+            if cwd is not None:
+                kwargs["cwd"] = str(cwd)
             return self._runner(
                 command,
-                capture_output=True,
-                text=True,
-                check=False,
-                env=self._environment(),
-                timeout=timeout,
+                **kwargs,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             self._record_network_event(operation, "UNAVAILABLE")
@@ -1161,13 +1165,15 @@ class DwsHistoryClient:
                     if not isinstance(resource, Mapping):
                         self._record_network_event("HISTORY_GROUP_V2_COLLECT", "INVALID")
                         raise IngestionError("DWS_GROUP_HISTORY_COLLECT_INVALID")
-                    resource_type = _message_field(resource, ("type", "resourceType", "resource_type"))
-                    resource_id = _message_field(resource, ("resourceId", "resource_id", "mediaId", "media_id"))
-                    if resource_type == "mediaId":
-                        if not resource_id:
-                            self._record_network_event("HISTORY_GROUP_V2_COLLECT", "INVALID")
-                            raise IngestionError("DWS_GROUP_HISTORY_COLLECT_INVALID")
-                        attachments.append({"mediaId": resource_id})
+                    source = _attachment_resource(resource)
+                    if source is None:
+                        # DWS can add unrelated resource types over time.  They
+                        # are not silently reclassified as an attachment that
+                        # this slice knows how to download; supported native
+                        # files and media are retained below.
+                        continue
+                    resource_type, resource_id = source
+                    attachments.append({"type": resource_type, "resourceId": resource_id})
                 if attachments:
                     canonical["attachments"] = attachments
             normalized.append(canonical)
@@ -1434,7 +1440,7 @@ class DwsHistoryClient:
         if index < 0 or index >= len(attachments):
             return None
         attachment = attachments[index]
-        if not _message_field(attachment, ("mediaId", "media_id", "resourceId", "resource_id")):
+        if _attachment_resource(attachment) is None:
             return None
         return PersistedRawAttachment(
             message=message,
@@ -1452,9 +1458,10 @@ class DwsHistoryClient:
         if index >= len(attachments):
             raise IngestionError("ATTACHMENT_INDEX_INVALID")
         attachment = attachments[index]
-        media_id = _message_field(attachment, ("mediaId", "media_id", "resourceId", "resource_id"))
-        if not media_id:
+        source = _attachment_resource(attachment)
+        if source is None:
             raise IngestionError("UNSUPPORTED_ATTACHMENT")
+        resource_type, resource_id = source
         declared_filename = _message_field(attachment, ("fileName", "name", "title"))
         declared_mime = _message_field(attachment, ("mimeType", "mime", "contentType"))
         # The dedicated cloud volume is normally made by entrypoint, but a
@@ -1464,31 +1471,30 @@ class DwsHistoryClient:
         with tempfile.TemporaryDirectory(prefix="daily-funds-dws-", dir=self.config.state_dir) as temp:
             output_dir = Path(temp) / "download"
             output_dir.mkdir()
-            # The DWS contract requires a full file path here.  Never pass
-            # only the directory: legacy DWS releases report that form as a
-            # generic media download failure before any parser can run.
-            output = output_dir / _dws_download_output_name(declared_filename, declared_mime)
+            # The current DWS resource downloader writes into a *relative*
+            # working-directory path.  Running it inside this short-lived
+            # private directory supports both native fileId workbooks and
+            # mediaId previews without reusing a provider filename as a path.
             command = [
                 self.config.dws_bin,
-                "chat", "message", "download-media",
-                "--type", "mediaId",
-                "--resource-id", media_id,
-                "--message-id", message_id,
-                "--open-conversation-id", self.config.group_id,
-                "--output", str(output),
+                "chat", "+messages-resource-download",
+                "--type", resource_type,
+                "--resource-id", resource_id,
+                "--output", ".",
                 "--format", "json",
-                # ``download-media`` defaults to a 30-second HTTP timeout,
-                # while this cloud-only worker already grants the bounded
-                # media operation 180 seconds.  Use most of that approved
-                # budget so a legitimate large attachment is not converted
-                # into a false parser/source failure by a client default.
                 "--timeout", "150",
             ]
+            if resource_type == "mediaId":
+                command.extend([
+                    "--message-id", message_id,
+                    "--open-conversation-id", self.config.group_id,
+                ])
             try:
                 completed = self._run_dws(
                     command,
                     operation="ATTACHMENT_DOWNLOAD",
                     timeout=180,
+                    cwd=output_dir,
                 )
             except (OSError, subprocess.TimeoutExpired) as exc:
                 self._record_network_event("ATTACHMENT_DOWNLOAD", "TRANSPORT_FAILED")
@@ -2014,7 +2020,7 @@ class RawMaterializer:
         message: Mapping[str, Any],
         *,
         attachment_index: int,
-    ) -> tuple[str, str, str, datetime, str | None, int, str]:
+    ) -> tuple[str, str, str, datetime, str | None, int, str, str]:
         """Return the immutable source identity needed for an overlap reopen.
 
         DingTalk can return the same immutable message/media occurrence with
@@ -2043,12 +2049,10 @@ class RawMaterializer:
         attachments = _attachments(message)
         if attachment_index >= len(attachments):
             raise IngestionError("GIT_READBACK_FAILED")
-        media_id = _message_field(
-            attachments[attachment_index],
-            ("mediaId", "media_id", "resourceId", "resource_id"),
-        )
-        if not media_id:
+        source = _attachment_resource(attachments[attachment_index])
+        if source is None:
             raise IngestionError("GIT_READBACK_FAILED")
+        resource_type, resource_id = source
         return (
             conversation_id,
             sender_id,
@@ -2056,7 +2060,8 @@ class RawMaterializer:
             message_at,
             _family(message),
             len(attachments),
-            media_id,
+            resource_type,
+            resource_id,
         )
 
     @classmethod
@@ -2463,6 +2468,12 @@ class GitSparseWriter:
     _RAW_ARCHIVE_MAX_OCCURRENCES = 1024
     _RAW_ARCHIVE_MAX_BATCHES = 512
     _RAW_ARCHIVE_MAX_TREE_OUTPUT_BYTES = 512 * 1024
+    # A full historic image census can contain hundreds of multi-megabyte
+    # screenshots.  Retaining their payloads in one Python tuple makes the
+    # otherwise read-only audit vulnerable to the worker's memory ceiling.
+    # Keep a complete metadata census, then hydrate this many immutable raw
+    # occurrences at a time from the same pinned Git tree.
+    _RAW_ARCHIVE_READBACK_BATCH_SIZE = 16
 
     # The raw-archive audit is strictly read-only.  A single Git/OpenSSH
     # transport interruption may be retried from a fresh sparse clone, but
@@ -2772,7 +2783,114 @@ class GitSparseWriter:
         except (OSError, KeyError, TypeError, ValueError, IngestionError) as exc:
             raise IngestionError("GIT_READBACK_FAILED") from exc
 
-    def audit_raw_archive(self) -> RawArchiveAudit:
+    @staticmethod
+    def _verify_persisted_raw_batches(
+        root: Path,
+        *,
+        batch_paths: Iterable[str],
+        attachments: Iterable[PersistedRawAttachment],
+    ) -> int:
+        """Verify every batch binding before byte payloads are hydrated.
+
+        The immutable batch manifest contains occurrence identity and the
+        payload digest, not the payload itself.  Verifying it from the pinned
+        metadata checkout first lets the later readback open one bounded group
+        of blobs at a time.  Every individual byte is still reopened and
+        verified by :meth:`RawMaterializer.hydrate_persisted_raw_attachment`
+        before it reaches a parser callback.
+        """
+
+        attachment_by_occurrence: dict[str, PersistedRawAttachment] = {}
+        try:
+            frozen = GitSparseWriter._canonical_persisted_raw_attachments(attachments)
+            for attachment in frozen:
+                RawMaterializer.validate_persisted_raw_attachment(attachment)
+                _, occurrence_path = RawMaterializer._message_and_occurrence_paths(
+                    attachment.message_at,
+                    attachment.message_id_hash,
+                    attachment.index,
+                )
+                key = str(occurrence_path)
+                if key in attachment_by_occurrence:
+                    raise IngestionError("GIT_READBACK_FAILED")
+                attachment_by_occurrence[key] = attachment
+
+            referenced_occurrences: set[str] = set()
+            reference_count = 0
+            for full_path in batch_paths:
+                batch_id_from_path = GitSparseWriter._raw_archive_batch_path(full_path)
+                relative = Path(full_path).relative_to(SPARSE_PATH)
+                payload = json.loads(RawMaterializer._safe_path(root, relative).read_text(encoding="utf-8"))
+                if (
+                    not isinstance(payload, Mapping)
+                    or set(payload) != {"schema_version", "batch_id", "occurrences"}
+                    or payload.get("schema_version") != "kmfa.daily_funds.batch.v1"
+                    or payload.get("batch_id") != batch_id_from_path
+                    or not isinstance(payload.get("occurrences"), list)
+                    or not payload["occurrences"]
+                ):
+                    raise IngestionError("GIT_READBACK_FAILED")
+
+                batch_attachments: list[PersistedRawAttachment] = []
+                rows: list[dict[str, Any]] = []
+                seen_rows: set[tuple[str, int, str, str]] = set()
+                for raw_row in payload["occurrences"]:
+                    if not isinstance(raw_row, Mapping) or set(raw_row) != {
+                        "message_id_hash", "attachment_index", "attachment_sha256", "occurrence_path",
+                    }:
+                        raise IngestionError("GIT_READBACK_FAILED")
+                    message_id_hash = raw_row.get("message_id_hash")
+                    index = raw_row.get("attachment_index")
+                    attachment_sha256 = raw_row.get("attachment_sha256")
+                    occurrence_path = raw_row.get("occurrence_path")
+                    if (
+                        not isinstance(message_id_hash, str)
+                        or len(message_id_hash) != 64
+                        or any(character not in "0123456789abcdef" for character in message_id_hash)
+                        or not isinstance(index, int)
+                        or isinstance(index, bool)
+                        or index < 0
+                        or not isinstance(attachment_sha256, str)
+                        or len(attachment_sha256) != 64
+                        or any(character not in "0123456789abcdef" for character in attachment_sha256)
+                        or not isinstance(occurrence_path, str)
+                    ):
+                        raise IngestionError("GIT_READBACK_FAILED")
+                    identity = (message_id_hash, index, attachment_sha256, occurrence_path)
+                    if identity in seen_rows:
+                        raise IngestionError("GIT_READBACK_FAILED")
+                    seen_rows.add(identity)
+                    attachment = attachment_by_occurrence.get(occurrence_path)
+                    if (
+                        attachment is None
+                        or attachment.message_id_hash != message_id_hash
+                        or attachment.index != index
+                        or attachment.sha256 != attachment_sha256
+                    ):
+                        raise IngestionError("GIT_READBACK_FAILED")
+                    batch_attachments.append(attachment)
+                    rows.append(dict(raw_row))
+                    referenced_occurrences.add(occurrence_path)
+                    reference_count += 1
+
+                batch_id, expected_rows, expected_path = RawMaterializer.persisted_batch_details(batch_attachments)
+                if (
+                    batch_id != batch_id_from_path
+                    or str(expected_path) != str(relative)
+                    or expected_rows != rows
+                ):
+                    raise IngestionError("GIT_READBACK_FAILED")
+            if set(attachment_by_occurrence) != referenced_occurrences:
+                raise IngestionError("GIT_READBACK_FAILED")
+            return reference_count
+        except (OSError, KeyError, TypeError, ValueError, IngestionError) as exc:
+            raise IngestionError("GIT_READBACK_FAILED") from exc
+
+    def audit_raw_archive(
+        self,
+        *,
+        on_attachment: Callable[[DownloadedAttachment], None] | None = None,
+    ) -> RawArchiveAudit:
         """Re-open the acquired raw authority for deterministic capability audit.
 
         This is a cloud-worker-only read path.  It never lists DWS history,
@@ -2783,7 +2901,9 @@ class GitSparseWriter:
         """
 
         try:
-            return self._audit_raw_archive_once()
+            if on_attachment is None:
+                return self._audit_raw_archive_once()
+            return self._audit_raw_archive_once(on_attachment=on_attachment)
         except IngestionError as exc:
             # The retry creates a new temporary HOME, deploy-key file,
             # known-hosts file and sparse checkout.  No partial checkout or
@@ -2792,9 +2912,15 @@ class GitSparseWriter:
             # fail-closed.
             if exc.code != "GIT_AUDIT_TRANSPORT_RETRYABLE":
                 raise
-        return self._audit_raw_archive_once()
+        if on_attachment is None:
+            return self._audit_raw_archive_once()
+        return self._audit_raw_archive_once(on_attachment=on_attachment)
 
-    def _audit_raw_archive_once(self) -> RawArchiveAudit:
+    def _audit_raw_archive_once(
+        self,
+        *,
+        on_attachment: Callable[[DownloadedAttachment], None] | None = None,
+    ) -> RawArchiveAudit:
         """Perform one fresh, bounded sparse read of the private raw authority."""
 
         self.config.validate(include_storage=False)
@@ -2847,7 +2973,17 @@ class GitSparseWriter:
                 self._raw_archive_batch_path(path)
 
             metadata_repo = temp_root / "private-db-metadata"
-            metadata_patterns = tuple(sorted((*occurrence_paths, *batch_paths)))
+            metadata_message_paths = []
+            for occurrence_path in occurrence_paths:
+                year, month, day, message_id_hash, _ = self._raw_archive_occurrence_path(occurrence_path)
+                metadata_message_paths.append(
+                    (SPARSE_PATH / "raw" / "messages" / f"{year:04d}" / f"{month:02d}" / f"{day:02d}" / f"{message_id_hash}.json").as_posix()
+                )
+            metadata_patterns = tuple(sorted((
+                *occurrence_paths,
+                *batch_paths,
+                *metadata_message_paths,
+            )))
             self._clone_sparse(
                 metadata_repo,
                 env=env,
@@ -2864,6 +3000,45 @@ class GitSparseWriter:
                 for path in occurrence_paths
             )
 
+            references = self._archive_persisted_references(metadata_root, occurrences)
+            batch_references = self._verify_persisted_raw_batches(
+                metadata_root,
+                batch_paths=batch_paths,
+                attachments=references,
+            )
+
+            if on_attachment is not None:
+                for start in range(0, len(references), self._RAW_ARCHIVE_READBACK_BATCH_SIZE):
+                    batch = references[start:start + self._RAW_ARCHIVE_READBACK_BATCH_SIZE]
+                    readback_repo = temp_root / f"private-db-readback-{start:04d}"
+                    try:
+                        self._clone_sparse(
+                            readback_repo,
+                            env=env,
+                            ref=self.config.private_branch,
+                            patterns=self._persisted_raw_sparse_patterns(batch),
+                            audit_read=True,
+                            commit_sha=commit_sha,
+                        )
+                        if self._git(["rev-parse", "HEAD"], cwd=readback_repo, env=env, audit_read=True) != commit_sha:
+                            raise IngestionError("GIT_READBACK_FAILED")
+                        root = readback_repo / SPARSE_PATH
+                        for attachment in batch:
+                            on_attachment(RawMaterializer.hydrate_persisted_raw_attachment(root, attachment))
+                    finally:
+                        # This directory is an exact child of the active
+                        # TemporaryDirectory.  Removing it between groups
+                        # bounds both checkout disk and process page cache.
+                        if readback_repo.exists():
+                            shutil.rmtree(readback_repo)
+                return RawArchiveAudit(
+                    commit_sha=commit_sha,
+                    verified_attachments=(),
+                    occurrence_count=len(references),
+                    batch_count=len(batch_paths),
+                    batch_occurrence_references=batch_references,
+                )
+
             readback_repo = temp_root / "private-db-readback"
             readback_patterns = self._raw_archive_sparse_patterns(occurrences, batch_paths)
             self._clone_sparse(
@@ -2877,16 +3052,16 @@ class GitSparseWriter:
             if self._git(["rev-parse", "HEAD"], cwd=readback_repo, env=env, audit_read=True) != commit_sha:
                 raise IngestionError("GIT_READBACK_FAILED")
             root = readback_repo / SPARSE_PATH
-            references = self._archive_persisted_references(root, occurrences)
+            # The metadata-only verification above and this full payload
+            # readback must agree on the same exact source references.
             verified = tuple(
                 RawMaterializer.hydrate_persisted_raw_attachment(root, attachment)
                 for attachment in references
             )
-            batch_references = self._verify_raw_archive_batches(
-                root,
-                batch_paths=batch_paths,
-                attachments=verified,
-            )
+            # Retain the historic full-payload batch verifier for callers
+            # without a streaming callback (including local contract tests).
+            if self._verify_raw_archive_batches(root, batch_paths=batch_paths, attachments=verified) != batch_references:
+                raise IngestionError("GIT_READBACK_FAILED")
             return RawArchiveAudit(
                 commit_sha=commit_sha,
                 verified_attachments=verified,
