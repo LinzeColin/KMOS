@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage063 Phase 1（本地）
+
+- 完成章节感知切块静态合同：固定 `8/14/3/6/8` 形状，即八个仅引用输入、十四个未来输出、工程步骤/验收条款/参数表三类保护语义面、六个追溯引用和八类失败关闭；没有建立第二权威事实源。
+- 只定义未来 `document/page/section/parser output`、表格上下文和来源片段的受控引用接口。Stage047、Stage062 与 Stage064--068 的既有或后续唯一职责保持不变；来源文档与业务线白箱人工复核保持权威，chunk、模型文本和本合同都不能形成业务结论。
+- 本地验证通过：Stage063 P1 聚焦用例 `7/7`；含 Stage063 P1、Stage062 P1--Review、Stage061 P1--Review、两个批次与 Stage060 Review 的阶段链路回归 `136/136`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件。未读取、打开、检测、解析或切分真实资料或 fixture；未执行真实 parser、章节检测、chunk 身份/版本、分类、覆盖率、质量、来源追溯、索引、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE063-P2-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage062 Review（本地）
 
 - 完成表格证据绑定整阶段机械复审：核验 P1--P4 的 `19/17` 绑定形状、`2/2` control 请求与候选、六类显式人工处置、`6` 个 metadata-only 交付样例、`6` 个字段引用标签、`6` 条控制质量结果、`6` 条人工处理建议、`3` 条中文确认和 P4→P3 回滚链；发现数为 `0`，没有建立第二权威事实源。

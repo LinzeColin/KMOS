@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE062",
-  "phase": "IDS-STAGE062-REVIEW",
-  "task": "IDS-V0_1-STAGE062-REVIEW",
-  "real_progress": "Stage062 Review 已机械复审 P1--P4 的 19/17 绑定形状、2/2 control 请求与候选、6 类显式人工处置、6 个 metadata-only 交付样例、6 个字段标签、6 条质量结果、6 条人工建议、3 条中文确认和 P4→P3 回滚链；下一步仅可在新的独立 run 进入 Stage063 Phase 1，上传路径继续关闭",
-  "report_grade": "冻结 Stage062 任务包、P1--P4 control 合同/报告、Stage061 本地复审、Batch061-070 上传锁、治理路线与中文事实投影一致",
-  "business_verdict": "本 Review 只证明 Stage062 control 合同、计数、单一权威、人工处理、数值关闭和回滚说明可白箱核验；不证明真实表格处理、真实来源位置验证、真实证据绑定、真实事实、数值统计、数据库、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE062_REVIEWED_TABLE_EVIDENCE_BINDING_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE063",
+  "phase": "IDS-V0_1-STAGE063-P1",
+  "task": "IDS-V0_1-STAGE063-P1",
+  "real_progress": "Stage063 Phase 1 已定义 8 个仅引用输入、14 个未来输出、3 类工程语义保护面、6 个追溯引用和 8 类失败关闭；下一步仅可在新的独立 run 进入 Stage063 Phase 2，上传路径继续关闭",
+  "report_grade": "冻结 Stage063 任务包、Stage062 本地复审、Batch061-070 上传锁、章节感知切块静态合同、治理路线与中文事实投影待最终本地验证一致",
+  "business_verdict": "本 Phase 只证明章节感知切块的静态边界、追溯接口、人工复核、单一权威和回滚说明可白箱核验；不证明真实章节识别、真实切块、chunk 身份/版本、分类、覆盖率、质量、索引、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE063_PHASE1_CHAPTER_AWARE_CHUNKING_CONTRACT_RUNTIME_DISABLED",
   "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE063-P1-GATE",
+  "next_gate": "IDS-STAGE063-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

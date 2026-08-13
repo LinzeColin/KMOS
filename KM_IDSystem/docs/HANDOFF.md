@@ -9,14 +9,14 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage062 Review - 2026-08-14
+## Current Gate - Stage063 Phase 1 - 2026-08-14
 
-- 本节是唯一当前交接；Stage062 P1/P2/P3/P4 与下方 Stage061 Review、Stage061 P4/P3/P2/P1、Batch051-060 Review 和所有更早章节均为已提交的历史证据，不重写其事实。
-- 本轮完成 `IDS-V0_1-STAGE062-REVIEW`：只机械复审冻结任务包和 P1--P4 control 合同/报告，确认 `19/17` 绑定形状、`2/2` control 请求与候选、六类显式人工处置、`6` 个 metadata-only 交付样例、`6` 个字段引用标签、`6` 条质量结果、`6` 条人工建议、`3` 条中文确认及 P4→P3 回滚链；发现数为 `0`，没有建立第二权威事实源。
-- 合并单元格控制类别保持 `UNRECOGNIZED_STRUCTURE_REQUIRES_HUMAN_HANDLING`；六类场景都保留业务线白箱人工处理。控制引用只代表既有 `:control:` 形状，不代表真实表格、真实来源位置、真实证据、真实结构化事实、真实质量结果、真实重解析或真实回滚已经验证或执行。未验证数值继续阻断统计与模型确定性结论，来源文档保持唯一权威。
-- 已验证：复审模块返回 `PASS_REVIEWED_LOCAL_TABLE_EVIDENCE_BINDING_RUNTIME_DISABLED`；聚焦用例 `10/10`；Stage062 Review/P4/P3/P2/P1、Stage061 Review/P4/P3/P2/P1、Batch051-060、Batch041-050 与 Stage060 Review 阶段链路回归 `129/129`；两个批次检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件。外部运行、OVH、生产与上传均未进入。
-- 回滚只撤回本 Review 说明、只读复审模块、聚焦用例、BATCH061-070 锁、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `PHASE4_TABLE_EVIDENCE_BINDING_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；不改变 P1--P4、真实资料、manifest、evidence ledger、audit log、事实库、数据库、GitHub、OVH 或应用状态。
-- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE063-P1-GATE`。本 run 不启动 Stage063、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+- 本节是唯一当前交接；Stage062 Review、Stage062 P1/P2/P3/P4 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE063-P1`：只定义章节感知切块静态合同，固定 `8/14/3/6/8` 形状，即八个仅引用输入、十四个未来输出、工程步骤/验收条款/参数表三类保护语义面、六个追溯引用和八类失败关闭；没有建立第二权威事实源，也没有读取、解析或切分真实资料。
+- Stage047 保留 parser 输出职责，Stage062 保留表格证据绑定职责，Stage064--068 分别保留 chunk 身份/版本、工程语义资产分类、覆盖率、质量回归和质量降级职责。来源文档与业务线白箱人工复核保持权威；chunk、模型文本和本合同都不能替代来源、成为业务事实权威或产生决策结论。
+- 本地验证已通过：Stage063 P1 聚焦用例 `7/7`；含 Stage063 P1、Stage062 P1--Review、Stage061 P1--Review、两个批次与 Stage060 Review 的阶段链路回归 `136/136`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件。执行范围没有进入真实 parser、章节检测、切块、chunk 身份/版本、分类、覆盖率、质量、来源追溯、索引、数据库、Agent、模型 Token、OVH、生产或上传。
+- 回滚只撤回本 P1 说明、静态合同、聚焦用例、BATCH061-070 锁、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `STAGE062_REVIEWED_LOCAL_TABLE_EVIDENCE_BINDING_RUNTIME_DISABLED`；不改变冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE063-P2-GATE`。本 run 不进入 P2、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
 
 ## Superseded Gate - Stage062 Phase 3 - 2026-08-14
 

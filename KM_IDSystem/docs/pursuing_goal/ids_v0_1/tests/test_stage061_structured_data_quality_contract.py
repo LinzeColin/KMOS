@@ -332,7 +332,7 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
         )
         run = json.loads(RUN.read_text(encoding="utf-8"))
 
-        self.assertIn(status["stage"], ("IDS-STAGE061", "IDS-STAGE062"))
+        self.assertIn(status["stage"], ("IDS-STAGE061", "IDS-STAGE062", "IDS-STAGE063"))
         self.assertIn(
             (status["phase"], status["next_gate"]),
             (
@@ -345,11 +345,12 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE062-P3", "IDS-STAGE062-P4-GATE"),
                 ("IDS-V0_1-STAGE062-P4", "IDS-STAGE062-REVIEW-GATE"),
                 ("IDS-STAGE062-REVIEW", "IDS-STAGE063-P1-GATE"),
+                ("IDS-V0_1-STAGE063-P1", "IDS-STAGE063-P2-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertIn(plan["stage"], ("IDS-STAGE061", "IDS-STAGE062"))
+        self.assertIn(plan["stage"], ("IDS-STAGE061", "IDS-STAGE062", "IDS-STAGE063"))
         self.assertIn(
             plan["task"],
             (
@@ -362,6 +363,7 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE062-P3",
                 "IDS-V0_1-STAGE062-P4",
                 "IDS-V0_1-STAGE062-REVIEW",
+                "IDS-V0_1-STAGE063-P1",
             ),
         )
         self.assertIn(status["next_gate"], plan["stop_condition"])
@@ -439,6 +441,10 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
             or (
                 "ACC-STAGE062-P1-01" in human_acceptance
                 and "RUN-IDS-STAGE062-P1-LOCAL-20260814-001" in human_acceptance
+            )
+            or (
+                "ACC-STAGE063-P1-01" in human_acceptance
+                and "RUN-IDS-STAGE063-P1-LOCAL-20260814-001" in human_acceptance
             ),
             human_acceptance,
         )

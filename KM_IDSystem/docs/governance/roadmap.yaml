@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE062"
-current_phase_id: "IDS-STAGE062-REVIEW"
-current_task_id: "IDS-V0_1-STAGE062-REVIEW"
-next_gate_id: "IDS-STAGE063-P1-GATE"
+current_stage_id: "IDS-STAGE063"
+current_phase_id: "IDS-STAGE063-P1"
+current_task_id: "IDS-V0_1-STAGE063-P1"
+next_gate_id: "IDS-STAGE063-P2-GATE"
 current_transition_history:
+  stage063_phase1_state:
+    current_stage_id: "IDS-STAGE063"
+    current_phase_id: "IDS-STAGE063-P1"
+    current_task_id: "IDS-V0_1-STAGE063-P1"
+    next_gate_id: "IDS-STAGE063-P2-GATE"
   stage062_review_state:
     current_stage_id: "IDS-STAGE062"
     current_phase_id: "IDS-STAGE062-REVIEW"
@@ -17034,3 +17039,69 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
             risk: "若把静态合同、control 计数、metadata-only 交付或本地复审通过误作真实表格质量验证、真实来源追溯、真实证据绑定、真实统计、数据库、OVH、生产或上传能力，会绕开业务线人工白箱处理和单一权威边界。"
             rollback: "只回滚本 Review 说明、只读复审模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PHASE4_TABLE_EVIDENCE_BINDING_DELIVERY_EVIDENCE_RUNTIME_DISABLED；不改变 P1--P4、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 或应用状态。"
+  - stage_id: "IDS-STAGE063"
+    name: "STAGE-063 · 章节感知切块"
+    task_id: "IDS-V0_1-STAGE063"
+    acceptance_ids:
+      - "ACC-STAGE-063"
+    status: "phase1_completed_local"
+    pursuing_goal: "只定义章节感知切块的静态合同，明确 document/page/section/parser output 追溯、工程步骤/验收条款/参数表保护面、失败关闭和回滚边界；不读取或切分真实资料。"
+    stop_gate:
+      gate_id: "IDS-STAGE063-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE063-P2-GATE"
+      github_upload_allowed: false
+    pass_conditions:
+      - "八个仅引用输入、十四个未来输出、三类工程语义保护面、六个追溯引用和八类失败关闭由聚焦用例白箱核验。"
+      - "来源文档与业务线人工复核保持权威，静态合同不创建第二权威事实源、真实 chunk、业务结论或持久状态。"
+      - "运行时、Agent、模型 Token、OVH、生产和上传均保持关闭，下一门仅为 Stage063 Phase 2。"
+    stop_conditions:
+      - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、索引、数据库或报告"
+      - "执行真实 parser、章节检测、切块、chunk 身份/版本、语义资产分类、覆盖率、质量回归、质量降级、来源追溯绑定、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Phase2、整阶段复审、批次复审、上传、推送或应用重装"
+    phases:
+      - phase_id: "IDS-STAGE063-P1"
+        name: "Phase 1 · 章节感知切块范围、输入输出与边界确认"
+        objective: "只以冻结 Stage063 任务包、Stage062 本地复审与 Batch061-070 上传锁为唯一合同上下文，定义未来章节感知切块的引用式输入输出、工程语义保护面、document/page/section/parser output 追溯、失败关闭、中文反馈和回滚边界；不读取、解析或切分真实资料。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE063-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE063-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE063-P2-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、索引、数据库或报告"
+          - "执行真实 parser、章节检测、切块、chunk 身份/版本、语义资产分类、覆盖率、质量回归、质量降级、来源追溯绑定、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、整阶段复审、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE063-P1"
+            name: "定义章节感知切块静态合同"
+            objective: "登记八个仅引用输入、十四个未来输出、三类保护语义面、六个追溯引用、八类失败关闭、中文反馈和回滚范围；不创建或评估任何真实 chunk。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE062-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-063"
+              - "ACC-STAGE063-P1-01"
+              - "ACC-STAGE063-P1-02"
+              - "ACC-STAGE063-P1-03"
+              - "ACC-STAGE063-P1-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage063_chapter_aware_chunking_contract"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage063 P1 聚焦用例通过 7/7；含 Stage063 P1、Stage062 P1--Review、Stage061 P1--Review、Batch051-060、Batch041-050 与 Stage060 Review 的阶段链路回归通过 136/136；两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；Stage005 治理回归 valid=true；中文事实投影已重渲染 7 个文件。本 P1 不进入 P2、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-063_章节感知切块.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE063_PHASE1_CHAPTER_AWARE_CHUNKING_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chapter_aware_chunking/stage063_chapter_aware_chunking_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage063_chapter_aware_chunking_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-14-stage063-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE062_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把静态字段、保护面、控制引用或聚焦用例通过误作真实章节识别、真实切块质量、真实来源追溯、真实索引、业务结论、OVH、生产或上传能力，会绕开业务线白箱复核与单一权威边界。"
+            rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 STAGE062_REVIEWED_LOCAL_TABLE_EVIDENCE_BINDING_RUNTIME_DISABLED；不改变冻结任务包、真实资料、fixture、事实库、数据库、索引、GitHub、OVH 或应用状态。"

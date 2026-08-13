@@ -264,18 +264,20 @@ class Stage062TableEvidenceBindingPhase4DeliveryTests(unittest.TestCase):
         roadmap = ROADMAP.read_text(encoding="utf-8")
         batch = BATCH.read_text(encoding="utf-8")
         events = EVENTS.read_text(encoding="utf-8")
-        self.assertEqual("IDS-STAGE062", status["stage"])
+        self.assertIn(status["stage"], ("IDS-STAGE062", "IDS-STAGE063"))
         self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
             (
                 ("IDS-V0_1-STAGE062-P4", "IDS-V0_1-STAGE062-P4", "IDS-STAGE062-REVIEW-GATE"),
                 ("IDS-STAGE062-REVIEW", "IDS-V0_1-STAGE062-REVIEW", "IDS-STAGE063-P1-GATE"),
+                ("IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P1", "IDS-STAGE063-P2-GATE"),
             ),
         )
-        self.assertIn(plan["phase"], ("IDS-V0_1-STAGE062-P4", "IDS-STAGE062-REVIEW"))
+        self.assertIn(plan["phase"], ("IDS-V0_1-STAGE062-P4", "IDS-STAGE062-REVIEW", "IDS-V0_1-STAGE063-P1"))
         self.assertTrue(
             "IDS-STAGE062-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE063-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE063-P2-GATE" in plan["stop_condition"]
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])

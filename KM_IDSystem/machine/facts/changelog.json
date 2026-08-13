@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage063-p1-local",
+    "date": "2026-08-13",
+    "summary": "完成 Stage063 P1 章节感知切块静态合同：定义 8 个仅引用输入、14 个未来输出、工程步骤/验收条款/参数表三类保护语义面、document/page/section/parser output 六类追溯引用、8 类失败关闭、中文反馈和回滚范围。未读取、打开、解析或切分真实资料，未执行 parser、章节检测、chunk 身份/版本、分类、覆盖率、质量、索引、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage063 P2。"
+  },
+  {
     "version": "v0.1-stage062-review-local",
     "date": "2026-08-14",
     "summary": "完成 Stage062 表格证据绑定整阶段本地机械复审：核验 P1--P4 的 19/17 绑定形状、2/2 control 请求与候选、六类显式人工处置、6 个 metadata-only 交付样例、6 个字段引用标签、6 条质量结果、6 条人工建议、3 条中文确认和 P4→P3 回滚链，发现数为零。Stage062 Review 聚焦用例通过 10/10，阶段链路回归通过 129/129，两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理回归 valid=true，中文事实投影已重渲染 7 个文件；未读取、打开、检测、解析或评估真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行真实 schema/字段/事实/质量验证、统计、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage063 Phase 1。"

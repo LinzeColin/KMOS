@@ -4,6 +4,26 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "chapter-aware chunking",
+      "中文": "章节感知切块",
+      "说明": "依据未来 document、page、section 和 parser output 引用保留章节语义边界的工程合同；Stage063 P1 只定义接口与关闭条件，不读取文档、不运行 parser 或创建真实 chunk。"
+    },
+    {
+      "英文": "protected semantic surface",
+      "中文": "保护语义面",
+      "说明": "工程步骤、验收条款和参数表等未来不得按固定字符数任意切断的语义单元；当前只登记边界，不执行识别、分类、切分或质量判断。"
+    },
+    {
+      "英文": "reference-only chunk traceability",
+      "中文": "仅引用切块追溯",
+      "说明": "未来 chunk 关联 document、page、section、parser output、表格上下文和来源片段的受控引用形状；它不包含正文、物理路径、实际页码或真实来源验证。"
+    },
+    {
+      "英文": "chunk quality human handling",
+      "中文": "切块质量人工处理",
+      "说明": "当章节边界、来源追溯或跨页参数表关系无法确认时必须保持关闭并交由业务线人工复核的规则；它不产生业务结论。"
+    },
+    {
       "英文": "Stage062 table evidence binding review",
       "中文": "Stage062 表格证据绑定整阶段机械复审",
       "说明": "只机械复审冻结 Stage062 P1--P4 control 合同、报告与 metadata-only 交付的固定计数、人工处理、数值关闭和 P4→P3 回滚说明；它不读取真实表格、不创建真实事实或证据绑定，也不启动 Stage063、OVH、生产或上传。"

@@ -252,12 +252,20 @@ class Stage062TableEvidenceBindingStageReviewTests(unittest.TestCase):
             for item in events
             if item["event_id"] == "EVT-IDS-V0_1-STAGE062-REVIEW-20260814-001"
         )
-        self.assertEqual("IDS-STAGE062", status["stage"])
-        self.assertEqual("IDS-STAGE062-REVIEW", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE062-REVIEW", status["task"])
-        self.assertEqual("IDS-STAGE063-P1-GATE", status["next_gate"])
-        self.assertEqual("IDS-STAGE062-REVIEW", plan["phase"])
-        self.assertEqual("IDS-V0_1-STAGE062-REVIEW", plan["task"])
+        self.assertIn(
+            (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                ("IDS-STAGE062", "IDS-STAGE062-REVIEW", "IDS-V0_1-STAGE062-REVIEW", "IDS-STAGE063-P1-GATE"),
+                ("IDS-STAGE063", "IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P1", "IDS-STAGE063-P2-GATE"),
+            ),
+        )
+        self.assertIn(
+            (plan["stage"], plan["phase"], plan["task"]),
+            (
+                ("IDS-STAGE062", "IDS-STAGE062-REVIEW", "IDS-V0_1-STAGE062-REVIEW"),
+                ("IDS-STAGE063", "IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P1"),
+            ),
+        )
         self.assertIn("ACC-STAGE062-REVIEW-01", str(acceptance))
         self.assertEqual("IDS-V0_1-STAGE062-REVIEW", event["task_id"])
         self.assertEqual("RUN-IDS-STAGE062-REVIEW-LOCAL-20260814-001", run["run_id"])

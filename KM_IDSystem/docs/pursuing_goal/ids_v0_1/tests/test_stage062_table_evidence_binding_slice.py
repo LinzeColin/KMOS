@@ -237,7 +237,7 @@ class Stage062TableEvidenceBindingPhase2Tests(unittest.TestCase):
             if item.get("event_id") == "EVT-IDS-V0_1-STAGE062-P2-20260814-001"
         )
 
-        self.assertEqual("IDS-STAGE062", status["stage"])
+        self.assertIn(status["stage"], ("IDS-STAGE062", "IDS-STAGE063"))
         self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
             (
@@ -245,20 +245,22 @@ class Stage062TableEvidenceBindingPhase2Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE062-P3", "IDS-V0_1-STAGE062-P3", "IDS-STAGE062-P4-GATE"),
                 ("IDS-V0_1-STAGE062-P4", "IDS-V0_1-STAGE062-P4", "IDS-STAGE062-REVIEW-GATE"),
                 ("IDS-STAGE062-REVIEW", "IDS-V0_1-STAGE062-REVIEW", "IDS-STAGE063-P1-GATE"),
+                ("IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P1", "IDS-STAGE063-P2-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-STAGE062", plan["stage"])
+        self.assertIn(plan["stage"], ("IDS-STAGE062", "IDS-STAGE063"))
         self.assertIn(
             plan["task"],
-            ("IDS-V0_1-STAGE062-P2", "IDS-V0_1-STAGE062-P3", "IDS-V0_1-STAGE062-P4", "IDS-V0_1-STAGE062-REVIEW"),
+            ("IDS-V0_1-STAGE062-P2", "IDS-V0_1-STAGE062-P3", "IDS-V0_1-STAGE062-P4", "IDS-V0_1-STAGE062-REVIEW", "IDS-V0_1-STAGE063-P1"),
         )
         self.assertTrue(
             "IDS-STAGE062-P3-GATE" in plan["stop_condition"]
             or "IDS-STAGE062-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE062-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE063-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE063-P2-GATE" in plan["stop_condition"]
         )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
@@ -271,7 +273,6 @@ class Stage062TableEvidenceBindingPhase2Tests(unittest.TestCase):
             }.issubset(acceptance_ids)
         )
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
-        self.assertIn('current_stage_id: "IDS-STAGE062"', roadmap_text)
         self.assertTrue(
             (
                 'current_phase_id: "IDS-STAGE062-P2"' in roadmap_text
@@ -284,6 +285,11 @@ class Stage062TableEvidenceBindingPhase2Tests(unittest.TestCase):
             or (
                 'current_phase_id: "IDS-STAGE062-REVIEW"' in roadmap_text
                 and 'next_gate_id: "IDS-STAGE063-P1-GATE"' in roadmap_text
+            )
+            or (
+                'current_stage_id: "IDS-STAGE063"' in roadmap_text
+                and 'current_phase_id: "IDS-STAGE063-P1"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE063-P2-GATE"' in roadmap_text
             )
         )
         self.assertEqual("phase_completed", event["event_type"])

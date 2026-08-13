@@ -1,14 +1,21 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
-updated_at_utc: "2026-08-13T20:03:07Z"
-status: "stage062_completed_reviewed_local"
+updated_at_utc: "2026-08-13T20:28:21Z"
+status: "stage063_phase1_completed"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage063_phase1_state:
+    status: "stage063_phase1_completed"
+    current_task_id: "IDS-V0_1-STAGE063-P1"
+    next_gate: "IDS-STAGE063-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE063-P2"
+    stage063_phase2_entry_authorized: true
+    github_upload_allowed: false
   stage062_review_state:
     status: "stage062_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE062-REVIEW"
@@ -110,6 +117,75 @@ upload_gate:
   deferred_batch_upload_gate: "IDS-V0_1-BATCH-061-070-UPLOAD-GATE"
 
 stage_progress:
+  STAGE-063:
+    status: "stage063_phase1_completed"
+    completed_phases:
+      - "Phase 1"
+    next_phase: "Phase 2"
+    next_gate: "IDS-STAGE063-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE063-P1"
+    acceptance_id: "ACC-STAGE-063"
+    acceptance_status: "phase1_completed_local"
+    phase2_entry_authorized: true
+    taskpack_context_read_performed: true
+    source_authority: "FROZEN_STAGE063_TASKPACK_AND_STAGE062_REVIEW_ARTIFACTS_ONLY"
+    second_authoritative_source_created: false
+    source_body_or_path_allowed: false
+    raw_metadata_content_accessed: false
+    ids_business_source_read_performed: false
+    source_file_open_performed: false
+    parser_execution_performed: false
+    chapter_detection_performed: false
+    chunking_execution_performed: false
+    chapter_aware_chunking_contract_schema: "ids.stage063.chapter_aware_chunking.phase1.v1"
+    contract_state: "PHASE1_CHAPTER_AWARE_CHUNKING_CONTRACT_RUNTIME_DISABLED"
+    execution_ready: false
+    reference_only_chunking_input_field_count: 8
+    future_chapter_aware_chunk_output_field_count: 14
+    protected_semantic_asset_type_count: 3
+    traceability_field_count: 6
+    declared_failure_state_count: 8
+    actual_input_request_count: 0
+    actual_chunk_count: 0
+    actual_traceability_binding_count: 0
+    source_document_remains_authoritative: true
+    chunk_can_replace_source_document: false
+    chunk_can_become_business_fact_authority: false
+    model_direct_text_guessing_allowed: false
+    model_decision_conclusion_authoritative: false
+    chunk_hash_computation_performed: false
+    semantic_asset_classification_performed: false
+    coverage_calculation_performed: false
+    quality_regression_performed: false
+    quality_degradation_performed: false
+    source_traceability_binding_performed: false
+    embedding_or_index_write_performed: false
+    database_connection_performed: false
+    persistent_state_write_performed: false
+    agent_execution_performed: false
+    model_call_performed: false
+    model_token_consumption_performed: false
+    local_service_start_performed: false
+    ovh_deployment_performed: false
+    production_runtime_activation_performed: false
+    stage063_started: true
+    stage063_entry_authorized: true
+    phase2_started: false
+    whole_stage_review_performed: false
+    batch_review_performed: false
+    github_upload_allowed: false
+    push_allowed: false
+    app_reinstall_allowed: false
+    evidence_refs:
+      - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-063_章节感知切块.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE063_PHASE1_CHAPTER_AWARE_CHUNKING_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chapter_aware_chunking/stage063_chapter_aware_chunking_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage063_chapter_aware_chunking_contract.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage063-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE062_STAGE_REVIEW.md"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage062-review-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
   STAGE-062:
     status: "stage062_completed_reviewed_local"
     completed_phases:
@@ -396,10 +472,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE062-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-STAGE063-P1"
+  current_task_id: "IDS-V0_1-STAGE063-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE063-P2"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-062 Review only mechanically reviews the frozen taskpack and P1-to-P4 control contracts/reports: 19/17 binding shapes, 2/2 control records/candidates, 6 exception dispositions, 6 metadata-only delivery samples, 6 field labels, 6 quality results, 6 human-handling records, 3 Chinese prompts and the P4-to-P3 rollback chain. It does not open sources, parse tables, infer schemas, extract facts, validate actual source locations, bind facts or evidence, write persistent state, call a model, deploy OVH or activate any runtime."
+  current_run: "STAGE-063 Phase 1 only defines the static chapter-aware chunking contract: 8 reference-only inputs, 14 future outputs, 3 protected engineering semantic surfaces, 6 traceability references and 8 failure closures. It does not open sources, run a parser, detect chapters, create chunks, calculate coverage, classify assets, build an index, write persistent state, call a model, deploy OVH or activate any runtime."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."
