@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage062 Phase 2（本地）
+
+- 完成表格证据绑定纯内存控制切片：两条固定、非业务、reference-only 十九字段请求投影两条十七字段 `UNBOUND_REFERENCE_ONLY` 候选，覆盖 XLSX/CSV、生产/质检记录类别、`evidence_id/document_id/sheet/row/column/source_uri` 六维控制引用、人工确认和数值关闭；没有建立第二权威事实源。
+- 两条候选只保留 `:control:` 引用，不含真实 URL、物理路径、网络位置、来源正文、工作表、单元格或业务数值。未知、重排或篡改控制输入会被拒绝；未验证数值、RAG 摘要和模型文本不能形成数值权威。
+- 本地验证通过：Stage062 P2 聚焦用例 `8/8`；Stage062 P2/P1、Stage061 Review/P4/P3/P2/P1、Batch051-060、Batch041-050 与 Stage060 Review 阶段链路回归 `95/95`；两个批次检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影已重渲染 `7` 个文件。未读取、打开、检测、解析或绑定真实 XLSX/CSV、生产记录、质检记录、事实、证据或 fixture；未执行真实 Schema/字段/事实、统计、数据库、Agent、模型 Token、OVH、生产、P3、整阶段复审、批次复审、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE062-P3-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage062 Phase 1（本地）
 
 - 完成表格证据绑定静态合同：固定 `19/17/6/8/13` 形状，即十九字段引用式绑定输入、十七字段未来绑定输出、`evidence_id/document_id/sheet/row/column/source_uri` 六维绑定、八类字段语义和十三类失败关闭；没有建立第二权威事实源。

@@ -1,14 +1,21 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
-updated_at_utc: "2026-08-13T18:16:39Z"
-status: "stage062_phase1_completed"
+updated_at_utc: "2026-08-13T18:50:07Z"
+status: "stage062_phase2_completed"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage062_phase2_state:
+    status: "stage062_phase2_completed"
+    current_task_id: "IDS-V0_1-STAGE062-P2"
+    next_gate: "IDS-STAGE062-P3-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE062-P3"
+    stage062_phase3_entry_authorized: true
+    github_upload_allowed: false
   stage062_phase1_state:
     status: "stage062_phase1_completed"
     current_task_id: "IDS-V0_1-STAGE062-P1"
@@ -83,15 +90,17 @@ upload_gate:
 
 stage_progress:
   STAGE-062:
-    status: "stage062_phase1_completed"
+    status: "stage062_phase2_completed"
     completed_phases:
       - "Phase 1"
-    next_phase: "Phase 2"
-    next_gate: "IDS-STAGE062-P2-GATE"
-    current_task_id: "IDS-V0_1-STAGE062-P1"
+      - "Phase 2"
+    next_phase: "Phase 3"
+    next_gate: "IDS-STAGE062-P3-GATE"
+    current_task_id: "IDS-V0_1-STAGE062-P2"
     acceptance_id: "ACC-STAGE-062"
-    acceptance_status: "phase1_completed_local"
+    acceptance_status: "phase2_completed_local"
     phase2_entry_authorized: true
+    phase3_entry_authorized: true
     taskpack_context_read_performed: true
     source_authority: "FROZEN_STAGE062_TASKPACK_AND_STAGE061_REVIEW_ARTIFACTS"
     second_authoritative_source_created: false
@@ -107,11 +116,16 @@ stage_progress:
     typed_value_extraction_performed: false
     table_summary_generation_performed: false
     table_evidence_binding_contract_schema: "ids.stage062.table_evidence_binding.phase1.v1"
-    contract_state: "PHASE1_TABLE_EVIDENCE_BINDING_CONTRACT_RUNTIME_DISABLED"
+    table_evidence_binding_slice_contract_schema: "ids.stage062.table_evidence_binding.phase2.v1"
+    contract_state: "PHASE2_TABLE_EVIDENCE_BINDING_CONTROL_SLICE_RUNTIME_DISABLED"
+    slice_executable: true
     execution_ready: false
     reference_only_binding_input_field_count: 19
+    control_binding_request_count: 2
     future_table_evidence_binding_output_field_count: 17
+    control_table_evidence_binding_candidate_count: 2
     binding_dimension_count: 6
+    control_binding_dimension_reference_count: 12
     field_semantic_category_count: 8
     declared_failure_state_count: 13
     actual_input_record_count: 0
@@ -126,6 +140,11 @@ stage_progress:
     summary_can_replace_structured_fact: false
     summary_can_become_numeric_statistical_evidence: false
     numeric_statistic_computation_performed: false
+    control_binding_request_reference_validation_performed: true
+    control_binding_candidate_projection_performed: true
+    all_binding_states_unbound: true
+    all_human_review_required: true
+    all_numeric_authority_blocked: true
     source_location_binding_performed: false
     evidence_binding_performed: false
     database_connection_performed: false
@@ -139,7 +158,10 @@ stage_progress:
     local_service_start_performed: false
     ovh_deployment_performed: false
     production_runtime_activation_performed: false
-    phase2_started: false
+    stage062_started: true
+    stage062_entry_authorized: true
+    phase2_started: true
+    phase3_started: false
     whole_stage_review_performed: false
     batch_review_performed: false
     github_upload_allowed: false
@@ -151,6 +173,11 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage062_table_evidence_binding_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage062_table_evidence_binding_contract.py"
       - "KM_IDSystem/machine/runs/2026-08-14-stage062-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE062_PHASE2_TABLE_EVIDENCE_BINDING_CONTROL_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage062_table_evidence_binding_slice_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage062_table_evidence_binding_slice.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage062_table_evidence_binding_slice.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage062-p2-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE061_STAGE_REVIEW.md"
       - "KM_IDSystem/machine/runs/2026-08-14-stage061-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
@@ -297,10 +324,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE062-P1"
-  next_allowed_task_id: "IDS-V0_1-STAGE062-P2"
+  current_task_id: "IDS-V0_1-STAGE062-P2"
+  next_allowed_task_id: "IDS-V0_1-STAGE062-P3"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-062 P1 only defines the reference-only table evidence binding contract for evidence_id, document_id, sheet, row, column and source_uri. It does not open sources, parse tables, bind facts or evidence, write persistent state, call a model, deploy OVH or activate any runtime."
+  current_run: "STAGE-062 P2 only projects two fixed non-business reference-only table evidence binding candidates in memory. It does not open sources, parse tables, infer schemas, extract facts, bind facts or evidence, write persistent state, call a model, deploy OVH or activate any runtime."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."

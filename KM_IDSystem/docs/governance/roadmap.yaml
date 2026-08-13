@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE062"
-current_phase_id: "IDS-STAGE062-P1"
-current_task_id: "IDS-V0_1-STAGE062-P1"
-next_gate_id: "IDS-STAGE062-P2-GATE"
+current_phase_id: "IDS-STAGE062-P2"
+current_task_id: "IDS-V0_1-STAGE062-P2"
+next_gate_id: "IDS-STAGE062-P3-GATE"
 current_transition_history:
+  stage062_phase2_state:
+    current_stage_id: "IDS-STAGE062"
+    current_phase_id: "IDS-STAGE062-P2"
+    current_task_id: "IDS-V0_1-STAGE062-P2"
+    next_gate_id: "IDS-STAGE062-P3-GATE"
   stage062_phase1_state:
     current_stage_id: "IDS-STAGE062"
     current_phase_id: "IDS-STAGE062-P1"
@@ -16772,20 +16777,20 @@ stages:
     task_id: "IDS-V0_1-STAGE062"
     acceptance_ids:
       - "ACC-STAGE-062"
-    status: "phase1_completed_local"
-    pursuing_goal: "在不读取业务资料、不绑定真实事实或证据、不启动运行时的前提下，定义表格事实关联 evidence_id、document_id、sheet、row、column 和 source_uri 的引用式处理合同、字段语义、数值权威、失败关闭与回滚边界。"
+    status: "phase2_completed_local"
+    pursuing_goal: "在 Stage062 P1 静态合同上，仅以两条固定、非业务、reference-only 控制请求在内存中投影两条未绑定的表格证据候选，机械验证十九字段输入、十七字段输出、XLSX/CSV 标签、生产/质检记录类别、六维引用和数值关闭；不读取、解析、绑定或写入真实资料。"
     stop_gate:
-      gate_id: "IDS-STAGE062-P1-GATE"
+      gate_id: "IDS-STAGE062-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE062-P2-GATE"
+      next_gate_id: "IDS-STAGE062-P3-GATE"
       github_upload_allowed: false
       pass_conditions:
-        - "十九字段未来绑定输入、十七字段未来绑定输出、六个绑定维度、八类字段语义、十三类失败关闭、中文反馈和回滚范围已形成静态可测合同。"
-        - "source_uri 只定义为不透明引用标识；未读取、存放或写入真实 URI、路径、正文、工作表、单元格、事实、证据或业务记录。"
-        - "来源文档继续保持权威；未验证数值、RAG 摘要和模型文本均不能形成数值统计或第二权威事实源。"
+        - "两条固定非业务控制请求严格复用十九字段输入，投影两条十七字段未绑定候选，并保留 XLSX/CSV、生产/质检类别和六维控制引用形状。"
+        - "候选均为 UNBOUND_REFERENCE_ONLY、必须人工确认且数值权威关闭；控制引用不能解释为真实来源、事实、证据、数据库记录或第二权威事实源。"
+        - "未知、重排或篡改控制输入被拒绝；真实文件、真实来源位置、字段、事实、数值或证据无法确认时停止并转人工处理。"
       stop_conditions:
         - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、实际 URI、事实库、证据账本、数据库或报告"
-        - "执行真实 Schema 推断、字段识别、事实抽取、typed value 抽取、表格摘要、数值统计、质量门、来源位置或证据绑定、持久化、数据库 migration、Agent、模型调用、模型 Token、OVH、生产服务、Phase2、整阶段复审、批次复审、上传、推送或应用重装"
+        - "执行真实 Schema 推断、字段识别、事实抽取、typed value 抽取、表格摘要、数值统计、质量门、来源位置或证据绑定、持久化、数据库 migration、Agent、模型调用、模型 Token、OVH、生产服务、Phase3、整阶段复审、批次复审、上传、推送或应用重装"
     phases:
       - phase_id: "IDS-STAGE062-P1"
         name: "Phase 1 · 表格证据绑定范围、输入输出与边界确认"
@@ -16829,3 +16834,46 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
             risk: "若把静态字段名、引用接口或聚焦用例通过误作真实表格、真实来源追溯、真实证据绑定、真实数值统计、数据库、OVH、生产或上传能力，会绕开业务线白箱控制、单一权威和人工处理边界。"
             rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 STAGE061_REVIEWED_LOCAL_STRUCTURED_DATA_QUALITY_RUNTIME_DISABLED；不改变真实资料、manifest、evidence ledger、audit log、已交付报告、事实库、数据库、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE062-P2"
+        name: "Phase 2 · 表格证据绑定控制候选投影"
+        objective: "只以两条固定、非业务、reference-only 控制请求在内存中投影两条未绑定候选，机械验证 P1 的十九字段输入、十七字段输出、XLSX/CSV 标签、生产/质检记录类别、六维来源引用、人工确认和数值关闭；不读取、解析、绑定或写入真实资料。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE062-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE062-P2-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE062-P3-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、实际 URI、事实库、证据账本、数据库或报告"
+          - "执行真实 Schema 推断、字段识别、事实抽取、typed value 抽取、表格摘要、数值统计、质量门、来源位置或证据绑定、持久化、数据库 migration、Agent、模型调用、模型 Token、OVH、生产服务、Phase3、整阶段复审、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE062-P2"
+            name: "投影表格证据绑定控制候选"
+            objective: "严格验证两条固定控制请求并投影两条十七字段 UNBOUND_REFERENCE_ONLY 候选，保留六维控制引用和人工确认/数值关闭状态；不创建真实表格事实、来源位置绑定、证据记录、数据库 schema 或持久化状态。"
+            status: "completed"
+            estimated_hours: 2
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE062-P1"
+            acceptance_ids:
+              - "ACC-STAGE-062"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage062_table_evidence_binding_slice"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage062_table_evidence_binding_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage062_table_evidence_binding_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch051_060_review_gate KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch041_050_review_gate KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage060_table_rag_summary_stage_review"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage062 P2 聚焦用例通过 8/8；Stage062 P2/P1、Stage061 Review/P4/P3/P2/P1、Batch051-060、Batch041-050 与 Stage060 Review 阶段链路回归通过 95/95；两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；Stage005 治理回归 valid=true；中文事实投影已重渲染 7 个文件。本 P2 不进入 P3、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE062_PHASE2_TABLE_EVIDENCE_BINDING_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage062_table_evidence_binding_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage062_table_evidence_binding_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage062_table_evidence_binding_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-14-stage062-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage062_table_evidence_binding_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把固定控制引用、内存投影或聚焦用例通过误作真实表格、真实来源追溯、真实证据绑定、真实数值统计、数据库、OVH、生产或上传能力，会绕开业务线白箱控制、单一权威和人工处理边界。"
+            rollback: "只回滚本 P2 说明、切片合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE1_TABLE_EVIDENCE_BINDING_CONTRACT_RUNTIME_DISABLED；不改变 P1、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 或应用状态。"

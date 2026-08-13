@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "ACC-STAGE062-P2-01",
+      "criteria": "冻结 Stage062 任务包、P1 静态合同、Stage061 本地复审与 Batch061-070 上传锁保持为唯一合同上下文；两条输入均为固定、非业务、reference-only 控制请求，未建立第二权威事实源，未读取或保留业务资料、原始元数据、来源正文、物理路径、实际 URI、工作表、单元格或证据记录。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE062-P2-02",
+      "criteria": "纯内存切片严格核验 P1 十九字段控制输入，并投影两条严格十七字段 UNBOUND_REFERENCE_ONLY 表格证据绑定候选；候选覆盖 XLSX/CSV、生产/质检类别，并保留 evidence_id、document_id、sheet、row、column 和 source_uri 六维控制引用。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE062-P2-03",
+      "criteria": "全部候选均未绑定、必须人工确认且数值权威关闭；未验证来源和数值不得形成统计或确定性结论，模型文本与 RAG 摘要不得替代结构化事实或成为数值权威，未知、重排或篡改控制输入必须拒绝。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE062-P2-04",
+      "criteria": "未读取、打开、检测、解析或评估真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行真实 schema/字段/事实、typed value、统计、来源/证据绑定、数据库、持久化、Agent、模型 Token、OVH、生产、P3、整阶段复审、批次复审、上传或推送；下一步仅可在新的独立 run 进入 Stage062 P3。",
+      "status": "已遵守"
+    },
+    {
       "id": "ACC-STAGE062-P1-01",
       "criteria": "冻结 Stage062 任务包、Stage061 本地复审与 Batch061-070 上传锁保持为唯一合同上下文；十九字段引用式绑定输入和十七字段未来绑定输出只定义接口，不建立第二权威事实源，未读取或保留业务资料、原始元数据、来源正文、物理路径、实际 URI、工作表、单元格或证据记录。",
       "status": "已通过"

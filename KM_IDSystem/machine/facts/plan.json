@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE062",
-  "phase": "IDS-V0_1-STAGE062-P1",
-  "task": "IDS-V0_1-STAGE062-P1",
-  "owner": "Codex 专属 KMOS worktree，Stage062 Phase 1",
-  "objective": "只定义表格事实与 evidence_id、document_id、sheet、row、column、source_uri 的引用式绑定合同、字段语义、数值权威、失败关闭、中文反馈与回滚边界；不创建真实绑定、来源追溯或运行能力。",
+  "phase": "IDS-V0_1-STAGE062-P2",
+  "task": "IDS-V0_1-STAGE062-P2",
+  "owner": "Codex 专属 KMOS worktree，Stage062 Phase 2",
+  "objective": "只在内存中验证两条固定、非业务、reference-only 表格证据绑定请求，并投影两条未绑定候选以机械覆盖 P1 的十九字段输入、十七字段输出、XLSX/CSV 标签、生产/质检类别、六维引用、人工确认与数值关闭；不创建真实绑定、来源追溯或运行能力。",
   "scope": [
-    "以冻结 Stage062 任务包、Stage061 Review 与 Batch061-070 上传锁为唯一合同上下文，不建立第二权威事实源",
-    "仅定义 19/17/6/8/13 静态形状，即十九字段引用式绑定输入、十七字段未来绑定输出、六个绑定维度、八类字段语义和十三类失败关闭",
-    "保留 Stage057--061 的接入、Schema、事实、RAG 和质量所有权；Stage062 P1 只拥有未来表格证据绑定接口与边界",
-    "同步 P1 范围说明、静态合同、聚焦单元用例、BATCH061-070 锁、路线图、machine run、事件、机器事实、中文视图与交接",
-    "只完成 ACC-STAGE-062 的 Phase 1 静态合同并指向 Stage062 P2 门"
+    "以冻结 Stage062 任务包、Stage062 P1 静态合同、Stage061 Review 与 Batch061-070 上传锁为唯一合同上下文，不建立第二权威事实源",
+    "仅使用两条固定、非业务、:control: 引用的十九字段请求，投影两条严格十七字段 UNBOUND_REFERENCE_ONLY 候选，保留六个绑定维度和十二个控制维度引用",
+    "保留 Stage057--061 的接入、Schema、事实、RAG 和质量所有权；Stage062 P2 只连接已声明的引用接口，不重做真实 Schema 推断、字段识别、事实抽取或摘要",
+    "同步 P2 说明、切片合同、纯内存模块、聚焦单元用例、BATCH061-070 锁、路线图、machine run、事件、机器事实、中文视图与交接",
+    "只完成 ACC-STAGE-062 的 Phase 2 控制切片并指向 Stage062 P3 门"
   ],
   "non_goals": [
     "不打开、创建、复制、移动、删除、修改、检测、解析或评估真实业务源、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、实际 URI、质量结果库、事实库、证据账本、数据库或报告",
     "不执行真实 schema 推断、字段识别、事实抽取、typed value 抽取、RAG 摘要正文、数值统计、质量验证、来源或证据绑定、数据库连接或 migration、持久化、Agent、模型调用、模型 Token、OVH、生产或上传",
-    "不进入 Stage062 P2、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不进入 Stage062 P3、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "P1 对 19/17/6/8/13 静态合同、单一权威、数值关闭、中文反馈与回滚边界完成后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE062-P2-GATE；任何真实表格或 fixture 访问、真实字段或事实抽取、typed value、RAG、数值统计、真实来源/证据绑定、数据库、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "P2 对两条固定控制请求、19/17/6/12/8/13 形状、单一权威、人工确认、数值关闭、中文反馈与回滚边界完成后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE062-P3-GATE；任何真实表格或 fixture 访问、真实字段或事实抽取、typed value、RAG、数值统计、真实来源/证据绑定、数据库、OVH、生产或上传动作都不属于本步骤。"
 }

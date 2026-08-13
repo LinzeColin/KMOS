@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage062-p2-local",
+    "date": "2026-08-14",
+    "summary": "完成 Stage062 P2 表格证据绑定纯内存控制切片：两条固定、非业务、reference-only 十九字段请求投影两条十七字段未绑定候选，覆盖 XLSX/CSV、生产/质检类别、evidence_id/document_id/sheet/row/column/source_uri 六维控制引用、人工确认和数值关闭。Stage062 P2 聚焦用例通过 8/8，阶段链路回归通过 95/95，两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理回归 valid=true，中文事实投影已重渲染 7 个文件；未读取、打开、检测、解析或评估真实 XLSX/CSV、生产记录、质检记录、事实、证据或 fixture，未执行真实 schema/字段/事实、统计、数据库、Agent、模型 Token、OVH、生产、P3、上传或推送；下一步仅可在新的独立 run 进入 Stage062 P3。"
+  },
+  {
     "version": "v0.1-stage062-p1-local",
     "date": "2026-08-14",
     "summary": "完成 Stage062 P1 表格证据绑定静态合同：定义十九字段引用式绑定输入、十七字段未来绑定输出、evidence_id/document_id/sheet/row/column/source_uri 六维绑定、八类字段语义、数值不得由模型猜测、结构化事实与 RAG 摘要分离、十三类失败关闭、中文反馈和回滚范围。Stage062 P1 聚焦用例通过 8/8，阶段链路回归通过 87/87，两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理回归 valid=true，中文事实投影已重渲染 7 个文件；未读取或绑定真实表格、生产记录、质检记录、事实、证据或 fixture，下一步仅可在新的独立 run 进入 Stage062 P2。"
