@@ -2009,6 +2009,56 @@ class RawMaterializer:
         if attachment.message_at.tzinfo is None or attachment.message_at.utcoffset() is None:
             raise IngestionError("RAW_MESSAGE_TIMESTAMP_INVALID")
 
+    @staticmethod
+    def _persisted_reopen_source_identity(
+        message: Mapping[str, Any],
+        *,
+        attachment_index: int,
+    ) -> tuple[str, str, str, datetime, str | None, int, str]:
+        """Return the immutable source identity needed for an overlap reopen.
+
+        DingTalk can return the same immutable message/media occurrence with
+        different non-source display fields on a later history read.  A raw
+        reopen must reject a changed source, but it must not treat that volatile
+        envelope decoration as a changed attachment.  This deliberately keeps
+        the exact source gate, message identity and normalized timestamp,
+        document family, complete attachment cardinality, and the selected
+        media resource.  The values remain in the private worker process; the
+        caller receives no projection of them.
+        """
+
+        if not isinstance(message, Mapping):
+            raise IngestionError("GIT_READBACK_FAILED")
+        if not isinstance(attachment_index, int) or isinstance(attachment_index, bool) or attachment_index < 0:
+            raise IngestionError("GIT_READBACK_FAILED")
+        conversation_id = _message_field(message, ("openConversationId", "conversationId", "conversation_id"))
+        sender_id = _message_field(message, ("senderOpenDingTalkId", "sender_open_dingtalk_id"))
+        message_id = _message_field(message, ("openMessageId", "messageId", "message_id", "id"))
+        if not conversation_id or not sender_id or not message_id:
+            raise IngestionError("GIT_READBACK_FAILED")
+        try:
+            message_at = _message_timestamp(message)
+        except IngestionError as exc:
+            raise IngestionError("GIT_READBACK_FAILED") from exc
+        attachments = _attachments(message)
+        if attachment_index >= len(attachments):
+            raise IngestionError("GIT_READBACK_FAILED")
+        media_id = _message_field(
+            attachments[attachment_index],
+            ("mediaId", "media_id", "resourceId", "resource_id"),
+        )
+        if not media_id:
+            raise IngestionError("GIT_READBACK_FAILED")
+        return (
+            conversation_id,
+            sender_id,
+            message_id,
+            message_at,
+            _family(message),
+            len(attachments),
+            media_id,
+        )
+
     @classmethod
     def hydrate_persisted_raw_attachment(
         cls,
@@ -2018,10 +2068,11 @@ class RawMaterializer:
         """Recover metadata and bytes only from an exact raw-Git readback.
 
         DWS embedded-media history rows may omit a filename.  The raw
-        occurrence is the only authority for that metadata, but its message
-        envelope must byte-match the current source result before any value is
-        recovered.  The final normal readback then verifies every stored field
-        and payload hash a second time.
+        occurrence is the only authority for that metadata.  The current
+        source result must match the stored immutable source identity, while
+        the archived envelope itself is still byte-verified before any value
+        is recovered.  The final normal readback then verifies every stored
+        field and payload hash a second time.
         """
 
         try:
@@ -2033,9 +2084,19 @@ class RawMaterializer:
                 attachment.message_id_hash,
                 attachment.index,
             )
-            if cls._safe_path(root, message_path).read_text(encoding="utf-8") != cls._json_text(
+            stored_message = json.loads(cls._safe_path(root, message_path).read_text(encoding="utf-8"))
+            current_identity = cls._persisted_reopen_source_identity(
                 attachment.message,
-                code="GIT_READBACK_FAILED",
+                attachment_index=attachment.index,
+            )
+            stored_identity = cls._persisted_reopen_source_identity(
+                stored_message,
+                attachment_index=attachment.index,
+            )
+            if (
+                current_identity != stored_identity
+                or current_identity[2] != attachment.message_id
+                or current_identity[3] != attachment.message_at.astimezone(UTC)
             ):
                 raise IngestionError("GIT_READBACK_FAILED")
             occurrence = json.loads(cls._safe_path(root, occurrence_path).read_text(encoding="utf-8"))
@@ -2078,7 +2139,11 @@ class RawMaterializer:
                 payload = cls.reassemble(root, attachment.sha256)
             if len(payload) != occurrence["attachment_size_bytes"]:
                 raise IngestionError("GIT_READBACK_FAILED")
-            return cls.readback_attachment(root, replace(recovered, payload=payload))
+            archived = cls.readback_attachment(
+                root,
+                replace(recovered, message=stored_message, payload=payload),
+            )
+            return replace(archived, message=attachment.message)
         except (OSError, KeyError, TypeError, ValueError, IngestionError) as exc:
             raise IngestionError("GIT_READBACK_FAILED") from exc
 
