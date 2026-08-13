@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE060"
-current_phase_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
-current_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
-next_gate_id: "IDS-STAGE061-P1-GATE"
+current_stage_id: "IDS-STAGE061"
+current_phase_id: "IDS-STAGE061-P1"
+current_task_id: "IDS-V0_1-STAGE061-P1"
+next_gate_id: "IDS-STAGE061-P2-GATE"
 current_transition_history:
+  stage061_phase1_state:
+    current_stage_id: "IDS-STAGE061"
+    current_phase_id: "IDS-STAGE061-P1"
+    current_task_id: "IDS-V0_1-STAGE061-P1"
+    next_gate_id: "IDS-STAGE061-P2-GATE"
   batch051_060_review_state:
     current_stage_id: "IDS-STAGE060"
     current_phase_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
@@ -16516,3 +16521,59 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
             risk: "若把批次复审通过误作真实 OCR、真实表格处理、真实事实、RAG、OVH、生产或上传能力，会破坏业务线白箱控制。"
             rollback: "只回滚本批次说明、合同、检查器、用例、machine run、事件、事实投影、治理路线与中文视图，恢复为 Stage060 本地复审完成状态；不改变十个 Stage 既有证据、真实资料、数据库、GitHub、OVH 或应用状态。"
+  - stage_id: "IDS-STAGE061"
+    name: "STAGE-061 · 结构化数据质量测试"
+    task_id: "IDS-V0_1-STAGE061"
+    acceptance_ids:
+      - "ACC-STAGE-061"
+    status: "phase1_completed"
+    pursuing_goal: "在不读取业务资料、不执行表格质量验证或运行时的前提下，白箱定义表格字段完整性、单位一致性、日期合法性、主键重复和异常值的未来质量测试输入、结果输出、数值权威和回滚边界。"
+    stop_gate:
+      gate_id: "IDS-STAGE061-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE061-P2-GATE"
+      github_upload_allowed: false
+      pass_conditions:
+        - "质量测试输入、未来结果输出、五类质量维度、字段语义、数值权威、失败关闭与回滚边界均有唯一静态合同。"
+        - "字段完整性、单位一致性、日期合法性、主键重复和异常值均不在本步骤执行真实验证；无法确认时必须人工处理。"
+        - "未读取或解析真实 XLSX/CSV、生产记录、质检记录或 fixture，未创建质量结果、事实、统计、数据库、Agent、模型、OVH 或生产运行。"
+        - "上传与推送继续关闭，最终 ACC-STAGE-168 前不进入任何上传动作。"
+    phases:
+      - phase_id: "IDS-STAGE061-P1"
+        name: "Phase 1 · 结构化数据质量测试范围、输入输出与边界确认"
+        objective: "以冻结 Stage061 任务包和 Batch051-060 已复审工件为唯一合同上下文，定义表格、生产记录、质检记录与 CSV/XLSX 的质量测试引用输入、未来结果字段、字段类型、单位、日期、设备、材料、质量结果、事实类型、数值边界、中文反馈和回滚合同；不读取或验证真实数据。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE061-P2-GATE"
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、事实库、数据库或报告"
+          - "执行真实 Schema 推断、字段识别、事实抽取、typed value 抽取、字段完整性、单位一致性、日期合法性、主键重复、异常值、数值统计、质量门、来源或证据写入、持久化、数据库 migration、Agent、模型调用、模型 Token、OVH、生产服务、上传、推送或应用重装"
+          - "进入 P2、P3、P4、整阶段复审、批次复审或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE061-P1"
+            name: "固化结构化数据质量测试输入、结果与数值边界"
+            objective: "只用冻结任务包与 Batch051-060 已完成本地复审工件建立可机器验证的结构化数据质量合同，保持单一权威、全局上传锁和回滚边界。"
+            status: "completed"
+            estimated_hours: 2
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+            acceptance_ids:
+              - "ACC-STAGE-061"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage061_structured_data_quality_contract"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch051_060_review_gate"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "聚焦 Stage061 P1 直接单元用例通过 8/8；Batch051-060 前序兼容用例通过 7/7；两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；Stage005 治理回归 valid=true；中文事实投影已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE061_PHASE1_STRUCTURED_DATA_QUALITY_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage061_structured_data_quality_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-14-stage061-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
+            risk: "若把静态质量测试合同误解为已验证真实表格、真实事实、统计、数据库、OVH、生产或上传能力，会绕开业务线复核与可回滚边界。"
+            rollback: "只回滚本 P1 范围说明、静态合同、聚焦用例、machine run、事件、事实投影与治理路线，恢复到 Batch051-060 本地复审完成；不改变业务资料、事实库、持久运行状态、GitHub、OVH 或应用状态。"

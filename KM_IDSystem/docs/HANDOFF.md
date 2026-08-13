@@ -9,7 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Batch051-060 Review - 2026-08-14
+## Current Gate - Stage061 Phase 1 - 2026-08-14
+
+- 本节是唯一当前交接；下方 Batch051-060 Review 与所有更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 IDS-V0_1-STAGE061-P1：只以冻结 Stage061 任务包和 Batch051-060 已复审工件为合同上下文，定义十六字段引用输入、十八字段未来质量结果、字段完整性、单位一致性、日期合法性、主键重复和异常值五类质量维度、八类字段语义、数值权威、失败关闭、中文反馈与回滚边界；没有建立第二权威事实源。
+- 已验证：Stage061 P1 聚焦用例 8/8；Batch051-060 与 BATCH041-050 检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；Stage005 治理回归为 valid=true。
+- 没有读取、打开、检测、解析、验证、生成或写入真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、事实、质量结果、摘要正文、来源正文或物理路径；没有执行真实 Schema/字段/事实/typed value、字段完整性、单位一致性、日期合法性、主键重复、异常值、数值统计、质量门、来源/证据绑定、数据库、持久化、Agent、模型调用、模型 Token、服务启动、OVH、生产、上传或推送；stage061_started=true、phase2_started=false、github_upload_allowed=false、push_allowed=false。
+- 回滚只撤回本 P1 说明、静态合同、聚焦用例、BATCH061-070 锁、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 Batch051-060 本地复审完成状态；保留前序十个 Stage 证据、真实资料、事实库、数据库、GitHub、OVH 与应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 IDS-STAGE061-P2-GATE。本 run 不进入 P2、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 ACC-STAGE-168。
+
+## Superseded Gate - Batch051-060 Review - 2026-08-14
 
 - 本节是唯一当前交接；下方 Stage060 Review 与所有更早章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-BATCH-051-060-REVIEW-GATE`：只机械复审 Stage051--060 冻结任务包投影、十个既有整阶段复审工件、连续接口责任链、单一权威、可恢复范围、全局上传锁和中文治理投影；发现数为 `0`，没有建立第二权威事实源。

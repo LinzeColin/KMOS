@@ -204,7 +204,7 @@ class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
                 self.assertFalse(report[field])
         self.assertTrue(report["whole_stage_review_performed"])
 
-    def test_governance_closes_stage060_only_to_a_separate_batch_review_run(self):
+    def test_governance_closes_stage060_and_allows_only_its_legal_successor(self):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
@@ -225,18 +225,24 @@ class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE060", status["stage"])
-        self.assertIn(
-            status["phase"],
-            ("IDS-V0_1-STAGE060-REVIEW", "IDS-V0_1-BATCH-051-060-REVIEW-GATE"),
+        still_within_stage060_closeout = (
+            status["stage"] == "IDS-STAGE060"
+            and status["phase"]
+            in ("IDS-V0_1-STAGE060-REVIEW", "IDS-V0_1-BATCH-051-060-REVIEW-GATE")
+            and status["task"]
+            in ("IDS-V0_1-STAGE060-REVIEW", "IDS-V0_1-BATCH-051-060-REVIEW-GATE")
+            and status["next_gate"]
+            in ("IDS-V0_1-BATCH-051-060-REVIEW-GATE", "IDS-STAGE061-P1-GATE")
         )
-        self.assertIn(
-            status["task"],
-            ("IDS-V0_1-STAGE060-REVIEW", "IDS-V0_1-BATCH-051-060-REVIEW-GATE"),
+        legal_stage061_phase1_successor = (
+            status["stage"] == "IDS-STAGE061"
+            and status["phase"] == "IDS-V0_1-STAGE061-P1"
+            and status["task"] == "IDS-V0_1-STAGE061-P1"
+            and status["next_gate"] == "IDS-STAGE061-P2-GATE"
         )
-        self.assertIn(
-            status["next_gate"],
-            ("IDS-V0_1-BATCH-051-060-REVIEW-GATE", "IDS-STAGE061-P1-GATE"),
+        self.assertTrue(
+            still_within_stage060_closeout or legal_stage061_phase1_successor,
+            status,
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])

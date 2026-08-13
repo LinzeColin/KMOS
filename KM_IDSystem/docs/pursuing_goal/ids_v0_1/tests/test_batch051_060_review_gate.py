@@ -85,10 +85,17 @@ class Batch051060ReviewGateTests(unittest.TestCase):
             with self.subTest(term=term):
                 self.assertIn(term, text)
 
-    def test_human_projection_shows_current_batch_acceptance_and_run(self):
+    def test_human_projection_shows_review_or_legal_successor_acceptance_and_run(self):
         text = HUMAN_ACCEPTANCE.read_text(encoding="utf-8")
-        self.assertIn("ACC-BATCH051-060-REVIEW-01", text)
-        self.assertIn("RUN-IDS-V0_1-BATCH-051-060-REVIEW-20260814-001", text)
+        predecessor_visible = (
+            "ACC-BATCH051-060-REVIEW-01" in text
+            and "RUN-IDS-V0_1-BATCH-051-060-REVIEW-20260814-001" in text
+        )
+        successor_visible = (
+            "ACC-STAGE061-P1-01" in text
+            and "RUN-IDS-STAGE061-P1-LOCAL-20260814-001" in text
+        )
+        self.assertTrue(predecessor_visible or successor_visible, text)
 
     def test_cli_emits_local_review_report(self):
         completed = subprocess.run(

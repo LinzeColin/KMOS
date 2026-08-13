@@ -1,0 +1,134 @@
+schema_version: "ids.v0_1.batch_upload_lock.v1"
+batch_id: "IDS-V0_1-BATCH-061-070"
+created_at_utc: "2026-08-13T16:00:34Z"
+updated_at_utc: "2026-08-13T16:00:34Z"
+status: "stage061_phase1_completed"
+
+predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
+predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
+
+transition_history:
+  stage061_phase1_state:
+    status: "stage061_phase1_completed"
+    current_task_id: "IDS-V0_1-STAGE061-P1"
+    next_gate: "IDS-STAGE061-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE061-P2"
+    github_upload_allowed: false
+  batch051_060_review_entry_state:
+    status: "batch051_060_reviewed_local_global_upload_locked"
+    current_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+    next_gate: "IDS-STAGE061-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE061-P1"
+    github_upload_allowed: false
+
+batch_scope:
+  version: "v0.1"
+  stage_range: "STAGE-061..STAGE-070"
+  acceptance_range: "ACC-STAGE-061..ACC-STAGE-070"
+  source_index: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/V0_1_STAGE_EXECUTION_INDEX.csv"
+  previous_batch_evidence_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+
+data_boundary:
+  ids_metadata_raw_root: "/Users/linzezhang/Downloads/IDS_MetaData"
+  boundary_record: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+  raw_root_policy: "read-only path-only boundary; do not modify, delete, move, scan, dump, hash, list, open, or copy raw database content"
+  real_data_only_policy: "All IDS runtime corpus, database-backed content, analytics inputs, reports, indexes, manifests, and committed examples must use real user-approved data; fake business data and fabricated evidence are forbidden."
+
+upload_gate:
+  push_allowed: false
+  github_upload_allowed: false
+  batch_upload_gate_deferred: true
+  global_release_acceptance_required: "ACC-STAGE-168"
+  blocked_until:
+    - "The frozen taskpack is completed through STAGE-168 and final acceptance is passed."
+    - "A separate global release review confirms all local evidence and rollback evidence."
+    - "A separately authorized global upload gate is completed; no stage or batch gate enables upload."
+    - "App entries remain unchanged until the final global release route is completed."
+  github_target: "main"
+  deferred_batch_review_gate: "IDS-V0_1-BATCH-061-070-REVIEW-GATE"
+  deferred_batch_upload_gate: "IDS-V0_1-BATCH-061-070-UPLOAD-GATE"
+
+stage_progress:
+  STAGE-061:
+    status: "stage061_phase1_completed"
+    completed_phases:
+      - "Phase 1"
+    next_phase: "Phase 2"
+    next_gate: "IDS-STAGE061-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE061-P1"
+    acceptance_id: "ACC-STAGE-061"
+    acceptance_status: "phase1_structured_data_quality_contract_complete"
+    review_status: "pending"
+    phase2_entry_authorized: true
+    taskpack_context_read_performed: true
+    source_authority: "FROZEN_TASKPACK_TEXT_AND_BATCH051_060_REVIEW_ARTIFACTS"
+    second_authoritative_source_created: false
+    source_body_or_path_allowed: false
+    raw_metadata_content_accessed: false
+    ids_business_source_read_performed: false
+    source_file_open_performed: false
+    xlsx_or_csv_parse_performed: false
+    table_schema_inference_performed: false
+    field_identification_performed: false
+    structured_fact_extraction_performed: false
+    typed_value_extraction_performed: false
+    table_summary_generation_performed: false
+    quality_contract_schema: "ids.stage061.structured_data_quality.phase1.v1"
+    contract_state: "PHASE1_STRUCTURED_DATA_QUALITY_CONTRACT_RUNTIME_DISABLED"
+    execution_ready: false
+    reference_only_quality_input_field_count: 16
+    future_quality_result_output_field_count: 18
+    quality_dimension_count: 5
+    field_semantic_category_count: 8
+    source_location_field_count: 6
+    declared_failure_state_count: 11
+    actual_input_record_count: 0
+    actual_structured_fact_count: 0
+    actual_numeric_fact_count: 0
+    actual_quality_result_count: 0
+    actual_source_location_binding_count: 0
+    actual_evidence_record_count: 0
+    source_document_remains_authoritative: true
+    model_direct_text_guessing_allowed: false
+    unverified_numeric_value_as_definitive_fact_allowed: false
+    summary_can_replace_structured_fact: false
+    summary_can_become_numeric_statistical_evidence: false
+    numeric_statistic_computation_performed: false
+    quality_gate_evaluation_performed: false
+    source_location_binding_performed: false
+    evidence_binding_performed: false
+    database_connection_performed: false
+    database_schema_migration_performed: false
+    structured_fact_write_performed: false
+    quality_result_write_performed: false
+    persistent_state_write_performed: false
+    agent_execution_performed: false
+    model_call_performed: false
+    model_token_consumption_performed: false
+    local_service_start_performed: false
+    ovh_deployment_performed: false
+    production_runtime_activation_performed: false
+    phase2_started: false
+    whole_stage_review_performed: false
+    batch_review_performed: false
+    github_upload_allowed: false
+    push_allowed: false
+    app_reinstall_allowed: false
+    evidence_refs:
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE061_PHASE1_STRUCTURED_DATA_QUALITY_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage061_structured_data_quality_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage061_structured_data_quality_contract.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage061-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
+
+decision:
+  current_task_id: "IDS-V0_1-STAGE061-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE061-P2"
+  github_upload_allowed: false
+  push_allowed: false
+  global_upload_deferred: true
+  current_run: "STAGE-061 Phase 1 only defines reference-only structured-data quality inputs, future result fields, quality dimensions, numeric authority and rollback boundaries. It does not open sources, parse tables, evaluate quality, write facts or activate any runtime."
+  no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."

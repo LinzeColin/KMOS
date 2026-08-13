@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE060",
-  "phase": "IDS-V0_1-BATCH-051-060-REVIEW-GATE",
-  "task": "IDS-V0_1-BATCH-051-060-REVIEW-GATE",
-  "real_progress": "Stage051--060 十个既有整阶段本地白箱复审已完成独立批次矩阵复审：接口责任链、单一权威、可恢复范围、全局上传锁和中文治理投影一致；下一步仅可在新的独立 run 进入 Stage061 Phase 1，上传路径继续关闭",
-  "report_grade": "冻结 Stage051--060 任务包和十个既有整阶段复审工件为唯一合同上下文；当前只保留批次矩阵、接口责任链、零运行边界、回滚范围与本地复审证据",
-  "business_verdict": "本批次只证明十个既有 control 合同与交付证据在本地复审一致，不证明真实 OCR、真实表格、真实结构化事实、真实 RAG 摘要、真实来源可追溯、数值统计、数据库、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_BATCH051_060_REVIEW_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE061",
+  "phase": "IDS-V0_1-STAGE061-P1",
+  "task": "IDS-V0_1-STAGE061-P1",
+  "real_progress": "Stage061 P1 已完成结构化数据质量测试的引用输入、未来质量结果、字段语义、五类质量维度、数值权威、中文反馈和回滚边界；下一步仅可在新的独立 run 进入 Stage061 P2，上传路径继续关闭",
+  "report_grade": "冻结 Stage061 任务包、Batch051-060 本地复审、Stage061 静态合同、聚焦用例、治理路线与中文事实投影一致",
+  "business_verdict": "本 P1 只证明结构化数据质量测试边界可白箱核验、可恢复且不扩大运行能力；不证明真实表格质量验证、真实事实、数值统计、数据库、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE061_PHASE1_STRUCTURED_DATA_QUALITY_CONTRACT_RUNTIME_DISABLED",
   "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE061-P1-GATE",
+  "next_gate": "IDS-STAGE061-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
