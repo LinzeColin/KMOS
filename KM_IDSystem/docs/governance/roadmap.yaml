@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE055"
-current_phase_id: "IDS-STAGE055-REVIEW"
-current_task_id: "IDS-V0_1-STAGE055-REVIEW"
-next_gate_id: "IDS-STAGE056-P1-GATE"
+current_stage_id: "IDS-STAGE056"
+current_phase_id: "IDS-STAGE056-P1"
+current_task_id: "IDS-V0_1-STAGE056-P1"
+next_gate_id: "IDS-STAGE056-P2-GATE"
 current_transition_history:
+  stage056_phase1_state:
+    current_stage_id: "IDS-STAGE056"
+    current_phase_id: "IDS-STAGE056-P1"
+    current_task_id: "IDS-V0_1-STAGE056-P1"
+    next_gate_id: "IDS-STAGE056-P2-GATE"
   stage055_review_state:
     current_stage_id: "IDS-STAGE055"
     current_phase_id: "IDS-STAGE055-REVIEW"
@@ -15130,3 +15135,63 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
             risk: "若把字段计数、control 类别、metadata-only 样例或复审通过误作真实 OCR、识别准确率、实际人工复核、缓存清理、OVH 或生产能力，会破坏业务线白箱控制。"
             rollback: "只回滚本复审说明、模块、聚焦用例、machine run、事件、事实投影、治理状态和生成中文视图，恢复到 PHASE4_OCR_REGRESSION_CORPUS_DELIVERY_EVIDENCE_RUNTIME_DISABLED；保留 P1--P4、冻结任务包、Stage054 已复审证据、原始资料、GitHub、OVH 和应用状态。"
+  - stage_id: "IDS-STAGE056"
+    name: "STAGE-056 · OCR 缓存保留策略"
+    task_id: "IDS-V0_1-STAGE056"
+    acceptance_ids:
+      - "ACC-STAGE-056"
+    status: "in_progress"
+    pursuing_goal: "在 Stage055 已复审 OCR 回归语料基线上，先定义 OCR 临时图片、中间文本和失败产物的引用式缓存保留与清理边界；本 run 仅完成 P1 静态合同，不创建物理缓存或进入 P2。"
+    stop_gate:
+      gate_id: "IDS-STAGE056-P1-GATE"
+      status: "passed_with_local_evidence"
+      next_gate_id: "IDS-STAGE056-P2-GATE"
+      github_upload_allowed: false
+      pass_conditions:
+        - "只引用冻结 Stage056 任务包和 Stage055 已复审工件，不建立第二权威事实源，不读取业务资料、授权 fixture、缓存内容、路径、图片、OCR 文本或失败内容。"
+        - "登记临时图片、中间文本和失败产物的非内容类别、11 个未来输入字段、10 个未来策略输出字段、中文简体/英文默认语言、低置信隔离和 Stage054 复核所有权。"
+        - "不指定物理路径、数值保留窗口、容量阈值或清理目标；不扫描磁盘、不评估容量、不创建、写入、保留、移动、删除或清理缓存。"
+        - "OCR、人工复核、质量门、持久化、Agent、模型 Token、OVH、生产、上传和推送均未执行且保持关闭。"
+        - "唯一后续门为 IDS-STAGE056-P2-GATE，必须在新的独立 run 进入。"
+    phases:
+      - phase_id: "IDS-STAGE056-P1"
+        name: "Phase 1 · OCR 缓存保留策略范围、输入输出与边界确认"
+        objective: "定义临时图片、中间文本和失败产物的引用式缓存保留与清理资格、语言与置信度交界、未来容量前置条件和中文反馈；不创建缓存或执行清理。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE056-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE056-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE056-P2-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改或评估任何 IDS 业务资料、原始元数据、授权 fixture、缓存文件、缓存目录、PDF、图片、页面、OCR 文本、失败内容或来源正文"
+          - "执行 OCR、语言检测、置信度计算、队列、按页输出、人工复核、质量门、缓存创建/写入/保留/清理、磁盘扫描、容量测量、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Phase 2、整阶段复审、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE056-P1"
+            name: "定义 OCR 缓存保留策略静态合同"
+            objective: "只用冻结 Stage056 任务包和 Stage055 已复审工件定义缓存类别、引用字段、未来保留/清理资格、容量前置条件、双语与低置信边界、中文反馈和回滚合同，保持全局上传锁。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE055-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-056"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage056_ocr_cache_retention_policy"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage056_ocr_cache_retention_policy KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch041_050_review_gate"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "聚焦 Stage056 P1 直接单元用例通过 8/8；Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041-050 的显式前序兼容回归通过 278/278；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；治理回归报告 valid=true；中文视图已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE056_PHASE1_OCR_CACHE_RETENTION_POLICY_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage056_ocr_cache_retention_policy_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage056_ocr_cache_retention_policy.py"
+              - "KM_IDSystem/machine/runs/2026-08-13-stage056-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE055_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+            risk: "若把缓存类别、字段合同或聚焦用例通过误作真实缓存、保留时长、容量、清理、OCR、人工复核、OVH 或生产能力，会破坏业务线白箱控制。"
+            rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 STAGE055_REVIEWED_LOCAL_OCR_REGRESSION_CORPUS_RUNTIME_DISABLED；不改变真实资料、缓存、运行状态、GitHub、OVH 或应用状态。"

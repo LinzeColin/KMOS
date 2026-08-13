@@ -9,9 +9,20 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage055 Review - 2026-08-13
+## Current Gate - Stage056 Phase 1 - 2026-08-13
 
-- 本节是唯一当前交接；下方 Stage055 P4/P3/P2/P1、Stage054 Review 及更早章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；下方 Stage055 Review 及更早章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 IDS-V0_1-STAGE056-P1：只定义 OCR 临时图片、中间文本和失败产物的引用式缓存保留与清理合同、11 字段未来缓存输入、10 字段未来策略输出、中文简体/英文默认语言、低置信隔离、未来容量前置条件和中文反馈；没有建立第二权威事实源。
+- 三类缓存产物只有标量类别和引用字段，当前条目数为 0。未来可清理范围仅可能包括经明确标识的可重建临时图片和中间文本；失败产物、原始资料、manifest、evidence ledger、audit log 和已交付报告均不属于自动清理范围。
+- 没有指定物理路径、数值保留窗口、容量阈值或清理目标；没有读取缓存、扫描磁盘、评估容量、创建/写入/保留/移动/删除/清理任何缓存。LOW、UNKNOWN、中英文混合和失败页不能因缓存策略直接进入高可信证据层，仍受 Stage054 受控复核所有权约束。
+- 已验证：Stage056 P1 聚焦用例 8/8；Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的显式前序兼容回归 278/278；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；Stage005 治理报告 valid=true。
+- 没有执行 Agent、模型调用、模型 Token、OCR 运行时、持久队列、持久按页输出、缓存、人工任务、OVH、生产、GitHub 上传或推送；stage056_started=true、stage056_entry_authorized=true，但 phase2_started=false、whole_stage_review_performed=false。
+- 回滚只撤回本 P1 范围说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 STAGE055_REVIEWED_LOCAL_OCR_REGRESSION_CORPUS_RUNTIME_DISABLED；不触及真实资料、缓存、运行状态、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 IDS-STAGE056-P2-GATE。本 run 不进入 P2、整阶段复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 ACC-STAGE-168。
+
+## Superseded Gate - Stage055 Review - 2026-08-13
+
+- 本节仅保留 Stage055 Review 的历史交接证据；下方 Stage055 P4/P3/P2/P1、Stage054 Review 及更早章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE055-REVIEW`：只复审冻结 Stage055 P1--P4 合同、P3/P4 固定非业务 control 报告与既有回滚链；复审输出仅包含字段、场景、处置、置信度、失败、路由与边界计数，没有建立第二权威事实源。
 - 复审保持 P1 的 10/11 字段引用结构、P2 的纯内存队列语义、P3 的五类明确处置与零静默丢弃，以及 P4 的五个 metadata-only 样例、`HIGH=1`、`MEDIUM=2`、`LOW=1`、`UNKNOWN=1`、一条显式失败和三条未排队 Stage054 复核路由。它们不是真实 OCR 输出、准确率、人工复核或生产验收。
 - 缓存仍为 `IN_MEMORY_REBUILDABLE_NOT_PERSISTED`，临时产物为 `0`，清理结论为 `NO_TEMPORARY_ARTIFACT_CREATED`；只声明 Stage056 将拥有缓存保留策略。本轮未读取或创建真实资料、fixture、样本、PDF、图片、页面、表格或 OCR 文本，也未选择、配置、调用或比较 OCR 引擎。

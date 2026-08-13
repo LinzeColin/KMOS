@@ -304,10 +304,10 @@ class Stage055OcrRegressionCorpusPhase4Tests(unittest.TestCase):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE055", status["stage"])
+        self.assertIn(status["stage"], ("IDS-STAGE055", "IDS-STAGE056"))
         self.assertIn(
             status["phase"],
-            ("IDS-V0_1-STAGE055-P4", "IDS-V0_1-STAGE055-REVIEW"),
+            ("IDS-V0_1-STAGE055-P4", "IDS-V0_1-STAGE055-REVIEW", "IDS-V0_1-STAGE056-P1"),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
