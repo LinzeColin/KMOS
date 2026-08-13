@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-13 · IDS v0.1 Stage059 Phase 4（本地）
+
+- 完成事实抽取交付证据：从 P3 六类固定非业务 reference-only control 场景派生 `6` 个 metadata-only 事实样例、`6` 个字段引用标签、`6` 条质量结果、`6` 条人工处理建议、`3` 条中文确认提示和回到 P3 control 状态的重解析/事实回滚说明；没有建立第二权威事实源。
+- 本地验证通过：Stage059 P4 聚焦用例 `12/12`；Stage059 P4/P3/P2/P1、Stage058 Review/P1--P4、Stage057 Review/P1--P4、Stage056 Review/P1--P4、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的合并回归 `465/465`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 未读取、打开、检测、解析或评估真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行真实 schema、字段、事实、typed value、RAG、统计、质量验证、来源/证据绑定、实际重解析或事实回滚、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE059-REVIEW-GATE`。
+
 ## 2026-08-13 · IDS v0.1 Stage059 Phase 3（本地）
 
 - 完成事实抽取受控质量专项：重放 P2 两条固定非业务 reference-only 输入及三条 typed fact 控制候选，覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置；控制来源位置引用形状可重放，`typed_value` 保持为空，未验证数值阻断统计和模型确定性数值结论。

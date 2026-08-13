@@ -1,19 +1,19 @@
 {
   "stage": "IDS-STAGE059",
-  "phase": "IDS-V0_1-STAGE059-P3",
-  "task": "IDS-V0_1-STAGE059-P3",
-  "owner": "Codex 专属 KMOS worktree，Stage059 Phase 3",
-  "objective": "只以冻结 Stage059 任务包、P1/P2 合同和 Stage058 已复审工件为合同上下文，重放 P2 的两条固定非业务 reference-only 控制记录和三条 typed fact 控制候选，验证六类异常显式处置、控制来源位置引用和未验证数值边界；不读取、打开、检测、解析或写入真实表格事实。",
+  "phase": "IDS-V0_1-STAGE059-P4",
+  "task": "IDS-V0_1-STAGE059-P4",
+  "owner": "Codex 专属 KMOS worktree，Stage059 Phase 4",
+  "objective": "只以冻结 Stage059 任务包、P1/P2/P3 合同和 Stage058 已复审工件为合同上下文，从 P3 六类固定非业务 reference-only control 场景派生 metadata-only 事实样例、字段引用报告、质量结果、人工处理建议与重解析/事实回滚说明；不读取、打开、检测、解析或写入真实表格事实。",
   "scope": [
-    "以冻结 Stage059 任务包、P1/P2 合同和 Stage058 已复审工件为唯一合同上下文，不建立第二权威事实源",
-    "重放 2 条 12 字段 reference-only 控制输入和 3 条 25 字段 typed fact 控制候选，覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行 6 类固定控制异常",
-    "所有场景均显式处置并要求人工处理，静默丢弃为零；typed value 始终为空，来源引用仅验证形状，未验证数值阻断统计和模型确定性数值结论，RAG 继续归 Stage060",
-    "同步 P3 场景说明、合同、纯内存模块、聚焦用例、machine run、事件、机器事实、中文视图与交接；下一步只交接至 Stage059 P4"
+    "以冻结 Stage059 任务包、P1/P2/P3 合同和 Stage058 已复审工件为唯一合同上下文，不建立第二权威事实源",
+    "从 6 类固定 control 场景派生 6 个 metadata-only 事实样例、6 个字段引用标签、6 条质量结果、6 条人工处理建议和 3 条中文确认提示",
+    "字段报告与来源位置只验证 control 引用形状；typed value 始终为空，未验证数值仍阻断统计和模型确定性数值结论，RAG 继续归 Stage060",
+    "同步 P4 关闭说明、合同、纯内存模块、聚焦用例、machine run、事件、机器事实、中文视图与交接；下一步只交接至 Stage059 Review"
   ],
   "non_goals": [
     "不打开、创建、复制、移动、删除、修改、检测、解析或评估真实业务源、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、事实库、数据库或报告",
     "不执行真实 schema 推断、字段识别、事实抽取、typed value 抽取、RAG 摘要、数值统计、质量验证、来源或证据写入、真实重解析或事实回滚、数据库连接或 migration、持久化、Agent、模型调用、模型 Token、OVH、生产或上传",
-    "不进入 Stage059 Phase 4、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不进入 Stage059 整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage059 P3 的六类纯内存异常控制处置、聚焦单元用例和治理验证完成后停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE059-P4-GATE。任何真实表格或 fixture 访问、真实异常评估、真实字段或事实抽取、typed value、RAG、数值统计、真实来源/证据绑定、数据库、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "Stage059 P4 的 metadata-only 交付样例、字段引用报告、质量结果、人工处理与重解析/事实回滚说明、聚焦单元用例和治理验证完成后停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE059-REVIEW-GATE。任何真实表格或 fixture 访问、真实重解析或事实回滚、真实字段或事实抽取、typed value、RAG、数值统计、真实来源/证据绑定、数据库、OVH、生产或上传动作都不属于本步骤。"
 }

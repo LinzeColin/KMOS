@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE059"
-current_phase_id: "IDS-STAGE059-P3"
-current_task_id: "IDS-V0_1-STAGE059-P3"
-next_gate_id: "IDS-STAGE059-P4-GATE"
+current_phase_id: "IDS-STAGE059-P4"
+current_task_id: "IDS-V0_1-STAGE059-P4"
+next_gate_id: "IDS-STAGE059-REVIEW-GATE"
 current_transition_history:
+  stage059_phase4_state:
+    current_stage_id: "IDS-STAGE059"
+    current_phase_id: "IDS-STAGE059-P4"
+    current_task_id: "IDS-V0_1-STAGE059-P4"
+    next_gate_id: "IDS-STAGE059-REVIEW-GATE"
   stage059_phase3_state:
     current_stage_id: "IDS-STAGE059"
     current_phase_id: "IDS-STAGE059-P3"
@@ -15934,19 +15939,18 @@ stages:
     task_id: "IDS-V0_1-STAGE059"
     acceptance_ids:
       - "ACC-STAGE-059"
-    status: "phase3_completed"
-    pursuing_goal: "只重放两条固定、非业务、reference-only 控制记录及其 typed fact 控制候选，验证事实抽取基线的六类异常显式处置、控制来源定位和未验证数值边界；不读取、打开、解析或写入真实表格事实。"
+    status: "phase4_completed_review_pending"
+    pursuing_goal: "只从 P3 六类固定、非业务、reference-only 控制场景派生 metadata-only 事实样例、字段引用报告、质量结果、人工处理建议和重解析/事实回滚说明；不读取、打开、解析、评估或写入真实表格、事实、证据或数据库。"
     stop_gate:
-      gate_id: "IDS-STAGE059-P3-GATE"
+      gate_id: "IDS-STAGE059-P4-GATE"
       status: "passed_with_local_evidence"
-      next_gate_id: "IDS-STAGE059-P4-GATE"
+      next_gate_id: "IDS-STAGE059-REVIEW-GATE"
       github_upload_allowed: false
       pass_conditions:
-        - "重放 P2 的两条固定非业务 reference-only 输入和三条 typed fact 控制候选，完整覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类控制异常。"
-        - "六类均有显式人工处置，静默丢弃为零；候选来源文档、工作表、表头行、行列范围和 evidence 的控制引用形状保持可追溯，typed value 始终为空。"
-        - "来源文档保持权威；未验证数值阻断统计和模型确定性数值结论，RAG 摘要仍归 Stage060，不能替代结构化事实或成为数值权威。"
-        - "未读取、打开、解析或评估真实 XLSX/CSV、生产记录、质检记录或 fixture，未写入事实、证据、数据库或持久状态，未执行 Agent、模型 Token、OVH、生产、上传或推送。"
-        - "唯一后续门为 IDS-STAGE059-P4-GATE，必须由新的独立 run 进入。"
+        - "从 P3 的六类固定非业务 control 场景派生六个 metadata-only 事实样例、六个字段引用标签、六条质量结果、六条人工处理建议和三条中文确认提示。"
+        - "字段报告、质量结果、人工建议和重解析/事实回滚说明均只保留控制引用形状；不形成真实字段映射、typed value、结构化事实、来源绑定、数值结论或第二权威事实源。"
+        - "未读取、打开、检测、解析或评估真实 XLSX/CSV、生产记录、质检记录或 fixture，未写入事实、证据、数据库或持久状态，未执行 Agent、模型 Token、OVH、生产、上传或推送。"
+        - "唯一后续门为 IDS-STAGE059-REVIEW-GATE，必须由新的独立 run 进入。"
     phases:
       - phase_id: "IDS-STAGE059-P1"
         name: "Phase 1 · 事实抽取基线范围、输入输出与边界确认"
@@ -16079,3 +16083,49 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
             risk: "若把六类控制异常、控制引用或聚焦用例通过误作真实 production、quality 或 inspection facts、真实异常表格验证、真实来源追溯、真实数值统计、RAG、数据库、OVH、生产或上传能力，会破坏业务线白箱控制。"
             rollback: "只回滚本 P3 说明、场景合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE2_FACT_EXTRACTION_CONTROL_SLICE_RUNTIME_DISABLED；不改变 P1/P2、真实资料、fixture、事实库、数据库、运行状态、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE059-P4"
+        name: "Phase 4 · 事实抽取交付证据、人工处理与回滚说明"
+        objective: "只以冻结 Stage059 任务包、P1/P2/P3 合同和 Stage058 已复审工件为合同上下文，从 P3 六类固定非业务 control 场景派生 metadata-only 事实样例、字段引用报告、质量结果、人工处理建议和重解析/事实回滚说明；不读取、打开、检测、解析、评估或写入真实表格、事实、证据或数据库。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE059-REVIEW-GATE"
+        gate:
+          gate_id: "IDS-STAGE059-P4-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE059-REVIEW-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、真实 XLSX/CSV、生产记录、质检记录、授权 fixture、工作表、表头、单元格、公式、来源正文、物理路径、事实库、数据库或报告"
+          - "执行真实 Schema 推断、字段识别、事实抽取、typed value 抽取、RAG 摘要、数值统计、质量门、来源或证据写入、实际文件重解析、事实回滚、持久化、数据库 migration、Agent、模型调用、模型 Token、OVH、生产服务、整阶段复审、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE059-P4"
+            name: "交付事实抽取控制样例与可恢复说明"
+            objective: "从 P3 六类固定 control 场景派生六个 metadata-only 样例、六个字段引用标签、六条质量结果、六条人工处理建议、三条中文确认提示与 P4 到 P3 的纯控制回滚说明；不创建真实结构化事实、typed value、来源绑定、事实库或重解析动作。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE059-P3"
+            acceptance_ids:
+              - "ACC-STAGE-059"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage059_fact_extraction_delivery"
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage059_fact_extraction_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage059_fact_extraction_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage059_fact_extraction_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage059_fact_extraction_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage058_table_schema_inference_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage058_table_schema_inference_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage058_table_schema_inference_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage058_table_schema_inference_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage058_table_schema_inference_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage057_xlsx_csv_ingestion_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage057_xlsx_csv_ingestion_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage057_xlsx_csv_ingestion_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage057_xlsx_csv_ingestion_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage057_xlsx_csv_ingestion_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage056_ocr_cache_retention_policy_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage056_ocr_cache_retention_policy_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage056_ocr_cache_retention_policy_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage056_ocr_cache_retention_policy_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage056_ocr_cache_retention_policy KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage055_ocr_regression_corpus KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage054_low_confidence_review_route KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage053_per_page_ocr_output KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage052_bilingual_ocr KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_stage_review KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_quality_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage051_ocr_queue KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_batch041_050_review_gate"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage059 P4 聚焦用例通过 12/12；Stage059 P4/P3/P2/P1、Stage058 Review/P1-P4、Stage057 Review/P1-P4、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041-050 的显式前序兼容回归通过 465/465；批次检查器返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；Stage005 治理回归 valid=true；中文事实投影已重渲染 7 个文件。"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE059_PHASE4_FACT_EXTRACTION_DELIVERY_CLOSEOUT.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage059_fact_extraction_delivery_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage059_fact_extraction_delivery.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage059_fact_extraction_delivery.py"
+              - "KM_IDSystem/machine/runs/2026-08-13-stage059-p4-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage059_fact_extraction_quality_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage059_fact_extraction_quality_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage059_fact_extraction_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/structured_table_facts/stage059_fact_extraction_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE058_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml"
+            risk: "若把 metadata-only 样例、字段引用报告、质量结果、人工建议或回滚说明误作真实 production、quality 或 inspection facts、真实表格解析、事实库、来源追溯、数值统计、RAG、数据库、OVH、生产或上传能力，会破坏业务线白箱控制。"
+            rollback: "只回滚本 P4 说明、交付合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE3_FACT_EXTRACTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED；不改变 P1/P2/P3、真实资料、fixture、事实库、数据库、运行状态、GitHub、OVH 或应用状态。"

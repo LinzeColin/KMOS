@@ -7,28 +7,30 @@ import unittest
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
 PHASE1_CONTRACT = (
-    BASE / "structured_table_facts" / "stage057_xlsx_csv_ingestion_contract.json"
+    BASE / "structured_table_facts" / "stage059_fact_extraction_contract.json"
 )
 PHASE2_CONTRACT = (
-    BASE / "structured_table_facts" / "stage057_xlsx_csv_ingestion_slice_contract.json"
+    BASE / "structured_table_facts" / "stage059_fact_extraction_slice_contract.json"
 )
 PHASE3_CONTRACT = (
     BASE
     / "structured_table_facts"
-    / "stage057_xlsx_csv_ingestion_quality_scenarios_contract.json"
+    / "stage059_fact_extraction_quality_scenarios_contract.json"
 )
 PHASE3_SCENARIOS = (
-    BASE / "structured_table_facts" / "stage057_xlsx_csv_ingestion_quality_scenarios.py"
+    BASE
+    / "structured_table_facts"
+    / "stage059_fact_extraction_quality_scenarios.py"
 )
-CLOSEOUT = BASE / "STAGE057_PHASE4_XLSX_CSV_INGESTION_DELIVERY_CLOSEOUT.md"
+CLOSEOUT = BASE / "STAGE059_PHASE4_FACT_EXTRACTION_DELIVERY_CLOSEOUT.md"
 CONTRACT = (
-    BASE / "structured_table_facts" / "stage057_xlsx_csv_ingestion_delivery_contract.json"
+    BASE / "structured_table_facts" / "stage059_fact_extraction_delivery_contract.json"
 )
-DELIVERY = BASE / "structured_table_facts" / "stage057_xlsx_csv_ingestion_delivery.py"
+DELIVERY = BASE / "structured_table_facts" / "stage059_fact_extraction_delivery.py"
 BATCH = BASE / "BATCH051_060_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
-RUN = ROOT / "machine" / "runs" / "2026-08-13-stage057-p4-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-13-stage059-p4-local.json"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 
 EXPECTED_SCENARIO_IDS = [
@@ -41,13 +43,13 @@ EXPECTED_SCENARIO_IDS = [
 ]
 
 
-class Stage057XlsxCsvIngestionPhase4DeliveryTests(unittest.TestCase):
+class Stage059FactExtractionPhase4DeliveryTests(unittest.TestCase):
     _module_value = None
     _report_value = None
 
     def _module(self):
         if self.__class__._module_value is None:
-            spec = importlib.util.spec_from_file_location("stage057_p4", DELIVERY)
+            spec = importlib.util.spec_from_file_location("stage059_p4", DELIVERY)
             module = importlib.util.module_from_spec(spec)
             self.assertIsNotNone(spec.loader)
             spec.loader.exec_module(module)
@@ -57,7 +59,7 @@ class Stage057XlsxCsvIngestionPhase4DeliveryTests(unittest.TestCase):
     def _report(self):
         if self.__class__._report_value is None:
             self.__class__._report_value = (
-                self._module().build_xlsx_csv_ingestion_phase4_delivery_report()
+                self._module().build_fact_extraction_phase4_delivery_report()
             )
         return self.__class__._report_value
 
@@ -85,13 +87,13 @@ class Stage057XlsxCsvIngestionPhase4DeliveryTests(unittest.TestCase):
     def test_contract_identity_and_zero_runtime_boundary(self):
         contract = self._contract()
         self.assertEqual(
-            "ids.stage057.xlsx_csv_ingestion.phase4.delivery.v1",
+            "ids.stage059.fact_extraction.phase4.delivery.v1",
             contract["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE057-P4", contract["task_id"])
+        self.assertEqual("IDS-V0_1-STAGE059-P4", contract["task_id"])
         self.assertTrue(contract["delivery_evidence_executable"])
         self.assertFalse(contract["execution_ready"])
-        self.assertEqual("IDS-STAGE057-REVIEW-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE059-REVIEW-GATE", contract["next_gate"])
         self.assertFalse(
             contract["source_authority"]["second_authoritative_source_created"]
         )
@@ -105,7 +107,7 @@ class Stage057XlsxCsvIngestionPhase4DeliveryTests(unittest.TestCase):
         report = self._report()
         self.assertTrue(report["valid"])
         self.assertEqual(
-            "PASS_PHASE4_XLSX_CSV_INGESTION_DELIVERY_RUNTIME_DISABLED",
+            "PASS_PHASE4_FACT_EXTRACTION_DELIVERY_RUNTIME_DISABLED",
             report["result"],
         )
         samples = report["delivery_samples"]
@@ -114,34 +116,36 @@ class Stage057XlsxCsvIngestionPhase4DeliveryTests(unittest.TestCase):
         for sample in samples:
             with self.subTest(sample=sample["sample_id"]):
                 self.assertEqual(
-                    "DELIVERY_METADATA_ONLY_TABLE_FACT_SAMPLE_NOT_REAL_TABLE_FACT",
+                    "DELIVERY_METADATA_ONLY_FACT_SAMPLE_NOT_REAL_STRUCTURED_FACT",
                     sample["sample_kind"],
                 )
                 self.assertTrue(sample["control_metadata_only"])
-                self.assertTrue(sample["referenced_fact_candidate_ids"])
+                self.assertTrue(sample["referenced_fact_id"])
+                self.assertTrue(sample["referenced_fact_type"])
                 self.assertFalse(sample["source_content_retained"])
                 self.assertFalse(sample["typed_value_retained"])
                 self.assertFalse(sample["actual_structured_fact_created"])
+                self.assertFalse(sample["actual_table_fact_sample_created"])
                 self.assertFalse(sample["high_trust_direct_entry_allowed"])
 
-    def test_field_inference_report_is_control_reference_not_real_schema_inference(self):
+    def test_field_inference_report_is_control_reference_not_real_field_inference(self):
         inference = self._report()["field_inference_report"]
         self.assertEqual(
-            "CONTROLLED_FIELD_INFERENCE_REPORT_NOT_REAL_SCHEMA_INFERENCE",
+            "CONTROLLED_FACT_FIELD_INFERENCE_REPORT_NOT_REAL_FIELD_INFERENCE",
             inference["report_kind"],
         )
-        self.assertEqual(10, inference["fact_candidate_pool_count"])
-        self.assertEqual(5, inference["referenced_field_candidate_count"])
+        self.assertEqual(3, inference["fact_candidate_pool_count"])
+        self.assertEqual(6, inference["referenced_field_candidate_count"])
         self.assertEqual(6, inference["scenario_reference_count"])
         self.assertTrue(inference["control_reference_only"])
-        self.assertFalse(inference["actual_table_schema_created"])
-        self.assertFalse(inference["real_table_schema_inference_performed"])
+        self.assertFalse(inference["actual_field_mapping_created"])
         self.assertFalse(inference["real_field_identification_performed"])
+        self.assertFalse(inference["real_structured_fact_extraction_performed"])
 
     def test_quality_results_preserve_all_explicit_taskpack_exceptions(self):
         quality = self._report()["quality_test_results"]
         self.assertEqual(
-            "CONTROLLED_XLSX_CSV_QUALITY_TEST_RESULT_NOT_REAL_TABLE_VALIDATION",
+            "CONTROLLED_FACT_EXTRACTION_QUALITY_TEST_RESULT_NOT_REAL_TABLE_VALIDATION",
             quality["report_kind"],
         )
         self.assertEqual(6, quality["scenario_count"])
@@ -179,7 +183,7 @@ class Stage057XlsxCsvIngestionPhase4DeliveryTests(unittest.TestCase):
             instructions["record_kind"],
         )
         self.assertEqual(
-            "PHASE3_XLSX_CSV_INGESTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+            "PHASE3_FACT_EXTRACTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
             instructions["return_to"],
         )
         self.assertTrue(instructions["in_memory_control_replay_only"])
@@ -209,6 +213,7 @@ class Stage057XlsxCsvIngestionPhase4DeliveryTests(unittest.TestCase):
             "real_field_identification_performed",
             "real_structured_fact_extraction_performed",
             "real_table_content_evaluated",
+            "typed_value_extraction_performed",
             "merged_cell_resolution_performed",
             "unit_normalization_performed",
             "date_normalization_performed",
@@ -220,6 +225,8 @@ class Stage057XlsxCsvIngestionPhase4DeliveryTests(unittest.TestCase):
             "structured_fact_write_performed",
             "rag_summary_write_performed",
             "persistent_state_write_performed",
+            "actual_file_reparse_performed",
+            "actual_fact_rollback_performed",
             "agent_execution_performed",
             "model_call_performed",
             "model_token_consumption_performed",
@@ -235,13 +242,11 @@ class Stage057XlsxCsvIngestionPhase4DeliveryTests(unittest.TestCase):
                 self.assertFalse(report[field])
 
     def test_invalid_predecessor_fails_closed(self):
-        report = self._module().build_xlsx_csv_ingestion_phase4_delivery_report(
+        report = self._module().build_fact_extraction_phase4_delivery_report(
             lambda: {}
         )
         self.assertFalse(report["valid"])
-        self.assertEqual(
-            "FAIL_XLSX_CSV_INGESTION_DELIVERY_EVIDENCE", report["result"]
-        )
+        self.assertEqual("FAIL_FACT_EXTRACTION_DELIVERY_EVIDENCE", report["result"])
         self.assertEqual([], report["delivery_samples"])
         self.assertEqual([], report["unrecognized_structure_and_human_handling"])
 
@@ -249,8 +254,8 @@ class Stage057XlsxCsvIngestionPhase4DeliveryTests(unittest.TestCase):
         closeout = CLOSEOUT.read_text(encoding="utf-8")
         for expected in (
             "metadata-only",
-            "PHASE3_XLSX_CSV_INGESTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
-            "IDS-STAGE057-REVIEW-GATE",
+            "PHASE3_FACT_EXTRACTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+            "IDS-STAGE059-REVIEW-GATE",
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, closeout)
@@ -259,68 +264,31 @@ class Stage057XlsxCsvIngestionPhase4DeliveryTests(unittest.TestCase):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage057_phase4_completed_review_pending"'),
-            (batch, "stage057_phase4_state:"),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE057-P4"'),
-            (batch, 'next_gate: "IDS-STAGE057-REVIEW-GATE"'),
-            (batch, "xlsx_csv_ingestion_delivery_evidence_derived: true"),
+            (batch, 'status: "stage059_phase4_completed_review_pending"'),
+            (batch, "stage059_phase4_state:"),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE059-P4"'),
+            (batch, 'next_gate: "IDS-STAGE059-REVIEW-GATE"'),
+            (batch, "fact_extraction_delivery_evidence_derived: true"),
             (batch, "xlsx_or_csv_parse_performed: false"),
             (batch, "model_token_consumption_performed: false"),
             (batch, "ovh_deployment_performed: false"),
-            (roadmap, 'current_stage_id: "IDS-STAGE057"'),
-            (roadmap, 'current_phase_id: "IDS-STAGE057-P4"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE057-REVIEW-GATE"'),
+            (roadmap, 'current_stage_id: "IDS-STAGE059"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE059-P4"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE059-REVIEW-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertIn(status["stage"], ("IDS-STAGE057", "IDS-STAGE058", "IDS-STAGE059"))
-        self.assertIn(
-            status["phase"],
-            (
-                "IDS-V0_1-STAGE057-P4",
-                "IDS-V0_1-STAGE057-REVIEW",
-                "IDS-V0_1-STAGE058-P1",
-            "IDS-V0_1-STAGE058-P2",
-            "IDS-V0_1-STAGE058-P3",
-            "IDS-V0_1-STAGE058-P4",
-            "IDS-V0_1-STAGE058-REVIEW",
-            "IDS-V0_1-STAGE059-P1",
-            "IDS-V0_1-STAGE059-P2",
-            "IDS-V0_1-STAGE059-P3",
-            "IDS-V0_1-STAGE059-P4",
-            ),
-        )
-        self.assertIn(
-            status["next_gate"],
-            (
-                "IDS-STAGE057-REVIEW-GATE",
-                "IDS-STAGE058-P1-GATE",
-                "IDS-STAGE058-P2-GATE",
-                "IDS-STAGE058-P3-GATE",
-                "IDS-STAGE058-P4-GATE",
-                "IDS-STAGE058-REVIEW-GATE",
-                "IDS-STAGE059-P1-GATE",
-                "IDS-STAGE059-P2-GATE",
-                "IDS-STAGE059-P3-GATE",
-            "IDS-STAGE059-P4-GATE",
-            "IDS-STAGE059-REVIEW-GATE",
-            ),
-        )
+        self.assertEqual("IDS-STAGE059", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE059-P4", status["phase"])
+        self.assertEqual("IDS-STAGE059-REVIEW-GATE", status["next_gate"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
         run = json.loads(RUN.read_text(encoding="utf-8"))
-        self.assertEqual(
-            "PASS_PHASE4_XLSX_CSV_INGESTION_DELIVERY_RUNTIME_DISABLED",
-            run["result"],
-        )
-        self.assertTrue(
-            run["observed_work"]["xlsx_csv_ingestion_delivery_evidence_derived"]
-        )
-        self.assertFalse(run["observed_work"]["xlsx_or_csv_parse_performed"])
-        self.assertFalse(run["observed_work"]["actual_fact_rollback_performed"])
+        self.assertEqual("IDS-V0_1-STAGE059-P4", run["task_id"])
+        self.assertEqual("IDS-STAGE059-REVIEW-GATE", run["next_gate"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
         self.assertFalse(run["observed_work"]["whole_stage_review_performed"])
 
@@ -332,12 +300,12 @@ class Stage057XlsxCsvIngestionPhase4DeliveryTests(unittest.TestCase):
         event = next(
             item
             for item in events
-            if item["event_id"] == "EVT-IDS-V0_1-STAGE057-P4-20260813-001"
+            if item["event_id"] == "EVT-IDS-V0_1-STAGE059-P4-20260813-001"
         )
-        self.assertEqual("IDS-V0_1-STAGE057-P4", event["task_id"])
+        self.assertEqual("IDS-V0_1-STAGE059-P4", event["task_id"])
         self.assertTrue(
             any(
-                item.endswith("STAGE057_PHASE4_XLSX_CSV_INGESTION_DELIVERY_CLOSEOUT.md")
+                item.endswith("STAGE059_PHASE4_FACT_EXTRACTION_DELIVERY_CLOSEOUT.md")
                 for item in event["changed_files"]
             )
         )

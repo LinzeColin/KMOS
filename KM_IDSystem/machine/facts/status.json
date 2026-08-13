@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE059",
-  "phase": "IDS-V0_1-STAGE059-P3",
-  "task": "IDS-V0_1-STAGE059-P3",
-  "real_progress": "Stage059 P3 已重放 P2 固定控制候选并完成空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式处置；静默丢弃为零，下一步仅可在新的独立 run 进入 Stage059 P4，上传路径继续关闭",
-  "report_grade": "冻结 Stage059 任务包、P1/P2 合同和 Stage058 已复审工件为唯一合同上下文；当前只保留异常控制处置、控制来源引用形状、数值/RAG 边界、回滚范围和本地证据",
-  "business_verdict": "本阶段只证明 Stage059 P3 控制异常场景可通过，不证明真实 production、quality 或 inspection facts、真实 typed value、真实来源可追溯、真实异常表格验证、数值统计、RAG、数据库、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE059_PHASE3_FACT_EXTRACTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE059-P4",
+  "task": "IDS-V0_1-STAGE059-P4",
+  "real_progress": "Stage059 P4 已从 P3 六类固定 control 场景派生六个 metadata-only 事实样例、字段引用报告、质量结果、人工处理建议和重解析/事实回滚说明；下一步仅可在新的独立 run 进入 Stage059 Review，上传路径继续关闭",
+  "report_grade": "冻结 Stage059 任务包、P1/P2/P3 合同和 Stage058 已复审工件为唯一合同上下文；当前只保留控制交付样例、字段引用形状、质量限制、人工处理、回滚范围和本地证据",
+  "business_verdict": "本阶段只证明 Stage059 P4 control 交付证据可通过，不证明真实 production、quality 或 inspection facts、真实 typed value、真实字段推断、真实来源可追溯、真实异常表格验证、数值统计、RAG、数据库、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE059_PHASE4_FACT_EXTRACTION_DELIVERY_RUNTIME_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE059-P4-GATE",
+  "next_gate": "IDS-STAGE059-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
