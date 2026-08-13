@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE058",
-  "phase": "IDS-V0_1-STAGE058-P3",
-  "task": "IDS-V0_1-STAGE058-P3",
-  "real_progress": "Stage058 P3 已重放 P2 两条固定非业务控制引用与十一条 Schema profile 候选，完成空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置；下一步仅可在新的独立 run 进入 Stage058 P4，上传路径继续关闭",
-  "report_grade": "冻结 Stage058 任务包、P1/P2 合同与 Stage057 已复审工件为唯一合同上下文；当前只保留控制场景、引用形状、计数、边界和本地验证证据",
-  "business_verdict": "本阶段只证明固定控制候选上的异常处置和控制来源位置引用形状可执行，不证明真实 XLSX/CSV、真实表格质量、真实行列追溯、真实 schema、事实、数值统计、数据库、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE058_PHASE3_TABLE_SCHEMA_INFERENCE_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE058-P4",
+  "task": "IDS-V0_1-STAGE058-P4",
+  "real_progress": "Stage058 P4 已从 P3 六类固定非业务 control 场景派生 6 个 metadata-only 交付样例、6 个字段引用标签、6 条质量处置、6 条人工建议和 3 条中文确认；下一步仅可在新的独立 run 进入 Stage058 Review，上传路径继续关闭",
+  "report_grade": "冻结 Stage058 任务包、P1/P2/P3 合同与 Stage057 已复审工件为唯一合同上下文；当前只保留 control 交付样例、引用形状、计数、回滚边界和本地验证证据",
+  "business_verdict": "本阶段只证明固定 control 上的交付证据、人工处理建议和回到 P3 的回滚说明可执行，不证明真实 XLSX/CSV、真实表格质量、真实行列追溯、真实 schema、事实、数值统计、数据库、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE058_PHASE4_TABLE_SCHEMA_INFERENCE_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-13",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE058-P4-GATE",
+  "next_gate": "IDS-STAGE058-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

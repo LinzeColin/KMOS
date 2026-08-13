@@ -257,8 +257,14 @@ class Stage058TableSchemaInferencePhase3Tests(unittest.TestCase):
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE058", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE058-P3", status["phase"])
-        self.assertEqual("IDS-STAGE058-P4-GATE", status["next_gate"])
+        self.assertIn(
+            status["phase"],
+            ("IDS-V0_1-STAGE058-P3", "IDS-V0_1-STAGE058-P4"),
+        )
+        self.assertIn(
+            status["next_gate"],
+            ("IDS-STAGE058-P4-GATE", "IDS-STAGE058-REVIEW-GATE"),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 

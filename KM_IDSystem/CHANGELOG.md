@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-13 · IDS v0.1 Stage058 Phase 4（本地）
+
+- 完成表格 Schema 推断交付证据：从 P3 六类固定非业务、reference-only 控制场景派生 `6` 个 metadata-only Schema profile 样例、`6` 个字段引用标签、`6` 条质量结果、`6` 条人工处理建议、`3` 条中文确认提示和受控重解析/事实回滚说明；所有无法识别结构均保留给人工处理，未建立第二权威事实源。
+- 本地验证通过：Stage058 P4 聚焦用例 `12/12`；Stage058 P4/P3/P2/P1、Stage057 Review/P1-P4、Stage056 Review/P1-P4、Stage055 Review/P1-P4、Stage054 Review/P1-P4、Stage053 Review/P1-P4、Stage052 Review/P1-P4、Stage051 Review/P1-P4 与 BATCH041_050 的合并回归 `413/413`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 未读取、打开、检测、解析或评估真实 XLSX/CSV，未执行真实 Schema/字段/事实/质量验证、合并解析、单位/日期规范化、去重、异常值评估、RAG 摘要、数值统计、数据库或持久状态；未执行 Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE058-REVIEW-GATE`。
+
 ## 2026-08-13 · IDS v0.1 Stage058 Phase 3（本地）
 
 - 完成表格 Schema 推断受控异常场景验证：重放 P2 两条固定非业务 control 和 `11` 条 Schema profile 候选，覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置；静默丢弃为 `0`，控制来源位置引用形状保持可追溯，未验证数值阻断统计和模型确定性数值结论。
