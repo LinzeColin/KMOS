@@ -7,27 +7,27 @@ import unittest
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
 PHASE1_CONTRACT = (
-    BASE / "structured_table_facts" / "stage059_fact_extraction_contract.json"
+    BASE / "structured_table_facts" / "stage060_table_rag_summary_contract.json"
 )
 PHASE2_CONTRACT = (
-    BASE / "structured_table_facts" / "stage059_fact_extraction_slice_contract.json"
+    BASE / "structured_table_facts" / "stage060_table_rag_summary_slice_contract.json"
 )
-PHASE2_MODULE = BASE / "structured_table_facts" / "stage059_fact_extraction_slice.py"
-PHASE3 = BASE / "STAGE059_PHASE3_FACT_EXTRACTION_QUALITY_SCENARIOS.md"
+PHASE2_MODULE = BASE / "structured_table_facts" / "stage060_table_rag_summary_slice.py"
+PHASE3 = BASE / "STAGE060_PHASE3_TABLE_RAG_SUMMARY_QUALITY_SCENARIOS.md"
 CONTRACT = (
     BASE
     / "structured_table_facts"
-    / "stage059_fact_extraction_quality_scenarios_contract.json"
+    / "stage060_table_rag_summary_quality_scenarios_contract.json"
 )
 MODULE = (
     BASE
     / "structured_table_facts"
-    / "stage059_fact_extraction_quality_scenarios.py"
+    / "stage060_table_rag_summary_quality_scenarios.py"
 )
 BATCH = BASE / "BATCH051_060_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
-RUN = ROOT / "machine" / "runs" / "2026-08-13-stage059-p3-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-13-stage060-p3-local.json"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 
 EXPECTED_SCENARIOS = [
@@ -40,13 +40,13 @@ EXPECTED_SCENARIOS = [
 ]
 
 
-class Stage059FactExtractionPhase3Tests(unittest.TestCase):
+class Stage060TableRagSummaryPhase3Tests(unittest.TestCase):
     _module_value = None
     _report_value = None
 
     def _module(self):
         if self.__class__._module_value is None:
-            spec = importlib.util.spec_from_file_location("stage059_p3", MODULE)
+            spec = importlib.util.spec_from_file_location("stage060_p3", MODULE)
             module = importlib.util.module_from_spec(spec)
             self.assertIsNotNone(spec.loader)
             spec.loader.exec_module(module)
@@ -56,7 +56,7 @@ class Stage059FactExtractionPhase3Tests(unittest.TestCase):
     def _report(self):
         if self.__class__._report_value is None:
             self.__class__._report_value = (
-                self._module().build_fact_extraction_phase3_report()
+                self._module().build_table_rag_summary_phase3_report()
             )
         return self.__class__._report_value
 
@@ -83,13 +83,13 @@ class Stage059FactExtractionPhase3Tests(unittest.TestCase):
     def test_contract_identity_and_zero_runtime_boundary(self):
         contract = self._contract()
         self.assertEqual(
-            "ids.stage059.fact_extraction.phase3.quality_scenarios.v1",
+            "ids.stage060.table_rag_summary.phase3.quality_scenarios.v1",
             contract["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE059-P3", contract["task_id"])
+        self.assertEqual("IDS-V0_1-STAGE060-P3", contract["task_id"])
         self.assertTrue(contract["scenario_executable"])
         self.assertFalse(contract["execution_ready"])
-        self.assertEqual("IDS-STAGE059-P4-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE060-P4-GATE", contract["next_gate"])
         self.assertFalse(
             contract["source_authority"]["second_authoritative_source_created"]
         )
@@ -125,14 +125,14 @@ class Stage059FactExtractionPhase3Tests(unittest.TestCase):
         report = self._report()
         self.assertTrue(report["valid"])
         self.assertEqual(
-            "PASS_PHASE3_FACT_EXTRACTION_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
+            "PASS_PHASE3_TABLE_RAG_SUMMARY_CONTROLLED_QUALITY_SCENARIOS_RUNTIME_DISABLED",
             report["result"],
         )
         self.assertEqual(6, report["scenario_count"])
         self.assertEqual(6, report["passed_scenario_count"])
         self.assertEqual(6, report["explicit_disposition_count"])
         self.assertEqual(0, report["silent_drop_count"])
-        self.assertEqual(3, report["unique_fact_candidate_count"])
+        self.assertEqual(2, report["unique_rag_summary_candidate_count"])
         self.assertEqual(
             EXPECTED_SCENARIOS,
             [item["scenario_id"] for item in report["scenario_results"]],
@@ -156,7 +156,7 @@ class Stage059FactExtractionPhase3Tests(unittest.TestCase):
         self.assertTrue(merged["human_handling_required"])
         self.assertFalse(merged["merged_cell_resolution_performed"])
 
-    def test_unit_and_date_variations_never_create_normalized_values(self):
+    def test_unit_and_date_variations_never_create_normalized_values_or_summary_text(self):
         results = {
             item["scenario_id"]: item for item in self._report()["scenario_results"]
         }
@@ -170,7 +170,8 @@ class Stage059FactExtractionPhase3Tests(unittest.TestCase):
             "UNVERIFIED_DATE_REQUIRES_HUMAN_HANDLING", date["quality_disposition"]
         )
         self.assertFalse(date["date_normalization_performed"])
-        self.assertFalse(self._report()["actual_typed_value_created"])
+        self.assertTrue(self._report()["all_summary_text_unset"])
+        self.assertFalse(self._report()["actual_summary_text_retained"])
 
     def test_outlier_blocks_numeric_statistics_and_model_conclusions(self):
         item = next(
@@ -200,7 +201,7 @@ class Stage059FactExtractionPhase3Tests(unittest.TestCase):
         self.assertTrue(item["human_handling_required"])
         self.assertTrue(item["source_location_reference_preserved"])
         self.assertTrue(item["control_reference_only"])
-        self.assertTrue(item["typed_value_unset"])
+        self.assertTrue(item["summary_text_unset"])
         self.assertEqual(6, self._report()["source_location_reference_check_count"])
         self.assertTrue(self._report()["control_source_location_traceability_preserved"])
 
@@ -213,7 +214,7 @@ class Stage059FactExtractionPhase3Tests(unittest.TestCase):
                 self.assertFalse(item["actual_source_file_traceability_validated"])
                 self.assertFalse(item["actual_evidence_record_created"])
                 self.assertFalse(item["actual_structured_fact_created"])
-                self.assertFalse(item["actual_typed_value_created"])
+                self.assertFalse(item["actual_rag_summary_created"])
         self.assertFalse(report["actual_source_file_traceability_validated"])
         self.assertFalse(report["actual_evidence_record_created"])
 
@@ -225,10 +226,12 @@ class Stage059FactExtractionPhase3Tests(unittest.TestCase):
             "source_file_open_performed",
             "file_type_detection_performed",
             "xlsx_or_csv_parse_performed",
-            "real_table_schema_inference_performed",
-            "real_field_identification_performed",
-            "real_structured_fact_extraction_performed",
+            "table_schema_inference_performed",
+            "field_identification_performed",
+            "structured_fact_extraction_performed",
             "typed_value_extraction_performed",
+            "table_summary_generation_performed",
+            "rag_summary_generation_performed",
             "merged_cell_resolution_performed",
             "unit_normalization_performed",
             "date_normalization_performed",
@@ -251,10 +254,10 @@ class Stage059FactExtractionPhase3Tests(unittest.TestCase):
                 self.assertFalse(report[field])
 
     def test_invalid_phase2_result_stays_non_passing(self):
-        report = self._module().build_fact_extraction_phase3_report(lambda _: {})
+        report = self._module().build_table_rag_summary_phase3_report(lambda _: {})
         self.assertFalse(report["valid"])
         self.assertEqual(
-            "FAIL_FACT_EXTRACTION_CONTROLLED_QUALITY_SCENARIOS", report["result"]
+            "FAIL_TABLE_RAG_SUMMARY_CONTROLLED_QUALITY_SCENARIOS", report["result"]
         )
         self.assertEqual(0, report["passed_scenario_count"])
 
@@ -262,35 +265,30 @@ class Stage059FactExtractionPhase3Tests(unittest.TestCase):
         batch = BATCH.read_text(encoding="utf-8")
         roadmap = ROADMAP.read_text(encoding="utf-8")
         for text, expected in (
-            (batch, 'status: "stage059_phase3_completed"'),
-            (batch, "stage059_phase3_state:"),
-            (batch, 'current_task_id: "IDS-V0_1-STAGE059-P3"'),
-            (batch, 'next_gate: "IDS-STAGE059-P4-GATE"'),
+            (batch, 'status: "stage060_phase3_completed"'),
+            (batch, "stage060_phase3_state:"),
+            (batch, 'current_task_id: "IDS-V0_1-STAGE060-P3"'),
+            (batch, 'next_gate: "IDS-STAGE060-P4-GATE"'),
             (batch, "phase3_started: true"),
-            (roadmap, 'current_stage_id: "IDS-STAGE059"'),
-            (roadmap, 'current_phase_id: "IDS-STAGE059-P3"'),
-            (roadmap, 'current_task_id: "IDS-V0_1-STAGE059-P3"'),
-            (roadmap, 'next_gate_id: "IDS-STAGE059-P4-GATE"'),
+            (roadmap, 'current_stage_id: "IDS-STAGE060"'),
+            (roadmap, 'current_phase_id: "IDS-STAGE060-P3"'),
+            (roadmap, 'current_task_id: "IDS-V0_1-STAGE060-P3"'),
+            (roadmap, 'next_gate_id: "IDS-STAGE060-P4-GATE"'),
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertIn(status["stage"], ("IDS-STAGE059", "IDS-STAGE060"))
-        self.assertIn(
-            status["phase"],
-            ("IDS-V0_1-STAGE059-P3", "IDS-V0_1-STAGE059-P4", "IDS-V0_1-STAGE059-REVIEW", "IDS-V0_1-STAGE060-P1", "IDS-V0_1-STAGE060-P2", "IDS-V0_1-STAGE060-P3"),
-        )
-        self.assertIn(
-            status["next_gate"],
-            ("IDS-STAGE059-P4-GATE", "IDS-STAGE059-REVIEW-GATE", "IDS-STAGE060-P1-GATE", "IDS-STAGE060-P2-GATE", "IDS-STAGE060-P3-GATE", "IDS-STAGE060-P4-GATE"),
-        )
+        self.assertEqual("IDS-STAGE060", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE060-P3", status["phase"])
+        self.assertEqual("IDS-V0_1-STAGE060-P3", status["task"])
+        self.assertEqual("IDS-STAGE060-P4-GATE", status["next_gate"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
 
         run = json.loads(RUN.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-V0_1-STAGE059-P3", run["task_id"])
-        self.assertEqual("IDS-STAGE059-P4-GATE", run["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE060-P3", run["task_id"])
+        self.assertEqual("IDS-STAGE060-P4-GATE", run["next_gate"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
         self.assertFalse(run["observed_work"]["phase4_started"])
 
@@ -300,10 +298,10 @@ class Stage059FactExtractionPhase3Tests(unittest.TestCase):
         event = next(
             item
             for item in events
-            if item.get("event_id") == "EVT-IDS-V0_1-STAGE059-P3-20260813-001"
+            if item.get("event_id") == "EVT-IDS-V0_1-STAGE060-P3-20260813-001"
         )
-        self.assertEqual("IDS-V0_1-STAGE059-P3", event["task_id"])
-        self.assertIn("next_gate=IDS-STAGE059-P4-GATE", event["notes"])
+        self.assertEqual("IDS-V0_1-STAGE060-P3", event["task_id"])
+        self.assertIn("next_gate=IDS-STAGE060-P4-GATE", event["notes"])
 
 
 if __name__ == "__main__":

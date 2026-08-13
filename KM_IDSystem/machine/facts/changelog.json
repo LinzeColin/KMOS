@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage060-p3-local",
+    "date": "2026-08-13",
+    "summary": "完成 Stage060 P3 表格到 RAG 摘要受控异常场景验证：重放 P2 两条固定非业务十三字段 reference-only 输入和两条十字段中文 RAG 摘要控制候选，覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置，静默丢弃为零，控制来源位置引用形状保持可追溯，未验证数值阻断统计和模型确定性结论。本地验证为聚焦用例 12/12、显式前序兼容回归 505/505、批次检查器 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED、Stage005 治理回归 valid=true 与中文事实投影 7 个文件。未读取、打开、检测、解析或评估真实表格或 fixture，未执行真实质量验证、事实、摘要、统计、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage060 P4。"
+  },
+  {
     "version": "v0.1-stage060-p2-local",
     "date": "2026-08-13",
     "summary": "完成 Stage060 P2 表格到 RAG 摘要纯内存控制切片：两条固定非业务十三字段 reference-only 输入投影两条十字段中文 RAG 摘要控制候选，保持结构化事实引用、来源文档、工作簿、工作表、行列范围和 evidence 引用分离；摘要正文和数值结论均未生成。本地验证为聚焦用例 9/9、显式前序兼容回归 493/493、批次检查器 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED、Stage005 治理回归 valid=true 与中文事实投影 7 个文件。未读取、打开、检测、解析、生成或写入真实表格、事实或摘要，未执行真实字段/事实/质量验证、数值统计、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage060 P3。"

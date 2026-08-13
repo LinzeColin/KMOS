@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-13 · IDS v0.1 Stage060 Phase 3（本地）
+
+- 完成表格到 RAG 摘要受控质量专项：重放 P2 两条固定非业务十三字段 reference-only 输入与两条十字段中文 RAG 摘要控制候选，覆盖空表、合并单元格、单位混乱、日期格式不一、异常值和重复行六类显式人工处置；静默丢弃为 `0`，控制来源位置引用形状保持可追溯，摘要正文仍为空，没有建立第二权威事实源。
+- 本地验证通过：Stage060 P3 聚焦用例 `12/12`；Stage060 P3/P2/P1、Stage059 Review/P1--P4、Stage058 Review/P1--P4、Stage057 Review/P1--P4、Stage056 Review/P1--P4、Stage055 Review/P1--P4、Stage054 Review/P1--P4、Stage053 Review/P1--P4、Stage052 Review/P1--P4、Stage051 Review/P1--P4 与 BATCH041_050 的合并回归 `505/505`；批次检查器返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理报告 `valid=true`，中文事实投影已重渲染 `7` 个文件。
+- 未读取、打开、检测、解析、生成或评估真实 XLSX/CSV、生产记录、质检记录或 fixture，未执行真实 schema、字段、事实、typed value、RAG、统计、质量验证、来源/证据绑定、实际重解析、事实回滚、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE060-P4-GATE`。
+
 ## 2026-08-13 · IDS v0.1 Stage060 Phase 2（本地）
 
 - 完成表格到 RAG 摘要纯内存控制切片：两条固定非业务十三字段 reference-only 输入投影两条十字段中文 RAG 摘要控制候选，保持结构化事实引用、来源文档、工作簿、工作表、行列范围和 evidence 引用分离；摘要正文和数值结论均未生成，没有建立第二权威事实源。
