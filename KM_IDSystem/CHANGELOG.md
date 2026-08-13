@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage063 Review（本地）
+
+- 完成章节感知切块整阶段机械复审：核验 P1--P4 的 `8/14/3/6/8` 静态形状、`3` 条固定 control 请求、`3` 条控制候选、六类显式人工处置、`6` 条 metadata-only JSONL 样例、`6` 条低质量待人工记录、`3` 条中文确认和 P4→P3 控制回退链；发现数为 `0`，没有建立第二权威事实源。
+- 复审模块只读取冻结合同与纯内存报告；控制记录、控制引用、控制覆盖率、低质量清单、回归结果和回退说明不能替代来源文档或业务线白箱人工复核，也不代表真实章节检测、真实 chunk、真实身份/版本、真实质量、真实来源追溯、OVH、生产或上传能力。
+- 本地验证通过：复审模块 `PASS_REVIEWED_LOCAL_CHAPTER_AWARE_CHUNKING_RUNTIME_DISABLED`，且 P1/P4 注入异常时失败关闭；Stage063 Review 聚焦用例 `8/8`，受影响阶段链路 `174/174`，两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归 `valid=true`，中文事实投影已重渲染 `7` 个文件。本 run 未执行真实 parser、章节检测、切块、身份/版本、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE064-P1-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage063 Phase 4（本地）
 
 - 完成章节感知切块 metadata-only 交付证据：从 P3 六类固定、非业务、reference-only 控制场景派生 `6` 条内存 JSONL 样例、控制覆盖率报告、`6` 条低质量待人工清单、控制回归结果、策略适用边界、回到 P3 的重生成/版本回退说明和 `3` 条中文确认；没有建立第二权威事实源。

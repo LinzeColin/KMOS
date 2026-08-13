@@ -4,6 +4,11 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "Stage063 chapter-aware chunking review",
+      "中文": "Stage063 章节感知切块整阶段机械复审",
+      "说明": "只机械复审冻结 Stage063 P1--P4 控制合同、纯内存报告和 P4→P3 控制回退链的固定计数、人工处置、单一权威与零运行时边界；它不读取真实文档、不创建真实 chunk、身份或版本，也不启动 Stage064、OVH、生产或上传。"
+    },
+    {
       "英文": "metadata-only chunk JSONL delivery sample",
       "中文": "仅元数据章节切块 JSONL 交付样例",
       "说明": "Stage063 P4 从 P3 六类固定控制场景派生的内存 JSONL 行；它只保留 :control: 引用和人工复核状态，不包含真实 chunk、正文、路径、页码内容或业务事实。"

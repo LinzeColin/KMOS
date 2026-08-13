@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE063",
-  "phase": "IDS-V0_1-STAGE063-P4",
-  "task": "IDS-V0_1-STAGE063-P4",
-  "owner": "Codex 专属 KMOS worktree，Stage063 Phase 4",
-  "objective": "只从 P3 六类固定、非业务、reference-only 章节感知切块控制场景派生 metadata-only JSONL 样例、控制覆盖率报告、低质量待人工清单、控制回归结果、策略适用边界、重生成/版本回退说明和中文确认；不读取、解析、检测、切分、写入或回退真实资料。",
+  "phase": "IDS-V0_1-STAGE063-REVIEW",
+  "task": "IDS-V0_1-STAGE063-REVIEW",
+  "owner": "Codex 专属 KMOS worktree，Stage063 Review",
+  "objective": "只机械复审冻结 Stage063 P1--P4 合同与纯内存控制报告的固定形状、控制计数、人工处置、单一权威、零运行时边界和 P4→P3 控制回退链；不读取或处理真实资料。",
   "scope": [
-    "以冻结 Stage063 任务包、Stage063 P1/P2/P3 控制工件、Stage062 Review 与 Batch061-070 上传锁为唯一合同上下文，不建立第二权威事实源",
-    "仅从六类 :control: 场景派生六条 metadata-only JSONL 样例、控制覆盖率报告、六条低质量待人工清单、控制回归结果、策略边界、回到 P3 的回退说明和三条中文确认",
-    "控制覆盖率和低质量清单只说明固定控制形状，不计算真实文档/chunk 覆盖率、不观测真实低质量、不形成真实质量回归结论",
-    "同步 P4 说明、交付合同、纯内存模块、聚焦单元用例、BATCH061-070 锁、路线图、machine run、事件、机器事实、中文视图与交接",
-    "只完成 ACC-STAGE-063 的 Phase 4 交付证据并指向 Stage063 Review 门"
+    "以冻结 Stage063 任务包、P1/P2/P3/P4 控制工件、Stage062 Review 与 Batch061-070 上传锁为唯一合同上下文，不建立第二权威事实源",
+    "只读取 P1--P4 合同和纯内存报告，核验 8/14、3/3、6 类、6 条 metadata-only 样例、6 条低质量待人工记录、3 条中文确认及 P4→P3 控制回退链",
+    "所有控制引用和计数只说明固定 control 形状，不计算真实文档/chunk 覆盖率、不观测真实低质量、不形成真实质量或版本结论",
+    "同步复审说明、只读复审模块、聚焦用例、BATCH061-070 锁、路线图、machine run、事件、机器事实、中文视图与交接",
+    "只完成 ACC-STAGE-063 的整阶段本地复审并指向 Stage064 P1 门"
   ],
   "non_goals": [
     "不打开、创建、复制、移动、删除、修改、检测、解析、评估或保留真实业务源、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、索引、事实库、证据账本、数据库或报告",
     "不执行真实 parser、章节检测、切块、chunk 身份/版本、重复检测或去重、语义资产分类、覆盖率、质量回归、质量降级、来源追溯绑定、重生成、版本回退、embedding、索引、数据库连接或 migration、持久化、Agent、模型调用、模型 Token、OVH、生产或上传",
-    "不启动 Stage063 Review、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不启动 Stage064 Phase 1、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage063 Phase 4 对六条 metadata-only JSONL 样例、控制覆盖率、低质量待人工清单、控制回归结果、单一权威、中文确认和回到 P3 的回退说明完成本地白箱验证后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE063-REVIEW-GATE；任何真实资料访问、实际切块、身份/版本、覆盖率、质量、重生成、版本回退、索引、数据库、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "Stage063 Review 对 P1--P4 固定合同、控制计数、六类显式人工处置、metadata-only 交付、单一权威、零运行时边界和 P4→P3 控制回退链完成本地白箱验证后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE064-P1-GATE；任何真实资料访问、实际章节检测或切块、身份/版本、覆盖率、质量、索引、数据库、OVH、生产或上传动作都不属于本步骤。"
 }

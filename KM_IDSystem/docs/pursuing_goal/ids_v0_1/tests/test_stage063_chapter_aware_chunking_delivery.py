@@ -291,11 +291,18 @@ class Stage063ChapterAwareChunkingPhase4DeliveryTests(unittest.TestCase):
             if line.strip()
         ]
         self.assertEqual("IDS-STAGE063", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE063-P4", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE063-P4", status["task"])
-        self.assertEqual("IDS-STAGE063-REVIEW-GATE", status["next_gate"])
-        self.assertEqual("IDS-V0_1-STAGE063-P4", plan["task"])
-        self.assertIn("IDS-STAGE063-REVIEW-GATE", plan["stop_condition"])
+        self.assertIn(
+            (status["phase"], status["task"], status["next_gate"]),
+            (
+                ("IDS-V0_1-STAGE063-P4", "IDS-V0_1-STAGE063-P4", "IDS-STAGE063-REVIEW-GATE"),
+                ("IDS-V0_1-STAGE063-REVIEW", "IDS-V0_1-STAGE063-REVIEW", "IDS-STAGE064-P1-GATE"),
+            ),
+        )
+        self.assertIn(plan["task"], ("IDS-V0_1-STAGE063-P4", "IDS-V0_1-STAGE063-REVIEW"))
+        self.assertTrue(
+            "IDS-STAGE063-REVIEW-GATE" in plan["stop_condition"]
+            or "IDS-STAGE064-P1-GATE" in plan["stop_condition"]
+        )
         self.assertTrue(
             {
                 "ACC-STAGE063-P4-01",
