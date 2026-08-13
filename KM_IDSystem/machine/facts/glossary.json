@@ -4,6 +4,16 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "controlled chapter-aware chunking scenario",
+      "中文": "受控章节感知切块专项场景",
+      "说明": "Stage063 P3 对 P2 三条固定、非业务、reference-only 候选的纯内存重放；长文档、跨页参数表、施工步骤、参数表、引用页码和重复写入只表示控制类别，始终要求人工复核，不能成为真实切块质量或业务事实。"
+    },
+    {
+      "英文": "duplicate chunk write control boundary",
+      "中文": "重复切块写入控制边界",
+      "说明": "Stage063 P3 仅确认控制模块没有发起 embedding 或索引写入；它不检测真实重复 chunk、不计算身份或哈希、不形成真实去重效果结论，必须留待经授权的后续实现和业务线人工确认。"
+    },
+    {
       "英文": "reference-only chapter-aware chunk candidate",
       "中文": "仅引用章节感知切块候选",
       "说明": "Stage063 P2 对三条固定、非业务控制请求的纯内存投影；它只保留 document、page、section、parser output、表格上下文和来源片段的 :control: 引用形状，始终要求人工复核，不能成为真实 chunk、来源追溯、索引、业务事实或第二权威事实源。"

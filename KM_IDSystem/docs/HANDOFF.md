@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage063 Phase 2 - 2026-08-14
+## Current Gate - Stage063 Phase 3 - 2026-08-14
 
-- 本节是唯一当前交接；Stage063 P1、Stage062 Review、Stage062 P1/P2/P3/P4 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；Stage063 P2/P1、Stage062 Review、Stage062 P1/P2/P3/P4 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE063-P3`：只重放 P2 的三条固定、非业务、`:control:` 章节感知切块候选，为长文档、跨页参数表、施工步骤、参数表、引用页码和重复 chunk 写入边界输出六类显式人工处置，并保留 `document/page/section/parser output/表格上下文/来源片段` 六维控制引用；没有建立第二权威事实源。
+- 六类场景均要求业务线白箱人工复核，静默丢弃为 `0`。控制引用不含真实路径、URL、正文、页面、章节、表格、来源片段或 parser 输出，且不代表真实长文档质量、真实跨页关系、真实施工步骤、真实页码反查或真实来源追溯。重复场景只确认控制模块没有发起 embedding 或索引写入；没有检测真实重复项、生成身份/版本或计算哈希，不能表述为真实去重效果。Stage047、Stage062 与 Stage064--068 的既有或后续唯一职责保持不变；来源文档与业务线白箱人工复核保持权威。
+- 已验证：Stage063 P3 聚焦用例 `10/10`；含 Stage063 P3/P2/P1、Stage062 P1--Review、Stage061 P1--Review、两个批次与 Stage060 Review 的阶段链路回归 `154/154`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影已重渲染 `7` 个文件。执行范围没有进入真实 parser、章节检测、切块、重复检测或去重、身份/版本、分类、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产或上传。
+- 回滚只撤回本 P3 说明、场景合同、纯内存模块、聚焦用例、BATCH061-070 锁、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `PHASE2_CHAPTER_AWARE_CHUNKING_CONTROL_SLICE_RUNTIME_DISABLED`；不改变 P1/P2、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE063-P4-GATE`。本 run 不进入 P4、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage063 Phase 2 - 2026-08-14
+
+- 本节保留 Stage063 P2 的已提交历史证据；唯一当前交接位于上方 Stage063 Phase 3，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE063-P2`：复用 P1 的八字段引用式输入和十四字段输出，只以三条固定、非业务、`:control:` 请求在内存中投影三条待人工复核候选，一对一覆盖工程步骤、验收条款和参数表三类保护语义表面，并保留 `document/page/section/parser output/表格上下文/来源片段` 六维控制引用；没有建立第二权威事实源。
 - 控制候选不含真实路径、URL、正文、页面、章节、表格、来源片段或 parser 输出，且不代表真实章节检测、真实切块、chunk 身份/版本/哈希、真实语义分类、覆盖率、质量、来源追溯或索引已执行。Stage047、Stage062 与 Stage064--068 的既有或后续唯一职责保持不变；来源文档与业务线白箱人工复核保持权威。
 - 已验证：Stage063 P2 聚焦用例 `8/8`；含 Stage063 P2/P1、Stage062 P1--Review、Stage061 P1--Review、两个批次与 Stage060 Review 的阶段链路回归 `144/144`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件。执行范围没有进入真实 parser、章节检测、切块、chunk 身份/版本/哈希、分类、覆盖率、质量、来源追溯、索引、数据库、Agent、模型 Token、OVH、生产或上传。

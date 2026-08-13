@@ -327,6 +327,7 @@ class Stage061StructuredDataQualityPhase3Tests(unittest.TestCase):
                 ("IDS-STAGE062-REVIEW", "IDS-STAGE063-P1-GATE"),
                 ("IDS-V0_1-STAGE063-P1", "IDS-STAGE063-P2-GATE"),
                 ("IDS-V0_1-STAGE063-P2", "IDS-STAGE063-P3-GATE"),
+                ("IDS-V0_1-STAGE063-P3", "IDS-STAGE063-P4-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -344,6 +345,7 @@ class Stage061StructuredDataQualityPhase3Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE062-REVIEW",
                 "IDS-V0_1-STAGE063-P1",
                 "IDS-V0_1-STAGE063-P2",
+                "IDS-V0_1-STAGE063-P3",
             ),
         )
         self.assertIn(status["next_gate"], plan["stop_condition"])

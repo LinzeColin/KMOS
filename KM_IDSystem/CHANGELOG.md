@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage063 Phase 3（本地）
+
+- 完成章节感知切块受控专项场景：重放 P2 三条固定、非业务、reference-only 控制候选，覆盖长文档、跨页参数表、施工步骤、参数表、引用页码与重复 chunk 写入边界六类显式人工处置；静默丢弃为 `0`，并保留 `document/page/section/parser output/表格上下文/来源片段` 六维控制引用形状。没有建立第二权威事实源。
+- 六类场景全部要求业务线白箱人工复核。重复写入场景只确认控制模块未发起 embedding 或索引写入，不检测真实重复项，也不形成真实去重效果结论；控制引用和处置不代表真实文档、章节、表格、页码、来源追溯或切块质量已经验证。
+- 本地验证通过：Stage063 P3 聚焦用例 `10/10`；含 Stage063 P3/P2/P1、Stage062 P1--Review、Stage061 P1--Review、两个批次与 Stage060 Review 的阶段链路回归 `154/154`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件。未读取、打开、检测、解析或切分真实资料或 fixture；未执行真实 parser、章节检测、重复检测或去重、分类、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产、P4、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE063-P4-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage063 Phase 2（本地）
 
 - 完成章节感知切块纯内存控制切片：三条固定、非业务、reference-only 八字段请求投影三条十四字段待人工复核候选，一对一覆盖工程步骤、验收条款和参数表三类保护语义面，并保留 `document/page/section/parser output/表格上下文/来源片段` 六维 `:control:` 追溯引用；没有建立第二权威事实源。

@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE063",
-  "phase": "IDS-V0_1-STAGE063-P2",
-  "task": "IDS-V0_1-STAGE063-P2",
-  "real_progress": "Stage063 P2 已在内存中以三条固定、非业务、reference-only 请求投影三条待人工复核的章节感知切块候选，机械验证八字段输入、十四字段输出、工程步骤/验收条款/参数表三类保护语义面与 document/page/section/parser output/表格上下文/来源片段六维控制引用；下一步仅可在新的独立 run 进入 Stage063 Phase 3，上传路径继续关闭",
-  "report_grade": "冻结 Stage063 任务包、Stage062 本地复审、Stage063 P1 静态合同、Stage063 P2 控制切片、Batch061-070 上传锁、治理路线与中文事实投影一致",
-  "business_verdict": "本 P2 只证明固定控制请求的内存候选投影、单一权威、保护表面、人工复核与回滚边界可白箱核验；不证明真实章节识别、真实切块、chunk 身份/版本/哈希、分类、覆盖率、质量、索引、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE063_PHASE2_CHAPTER_AWARE_CHUNKING_CONTROL_SLICE_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE063-P3",
+  "task": "IDS-V0_1-STAGE063-P3",
+  "real_progress": "Stage063 P3 已在内存中重放 P2 的三条固定、非业务、reference-only 章节感知切块控制候选，对长文档、跨页参数表、施工步骤、参数表、引用页码与重复写入边界输出六类显式人工处置，并保留 document/page/section/parser output/表格上下文/来源片段六维控制引用；下一步仅可在新的独立 run 进入 Stage063 Phase 4，上传路径继续关闭",
+  "report_grade": "冻结 Stage063 任务包、Stage062 本地复审、Stage063 P1/P2/P3 控制工件、Batch061-070 上传锁、治理路线与中文事实投影一致",
+  "business_verdict": "本 P3 只证明固定控制场景、单一权威、人工复核、控制引用形状、未发生 embedding/index 写入和回滚边界可白箱核验；不证明真实长文档或跨页表格切块质量、真实页码反查、真实重复检测或去重、chunk 身份/版本/哈希、分类、覆盖率、质量、索引、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE063_PHASE3_CHAPTER_AWARE_CHUNKING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE063-P3-GATE",
+  "next_gate": "IDS-STAGE063-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

@@ -247,6 +247,7 @@ class Stage062TableEvidenceBindingPhase2Tests(unittest.TestCase):
                 ("IDS-STAGE062-REVIEW", "IDS-V0_1-STAGE062-REVIEW", "IDS-STAGE063-P1-GATE"),
                 ("IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P1", "IDS-STAGE063-P2-GATE"),
                 ("IDS-V0_1-STAGE063-P2", "IDS-V0_1-STAGE063-P2", "IDS-STAGE063-P3-GATE"),
+                ("IDS-V0_1-STAGE063-P3", "IDS-V0_1-STAGE063-P3", "IDS-STAGE063-P4-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -254,6 +255,9 @@ class Stage062TableEvidenceBindingPhase2Tests(unittest.TestCase):
         self.assertIn(plan["stage"], ("IDS-STAGE062", "IDS-STAGE063"))
         self.assertIn(
             plan["task"],
+            ("IDS-V0_1-STAGE063-P3",)
+            if plan["task"] == "IDS-V0_1-STAGE063-P3"
+            else
             ("IDS-V0_1-STAGE062-P2", "IDS-V0_1-STAGE062-P3", "IDS-V0_1-STAGE062-P4", "IDS-V0_1-STAGE062-REVIEW", "IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P2"),
         )
         self.assertTrue(
@@ -263,6 +267,7 @@ class Stage062TableEvidenceBindingPhase2Tests(unittest.TestCase):
             or "IDS-STAGE063-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE063-P2-GATE" in plan["stop_condition"]
             or "IDS-STAGE063-P3-GATE" in plan["stop_condition"]
+            or "IDS-STAGE063-P4-GATE" in plan["stop_condition"]
         )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
@@ -297,6 +302,11 @@ class Stage062TableEvidenceBindingPhase2Tests(unittest.TestCase):
                 'current_stage_id: "IDS-STAGE063"' in roadmap_text
                 and 'current_phase_id: "IDS-STAGE063-P2"' in roadmap_text
                 and 'next_gate_id: "IDS-STAGE063-P3-GATE"' in roadmap_text
+            )
+            or (
+                'current_stage_id: "IDS-STAGE063"' in roadmap_text
+                and 'current_phase_id: "IDS-STAGE063-P3"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE063-P4-GATE"' in roadmap_text
             )
         )
         self.assertEqual("phase_completed", event["event_type"])
