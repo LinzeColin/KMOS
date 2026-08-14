@@ -3008,7 +3008,8 @@ def test_raw_fact_replay_reopens_exact_pair_before_publishing_latest_day(
         def __init__(self, _config):
             return None
 
-        def audit_raw_archive_metadata(self, *, on_attachment):
+        def audit_raw_archive_metadata(self, *, on_attachment, commit_sha):
+            assert commit_sha == "a" * 40
             for attachment in attachments:
                 on_attachment(PersistedRawAttachment(
                     message={"title": attachment.family},
@@ -3127,7 +3128,8 @@ def test_raw_fact_replay_keeps_quarantined_titleless_bytes_out_of_formal_pairing
         def __init__(self, _config):
             return None
 
-        def audit_raw_archive_metadata(self, *, on_attachment):
+        def audit_raw_archive_metadata(self, *, on_attachment, commit_sha):
+            assert commit_sha == "a" * 40
             for item in attachments:
                 on_attachment(PersistedRawAttachment(
                     message={"title": None},
@@ -4543,6 +4545,33 @@ def test_auth_and_keepalive_locks_are_non_destructive(tmp_path: Path) -> None:
         runtime.state.release_lease(lease, "other-holder")
 
 
+def test_raw_coverage_and_fact_replay_expose_git_writer_contention_as_processing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A live raw writer is not a false source or reconciliation failure."""
+
+    coverage = DailyFundsRuntime(_config(tmp_path / "coverage"))
+    monkeypatch.setattr(
+        coverage,
+        "_raw_coverage_repair_locked",
+        lambda **_kwargs: (_ for _ in ()).throw(IngestionError("GIT_WRITER_LOCK_HELD")),
+    )
+    coverage_status = coverage.raw_coverage_repair(now=datetime(2026, 8, 1, tzinfo=UTC))
+    assert coverage_status["human_status"] == "处理中"
+    assert coverage_status["machine_code"] == "RAW_COVERAGE_REPAIR_GIT_WRITER_LOCK_HELD"
+
+    replay = DailyFundsRuntime(_config(tmp_path / "replay"))
+    monkeypatch.setattr(
+        replay,
+        "_raw_fact_replay_locked",
+        lambda **_kwargs: (_ for _ in ()).throw(IngestionError("GIT_WRITER_LOCK_HELD")),
+    )
+    replay_status = replay.raw_fact_replay(now=datetime(2026, 8, 1, tzinfo=UTC))
+    assert replay_status["human_status"] == "处理中"
+    assert replay_status["machine_code"] == "RAW_FACT_REPLAY_GIT_WRITER_LOCK_HELD"
+
+
 def test_auth_incident_dedup_honors_the_frozen_six_hour_cooldown(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import daily_funds.state as state_module
 
@@ -4650,7 +4679,9 @@ def test_successful_maintenance_probe_is_not_failed_before_first_publication(
     ("auth-probe", "auth_probe", "AUTH_PROBE_LOCK_HELD"),
     ("raw-archive-audit", "raw_archive_audit", "RAW_ARCHIVE_AUDIT_LOCK_HELD"),
     ("raw-coverage-repair", "raw_coverage_repair", "RAW_COVERAGE_REPAIR_LOCK_HELD"),
+    ("raw-coverage-repair", "raw_coverage_repair", "RAW_COVERAGE_REPAIR_GIT_WRITER_LOCK_HELD"),
     ("raw-fact-replay", "raw_fact_replay", "RAW_FACT_REPLAY_LOCK_HELD"),
+    ("raw-fact-replay", "raw_fact_replay", "RAW_FACT_REPLAY_GIT_WRITER_LOCK_HELD"),
     ("observer", "observer", "OBSERVER_LOCK_HELD"),
     ("cold-backup", "cold_backup", "PUBLISHER_LOCK_HELD"),
 ))
@@ -5107,6 +5138,9 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     )
     assert RawMaterializer.readback_attachment(pinned / SPARSE_PATH, direct).payload == direct_payload
     assert not (pinned / SPARSE_PATH / "baseline.txt").exists()
+    pinned_metadata = writer.audit_raw_archive_metadata(commit_sha=commit.commit_sha)
+    assert pinned_metadata.commit_sha == commit.commit_sha
+    assert pinned_metadata.occurrence_count == 3
     recovery_bundle = writer.bundle_head()
     RestoreOracle.verify_private_publication_bundle(
         recovery_bundle,

@@ -1925,6 +1925,12 @@ class DailyFundsRuntime:
         except IngestionError as exc:
             if exc.code == "RAW_COVERAGE_REPAIR_LOCK_HELD":
                 return self.status.write("处理中", exc.code)
+            if exc.code == "GIT_WRITER_LOCK_HELD":
+                # A concurrent raw append is a live, bounded writer lease, not
+                # a source, parser or reconciliation failure.  Preserve the
+                # distinction so the public status does not ask for human
+                # repair while the authorized writer is still making progress.
+                return self.status.write("处理中", "RAW_COVERAGE_REPAIR_GIT_WRITER_LOCK_HELD")
             self.state.queue_incident("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
             status = self._status_from_current(fallback_code="RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
             self._write_flow_state(stage="RAW_COVERAGE_REPAIR_NEEDS_REVIEW", status=status)
@@ -2176,6 +2182,11 @@ class DailyFundsRuntime:
             code = getattr(exc, "code", str(exc).split(":", 1)[0])
             if code == "RAW_FACT_REPLAY_LOCK_HELD":
                 return self.status.write("处理中", code)
+            if code == "GIT_WRITER_LOCK_HELD":
+                # A fact replay can race a normal raw append.  The replay did
+                # not establish a financial failure in that case; it simply
+                # yields to the active single writer and remains retryable.
+                return self.status.write("处理中", "RAW_FACT_REPLAY_GIT_WRITER_LOCK_HELD")
             status = self.status.write("需处理", str(code))
             self._write_flow_state(stage="RAW_FACT_REPLAY_NEEDS_REVIEW", status=status)
             return {"ok": False, "code": str(code)}
@@ -2197,7 +2208,10 @@ class DailyFundsRuntime:
         # downloading unrelated quarantine bytes into the formal fact lane.
         # Every declared account/flow candidate is then reopened below through
         # the normal byte/hash/batch path before parsing.
-        audit = writer.audit_raw_archive_metadata(on_attachment=accumulator.index_persisted)
+        audit = writer.audit_raw_archive_metadata(
+            on_attachment=accumulator.index_persisted,
+            commit_sha=str(receipt["raw_commit_sha"]),
+        )
         if (
             audit.occurrence_count != accumulator.occurrence_count
             or audit.occurrence_count != receipt["raw_archive_occurrences"]

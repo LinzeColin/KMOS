@@ -2926,6 +2926,7 @@ class GitSparseWriter:
         self,
         *,
         on_attachment: Callable[[PersistedRawAttachment], None] | None = None,
+        commit_sha: str | None = None,
     ) -> RawArchiveAudit:
         """Census source-gated raw occurrences without hydrating every blob.
 
@@ -2940,13 +2941,20 @@ class GitSparseWriter:
         Coverage reconciliation needs identities, not a 360-day OCR replay.
         Avoiding one sparse Git transport per payload batch keeps that
         maintenance path bounded without weakening the byte-readback gate on
-        the only facts that can reach a publication.
+        the only facts that can reach a publication.  A caller that already
+        holds an immutable coverage receipt may pin this census to that exact
+        commit, so a later append to the private branch cannot turn the same
+        evidence snapshot into a false stale failure.
         """
+
+        if commit_sha is not None and not re.fullmatch(r"[0-9a-f]{40}", commit_sha):
+            raise IngestionError("GIT_READBACK_FAILED")
 
         try:
             return self._audit_raw_archive_once(
                 on_attachment=on_attachment,
                 metadata_only=True,
+                commit_sha=commit_sha,
             )
         except IngestionError as exc:
             if exc.code != "GIT_AUDIT_TRANSPORT_RETRYABLE":
@@ -2954,6 +2962,7 @@ class GitSparseWriter:
         return self._audit_raw_archive_once(
             on_attachment=on_attachment,
             metadata_only=True,
+            commit_sha=commit_sha,
         )
 
     def _audit_raw_archive_once(
@@ -2963,6 +2972,7 @@ class GitSparseWriter:
         | Callable[[PersistedRawAttachment], None]
         | None = None,
         metadata_only: bool = False,
+        commit_sha: str | None = None,
     ) -> RawArchiveAudit:
         """Perform one fresh, bounded sparse read of the private raw authority."""
 
@@ -2984,6 +2994,7 @@ class GitSparseWriter:
                 ref=self.config.private_branch,
                 patterns=(sentinel,),
                 audit_read=True,
+                commit_sha=commit_sha,
             )
             commit_sha = self._git(["rev-parse", "HEAD"], cwd=tree_repo, env=env, audit_read=True)
             occurrence_paths = self._raw_archive_tree_paths(
