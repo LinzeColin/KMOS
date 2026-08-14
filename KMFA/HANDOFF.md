@@ -13,6 +13,13 @@
 
 ## 每日资金 v0.0.0.1（当前受控实现，2026-08-09 已重取）
 
+### 2026-08-14 公开入口恢复与 v11 原件复核（当前，未闭合）
+
+- **公开访问已实测恢复**：最新运行配置来自 origin/main=bc9bcfdbb84ccd8b766b8a603b69060205db97c3。Owner 批准的 coolify-ops public-dashboard 动作 31800621569 已成功完成；匿名请求根页面、/ops/app?tab=每日资金 与每日资金收支观察 API 均为 200、无重定向。应用容器内源站守卫为 KMFA_PRIVATE_OPS_REQUIRE_ACCESS=0，同一 API 内部也为 200。这证明原先的 Cloudflare Access 拦截已解除，**不**等同于金额或正式资金 publication 已通过。
+- **精确边缘规则**：原公开动作只对既有精确路径写 Bypass，无法覆盖可能匹配根域的通配 Access 应用；现已为精确 kmfa.linzezhang.com 根应用建立/复核 Owner 批准的公开覆盖。工作流对本次新建应用在策略写入失败时会精确删除该应用，避免把站点意外收紧；不修改通配域或其他应用。
+- **当前数据终态仍未到达**：最新 daily-funds 容器正在以 kmfa.daily_funds.cashflow_observation.v11 对已取得私库原件执行单实例 raw-archive-audit；OCR 运行时已就绪。审计锁当前为 RUNNING，故 cashflow_observation.json 仍是旧 v10 / NEEDS_REVIEW 投影（74 eligible、0 parsed、0 points）。在审计完成且新的 v11 结果为 VERIFIED 前，不得把图表、金额、账户余额、逐分勾稽或正式 publication 写为可用。
+- **后续唯一检查**：先等该单实例审计终态，再只读检查 parser version、status、覆盖计数与是否有 points；若仍为 NEEDS_REVIEW，仅按脱敏 rejection category 继续修复，禁止估算或补造金额。
+
 ### 当前真实状态（T12 后，以此小节为准）
 
 - **2026-08-10 每日资金 OCR 文档族收口（候选，待云端回执）**：已针对历史图片统一标注为“资金明细”的已知分类缺口，改为在同一份离线 OCR 表格上分别按“资金账户明细表”和“资金明细”完整 schema 校验；仅恰好一个 schema 通过时接受其实际事实族，零个或多个匹配均保持 `需处理`。parser version 升级后启动时会执行一次只读私库原件复核，不调用 DWS、不写 Git/R2/D1/OCI、不推进 publication pointer。最新 main 重放后的每日资金回归为 `207 passed, 1 skipped`（本机缺 `openpyxl` 的既有依赖跳过），冻结任务包 verifier 为 `24 requirements / 11 tasks / 17 acceptance`。该候选尚未取得 parser v5 的云端原件回执；没有经同日账户余额＋流水、零分勾稽的事实对时，任何金额 publication 仍为 `NOT_MET`。
