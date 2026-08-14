@@ -195,14 +195,16 @@ class Stage063ChapterAwareChunkingStageReviewTests(unittest.TestCase):
                 ("IDS-STAGE064", "IDS-V0_1-STAGE064-P1", "IDS-V0_1-STAGE064-P1", "IDS-STAGE064-P2-GATE"),
                 ("IDS-STAGE064", "IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P2", "IDS-STAGE064-P3-GATE"),
                 ("IDS-STAGE064", "IDS-V0_1-STAGE064-P3", "IDS-V0_1-STAGE064-P3", "IDS-STAGE064-P4-GATE"),
+                ("IDS-STAGE064", "IDS-V0_1-STAGE064-P4", "IDS-V0_1-STAGE064-P4", "IDS-STAGE064-REVIEW-GATE"),
             ),
         )
-        self.assertIn(plan["task"], ("IDS-V0_1-STAGE063-REVIEW", "IDS-V0_1-STAGE064-P1", "IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P3"))
+        self.assertIn(plan["task"], ("IDS-V0_1-STAGE063-REVIEW", "IDS-V0_1-STAGE064-P1", "IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P3", "IDS-V0_1-STAGE064-P4"))
         self.assertTrue(
             "IDS-STAGE064-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE064-P2-GATE" in plan["stop_condition"]
             or "IDS-STAGE064-P3-GATE" in plan["stop_condition"]
             or "IDS-STAGE064-P4-GATE" in plan["stop_condition"]
+            or "IDS-STAGE064-REVIEW-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             {"ACC-STAGE063-REVIEW-01", "ACC-STAGE063-REVIEW-02"}.issubset(

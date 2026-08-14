@@ -292,6 +292,7 @@ class Stage064ChunkIdentityVersionPhase1Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE064-P1", "IDS-V0_1-STAGE064-P1", "IDS-STAGE064-P2-GATE"),
                 ("IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P2", "IDS-STAGE064-P3-GATE"),
                 ("IDS-V0_1-STAGE064-P3", "IDS-V0_1-STAGE064-P3", "IDS-STAGE064-P4-GATE"),
+                ("IDS-V0_1-STAGE064-P4", "IDS-V0_1-STAGE064-P4", "IDS-STAGE064-REVIEW-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -303,12 +304,14 @@ class Stage064ChunkIdentityVersionPhase1Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE064-P1", "IDS-V0_1-STAGE064-P1"),
                 ("IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P2"),
                 ("IDS-V0_1-STAGE064-P3", "IDS-V0_1-STAGE064-P3"),
+                ("IDS-V0_1-STAGE064-P4", "IDS-V0_1-STAGE064-P4"),
             ),
         )
         self.assertTrue(
             "IDS-STAGE064-P2-GATE" in plan["stop_condition"]
             or "IDS-STAGE064-P3-GATE" in plan["stop_condition"]
             or "IDS-STAGE064-P4-GATE" in plan["stop_condition"]
+            or "IDS-STAGE064-REVIEW-GATE" in plan["stop_condition"]
         )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
@@ -334,6 +337,10 @@ class Stage064ChunkIdentityVersionPhase1Tests(unittest.TestCase):
             or (
                 'current_phase_id: "IDS-STAGE064-P3"' in roadmap_text
                 and 'next_gate_id: "IDS-STAGE064-P4-GATE"' in roadmap_text
+            )
+            or (
+                'current_phase_id: "IDS-STAGE064-P4"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE064-REVIEW-GATE"' in roadmap_text
             )
         )
         self.assertEqual("IDS-V0_1-STAGE064-P1", event["task_id"])

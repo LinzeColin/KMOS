@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE064",
-  "phase": "IDS-V0_1-STAGE064-P3",
-  "task": "IDS-V0_1-STAGE064-P3",
-  "real_progress": "Stage064 已完成 P3 纯内存专项控制场景：重放 P2 的 3 条固定、非业务、仅引用身份/版本控制记录，覆盖长文档、跨页参数表、施工步骤、参数表、引用页码与重复 chunk 写入边界 6 类场景，全部关闭到业务线人工白箱处置；下一步仅可在新的独立 run 进入 Stage064 Phase 4，上传路径继续关闭",
-  "report_grade": "冻结 Stage064 任务包、Stage064 P1/P2 合同、Stage063 本地复审、Batch061-070 上传锁、纯内存专项场景、治理路线与中文事实投影一致",
-  "business_verdict": "本 P3 只证明固定控制引用可以被重放为六类显式人工处置，并证明该控制模块没有发起 embedding 或索引写入；不证明真实 chunk 质量、跨页关系、页码反查、重复检测或去重、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE064_PHASE3_CHUNK_IDENTITY_VERSION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE064-P4",
+  "task": "IDS-V0_1-STAGE064-P4",
+  "real_progress": "Stage064 已完成 P4 纯内存交付证据：从 P3 的 6 类固定、非业务、仅引用控制场景派生 6 条 metadata-only JSONL 样例、控制覆盖率、6 条低质量待人工清单、控制回归、策略边界和回到 P3 的回滚说明；下一步仅可在新的独立 run 进入 Stage064 Review，上传路径继续关闭",
+  "report_grade": "冻结 Stage064 任务包、Stage064 P1--P4 合同、Stage063 本地复审、Batch061-070 上传锁、纯内存交付证据、治理路线与中文事实投影一致",
+  "business_verdict": "本 P4 只证明固定控制引用可被派生为 metadata-only 交付证据及回到 P3 的控制回放说明；不证明真实 chunk、身份或版本、真实覆盖率、真实质量、真实重生成或版本回退、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE064_PHASE4_CHUNK_IDENTITY_VERSION_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE064-P4-GATE",
+  "next_gate": "IDS-STAGE064-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

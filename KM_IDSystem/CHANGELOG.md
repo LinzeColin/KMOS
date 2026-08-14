@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage064 Phase 4（本地）
+
+- 完成 Chunk 身份与版本 metadata-only 交付证据：从 P3 六类固定、非业务、reference-only 控制场景派生 `6` 条内存 JSONL 样例、控制覆盖率报告、`6` 条低质量待人工清单、控制回归结果、策略适用边界、回到 P3 的重生成/版本回退说明和 `3` 条中文确认；没有建立第二权威事实源。
+- 所有交付仅是 `:control:` 引用元数据，不能替代来源文档或业务线白箱人工复核，也不代表真实 chunk、真实身份/版本、文档覆盖率、低质量、质量回归、来源反查、去重、重生成、版本回退或生产验收；不读取真实资料，不写入真实 JSONL、chunk、索引、数据库或业务事实。
+- 本地验证通过：Stage064 P4 聚焦用例 `12/12`；含 Stage060 Review、Stage061--063 全阶段、Stage064 P1--P4 与 Batch051-060 的受影响阶段链路 `203/203`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影已重渲染 `7` 个文件。本 run 未执行真实 parser、章节检测、切块、身份/版本、重生成/版本回退、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产、Stage064 Review、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE064-REVIEW-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage064 Phase 3（本地）
 
 - 完成 Chunk 身份与版本受控专项场景：重放 P2 三条固定、非业务、reference-only 十四字段控制记录，覆盖长文档、跨页参数表、施工步骤、参数表、引用页码与重复 chunk 的 embedding/索引写入边界六类显式人工处置；静默丢弃为 `0`，并保留 `document/page/section/parser output/表格上下文/来源片段` 六维控制引用形状。没有建立第二权威事实源。
