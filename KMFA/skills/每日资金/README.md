@@ -16,6 +16,8 @@
 
 当旧版本的历史 planner 已完成、但新一次精确群历史重放发现私库缺少 occurrence 时，可在同一云端容器运行受控 `raw-coverage-repair`。它只比较 360 天内的脱敏 occurrence identity，下载并写入缺失项，随后从 fresh sparse clone 回读全量覆盖；不移动 `current.json`，不写 D1/R2/OCI，也不将文件名、消息、标识或金额送往日志。它是归档完整性修复，不是金额发布或绕过双事实勾稽。
 
+只有 `raw-coverage-repair` 留下与当前私库提交一致的 360 天覆盖回执后，受控 `raw-fact-replay` 才能运行。它重新从该私库提交打开每个候选的账户余额和资金流水事实；每个业务日必须恰好一对、重新解析、逐分勾稽及 R2/D1/OCI 发布链全部通过。历史日按日期顺序写入，只有最后一个已验证业务日可以切换 `current.json`；缺失、歧义或无法解析的日期保持需处理并在 values-free 回执中计数，绝不补造金额。
+
 每 6 小时 `r2-guard` 使用 Cloudflare 控制面只读接口核验全账户 bucket 默认均为 Standard、无 IA 生命周期且 IA 指标为零；同时以 31 天、每 15 分钟全部为新对象的最坏情况验证 Class A/Class B/存储均低于 Standard 免费额度 40%。只写入不含 bucket、对象或金额的回执。任何一项为未知、过期或失败时，R2 镜像、冷备前的 R2 readback 与 publication 都会保持 fail-closed；新对象也显式写入 `STANDARD`，同 SHA 键绝不覆盖旧镜像字节。
 
 每日 `observer` 会在同一 container deployment 的首份经 D1 Oracle、pointer 与 history 三方比对的 VALID publication 上建立基准。只有此后每个**新的、源侧已确认的业务日期**才计入五日影子对照；重复 cron、重试、回填或同日版本刷新都不会加计。每个对照仅记录零差/覆盖/阈值/取数/重复/备份/恢复的状态码与延迟，不记录金额、账户或原始标识。D1/pointer/history 任一不一致时保持 `需处理`，不虚报观察完成。

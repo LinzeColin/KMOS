@@ -3503,7 +3503,12 @@ class GitSparseWriter:
                 verified_attachments=verified_attachments,
             )
 
-    def reopen_persisted(self, attachments: Iterable[PersistedRawAttachment]) -> GitCommit:
+    def reopen_persisted(
+        self,
+        attachments: Iterable[PersistedRawAttachment],
+        *,
+        commit_sha: str | None = None,
+    ) -> GitCommit:
         """Re-open already-persisted overlap evidence without a Git mutation.
 
         The live cadence deliberately re-queries a short historical window.
@@ -3515,6 +3520,8 @@ class GitSparseWriter:
         self.config.validate(include_storage=False)
         frozen_attachments = self._canonical_persisted_raw_attachments(attachments)
         sparse_patterns = self._persisted_raw_sparse_patterns(frozen_attachments)
+        if commit_sha is not None and not re.fullmatch(r"[0-9a-f]{40}", commit_sha):
+            raise IngestionError("GIT_ARCHIVE_READBACK_FAILED")
         if not self.config.state_dir.exists():
             self.config.state_dir.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="daily-funds-git-reopen-", dir=self.config.state_dir) as temp:
@@ -3529,18 +3536,21 @@ class GitSparseWriter:
                     ref=self.config.private_branch,
                     patterns=sparse_patterns,
                     failure_code="GIT_ARCHIVE_READBACK_FAILED",
+                    commit_sha=commit_sha,
                 )
-                commit_sha = self._git(
+                reopened_commit_sha = self._git(
                     ["rev-parse", "HEAD"],
                     cwd=repo,
                     env=env,
                     failure_code="GIT_ARCHIVE_READBACK_FAILED",
                 )
+                if commit_sha is not None and reopened_commit_sha != commit_sha:
+                    raise IngestionError("GIT_ARCHIVE_READBACK_FAILED")
                 source_batch_paths = self._readback_persisted_batch_membership(
                     temp_root,
                     repo=repo,
                     env=env,
-                    commit_sha=commit_sha,
+                    commit_sha=reopened_commit_sha,
                     attachments=frozen_attachments,
                 )
                 root = repo / SPARSE_PATH
@@ -3554,7 +3564,7 @@ class GitSparseWriter:
                     occurrences=len(verified_attachments),
                 )
                 return GitCommit(
-                    commit_sha=commit_sha,
+                    commit_sha=reopened_commit_sha,
                     staged=reopened,
                     verified_attachments=verified_attachments,
                 )

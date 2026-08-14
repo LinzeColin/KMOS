@@ -2806,9 +2806,10 @@ def test_raw_coverage_repair_archives_only_the_missing_source_occurrence(
             self.persisted = False
 
         def audit_raw_archive(self, *, on_attachment):
-            for attachment in ((existing, missing) if self.persisted else (existing,)):
+            attachments = (existing, missing) if self.persisted else (existing,)
+            for attachment in attachments:
                 on_attachment(attachment)
-            return SimpleNamespace()
+            return RawArchiveAudit("a" * 40, (), len(attachments), 1, len(attachments))
 
         def persist(self, attachments):
             received = tuple(attachments)
@@ -2839,6 +2840,246 @@ def test_raw_coverage_repair_archives_only_the_missing_source_occurrence(
         inbox = connection.execute("SELECT state FROM inbox").fetchone()
     assert tuple(evidence) == (ACCOUNT_FAMILY, "SUPPORTED", "PARSER_OPEN_OK")
     assert tuple(inbox) == ("ARCHIVED_CAPABILITY_RECORDED",)
+    receipt = json.loads(runtime.state.get("raw_coverage_360d_receipt") or "{}")
+    assert receipt == {
+        "raw_archive_occurrences": 2,
+        "raw_commit_sha": "a" * 40,
+        "schema_version": "kmfa.daily_funds.raw_coverage_receipt.v1",
+        "source_occurrences": 2,
+        "verified_occurrences": 2,
+        "window_days": 360,
+    }
+
+
+def test_raw_fact_replay_requires_a_fresh_coverage_receipt(tmp_path: Path) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+
+    assert runtime.raw_fact_replay(now=datetime(2026, 8, 1, tzinfo=UTC)) == {
+        "ok": False,
+        "code": "RAW_COVERAGE_RECEIPT_REQUIRED",
+    }
+    assert not (runtime.config.publication_dir / "current.json").exists()
+
+
+def test_raw_coverage_repair_persists_available_occurrences_and_keeps_failed_downloads_open(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One unavailable media object must not discard byte-proven siblings."""
+
+    import daily_funds.runtime as runtime_module
+
+    moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
+
+    def attachment(index: int, payload: bytes) -> DownloadedAttachment:
+        return DownloadedAttachment(
+            message={},
+            message_id="coverage-partial",
+            message_id_hash="c" * 64,
+            message_at=moment,
+            index=index,
+            filename=f"fixture-{index}.csv",
+            family=None,
+            payload=payload,
+            sha256=sha256(payload).hexdigest(),
+            mime="text/csv",
+        )
+
+    existing = attachment(0, "业务日期,公司,开户行,账号,期末余额\n2026-07-30,甲,乙,001,100.00\n".encode())
+    available = attachment(1, "业务日期,公司,开户行,账号,期末余额\n2026-07-30,甲,乙,002,100.00\n".encode())
+    unavailable = attachment(2, b"unavailable-fixture")
+    source_message = {"fixture": "coverage-partial"}
+    attempts = 0
+
+    class PartialClient:
+        @staticmethod
+        def collect_group_history_v2(_start, _end):
+            return DwsPage(messages=(source_message,), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page):
+            return ()
+
+        @staticmethod
+        def quarantine_messages(_page):
+            return (source_message,)
+
+        @staticmethod
+        def message_id_hash(_message):
+            return "c" * 64
+
+        @staticmethod
+        def attachment_count(_message):
+            return 3
+
+        @staticmethod
+        def download(_message, index):
+            nonlocal attempts
+            if index == 1:
+                return available
+            assert index == 2
+            attempts += 1
+            raise IngestionError("ATTACHMENT_DOWNLOAD_FAILED")
+
+    class PartialWriter:
+        def __init__(self, _config):
+            self.persisted = False
+
+        def audit_raw_archive(self, *, on_attachment):
+            attachments = (existing, available) if self.persisted else (existing,)
+            for item in attachments:
+                on_attachment(item)
+            return RawArchiveAudit("c" * 40, (), len(attachments), 1, len(attachments))
+
+        def persist(self, attachments):
+            received = tuple(attachments)
+            assert received == (available,)
+            self.persisted = True
+            return GitCommit("c" * 40, SimpleNamespace(), received)
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    monkeypatch.setattr(runtime, "_dws_client", lambda: PartialClient())
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", PartialWriter)
+    monkeypatch.setattr(runtime, "_coordinator", lambda: pytest.fail("partial coverage must not publish"))
+
+    result = runtime.raw_coverage_repair(now=datetime(2026, 8, 1, tzinfo=UTC))
+
+    assert result == {
+        "ok": False,
+        "code": "RAW_COVERAGE_REPAIR_INCOMPLETE",
+        "source_occurrences": 3,
+        "recovered_occurrences": 1,
+        "remaining_occurrences": 1,
+        "download_failures": 1,
+        "capability_supported": 1,
+        "capability_needs_review": 0,
+    }
+    assert attempts == 2
+    assert runtime._raw_coverage_receipt() is None
+    assert not (runtime.config.publication_dir / "current.json").exists()
+
+
+def test_raw_fact_replay_reopens_exact_pair_before_publishing_latest_day(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A coverage-proven archive may publish only a re-opened zero-fen pair."""
+
+    import daily_funds.runtime as runtime_module
+
+    moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
+    account_payload = (
+        "业务日期,公司,开户行,账号,期初余额,期末余额\n"
+        "2026-07-30,甲,乙,001,100.00,110.00\n"
+    ).encode()
+    transaction_payload = (
+        "业务日期,公司,开户行,账号,流水号,流入,流出\n"
+        "2026-07-30,甲,乙,001,t-1,10.00,\n"
+    ).encode()
+    account = DownloadedAttachment(
+        message={},
+        message_id="replay-account",
+        message_id_hash="a" * 64,
+        message_at=moment,
+        index=0,
+        filename="资金账户明细表_20260730.csv",
+        family=ACCOUNT_FAMILY,
+        payload=account_payload,
+        sha256=sha256(account_payload).hexdigest(),
+        mime="text/csv",
+    )
+    transaction = DownloadedAttachment(
+        message={},
+        message_id="replay-transaction",
+        message_id_hash="b" * 64,
+        message_at=moment,
+        index=0,
+        filename="资金流水明细_20260730.csv",
+        family="资金流水明细",
+        payload=transaction_payload,
+        sha256=sha256(transaction_payload).hexdigest(),
+        mime="text/csv",
+    )
+    attachments = (account, transaction)
+    reopened: list[tuple[PersistedRawAttachment, ...]] = []
+    publication_calls: list[dict[str, object]] = []
+
+    class ReplayWriter:
+        def __init__(self, _config):
+            return None
+
+        def audit_raw_archive(self, *, on_attachment):
+            for attachment in attachments:
+                on_attachment(attachment)
+            return RawArchiveAudit("a" * 40, (), 2, 1, 2)
+
+        def reopen_persisted(self, received, *, commit_sha):
+            assert commit_sha == "a" * 40
+            rows = tuple(received)
+            reopened.append(rows)
+            assert {row.sha256 for row in rows} == {account.sha256, transaction.sha256}
+            return GitCommit(
+                "a" * 40,
+                ReopenedRawEvidence(("raw/batches/fixture.json",), tuple(sorted({account.sha256, transaction.sha256})), 2),
+                attachments,
+            )
+
+        @staticmethod
+        def persist_publication(_publication):
+            return "f" * 40
+
+        @staticmethod
+        def bundle_head():
+            return b"fixture-bundle"
+
+    class FakeR2:
+        @staticmethod
+        def mirror(_attachments, *, git_commit_sha):
+            assert git_commit_sha == "a" * 40
+            return ("fixture-manifest", b"fixture")
+
+    class FakeCoordinator:
+        r2 = FakeR2()
+
+        @staticmethod
+        def publish(**kwargs):
+            publication_calls.append(kwargs)
+            assert kwargs["report"].valid
+            assert kwargs["advance_pointer"] is True
+            assert kwargs["private_publication_sink"]({"publication_id": "f" * 64}) == "f" * 40
+            assert kwargs["git_bundle_sink"]() == b"fixture-bundle"
+            return SimpleNamespace(
+                publication={"publication_id": "f" * 64},
+                oci_backup_state="OK",
+            )
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    runtime._record_raw_coverage_receipt(
+        raw_commit_sha="a" * 40,
+        source_occurrences=2,
+        verified_occurrences=2,
+        raw_archive_occurrences=2,
+    )
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ReplayWriter)
+    monkeypatch.setattr(runtime_module.R2FreeTierGuard, "require_fresh_receipt", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(runtime, "_coordinator", lambda: FakeCoordinator())
+
+    result = runtime.raw_fact_replay(now=datetime(2026, 8, 1, tzinfo=UTC))
+
+    assert result == {
+        "ok": True,
+        "code": "RAW_FACT_REPLAY_PUBLISHED",
+        "source_occurrences": 2,
+        "parser_open_occurrences": 2,
+        "needs_review_occurrences": 0,
+        "published_days": 1,
+        "incomplete_days": 0,
+        "ambiguous_days": 0,
+    }
+    assert len(reopened) == 1
+    assert len(publication_calls) == 1
+    history = json.loads((runtime.config.publication_dir / "history.json").read_text(encoding="utf-8"))
+    assert history["days"]["2026-07-30"]["publication_id"] == "f" * 64
 
 
 def test_archive_only_backfill_persists_readback_and_records_unsupported_format_without_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -4331,6 +4572,7 @@ def test_successful_maintenance_probe_is_not_failed_before_first_publication(
     ("auth-probe", "auth_probe", "AUTH_PROBE_LOCK_HELD"),
     ("raw-archive-audit", "raw_archive_audit", "RAW_ARCHIVE_AUDIT_LOCK_HELD"),
     ("raw-coverage-repair", "raw_coverage_repair", "RAW_COVERAGE_REPAIR_LOCK_HELD"),
+    ("raw-fact-replay", "raw_fact_replay", "RAW_FACT_REPLAY_LOCK_HELD"),
     ("observer", "observer", "OBSERVER_LOCK_HELD"),
     ("cold-backup", "cold_backup", "PUBLISHER_LOCK_HELD"),
 ))

@@ -80,6 +80,8 @@ _BACKFILL_BATCH_MAX_DAYS = 7
 # The private raw-audit reader has the same ceiling.  Keep the source-side
 # repair census bounded before it can download an unbounded provider reply.
 _RAW_COVERAGE_MAX_OCCURRENCES = 1024
+_RAW_COVERAGE_RECEIPT_KEY = "raw_coverage_360d_receipt"
+_RAW_COVERAGE_RECEIPT_SCHEMA = "kmfa.daily_funds.raw_coverage_receipt.v1"
 _FLOW_STATE_SCHEMA = "kmfa.daily_funds.flow_state.v1"
 _CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v2"
 _CASHFLOW_OBSERVATION_MIN_DAYS = 2
@@ -91,6 +93,7 @@ _OPERATION_RECEIPT_JOBS = frozenset({
     "r2-guard",
     "raw-archive-audit",
     "raw-coverage-repair",
+    "raw-fact-replay",
     "poll",
     "auth-probe",
     "keepalive",
@@ -152,6 +155,87 @@ class AttachmentCapabilityInspection:
 
     parsed: tuple[TimedFacts, ...]
     failures: tuple[ParseError, ...]
+
+
+@dataclass(frozen=True)
+class _RawFactReplayCandidate:
+    """One parser-open fact plus the identity required for a fresh reopen."""
+
+    timed_facts: TimedFacts
+    persisted: PersistedRawAttachment
+
+
+@dataclass(frozen=True)
+class _RawFactReplayPair:
+    """The sole account/transaction pair eligible for one business day."""
+
+    business_day: date
+    accounts: _RawFactReplayCandidate
+    transactions: _RawFactReplayCandidate
+
+
+class _RawFactReplayAccumulator:
+    """Index parser-open fact identities without retaining historic raw bytes."""
+
+    def __init__(self, runtime: "DailyFundsRuntime"):
+        self.runtime = runtime
+        self.occurrence_count = 0
+        self.parsed_occurrences = 0
+        self.needs_review_occurrences = 0
+        self._by_day: dict[date, dict[str, list[_RawFactReplayCandidate]]] = {}
+
+    def consume(self, attachment: DownloadedAttachment) -> None:
+        self.occurrence_count += 1
+        inspection = self.runtime._inspect_attachment_capabilities((attachment,))
+        integrity_failures = tuple(
+            failure
+            for failure in inspection.failures
+            if self.runtime._parse_failure_code(failure) in _SOURCE_INTEGRITY_PARSE_CODES
+        )
+        if integrity_failures:
+            raise IngestionError("GIT_READBACK_FAILED")
+        self.needs_review_occurrences += len(inspection.failures)
+        for timed in inspection.parsed:
+            family = timed.facts.family
+            if family == ACCOUNT_FAMILY:
+                category = "accounts"
+            elif family in TRANSACTION_FAMILIES:
+                category = "transactions"
+            else:
+                raise IngestionError("GIT_READBACK_FAILED")
+            if timed.facts.source_version != attachment.sha256:
+                raise IngestionError("GIT_READBACK_FAILED")
+            candidate = _RawFactReplayCandidate(
+                timed_facts=timed,
+                persisted=PersistedRawAttachment(
+                    message=attachment.message,
+                    message_id=attachment.message_id,
+                    message_id_hash=attachment.message_id_hash,
+                    message_at=attachment.message_at,
+                    index=attachment.index,
+                    sha256=attachment.sha256,
+                ),
+            )
+            self._by_day.setdefault(timed.facts.business_date, {}).setdefault(category, []).append(candidate)
+            self.parsed_occurrences += 1
+
+    def pairs(self) -> tuple[tuple[_RawFactReplayPair, ...], int, int]:
+        """Return exact one-to-one pairs plus incomplete/ambiguous day counts."""
+
+        eligible: list[_RawFactReplayPair] = []
+        incomplete_days = 0
+        ambiguous_days = 0
+        for business_day, groups in sorted(self._by_day.items()):
+            accounts = tuple(groups.get("accounts", ()))
+            transactions = tuple(groups.get("transactions", ()))
+            if not accounts or not transactions:
+                incomplete_days += 1
+                continue
+            if len(accounts) != 1 or len(transactions) != 1:
+                ambiguous_days += 1
+                continue
+            eligible.append(_RawFactReplayPair(business_day, accounts[0], transactions[0]))
+        return tuple(eligible), incomplete_days, ambiguous_days
 
 
 class _CashflowObservationAccumulator:
@@ -671,6 +755,32 @@ class DailyFundsRuntime:
                 fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as exc:
                 raise IngestionError("RAW_COVERAGE_REPAIR_LOCK_HELD") from exc
+            locked = True
+            yield
+        finally:
+            try:
+                if locked:
+                    fcntl.flock(descriptor, fcntl.LOCK_UN)
+            finally:
+                os.close(descriptor)
+
+    @contextmanager
+    def _raw_fact_replay_process_lock(self):
+        """Serialize a bounded private-raw fact replay and pointer hand-off."""
+
+        self.config.state_dir.mkdir(parents=True, exist_ok=True)
+        descriptor = os.open(
+            self.config.state_dir / "raw_fact_replay.lock",
+            os.O_CREAT | os.O_RDWR,
+            0o600,
+        )
+        locked = False
+        try:
+            os.fchmod(descriptor, 0o600)
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise IngestionError("RAW_FACT_REPLAY_LOCK_HELD") from exc
             locked = True
             yield
         finally:
@@ -1829,50 +1939,89 @@ class DailyFundsRuntime:
             for (message_id_hash, index), message in source.items()
             if (message_id_hash, index) not in archived
         ]
-        recovered = ()
+        recovered: tuple[DownloadedAttachment, ...] = ()
         capability_supported = 0
         capability_needs_review = 0
+        download_failures = 0
         if missing:
-            downloaded = tuple(client.download(message, index) for message, index in missing)
-            if len(downloaded) != len(missing):
-                raise IngestionError("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
-            commit = self._lease_call(
-                "git_writer_lock",
-                ttl_seconds=13 * 60,
-                code="GIT_WRITER_LOCK_HELD",
-                callback=lambda: writer.persist(downloaded),
-            )
-            recovered = commit.verified_attachments
-            if len(recovered) != len(downloaded):
-                raise IngestionError("GIT_READBACK_FAILED")
-            for attachment in recovered:
-                occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
-                self.state.note_inbox(
-                    occurrence_key,
-                    attachment.message_id_hash,
-                    attachment.sha256,
-                    "GIT_PERSISTED",
+            downloaded: list[DownloadedAttachment] = []
+            for message, index in missing:
+                # Media URLs can expire between a history listing and the
+                # first resource request.  Retry the same immutable source
+                # occurrence exactly once; do not broaden the query, guess a
+                # replacement, or turn a failed download into a pass.
+                for attempt in range(2):
+                    try:
+                        downloaded.append(client.download(message, index))
+                    except IngestionError:
+                        if attempt == 1:
+                            download_failures += 1
+                        continue
+                    break
+            if downloaded:
+                commit = self._lease_call(
+                    "git_writer_lock",
+                    ttl_seconds=13 * 60,
+                    code="GIT_WRITER_LOCK_HELD",
+                    callback=lambda: writer.persist(downloaded),
                 )
-            inspection = self._inspect_attachment_capabilities(recovered)
-            integrity_failures = tuple(
-                failure
-                for failure in inspection.failures
-                if self._parse_failure_code(failure) in _SOURCE_INTEGRITY_PARSE_CODES
-            )
-            if integrity_failures:
-                raise IngestionError("GIT_READBACK_FAILED")
-            capability_supported = len(inspection.parsed)
-            capability_needs_review = len(inspection.failures)
-            for attachment in recovered:
-                occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
-                self.state.mark_inbox(occurrence_key, "ARCHIVED_CAPABILITY_RECORDED")
+                recovered = commit.verified_attachments
+                if len(recovered) != len(downloaded):
+                    raise IngestionError("GIT_READBACK_FAILED")
+                for attachment in recovered:
+                    occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
+                    self.state.note_inbox(
+                        occurrence_key,
+                        attachment.message_id_hash,
+                        attachment.sha256,
+                        "GIT_PERSISTED",
+                    )
+                inspection = self._inspect_attachment_capabilities(recovered)
+                integrity_failures = tuple(
+                    failure
+                    for failure in inspection.failures
+                    if self._parse_failure_code(failure) in _SOURCE_INTEGRITY_PARSE_CODES
+                )
+                if integrity_failures:
+                    raise IngestionError("GIT_READBACK_FAILED")
+                capability_supported = len(inspection.parsed)
+                capability_needs_review = len(inspection.failures)
+                for attachment in recovered:
+                    occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
+                    self.state.mark_inbox(occurrence_key, "ARCHIVED_CAPABILITY_RECORDED")
 
         verified: set[tuple[str, int]] = set()
-        writer.audit_raw_archive(
+        final_audit = writer.audit_raw_archive(
             on_attachment=lambda attachment: verified.add((attachment.message_id_hash, attachment.index))
         )
-        if set(source) - verified:
+        if (
+            final_audit.occurrence_count != len(verified)
+        ):
             raise IngestionError("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
+        remaining = set(source) - verified
+        if remaining:
+            # A partial raw write changes the private branch, so an older
+            # coverage receipt cannot safely authorize a later fact replay.
+            self.state.put(_RAW_COVERAGE_RECEIPT_KEY, "")
+            status = self._status_from_current(fallback_code="RAW_COVERAGE_REPAIR_INCOMPLETE")
+            self._write_flow_state(stage="RAW_COVERAGE_REPAIR_INCOMPLETE", status=status)
+            return {
+                "ok": False,
+                "code": "RAW_COVERAGE_REPAIR_INCOMPLETE",
+                "source_occurrences": len(source),
+                "recovered_occurrences": len(recovered),
+                "remaining_occurrences": len(remaining),
+                "download_failures": download_failures,
+                "capability_supported": capability_supported,
+                "capability_needs_review": capability_needs_review,
+            }
+
+        self._record_raw_coverage_receipt(
+            raw_commit_sha=final_audit.commit_sha,
+            source_occurrences=len(source),
+            verified_occurrences=len(source),
+            raw_archive_occurrences=final_audit.occurrence_count,
+        )
 
         code = "RAW_COVERAGE_REPAIRED" if recovered else "RAW_COVERAGE_VERIFIED"
         status = self._status_from_current(fallback_code=code)
@@ -1884,6 +2033,246 @@ class DailyFundsRuntime:
             "recovered_occurrences": len(recovered),
             "capability_supported": capability_supported,
             "capability_needs_review": capability_needs_review,
+        }
+
+    def _record_raw_coverage_receipt(
+        self,
+        *,
+        raw_commit_sha: str,
+        source_occurrences: int,
+        verified_occurrences: int,
+        raw_archive_occurrences: int,
+    ) -> None:
+        """Persist only the bounded, values-free proof required before replay."""
+
+        if (
+            self._lower_hex(raw_commit_sha, 40) is None
+            or isinstance(source_occurrences, bool)
+            or isinstance(verified_occurrences, bool)
+            or isinstance(raw_archive_occurrences, bool)
+            or not isinstance(source_occurrences, int)
+            or not isinstance(verified_occurrences, int)
+            or not isinstance(raw_archive_occurrences, int)
+            or source_occurrences <= 0
+            or source_occurrences > _RAW_COVERAGE_MAX_OCCURRENCES
+            or verified_occurrences != source_occurrences
+            or raw_archive_occurrences < source_occurrences
+            or raw_archive_occurrences > _RAW_COVERAGE_MAX_OCCURRENCES
+        ):
+            raise IngestionError("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
+        self.state.put(
+            _RAW_COVERAGE_RECEIPT_KEY,
+            json.dumps(
+                {
+                    "schema_version": _RAW_COVERAGE_RECEIPT_SCHEMA,
+                    "window_days": _BACKFILL_WINDOW_DAYS,
+                    "source_occurrences": source_occurrences,
+                    "verified_occurrences": verified_occurrences,
+                    "raw_archive_occurrences": raw_archive_occurrences,
+                    "raw_commit_sha": raw_commit_sha,
+                },
+                ensure_ascii=True,
+                sort_keys=True,
+                separators=(",", ":"),
+            ),
+        )
+
+    def _raw_coverage_receipt(self) -> Mapping[str, Any] | None:
+        """Return one structurally valid 360-day source-coverage receipt."""
+
+        raw = self.state.get(_RAW_COVERAGE_RECEIPT_KEY)
+        if raw is None:
+            return None
+        try:
+            payload = json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            return None
+        if not isinstance(payload, Mapping) or set(payload) != {
+            "schema_version",
+            "window_days",
+            "source_occurrences",
+            "verified_occurrences",
+            "raw_archive_occurrences",
+            "raw_commit_sha",
+        }:
+            return None
+        source_occurrences = payload.get("source_occurrences")
+        verified_occurrences = payload.get("verified_occurrences")
+        raw_archive_occurrences = payload.get("raw_archive_occurrences")
+        raw_commit_sha = self._lower_hex(payload.get("raw_commit_sha"), 40)
+        if (
+            payload.get("schema_version") != _RAW_COVERAGE_RECEIPT_SCHEMA
+            or payload.get("window_days") != _BACKFILL_WINDOW_DAYS
+            or isinstance(source_occurrences, bool)
+            or isinstance(verified_occurrences, bool)
+            or isinstance(raw_archive_occurrences, bool)
+            or not isinstance(source_occurrences, int)
+            or not isinstance(verified_occurrences, int)
+            or not isinstance(raw_archive_occurrences, int)
+            or source_occurrences <= 0
+            or source_occurrences > _RAW_COVERAGE_MAX_OCCURRENCES
+            or verified_occurrences != source_occurrences
+            or raw_archive_occurrences < source_occurrences
+            or raw_archive_occurrences > _RAW_COVERAGE_MAX_OCCURRENCES
+            or raw_commit_sha is None
+        ):
+            return None
+        return {
+            "source_occurrences": source_occurrences,
+            "verified_occurrences": verified_occurrences,
+            "raw_archive_occurrences": raw_archive_occurrences,
+            "raw_commit_sha": raw_commit_sha,
+        }
+
+    def raw_fact_replay(self, *, now: datetime | None = None) -> dict[str, Any]:
+        """Publish only exact historical fact pairs from a coverage-proven raw snapshot."""
+
+        try:
+            self.config.validate(include_storage=True)
+        except ConfigError:
+            return self.status.write("需处理", "CONFIG_INVALID")
+        try:
+            with self._raw_fact_replay_process_lock():
+                return self._raw_fact_replay_locked(now=now)
+        except (IngestionError, ParseError, ReconciliationError, PublicationError, R2GuardError, ControlError) as exc:
+            code = getattr(exc, "code", str(exc).split(":", 1)[0])
+            if code == "RAW_FACT_REPLAY_LOCK_HELD":
+                return self.status.write("处理中", code)
+            status = self.status.write("需处理", str(code))
+            self._write_flow_state(stage="RAW_FACT_REPLAY_NEEDS_REVIEW", status=status)
+            return {"ok": False, "code": str(code)}
+
+    def _raw_fact_replay_locked(self, *, now: datetime | None) -> dict[str, Any]:
+        """Re-open the coverage-pinned raw archive and publish verified pairs only."""
+
+        receipt = self._raw_coverage_receipt()
+        if receipt is None:
+            raise IngestionError("RAW_COVERAGE_RECEIPT_REQUIRED")
+        anchor = now or datetime.now(UTC)
+        if anchor.tzinfo is None or anchor.utcoffset() is None:
+            raise IngestionError("RAW_FACT_REPLAY_NEEDS_REVIEW")
+        anchor = anchor.astimezone(UTC)
+        writer = GitSparseWriter(self.config)
+        accumulator = _RawFactReplayAccumulator(self)
+        audit = writer.audit_raw_archive(on_attachment=accumulator.consume)
+        if (
+            audit.occurrence_count != accumulator.occurrence_count
+            or audit.occurrence_count != receipt["raw_archive_occurrences"]
+            or audit.commit_sha != receipt["raw_commit_sha"]
+        ):
+            raise IngestionError("RAW_COVERAGE_RECEIPT_STALE")
+        pairs, incomplete_days, ambiguous_days = accumulator.pairs()
+        if not pairs:
+            status = self.status.write("需处理", "RAW_FACT_REPLAY_NO_COMPLETE_PAIR")
+            self._write_flow_state(stage="RAW_FACT_REPLAY_NO_COMPLETE_PAIR", status=status)
+            return {
+                "ok": False,
+                "code": "RAW_FACT_REPLAY_NO_COMPLETE_PAIR",
+                "source_occurrences": accumulator.occurrence_count,
+                "parser_open_occurrences": accumulator.parsed_occurrences,
+                "needs_review_occurrences": accumulator.needs_review_occurrences,
+                "incomplete_days": incomplete_days,
+                "ambiguous_days": ambiguous_days,
+            }
+
+        R2FreeTierGuard(self.config).require_fresh_receipt(now=anchor)
+        coordinator = self._coordinator()
+        published_days = 0
+        for index, pair in enumerate(pairs):
+            commit = self._lease_call(
+                "git_writer_lock",
+                ttl_seconds=13 * 60,
+                code="GIT_WRITER_LOCK_HELD",
+                callback=lambda pair=pair: writer.reopen_persisted(
+                    (pair.accounts.persisted, pair.transactions.persisted),
+                    commit_sha=str(receipt["raw_commit_sha"]),
+                ),
+            )
+            attachments = self._deduplicated_attachments(commit.verified_attachments)
+            if len(attachments) != 2:
+                raise IngestionError("GIT_READBACK_FAILED")
+            parsed = self._parse(attachments)
+            account_facts, transaction_facts = self._latest_complete_pair(parsed)
+            expected_versions = {
+                pair.accounts.timed_facts.facts.source_version,
+                pair.transactions.timed_facts.facts.source_version,
+            }
+            actual_versions = {
+                account_facts.facts.source_version,
+                transaction_facts.facts.source_version,
+            }
+            if (
+                account_facts.facts.business_date != pair.business_day
+                or transaction_facts.facts.business_date != pair.business_day
+                or actual_versions != expected_versions
+            ):
+                raise IngestionError("GIT_READBACK_FAILED")
+            report = reconcile(
+                (account_facts.facts, transaction_facts.facts),
+                previous_ending_by_account=self._prior_account_balances(pair.business_day),
+            )
+            balances = self._daily_balances(report)
+            custom_line = ThresholdControl(self.config.control_dir).line(balances, report.business_date)
+            r2_result = self._lease_call(
+                "publisher_lock",
+                ttl_seconds=13 * 60,
+                code="PUBLISHER_LOCK_HELD",
+                callback=lambda attachments=attachments, commit=commit: coordinator.r2.mirror(
+                    attachments,
+                    git_commit_sha=commit.commit_sha,
+                ),
+            )
+            projection = self._lease_call(
+                "publisher_lock",
+                ttl_seconds=13 * 60,
+                code="PUBLISHER_LOCK_HELD",
+                callback=lambda report=report, commit=commit, attachments=attachments, balances=balances, account_facts=account_facts, transaction_facts=transaction_facts, custom_line=custom_line, r2_result=r2_result, index=index: coordinator.publish(
+                    report=report,
+                    git_commit=commit,
+                    attachments=attachments,
+                    daily_balances=balances,
+                    transaction_rows=self._transaction_projection_rows(transaction_facts.facts),
+                    account_rows=self._account_projection_rows(account_facts.facts),
+                    private_publication_sink=lambda publication: self._lease_call(
+                        "git_writer_lock",
+                        ttl_seconds=13 * 60,
+                        code="GIT_WRITER_LOCK_HELD",
+                        callback=lambda: writer.persist_publication(publication),
+                    ),
+                    git_bundle_sink=lambda: self._lease_call(
+                        "git_writer_lock",
+                        ttl_seconds=13 * 60,
+                        code="GIT_WRITER_LOCK_HELD",
+                        callback=writer.bundle_head,
+                    ),
+                    advance_pointer=index == len(pairs) - 1,
+                    extra_floating_lines=(custom_line,) if custom_line is not None else (),
+                    pre_mirrored=r2_result,
+                ),
+            )
+            self._record_history(report, str(projection.publication["publication_id"]))
+            for attachment in attachments:
+                occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
+                self.state.mark_inbox(occurrence_key, "VALID_PUBLISHED")
+            published_days += 1
+
+        partial = bool(incomplete_days or ambiguous_days or accumulator.needs_review_occurrences)
+        code = "RAW_FACT_REPLAY_PUBLISHED_NEEDS_REVIEW" if partial else "RAW_FACT_REPLAY_PUBLISHED"
+        status = self._status_from_current(fallback_code=code)
+        self._write_flow_state(
+            stage=code,
+            status=status,
+            source_discovery_state="COMPLETE_PAIR_READY",
+        )
+        return {
+            "ok": True,
+            "code": code,
+            "source_occurrences": accumulator.occurrence_count,
+            "parser_open_occurrences": accumulator.parsed_occurrences,
+            "needs_review_occurrences": accumulator.needs_review_occurrences,
+            "published_days": published_days,
+            "incomplete_days": incomplete_days,
+            "ambiguous_days": ambiguous_days,
         }
 
     def _parse(self, attachments: Iterable[DownloadedAttachment]) -> list[TimedFacts]:

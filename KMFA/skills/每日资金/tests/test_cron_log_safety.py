@@ -140,6 +140,16 @@ def test_raw_coverage_repair_uses_the_same_fixed_values_free_cron_contract() -> 
     }
 
 
+def test_raw_fact_replay_uses_the_same_fixed_values_free_cron_contract() -> None:
+    event = cron_event("raw-fact-replay", "SUCCEEDED", "RAW_FACT_REPLAY_PUBLISHED")
+    assert event == {
+        "schema_version": CRON_EVENT_SCHEMA,
+        "job": "raw-fact-replay",
+        "outcome": "SUCCEEDED",
+        "machine_code": "RAW_FACT_REPLAY_PUBLISHED",
+    }
+
+
 def test_r2_guard_is_recorded_as_a_fixed_values_free_cron_event(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
