@@ -683,11 +683,25 @@ jobs:
           echo "::add-mask::$CF_API_TOKEN"
           public_dir="$(mktemp -d "$RUNNER_TEMP/kmfa-public-dashboard.XXXXXX")"
           chmod 700 "$public_dir"
+          created_access_app_id=""
+          created_access_app_policy_confirmed=0
           cleanup() {
+            # A newly-created exact root application has no policy until the
+            # loop below finishes.  If that setup fails, remove only this
+            # run's application so it cannot become a stricter replacement
+            # for an existing wildcard application.  Once its Bypass policy
+            # is confirmed, retaining it is the Owner-approved public state.
+            if [ -n "${created_access_app_id:-}" ] && [ "${created_access_app_policy_confirmed:-0}" != "1" ]; then
+              curl -sS --request DELETE --connect-timeout 5 --max-time 30 \
+                -H "Authorization: Bearer $CF_API_TOKEN" \
+                "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps/${created_access_app_id}" \
+                >/dev/null 2>&1 || true
+            fi
             unset CF_ACCOUNT_ID CF_API_TOKEN TOKEN
             rm -f -- "$public_dir/coolify-envs-before.json" "$public_dir/origin-guard-ids.txt" \
               "$public_dir/origin-guard.json" "$public_dir/coolify-envs-after.json" \
               "$public_dir/access-apps.json" "$public_dir/access-app-ids.txt" \
+              "$public_dir/access-app-payload.json" "$public_dir/access-app-post.json" "$public_dir/created-access-app-id.txt" \
               "$public_dir/policy-payload.json" "$public_dir/policies-before.json" \
               "$public_dir/policies-after.json" "$public_dir/delete-env.json" \
               "$public_dir/post-env.json" "$public_dir/policy-post.json" "$public_dir/deploy.json"
@@ -718,9 +732,43 @@ jobs:
           }
           request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps?per_page=1000" "$public_dir/access-apps.json"
           test "$REQUEST_STATUS" = "200" || { echo "public_dashboard=ACCESS_APP_NOT_READABLE"; exit 1; }
+          root_app_count="$(PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access \
+            root-app-count "$public_dir/access-apps.json")" \
+            || { echo "public_dashboard=ACCESS_TARGET_NOT_RESOLVED"; exit 1; }
+          case "$root_app_count" in
+            ''|*[!0-9]*) echo "public_dashboard=ACCESS_TARGET_NOT_RESOLVED"; exit 1 ;;
+          esac
+          # A wildcard-host application can deny the KMFA hostname while
+          # remaining outside this Owner-authorised exact-host scope.  When no
+          # exact root exists, create one narrowly for kmfa.linzezhang.com;
+          # this never changes a wildcard host or another application.
+          if [ "$root_app_count" -eq 0 ]; then
+            PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access \
+              root-app-payload "$public_dir/access-app-payload.json" \
+              || { echo "public_dashboard=ACCESS_APPLICATION_PAYLOAD_INVALID"; exit 1; }
+            request_cf POST "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps" "$public_dir/access-app-post.json" "$public_dir/access-app-payload.json"
+            test "$REQUEST_STATUS" = "200" || test "$REQUEST_STATUS" = "201" \
+              || { echo "public_dashboard=ACCESS_APPLICATION_WRITE_FAILED"; exit 1; }
+            PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access \
+              capture-app-id "$public_dir/access-app-post.json" "$public_dir/created-access-app-id.txt" \
+              || { echo "public_dashboard=ACCESS_APPLICATION_POSTREAD_INVALID"; exit 1; }
+            created_access_app_id="$(tr -d '\r\n' < "$public_dir/created-access-app-id.txt")"
+            test -n "$created_access_app_id" || { echo "public_dashboard=ACCESS_APPLICATION_POSTREAD_INVALID"; exit 1; }
+            echo "::add-mask::$created_access_app_id"
+            rm -f -- "$public_dir/access-app-post.json"
+            request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps?per_page=1000" "$public_dir/access-apps.json"
+            test "$REQUEST_STATUS" = "200" || { echo "public_dashboard=ACCESS_APP_POSTREAD_FAILED"; exit 1; }
+          fi
           PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access \
             select-apps "$public_dir/access-apps.json" "$public_dir/access-app-ids.txt" \
             || { echo "public_dashboard=ACCESS_TARGET_NOT_RESOLVED"; exit 1; }
+          # A just-created application can be accepted before it appears in a
+          # list response.  Its identifier was validated from the create
+          # response, so ensure it receives the same policy before it can
+          # survive the EXIT rollback boundary.
+          if [ -n "$created_access_app_id" ] && ! grep -Fqx "$created_access_app_id" "$public_dir/access-app-ids.txt"; then
+            printf '%s\n' "$created_access_app_id" >> "$public_dir/access-app-ids.txt"
+          fi
           PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access \
             policy-payload "$public_dir/policy-payload.json" \
             || { echo "public_dashboard=ACCESS_POLICY_PAYLOAD_INVALID"; exit 1; }
@@ -746,6 +794,9 @@ jobs:
             test "$REQUEST_STATUS" = "200" || { echo "public_dashboard=ACCESS_POLICY_POSTREAD_FAILED"; exit 1; }
             test "$(PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access policy-state "$public_dir/policies-after.json")" = "PRESENT" \
               || { echo "public_dashboard=ACCESS_POLICY_POSTREAD_INVALID"; exit 1; }
+            if [ "$access_app_id" = "$created_access_app_id" ]; then
+              created_access_app_policy_confirmed=1
+            fi
           done < "$public_dir/access-app-ids.txt"
           test "$app_count" -gt 0 || { echo "public_dashboard=ACCESS_TARGET_NOT_RESOLVED"; exit 1; }
           # Do the source-side change only after each exact Access application
@@ -771,8 +822,14 @@ jobs:
           rm -f -- "$public_dir/post-env.json"
           request_coolify GET "$BASE/api/v1/applications/$APP/envs" "$public_dir/coolify-envs-after.json"
           test "$REQUEST_STATUS" = "200" || { echo "public_dashboard=ORIGIN_GUARD_POSTREAD_FAILED"; exit 1; }
-          test "$(PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access origin-guard-state "$public_dir/coolify-envs-after.json")" = "PRESENT" \
+          # Coolify can redact every environment value in a GET response.  The
+          # POST payload above is the fixed public literal; post-read can only
+          # prove that exactly one target entry exists, never safely echo it.
+          PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access \
+            origin-guard-entry-ids "$public_dir/coolify-envs-after.json" "$public_dir/origin-guard-ids.txt" \
             || { echo "public_dashboard=ORIGIN_GUARD_POSTREAD_INVALID"; exit 1; }
+          origin_guard_count="$(wc -l < "$public_dir/origin-guard-ids.txt" | tr -d '[:space:]')"
+          test "$origin_guard_count" = "1" || { echo "public_dashboard=ORIGIN_GUARD_POSTREAD_INVALID"; exit 1; }
           request_coolify POST "$BASE/api/v1/deploy?uuid=$APP" "$public_dir/deploy.json"
           test "$REQUEST_STATUS" = "200" || test "$REQUEST_STATUS" = "201" || test "$REQUEST_STATUS" = "202" \
             || { echo "public_dashboard=REDEPLOY_NOT_TRIGGERED"; exit 1; }

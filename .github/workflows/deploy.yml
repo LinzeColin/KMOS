@@ -26,6 +26,14 @@ on:
       # Compose 模式纠偏由显式 workflow_dispatch 驱动；定义本身不应触发一次
       # 旧模式的自动部署。该工作流只切换 Coolify 的 raw/deployable 选择并读回。
       - ".github/workflows/coolify-compose-reconcile.yml"
+      # The public-dashboard control helper runs only on a manually dispatched
+      # GitHub runner and changes no application image/runtime by itself.  Its
+      # own checked public-boundary action triggers the one required deploy;
+      # do not interrupt an in-flight daily-funds archive audit merely because
+      # the control workflow implementation changed.
+      - ".github/workflows/coolify-ops.yml"
+      - "KMFA/skills/每日资金/daily_funds/public_dashboard_access.py"
+      - "KMFA/skills/每日资金/tests/test_public_dashboard_access.py"
       - ".gitattributes"
       - "KMFA/AGENTS.md"
       - "KMFA/HANDOFF.md"

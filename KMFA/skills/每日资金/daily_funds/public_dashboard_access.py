@@ -21,6 +21,7 @@ from urllib.parse import urlsplit
 PUBLIC_DASHBOARD_ACCESS_SCHEMA = "kmfa.public_dashboard_access.v1"
 PUBLIC_DASHBOARD_HOST = "kmfa.linzezhang.com"
 PUBLIC_DASHBOARD_BYPASS_POLICY_NAME = "kmfa-public-dashboard-owner-override"
+PUBLIC_DASHBOARD_ROOT_APPLICATION_NAME = "kmfa-public-dashboard-owner-override"
 _UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 _TARGET_ROOTS = (
     "/",
@@ -152,6 +153,59 @@ def select_public_dashboard_application_ids(payload: object) -> tuple[str, ...]:
     return tuple(sorted(selected))
 
 
+def public_dashboard_root_application_count(payload: object) -> int:
+    """Count exact-host root applications without ever selecting a wildcard host.
+
+    A wildcard-host Access application can still deny the dashboard even when
+    a narrower route has a Bypass policy.  The Owner-approved public boundary
+    therefore needs an exact ``kmfa.linzezhang.com`` root application whenever
+    no such exact-host root already exists.  The count deliberately contains
+    no provider identifier, so it is safe to use as a workflow control signal.
+    """
+
+    count = 0
+    for application in _single_page_result(payload):
+        if application.get("type") != "self_hosted":
+            continue
+        app_id = application.get("id")
+        if not isinstance(app_id, str) or _UUID_RE.fullmatch(app_id.lower()) is None:
+            raise PublicDashboardAccessError("application identifier invalid")
+        destinations = _application_destinations(application)
+        matched = [path for host, path in destinations if host == PUBLIC_DASHBOARD_HOST]
+        if not matched:
+            continue
+        if len(matched) != len(destinations):
+            raise PublicDashboardAccessError("application destinations mixed")
+        if any(path in {"/", "/*"} for path in matched):
+            count += 1
+    return count
+
+
+def public_dashboard_root_application_payload() -> dict[str, object]:
+    """Return the sole exact-host public Access application declaration."""
+
+    return {
+        "name": PUBLIC_DASHBOARD_ROOT_APPLICATION_NAME,
+        "domain": PUBLIC_DASHBOARD_HOST,
+        "type": "self_hosted",
+        "app_launcher_visible": False,
+    }
+
+
+def capture_public_dashboard_application_id(payload: object) -> str:
+    """Return only a validated created application identifier for private use."""
+
+    if not isinstance(payload, Mapping) or payload.get("success") is not True:
+        raise PublicDashboardAccessError("application create invalid")
+    result = payload.get("result")
+    if not isinstance(result, Mapping):
+        raise PublicDashboardAccessError("application create invalid")
+    app_id = result.get("id")
+    if not isinstance(app_id, str) or _UUID_RE.fullmatch(app_id.lower()) is None:
+        raise PublicDashboardAccessError("application identifier invalid")
+    return app_id.lower()
+
+
 def public_dashboard_bypass_policy_payload() -> dict[str, object]:
     return {
         "name": PUBLIC_DASHBOARD_BYPASS_POLICY_NAME,
@@ -242,6 +296,12 @@ def main(argv: list[str] | None = None) -> int:
         command = args.pop(0)
         if command == "select-apps" and len(args) == 2:
             _write_private_lines(args[1], select_public_dashboard_application_ids(_read_json(args[0])))
+        elif command == "root-app-count" and len(args) == 1:
+            print(public_dashboard_root_application_count(_read_json(args[0])))
+        elif command == "root-app-payload" and len(args) == 1:
+            _write_private_json(args[0], public_dashboard_root_application_payload())
+        elif command == "capture-app-id" and len(args) == 2:
+            _write_private_lines(args[1], (capture_public_dashboard_application_id(_read_json(args[0])),))
         elif command == "policy-payload" and len(args) == 1:
             _write_private_json(args[0], public_dashboard_bypass_policy_payload())
         elif command == "policy-state" and len(args) == 1:

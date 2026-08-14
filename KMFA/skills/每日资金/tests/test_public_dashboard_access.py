@@ -16,9 +16,13 @@ if str(ROOT) not in sys.path:
 
 from daily_funds.public_dashboard_access import (  # noqa: E402
     PUBLIC_DASHBOARD_BYPASS_POLICY_NAME,
+    PUBLIC_DASHBOARD_ROOT_APPLICATION_NAME,
     PublicDashboardAccessError,
+    capture_public_dashboard_application_id,
     public_dashboard_bypass_policy_payload,
     public_dashboard_bypass_policy_state,
+    public_dashboard_root_application_count,
+    public_dashboard_root_application_payload,
     public_origin_guard_entry_ids,
     public_origin_guard_state,
     select_public_dashboard_application_ids,
@@ -78,6 +82,29 @@ def test_fixed_bypass_policy_is_idempotently_recognized() -> None:
     assert public_dashboard_bypass_policy_state(_policy([{**expected, "id": POLICY_ID, "exclude": [{"everyone": {}}]}])) == "INVALID"
 
 
+def test_exact_host_root_application_can_be_created_without_touching_wildcard_hosts() -> None:
+    payload = _apps([
+        {"id": OPS_ID, "type": "self_hosted", "domain": "kmfa.linzezhang.com/ops/*"},
+        {"id": POLICY_ID, "type": "self_hosted", "domain": "*.linzezhang.com/*"},
+    ])
+    assert public_dashboard_root_application_count(payload) == 0
+    assert public_dashboard_root_application_payload() == {
+        "name": PUBLIC_DASHBOARD_ROOT_APPLICATION_NAME,
+        "domain": "kmfa.linzezhang.com",
+        "type": "self_hosted",
+        "app_launcher_visible": False,
+    }
+
+    exact_root = _apps([
+        {"id": ROOT_ID, "type": "self_hosted", "domain": "kmfa.linzezhang.com"},
+        {"id": ROOT_WILDCARD_ID, "type": "self_hosted", "domain": "kmfa.linzezhang.com/*"},
+    ])
+    assert public_dashboard_root_application_count(exact_root) == 2
+    assert capture_public_dashboard_application_id({"success": True, "result": {"id": ROOT_ID}}) == ROOT_ID
+    with pytest.raises(PublicDashboardAccessError):
+        capture_public_dashboard_application_id({"success": True, "result": {"id": "not-an-id"}})
+
+
 def test_origin_guard_requires_all_existing_representations_to_be_disabled() -> None:
     payload = [
         {"key": "KMFA_PRIVATE_OPS_REQUIRE_ACCESS", "value": "0", "uuid": "env-a"},
@@ -100,4 +127,14 @@ def test_cli_writes_only_selected_application_ids_with_private_permissions(tmp_p
 
     assert main(["select-apps", str(source), str(target)]) == 0
     assert target.read_text(encoding="utf-8") == f"{OPS_ID}\n"
+    assert stat.S_IMODE(target.stat().st_mode) == 0o600
+
+
+def test_cli_writes_created_root_application_id_privately(tmp_path: Path) -> None:
+    source = tmp_path / "created.json"
+    target = tmp_path / "created.txt"
+    source.write_text(json.dumps({"success": True, "result": {"id": ROOT_ID}}), encoding="utf-8")
+
+    assert main(["capture-app-id", str(source), str(target)]) == 0
+    assert target.read_text(encoding="utf-8") == f"{ROOT_ID}\n"
     assert stat.S_IMODE(target.stat().st_mode) == 0o600
