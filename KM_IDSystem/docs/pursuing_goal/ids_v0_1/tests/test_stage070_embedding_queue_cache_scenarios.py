@@ -283,13 +283,14 @@ class Stage070EmbeddingQueueCachePhase3Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        self.assertEqual("IDS-STAGE070", status["stage"])
+        self.assertIn(status["stage"], ("IDS-STAGE070", "IDS-STAGE071"))
         self.assertIn(
             (status["phase"], status["next_gate"]),
             (
                 ("IDS-V0_1-STAGE070-P3", "IDS-STAGE070-P4-GATE"),
                 ("IDS-V0_1-STAGE070-P4", "IDS-STAGE070-REVIEW-GATE"),
                 ("IDS-V0_1-STAGE070-REVIEW", "IDS-STAGE071-P1-GATE"),
+                ("IDS-V0_1-STAGE071-P1", "IDS-STAGE071-P2-GATE"),
             ),
         )
         self.assertIn(
@@ -298,12 +299,14 @@ class Stage070EmbeddingQueueCachePhase3Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE070-P3",
                 "IDS-V0_1-STAGE070-P4",
                 "IDS-V0_1-STAGE070-REVIEW",
+                "IDS-V0_1-STAGE071-P1",
             ),
         )
         self.assertTrue(
             "IDS-STAGE070-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE070-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE071-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE071-P2-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             {

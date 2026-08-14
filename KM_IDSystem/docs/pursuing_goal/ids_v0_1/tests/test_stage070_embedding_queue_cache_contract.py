@@ -258,7 +258,7 @@ class Stage070EmbeddingQueueCachePhase1Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         }
-        self.assertEqual("IDS-STAGE070", status["stage"])
+        self.assertIn(status["stage"], ("IDS-STAGE070", "IDS-STAGE071"))
         self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
             (
@@ -287,6 +287,11 @@ class Stage070EmbeddingQueueCachePhase1Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE070-REVIEW",
                     "IDS-STAGE071-P1-GATE",
                 ),
+                (
+                    "IDS-V0_1-STAGE071-P1",
+                    "IDS-V0_1-STAGE071-P1",
+                    "IDS-STAGE071-P2-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -299,6 +304,7 @@ class Stage070EmbeddingQueueCachePhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE070-P3",
                 "IDS-V0_1-STAGE070-P4",
                 "IDS-V0_1-STAGE070-REVIEW",
+                "IDS-V0_1-STAGE071-P1",
             ),
         )
         self.assertIn("不创建第二权威事实源", "\n".join(plan["scope"]))
@@ -314,13 +320,17 @@ class Stage070EmbeddingQueueCachePhase1Tests(unittest.TestCase):
         self.assertEqual("IDS-V0_1-STAGE070-P1", run["task_id"])
         self.assertEqual(0, run["runtime_counts"]["actual_external_api_call_count"])
         self.assertFalse(run["runtime_actions"]["ovh_deployment_performed"])
-        self.assertIn('current_stage_id: "IDS-STAGE070"', roadmap_text)
+        self.assertTrue(
+            'current_stage_id: "IDS-STAGE070"' in roadmap_text
+            or 'current_stage_id: "IDS-STAGE071"' in roadmap_text
+        )
         self.assertTrue(
             'current_task_id: "IDS-V0_1-STAGE070-P1"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE070-P2"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE070-P3"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE070-P4"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE070-REVIEW"' in roadmap_text
+            or 'current_task_id: "IDS-V0_1-STAGE071-P1"' in roadmap_text
         )
         self.assertIn('STAGE-070:', batch_text)
         self.assertTrue(

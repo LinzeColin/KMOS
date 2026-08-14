@@ -251,7 +251,7 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         run = json.loads(RUN.read_text(encoding="utf-8"))
         events = [json.loads(line) for line in EVENTS.read_text(encoding="utf-8").splitlines() if line.strip()]
-        self.assertEqual("IDS-STAGE070", status["stage"])
+        self.assertIn(status["stage"], ("IDS-STAGE070", "IDS-STAGE071"))
         self.assertIn(
             status["phase"],
             (
@@ -259,6 +259,7 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE070-P3",
                 "IDS-V0_1-STAGE070-P4",
                 "IDS-V0_1-STAGE070-REVIEW",
+                "IDS-V0_1-STAGE071-P1",
             ),
         )
         self.assertIn(
@@ -268,6 +269,7 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
                 "IDS-STAGE070-P4-GATE",
                 "IDS-STAGE070-REVIEW-GATE",
                 "IDS-STAGE071-P1-GATE",
+                "IDS-STAGE071-P2-GATE",
             ),
         )
         self.assertIn(
@@ -277,6 +279,7 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE070-P3",
                 "IDS-V0_1-STAGE070-P4",
                 "IDS-V0_1-STAGE070-REVIEW",
+                "IDS-V0_1-STAGE071-P1",
             ),
         )
         self.assertTrue(
@@ -287,6 +290,7 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
                     "IDS-STAGE070-P4-GATE",
                     "IDS-STAGE070-REVIEW-GATE",
                     "IDS-STAGE071-P1-GATE",
+                    "IDS-STAGE071-P2-GATE",
                 )
             )
         )

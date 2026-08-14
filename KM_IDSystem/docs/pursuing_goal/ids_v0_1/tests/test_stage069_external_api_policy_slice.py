@@ -310,7 +310,7 @@ class Stage069ExternalApiPolicyPhase2Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        self.assertIn(status["stage"], ("IDS-STAGE069", "IDS-STAGE070"))
+        self.assertIn(status["stage"], ("IDS-STAGE069", "IDS-STAGE070", "IDS-STAGE071"))
         self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
             (
@@ -338,6 +338,7 @@ class Stage069ExternalApiPolicyPhase2Tests(unittest.TestCase):
 ("IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P3", "IDS-STAGE070-P4-GATE"),
 ("IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-P4", "IDS-STAGE070-REVIEW-GATE"),
 ("IDS-V0_1-STAGE070-REVIEW", "IDS-V0_1-STAGE070-REVIEW", "IDS-STAGE071-P1-GATE"),
+("IDS-V0_1-STAGE071-P1", "IDS-V0_1-STAGE071-P1", "IDS-STAGE071-P2-GATE"),
                 (
                     "IDS-V0_1-STAGE069-REVIEW",
                     "IDS-V0_1-STAGE069-REVIEW",
@@ -345,7 +346,7 @@ class Stage069ExternalApiPolicyPhase2Tests(unittest.TestCase):
                 ),
             ),
         )
-        self.assertIn(plan["stage"], ("IDS-STAGE069", "IDS-STAGE070"))
+        self.assertIn(plan["stage"], ("IDS-STAGE069", "IDS-STAGE070", "IDS-STAGE071"))
         self.assertIn(
             (plan["phase"], plan["task"]),
             (
@@ -358,6 +359,7 @@ class Stage069ExternalApiPolicyPhase2Tests(unittest.TestCase):
 ("IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P3"),
 ("IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-P4"),
 ("IDS-V0_1-STAGE070-REVIEW", "IDS-V0_1-STAGE070-REVIEW"),
+("IDS-V0_1-STAGE071-P1", "IDS-V0_1-STAGE071-P1"),
             ),
         )
         self.assertTrue(
@@ -370,6 +372,7 @@ class Stage069ExternalApiPolicyPhase2Tests(unittest.TestCase):
             or "IDS-STAGE070-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE070-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE071-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE071-P2-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             {

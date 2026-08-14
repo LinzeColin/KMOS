@@ -1,0 +1,330 @@
+{
+  "schema_version": "ids.stage071.embedding_cost_governor.phase1.v1",
+  "stage": "STAGE-071",
+  "phase": "Phase 1",
+  "task_id": "IDS-V0_1-STAGE071-P1",
+  "acceptance_id": "ACC-STAGE-071",
+  "local_code": "D12-S003",
+  "domain": "D12 · Embedding 与外部 API 策略",
+  "entrance": "IDS 系统运营入口",
+  "pursuing_goal": "定义本批次成本估算、月预算和单任务上限的未来关闭合同，复用 Stage070 队列/缓存/失败重试、成本/模型版本和审计字段；不读取真实资料、不计算实际成本、不创建队列/缓存/审计记录、不调用外部 API、不消耗模型 Token。",
+  "contract_state": "PHASE1_EMBEDDING_COST_GOVERNOR_CONTRACT_RUNTIME_DISABLED",
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE071-P2-GATE",
+  "source_authority": {
+    "authority": "FROZEN_STAGE071_TASKPACK_STAGE070_REVIEW_STAGE070_PHASE1_CONTRACT_AND_BATCH_LOCK_ONLY",
+    "frozen_taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-071_Embedding成本治理器.md",
+    "predecessor_stage_review_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE070_STAGE_REVIEW.md",
+    "predecessor_queue_cache_contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_contract.json",
+    "predecessor_batch_lock_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false,
+    "authorized_fixture_access_performed": false
+  },
+  "policy_inheritance_dependency": {
+    "mode": "REUSE_STAGE070_EXTERNAL_API_POLICY_INHERITANCE_REFERENCE_ONLY",
+    "default_external_api_policy": "denied",
+    "allowed_external_api_policy_values": [
+      "denied",
+      "summary_only",
+      "full_text_allowed"
+    ],
+    "allowed_value_count": 3,
+    "unknown_policy_fails_closed_to": "denied",
+    "inheritance_path": [
+      "data_source.external_api_policy",
+      "document.effective_external_api_policy",
+      "chunk.effective_external_api_policy"
+    ],
+    "inheritance_hop_count": 2,
+    "owner_must_not_mark_chunks_individually": true,
+    "chunk_manual_policy_assignment_allowed": false,
+    "document_may_widen_data_source_policy": false,
+    "chunk_inherits_effective_document_policy_automatically": true,
+    "actual_policy_resolution_performed": false
+  },
+  "queue_cache_dependency": {
+    "mode": "REUSE_STAGE070_QUEUE_CACHE_RETRY_REFERENCE_ONLY",
+    "required_predecessor_contract_state": "PHASE1_EMBEDDING_QUEUE_AND_CACHE_CONTRACT_RUNTIME_DISABLED",
+    "future_queue_field_count": 12,
+    "future_cache_field_count": 10,
+    "future_failed_retry_field_count": 7,
+    "queue_cache_retry_execution_allowed_in_phase1": false,
+    "actual_embedding_queue_created": false,
+    "actual_cache_entry_created": false,
+    "actual_failed_retry_record_created": false
+  },
+  "reference_only_cost_governor_input_contract": {
+    "mode": "REFERENCE_ONLY_EMBEDDING_COST_GOVERNOR_NO_SOURCE_OR_CHUNK_OPENED",
+    "required_fields": [
+      "cost_governor_request_ref",
+      "embedding_queue_request_ref",
+      "policy_resolution_ref",
+      "data_source_ref",
+      "document_ref",
+      "chunk_ref",
+      "effective_external_api_policy",
+      "external_payload_mode",
+      "provider_ref",
+      "model_ref",
+      "model_version",
+      "estimated_token_count",
+      "batch_budget_ref",
+      "monthly_budget_ref",
+      "task_budget_cap_ref",
+      "external_api_audit_ref"
+    ],
+    "field_count": 16,
+    "additional_fields_allowed": false,
+    "source_or_document_body_allowed": false,
+    "summary_body_allowed": false,
+    "chunk_text_allowed": false,
+    "physical_path_or_actual_uri_allowed": false,
+    "actual_input_request_count": 0
+  },
+  "future_cost_governor_contract": {
+    "mode": "FUTURE_COST_GOVERNOR_SCHEMA_REFERENCE_ONLY_NO_ESTIMATE_OR_BUDGET_LOOKUP",
+    "required_fields": [
+      "cost_governor_request_ref",
+      "embedding_queue_request_ref",
+      "effective_external_api_policy",
+      "provider_ref",
+      "model_ref",
+      "model_version",
+      "estimated_token_count",
+      "estimated_cost",
+      "cost_currency",
+      "batch_budget_ref",
+      "monthly_budget_ref",
+      "task_budget_cap_ref",
+      "batch_budget_check_state",
+      "monthly_budget_check_state",
+      "task_budget_cap_check_state",
+      "external_api_audit_ref"
+    ],
+    "field_count": 16,
+    "budget_scope_names": [
+      "current_batch",
+      "calendar_month",
+      "single_task"
+    ],
+    "budget_scope_count": 3,
+    "all_budget_scopes_must_pass_before_future_queue": true,
+    "cost_estimation_or_budget_lookup_allowed_in_phase1": false,
+    "actual_cost_governor_record_created": false,
+    "actual_cost_estimation_performed": false,
+    "actual_budget_lookup_performed": false
+  },
+  "budget_scope_contract": {
+    "current_batch": {
+      "required_reference": "batch_budget_ref",
+      "required_check_state": "batch_budget_check_state",
+      "estimate_required_before_future_queue": true,
+      "unknown_or_insufficient_fails_closed": true,
+      "actual_budget_value_recorded": false,
+      "actual_estimate_generated": false
+    },
+    "calendar_month": {
+      "required_reference": "monthly_budget_ref",
+      "required_check_state": "monthly_budget_check_state",
+      "remaining_budget_required_before_future_queue": true,
+      "unknown_or_insufficient_fails_closed": true,
+      "actual_budget_value_recorded": false,
+      "actual_monthly_budget_lookup_performed": false
+    },
+    "single_task": {
+      "required_reference": "task_budget_cap_ref",
+      "required_check_state": "task_budget_cap_check_state",
+      "task_cap_required_before_future_queue": true,
+      "unknown_or_exceeded_fails_closed": true,
+      "actual_budget_value_recorded": false,
+      "actual_task_cap_evaluation_performed": false
+    },
+    "no_numeric_budget_or_price_in_phase1": true,
+    "actual_batch_cost_estimate_count": 0,
+    "actual_monthly_budget_check_count": 0,
+    "actual_task_cap_check_count": 0
+  },
+  "future_cost_and_model_dependency": {
+    "mode": "REUSE_STAGE070_COST_AND_MODEL_FIELDS_REFERENCE_ONLY",
+    "required_fields": [
+      "provider_ref",
+      "model_ref",
+      "model_version",
+      "estimated_token_count",
+      "estimated_cost",
+      "budget_check_state",
+      "cost_currency",
+      "cost_estimation_reason"
+    ],
+    "field_count": 8,
+    "provider_and_model_selection_allowed_in_phase1": false,
+    "actual_budget_checked": false,
+    "actual_token_count": 0,
+    "actual_cost": 0,
+    "actual_model_version_recorded": false
+  },
+  "future_external_api_audit_dependency": {
+    "mode": "REUSE_STAGE070_AUDIT_FIELDS_REFERENCE_ONLY",
+    "required_fields": [
+      "external_api_audit_ref",
+      "data_source_ref",
+      "document_ref",
+      "chunk_ref",
+      "effective_external_api_policy",
+      "external_payload_mode",
+      "policy_inheritance_reason",
+      "owner_authorization_ref",
+      "authorized_at",
+      "authorization_reason",
+      "provider_ref",
+      "model_ref",
+      "model_version",
+      "token_count",
+      "cost_estimate",
+      "embedding_queue_request_ref",
+      "budget_check_state",
+      "audit_disposition"
+    ],
+    "field_count": 18,
+    "audit_required_before_future_provider_call": true,
+    "audit_record_creation_allowed_in_phase1": false,
+    "actual_audit_record_created": false
+  },
+  "policy_flow_contract": {
+    "denied": {
+      "effective_policy": "denied",
+      "external_payload_allowed": false,
+      "embedding_queue_allowed": false,
+      "cache_read_or_write_allowed": false,
+      "failed_retry_allowed": false,
+      "cost_governor_allowed": false,
+      "provider_call_allowed": false,
+      "required_audit_disposition": "BLOCKED_POLICY_DENIED"
+    },
+    "summary_only": {
+      "effective_policy": "summary_only",
+      "external_payload_allowed": "FUTURE_AUTHORIZED_SUMMARY_REFERENCE_ONLY",
+      "chunk_text_payload_allowed": false,
+      "cost_governor_allowed": "FUTURE_AFTER_AUTHORIZATION_AND_THREE_BUDGET_GATES",
+      "provider_call_allowed": false,
+      "required_audit_disposition": "FUTURE_SUMMARY_ONLY_AUDIT_REQUIRED"
+    },
+    "full_text_allowed": {
+      "effective_policy": "full_text_allowed",
+      "external_payload_allowed": "FUTURE_AUTHORIZED_CHUNK_TEXT_ONLY",
+      "cost_governor_allowed": "FUTURE_AFTER_AUTHORIZATION_AND_THREE_BUDGET_GATES",
+      "provider_call_allowed": false,
+      "required_audit_disposition": "FUTURE_FULL_TEXT_AUDIT_REQUIRED"
+    },
+    "actual_summary_created": false,
+    "actual_chunk_text_externalized": false,
+    "actual_external_api_call_performed": false
+  },
+  "authority_and_decision_boundary": {
+    "source_document_remains_authoritative": true,
+    "cost_governor_can_replace_source_document": false,
+    "budget_check_can_become_business_fact_authority": false,
+    "external_model_output_can_become_business_fact_authority": false,
+    "model_direct_text_guessing_allowed": false,
+    "automatic_business_recommendation_allowed": false,
+    "business_line_whitebox_human_review_required_for_policy_exception": true,
+    "actual_business_decision_created": false
+  },
+  "failure_and_stop_contract": {
+    "declared_failure_states": [
+      "COST_GOVERNOR_POLICY_MISSING",
+      "COST_GOVERNOR_POLICY_DENIED",
+      "COST_GOVERNOR_QUEUE_REFERENCE_MISSING",
+      "COST_GOVERNOR_PROVIDER_OR_MODEL_UNSELECTED",
+      "COST_GOVERNOR_MODEL_VERSION_UNRECORDED",
+      "COST_GOVERNOR_ESTIMATED_TOKEN_COUNT_UNAVAILABLE",
+      "COST_GOVERNOR_BATCH_BUDGET_UNVERIFIED",
+      "COST_GOVERNOR_MONTHLY_BUDGET_UNVERIFIED",
+      "COST_GOVERNOR_TASK_CAP_UNVERIFIED",
+      "COST_GOVERNOR_BATCH_BUDGET_INSUFFICIENT",
+      "COST_GOVERNOR_MONTHLY_BUDGET_INSUFFICIENT",
+      "COST_GOVERNOR_TASK_CAP_EXCEEDED",
+      "COST_GOVERNOR_AUDIT_FIELDS_INCOMPLETE",
+      "PHASE1_EMBEDDING_COST_GOVERNOR_EXECUTION_NOT_AUTHORIZED"
+    ],
+    "failure_state_count": 14,
+    "automatic_business_write_allowed": false,
+    "actual_failure_record_created": false
+  },
+  "chinese_feedback_contract": {
+    "denied_message": "当前策略为拒绝外发，系统不会创建成本治理、队列、缓存或重试任务。",
+    "budget_message": "本批次、月预算和单任务上限任一未确认、不足或超限时，未来外部任务必须暂停。",
+    "audit_message": "任何未来外部调用都必须先具备完整审计字段和业务线白箱人工复核。",
+    "actual_user_feedback_emitted": false
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "source_file_open_performed": false,
+    "parser_execution_performed": false,
+    "chunking_execution_performed": false,
+    "summary_generation_performed": false,
+    "cost_estimation_execution_performed": false,
+    "batch_budget_lookup_performed": false,
+    "monthly_budget_lookup_performed": false,
+    "task_cap_evaluation_performed": false,
+    "embedding_queue_execution_performed": false,
+    "cache_read_or_write_performed": false,
+    "failed_retry_execution_performed": false,
+    "external_payload_created": false,
+    "external_api_client_initialized": false,
+    "external_api_call_performed": false,
+    "provider_credential_read_performed": false,
+    "provider_or_model_selected": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "embedding_or_index_write_performed": false,
+    "database_connection_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "stage_and_phase_boundary": {
+    "stage070_review_evidence_read": true,
+    "stage071_started": true,
+    "stage071_entry_authorized": true,
+    "phase1_started": true,
+    "phase2_started": false,
+    "phase3_started": false,
+    "phase4_started": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "stage072_started": false,
+    "stage071_phase2_entry_authorized": true,
+    "github_upload_allowed": false,
+    "push_allowed": false
+  },
+  "protected_surface_boundary": {
+    "raw_source_change_allowed": false,
+    "manifest_change_allowed": false,
+    "evidence_ledger_change_allowed": false,
+    "audit_log_change_allowed": false,
+    "delivered_report_change_allowed": false,
+    "persistent_database_change_allowed": false,
+    "source_or_raw_data_cleanup_allowed": false
+  },
+  "rollback_contract": {
+    "return_to": "STAGE070_REVIEWED_LOCAL_EMBEDDING_QUEUE_CACHE_RUNTIME_DISABLED",
+    "revertable_artifacts": [
+      "Stage071 Phase 1 scope boundary",
+      "Stage071 embedding cost governor static contract",
+      "Stage071 focused tests",
+      "Stage071 governance projection"
+    ],
+    "preserve_stage070_review_evidence": true,
+    "source_or_raw_data_change_allowed": false,
+    "database_or_persistent_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

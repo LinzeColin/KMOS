@@ -229,23 +229,44 @@ class Stage070EmbeddingQueueCacheStageReviewTests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        self.assertEqual(
-            (
-                "IDS-STAGE070",
-                "IDS-V0_1-STAGE070-REVIEW",
-                "IDS-V0_1-STAGE070-REVIEW",
-                "IDS-STAGE071-P1-GATE",
-            ),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-STAGE070",
+                    "IDS-V0_1-STAGE070-REVIEW",
+                    "IDS-V0_1-STAGE070-REVIEW",
+                    "IDS-STAGE071-P1-GATE",
+                ),
+                (
+                    "IDS-STAGE071",
+                    "IDS-V0_1-STAGE071-P1",
+                    "IDS-V0_1-STAGE071-P1",
+                    "IDS-STAGE071-P2-GATE",
+                ),
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-STAGE070", plan["stage"])
-        self.assertEqual(
-            ("IDS-V0_1-STAGE070-REVIEW", "IDS-V0_1-STAGE070-REVIEW"),
-            (plan["phase"], plan["task"]),
+        self.assertIn(
+            (plan["stage"], plan["phase"], plan["task"]),
+            (
+                (
+                    "IDS-STAGE070",
+                    "IDS-V0_1-STAGE070-REVIEW",
+                    "IDS-V0_1-STAGE070-REVIEW",
+                ),
+                (
+                    "IDS-STAGE071",
+                    "IDS-V0_1-STAGE071-P1",
+                    "IDS-V0_1-STAGE071-P1",
+                ),
+            ),
         )
-        self.assertIn("IDS-STAGE071-P1-GATE", plan["stop_condition"])
+        self.assertTrue(
+            "IDS-STAGE071-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE071-P2-GATE" in plan["stop_condition"]
+        )
         self.assertTrue(
             {
                 "ACC-STAGE070-REVIEW-01",
