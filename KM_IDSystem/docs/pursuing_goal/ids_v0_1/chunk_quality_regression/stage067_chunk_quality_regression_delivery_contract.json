@@ -1,0 +1,178 @@
+{
+  "schema_version": "ids.stage067.chunk_quality_regression.phase4.delivery_contract.v1",
+  "contract_state": "PHASE4_CHUNK_QUALITY_REGRESSION_METADATA_ONLY_DELIVERY_RUNTIME_DISABLED",
+  "task_id": "IDS-V0_1-STAGE067-P4",
+  "stage": "IDS-STAGE067",
+  "acceptance_ids": [
+    "ACC-STAGE-067",
+    "ACC-STAGE067-P4-01",
+    "ACC-STAGE067-P4-02",
+    "ACC-STAGE067-P4-03",
+    "ACC-STAGE067-P4-04"
+  ],
+  "entry_gate": "IDS-STAGE067-P4-GATE",
+  "next_gate": "IDS-STAGE067-REVIEW-GATE",
+  "authority_context": "FROZEN_STAGE067_TASKPACK_AND_PHASE1_PHASE2_PHASE3_ARTIFACTS_ONLY",
+  "delivery_executable": true,
+  "execution_ready": false,
+  "source_authority": {
+    "source_document_remains_authoritative": true,
+    "business_line_white_box_human_review_remains_authoritative": true,
+    "second_authoritative_source_created": false,
+    "delivery_control_metadata_can_replace_source_document": false,
+    "delivery_control_metadata_can_become_business_fact_authority": false,
+    "real_source_content_retained": false
+  },
+  "predecessor_boundary": {
+    "phase3_controlled_scenarios_reused_as_reference_only": true,
+    "phase3_result_required": "PASS_PHASE3_CHUNK_QUALITY_REGRESSION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+    "expected_control_scenario_count": 6,
+    "expected_unique_control_quality_regression_record_count": 4,
+    "expected_control_traceability_field_count": 6,
+    "expected_control_traceability_reference_check_count": 36,
+    "expected_scenario_ids": [
+      "long-document-chunk-quality-control-human-review",
+      "cross-page-table-chunk-quality-control-human-handling",
+      "engineering-procedure-chunk-quality-control-human-review",
+      "parameter-table-chunk-quality-control-human-review",
+      "citation-page-chunk-quality-control-human-confirmation",
+      "duplicate-chunk-quality-control-human-review"
+    ],
+    "predecessor_is_not_real_chunk_or_quality_evidence": true
+  },
+  "delivery_artifacts": {
+    "chunk_jsonl_samples": {
+      "required": true,
+      "sample_count": 6,
+      "metadata_only": true,
+      "actual_jsonl_file_written": false,
+      "actual_chunk_created": false,
+      "actual_chunk_identifier_generated": false,
+      "actual_chunk_hash_computed": false,
+      "actual_chunk_version_generated": false
+    },
+    "coverage_report": {
+      "required": true,
+      "control_scenario_count": 6,
+      "unique_control_quality_regression_record_count": 4,
+      "control_traceability_reference_check_count": 36,
+      "coverage_is_control_metadata_only": true,
+      "actual_document_quality_validated": false,
+      "actual_chunk_quality_regression_performed": false,
+      "coverage_can_support_real_quality_claim": false
+    },
+    "low_quality_chunk_list": {
+      "required": true,
+      "control_item_count": 6,
+      "all_items_require_human_review": true,
+      "actual_low_quality_chunk_observed": false,
+      "actual_quality_measurement_performed": false,
+      "automatic_quality_degradation_action_performed": false
+    },
+    "regression_test_results": {
+      "required": true,
+      "control_scenario_count": 6,
+      "silent_drop_count": 0,
+      "actual_quality_regression_performed": false,
+      "actual_quality_baseline_compared": false,
+      "actual_duplicate_chunk_checked": false,
+      "actual_embedding_or_index_write_performed": false
+    }
+  },
+  "chunking_strategy_applicability_boundary": {
+    "strategy_boundary_is_control_metadata_only": true,
+    "long_document_requires_human_boundary_review": true,
+    "cross_page_table_requires_human_handling": true,
+    "engineering_procedure_requires_human_boundary_review": true,
+    "parameter_table_requires_human_boundary_review": true,
+    "citation_page_requires_human_source_confirmation": true,
+    "duplicate_chunk_requires_later_identity_and_human_review": true,
+    "unverified_boundary_cannot_trigger_automatic_chunk_write": true,
+    "actual_strategy_applicability_validated": false,
+    "actual_production_quality_claim_allowed": false
+  },
+  "regeneration_and_version_rollback": {
+    "required": true,
+    "rollback_target_result": "PASS_PHASE3_CHUNK_QUALITY_REGRESSION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+    "in_memory_control_replay_only": true,
+    "phase1_phase2_phase3_artifacts_preserved": true,
+    "actual_chunk_regeneration_performed": false,
+    "actual_chunk_version_rollback_performed": false,
+    "actual_quality_regression_delivery_implementation_performed": false,
+    "source_or_raw_data_change_allowed": false,
+    "fixture_change_allowed": false,
+    "database_schema_change_allowed": false,
+    "persistent_runtime_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  },
+  "failure_and_stop_contract": {
+    "declared_failure_states": [
+      "PHASE3_REPORT_UNAVAILABLE",
+      "PHASE3_RESULT_NOT_PASS",
+      "PHASE3_SCENARIO_COUNT_MISMATCH",
+      "PHASE3_SCENARIO_IDENTIFIER_MISMATCH",
+      "PHASE3_CONTROL_TRACEABILITY_MISMATCH",
+      "PHASE3_RUNTIME_BOUNDARY_OPEN",
+      "METADATA_ONLY_SAMPLE_MISMATCH",
+      "CONTROL_DELIVERY_COVERAGE_REPORT_MISMATCH",
+      "LOW_QUALITY_HUMAN_REVIEW_MISMATCH",
+      "REGRESSION_CONTROL_RESULT_MISMATCH",
+      "REAL_SOURCE_OR_RUNTIME_ACTION_REQUESTED"
+    ],
+    "failure_state_count": 11,
+    "automatic_business_write_allowed": false
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "authorized_fixture_access_performed": false,
+    "source_file_open_performed": false,
+    "parser_execution_performed": false,
+    "chapter_detection_performed": false,
+    "chunking_execution_performed": false,
+    "chunk_identity_generation_performed": false,
+    "chunk_hash_computation_performed": false,
+    "chunk_version_generation_performed": false,
+    "semantic_asset_classification_performed": false,
+    "coverage_calculation_performed": false,
+    "quality_regression_performed": false,
+    "quality_degradation_performed": false,
+    "source_traceability_binding_performed": false,
+    "embedding_or_index_write_performed": false,
+    "database_connection_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "local_service_start_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "phase4_started": true,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "stage068_started": false,
+    "stage068_entry_allowed": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "chinese_feedback_contract": {
+    "all_messages_chinese": true,
+    "automation_claim_allowed": false,
+    "production_availability_claim_allowed": false,
+    "messages": [
+      {
+        "code": "METADATA_ONLY_DELIVERY",
+        "message": "已生成六条仅含控制引用的交付样例；它们不是实际 chunk，也不包含来源正文。"
+      },
+      {
+        "code": "QUALITY_DELIVERY_COVERAGE_BOUNDARY",
+        "message": "交付覆盖报告只核对固定控制场景和引用形状；真实页面、质量基线与质量结论仍需业务线白箱人工确认。"
+      },
+      {
+        "code": "ROLLBACK_BOUNDARY",
+        "message": "如需撤回本 phase，只回到 P3 的纯内存控制场景，不改动来源、版本、索引、数据库或部署。"
+      }
+    ]
+  }
+}

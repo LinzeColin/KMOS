@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage067 P4 切块质量回归受控交付形状",
+      "数值": "6/6/4/6/36/6/3/11",
+      "说明": "分别表示固定控制场景、metadata-only JSONL 样例、唯一控制质量回归记录、追溯字段、控制引用检查、低质量待人工记录、中文确认和声明失败状态；不表示真实资料、chunk、身份、Hash、版本、质量、重复检测、去重或来源验证结果。"
+    },
+    {
       "指标": "Stage067 P3 切块质量回归控制场景形状",
       "数值": "4/17/6/6/6/0/4/36",
       "说明": "依次表示重放的 Phase2 控制记录、每条记录字段、专项场景、显式处置、人工处理、静默丢弃、唯一控制记录和控制追溯检查；不表示真实文档、页面、chunk、质量、重复检测、去重、来源追溯或生产结果。"
@@ -68,6 +73,11 @@
   ],
   "data_shapes": [
     {
+      "名称": "切块质量回归仅元数据 JSONL 交付样例",
+      "字段": "sample_id、scenario_id、chunk_quality_regression_record_ref、chunk_quality_regression_request_ref、chapter_aware_chunk_ref、chunk_identity_version_record_ref、engineering_semantic_asset_catalog_ref、chunk_coverage_metrics_record_ref、control_traceability_reference_count、human_review_required、control_metadata_only",
+      "说明": "Stage067 P4 只在内存中从六类固定 :control: 场景投影 JSONL 行；它不包含真实正文、路径、页码、章节、chunk、身份、Hash、版本、质量、embedding、索引或业务事实。"
+    },
+    {
       "名称": "切块质量回归受控专项场景",
       "字段": "scenario_id、scenario_category、referenced_chunk_quality_regression_record_ref、referenced_chunk_quality_regression_request_ref、referenced_chapter_aware_chunk_ref、referenced_chunk_identity_version_record_ref、referenced_engineering_semantic_asset_catalog_ref、referenced_chunk_coverage_metrics_record_ref、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、explicit_disposition、human_handling_required",
       "说明": "Stage067 P3 只重放固定 :control: 引用并输出六类显式人工处置；它不包含真实文档、真实页码、真实 chunk、真实质量、真实重复检测、去重或来源验证。"
@@ -125,8 +135,12 @@
   ],
   "invariants": [
     {
+      "规则": "Stage067 P4 交付证据不替代真实质量、去重或来源验证",
+      "说明": "P4 的六条 JSONL 样例、控制交付覆盖报告、低质量待人工清单、控制回归结果、策略边界和 P4→P3 回退说明只检验固定控制形状；长文档、跨页表格、工程步骤、参数表、引用页码和重复 chunk 仍须业务线白箱人工复核，不能形成真实质量、去重或业务结论。"
+    },
+    {
       "规则": "Stage067 P3 专项场景不替代真实质量、去重或来源验证",
-      "说明": "P3 的长文档、跨页表格、施工步骤、参数表、引用页码和重复 chunk 只表示控制类别；六类均须业务线白箱人工处理，控制模块不检测真实重复项、不形成真实去重、质量或来源反查结论，P4 必须由新的独立 run 处理。"
+      "说明": "P3 的长文档、跨页表格、施工步骤、参数表、引用页码和重复 chunk 只表示控制类别；六类均须业务线白箱人工处理，控制模块不检测真实重复项、不形成真实去重、质量或来源反查结论，并仅作为 P4 metadata-only 交付的固定前序。"
     },
     {
       "规则": "Stage067 P1 不执行切块质量回归",
@@ -170,6 +184,21 @@
     }
   ],
   "terms": [
+    {
+      "英文": "metadata-only chunk quality regression JSONL delivery sample",
+      "中文": "仅元数据切块质量回归 JSONL 交付样例",
+      "说明": "Stage067 P4 从 P3 六类固定控制场景派生的内存 JSONL 行；它只保留 :control: 引用和人工复核状态，不包含真实 chunk、质量、身份、Hash、版本、路径、页码内容或业务事实。"
+    },
+    {
+      "英文": "controlled chunk quality regression delivery coverage report",
+      "中文": "受控切块质量回归交付覆盖报告",
+      "说明": "Stage067 P4 只报告六类固定场景、四条唯一控制质量回归记录和三十六次控制引用检查是否完整；它不验证真实文档、真实页码、真实 chunk 或真实质量，不能用作质量结论。"
+    },
+    {
+      "英文": "chunk quality regression regeneration and rollback control",
+      "中文": "切块质量回归重生成及回滚控制",
+      "说明": "Stage067 P4 的纯内存说明只允许撤回到 P3 控制场景，不读取真实资料、不重生成真实 chunk、不回退真实版本、索引或数据库状态。"
+    },
     {
       "英文": "controlled chunk quality regression scenario",
       "中文": "受控切块质量回归专项场景",

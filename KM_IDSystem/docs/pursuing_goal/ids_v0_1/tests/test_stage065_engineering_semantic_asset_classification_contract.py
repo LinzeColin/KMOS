@@ -326,6 +326,7 @@ class Stage065EngineeringSemanticAssetClassificationPhase1Tests(unittest.TestCas
                 ("IDS-STAGE066-REVIEW", "IDS-V0_1-STAGE066-REVIEW", "IDS-STAGE067-P1-GATE"),
                 ("IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P1", "IDS-STAGE067-P2-GATE"), ("IDS-V0_1-STAGE067-P2", "IDS-V0_1-STAGE067-P2", "IDS-STAGE067-P3-GATE"),
             ("IDS-V0_1-STAGE067-P3", "IDS-V0_1-STAGE067-P3", "IDS-STAGE067-P4-GATE"),
+            ("IDS-V0_1-STAGE067-P4", "IDS-V0_1-STAGE067-P4", "IDS-STAGE067-REVIEW-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -346,6 +347,8 @@ class Stage065EngineeringSemanticAssetClassificationPhase1Tests(unittest.TestCas
                 ("IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE066-REVIEW"),
                 ("IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P2"), ("IDS-V0_1-STAGE067-P2", "IDS-V0_1-STAGE067-P2"),
             ("IDS-V0_1-STAGE067-P3", "IDS-V0_1-STAGE067-P3"),
+            ("IDS-V0_1-STAGE067-P4", "IDS-V0_1-STAGE067-P4"),
+                ("IDS-V0_1-STAGE067-P4", "IDS-V0_1-STAGE067-P4"),
                 ("IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE066-REVIEW"),
             ),
         )
@@ -360,7 +363,7 @@ class Stage065EngineeringSemanticAssetClassificationPhase1Tests(unittest.TestCas
             or "IDS-STAGE066-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE066-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE067-P1-GATE" in plan["stop_condition"]
-            or ("IDS-STAGE067-P2-GATE" in plan["stop_condition"] or "IDS-STAGE067-P3-GATE" in plan["stop_condition"] or "IDS-STAGE067-P4-GATE" in plan["stop_condition"])
+            or ("IDS-STAGE067-P2-GATE" in plan["stop_condition"] or "IDS-STAGE067-P3-GATE" in plan["stop_condition"] or "IDS-STAGE067-P4-GATE" in plan["stop_condition"] or "IDS-STAGE067-REVIEW-GATE" in plan["stop_condition"])
         )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
