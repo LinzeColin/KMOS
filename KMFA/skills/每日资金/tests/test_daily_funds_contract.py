@@ -1892,7 +1892,13 @@ def test_cashflow_observation_uses_enhanced_rendering_only_after_grid_recovery_s
 
 def test_cashflow_observation_uses_binarized_rendering_only_after_enhanced_recovery_stops() -> None:
     image_module = pytest.importorskip("PIL.Image")
+    draw_module = pytest.importorskip("PIL.ImageDraw")
     image = image_module.new("L", (224, 128), 255)
+    # Otsu binarization requires a non-degenerate histogram.  These fixed
+    # layout-only strokes intentionally contain no business text or amounts.
+    draw = draw_module.Draw(image)
+    draw.line((0, 24, 223, 24), fill=0, width=1)
+    draw.line((32, 0, 32, 127), fill=0, width=1)
     buffer = BytesIO()
     image.save(buffer, format="PNG")
     payload = buffer.getvalue()
