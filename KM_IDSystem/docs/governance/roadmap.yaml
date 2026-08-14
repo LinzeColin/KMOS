@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE068"
-current_phase_id: "IDS-STAGE068-REVIEW"
-current_task_id: "IDS-V0_1-STAGE068-REVIEW"
-next_gate_id: "IDS-STAGE069-P1-GATE"
+current_stage_id: "IDS-STAGE069"
+current_phase_id: "IDS-STAGE069-P1"
+current_task_id: "IDS-V0_1-STAGE069-P1"
+next_gate_id: "IDS-STAGE069-P2-GATE"
 current_transition_history:
+  stage069_phase1_state:
+    current_stage_id: "IDS-STAGE069"
+    current_phase_id: "IDS-STAGE069-P1"
+    current_task_id: "IDS-V0_1-STAGE069-P1"
+    next_gate_id: "IDS-STAGE069-P2-GATE"
   stage068_review_state:
     current_stage_id: "IDS-STAGE068"
     current_phase_id: "IDS-STAGE068-REVIEW"
@@ -17695,6 +17700,74 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
             risk: "若把静态合同、control 计数、metadata-only 交付或本地复审通过误作真实章节检测、真实切块、真实身份/版本、真实质量、真实来源追溯、OVH、生产或上传能力，会绕开业务线人工白箱处理和单一权威边界。"
             rollback: "只回滚本 Review 说明、只读复审模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PHASE4_CHUNK_IDENTITY_AND_VERSION_DELIVERY_EVIDENCE_RUNTIME_DISABLED；不改变 P1--P4、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 或应用状态。"
+  - stage_id: "IDS-STAGE069"
+    name: "STAGE-069 · 外部 API 策略继承"
+    task_id: "IDS-V0_1-STAGE069"
+    acceptance_ids:
+      - "ACC-STAGE-069"
+    status: "phase1_completed_local"
+    pursuing_goal: "只以冻结 Stage069 任务包、Stage068 本地整阶段机械复审、根策略锁、操作说明和 Batch061-070 上传锁为唯一合同上下文，定义 data source/document→chunk 的 external_api_policy 自动继承、默认 denied、三档策略、未来 Embedding 队列、成本/模型版本、审计字段、业务线白箱例外和失败关闭；不读取、总结或外发真实资料，不创建队列、审计、模型调用或业务事实。"
+    stop_gate:
+      gate_id: "IDS-STAGE069-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE069-P2-GATE"
+      github_upload_allowed: false
+    pass_conditions:
+      - "P1 固定默认 denied、denied/summary_only/full_text_allowed 三档策略、data source/document→chunk 自动继承，以及 15/23/12/8/18/13 的未来控制形状。"
+      - "未知值、权限放宽、逐条 chunk 标记、预算/审计缺失和 Phase1 外部执行均失败关闭；来源文档与业务线白箱人工处理保持唯一权威。"
+      - "真实资料、摘要、文本外发、队列、缓存、provider 凭据、provider/模型选择、外部 API、模型 Token、审计、索引、数据库、Agent、OVH、生产和上传均保持关闭。"
+    stop_conditions:
+      - "读取、创建、复制、移动、删除、修改、打开、检测、解析、总结、评估、保留、外发或回退任何 IDS 业务资料、原始元数据、授权 fixture、真实 data source、document、摘要、页面、表格、来源片段、parser 输出、chunk、队列、审计记录、成本记录、模型版本、索引、数据库或报告"
+      - "执行真实 parser、章节检测、切块、摘要生成、外部文本载荷创建、Embedding 队列、缓存、provider 凭据读取、provider/模型选择、外部 API、模型调用、模型 Token、成本计算、审计写入、索引、持久化、Agent、OVH、生产服务、Stage069 P2、批次复审、上传、推送或应用重装"
+    phases:
+      - phase_id: "IDS-STAGE069-P1"
+        name: "Phase 1 · 外部 API 策略继承合同"
+        objective: "只定义 data source/document→chunk 自动继承、默认 denied、三档策略、未来 Embedding 队列、成本/模型版本与审计字段、中文反馈和失败关闭；不访问真实资料、不创建队列或审计记录、不调用外部 API、不消耗模型 Token。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE069-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE069-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE069-P2-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、打开、解析、总结、外发、创建、写入、删除、移动或回退任何真实 data source、document、摘要、chunk、队列、缓存、审计、成本、模型版本、索引、数据库、报告或业务事实"
+          - "执行 provider 凭据读取、provider/模型选择、外部 API、模型调用、模型 Token、Embedding、索引、数据库、持久化、Agent、OVH、生产、Stage069 P2、整阶段复审、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE069-P1"
+            name: "定义外部 API 策略继承、未来队列、成本、模型版本与审计边界"
+            objective: "固定 data source/document→chunk 自动继承、默认 denied、三档策略、15 个仅引用输入、23 个未来输出、12 个未来队列字段、8 个成本/模型版本字段、18 个未来审计字段、13 类失败关闭和回滚边界；不产生实际策略解析、摘要、外发、队列、审计、成本、模型或业务结论。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE068-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-069"
+              - "ACC-STAGE069-P1-01"
+              - "ACC-STAGE069-P1-02"
+              - "ACC-STAGE069-P1-03"
+              - "ACC-STAGE069-P1-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage069_external_api_policy_contract"
+              - "Stage069 P1 与显式前序兼容回归命令记录在 machine run"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "本 run 的聚焦用例、含显式前序的阶段链路、两个批次检查器、Stage005 治理回归与中文事实投影真实结果记录在 Stage069 P1 machine run；本 P1 不进入 Stage069 P2、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-069_外部API策略继承.md"
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/guides/external_api_policy操作流程说明.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE069_PHASE1_EXTERNAL_API_POLICY_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_policy/stage069_external_api_policy_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage069_external_api_policy_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-14-stage069-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE068_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把策略标签、继承关系、未来队列/成本/模型版本/审计字段或本地测试通过误作真实资料授权、真实摘要/文本外发、真实 Embedding、真实模型使用、OVH、生产或上传能力，会绕开单一权威、预算/审计关闭和业务线白箱人工处理。"
+            rollback: "只回滚本 P1 范围说明、静态合同、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 STAGE068_REVIEWED_LOCAL_QUALITY_DEGRADATION_RUNTIME_DISABLED；不改变 Stage068 Review、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。"
   - stage_id: "IDS-STAGE068"
     name: "STAGE-068 · 质量降级而非只判失败"
     task_id: "IDS-V0_1-STAGE068"

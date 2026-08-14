@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage069 P1 外部 API 策略继承静态形状",
+      "数值": "3/15/23/12/8/18/13",
+      "说明": "依次表示允许策略值、仅引用输入、未来策略输出、未来 Embedding 队列、成本与模型版本、未来审计和失败关闭状态的合同数量；不表示真实资料、摘要、chunk、外发、队列、成本、模型、Token、审计、OVH 或生产结果。"
+    },
+    {
       "指标": "Stage068 整阶段机械复审形状",
       "数值": "13/19/3/6/17 · 4/4/19/24 · 6/6/0/4/36 · 6/6/4/6/36/6/3/12",
       "说明": "依次表示 P1 静态合同、P2 控制投影、P3 白箱场景和 P4 metadata-only 交付的固定控制计数；复审发现数为零，不表示真实资料、chunk、质量、质量降级、低可信证据、重复检测、去重、来源验证、OVH 或生产结果。"
@@ -98,6 +103,11 @@
   ],
   "data_shapes": [
     {
+      "名称": "外部 API 策略继承仅引用合同",
+      "字段": "data_source_ref、document_ref、chunk_ref、source_external_api_policy、document_external_api_policy、effective_external_api_policy、policy_inheritance_reason、owner_authorization_ref、authorized_at、authorization_reason、provider_ref、model_ref、model_version、embedding_queue_request_ref、external_api_audit_ref",
+      "说明": "Stage069 P1 只定义不透明受控引用、三档策略与未来队列/成本/模型版本/审计字段；它不包含来源正文、摘要正文、文本块、物理路径、实际成本、实际模型调用或业务结论。"
+    },
+    {
       "名称": "质量降级仅元数据 JSONL 交付样例",
       "字段": "sample_id、scenario_id、quality_degradation_record_ref、quality_degradation_request_ref、chunk_quality_regression_record_ref、chapter_aware_chunk_ref、chunk_identity_version_record_ref、engineering_semantic_asset_catalog_ref、chunk_coverage_metrics_record_ref、control_traceability_reference_count、human_review_required、control_metadata_only",
       "说明": "Stage068 P4 只在内存中从六类固定 :control: 场景投影 JSONL 行；它不包含真实正文、路径、页码、章节、chunk、质量、质量降级、低可信证据、embedding、索引或业务事实。"
@@ -175,6 +185,10 @@
   ],
   "invariants": [
     {
+      "规则": "Stage069 P1 不执行外部 API 或生产运行",
+      "说明": "P1 只固定默认 denied、source/document→chunk 自动继承、未来队列/成本/模型版本/审计和失败关闭；没有读取真实资料、生成摘要、外发文本、创建队列/审计、选择 provider/模型、消耗 Token、写入索引/数据库、运行 Agent、部署 OVH、启用生产、上传或推送，P2 必须由新的独立 run 处理。"
+    },
+    {
       "规则": "Stage068 Review 不启动外部 API、OVH 或生产运行",
       "说明": "Review 只复审 P1--P4 的冻结合同和纯内存控制报告；Stage069 尚未开始，所有真实资料访问、质量测量/回归/降级、低可信证据、重复检测/去重、索引、数据库、Agent、模型 Token、OVH、生产、上传和推送保持关闭。"
     },
@@ -244,6 +258,21 @@
       "英文": "Stage068 local mechanical review",
       "中文": "Stage068 本地机械复审",
       "说明": "只读复审 Stage068 P1--P4 合同与 P3/P4 纯内存控制报告的治理步骤；通过只表示固定控制形状、白箱人工处理、metadata-only 交付与回退链一致，不替代来源文档或业务事实。"
+    },
+    {
+      "英文": "denied",
+      "中文": "禁止外部调用",
+      "说明": "外部 API 策略默认值；不允许发送摘要或文本块，不创建队列或调用记录，必须保持失败关闭并交由业务线白箱复核。"
+    },
+    {
+      "英文": "summary_only",
+      "中文": "仅允许受控摘要",
+      "说明": "未来策略档位；仅在逐项授权和后续阶段门均满足时才可处理授权摘要，不允许外发原文或文本块；本阶段未创建队列、未选择模型且未调用外部 API。"
+    },
+    {
+      "英文": "full_text_allowed",
+      "中文": "允许受控全文",
+      "说明": "未来策略档位；只有逐项授权、后续实施门和审计要求同时满足时才可能使用，不表示本阶段已经外发全文、选择模型、消耗 Token 或启用生产运行时。"
     },
     {
       "英文": "Stage067 local mechanical review",

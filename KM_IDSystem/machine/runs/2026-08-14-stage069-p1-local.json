@@ -1,0 +1,43 @@
+{
+  "schema_version": "ids.machine_run.v1",
+  "run_id": "RUN-IDS-STAGE069-P1-LOCAL-20260814-001",
+  "project_id": "KM_IDSystem",
+  "stage": "IDS-STAGE069",
+  "phase": "IDS-V0_1-STAGE069-P1",
+  "task_id": "IDS-V0_1-STAGE069-P1",
+  "acceptance_id": "ACC-STAGE-069",
+  "next_gate": "IDS-STAGE069-P2-GATE",
+  "action": "本地静态外部 API 策略继承合同、治理投影与零运行时边界验证",
+  "result": "PASS_LOCAL_STAGE069_PHASE1_EXTERNAL_API_POLICY_INHERITANCE_CONTRACT_RUNTIME_DISABLED",
+  "execution_scope": "Stage069 Phase 1 static external API policy inheritance contract and governance projection only",
+  "verification_status": "PASS_ALL_LOCAL_PHASE1_VALIDATIONS",
+  "validation": {
+    "focused_stage069_contract_tests": "PASS_7_OF_7",
+    "stage060_to_stage069_regression": "PASS_435_OF_435",
+    "stage005_governance_regression": "PASS_VALID_TRUE",
+    "batch041_050_review": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+    "batch051_060_review": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+    "human_projection": "PASS_RENDERED_7_FILES",
+    "human_document_gates": "PASS_DOC_BUDGET_BLOCKER_AND_DUAL_PLANE_GATES"
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "parser_execution_performed": false,
+    "chunking_execution_performed": false,
+    "summary_generation_performed": false,
+    "external_payload_created": false,
+    "embedding_queue_execution_performed": false,
+    "provider_credential_read_performed": false,
+    "provider_or_model_selected": false,
+    "external_api_client_initialized": false,
+    "external_api_call_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "external_api_audit_record_created": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  }
+}

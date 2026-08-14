@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage069 Phase 1（本地）
+
+- 完成外部 API 策略继承静态合同：仅定义 data source/document→chunk 自动继承、默认 `denied`、`denied/summary_only/full_text_allowed` 三档、未来 Embedding 队列、成本/模型版本、审计字段、业务线白箱例外、中文术语与十三类失败关闭，固定形状为 `3/15/23/12/8/18/13`；没有建立第二权威事实源。
+- 合同、策略标签、受控引用和未来字段只验证冻结接口接线，不能替代来源文档或业务线白箱人工复核，也不代表真实资料、摘要、chunk、队列、provider/模型选择、外部 API、模型 Token、审计、索引、OVH、生产、上传或推送能力。
+- 本地验证通过：Stage069 P1 聚焦用例 `7/7`；Stage060--069 阶段链路回归 `435/435`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，人类平面三道门、无登记阻塞与双平面检查通过。下一步仅可在新的独立 run 进入 `IDS-STAGE069-P2-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage068 Review（本地）
 
 - 完成 Stage068 P1--P4 整阶段机械复审：只读重放冻结合同与 P3/P4 纯内存控制报告，核验 `13/19/3/6/17`、`4/4/19/24`、`6/6/0/4/36`、`6/6/3/12` 固定控制形状、六类业务线白箱人工处置、metadata-only 交付、单一权威和 P4→P3 控制回退；发现数为 `0`。

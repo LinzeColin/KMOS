@@ -1,6 +1,12 @@
 {
   "stages": [
     {
+      "id": "IDS-STAGE069",
+      "name": "外部 API 策略继承",
+      "gate": "Phase 1 静态合同已本地通过；下一步须在新的独立 run 进入 Stage069 Phase 2",
+      "status": "Stage069 P1 仅定义默认 denied、三档策略、data source/document→chunk 自动继承、未来队列/成本/模型版本/审计字段和失败关闭；真实资料、外部 API、模型 Token、OVH 与生产仍禁用"
+    },
+    {
       "id": "IDS-STAGE068",
       "name": "质量降级而非只判失败",
       "gate": "P1--P4 控制合同、P3/P4 纯内存控制报告和整阶段机械复审已本地通过；下一步须在新的独立 run 进入 Stage069 Phase 1",

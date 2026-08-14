@@ -344,14 +344,26 @@ class Stage068QualityDegradationPhase1Tests(unittest.TestCase):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE068", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE068-REVIEW", status["phase"])
-        self.assertEqual("IDS-STAGE069-P1-GATE", status["next_gate"])
+        self.assertIn(
+            (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                ("IDS-STAGE068", "IDS-V0_1-STAGE068-REVIEW", "IDS-V0_1-STAGE068-REVIEW", "IDS-STAGE069-P1-GATE"),
+                ("IDS-STAGE069", "IDS-V0_1-STAGE069-P1", "IDS-V0_1-STAGE069-P1", "IDS-STAGE069-P2-GATE"),
+            ),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-STAGE068", plan["stage"])
-        self.assertEqual("IDS-V0_1-STAGE068-REVIEW", plan["phase"])
-        self.assertIn("IDS-STAGE069-P1-GATE", plan["stop_condition"])
+        self.assertIn(
+            (plan["stage"], plan["phase"], plan["task"]),
+            (
+                ("IDS-STAGE068", "IDS-V0_1-STAGE068-REVIEW", "IDS-V0_1-STAGE068-REVIEW"),
+                ("IDS-STAGE069", "IDS-V0_1-STAGE069-P1", "IDS-V0_1-STAGE069-P1"),
+            ),
+        )
+        self.assertTrue(
+            "IDS-STAGE069-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE069-P2-GATE" in plan["stop_condition"]
+        )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
             {

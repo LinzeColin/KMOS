@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage068 Review - 2026-08-14
+## Current Gate - Stage069 Phase 1 - 2026-08-14
 
-- 本节是唯一当前交接；Stage068 P4/P3/P2/P1、Stage067 Review/P4/P3/P2/P1、Stage066 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；Stage068 Review/P4/P3/P2/P1、Stage067 Review/P4/P3/P2/P1、Stage066 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE069-P1`：仅定义 data source/document→chunk 的 `external_api_policy` 自动继承、默认 `denied`、`denied/summary_only/full_text_allowed` 三档策略、未来 Embedding 队列、成本/模型版本、审计字段、业务线白箱例外与失败关闭，固定合同形状为 `3/15/23/12/8/18/13`；没有建立第二权威事实源。
+- 本 P1 只证明冻结任务包、Stage068 Review、根策略锁、操作说明、静态合同和治理投影在本地一致；不证明真实资料、摘要、页面、chunk、策略解析、队列、成本、审计、provider/模型选择、外部 API、模型 Token、OVH、生产或上传能力。来源文档与业务线白箱人工复核继续是唯一权威，所有真实资料、Agent、模型 Token 与运行时计数保持零。
+- 已验证：Stage069 P1 聚焦用例 `7/7`；Stage060--069 阶段链路回归 `435/435`；Batch041-050 与 Batch051-060 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，文档预算、无登记阻塞与双平面检查均通过（`2` 个项目）。以上只验证静态合同、治理和零运行时边界，不将其表述为真实资料验证、OVH 或生产验收。
+- 回滚只撤回本 P1 范围说明、外部 API 策略继承静态合同、术语登记、聚焦用例、machine run、事件、机器事实、治理路线、阶段链路兼容断言与生成中文视图，恢复到 `STAGE068_REVIEWED_LOCAL_QUALITY_DEGRADATION_RUNTIME_DISABLED`；不改变 Stage068 及更早证据、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE069-P2-GATE`。本 run 不进入 P2、P3、P4、整阶段复审、批次复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage068 Review - 2026-08-14
+
+- 本节保留 Stage068 Review 的已提交历史证据；唯一当前交接位于上方 Stage069 Phase 1，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE068-REVIEW`：只读机械复审冻结任务包、Stage068 P1--P4 合同与 P3/P4 纯内存质量降级控制报告，确认 `13/19/3/6/17`、`4/4/19/24`、`6/6/0/4/36`、`6/6/3/12` 固定控制形状、六类业务线白箱人工处置、metadata-only 交付、单一权威和 P4→P3 控制回退；发现数为 `0`，没有建立第二权威事实源。
 - 本 Review 只证明冻结控制工件、人工处置和治理投影本地一致；不证明真实资料、真实页面/chunk/hash、真实质量或质量降级、低可信证据、真实重复检测/去重、真实来源追溯、真实重生成/版本回退、OVH、生产或上传能力。来源文档与业务线白箱人工复核继续是唯一权威，所有真实资料、Agent、模型 Token 与运行时计数保持零。
 - 已验证：Stage068 Review 聚焦用例 `8/8`；Stage060--068 阶段链路回归 `428/428`；Batch041-050 与 Batch051-060 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，文档预算与无登记阻塞检查通过，双平面检查通过 `2` 个项目。以上只验证纯内存控制形状、治理与零运行时边界，不将其表述为真实资料验证、OVH 或生产验收。
