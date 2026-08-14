@@ -1,14 +1,21 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
-updated_at_utc: "2026-08-14T12:41:31Z"
-status: "stage068_phase4_completed_review_pending"
+updated_at_utc: "2026-08-14T13:37:31Z"
+status: "stage068_completed_reviewed_local"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage068_review_state:
+    status: "stage068_completed_reviewed_local"
+    current_task_id: "IDS-V0_1-STAGE068-REVIEW"
+    next_gate: "IDS-STAGE069-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE069-P1"
+    stage069_phase1_entry_authorized: true
+    github_upload_allowed: false
   stage068_phase4_state:
     status: "stage068_phase4_completed_review_pending"
     current_task_id: "IDS-V0_1-STAGE068-P4"
@@ -314,24 +321,27 @@ upload_gate:
 
 stage_progress:
   STAGE-068:
-    status: "stage068_phase4_completed_review_pending"
+    status: "stage068_completed_reviewed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_phase: "Stage Review"
-    next_gate: "IDS-STAGE068-REVIEW-GATE"
-    current_task_id: "IDS-V0_1-STAGE068-P4"
+      - "Stage Review"
+    next_phase: "Stage069 Phase 1"
+    next_gate: "IDS-STAGE069-P1-GATE"
+    current_task_id: "IDS-V0_1-STAGE068-REVIEW"
     acceptance_id: "ACC-STAGE-068"
-    acceptance_status: "phase4_completed_review_pending"
+    acceptance_status: "completed_reviewed_local"
+    review_status: "completed_reviewed_local"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
     phase4_entry_authorized: true
     stage068_review_entry_authorized: true
+    stage069_phase1_entry_authorized: true
     taskpack_context_read_performed: true
     predecessor_stage067_review_reused_as_reference_only: true
-    source_authority: "FROZEN_STAGE068_TASKPACK_AND_PHASE1_PHASE2_AND_STAGE067_REVIEW_ARTIFACTS_ONLY"
+    source_authority: "FROZEN_STAGE068_TASKPACK_AND_STAGE068_P1_TO_P4_CONTROL_ARTIFACTS_ONLY"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
     raw_metadata_content_accessed: false
@@ -344,7 +354,8 @@ stage_progress:
     quality_degradation_slice_contract_schema: "ids.stage068.quality_degradation.phase2.v1"
     quality_degradation_scenarios_contract_schema: "ids.stage068.quality_degradation.phase3.controlled_scenarios_contract.v1"
     quality_degradation_delivery_contract_schema: "ids.stage068.quality_degradation.phase4.delivery_contract.v1"
-    contract_state: "PHASE4_QUALITY_DEGRADATION_METADATA_ONLY_DELIVERY_RUNTIME_DISABLED"
+    quality_degradation_review_schema: "ids.stage068.quality_degradation.stage_review.v1"
+    contract_state: "STAGE068_REVIEWED_LOCAL_QUALITY_DEGRADATION_RUNTIME_DISABLED"
     execution_ready: false
     reference_only_input_field_count: 13
     future_output_field_count: 19
@@ -400,7 +411,9 @@ stage_progress:
     phase2_started: true
     phase3_started: true
     phase4_started: true
-    whole_stage_review_performed: false
+    whole_stage_review_performed: true
+    review_finding_count: 0
+    review_valid: true
     batch_review_performed: false
     stage069_started: false
     stage069_entry_allowed: false
@@ -428,6 +441,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/quality_degradation/stage068_quality_degradation_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage068_quality_degradation_delivery.py"
       - "KM_IDSystem/machine/runs/2026-08-14-stage068-p4-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE068_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/quality_degradation/stage068_quality_degradation_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage068_quality_degradation_stage_review.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage068-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE067_STAGE_REVIEW.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
   STAGE-067:
@@ -1416,10 +1433,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE068-P4"
-  next_allowed_task_id: "IDS-V0_1-STAGE068-REVIEW"
+  current_task_id: "IDS-V0_1-STAGE068-REVIEW"
+  next_allowed_task_id: "IDS-V0_1-STAGE069-P1"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-068 Phase 4 only projects the six fixed reference-only quality-degradation P3 scenarios into six in-memory metadata-only JSONL samples, a control delivery coverage report, six low-quality human-review items, a control regression result, strategy applicability boundaries, three Chinese confirmations, and P4-to-P3 control rollback instructions. It does not open sources, run a parser, create chunks, calculate coverage or quality, create actual quality degradation or low-confidence evidence, detect duplicates, write embedding or indexes, write persistent state, call a model, deploy OVH or activate any runtime. Stage068 Review is the next independent gate."
+  current_run: "STAGE-068 Review only mechanically replays the frozen P1--P4 contracts and P3/P4 in-memory quality-degradation control reports. It confirms fixed control shapes, white-box human handling, metadata-only delivery, single authority, zero runtime and the P4-to-P3 control rollback chain. It does not open sources, run a parser, create chunks, calculate coverage or quality, create actual quality degradation or low-confidence evidence, detect duplicates, write embedding or indexes, write persistent state, call a model, deploy OVH or activate any runtime. Stage069 has not started; Stage069 P1 is the next independent gate."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."

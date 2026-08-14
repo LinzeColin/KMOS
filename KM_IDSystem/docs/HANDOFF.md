@@ -9,14 +9,20 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage068 Phase 4 - 2026-08-14
+## Current Gate - Stage068 Review - 2026-08-14
 
-- 本节是唯一当前交接；Stage068 P3/P2/P1、Stage067 Review/P4/P3/P2/P1、Stage066 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
-- 本轮完成 `IDS-V0_1-STAGE068-P4`：只在内存中将 P3 的六类固定、非业务、reference-only 质量降级控制场景投影为六条 metadata-only JSONL 样例、控制交付覆盖报告、六条低质量待人工复核项、控制回归结果、切块策略适用边界、三条中文确认与 P4→P3 回滚说明，形成 `6/6/4/6/36/6/3/12` 控制形状；没有建立第二权威事实源，也没有写出实际 JSONL。
-- 本 P4 只证明冻结任务包、Stage068 P1--P3 控制工件、Stage067 本地复审、纯内存交付合同、治理路线和中文事实投影在本地一致；不证明真实资料、真实页面/chunk/hash、真实质量或质量降级、低可信证据、真实重复检测/去重、真实来源追溯、真实重生成/版本回退、OVH、生产或上传能力。来源文档与业务线白箱人工复核继续是唯一权威，所有真实资料、Agent、模型 Token 与运行时计数保持零。
-- 已验证：Stage068 P4 聚焦用例 `12/12`；Stage060--068 阶段链路回归 `420/420`；Batch041-050 与 Batch051-060 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，双平面检查通过 `2` 个项目，文档预算与无登记阻塞检查通过。以上只验证纯内存控制形状、治理与零运行时边界，不将其表述为真实资料验证、OVH 或生产验收。
-- 回滚只撤回本 P4 范围说明、纯内存交付模块、交付合同、聚焦用例、machine run、事件、机器事实、治理路线、阶段链路断言与生成中文视图，恢复到 `PASS_PHASE3_QUALITY_DEGRADATION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；不改变 P1--P3、Stage063--067、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
-- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE068-REVIEW-GATE`。本 run 不进入整阶段复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+- 本节是唯一当前交接；Stage068 P4/P3/P2/P1、Stage067 Review/P4/P3/P2/P1、Stage066 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE068-REVIEW`：只读机械复审冻结任务包、Stage068 P1--P4 合同与 P3/P4 纯内存质量降级控制报告，确认 `13/19/3/6/17`、`4/4/19/24`、`6/6/0/4/36`、`6/6/3/12` 固定控制形状、六类业务线白箱人工处置、metadata-only 交付、单一权威和 P4→P3 控制回退；发现数为 `0`，没有建立第二权威事实源。
+- 本 Review 只证明冻结控制工件、人工处置和治理投影本地一致；不证明真实资料、真实页面/chunk/hash、真实质量或质量降级、低可信证据、真实重复检测/去重、真实来源追溯、真实重生成/版本回退、OVH、生产或上传能力。来源文档与业务线白箱人工复核继续是唯一权威，所有真实资料、Agent、模型 Token 与运行时计数保持零。
+- 已验证：Stage068 Review 聚焦用例 `8/8`；Stage060--068 阶段链路回归 `428/428`；Batch041-050 与 Batch051-060 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，文档预算与无登记阻塞检查通过，双平面检查通过 `2` 个项目。以上只验证纯内存控制形状、治理与零运行时边界，不将其表述为真实资料验证、OVH 或生产验收。
+- 回滚只撤回本 Review 范围说明、只读复审模块、聚焦用例、machine run、事件、机器事实、治理路线、阶段链路断言与生成中文视图，恢复到 `PHASE4_QUALITY_DEGRADATION_METADATA_ONLY_DELIVERY_RUNTIME_DISABLED`；不改变 P1--P4、Stage063--067、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE069-P1-GATE`。本 run 不进入 Stage069、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage068 Phase 4 - 2026-08-14
+
+- 本节保留 Stage068 P4 的已提交历史证据；唯一当前交接位于上方 Stage068 Review，不重写其事实。
+- P4 已完成六类纯内存 metadata-only JSONL 样例、控制交付覆盖、六条低质量待人工项、三条中文确认和 P4→P3 回退说明，固定形状为 `6/6/4/6/36/6/3/12`；其详细合同、报告、运行回执与事件保持原位。
+- P4 当时仅允许在新的独立 run 进入 `IDS-STAGE068-REVIEW-GATE`；该历史门禁现已由上方 Review 取代，仍不证明真实资料、OVH、生产或上传能力。
 
 ## Superseded Gate - Stage068 Phase 3 - 2026-08-14
 
