@@ -201,16 +201,16 @@ class Stage067ChunkQualityRegressionStageReviewTests(unittest.TestCase):
         ]
         self.assertEqual(
             (
-                "IDS-STAGE067",
-                "IDS-V0_1-STAGE067-REVIEW",
-                "IDS-V0_1-STAGE067-REVIEW",
-                "IDS-STAGE068-P1-GATE",
+                "IDS-STAGE068",
+                "IDS-V0_1-STAGE068-P1",
+                "IDS-V0_1-STAGE068-P1",
+                "IDS-STAGE068-P2-GATE",
             ),
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
         )
-        self.assertEqual("IDS-V0_1-STAGE067-REVIEW", plan["phase"])
-        self.assertEqual("IDS-V0_1-STAGE067-REVIEW", plan["task"])
-        self.assertIn("IDS-STAGE068-P1-GATE", plan["stop_condition"])
+        self.assertEqual("IDS-V0_1-STAGE068-P1", plan["phase"])
+        self.assertEqual("IDS-V0_1-STAGE068-P1", plan["task"])
+        self.assertIn("IDS-STAGE068-P2-GATE", plan["stop_condition"])
         self.assertTrue(
             {
                 "ACC-STAGE067-REVIEW-01",

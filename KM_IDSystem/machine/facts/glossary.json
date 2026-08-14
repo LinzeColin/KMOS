@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage068 P1 静态质量降级形状",
+      "数值": "13/19/2/3/6/17",
+      "说明": "依次表示仅引用输入字段、未来质量降级输出字段、未来人工复核/低可信证据分流、保护语义面、追溯字段和失败关闭状态的合同数量；不表示真实文档、页面、chunk、质量、质量降级、低可信证据、重复检测、去重、来源追溯、OVH 或生产结果。"
+    },
+    {
       "指标": "Stage067 整阶段机械复审形状",
       "数值": "12/17/3/6/15 · 4/4/24 · 6/6/0/6/4/36 · 6/6/4/6/36/6/3/11",
       "说明": "依次表示 P1 静态合同、P2 控制投影、P3 白箱场景和 P4 metadata-only 交付的固定控制计数；复审发现数为零，不表示真实资料、chunk、质量、重复检测、去重、来源验证、OVH 或生产结果。"
@@ -78,6 +83,11 @@
   ],
   "data_shapes": [
     {
+      "名称": "质量降级仅引用合同",
+      "字段": "quality_degradation_request_ref、chapter_aware_chunk_ref、chunk_identity_version_record_ref、engineering_semantic_asset_catalog_ref、chunk_coverage_metrics_record_ref、chunk_quality_regression_record_ref、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、duplicate_chunk_control_ref",
+      "说明": "Stage068 P1 只定义不透明受控引用和未来质量降级字段；它不包含正文、物理路径、实际页码、实际 chunk、实际质量、实际降级、低可信证据、重复项、来源验证或业务结论。"
+    },
+    {
       "名称": "切块质量回归仅元数据 JSONL 交付样例",
       "字段": "sample_id、scenario_id、chunk_quality_regression_record_ref、chunk_quality_regression_request_ref、chapter_aware_chunk_ref、chunk_identity_version_record_ref、engineering_semantic_asset_catalog_ref、chunk_coverage_metrics_record_ref、control_traceability_reference_count、human_review_required、control_metadata_only",
       "说明": "Stage067 P4 只在内存中从六类固定 :control: 场景投影 JSONL 行；它不包含真实正文、路径、页码、章节、chunk、身份、Hash、版本、质量、embedding、索引或业务事实。"
@@ -139,6 +149,10 @@
     }
   ],
   "invariants": [
+    {
+      "规则": "Stage068 P1 不执行质量降级或生产运行",
+      "说明": "P1 只固定未来人工复核/低可信证据分流、受保护语义面、追溯和失败关闭；没有读取真实资料，未执行质量测量、质量回归、质量降级、低可信证据创建、重复检测/去重、索引、数据库、Agent、模型 Token、OVH、生产、上传或推送，P2 必须由新的独立 run 处理。"
+    },
     {
       "规则": "Stage067 Review 不启动质量降级或生产运行",
       "说明": "Review 只复审 P1--P4 的冻结合同和纯内存控制报告；Stage068 尚未开始，所有真实资料访问、质量测量/回归/降级、重复检测/去重、索引、数据库、Agent、模型 Token、OVH、生产、上传和推送保持关闭。"

@@ -323,9 +323,10 @@ class Stage067ChunkQualityRegressionPhase2Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE067-REVIEW",
                     "IDS-STAGE068-P1-GATE",
                 ),
+                ("IDS-STAGE068", "IDS-V0_1-STAGE068-P1", "IDS-V0_1-STAGE068-P1", "IDS-STAGE068-P2-GATE"),
             ),
         )
-        self.assertEqual("IDS-STAGE067", plan["stage"])
+        self.assertEqual("IDS-STAGE068", plan["stage"])
         self.assertIn(
             (plan["phase"], plan["task"]),
             (
@@ -333,6 +334,7 @@ class Stage067ChunkQualityRegressionPhase2Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE067-P3", "IDS-V0_1-STAGE067-P3"),
                 ("IDS-V0_1-STAGE067-P4", "IDS-V0_1-STAGE067-P4"),
                 ("IDS-V0_1-STAGE067-REVIEW", "IDS-V0_1-STAGE067-REVIEW"),
+                ("IDS-V0_1-STAGE068-P1", "IDS-V0_1-STAGE068-P1"),
             ),
         )
         self.assertTrue(
@@ -340,6 +342,7 @@ class Stage067ChunkQualityRegressionPhase2Tests(unittest.TestCase):
             or "IDS-STAGE067-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE067-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE068-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE068-P2-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             {

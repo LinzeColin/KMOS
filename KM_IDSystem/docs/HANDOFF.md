@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage067 Review - 2026-08-14
+## Current Gate - Stage068 Phase 1 - 2026-08-14
 
-- 本节是唯一当前交接；Stage067 P4/P3/P2/P1、Stage066 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；Stage067 Review/P4/P3/P2/P1、Stage066 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE068-P1`：只定义质量降级与人工复核静态合同，固定 `13/19/2/3/6/17` 形状，即十三个仅引用输入、十九个未来输出、需业务线白箱人工复核/低可信证据需人工复核两个未来分流、工程步骤/验收条款/参数表三类受保护语义面、六维受控追溯、重复 embedding/index 写入边界和十七类失败关闭；没有建立第二权威事实源。
+- 本 P1 只证明冻结任务包、Stage067 本地复审、静态合同、治理路线和中文事实投影在本地一致；不证明真实资料、真实页面/chunk、真实质量、真实质量降级、低可信证据、真实重复检测/去重、真实来源追溯、OVH、生产或上传能力。来源文档与业务线白箱人工复核继续是唯一权威，所有真实资料与运行时计数保持零。
+- 已验证：Stage068 P1 聚焦用例 `7/7`；Stage060--068 阶段链路回归 `391/391`；Batch041-050 与 Batch051-060 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，文档预算与无登记阻塞检查通过。以上只验证静态合同、治理与零运行时边界，不将其表述为真实资料验证、OVH 或生产验收。
+- 回滚只撤回本 P1 范围说明、静态合同、聚焦用例、machine run、事件、机器事实、治理路线、阶段链路断言与生成中文视图，恢复到 `STAGE067_REVIEWED_LOCAL_CHUNK_QUALITY_REGRESSION_RUNTIME_DISABLED`；不改变 Stage063--067、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE068-P2-GATE`。本 run 不进入 P2、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage067 Review - 2026-08-14
+
+- 本节保留 Stage067 Review 的已提交历史证据；唯一当前交接位于上方 Stage068 Phase 1，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE067-REVIEW`：只读机械复审冻结 P1--P4 合同与 P3/P4 纯内存切块质量回归控制报告，确认 `12/17/3/6/15`、`4/4/24`、`6/6/0/6/4/36`、`6/6/3/11` 固定控制形状、六类业务线白箱人工处理、metadata-only 交付、单一权威和 P4→P3 控制回退；发现数为 `0`。
 - 本 Review 只证明冻结任务包、控制工件、人工处置和治理投影在本地一致；不证明真实资料、真实页面/chunk、真实质量、真实重复检测/去重、真实来源追溯、真实重生成/版本回退、OVH、生产或上传能力。来源文档与业务线白箱人工复核继续是唯一权威，所有真实资料与运行时计数保持零。
 - 已验证：Stage067 Review 聚焦用例 `10/10`；含 Stage060--067 的阶段链路回归 `384/384`；Batch041-050 与 Batch051-060 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，双平面三道门与无登记阻塞检查通过。以上只验证纯内存控制形状、治理与零运行时边界，不将其表述为真实资料验证、OVH 或生产验收。

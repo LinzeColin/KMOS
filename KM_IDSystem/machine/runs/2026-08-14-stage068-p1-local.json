@@ -1,0 +1,38 @@
+{
+  "schema_version": "ids.machine_run.v1",
+  "run_id": "RUN-IDS-STAGE068-P1-LOCAL-20260814-001",
+  "project_id": "KM_IDSystem",
+  "stage": "IDS-STAGE068",
+  "phase": "IDS-V0_1-STAGE068-P1",
+  "task_id": "IDS-V0_1-STAGE068-P1",
+  "acceptance_id": "ACC-STAGE-068",
+  "next_gate": "IDS-STAGE068-P2-GATE",
+  "action": "本地静态质量降级合同、治理投影与零运行时边界验证",
+  "result": "PASS_LOCAL_STAGE068_PHASE1_QUALITY_DEGRADATION_CONTRACT_RUNTIME_DISABLED",
+  "execution_scope": "Stage068 Phase 1 static quality-degradation contract and governance projection only",
+  "verification_status": "PASS_ALL_LOCAL_PHASE1_VALIDATIONS",
+  "validation": {
+    "focused_stage068_contract_tests": "PASS_7_OF_7",
+    "stage060_to_stage068_regression": "PASS_391_OF_391",
+    "stage005_governance_regression": "PASS_VALID_TRUE",
+    "batch041_050_review": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+    "batch051_060_review": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+    "human_projection": "PASS_RENDERED_7_FILES",
+    "human_document_gates": "PASS_BUDGET_AND_NO_REGISTERED_BLOCKER"
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "parser_execution_performed": false,
+    "chunking_execution_performed": false,
+    "quality_regression_performed": false,
+    "quality_degradation_performed": false,
+    "low_confidence_evidence_creation_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  }
+}

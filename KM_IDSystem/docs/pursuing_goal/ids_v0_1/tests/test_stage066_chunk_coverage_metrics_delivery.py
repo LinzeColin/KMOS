@@ -306,22 +306,24 @@ class Stage066ChunkCoverageMetricsPhase4Tests(unittest.TestCase):
                 ("IDS-STAGE067", "IDS-V0_1-STAGE067-P4", "IDS-V0_1-STAGE067-P4"),
                 ("IDS-STAGE067", "IDS-V0_1-STAGE067-REVIEW", "IDS-V0_1-STAGE067-REVIEW"),
                 ("IDS-STAGE067", "IDS-V0_1-STAGE067-REVIEW", "IDS-V0_1-STAGE067-REVIEW"),
+                ("IDS-STAGE068", "IDS-V0_1-STAGE068-P1", "IDS-V0_1-STAGE068-P1"),
             ),
         )
         self.assertIn(
             status["next_gate"],
-            ("IDS-STAGE066-REVIEW-GATE", "IDS-STAGE067-P1-GATE", "IDS-STAGE067-P2-GATE", "IDS-STAGE067-P3-GATE", "IDS-STAGE067-P4-GATE", "IDS-STAGE067-REVIEW-GATE", "IDS-STAGE068-P1-GATE"),
+            ("IDS-STAGE066-REVIEW-GATE", "IDS-STAGE067-P1-GATE", "IDS-STAGE067-P2-GATE", "IDS-STAGE067-P3-GATE", "IDS-STAGE067-P4-GATE", "IDS-STAGE067-REVIEW-GATE", "IDS-STAGE068-P1-GATE", "IDS-STAGE068-P2-GATE"),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertIn(
             plan["phase"],
-            ("IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P2", "IDS-V0_1-STAGE067-P3", "IDS-V0_1-STAGE067-P4", "IDS-V0_1-STAGE067-REVIEW"),
+            ("IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P2", "IDS-V0_1-STAGE067-P3", "IDS-V0_1-STAGE067-P4", "IDS-V0_1-STAGE067-REVIEW", "IDS-V0_1-STAGE068-P1"),
         )
         self.assertTrue(
             "IDS-STAGE066-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE067-P1-GATE" in plan["stop_condition"]
-            or ("IDS-STAGE067-P2-GATE" in plan["stop_condition"] or "IDS-STAGE067-P3-GATE" in plan["stop_condition"] or "IDS-STAGE067-P4-GATE" in plan["stop_condition"] or "IDS-STAGE067-REVIEW-GATE" in plan["stop_condition"] or "IDS-STAGE068-P1-GATE" in plan["stop_condition"])
+            or ("IDS-STAGE067-P2-GATE" in plan["stop_condition"] or "IDS-STAGE067-P3-GATE" in plan["stop_condition"] or "IDS-STAGE067-P4-GATE" in plan["stop_condition"] or "IDS-STAGE067-REVIEW-GATE" in plan["stop_condition"] or "IDS-STAGE068-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE068-P2-GATE" in plan["stop_condition"])
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
