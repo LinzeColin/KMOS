@@ -1029,6 +1029,136 @@ def test_xlsx_parser_uses_integer_fen_and_rejects_formulas_or_numeric_identifier
         )
 
 
+def test_xls_parser_requires_one_plain_sheet_and_never_uses_cached_formula_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Exercise the legacy-XLS boundary without adding a workbook writer to runtime.
+
+    The OLE and xlrd readers are deliberately supplied as small deterministic
+    fakes here.  A separate container acceptance run opens a real synthetic
+    XLS fixture using the locked dependencies; this regression test fixes the
+    policy decisions that must precede any cell values being read.
+    """
+
+    def biff_record(record_id: int, body: bytes = b"") -> bytes:
+        return record_id.to_bytes(2, "little") + len(body).to_bytes(2, "little") + body
+
+    state: dict[str, object] = {
+        "stream": biff_record(0x0809, b"\x00\x06\x05\x00")
+        + biff_record(0x0085, b"\x00\x00\x00\x00\x00\x00")
+        + biff_record(0x000A),
+        "paths": [["Workbook"]],
+    }
+
+    class FakeOle:
+        parsing_issues: tuple[object, ...] = ()
+
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        def __enter__(self) -> "FakeOle":
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def listdir(self, **_kwargs: object) -> list[list[str]]:
+            return state["paths"]  # type: ignore[return-value]
+
+        def openstream(self, _path: object) -> BytesIO:
+            return BytesIO(state["stream"])  # type: ignore[arg-type]
+
+    class FakeCell:
+        def __init__(self, value: object, ctype: int = 1) -> None:
+            self.value = value
+            self.ctype = ctype
+
+    class FakeSheet:
+        nrows = 2
+
+        def row(self, index: int) -> list[FakeCell]:
+            rows = (
+                [FakeCell(value) for value in ("业务日期", "公司", "开户行", "账号", "期初余额", "期末余额", "币种")],
+                [
+                    FakeCell(datetime(2026, 7, 30), ctype=3),
+                    *[FakeCell(value) for value in ("甲", "乙", "00123", 1000.01, 1000.11, "CNY")],
+                ],
+            )
+            return rows[index]
+
+    class FakeBook:
+        datemode = 0
+        nsheets = 1
+
+        def sheet_by_index(self, index: int) -> FakeSheet:
+            assert index == 0
+            return FakeSheet()
+
+        def release_resources(self) -> None:
+            return None
+
+    book = FakeBook()
+    fake_xlrd = SimpleNamespace(
+        XL_CELL_DATE=3,
+        open_workbook=lambda **_kwargs: book,
+        xldate_as_datetime=lambda value, _datemode: value,
+    )
+    fake_olefile = SimpleNamespace(OleFileIO=FakeOle, DEFECT_INCORRECT=40)
+    monkeypatch.setitem(sys.modules, "xlrd", fake_xlrd)
+    monkeypatch.setitem(sys.modules, "olefile", fake_olefile)
+
+    payload = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1synthetic-xls"
+    facts = parse_attachment(
+        family=ACCOUNT_FAMILY,
+        filename="资金账户明细表_20260730.xls",
+        payload=payload,
+        source=_source(payload),
+        mime="application/vnd.ms-excel",
+    )
+    assert facts.accounts[0].account == "00123"
+    assert facts.accounts[0].ending_available_fen == 100011
+    assert facts.parser_evidence.format == "XLS"
+    assert facts.parser_evidence.magic == "OLE"
+
+    state["stream"] = state["stream"] + biff_record(0x0006)
+    with pytest.raises(ParseError, match="XLS_FORMULA_UNSUPPORTED"):
+        parse_attachment(
+            family=ACCOUNT_FAMILY,
+            filename="资金账户明细表_20260730.xls",
+            payload=payload,
+            source=_source(payload),
+        )
+
+    state["stream"] = biff_record(0x0809, b"\x00\x06\x05\x00") + biff_record(0x0085, b"\x00\x00\x00\x00\x00\x00") + biff_record(0x000A)
+    state["paths"] = [["Workbook"], ["_VBA_PROJECT_CUR", "VBA", "dir"]]
+    with pytest.raises(ParseError, match="XLS_MACRO_UNSUPPORTED"):
+        parse_attachment(
+            family=ACCOUNT_FAMILY,
+            filename="资金账户明细表_20260730.xls",
+            payload=payload,
+            source=_source(payload),
+        )
+
+    state["paths"] = [["Workbook"]]
+    book.nsheets = 2
+    with pytest.raises(ParseError, match="XLS_WORKSHEET_AMBIGUOUS"):
+        parse_attachment(
+            family=ACCOUNT_FAMILY,
+            filename="资金账户明细表_20260730.xls",
+            payload=payload,
+            source=_source(payload),
+        )
+
+    with pytest.raises(ParseError, match="MIME_SUFFIX_MISMATCH"):
+        parse_attachment(
+            family=ACCOUNT_FAMILY,
+            filename="资金账户明细表_20260730.xls",
+            payload=payload,
+            source=_source(payload),
+            mime="application/pdf",
+        )
+
+
 def test_runtime_records_parser_evidence_only_after_successful_parse(tmp_path: Path) -> None:
     payload = (
         "业务日期,公司,开户行,账号,期末余额\n"
@@ -2141,6 +2271,40 @@ def test_runtime_resolves_unclassified_ocr_only_after_dual_schema_and_calibratio
     ])
 
 
+def test_runtime_resolves_unclassified_structured_attachment_only_by_complete_schema(tmp_path: Path) -> None:
+    """A missing title cannot hide a byte-proven legacy/table source forever."""
+
+    payload = (
+        "业务日期,公司,开户行,账号,期末余额\n"
+        "2026-07-30,甲,乙,00123,110.00\n"
+    ).encode()
+    attachment = DownloadedAttachment(
+        message={},
+        message_id="unclassified-structured-message",
+        message_id_hash="8" * 64,
+        message_at=datetime(2026, 7, 30, 8, tzinfo=UTC),
+        index=0,
+        filename="opaque-export.csv",
+        family=None,
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="text/csv",
+    )
+    runtime = DailyFundsRuntime(_config(tmp_path))
+
+    inspection = runtime._inspect_attachment_capabilities((attachment,))
+
+    assert len(inspection.parsed) == 1
+    assert inspection.failures == ()
+    assert inspection.parsed[0].facts.family == ACCOUNT_FAMILY
+    assert inspection.parsed[0].facts.accounts[0].account == "00123"
+    with runtime.state.connection() as connection:
+        evidence = connection.execute(
+            "SELECT family,outcome,code FROM capability_evidence"
+        ).fetchone()
+    assert tuple(evidence) == (ACCOUNT_FAMILY, "SUPPORTED", "PARSER_OPEN_OK")
+
+
 def test_runtime_capability_matrix_records_supported_and_needs_review_types(tmp_path: Path) -> None:
     supported_payload = (
         "业务日期,公司,开户行,账号,期末余额\n"
@@ -2568,6 +2732,113 @@ def test_backfill_records_a_missing_historical_attachment_and_continues(tmp_path
     assert result["empty_days"] == ["2025-08-07"]
     assert result["code"] == "BACKFILLING_NEEDS_REVIEW"
     assert runtime.state.get("backfill_next_business_date") == "2025-08-08"
+
+
+def test_raw_coverage_repair_archives_only_the_missing_source_occurrence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A completed planner is repaired by identity, never by a fake publication."""
+
+    import daily_funds.runtime as runtime_module
+
+    moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
+    existing_payload = b"\x89PNG\r\n\x1a\nexisting-raw-image"
+    missing_payload = (
+        "业务日期,公司,开户行,账号,期末余额\n"
+        "2026-07-30,甲,乙,00123,110.00\n"
+    ).encode()
+    existing = DownloadedAttachment(
+        message={},
+        message_id="coverage-message",
+        message_id_hash="9" * 64,
+        message_at=moment,
+        index=0,
+        filename="existing.png",
+        family=None,
+        payload=existing_payload,
+        sha256=sha256(existing_payload).hexdigest(),
+        mime="image/png",
+    )
+    missing = DownloadedAttachment(
+        message={},
+        message_id="coverage-message",
+        message_id_hash="9" * 64,
+        message_at=moment,
+        index=1,
+        filename="opaque-export.csv",
+        family=None,
+        payload=missing_payload,
+        sha256=sha256(missing_payload).hexdigest(),
+        mime="text/csv",
+    )
+    source_message = {"fixture": "coverage-repair"}
+    persisted: list[tuple[DownloadedAttachment, ...]] = []
+
+    class CoverageClient:
+        @staticmethod
+        def collect_group_history_v2(_start, _end):
+            return DwsPage(messages=(source_message,), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page):
+            return ()
+
+        @staticmethod
+        def quarantine_messages(_page):
+            return (source_message,)
+
+        @staticmethod
+        def message_id_hash(_message):
+            return missing.message_id_hash
+
+        @staticmethod
+        def attachment_count(_message):
+            return 2
+
+        @staticmethod
+        def download(_message, index):
+            assert index == 1
+            return missing
+
+    class CoverageWriter:
+        def __init__(self, _config):
+            self.persisted = False
+
+        def audit_raw_archive(self, *, on_attachment):
+            for attachment in ((existing, missing) if self.persisted else (existing,)):
+                on_attachment(attachment)
+            return SimpleNamespace()
+
+        def persist(self, attachments):
+            received = tuple(attachments)
+            assert received == (missing,)
+            persisted.append(received)
+            self.persisted = True
+            return GitCommit("a" * 40, SimpleNamespace(), received)
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    monkeypatch.setattr(runtime, "_dws_client", lambda: CoverageClient())
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", CoverageWriter)
+    monkeypatch.setattr(runtime, "_coordinator", lambda: pytest.fail("coverage repair must not publish"))
+
+    result = runtime.raw_coverage_repair(now=datetime(2026, 8, 1, tzinfo=UTC))
+
+    assert result == {
+        "ok": True,
+        "code": "RAW_COVERAGE_REPAIRED",
+        "source_occurrences": 2,
+        "recovered_occurrences": 1,
+        "capability_supported": 1,
+        "capability_needs_review": 0,
+    }
+    assert persisted == [(missing,)]
+    assert not (runtime.config.publication_dir / "current.json").exists()
+    with runtime.state.connection() as connection:
+        evidence = connection.execute("SELECT family,outcome,code FROM capability_evidence").fetchone()
+        inbox = connection.execute("SELECT state FROM inbox").fetchone()
+    assert tuple(evidence) == (ACCOUNT_FAMILY, "SUPPORTED", "PARSER_OPEN_OK")
+    assert tuple(inbox) == ("ARCHIVED_CAPABILITY_RECORDED",)
 
 
 def test_archive_only_backfill_persists_readback_and_records_unsupported_format_without_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -4059,6 +4330,7 @@ def test_successful_maintenance_probe_is_not_failed_before_first_publication(
 @pytest.mark.parametrize("job,method,code", (
     ("auth-probe", "auth_probe", "AUTH_PROBE_LOCK_HELD"),
     ("raw-archive-audit", "raw_archive_audit", "RAW_ARCHIVE_AUDIT_LOCK_HELD"),
+    ("raw-coverage-repair", "raw_coverage_repair", "RAW_COVERAGE_REPAIR_LOCK_HELD"),
     ("observer", "observer", "OBSERVER_LOCK_HELD"),
     ("cold-backup", "cold_backup", "PUBLISHER_LOCK_HELD"),
 ))
@@ -5618,7 +5890,7 @@ def test_dws_attachment_permission_denial_is_not_misreported_as_auth_loss(tmp_pa
                 "fileName": "daily-balance.xls",
             },
             "delivered.xls",
-            "delivered.xls",
+            "daily-balance.xls",
             "fileId",
         ),
     ),

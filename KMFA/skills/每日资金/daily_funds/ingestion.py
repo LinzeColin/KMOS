@@ -35,7 +35,7 @@ BEIJING = ZoneInfo("Asia/Shanghai")
 SPARSE_PATH = Path("Private-KMDatabase/KMFA/daily_funds")
 DIRECT_BLOB_MAX_BYTES = 94_371_840
 CHUNK_BYTES = 48 * 1024 * 1024
-ALLOWED_SUFFIXES = frozenset({".csv", ".txt", ".xlsx", ".xlsm"})
+ALLOWED_SUFFIXES = frozenset({".csv", ".txt", ".xls", ".xlsx", ".xlsm"})
 _DWS_RESOURCE_TYPES = frozenset({"mediaId", "fileId"})
 _MEDIA_ID_RE = re.compile(r"mediaId=([^\)\s]+)")
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")

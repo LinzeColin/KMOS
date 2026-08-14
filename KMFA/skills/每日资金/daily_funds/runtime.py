@@ -77,6 +77,9 @@ _BACKFILL_WINDOW_DAYS = 360
 # days per staggered batch.  Keep the runtime cap independent of the CLI so a
 # direct caller cannot silently schedule a longer run than the cloud contract.
 _BACKFILL_BATCH_MAX_DAYS = 7
+# The private raw-audit reader has the same ceiling.  Keep the source-side
+# repair census bounded before it can download an unbounded provider reply.
+_RAW_COVERAGE_MAX_OCCURRENCES = 1024
 _FLOW_STATE_SCHEMA = "kmfa.daily_funds.flow_state.v1"
 _CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v2"
 _CASHFLOW_OBSERVATION_MIN_DAYS = 2
@@ -87,6 +90,7 @@ _OPERATION_RECEIPT_JOBS = frozenset({
     "runtime-audit",
     "r2-guard",
     "raw-archive-audit",
+    "raw-coverage-repair",
     "poll",
     "auth-probe",
     "keepalive",
@@ -635,6 +639,38 @@ class DailyFundsRuntime:
                 fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as exc:
                 raise IngestionError("RAW_ARCHIVE_AUDIT_LOCK_HELD") from exc
+            locked = True
+            yield
+        finally:
+            try:
+                if locked:
+                    fcntl.flock(descriptor, fcntl.LOCK_UN)
+            finally:
+                os.close(descriptor)
+
+    @contextmanager
+    def _raw_coverage_repair_process_lock(self):
+        """Serialize the bounded DWS-to-private-Git coverage reconciliation.
+
+        This lock is deliberately separate from the raw-archive reader and
+        the short Git writer lease.  It protects the complete source census so
+        two repair requests cannot both download the same missing occurrence;
+        the writer lease still serializes the only persistent raw mutation.
+        """
+
+        self.config.state_dir.mkdir(parents=True, exist_ok=True)
+        descriptor = os.open(
+            self.config.state_dir / "raw_coverage_repair.lock",
+            os.O_CREAT | os.O_RDWR,
+            0o600,
+        )
+        locked = False
+        try:
+            os.fchmod(descriptor, 0o600)
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise IngestionError("RAW_COVERAGE_REPAIR_LOCK_HELD") from exc
             locked = True
             yield
         finally:
@@ -1412,31 +1448,41 @@ class DailyFundsRuntime:
             try:
                 if attachment.family is None:
                     # A missing message title is never a financial family by
-                    # itself.  It may, however, be a real image report from
-                    # the exact configured source.  Allow only the existing
-                    # dual-schema OCR gate to establish a family: one and
-                    # only one complete account/transaction schema must pass.
-                    # All other unknown attachments remain capability-only
-                    # NEEDS_REVIEW evidence.
-                    if not (self.config.ocr_enabled and is_ocr_attachment(attachment.filename, payload=attachment.payload)):
-                        raise ParseError("UNSUPPORTED_ATTACHMENT")
-                    candidate = parse_ocr_attachment(
-                        family="资金明细",
-                        filename=attachment.filename,
-                        payload=attachment.payload,
-                        source=self._source_ref(attachment),
-                        mime=attachment.mime,
-                        min_confidence_bps=self.config.ocr_min_confidence_bps,
-                    )
-                    profile = self.state.observe_ocr_layout(
-                        family=candidate.facts.family,
-                        layout_fingerprint=candidate.layout_fingerprint,
-                        parser_version=candidate.facts.parser_evidence.parser_version,
-                        business_date=candidate.facts.business_date,
-                    )
-                    if not profile.ready_before:
-                        raise ParseError("OCR_PROFILE_CALIBRATING")
-                    facts = candidate.facts
+                    # itself.  A byte-proven structured attachment may still
+                    # establish exactly one complete frozen fact schema; this
+                    # is the same dual-schema rule already used for the
+                    # explicit generic ``资金明细`` label and prevents native
+                    # XLS/XLSX files from being stranded solely by an absent
+                    # message title.  Unknown binary types remain capability
+                    # evidence only, and OCR retains its separate calibration
+                    # gate below.
+                    if Path(attachment.filename).suffix.lower() in ALLOWED_SUFFIXES:
+                        facts = parse_generic_structured_attachment(
+                            filename=attachment.filename,
+                            payload=attachment.payload,
+                            source=self._source_ref(attachment),
+                            mime=attachment.mime,
+                        )
+                    else:
+                        if not (self.config.ocr_enabled and is_ocr_attachment(attachment.filename, payload=attachment.payload)):
+                            raise ParseError("UNSUPPORTED_ATTACHMENT")
+                        candidate = parse_ocr_attachment(
+                            family="资金明细",
+                            filename=attachment.filename,
+                            payload=attachment.payload,
+                            source=self._source_ref(attachment),
+                            mime=attachment.mime,
+                            min_confidence_bps=self.config.ocr_min_confidence_bps,
+                        )
+                        profile = self.state.observe_ocr_layout(
+                            family=candidate.facts.family,
+                            layout_fingerprint=candidate.layout_fingerprint,
+                            parser_version=candidate.facts.parser_evidence.parser_version,
+                            business_date=candidate.facts.business_date,
+                        )
+                        if not profile.ready_before:
+                            raise ParseError("OCR_PROFILE_CALIBRATING")
+                        facts = candidate.facts
                 elif attachment.family == _GENERIC_DOCUMENT_FAMILY and Path(attachment.filename).suffix.lower() in ALLOWED_SUFFIXES:
                     facts = parse_generic_structured_attachment(
                         filename=attachment.filename,
@@ -1713,6 +1759,131 @@ class DailyFundsRuntime:
             "code": code,
             "capability_supported": accumulator.capability_supported,
             "capability_needs_review": accumulator.capability_needs_review,
+        }
+
+    def raw_coverage_repair(self, *, now: datetime | None = None) -> dict[str, Any]:
+        """Repair only source occurrences absent from the private raw authority.
+
+        A completed historical planner is not evidence that a later source
+        replay still has every attachment occurrence in private Git.  This
+        bounded maintenance operation compares the exact 360-day DWS ledger
+        with the private raw occurrence identities, downloads only absences,
+        persists them through the normal fresh sparse-readback writer, and
+        rechecks coverage.  It never moves a funds publication pointer or
+        calls D1/R2/OCI.
+        """
+
+        try:
+            self.config.validate(include_storage=False)
+        except ConfigError:
+            return self.status.write("需处理", "CONFIG_INVALID")
+        try:
+            with self._raw_coverage_repair_process_lock():
+                return self._raw_coverage_repair_locked(now=now)
+        except IngestionError as exc:
+            if exc.code == "RAW_COVERAGE_REPAIR_LOCK_HELD":
+                return self.status.write("处理中", exc.code)
+            self.state.queue_incident("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
+            status = self._status_from_current(fallback_code="RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
+            self._write_flow_state(stage="RAW_COVERAGE_REPAIR_NEEDS_REVIEW", status=status)
+            return {"ok": False, "code": "RAW_COVERAGE_REPAIR_NEEDS_REVIEW"}
+
+    def _raw_coverage_repair_locked(self, *, now: datetime | None) -> dict[str, Any]:
+        """Run the repair under one non-reentrant process lock."""
+
+        anchor = now or datetime.now(UTC)
+        if anchor.tzinfo is None or anchor.utcoffset() is None:
+            raise IngestionError("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
+        anchor = anchor.astimezone(UTC)
+        writer = GitSparseWriter(self.config)
+        archived: set[tuple[str, int]] = set()
+
+        try:
+            writer.audit_raw_archive(
+                on_attachment=lambda attachment: archived.add((attachment.message_id_hash, attachment.index))
+            )
+        except IngestionError as exc:
+            # A first-ever exact source archive has no raw tree to audit.  It
+            # is safe to continue with an empty identity set; every source
+            # occurrence will then pass through the ordinary writer/readback.
+            if exc.code != "SOURCE_MISSING":
+                raise
+
+        client = self._dws_client()
+        page = client.collect_group_history_v2(anchor - timedelta(days=_BACKFILL_WINDOW_DAYS), anchor)
+        candidates = (*client.selected_messages(page), *client.quarantine_messages(page))
+        source: dict[tuple[str, int], dict[str, Any]] = {}
+        for message in candidates:
+            message_id_hash = client.message_id_hash(message)
+            attachment_count = client.attachment_count(message)
+            for index in range(attachment_count):
+                identity = (message_id_hash, index)
+                if identity in source:
+                    raise IngestionError("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
+                source[identity] = message
+        if len(source) > _RAW_COVERAGE_MAX_OCCURRENCES:
+            raise IngestionError("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
+
+        missing = [
+            (message, index)
+            for (message_id_hash, index), message in source.items()
+            if (message_id_hash, index) not in archived
+        ]
+        recovered = ()
+        capability_supported = 0
+        capability_needs_review = 0
+        if missing:
+            downloaded = tuple(client.download(message, index) for message, index in missing)
+            if len(downloaded) != len(missing):
+                raise IngestionError("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
+            commit = self._lease_call(
+                "git_writer_lock",
+                ttl_seconds=13 * 60,
+                code="GIT_WRITER_LOCK_HELD",
+                callback=lambda: writer.persist(downloaded),
+            )
+            recovered = commit.verified_attachments
+            if len(recovered) != len(downloaded):
+                raise IngestionError("GIT_READBACK_FAILED")
+            for attachment in recovered:
+                occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
+                self.state.note_inbox(
+                    occurrence_key,
+                    attachment.message_id_hash,
+                    attachment.sha256,
+                    "GIT_PERSISTED",
+                )
+            inspection = self._inspect_attachment_capabilities(recovered)
+            integrity_failures = tuple(
+                failure
+                for failure in inspection.failures
+                if self._parse_failure_code(failure) in _SOURCE_INTEGRITY_PARSE_CODES
+            )
+            if integrity_failures:
+                raise IngestionError("GIT_READBACK_FAILED")
+            capability_supported = len(inspection.parsed)
+            capability_needs_review = len(inspection.failures)
+            for attachment in recovered:
+                occurrence_key = f"{attachment.message_id_hash}:{attachment.index}:{attachment.sha256}"
+                self.state.mark_inbox(occurrence_key, "ARCHIVED_CAPABILITY_RECORDED")
+
+        verified: set[tuple[str, int]] = set()
+        writer.audit_raw_archive(
+            on_attachment=lambda attachment: verified.add((attachment.message_id_hash, attachment.index))
+        )
+        if set(source) - verified:
+            raise IngestionError("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
+
+        code = "RAW_COVERAGE_REPAIRED" if recovered else "RAW_COVERAGE_VERIFIED"
+        status = self._status_from_current(fallback_code=code)
+        self._write_flow_state(stage=code, status=status)
+        return {
+            "ok": True,
+            "code": code,
+            "source_occurrences": len(source),
+            "recovered_occurrences": len(recovered),
+            "capability_supported": capability_supported,
+            "capability_needs_review": capability_needs_review,
         }
 
     def _parse(self, attachments: Iterable[DownloadedAttachment]) -> list[TimedFacts]:

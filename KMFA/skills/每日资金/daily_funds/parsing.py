@@ -14,6 +14,7 @@ import csv
 import io
 import json
 import re
+import struct
 import subprocess
 import tempfile
 from dataclasses import dataclass, replace
@@ -28,12 +29,18 @@ from .models import CashflowObservation, AccountSnapshot, ParsedFacts, ParserEvi
 
 ACCOUNT_FAMILY = "资金账户明细表"
 TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
-# v12 keeps the bounded deterministic OCR fallback and aligns transaction
-# identity requirements to the frozen task-pack schema: bank_id is optional
-# and a source-row fact identifier is used only when a source does not expose
-# a transaction identifier.  It also requires an ambiguously titled structured
-# ``资金明细`` document to open exactly one complete fact schema, matching the
-# existing generic-image gate.
+# v13 adds the frozen task-pack's legacy ``.xls`` route without weakening the
+# structured-source contract.  An old workbook opens only after its OLE
+# container is intact, it exposes one ordinary worksheet, it has no macro
+# streams or BIFF formula records, and the unchanged complete account or
+# transaction schema passes.  This keeps cached formula values from becoming
+# financial facts merely because xlrd can expose them as scalar cells.
+#
+# It retains v12's bounded deterministic OCR fallback and transaction identity
+# requirements: bank_id is optional and a source-row fact identifier is used
+# only when a source does not expose a transaction identifier.  It also
+# requires an ambiguously titled structured ``资金明细`` document to open exactly
+# one complete fact schema, matching the existing generic-image gate.
 #
 # It retains v5's narrow source-classification rule: a generic ``资金明细``
 # image may be treated as an account snapshot only when its OCR table satisfies
@@ -45,7 +52,7 @@ TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
 # reassembles only those overlapping OCR lines and then applies the same exact
 # aliases, confidence, row and fact rules.  Capability receipts are versioned,
 # so a rule change cannot inherit a prior parser's production-support assertion.
-PARSER_VERSION = "kmfa.daily_funds.parser.v12"
+PARSER_VERSION = "kmfa.daily_funds.parser.v13"
 # This parser is deliberately separate from ``PARSER_VERSION``.  It can
 # create a chart-only receipt from a narrow receipt/payment screenshot without
 # weakening the two-fact account-balance publication contract.
@@ -77,13 +84,13 @@ _OCCURRENCE_PATH = re.compile(
 _MIME_TOKEN = re.compile(r"^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$")
 _ZIP_MAGICS = (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")
 _TEXT_SUFFIXES = frozenset({".csv", ".txt"})
-_WORKBOOK_SUFFIXES = frozenset({".xlsx", ".xlsm"})
+_WORKBOOK_SUFFIXES = frozenset({".xls", ".xlsx", ".xlsm"})
 _ALLOWED_SUFFIXES = _TEXT_SUFFIXES | _WORKBOOK_SUFFIXES
 _OCR_IMAGE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".bmp", ".webp"})
 _OCR_PDF_SUFFIXES = frozenset({".pdf"})
 _OCR_SUFFIXES = _OCR_IMAGE_SUFFIXES | _OCR_PDF_SUFFIXES
 _CAPABILITY_SUFFIXES = _ALLOWED_SUFFIXES | frozenset({
-    ".xls", ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp",
+    ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp",
 })
 _CSV_MIME = frozenset({
     "text/csv",
@@ -100,6 +107,19 @@ _XLSM_MIME = frozenset({
     "application/vnd.ms-excel.sheet.macroenabled.12",
     "application/octet-stream",
 })
+_XLS_MIME = frozenset({
+    "application/vnd.ms-excel",
+    "application/octet-stream",
+})
+_XLS_FORMULA_RECORD_IDS = frozenset({
+    0x0006,  # FORMULA
+    0x0221,  # ARRAY
+    0x0236,  # TABLE
+    0x04BC,  # SHRFMLA
+})
+_XLS_MACRO_COMPONENTS = frozenset({"macros", "vba", "_vba_project_cur"})
+_XLS_BOUNDSHEET_RECORD = 0x0085
+_XLS_FILEPASS_RECORD = 0x002F
 _OCR_IMAGE_MIME = {
     ".png": frozenset({"image/png", "application/octet-stream"}),
     ".jpg": frozenset({"image/jpeg", "application/octet-stream"}),
@@ -470,6 +490,12 @@ def inspect_attachment_format(*, filename: str, payload: bytes, mime: str | None
         if declared_mime is not None and declared_mime not in _CSV_MIME:
             raise ParseError("MIME_SUFFIX_MISMATCH")
         return ParserEvidence("CSV", suffix, declared_mime, "TEXT", PARSER_VERSION)
+    if suffix == ".xls":
+        if not payload.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
+            raise ParseError("FORMAT_MAGIC_MISMATCH")
+        if declared_mime is not None and declared_mime not in _XLS_MIME:
+            raise ParseError("MIME_SUFFIX_MISMATCH")
+        return ParserEvidence("XLS", suffix, declared_mime, "OLE", PARSER_VERSION)
     if not payload.startswith(_ZIP_MAGICS):
         raise ParseError("FORMAT_MAGIC_MISMATCH")
     allowed_mime = _XLSX_MIME if suffix == ".xlsx" else _XLSM_MIME
@@ -569,10 +595,140 @@ def _xlsx_rows(payload: bytes) -> list[dict[str, object]]:
             value_book.close()
 
 
+def _xls_biff_records(workbook_stream: bytes) -> tuple[tuple[int, bytes], ...]:
+    """Read the bounded BIFF record framing required for a legacy XLS gate.
+
+    xlrd intentionally returns cached formula values for historic workbooks.
+    We therefore inspect the raw Workbook stream first, without evaluating any
+    record, and reject formula/encryption records before asking xlrd for cells.
+    """
+
+    records: list[tuple[int, bytes]] = []
+    offset = 0
+    while offset < len(workbook_stream):
+        if len(workbook_stream) - offset < 4:
+            # Some valid CFB writers allocate the Workbook stream to a sector
+            # boundary and leave only zero padding after the final BIFF EOF.
+            # It is not a BIFF record and must not make a valid static table
+            # look corrupt; any non-zero tail remains a hard rejection.
+            if not any(workbook_stream[offset:]):
+                break
+            raise ParseError("CORRUPT_ATTACHMENT")
+        record_id, payload_size = struct.unpack_from("<HH", workbook_stream, offset)
+        if record_id == 0 and payload_size == 0 and not any(workbook_stream[offset:]):
+            break
+        start = offset + 4
+        end = start + payload_size
+        if end > len(workbook_stream):
+            raise ParseError("CORRUPT_ATTACHMENT")
+        records.append((record_id, workbook_stream[start:end]))
+        offset = end
+    if not records or records[0][0] not in {0x0009, 0x0809}:
+        raise ParseError("CORRUPT_ATTACHMENT")
+    return tuple(records)
+
+
+def _xls_workbook_preflight(payload: bytes) -> None:
+    """Prove the narrow legacy-XLS shape before values become table rows."""
+
+    try:
+        import olefile  # type: ignore[import-not-found]
+    except ImportError as exc:  # container has a locked dependency
+        raise ParseError("XLS_RUNTIME_DEPENDENCY_MISSING") from exc
+
+    try:
+        with olefile.OleFileIO(io.BytesIO(payload), raise_defects=olefile.DEFECT_INCORRECT) as compound:
+            if getattr(compound, "parsing_issues", ()):
+                raise ParseError("CORRUPT_ATTACHMENT")
+            stream_paths = compound.listdir(streams=True, storages=False)
+            if any(
+                any(str(component).casefold() in _XLS_MACRO_COMPONENTS for component in path)
+                for path in stream_paths
+            ):
+                raise ParseError("XLS_MACRO_UNSUPPORTED")
+            workbook_paths = [
+                path
+                for path in stream_paths
+                if len(path) == 1 and str(path[0]).casefold() in {"book", "workbook"}
+            ]
+            if len(workbook_paths) != 1:
+                raise ParseError("CORRUPT_ATTACHMENT")
+            workbook_stream = compound.openstream(workbook_paths[0]).read()
+    except ParseError:
+        raise
+    except Exception as exc:  # OLE parser reports many malformed-container shapes
+        raise ParseError("CORRUPT_ATTACHMENT") from exc
+
+    records = _xls_biff_records(workbook_stream)
+    sheet_types: list[int] = []
+    for record_id, record_payload in records:
+        if record_id == _XLS_FILEPASS_RECORD:
+            raise ParseError("XLS_ENCRYPTED_UNSUPPORTED")
+        if record_id in _XLS_FORMULA_RECORD_IDS:
+            raise ParseError("XLS_FORMULA_UNSUPPORTED")
+        if record_id == _XLS_BOUNDSHEET_RECORD:
+            if len(record_payload) < 6:
+                raise ParseError("CORRUPT_ATTACHMENT")
+            sheet_types.append(record_payload[5])
+    if len(sheet_types) != 1:
+        raise ParseError("XLS_WORKSHEET_AMBIGUOUS")
+    if sheet_types[0] != 0:
+        # Excel 4 macro, chart and VBA module sheets cannot be interpreted as
+        # a financial table by this parser.
+        raise ParseError("XLS_WORKSHEET_TYPE_UNSUPPORTED")
+
+
+def _xls_cell_value(cell: Any, *, book: Any, xlrd: Any) -> object:
+    if cell.ctype == xlrd.XL_CELL_DATE:
+        return xlrd.xldate_as_datetime(cell.value, book.datemode)
+    return cell.value
+
+
+def _xls_rows(payload: bytes) -> list[dict[str, object]]:
+    try:
+        import xlrd  # type: ignore[import-not-found]
+    except ImportError as exc:  # container has a locked dependency
+        raise ParseError("XLS_RUNTIME_DEPENDENCY_MISSING") from exc
+
+    _xls_workbook_preflight(payload)
+    book = None
+    try:
+        book = xlrd.open_workbook(file_contents=payload, on_demand=False, formatting_info=False)
+        if book.nsheets != 1:
+            raise ParseError("XLS_WORKSHEET_AMBIGUOUS")
+        sheet = book.sheet_by_index(0)
+        headers = _validated_headers(_trim_trailing_blank(
+            _xls_cell_value(cell, book=book, xlrd=xlrd) for cell in sheet.row(0)
+        ))
+        rows: list[dict[str, object]] = []
+        for row_index in range(1, sheet.nrows):
+            values = [_xls_cell_value(cell, book=book, xlrd=xlrd) for cell in sheet.row(row_index)]
+            if any(not _is_blank(value) for value in values[len(headers):]):
+                raise ParseError("XLS_ROW_WIDTH_INVALID")
+            values = values[:len(headers)]
+            if not values or all(_is_blank(value) for value in values):
+                continue
+            rows.append({header: values[index] if index < len(values) else None for index, header in enumerate(headers)})
+        return rows
+    except ParseError:
+        raise
+    except IndexError as exc:
+        raise ParseError("COLUMN_MAPPING_EMPTY") from exc
+    except Exception as exc:  # xlrd has many format-specific exceptions
+        raise ParseError("CORRUPT_ATTACHMENT") from exc
+    finally:
+        if book is not None:
+            release = getattr(book, "release_resources", None)
+            if callable(release):
+                release()
+
+
 def _rows_from_bytes(filename: str, payload: bytes, mime: str | None) -> tuple[list[dict[str, object]], ParserEvidence]:
     evidence = inspect_attachment_format(filename=filename, payload=payload, mime=mime)
     if evidence.format == "CSV":
         return _csv_rows(payload), evidence
+    if evidence.format == "XLS":
+        return _xls_rows(payload), evidence
     return _xlsx_rows(payload), evidence
 
 

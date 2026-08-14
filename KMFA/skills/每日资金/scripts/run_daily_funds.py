@@ -31,7 +31,7 @@ def parser() -> argparse.ArgumentParser:
     command = argparse.ArgumentParser(description="KMFA daily-funds deterministic worker")
     command.add_argument(
         "job",
-        choices=("preflight", "bootstrap-dws-auth", "runtime-audit", "r2-guard", "raw-archive-audit", "poll", "auth-probe", "keepalive", "backfill", "observer", "cold-backup", "restore-drill", "restore", "healthcheck"),
+        choices=("preflight", "bootstrap-dws-auth", "runtime-audit", "r2-guard", "raw-archive-audit", "raw-coverage-repair", "poll", "auth-probe", "keepalive", "backfill", "observer", "cold-backup", "restore-drill", "restore", "healthcheck"),
     )
     command.add_argument(
         "--max-days",
@@ -83,6 +83,8 @@ def main(argv: list[str] | None = None) -> int:
             result = runtime.r2_free_tier_guard()
         elif args.job == "raw-archive-audit":
             result = runtime.raw_archive_audit()
+        elif args.job == "raw-coverage-repair":
+            result = runtime.raw_coverage_repair()
         elif args.job == "poll":
             result = runtime.poll()
         elif args.job == "auth-probe":

@@ -1,3 +1,5 @@
 boto3==1.42.65
 openpyxl==3.1.5
+olefile==0.47
 Pillow==11.0.0
+xlrd==2.0.2

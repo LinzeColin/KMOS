@@ -14,6 +14,8 @@
 
 每日 `05:20` 的 `raw-archive-audit` 只在该云端容器中读取已取得范围内的私库原件：先按 Git tree 名称受限枚举，再以精确 sparse 路径重新打开消息信封、occurrence、批次 manifest 和字节 SHA，最后才运行现有离线解析器。它不请求 DWS、不写 Git/R2/D1/OCI、不变更 `current.json`，也不把原件、ID、金额或文件名写入日志和页面。其结果仅更新 values-free 附件能力回执；即使全部 parser-open，也不能代表全量群历史、同日双事实、整数分勾稽或资金发布已通过。
 
+当旧版本的历史 planner 已完成、但新一次精确群历史重放发现私库缺少 occurrence 时，可在同一云端容器运行受控 `raw-coverage-repair`。它只比较 360 天内的脱敏 occurrence identity，下载并写入缺失项，随后从 fresh sparse clone 回读全量覆盖；不移动 `current.json`，不写 D1/R2/OCI，也不将文件名、消息、标识或金额送往日志。它是归档完整性修复，不是金额发布或绕过双事实勾稽。
+
 每 6 小时 `r2-guard` 使用 Cloudflare 控制面只读接口核验全账户 bucket 默认均为 Standard、无 IA 生命周期且 IA 指标为零；同时以 31 天、每 15 分钟全部为新对象的最坏情况验证 Class A/Class B/存储均低于 Standard 免费额度 40%。只写入不含 bucket、对象或金额的回执。任何一项为未知、过期或失败时，R2 镜像、冷备前的 R2 readback 与 publication 都会保持 fail-closed；新对象也显式写入 `STANDARD`，同 SHA 键绝不覆盖旧镜像字节。
 
 每日 `observer` 会在同一 container deployment 的首份经 D1 Oracle、pointer 与 history 三方比对的 VALID publication 上建立基准。只有此后每个**新的、源侧已确认的业务日期**才计入五日影子对照；重复 cron、重试、回填或同日版本刷新都不会加计。每个对照仅记录零差/覆盖/阈值/取数/重复/备份/恢复的状态码与延迟，不记录金额、账户或原始标识。D1/pointer/history 任一不一致时保持 `需处理`，不虚报观察完成。
@@ -34,9 +36,9 @@
 
 ## 附件能力门
 
-`.csv`、`.txt`、`.xlsx`、`.xlsm` 是**候选解析格式**，不是在代码合成测试通过后就可对生产宣称“已支持”。每份候选附件都必须先由唯一来源链下载、写入并从私有 Git sparse readback 回读；随后同时校验 source SHA、occurrence lineage、后缀、声明 MIME、字节 magic、列模板、业务日期和 parser-open。成功后，受保护 SQLite 才按附件 SHA 写入 values-free `parser_evidence` 回执；该回执与私有 raw manifest 一起构成真实能力证据。
+`.csv`、`.txt`、`.xls`、`.xlsx`、`.xlsm` 是**候选解析格式**，不是在代码合成测试通过后就可对生产宣称“已支持”。每份候选附件都必须先由唯一来源链下载、写入并从私有 Git sparse readback 回读；随后同时校验 source SHA、occurrence lineage、后缀、声明 MIME、字节 magic、列模板、业务日期和 parser-open。旧版 `.xls` 额外要求完整 OLE 容器、唯一普通工作表、无宏流、无 BIFF 公式及未加密；任一条件不成立即拒绝，不读取缓存公式值。成功后，受保护 SQLite 才按附件 SHA 写入 values-free `parser_evidence` 回执；该回执与私有 raw manifest 一起构成真实能力证据。
 
-当前已取得私库原件的范围与目标群完整历史仍须分别证明；在云端 `raw-archive-audit` 对真实字节完成 parser-open 前，没有任何附件类型可被标记为已实证支持。`.xls` 仍一律 `needs-review`。图片与扫描 PDF 只有在显式启用的离线确定性 Tesseract 回退路径中才会尝试打开；它不是模型/API，也不会猜测金额。该路径同时要求来源谱系、MIME/magic、关键字段至少 0.98 置信度、两个不同业务日的同版式校准，以及后续同版式私有 Git readback 成功；任一条件未满足即保持 `needs-review`，不能进入 publication。
+当前已取得私库原件的范围与目标群完整历史仍须分别证明；在云端 `raw-archive-audit` 对真实字节完成 parser-open 前，没有任何附件类型可被标记为已实证支持。图片与扫描 PDF 只有在显式启用的离线确定性 Tesseract 回退路径中才会尝试打开；它不是模型/API，也不会猜测金额。该路径同时要求来源谱系、MIME/magic、关键字段至少 0.98 置信度、两个不同业务日的同版式校准，以及后续同版式私有 Git readback 成功；任一条件未满足即保持 `needs-review`，不能进入 publication。
 
 在真实样本冻结多工作表模板前，任何多 sheet 工作簿都会以 `XLSX_WORKSHEET_AMBIGUOUS` 停止；同一流水同时携带“流入/流出”与“金额/方向”两套金额编码时以 `TRANSACTION_AMOUNT_MAPPING_AMBIGUOUS` 停止。解析规则升级会更换 parser version，旧版本的 capability receipt 仅保留审计用途，不再投影为当前支持能力，直到原始字节在新版本下重新 parser-open。
 
