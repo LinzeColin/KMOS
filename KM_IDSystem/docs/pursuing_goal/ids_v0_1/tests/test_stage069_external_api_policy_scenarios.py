@@ -250,6 +250,7 @@ class Stage069ExternalApiPolicyPhase3Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE070-P1",
                     "IDS-STAGE070-P2-GATE",
                 ),
+                ("IDS-V0_1-STAGE070-P2", "IDS-V0_1-STAGE070-P2", "IDS-STAGE070-P3-GATE"),
                 (
                     "IDS-V0_1-STAGE069-REVIEW",
                     "IDS-V0_1-STAGE069-REVIEW",
@@ -267,6 +268,7 @@ class Stage069ExternalApiPolicyPhase3Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE069-P4", "IDS-V0_1-STAGE069-P4"),
                 ("IDS-V0_1-STAGE069-REVIEW", "IDS-V0_1-STAGE069-REVIEW"),
                 ("IDS-V0_1-STAGE070-P1", "IDS-V0_1-STAGE070-P1"),
+                ("IDS-V0_1-STAGE070-P2", "IDS-V0_1-STAGE070-P2"),
             ),
         )
         self.assertTrue(
@@ -274,6 +276,7 @@ class Stage069ExternalApiPolicyPhase3Tests(unittest.TestCase):
             or "IDS-STAGE069-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE070-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE070-P2-GATE" in plan["stop_condition"]
+            or "IDS-STAGE070-P3-GATE" in plan["stop_condition"]
         )
         for acceptance_id in (
             "ACC-STAGE069-P3-01",

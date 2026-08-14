@@ -1225,6 +1225,12 @@ def _governance_checks(
                 and roadmap.get("current_task_id") == SUCCESSOR_TASK070
                 and roadmap.get("next_gate_id") == SUCCESSOR_NEXT_GATE070
             )
+            or (
+                roadmap.get("current_stage_id") == SUCCESSOR_STAGE070
+                and roadmap.get("current_phase_id") == "IDS-STAGE070-P2"
+                and roadmap.get("current_task_id") == "IDS-V0_1-STAGE070-P2"
+                and roadmap.get("next_gate_id") == "IDS-STAGE070-P3-GATE"
+            )
         ),
         "roadmap_phase_and_task_evidence_exact": (
             isinstance(phase, dict)
@@ -2124,9 +2130,9 @@ def _projection_checks() -> dict[str, bool]:
     successor_stage070_phase1_status = (
         isinstance(status, dict)
         and status.get("stage") == SUCCESSOR_STAGE070
-        and status.get("phase") == SUCCESSOR_TASK070
-        and status.get("task") == SUCCESSOR_TASK070
-        and status.get("next_gate") == SUCCESSOR_NEXT_GATE070
+        and status.get("phase") in (SUCCESSOR_TASK070, "IDS-V0_1-STAGE070-P2")
+        and status.get("task") in (SUCCESSOR_TASK070, "IDS-V0_1-STAGE070-P2")
+        and status.get("next_gate") in (SUCCESSOR_NEXT_GATE070, "IDS-STAGE070-P3-GATE")
         and status.get("runtime_enabled") is False
         and status.get("push_allowed") is False
     )
@@ -2801,9 +2807,12 @@ def _projection_checks() -> dict[str, bool]:
     successor_stage070_phase1_plan = (
         isinstance(plan, dict)
         and plan.get("stage") == SUCCESSOR_STAGE070
-        and plan.get("phase") == SUCCESSOR_TASK070
-        and plan.get("task") == SUCCESSOR_TASK070
-        and SUCCESSOR_NEXT_GATE070 in str(plan.get("stop_condition"))
+        and plan.get("phase") in (SUCCESSOR_TASK070, "IDS-V0_1-STAGE070-P2")
+        and plan.get("task") in (SUCCESSOR_TASK070, "IDS-V0_1-STAGE070-P2")
+        and (
+            SUCCESSOR_NEXT_GATE070 in str(plan.get("stop_condition"))
+            or "IDS-STAGE070-P3-GATE" in str(plan.get("stop_condition"))
+        )
     )
     return {
         "status_projection_exact": (

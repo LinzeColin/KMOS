@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE070"
-current_phase_id: "IDS-STAGE070-P1"
-current_task_id: "IDS-V0_1-STAGE070-P1"
-next_gate_id: "IDS-STAGE070-P2-GATE"
+current_phase_id: "IDS-STAGE070-P2"
+current_task_id: "IDS-V0_1-STAGE070-P2"
+next_gate_id: "IDS-STAGE070-P3-GATE"
 current_transition_history:
+  stage070_phase2_state:
+    current_stage_id: "IDS-STAGE070"
+    current_phase_id: "IDS-STAGE070-P2"
+    current_task_id: "IDS-V0_1-STAGE070-P2"
+    next_gate_id: "IDS-STAGE070-P3-GATE"
   stage070_phase1_state:
     current_stage_id: "IDS-STAGE070"
     current_phase_id: "IDS-STAGE070-P1"
@@ -17730,20 +17735,20 @@ stages:
     task_id: "IDS-V0_1-STAGE070"
     acceptance_ids:
       - "ACC-STAGE-070"
-    status: "phase1_completed_local"
-    pursuing_goal: "只定义继承自 Stage069 的外部 API 策略边界、未来 Embedding 队列、缓存、失败重试、成本控制、模型版本和审计字段；不读取、打开、解析、外发或写入真实资料，不创建队列、缓存、重试、审计或运行时。"
+    status: "phase2_completed_local"
+    pursuing_goal: "只在五条固定、非业务、reference-only 控制引用上机械投影继承自 Stage069 的外部 API 策略、未来 Embedding 队列、缓存、失败重试、成本控制、模型版本和审计字段；不读取、打开、解析、外发或写入真实资料，不创建队列、缓存、重试、审计或运行时。"
     stop_gate:
-      gate_id: "IDS-STAGE070-P1-GATE"
+      gate_id: "IDS-STAGE070-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE070-P2-GATE"
+      next_gate_id: "IDS-STAGE070-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "复用 Stage069 的默认 denied、三档策略和 data source/document→chunk 自动继承；owner 不需逐条标记 chunk，document 不得放宽来源策略。"
-      - "静态定义仅引用输入、未来队列、缓存、失败重试、成本/模型版本和审计字段，明确 denied、summary_only、full_text_allowed 的关闭流程、失败状态、业务线白箱人工处理和回滚路径。"
+      - "固定五条非业务仅引用输入，在内存中投影未来队列、缓存、失败重试、成本/模型版本和审计字段，明确 denied、summary_only、full_text_allowed 的关闭流程、失败状态、业务线白箱人工处理和回滚路径。"
       - "真实资料、正文、摘要、文本块、队列、缓存、失败重试、provider/模型选择、外部 API、模型 Token、成本、审计、索引、数据库、Agent、OVH、生产、上传和推送均保持关闭。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、总结、保留、外发或回退任何 IDS 业务资料、原始元数据、授权 fixture、真实 data source、document、摘要、文本块、chunk、队列、缓存、重试、审计、成本、模型版本、索引、数据库或报告"
-      - "执行真实 parser、切块、摘要生成、外部文本载荷创建、Embedding 队列、缓存、失败重试、provider 凭据读取、provider/模型选择、外部 API、模型调用、模型 Token、成本计算、审计写入或查询、索引、持久化、Agent、OVH、生产服务、Stage070 P2、批次复审、上传、推送或应用重装"
+      - "执行真实 parser、切块、摘要生成、外部文本载荷创建、Embedding 队列、缓存、失败重试、provider 凭据读取、provider/模型选择、外部 API、模型调用、模型 Token、成本计算、审计写入或查询、索引、持久化、Agent、OVH、生产服务、Stage070 P3、批次复审、上传、推送或应用重装"
     phases:
       - phase_id: "IDS-STAGE070-P1"
         name: "Phase 1 · Embedding 队列与缓存范围、输入输出与边界确认"
@@ -17795,21 +17800,54 @@ stages:
             rollback: "只回滚本 P1 范围说明、静态合同、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 STAGE069_REVIEWED_LOCAL_EXTERNAL_API_POLICY_RUNTIME_DISABLED；不改变 Stage069 Review、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE070-P2"
         name: "Phase 2 · 实现、接入与最小可运行切片"
-        objective: "冻结任务包后续阶段；当前未开始。"
-        status: "not_started"
+        objective: "只在五条固定、非业务、reference-only 控制引用上实现策略继承、未来 Embedding 队列、缓存、失败重试、成本/模型版本和审计字段投影；不读取真实资料、不创建运行时记录或调用外部服务。"
+        status: "passed_with_local_evidence"
         entry_authorized: true
         next_gate_id: "IDS-STAGE070-P3-GATE"
         gate:
           gate_id: "IDS-STAGE070-P2-GATE"
-          status: "not_started"
+          status: "passed"
           next_gate_id: "IDS-STAGE070-P3-GATE"
           github_upload_allowed: false
         tasks:
           - task_id: "IDS-V0_1-STAGE070-P2"
             name: "实现并接入最小 Embedding 队列与缓存切片"
-            status: "not_started"
+            objective: "严格核验五条固定控制输入，投影策略继承、12 字段未来队列、10 字段未来缓存、7 字段失败重试、8 字段成本/模型版本和18字段审计记录；不创建真实队列、缓存、重试、成本、模型版本或审计记录。"
+            status: "completed"
             dependencies:
               - "IDS-V0_1-STAGE070-P1"
+            acceptance_ids:
+              - "ACC-STAGE-070"
+              - "ACC-STAGE070-P2-01"
+              - "ACC-STAGE070-P2-02"
+              - "ACC-STAGE070-P2-03"
+              - "ACC-STAGE070-P2-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage070_embedding_queue_cache_slice"
+              - "Stage070 P2 与显式前序兼容回归命令记录在 machine run"
+            evidence_refs:
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE070_PHASE2_EMBEDDING_QUEUE_CACHE_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage070_embedding_queue_cache_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-15-stage070-p2-local.json"
+      - phase_id: "IDS-STAGE070-P3"
+        name: "Phase 3 · 队列、缓存与失败关闭专项验证"
+        objective: "冻结任务包后续阶段；当前未开始。"
+        status: "not_started"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE070-P4-GATE"
+        gate:
+          gate_id: "IDS-STAGE070-P3-GATE"
+          status: "not_started"
+          next_gate_id: "IDS-STAGE070-P4-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE070-P3"
+            name: "验证队列、缓存与失败关闭专项场景"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE070-P2"
   - stage_id: "IDS-STAGE069"
     name: "STAGE-069 · 外部 API 策略继承"
     task_id: "IDS-V0_1-STAGE069"

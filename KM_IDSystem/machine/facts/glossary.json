@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage070 P2 Embedding 队列与缓存控制切片形状",
+      "数值": "5/17/12/10/7/8/18/1/1/3",
+      "说明": "依次表示固定控制请求、仅引用输入、未来队列、未来缓存、未来失败重试、成本与模型版本、外部 API 审计、策略拒绝关闭、预算不足暂停和可行但不持久化/不调度的控制候选；只表示纯内存控制形状，不表示真实资料、队列、缓存、重试、外发、Token、成本、审计、OVH 或生产结果。"
+    },
+    {
       "指标": "Stage070 P1 Embedding 队列与缓存静态合同形状",
       "数值": "17/12/10/7/8/18/12",
       "说明": "依次表示仅引用输入、未来队列、未来缓存、未来失败重试、成本与模型版本、外部 API 审计和声明失败状态字段数量；只表示 schema 标签，不表示真实资料、队列、缓存、重试、外发、Token、成本、审计、OVH 或生产结果。"
@@ -128,6 +133,11 @@
   ],
   "data_shapes": [
     {
+      "名称": "Embedding 队列、缓存与失败重试 P2 控制投影",
+      "字段": "embedding_queue_request_ref、policy_resolution_ref、document_ref、chunk_ref、external_payload_mode、provider_ref、model_ref、model_version、estimated_token_count、estimated_cost、budget_check_state、external_api_audit_ref、cache_entry_ref、retry_ref、cache_disposition、retry_state、retry_reason、audit_disposition",
+      "说明": "Stage070 P2 只从五条固定 :control: 引用在内存中投影队列、缓存、重试、成本/模型版本和审计字段；它不包含来源正文、摘要正文、文本块、物理路径、实际队列、缓存、重试、成本、模型调用或业务结论。"
+    },
+    {
       "名称": "Embedding 队列、缓存与失败重试仅引用合同",
       "字段": "embedding_queue_request_ref、policy_resolution_ref、data_source_ref、document_ref、chunk_ref、effective_external_api_policy、external_payload_mode、owner_authorization_ref、provider_ref、model_ref、model_version、estimated_token_count、estimated_cost、budget_check_state、external_api_audit_ref、cache_entry_ref、retry_ref",
       "说明": "Stage070 P1 只定义不透明受控引用、未来队列/缓存/失败重试、成本/模型版本和审计字段；它不包含来源正文、摘要正文、文本块、物理路径、实际队列、缓存、重试、成本、模型调用或业务结论。"
@@ -230,6 +240,10 @@
   ],
   "invariants": [
     {
+      "规则": "Stage070 P2 不执行队列、缓存、失败重试、外部 API、OVH 或生产运行",
+      "说明": "P2 只固定五条非业务控制输入并机械投影策略继承、队列、缓存、失败重试、成本/模型版本和审计字段；没有读取真实资料、生成摘要或文本载荷、创建或运行队列/缓存/重试/审计、选择 provider/模型、调用外部 API、消耗 Token、写入索引/数据库、运行 Agent、部署 OVH、启用生产、上传或推送，P3 必须由新的独立 run 处理。"
+    },
+    {
       "规则": "Stage070 P1 不执行队列、缓存、失败重试、外部 API、OVH 或生产运行",
       "说明": "P1 只固定未来 schema、三档策略流程、失败关闭和回滚边界；没有读取真实资料、生成摘要或文本载荷、创建或运行队列/缓存/重试/审计、选择 provider/模型、调用外部 API、消耗 Token、写入索引/数据库、运行 Agent、部署 OVH、启用生产、上传或推送，P2 必须由新的独立 run 处理。"
     },
@@ -315,6 +329,11 @@
     }
   ],
   "terms": [
+    {
+      "英文": "Stage070 Phase2 embedding queue/cache control slice",
+      "中文": "Stage070 P2 Embedding 队列与缓存控制切片",
+      "说明": "只在固定、非业务、reference-only 控制引用上投影策略继承、未来队列、缓存、失败重试、成本、模型版本和审计字段的纯内存切片，不创建任何运行时记录。"
+    },
     {
       "英文": "Stage070 Phase1 embedding queue/cache contract",
       "中文": "Stage070 P1 Embedding 队列与缓存合同",

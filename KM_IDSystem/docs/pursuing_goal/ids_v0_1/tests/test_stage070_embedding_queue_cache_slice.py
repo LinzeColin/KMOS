@@ -1,0 +1,275 @@
+import importlib.util
+import json
+from pathlib import Path
+import unittest
+
+
+ROOT = Path(__file__).resolve().parents[4]
+BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
+PHASE1_CONTRACT = BASE / "embedding_queue_cache" / "stage070_embedding_queue_cache_contract.json"
+CONTRACT = BASE / "embedding_queue_cache" / "stage070_embedding_queue_cache_slice_contract.json"
+SLICE = BASE / "embedding_queue_cache" / "stage070_embedding_queue_cache_slice.py"
+SCOPE = BASE / "STAGE070_PHASE2_EMBEDDING_QUEUE_CACHE_CONTROL_SLICE.md"
+BATCH = BASE / "BATCH061_070_UPLOAD_LOCK.yaml"
+ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
+EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
+STATUS = ROOT / "machine" / "facts" / "status.json"
+PLAN = ROOT / "machine" / "facts" / "plan.json"
+ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-15-stage070-p2-local.json"
+
+
+class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
+    def _slice(self):
+        spec = importlib.util.spec_from_file_location(
+            "stage070_embedding_queue_cache_slice", SLICE
+        )
+        module = importlib.util.module_from_spec(spec)
+        self.assertIsNotNone(spec.loader)
+        spec.loader.exec_module(module)
+        return module
+
+    def _contract(self):
+        return json.loads(CONTRACT.read_text(encoding="utf-8"))
+
+    def _control(self):
+        return self._slice().build_control_input()
+
+    def test_phase2_artifacts_exist(self):
+        for artifact in (
+            PHASE1_CONTRACT,
+            CONTRACT,
+            SLICE,
+            SCOPE,
+            BATCH,
+            ROADMAP,
+            EVENTS,
+            STATUS,
+            PLAN,
+            ACCEPTANCE,
+            RUN,
+        ):
+            with self.subTest(artifact=artifact):
+                self.assertTrue(artifact.is_file())
+
+    def test_contract_is_executable_and_keeps_runtime_closed(self):
+        contract = self._contract()
+        self.assertEqual(
+            "ids.stage070.embedding_queue_cache.phase2.v1", contract["schema_version"]
+        )
+        self.assertEqual("IDS-V0_1-STAGE070-P2", contract["task_id"])
+        self.assertTrue(contract["slice_executable"])
+        self.assertFalse(contract["execution_ready"])
+        self.assertEqual("IDS-STAGE070-P3-GATE", contract["next_gate"])
+        source = contract["source_authority"]
+        self.assertEqual(
+            "FROZEN_STAGE070_TASKPACK_PHASE1_STAGE069_POLICY_CONTRACT_AND_BATCH_LOCK_ONLY",
+            source["authority"],
+        )
+        for field in (
+            "second_authoritative_source_created",
+            "source_body_or_path_allowed",
+            "raw_metadata_content_access_allowed",
+            "live_source_read_performed",
+            "authorized_fixture_access_performed",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(source[field])
+
+        inputs = contract["reference_only_embedding_queue_cache_input_control_contract"]
+        self.assertEqual(17, inputs["field_count"])
+        self.assertEqual(5, inputs["control_request_count"])
+        self.assertEqual(
+            [
+                "default_denied",
+                "summary_only_inherited",
+                "document_restricts_full_text_to_summary_only",
+                "full_text_allowed_control_only",
+                "budget_insufficient_pauses_full_text",
+            ],
+            inputs["control_request_order"],
+        )
+        for field in (
+            "additional_fields_allowed",
+            "source_or_document_body_allowed",
+            "summary_body_allowed",
+            "chunk_text_allowed",
+            "physical_path_or_actual_uri_allowed",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(inputs[field])
+
+        self.assertEqual(12, contract["embedding_queue_control_contract"]["field_count"])
+        self.assertEqual(10, contract["cache_control_contract"]["field_count"])
+        self.assertEqual(7, contract["failed_retry_control_contract"]["field_count"])
+        self.assertEqual(8, contract["cost_and_model_control_contract"]["field_count"])
+        self.assertEqual(18, contract["external_api_audit_control_contract"]["field_count"])
+        for field, value in contract["runtime_boundary"].items():
+            with self.subTest(field=field):
+                self.assertFalse(value)
+
+    def test_control_slice_projects_all_p2_control_records(self):
+        result = self._slice().execute_embedding_queue_cache_control_slice(self._control())
+        self.assertTrue(result["input_accepted"])
+        self.assertEqual(
+            "COMPLETED_IN_MEMORY_EMBEDDING_QUEUE_CACHE_CONTROL_SLICE",
+            result["execution_state"],
+        )
+        self.assertEqual(5, result["control_request_count"])
+        self.assertEqual(0, result["actual_input_request_count"])
+        self.assertEqual(5, result["policy_resolution_count"])
+        self.assertEqual(5, result["embedding_queue_record_count"])
+        self.assertEqual(5, result["cache_record_count"])
+        self.assertEqual(5, result["failed_retry_record_count"])
+        self.assertEqual(5, result["cost_model_record_count"])
+        self.assertEqual(5, result["external_api_audit_projection_count"])
+        self.assertTrue(
+            result["all_chunks_inherit_effective_document_policy_automatically"]
+        )
+        self.assertFalse(result["chunk_manual_policy_assignment_performed"])
+        self.assertEqual(1, result["control_queue_blocked_policy_denied_count"])
+        self.assertEqual(1, result["control_queue_paused_budget_insufficient_count"])
+        self.assertEqual(3, result["control_queue_eligible_not_persisted_count"])
+        self.assertEqual(1, result["control_cache_blocked_policy_denied_count"])
+        self.assertEqual(1, result["control_retry_paused_budget_insufficient_count"])
+
+    def test_control_records_keep_exact_p1_shapes_and_reference_only_labels(self):
+        module = self._slice()
+        result = module.execute_embedding_queue_cache_control_slice(self._control())
+        request = self._control()["embedding_queue_cache_requests"][0]
+        self.assertEqual(set(module.REFERENCE_INPUT_FIELDS), set(request))
+        for field in (
+            "embedding_queue_request_ref",
+            "policy_resolution_ref",
+            "data_source_ref",
+            "document_ref",
+            "chunk_ref",
+            "owner_authorization_ref",
+            "provider_ref",
+            "model_ref",
+            "model_version",
+            "external_api_audit_ref",
+            "cache_entry_ref",
+            "retry_ref",
+        ):
+            with self.subTest(field=field):
+                self.assertIn(":control:", request[field])
+        self.assertEqual(0, request["estimated_token_count"])
+        self.assertEqual(0, request["estimated_cost"])
+
+        queue = result["embedding_queue_records"][0]
+        self.assertEqual(set(module.QUEUE_FIELDS) | {"control_queue_state", "control_queue_reason"}, set(queue))
+        cache = result["cache_records"][0]
+        self.assertEqual(set(module.CACHE_FIELDS), set(cache))
+        retry = result["failed_retry_records"][0]
+        self.assertEqual(set(module.RETRY_FIELDS), set(retry))
+        cost = result["cost_model_records"][0]
+        self.assertEqual(set(module.COST_MODEL_FIELDS), set(cost))
+        audit = result["external_api_audit_projections"][0]
+        self.assertEqual(set(module.AUDIT_FIELDS), set(audit))
+        self.assertEqual(0, cost["estimated_token_count"])
+        self.assertEqual(0, cost["estimated_cost"])
+        self.assertEqual(0, audit["token_count"])
+        self.assertEqual(0, audit["cost_estimate"])
+        self.assertTrue(result["all_control_records_keep_required_shapes"])
+        self.assertFalse(result["source_body_summary_body_or_chunk_text_retained"])
+
+    def test_invalid_widened_reordered_or_tampered_input_fails_closed(self):
+        module = self._slice()
+        self.assertEqual(
+            ("denied", "CONTROL_SOURCE_POLICY_INVALID_FAIL_CLOSED"),
+            module.resolve_effective_policy("unexpected", None),
+        )
+        self.assertEqual(
+            ("denied", "CONTROL_DOCUMENT_POLICY_WIDENING_BLOCKED"),
+            module.resolve_effective_policy("summary_only", "full_text_allowed"),
+        )
+        unexpected = self._control()
+        unexpected["unexpected"] = "not accepted"
+        self.assertFalse(
+            module.execute_embedding_queue_cache_control_slice(unexpected)["input_accepted"]
+        )
+        reordered = self._control()
+        reordered["embedding_queue_cache_requests"].reverse()
+        self.assertFalse(
+            module.execute_embedding_queue_cache_control_slice(reordered)["input_accepted"]
+        )
+        tampered = self._control()
+        tampered["embedding_queue_cache_requests"][0]["provider_ref"] = "provider:control:unexpected"
+        self.assertFalse(
+            module.execute_embedding_queue_cache_control_slice(tampered)["input_accepted"]
+        )
+
+    def test_real_runtime_and_business_decisions_remain_closed(self):
+        result = self._slice().execute_embedding_queue_cache_control_slice(self._control())
+        for field in (
+            "actual_data_source_policy_read",
+            "actual_document_policy_resolved",
+            "actual_chunk_policy_assigned",
+            "actual_policy_resolution_record_created",
+            "actual_embedding_queue_request_created",
+            "actual_cache_entry_created",
+            "actual_cache_read_or_write_performed",
+            "actual_failed_retry_record_created",
+            "actual_retry_execution_performed",
+            "actual_cost_recorded",
+            "actual_model_version_recorded",
+            "actual_external_api_audit_record_created",
+            "ids_business_source_read_performed",
+            "raw_metadata_content_accessed",
+            "source_file_open_performed",
+            "external_payload_created",
+            "embedding_queue_execution_performed",
+            "cache_read_or_write_performed",
+            "failed_retry_execution_performed",
+            "provider_credential_read_performed",
+            "provider_or_model_selected",
+            "external_api_client_initialized",
+            "external_api_call_performed",
+            "model_call_performed",
+            "model_token_consumption_performed",
+            "embedding_or_index_write_performed",
+            "database_connection_performed",
+            "persistent_state_write_performed",
+            "agent_execution_performed",
+            "ovh_deployment_performed",
+            "production_runtime_activation_performed",
+            "github_upload_performed",
+            "push_performed",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(result[field])
+
+    def test_chinese_feedback_and_p2_governance_evidence_exist(self):
+        result = self._slice().execute_embedding_queue_cache_control_slice(self._control())
+        self.assertEqual(4, len(result["chinese_feedback"]))
+        self.assertTrue(
+            all(any("一" <= char <= "鿿" for char in message) for message in result["chinese_feedback"])
+        )
+        status = json.loads(STATUS.read_text(encoding="utf-8"))
+        plan = json.loads(PLAN.read_text(encoding="utf-8"))
+        acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
+        run = json.loads(RUN.read_text(encoding="utf-8"))
+        events = [json.loads(line) for line in EVENTS.read_text(encoding="utf-8").splitlines() if line.strip()]
+        self.assertEqual("IDS-STAGE070", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE070-P2", status["phase"])
+        self.assertEqual("IDS-STAGE070-P3-GATE", status["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE070-P2", plan["phase"])
+        self.assertIn("IDS-STAGE070-P3-GATE", plan["stop_condition"])
+        self.assertTrue(
+            {"ACC-STAGE070-P2-01", "ACC-STAGE070-P2-02", "ACC-STAGE070-P2-03", "ACC-STAGE070-P2-04"}.issubset(
+                {item["id"] for item in acceptance["items"]}
+            )
+        )
+        self.assertEqual("RUN-IDS-STAGE070-P2-LOCAL-20260815-001", run["run_id"])
+        self.assertEqual("IDS-V0_1-STAGE070-P2", run["task_id"])
+        self.assertEqual("IDS-STAGE070-P3-GATE", run["next_gate"])
+        self.assertTrue(run["result"].startswith("PASS_LOCAL_"))
+        self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
+        self.assertIn("stage070_phase2", BATCH.read_text(encoding="utf-8"))
+        self.assertIn("IDS-V0_1-STAGE070-P2", ROADMAP.read_text(encoding="utf-8"))
+        self.assertTrue(any(item.get("event_id") == "EVT-IDS-V0_1-STAGE070-P2-20260815-001" for item in events))
+
+
+if __name__ == "__main__":
+    unittest.main()

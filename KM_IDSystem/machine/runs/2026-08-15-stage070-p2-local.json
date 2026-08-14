@@ -1,0 +1,73 @@
+{
+  "schema_version": "ids.local_run.v1",
+  "run_id": "RUN-IDS-STAGE070-P2-LOCAL-20260815-001",
+  "task_id": "IDS-V0_1-STAGE070-P2",
+  "acceptance_id": "ACC-STAGE-070",
+  "recorded_on": "2026-08-15",
+  "status": "PASS_LOCAL_CONTROL_SLICE_RUNTIME_DISABLED",
+  "scope": "Stage070 Phase 2 fixed non-business reference-only in-memory embedding queue, cache, failed retry, cost/model-version and audit control slice only",
+  "commands": [
+        "python3 -B -m json.tool KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_slice_contract.json",
+        "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage070_embedding_queue_cache_slice",
+        "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage06*.py' -q",
+        "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage070*.py' -q",
+        "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+        "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py",
+        "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py",
+    "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem",
+    "python3 -B KM_IDSystem/machine/tools/check_doc_budget.py --docs KM_IDSystem/文档",
+    "python3 -B KM_IDSystem/machine/tools/check_blocker_stop.py --machine KM_IDSystem/machine",
+    "python3 -B KM_IDSystem/machine/tools/check_dual_plane_ci.py --root . --projects KM_IDSystem --require-projects"
+  ],
+  "results": [
+        "PASS_JSON_CONTRACT_AND_RUN_PARSE",
+        "PASS_STAGE070_P2_FOCUSED_CONTROL_SLICE_TESTS",
+        "PASS_STAGE060_TO_STAGE069_REGRESSION_473_TESTS",
+        "PASS_STAGE070_CONTRACT_AND_P2_SLICE_15_TESTS",
+        "PASS_STAGE005_GOVERNANCE_AND_BATCH_REVIEW_CHECKS",
+        "PASS_LOCAL_GOVERNANCE_AND_HUMAN_PROJECTION_GATES"
+  ],
+  "runtime_counts": {
+    "actual_input_request_count": 0,
+    "actual_embedding_queue_count": 0,
+    "actual_cache_entry_count": 0,
+    "actual_failed_retry_count": 0,
+    "actual_budget_check_count": 0,
+    "actual_token_count": 0,
+    "actual_cost_count": 0,
+    "actual_model_version_count": 0,
+    "actual_external_api_audit_count": 0,
+    "actual_external_api_call_count": 0,
+    "actual_model_token_count": 0
+  },
+  "observed_work": {
+    "ids_business_source_read_performed": false,
+    "embedding_queue_execution_performed": false,
+    "cache_read_or_write_performed": false,
+    "failed_retry_execution_performed": false,
+    "external_api_call_performed": false,
+    "model_token_consumption_performed": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "result": "PASS_LOCAL_EMBEDDING_QUEUE_CACHE_CONTROL_SLICE_RUNTIME_DISABLED",
+  "next_gate": "IDS-STAGE070-P3-GATE",
+  "validation": {
+        "contract_json_parse": "PASS",
+        "stage070_p2_focused_tests": "PASS_LOCAL",
+        "stage060_to_stage069_regression": "PASS_LOCAL_473_TESTS",
+        "stage070_contract_and_slice_tests": "PASS_LOCAL_15_TESTS",
+        "stage005_governance_regression": "PASS_LOCAL",
+        "batch041_050_review": "PASS_LOCAL",
+        "batch051_060_review": "PASS_LOCAL",
+        "human_projection": "PASS_LOCAL",
+        "doc_budget": "PASS_LOCAL",
+        "blocker_stop": "PASS_LOCAL",
+        "dual_plane": "PASS_LOCAL",
+        "verification_status": "PASS_LOCAL_CONTROL_SLICE_VALIDATIONS"
+  },
+  "rollback_scope": "只撤回 Stage070 P2 范围说明、控制切片、合同、聚焦用例、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 PHASE1_EMBEDDING_QUEUE_AND_CACHE_CONTRACT_RUNTIME_DISABLED；不改变 P1、Stage069 及更早证据、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。"
+}
