@@ -1,14 +1,21 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
-updated_at_utc: "2026-08-14T19:05:20Z"
-status: "stage070_phase3_completed_local"
+updated_at_utc: "2026-08-14T19:37:46Z"
+status: "stage070_phase4_completed_review_pending"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage070_phase4_state:
+    status: "stage070_phase4_completed_review_pending"
+    current_task_id: "IDS-V0_1-STAGE070-P4"
+    next_gate: "IDS-STAGE070-REVIEW-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE070-REVIEW"
+    stage070_review_entry_authorized: true
+    github_upload_allowed: false
   stage070_phase3_state:
     status: "stage070_phase3_completed_local"
     current_task_id: "IDS-V0_1-STAGE070-P3"
@@ -377,23 +384,25 @@ upload_gate:
 
 stage_progress:
   STAGE-070:
-    status: "stage070_phase3_completed_local"
+    status: "stage070_phase4_completed_review_pending"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
-    next_phase: "Stage070 Phase 4"
-    next_gate: "IDS-STAGE070-P4-GATE"
-    current_task_id: "IDS-V0_1-STAGE070-P3"
+      - "Phase 4"
+    next_phase: "Stage070 Review"
+    next_gate: "IDS-STAGE070-REVIEW-GATE"
+    current_task_id: "IDS-V0_1-STAGE070-P4"
     acceptance_id: "ACC-STAGE-070"
-    acceptance_status: "phase3_completed_local"
-    review_status: "not_started"
+    acceptance_status: "phase4_completed_review_pending"
+    review_status: "pending"
     stage070_phase2_entry_authorized: true
     stage070_phase3_entry_authorized: true
     stage070_phase4_entry_authorized: true
+    stage070_review_entry_authorized: true
     taskpack_context_read_performed: true
     predecessor_stage069_review_reused_as_reference_only: true
-    source_authority: "FROZEN_STAGE070_TASKPACK_STAGE069_REVIEW_STAGE069_POLICY_CONTRACT_AND_BATCH_LOCK_ONLY"
+    source_authority: "FROZEN_STAGE070_TASKPACK_PHASE1_PHASE2_PHASE3_STAGE069_REVIEW_STAGE069_POLICY_CONTRACT_AND_BATCH_LOCK_ONLY"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
     raw_metadata_content_accessed: false
@@ -404,7 +413,8 @@ stage_progress:
     summary_generation_performed: false
     embedding_queue_cache_contract_schema: "ids.stage070.embedding_queue_cache.phase2.v1"
     embedding_queue_cache_scenarios_contract_schema: "ids.stage070.embedding_queue_cache.phase3.v1"
-    contract_state: "PHASE3_EMBEDDING_QUEUE_CACHE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED"
+    embedding_queue_cache_delivery_contract_schema: "ids.stage070.embedding_queue_cache.phase4.delivery_contract.v1"
+    contract_state: "PHASE4_EMBEDDING_QUEUE_CACHE_METADATA_ONLY_DELIVERY_RUNTIME_DISABLED"
     execution_ready: false
     default_external_api_policy: "denied"
     allowed_external_api_policy_value_count: 3
@@ -416,7 +426,7 @@ stage_progress:
     future_failed_retry_field_count: 7
     future_cost_and_model_field_count: 8
     future_external_api_audit_field_count: 18
-    declared_failure_state_count: 8
+    declared_failure_state_count: 12
     control_request_count: 5
     control_policy_resolution_count: 5
     control_embedding_queue_projection_count: 5
@@ -433,6 +443,16 @@ stage_progress:
     full_text_allowed_scenario_count: 1
     budget_insufficient_pause_scenario_count: 1
     business_line_whitebox_human_handling_count: 4
+    control_policy_sample_count: 5
+    control_audit_log_sample_count: 5
+    control_audit_field_count: 18
+    control_cost_estimate_sample_count: 5
+    control_failure_handling_result_count: 5
+    control_non_externalized_reference_count: 5
+    control_externalization_query_key_count: 6
+    control_chinese_confirmation_count: 3
+    control_declared_failure_state_count: 12
+    control_silent_drop_count: 0
     actual_input_request_count: 0
     actual_policy_resolution_count: 0
     actual_embedding_queue_count: 0
@@ -445,6 +465,10 @@ stage_progress:
     actual_external_api_audit_count: 0
     actual_external_api_call_count: 0
     actual_model_token_count: 0
+    actual_external_payload_count: 0
+    actual_external_api_audit_log_count: 0
+    actual_failure_record_count: 0
+    actual_non_externalized_data_record_count: 0
     source_document_remains_authoritative: true
     embedding_queue_or_cache_can_replace_source_document: false
     external_model_output_can_become_business_fact_authority: false
@@ -458,6 +482,9 @@ stage_progress:
     embedding_queue_execution_performed: false
     cache_read_or_write_performed: false
     failed_retry_execution_performed: false
+    actual_audit_log_query_performed: false
+    actual_externalization_record_query_performed: false
+    actual_policy_rollback_performed: false
     embedding_or_index_write_performed: false
     database_connection_performed: false
     persistent_state_write_performed: false
@@ -467,7 +494,7 @@ stage_progress:
     production_runtime_activation_performed: false
     phase2_started: true
     phase3_started: true
-    phase4_started: false
+    phase4_started: true
     whole_stage_review_performed: false
     batch_review_performed: false
     stage071_started: false
@@ -490,6 +517,11 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_scenarios.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage070_embedding_queue_cache_scenarios.py"
       - "KM_IDSystem/machine/runs/2026-08-15-stage070-p3-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE070_PHASE4_EMBEDDING_QUEUE_CACHE_DELIVERY_CLOSEOUT.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_delivery_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_delivery.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage070_embedding_queue_cache_delivery.py"
+      - "KM_IDSystem/machine/runs/2026-08-15-stage070-p4-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE069_STAGE_REVIEW.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_policy/stage069_external_api_policy_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
@@ -1758,10 +1790,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE070-P3"
-  next_allowed_task_id: "IDS-V0_1-STAGE070-P4"
+  current_task_id: "IDS-V0_1-STAGE070-P4"
+  next_allowed_task_id: "IDS-V0_1-STAGE070-REVIEW"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-070 Phase 3 only replays five fixed non-business reference-only P2 controls in memory: five 29-field scenario results, five 18-field audit projections, 90 audit-field checks and three future external-call candidates verify denied closure, two summary-only scopes, full-text control scope, budget pause and audit-before-call. It does not open sources, create payloads, queues, cache entries, retries or audits, select provider/model, call an external API, consume model Tokens, write persistent state, deploy OVH or activate any runtime. Stage070 P4 is the next independent gate."
+  current_run: "STAGE-070 Phase 4 only derives five policy samples, five eighteen-field audit-log projections, five zero-cost estimates, five failure-handling results, five non-externalized reference records, six in-memory query keys, three Chinese confirmations, twelve declared failure states, and P4-to-P3 rollback instructions from the five fixed reference-only P3 scenarios. It does not open sources, create payloads, queues, cache entries, retries or audits, select provider/model, call an external API, consume model Tokens, write persistent state, deploy OVH or activate any runtime. Stage070 Review is the next independent gate."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."

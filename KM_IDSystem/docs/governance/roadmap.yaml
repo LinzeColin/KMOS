@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE070"
-current_phase_id: "IDS-STAGE070-P3"
-current_task_id: "IDS-V0_1-STAGE070-P3"
-next_gate_id: "IDS-STAGE070-P4-GATE"
+current_phase_id: "IDS-STAGE070-P4"
+current_task_id: "IDS-V0_1-STAGE070-P4"
+next_gate_id: "IDS-STAGE070-REVIEW-GATE"
 current_transition_history:
+  stage070_phase4_state:
+    current_stage_id: "IDS-STAGE070"
+    current_phase_id: "IDS-STAGE070-P4"
+    current_task_id: "IDS-V0_1-STAGE070-P4"
+    next_gate_id: "IDS-STAGE070-REVIEW-GATE"
   stage070_phase3_state:
     current_stage_id: "IDS-STAGE070"
     current_phase_id: "IDS-STAGE070-P3"
@@ -17740,20 +17745,21 @@ stages:
     task_id: "IDS-V0_1-STAGE070"
     acceptance_ids:
       - "ACC-STAGE-070"
-    status: "phase3_completed_local"
-    pursuing_goal: "只重放 P2 五条固定、非业务、reference-only 控制引用，机械验证 denied 无外发、summary_only 摘要范围、full_text_allowed 文本块控制范围、预算不足暂停、审计前置关系和失败关闭；不读取、打开、解析、外发或写入真实资料，不创建队列、缓存、重试、审计或运行时。"
+    status: "phase4_completed_review_pending"
+    pursuing_goal: "只以冻结 Stage070 任务包、P1/P2/P3 合同、Stage069 策略合同和 Batch061-070 上传锁为唯一合同上下文，从五条固定、非业务、reference-only P3 场景派生策略样例、审计日志投影样例、零成本估算、失败处理、未外发原因、查询说明和回到 P3 的回滚说明；不读取、总结或外发真实资料，不创建摘要正文、文本块、队列、缓存、重试、审计、成本、模型调用或业务事实。"
     stop_gate:
-      gate_id: "IDS-STAGE070-P3-GATE"
+      gate_id: "IDS-STAGE070-P4-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE070-P4-GATE"
+      next_gate_id: "IDS-STAGE070-REVIEW-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "复用 Stage069 的默认 denied、三档策略和 data source/document→chunk 自动继承；owner 不需逐条标记 chunk，document 不得放宽来源策略。"
-      - "重放五条固定非业务仅引用输入，在内存中验证五条二十九字段场景结果、五条十八字段审计投影、九十次审计字段检查与三个未来外部调用候选，明确 denied、summary_only、full_text_allowed、预算暂停、失败状态、业务线白箱人工处理和回滚路径。"
+      - "P4 只从 P3 的五条固定控制场景派生五条策略样例、五条审计日志投影样例、五条零成本估算、五条失败处理结果、五条未外发控制引用记录、六键查询说明、三条中文确认和 P4→P3 回滚说明。"
+      - "denied 阻断、摘要和文本块控制引用的业务线白箱复核、预算不足暂停、十八字段审计投影和零静默丢弃均以固定控制标签验证；P3 形状、样例、成本、失败、未外发、查询或回滚异常均失败关闭，来源文档与业务线白箱人工处理保持唯一权威。"
       - "真实资料、正文、摘要、文本块、队列、缓存、失败重试、provider/模型选择、外部 API、模型 Token、成本、审计、索引、数据库、Agent、OVH、生产、上传和推送均保持关闭。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、总结、保留、外发或回退任何 IDS 业务资料、原始元数据、授权 fixture、真实 data source、document、摘要、文本块、chunk、队列、缓存、重试、审计、成本、模型版本、索引、数据库或报告"
-      - "执行真实 parser、切块、摘要生成、外部文本载荷创建、Embedding 队列、缓存、失败重试、provider 凭据读取、provider/模型选择、外部 API、模型调用、模型 Token、成本计算、审计写入或查询、索引、持久化、Agent、OVH、生产服务、Stage070 P4、批次复审、上传、推送或应用重装"
+      - "执行真实 parser、切块、摘要生成、外部文本载荷创建、Embedding 队列、缓存、失败重试、provider 凭据读取、provider/模型选择、外部 API、模型调用、模型 Token、成本计算、审计写入或查询、索引、持久化、Agent、OVH、生产服务、Stage070 Review、批次复审、上传、推送或应用重装"
     phases:
       - phase_id: "IDS-STAGE070-P1"
         name: "Phase 1 · Embedding 队列与缓存范围、输入输出与边界确认"
@@ -17887,21 +17893,72 @@ stages:
             rollback: "只回滚本 P3 专项场景说明、场景合同、纯内存模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PHASE2_EMBEDDING_QUEUE_CACHE_CONTROL_SLICE_RUNTIME_DISABLED；不改变 P1/P2、Stage069 Review、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE070-P4"
         name: "Phase 4 · Embedding 队列与缓存交付证据、回滚与中文反馈"
-        objective: "冻结任务包后续阶段；当前未开始。"
-        status: "not_started"
+        objective: "只以冻结 Stage070 任务包、P1/P2/P3 合同、Stage069 外部 API 策略继承合同和 Batch061-070 上传锁为唯一合同上下文，从 P3 五条固定、非业务、reference-only 场景派生策略样例、审计日志投影样例、零成本估算、失败处理、未外发控制引用记录、查询说明、中文确认和回到 P3 的回滚说明；不读取、外发、创建、写入、查询或回退真实资料、审计、成本、队列、缓存或业务结论。"
+        status: "passed_with_local_evidence"
         entry_authorized: true
         next_gate_id: "IDS-STAGE070-REVIEW-GATE"
         gate:
           gate_id: "IDS-STAGE070-P4-GATE"
-          status: "not_started"
+          status: "passed"
           next_gate_id: "IDS-STAGE070-REVIEW-GATE"
           github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析、总结、评估、保留、外发、查询或回退任何 IDS 业务资料、原始元数据、授权 fixture、真实 data source、document、摘要、摘要正文、文本块、页面、表格、来源片段、parser 输出、chunk、队列、缓存、重试、审计记录、成本记录、模型版本、索引、数据库或报告"
+          - "执行真实 parser、章节检测、切块、摘要生成、外部文本载荷创建、Embedding 队列、缓存、失败重试、provider 凭据读取、provider/模型选择、外部 API、模型调用、模型 Token、成本计算、审计写入或查询、索引、持久化、Agent、OVH、生产服务、Stage070 Review、批次复审、上传、推送或应用重装"
         tasks:
           - task_id: "IDS-V0_1-STAGE070-P4"
             name: "交付队列与缓存策略样例、审计、成本、失败处理、查询与回滚说明"
-            status: "not_started"
+            objective: "从 P3 五条固定控制场景派生五条 metadata-only 策略样例、五条十八字段审计日志投影样例、五条零 Token/零成本估算、五条显式失败处理结果、五条未外发控制引用记录、六键查询说明、三条中文确认和 P4→P3 回滚说明；不创建真实外发载荷、队列、缓存、重试、审计日志、成本、provider/模型或持久化状态。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "100.00%"
             dependencies:
               - "IDS-V0_1-STAGE070-P3"
+            acceptance_ids:
+              - "ACC-STAGE-070"
+              - "ACC-STAGE070-P4-01"
+              - "ACC-STAGE070-P4-02"
+              - "ACC-STAGE070-P4-03"
+              - "ACC-STAGE070-P4-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage070_embedding_queue_cache_delivery"
+              - "Stage070 P4 与显式前序兼容回归命令记录在 machine run"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "本 run 的最终聚焦、含显式前序的阶段链路、两个批次检查器、Stage005 治理回归与中文事实投影真实结果记录在 Stage070 P4 machine run；本 P4 不进入 Stage070 Review、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-070_Embedding队列与缓存.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE070_PHASE4_EMBEDDING_QUEUE_CACHE_DELIVERY_CLOSEOUT.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_delivery_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_delivery.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage070_embedding_queue_cache_delivery.py"
+              - "KM_IDSystem/machine/runs/2026-08-15-stage070-p4-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_policy/stage069_external_api_policy_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把策略样例、审计日志投影、零成本估算、失败处理、未外发原因、查询或回滚说明误作真实资料授权、真实摘要/文本外发、真实审计、真实成本、真实 Embedding、真实模型使用、OVH、生产或上传能力，会绕开单一权威、预算/审计关闭和业务线白箱人工处理。"
+            rollback: "只回滚本 P4 交付说明、交付合同、纯内存模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PASS_PHASE3_EMBEDDING_QUEUE_CACHE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；不改变 P1/P2/P3、Stage069 Review、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE070-REVIEW"
+        name: "Stage Review · Embedding 队列与缓存整阶段机械复审"
+        objective: "冻结任务包后续阶段；当前未开始。"
+        status: "not_started"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE071-P1-GATE"
+        gate:
+          gate_id: "IDS-STAGE070-REVIEW-GATE"
+          status: "not_started"
+          next_gate_id: "IDS-STAGE071-P1-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE070-REVIEW"
+            name: "复审 Embedding 队列与缓存 P1--P4 控制证据"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE070-P4"
   - stage_id: "IDS-STAGE069"
     name: "STAGE-069 · 外部 API 策略继承"
     task_id: "IDS-V0_1-STAGE069"

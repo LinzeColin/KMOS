@@ -254,20 +254,36 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
         self.assertEqual("IDS-STAGE070", status["stage"])
         self.assertIn(
             status["phase"],
-            ("IDS-V0_1-STAGE070-P2", "IDS-V0_1-STAGE070-P3"),
+            (
+                "IDS-V0_1-STAGE070-P2",
+                "IDS-V0_1-STAGE070-P3",
+                "IDS-V0_1-STAGE070-P4",
+            ),
         )
         self.assertIn(
             status["next_gate"],
-            ("IDS-STAGE070-P3-GATE", "IDS-STAGE070-P4-GATE"),
+            (
+                "IDS-STAGE070-P3-GATE",
+                "IDS-STAGE070-P4-GATE",
+                "IDS-STAGE070-REVIEW-GATE",
+            ),
         )
         self.assertIn(
             plan["phase"],
-            ("IDS-V0_1-STAGE070-P2", "IDS-V0_1-STAGE070-P3"),
+            (
+                "IDS-V0_1-STAGE070-P2",
+                "IDS-V0_1-STAGE070-P3",
+                "IDS-V0_1-STAGE070-P4",
+            ),
         )
         self.assertTrue(
             any(
                 gate in plan["stop_condition"]
-                for gate in ("IDS-STAGE070-P3-GATE", "IDS-STAGE070-P4-GATE")
+                for gate in (
+                    "IDS-STAGE070-P3-GATE",
+                    "IDS-STAGE070-P4-GATE",
+                    "IDS-STAGE070-REVIEW-GATE",
+                )
             )
         )
         self.assertTrue(

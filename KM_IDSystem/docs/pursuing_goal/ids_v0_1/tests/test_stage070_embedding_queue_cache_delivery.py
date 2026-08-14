@@ -6,31 +6,31 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-PHASE1_CONTRACT = BASE / "external_api_policy" / "stage069_external_api_policy_contract.json"
+PHASE1_CONTRACT = BASE / "embedding_queue_cache" / "stage070_embedding_queue_cache_contract.json"
 PHASE2_CONTRACT = (
-    BASE / "external_api_policy" / "stage069_external_api_policy_slice_contract.json"
+    BASE / "embedding_queue_cache" / "stage070_embedding_queue_cache_slice_contract.json"
 )
 PHASE3_CONTRACT = (
-    BASE / "external_api_policy" / "stage069_external_api_policy_scenarios_contract.json"
+    BASE / "embedding_queue_cache" / "stage070_embedding_queue_cache_scenarios_contract.json"
 )
 PHASE3_MODULE = (
-    BASE / "external_api_policy" / "stage069_external_api_policy_scenarios.py"
+    BASE / "embedding_queue_cache" / "stage070_embedding_queue_cache_scenarios.py"
 )
-CLOSEOUT = BASE / "STAGE069_PHASE4_EXTERNAL_API_POLICY_DELIVERY_CLOSEOUT.md"
+CLOSEOUT = BASE / "STAGE070_PHASE4_EMBEDDING_QUEUE_CACHE_DELIVERY_CLOSEOUT.md"
 CONTRACT = (
-    BASE / "external_api_policy" / "stage069_external_api_policy_delivery_contract.json"
+    BASE / "embedding_queue_cache" / "stage070_embedding_queue_cache_delivery_contract.json"
 )
-MODULE = BASE / "external_api_policy" / "stage069_external_api_policy_delivery.py"
+MODULE = BASE / "embedding_queue_cache" / "stage070_embedding_queue_cache_delivery.py"
 BATCH = BASE / "BATCH061_070_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-15-stage069-p4-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-15-stage070-p4-local.json"
 
 EXPECTED_SCENARIOS = [
-    "denied-policy-blocks-externalization-control",
+    "denied-policy-blocks-queue-cache-retry-and-externalization-control",
     "summary-only-policy-limits-control-payload",
     "document-restriction-limits-full-text-to-summary-control",
     "full-text-policy-allows-only-control-text-reference",
@@ -38,13 +38,13 @@ EXPECTED_SCENARIOS = [
 ]
 
 
-class Stage069ExternalApiPolicyPhase4Tests(unittest.TestCase):
+class Stage070EmbeddingQueueCachePhase4Tests(unittest.TestCase):
     _module_value = None
     _report_value = None
 
     def _module(self):
         if self.__class__._module_value is None:
-            spec = importlib.util.spec_from_file_location("stage069_p4", MODULE)
+            spec = importlib.util.spec_from_file_location("stage070_p4", MODULE)
             module = importlib.util.module_from_spec(spec)
             self.assertIsNotNone(spec.loader)
             spec.loader.exec_module(module)
@@ -54,7 +54,7 @@ class Stage069ExternalApiPolicyPhase4Tests(unittest.TestCase):
     def _report(self):
         if self.__class__._report_value is None:
             self.__class__._report_value = (
-                self._module().build_external_api_policy_phase4_delivery_report()
+                self._module().build_embedding_queue_cache_phase4_delivery_report()
             )
         return self.__class__._report_value
 
@@ -84,12 +84,12 @@ class Stage069ExternalApiPolicyPhase4Tests(unittest.TestCase):
     def test_contract_identity_delivery_boundary_and_authority(self):
         contract = self._contract()
         self.assertEqual(
-            "ids.stage069.external_api_policy.phase4.delivery_contract.v1",
+            "ids.stage070.embedding_queue_cache.phase4.delivery_contract.v1",
             contract["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE069-P4", contract["task_id"])
-        self.assertEqual("IDS-STAGE069-P4-GATE", contract["entry_gate"])
-        self.assertEqual("IDS-STAGE069-REVIEW-GATE", contract["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE070-P4", contract["task_id"])
+        self.assertEqual("IDS-STAGE070-P4-GATE", contract["entry_gate"])
+        self.assertEqual("IDS-STAGE070-REVIEW-GATE", contract["next_gate"])
         self.assertTrue(contract["delivery_executable"])
         self.assertFalse(contract["execution_ready"])
         self.assertTrue(
@@ -113,7 +113,7 @@ class Stage069ExternalApiPolicyPhase4Tests(unittest.TestCase):
     def test_contract_covers_delivery_query_rollback_and_failure_items(self):
         contract = self._contract()
         artifacts = contract["delivery_artifacts"]
-        self.assertEqual(5, artifacts["external_api_policy_samples"]["sample_count"])
+        self.assertEqual(5, artifacts["embedding_queue_cache_policy_samples"]["sample_count"])
         self.assertEqual(5, artifacts["audit_log_samples"]["sample_count"])
         self.assertEqual(18, artifacts["audit_log_samples"]["audit_field_count"])
         self.assertEqual(90, artifacts["audit_log_samples"]["audit_field_check_count"])
@@ -133,7 +133,7 @@ class Stage069ExternalApiPolicyPhase4Tests(unittest.TestCase):
         )
         self.assertEqual(12, contract["failure_and_stop_contract"]["failure_state_count"])
         self.assertEqual(
-            "PASS_PHASE3_EXTERNAL_API_POLICY_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+            "PASS_PHASE3_EMBEDDING_QUEUE_CACHE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
             contract["rollback_contract"]["rollback_target_result"],
         )
 
@@ -141,38 +141,48 @@ class Stage069ExternalApiPolicyPhase4Tests(unittest.TestCase):
         report = self._report()
         self.assertTrue(report["valid"])
         self.assertEqual(
-            "PASS_PHASE4_EXTERNAL_API_POLICY_DELIVERY_RUNTIME_DISABLED",
+            "PASS_PHASE4_EMBEDDING_QUEUE_CACHE_DELIVERY_RUNTIME_DISABLED",
             report["result"],
         )
-        self.assertEqual("IDS-STAGE069-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE070-REVIEW-GATE", report["next_gate"])
         self.assertTrue(report["phase3_controlled_scenarios_reused_as_reference_only"])
-        self.assertEqual(5, len(report["external_api_policy_samples"]))
-        self.assertEqual(5, len(report["external_api_policy_sample_lines"]))
+        self.assertEqual(5, len(report["embedding_queue_cache_policy_samples"]))
+        self.assertEqual(5, len(report["embedding_queue_cache_policy_sample_lines"]))
         self.assertEqual(0, report["actual_external_api_call_count"])
         self.assertEqual(0, report["actual_model_token_count"])
 
     def test_policy_samples_preserve_control_references_without_payload(self):
         report = self._report()
-        samples = report["external_api_policy_samples"]
+        samples = report["embedding_queue_cache_policy_samples"]
         self.assertEqual(EXPECTED_SCENARIOS, [item["scenario_id"] for item in samples])
-        for sample, line in zip(samples, report["external_api_policy_sample_lines"]):
+        for sample, line in zip(samples, report["embedding_queue_cache_policy_sample_lines"]):
             with self.subTest(sample=sample["sample_id"]):
                 self.assertEqual(sample, json.loads(line))
                 self.assertEqual(
-                    "DELIVERY_METADATA_ONLY_EXTERNAL_API_POLICY_SAMPLE_NOT_REAL_PAYLOAD",
+                    "DELIVERY_METADATA_ONLY_EMBEDDING_QUEUE_CACHE_POLICY_SAMPLE_NOT_REAL_PAYLOAD",
                     sample["sample_kind"],
                 )
                 self.assertTrue(sample["control_metadata_only"])
                 self.assertFalse(sample["source_content_retained"])
-                self.assertFalse(sample["actual_external_payload_created"])
-                self.assertFalse(sample["actual_external_api_call_performed"])
-                self.assertFalse(sample["actual_model_token_consumption_performed"])
+                for field in (
+                    "actual_external_payload_created",
+                    "actual_embedding_queue_created",
+                    "actual_cache_entry_created",
+                    "actual_failed_retry_record_created",
+                    "actual_external_api_call_performed",
+                    "actual_model_token_consumption_performed",
+                ):
+                    with self.subTest(field=field):
+                        self.assertFalse(sample[field])
                 for field in (
                     "policy_resolution_ref",
                     "embedding_queue_request_ref",
+                    "cache_entry_ref",
+                    "retry_ref",
                     "external_api_audit_ref",
                 ):
-                    self.assertIn(":control:", sample[field])
+                    with self.subTest(field=field):
+                        self.assertIn(":control:stage070-p2:", sample[field])
 
     def test_audit_log_samples_are_unpersisted_control_projections(self):
         module = self._module()
@@ -181,7 +191,10 @@ class Stage069ExternalApiPolicyPhase4Tests(unittest.TestCase):
         self.assertEqual(EXPECTED_SCENARIOS, [item["scenario_id"] for item in samples])
         for sample in samples:
             with self.subTest(sample=sample["audit_log_sample_id"]):
-                self.assertEqual("CONTROL_AUDIT_LOG_SAMPLE_NOT_PERSISTED", sample["record_kind"])
+                self.assertEqual(
+                    "CONTROL_EMBEDDING_QUEUE_CACHE_AUDIT_LOG_SAMPLE_NOT_PERSISTED",
+                    sample["record_kind"],
+                )
                 self.assertEqual(18, sample["audit_field_count"])
                 projection = sample["audit_projection"]
                 self.assertEqual(
@@ -210,7 +223,7 @@ class Stage069ExternalApiPolicyPhase4Tests(unittest.TestCase):
                     "embedding_queue_request_ref",
                 ):
                     with self.subTest(field=field):
-                        self.assertIn(":control:", projection[field])
+                        self.assertIn(":control:stage070-p2:", projection[field])
                 self.assertTrue(sample["audit_projection_required"])
                 self.assertTrue(sample["audit_projection_present"])
                 self.assertTrue(sample["control_metadata_only"])
@@ -222,7 +235,10 @@ class Stage069ExternalApiPolicyPhase4Tests(unittest.TestCase):
         self.assertEqual(5, len(samples))
         for sample in samples:
             with self.subTest(sample=sample["cost_estimate_id"]):
-                self.assertEqual("CONTROL_ZERO_COST_ESTIMATE_NOT_PROVIDER_PRICE", sample["record_kind"])
+                self.assertEqual(
+                    "CONTROL_ZERO_COST_ESTIMATE_NOT_PROVIDER_PRICE",
+                    sample["record_kind"],
+                )
                 self.assertEqual(0, sample["token_count"])
                 self.assertEqual(0, sample["cost_estimate"])
                 self.assertFalse(sample["provider_selected"])
@@ -236,15 +252,17 @@ class Stage069ExternalApiPolicyPhase4Tests(unittest.TestCase):
         self.assertEqual(5, len(handling))
         self.assertEqual(5, len(unsent))
         self.assertEqual(
-            "POLICY_DENIED_NO_EXTERNAL_PAYLOAD", handling[0]["failure_state"]
+            "POLICY_DENIED_QUEUE_CACHE_RETRY_BLOCKED_NO_EXTERNAL_PAYLOAD",
+            handling[0]["failure_state"],
         )
         self.assertEqual(
-            "BUDGET_INSUFFICIENT_PAUSED_NO_EXTERNALIZATION",
+            "BUDGET_INSUFFICIENT_QUEUE_CACHE_RETRY_PAUSED_NO_EXTERNALIZATION",
             handling[-1]["failure_state"],
         )
         self.assertEqual(0, sum(item["silent_drop"] for item in handling))
         for item in handling:
             with self.subTest(item=item["failure_handling_id"]):
+                self.assertTrue(item["queue_cache_retry_stopped_or_paused"])
                 self.assertTrue(item["externalization_stopped"])
                 self.assertTrue(item["control_metadata_only"])
                 self.assertFalse(item["actual_failure_record_created"])
@@ -267,15 +285,18 @@ class Stage069ExternalApiPolicyPhase4Tests(unittest.TestCase):
                 "external_api_audit_ref",
                 "policy_resolution_ref",
                 "embedding_queue_request_ref",
+                "cache_entry_ref",
+                "retry_ref",
             ],
             query["query_keys"],
         )
         self.assertFalse(query["persistent_audit_log_available"])
+        self.assertFalse(query["persistent_queue_or_cache_record_available"])
         self.assertFalse(query["actual_audit_log_query_performed"])
         self.assertFalse(query["actual_externalization_record_query_performed"])
         self.assertFalse(query["can_return_real_externalization_history"])
         self.assertEqual(
-            "PASS_PHASE3_EXTERNAL_API_POLICY_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+            "PASS_PHASE3_EMBEDDING_QUEUE_CACHE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
             rollback["rollback_target_result"],
         )
         self.assertTrue(rollback["in_memory_control_replay_only"])
@@ -311,19 +332,21 @@ class Stage069ExternalApiPolicyPhase4Tests(unittest.TestCase):
                 self.assertFalse(report[field])
         self.assertTrue(report["phase4_started"])
         self.assertFalse(report["whole_stage_review_performed"])
-        self.assertFalse(report["stage070_started"])
+        self.assertFalse(report["stage071_started"])
         self.assertFalse(report["github_upload_allowed"])
 
     def test_invalid_predecessor_fails_closed_without_delivery_samples(self):
-        report = self._module().build_external_api_policy_phase4_delivery_report(
+        report = self._module().build_embedding_queue_cache_phase4_delivery_report(
             lambda: {"valid": False}
         )
         self.assertFalse(report["valid"])
-        self.assertEqual("FAIL_EXTERNAL_API_POLICY_DELIVERY_EVIDENCE", report["result"])
-        self.assertEqual("IDS-STAGE069-P4-GATE", report["next_gate"])
+        self.assertEqual(
+            "FAIL_EMBEDDING_QUEUE_CACHE_DELIVERY_EVIDENCE", report["result"]
+        )
+        self.assertEqual("IDS-STAGE070-P4-GATE", report["next_gate"])
         self.assertFalse(report["phase3_controlled_scenarios_report_valid"])
-        self.assertEqual([], report["external_api_policy_samples"])
-        self.assertEqual((), report["external_api_policy_sample_lines"])
+        self.assertEqual([], report["embedding_queue_cache_policy_samples"])
+        self.assertEqual((), report["embedding_queue_cache_policy_sample_lines"])
         self.assertEqual([], report["control_audit_log_samples"])
         self.assertEqual([], report["non_externalized_data_records"])
         self.assertFalse(
@@ -341,72 +364,43 @@ class Stage069ExternalApiPolicyPhase4Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        self.assertIn(status["stage"], ("IDS-STAGE069", "IDS-STAGE070"))
-        self.assertIn(
-            (status["phase"], status["task"], status["next_gate"]),
+        self.assertEqual("IDS-STAGE070", status["stage"])
+        self.assertEqual(
             (
-                (
-                    "IDS-V0_1-STAGE069-P4",
-                    "IDS-V0_1-STAGE069-P4",
-                    "IDS-STAGE069-REVIEW-GATE",
-                ),
-                (
-                    "IDS-V0_1-STAGE070-P1",
-                    "IDS-V0_1-STAGE070-P1",
-                    "IDS-STAGE070-P2-GATE",
-                ),
-                ("IDS-V0_1-STAGE070-P2", "IDS-V0_1-STAGE070-P2", "IDS-STAGE070-P3-GATE"),
-("IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P3", "IDS-STAGE070-P4-GATE"),
-("IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-P4", "IDS-STAGE070-REVIEW-GATE"),
-                (
-                    "IDS-V0_1-STAGE069-REVIEW",
-                    "IDS-V0_1-STAGE069-REVIEW",
-                    "IDS-STAGE070-P1-GATE",
-                ),
+                "IDS-V0_1-STAGE070-P4",
+                "IDS-V0_1-STAGE070-P4",
+                "IDS-STAGE070-REVIEW-GATE",
             ),
+            (status["phase"], status["task"], status["next_gate"]),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertIn(plan["stage"], ("IDS-STAGE069", "IDS-STAGE070"))
-        self.assertIn(
+        self.assertEqual("IDS-STAGE070", plan["stage"])
+        self.assertEqual(
+            ("IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-P4"),
             (plan["phase"], plan["task"]),
-            (
-                ("IDS-V0_1-STAGE069-P4", "IDS-V0_1-STAGE069-P4"),
-                ("IDS-V0_1-STAGE069-REVIEW", "IDS-V0_1-STAGE069-REVIEW"),
-                ("IDS-V0_1-STAGE070-P1", "IDS-V0_1-STAGE070-P1"),
-                ("IDS-V0_1-STAGE070-P2", "IDS-V0_1-STAGE070-P2"),
-("IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P3"),
-("IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-P4"),
-            ),
         )
-        self.assertTrue(
-            "IDS-STAGE069-REVIEW-GATE" in plan["stop_condition"]
-            or "IDS-STAGE070-P1-GATE" in plan["stop_condition"]
-            or "IDS-STAGE070-P2-GATE" in plan["stop_condition"]
-            or "IDS-STAGE070-P3-GATE" in plan["stop_condition"]
-            or "IDS-STAGE070-P4-GATE" in plan["stop_condition"]
-            or "IDS-STAGE070-REVIEW-GATE" in plan["stop_condition"]
-        )
+        self.assertIn("IDS-STAGE070-REVIEW-GATE", plan["stop_condition"])
         for acceptance_id in (
-            "ACC-STAGE069-P4-01",
-            "ACC-STAGE069-P4-02",
-            "ACC-STAGE069-P4-03",
-            "ACC-STAGE069-P4-04",
+            "ACC-STAGE070-P4-01",
+            "ACC-STAGE070-P4-02",
+            "ACC-STAGE070-P4-03",
+            "ACC-STAGE070-P4-04",
         ):
             with self.subTest(acceptance_id=acceptance_id):
                 self.assertTrue(
                     any(item["id"] == acceptance_id for item in acceptance["items"])
                 )
-        self.assertEqual("IDS-V0_1-STAGE069-P4", run["task_id"])
-        self.assertEqual("IDS-STAGE069-REVIEW-GATE", run["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE070-P4", run["task_id"])
+        self.assertEqual("IDS-STAGE070-REVIEW-GATE", run["next_gate"])
         self.assertTrue(run["result"].startswith("PASS_LOCAL_"))
         self.assertFalse(run["observed_work"]["external_api_call_performed"])
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
-        self.assertIn("stage069_phase4", BATCH.read_text(encoding="utf-8"))
-        self.assertIn("IDS-V0_1-STAGE069-P4", ROADMAP.read_text(encoding="utf-8"))
+        self.assertIn("stage070_phase4", BATCH.read_text(encoding="utf-8"))
+        self.assertIn("IDS-V0_1-STAGE070-P4", ROADMAP.read_text(encoding="utf-8"))
         self.assertTrue(
             any(
-                item.get("event_id") == "EVT-IDS-V0_1-STAGE069-P4-20260815-001"
+                item.get("event_id") == "EVT-IDS-V0_1-STAGE070-P4-20260815-001"
                 for item in events
             )
         )

@@ -265,7 +265,7 @@ class Stage070EmbeddingQueueCachePhase3Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(report[field])
 
-    def test_chinese_feedback_and_current_governance_project_phase3(self):
+    def test_chinese_feedback_and_current_governance_preserve_phase3_evidence(self):
         report = self._report()
         self.assertEqual(4, len(report["chinese_feedback"]))
         self.assertTrue(
@@ -284,10 +284,21 @@ class Stage070EmbeddingQueueCachePhase3Tests(unittest.TestCase):
             if line.strip()
         ]
         self.assertEqual("IDS-STAGE070", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE070-P3", status["phase"])
-        self.assertEqual("IDS-STAGE070-P4-GATE", status["next_gate"])
-        self.assertEqual("IDS-V0_1-STAGE070-P3", plan["phase"])
-        self.assertIn("IDS-STAGE070-P4-GATE", plan["stop_condition"])
+        self.assertIn(
+            (status["phase"], status["next_gate"]),
+            (
+                ("IDS-V0_1-STAGE070-P3", "IDS-STAGE070-P4-GATE"),
+                ("IDS-V0_1-STAGE070-P4", "IDS-STAGE070-REVIEW-GATE"),
+            ),
+        )
+        self.assertIn(
+            plan["phase"],
+            ("IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P4"),
+        )
+        self.assertTrue(
+            "IDS-STAGE070-P4-GATE" in plan["stop_condition"]
+            or "IDS-STAGE070-REVIEW-GATE" in plan["stop_condition"]
+        )
         self.assertTrue(
             {
                 "ACC-STAGE070-P3-01",
