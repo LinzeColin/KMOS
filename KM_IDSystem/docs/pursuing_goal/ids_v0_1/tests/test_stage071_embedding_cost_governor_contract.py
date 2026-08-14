@@ -309,7 +309,7 @@ class Stage071EmbeddingCostGovernorPhase1Tests(unittest.TestCase):
         self.assertTrue(rollback["preserve_stage070_review_evidence"])
         self.assertFalse(rollback["github_or_ovh_change_allowed"])
 
-    def test_governance_projection_preserves_phase1_evidence_after_phase3(self):
+    def test_governance_projection_preserves_phase1_evidence_after_phase4(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
@@ -322,12 +322,12 @@ class Stage071EmbeddingCostGovernorPhase1Tests(unittest.TestCase):
             if line.strip()
         }
         self.assertEqual("IDS-STAGE071", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE071-P3", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE071-P3", status["task"])
-        self.assertEqual("IDS-STAGE071-P4-GATE", status["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE071-P4", status["phase"])
+        self.assertEqual("IDS-V0_1-STAGE071-P4", status["task"])
+        self.assertEqual("IDS-STAGE071-REVIEW-GATE", status["next_gate"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE071-P3", plan["task"])
+        self.assertEqual("IDS-V0_1-STAGE071-P4", plan["task"])
         self.assertIn("不创建第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -343,12 +343,13 @@ class Stage071EmbeddingCostGovernorPhase1Tests(unittest.TestCase):
         self.assertEqual(0, run["runtime_counts"]["actual_model_token_count"])
         self.assertFalse(run["runtime_actions"]["ovh_deployment_performed"])
         self.assertIn('current_stage_id: "IDS-STAGE071"', roadmap_text)
-        self.assertIn('current_task_id: "IDS-V0_1-STAGE071-P3"', roadmap_text)
+        self.assertIn('current_task_id: "IDS-V0_1-STAGE071-P4"', roadmap_text)
         self.assertIn("stage070_completed_reviewed_local", batch_text)
         self.assertIn("stage071_phase1_entry_authorized: true", batch_text)
         self.assertIn("EVT-IDS-V0_1-STAGE071-P1-20260815-001", event_ids)
         self.assertIn("EVT-IDS-V0_1-STAGE071-P2-20260815-001", event_ids)
         self.assertIn("EVT-IDS-V0_1-STAGE071-P3-20260815-001", event_ids)
+        self.assertIn("EVT-IDS-V0_1-STAGE071-P4-20260815-001", event_ids)
 
     def test_scope_document_explains_zero_runtime_and_next_gate(self):
         text = SCOPE.read_text(encoding="utf-8")

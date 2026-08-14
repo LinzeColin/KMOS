@@ -405,7 +405,7 @@ class Stage071EmbeddingCostGovernorPhase2Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(result[field])
 
-    def test_chinese_feedback_and_p2_governance_evidence_survives_phase3(self):
+    def test_chinese_feedback_and_p2_governance_evidence_survives_phase4(self):
         result = self._slice().execute_embedding_cost_governor_control_slice(
             self._control()
         )
@@ -426,10 +426,10 @@ class Stage071EmbeddingCostGovernorPhase2Tests(unittest.TestCase):
             if line.strip()
         ]
         self.assertEqual("IDS-STAGE071", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE071-P3", status["phase"])
-        self.assertEqual("IDS-STAGE071-P4-GATE", status["next_gate"])
-        self.assertEqual("IDS-V0_1-STAGE071-P3", plan["task"])
-        self.assertIn("IDS-STAGE071-P4-GATE", plan["stop_condition"])
+        self.assertEqual("IDS-V0_1-STAGE071-P4", status["phase"])
+        self.assertEqual("IDS-STAGE071-REVIEW-GATE", status["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE071-P4", plan["task"])
+        self.assertIn("IDS-STAGE071-REVIEW-GATE", plan["stop_condition"])
         self.assertTrue(
             {
                 "ACC-STAGE071-P2-01",
@@ -453,6 +453,12 @@ class Stage071EmbeddingCostGovernorPhase2Tests(unittest.TestCase):
         self.assertTrue(
             any(
                 item.get("event_id") == "EVT-IDS-V0_1-STAGE071-P3-20260815-001"
+                for item in events
+            )
+        )
+        self.assertTrue(
+            any(
+                item.get("event_id") == "EVT-IDS-V0_1-STAGE071-P4-20260815-001"
                 for item in events
             )
         )

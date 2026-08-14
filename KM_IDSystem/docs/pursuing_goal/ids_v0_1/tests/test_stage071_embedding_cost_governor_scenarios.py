@@ -313,7 +313,7 @@ class Stage071EmbeddingCostGovernorPhase3Tests(unittest.TestCase):
         self.assertFalse(report["github_upload_allowed"])
         self.assertFalse(report["push_allowed"])
 
-    def test_chinese_feedback_and_p3_governance_evidence_exist(self):
+    def test_chinese_feedback_and_p3_governance_evidence_survives_phase4(self):
         report = self._scenarios().build_embedding_cost_governor_phase3_report()
         self.assertEqual(4, len(report["chinese_feedback"]))
         self.assertTrue(
@@ -332,10 +332,10 @@ class Stage071EmbeddingCostGovernorPhase3Tests(unittest.TestCase):
             if line.strip()
         ]
         self.assertEqual("IDS-STAGE071", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE071-P3", status["phase"])
-        self.assertEqual("IDS-STAGE071-P4-GATE", status["next_gate"])
-        self.assertEqual("IDS-V0_1-STAGE071-P3", plan["task"])
-        self.assertIn("IDS-STAGE071-P4-GATE", plan["stop_condition"])
+        self.assertEqual("IDS-V0_1-STAGE071-P4", status["phase"])
+        self.assertEqual("IDS-STAGE071-REVIEW-GATE", status["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE071-P4", plan["task"])
+        self.assertIn("IDS-STAGE071-REVIEW-GATE", plan["stop_condition"])
         self.assertTrue(
             {
                 "ACC-STAGE071-P3-01",
@@ -353,6 +353,12 @@ class Stage071EmbeddingCostGovernorPhase3Tests(unittest.TestCase):
         self.assertTrue(
             any(
                 item.get("event_id") == "EVT-IDS-V0_1-STAGE071-P3-20260815-001"
+                for item in events
+            )
+        )
+        self.assertTrue(
+            any(
+                item.get("event_id") == "EVT-IDS-V0_1-STAGE071-P4-20260815-001"
                 for item in events
             )
         )

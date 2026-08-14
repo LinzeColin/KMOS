@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE071"
-current_phase_id: "IDS-STAGE071-P3"
-current_task_id: "IDS-V0_1-STAGE071-P3"
-next_gate_id: "IDS-STAGE071-P4-GATE"
+current_phase_id: "IDS-STAGE071-P4"
+current_task_id: "IDS-V0_1-STAGE071-P4"
+next_gate_id: "IDS-STAGE071-REVIEW-GATE"
 current_transition_history:
+  stage071_phase4_state:
+    current_stage_id: "IDS-STAGE071"
+    current_phase_id: "IDS-STAGE071-P4"
+    current_task_id: "IDS-V0_1-STAGE071-P4"
+    next_gate_id: "IDS-STAGE071-REVIEW-GATE"
   stage071_phase3_state:
     current_stage_id: "IDS-STAGE071"
     current_phase_id: "IDS-STAGE071-P3"
@@ -17765,22 +17770,22 @@ stages:
     task_id: "IDS-V0_1-STAGE071"
     acceptance_ids:
       - "ACC-STAGE-071"
-    objective: "只重放七条固定、非业务、reference-only P2 控制引用，验证策略外发边界、成本治理、队列、缓存、失败重试、本批次/自然月/单任务三重预算暂停与审计前置；不读取真实资料、不计算实际成本或预算、不创建持久记录或调用外部服务。"
+    objective: "只从 P3 的七条固定、非业务、reference-only 成本治理控制场景和 P2 纯内存投影派生策略样例、十八字段审计投影样例、零成本估算、失败处理、未外发原因、查询与回滚说明和中文反馈；不读取真实资料、不计算实际成本或预算、不创建持久记录或调用外部服务。"
     status: "passed_with_local_evidence"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE071-P4-GATE"
+    next_gate_id: "IDS-STAGE071-REVIEW-GATE"
     gate:
-      gate_id: "IDS-STAGE071-P3-GATE"
+      gate_id: "IDS-STAGE071-P4-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE071-P4-GATE"
+      next_gate_id: "IDS-STAGE071-REVIEW-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "冻结 Stage071 任务包、P1/P2 合同、Stage070 Review、Stage070 P1 合同和 Batch061-070 历史上传锁保持为唯一合同上下文；不创建第二权威事实源，不读取业务资料、原始元数据、来源正文、摘要正文、文本块、金额、Token、预算或 chunk。"
-      - "机械重放七条固定 P2 控制记录，核验 10/18/14/10/7/18 P2 形状、七条 35 字段专项场景、默认 denied、summary_only、document 收紧、full_text_allowed、本批次/自然月/单任务三重预算暂停、七条审计投影、三个未来调用审计前置、业务线白箱人工复核与 P3→P2 回滚边界。"
-      - "真实资料、金额、预算、Token、成本估算、预算查找、单任务上限判断、持久队列、缓存、失败重试、provider 凭据、provider/模型选择、外部 API、模型、审计、索引、数据库、Agent、OVH、生产和上传均保持关闭；只开放后续 Stage071 P4 门，不启动其工作。"
+      - "冻结 Stage071 任务包、P1/P2/P3 合同、Stage070 Review、Stage070 P1 合同和 Batch061-070 历史上传锁保持为唯一合同上下文；不创建第二权威事实源，不读取业务资料、原始元数据、来源正文、摘要正文、文本块、金额、Token、预算或 chunk。"
+      - "只从七条固定 P3 控制场景和 P2 投影派生七条策略样例、七条十八字段审计投影样例、126 次字段检查、七条零成本估算、七条失败处理、七条未外发控制引用、七键查询、回到 P3 的回滚说明、四条中文反馈与十二类失败关闭；保留 denied、策略收紧、三类预算暂停、审计前置和业务线白箱人工复核。"
+      - "真实资料、金额、预算、Token、成本估算、预算查找、单任务上限判断、持久队列、缓存、失败重试、provider 凭据、provider/模型选择、外部 API、模型、审计、索引、数据库、Agent、OVH、生产和上传均保持关闭；只开放后续 Stage071 Review 门，不启动其工作。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、总结、保留、外发或回退任何 IDS 业务资料、原始元数据、授权 fixture、真实 data source、document、摘要、文本块、chunk、金额、Token、预算、队列、缓存、重试、审计、成本、模型版本、索引、数据库或报告。"
-      - "执行真实 parser、切块、摘要生成、成本估算、预算查找、单任务上限判断、Embedding 队列、缓存、失败重试、provider 凭据读取、provider/模型选择、外部 API、模型调用、模型 Token、审计写入或查询、索引、持久化、Agent、OVH、生产服务、Stage071 Phase 4、整阶段复审、批次复审、上传、推送或应用重装。"
+      - "执行真实 parser、切块、摘要生成、成本估算、预算查找、单任务上限判断、Embedding 队列、缓存、失败重试、provider 凭据读取、provider/模型选择、外部 API、模型调用、模型 Token、审计写入或查询、索引、持久化、Agent、OVH、生产服务、Stage071 Review、批次复审、上传、推送或应用重装。"
     phases:
       - phase_id: "IDS-STAGE071-P1"
         name: "Phase 1 · Embedding 成本治理器范围、输入输出与边界确认"
@@ -17932,6 +17937,61 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
             risk: "若把固定控制场景、零值成本/Token、三类预算暂停、审计投影或本地测试通过误作真实资料授权、真实预算、真实外发、真实 Embedding、真实模型使用、OVH、生产或上传能力，会绕开单一权威、审计前置、三重预算关闭和业务线白箱人工处理。"
             rollback: "只回滚本 P3 场景说明、场景合同、纯内存模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PHASE2_EMBEDDING_COST_GOVERNOR_CONTROL_SLICE_RUNTIME_DISABLED；不改变 P1/P2、Stage070 Review、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE071-P4"
+        name: "Phase 4 · Embedding 成本治理器交付证据、回滚与中文反馈"
+        objective: "只从 P3 的七条固定、非业务、reference-only 成本治理控制场景和 P2 纯内存投影派生七条策略样例、七条十八字段审计投影样例、七条零成本估算、七条失败处理、七条未外发控制引用、七键查询、回到 P3 的回滚说明和四条中文反馈；不读取真实资料、不创建持久记录或调用外部服务。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE071-REVIEW-GATE"
+        gate:
+          gate_id: "IDS-STAGE071-P4-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE071-REVIEW-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、打开、解析、总结、外发、创建、写入、删除、移动或回退任何真实资料、摘要、文本块、chunk、金额、Token、预算、队列、缓存、重试、成本、模型版本、审计、索引、数据库、报告或业务事实。"
+          - "执行 provider 凭据读取、provider/模型选择、外部 API、模型调用、模型 Token、真实成本估算、预算查找、Embedding、缓存、失败重试、索引、数据库、持久化、Agent、OVH、生产、Stage071 Review、批次复审、上传、推送或应用重装。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE071-P4"
+            name: "交付 Embedding 成本治理器 metadata-only 证据、查询与回滚说明"
+            objective: "从 P3 七条控制场景和 P2 投影派生策略、审计、零成本、失败、未外发、查询、回滚和中文反馈形状，核验 denied、策略收紧、三类预算暂停和三个未来调用候选的白箱人工处理；不写入真实成本、审计、队列、缓存、重试或外发记录。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE071-P3"
+            acceptance_id: "ACC-STAGE-071"
+            acceptance_ids:
+              - "ACC-STAGE-071"
+              - "ACC-STAGE071-P4-01"
+              - "ACC-STAGE071-P4-02"
+              - "ACC-STAGE071-P4-03"
+              - "ACC-STAGE071-P4-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage071_embedding_cost_governor_delivery"
+              - "Stage071 P4 与显式前序兼容回归命令记录在 machine run"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "P4 聚焦 13/13、P3/P2/P1 显式前序兼容 11/10/9、Stage060--069 473/473、Stage070 47/47、两个批次检查器、Stage005 治理回归 valid=true、中文事实投影 7 文件、文档预算、无登记阻塞与双平面检查均通过；本 P4 不进入 Stage071 Review、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-071_Embedding成本治理器.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE071_PHASE4_EMBEDDING_COST_GOVERNOR_DELIVERY_CLOSEOUT.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_cost_governor/stage071_embedding_cost_governor_delivery_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_cost_governor/stage071_embedding_cost_governor_delivery.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage071_embedding_cost_governor_delivery.py"
+              - "KM_IDSystem/machine/runs/2026-08-15-stage071-p4-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_cost_governor/stage071_embedding_cost_governor_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_cost_governor/stage071_embedding_cost_governor_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_cost_governor/stage071_embedding_cost_governor_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_cost_governor/stage071_embedding_cost_governor_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_cost_governor/stage071_embedding_cost_governor_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE070_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把策略样例、审计投影、零成本估算、失败处理、未外发控制引用、查询或回滚说明误作真实资料、真实预算、真实外发、真实 Embedding、真实模型使用、真实审计、OVH、生产或上传能力，会绕开单一权威、审计前置、三重预算关闭和业务线白箱人工处理。"
+            rollback: "只回滚本 P4 说明、交付合同、纯内存模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PASS_PHASE3_EMBEDDING_COST_GOVERNOR_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；不改变 P1/P2/P3、Stage070 Review、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。"
   - stage_id: "IDS-STAGE070"
     name: "STAGE-070 · Embedding 队列与缓存"
     task_id: "IDS-V0_1-STAGE070"
