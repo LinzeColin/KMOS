@@ -250,6 +250,12 @@ class Stage070EmbeddingQueueCacheStageReviewTests(unittest.TestCase):
                     "IDS-V0_1-STAGE071-P2",
                     "IDS-STAGE071-P3-GATE",
                 ),
+                (
+                    "IDS-STAGE071",
+                    "IDS-V0_1-STAGE071-P3",
+                    "IDS-V0_1-STAGE071-P3",
+                    "IDS-STAGE071-P4-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -272,12 +278,18 @@ class Stage070EmbeddingQueueCacheStageReviewTests(unittest.TestCase):
                     "IDS-V0_1-STAGE071-P2",
                     "IDS-V0_1-STAGE071-P2",
                 ),
+                (
+                    "IDS-STAGE071",
+                    "IDS-V0_1-STAGE071-P3",
+                    "IDS-V0_1-STAGE071-P3",
+                ),
             ),
         )
         self.assertTrue(
             "IDS-STAGE071-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE071-P2-GATE" in plan["stop_condition"]
             or "IDS-STAGE071-P3-GATE" in plan["stop_condition"]
+            or "IDS-STAGE071-P4-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             {

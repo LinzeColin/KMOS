@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage071-p3-local",
+    "date": "2026-08-15",
+    "summary": "完成 Stage071 P3 Embedding 成本治理器专项验证：只重放七条固定、非业务、reference-only P2 控制记录，机械核验 denied 不外发、summary_only 只保留摘要引用、document 收紧不得升级、full_text_allowed 只保留文本块引用、本批次/自然月/单任务三类预算关闭均暂停，以及七条十八字段审计投影、三个未来调用审计前置和成本治理/队列/缓存/失败重试闭合。所有字段、标签、引用和零值只表示控制形状，不代表真实资料、金额、预算、Token、成本、队列、缓存、重试、审计、provider、模型或业务结论；未读取、打开、解析、生成、外发、写入或查询真实资料，未执行成本估算、预算查找、外部 API、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage071 P4。"
+  },
+  {
     "version": "v0.1-stage071-p2-local",
     "date": "2026-08-15",
     "summary": "完成 Stage071 P2 Embedding 成本治理器纯内存控制切片：严格核验七条固定、非业务、reference-only 输入，复用默认 denied 与 data source/document→chunk 自动继承，投影 16 字段成本治理、12/10/7 队列/缓存/重试、18 字段审计、三重预算暂停及 provider/model/token/chunk/policy reason 控制记录。所有字段、标签和零值只表示控制形状，不代表真实资料、金额、预算、Token、成本、队列、缓存、重试、审计、provider、模型或业务结论；未读取、打开、解析、生成、外发、写入或查询真实资料，未执行成本估算、预算查找、外部 API、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage071 P3。"

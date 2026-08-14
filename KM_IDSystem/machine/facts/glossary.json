@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage071 P3 Embedding 成本治理器专项场景形状",
+      "数值": "7/10/18/14/10/7/18/35/126/3/12",
+      "说明": "依次表示固定控制场景、P2 策略解析、成本治理、队列、缓存、失败重试、审计、每条专项结果字段、审计字段检查、未来调用候选和失败关闭状态字段/计数；只表示纯内存控制验证，不表示真实资料、金额、预算、Token、成本、队列、缓存、重试、审计、OVH 或生产结果。"
+    },
+    {
       "指标": "Stage071 P2 Embedding 成本治理器控制切片形状",
       "数值": "7/16/16/12/10/7/18/3/11",
       "说明": "依次表示固定非业务控制请求、仅引用输入、成本治理、队列、缓存、失败重试、审计、三重预算范围和失败关闭状态字段/计数；只表示纯内存控制投影，不表示真实资料、金额、预算、Token、成本、队列、缓存、重试、审计、OVH 或生产结果。"
@@ -158,6 +163,11 @@
   ],
   "data_shapes": [
     {
+      "名称": "Embedding 成本治理器 P3 专项场景",
+      "字段": "scenario_id、scenario_category、phase2_control_scenario、referenced_cost_governor_request_ref、referenced_policy_resolution_ref、referenced_embedding_queue_request_ref、referenced_cache_entry_ref、referenced_retry_ref、referenced_external_api_audit_ref、effective_external_api_policy、external_payload_mode、observed_control_payload_scope、expected_control_payload_scope、expected_cost_governor_state、observed_cost_governor_state、expected_budget_failure_scope、observed_budget_failure_scope、expected_queue_state、observed_queue_state、expected_cache_disposition、observed_cache_disposition、expected_retry_state、observed_retry_state、audit_projection_required、audit_projection_present、audit_field_count、expected_audit_disposition、observed_audit_disposition、future_external_api_call_candidate、actual_external_api_call_performed、actual_model_token_consumption_performed、human_handling_required、explicit_disposition、silent_drop、expectation_met",
+      "说明": "Stage071 P3 只重放 P2 的七条固定 :control: 引用并在内存中验证策略外发边界、成本治理、三类预算暂停、队列、缓存、失败重试、审计与人工处理；它不包含来源正文、摘要正文、文本块、物理路径、真实 URI、实际金额、预算、Token、成本、provider、模型、审计或业务结论。"
+    },
+    {
       "名称": "Embedding 成本治理器 P2 控制投影",
       "字段": "cost_governor_request_ref、embedding_queue_request_ref、policy_resolution_ref、data_source_ref、document_ref、chunk_ref、effective_external_api_policy、external_payload_mode、provider_ref、model_ref、model_version、estimated_token_count、batch_budget_ref、monthly_budget_ref、task_budget_cap_ref、external_api_audit_ref、batch_budget_check_state、monthly_budget_check_state、task_budget_cap_check_state、policy_inheritance_reason、token_count、cost_estimate",
       "说明": "Stage071 P2 只以七条固定 :control: 引用在内存中投影策略继承、三重预算关闭、成本治理、队列、缓存、失败重试和审计形状；它不包含来源正文、摘要正文、文本块、物理路径、真实 URI、实际金额、预算、Token、成本、模型调用或业务结论。"
@@ -284,6 +294,10 @@
     }
   ],
   "invariants": [
+    {
+      "规则": "Stage071 P3 不执行成本估算、预算查找、队列、外部 API、OVH 或生产运行",
+      "说明": "P3 只重放七条固定、非业务、reference-only P2 控制记录，验证 denied、summary_only、document 收紧、full_text_allowed、三类预算暂停和审计前置；没有读取真实资料、计算成本或预算、创建或运行持久队列/缓存/重试/审计、选择 provider/模型、调用外部 API、消耗 Token、写入索引/数据库、运行 Agent、部署 OVH、启用生产、上传或推送，P4 必须由新的独立 run 处理。"
+    },
     {
       "规则": "Stage071 P2 不执行成本估算、预算查找、队列、外部 API、OVH 或生产运行",
       "说明": "P2 只在七条固定、非业务、reference-only 控制记录上投影默认 denied、data source/document→chunk 自动继承、三重预算暂停、未来队列/缓存/失败重试、成本/模型版本和审计字段；没有读取真实资料、计算成本或预算、创建或运行持久队列/缓存/重试/审计、选择 provider/模型、调用外部 API、消耗 Token、写入索引/数据库、运行 Agent、部署 OVH、启用生产、上传或推送，P3 必须由新的独立 run 处理。"
