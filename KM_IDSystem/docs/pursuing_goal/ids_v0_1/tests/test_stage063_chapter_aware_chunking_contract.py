@@ -225,7 +225,7 @@ class Stage063ChapterAwareChunkingContractPhase1Tests(unittest.TestCase):
         event = next(item for item in events if item.get("event_id") == "EVT-IDS-V0_1-STAGE063-P1-20260814-001")
         run = json.loads(RUN.read_text(encoding="utf-8"))
 
-        self.assertIn(status["stage"], ("IDS-STAGE063", "IDS-STAGE064", "IDS-STAGE065"))
+        self.assertIn(status["stage"], ("IDS-STAGE063", "IDS-STAGE064", "IDS-STAGE065", "IDS-STAGE066"))
         self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
             (
@@ -244,13 +244,14 @@ class Stage063ChapterAwareChunkingContractPhase1Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE065-P3", "IDS-V0_1-STAGE065-P3", "IDS-STAGE065-P4-GATE"),
                 ("IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-P4", "IDS-STAGE065-REVIEW-GATE"),
                 ("IDS-V0_1-STAGE065-REVIEW", "IDS-V0_1-STAGE065-REVIEW", "IDS-STAGE066-P1-GATE"),
+                ("IDS-V0_1-STAGE066-P1", "IDS-V0_1-STAGE066-P1", "IDS-STAGE066-P2-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertIn(plan["stage"], ("IDS-STAGE063", "IDS-STAGE064", "IDS-STAGE065"))
-        self.assertIn(plan["phase"], ("IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P2", "IDS-V0_1-STAGE063-P3", "IDS-V0_1-STAGE063-P4", "IDS-V0_1-STAGE063-REVIEW", "IDS-V0_1-STAGE064-P1", "IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P3", "IDS-V0_1-STAGE064-P4", "IDS-V0_1-STAGE064-REVIEW", "IDS-V0_1-STAGE065-P1", "IDS-V0_1-STAGE065-P2", "IDS-V0_1-STAGE065-P3", "IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-REVIEW"))
-        self.assertIn(plan["task"], ("IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P2", "IDS-V0_1-STAGE063-P3", "IDS-V0_1-STAGE063-P4", "IDS-V0_1-STAGE063-REVIEW", "IDS-V0_1-STAGE064-P1", "IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P3", "IDS-V0_1-STAGE064-P4", "IDS-V0_1-STAGE064-REVIEW", "IDS-V0_1-STAGE065-P1", "IDS-V0_1-STAGE065-P2", "IDS-V0_1-STAGE065-P3", "IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-REVIEW"))
+        self.assertIn(plan["stage"], ("IDS-STAGE063", "IDS-STAGE064", "IDS-STAGE065", "IDS-STAGE066"))
+        self.assertIn(plan["phase"], ("IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P2", "IDS-V0_1-STAGE063-P3", "IDS-V0_1-STAGE063-P4", "IDS-V0_1-STAGE063-REVIEW", "IDS-V0_1-STAGE064-P1", "IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P3", "IDS-V0_1-STAGE064-P4", "IDS-V0_1-STAGE064-REVIEW", "IDS-V0_1-STAGE065-P1", "IDS-V0_1-STAGE065-P2", "IDS-V0_1-STAGE065-P3", "IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-REVIEW", "IDS-V0_1-STAGE066-P1"))
+        self.assertIn(plan["task"], ("IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P2", "IDS-V0_1-STAGE063-P3", "IDS-V0_1-STAGE063-P4", "IDS-V0_1-STAGE063-REVIEW", "IDS-V0_1-STAGE064-P1", "IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P3", "IDS-V0_1-STAGE064-P4", "IDS-V0_1-STAGE064-REVIEW", "IDS-V0_1-STAGE065-P1", "IDS-V0_1-STAGE065-P2", "IDS-V0_1-STAGE065-P3", "IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-REVIEW", "IDS-V0_1-STAGE066-P1"))
         self.assertTrue(
             "IDS-STAGE063-P2-GATE" in plan["stop_condition"]
             or "IDS-STAGE063-P3-GATE" in plan["stop_condition"]
@@ -267,6 +268,7 @@ class Stage063ChapterAwareChunkingContractPhase1Tests(unittest.TestCase):
             or "IDS-STAGE065-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE065-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE066-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE066-P2-GATE" in plan["stop_condition"]
         )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
@@ -331,6 +333,10 @@ class Stage063ChapterAwareChunkingContractPhase1Tests(unittest.TestCase):
             or (
                 "ACC-STAGE065-P1-01" in human_acceptance
                 and "RUN-IDS-STAGE065-P1-LOCAL-20260814-001" in human_acceptance
+            )
+            or (
+                "ACC-STAGE066-P1-01" in human_acceptance
+                and "RUN-IDS-STAGE066-P1-LOCAL-20260814-001" in human_acceptance
             ),
             human_acceptance,
         )

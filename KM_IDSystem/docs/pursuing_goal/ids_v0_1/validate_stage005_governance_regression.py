@@ -1605,6 +1605,7 @@ def evaluate_stage038_source_reverification(
                     "IDS-STAGE063",
                     "IDS-STAGE064",
                     "IDS-STAGE065",
+                    "IDS-STAGE066",
                 }
                 and (
                     (
@@ -1935,6 +1936,14 @@ def evaluate_stage038_source_reverification(
                         == "IDS-V0_1-STAGE065-REVIEW"
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE066-P1-GATE"
+                    )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE066"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE066-P1"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE066-P1"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE066-P2-GATE"
                     )
                 )
                 and source_gate.get("gate_id")
@@ -2305,6 +2314,10 @@ REQUIRED_FILES = (
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/stage065_engineering_semantic_asset_classification_contract.json",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage065_engineering_semantic_asset_classification_contract.py",
     "KM_IDSystem/machine/runs/2026-08-14-stage065-p1-local.json",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE066_PHASE1_CHUNK_COVERAGE_METRICS_SCOPE_BOUNDARY.md",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_coverage_metrics/stage066_chunk_coverage_metrics_contract.json",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage066_chunk_coverage_metrics_contract.py",
+    "KM_IDSystem/machine/runs/2026-08-14-stage066-p1-local.json",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_PHASE1_OCR_QUEUE_SCOPE_BOUNDARY.md",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/ocr_queue/stage051_ocr_queue_contract.json",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_ocr_queue.py",
@@ -2818,6 +2831,7 @@ REQUIRED_EVENT_IDS = (
     "EVT-IDS-V0_1-STAGE065-P3-20260814-001",
     "EVT-IDS-V0_1-STAGE065-P4-20260814-001",
     "EVT-IDS-V0_1-STAGE065-REVIEW-20260814-001",
+    "EVT-IDS-V0_1-STAGE066-P1-20260814-001",
 )
 
 FORBIDDEN_RUNTIME_PREFIXES = (
@@ -3053,6 +3067,7 @@ ALLOWED_CHANGED_PREFIXES = (
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chapter_aware_chunking/",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_coverage_metrics/",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE052_",
@@ -3083,6 +3098,8 @@ ALLOWED_CHANGED_PREFIXES = (
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage064_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE065_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage065_",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE066_",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage066_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE005_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE011_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE012_",
@@ -13567,6 +13584,84 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
                 "github_upload_allowed": "false",
                 "push_allowed": "false",
                 "next_gate": "IDS-STAGE066-P1-GATE",
+            },
+        },
+        "EVT-IDS-V0_1-STAGE066-P1-20260814-001": {
+            "event_type": "phase_completed",
+            "allow_stage_gate": True,
+            "task_id": "IDS-V0_1-STAGE066-P1",
+            "acceptance_id": "ACC-STAGE-066",
+            "required_changed_files": {
+                "KM_IDSystem/CHANGELOG.md",
+                "KM_IDSystem/docs/HANDOFF.md",
+                "KM_IDSystem/docs/governance/events.jsonl",
+                "KM_IDSystem/docs/governance/roadmap.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE066_PHASE1_CHUNK_COVERAGE_METRICS_SCOPE_BOUNDARY.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_coverage_metrics/stage066_chunk_coverage_metrics_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage066_chunk_coverage_metrics_contract.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+                "KM_IDSystem/machine/facts/acceptance.json",
+                "KM_IDSystem/machine/facts/changelog.json",
+                "KM_IDSystem/machine/facts/glossary.json",
+                "KM_IDSystem/machine/facts/plan.json",
+                "KM_IDSystem/machine/facts/roadmap.json",
+                "KM_IDSystem/machine/facts/status.json",
+                "KM_IDSystem/machine/runs/2026-08-14-stage066-p1-local.json",
+                "KM_IDSystem/scripts/check_batch041_050_review.py",
+                "KM_IDSystem/scripts/check_batch051_060_review.py",
+            },
+            "required_refs": {
+                "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-066_Chunk覆盖率指标.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE066_PHASE1_CHUNK_COVERAGE_METRICS_SCOPE_BOUNDARY.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_coverage_metrics/stage066_chunk_coverage_metrics_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage066_chunk_coverage_metrics_contract.py",
+                "KM_IDSystem/machine/runs/2026-08-14-stage066-p1-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE065_STAGE_REVIEW.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+            },
+            "required_note_assignments": {
+                "contract_state": "PHASE1_CHUNK_COVERAGE_METRICS_CONTRACT_RUNTIME_DISABLED",
+                "second_authoritative_source_created": "false",
+                "reference_only_chunk_coverage_input_field_count": "12",
+                "future_chunk_coverage_output_field_count": "17",
+                "protected_semantic_asset_type_count": "3",
+                "traceability_field_count": "6",
+                "declared_failure_state_count": "14",
+                "actual_input_request_count": "0",
+                "actual_chunk_coverage_metrics_record_count": "0",
+                "actual_parse_coverage_calculation_count": "0",
+                "actual_chunk_coverage_calculation_count": "0",
+                "actual_uncovered_page_reference_count": "0",
+                "actual_traceability_binding_count": "0",
+                "source_document_remains_authoritative": "true",
+                "parser_execution_performed": "false",
+                "chapter_detection_performed": "false",
+                "chunking_execution_performed": "false",
+                "chunk_identity_generation_performed": "false",
+                "chunk_hash_computation_performed": "false",
+                "chunk_version_generation_performed": "false",
+                "semantic_asset_classification_performed": "false",
+                "coverage_calculation_performed": "false",
+                "quality_regression_performed": "false",
+                "quality_degradation_performed": "false",
+                "source_traceability_binding_performed": "false",
+                "embedding_or_index_write_performed": "false",
+                "database_connection_performed": "false",
+                "persistent_state_write_performed": "false",
+                "agent_execution_performed": "false",
+                "model_call_performed": "false",
+                "model_token_consumption_performed": "false",
+                "ovh_deployment_performed": "false",
+                "production_runtime_activation_performed": "false",
+                "stage066_started": "true",
+                "stage066_entry_authorized": "true",
+                "phase2_started": "false",
+                "whole_stage_review_performed": "false",
+                "batch_review_performed": "false",
+                "github_upload_allowed": "false",
+                "push_allowed": "false",
+                "next_gate": "IDS-STAGE066-P2-GATE",
             },
         },
     }

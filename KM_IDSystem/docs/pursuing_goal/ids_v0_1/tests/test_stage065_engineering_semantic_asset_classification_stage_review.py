@@ -216,17 +216,28 @@ class Stage065EngineeringSemanticAssetClassificationStageReviewTests(unittest.Te
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        self.assertEqual(
-            (
-                "IDS-STAGE065",
-                "IDS-V0_1-STAGE065-REVIEW",
-                "IDS-V0_1-STAGE065-REVIEW",
-                "IDS-STAGE066-P1-GATE",
-            ),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-STAGE065",
+                    "IDS-V0_1-STAGE065-REVIEW",
+                    "IDS-V0_1-STAGE065-REVIEW",
+                    "IDS-STAGE066-P1-GATE",
+                ),
+                (
+                    "IDS-STAGE066",
+                    "IDS-V0_1-STAGE066-P1",
+                    "IDS-V0_1-STAGE066-P1",
+                    "IDS-STAGE066-P2-GATE",
+                ),
+            ),
         )
-        self.assertEqual("IDS-V0_1-STAGE065-REVIEW", plan["task"])
-        self.assertIn("IDS-STAGE066-P1-GATE", plan["stop_condition"])
+        self.assertIn(plan["task"], ("IDS-V0_1-STAGE065-REVIEW", "IDS-V0_1-STAGE066-P1"))
+        self.assertTrue(
+            "IDS-STAGE066-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE066-P2-GATE" in plan["stop_condition"]
+        )
         self.assertTrue(
             {
                 "ACC-STAGE065-REVIEW-01",

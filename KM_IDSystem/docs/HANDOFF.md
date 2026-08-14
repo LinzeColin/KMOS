@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage065 Review - 2026-08-14
+## Current Gate - Stage066 Phase 1 - 2026-08-14
 
-- 本节是唯一当前交接；Stage065 P4/P3/P2/P1、Stage064 Review/P4/P3/P2/P1、Stage063 Review/P4/P3/P2/P1、Stage062 Review 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；Stage065 Review/P4/P3/P2/P1、Stage064 Review/P4/P3/P2/P1、Stage063 Review/P4/P3/P2/P1、Stage062 Review 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE066-P1`：只定义 Chunk 覆盖率指标静态合同的 `12/17/3/6/14` 形状，即十二字段仅引用输入、十七字段未来覆盖率输出、解析覆盖率与 Chunk 覆盖率公式标签、未覆盖页受控引用、工程步骤/验收条款/参数表三类受保护语义面、`document/page/section/parser output/表格上下文/来源片段` 六维受控追溯和十四类失败关闭；没有建立第二权威事实源，也没有读取、打开、解析、切分、计算、生成或写入任何真实资料、页面、chunk、覆盖率、未覆盖页、来源绑定或业务结论。
+- 所有字段、公式标签、引用、计数与中文反馈只定义未来接口；它们不代表真实文档解析、真实页面集合、真实 Chunk 覆盖率、真实未覆盖页面、真实质量、真实来源追溯、OVH、生产或业务事实。来源文档与业务线白箱人工复核保持唯一权威；分母、页面集合、语义边界或追溯无法确认时必须关闭并留给人工处理。
+- 已验证：Stage066 P1 聚焦用例 `7/7`；含 Stage060--065 显式前序兼容的阶段链路 `299/299`；Batch051-060 与 Batch041-050 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件且双平面合规检查通过。以上只证明静态合同与零运行时边界，不代表真实资料验证、OVH 或生产验收。
+- 回滚只撤回本 P1 说明、静态合同、聚焦用例、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `STAGE065_REVIEWED_LOCAL_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_RUNTIME_DISABLED`；不改变 Stage065 工件、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE066-P2-GATE`。本 run 不进入 P2、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage065 Review - 2026-08-14
+
+- 本节保留 Stage065 Review 的已提交历史证据；唯一当前交接位于上方 Stage066 Phase 1，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE065-REVIEW`：只读机械复审冻结 P1--P4 合同与 P3/P4 纯内存控制报告，保持 `12/16/7/3/6/10`、`7/7/42`、六类白箱人工场景、`6` 条 metadata-only JSONL 样例、`4` 条唯一控制记录、`6` 条低质量待人工项、`3` 条人工确认、`11` 类失败关闭和 P4→P3 控制回退链一致；发现数为 `0`，没有建立第二权威事实源。
 - 本 Review 只证明冻结控制工件、控制报告、人工处置和治理投影本地一致；不证明真实长文档、跨页关系、施工步骤、参数表、页码反查、重复 chunk 去重、真实分类、来源追溯、覆盖率、质量、OVH、生产或业务事实。来源文档与业务线白箱人工处理继续是唯一权威。
 - 已验证：Stage065 Review 聚焦用例 `9/9`；含 Stage060 Review、Stage061--064 全阶段及 Stage065 P1--Review 的显式阶段链路 `251/251`；Batch051-060 与 Batch041-050 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，双平面合规检查通过。以上只验证控制性复审与零运行时边界，不将其表述为真实资料验证、OVH 或生产验收。

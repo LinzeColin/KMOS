@@ -332,7 +332,7 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
         )
         run = json.loads(RUN.read_text(encoding="utf-8"))
 
-        self.assertIn(status["stage"], ("IDS-STAGE061", "IDS-STAGE062", "IDS-STAGE063", "IDS-STAGE064", "IDS-STAGE065"))
+        self.assertIn(status["stage"], ("IDS-STAGE061", "IDS-STAGE062", "IDS-STAGE063", "IDS-STAGE064", "IDS-STAGE065", "IDS-STAGE066"))
         self.assertIn(
             (status["phase"], status["next_gate"]),
             (
@@ -360,11 +360,12 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE065-P3", "IDS-STAGE065-P4-GATE"),
                 ("IDS-V0_1-STAGE065-P4", "IDS-STAGE065-REVIEW-GATE"),
                 ("IDS-V0_1-STAGE065-REVIEW", "IDS-STAGE066-P1-GATE"),
+                ("IDS-V0_1-STAGE066-P1", "IDS-STAGE066-P2-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertIn(plan["stage"], ("IDS-STAGE061", "IDS-STAGE062", "IDS-STAGE063", "IDS-STAGE064", "IDS-STAGE065"))
+        self.assertIn(plan["stage"], ("IDS-STAGE061", "IDS-STAGE062", "IDS-STAGE063", "IDS-STAGE064", "IDS-STAGE065", "IDS-STAGE066"))
         self.assertIn(
             plan["task"],
             (
@@ -392,6 +393,7 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE065-P3",
                 "IDS-V0_1-STAGE065-P4",
                 "IDS-V0_1-STAGE065-REVIEW",
+                "IDS-V0_1-STAGE066-P1",
             ),
         )
         self.assertIn(status["next_gate"], plan["stop_condition"])
@@ -498,6 +500,10 @@ class Stage061StructuredDataQualityContractPhase1Tests(unittest.TestCase):
             or (
                 "ACC-STAGE065-P1-01" in human_acceptance
                 and "RUN-IDS-STAGE065-P1-LOCAL-20260814-001" in human_acceptance
+            )
+            or (
+                "ACC-STAGE066-P1-01" in human_acceptance
+                and "RUN-IDS-STAGE066-P1-LOCAL-20260814-001" in human_acceptance
             ),
             human_acceptance,
         )

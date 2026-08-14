@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage066 P1 静态覆盖率指标形状",
+      "数值": "12/17/3/6/14",
+      "说明": "依次表示仅引用输入字段、未来覆盖率输出字段、保护语义面、追溯字段和失败关闭状态的合同数量；不表示真实文档、页面、chunk、解析覆盖率、Chunk 覆盖率、未覆盖页或质量结果。"
+    },
+    {
       "指标": "Stage065 整阶段复审形状",
       "数值": "12/16/7/3/6/10 · 7/7/42 · 6/6/0/6/36 · 6/4/6/3/11",
       "说明": "依次表示 P1 静态合同、P2 控制投影、P3 白箱场景和 P4 metadata-only 交付的固定控制计数；不表示真实资料、chunk、身份、Hash、版本、分类、覆盖率或质量结果。"
@@ -28,6 +33,11 @@
   ],
   "data_shapes": [
     {
+      "名称": "Chunk 覆盖率指标仅引用合同",
+      "字段": "chunk_coverage_request_ref、chapter_aware_chunk_ref、chunk_identity_version_record_ref、engineering_semantic_asset_catalog_ref、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、declared_document_page_set_ref、parser_page_set_ref",
+      "说明": "Stage066 P1 只定义不透明受控引用和未来覆盖率字段；它不包含正文、物理路径、实际页码、实际页面集合、真实 chunk、真实覆盖率、未覆盖页或业务结论。"
+    },
+    {
       "名称": "工程语义资产分类仅元数据 JSONL 交付样例",
       "字段": "sample_id、scenario_id、semantic_asset_classification_record_ref、chunk_identity_version_record_ref、chapter_aware_chunk_ref、control_traceability_reference_count、human_review_required、control_metadata_only",
       "说明": "Stage065 P4 只在内存中从六类固定 :control: 场景投影 JSONL 行；它不包含真实正文、路径、页码、章节、chunk、身份、Hash、版本、分类、embedding、索引或业务事实。"
@@ -50,6 +60,10 @@
   ],
   "invariants": [
     {
+      "规则": "Stage066 P1 不执行覆盖率计算",
+      "说明": "P1 只固定未来解析覆盖率、Chunk 覆盖率和未覆盖页的字段与公式标签；分母未知、页面集合或来源追溯无法确认时必须保持关闭并交由业务线白箱处理，P2 必须由新的独立 run 处理。"
+    },
+    {
       "规则": "Stage065 复审不启动 Stage066",
       "说明": "Stage065 Review 只读核验 P1--P4 控制工件并将下一门禁指向 Stage066 P1；它不计算真实覆盖率、不创建运行时或生产状态，Stage066 必须由新的独立 run 处理。"
     },
@@ -71,6 +85,16 @@
     }
   ],
   "terms": [
+    {
+      "英文": "reference-only chunk coverage metrics contract",
+      "中文": "仅引用 Chunk 覆盖率指标合同",
+      "说明": "Stage066 P1 对未来解析覆盖率、Chunk 覆盖率和未覆盖页面的静态 schema、公式标签、保护语义面、追溯、失败关闭和回滚范围定义；它不读取来源、不计算真实比率或未覆盖页、不创建业务事实，也不替代来源文档。"
+    },
+    {
+      "英文": "chunk coverage metrics human handling",
+      "中文": "Chunk 覆盖率指标人工处理",
+      "说明": "当页面集合、分母、语义边界、未覆盖页或来源追溯无法确认时必须保持关闭并交由业务线白箱复核；不能自动形成事实、索引、决策或生产状态。"
+    },
     {
       "英文": "Stage065 engineering semantic asset classification review",
       "中文": "Stage065 工程语义资产分类整阶段机械复审",

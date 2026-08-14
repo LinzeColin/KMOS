@@ -279,7 +279,7 @@ class Stage060TableRagSummaryPhase3Tests(unittest.TestCase):
                 self.assertIn(expected, text)
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
-        self.assertEqual("IDS-STAGE060", status["stage"])
+        self.assertIn(status["stage"], ("IDS-STAGE060", "IDS-STAGE066"))
         self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
             (
@@ -297,6 +297,11 @@ class Stage060TableRagSummaryPhase3Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE060-REVIEW",
                     "IDS-V0_1-STAGE060-REVIEW",
                     "IDS-V0_1-BATCH-051-060-REVIEW-GATE",
+                ),
+                (
+                    "IDS-V0_1-STAGE066-P1",
+                    "IDS-V0_1-STAGE066-P1",
+                    "IDS-STAGE066-P2-GATE",
                 ),
             ),
         )

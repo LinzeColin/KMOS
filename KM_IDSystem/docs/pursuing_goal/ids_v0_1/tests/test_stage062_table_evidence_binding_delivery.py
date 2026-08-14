@@ -264,7 +264,7 @@ class Stage062TableEvidenceBindingPhase4DeliveryTests(unittest.TestCase):
         roadmap = ROADMAP.read_text(encoding="utf-8")
         batch = BATCH.read_text(encoding="utf-8")
         events = EVENTS.read_text(encoding="utf-8")
-        self.assertIn(status["stage"], ("IDS-STAGE062", "IDS-STAGE063", "IDS-STAGE064", "IDS-STAGE065"))
+        self.assertIn(status["stage"], ("IDS-STAGE062", "IDS-STAGE063", "IDS-STAGE064", "IDS-STAGE065", "IDS-STAGE066"))
         self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
             (
@@ -285,9 +285,10 @@ class Stage062TableEvidenceBindingPhase4DeliveryTests(unittest.TestCase):
                 ("IDS-V0_1-STAGE065-P3", "IDS-V0_1-STAGE065-P3", "IDS-STAGE065-P4-GATE"),
                 ("IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-P4", "IDS-STAGE065-REVIEW-GATE"),
                 ("IDS-V0_1-STAGE065-REVIEW", "IDS-V0_1-STAGE065-REVIEW", "IDS-STAGE066-P1-GATE"),
+                ("IDS-V0_1-STAGE066-P1", "IDS-V0_1-STAGE066-P1", "IDS-STAGE066-P2-GATE"),
             ),
         )
-        self.assertIn(plan["phase"], ("IDS-V0_1-STAGE062-P4", "IDS-STAGE062-REVIEW", "IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P2", "IDS-V0_1-STAGE063-P3", "IDS-V0_1-STAGE063-P4", "IDS-V0_1-STAGE063-REVIEW", "IDS-V0_1-STAGE064-P1", "IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P3", "IDS-V0_1-STAGE064-P4", "IDS-V0_1-STAGE064-REVIEW", "IDS-V0_1-STAGE065-P1", "IDS-V0_1-STAGE065-P2", "IDS-V0_1-STAGE065-P3", "IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-REVIEW"))
+        self.assertIn(plan["phase"], ("IDS-V0_1-STAGE062-P4", "IDS-STAGE062-REVIEW", "IDS-V0_1-STAGE063-P1", "IDS-V0_1-STAGE063-P2", "IDS-V0_1-STAGE063-P3", "IDS-V0_1-STAGE063-P4", "IDS-V0_1-STAGE063-REVIEW", "IDS-V0_1-STAGE064-P1", "IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P3", "IDS-V0_1-STAGE064-P4", "IDS-V0_1-STAGE064-REVIEW", "IDS-V0_1-STAGE065-P1", "IDS-V0_1-STAGE065-P2", "IDS-V0_1-STAGE065-P3", "IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-REVIEW", "IDS-V0_1-STAGE066-P1"))
         self.assertTrue(
             "IDS-STAGE062-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE063-P1-GATE" in plan["stop_condition"]
@@ -306,6 +307,7 @@ class Stage062TableEvidenceBindingPhase4DeliveryTests(unittest.TestCase):
             or "IDS-STAGE065-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE065-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE066-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE066-P2-GATE" in plan["stop_condition"]
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
