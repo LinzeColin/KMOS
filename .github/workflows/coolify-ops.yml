@@ -699,7 +699,7 @@ jobs:
             fi
             unset CF_ACCOUNT_ID CF_API_TOKEN TOKEN
             rm -f -- "$public_dir/coolify-envs-before.json" "$public_dir/origin-guard-ids.txt" \
-              "$public_dir/origin-guard.json" "$public_dir/coolify-envs-after.json" \
+              "$public_dir/origin-guard.json" \
               "$public_dir/access-apps.json" "$public_dir/access-app-ids.txt" \
               "$public_dir/access-app-payload.json" "$public_dir/access-app-post.json" "$public_dir/created-access-app-id.txt" \
               "$public_dir/policy-payload.json" "$public_dir/policies-before.json" \
@@ -820,16 +820,10 @@ jobs:
           request_coolify POST "$BASE/api/v1/applications/$APP/envs" "$public_dir/post-env.json" "$public_dir/origin-guard.json"
           test "$REQUEST_STATUS" = "200" || test "$REQUEST_STATUS" = "201" || { echo "public_dashboard=ORIGIN_GUARD_WRITE_FAILED"; exit 1; }
           rm -f -- "$public_dir/post-env.json"
-          request_coolify GET "$BASE/api/v1/applications/$APP/envs" "$public_dir/coolify-envs-after.json"
-          test "$REQUEST_STATUS" = "200" || { echo "public_dashboard=ORIGIN_GUARD_POSTREAD_FAILED"; exit 1; }
-          # Coolify can redact every environment value in a GET response.  The
-          # POST payload above is the fixed public literal; post-read can only
-          # prove that exactly one target entry exists, never safely echo it.
-          PYTHONPATH="KMFA/skills/每日资金" python3 -m daily_funds.public_dashboard_access \
-            origin-guard-entry-ids "$public_dir/coolify-envs-after.json" "$public_dir/origin-guard-ids.txt" \
-            || { echo "public_dashboard=ORIGIN_GUARD_POSTREAD_INVALID"; exit 1; }
-          origin_guard_count="$(wc -l < "$public_dir/origin-guard-ids.txt" | tr -d '[:space:]')"
-          test "$origin_guard_count" = "1" || { echo "public_dashboard=ORIGIN_GUARD_POSTREAD_INVALID"; exit 1; }
+          # Coolify accepts the exact fixed public literal above but redacts
+          # both values and newly-created identifiers on a follow-up GET.
+          # Treat that read as non-authoritative; the runtime container and
+          # anonymous production endpoint are checked after the deploy.
           request_coolify POST "$BASE/api/v1/deploy?uuid=$APP" "$public_dir/deploy.json"
           test "$REQUEST_STATUS" = "200" || test "$REQUEST_STATUS" = "201" || test "$REQUEST_STATUS" = "202" \
             || { echo "public_dashboard=REDEPLOY_NOT_TRIGGERED"; exit 1; }
