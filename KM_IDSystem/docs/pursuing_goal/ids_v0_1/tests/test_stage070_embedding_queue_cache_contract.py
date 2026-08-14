@@ -292,6 +292,11 @@ class Stage070EmbeddingQueueCachePhase1Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE071-P1",
                     "IDS-STAGE071-P2-GATE",
                 ),
+                (
+                    "IDS-V0_1-STAGE071-P2",
+                    "IDS-V0_1-STAGE071-P2",
+                    "IDS-STAGE071-P3-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -304,7 +309,7 @@ class Stage070EmbeddingQueueCachePhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE070-P3",
                 "IDS-V0_1-STAGE070-P4",
                 "IDS-V0_1-STAGE070-REVIEW",
-                "IDS-V0_1-STAGE071-P1",
+                "IDS-V0_1-STAGE071-P1", "IDS-V0_1-STAGE071-P2",
             ),
         )
         self.assertIn("不创建第二权威事实源", "\n".join(plan["scope"]))
@@ -331,6 +336,7 @@ class Stage070EmbeddingQueueCachePhase1Tests(unittest.TestCase):
             or 'current_task_id: "IDS-V0_1-STAGE070-P4"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE070-REVIEW"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE071-P1"' in roadmap_text
+            or 'current_task_id: "IDS-V0_1-STAGE071-P2"' in roadmap_text
         )
         self.assertIn('STAGE-070:', batch_text)
         self.assertTrue(

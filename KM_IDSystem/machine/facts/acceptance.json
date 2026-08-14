@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "ACC-STAGE071-P2-01",
+      "criteria": "冻结 Stage071 任务包、P1 静态合同、Stage070 本地整阶段机械复审、Stage070 P1 队列/缓存合同与 Batch061-070 历史上传锁保持为唯一合同上下文；本 P2 未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径、金额、Token、预算、页面、parser 输出或 chunk。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE071-P2-02",
+      "criteria": "纯内存切片严格核验七条固定、非业务、16 字段、:control: 引用请求，复用默认 denied 与 data source/document→chunk 自动继承，投影 16 字段成本治理、12/10/7 队列/缓存/重试和 18 字段审计形状；provider、model、model_version、token、chunk 与 policy reason 只作为控制标签或零值投影。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE071-P2-03",
+      "criteria": "denied 阻止未授权 chunk 外发、成本治理、队列、缓存和重试；summary_only 只保留未来已授权摘要引用；full_text_allowed 仍需未来授权、审计与业务线白箱人工复核；本批次、自然月或单任务三重预算门任一未通过均暂停控制候选，不形成持久化、调度或外部调用。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE071-P2-04",
+      "criteria": "未执行真实资料访问、解析、切块、摘要生成、文本外发、成本估算、预算查找、单任务上限判断、Embedding 队列、缓存、失败重试、provider 凭据读取、provider/模型选择、外部 API、模型 Token、审计写入或查询、索引、数据库、持久化、Agent、OVH、生产、P3/P4、整阶段复审、批次复审、上传或推送；下一步仅可在新的独立 run 进入 Stage071 P3。",
+      "status": "已遵守"
+    },
+    {
       "id": "ACC-STAGE071-P1-01",
       "criteria": "冻结 Stage071 任务包、Stage070 本地整阶段机械复审、Stage070 P1 队列/缓存合同与 Batch061-070 历史上传锁保持为唯一合同上下文；本 P1 未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径、金额、Token、预算、页面、parser 输出或 chunk。",
       "status": "已通过"

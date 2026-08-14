@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-15 · IDS v0.1 Stage071 Phase 2（本地）
+
+- 完成 Embedding 成本治理器控制切片：七条固定、非业务、reference-only `:control:` 请求在内存中投影默认 `denied`、data source/document→chunk 自动继承、16 字段成本治理、12/10/7 队列/缓存/失败重试、18 字段审计和本批次/自然月/单任务三重预算关闭；document 不能放宽来源策略，三种预算不足或超限均暂停且不持久化，没有建立第二权威事实源。
+- 控制标签、零 Token/零成本值、provider/model/version/chunk/policy reason 字段和人工处置边界只验证冻结合同，不能替代来源文档、形成业务事实或自动建议；未读取、打开、解析、生成、外发、写入或查询真实资料，未执行成本估算、预算查找、单任务上限判断、真实队列、缓存、失败重试、审计、外部 API、模型 Token、Agent、OVH、生产、上传或推送。
+- 本地验证通过：P2 聚焦用例 `10/10`、P1 历史合同用例 `9/9`、Stage060--069 阶段链路 `473/473`、Stage070 链路 `47/47`、两个既有批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、Stage005 治理回归 `valid=true`、机器平面重渲染 `7` 个中文文件、文档预算、无登记阻塞与单项目双平面检查；零运行时回执记录在 `KM_IDSystem/machine/runs/2026-08-15-stage071-p2-local.json`。下一步仅可在新的独立 run 进入 `IDS-STAGE071-P3-GATE`；全局上传锁继续关闭。
+
 ## 2026-08-15 · IDS v0.1 Stage071 Phase 1（本地）
 
 - 完成 Embedding 成本治理器静态合同：复用默认 `denied`、三档外部 API 策略和 data source/document→chunk 自动继承，固定 `16/16/3/8/18/14` 的仅引用输入、未来成本治理字段、本批次/自然月/单任务三重预算范围、成本/模型版本字段、审计字段与失败关闭；没有建立第二权威事实源。
