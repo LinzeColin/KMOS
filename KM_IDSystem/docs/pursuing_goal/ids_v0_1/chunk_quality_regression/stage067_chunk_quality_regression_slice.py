@@ -1,0 +1,372 @@
+"""Stage067 P2 的切块质量回归纯内存控制切片。
+
+只接受四条固定、非业务、reference-only 控制请求，并投影四条待人工复核的
+质量回归控制记录。本模块不会读取来源、解析或切分文本、生成 chunk/hash/version、
+计算实际质量、检测真实重复项、写入 embedding/index 或持久状态。
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from typing import Any
+
+
+SCHEMA_VERSION = "ids.stage067.chunk_quality_regression.phase2.v1"
+RECORD_KIND = "CONTROL_ONLY_IN_MEMORY_CHUNK_QUALITY_REGRESSION"
+CONTROL_ADAPTER_VERSION = "ids.chunk_quality_regression.control_adapter.v0_1.stage067.p2"
+CONTROL_FIELDS = ("chunk_quality_regression_requests",)
+CHUNK_QUALITY_REGRESSION_INPUT_FIELDS = (
+    "chunk_quality_regression_request_ref",
+    "chapter_aware_chunk_ref",
+    "chunk_identity_version_record_ref",
+    "engineering_semantic_asset_catalog_ref",
+    "chunk_coverage_metrics_record_ref",
+    "document_ref",
+    "page_ref",
+    "section_ref",
+    "parser_output_ref",
+    "table_context_ref",
+    "source_fragment_ref",
+    "duplicate_chunk_control_ref",
+)
+CHUNK_QUALITY_REGRESSION_RECORD_FIELDS = (
+    "chunk_quality_regression_record_ref",
+    "chunk_quality_regression_request_ref",
+    "chapter_aware_chunk_ref",
+    "chunk_identity_version_record_ref",
+    "engineering_semantic_asset_catalog_ref",
+    "chunk_coverage_metrics_record_ref",
+    "document_ref",
+    "page_ref",
+    "section_ref",
+    "parser_output_ref",
+    "table_context_ref",
+    "source_fragment_ref",
+    "protected_semantic_boundary_status",
+    "duplicate_embedding_index_status",
+    "quality_regression_status",
+    "human_review_state",
+    "quality_degradation_handoff_state",
+)
+TRACEABILITY_FIELDS = (
+    "document_ref",
+    "page_ref",
+    "section_ref",
+    "parser_output_ref",
+    "table_context_ref",
+    "source_fragment_ref",
+)
+CONTROL_SCENARIOS = (
+    "procedure",
+    "acceptance",
+    "parameter_table",
+    "duplicate_chunk",
+)
+PROTECTED_SEMANTIC_SURFACE_BY_SCENARIO = {
+    "procedure": "ENGINEERING_PROCEDURE_STEP",
+    "acceptance": "ACCEPTANCE_CLAUSE",
+    "parameter_table": "PARAMETER_TABLE",
+    "duplicate_chunk": None,
+}
+CONTROL_REFERENCE_PREFIXES = {
+    "chunk_quality_regression_request_ref": "chunk-quality-regression-request",
+    "chapter_aware_chunk_ref": "chapter-aware-chunk",
+    "chunk_identity_version_record_ref": "chunk-identity-version-record",
+    "engineering_semantic_asset_catalog_ref": "engineering-semantic-asset-catalog",
+    "chunk_coverage_metrics_record_ref": "chunk-coverage-metrics-record",
+    "document_ref": "document",
+    "page_ref": "page",
+    "section_ref": "section",
+    "parser_output_ref": "parser-output",
+    "table_context_ref": "table-context",
+    "source_fragment_ref": "source-fragment",
+    "duplicate_chunk_control_ref": "duplicate-chunk-control",
+}
+CONTROL_REFERENCE_ONLY_STATUS = "CONTROL_REFERENCE_ONLY_UNASSESSED_REQUIRES_HUMAN_REVIEW"
+PROTECTED_SURFACE_STATUS = "CONTROL_PROTECTED_SEMANTIC_SURFACE_REQUIRES_HUMAN_HANDLING"
+DUPLICATE_BOUNDARY_STATUS = (
+    "CONTROL_DUPLICATE_CHUNK_NO_EMBEDDING_OR_INDEX_WRITE_REQUIRES_HUMAN_REVIEW"
+)
+QUALITY_REGRESSION_STATUS = (
+    "CONTROL_LOW_CONFIDENCE_QUALITY_REGRESSION_REQUIRES_HUMAN_REVIEW"
+)
+HUMAN_REVIEW_STATE = (
+    "REQUIRED_WHEN_QUALITY_DUPLICATE_TRACEABILITY_OR_SEMANTIC_BOUNDARY_UNVERIFIED"
+)
+QUALITY_DEGRADATION_HANDOFF_STATE = (
+    "FUTURE_STAGE068_QUALITY_DEGRADATION_HANDOFF_NOT_STARTED"
+)
+
+
+def build_control_request(scenario: str) -> dict[str, str]:
+    """返回固定控制请求；请求不包含来源内容或业务数据。"""
+
+    if scenario not in CONTROL_SCENARIOS:
+        raise ValueError("unknown chunk quality regression control scenario")
+    return {
+        field: f"{CONTROL_REFERENCE_PREFIXES[field]}:control:stage067-p2:{scenario}"
+        for field in CHUNK_QUALITY_REGRESSION_INPUT_FIELDS
+    }
+
+
+def execute_chunk_quality_regression_control_slice(
+    control_input: Mapping[str, object] | object,
+) -> dict[str, Any]:
+    """在内存中投影固定质量回归控制请求的人工复核字段。"""
+
+    requests = _accepted_control_requests(control_input)
+    if requests is None:
+        return _rejected_result()
+
+    projected = [_quality_regression_record(request) for request in requests]
+    protected_types = [
+        request["protected_semantic_surface"]
+        for request in requests
+        if request["protected_semantic_surface"] is not None
+    ]
+    duplicate_records = [
+        record
+        for record in projected
+        if record["duplicate_embedding_index_status"] == DUPLICATE_BOUNDARY_STATUS
+    ]
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "record_kind": RECORD_KIND,
+        "control_adapter_version": CONTROL_ADAPTER_VERSION,
+        "input_accepted": True,
+        "execution_state": "COMPLETED_IN_MEMORY_CHUNK_QUALITY_REGRESSION_CONTROL_SLICE",
+        "control_chunk_quality_regression_request_count": len(requests),
+        "actual_input_request_count": 0,
+        "chunk_quality_regression_records": projected,
+        "chunk_quality_regression_record_count": len(projected),
+        "control_scenarios_covered": list(CONTROL_SCENARIOS),
+        "control_scenario_count": len(CONTROL_SCENARIOS),
+        "one_control_record_per_scenario": len(projected) == len(CONTROL_SCENARIOS),
+        "protected_semantic_asset_types_covered": protected_types,
+        "protected_semantic_asset_type_count": len(protected_types),
+        "one_control_record_per_protected_semantic_asset_type": len(protected_types)
+        == 3,
+        "duplicate_chunk_control_record_count": len(duplicate_records),
+        "duplicate_control_never_requests_embedding_or_index_write": len(
+            duplicate_records
+        )
+        == 1,
+        "traceability_fields_covered": list(TRACEABILITY_FIELDS),
+        "traceability_field_count": len(TRACEABILITY_FIELDS),
+        "control_traceability_reference_count": len(projected)
+        * len(TRACEABILITY_FIELDS),
+        "control_traceability_reference_shape_preserved": all(
+            _traceability_references_preserved(record) for record in projected
+        ),
+        "source_body_or_parser_output_or_fragment_content_retained": False,
+        "all_protected_surfaces_atomic": True,
+        "low_confidence_control_marker_count": len(projected),
+        "all_control_records_low_confidence_requires_human_review": all(
+            record["quality_regression_status"] == QUALITY_REGRESSION_STATUS
+            and record["human_review_state"] == HUMAN_REVIEW_STATE
+            for record in projected
+        ),
+        "all_quality_degradation_handoffs_remain_future_stage068": all(
+            record["quality_degradation_handoff_state"]
+            == QUALITY_DEGRADATION_HANDOFF_STATE
+            for record in projected
+        ),
+        "control_request_reference_validation_performed": True,
+        "control_quality_regression_record_projection_performed": True,
+        "control_protected_semantic_boundary_label_projection_performed": True,
+        "control_duplicate_embedding_index_boundary_label_projection_performed": True,
+        "control_low_confidence_marker_projection_performed": True,
+        "control_quality_degradation_handoff_label_projection_performed": True,
+        "control_output_is_not_actual_quality_regression": True,
+        **_runtime_closed_flags(),
+        "chinese_feedback": [
+            "当前只在内存中投影四条固定切块质量回归控制记录，未读取、打开、解析、切分、计算、检测或创建任何真实资料、页面、chunk、质量结果、重复项、来源内容或业务结论。",
+            "工程步骤、验收条款和参数表控制记录保持受保护语义面；无法确认真实边界、质量或来源追溯时必须转业务线白箱人工复核。",
+            "重复 chunk 控制记录只标记不得重复 embedding 或索引写入；它不是实际重复检测、去重、写入抑制或质量回归结论。",
+            "全部控制记录均为低可信待人工复核，质量降级仅保留未来 Stage068 交接标签；这不是生产状态或自动业务决策。",
+        ],
+    }
+
+
+def _accepted_control_requests(
+    control_input: Mapping[str, object] | object,
+) -> list[dict[str, object]] | None:
+    if not isinstance(control_input, Mapping) or set(control_input) != set(CONTROL_FIELDS):
+        return None
+    requests = control_input.get("chunk_quality_regression_requests")
+    if not isinstance(requests, Sequence) or isinstance(requests, (str, bytes)):
+        return None
+    if len(requests) != len(CONTROL_SCENARIOS):
+        return None
+
+    accepted = [_accepted_control_request(request) for request in requests]
+    if any(request is None for request in accepted):
+        return None
+    normalized = [request for request in accepted if request is not None]
+    expected_request_refs = [
+        build_control_request(scenario)["chunk_quality_regression_request_ref"]
+        for scenario in CONTROL_SCENARIOS
+    ]
+    if [
+        request["chunk_quality_regression_request_ref"] for request in normalized
+    ] != expected_request_refs:
+        return None
+    return normalized
+
+
+def _accepted_control_request(request: object) -> dict[str, object] | None:
+    if not isinstance(request, Mapping) or set(request) != set(
+        CHUNK_QUALITY_REGRESSION_INPUT_FIELDS
+    ):
+        return None
+    normalized = {
+        field: request.get(field) for field in CHUNK_QUALITY_REGRESSION_INPUT_FIELDS
+    }
+    request_ref = normalized["chunk_quality_regression_request_ref"]
+    if not isinstance(request_ref, str):
+        return None
+    scenario = request_ref.rsplit(":", 1)[-1]
+    if scenario not in CONTROL_SCENARIOS:
+        return None
+    if normalized != build_control_request(scenario):
+        return None
+    normalized["scenario"] = scenario
+    normalized["protected_semantic_surface"] = PROTECTED_SEMANTIC_SURFACE_BY_SCENARIO[
+        scenario
+    ]
+    return normalized
+
+
+def _quality_regression_record(request: Mapping[str, object]) -> dict[str, Any]:
+    scenario = str(request["scenario"])
+    protected_surface = request["protected_semantic_surface"]
+    protected_status = (
+        PROTECTED_SURFACE_STATUS
+        if protected_surface is not None
+        else CONTROL_REFERENCE_ONLY_STATUS
+    )
+    duplicate_status = (
+        DUPLICATE_BOUNDARY_STATUS
+        if scenario == "duplicate_chunk"
+        else CONTROL_REFERENCE_ONLY_STATUS
+    )
+    return {
+        "chunk_quality_regression_record_ref": (
+            "chunk-quality-regression-record:control:stage067-p2:" f"{scenario}"
+        ),
+        "chunk_quality_regression_request_ref": request[
+            "chunk_quality_regression_request_ref"
+        ],
+        "chapter_aware_chunk_ref": request["chapter_aware_chunk_ref"],
+        "chunk_identity_version_record_ref": request["chunk_identity_version_record_ref"],
+        "engineering_semantic_asset_catalog_ref": request[
+            "engineering_semantic_asset_catalog_ref"
+        ],
+        "chunk_coverage_metrics_record_ref": request[
+            "chunk_coverage_metrics_record_ref"
+        ],
+        "document_ref": request["document_ref"],
+        "page_ref": request["page_ref"],
+        "section_ref": request["section_ref"],
+        "parser_output_ref": request["parser_output_ref"],
+        "table_context_ref": request["table_context_ref"],
+        "source_fragment_ref": request["source_fragment_ref"],
+        "protected_semantic_boundary_status": protected_status,
+        "duplicate_embedding_index_status": duplicate_status,
+        "quality_regression_status": QUALITY_REGRESSION_STATUS,
+        "human_review_state": HUMAN_REVIEW_STATE,
+        "quality_degradation_handoff_state": QUALITY_DEGRADATION_HANDOFF_STATE,
+    }
+
+
+def _traceability_references_preserved(record: Mapping[str, object]) -> bool:
+    return all(
+        isinstance(record[field], str) and ":control:" in record[field]
+        for field in TRACEABILITY_FIELDS
+    )
+
+
+def _runtime_closed_flags() -> dict[str, bool]:
+    return {
+        "actual_chapter_boundary_detected": False,
+        "actual_protected_surface_split_detected": False,
+        "actual_chunk_created": False,
+        "actual_chunk_persisted": False,
+        "actual_chunk_id_generated": False,
+        "actual_chunk_hash_computed": False,
+        "actual_chunk_version_generated": False,
+        "actual_quality_regression_record_created": False,
+        "actual_quality_measurement_performed": False,
+        "actual_quality_regression_performed": False,
+        "actual_quality_degradation_performed": False,
+        "actual_low_quality_chunk_detected": False,
+        "actual_duplicate_chunk_detected": False,
+        "actual_duplicate_chunk_identity_or_hash_validated": False,
+        "actual_duplicate_embedding_prevented": False,
+        "actual_duplicate_index_prevented": False,
+        "duplicate_embedding_or_index_write_attempted": False,
+        "semantic_asset_classification_performed": False,
+        "coverage_calculation_performed": False,
+        "quality_regression_performed": False,
+        "quality_degradation_performed": False,
+        "source_traceability_binding_performed": False,
+        "embedding_or_index_write_performed": False,
+        "database_connection_performed": False,
+        "persistent_state_write_performed": False,
+        "model_direct_text_guessing_allowed": False,
+        "ids_business_source_read_performed": False,
+        "raw_metadata_content_accessed": False,
+        "authorized_fixture_access_performed": False,
+        "source_file_open_performed": False,
+        "parser_execution_performed": False,
+        "chapter_detection_performed": False,
+        "chunking_execution_performed": False,
+        "agent_execution_performed": False,
+        "model_call_performed": False,
+        "model_token_consumption_performed": False,
+        "local_service_start_performed": False,
+        "ovh_deployment_performed": False,
+        "production_runtime_activation_performed": False,
+    }
+
+
+def _rejected_result() -> dict[str, Any]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "record_kind": RECORD_KIND,
+        "control_adapter_version": CONTROL_ADAPTER_VERSION,
+        "input_accepted": False,
+        "execution_state": "REJECTED",
+        "control_chunk_quality_regression_request_count": 0,
+        "actual_input_request_count": 0,
+        "chunk_quality_regression_records": [],
+        "chunk_quality_regression_record_count": 0,
+        "control_scenarios_covered": [],
+        "control_scenario_count": 0,
+        "one_control_record_per_scenario": False,
+        "protected_semantic_asset_types_covered": [],
+        "protected_semantic_asset_type_count": 0,
+        "one_control_record_per_protected_semantic_asset_type": False,
+        "duplicate_chunk_control_record_count": 0,
+        "duplicate_control_never_requests_embedding_or_index_write": False,
+        "traceability_fields_covered": [],
+        "traceability_field_count": 0,
+        "control_traceability_reference_count": 0,
+        "control_traceability_reference_shape_preserved": False,
+        "source_body_or_parser_output_or_fragment_content_retained": False,
+        "all_protected_surfaces_atomic": False,
+        "low_confidence_control_marker_count": 0,
+        "all_control_records_low_confidence_requires_human_review": True,
+        "all_quality_degradation_handoffs_remain_future_stage068": True,
+        "control_request_reference_validation_performed": False,
+        "control_quality_regression_record_projection_performed": False,
+        "control_protected_semantic_boundary_label_projection_performed": False,
+        "control_duplicate_embedding_index_boundary_label_projection_performed": False,
+        "control_low_confidence_marker_projection_performed": False,
+        "control_quality_degradation_handoff_label_projection_performed": False,
+        "control_output_is_not_actual_quality_regression": True,
+        **_runtime_closed_flags(),
+        "chinese_feedback": [
+            "控制输入不符合固定切块质量回归引用合同，已拒绝且未生成任何质量、重复写入、追溯或业务内容。"
+        ],
+    }

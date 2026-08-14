@@ -1,14 +1,21 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
-updated_at_utc: "2026-08-14T07:51:10Z"
-status: "stage067_phase1_completed_local"
+updated_at_utc: "2026-08-14T08:51:48Z"
+status: "stage067_phase2_completed_local"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage067_phase2_state:
+    status: "stage067_phase2_completed_local"
+    current_task_id: "IDS-V0_1-STAGE067-P2"
+    next_gate: "IDS-STAGE067-P3-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE067-P3"
+    stage067_phase3_entry_authorized: true
+    github_upload_allowed: false
   stage067_phase1_state:
     status: "stage067_phase1_completed_local"
     current_task_id: "IDS-V0_1-STAGE067-P1"
@@ -258,16 +265,18 @@ upload_gate:
 
 stage_progress:
   STAGE-067:
-    status: "stage067_phase1_completed_local"
+    status: "stage067_phase2_completed_local"
     completed_phases:
       - "Phase 1"
-    next_phase: "Phase 2"
-    next_gate: "IDS-STAGE067-P2-GATE"
-    current_task_id: "IDS-V0_1-STAGE067-P1"
+      - "Phase 2"
+    next_phase: "Phase 3"
+    next_gate: "IDS-STAGE067-P3-GATE"
+    current_task_id: "IDS-V0_1-STAGE067-P2"
     acceptance_id: "ACC-STAGE-067"
-    acceptance_status: "phase1_completed_local"
+    acceptance_status: "phase2_completed_local"
     review_status: "not_started"
     phase2_entry_authorized: true
+    phase3_entry_authorized: true
     taskpack_context_read_performed: true
     source_authority: "FROZEN_STAGE067_TASKPACK_AND_STAGE066_REVIEW_ARTIFACTS_ONLY"
     second_authoritative_source_created: false
@@ -279,12 +288,18 @@ stage_progress:
     chapter_detection_performed: false
     chunking_execution_performed: false
     chunk_quality_regression_contract_schema: "ids.stage067.chunk_quality_regression.phase1.v1"
-    contract_state: "PHASE1_CHUNK_QUALITY_REGRESSION_CONTRACT_RUNTIME_DISABLED"
+    chunk_quality_regression_slice_contract_schema: "ids.stage067.chunk_quality_regression.phase2.v1"
+    contract_state: "PHASE2_CHUNK_QUALITY_REGRESSION_CONTROL_SLICE_RUNTIME_DISABLED"
     execution_ready: false
     reference_only_quality_regression_input_field_count: 12
     future_quality_regression_output_field_count: 17
+    control_quality_regression_request_count: 4
+    control_quality_regression_record_count: 4
     protected_semantic_asset_type_count: 3
     traceability_field_count: 6
+    control_traceability_reference_count: 24
+    duplicate_chunk_control_record_count: 1
+    low_confidence_control_marker_count: 4
     declared_failure_state_count: 15
     actual_input_request_count: 0
     actual_quality_regression_record_count: 0
@@ -317,7 +332,8 @@ stage_progress:
     production_runtime_activation_performed: false
     stage067_started: true
     stage067_entry_authorized: true
-    phase2_started: false
+    phase2_started: true
+    phase3_started: false
     whole_stage_review_performed: false
     batch_review_performed: false
     stage068_started: false
@@ -331,6 +347,11 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_quality_regression/stage067_chunk_quality_regression_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage067_chunk_quality_regression_contract.py"
       - "KM_IDSystem/machine/runs/2026-08-14-stage067-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE067_PHASE2_CHUNK_QUALITY_REGRESSION_CONTROL_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_quality_regression/stage067_chunk_quality_regression_slice_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_quality_regression/stage067_chunk_quality_regression_slice.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage067_chunk_quality_regression_slice.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage067-p2-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE066_STAGE_REVIEW.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
   STAGE-066:
@@ -1191,10 +1212,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE067-P1"
-  next_allowed_task_id: "IDS-V0_1-STAGE067-P2"
+  current_task_id: "IDS-V0_1-STAGE067-P2"
+  next_allowed_task_id: "IDS-V0_1-STAGE067-P3"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-067 Phase 1 only defines the frozen reference-only quality-regression contract: 12 input references, 17 future output labels, three protected semantic surfaces, six traceability references, duplicate embedding/index write boundary, fifteen failure closures, Chinese feedback and rollback. It does not open sources, run a parser, create chunks, calculate coverage or quality, detect duplicates, write embedding or indexes, write persistent state, call a model, deploy OVH or activate any runtime. Phase 2 remains unstarted."
+  current_run: "STAGE-067 Phase 2 only projects four fixed reference-only quality-regression control requests into four low-confidence human-review records: three protected semantic surfaces, six traceability references per record, one duplicate embedding/index write boundary and a future Stage068 handoff label. It does not open sources, run a parser, create chunks, calculate coverage or quality, detect duplicates, write embedding or indexes, write persistent state, call a model, deploy OVH or activate any runtime. Phase 3 remains unstarted."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."

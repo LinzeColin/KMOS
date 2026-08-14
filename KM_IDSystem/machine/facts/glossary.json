@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage067 P2 切块质量回归控制切片形状",
+      "数值": "4/12/17/3/6/24/1/4",
+      "说明": "依次表示固定控制请求、每条输入字段、每条输出字段、保护语义面、追溯字段、控制追溯引用、重复写入边界和低可信人工复核标记；不表示真实文档、页面、chunk、质量、重复检测、去重、来源追溯或生产结果。"
+    },
+    {
       "指标": "Stage067 P1 静态切块质量回归形状",
       "数值": "12/17/3/6/15",
       "说明": "依次表示仅引用输入字段、未来质量回归输出字段、保护语义面、追溯字段和失败关闭状态的合同数量；不表示真实文档、页面、chunk、质量、重复检测、去重、来源追溯或生产结果。"
@@ -57,6 +62,11 @@
     }
   ],
   "data_shapes": [
+    {
+      "名称": "切块质量回归控制记录",
+      "字段": "chunk_quality_regression_record_ref、chunk_quality_regression_request_ref、chapter_aware_chunk_ref、chunk_identity_version_record_ref、engineering_semantic_asset_catalog_ref、chunk_coverage_metrics_record_ref、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、protected_semantic_boundary_status、duplicate_embedding_index_status、quality_regression_status、human_review_state、quality_degradation_handoff_state",
+      "说明": "Stage067 P2 只在内存中投影四条固定 :control: 记录；工程步骤、验收条款和参数表保持受保护语义面，重复写入只表示人工复核边界，所有记录低可信且不包含真实内容、路径、页码、chunk、质量、重复项、索引或业务事实。"
+    },
     {
       "名称": "切块质量回归仅引用合同",
       "字段": "chunk_quality_regression_request_ref、chapter_aware_chunk_ref、chunk_identity_version_record_ref、engineering_semantic_asset_catalog_ref、chunk_coverage_metrics_record_ref、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、duplicate_chunk_control_ref",

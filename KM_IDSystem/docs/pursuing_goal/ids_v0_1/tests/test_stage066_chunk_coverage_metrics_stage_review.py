@@ -220,19 +220,25 @@ class Stage066ChunkCoverageMetricsStageReviewTests(unittest.TestCase):
                     "IDS-V0_1-STAGE067-P1",
                     "IDS-STAGE067-P2-GATE",
                 ),
+                (
+                    "IDS-STAGE067",
+                    "IDS-V0_1-STAGE067-P2",
+                    "IDS-V0_1-STAGE067-P2",
+                    "IDS-STAGE067-P3-GATE",
+                ),
             ),
         )
         self.assertIn(
             plan["phase"],
-            ("IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE067-P1"),
+            ("IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P2"),
         )
         self.assertIn(
             plan["task"],
-            ("IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE067-P1"),
+            ("IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P2"),
         )
         self.assertTrue(
             "IDS-STAGE067-P1-GATE" in plan["stop_condition"]
-            or "IDS-STAGE067-P2-GATE" in plan["stop_condition"]
+            or ("IDS-STAGE067-P2-GATE" in plan["stop_condition"] or "IDS-STAGE067-P3-GATE" in plan["stop_condition"])
         )
         self.assertTrue(
             {
