@@ -9,6 +9,7 @@ KM 系列的商用线仓库。从 LinzeColin/CodexProject 拆分而来，各项�
 | whkmSalary | ✅ 已迁入 | 薪酬 |
 | KMFA | ✅ 已迁入 | 经营分析、考勤、日常检查、资金周报、月报与 DWS 归档 public-safe 源码 |
 | KMIDS | ✅ 已迁入 | 实际目录 `KM_IDSystem/`；工业数据系统与 public-safe 搜标 Skill |
+| KMVideo | ✅ 已建立 | 钉钉授权素材归档与视频生成流程源码；原始素材位于 Private-Database 的 `Private-KMDatabase/KMVideoDatabase/` |
 | KMDatabase | ✅ 数据契约层 | KM 系列共享 schema 与存取 SDK；真实经营数据已移入私有仓 `Private-Database/Private-KMDatabase`，本仓不再存数据 |
 
 ## KMDatabase 的职责

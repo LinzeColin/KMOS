@@ -4,7 +4,7 @@
 set -uo pipefail
 PDB_DIR=/tmp/kmfa-pdb-bootstrap
 PDB_REPO="git@github.com:LinzeColin/Private-Database.git"
-CONF_AREA="Private-KMDatabase/dws-config"
+CONF_AREA="Private-KMDatabase/KMFA/dws-config"
 KEY=/opt/kmfa/secrets/kmfa_backup_deploy_key
 LOG=/var/log/kmfa/dws-archive.log
 mkdir -p /var/log/kmfa

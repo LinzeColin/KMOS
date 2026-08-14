@@ -24,7 +24,7 @@ from datetime import datetime, timezone, timedelta
 # 【Owner 铁律】所有数据只进唯一私有库 Private-Database，永不新建 repo。
 REPO_DEFAULT = "LinzeColin/Private-Database"           # REST(token)路径
 SSH_REPO_DEFAULT = "LinzeColin/Private-Database"       # git-SSH(部署密钥)路径:同一个库
-AREA = "Private-KMDatabase/app-state-backup"           # 库内归置区(与 KMFA_MetaData 同级)
+AREA = "Private-KMDatabase/KMFA/app-state-backup"      # 库内归置区
 PREFIX = "kmfa-app-state"                      # 备份对象前缀
 MANIFEST = f"{AREA}/kmfa-app-state-manifest.jsonl"
 API = "https://api.github.com"
