@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage065-p1-local",
+    "date": "2026-08-14",
+    "summary": "完成 Stage065 P1 工程语义资产分类静态合同：定义 12 个仅引用输入、16 个未来分类字段、procedure/risk/acceptance/material/equipment/case/bid_response 七类资产标签、工程步骤/验收条款/参数表三类保护语义面、document/page/section/parser output 六维追溯、10 类失败关闭、中文反馈和回滚范围。聚焦用例 7/7、受影响阶段链路 212/212、两个批次检查器和 Stage005 治理回归均已本地通过，中文事实投影已重渲染 7 个文件。未读取、打开、解析、分类或创建真实资料、chunk、分类记录、来源绑定、覆盖率、质量、索引、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage065 P2。"
+  },
+  {
     "version": "v0.1-stage064-review-local",
     "date": "2026-08-14",
     "summary": "完成 Stage064 P1--P4 纯内存 Chunk 身份与版本控制证据机械复审；下一门为 Stage065 P1，运行时与上传继续关闭"

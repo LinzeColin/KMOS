@@ -1,8 +1,40 @@
 {
-  "numbers": [],
-  "data_shapes": [],
-  "invariants": [],
+  "numbers": [
+    {
+      "指标": "Stage065 P1 静态形状",
+      "数值": "12/16/7/3/6/10",
+      "说明": "分别表示仅引用输入字段、未来分类输出字段、资产类型标签、保护语义面、追溯字段和失败关闭状态的合同数量；不表示真实资料、分类或质量结果。"
+    }
+  ],
+  "data_shapes": [
+    {
+      "名称": "工程语义资产分类引用形状",
+      "字段": "semantic_asset_classification_request_ref、chunk_identity_version_record_ref、chapter_aware_chunk_ref、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、engineering_procedure_ref、acceptance_clause_ref、parameter_table_ref",
+      "说明": "只允许不透明受控引用，不包含正文、物理路径、实际页码、章节名称、来源片段或真实分类。"
+    }
+  ],
+  "invariants": [
+    {
+      "规则": "保护语义面与来源权威",
+      "说明": "工程步骤、验收条款和参数表不得被任意切断或由分类规则覆盖；来源文档和业务线人工复核始终优先于分类标签、模型输出或本合同。"
+    }
+  ],
   "terms": [
+    {
+      "英文": "reference-only engineering semantic asset classification contract",
+      "中文": "仅引用工程语义资产分类合同",
+      "说明": "Stage065 P1 对 procedure、risk、acceptance、material、equipment、case 和 bid_response 七类未来标签的静态 schema 定义；它不读取来源、不分类真实 chunk、不创建业务事实，也不替代来源文档。"
+    },
+    {
+      "英文": "engineering semantic asset type catalog",
+      "中文": "工程语义资产类型目录",
+      "说明": "只登记七类未来资产类型标签的受控目录；目录不含真实分类、来源内容、分类依据或业务结论，不能成为第二权威事实源。"
+    },
+    {
+      "英文": "semantic asset classification human handling",
+      "中文": "语义资产分类人工处理",
+      "说明": "当语义边界、来源追溯、分类依据或跨页参数表关系无法确认时必须保持关闭并交由业务线白箱复核；不能自动形成事实、索引、决策或生产状态。"
+    },
     {
       "英文": "Stage064 chunk identity and version review",
       "中文": "Stage064 Chunk 身份与版本整阶段复审",

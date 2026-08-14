@@ -9,7 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage064 Review - 2026-08-14
+## Current Gate - Stage065 Phase 1 - 2026-08-14
+
+- 本节是唯一当前交接；Stage064 Review/P4/P3/P2/P1、Stage063 Review/P4/P3/P2/P1、Stage062 Review 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE065-P1`：只定义工程语义资产分类静态合同的 `12/16/7/3/6/10` 形状，即十二字段仅引用输入、十六字段未来分类输出、`procedure/risk/acceptance/material/equipment/case/bid_response` 七类资产标签、工程步骤/验收条款/参数表三类受保护语义面、`document/page/section/parser output/表格上下文/来源片段` 六维受控追溯和十类失败关闭；没有建立第二权威事实源，也没有读取、打开、分类、生成或写入任何真实资料、chunk、分类记录、来源绑定或业务结论。
+- 所有标签、字段、引用、计数与中文反馈只定义未来接口；它们不代表真实 procedure、risk、acceptance、material、equipment、case、bid_response、chunk、来源追溯、覆盖率、质量或业务事实。来源文档与业务线白箱人工复核保持权威，长文档、跨页参数表、保护语义面和无法确认的分类依据必须关闭并留给人工处理。
+- 已验证：Stage065 P1 聚焦用例 `7/7`、含 Stage060 Review、Stage061--063 全阶段、Stage064 P1--Review 的受影响阶段链路 `212/212`、Batch051-060 与 Batch041-050 检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、Stage005 治理回归 `valid=true`，中文事实投影已重渲染 `7` 个文件。执行范围没有进入真实 parser、章节检测、切块、身份/版本、分类、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产或上传。
+- 回滚只撤回本 P1 说明、静态合同、聚焦用例、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `STAGE064_REVIEWED_LOCAL_CHUNK_IDENTITY_AND_VERSION_RUNTIME_DISABLED`；不改变 Stage064 工件、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE065-P2-GATE`。本 run 不进入 P2、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage064 Review - 2026-08-14
 
 - 本节是唯一当前交接；Stage064 P4/P3/P2/P1、Stage063 Review/P4/P3/P2/P1、Stage062 Review 与下方所有章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE064-REVIEW`：只机械复审冻结 Stage064 P1--P4 合同和 P3/P4 纯内存控制报告的 `10/14/3/6` 形状、3 条控制请求、3 条控制记录、3 类受保护工程语义面、6 维追溯、6 类显式人工处置、6 条 metadata-only JSONL 样例、6 条低质量待人工记录、3 条中文确认和 P4→P3 控制回退链；发现数为零，没有建立第二权威事实源。

@@ -1,6 +1,12 @@
 {
   "stages": [
     {
+      "id": "IDS-STAGE065",
+      "name": "工程语义资产分类",
+      "gate": "P1 静态工程语义资产分类合同已本地通过；下一步须独立进入 Stage065 Phase 2",
+      "status": "Stage065 P1 已完成：12/16 静态形状、procedure/risk/acceptance/material/equipment/case/bid_response 七类资产标签、3 类受保护工程语义面、6 维追溯、10 类失败关闭、中文反馈和回滚范围均已固定；真实分类、覆盖率、质量、索引、OVH 与生产仍禁用"
+    },
+    {
       "id": "IDS-STAGE064",
       "name": "Chunk 身份与版本",
       "gate": "P1--P4 合同、P3/P4 纯内存控制报告和整阶段机械复审已本地通过；下一步须独立进入 Stage065 Phase 1",

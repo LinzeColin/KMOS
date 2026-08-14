@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE064",
-  "phase": "IDS-V0_1-STAGE064-REVIEW",
-  "task": "IDS-V0_1-STAGE064-REVIEW",
-  "real_progress": "Stage064 已完成 P1--P4 本地机械复审：十字段仅引用输入、十四字段未来身份与版本输出、3 条控制记录、3 类受保护工程语义面、6 维追溯、6 类专项人工处置、6 条 metadata-only JSONL 样例、6 条低质量待人工记录、3 条中文确认与 P4→P3 控制回退链一致；下一步仅可在新的独立 run 进入 Stage065 P1，上传路径继续关闭",
-  "report_grade": "冻结 Stage064 任务包、Stage064 P1--P4 合同、P3/P4 纯内存控制报告、Stage063 本地复审、Batch061-070 上传锁、Stage064 本地复审、治理路线与中文事实投影一致",
-  "business_verdict": "本 Review 只证明固定控制合同与纯内存控制交付证据机械一致，且业务线白箱人工处理、来源文档权威和 P4→P3 控制回退链保持；不证明真实 chunk、身份或版本、真实覆盖率、真实质量、真实重生成或版本回退、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE064_REVIEWED_CHUNK_IDENTITY_VERSION_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE065",
+  "phase": "IDS-V0_1-STAGE065-P1",
+  "task": "IDS-V0_1-STAGE065-P1",
+  "real_progress": "Stage065 P1 已完成本地静态工程语义资产分类合同：十二字段仅引用输入、十六字段未来分类输出、procedure/risk/acceptance/material/equipment/case/bid_response 七类资产标签、工程步骤/验收条款/参数表三类受保护语义面、document/page/section/parser output 六维追溯、十类失败关闭、中文反馈和回滚范围均已固定；下一步仅可在新的独立 run 进入 Stage065 P2，上传路径继续关闭",
+  "report_grade": "冻结 Stage065 任务包、Stage064 本地整阶段复审、Batch061-070 上传锁、Stage065 P1 静态合同、治理路线与中文事实投影一致",
+  "business_verdict": "本 P1 只证明未来工程语义资产分类的静态字段、门禁、人工处理和回滚边界已定义；不证明真实 procedure、risk、acceptance、material、equipment、case 或 bid_response 已被分类，也不证明真实 chunk、来源追溯、覆盖率、质量、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE065_PHASE1_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_RUNTIME_DISABLED",
   "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE065-P1-GATE",
+  "next_gate": "IDS-STAGE065-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
