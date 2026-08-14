@@ -271,17 +271,27 @@ class Stage066ChunkCoverageMetricsPhase3Tests(unittest.TestCase):
             for item in events
             if item.get("event_id") == "EVT-IDS-V0_1-STAGE066-P3-20260814-001"
         )
-        self.assertEqual(
-            ("IDS-STAGE066", "IDS-V0_1-STAGE066-P3", "IDS-V0_1-STAGE066-P3"),
-            (status["stage"], status["phase"], status["task"]),
+        self.assertIn(
+            (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                ("IDS-STAGE066", "IDS-V0_1-STAGE066-P3", "IDS-V0_1-STAGE066-P3", "IDS-STAGE066-P4-GATE"),
+                ("IDS-STAGE066", "IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-P4", "IDS-STAGE066-REVIEW-GATE"),
+            ),
         )
-        self.assertEqual("IDS-STAGE066-P4-GATE", status["next_gate"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertEqual("IDS-STAGE066", plan["stage"])
-        self.assertEqual("IDS-V0_1-STAGE066-P3", plan["phase"])
-        self.assertEqual("IDS-V0_1-STAGE066-P3", plan["task"])
-        self.assertIn("IDS-STAGE066-P4-GATE", plan["stop_condition"])
+        self.assertIn(
+            (plan["phase"], plan["task"]),
+            (
+                ("IDS-V0_1-STAGE066-P3", "IDS-V0_1-STAGE066-P3"),
+                ("IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-P4"),
+            ),
+        )
+        self.assertTrue(
+            "IDS-STAGE066-P4-GATE" in plan["stop_condition"]
+            or "IDS-STAGE066-REVIEW-GATE" in plan["stop_condition"]
+        )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -292,9 +302,20 @@ class Stage066ChunkCoverageMetricsPhase3Tests(unittest.TestCase):
                 "ACC-STAGE066-P3-04",
             }.issubset(acceptance_ids)
         )
-        self.assertIn('current_phase_id: "IDS-STAGE066-P3"', roadmap)
-        self.assertIn('next_gate_id: "IDS-STAGE066-P4-GATE"', roadmap)
-        self.assertIn('status: "stage066_phase3_completed_local"', batch)
+        self.assertTrue(
+            (
+                'current_phase_id: "IDS-STAGE066-P3"' in roadmap
+                and 'next_gate_id: "IDS-STAGE066-P4-GATE"' in roadmap
+            )
+            or (
+                'current_phase_id: "IDS-STAGE066-P4"' in roadmap
+                and 'next_gate_id: "IDS-STAGE066-REVIEW-GATE"' in roadmap
+            )
+        )
+        self.assertTrue(
+            'status: "stage066_phase3_completed_local"' in batch
+            or 'status: "stage066_phase4_completed_review_pending"' in batch
+        )
         self.assertEqual("phase_completed", event["event_type"])
         self.assertEqual("IDS-V0_1-STAGE066-P3", event["task_id"])
         self.assertEqual(["ACC-STAGE-066"], event["acceptance_ids"])
