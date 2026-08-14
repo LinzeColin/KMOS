@@ -71,8 +71,13 @@ PARSER_VERSION = "kmfa.daily_funds.parser.v13"
 # normalization only after every original layout pass stops in a layout/OCR
 # gate.  The normalized image must still pass two independent segmenters with
 # exactly the same date and totals, then the unchanged row/footer checks.
+# v10 adds a final contrast-preserving rendering repair after those layout
+# paths stop at an allowed layout/OCR gate.  Fixed grayscale autocontrast,
+# bounded Lanczos scaling and a fixed unsharp mask do not change OCR text,
+# aliases, amount/date parsing, or the confidence threshold.  Both fixed
+# segmenters still need to produce identical, footer-reconciled totals.
 # Chart admission never produces a formal account-balance publication.
-CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v9"
+CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v10"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -168,6 +173,26 @@ _OCR_GRID_THRESHOLD = 192
 _OCR_GRID_LINE_COVERAGE_BPS = 7_000
 _OCR_GRID_MAX_PIXELS = 20_000_000
 _OCR_GRID_SCALE = 2
+_OCR_ENHANCED_MAX_PIXELS = 20_000_000
+_OCR_ENHANCED_SMALL_IMAGE_PIXELS = 2_200_000
+_OCR_ENHANCED_MEDIUM_IMAGE_PIXELS = 5_000_000
+_OCR_ENHANCED_SMALL_SCALE = 3
+_OCR_ENHANCED_MEDIUM_SCALE = 2
+_OCR_ENHANCED_SHARPEN_RADIUS = 2
+_OCR_ENHANCED_SHARPEN_PERCENT = 175
+_OCR_ENHANCED_SHARPEN_THRESHOLD = 2
+_CASHFLOW_ORIGINAL_LAYOUT_RECOVERY_CODES = frozenset({
+    "CASHFLOW_OBSERVATION_HEADER_MISSING",
+    "CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING",
+    "OCR_LOW_CONFIDENCE",
+    "OCR_TSV_INVALID",
+})
+_CASHFLOW_IMAGE_LAYOUT_RECOVERY_CODES = frozenset({
+    "CASHFLOW_OBSERVATION_HEADER_MISSING",
+    "OCR_GRID_RULES_NOT_FOUND",
+    "OCR_LOW_CONFIDENCE",
+    "OCR_TSV_INVALID",
+})
 
 
 class ParseError(ContractError):
@@ -925,6 +950,53 @@ def _preprocess_ocr_grid_image(*, image: Path, root: Path) -> Path:
     return output
 
 
+def _preprocess_ocr_enhanced_image(*, image: Path, root: Path) -> Path:
+    """Render one bounded source image for a final strict OCR attempt.
+
+    This is a deterministic presentation repair for compact screenshots, not
+    a semantic interpretation step.  It retains the source pixels in
+    grayscale, applies only fixed autocontrast and sharpening, and bounds the
+    output dimensions before Tesseract sees it.  The caller must still satisfy
+    the unchanged header, confidence, date, row and footer-total gates twice.
+    """
+
+    try:
+        from PIL import Image, ImageFilter, ImageOps
+    except ImportError as exc:
+        raise ParseError("OCR_PREPROCESS_RUNTIME_UNAVAILABLE") from exc
+    try:
+        with Image.open(image) as source:
+            width, height = source.size
+            pixels = width * height
+            if width < 16 or height < 16 or pixels > _OCR_ENHANCED_MAX_PIXELS:
+                raise ParseError("OCR_IMAGE_DIMENSIONS_UNSUPPORTED")
+            source.load()
+            if pixels <= _OCR_ENHANCED_SMALL_IMAGE_PIXELS:
+                scale = _OCR_ENHANCED_SMALL_SCALE
+            elif pixels <= _OCR_ENHANCED_MEDIUM_IMAGE_PIXELS:
+                scale = _OCR_ENHANCED_MEDIUM_SCALE
+            else:
+                scale = 1
+            rendered = ImageOps.autocontrast(source.convert("L"))
+            if scale > 1:
+                rendered = rendered.resize(
+                    (width * scale, height * scale),
+                    resample=Image.Resampling.LANCZOS,
+                )
+            rendered = rendered.filter(ImageFilter.UnsharpMask(
+                radius=_OCR_ENHANCED_SHARPEN_RADIUS,
+                percent=_OCR_ENHANCED_SHARPEN_PERCENT,
+                threshold=_OCR_ENHANCED_SHARPEN_THRESHOLD,
+            ))
+            output = root / "ocr-enhanced.png"
+            rendered.save(output, format="PNG")
+    except ParseError:
+        raise
+    except (OSError, ValueError) as exc:
+        raise ParseError("OCR_IMAGE_PREPROCESS_INVALID") from exc
+    return output
+
+
 def _ocr_tsv(
     *,
     payload: bytes,
@@ -932,6 +1004,7 @@ def _ocr_tsv(
     runner: Callable[..., Any],
     psm: int = OCR_PRIMARY_PSM,
     preprocess_grid: bool = False,
+    preprocess_enhanced: bool = False,
 ) -> str:
     """Generate in-memory Tesseract TSV for exactly one bounded document page.
 
@@ -942,6 +1015,8 @@ def _ocr_tsv(
 
     if psm not in _OCR_ALLOWED_PSMS:
         raise ParseError("OCR_PSM_INVALID")
+    if preprocess_grid and preprocess_enhanced:
+        raise ParseError("OCR_PREPROCESS_MODE_INVALID")
     with tempfile.TemporaryDirectory(prefix="daily-funds-ocr-") as temporary:
         root = Path(temporary)
         source = root / f"input{evidence.suffix}"
@@ -962,6 +1037,8 @@ def _ocr_tsv(
             image = rendered[0]
         if preprocess_grid:
             image = _preprocess_ocr_grid_image(image=image, root=root)
+        elif preprocess_enhanced:
+            image = _preprocess_ocr_enhanced_image(image=image, root=root)
         return _run_ocr_command(
             ["tesseract", str(image), "stdout", "-l", OCR_LANGUAGE, "--psm", str(psm), "tsv"],
             runner=runner,
@@ -1917,6 +1994,7 @@ def _cashflow_observation_from_ocr(
     received_at: datetime,
     min_confidence_bps: int,
     preprocess_grid: bool = False,
+    preprocess_enhanced: bool = False,
 ) -> tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]:
     """Apply one fixed OCR segmentation mode to the unchanged cashflow gate.
 
@@ -1931,6 +2009,7 @@ def _cashflow_observation_from_ocr(
         runner=runner,
         psm=psm,
         preprocess_grid=preprocess_grid,
+        preprocess_enhanced=preprocess_enhanced,
     ))
     lines = _ocr_lines(words)
     headerless = False
@@ -1997,11 +2076,51 @@ def _cashflow_observation_from_grid_preprocessed_ocr(
                 min_confidence_bps=min_confidence_bps,
                 preprocess_grid=True,
             ))
-        except ParseError:
+        except ParseError as exc:
+            if str(exc).split(":", 1)[0] not in _CASHFLOW_IMAGE_LAYOUT_RECOVERY_CODES:
+                raise
             raise ParseError("CASHFLOW_OBSERVATION_GRID_PREPROCESS_CONSENSUS_MISSING") from None
     first, second = results
     if first[:3] != second[:3]:
-        raise ParseError("CASHFLOW_OBSERVATION_GRID_PREPROCESS_CONSENSUS_MISSING")
+        raise ParseError("CASHFLOW_OBSERVATION_GRID_PREPROCESS_DISAGREEMENT")
+    return first
+
+
+def _cashflow_observation_from_enhanced_ocr(
+    *,
+    payload: bytes,
+    evidence: ParserEvidence,
+    runner: Callable[..., Any],
+    received_at: datetime,
+    min_confidence_bps: int,
+) -> tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]:
+    """Require two strict readings after contrast-preserving rendering.
+
+    This final layout repair remains unavailable until the original path has
+    already stopped at a layout/OCR gate.  It is not a fallback after a
+    financial field, row, date or footer decision, and cannot select values
+    from one favourable OCR output.
+    """
+
+    results: list[tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]] = []
+    for psm in OCR_GRID_PREPROCESS_PSMS:
+        try:
+            results.append(_cashflow_observation_from_ocr(
+                payload=payload,
+                evidence=evidence,
+                runner=runner,
+                psm=psm,
+                received_at=received_at,
+                min_confidence_bps=min_confidence_bps,
+                preprocess_enhanced=True,
+            ))
+        except ParseError as exc:
+            if str(exc).split(":", 1)[0] not in _CASHFLOW_IMAGE_LAYOUT_RECOVERY_CODES:
+                raise
+            raise ParseError("CASHFLOW_OBSERVATION_ENHANCED_PREPROCESS_CONSENSUS_MISSING") from None
+    first, second = results
+    if first[:3] != second[:3]:
+        raise ParseError("CASHFLOW_OBSERVATION_ENHANCED_PREPROCESS_DISAGREEMENT")
     return first
 
 
@@ -2052,10 +2171,12 @@ def parse_cashflow_observation(
                     received_at=received_at,
                     min_confidence_bps=threshold,
                 ))
-            except ParseError:
+            except ParseError as exc:
+                if str(exc).split(":", 1)[0] not in _CASHFLOW_IMAGE_LAYOUT_RECOVERY_CODES:
+                    raise
                 raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING") from None
         if any(result[:3] != candidate[:3] for result in consensus):
-            raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING")
+            raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_DISAGREEMENT")
         return candidate
 
     def parse_original_layout() -> tuple[date, int, int, tuple[_OcrHeaderCell, ...]]:
@@ -2105,13 +2226,15 @@ def parse_cashflow_observation(
                             received_at=received_at,
                             min_confidence_bps=threshold,
                         ))
-                    except ParseError:
+                    except ParseError as consensus_exc:
+                        if str(consensus_exc).split(":", 1)[0] not in _CASHFLOW_IMAGE_LAYOUT_RECOVERY_CODES:
+                            raise
                         continue
                 if len(consensus) != len(OCR_CASHFLOW_CONSENSUS_PSMS):
                     raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING")
                 first, second = consensus
                 if first[:3] != second[:3]:
-                    raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING")
+                    raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_DISAGREEMENT")
                 business_date, inflow_fen, outflow_fen, cells, _ = first
             else:
                 if fallback[4]:
@@ -2132,12 +2255,9 @@ def parse_cashflow_observation(
         # original public-safe failure rather than exposing preprocessing
         # internals or weakening the original gate.
         original_code = str(original_error).split(":", 1)[0]
-        if original_code not in {
-            "CASHFLOW_OBSERVATION_HEADER_MISSING",
-            "CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING",
-            "OCR_LOW_CONFIDENCE",
-            "OCR_TSV_INVALID",
-        }:
+        if original_code == "CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_DISAGREEMENT":
+            raise ParseError("CASHFLOW_OBSERVATION_LAYOUT_CONSENSUS_MISSING") from None
+        if original_code not in _CASHFLOW_ORIGINAL_LAYOUT_RECOVERY_CODES:
             raise
         try:
             business_date, inflow_fen, outflow_fen, cells, _ = _cashflow_observation_from_grid_preprocessed_ocr(
@@ -2147,8 +2267,19 @@ def parse_cashflow_observation(
                 received_at=received_at,
                 min_confidence_bps=threshold,
             )
-        except ParseError:
-            raise original_error from None
+        except ParseError as grid_error:
+            if str(grid_error).split(":", 1)[0] != "CASHFLOW_OBSERVATION_GRID_PREPROCESS_CONSENSUS_MISSING":
+                raise original_error from None
+            try:
+                business_date, inflow_fen, outflow_fen, cells, _ = _cashflow_observation_from_enhanced_ocr(
+                    payload=payload,
+                    evidence=evidence,
+                    runner=runner,
+                    received_at=received_at,
+                    min_confidence_bps=threshold,
+                )
+            except ParseError:
+                raise original_error from None
     return CashflowObservation(
         business_date=business_date,
         inflow_fen=inflow_fen,
