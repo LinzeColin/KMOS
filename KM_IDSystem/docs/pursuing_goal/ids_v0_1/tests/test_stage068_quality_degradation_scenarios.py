@@ -280,16 +280,16 @@ class Stage068QualityDegradationPhase3Tests(unittest.TestCase):
         self.assertEqual(
             (
                 "IDS-STAGE068",
-                "IDS-V0_1-STAGE068-P3",
-                "IDS-V0_1-STAGE068-P3",
-                "IDS-STAGE068-P4-GATE",
+                "IDS-V0_1-STAGE068-P4",
+                "IDS-V0_1-STAGE068-P4",
+                "IDS-STAGE068-REVIEW-GATE",
             ),
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
         )
         self.assertEqual("IDS-STAGE068", plan["stage"])
-        self.assertEqual("IDS-V0_1-STAGE068-P3", plan["phase"])
-        self.assertEqual("IDS-V0_1-STAGE068-P3", plan["task"])
-        self.assertIn("IDS-STAGE068-P4-GATE", plan["stop_condition"])
+        self.assertEqual("IDS-V0_1-STAGE068-P4", plan["phase"])
+        self.assertEqual("IDS-V0_1-STAGE068-P4", plan["task"])
+        self.assertIn("IDS-STAGE068-REVIEW-GATE", plan["stop_condition"])
         self.assertTrue(
             {
                 "ACC-STAGE068-P3-01",

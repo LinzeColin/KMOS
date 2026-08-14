@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage068 P4 质量降级受控交付形状",
+      "数值": "6/6/4/6/36/6/3/12",
+      "说明": "分别表示固定控制场景、metadata-only JSONL 样例、唯一质量降级控制记录、追溯字段、控制引用检查、低质量待人工记录、中文确认和声明失败状态；不表示真实资料、chunk、质量、质量降级、低可信证据、重复检测、去重、来源验证、重生成、版本回退、OVH 或生产结果。"
+    },
+    {
       "指标": "Stage068 P3 质量降级控制场景形状",
       "数值": "4/19/6/6/36/4/0/6",
       "说明": "依次表示重放的 P2 控制记录、每条记录字段、专项场景、追溯字段、控制追溯引用、唯一控制记录、静默丢弃和人工处置；不表示真实长文档、跨页表格、页面、chunk、质量、质量降级、低可信证据、重复检测、去重、来源追溯、OVH 或生产结果。"
@@ -87,6 +92,11 @@
     }
   ],
   "data_shapes": [
+    {
+      "名称": "质量降级仅元数据 JSONL 交付样例",
+      "字段": "sample_id、scenario_id、quality_degradation_record_ref、quality_degradation_request_ref、chunk_quality_regression_record_ref、chapter_aware_chunk_ref、chunk_identity_version_record_ref、engineering_semantic_asset_catalog_ref、chunk_coverage_metrics_record_ref、control_traceability_reference_count、human_review_required、control_metadata_only",
+      "说明": "Stage068 P4 只在内存中从六类固定 :control: 场景投影 JSONL 行；它不包含真实正文、路径、页码、章节、chunk、质量、质量降级、低可信证据、embedding、索引或业务事实。"
+    },
     {
       "名称": "质量降级受控专项场景",
       "字段": "scenario_id、scenario_category、referenced_quality_degradation_record_ref、referenced_quality_degradation_request_ref、referenced_chunk_quality_regression_record_ref、referenced_chapter_aware_chunk_ref、referenced_chunk_identity_version_record_ref、referenced_engineering_semantic_asset_catalog_ref、referenced_chunk_coverage_metrics_record_ref、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、explicit_disposition、human_handling_required",
