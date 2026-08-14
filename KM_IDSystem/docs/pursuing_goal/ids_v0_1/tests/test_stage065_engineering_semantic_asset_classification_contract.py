@@ -317,6 +317,7 @@ class Stage065EngineeringSemanticAssetClassificationPhase1Tests(unittest.TestCas
                 ("IDS-V0_1-STAGE065-P1", "IDS-V0_1-STAGE065-P1", "IDS-STAGE065-P2-GATE"),
                 ("IDS-V0_1-STAGE065-P2", "IDS-V0_1-STAGE065-P2", "IDS-STAGE065-P3-GATE"),
                 ("IDS-V0_1-STAGE065-P3", "IDS-V0_1-STAGE065-P3", "IDS-STAGE065-P4-GATE"),
+                ("IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-P4", "IDS-STAGE065-REVIEW-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -328,12 +329,14 @@ class Stage065EngineeringSemanticAssetClassificationPhase1Tests(unittest.TestCas
                 ("IDS-V0_1-STAGE065-P1", "IDS-V0_1-STAGE065-P1"),
                 ("IDS-V0_1-STAGE065-P2", "IDS-V0_1-STAGE065-P2"),
                 ("IDS-V0_1-STAGE065-P3", "IDS-V0_1-STAGE065-P3"),
+                ("IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-P4"),
             ),
         )
         self.assertTrue(
             "IDS-STAGE065-P2-GATE" in plan["stop_condition"]
             or "IDS-STAGE065-P3-GATE" in plan["stop_condition"]
             or "IDS-STAGE065-P4-GATE" in plan["stop_condition"]
+            or "IDS-STAGE065-REVIEW-GATE" in plan["stop_condition"]
         )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
@@ -359,6 +362,10 @@ class Stage065EngineeringSemanticAssetClassificationPhase1Tests(unittest.TestCas
             or (
                 'current_phase_id: "IDS-STAGE065-P3"' in roadmap_text
                 and 'next_gate_id: "IDS-STAGE065-P4-GATE"' in roadmap_text
+            )
+            or (
+                'current_phase_id: "IDS-STAGE065-P4"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE065-REVIEW-GATE"' in roadmap_text
             )
         )
         self.assertEqual("IDS-V0_1-STAGE065-P1", event["task_id"])

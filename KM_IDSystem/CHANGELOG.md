@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage065 Phase 4（本地）
+
+- 完成工程语义资产分类 metadata-only 交付证据：从 P3 六类固定、非业务、reference-only 控制场景派生 `6` 条内存 JSONL 样例、控制覆盖率报告、`6` 条低质量待人工清单、控制回归结果、策略适用边界、回到 P3 的重生成/版本回退说明和 `3` 条中文确认；没有建立第二权威事实源。
+- 样例、覆盖率、清单、回归和回退说明只保留 `:control:` 引用与人工处置，不能替代来源文档或业务线白箱人工复核，也不代表真实 chunk、身份、Hash、版本、分类、覆盖率、质量、来源反查、去重、重生成、版本回退、OVH 或生产验收；不读取真实资料，不写入真实 JSONL、chunk、索引、数据库或业务事实。
+- 本地验证通过：Stage065 P4 聚焦用例 `12/12`；含 Batch051-060 Review、Stage060 Review、Stage061--064 全阶段及 Stage065 P1--P4 的显式阶段链路 `242/242`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，人类平面三道门通过且机器平面无登记阻塞。本 run 未进入真实 parser、章节检测、切块、身份/版本/Hash、分类、重复检测或去重、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产、整阶段复审、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE065-REVIEW-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage065 Phase 3（本地）
 
 - 完成工程语义资产分类受控专项场景：仅重放 P2 七条固定、非业务、reference-only 控制记录，覆盖长文档、跨页参数表、施工步骤、参数表、引用页码与来源反查，以及重复 chunk 的 embedding/index 写入边界六类显式人工处置；静默丢弃为 `0`，保留六维 `:control:` 引用形状，没有建立第二权威事实源。

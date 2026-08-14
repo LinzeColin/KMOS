@@ -261,7 +261,7 @@ class Stage065EngineeringSemanticAssetClassificationPhase3Tests(unittest.TestCas
             with self.subTest(field=field):
                 self.assertFalse(report[field])
 
-    def test_governance_projection_closes_only_phase3(self):
+    def test_governance_projection_preserves_phase3_evidence_through_phase4(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
@@ -278,15 +278,27 @@ class Stage065EngineeringSemanticAssetClassificationPhase3Tests(unittest.TestCas
             if item.get("event_id") == "EVT-IDS-V0_1-STAGE065-P3-20260814-001"
         )
         self.assertEqual("IDS-STAGE065", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE065-P3", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE065-P3", status["task"])
-        self.assertEqual("IDS-STAGE065-P4-GATE", status["next_gate"])
+        self.assertIn(
+            (status["phase"], status["task"], status["next_gate"]),
+            (
+                ("IDS-V0_1-STAGE065-P3", "IDS-V0_1-STAGE065-P3", "IDS-STAGE065-P4-GATE"),
+                ("IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-P4", "IDS-STAGE065-REVIEW-GATE"),
+            ),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertEqual("IDS-STAGE065", plan["stage"])
-        self.assertEqual("IDS-V0_1-STAGE065-P3", plan["phase"])
-        self.assertEqual("IDS-V0_1-STAGE065-P3", plan["task"])
-        self.assertIn("IDS-STAGE065-P4-GATE", plan["stop_condition"])
+        self.assertIn(
+            (plan["phase"], plan["task"]),
+            (
+                ("IDS-V0_1-STAGE065-P3", "IDS-V0_1-STAGE065-P3"),
+                ("IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-P4"),
+            ),
+        )
+        self.assertTrue(
+            "IDS-STAGE065-P4-GATE" in plan["stop_condition"]
+            or "IDS-STAGE065-REVIEW-GATE" in plan["stop_condition"]
+        )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -297,9 +309,20 @@ class Stage065EngineeringSemanticAssetClassificationPhase3Tests(unittest.TestCas
                 "ACC-STAGE065-P3-04",
             }.issubset(acceptance_ids)
         )
-        self.assertIn('current_phase_id: "IDS-STAGE065-P3"', roadmap)
-        self.assertIn('next_gate_id: "IDS-STAGE065-P4-GATE"', roadmap)
-        self.assertIn('status: "stage065_phase3_completed"', batch)
+        self.assertTrue(
+            (
+                'current_phase_id: "IDS-STAGE065-P3"' in roadmap
+                and 'next_gate_id: "IDS-STAGE065-P4-GATE"' in roadmap
+            )
+            or (
+                'current_phase_id: "IDS-STAGE065-P4"' in roadmap
+                and 'next_gate_id: "IDS-STAGE065-REVIEW-GATE"' in roadmap
+            )
+        )
+        self.assertTrue(
+            'status: "stage065_phase3_completed"' in batch
+            or 'status: "stage065_phase4_completed_review_pending"' in batch
+        )
         self.assertEqual("phase_completed", event["event_type"])
         self.assertEqual("IDS-V0_1-STAGE065-P3", event["task_id"])
         self.assertEqual(["ACC-STAGE-065"], event["acceptance_ids"])
