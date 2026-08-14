@@ -1908,8 +1908,14 @@ class DailyFundsRuntime:
         writer = GitSparseWriter(self.config)
         archived: set[tuple[str, int]] = set()
 
+        metadata_audit = getattr(writer, "audit_raw_archive_metadata", None)
+        audit_raw_identities = (
+            metadata_audit
+            if callable(metadata_audit)
+            else writer.audit_raw_archive
+        )
         try:
-            writer.audit_raw_archive(
+            audit_raw_identities(
                 on_attachment=lambda attachment: archived.add((attachment.message_id_hash, attachment.index))
             )
         except IngestionError as exc:
@@ -1991,7 +1997,7 @@ class DailyFundsRuntime:
                     self.state.mark_inbox(occurrence_key, "ARCHIVED_CAPABILITY_RECORDED")
 
         verified: set[tuple[str, int]] = set()
-        final_audit = writer.audit_raw_archive(
+        final_audit = audit_raw_identities(
             on_attachment=lambda attachment: verified.add((attachment.message_id_hash, attachment.index))
         )
         if (

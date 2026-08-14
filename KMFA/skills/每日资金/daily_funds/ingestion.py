@@ -2274,6 +2274,12 @@ class GitSparseWriter:
         ssh_args = (
             "ssh", "-F", "/dev/null", "-i", str(key_path),
             "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
+            # A sparse audit can require several independent Git transports.
+            # Bound both connection establishment and a silent established
+            # session here, rather than allowing one unavailable transport to
+            # consume the full per-Git subprocess timeout repeatedly.
+            "-o", "ConnectTimeout=20",
+            "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=1",
             "-o", "StrictHostKeyChecking=accept-new",
             "-o", f"UserKnownHostsFile={known_hosts}",
         )
@@ -2916,10 +2922,47 @@ class GitSparseWriter:
             return self._audit_raw_archive_once()
         return self._audit_raw_archive_once(on_attachment=on_attachment)
 
+    def audit_raw_archive_metadata(
+        self,
+        *,
+        on_attachment: Callable[[PersistedRawAttachment], None] | None = None,
+    ) -> RawArchiveAudit:
+        """Census source-gated raw occurrences without hydrating every blob.
+
+        This is intentionally narrower than :meth:`audit_raw_archive`: it
+        validates the commit-pinned occurrence, message and immutable-batch
+        metadata, then exposes only persisted occurrence identities to the
+        caller.  It never gives a parser any payload bytes.  A later
+        publication still has to use :meth:`reopen_persisted` for its exact
+        account/transaction pair, which reopens and verifies those bytes from
+        the same pinned commit before reconciliation.
+
+        Coverage reconciliation needs identities, not a 360-day OCR replay.
+        Avoiding one sparse Git transport per payload batch keeps that
+        maintenance path bounded without weakening the byte-readback gate on
+        the only facts that can reach a publication.
+        """
+
+        try:
+            return self._audit_raw_archive_once(
+                on_attachment=on_attachment,
+                metadata_only=True,
+            )
+        except IngestionError as exc:
+            if exc.code != "GIT_AUDIT_TRANSPORT_RETRYABLE":
+                raise
+        return self._audit_raw_archive_once(
+            on_attachment=on_attachment,
+            metadata_only=True,
+        )
+
     def _audit_raw_archive_once(
         self,
         *,
-        on_attachment: Callable[[DownloadedAttachment], None] | None = None,
+        on_attachment: Callable[[DownloadedAttachment], None]
+        | Callable[[PersistedRawAttachment], None]
+        | None = None,
+        metadata_only: bool = False,
     ) -> RawArchiveAudit:
         """Perform one fresh, bounded sparse read of the private raw authority."""
 
@@ -3006,6 +3049,18 @@ class GitSparseWriter:
                 batch_paths=batch_paths,
                 attachments=references,
             )
+
+            if metadata_only:
+                if on_attachment is not None:
+                    for attachment in references:
+                        on_attachment(attachment)
+                return RawArchiveAudit(
+                    commit_sha=commit_sha,
+                    verified_attachments=(),
+                    occurrence_count=len(references),
+                    batch_count=len(batch_paths),
+                    batch_occurrence_references=batch_references,
+                )
 
             if on_attachment is not None:
                 for start in range(0, len(references), self._RAW_ARCHIVE_READBACK_BATCH_SIZE):
