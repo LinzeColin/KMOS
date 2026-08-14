@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage069 P4 外部 API 策略受控交付形状",
+      "数值": "5/5/5/18/90/5/5/5/4/3/12",
+      "说明": "依次表示固定控制场景、策略样例、审计日志投影样例、审计字段、审计字段检查、零成本估算、失败处理、未外发控制引用记录、查询键、中文确认和声明失败状态；不表示真实资料、摘要正文、文本块、外发、队列、缓存、provider、模型、Token、成本、审计、OVH 或生产结果。"
+    },
+    {
       "指标": "Stage069 P3 外部 API 策略专项场景形状",
       "数值": "5/23/18/90/1/2/1/1/3",
       "说明": "依次表示固定专项场景、每条场景字段、继承的审计投影字段、审计字段检查、denied 无载荷、summary_only 摘要引用、full_text_allowed 文本块引用、预算不足暂停和未来调用候选；不表示真实资料、摘要正文、文本块、外发、队列、缓存、provider、模型、Token、成本、审计、OVH 或生产结果。"
@@ -113,6 +118,11 @@
   ],
   "data_shapes": [
     {
+      "名称": "外部 API 策略仅元数据交付样例",
+      "字段": "sample_id、scenario_id、policy_resolution_ref、embedding_queue_request_ref、external_api_audit_ref、effective_external_api_policy、external_payload_mode、control_payload_scope、control_queue_state、audit_disposition、future_external_api_call_candidate、human_handling_required、explicit_disposition、control_metadata_only",
+      "说明": "Stage069 P4 只在内存中从五条固定 :control: 场景投影策略、审计、成本、失败处理和未外发记录；它不包含真实资料、摘要正文、文本块、路径、chunk、外发、provider、模型、Token、成本、审计记录或业务事实。"
+    },
+    {
       "名称": "外部 API 策略继承受控专项场景",
       "字段": "scenario_id、scenario_category、phase2_control_scenario、referenced_policy_resolution_ref、referenced_embedding_queue_request_ref、referenced_external_api_audit_ref、effective_external_api_policy、external_payload_mode、observed_control_payload_scope、expected_control_payload_scope、expected_queue_state、observed_queue_state、audit_projection_required、audit_projection_present、audit_field_count、audit_disposition、future_external_api_call_candidate、actual_external_api_call_performed、actual_model_token_consumption_performed、human_handling_required、explicit_disposition、silent_drop、expectation_met",
       "说明": "Stage069 P3 只重放五条固定 :control: 策略记录并验证载荷类别、预算暂停、审计投影和人工处置；它不包含真实资料、摘要正文、文本块、路径、页码、chunk、外发、provider、模型、Token、成本、审计记录或业务事实。"
@@ -199,6 +209,10 @@
     }
   ],
   "invariants": [
+    {
+      "规则": "Stage069 P4 交付证据不执行外发、审计查询或回滚运行时",
+      "说明": "P4 只投影五条策略样例、审计日志投影样例、零成本估算、失败处理、未外发原因、查询与回滚说明；没有读取真实资料、生成摘要或文本载荷、创建队列/缓存/审计、选择 provider/模型、调用外部 API、消耗 Token、查询真实审计、执行真实回滚、写入索引/数据库、运行 Agent、部署 OVH、启用生产、上传或推送，Review 必须由新的独立 run 处理。"
+    },
     {
       "规则": "Stage069 P3 外部 API 策略场景不执行运行时",
       "说明": "P3 只在内存中验证 denied 无载荷、summary_only 摘要引用、full_text_allowed 文本块引用、预算暂停和先审计不变量；没有读取真实资料、生成摘要或文本载荷、创建队列/缓存/审计、选择 provider/模型、调用外部 API、消耗 Token、写入索引/数据库、运行 Agent、部署 OVH、启用生产、上传或推送，P4 必须由新的独立 run 处理。"

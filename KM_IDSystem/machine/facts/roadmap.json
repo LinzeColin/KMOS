@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE069",
       "name": "外部 API 策略继承",
-      "gate": "P1/P2 合同与 P3 纯内存专项策略场景已本地通过；下一步须在新的独立 run 进入 Stage069 Phase 4",
-      "status": "Stage069 P3 重放五条固定、仅引用控制记录，验证 denied 无载荷、summary_only 摘要引用、document 收紧、full_text_allowed 文本块引用、预算不足暂停和每个未来调用候选均有审计投影；真实资料、摘要正文、文本块、外部 API、模型 Token、OVH 与生产仍禁用"
+      "gate": "P1/P2/P3 合同与 P4 纯内存交付证据已本地通过；下一步须在新的独立 run 进入 Stage069 Review",
+      "status": "Stage069 P4 从五条固定、仅引用控制场景派生策略样例、审计日志投影样例、零成本估算、失败处理、未外发原因、查询说明和回到 P3 的回滚说明；真实资料、摘要正文、文本块、外发、审计、成本、外部 API、模型 Token、OVH 与生产仍禁用"
     },
     {
       "id": "IDS-STAGE068",

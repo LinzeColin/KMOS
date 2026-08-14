@@ -1,0 +1,204 @@
+{
+  "schema_version": "ids.stage069.external_api_policy.phase4.delivery_contract.v1",
+  "contract_state": "PHASE4_EXTERNAL_API_POLICY_METADATA_ONLY_DELIVERY_RUNTIME_DISABLED",
+  "task_id": "IDS-V0_1-STAGE069-P4",
+  "stage": "IDS-STAGE069",
+  "acceptance_ids": [
+    "ACC-STAGE-069",
+    "ACC-STAGE069-P4-01",
+    "ACC-STAGE069-P4-02",
+    "ACC-STAGE069-P4-03",
+    "ACC-STAGE069-P4-04"
+  ],
+  "entry_gate": "IDS-STAGE069-P4-GATE",
+  "next_gate": "IDS-STAGE069-REVIEW-GATE",
+  "authority_context": "FROZEN_STAGE069_TASKPACK_PHASE1_PHASE2_PHASE3_STAGE068_REVIEW_ROOT_LOCK_AND_POLICY_GUIDE_ONLY",
+  "delivery_executable": true,
+  "execution_ready": false,
+  "source_authority": {
+    "source_document_remains_authoritative": true,
+    "business_line_white_box_human_review_remains_authoritative": true,
+    "second_authoritative_source_created": false,
+    "delivery_control_metadata_can_replace_source_document": false,
+    "delivery_control_metadata_can_become_business_fact_authority": false,
+    "real_source_content_retained": false,
+    "source_body_or_path_allowed": false,
+    "summary_body_allowed": false,
+    "chunk_text_allowed": false,
+    "physical_path_or_actual_uri_allowed": false
+  },
+  "predecessor_boundary": {
+    "phase3_controlled_scenarios_reused_as_reference_only": true,
+    "phase3_result_required": "PASS_PHASE3_EXTERNAL_API_POLICY_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+    "expected_control_scenario_count": 5,
+    "expected_scenario_field_count": 23,
+    "expected_audit_projection_count": 5,
+    "expected_audit_field_count": 18,
+    "expected_audit_field_check_count": 90,
+    "expected_future_external_api_call_candidate_count": 3,
+    "expected_scenario_ids": [
+      "denied-policy-blocks-externalization-control",
+      "summary-only-policy-limits-control-payload",
+      "document-restriction-limits-full-text-to-summary-control",
+      "full-text-policy-allows-only-control-text-reference",
+      "budget-insufficient-pauses-full-text-control"
+    ],
+    "predecessor_is_not_real_externalization_audit_cost_or_business_decision": true
+  },
+  "delivery_artifacts": {
+    "external_api_policy_samples": {
+      "required": true,
+      "sample_count": 5,
+      "metadata_only": true,
+      "actual_external_payload_created": false,
+      "actual_external_api_call_performed": false,
+      "actual_model_token_consumption_performed": false
+    },
+    "audit_log_samples": {
+      "required": true,
+      "sample_count": 5,
+      "audit_field_count": 18,
+      "audit_field_check_count": 90,
+      "exact_phase2_audit_projection_shape_in_each_sample": true,
+      "metadata_only": true,
+      "actual_audit_record_created": false,
+      "actual_audit_record_persisted": false
+    },
+    "cost_estimate_samples": {
+      "required": true,
+      "sample_count": 5,
+      "all_control_token_counts_zero": true,
+      "all_control_cost_estimates_zero": true,
+      "provider_selected": false,
+      "model_selected": false,
+      "actual_cost_recorded": false
+    },
+    "failure_handling_results": {
+      "required": true,
+      "result_count": 5,
+      "silent_drop_count": 0,
+      "denied_no_external_payload_count": 1,
+      "budget_insufficient_pause_count": 1,
+      "whitebox_review_required_count": 3,
+      "actual_failure_record_created": false
+    },
+    "non_externalized_data_records": {
+      "required": true,
+      "record_count": 5,
+      "all_records_are_control_reference_only": true,
+      "actual_data_externalized": false,
+      "actual_non_externalization_record_persisted": false
+    },
+    "externalization_record_query_instructions": {
+      "required": true,
+      "query_scope": "P4 in-memory control delivery report only",
+      "query_keys": [
+        "scenario_id",
+        "external_api_audit_ref",
+        "policy_resolution_ref",
+        "embedding_queue_request_ref"
+      ],
+      "persistent_audit_log_available": false,
+      "actual_audit_log_query_performed": false,
+      "can_return_real_externalization_history": false
+    }
+  },
+  "rollback_contract": {
+    "required": true,
+    "rollback_target_result": "PASS_PHASE3_EXTERNAL_API_POLICY_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+    "in_memory_control_replay_only": true,
+    "phase1_phase2_phase3_artifacts_preserved": true,
+    "actual_policy_rollback_performed": false,
+    "source_or_raw_data_change_allowed": false,
+    "fixture_change_allowed": false,
+    "audit_log_change_allowed": false,
+    "queue_or_cache_change_allowed": false,
+    "database_schema_change_allowed": false,
+    "persistent_runtime_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  },
+  "failure_and_stop_contract": {
+    "declared_failure_states": [
+      "PHASE3_REPORT_UNAVAILABLE",
+      "PHASE3_RESULT_NOT_PASS",
+      "PHASE3_SCENARIO_COUNT_OR_IDENTIFIER_MISMATCH",
+      "PHASE3_SCENARIO_FIELD_OR_REFERENCE_MISMATCH",
+      "PHASE3_AUDIT_PROJECTION_MISMATCH",
+      "POLICY_SAMPLE_METADATA_MISMATCH",
+      "AUDIT_LOG_SAMPLE_MISMATCH",
+      "ZERO_COST_ESTIMATE_MISMATCH",
+      "FAILURE_HANDLING_OR_SILENT_DROP_MISMATCH",
+      "NON_EXTERNALIZED_REFERENCE_REASON_MISMATCH",
+      "QUERY_OR_ROLLBACK_INSTRUCTION_MISMATCH",
+      "REAL_SOURCE_OR_RUNTIME_ACTION_REQUESTED"
+    ],
+    "failure_state_count": 12,
+    "automatic_business_write_allowed": false
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "authorized_fixture_access_performed": false,
+    "source_file_open_performed": false,
+    "parser_execution_performed": false,
+    "chunking_execution_performed": false,
+    "summary_generation_performed": false,
+    "actual_data_source_policy_read": false,
+    "actual_document_policy_resolved": false,
+    "actual_chunk_policy_assigned": false,
+    "actual_policy_resolution_record_created": false,
+    "actual_embedding_queue_request_created": false,
+    "actual_cache_read_or_write_performed": false,
+    "actual_cost_recorded": false,
+    "actual_model_version_recorded": false,
+    "actual_external_api_audit_record_created": false,
+    "external_payload_created": false,
+    "actual_external_payload_created": false,
+    "control_payload_content_retained": false,
+    "embedding_queue_execution_performed": false,
+    "cache_read_or_write_performed": false,
+    "provider_credential_read_performed": false,
+    "provider_or_model_selected": false,
+    "external_api_client_initialized": false,
+    "external_api_call_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "embedding_or_index_write_performed": false,
+    "database_connection_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "actual_delivery_file_written": false,
+    "actual_audit_log_query_performed": false,
+    "actual_externalization_record_query_performed": false,
+    "actual_policy_rollback_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "phase4_started": true,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "stage070_started": false,
+    "stage070_entry_allowed": false,
+    "github_upload_allowed": false,
+    "push_allowed": false,
+    "app_reinstall_allowed": false
+  },
+  "chinese_feedback_contract": {
+    "all_messages_chinese": true,
+    "automation_claim_allowed": false,
+    "production_availability_claim_allowed": false,
+    "messages": [
+      {
+        "code": "METADATA_ONLY_DELIVERY",
+        "message": "已生成五条仅含控制引用的策略、审计和成本样例；它们不是实际外发、审计日志、成本记录或业务资料。"
+      },
+      {
+        "code": "NON_EXTERNALIZATION_BOUNDARY",
+        "message": "五条控制引用均未外发；denied 被阻断，摘要和全文引用仍需业务线白箱复核，预算不足项保持暂停。"
+      },
+      {
+        "code": "QUERY_AND_ROLLBACK_BOUNDARY",
+        "message": "查询只核对内存控制投影，回滚只回到 P3 控制场景；二者均不触及真实审计、队列、成本、OVH 或生产。"
+      }
+    ]
+  }
+}

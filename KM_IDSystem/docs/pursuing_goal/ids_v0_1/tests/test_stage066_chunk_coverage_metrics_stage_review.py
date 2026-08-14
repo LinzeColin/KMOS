@@ -252,6 +252,7 @@ class Stage066ChunkCoverageMetricsStageReviewTests(unittest.TestCase):
                 ("IDS-STAGE069", "IDS-V0_1-STAGE069-P1", "IDS-V0_1-STAGE069-P1", "IDS-STAGE069-P2-GATE"),
                 ("IDS-STAGE069", "IDS-V0_1-STAGE069-P2", "IDS-V0_1-STAGE069-P2", "IDS-STAGE069-P3-GATE"),
                 ("IDS-STAGE069", "IDS-V0_1-STAGE069-P3", "IDS-V0_1-STAGE069-P3", "IDS-STAGE069-P4-GATE"),
+                ("IDS-STAGE069", "IDS-V0_1-STAGE069-P4", "IDS-V0_1-STAGE069-P4", "IDS-STAGE069-REVIEW-GATE"),
             ),
         )
         self.assertIn(
@@ -260,6 +261,7 @@ class Stage066ChunkCoverageMetricsStageReviewTests(unittest.TestCase):
                 "IDS-V0_1-STAGE069-P1",
                 "IDS-V0_1-STAGE069-P2",
                 "IDS-V0_1-STAGE069-P3",
+                "IDS-V0_1-STAGE069-P4",
             ),
         )
         self.assertIn(
@@ -268,6 +270,7 @@ class Stage066ChunkCoverageMetricsStageReviewTests(unittest.TestCase):
                 "IDS-V0_1-STAGE069-P1",
                 "IDS-V0_1-STAGE069-P2",
                 "IDS-V0_1-STAGE069-P3",
+                "IDS-V0_1-STAGE069-P4",
             ),
         )
         self.assertTrue(
@@ -280,6 +283,7 @@ class Stage066ChunkCoverageMetricsStageReviewTests(unittest.TestCase):
             or "IDS-STAGE069-P2-GATE" in plan["stop_condition"]
             or "IDS-STAGE069-P3-GATE" in plan["stop_condition"]
             or "IDS-STAGE069-P4-GATE" in plan["stop_condition"]
+            or "IDS-STAGE069-REVIEW-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             {
