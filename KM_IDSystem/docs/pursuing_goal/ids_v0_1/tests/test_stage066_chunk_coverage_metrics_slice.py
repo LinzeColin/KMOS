@@ -276,15 +276,27 @@ class Stage066ChunkCoverageMetricsPhase2Tests(unittest.TestCase):
         )
 
         self.assertEqual("IDS-STAGE066", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE066-P2", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE066-P2", status["task"])
-        self.assertEqual("IDS-STAGE066-P3-GATE", status["next_gate"])
+        self.assertIn(
+            (status["phase"], status["task"], status["next_gate"]),
+            (
+                ("IDS-V0_1-STAGE066-P2", "IDS-V0_1-STAGE066-P2", "IDS-STAGE066-P3-GATE"),
+                ("IDS-V0_1-STAGE066-P3", "IDS-V0_1-STAGE066-P3", "IDS-STAGE066-P4-GATE"),
+            ),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertEqual("IDS-STAGE066", plan["stage"])
-        self.assertEqual("IDS-V0_1-STAGE066-P2", plan["phase"])
-        self.assertEqual("IDS-V0_1-STAGE066-P2", plan["task"])
-        self.assertIn("IDS-STAGE066-P3-GATE", plan["stop_condition"])
+        self.assertIn(
+            (plan["phase"], plan["task"]),
+            (
+                ("IDS-V0_1-STAGE066-P2", "IDS-V0_1-STAGE066-P2"),
+                ("IDS-V0_1-STAGE066-P3", "IDS-V0_1-STAGE066-P3"),
+            ),
+        )
+        self.assertTrue(
+            "IDS-STAGE066-P3-GATE" in plan["stop_condition"]
+            or "IDS-STAGE066-P4-GATE" in plan["stop_condition"]
+        )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -297,8 +309,16 @@ class Stage066ChunkCoverageMetricsPhase2Tests(unittest.TestCase):
         )
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         self.assertIn('current_stage_id: "IDS-STAGE066"', roadmap_text)
-        self.assertIn('current_phase_id: "IDS-STAGE066-P2"', roadmap_text)
-        self.assertIn('next_gate_id: "IDS-STAGE066-P3-GATE"', roadmap_text)
+        self.assertTrue(
+            (
+                'current_phase_id: "IDS-STAGE066-P2"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE066-P3-GATE"' in roadmap_text
+            )
+            or (
+                'current_phase_id: "IDS-STAGE066-P3"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE066-P4-GATE"' in roadmap_text
+            )
+        )
         self.assertEqual("IDS-V0_1-STAGE066-P2", event["task_id"])
         self.assertEqual(["ACC-STAGE-066"], event["acceptance_ids"])
         self.assertEqual("IDS-V0_1-STAGE066-P2", run["task_id"])

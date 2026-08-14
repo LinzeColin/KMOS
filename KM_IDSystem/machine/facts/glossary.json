@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage066 P3 覆盖率指标控制场景形状",
+      "数值": "4/17/6/6/6/0/4/36",
+      "说明": "依次表示重放的 Phase2 控制记录、每条记录字段、专项场景、显式处置、人工处理、静默丢弃、唯一控制记录和控制追溯检查；不表示真实文档、页面、chunk、解析覆盖率、Chunk 覆盖率、未覆盖页、重复检测、去重或质量结果。"
+    },
+    {
       "指标": "Stage066 P2 覆盖率指标控制切片形状",
       "数值": "4/12/17/3/6/24/1/4",
       "说明": "依次表示固定控制请求、每条输入字段、每条输出字段、保护语义面、追溯字段、控制追溯引用、未知分母关闭和低可信人工标记；不表示真实文档、页面、chunk、解析覆盖率、Chunk 覆盖率、未覆盖页或质量结果。"
@@ -38,6 +43,11 @@
   ],
   "data_shapes": [
     {
+      "名称": "Chunk 覆盖率指标受控专项场景",
+      "字段": "scenario_id、scenario_category、referenced_chunk_coverage_metrics_record_ref、referenced_chunk_coverage_request_ref、referenced_chapter_aware_chunk_ref、referenced_chunk_identity_version_record_ref、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、explicit_disposition、human_handling_required",
+      "说明": "Stage066 P3 只重放固定 :control: 引用并输出显式人工处置；它不包含真实文档、真实页码、真实覆盖率、真实重复检测、去重或来源验证。"
+    },
+    {
       "名称": "Chunk 覆盖率指标控制记录",
       "字段": "chunk_coverage_metrics_record_ref、chunk_coverage_request_ref、chapter_aware_chunk_ref、chunk_identity_version_record_ref、engineering_semantic_asset_catalog_ref、document_ref、parser_output_ref、parse_coverage_status、parse_coverage_ratio、chunk_coverage_status、chunk_coverage_ratio、uncovered_page_refs、human_review_state、page_ref、section_ref、table_context_ref、source_fragment_ref",
       "说明": "Stage066 P2 只在内存中投影固定 :control: 标签；它不包含真实分母、实际比率、真实页码、真实未覆盖页、真实 chunk、真实来源验证或业务事实。"
@@ -70,6 +80,10 @@
   ],
   "invariants": [
     {
+      "规则": "Stage066 P3 专项场景不替代真实质量、去重或来源验证",
+      "说明": "P3 的长文档、跨页表格、施工步骤、参数表、引用页码和重复 chunk 只表示控制类别；六类均须业务线白箱人工处理，控制模块不检测真实重复项、不形成真实去重、覆盖率、质量或来源反查结论。"
+    },
+    {
       "规则": "Stage066 P2 控制标签不等于真实覆盖率",
       "说明": "P2 只验证四条固定控制请求的十七字段接线、未知分母关闭、保护语义面和人工复核边界；解析覆盖率、Chunk 覆盖率和未覆盖页均保持 :control: 标签，不能形成真实质量、索引、决策或生产状态，P3 必须由新的独立 run 处理。"
     },
@@ -99,6 +113,11 @@
     }
   ],
   "terms": [
+    {
+      "英文": "controlled chunk coverage metrics scenario",
+      "中文": "受控 Chunk 覆盖率指标专项场景",
+      "说明": "Stage066 P3 只重放四条固定 :control: 覆盖率指标记录，并对六类专项表面输出显式人工处置；它不读取来源、不计算真实覆盖率、不检测真实重复项或未覆盖页、不创建业务事实，也不替代来源文档。"
+    },
     {
       "英文": "chunk coverage metrics control slice",
       "中文": "Chunk 覆盖率指标控制切片",

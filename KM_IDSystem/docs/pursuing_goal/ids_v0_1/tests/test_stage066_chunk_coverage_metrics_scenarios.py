@@ -7,30 +7,24 @@ import unittest
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
 PHASE1_CONTRACT = (
-    BASE
-    / "engineering_semantic_asset_classification"
-    / "stage065_engineering_semantic_asset_classification_contract.json"
+    BASE / "chunk_coverage_metrics" / "stage066_chunk_coverage_metrics_contract.json"
 )
 PHASE2_CONTRACT = (
     BASE
-    / "engineering_semantic_asset_classification"
-    / "stage065_engineering_semantic_asset_classification_slice_contract.json"
+    / "chunk_coverage_metrics"
+    / "stage066_chunk_coverage_metrics_slice_contract.json"
 )
 PHASE2_MODULE = (
-    BASE
-    / "engineering_semantic_asset_classification"
-    / "stage065_engineering_semantic_asset_classification_slice.py"
+    BASE / "chunk_coverage_metrics" / "stage066_chunk_coverage_metrics_slice.py"
 )
-PHASE3 = BASE / "STAGE065_PHASE3_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_SCENARIOS.md"
+PHASE3 = BASE / "STAGE066_PHASE3_CHUNK_COVERAGE_METRICS_SCENARIOS.md"
 CONTRACT = (
     BASE
-    / "engineering_semantic_asset_classification"
-    / "stage065_engineering_semantic_asset_classification_scenarios_contract.json"
+    / "chunk_coverage_metrics"
+    / "stage066_chunk_coverage_metrics_scenarios_contract.json"
 )
 MODULE = (
-    BASE
-    / "engineering_semantic_asset_classification"
-    / "stage065_engineering_semantic_asset_classification_scenarios.py"
+    BASE / "chunk_coverage_metrics" / "stage066_chunk_coverage_metrics_scenarios.py"
 )
 BATCH = BASE / "BATCH061_070_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
@@ -38,25 +32,25 @@ EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-14-stage065-p3-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-14-stage066-p3-local.json"
 
 EXPECTED_SCENARIOS = [
-    "long-document-semantic-asset-control-human-review",
-    "cross-page-parameter-table-semantic-asset-control-human-handling",
-    "engineering-procedure-semantic-asset-control-human-review",
-    "parameter-table-semantic-asset-control-human-review",
-    "citation-page-semantic-asset-control-human-confirmation",
-    "duplicate-semantic-asset-embedding-index-control-human-review",
+    "long-document-coverage-control-human-review",
+    "cross-page-table-coverage-control-human-handling",
+    "engineering-procedure-coverage-control-human-review",
+    "parameter-table-coverage-control-human-review",
+    "citation-page-coverage-control-human-confirmation",
+    "duplicate-chunk-coverage-control-human-review",
 ]
 
 
-class Stage065EngineeringSemanticAssetClassificationPhase3Tests(unittest.TestCase):
+class Stage066ChunkCoverageMetricsPhase3Tests(unittest.TestCase):
     _module_value = None
     _report_value = None
 
     def _module(self):
         if self.__class__._module_value is None:
-            spec = importlib.util.spec_from_file_location("stage065_p3", MODULE)
+            spec = importlib.util.spec_from_file_location("stage066_p3", MODULE)
             module = importlib.util.module_from_spec(spec)
             self.assertIsNotNone(spec.loader)
             spec.loader.exec_module(module)
@@ -66,7 +60,7 @@ class Stage065EngineeringSemanticAssetClassificationPhase3Tests(unittest.TestCas
     def _report(self):
         if self.__class__._report_value is None:
             self.__class__._report_value = (
-                self._module().build_engineering_semantic_asset_classification_phase3_report()
+                self._module().build_chunk_coverage_metrics_phase3_report()
             )
         return self.__class__._report_value
 
@@ -95,17 +89,17 @@ class Stage065EngineeringSemanticAssetClassificationPhase3Tests(unittest.TestCas
     def test_contract_identity_and_zero_runtime_boundary(self):
         contract = self._contract()
         self.assertEqual(
-            "ids.stage065.engineering_semantic_asset_classification.phase3.controlled_scenarios_contract.v1",
+            "ids.stage066.chunk_coverage_metrics.phase3.controlled_scenarios_contract.v1",
             contract["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE065-P3", contract["task_id"])
+        self.assertEqual("IDS-V0_1-STAGE066-P3", contract["task_id"])
         self.assertTrue(contract["scenario_executable"])
         self.assertFalse(contract["execution_ready"])
-        self.assertEqual("IDS-STAGE065-P4-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE066-P4-GATE", contract["next_gate"])
         self.assertFalse(contract["source_authority"]["second_authoritative_source_created"])
         self.assertTrue(
             contract["ownership_boundary"]
-            ["stage065_phase2_control_slice_reexecuted_as_reference_only"]
+            ["stage066_phase2_control_slice_reexecuted_as_reference_only"]
         )
         self.assertFalse(contract["runtime_boundary"]["chunking_execution_performed"])
         self.assertFalse(
@@ -115,12 +109,13 @@ class Stage065EngineeringSemanticAssetClassificationPhase3Tests(unittest.TestCas
     def test_scenario_catalog_covers_frozen_taskpack_surfaces(self):
         contract = self._contract()
         boundary = contract["scenario_input_boundary"]
-        self.assertEqual(7, boundary["phase2_control_record_count"])
+        self.assertEqual(4, boundary["phase2_control_record_count"])
+        self.assertEqual(17, boundary["phase2_control_record_field_count"])
         self.assertEqual(6, boundary["scenario_count"])
         self.assertEqual(
             [
                 "LONG_DOCUMENT_CONTROL",
-                "CROSS_PAGE_PARAMETER_TABLE_CONTROL",
+                "CROSS_PAGE_TABLE_CONTROL",
                 "ENGINEERING_PROCEDURE_CONTROL",
                 "PARAMETER_TABLE_CONTROL",
                 "CITATION_PAGE_TRACEABILITY_CONTROL",
@@ -141,7 +136,7 @@ class Stage065EngineeringSemanticAssetClassificationPhase3Tests(unittest.TestCas
         report = self._report()
         self.assertTrue(report["valid"])
         self.assertEqual(
-            "PASS_PHASE3_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+            "PASS_PHASE3_CHUNK_COVERAGE_METRICS_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
             report["result"],
         )
         self.assertEqual(6, report["scenario_count"])
@@ -149,7 +144,7 @@ class Stage065EngineeringSemanticAssetClassificationPhase3Tests(unittest.TestCas
         self.assertEqual(6, report["explicit_disposition_count"])
         self.assertEqual(0, report["silent_drop_count"])
         self.assertEqual(6, report["human_handling_required_count"])
-        self.assertEqual(4, report["unique_control_semantic_asset_record_count"])
+        self.assertEqual(4, report["unique_control_metric_record_count"])
         self.assertEqual(
             EXPECTED_SCENARIOS,
             [item["scenario_id"] for item in report["scenario_results"]],
@@ -200,12 +195,12 @@ class Stage065EngineeringSemanticAssetClassificationPhase3Tests(unittest.TestCas
         self.assertTrue(duplicate["deduplication_control_prohibition_asserted"])
 
     def test_invalid_phase2_replay_cannot_pass_the_scenario_gate(self):
-        report = self._module().build_engineering_semantic_asset_classification_phase3_report(
+        report = self._module().build_chunk_coverage_metrics_phase3_report(
             lambda _control: {"input_accepted": False}
         )
         self.assertFalse(report["valid"])
         self.assertEqual(
-            "FAIL_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_CONTROLLED_SCENARIOS",
+            "FAIL_CHUNK_COVERAGE_METRICS_CONTROLLED_SCENARIOS",
             report["result"],
         )
         self.assertFalse(report["phase2_shape_preserved"])
@@ -214,9 +209,9 @@ class Stage065EngineeringSemanticAssetClassificationPhase3Tests(unittest.TestCas
     def test_runtime_and_authority_boundary_remain_closed(self):
         report = self._report()
         self.assertTrue(report["source_document_remains_authoritative"])
-        self.assertFalse(report["semantic_asset_control_record_can_replace_source_document"])
+        self.assertFalse(report["coverage_metric_control_record_can_replace_source_document"])
         self.assertFalse(
-            report["semantic_asset_control_record_can_become_business_fact_authority"]
+            report["coverage_metric_control_record_can_become_business_fact_authority"]
         )
         self.assertFalse(report["model_direct_text_guessing_allowed"])
         for field in (
@@ -227,15 +222,14 @@ class Stage065EngineeringSemanticAssetClassificationPhase3Tests(unittest.TestCas
             "parser_execution_performed",
             "chapter_detection_performed",
             "chunking_execution_performed",
-            "chunk_identity_generation_performed",
-            "chunk_hash_computation_performed",
-            "chunk_version_generation_performed",
             "actual_chunk_created",
             "actual_chunk_persisted",
             "actual_chunk_id_generated",
             "actual_chunk_hash_computed",
             "actual_chunk_version_generated",
-            "actual_semantic_asset_classification_created",
+            "actual_parse_coverage_calculated",
+            "actual_chunk_coverage_calculated",
+            "actual_uncovered_page_detected",
             "semantic_asset_classification_performed",
             "coverage_calculation_performed",
             "quality_regression_performed",
@@ -261,7 +255,7 @@ class Stage065EngineeringSemanticAssetClassificationPhase3Tests(unittest.TestCas
             with self.subTest(field=field):
                 self.assertFalse(report[field])
 
-    def test_governance_projection_preserves_phase3_evidence_through_phase4(self):
+    def test_governance_projection_preserves_phase3_evidence(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
@@ -275,76 +269,42 @@ class Stage065EngineeringSemanticAssetClassificationPhase3Tests(unittest.TestCas
         event = next(
             item
             for item in events
-            if item.get("event_id") == "EVT-IDS-V0_1-STAGE065-P3-20260814-001"
+            if item.get("event_id") == "EVT-IDS-V0_1-STAGE066-P3-20260814-001"
         )
-        self.assertIn(status["stage"], ("IDS-STAGE065", "IDS-STAGE066"))
-        self.assertIn(
-            (status["phase"], status["task"], status["next_gate"]),
-            (
-                ("IDS-V0_1-STAGE065-P3", "IDS-V0_1-STAGE065-P3", "IDS-STAGE065-P4-GATE"),
-                ("IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-P4", "IDS-STAGE065-REVIEW-GATE"),
-                ("IDS-V0_1-STAGE065-REVIEW", "IDS-V0_1-STAGE065-REVIEW", "IDS-STAGE066-P1-GATE"),
-                ("IDS-V0_1-STAGE066-P1", "IDS-V0_1-STAGE066-P1", "IDS-STAGE066-P2-GATE"),
-                ("IDS-V0_1-STAGE066-P2", "IDS-V0_1-STAGE066-P2", "IDS-STAGE066-P3-GATE"),
-                ("IDS-V0_1-STAGE066-P3", "IDS-V0_1-STAGE066-P3", "IDS-STAGE066-P4-GATE"),
-            ),
+        self.assertEqual(
+            ("IDS-STAGE066", "IDS-V0_1-STAGE066-P3", "IDS-V0_1-STAGE066-P3"),
+            (status["stage"], status["phase"], status["task"]),
         )
+        self.assertEqual("IDS-STAGE066-P4-GATE", status["next_gate"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertIn(plan["stage"], ("IDS-STAGE065", "IDS-STAGE066"))
-        self.assertIn(
-            (plan["phase"], plan["task"]),
-            (
-                ("IDS-V0_1-STAGE065-P3", "IDS-V0_1-STAGE065-P3"),
-                ("IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-P4"),
-                ("IDS-V0_1-STAGE065-REVIEW", "IDS-V0_1-STAGE065-REVIEW"),
-                ("IDS-V0_1-STAGE066-P1", "IDS-V0_1-STAGE066-P1"),
-                ("IDS-V0_1-STAGE066-P2", "IDS-V0_1-STAGE066-P2"),
-                ("IDS-V0_1-STAGE066-P3", "IDS-V0_1-STAGE066-P3"),
-            ),
-        )
-        self.assertTrue(
-            "IDS-STAGE065-P4-GATE" in plan["stop_condition"]
-            or "IDS-STAGE065-REVIEW-GATE" in plan["stop_condition"]
-            or "IDS-STAGE066-P1-GATE" in plan["stop_condition"]
-            or "IDS-STAGE066-P2-GATE" in plan["stop_condition"]
-            or "IDS-STAGE066-P3-GATE" in plan["stop_condition"]
-            or "IDS-STAGE066-P4-GATE" in plan["stop_condition"]
-        )
+        self.assertEqual("IDS-STAGE066", plan["stage"])
+        self.assertEqual("IDS-V0_1-STAGE066-P3", plan["phase"])
+        self.assertEqual("IDS-V0_1-STAGE066-P3", plan["task"])
+        self.assertIn("IDS-STAGE066-P4-GATE", plan["stop_condition"])
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
             {
-                "ACC-STAGE065-P3-01",
-                "ACC-STAGE065-P3-02",
-                "ACC-STAGE065-P3-03",
-                "ACC-STAGE065-P3-04",
+                "ACC-STAGE066-P3-01",
+                "ACC-STAGE066-P3-02",
+                "ACC-STAGE066-P3-03",
+                "ACC-STAGE066-P3-04",
             }.issubset(acceptance_ids)
         )
-        self.assertTrue(
-            (
-                'current_phase_id: "IDS-STAGE065-P3"' in roadmap
-                and 'next_gate_id: "IDS-STAGE065-P4-GATE"' in roadmap
-            )
-            or (
-                'current_phase_id: "IDS-STAGE065-P4"' in roadmap
-                and 'next_gate_id: "IDS-STAGE065-REVIEW-GATE"' in roadmap
-            )
-        )
-        self.assertTrue(
-            'status: "stage065_phase3_completed"' in batch
-            or 'status: "stage065_phase4_completed_review_pending"' in batch
-        )
+        self.assertIn('current_phase_id: "IDS-STAGE066-P3"', roadmap)
+        self.assertIn('next_gate_id: "IDS-STAGE066-P4-GATE"', roadmap)
+        self.assertIn('status: "stage066_phase3_completed_local"', batch)
         self.assertEqual("phase_completed", event["event_type"])
-        self.assertEqual("IDS-V0_1-STAGE065-P3", event["task_id"])
-        self.assertEqual(["ACC-STAGE-065"], event["acceptance_ids"])
+        self.assertEqual("IDS-V0_1-STAGE066-P3", event["task_id"])
+        self.assertEqual(["ACC-STAGE-066"], event["acceptance_ids"])
 
     def test_local_run_is_phase3_only(self):
         run = json.loads(RUN.read_text(encoding="utf-8"))
-        self.assertEqual("RUN-IDS-STAGE065-P3-LOCAL-20260814-001", run["run_id"])
-        self.assertEqual("IDS-STAGE065", run["stage"])
-        self.assertEqual("IDS-V0_1-STAGE065-P3", run["task_id"])
-        self.assertEqual("IDS-STAGE065-P4-GATE", run["next_gate"])
+        self.assertEqual("RUN-IDS-STAGE066-P3-LOCAL-20260814-001", run["run_id"])
+        self.assertEqual("IDS-STAGE066", run["stage"])
+        self.assertEqual("IDS-V0_1-STAGE066-P3", run["task_id"])
+        self.assertEqual("IDS-STAGE066-P4-GATE", run["next_gate"])
         self.assertTrue(run["result"].startswith("PASS_LOCAL_"))
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
         self.assertFalse(run["observed_work"]["github_upload_performed"])

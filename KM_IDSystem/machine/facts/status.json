@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE066",
-  "phase": "IDS-V0_1-STAGE066-P2",
-  "task": "IDS-V0_1-STAGE066-P2",
-  "real_progress": "Stage066 P2 已完成固定纯内存 Chunk 覆盖率控制切片：4 条仅引用请求投影 4 条十七字段待人工复核控制记录，保留解析覆盖率、Chunk 覆盖率和未覆盖页的控制标签、3 类保护语义面、6 维追溯、1 条未知分母关闭与 4 条低可信人工处理标记；所有真实输入、真实覆盖率、真实未覆盖页、追溯绑定和运行时计数仍为零，下一步仅可在新的独立 run 进入 Stage066 P3，上传路径继续关闭",
-  "report_grade": "冻结 Stage066 任务包、P1 静态合同、Stage065 本地复审工件、Batch061-070 上传锁、P2 固定控制切片、治理路线与中文事实投影一致；本步骤未产生实际覆盖率、未覆盖页或质量结论",
-  "business_verdict": "本步骤只证明固定控制引用、覆盖率字段标签、未知分母关闭和业务线白箱人工边界已本地接线；不证明真实文档解析、真实页面集合、真实 Chunk 覆盖率、未覆盖页面、质量、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE066_PHASE2_CHUNK_COVERAGE_METRICS_CONTROL_SLICE_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE066-P3",
+  "task": "IDS-V0_1-STAGE066-P3",
+  "real_progress": "Stage066 P3 已完成固定纯内存 Chunk 覆盖率专项场景：重放 4 条仅引用控制记录，以 6 类长文档、跨页表格、施工步骤、参数表、引用页码与来源反查、重复 chunk 写入边界场景输出显式人工处置，保持 6 维追溯形状、零静默丢弃与零实际写入；所有真实输入、真实覆盖率、真实重复检测、来源反查和运行时计数仍为零，下一步仅可在新的独立 run 进入 Stage066 P4，上传路径继续关闭",
+  "report_grade": "冻结 Stage066 任务包、P1 静态合同、P2 控制切片、Stage065 本地复审工件、Batch061-070 上传锁、P3 固定场景报告、治理路线与中文事实投影一致；本步骤未产生实际覆盖率、未覆盖页、去重或质量结论",
+  "business_verdict": "本步骤只证明固定控制场景、显式人工处置、重复写入关闭和六维控制追溯已本地接线；不证明真实文档解析、真实页面集合、真实 Chunk 覆盖率、真实未覆盖页面、真实重复检测或去重、质量、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE066_PHASE3_CHUNK_COVERAGE_METRICS_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE066-P3-GATE",
+  "next_gate": "IDS-STAGE066-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

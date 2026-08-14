@@ -308,6 +308,11 @@ class Stage060TableRagSummaryPhase3Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE066-P2",
                     "IDS-STAGE066-P3-GATE",
                 ),
+                (
+                    "IDS-V0_1-STAGE066-P3",
+                    "IDS-V0_1-STAGE066-P3",
+                    "IDS-STAGE066-P4-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])

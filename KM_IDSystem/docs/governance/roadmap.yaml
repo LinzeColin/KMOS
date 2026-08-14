@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE066"
-current_phase_id: "IDS-STAGE066-P2"
-current_task_id: "IDS-V0_1-STAGE066-P2"
-next_gate_id: "IDS-STAGE066-P3-GATE"
+current_phase_id: "IDS-STAGE066-P3"
+current_task_id: "IDS-V0_1-STAGE066-P3"
+next_gate_id: "IDS-STAGE066-P4-GATE"
 current_transition_history:
+  stage066_phase3_state:
+    current_stage_id: "IDS-STAGE066"
+    current_phase_id: "IDS-STAGE066-P3"
+    current_task_id: "IDS-V0_1-STAGE066-P3"
+    next_gate_id: "IDS-STAGE066-P4-GATE"
   stage066_phase2_state:
     current_stage_id: "IDS-STAGE066"
     current_phase_id: "IDS-STAGE066-P2"

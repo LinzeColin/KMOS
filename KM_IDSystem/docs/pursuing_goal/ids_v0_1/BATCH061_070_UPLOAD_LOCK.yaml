@@ -1,14 +1,21 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
-updated_at_utc: "2026-08-14T05:41:04Z"
-status: "stage066_phase2_completed_local"
+updated_at_utc: "2026-08-14T06:11:05Z"
+status: "stage066_phase3_completed_local"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage066_phase3_state:
+    status: "stage066_phase3_completed_local"
+    current_task_id: "IDS-V0_1-STAGE066-P3"
+    next_gate: "IDS-STAGE066-P4-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE066-P4"
+    stage066_phase4_entry_authorized: true
+    github_upload_allowed: false
   stage066_phase2_state:
     status: "stage066_phase2_completed_local"
     current_task_id: "IDS-V0_1-STAGE066-P2"
@@ -230,19 +237,21 @@ upload_gate:
 
 stage_progress:
   STAGE-066:
-    status: "stage066_phase2_completed_local"
+    status: "stage066_phase3_completed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
-    next_phase: "Stage066 Phase 3"
-    next_gate: "IDS-STAGE066-P3-GATE"
-    current_task_id: "IDS-V0_1-STAGE066-P2"
+      - "Phase 3"
+    next_phase: "Stage066 Phase 4"
+    next_gate: "IDS-STAGE066-P4-GATE"
+    current_task_id: "IDS-V0_1-STAGE066-P3"
     acceptance_id: "ACC-STAGE-066"
-    acceptance_status: "phase2_completed_local"
+    acceptance_status: "phase3_completed_local"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
+    phase4_entry_authorized: true
     taskpack_context_read_performed: true
-    source_authority: "FROZEN_STAGE066_TASKPACK_AND_PHASE1_AND_STAGE065_REVIEW_ARTIFACTS_ONLY"
+    source_authority: "FROZEN_STAGE066_TASKPACK_AND_PHASE1_PHASE2_AND_STAGE065_REVIEW_ARTIFACTS_ONLY"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
     raw_metadata_content_accessed: false
@@ -253,8 +262,10 @@ stage_progress:
     chunking_execution_performed: false
     chunk_coverage_metrics_contract_schema: "ids.stage066.chunk_coverage_metrics.phase1.v1"
     chunk_coverage_metrics_slice_contract_schema: "ids.stage066.chunk_coverage_metrics.phase2.v1"
-    contract_state: "PHASE2_CHUNK_COVERAGE_METRICS_CONTROL_SLICE_RUNTIME_DISABLED"
+    chunk_coverage_metrics_scenarios_contract_schema: "ids.stage066.chunk_coverage_metrics.phase3.controlled_scenarios_contract.v1"
+    contract_state: "PHASE3_CHUNK_COVERAGE_METRICS_CONTROLLED_SCENARIOS_RUNTIME_DISABLED"
     slice_executable: true
+    scenario_executable: true
     execution_ready: false
     reference_only_chunk_coverage_input_field_count: 12
     control_chunk_coverage_metrics_record_field_count: 17
@@ -265,12 +276,24 @@ stage_progress:
     control_traceability_reference_count: 24
     unknown_denominator_control_record_count: 1
     low_confidence_control_marker_count: 4
+    control_scenario_count: 6
+    passed_control_scenario_count: 6
+    explicit_control_disposition_count: 6
+    silent_drop_count: 0
+    business_line_human_handling_required_count: 6
+    unique_control_metric_record_count: 4
+    control_traceability_reference_check_count: 36
     actual_input_request_count: 0
     actual_chunk_coverage_metrics_record_count: 0
     actual_parse_coverage_calculation_count: 0
     actual_chunk_coverage_calculation_count: 0
     actual_uncovered_page_reference_count: 0
     actual_traceability_binding_count: 0
+    actual_duplicate_chunk_detected: false
+    actual_duplicate_chunk_identity_or_hash_validated: false
+    actual_duplicate_embedding_prevented: false
+    actual_duplicate_index_prevented: false
+    duplicate_embedding_or_index_write_attempted: false
     source_document_remains_authoritative: true
     control_coverage_metrics_can_replace_source_document: false
     control_coverage_metrics_can_become_business_fact_authority: false
@@ -301,7 +324,8 @@ stage_progress:
     stage066_started: true
     stage066_entry_authorized: true
     phase2_started: true
-    phase3_started: false
+    phase3_started: true
+    phase4_started: false
     whole_stage_review_performed: false
     batch_review_performed: false
     github_upload_allowed: false
@@ -313,6 +337,16 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_coverage_metrics/stage066_chunk_coverage_metrics_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage066_chunk_coverage_metrics_contract.py"
       - "KM_IDSystem/machine/runs/2026-08-14-stage066-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE066_PHASE2_CHUNK_COVERAGE_METRICS_CONTROL_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_coverage_metrics/stage066_chunk_coverage_metrics_slice_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_coverage_metrics/stage066_chunk_coverage_metrics_slice.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage066_chunk_coverage_metrics_slice.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage066-p2-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE066_PHASE3_CHUNK_COVERAGE_METRICS_SCENARIOS.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_coverage_metrics/stage066_chunk_coverage_metrics_scenarios_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_coverage_metrics/stage066_chunk_coverage_metrics_scenarios.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage066_chunk_coverage_metrics_scenarios.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage066-p3-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE066_PHASE2_CHUNK_COVERAGE_METRICS_CONTROL_SLICE.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_coverage_metrics/stage066_chunk_coverage_metrics_slice_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_coverage_metrics/stage066_chunk_coverage_metrics_slice.py"
@@ -1024,10 +1058,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE066-P2"
-  next_allowed_task_id: "IDS-V0_1-STAGE066-P3"
+  current_task_id: "IDS-V0_1-STAGE066-P3"
+  next_allowed_task_id: "IDS-V0_1-STAGE066-P4"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-066 P2 only records four fixed reference-only chunk-coverage control requests and four 17-field review records: protected semantic labels, traceability labels, unknown-denominator closure and low-confidence human-review routing. It does not open sources, parse documents, create real chunks, calculate real coverage, classify real assets, write embeddings or indexes, write persistent state, call a model, deploy OVH or activate any runtime."
+  current_run: "STAGE-066 P3 only replays four fixed reference-only chunk-coverage control records through six explicit human-handling scenarios: long document, cross-page table, engineering procedure, parameter table, citation-page traceability and duplicate chunk embedding/index write boundary. It does not open sources, parse documents, create real chunks, calculate real coverage, detect duplicates, write embeddings or indexes, write persistent state, call a model, deploy OVH or activate any runtime."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."
