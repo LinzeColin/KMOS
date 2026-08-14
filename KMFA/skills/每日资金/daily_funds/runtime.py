@@ -25,6 +25,7 @@ from .ingestion import (
     HistoryPoller,
     IngestionError,
     PersistedRawAttachment,
+    _family,
 )
 from .models import CashflowObservation, ParsedFacts, SourceRef, Transaction
 from .parsing import (
@@ -175,7 +176,15 @@ class _RawFactReplayPair:
 
 
 class _RawFactReplayAccumulator:
-    """Index parser-open fact identities without retaining historic raw bytes."""
+    """Select declared source facts, then index only their fresh byte readback.
+
+    The raw coverage receipt is a complete source-envelope/occurrence/batch
+    census.  A formal replay has a narrower job: it must open every explicit
+    account or flow candidate from that pinned authority, while title-less raw
+    evidence stays quarantined.  Hydrating unrelated screenshots first is not
+    a stronger source proof and can turn a bounded recovery into an
+    hours-long OCR sweep.
+    """
 
     def __init__(self, runtime: "DailyFundsRuntime"):
         self.runtime = runtime
@@ -184,8 +193,31 @@ class _RawFactReplayAccumulator:
         self.needs_review_occurrences = 0
         self._by_day: dict[date, dict[str, list[_RawFactReplayCandidate]]] = {}
 
-    def consume(self, attachment: DownloadedAttachment) -> None:
+        self._declared_candidates: list[PersistedRawAttachment] = []
+
+    def index_persisted(self, attachment: PersistedRawAttachment) -> None:
+        """Keep only source-gated formal candidates from a metadata census."""
+
         self.occurrence_count += 1
+        if _family(attachment.message) not in _EXPLICIT_FACT_FAMILIES | {_GENERIC_DOCUMENT_FAMILY}:
+            return
+        self._declared_candidates.append(attachment)
+
+    @property
+    def declared_candidates(self) -> tuple[PersistedRawAttachment, ...]:
+        return tuple(self._declared_candidates)
+
+    def consume(self, attachment: DownloadedAttachment) -> None:
+        # The raw authority deliberately retains every exact-source attachment,
+        # including the quarantined title-less material.  DF-004 does not let
+        # that retention become a financial-source admission: only the three
+        # explicitly declared document families may enter a formal
+        # account/transaction replay.  Generic or missing-title raw evidence
+        # remains available to the separate capability audit, but it cannot
+        # manufacture a pair simply because its bytes happen to resemble a
+        # supported spreadsheet.
+        if attachment.family not in _EXPLICIT_FACT_FAMILIES | {_GENERIC_DOCUMENT_FAMILY}:
+            raise IngestionError("GIT_READBACK_FAILED")
         inspection = self.runtime._inspect_attachment_capabilities((attachment,))
         integrity_failures = tuple(
             failure
@@ -2160,13 +2192,36 @@ class DailyFundsRuntime:
         anchor = anchor.astimezone(UTC)
         writer = GitSparseWriter(self.config)
         accumulator = _RawFactReplayAccumulator(self)
-        audit = writer.audit_raw_archive(on_attachment=accumulator.consume)
+        # First re-open the complete source-gated raw metadata tree at one
+        # immutable commit.  This verifies the 360-day authority without
+        # downloading unrelated quarantine bytes into the formal fact lane.
+        # Every declared account/flow candidate is then reopened below through
+        # the normal byte/hash/batch path before parsing.
+        audit = writer.audit_raw_archive_metadata(on_attachment=accumulator.index_persisted)
         if (
             audit.occurrence_count != accumulator.occurrence_count
             or audit.occurrence_count != receipt["raw_archive_occurrences"]
             or audit.commit_sha != receipt["raw_commit_sha"]
         ):
             raise IngestionError("RAW_COVERAGE_RECEIPT_STALE")
+        # Keep each fresh sparse read bounded.  This is a parser workload cap,
+        # not a source-selection cap: the complete metadata census above has
+        # already bound every raw occurrence to the pinned source commit.
+        for start in range(0, len(accumulator.declared_candidates), 25):
+            candidates = accumulator.declared_candidates[start:start + 25]
+            commit = self._lease_call(
+                "git_writer_lock",
+                ttl_seconds=13 * 60,
+                code="GIT_WRITER_LOCK_HELD",
+                callback=lambda candidates=candidates: writer.reopen_persisted(
+                    candidates,
+                    commit_sha=str(receipt["raw_commit_sha"]),
+                ),
+            )
+            if commit.commit_sha != receipt["raw_commit_sha"]:
+                raise IngestionError("RAW_COVERAGE_RECEIPT_STALE")
+            for attachment in self._deduplicated_attachments(commit.verified_attachments):
+                accumulator.consume(attachment)
         pairs, incomplete_days, ambiguous_days = accumulator.pairs()
         if not pairs:
             status = self.status.write("需处理", "RAW_FACT_REPLAY_NO_COMPLETE_PAIR")

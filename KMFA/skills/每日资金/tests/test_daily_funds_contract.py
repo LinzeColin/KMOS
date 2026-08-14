@@ -3008,9 +3008,16 @@ def test_raw_fact_replay_reopens_exact_pair_before_publishing_latest_day(
         def __init__(self, _config):
             return None
 
-        def audit_raw_archive(self, *, on_attachment):
+        def audit_raw_archive_metadata(self, *, on_attachment):
             for attachment in attachments:
-                on_attachment(attachment)
+                on_attachment(PersistedRawAttachment(
+                    message={"title": attachment.family},
+                    message_id=attachment.message_id,
+                    message_id_hash=attachment.message_id_hash,
+                    message_at=attachment.message_at,
+                    index=attachment.index,
+                    sha256=attachment.sha256,
+                ))
             return RawArchiveAudit("a" * 40, (), 2, 1, 2)
 
         def reopen_persisted(self, received, *, commit_sha):
@@ -3076,10 +3083,81 @@ def test_raw_fact_replay_reopens_exact_pair_before_publishing_latest_day(
         "incomplete_days": 0,
         "ambiguous_days": 0,
     }
-    assert len(reopened) == 1
+    assert len(reopened) == 2
     assert len(publication_calls) == 1
     history = json.loads((runtime.config.publication_dir / "history.json").read_text(encoding="utf-8"))
     assert history["days"]["2026-07-30"]["publication_id"] == "f" * 64
+
+
+def test_raw_fact_replay_keeps_quarantined_titleless_bytes_out_of_formal_pairing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Raw preservation is not an implicit document-family admission."""
+
+    import daily_funds.runtime as runtime_module
+
+    moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
+    account_payload = (
+        "业务日期,公司,开户行,账号,期初余额,期末余额\n"
+        "2026-07-30,甲,乙,001,100.00,110.00\n"
+    ).encode()
+    transaction_payload = (
+        "业务日期,公司,开户行,账号,流水号,流入,流出\n"
+        "2026-07-30,甲,乙,001,t-1,10.00,\n"
+    ).encode()
+
+    def attachment(index: int, payload: bytes) -> DownloadedAttachment:
+        return DownloadedAttachment(
+            message={},
+            message_id=f"quarantined-{index}",
+            message_id_hash=("a" if index == 0 else "b") * 64,
+            message_at=moment,
+            index=0,
+            filename=f"opaque-{index}.csv",
+            family=None,
+            payload=payload,
+            sha256=sha256(payload).hexdigest(),
+            mime="text/csv",
+        )
+
+    attachments = (attachment(0, account_payload), attachment(1, transaction_payload))
+
+    class ReplayWriter:
+        def __init__(self, _config):
+            return None
+
+        def audit_raw_archive_metadata(self, *, on_attachment):
+            for item in attachments:
+                on_attachment(PersistedRawAttachment(
+                    message={"title": None},
+                    message_id=item.message_id,
+                    message_id_hash=item.message_id_hash,
+                    message_at=item.message_at,
+                    index=item.index,
+                    sha256=item.sha256,
+                ))
+            return RawArchiveAudit("a" * 40, (), 2, 1, 2)
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    runtime._record_raw_coverage_receipt(
+        raw_commit_sha="a" * 40,
+        source_occurrences=2,
+        verified_occurrences=2,
+        raw_archive_occurrences=2,
+    )
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ReplayWriter)
+    monkeypatch.setattr(runtime, "_coordinator", lambda: pytest.fail("quarantined inputs must not publish"))
+
+    assert runtime.raw_fact_replay(now=datetime(2026, 8, 1, tzinfo=UTC)) == {
+        "ok": False,
+        "code": "RAW_FACT_REPLAY_NO_COMPLETE_PAIR",
+        "source_occurrences": 2,
+        "parser_open_occurrences": 0,
+        "needs_review_occurrences": 0,
+        "incomplete_days": 0,
+        "ambiguous_days": 0,
+    }
 
 
 def test_archive_only_backfill_persists_readback_and_records_unsupported_format_without_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
