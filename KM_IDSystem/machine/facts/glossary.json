@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage068 P3 质量降级控制场景形状",
+      "数值": "4/19/6/6/36/4/0/6",
+      "说明": "依次表示重放的 P2 控制记录、每条记录字段、专项场景、追溯字段、控制追溯引用、唯一控制记录、静默丢弃和人工处置；不表示真实长文档、跨页表格、页面、chunk、质量、质量降级、低可信证据、重复检测、去重、来源追溯、OVH 或生产结果。"
+    },
+    {
       "指标": "Stage068 P2 质量降级控制切片形状",
       "数值": "4/13/19/3/6/24/3/1",
       "说明": "依次表示固定控制请求与记录、仅引用输入字段、质量降级控制输出字段、保护语义面、追溯字段、控制追溯引用、业务线白箱人工复核和低可信证据人工复核；不表示真实文档、页面、chunk、质量、质量降级、低可信证据、重复检测、去重、来源追溯、OVH 或生产结果。"
@@ -83,6 +88,11 @@
   ],
   "data_shapes": [
     {
+      "名称": "质量降级受控专项场景",
+      "字段": "scenario_id、scenario_category、referenced_quality_degradation_record_ref、referenced_quality_degradation_request_ref、referenced_chunk_quality_regression_record_ref、referenced_chapter_aware_chunk_ref、referenced_chunk_identity_version_record_ref、referenced_engineering_semantic_asset_catalog_ref、referenced_chunk_coverage_metrics_record_ref、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、explicit_disposition、human_handling_required",
+      "说明": "Stage068 P3 只重放固定 :control: 引用并输出长文档、跨页表格、工程步骤、参数表、引用页码和重复 chunk 六类显式人工处置；它不包含真实文档、真实页码、真实 chunk、真实质量、质量降级、低可信证据、重复检测、去重或来源验证。"
+    },
+    {
       "名称": "质量降级纯内存控制切片",
       "字段": "quality_degradation_request_ref、chapter_aware_chunk_ref、chunk_identity_version_record_ref、engineering_semantic_asset_catalog_ref、chunk_coverage_metrics_record_ref、chunk_quality_regression_record_ref、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、duplicate_chunk_control_ref",
       "说明": "Stage068 P2 只重放四条固定不透明 :control: 引用并投影十九字段人工复核记录；它不包含正文、物理路径、实际页码、实际 chunk、实际质量、实际降级、低可信证据、重复项、来源验证或业务结论。"
@@ -149,6 +159,10 @@
     }
   ],
   "invariants": [
+    {
+      "规则": "Stage068 P3 专项场景不替代真实质量、降级、去重或来源验证",
+      "说明": "P3 的长文档、跨页表格、施工步骤、参数表、引用页码和重复 chunk 只表示固定控制类别；六类均须业务线白箱人工处理，低质量不等于自动完全失败，控制模块不检测真实重复项、不创建低可信证据、不形成真实质量降级、去重、质量或来源反查结论，并仅作为 P4 metadata-only 交付的固定前序。"
+    },
     {
       "规则": "Stage068 P2 不执行真实质量降级或生产运行",
       "说明": "P2 只在内存中投影四条固定控制记录及人工复核分流，保留受保护语义面、追溯和重复写入边界；没有读取真实资料，未执行质量测量、质量回归、质量降级、低可信证据创建、重复检测/去重、索引、数据库、Agent、模型 Token、OVH、生产、上传或推送，P3 必须由新的独立 run 处理。"

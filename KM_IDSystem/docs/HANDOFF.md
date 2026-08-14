@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage068 Phase 2 - 2026-08-14
+## Current Gate - Stage068 Phase 3 - 2026-08-14
 
-- 本节是唯一当前交接；Stage068 P1、Stage067 Review/P4/P3/P2/P1、Stage066 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；Stage068 P2/P1、Stage067 Review/P4/P3/P2/P1、Stage066 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE068-P3`：只在内存中重放 P2 四条固定、非业务、reference-only 十九字段低可信质量降级控制记录，固定覆盖长文档、跨页表格、施工步骤、参数表、引用页码与来源反查、重复 chunk embedding/index 写入边界六类专项场景，形成 `4/19/6/6/36/4/0/6` 控制形状：四条唯一记录、十九字段、六个场景、六条显式人工处置、三十六次控制追溯检查、三类保护语义面、零静默丢弃和六项人工处理；低质量不等于自动完全失败，没有建立第二权威事实源。
+- 本 P3 只证明冻结任务包、Stage068 P1/P2 控制工件、Stage067 本地复审、纯内存专项场景、治理路线和中文事实投影在本地一致；不证明真实资料、真实页面/chunk/hash、真实质量、真实质量降级、低可信证据、真实重复检测/去重、真实来源追溯、OVH、生产或上传能力。来源文档与业务线白箱人工复核继续是唯一权威，所有真实资料与运行时计数保持零。
+- 已验证：Stage068 P3 聚焦用例 `10/10`；Stage060--068 阶段链路回归 `408/408`；Batch041-050 与 Batch051-060 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，文档预算与无登记阻塞检查通过。以上只验证纯内存控制形状、治理与零运行时边界，不将其表述为真实资料验证、OVH 或生产验收。
+- 回滚只撤回本 P3 范围说明、纯内存专项场景、场景合同、聚焦用例、machine run、事件、机器事实、治理路线、阶段链路断言与生成中文视图，恢复到 `PHASE2_QUALITY_DEGRADATION_CONTROL_SLICE_RUNTIME_DISABLED`；不改变 Stage063--067、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE068-P4-GATE`。本 run 不进入 P4、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage068 Phase 2 - 2026-08-14
+
+- 本节保留 Stage068 P2 的已提交历史证据；唯一当前交接位于上方 Stage068 Phase 3，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE068-P2`：只在内存中重放四条固定、非业务、reference-only 十三字段质量降级控制请求，投影四条十九字段低可信待人工复核控制记录，固定 `4/13/19/3/6/24/3/1` 形状，保留工程步骤/验收条款/参数表三类保护语义面、六维受控追溯、一个重复 embedding/index 写入边界、三条业务线白箱人工复核和一条低可信证据人工复核；低质量不等于自动完全失败，没有建立第二权威事实源。
 - 本 P2 只证明冻结任务包、Stage068 P1 静态合同、Stage067 本地复审、纯内存控制切片、治理路线和中文事实投影在本地一致；不证明真实资料、真实页面/chunk/hash、真实质量、真实质量降级、低可信证据、真实重复检测/去重、真实来源追溯、OVH、生产或上传能力。来源文档与业务线白箱人工复核继续是唯一权威，所有真实资料与运行时计数保持零。
 - 已验证：Stage068 P2 聚焦用例 `7/7`；Stage060--068 阶段链路回归 `398/398`；Batch041-050 与 Batch051-060 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件。以上只验证纯内存控制形状、治理与零运行时边界，不将其表述为真实资料验证、OVH 或生产验收。

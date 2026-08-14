@@ -283,7 +283,7 @@ class Stage068QualityDegradationPhase2Tests(unittest.TestCase):
             ]
         )
 
-    def test_chinese_feedback_and_current_governance_record_phase2(self):
+    def test_chinese_feedback_and_current_governance_record_phase3(self):
         result = self._slice().execute_quality_degradation_control_slice(self._control())
         self.assertEqual(4, len(result["chinese_feedback"]))
         self.assertTrue(
@@ -305,16 +305,16 @@ class Stage068QualityDegradationPhase2Tests(unittest.TestCase):
         self.assertEqual(
             (
                 "IDS-STAGE068",
-                "IDS-V0_1-STAGE068-P2",
-                "IDS-V0_1-STAGE068-P2",
-                "IDS-STAGE068-P3-GATE",
+                "IDS-V0_1-STAGE068-P3",
+                "IDS-V0_1-STAGE068-P3",
+                "IDS-STAGE068-P4-GATE",
             ),
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
         )
         self.assertEqual("IDS-STAGE068", plan["stage"])
-        self.assertEqual("IDS-V0_1-STAGE068-P2", plan["phase"])
-        self.assertEqual("IDS-V0_1-STAGE068-P2", plan["task"])
-        self.assertIn("IDS-STAGE068-P3-GATE", plan["stop_condition"])
+        self.assertEqual("IDS-V0_1-STAGE068-P3", plan["phase"])
+        self.assertEqual("IDS-V0_1-STAGE068-P3", plan["task"])
+        self.assertIn("IDS-STAGE068-P4-GATE", plan["stop_condition"])
         self.assertTrue(
             {
                 "ACC-STAGE068-P2-01",
