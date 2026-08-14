@@ -1928,6 +1928,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE065-REVIEW-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE065"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE065-REVIEW"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE065-REVIEW"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE066-P1-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -2809,6 +2817,7 @@ REQUIRED_EVENT_IDS = (
     "EVT-IDS-V0_1-STAGE065-P2-20260814-001",
     "EVT-IDS-V0_1-STAGE065-P3-20260814-001",
     "EVT-IDS-V0_1-STAGE065-P4-20260814-001",
+    "EVT-IDS-V0_1-STAGE065-REVIEW-20260814-001",
 )
 
 FORBIDDEN_RUNTIME_PREFIXES = (
@@ -13480,6 +13489,84 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
                 "github_upload_allowed": "false",
                 "push_allowed": "false",
                 "next_gate": "IDS-STAGE065-REVIEW-GATE",
+            },
+        },
+        "EVT-IDS-V0_1-STAGE065-REVIEW-20260814-001": {
+            "event_type": "stage_review",
+            "allow_stage_gate": True,
+            "task_id": "IDS-V0_1-STAGE065-REVIEW",
+            "acceptance_ids": [
+                "ACC-STAGE-065",
+                "ACC-STAGE065-REVIEW-01",
+                "ACC-STAGE065-REVIEW-02",
+                "ACC-STAGE065-REVIEW-03",
+                "ACC-STAGE065-REVIEW-04",
+            ],
+            "required_changed_files": {
+                "KM_IDSystem/CHANGELOG.md",
+                "KM_IDSystem/docs/HANDOFF.md",
+                "KM_IDSystem/docs/governance/events.jsonl",
+                "KM_IDSystem/docs/governance/roadmap.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE065_STAGE_REVIEW.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/stage065_engineering_semantic_asset_classification_stage_review.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage065_engineering_semantic_asset_classification_stage_review.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+                "KM_IDSystem/machine/facts/acceptance.json",
+                "KM_IDSystem/machine/facts/changelog.json",
+                "KM_IDSystem/machine/facts/glossary.json",
+                "KM_IDSystem/machine/facts/plan.json",
+                "KM_IDSystem/machine/facts/roadmap.json",
+                "KM_IDSystem/machine/facts/status.json",
+                "KM_IDSystem/machine/runs/2026-08-14-stage065-review-local.json",
+                "KM_IDSystem/scripts/check_batch041_050_review.py",
+                "KM_IDSystem/scripts/check_batch051_060_review.py",
+            },
+            "required_refs": {
+                "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-065_工程语义资产分类.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE065_STAGE_REVIEW.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/stage065_engineering_semantic_asset_classification_stage_review.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage065_engineering_semantic_asset_classification_stage_review.py",
+                "KM_IDSystem/machine/runs/2026-08-14-stage065-review-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/stage065_engineering_semantic_asset_classification_delivery_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/stage065_engineering_semantic_asset_classification_scenarios_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+            },
+            "required_note_assignments": {
+                "contract_state": "STAGE065_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_REVIEW_RUNTIME_DISABLED",
+                "second_authoritative_source_created": "false",
+                "phase1_reference_only_input_field_count": "12",
+                "phase1_future_output_field_count": "16",
+                "phase1_engineering_semantic_asset_type_count": "7",
+                "phase2_control_request_count": "7",
+                "phase2_control_record_count": "7",
+                "protected_semantic_asset_type_count": "3",
+                "traceability_field_count": "6",
+                "phase2_control_traceability_reference_count": "42",
+                "control_scenario_count": "6",
+                "explicit_disposition_count": "6",
+                "silent_drop_count": "0",
+                "human_handling_required_count": "6",
+                "control_traceability_reference_check_count": "36",
+                "metadata_only_chunk_jsonl_sample_count": "6",
+                "unique_control_semantic_asset_record_count": "4",
+                "low_quality_control_record_count": "6",
+                "human_confirmation_prompt_count": "3",
+                "declared_failure_state_count": "11",
+                "review_finding_count": "0",
+                "review_valid": "true",
+                "source_document_remains_authoritative": "true",
+                "stage065_started": "true",
+                "phase2_started": "true",
+                "phase3_started": "true",
+                "phase4_started": "true",
+                "whole_stage_review_performed": "true",
+                "batch_review_performed": "false",
+                "stage066_started": "false",
+                "stage066_entry_allowed": "false",
+                "github_upload_allowed": "false",
+                "push_allowed": "false",
+                "next_gate": "IDS-STAGE066-P1-GATE",
             },
         },
     }

@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE065"
-current_phase_id: "IDS-STAGE065-P4"
-current_task_id: "IDS-V0_1-STAGE065-P4"
-next_gate_id: "IDS-STAGE065-REVIEW-GATE"
+current_phase_id: "IDS-STAGE065-REVIEW"
+current_task_id: "IDS-V0_1-STAGE065-REVIEW"
+next_gate_id: "IDS-STAGE066-P1-GATE"
 current_transition_history:
+  stage065_review_state:
+    current_stage_id: "IDS-STAGE065"
+    current_phase_id: "IDS-STAGE065-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE065-REVIEW"
+    next_gate_id: "IDS-STAGE066-P1-GATE"
   stage065_phase4_state:
     current_stage_id: "IDS-STAGE065"
     current_phase_id: "IDS-STAGE065-P4"
@@ -17620,20 +17625,20 @@ stages:
     task_id: "IDS-V0_1-STAGE065"
     acceptance_ids:
       - "ACC-STAGE-065"
-    status: "in_progress_local_phase4"
-    pursuing_goal: "只从 Phase3 的六类固定、非业务、reference-only 工程语义资产分类控制场景派生 metadata-only JSONL 样例、控制覆盖率、低质量待人工清单、控制回归、策略适用边界、中文确认和回到 P3 的回退说明；不读取、处理、分类、创建或回退真实资料。"
+    status: "completed_reviewed_local"
+    pursuing_goal: "只机械复审冻结 Stage065 P1--P4 合同和 P3/P4 纯内存控制报告，确认工程语义资产分类接口、七类资产类型、受保护语义面、六类业务线白箱场景、metadata-only 交付、P4→P3 控制回退、单一权威与零运行时边界；不读取、处理、分类、创建或回退真实资料。"
     stop_gate:
-      gate_id: "IDS-STAGE065-P4-GATE"
+      gate_id: "IDS-STAGE065-REVIEW-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE065-REVIEW-GATE"
+      next_gate_id: "IDS-STAGE066-P1-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "从六类固定、非业务、仅引用的 Phase3 控制场景派生六条 metadata-only JSONL 样例、控制覆盖率、六条低质量待人工清单、控制回归、策略边界、三条中文确认和 P4 到 P3 的控制回退说明。"
-      - "交付证据仅保留控制引用和人工处置；不代表真实资料、chunk、hash、分类、来源、覆盖率、质量或第二权威事实源。"
-      - "运行时、Agent、模型 Token、OVH、生产和上传均保持关闭，下一门仅为 Stage065 Review。"
+      - "机械复审 P1 的 12/16/7/3/6/10、P2 的 7/7/42、P3 的六类显式人工处置和 P4 的 6/6/4/6/36/6/3/11 metadata-only 交付形状。"
+      - "控制报告、控制引用、样例、计数和回退说明均不能替代来源文件或成为业务事实，P4→P3 只允许纯内存控制回退。"
+      - "运行时、Agent、模型 Token、OVH、生产和上传均保持关闭，Stage066 未启动，下一门仅为 Stage066 P1。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、身份、哈希、版本、分类记录、索引、数据库或报告"
-      - "执行真实 parser、章节检测、切块、身份或版本生成、Hash 计算、语义资产分类、重复检测或去重、真实覆盖率、质量回归、质量降级、来源追溯绑定、真实 chunk 重生成或版本回退、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Stage065 Review、批次复审、上传、推送或应用重装"
+      - "执行真实 parser、章节检测、切块、身份或版本生成、Hash 计算、语义资产分类、重复检测或去重、真实覆盖率、质量回归、质量降级、来源追溯绑定、真实 chunk 重生成或版本回退、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Stage066 Phase 1、批次复审、上传、推送或应用重装"
     phases:
       - phase_id: "IDS-STAGE065-P1"
         name: "Phase 1 · 工程语义资产分类范围、输入输出与边界确认"
@@ -17828,3 +17833,51 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
             risk: "若把 metadata-only JSONL 样例、控制覆盖率、低质量待人工清单、回归结果、策略边界或回退说明误作真实 chunk、真实分类、真实覆盖率、真实质量、真实来源反查、真实去重、真实重生成/版本回退、OVH、生产或上传能力，会绕开业务线白箱复核与单一权威边界。"
             rollback: "只回滚本 P4 说明、交付合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE3_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；不改变 P1/P2/P3、冻结任务包、真实资料、fixture、事实库、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE065-REVIEW"
+        name: "Stage Review · 工程语义资产分类整阶段机械复审"
+        objective: "只机械复审冻结 Stage065 P1--P4 合同和 P3/P4 纯内存控制报告，确认 12/16/7/3/6/10、7/7/42、六类业务线白箱人工处置、metadata-only 交付、单一权威、零运行时边界和 P4→P3 控制回退链；不读取真实资料或启动 Stage066。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE066-P1-GATE"
+        gate:
+          gate_id: "IDS-STAGE065-REVIEW-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE066-P1-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、身份、哈希、版本、分类记录、索引、数据库或报告"
+          - "执行真实 parser、章节检测、切块、chunk_id 生成、chunk_hash 计算、document_id 绑定、版本生成、重复检测或去重、语义资产分类、覆盖率、质量回归、质量降级、来源追溯绑定、重生成、版本回退、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Stage066 Phase 1、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE065-REVIEW"
+            name: "复审工程语义资产分类 P1--P4 控制证据"
+            objective: "只读取 P1--P4 合同与 P3/P4 纯内存报告，机械核验 12/16/7/3/6/10、7/7/42、六类场景、六条 metadata-only JSONL 样例、四条唯一控制记录、六条低质量待人工记录、三条人工确认、十一类失败关闭与 P4→P3 控制回退链；不创建真实 chunk、分类、质量结果、索引或持久化状态。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE065-P4"
+            acceptance_ids:
+              - "ACC-STAGE-065"
+              - "ACC-STAGE065-REVIEW-01"
+              - "ACC-STAGE065-REVIEW-02"
+              - "ACC-STAGE065-REVIEW-03"
+              - "ACC-STAGE065-REVIEW-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage065_engineering_semantic_asset_classification_stage_review"
+              - "Stage065 Review 与显式前序兼容回归命令记录在 machine run"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage065 Review 聚焦用例 9/9；含 Stage060 Review、Stage061--064 全阶段及 Stage065 P1--Review 的显式阶段链路 251/251；两个批次检查器均 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；Stage005 治理回归 valid=true；中文事实投影重渲染 7 个文件且双平面合规检查通过。本 Review 不进入 Stage066、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-065_工程语义资产分类.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE065_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/stage065_engineering_semantic_asset_classification_stage_review.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage065_engineering_semantic_asset_classification_stage_review.py"
+              - "KM_IDSystem/machine/runs/2026-08-14-stage065-review-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/stage065_engineering_semantic_asset_classification_delivery_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/stage065_engineering_semantic_asset_classification_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把静态合同、control 计数、metadata-only 交付或本地复审通过误作真实章节检测、真实切块、真实分类、真实质量、真实来源追溯、OVH、生产或上传能力，会绕开业务线人工白箱处理和单一权威边界。"
+            rollback: "只回滚本 Review 说明、只读复审模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PHASE4_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_DELIVERY_EVIDENCE_RUNTIME_DISABLED；不改变 P1--P4、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 或应用状态。"

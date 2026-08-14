@@ -334,15 +334,27 @@ class Stage065EngineeringSemanticAssetClassificationPhase4DeliveryTests(
             if line.strip()
         ]
         self.assertEqual("IDS-STAGE065", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE065-P4", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE065-P4", status["task"])
-        self.assertEqual("IDS-STAGE065-REVIEW-GATE", status["next_gate"])
+        self.assertIn(
+            (status["phase"], status["task"], status["next_gate"]),
+            (
+                ("IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-P4", "IDS-STAGE065-REVIEW-GATE"),
+                ("IDS-V0_1-STAGE065-REVIEW", "IDS-V0_1-STAGE065-REVIEW", "IDS-STAGE066-P1-GATE"),
+            ),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertEqual("IDS-STAGE065", plan["stage"])
-        self.assertEqual("IDS-V0_1-STAGE065-P4", plan["phase"])
-        self.assertEqual("IDS-V0_1-STAGE065-P4", plan["task"])
-        self.assertIn("IDS-STAGE065-REVIEW-GATE", plan["stop_condition"])
+        self.assertIn(
+            (plan["phase"], plan["task"]),
+            (
+                ("IDS-V0_1-STAGE065-P4", "IDS-V0_1-STAGE065-P4"),
+                ("IDS-V0_1-STAGE065-REVIEW", "IDS-V0_1-STAGE065-REVIEW"),
+            ),
+        )
+        self.assertTrue(
+            "IDS-STAGE065-REVIEW-GATE" in plan["stop_condition"]
+            or "IDS-STAGE066-P1-GATE" in plan["stop_condition"]
+        )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -354,10 +366,21 @@ class Stage065EngineeringSemanticAssetClassificationPhase4DeliveryTests(
             }.issubset(acceptance_ids)
         )
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
-        self.assertIn('current_phase_id: "IDS-STAGE065-P4"', roadmap_text)
-        self.assertIn('next_gate_id: "IDS-STAGE065-REVIEW-GATE"', roadmap_text)
+        self.assertTrue(
+            (
+                'current_phase_id: "IDS-STAGE065-P4"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE065-REVIEW-GATE"' in roadmap_text
+            )
+            or (
+                'current_phase_id: "IDS-V0_1-STAGE065-REVIEW"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE066-P1-GATE"' in roadmap_text
+            )
+        )
         batch_text = BATCH.read_text(encoding="utf-8")
-        self.assertIn('status: "stage065_phase4_completed_review_pending"', batch_text)
+        self.assertTrue(
+            'status: "stage065_phase4_completed_review_pending"' in batch_text
+            or 'status: "stage065_completed_reviewed_local"' in batch_text
+        )
         self.assertTrue(
             any(
                 item.get("event_id") == "EVT-IDS-V0_1-STAGE065-P4-20260814-001"
