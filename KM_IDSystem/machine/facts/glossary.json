@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage070 P1 Embedding 队列与缓存静态合同形状",
+      "数值": "17/12/10/7/8/18/12",
+      "说明": "依次表示仅引用输入、未来队列、未来缓存、未来失败重试、成本与模型版本、外部 API 审计和声明失败状态字段数量；只表示 schema 标签，不表示真实资料、队列、缓存、重试、外发、Token、成本、审计、OVH 或生产结果。"
+    },
+    {
       "指标": "Stage069 整阶段机械复审形状",
       "数值": "15/23/12/8/18/13 · 5/5/23/12/8/18/1/1/3 · 5/5/0/4/18/90/3 · 5/5/18/90/5/5/5/4/3/12",
       "说明": "依次表示 P1 静态合同、P2 控制投影、P3 白箱场景和 P4 metadata-only 交付的固定控制计数；复审发现数为零，不表示真实资料、摘要正文、文本块、外发、队列、缓存、provider、模型、Token、成本、审计、OVH 或生产结果。"
@@ -123,6 +128,16 @@
   ],
   "data_shapes": [
     {
+      "名称": "Embedding 队列、缓存与失败重试仅引用合同",
+      "字段": "embedding_queue_request_ref、policy_resolution_ref、data_source_ref、document_ref、chunk_ref、effective_external_api_policy、external_payload_mode、owner_authorization_ref、provider_ref、model_ref、model_version、estimated_token_count、estimated_cost、budget_check_state、external_api_audit_ref、cache_entry_ref、retry_ref",
+      "说明": "Stage070 P1 只定义不透明受控引用、未来队列/缓存/失败重试、成本/模型版本和审计字段；它不包含来源正文、摘要正文、文本块、物理路径、实际队列、缓存、重试、成本、模型调用或业务结论。"
+    },
+    {
+      "名称": "Embedding 队列与缓存三档策略流程",
+      "字段": "effective_external_api_policy、external_payload_mode、embedding_queue_request_ref、cache_entry_ref、retry_ref、budget_check_state、external_api_audit_ref、audit_disposition",
+      "说明": "denied 不允许外发、队列、缓存或重试；summary_only 仅保留未来已授权摘要引用；full_text_allowed 也必须等待未来授权、预算、审计和业务线白箱人工复核；当前不执行任何 provider 调用。"
+    },
+    {
       "名称": "外部 API 策略仅元数据交付样例",
       "字段": "sample_id、scenario_id、policy_resolution_ref、embedding_queue_request_ref、external_api_audit_ref、effective_external_api_policy、external_payload_mode、control_payload_scope、control_queue_state、audit_disposition、future_external_api_call_candidate、human_handling_required、explicit_disposition、control_metadata_only",
       "说明": "Stage069 P4 只在内存中从五条固定 :control: 场景投影策略、审计、成本、失败处理和未外发记录；它不包含真实资料、摘要正文、文本块、路径、chunk、外发、provider、模型、Token、成本、审计记录或业务事实。"
@@ -215,6 +230,10 @@
   ],
   "invariants": [
     {
+      "规则": "Stage070 P1 不执行队列、缓存、失败重试、外部 API、OVH 或生产运行",
+      "说明": "P1 只固定未来 schema、三档策略流程、失败关闭和回滚边界；没有读取真实资料、生成摘要或文本载荷、创建或运行队列/缓存/重试/审计、选择 provider/模型、调用外部 API、消耗 Token、写入索引/数据库、运行 Agent、部署 OVH、启用生产、上传或推送，P2 必须由新的独立 run 处理。"
+    },
+    {
       "规则": "Stage069 Review 不执行外部 API、OVH 或生产运行",
       "说明": "Review 只复审 P1--P4 的冻结合同和 P2/P3/P4 纯内存控制报告；Stage070 尚未开始，所有真实资料访问、摘要或文本载荷创建、外发、队列、缓存、审计、成本、索引、数据库、Agent、模型 Token、OVH、生产、上传和推送保持关闭。"
     },
@@ -296,6 +315,26 @@
     }
   ],
   "terms": [
+    {
+      "英文": "Stage070 Phase1 embedding queue/cache contract",
+      "中文": "Stage070 P1 Embedding 队列与缓存合同",
+      "说明": "只定义未来队列、缓存、失败重试、成本、模型版本和审计字段及边界的静态合同，不创建任何运行时记录。"
+    },
+    {
+      "英文": "Embedding queue",
+      "中文": "Embedding 队列",
+      "说明": "未来用于受控外部处理的队列字段集合；本 P1 未创建、未执行且不能代表真实外发。"
+    },
+    {
+      "英文": "cache",
+      "中文": "缓存",
+      "说明": "未来受策略、授权、预算和审计约束的引用式缓存边界；本 P1 不读写缓存。"
+    },
+    {
+      "英文": "failed retry",
+      "中文": "失败重试",
+      "说明": "未来失败处理字段集合；本 P1 不启动调度器、不创建重试记录。"
+    },
     {
       "英文": "Stage069 local mechanical review",
       "中文": "Stage069 本地机械复审",

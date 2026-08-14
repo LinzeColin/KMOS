@@ -2,13 +2,20 @@ schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
 updated_at_utc: "2026-08-15T00:00:00Z"
-status: "stage069_completed_reviewed_local"
+status: "stage070_phase1_completed_local"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage070_phase1_state:
+    status: "stage070_phase1_completed_local"
+    current_task_id: "IDS-V0_1-STAGE070-P1"
+    next_gate: "IDS-STAGE070-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE070-P2"
+    stage070_phase2_entry_authorized: true
+    github_upload_allowed: false
   stage069_review_state:
     status: "stage069_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE069-REVIEW"
@@ -355,6 +362,92 @@ upload_gate:
   deferred_batch_upload_gate: "IDS-V0_1-BATCH-061-070-UPLOAD-GATE"
 
 stage_progress:
+  STAGE-070:
+    status: "stage070_phase1_completed_local"
+    completed_phases:
+      - "Phase 1"
+    next_phase: "Stage070 Phase 2"
+    next_gate: "IDS-STAGE070-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE070-P1"
+    acceptance_id: "ACC-STAGE-070"
+    acceptance_status: "phase1_completed_local"
+    review_status: "not_started"
+    stage070_phase2_entry_authorized: true
+    taskpack_context_read_performed: true
+    predecessor_stage069_review_reused_as_reference_only: true
+    source_authority: "FROZEN_STAGE070_TASKPACK_STAGE069_REVIEW_STAGE069_POLICY_CONTRACT_AND_BATCH_LOCK_ONLY"
+    second_authoritative_source_created: false
+    source_body_or_path_allowed: false
+    raw_metadata_content_accessed: false
+    ids_business_source_read_performed: false
+    source_file_open_performed: false
+    parser_execution_performed: false
+    chunking_execution_performed: false
+    summary_generation_performed: false
+    embedding_queue_cache_contract_schema: "ids.stage070.embedding_queue_cache.phase1.v1"
+    contract_state: "PHASE1_EMBEDDING_QUEUE_AND_CACHE_CONTRACT_RUNTIME_DISABLED"
+    execution_ready: false
+    default_external_api_policy: "denied"
+    allowed_external_api_policy_value_count: 3
+    policy_inheritance_hop_count: 2
+    chunk_manual_policy_assignment_allowed: false
+    reference_only_embedding_queue_input_field_count: 17
+    future_embedding_queue_field_count: 12
+    future_cache_field_count: 10
+    future_failed_retry_field_count: 7
+    future_cost_and_model_field_count: 8
+    future_external_api_audit_field_count: 18
+    declared_failure_state_count: 12
+    actual_input_request_count: 0
+    actual_policy_resolution_count: 0
+    actual_embedding_queue_count: 0
+    actual_cache_entry_count: 0
+    actual_failed_retry_count: 0
+    actual_budget_check_count: 0
+    actual_token_count: 0
+    actual_cost_count: 0
+    actual_model_version_count: 0
+    actual_external_api_audit_count: 0
+    actual_external_api_call_count: 0
+    actual_model_token_count: 0
+    source_document_remains_authoritative: true
+    embedding_queue_or_cache_can_replace_source_document: false
+    external_model_output_can_become_business_fact_authority: false
+    automatic_business_recommendation_allowed: false
+    provider_credential_read_performed: false
+    provider_or_model_selected: false
+    external_api_client_initialized: false
+    external_api_call_performed: false
+    model_call_performed: false
+    model_token_consumption_performed: false
+    embedding_queue_execution_performed: false
+    cache_read_or_write_performed: false
+    failed_retry_execution_performed: false
+    embedding_or_index_write_performed: false
+    database_connection_performed: false
+    persistent_state_write_performed: false
+    agent_execution_performed: false
+    local_service_start_performed: false
+    ovh_deployment_performed: false
+    production_runtime_activation_performed: false
+    phase2_started: false
+    phase3_started: false
+    phase4_started: false
+    whole_stage_review_performed: false
+    batch_review_performed: false
+    stage071_started: false
+    github_upload_allowed: false
+    push_allowed: false
+    app_reinstall_allowed: false
+    evidence_refs:
+      - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-070_Embedding队列与缓存.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE070_PHASE1_EMBEDDING_QUEUE_CACHE_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage070_embedding_queue_cache_contract.py"
+      - "KM_IDSystem/machine/runs/2026-08-15-stage070-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE069_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_policy/stage069_external_api_policy_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
   STAGE-069:
     status: "stage069_completed_reviewed_local"
     completed_phases:
@@ -1620,10 +1713,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE069-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-STAGE070-P1"
+  current_task_id: "IDS-V0_1-STAGE070-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE070-P2"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-069 Review only mechanically replays the frozen P1--P4 contracts and P2/P3/P4 in-memory control reports, confirming policy inheritance, default denied, audit prerequisites, white-box human handling, metadata-only delivery, single authority, zero runtime, and the P4-to-P3 control rollback chain. It does not open sources, create summaries or text payloads, create a queue/cache/audit record, select a provider or model, call an API, consume model tokens, write persistent state, deploy OVH or activate any runtime. Stage070 P1 is the next independent gate."
+  current_run: "STAGE-070 Phase 1 only defines the static inherited external API policy, future Embedding queue, cache, failed retry, cost/model version and audit contract: default denied, three policy values, automatic data source/document-to-chunk inheritance, 17 reference-only inputs, 12 queue fields, 10 cache fields, 7 retry fields, 8 cost/model fields and 18 audit fields. It does not open sources, create queues/cache/retries/audit, select provider/model, call an external API, consume model Tokens, write persistent state, deploy OVH or activate any runtime. Stage070 P2 is the next independent gate."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."

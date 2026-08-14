@@ -9,7 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage069 Review - 2026-08-15
+## Current Gate - Stage070 Phase 1 - 2026-08-15
+
+- 本节是唯一当前交接；Stage069 Review/P4/P3/P2/P1、Stage068 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮仅完成 `IDS-V0_1-STAGE070-P1` 静态合同：复用默认 `denied`、`denied/summary_only/full_text_allowed` 三档策略和 data source/document→chunk 自动继承；固定 `17/12/10/7/8/18/12` 形状，分别为仅引用输入、未来队列、未来缓存、未来失败重试、成本与模型版本、未来外部 API 审计字段和失败关闭状态；业务线策略例外仍须白箱人工复核。
+- 这只证明冻结 Stage070 任务包、Stage069 Review、Stage069 策略合同、Batch061-070 上传锁、机器事实与中文渲染投影可在本地保持同一事实边界；不证明真实资料、摘要、文本块、策略解析、队列、缓存、重试、成本、审计、provider/模型、外部 API、模型 Token、OVH、生产或上传能力。来源文档继续是唯一权威，所有真实资料、Agent、模型 Token 与运行时计数保持零。
+- 已验证：静态合同 JSON 解析、P1 聚焦用例 `8/8`、Stage060--069 阶段链路 `473/473`、Batch041-050 与 Batch051-060 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、Stage005 治理回归 `valid=true`、中文事实投影重渲染 `7` 个文件，文档预算、无登记阻塞与单项目双平面检查通过。完整本地回执记录在 `KM_IDSystem/machine/runs/2026-08-15-stage070-p1-local.json`；这些结果只验证静态合同、治理和零运行时边界。
+- 回滚只撤回本 P1 范围说明、静态合同、聚焦用例、machine run、事件、机器事实、治理路线、阶段链路兼容断言与生成中文视图，恢复到 `STAGE069_REVIEWED_LOCAL_EXTERNAL_API_POLICY_RUNTIME_DISABLED`；不改变 Stage069 及更早证据、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE070-P2-GATE`。本 run 不进入 P2/P3/P4、整阶段复审、批次复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage069 Review - 2026-08-15
 
 - 本节是唯一当前交接；Stage069 P4/P3/P2/P1、Stage068 Review/P4/P3/P2/P1、Stage067 Review/P4/P3/P2/P1、Stage066 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE069-REVIEW`：只读机械重放 Stage069 P1--P4 合同与 P2/P3/P4 纯内存控制报告，核验 `15/23/12/8/18/13` 静态形状、五条策略解析/队列意图/成本投影/审计投影、五条专项场景、四条业务线白箱人工处理、九十次审计字段检查、五条 metadata-only 交付样例、四键查询、三条中文确认、十二类失败关闭和 P4→P3 控制回退链；没有建立第二权威事实源。

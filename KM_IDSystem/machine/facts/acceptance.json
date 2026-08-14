@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "ACC-STAGE070-P1-01",
+      "criteria": "冻结 Stage070 任务包、Stage069 本地整阶段机械复审、Stage069 外部 API 策略继承合同与 Batch061-070 上传锁保持为唯一合同上下文；本 P1 未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径、页面、parser 输出或 chunk。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE070-P1-02",
+      "criteria": "复用默认 denied、denied/summary_only/full_text_allowed 三档策略和 data source/document→chunk 自动继承；owner 不需逐条标记 chunk，document 不得放宽来源策略；静态固定 17 个仅引用输入、12 个未来队列字段、10 个未来缓存字段、7 个未来失败重试字段、8 个成本/模型版本字段、18 个审计字段和 12 类失败关闭。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE070-P1-03",
+      "criteria": "denied 不形成外发载荷、队列、缓存或重试；summary_only 仅允许未来已授权摘要引用；full_text_allowed 仅可在未来授权、预算、审计和业务线白箱人工复核后处理文本块；任何队列、缓存、重试、审计或模型输出都不能替代来源文档、形成业务事实或自动建议。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE070-P1-04",
+      "criteria": "未执行真实资料访问、解析、切块、摘要生成、文本外发、Embedding 队列、缓存、失败重试、provider 凭据读取、provider/模型选择、外部 API、模型 Token、成本计算或记录、审计写入或查询、索引、数据库、持久化、Agent、OVH、生产、P2/P3/P4、整阶段复审、批次复审、上传或推送；下一步仅可在新的独立 run 进入 Stage070 P2。",
+      "status": "已遵守"
+    },
+    {
       "id": "ACC-STAGE069-REVIEW-01",
       "criteria": "冻结 Stage069 任务包、P1--P4 合同、P2/P3/P4 纯内存控制报告、Stage068 本地整阶段机械复审、根策略锁、操作说明与 Batch061-070 上传锁保持为唯一合同上下文；复审只读重放控制工件，未建立第二权威事实源，未读取、打开或保留业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径、页面、parser 输出或 chunk。",
       "status": "已通过"

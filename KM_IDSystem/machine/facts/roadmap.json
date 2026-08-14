@@ -1,6 +1,12 @@
 {
   "stages": [
     {
+      "id": "IDS-STAGE070",
+      "name": "Embedding 队列与缓存",
+      "gate": "P1 静态合同已本地通过；下一步须在新的独立 run 进入 Stage070 Phase 2",
+      "status": "Stage070 P1 已完成：继承默认 denied、三档策略与自动继承，固定 17/12/10/7/8/18/12 静态形状、失败关闭、业务线白箱人工处理和回滚边界；真实资料、队列、缓存、重试、外发、成本、审计、外部 API、模型 Token、OVH 与生产仍禁用"
+    },
+    {
       "id": "IDS-STAGE069",
       "name": "外部 API 策略继承",
       "gate": "P1--P4 合同、P2/P3/P4 纯内存控制报告与整阶段机械复审已本地通过；下一步须在新的独立 run 进入 Stage070 Phase 1",

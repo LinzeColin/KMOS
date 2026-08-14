@@ -209,20 +209,34 @@ class Stage069ExternalApiPolicyStageReviewTests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        self.assertEqual(
-            (
-                "IDS-STAGE069",
-                "IDS-V0_1-STAGE069-REVIEW",
-                "IDS-V0_1-STAGE069-REVIEW",
-                "IDS-STAGE070-P1-GATE",
-            ),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-STAGE069",
+                    "IDS-V0_1-STAGE069-REVIEW",
+                    "IDS-V0_1-STAGE069-REVIEW",
+                    "IDS-STAGE070-P1-GATE",
+                ),
+                (
+                    "IDS-STAGE070",
+                    "IDS-V0_1-STAGE070-P1",
+                    "IDS-V0_1-STAGE070-P1",
+                    "IDS-STAGE070-P2-GATE",
+                ),
+            ),
         )
-        self.assertEqual(
-            ("IDS-V0_1-STAGE069-REVIEW", "IDS-V0_1-STAGE069-REVIEW"),
+        self.assertIn(
             (plan["phase"], plan["task"]),
+            (
+                ("IDS-V0_1-STAGE069-REVIEW", "IDS-V0_1-STAGE069-REVIEW"),
+                ("IDS-V0_1-STAGE070-P1", "IDS-V0_1-STAGE070-P1"),
+            ),
         )
-        self.assertIn("IDS-STAGE070-P1-GATE", plan["stop_condition"])
+        self.assertTrue(
+            "IDS-STAGE070-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE070-P2-GATE" in plan["stop_condition"]
+        )
         self.assertTrue(
             {
                 "ACC-STAGE069-REVIEW-01",
