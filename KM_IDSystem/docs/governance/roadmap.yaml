@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE064"
-current_phase_id: "IDS-STAGE064-P4"
-current_task_id: "IDS-V0_1-STAGE064-P4"
-next_gate_id: "IDS-STAGE064-REVIEW-GATE"
+current_phase_id: "IDS-STAGE064-REVIEW"
+current_task_id: "IDS-V0_1-STAGE064-REVIEW"
+next_gate_id: "IDS-STAGE065-P1-GATE"
 current_transition_history:
+  stage064_review_state:
+    current_stage_id: "IDS-STAGE064"
+    current_phase_id: "IDS-STAGE064-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE064-REVIEW"
+    next_gate_id: "IDS-STAGE065-P1-GATE"
   stage064_phase4_state:
     current_stage_id: "IDS-STAGE064"
     current_phase_id: "IDS-STAGE064-P4"
@@ -17338,20 +17343,20 @@ stages:
     task_id: "IDS-V0_1-STAGE064"
     acceptance_ids:
       - "ACC-STAGE-064"
-    status: "phase4_completed_review_pending"
-    pursuing_goal: "只以 Stage064 P3 六类固定、非业务、reference-only 身份/版本控制场景在内存中派生 metadata-only JSONL 样例、控制覆盖率、低质量待人工清单、控制回归、策略边界和回到 P3 的回滚说明；不读取、验证、创建、写入、重生成或回退真实资料、chunk、身份、哈希、版本、索引或事实。"
+    status: "completed_reviewed_local"
+    pursuing_goal: "只机械复审 Stage064 P1--P4 的冻结合同和纯内存控制报告，确认固定形状、控制计数、业务线白箱人工处置、metadata-only 交付、单一权威、零运行时边界和 P4→P3 控制回退链；不读取或处理真实资料。"
     stop_gate:
-      gate_id: "IDS-STAGE064-P4-GATE"
+      gate_id: "IDS-STAGE064-REVIEW-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE064-REVIEW-GATE"
+      next_gate_id: "IDS-STAGE065-P1-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "P3 的六类固定、非业务控制场景派生为六条 metadata-only JSONL 样例、控制覆盖率、六条低质量待人工清单、控制回归、策略边界、中文确认和 P4→P3 控制回退说明。"
-      - "JSONL 样例、覆盖率、低质量清单、回归和回滚说明只保留 :control: 引用形状，不能解释为真实 chunk、身份/版本、覆盖率、质量、来源反查、重复检测、去重、重生成或回退。"
-      - "运行时、Agent、模型 Token、OVH、生产和上传均保持关闭，下一门仅为 Stage064 Review。"
+      - "P1--P4 的 10/14 静态形状、3/3 控制请求与记录、三类受保护工程语义面、六维追溯、六类显式业务线白箱人工处置、六条 metadata-only JSONL 样例、六条低质量待人工记录、三条中文确认和 P4→P3 控制回退链保持一致。"
+      - "所有控制引用和交付记录只保留 :control: 引用形状，不代表真实 chunk、真实身份/版本、真实覆盖率、真实低质量、真实来源反查、真实重复检测或第二权威事实源。"
+      - "运行时、Agent、模型 Token、OVH、生产和上传均保持关闭，下一门仅为 Stage065 Phase 1。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、身份、哈希、版本、索引、数据库或报告"
-      - "执行真实 parser、章节检测、切块、chunk_id 生成、chunk_hash 计算、document_id 绑定、版本生成、真实质量验证、重复检测或去重、语义资产分类、覆盖率、质量回归、质量降级、来源追溯绑定、真实 chunk 重生成或版本回退、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Stage064 Review、批次复审、上传、推送或应用重装"
+      - "执行真实 parser、章节检测、切块、chunk_id 生成、chunk_hash 计算、document_id 绑定、版本生成、真实质量验证、重复检测或去重、语义资产分类、覆盖率、质量回归、质量降级、来源追溯绑定、真实 chunk 重生成或版本回退、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Stage065 Phase 1、批次复审、上传、推送或应用重装"
     phases:
       - phase_id: "IDS-STAGE064-P1"
         name: "Phase 1 · Chunk 身份、版本、输入输出与边界确认"
@@ -17543,3 +17548,50 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
             risk: "若把 metadata-only JSONL 样例、控制覆盖率、低质量待人工清单、回归结果、策略边界或回退说明误作真实 chunk、真实身份/版本、真实覆盖率、真实质量、真实来源反查、真实去重、真实重生成/版本回退、OVH、生产或上传能力，会绕开业务线白箱复核与单一权威边界。"
             rollback: "只回滚本 P4 说明、交付合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE3_CHUNK_IDENTITY_AND_VERSION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；不改变 P1/P2/P3、冻结任务包、真实资料、fixture、事实库、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE064-REVIEW"
+        name: "Stage Review · Chunk 身份与版本整阶段机械复审"
+        objective: "只机械复审冻结 Stage064 P1--P4 合同和 P3/P4 纯内存控制报告，确认 10/14 形状、3/3 控制请求与记录、三类受保护工程语义面、六维追溯、六类业务线白箱人工处置、metadata-only 交付、单一权威、零运行时边界和 P4→P3 控制回退链；不读取真实资料或启动 Stage065。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE065-P1-GATE"
+        gate:
+          gate_id: "IDS-STAGE064-REVIEW-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE065-P1-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、身份、哈希、版本、索引、数据库或报告"
+          - "执行真实 parser、章节检测、切块、chunk_id 生成、chunk_hash 计算、document_id 绑定、版本生成、重复检测或去重、语义资产分类、覆盖率、质量回归、质量降级、来源追溯绑定、重生成、版本回退、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Stage065 Phase 1、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE064-REVIEW"
+            name: "复审 Chunk 身份与版本 P1--P4 控制证据"
+            objective: "只读取 P1--P4 合同与 P3/P4 纯内存报告，机械核验 10/14、3/3、三类受保护工程语义面、六维追溯、六类场景、六条 metadata-only JSONL 样例、六条低质量待人工记录、三条中文确认与 P4→P3 控制回退链；不创建真实 chunk、身份/版本、质量结果、索引或持久化状态。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "100.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE064-P4"
+            acceptance_ids:
+              - "ACC-STAGE-064"
+              - "ACC-STAGE064-REVIEW-01"
+              - "ACC-STAGE064-REVIEW-02"
+              - "ACC-STAGE064-REVIEW-03"
+              - "ACC-STAGE064-REVIEW-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage064_chunk_identity_version_stage_review"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "复审模块 PASS_REVIEWED_LOCAL_CHUNK_IDENTITY_AND_VERSION_RUNTIME_DISABLED，P1/P4 注入异常失败关闭；聚焦 9/9，受影响阶段链路 205/205，两个批次检查器均 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理回归 valid=true，中文事实投影重渲染 7 个文件；本 Review 不进入 Stage065、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-064_Chunk身份与版本.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE064_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_stage_review.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage064_chunk_identity_version_stage_review.py"
+              - "KM_IDSystem/machine/runs/2026-08-14-stage064-review-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_delivery_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把静态合同、control 计数、metadata-only 交付或本地复审通过误作真实章节检测、真实切块、真实身份/版本、真实质量、真实来源追溯、OVH、生产或上传能力，会绕开业务线人工白箱处理和单一权威边界。"
+            rollback: "只回滚本 Review 说明、只读复审模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PHASE4_CHUNK_IDENTITY_AND_VERSION_DELIVERY_EVIDENCE_RUNTIME_DISABLED；不改变 P1--P4、冻结任务包、真实资料、fixture、事实库、数据库、GitHub、OVH 或应用状态。"

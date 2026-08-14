@@ -265,6 +265,7 @@ class Stage062TableEvidenceBindingStageReviewTests(unittest.TestCase):
                 ("IDS-STAGE064", "IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P2", "IDS-STAGE064-P3-GATE"),
                 ("IDS-STAGE064", "IDS-V0_1-STAGE064-P3", "IDS-V0_1-STAGE064-P3", "IDS-STAGE064-P4-GATE"),
                 ("IDS-STAGE064", "IDS-V0_1-STAGE064-P4", "IDS-V0_1-STAGE064-P4", "IDS-STAGE064-REVIEW-GATE"),
+                ("IDS-STAGE064", "IDS-V0_1-STAGE064-REVIEW", "IDS-V0_1-STAGE064-REVIEW", "IDS-STAGE065-P1-GATE"),
             ),
         )
         self.assertIn(
@@ -280,6 +281,7 @@ class Stage062TableEvidenceBindingStageReviewTests(unittest.TestCase):
                 ("IDS-STAGE064", "IDS-V0_1-STAGE064-P2", "IDS-V0_1-STAGE064-P2"),
                 ("IDS-STAGE064", "IDS-V0_1-STAGE064-P3", "IDS-V0_1-STAGE064-P3"),
                 ("IDS-STAGE064", "IDS-V0_1-STAGE064-P4", "IDS-V0_1-STAGE064-P4"),
+                ("IDS-STAGE064", "IDS-V0_1-STAGE064-REVIEW", "IDS-V0_1-STAGE064-REVIEW"),
             ),
         )
         self.assertIn("ACC-STAGE062-REVIEW-01", str(acceptance))

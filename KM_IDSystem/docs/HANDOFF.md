@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage064 Phase 4 - 2026-08-14
+## Current Gate - Stage064 Review - 2026-08-14
 
-- 本节是唯一当前交接；Stage064 P3/P2/P1、Stage063 Review/P4/P3/P2/P1、Stage062 Review 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；Stage064 P4/P3/P2/P1、Stage063 Review/P4/P3/P2/P1、Stage062 Review 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE064-REVIEW`：只机械复审冻结 Stage064 P1--P4 合同和 P3/P4 纯内存控制报告的 `10/14/3/6` 形状、3 条控制请求、3 条控制记录、3 类受保护工程语义面、6 维追溯、6 类显式人工处置、6 条 metadata-only JSONL 样例、6 条低质量待人工记录、3 条中文确认和 P4→P3 控制回退链；发现数为零，没有建立第二权威事实源。
+- 复审模块只读取合同与纯内存控制报告。控制记录、控制引用、控制覆盖率、低质量清单、回归结果、门禁和回退说明不代表真实章节、真实 chunk、真实身份或版本、真实覆盖率、真实质量、真实来源追溯、真实去重或业务事实。来源文档与业务线白箱人工复核保持权威。
+- 已验证：复审模块返回 `PASS_REVIEWED_LOCAL_CHUNK_IDENTITY_AND_VERSION_RUNTIME_DISABLED`，且 P1/P4 注入异常时失败关闭；聚焦用例 `9/9`，含 Stage060 Review、Stage061--063 全阶段、Stage064 P1--Review 的受影响阶段链路 `205/205`，两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归 `valid=true`，中文事实投影已重渲染 `7` 个文件。执行范围没有进入真实 parser、章节检测、切块、身份/版本、分类、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产或上传。
+- 回滚只撤回本 Review 说明、只读复审模块、聚焦用例、BATCH061-070 锁、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `PHASE4_CHUNK_IDENTITY_AND_VERSION_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；不改变 P1--P4、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE065-P1-GATE`。本 run 不进入 Stage065、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage064 Phase 4 - 2026-08-14
+
+- 本节保留 Stage064 P4 的已提交历史证据；唯一当前交接位于上方 Stage064 Review，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE064-P4`：只从 P3 六类固定、非业务、`:control:` Chunk 身份与版本控制场景派生六条 metadata-only JSONL 样例、控制覆盖率、六条低质量待人工清单、控制回归、策略适用边界、三条中文确认和回到 P3 的重生成/版本回退控制说明；没有建立第二权威事实源。
 - 所有样例、控制覆盖率、低质量清单、回归结果、计数和中文反馈都不代表真实 chunk、真实身份、真实 Hash、真实版本、真实覆盖率、真实质量、真实来源反查、真实重复检测/去重、真实重生成/版本回退或业务事实。来源文档与业务线白箱人工复核保持权威。
 - 已验证：Stage064 P4 聚焦用例 `12/12`；含 Stage060 Review、Stage061--063 全阶段、Stage064 P1--P4 与 Batch051-060 的受影响阶段链路 `203/203`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件。执行范围没有进入真实 parser、章节检测、切块、chunk 身份/哈希/版本、重生成/版本回退、分类、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产或上传。

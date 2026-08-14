@@ -4,6 +4,21 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "Stage064 chunk identity and version review",
+      "中文": "Stage064 Chunk 身份与版本整阶段复审",
+      "说明": "只机械复审 Stage064 P1--P4 冻结合同和纯内存控制报告，不创建真实 chunk、身份、版本或业务事实。"
+    },
+    {
+      "英文": "P4-to-P3 chunk identity and version control rollback",
+      "中文": "P4 到 P3 Chunk 身份与版本控制回退",
+      "说明": "只允许恢复固定、非业务、reference-only P3 控制场景，不执行真实 chunk 重生成或版本回退。"
+    },
+    {
+      "英文": "Stage064 whitebox human handling",
+      "中文": "Stage064 业务线白箱人工处理",
+      "说明": "长文档、跨页参数表、工程步骤、参数表、页码反查和重复 chunk 必须由业务线人工复核，控制模块不能替代来源文档权威。"
+    },
+    {
       "英文": "metadata-only chunk identity and version JSONL delivery sample",
       "中文": "仅元数据 Chunk 身份与版本 JSONL 交付样例",
       "说明": "Stage064 P4 从 P3 六类固定控制场景派生的内存 JSONL 行；它只保留 :control: 引用和人工复核状态，不包含真实 chunk、身份、Hash、版本、路径、页码内容或业务事实。"
