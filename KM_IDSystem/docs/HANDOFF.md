@@ -9,14 +9,14 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage069 Phase 1 - 2026-08-14
+## Current Gate - Stage069 Phase 2 - 2026-08-14
 
-- 本节是唯一当前交接；Stage068 Review/P4/P3/P2/P1、Stage067 Review/P4/P3/P2/P1、Stage066 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
-- 本轮完成 `IDS-V0_1-STAGE069-P1`：仅定义 data source/document→chunk 的 `external_api_policy` 自动继承、默认 `denied`、`denied/summary_only/full_text_allowed` 三档策略、未来 Embedding 队列、成本/模型版本、审计字段、业务线白箱例外与失败关闭，固定合同形状为 `3/15/23/12/8/18/13`；没有建立第二权威事实源。
-- 本 P1 只证明冻结任务包、Stage068 Review、根策略锁、操作说明、静态合同和治理投影在本地一致；不证明真实资料、摘要、页面、chunk、策略解析、队列、成本、审计、provider/模型选择、外部 API、模型 Token、OVH、生产或上传能力。来源文档与业务线白箱人工复核继续是唯一权威，所有真实资料、Agent、模型 Token 与运行时计数保持零。
-- 已验证：Stage069 P1 聚焦用例 `7/7`；Stage060--069 阶段链路回归 `435/435`；Batch041-050 与 Batch051-060 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，文档预算、无登记阻塞与双平面检查均通过（`2` 个项目）。以上只验证静态合同、治理和零运行时边界，不将其表述为真实资料验证、OVH 或生产验收。
-- 回滚只撤回本 P1 范围说明、外部 API 策略继承静态合同、术语登记、聚焦用例、machine run、事件、机器事实、治理路线、阶段链路兼容断言与生成中文视图，恢复到 `STAGE068_REVIEWED_LOCAL_QUALITY_DEGRADATION_RUNTIME_DISABLED`；不改变 Stage068 及更早证据、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
-- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE069-P2-GATE`。本 run 不进入 P2、P3、P4、整阶段复审、批次复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+- 本节是唯一当前交接；Stage069 P1、Stage068 Review/P4/P3/P2/P1、Stage067 Review/P4/P3/P2/P1、Stage066 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE069-P2`：只在内存中重放五条固定、非业务、reference-only 的 `:control:` 请求，投影 data source/document→chunk 的有效策略、Embedding 队列意图、缓存关闭、零成本/模型版本字段和审计字段，覆盖默认 `denied`、摘要继承、document 将全文收紧为摘要、全文控制与预算不足暂停，固定控制形状为 `5/15/23/12/8/18/1/1/3`；没有建立第二权威事实源。
+- 本 P2 只证明冻结任务包、P1 静态合同、Stage068 Review、根策略锁、操作说明、纯内存控制切片和治理投影在本地一致；不证明真实资料、摘要、页面、chunk、策略解析、队列、缓存、成本、审计、provider/模型选择、外部 API、模型 Token、OVH、生产或上传能力。来源文档与业务线白箱人工复核继续是唯一权威，所有真实资料、Agent、模型 Token 与运行时计数保持零。
+- 已验证：Stage069 P2 聚焦用例 `7/7`；Stage060--069 阶段链路回归 `442/442`；Batch041-050 与 Batch051-060 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，文档预算、无登记阻塞与双平面检查均通过（`2` 个项目）。以上只验证纯内存控制切片、治理和零运行时边界，不将其表述为真实资料验证、OVH 或生产验收。
+- 回滚只撤回本 P2 纯内存控制切片、切片合同、聚焦用例、machine run、事件、机器事实、治理路线、阶段链路兼容断言与生成中文视图，恢复到 `PHASE1_EXTERNAL_API_POLICY_INHERITANCE_CONTRACT_RUNTIME_DISABLED`；不改变 P1、Stage068 及更早证据、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE069-P3-GATE`。本 run 不进入 P3、P4、整阶段复审、批次复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
 
 ## Superseded Gate - Stage068 Review - 2026-08-14
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage069 Phase 2（本地）
+
+- 完成外部 API 策略继承纯内存控制切片：五条固定、非业务、reference-only 的 `:control:` 请求投影 data source/document→chunk 有效策略、五条 Embedding 队列意图、五条缓存关闭、五条零成本/模型版本字段和五条审计字段，覆盖默认 `denied`、摘要继承、document 收紧、全文控制与预算不足暂停，固定形状为 `5/15/23/12/8/18/1/1/3`；没有建立第二权威事实源。
+- 控制标签、队列意图、缓存、成本/模型版本和审计字段只验证冻结接口与业务线白箱人工处置边界，不能替代来源文档或形成业务事实，也不代表真实资料、摘要、chunk、队列、缓存、provider/模型选择、外部 API、模型 Token、审计、索引、OVH、生产、上传或推送能力。
+- 本地验证通过：Stage069 P2 聚焦用例 `7/7`；Stage060--069 阶段链路回归 `442/442`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，人类平面三道门、无登记阻塞与双平面检查通过。下一步仅可在新的独立 run 进入 `IDS-STAGE069-P3-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage069 Phase 1（本地）
 
 - 完成外部 API 策略继承静态合同：仅定义 data source/document→chunk 自动继承、默认 `denied`、`denied/summary_only/full_text_allowed` 三档、未来 Embedding 队列、成本/模型版本、审计字段、业务线白箱例外、中文术语与十三类失败关闭，固定形状为 `3/15/23/12/8/18/13`；没有建立第二权威事实源。

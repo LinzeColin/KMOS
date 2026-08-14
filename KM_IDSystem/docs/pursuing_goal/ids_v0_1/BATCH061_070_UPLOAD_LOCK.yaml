@@ -1,14 +1,21 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
-updated_at_utc: "2026-08-14T14:27:46Z"
-status: "stage069_phase1_completed_local"
+updated_at_utc: "2026-08-14T14:47:12Z"
+status: "stage069_phase2_completed_local"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage069_phase2_state:
+    status: "stage069_phase2_completed_local"
+    current_task_id: "IDS-V0_1-STAGE069-P2"
+    next_gate: "IDS-STAGE069-P3-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE069-P3"
+    stage069_phase3_entry_authorized: true
+    github_upload_allowed: false
   stage069_phase1_state:
     status: "stage069_phase1_completed_local"
     current_task_id: "IDS-V0_1-STAGE069-P1"
@@ -328,19 +335,21 @@ upload_gate:
 
 stage_progress:
   STAGE-069:
-    status: "stage069_phase1_completed_local"
+    status: "stage069_phase2_completed_local"
     completed_phases:
       - "Phase 1"
-    next_phase: "Stage069 Phase 2"
-    next_gate: "IDS-STAGE069-P2-GATE"
-    current_task_id: "IDS-V0_1-STAGE069-P1"
+      - "Phase 2"
+    next_phase: "Stage069 Phase 3"
+    next_gate: "IDS-STAGE069-P3-GATE"
+    current_task_id: "IDS-V0_1-STAGE069-P2"
     acceptance_id: "ACC-STAGE-069"
-    acceptance_status: "phase1_completed_local"
+    acceptance_status: "phase2_completed_local"
     review_status: "not_started"
     stage069_phase2_entry_authorized: true
+    stage069_phase3_entry_authorized: true
     taskpack_context_read_performed: true
     predecessor_stage068_review_reused_as_reference_only: true
-    source_authority: "FROZEN_STAGE069_TASKPACK_STAGE068_REVIEW_ROOT_LOCK_AND_POLICY_GUIDE_ONLY"
+    source_authority: "FROZEN_STAGE069_TASKPACK_PHASE1_STAGE068_REVIEW_ROOT_LOCK_AND_POLICY_GUIDE_ONLY"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
     raw_metadata_content_accessed: false
@@ -350,7 +359,8 @@ stage_progress:
     chunking_execution_performed: false
     summary_generation_performed: false
     external_api_policy_contract_schema: "ids.stage069.external_api_policy.phase1.v1"
-    contract_state: "PHASE1_EXTERNAL_API_POLICY_INHERITANCE_CONTRACT_RUNTIME_DISABLED"
+    external_api_policy_slice_contract_schema: "ids.stage069.external_api_policy.phase2.v1"
+    contract_state: "PHASE2_EXTERNAL_API_POLICY_INHERITANCE_CONTROL_SLICE_RUNTIME_DISABLED"
     execution_ready: false
     allowed_external_api_policy_value_count: 3
     default_external_api_policy: "denied"
@@ -359,10 +369,19 @@ stage_progress:
     future_embedding_queue_field_count: 12
     future_cost_and_model_field_count: 8
     future_external_api_audit_field_count: 18
-    declared_failure_state_count: 13
+    phase1_declared_failure_state_count: 13
+    declared_failure_state_count: 10
     data_source_to_document_to_chunk_inheritance_hop_count: 2
     document_policy_widening_allowed: false
     chunk_manual_policy_assignment_allowed: false
+    control_policy_request_count: 5
+    control_policy_resolution_record_count: 5
+    control_embedding_queue_intent_count: 5
+    control_cost_model_record_count: 5
+    control_external_api_audit_projection_count: 5
+    control_queue_blocked_policy_denied_count: 1
+    control_queue_paused_budget_insufficient_count: 1
+    control_queue_eligible_but_not_persisted_count: 3
     actual_input_request_count: 0
     actual_policy_assignment_count: 0
     actual_policy_resolution_count: 0
@@ -393,7 +412,7 @@ stage_progress:
     local_service_start_performed: false
     ovh_deployment_performed: false
     production_runtime_activation_performed: false
-    phase2_started: false
+    phase2_started: true
     phase3_started: false
     phase4_started: false
     whole_stage_review_performed: false
@@ -410,6 +429,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_policy/stage069_external_api_policy_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage069_external_api_policy_contract.py"
       - "KM_IDSystem/machine/runs/2026-08-14-stage069-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_policy/stage069_external_api_policy_slice_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_policy/stage069_external_api_policy_slice.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage069_external_api_policy_slice.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage069-p2-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE068_STAGE_REVIEW.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
   STAGE-068:
@@ -1525,10 +1548,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE069-P1"
-  next_allowed_task_id: "IDS-V0_1-STAGE069-P2"
+  current_task_id: "IDS-V0_1-STAGE069-P2"
+  next_allowed_task_id: "IDS-V0_1-STAGE069-P3"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-069 Phase 1 only defines the static data source/document-to-chunk external API policy inheritance contract: default denied, three policy values, future embedding queue, cost/model version and audit fields, white-box exception handling and failure closure. It does not open sources, generate summaries, externalize text, create queues, cache, audit records, provider credentials, provider/model selections, external API calls, model Tokens, indexes, persistent state, Agents, OVH or production runtime. Stage069 P2 is the next independent gate."
+  current_run: "STAGE-069 Phase 2 only projects five fixed reference-only external API policy control requests into five effective-policy resolutions, five queue intents, five zero-cost/model-version field projections and five audit projections. It covers default denied, inherited summary-only, document restriction, full-text control and insufficient-budget pause. It does not open sources, create summaries or external payloads, create a queue/cache/audit record, select a provider or model, call an API, consume model tokens, write persistent state, deploy OVH or activate any runtime. Stage069 Phase 3 is the next independent gate."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."

@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage069-p2-local",
+    "date": "2026-08-14",
+    "summary": "完成 Stage069 P2 外部 API 策略继承纯内存控制切片：五条固定、非业务、reference-only 十五字段请求投影五条二十三字段策略解析、五条十二字段 Embedding 队列意图、五条八字段零成本/模型版本字段和五条十八字段审计投影，覆盖默认 denied、摘要继承、document 收紧、全文控制与预算不足暂停。所有字段、引用、队列意图、缓存状态、成本和审计投影只验证冻结控制合同，未读取、打开、解析、总结或外发真实资料，未创建队列、缓存、审计、索引或数据库，未选择 provider/模型、调用外部 API、消耗模型 Token、部署 OVH、启用生产、上传或推送；下一步仅可在新的独立 run 进入 Stage069 P3。"
+  },
+  {
     "version": "v0.1-stage069-p1-local",
     "date": "2026-08-14",
     "summary": "完成 Stage069 P1 外部 API 策略继承静态合同：定义 data source/document→chunk 自动继承、默认 denied、denied/summary_only/full_text_allowed 三档、15 个仅引用输入、23 个未来策略输出、12 个未来 Embedding 队列字段、8 个成本/模型版本字段、18 个未来审计字段、13 类失败关闭、中文反馈和回滚范围。本地验证只覆盖静态合同、治理与零运行时边界；未读取、打开、解析、总结或外发真实资料，未创建队列、审计、缓存、索引或数据库，未选择 provider/模型、调用外部 API、消耗模型 Token、部署 OVH、启用生产、上传或推送；下一步仅可在新的独立 run 进入 Stage069 P2。"

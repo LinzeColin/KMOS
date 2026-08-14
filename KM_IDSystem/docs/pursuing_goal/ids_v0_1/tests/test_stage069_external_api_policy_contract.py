@@ -282,15 +282,35 @@ class Stage069ExternalApiPolicyPhase1Tests(unittest.TestCase):
         }
 
         self.assertEqual("IDS-STAGE069", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE069-P1", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE069-P1", status["task"])
-        self.assertEqual("IDS-STAGE069-P2-GATE", status["next_gate"])
+        self.assertIn(
+            (status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-V0_1-STAGE069-P1",
+                    "IDS-V0_1-STAGE069-P1",
+                    "IDS-STAGE069-P2-GATE",
+                ),
+                (
+                    "IDS-V0_1-STAGE069-P2",
+                    "IDS-V0_1-STAGE069-P2",
+                    "IDS-STAGE069-P3-GATE",
+                ),
+            ),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertEqual("IDS-STAGE069", plan["stage"])
-        self.assertEqual("IDS-V0_1-STAGE069-P1", plan["phase"])
-        self.assertEqual("IDS-V0_1-STAGE069-P1", plan["task"])
-        self.assertIn("IDS-STAGE069-P2-GATE", plan["stop_condition"])
+        self.assertIn(
+            (plan["phase"], plan["task"]),
+            (
+                ("IDS-V0_1-STAGE069-P1", "IDS-V0_1-STAGE069-P1"),
+                ("IDS-V0_1-STAGE069-P2", "IDS-V0_1-STAGE069-P2"),
+            ),
+        )
+        self.assertTrue(
+            "IDS-STAGE069-P2-GATE" in plan["stop_condition"]
+            or "IDS-STAGE069-P3-GATE" in plan["stop_condition"]
+        )
         self.assertTrue(
             any(item["id"] == "ACC-STAGE069-P1-01" for item in acceptance["items"])
         )

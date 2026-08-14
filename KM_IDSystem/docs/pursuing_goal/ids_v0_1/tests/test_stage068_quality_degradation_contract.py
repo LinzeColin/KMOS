@@ -349,6 +349,7 @@ class Stage068QualityDegradationPhase1Tests(unittest.TestCase):
             (
                 ("IDS-STAGE068", "IDS-V0_1-STAGE068-REVIEW", "IDS-V0_1-STAGE068-REVIEW", "IDS-STAGE069-P1-GATE"),
                 ("IDS-STAGE069", "IDS-V0_1-STAGE069-P1", "IDS-V0_1-STAGE069-P1", "IDS-STAGE069-P2-GATE"),
+                ("IDS-STAGE069", "IDS-V0_1-STAGE069-P2", "IDS-V0_1-STAGE069-P2", "IDS-STAGE069-P3-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -358,11 +359,13 @@ class Stage068QualityDegradationPhase1Tests(unittest.TestCase):
             (
                 ("IDS-STAGE068", "IDS-V0_1-STAGE068-REVIEW", "IDS-V0_1-STAGE068-REVIEW"),
                 ("IDS-STAGE069", "IDS-V0_1-STAGE069-P1", "IDS-V0_1-STAGE069-P1"),
+                ("IDS-STAGE069", "IDS-V0_1-STAGE069-P2", "IDS-V0_1-STAGE069-P2"),
             ),
         )
         self.assertTrue(
             "IDS-STAGE069-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE069-P2-GATE" in plan["stop_condition"]
+            or "IDS-STAGE069-P3-GATE" in plan["stop_condition"]
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
