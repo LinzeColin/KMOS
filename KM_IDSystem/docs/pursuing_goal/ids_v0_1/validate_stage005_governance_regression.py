@@ -2119,6 +2119,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE070-P3-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE070"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE070-P3"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE070-P3"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE070-P4-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -3027,6 +3035,7 @@ REQUIRED_EVENT_IDS = (
     "EVT-IDS-V0_1-STAGE069-REVIEW-20260815-001",
     "EVT-IDS-V0_1-STAGE070-P1-20260815-001",
     "EVT-IDS-V0_1-STAGE070-P2-20260815-001",
+    "EVT-IDS-V0_1-STAGE070-P3-20260815-001",
 )
 
 FORBIDDEN_RUNTIME_PREFIXES = (
@@ -15980,6 +15989,104 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
                 "github_upload_allowed": "false",
                 "push_allowed": "false",
                 "next_gate": "IDS-STAGE070-P3-GATE",
+            },
+        },
+        "EVT-IDS-V0_1-STAGE070-P3-20260815-001": {
+            "event_type": "phase_completed",
+            "allow_stage_gate": True,
+            "task_id": "IDS-V0_1-STAGE070-P3",
+            "acceptance_ids": [
+                "ACC-STAGE-070",
+                "ACC-STAGE070-P3-01",
+                "ACC-STAGE070-P3-02",
+                "ACC-STAGE070-P3-03",
+                "ACC-STAGE070-P3-04",
+            ],
+            "required_changed_files": {
+                "KM_IDSystem/CHANGELOG.md",
+                "KM_IDSystem/docs/HANDOFF.md",
+                "KM_IDSystem/docs/governance/events.jsonl",
+                "KM_IDSystem/docs/governance/roadmap.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE070_PHASE3_EMBEDDING_QUEUE_CACHE_CONTROLLED_SCENARIOS.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_scenarios.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_scenarios_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage070_embedding_queue_cache_scenarios.py",
+                "KM_IDSystem/machine/facts/acceptance.json",
+                "KM_IDSystem/machine/facts/changelog.json",
+                "KM_IDSystem/machine/facts/glossary.json",
+                "KM_IDSystem/machine/facts/plan.json",
+                "KM_IDSystem/machine/facts/roadmap.json",
+                "KM_IDSystem/machine/facts/status.json",
+                "KM_IDSystem/machine/runs/2026-08-15-stage070-p3-local.json",
+            },
+            "required_refs": {
+                "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-070_Embedding队列与缓存.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE070_PHASE3_EMBEDDING_QUEUE_CACHE_CONTROLLED_SCENARIOS.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_scenarios_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_scenarios.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage070_embedding_queue_cache_scenarios.py",
+                "KM_IDSystem/machine/runs/2026-08-15-stage070-p3-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_queue_cache/stage070_embedding_queue_cache_slice_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_policy/stage069_external_api_policy_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+            },
+            "required_note_assignments": {
+                "contract_state": "PHASE3_EMBEDDING_QUEUE_CACHE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+                "second_authoritative_source_created": "false",
+                "control_request_count": "5",
+                "controlled_scenario_count": "5",
+                "controlled_scenario_field_count": "29",
+                "control_external_api_audit_projection_count": "5",
+                "control_audit_field_count": "18",
+                "control_audit_field_check_count": "90",
+                "future_external_api_call_candidate_count": "3",
+                "declared_failure_state_count": "10",
+                "denied_control_blocked_count": "1",
+                "summary_only_control_scope_count": "2",
+                "full_text_control_scope_count": "1",
+                "budget_insufficient_paused_count": "1",
+                "human_handling_required_count": "4",
+                "silent_drop_count": "0",
+                "actual_input_request_count": "0",
+                "actual_embedding_queue_count": "0",
+                "actual_cache_entry_count": "0",
+                "actual_failed_retry_count": "0",
+                "actual_external_api_call_count": "0",
+                "actual_model_token_count": "0",
+                "actual_external_api_audit_record_count": "0",
+                "source_document_remains_authoritative": "true",
+                "ids_business_source_read_performed": "false",
+                "raw_metadata_content_accessed": "false",
+                "parser_execution_performed": "false",
+                "chunking_execution_performed": "false",
+                "summary_generation_performed": "false",
+                "provider_credential_read_performed": "false",
+                "provider_or_model_selected": "false",
+                "external_api_client_initialized": "false",
+                "external_api_call_performed": "false",
+                "model_call_performed": "false",
+                "model_token_consumption_performed": "false",
+                "embedding_queue_execution_performed": "false",
+                "cache_read_or_write_performed": "false",
+                "failed_retry_execution_performed": "false",
+                "database_connection_performed": "false",
+                "persistent_state_write_performed": "false",
+                "agent_execution_performed": "false",
+                "ovh_deployment_performed": "false",
+                "production_runtime_activation_performed": "false",
+                "stage070_started": "true",
+                "stage070_entry_authorized": "true",
+                "phase1_started": "true",
+                "phase2_started": "true",
+                "phase3_started": "true",
+                "phase4_started": "false",
+                "whole_stage_review_performed": "false",
+                "batch_review_performed": "false",
+                "stage071_started": "false",
+                "github_upload_allowed": "false",
+                "push_allowed": "false",
+                "next_gate": "IDS-STAGE070-P4-GATE",
             },
         },
     }

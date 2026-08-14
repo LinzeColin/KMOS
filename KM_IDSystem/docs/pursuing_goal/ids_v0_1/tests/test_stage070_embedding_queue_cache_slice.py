@@ -252,10 +252,24 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
         run = json.loads(RUN.read_text(encoding="utf-8"))
         events = [json.loads(line) for line in EVENTS.read_text(encoding="utf-8").splitlines() if line.strip()]
         self.assertEqual("IDS-STAGE070", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE070-P2", status["phase"])
-        self.assertEqual("IDS-STAGE070-P3-GATE", status["next_gate"])
-        self.assertEqual("IDS-V0_1-STAGE070-P2", plan["phase"])
-        self.assertIn("IDS-STAGE070-P3-GATE", plan["stop_condition"])
+        self.assertIn(
+            status["phase"],
+            ("IDS-V0_1-STAGE070-P2", "IDS-V0_1-STAGE070-P3"),
+        )
+        self.assertIn(
+            status["next_gate"],
+            ("IDS-STAGE070-P3-GATE", "IDS-STAGE070-P4-GATE"),
+        )
+        self.assertIn(
+            plan["phase"],
+            ("IDS-V0_1-STAGE070-P2", "IDS-V0_1-STAGE070-P3"),
+        )
+        self.assertTrue(
+            any(
+                gate in plan["stop_condition"]
+                for gate in ("IDS-STAGE070-P3-GATE", "IDS-STAGE070-P4-GATE")
+            )
+        )
         self.assertTrue(
             {"ACC-STAGE070-P2-01", "ACC-STAGE070-P2-02", "ACC-STAGE070-P2-03", "ACC-STAGE070-P2-04"}.issubset(
                 {item["id"] for item in acceptance["items"]}

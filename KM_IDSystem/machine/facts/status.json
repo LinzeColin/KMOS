@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE070",
-  "phase": "IDS-V0_1-STAGE070-P2",
-  "task": "IDS-V0_1-STAGE070-P2",
-  "real_progress": "Stage070 P2 已在五条固定、非业务、reference-only 控制记录上实现策略继承、Embedding 队列、缓存、失败重试、成本/模型版本和审计字段投影；固定形状为 17/12/10/7/8/18，策略拒绝关闭、预算不足暂停、其余候选不持久化且不调度。真实资料、队列、缓存、重试、外发、成本、审计、外部 API、模型 Token 与运行时计数仍为零，下一步仅可在新的独立 run 进入 Stage070 P3，上传路径继续关闭",
-  "report_grade": "冻结 Stage070 任务包、P1 静态合同、Stage069 策略合同、Batch061-070 上传锁、P2 纯内存控制切片、治理路线与中文事实投影保持同一事实边界；本 P2 只验证固定控制形状、失败关闭、业务线白箱人工处理和回滚边界，未实际解析资料、生成摘要、外发文本、排队、缓存、重试、选择模型、计费、审计或业务处置",
-  "business_verdict": "本 P2 只证明固定控制引用上的策略继承、未来 Embedding 队列、缓存、失败重试、成本、模型版本和审计字段可本地机械投影；不能证明任何真实 data source、document、chunk、摘要、外发、Embedding、provider、模型、Token、真实审计、成本、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE070_PHASE2_EMBEDDING_QUEUE_CACHE_CONTROL_SLICE_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE070-P3",
+  "task": "IDS-V0_1-STAGE070-P3",
+  "real_progress": "Stage070 P3 已在 P2 五条固定、非业务、reference-only 控制记录上完成队列、缓存与失败关闭专项验证：五条二十九字段场景结果、五条十八字段审计投影、九十次审计字段检查和三个未来外部调用候选均只存在于内存；denied 阻断、两条 summary_only 范围、full_text_allowed 控制引用和预算不足暂停均已机械核验。真实资料、队列、缓存、重试、外发、成本、审计、外部 API、模型 Token 与运行时计数仍为零，下一步仅可在新的独立 run 进入 Stage070 P4，上传路径继续关闭",
+  "report_grade": "冻结 Stage070 任务包、P1 静态合同、P2 纯内存控制切片、Stage069 策略合同、Batch061-070 上传锁、P3 专项场景、治理路线与中文事实投影保持同一事实边界；本 P3 只重放固定控制引用并验证失败关闭、先审计、业务线白箱人工处理和回滚边界，未实际解析资料、生成摘要、外发文本、排队、缓存、重试、选择模型、计费、审计或业务处置",
+  "business_verdict": "本 P3 只证明固定控制引用上的 denied、summary_only、full_text_allowed 与预算暂停可由 P2 投影机械验证，并证明未来候选须先具控制审计投影；不能证明任何真实 data source、document、chunk、摘要、外发、Embedding、provider、模型、Token、真实审计、成本、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE070_PHASE3_EMBEDDING_QUEUE_CACHE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-15",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE070-P3-GATE",
+  "next_gate": "IDS-STAGE070-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

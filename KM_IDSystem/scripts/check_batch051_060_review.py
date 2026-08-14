@@ -179,6 +179,12 @@ SUCCESSOR_STAGE070 = "IDS-STAGE070"
 SUCCESSOR_PHASE070 = "IDS-STAGE070-P1"
 SUCCESSOR_TASK070 = "IDS-V0_1-STAGE070-P1"
 SUCCESSOR_NEXT_GATE070 = "IDS-STAGE070-P2-GATE"
+SUCCESSOR_PHASE070_P2 = "IDS-STAGE070-P2"
+SUCCESSOR_TASK070_P2 = "IDS-V0_1-STAGE070-P2"
+SUCCESSOR_NEXT_GATE070_P2 = "IDS-STAGE070-P3-GATE"
+SUCCESSOR_PHASE070_P3 = "IDS-STAGE070-P3"
+SUCCESSOR_TASK070_P3 = "IDS-V0_1-STAGE070-P3"
+SUCCESSOR_NEXT_GATE070_P3 = "IDS-STAGE070-P4-GATE"
 RESULT = "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
 CONTRACT_SCHEMA = "ids.v0_1.batch051_060.review_contract.v1"
 EXPECTED_STAGE_IDS = [f"STAGE-{number:03d}" for number in range(51, 61)]
@@ -1067,16 +1073,30 @@ def _governance_checks(batch: Mapping[str, Any], roadmap: Mapping[str, Any]) -> 
             )
             or (
                 roadmap.get("current_stage_id") == SUCCESSOR_STAGE070
-                and phase == "IDS-STAGE070-P2"
-                and task == "IDS-V0_1-STAGE070-P2"
-                and roadmap.get("next_gate_id") == "IDS-STAGE070-P3-GATE"
+                and phase == SUCCESSOR_PHASE070_P2
+                and task == SUCCESSOR_TASK070_P2
+                and roadmap.get("next_gate_id") == SUCCESSOR_NEXT_GATE070_P2
                 and isinstance(roadmap.get("current_transition_history"), dict)
                 and roadmap["current_transition_history"].get("stage070_phase2_state")
                 == {
                     "current_stage_id": SUCCESSOR_STAGE070,
-                    "current_phase_id": "IDS-STAGE070-P2",
-                    "current_task_id": "IDS-V0_1-STAGE070-P2",
-                    "next_gate_id": "IDS-STAGE070-P3-GATE",
+                    "current_phase_id": SUCCESSOR_PHASE070_P2,
+                    "current_task_id": SUCCESSOR_TASK070_P2,
+                    "next_gate_id": SUCCESSOR_NEXT_GATE070_P2,
+                }
+            )
+            or (
+                roadmap.get("current_stage_id") == SUCCESSOR_STAGE070
+                and phase == SUCCESSOR_PHASE070_P3
+                and task == SUCCESSOR_TASK070_P3
+                and roadmap.get("next_gate_id") == SUCCESSOR_NEXT_GATE070_P3
+                and isinstance(roadmap.get("current_transition_history"), dict)
+                and roadmap["current_transition_history"].get("stage070_phase3_state")
+                == {
+                    "current_stage_id": SUCCESSOR_STAGE070,
+                    "current_phase_id": SUCCESSOR_PHASE070_P3,
+                    "current_task_id": SUCCESSOR_TASK070_P3,
+                    "next_gate_id": SUCCESSOR_NEXT_GATE070_P3,
                 }
             )
         ),
@@ -1564,9 +1584,12 @@ def _projection_checks() -> dict[str, bool]:
     successor_stage070_phase1_status = (
         isinstance(status, dict)
         and status.get("stage") == SUCCESSOR_STAGE070
-        and status.get("phase") in (SUCCESSOR_TASK070, "IDS-V0_1-STAGE070-P2")
-        and status.get("task") in (SUCCESSOR_TASK070, "IDS-V0_1-STAGE070-P2")
-        and status.get("next_gate") in (SUCCESSOR_NEXT_GATE070, "IDS-STAGE070-P3-GATE")
+        and status.get("phase")
+        in (SUCCESSOR_TASK070, SUCCESSOR_TASK070_P2, SUCCESSOR_TASK070_P3)
+        and status.get("task")
+        in (SUCCESSOR_TASK070, SUCCESSOR_TASK070_P2, SUCCESSOR_TASK070_P3)
+        and status.get("next_gate")
+        in (SUCCESSOR_NEXT_GATE070, SUCCESSOR_NEXT_GATE070_P2, SUCCESSOR_NEXT_GATE070_P3)
         and status.get("runtime_enabled") is False
         and status.get("push_allowed") is False
     )
@@ -1853,11 +1876,14 @@ def _projection_checks() -> dict[str, bool]:
     successor_stage070_phase1_plan = (
         isinstance(plan, dict)
         and plan.get("stage") == SUCCESSOR_STAGE070
-        and plan.get("phase") in (SUCCESSOR_TASK070, "IDS-V0_1-STAGE070-P2")
-        and plan.get("task") in (SUCCESSOR_TASK070, "IDS-V0_1-STAGE070-P2")
+        and plan.get("phase")
+        in (SUCCESSOR_TASK070, SUCCESSOR_TASK070_P2, SUCCESSOR_TASK070_P3)
+        and plan.get("task")
+        in (SUCCESSOR_TASK070, SUCCESSOR_TASK070_P2, SUCCESSOR_TASK070_P3)
         and (
             SUCCESSOR_NEXT_GATE070 in str(plan.get("stop_condition", ""))
-            or "IDS-STAGE070-P3-GATE" in str(plan.get("stop_condition", ""))
+            or SUCCESSOR_NEXT_GATE070_P2 in str(plan.get("stop_condition", ""))
+            or SUCCESSOR_NEXT_GATE070_P3 in str(plan.get("stop_condition", ""))
         )
     )
     return {

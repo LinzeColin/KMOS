@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-15 · IDS v0.1 Stage070 Phase 3（本地）
+
+- 完成 Embedding 队列、缓存与失败关闭纯内存专项场景：只重放 P2 五条固定、非业务、reference-only `:control:` 记录，验证 `denied` 无外发、两个 `summary_only` 范围、`full_text_allowed` 文本块控制范围与预算不足暂停，形成五条二十九字段场景结果、五条十八字段审计投影、九十次审计字段检查和三个先审计的未来调用候选；没有建立第二权威事实源。
+- 场景结果、审计投影、引用范围和人工处理标记只验证冻结合同与业务线白箱受控边界，不能替代来源文档、形成业务事实或自动建议；未读取、打开、解析、生成、外发、排队、缓存、重试、写入或查询真实资料，未执行外部 API、模型 Token、Agent、OVH、生产、上传或推送。
+- 完整本地回执记录在 `KM_IDSystem/machine/runs/2026-08-15-stage070-p3-local.json`；回滚仅恢复 `PHASE2_EMBEDDING_QUEUE_CACHE_CONTROL_SLICE_RUNTIME_DISABLED`，下一步仅可在新的独立 run 进入 `IDS-STAGE070-P4-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-15 · IDS v0.1 Stage070 Phase 2（本地）
 
 - 完成 Embedding 队列、缓存与失败重试纯内存控制切片：五条固定、非业务、reference-only `:control:` 请求机械投影策略继承、未来 `17/12/10/7/8/18` 输入/队列/缓存/失败重试/成本模型/审计字段，覆盖默认 `denied`、摘要继承、document 收紧、全文控制与预算不足暂停；没有建立第二权威事实源。

@@ -9,14 +9,14 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage070 Phase 2 - 2026-08-15
+## Current Gate - Stage070 Phase 3 - 2026-08-15
 
-- 本节是唯一当前交接；Stage070 P1、Stage069 Review/P4/P3/P2/P1、Stage068 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
-- 本轮完成 `IDS-V0_1-STAGE070-P2` 纯内存控制切片：固定五条非业务、reference-only `:control:` 输入，复用默认 `denied`、三档策略和 data source/document→chunk 自动继承，机械投影 `17/12/10/7/8/18` 的输入、未来队列、缓存、失败重试、成本与模型版本、外部 API 审计字段；策略拒绝关闭、预算不足暂停、其余候选不持久化且不调度，业务线策略例外仍须白箱人工复核。
-- 这只证明冻结 Stage070 任务包、P1 静态合同、Stage069 策略合同、Batch061-070 上传锁、机器事实与中文渲染投影可在本地保持同一事实边界；不证明真实资料、摘要、文本块、真实策略解析、队列、缓存、重试、成本、审计、provider/模型、外部 API、模型 Token、OVH、生产或上传能力。来源文档继续是唯一权威，所有真实资料、Agent、模型 Token 与运行时计数保持零。
-- 已验证：P2 聚焦用例 `7/7`、Stage060--069 阶段链路 `473/473`、Stage070 P1/P2 合同与切片 `15/15`、Stage005 治理回归 `valid=true`、Batch041-050 与 Batch051-060 检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；中文事实投影重渲染 `7` 个文件，文档预算、无登记阻塞与双平面检查均通过。完整命令和本地回执记录在 `KM_IDSystem/machine/runs/2026-08-15-stage070-p2-local.json`；这些结果只验证固定控制形状、治理和零运行时边界。
-- 回滚只撤回本 P2 范围说明、控制切片、合同、聚焦用例、machine run、事件、机器事实、治理路线、阶段链路兼容断言与生成中文视图，恢复到 `PHASE1_EMBEDDING_QUEUE_AND_CACHE_CONTRACT_RUNTIME_DISABLED`；不改变 P1、Stage069 及更早证据、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
-- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE070-P3-GATE`。本 run 不进入 P3/P4、整阶段复审、批次复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+- 本节是唯一当前交接；Stage070 P2/P1、Stage069 Review/P4/P3/P2/P1、Stage068 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE070-P3` 纯内存专项验证：只重放 P2 的五条固定、非业务、reference-only `:control:` 记录，形成五条二十九字段场景结果、五条十八字段审计投影与九十次审计字段检查；`denied` 不形成外发载荷，两条 `summary_only` 仅保留摘要引用类别，`full_text_allowed` 仅保留文本块控制引用，预算不足固定暂停，三个未来外部调用候选均先有审计投影，全部不持久化、不调度且不实际调用。
+- 这只证明冻结 Stage070 任务包、P1 静态合同、P2 控制切片、Stage069 策略合同、Batch061-070 上传锁、机器事实与中文渲染投影可在本地保持同一事实边界；不证明真实资料、摘要正文、真实文本块、真实策略解析、队列、缓存、重试、成本、审计、provider/模型、外部 API、模型 Token、OVH、生产或上传能力。来源文档继续是唯一权威，所有真实资料、Agent、模型 Token 与运行时计数保持零。
+- 已验证：P2 兼容用例 `7/7`、P3 聚焦用例 `10/10`、Stage060--069 阶段链路 `473/473`、Stage070 P1/P2/P3 合同、切片与场景 `25/25`、Stage005 治理回归 `valid=true`、Batch041-050 与 Batch051-060 检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；中文事实投影重渲染 `7` 个文件，文档预算、无登记阻塞与双平面检查均通过。完整命令和本地回执记录在 `KM_IDSystem/machine/runs/2026-08-15-stage070-p3-local.json`；这些结果只验证固定控制场景、治理和零运行时边界。
+- 回滚只撤回本 P3 范围说明、场景合同、纯内存模块、聚焦用例、machine run、事件、机器事实、治理路线、阶段链路兼容断言与生成中文视图，恢复到 `PHASE2_EMBEDDING_QUEUE_CACHE_CONTROL_SLICE_RUNTIME_DISABLED`；不改变 P1/P2、Stage069 及更早证据、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE070-P4-GATE`。本 run 不进入 P4、整阶段复审、批次复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
 
 ## Superseded Gate - Stage069 Review - 2026-08-15
 
