@@ -77,7 +77,7 @@ PARSER_VERSION = "kmfa.daily_funds.parser.v13"
 # aliases, amount/date parsing, or the confidence threshold.  Both fixed
 # segmenters still need to produce identical, footer-reconciled totals.
 # Chart admission never produces a formal account-balance publication.
-CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v10"
+CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v11"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -997,6 +997,76 @@ def _preprocess_ocr_enhanced_image(*, image: Path, root: Path) -> Path:
     return output
 
 
+def _preprocess_ocr_binarized_image(*, image: Path, root: Path) -> Path:
+    """Apply one deterministic global threshold after the bounded enhancement.
+
+    This is a last image-layout repair for screenshot contrast only.  The
+    threshold is derived from the image histogram (Otsu's method), not chosen
+    per attachment, and it cannot change the downstream header, confidence,
+    date, row, or footer-reconciliation requirements.
+    """
+
+    try:
+        from PIL import Image, ImageFilter, ImageOps
+    except ImportError as exc:
+        raise ParseError("OCR_PREPROCESS_RUNTIME_UNAVAILABLE") from exc
+    try:
+        with Image.open(image) as source:
+            width, height = source.size
+            pixels = width * height
+            if width < 16 or height < 16 or pixels > _OCR_ENHANCED_MAX_PIXELS:
+                raise ParseError("OCR_IMAGE_DIMENSIONS_UNSUPPORTED")
+            source.load()
+            if pixels <= _OCR_ENHANCED_SMALL_IMAGE_PIXELS:
+                scale = _OCR_ENHANCED_SMALL_SCALE
+            elif pixels <= _OCR_ENHANCED_MEDIUM_IMAGE_PIXELS:
+                scale = _OCR_ENHANCED_MEDIUM_SCALE
+            else:
+                scale = 1
+            rendered = ImageOps.autocontrast(source.convert("L"))
+            if scale > 1:
+                rendered = rendered.resize(
+                    (width * scale, height * scale),
+                    resample=Image.Resampling.LANCZOS,
+                )
+            rendered = rendered.filter(ImageFilter.UnsharpMask(
+                radius=_OCR_ENHANCED_SHARPEN_RADIUS,
+                percent=_OCR_ENHANCED_SHARPEN_PERCENT,
+                threshold=_OCR_ENHANCED_SHARPEN_THRESHOLD,
+            ))
+            histogram = rendered.histogram()
+            total = sum(histogram)
+            weighted_total = sum(index * count for index, count in enumerate(histogram))
+            weight_background = 0
+            weighted_background = 0
+            best_threshold = 0
+            best_variance = -1.0
+            for threshold, count in enumerate(histogram):
+                weight_background += count
+                if weight_background == 0:
+                    continue
+                weight_foreground = total - weight_background
+                if weight_foreground == 0:
+                    break
+                weighted_background += threshold * count
+                mean_background = weighted_background / weight_background
+                mean_foreground = (weighted_total - weighted_background) / weight_foreground
+                variance = weight_background * weight_foreground * (mean_background - mean_foreground) ** 2
+                if variance > best_variance:
+                    best_variance = variance
+                    best_threshold = threshold
+            if best_variance < 0:
+                raise ParseError("OCR_IMAGE_PREPROCESS_INVALID")
+            binary = rendered.point(lambda value: 0 if value <= best_threshold else 255, mode="L")
+            output = root / "ocr-binarized.png"
+            binary.save(output, format="PNG")
+    except ParseError:
+        raise
+    except (OSError, ValueError) as exc:
+        raise ParseError("OCR_IMAGE_PREPROCESS_INVALID") from exc
+    return output
+
+
 def _ocr_tsv(
     *,
     payload: bytes,
@@ -1005,6 +1075,7 @@ def _ocr_tsv(
     psm: int = OCR_PRIMARY_PSM,
     preprocess_grid: bool = False,
     preprocess_enhanced: bool = False,
+    preprocess_binarized: bool = False,
 ) -> str:
     """Generate in-memory Tesseract TSV for exactly one bounded document page.
 
@@ -1015,7 +1086,7 @@ def _ocr_tsv(
 
     if psm not in _OCR_ALLOWED_PSMS:
         raise ParseError("OCR_PSM_INVALID")
-    if preprocess_grid and preprocess_enhanced:
+    if sum((preprocess_grid, preprocess_enhanced, preprocess_binarized)) > 1:
         raise ParseError("OCR_PREPROCESS_MODE_INVALID")
     with tempfile.TemporaryDirectory(prefix="daily-funds-ocr-") as temporary:
         root = Path(temporary)
@@ -1039,6 +1110,8 @@ def _ocr_tsv(
             image = _preprocess_ocr_grid_image(image=image, root=root)
         elif preprocess_enhanced:
             image = _preprocess_ocr_enhanced_image(image=image, root=root)
+        elif preprocess_binarized:
+            image = _preprocess_ocr_binarized_image(image=image, root=root)
         return _run_ocr_command(
             ["tesseract", str(image), "stdout", "-l", OCR_LANGUAGE, "--psm", str(psm), "tsv"],
             runner=runner,
@@ -1995,6 +2068,7 @@ def _cashflow_observation_from_ocr(
     min_confidence_bps: int,
     preprocess_grid: bool = False,
     preprocess_enhanced: bool = False,
+    preprocess_binarized: bool = False,
 ) -> tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]:
     """Apply one fixed OCR segmentation mode to the unchanged cashflow gate.
 
@@ -2010,6 +2084,7 @@ def _cashflow_observation_from_ocr(
         psm=psm,
         preprocess_grid=preprocess_grid,
         preprocess_enhanced=preprocess_enhanced,
+        preprocess_binarized=preprocess_binarized,
     ))
     lines = _ocr_lines(words)
     headerless = False
@@ -2121,6 +2196,38 @@ def _cashflow_observation_from_enhanced_ocr(
     first, second = results
     if first[:3] != second[:3]:
         raise ParseError("CASHFLOW_OBSERVATION_ENHANCED_PREPROCESS_DISAGREEMENT")
+    return first
+
+
+def _cashflow_observation_from_binarized_ocr(
+    *,
+    payload: bytes,
+    evidence: ParserEvidence,
+    runner: Callable[..., Any],
+    received_at: datetime,
+    min_confidence_bps: int,
+) -> tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]:
+    """Require matching strict readings after fixed Otsu binarization."""
+
+    results: list[tuple[date, int, int, tuple[_OcrHeaderCell, ...], bool]] = []
+    for psm in OCR_GRID_PREPROCESS_PSMS:
+        try:
+            results.append(_cashflow_observation_from_ocr(
+                payload=payload,
+                evidence=evidence,
+                runner=runner,
+                psm=psm,
+                received_at=received_at,
+                min_confidence_bps=min_confidence_bps,
+                preprocess_binarized=True,
+            ))
+        except ParseError as exc:
+            if str(exc).split(":", 1)[0] not in _CASHFLOW_IMAGE_LAYOUT_RECOVERY_CODES:
+                raise
+            raise ParseError("CASHFLOW_OBSERVATION_BINARIZED_PREPROCESS_CONSENSUS_MISSING") from None
+    first, second = results
+    if first[:3] != second[:3]:
+        raise ParseError("CASHFLOW_OBSERVATION_BINARIZED_PREPROCESS_DISAGREEMENT")
     return first
 
 
@@ -2278,8 +2385,19 @@ def parse_cashflow_observation(
                     received_at=received_at,
                     min_confidence_bps=threshold,
                 )
-            except ParseError:
-                raise original_error from None
+            except ParseError as enhanced_error:
+                if str(enhanced_error).split(":", 1)[0] != "CASHFLOW_OBSERVATION_ENHANCED_PREPROCESS_CONSENSUS_MISSING":
+                    raise original_error from None
+                try:
+                    business_date, inflow_fen, outflow_fen, cells, _ = _cashflow_observation_from_binarized_ocr(
+                        payload=payload,
+                        evidence=evidence,
+                        runner=runner,
+                        received_at=received_at,
+                        min_confidence_bps=threshold,
+                    )
+                except ParseError:
+                    raise original_error from None
     return CashflowObservation(
         business_date=business_date,
         inflow_fen=inflow_fen,

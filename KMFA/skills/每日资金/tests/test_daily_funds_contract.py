@@ -1890,6 +1890,41 @@ def test_cashflow_observation_uses_enhanced_rendering_only_after_grid_recovery_s
     assert observation.parser_evidence.parser_version == CASHFLOW_OBSERVATION_PARSER_VERSION
 
 
+def test_cashflow_observation_uses_binarized_rendering_only_after_enhanced_recovery_stops() -> None:
+    image_module = pytest.importorskip("PIL.Image")
+    image = image_module.new("L", (224, 128), 255)
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    payload = buffer.getvalue()
+    headers = ["日期", "事由", "收（付）款人", "收支类别", "转出", "收入", "银行"]
+    rows = [
+        ["08月07日", "付款", "", "项目成本", "40.00", "", "银行A"],
+        ["08月07日", "收款", "", "其他收款", "", "50.00", "银行A"],
+        ["", "", "", "合计", "40.00", "50.00", ""],
+    ]
+    missing_header = _ocr_tsv(["日期", "事由", "收支类别"], ["08月07日", "付款", "项目成本"])
+    strict_table = _ocr_tsv(headers, rows[0], extra_rows=rows[1:])
+    calls: list[tuple[str, str]] = []
+
+    def runner(command, **_kwargs):
+        psm = command[command.index("--psm") + 1]
+        source_name = Path(command[1]).name
+        mode = "binarized" if source_name == "ocr-binarized.png" else "other"
+        calls.append((mode, psm))
+        return SimpleNamespace(returncode=0, stdout=strict_table if mode == "binarized" else missing_header, stderr="")
+
+    observation = parse_cashflow_observation(
+        family="资金明细", filename="binarized-cashflow.png", payload=payload,
+        source=_source(payload), received_at=datetime(2026, 8, 10, tzinfo=UTC),
+        mime="image/png", runner=runner,
+    )
+
+    assert calls[-2:] == [("binarized", "6"), ("binarized", "11")]
+    assert observation.business_date.isoformat() == "2026-08-07"
+    assert observation.inflow_fen == 5_000
+    assert observation.outflow_fen == 4_000
+
+
 def test_cashflow_observation_rejects_disagreeing_enhanced_renderings() -> None:
     image_module = pytest.importorskip("PIL.Image")
     draw_module = pytest.importorskip("PIL.ImageDraw")
