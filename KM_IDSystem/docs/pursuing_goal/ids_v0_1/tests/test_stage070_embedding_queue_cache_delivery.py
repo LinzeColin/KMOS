@@ -365,22 +365,35 @@ class Stage070EmbeddingQueueCachePhase4Tests(unittest.TestCase):
             if line.strip()
         ]
         self.assertEqual("IDS-STAGE070", status["stage"])
-        self.assertEqual(
-            (
-                "IDS-V0_1-STAGE070-P4",
-                "IDS-V0_1-STAGE070-P4",
-                "IDS-STAGE070-REVIEW-GATE",
-            ),
+        self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-V0_1-STAGE070-P4",
+                    "IDS-V0_1-STAGE070-P4",
+                    "IDS-STAGE070-REVIEW-GATE",
+                ),
+                (
+                    "IDS-V0_1-STAGE070-REVIEW",
+                    "IDS-V0_1-STAGE070-REVIEW",
+                    "IDS-STAGE071-P1-GATE",
+                ),
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertEqual("IDS-STAGE070", plan["stage"])
-        self.assertEqual(
-            ("IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-P4"),
+        self.assertIn(
             (plan["phase"], plan["task"]),
+            (
+                ("IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-P4"),
+                ("IDS-V0_1-STAGE070-REVIEW", "IDS-V0_1-STAGE070-REVIEW"),
+            ),
         )
-        self.assertIn("IDS-STAGE070-REVIEW-GATE", plan["stop_condition"])
+        self.assertTrue(
+            "IDS-STAGE070-REVIEW-GATE" in plan["stop_condition"]
+            or "IDS-STAGE071-P1-GATE" in plan["stop_condition"]
+        )
         for acceptance_id in (
             "ACC-STAGE070-P4-01",
             "ACC-STAGE070-P4-02",

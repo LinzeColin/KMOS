@@ -269,6 +269,7 @@ class Stage065EngineeringSemanticAssetClassificationStageReviewTests(unittest.Te
                 ("IDS-STAGE070", "IDS-V0_1-STAGE070-P2", "IDS-V0_1-STAGE070-P2", "IDS-STAGE070-P3-GATE"),
                 ("IDS-STAGE070", "IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P3", "IDS-STAGE070-P4-GATE"),
                 ("IDS-STAGE070", "IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-P4", "IDS-STAGE070-REVIEW-GATE"),
+                ("IDS-STAGE070", "IDS-V0_1-STAGE070-REVIEW", "IDS-V0_1-STAGE070-REVIEW", "IDS-STAGE071-P1-GATE"),
                 ("IDS-STAGE069", "IDS-V0_1-STAGE069-REVIEW", "IDS-V0_1-STAGE069-REVIEW", "IDS-STAGE070-P1-GATE"),
             ),
         )
@@ -279,7 +280,7 @@ class Stage065EngineeringSemanticAssetClassificationStageReviewTests(unittest.Te
      "IDS-V0_1-STAGE069-P4",
      "IDS-V0_1-STAGE069-REVIEW",
 
-     "IDS-V0_1-STAGE070-P1","IDS-V0_1-STAGE070-P2","IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P4",))
+     "IDS-V0_1-STAGE070-P1","IDS-V0_1-STAGE070-P2","IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-REVIEW",))
         self.assertTrue(
             "IDS-STAGE066-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE066-P2-GATE" in plan["stop_condition"]
@@ -301,6 +302,7 @@ class Stage065EngineeringSemanticAssetClassificationStageReviewTests(unittest.Te
             or "IDS-STAGE070-P3-GATE" in plan["stop_condition"]
             or "IDS-STAGE070-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE070-REVIEW-GATE" in plan["stop_condition"]
+            or "IDS-STAGE071-P1-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             {

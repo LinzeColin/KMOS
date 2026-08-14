@@ -351,6 +351,7 @@ class Stage065EngineeringSemanticAssetClassificationPhase2Tests(unittest.TestCas
                 ("IDS-V0_1-STAGE070-P2", "IDS-V0_1-STAGE070-P2", "IDS-STAGE070-P3-GATE"),
 ("IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P3", "IDS-STAGE070-P4-GATE"),
 ("IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-P4", "IDS-STAGE070-REVIEW-GATE"),
+("IDS-V0_1-STAGE070-REVIEW", "IDS-V0_1-STAGE070-REVIEW", "IDS-STAGE071-P1-GATE"),
                 ("IDS-V0_1-STAGE069-REVIEW", "IDS-V0_1-STAGE069-REVIEW", "IDS-STAGE070-P1-GATE"),
             ),
         )
@@ -393,7 +394,8 @@ class Stage065EngineeringSemanticAssetClassificationPhase2Tests(unittest.TestCas
                 ("IDS-V0_1-STAGE070-P1", "IDS-V0_1-STAGE070-P1"),
                 ("IDS-V0_1-STAGE070-P2", "IDS-V0_1-STAGE070-P2"),
 ("IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P3"),
-("IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-P4"),),
+("IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-P4"),
+("IDS-V0_1-STAGE070-REVIEW", "IDS-V0_1-STAGE070-REVIEW"),),
         )
         self.assertTrue(
             "IDS-STAGE065-P3-GATE" in plan["stop_condition"]
@@ -419,6 +421,7 @@ class Stage065EngineeringSemanticAssetClassificationPhase2Tests(unittest.TestCas
             or "IDS-STAGE070-P3-GATE" in plan["stop_condition"]
             or "IDS-STAGE070-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE070-REVIEW-GATE" in plan["stop_condition"]
+            or "IDS-STAGE071-P1-GATE" in plan["stop_condition"]
         )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}

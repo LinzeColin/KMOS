@@ -353,6 +353,9 @@ SUCCESSOR_NEXT_GATE070_P3 = "IDS-STAGE070-P4-GATE"
 SUCCESSOR_PHASE070_P4 = "IDS-STAGE070-P4"
 SUCCESSOR_TASK070_P4 = "IDS-V0_1-STAGE070-P4"
 SUCCESSOR_NEXT_GATE070_P4 = "IDS-STAGE070-REVIEW-GATE"
+SUCCESSOR_PHASE070_REVIEW = "IDS-STAGE070-REVIEW"
+SUCCESSOR_TASK070_REVIEW = "IDS-V0_1-STAGE070-REVIEW"
+SUCCESSOR_NEXT_GATE070_REVIEW = "IDS-STAGE071-P1-GATE"
 PASS_RESULT = "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED"
 EXPECTED_STAGE_IDS = [f"STAGE-{stage:03d}" for stage in range(41, 51)]
 EXPECTED_ACCEPTANCE_IDS = [f"ACC-STAGE-{stage:03d}" for stage in range(41, 51)]
@@ -1251,6 +1254,12 @@ def _governance_checks(
                 and roadmap.get("current_phase_id") == SUCCESSOR_PHASE070_P4
                 and roadmap.get("current_task_id") == SUCCESSOR_TASK070_P4
                 and roadmap.get("next_gate_id") == SUCCESSOR_NEXT_GATE070_P4
+            )
+            or (
+                roadmap.get("current_stage_id") == SUCCESSOR_STAGE070
+                and roadmap.get("current_phase_id") == SUCCESSOR_PHASE070_REVIEW
+                and roadmap.get("current_task_id") == SUCCESSOR_TASK070_REVIEW
+                and roadmap.get("next_gate_id") == SUCCESSOR_NEXT_GATE070_REVIEW
             )
         ),
         "roadmap_phase_and_task_evidence_exact": (
@@ -2157,6 +2166,7 @@ def _projection_checks() -> dict[str, bool]:
             SUCCESSOR_TASK070_P2,
             SUCCESSOR_TASK070_P3,
             SUCCESSOR_TASK070_P4,
+            SUCCESSOR_TASK070_REVIEW,
         )
         and status.get("task")
         in (
@@ -2164,6 +2174,7 @@ def _projection_checks() -> dict[str, bool]:
             SUCCESSOR_TASK070_P2,
             SUCCESSOR_TASK070_P3,
             SUCCESSOR_TASK070_P4,
+            SUCCESSOR_TASK070_REVIEW,
         )
         and status.get("next_gate")
         in (
@@ -2171,6 +2182,7 @@ def _projection_checks() -> dict[str, bool]:
             SUCCESSOR_NEXT_GATE070_P2,
             SUCCESSOR_NEXT_GATE070_P3,
             SUCCESSOR_NEXT_GATE070_P4,
+            SUCCESSOR_NEXT_GATE070_REVIEW,
         )
         and status.get("runtime_enabled") is False
         and status.get("push_allowed") is False
@@ -2852,6 +2864,7 @@ def _projection_checks() -> dict[str, bool]:
             SUCCESSOR_TASK070_P2,
             SUCCESSOR_TASK070_P3,
             SUCCESSOR_TASK070_P4,
+            SUCCESSOR_TASK070_REVIEW,
         )
         and plan.get("task")
         in (
@@ -2859,12 +2872,14 @@ def _projection_checks() -> dict[str, bool]:
             SUCCESSOR_TASK070_P2,
             SUCCESSOR_TASK070_P3,
             SUCCESSOR_TASK070_P4,
+            SUCCESSOR_TASK070_REVIEW,
         )
         and (
             SUCCESSOR_NEXT_GATE070 in str(plan.get("stop_condition"))
             or SUCCESSOR_NEXT_GATE070_P2 in str(plan.get("stop_condition"))
             or SUCCESSOR_NEXT_GATE070_P3 in str(plan.get("stop_condition"))
             or SUCCESSOR_NEXT_GATE070_P4 in str(plan.get("stop_condition"))
+            or SUCCESSOR_NEXT_GATE070_REVIEW in str(plan.get("stop_condition"))
         )
     )
     return {

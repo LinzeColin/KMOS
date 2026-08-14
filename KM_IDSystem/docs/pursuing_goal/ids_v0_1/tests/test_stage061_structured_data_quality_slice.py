@@ -319,6 +319,7 @@ class Stage061StructuredDataQualityPhase2Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE070-P2", "IDS-STAGE070-P3-GATE"),
                 ("IDS-V0_1-STAGE070-P3", "IDS-STAGE070-P4-GATE"),
                 ("IDS-V0_1-STAGE070-P4", "IDS-STAGE070-REVIEW-GATE"),
+                ("IDS-V0_1-STAGE070-REVIEW", "IDS-STAGE071-P1-GATE"),
                 ("IDS-V0_1-STAGE069-REVIEW", "IDS-STAGE070-P1-GATE"),
             ),
         )
@@ -372,7 +373,7 @@ class Stage061StructuredDataQualityPhase2Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE069-P4",
                 "IDS-V0_1-STAGE069-REVIEW",
 
-                "IDS-V0_1-STAGE070-P1","IDS-V0_1-STAGE070-P2","IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P4",),
+                "IDS-V0_1-STAGE070-P1","IDS-V0_1-STAGE070-P2","IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-REVIEW",),
         )
         self.assertIn(status["next_gate"], plan["stop_condition"])
         self.assertIn("OVH", plan["stop_condition"])

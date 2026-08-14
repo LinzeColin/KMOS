@@ -528,6 +528,12 @@ class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
             and status["task"] == "IDS-V0_1-STAGE070-P4"
             and status["next_gate"] == "IDS-STAGE070-REVIEW-GATE"
         )
+        legal_stage070_review_successor = (
+            status["stage"] == "IDS-STAGE070"
+            and status["phase"] == "IDS-V0_1-STAGE070-REVIEW"
+            and status["task"] == "IDS-V0_1-STAGE070-REVIEW"
+            and status["next_gate"] == "IDS-STAGE071-P1-GATE"
+        )
         self.assertTrue(
             still_within_stage060_closeout
             or legal_stage061_phase1_successor
@@ -578,7 +584,8 @@ class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
             or legal_stage070_phase1_successor
             or legal_stage070_phase2_successor
             or legal_stage070_phase3_successor
-            or legal_stage070_phase4_successor,
+            or legal_stage070_phase4_successor
+            or legal_stage070_review_successor,
             status,
         )
         self.assertFalse(status["runtime_enabled"])

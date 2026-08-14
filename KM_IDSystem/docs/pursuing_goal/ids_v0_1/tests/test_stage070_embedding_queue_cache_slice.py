@@ -258,6 +258,7 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE070-P2",
                 "IDS-V0_1-STAGE070-P3",
                 "IDS-V0_1-STAGE070-P4",
+                "IDS-V0_1-STAGE070-REVIEW",
             ),
         )
         self.assertIn(
@@ -266,6 +267,7 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
                 "IDS-STAGE070-P3-GATE",
                 "IDS-STAGE070-P4-GATE",
                 "IDS-STAGE070-REVIEW-GATE",
+                "IDS-STAGE071-P1-GATE",
             ),
         )
         self.assertIn(
@@ -274,6 +276,7 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE070-P2",
                 "IDS-V0_1-STAGE070-P3",
                 "IDS-V0_1-STAGE070-P4",
+                "IDS-V0_1-STAGE070-REVIEW",
             ),
         )
         self.assertTrue(
@@ -283,6 +286,7 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
                     "IDS-STAGE070-P3-GATE",
                     "IDS-STAGE070-P4-GATE",
                     "IDS-STAGE070-REVIEW-GATE",
+                    "IDS-STAGE071-P1-GATE",
                 )
             )
         )
