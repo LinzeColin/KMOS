@@ -7,24 +7,29 @@ import unittest
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
 PHASE1_CONTRACT = (
-    BASE / "chunk_coverage_metrics" / "stage066_chunk_coverage_metrics_contract.json"
+    BASE
+    / "chunk_quality_regression"
+    / "stage067_chunk_quality_regression_contract.json"
 )
+PHASE2 = BASE / "STAGE067_PHASE2_CHUNK_QUALITY_REGRESSION_CONTROL_SLICE.md"
 PHASE2_CONTRACT = (
     BASE
-    / "chunk_coverage_metrics"
-    / "stage066_chunk_coverage_metrics_slice_contract.json"
+    / "chunk_quality_regression"
+    / "stage067_chunk_quality_regression_slice_contract.json"
 )
 PHASE2_MODULE = (
-    BASE / "chunk_coverage_metrics" / "stage066_chunk_coverage_metrics_slice.py"
+    BASE / "chunk_quality_regression" / "stage067_chunk_quality_regression_slice.py"
 )
-PHASE3 = BASE / "STAGE066_PHASE3_CHUNK_COVERAGE_METRICS_SCENARIOS.md"
+PHASE3 = BASE / "STAGE067_PHASE3_CHUNK_QUALITY_REGRESSION_SCENARIOS.md"
 CONTRACT = (
     BASE
-    / "chunk_coverage_metrics"
-    / "stage066_chunk_coverage_metrics_scenarios_contract.json"
+    / "chunk_quality_regression"
+    / "stage067_chunk_quality_regression_scenarios_contract.json"
 )
 MODULE = (
-    BASE / "chunk_coverage_metrics" / "stage066_chunk_coverage_metrics_scenarios.py"
+    BASE
+    / "chunk_quality_regression"
+    / "stage067_chunk_quality_regression_scenarios.py"
 )
 BATCH = BASE / "BATCH061_070_UPLOAD_LOCK.yaml"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
@@ -32,25 +37,25 @@ EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-14-stage066-p3-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-14-stage067-p3-local.json"
 
 EXPECTED_SCENARIOS = [
-    "long-document-coverage-control-human-review",
-    "cross-page-table-coverage-control-human-handling",
-    "engineering-procedure-coverage-control-human-review",
-    "parameter-table-coverage-control-human-review",
-    "citation-page-coverage-control-human-confirmation",
-    "duplicate-chunk-coverage-control-human-review",
+    "long-document-chunk-quality-control-human-review",
+    "cross-page-table-chunk-quality-control-human-handling",
+    "engineering-procedure-chunk-quality-control-human-review",
+    "parameter-table-chunk-quality-control-human-review",
+    "citation-page-chunk-quality-control-human-confirmation",
+    "duplicate-chunk-quality-control-human-review",
 ]
 
 
-class Stage066ChunkCoverageMetricsPhase3Tests(unittest.TestCase):
+class Stage067ChunkQualityRegressionPhase3Tests(unittest.TestCase):
     _module_value = None
     _report_value = None
 
     def _module(self):
         if self.__class__._module_value is None:
-            spec = importlib.util.spec_from_file_location("stage066_p3", MODULE)
+            spec = importlib.util.spec_from_file_location("stage067_p3", MODULE)
             module = importlib.util.module_from_spec(spec)
             self.assertIsNotNone(spec.loader)
             spec.loader.exec_module(module)
@@ -60,7 +65,7 @@ class Stage066ChunkCoverageMetricsPhase3Tests(unittest.TestCase):
     def _report(self):
         if self.__class__._report_value is None:
             self.__class__._report_value = (
-                self._module().build_chunk_coverage_metrics_phase3_report()
+                self._module().build_chunk_quality_regression_phase3_report()
             )
         return self.__class__._report_value
 
@@ -70,6 +75,7 @@ class Stage066ChunkCoverageMetricsPhase3Tests(unittest.TestCase):
     def test_phase3_primary_artifacts_exist(self):
         for artifact in (
             PHASE1_CONTRACT,
+            PHASE2,
             PHASE2_CONTRACT,
             PHASE2_MODULE,
             PHASE3,
@@ -89,17 +95,17 @@ class Stage066ChunkCoverageMetricsPhase3Tests(unittest.TestCase):
     def test_contract_identity_and_zero_runtime_boundary(self):
         contract = self._contract()
         self.assertEqual(
-            "ids.stage066.chunk_coverage_metrics.phase3.controlled_scenarios_contract.v1",
+            "ids.stage067.chunk_quality_regression.phase3.controlled_scenarios_contract.v1",
             contract["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE066-P3", contract["task_id"])
+        self.assertEqual("IDS-V0_1-STAGE067-P3", contract["task_id"])
         self.assertTrue(contract["scenario_executable"])
         self.assertFalse(contract["execution_ready"])
-        self.assertEqual("IDS-STAGE066-P4-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE067-P4-GATE", contract["next_gate"])
         self.assertFalse(contract["source_authority"]["second_authoritative_source_created"])
         self.assertTrue(
             contract["ownership_boundary"]
-            ["stage066_phase2_control_slice_reexecuted_as_reference_only"]
+            ["stage067_phase2_control_slice_reexecuted_as_reference_only"]
         )
         self.assertFalse(contract["runtime_boundary"]["chunking_execution_performed"])
         self.assertFalse(
@@ -136,7 +142,7 @@ class Stage066ChunkCoverageMetricsPhase3Tests(unittest.TestCase):
         report = self._report()
         self.assertTrue(report["valid"])
         self.assertEqual(
-            "PASS_PHASE3_CHUNK_COVERAGE_METRICS_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+            "PASS_PHASE3_CHUNK_QUALITY_REGRESSION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
             report["result"],
         )
         self.assertEqual(6, report["scenario_count"])
@@ -144,7 +150,7 @@ class Stage066ChunkCoverageMetricsPhase3Tests(unittest.TestCase):
         self.assertEqual(6, report["explicit_disposition_count"])
         self.assertEqual(0, report["silent_drop_count"])
         self.assertEqual(6, report["human_handling_required_count"])
-        self.assertEqual(4, report["unique_control_metric_record_count"])
+        self.assertEqual(4, report["unique_control_quality_regression_record_count"])
         self.assertEqual(
             EXPECTED_SCENARIOS,
             [item["scenario_id"] for item in report["scenario_results"]],
@@ -195,12 +201,12 @@ class Stage066ChunkCoverageMetricsPhase3Tests(unittest.TestCase):
         self.assertTrue(duplicate["deduplication_control_prohibition_asserted"])
 
     def test_invalid_phase2_replay_cannot_pass_the_scenario_gate(self):
-        report = self._module().build_chunk_coverage_metrics_phase3_report(
+        report = self._module().build_chunk_quality_regression_phase3_report(
             lambda _control: {"input_accepted": False}
         )
         self.assertFalse(report["valid"])
         self.assertEqual(
-            "FAIL_CHUNK_COVERAGE_METRICS_CONTROLLED_SCENARIOS",
+            "FAIL_CHUNK_QUALITY_REGRESSION_CONTROLLED_SCENARIOS",
             report["result"],
         )
         self.assertFalse(report["phase2_shape_preserved"])
@@ -209,9 +215,13 @@ class Stage066ChunkCoverageMetricsPhase3Tests(unittest.TestCase):
     def test_runtime_and_authority_boundary_remain_closed(self):
         report = self._report()
         self.assertTrue(report["source_document_remains_authoritative"])
-        self.assertFalse(report["coverage_metric_control_record_can_replace_source_document"])
         self.assertFalse(
-            report["coverage_metric_control_record_can_become_business_fact_authority"]
+            report["quality_regression_control_record_can_replace_source_document"]
+        )
+        self.assertFalse(
+            report[
+                "quality_regression_control_record_can_become_business_fact_authority"
+            ]
         )
         self.assertFalse(report["model_direct_text_guessing_allowed"])
         for field in (
@@ -227,9 +237,14 @@ class Stage066ChunkCoverageMetricsPhase3Tests(unittest.TestCase):
             "actual_chunk_id_generated",
             "actual_chunk_hash_computed",
             "actual_chunk_version_generated",
-            "actual_parse_coverage_calculated",
-            "actual_chunk_coverage_calculated",
-            "actual_uncovered_page_detected",
+            "actual_quality_regression_record_created",
+            "actual_quality_measurement_performed",
+            "actual_quality_regression_performed",
+            "actual_quality_degradation_performed",
+            "actual_duplicate_chunk_detected",
+            "actual_duplicate_chunk_identity_or_hash_validated",
+            "actual_duplicate_embedding_prevented",
+            "actual_duplicate_index_prevented",
             "semantic_asset_classification_performed",
             "coverage_calculation_performed",
             "quality_regression_performed",
@@ -247,6 +262,8 @@ class Stage066ChunkCoverageMetricsPhase3Tests(unittest.TestCase):
             "phase4_started",
             "whole_stage_review_performed",
             "batch_review_performed",
+            "stage068_started",
+            "stage068_entry_allowed",
             "github_upload_allowed",
             "push_allowed",
             "github_upload_performed",
@@ -259,87 +276,53 @@ class Stage066ChunkCoverageMetricsPhase3Tests(unittest.TestCase):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
-        roadmap = ROADMAP.read_text(encoding="utf-8")
-        batch = BATCH.read_text(encoding="utf-8")
+        run = json.loads(RUN.read_text(encoding="utf-8"))
         events = [
             json.loads(line)
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        event = next(
-            item
-            for item in events
-            if item.get("event_id") == "EVT-IDS-V0_1-STAGE066-P3-20260814-001"
-        )
-        self.assertIn(
+        self.assertEqual(
+            (
+                "IDS-STAGE067",
+                "IDS-V0_1-STAGE067-P3",
+                "IDS-V0_1-STAGE067-P3",
+                "IDS-STAGE067-P4-GATE",
+            ),
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
-            (
-                ("IDS-STAGE066", "IDS-V0_1-STAGE066-P3", "IDS-V0_1-STAGE066-P3", "IDS-STAGE066-P4-GATE"),
-                ("IDS-STAGE066", "IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-P4", "IDS-STAGE066-REVIEW-GATE"),
-                ("IDS-STAGE066", "IDS-STAGE066-REVIEW", "IDS-V0_1-STAGE066-REVIEW", "IDS-STAGE067-P1-GATE"),
-                ("IDS-STAGE067", "IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P1", "IDS-STAGE067-P2-GATE"), ("IDS-STAGE067", "IDS-V0_1-STAGE067-P2", "IDS-V0_1-STAGE067-P2", "IDS-STAGE067-P3-GATE"),
-            ("IDS-STAGE067", "IDS-V0_1-STAGE067-P3", "IDS-V0_1-STAGE067-P3", "IDS-STAGE067-P4-GATE"),
-            ),
         )
-        self.assertFalse(status["runtime_enabled"])
-        self.assertFalse(status["push_allowed"])
-        self.assertIn(plan["stage"], ("IDS-STAGE066", "IDS-STAGE067"))
-        self.assertIn(
-            (plan["phase"], plan["task"]),
-            (
-                ("IDS-V0_1-STAGE066-P3", "IDS-V0_1-STAGE066-P3"),
-                ("IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-P4"),
-                ("IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE066-REVIEW"),
-                ("IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P2"), ("IDS-V0_1-STAGE067-P2", "IDS-V0_1-STAGE067-P2"),
-            ("IDS-V0_1-STAGE067-P3", "IDS-V0_1-STAGE067-P3"),
-                ("IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE066-REVIEW"),
-            ),
-        )
-        self.assertTrue(
-            "IDS-STAGE066-P4-GATE" in plan["stop_condition"]
-            or "IDS-STAGE066-REVIEW-GATE" in plan["stop_condition"]
-            or "IDS-STAGE067-P1-GATE" in plan["stop_condition"]
-            or ("IDS-STAGE067-P2-GATE" in plan["stop_condition"] or "IDS-STAGE067-P3-GATE" in plan["stop_condition"] or "IDS-STAGE067-P4-GATE" in plan["stop_condition"])
-        )
-        self.assertIn("OVH", plan["stop_condition"])
-        acceptance_ids = {item["id"] for item in acceptance["items"]}
+        self.assertEqual("IDS-STAGE067", plan["stage"])
+        self.assertEqual("IDS-V0_1-STAGE067-P3", plan["phase"])
+        self.assertEqual("IDS-V0_1-STAGE067-P3", plan["task"])
+        self.assertIn("IDS-STAGE067-P4-GATE", plan["stop_condition"])
         self.assertTrue(
             {
-                "ACC-STAGE066-P3-01",
-                "ACC-STAGE066-P3-02",
-                "ACC-STAGE066-P3-03",
-                "ACC-STAGE066-P3-04",
-            }.issubset(acceptance_ids)
+                "ACC-STAGE067-P3-01",
+                "ACC-STAGE067-P3-02",
+                "ACC-STAGE067-P3-03",
+                "ACC-STAGE067-P3-04",
+            }.issubset({item["id"] for item in acceptance["items"]})
         )
+        self.assertEqual("RUN-IDS-STAGE067-P3-LOCAL-20260814-001", run["run_id"])
+        self.assertEqual("IDS-V0_1-STAGE067-P3", run["task_id"])
+        self.assertEqual("IDS-STAGE067-P4-GATE", run["next_gate"])
+        self.assertTrue(run["result"].startswith("PASS_LOCAL_"))
+        self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
+        self.assertIn("stage067_phase3", BATCH.read_text(encoding="utf-8"))
+        self.assertIn("IDS-V0_1-STAGE067-P3", ROADMAP.read_text(encoding="utf-8"))
         self.assertTrue(
-            (
-                'current_phase_id: "IDS-STAGE066-P3"' in roadmap
-                and 'next_gate_id: "IDS-STAGE066-P4-GATE"' in roadmap
-            )
-            or (
-                'current_phase_id: "IDS-STAGE066-P4"' in roadmap
-                and 'next_gate_id: "IDS-STAGE066-REVIEW-GATE"' in roadmap
-            )
-            or (
-                'current_phase_id: "IDS-V0_1-STAGE067-P1"' in roadmap
-                and 'next_gate_id: "IDS-STAGE067-P2-GATE"' in roadmap
+            any(
+                item.get("event_id") == "EVT-IDS-V0_1-STAGE067-P3-20260814-001"
+                for item in events
             )
         )
-        self.assertTrue(
-            'status: "stage066_phase3_completed_local"' in batch
-            or 'status: "stage066_phase4_completed_review_pending"' in batch
-            or 'status: "stage067_phase1_completed_local"' in batch
-        )
-        self.assertEqual("phase_completed", event["event_type"])
-        self.assertEqual("IDS-V0_1-STAGE066-P3", event["task_id"])
-        self.assertEqual(["ACC-STAGE-066"], event["acceptance_ids"])
 
     def test_local_run_is_phase3_only(self):
         run = json.loads(RUN.read_text(encoding="utf-8"))
-        self.assertEqual("RUN-IDS-STAGE066-P3-LOCAL-20260814-001", run["run_id"])
-        self.assertEqual("IDS-STAGE066", run["stage"])
-        self.assertEqual("IDS-V0_1-STAGE066-P3", run["task_id"])
-        self.assertEqual("IDS-STAGE066-P4-GATE", run["next_gate"])
+        self.assertEqual("RUN-IDS-STAGE067-P3-LOCAL-20260814-001", run["run_id"])
+        self.assertEqual("IDS-STAGE067", run["stage"])
+        self.assertEqual("IDS-V0_1-STAGE067-P3", run["task_id"])
+        self.assertEqual("IDS-STAGE067-P4-GATE", run["next_gate"])
         self.assertTrue(run["result"].startswith("PASS_LOCAL_"))
         self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
         self.assertFalse(run["observed_work"]["github_upload_performed"])

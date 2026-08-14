@@ -296,19 +296,35 @@ class Stage067ChunkQualityRegressionPhase2Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        self.assertEqual(
-            (
-                "IDS-STAGE067",
-                "IDS-V0_1-STAGE067-P2",
-                "IDS-V0_1-STAGE067-P2",
-                "IDS-STAGE067-P3-GATE",
-            ),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-STAGE067",
+                    "IDS-V0_1-STAGE067-P2",
+                    "IDS-V0_1-STAGE067-P2",
+                    "IDS-STAGE067-P3-GATE",
+                ),
+                (
+                    "IDS-STAGE067",
+                    "IDS-V0_1-STAGE067-P3",
+                    "IDS-V0_1-STAGE067-P3",
+                    "IDS-STAGE067-P4-GATE",
+                ),
+            ),
         )
         self.assertEqual("IDS-STAGE067", plan["stage"])
-        self.assertEqual("IDS-V0_1-STAGE067-P2", plan["phase"])
-        self.assertEqual("IDS-V0_1-STAGE067-P2", plan["task"])
-        self.assertIn("IDS-STAGE067-P3-GATE", plan["stop_condition"])
+        self.assertIn(
+            (plan["phase"], plan["task"]),
+            (
+                ("IDS-V0_1-STAGE067-P2", "IDS-V0_1-STAGE067-P2"),
+                ("IDS-V0_1-STAGE067-P3", "IDS-V0_1-STAGE067-P3"),
+            ),
+        )
+        self.assertTrue(
+            "IDS-STAGE067-P3-GATE" in plan["stop_condition"]
+            or "IDS-STAGE067-P4-GATE" in plan["stop_condition"]
+        )
         self.assertTrue(
             {
                 "ACC-STAGE067-P2-01",
