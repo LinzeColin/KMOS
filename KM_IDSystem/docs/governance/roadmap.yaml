@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE068"
-current_phase_id: "IDS-STAGE068-P1"
-current_task_id: "IDS-V0_1-STAGE068-P1"
-next_gate_id: "IDS-STAGE068-P2-GATE"
+current_phase_id: "IDS-STAGE068-P2"
+current_task_id: "IDS-V0_1-STAGE068-P2"
+next_gate_id: "IDS-STAGE068-P3-GATE"
 current_transition_history:
+  stage068_phase2_state:
+    current_stage_id: "IDS-STAGE068"
+    current_phase_id: "IDS-STAGE068-P2"
+    current_task_id: "IDS-V0_1-STAGE068-P2"
+    next_gate_id: "IDS-STAGE068-P3-GATE"
   stage068_phase1_state:
     current_stage_id: "IDS-STAGE068"
     current_phase_id: "IDS-STAGE068-P1"
@@ -17680,20 +17685,20 @@ stages:
     task_id: "IDS-V0_1-STAGE068"
     acceptance_ids:
       - "ACC-STAGE-068"
-    status: "stage068_phase1_completed_local"
-    pursuing_goal: "只定义冻结 Stage068 质量降级静态合同，确认低质量不等于完全失败、工程步骤/验收条款/参数表不得被任意切断、未来记录保留追溯和重复 embedding/index 写入边界；不读取、处理、检测、计算、创建或回退真实资料。"
+    status: "stage068_phase2_completed_local"
+    pursuing_goal: "只以四条固定、非业务、reference-only 质量降级控制请求投影四条低可信待人工复核记录，机械确认工程步骤/验收条款/参数表保护面、重复 embedding/index 写入边界、六维追溯和业务线白箱/低可信证据人工复核分流；不读取、处理、检测、计算、创建或回退真实资料。"
     stop_gate:
-      gate_id: "IDS-STAGE068-P1-GATE"
+      gate_id: "IDS-STAGE068-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE068-P2-GATE"
+      next_gate_id: "IDS-STAGE068-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "固定十三字段仅引用输入、十九字段未来质量降级输出、两个未来人工复核/低可信证据分流、三类保护语义面、六维追溯、重复 embedding/index 写入边界和十七类失败关闭。"
-      - "所有字段、控制状态和人工分流均不能替代来源文件或成为业务事实；低质量只保留未来业务线白箱人工复核路径。"
-      - "运行时、Agent、模型 Token、OVH、生产和上传均保持关闭，Phase2 未启动，下一门仅为 Stage068 Phase2。"
+      - "固定四条十三字段仅引用输入并投影四条十九字段低可信控制记录，覆盖三类保护语义面、六维追溯、三条业务线白箱人工复核、一条低可信证据人工复核和一个重复 embedding/index 写入边界。"
+      - "所有字段、控制状态和人工复核分流均不能替代来源文件或成为业务事实；低质量不等于自动完全失败。"
+      - "运行时、Agent、模型 Token、OVH、生产和上传均保持关闭，Phase3 未启动，下一门仅为 Stage068 Phase3。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、身份、哈希、版本、覆盖率、质量结果、降级结果、低可信证据、索引、数据库或报告"
-      - "执行真实 parser、章节检测、切块、身份或版本生成、Hash 计算、语义资产分类、解析覆盖率、Chunk 覆盖率、未覆盖页识别、质量回归、质量降级、低可信证据创建、重复检测或去重、来源追溯绑定、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Phase2、整阶段复审、批次复审、上传、推送或应用重装"
+      - "执行真实 parser、章节检测、切块、身份或版本生成、Hash 计算、语义资产分类、解析覆盖率、Chunk 覆盖率、未覆盖页识别、质量回归、质量降级、低可信证据创建、重复检测或去重、来源追溯绑定、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Phase3、整阶段复审、批次复审、上传、推送或应用重装"
     phases:
       - phase_id: "IDS-STAGE068-P1"
         name: "Phase 1 · 质量降级范围、输入输出与边界确认"
@@ -17742,6 +17747,55 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
             risk: "若把未来质量降级字段、控制引用、静态计数或聚焦用例通过误作真实工程步骤、验收条款、参数表切块质量、真实质量降级、低可信证据、真实重复检测/去重、真实来源追溯、OVH、生产或上传能力，会绕开业务线人工白箱处理和单一权威边界。"
             rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 STAGE067_REVIEWED_LOCAL_CHUNK_QUALITY_REGRESSION_RUNTIME_DISABLED；不改变 Stage063--067 工件、冻结任务包、真实资料、fixture、事实库、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE068-P2"
+        name: "Phase 2 · 质量降级纯内存控制切片"
+        objective: "只以冻结 Stage068 任务包、P1 静态合同、Stage067 本地整阶段机械复审与 Batch061-070 上传锁为唯一合同上下文，严格接受四条固定、非业务、十三字段、reference-only 控制请求并投影四条十九字段低可信待人工复核控制记录，保留工程步骤/验收条款/参数表三类保护语义面、重复 embedding/index 写入边界、六维追溯和业务线白箱/低可信证据人工复核分流；不读取、打开、解析、切分、检测、计算、创建或写入真实资料、页面、chunk、质量、降级、低可信证据、重复项或业务结论。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE068-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE068-P2-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE068-P3-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、身份、哈希、版本、覆盖率、质量结果、降级结果、低可信证据、索引、数据库或报告"
+          - "执行真实 parser、章节检测、切块、身份或版本生成、Hash 计算、语义资产分类、解析覆盖率、Chunk 覆盖率、未覆盖页识别、质量回归、质量降级、低可信证据创建、重复检测或去重、来源追溯绑定、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Phase3、整阶段复审、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE068-P2"
+            name: "投影质量降级低可信控制记录"
+            objective: "严格核验四条固定十三字段控制请求，投影四条严格十九字段控制记录，确认工程步骤、验收条款和参数表三类受保护语义面、一个重复 embedding/index 写入边界、六维 :control: 追溯、三条业务线白箱人工复核、一条低可信证据人工复核以及低质量不等于自动完全失败；不生成真实 chunk、hash、质量、质量降级、低可信证据、重复项、索引或持久化状态。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "50.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE068-P1"
+            acceptance_ids:
+              - "ACC-STAGE-068"
+              - "ACC-STAGE068-P2-01"
+              - "ACC-STAGE068-P2-02"
+              - "ACC-STAGE068-P2-03"
+              - "ACC-STAGE068-P2-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage068_quality_degradation_slice"
+              - "Stage068 P2 与显式前序兼容回归命令记录在 machine run"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "本 run 的聚焦用例、含显式前序的阶段链路、两个批次检查器、Stage005 治理回归与中文事实投影真实结果记录在 Stage068 P2 machine run；本 P2 不进入 P3、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-068_质量降级而非只判失败.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE068_PHASE2_QUALITY_DEGRADATION_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/quality_degradation/stage068_quality_degradation_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/quality_degradation/stage068_quality_degradation_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage068_quality_degradation_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-14-stage068-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/quality_degradation/stage068_quality_degradation_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE067_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把四条固定控制记录、低可信标签、保护语义面、重复写入边界、追溯引用或聚焦用例通过误作真实工程步骤、验收条款、参数表质量、真实质量降级、低可信证据、真实重复检测/去重、真实来源追溯、OVH、生产或上传能力，会绕开业务线人工白箱处理和单一权威边界。"
+            rollback: "只回滚本 P2 说明、纯内存控制切片、切片合同、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE1_QUALITY_DEGRADATION_CONTRACT_RUNTIME_DISABLED；不改变 P1、Stage063--067 工件、冻结任务包、真实资料、fixture、事实库、数据库、索引、GitHub、OVH 或应用状态。"
   - stage_id: "IDS-STAGE067"
     name: "STAGE-067 · 切块质量回归"
     task_id: "IDS-V0_1-STAGE067"

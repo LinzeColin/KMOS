@@ -319,7 +319,7 @@ class Stage068QualityDegradationPhase1Tests(unittest.TestCase):
         self.assertTrue(runtime["stage068_started"])
         self.assertTrue(runtime["stage068_entry_authorized"])
 
-    def test_rollback_and_governance_projections_only_allow_phase2(self):
+    def test_rollback_and_governance_projections_allow_phase2_successor(self):
         rollback = self.contract["rollback_contract"]
         self.assertEqual(
             "STAGE067_REVIEWED_LOCAL_CHUNK_QUALITY_REGRESSION_RUNTIME_DISABLED",
@@ -337,21 +337,21 @@ class Stage068QualityDegradationPhase1Tests(unittest.TestCase):
 
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         self.assertIn('current_stage_id: "IDS-STAGE068"', roadmap_text)
-        self.assertIn('current_phase_id: "IDS-STAGE068-P1"', roadmap_text)
-        self.assertIn('next_gate_id: "IDS-STAGE068-P2-GATE"', roadmap_text)
-        self.assertIn("stage068_phase1_completed_local", BATCH.read_text(encoding="utf-8"))
+        self.assertIn('current_phase_id: "IDS-STAGE068-P2"', roadmap_text)
+        self.assertIn('next_gate_id: "IDS-STAGE068-P3-GATE"', roadmap_text)
+        self.assertIn("stage068_phase2_completed_local", BATCH.read_text(encoding="utf-8"))
 
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         self.assertEqual("IDS-STAGE068", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE068-P1", status["phase"])
-        self.assertEqual("IDS-STAGE068-P2-GATE", status["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE068-P2", status["phase"])
+        self.assertEqual("IDS-STAGE068-P3-GATE", status["next_gate"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertEqual("IDS-STAGE068", plan["stage"])
-        self.assertEqual("IDS-V0_1-STAGE068-P1", plan["phase"])
-        self.assertIn("IDS-STAGE068-P2-GATE", plan["stop_condition"])
+        self.assertEqual("IDS-V0_1-STAGE068-P2", plan["phase"])
+        self.assertIn("IDS-STAGE068-P3-GATE", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
             {
