@@ -275,6 +275,7 @@ class Stage060TableRagSummaryContractPhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE069-P2",
                 "IDS-V0_1-STAGE069-P3",
                 "IDS-V0_1-STAGE069-P4",
+                "IDS-V0_1-STAGE069-REVIEW",
             ),
         )
         self.assertIn(
@@ -284,6 +285,7 @@ class Stage060TableRagSummaryContractPhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE069-P2",
                 "IDS-V0_1-STAGE069-P3",
                 "IDS-V0_1-STAGE069-P4",
+                "IDS-V0_1-STAGE069-REVIEW",
             ),
         )
         self.assertIn(
@@ -293,6 +295,7 @@ class Stage060TableRagSummaryContractPhase1Tests(unittest.TestCase):
                 "IDS-STAGE069-P3-GATE",
                 "IDS-STAGE069-P4-GATE",
                 "IDS-STAGE069-REVIEW-GATE",
+                "IDS-STAGE070-P1-GATE",
             ),
         )
         self.assertFalse(status["runtime_enabled"])
