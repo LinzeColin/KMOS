@@ -1,14 +1,21 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
-updated_at_utc: "2026-08-14T09:43:44Z"
-status: "stage067_phase4_completed_review_pending"
+updated_at_utc: "2026-08-14T10:26:00Z"
+status: "stage067_completed_reviewed_local"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage067_review_state:
+    status: "stage067_completed_reviewed_local"
+    current_task_id: "IDS-V0_1-STAGE067-REVIEW"
+    next_gate: "IDS-STAGE068-P1-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE068-P1"
+    stage068_phase1_entry_authorized: true
+    github_upload_allowed: false
   stage067_phase4_state:
     status: "stage067_phase4_completed_review_pending"
     current_task_id: "IDS-V0_1-STAGE067-P4"
@@ -279,23 +286,26 @@ upload_gate:
 
 stage_progress:
   STAGE-067:
-    status: "stage067_phase4_completed_review_pending"
+    status: "stage067_completed_reviewed_local"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
       - "Phase 3"
       - "Phase 4"
-    next_phase: "Stage Review"
-    next_gate: "IDS-STAGE067-REVIEW-GATE"
-    current_task_id: "IDS-V0_1-STAGE067-P4"
+      - "Stage Review"
+    next_phase: "Stage068 Phase 1"
+    next_gate: "IDS-STAGE068-P1-GATE"
+    current_task_id: "IDS-V0_1-STAGE067-REVIEW"
     acceptance_id: "ACC-STAGE-067"
-    acceptance_status: "phase4_completed_review_pending"
-    review_status: "not_started"
+    acceptance_status: "completed_reviewed_local"
+    review_status: "completed_reviewed_local"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
     phase4_entry_authorized: true
     taskpack_context_read_performed: true
-    source_authority: "FROZEN_STAGE067_TASKPACK_AND_PHASE1_PHASE2_PHASE3_ARTIFACTS_ONLY"
+    stage067_review_entry_authorized: true
+    stage068_phase1_entry_authorized: true
+    source_authority: "FROZEN_STAGE067_TASKPACK_AND_STAGE067_P1_TO_P4_CONTROL_ARTIFACTS_ONLY"
     second_authoritative_source_created: false
     source_body_or_path_allowed: false
     raw_metadata_content_accessed: false
@@ -308,7 +318,11 @@ stage_progress:
     chunk_quality_regression_slice_contract_schema: "ids.stage067.chunk_quality_regression.phase2.v1"
     chunk_quality_regression_scenarios_contract_schema: "ids.stage067.chunk_quality_regression.phase3.controlled_scenarios_contract.v1"
     chunk_quality_regression_delivery_contract_schema: "ids.stage067.chunk_quality_regression.phase4.delivery_contract.v1"
-    contract_state: "PHASE4_CHUNK_QUALITY_REGRESSION_METADATA_ONLY_DELIVERY_RUNTIME_DISABLED"
+    chunk_quality_regression_review_schema: "ids.stage067.chunk_quality_regression.stage_review.v1"
+    contract_state: "STAGE067_REVIEWED_LOCAL_CHUNK_QUALITY_REGRESSION_RUNTIME_DISABLED"
+    slice_executable: true
+    scenario_executable: true
+    delivery_evidence_executable: true
     execution_ready: false
     reference_only_quality_regression_input_field_count: 12
     future_quality_regression_output_field_count: 17
@@ -363,7 +377,9 @@ stage_progress:
     phase2_started: true
     phase3_started: true
     phase4_started: true
-    whole_stage_review_performed: false
+    whole_stage_review_performed: true
+    review_finding_count: 0
+    review_valid: true
     batch_review_performed: false
     stage068_started: false
     stage068_entry_allowed: false
@@ -391,6 +407,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_quality_regression/stage067_chunk_quality_regression_delivery.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage067_chunk_quality_regression_delivery.py"
       - "KM_IDSystem/machine/runs/2026-08-14-stage067-p4-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE067_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_quality_regression/stage067_chunk_quality_regression_stage_review.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage067_chunk_quality_regression_stage_review.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage067-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE066_STAGE_REVIEW.md"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
   STAGE-066:
@@ -1251,10 +1271,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE067-P4"
-  next_allowed_task_id: "IDS-V0_1-STAGE067-REVIEW"
+  current_task_id: "IDS-V0_1-STAGE067-REVIEW"
+  next_allowed_task_id: "IDS-V0_1-STAGE068-P1"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-067 Phase 4 only projects the six fixed reference-only Phase3 quality-regression scenarios into metadata-only JSONL samples, delivery coverage, low-quality human-review controls, regression-result controls, strategy applicability boundaries, and a P4-to-P3 in-memory rollback instruction. It does not open sources, run a parser, create chunks, calculate coverage or quality, detect duplicates, write embedding or indexes, write persistent state, call a model, deploy OVH or activate any runtime. Stage067 Review is the next independent gate."
+  current_run: "STAGE-067 Review mechanically verifies the frozen P1--P4 contracts and the P3/P4 in-memory quality-regression control reports. It preserves the fixed control shape, six whitebox human-handling scenarios, metadata-only delivery boundary, P4-to-P3 rollback, single authority and zero-runtime flags. It does not open sources, run a parser, create chunks, calculate coverage or quality, detect duplicates, write embedding or indexes, write persistent state, call a model, deploy OVH or activate any runtime. Stage068 Phase 1 is the next independent gate."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."
