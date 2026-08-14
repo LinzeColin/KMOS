@@ -1,0 +1,163 @@
+{
+  "schema_version": "ids.stage064.chunk_identity_and_version.phase3.controlled_scenarios_contract.v1",
+  "contract_state": "PHASE3_CHUNK_IDENTITY_AND_VERSION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+  "task_id": "IDS-V0_1-STAGE064-P3",
+  "stage": "IDS-STAGE064",
+  "acceptance_ids": [
+    "ACC-STAGE-064",
+    "ACC-STAGE064-P3-01",
+    "ACC-STAGE064-P3-02",
+    "ACC-STAGE064-P3-03",
+    "ACC-STAGE064-P3-04"
+  ],
+  "authority_context": "FROZEN_STAGE064_TASKPACK_AND_PHASE1_PHASE2_AND_STAGE063_REVIEW_ARTIFACTS_ONLY",
+  "scenario_executable": true,
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE064-P4-GATE",
+  "source_authority": {
+    "source_document_remains_authoritative": true,
+    "second_authoritative_source_created": false,
+    "control_references_are_not_business_facts": true,
+    "actual_source_document_read_performed": false,
+    "actual_page_traceability_validated": false,
+    "actual_source_traceability_binding_created": false
+  },
+  "ownership_boundary": {
+    "stage064_phase2_control_slice_reexecuted_as_reference_only": true,
+    "business_line_whitebox_human_handling_required": true,
+    "automatic_business_write_allowed": false,
+    "chapter_aware_chunking_owner": "STAGE-063",
+    "chunk_identity_and_version_owner": "STAGE-064",
+    "semantic_asset_classification_owner": "STAGE-065",
+    "coverage_calculation_owner": "STAGE-066",
+    "quality_regression_owner": "STAGE-067",
+    "quality_degradation_owner": "STAGE-068",
+    "actual_chunk_quality_validation_implemented": false,
+    "actual_duplicate_detection_or_deduplication_implemented": false
+  },
+  "scenario_input_boundary": {
+    "control_identity_version_request_count": 3,
+    "control_chunk_identity_version_record_count": 3,
+    "scenario_count": 6,
+    "scenario_categories": [
+      "LONG_DOCUMENT_CONTROL",
+      "CROSS_PAGE_PARAMETER_TABLE_CONTROL",
+      "ENGINEERING_PROCEDURE_STEP_CONTROL",
+      "PARAMETER_TABLE_CONTROL",
+      "PAGE_REFERENCE_TRACEABILITY_CONTROL",
+      "DUPLICATE_CHUNK_EMBEDDING_INDEX_CONTROL"
+    ],
+    "scenario_category_is_control_metadata": true,
+    "reference_only_identity_and_version_input_field_count": 10,
+    "control_chunk_identity_and_version_record_field_count": 14,
+    "traceability_field_count": 6,
+    "control_traceability_reference_check_count": 36,
+    "actual_input_request_count": 0,
+    "actual_chunk_count": 0,
+    "actual_document_or_page_content_retained": false
+  },
+  "scenario_validation": {
+    "all_taskpack_special_scenarios_covered": true,
+    "explicit_disposition_count": 6,
+    "silent_drop_count": 0,
+    "human_handling_required_count": 6,
+    "long_document_quality_actually_validated": false,
+    "cross_page_parameter_table_requires_human_handling": true,
+    "engineering_procedure_step_requires_human_boundary_review": true,
+    "parameter_table_requires_human_boundary_review": true,
+    "page_reference_requires_human_source_confirmation": true,
+    "control_traceability_reference_shape_preserved": true
+  },
+  "duplicate_embedding_and_index_boundary": {
+    "control_duplicate_write_prohibition_asserted": true,
+    "actual_duplicate_chunk_detected": false,
+    "actual_duplicate_chunk_identity_or_hash_validated": false,
+    "actual_duplicate_embedding_prevented": false,
+    "actual_duplicate_index_prevented": false,
+    "embedding_or_index_write_performed": false,
+    "human_confirmation_required": true
+  },
+  "failure_and_stop_contract": {
+    "invalid_phase2_control_result_state": "FAIL_CLOSED",
+    "declared_failure_states": [
+      "PHASE2_CONTROL_RECORD_SHAPE_INVALID",
+      "PHASE2_CONTROL_REFERENCE_NOT_FIXED",
+      "TASKPACK_SPECIAL_SCENARIO_MISSING",
+      "CONTROL_TRACEABILITY_REFERENCE_INVALID",
+      "CONTROL_SCENARIO_DISPOSITION_MISSING",
+      "CONTROL_SCENARIO_SILENT_DROP_FORBIDDEN",
+      "DUPLICATE_EMBEDDING_OR_INDEX_WRITE_FORBIDDEN",
+      "RUNTIME_SIDE_EFFECT_FORBIDDEN",
+      "BUSINESS_LINE_WHITEBOX_HUMAN_HANDLING_REQUIRED"
+    ],
+    "failure_state_count": 9,
+    "unknown_or_tampered_phase2_control_result_rejected": true,
+    "automatic_business_write_allowed": false,
+    "actual_failure_record_created": false
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "authorized_fixture_access_performed": false,
+    "source_file_open_performed": false,
+    "parser_execution_performed": false,
+    "chapter_detection_performed": false,
+    "chunking_execution_performed": false,
+    "actual_chunk_id_generation_performed": false,
+    "actual_chunk_hash_computation_performed": false,
+    "actual_chunk_version_generation_performed": false,
+    "semantic_asset_classification_performed": false,
+    "coverage_calculation_performed": false,
+    "quality_regression_performed": false,
+    "quality_degradation_performed": false,
+    "source_traceability_binding_performed": false,
+    "embedding_or_index_write_performed": false,
+    "database_connection_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "local_service_start_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "stage064_started": true,
+    "phase2_started": true,
+    "phase3_started": true,
+    "phase4_started": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "github_upload_allowed": false,
+    "push_allowed": false
+  },
+  "rollback_contract": {
+    "return_to": "PHASE2_CHUNK_IDENTITY_AND_VERSION_CONTROL_SLICE_RUNTIME_DISABLED",
+    "phase1_and_phase2_artifacts_preserved": true,
+    "source_or_raw_data_change_allowed": false,
+    "fixture_change_allowed": false,
+    "database_or_persistent_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  },
+  "chinese_feedback_contract": {
+    "all_messages_chinese": true,
+    "automation_claim_allowed": false,
+    "production_availability_claim_allowed": false,
+    "messages": [
+      {
+        "code": "CONTROL_SCENARIOS_REPLAYED",
+        "message": "已重放六类固定 Chunk 身份与版本控制场景；结果只说明控制处置与引用形状，不代表真实切块质量或业务结论。"
+      },
+      {
+        "code": "SPECIAL_SCENARIOS_REQUIRE_WHITEBOX_REVIEW",
+        "message": "长文档、跨页参数表、施工步骤、参数表和引用页码均需业务线白箱人工复核，系统没有读取、切分或写入真实来源。"
+      },
+      {
+        "code": "DUPLICATE_WRITE_BOUNDARY_REMAINS_CLOSED",
+        "message": "重复 chunk 场景只确认控制模块没有发起 embedding 或索引写入；没有检测真实重复项，也没有形成真实去重效果结论。"
+      },
+      {
+        "code": "TRACEABILITY_REQUIRES_HUMAN_CONFIRMATION",
+        "message": "控制记录只保留文档、页码、章节、解析输出、表格上下文和来源片段的引用形状，真实原文反查仍须人工确认。"
+      }
+    ]
+  }
+}

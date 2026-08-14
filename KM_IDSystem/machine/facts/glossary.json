@@ -4,6 +4,21 @@
   "invariants": [],
   "terms": [
     {
+      "英文": "controlled chunk identity and version scenario",
+      "中文": "受控 Chunk 身份与版本专项场景",
+      "说明": "Stage064 P3 对 P2 三条固定、非业务、reference-only 身份/版本控制记录的纯内存重放；长文档、跨页参数表、施工步骤、参数表、引用页码和重复 chunk 只表示控制类别，始终要求业务线白箱人工复核，不能成为真实切块质量或业务事实。"
+    },
+    {
+      "英文": "chunk identity and version duplicate write boundary",
+      "中文": "Chunk 身份与版本重复写入控制边界",
+      "说明": "Stage064 P3 只确认控制模块没有发起 embedding 或索引写入；它不检测真实重复 chunk、不验证真实身份、Hash 或版本、不形成真实去重效果结论，必须留待授权实现和业务线人工确认。"
+    },
+    {
+      "英文": "control scenario human disposition",
+      "中文": "控制场景人工处置",
+      "说明": "当控制引用不足以确认真实章节边界、跨页表格关系、页码反查或重复依据时，系统必须显式关闭并交由业务线白箱处理；控制处置不等于真实质量验证。"
+    },
+    {
       "英文": "control-only chunk identity and version record",
       "中文": "仅控制 Chunk 身份与版本记录",
       "说明": "Stage064 P2 对固定、非业务、仅引用请求的纯内存十四字段投影；其中 chunk_id、chunk_hash、document_id、page、section 和 version 都是控制标签，不是实际生成、计算、绑定或持久化的业务记录。"

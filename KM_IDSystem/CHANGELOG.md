@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage064 Phase 3（本地）
+
+- 完成 Chunk 身份与版本受控专项场景：重放 P2 三条固定、非业务、reference-only 十四字段控制记录，覆盖长文档、跨页参数表、施工步骤、参数表、引用页码与重复 chunk 的 embedding/索引写入边界六类显式人工处置；静默丢弃为 `0`，并保留 `document/page/section/parser output/表格上下文/来源片段` 六维控制引用形状。没有建立第二权威事实源。
+- 六类场景全部要求业务线白箱人工复核。重复场景只确认控制模块没有发起 embedding 或索引写入，不检测真实重复项，也不形成真实去重、真实写入抑制、真实质量或真实页码反查结论；控制引用和处置不能替代来源文档或业务线白箱人工复核。
+- 本地验证通过：Stage064 P3 聚焦用例 `8/8`；含 Stage060、Stage061--063、Stage064 P1--P3 与 Batch051-060 的受影响阶段链路 `191/191`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影已重渲染 `7` 个文件。本 run 未读取、打开、检测、解析或切分真实资料或 fixture；未执行真实 parser、章节检测、重复检测或去重、分类、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产、P4、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE064-P4-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage064 Phase 2（本地）
 
 - 完成 Chunk 身份与版本纯内存控制切片：三条固定、非业务、reference-only 十字段请求投影三条十四字段待人工复核控制记录，保留 `chunk_id/chunk_hash/document_id/page/section/version` 控制标签、工程步骤/验收条款/参数表三类保护语义面、六维追溯和十类失败关闭；没有建立第二权威事实源。

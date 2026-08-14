@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE064",
-  "phase": "IDS-V0_1-STAGE064-P2",
-  "task": "IDS-V0_1-STAGE064-P2",
-  "real_progress": "Stage064 已完成 P2 纯内存控制切片：3 条固定、非业务、仅引用请求投影 3 条十四字段身份/版本控制记录，保留 chunk_id/chunk_hash/document_id/page/section/version 控制标签、3 类保护语义面与 6 维追溯标签；下一步仅可在新的独立 run 进入 Stage064 Phase 3，上传路径继续关闭",
-  "report_grade": "冻结 Stage064 任务包、Stage064 P1 静态合同、Stage063 本地复审、Batch061-070 上传锁、纯内存身份/版本控制切片、治理路线与中文事实投影一致",
-  "business_verdict": "本 P2 只证明固定控制引用能被投影为待人工复核的身份/版本字段形状；不证明真实 chunk、chunk_id、chunk_hash、document_id、版本、分类、覆盖率、质量、来源反查、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE064_PHASE2_CHUNK_IDENTITY_VERSION_CONTROL_SLICE_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE064-P3",
+  "task": "IDS-V0_1-STAGE064-P3",
+  "real_progress": "Stage064 已完成 P3 纯内存专项控制场景：重放 P2 的 3 条固定、非业务、仅引用身份/版本控制记录，覆盖长文档、跨页参数表、施工步骤、参数表、引用页码与重复 chunk 写入边界 6 类场景，全部关闭到业务线人工白箱处置；下一步仅可在新的独立 run 进入 Stage064 Phase 4，上传路径继续关闭",
+  "report_grade": "冻结 Stage064 任务包、Stage064 P1/P2 合同、Stage063 本地复审、Batch061-070 上传锁、纯内存专项场景、治理路线与中文事实投影一致",
+  "business_verdict": "本 P3 只证明固定控制引用可以被重放为六类显式人工处置，并证明该控制模块没有发起 embedding 或索引写入；不证明真实 chunk 质量、跨页关系、页码反查、重复检测或去重、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE064_PHASE3_CHUNK_IDENTITY_VERSION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE064-P3-GATE",
+  "next_gate": "IDS-STAGE064-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

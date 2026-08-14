@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage064-p3-local",
+    "date": "2026-08-14",
+    "summary": "完成 Stage064 P3 Chunk 身份与版本受控专项场景：重放 P2 三条固定、非业务、reference-only 十四字段控制记录，覆盖长文档、跨页参数表、施工步骤、参数表、引用页码与重复 chunk 写入边界六类显式人工处置，静默丢弃为零，并保留 document/page/section/parser output/表格上下文/来源片段六维控制引用形状。重复场景仅确认控制模块没有发起 embedding 或索引写入，不检测真实重复项或形成真实去重结论。Stage064 P3 聚焦用例通过 8/8，含 Stage060、Stage061--063、Stage064 P1--P3 与 Batch051-060 的受影响阶段链路通过 191/191，两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理回归 valid=true，中文事实投影已重渲染 7 个文件；未读取、打开、检测、解析或切分真实资料或 fixture，未执行真实 parser、章节检测、chunk 身份/版本/Hash、重复检测或去重、分类、覆盖率、质量、来源追溯、索引、数据库、Agent、模型 Token、OVH、生产、P4、上传或推送；下一步仅可在新的独立 run 进入 Stage064 P4。"
+  },
+  {
     "version": "v0.1-stage064-p2-local",
     "date": "2026-08-14",
     "summary": "完成 Stage064 P2 Chunk 身份与版本纯内存控制切片：三条固定、非业务、reference-only 十字段请求投影三条十四字段待人工复核控制记录，保留 chunk_id/chunk_hash/document_id/page/section/version 控制标签、工程步骤/验收条款/参数表三类保护语义面、六维追溯、十类失败关闭、中文反馈和回滚范围。Stage064 P2 聚焦用例通过 8/8，受影响阶段链路回归通过 183/183，两个批次检查器均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理回归 valid=true，中文事实投影已重渲染 7 个文件。未读取、打开、解析、切分、计算或创建真实资料、chunk、身份、哈希、document 绑定、版本、分类、覆盖率、质量、索引、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage064 P3。"

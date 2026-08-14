@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage064 Phase 2 - 2026-08-14
+## Current Gate - Stage064 Phase 3 - 2026-08-14
 
-- 本节是唯一当前交接；Stage064 P1、Stage063 Review/P4/P3/P2/P1、Stage062 Review 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；Stage064 P2/P1、Stage063 Review/P4/P3/P2/P1、Stage062 Review 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE064-P3`：只重放 P2 的三条固定、非业务、`:control:` 十四字段身份与版本控制记录，机械覆盖长文档、跨页参数表、施工步骤、参数表、引用页码和重复 chunk 的 embedding/索引写入边界六类场景；每类均输出显式人工处置和六维控制追溯形状，没有建立第二权威事实源。
+- 六类结果、控制引用、字段、计数和中文反馈不代表真实长文档切块质量、真实跨页表格、真实施工步骤、真实参数表、真实页码反查、真实重复 chunk、真实去重、真实 embedding/index 抑制或业务事实。重复场景只确认纯内存控制模块没有发起写入；来源文档与业务线白箱人工复核保持权威。
+- 已验证：Stage064 P3 聚焦用例 `8/8`、Stage060→Stage064 与 Batch051-060 受影响阶段链路 `191/191`、两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、Stage005 治理回归 `valid=true`；中文事实投影已重渲染 `7` 个文件。执行范围没有进入真实 parser、章节检测、切块、chunk 身份/哈希/版本、重复检测或去重、分类、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产或上传。
+- 回滚只撤回本 P3 说明、场景合同、纯内存模块、聚焦用例、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `PHASE2_CHUNK_IDENTITY_AND_VERSION_CONTROL_SLICE_RUNTIME_DISABLED`；不改变 P1/P2、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE064-P4-GATE`。本 run 不进入 P4、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage064 Phase 2 - 2026-08-14
+
+- 本节保留 Stage064 P2 的已提交历史证据；唯一当前交接位于上方 Stage064 Phase 3，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE064-P2`：只以三条固定、非业务、`:control:` 十字段请求在内存中投影三条十四字段待人工复核的 Chunk 身份与版本控制记录，保留 `chunk_id/chunk_hash/document_id/page/section/version` 控制标签、工程步骤/验收条款/参数表三类保护语义面和六维追溯标签；没有建立第二权威事实源。
 - 控制记录中的身份、Hash、文档、页码、章节和版本都只是固定字段标签，不代表真实 chunk、真实 `chunk_id`、真实 `chunk_hash`、真实 `document_id`、真实页码/章节、真实版本、真实分类、真实覆盖率、真实质量或业务事实。Stage063 保留章节边界职责，Stage065--068 保留分类、覆盖率、质量回归和质量降级职责；来源文档与业务线白箱人工复核保持权威。
 - 已验证：Stage064 P2 聚焦用例 `8/8`、受影响阶段链路 `183/183`、两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、Stage005 治理回归 `valid=true`；中文事实投影已重渲染 `7` 个文件。执行范围没有进入真实 parser、章节检测、切块、chunk 身份/哈希/版本、分类、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产或上传。

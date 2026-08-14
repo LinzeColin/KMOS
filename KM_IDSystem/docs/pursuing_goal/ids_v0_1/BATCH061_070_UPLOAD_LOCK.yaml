@@ -1,14 +1,21 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
-updated_at_utc: "2026-08-13T23:38:10Z"
-status: "stage064_phase2_completed"
+updated_at_utc: "2026-08-14T00:06:03Z"
+status: "stage064_phase3_completed"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage064_phase3_state:
+    status: "stage064_phase3_completed"
+    current_task_id: "IDS-V0_1-STAGE064-P3"
+    next_gate: "IDS-STAGE064-P4-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE064-P4"
+    stage064_phase4_entry_authorized: true
+    github_upload_allowed: false
   stage064_phase2_state:
     status: "stage064_phase2_completed"
     current_task_id: "IDS-V0_1-STAGE064-P2"
@@ -160,17 +167,19 @@ upload_gate:
 
 stage_progress:
   STAGE-064:
-    status: "stage064_phase2_completed"
+    status: "stage064_phase3_completed"
     completed_phases:
       - "Phase 1"
       - "Phase 2"
-    next_phase: "Stage064 Phase 3"
-    next_gate: "IDS-STAGE064-P3-GATE"
-    current_task_id: "IDS-V0_1-STAGE064-P2"
+      - "Phase 3"
+    next_phase: "Stage064 Phase 4"
+    next_gate: "IDS-STAGE064-P4-GATE"
+    current_task_id: "IDS-V0_1-STAGE064-P3"
     acceptance_id: "ACC-STAGE-064"
-    acceptance_status: "phase2_completed_local"
+    acceptance_status: "phase3_completed_local"
     phase2_entry_authorized: true
     phase3_entry_authorized: true
+    phase4_entry_authorized: true
     taskpack_context_read_performed: true
     source_authority: "FROZEN_STAGE064_TASKPACK_AND_PHASE1_AND_STAGE063_REVIEW_ARTIFACTS_ONLY"
     second_authoritative_source_created: false
@@ -182,8 +191,10 @@ stage_progress:
     chapter_detection_performed: false
     chunking_execution_performed: false
     chunk_identity_and_version_contract_schema: "ids.stage064.chunk_identity_and_version.phase2.v1"
-    contract_state: "PHASE2_CHUNK_IDENTITY_AND_VERSION_CONTROL_SLICE_RUNTIME_DISABLED"
+    chunk_identity_and_version_scenarios_contract_schema: "ids.stage064.chunk_identity_and_version.phase3.controlled_scenarios_contract.v1"
+    contract_state: "PHASE3_CHUNK_IDENTITY_AND_VERSION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED"
     slice_executable: true
+    scenario_executable: true
     execution_ready: false
     reference_only_identity_and_version_input_field_count: 10
     control_chunk_identity_and_version_record_field_count: 14
@@ -194,6 +205,12 @@ stage_progress:
     traceability_field_count: 6
     control_traceability_reference_count: 18
     declared_failure_state_count: 10
+    controlled_scenario_count: 6
+    explicit_disposition_count: 6
+    silent_drop_count: 0
+    human_handling_required_count: 6
+    control_traceability_reference_check_count: 36
+    control_duplicate_write_prohibition_asserted: true
     actual_input_request_count: 0
     actual_chunk_count: 0
     actual_chunk_id_count: 0
@@ -226,7 +243,8 @@ stage_progress:
     stage064_started: true
     stage064_entry_authorized: true
     phase2_started: true
-    phase3_started: false
+    phase3_started: true
+    phase4_started: false
     whole_stage_review_performed: false
     batch_review_performed: false
     github_upload_allowed: false
@@ -243,6 +261,11 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_slice.py"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage064_chunk_identity_version_slice.py"
       - "KM_IDSystem/machine/runs/2026-08-14-stage064-p2-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE064_PHASE3_CHUNK_IDENTITY_VERSION_CONTROLLED_SCENARIOS.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_scenarios_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/stage064_chunk_identity_version_scenarios.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage064_chunk_identity_version_scenarios.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage064-p3-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE063_STAGE_REVIEW.md"
       - "KM_IDSystem/machine/runs/2026-08-14-stage063-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
@@ -671,10 +694,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE064-P2"
-  next_allowed_task_id: "IDS-V0_1-STAGE064-P3"
+  current_task_id: "IDS-V0_1-STAGE064-P3"
+  next_allowed_task_id: "IDS-V0_1-STAGE064-P4"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-064 Phase 2 only projects three fixed, non-business, reference-only identity/version control records in memory from ten input references. Its 14 fields retain control labels for chunk_id/chunk_hash/document_id/page/section/version, three protected semantic surfaces and six traceability labels; it does not open sources, run a parser, create chunks, generate IDs, calculate hashes, bind documents, issue versions, classify assets, calculate coverage, evaluate quality, write persistent state, call a model, deploy OVH or activate any runtime."
+  current_run: "STAGE-064 Phase 3 only replays Phase 2's three fixed, non-business, reference-only identity/version control records in memory across six controlled scenarios. It emits explicit business-line whitebox human handling and six control traceability reference shapes; it does not open sources, validate actual quality or page traceability, run a parser, create chunks, generate IDs, calculate hashes, issue versions, detect duplicates, write embedding or indexes, write persistent state, call a model, deploy OVH or activate any runtime."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."
