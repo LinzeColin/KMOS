@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage066 Phase 1 - 2026-08-14
+## Current Gate - Stage066 Phase 2 - 2026-08-14
 
-- 本节是唯一当前交接；Stage065 Review/P4/P3/P2/P1、Stage064 Review/P4/P3/P2/P1、Stage063 Review/P4/P3/P2/P1、Stage062 Review 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；Stage066 P1、Stage065 Review/P4/P3/P2/P1、Stage064 Review/P4/P3/P2/P1、Stage063 Review/P4/P3/P2/P1、Stage062 Review 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE066-P2`：仅以四条固定、非业务、`:control:` 的十二字段引用式请求在内存中投影四条十七字段待人工复核记录，保留解析覆盖率、Chunk 覆盖率与未覆盖页的控制标签、工程步骤/验收条款/参数表三类保护语义面、`document/page/section/parser output/表格上下文/来源片段` 六维控制追溯、一个未知分母关闭和四条低可信人工处理标记；没有建立第二权威事实源。
+- 所有控制记录、标签、字段、引用和计数只验证冻结合同接线，不能替代来源文档或业务线白箱人工复核，也不代表真实文档解析、真实页面集合、真实 Chunk 覆盖率、真实未覆盖页、真实质量、真实来源追溯、OVH、生产或业务事实。来源文档与业务线白箱人工复核保持唯一权威；未知分母、页面集合、语义边界或追溯无法确认时必须关闭并留给人工处理。
+- 已验证：Stage066 P2 聚焦用例 `7/7`；含 Stage060--065 显式前序兼容的阶段链路 `306/306`；Batch051-060 与 Batch041-050 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件且双平面合规检查通过。以上只证明纯内存控制切片与零运行时边界，不代表真实资料验证、OVH 或生产验收。
+- 回滚只撤回本 P2 说明、控制合同、纯内存模块、聚焦用例、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `PHASE1_CHUNK_COVERAGE_METRICS_CONTRACT_RUNTIME_DISABLED`；不改变 P1、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE066-P3-GATE`。本 run 不进入 P3、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage066 Phase 1 - 2026-08-14
+
+- 本节保留 Stage066 P1 的已提交历史证据；唯一当前交接位于上方 Stage066 Phase 2，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE066-P1`：只定义 Chunk 覆盖率指标静态合同的 `12/17/3/6/14` 形状，即十二字段仅引用输入、十七字段未来覆盖率输出、解析覆盖率与 Chunk 覆盖率公式标签、未覆盖页受控引用、工程步骤/验收条款/参数表三类受保护语义面、`document/page/section/parser output/表格上下文/来源片段` 六维受控追溯和十四类失败关闭；没有建立第二权威事实源，也没有读取、打开、解析、切分、计算、生成或写入任何真实资料、页面、chunk、覆盖率、未覆盖页、来源绑定或业务结论。
 - 所有字段、公式标签、引用、计数与中文反馈只定义未来接口；它们不代表真实文档解析、真实页面集合、真实 Chunk 覆盖率、真实未覆盖页面、真实质量、真实来源追溯、OVH、生产或业务事实。来源文档与业务线白箱人工复核保持唯一权威；分母、页面集合、语义边界或追溯无法确认时必须关闭并留给人工处理。
 - 已验证：Stage066 P1 聚焦用例 `7/7`；含 Stage060--065 显式前序兼容的阶段链路 `299/299`；Batch051-060 与 Batch041-050 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件且双平面合规检查通过。以上只证明静态合同与零运行时边界，不代表真实资料验证、OVH 或生产验收。

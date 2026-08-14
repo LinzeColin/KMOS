@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage066 P2 覆盖率指标控制切片形状",
+      "数值": "4/12/17/3/6/24/1/4",
+      "说明": "依次表示固定控制请求、每条输入字段、每条输出字段、保护语义面、追溯字段、控制追溯引用、未知分母关闭和低可信人工标记；不表示真实文档、页面、chunk、解析覆盖率、Chunk 覆盖率、未覆盖页或质量结果。"
+    },
+    {
       "指标": "Stage066 P1 静态覆盖率指标形状",
       "数值": "12/17/3/6/14",
       "说明": "依次表示仅引用输入字段、未来覆盖率输出字段、保护语义面、追溯字段和失败关闭状态的合同数量；不表示真实文档、页面、chunk、解析覆盖率、Chunk 覆盖率、未覆盖页或质量结果。"
@@ -33,6 +38,11 @@
   ],
   "data_shapes": [
     {
+      "名称": "Chunk 覆盖率指标控制记录",
+      "字段": "chunk_coverage_metrics_record_ref、chunk_coverage_request_ref、chapter_aware_chunk_ref、chunk_identity_version_record_ref、engineering_semantic_asset_catalog_ref、document_ref、parser_output_ref、parse_coverage_status、parse_coverage_ratio、chunk_coverage_status、chunk_coverage_ratio、uncovered_page_refs、human_review_state、page_ref、section_ref、table_context_ref、source_fragment_ref",
+      "说明": "Stage066 P2 只在内存中投影固定 :control: 标签；它不包含真实分母、实际比率、真实页码、真实未覆盖页、真实 chunk、真实来源验证或业务事实。"
+    },
+    {
       "名称": "Chunk 覆盖率指标仅引用合同",
       "字段": "chunk_coverage_request_ref、chapter_aware_chunk_ref、chunk_identity_version_record_ref、engineering_semantic_asset_catalog_ref、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、declared_document_page_set_ref、parser_page_set_ref",
       "说明": "Stage066 P1 只定义不透明受控引用和未来覆盖率字段；它不包含正文、物理路径、实际页码、实际页面集合、真实 chunk、真实覆盖率、未覆盖页或业务结论。"
@@ -60,6 +70,10 @@
   ],
   "invariants": [
     {
+      "规则": "Stage066 P2 控制标签不等于真实覆盖率",
+      "说明": "P2 只验证四条固定控制请求的十七字段接线、未知分母关闭、保护语义面和人工复核边界；解析覆盖率、Chunk 覆盖率和未覆盖页均保持 :control: 标签，不能形成真实质量、索引、决策或生产状态，P3 必须由新的独立 run 处理。"
+    },
+    {
       "规则": "Stage066 P1 不执行覆盖率计算",
       "说明": "P1 只固定未来解析覆盖率、Chunk 覆盖率和未覆盖页的字段与公式标签；分母未知、页面集合或来源追溯无法确认时必须保持关闭并交由业务线白箱处理，P2 必须由新的独立 run 处理。"
     },
@@ -85,6 +99,16 @@
     }
   ],
   "terms": [
+    {
+      "英文": "chunk coverage metrics control slice",
+      "中文": "Chunk 覆盖率指标控制切片",
+      "说明": "Stage066 P2 只在内存中验证四条固定、非业务、reference-only 请求的十七字段控制投影；它不读取来源、不计算真实比率、不识别真实未覆盖页、不创建业务事实，也不替代来源文档。"
+    },
+    {
+      "英文": "chunk coverage metrics unknown denominator closure",
+      "中文": "Chunk 覆盖率指标未知分母关闭",
+      "说明": "当控制记录的页面集合、分母、语义边界或来源追溯无法确认时，覆盖率输出必须保持关闭并交由业务线白箱复核；控制状态和模型文本不能自动形成业务事实、索引、决策或生产状态。"
+    },
     {
       "英文": "reference-only chunk coverage metrics contract",
       "中文": "仅引用 Chunk 覆盖率指标合同",

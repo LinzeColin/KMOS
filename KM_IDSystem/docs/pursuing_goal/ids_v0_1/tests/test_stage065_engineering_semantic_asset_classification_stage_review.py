@@ -231,12 +231,19 @@ class Stage065EngineeringSemanticAssetClassificationStageReviewTests(unittest.Te
                     "IDS-V0_1-STAGE066-P1",
                     "IDS-STAGE066-P2-GATE",
                 ),
+                (
+                    "IDS-STAGE066",
+                    "IDS-V0_1-STAGE066-P2",
+                    "IDS-V0_1-STAGE066-P2",
+                    "IDS-STAGE066-P3-GATE",
+                ),
             ),
         )
-        self.assertIn(plan["task"], ("IDS-V0_1-STAGE065-REVIEW", "IDS-V0_1-STAGE066-P1"))
+        self.assertIn(plan["task"], ("IDS-V0_1-STAGE065-REVIEW", "IDS-V0_1-STAGE066-P1", "IDS-V0_1-STAGE066-P2"))
         self.assertTrue(
             "IDS-STAGE066-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE066-P2-GATE" in plan["stop_condition"]
+            or "IDS-STAGE066-P3-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             {
