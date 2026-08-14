@@ -296,15 +296,24 @@ class Stage066ChunkCoverageMetricsPhase4Tests(unittest.TestCase):
             if item.get("event_id") == "EVT-IDS-V0_1-STAGE066-P4-20260814-001"
         )
         run = json.loads(RUN.read_text(encoding="utf-8"))
-        self.assertEqual(
-            ("IDS-STAGE066", "IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-P4"),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"]),
+            (
+                ("IDS-STAGE066", "IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-P4"),
+                ("IDS-STAGE066", "IDS-STAGE066-REVIEW", "IDS-V0_1-STAGE066-REVIEW"),
+            ),
         )
-        self.assertEqual("IDS-STAGE066-REVIEW-GATE", status["next_gate"])
+        self.assertIn(status["next_gate"], ("IDS-STAGE066-REVIEW-GATE", "IDS-STAGE067-P1-GATE"))
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE066-P4", plan["phase"])
-        self.assertIn("IDS-STAGE066-REVIEW-GATE", plan["stop_condition"])
+        self.assertIn(
+            plan["phase"],
+            ("IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-REVIEW"),
+        )
+        self.assertTrue(
+            "IDS-STAGE066-REVIEW-GATE" in plan["stop_condition"]
+            or "IDS-STAGE067-P1-GATE" in plan["stop_condition"]
+        )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
             {
@@ -314,8 +323,14 @@ class Stage066ChunkCoverageMetricsPhase4Tests(unittest.TestCase):
                 "ACC-STAGE066-P4-04",
             }.issubset(acceptance_ids)
         )
-        self.assertIn('current_phase_id: "IDS-STAGE066-P4"', ROADMAP.read_text(encoding="utf-8"))
-        self.assertIn('status: "stage066_phase4_completed_review_pending"', BATCH.read_text(encoding="utf-8"))
+        self.assertTrue(
+            'current_phase_id: "IDS-STAGE066-P4"' in ROADMAP.read_text(encoding="utf-8")
+            or 'current_phase_id: "IDS-STAGE066-REVIEW"' in ROADMAP.read_text(encoding="utf-8")
+        )
+        self.assertTrue(
+            'status: "stage066_phase4_completed_review_pending"' in BATCH.read_text(encoding="utf-8")
+            or 'status: "stage066_completed_reviewed_local"' in BATCH.read_text(encoding="utf-8")
+        )
         self.assertEqual("phase_completed", event["event_type"])
         self.assertEqual("IDS-V0_1-STAGE066-P4", event["task_id"])
         self.assertEqual("RUN-IDS-STAGE066-P4-LOCAL-20260814-001", run["run_id"])

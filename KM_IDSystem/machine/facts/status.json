@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE066",
-  "phase": "IDS-V0_1-STAGE066-P4",
-  "task": "IDS-V0_1-STAGE066-P4",
-  "real_progress": "Stage066 P4 已完成本地 metadata-only Chunk 覆盖率指标交付：从 6 类固定 P3 控制场景派生 6 条内存 JSONL 样例、控制覆盖率报告、6 条低质量待人工清单、控制回归、切块策略边界、3 条中文确认和 P4 到 P3 的回退说明；真实资料、真实 chunk、真实覆盖率、真实质量、真实重生成或版本回退和运行时计数仍为零，下一步仅可在新的独立 run 进入 Stage066 Review，上传路径继续关闭",
-  "report_grade": "冻结 Stage066 任务包、P1/P2/P3 控制工件、Stage065 本地复审工件、Batch061-070 上传锁、P4 交付合同、治理路线与中文事实投影一致；本步骤未产生实际 JSONL 文件、真实覆盖率、未覆盖页、去重、质量或版本回退结论",
-  "business_verdict": "本步骤只证明固定控制场景的 metadata-only 交付形状、人工处置和 P4 到 P3 的控制回退说明已本地接线；不证明真实文档解析、真实页面集合、真实 Chunk 覆盖率、真实未覆盖页面、真实重复检测或去重、质量、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE066_PHASE4_CHUNK_COVERAGE_METRICS_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE066-REVIEW",
+  "task": "IDS-V0_1-STAGE066-REVIEW",
+  "real_progress": "Stage066 P1--P4 已完成本地整阶段机械复审：固定复核 12/17/3/6/14、4/4/24/1/4、6/6/0/6/4/36 和 6/6/3/11 控制形状、单一权威、业务线白箱人工处理、metadata-only 交付及 P4 到 P3 的控制回退；真实资料、真实 chunk、真实覆盖率、真实质量和运行时计数仍为零，下一步仅可在新的独立 run 进入 Stage067 P1，上传路径继续关闭",
+  "report_grade": "冻结 Stage066 任务包、P1--P4 控制工件、P3/P4 纯内存报告、Batch061-070 上传锁、整阶段复审模块、治理路线与中文事实投影一致；本步骤未读取真实资料、未产生实际 JSONL、真实覆盖率、未覆盖页、去重、质量或版本回退结论",
+  "business_verdict": "本步骤只证明固定控制形状、人工处置、单一权威和 P4 到 P3 的控制回退链在本地一致；不证明真实文档解析、真实页面集合、真实 Chunk 覆盖率、真实未覆盖页面、真实重复检测或去重、质量、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE066_REVIEWED_CHUNK_COVERAGE_METRICS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE066-REVIEW-GATE",
+  "next_gate": "IDS-STAGE067-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
