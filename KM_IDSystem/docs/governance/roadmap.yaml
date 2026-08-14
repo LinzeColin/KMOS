@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE065"
-current_phase_id: "IDS-STAGE065-P2"
-current_task_id: "IDS-V0_1-STAGE065-P2"
-next_gate_id: "IDS-STAGE065-P3-GATE"
+current_phase_id: "IDS-STAGE065-P3"
+current_task_id: "IDS-V0_1-STAGE065-P3"
+next_gate_id: "IDS-STAGE065-P4-GATE"
 current_transition_history:
+  stage065_phase3_state:
+    current_stage_id: "IDS-STAGE065"
+    current_phase_id: "IDS-STAGE065-P3"
+    current_task_id: "IDS-V0_1-STAGE065-P3"
+    next_gate_id: "IDS-STAGE065-P4-GATE"
   stage065_phase2_state:
     current_stage_id: "IDS-STAGE065"
     current_phase_id: "IDS-STAGE065-P2"
@@ -17610,20 +17615,20 @@ stages:
     task_id: "IDS-V0_1-STAGE065"
     acceptance_ids:
       - "ACC-STAGE-065"
-    status: "in_progress_local_phase2"
-    pursuing_goal: "只用七条固定、非业务、reference-only 工程语义资产分类控制请求在内存中投影七条十六字段低可信待人工复核控制记录，机械验证 procedure、risk、acceptance、material、equipment、case、bid_response、章节感知切块、chunk 身份与版本、document/page/section/parser output 追溯、保护语义面和回滚边界；不读取或处理真实资料。"
+    status: "in_progress_local_phase3"
+    pursuing_goal: "只重放 Phase2 的七条固定、非业务、reference-only 工程语义资产分类控制记录，在内存中对长文档、跨页参数表、施工步骤、参数表、引用页码与重复 chunk embedding/index 写入边界输出六类显式人工处置；不读取、处理或分类真实资料。"
     stop_gate:
-      gate_id: "IDS-STAGE065-P2-GATE"
+      gate_id: "IDS-STAGE065-P3-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE065-P3-GATE"
+      next_gate_id: "IDS-STAGE065-P4-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "七条固定、非业务、仅引用的十二字段请求投影七条十六字段低可信待人工复核控制记录，覆盖七类资产标签、三类受保护工程语义面和六维控制追溯。"
-      - "所有字段和标签只保留控制投影形状，不代表真实资料、chunk、hash、来源、分类记录、分类结果、覆盖率、质量、业务事实或第二权威事实源。"
-      - "运行时、Agent、模型 Token、OVH、生产和上传均保持关闭，下一门仅为 Stage065 Phase 3。"
+      - "重放七条固定、非业务、仅引用的 Phase2 控制记录，完整覆盖长文档、跨页参数表、施工步骤、参数表、引用页码与重复 chunk 写入边界六类场景。"
+      - "每个场景保留六维控制追溯、显式人工处置和低可信关闭状态；控制场景不代表真实资料、chunk、hash、分类、来源、覆盖率、质量或第二权威事实源。"
+      - "运行时、Agent、模型 Token、OVH、生产和上传均保持关闭，下一门仅为 Stage065 Phase 4。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、身份、哈希、版本、分类记录、索引、数据库或报告"
-      - "执行真实 parser、章节检测、切块、身份或版本生成、Hash 计算、语义资产分类、覆盖率、质量回归、质量降级、来源追溯绑定、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Stage065 Phase 3、整阶段复审、批次复审、上传、推送或应用重装"
+      - "执行真实 parser、章节检测、切块、身份或版本生成、Hash 计算、语义资产分类、重复检测或去重、覆盖率、质量回归、质量降级、来源追溯绑定、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Stage065 Phase 4、整阶段复审、批次复审、上传、推送或应用重装"
     phases:
       - phase_id: "IDS-STAGE065-P1"
         name: "Phase 1 · 工程语义资产分类范围、输入输出与边界确认"
@@ -17720,3 +17725,52 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
             risk: "若把固定控制标签、低可信人工复核标记、引用形状、计数或聚焦用例通过误作真实 procedure、risk、acceptance、material、equipment、case、bid_response、真实 chunk、真实 hash、真实分类、真实来源追溯、真实覆盖率、质量、OVH、生产或上传能力，会绕开业务线人工白箱处理和单一权威边界。"
             rollback: "只回滚本 P2 说明、控制合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE1_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_CONTRACT_RUNTIME_DISABLED；不改变 P1、冻结任务包、真实资料、fixture、事实库、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE065-P3"
+        name: "Phase 3 · 工程语义资产分类专项验证与异常场景"
+        objective: "只重放 P2 的七条固定、非业务、reference-only 十六字段低可信控制记录，在内存中覆盖长文档、跨页参数表、施工步骤、参数表、引用页码与重复 chunk embedding/index 写入边界六类场景，输出显式人工处置与六维控制追溯；不读取、切分、分类、去重、计算或写入真实资料、chunk、hash、分类记录、来源绑定或业务结论。"
+        status: "passed_with_local_evidence"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE065-P4-GATE"
+        gate:
+          gate_id: "IDS-STAGE065-P3-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE065-P4-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析或评估任何 IDS 业务资料、原始元数据、授权 fixture、真实文档、页面、章节、表格、来源片段、parser 输出、chunk、身份、哈希、版本、分类记录、索引、数据库或报告"
+          - "执行真实 parser、章节检测、切块、身份或版本生成、Hash 计算、语义资产分类、重复检测或去重、覆盖率、质量回归、质量降级、来源追溯绑定、embedding、索引、持久化、Agent、模型调用、模型 Token、OVH、生产服务、Phase4、整阶段复审、批次复审、上传、推送或应用重装"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE065-P3"
+            name: "验证工程语义资产分类控制专项场景"
+            objective: "重放 P2 七条固定控制记录，核验长文档、跨页参数表、施工步骤、参数表、引用页码与重复 chunk 写入边界六类显式人工处置、零静默丢弃、六维控制追溯、单一权威和零运行时边界；不形成真实切块质量、真实分类、真实去重或真实来源反查结论。"
+            status: "completed"
+            estimated_hours: 1
+            total_hours_percent: "75.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE065-P2"
+            acceptance_ids:
+              - "ACC-STAGE-065"
+              - "ACC-STAGE065-P3-01"
+              - "ACC-STAGE065-P3-02"
+              - "ACC-STAGE065-P3-03"
+              - "ACC-STAGE065-P3-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage065_engineering_semantic_asset_classification_scenarios"
+              - "Stage065 P3 与显式前序兼容回归命令记录在 machine run"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage065 P3 聚焦用例 10/10、含 Batch051-060 Review、Stage060 Review、Stage061--064 全阶段及 Stage065 P1/P2/P3 的显式阶段链路 237/237、两个批次检查器均 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED、Stage005 治理回归 valid=true、中文事实投影重渲染 7 个文件且人类平面三道门通过、机器平面无登记阻塞。控制场景和测试结果不证明真实切块质量、真实分类、真实去重、真实来源反查、OVH、生产或上传能力。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-065_工程语义资产分类.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE065_PHASE3_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/stage065_engineering_semantic_asset_classification_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/stage065_engineering_semantic_asset_classification_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage065_engineering_semantic_asset_classification_scenarios.py"
+              - "KM_IDSystem/machine/runs/2026-08-14-stage065-p3-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/stage065_engineering_semantic_asset_classification_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE064_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把六类固定控制场景、显式人工处置、零静默丢弃、引用形状或聚焦用例通过误作真实长文档质量、跨页关系、施工步骤、参数表、页码反查、重复 chunk 去重、真实分类、OVH、生产或上传能力，会绕开业务线人工白箱处理和单一权威边界。"
+            rollback: "只回滚本 P3 说明、场景合同、纯内存模块、聚焦用例、machine run、事件、事实投影、治理路线和生成中文视图，恢复到 PHASE2_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_CONTROL_SLICE_RUNTIME_DISABLED；不改变 P1/P2、冻结任务包、真实资料、fixture、事实库、数据库、索引、GitHub、OVH 或应用状态。"

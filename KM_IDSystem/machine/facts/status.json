@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE065",
-  "phase": "IDS-V0_1-STAGE065-P2",
-  "task": "IDS-V0_1-STAGE065-P2",
-  "real_progress": "Stage065 P2 已完成本地纯内存工程语义资产分类控制切片：七条固定、非业务、仅引用的十二字段请求投影七条十六字段低可信待人工复核控制记录，覆盖 procedure/risk/acceptance/material/equipment/case/bid_response、工程步骤/验收条款/参数表三类受保护语义面和 document/page/section/parser output/表格上下文/来源片段六维控制追溯；下一步仅可在新的独立 run 进入 Stage065 P3，上传路径继续关闭",
-  "report_grade": "冻结 Stage065 任务包、Stage064 本地整阶段复审、Batch061-070 上传锁、Stage065 P1/P2 控制合同、治理路线与中文事实投影一致",
-  "business_verdict": "本 P2 只证明固定控制请求的字段形状、低可信人工复核标记和拒绝闭合已在内存中机械投影；不证明真实 procedure、risk、acceptance、material、equipment、case 或 bid_response 已被分类，也不证明真实 chunk、hash、来源追溯、覆盖率、质量、OVH、生产服务或上传能力已启用",
-  "evidence_status": "LOCAL_STAGE065_PHASE2_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_CONTROL_SLICE_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE065-P3",
+  "task": "IDS-V0_1-STAGE065-P3",
+  "real_progress": "Stage065 P3 已完成本地纯内存工程语义资产分类专项控制场景：重放七条固定、非业务、仅引用的 Phase2 控制记录，覆盖长文档、跨页参数表、施工步骤、参数表、引用页码和重复 chunk embedding/index 写入边界六类显式人工处置，并保留 document/page/section/parser output/表格上下文/来源片段六维控制追溯；下一步仅可在新的独立 run 进入 Stage065 P4，上传路径继续关闭",
+  "report_grade": "冻结 Stage065 任务包、Stage064 本地整阶段复审、Batch061-070 上传锁、Stage065 P1/P2/P3 控制合同、治理路线与中文事实投影一致",
+  "business_verdict": "本 P3 只证明六类固定控制场景的显式人工处置、零静默丢弃和引用形状已在内存中机械验证；不证明真实长文档质量、跨页关系、施工步骤、参数表、页码反查、重复 chunk 去重、真实分类、来源追溯、覆盖率、质量、OVH、生产服务或上传能力已启用",
+  "evidence_status": "LOCAL_STAGE065_PHASE3_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-14",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE065-P3-GATE",
+  "next_gate": "IDS-STAGE065-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

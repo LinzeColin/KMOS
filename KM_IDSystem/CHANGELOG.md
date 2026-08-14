@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage065 Phase 3（本地）
+
+- 完成工程语义资产分类受控专项场景：仅重放 P2 七条固定、非业务、reference-only 控制记录，覆盖长文档、跨页参数表、施工步骤、参数表、引用页码与来源反查，以及重复 chunk 的 embedding/index 写入边界六类显式人工处置；静默丢弃为 `0`，保留六维 `:control:` 引用形状，没有建立第二权威事实源。
+- 六类控制场景不读取、打开、解析、切分、计算、分类、去重、生成、写入或保留真实业务资料、chunk、hash、分类记录、来源绑定、索引、数据库或业务结论；控制结果不能替代来源文档或业务线白箱人工复核，不代表 OVH、生产或上传能力。
+- 本地验证通过：Stage065 P3 聚焦用例 `10/10`；含 Batch051-060 Review、Stage060 Review、Stage061--064 全阶段及 Stage065 P1/P2/P3 的显式阶段链路 `237/237`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，人类平面三道门通过且机器平面无登记阻塞。本 run 未进入真实 parser、章节检测、切块、身份/版本/hash、分类、重复检测或去重、覆盖率、质量、来源追溯、embedding、索引、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE065-P4-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage065 Phase 2（本地）
 
 - 完成工程语义资产分类最小控制切片：七条固定、非业务、reference-only 十二字段请求在内存中投影七条十六字段低可信待人工复核控制记录，覆盖 `procedure/risk/acceptance/material/equipment/case/bid_response` 七类标签、工程步骤/验收条款/参数表三类保护语义面、六维控制追溯与 `chunk_id/chunk_hash/version` 控制标签；没有建立第二权威事实源。

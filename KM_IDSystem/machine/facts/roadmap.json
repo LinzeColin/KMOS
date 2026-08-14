@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE065",
       "name": "工程语义资产分类",
-      "gate": "P1 静态合同和 P2 纯内存工程语义资产分类控制切片已本地通过；下一步须独立进入 Stage065 Phase 3",
-      "status": "Stage065 P2 已完成：7 条固定十二字段控制请求投影 7 条十六字段低可信待人工复核控制记录，覆盖 procedure/risk/acceptance/material/equipment/case/bid_response、3 类受保护工程语义面和 6 维控制追溯；真实分类、chunk/hash、覆盖率、质量、索引、OVH 与生产仍禁用"
+      "gate": "P1 静态合同、P2 纯内存控制切片和 P3 六类受控专项场景已本地通过；下一步须独立进入 Stage065 Phase 4",
+      "status": "Stage065 P3 已完成：重放 7 条固定 Phase2 控制记录，对长文档、跨页参数表、施工步骤、参数表、引用页码与重复 chunk embedding/index 写入边界给出 6 类显式人工处置和 36 次控制引用检查；真实分类、chunk/hash、重复检测或去重、覆盖率、质量、索引、OVH 与生产仍禁用"
     },
     {
       "id": "IDS-STAGE064",

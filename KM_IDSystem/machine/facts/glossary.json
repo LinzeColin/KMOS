@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage065 P3 控制场景形状",
+      "数值": "7/6/6/6/0/6/36/4",
+      "说明": "分别表示重放的 Phase2 控制记录、专项场景、显式处置、人工处理、静默丢弃、追溯字段、控制引用检查和唯一控制记录；不表示真实资料、chunk、hash、分类、去重或质量结果。"
+    },
+    {
       "指标": "Stage065 P2 控制投影形状",
       "数值": "7/12/16/3/6/42/7",
       "说明": "分别表示固定控制请求、每条输入字段、每条输出字段、受保护语义面、追溯字段、控制追溯引用和低可信人工复核标记；不表示真实资料、chunk、hash、分类或质量结果。"
@@ -12,6 +17,11 @@
     }
   ],
   "data_shapes": [
+    {
+      "名称": "工程语义资产分类受控专项场景",
+      "字段": "scenario_id、scenario_category、referenced_semantic_asset_classification_record_ref、referenced_semantic_asset_type、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、explicit_disposition、human_handling_required",
+      "说明": "Stage065 P3 只重放固定 :control: 引用并输出显式人工处置；它不包含真实文档、真实页码、真实分类、重复检测、去重或来源验证。"
+    },
     {
       "名称": "工程语义资产分类低可信控制记录",
       "字段": "semantic_asset_classification_record_ref、chunk_identity_version_record_ref、chapter_aware_chunk_ref、semantic_asset_type、semantic_asset_subtype、classification_status、human_review_state、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、chunk_id、chunk_hash、version",
@@ -25,6 +35,10 @@
   ],
   "invariants": [
     {
+      "规则": "专项场景不替代真实质量或去重验证",
+      "说明": "Stage065 P3 的长文档、跨页参数表、施工步骤、参数表、引用页码和重复 chunk 只表示控制类别；六类均须业务线白箱人工处理，控制模块不检测真实重复项、不形成真实去重或来源反查结论。"
+    },
+    {
       "规则": "低可信控制标记不是质量结论",
       "说明": "Stage065 P2 的七条固定控制记录全部要求业务线白箱人工复核；该标记不检测真实低质量，不计算覆盖率或质量回归，也不替代来源文档。"
     },
@@ -34,6 +48,16 @@
     }
   ],
   "terms": [
+    {
+      "英文": "controlled engineering semantic asset classification scenario",
+      "中文": "受控工程语义资产分类专项场景",
+      "说明": "Stage065 P3 对 P2 七条固定、非业务、reference-only 低可信控制记录的纯内存重放；长文档、跨页参数表、施工步骤、参数表、引用页码和重复 chunk 只表示控制类别，始终要求业务线白箱人工复核，不能成为真实切块质量、分类或业务事实。"
+    },
+    {
+      "英文": "semantic asset duplicate write control boundary",
+      "中文": "语义资产重复写入控制边界",
+      "说明": "Stage065 P3 只确认控制模块没有发起 embedding 或索引写入；它不检测真实重复 chunk、不验证真实身份、Hash 或版本、不形成真实去重效果结论。"
+    },
     {
       "英文": "low-confidence engineering semantic asset classification control record",
       "中文": "低可信工程语义资产分类控制记录",
