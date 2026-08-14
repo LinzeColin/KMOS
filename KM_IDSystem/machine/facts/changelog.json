@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage065-p2-local",
+    "date": "2026-08-14",
+    "summary": "完成 Stage065 P2 工程语义资产分类纯内存控制切片：七条固定、非业务、reference-only 十二字段请求投影七条十六字段低可信待人工复核控制记录，覆盖 procedure/risk/acceptance/material/equipment/case/bid_response、工程步骤/验收条款/参数表三类受保护语义面和六维控制追溯。控制标签不代表真实 chunk、hash、分类、质量或来源验证；未读取、打开、解析、切分、计算或创建真实资料、分类记录、来源绑定、覆盖率、质量、索引、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage065 P3。"
+  },
+  {
     "version": "v0.1-stage065-p1-local",
     "date": "2026-08-14",
     "summary": "完成 Stage065 P1 工程语义资产分类静态合同：定义 12 个仅引用输入、16 个未来分类字段、procedure/risk/acceptance/material/equipment/case/bid_response 七类资产标签、工程步骤/验收条款/参数表三类保护语义面、document/page/section/parser output 六维追溯、10 类失败关闭、中文反馈和回滚范围。聚焦用例 7/7、受影响阶段链路 212/212、两个批次检查器和 Stage005 治理回归均已本地通过，中文事实投影已重渲染 7 个文件。未读取、打开、解析、分类或创建真实资料、chunk、分类记录、来源绑定、覆盖率、质量、索引、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage065 P2。"

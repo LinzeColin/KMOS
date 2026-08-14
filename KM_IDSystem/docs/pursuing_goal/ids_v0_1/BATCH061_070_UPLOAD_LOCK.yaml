@@ -1,14 +1,21 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
-updated_at_utc: "2026-08-14T02:00:00Z"
-status: "stage065_phase1_completed"
+updated_at_utc: "2026-08-14T02:36:31Z"
+status: "stage065_phase2_completed"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage065_phase2_state:
+    status: "stage065_phase2_completed"
+    current_task_id: "IDS-V0_1-STAGE065-P2"
+    next_gate: "IDS-STAGE065-P3-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE065-P3"
+    stage065_phase3_entry_authorized: true
+    github_upload_allowed: false
   stage065_phase1_state:
     status: "stage065_phase1_completed"
     current_task_id: "IDS-V0_1-STAGE065-P1"
@@ -188,16 +195,18 @@ upload_gate:
 
 stage_progress:
   STAGE-065:
-    status: "stage065_phase1_completed"
+    status: "stage065_phase2_completed"
     completed_phases:
       - "Phase 1"
-    next_phase: "Phase 2"
-    next_gate: "IDS-STAGE065-P2-GATE"
-    current_task_id: "IDS-V0_1-STAGE065-P1"
+      - "Phase 2"
+    next_phase: "Phase 3"
+    next_gate: "IDS-STAGE065-P3-GATE"
+    current_task_id: "IDS-V0_1-STAGE065-P2"
     acceptance_id: "ACC-STAGE-065"
-    acceptance_status: "phase1_completed_local"
+    acceptance_status: "phase2_completed_local"
     review_status: "not_started"
     phase2_entry_authorized: true
+    phase3_entry_authorized: true
     taskpack_context_read_performed: true
     source_authority: "FROZEN_STAGE065_TASKPACK_AND_STAGE064_REVIEW_ARTIFACTS_ONLY"
     second_authoritative_source_created: false
@@ -209,13 +218,19 @@ stage_progress:
     chapter_detection_performed: false
     chunking_execution_performed: false
     engineering_semantic_asset_classification_contract_schema: "ids.stage065.engineering_semantic_asset_classification.phase1.v1"
-    contract_state: "PHASE1_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_CONTRACT_RUNTIME_DISABLED"
+    engineering_semantic_asset_classification_slice_contract_schema: "ids.stage065.engineering_semantic_asset_classification.phase2.v1"
+    contract_state: "PHASE2_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_CONTROL_SLICE_RUNTIME_DISABLED"
+    slice_executable: true
     execution_ready: false
     reference_only_semantic_asset_classification_input_field_count: 12
     future_semantic_asset_classification_output_field_count: 16
+    control_semantic_asset_classification_request_count: 7
+    control_semantic_asset_classification_record_count: 7
     engineering_semantic_asset_type_count: 7
     protected_semantic_asset_type_count: 3
     traceability_field_count: 6
+    control_traceability_reference_count: 42
+    low_confidence_control_marker_count: 7
     declared_failure_state_count: 10
     actual_input_request_count: 0
     actual_semantic_asset_classification_count: 0
@@ -245,7 +260,8 @@ stage_progress:
     production_runtime_activation_performed: false
     stage065_started: true
     stage065_entry_authorized: true
-    phase2_started: false
+    phase2_started: true
+    phase3_started: false
     whole_stage_review_performed: false
     batch_review_performed: false
     github_upload_allowed: false
@@ -257,6 +273,11 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/stage065_engineering_semantic_asset_classification_contract.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage065_engineering_semantic_asset_classification_contract.py"
       - "KM_IDSystem/machine/runs/2026-08-14-stage065-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE065_PHASE2_ENGINEERING_SEMANTIC_ASSET_CLASSIFICATION_CONTROL_SLICE.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/stage065_engineering_semantic_asset_classification_slice_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/stage065_engineering_semantic_asset_classification_slice.py"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage065_engineering_semantic_asset_classification_slice.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage065-p2-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE064_STAGE_REVIEW.md"
       - "KM_IDSystem/machine/runs/2026-08-14-stage064-review-local.json"
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
@@ -822,10 +843,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE065-P1"
-  next_allowed_task_id: "IDS-V0_1-STAGE065-P2"
+  current_task_id: "IDS-V0_1-STAGE065-P2"
+  next_allowed_task_id: "IDS-V0_1-STAGE065-P3"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-065 Phase 1 only defines the frozen static engineering semantic asset classification contract: 12 reference-only input fields, 16 future output fields, procedure/risk/acceptance/material/equipment/case/bid_response labels, three protected semantic surfaces, six traceability fields, ten failure states, Chinese feedback and rollback boundaries. It does not open sources, run a parser, create chunks, generate identities or versions, classify real assets, calculate coverage, evaluate quality, write embedding or indexes, write persistent state, call a model, deploy OVH or activate any runtime."
+  current_run: "STAGE-065 Phase 2 only projects seven fixed non-business reference-only twelve-field control requests into seven sixteen-field low-confidence human-review control records in memory. The procedure/risk/acceptance/material/equipment/case/bid_response labels, protected semantic surfaces, six traceability references, chunk_id, chunk_hash and version are control labels only. It does not open sources, run a parser, create chunks, compute hashes, classify real assets, calculate coverage, evaluate quality, write embedding or indexes, write persistent state, call a model, deploy OVH or activate any runtime."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage065 Phase 2（本地）
+
+- 完成工程语义资产分类最小控制切片：七条固定、非业务、reference-only 十二字段请求在内存中投影七条十六字段低可信待人工复核控制记录，覆盖 `procedure/risk/acceptance/material/equipment/case/bid_response` 七类标签、工程步骤/验收条款/参数表三类保护语义面、六维控制追溯与 `chunk_id/chunk_hash/version` 控制标签；没有建立第二权威事实源。
+- 控制标签、字段、引用和计数只验证冻结合同接线，不能替代来源文档或业务线白箱人工复核，也不代表真实资料、chunk、hash、分类、来源绑定、覆盖率、质量、索引、OVH、生产或上传能力；所有低可信记录始终留待人工处理。
+- 本地验证通过：Stage065 P2 聚焦用例 `8/8`；含 Stage060 Review、Stage061--064 全阶段及 Stage065 P1/P2 的显式阶段链路 `227/227`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件，人类平面三道门通过且机器平面无登记阻塞。本 run 未读取、打开、检测、解析、切分、计算、分类或创建真实资料、chunk、身份、版本、hash、分类记录、来源绑定、覆盖率、质量、索引、数据库、Agent、模型 Token、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 `IDS-STAGE065-P3-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage065 Phase 1（本地）
 
 - 完成工程语义资产分类静态合同：固定 `12/16/7/3/6/10` 形状，即十二字段仅引用输入、十六字段未来分类输出、`procedure/risk/acceptance/material/equipment/case/bid_response` 七类资产标签、工程步骤/验收条款/参数表三类保护语义面、六维受控追溯和十类失败关闭；没有建立第二权威事实源。

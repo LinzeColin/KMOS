@@ -1,12 +1,22 @@
 {
   "numbers": [
     {
+      "指标": "Stage065 P2 控制投影形状",
+      "数值": "7/12/16/3/6/42/7",
+      "说明": "分别表示固定控制请求、每条输入字段、每条输出字段、受保护语义面、追溯字段、控制追溯引用和低可信人工复核标记；不表示真实资料、chunk、hash、分类或质量结果。"
+    },
+    {
       "指标": "Stage065 P1 静态形状",
       "数值": "12/16/7/3/6/10",
       "说明": "分别表示仅引用输入字段、未来分类输出字段、资产类型标签、保护语义面、追溯字段和失败关闭状态的合同数量；不表示真实资料、分类或质量结果。"
     }
   ],
   "data_shapes": [
+    {
+      "名称": "工程语义资产分类低可信控制记录",
+      "字段": "semantic_asset_classification_record_ref、chunk_identity_version_record_ref、chapter_aware_chunk_ref、semantic_asset_type、semantic_asset_subtype、classification_status、human_review_state、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、chunk_id、chunk_hash、version",
+      "说明": "Stage065 P2 只在内存中投影固定 :control: 标签；它不包含真实分类、业务内容、真实 hash、真实版本、真实页码或来源验证。"
+    },
     {
       "名称": "工程语义资产分类引用形状",
       "字段": "semantic_asset_classification_request_ref、chunk_identity_version_record_ref、chapter_aware_chunk_ref、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、engineering_procedure_ref、acceptance_clause_ref、parameter_table_ref",
@@ -15,11 +25,25 @@
   ],
   "invariants": [
     {
+      "规则": "低可信控制标记不是质量结论",
+      "说明": "Stage065 P2 的七条固定控制记录全部要求业务线白箱人工复核；该标记不检测真实低质量，不计算覆盖率或质量回归，也不替代来源文档。"
+    },
+    {
       "规则": "保护语义面与来源权威",
       "说明": "工程步骤、验收条款和参数表不得被任意切断或由分类规则覆盖；来源文档和业务线人工复核始终优先于分类标签、模型输出或本合同。"
     }
   ],
   "terms": [
+    {
+      "英文": "low-confidence engineering semantic asset classification control record",
+      "中文": "低可信工程语义资产分类控制记录",
+      "说明": "Stage065 P2 对固定、非业务、仅引用请求的纯内存十六字段投影；标签和 :control: 引用只验证合同接线，全部要求人工复核，不能成为真实分类、业务事实或第二权威事实源。"
+    },
+    {
+      "英文": "engineering semantic asset classification control slice",
+      "中文": "工程语义资产分类控制切片",
+      "说明": "Stage065 P2 只在内存中验证七类固定标签、三类受保护语义面和六维控制追溯的投影形状；真实切块、hash、分类、覆盖率、质量回归和质量降级仍保持关闭并属于对应后续职责。"
+    },
     {
       "英文": "reference-only engineering semantic asset classification contract",
       "中文": "仅引用工程语义资产分类合同",

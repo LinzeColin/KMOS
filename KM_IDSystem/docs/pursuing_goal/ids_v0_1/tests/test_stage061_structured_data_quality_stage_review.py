@@ -328,6 +328,12 @@ class Stage061StructuredDataQualityStageReviewTests(unittest.TestCase):
                     "IDS-V0_1-STAGE065-P1",
                     "IDS-STAGE065-P2-GATE",
                 ),
+                (
+                    "IDS-STAGE065",
+                    "IDS-V0_1-STAGE065-P2",
+                    "IDS-V0_1-STAGE065-P2",
+                    "IDS-STAGE065-P3-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])

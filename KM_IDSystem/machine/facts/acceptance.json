@@ -1,6 +1,26 @@
 {
   "items": [
     {
+      "id": "ACC-STAGE065-P2-01",
+      "criteria": "冻结 Stage065 任务包、P1 静态合同、Stage064 本地整阶段复审与 Batch061-070 上传锁保持为唯一合同上下文；七条输入均为固定、非业务、仅引用控制请求，未建立第二权威事实源，未读取或保留业务资料、原始元数据、来源正文、物理路径、页面、章节、表格、parser 输出或 chunk。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE065-P2-02",
+      "criteria": "纯内存切片严格核验 P1 十二字段控制输入，并投影七条严格十六字段低可信待人工复核控制记录；记录覆盖 procedure、risk、acceptance、material、equipment、case、bid_response 七类标签，chunk_id、chunk_hash 和 version 都只是控制标签，不生成真实身份、Hash、版本或分类。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE065-P2-03",
+      "criteria": "七条控制记录均保留 document、page、section、parser output、表格上下文和来源片段六维控制引用，工程步骤、验收条款和参数表三类受保护语义面保持原子；全部低可信并要求业务线白箱人工复核。低可信控制标记不等于真实低质量检测，覆盖率、质量回归和质量降级仍由后续阶段负责。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE065-P2-04",
+      "criteria": "未读取、打开、检测、解析、切分、计算、分类或创建真实资料、chunk、身份、Hash、版本或分类记录，未执行 parser、章节检测、覆盖率、质量、来源追溯、索引、数据库、持久化、Agent、模型 Token、OVH、生产、P3、整阶段复审、批次复审、上传或推送；下一步仅可在新的独立 run 进入 Stage065 P3。",
+      "status": "已遵守"
+    },
+    {
       "id": "ACC-STAGE065-P1-01",
       "criteria": "冻结 Stage065 任务包、Stage064 本地整阶段复审与 Batch061-070 上传锁保持为唯一合同上下文；十二字段仅引用输入、十六字段未来分类输出和七类资产标签只定义接口，不建立第二权威事实源，未读取或保留业务资料、原始元数据、来源正文、物理路径、页面、章节、表格、parser 输出或 chunk。",
       "status": "已通过"
