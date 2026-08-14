@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-14 · IDS v0.1 Stage069 Phase 3（本地）
+
+- 完成外部 API 策略继承纯内存专项场景：重放 P2 五条固定、非业务、reference-only 控制记录，验证 `denied` 无载荷、`summary_only` 仅摘要引用、document 收紧、`full_text_allowed` 仅文本块引用、预算不足暂停，以及五条十八字段审计投影和三个未来调用候选的先审计不变量，固定控制形状为 `5/23/18/90/1/2/1/1/3`；没有建立第二权威事实源。
+- 场景结果、载荷类别、队列状态和审计投影只验证冻结接口与业务线白箱人工处置边界，不能替代来源文档、形成业务事实或自动业务建议，也不代表真实资料、摘要正文、文本块、队列、缓存、provider/模型选择、外部 API、模型 Token、审计、索引、OVH、生产、上传或推送能力。
+- 本地验证通过：Stage069 P3 聚焦用例 `10/10`；Stage060--069 阶段链路回归 `452/452`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`。下一步仅可在新的独立 run 进入 `IDS-STAGE069-P4-GATE`。
+
 ## 2026-08-14 · IDS v0.1 Stage069 Phase 2（本地）
 
 - 完成外部 API 策略继承纯内存控制切片：五条固定、非业务、reference-only 的 `:control:` 请求投影 data source/document→chunk 有效策略、五条 Embedding 队列意图、五条缓存关闭、五条零成本/模型版本字段和五条审计字段，覆盖默认 `denied`、摘要继承、document 收紧、全文控制与预算不足暂停，固定形状为 `5/15/23/12/8/18/1/1/3`；没有建立第二权威事实源。

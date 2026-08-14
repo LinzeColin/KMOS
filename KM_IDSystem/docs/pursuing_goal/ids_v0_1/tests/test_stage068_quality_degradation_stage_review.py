@@ -197,6 +197,12 @@ class Stage068QualityDegradationStageReviewTests(unittest.TestCase):
                     "IDS-V0_1-STAGE069-P2",
                     "IDS-STAGE069-P3-GATE",
                 ),
+                (
+                    "IDS-STAGE069",
+                    "IDS-V0_1-STAGE069-P3",
+                    "IDS-V0_1-STAGE069-P3",
+                    "IDS-STAGE069-P4-GATE",
+                ),
             ),
         )
         self.assertIn(
@@ -205,12 +211,14 @@ class Stage068QualityDegradationStageReviewTests(unittest.TestCase):
                 ("IDS-V0_1-STAGE068-REVIEW", "IDS-V0_1-STAGE068-REVIEW"),
                 ("IDS-V0_1-STAGE069-P1", "IDS-V0_1-STAGE069-P1"),
                 ("IDS-V0_1-STAGE069-P2", "IDS-V0_1-STAGE069-P2"),
+                ("IDS-V0_1-STAGE069-P3", "IDS-V0_1-STAGE069-P3"),
             ),
         )
         self.assertTrue(
             "IDS-STAGE069-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE069-P2-GATE" in plan["stop_condition"]
             or "IDS-STAGE069-P3-GATE" in plan["stop_condition"]
+            or "IDS-STAGE069-P4-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             {

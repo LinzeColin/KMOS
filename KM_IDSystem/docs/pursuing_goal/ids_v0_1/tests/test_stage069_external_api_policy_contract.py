@@ -295,6 +295,11 @@ class Stage069ExternalApiPolicyPhase1Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE069-P2",
                     "IDS-STAGE069-P3-GATE",
                 ),
+                (
+                    "IDS-V0_1-STAGE069-P3",
+                    "IDS-V0_1-STAGE069-P3",
+                    "IDS-STAGE069-P4-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -305,11 +310,13 @@ class Stage069ExternalApiPolicyPhase1Tests(unittest.TestCase):
             (
                 ("IDS-V0_1-STAGE069-P1", "IDS-V0_1-STAGE069-P1"),
                 ("IDS-V0_1-STAGE069-P2", "IDS-V0_1-STAGE069-P2"),
+                ("IDS-V0_1-STAGE069-P3", "IDS-V0_1-STAGE069-P3"),
             ),
         )
         self.assertTrue(
             "IDS-STAGE069-P2-GATE" in plan["stop_condition"]
             or "IDS-STAGE069-P3-GATE" in plan["stop_condition"]
+            or "IDS-STAGE069-P4-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             any(item["id"] == "ACC-STAGE069-P1-01" for item in acceptance["items"])

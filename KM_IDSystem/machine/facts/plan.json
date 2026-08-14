@@ -1,20 +1,21 @@
 {
   "stage": "IDS-STAGE069",
-  "phase": "IDS-V0_1-STAGE069-P2",
-  "task": "IDS-V0_1-STAGE069-P2",
-  "owner": "Codex 专属 KMOS worktree，Stage069 Phase 2",
-  "objective": "只以冻结 Stage069 任务包、P1 静态合同、Stage068 本地整阶段机械复审、根策略锁、操作说明和 Batch061-070 上传锁为唯一合同上下文，以五条固定、非业务、仅引用控制请求在内存中投影 data source/document→chunk 的 external_api_policy 继承、Embedding 队列意图、缓存关闭、成本/模型版本字段和审计字段；不读取、打开、解析、总结、外发、创建、写入或回退真实资料、摘要、chunk、队列、缓存、审计记录、成本、模型选择或业务结论。",
+  "phase": "IDS-V0_1-STAGE069-P3",
+  "task": "IDS-V0_1-STAGE069-P3",
+  "owner": "Codex 专属 KMOS worktree，Stage069 Phase 3",
+  "objective": "只以冻结 Stage069 任务包、P1/P2 合同、Stage068 本地整阶段机械复审、根策略锁、操作说明和 Batch061-070 上传锁为唯一合同上下文，重放五条固定、非业务、仅引用控制记录，在内存中验证 denied、summary_only、document 收紧、full_text_allowed、预算不足暂停与审计投影不变量；不读取、打开、解析、总结、外发、创建、写入或回退真实资料、摘要正文、文本块、chunk、队列、缓存、审计记录、成本、模型选择或业务结论。",
   "scope": [
-    "以冻结 Stage069 任务包、P1 静态合同、Stage068 Review、根策略锁、操作说明和 Batch061-070 上传锁为唯一合同上下文，不建立第二权威事实源",
-    "只投影 5/15/23/12/8/18 固定控制形状：五条仅引用请求、五条策略解析、五条队列意图、五条成本/模型版本字段和五条审计字段，覆盖 denied、摘要继承、文档收紧、全文控制与预算不足暂停",
-    "控制引用、策略解析、队列意图、缓存关闭、成本/模型版本、审计投影和中文反馈都不能形成真实 data source、document、摘要、chunk、外发、Embedding、模型输出、成本事实、审计记录或业务结论",
-    "同步 P2 纯内存控制切片、切片合同、聚焦用例、BATCH061-070 锁、路线图、machine run、事件、机器事实、中文视图与交接",
-    "只完成 ACC-STAGE-069 的 P2 本地控制切片并指向 Stage069 P3 门"
+    "以冻结 Stage069 任务包、P1/P2 合同、Stage068 Review、根策略锁、操作说明和 Batch061-070 上传锁为唯一合同上下文，不建立第二权威事实源",
+    "只重放 P2 的 5/23/18/90/1/2/1/1/3 固定控制形状：五条场景、二十三字段场景结果、十八字段审计投影、九十次审计字段检查、一个 denied、两个 summary_only、一个 full_text_allowed、一个预算不足暂停和三个未来调用候选",
+    "denied 只允许无载荷引用类别，summary_only 只允许摘要引用类别，full_text_allowed 只允许文本块引用类别；预算不足固定暂停，所有未来调用候选都须已有审计投影且策略例外须业务线白箱人工处理",
+    "控制引用、载荷类别、队列暂停、审计投影和中文反馈都不能形成真实 data source、document、摘要、chunk、外发、Embedding、模型输出、成本事实、审计记录或业务结论",
+    "同步 P3 纯内存专项场景、场景合同、聚焦用例、BATCH061-070 锁、路线图、machine run、事件、机器事实、中文视图与交接",
+    "只完成 ACC-STAGE-069 的 P3 本地专项场景并指向 Stage069 P4 门"
   ],
   "non_goals": [
-    "不打开、创建、复制、移动、删除、修改、检测、解析、评估、保留、总结、外发、重生成或回退真实业务源、原始元数据、授权 fixture、真实 data source、document、摘要、页面、章节、表格、来源片段、parser 输出、chunk、队列、审计记录、成本记录、模型版本、索引、事实库、证据账本、数据库或报告",
+    "不打开、创建、复制、移动、删除、修改、检测、解析、评估、保留、总结、外发、重生成或回退真实业务源、原始元数据、授权 fixture、真实 data source、document、摘要、摘要正文、文本块、页面、章节、表格、来源片段、parser 输出、chunk、队列、缓存、审计记录、成本记录、模型版本、索引、事实库、证据账本、数据库或报告",
     "不执行真实 parser、章节检测、切块、摘要生成、外部文本载荷创建、Embedding 队列、缓存、provider 凭据读取、provider/模型选择、外部 API、模型调用、模型 Token、成本计算、审计写入、索引、数据库连接或 migration、持久化、Agent、OVH、生产或上传",
-    "不启动 Stage069 P3、P4、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不启动 Stage069 P4、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage069 P2 对五条固定控制输入的 external_api_policy 继承、队列意图、缓存关闭、零成本/模型版本字段、审计投影、预算不足暂停、业务线白箱例外与零运行时边界完成本地验证后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE069-P3-GATE；任何真实资料访问、摘要生成、文本外发、队列、缓存、provider 凭据、provider/模型选择、外部 API、模型 Token、审计、索引、数据库、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "Stage069 P3 对五条固定控制场景的 denied、summary_only、document 收紧、full_text_allowed、预算不足暂停、审计投影、业务线白箱例外与零运行时边界完成本地验证后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE069-P4-GATE；任何真实资料访问、摘要或文本载荷创建、外发、队列、缓存、provider 凭据、provider/模型选择、外部 API、模型 Token、审计写入、索引、数据库、OVH、生产或上传动作都不属于本步骤。"
 }

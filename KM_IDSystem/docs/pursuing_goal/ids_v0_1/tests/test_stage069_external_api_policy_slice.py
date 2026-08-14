@@ -291,7 +291,7 @@ class Stage069ExternalApiPolicyPhase2Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(result[field])
 
-    def test_chinese_feedback_and_current_governance_record_phase2(self):
+    def test_chinese_feedback_and_current_governance_preserves_phase2_evidence(self):
         result = self._slice().execute_external_api_policy_control_slice(self._control())
         self.assertEqual(4, len(result["chinese_feedback"]))
         self.assertTrue(
@@ -311,13 +311,33 @@ class Stage069ExternalApiPolicyPhase2Tests(unittest.TestCase):
             if line.strip()
         ]
         self.assertEqual("IDS-STAGE069", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE069-P2", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE069-P2", status["task"])
-        self.assertEqual("IDS-STAGE069-P3-GATE", status["next_gate"])
+        self.assertIn(
+            (status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-V0_1-STAGE069-P2",
+                    "IDS-V0_1-STAGE069-P2",
+                    "IDS-STAGE069-P3-GATE",
+                ),
+                (
+                    "IDS-V0_1-STAGE069-P3",
+                    "IDS-V0_1-STAGE069-P3",
+                    "IDS-STAGE069-P4-GATE",
+                ),
+            ),
+        )
         self.assertEqual("IDS-STAGE069", plan["stage"])
-        self.assertEqual("IDS-V0_1-STAGE069-P2", plan["phase"])
-        self.assertEqual("IDS-V0_1-STAGE069-P2", plan["task"])
-        self.assertIn("IDS-STAGE069-P3-GATE", plan["stop_condition"])
+        self.assertIn(
+            (plan["phase"], plan["task"]),
+            (
+                ("IDS-V0_1-STAGE069-P2", "IDS-V0_1-STAGE069-P2"),
+                ("IDS-V0_1-STAGE069-P3", "IDS-V0_1-STAGE069-P3"),
+            ),
+        )
+        self.assertTrue(
+            "IDS-STAGE069-P3-GATE" in plan["stop_condition"]
+            or "IDS-STAGE069-P4-GATE" in plan["stop_condition"]
+        )
         self.assertTrue(
             {
                 "ACC-STAGE069-P2-01",
