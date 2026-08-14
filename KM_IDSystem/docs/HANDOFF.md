@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage066 Review - 2026-08-14
+## Current Gate - Stage067 Phase 1 - 2026-08-14
 
-- 本节是唯一当前交接；Stage066 P4/P3/P2/P1、Stage065 Review/P4/P3/P2/P1、Stage064 Review/P4/P3/P2/P1、Stage063 Review/P4/P3/P2/P1、Stage062 Review 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；Stage066 Review/P4/P3/P2/P1、Stage065 Review/P4/P3/P2/P1、Stage064 Review/P4/P3/P2/P1、Stage063 Review/P4/P3/P2/P1、Stage062 Review 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE067-P1`：只定义切块质量回归静态合同，固定 `12/17/3/6/15` 形状，即十二个仅引用输入、十七个未来输出、工程步骤/验收条款/参数表三类受保护语义面、六维受控追溯、重复 embedding/index 写入边界和十五类失败关闭；没有建立第二权威事实源。
+- 本阶段只证明冻结 Stage067 任务包、Stage066 本地复审工件、静态合同、治理路线和中文事实投影本地一致；不证明真实资料读取、真实切块/质量/重复检测/去重/来源追溯、OVH、生产或上传能力。来源文档与业务线白箱人工复核继续是唯一权威，所有真实资料与运行时计数保持零。
+- 已验证：Stage067 P1 聚焦用例 `7/7`；含 Stage060--066 显式前序兼容和 Stage067 P1 的阶段链路 `345/345`；Batch051-060 与 Batch041-050 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件、人类平面三道门和无登记阻塞检查均通过。以上只验证静态合同、治理和零运行时边界，不将其表述为真实资料验证、OVH 或生产验收。
+- 回滚只撤回本 P1 范围说明、静态合同、聚焦用例、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 `STAGE066_REVIEWED_LOCAL_CHUNK_COVERAGE_METRICS_RUNTIME_DISABLED`；不改变 Stage063--066、冻结任务包、真实资料、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 或应用状态。
+- 下一步唯一允许项是在新的独立 run 进入 `IDS-STAGE067-P2-GATE`。本 run 不进入 P2、Stage067 整阶段复审、Stage068、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage066 Review - 2026-08-14
+
+- 本节保留 Stage066 Review 的已提交历史证据；唯一当前交接位于上方 Stage067 Phase 1，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE066-REVIEW`：只读机械复审冻结 P1--P4 Chunk 覆盖率指标合同与 P3/P4 纯内存控制报告，核验 `12/17/3/6/14`、`4/4/24/1/4`、`6/6/0/6/4/36` 与 `6/6/3/11` 固定控制形状、单一权威、六类业务线白箱人工处置、metadata-only 交付和 P4→P3 控制回退；发现数为 `0`，没有建立第二权威事实源。
 - 本 Review 只证明冻结控制工件、控制报告、人工处置和治理投影本地一致；不证明真实资料读取、真实页面/Chunk 覆盖率、真实未覆盖页、重复检测或去重、质量、来源追溯、OVH、生产或上传能力。来源文档与业务线白箱人工处理继续是唯一权威，所有真实资料与运行时计数保持零。
 - 已验证：Stage066 Review 聚焦用例 `10/10`；含 Stage060--065 显式前序兼容和 Stage066 P1--Review 的阶段链路 `338/338`；Batch051-060 与 Batch041-050 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；Stage005 治理回归 `valid=true`；中文事实投影重渲染 `7` 个文件、人类平面三道门和无登记阻塞检查均通过。以上只验证控制性复审与零运行时边界，不将其表述为真实资料验证、OVH 或生产验收。

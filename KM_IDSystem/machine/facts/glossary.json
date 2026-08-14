@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage067 P1 静态切块质量回归形状",
+      "数值": "12/17/3/6/15",
+      "说明": "依次表示仅引用输入字段、未来质量回归输出字段、保护语义面、追溯字段和失败关闭状态的合同数量；不表示真实文档、页面、chunk、质量、重复检测、去重、来源追溯或生产结果。"
+    },
+    {
       "指标": "Stage066 整阶段复审形状",
       "数值": "12/17/3/6/14 · 4/4/24/1/4 · 6/6/0/6/4/36 · 6/6/3/11",
       "说明": "依次表示 P1 静态合同、P2 控制投影、P3 白箱场景和 P4 metadata-only 交付的固定控制计数；不表示真实资料、chunk、身份、Hash、版本、覆盖率或质量结果。"
@@ -53,6 +58,11 @@
   ],
   "data_shapes": [
     {
+      "名称": "切块质量回归仅引用合同",
+      "字段": "chunk_quality_regression_request_ref、chapter_aware_chunk_ref、chunk_identity_version_record_ref、engineering_semantic_asset_catalog_ref、chunk_coverage_metrics_record_ref、document_ref、page_ref、section_ref、parser_output_ref、table_context_ref、source_fragment_ref、duplicate_chunk_control_ref",
+      "说明": "Stage067 P1 只定义不透明受控引用和未来质量回归字段；它不包含正文、物理路径、实际页码、实际 chunk、实际质量、重复项、来源验证或业务结论。"
+    },
+    {
       "名称": "Chunk 覆盖率指标仅元数据 JSONL 交付样例",
       "字段": "sample_id、scenario_id、chunk_coverage_metrics_record_ref、chunk_coverage_request_ref、chapter_aware_chunk_ref、chunk_identity_version_record_ref、control_traceability_reference_count、human_review_required、control_metadata_only",
       "说明": "Stage066 P4 只在内存中从六类固定 :control: 场景投影 JSONL 行；它不包含真实正文、路径、页码、章节、chunk、身份、Hash、版本、覆盖率、embedding、索引或业务事实。"
@@ -95,6 +105,10 @@
   ],
   "invariants": [
     {
+      "规则": "Stage067 P1 不执行切块质量回归",
+      "说明": "P1 只固定未来质量回归、保护语义面、重复 embedding/index 写入边界和人工处理字段；工程步骤、验收条款、参数表、跨页参数表、重复 chunk 或来源追溯无法确认时必须关闭并交由业务线白箱复核，P2 必须由新的独立 run 处理。"
+    },
+    {
       "规则": "Stage066 P4 交付证据不等于真实覆盖率或质量回归",
       "说明": "P4 的六条 JSONL 样例、控制覆盖率、低质量待人工清单和回归结果只检验固定控制形状；长文档、跨页表格、工程步骤、参数表、引用页码和重复 chunk 仍须业务线白箱人工复核，不能形成真实覆盖率、质量或业务结论。"
     },
@@ -132,6 +146,16 @@
     }
   ],
   "terms": [
+    {
+      "英文": "reference-only chunk quality regression contract",
+      "中文": "仅引用切块质量回归合同",
+      "说明": "Stage067 P1 对未来切块质量回归的静态 schema、保护语义面、重复 embedding/index 写入边界、追溯、失败关闭和回滚范围定义；它不读取来源、不检测真实质量或重复项、不创建业务事实，也不替代来源文档。"
+    },
+    {
+      "英文": "chunk quality regression human handling",
+      "中文": "切块质量回归人工处理",
+      "说明": "当工程步骤、验收条款、参数表、跨页表格、重复写入边界或来源追溯无法确认时必须保持关闭并交由业务线白箱复核；不能自动形成质量结论、事实、索引、决策或生产状态。"
+    },
     {
       "英文": "metadata-only chunk coverage metrics JSONL delivery sample",
       "中文": "仅元数据 Chunk 覆盖率指标 JSONL 交付样例",

@@ -285,7 +285,7 @@ class Stage064ChunkIdentityVersionPhase1Tests(unittest.TestCase):
         )
         run = json.loads(RUN.read_text(encoding="utf-8"))
 
-        self.assertIn(status["stage"], ("IDS-STAGE064", "IDS-STAGE065", "IDS-STAGE066"))
+        self.assertIn(status["stage"], ("IDS-STAGE064", "IDS-STAGE065", "IDS-STAGE066", "IDS-STAGE067"))
         self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
             (
@@ -304,11 +304,12 @@ class Stage064ChunkIdentityVersionPhase1Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE066-P3", "IDS-V0_1-STAGE066-P3", "IDS-STAGE066-P4-GATE"),
                 ("IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-P4", "IDS-STAGE066-REVIEW-GATE"),
                 ("IDS-STAGE066-REVIEW", "IDS-V0_1-STAGE066-REVIEW", "IDS-STAGE067-P1-GATE"),
+                ("IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P1", "IDS-STAGE067-P2-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertIn(plan["stage"], ("IDS-STAGE064", "IDS-STAGE065", "IDS-STAGE066"))
+        self.assertIn(plan["stage"], ("IDS-STAGE064", "IDS-STAGE065", "IDS-STAGE066", "IDS-STAGE067"))
         self.assertIn(
             (plan["phase"], plan["task"]),
             (
@@ -327,6 +328,7 @@ class Stage064ChunkIdentityVersionPhase1Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE066-P3", "IDS-V0_1-STAGE066-P3"),
                 ("IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-P4"),
                 ("IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE066-REVIEW"),
+                ("IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P1"),
                 ("IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE066-REVIEW"),
             ),
         )
@@ -346,6 +348,7 @@ class Stage064ChunkIdentityVersionPhase1Tests(unittest.TestCase):
             or "IDS-STAGE066-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE066-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE067-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE067-P2-GATE" in plan["stop_condition"]
         )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}

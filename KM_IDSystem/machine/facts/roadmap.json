@@ -1,6 +1,12 @@
 {
   "stages": [
     {
+      "id": "IDS-STAGE067",
+      "name": "切块质量回归",
+      "gate": "Phase 1 静态合同已本地通过；下一步须在新的独立 run 进入 Stage067 Phase 2",
+      "status": "已固定 12/17 静态输入输出、工程步骤/验收条款/参数表三类保护语义面、六维追溯、重复 embedding/index 写入边界和 15 类失败关闭；真实资料、真实 chunk、真实质量、重复检测或去重、索引、OVH 与生产仍禁用"
+    },
+    {
       "id": "IDS-STAGE066",
       "name": "Chunk 覆盖率指标",
       "gate": "P1--P4 合同、P3/P4 纯内存控制报告和整阶段机械复审已本地通过；下一步须在新的独立 run 进入 Stage067 Phase 1",

@@ -301,18 +301,23 @@ class Stage066ChunkCoverageMetricsPhase4Tests(unittest.TestCase):
             (
                 ("IDS-STAGE066", "IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-P4"),
                 ("IDS-STAGE066", "IDS-STAGE066-REVIEW", "IDS-V0_1-STAGE066-REVIEW"),
+                ("IDS-STAGE067", "IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P1"),
             ),
         )
-        self.assertIn(status["next_gate"], ("IDS-STAGE066-REVIEW-GATE", "IDS-STAGE067-P1-GATE"))
+        self.assertIn(
+            status["next_gate"],
+            ("IDS-STAGE066-REVIEW-GATE", "IDS-STAGE067-P1-GATE", "IDS-STAGE067-P2-GATE"),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertIn(
             plan["phase"],
-            ("IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-REVIEW"),
+            ("IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE067-P1"),
         )
         self.assertTrue(
             "IDS-STAGE066-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE067-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE067-P2-GATE" in plan["stop_condition"]
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -326,10 +331,12 @@ class Stage066ChunkCoverageMetricsPhase4Tests(unittest.TestCase):
         self.assertTrue(
             'current_phase_id: "IDS-STAGE066-P4"' in ROADMAP.read_text(encoding="utf-8")
             or 'current_phase_id: "IDS-STAGE066-REVIEW"' in ROADMAP.read_text(encoding="utf-8")
+            or 'current_phase_id: "IDS-V0_1-STAGE067-P1"' in ROADMAP.read_text(encoding="utf-8")
         )
         self.assertTrue(
             'status: "stage066_phase4_completed_review_pending"' in BATCH.read_text(encoding="utf-8")
             or 'status: "stage066_completed_reviewed_local"' in BATCH.read_text(encoding="utf-8")
+            or 'status: "stage067_phase1_completed_local"' in BATCH.read_text(encoding="utf-8")
         )
         self.assertEqual("phase_completed", event["event_type"])
         self.assertEqual("IDS-V0_1-STAGE066-P4", event["task_id"])

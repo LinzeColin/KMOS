@@ -1,14 +1,21 @@
 schema_version: "ids.v0_1.batch_upload_lock.v1"
 batch_id: "IDS-V0_1-BATCH-061-070"
 created_at_utc: "2026-08-13T16:00:34Z"
-updated_at_utc: "2026-08-14T07:20:50Z"
-status: "stage066_completed_reviewed_local"
+updated_at_utc: "2026-08-14T07:51:10Z"
+status: "stage067_phase1_completed_local"
 
 predecessor_batch_id: "IDS-V0_1-BATCH-051-060"
 predecessor_review_task_id: "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
 predecessor_review_ref: "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md"
 
 transition_history:
+  stage067_phase1_state:
+    status: "stage067_phase1_completed_local"
+    current_task_id: "IDS-V0_1-STAGE067-P1"
+    next_gate: "IDS-STAGE067-P2-GATE"
+    next_allowed_task_id: "IDS-V0_1-STAGE067-P2"
+    stage067_phase2_entry_authorized: true
+    github_upload_allowed: false
   stage066_review_state:
     status: "stage066_completed_reviewed_local"
     current_task_id: "IDS-V0_1-STAGE066-REVIEW"
@@ -250,6 +257,82 @@ upload_gate:
   deferred_batch_upload_gate: "IDS-V0_1-BATCH-061-070-UPLOAD-GATE"
 
 stage_progress:
+  STAGE-067:
+    status: "stage067_phase1_completed_local"
+    completed_phases:
+      - "Phase 1"
+    next_phase: "Phase 2"
+    next_gate: "IDS-STAGE067-P2-GATE"
+    current_task_id: "IDS-V0_1-STAGE067-P1"
+    acceptance_id: "ACC-STAGE-067"
+    acceptance_status: "phase1_completed_local"
+    review_status: "not_started"
+    phase2_entry_authorized: true
+    taskpack_context_read_performed: true
+    source_authority: "FROZEN_STAGE067_TASKPACK_AND_STAGE066_REVIEW_ARTIFACTS_ONLY"
+    second_authoritative_source_created: false
+    source_body_or_path_allowed: false
+    raw_metadata_content_accessed: false
+    ids_business_source_read_performed: false
+    source_file_open_performed: false
+    parser_execution_performed: false
+    chapter_detection_performed: false
+    chunking_execution_performed: false
+    chunk_quality_regression_contract_schema: "ids.stage067.chunk_quality_regression.phase1.v1"
+    contract_state: "PHASE1_CHUNK_QUALITY_REGRESSION_CONTRACT_RUNTIME_DISABLED"
+    execution_ready: false
+    reference_only_quality_regression_input_field_count: 12
+    future_quality_regression_output_field_count: 17
+    protected_semantic_asset_type_count: 3
+    traceability_field_count: 6
+    declared_failure_state_count: 15
+    actual_input_request_count: 0
+    actual_quality_regression_record_count: 0
+    actual_quality_measurement_count: 0
+    actual_quality_regression_count: 0
+    actual_quality_degradation_count: 0
+    actual_duplicate_chunk_count: 0
+    actual_traceability_binding_count: 0
+    source_document_remains_authoritative: true
+    quality_regression_can_replace_source_document: false
+    quality_regression_can_become_business_fact_authority: false
+    model_direct_text_guessing_allowed: false
+    model_decision_conclusion_authoritative: false
+    chunk_identity_generation_performed: false
+    chunk_hash_computation_performed: false
+    chunk_version_generation_performed: false
+    semantic_asset_classification_performed: false
+    coverage_calculation_performed: false
+    quality_regression_performed: false
+    quality_degradation_performed: false
+    source_traceability_binding_performed: false
+    embedding_or_index_write_performed: false
+    database_connection_performed: false
+    persistent_state_write_performed: false
+    agent_execution_performed: false
+    model_call_performed: false
+    model_token_consumption_performed: false
+    local_service_start_performed: false
+    ovh_deployment_performed: false
+    production_runtime_activation_performed: false
+    stage067_started: true
+    stage067_entry_authorized: true
+    phase2_started: false
+    whole_stage_review_performed: false
+    batch_review_performed: false
+    stage068_started: false
+    stage068_entry_allowed: false
+    github_upload_allowed: false
+    push_allowed: false
+    app_reinstall_allowed: false
+    evidence_refs:
+      - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-067_切块质量回归.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE067_PHASE1_CHUNK_QUALITY_REGRESSION_SCOPE_BOUNDARY.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_quality_regression/stage067_chunk_quality_regression_contract.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage067_chunk_quality_regression_contract.py"
+      - "KM_IDSystem/machine/runs/2026-08-14-stage067-p1-local.json"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE066_STAGE_REVIEW.md"
+      - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
   STAGE-066:
     status: "stage066_completed_reviewed_local"
     completed_phases:
@@ -1108,10 +1191,10 @@ stage_progress:
       - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/IDS_METADATA_RAW_DATA_BOUNDARY.md"
 
 decision:
-  current_task_id: "IDS-V0_1-STAGE066-REVIEW"
-  next_allowed_task_id: "IDS-V0_1-STAGE067-P1"
+  current_task_id: "IDS-V0_1-STAGE067-P1"
+  next_allowed_task_id: "IDS-V0_1-STAGE067-P2"
   github_upload_allowed: false
   push_allowed: false
   global_upload_deferred: true
-  current_run: "STAGE-066 Review only mechanically rechecks frozen P1--P4 contracts and existing in-memory P3/P4 control reports: the 12/17/3/6/14, 4/4/24/1/4, 6/6/0/6/4/36 and 6/6/3/11 fixed control shapes, single-authority boundary, white-box human handling, P4-to-P3 control rollback and zero-runtime boundary. It does not open sources, run a parser, create chunks, calculate coverage or quality, write embedding or indexes, write persistent state, call a model, deploy OVH or activate any runtime. Stage067 remains unstarted."
+  current_run: "STAGE-067 Phase 1 only defines the frozen reference-only quality-regression contract: 12 input references, 17 future output labels, three protected semantic surfaces, six traceability references, duplicate embedding/index write boundary, fifteen failure closures, Chinese feedback and rollback. It does not open sources, run a parser, create chunks, calculate coverage or quality, detect duplicates, write embedding or indexes, write persistent state, call a model, deploy OVH or activate any runtime. Phase 2 remains unstarted."
   no_upload_reason: "The frozen taskpack requires completion through ACC-STAGE-168 and a separate global release acceptance before any upload path can be reconsidered."

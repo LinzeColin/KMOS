@@ -1606,6 +1606,7 @@ def evaluate_stage038_source_reverification(
                     "IDS-STAGE064",
                     "IDS-STAGE065",
                     "IDS-STAGE066",
+                    "IDS-STAGE067",
                 }
                 and (
                     (
@@ -1976,6 +1977,14 @@ def evaluate_stage038_source_reverification(
                         == "IDS-V0_1-STAGE066-REVIEW"
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE067-P1-GATE"
+                    )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE067"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE067-P1"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE067-P1"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE067-P2-GATE"
                     )
                 )
                 and source_gate.get("gate_id")
@@ -2868,6 +2877,7 @@ REQUIRED_EVENT_IDS = (
     "EVT-IDS-V0_1-STAGE066-P3-20260814-001",
     "EVT-IDS-V0_1-STAGE066-P4-20260814-001",
     "EVT-IDS-V0_1-STAGE066-REVIEW-20260814-001",
+    "EVT-IDS-V0_1-STAGE067-P1-20260814-001",
 )
 
 FORBIDDEN_RUNTIME_PREFIXES = (
@@ -2907,6 +2917,8 @@ ALLOWED_CHANGED_PATHS = {
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH041_050_REVIEW_GATE.md",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_UPLOAD_LOCK.yaml",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE067_PHASE1_CHUNK_QUALITY_REGRESSION_SCOPE_BOUNDARY.md",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage067_chunk_quality_regression_contract.py",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH051_060_REVIEW_GATE.md",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_batch041_050_review_gate.py",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_batch051_060_review_gate.py",
@@ -3104,6 +3116,7 @@ ALLOWED_CHANGED_PREFIXES = (
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_identity_and_version/",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/engineering_semantic_asset_classification/",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_coverage_metrics/",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_quality_regression/",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE052_",
@@ -14076,6 +14089,97 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
                 "next_gate": "IDS-STAGE067-P1-GATE",
             },
         },
+        "EVT-IDS-V0_1-STAGE067-P1-20260814-001": {
+            "event_type": "phase_completed",
+            "allow_stage_gate": True,
+            "task_id": "IDS-V0_1-STAGE067-P1",
+            "acceptance_ids": [
+                "ACC-STAGE-067",
+                "ACC-STAGE067-P1-01",
+                "ACC-STAGE067-P1-02",
+                "ACC-STAGE067-P1-03",
+                "ACC-STAGE067-P1-04",
+            ],
+            "required_changed_files": {
+                "KM_IDSystem/CHANGELOG.md",
+                "KM_IDSystem/docs/HANDOFF.md",
+                "KM_IDSystem/docs/governance/events.jsonl",
+                "KM_IDSystem/docs/governance/roadmap.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE067_PHASE1_CHUNK_QUALITY_REGRESSION_SCOPE_BOUNDARY.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_quality_regression/stage067_chunk_quality_regression_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage067_chunk_quality_regression_contract.py",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+                "KM_IDSystem/machine/facts/acceptance.json",
+                "KM_IDSystem/machine/facts/changelog.json",
+                "KM_IDSystem/machine/facts/glossary.json",
+                "KM_IDSystem/machine/facts/plan.json",
+                "KM_IDSystem/machine/facts/roadmap.json",
+                "KM_IDSystem/machine/facts/status.json",
+                "KM_IDSystem/machine/runs/2026-08-14-stage067-p1-local.json",
+                "KM_IDSystem/scripts/check_batch041_050_review.py",
+                "KM_IDSystem/scripts/check_batch051_060_review.py",
+                "KM_IDSystem/文档/00_我在哪.md",
+                "KM_IDSystem/文档/03_口径字典.md",
+                "KM_IDSystem/文档/05_执行与验收.md",
+                "KM_IDSystem/文档/06_运维手册.md",
+            },
+            "required_refs": {
+                "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-067_切块质量回归.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE067_PHASE1_CHUNK_QUALITY_REGRESSION_SCOPE_BOUNDARY.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/chunk_quality_regression/stage067_chunk_quality_regression_contract.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage067_chunk_quality_regression_contract.py",
+                "KM_IDSystem/machine/runs/2026-08-14-stage067-p1-local.json",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE066_STAGE_REVIEW.md",
+                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+            },
+            "required_note_assignments": {
+                "contract_state": "PHASE1_CHUNK_QUALITY_REGRESSION_CONTRACT_RUNTIME_DISABLED",
+                "second_authoritative_source_created": "false",
+                "reference_only_quality_regression_input_field_count": "12",
+                "future_quality_regression_output_field_count": "17",
+                "protected_semantic_asset_type_count": "3",
+                "traceability_field_count": "6",
+                "declared_failure_state_count": "15",
+                "actual_input_request_count": "0",
+                "actual_quality_regression_record_count": "0",
+                "actual_quality_measurement_count": "0",
+                "actual_quality_regression_count": "0",
+                "actual_quality_degradation_count": "0",
+                "actual_duplicate_chunk_count": "0",
+                "actual_traceability_binding_count": "0",
+                "source_document_remains_authoritative": "true",
+                "parser_execution_performed": "false",
+                "chapter_detection_performed": "false",
+                "chunking_execution_performed": "false",
+                "chunk_identity_generation_performed": "false",
+                "chunk_hash_computation_performed": "false",
+                "chunk_version_generation_performed": "false",
+                "semantic_asset_classification_performed": "false",
+                "coverage_calculation_performed": "false",
+                "quality_regression_performed": "false",
+                "quality_degradation_performed": "false",
+                "source_traceability_binding_performed": "false",
+                "embedding_or_index_write_performed": "false",
+                "database_connection_performed": "false",
+                "persistent_state_write_performed": "false",
+                "agent_execution_performed": "false",
+                "model_call_performed": "false",
+                "model_token_consumption_performed": "false",
+                "ovh_deployment_performed": "false",
+                "production_runtime_activation_performed": "false",
+                "stage067_started": "true",
+                "stage067_entry_authorized": "true",
+                "phase2_started": "false",
+                "whole_stage_review_performed": "false",
+                "batch_review_performed": "false",
+                "stage068_started": "false",
+                "stage068_entry_allowed": "false",
+                "github_upload_allowed": "false",
+                "push_allowed": "false",
+                "next_gate": "IDS-STAGE067-P2-GATE",
+            },
+        },
     }
 
     errors: list[str] = []
@@ -14324,6 +14428,7 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
             "STAGE060",
             "STAGE061",
             "STAGE062",
+            "STAGE067",
         )
     }
     for event in events:

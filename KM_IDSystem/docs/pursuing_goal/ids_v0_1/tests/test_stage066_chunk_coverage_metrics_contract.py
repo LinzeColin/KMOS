@@ -311,7 +311,7 @@ class Stage066ChunkCoverageMetricsPhase1Tests(unittest.TestCase):
         )
         run = json.loads(RUN.read_text(encoding="utf-8"))
 
-        self.assertEqual("IDS-STAGE066", status["stage"])
+        self.assertIn(status["stage"], ("IDS-STAGE066", "IDS-STAGE067"))
         self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
             (
@@ -320,11 +320,12 @@ class Stage066ChunkCoverageMetricsPhase1Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE066-P3", "IDS-V0_1-STAGE066-P3", "IDS-STAGE066-P4-GATE"),
                 ("IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-P4", "IDS-STAGE066-REVIEW-GATE"),
                 ("IDS-STAGE066-REVIEW", "IDS-V0_1-STAGE066-REVIEW", "IDS-STAGE067-P1-GATE"),
+                ("IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P1", "IDS-STAGE067-P2-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-STAGE066", plan["stage"])
+        self.assertIn(plan["stage"], ("IDS-STAGE066", "IDS-STAGE067"))
         self.assertIn(
             (plan["phase"], plan["task"]),
             (
@@ -333,6 +334,7 @@ class Stage066ChunkCoverageMetricsPhase1Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE066-P3", "IDS-V0_1-STAGE066-P3"),
                 ("IDS-V0_1-STAGE066-P4", "IDS-V0_1-STAGE066-P4"),
                 ("IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE066-REVIEW"),
+                ("IDS-V0_1-STAGE067-P1", "IDS-V0_1-STAGE067-P1"),
                 ("IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE066-REVIEW"),
             ),
         )
@@ -342,6 +344,7 @@ class Stage066ChunkCoverageMetricsPhase1Tests(unittest.TestCase):
             or "IDS-STAGE066-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE066-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE067-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE067-P2-GATE" in plan["stop_condition"]
         )
         self.assertIn("OVH", plan["stop_condition"])
         acceptance_ids = {item["id"] for item in acceptance["items"]}
@@ -354,7 +357,10 @@ class Stage066ChunkCoverageMetricsPhase1Tests(unittest.TestCase):
             }.issubset(acceptance_ids)
         )
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
-        self.assertIn('current_stage_id: "IDS-STAGE066"', roadmap_text)
+        self.assertTrue(
+            'current_stage_id: "IDS-STAGE066"' in roadmap_text
+            or 'current_stage_id: "IDS-STAGE067"' in roadmap_text
+        )
         self.assertTrue(
             (
                 'current_phase_id: "IDS-STAGE066-P1"' in roadmap_text
@@ -371,6 +377,10 @@ class Stage066ChunkCoverageMetricsPhase1Tests(unittest.TestCase):
             or (
                 'current_phase_id: "IDS-STAGE066-P4"' in roadmap_text
                 and 'next_gate_id: "IDS-STAGE066-REVIEW-GATE"' in roadmap_text
+            )
+            or (
+                'current_phase_id: "IDS-V0_1-STAGE067-P1"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE067-P2-GATE"' in roadmap_text
             )
         )
         self.assertEqual("IDS-V0_1-STAGE066-P1", event["task_id"])

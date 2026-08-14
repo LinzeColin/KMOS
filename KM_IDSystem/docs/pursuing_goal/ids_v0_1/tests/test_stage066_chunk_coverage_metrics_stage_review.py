@@ -205,18 +205,35 @@ class Stage066ChunkCoverageMetricsStageReviewTests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        self.assertEqual(
-            (
-                "IDS-STAGE066",
-                "IDS-STAGE066-REVIEW",
-                "IDS-V0_1-STAGE066-REVIEW",
-                "IDS-STAGE067-P1-GATE",
-            ),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-STAGE066",
+                    "IDS-STAGE066-REVIEW",
+                    "IDS-V0_1-STAGE066-REVIEW",
+                    "IDS-STAGE067-P1-GATE",
+                ),
+                (
+                    "IDS-STAGE067",
+                    "IDS-V0_1-STAGE067-P1",
+                    "IDS-V0_1-STAGE067-P1",
+                    "IDS-STAGE067-P2-GATE",
+                ),
+            ),
         )
-        self.assertEqual("IDS-V0_1-STAGE066-REVIEW", plan["phase"])
-        self.assertEqual("IDS-V0_1-STAGE066-REVIEW", plan["task"])
-        self.assertIn("IDS-STAGE067-P1-GATE", plan["stop_condition"])
+        self.assertIn(
+            plan["phase"],
+            ("IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE067-P1"),
+        )
+        self.assertIn(
+            plan["task"],
+            ("IDS-V0_1-STAGE066-REVIEW", "IDS-V0_1-STAGE067-P1"),
+        )
+        self.assertTrue(
+            "IDS-STAGE067-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE067-P2-GATE" in plan["stop_condition"]
+        )
         self.assertTrue(
             {
                 "ACC-STAGE066-REVIEW-01",

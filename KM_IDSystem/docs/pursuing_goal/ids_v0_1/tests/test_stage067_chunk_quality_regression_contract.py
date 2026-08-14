@@ -1,0 +1,334 @@
+import json
+from pathlib import Path
+import unittest
+
+
+ROOT = Path(__file__).resolve().parents[4]
+BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
+SCOPE = BASE / "STAGE067_PHASE1_CHUNK_QUALITY_REGRESSION_SCOPE_BOUNDARY.md"
+CONTRACT = (
+    BASE
+    / "chunk_quality_regression"
+    / "stage067_chunk_quality_regression_contract.json"
+)
+BATCH = BASE / "BATCH061_070_UPLOAD_LOCK.yaml"
+ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
+EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
+STATUS = ROOT / "machine" / "facts" / "status.json"
+PLAN = ROOT / "machine" / "facts" / "plan.json"
+ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-14-stage067-p1-local.json"
+
+
+class Stage067ChunkQualityRegressionPhase1Tests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
+
+    def test_scope_and_contract_artifacts_exist(self):
+        for artifact in (
+            SCOPE,
+            CONTRACT,
+            BATCH,
+            ROADMAP,
+            EVENTS,
+            STATUS,
+            PLAN,
+            ACCEPTANCE,
+            RUN,
+        ):
+            with self.subTest(artifact=artifact):
+                self.assertTrue(artifact.is_file())
+
+    def test_single_authority_and_stage_ownership_are_explicit(self):
+        contract = self.contract
+        self.assertEqual(
+            "ids.stage067.chunk_quality_regression.phase1.v1",
+            contract["schema_version"],
+        )
+        self.assertEqual("STAGE-067", contract["stage"])
+        self.assertEqual("IDS-V0_1-STAGE067-P1", contract["task_id"])
+        self.assertEqual("ACC-STAGE-067", contract["acceptance_id"])
+        self.assertEqual(
+            "PHASE1_CHUNK_QUALITY_REGRESSION_CONTRACT_RUNTIME_DISABLED",
+            contract["contract_state"],
+        )
+        self.assertEqual("IDS-STAGE067-P2-GATE", contract["next_gate"])
+        source = contract["source_authority"]
+        self.assertEqual(
+            "FROZEN_STAGE067_TASKPACK_AND_STAGE066_REVIEW_ARTIFACTS_ONLY",
+            source["authority"],
+        )
+        for field in (
+            "second_authoritative_source_created",
+            "source_body_or_path_allowed",
+            "raw_metadata_content_access_allowed",
+            "live_source_read_performed",
+            "authorized_fixture_access_performed",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(source[field])
+
+        owners = contract["ownership_boundary"]
+        self.assertEqual("STAGE-063", owners["chapter_aware_chunking_boundary_owner"])
+        self.assertEqual(
+            "STAGE-064", owners["chunk_identity_and_version_contract_owner"]
+        )
+        self.assertEqual(
+            "STAGE-065",
+            owners["engineering_semantic_asset_classification_contract_owner"],
+        )
+        self.assertEqual("STAGE-066", owners["chunk_coverage_metrics_contract_owner"])
+        self.assertEqual("STAGE-067", owners["chunk_quality_regression_contract_owner"])
+        self.assertEqual(
+            "STAGE-068", owners["quality_degradation_and_human_review_owner"]
+        )
+        self.assertTrue(owners["predecessor_stage066_review_reused_as_reference_only"])
+        self.assertFalse(owners["actual_quality_regression_created"])
+        self.assertFalse(owners["cross_stage_owner_override_allowed"])
+
+    def test_reference_only_shape_and_future_output_remain_static(self):
+        inputs = self.contract["reference_only_quality_regression_input_contract"]
+        self.assertEqual(12, inputs["field_count"])
+        self.assertEqual(
+            [
+                "chunk_quality_regression_request_ref",
+                "chapter_aware_chunk_ref",
+                "chunk_identity_version_record_ref",
+                "engineering_semantic_asset_catalog_ref",
+                "chunk_coverage_metrics_record_ref",
+                "document_ref",
+                "page_ref",
+                "section_ref",
+                "parser_output_ref",
+                "table_context_ref",
+                "source_fragment_ref",
+                "duplicate_chunk_control_ref",
+            ],
+            inputs["required_fields"],
+        )
+        self.assertEqual(0, inputs["actual_input_request_count"])
+        for field in (
+            "additional_fields_allowed",
+            "document_body_allowed",
+            "physical_path_or_actual_uri_allowed",
+            "page_content_allowed",
+            "section_text_allowed",
+            "parser_output_content_allowed",
+            "source_fragment_content_allowed",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(inputs[field])
+
+        output = self.contract["future_quality_regression_output_contract"]
+        self.assertEqual(17, output["field_count"])
+        self.assertEqual(
+            [
+                "protected_semantic_boundary_status",
+                "duplicate_embedding_index_status",
+                "quality_regression_status",
+                "human_review_state",
+                "quality_degradation_handoff_state",
+            ],
+            output["required_fields"][-5:],
+        )
+        self.assertTrue(output["schema_field_labels_only"])
+        for field in (
+            "additional_fields_allowed",
+            "actual_quality_regression_record_created",
+            "actual_quality_regression_record_persisted",
+            "actual_quality_score_assigned",
+            "actual_quality_threshold_assigned",
+            "actual_duplicate_embedding_or_index_status_assigned",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(output[field])
+
+    def test_quality_protected_semantics_traceability_and_duplicate_boundary_close(self):
+        quality = self.contract["quality_regression_definition_contract"]
+        self.assertEqual(
+            ["ENGINEERING_PROCEDURE_STEP", "ACCEPTANCE_CLAUSE", "PARAMETER_TABLE"],
+            quality["protected_semantic_asset_types"],
+        )
+        self.assertEqual(3, quality["protected_semantic_asset_type_count"])
+        self.assertTrue(quality["quality_regression_is_future_control_only"])
+        self.assertFalse(quality["quality_score_or_threshold_assigned"])
+        self.assertFalse(quality["actual_quality_measurement_performed"])
+        self.assertFalse(quality["actual_quality_regression_performed"])
+        self.assertFalse(quality["actual_quality_degradation_performed"])
+        self.assertTrue(quality["quality_failure_must_require_human_review"])
+        self.assertEqual("STAGE-068", quality["quality_degradation_owner"])
+
+        protected = self.contract["protected_semantic_boundary_contract"]
+        for field in (
+            "arbitrary_fixed_character_cut_allowed",
+            "engineering_procedure_step_split_allowed",
+            "acceptance_clause_split_allowed",
+            "parameter_table_split_allowed",
+            "quality_regression_can_override_source_document",
+            "actual_semantic_boundary_detected",
+            "actual_protected_surface_split_detected",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(protected[field])
+        self.assertTrue(protected["cross_page_parameter_table_requires_human_handling"])
+
+        traceability = self.contract["traceability_contract"]
+        self.assertEqual(6, traceability["traceability_field_count"])
+        self.assertEqual(0, traceability["actual_traceability_binding_count"])
+        duplicate = self.contract["duplicate_embedding_index_boundary_contract"]
+        self.assertTrue(duplicate["duplicate_chunk_control_reference_required"])
+        self.assertTrue(duplicate["duplicate_chunk_must_not_repeat_embedding_or_index_write"])
+        for field in (
+            "actual_duplicate_chunk_detected",
+            "actual_duplicate_chunk_identity_or_hash_validated",
+            "actual_duplicate_embedding_prevented",
+            "actual_duplicate_index_prevented",
+            "duplicate_embedding_or_index_write_attempted",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(duplicate[field])
+
+    def test_authority_failure_closure_and_rollback_are_declared(self):
+        authority = self.contract["authority_and_decision_boundary"]
+        self.assertTrue(authority["source_document_remains_authoritative"])
+        for field in (
+            "quality_regression_can_replace_source_document",
+            "quality_regression_can_become_business_fact_authority",
+            "model_direct_text_guessing_allowed",
+            "model_decision_conclusion_authoritative",
+            "actual_business_decision_created",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(authority[field])
+
+        failures = self.contract["failure_and_stop_contract"]
+        self.assertEqual(15, failures["failure_state_count"])
+        self.assertIn(
+            "CHUNK_QUALITY_REGRESSION_REQUIRES_AUTHORIZED_EXECUTION",
+            failures["declared_failure_states"],
+        )
+        self.assertIn(
+            "DUPLICATE_CHUNK_CONTROL_REFERENCE_MISSING",
+            failures["declared_failure_states"],
+        )
+        self.assertIn(
+            "TRACEABILITY_UNVERIFIED_BLOCKS_QUALITY_REGRESSION",
+            failures["declared_failure_states"],
+        )
+        self.assertFalse(failures["automatic_business_write_allowed"])
+
+        rollback = self.contract["rollback_contract"]
+        self.assertEqual(
+            "STAGE066_REVIEWED_LOCAL_CHUNK_COVERAGE_METRICS_RUNTIME_DISABLED",
+            rollback["return_to"],
+        )
+        for field in (
+            "source_or_raw_data_change_allowed",
+            "fixture_change_allowed",
+            "database_schema_change_allowed",
+            "persistent_runtime_state_change_allowed",
+            "github_or_ovh_change_allowed",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(rollback[field])
+
+    def test_chinese_feedback_and_runtime_boundary_are_explicit(self):
+        feedback = self.contract["chinese_feedback_contract"]
+        self.assertTrue(feedback["all_messages_chinese"])
+        self.assertFalse(feedback["automation_claim_allowed"])
+        self.assertFalse(feedback["production_availability_claim_allowed"])
+        self.assertEqual(4, len(feedback["messages"]))
+        for item in feedback["messages"]:
+            with self.subTest(code=item["code"]):
+                self.assertTrue(item["message"])
+                self.assertTrue(any("\u4e00" <= char <= "\u9fff" for char in item["message"]))
+
+        runtime = self.contract["runtime_boundary"]
+        for field in (
+            "ids_business_source_read_performed",
+            "raw_metadata_content_accessed",
+            "authorized_fixture_access_performed",
+            "source_file_open_performed",
+            "parser_execution_performed",
+            "chapter_detection_performed",
+            "chunking_execution_performed",
+            "chunk_identity_generation_performed",
+            "chunk_hash_computation_performed",
+            "chunk_version_generation_performed",
+            "semantic_asset_classification_performed",
+            "coverage_calculation_performed",
+            "quality_regression_performed",
+            "quality_degradation_performed",
+            "source_traceability_binding_performed",
+            "embedding_or_index_write_performed",
+            "database_connection_performed",
+            "persistent_state_write_performed",
+            "agent_execution_performed",
+            "model_call_performed",
+            "model_token_consumption_performed",
+            "local_service_start_performed",
+            "ovh_deployment_performed",
+            "production_runtime_activation_performed",
+            "phase2_started",
+            "whole_stage_review_performed",
+            "batch_review_performed",
+            "stage068_started",
+            "stage068_entry_allowed",
+            "github_upload_allowed",
+            "push_allowed",
+        ):
+            with self.subTest(field=field):
+                self.assertFalse(runtime[field])
+        self.assertTrue(runtime["predecessor_stage066_review_reused_as_reference_only"])
+        self.assertTrue(runtime["stage067_started"])
+        self.assertTrue(runtime["stage067_entry_authorized"])
+
+    def test_governance_records_phase1_and_preserves_local_only_boundary(self):
+        status = json.loads(STATUS.read_text(encoding="utf-8"))
+        plan = json.loads(PLAN.read_text(encoding="utf-8"))
+        acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
+        run = json.loads(RUN.read_text(encoding="utf-8"))
+        events = [
+            json.loads(line)
+            for line in EVENTS.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        self.assertEqual(
+            (
+                "IDS-STAGE067",
+                "IDS-V0_1-STAGE067-P1",
+                "IDS-V0_1-STAGE067-P1",
+                "IDS-STAGE067-P2-GATE",
+            ),
+            (status["stage"], status["phase"], status["task"], status["next_gate"]),
+        )
+        self.assertEqual("IDS-STAGE067", plan["stage"])
+        self.assertEqual("IDS-V0_1-STAGE067-P1", plan["phase"])
+        self.assertEqual("IDS-V0_1-STAGE067-P1", plan["task"])
+        self.assertIn("IDS-STAGE067-P2-GATE", plan["stop_condition"])
+        self.assertTrue(
+            {
+                "ACC-STAGE067-P1-01",
+                "ACC-STAGE067-P1-02",
+                "ACC-STAGE067-P1-03",
+                "ACC-STAGE067-P1-04",
+            }.issubset({item["id"] for item in acceptance["items"]})
+        )
+        self.assertEqual("RUN-IDS-STAGE067-P1-LOCAL-20260814-001", run["run_id"])
+        self.assertEqual("IDS-V0_1-STAGE067-P1", run["task_id"])
+        self.assertEqual("IDS-STAGE067-P2-GATE", run["next_gate"])
+        self.assertTrue(run["result"].startswith("PASS_LOCAL_"))
+        self.assertFalse(run["observed_work"]["ovh_deployment_performed"])
+        self.assertIn("stage067_phase1", BATCH.read_text(encoding="utf-8"))
+        self.assertIn("IDS-V0_1-STAGE067-P1", ROADMAP.read_text(encoding="utf-8"))
+        self.assertTrue(
+            any(
+                item.get("event_id") == "EVT-IDS-V0_1-STAGE067-P1-20260814-001"
+                for item in events
+            )
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
