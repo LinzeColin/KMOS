@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 from datetime import datetime, timedelta, timezone
@@ -14,6 +15,25 @@ from app.main import app
 
 
 client = TestClient(app)
+
+
+def test_cashflow_projection_parser_version_tracks_worker_contract() -> None:
+    """The shared projection must reject stale worker output without version drift."""
+
+    worker_parser = (
+        Path(__file__).resolve().parents[3]
+        / "skills" / "每日资金" / "daily_funds" / "parsing.py"
+    )
+    module = ast.parse(worker_parser.read_text(encoding="utf-8"))
+    versions = [
+        node.value.value
+        for node in module.body
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "CASHFLOW_OBSERVATION_PARSER_VERSION" for target in node.targets)
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+    ]
+    assert versions == [main_module.DAILY_FUNDS_CASHFLOW_OBSERVATION_PARSER_VERSION]
 
 
 def _same_origin_headers() -> dict[str, str]:
