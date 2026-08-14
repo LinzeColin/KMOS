@@ -23,7 +23,7 @@ from datetime import datetime, timedelta, timezone
 
 API = "https://api.github.com"
 REPO = os.environ.get("KMFA_LEDGER_REPO", "LinzeColin/Private-Database")
-AREA = "Private-KMDatabase/skill-ledger"
+AREA = "Private-KMDatabase/KMFA/skill-ledger"
 
 
 def _token() -> str | None:

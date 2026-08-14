@@ -128,8 +128,8 @@ def read_text(path: str) -> str:
     只拉那一个 blob。
 
     原实现是 `_sparse_clone([该文件的父目录])`：为了读一份 `manifest.jsonl`，
-    把整个 `Private-KMDatabase/` 检出到磁盘——里面装着 KMFA_MetaData、objects、
-    app-state-backup 等等，几百 MB。2026-07-28 线上就卡在这一步：
+    把整个 `Private-KMDatabase/` 检出到磁盘——里面装着 `KMFA/KMFA_MetaData`、objects、
+    `KMFA/app-state-backup` 等等，几百 MB。2026-07-28 线上就卡在这一步：
     `git checkout --quiet` 120s 超时，self-audit 因此连续失败。
     把超时调大只是让它「慢着失败」；真正该改的是**别去检出根本不需要的东西**。
     """

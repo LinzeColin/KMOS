@@ -106,10 +106,10 @@ def test_writing_narrows_sparse_checkout_to_the_exact_file(monkeypatch):
     """写要工作树，但只要那一个文件——cone 模式只认目录，必须 --no-cone。"""
     recorder = _Recorder()
     monkeypatch.setattr(PDB, "_git", recorder)
-    PDB._sparse_clone_file("Private-KMDatabase/skill-ledger/2026-07.jsonl", "/tmp/x")
+    PDB._sparse_clone_file("Private-KMDatabase/KMFA/skill-ledger/2026-07.jsonl", "/tmp/x")
     joined = recorder.joined()
     assert any("sparse-checkout init --no-cone" in c for c in joined), joined
-    assert any(c == "sparse-checkout set Private-KMDatabase/skill-ledger/2026-07.jsonl"
+    assert any(c == "sparse-checkout set Private-KMDatabase/KMFA/skill-ledger/2026-07.jsonl"
                for c in joined), joined
 
 

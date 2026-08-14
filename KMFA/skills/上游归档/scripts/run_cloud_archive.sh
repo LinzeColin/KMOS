@@ -17,8 +17,8 @@ SKILL="$ROOT/KMFA/skills/上游归档"
 WORKDIR=/var/lib/kmfa/dws-archive          # 容器内输出（挂 kmfa-app-state 卷则可持久）
 PDB_DIR=/tmp/kmfa-pdb-archive
 PDB_REPO="git@github.com:LinzeColin/Private-Database.git"
-AREA="Private-KMDatabase/dws-archive"
-CONF_AREA="Private-KMDatabase/dws-config"
+AREA="Private-KMDatabase/KMFA/dws-archive"
+CONF_AREA="Private-KMDatabase/KMFA/dws-config"
 KEY=/opt/kmfa/secrets/kmfa_backup_deploy_key
 LOG=/var/log/kmfa/dws-archive.log
 
