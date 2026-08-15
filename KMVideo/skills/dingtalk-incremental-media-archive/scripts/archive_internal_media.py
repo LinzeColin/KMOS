@@ -431,16 +431,16 @@ def download_media(group: Group, message_id: str, resource_id: str, temp_root: P
 
 
 def buffered_copy(source: Path, target: Path) -> None:
-    """Copy through explicit read/write calls, avoiding macOS fcopyfile on SMB.
-
-    The mounted SMB target can acknowledge the fcopyfile fast path while
-    materialising an equal-size all-zero file.  Buffered I/O plus fsync was
-    verified against the same mount and preserves the media header.
-    """
-    with source.open("rb") as reader, target.open("xb") as writer:
-        shutil.copyfileobj(reader, writer, length=1024 * 1024)
-        writer.flush()
-        os.fsync(writer.fileno())
+    """Write through BSD dd, avoiding macOS fcopyfile and Python SMB writes."""
+    result = run_process([
+        "/bin/dd",
+        f"if={source}",
+        f"of={target}",
+        "bs=1048576",
+        "conv=fsync",
+    ])
+    if result.returncode != 0:
+        raise ArchiveError(result.stderr.strip() or result.stdout.strip() or "SMB dd write failed")
 
 
 def verify_smb_copy(source: Path, target: Path) -> None:
