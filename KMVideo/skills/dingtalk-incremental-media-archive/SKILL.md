@@ -1,6 +1,6 @@
 ---
 name: dingtalk-incremental-media-archive
-description: 仅归档用户明确授权且由 DWS 实时确认是 INTERNAL_GROUP 的钉钉群图片、照片和视频。最近90天按连续30天切片增量保存：SMB 必须有原件；GitHub 能保存原件则保存，不能时在 GitHub 留 SMB 索引路标。
+description: 仅归档用户明确授权且由 DWS 实时确认是 INTERNAL_GROUP 的钉钉群图片、照片和视频。用户指定起点至冻结终点按连续30天切片增量保存：SMB 必须有原件；GitHub 能保存原件则保存，不能时在 GitHub 留 SMB 索引路标。
 ---
 
 # 钉钉内部群增量媒体归档
@@ -32,10 +32,10 @@ description: 仅归档用户明确授权且由 DWS 实时确认是 INTERNAL_GROU
 - 每个群目录只允许有 photo/、video/ 和一个隐藏 .manifest.jsonl；不得创建 catalog、ledger、runs、按日期分层或其他媒体目录。
 - 本机只允许本次运行独有的系统临时目录。不得使用 KMOS、_protected/、_scratch/、OneDrive 或持久目录作缓存。
 
-## 90 天边界与 30 天切片
+## 历史边界与 30 天切片
 
-- “全量”仅指用户规定的最近 90 天内、白名单内部群中全部可读取的图片、照片和视频，不代表无限历史。
-- 在运行起点冻结时刻 T，并按同一时区创建三个相邻半开切片：[T-90d,T-60d)、[T-60d,T-30d)、[T-30d,T)。每段不得超过 30 天，必须从旧到新。
+- “全量”只指用户在本线程明确批准的起点至冻结终点内、白名单内部群中全部可读取的图片、照片和视频；不得自行扩大为无限历史或跨组织会话。本次已授权任务范围为 `[2026-01-01 00:00:00, T)`。
+- 调用方必须在起点超过最近 90 天时显式传入 `--start`；未传 `--start` 才允许默认最近 90 天。按同一时区创建相邻半开切片，每段不得超过 30 天，必须从旧到新连续前滚直到冻结终点 T。
 - DWS 消息分页使用返回消息的边界 createTime 继续。只有 hasMore 为 false，或已读到切片下边界之外，才算该切片消息读取结束。
 - 空页且 hasMore 为 true、边界不前进、权限错误或下载错误都属于未完成；停止该群，不得跳到下一切片。
 - 遇到 openConvThreadId 时，同一切片还必须调用 dws chat message list-topic-replies；主消息和话题回复都按消息 ID 与资源 ID 去重。
@@ -50,12 +50,17 @@ description: 仅归档用户明确授权且由 DWS 实时确认是 INTERNAL_GROU
 4. GitHub 本身不可写时，不能伪称已留下路标：保留 SMB 原件、在 SMB manifest 标记 github_index_unavailable，并报告未完成。
 5. 两端 manifest 在正常状态保持相同；某一端短暂不可写时允许暂时不同。下次运行先合并两端记录，只补缺失目的地或路标，绝不重复保存已完成原件。
 6. 原始文件名直接保留。只有同一群同一 media 目录已有不同素材的同名文件时，才在扩展名前追加真实消息 ID 的安全文件名形式；不增加目录层级，也绝不覆盖未知既有文件。
+7. 同一群同一时刻只允许一个归档写入器。不同历史段也不得并发覆盖同一群的 manifest；如需并行，必须按互不重叠的群白名单拆分，或等待前一写入器结束后再启动下一段。
 
 每条素材写入 SMB 后立即更新 SMB manifest；GitHub manifest 在每个 30 天切片结束时同步。切片仅在所有发现素材均满足 SMB=complete，且 GitHub 原件 complete 或 GitHub 路标 index_only，并且该切片 GitHub manifest 已成功同步后，才能标记完成并推进。
 
 ## 执行器
 
 使用 scripts/archive_internal_media.py。必须显式传入每个 --allow-title；先以 --dry-run 枚举，再以 --apply 写入。执行器串行写 GitHub，逐文件使用临时目录下载，双端处理后立即删除本地副本；收尾只清理自己的临时目录。
+
+- 常规归档：`--start`、`--end`、`--window-days 30` 与 `--apply`。若当前存在 GitHub 原件写入器，历史段使用 `--smb-only`，先完成 SMB 原件与本地 SMB manifest。
+- 路标补齐：确认没有其他 GitHub 写入器后，以同一群白名单运行 `--sync-github-index --apply`。它不重新下载，不重复保存 SMB 原件，只为 SMB 已完成且 GitHub 尚未完成的素材写入 `index_only` 路标，并在成功后将对应切片标为完成。
+- 最终审计：以同一时间范围运行 `--audit --dry-run`。它重新读取 DWS 消息与话题回复，不下载素材，逐群输出 photo/video 的已完成时间范围和数量，以及未完成时间范围、数量、原因。DWS 分页或权限异常必须报告为未验证，不能报零。
 
 ## 报告与视频生成
 

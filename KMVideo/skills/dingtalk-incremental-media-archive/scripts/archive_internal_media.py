@@ -225,8 +225,18 @@ def put_github_manifest(folder: str, text: str, temp_root: Path) -> str | None:
     return result.stderr.strip() or result.stdout.strip() or "GitHub manifest write failed"
 
 
-def persist_smb_manifest(folder: str, records: dict[str, dict]) -> None:
-    atomic_write(SMB_ROOT / folder / MANIFEST_NAME, manifest_text(records))
+def persist_smb_manifest(folder: str, records: dict[str, dict]) -> dict[str, dict]:
+    """Merge with the current SMB copy before replacing it.
+
+    A group is intentionally single-writer in normal operation.  This merge is
+    still needed to preserve an already-appended durable record if a prior run
+    ended between the current process reading its manifest and this checkpoint.
+    """
+    path = SMB_ROOT / folder / MANIFEST_NAME
+    current = read_manifest(path)
+    merged = merge_manifests(records, current)
+    atomic_write(path, manifest_text(merged))
+    return merged
 
 
 def append_smb_manifest_record(folder: str, record: dict) -> None:
@@ -236,10 +246,9 @@ def append_smb_manifest_record(folder: str, record: dict) -> None:
         handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
 
 
-def persist_manifests(folder: str, records: dict[str, dict], temp_root: Path) -> str | None:
-    text = manifest_text(records)
-    atomic_write(SMB_ROOT / folder / MANIFEST_NAME, text)
-    return put_github_manifest(folder, text, temp_root)
+def persist_manifests(folder: str, records: dict[str, dict], temp_root: Path) -> tuple[dict[str, dict], str | None]:
+    merged = persist_smb_manifest(folder, records)
+    return merged, put_github_manifest(folder, manifest_text(merged), temp_root)
 
 
 def find_existing_folder(group: Group) -> str:
@@ -469,13 +478,14 @@ def archive_media(
     apply: bool,
     counts: Counts,
     github_budget: GitHubMediaBudget,
+    smb_only: bool,
 ) -> None:
     message_id = str(message.get("openMessageId") or "")
     if not message_id:
         raise ArchiveError("media message missing openMessageId")
     key = media_record_id(group, message_id, resource_id)
     existing = records.get(key)
-    if is_complete(existing):
+    if existing and existing.get("smb_status") == "complete" and (smb_only or is_complete(existing)):
         counts.skipped += 1
         return
     counts.discovered += 1
@@ -515,7 +525,10 @@ def archive_media(
             counts.smb_saved += 1
 
         github_status = str(record.get("github_media_status") or "")
-        if github_status not in {"complete", "index_only"}:
+        if smb_only:
+            record["github_media_status"] = "pending"
+            record["github_index_reason"] = "deferred_while_github_writer_active"
+        elif github_status not in {"complete", "index_only"}:
             github_error = put_github_media(downloaded, relative_path, github_budget)
             if github_error:
                 record["github_media_status"] = "index_only"
@@ -544,6 +557,7 @@ def archive_group(
     page_size: int,
     apply: bool,
     github_budget: GitHubMediaBudget,
+    smb_only: bool,
 ) -> Counts:
     folder = find_existing_folder(group)
     local_records = read_manifest(SMB_ROOT / folder / MANIFEST_NAME)
@@ -576,7 +590,7 @@ def archive_group(
                 for resource_id, media_type in classify_media(message):
                     archive_media(
                         group, folder, message, resource_id, media_type, records,
-                        temp_root, apply, window_counts, github_budget,
+                        temp_root, apply, window_counts, github_budget, smb_only,
                     )
                 topic_id = str(message.get("openConvThreadId") or "")
                 if topic_id and topic_id not in topic_ids:
@@ -586,7 +600,7 @@ def archive_group(
                         for resource_id, media_type in classify_media(reply):
                             archive_media(
                                 group, folder, reply, resource_id, media_type, records,
-                                temp_root, apply, window_counts, github_budget,
+                                temp_root, apply, window_counts, github_budget, smb_only,
                             )
             if apply:
                 records[boundary_key] = {
@@ -596,11 +610,14 @@ def archive_group(
                     "folder": folder,
                     "start": dws_time(start),
                     "end": dws_time(end),
-                    "window_status": "complete",
+                    "window_status": "smb_complete_pending_github_index" if smb_only else "complete",
                 }
-                github_manifest_error = persist_manifests(folder, records, temp_root)
-                if github_manifest_error:
-                    raise ArchiveError(f"github_index_unavailable: {github_manifest_error}")
+                if smb_only:
+                    records = persist_smb_manifest(folder, records)
+                else:
+                    records, github_manifest_error = persist_manifests(folder, records, temp_root)
+                    if github_manifest_error:
+                        raise ArchiveError(f"github_index_unavailable: {github_manifest_error}")
             window_counts.completed_windows += 1
             print_event(
                 "window_complete",
@@ -616,6 +633,27 @@ def archive_group(
         except (ArchiveError, OSError) as exc:
             window_counts.failures += 1
             window_counts.failures_by_reason.append(str(exc))
+            if apply:
+                records[boundary_key] = {
+                    "record_id": boundary_key,
+                    "record_type": "window",
+                    "conversation_id": group.conversation_id,
+                    "folder": folder,
+                    "start": dws_time(start),
+                    "end": dws_time(end),
+                    "window_status": "stopped",
+                    "reason": str(exc),
+                }
+                try:
+                    records = persist_smb_manifest(folder, records)
+                except (OSError, json.JSONDecodeError) as persist_error:
+                    print_event(
+                        "window_stop_state_unavailable",
+                        group=group.title,
+                        start=dws_time(start),
+                        end=dws_time(end),
+                        reason=str(persist_error),
+                    )
             print_event("window_stopped", group=group.title, start=dws_time(start), end=dws_time(end), reason=str(exc))
             counts.merge(window_counts)
             break
@@ -623,12 +661,135 @@ def archive_group(
     return counts
 
 
-def make_windows(end: datetime, days: int, window_days: int) -> list[tuple[datetime, datetime]]:
-    if days < 1 or days > 90:
-        raise ArchiveError("days must be between 1 and 90")
+def sync_github_index_group(group: Group, temp_root: Path) -> Counts:
+    """Publish durable GitHub routes for SMB-complete media without re-downloading it.
+
+    This mode deliberately never attempts a raw-media upload.  It is used only
+    after an SMB-only historical pass, when the active raw-media GitHub writer
+    has finished.  That keeps one GitHub manifest writer at a time.
+    """
+    folder = find_existing_folder(group)
+    local_records = read_manifest(SMB_ROOT / folder / MANIFEST_NAME)
+    if not local_records:
+        raise ArchiveError("SMB manifest is unavailable for GitHub index synchronization")
+    github_records, github_read_error = get_github_manifest(folder, temp_root)
+    if github_read_error:
+        raise ArchiveError(f"github_index_unavailable: {github_read_error}")
+    records = merge_manifests(local_records, github_records)
+    counts = Counts()
+    for record in records.values():
+        if record.get("record_type") != "media" or record.get("smb_status") != "complete":
+            continue
+        github_status = str(record.get("github_media_status") or "")
+        if github_status in {"complete", "index_only"}:
+            continue
+        record["github_media_status"] = "index_only"
+        record["github_index_reason"] = "github_raw_deferred_for_serial_writer"
+        counts.github_index += 1
+
+    # Keep SMB explicitly pending until the corresponding GitHub index PUT has
+    # succeeded.  A failed PUT therefore cannot be mistaken for a completed
+    # dual-destination checkpoint.
+    records = persist_smb_manifest(folder, records)
+    completed_window_ids: list[str] = []
+    for record_id, record in records.items():
+        if record.get("record_type") == "window" and record.get("window_status") == "smb_complete_pending_github_index":
+            record["window_status"] = "complete"
+            completed_window_ids.append(record_id)
+    github_manifest_error = put_github_manifest(folder, manifest_text(records), temp_root)
+    if github_manifest_error:
+        raise ArchiveError(f"github_index_unavailable: {github_manifest_error}")
+    records = persist_smb_manifest(folder, records)
+    counts.completed_windows = len(completed_window_ids)
+    return counts
+
+
+@dataclass
+class AuditBucket:
+    count: int = 0
+    earliest: str | None = None
+    latest: str | None = None
+    reasons: dict[str, int] = field(default_factory=dict)
+
+    def add(self, message_time: str, reason: str | None = None) -> None:
+        self.count += 1
+        if not self.earliest or message_time < self.earliest:
+            self.earliest = message_time
+        if not self.latest or message_time > self.latest:
+            self.latest = message_time
+        if reason:
+            self.reasons[reason] = self.reasons.get(reason, 0) + 1
+
+    def as_dict(self) -> dict[str, object]:
+        result: dict[str, object] = {
+            "count": self.count,
+            "from": self.earliest,
+            "to": self.latest,
+        }
+        if self.reasons:
+            result["reasons"] = dict(sorted(self.reasons.items()))
+        return result
+
+
+def audit_media_status(record: dict | None) -> tuple[str, str | None]:
+    if not record:
+        return "unresolved", "manifest_record_missing"
+    if record.get("smb_status") != "complete":
+        return "unresolved", "smb_not_complete"
+    relative_path = str(record.get("smb_relative_path") or record.get("relative_path") or "")
+    if not relative_path or not (SMB_ROOT / relative_path).is_file():
+        return "unresolved", "smb_original_missing"
+    if record.get("github_media_status") not in {"complete", "index_only"}:
+        return "unresolved", str(record.get("github_index_reason") or "github_index_pending")
+    return "complete", None
+
+
+def audit_group(
+    group: Group,
+    windows: list[tuple[datetime, datetime]],
+    page_size: int,
+) -> dict[str, dict[str, dict[str, object]]]:
+    folder = find_existing_folder(group)
+    records = read_manifest(SMB_ROOT / folder / MANIFEST_NAME)
+    buckets = {
+        media_type: {"complete": AuditBucket(), "unresolved": AuditBucket()}
+        for media_type in ("photo", "video")
+    }
+    seen_media: set[str] = set()
+
+    def inspect_message(message: dict) -> None:
+        message_id = str(message.get("openMessageId") or "")
+        message_time = str(message.get("createTime") or "")
+        if not message_id or not message_time:
+            raise PagingError("media message missing openMessageId or createTime")
+        for resource_id, media_type in classify_media(message):
+            record_id = media_record_id(group, message_id, resource_id)
+            if record_id in seen_media:
+                continue
+            seen_media.add(record_id)
+            status, reason = audit_media_status(records.get(record_id))
+            buckets[media_type][status].add(message_time, reason)
+
+    for start, end in windows:
+        topic_ids: set[str] = set()
+        for message in walk_window_messages(group.conversation_id, start, end, None, page_size):
+            inspect_message(message)
+            topic_id = str(message.get("openConvThreadId") or "")
+            if topic_id and topic_id not in topic_ids:
+                topic_ids.add(topic_id)
+                for reply in walk_window_messages(group.conversation_id, start, end, topic_id, page_size):
+                    inspect_message(reply)
+    return {
+        media_type: {status: bucket.as_dict() for status, bucket in statuses.items()}
+        for media_type, statuses in buckets.items()
+    }
+
+
+def make_windows(start: datetime, end: datetime, window_days: int) -> list[tuple[datetime, datetime]]:
+    if start >= end:
+        raise ArchiveError("start must be before end")
     if window_days < 1 or window_days > 30:
         raise ArchiveError("window-days must be between 1 and 30")
-    start = end - timedelta(days=days)
     windows: list[tuple[datetime, datetime]] = []
     cursor = start
     while cursor < end:
@@ -642,6 +803,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Archive DWS media from explicitly allowed internal groups.")
     parser.add_argument("--allow-title", action="append", required=True, help="Exact DWS group title; repeat for every authorized group.")
     parser.add_argument("--days", type=int, default=90)
+    parser.add_argument("--start", help="Inclusive start time in Asia/Shanghai, YYYY-MM-DD HH:MM:SS.")
     parser.add_argument("--window-days", type=int, default=30)
     parser.add_argument("--end", help="Frozen end time in Asia/Shanghai, YYYY-MM-DD HH:MM:SS.")
     parser.add_argument("--page-size", type=int, default=100)
@@ -649,6 +811,17 @@ def parse_args() -> argparse.Namespace:
         "--github-media-budget",
         type=int,
         help="Maximum raw-media uploads attempted through the current GitHub REST quota. Omit for no cap.",
+    )
+    parser.add_argument("--smb-only", action="store_true", help="Write SMB originals and durable SMB manifests only; defer GitHub media and index.")
+    parser.add_argument(
+        "--sync-github-index",
+        action="store_true",
+        help="For SMB-complete pending records, write GitHub route manifests only; requires --apply.",
+    )
+    parser.add_argument(
+        "--audit",
+        action="store_true",
+        help="Read the specified DWS range and print per-group photo/video completion statistics; requires --dry-run.",
     )
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
@@ -662,18 +835,34 @@ def main() -> int:
         raise ArchiveError("page-size must be positive")
     if args.github_media_budget is not None and args.github_media_budget < 0:
         raise ArchiveError("github-media-budget must not be negative")
+    if args.sync_github_index and args.audit:
+        raise ArchiveError("--sync-github-index and --audit cannot be used together")
+    if args.sync_github_index and not args.apply:
+        raise ArchiveError("--sync-github-index requires --apply")
+    if args.audit and not args.dry_run:
+        raise ArchiveError("--audit requires --dry-run")
+    if (args.sync_github_index or args.audit) and args.smb_only:
+        raise ArchiveError("--smb-only only applies to an archive --apply run")
     if not SMB_ROOT.is_dir():
         raise ArchiveError(f"SMB root is unavailable: {SMB_ROOT}")
     if not PRIVATE_DB_CLIENT.is_file():
         raise ArchiveError(f"Private-Database client is unavailable: {PRIVATE_DB_CLIENT}")
     end = parse_time(args.end) if args.end else datetime.now(TIMEZONE).replace(microsecond=0)
-    windows = make_windows(end, args.days, args.window_days)
+    if args.start:
+        start = parse_time(args.start)
+    else:
+        if args.days < 1 or args.days > 90:
+            raise ArchiveError("days must be between 1 and 90 unless --start is supplied")
+        start = end - timedelta(days=args.days)
+    windows = make_windows(start, end, args.window_days)
     groups = select_groups(args.allow_title)
+    operation = "audit" if args.audit else "sync_github_index" if args.sync_github_index else "archive"
     print_event(
         "run_started",
         mode="apply" if args.apply else "dry_run",
+        operation=operation,
         groups=len(groups),
-        start=dws_time(windows[0][0]),
+        start=dws_time(start),
         end=dws_time(end),
         windows=len(windows),
     )
@@ -683,16 +872,30 @@ def main() -> int:
         temp_root = Path(temporary)
         for group in groups:
             try:
-                group_counts = archive_group(
-                    group, windows, temp_root, args.page_size, args.apply, github_budget,
-                )
+                if args.sync_github_index:
+                    group_counts = sync_github_index_group(group, temp_root)
+                    print_event(
+                        "github_index_synced",
+                        group=group.title,
+                        github_index=group_counts.github_index,
+                        completed_windows=group_counts.completed_windows,
+                    )
+                elif args.audit:
+                    report = audit_group(group, windows, args.page_size)
+                    group_counts = Counts()
+                    print_event("audit_group", group=group.title, **report)
+                else:
+                    group_counts = archive_group(
+                        group, windows, temp_root, args.page_size, args.apply, github_budget, args.smb_only,
+                    )
             except (ArchiveError, OSError) as exc:
                 group_counts = Counts(failures=1, failures_by_reason=[str(exc)])
-                print_event("group_stopped", group=group.title, reason=str(exc))
+                print_event("audit_group_stopped" if args.audit else "group_stopped", group=group.title, reason=str(exc))
             total.merge(group_counts)
     print_event(
         "run_finished",
         mode="apply" if args.apply else "dry_run",
+        operation=operation,
         groups=len(groups),
         discovered=total.discovered,
         smb_saved=total.smb_saved,
