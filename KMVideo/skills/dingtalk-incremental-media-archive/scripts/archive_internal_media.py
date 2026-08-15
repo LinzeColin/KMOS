@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -444,18 +445,31 @@ def buffered_copy(source: Path, target: Path) -> None:
 
 def verify_smb_copy(source: Path, target: Path) -> None:
     """Confirm size plus bounded head/tail bytes before a manifest can say complete."""
-    source_size = source.stat().st_size
-    if target.stat().st_size != source_size:
-        raise ArchiveError("SMB copy size differs from source")
-    sample_size = min(source_size, 64 * 1024)
-    with source.open("rb") as source_handle, target.open("rb") as target_handle:
-        if source_handle.read(sample_size) != target_handle.read(sample_size):
-            raise ArchiveError("SMB copy header differs from source")
-        if source_size > sample_size:
-            source_handle.seek(-sample_size, os.SEEK_END)
-            target_handle.seek(-sample_size, os.SEEK_END)
-            if source_handle.read(sample_size) != target_handle.read(sample_size):
-                raise ArchiveError("SMB copy tail differs from source")
+    last_reason = "SMB copy did not verify"
+    source_size = 0
+    target_size = 0
+    for settle_attempt in range(2):
+        source_size = source.stat().st_size
+        target_size = target.stat().st_size
+        if target_size == source_size:
+            sample_size = min(source_size, 64 * 1024)
+            with source.open("rb") as source_handle, target.open("rb") as target_handle:
+                if source_handle.read(sample_size) != target_handle.read(sample_size):
+                    last_reason = "SMB copy header differs from source"
+                elif source_size > sample_size:
+                    source_handle.seek(-sample_size, os.SEEK_END)
+                    target_handle.seek(-sample_size, os.SEEK_END)
+                    if source_handle.read(sample_size) != target_handle.read(sample_size):
+                        last_reason = "SMB copy tail differs from source"
+                    else:
+                        return
+                else:
+                    return
+        else:
+            last_reason = "SMB copy size differs from source"
+        if not settle_attempt:
+            time.sleep(1)
+    raise ArchiveError(f"{last_reason}: source_size={source_size}, target_size={target_size}")
 
 
 def smb_original_usable(record: dict | None) -> bool:
@@ -609,8 +623,19 @@ def archive_media(
         })
 
         if not smb_original_usable(record):
-            copy_to_smb(downloaded, target, replace_existing=target.exists() and existing is not None)
+            try:
+                copy_to_smb(downloaded, target, replace_existing=target.exists() and existing is not None)
+            except (ArchiveError, OSError) as exc:
+                record["smb_status"] = "failed"
+                record["smb_error"] = str(exc)
+                records[key] = record
+                append_smb_manifest_record(folder, record)
+                raise ArchiveError(
+                    f"{exc}; failed_media_record={key}; relative_path={relative_path}; "
+                    f"source_size={record['size_bytes']}"
+                ) from exc
             record["smb_status"] = "complete"
+            record.pop("smb_error", None)
             counts.smb_saved += 1
 
         github_status = str(record.get("github_media_status") or "")
