@@ -578,13 +578,13 @@ def archive_group(
     if github_read_error:
         print_event("github_manifest_read_unavailable", group=group.title)
 
+    known_topic_ids: set[str] = set()
     for start, end in windows:
         boundary_key = window_record_id(group, start, end)
         if records.get(boundary_key, {}).get("window_status") == "complete":
             print_event("window_skipped", group=group.title, start=dws_time(start), end=dws_time(end))
             continue
         window_counts = Counts()
-        topic_ids: set[str] = set()
         try:
             for message in walk_window_messages(group.conversation_id, start, end, None, page_size):
                 for resource_id, media_type in classify_media(message):
@@ -593,15 +593,16 @@ def archive_group(
                         temp_root, apply, window_counts, github_budget, smb_only,
                     )
                 topic_id = str(message.get("openConvThreadId") or "")
-                if topic_id and topic_id not in topic_ids:
-                    topic_ids.add(topic_id)
-                    for reply in walk_window_messages(group.conversation_id, start, end, topic_id, page_size):
-                        window_counts.topic_replies += 1
-                        for resource_id, media_type in classify_media(reply):
-                            archive_media(
-                                group, folder, reply, resource_id, media_type, records,
-                                temp_root, apply, window_counts, github_budget, smb_only,
-                            )
+                if topic_id:
+                    known_topic_ids.add(topic_id)
+            for topic_id in known_topic_ids:
+                for reply in walk_window_messages(group.conversation_id, start, end, topic_id, page_size):
+                    window_counts.topic_replies += 1
+                    for resource_id, media_type in classify_media(reply):
+                        archive_media(
+                            group, folder, reply, resource_id, media_type, records,
+                            temp_root, apply, window_counts, github_budget, smb_only,
+                        )
             if apply:
                 records[boundary_key] = {
                     "record_id": boundary_key,
@@ -770,15 +771,16 @@ def audit_group(
             status, reason = audit_media_status(records.get(record_id))
             buckets[media_type][status].add(message_time, reason)
 
+    known_topic_ids: set[str] = set()
     for start, end in windows:
-        topic_ids: set[str] = set()
         for message in walk_window_messages(group.conversation_id, start, end, None, page_size):
             inspect_message(message)
             topic_id = str(message.get("openConvThreadId") or "")
-            if topic_id and topic_id not in topic_ids:
-                topic_ids.add(topic_id)
-                for reply in walk_window_messages(group.conversation_id, start, end, topic_id, page_size):
-                    inspect_message(reply)
+            if topic_id:
+                known_topic_ids.add(topic_id)
+        for topic_id in known_topic_ids:
+            for reply in walk_window_messages(group.conversation_id, start, end, topic_id, page_size):
+                inspect_message(reply)
     return {
         media_type: {status: bucket.as_dict() for status, bucket in statuses.items()}
         for media_type, statuses in buckets.items()

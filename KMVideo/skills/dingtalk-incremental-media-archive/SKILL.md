@@ -38,7 +38,7 @@ description: 仅归档用户明确授权且由 DWS 实时确认是 INTERNAL_GROU
 - 调用方必须在起点超过最近 90 天时显式传入 `--start`；未传 `--start` 才允许默认最近 90 天。按同一时区创建相邻半开切片，每段不得超过 30 天，必须从旧到新连续前滚直到冻结终点 T。
 - DWS 消息分页使用返回消息的边界 createTime 继续。只有 hasMore 为 false，或已读到切片下边界之外，才算该切片消息读取结束。
 - 空页且 hasMore 为 true、边界不前进、权限错误或下载错误都属于未完成；停止该群，不得跳到下一切片。
-- 遇到 openConvThreadId 时，同一切片还必须调用 dws chat message list-topic-replies；主消息和话题回复都按消息 ID 与资源 ID 去重。
+- 遇到 openConvThreadId 时，必须调用 dws chat message list-topic-replies；已发现的话题 ID 要持续带入后续切片，以覆盖父消息与回复跨切片的情况。主消息和话题回复都按消息 ID 与资源 ID 去重。
 
 ## 增量、SMB 优先与 GitHub 路标
 
