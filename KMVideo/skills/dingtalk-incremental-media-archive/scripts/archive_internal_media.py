@@ -238,10 +238,12 @@ def persist_smb_manifest(folder: str, records: dict[str, dict]) -> dict[str, dic
     A group is intentionally single-writer in normal operation.  This merge is
     still needed to preserve an already-appended durable record if a prior run
     ended between the current process reading its manifest and this checkpoint.
+    For the same record ID, this active writer is newer than its own prior
+    checkpoint, so its in-memory state must win over an obsolete complete state.
     """
     path = SMB_ROOT / folder / MANIFEST_NAME
     current = read_manifest(path)
-    merged = merge_manifests(records, current)
+    merged = {**current, **records}
     atomic_write(path, manifest_text(merged))
     return merged
 
