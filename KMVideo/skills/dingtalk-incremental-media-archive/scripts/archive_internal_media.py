@@ -777,7 +777,7 @@ def archive_group(
     return counts
 
 
-def repair_smb_group(group: Group, temp_root: Path) -> Counts:
+def repair_smb_group(group: Group, temp_root: Path, *, failed_only: bool = False) -> Counts:
     """Repair only manifest-known SMB media that is missing or zero-filled."""
     folder = find_existing_folder(group)
     records = read_manifest(SMB_ROOT / folder / MANIFEST_NAME)
@@ -786,7 +786,12 @@ def repair_smb_group(group: Group, temp_root: Path) -> Counts:
     counts = Counts()
     for record_id in sorted(records):
         record = records[record_id]
-        if record.get("record_type") != "media" or smb_original_usable(record):
+        if record.get("record_type") != "media":
+            continue
+        if failed_only:
+            if record.get("smb_status") != "failed":
+                continue
+        elif smb_original_usable(record):
             continue
         relative_path = str(record.get("relative_path") or "")
         message_id = str(record.get("message_id") or "")
@@ -1000,6 +1005,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Re-download only manifest-known SMB files that are missing or zero-filled; requires --apply.",
     )
+    parser.add_argument(
+        "--failed-only",
+        action="store_true",
+        help="With --repair-smb, repair only manifest records explicitly marked smb_status=failed.",
+    )
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--apply", action="store_true")
@@ -1022,6 +1032,8 @@ def main() -> int:
         raise ArchiveError("--reconcile requires --apply")
     if args.repair_smb and not args.apply:
         raise ArchiveError("--repair-smb requires --apply")
+    if args.failed_only and not args.repair_smb:
+        raise ArchiveError("--failed-only requires --repair-smb")
     if (args.sync_github_index or args.audit) and args.smb_only:
         raise ArchiveError("--smb-only only applies to an archive --apply run")
     if args.reconcile and (args.sync_github_index or args.audit):
@@ -1058,7 +1070,7 @@ def main() -> int:
         for group in groups:
             try:
                 if args.repair_smb:
-                    group_counts = repair_smb_group(group, temp_root)
+                    group_counts = repair_smb_group(group, temp_root, failed_only=args.failed_only)
                     print_event(
                         "smb_repair_group",
                         group=group.title,
