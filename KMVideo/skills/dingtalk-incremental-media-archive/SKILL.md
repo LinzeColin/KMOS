@@ -51,6 +51,7 @@ description: 仅归档用户明确授权且由 DWS 实时确认是 INTERNAL_GROU
 5. 两端 manifest 在正常状态保持相同；某一端短暂不可写时允许暂时不同。下次运行先合并两端记录，只补缺失目的地或路标，绝不重复保存已完成原件。
 6. 原始文件名直接保留。只有同一群同一 media 目录已有不同素材的同名文件时，才在扩展名前追加真实消息 ID 的安全文件名形式；不增加目录层级，也绝不覆盖未知既有文件。
 7. 同一群同一时刻只允许一个归档写入器。不同历史段也不得并发覆盖同一群的 manifest；如需并行，必须按互不重叠的群白名单拆分，或等待前一写入器结束后再启动下一段。
+8. 此 SMB 挂载禁止使用 macOS `shutil.copyfile` / `fcopyfile` 快速路径：它会返回成功却写出等长全零文件。必须显式分块读写并 `fsync`；写入后比对源与 SMB 的大小及有限头尾字节，未通过不得标记 `smb_status=complete`。已标记完成但文件缺失、大小不符或头部全零时，只按现有 manifest 素材身份重下并替换该文件，不重新枚举整个群历史。
 
 每条素材写入 SMB 后立即更新 SMB manifest；GitHub manifest 在每个 30 天切片结束时同步。切片仅在所有发现素材均满足 SMB=complete，且 GitHub 原件 complete 或 GitHub 路标 index_only，并且该切片 GitHub manifest 已成功同步后，才能标记完成并推进。
 
@@ -59,6 +60,7 @@ description: 仅归档用户明确授权且由 DWS 实时确认是 INTERNAL_GROU
 使用 scripts/archive_internal_media.py。必须显式传入每个 --allow-title；先以 --dry-run 枚举，再以 --apply 写入。执行器串行写 GitHub，逐文件使用临时目录下载，双端处理后立即删除本地副本；收尾只清理自己的临时目录。
 
 - 常规归档：`--start`、`--end`、`--window-days 30` 与 `--apply`。若当前存在 GitHub 原件写入器，历史段使用 `--smb-only`，先完成 SMB 原件与本地 SMB manifest。
+- SMB 修复：发现 SMB 文件缺失、等长全零或无法打开时，以同一群白名单运行 `--repair-smb --apply`。它只读取已有 manifest 的消息 ID 与资源 ID，逐个重新下载损坏的 SMB 文件并安全替换，不重新枚举历史消息、不触碰正常文件，也不覆盖 GitHub 原件状态。
 - 复扫补漏：规则修正、任务中断恢复或清单合并后，以同一时间范围运行 `--smb-only --reconcile --apply`。它重读 DWS，但对已完成 SMB 原件直接跳过；只下载 manifest 中缺失的素材，不重复保存已有文件。
 - 路标补齐：确认没有其他 GitHub 写入器后，以同一群白名单运行 `--sync-github-index --apply`。它不重新下载，不重复保存 SMB 原件，只为 SMB 已完成且 GitHub 尚未完成的素材写入 `index_only` 路标，并在成功后将对应切片标为完成。
 - 最终审计：以同一时间范围运行 `--audit --dry-run`。它重新读取 DWS 消息与话题回复，不下载素材，逐群输出 photo/video 的已完成时间范围和数量，以及未完成时间范围、数量、原因。DWS 分页或权限异常必须报告为未验证，不能报零。

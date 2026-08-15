@@ -53,6 +53,7 @@ class Group:
 class Counts:
     discovered: int = 0
     smb_saved: int = 0
+    smb_repaired: int = 0
     github_raw: int = 0
     github_index: int = 0
     skipped: int = 0
@@ -64,6 +65,7 @@ class Counts:
     def merge(self, other: "Counts") -> None:
         self.discovered += other.discovered
         self.smb_saved += other.smb_saved
+        self.smb_repaired += other.smb_repaired
         self.github_raw += other.github_raw
         self.github_index += other.github_index
         self.skipped += other.skipped
@@ -422,25 +424,75 @@ def download_media(group: Group, message_id: str, resource_id: str, temp_root: P
     return files[0]
 
 
-def copy_to_smb(source: Path, target: Path) -> None:
-    if target.exists():
+def buffered_copy(source: Path, target: Path) -> None:
+    """Copy through explicit read/write calls, avoiding macOS fcopyfile on SMB.
+
+    The mounted SMB target can acknowledge the fcopyfile fast path while
+    materialising an equal-size all-zero file.  Buffered I/O plus fsync was
+    verified against the same mount and preserves the media header.
+    """
+    with source.open("rb") as reader, target.open("xb") as writer:
+        shutil.copyfileobj(reader, writer, length=1024 * 1024)
+        writer.flush()
+        os.fsync(writer.fileno())
+
+
+def verify_smb_copy(source: Path, target: Path) -> None:
+    """Confirm size plus bounded head/tail bytes before a manifest can say complete."""
+    source_size = source.stat().st_size
+    if target.stat().st_size != source_size:
+        raise ArchiveError("SMB copy size differs from source")
+    sample_size = min(source_size, 64 * 1024)
+    with source.open("rb") as source_handle, target.open("rb") as target_handle:
+        if source_handle.read(sample_size) != target_handle.read(sample_size):
+            raise ArchiveError("SMB copy header differs from source")
+        if source_size > sample_size:
+            source_handle.seek(-sample_size, os.SEEK_END)
+            target_handle.seek(-sample_size, os.SEEK_END)
+            if source_handle.read(sample_size) != target_handle.read(sample_size):
+                raise ArchiveError("SMB copy tail differs from source")
+
+
+def smb_original_usable(record: dict | None) -> bool:
+    if not record or record.get("smb_status") != "complete":
+        return False
+    relative_path = str(record.get("smb_relative_path") or record.get("relative_path") or "")
+    if not relative_path:
+        return False
+    target = SMB_ROOT / relative_path
+    if not target.is_file() or target.stat().st_size != record.get("size_bytes"):
+        return False
+    with target.open("rb") as handle:
+        sample = handle.read(min(target.stat().st_size, 64))
+    return bool(sample) and any(sample)
+
+
+def copy_to_smb(source: Path, target: Path, *, replace_existing: bool = False) -> None:
+    if target.exists() and not replace_existing:
         raise ArchiveError("SMB target path already exists without a completed manifest record")
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_name(f".{target.name}.partial-{uuid.uuid4().hex}")
+    target_written = False
     try:
-        shutil.copyfile(source, temporary)
+        buffered_copy(source, temporary)
+        verify_smb_copy(source, temporary)
         try:
             os.replace(temporary, target)
+            target_written = True
         except OSError as error:
             if error.errno not in {errno.EIO, errno.ENOTSUP}:
                 raise
             if target.exists():
-                raise ArchiveError("SMB target appeared during non-atomic fallback") from error
-            try:
-                shutil.copyfile(source, target)
-            except OSError:
-                target.unlink(missing_ok=True)
-                raise
+                if not replace_existing:
+                    raise ArchiveError("SMB target appeared during non-atomic fallback") from error
+                target.unlink()
+            buffered_copy(source, target)
+            target_written = True
+        verify_smb_copy(source, target)
+    except (OSError, ArchiveError):
+        if target_written and target.exists():
+            target.unlink()
+        raise
     finally:
         if temporary.exists():
             temporary.unlink()
@@ -464,7 +516,7 @@ def media_record_id(group: Group, message_id: str, resource_id: str) -> str:
 def is_complete(record: dict | None) -> bool:
     if not record:
         return False
-    return record.get("smb_status") == "complete" and record.get("github_media_status") in {"complete", "index_only"}
+    return smb_original_usable(record) and record.get("github_media_status") in {"complete", "index_only"}
 
 
 def archive_media(
@@ -485,7 +537,7 @@ def archive_media(
         raise ArchiveError("media message missing openMessageId")
     key = media_record_id(group, message_id, resource_id)
     existing = records.get(key)
-    if existing and existing.get("smb_status") == "complete" and (smb_only or is_complete(existing)):
+    if existing and smb_original_usable(existing) and (smb_only or is_complete(existing)):
         counts.skipped += 1
         return
     counts.discovered += 1
@@ -519,8 +571,8 @@ def archive_media(
             "size_bytes": downloaded.stat().st_size,
         })
 
-        if record.get("smb_status") != "complete":
-            copy_to_smb(downloaded, target)
+        if not smb_original_usable(record):
+            copy_to_smb(downloaded, target, replace_existing=target.exists() and existing is not None)
             record["smb_status"] = "complete"
             counts.smb_saved += 1
 
@@ -663,6 +715,46 @@ def archive_group(
     return counts
 
 
+def repair_smb_group(group: Group, temp_root: Path) -> Counts:
+    """Repair only manifest-known SMB media that is missing or zero-filled."""
+    folder = find_existing_folder(group)
+    records = read_manifest(SMB_ROOT / folder / MANIFEST_NAME)
+    if not records:
+        raise ArchiveError("SMB manifest is unavailable for repair")
+    counts = Counts()
+    for record_id in sorted(records):
+        record = records[record_id]
+        if record.get("record_type") != "media" or smb_original_usable(record):
+            continue
+        relative_path = str(record.get("relative_path") or "")
+        message_id = str(record.get("message_id") or "")
+        resource_id = str(record.get("resource_id") or "")
+        if not relative_path or not message_id or not resource_id:
+            counts.failures += 1
+            counts.failures_by_reason.append("manifest media record lacks repair identity")
+            continue
+        downloaded: Path | None = None
+        try:
+            downloaded = download_media(group, message_id, resource_id, temp_root)
+            target = SMB_ROOT / relative_path
+            copy_to_smb(downloaded, target, replace_existing=target.exists())
+            record["size_bytes"] = downloaded.stat().st_size
+            record["smb_status"] = "complete"
+            record.pop("smb_error", None)
+            records[record_id] = record
+            append_smb_manifest_record(folder, record)
+            counts.smb_repaired += 1
+        except (ArchiveError, OSError) as exc:
+            counts.failures += 1
+            counts.failures_by_reason.append(str(exc))
+            print_event("smb_repair_item_stopped", group=group.title, reason=str(exc))
+        finally:
+            if downloaded is not None:
+                shutil.rmtree(downloaded.parent, ignore_errors=True)
+    persist_smb_manifest(folder, records)
+    return counts
+
+
 def sync_github_index_group(group: Group, temp_root: Path) -> Counts:
     """Publish durable GitHub routes for SMB-complete media without re-downloading it.
 
@@ -680,7 +772,7 @@ def sync_github_index_group(group: Group, temp_root: Path) -> Counts:
     records = merge_manifests(local_records, github_records)
     counts = Counts()
     for record in records.values():
-        if record.get("record_type") != "media" or record.get("smb_status") != "complete":
+        if record.get("record_type") != "media" or not smb_original_usable(record):
             continue
         github_status = str(record.get("github_media_status") or "")
         if github_status in {"complete", "index_only"}:
@@ -736,11 +828,8 @@ class AuditBucket:
 def audit_media_status(record: dict | None) -> tuple[str, str | None]:
     if not record:
         return "unresolved", "manifest_record_missing"
-    if record.get("smb_status") != "complete":
-        return "unresolved", "smb_not_complete"
-    relative_path = str(record.get("smb_relative_path") or record.get("relative_path") or "")
-    if not relative_path or not (SMB_ROOT / relative_path).is_file():
-        return "unresolved", "smb_original_missing"
+    if not smb_original_usable(record):
+        return "unresolved", "smb_original_missing_or_zero_filled"
     if record.get("github_media_status") not in {"complete", "index_only"}:
         return "unresolved", str(record.get("github_index_reason") or "github_index_pending")
     return "complete", None
@@ -831,6 +920,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Re-read completed windows and add only manifest-missing media; requires --apply.",
     )
+    parser.add_argument(
+        "--repair-smb",
+        action="store_true",
+        help="Re-download only manifest-known SMB files that are missing or zero-filled; requires --apply.",
+    )
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--apply", action="store_true")
@@ -851,10 +945,14 @@ def main() -> int:
         raise ArchiveError("--audit requires --dry-run")
     if args.reconcile and not args.apply:
         raise ArchiveError("--reconcile requires --apply")
+    if args.repair_smb and not args.apply:
+        raise ArchiveError("--repair-smb requires --apply")
     if (args.sync_github_index or args.audit) and args.smb_only:
         raise ArchiveError("--smb-only only applies to an archive --apply run")
     if args.reconcile and (args.sync_github_index or args.audit):
         raise ArchiveError("--reconcile only applies to an archive --apply run")
+    if args.repair_smb and (args.sync_github_index or args.audit or args.reconcile or args.smb_only):
+        raise ArchiveError("--repair-smb cannot be combined with another operation")
     if not SMB_ROOT.is_dir():
         raise ArchiveError(f"SMB root is unavailable: {SMB_ROOT}")
     if not PRIVATE_DB_CLIENT.is_file():
@@ -868,7 +966,7 @@ def main() -> int:
         start = end - timedelta(days=args.days)
     windows = make_windows(start, end, args.window_days)
     groups = select_groups(args.allow_title)
-    operation = "audit" if args.audit else "sync_github_index" if args.sync_github_index else "archive"
+    operation = "audit" if args.audit else "sync_github_index" if args.sync_github_index else "repair_smb" if args.repair_smb else "archive"
     print_event(
         "run_started",
         mode="apply" if args.apply else "dry_run",
@@ -884,7 +982,15 @@ def main() -> int:
         temp_root = Path(temporary)
         for group in groups:
             try:
-                if args.sync_github_index:
+                if args.repair_smb:
+                    group_counts = repair_smb_group(group, temp_root)
+                    print_event(
+                        "smb_repair_group",
+                        group=group.title,
+                        smb_repaired=group_counts.smb_repaired,
+                        failures=group_counts.failures,
+                    )
+                elif args.sync_github_index:
                     group_counts = sync_github_index_group(group, temp_root)
                     print_event(
                         "github_index_synced",
@@ -911,6 +1017,7 @@ def main() -> int:
         groups=len(groups),
         discovered=total.discovered,
         smb_saved=total.smb_saved,
+        smb_repaired=total.smb_repaired,
         github_raw=total.github_raw,
         github_index=total.github_index,
         skipped=total.skipped,
