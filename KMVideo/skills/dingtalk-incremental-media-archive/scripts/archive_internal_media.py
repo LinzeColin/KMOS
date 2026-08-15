@@ -506,13 +506,22 @@ def copy_to_smb(source: Path, target: Path, *, replace_existing: bool = False) -
             return
         except (OSError, ArchiveError) as error:
             last_error = error
-            if (target_written or not target_existed_before_attempt) and target.exists():
-                target.unlink()
+            if target_written or not target_existed_before_attempt:
+                try:
+                    target.unlink()
+                except FileNotFoundError:
+                    pass
             if attempt:
                 raise ArchiveError(f"SMB copy did not verify after 2 attempts: {error}") from error
         finally:
-            if temporary.exists():
+            try:
                 temporary.unlink()
+            except FileNotFoundError:
+                # SMB can report a just-created temporary file as gone while the
+                # cleanup is racing its own namespace update.  It is already
+                # absent, so there is nothing left to clean and no media result
+                # should be discarded merely because of that cleanup outcome.
+                pass
     raise ArchiveError(f"SMB copy did not verify: {last_error}")
 
 
