@@ -8,7 +8,6 @@ an operating-system temporary directory and removes it before exit.
 from __future__ import annotations
 
 import argparse
-import errno
 import json
 import os
 import re
@@ -480,8 +479,8 @@ def copy_to_smb(source: Path, target: Path, *, replace_existing: bool = False) -
         raise ArchiveError("SMB target path already exists without a completed manifest record")
     last_error: OSError | ArchiveError | None = None
     for attempt in range(2):
-        temporary = target.with_name(f".{target.name}.partial-{uuid.uuid4().hex}")
         target_existed_before_attempt = target.exists()
+        target_removed_before_copy = False
         target_written = False
         try:
             # SMB can briefly report ENOENT for an otherwise-present directory.
@@ -490,40 +489,28 @@ def copy_to_smb(source: Path, target: Path, *, replace_existing: bool = False) -
             target.parent.mkdir(parents=True, exist_ok=True)
             if not target.parent.is_dir():
                 raise ArchiveError("SMB target directory is unavailable")
-            buffered_copy(source, temporary)
-            verify_smb_copy(source, temporary)
-            try:
-                os.replace(temporary, target)
-                target_written = True
-            except OSError as error:
-                if error.errno not in {errno.EIO, errno.ENOTSUP}:
-                    raise
-                if target.exists():
-                    if not replace_existing:
-                        raise ArchiveError("SMB target appeared during non-atomic fallback") from error
-                    target.unlink()
-                buffered_copy(source, target)
-                target_written = True
+            if target_existed_before_attempt:
+                if not replace_existing:
+                    raise ArchiveError("SMB target appeared during direct write")
+                target.unlink()
+                target_removed_before_copy = True
+            # `os.replace` on this SMB mount can acknowledge a rename while the
+            # destination exposes a stale/truncated size.  Direct buffered
+            # creation is the verified path; completion is still withheld until
+            # the final path itself passes the source comparison.
+            buffered_copy(source, target)
+            target_written = True
             verify_smb_copy(source, target)
             return
         except (OSError, ArchiveError) as error:
             last_error = error
-            if target_written or not target_existed_before_attempt:
+            if target_written or target_removed_before_copy or not target_existed_before_attempt:
                 try:
                     target.unlink()
                 except FileNotFoundError:
                     pass
             if attempt:
                 raise ArchiveError(f"SMB copy did not verify after 2 attempts: {error}") from error
-        finally:
-            try:
-                temporary.unlink()
-            except FileNotFoundError:
-                # SMB can report a just-created temporary file as gone while the
-                # cleanup is racing its own namespace update.  It is already
-                # absent, so there is nothing left to clean and no media result
-                # should be discarded merely because of that cleanup outcome.
-                pass
     raise ArchiveError(f"SMB copy did not verify: {last_error}")
 
 
