@@ -476,13 +476,18 @@ def copy_to_smb(source: Path, target: Path, *, replace_existing: bool = False) -
         raise ArchiveError("media source is empty or zero-filled")
     if target.exists() and not replace_existing:
         raise ArchiveError("SMB target path already exists without a completed manifest record")
-    target.parent.mkdir(parents=True, exist_ok=True)
     last_error: OSError | ArchiveError | None = None
     for attempt in range(2):
         temporary = target.with_name(f".{target.name}.partial-{uuid.uuid4().hex}")
         target_existed_before_attempt = target.exists()
         target_written = False
         try:
+            # SMB can briefly report ENOENT for an otherwise-present directory.
+            # Treat directory creation as part of the same bounded write attempt,
+            # rather than abandoning the entire 30-day window before the retry.
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if not target.parent.is_dir():
+                raise ArchiveError("SMB target directory is unavailable")
             buffered_copy(source, temporary)
             verify_smb_copy(source, temporary)
             try:
