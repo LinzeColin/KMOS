@@ -477,31 +477,38 @@ def copy_to_smb(source: Path, target: Path, *, replace_existing: bool = False) -
     if target.exists() and not replace_existing:
         raise ArchiveError("SMB target path already exists without a completed manifest record")
     target.parent.mkdir(parents=True, exist_ok=True)
-    temporary = target.with_name(f".{target.name}.partial-{uuid.uuid4().hex}")
-    target_written = False
-    try:
-        buffered_copy(source, temporary)
-        verify_smb_copy(source, temporary)
+    last_error: OSError | ArchiveError | None = None
+    for attempt in range(2):
+        temporary = target.with_name(f".{target.name}.partial-{uuid.uuid4().hex}")
+        target_existed_before_attempt = target.exists()
+        target_written = False
         try:
-            os.replace(temporary, target)
-            target_written = True
-        except OSError as error:
-            if error.errno not in {errno.EIO, errno.ENOTSUP}:
-                raise
-            if target.exists():
-                if not replace_existing:
-                    raise ArchiveError("SMB target appeared during non-atomic fallback") from error
+            buffered_copy(source, temporary)
+            verify_smb_copy(source, temporary)
+            try:
+                os.replace(temporary, target)
+                target_written = True
+            except OSError as error:
+                if error.errno not in {errno.EIO, errno.ENOTSUP}:
+                    raise
+                if target.exists():
+                    if not replace_existing:
+                        raise ArchiveError("SMB target appeared during non-atomic fallback") from error
+                    target.unlink()
+                buffered_copy(source, target)
+                target_written = True
+            verify_smb_copy(source, target)
+            return
+        except (OSError, ArchiveError) as error:
+            last_error = error
+            if (target_written or not target_existed_before_attempt) and target.exists():
                 target.unlink()
-            buffered_copy(source, target)
-            target_written = True
-        verify_smb_copy(source, target)
-    except (OSError, ArchiveError):
-        if target_written and target.exists():
-            target.unlink()
-        raise
-    finally:
-        if temporary.exists():
-            temporary.unlink()
+            if attempt:
+                raise ArchiveError(f"SMB copy did not verify after 2 attempts: {error}") from error
+        finally:
+            if temporary.exists():
+                temporary.unlink()
+    raise ArchiveError(f"SMB copy did not verify: {last_error}")
 
 
 def put_github_media(source: Path, relative_path: str, budget: GitHubMediaBudget) -> str | None:
