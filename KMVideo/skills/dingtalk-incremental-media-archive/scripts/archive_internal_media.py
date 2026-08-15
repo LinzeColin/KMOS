@@ -54,6 +54,8 @@ class Counts:
     discovered: int = 0
     smb_saved: int = 0
     smb_repaired: int = 0
+    smb_repaired_from_github: int = 0
+    smb_repaired_from_dws: int = 0
     github_raw: int = 0
     github_index: int = 0
     skipped: int = 0
@@ -66,6 +68,8 @@ class Counts:
         self.discovered += other.discovered
         self.smb_saved += other.smb_saved
         self.smb_repaired += other.smb_repaired
+        self.smb_repaired_from_github += other.smb_repaired_from_github
+        self.smb_repaired_from_dws += other.smb_repaired_from_dws
         self.github_raw += other.github_raw
         self.github_index += other.github_index
         self.skipped += other.skipped
@@ -468,6 +472,8 @@ def smb_original_usable(record: dict | None) -> bool:
 
 
 def copy_to_smb(source: Path, target: Path, *, replace_existing: bool = False) -> None:
+    if not has_nonzero_header(source):
+        raise ArchiveError("media source is empty or zero-filled")
     if target.exists() and not replace_existing:
         raise ArchiveError("SMB target path already exists without a completed manifest record")
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -507,6 +513,27 @@ def put_github_media(source: Path, relative_path: str, budget: GitHubMediaBudget
     if result.returncode == 0:
         return None
     return result.stderr.strip() or result.stdout.strip() or "GitHub raw-media write failed"
+
+
+def has_nonzero_header(path: Path) -> bool:
+    if not path.is_file() or path.stat().st_size == 0:
+        return False
+    with path.open("rb") as handle:
+        return any(handle.read(min(path.stat().st_size, 64)))
+
+
+def get_github_media_for_repair(record: dict, temp_root: Path) -> Path | None:
+    if record.get("github_media_status") != "complete":
+        return None
+    relative_path = str(record.get("relative_path") or "")
+    if not relative_path:
+        return None
+    target = temp_root / f"github-repair-{uuid.uuid4().hex}"
+    result = client(["get", GITHUB_AREA, f"{GITHUB_PREFIX}/{relative_path}", str(target)])
+    if result.returncode == 0 and has_nonzero_header(target):
+        return target
+    target.unlink(missing_ok=True)
+    return None
 
 
 def media_record_id(group: Group, message_id: str, resource_id: str) -> str:
@@ -734,8 +761,14 @@ def repair_smb_group(group: Group, temp_root: Path) -> Counts:
             counts.failures_by_reason.append("manifest media record lacks repair identity")
             continue
         downloaded: Path | None = None
+        source_kind: str | None = None
         try:
-            downloaded = download_media(group, message_id, resource_id, temp_root)
+            downloaded = get_github_media_for_repair(record, temp_root)
+            if downloaded is not None:
+                source_kind = "github"
+            else:
+                downloaded = download_media(group, message_id, resource_id, temp_root)
+                source_kind = "dws"
             target = SMB_ROOT / relative_path
             copy_to_smb(downloaded, target, replace_existing=target.exists())
             record["size_bytes"] = downloaded.stat().st_size
@@ -744,13 +777,20 @@ def repair_smb_group(group: Group, temp_root: Path) -> Counts:
             records[record_id] = record
             append_smb_manifest_record(folder, record)
             counts.smb_repaired += 1
+            if source_kind == "github":
+                counts.smb_repaired_from_github += 1
+            else:
+                counts.smb_repaired_from_dws += 1
         except (ArchiveError, OSError) as exc:
             counts.failures += 1
             counts.failures_by_reason.append(str(exc))
             print_event("smb_repair_item_stopped", group=group.title, reason=str(exc))
         finally:
             if downloaded is not None:
-                shutil.rmtree(downloaded.parent, ignore_errors=True)
+                if source_kind == "github":
+                    downloaded.unlink(missing_ok=True)
+                else:
+                    shutil.rmtree(downloaded.parent, ignore_errors=True)
     persist_smb_manifest(folder, records)
     return counts
 
@@ -988,6 +1028,8 @@ def main() -> int:
                         "smb_repair_group",
                         group=group.title,
                         smb_repaired=group_counts.smb_repaired,
+                        smb_repaired_from_github=group_counts.smb_repaired_from_github,
+                        smb_repaired_from_dws=group_counts.smb_repaired_from_dws,
                         failures=group_counts.failures,
                     )
                 elif args.sync_github_index:
@@ -1018,6 +1060,8 @@ def main() -> int:
         discovered=total.discovered,
         smb_saved=total.smb_saved,
         smb_repaired=total.smb_repaired,
+        smb_repaired_from_github=total.smb_repaired_from_github,
+        smb_repaired_from_dws=total.smb_repaired_from_dws,
         github_raw=total.github_raw,
         github_index=total.github_index,
         skipped=total.skipped,
