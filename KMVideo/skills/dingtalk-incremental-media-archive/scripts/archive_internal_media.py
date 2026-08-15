@@ -558,6 +558,7 @@ def archive_group(
     apply: bool,
     github_budget: GitHubMediaBudget,
     smb_only: bool,
+    reconcile: bool,
 ) -> Counts:
     folder = find_existing_folder(group)
     local_records = read_manifest(SMB_ROOT / folder / MANIFEST_NAME)
@@ -581,7 +582,7 @@ def archive_group(
     known_topic_ids: set[str] = set()
     for start, end in windows:
         boundary_key = window_record_id(group, start, end)
-        if records.get(boundary_key, {}).get("window_status") == "complete":
+        if records.get(boundary_key, {}).get("window_status") == "complete" and not reconcile:
             print_event("window_skipped", group=group.title, start=dws_time(start), end=dws_time(end))
             continue
         window_counts = Counts()
@@ -825,6 +826,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Read the specified DWS range and print per-group photo/video completion statistics; requires --dry-run.",
     )
+    parser.add_argument(
+        "--reconcile",
+        action="store_true",
+        help="Re-read completed windows and add only manifest-missing media; requires --apply.",
+    )
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--apply", action="store_true")
@@ -843,8 +849,12 @@ def main() -> int:
         raise ArchiveError("--sync-github-index requires --apply")
     if args.audit and not args.dry_run:
         raise ArchiveError("--audit requires --dry-run")
+    if args.reconcile and not args.apply:
+        raise ArchiveError("--reconcile requires --apply")
     if (args.sync_github_index or args.audit) and args.smb_only:
         raise ArchiveError("--smb-only only applies to an archive --apply run")
+    if args.reconcile and (args.sync_github_index or args.audit):
+        raise ArchiveError("--reconcile only applies to an archive --apply run")
     if not SMB_ROOT.is_dir():
         raise ArchiveError(f"SMB root is unavailable: {SMB_ROOT}")
     if not PRIVATE_DB_CLIENT.is_file():
@@ -888,7 +898,7 @@ def main() -> int:
                     print_event("audit_group", group=group.title, **report)
                 else:
                     group_counts = archive_group(
-                        group, windows, temp_root, args.page_size, args.apply, github_budget, args.smb_only,
+                        group, windows, temp_root, args.page_size, args.apply, github_budget, args.smb_only, args.reconcile,
                     )
             except (ArchiveError, OSError) as exc:
                 group_counts = Counts(failures=1, failures_by_reason=[str(exc)])

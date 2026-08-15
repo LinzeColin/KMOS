@@ -59,6 +59,7 @@ description: 仅归档用户明确授权且由 DWS 实时确认是 INTERNAL_GROU
 使用 scripts/archive_internal_media.py。必须显式传入每个 --allow-title；先以 --dry-run 枚举，再以 --apply 写入。执行器串行写 GitHub，逐文件使用临时目录下载，双端处理后立即删除本地副本；收尾只清理自己的临时目录。
 
 - 常规归档：`--start`、`--end`、`--window-days 30` 与 `--apply`。若当前存在 GitHub 原件写入器，历史段使用 `--smb-only`，先完成 SMB 原件与本地 SMB manifest。
+- 复扫补漏：规则修正、任务中断恢复或清单合并后，以同一时间范围运行 `--smb-only --reconcile --apply`。它重读 DWS，但对已完成 SMB 原件直接跳过；只下载 manifest 中缺失的素材，不重复保存已有文件。
 - 路标补齐：确认没有其他 GitHub 写入器后，以同一群白名单运行 `--sync-github-index --apply`。它不重新下载，不重复保存 SMB 原件，只为 SMB 已完成且 GitHub 尚未完成的素材写入 `index_only` 路标，并在成功后将对应切片标为完成。
 - 最终审计：以同一时间范围运行 `--audit --dry-run`。它重新读取 DWS 消息与话题回复，不下载素材，逐群输出 photo/video 的已完成时间范围和数量，以及未完成时间范围、数量、原因。DWS 分页或权限异常必须报告为未验证，不能报零。
 
