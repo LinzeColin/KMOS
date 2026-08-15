@@ -30,6 +30,7 @@ SMB_ROOT = Path("/Volumes/share/03_资料库/MetaData/IDS_MetaData/KMVideo")
 GITHUB_AREA = "Private-KMDatabase"
 GITHUB_PREFIX = "KMVideo"
 GITHUB_MAX_BYTES = 95 * 1024 * 1024
+DWS_TIMEOUT_SECONDS = 60
 MANIFEST_NAME = ".manifest.jsonl"
 TIMEZONE = ZoneInfo("Asia/Shanghai")
 MEDIA_ID_RE = re.compile(r"mediaId=([^\s)\]]+)")
@@ -108,7 +109,7 @@ def run_process(args: list[str]) -> subprocess.CompletedProcess[str]:
 
 
 def dws_json(args: list[str]) -> dict:
-    result = run_process(["dws", *args, "--format", "json"])
+    result = run_process(["dws", *args, "--timeout", str(DWS_TIMEOUT_SECONDS), "--format", "json"])
     if result.returncode != 0:
         raise ArchiveError(f"DWS command failed: {result.stderr.strip() or result.stdout.strip()}")
     try:
@@ -417,6 +418,7 @@ def download_media(group: Group, message_id: str, resource_id: str, temp_root: P
         "--message-id", message_id,
         "--open-conversation-id", group.conversation_id,
         "--output", str(destination),
+        "--timeout", str(DWS_TIMEOUT_SECONDS),
     ])
     if result.returncode != 0:
         shutil.rmtree(destination, ignore_errors=True)
