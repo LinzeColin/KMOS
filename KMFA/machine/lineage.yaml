@@ -8,10 +8,10 @@ covered_categories:
   - "collection"
   - "receivable_aging"
   - "journal"
-raw_assets: 84
+raw_assets: 86
 raw_with_staging_edges: 13
 raw_deferred_all_sheets: 0
-raw_not_yet_extracted: 71
+raw_not_yet_extracted: 73
 staging_tables:
   - "_staging.bank_journal"
   - "_staging.collection"
@@ -435,6 +435,16 @@ nodes:
     domain: "project_cost.funding_plan"
     batch: "2026-07-31"
     size_bytes: 14705
+    status: "not_yet_extracted"
+  - asset: "raw:29ee6491d8e2"
+    domain: "KMFA"
+    batch: "20260809"
+    size_bytes: 3419
+    status: "not_yet_extracted"
+  - asset: "raw:c9ae7efcec6f"
+    domain: "KMFA"
+    batch: "20260809"
+    size_bytes: 2065
     status: "not_yet_extracted"
 edges:
   - from: "raw:cc3963bcdfa0"
