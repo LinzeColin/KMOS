@@ -1,73 +1,71 @@
----
-name: dingtalk-incremental-media-archive
-description: 仅归档用户明确授权且由 DWS 实时确认是 INTERNAL_GROUP 的钉钉群图片、照片和视频。用户指定起点至冻结终点按连续30天切片增量保存：SMB 必须有原件；GitHub 能保存原件则保存，不能时在 GitHub 留 SMB 索引路标。
----
+# dingtalk-incremental-media-archive（KMVideo 一体化流水线）
 
-# 钉钉内部群增量媒体归档
+> 版本 v0.2.0（260817）。素材库任务书 v0.0.2.0 的完整执行体。
+> 上级规则：`smb://192.168.0.1/share/03_资料库/MetaData/IDS_MetaData/KMVideo/README.md`（冲突以 README 为准）。
 
-只有用户在当前线程明确给出采集范围并授权采集时才能运行。Skill 名称为 dingtalk-incremental-media-archive。
+## 一句话
 
-先完整读取 dingtalk-shared 与 dingtalk-chat。只使用官方 dws CLI；不得读取浏览器 Cookie、钥匙串、钉钉本地数据库或私有接口。
+从钉钉群到交付：**全量扫描 → 增量归档 → 规格探测 → 哈希去重 → 缩略图 → 本地标注 → 幂等改名 → 登记表双格式 → 三处落地（SMB / GitHub / KMOS 公开仓 / Private-Database）→ 自验收 → 产能汇总**，一条命令全跑，全程不调用任何外部 agent。
 
-## 群范围与组织边界
+## 硬约束（违反任一条即停止）
 
-- 每次运行必须由调用方传入明确群名白名单；不得把“全部会话”或“模糊搜索结果”当作采集范围。
-- 对每个白名单群，先通过 dws chat list-all-conversations 取得实时会话记录；只有 groupType 严格等于 INTERNAL_GROUP 且 singleChat 为 false 才能处理。
-- NORMAL_GROUP、NEW_EXTERNAL_GROUP、UNKNOWN_TYPE、SINGLE_CHAT、缺失群、重名群和类型变化的群一律拒绝，不调用任何跨组织授权、data-auth 或替代接口。唯一例外：脚本内 AUTHORIZED_NON_INTERNAL_TITLES 显式列出、且 singleChat=false 的授权会话（当前：新疆宜化2026、项目设备工具类管理群）；名单只由用户在本次授权中逐名确认，扩充名单必须重新获得用户明确同意。
-- 运行中以真实 openConversationId 作为群的稳定身份；群改名后沿用该 ID 已绑定的原群目录，绝不创建第二份素材库。
+1. 原始素材区只读；输入源不得删除、覆盖未知既有文件。
+2. `.manifest.jsonl` 任何情况下不得修改。
+3. 群目录只允许 `photo/`、`video/`、`.manifest.jsonl` 三样。
+4. 原始素材不得写入 KMOS 公开仓；KMOS 只放源码、Skill、脱敏登记表、缩略图清单。
+5. 长期业务数据走 `LinzeColin/Private-Database` 的 `Private-KMDatabase/`，经 `private_db_client.py`，禁止 clone 私有仓。
+6. 云成本红线：禁止 `InfrequentAccess`；禁止整包下载做存在性校验。
+7. SMB 写入禁用 Python 写与 `shutil.copyfile` 快速路径；用 `rsync --inplace --whole-file` 或 `/bin/dd conv=fsync`，写后必须校验字节数。
+8. 日期一律 `YYMMDD`；公开仓禁用客户全称，项目名一律泛化为「业务名+群」（如 `安装检修群`）。
+9. 不得新建平行登记表；所有标注写进根目录 `素材登记表.csv`，以新增列扩展。
+10. **不得调用任何外部 agent**（Claude Code CLI / Codex CLI / 其他 CLI agent / 远程视觉服务）。多模态问题一律本地自解：
+    - 语义标注 ← **DWS 消息上下文**（媒体消息前后 30 分钟内的文本消息，关键词映射）
+    - 精确地理位置 ← **EXIF GPS**（PIL 读 EXIF）
+    - 画质等级 ← **ffprobe 分辨率**（短边 ≥720 可全屏，否则仅可内嵌）
+    - 重复检测 ← **感知哈希 aHash**（PIL）
+    - OCR/人脸（可选增强）：本机安装 tesseract / opencv 时自动启用，未安装则跳过
 
-## 固定目的地与目录
+## 执行方式
 
-- SMB 原件根目录：smb://192.168.0.1/share/03_资料库/MetaData/IDS_MetaData/KMVideo/；macOS 挂载路径为 /Volumes/share/03_资料库/MetaData/IDS_MetaData/KMVideo/。
-- GitHub 路标根目录：LinzeColin/Private-Database/Private-KMDatabase/KMVideo/。
-- GitHub 只能经 KMDatabase/machine/tools/private_db_client.py 写入私有库；不得 clone Private-Database，也不得把素材写进 KMOS。
-- 不使用 OneDrive。KMOS/KMVideo 仅存源码、Skill 和路牌，绝不存素材。
-- 媒体目录最多三层：
+```bash
+python3 scripts/kmvideo_pipeline.py all --groups-file <白名单.txt> [--workdir /tmp/kmvideo_work/pipeline]
+```
 
-    KMVideo/
-      <群名称>/
-        photo/<原始照片或图片>
-        video/<原始视频>
+单阶段可独立重跑（幂等）：`scan|probe|dedup|thumbs|label|rename|registry|upload|accept|report`。
 
-- 每个群目录只允许有 photo/、video/ 和一个隐藏 .manifest.jsonl；不得创建 catalog、ledger、runs、按日期分层或其他媒体目录。
-- 本机只允许本次运行独有的系统临时目录。不得使用 KMOS、_protected/、_scratch/、OneDrive 或持久目录作缓存。
+- `--allow-title` 白名单逐群显式传入（复用 archive_internal_media 的全部归档语义与去重规则）。
+- `--only-group 群名` 可先打样单群；`--skip-accept-upload` 可只跑本地阶段。
+- 视觉字段若存在更高置信度的外部标注（如任务书打样产物），`label` 阶段以 `workdir/vision_override.jsonl`（键=文件名，值=字段）优先。
 
-## 历史边界与 30 天切片
+## 阶段说明
 
-- “全量”只指用户在本线程明确批准的起点至冻结终点内、白名单内部群中全部可读取的图片、照片和视频；不得自行扩大为无限历史或跨组织会话。本次已授权任务范围为 `[2026-01-01 00:00:00, T)`。
-- 调用方必须在起点超过最近 90 天时显式传入 `--start`；未传 `--start` 才允许默认最近 90 天。按同一时区创建相邻半开切片，每段不得超过 30 天，必须从旧到新连续前滚直到冻结终点 T。
-- DWS 消息分页使用返回消息的边界 createTime 继续。只有 hasMore 为 false，或已读到切片下边界之外，才算该切片消息读取结束。
-- 空页且 hasMore 为 true、边界不前进、权限错误或下载错误都属于未完成；停止该群，不得跳到下一切片。
-- 遇到 openConvThreadId 时，必须调用 dws chat message list-topic-replies；已发现的话题 ID 要持续带入后续切片，以覆盖父消息与回复跨切片的情况。主消息和话题回复都按消息 ID 与资源 ID 去重。
+| 阶段 | 子命令 | 产出 |
+|---|---|---|
+| 一 扫描+增量归档 | `scan` | manifest 增量（复读不改）、`workdir/context.jsonl` 消息上下文 |
+| 二 规格探测/去重/缩略图 | `probe` `dedup` `thumbs` | `specs.jsonl`、`dups.jsonl`、`workdir/thumbs/*.jpg`、SMB `KMVideo_缩略图/` |
+| 三 本地标注 | `label` | `desc.csv`（描述/功能位/画质等级/画面元素/镜头特征/工序阶段/能证明什么/脱敏风险/置信度） |
+| 四 改名 | `rename` | 磁盘幂等改名 + `改名前后对照.csv` |
+| 五 登记与落地 | `registry` `upload` | `素材登记表.csv`（+18 新列）、`原名新名映射.csv`、公开仓 md 版、私有仓 ingest、GitHub Release 资产 |
+| 六 自验收+汇总 | `accept` `report` | `accept_report.json`、产能汇总表 |
 
-## 增量、SMB 优先与 GitHub 路标
+## 命名规则（照抄任务书）
 
-每个群的 .manifest.jsonl 使用 群 ID + 消息 ID + 资源 ID 作为唯一素材身份。记录原始相对路径、素材类型、消息时间、SMB 状态和 GitHub 状态；不得写入聊天正文、发件人、成员信息或凭据。
+`{业务}_{说明}_{YYMMDD}_{序号}.ext`
+- 视频：序号沿用原文件名两位序号（任务书示例语义，天然幂等）
+- 照片：同（业务,说明,日期,类型）内递增两位
+- 业务映射表（内置 BUSINESS 常量，任务书照抄）：
+  内部 / 焊接 / 安装检修 / 化工钢铁 / 化工 / 水泥调测窑 / 水泥
 
-1. 先确保 SMB 对应 photo/ 或 video/ 中有原始文件。SMB 失败时，该素材绝不标记完成。
-2. 原件小于客户端 95 MiB 上限时，尝试把同一路径原件写入 GitHub。
-3. 原件超过 95 MiB、GitHub 原件写入失败、或当前 GitHub REST 配额不足以继续原件写入时，SMB 原件仍必须保留；在 GitHub 的同群 .manifest.jsonl 写入 github_media_status=index_only、失败原因和 smb_relative_path。这份 manifest 就是 GitHub 路标。
-4. GitHub 本身不可写时，不能伪称已留下路标：保留 SMB 原件、在 SMB manifest 标记 github_index_unavailable，并报告未完成。
-5. 两端 manifest 在正常状态保持相同；某一端短暂不可写时允许暂时不同。下次运行先合并两端记录，只补缺失目的地或路标，绝不重复保存已完成原件。
-6. 原始文件名直接保留。只有同一群同一 media 目录已有不同素材的同名文件时，才在扩展名前追加真实消息 ID 的安全文件名形式；不增加目录层级，也绝不覆盖未知既有文件。
-7. 同一群同一时刻只允许一个归档写入器。不同历史段也不得并发覆盖同一群的 manifest；如需并行，必须按互不重叠的群白名单拆分，或等待前一写入器结束后再启动下一段。同一 ID 的当前运行记录优先于该写入器较早的磁盘 checkpoint，确保 `failed` 或修复后的 `complete` 状态不会被旧状态覆盖。
-8. 此 SMB 挂载禁止使用 macOS `shutil.copyfile` / `fcopyfile` 快速路径、Python SMB 写入及 SMB `os.replace` 发布路径：前两者会返回成功却写出等长全零或截断文件，后者可能显示陈旧或截断大小。写入器必须向最终路径直接写入，并在 `/bin/dd conv=fsync` 与 `rsync --inplace --whole-file` 间交替，最多四次且以 1、2、4 秒退避；目录创建、写入及源/SMB 大小和有限头尾字节比对属于同一次受控尝试。每次比对通过后，照片还必须由系统 ImageIO 实际解析，视频必须由 `ffprobe` 识别容器并由 `ffmpeg` 完整解码；任一环不通过就删除未验证目标、不得标记 `smb_status=complete`。最终失败时必须立即在群 manifest 写入 `smb_status=failed`、素材 DWS 身份、相对路径和错误，停止该条且不得标记 `smb_status=complete`。`--repair-smb --failed-only --apply` 只按此失败记录恢复该条、不检查正常原件也不重新枚举群历史；不带 `--failed-only` 的修复仍会扫描 manifest 已知的缺失、大小不符或头部全零原件。已标记完成但文件缺失、大小不符或头部全零时，同样只按现有 manifest 素材身份重下并替换该文件。
-9. 每次 DWS 列表、话题回复与媒体下载调用必须显式使用 60 秒请求上限。网络超时、DNS 失败或网关失败均属于未完成：停止当前窗口、保留已完成清单、报告恢复事件；不得把超时吞掉、不得无限重试。
+## 自验收判据（accept 阶段自动执行）
 
-每条素材写入 SMB 后立即更新 SMB manifest；GitHub manifest 在每个 30 天切片结束时同步。切片仅在所有发现素材均满足 SMB=complete，且 GitHub 原件 complete 或 GitHub 路标 index_only，并且该切片 GitHub manifest 已成功同步后，才能标记完成并推进。
+- 目标行齐全无重复；文件名格式与业务映射正确；说明 2–6 字
+- 枚举字段全部使用原始词汇表
+- 画质等级与分辨率一致；`.manifest.jsonl` mtime 未变
+- 改名幂等：连跑两次第二次零变更
+- 三处落地校验：SMB 写后字节数相等；公开仓含脱敏版；私有仓 ingest 成功
 
-## 执行器
+## 已知外部障碍（记录在案，不阻塞流水线）
 
-使用 scripts/archive_internal_media.py。必须显式传入每个 --allow-title；先以 --dry-run 枚举，再以 --apply 写入。执行器串行写 GitHub，逐文件使用临时目录下载，双端处理后立即删除本地副本；收尾只清理自己的临时目录。
-
-- 常规归档：`--start`、`--end`、`--window-days 30` 与 `--apply`。若当前存在 GitHub 原件写入器，历史段使用 `--smb-only`，先完成 SMB 原件与本地 SMB manifest。
-- SMB 修复：发现 SMB 文件缺失、等长全零或无法打开时，以同一群白名单运行 `--repair-smb --apply`。它只读取已有 manifest 的素材身份，优先从已存在的 GitHub 原件恢复；没有 GitHub 原件才用消息 ID 与资源 ID 从 DWS 重下。全程不重新枚举历史消息、不触碰正常文件，也不覆盖 GitHub 原件状态。
-- 复扫补漏：规则修正、任务中断恢复或清单合并后，以同一时间范围运行 `--smb-only --reconcile --apply`。它重读 DWS，但对已完成 SMB 原件直接跳过；只下载 manifest 中缺失的素材，不重复保存已有文件。
-- 路标补齐：确认没有其他 GitHub 写入器后，以同一群白名单运行 `--sync-github-index --apply`。它不重新下载，不重复保存 SMB 原件，只为 SMB 已完成且 GitHub 尚未完成的素材写入 `index_only` 路标，并在成功后将对应切片标为完成。
-- 最终审计：以同一时间范围运行 `--audit --dry-run`。它重新读取 DWS 消息与话题回复，不下载素材，逐群输出 photo/video 的已完成时间范围和数量，以及未完成时间范围、数量、原因。DWS 分页或权限异常必须报告为未验证，不能报零。
-
-## 报告与视频生成
-
-报告每个群和切片的时间范围、发现数、SMB 原件数、GitHub 原件数、GitHub 路标数、跳过数、失败数、未完成边界及临时目录清理结果。
-
-任何视频生成 Agent 必须先从 SMB 完整素材库读取全量可用素材，再自行挑选；GitHub 用于原件副本或 SMB 索引，不要求用户手工挑选素材。
+- 群「项目设备工具类管理群」：DWS 分页返回空页且 `hasMore=true`（DWS 侧缺陷），扫描阶段记录 skip 并进产能汇总待办。
+- 「张霖泽」单聊：SINGLE_CHAT 政策拒绝，除非 Owner 显式加入 AUTHORIZED_NON_INTERNAL_TITLES。
+- 无上下文且无 EXIF/OCR 信号的素材：说明留「待确认」，保留原文件名，进待办清单，等人工终审。
