@@ -648,6 +648,17 @@ def stage_label(args, ctx) -> dict:
                    "镜头特征": "", "能证明什么": "", "脱敏风险": desens_risk(text)}
         for k in ("功能位", "画质等级", "画面元素", "镜头特征", "工序阶段", "能证明什么", "脱敏风险"):
             row[k] = src.get(k, "")
+        # 枚举消毒：未知词丢弃；功能位/工序阶段非法→不可用/无法判断；镜头特征空→""
+        for fld in ("画面元素", "镜头特征", "脱敏风险"):
+            vals = [x.strip() for x in str(row.get(fld, "")).replace("、", ",").split(",") if x.strip()]
+            keep = [v for v in vals if v in VOCAB[fld]]
+            if not keep:
+                keep = ["无"] if fld == "画面元素" else [""]
+            row[fld] = "、".join(dict.fromkeys(keep))
+        if str(row.get("功能位", "")) not in VOCAB["功能位"]:
+            row["功能位"] = "不可用"
+        if str(row.get("工序阶段", "")) not in VOCAB["工序阶段"]:
+            row["工序阶段"] = "无法判断"
         if ov or vision:
             labeled += 1
         else:
