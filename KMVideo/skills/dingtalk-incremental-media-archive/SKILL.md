@@ -35,6 +35,8 @@ python3 scripts/kmvideo_pipeline.py all --groups-file <白名单.txt> [--workdir
 
 - `--allow-title` 白名单逐群显式传入（复用 archive_internal_media 的全部归档语义与去重规则）。
 - `--only-group 群名` 可先打样单群；`--skip-accept-upload` 可只跑本地阶段。
+- 私有仓落地依赖 `KMOS_ROOT` 环境变量（或运行于 KMOS worktree 内）定位 `private_db_client.py`；
+  两者都失效时 `upload` 阶段**报错退出**（不再静默跳过）。显式跳过私有仓用 `--no-private`。
 - 视觉字段若存在更高置信度的外部标注（如任务书打样产物），`label` 阶段以 `workdir/vision_override.jsonl`（键=文件名，值=字段）优先。
 
 ## 阶段说明

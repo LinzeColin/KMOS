@@ -784,7 +784,11 @@ def stage_upload(args, ctx) -> dict:
                            capture_output=True, text=True, timeout=1800)
         res["private"] = "ok" if r.returncode == 0 else f"fail: {r.stderr[-150:]}"
     else:
-        res["private"] = "client missing"
+        # 静默跳过 → 显式失败：否则自验收会误判通过
+        raise RuntimeError(
+            f"private_db_client.py 不存在：{PRIVATE_CLIENT}。"
+            "请设置环境变量 KMOS_ROOT 指向 KMOS checkout（或在 KMOS worktree 内运行），"
+            "或显式传 --no-private 声明本轮跳过私有仓落地。")
     log(f"upload done: {res}")
     return res
 
