@@ -13,7 +13,7 @@ description: 仅归档用户明确授权且由 DWS 实时确认是 INTERNAL_GROU
 
 - 每次运行必须由调用方传入明确群名白名单；不得把“全部会话”或“模糊搜索结果”当作采集范围。
 - 对每个白名单群，先通过 dws chat list-all-conversations 取得实时会话记录；只有 groupType 严格等于 INTERNAL_GROUP 且 singleChat 为 false 才能处理。
-- NORMAL_GROUP、NEW_EXTERNAL_GROUP、UNKNOWN_TYPE、SINGLE_CHAT、缺失群、重名群和类型变化的群一律拒绝，不调用任何跨组织授权、data-auth 或替代接口。
+- NORMAL_GROUP、NEW_EXTERNAL_GROUP、UNKNOWN_TYPE、SINGLE_CHAT、缺失群、重名群和类型变化的群一律拒绝，不调用任何跨组织授权、data-auth 或替代接口。唯一例外：脚本内 AUTHORIZED_NON_INTERNAL_TITLES 显式列出、且 singleChat=false 的授权会话（当前：新疆宜化2026、项目设备工具类管理群）；名单只由用户在本次授权中逐名确认，扩充名单必须重新获得用户明确同意。
 - 运行中以真实 openConversationId 作为群的稳定身份；群改名后沿用该 ID 已绑定的原群目录，绝不创建第二份素材库。
 
 ## 固定目的地与目录
@@ -51,7 +51,7 @@ description: 仅归档用户明确授权且由 DWS 实时确认是 INTERNAL_GROU
 5. 两端 manifest 在正常状态保持相同；某一端短暂不可写时允许暂时不同。下次运行先合并两端记录，只补缺失目的地或路标，绝不重复保存已完成原件。
 6. 原始文件名直接保留。只有同一群同一 media 目录已有不同素材的同名文件时，才在扩展名前追加真实消息 ID 的安全文件名形式；不增加目录层级，也绝不覆盖未知既有文件。
 7. 同一群同一时刻只允许一个归档写入器。不同历史段也不得并发覆盖同一群的 manifest；如需并行，必须按互不重叠的群白名单拆分，或等待前一写入器结束后再启动下一段。同一 ID 的当前运行记录优先于该写入器较早的磁盘 checkpoint，确保 `failed` 或修复后的 `complete` 状态不会被旧状态覆盖。
-8. 此 SMB 挂载禁止使用 macOS `shutil.copyfile` / `fcopyfile` 快速路径、Python SMB 写入及 SMB `os.replace` 发布路径：前两者会返回成功却写出等长全零或截断文件，后者可能显示陈旧或截断大小。必须以 `/bin/dd` 的 `conv=fsync` 向最终路径直接写入；目录创建、写入及源/SMB 大小和有限头尾字节比对属于同一次受控尝试。第一次不符时等 1 秒再复读一次，仍不符才删除未验证目标并重试一次；最终失败时必须立即在群 manifest 写入 `smb_status=failed`、素材 DWS 身份、相对路径和错误，停止该条且不得标记 `smb_status=complete`。`--repair-smb --failed-only --apply` 只按此失败记录恢复该条、不检查正常原件也不重新枚举群历史；不带 `--failed-only` 的修复仍会扫描 manifest 已知的缺失、大小不符或头部全零原件。已标记完成但文件缺失、大小不符或头部全零时，同样只按现有 manifest 素材身份重下并替换该文件。
+8. 此 SMB 挂载禁止使用 macOS `shutil.copyfile` / `fcopyfile` 快速路径、Python SMB 写入及 SMB `os.replace` 发布路径：前两者会返回成功却写出等长全零或截断文件，后者可能显示陈旧或截断大小。写入器必须向最终路径直接写入，并在 `/bin/dd conv=fsync` 与 `rsync --inplace --whole-file` 间交替，最多四次且以 1、2、4 秒退避；目录创建、写入及源/SMB 大小和有限头尾字节比对属于同一次受控尝试。每次比对通过后，照片还必须由系统 ImageIO 实际解析，视频必须由 `ffprobe` 识别容器并由 `ffmpeg` 完整解码；任一环不通过就删除未验证目标、不得标记 `smb_status=complete`。最终失败时必须立即在群 manifest 写入 `smb_status=failed`、素材 DWS 身份、相对路径和错误，停止该条且不得标记 `smb_status=complete`。`--repair-smb --failed-only --apply` 只按此失败记录恢复该条、不检查正常原件也不重新枚举群历史；不带 `--failed-only` 的修复仍会扫描 manifest 已知的缺失、大小不符或头部全零原件。已标记完成但文件缺失、大小不符或头部全零时，同样只按现有 manifest 素材身份重下并替换该文件。
 9. 每次 DWS 列表、话题回复与媒体下载调用必须显式使用 60 秒请求上限。网络超时、DNS 失败或网关失败均属于未完成：停止当前窗口、保留已完成清单、报告恢复事件；不得把超时吞掉、不得无限重试。
 
 每条素材写入 SMB 后立即更新 SMB manifest；GitHub manifest 在每个 30 天切片结束时同步。切片仅在所有发现素材均满足 SMB=complete，且 GitHub 原件 complete 或 GitHub 路标 index_only，并且该切片 GitHub manifest 已成功同步后，才能标记完成并推进。

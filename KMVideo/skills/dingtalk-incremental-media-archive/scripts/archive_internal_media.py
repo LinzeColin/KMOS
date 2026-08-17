@@ -15,8 +15,10 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -34,6 +36,10 @@ DWS_TIMEOUT_SECONDS = 60
 MANIFEST_NAME = ".manifest.jsonl"
 TIMEZONE = ZoneInfo("Asia/Shanghai")
 MEDIA_ID_RE = re.compile(r"mediaId=([^\s)\]]+)")
+SMB_COPY_METHODS = ("dd", "rsync", "dd", "rsync")
+
+# 单进程内并发下载时，records 字典与 manifest 追加仍保持单一写入者语义。
+MANIFEST_LOCK = threading.Lock()
 
 
 class ArchiveError(RuntimeError):
@@ -48,6 +54,15 @@ class PagingError(ArchiveError):
 class Group:
     title: str
     conversation_id: str
+    group_type: str = "INTERNAL_GROUP"
+
+
+# 用户显式授权纳入归档的非 INTERNAL_GROUP 会话（仍逐个 --allow-title 显式授权，
+# 只读采集，SMB/GitHub 双目的地不变；名单外一律拒绝）。
+AUTHORIZED_NON_INTERNAL_TITLES = {
+    "新疆宜化2026",
+    "项目设备工具类管理群",
+}
 
 
 @dataclass
@@ -289,18 +304,34 @@ def select_groups(allowed_titles: list[str]) -> list[Group]:
     failures: list[str] = []
     for title in allowed_titles:
         matches = by_title.get(title, [])
+        # 同名消歧：优先取非单聊会话（群名与某人的单聊同名时）。
+        non_single = [c for c in matches if c.get("singleChat") is False]
+        if len(non_single) == 1:
+            matches = non_single
         if len(matches) != 1:
             failures.append(f"{title}: expected one live conversation, got {len(matches)}")
             continue
         conversation = matches[0]
-        if conversation.get("groupType") != "INTERNAL_GROUP" or conversation.get("singleChat") is not False:
+        is_internal = (
+            conversation.get("groupType") == "INTERNAL_GROUP"
+            and conversation.get("singleChat") is False
+        )
+        is_authorized_extra = (
+            title in AUTHORIZED_NON_INTERNAL_TITLES
+            and conversation.get("singleChat") is False
+        )
+        if not (is_internal or is_authorized_extra):
             failures.append(f"{title}: refused non-internal or single-chat conversation")
             continue
         conversation_id = str(conversation.get("openConversationId") or "")
         if not conversation_id:
             failures.append(f"{title}: missing openConversationId")
             continue
-        selected.append(Group(title=title, conversation_id=conversation_id))
+        selected.append(Group(
+            title=title,
+            conversation_id=conversation_id,
+            group_type=str(conversation.get("groupType") or "INTERNAL_GROUP"),
+        ))
     if failures:
         raise ArchiveError("; ".join(failures))
     return selected
@@ -432,17 +463,24 @@ def download_media(group: Group, message_id: str, resource_id: str, temp_root: P
     return files[0]
 
 
-def buffered_copy(source: Path, target: Path) -> None:
-    """Write through BSD dd, avoiding macOS fcopyfile and Python SMB writes."""
-    result = run_process([
-        "/bin/dd",
-        f"if={source}",
-        f"of={target}",
-        "bs=1048576",
-        "conv=fsync",
-    ])
+def write_smb_once(source: Path, target: Path, method: str) -> None:
+    """Use one direct SMB writer, never the macOS fcopyfile path or a rename."""
+    if method == "dd":
+        command = [
+            "/bin/dd",
+            f"if={source}",
+            f"of={target}",
+            "bs=1048576",
+            "conv=fsync",
+        ]
+    elif method == "rsync":
+        command = ["rsync", "--inplace", "--whole-file", str(source), str(target)]
+    else:
+        raise ArchiveError(f"unsupported SMB copy method: {method}")
+    result = run_process(command)
     if result.returncode != 0:
-        raise ArchiveError(result.stderr.strip() or result.stdout.strip() or "SMB dd write failed")
+        detail = result.stderr.strip() or result.stdout.strip() or "SMB writer returned non-zero"
+        raise ArchiveError(f"SMB {method} write failed: {detail}")
 
 
 def verify_smb_copy(source: Path, target: Path) -> None:
@@ -474,6 +512,32 @@ def verify_smb_copy(source: Path, target: Path) -> None:
     raise ArchiveError(f"{last_reason}: source_size={source_size}, target_size={target_size}")
 
 
+def verify_media_openable(target: Path, media_type: str) -> None:
+    """Require the final SMB original itself to be parsable before completion."""
+    if media_type == "photo":
+        result = run_process(["sips", "-g", "format", "-g", "pixelWidth", "-g", "pixelHeight", str(target)])
+        if result.returncode != 0:
+            detail = result.stderr.strip() or result.stdout.strip() or "ImageIO could not parse media"
+            raise ArchiveError(f"SMB photo cannot be opened: {detail}")
+        return
+    if media_type == "video":
+        probe = run_process([
+            "ffprobe", "-v", "error", "-show_entries", "format=format_name",
+            "-of", "default=nw=1:nk=1", str(target),
+        ])
+        if probe.returncode != 0:
+            detail = probe.stderr.strip() or probe.stdout.strip() or "ffprobe could not parse media"
+            raise ArchiveError(f"SMB video cannot be opened: {detail}")
+        decode = run_process([
+            "ffmpeg", "-v", "error", "-i", str(target), "-map", "0:v?", "-map", "0:a?", "-f", "null", "-",
+        ])
+        if decode.returncode != 0:
+            detail = decode.stderr.strip() or decode.stdout.strip() or "ffmpeg could not decode media"
+            raise ArchiveError(f"SMB video cannot be fully decoded: {detail}")
+        return
+    raise ArchiveError(f"unsupported media type for openability validation: {media_type}")
+
+
 def smb_original_usable(record: dict | None) -> bool:
     if not record or record.get("smb_status") != "complete":
         return False
@@ -488,13 +552,13 @@ def smb_original_usable(record: dict | None) -> bool:
     return bool(sample) and any(sample)
 
 
-def copy_to_smb(source: Path, target: Path, *, replace_existing: bool = False) -> None:
+def copy_to_smb(source: Path, target: Path, media_type: str, *, replace_existing: bool = False) -> None:
     if not has_nonzero_header(source):
         raise ArchiveError("media source is empty or zero-filled")
     if target.exists() and not replace_existing:
         raise ArchiveError("SMB target path already exists without a completed manifest record")
     last_error: OSError | ArchiveError | None = None
-    for attempt in range(2):
+    for attempt, method in enumerate(SMB_COPY_METHODS):
         target_existed_before_attempt = target.exists()
         target_removed_before_copy = False
         target_written = False
@@ -514,20 +578,23 @@ def copy_to_smb(source: Path, target: Path, *, replace_existing: bool = False) -
             # destination exposes a stale/truncated size.  Direct buffered
             # creation is the verified path; completion is still withheld until
             # the final path itself passes the source comparison.
-            buffered_copy(source, target)
+            write_smb_once(source, target, method)
             target_written = True
             verify_smb_copy(source, target)
+            verify_media_openable(target, media_type)
             return
         except (OSError, ArchiveError) as error:
-            last_error = error
+            last_error = ArchiveError(f"{method}: {error}")
             if target_written or target_removed_before_copy or not target_existed_before_attempt:
                 try:
                     target.unlink()
                 except FileNotFoundError:
                     pass
-            if attempt:
-                raise ArchiveError(f"SMB copy did not verify after 2 attempts: {error}") from error
-    raise ArchiveError(f"SMB copy did not verify: {last_error}")
+            if attempt + 1 < len(SMB_COPY_METHODS):
+                time.sleep(2 ** attempt)
+    raise ArchiveError(
+        f"SMB copy did not verify after {len(SMB_COPY_METHODS)} alternating attempts: {last_error}"
+    )
 
 
 def put_github_media(source: Path, relative_path: str, budget: GitHubMediaBudget) -> str | None:
@@ -589,25 +656,27 @@ def archive_media(
     if not message_id:
         raise ArchiveError("media message missing openMessageId")
     key = media_record_id(group, message_id, resource_id)
-    existing = records.get(key)
-    if existing and smb_original_usable(existing) and (smb_only or is_complete(existing)):
-        counts.skipped += 1
-        return
-    counts.discovered += 1
+    with MANIFEST_LOCK:
+        existing = records.get(key)
+        if existing and smb_original_usable(existing) and (smb_only or is_complete(existing)):
+            counts.skipped += 1
+            return
+        counts.discovered += 1
     if not apply:
         return
 
     downloaded: Path | None = None
     try:
         downloaded = download_media(group, message_id, resource_id, temp_root)
-        relative_path = choose_relative_path(
-            folder,
-            media_type,
-            downloaded.name,
-            message_id,
-            records,
-            existing,
-        )
+        with MANIFEST_LOCK:
+            relative_path = choose_relative_path(
+                folder,
+                media_type,
+                downloaded.name,
+                message_id,
+                records,
+                existing,
+            )
         target = SMB_ROOT / relative_path
         record = dict(existing or {})
         record.update({
@@ -626,19 +695,26 @@ def archive_media(
 
         if not smb_original_usable(record):
             try:
-                copy_to_smb(downloaded, target, replace_existing=target.exists() and existing is not None)
+                copy_to_smb(
+                    downloaded,
+                    target,
+                    media_type,
+                    replace_existing=target.exists() and existing is not None,
+                )
             except (ArchiveError, OSError) as exc:
                 record["smb_status"] = "failed"
                 record["smb_error"] = str(exc)
-                records[key] = record
-                append_smb_manifest_record(folder, record)
+                with MANIFEST_LOCK:
+                    records[key] = record
+                    append_smb_manifest_record(folder, record)
                 raise ArchiveError(
                     f"{exc}; failed_media_record={key}; relative_path={relative_path}; "
                     f"source_size={record['size_bytes']}"
                 ) from exc
             record["smb_status"] = "complete"
             record.pop("smb_error", None)
-            counts.smb_saved += 1
+            with MANIFEST_LOCK:
+                counts.smb_saved += 1
 
         github_status = str(record.get("github_media_status") or "")
         if smb_only:
@@ -649,14 +725,17 @@ def archive_media(
             if github_error:
                 record["github_media_status"] = "index_only"
                 record["github_index_reason"] = github_error
-                counts.github_index += 1
+                with MANIFEST_LOCK:
+                    counts.github_index += 1
             else:
                 record["github_media_status"] = "complete"
                 record.pop("github_index_reason", None)
-                counts.github_raw += 1
+                with MANIFEST_LOCK:
+                    counts.github_raw += 1
 
-        records[key] = record
-        append_smb_manifest_record(folder, record)
+        with MANIFEST_LOCK:
+            records[key] = record
+            append_smb_manifest_record(folder, record)
     finally:
         if downloaded is not None:
             shutil.rmtree(downloaded.parent, ignore_errors=True)
@@ -675,6 +754,7 @@ def archive_group(
     github_budget: GitHubMediaBudget,
     smb_only: bool,
     reconcile: bool,
+    workers: int = 1,
 ) -> Counts:
     folder = find_existing_folder(group)
     local_records = read_manifest(SMB_ROOT / folder / MANIFEST_NAME)
@@ -687,7 +767,7 @@ def archive_group(
         "record_type": "group",
         "conversation_id": group.conversation_id,
         "folder": folder,
-        "group_type": "INTERNAL_GROUP",
+        "group_type": group.group_type,
     }
     if apply:
         append_smb_manifest_record(folder, records[group_key])
@@ -696,86 +776,101 @@ def archive_group(
         print_event("github_manifest_read_unavailable", group=group.title)
 
     known_topic_ids: set[str] = set()
-    for start, end in windows:
-        boundary_key = window_record_id(group, start, end)
-        if records.get(boundary_key, {}).get("window_status") == "complete" and not reconcile:
-            print_event("window_skipped", group=group.title, start=dws_time(start), end=dws_time(end))
-            continue
-        window_counts = Counts()
-        try:
-            for message in walk_window_messages(group.conversation_id, start, end, None, page_size):
-                for resource_id, media_type in classify_media(message):
-                    archive_media(
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+
+        def run_tasks(tasks: list[tuple[dict, str, str]]) -> None:
+            """按批提交并发处理；批内任一失败按顺序抛出，保留窗口停止语义。"""
+            for offset in range(0, len(tasks), max(1, workers)):
+                batch = tasks[offset:offset + max(1, workers)]
+                futures = [
+                    pool.submit(
+                        archive_media,
                         group, folder, message, resource_id, media_type, records,
                         temp_root, apply, window_counts, github_budget, smb_only,
                     )
-                topic_id = str(message.get("openConvThreadId") or "")
-                if topic_id:
-                    known_topic_ids.add(topic_id)
-            for topic_id in known_topic_ids:
-                for reply in walk_window_messages(group.conversation_id, start, end, topic_id, page_size):
-                    window_counts.topic_replies += 1
-                    for resource_id, media_type in classify_media(reply):
-                        archive_media(
-                            group, folder, reply, resource_id, media_type, records,
-                            temp_root, apply, window_counts, github_budget, smb_only,
+                    for message, resource_id, media_type in batch
+                ]
+                for future in futures:
+                    future.result()
+
+        for start, end in windows:
+            boundary_key = window_record_id(group, start, end)
+            if records.get(boundary_key, {}).get("window_status") == "complete" and not reconcile:
+                print_event("window_skipped", group=group.title, start=dws_time(start), end=dws_time(end))
+                continue
+            window_counts = Counts()
+            try:
+                tasks: list[tuple[dict, str, str]] = []
+                for message in walk_window_messages(group.conversation_id, start, end, None, page_size):
+                    for resource_id, media_type in classify_media(message):
+                        tasks.append((message, resource_id, media_type))
+                    topic_id = str(message.get("openConvThreadId") or "")
+                    if topic_id:
+                        known_topic_ids.add(topic_id)
+                run_tasks(tasks)
+                reply_tasks: list[tuple[dict, str, str]] = []
+                for topic_id in known_topic_ids:
+                    for reply in walk_window_messages(group.conversation_id, start, end, topic_id, page_size):
+                        window_counts.topic_replies += 1
+                        for resource_id, media_type in classify_media(reply):
+                            reply_tasks.append((reply, resource_id, media_type))
+                run_tasks(reply_tasks)
+                if apply:
+                    records[boundary_key] = {
+                        "record_id": boundary_key,
+                        "record_type": "window",
+                        "conversation_id": group.conversation_id,
+                        "folder": folder,
+                        "start": dws_time(start),
+                        "end": dws_time(end),
+                        "window_status": "smb_complete_pending_github_index" if smb_only else "complete",
+                    }
+                    if smb_only:
+                        records = persist_smb_manifest(folder, records)
+                    else:
+                        records, github_manifest_error = persist_manifests(folder, records, temp_root)
+                        if github_manifest_error:
+                            raise ArchiveError(f"github_index_unavailable: {github_manifest_error}")
+                window_counts.completed_windows += 1
+                print_event(
+                    "window_complete",
+                    group=group.title,
+                    start=dws_time(start),
+                    end=dws_time(end),
+                    discovered=window_counts.discovered,
+                    smb_saved=window_counts.smb_saved,
+                    github_raw=window_counts.github_raw,
+                    github_index=window_counts.github_index,
+                    skipped=window_counts.skipped,
+                )
+            except (ArchiveError, OSError) as exc:
+                window_counts.failures += 1
+                window_counts.failures_by_reason.append(str(exc))
+                if apply:
+                    records[boundary_key] = {
+                        "record_id": boundary_key,
+                        "record_type": "window",
+                        "conversation_id": group.conversation_id,
+                        "folder": folder,
+                        "start": dws_time(start),
+                        "end": dws_time(end),
+                        "window_status": "stopped",
+                        "reason": str(exc),
+                    }
+                    try:
+                        records = persist_smb_manifest(folder, records)
+                    except (OSError, json.JSONDecodeError) as persist_error:
+                        print_event(
+                            "window_stop_state_unavailable",
+                            group=group.title,
+                            start=dws_time(start),
+                            end=dws_time(end),
+                            reason=str(persist_error),
                         )
-            if apply:
-                records[boundary_key] = {
-                    "record_id": boundary_key,
-                    "record_type": "window",
-                    "conversation_id": group.conversation_id,
-                    "folder": folder,
-                    "start": dws_time(start),
-                    "end": dws_time(end),
-                    "window_status": "smb_complete_pending_github_index" if smb_only else "complete",
-                }
-                if smb_only:
-                    records = persist_smb_manifest(folder, records)
-                else:
-                    records, github_manifest_error = persist_manifests(folder, records, temp_root)
-                    if github_manifest_error:
-                        raise ArchiveError(f"github_index_unavailable: {github_manifest_error}")
-            window_counts.completed_windows += 1
-            print_event(
-                "window_complete",
-                group=group.title,
-                start=dws_time(start),
-                end=dws_time(end),
-                discovered=window_counts.discovered,
-                smb_saved=window_counts.smb_saved,
-                github_raw=window_counts.github_raw,
-                github_index=window_counts.github_index,
-                skipped=window_counts.skipped,
-            )
-        except (ArchiveError, OSError) as exc:
-            window_counts.failures += 1
-            window_counts.failures_by_reason.append(str(exc))
-            if apply:
-                records[boundary_key] = {
-                    "record_id": boundary_key,
-                    "record_type": "window",
-                    "conversation_id": group.conversation_id,
-                    "folder": folder,
-                    "start": dws_time(start),
-                    "end": dws_time(end),
-                    "window_status": "stopped",
-                    "reason": str(exc),
-                }
-                try:
-                    records = persist_smb_manifest(folder, records)
-                except (OSError, json.JSONDecodeError) as persist_error:
-                    print_event(
-                        "window_stop_state_unavailable",
-                        group=group.title,
-                        start=dws_time(start),
-                        end=dws_time(end),
-                        reason=str(persist_error),
-                    )
-            print_event("window_stopped", group=group.title, start=dws_time(start), end=dws_time(end), reason=str(exc))
+                print_event("window_stopped", group=group.title, start=dws_time(start), end=dws_time(end), reason=str(exc))
+                counts.merge(window_counts)
+                break
             counts.merge(window_counts)
-            break
-        counts.merge(window_counts)
     return counts
 
 
@@ -798,7 +893,8 @@ def repair_smb_group(group: Group, temp_root: Path, *, failed_only: bool = False
         relative_path = str(record.get("relative_path") or "")
         message_id = str(record.get("message_id") or "")
         resource_id = str(record.get("resource_id") or "")
-        if not relative_path or not message_id or not resource_id:
+        media_type = str(record.get("media_type") or "")
+        if not relative_path or not message_id or not resource_id or media_type not in {"photo", "video"}:
             counts.failures += 1
             counts.failures_by_reason.append("manifest media record lacks repair identity")
             continue
@@ -812,7 +908,7 @@ def repair_smb_group(group: Group, temp_root: Path, *, failed_only: bool = False
                 downloaded = download_media(group, message_id, resource_id, temp_root)
                 source_kind = "dws"
             target = SMB_ROOT / relative_path
-            copy_to_smb(downloaded, target, replace_existing=target.exists())
+            copy_to_smb(downloaded, target, media_type, replace_existing=target.exists())
             record["size_bytes"] = downloaded.stat().st_size
             record["smb_status"] = "complete"
             record.pop("smb_error", None)
@@ -982,6 +1078,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--end", help="Frozen end time in Asia/Shanghai, YYYY-MM-DD HH:MM:SS.")
     parser.add_argument("--page-size", type=int, default=100)
     parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Concurrent media pipeline workers (downloads in parallel; manifest writes stay serial).",
+    )
+    parser.add_argument(
         "--github-media-budget",
         type=int,
         help="Maximum raw-media uploads attempted through the current GitHub REST quota. Omit for no cap.",
@@ -1022,6 +1124,8 @@ def main() -> int:
     args = parse_args()
     if args.page_size < 1:
         raise ArchiveError("page-size must be positive")
+    if args.workers < 1 or args.workers > 8:
+        raise ArchiveError("workers must be between 1 and 8")
     if args.github_media_budget is not None and args.github_media_budget < 0:
         raise ArchiveError("github-media-budget must not be negative")
     if args.sync_github_index and args.audit:
@@ -1096,6 +1200,7 @@ def main() -> int:
                 else:
                     group_counts = archive_group(
                         group, windows, temp_root, args.page_size, args.apply, github_budget, args.smb_only, args.reconcile,
+                        workers=args.workers,
                     )
             except (ArchiveError, OSError) as exc:
                 group_counts = Counts(failures=1, failures_by_reason=[str(exc)])
