@@ -804,16 +804,28 @@ def stage_registry(args, ctx) -> dict:
         d = desc.get(key)
         note = (d.get("说明") or "").strip() if d else ""
         s = specs.get(old_name, {})
-        # 文件名同步：登记表仍为旧名、但磁盘已按 rename 规则改名（旧名不存在）时回填新名
-        if (r.get("文件名") or "") == old_name and note and note != "待确认":
-            old_p = SMB_ROOT / rel
-            if not old_p.exists():
-                stem = os.path.splitext(old_name)[0]
-                ext = os.path.splitext(old_name)[1]
-                if s.get("media_type") == "video":
-                    r["文件名"] = f"{BUSINESS.get(m['_group'],'')}_{note}_{stem}{ext}"
-                elif re.fullmatch(r"\d{6}_\d{3}", stem):
-                    r["文件名"] = f"{BUSINESS.get(m['_group'],'')}_{note}_{stem}{ext}"
+        # 文件名同步（磁盘真相）：登记表文件名列与磁盘现状对齐
+        cur_name = r.get("文件名") or old_name
+        dir_p = SMB_ROOT / rel
+        old_p = SMB_ROOT / rel
+        cur_p = dir_p.parent / cur_name if cur_name != old_name else old_p
+        if cur_name != old_name:
+            if not old_p.exists() and cur_p.exists():
+                pass  # 磁盘确已改名，保持
+            elif old_p.exists() and not cur_p.exists():
+                r["文件名"] = old_name  # 磁盘已回退，登记表跟随
+        elif note and note != "待确认" and not old_p.exists():
+            # 登记表仍为旧名、磁盘已按 rename 规则改名时回填新名
+            stem = os.path.splitext(old_name)[0]
+            ext = os.path.splitext(old_name)[1]
+            if s.get("media_type") == "video":
+                cand = f"{BUSINESS.get(m['_group'],'')}_{note}_{stem}{ext}"
+            elif re.fullmatch(r"\d{6}_\d{3}", stem):
+                cand = f"{BUSINESS.get(m['_group'],'')}_{note}_{stem}{ext}"
+            else:
+                cand = None
+            if cand and (dir_p.parent / cand).exists():
+                r["文件名"] = cand
         for k in NEW_COLS:
             r.setdefault(k, "")
         if s.get("media_type") == "video":
@@ -834,10 +846,15 @@ def stage_registry(args, ctx) -> dict:
             r["标注执行者"] = d.get("标注执行者", "")
             r["标注日期"] = d.get("标注日期", "")
             r["复核状态"] = r.get("复核状态") or "未复核"
-            if note and note != "待确认" and not (r.get("描述") or "").strip():
-                # 已有描述的条目（如 29 条打样）不覆盖重标
+            if (r.get("文件名") or "") != (r.get("原文件名") or ""):
+                pass  # 已改名行（如 29 条打样）：描述保持，不覆盖重标
+            elif note and note != "待确认":
                 r["描述"] = note
                 r["置信度"] = "高"
+            elif (r.get("描述") or "").strip():
+                # 回退行（改名被撤销）：清掉旧描述，置信度待确认
+                r["描述"] = ""
+                r["置信度"] = "待确认"
             updated += 1
     # 双格式写本地 → rsync SMB（约束7）
     tmp = ctx["workdir"] / "素材登记表.new.csv"
