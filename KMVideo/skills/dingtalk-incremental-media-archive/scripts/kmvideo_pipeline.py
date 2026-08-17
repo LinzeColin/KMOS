@@ -199,12 +199,13 @@ def stage_scan(args, ctx) -> dict:
             t_end = now_sh()
             t_start = parse_ctx_start(ctx, g, t_end)
             try:
-                msgs = list(aim.walk_window_messages(conv.conversation_id, t_start, t_end,
-                                                     None, args.page_size))
+                raw = list(aim.walk_window_messages(conv.conversation_id, t_start, t_end,
+                                                    None, args.page_size))
+                msgs = sorted(((aim.parse_time(str(m.get("createTime"))), m) for m in raw),
+                              key=lambda x: x[0])
             except Exception as e:
                 stats["skipped_groups"].append((g, f"walk fail: {e}"))
                 continue
-            msgs.sort(key=lambda x: x[0])
             from bisect import bisect_left, bisect_right
             times = [ts for ts, _ in msgs]
             # 每条媒体消息用二分定位 ±30 分钟窗口，避免 O(n²)
