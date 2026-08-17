@@ -38,6 +38,7 @@ SMB_THUMBS = Path("/Volumes/share/03_资料库/MetaData/IDS_MetaData/KMVideo_缩
 REG_CSV = SMB_ROOT / "素材登记表.csv"
 MAP_CSV = SMB_ROOT / "原名新名映射.csv"
 PRIVATE_CLIENT = aim.PRIVATE_DB_CLIENT
+MEDIA_FILTER = None  # main() 根据 --media-type 设置：None=全部 / "video" / "photo"
 
 # 任务书业务映射（照抄）
 BUSINESS = {
@@ -138,7 +139,7 @@ def rsync_write(src: Path, dst: Path) -> None:
 
 
 def load_media(groups: list[str]) -> list[dict]:
-    """读各群 manifest 的 complete media 记录（只读）。"""
+    """读各群 manifest 的 complete media 记录（只读），可按 MEDIA_FILTER 过滤。"""
     out = []
     for g in groups:
         mf = SMB_ROOT / g / MANIFEST
@@ -153,6 +154,8 @@ def load_media(groups: list[str]) -> list[dict]:
             except json.JSONDecodeError:
                 continue
             if d.get("record_type") == "media":
+                if MEDIA_FILTER and d.get("media_type") != MEDIA_FILTER:
+                    continue
                 d["_group"] = g
                 out.append(d)
     return out
@@ -201,29 +204,28 @@ def stage_scan(args, ctx) -> dict:
             except Exception as e:
                 stats["skipped_groups"].append((g, f"walk fail: {e}"))
                 continue
-            # 媒体消息索引：resource_id -> message
-            by_res = defaultdict(list)
-            for ts, m in msgs:
-                for rid in MEDIA_ID_RE.findall(str(m.get("content") or "")):
-                    by_res[rid].append((ts, m))
-            # 每条媒体消息取前后 30 分钟文本上下文
-            for ts, m in msgs:
+            msgs.sort(key=lambda x: x[0])
+            from bisect import bisect_left, bisect_right
+            times = [ts for ts, _ in msgs]
+            # 每条媒体消息用二分定位 ±30 分钟窗口，避免 O(n²)
+            for idx, (ts, m) in enumerate(msgs):
                 content = str(m.get("content") or "")
                 rids = MEDIA_ID_RE.findall(content)
                 if not rids:
                     continue
+                lo = bisect_left(times, ts - timedelta(seconds=1800))
+                hi = bisect_right(times, ts + timedelta(seconds=1800))
                 ctx_texts = []
-                for ts2, m2 in msgs:
-                    if m2 is m:
+                for j in range(max(lo, 0), min(hi, len(msgs))):
+                    if j == idx:
                         continue
+                    ts2, m2 = msgs[j]
                     c2 = str(m2.get("content") or "").strip()
                     if not c2 or MEDIA_ID_RE.search(c2) or c2.startswith("["):
                         continue
-                    if abs((ts2 - ts).total_seconds()) <= 1800:
-                        ctx_texts.append((ts2, c2[:120]))
+                    ctx_texts.append((ts2, c2[:120]))
                 if not ctx_texts:
                     continue
-                ctx_texts.sort(key=lambda x: x[0])
                 before = " | ".join(c for _, c in ctx_texts if _ <= ts)[-200:]
                 after = " | ".join(c for _, c in ctx_texts if _ > ts)[-100:]
                 for rid in rids:
@@ -891,7 +893,11 @@ def main() -> int:
     ap.add_argument("--page-size", type=int, default=100)
     ap.add_argument("--release-tag", default="", help="GitHub Release tag，空则跳过 Release 上传")
     ap.add_argument("--no-private", action="store_true")
+    ap.add_argument("--media-type", default="", choices=["", "video", "photo"],
+                    help="仅处理该媒体类型（空=全部）")
     args = ap.parse_args()
+    global MEDIA_FILTER
+    MEDIA_FILTER = args.media_type or None
 
     groups = []
     if args.groups_file:
