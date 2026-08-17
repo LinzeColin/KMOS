@@ -166,24 +166,30 @@ def load_media(groups: list[str]) -> list[dict]:
 def stage_scan(args, ctx) -> dict:
     stats = {"archived": 0, "context_msgs": 0, "skipped_groups": []}
     start = args.start or (now_sh() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
-    # 1) 增量归档：显式白名单逐个传入（复用既有语义）
+    # 1) 增量归档：显式白名单逐个传入（复用既有语义），DWS 瞬断重试 3 次
     for g in ctx["groups"]:
-        r = subprocess.run(
-            [sys.executable, str(Path(__file__).parent / "archive_internal_media.py"),
-             "--allow-title", g, "--start", start, "--workers", "4", "--apply"],
-            capture_output=True, text=True, timeout=7200)
-        tail = (r.stdout or "").strip().splitlines()
-        fin = [l for l in tail if "run_finished" in l]
-        if fin:
-            try:
-                ev = json.loads(fin[-1])
-                stats["archived"] += int(ev.get("smb_saved", 0) or 0)
-                if ev.get("failures"):
-                    stats["skipped_groups"].append((g, "failures>0"))
-            except Exception:
-                pass
-        else:
-            stats["skipped_groups"].append((g, "no run_finished"))
+        saved = False
+        for attempt in range(3):
+            r = subprocess.run(
+                [sys.executable, str(Path(__file__).parent / "archive_internal_media.py"),
+                 "--allow-title", g, "--start", start, "--workers", "4", "--apply"],
+                capture_output=True, text=True, timeout=7200)
+            tail = (r.stdout or "").strip().splitlines()
+            fin = [l for l in tail if "run_finished" in l]
+            if fin:
+                try:
+                    ev = json.loads(fin[-1])
+                    stats["archived"] += int(ev.get("smb_saved", 0) or 0)
+                    if ev.get("failures"):
+                        stats["skipped_groups"].append((g, "failures>0"))
+                except Exception:
+                    pass
+                saved = True
+                break
+            if attempt < 2:
+                time.sleep(30)
+        if not saved:
+            stats["skipped_groups"].append((g, "archive no run_finished"))
     # 2) 消息上下文捕获（只读 DWS，用于本地语义标注）
     ctx_file = ctx["workdir"] / "context.jsonl"
     seen = set()
@@ -191,20 +197,30 @@ def stage_scan(args, ctx) -> dict:
         seen = {json.loads(l)["key"] for l in ctx_file.read_text(encoding="utf-8").splitlines() if l.strip()}
     with ctx_file.open("a", encoding="utf-8") as f:
         for g in ctx["groups"]:
-            convs = aim.select_groups([g])
-            if not convs:
-                stats["skipped_groups"].append((g, "group not found"))
-                continue
-            conv = convs[0]
-            t_end = now_sh()
-            t_start = parse_ctx_start(ctx, g, t_end)
-            try:
-                raw = list(aim.walk_window_messages(conv.conversation_id, t_start, t_end,
-                                                    None, args.page_size))
-                msgs = sorted(((aim.parse_time(str(m.get("createTime"))), m) for m in raw),
-                              key=lambda x: x[0])
-            except Exception as e:
-                stats["skipped_groups"].append((g, f"walk fail: {e}"))
+            msgs = None
+            for attempt in range(3):
+                try:
+                    convs = aim.select_groups([g])
+                    if not convs:
+                        stats["skipped_groups"].append((g, "group not found"))
+                        break
+                    conv = convs[0]
+                    t_end = now_sh()
+                    t_start = parse_ctx_start(ctx, g, t_end)
+                    raw = list(aim.walk_window_messages(conv.conversation_id, t_start, t_end,
+                                                        None, args.page_size))
+                    msgs = sorted(((aim.parse_time(str(m.get("createTime"))), m) for m in raw),
+                                  key=lambda x: x[0])
+                    break
+                except Exception as e:
+                    if attempt < 2:
+                        log(f"  scan {g} attempt {attempt+1} fail: {str(e)[:100]}; retry in 30s")
+                        time.sleep(30)
+                    else:
+                        stats["skipped_groups"].append((g, f"walk fail: {str(e)[:80]}"))
+                        msgs = None
+                        break
+            if msgs is None:
                 continue
             from bisect import bisect_left, bisect_right
             times = [ts for ts, _ in msgs]
