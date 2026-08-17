@@ -803,13 +803,19 @@ def stage_registry(args, ctx) -> dict:
         old_name = os.path.basename(rel)
         d = desc.get(key)
         note = (d.get("说明") or "").strip() if d else ""
-        # 磁盘上的当前名
-        cur = old_name
-        if d and note and note != "待确认" and (r.get("文件名") or "") != r.get("原文件名"):
-            pass  # 已改名：文件名列保持现状
+        s = specs.get(old_name, {})
+        # 文件名同步：登记表仍为旧名、但磁盘已按 rename 规则改名（旧名不存在）时回填新名
+        if (r.get("文件名") or "") == old_name and note and note != "待确认":
+            old_p = SMB_ROOT / rel
+            if not old_p.exists():
+                stem = os.path.splitext(old_name)[0]
+                ext = os.path.splitext(old_name)[1]
+                if s.get("media_type") == "video":
+                    r["文件名"] = f"{BUSINESS.get(m['_group'],'')}_{note}_{stem}{ext}"
+                elif re.fullmatch(r"\d{6}_\d{3}", stem):
+                    r["文件名"] = f"{BUSINESS.get(m['_group'],'')}_{note}_{stem}{ext}"
         for k in NEW_COLS:
             r.setdefault(k, "")
-        s = specs.get(old_name, {})
         if s.get("media_type") == "video":
             r["时长秒"] = str(s.get("duration") or "")
             r["分辨率"] = f'{s.get("width")}x{s.get("height")}' if s.get("width") else ""
