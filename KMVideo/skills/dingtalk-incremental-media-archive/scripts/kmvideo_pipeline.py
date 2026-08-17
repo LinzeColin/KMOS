@@ -21,6 +21,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
@@ -595,11 +596,22 @@ def stage_label(args, ctx) -> dict:
             d = json.loads(l)
             override[d["file"]] = d
     thumbs_dir = ctx["workdir"] / "thumbs"
+    # 跳过已标注（登记表已有描述且置信度高）：照片全量重跑时避免重复付费
+    reg_desc = {}
+    if REG_CSV.exists():
+        for rr in csv.DictReader(REG_CSV.open(encoding="utf-8-sig")):
+            if (rr.get("描述") or "").strip() and (rr.get("置信度") or "") != "待确认":
+                reg_desc[(rr["项目"], rr["原文件名"])] = True
     rows = []
     labeled = pending = 0
     vision_ok = vision_fail = 0
-    for m in media:
+    lock = threading.Lock()
+
+    def process_one(m):
+        nonlocal labeled, pending, vision_ok, vision_fail
         name = os.path.basename(m.get("relative_path") or "")
+        if (m["_group"], name) in reg_desc:
+            return None  # 已有标注，跳过（不重标不重付费）
         s = specs.get(name, {})
         ov = override.get(name, {})
         c = ctx_map.get((m["_group"], m.get("resource_id")), {})
@@ -607,12 +619,13 @@ def stage_label(args, ctx) -> dict:
         hit = kw_label(text)
         vision = None
         thumb = thumbs_dir / f"{os.path.splitext(name)[0]}.jpg"
-        if m.get("media_type") == "video" and thumb.exists():
+        if thumb.exists():
             vision = minimax_vision(thumb)
-            if vision is not None:
-                vision_ok += 1
-            else:
-                vision_fail += 1
+            with lock:
+                if vision is not None:
+                    vision_ok += 1
+                else:
+                    vision_fail += 1
         if vision and (not vision.get("描述") or reject_generic(str(vision["描述"]))):
             # 泛化标签（“多帧拼图”等）不可信，视作未标注
             vision = None
@@ -659,10 +672,11 @@ def stage_label(args, ctx) -> dict:
             row["功能位"] = "不可用"
         if str(row.get("工序阶段", "")) not in VOCAB["工序阶段"]:
             row["工序阶段"] = "无法判断"
-        if ov or vision:
-            labeled += 1
-        else:
-            pending += 1
+        with lock:
+            if ov or vision:
+                labeled += 1
+            else:
+                pending += 1
         # 画质等级：分辨率硬信息
         if row.get("画质等级") not in ("可全屏", "仅可内嵌", "不可用"):
             w, h = (s.get("width") or 0), (s.get("height") or 0)
@@ -683,7 +697,14 @@ def stage_label(args, ctx) -> dict:
         else:
             row["标注执行者"] = "pipeline-local"
         row["标注日期"] = "260817"
-        rows.append(row)
+        return row
+
+    workers = int(os.environ.get("LABEL_WORKERS", "8"))
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        results = list(ex.map(process_one, media))
+    rows = [r for r in results if r is not None]
+    skipped = sum(1 for r in results if r is None)
     out = ctx["workdir"] / "desc.csv"
     with out.open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.DictWriter(f, fieldnames=["项目", "原文件名", "relative_path", "media_type",
@@ -692,9 +713,9 @@ def stage_label(args, ctx) -> dict:
                                           "重复于", "标注执行者", "标注日期"])
         w.writeheader()
         w.writerows(rows)
-    log(f"label done: total={len(rows)} labeled={labeled} pending={pending} "
+    log(f"label done: total={len(rows)} skipped={skipped} labeled={labeled} pending={pending} "
         f"vision_ok={vision_ok} vision_fail={vision_fail}")
-    return {"total": len(rows), "labeled": labeled, "pending": pending,
+    return {"total": len(rows), "skipped": skipped, "labeled": labeled, "pending": pending,
             "vision_ok": vision_ok, "vision_fail": vision_fail}
 
 
@@ -1101,6 +1122,13 @@ def stage_accept(args, ctx) -> dict:
             if r["原文件名"] in _names(r["项目"], "photo") or r["原文件名"] in _names(r["项目"], "video"):
                 old_left += 1
     chk("改名幂等(旧名残留0)", old_left == 0, str(old_left))
+    # 标注 vs 画面 抽样复核规则（任务书最高优先级）：脱敏非「无」100% 复核，其余抽样 ≥10%
+    if "复核状态" in (reg_rows[0].keys() if reg_rows else []):
+        n_reviewed = sum(1 for r in reg_rows if str(r.get("复核状态") or "") in ("已复核通过", "已复核修正"))
+        n_sens = sum(1 for r in reg_rows if str(r.get("脱敏风险") or "") not in ("", "无"))
+        n_lab = sum(1 for r in reg_rows if (r.get("描述") or "").strip())
+        need = n_sens + max(1, int(n_lab * 0.1))
+        chk("复核覆盖率(脱敏100%+抽样10%)", n_reviewed >= need, f"已复核 {n_reviewed}/{need} (脱敏 {n_sens} 条 100% + 抽样 10%)")
     out = ctx["workdir"] / "accept_report.json"
     out.write_text(json.dumps(checks, ensure_ascii=False, indent=1), encoding="utf-8")
     log(f"accept: pass={len(checks['pass'])} fail={len(checks['fail'])}")
