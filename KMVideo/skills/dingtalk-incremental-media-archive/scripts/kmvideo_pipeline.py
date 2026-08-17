@@ -804,6 +804,17 @@ def stage_registry(args, ctx) -> dict:
     fieldnames = list(fieldnames) + [c for c in NEW_COLS if c not in fieldnames]
     bykey = {(r["项目"], r["原文件名"]): r for r in reg_rows}
     updated = 0
+
+    # 目录级清单缓存（一次 listdir，避免逐文件 stat 拖垮 SMB）
+    dir_cache: dict[tuple[str, str], set[str]] = {}
+
+    def names_in(group: str, sub: str) -> set[str]:
+        key = (group, sub)
+        if key not in dir_cache:
+            d = SMB_ROOT / group / sub
+            dir_cache[key] = set(os.listdir(d)) if d.is_dir() else set()
+        return dir_cache[key]
+
     # 磁盘新名回填
     for m in load_media(ctx["groups"]):
         key = (m["_group"], os.path.basename(m.get("relative_path") or ""))
@@ -815,17 +826,16 @@ def stage_registry(args, ctx) -> dict:
         d = desc.get(key)
         note = (d.get("说明") or "").strip() if d else ""
         s = specs.get(old_name, {})
-        # 文件名同步（磁盘真相）：登记表文件名列与磁盘现状对齐
+        # 文件名同步（磁盘真相）：登记表文件名列与磁盘现状对齐（目录级缓存）
+        sub = rel.split("/")[1] if len(rel.split("/")) > 1 else "photo"
+        names = names_in(m["_group"], sub)
         cur_name = r.get("文件名") or old_name
-        dir_p = SMB_ROOT / rel
-        old_p = SMB_ROOT / rel
-        cur_p = dir_p.parent / cur_name if cur_name != old_name else old_p
         if cur_name != old_name:
-            if not old_p.exists() and cur_p.exists():
+            if old_name not in names and cur_name in names:
                 pass  # 磁盘确已改名，保持
-            elif old_p.exists() and not cur_p.exists():
+            elif old_name in names and cur_name not in names:
                 r["文件名"] = old_name  # 磁盘已回退，登记表跟随
-        elif note and note != "待确认" and not old_p.exists():
+        elif note and note != "待确认" and old_name not in names:
             # 登记表仍为旧名、磁盘已按 rename 规则改名时回填新名
             stem = os.path.splitext(old_name)[0]
             ext = os.path.splitext(old_name)[1]
@@ -835,7 +845,7 @@ def stage_registry(args, ctx) -> dict:
                 cand = f"{BUSINESS.get(m['_group'],'')}_{note}_{stem}{ext}"
             else:
                 cand = None
-            if cand and (dir_p.parent / cand).exists():
+            if cand and cand in names:
                 r["文件名"] = cand
         for k in NEW_COLS:
             r.setdefault(k, "")
@@ -1075,13 +1085,20 @@ def stage_accept(args, ctx) -> dict:
             if abs(cur - d["mtime"]) > 2:
                 changed.append(d["group"])
         chk(".manifest.jsonl 未修改", not changed, str(changed))
-    # 幂等：重跑改名应零操作（旧名不存在）
+    # 幂等：重跑改名应零操作（旧名不存在，目录级缓存）
     old_left = 0
+    _dir_cache: dict[tuple[str, str], set[str]] = {}
+
+    def _names(group: str, sub: str) -> set[str]:
+        k = (group, sub)
+        if k not in _dir_cache:
+            d = SMB_ROOT / group / sub
+            _dir_cache[k] = set(os.listdir(d)) if d.is_dir() else set()
+        return _dir_cache[k]
+
     for r in reg_rows:
         if r["文件名"] != r["原文件名"]:
-            p = SMB_ROOT / r["项目"] / "photo" / r["原文件名"]
-            p2 = SMB_ROOT / r["项目"] / "video" / r["原文件名"]
-            if p.exists() or p2.exists():
+            if r["原文件名"] in _names(r["项目"], "photo") or r["原文件名"] in _names(r["项目"], "video"):
                 old_left += 1
     chk("改名幂等(旧名残留0)", old_left == 0, str(old_left))
     out = ctx["workdir"] / "accept_report.json"
