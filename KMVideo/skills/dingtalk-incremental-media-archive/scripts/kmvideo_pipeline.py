@@ -38,6 +38,14 @@ SMB_THUMBS = Path("/Volumes/share/03_资料库/MetaData/IDS_MetaData/KMVideo_缩
 REG_CSV = SMB_ROOT / "素材登记表.csv"
 MAP_CSV = SMB_ROOT / "原名新名映射.csv"
 PRIVATE_CLIENT = aim.PRIVATE_DB_CLIENT
+
+# 登记表三个本机落点（SMB 为唯一真源，另两处为分发副本）
+DOCS_INDEX = Path.home() / "Documents" / "KMVideo" / "00_治理与登记" / "02_登记与索引"
+DOWNLOADS = Path.home() / "Downloads"
+
+# 视频子集列（供 ChatGPT 等无本地权限的模型上传使用，体积小）
+VIDEO_SUBSET_COLS = ["项目", "文件名", "日期", "时长秒", "分辨率", "功能位", "画质等级",
+                     "描述", "画面元素", "镜头特征", "工序阶段", "能证明什么", "脱敏风险", "置信度"]
 MEDIA_FILTER = None  # main() 根据 --media-type 设置：None=全部 / "video" / "photo"
 
 # 任务书业务映射（照抄）
@@ -733,8 +741,62 @@ def stage_registry(args, ctx) -> dict:
             f.write("| " + " | ".join(str(r.get(c, "")).replace("|", "/") for c in pub_cols) + " |\n")
     (ctx["workdir"] / "素材登记表_public.csv").write_text(
         "\ufeff" + csv_text(pub_rows, pub_cols), encoding="utf-8")
-    log(f"registry done: rows={len(reg_rows)} updated={updated}")
-    return {"rows": len(reg_rows), "updated": updated}
+    # 视频子集（只含视频、精简列）——供 ChatGPT 等无本地权限的模型直接上传
+    vid_rows = [{k: r.get(k, "") for k in VIDEO_SUBSET_COLS}
+                for r in reg_rows if str(r.get("文件名", "")).lower().endswith((".mp4", ".mov"))]
+    (ctx["workdir"] / "素材登记表_视频子集.csv").write_text(
+        "﻿" + csv_text(vid_rows, VIDEO_SUBSET_COLS), encoding="utf-8")
+    # 视频子集·公开脱敏版（项目名 → 业务名+群，去掉「能证明什么」）——只有这份能进 KMOS 公开仓
+    pub_vid_cols = [c for c in VIDEO_SUBSET_COLS if c != "能证明什么"]
+    pub_vid = []
+    for r in reg_rows:
+        if not str(r.get("文件名", "")).lower().endswith((".mp4", ".mov")):
+            continue
+        rr = {k: r.get(k, "") for k in pub_vid_cols}
+        rr["项目"] = f"{BUSINESS.get(r['项目'], '其他')}群"
+        pub_vid.append(rr)
+    (ctx["workdir"] / "素材登记表_视频子集_public.csv").write_text(
+        "﻿" + csv_text(pub_vid, pub_vid_cols), encoding="utf-8")
+    # 分发到另外两个本机落点（SMB 已在上方 rsync 写入，是唯一真源）
+    dist = distribute_registry(ctx)
+    log(f"registry done: rows={len(reg_rows)} videos={len(vid_rows)} updated={updated} dist={dist}")
+    return {"rows": len(reg_rows), "videos": len(vid_rows), "updated": updated, "dist": dist}
+
+
+def distribute_registry(ctx) -> dict:
+    """把登记表分发到三个本机落点。SMB 为唯一真源，另两处为只读副本。
+
+    1. SMB        smb://192.168.0.1/.../KMVideo/            （已由 rsync_write 完成）
+    2. 输出工作区  ~/Documents/KMVideo/00_治理与登记/02_登记与索引/
+    3. 下载目录    ~/Downloads/                              （便于拖给 ChatGPT 上传）
+    """
+    wd = ctx["workdir"]
+    plan = [
+        (wd / "素材登记表.new.csv", DOCS_INDEX / "素材登记表.csv"),
+        (wd / "原名新名映射.new.csv", DOCS_INDEX / "原名新名映射.csv"),
+        (wd / "素材登记表_视频子集.csv", DOCS_INDEX / "素材登记表_视频子集.csv"),
+        (wd / "素材登记表_public.csv", DOCS_INDEX / "素材登记表_public.csv"),
+        (wd / "素材登记表_public.md", DOCS_INDEX / "素材登记表_public.md"),
+        # Downloads 只放两份最常用的：全量表 + 可直接上传的视频子集
+        (wd / "素材登记表.new.csv", DOWNLOADS / "KMVideo素材登记表.csv"),
+        (wd / "素材登记表_视频子集.csv", DOWNLOADS / "KMVideo素材登记表_视频子集.csv"),
+    ]
+    ok, fail = 0, []
+    for src, dst in plan:
+        if not src.exists():
+            continue
+        try:
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            dst.write_bytes(src.read_bytes())
+            if dst.stat().st_size != src.stat().st_size:
+                raise RuntimeError("size mismatch")
+            ok += 1
+        except OSError as e:
+            fail.append(f"{dst}: {e}")
+    if fail:
+        # 分发失败不静默：本机副本缺失会让下游 agent 读到过期数据
+        raise RuntimeError(f"登记表分发失败 {len(fail)} 处: {fail}")
+    return {"copied": ok}
 
 
 def csv_text(rows, cols) -> str:
@@ -751,7 +813,8 @@ def stage_upload(args, ctx) -> dict:
     # 1) KMOS 公开仓（脱敏登记表 + 缩略图清单）
     kmos_data = Path(aim.ROOT) / "KMDatabase" / "data" / "KMVideo"
     kmos_data.mkdir(parents=True, exist_ok=True)
-    for name in ("素材登记表_public.csv", "素材登记表_public.md"):
+    for name in ("素材登记表_public.csv", "素材登记表_public.md",
+                 "素材登记表_视频子集_public.csv"):
         src = ctx["workdir"] / name
         if src.exists():
             dst = kmos_data / name
