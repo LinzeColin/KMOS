@@ -297,55 +297,62 @@ def parse_ctx_start(ctx, group: str, t_end: datetime) -> datetime:
 # ---------- 阶段二：规格探测 ----------
 
 def stage_probe(args, ctx) -> dict:
+    from concurrent.futures import ThreadPoolExecutor
     specs = {}
     pf = ctx["workdir"] / "specs.jsonl"
     if pf.exists():
         specs = {json.loads(l)["file"]: json.loads(l) for l in pf.read_text(encoding="utf-8").splitlines() if l.strip()}
     media = [m for m in load_media(ctx["groups"]) if m.get("smb_status") == "complete"]
     done = 0
-    with pf.open("a", encoding="utf-8") as f:
-        for m in media:
-            rel = m.get("relative_path") or ""
-            name = os.path.basename(rel)
-            if name in specs:
-                continue
-            p = SMB_ROOT / rel
-            if not p.exists():
-                continue
-            if m.get("media_type") == "video":
-                r = subprocess.run(["ffprobe", "-v", "quiet", "-print_format", "json",
-                                    "-show_format", "-show_streams", str(p)],
-                                   capture_output=True, text=True, timeout=120)
-                d = json.loads(r.stdout) if r.returncode == 0 and r.stdout.strip() else {}
-                vs = next((s for s in d.get("streams", []) if s.get("codec_type") == "video"), {})
-                audio = any(s.get("codec_type") == "audio" for s in d.get("streams", []))
-                dur = float(d.get("format", {}).get("duration") or vs.get("duration") or 0)
-                fps = vs.get("avg_frame_rate") or vs.get("r_frame_rate") or ""
-                try:
-                    num, den = fps.split("/")
-                    fps_s = round(int(num) / int(den), 1) if int(den) else 0
-                except Exception:
-                    fps_s = 0
-                rec = {"file": name, "media_type": "video", "duration": round(dur, 1),
-                       "width": vs.get("width"), "height": vs.get("height"), "fps": fps_s,
-                       "audio": audio, "size": p.stat().st_size}
-            else:
-                gps = False
-                try:
-                    from PIL import Image
-                    ex = Image.open(p).getexif()
-                    gps = bool(ex and (ex.get(34853) or any(k.startswith("GPS") for k in ex)))
-                except Exception:
-                    pass
-                rec = {"file": name, "media_type": "photo", "duration": None,
-                       "width": None, "height": None, "fps": None, "audio": None,
-                       "gps": gps, "size": p.stat().st_size}
-            rec["_group"] = m["_group"]
-            rec["resource_id"] = m.get("resource_id")
-            rec["message_id"] = m.get("message_id")
-            specs[name] = rec
+    lock = threading.Lock()
+
+    def probe_one(m):
+        nonlocal done
+        rel = m.get("relative_path") or ""
+        name = os.path.basename(rel)
+        if name in specs:
+            return
+        p = SMB_ROOT / rel
+        if not p.exists():
+            return
+        if m.get("media_type") == "video":
+            r = subprocess.run(["ffprobe", "-v", "quiet", "-print_format", "json",
+                                "-show_format", "-show_streams", str(p)],
+                               capture_output=True, text=True, timeout=120)
+            d = json.loads(r.stdout) if r.returncode == 0 and r.stdout.strip() else {}
+            vs = next((s for s in d.get("streams", []) if s.get("codec_type") == "video"), {})
+            audio = any(s.get("codec_type") == "audio" for s in d.get("streams", []))
+            dur = float(d.get("format", {}).get("duration") or vs.get("duration") or 0)
+            fps = vs.get("avg_frame_rate") or vs.get("r_frame_rate") or ""
+            try:
+                num, den = fps.split("/")
+                fps_s = round(int(num) / int(den), 1) if int(den) else 0
+            except Exception:
+                fps_s = 0
+            rec = {"file": name, "media_type": "video", "duration": round(dur, 1),
+                   "width": vs.get("width"), "height": vs.get("height"), "fps": fps_s,
+                   "audio": audio, "size": p.stat().st_size}
+        else:
+            gps = False
+            try:
+                from PIL import Image
+                ex = Image.open(p).getexif()
+                gps = bool(ex and (ex.get(34853) or any(k.startswith("GPS") for k in ex)))
+            except Exception:
+                pass
+            rec = {"file": name, "media_type": "photo", "duration": None,
+                   "width": None, "height": None, "fps": None, "audio": None,
+                   "gps": gps, "size": p.stat().st_size}
+        rec["_group"] = m["_group"]
+        rec["resource_id"] = m.get("resource_id")
+        rec["message_id"] = m.get("message_id")
+        specs[name] = rec
+        with lock, pf.open("a", encoding="utf-8") as f:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
             done += 1
+
+    with ThreadPoolExecutor(max_workers=int(os.environ.get("PROBE_WORKERS", "8"))) as ex:
+        list(ex.map(probe_one, media))
     log(f"probe done: new={done} total={len(specs)}")
     return {"probed": done, "total": len(specs)}
 
@@ -395,22 +402,28 @@ def make_thumb(rel: str, media_type: str, dst: Path) -> bool:
 
 def stage_thumbs(args, ctx) -> dict:
     from PIL import Image
+    from concurrent.futures import ThreadPoolExecutor
     out_dir = ctx["workdir"] / "thumbs"
     out_dir.mkdir(parents=True, exist_ok=True)
     SMB_THUMBS.mkdir(parents=True, exist_ok=True)
     media = [m for m in load_media(ctx["groups"]) if m.get("smb_status") == "complete"]
     made = skipped = 0
-    for m in media:
+    lock = threading.Lock()
+
+    def work(m):
+        nonlocal made, skipped
         name = os.path.basename(m.get("relative_path") or "")
         stem = os.path.splitext(name)[0]
         local = out_dir / f"{stem}.jpg"
         if local.exists():
-            skipped += 1
+            with lock:
+                skipped += 1
         elif make_thumb(m["relative_path"], m.get("media_type"), local):
-            made += 1
-            continue
-        else:
-            continue
+            with lock:
+                made += 1
+
+    with ThreadPoolExecutor(max_workers=int(os.environ.get("THUMB_WORKERS", "8"))) as ex:
+        list(ex.map(work, media))
     # rsync 到 SMB 缩略图区
     for p in out_dir.glob("*.jpg"):
         dst = SMB_THUMBS / p.name
