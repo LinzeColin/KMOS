@@ -10,6 +10,8 @@
 
 硬约束见 SKILL.md。不得调用任何外部 agent（cc/codex 等）。
 """
+from __future__ import annotations
+
 import argparse
 import csv
 import hashlib
