@@ -462,10 +462,41 @@ def kw_label(text: str):
     return None
 
 
+VISION_DOMAIN = (
+    "这是水泥/钢铁行业【回转窑在线车磨削检修】现场素材的多帧拼图。常见对象："
+    "回转窑筒体（大直径卧式旋转筒）、轮带（套在筒体外的厚钢环，是加工对象）、"
+    "托轮（支撑轮带的小轮）、挡块、车刀架与刀头（贴在轮带外圆切削）、"
+    "百分表（测轮带跳动与复检精度）、钢直尺（横搭在轮带面上量磨损凹陷间隙）。"
+    "画面里的大圆筒是回转窑筒体，不是管道；量具贴在轮带面上是量磨损量，不是量直径。"
+)
+
+# 脱敏必须宁可多标：漏标一次客户名 = 对外泄露；多标一次 = 人工复核 30 秒。
+# 实测教训：把规则收紧成「只有确实看见才标」后，写着企业名的 LED 屏反而不再被标出。
+VISION_DESENS = (
+    "【脱敏风险·宁可多标不可漏标】画面中只要出现任何文字牌、显示屏、横幅、水印、"
+    "证件、车辆，就必须先在「可见文字」里逐字抄出，再判断风险。"
+    "文字里含任何企业/工厂/公司名称 → 标 客户名称；"
+    "出现可辨认人物面部 → 标 人脸；出现打卡类应用浮层 → 标 打卡应用水印；"
+    "出现具体地址或经纬度 → 标 精确地理位置；出现车牌号 → 标 车牌。"
+    "拿不准时一律标出，不要因为不确定而填 无。"
+)
+
+# 功能位是叙事判断，不是画面识别。实测 gpt-4o 三轮准确率仅 33–40%，
+# 因此只作为「建议值」写入，置信度一律「待确认」，由抽样复核定案，不得直接参与改名。
+VISION_SLOTS = (
+    "【功能位·只给建议值】"
+    "开场证据=展示问题存在或损坏程度（量具贴在磨损面上露出缝隙、可见凹陷剥落）；"
+    "过程证据=正在施加加工动作且看得见作用（刀尖吃刀、切屑飞出、火花）；"
+    "关键细节=看得清工艺分界或成品特征（已加工亮面与未加工黑面的分界、整圈镜面带）；"
+    "验收闭环=用量具证明做完且合格（百分表在转动中读数稳定）；"
+    "环境铺垫=人员、厂区、标牌、班前会等非工艺画面；不可用=糊、黑、无内容。"
+)
+
 VISION_PROMPT = (
+    VISION_DOMAIN + VISION_SLOTS + VISION_DESENS +
     "这是一张工业设备维修现场素材接触表的缩略图。"
     "只输出一个 JSON 对象，不要任何其他文字，字段如下："
-    "{\"描述\":\"2-6字中文内容描述\",\"功能位\":\"开场证据|过程证据|关键细节|验收闭环|环境铺垫|不可用\","
+    "{\"可见文字\":\"逐字抄出画面中所有文字，无则填 无\",\"描述\":\"2-6字中文内容描述\",\"功能位\":\"开场证据|过程证据|关键细节|验收闭环|环境铺垫|不可用\","
     "\"画质等级\":\"可全屏|仅可内嵌|不可用\","
     "\"画面元素\":\"火花、刀具、量具、人员、轮带、托轮、齿轮、筒体、表盘、焊接、吊装、厂区、文字牌、切屑、加工纹面、磨损面 中多选顿号分隔，无则填 无\","
     "\"镜头特征\":\"大特写、中景、全景、运动镜头、固定机位、强对比、逆光、手持抖动 中多选顿号分隔\","
@@ -475,11 +506,11 @@ VISION_PROMPT = (
 )
 
 
-def minimax_vision(thumb: Path) -> dict | None:
+def minimax_vision(thumb: Path, attempts: int = 3) -> dict | None:
     """单轮无状态视觉调用：一张拼图 → JSON → 结束（禁止 agent 会话）。
 
     配置来自环境变量 MINIMAX_API_BASE / MINIMAX_API_KEY / MINIMAX_MODEL。
-    未配置或调用失败返回 None（调用方回退关键词映射并把置信度标「待确认」）。
+    网络瞬断重试 attempts 次；仍未配置或全部失败返回 None（调用方回退关键词并把置信度标「待确认」）。
     """
     import base64
     import urllib.request
@@ -500,28 +531,40 @@ def minimax_vision(thumb: Path) -> dict | None:
             ],
         }],
     }
-    req = urllib.request.Request(
-        f"{base.rstrip('/')}/chat/completions",
-        data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            data = json.loads(resp.read())
-    except Exception:
-        return None
-    text = data.get("choices", [{}])[0].get("message", {}).get("content") or ""
-    s, e = text.find("{"), text.rfind("}")
-    if s == -1 or e == -1:
-        return None
-    try:
-        obj = json.loads(text[s:e + 1])
-    except Exception:
-        return None
-    if not obj.get("描述"):
-        return None
-    return obj
+    for _ in range(max(1, attempts)):
+        req = urllib.request.Request(
+            f"{base.rstrip('/')}/chat/completions",
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                data = json.loads(resp.read())
+        except Exception:
+            time.sleep(2)
+            continue
+        text = data.get("choices", [{}])[0].get("message", {}).get("content") or ""
+        s, e = text.find("{"), text.rfind("}")
+        if s == -1 or e == -1:
+            continue
+        try:
+            obj = json.loads(text[s:e + 1])
+        except Exception:
+            continue
+        if not obj.get("描述"):
+            continue
+        return obj
+    return None
+
+
+# 泛化标签黑名单：模型把接触表格式当成画面内容时输出这类词，不能进文件名
+GENERIC_REJECT = ("多帧", "拼图", "工业场景", "设备维修画面", "工业设备维修", "工业设备维护",
+                  "现场多帧", "磨削现场", "多帧图片", "工业设备", "设备维修", "现场维修")
+
+
+def reject_generic(note: str) -> bool:
+    return any(k in note for k in GENERIC_REJECT)
 
 
 def stage_label(args, ctx) -> dict:
@@ -570,6 +613,9 @@ def stage_label(args, ctx) -> dict:
                 vision_ok += 1
             else:
                 vision_fail += 1
+        if vision and (not vision.get("描述") or reject_generic(str(vision["描述"]))):
+            # 泛化标签（“多帧拼图”等）不可信，视作未标注
+            vision = None
         if ov.get("描述"):
             desc = ov["描述"]
         elif vision and vision.get("描述"):
@@ -782,7 +828,8 @@ def stage_registry(args, ctx) -> dict:
             r["标注执行者"] = d.get("标注执行者", "")
             r["标注日期"] = d.get("标注日期", "")
             r["复核状态"] = r.get("复核状态") or "未复核"
-            if note and note != "待确认":
+            if note and note != "待确认" and not (r.get("描述") or "").strip():
+                # 已有描述的条目（如 29 条打样）不覆盖重标
                 r["描述"] = note
                 r["置信度"] = "高"
             updated += 1
