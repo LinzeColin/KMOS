@@ -506,11 +506,11 @@ VISION_PROMPT = (
 )
 
 
-def minimax_vision(thumb: Path) -> dict | None:
+def minimax_vision(thumb: Path, attempts: int = 3) -> dict | None:
     """单轮无状态视觉调用：一张拼图 → JSON → 结束（禁止 agent 会话）。
 
     配置来自环境变量 MINIMAX_API_BASE / MINIMAX_API_KEY / MINIMAX_MODEL。
-    未配置或调用失败返回 None（调用方回退关键词映射并把置信度标「待确认」）。
+    网络瞬断重试 attempts 次；仍未配置或全部失败返回 None（调用方回退关键词并把置信度标「待确认」）。
     """
     import base64
     import urllib.request
@@ -531,28 +531,40 @@ def minimax_vision(thumb: Path) -> dict | None:
             ],
         }],
     }
-    req = urllib.request.Request(
-        f"{base.rstrip('/')}/chat/completions",
-        data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            data = json.loads(resp.read())
-    except Exception:
-        return None
-    text = data.get("choices", [{}])[0].get("message", {}).get("content") or ""
-    s, e = text.find("{"), text.rfind("}")
-    if s == -1 or e == -1:
-        return None
-    try:
-        obj = json.loads(text[s:e + 1])
-    except Exception:
-        return None
-    if not obj.get("描述"):
-        return None
-    return obj
+    for _ in range(max(1, attempts)):
+        req = urllib.request.Request(
+            f"{base.rstrip('/')}/chat/completions",
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                data = json.loads(resp.read())
+        except Exception:
+            time.sleep(2)
+            continue
+        text = data.get("choices", [{}])[0].get("message", {}).get("content") or ""
+        s, e = text.find("{"), text.rfind("}")
+        if s == -1 or e == -1:
+            continue
+        try:
+            obj = json.loads(text[s:e + 1])
+        except Exception:
+            continue
+        if not obj.get("描述"):
+            continue
+        return obj
+    return None
+
+
+# 泛化标签黑名单：模型把接触表格式当成画面内容时输出这类词，不能进文件名
+GENERIC_REJECT = ("多帧", "拼图", "工业场景", "设备维修画面", "工业设备维修", "工业设备维护",
+                  "现场多帧", "磨削现场", "多帧图片", "工业设备", "设备维修", "现场维修")
+
+
+def reject_generic(note: str) -> bool:
+    return any(k in note for k in GENERIC_REJECT)
 
 
 def stage_label(args, ctx) -> dict:
@@ -601,6 +613,9 @@ def stage_label(args, ctx) -> dict:
                 vision_ok += 1
             else:
                 vision_fail += 1
+        if vision and (not vision.get("描述") or reject_generic(str(vision["描述"]))):
+            # 泛化标签（“多帧拼图”等）不可信，视作未标注
+            vision = None
         if ov.get("描述"):
             desc = ov["描述"]
         elif vision and vision.get("描述"):
@@ -813,7 +828,8 @@ def stage_registry(args, ctx) -> dict:
             r["标注执行者"] = d.get("标注执行者", "")
             r["标注日期"] = d.get("标注日期", "")
             r["复核状态"] = r.get("复核状态") or "未复核"
-            if note and note != "待确认":
+            if note and note != "待确认" and not (r.get("描述") or "").strip():
+                # 已有描述的条目（如 29 条打样）不覆盖重标
                 r["描述"] = note
                 r["置信度"] = "高"
             updated += 1
