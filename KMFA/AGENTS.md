@@ -33,6 +33,11 @@ sealed 合同只在 Owner 没有另行指令的题目上有效；**下列条目 
 
 ## 执行规则
 
+- **找工具先读 `tools/INDEX.md`，不要列 `tools/` 目录。** 2026-08-19 实测：列一次
+  `KMFA/tools` = 854 个条目 / 66184 字符 ≈ **16546 tokens**，列 `KMFA/tests` 再付 ≈9041。
+  其中 1033 个是已完成阶段的冻结校验器与配套测试，你几乎永远不需要逐个看。
+  索引由 `tools/build_tools_index.py` 生成、CI 校验是否过期，可以信。
+
 - 每个 run 最多解决一个 Phase；开始时先验证 `git root`、branch、remote、HEAD、status。
 - 代码、skill、配置或 automation prompt 改动须先跑目标验证；通过后可在隔离 worktree 本地提交。v1.5.2 中间 phase 禁止 push；只有整个 Stage 完成、复审、问题修复后才整体上传 GitHub。
 - 旧 `LinzeColin/CodexProject` 与 `/Users/linzezhang/CodexProject` 只作历史取证，不是 KMFA 提交入口。
