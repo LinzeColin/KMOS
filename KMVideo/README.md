@@ -20,4 +20,4 @@ SMB 保存全部原始素材，媒体路径固定为：
 
 运行期间允许使用独立本机临时目录下载和转存；每个文件完成 SMB 保存及 GitHub 原件或索引记录后立即删除，运行结束必须清空整个临时目录。采集范围只能是用户在当前线程批准的起点至冻结终点；本次任务为 2026-01-01 起。以连续、不重叠、每段最多 30 天的切片从旧到新推进，单段未完成不得前进。同一群只允许一个归档写入器，避免覆盖群级清单。每次 DWS 调用显式使用 60 秒上限；网络超时仍属于未完成并停止当前窗口，不能伪称成功。
 
-群聊素材归档规则见 [dingtalk-incremental-media-archive](skills/dingtalk-incremental-media-archive/SKILL.md)。
+群聊素材归档规则见 [KMMedia-Archive](skills/KMMedia-Archive/SKILL.md)。
