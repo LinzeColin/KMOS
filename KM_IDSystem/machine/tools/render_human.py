@@ -365,12 +365,28 @@ def render_05(facts: Path, runs_dir: Path):
     owner = plan.get("owner")
     acc_rows = [(a.get("id", "?"), a.get("criteria", ""), a.get("status", ""))
                 for a in acceptance.get("items", [])]
-    # 05 has a hard 100-line budget. Keep every acceptance fact and shrink only
-    # the rolling run-history projection as acceptance evidence grows.
+    # 05 有 100 行硬预算。验收事实一条不删，只压缩滚动运行历史的投影。
+    #
+    # 压缩可以，静默不行。2026-08-18 实测：验收涨到 78 条时 run_limit 算出 0，
+    # 36 条运行记录一条不渲染，标题写着「最近 0 条」，空表下面还写着
+    # 「还没有运行记录」—— 读的人会以为这个项目什么都没做过。而所有的门都是绿的：
+    # 渲染一致门比的是同一个渲染器的两次输出，体积门只数行数。
+    # 这等于把 kit 体积门「超上限就 FAIL、不许静默截断」的立场反了过来。
+    #
+    # 现在：装得下就照常展示并在标题写明省略数；一条都装不下时，
+    # 用一行明确的说明取代空表 —— 不多占行数，也不再假装「没有记录」。
     run_limit = max(0, 77 - len(acc_rows))
     recent_runs = runs[-run_limit:] if run_limit else []
+    omitted = len(runs) - len(recent_runs)
     run_rows = [(r.get("run_id", "?"), r.get("action", ""), r.get("result", ""))
                 for r in recent_runs]
+    run_title = f"最近 {len(run_rows)} 条"
+    if omitted:
+        run_title += f"，另有 {omitted} 条因 05 行数预算未展示"
+    run_empty = (f"> **{len(runs)} 条运行记录因 05 行数预算未能展示**，"
+                 f"全量见 `machine/runs/`。不是没有记录。"
+                 if runs else
+                 "> 还没有运行记录。每完成一步会自动追加一条，这里就有了。")
 
     this_round = (f"**在做：** {now}\n\n**负责：** {owner or '待定'}"
                   if now else blank_note("当前任务", "把这一轮的计划写进机器平面（machine/facts/plan.json）"))
@@ -392,10 +408,9 @@ def render_05(facts: Path, runs_dir: Path):
 {table(acc_rows, ["编号", "达成标准", "状态"],
        empty=blank_note("验收标准", "把这一轮的验收标准写进机器平面（machine/facts/acceptance.json）"))}
 
-## 三、已经做了什么（最近 {len(run_rows)} 条）
+## 三、已经做了什么（{run_title}）
 
-{table(run_rows, ["记录", "做了什么", "结果"],
-       empty="> 还没有运行记录。每完成一步会自动追加一条，这里就有了。")}
+{table(run_rows, ["记录", "做了什么", "结果"], empty=run_empty)}
 """
     return body
 
