@@ -8,11 +8,11 @@ check_dual_plane_ci.py —— 仓库级双平面合规校验（CI 入口）
 
 对每个项目执行：
   1. 结构门：文档/ 下 7 个文件齐全、machine/facts 与 machine/tools 存在
+  4. 语义门：facts/changelog.json 最新条目的 version 必须可见于 文档/06_运维手册.md
+     （防「渲染器缺陷两侧一致、一致门恒绿」型潜伏——2026-07-18 切片缺陷教训）
   2. 渲染一致门：重新渲染后 5 个渲染文件无变化（人类平面确由机器平面生成，
      未被手工篡改）；手写区 01/03 存在且非空
   3. 三道门：check_doc_budget + check_blocker_stop
-  4. 语义门：facts/changelog.json 最新条目的 version 必须可见于 文档/06_运维手册.md
-     （防「渲染器缺陷两侧一致、一致门恒绿」型潜伏——2026-07-18 切片缺陷教训）
 
 任何项目任一门 FAIL -> 整体 FAIL（退出码 1）。
 
