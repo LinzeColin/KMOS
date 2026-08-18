@@ -653,7 +653,8 @@ def stage_label(args, ctx) -> dict:
             desc = hit[0]
         else:
             desc = ""
-        if not desc:
+        if not desc or len(desc) > 6:
+            # 说明必须 2-6 字：超长/空一律待确认（不污染文件名）
             desc = "待确认"
         # 置信度：视觉/人工覆盖=高；关键词兜底与无信号=待确认（兜底不可信）
         conf = "高" if (ov or vision) else "待确认"
