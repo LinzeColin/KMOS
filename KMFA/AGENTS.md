@@ -33,9 +33,11 @@ sealed 合同只在 Owner 没有另行指令的题目上有效；**下列条目 
 
 ## 执行规则
 
-- **找工具先读 `tools/INDEX.md`，不要列 `tools/` 目录。** 2026-08-19 实测：列一次
-  `KMFA/tools` = 854 个条目 / 66184 字符 ≈ **16546 tokens**，列 `KMFA/tests` 再付 ≈9041。
-  其中 1033 个是已完成阶段的冻结校验器与配套测试，你几乎永远不需要逐个看。
+- **进 KMFA 先读 `tools/INDEX.md`，不要列目录。** 2026-08-19 实测，四个大目录全列 ≈ **64370 tokens**：
+  `tools` 16546 ／ `tests` 9041 ／ `metadata/quality` 28371 ／ `stage_artifacts` 10412。
+  索引 ≈3092 tokens 覆盖全部四个，**省 95%**。
+  其中 1033 个文件是已完成阶段的冻结校验器与配套测试，你几乎永远不需要逐个看；
+  产物目录只增不减，要找就按精确名 grep。
   索引由 `tools/build_tools_index.py` 生成、CI 校验是否过期，可以信。
 
 - 每个 run 最多解决一个 Phase；开始时先验证 `git root`、branch、remote、HEAD、status。
