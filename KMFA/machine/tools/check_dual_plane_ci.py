@@ -11,6 +11,10 @@ check_dual_plane_ci.py —— 仓库级双平面合规校验（CI 入口）
      声明 machine/canonical_facts.yaml 的项目还必须恰好七文件
   2. 渲染一致门：重新渲染后 7 个文件无变化（人类平面确由机器平面生成，
      未被手工篡改）；声明 Canonical Facts 的项目还须按职责逐值投影
+  4. 语义门：facts/changelog.json 最新条目的 version 必须可见于 文档/06_运维手册.md；
+     machine/runs/ 非空时，05 必须要么显示最新一条、要么说明省略了多少条
+     （2026-08-18 从 Governance kit 原样取回。本分叉此前不含这两道门 ——
+      分叉保住了 KMFA 的 canonical 扩展，代价是漏掉了 kit 后来加的保护。）
   3. 三道门：check_doc_budget + check_blocker_stop
 
 任何项目任一门 FAIL -> 整体 FAIL（退出码 1）。
@@ -201,6 +205,60 @@ def check_project(proj: Path, failures: list):
 
     if canonical_mode:
         check_canonical_projection(proj, docs, failures)
+
+    # 4. 语义门：最新 changelog 条目必须真实渲染进运维手册（一致门测不出渲染器自身缺陷）
+    chlog_path = proj / "machine" / "facts" / "changelog.json"
+    manual_path = docs / "06_运维手册.md"
+    if chlog_path.is_file() and manual_path.is_file():
+        try:
+            import json
+            chlog = json.loads(chlog_path.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            chlog = []
+        if isinstance(chlog, list) and chlog:
+            latest = str(chlog[0].get("version", "")).strip()
+            if latest and latest not in manual_path.read_text(encoding="utf-8"):
+                failures.append(
+                    f"[{name}] 语义门: changelog 最新条目 {latest} 未出现在 文档/06_运维手册.md"
+                    f"（渲染器截断/切片缺陷，或条目顺序约定被破坏）")
+
+    # 4b. 语义门·运行记录：machine/runs/ 非空却在 05 里查无痕迹 -> FAIL
+    #
+    # 起因（2026-08-18 实测）：KM_IDSystem 的 acceptance 涨到 78 条，它那份渲染器
+    # 算出 run_limit = max(0, 77 - 78) = 0，36 条运行记录一条不渲染，
+    # 标题写「最近 0 条」、空表下写「还没有运行记录」。三道门全绿：
+    # 一致门比的是同一个渲染器的两次输出，体积门只数行数（100/100 正好卡满）。
+    #
+    # 判据是「说得出真相」而不是「必须展示」：05 有 100 行硬预算，装不下是常态；
+    # 但装不下就得说装不下。所以下面两者满足其一即通过 ——
+    #   ① 最新一条的 run_id 出现在 05 里；或
+    #   ② 05 里出现真实总条数（例：「另有 36 条因 05 行数预算未展示」）。
+    # 两者都没有 = 静默省略，等于文档在骗人。
+    runs_dir = proj / "machine" / "runs"
+    exec_path = docs / "05_执行与验收.md"
+    if runs_dir.is_dir() and exec_path.is_file():
+        import json as _json
+        import re as _re
+        flat = []
+        for rf in sorted(runs_dir.glob("*.json")):
+            try:
+                rdata = _json.loads(rf.read_text(encoding="utf-8"))
+            except (ValueError, OSError):
+                continue
+            flat.extend(rdata if isinstance(rdata, list) else [rdata])
+        if flat:
+            exec_body = exec_path.read_text(encoding="utf-8")
+            last = flat[-1] if isinstance(flat[-1], dict) else {}
+            latest_run = str(last.get("run_id") or last.get("id") or "").strip()
+            shows_latest = bool(latest_run) and latest_run in exec_body
+            states_total = _re.search(r"\b%d\b\s*条" % len(flat), exec_body) is not None
+            if not shows_latest and not states_total:
+                failures.append(
+                    f"[{name}] 语义门·运行记录: machine/runs/ 有 {len(flat)} 条，"
+                    f"但 文档/05_执行与验收.md 既没有最新一条"
+                    f"{'（' + latest_run + '）' if latest_run else ''}"
+                    f"，也没有说明省略了多少条 —— 静默省略等于文档在骗人。"
+                    f"装不下可以，说出来必须。")
 
     # 3. 三道门
     for tool, arg in [("check_doc_budget.py", ["--docs", "文档"]),

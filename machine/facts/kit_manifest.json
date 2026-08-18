@@ -12,7 +12,7 @@
   },
   "forks": {
     "KMFA/machine/tools/render_human.py": "KMFA 在 kit 的渲染器上扩了一整套 canonical / release_policy 逻辑（render_human 819 行 vs kit 485 行，check_dual_plane_ci 254 行 vs 129 行），照 kit 覆盖等于毁掉 KMFA 的渲染与门",
-    "KMFA/machine/tools/check_dual_plane_ci.py": "KMFA 在 kit 的门上扩了 canonical / release_policy 校验（257 行 vs kit 186 行），照 kit 覆盖等于毁掉 KMFA 的门。⚠️ 代价：这份分叉不含 kit 第 1 代的两道语义门（changelog / 运行记录）。2026-08-18 实测 KMFA 当前两项都正常（changelog 12 条最新条已渲染、runs 1 条已渲染），但一旦回归没有门会拦。要么把两道门并进这份分叉，要么接受无保护 —— 由 owner 定。",
+    "KMFA/machine/tools/check_dual_plane_ci.py": "KMFA 在 kit 的门上扩了 canonical / release_policy 校验（312 行 vs kit 186 行），照 kit 覆盖等于毁掉 KMFA 的门。2026-08-18 已把 kit 第 1 代的两道语义门（changelog / 运行记录）原样并入这份分叉，分叉不再以「漏掉保护」为代价。以后 kit 再加门，仍需手动并进来 —— 这是分叉的常驻成本，不是一次性的。",
     "KM_IDSystem/machine/tools/render_human.py": "KM_IDSystem 的渲染器按 05 文件 100 行预算动态压缩运行历史投影（run_limit = 77 - 验收行数），kit 是写死的 runs[-20:]。这是本地的真改进，回灌 kit 会改变全部 20 份副本的 05 渲染结果，需单独评估",
     "KM_IDSystem/搜标项目/machine/tools/render_human.py": "搜标项目的四个工具是转调 KM_IDSystem 同名工具的薄封装（8 行），文件头明写 do not copy Governance implementation —— 有意不落地实现",
     "KM_IDSystem/搜标项目/machine/tools/check_doc_budget.py": "搜标项目的四个工具是转调 KM_IDSystem 同名工具的薄封装（8 行），文件头明写 do not copy Governance implementation —— 有意不落地实现",
