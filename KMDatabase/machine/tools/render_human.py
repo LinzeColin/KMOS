@@ -408,7 +408,8 @@ def render_06(facts: Path, project_name: str):
     err_rows = [(e.get("symptom", "?"), e.get("cause", ""), e.get("fix", ""))
                 for e in ops.get("troubleshooting", [])]
     # changelog.json 约定新条目在前（insert(0)）——取前 10 条即最新 10 条。
-    # 曾用 [-10:]（列表尾＝最旧）：条目数≤10 时两种切片等价、门恒绿，第 11 条起最新条目被静默隐藏。
+    # 曾用 [-10:]（列表尾＝最旧）：条目数≤10 时两种切片等价、门恒绿，
+    # 第 11 条起最新条目被静默隐藏。KMOS 四项目 2026-07-18 修过，kit 漏了。
     cl_rows = [(c.get("version", "?"), c.get("date", ""), c.get("summary", ""))
                for c in changelog[:10]]
 

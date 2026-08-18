@@ -53,3 +53,9 @@ jobs:
           # 门禁核心：槽位不 ready 就必须写清要 Owner 传什么、缺了挡住报表哪几行
           # ——防止矩阵悄悄退化成一张"都齐了"的表，让人误以为能出正式财务结论。
           python3 KMFA/tools/project_cost/input_matrix.py --root KMFA
+      - name: kit 漂移门（副本必须与 Governance 唯一真源一致）
+        run: |
+          set -euo pipefail
+          SCRIPT="machine/tools/check_kit_drift.py"
+          [ -f "$SCRIPT" ] || { echo "FAIL: 缺少 $SCRIPT"; exit 1; }
+          python3 "$SCRIPT" --root .
