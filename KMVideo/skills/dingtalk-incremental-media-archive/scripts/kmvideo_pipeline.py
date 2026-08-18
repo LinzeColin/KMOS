@@ -50,6 +50,7 @@ DOWNLOADS = Path.home() / "Downloads"
 VIDEO_SUBSET_COLS = ["项目", "文件名", "日期", "时长秒", "分辨率", "功能位", "画质等级",
                      "描述", "画面元素", "镜头特征", "工序阶段", "能证明什么", "脱敏风险", "置信度"]
 MEDIA_FILTER = None  # main() 根据 --media-type 设置：None=全部 / "video" / "photo"
+SKIP_GROUPS: set[str] = set()  # main() 根据 --skip-groups 设置（大目录 NAS 异常时跳过，夜间单独跑）
 
 # 任务书业务映射（照抄）
 BUSINESS = {
@@ -166,6 +167,8 @@ def load_media(groups: list[str]) -> list[dict]:
                 continue
             if d.get("record_type") == "media":
                 if MEDIA_FILTER and d.get("media_type") != MEDIA_FILTER:
+                    continue
+                if g in SKIP_GROUPS:
                     continue
                 d["_group"] = g
                 out.append(d)
@@ -1200,9 +1203,13 @@ def main() -> int:
     ap.add_argument("--no-private", action="store_true")
     ap.add_argument("--media-type", default="", choices=["", "video", "photo"],
                     help="仅处理该媒体类型（空=全部）")
+    ap.add_argument("--skip-groups", default="",
+                    help="逗号分隔的群名黑名单（NAS 大目录异常时跳过，夜间单独跑）")
     args = ap.parse_args()
     global MEDIA_FILTER
     MEDIA_FILTER = args.media_type or None
+    global SKIP_GROUPS
+    SKIP_GROUPS = {g.strip() for g in (args.skip_groups or "").split(",") if g.strip()}
 
     groups = []
     if args.groups_file:
