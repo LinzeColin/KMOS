@@ -1,6 +1,7 @@
-# dingtalk-incremental-media-archive（KMVideo 一体化流水线）
+# KMMedia-Archive（KMVideo 一体化流水线）
 
-> 版本 v0.2.0（260817）。素材库任务书 v0.0.2.0 的完整执行体。
+> 版本 v0.2.1（260818）。素材库任务书 v0.0.2.0 的完整执行体。
+> v0.2.1 改动仅两处：skill 更名为 `KMMedia-Archive`；新增识别「以文件形式发送」的音视频（见下）。
 > 上级规则：`smb://192.168.0.1/share/03_资料库/MetaData/IDS_MetaData/KMVideo/README.md`（冲突以 README 为准）。
 
 ## 一句话
@@ -18,7 +19,12 @@
 7. SMB 写入禁用 Python 写与 `shutil.copyfile` 快速路径；用 `rsync --inplace --whole-file` 或 `/bin/dd conv=fsync`，写后必须校验字节数。
 8. 日期一律 `YYMMDD`；公开仓禁用客户全称，项目名一律泛化为「业务名+群」（如 `安装检修群`）。
 9. 不得新建平行登记表；所有标注写进根目录 `素材登记表.csv`，以新增列扩展。
-10. **不得调用任何外部 agent**（Claude Code CLI / Codex CLI / 其他 CLI agent / 远程视觉服务）。多模态问题一律本地自解：
+10. 以 `[文件]` 形式发送的音视频也归本 skill（v0.2.1 新增）。钉钉里同一段视频可能走两种传输：
+    `[视频消息](mediaId=...)` 走 `dws chat message download-media`，
+    `[文件] xxx.mp4 fileId: ...` 走 `dws drive download --node`。
+    v0.2.0 只认前者，实测 90 天内漏采 37 个 mp4。按扩展名与 `KMFile-Archive` 分流：
+    音视频/图片扩展名归 KMVideo，文档扩展名归 KMFile，不重不漏。
+11. **不得调用任何外部 agent**（Claude Code CLI / Codex CLI / 其他 CLI agent / 远程视觉服务）。多模态问题一律本地自解：
     - 语义标注 ← **DWS 消息上下文**（媒体消息前后 30 分钟内的文本消息，关键词映射）
     - 精确地理位置 ← **EXIF GPS**（PIL 读 EXIF）
     - 画质等级 ← **ffprobe 分辨率**（短边 ≥720 可全屏，否则仅可内嵌）

@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
-"""DWS internal-group media archive runner.
+"""DWS internal-group FILE archive runner (KMFile).
+
+与 archive_internal_media.py 的同位体，只处理钉钉「文件」消息：
+
+    [文件] 2026投标记录-武汉开明.xlsx fileId: R4GpnMqJzGynwDqYiqya5wYb8Ke0xjE3
+
+传输层与媒体版完全不同：
+  媒体  [图片消息](mediaId=...)  → dws chat message download-media --type mediaId
+  文件  [文件] name fileId: xxx  → dws drive download --node <fileId>
+
+服务端 `dws drive info --node <fileId>` 直接返回 md5（base64 of MD5 digest）与
+fileSize，因此本脚本的完整性校验比媒体版更强：字节数 + 头尾抽样 + **服务端 md5 逐份复核**。
+
+音视频扩展名的文件消息不归 KMFile：只登记进 `待转KMVideo.csv` 交接清单，
+由 KMVideo 侧收（媒体版已打补丁认 `[文件]` 传输）。
 
 All runtime state is held in the two durable manifests. The process only creates
 an operating-system temporary directory and removes it before exit.
@@ -8,6 +22,9 @@ an operating-system temporary directory and removes it before exit.
 from __future__ import annotations
 
 import argparse
+import base64
+import csv
+import hashlib
 import json
 import os
 import re
@@ -18,6 +35,7 @@ import tempfile
 import threading
 import time
 import uuid
+import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -38,14 +56,27 @@ def _resolve_kmos_root() -> Path:
 
 ROOT = _resolve_kmos_root()
 PRIVATE_DB_CLIENT = ROOT / "KMDatabase" / "machine" / "tools" / "private_db_client.py"
-SMB_ROOT = Path("/Volumes/share/03_资料库/MetaData/IDS_MetaData/KMVideo")
+SMB_ROOT = Path("/Volumes/share/03_资料库/MetaData/IDS_MetaData/KMFile")
 GITHUB_AREA = "Private-KMDatabase"
-GITHUB_PREFIX = "KMVideo"
+GITHUB_PREFIX = "KMFile"
 GITHUB_MAX_BYTES = 95 * 1024 * 1024
 DWS_TIMEOUT_SECONDS = 60
 MANIFEST_NAME = ".manifest.jsonl"
 TIMEZONE = ZoneInfo("Asia/Shanghai")
+
+# 钉钉文件消息体，实测格式（v0.0.0.1 冻结）：
+#   [文件] <文件名> fileId: <dentryUuid> 注意：如需下载使用dws drive download命令下载
+FILE_MSG_RE = re.compile(r"^\[文件\]\s+(.+?)\s+fileId:\s*(\S+)")
+# 媒体版的 mediaId 正则，仅用于判定「这条消息属于 KMVideo 而不是 KMFile」
 MEDIA_ID_RE = re.compile(r"mediaId=([^\s)\]]+)")
+
+# 音视频一律不进 KMFile，交回 KMVideo（拍板方案 A）
+AV_EXTENSIONS = {
+    "mp4", "mov", "avi", "mkv", "wmv", "flv", "m4v", "3gp", "mpg", "mpeg", "webm",
+    "mp3", "wav", "m4a", "aac", "amr", "flac", "wma", "ogg",
+}
+# OOXML / WPS 新版都是 zip 容器，可读性校验用 zipfile 判真
+ZIP_CONTAINER_EXTENSIONS = {"xlsx", "docx", "pptx", "et", "wps", "dps", "zip", "apk", "jar"}
 SMB_COPY_METHODS = ("dd", "rsync", "dd", "rsync")
 
 # 单进程内并发下载时，records 字典与 manifest 追加仍保持单一写入者语义。
@@ -72,6 +103,24 @@ class Group:
 AUTHORIZED_NON_INTERNAL_TITLES = {
     "新疆宜化2026",
     "项目设备工具类管理群",
+    "池州天赐20260415",
+    "福建韩研2026.4.30",
+    "阜阳电力齿轮修复2025.10.31",
+    "新洋丰焊补2026.5.4",
+    "山东日照检修群",
+    "芜湖新兴铸管2026.3.31",
+    "萍乡钢铁2026.6.3",
+    "湘东区萍乡钢铁20260622",
+    "湖南湘潭钢铁2026.3.6",
+    "福建鼎信实业2026.6.4",
+    "新都化工1500吨大颗粒项目",
+    "新疆宜化技改2026",
+    "内蒙古金鄂博氟化工2026.7.5",
+    "赣锋锂业2026.7.27",
+    "松滋葛洲坝小齿调整（原为调窑）2026.06.28",
+    "盐湖海纳2026.1.22",
+    "盐湖海纳大齿圈小齿更换2026.7.5",
+    "汝州天瑞2#线3档托轮2次返修2026.1.16",
 }
 
 
@@ -85,6 +134,7 @@ class Counts:
     github_raw: int = 0
     github_index: int = 0
     skipped: int = 0
+    handoff_av: int = 0
     failures: int = 0
     topic_replies: int = 0
     completed_windows: int = 0
@@ -99,6 +149,7 @@ class Counts:
         self.github_raw += other.github_raw
         self.github_index += other.github_index
         self.skipped += other.skipped
+        self.handoff_av += other.handoff_av
         self.failures += other.failures
         self.topic_replies += other.topic_replies
         self.completed_windows += other.completed_windows
@@ -106,7 +157,7 @@ class Counts:
 
 
 @dataclass
-class GitHubMediaBudget:
+class GitHubFileBudget:
     remaining: int | None
 
     def take(self) -> bool:
@@ -125,7 +176,7 @@ def print_event(event: str, **fields: object) -> None:
 def run_process(args: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         args,
-        cwd=ROOT,
+        cwd=ROOT if ROOT.is_dir() else Path.home(),
         check=False,
         text=True,
         stdout=subprocess.PIPE,
@@ -163,6 +214,20 @@ def dws_time(value: datetime) -> str:
     return value.astimezone(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
 
 
+def md5_b64(path: Path) -> str:
+    """服务端 md5 是 base64(MD5 digest)，本机按同一编码算，实测逐字节相等。"""
+    digest = hashlib.md5()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return base64.b64encode(digest.digest()).decode()
+
+
+def extension_of(name: str) -> str:
+    suffix = Path(name).suffix
+    return suffix[1:].lower() if suffix else ""
+
+
 def read_manifest(path: Path) -> dict[str, dict]:
     if not path.exists():
         return {}
@@ -192,7 +257,7 @@ def status_rank(status: object, kind: str) -> int:
 
 def merge_record(left: dict, right: dict) -> dict:
     merged = {**left, **right}
-    for key, kind in (("smb_status", "smb"), ("github_media_status", "github")):
+    for key, kind in (("smb_status", "smb"), ("github_file_status", "github")):
         chosen = left.get(key)
         if status_rank(right.get(key), kind) > status_rank(chosen, kind):
             chosen = right.get(key)
@@ -217,14 +282,27 @@ def manifest_text(records: dict[str, dict]) -> str:
 
 
 def atomic_write(path: Path, content: str) -> None:
+    """SMB 上的 rename 实测会随机返回 EIO（KMVideo 目录同样复现），因此不走 os.replace。
+
+    改为：写本机临时文件 → `rsync --inplace --whole-file` 落 SMB → 校验字节数。
+    这条路径同时满足硬约束 7（禁 Python 直写与 shutil 快速路径），且不依赖 rename。
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.partial-{uuid.uuid4().hex}")
+    data = content.encode("utf-8")
+    with tempfile.NamedTemporaryFile("wb", delete=False, suffix=".jsonl") as handle:
+        handle.write(data)
+        staged = Path(handle.name)
     try:
-        temporary.write_text(content, encoding="utf-8")
-        os.replace(temporary, path)
+        last = ""
+        for attempt in range(3):
+            result = run_process(["rsync", "--inplace", "--whole-file", str(staged), str(path)])
+            if result.returncode == 0 and path.is_file() and path.stat().st_size == len(data):
+                return
+            last = result.stderr.strip() or result.stdout.strip() or "size mismatch after rsync"
+            time.sleep(2 ** attempt)
+        raise ArchiveError(f"SMB manifest write did not verify: {path}: {last}")
     finally:
-        if temporary.exists():
-            temporary.unlink()
+        staged.unlink(missing_ok=True)
 
 
 def github_manifest_path(folder: str) -> str:
@@ -263,8 +341,6 @@ def persist_smb_manifest(folder: str, records: dict[str, dict]) -> dict[str, dic
     A group is intentionally single-writer in normal operation.  This merge is
     still needed to preserve an already-appended durable record if a prior run
     ended between the current process reading its manifest and this checkpoint.
-    For the same record ID, this active writer is newer than its own prior
-    checkpoint, so its in-memory state must win over an obsolete complete state.
     """
     path = SMB_ROOT / folder / MANIFEST_NAME
     current = read_manifest(path)
@@ -274,10 +350,20 @@ def persist_smb_manifest(folder: str, records: dict[str, dict]) -> dict[str, dic
 
 
 def append_smb_manifest_record(folder: str, record: dict) -> None:
+    """追加式写入，SMB 上实测可用；瞬断重试 3 次后才认失败。"""
     path = SMB_ROOT / folder / MANIFEST_NAME
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
+    line = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+    last: OSError | None = None
+    for attempt in range(3):
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as handle:
+                handle.write(line)
+            return
+        except OSError as error:
+            last = error
+            time.sleep(2 ** attempt)
+    raise ArchiveError(f"SMB manifest append failed: {path}: {last}")
 
 
 def persist_manifests(folder: str, records: dict[str, dict], temp_root: Path) -> tuple[dict[str, dict], str | None]:
@@ -288,6 +374,8 @@ def persist_manifests(folder: str, records: dict[str, dict], temp_root: Path) ->
 def find_existing_folder(group: Group) -> str:
     direct = SMB_ROOT / group.title
     if direct.exists():
+        return group.title
+    if not SMB_ROOT.is_dir():
         return group.title
     for candidate in SMB_ROOT.iterdir():
         if not candidate.is_dir():
@@ -400,31 +488,28 @@ def walk_window_messages(
         boundary = oldest
 
 
-def classify_media(message: dict) -> list[tuple[str, str]]:
+def classify_files(message: dict) -> list[tuple[str, str]]:
+    """返回 [(file_id, file_name)]。只认 `[文件]` 消息；mediaId 消息属于 KMVideo。"""
     content = str(message.get("content") or "")
-    resource_ids = MEDIA_ID_RE.findall(content)
-    if not resource_ids:
+    match = FILE_MSG_RE.match(content.strip())
+    if not match:
         return []
-    lowered = content.lower()
-    if "视频" in content or "video" in lowered:
-        media_type = "video"
-    elif "图片" in content or "照片" in content or "image" in lowered:
-        media_type = "photo"
-    else:
+    file_name = match.group(1).strip()
+    file_id = match.group(2).strip()
+    if not file_name or not file_id:
         return []
-    return [(resource_id, media_type) for resource_id in resource_ids]
+    return [(file_id, file_name)]
 
 
 def safe_filename(name: str, message_id: str) -> str:
     candidate = Path(name).name.replace("\x00", "_").replace("/", "_")
     if candidate in {"", ".", ".."}:
-        candidate = f"media-{message_id.replace('/', '_')}"
+        candidate = f"file-{message_id.replace('/', '_')}"
     return candidate
 
 
 def choose_relative_path(
     folder: str,
-    media_type: str,
     filename: str,
     message_id: str,
     records: dict[str, dict],
@@ -432,40 +517,46 @@ def choose_relative_path(
 ) -> str:
     if existing and existing.get("relative_path"):
         return str(existing["relative_path"])
-    directory = SMB_ROOT / folder / media_type
+    directory = SMB_ROOT / folder / "file"
     candidate = safe_filename(filename, message_id)
     used_paths = {str(record.get("relative_path")) for record in records.values() if record.get("relative_path")}
-    relative = f"{folder}/{media_type}/{candidate}"
+    relative = f"{folder}/file/{candidate}"
     if not (directory / candidate).exists() and relative not in used_paths:
         return relative
     stem = Path(candidate).stem
     suffix = Path(candidate).suffix
     safe_message_id = message_id.replace("/", "_").replace("\x00", "_")
     candidate = f"{stem}__{safe_message_id}{suffix}"
-    relative = f"{folder}/{media_type}/{candidate}"
+    relative = f"{folder}/file/{candidate}"
     ordinal = 2
     while (directory / candidate).exists() or relative in used_paths:
         candidate = f"{stem}__{safe_message_id}_{ordinal}{suffix}"
-        relative = f"{folder}/{media_type}/{candidate}"
+        relative = f"{folder}/file/{candidate}"
         ordinal += 1
     return relative
 
 
-def download_media(group: Group, message_id: str, resource_id: str, temp_root: Path) -> Path:
+def drive_info(file_id: str) -> dict:
+    """服务端元数据：name / extension / fileSize / md5 / spaceId / status。
+
+    读一次 info 就能拿到 md5 与字节数，因此存在性与完整性判定**不需要整包下载**
+    （云成本红线：禁止整包下载做存在性校验）。
+    """
+    return dws_json(["drive", "info", "--node", file_id])
+
+
+def download_file(file_id: str, temp_root: Path) -> Path:
     destination = temp_root / f"download-{uuid.uuid4().hex}"
     destination.mkdir(parents=True)
     result = run_process([
-        "dws", "chat", "message", "download-media",
-        "--type", "mediaId",
-        "--resource-id", resource_id,
-        "--message-id", message_id,
-        "--open-conversation-id", group.conversation_id,
-        "--output", str(destination),
+        "dws", "drive", "download",
+        "--node", file_id,
+        "--output", str(destination) + os.sep,
         "--timeout", str(DWS_TIMEOUT_SECONDS),
     ])
     if result.returncode != 0:
         shutil.rmtree(destination, ignore_errors=True)
-        raise ArchiveError(result.stderr.strip() or result.stdout.strip() or "DWS media download failed")
+        raise ArchiveError(result.stderr.strip() or result.stdout.strip() or "DWS drive download failed")
     files = [path for path in destination.rglob("*") if path.is_file()]
     if len(files) != 1:
         shutil.rmtree(destination, ignore_errors=True)
@@ -522,49 +613,114 @@ def verify_smb_copy(source: Path, target: Path) -> None:
     raise ArchiveError(f"{last_reason}: source_size={source_size}, target_size={target_size}")
 
 
-def verify_media_openable(target: Path, media_type: str) -> None:
-    """Require the final SMB original itself to be parsable before completion."""
-    if media_type == "photo":
-        result = run_process(["sips", "-g", "format", "-g", "pixelWidth", "-g", "pixelHeight", str(target)])
-        if result.returncode != 0:
-            detail = result.stderr.strip() or result.stdout.strip() or "ImageIO could not parse media"
-            raise ArchiveError(f"SMB photo cannot be opened: {detail}")
+def verify_server_md5(target: Path, expected_md5: str) -> None:
+    """文件版独有：落地件必须与服务端 md5 逐字节等价，媒体版没有这一层。"""
+    if not expected_md5:
         return
-    if media_type == "video":
-        probe = run_process([
-            "ffprobe", "-v", "error", "-show_entries", "format=format_name",
-            "-of", "default=nw=1:nk=1", str(target),
-        ])
-        if probe.returncode != 0:
-            detail = probe.stderr.strip() or probe.stdout.strip() or "ffprobe could not parse media"
-            raise ArchiveError(f"SMB video cannot be opened: {detail}")
-        decode = run_process([
-            "ffmpeg", "-v", "error", "-i", str(target), "-map", "0:v?", "-map", "0:a?", "-f", "null", "-",
-        ])
-        if decode.returncode != 0:
-            detail = decode.stderr.strip() or decode.stdout.strip() or "ffmpeg could not decode media"
-            raise ArchiveError(f"SMB video cannot be fully decoded: {detail}")
+    actual = md5_b64(target)
+    if actual != expected_md5:
+        raise ArchiveError(f"SMB copy md5 differs from server: server={expected_md5}, local={actual}")
+
+
+def verify_file_readable(target: Path, extension: str) -> None:
+    """落地件本身必须能被解析，而不是只看字节数对得上。
+
+    只用本机零依赖手段：zip 容器用 zipfile 判真，PDF 校头部魔数，其余校非零头部。
+    """
+    if target.stat().st_size == 0:
+        raise ArchiveError("SMB file is empty")
+    if extension in ZIP_CONTAINER_EXTENSIONS:
+        if not zipfile.is_zipfile(target):
+            # 旧版 .doc/.xls/.et 是二进制格式，不是 zip；只有明确的 OOXML 才强制。
+            if extension in {"xlsx", "docx", "pptx"}:
+                raise ArchiveError(f"SMB {extension} is not a readable zip container")
+            return
+        with zipfile.ZipFile(target) as archive:
+            broken = archive.testzip()
+            if broken is not None:
+                raise ArchiveError(f"SMB {extension} zip member is corrupt: {broken}")
         return
-    raise ArchiveError(f"unsupported media type for openability validation: {media_type}")
+    if extension == "pdf":
+        with target.open("rb") as handle:
+            if handle.read(5) != b"%PDF-":
+                raise ArchiveError("SMB pdf lacks the %PDF- header")
+        return
+    if not has_nonzero_header(target):
+        raise ArchiveError("SMB file header is zero-filled")
+
+
+RENAME_MAP_CSV = SMB_ROOT / "原名新名映射.csv"
+_RENAME_MAP: dict[tuple[str, str], str] | None = None
+_RENAME_MAP_MTIME: float = -1.0
+
+
+def rename_map() -> dict[tuple[str, str], str]:
+    """(项目, 原文件名) → 现用文件名。按 mtime 缓存，改名后自动失效重载。
+
+    `.manifest.jsonl` 永远记原名（硬约束 2 禁止改写），所以改名之后
+    `SMB_ROOT/relative_path` 必然不存在。若不回查这张映射表，归档器会把
+    「已经落地并改过名的文件」当成缺失，每轮重下一遍——纯浪费带宽和时间。
+    """
+    global _RENAME_MAP, _RENAME_MAP_MTIME
+    try:
+        mtime = RENAME_MAP_CSV.stat().st_mtime
+    except OSError:
+        _RENAME_MAP, _RENAME_MAP_MTIME = {}, -1.0
+        return _RENAME_MAP
+    if _RENAME_MAP is not None and mtime == _RENAME_MAP_MTIME:
+        return _RENAME_MAP
+    mapping: dict[tuple[str, str], str] = {}
+    try:
+        with RENAME_MAP_CSV.open(encoding="utf-8-sig", newline="") as handle:
+            for row in csv.DictReader(handle):
+                old = str(row.get("原文件名") or "").strip()
+                new = str(row.get("新文件名") or "").strip()
+                folder = str(row.get("项目") or "").strip()
+                if folder and old and new and old != new:
+                    mapping[(folder, old)] = new
+    except (OSError, csv.Error):
+        mapping = {}
+    _RENAME_MAP, _RENAME_MAP_MTIME = mapping, mtime
+    return mapping
+
+
+def resolve_current_path(record: dict) -> Path | None:
+    """返回该记录当前在磁盘上的真实路径（原名优先，其次查改名映射）。"""
+    relative_path = str(record.get("smb_relative_path") or record.get("relative_path") or "")
+    if not relative_path:
+        return None
+    target = SMB_ROOT / relative_path
+    if target.is_file():
+        return target
+    folder = str(record.get("folder") or relative_path.split("/")[0])
+    new_name = rename_map().get((folder, os.path.basename(relative_path)))
+    if not new_name:
+        return None
+    renamed = SMB_ROOT / folder / "file" / new_name
+    return renamed if renamed.is_file() else None
 
 
 def smb_original_usable(record: dict | None) -> bool:
     if not record or record.get("smb_status") != "complete":
         return False
-    relative_path = str(record.get("smb_relative_path") or record.get("relative_path") or "")
-    if not relative_path:
-        return False
-    target = SMB_ROOT / relative_path
-    if not target.is_file() or target.stat().st_size != record.get("size_bytes"):
+    target = resolve_current_path(record)
+    if target is None or target.stat().st_size != record.get("size_bytes"):
         return False
     with target.open("rb") as handle:
         sample = handle.read(min(target.stat().st_size, 64))
     return bool(sample) and any(sample)
 
 
-def copy_to_smb(source: Path, target: Path, media_type: str, *, replace_existing: bool = False) -> None:
+def copy_to_smb(
+    source: Path,
+    target: Path,
+    extension: str,
+    expected_md5: str,
+    *,
+    replace_existing: bool = False,
+) -> None:
     if not has_nonzero_header(source):
-        raise ArchiveError("media source is empty or zero-filled")
+        raise ArchiveError("file source is empty or zero-filled")
     if target.exists() and not replace_existing:
         raise ArchiveError("SMB target path already exists without a completed manifest record")
     last_error: OSError | ArchiveError | None = None
@@ -574,8 +730,6 @@ def copy_to_smb(source: Path, target: Path, media_type: str, *, replace_existing
         target_written = False
         try:
             # SMB can briefly report ENOENT for an otherwise-present directory.
-            # Treat directory creation as part of the same bounded write attempt,
-            # rather than abandoning the entire 30-day window before the retry.
             target.parent.mkdir(parents=True, exist_ok=True)
             if not target.parent.is_dir():
                 raise ArchiveError("SMB target directory is unavailable")
@@ -584,14 +738,11 @@ def copy_to_smb(source: Path, target: Path, media_type: str, *, replace_existing
                     raise ArchiveError("SMB target appeared during direct write")
                 target.unlink()
                 target_removed_before_copy = True
-            # `os.replace` on this SMB mount can acknowledge a rename while the
-            # destination exposes a stale/truncated size.  Direct buffered
-            # creation is the verified path; completion is still withheld until
-            # the final path itself passes the source comparison.
             write_smb_once(source, target, method)
             target_written = True
             verify_smb_copy(source, target)
-            verify_media_openable(target, media_type)
+            verify_server_md5(target, expected_md5)
+            verify_file_readable(target, extension)
             return
         except (OSError, ArchiveError) as error:
             last_error = ArchiveError(f"{method}: {error}")
@@ -607,7 +758,7 @@ def copy_to_smb(source: Path, target: Path, media_type: str, *, replace_existing
     )
 
 
-def put_github_media(source: Path, relative_path: str, budget: GitHubMediaBudget) -> str | None:
+def put_github_file(source: Path, relative_path: str, budget: GitHubFileBudget) -> str | None:
     if source.stat().st_size > GITHUB_MAX_BYTES:
         return "raw_over_95_mib"
     if not budget.take():
@@ -615,7 +766,7 @@ def put_github_media(source: Path, relative_path: str, budget: GitHubMediaBudget
     result = client(["put", GITHUB_AREA, f"{GITHUB_PREFIX}/{relative_path}", str(source)])
     if result.returncode == 0:
         return None
-    return result.stderr.strip() or result.stdout.strip() or "GitHub raw-media write failed"
+    return result.stderr.strip() or result.stdout.strip() or "GitHub raw-file write failed"
 
 
 def has_nonzero_header(path: Path) -> bool:
@@ -625,8 +776,8 @@ def has_nonzero_header(path: Path) -> bool:
         return any(handle.read(min(path.stat().st_size, 64)))
 
 
-def get_github_media_for_repair(record: dict, temp_root: Path) -> Path | None:
-    if record.get("github_media_status") != "complete":
+def get_github_file_for_repair(record: dict, temp_root: Path) -> Path | None:
+    if record.get("github_file_status") != "complete":
         return None
     relative_path = str(record.get("relative_path") or "")
     if not relative_path:
@@ -639,33 +790,76 @@ def get_github_media_for_repair(record: dict, temp_root: Path) -> Path | None:
     return None
 
 
-def media_record_id(group: Group, message_id: str, resource_id: str) -> str:
-    return f"media:{group.conversation_id}:{message_id}:{resource_id}"
+def file_record_id(group: Group, message_id: str, file_id: str) -> str:
+    return f"file:{group.conversation_id}:{message_id}:{file_id}"
+
+
+def handoff_record_id(group: Group, message_id: str, file_id: str) -> str:
+    return f"handoff:{group.conversation_id}:{message_id}:{file_id}"
 
 
 def is_complete(record: dict | None) -> bool:
     if not record:
         return False
-    return smb_original_usable(record) and record.get("github_media_status") in {"complete", "index_only"}
+    return smb_original_usable(record) and record.get("github_file_status") in {"complete", "index_only"}
 
 
-def archive_media(
+def record_av_handoff(
     group: Group,
     folder: str,
     message: dict,
-    resource_id: str,
-    media_type: str,
+    file_id: str,
+    file_name: str,
+    records: dict[str, dict],
+    apply: bool,
+    counts: Counts,
+) -> None:
+    """音视频不进 KMFile：登记为交接记录，由 KMVideo 侧收。"""
+    message_id = str(message.get("openMessageId") or "")
+    key = handoff_record_id(group, message_id, file_id)
+    with MANIFEST_LOCK:
+        if key in records:
+            counts.skipped += 1
+            return
+        counts.handoff_av += 1
+    if not apply:
+        return
+    record = {
+        "record_id": key,
+        "record_type": "handoff_av",
+        "conversation_id": group.conversation_id,
+        "folder": folder,
+        "message_id": message_id,
+        "file_id": file_id,
+        "file_name": file_name,
+        "extension": extension_of(file_name),
+        "message_time": str(message.get("createTime") or ""),
+        "sender": str(message.get("sender") or ""),
+        "handoff_target": "KMVideo",
+        "handoff_status": "pending",
+    }
+    with MANIFEST_LOCK:
+        records[key] = record
+        append_smb_manifest_record(folder, record)
+
+
+def archive_file(
+    group: Group,
+    folder: str,
+    message: dict,
+    file_id: str,
+    file_name: str,
     records: dict[str, dict],
     temp_root: Path,
     apply: bool,
     counts: Counts,
-    github_budget: GitHubMediaBudget,
+    github_budget: GitHubFileBudget,
     smb_only: bool,
 ) -> None:
     message_id = str(message.get("openMessageId") or "")
     if not message_id:
-        raise ArchiveError("media message missing openMessageId")
-    key = media_record_id(group, message_id, resource_id)
+        raise ArchiveError("file message missing openMessageId")
+    key = file_record_id(group, message_id, file_id)
     with MANIFEST_LOCK:
         existing = records.get(key)
         if existing and smb_original_usable(existing) and (smb_only or is_complete(existing)):
@@ -677,30 +871,43 @@ def archive_media(
 
     downloaded: Path | None = None
     try:
-        downloaded = download_media(group, message_id, resource_id, temp_root)
+        try:
+            info = drive_info(file_id)
+        except ArchiveError:
+            info = {}
+        server_md5 = str(info.get("md5") or "")
+        server_size = info.get("fileSize")
+        extension = str(info.get("extension") or extension_of(file_name)).lower()
+
+        downloaded = download_file(file_id, temp_root)
+        downloaded_size = downloaded.stat().st_size
+        if isinstance(server_size, int) and server_size != downloaded_size:
+            raise ArchiveError(
+                f"download size differs from server: server={server_size}, local={downloaded_size}")
+        if server_md5:
+            local_md5 = md5_b64(downloaded)
+            if local_md5 != server_md5:
+                raise ArchiveError(f"download md5 differs from server: server={server_md5}, local={local_md5}")
+
         with MANIFEST_LOCK:
-            relative_path = choose_relative_path(
-                folder,
-                media_type,
-                downloaded.name,
-                message_id,
-                records,
-                existing,
-            )
+            relative_path = choose_relative_path(folder, file_name, message_id, records, existing)
         target = SMB_ROOT / relative_path
         record = dict(existing or {})
         record.update({
             "record_id": key,
-            "record_type": "media",
+            "record_type": "file",
             "conversation_id": group.conversation_id,
             "folder": folder,
             "message_id": message_id,
-            "resource_id": resource_id,
-            "media_type": media_type,
+            "file_id": file_id,
+            "file_name": file_name,
+            "extension": extension,
             "message_time": str(message.get("createTime") or ""),
+            "sender": str(message.get("sender") or ""),
             "relative_path": relative_path,
             "smb_relative_path": relative_path,
-            "size_bytes": downloaded.stat().st_size,
+            "size_bytes": downloaded_size,
+            "md5": server_md5 or md5_b64(downloaded),
         })
 
         if not smb_original_usable(record):
@@ -708,7 +915,8 @@ def archive_media(
                 copy_to_smb(
                     downloaded,
                     target,
-                    media_type,
+                    extension,
+                    record["md5"],
                     replace_existing=target.exists() and existing is not None,
                 )
             except (ArchiveError, OSError) as exc:
@@ -718,7 +926,7 @@ def archive_media(
                     records[key] = record
                     append_smb_manifest_record(folder, record)
                 raise ArchiveError(
-                    f"{exc}; failed_media_record={key}; relative_path={relative_path}; "
+                    f"{exc}; failed_file_record={key}; relative_path={relative_path}; "
                     f"source_size={record['size_bytes']}"
                 ) from exc
             record["smb_status"] = "complete"
@@ -726,19 +934,19 @@ def archive_media(
             with MANIFEST_LOCK:
                 counts.smb_saved += 1
 
-        github_status = str(record.get("github_media_status") or "")
+        github_status = str(record.get("github_file_status") or "")
         if smb_only:
-            record["github_media_status"] = "pending"
+            record["github_file_status"] = "pending"
             record["github_index_reason"] = "deferred_while_github_writer_active"
         elif github_status not in {"complete", "index_only"}:
-            github_error = put_github_media(downloaded, relative_path, github_budget)
+            github_error = put_github_file(downloaded, relative_path, github_budget)
             if github_error:
-                record["github_media_status"] = "index_only"
+                record["github_file_status"] = "index_only"
                 record["github_index_reason"] = github_error
                 with MANIFEST_LOCK:
                     counts.github_index += 1
             else:
-                record["github_media_status"] = "complete"
+                record["github_file_status"] = "complete"
                 record.pop("github_index_reason", None)
                 with MANIFEST_LOCK:
                     counts.github_raw += 1
@@ -761,7 +969,7 @@ def archive_group(
     temp_root: Path,
     page_size: int,
     apply: bool,
-    github_budget: GitHubMediaBudget,
+    github_budget: GitHubFileBudget,
     smb_only: bool,
     reconcile: bool,
     workers: int = 1,
@@ -788,17 +996,25 @@ def archive_group(
     known_topic_ids: set[str] = set()
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
 
-        def run_tasks(tasks: list[tuple[dict, str, str]]) -> None:
+        def collect(message: dict, tasks: list[tuple[dict, str, str]], window_counts: Counts) -> None:
+            for file_id, file_name in classify_files(message):
+                if extension_of(file_name) in AV_EXTENSIONS:
+                    record_av_handoff(group, folder, message, file_id, file_name,
+                                      records, apply, window_counts)
+                    continue
+                tasks.append((message, file_id, file_name))
+
+        def run_tasks(tasks: list[tuple[dict, str, str]], window_counts: Counts) -> None:
             """按批提交并发处理；批内任一失败按顺序抛出，保留窗口停止语义。"""
             for offset in range(0, len(tasks), max(1, workers)):
                 batch = tasks[offset:offset + max(1, workers)]
                 futures = [
                     pool.submit(
-                        archive_media,
-                        group, folder, message, resource_id, media_type, records,
+                        archive_file,
+                        group, folder, message, file_id, file_name, records,
                         temp_root, apply, window_counts, github_budget, smb_only,
                     )
-                    for message, resource_id, media_type in batch
+                    for message, file_id, file_name in batch
                 ]
                 for future in futures:
                     future.result()
@@ -812,19 +1028,17 @@ def archive_group(
             try:
                 tasks: list[tuple[dict, str, str]] = []
                 for message in walk_window_messages(group.conversation_id, start, end, None, page_size):
-                    for resource_id, media_type in classify_media(message):
-                        tasks.append((message, resource_id, media_type))
+                    collect(message, tasks, window_counts)
                     topic_id = str(message.get("openConvThreadId") or "")
                     if topic_id:
                         known_topic_ids.add(topic_id)
-                run_tasks(tasks)
+                run_tasks(tasks, window_counts)
                 reply_tasks: list[tuple[dict, str, str]] = []
                 for topic_id in known_topic_ids:
                     for reply in walk_window_messages(group.conversation_id, start, end, topic_id, page_size):
                         window_counts.topic_replies += 1
-                        for resource_id, media_type in classify_media(reply):
-                            reply_tasks.append((reply, resource_id, media_type))
-                run_tasks(reply_tasks)
+                        collect(reply, reply_tasks, window_counts)
+                run_tasks(reply_tasks, window_counts)
                 if apply:
                     records[boundary_key] = {
                         "record_id": boundary_key,
@@ -851,6 +1065,7 @@ def archive_group(
                     smb_saved=window_counts.smb_saved,
                     github_raw=window_counts.github_raw,
                     github_index=window_counts.github_index,
+                    handoff_av=window_counts.handoff_av,
                     skipped=window_counts.skipped,
                 )
             except (ArchiveError, OSError) as exc:
@@ -885,7 +1100,7 @@ def archive_group(
 
 
 def repair_smb_group(group: Group, temp_root: Path, *, failed_only: bool = False) -> Counts:
-    """Repair only manifest-known SMB media that is missing or zero-filled."""
+    """Repair only manifest-known SMB files that are missing or zero-filled."""
     folder = find_existing_folder(group)
     records = read_manifest(SMB_ROOT / folder / MANIFEST_NAME)
     if not records:
@@ -893,7 +1108,7 @@ def repair_smb_group(group: Group, temp_root: Path, *, failed_only: bool = False
     counts = Counts()
     for record_id in sorted(records):
         record = records[record_id]
-        if record.get("record_type") != "media":
+        if record.get("record_type") != "file":
             continue
         if failed_only:
             if record.get("smb_status") != "failed":
@@ -901,24 +1116,24 @@ def repair_smb_group(group: Group, temp_root: Path, *, failed_only: bool = False
         elif smb_original_usable(record):
             continue
         relative_path = str(record.get("relative_path") or "")
-        message_id = str(record.get("message_id") or "")
-        resource_id = str(record.get("resource_id") or "")
-        media_type = str(record.get("media_type") or "")
-        if not relative_path or not message_id or not resource_id or media_type not in {"photo", "video"}:
+        file_id = str(record.get("file_id") or "")
+        extension = str(record.get("extension") or extension_of(relative_path))
+        expected_md5 = str(record.get("md5") or "")
+        if not relative_path or not file_id:
             counts.failures += 1
-            counts.failures_by_reason.append("manifest media record lacks repair identity")
+            counts.failures_by_reason.append("manifest file record lacks repair identity")
             continue
         downloaded: Path | None = None
         source_kind: str | None = None
         try:
-            downloaded = get_github_media_for_repair(record, temp_root)
+            downloaded = get_github_file_for_repair(record, temp_root)
             if downloaded is not None:
                 source_kind = "github"
             else:
-                downloaded = download_media(group, message_id, resource_id, temp_root)
+                downloaded = download_file(file_id, temp_root)
                 source_kind = "dws"
             target = SMB_ROOT / relative_path
-            copy_to_smb(downloaded, target, media_type, replace_existing=target.exists())
+            copy_to_smb(downloaded, target, extension, expected_md5, replace_existing=target.exists())
             record["size_bytes"] = downloaded.stat().st_size
             record["smb_status"] = "complete"
             record.pop("smb_error", None)
@@ -944,12 +1159,7 @@ def repair_smb_group(group: Group, temp_root: Path, *, failed_only: bool = False
 
 
 def sync_github_index_group(group: Group, temp_root: Path) -> Counts:
-    """Publish durable GitHub routes for SMB-complete media without re-downloading it.
-
-    This mode deliberately never attempts a raw-media upload.  It is used only
-    after an SMB-only historical pass, when the active raw-media GitHub writer
-    has finished.  That keeps one GitHub manifest writer at a time.
-    """
+    """Publish durable GitHub routes for SMB-complete files without re-downloading them."""
     folder = find_existing_folder(group)
     local_records = read_manifest(SMB_ROOT / folder / MANIFEST_NAME)
     if not local_records:
@@ -960,18 +1170,15 @@ def sync_github_index_group(group: Group, temp_root: Path) -> Counts:
     records = merge_manifests(local_records, github_records)
     counts = Counts()
     for record in records.values():
-        if record.get("record_type") != "media" or not smb_original_usable(record):
+        if record.get("record_type") != "file" or not smb_original_usable(record):
             continue
-        github_status = str(record.get("github_media_status") or "")
+        github_status = str(record.get("github_file_status") or "")
         if github_status in {"complete", "index_only"}:
             continue
-        record["github_media_status"] = "index_only"
+        record["github_file_status"] = "index_only"
         record["github_index_reason"] = "github_raw_deferred_for_serial_writer"
         counts.github_index += 1
 
-    # Keep SMB explicitly pending until the corresponding GitHub index PUT has
-    # succeeded.  A failed PUT therefore cannot be mistaken for a completed
-    # dual-destination checkpoint.
     records = persist_smb_manifest(folder, records)
     completed_window_ids: list[str] = []
     for record_id, record in records.items():
@@ -1003,51 +1210,49 @@ class AuditBucket:
             self.reasons[reason] = self.reasons.get(reason, 0) + 1
 
     def as_dict(self) -> dict[str, object]:
-        result: dict[str, object] = {
-            "count": self.count,
-            "from": self.earliest,
-            "to": self.latest,
-        }
+        result: dict[str, object] = {"count": self.count, "from": self.earliest, "to": self.latest}
         if self.reasons:
             result["reasons"] = dict(sorted(self.reasons.items()))
         return result
 
 
-def audit_media_status(record: dict | None) -> tuple[str, str | None]:
+def audit_file_status(record: dict | None) -> tuple[str, str | None]:
     if not record:
         return "unresolved", "manifest_record_missing"
     if not smb_original_usable(record):
         return "unresolved", "smb_original_missing_or_zero_filled"
-    if record.get("github_media_status") not in {"complete", "index_only"}:
+    if record.get("github_file_status") not in {"complete", "index_only"}:
         return "unresolved", str(record.get("github_index_reason") or "github_index_pending")
     return "complete", None
 
 
-def audit_group(
-    group: Group,
-    windows: list[tuple[datetime, datetime]],
-    page_size: int,
-) -> dict[str, dict[str, dict[str, object]]]:
+def audit_group(group: Group, windows: list[tuple[datetime, datetime]], page_size: int) -> dict:
     folder = find_existing_folder(group)
     records = read_manifest(SMB_ROOT / folder / MANIFEST_NAME)
-    buckets = {
-        media_type: {"complete": AuditBucket(), "unresolved": AuditBucket()}
-        for media_type in ("photo", "video")
-    }
-    seen_media: set[str] = set()
+    buckets = {"file": {"complete": AuditBucket(), "unresolved": AuditBucket()},
+               "handoff_av": {"complete": AuditBucket(), "unresolved": AuditBucket()}}
+    seen: set[str] = set()
 
     def inspect_message(message: dict) -> None:
         message_id = str(message.get("openMessageId") or "")
         message_time = str(message.get("createTime") or "")
         if not message_id or not message_time:
-            raise PagingError("media message missing openMessageId or createTime")
-        for resource_id, media_type in classify_media(message):
-            record_id = media_record_id(group, message_id, resource_id)
-            if record_id in seen_media:
+            raise PagingError("file message missing openMessageId or createTime")
+        for file_id, file_name in classify_files(message):
+            if extension_of(file_name) in AV_EXTENSIONS:
+                key = handoff_record_id(group, message_id, file_id)
+                if key in seen:
+                    continue
+                seen.add(key)
+                status = "complete" if key in records else "unresolved"
+                buckets["handoff_av"][status].add(message_time, None if status == "complete" else "handoff_not_recorded")
                 continue
-            seen_media.add(record_id)
-            status, reason = audit_media_status(records.get(record_id))
-            buckets[media_type][status].add(message_time, reason)
+            record_id = file_record_id(group, message_id, file_id)
+            if record_id in seen:
+                continue
+            seen.add(record_id)
+            status, reason = audit_file_status(records.get(record_id))
+            buckets["file"][status].add(message_time, reason)
 
     known_topic_ids: set[str] = set()
     for start, end in windows:
@@ -1059,10 +1264,38 @@ def audit_group(
         for topic_id in known_topic_ids:
             for reply in walk_window_messages(group.conversation_id, start, end, topic_id, page_size):
                 inspect_message(reply)
-    return {
-        media_type: {status: bucket.as_dict() for status, bucket in statuses.items()}
-        for media_type, statuses in buckets.items()
-    }
+    return {kind: {status: bucket.as_dict() for status, bucket in statuses.items()}
+            for kind, statuses in buckets.items()}
+
+
+def export_handoff(groups: list[Group], destination: Path) -> int:
+    """把 handoff_av 记录导出成 `待转KMVideo.csv`，交 KMVideo 侧收。"""
+    rows = []
+    for group in groups:
+        folder = find_existing_folder(group)
+        for record in read_manifest(SMB_ROOT / folder / MANIFEST_NAME).values():
+            if record.get("record_type") != "handoff_av":
+                continue
+            rows.append({
+                "项目": folder,
+                "文件名": record.get("file_name", ""),
+                "扩展名": record.get("extension", ""),
+                "消息时间": record.get("message_time", ""),
+                "发送人": record.get("sender", ""),
+                "fileId": record.get("file_id", ""),
+                "openMessageId": record.get("message_id", ""),
+                "openConversationId": record.get("conversation_id", ""),
+                "交接状态": record.get("handoff_status", "pending"),
+            })
+    rows.sort(key=lambda r: (r["项目"], r["消息时间"]))
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with destination.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=[
+            "项目", "文件名", "扩展名", "消息时间", "发送人",
+            "fileId", "openMessageId", "openConversationId", "交接状态"])
+        writer.writeheader()
+        writer.writerows(rows)
+    return len(rows)
 
 
 def make_windows(start: datetime, end: datetime, window_days: int) -> list[tuple[datetime, datetime]]:
@@ -1080,50 +1313,29 @@ def make_windows(start: datetime, end: datetime, window_days: int) -> list[tuple
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Archive DWS media from explicitly allowed internal groups.")
+    parser = argparse.ArgumentParser(description="Archive DWS files from explicitly allowed internal groups.")
     parser.add_argument("--allow-title", action="append", required=True, help="Exact DWS group title; repeat for every authorized group.")
     parser.add_argument("--days", type=int, default=90)
     parser.add_argument("--start", help="Inclusive start time in Asia/Shanghai, YYYY-MM-DD HH:MM:SS.")
-    parser.add_argument("--window-days", type=int, default=30)
+    parser.add_argument("--window-days", type=int, default=30, help="时间切片天数，默认 30（拍板值）。")
     parser.add_argument("--end", help="Frozen end time in Asia/Shanghai, YYYY-MM-DD HH:MM:SS.")
     parser.add_argument("--page-size", type=int, default=100)
-    parser.add_argument(
-        "--workers",
-        type=int,
-        default=1,
-        help="Concurrent media pipeline workers (downloads in parallel; manifest writes stay serial).",
-    )
-    parser.add_argument(
-        "--github-media-budget",
-        type=int,
-        help="Maximum raw-media uploads attempted through the current GitHub REST quota. Omit for no cap.",
-    )
-    parser.add_argument("--smb-only", action="store_true", help="Write SMB originals and durable SMB manifests only; defer GitHub media and index.")
-    parser.add_argument(
-        "--sync-github-index",
-        action="store_true",
-        help="For SMB-complete pending records, write GitHub route manifests only; requires --apply.",
-    )
-    parser.add_argument(
-        "--audit",
-        action="store_true",
-        help="Read the specified DWS range and print per-group photo/video completion statistics; requires --dry-run.",
-    )
-    parser.add_argument(
-        "--reconcile",
-        action="store_true",
-        help="Re-read completed windows and add only manifest-missing media; requires --apply.",
-    )
-    parser.add_argument(
-        "--repair-smb",
-        action="store_true",
-        help="Re-download only manifest-known SMB files that are missing or zero-filled; requires --apply.",
-    )
-    parser.add_argument(
-        "--failed-only",
-        action="store_true",
-        help="With --repair-smb, repair only manifest records explicitly marked smb_status=failed.",
-    )
+    parser.add_argument("--workers", type=int, default=1,
+                        help="Concurrent file pipeline workers (downloads in parallel; manifest writes stay serial).")
+    parser.add_argument("--github-file-budget", type=int,
+                        help="Maximum raw-file uploads attempted through the current GitHub REST quota. Omit for no cap.")
+    parser.add_argument("--smb-only", action="store_true", help="Write SMB originals and durable SMB manifests only; defer GitHub file and index.")
+    parser.add_argument("--sync-github-index", action="store_true",
+                        help="For SMB-complete pending records, write GitHub route manifests only; requires --apply.")
+    parser.add_argument("--audit", action="store_true",
+                        help="Read the specified DWS range and print per-group file completion statistics; requires --dry-run.")
+    parser.add_argument("--reconcile", action="store_true",
+                        help="Re-read completed windows and add only manifest-missing files; requires --apply.")
+    parser.add_argument("--repair-smb", action="store_true",
+                        help="Re-download only manifest-known SMB files that are missing or zero-filled; requires --apply.")
+    parser.add_argument("--failed-only", action="store_true",
+                        help="With --repair-smb, repair only manifest records explicitly marked smb_status=failed.")
+    parser.add_argument("--export-handoff", help="导出 handoff_av 交接清单到该 CSV 路径后退出。")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--apply", action="store_true")
@@ -1136,8 +1348,8 @@ def main() -> int:
         raise ArchiveError("page-size must be positive")
     if args.workers < 1 or args.workers > 8:
         raise ArchiveError("workers must be between 1 and 8")
-    if args.github_media_budget is not None and args.github_media_budget < 0:
-        raise ArchiveError("github-media-budget must not be negative")
+    if args.github_file_budget is not None and args.github_file_budget < 0:
+        raise ArchiveError("github-file-budget must not be negative")
     if args.sync_github_index and args.audit:
         raise ArchiveError("--sync-github-index and --audit cannot be used together")
     if args.sync_github_index and not args.apply:
@@ -1158,6 +1370,13 @@ def main() -> int:
         raise ArchiveError("--repair-smb cannot be combined with another operation")
     if not SMB_ROOT.is_dir():
         raise ArchiveError(f"SMB root is unavailable: {SMB_ROOT}")
+
+    if args.export_handoff:
+        groups = select_groups(args.allow_title)
+        total = export_handoff(groups, Path(args.export_handoff).expanduser())
+        print_event("handoff_exported", rows=total, path=args.export_handoff)
+        return 0
+
     if not PRIVATE_DB_CLIENT.is_file():
         raise ArchiveError(f"Private-Database client is unavailable: {PRIVATE_DB_CLIENT}")
     end = parse_time(args.end) if args.end else datetime.now(TIMEZONE).replace(microsecond=0)
@@ -1180,8 +1399,8 @@ def main() -> int:
         windows=len(windows),
     )
     total = Counts()
-    github_budget = GitHubMediaBudget(args.github_media_budget)
-    with tempfile.TemporaryDirectory(prefix="kmvideo-dws-") as temporary:
+    github_budget = GitHubFileBudget(args.github_file_budget)
+    with tempfile.TemporaryDirectory(prefix="kmfile-dws-") as temporary:
         temp_root = Path(temporary)
         for group in groups:
             try:
@@ -1209,8 +1428,8 @@ def main() -> int:
                     print_event("audit_group", group=group.title, **report)
                 else:
                     group_counts = archive_group(
-                        group, windows, temp_root, args.page_size, args.apply, github_budget, args.smb_only, args.reconcile,
-                        workers=args.workers,
+                        group, windows, temp_root, args.page_size, args.apply, github_budget,
+                        args.smb_only, args.reconcile, workers=args.workers,
                     )
             except (ArchiveError, OSError) as exc:
                 group_counts = Counts(failures=1, failures_by_reason=[str(exc)])
@@ -1228,10 +1447,11 @@ def main() -> int:
         smb_repaired_from_dws=total.smb_repaired_from_dws,
         github_raw=total.github_raw,
         github_index=total.github_index,
+        handoff_av=total.handoff_av,
         skipped=total.skipped,
         failures=total.failures,
         completed_windows=total.completed_windows,
-        github_media_budget_remaining=github_budget.remaining,
+        github_file_budget_remaining=github_budget.remaining,
         temp_cleanup="complete",
     )
     return 1 if total.failures else 0
