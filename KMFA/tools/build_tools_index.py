@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 """build_tools_index.py —— 生成 KMFA/tools 与 KMFA/tests 的导航索引
 
-为什么需要它（2026-08-19 实测）：
-  列一次 KMFA/tools 目录 = 854 个条目 / 66184 字符 ≈ **16546 tokens**
-  列一次 KMFA/tests     = 470 个条目 / 36167 字符 ≈  9041 tokens
+为什么需要它（2026-08-19 实测，四个目录全列 ≈ 64370 tokens）：
+  KMFA/tools            854 条目 /  66184 字符 ≈ 16546 tokens
+  KMFA/tests            470 条目 /  36167 字符 ≈  9041 tokens
+  KMFA/metadata/quality 953 条目 / 113487 字符 ≈ 28371 tokens
+  KMFA/stage_artifacts  567 条目 /  41649 字符 ≈ 10412 tokens
   agent 每探索一次 KMFA 就要付掉两万五千 token，而其中 1033 个文件
   （683 个 v013/v014 冻结阶段校验器 + 350 个配套测试）是已完成阶段的产物，
   agent 几乎永远不需要逐个看。文件名中位数 59 字符、最长 207 字符 ——
@@ -49,6 +51,20 @@ def scan(root: Path):
     return frozen_t, live_top, subdirs, frozen_tests, sorted(live_tests)
 
 
+def bulk_dirs(root: Path):
+    """两个只增不减的产物目录：不枚举内容，只给规模与检索方式。
+    枚举它们等于把省下来的 token 又还回去。"""
+    out = []
+    for rel, what in (("KMFA/metadata/quality", "各阶段的质量证据 jsonl/json"),
+                      ("KMFA/stage_artifacts", "各阶段的产物快照（截图、链路、报告）")):
+        d = root / rel
+        if not d.is_dir():
+            continue
+        entries = sorted(x.name for x in d.iterdir())
+        out.append((rel, what, len(entries), entries[:3]))
+    return out
+
+
 def render(root: Path) -> str:
     frozen_t, live_top, subdirs, frozen_tests, live_tests = scan(root)
     total = len(frozen_t) + len(live_top) + sum(len(v) for v in subdirs.values())
@@ -72,8 +88,14 @@ def render(root: Path) -> str:
         out.append(f"- **`{d}/`** —— {len(names)} 个：" + "、".join(f"`{n}`" for n in sorted(names)[:8])
                    + ("…" if len(names) > 8 else ""))
     out += ["", "### 活跃测试", "",
-            f"`KMFA/tests/` 里非 `test_v01*` 的共 **{len(live_tests)}** 个。", "",
-            "---", "",
+            f"`KMFA/tests/` 里非 `test_v01*` 的共 **{len(live_tests)}** 个：", ""]
+    for n in live_tests:
+        out.append(f"- `{n}`")
+    out += ["", "## 三、只增不减的产物目录（不要列，按精确名 grep）", ""]
+    for rel, what, n, sample in bulk_dirs(root):
+        out.append(f"- **`{rel}/`** —— {n} 个条目，{what}。"
+                   f"列一次 ≈{n * 120 // 4} tokens。样例：" + "、".join(f"`{x}`" for x in sample))
+    out += ["", "---", "",
             f"统计：tools 共 {total} 个 .py（冻结 {len(frozen_t)} / 活跃 {total - len(frozen_t)}），"
             f"tests 冻结 {len(frozen_tests)} / 活跃 {len(live_tests)}。", ""]
     return "\n".join(out)

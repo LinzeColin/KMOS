@@ -195,7 +195,133 @@
 
 ### 活跃测试
 
-`KMFA/tests/` 里非 `test_v01*` 的共 **120** 个。
+`KMFA/tests/` 里非 `test_v01*` 的共 **120** 个：
+
+- `_artifact_snapshot.py`
+- `test_a0_file_register.py`
+- `test_a0_golden_fixture.py`
+- `test_access_security_policy.py`
+- `test_amount_tools.py`
+- `test_archive_survives_search_outage.py`
+- `test_attendance_archive_is_readable_by_app.py`
+- `test_automation_schedule_contract.py`
+- `test_basic_tool_boundaries.py`
+- `test_boot_sweep_runs_every_skill.py`
+- `test_both_health_endpoints_agree.py`
+- `test_business_entity_model.py`
+- `test_coldstart_retry_only_inside_the_window.py`
+- `test_collection_receivable_aging.py`
+- `test_coolify_build_contexts.py`
+- `test_cross_source_difference_queue.py`
+- `test_cross_table_review.py`
+- `test_customer_business_analysis.py`
+- `test_daily_routine_check.py`
+- `test_dingtalk_attendance.py`
+- `test_dispatch_early_return_reasons.py`
+- `test_download_matches_owner_column_order.py`
+- `test_duplicate_contract_must_not_vanish.py`
+- `test_duplicate_guard_field_is_actually_wired.py`
+- `test_duplicate_guard_is_not_a_failure.py`
+- `test_dws_auth_asks_itself.py`
+- `test_dws_auth_keepalive.py`
+- `test_dws_data_auth_request.py`
+- `test_dws_output_manifest_backup.py`
+- `test_entity_matching_quality.py`
+- `test_env_switches_reach_the_container.py`
+- `test_field_standardization.py`
+- `test_file_import_register.py`
+- `test_final_no_go_backup_upload.py`
+- `test_finance_file_adapter.py`
+- `test_financial_operating_report.py`
+- `test_full_regression_acceptance.py`
+- `test_fund_cash_loan_plan.py`
+- `test_fund_weekly_analysis_skill.py`
+- `test_home_navigation_runtime.py`
+- `test_integration_preparation.py`
+- `test_invoice_tax_plan.py`
+- `test_lineage_buildable_without_duckdb.py`
+- `test_lineage_completeness.py`
+- `test_lineage_public_safe_gate.py`
+- `test_lineage_report_gate.py`
+- `test_manual_impact_preview.py`
+- `test_manual_rerun_mechanism.py`
+- `test_manual_resolution_events.py`
+- `test_notification_policy_testing_mode.py`
+- `test_notification_reminders.py`
+- `test_operations_sop.py`
+- `test_page_scripts_must_not_be_inline.py`
+- `test_part1_stages_01_03_review.py`
+- `test_part2_stages_04_06_review.py`
+- `test_part3_stages_07_09_review.py`
+- `test_part4_stages_10_12_review.py`
+- `test_part5_stages_13_15_review.py`
+- `test_part6_stages_16_18_review.py`
+- `test_performance_fact_fields.py`
+- `test_performance_review_list.py`
+- `test_performance_salary_boundary.py`
+- `test_policy_evidence_plan.py`
+- `test_precision_stress_validation.py`
+- `test_private_db_reads_one_blob.py`
+- `test_private_db_timeout_is_unavailable.py`
+- `test_project_composite_key.py`
+- `test_project_cost_account_map.py`
+- `test_project_cost_fact_layer.py`
+- `test_project_cost_input_matrix.py`
+- `test_project_cost_is_a_page_you_can_open.py`
+- `test_project_cost_labour_and_full_scan.py`
+- `test_project_cost_page_runtime.py`
+- `test_project_cost_render.py`
+- `test_project_cost_rollup.py`
+- `test_project_cost_says_when_it_was_computed.py`
+- `test_project_cost_sealed_artifact_status.py`
+- `test_project_cost_understatement_is_quantified.py`
+- `test_project_margin.py`
+- `test_project_margin_cash_margin.py`
+- `test_project_scope_reconciliation.py`
+- `test_project_status_lifecycle.py`
+- `test_redcircle_postponement_policy.py`
+- `test_report_export_runtime.py`
+- `test_report_grade_runtime.py`
+- `test_report_templates.py`
+- `test_s05_p2_completion_gate.py`
+- `test_s05_p2_excel_owner_decision.py`
+- `test_s05_p2_owner_decision_application.py`
+- `test_s05_p2_owner_decision_intake.py`
+- `test_s05_p2_owner_decision_templates.py`
+- `test_s05_p3_authority_baseline_lock.py`
+- `test_s10_stage_review.py`
+- `test_s11_stage_review.py`
+- `test_s12_stage_review.py`
+- `test_s13_stage_review.py`
+- `test_s14_stage_review.py`
+- `test_s15_stage_review.py`
+- `test_s16_stage_review.py`
+- `test_s17_stage_review.py`
+- `test_s18_stage_review.py`
+- `test_sent_requires_delivery_evidence.py`
+- `test_single_project_uses_the_real_statement_template.py`
+- `test_skill_failure_code.py`
+- `test_skill_ledger_uplink.py`
+- `test_skill_registry_canonical_paths.py`
+- `test_source_check_board_runtime.py`
+- `test_source_check_matrix.py`
+- `test_source_priority.py`
+- `test_stalest_skill_tick_replaces_the_burst.py`
+- `test_subcontract_procurement_aggregation.py`
+- `test_success_must_say_what_it_did.py`
+- `test_sweep_must_never_deliver.py`
+- `test_sweep_runs_do_not_pollute_health.py`
+- `test_tick_must_stay_mostly_idle.py`
+- `test_validation_evidence_output.py`
+- `test_whole_project_final_review.py`
+- `test_work_check_must_not_be_green_without_checking.py`
+- `test_wps_file_adapter.py`
+- `test_zero_delta_validator.py`
+
+## 三、只增不减的产物目录（不要列，按精确名 grep）
+
+- **`KMFA/metadata/quality/`** —— 953 个条目，各阶段的质量证据 jsonl/json。列一次 ≈28590 tokens。样例：`assertions.jsonl`、`data_quality_results.jsonl`、`entity_matching_quality_cases.jsonl`
+- **`KMFA/stage_artifacts/`** —— 567 个条目，各阶段的产物快照（截图、链路、报告）。列一次 ≈17010 tokens。样例：`DT1_OPS0006_kmos_ci_green_baseline`、`DT5_DATA0001_0002_intake_registration`、`DT5_DATA0006_duckdb_staging`
 
 ---
 
