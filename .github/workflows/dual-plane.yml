@@ -59,3 +59,9 @@ jobs:
           SCRIPT="machine/tools/check_kit_drift.py"
           [ -f "$SCRIPT" ] || { echo "FAIL: 缺少 $SCRIPT"; exit 1; }
           python3 "$SCRIPT" --root .
+      - name: KMFA 工具索引必须与目录一致
+        run: |
+          set -euo pipefail
+          # 列一次 KMFA/tools = 854 条目 / 66184 字符 ≈ 16546 tokens；
+          # 读 INDEX.md ≈ 1700 tokens。索引过期就没人信它，于是所有人继续列目录。
+          python3 KMFA/tools/build_tools_index.py --root . --check
