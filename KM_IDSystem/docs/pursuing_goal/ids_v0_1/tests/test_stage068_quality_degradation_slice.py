@@ -368,6 +368,7 @@ class Stage068QualityDegradationPhase2Tests(unittest.TestCase):
                 ("IDS-STAGE072", "IDS-V0_1-STAGE072-P1", "IDS-V0_1-STAGE072-P1", "IDS-STAGE072-P2-GATE"),
                 ("IDS-STAGE072", "IDS-V0_1-STAGE072-P2", "IDS-V0_1-STAGE072-P2", "IDS-STAGE072-P3-GATE"),
                 ("IDS-STAGE072", "IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P3", "IDS-STAGE072-P4-GATE"),
+                ("IDS-STAGE072", "IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-P4", "IDS-STAGE072-REVIEW-GATE"),
                 (
                     "IDS-STAGE069",
                     "IDS-V0_1-STAGE069-REVIEW",
@@ -398,7 +399,8 @@ class Stage068QualityDegradationPhase2Tests(unittest.TestCase):
                 ("IDS-STAGE071", "IDS-V0_1-STAGE071-REVIEW", "IDS-V0_1-STAGE071-REVIEW"),
                 ("IDS-STAGE072", "IDS-V0_1-STAGE072-P1", "IDS-V0_1-STAGE072-P1"),
                 ("IDS-STAGE072", "IDS-V0_1-STAGE072-P2", "IDS-V0_1-STAGE072-P2"),
-                ("IDS-STAGE072", "IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P3"),),
+                ("IDS-STAGE072", "IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P3"),
+                ("IDS-STAGE072", "IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-P4"),),
         )
         self.assertTrue(
             "IDS-STAGE069-P1-GATE" in plan["stop_condition"]
@@ -420,6 +422,7 @@ class Stage068QualityDegradationPhase2Tests(unittest.TestCase):
             or "IDS-STAGE072-P2-GATE" in plan["stop_condition"]
                or "IDS-STAGE072-P3-GATE" in plan["stop_condition"]
                or "IDS-STAGE072-P4-GATE" in plan["stop_condition"]
+               or "IDS-STAGE072-REVIEW-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             {

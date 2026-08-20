@@ -352,12 +352,12 @@ class Stage072EmbeddingModelVersionPhase3Tests(unittest.TestCase):
             if line.strip()
         }
         self.assertEqual("IDS-STAGE072", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE072-P3", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE072-P3", status["task"])
-        self.assertEqual("IDS-STAGE072-P4-GATE", status["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE072-P4", status["phase"])
+        self.assertEqual("IDS-V0_1-STAGE072-P4", status["task"])
+        self.assertEqual("IDS-STAGE072-REVIEW-GATE", status["next_gate"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE072-P3", plan["task"])
+        self.assertEqual("IDS-V0_1-STAGE072-P4", plan["task"])
         self.assertIn("不创建第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -377,12 +377,13 @@ class Stage072EmbeddingModelVersionPhase3Tests(unittest.TestCase):
         self.assertFalse(run["runtime_actions"]["ovh_deployment_performed"])
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         self.assertIn('current_stage_id: "IDS-STAGE072"', roadmap_text)
-        self.assertIn('current_task_id: "IDS-V0_1-STAGE072-P3"', roadmap_text)
+        self.assertIn('current_task_id: "IDS-V0_1-STAGE072-P4"', roadmap_text)
         self.assertTrue(
             {
                 "EVT-IDS-V0_1-STAGE072-P1-20260820-001",
                 "EVT-IDS-V0_1-STAGE072-P2-20260820-001",
                 "EVT-IDS-V0_1-STAGE072-P3-20260820-001",
+                "EVT-IDS-V0_1-STAGE072-P4-20260820-001",
             }.issubset(event_ids)
         )
 

@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE072",
-  "phase": "IDS-V0_1-STAGE072-P3",
-  "task": "IDS-V0_1-STAGE072-P3",
-  "real_progress": "Stage072 P3 已重放五条固定非业务控制记录并验证 denied、summary_only、document 收紧、full_text_allowed、预算不足暂停与审计前置；五条十八字段审计投影共完成九十次字段检查，所有真实运行时计数保持零，下一步只可在新的独立 run 进入 Stage072 P4。",
-  "report_grade": "冻结 Stage072 任务包、Stage072 P1/P2 合同、Stage071 Review、Stage071 P1 成本治理合同与 Batch061-070 历史上传锁构成唯一合同上下文；当前只验证 P2 内存控制结果、专项场景、失败关闭与回滚，不读取真实资料、不选择模型、不创建持久记录、不调用外部 API 或执行业务处置。",
-  "business_verdict": "本 P3 只证明固定控制场景的本地一致性，不能证明任何真实 provider、model、dimension、created_at、sent_to_external_api、Token、外部 API、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "LOCAL_STAGE072_P3_EMBEDDING_MODEL_VERSION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED_VALIDATED",
+  "phase": "IDS-V0_1-STAGE072-P4",
+  "task": "IDS-V0_1-STAGE072-P4",
+  "real_progress": "Stage072 P4 已仅从 P3 的五条固定非业务控制场景派生五条策略样例、五条十八字段审计样例、九十次字段检查、五条零值成本、五条失败处理、五条未外发记录、七键查询与 P4 到 P3 的控制回退说明；所有真实运行时计数保持零，下一步只可在新的独立 run 进入 Stage072 Review。",
+  "report_grade": "冻结 Stage072 任务包、Stage072 P1/P2/P3 合同、Stage071 Review、Stage071 P1 成本治理合同与 Batch061-070 历史上传锁构成唯一合同上下文；当前只验证纯内存 metadata-only 交付控制、失败关闭、查询和回滚，不读取真实资料、不选择模型、不创建持久记录、不调用外部 API 或执行业务处置。",
+  "business_verdict": "本 P4 只证明五条固定控制引用的本地交付形状、查询说明、回滚边界和中文人工反馈一致性，不能证明任何真实 provider、model、dimension、created_at、sent_to_external_api、Token、外部 API、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "LOCAL_STAGE072_P4_EMBEDDING_MODEL_VERSION_METADATA_ONLY_DELIVERY_RUNTIME_DISABLED_VALIDATED",
   "rendered_at": "2026-08-20",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE072-P4-GATE",
+  "next_gate": "IDS-STAGE072-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
