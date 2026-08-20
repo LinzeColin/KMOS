@@ -1,9 +1,29 @@
 {
   "stage": "IDS-STAGE074",
-  "phase": "IDS-V0_1-STAGE074-P4",
-  "task": "IDS-V0_1-STAGE074-P4",
-  "next_gate": "IDS-STAGE074-REVIEW-GATE",
+  "phase": "IDS-V0_1-STAGE074-REVIEW",
+  "task": "IDS-V0_1-STAGE074-REVIEW",
+  "next_gate": "IDS-STAGE075-P1-GATE",
   "items": [
+    {
+      "id": "ACC-STAGE074-REVIEW-01",
+      "criteria": "冻结 Stage074 任务包、P1--P4 合同、P2/P3/P4 纯内存控制报告、Stage073 Review、Stage073 P1--P4 合同和 Batch061-070 历史上传锁保持为唯一合同上下文；Review 只机械重放既有控制工件，未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径或真实 URI。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE074-REVIEW-02",
+      "criteria": "复审固定 P1 的 3/2/12/10/7/16/8/6/18/12，P2 五条 20/10/14/10/7/16/6/8/18 字段控制投影，P3 五条三十五字段场景、四条白箱人工处理、九十次审计字段检查和三个未来调用候选，以及 P4 五条策略、五条审计样例、五条零值成本、五条失败、五条未外发控制引用、七键查询、四条中文反馈和失败关闭；所有字段、标签、引用和零值只表示控制形状，不代表真实资料、金额、Token、成本、审计或业务结论。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE074-REVIEW-03",
+      "criteria": "默认 denied、data source/document 到 chunk 自动继承、document 只能收紧、summary_only/full_text_allowed 边界、预算不足暂停、审计前置和业务线白箱人工处理均保持；P4 仅能以纯内存控制方式回到 P3，不形成真实本地 Embedding、外发、审计、成本、查询或回退记录。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE074-REVIEW-04",
+      "criteria": "未执行真实资料访问、解析、切块、摘要生成、本地 provider/模型选择或下载、本地 Embedding、索引写入、模型版本记录、成本估算、预算查找、队列、缓存、失败重试、外部 API、模型 Token、审计写入或查询、数据库、持久化、Agent、OVH、生产、Stage075 P1、批次复审、上传或推送；下一步仅可在新的独立 run 进入 Stage075 P1。",
+      "status": "已遵守"
+    },
     {
       "id": "ACC-STAGE074-P4-01",
       "criteria": "冻结 Stage074 任务包、P1/P2/P3 合同、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同与 Batch061-070 历史上传锁保持为唯一合同上下文；P4 只派生 metadata-only 控制证据，未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径或真实 URI。",
@@ -86,8 +106,8 @@
     },
     {
       "id": "ACC-STAGE-074",
-      "criteria": "Stage074 本地 Embedding 兜底合同目前已完成 P1 静态范围、P2 五条固定纯内存控制切片、P3 五条专项控制场景，以及 P4 metadata-only 交付证据、P4→P3 回退与中文反馈；整阶段仍须按冻结任务包在后续独立 run 机械复审，运行时与上传保持关闭。",
-      "status": "P1/P2/P3/P4 已通过，整阶段待 Review"
+      "criteria": "Stage074 本地 Embedding 兜底合同已完成 P1 静态范围、P2 五条固定纯内存控制切片、P3 五条专项控制场景、P4 metadata-only 交付证据、P4→P3 回退与中文反馈，并已按冻结任务包完成整阶段机械复审；运行时、Stage075 启动与上传保持关闭。",
+      "status": "整阶段已复审"
     },
     {
       "id": "ACC-STAGE073-REVIEW-01",

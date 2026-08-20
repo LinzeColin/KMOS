@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-21 · Stage074 local embedding fallback stage review
+
+- 只在内存中机械复审冻结 P1--P4 合同、P2/P3/P4 控制报告、P4→P3 回退、单一权威与业务线白箱人工处理；固定形状、审计前置、失败关闭和零运行时边界均通过，未建立第二权威事实源。
+- 仅扩展 Stage060--073 历史白箱、两个既有批次检查器与 Stage005 的合法零运行时后继，令其明确承认 `Stage074 P4 → Review → Stage075 P1 gate`；不改写历史阶段事实，不读取真实资料，也不启用 provider、模型、队列、缓存、成本、审计、OVH 或生产行为。
+- 本地验证通过：Review `10/10`、Stage060--069 `473/473`、Stage070--074 `240/240`、Stage005 直接治理 `valid=true` 与完整治理回归 `178/178`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，机器平面重渲染 `7` 个中文文件且文档预算、无登记阻塞和双平面检查通过。零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage074-review-local.json`；下一步仅可在新的独立 run 进入 `IDS-STAGE075-P1-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-21 · Stage074 P4 local delivery evidence
 
 - 只从 P3 的五条固定、非业务、`:control:` 场景及 P2 控制投影派生五条策略样例、五条十八字段审计投影、九十次字段检查、五条零值成本、五条失败处理、五条未外发原因、七键查询、P4→P3 控制回退和四条中文反馈；没有建立第二权威事实源。

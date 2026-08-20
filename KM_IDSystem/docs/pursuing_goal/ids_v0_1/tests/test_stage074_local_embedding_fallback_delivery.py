@@ -110,13 +110,28 @@ class Stage074LocalEmbeddingFallbackPhase4Tests(unittest.TestCase):
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         event_ids = {json.loads(line)["event_id"] for line in EVENTS.read_text(encoding="utf-8").splitlines() if line.strip()}
         roadmap = ROADMAP.read_text(encoding="utf-8")
-        self.assertEqual(("IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-P4", "IDS-STAGE074-REVIEW-GATE"), (status["phase"], status["task"], status["next_gate"]))
-        self.assertEqual("IDS-V0_1-STAGE074-P4", plan["task"])
-        self.assertEqual("IDS-V0_1-STAGE074-P4", acceptance["task"])
+        self.assertIn(
+            (status["phase"], status["task"], status["next_gate"]),
+            (
+                ("IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-P4", "IDS-STAGE074-REVIEW-GATE"),
+                ("IDS-V0_1-STAGE074-REVIEW", "IDS-V0_1-STAGE074-REVIEW", "IDS-STAGE075-P1-GATE"),
+            ),
+        )
+        self.assertIn(plan["task"], ("IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW"))
+        self.assertIn(acceptance["task"], ("IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW"))
         self.assertTrue({"ACC-STAGE-074", "ACC-STAGE074-P4-01", "ACC-STAGE074-P4-02", "ACC-STAGE074-P4-03", "ACC-STAGE074-P4-04"}.issubset({x["id"] for x in acceptance["items"]}))
-        self.assertIn('current_phase_id: "IDS-STAGE074-P4"', roadmap)
-        self.assertIn('current_task_id: "IDS-V0_1-STAGE074-P4"', roadmap)
-        self.assertIn('next_gate_id: "IDS-STAGE074-REVIEW-GATE"', roadmap)
+        self.assertTrue(
+            'current_phase_id: "IDS-STAGE074-P4"' in roadmap
+            or 'current_phase_id: "IDS-STAGE074-REVIEW"' in roadmap
+        )
+        self.assertTrue(
+            'current_task_id: "IDS-V0_1-STAGE074-P4"' in roadmap
+            or 'current_task_id: "IDS-V0_1-STAGE074-REVIEW"' in roadmap
+        )
+        self.assertTrue(
+            'next_gate_id: "IDS-STAGE074-REVIEW-GATE"' in roadmap
+            or 'next_gate_id: "IDS-STAGE075-P1-GATE"' in roadmap
+        )
         self.assertIn("EVT-IDS-V0_1-STAGE074-P4-20260821-001", event_ids)
 
 if __name__ == "__main__":

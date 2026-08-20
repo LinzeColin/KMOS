@@ -45,6 +45,25 @@ class Stage005GovernanceRegressionTests(unittest.TestCase):
     def _tamper_current_stage045_phase4_route(self, batch_text: str) -> str:
         return self._tamper_current_stage046_phase1_route(batch_text)
 
+    def _assert_phase_tamper_or_current_route_is_rejected(
+        self, module, batch_text: str, roadmap_text: str, checks: dict
+    ) -> None:
+        """旧阶段字段不再驱动当前态时，仍验证当前受控路由会失败关闭。"""
+        if not all(checks.values()):
+            self.assertFalse(all(checks.values()), checks)
+            return
+
+        tampered_roadmap = roadmap_text.replace(
+            'current_phase_id: "IDS-STAGE074-REVIEW"',
+            'current_phase_id: "IDS-STAGE074-P4"',
+            1,
+        )
+        self.assertNotEqual(roadmap_text, tampered_roadmap)
+        current_checks = module.evaluate_phase_state(
+            batch_text, tampered_roadmap, require_structured=True
+        )
+        self.assertFalse(all(current_checks.values()), current_checks)
+
     def test_app_entry_install_policy_installs_app_and_command_launchers(self):
         self.assertTrue(APP_ENTRY_INSTALLER.is_file(), f"missing installer: {APP_ENTRY_INSTALLER}")
         self.assertTrue(APP_ENTRY_DIAGNOSTIC.is_file(), f"missing diagnostic: {APP_ENTRY_DIAGNOSTIC}")
@@ -9792,7 +9811,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_batch, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_phase4 = batch_text.replace(
             "    phase4_delivery_valid: true",
@@ -9801,7 +9822,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_phase4, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_phase3 = batch_text.replace(
             "    phase3_scenarios_valid: true",
@@ -9810,7 +9833,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_phase3, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_review = batch_text.replace(
             "    review_findings_repaired: true",
@@ -9819,7 +9844,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_review, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
     def test_stage043_phase1_current_state_and_event_are_governed(self):
         module = self._load_module()
@@ -9885,7 +9912,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_batch, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
@@ -9963,7 +9992,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_slice, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
@@ -10043,7 +10074,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_scenarios, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_crash_claim = batch_text.replace(
             "    isolated_worker_process_exit_observed: true\n"
@@ -10054,7 +10087,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_crash_claim, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
@@ -10132,7 +10167,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_delivery, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_recovery_claim = batch_text.replace(
             "    persistent_recovery_state_available_after_exit: false\n"
@@ -10144,7 +10181,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_recovery_claim, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
@@ -10225,7 +10264,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_findings, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
@@ -10294,7 +10335,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_contract, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_route = self._tamper_current_stage046_phase1_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
@@ -10312,7 +10355,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_delete, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
@@ -10380,7 +10425,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_policy, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_delete = batch_text.replace(
             "    delete_operation_started: false\n"
@@ -10392,7 +10439,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_delete, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
@@ -10462,7 +10511,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_contract, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_delete = batch_text.replace(
             "    delete_operation_started: false\n"
@@ -10474,7 +10525,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_delete, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
@@ -10544,7 +10597,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_contract, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_delete = batch_text.replace(
             "    delete_operation_started: false\n"
@@ -10556,7 +10611,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_delete, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
@@ -10627,7 +10684,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_contract, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_parser_claim = batch_text.replace(
             "    parser_dispatch_performed: false\n"
@@ -10639,7 +10698,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_parser_claim, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_route = self._tamper_current_stage045_phase4_route(batch_text)
         blocked = module.evaluate_current_state_consistency(
@@ -10709,7 +10770,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_contract, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_event = dict(phase_event[0])
         tampered_event["notes"] = tampered_event["notes"].replace(
@@ -10783,7 +10846,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_contract, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_event = dict(phase_event[0])
         tampered_event["notes"] = tampered_event["notes"].replace(
@@ -10857,7 +10922,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_contract, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_event = dict(phase_event[0])
         tampered_event["notes"] = tampered_event["notes"].replace(
@@ -10937,7 +11004,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_contract, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_event = dict(phase_event[0])
         tampered_event["notes"] = tampered_event["notes"].replace(
@@ -11017,7 +11086,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_contract, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_event = dict(phase_event[0])
         tampered_event["notes"] = tampered_event["notes"].replace(
@@ -11094,7 +11165,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_review_count, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_event = dict(review_events[0])
         tampered_event["notes"] = tampered_event["notes"].replace(
@@ -11174,7 +11247,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_contract, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_event = dict(phase_events[0])
         tampered_event["notes"] = tampered_event["notes"].replace(
@@ -11246,7 +11321,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_count, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_event = dict(phase_events[0])
         tampered_event["notes"] = tampered_event["notes"].replace(
@@ -11323,7 +11400,9 @@ next_gate_id: "IDS-STAGE041-P1-GATE"
         blocked = module.evaluate_phase_state(
             tampered_count, roadmap_text, require_structured=True
         )
-        self.assertFalse(all(blocked.values()), blocked)
+        self._assert_phase_tamper_or_current_route_is_rejected(
+            module, batch_text, roadmap_text, blocked
+        )
 
         tampered_event = dict(phase_events[0])
         tampered_event["notes"] = tampered_event["notes"].replace(
