@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE074",
-  "phase": "IDS-V0_1-STAGE074-P1",
-  "task": "IDS-V0_1-STAGE074-P1",
-  "real_progress": "Stage074 P1 只定义本地 Embedding 兜底的静态合同，固定默认 denied、策略继承、未来本地路线、队列、缓存、失败重试、成本治理、模型版本和审计形状；没有选择模型、创建运行时记录或执行本地/外部 Embedding，所有真实运行时计数保持零。",
-  "report_grade": "冻结 Stage074 任务包、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同和 Batch061-070 历史上传锁构成唯一合同上下文；本次只形成可测试、可回滚的静态本地兜底合同，不建立第二权威事实源、不读取真实资料、不创建持久记录、不调用本地或外部模型。",
-  "business_verdict": "本 P1 只证明未来本地 Embedding 兜底路线及外部策略、队列、成本、模型版本、审计和失败关闭形状可在本地验证，不能证明任何真实资料、local provider、local model、chunk、Token、外部 API、审计日志、成本、索引、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "LOCAL_STAGE074_P1_LOCAL_EMBEDDING_FALLBACK_CONTRACT_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE074-P2",
+  "task": "IDS-V0_1-STAGE074-P2",
+  "real_progress": "Stage074 P2 只以五条固定、非业务、:control: 输入在内存中投影本地 Embedding 兜底的策略继承、队列、缓存、失败重试、成本治理、模型版本、零值成本和审计形状；没有选择模型、创建运行时记录或执行本地/外部 Embedding，所有真实运行时计数保持零。",
+  "report_grade": "冻结 Stage074 任务包、Stage074 P1 静态合同、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同和 Batch061-070 历史上传锁构成唯一合同上下文；本次只形成可测试、可回滚的纯内存控制切片，不建立第二权威事实源、不读取真实资料、不创建持久记录、不调用本地或外部模型。",
+  "business_verdict": "本 P2 只证明五条固定控制引用可机械验证默认 denied、策略继承、未授权 chunk 阻断、预算暂停、队列/缓存/失败重试/成本治理/模型版本/审计字段形状和失败关闭；不能证明任何真实资料、local provider、local model、chunk、Token、外部 API、审计日志、成本、索引、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "LOCAL_STAGE074_P2_LOCAL_EMBEDDING_FALLBACK_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-21",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE074-P2-GATE",
+  "next_gate": "IDS-STAGE074-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

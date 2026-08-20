@@ -206,18 +206,29 @@ class Stage074LocalEmbeddingFallbackPhase1Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         }
-        self.assertEqual(
-            (
-                "IDS-STAGE074",
-                "IDS-V0_1-STAGE074-P1",
-                "IDS-V0_1-STAGE074-P1",
-                "IDS-STAGE074-P2-GATE",
-            ),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-STAGE074",
+                    "IDS-V0_1-STAGE074-P1",
+                    "IDS-V0_1-STAGE074-P1",
+                    "IDS-STAGE074-P2-GATE",
+                ),
+                (
+                    "IDS-STAGE074",
+                    "IDS-V0_1-STAGE074-P2",
+                    "IDS-V0_1-STAGE074-P2",
+                    "IDS-STAGE074-P3-GATE",
+                ),
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE074-P1", plan["task"])
+        self.assertIn(
+            plan["task"],
+            ("IDS-V0_1-STAGE074-P1", "IDS-V0_1-STAGE074-P2"),
+        )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -235,7 +246,10 @@ class Stage074LocalEmbeddingFallbackPhase1Tests(unittest.TestCase):
         self.assertFalse(run["runtime_actions"]["ovh_deployment_performed"])
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         self.assertIn('current_stage_id: "IDS-STAGE074"', roadmap_text)
-        self.assertIn('current_task_id: "IDS-V0_1-STAGE074-P1"', roadmap_text)
+        self.assertTrue(
+            'current_task_id: "IDS-V0_1-STAGE074-P1"' in roadmap_text
+            or 'current_task_id: "IDS-V0_1-STAGE074-P2"' in roadmap_text
+        )
         self.assertIn("EVT-IDS-V0_1-STAGE074-P1-20260821-001", event_ids)
 
     def test_scope_document_explains_zero_runtime_and_next_gate(self):

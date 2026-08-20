@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE074"
-current_phase_id: "IDS-STAGE074-P1"
-current_task_id: "IDS-V0_1-STAGE074-P1"
-next_gate_id: "IDS-STAGE074-P2-GATE"
+current_phase_id: "IDS-STAGE074-P2"
+current_task_id: "IDS-V0_1-STAGE074-P2"
+next_gate_id: "IDS-STAGE074-P3-GATE"
 current_transition_history:
+  stage074_phase2_state:
+    current_stage_id: "IDS-STAGE074"
+    current_phase_id: "IDS-STAGE074-P2"
+    current_task_id: "IDS-V0_1-STAGE074-P2"
+    next_gate_id: "IDS-STAGE074-P3-GATE"
   stage074_phase1_state:
     current_stage_id: "IDS-STAGE074"
     current_phase_id: "IDS-STAGE074-P1"
@@ -17831,21 +17836,21 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-074"
     objective: "只以冻结 Stage074 任务包、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同和 Batch061-070 历史上传锁为唯一合同上下文，定义未来本地 Embedding 兜底路线、默认 denied、策略继承、队列/缓存/失败重试、成本、模型版本与审计形状；不读取、处理、创建、查询或回退真实资料。"
-    status: "phase1_completed_local"
+    status: "phase2_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE074-P2-GATE"
+    next_gate_id: "IDS-STAGE074-P3-GATE"
     gate:
-      gate_id: "IDS-STAGE074-P1-GATE"
+      gate_id: "IDS-STAGE074-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE074-P2-GATE"
+      next_gate_id: "IDS-STAGE074-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "冻结 Stage074 任务包、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同和 Batch061-070 历史上传锁保持为唯一合同上下文；P1 不创建第二权威事实源，不读取真实资料、原始元数据、来源正文、摘要正文、文本块、provider、模型、Token 或 chunk。"
-      - "未来本地 Embedding 兜底路线仅为静态合同引用，默认 denied、三档策略、data source/document→chunk 自动继承、document 只能收紧、owner 不逐条标记 chunk、12/10/7 队列/缓存/失败重试、16/8 成本、6 字段模型版本、18 字段审计和 12 类失败关闭均固定。"
-      - "本地或外部模型选择、下载、调用、Token、队列、缓存、失败重试、成本、审计、索引、数据库、Agent、OVH、生产和上传均保持关闭；只开放后续 Stage074 P2 门。"
+      - "冻结 Stage074 任务包、Stage074 P1 静态合同、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同和 Batch061-070 历史上传锁保持为唯一合同上下文；P2 不创建第二权威事实源，不读取真实资料、原始元数据、来源正文、摘要正文、文本块、provider、模型、Token 或 chunk。"
+      - "五条固定、非业务、:control: 请求在内存中机械重放默认 denied、三档策略、data source/document→chunk 自动继承、document 只能收紧、owner 不逐条标记 chunk、未授权 chunk 阻断、预算暂停、12/10/7 队列/缓存/失败重试、16/8 成本、6 字段模型版本、18 字段审计和 12 类失败关闭。"
+      - "本地或外部模型选择、下载、调用、Token、队列、缓存、失败重试、成本、审计、索引、数据库、Agent、OVH、生产和上传均保持关闭；只开放后续 Stage074 P3 门。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、总结、保留、外发或回退任何 IDS 业务资料、原始元数据、授权 fixture、真实 data source、document、摘要、文本块、chunk、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、重试、审计、成本、索引、数据库或报告。"
-      - "执行真实 parser、切块、摘要生成、本地 provider/模型选择或下载、本地 Embedding、索引写入、模型版本记录、成本估算、预算查找、Embedding 队列、缓存、失败重试、provider 凭据读取、外部 API、模型调用、模型 Token、审计写入或查询、持久化、Agent、OVH、生产服务、Stage074 P2、批次复审、上传、推送或应用重装。"
+      - "执行真实 parser、切块、摘要生成、本地 provider/模型选择或下载、本地 Embedding、索引写入、模型版本记录、成本估算、预算查找、Embedding 队列、缓存、失败重试、provider 凭据读取、外部 API、模型调用、模型 Token、审计写入或查询、持久化、Agent、OVH、生产服务、Stage074 P3、批次复审、上传、推送或应用重装。"
     phases:
       - phase_id: "IDS-STAGE074-P1"
         name: "Phase 1 · 本地 Embedding 兜底范围、输入输出与边界确认"
@@ -17891,6 +17896,52 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
             risk: "若把未来本地兜底合同、字段形状或本地测试误作真实本地 Embedding、真实模型、Token、审计、索引、OVH、生产或上传能力，会绕开单一权威和业务线白箱人工复核。"
             rollback: "只回滚本 P1 的范围说明、静态合同、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 LOCAL_STAGE073_REVIEWED_EMBEDDING_AUDIT_TEST_RUNTIME_DISABLED；不改变 Stage073 Review、冻结任务包、真实资料、manifest、evidence ledger、audit log、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE074-P2"
+        name: "Phase 2 · 本地 Embedding 兜底实现、接入与最小可运行切片"
+        objective: "只以五条固定、非业务、:control: 请求在内存中机械投影默认 denied 的策略继承、未授权 chunk 阻断、队列、缓存、失败重试、成本治理、零值成本、模型版本和 18 字段审计；不读取真实资料，不选择模型，不执行本地或外部运行时。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE074-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE074-P2-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE074-P3-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "任何真实资料访问、本地或外部模型选择/下载/调用、Token、队列、缓存、失败重试、成本、审计、索引、数据库、Agent、OVH、生产、上传或推送。"
+          - "需要真实资料但没有 fixture 或 owner 授权样本、可能改变原始资料、schema migration 无法回滚、测试失败原因不明、范围超出 Stage074 P2 或共享文件发生冲突。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE074-P2"
+            name: "交付本地 Embedding 兜底纯内存控制切片"
+            objective: "将 P1 固定的未来本地兜底路线、三档策略、两跳继承、队列/缓存/失败重试、成本、模型版本和审计形状，投影为五条可测试、可回滚、非业务控制记录，不替代来源文档或业务事实。"
+            status: "completed"
+            estimated_hours: 4
+            total_hours_percent: "50.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE074-P1"
+            acceptance_ids:
+              - "ACC-STAGE-074"
+              - "ACC-STAGE074-P2-01"
+              - "ACC-STAGE074-P2-02"
+              - "ACC-STAGE074-P2-03"
+              - "ACC-STAGE074-P2-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage074_local_embedding_fallback_slice"
+              - "Stage060--073 白箱回归、两个批次检查器、Stage005 治理回归和机器平面检查见 machine run"
+            test_results: "本地通过：P2 聚焦 10/10、P1 合同 8/8、Stage060--069 473/473、Stage070 47/47、Stage071 53/53、Stage072 49/49、Stage073 49/49，共 689 项；Batch041-050/Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 valid=true，机器平面重渲染 7 个中文文件且文档预算、无登记阻塞、单项目双平面检查均通过。本 P2 不进入 Stage074 P3、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-074_本地Embedding兜底合同.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE074_PHASE2_LOCAL_EMBEDDING_FALLBACK_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/local_embedding_fallback/stage074_local_embedding_fallback_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/local_embedding_fallback/stage074_local_embedding_fallback_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/local_embedding_fallback/stage074_local_embedding_fallback_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage074_local_embedding_fallback_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-21-stage074-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE073_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_audit_test/stage073_embedding_audit_test_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把五条 control 输入、内存投影、零值成本、审计字段或本地测试误作真实本地 Embedding、真实模型、Token、审计、索引、OVH、生产或上传能力，会绕开单一权威和业务线白箱人工复核。"
+            rollback: "只回滚本 P2 的范围说明、纯内存控制合同、模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PHASE1_LOCAL_EMBEDDING_FALLBACK_CONTRACT_RUNTIME_DISABLED；不改变 P1、Stage073 Review、冻结任务包、真实资料、manifest、evidence ledger、audit log、数据库、索引、GitHub、OVH 或应用状态。"
   - stage_id: "IDS-STAGE073"
     name: "Embedding 审计测试"
     task_id: "IDS-V0_1-STAGE073"

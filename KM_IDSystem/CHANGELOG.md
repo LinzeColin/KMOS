@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-21 · Stage074 P2 local control slice
+
+- 只以五条固定、非业务、:control: 输入实现本地 Embedding 兜底的纯内存策略继承、未授权 chunk 阻断、队列、缓存、失败重试、成本治理、模型版本、零值成本和审计控制投影。
+- 未读取真实资料，未选择或下载本地模型，未执行本地或外部 Embedding、模型 Token、Agent、OVH、生产、上传或推送。
+- 下一步仅可在新的独立 run 进入 Stage074 P3。
+
 ## 2026-08-21 · IDS v0.1 Stage074 Phase 1（本地）
 
 - 完成本地 Embedding 兜底静态合同：只固化未来本地路线、默认 `denied`、三档外部策略、data source/document→chunk 两跳自动继承、owner 不逐条标记 chunk、`12/10/7` 队列/缓存/失败重试、`16/8` 成本、六字段模型版本、十八字段审计和十二类失败关闭；没有建立第二权威事实源，也没有选择或下载 provider/模型。

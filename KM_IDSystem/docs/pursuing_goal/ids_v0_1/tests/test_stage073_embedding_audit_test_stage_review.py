@@ -230,6 +230,12 @@ class Stage073EmbeddingAuditTestStageReviewTests(unittest.TestCase):
                     "IDS-V0_1-STAGE074-P1",
                     "IDS-STAGE074-P2-GATE",
                 ),
+                (
+                    "IDS-STAGE074",
+                    "IDS-V0_1-STAGE074-P2",
+                    "IDS-V0_1-STAGE074-P2",
+                    "IDS-STAGE074-P3-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -239,6 +245,7 @@ class Stage073EmbeddingAuditTestStageReviewTests(unittest.TestCase):
             (
                 ("IDS-STAGE073", "IDS-V0_1-STAGE073-REVIEW", "IDS-V0_1-STAGE073-REVIEW"),
                 ("IDS-STAGE074", "IDS-V0_1-STAGE074-P1", "IDS-V0_1-STAGE074-P1"),
+                ("IDS-STAGE074", "IDS-V0_1-STAGE074-P2", "IDS-V0_1-STAGE074-P2"),
             ),
         )
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}

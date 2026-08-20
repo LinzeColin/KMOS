@@ -284,6 +284,12 @@ class Stage073EmbeddingAuditTestPhase1Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE074-P1",
                     "IDS-STAGE074-P2-GATE",
                 ),
+                (
+                    "IDS-STAGE074",
+                    "IDS-V0_1-STAGE074-P2",
+                    "IDS-V0_1-STAGE074-P2",
+                    "IDS-STAGE074-P3-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -297,6 +303,7 @@ class Stage073EmbeddingAuditTestPhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE073-P4",
                 "IDS-V0_1-STAGE073-REVIEW",
                 "IDS-V0_1-STAGE074-P1",
+                "IDS-V0_1-STAGE074-P2",
             ),
         )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
@@ -314,13 +321,18 @@ class Stage073EmbeddingAuditTestPhase1Tests(unittest.TestCase):
         self.assertEqual(0, run["runtime_counts"]["actual_external_api_audit_count"])
         self.assertEqual(0, run["runtime_counts"]["actual_model_token_count"])
         self.assertFalse(run["runtime_actions"]["ovh_deployment_performed"])
-        self.assertIn('current_stage_id: "IDS-STAGE073"', roadmap_text)
+        self.assertTrue(
+            'current_stage_id: "IDS-STAGE073"' in roadmap_text
+            or 'current_stage_id: "IDS-STAGE074"' in roadmap_text
+        )
         self.assertTrue(
             'current_task_id: "IDS-V0_1-STAGE073-P1"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE073-P2"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE073-P3"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE073-P4"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE073-REVIEW"' in roadmap_text
+            or 'current_task_id: "IDS-V0_1-STAGE074-P1"' in roadmap_text
+            or 'current_task_id: "IDS-V0_1-STAGE074-P2"' in roadmap_text
         )
         self.assertIn("stage070_completed_reviewed_local", batch_text)
         self.assertIn("EVT-IDS-V0_1-STAGE073-P1-20260820-001", event_ids)

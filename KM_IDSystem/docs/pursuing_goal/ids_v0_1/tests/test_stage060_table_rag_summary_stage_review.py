@@ -589,7 +589,7 @@ class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
                 ("IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-P4", "IDS-STAGE072-REVIEW-GATE"),
                 ("IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE072-REVIEW", "IDS-STAGE073-P1-GATE"),
                 ("IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P1", "IDS-STAGE073-P2-GATE"), ("IDS-V0_1-STAGE073-P2", "IDS-V0_1-STAGE073-P2", "IDS-STAGE073-P3-GATE"), ('IDS-V0_1-STAGE073-P3', 'IDS-V0_1-STAGE073-P3', 'IDS-STAGE073-P4-GATE'), ('IDS-V0_1-STAGE073-P4', 'IDS-V0_1-STAGE073-P4', 'IDS-STAGE073-REVIEW-GATE'), ("IDS-V0_1-STAGE073-REVIEW", "IDS-V0_1-STAGE073-REVIEW", "IDS-STAGE074-P1-GATE"),
-                ("IDS-V0_1-STAGE074-P1", "IDS-V0_1-STAGE074-P1", "IDS-STAGE074-P2-GATE"),
+                ("IDS-V0_1-STAGE074-P1", "IDS-V0_1-STAGE074-P1", "IDS-STAGE074-P2-GATE"), ("IDS-V0_1-STAGE074-P2", "IDS-V0_1-STAGE074-P2", "IDS-STAGE074-P3-GATE"),
             )
         )
         legal_stage073_phase1_successor = (
@@ -625,9 +625,18 @@ class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
             )
             or (
                 status["stage"] == "IDS-STAGE074"
-                and status["phase"] == "IDS-V0_1-STAGE074-P1"
-                and status["task"] == "IDS-V0_1-STAGE074-P1"
-                and status["next_gate"] == "IDS-STAGE074-P2-GATE"
+                and (
+                    (
+                        status["phase"] == "IDS-V0_1-STAGE074-P1"
+                        and status["task"] == "IDS-V0_1-STAGE074-P1"
+                        and status["next_gate"] == "IDS-STAGE074-P2-GATE"
+                    )
+                    or (
+                        status["phase"] == "IDS-V0_1-STAGE074-P2"
+                        and status["task"] == "IDS-V0_1-STAGE074-P2"
+                        and status["next_gate"] == "IDS-STAGE074-P3-GATE"
+                    )
+                )
             )
         )
         self.assertTrue(
