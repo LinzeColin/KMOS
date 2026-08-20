@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage074-p4-local",
+    "date": "2026-08-21",
+    "summary": "完成 Stage074 P4 本地 Embedding 兜底 metadata-only 交付证据：只从 P3 五条固定、非业务、:control: 场景和 P2 控制投影派生五条策略样例、五条十八字段审计投影、九十次字段检查、五条零值成本、五条失败处理、五条未外发原因、七键查询、P4→P3 控制回退和四条中文反馈；未选择或下载模型，未执行本地/外部 Embedding、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可进入 Stage074 Review 门。"
+  },
+  {
     "version": "v0.1-stage074-p3-local",
     "date": "2026-08-21",
     "summary": "完成 Stage074 P3 本地 Embedding 兜底专项控制场景：只重放 P2 五条固定、非业务、:control: 控制投影，机械验证 denied 不外发、summary_only 仅摘要引用、document 收紧不得升级、full_text_allowed 仅未来文本块引用、预算不足暂停、每条十八字段审计投影、九十次字段检查和三个未来调用候选的审计前置；未选择或下载模型，未执行本地/外部 Embedding、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage074 P4。"

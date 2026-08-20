@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE074",
-  "phase": "IDS-V0_1-STAGE074-P3",
-  "task": "IDS-V0_1-STAGE074-P3",
-  "now": "IDS-V0_1-STAGE074-P3：本地 Embedding 兜底的五条固定纯内存专项控制场景。",
-  "owner": "既有唯一 KMOS 开发 worktree，Stage074 P3",
-  "objective": "只以冻结 Stage074 任务包、Stage074 P1/P2 合同、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同和 Batch061-070 历史上传锁为唯一合同上下文，重放 P2 五条固定、非业务、:control: 控制投影，机械验证 denied 不外发、summary_only 仅摘要引用、document 收紧不得升级、full_text_allowed 仅未来文本块引用、预算不足暂停和每条十八字段审计前置；不读取、打开、解析、总结、外发、创建、写入、查询或回退真实资料、模型、Token、预算、队列、缓存、重试、审计或业务结论。",
+  "phase": "IDS-V0_1-STAGE074-P4",
+  "task": "IDS-V0_1-STAGE074-P4",
+  "now": "IDS-V0_1-STAGE074-P4：本地 Embedding 兜底的 metadata-only 交付证据、回滚与中文反馈。",
+  "owner": "既有唯一 KMOS 开发 worktree，Stage074 P4",
+  "objective": "只以冻结 Stage074 任务包、Stage074 P1/P2/P3 合同、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同和 Batch061-070 历史上传锁为唯一合同上下文，从 P3 五条固定、非业务、:control: 场景和 P2 控制投影派生五条策略样例、五条十八字段审计投影、五条零值成本、五条失败处理、五条未外发原因、七键查询、P4→P3 回退与中文反馈；不读取、打开、解析、总结、外发、创建、写入、查询或回退真实资料、模型、Token、预算、队列、缓存、重试、审计或业务结论。",
   "scope": [
-    "以冻结 Stage074 任务包、Stage074 P1/P2 合同、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同和 Batch061-070 历史上传锁为唯一合同上下文，不建立第二权威事实源，也不创建第二权威事实源",
-    "只重放 P2 的五条固定、非业务、:control: 控制投影，机械验证 denied、summary_only、document 收紧、full_text_allowed 与预算不足暂停的显式处置；所有字段只表示控制标签，不包含真实资料、provider、模型、时间、Token、金额或外发事实",
-    "每条场景保留完整十八字段审计控制投影，共九十次字段检查；三个未来调用候选都保持审计前置与业务线白箱人工复核，四个非 denied 情形保留人工处理，不选择或下载模型、不执行本地 Embedding、不写入索引或持久化",
-    "仅同步 IDS-V0_1-STAGE074-P3 的范围说明、纯内存模块、场景合同、聚焦用例、machine run、事件、机器事实、治理路线、中文视图与交接；P1/P2、Stage073 Review 和 Batch061-070 历史锁只作为既有证据，不改写其完成状态"
+    "以冻结 Stage074 任务包、P1/P2/P3 合同、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同和 Batch061-070 历史上传锁为唯一合同上下文，不建立第二权威事实源，也不创建第二权威事实源",
+    "只复用 P3 五条固定、非业务、:control: 场景与 P2 控制投影，派生五条策略样例、五条十八字段审计投影、五条零值成本、五条失败处理、五条未外发原因、七键查询、P4→P3 回退与四条中文反馈；所有字段只表示控制标签",
+    "denied、summary_only、document 收紧、full_text_allowed、预算暂停、审计前置和业务线白箱人工处理必须保持；没有持久审计日志、真实外发历史、真实查询或真实回退",
+    "仅同步 IDS-V0_1-STAGE074-P4 的范围说明、交付合同、纯内存模块、聚焦用例、machine run、事件、机器事实、治理路线、中文视图与交接；P1/P2/P3、Stage073 Review 和 Batch061-070 历史锁只作为既有证据，不改写其完成状态"
   ],
   "non_goals": [
     "不打开、创建、复制、移动、删除、修改、检测、解析、评估、保留、总结、外发、查询、重生成或回退真实业务源、原始元数据、授权 fixture、真实 data source、document、摘要、文本块、页面、chunk、provider、模型、维度、创建时间、外发状态、金额、Token、预算、队列、缓存、失败重试、审计日志、成本记录、索引、事实库、证据账本、数据库或报告",
     "不执行真实 parser、切块、摘要生成、本地 provider/模型选择或下载、本地 Embedding、Embedding 队列、缓存、失败重试、成本估算、预算查找、模型版本记录、外部文本载荷、外部 API、模型调用、模型 Token、审计写入或查询、索引、数据库连接或 migration、持久化、Agent、OVH、生产或上传",
-    "不启动 Stage074 P4、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不启动 Stage074 Review、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage074 P3 对五条固定控制场景、denied 阻断、summary_only 摘要引用、document 收紧、full_text_allowed 未来文本块引用、预算不足暂停、每条十八字段审计、九十次字段检查、三个审计前置未来调用候选、显式处置、单一权威和零运行时边界完成本地验证后停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE074-P4-GATE，当前 run 不得启动 P4。任何真实资料访问、local provider/模型选择或下载、本地 Embedding、索引写入、provider/模型选择、真实模型版本记录、Token 写入、成本估算、预算查询、摘要或文本载荷创建、队列、缓存、失败重试、审计写入或查询、外部 API、模型 Token、数据库、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "Stage074 P4 对五条固定控制样例、五条十八字段审计投影、九十次字段检查、五条零值成本、五条失败处理、五条未外发原因、七键查询、P4→P3 控制回退、四条中文反馈、单一权威和零运行时边界完成本地验证后停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE074-REVIEW-GATE，当前 run 不得启动 Review。任何真实资料访问、local provider/模型选择或下载、本地 Embedding、索引写入、provider/模型选择、真实模型版本记录、Token 写入、成本估算、预算查询、摘要或文本载荷创建、队列、缓存、失败重试、审计写入或查询、外部 API、模型 Token、数据库、OVH、生产或上传动作都不属于本步骤。"
 }

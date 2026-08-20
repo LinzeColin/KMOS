@@ -227,6 +227,12 @@ class Stage074LocalEmbeddingFallbackPhase1Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE074-P3",
                     "IDS-STAGE074-P4-GATE",
                 ),
+                (
+                    "IDS-STAGE074",
+                    "IDS-V0_1-STAGE074-P4",
+                    "IDS-V0_1-STAGE074-P4",
+                    "IDS-STAGE074-REVIEW-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -237,6 +243,7 @@ class Stage074LocalEmbeddingFallbackPhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE074-P1",
                 "IDS-V0_1-STAGE074-P2",
                 "IDS-V0_1-STAGE074-P3",
+                "IDS-V0_1-STAGE074-P4",
             ),
         )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
@@ -260,6 +267,7 @@ class Stage074LocalEmbeddingFallbackPhase1Tests(unittest.TestCase):
             'current_task_id: "IDS-V0_1-STAGE074-P1"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE074-P2"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE074-P3"' in roadmap_text
+            or 'current_task_id: "IDS-V0_1-STAGE074-P4"' in roadmap_text
         )
         self.assertIn("EVT-IDS-V0_1-STAGE074-P1-20260821-001", event_ids)
 

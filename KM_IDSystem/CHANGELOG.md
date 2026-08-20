@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-21 · Stage074 P4 local delivery evidence
+
+- 只从 P3 的五条固定、非业务、`:control:` 场景及 P2 控制投影派生五条策略样例、五条十八字段审计投影、九十次字段检查、五条零值成本、五条失败处理、五条未外发原因、七键查询、P4→P3 控制回退和四条中文反馈；没有建立第二权威事实源。
+- 仅将 Stage060--073 历史白箱、两个既有批次检查器和 Stage005 的当前态/历史批次兼容分支扩展为承认 P4→Review 的合法零运行时后继；不改写历史阶段事实，不读取真实资料，也不启用 provider、模型、队列、缓存、成本、审计、OVH 或生产行为。
+- 本地验证通过：P4 `5/5`、Stage074 P1--P4 `32/32`、Stage060--069 `473/473`、Stage070--074 `230/230`、Stage005 `178/178`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，直接治理检查 `valid=true`，机器平面重渲染 `7` 个中文文件且文档预算、无登记阻塞和双平面检查通过。零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage074-p4-local.json`；下一步仅可在新的独立 run 进入 `IDS-STAGE074-REVIEW-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-21 · Stage074 P3 local controlled scenarios
 
 - 只在内存中重放 P2 的五条固定、非业务、:control: 控制投影，验证 denied 阻断、summary_only 引用边界、document 收紧、full_text_allowed 未来文本块引用候选、预算暂停、十八字段审计、九十次字段检查、三个未来调用候选和四条业务线白箱人工处理。

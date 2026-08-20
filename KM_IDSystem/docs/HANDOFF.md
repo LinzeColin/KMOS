@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage074 Phase 3 - 2026-08-21
+## Current Gate - Stage074 Phase 4 - 2026-08-21
 
-- 本节是唯一当前交接；下方 Stage074 P2、P1、Stage073 Review/P1--P4、Stage072 Review/P1--P4、Stage071 Review/P1--P4、Stage070 Review/P1--P4 与更早章节均为历史证据，不重写其事实。
+- 本节是唯一当前交接；下方 Stage074 P3、P2、P1、Stage073 Review/P1--P4、Stage072 Review/P1--P4、Stage071 Review/P1--P4、Stage070 Review/P1--P4 与更早章节均为历史证据，不重写其事实。
+- 本轮完成 IDS-V0_1-STAGE074-P4：只从 P3 五条固定、非业务、`:control:` 场景和 P2 控制投影，在内存中机械派生五条策略样例、五条十八字段审计投影、九十次字段检查、五条零值成本、五条失败处理、五条未外发原因、七键查询、P4→P3 控制回退和四条中文反馈；没有创建第二权威事实源。
+- 已验证：P4 聚焦交付 5/5、Stage074 P1--P4 32/32、Stage060--069 历史白箱回归 473/473、Stage070--074 链路回归 230/230；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 直接治理检查 valid=true 且完整单元回归 178/178；机器平面重渲染 7 个中文文件，文档预算、无登记阻塞和单项目双平面检查均通过。完整零运行时回执位于 KM_IDSystem/machine/runs/2026-08-21-stage074-p4-local.json；这些结果只证明纯内存控制交付、治理投影与零运行时边界在本地一致，不证明真实资料、provider、模型、Token、成本、审计、索引、OVH 或生产能力。
+- 本 P4 不读取、打开、复制、保留、外发、写入、查询或解析真实资料、来源正文、原始元数据、摘要、文本块、chunk、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、失败重试、审计或业务结论；不选择或下载本地 provider/模型，不执行本地 Embedding、索引、外部 API、模型 Token、数据库、Agent、OVH、生产、Stage074 Review、批次复审、上传或推送。来源文档与业务线白箱人工复核仍是唯一权威。
+- 回滚只撤回本 P4 的范围说明、交付合同、模块、聚焦用例、历史合法后继兼容断言、machine run、事件、机器事实、治理路线、中文视图与本交接，恢复到 PASS_PHASE3_LOCAL_EMBEDDING_FALLBACK_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；保留 P1/P2/P3、Stage073 Review、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 和应用状态。
+- 下一步仅可在新的独立 run 进入 IDS-STAGE074-REVIEW-GATE，继续使用当前既有的唯一开发 worktree，不创建额外 worktree、branch 或 PR。本 run 不进入 Review、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 ACC-STAGE-168。
+
+## Superseded Gate - Stage074 Phase 3 - 2026-08-21
+
+- 本节保留 Stage074 P3 历史交接；唯一当前交接位于上方 Stage074 P4，不重写其事实。
 - 本轮完成 IDS-V0_1-STAGE074-P3：只在内存中重放 P2 的五条固定、非业务、:control: 控制投影，机械验证 denied 无外发、summary_only 摘要引用边界、document 只能收紧、full_text_allowed 仅保留未来文本块引用候选、预算不足同步暂停，以及每条十八字段审计控制投影、九十次字段检查、三个未来调用候选审计前置、四条业务线白箱人工处理和十二类失败关闭；没有创建第二权威事实源。
 - 已验证：P3 聚焦场景 9/9、P1/P2/P3 聚焦合同/切片/场景 27/27、Stage060--069 历史白箱回归 473/473、Stage070--074 链路回归 225/225；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，Stage005 治理检查 valid=true 且完整单元回归 178/178；机器平面重渲染 7 个中文文件，文档预算、无登记阻塞和单项目双平面检查均通过。完整零运行时回执位于 KM_IDSystem/machine/runs/2026-08-21-stage074-p3-local.json；这些结果只证明纯内存控制场景、治理投影与零运行时边界在本地一致，不证明真实资料、provider、模型、Token、成本、审计、索引、OVH 或生产能力。
 - 本 P3 不读取、打开、复制、保留、外发、写入、查询或解析真实资料、来源正文、原始元数据、摘要、文本块、chunk、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、失败重试、审计或业务结论；不选择或下载本地 provider/模型，不执行本地 Embedding、索引、外部 API、模型 Token、数据库、Agent、OVH、生产、Stage074 P4、批次复审、上传或推送。来源文档与业务线白箱人工复核仍是唯一权威。

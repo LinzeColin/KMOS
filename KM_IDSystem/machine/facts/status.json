@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE074",
-  "phase": "IDS-V0_1-STAGE074-P3",
-  "task": "IDS-V0_1-STAGE074-P3",
-  "real_progress": "Stage074 P3 只在内存中重放 P2 的五条固定、非业务、:control: 控制投影，验证 denied 阻断、summary_only 摘要引用边界、document 收紧、full_text_allowed 文本块引用候选、预算不足暂停和十八字段审计前置；没有创建真实载荷、运行时记录或执行本地/外部 Embedding，所有真实运行时计数保持零。",
-  "report_grade": "冻结 Stage074 任务包、Stage074 P1/P2 合同、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同和 Batch061-070 历史上传锁构成唯一合同上下文；本次只形成可测试、可回滚的纯内存专项场景，不建立第二权威事实源、不读取真实资料、不创建持久记录、不调用本地或外部模型。",
-  "business_verdict": "本 P3 只证明五条固定控制场景可机械验证 denied 不外发、summary_only 与 document 收紧不升级、full_text_allowed 仅保留未来文本块引用、预算不足暂停，以及每条完整十八字段审计控制投影、九十次字段检查和三个未来调用候选的审计前置；不能证明任何真实资料、local provider、local model、chunk、Token、外部 API、审计日志、成本、索引、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "LOCAL_STAGE074_P3_LOCAL_EMBEDDING_FALLBACK_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE074-P4",
+  "task": "IDS-V0_1-STAGE074-P4",
+  "real_progress": "Stage074 P4 只从 P3 五条固定、非业务、:control: 场景与 P2 纯内存控制投影派生 metadata-only 交付证据：五条策略样例、五条十八字段审计投影、五条零值成本、五条失败处理、五条未外发原因、七键查询说明、P4→P3 控制回退和四条中文反馈；没有读取真实资料、创建真实载荷或执行本地/外部 Embedding，所有真实运行时计数保持零。",
+  "report_grade": "冻结 Stage074 任务包、P1/P2/P3 合同、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同和 Batch061-070 历史上传锁构成唯一合同上下文；本次只形成可测试、可回滚的 metadata-only 交付证据，不建立第二权威事实源、不读取真实资料、不创建持久记录、不调用本地或外部模型。",
+  "business_verdict": "本 P4 只证明五条固定控制样例可机械派生策略、审计、零值成本、失败处理、未外发原因、查询说明和回退说明；不能证明任何真实资料、local provider、local model、chunk、Token、外部 API、审计日志、成本、索引、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "LOCAL_STAGE074_P4_LOCAL_EMBEDDING_FALLBACK_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-21",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE074-P4-GATE",
+  "next_gate": "IDS-STAGE074-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
