@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE075",
       "name": "外部 API 覆盖授权审计",
-      "gate": "P3 纯内存专项场景已本地通过；下一步只能在新的独立 run 进入 Stage075 Phase 4",
-      "status": "Stage075 P3 已重放五条固定、非业务控制投影，验证 denied 阻断外发、summary_only 摘要引用、document 收紧、full_text_allowed 文本块引用、预算暂停、每条 19 字段审计控制投影、95 次字段检查、3 个未来调用候选及 owner 强制允许外发前 actor/reason/old_value/new_value 四字段前置；真实资料、provider、模型、Token、外部 API、审计日志、OVH 与生产仍禁用"
+      "gate": "P4 纯内存交付证据已本地通过；下一步只能在新的独立 run 进入 Stage075 Review",
+      "status": "Stage075 P4 已从五条固定、非业务控制场景派生五条策略样例、五条 19 字段审计投影、95 次字段检查、五条零值成本、五条失败处理、五条未外发原因、八键进程内查询、一条 owner 强制允许外发前 actor/reason/old_value/new_value 四字段前置、P4→P3 回滚和四条中文反馈；真实资料、provider、模型、Token、外部 API、审计日志、OVH 与生产仍禁用"
     },
     {
       "id": "IDS-STAGE074",

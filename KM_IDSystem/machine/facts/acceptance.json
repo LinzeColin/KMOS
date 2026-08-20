@@ -1,9 +1,34 @@
 {
   "stage": "IDS-STAGE075",
-  "phase": "IDS-V0_1-STAGE075-P3",
-  "task": "IDS-V0_1-STAGE075-P3",
-  "next_gate": "IDS-STAGE075-P4-GATE",
+  "phase": "IDS-V0_1-STAGE075-P4",
+  "task": "IDS-V0_1-STAGE075-P4",
+  "next_gate": "IDS-STAGE075-REVIEW-GATE",
   "items": [
+    {
+      "id": "ACC-STAGE-075",
+      "criteria": "Stage075 P1--P4 的冻结合同、纯内存控制切片、专项场景和 metadata-only 交付证据均已完成本地验证；整阶段 Review 尚未进入，来源文档与业务线白箱人工复核仍是唯一权威。",
+      "status": "P1--P4 本地通过；整阶段复审待进入"
+    },
+    {
+      "id": "ACC-STAGE075-P4-01",
+      "criteria": "冻结 Stage075 任务包、Stage075 P1/P2/P3、Stage074 Review 和前序控制合同保持为唯一合同上下文；P4 只从五条固定、非业务、reference-only 控制场景和 P2 控制投影派生 metadata-only 交付证据，未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径或真实 URI。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE075-P4-02",
+      "criteria": "已派生五条策略样例、五条完整十九字段审计投影与九十五次字段检查、五条零值成本估算、五条失败处理和五条未外发原因；denied、summary_only、document 收紧、full_text_allowed 与预算暂停均保持 P3 控制边界，owner 强制允许外发仍只有一条 actor/reason/old_value/new_value 四字段前置样例。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE075-P4-03",
+      "criteria": "八键查询说明只覆盖当前 Python 进程中的控制交付报告，不存在持久审计日志、真实外发历史或真实查询；回滚只回到 Stage075 P3 控制报告，四条中文反馈保持克制，未来外发仍以前置审计和业务线白箱人工复核为准。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE075-P4-04",
+      "criteria": "未执行真实资料访问、解析、切块、摘要生成、provider/模型选择或下载、Embedding、索引写入、模型版本记录、成本估算、预算查找、队列、缓存、失败重试、外部 API、模型 Token、审计写入或查询、数据库、持久化、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage075 Review。",
+      "status": "已遵守"
+    },
     {
       "id": "ACC-STAGE075-P3-01",
       "criteria": "冻结 Stage075 任务包、Stage075 P1/P2、Stage074 Review 和前序控制合同保持为唯一合同上下文；P3 只重放五条固定、非业务、:control: 控制投影，未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径或真实 URI。",

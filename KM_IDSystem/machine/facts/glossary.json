@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage075 P4 外部 API 覆盖授权审计交付形状",
+      "数值": "5/5/19/95/5/5/5/8/1/4/4/13",
+      "说明": "依次表示策略样例、审计投影样例、每条审计字段、审计字段检查、零值成本估算、失败处理、未外发原因、进程内查询键、owner 强制允许外发前置样例、owner 前置字段、owner 前置检查和失败关闭状态；只表示纯内存 metadata-only 交付与 P4→P3 控制回退，不表示真实资料、provider、模型、Token、成本、审计日志、查询、回退、OVH 或生产结果。"
+    },
+    {
       "指标": "Stage075 P3 外部 API 覆盖授权审计专项场景形状",
       "数值": "5/35/19/95/3/4/12",
       "说明": "依次表示五条固定控制场景、每条场景字段、每条覆盖审计字段、审计字段检查、未来外部 API 调用候选、须业务线白箱人工处理的非 denied 情形和失败关闭状态；只表示纯内存控制验证，不表示真实资料、provider、模型、Token、外发、审计、OVH 或生产结果。"
@@ -248,6 +253,11 @@
   ],
   "data_shapes": [
     {
+      "名称": "Stage075 P4 外部 API 覆盖授权审计交付证据",
+      "字段": "policy_sample_count、control_audit_log_sample_count、control_audit_field_count、control_audit_field_check_count、zero_cost_estimate_sample_count、failure_handling_result_count、non_externalized_data_record_count、externalization_record_query_key_count、owner_forced_egress_override_precondition_sample_count、owner_forced_egress_override_field_count、owner_forced_egress_override_field_check_count、chinese_feedback_count、rollback_target_result",
+      "说明": "Stage075 P4 只从 P3 的五条固定 :control: 场景派生 metadata-only 交付证据；查询只覆盖当前进程内报告并且回滚只回到 P3，不包含来源正文、摘要正文、文本块、物理路径、真实 URI、实际队列、缓存、重试、provider、模型、Token、审计或业务结论。"
+    },
+    {
       "名称": "Stage075 P3 外部 API 覆盖授权审计专项场景",
       "字段": "scenario_id、scenario_category、phase2_control_scenario、referenced_policy_resolution_ref、referenced_embedding_queue_request_ref、referenced_cache_entry_ref、referenced_retry_ref、referenced_external_api_audit_ref、effective_external_api_policy、external_payload_mode、observed_control_payload_scope、expected_control_payload_scope、expected_queue_state、observed_queue_state、expected_cache_disposition、observed_cache_disposition、expected_retry_state、observed_retry_state、expected_budget_check_state、observed_budget_check_state、audit_projection_required、audit_projection_present、audit_field_count、audit_required_fields_present、audit_reference_fields_are_control_only、expected_audit_disposition、observed_audit_disposition、future_external_api_call_candidate、actual_external_api_call_performed、actual_model_token_consumption_performed、model_version_sent_to_external_api、human_handling_required、explicit_disposition、silent_drop、expectation_met",
       "说明": "Stage075 P3 只重放五条固定 :control: 引用，逐条核验策略外发边界、预算暂停和十九字段审计控制投影；它不包含来源正文、摘要正文、文本块、物理路径、真实 URI、实际队列、缓存、重试、provider、模型、Token、审计或业务结论。"
@@ -400,6 +410,10 @@
   ],
   "invariants": [
     {
+      "规则": "Stage075 P4 不执行外部 API、模型 Token、审计写入、OVH 或生产运行",
+      "说明": "P4 只派生五条固定 metadata-only 交付样例、八键进程内查询说明和回到 P3 的控制回退；没有读取真实资料、生成摘要或文本载荷、创建或运行队列/缓存/重试/审计、选择 provider/模型、调用外部 API、消耗 Token、写入索引/数据库、运行 Agent、部署 OVH、启用生产、上传或推送，Stage075 Review 必须由新的独立 run 处理。"
+    },
+    {
       "规则": "Stage075 P3 不执行外部 API、模型 Token、审计写入、OVH 或生产运行",
       "说明": "P3 只重放 P2 的五条固定、非业务、reference-only 控制投影，验证 denied 阻断外发、summary_only 摘要引用、document 收紧、full_text_allowed 文本块引用、预算暂停、十九字段审计前置与 owner 四字段前置；没有读取真实资料、生成摘要或文本载荷、创建或运行队列/缓存/重试/审计、选择 provider/模型、调用外部 API、消耗 Token、写入索引/数据库、运行 Agent、部署 OVH、启用生产、上传或推送，P4 必须由新的独立 run 处理。"
     },
@@ -529,6 +543,11 @@
     }
   ],
   "terms": [
+    {
+      "英文": "Stage075 Phase4 external API coverage audit delivery evidence",
+      "中文": "Stage075 P4 外部 API 覆盖授权审计交付证据",
+      "说明": "只从 P3 的五条固定、非业务、reference-only 控制场景和 P2 控制投影派生策略、审计、零值成本、失败、未外发、进程内查询、回滚与中文反馈；不读取真实正文、不创建外发载荷、持久审计或业务事实。"
+    },
     {
       "英文": "Stage075 Phase3 external API coverage audit controlled scenarios",
       "中文": "Stage075 P3 外部 API 覆盖授权审计专项场景",

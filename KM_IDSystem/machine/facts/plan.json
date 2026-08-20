@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE075",
-  "phase": "IDS-V0_1-STAGE075-P3",
-  "task": "IDS-V0_1-STAGE075-P3",
-  "now": "IDS-V0_1-STAGE075-P3：以 P2 五条固定、非业务控制投影完成外部 API 覆盖授权审计专项场景验证。",
-  "owner": "既有唯一 KMOS 开发 worktree，Stage075 P3",
-  "objective": "只以冻结 Stage075 任务包、Stage075 P1/P2、Stage074 Review 和前序控制合同为唯一合同上下文，重放五条 fixed、non-business、:control: 外部 API 覆盖授权审计投影，机械验证 denied、summary_only、document 收紧、full_text_allowed、预算暂停、十九字段审计前置及 owner 强制允许外发前 actor/reason/old_value/new_value 四字段前置；不读取、打开、解析、总结、外发、创建、写入、查询或回退真实资料、模型、Token、预算、队列、缓存、重试、审计或业务结论。",
+  "phase": "IDS-V0_1-STAGE075-P4",
+  "task": "IDS-V0_1-STAGE075-P4",
+  "now": "IDS-V0_1-STAGE075-P4：从 P3 五条固定控制场景派生外部 API 覆盖授权审计的纯内存交付证据、回滚说明与中文反馈。",
+  "owner": "既有唯一 KMOS 开发 worktree，Stage075 P4",
+  "objective": "只以冻结 Stage075 任务包、Stage075 P1/P2/P3、Stage074 Review 和前序控制合同为唯一合同上下文，从 P3 五条 fixed、non-business、reference-only 控制场景与 P2 控制投影机械派生五条策略样例、五条十九字段审计投影、五条零值成本估算、五条失败处理、五条未外发原因、八键进程内查询说明、一条 owner 强制允许外发前 actor/reason/old_value/new_value 四字段前置样例、P4→P3 回滚说明与四条中文反馈；不读取、打开、解析、总结、外发、创建、写入、查询或回退真实资料、模型、Token、预算、队列、缓存、重试、审计或业务结论。",
   "scope": [
-    "以冻结 Stage075 任务包、Stage075 P1/P2、Stage074 Review 和前序控制合同为唯一合同上下文，不建立第二权威事实源（不创建第二权威事实源）",
-    "只重放五条固定、非业务、:control: P2 控制投影：denied 阻断外发，summary_only 只保留摘要引用，document 只能收紧，full_text_allowed 只保留未来文本块引用，预算不足时队列、缓存与失败重试同步暂停",
-    "只核验每条十九字段外部 API 覆盖审计控制投影，共九十五次字段检查；三个未来调用候选均须完整审计与业务线白箱人工复核前置，owner 强制允许外发仍须一条 actor/reason/old_value/new_value 四字段前置；所有引用、零值与计数均不代表真实资料、模型、Token、成本、审计或业务结论",
-    "仅同步 IDS-V0_1-STAGE075-P3 的范围说明、专项场景合同、纯内存模块、聚焦用例、machine run、事件、机器事实、治理路线、中文视图与交接；Stage075 P1/P2、Stage074 Review 与前序合同只作为既有证据，不改写其完成状态"
+    "以冻结 Stage075 任务包、Stage075 P1/P2/P3、Stage074 Review 和前序控制合同为唯一合同上下文，不建立第二权威事实源（不创建第二权威事实源）",
+    "只从五条固定、非业务、reference-only P3 场景与 P2 控制投影派生五条策略样例、五条十九字段审计投影、九十五次字段检查、五条零值成本估算、五条失败处理和五条未外发原因；denied、summary_only、document 收紧、full_text_allowed 与预算暂停均保持 P3 控制边界",
+    "只提供八键当前进程内控制报告查询说明，不存在持久审计日志、真实外发历史或真实查询；owner 强制允许外发仍只有一条 actor/reason/old_value/new_value 四字段前置样例，回滚只指向 P3 控制报告，四条中文反馈保持克制；所有引用、零值与计数均不代表真实资料、模型、Token、成本、审计或业务结论",
+    "仅同步 IDS-V0_1-STAGE075-P4 的范围说明、交付合同、纯内存模块、聚焦用例、machine run、事件、机器事实、治理路线、生成中文视图与交接；Stage075 P1/P2/P3、Stage074 Review 与前序合同只作为既有证据，不改写其完成状态"
   ],
   "non_goals": [
     "不打开、创建、复制、移动、删除、修改、检测、解析、评估、保留、总结、外发、查询、重生成或回退真实业务源、原始元数据、授权 fixture、真实 data source、document、摘要、文本块、页面、chunk、provider、模型、维度、创建时间、外发状态、金额、Token、预算、队列、缓存、失败重试、审计日志、成本记录、索引、事实库、证据账本、数据库或报告",
     "不执行真实 parser、切块、摘要生成、本地 provider/模型选择或下载、本地 Embedding、Embedding 队列、缓存、失败重试、成本估算、预算查找、模型版本记录、外部文本载荷、外部 API、模型调用、模型 Token、审计写入或查询、索引、数据库连接或 migration、持久化、Agent、OVH、生产或上传",
-    "不启动 Stage075 P4、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不启动 Stage075 Review、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage075 P3 对五条固定控制投影、denied/summary_only/document 收紧/full_text_allowed/预算暂停、十九字段审计、九十五次字段检查、三个未来候选、owner 强制允许外发四字段前置、业务线白箱人工复核、单一权威和零运行时边界完成本地验证后停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE075-P4-GATE。任何真实资料访问、provider/模型选择或下载、Embedding、索引写入、真实模型版本记录、Token 写入、成本估算、预算查询、摘要或文本载荷创建、队列、缓存、失败重试、审计写入或查询、外部 API、模型 Token、数据库、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "Stage075 P4 对五条策略样例、五条十九字段审计投影与九十五次检查、五条零值成本估算、五条失败处理、五条未外发原因、八键进程内查询说明、owner 强制允许外发四字段前置样例、P4→P3 回滚、四条中文反馈、业务线白箱人工复核、单一权威和零运行时边界完成本地验证后停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE075-REVIEW-GATE。任何真实资料访问、provider/模型选择或下载、Embedding、索引写入、真实模型版本记录、Token 写入、成本估算、预算查询、摘要或文本载荷创建、队列、缓存、失败重试、审计写入或查询、外部 API、模型 Token、数据库、OVH、生产或上传动作都不属于本步骤。"
 }

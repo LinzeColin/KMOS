@@ -268,18 +268,29 @@ class Stage075ExternalApiCoverageAuditScenarioTests(unittest.TestCase):
             for item in [json.loads(line)]
         }
         run = json.loads(RUN.read_text(encoding="utf-8"))
-        self.assertEqual(
-            (
-                "IDS-STAGE075",
-                "IDS-V0_1-STAGE075-P3",
-                "IDS-V0_1-STAGE075-P3",
-                "IDS-STAGE075-P4-GATE",
-            ),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-STAGE075",
+                    "IDS-V0_1-STAGE075-P3",
+                    "IDS-V0_1-STAGE075-P3",
+                    "IDS-STAGE075-P4-GATE",
+                ),
+                (
+                    "IDS-STAGE075",
+                    "IDS-V0_1-STAGE075-P4",
+                    "IDS-V0_1-STAGE075-P4",
+                    "IDS-STAGE075-REVIEW-GATE",
+                ),
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE075-P3", plan["task"])
+        self.assertIn(
+            plan["task"],
+            ("IDS-V0_1-STAGE075-P3", "IDS-V0_1-STAGE075-P4"),
+        )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -294,14 +305,20 @@ class Stage075ExternalApiCoverageAuditScenarioTests(unittest.TestCase):
         self.assertEqual(0, run["runtime_counts"]["actual_external_api_call_count"])
         self.assertEqual(0, run["runtime_counts"]["actual_model_token_count"])
         self.assertFalse(run["runtime_actions"]["ovh_deployment_performed"])
-        for expected in (
-            'current_stage_id: "IDS-STAGE075"',
-            'current_phase_id: "IDS-STAGE075-P3"',
-            'current_task_id: "IDS-V0_1-STAGE075-P3"',
-            'next_gate_id: "IDS-STAGE075-P4-GATE"',
-        ):
-            with self.subTest(expected=expected):
-                self.assertIn(expected, roadmap_text)
+        self.assertTrue(
+            (
+                'current_stage_id: "IDS-STAGE075"' in roadmap_text
+                and 'current_phase_id: "IDS-STAGE075-P3"' in roadmap_text
+                and 'current_task_id: "IDS-V0_1-STAGE075-P3"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE075-P4-GATE"' in roadmap_text
+            )
+            or (
+                'current_stage_id: "IDS-STAGE075"' in roadmap_text
+                and 'current_phase_id: "IDS-STAGE075-P4"' in roadmap_text
+                and 'current_task_id: "IDS-V0_1-STAGE075-P4"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE075-REVIEW-GATE"' in roadmap_text
+            )
+        )
         self.assertIn("EVT-IDS-V0_1-STAGE075-P3-20260821-001", event_ids)
 
 

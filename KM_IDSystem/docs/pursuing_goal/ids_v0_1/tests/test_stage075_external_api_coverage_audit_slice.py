@@ -336,13 +336,23 @@ class Stage075ExternalApiCoverageAuditPhase2Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE075-P3",
                     "IDS-STAGE075-P4-GATE",
                 ),
+                (
+                    "IDS-STAGE075",
+                    "IDS-V0_1-STAGE075-P4",
+                    "IDS-V0_1-STAGE075-P4",
+                    "IDS-STAGE075-REVIEW-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertIn(
             plan["task"],
-            ("IDS-V0_1-STAGE075-P2", "IDS-V0_1-STAGE075-P3"),
+            (
+                "IDS-V0_1-STAGE075-P2",
+                "IDS-V0_1-STAGE075-P3",
+                "IDS-V0_1-STAGE075-P4",
+            ),
         )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
@@ -372,6 +382,12 @@ class Stage075ExternalApiCoverageAuditPhase2Tests(unittest.TestCase):
                 and 'current_phase_id: "IDS-STAGE075-P3"' in roadmap_text
                 and 'current_task_id: "IDS-V0_1-STAGE075-P3"' in roadmap_text
                 and 'next_gate_id: "IDS-STAGE075-P4-GATE"' in roadmap_text
+            )
+            or (
+                'current_stage_id: "IDS-STAGE075"' in roadmap_text
+                and 'current_phase_id: "IDS-STAGE075-P4"' in roadmap_text
+                and 'current_task_id: "IDS-V0_1-STAGE075-P4"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE075-REVIEW-GATE"' in roadmap_text
             )
         )
 
