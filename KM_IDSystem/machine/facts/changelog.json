@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage073-p3-local",
+    "date": "2026-08-20",
+    "summary": "完成 Stage073 P3 Embedding 审计测试专项验证：只重放 P2 五条固定、非业务、reference-only 控制记录，机械核验 denied 阻断外发、summary_only 仅摘要引用、document 收紧不得升级、full_text_allowed 仅文本块引用候选、预算不足暂停，以及五条十八字段审计投影、九十次审计字段检查和三个未来调用审计前置。所有字段、标签、引用和零值只表示控制形状，不代表真实资料、摘要、文本、外发、队列、缓存、重试、模型版本、成本、审计、provider、模型或业务结论；未读取、打开、解析、生成、外发、写入或查询真实资料，未执行外部 API、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage073 P4。"
+  },
+  {
     "version": "v0.1-stage073-p2-local",
     "date": "2026-08-20",
     "summary": "完成 Stage073 P2 Embedding 审计测试纯内存控制切片：五条固定、非业务、:control: 二十字段请求机械投影策略继承、12/10/7 队列/缓存/失败重试、八字段零值成本、六字段模型版本和十八字段审计，覆盖默认 denied、摘要继承、document 收紧、全文控制与预算不足暂停。控制审计投影保留 provider、model、token_count=0、不透明 chunk_id 与 policy reason；未读取真实资料、未创建持久审计记录、未调用外部 API、未消耗模型 Token、未执行 Agent、OVH、生产、上传或推送，下一步仅可在新的独立 run 进入 Stage073 P3。"

@@ -264,7 +264,7 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE071-P4",
                 "IDS-V0_1-STAGE071-REVIEW",
                 "IDS-V0_1-STAGE072-P1",
-                "IDS-V0_1-STAGE072-P2", "IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P2"),
+                "IDS-V0_1-STAGE072-P2", "IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P2", "IDS-V0_1-STAGE073-P3"),
         )
         self.assertIn(
             status["next_gate"],
@@ -278,7 +278,7 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
                 "IDS-STAGE071-P4-GATE",
                 "IDS-STAGE071-REVIEW-GATE",
                 "IDS-STAGE072-P1-GATE",
-                "IDS-STAGE072-P2-GATE", "IDS-STAGE072-P3-GATE", "IDS-STAGE072-P4-GATE", "IDS-STAGE072-REVIEW-GATE", "IDS-STAGE073-P1-GATE", "IDS-STAGE073-P2-GATE", "IDS-STAGE073-P3-GATE",
+                "IDS-STAGE072-P2-GATE", "IDS-STAGE072-P3-GATE", "IDS-STAGE072-P4-GATE", "IDS-STAGE072-REVIEW-GATE", "IDS-STAGE073-P1-GATE", "IDS-STAGE073-P2-GATE", "IDS-STAGE073-P3-GATE", "IDS-STAGE073-P4-GATE",
             ),
         )
         self.assertIn(
@@ -293,7 +293,7 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE071-P4",
                 "IDS-V0_1-STAGE071-REVIEW",
                 "IDS-V0_1-STAGE072-P1",
-                "IDS-V0_1-STAGE072-P2", "IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P2"),
+                "IDS-V0_1-STAGE072-P2", "IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P2", "IDS-V0_1-STAGE073-P3"),
         )
         self.assertTrue(
             any(
@@ -308,7 +308,7 @@ class Stage070EmbeddingQueueCachePhase2Tests(unittest.TestCase):
                     "IDS-STAGE071-P4-GATE",
                     "IDS-STAGE071-REVIEW-GATE",
                     "IDS-STAGE072-P1-GATE",
-                    "IDS-STAGE072-P2-GATE", "IDS-STAGE072-P3-GATE", "IDS-STAGE072-P4-GATE", "IDS-STAGE072-REVIEW-GATE", "IDS-STAGE073-P1-GATE", "IDS-STAGE073-P2-GATE", "IDS-STAGE073-P3-GATE",
+                    "IDS-STAGE072-P2-GATE", "IDS-STAGE072-P3-GATE", "IDS-STAGE072-P4-GATE", "IDS-STAGE072-REVIEW-GATE", "IDS-STAGE073-P1-GATE", "IDS-STAGE073-P2-GATE", "IDS-STAGE073-P3-GATE", "IDS-STAGE073-P4-GATE",
                 )
             )
         )

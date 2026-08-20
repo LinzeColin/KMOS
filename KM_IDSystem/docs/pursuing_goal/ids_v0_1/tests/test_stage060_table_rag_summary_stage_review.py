@@ -588,7 +588,7 @@ class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
             in (
                 ("IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-P4", "IDS-STAGE072-REVIEW-GATE"),
                 ("IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE072-REVIEW", "IDS-STAGE073-P1-GATE"),
-                ("IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P1", "IDS-STAGE073-P2-GATE"), ("IDS-V0_1-STAGE073-P2", "IDS-V0_1-STAGE073-P2", "IDS-STAGE073-P3-GATE"),
+                ("IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P1", "IDS-STAGE073-P2-GATE"), ("IDS-V0_1-STAGE073-P2", "IDS-V0_1-STAGE073-P2", "IDS-STAGE073-P3-GATE"), ('IDS-V0_1-STAGE073-P3', 'IDS-V0_1-STAGE073-P3', 'IDS-STAGE073-P4-GATE'),
             )
         )
         legal_stage073_phase1_successor = (
@@ -602,6 +602,12 @@ class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
             and status["phase"] == "IDS-V0_1-STAGE073-P2"
             and status["task"] == "IDS-V0_1-STAGE073-P2"
             and status["next_gate"] == "IDS-STAGE073-P3-GATE"
+        )
+        legal_stage073_phase3_successor = (
+            status["stage"] == "IDS-STAGE073"
+            and status["phase"] == "IDS-V0_1-STAGE073-P3"
+            and status["task"] == "IDS-V0_1-STAGE073-P3"
+            and status["next_gate"] == "IDS-STAGE073-P4-GATE"
         )
         self.assertTrue(
             still_within_stage060_closeout
@@ -665,7 +671,8 @@ class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
             or legal_stage072_phase3_successor
             or legal_stage072_phase4_successor
             or legal_stage073_phase1_successor
-            or legal_stage073_phase2_successor,
+            or legal_stage073_phase2_successor
+            or legal_stage073_phase3_successor,
             status,
         )
         self.assertFalse(status["runtime_enabled"])

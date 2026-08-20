@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-20 · IDS v0.1 Stage073 Phase 3（本地）
+
+- 完成 Embedding 审计测试专项控制场景：只重放 P2 的五条固定、非业务、`:control:` 记录，验证 `denied` 无外发、`summary_only` 仅摘要引用、document 收紧不得升级、`full_text_allowed` 仅保留未来文本块引用候选，以及预算不足时队列、缓存、失败重试同步暂停；形成五条三十五字段场景、五条十八字段审计控制投影、`90` 次字段检查和 `3` 个未来调用候选的审计前置，没有建立第二权威事实源。
+- 仅将 Stage060--072 的白箱回归与两个既有批次检查器扩展为承认唯一合法的 `Stage073 P1 → P2 → P3 → P4 gate` 无运行时后继；P1/P2 与各历史阶段事实不改写，未改变冻结业务控制、真实资料、队列、缓存、成本、模型、审计、OVH 或生产行为。
+- 本地验证通过：P3 `9/9`、P2 `9/9`、P1 `8/8`、Stage072 `49/49`、Stage071 `53/53`、Stage070 `47/47`、Stage060--069 `473/473`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归 `valid=true`，中文机器渲染 7 个文件且文档预算、无登记阻塞与双平面检查通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-20-stage073-p3-local.json`；下一步仅可在新的独立 run 进入 `IDS-STAGE073-P4-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-20 · IDS v0.1 Stage073 Phase 2（本地）
 
 - 完成 Embedding 审计测试纯内存控制切片：五条固定、非业务、`:control:` 二十字段请求机械投影默认 `denied`、data source/document→chunk 自动继承、document 收紧、`12/10/7/8/6/18` 队列/缓存/失败重试/成本/模型版本/审计形状；未授权 chunk 被阻断，provider、model、`token_count=0`、不透明 `chunk_id` 与 policy reason 只作为控制投影。

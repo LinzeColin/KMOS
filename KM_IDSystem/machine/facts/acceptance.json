@@ -1,6 +1,31 @@
 {
   "items": [
     {
+      "id": "ACC-STAGE-073",
+      "criteria": "Stage073 Embedding 审计测试当前仅以冻结任务包、P1/P2 合同、P3 五条固定控制场景、Stage072 Review、Stage071 审计字段合同和历史上传锁作为本地验收上下文；来源文档与业务线白箱人工复核继续是唯一权威，未建立第二权威事实源。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE073-P3-01",
+      "criteria": "冻结 Stage073 任务包、Stage073 P1/P2 合同、Stage072 本地整阶段机械复审、Stage072 P1 模型版本合同、Stage071 P1 审计字段合同与 Batch061-070 历史上传锁保持为唯一合同上下文；P3 只重放五条固定、非业务、:control: P2 控制记录，不建立第二权威事实源，也不读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径或真实 URI。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE073-P3-02",
+      "criteria": "五条场景分别机械验证 denied 无外发、summary_only 仅摘要引用、来源允许全文但 document 收紧时不得升级、full_text_allowed 仅保留未来文本块引用候选、预算不足时队列/缓存/失败重试同步暂停；策略、场景次序或 P2 形状不一致均失败关闭。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE073-P3-03",
+      "criteria": "五条控制场景均保留完整 18 字段审计控制投影，共完成 90 次字段检查；三个未来外部 API 调用候选均先具备 policy reason、provider/model 引用、token_count=0、不透明 chunk_id、队列引用、预算状态与业务线白箱人工复核前置，控制投影不等于真实审计记录、来源文档或业务事实。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE073-P3-04",
+      "criteria": "未执行真实资料访问、解析、切块、摘要生成、文本外发、模型版本记录、成本估算、预算查找、Embedding 队列、缓存、失败重试、provider 凭据读取、provider/模型选择、外部 API、模型 Token、审计写入或查询、索引、数据库、持久化、Agent、OVH、生产、P4、整阶段复审、批次复审、上传或推送；下一步仅可在新的独立 run 进入 Stage073 P4。",
+      "status": "已遵守"
+    },
+    {
       "id": "ACC-STAGE073-P2-01",
       "criteria": "冻结 Stage073 任务包、Stage073 P1 静态合同、Stage072 本地整阶段机械复审、Stage072 P1 模型版本合同、Stage071 P1 审计字段合同与 Batch061-070 历史上传锁保持为唯一合同上下文；P2 只接受五条固定、非业务、:control: 控制标签，不建立第二权威事实源，也不读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径或真实 URI。",
       "status": "已通过"
