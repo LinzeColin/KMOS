@@ -265,6 +265,21 @@ pipeline 开跑前自动跑一次健康自检（listdir 计时，超 `SMB_SLOW_S
 同一 workdir 只允许一个实例（`workdir/.pipeline.lock` pid 锁）。
 cron 触发间隔一定要大于单轮耗时，否则第二个实例会和第一个抢同一份 manifest 与登记表。
 
+### SMB rename 会随机永久挂死 —— 用子进程超时（260821 实测）
+
+`os.rename` 在 OpenWRT Samba 上可能直接进 U 态永久挂死，主线程调用会卡死整条 pipeline。
+新版 pipeline 已内置 `rename_with_timeout()`：单文件 rename 放 `subprocess.Popen(start_new_session=True)`
+子进程，超 `KM_RENAME_TIMEOUT`（默认 8s）就 `killpg(SIGKILL)` 清掉。**不要在 pipeline 外另写直接
+`os.rename` 的脚本去碰 SMB。** 账本增量落盘用 `flush_ledger()`（每 200 条写一次），
+被杀进程/断连也不丢太多已改名条目。
+
+### 超大目录 rename 是服务端缺陷，要单独针对性脚本（260821 实测）
+
+单群万级文件（武汉开明 18027 件回填）的 photo 目录，NAS 服务端 rename 成功率约 50%、
+8–10s/个，是服务端目录/索引退化，不是 skill 问题。命中时不要混进全量 rename：
+写独立脚本只处理该群，每轮重挂新 SMB 会话绕开服务端目录污染 + 逐文件子进程超时 + 每 20 条落账，
+后台长跑（数小时收敛），账本 flush 前被杀只丢当批。
+
 ## 已知外部障碍（记录在案，不阻塞流水线）
 
 - 群「项目设备工具类管理群」：DWS 分页返回空页且 `hasMore=true`（DWS 侧缺陷），扫描阶段记录 skip 并进产能汇总待办。

@@ -111,3 +111,36 @@ ssh ovh 'sudo /usr/local/bin/linze-r2-free-tier-guard.py'
 > 脚本的安全底线也别削：**删 R2 对象前先 `HeadObject` 核对 OCI 上同 key 同大小，核不上就跳过不删**；
 > 最新一批永远保留；只碰 `backups/<组>/<时间戳>/`，**不碰 `primary-objects/`（那是制品字节，删了就是毁档）**。
 > 每份快照有 `r2`/`oci`/`github` 三个 verified 副本，删掉 R2 那份仍剩两份 —— 这是「卸载」不是「删除」。
+
+---
+
+## KM 归档运维经验（2026-08-21 实测 · KMVideo/KMFile skill 运行知识）
+
+处理 `KMVideo/skills/KMMedia-Archive`、`KMFile/skills/KMFile-Archive` 归档时照此判断。
+
+1. **SMB `os.rename` 会随机永久挂死，必须用子进程超时。** 结论：单文件 rename 用
+   `subprocess.Popen(start_new_session=True)` + `os.killpg(..., SIGKILL)` 超时兜底（`KM_RENAME_TIMEOUT`，默认 8s），
+   主线程绝不直接在 SMB 上执行 rename。为什么：OpenWRT Samba（USB 外接盘）上 rename 可能进 U 态，
+   进程杀不掉、只能强制卸载；直接 rename 会卡死整条 pipeline 的 worker 线程。代价：每次 rename 有 8s 超时上限，
+   慢但可控，挂死的子进程可 killpg 清掉。pipeline 里对应的两处补丁是 `rename_with_timeout()` 与 `flush_ledger()`。
+
+2. **超大目录（单群万级文件）rename 是服务端缺陷，命中就单独针对性脚本。** 结论：武汉开明高新科技有限公司
+   （18027 件回填）photo 目录 rename 服务端成功率约 50%、8–10s/个，是 NAS 侧缺陷不是 skill 问题；
+   处理它要独立脚本 + 每轮重挂新 SMB 会话绕开服务端目录污染，不要混进全量 rename。为什么：
+   服务端目录/索引退化后，同一会话内后续 rename 连续失败。代价：该群收敛要数小时到十几小时，
+   需后台长跑 + 断点续标 + 每 20 条落一次账本（账本 flush 前被系统杀进程只丢当批）。
+
+3. **本机会周期性杀后台进程（nohup/ppid=1 也会被杀）。** 结论：长跑任务必须流式落盘 + 可续跑；
+   启动用 `nohup ... </dev/null >log 2>&1 & disown` 并确认 ppid=1。为什么：本机有周期性的后台进程回收，
+   任何内存态进度都可能丢。代价：账本/登记表要增量落盘（每 20 条 flush），日志要 append 流式写，
+   被杀后重跑从账本续，不重复处理。
+
+4. **账本自愈在前、rename 在后。** 结论：跑 rename 前先 `probe`（含 `reconcile_ledger`）认回
+   「磁盘已改、账本没记」的条目（本次 2302 条），否则 rename 会对着已改名的文件全报 FileNotFoundError
+   （历史：某轮 rename 被 SMB 挂死杀掉、没落账本，下一轮 ops=7373 ok=0 gone=7373）。为什么：
+   账本是幂等闸的唯一依据。代价：probe 是只读的，几秒到几分钟，先跑不亏。
+
+5. **registry 分发 KMOS 要显式设 `KMOS_ROOT`。** 结论：跑 registry 前设
+   `KMOS_ROOT=$HOME/Documents/Codex/GithubProject/KMOS`，否则 aim 的 ROOT 落到 `~`、KMOS 分发被静默跳过，
+   只能手动复制 public 表进仓。为什么：分发目标是按 ROOT 解析的，不设就找错地方。代价：多一条 env，
+   不设则 commit 前要自查 public 表是否真的在 `KMDatabase/data/KMVideo/` 里更新过。
