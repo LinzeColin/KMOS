@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE073",
       "name": "Embedding 审计测试",
-      "gate": "P1/P2 合同与 P3 五条纯内存控制场景已本地通过；下一步只能在新的独立 run 进入 Stage073 Phase 4",
-      "status": "Stage073 P3 已重放五条固定、非业务、:control: P2 控制记录，验证 denied 阻断、摘要引用、document 收紧、全文引用候选、预算暂停、18 字段审计前置与三个未来调用候选；真实资料、provider、模型、Token、外部 API、审计记录、OVH 与生产仍禁用"
+      "gate": "P1--P4 合同、P2/P3/P4 纯内存控制报告已本地通过；下一步只能在新的独立 run 进入 Stage073 Review",
+      "status": "Stage073 P4 已从五条固定、非业务、:control: P3 场景及 P2 控制投影派生五条策略样例、五条十八字段审计投影、五条零值成本、五条失败处理、五条未外发原因、七键查询、四条中文反馈和 P4→P3 控制回退链；真实资料、provider、模型、Token、外部 API、审计日志、查询、回退、OVH 与生产仍禁用"
     },
     {
       "id": "IDS-STAGE072",

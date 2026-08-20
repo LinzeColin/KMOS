@@ -288,7 +288,7 @@ class Stage073EmbeddingAuditTestPhase3Tests(unittest.TestCase):
         self.assertNotIn("http://", encoded)
         self.assertNotIn("https://", encoded)
 
-    def test_current_machine_and_governance_projection_match_p3(self):
+    def test_current_machine_and_governance_projection_preserves_phase3_evidence(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
@@ -299,11 +299,25 @@ class Stage073EmbeddingAuditTestPhase3Tests(unittest.TestCase):
             if line.strip()
             for item in [json.loads(line)]
         }
-        self.assertEqual("IDS-V0_1-STAGE073-P3", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE073-P3", status["task"])
-        self.assertEqual("IDS-STAGE073-P4-GATE", status["next_gate"])
-        self.assertIn("IDS-V0_1-STAGE073-P3", plan["now"])
-        self.assertIn("IDS-V0_1-STAGE073-P3", "\n".join(plan["scope"]))
+        self.assertIn(
+            (status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-V0_1-STAGE073-P3",
+                    "IDS-V0_1-STAGE073-P3",
+                    "IDS-STAGE073-P4-GATE",
+                ),
+                (
+                    "IDS-V0_1-STAGE073-P4",
+                    "IDS-V0_1-STAGE073-P4",
+                    "IDS-STAGE073-REVIEW-GATE",
+                ),
+            ),
+        )
+        self.assertIn(
+            plan["task"],
+            ("IDS-V0_1-STAGE073-P3", "IDS-V0_1-STAGE073-P4"),
+        )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
             {
@@ -314,9 +328,18 @@ class Stage073EmbeddingAuditTestPhase3Tests(unittest.TestCase):
                 "ACC-STAGE073-P3-04",
             }.issubset(acceptance_ids)
         )
-        self.assertIn('current_phase_id: "IDS-STAGE073-P3"', roadmap_text)
-        self.assertIn('current_task_id: "IDS-V0_1-STAGE073-P3"', roadmap_text)
-        self.assertIn('next_gate_id: "IDS-STAGE073-P4-GATE"', roadmap_text)
+        self.assertTrue(
+            'current_phase_id: "IDS-STAGE073-P3"' in roadmap_text
+            or 'current_phase_id: "IDS-STAGE073-P4"' in roadmap_text
+        )
+        self.assertTrue(
+            'current_task_id: "IDS-V0_1-STAGE073-P3"' in roadmap_text
+            or 'current_task_id: "IDS-V0_1-STAGE073-P4"' in roadmap_text
+        )
+        self.assertTrue(
+            'next_gate_id: "IDS-STAGE073-P4-GATE"' in roadmap_text
+            or 'next_gate_id: "IDS-STAGE073-REVIEW-GATE"' in roadmap_text
+        )
         self.assertIn("EVT-IDS-V0_1-STAGE073-P3-20260820-001", event_ids)
         self.assertTrue(RUN.is_file())
 
