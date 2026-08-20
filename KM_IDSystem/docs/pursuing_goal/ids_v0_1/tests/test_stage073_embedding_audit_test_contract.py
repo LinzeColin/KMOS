@@ -290,6 +290,12 @@ class Stage073EmbeddingAuditTestPhase1Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE074-P2",
                     "IDS-STAGE074-P3-GATE",
                 ),
+                (
+                    "IDS-STAGE074",
+                    "IDS-V0_1-STAGE074-P3",
+                    "IDS-V0_1-STAGE074-P3",
+                    "IDS-STAGE074-P4-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -304,6 +310,7 @@ class Stage073EmbeddingAuditTestPhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE073-REVIEW",
                 "IDS-V0_1-STAGE074-P1",
                 "IDS-V0_1-STAGE074-P2",
+                "IDS-V0_1-STAGE074-P3",
             ),
         )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
@@ -332,7 +339,7 @@ class Stage073EmbeddingAuditTestPhase1Tests(unittest.TestCase):
             or 'current_task_id: "IDS-V0_1-STAGE073-P4"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE073-REVIEW"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE074-P1"' in roadmap_text
-            or 'current_task_id: "IDS-V0_1-STAGE074-P2"' in roadmap_text
+            or 'current_task_id: "IDS-V0_1-STAGE074-P2"' in roadmap_text or 'current_task_id: "IDS-V0_1-STAGE074-P3"' in roadmap_text
         )
         self.assertIn("stage070_completed_reviewed_local", batch_text)
         self.assertIn("EVT-IDS-V0_1-STAGE073-P1-20260820-001", event_ids)

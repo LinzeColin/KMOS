@@ -1,5 +1,29 @@
 {
+  "stage": "IDS-STAGE074",
+  "phase": "IDS-V0_1-STAGE074-P3",
+  "task": "IDS-V0_1-STAGE074-P3",
+  "next_gate": "IDS-STAGE074-P4-GATE",
   "items": [
+    {
+      "id": "ACC-STAGE074-P3-01",
+      "criteria": "冻结 Stage074 任务包、Stage074 P1/P2 合同、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同与 Batch061-070 历史上传锁保持为唯一合同上下文；P3 只重放五条固定、非业务、:control: 控制投影，未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径或真实 URI。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE074-P3-02",
+      "criteria": "五条专项场景机械验证 denied 无外发、summary_only 仅摘要引用、document 收紧不得升级为文本块引用、full_text_allowed 仅保留未来文本块引用和预算不足时队列/缓存/失败重试同步暂停；五条均有显式处置，静默丢弃为零。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE074-P3-03",
+      "criteria": "每条控制场景均保留完整十八字段审计控制投影，共完成九十次字段检查；三个未来外部 API 调用候选均保留调用前审计、token_count=0、不透明控制引用与业务线白箱人工复核前置；控制投影不等于真实审计记录、来源文档或业务事实。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE074-P3-04",
+      "criteria": "未执行真实资料访问、解析、切块、摘要生成、本地 provider/模型选择或下载、本地 Embedding、索引写入、模型版本记录、成本估算、预算查找、队列、缓存、失败重试、外部 API、模型 Token、审计写入或查询、数据库、持久化、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage074 P4。",
+      "status": "已遵守"
+    },
     {
       "id": "ACC-STAGE074-P2-01",
       "criteria": "冻结 Stage074 任务包、Stage074 P1 静态合同、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同与 Batch061-070 历史上传锁保持为唯一合同上下文；P2 只接受五条固定、非业务、:control: 输入，未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径或真实 URI。",
@@ -42,8 +66,8 @@
     },
     {
       "id": "ACC-STAGE-074",
-      "criteria": "Stage074 本地 Embedding 兜底合同目前已完成 P1 静态范围、输入输出、失败关闭、审计与回滚边界，以及 P2 五条固定纯内存控制切片；后续 Phase 仍须按冻结任务包逐步完成，运行时与上传保持关闭。",
-      "status": "P1/P2 已通过，整阶段待后续 Phase"
+      "criteria": "Stage074 本地 Embedding 兜底合同目前已完成 P1 静态范围、输入输出、失败关闭、审计与回滚边界，P2 五条固定纯内存控制切片，以及 P3 五条专项控制场景、九十次审计字段检查和三个审计前置未来调用候选；后续 Phase 仍须按冻结任务包逐步完成，运行时与上传保持关闭。",
+      "status": "P1/P2/P3 已通过，整阶段待后续 Phase"
     },
     {
       "id": "ACC-STAGE073-REVIEW-01",

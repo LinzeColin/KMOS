@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage074-p3-local",
+    "date": "2026-08-21",
+    "summary": "完成 Stage074 P3 本地 Embedding 兜底专项控制场景：只重放 P2 五条固定、非业务、:control: 控制投影，机械验证 denied 不外发、summary_only 仅摘要引用、document 收紧不得升级、full_text_allowed 仅未来文本块引用、预算不足暂停、每条十八字段审计投影、九十次字段检查和三个未来调用候选的审计前置；未选择或下载模型，未执行本地/外部 Embedding、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage074 P4。"
+  },
+  {
     "version": "v0.1-stage074-p2-local",
     "date": "2026-08-21",
     "summary": "完成 Stage074 P2 本地 Embedding 兜底纯内存控制切片：只以五条固定、非业务、:control: 请求投影默认 denied、两跳策略继承、未授权 chunk 阻断、预算暂停、12/10/7 队列/缓存/失败重试、16/8 成本、6 字段模型版本和 18 字段审计；未选择或下载模型，未执行本地/外部 Embedding、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage074 P3。"

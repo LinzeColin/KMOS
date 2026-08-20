@@ -1,0 +1,73 @@
+{
+  "schema_version": "ids.local_run.v1",
+  "run_id": "RUN-IDS-STAGE074-P3-LOCAL-20260821-001",
+  "recorded_on": "2026-08-21",
+  "task_id": "IDS-V0_1-STAGE074-P3",
+  "acceptance_id": "ACC-STAGE-074",
+  "scope": "只执行 Stage074 P3 五条固定非业务控制场景的纯内存重放与本地治理验证；不读取真实资料、不创建真实载荷、队列、缓存、成本、模型版本或审计记录，不选择或执行本地 provider/模型，不执行外部 API、模型 Token、Agent、OVH、生产、上传或推送。",
+  "status": "PASS_LOCAL_VALIDATION",
+  "result": "PASS_PHASE3_LOCAL_EMBEDDING_FALLBACK_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+  "commands": [
+    "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage074_local_embedding_fallback_scenarios",
+    "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage074_local_embedding_fallback_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage074_local_embedding_fallback_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage074_local_embedding_fallback_scenarios",
+    "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage06*.py' -q",
+    "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage07*.py' -q",
+    "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py",
+    "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py",
+    "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+    "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage005_governance_regression",
+    "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem",
+    "python3 -B KM_IDSystem/machine/tools/check_doc_budget.py --docs KM_IDSystem/文档",
+    "python3 -B KM_IDSystem/machine/tools/check_blocker_stop.py --machine KM_IDSystem/machine",
+    "python3 -B KM_IDSystem/machine/tools/check_dual_plane_ci.py --root . --projects KM_IDSystem --require-projects"
+  ],
+  "results": [
+    "本地通过：Stage074 P3 聚焦场景 9/9，P1/P2/P3 聚焦合同、切片与场景 27/27，Stage060--069 历史白箱回归 473/473，Stage070--074 链路回归 225/225。",
+    "Batch041-050 与 Batch051-060 均返回 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；Stage005 治理检查 valid=true 且完整单元回归 178/178；机器平面重渲染 7 个中文文件，文档预算、无登记阻塞和单项目双平面检查均通过。",
+    "所有实际本地/外部 Embedding、队列、缓存、失败重试、成本、模型版本、审计、外部 API、模型 Token、数据库、Agent、OVH、生产、上传和推送计数保持零或 false；结果只证明纯内存控制场景、治理投影与零运行时边界在本地一致。"
+  ],
+  "runtime_counts": {
+    "actual_local_embedding_count": 0,
+    "actual_embedding_queue_count": 0,
+    "actual_cache_entry_count": 0,
+    "actual_failed_retry_count": 0,
+    "actual_cost_count": 0,
+    "actual_model_version_record_count": 0,
+    "actual_external_api_audit_count": 0,
+    "actual_external_api_call_count": 0,
+    "actual_model_token_count": 0
+  },
+  "runtime_actions": {
+    "ids_business_source_read_performed": false,
+    "local_provider_or_model_selected": false,
+    "local_embedding_execution_performed": false,
+    "local_embedding_or_index_write_performed": false,
+    "embedding_queue_execution_performed": false,
+    "cache_read_or_write_performed": false,
+    "failed_retry_execution_performed": false,
+    "cost_estimation_execution_performed": false,
+    "budget_lookup_performed": false,
+    "model_version_record_execution_performed": false,
+    "provider_credential_read_performed": false,
+    "provider_or_model_selected": false,
+    "external_api_client_initialized": false,
+    "external_api_call_performed": false,
+    "audit_record_creation_performed": false,
+    "audit_log_query_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "database_connection_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "validation": {
+    "second_authoritative_source_created": false,
+    "final_validation_recorded": true
+  },
+  "rollback_scope": "只撤回 Stage074 P3 范围说明、专项场景合同、模块、聚焦用例、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 PHASE2_LOCAL_EMBEDDING_FALLBACK_CONTROL_SLICE_RUNTIME_DISABLED；不改变 P1/P2、Stage073 Review、冻结任务包、真实资料、manifest、evidence ledger、audit log、数据库、索引、GitHub、OVH 或应用状态。",
+  "next_gate": "IDS-STAGE074-P4-GATE"
+}

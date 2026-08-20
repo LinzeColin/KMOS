@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-21 · Stage074 P3 local controlled scenarios
+
+- 只在内存中重放 P2 的五条固定、非业务、:control: 控制投影，验证 denied 阻断、summary_only 引用边界、document 收紧、full_text_allowed 未来文本块引用候选、预算暂停、十八字段审计、九十次字段检查、三个未来调用候选和四条业务线白箱人工处理。
+- 仅将 Stage060--073 历史白箱测试、两个既有批次检查器和 Stage005 当前态映射扩展为承认 P3/P4-gate 的合法零运行时后继；旧阶段事实、真实资料、provider、模型、队列、缓存、成本、审计、OVH 和生产行为均未改写或启用。
+- 本地验证通过：P3 `9/9`、P1/P2/P3 `27/27`、Stage060--069 `473/473`、Stage070--074 `225/225`、Stage005 `178/178`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，治理检查 `valid=true`，机器平面渲染 `7` 个中文文件且文档预算、无登记阻塞和双平面检查通过。零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage074-p3-local.json`；下一步仅可在新的独立 run 进入 `IDS-STAGE074-P4-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-21 · Stage074 P2 local control slice
 
 - 只以五条固定、非业务、:control: 输入实现本地 Embedding 兜底的纯内存策略继承、未授权 chunk 阻断、队列、缓存、失败重试、成本治理、模型版本、零值成本和审计控制投影。
