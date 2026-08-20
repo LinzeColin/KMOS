@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-21 · IDS v0.1 Stage074 Phase 1（本地）
+
+- 完成本地 Embedding 兜底静态合同：只固化未来本地路线、默认 `denied`、三档外部策略、data source/document→chunk 两跳自动继承、owner 不逐条标记 chunk、`12/10/7` 队列/缓存/失败重试、`16/8` 成本、六字段模型版本、十八字段审计和十二类失败关闭；没有建立第二权威事实源，也没有选择或下载 provider/模型。
+- 为承认唯一合法当前路线 `Stage073 Review → Stage074 P1 → Stage074 P2 gate`，仅扩展 Stage060--073 历史白箱断言、两个既有批次检查器及 Stage005 治理映射的零运行时后继；未改写历史证据，未改变真实资料、队列、缓存、成本、模型、审计、OVH 或生产行为。
+- 本地验证通过：Stage074 P1 `8/8`、Stage073 P1--Review `49/49`、Stage060--072 `622/622`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归 `valid=true`，机器平面渲染 `7` 个中文文件且文档预算、无登记阻塞和单项目双平面检查通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage074-p1-local.json`；下一步仅可在新的独立 run 进入 `IDS-STAGE074-P2-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-20 · IDS v0.1 Stage073 Review（本地）
 
 - 完成 Embedding 审计测试整阶段机械复审：只在内存中重放冻结 P1--P4 合同与 P2/P3/P4 控制报告，确认 “3/2/12/8/6/18/7”、五条 “10/14/10/7/6/8/18” 投影、五条三十五字段场景、四条业务线白箱人工处理、“90” 次审计字段检查、五条 metadata-only 交付、七键查询、四条中文反馈、十二类失败关闭和 P4→P3 控制回退；发现数为 “0”，没有创建第二权威事实源。

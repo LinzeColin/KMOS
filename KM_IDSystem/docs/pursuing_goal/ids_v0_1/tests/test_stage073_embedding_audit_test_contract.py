@@ -278,6 +278,12 @@ class Stage073EmbeddingAuditTestPhase1Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE073-REVIEW",
                     "IDS-STAGE074-P1-GATE",
                 ),
+                (
+                    "IDS-STAGE074",
+                    "IDS-V0_1-STAGE074-P1",
+                    "IDS-V0_1-STAGE074-P1",
+                    "IDS-STAGE074-P2-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -290,6 +296,7 @@ class Stage073EmbeddingAuditTestPhase1Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE073-P3",
                 "IDS-V0_1-STAGE073-P4",
                 "IDS-V0_1-STAGE073-REVIEW",
+                "IDS-V0_1-STAGE074-P1",
             ),
         )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))

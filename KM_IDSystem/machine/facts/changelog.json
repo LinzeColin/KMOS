@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage074-p1-local",
+    "date": "2026-08-21",
+    "summary": "完成 Stage074 P1 本地 Embedding 兜底静态合同：固定未来本地路线、默认 denied、三档策略、data source/document 到 chunk 自动继承、owner 不逐条标记 chunk、12/10/7 队列/缓存/失败重试、16/8 成本、6 字段模型版本、18 字段审计和 12 类失败关闭；未选择或下载模型，未执行本地/外部 Embedding、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage074 P2。"
+  },
+  {
     "version": "v0.1-stage073-review-local",
     "date": "2026-08-20",
     "summary": "完成 Stage073 Embedding 审计测试整阶段本地机械复审：只读重放 P1--P4 合同与 P2/P3/P4 纯内存控制报告，核验 3/2/12/8/6/18/7 静态形状、五条策略/队列/缓存/重试/模型版本/成本/审计投影、五条三十五字段场景、四条业务线白箱人工处理、九十次审计字段检查、五条 metadata-only 交付样例、七键查询、四条中文反馈、十二类失败关闭、单一权威、零运行时和 P4→P3 控制回退链；未读取、打开、解析、生成、外发、写入、查询或回退真实资料，未执行外部 API、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage074 P1。"

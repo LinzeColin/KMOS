@@ -257,11 +257,17 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE073-REVIEW",
                     "IDS-STAGE074-P1-GATE",
                 ),
+                (
+                    "IDS-V0_1-STAGE074-P1",
+                    "IDS-V0_1-STAGE074-P1",
+                    "IDS-STAGE074-P2-GATE",
+                ),
             ),
         )
         self.assertTrue(
             "IDS-V0_1-STAGE073-P4" in plan["now"]
             or "IDS-V0_1-STAGE073-REVIEW" in plan["now"]
+            or "IDS-V0_1-STAGE074-P1" in plan["now"]
         )
         self.assertTrue(
             "IDS-V0_1-STAGE073-P4" in "\n".join(plan["scope"])

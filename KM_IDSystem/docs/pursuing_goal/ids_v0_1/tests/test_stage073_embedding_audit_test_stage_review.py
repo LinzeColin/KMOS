@@ -215,20 +215,31 @@ class Stage073EmbeddingAuditTestStageReviewTests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        self.assertEqual(
-            (
-                "IDS-STAGE073",
-                "IDS-V0_1-STAGE073-REVIEW",
-                "IDS-V0_1-STAGE073-REVIEW",
-                "IDS-STAGE074-P1-GATE",
-            ),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-STAGE073",
+                    "IDS-V0_1-STAGE073-REVIEW",
+                    "IDS-V0_1-STAGE073-REVIEW",
+                    "IDS-STAGE074-P1-GATE",
+                ),
+                (
+                    "IDS-STAGE074",
+                    "IDS-V0_1-STAGE074-P1",
+                    "IDS-V0_1-STAGE074-P1",
+                    "IDS-STAGE074-P2-GATE",
+                ),
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual(
-            ("IDS-STAGE073", "IDS-V0_1-STAGE073-REVIEW", "IDS-V0_1-STAGE073-REVIEW"),
+        self.assertIn(
             (plan["stage"], plan["phase"], plan["task"]),
+            (
+                ("IDS-STAGE073", "IDS-V0_1-STAGE073-REVIEW", "IDS-V0_1-STAGE073-REVIEW"),
+                ("IDS-STAGE074", "IDS-V0_1-STAGE074-P1", "IDS-V0_1-STAGE074-P1"),
+            ),
         )
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
         self.assertEqual("已通过", acceptance_by_id["ACC-STAGE073-REVIEW-01"])

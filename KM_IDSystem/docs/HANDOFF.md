@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage073 Review - 2026-08-20
+## Current Gate - Stage074 Phase 1 - 2026-08-21
 
-- 本节是唯一当前交接；Stage073 P1--P4、Stage072 Review/P1--P4、Stage071 Review/P1--P4、Stage070 Review/P1--P4 与下方所有章节均为历史证据，不重写其事实。
+- 本节是唯一当前交接；下方 Stage073 Review/P1--P4、Stage072 Review/P1--P4、Stage071 Review/P1--P4、Stage070 Review/P1--P4 与更早章节均为历史证据，不重写其事实。
+- 本轮完成 “IDS-V0_1-STAGE074-P1”：只把冻结 Stage074 任务包、Stage073 Review、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage069--072 前序控制合同和 Batch061-070 历史上传锁投影为一份静态本地 Embedding 兜底合同。合同固定默认 denied、三档策略、data source/document→chunk 两跳自动继承、owner 不逐条标记 chunk、未来本地路线、12/10/7 队列/缓存/失败重试、16/8 成本、6 字段模型版本、18 字段审计和 12 类失败关闭；没有创建第二权威事实源。
+- 已验证：Stage074 P1 聚焦合同 “8/8”、Stage073 P1--Review “49/49”、Stage060--072 历史回归 “622/622” 均本地通过；Batch041-050 与 Batch051-060 均为 “PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED”，Stage005 治理回归 “valid=true”；机器平面渲染七个中文文件，文档预算、无登记阻塞和单项目双平面检查均通过。完整零运行时回执位于 “KM_IDSystem/machine/runs/2026-08-21-stage074-p1-local.json”；任何通过只证明静态合同、治理投影与零运行时边界的本地一致性。
+- 本 P1 不读取、打开、复制、保留、外发、写入、查询或解析真实资料、来源正文、原始元数据、摘要、文本块、chunk、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、失败重试、审计或业务结论；不选择或下载本地 provider/模型，不执行本地 Embedding、索引、外部 API、模型 Token、数据库、Agent、OVH、生产、Stage074 P2、批次复审、上传或推送。来源文档与业务线白箱人工复核仍是唯一权威。
+- 回滚只撤回本 P1 的范围说明、静态合同、聚焦用例、machine run、事件、机器事实、治理路线、中文视图与本交接，恢复到 “LOCAL_STAGE073_REVIEWED_EMBEDDING_AUDIT_TEST_RUNTIME_DISABLED”；保留 Stage073 Review/P1--P4、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 和应用状态。
+- 下一步仅可在新的独立 run 进入 “IDS-STAGE074-P2-GATE”，仍只使用当前唯一开发 worktree，不创建额外 worktree、branch 或 PR。本 run 不进入 P2、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 “ACC-STAGE-168”。
+
+## Superseded Gate - Stage073 Review - 2026-08-20
+
+- 本节保留已完成的 Stage073 Review 历史交接；唯一当前交接位于上方 Stage074 P1，不重写其事实。
 - 本轮完成 “IDS-V0_1-STAGE073-REVIEW”：只在内存中机械重放冻结 Stage073 P1--P4 合同及 P2/P3/P4 控制报告，复核 P1 的 “3/2/12/8/6/18/7”、P2 的五条 “10/14/10/7/6/8/18” 投影、P3 的五条三十五字段场景、四条业务线白箱人工处理、“90” 次审计字段检查和三个未来调用候选，以及 P4 的五条策略/审计/零值成本/失败/未外发控制引用、七键查询、四条中文反馈、十二类失败关闭与 P4→P3 控制回退。发现数固定为 “0”，没有创建第二权威事实源。
 - 已验证：Review 聚焦 “10/10”、Stage073 P1--Review “49/49”、Stage060--072 历史回归 “622/622” 均本地通过；Batch041-050 与 Batch051-060 均为 “PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED”，Stage005 治理回归 “valid=true”；机器平面渲染七个中文文件，文档预算、无登记阻塞和单项目双平面检查均通过。完整零运行时回执位于 “KM_IDSystem/machine/runs/2026-08-20-stage073-review-local.json”；这些结果只证明固定控制证据、治理投影与零运行时边界的本地一致性。
 - 本 Review 不读取、打开、复制、保留、外发、写入、查询或解析真实资料、来源正文、原始元数据、摘要、文本块、chunk、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、失败重试、审计或业务结论；不执行模型版本记录、成本估算、预算查询、provider/模型选择、外部 API、模型 Token、数据库、Agent、OVH、生产、Stage074、批次复审、上传或推送。来源文档与业务线白箱人工复核仍是唯一权威，所有实际运行时计数保持零。

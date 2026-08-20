@@ -1,6 +1,12 @@
 {
   "stages": [
     {
+      "id": "IDS-STAGE074",
+      "name": "本地 Embedding 兜底合同",
+      "gate": "P1 范围、输入输出、失败关闭、审计和可回滚静态合同已本地通过；下一步只能在新的独立 run 进入 Stage074 Phase 2",
+      "status": "Stage074 P1 静态合同已完成：未来本地兜底路线、默认 denied、两跳策略继承、12/10/7 队列/缓存/失败重试、16/8 成本、6 字段模型版本、18 字段审计和 12 类失败关闭均已固定；真实资料、local provider、local model、Token、外部 API、审计日志、索引、OVH 与生产仍禁用"
+    },
+    {
       "id": "IDS-STAGE073",
       "name": "Embedding 审计测试",
       "gate": "P1--P4 合同、P2/P3/P4 纯内存控制报告与 Stage073 整阶段机械复审已本地通过；下一步只能在新的独立 run 进入 Stage074 Phase 1",
