@@ -314,6 +314,13 @@ pipeline 开跑前自动跑一次健康自检（listdir 计时，超 `SMB_SLOW_S
 同一 workdir 只允许一个实例（`workdir/.pipeline.lock` pid 锁）。
 cron 触发间隔一定要大于单轮耗时，否则第二个实例会和第一个抢同一份 manifest 与登记表。
 
+### SMB rename 风险提示（260821 · 沿用媒体版实测）
+
+本 skill 的 `stage_rename` 目前仍是直接 `os.rename`（无子进程超时）。
+SMB 服务端（OpenWRT Samba）上 rename 可能进 U 态永久挂死、单文件挂死拖死整条 pipeline。
+命中症状与处置同 KMMedia-Archive：用子进程 + 超时 + `killpg` 清掉、账本增量落盘（防「磁盘已改、账本没记」）。
+KMFile 侧当前文件量小（日增量 ~40 件）尚未命中，如单群膨胀到万级再补同样的 `rename_with_timeout()`。
+
 ## 已知外部障碍（记录在案，不阻塞流水线）
 
 - 群「项目设备工具类管理群」：DWS 分页返回空页且 `hasMore=true`（DWS 侧缺陷，与媒体版记录一致），扫描阶段记录 skip 并进产能汇总待办。
