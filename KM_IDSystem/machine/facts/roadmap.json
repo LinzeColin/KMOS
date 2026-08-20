@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE073",
       "name": "Embedding 审计测试",
-      "gate": "P1 静态审计测试合同已本地通过；下一步只能在新的独立 run 进入 Stage073 Phase 2",
-      "status": "Stage073 P1 已定义默认 denied、三档策略继承、owner 不逐条标记 chunk、12 字段未来队列、8 字段成本/模型控制、6 字段模型版本、18 字段审计形状与 7 类失败关闭；真实资料、provider、模型、Token、外部 API、审计记录、OVH 与生产仍禁用"
+      "gate": "P1 静态审计测试合同与 P2 五条纯内存控制切片已本地通过；下一步只能在新的独立 run 进入 Stage073 Phase 3",
+      "status": "Stage073 P2 已以五条固定、非业务、:control: 输入投影默认 denied、三档策略继承、12/10/7 队列/缓存/失败重试、8 字段零值成本、6 字段模型版本与 18 字段审计；真实资料、provider、模型、Token、外部 API、审计记录、OVH 与生产仍禁用"
     },
     {
       "id": "IDS-STAGE072",

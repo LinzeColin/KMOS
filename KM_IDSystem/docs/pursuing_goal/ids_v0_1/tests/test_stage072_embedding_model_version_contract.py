@@ -249,12 +249,12 @@ class Stage072EmbeddingModelVersionPhase1Tests(unittest.TestCase):
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
             (
                 ("IDS-STAGE072", "IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE072-REVIEW", "IDS-STAGE073-P1-GATE"),
-                ("IDS-STAGE073", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P1", "IDS-STAGE073-P2-GATE"),
+                ("IDS-STAGE073", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P1", "IDS-STAGE073-P2-GATE"), ("IDS-STAGE073", "IDS-V0_1-STAGE073-P2", "IDS-V0_1-STAGE073-P2", "IDS-STAGE073-P3-GATE"),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertIn(plan["task"], ("IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE073-P1"))
+        self.assertIn(plan["task"], ("IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P2"))
         self.assertIn("不创建第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -275,7 +275,7 @@ class Stage072EmbeddingModelVersionPhase1Tests(unittest.TestCase):
         )
         self.assertTrue(
             'current_task_id: "IDS-V0_1-STAGE072-REVIEW"' in roadmap_text
-            or 'current_task_id: "IDS-V0_1-STAGE073-P1"' in roadmap_text
+            or 'current_task_id: "IDS-V0_1-STAGE073-P1"' in roadmap_text or 'current_task_id: "IDS-V0_1-STAGE073-P2"' in roadmap_text
         )
         self.assertIn("stage070_completed_reviewed_local", batch_text)
         self.assertIn("EVT-IDS-V0_1-STAGE072-P1-20260820-001", event_ids)

@@ -111,3 +111,7 @@ ssh ovh 'sudo /usr/local/bin/linze-r2-free-tier-guard.py'
 > 脚本的安全底线也别削：**删 R2 对象前先 `HeadObject` 核对 OCI 上同 key 同大小，核不上就跳过不删**；
 > 最新一批永远保留；只碰 `backups/<组>/<时间戳>/`，**不碰 `primary-objects/`（那是制品字节，删了就是毁档）**。
 > 每份快照有 `r2`/`oci`/`github` 三个 verified 副本，删掉 R2 那份仍剩两份 —— 这是「卸载」不是「删除」。
+
+- **结论**：阶段推进时，历史白箱断言必须把 `(phase, task, next_gate)` 作为完整合法状态追加 P2 后继，不能直接替换 P1 文本。
+  **为什么**：P1→P2 会同时改变 phase、task 与 next gate；逐字替换会破坏嵌套状态元组的语义，遗漏 gate 候选又会让真实治理状态被历史回归误判。
+  **代价**：两轮本地定位与回归；未产生运行时动作。

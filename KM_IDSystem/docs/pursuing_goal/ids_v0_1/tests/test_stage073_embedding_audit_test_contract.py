@@ -245,13 +245,29 @@ class Stage073EmbeddingAuditTestPhase1Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         }
-        self.assertEqual("IDS-STAGE073", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE073-P1", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE073-P1", status["task"])
-        self.assertEqual("IDS-STAGE073-P2-GATE", status["next_gate"])
+        self.assertIn(
+            (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-STAGE073",
+                    "IDS-V0_1-STAGE073-P1",
+                    "IDS-V0_1-STAGE073-P1",
+                    "IDS-STAGE073-P2-GATE",
+                ),
+                (
+                    "IDS-STAGE073",
+                    "IDS-V0_1-STAGE073-P2",
+                    "IDS-V0_1-STAGE073-P2",
+                    "IDS-STAGE073-P3-GATE",
+                ),
+            ),
+        )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE073-P1", plan["task"])
+        self.assertIn(
+            plan["task"],
+            ("IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P2"),
+        )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -268,7 +284,10 @@ class Stage073EmbeddingAuditTestPhase1Tests(unittest.TestCase):
         self.assertEqual(0, run["runtime_counts"]["actual_model_token_count"])
         self.assertFalse(run["runtime_actions"]["ovh_deployment_performed"])
         self.assertIn('current_stage_id: "IDS-STAGE073"', roadmap_text)
-        self.assertIn('current_task_id: "IDS-V0_1-STAGE073-P1"', roadmap_text)
+        self.assertTrue(
+            'current_task_id: "IDS-V0_1-STAGE073-P1"' in roadmap_text
+            or 'current_task_id: "IDS-V0_1-STAGE073-P2"' in roadmap_text
+        )
         self.assertIn("stage070_completed_reviewed_local", batch_text)
         self.assertIn("EVT-IDS-V0_1-STAGE073-P1-20260820-001", event_ids)
 

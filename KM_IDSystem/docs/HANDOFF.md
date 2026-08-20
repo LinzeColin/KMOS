@@ -9,14 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage073 Phase 1 - 2026-08-20
+## Current Gate - Stage073 Phase 2 - 2026-08-20
 
-- 本节是唯一当前交接；Stage072 Review/P1--P4、Stage071 Review/P1--P4、Stage070 Review/P1--P4 与下方所有章节均为已提交的历史证据，不重写其事实。
-- 本轮完成 `IDS-V0_1-STAGE073-P1`：定义默认 `denied`、三档策略、data source/document→chunk 自动继承、owner 不逐条标记 chunk、12 字段未来队列、8 字段成本/模型控制、6 字段模型版本、18 字段审计形状和 7 类失败关闭；`denied`、`summary_only`、`full_text_allowed` 仅保留未来操作流程与审计前置。P2/P3/P4、真实行为验证、审计记录创建/查询均未开始，没有建立或创建第二权威事实源。
-- 已验证：Stage073 P1 聚焦合同 `8/8`、Stage072 `49/49`、Stage071 `53/53`、Stage070 `47/47`、Stage060--069 `473/473` 均本地通过；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归为 `valid=true`。这些结果只证明静态合同、合法后继兼容断言、治理投影和零运行时边界在本地一致。
-- 本 P1 不读取、打开、复制、保留、外发、写入、查询或解析真实资料、来源正文、原始元数据、摘要、文本块、chunk、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、失败重试、审计或业务结论；不执行模型版本记录、成本估算、预算查询、provider/模型选择、外部 API、模型 Token、数据库、Agent、OVH、生产、上传或推送。来源文档与业务线白箱人工复核仍是唯一权威，所有实际运行时计数保持零。
-- 回滚只撤回本 P1 的范围说明、静态合同、聚焦用例、前序链兼容断言、批次检查器的合法后继兼容、machine run、事件、机器事实、治理路线、中文视图与本交接，恢复到 `LOCAL_STAGE072_REVIEWED_EMBEDDING_MODEL_VERSION_RUNTIME_DISABLED`；保留 Stage072 Review/P1--P4、Stage071 Review/P1--P4、Stage070 及更早证据、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 和应用状态。
-- 下一步仅可在新的独立 run 进入 `IDS-STAGE073-P2-GATE`；保持当前唯一获准 worktree，不创建额外 worktree、分支或 PR。本 run 不进入 P2、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+- 本节是唯一当前交接；Stage073 P1、Stage072 Review/P1--P4、Stage071 Review/P1--P4、Stage070 Review/P1--P4 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE073-P2`：以五条固定、非业务、`:control:` 输入在内存中机械投影默认 `denied`、data source/document→chunk 自动继承、document 只能收紧、12/10/7 队列/缓存/失败重试、8 字段零值成本、6 字段模型版本和 18 字段审计。未授权 chunk 被阻断；`summary_only` 与 `full_text_allowed` 均只是未来授权引用，审计控制投影中的 provider、model、`token_count=0`、不透明 `chunk_id` 与 policy reason 均非业务事实或真实记录。
+- 已验证：P2 聚焦用例 `9/9`、P1 静态合同 `8/8`、Stage072 `49/49`、Stage071 `53/53`、Stage070 `47/47`、Stage060--069 `473/473` 均本地通过；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归为 `valid=true`，机器平面重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-20-stage073-p2-local.json`；这些结果只证明固定控制切片、治理投影和零运行时边界在本地一致。
+- 本 P2 不读取、打开、复制、保留、外发、写入、查询或解析真实资料、来源正文、原始元数据、摘要、文本块、chunk、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、失败重试、审计或业务结论；不执行模型版本记录、成本估算、预算查询、provider/模型选择、外部 API、模型 Token、数据库、Agent、OVH、生产、上传或推送。来源文档与业务线白箱人工复核仍是唯一权威，所有实际运行时计数保持零。
+- 回滚只撤回本 P2 的范围说明、纯内存控制合同、模块、聚焦用例、历史合法后继兼容断言、machine run、事件、机器事实、治理路线、中文视图与本交接，恢复到 `PHASE1_EMBEDDING_AUDIT_TEST_CONTRACT_RUNTIME_DISABLED`；保留 Stage073 P1、Stage072 Review/P1--P4、Stage071 Review/P1--P4、Stage070 及更早证据、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 和应用状态。
+- 下一步仅可在新的独立 run 进入 `IDS-STAGE073-P3-GATE`，仍使用当前唯一获准开发 worktree，不创建额外 worktree、分支或 PR。本 run 不进入 P3、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage073 Phase 1 - 2026-08-20
+
+- 本节保留已提交的 Stage073 P1 历史交接；唯一当前交接位于上方 Stage073 P2，不重写其事实。
 
 ## Superseded Gate - Stage072 Review - 2026-08-20
 

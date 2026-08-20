@@ -429,13 +429,13 @@ class Stage071EmbeddingCostGovernorPhase2Tests(unittest.TestCase):
             (status["stage"], status["phase"], status["next_gate"]),
             (
                 ("IDS-STAGE072", "IDS-V0_1-STAGE072-REVIEW", "IDS-STAGE073-P1-GATE"),
-                ("IDS-STAGE073", "IDS-V0_1-STAGE073-P1", "IDS-STAGE073-P2-GATE"),
+                ("IDS-STAGE073", "IDS-V0_1-STAGE073-P1", "IDS-STAGE073-P2-GATE"), ("IDS-STAGE073", "IDS-V0_1-STAGE073-P2", "IDS-STAGE073-P3-GATE"),
             ),
         )
-        self.assertIn(plan["task"], ("IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE073-P1"))
+        self.assertIn(plan["task"], ("IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P2"))
         self.assertTrue(
             "IDS-STAGE073-P1-GATE" in plan["stop_condition"]
-            or "IDS-STAGE073-P2-GATE" in plan["stop_condition"]
+            or "IDS-STAGE073-P2-GATE" in plan["stop_condition"] or "IDS-STAGE073-P3-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-20 · IDS v0.1 Stage073 Phase 2（本地）
+
+- 完成 Embedding 审计测试纯内存控制切片：五条固定、非业务、`:control:` 二十字段请求机械投影默认 `denied`、data source/document→chunk 自动继承、document 收紧、`12/10/7/8/6/18` 队列/缓存/失败重试/成本/模型版本/审计形状；未授权 chunk 被阻断，provider、model、`token_count=0`、不透明 `chunk_id` 与 policy reason 只作为控制投影。
+- 为承认唯一合法当前路线 `Stage073 P1 → Stage073 P2 → Stage073 P3 gate`，仅扩展 Stage060--072 历史白箱用例与两项批次检查器的无运行时后继断言；未改变冻结业务控制、真实资料、队列、缓存、成本、模型、审计、OVH 或生产行为。
+- 本地验证通过：P2 `9/9`、P1 `8/8`、Stage072 `49/49`、Stage071 `53/53`、Stage070 `47/47`、Stage060--069 `473/473`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归 `valid=true`，中文机器渲染 7 个文件且文档预算、无登记阻塞与双平面检查通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-20-stage073-p2-local.json`；下一步仅可在新的独立 run 进入 `IDS-STAGE073-P3-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-20 · IDS v0.1 Stage073 Phase 1（本地）
 
 - 完成 Embedding 审计测试静态合同：固定默认 `denied`、三档策略、data source/document→chunk 自动继承、owner 不逐条标记 chunk、`12/8/6/18/7` 队列/成本模型/模型版本/审计/失败关闭形状，并定义 `denied`、`summary_only`、`full_text_allowed` 的未来操作流程和审计前置；没有建立或创建第二权威事实源。

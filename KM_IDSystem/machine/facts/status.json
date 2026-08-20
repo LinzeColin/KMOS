@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE073",
-  "phase": "IDS-V0_1-STAGE073-P1",
-  "task": "IDS-V0_1-STAGE073-P1",
-  "real_progress": "Stage073 P1 已定义 Embedding 审计测试的静态工程合同：默认 denied、data source/document→chunk 自动继承、owner 不逐条标记 chunk、12 字段未来队列、8 字段成本/模型控制、6 字段模型版本、18 字段审计形状和 7 类失败关闭；P3 的行为验证与任何审计记录创建均未开始，所有真实运行时计数保持零。",
-  "report_grade": "冻结 Stage073 任务包、Stage072 Review、Stage072 P1 模型版本合同、Stage071 P1 审计字段合同与 Batch061-070 历史上传锁构成唯一合同上下文；本次只定义静态控制边界，不建立第二权威事实源、不读取真实资料、不创建审计记录、不调用外部 API 或执行业务处置。",
-  "business_verdict": "本 P1 只证明静态审计测试合同、治理投影和零运行时边界在本地可验证，不能证明任何真实 chunk、provider、model、Token、外部 API、审计记录、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "LOCAL_STAGE073_P1_EMBEDDING_AUDIT_TEST_CONTRACT_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE073-P2",
+  "task": "IDS-V0_1-STAGE073-P2",
+  "real_progress": "Stage073 P2 已将 P1 的静态工程合同机械投影为五条固定、非业务的纯内存控制请求：默认 denied、data source/document→chunk 自动继承、12/10/7 队列/缓存/失败重试、8 字段零值成本、6 字段模型版本和 18 字段审计控制形状；P3 行为验证、真实审计记录与任何外发均未开始，所有真实运行时计数保持零。",
+  "report_grade": "冻结 Stage073 任务包、Stage073 P1、Stage072 Review、Stage072 P1 模型版本合同、Stage071 P1 审计字段合同与 Batch061-070 历史上传锁构成唯一合同上下文；本次只执行固定控制标签的纯内存投影，不建立第二权威事实源、不读取真实资料、不创建持久审计记录、不调用外部 API 或执行业务处置。",
+  "business_verdict": "本 P2 只证明固定控制输入、策略继承、未授权阻断、队列/缓存/成本/模型版本/审计投影和零运行时边界在本地可验证，不能证明任何真实 chunk、provider、model、Token、外部 API、审计记录、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "LOCAL_STAGE073_P2_EMBEDDING_AUDIT_TEST_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-20",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE073-P2-GATE",
+  "next_gate": "IDS-STAGE073-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
