@@ -9,7 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage072 Phase 1 - 2026-08-20
+## Current Gate - Stage072 Phase 2 - 2026-08-20
+
+- 本节是唯一当前交接；Stage072 P1、Stage071 Review/P4/P3/P2/P1、Stage070 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE072-P2`：仅用五条固定、非业务、`:control:` 引用在内存中机械投影 data source/document 到 chunk 策略继承、12/10/7 队列/缓存/失败重试、六字段模型版本、8 字段零值成本和 18 字段审计。默认 `denied` 阻断未授权 chunk；`summary_only` 与 `full_text_allowed` 只保留未来授权引用；审计投影保留 `provider_ref`、`model_ref`、`token_count=0`、`chunk_id` 与 `policy_inheritance_reason`，没有建立第二权威事实源。
+- 已验证：Stage072 P1/P2 聚焦链路 `17/17`（其中 P2 切片 `9/9`）、Stage071 P1--Review `53/53`、Stage060--069 `473/473`、Stage070 `47/47`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归 `valid=true`，机器平面重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-20-stage072-p2-local.json`；这些结果只证明固定控制合同、治理路线和零运行时边界的本地一致性。
+- 本 P2 不读取、打开、复制、写入或查询真实资料、来源正文、原始元数据、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、重试、审计或业务结论；不执行模型版本记录、成本估算、预算查询、provider/模型选择、外部 API、模型 Token、数据库、Agent、OVH、生产、P3/P4、整阶段复审、批次复审、上传或推送。来源文档与业务线白箱人工复核仍是唯一权威，所有实际运行时计数保持零。
+- 回滚只撤回本 P2 范围说明、控制合同、纯内存模块、聚焦用例、machine run、事件、机器事实、治理路线、中文视图与交接，恢复到 `PHASE1_EMBEDDING_MODEL_VERSION_CONTRACT_RUNTIME_DISABLED`；保留 Stage072 P1、Stage071 Review/P1--P4、Stage070 及更早证据、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 和应用状态。
+- 下一步仅可在新的独立 run 进入 `IDS-STAGE072-P3-GATE`。本 run 不进入 P3、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage072 Phase 1 - 2026-08-20
 
 - 本节是唯一当前交接；Stage071 Review/P4/P3/P2/P1、Stage070 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE072-P1`：仅固定 `provider_ref`、`model_ref`、`model_version`、`dimension`、`created_at`、`sent_to_external_api` 六个未来字段，复用 `external_api_policy=denied` 默认值、三档策略、data source/document 到 chunk 自动继承、`12/10/7` 队列/缓存/失败重试、8 个成本与模型字段、18 个审计字段和审计前置；声明九类失败关闭、中文反馈及回到 Stage071 Review 的回滚边界，没有建立第二权威事实源。

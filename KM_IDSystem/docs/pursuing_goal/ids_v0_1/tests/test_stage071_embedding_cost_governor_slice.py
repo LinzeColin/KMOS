@@ -426,10 +426,10 @@ class Stage071EmbeddingCostGovernorPhase2Tests(unittest.TestCase):
             if line.strip()
         ]
         self.assertEqual("IDS-STAGE072", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE072-P1", status["phase"])
-        self.assertEqual("IDS-STAGE072-P2-GATE", status["next_gate"])
-        self.assertEqual("IDS-V0_1-STAGE072-P1", plan["task"])
-        self.assertIn("IDS-STAGE072-P2-GATE", plan["stop_condition"])
+        self.assertEqual("IDS-V0_1-STAGE072-P2", status["phase"])
+        self.assertEqual("IDS-STAGE072-P3-GATE", status["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE072-P2", plan["task"])
+        self.assertIn("IDS-STAGE072-P3-GATE", plan["stop_condition"])
         self.assertTrue(
             {
                 "ACC-STAGE071-P2-01",

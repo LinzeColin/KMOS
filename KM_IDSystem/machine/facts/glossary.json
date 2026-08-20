@@ -1,6 +1,11 @@
 {
   "numbers": [
     {
+      "指标": "Stage072 P2 Embedding 模型版本控制切片形状",
+      "数值": "5/20/12/10/7/6/8/18/10",
+      "说明": "依次表示固定非业务控制请求、仅引用输入、未来队列、缓存、失败重试、模型版本、零值成本、审计和失败关闭状态字段或计数；只表示纯内存控制形状，不表示真实 provider、模型、维度、创建时间、外发、Token、成本、审计、OVH 或生产结果。"
+    },
+    {
       "指标": "Stage072 P1 Embedding 模型版本静态合同形状",
       "数值": "6/3/12/10/7/8/18/9",
       "说明": "依次表示未来模型版本字段、允许策略值、未来队列、缓存、失败重试、成本与模型、审计和失败关闭状态字段数量；只表示 schema 标签，不表示真实 provider、模型、维度、创建时间、外发、Token、成本、审计、OVH 或生产结果。"
@@ -178,6 +183,11 @@
   ],
   "data_shapes": [
     {
+      "名称": "Embedding 模型版本 P2 控制投影",
+      "字段": "embedding_model_version_request_ref、policy_resolution_ref、data_source_ref、document_ref、chunk_ref、effective_external_api_policy、external_payload_mode、provider_ref、model_ref、model_version、dimension、created_at、sent_to_external_api、estimated_token_count、estimated_cost、budget_check_state、external_api_audit_ref、embedding_queue_request_ref、cache_entry_ref、retry_ref、chunk_id、policy_inheritance_reason、token_count",
+      "说明": "Stage072 P2 只从五条固定 :control: 引用在内存中投影策略继承、队列、缓存、失败重试、六字段模型版本、零值成本和审计字段；它不包含来源正文、摘要正文、文本块、物理路径、真实 URI、实际队列、缓存、重试、模型版本、成本、Token、审计或业务结论。"
+    },
+    {
       "名称": "Embedding 成本治理器整阶段机械复审报告",
       "字段": "reviewed_phase_ids、phase_results、controlled_replay、review_invariants、review_finding_count、review_valid、result、rollback、next_gate",
       "说明": "Stage071 Review 只读取 P1--P4 合同与 P2/P3/P4 纯内存报告，输出固定控制形状、单一权威、审计、三类预算暂停、零运行时和 P4→P3 回退链的本地结论；它不包含来源正文、摘要正文、文本块、物理路径、真实 URI、实际金额、预算、Token、成本、队列、缓存、重试、审计或业务结论。"
@@ -320,6 +330,10 @@
   ],
   "invariants": [
     {
+      "规则": "Stage072 P2 不执行真实模型版本、队列、缓存、外部 API、OVH 或生产运行",
+      "说明": "P2 只在五条固定、非业务、reference-only 控制记录上投影默认 denied、data source/document→chunk 自动继承、队列、缓存、失败重试、六字段模型版本、零值成本和十八字段审计；没有读取真实资料、生成摘要或文本载荷、创建或运行持久队列/缓存/重试/审计、选择 provider/模型、调用外部 API、消耗 Token、写入索引/数据库、运行 Agent、部署 OVH、启用生产、上传或推送，P3 必须由新的独立 run 处理。"
+    },
+    {
       "规则": "Stage071 Review 不执行成本估算、审计查询、队列、外部 API、OVH 或生产运行",
       "说明": "Review 只读机械复审 P1--P4 合同与 P2/P3/P4 纯内存控制报告，核验默认 denied、策略继承、三类预算暂停、成本治理/队列/缓存/重试闭合、审计前置、白箱人工处理、metadata-only 交付和 P4→P3 控制回退链；所有真实资料访问、成本或预算计算、外发、队列、缓存、重试、审计、索引、数据库、Agent、模型 Token、OVH、生产、上传和推送保持关闭，Stage072 必须由新的独立 run 处理。"
     },
@@ -442,9 +456,14 @@
   ],
   "terms": [
     {
+      "英文": "Stage072 Phase2 embedding model version control slice",
+      "中文": "Stage072 P2 Embedding 模型版本控制切片",
+      "说明": "只在五条固定、非业务、reference-only 控制引用上纯内存投影策略继承、队列、缓存、失败重试、模型版本、零值成本和审计字段；不创建运行时记录，也不能成为第二权威事实源。"
+    },
+    {
       "英文": "Embedding model version",
       "中文": "Embedding 模型版本",
-      "说明": "Stage072 P1 的静态工程合同能力域；只定义未来记录字段和控制边界，不选择真实模型、不记录实际版本，也不形成业务事实。"
+      "说明": "Stage072 P1/P2 的模型版本合同能力域；P1 只定义未来字段，P2 只投影固定控制标签；不选择真实模型、不记录实际版本，也不形成业务事实。"
     },
     {
       "英文": "provider_ref",
@@ -490,6 +509,16 @@
       "英文": "reason",
       "中文": "原因",
       "说明": "控制投影中策略继承、预算关闭或失败处置的说明标签；只解释固定控制状态，不表示真实资料、预算、成本或业务决定。"
+    },
+    {
+      "英文": "policy_inheritance_reason",
+      "中文": "策略继承原因字段",
+      "说明": "记录 data source/document 到 chunk 的固定控制继承理由；Stage072 P2 只投影非业务引用，不解析来源正文、不放宽策略，也不形成业务结论。"
+    },
+    {
+      "英文": "token_count",
+      "中文": "Token 计数字段",
+      "说明": "审计控制投影中的零值计数字段；Stage072 P2 固定为 0，不代表真实模型调用或 Token 消耗。"
     },
     {
       "英文": "Stage070 local mechanical review",

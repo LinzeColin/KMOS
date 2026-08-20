@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage072-p2-local",
+    "date": "2026-08-20",
+    "summary": "完成 Stage072 P2 Embedding 模型版本纯内存控制切片：五条固定、非业务、reference-only 二十字段请求机械投影策略继承、12/10/7 队列/缓存/失败重试、六字段模型版本、八字段零值成本和十八字段审计，覆盖默认 denied、摘要继承、document 收紧、全文控制与预算不足暂停。所有字段、引用和计数只验证冻结控制合同，不代表真实资料、摘要、文本、外发、队列、缓存、重试、模型版本、成本、provider、模型或业务结论；未读取、打开、解析、生成、外发、写入或查询真实资料，未执行外部 API、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage072 P3。"
+  },
+  {
     "version": "v0.1-stage072-p1-local",
     "date": "2026-08-20",
     "summary": "完成 Stage072 P1 Embedding 模型版本静态合同的本地治理验证：仅定义 provider_ref、model_ref、model_version、dimension、created_at、sent_to_external_api 六个未来字段，复用 denied 默认策略、三档策略继承、队列/缓存/重试、成本治理与审计前置，声明九类失败关闭、中文反馈和回到 Stage071 Review 的回滚边界。该记录不包含真实 provider、模型、维度、时间、外发、Token、成本、审计或业务事实；下一步仅可在新的独立 run 进入 Stage072 P2。"

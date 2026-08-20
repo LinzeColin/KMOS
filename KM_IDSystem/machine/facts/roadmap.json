@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE072",
       "name": "Embedding 模型版本",
-      "gate": "P1 静态合同与本地治理验证已通过；下一步只能在新的独立 run 进入 Stage072 Phase 2",
-      "status": "P1 已验证六个未来模型版本字段、策略继承、队列/成本/审计依赖、失败关闭和回滚边界；真实 provider、模型、dimension、created_at、sent_to_external_api、Token、外部 API、OVH 与生产仍禁用"
+      "gate": "P2 纯内存控制切片与本地治理验证已通过；下一步只能在新的独立 run 进入 Stage072 Phase 3",
+      "status": "P2 已验证五条固定非业务控制输入、策略继承、队列/缓存/失败重试、六字段模型版本、零值成本、十八字段审计、失败关闭和回滚边界；真实 provider、模型、dimension、created_at、sent_to_external_api、Token、外部 API、OVH 与生产仍禁用"
     },
     {
       "id": "IDS-STAGE071",

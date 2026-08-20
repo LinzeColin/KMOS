@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-20 · IDS v0.1 Stage072 Phase 2（本地）
+
+- 完成 Embedding 模型版本最小纯内存控制切片：五条固定、非业务、`:control:` 二十字段请求机械投影策略继承、12/10/7 队列/缓存/失败重试、六字段模型版本、八字段零值成本和十八字段审计；默认 `denied` 阻断未授权 chunk，审计控制投影保留 `provider_ref`、`model_ref`、`token_count=0`、`chunk_id` 与 `policy_inheritance_reason`，没有建立第二权威事实源。
+- P2 不读取真实资料、不选择 provider 或模型、不创建持久队列/缓存/重试/模型版本/成本/审计记录，不调用外部 API、不消耗模型 Token、不执行 Agent、OVH、生产、上传或推送；来源文档与业务线白箱人工复核继续是唯一权威。
+- 本地验证通过：Stage072 P1/P2 聚焦链路 `17/17`（P2 切片 `9/9`）、Stage071 P1--Review `53/53`、Stage060--069 `473/473`、Stage070 `47/47`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归 `valid=true`，机器平面重渲染 7 个中文文件且文档/阻塞/双平面检查通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-20-stage072-p2-local.json`；下一步仅可在新的独立 run 进入 `IDS-STAGE072-P3-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-20 · IDS v0.1 Stage072 Phase 1（本地）
 
 - 完成 Embedding 模型版本静态合同的本地治理验证：仅定义 `provider_ref`、`model_ref`、`model_version`、`dimension`、`created_at`、`sent_to_external_api` 六个未来字段，复用默认 `denied`、三档策略继承、队列/缓存/失败重试、成本治理和审计前置，声明九类失败关闭、中文反馈与回到 Stage071 Review 的回滚边界。

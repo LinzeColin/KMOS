@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE072",
-  "phase": "IDS-V0_1-STAGE072-P1",
-  "task": "IDS-V0_1-STAGE072-P1",
-  "owner": "Codex 专属 KMOS worktree，Stage072 P1",
-  "objective": "已以冻结 Stage072 任务包、Stage071 Review、Stage071 P1 成本治理合同和 Batch061-070 历史上传锁为唯一合同上下文，完成 Embedding 模型版本、provider、dimension、created_at、sent_to_external_api 的静态字段、策略流程、队列/成本/审计依赖、失败关闭、中文反馈和回滚边界的本地验证；不读取、打开、解析、总结、外发、创建、写入、查询或回退真实资料、模型版本、金额、Token、预算、队列、缓存、重试、审计记录或业务结论。",
+  "phase": "IDS-V0_1-STAGE072-P2",
+  "task": "IDS-V0_1-STAGE072-P2",
+  "owner": "Codex 专属 KMOS worktree，Stage072 P2",
+  "objective": "已以冻结 Stage072 任务包、Stage072 P1 静态合同、Stage071 Review、Stage071 P1 成本治理合同和 Batch061-070 历史上传锁为唯一合同上下文，完成五条固定、非业务、reference-only 控制请求的纯内存切片：策略继承、Embedding 队列、缓存、失败重试、六字段模型版本、零值成本和十八字段审计投影；不读取、打开、解析、总结、外发、创建、写入、查询或回退真实资料、模型版本、金额、Token、预算、队列、缓存、重试、审计记录或业务结论。",
   "scope": [
-    "以冻结 Stage072 任务包、Stage071 Review、Stage071 P1 成本治理合同和 Batch061-070 历史上传锁为唯一合同上下文，不创建第二权威事实源",
-    "只定义六个未来模型版本字段 provider_ref、model_ref、model_version、dimension、created_at、sent_to_external_api，不记录任何真实 provider、模型、维度、时间或外发状态",
-    "复用默认 denied、denied/summary_only/full_text_allowed 三档策略及 data source/document 到 chunk 自动继承；owner 不逐条标记 chunk，document 不得放宽上游策略",
-    "只引用未来队列、缓存、失败重试、成本治理与审计字段；任一策略、预算、审计、白箱人工复核或模型版本字段不完整时失败关闭",
-    "已同步 P1 范围说明、静态合同、聚焦用例、machine run、事件、机器事实、治理路线、中文视图与交接；Batch061-070 历史锁只作为前序证据，不改写其完成状态"
+    "以冻结 Stage072 任务包、Stage072 P1 静态合同、Stage071 Review、Stage071 P1 成本治理合同和 Batch061-070 历史上传锁为唯一合同上下文，不创建第二权威事实源",
+    "只在五条固定 :control: 非业务引用上机械投影策略继承、12/10/7 队列/缓存/失败重试、六字段模型版本、8 字段零值成本和 18 字段审计；不保留真实 data source、document、chunk、摘要、文本、路径、provider、模型、维度或时间",
+    "默认 denied，data source/document 自动继承到 chunk，document 不得放宽上游策略，未授权 chunk 不外发；provider、model、token、chunk_id 和 policy reason 仅为零运行时审计控制字段",
+    "任何输入非固定、策略无效或放宽、预算不足、字段缺失、持久化、外部调用或白箱人工复核前置缺失均失败关闭",
+    "已同步 P2 范围说明、控制合同、纯内存模块、聚焦用例、machine run、事件、机器事实、治理路线、中文视图与交接；Batch061-070 历史锁只作为前序证据，不改写其完成状态"
   ],
   "non_goals": [
     "不打开、创建、复制、移动、删除、修改、检测、解析、评估、保留、总结、外发、查询、重生成或回退真实业务源、原始元数据、授权 fixture、真实 data source、document、摘要、摘要正文、文本块、页面、章节、表格、来源片段、parser 输出、chunk、provider、模型、维度、创建时间、外发状态、金额、Token、预算、队列、缓存、失败重试、审计记录、成本记录、索引、事实库、证据账本、数据库或报告",
     "不执行真实 parser、章节检测、切块、摘要生成、外部文本载荷创建、模型版本记录、成本估算、预算查找、Embedding 队列、缓存、失败重试、provider 凭据读取、provider/模型选择、外部 API、模型调用、模型 Token、审计写入或查询、索引、数据库连接或 migration、持久化、Agent、OVH、生产或上传",
-    "不启动 Stage072 P2/P3/P4、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
+    "不启动 Stage072 P3/P4、整阶段复审、批次复审、上传门、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage072 P1 对冻结任务包、Stage071 Review、Stage071 P1 合同、六个模型版本静态字段、三档策略、队列/成本/审计依赖、失败关闭、单一权威、白箱人工处理与零运行时边界完成本地验证后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE072-P2-GATE；任何真实资料访问、provider/模型选择、模型版本记录、维度或外发状态写入、Token 写入、成本估算、预算查询、摘要或文本载荷创建、队列、缓存、失败重试、外部 API、模型 Token、审计写入或查询、索引、数据库、OVH、生产或上传动作都不属于本步骤。"
+  "stop_condition": "Stage072 P2 对冻结任务包、P1 静态合同、五条固定控制输入、策略继承、队列/缓存/失败重试、模型版本/成本/审计投影、未授权 chunk 阻断、单一权威、白箱人工处理与零运行时边界完成本地验证后停止，下一轮仅允许在新的独立 run 进入 IDS-STAGE072-P3-GATE；任何真实资料访问、provider/模型选择、真实模型版本记录、维度或外发状态写入、Token 写入、成本估算、预算查询、摘要或文本载荷创建、队列、缓存、失败重试、外部 API、模型 Token、审计写入或查询、索引、数据库、OVH、生产或上传动作都不属于本步骤。"
 }
