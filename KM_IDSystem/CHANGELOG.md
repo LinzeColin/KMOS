@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-21 · Stage075 external API coverage authorization audit P3
+
+- 只重放 P2 的五条固定、非业务、`:control:` 控制投影，验证 `denied` 阻断外发、`summary_only` 摘要引用、document 收紧、`full_text_allowed` 未来文本块引用、预算不足暂停、十九字段审计、`95` 次字段检查、三个未来调用候选和 owner 强制允许外发前四字段前置；没有建立第二权威事实源。
+- 仅将 Stage060--074 历史白箱、两个既有批次检查器与 Stage005 治理映射精确扩展为承认 `Stage075 P2 → P3 → P4 gate` 的合法零运行时后继；不改写历史阶段事实，不读取真实资料，也不启用 provider、模型、队列、缓存、成本、审计、OVH 或生产行为。
+- 本地验证通过：Stage075 P3 `10/10`、P1/P2/P3 `26/26`、Stage060--069 `473/473`、Stage070--075 `266/266`、Stage005 直接治理 `valid=true` 与完整治理回归 `178/178`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，机器平面重渲染 `7` 个中文文件且文档预算、无登记阻塞和双平面检查通过。零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage075-p3-local.json`；下一步只能在新的独立 run 进入 `IDS-STAGE075-P4-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-21 · Stage075 external API coverage authorization audit P2
 
 - 只以五条固定、非业务、`:control:` 请求实现纯内存覆盖授权审计切片：默认 `denied`、三档策略、data source/document→chunk 两跳继承、document 只能收紧、未授权 chunk 阻断、预算暂停、`12/10/7` 队列/缓存/失败重试、`16/8` 成本、六字段模型版本、十九字段审计，以及 owner 强制允许外发前四字段审计前置和业务线白箱人工复核；没有建立第二权威事实源。
