@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE072",
       "name": "Embedding 模型版本",
-      "gate": "P4 metadata-only 交付证据与本地治理验证已通过；下一步只能在新的独立 run 进入 Stage072 Review",
-      "status": "P4 已从五条固定非业务控制场景派生五条策略样例、五条十八字段审计样例、九十次字段检查、五条零值成本、五条失败处理、五条未外发记录、七键查询、P4 到 P3 控制回退和四条中文反馈；真实 provider、模型、dimension、created_at、sent_to_external_api、Token、外部 API、OVH 与生产仍禁用"
+      "gate": "P1--P4 合同、P2/P3/P4 纯内存控制报告与 Stage072 整阶段机械复审已本地通过；下一步只能在新的独立 run 进入 Stage073 Phase 1",
+      "status": "Stage072 整阶段本地复审完成，发现数为零：6/2/12/10/7/8/18/9 静态形状、五条策略/队列/缓存/重试/模型版本/成本/审计投影、五条三十五字段场景、四条业务线白箱人工处理、九十次审计字段检查、五条 metadata-only 交付样例、七键查询、四条中文反馈、十二类失败关闭和 P4→P3 控制回退链保持一致；真实资料、provider、模型、dimension、created_at、sent_to_external_api、Token、外部 API、OVH 与生产仍禁用，Stage073 尚未启动"
     },
     {
       "id": "IDS-STAGE071",

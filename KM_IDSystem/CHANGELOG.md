@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-20 · IDS v0.1 Stage072 Review（本地）
+
+- 完成 Embedding 模型版本整阶段机械复审：只读重放冻结 P1--P4 合同与 P2/P3/P4 纯内存控制报告，确认六字段模型版本、五条 `10/14/10/7/6/8/18` 字段控制投影、五条三十五字段场景、`90` 次审计字段检查、五条 metadata-only 交付样例、七键查询、四条中文反馈、十二类失败关闭和 P4→P3 控制回退链；发现数为 `0`，没有建立第二权威事实源。
+- 为承认唯一合法路线 `Stage072 Review → Stage073 P1 gate`，仅扩展 Stage060--071 与 Stage072 历史白箱测试及两项批次检查器的无运行时后继状态投影；P4→Review 与 Review→Stage073 仍按精确组合校验，未改变任何冻结业务控制、真实资料、模型、队列、缓存、审计、OVH 或生产行为。
+- 本地验证通过：Review `10/10`、Stage072 P1--Review `49/49`、Stage060--069 `473/473`、Stage070 `47/47`、Stage071 `53/53`，两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归 `valid=true`，机器渲染 7 个中文文件且文档预算、无登记阻塞与双平面检查通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-20-stage072-review-local.json`；下一步仅可在新的独立 run 进入 `IDS-STAGE073-P1-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-20 · IDS v0.1 Stage072 Phase 4（本地）
 
 - 完成 Embedding 模型版本 metadata-only 交付证据：只从 P3 的五条固定、非业务、reference-only 控制场景和 P2 纯内存投影派生五条策略样例、五条十八字段审计投影、五条零值成本、五条失败处理、五条未外发控制引用、七键查询、回到 P3 的控制回滚说明和四条中文反馈；五条审计投影合计完成 90 次字段检查，三个未来调用候选保留审计前置，四条非 denied 情形保留业务线白箱人工处理，没有建立第二权威事实源。

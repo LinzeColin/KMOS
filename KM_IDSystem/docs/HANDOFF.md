@@ -9,7 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage072 Phase 4 - 2026-08-20
+## Current Gate - Stage072 Review - 2026-08-20
+
+- 本节是唯一当前交接；Stage072 P1--P4、Stage071 Review/P1--P4、Stage070 Review/P1--P4 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE072-REVIEW`：只读机械重放冻结 Stage072 P1--P4 合同与 P2/P3/P4 纯内存控制报告，确认六字段模型版本合同、五条 `10/14/10/7/6/8/18` 字段控制投影、五条三十五字段场景、`90` 次审计字段检查、五条 metadata-only 交付样例、七键查询、四条中文反馈、十二类失败关闭和 P4→P3 控制回退链。发现数为 `0`，没有建立第二权威事实源。
+- 已验证：Review 聚焦 `10/10`、Stage072 P1--Review `49/49`、Stage060--069 `473/473`、Stage070 `47/47`、Stage071 `53/53` 均本地通过；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归 `valid=true`，机器平面渲染 7 个中文文件，文档预算、无登记阻塞和单项目双平面检查均通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-20-stage072-review-local.json`；这些结果只证明固定控制合同、治理投影和零运行时边界的本地一致性。
+- 本 Review 不读取、打开、复制、保留、外发、写入或查询真实资料、来源正文、原始元数据、摘要、文本块、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、失败重试、审计或业务结论；不执行模型版本记录、成本估算、预算查询、provider/模型选择、外部 API、模型 Token、数据库、Agent、OVH、生产、Stage073、批次复审、上传或推送。来源文档与业务线白箱人工复核仍是唯一权威，所有实际运行时计数保持零。
+- 回滚只撤回本 Review 的说明、机械复审模块、聚焦用例、前序链兼容断言、machine run、事件、机器事实、治理路线、中文视图与本交接，恢复到 `PHASE4_EMBEDDING_MODEL_VERSION_METADATA_ONLY_DELIVERY_RUNTIME_DISABLED`；保留 Stage072 P1--P4、Stage071 Review/P1--P4、Stage070 及更早证据、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 和应用状态。
+- 下一步仅可在新的独立 run 进入 `IDS-STAGE073-P1-GATE`。本 run 不进入 Stage073、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage072 Phase 4 - 2026-08-20
 
 - 本节是唯一当前交接；Stage072 P3/P2/P1、Stage071 Review/P4/P3/P2/P1、Stage070 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
 - 本轮完成 IDS-V0_1-STAGE072-P4：只从 P3 五条固定、非业务、:control: 控制场景及 P2 纯内存投影派生五条策略样例、五条十八字段审计样例、90 次字段检查、五条零值成本、五条失败处理、五条未外发记录、七键查询、P4 到 P3 的控制回退说明和四条中文反馈。三个未来外部 API 调用候选仍只有审计前置和业务线白箱人工复核前置，四条非 denied 场景保持人工处理，没有建立第二权威事实源。

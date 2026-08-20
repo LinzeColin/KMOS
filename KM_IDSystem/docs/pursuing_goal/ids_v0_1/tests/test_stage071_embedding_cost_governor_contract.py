@@ -322,12 +322,12 @@ class Stage071EmbeddingCostGovernorPhase1Tests(unittest.TestCase):
             if line.strip()
         }
         self.assertEqual("IDS-STAGE072", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE072-P4", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE072-P4", status["task"])
-        self.assertEqual("IDS-STAGE072-REVIEW-GATE", status["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE072-REVIEW", status["phase"])
+        self.assertEqual("IDS-V0_1-STAGE072-REVIEW", status["task"])
+        self.assertEqual("IDS-STAGE073-P1-GATE", status["next_gate"])
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE072-P4", plan["task"])
+        self.assertEqual("IDS-V0_1-STAGE072-REVIEW", plan["task"])
         self.assertIn("不创建第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -343,7 +343,7 @@ class Stage071EmbeddingCostGovernorPhase1Tests(unittest.TestCase):
         self.assertEqual(0, run["runtime_counts"]["actual_model_token_count"])
         self.assertFalse(run["runtime_actions"]["ovh_deployment_performed"])
         self.assertIn('current_stage_id: "IDS-STAGE072"', roadmap_text)
-        self.assertIn('current_task_id: "IDS-V0_1-STAGE072-P4"', roadmap_text)
+        self.assertIn('current_task_id: "IDS-V0_1-STAGE072-REVIEW"', roadmap_text)
         self.assertIn("stage070_completed_reviewed_local", batch_text)
         self.assertIn("stage071_phase1_entry_authorized: true", batch_text)
         self.assertIn("EVT-IDS-V0_1-STAGE071-P1-20260815-001", event_ids)
@@ -351,6 +351,7 @@ class Stage071EmbeddingCostGovernorPhase1Tests(unittest.TestCase):
         self.assertIn("EVT-IDS-V0_1-STAGE071-P3-20260815-001", event_ids)
         self.assertIn("EVT-IDS-V0_1-STAGE071-P4-20260815-001", event_ids)
         self.assertIn("EVT-IDS-V0_1-STAGE071-REVIEW-20260820-001", event_ids)
+        self.assertIn("EVT-IDS-V0_1-STAGE072-REVIEW-20260820-001", event_ids)
 
     def test_scope_document_explains_zero_runtime_and_next_gate(self):
         text = SCOPE.read_text(encoding="utf-8")
