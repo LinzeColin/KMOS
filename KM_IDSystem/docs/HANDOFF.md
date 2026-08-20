@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage072 Phase 2 - 2026-08-20
+## Current Gate - Stage072 Phase 3 - 2026-08-20
 
-- 本节是唯一当前交接；Stage072 P1、Stage071 Review/P4/P3/P2/P1、Stage070 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；Stage072 P2/P1、Stage071 Review/P4/P3/P2/P1、Stage070 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE072-P3`：仅重放 P2 的五条固定、非业务、`:control:` 引用，分别验证 `denied` 阻断外发、`summary_only` 摘要引用边界、document 收紧、`full_text_allowed` 文本块引用边界及预算不足暂停。五条三十五字段场景均保留十八字段审计控制投影，共完成 `90` 次字段检查；三个未来外部 API 调用候选均只有审计前置和业务线白箱人工复核前置，没有建立第二权威事实源。
+- 已验证：P3 聚焦用例 `10/10`，Stage072 P1--P3 链路 `27/27`，Stage071 P1--Review `53/53`，Stage060--069 `473/473`，Stage070 `47/47`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归 `valid=true`，机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-20-stage072-p3-local.json`；这些结果只证明固定控制场景、治理路线和零运行时边界的本地一致性。
+- 本 P3 不读取、打开、复制、保留、外发、写入或查询真实资料、来源正文、原始元数据、摘要、文本块、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、失败重试、审计或业务结论；不执行模型版本记录、成本估算、预算查询、provider/模型选择、外部 API、模型 Token、数据库、Agent、OVH、生产、P4、整阶段复审、批次复审、上传或推送。来源文档与业务线白箱人工复核仍是唯一权威，所有实际运行时计数保持零。
+- 回滚只撤回本 P3 范围说明、场景合同、纯内存场景模块、聚焦用例、兼容断言、machine run、事件、机器事实、治理路线、中文视图与交接，恢复到 `PHASE2_EMBEDDING_MODEL_VERSION_CONTROL_SLICE_RUNTIME_DISABLED`；保留 Stage072 P1/P2、Stage071 Review/P1--P4、Stage070 及更早证据、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 和应用状态。
+- 下一步仅可在新的独立 run 进入 `IDS-STAGE072-P4-GATE`。本 run 不进入 P4、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage072 Phase 2 - 2026-08-20
+
+- 本节保留 Stage072 P2 的已提交历史交接；唯一当前交接位于上方 Stage072 P3，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE072-P2`：仅用五条固定、非业务、`:control:` 引用在内存中机械投影 data source/document 到 chunk 策略继承、12/10/7 队列/缓存/失败重试、六字段模型版本、8 字段零值成本和 18 字段审计。默认 `denied` 阻断未授权 chunk；`summary_only` 与 `full_text_allowed` 只保留未来授权引用；审计投影保留 `provider_ref`、`model_ref`、`token_count=0`、`chunk_id` 与 `policy_inheritance_reason`，没有建立第二权威事实源。
 - 已验证：Stage072 P1/P2 聚焦链路 `17/17`（其中 P2 切片 `9/9`）、Stage071 P1--Review `53/53`、Stage060--069 `473/473`、Stage070 `47/47`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归 `valid=true`，机器平面重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-20-stage072-p2-local.json`；这些结果只证明固定控制合同、治理路线和零运行时边界的本地一致性。
 - 本 P2 不读取、打开、复制、写入或查询真实资料、来源正文、原始元数据、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、重试、审计或业务结论；不执行模型版本记录、成本估算、预算查询、provider/模型选择、外部 API、模型 Token、数据库、Agent、OVH、生产、P3/P4、整阶段复审、批次复审、上传或推送。来源文档与业务线白箱人工复核仍是唯一权威，所有实际运行时计数保持零。

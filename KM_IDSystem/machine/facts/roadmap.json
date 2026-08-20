@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE072",
       "name": "Embedding 模型版本",
-      "gate": "P2 纯内存控制切片与本地治理验证已通过；下一步只能在新的独立 run 进入 Stage072 Phase 3",
-      "status": "P2 已验证五条固定非业务控制输入、策略继承、队列/缓存/失败重试、六字段模型版本、零值成本、十八字段审计、失败关闭和回滚边界；真实 provider、模型、dimension、created_at、sent_to_external_api、Token、外部 API、OVH 与生产仍禁用"
+      "gate": "P3 专项控制场景与本地治理验证已通过；下一步只能在新的独立 run 进入 Stage072 Phase 4",
+      "status": "P3 已重放五条固定非业务控制场景，验证 denied、summary_only、document 收紧、full_text_allowed、预算不足暂停、五条十八字段审计投影和九十次字段检查；真实 provider、模型、dimension、created_at、sent_to_external_api、Token、外部 API、OVH 与生产仍禁用"
     },
     {
       "id": "IDS-STAGE071",

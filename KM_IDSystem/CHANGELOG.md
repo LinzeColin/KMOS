@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-20 · IDS v0.1 Stage072 Phase 3（本地）
+
+- 完成 Embedding 模型版本专项控制场景：只重放 P2 的五条固定、非业务、`:control:` 记录，分别验证 `denied` 阻断外发、`summary_only` 摘要引用边界、document 收紧、`full_text_allowed` 文本块引用边界和预算不足暂停；形成五条三十五字段场景、五条十八字段审计控制投影、`90` 次字段检查与 `3` 个未来调用候选的审计前置，没有建立第二权威事实源。
+- P3 不读取、打开、保留、外发或写入真实资料、摘要或文本块；不选择 provider 或模型，不创建持久模型版本、队列、缓存、失败重试、成本或审计记录，不调用外部 API、不消耗模型 Token、不执行 Agent、OVH、生产、上传或推送。来源文档与业务线白箱人工复核继续是唯一权威。
+- 为承认 Stage072 P3 的唯一合法当前状态，Stage060--070 与 Stage071 的历史治理断言和两个批次检查器仅增加无运行时 P3/P4-gate 兼容分支；未改变任何业务控制、真实资料、模型、队列、缓存、审计、OVH 或生产行为。本地验证通过：P3 `10/10`、Stage072 P1--P3 `27/27`、Stage071 P1--Review `53/53`、Stage060--069 `473/473`、Stage070 `47/47`，两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归 `valid=true`，机器平面重渲染 7 个中文文件且文档/阻塞/双平面检查通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-20-stage072-p3-local.json`；下一步仅可在新的独立 run 进入 `IDS-STAGE072-P4-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-20 · IDS v0.1 Stage072 Phase 2（本地）
 
 - 完成 Embedding 模型版本最小纯内存控制切片：五条固定、非业务、`:control:` 二十字段请求机械投影策略继承、12/10/7 队列/缓存/失败重试、六字段模型版本、八字段零值成本和十八字段审计；默认 `denied` 阻断未授权 chunk，审计控制投影保留 `provider_ref`、`model_ref`、`token_count=0`、`chunk_id` 与 `policy_inheritance_reason`，没有建立第二权威事实源。

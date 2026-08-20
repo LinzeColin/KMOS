@@ -239,16 +239,16 @@ class Stage071EmbeddingCostGovernorStageReviewTests(unittest.TestCase):
         self.assertEqual(
             (
                 "IDS-STAGE072",
-                "IDS-V0_1-STAGE072-P2",
-                "IDS-V0_1-STAGE072-P2",
-                "IDS-STAGE072-P3-GATE",
+                "IDS-V0_1-STAGE072-P3",
+                "IDS-V0_1-STAGE072-P3",
+                "IDS-STAGE072-P4-GATE",
             ),
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertEqual(
-            ("IDS-STAGE072", "IDS-V0_1-STAGE072-P2", "IDS-V0_1-STAGE072-P2"),
+            ("IDS-STAGE072", "IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P3"),
             (plan["stage"], plan["phase"], plan["task"]),
         )
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}

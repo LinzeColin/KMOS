@@ -358,6 +358,7 @@ class Stage061StructuredDataQualityPhase4DeliveryTests(unittest.TestCase):
                 ("IDS-V0_1-STAGE071-REVIEW", "IDS-STAGE072-P1-GATE"),
                 ("IDS-V0_1-STAGE072-P1", "IDS-STAGE072-P2-GATE"),
                 ("IDS-V0_1-STAGE072-P2", "IDS-STAGE072-P3-GATE"),
+                ("IDS-V0_1-STAGE072-P3", "IDS-STAGE072-P4-GATE"),
                 ("IDS-V0_1-STAGE069-REVIEW", "IDS-STAGE070-P1-GATE"),
             ),
         )
@@ -408,7 +409,7 @@ class Stage061StructuredDataQualityPhase4DeliveryTests(unittest.TestCase):
                 "IDS-V0_1-STAGE069-P4",
                 "IDS-V0_1-STAGE069-REVIEW",
 
-                "IDS-V0_1-STAGE070-P1","IDS-V0_1-STAGE070-P2","IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-REVIEW", "IDS-V0_1-STAGE071-P1", "IDS-V0_1-STAGE071-P2", "IDS-V0_1-STAGE071-P3", "IDS-V0_1-STAGE071-P4", "IDS-V0_1-STAGE071-REVIEW", "IDS-V0_1-STAGE072-P1", "IDS-V0_1-STAGE072-P2",),
+                "IDS-V0_1-STAGE070-P1","IDS-V0_1-STAGE070-P2","IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-REVIEW", "IDS-V0_1-STAGE071-P1", "IDS-V0_1-STAGE071-P2", "IDS-V0_1-STAGE071-P3", "IDS-V0_1-STAGE071-P4", "IDS-V0_1-STAGE071-REVIEW", "IDS-V0_1-STAGE072-P1", "IDS-V0_1-STAGE072-P2", "IDS-V0_1-STAGE072-P3",),
         )
         self.assertIn(status["next_gate"], plan["stop_condition"])
         self.assertEqual("IDS-V0_1-STAGE061-P4", run["task_id"])
