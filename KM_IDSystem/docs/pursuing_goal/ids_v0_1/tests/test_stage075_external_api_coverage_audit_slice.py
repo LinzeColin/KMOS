@@ -321,18 +321,29 @@ class Stage075ExternalApiCoverageAuditPhase2Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         }
-        self.assertEqual(
-            (
-                "IDS-STAGE075",
-                "IDS-V0_1-STAGE075-P2",
-                "IDS-V0_1-STAGE075-P2",
-                "IDS-STAGE075-P3-GATE",
-            ),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-STAGE075",
+                    "IDS-V0_1-STAGE075-P2",
+                    "IDS-V0_1-STAGE075-P2",
+                    "IDS-STAGE075-P3-GATE",
+                ),
+                (
+                    "IDS-STAGE075",
+                    "IDS-V0_1-STAGE075-P3",
+                    "IDS-V0_1-STAGE075-P3",
+                    "IDS-STAGE075-P4-GATE",
+                ),
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE075-P2", plan["task"])
+        self.assertIn(
+            plan["task"],
+            ("IDS-V0_1-STAGE075-P2", "IDS-V0_1-STAGE075-P3"),
+        )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -349,14 +360,20 @@ class Stage075ExternalApiCoverageAuditPhase2Tests(unittest.TestCase):
         self.assertFalse(run["runtime_actions"]["ovh_deployment_performed"])
         self.assertIn("EVT-IDS-V0_1-STAGE075-P2-20260821-001", event_ids)
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
-        for expected in (
-            'current_stage_id: "IDS-STAGE075"',
-            'current_phase_id: "IDS-STAGE075-P2"',
-            'current_task_id: "IDS-V0_1-STAGE075-P2"',
-            'next_gate_id: "IDS-STAGE075-P3-GATE"',
-        ):
-            with self.subTest(expected=expected):
-                self.assertIn(expected, roadmap_text)
+        self.assertTrue(
+            (
+                'current_stage_id: "IDS-STAGE075"' in roadmap_text
+                and 'current_phase_id: "IDS-STAGE075-P2"' in roadmap_text
+                and 'current_task_id: "IDS-V0_1-STAGE075-P2"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE075-P3-GATE"' in roadmap_text
+            )
+            or (
+                'current_stage_id: "IDS-STAGE075"' in roadmap_text
+                and 'current_phase_id: "IDS-STAGE075-P3"' in roadmap_text
+                and 'current_task_id: "IDS-V0_1-STAGE075-P3"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE075-P4-GATE"' in roadmap_text
+            )
+        )
 
     def test_scope_explains_authority_and_next_gate(self):
         text = SCOPE.read_text(encoding="utf-8")

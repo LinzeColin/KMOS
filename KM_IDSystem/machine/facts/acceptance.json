@@ -1,9 +1,29 @@
 {
   "stage": "IDS-STAGE075",
-  "phase": "IDS-V0_1-STAGE075-P2",
-  "task": "IDS-V0_1-STAGE075-P2",
-  "next_gate": "IDS-STAGE075-P3-GATE",
+  "phase": "IDS-V0_1-STAGE075-P3",
+  "task": "IDS-V0_1-STAGE075-P3",
+  "next_gate": "IDS-STAGE075-P4-GATE",
   "items": [
+    {
+      "id": "ACC-STAGE075-P3-01",
+      "criteria": "冻结 Stage075 任务包、Stage075 P1/P2、Stage074 Review 和前序控制合同保持为唯一合同上下文；P3 只重放五条固定、非业务、:control: 控制投影，未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径或真实 URI。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE075-P3-02",
+      "criteria": "五条专项场景机械验证 denied 阻断外发、summary_only 仅保留摘要引用、document 收紧不得升级为文本块引用、full_text_allowed 仅保留未来文本块引用和预算不足时队列/缓存/失败重试同步暂停；五条均有显式处置，静默丢弃为零。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE075-P3-03",
+      "criteria": "每条控制场景均保留完整十九字段外部 API 覆盖审计控制投影，共完成九十五次字段检查；三个未来外部 API 调用候选均保留调用前审计、token_count=0、不透明控制引用与业务线白箱人工复核前置；owner 强制允许外发仍须一条 actor/reason/old_value/new_value 四字段前置；控制投影不等于真实审计记录、来源文档或业务事实。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE075-P3-04",
+      "criteria": "未执行真实资料访问、解析、切块、摘要生成、provider/模型选择或下载、Embedding、索引写入、模型版本记录、成本估算、预算查找、队列、缓存、失败重试、外部 API、模型 Token、审计写入或查询、数据库、持久化、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage075 P4。",
+      "status": "已遵守"
+    },
     {
       "id": "ACC-STAGE075-P2-01",
       "criteria": "冻结 Stage075 任务包、Stage075 P1、Stage074 Review 和前序控制合同保持为唯一合同上下文；P2 只接受五条固定、非业务、:control: 输入，未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径或真实 URI。",

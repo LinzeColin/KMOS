@@ -8,25 +8,26 @@ import unittest
 ROOT = Path(__file__).resolve().parents[4]
 MODULE = (
     ROOT
-    / "docs/pursuing_goal/ids_v0_1/local_embedding_fallback/"
-    "stage074_local_embedding_fallback_scenarios.py"
+    / "docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/"
+    "stage075_external_api_coverage_audit_scenarios.py"
 )
 CONTRACT = (
     ROOT
-    / "docs/pursuing_goal/ids_v0_1/local_embedding_fallback/"
-    "stage074_local_embedding_fallback_scenarios_contract.json"
+    / "docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/"
+    "stage075_external_api_coverage_audit_scenarios_contract.json"
 )
 STATUS = ROOT / "machine/facts/status.json"
 PLAN = ROOT / "machine/facts/plan.json"
 ACCEPTANCE = ROOT / "machine/facts/acceptance.json"
 ROADMAP = ROOT / "docs/governance/roadmap.yaml"
 EVENTS = ROOT / "docs/governance/events.jsonl"
+RUN = ROOT / "machine/runs/2026-08-21-stage075-p3-local.json"
 
 
-class Stage074LocalEmbeddingFallbackScenarioTests(unittest.TestCase):
+class Stage075ExternalApiCoverageAuditScenarioTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        spec = importlib.util.spec_from_file_location("stage074_p3", MODULE)
+        spec = importlib.util.spec_from_file_location("stage075_p3", MODULE)
         if not MODULE.is_file():
             raise FileNotFoundError(f"missing P3 module: {MODULE}")
         if spec is None or spec.loader is None:
@@ -36,21 +37,21 @@ class Stage074LocalEmbeddingFallbackScenarioTests(unittest.TestCase):
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
 
     def _report(self):
-        return self.module.build_local_embedding_fallback_phase3_report()
+        return self.module.build_external_api_coverage_audit_phase3_report()
 
     def _phase2(self):
         return self.module._load_phase2_module()
 
     def test_contract_declares_fixed_control_only_phase3_boundary(self):
-        self.assertEqual("ids.stage074.local_embedding_fallback.phase3.v1", self.contract["schema_version"])
-        self.assertEqual("IDS-V0_1-STAGE074-P3", self.contract["task_id"])
+        self.assertEqual("ids.stage075.external_api_coverage_audit.phase3.v1", self.contract["schema_version"])
+        self.assertEqual("IDS-V0_1-STAGE075-P3", self.contract["task_id"])
         self.assertEqual(
-            "PHASE3_LOCAL_EMBEDDING_FALLBACK_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+            "PHASE3_EXTERNAL_API_COVERAGE_AUDIT_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
             self.contract["contract_state"],
         )
         self.assertTrue(self.contract["scenario_executable"])
         self.assertFalse(self.contract["execution_ready"])
-        self.assertEqual("IDS-STAGE074-P4-GATE", self.contract["next_gate"])
+        self.assertEqual("IDS-STAGE075-P4-GATE", self.contract["next_gate"])
         authority = self.contract["source_authority"]
         self.assertFalse(authority["second_authoritative_source_created"])
         self.assertFalse(authority["source_body_or_path_allowed"])
@@ -58,8 +59,12 @@ class Stage074LocalEmbeddingFallbackScenarioTests(unittest.TestCase):
         self.assertFalse(authority["authorized_fixture_access_performed"])
         self.assertEqual(5, self.contract["controlled_scenario_contract"]["scenario_count"])
         self.assertEqual(35, self.contract["controlled_scenario_contract"]["field_count"])
-        self.assertEqual(18, self.contract["audit_projection_invariant_contract"]["inherited_phase2_audit_field_count"])
-        self.assertEqual(90, self.contract["audit_projection_invariant_contract"]["control_audit_field_check_count"])
+        self.assertEqual(19, self.contract["audit_projection_invariant_contract"]["inherited_phase2_audit_field_count"])
+        self.assertEqual(95, self.contract["audit_projection_invariant_contract"]["control_audit_field_check_count"])
+        owner = self.contract["owner_forced_egress_override_precondition_contract"]
+        self.assertEqual(1, owner["control_projection_count"])
+        self.assertEqual(4, owner["field_count"])
+        self.assertEqual(4, owner["field_check_count"])
 
     def test_report_replays_all_fixed_scenarios_and_preserves_shapes(self):
         report = self._report()
@@ -82,8 +87,12 @@ class Stage074LocalEmbeddingFallbackScenarioTests(unittest.TestCase):
         self.assertEqual(5, report["control_model_version_projection_count"])
         self.assertEqual(5, report["control_cost_projection_count"])
         self.assertEqual(5, report["control_external_api_audit_projection_count"])
-        self.assertEqual(18, report["control_audit_field_count"])
-        self.assertEqual(90, report["control_audit_field_check_count"])
+        self.assertEqual(19, report["control_audit_field_count"])
+        self.assertEqual(95, report["control_audit_field_check_count"])
+        self.assertTrue(report["owner_forced_egress_override_precondition_preserved"])
+        self.assertEqual(1, report["owner_forced_egress_override_control_projection_count"])
+        self.assertEqual(4, report["owner_forced_egress_override_field_count"])
+        self.assertEqual(4, report["owner_forced_egress_override_field_check_count"])
         self.assertEqual(3, report["future_external_api_call_candidate_count"])
 
     def test_each_policy_budget_and_audit_scenario_is_explicit(self):
@@ -119,7 +128,7 @@ class Stage074LocalEmbeddingFallbackScenarioTests(unittest.TestCase):
                 )
                 self.assertTrue(scenario["audit_projection_required"])
                 self.assertTrue(scenario["audit_projection_present"])
-                self.assertEqual(18, scenario["audit_field_count"])
+                self.assertEqual(19, scenario["audit_field_count"])
                 self.assertTrue(scenario["audit_required_fields_present"])
                 self.assertTrue(scenario["audit_reference_fields_are_control_only"])
 
@@ -160,7 +169,7 @@ class Stage074LocalEmbeddingFallbackScenarioTests(unittest.TestCase):
                 self.assertFalse(candidate["model_version_sent_to_external_api"])
 
     def test_invalid_or_malformed_phase2_fails_closed(self):
-        invalid = self.module.build_local_embedding_fallback_phase3_report(
+        invalid = self.module.build_external_api_coverage_audit_phase3_report(
             phase2_executor=lambda _control: {"input_accepted": False}
         )
         self.assertFalse(invalid["valid"])
@@ -173,33 +182,55 @@ class Stage074LocalEmbeddingFallbackScenarioTests(unittest.TestCase):
 
         def malformed(_control):
             result = copy.deepcopy(
-                phase2.execute_local_embedding_fallback_control_slice(
+                phase2.execute_external_api_coverage_audit_control_slice(
                     phase2.build_control_input()
                 )
             )
-            result["external_api_audit_projections"][0].pop("provider_ref")
+            result["external_api_coverage_audit_projections"][0].pop("provider_ref")
             return result
 
-        malformed_report = self.module.build_local_embedding_fallback_phase3_report(
+        malformed_report = self.module.build_external_api_coverage_audit_phase3_report(
             phase2_executor=malformed
         )
         self.assertFalse(malformed_report["valid"])
         self.assertEqual(self.module.FAIL_RESULT, malformed_report["result"])
         self.assertFalse(malformed_report["phase2_shape_preserved"])
 
+    def test_incomplete_owner_override_precondition_fails_closed(self):
+        phase2 = self._phase2()
+
+        def incomplete_owner_override(_control):
+            result = copy.deepcopy(
+                phase2.execute_external_api_coverage_audit_control_slice(
+                    phase2.build_control_input()
+                )
+            )
+            result["owner_forced_egress_override_control_projections"][0].pop(
+                "actor"
+            )
+            return result
+
+        report = self.module.build_external_api_coverage_audit_phase3_report(
+            phase2_executor=incomplete_owner_override
+        )
+        self.assertFalse(report["valid"])
+        self.assertEqual(self.module.FAIL_RESULT, report["result"])
+        self.assertFalse(report["phase2_shape_preserved"])
+        self.assertFalse(report["owner_forced_egress_override_precondition_preserved"])
+
     def test_phase2_runtime_signal_fails_closed(self):
         phase2 = self._phase2()
 
         def runtime_signal(_control):
             result = copy.deepcopy(
-                phase2.execute_local_embedding_fallback_control_slice(
+                phase2.execute_external_api_coverage_audit_control_slice(
                     phase2.build_control_input()
                 )
             )
             result["external_api_call_performed"] = True
             return result
 
-        report = self.module.build_local_embedding_fallback_phase3_report(
+        report = self.module.build_external_api_coverage_audit_phase3_report(
             phase2_executor=runtime_signal
         )
         self.assertFalse(report["valid"])
@@ -236,47 +267,42 @@ class Stage074LocalEmbeddingFallbackScenarioTests(unittest.TestCase):
             if line.strip()
             for item in [json.loads(line)]
         }
-        self.assertIn(status["phase"], ("IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW",
-            'IDS-V0_1-STAGE075-P1', 'IDS-V0_1-STAGE075-P2', 'IDS-V0_1-STAGE075-P3',
-        ))
-        self.assertIn(status["task"], ("IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW",
-            'IDS-V0_1-STAGE075-P1', 'IDS-V0_1-STAGE075-P2', 'IDS-V0_1-STAGE075-P3',
-        ))
-        self.assertIn(status["next_gate"], ("IDS-STAGE074-P4-GATE", "IDS-STAGE074-REVIEW-GATE", "IDS-STAGE075-P1-GATE",
-            'IDS-STAGE075-P2-GATE', 'IDS-STAGE075-P3-GATE', 'IDS-STAGE075-P4-GATE',
-        ))
-        self.assertIn(plan["task"], ("IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW",
-            'IDS-V0_1-STAGE075-P1', 'IDS-V0_1-STAGE075-P2', 'IDS-V0_1-STAGE075-P3',
-        ))
-        self.assertIn(acceptance["task"], ("IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW",
-            'IDS-V0_1-STAGE075-P1', 'IDS-V0_1-STAGE075-P2', 'IDS-V0_1-STAGE075-P3',
-        ))
-        self.assertTrue(
-            'current_stage_id: "IDS-STAGE074"' in roadmap_text
-            or 'current_stage_id: "IDS-STAGE075"' in roadmap_text
+        run = json.loads(RUN.read_text(encoding="utf-8"))
+        self.assertEqual(
+            (
+                "IDS-STAGE075",
+                "IDS-V0_1-STAGE075-P3",
+                "IDS-V0_1-STAGE075-P3",
+                "IDS-STAGE075-P4-GATE",
+            ),
+            (status["stage"], status["phase"], status["task"], status["next_gate"]),
         )
+        self.assertFalse(status["runtime_enabled"])
+        self.assertFalse(status["push_allowed"])
+        self.assertEqual("IDS-V0_1-STAGE075-P3", plan["task"])
+        self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
+        acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
-            'current_phase_id: "IDS-STAGE074-P3"' in roadmap_text
-            or 'current_phase_id: "IDS-STAGE074-P4"' in roadmap_text
-            or 'current_phase_id: "IDS-STAGE074-REVIEW"' in roadmap_text
-            or 'current_phase_id: "IDS-STAGE075-P2"' in roadmap_text
-            or 'current_phase_id: "IDS-STAGE075-P3"' in roadmap_text
+            {
+                "ACC-STAGE075-P3-01",
+                "ACC-STAGE075-P3-02",
+                "ACC-STAGE075-P3-03",
+                "ACC-STAGE075-P3-04",
+            }.issubset(acceptance_ids)
         )
-        self.assertTrue(
-            'current_task_id: "IDS-V0_1-STAGE074-P3"' in roadmap_text
-            or 'current_task_id: "IDS-V0_1-STAGE074-P4"' in roadmap_text
-            or 'current_task_id: "IDS-V0_1-STAGE074-REVIEW"' in roadmap_text
-            or 'current_task_id: "IDS-V0_1-STAGE075-P2"' in roadmap_text
-            or 'current_task_id: "IDS-V0_1-STAGE075-P3"' in roadmap_text
-        )
-        self.assertTrue(
-            'next_gate_id: "IDS-STAGE074-P4-GATE"' in roadmap_text
-            or 'next_gate_id: "IDS-STAGE074-REVIEW-GATE"' in roadmap_text
-            or 'next_gate_id: "IDS-STAGE075-P1-GATE"' in roadmap_text
-            or 'next_gate_id: "IDS-STAGE075-P3-GATE"' in roadmap_text
-            or 'next_gate_id: "IDS-STAGE075-P4-GATE"' in roadmap_text
-        )
-        self.assertIn("EVT-IDS-V0_1-STAGE074-P3-20260821-001", event_ids)
+        self.assertEqual("IDS-V0_1-STAGE075-P3", run["task_id"])
+        self.assertEqual(0, run["runtime_counts"]["actual_external_api_call_count"])
+        self.assertEqual(0, run["runtime_counts"]["actual_model_token_count"])
+        self.assertFalse(run["runtime_actions"]["ovh_deployment_performed"])
+        for expected in (
+            'current_stage_id: "IDS-STAGE075"',
+            'current_phase_id: "IDS-STAGE075-P3"',
+            'current_task_id: "IDS-V0_1-STAGE075-P3"',
+            'next_gate_id: "IDS-STAGE075-P4-GATE"',
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, roadmap_text)
+        self.assertIn("EVT-IDS-V0_1-STAGE075-P3-20260821-001", event_ids)
 
 
 if __name__ == "__main__":
