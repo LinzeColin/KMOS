@@ -312,11 +312,20 @@ class Stage073EmbeddingAuditTestPhase3Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE073-P4",
                     "IDS-STAGE073-REVIEW-GATE",
                 ),
+                (
+                    "IDS-V0_1-STAGE073-REVIEW",
+                    "IDS-V0_1-STAGE073-REVIEW",
+                    "IDS-STAGE074-P1-GATE",
+                ),
             ),
         )
         self.assertIn(
             plan["task"],
-            ("IDS-V0_1-STAGE073-P3", "IDS-V0_1-STAGE073-P4"),
+            (
+                "IDS-V0_1-STAGE073-P3",
+                "IDS-V0_1-STAGE073-P4",
+                "IDS-V0_1-STAGE073-REVIEW",
+            ),
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -331,14 +340,17 @@ class Stage073EmbeddingAuditTestPhase3Tests(unittest.TestCase):
         self.assertTrue(
             'current_phase_id: "IDS-STAGE073-P3"' in roadmap_text
             or 'current_phase_id: "IDS-STAGE073-P4"' in roadmap_text
+            or 'current_phase_id: "IDS-STAGE073-REVIEW"' in roadmap_text
         )
         self.assertTrue(
             'current_task_id: "IDS-V0_1-STAGE073-P3"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE073-P4"' in roadmap_text
+            or 'current_task_id: "IDS-V0_1-STAGE073-REVIEW"' in roadmap_text
         )
         self.assertTrue(
             'next_gate_id: "IDS-STAGE073-P4-GATE"' in roadmap_text
             or 'next_gate_id: "IDS-STAGE073-REVIEW-GATE"' in roadmap_text
+            or 'next_gate_id: "IDS-STAGE074-P1-GATE"' in roadmap_text
         )
         self.assertIn("EVT-IDS-V0_1-STAGE073-P3-20260820-001", event_ids)
         self.assertTrue(RUN.is_file())

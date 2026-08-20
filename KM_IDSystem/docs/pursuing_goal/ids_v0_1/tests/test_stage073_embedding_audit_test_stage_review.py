@@ -12,36 +12,44 @@ TASKPACK = (
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-072_Embedding模型版本.md"
+    / "STAGE-073_Embedding审计测试.md"
 )
-REVIEW_DOCUMENT = BASE / "STAGE072_STAGE_REVIEW.md"
+NEXT_TASKPACK = (
+    ROOT
+    / "docs"
+    / "taskpacks"
+    / "IDS_v0_1_Final_Chinese_Revised"
+    / "stages"
+    / "STAGE-074_本地Embedding兜底合同.md"
+)
+REVIEW_DOCUMENT = BASE / "STAGE073_STAGE_REVIEW.md"
 MODULE = (
     BASE
-    / "embedding_model_version"
-    / "stage072_embedding_model_version_stage_review.py"
+    / "embedding_audit_test"
+    / "stage073_embedding_audit_test_stage_review.py"
 )
-P1_CONTRACT = BASE / "embedding_model_version" / "stage072_embedding_model_version_contract.json"
-P2_CONTRACT = BASE / "embedding_model_version" / "stage072_embedding_model_version_slice_contract.json"
-P3_CONTRACT = BASE / "embedding_model_version" / "stage072_embedding_model_version_scenarios_contract.json"
-P4_CONTRACT = BASE / "embedding_model_version" / "stage072_embedding_model_version_delivery_contract.json"
-P2_MODULE = BASE / "embedding_model_version" / "stage072_embedding_model_version_slice.py"
-P3_MODULE = BASE / "embedding_model_version" / "stage072_embedding_model_version_scenarios.py"
-P4_MODULE = BASE / "embedding_model_version" / "stage072_embedding_model_version_delivery.py"
+P1_CONTRACT = BASE / "embedding_audit_test" / "stage073_embedding_audit_test_contract.json"
+P2_CONTRACT = BASE / "embedding_audit_test" / "stage073_embedding_audit_test_slice_contract.json"
+P3_CONTRACT = BASE / "embedding_audit_test" / "stage073_embedding_audit_test_scenarios_contract.json"
+P4_CONTRACT = BASE / "embedding_audit_test" / "stage073_embedding_audit_test_delivery_contract.json"
+P2_MODULE = BASE / "embedding_audit_test" / "stage073_embedding_audit_test_slice.py"
+P3_MODULE = BASE / "embedding_audit_test" / "stage073_embedding_audit_test_scenarios.py"
+P4_MODULE = BASE / "embedding_audit_test" / "stage073_embedding_audit_test_delivery.py"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-20-stage072-review-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-20-stage073-review-local.json"
 
 
-class Stage072EmbeddingModelVersionStageReviewTests(unittest.TestCase):
+class Stage073EmbeddingAuditTestStageReviewTests(unittest.TestCase):
     _module_value = None
     _report_value = None
 
     def _module(self):
         if self.__class__._module_value is None:
-            spec = importlib.util.spec_from_file_location("stage072_review", MODULE)
+            spec = importlib.util.spec_from_file_location("stage073_review", MODULE)
             module = importlib.util.module_from_spec(spec)
             self.assertIsNotNone(spec.loader)
             spec.loader.exec_module(module)
@@ -50,12 +58,13 @@ class Stage072EmbeddingModelVersionStageReviewTests(unittest.TestCase):
 
     def _report(self):
         if self.__class__._report_value is None:
-            self.__class__._report_value = self._module().build_stage072_review_report()
+            self.__class__._report_value = self._module().build_stage073_review_report()
         return self.__class__._report_value
 
     def test_review_artifacts_exist(self):
         for artifact in (
             TASKPACK,
+            NEXT_TASKPACK,
             REVIEW_DOCUMENT,
             MODULE,
             P1_CONTRACT,
@@ -78,17 +87,17 @@ class Stage072EmbeddingModelVersionStageReviewTests(unittest.TestCase):
     def test_review_passes_all_phase_contracts_and_reports(self):
         report = self._report()
         self.assertEqual(
-            "ids.stage072.embedding_model_version.stage_review.v1",
+            "ids.stage073.embedding_audit_test.stage_review.v1",
             report["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE072-REVIEW", report["task_id"])
-        self.assertEqual("ACC-STAGE-072", report["acceptance_id"])
+        self.assertEqual("IDS-V0_1-STAGE073-REVIEW", report["task_id"])
+        self.assertEqual("ACC-STAGE-073", report["acceptance_id"])
         self.assertTrue(report["review_valid"])
         self.assertEqual(
-            "PASS_REVIEWED_LOCAL_EMBEDDING_MODEL_VERSION_RUNTIME_DISABLED",
+            "PASS_REVIEWED_LOCAL_EMBEDDING_AUDIT_TEST_RUNTIME_DISABLED",
             report["result"],
         )
-        self.assertEqual("IDS-STAGE073-P1-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE074-P1-GATE", report["next_gate"])
         self.assertEqual(
             {"P1": True, "P2": True, "P3": True, "P4": True},
             report["phase_results"],
@@ -97,14 +106,13 @@ class Stage072EmbeddingModelVersionStageReviewTests(unittest.TestCase):
     def test_review_replays_fixed_control_counts(self):
         self.assertEqual(
             {
-                "phase1_model_version_field_count": 6,
+                "phase1_policy_value_count": 3,
                 "phase1_policy_inheritance_hop_count": 2,
                 "phase1_future_queue_field_count": 12,
-                "phase1_future_cache_field_count": 10,
-                "phase1_future_retry_field_count": 7,
                 "phase1_future_cost_field_count": 8,
+                "phase1_future_model_field_count": 6,
                 "phase1_future_audit_field_count": 18,
-                "phase1_failure_state_count": 9,
+                "phase1_failure_state_count": 7,
                 "phase2_control_request_count": 5,
                 "phase2_policy_record_count": 5,
                 "phase2_policy_record_field_count": 10,
@@ -149,7 +157,7 @@ class Stage072EmbeddingModelVersionStageReviewTests(unittest.TestCase):
         report = self._report()
         self.assertTrue(all(report["review_invariants"].values()))
         self.assertEqual(
-            "PHASE4_EMBEDDING_MODEL_VERSION_METADATA_ONLY_DELIVERY_RUNTIME_DISABLED",
+            "PHASE4_EMBEDDING_AUDIT_TEST_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
             report["rollback"]["return_to"],
         )
         self.assertTrue(report["rollback"]["preserve_phase1_to_phase4_evidence"])
@@ -157,72 +165,45 @@ class Stage072EmbeddingModelVersionStageReviewTests(unittest.TestCase):
         self.assertFalse(report["secondary_authority_created"])
         self.assertFalse(report["source_body_or_path_allowed"])
 
-    def test_review_keeps_runtime_and_stage073_closed(self):
+    def test_review_keeps_runtime_and_stage074_closed(self):
         report = self._report()
-        for field in (
-            "ids_business_source_read_performed",
-            "raw_metadata_content_accessed",
-            "source_file_open_performed",
-            "parser_execution_performed",
-            "chunking_execution_performed",
-            "cost_estimation_execution_performed",
-            "budget_lookup_performed",
-            "external_payload_created",
-            "external_api_call_performed",
-            "model_call_performed",
-            "model_token_consumption_performed",
-            "embedding_queue_execution_performed",
-            "cache_read_or_write_performed",
-            "failed_retry_execution_performed",
-            "actual_external_api_audit_record_created",
-            "actual_audit_log_query_performed",
-            "actual_externalization_record_query_performed",
-            "actual_policy_rollback_performed",
-            "database_connection_performed",
-            "persistent_state_write_performed",
-            "agent_execution_performed",
-            "ovh_deployment_performed",
-            "production_runtime_activation_performed",
-            "stage073_started",
-            "batch_review_performed",
-            "github_upload_performed",
-            "push_performed",
-        ):
+        for field in self._module().REVIEW_RUNTIME_FALSE_FIELDS:
             with self.subTest(field=field):
                 self.assertFalse(report[field])
+        self.assertTrue(report["stage073_started"])
         self.assertTrue(report["whole_stage_review_performed"])
 
     def test_invalid_phase4_contract_fails_closed(self):
-        report = self._module().build_stage072_review_report(
+        report = self._module().build_stage073_review_report(
             phase4_contract_provider=lambda: {"task_id": "tampered"}
         )
         self.assertFalse(report["review_valid"])
         self.assertFalse(report["phase_results"]["P4"])
-        self.assertEqual("IDS-STAGE072-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE073-REVIEW-GATE", report["next_gate"])
 
     def test_invalid_phase3_report_fails_closed(self):
-        report = self._module().build_stage072_review_report(
+        report = self._module().build_stage073_review_report(
             phase3_report_provider=lambda: {"result": "tampered"}
         )
         self.assertFalse(report["review_valid"])
         self.assertFalse(report["phase_results"]["P3"])
-        self.assertEqual("IDS-STAGE072-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE073-REVIEW-GATE", report["next_gate"])
 
     def test_invalid_phase2_report_fails_closed(self):
-        report = self._module().build_stage072_review_report(
+        report = self._module().build_stage073_review_report(
             phase2_report_provider=lambda: {"input_accepted": True}
         )
         self.assertFalse(report["review_valid"])
         self.assertFalse(report["phase_results"]["P2"])
-        self.assertEqual("IDS-STAGE072-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE073-REVIEW-GATE", report["next_gate"])
 
     def test_invalid_phase1_contract_fails_closed(self):
-        report = self._module().build_stage072_review_report(
+        report = self._module().build_stage073_review_report(
             phase1_contract_provider=lambda: {"task_id": "tampered"}
         )
         self.assertFalse(report["review_valid"])
         self.assertFalse(report["phase_results"]["P1"])
-        self.assertEqual("IDS-STAGE072-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE073-REVIEW-GATE", report["next_gate"])
 
     def test_governance_projection_records_stage_review(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
@@ -234,37 +215,36 @@ class Stage072EmbeddingModelVersionStageReviewTests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        self.assertIn(
-            (status["stage"], status["phase"], status["task"], status["next_gate"]),
+        self.assertEqual(
             (
-                ("IDS-STAGE072", "IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE072-REVIEW", "IDS-STAGE073-P1-GATE"),
-                ("IDS-STAGE073", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P1", "IDS-STAGE073-P2-GATE"), ("IDS-STAGE073", "IDS-V0_1-STAGE073-P2", "IDS-V0_1-STAGE073-P2", "IDS-STAGE073-P3-GATE"), ('IDS-STAGE073', 'IDS-V0_1-STAGE073-P3', 'IDS-V0_1-STAGE073-P3', 'IDS-STAGE073-P4-GATE'), ('IDS-STAGE073', 'IDS-V0_1-STAGE073-P4', 'IDS-V0_1-STAGE073-P4', 'IDS-STAGE073-REVIEW-GATE'), ("IDS-STAGE073", "IDS-V0_1-STAGE073-REVIEW", "IDS-V0_1-STAGE073-REVIEW", "IDS-STAGE074-P1-GATE"),
+                "IDS-STAGE073",
+                "IDS-V0_1-STAGE073-REVIEW",
+                "IDS-V0_1-STAGE073-REVIEW",
+                "IDS-STAGE074-P1-GATE",
             ),
+            (status["stage"], status["phase"], status["task"], status["next_gate"]),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertIn(
+        self.assertEqual(
+            ("IDS-STAGE073", "IDS-V0_1-STAGE073-REVIEW", "IDS-V0_1-STAGE073-REVIEW"),
             (plan["stage"], plan["phase"], plan["task"]),
-            (
-                ("IDS-STAGE072", "IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE072-REVIEW"),
-                ("IDS-STAGE073", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P1"), ("IDS-STAGE073", "IDS-V0_1-STAGE073-P2", "IDS-V0_1-STAGE073-P2"), ('IDS-STAGE073', 'IDS-V0_1-STAGE073-P3', 'IDS-V0_1-STAGE073-P3'), ('IDS-STAGE073', 'IDS-V0_1-STAGE073-P4', 'IDS-V0_1-STAGE073-P4'), ("IDS-STAGE073", "IDS-V0_1-STAGE073-REVIEW", "IDS-V0_1-STAGE073-REVIEW"),
-            ),
         )
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-        self.assertEqual("已通过", acceptance_by_id["ACC-STAGE072-REVIEW-01"])
-        self.assertEqual("已通过", acceptance_by_id["ACC-STAGE072-REVIEW-02"])
-        self.assertEqual("已通过", acceptance_by_id["ACC-STAGE072-REVIEW-03"])
-        self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE072-REVIEW-04"])
+        self.assertEqual("已通过", acceptance_by_id["ACC-STAGE073-REVIEW-01"])
+        self.assertEqual("已通过", acceptance_by_id["ACC-STAGE073-REVIEW-02"])
+        self.assertEqual("已通过", acceptance_by_id["ACC-STAGE073-REVIEW-03"])
+        self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE073-REVIEW-04"])
         event = next(
             item
             for item in events
-            if item["event_id"] == "EVT-IDS-V0_1-STAGE072-REVIEW-20260820-001"
+            if item["event_id"] == "EVT-IDS-V0_1-STAGE073-REVIEW-20260820-001"
         )
         self.assertEqual("stage_review", event["event_type"])
-        self.assertEqual("IDS-V0_1-STAGE072-REVIEW", event["task_id"])
-        self.assertEqual("IDS-STAGE073-P1-GATE", run["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE073-REVIEW", event["task_id"])
+        self.assertEqual("IDS-STAGE074-P1-GATE", run["next_gate"])
         self.assertEqual(
-            "PASS_REVIEWED_LOCAL_EMBEDDING_MODEL_VERSION_RUNTIME_DISABLED",
+            "PASS_REVIEWED_LOCAL_EMBEDDING_AUDIT_TEST_RUNTIME_DISABLED",
             run["result"],
         )
         self.assertTrue(all(value == 0 for value in run["runtime_counts"].values()))

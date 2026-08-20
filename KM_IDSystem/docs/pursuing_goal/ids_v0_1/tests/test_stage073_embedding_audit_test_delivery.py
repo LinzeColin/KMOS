@@ -244,11 +244,29 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         event_ids = {item["event_id"] for line in EVENTS.read_text(encoding="utf-8").splitlines() if line.strip() for item in [json.loads(line)]}
-        self.assertEqual("IDS-V0_1-STAGE073-P4", status["phase"])
-        self.assertEqual("IDS-V0_1-STAGE073-P4", status["task"])
-        self.assertEqual("IDS-STAGE073-REVIEW-GATE", status["next_gate"])
-        self.assertIn("IDS-V0_1-STAGE073-P4", plan["now"])
-        self.assertIn("IDS-V0_1-STAGE073-P4", "\n".join(plan["scope"]))
+        self.assertIn(
+            (status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-V0_1-STAGE073-P4",
+                    "IDS-V0_1-STAGE073-P4",
+                    "IDS-STAGE073-REVIEW-GATE",
+                ),
+                (
+                    "IDS-V0_1-STAGE073-REVIEW",
+                    "IDS-V0_1-STAGE073-REVIEW",
+                    "IDS-STAGE074-P1-GATE",
+                ),
+            ),
+        )
+        self.assertTrue(
+            "IDS-V0_1-STAGE073-P4" in plan["now"]
+            or "IDS-V0_1-STAGE073-REVIEW" in plan["now"]
+        )
+        self.assertTrue(
+            "IDS-V0_1-STAGE073-P4" in "\n".join(plan["scope"])
+            or "P1--P4" in "\n".join(plan["scope"])
+        )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue({"ACC-STAGE-073", "ACC-STAGE073-P4-01", "ACC-STAGE073-P4-02", "ACC-STAGE073-P4-03", "ACC-STAGE073-P4-04"}.issubset(acceptance_ids))
         self.assertIn('current_phase_id: "IDS-STAGE073-P4"', roadmap_text)

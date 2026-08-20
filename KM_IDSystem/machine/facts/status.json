@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE073",
-  "phase": "IDS-V0_1-STAGE073-P4",
-  "task": "IDS-V0_1-STAGE073-P4",
-  "real_progress": "Stage073 P4 已从 P3 的五条固定、非业务纯内存控制场景及 P2 控制投影派生五条策略样例、五条 18 字段审计投影、五条零值成本、五条失败处理、五条未外发原因、七键查询、回退到 P3 与四条中文反馈；真实审计日志、外发和运行时记录均未创建，所有真实运行时计数保持零。",
-  "report_grade": "冻结 Stage073 任务包、Stage073 P1/P2/P3、Stage072 Review、Stage072 P1 模型版本合同、Stage071 P1 审计字段合同与 Batch061-070 历史上传锁构成唯一合同上下文；本次只派生 metadata-only 控制交付证据，不建立第二权威事实源、不读取真实资料、不创建持久审计记录、不调用外部 API 或执行业务处置。",
-  "business_verdict": "本 P4 只证明固定控制交付形状、策略边界、预算暂停、审计前置、查询与回滚说明及零运行时边界在本地可验证，不能证明任何真实 chunk、provider、model、Token、外部 API、审计日志、成本、查询、回退、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "LOCAL_STAGE073_P4_EMBEDDING_AUDIT_TEST_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE073-REVIEW",
+  "task": "IDS-V0_1-STAGE073-REVIEW",
+  "real_progress": "Stage073 Review 只在内存中机械重放 P1--P4 的固定控制合同和报告，确认 3/2/12/8/6/18/7、五条 10/14/10/7/6/8/18 字段投影、五条三十五字段场景、五条 metadata-only 交付、九十次审计字段检查、P4→P3 控制回退、单一权威和零运行时边界；真实审计日志、外发和运行时记录均未创建，所有真实运行时计数保持零。",
+  "report_grade": "冻结 Stage073 任务包、Stage073 P1--P4 合同及 P2/P3/P4 纯内存控制报告、Stage072 Review、Stage072 P1 模型版本合同、Stage071 P1 审计字段合同和 Batch061-070 历史上传锁构成唯一合同上下文；本次只机械复审既有控制证据，不建立第二权威事实源、不读取真实资料、不创建持久审计记录、不调用外部 API 或执行业务处置。",
+  "business_verdict": "本 Review 只证明固定控制合同、报告形状、策略边界、预算暂停、审计前置、查询与回滚说明及零运行时边界在本地可验证，不能证明任何真实 chunk、provider、model、Token、外部 API、审计日志、成本、查询、回退、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "LOCAL_STAGE073_REVIEWED_EMBEDDING_AUDIT_TEST_RUNTIME_DISABLED",
   "rendered_at": "2026-08-20",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE073-REVIEW-GATE",
+  "next_gate": "IDS-STAGE074-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

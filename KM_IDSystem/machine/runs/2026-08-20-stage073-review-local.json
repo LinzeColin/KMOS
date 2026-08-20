@@ -1,0 +1,63 @@
+{
+  "schema_version": "ids.local_run.v1",
+  "run_id": "RUN-IDS-STAGE073-REVIEW-LOCAL-20260820-001",
+  "task_id": "IDS-V0_1-STAGE073-REVIEW",
+  "acceptance_id": "ACC-STAGE-073",
+  "recorded_on": "2026-08-20",
+  "status": "PASS_REVIEWED_LOCAL_EMBEDDING_AUDIT_TEST_RUNTIME_DISABLED",
+  "result": "PASS_REVIEWED_LOCAL_EMBEDDING_AUDIT_TEST_RUNTIME_DISABLED",
+  "scope": "只读机械复审冻结 Stage073 P1--P4 合同和 P2/P3/P4 纯内存控制报告；不读取业务资料、不创建第二权威事实源、不启动 Stage074 P1。",
+  "commands": [
+    "python3 -B -m py_compile KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_audit_test/stage073_embedding_audit_test_stage_review.py KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage073_embedding_audit_test_stage_review.py",
+    "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage073_embedding_audit_test_stage_review",
+    "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage073_embedding_audit_test_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage073_embedding_audit_test_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage073_embedding_audit_test_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage073_embedding_audit_test_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage073_embedding_audit_test_stage_review",
+    "python3 -B -m unittest discover -q -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage06*.py'",
+    "python3 -B -m unittest discover -q -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage070*.py'",
+    "python3 -B -m unittest discover -q -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage071*.py'",
+    "python3 -B -m unittest discover -q -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage072*.py'",
+    "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+    "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py",
+    "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py",
+    "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem",
+    "python3 -B KM_IDSystem/machine/tools/check_doc_budget.py --docs KM_IDSystem/文档",
+    "python3 -B KM_IDSystem/machine/tools/check_blocker_stop.py --machine KM_IDSystem/machine",
+    "python3 -B KM_IDSystem/machine/tools/check_dual_plane_ci.py --root . --projects KM_IDSystem --require-projects"
+  ],
+  "runtime_counts": {
+    "actual_model_version_record_count": 0,
+    "actual_embedding_queue_count": 0,
+    "actual_cache_entry_count": 0,
+    "actual_failed_retry_count": 0,
+    "actual_cost_count": 0,
+    "actual_external_api_audit_count": 0,
+    "actual_external_api_call_count": 0,
+    "actual_model_token_count": 0,
+    "actual_delivery_file_written_count": 0,
+    "actual_audit_log_query_count": 0,
+    "actual_externalization_record_query_count": 0,
+    "actual_policy_rollback_count": 0
+  },
+  "runtime_actions": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "source_file_open_performed": false,
+    "external_api_call_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "stage074_started": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "validation": {
+    "stage073_review_tests": "PASS_10_OF_10",
+    "stage073_phase1_to_review_tests": "PASS_49_OF_49",
+    "stage060_to_stage072_regression": "PASS_622_OF_622",
+    "governance_regression": "PASS_STAGE005_VALID_TRUE_BATCH041_050_AND_BATCH051_060_UPLOAD_LOCKED",
+    "human_projection": "PASS_RENDERED_7_FILES_DOC_BUDGET_BLOCKER_STOP_AND_DUAL_PLANE"
+  },
+  "rollback_scope": "只撤回本 Review 的文档、模块、测试、机器事实、事件、路线和生成中文投影，恢复 Stage073 P4 metadata-only 交付证据；不修改 P1--P4、冻结任务包、业务资料、GitHub、OVH 或生产状态。",
+  "next_gate": "IDS-STAGE074-P1-GATE"
+}
