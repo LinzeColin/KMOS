@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-20 · IDS v0.1 Stage072 Phase 1（本地）
+
+- 完成 Embedding 模型版本静态合同的本地治理验证：仅定义 `provider_ref`、`model_ref`、`model_version`、`dimension`、`created_at`、`sent_to_external_api` 六个未来字段，复用默认 `denied`、三档策略继承、队列/缓存/失败重试、成本治理和审计前置，声明九类失败关闭、中文反馈与回到 Stage071 Review 的回滚边界。
+- 为承认 Stage071 Review → Stage072 P1 的唯一合法路线，Stage060--070 与 Stage071 的历史治理断言和两个批次检查器仅增加无运行时兼容分支；未改变任何业务控制、真实资料、模型、队列、缓存、审计、OVH 或生产行为。
+- 本地验证通过：Stage072 P1 `8/8`、Stage071 P1--Review `53/53`、Stage060--069 `473/473`、Stage070 `47/47`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归 `valid=true`，机器平面重渲染 7 个中文文件且文档/阻塞/双平面检查通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-20-stage072-p1-local.json`；下一步仅可在新的独立 run 进入 `IDS-STAGE072-P2-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-20 · IDS v0.1 Stage071 Review（本地）
 
 - 完成 Embedding 成本治理器整阶段机械复审：只读重放冻结 P1--P4 合同与 P2/P3/P4 纯内存控制报告，确认 `16/16/3/12/10/7/8/18/14` 静态形状、七条策略/成本治理/队列/缓存/重试/审计投影、七条三十五字段场景、六条业务线白箱人工处理、`126` 次审计字段检查、七条 metadata-only 交付、七键查询、四条中文反馈、十二类失败关闭和 P4→P3 控制回退链；发现数为 `0`，没有建立第二权威事实源。

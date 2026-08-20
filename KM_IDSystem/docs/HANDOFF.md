@@ -9,14 +9,23 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage071 Review - 2026-08-20
+## Current Gate - Stage072 Phase 1 - 2026-08-20
 
-- 本节是唯一当前交接；Stage071 P4/P3/P2/P1、Stage070 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本节是唯一当前交接；Stage071 Review/P4/P3/P2/P1、Stage070 Review/P4/P3/P2/P1 与下方所有章节均为已提交的历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE072-P1`：仅固定 `provider_ref`、`model_ref`、`model_version`、`dimension`、`created_at`、`sent_to_external_api` 六个未来字段，复用 `external_api_policy=denied` 默认值、三档策略、data source/document 到 chunk 自动继承、`12/10/7` 队列/缓存/失败重试、8 个成本与模型字段、18 个审计字段和审计前置；声明九类失败关闭、中文反馈及回到 Stage071 Review 的回滚边界，没有建立第二权威事实源。
+- 已验证：Stage072 P1 聚焦合同 `8/8`、Stage071 P1--Review 链路 `53/53`、Stage060--069 链路 `473/473`、Stage070 链路 `47/47`；Batch041-050 与 Batch051-060 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归为 `valid=true`，机器平面重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。这些结果只证明静态合同、治理路线和零运行时边界的本地一致性。
+- 本 P1 不读取、打开、复制、写入或查询真实资料、来源正文、原始元数据、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、重试、审计或业务结论；不执行模型版本记录、成本估算、预算查询、provider/模型选择、外部 API、模型 Token、数据库、Agent、OVH、生产、P2/P3/P4、整阶段复审、批次复审、上传或推送。来源文档与业务线白箱人工复核仍是唯一权威，所有实际运行时计数保持零。
+- 回滚只撤回本 P1 范围说明、静态合同、聚焦用例、兼容断言、machine run、事件、机器事实、治理路线、中文视图与交接，恢复到 `LOCAL_STAGE071_REVIEWED_EMBEDDING_COST_GOVERNOR_RUNTIME_DISABLED`；保留 Stage071 Review/P1--P4、Stage070 及更早证据、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 和应用状态。
+- 下一步仅可在新的独立 run 进入 `IDS-STAGE072-P2-GATE`。本 run 不进入 P2、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage071 Review - 2026-08-20
+
+- 本节保留 Stage071 Review 的历史交接；唯一当前交接位于上方 Stage072 Phase 1，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE071-REVIEW`：只读机械重放冻结任务包、Stage071 P1--P4 合同及 P2/P3/P4 纯内存控制报告，核验 `16/16/3/12/10/7/8/18/14` 静态形状、七条策略/成本治理/队列/缓存/重试/审计投影、七条三十五字段场景、六条业务线白箱人工处理、`126` 次审计字段检查、七条 metadata-only 交付、七键查询、四条中文反馈、十二类失败关闭和 P4→P3 控制回退；发现数为 `0`，没有建立第二权威事实源。
 - 已验证：Stage071 P1--Review 聚焦链路 `53/53`、Stage060--069 链路 `473/473`、Stage070 链路 `47/47`；Batch041-050 与 Batch051-060 检查器均返回 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归为 `valid=true`。这些结果只证明固定控制合同、治理路线和零运行时边界的本地一致性。
 - 本 Review 不读取、打开、复制、写入或查询真实资料、来源正文、原始元数据、金额、Token、预算、队列、缓存、重试、审计或业务结论；不执行成本估算、预算查询、provider/模型选择、外部 API、模型 Token、数据库、Agent、OVH、生产、批次复审、上传或推送。来源文档与业务线白箱人工复核仍是唯一权威，所有实际运行时计数保持零。
 - 回滚只撤回本 Review 说明、机械复审模块、聚焦用例、兼容断言、machine run、事件、机器事实、治理路线、中文视图与交接，恢复到 `PHASE4_EMBEDDING_COST_GOVERNOR_METADATA_ONLY_DELIVERY_RUNTIME_DISABLED`；保留 Stage071 P1--P4、Stage070 及更早证据、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、事实库、数据库、索引、GitHub、OVH 和应用状态。
-- 下一步仅可在新的独立 run 进入 `IDS-STAGE072-P1-GATE`。本 run 不进入 Stage072、批次复审、OVH、生产或上传；全局上传仍延后至完整冻结任务包完成 `ACC-STAGE-168`。
+- 后续在当时仅可在新的独立 run 进入 `IDS-STAGE072-P1-GATE`；该历史 run 不进入 Stage072、批次复审、OVH、生产或上传。
 
 ## Superseded Gate - Stage071 Phase 4 - 2026-08-15
 

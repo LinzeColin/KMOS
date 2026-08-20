@@ -1,0 +1,232 @@
+{
+  "schema_version": "ids.stage072.embedding_model_version.phase1.v1",
+  "stage": "STAGE-072",
+  "phase": "P1",
+  "task_id": "IDS-V0_1-STAGE072-P1",
+  "acceptance_id": "ACC-STAGE-072",
+  "domain": "D12 · Embedding 与外部 API 策略",
+  "entrance": "IDS 系统运营入口",
+  "pursuing_goal": "只定义 embedding model、provider、dimension、created_at 与 sent_to_external_api 的未来记录合同。",
+  "contract_state": "PHASE1_EMBEDDING_MODEL_VERSION_CONTRACT_RUNTIME_DISABLED",
+  "next_gate": "IDS-STAGE072-P2-GATE",
+  "execution_ready": {
+    "static_contract_ready": true,
+    "runtime_execution_ready": false,
+    "external_api_execution_ready": false,
+    "model_selection_ready": false
+  },
+  "local_code": {
+    "reference_only_contract_created": true,
+    "real_model_version_record_created": false,
+    "real_audit_record_created": false
+  },
+  "source_authority": {
+    "authority": "FROZEN_STAGE072_TASKPACK_STAGE071_REVIEW_STAGE071_PHASE1_CONTRACT_AND_BATCH_LOCK_ONLY",
+    "frozen_taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-072_Embedding模型版本.md",
+    "predecessor_stage_review_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE071_STAGE_REVIEW.md",
+    "predecessor_cost_governor_contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/embedding_cost_governor/stage071_embedding_cost_governor_contract.json",
+    "predecessor_batch_lock_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false,
+    "authorized_fixture_access_performed": false
+  },
+  "model_version_record_contract": {
+    "mode": "REFERENCE_ONLY_EMBEDDING_MODEL_VERSION_NO_PROVIDER_OR_MODEL_SELECTED",
+    "required_fields": [
+      "provider_ref",
+      "model_ref",
+      "model_version",
+      "dimension",
+      "created_at",
+      "sent_to_external_api"
+    ],
+    "field_count": 6,
+    "additional_fields_allowed": false,
+    "provider_or_model_selection_allowed_in_phase1": false,
+    "actual_model_version_record_created": false,
+    "actual_dimension_recorded": false,
+    "actual_created_at_recorded": false,
+    "actual_sent_to_external_api_recorded": false,
+    "actual_model_version_record_count": 0
+  },
+  "policy_inheritance_dependency": {
+    "mode": "REUSE_STAGE071_EXTERNAL_API_POLICY_INHERITANCE_REFERENCE_ONLY",
+    "required_predecessor_contract_state": "PHASE1_EMBEDDING_COST_GOVERNOR_CONTRACT_RUNTIME_DISABLED",
+    "default_external_api_policy": "denied",
+    "allowed_external_api_policy_values": [
+      "denied",
+      "summary_only",
+      "full_text_allowed"
+    ],
+    "allowed_value_count": 3,
+    "unknown_policy_fails_closed_to": "denied",
+    "inheritance_path": [
+      "data_source.external_api_policy",
+      "document.effective_external_api_policy",
+      "chunk.effective_external_api_policy"
+    ],
+    "inheritance_hop_count": 2,
+    "owner_must_not_mark_chunks_individually": true,
+    "chunk_manual_policy_assignment_allowed": false,
+    "document_may_widen_data_source_policy": false,
+    "chunk_inherits_effective_document_policy_automatically": true,
+    "actual_policy_resolution_performed": false
+  },
+  "queue_cost_and_audit_dependency": {
+    "mode": "REUSE_STAGE071_QUEUE_COST_AUDIT_REFERENCE_ONLY",
+    "future_queue_field_count": 12,
+    "future_cache_field_count": 10,
+    "future_failed_retry_field_count": 7,
+    "future_cost_and_model_field_count": 8,
+    "future_external_api_audit_field_count": 18,
+    "model_version_audit_extension_fields": [
+      "dimension",
+      "created_at",
+      "sent_to_external_api"
+    ],
+    "model_version_audit_extension_field_count": 3,
+    "audit_required_before_future_provider_call": true,
+    "all_future_budget_gates_required_before_external_api": true,
+    "queue_cache_retry_execution_allowed_in_phase1": false,
+    "cost_estimation_or_budget_lookup_allowed_in_phase1": false,
+    "audit_record_creation_allowed_in_phase1": false,
+    "actual_embedding_queue_created": false,
+    "actual_cache_entry_created": false,
+    "actual_failed_retry_record_created": false,
+    "actual_cost_estimation_performed": false,
+    "actual_budget_lookup_performed": false,
+    "actual_audit_record_created": false
+  },
+  "policy_flow_contract": {
+    "denied": {
+      "effective_policy": "denied",
+      "external_payload_allowed": false,
+      "embedding_queue_allowed": false,
+      "model_version_record_allowed": false,
+      "sent_to_external_api": false,
+      "provider_call_allowed": false,
+      "required_audit_disposition": "BLOCKED_POLICY_DENIED"
+    },
+    "summary_only": {
+      "effective_policy": "summary_only",
+      "external_payload_allowed": "FUTURE_AUTHORIZED_SUMMARY_REFERENCE_ONLY",
+      "chunk_text_payload_allowed": false,
+      "model_version_record_allowed": false,
+      "provider_call_allowed": false,
+      "required_audit_disposition": "FUTURE_SUMMARY_ONLY_AUDIT_REQUIRED"
+    },
+    "full_text_allowed": {
+      "effective_policy": "full_text_allowed",
+      "external_payload_allowed": "FUTURE_AUTHORIZED_CHUNK_TEXT_ONLY",
+      "model_version_record_allowed": false,
+      "provider_call_allowed": false,
+      "required_audit_disposition": "FUTURE_FULL_TEXT_AUDIT_REQUIRED"
+    },
+    "actual_summary_created": false,
+    "actual_chunk_text_externalized": false,
+    "actual_external_api_call_performed": false
+  },
+  "failure_and_stop_contract": {
+    "declared_failure_states": [
+      "MODEL_VERSION_POLICY_MISSING",
+      "MODEL_VERSION_POLICY_DENIED",
+      "MODEL_VERSION_PROVIDER_OR_MODEL_UNSELECTED",
+      "MODEL_VERSION_VALUE_UNRECORDED",
+      "MODEL_VERSION_DIMENSION_UNRECORDED",
+      "MODEL_VERSION_CREATED_AT_UNRECORDED",
+      "MODEL_VERSION_SENT_STATUS_UNRECORDED",
+      "MODEL_VERSION_AUDIT_FIELDS_INCOMPLETE",
+      "PHASE1_EMBEDDING_MODEL_VERSION_EXECUTION_NOT_AUTHORIZED"
+    ],
+    "failure_state_count": 9,
+    "automatic_business_write_allowed": false,
+    "actual_failure_record_created": false
+  },
+  "authority_and_decision_boundary": {
+    "source_document_remains_authoritative": true,
+    "model_version_record_can_replace_source_document": false,
+    "external_model_output_can_become_business_fact_authority": false,
+    "model_direct_text_guessing_allowed": false,
+    "automatic_business_recommendation_allowed": false,
+    "business_line_whitebox_human_review_required_for_policy_exception": true,
+    "actual_business_decision_created": false
+  },
+  "chinese_feedback_contract": {
+    "feedback_count": 4,
+    "messages": [
+      "当前仅完成模型版本静态合同，未发起外部调用。",
+      "策略为 denied 时，外发、队列和模型版本记录均保持关闭。",
+      "摘要或文本块仅可在未来授权、预算、审计及白箱复核完成后进入后续环节。",
+      "本步骤可回退至 Stage071 Review，不影响原始资料或生产状态。"
+    ],
+    "actual_user_feedback_emitted": false
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "source_file_open_performed": false,
+    "parser_execution_performed": false,
+    "chunking_execution_performed": false,
+    "summary_generation_performed": false,
+    "embedding_queue_execution_performed": false,
+    "cache_read_or_write_performed": false,
+    "failed_retry_execution_performed": false,
+    "cost_estimation_execution_performed": false,
+    "budget_lookup_performed": false,
+    "model_version_record_execution_performed": false,
+    "external_payload_created": false,
+    "external_api_client_initialized": false,
+    "external_api_call_performed": false,
+    "provider_credential_read_performed": false,
+    "provider_or_model_selected": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "embedding_or_index_write_performed": false,
+    "database_connection_performed": false,
+    "persistent_state_write_performed": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "stage_and_phase_boundary": {
+    "stage071_review_evidence_read": true,
+    "stage072_started": true,
+    "stage072_entry_authorized": true,
+    "phase1_started": true,
+    "phase2_started": false,
+    "phase3_started": false,
+    "phase4_started": false,
+    "whole_stage_review_performed": false,
+    "batch_review_performed": false,
+    "stage073_started": false,
+    "stage072_phase2_entry_authorized": true,
+    "github_upload_allowed": false,
+    "push_allowed": false
+  },
+  "protected_surface_boundary": {
+    "raw_source_change_allowed": false,
+    "manifest_change_allowed": false,
+    "evidence_ledger_change_allowed": false,
+    "audit_log_change_allowed": false,
+    "delivered_report_change_allowed": false,
+    "persistent_database_change_allowed": false,
+    "source_or_raw_data_cleanup_allowed": false
+  },
+  "rollback_contract": {
+    "return_to": "LOCAL_STAGE071_REVIEWED_EMBEDDING_COST_GOVERNOR_RUNTIME_DISABLED",
+    "revertable_artifacts": [
+      "Stage072 Phase 1 scope boundary",
+      "Stage072 embedding model version static contract",
+      "Stage072 focused tests",
+      "Stage072 governance projection"
+    ],
+    "preserve_stage071_review_evidence": true,
+    "source_or_raw_data_change_allowed": false,
+    "database_or_persistent_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

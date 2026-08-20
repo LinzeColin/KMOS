@@ -331,11 +331,11 @@ class Stage071EmbeddingCostGovernorPhase3Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        self.assertEqual("IDS-STAGE071", status["stage"])
-        self.assertEqual("IDS-V0_1-STAGE071-REVIEW", status["phase"])
-        self.assertEqual("IDS-STAGE072-P1-GATE", status["next_gate"])
-        self.assertEqual("IDS-V0_1-STAGE071-REVIEW", plan["task"])
-        self.assertIn("IDS-STAGE072-P1-GATE", plan["stop_condition"])
+        self.assertEqual("IDS-STAGE072", status["stage"])
+        self.assertEqual("IDS-V0_1-STAGE072-P1", status["phase"])
+        self.assertEqual("IDS-STAGE072-P2-GATE", status["next_gate"])
+        self.assertEqual("IDS-V0_1-STAGE072-P1", plan["task"])
+        self.assertIn("IDS-STAGE072-P2-GATE", plan["stop_condition"])
         self.assertTrue(
             {
                 "ACC-STAGE071-P3-01",
