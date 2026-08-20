@@ -247,6 +247,7 @@ class Stage069ExternalApiPolicyStageReviewTests(unittest.TestCase):
 ("IDS-STAGE071", "IDS-V0_1-STAGE071-P2", "IDS-V0_1-STAGE071-P2", "IDS-STAGE071-P3-GATE"),
 ("IDS-STAGE071", "IDS-V0_1-STAGE071-P3", "IDS-V0_1-STAGE071-P3", "IDS-STAGE071-P4-GATE"),
                 ("IDS-STAGE071", "IDS-V0_1-STAGE071-P4", "IDS-V0_1-STAGE071-P4", "IDS-STAGE071-REVIEW-GATE"),
+                ("IDS-STAGE071", "IDS-V0_1-STAGE071-REVIEW", "IDS-V0_1-STAGE071-REVIEW", "IDS-STAGE072-P1-GATE"),
             ),
         )
         self.assertIn(
@@ -262,6 +263,7 @@ class Stage069ExternalApiPolicyStageReviewTests(unittest.TestCase):
 ("IDS-V0_1-STAGE071-P2", "IDS-V0_1-STAGE071-P2"),
 ("IDS-V0_1-STAGE071-P3", "IDS-V0_1-STAGE071-P3"),
 ("IDS-V0_1-STAGE071-P4", "IDS-V0_1-STAGE071-P4"),
+("IDS-V0_1-STAGE071-REVIEW", "IDS-V0_1-STAGE071-REVIEW"),
             ),
         )
         self.assertTrue(
@@ -275,6 +277,7 @@ class Stage069ExternalApiPolicyStageReviewTests(unittest.TestCase):
             or "IDS-STAGE071-P3-GATE" in plan["stop_condition"]
             or "IDS-STAGE071-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE071-REVIEW-GATE" in plan["stop_condition"]
+            or "IDS-STAGE072-P1-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             {
