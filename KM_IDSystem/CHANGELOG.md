@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-21 · Stage075 external API coverage authorization audit Review
+
+- 只读机械复审冻结 Stage075 P1--P4 合同、P2/P3/P4 纯内存控制报告和 P4→P3 回滚：五条固定、非业务、`:control:` 请求的三档策略、两跳继承、document 收紧、预算暂停、十九字段审计、零值成本、失败关闭、未外发原因、八键进程内查询、owner 四字段前置与业务线白箱人工复核保持一致，发现数为零；没有建立第二权威事实源。
+- 仅将 Stage005、Stage060--074 历史白箱与两个既有批次检查器精确扩展为承认 `Stage075 P4 → Review → Stage076 P1 gate` 的合法零运行时后继；历史批次仍逐个校验其既有封存字段与上传锁，不改写历史阶段事实，也不读取真实资料或启用 provider、模型、队列、缓存、成本、审计、OVH 或生产行为。
+- 本地验证通过：Review `10/10`、Stage075 P1--P4 `31/31`、Stage060--069 `473/473`、Stage070--075 `281/281`、Stage005 `178/178` 与直接治理 `valid=true`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，机器平面重渲染 `7` 个中文文件且文档三道门、无登记阻塞和单项目双平面检查通过。零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage075-review-local.json`；下一步只能在新的独立 run 进入 `IDS-STAGE076-P1-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-21 · Stage075 external API coverage authorization audit P4
 
 - 只从 P3 的五条固定、非业务、`:control:` 控制场景和 P2 纯内存投影派生 metadata-only 交付证据：五条策略样例、五条十九字段审计投影、`95` 次字段检查、五条零值成本估算、五条失败处理、五条未外发原因、八键进程内查询说明、一条 owner 强制允许外发前四字段投影、回到 P3 的回滚说明与四条中文反馈；没有建立第二权威事实源。

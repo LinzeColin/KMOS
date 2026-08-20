@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE075",
-  "phase": "IDS-V0_1-STAGE075-P4",
-  "task": "IDS-V0_1-STAGE075-P4",
-  "real_progress": "Stage075 P4 只从 P3 的五条固定、非业务、reference-only 控制场景和 P2 控制投影派生五条策略样例、五条十九字段审计投影与九十五次字段检查、五条零值成本估算、五条失败处理、五条未外发原因、八键进程内查询说明、一条 owner 强制允许外发 actor/reason/old_value/new_value 四字段前置样例、回到 P3 的回滚说明和四条中文反馈；所有真实运行时计数保持零。",
-  "report_grade": "冻结 Stage075 任务包、Stage075 P1/P2/P3、Stage074 Review 与前序控制合同构成唯一合同上下文；本次只执行可测试、可回滚的纯内存 metadata-only 交付证据，不建立第二权威事实源、不读取真实资料、不创建持久审计记录、不选择或调用本地或外部模型。",
-  "business_verdict": "本 P4 只证明固定控制交付形状、策略外发边界、零值成本投影、失败关闭、未外发原因、进程内查询限制、P4→P3 回滚、owner 四字段前置、业务线白箱人工复核、单一权威和零运行时边界在本地一致；不能证明任何真实资料、provider、模型、摘要或文本块、Token、外部 API、审计日志、成本、索引、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "PHASE4_EXTERNAL_API_COVERAGE_AUDIT_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE075-REVIEW",
+  "task": "IDS-V0_1-STAGE075-REVIEW",
+  "real_progress": "Stage075 P1--P4 的冻结合同、纯内存控制切片、专项场景与 metadata-only 交付证据已完成机械复审：四个阶段均通过，发现数为零，固定控制形状、P4→P3 回滚、单一权威、业务线白箱人工复核和零运行时边界保持一致；Stage076 尚未启动。",
+  "report_grade": "冻结 Stage075 任务包、P1--P4 合同、P2/P3/P4 控制报告、Stage074 Review 与前序控制合同构成唯一合同上下文；本次只机械重放既有控制工件，不建立第二权威事实源、不读取真实资料、不创建持久审计记录、不选择或调用本地或外部模型。",
+  "business_verdict": "本 Review 只证明 Stage075 固定控制合同、策略外发边界、十九字段审计投影、零值成本、失败关闭、未外发原因、进程内查询限制、P4→P3 回滚、owner 四字段前置、业务线白箱人工复核、单一权威和零运行时边界在本地一致；不能证明任何真实资料、provider、模型、摘要或文本块、Token、外部 API、审计日志、成本、索引、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "REVIEWED_EXTERNAL_API_COVERAGE_AUDIT_RUNTIME_DISABLED",
   "rendered_at": "2026-08-21",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE075-REVIEW-GATE",
+  "next_gate": "IDS-STAGE076-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

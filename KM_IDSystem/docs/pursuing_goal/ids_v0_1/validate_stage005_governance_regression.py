@@ -2344,6 +2344,15 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE075-REVIEW-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE075"
+                        and roadmap.get("current_phase_id")
+                        == "IDS-STAGE075-REVIEW"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE075-REVIEW"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE076-P1-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -3279,6 +3288,7 @@ REQUIRED_EVENT_IDS = (
     "EVT-IDS-V0_1-STAGE075-P2-20260821-001",
     "EVT-IDS-V0_1-STAGE075-P3-20260821-001",
     "EVT-IDS-V0_1-STAGE075-P4-20260821-001",
+    "EVT-IDS-V0_1-STAGE075-REVIEW-20260821-001",
 )
 
 FORBIDDEN_RUNTIME_PREFIXES = (
@@ -19264,6 +19274,126 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
         },
     }
 
+    event_specs["EVT-IDS-V0_1-STAGE075-REVIEW-20260821-001"] = {
+        "event_type": "stage_review",
+        "allow_stage_gate": True,
+        "task_id": "IDS-V0_1-STAGE075-REVIEW",
+        "acceptance_ids": [
+            "ACC-STAGE-075",
+            "ACC-STAGE075-REVIEW-01",
+            "ACC-STAGE075-REVIEW-02",
+            "ACC-STAGE075-REVIEW-03",
+            "ACC-STAGE075-REVIEW-04",
+        ],
+        "required_changed_files": {
+            "KM_IDSystem/docs/governance/events.jsonl",
+            "KM_IDSystem/docs/governance/roadmap.yaml",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage075_external_api_coverage_audit_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+            "KM_IDSystem/machine/facts/acceptance.json",
+            "KM_IDSystem/machine/facts/changelog.json",
+            "KM_IDSystem/machine/facts/glossary.json",
+            "KM_IDSystem/machine/facts/plan.json",
+            "KM_IDSystem/machine/facts/roadmap.json",
+            "KM_IDSystem/machine/facts/status.json",
+            "KM_IDSystem/machine/runs/2026-08-21-stage075-review-local.json",
+        },
+        "required_refs": {
+            "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-075_外部API覆盖授权审计.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage075_external_api_coverage_audit_stage_review.py",
+            "KM_IDSystem/machine/runs/2026-08-21-stage075-review-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_PHASE4_EXTERNAL_API_COVERAGE_AUDIT_DELIVERY_CLOSEOUT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_delivery_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_delivery.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_PHASE3_EXTERNAL_API_COVERAGE_AUDIT_CONTROLLED_SCENARIOS.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_scenarios_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_scenarios.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_PHASE2_EXTERNAL_API_COVERAGE_AUDIT_CONTROL_SLICE.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_slice_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_slice.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_PHASE1_EXTERNAL_API_COVERAGE_AUDIT_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE074_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/local_embedding_fallback/stage074_local_embedding_fallback_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+            "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-076_索引版本Schema.md",
+        },
+        "required_note_assignments": {
+            "review_result": "PASS_REVIEWED_EXTERNAL_API_COVERAGE_AUDIT_RUNTIME_DISABLED",
+            "review_finding_count": "0",
+            "second_authoritative_source_created": "false",
+            "reviewed_phase_count": "4",
+            "phase1_to_phase4_all_passed": "true",
+            "phase1_failure_state_count": "14",
+            "phase2_control_request_count": "5",
+            "phase2_audit_field_count": "19",
+            "phase2_owner_override_projection_count": "1",
+            "phase2_failure_state_count": "10",
+            "phase3_scenario_count": "5",
+            "phase3_audit_field_count": "19",
+            "phase3_audit_field_check_count": "95",
+            "phase3_future_call_candidate_count": "3",
+            "phase3_human_handling_required_count": "4",
+            "phase3_failure_state_count": "12",
+            "phase4_policy_sample_count": "5",
+            "phase4_audit_sample_count": "5",
+            "phase4_audit_field_count": "19",
+            "phase4_audit_field_check_count": "95",
+            "phase4_cost_sample_count": "5",
+            "phase4_failure_handling_count": "5",
+            "phase4_non_externalized_record_count": "5",
+            "phase4_query_key_count": "8",
+            "phase4_owner_override_field_count": "4",
+            "phase4_chinese_feedback_count": "4",
+            "phase4_failure_state_count": "13",
+            "actual_embedding_queue_count": "0",
+            "actual_cache_entry_count": "0",
+            "actual_failed_retry_count": "0",
+            "actual_cost_count": "0",
+            "actual_model_version_record_count": "0",
+            "actual_external_api_audit_count": "0",
+            "actual_owner_forced_egress_override_audit_count": "0",
+            "actual_external_api_call_count": "0",
+            "actual_model_token_count": "0",
+            "ids_business_source_read_performed": "false",
+            "provider_credential_read_performed": "false",
+            "provider_or_model_selected": "false",
+            "embedding_queue_execution_performed": "false",
+            "cache_read_or_write_performed": "false",
+            "failed_retry_execution_performed": "false",
+            "cost_estimation_execution_performed": "false",
+            "budget_lookup_performed": "false",
+            "model_version_record_execution_performed": "false",
+            "external_api_client_initialized": "false",
+            "external_api_call_performed": "false",
+            "audit_record_creation_performed": "false",
+            "audit_log_query_performed": "false",
+            "model_call_performed": "false",
+            "model_token_consumption_performed": "false",
+            "database_connection_performed": "false",
+            "persistent_state_write_performed": "false",
+            "agent_execution_performed": "false",
+            "ovh_deployment_performed": "false",
+            "production_runtime_activation_performed": "false",
+            "stage074_review_evidence_read": "true",
+            "stage075_started": "true",
+            "phase1_started": "true",
+            "phase2_started": "true",
+            "phase3_started": "true",
+            "phase4_started": "true",
+            "whole_stage_review_performed": "true",
+            "batch_review_performed": "false",
+            "stage076_started": "false",
+            "github_upload_allowed": "false",
+            "push_allowed": "false",
+            "next_gate": "IDS-STAGE076-P1-GATE",
+        },
+    }
+
 
     errors: list[str] = []
     recognized_events = 0
@@ -23945,6 +24075,65 @@ def evaluate_current_state_consistency(
         )
     )
 
+    stage075_review_roadmap_current = (
+        current_stage_id == "IDS-STAGE075"
+        and roadmap_phase == "IDS-STAGE075-REVIEW"
+        and roadmap_task == "IDS-V0_1-STAGE075-REVIEW"
+        and roadmap.get("next_gate_id") == "IDS-STAGE076-P1-GATE"
+        and roadmap_stage_node.get("stage_id") == "IDS-STAGE075"
+        and roadmap_stage_node.get("task_id") == "IDS-V0_1-STAGE075"
+        and roadmap_stage_node.get("status") == "completed_reviewed_local"
+        and roadmap_stage_node.get("next_gate_id") == "IDS-STAGE076-P1-GATE"
+        and roadmap_phase_node.get("status") == "passed_with_local_evidence"
+        and roadmap_phase_node.get("next_gate_id") == "IDS-STAGE076-P1-GATE"
+        and roadmap_task_node.get("status") == "completed"
+        and isinstance(roadmap_task_node.get("test_results"), str)
+        and bool(roadmap_task_node.get("test_results"))
+        and {
+            "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-075_外部API覆盖授权审计.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage075_external_api_coverage_audit_stage_review.py",
+            "KM_IDSystem/machine/runs/2026-08-21-stage075-review-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_PHASE4_EXTERNAL_API_COVERAGE_AUDIT_DELIVERY_CLOSEOUT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_delivery_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_delivery.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_PHASE3_EXTERNAL_API_COVERAGE_AUDIT_CONTROLLED_SCENARIOS.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_scenarios_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_scenarios.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_PHASE2_EXTERNAL_API_COVERAGE_AUDIT_CONTROL_SLICE.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_slice_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_slice.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_PHASE1_EXTERNAL_API_COVERAGE_AUDIT_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE074_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/local_embedding_fallback/stage074_local_embedding_fallback_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+            "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-076_索引版本Schema.md",
+        }.issubset(
+            {
+                item
+                for item in roadmap_task_node.get("evidence_refs", [])
+                if isinstance(item, str)
+            }
+        )
+        and any(
+            isinstance(candidate, dict)
+            and candidate.get("stage_id") == "IDS-STAGE074"
+            and candidate.get("status") == "completed_reviewed_local"
+            and candidate.get("next_gate_id") == "IDS-STAGE075-P1-GATE"
+            for candidate in roadmap_stages
+        )
+    )
+    stage075_review_handoff_current = (
+        stage075_review_roadmap_current
+        and batch.get("status") == "stage070_completed_reviewed_local"
+        and decision.get("github_upload_allowed") is False
+        and decision.get("push_allowed") is False
+        and upload_gate.get("github_upload_allowed") is False
+        and upload_gate.get("push_allowed") is False
+    )
+
     stage074_phase1_handoff_current = (
         current_stage_id == "IDS-STAGE074"
         and roadmap_phase == "IDS-STAGE074-P1"
@@ -24171,6 +24360,15 @@ def evaluate_current_state_consistency(
             or historical_batch061_070_review_projection
         )
     )
+    stage075_review_historical_batch_compatible = (
+        stage075_review_roadmap_current
+        and (
+            historical_batch031_040_terminal_projection
+            or historical_batch041_050_review_projection
+            or historical_batch051_060_review_projection
+            or historical_batch061_070_review_projection
+        )
+    )
     stage074_phase3_roadmap_current = (
         current_stage_id == "IDS-STAGE074"
         and roadmap_phase == "IDS-STAGE074-P3"
@@ -24360,6 +24558,11 @@ def evaluate_current_state_consistency(
                 and roadmap_task == "IDS-V0_1-STAGE075-P4"
                 and roadmap.get("next_gate_id") == "IDS-STAGE075-REVIEW-GATE"
             )
+            or (
+                roadmap_phase == "IDS-STAGE075-REVIEW"
+                and roadmap_task == "IDS-V0_1-STAGE075-REVIEW"
+                and roadmap.get("next_gate_id") == "IDS-STAGE076-P1-GATE"
+            )
         )
     )
     stage074_phase2_historical_batch_compatible = (
@@ -24410,6 +24613,7 @@ def evaluate_current_state_consistency(
             or stage075_phase2_historical_batch_compatible
             or stage075_phase3_historical_batch_compatible
             or stage075_phase4_historical_batch_compatible
+            or stage075_review_historical_batch_compatible
         )
         if stage075_current_roadmap
         else stage074_historical_batch_compatible
@@ -24438,6 +24642,7 @@ def evaluate_current_state_consistency(
                 or stage075_phase2_historical_batch_compatible
                 or stage075_phase3_historical_batch_compatible
                 or stage075_phase4_historical_batch_compatible
+                or stage075_review_historical_batch_compatible
                 or stage074_phase1_handoff_current
                 or stage074_phase2_handoff_current
                 or stage074_phase3_handoff_current
