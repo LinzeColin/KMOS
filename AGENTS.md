@@ -144,3 +144,12 @@ ssh ovh 'sudo /usr/local/bin/linze-r2-free-tier-guard.py'
    `KMOS_ROOT=$HOME/Documents/Codex/GithubProject/KMOS`，否则 aim 的 ROOT 落到 `~`、KMOS 分发被静默跳过，
    只能手动复制 public 表进仓。为什么：分发目标是按 ROOT 解析的，不设就找错地方。代价：多一条 env，
    不设则 commit 前要自查 public 表是否真的在 `KMDatabase/data/KMVideo/` 里更新过。
+
+6. **后台守护别用 `wait` 判完成（disown 语义坑）。** 结论：nohup+disown 起的子进程，`wait $CHILD`
+   会立即返回 rc=0，守护因此误判「完成」退出、不再重启。守护判完成要用**日志完成标记 + 进程存活 +
+   CPU/日志 mtime 停滞判定**（停滞 N 分钟才 SIGTERM 重启）。为什么：本机会周期杀后台进程，守护必须
+   在进程被异常杀后自动重启，但不能在正常完成前误退。代价：守护脚本略复杂，但可靠。
+
+7. **SMB 退化时别做全盘枚举/反复 ls。** 结论：SMB 会话退化时 `ls`/`find`/目录枚举会卡几十秒到分钟级，
+   判断数据用**本地登记表 CSV**（快且准），别依赖慢 SMB 枚举。为什么：退化时 ls 必然超时，
+   会误判进程卡死（skill 卡死判据原文）。代价：登记表可能滞后于盘面，增量对账时以 registry 产物为准。
