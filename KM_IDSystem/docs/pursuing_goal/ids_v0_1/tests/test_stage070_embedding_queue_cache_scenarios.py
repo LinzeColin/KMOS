@@ -283,7 +283,9 @@ class Stage070EmbeddingQueueCachePhase3Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        self.assertIn(status["stage"], ("IDS-STAGE070", "IDS-STAGE071", "IDS-STAGE072", "IDS-STAGE073", "IDS-STAGE074"))
+        self.assertIn(status["stage"], ("IDS-STAGE070", "IDS-STAGE071", "IDS-STAGE072", "IDS-STAGE073", "IDS-STAGE074",
+            'IDS-STAGE075',
+        ))
         self.assertIn(
             (status["phase"], status["next_gate"]),
             (
@@ -302,6 +304,7 @@ class Stage070EmbeddingQueueCachePhase3Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE072-REVIEW", "IDS-STAGE073-P1-GATE"),
                 ("IDS-V0_1-STAGE073-P1", "IDS-STAGE073-P2-GATE"), ("IDS-V0_1-STAGE073-P2", "IDS-STAGE073-P3-GATE"), ('IDS-V0_1-STAGE073-P3', 'IDS-STAGE073-P4-GATE'), ('IDS-V0_1-STAGE073-P4', 'IDS-STAGE073-REVIEW-GATE'), ("IDS-V0_1-STAGE073-REVIEW", "IDS-STAGE074-P1-GATE"),
                 ("IDS-V0_1-STAGE074-P1", "IDS-STAGE074-P2-GATE"), ("IDS-V0_1-STAGE074-P2", "IDS-STAGE074-P3-GATE"), ("IDS-V0_1-STAGE074-P3", "IDS-STAGE074-P4-GATE"), ("IDS-V0_1-STAGE074-P4", "IDS-STAGE074-REVIEW-GATE"), ("IDS-V0_1-STAGE074-REVIEW", "IDS-STAGE075-P1-GATE"),
+                ('IDS-V0_1-STAGE075-P1', 'IDS-STAGE075-P2-GATE'),
             ),
         )
         self.assertIn(
@@ -315,10 +318,13 @@ class Stage070EmbeddingQueueCachePhase3Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE071-P4",
                 "IDS-V0_1-STAGE071-REVIEW",
                 "IDS-V0_1-STAGE072-P1",
-                "IDS-V0_1-STAGE072-P2", "IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P2", "IDS-V0_1-STAGE073-P3", "IDS-V0_1-STAGE073-P4", "IDS-V0_1-STAGE073-REVIEW", "IDS-V0_1-STAGE074-P1", "IDS-V0_1-STAGE074-P2", "IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW"),
+                "IDS-V0_1-STAGE072-P2", "IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P2", "IDS-V0_1-STAGE073-P3", "IDS-V0_1-STAGE073-P4", "IDS-V0_1-STAGE073-REVIEW", "IDS-V0_1-STAGE074-P1", "IDS-V0_1-STAGE074-P2", "IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW",
+                'IDS-V0_1-STAGE075-P1',
+            ),
         )
         self.assertTrue(
-            "IDS-STAGE070-P4-GATE" in plan["stop_condition"]
+            (
+"IDS-STAGE070-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE070-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE071-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE071-P2-GATE" in plan["stop_condition"]
@@ -332,6 +338,8 @@ class Stage070EmbeddingQueueCachePhase3Tests(unittest.TestCase):
                or "IDS-STAGE072-REVIEW-GATE" in plan["stop_condition"]
                or "IDS-STAGE073-P1-GATE" in plan["stop_condition"]
                or "IDS-STAGE073-P2-GATE" in plan["stop_condition"] or "IDS-STAGE073-P3-GATE" in plan["stop_condition"] or "IDS-STAGE073-P4-GATE" in plan["stop_condition"] or "IDS-STAGE073-REVIEW-GATE" in plan["stop_condition"] or "IDS-STAGE074-P1-GATE" in plan["stop_condition"] or "IDS-STAGE074-P2-GATE" in plan["stop_condition"] or "IDS-STAGE074-P3-GATE" in plan["stop_condition"] or "IDS-STAGE074-P4-GATE" in plan["stop_condition"] or "IDS-STAGE074-REVIEW-GATE" in plan["stop_condition"] or "IDS-STAGE075-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE075-P2-GATE" in plan["stop_condition"]
+            )
         )
         self.assertTrue(
             {

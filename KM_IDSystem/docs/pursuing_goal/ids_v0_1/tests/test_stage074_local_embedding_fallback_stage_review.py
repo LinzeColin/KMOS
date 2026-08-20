@@ -199,15 +199,21 @@ class Stage074ReviewTests(unittest.TestCase):
             if line.strip()
         }
         roadmap = ROADMAP.read_text(encoding="utf-8")
-        self.assertEqual(
-            ("IDS-STAGE074", "IDS-V0_1-STAGE074-REVIEW", "IDS-V0_1-STAGE074-REVIEW", "IDS-STAGE075-P1-GATE"),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                ("IDS-STAGE074", "IDS-V0_1-STAGE074-REVIEW", "IDS-V0_1-STAGE074-REVIEW", "IDS-STAGE075-P1-GATE"),
+                ("IDS-STAGE075", "IDS-V0_1-STAGE075-P1", "IDS-V0_1-STAGE075-P1", "IDS-STAGE075-P2-GATE"),
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual(
-            ("IDS-STAGE074", "IDS-V0_1-STAGE074-REVIEW", "IDS-V0_1-STAGE074-REVIEW"),
+        self.assertIn(
             (plan["stage"], plan["phase"], plan["task"]),
+            (
+                ("IDS-STAGE074", "IDS-V0_1-STAGE074-REVIEW", "IDS-V0_1-STAGE074-REVIEW"),
+                ("IDS-STAGE075", "IDS-V0_1-STAGE075-P1", "IDS-V0_1-STAGE075-P1"),
+            ),
         )
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
         self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-074"])
@@ -215,9 +221,18 @@ class Stage074ReviewTests(unittest.TestCase):
         self.assertEqual("已通过", acceptance_by_id["ACC-STAGE074-REVIEW-02"])
         self.assertEqual("已通过", acceptance_by_id["ACC-STAGE074-REVIEW-03"])
         self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE074-REVIEW-04"])
-        self.assertIn('current_phase_id: "IDS-STAGE074-REVIEW"', roadmap)
-        self.assertIn('current_task_id: "IDS-V0_1-STAGE074-REVIEW"', roadmap)
-        self.assertIn('next_gate_id: "IDS-STAGE075-P1-GATE"', roadmap)
+        self.assertTrue(
+            'current_phase_id: "IDS-STAGE074-REVIEW"' in roadmap
+            or 'current_phase_id: "IDS-STAGE075-P1"' in roadmap
+        )
+        self.assertTrue(
+            'current_task_id: "IDS-V0_1-STAGE074-REVIEW"' in roadmap
+            or 'current_task_id: "IDS-V0_1-STAGE075-P1"' in roadmap
+        )
+        self.assertTrue(
+            'next_gate_id: "IDS-STAGE075-P1-GATE"' in roadmap
+            or 'next_gate_id: "IDS-STAGE075-P2-GATE"' in roadmap
+        )
         self.assertIn("EVT-IDS-V0_1-STAGE074-REVIEW-20260821-001", event_ids)
         self.assertEqual("IDS-STAGE075-P1-GATE", run["next_gate"])
         self.assertEqual(

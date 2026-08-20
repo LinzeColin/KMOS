@@ -53,11 +53,20 @@ class Stage005GovernanceRegressionTests(unittest.TestCase):
             self.assertFalse(all(checks.values()), checks)
             return
 
-        tampered_roadmap = roadmap_text.replace(
-            'current_phase_id: "IDS-STAGE074-REVIEW"',
-            'current_phase_id: "IDS-STAGE074-P4"',
-            1,
-        )
+        tampered_roadmap = roadmap_text
+        for expected, replacement in (
+            (
+                'current_phase_id: "IDS-STAGE075-P1"',
+                'current_phase_id: "IDS-STAGE075-P2"',
+            ),
+            (
+                'current_phase_id: "IDS-STAGE074-REVIEW"',
+                'current_phase_id: "IDS-STAGE074-P4"',
+            ),
+        ):
+            if expected in roadmap_text:
+                tampered_roadmap = roadmap_text.replace(expected, replacement, 1)
+                break
         self.assertNotEqual(roadmap_text, tampered_roadmap)
         current_checks = module.evaluate_phase_state(
             batch_text, tampered_roadmap, require_structured=True

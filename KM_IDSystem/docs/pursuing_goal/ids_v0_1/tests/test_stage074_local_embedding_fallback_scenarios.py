@@ -236,11 +236,21 @@ class Stage074LocalEmbeddingFallbackScenarioTests(unittest.TestCase):
             if line.strip()
             for item in [json.loads(line)]
         }
-        self.assertIn(status["phase"], ("IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW"))
-        self.assertIn(status["task"], ("IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW"))
-        self.assertIn(status["next_gate"], ("IDS-STAGE074-P4-GATE", "IDS-STAGE074-REVIEW-GATE", "IDS-STAGE075-P1-GATE"))
-        self.assertIn(plan["task"], ("IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW"))
-        self.assertIn(acceptance["task"], ("IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW"))
+        self.assertIn(status["phase"], ("IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW",
+            'IDS-V0_1-STAGE075-P1',
+        ))
+        self.assertIn(status["task"], ("IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW",
+            'IDS-V0_1-STAGE075-P1',
+        ))
+        self.assertIn(status["next_gate"], ("IDS-STAGE074-P4-GATE", "IDS-STAGE074-REVIEW-GATE", "IDS-STAGE075-P1-GATE",
+            'IDS-STAGE075-P2-GATE',
+        ))
+        self.assertIn(plan["task"], ("IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW",
+            'IDS-V0_1-STAGE075-P1',
+        ))
+        self.assertIn(acceptance["task"], ("IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW",
+            'IDS-V0_1-STAGE075-P1',
+        ))
         self.assertIn('current_stage_id: "IDS-STAGE074"', roadmap_text)
         self.assertTrue(
             'current_phase_id: "IDS-STAGE074-P3"' in roadmap_text

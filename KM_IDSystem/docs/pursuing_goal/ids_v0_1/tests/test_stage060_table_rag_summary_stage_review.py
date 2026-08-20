@@ -718,7 +718,13 @@ class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
             or legal_stage072_phase4_successor
             or legal_stage073_phase1_successor
             or legal_stage073_phase2_successor
-            or legal_stage073_phase3_successor,
+            or legal_stage073_phase3_successor
+            or (
+                status["stage"] == "IDS-STAGE075"
+                and status["phase"] == "IDS-V0_1-STAGE075-P1"
+                and status["task"] == "IDS-V0_1-STAGE075-P1"
+                and status["next_gate"] == "IDS-STAGE075-P2-GATE"
+            ),
             status,
         )
         self.assertFalse(status["runtime_enabled"])

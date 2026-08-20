@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-21 · Stage075 external API coverage authorization audit P1
+
+- 只固定外部 API 覆盖授权审计的静态合同：默认 `denied`、三档策略、data source/document→chunk 两跳自动继承、`12/10/7` 队列/缓存/失败重试、`16/8` 成本、六字段模型版本、十九字段未来审计，以及 owner 强制允许外发前 `actor`、`reason`、`old_value`、`new_value` 四字段审计前置和业务线白箱人工复核；没有建立第二权威事实源。
+- 只扩展既有治理路线以承认 `Stage074 Review → Stage075 P1 → Stage075 P2 gate` 的合法零运行时后继；不改写历史阶段事实，不读取真实资料，也不启用 provider、模型、队列、缓存、成本、审计、OVH 或生产行为。
+- 本地验证通过：Stage075 P1 `7/7`、Stage060--069 `473/473`、Stage070--075 `247/247`、Stage005 直接治理 `valid=true` 与完整治理回归 `178/178`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，机器平面重渲染 `7` 个中文文件且文档预算、无登记阻塞和双平面检查通过。零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage075-p1-local.json`；下一步只能在新的独立 run 进入 `IDS-STAGE075-P2-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-21 · Stage074 local embedding fallback stage review
 
 - 只在内存中机械复审冻结 P1--P4 合同、P2/P3/P4 控制报告、P4→P3 回退、单一权威与业务线白箱人工处理；固定形状、审计前置、失败关闭和零运行时边界均通过，未建立第二权威事实源。

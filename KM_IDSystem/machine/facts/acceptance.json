@@ -1,9 +1,29 @@
 {
-  "stage": "IDS-STAGE074",
-  "phase": "IDS-V0_1-STAGE074-REVIEW",
-  "task": "IDS-V0_1-STAGE074-REVIEW",
-  "next_gate": "IDS-STAGE075-P1-GATE",
+  "stage": "IDS-STAGE075",
+  "phase": "IDS-V0_1-STAGE075-P1",
+  "task": "IDS-V0_1-STAGE075-P1",
+  "next_gate": "IDS-STAGE075-P2-GATE",
   "items": [
+    {
+      "id": "ACC-STAGE075-P1-01",
+      "criteria": "冻结 Stage075 任务包、Stage074 Review 和 Stage074 P1 前序控制合同保持为唯一合同上下文；P1 只定义静态工程合同，未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径或真实 URI。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE075-P1-02",
+      "criteria": "默认 denied、三档策略、data source/document 到 chunk 自动继承、document 只能收紧、owner 不逐条标记 chunk、12/10/7 队列/缓存/失败重试、16/8 成本、6 字段模型版本和 19 字段未来外部 API 覆盖审计形状均已固定；所有字段只表示控制标签，不代表真实资料、Token、成本、审计或业务结论。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE075-P1-03",
+      "criteria": "未来 owner 强制允许外发必须先记录 actor、reason、old_value 与 new_value，并完成业务线白箱人工复核；P1 没有实际策略变更、外发、审计记录、审计查询或模型调用。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE075-P1-04",
+      "criteria": "未执行真实资料访问、解析、切块、摘要生成、provider/模型选择或下载、Embedding、索引写入、模型版本记录、成本估算、预算查找、队列、缓存、失败重试、外部 API、模型 Token、审计写入或查询、数据库、持久化、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage075 P2。",
+      "status": "已遵守"
+    },
     {
       "id": "ACC-STAGE074-REVIEW-01",
       "criteria": "冻结 Stage074 任务包、P1--P4 合同、P2/P3/P4 纯内存控制报告、Stage073 Review、Stage073 P1--P4 合同和 Batch061-070 历史上传锁保持为唯一合同上下文；Review 只机械重放既有控制工件，未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、来源正文、摘要正文、文本块、物理路径或真实 URI。",
