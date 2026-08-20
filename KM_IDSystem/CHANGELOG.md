@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-20 · IDS v0.1 Stage073 Phase 1（本地）
+
+- 完成 Embedding 审计测试静态合同：固定默认 `denied`、三档策略、data source/document→chunk 自动继承、owner 不逐条标记 chunk、`12/8/6/18/7` 队列/成本模型/模型版本/审计/失败关闭形状，并定义 `denied`、`summary_only`、`full_text_allowed` 的未来操作流程和审计前置；没有建立或创建第二权威事实源。
+- 为保持历史回归对唯一机器事实的可验证性，仅把 Stage060--072 的当前状态断言及 Batch041-050、Batch051-060 检查器扩展为承认已定义的 `Stage073 P1 → Stage073 P2 gate` 合法后继；未改变任何冻结业务控制、真实资料、队列、成本、模型、审计、OVH 或生产行为。
+- 本地验证通过：Stage073 P1 `8/8`、Stage072 `49/49`、Stage071 `53/53`、Stage070 `47/47`、Stage060--069 `473/473`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，Stage005 治理回归 `valid=true`。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-20-stage073-p1-local.json`；下一步仅可在新的独立 run 进入 `IDS-STAGE073-P2-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-20 · IDS v0.1 Stage072 Review（本地）
 
 - 完成 Embedding 模型版本整阶段机械复审：只读重放冻结 P1--P4 合同与 P2/P3/P4 纯内存控制报告，确认六字段模型版本、五条 `10/14/10/7/6/8/18` 字段控制投影、五条三十五字段场景、`90` 次审计字段检查、五条 metadata-only 交付样例、七键查询、四条中文反馈、十二类失败关闭和 P4→P3 控制回退链；发现数为 `0`，没有建立第二权威事实源。

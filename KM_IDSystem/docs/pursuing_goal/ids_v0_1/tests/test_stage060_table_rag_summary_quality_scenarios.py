@@ -282,7 +282,7 @@ class Stage060TableRagSummaryPhase3Tests(unittest.TestCase):
         self.assertIn(status["stage"], ("IDS-STAGE060", "IDS-STAGE066", "IDS-STAGE067", "IDS-STAGE068",
      "IDS-STAGE069",
 
-     "IDS-STAGE070", "IDS-STAGE071", "IDS-STAGE072"))
+     "IDS-STAGE070", "IDS-STAGE071", "IDS-STAGE072", "IDS-STAGE073"))
         self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
             (
@@ -350,6 +350,7 @@ class Stage060TableRagSummaryPhase3Tests(unittest.TestCase):
                 ("IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P3", "IDS-STAGE072-P4-GATE"),
                 ("IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-P4", "IDS-STAGE072-REVIEW-GATE"),
                 ("IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE072-REVIEW", "IDS-STAGE073-P1-GATE"),
+                ("IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P1", "IDS-STAGE073-P2-GATE"),
                 ("IDS-V0_1-STAGE069-REVIEW", "IDS-V0_1-STAGE069-REVIEW", "IDS-STAGE070-P1-GATE"),
             ),
         )

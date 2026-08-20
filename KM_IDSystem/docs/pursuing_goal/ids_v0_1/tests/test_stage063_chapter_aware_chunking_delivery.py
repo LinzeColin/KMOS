@@ -293,7 +293,7 @@ class Stage063ChapterAwareChunkingPhase4DeliveryTests(unittest.TestCase):
         self.assertIn(status["stage"], ("IDS-STAGE063", "IDS-STAGE064", "IDS-STAGE065", "IDS-STAGE066", "IDS-STAGE067", "IDS-STAGE068",
      "IDS-STAGE069",
 
-     "IDS-STAGE070", "IDS-STAGE071", "IDS-STAGE072"))
+     "IDS-STAGE070", "IDS-STAGE071", "IDS-STAGE072", "IDS-STAGE073"))
         self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
             (
@@ -342,6 +342,7 @@ class Stage063ChapterAwareChunkingPhase4DeliveryTests(unittest.TestCase):
                 ("IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P3", "IDS-STAGE072-P4-GATE"),
                 ("IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-P4", "IDS-STAGE072-REVIEW-GATE"),
                 ("IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE072-REVIEW", "IDS-STAGE073-P1-GATE"),
+                ("IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P1", "IDS-STAGE073-P2-GATE"),
                 ("IDS-V0_1-STAGE069-REVIEW", "IDS-V0_1-STAGE069-REVIEW", "IDS-STAGE070-P1-GATE"),
             ),
         )
@@ -352,9 +353,9 @@ class Stage063ChapterAwareChunkingPhase4DeliveryTests(unittest.TestCase):
      "IDS-V0_1-STAGE069-P4",
      "IDS-V0_1-STAGE069-REVIEW",
 
-     "IDS-V0_1-STAGE070-P1","IDS-V0_1-STAGE070-P2","IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-REVIEW", "IDS-V0_1-STAGE071-P1", "IDS-V0_1-STAGE071-P2", "IDS-V0_1-STAGE071-P3", "IDS-V0_1-STAGE071-P4", "IDS-V0_1-STAGE071-REVIEW", "IDS-V0_1-STAGE072-P1", "IDS-V0_1-STAGE072-P2", "IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-REVIEW",))
+     "IDS-V0_1-STAGE070-P1","IDS-V0_1-STAGE070-P2","IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-REVIEW", "IDS-V0_1-STAGE071-P1", "IDS-V0_1-STAGE071-P2", "IDS-V0_1-STAGE071-P3", "IDS-V0_1-STAGE071-P4", "IDS-V0_1-STAGE071-REVIEW", "IDS-V0_1-STAGE072-P1", "IDS-V0_1-STAGE072-P2", "IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE073-P1",))
         self.assertTrue(
-            "IDS-STAGE063-REVIEW-GATE" in plan["stop_condition"]
+            ("IDS-STAGE063-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE064-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE064-P2-GATE" in plan["stop_condition"]
             or "IDS-STAGE064-P3-GATE" in plan["stop_condition"]
@@ -395,7 +396,7 @@ class Stage063ChapterAwareChunkingPhase4DeliveryTests(unittest.TestCase):
                or "IDS-STAGE072-P3-GATE" in plan["stop_condition"]
                or "IDS-STAGE072-P4-GATE" in plan["stop_condition"]
                or "IDS-STAGE072-REVIEW-GATE" in plan["stop_condition"]
-               or "IDS-STAGE073-P1-GATE" in plan["stop_condition"]
+               or "IDS-STAGE073-P1-GATE" in plan["stop_condition"]) or "IDS-STAGE073-P2-GATE" in plan["stop_condition"]
         )
         self.assertTrue(
             {

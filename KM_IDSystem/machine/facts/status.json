@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE072",
-  "phase": "IDS-V0_1-STAGE072-REVIEW",
-  "task": "IDS-V0_1-STAGE072-REVIEW",
-  "real_progress": "Stage072 Review 已只读机械重放 P1--P4 冻结合同与 P2/P3/P4 纯内存控制报告，确认六字段模型版本合同、五条 10/14/10/7/6/8/18 字段控制投影、五条 35 字段场景、90 次审计字段检查、五条 metadata-only 交付样例、七键查询、四条中文反馈、12 类失败关闭与 P4→P3 控制回退链；发现数为零，所有真实运行时计数保持零。",
-  "report_grade": "冻结 Stage072 任务包、P1--P4 合同、P2/P3/P4 纯内存控制报告、Stage071 Review、Stage071 P1 成本治理合同与 Batch061-070 历史上传锁构成唯一合同上下文；本次只复审既有控制工件，不建立第二权威事实源、不读取真实资料、不选择模型、不创建持久记录、不调用外部 API 或执行业务处置。",
-  "business_verdict": "本 Review 只证明冻结控制合同在本地机械复审中一致，不能证明任何真实 provider、model、dimension、created_at、sent_to_external_api、Token、外部 API、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威，Stage073 尚未启动。",
-  "evidence_status": "LOCAL_STAGE072_REVIEWED_EMBEDDING_MODEL_VERSION_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE073",
+  "phase": "IDS-V0_1-STAGE073-P1",
+  "task": "IDS-V0_1-STAGE073-P1",
+  "real_progress": "Stage073 P1 已定义 Embedding 审计测试的静态工程合同：默认 denied、data source/document→chunk 自动继承、owner 不逐条标记 chunk、12 字段未来队列、8 字段成本/模型控制、6 字段模型版本、18 字段审计形状和 7 类失败关闭；P3 的行为验证与任何审计记录创建均未开始，所有真实运行时计数保持零。",
+  "report_grade": "冻结 Stage073 任务包、Stage072 Review、Stage072 P1 模型版本合同、Stage071 P1 审计字段合同与 Batch061-070 历史上传锁构成唯一合同上下文；本次只定义静态控制边界，不建立第二权威事实源、不读取真实资料、不创建审计记录、不调用外部 API 或执行业务处置。",
+  "business_verdict": "本 P1 只证明静态审计测试合同、治理投影和零运行时边界在本地可验证，不能证明任何真实 chunk、provider、model、Token、外部 API、审计记录、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "LOCAL_STAGE073_P1_EMBEDDING_AUDIT_TEST_CONTRACT_RUNTIME_DISABLED",
   "rendered_at": "2026-08-20",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE073-P1-GATE",
+  "next_gate": "IDS-STAGE073-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
