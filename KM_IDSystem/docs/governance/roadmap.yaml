@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE075"
-current_phase_id: "IDS-STAGE075-P1"
-current_task_id: "IDS-V0_1-STAGE075-P1"
-next_gate_id: "IDS-STAGE075-P2-GATE"
+current_phase_id: "IDS-STAGE075-P2"
+current_task_id: "IDS-V0_1-STAGE075-P2"
+next_gate_id: "IDS-STAGE075-P3-GATE"
 current_transition_history:
+  stage075_phase2_state:
+    current_stage_id: "IDS-STAGE075"
+    current_phase_id: "IDS-STAGE075-P2"
+    current_task_id: "IDS-V0_1-STAGE075-P2"
+    next_gate_id: "IDS-STAGE075-P3-GATE"
   stage075_phase1_state:
     current_stage_id: "IDS-STAGE075"
     current_phase_id: "IDS-STAGE075-P1"
@@ -17855,22 +17860,22 @@ stages:
     task_id: "IDS-V0_1-STAGE075"
     acceptance_ids:
       - "ACC-STAGE-075"
-    objective: "只以冻结 Stage075 任务包、Stage074 Review 和 Stage074 P1 前序控制合同为唯一合同上下文，固定外部 API 策略继承、Embedding 队列、成本控制、模型版本、覆盖审计以及 owner 强制允许外发前 actor/reason/old_value/new_value 审计前置；不读取、处理、创建、查询或回退真实资料。"
-    status: "phase1_completed_local"
+    objective: "只以冻结 Stage075 任务包、Stage075 P1 静态合同、Stage074 Review 和前序控制合同为唯一合同上下文，在内存中机械投影五条固定、非业务、:control: 外部 API 覆盖授权审计控制请求的策略继承、授权 chunk 阻断、队列、缓存、失败重试、成本、模型版本、十九字段审计和 owner 四字段前置；不读取、处理、创建、查询或回退真实资料。"
+    status: "phase2_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE075-P2-GATE"
+    next_gate_id: "IDS-STAGE075-P3-GATE"
     gate:
-      gate_id: "IDS-STAGE075-P1-GATE"
+      gate_id: "IDS-STAGE075-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE075-P2-GATE"
+      next_gate_id: "IDS-STAGE075-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "冻结 Stage075 任务包、Stage074 Review 和 Stage074 P1 前序控制合同保持为唯一合同上下文；P1 不创建第二权威事实源，不读取真实资料、原始元数据、来源正文、摘要正文、文本块、provider、模型、Token 或 chunk。"
-      - "默认 denied、三档策略、data source/document 到 chunk 自动继承、document 只能收紧、owner 不逐条标记 chunk、12/10/7 队列/缓存/失败重试、16/8 成本、6 字段模型版本、19 字段未来覆盖审计以及 owner 强制允许外发前 actor/reason/old_value/new_value 四字段审计前置均固定为可测试、可回滚的静态合同。"
-      - "未来 policy change、provider call 或外发必须先满足完整审计和业务线白箱人工复核；真实资料、provider、模型、Token、队列、缓存、失败重试、成本、审计、索引、数据库、Agent、OVH、生产和上传均保持关闭；只开放后续 Stage075 P2 门。"
+      - "冻结 Stage075 任务包、P1 静态合同、Stage074 Review 和前序控制合同保持为唯一合同上下文；P2 不建立第二权威事实源，不读取真实资料、原始元数据、来源正文、摘要正文、文本块、provider、模型、Token 或 chunk。"
+      - "五条固定、非业务、:control: 输入只在内存中机械投影默认 denied、三档策略、data source/document 到 chunk 自动继承、document 只能收紧、未授权 chunk 阻断、12/10/7 队列/缓存/失败重试、16/8 成本、6 字段模型版本、19 字段覆盖审计以及 owner 强制允许外发前 actor/reason/old_value/new_value 四字段审计前置。"
+      - "future policy change、provider call 或外发仍必须先满足完整审计、预算与业务线白箱人工复核；真实资料、provider、模型、Token、队列、缓存、失败重试、成本、审计、索引、数据库、Agent、OVH、生产和上传均保持关闭；只开放后续 Stage075 P3 门。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、总结、保留、外发或回退任何 IDS 业务资料、原始元数据、授权 fixture、真实 data source、document、摘要、文本块、chunk、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、重试、审计、成本、索引、数据库或报告。"
-      - "执行真实 parser、切块、摘要生成、provider/模型选择或下载、Embedding、索引写入、模型版本记录、成本估算、预算查找、队列、缓存、失败重试、外部 API、模型调用、模型 Token、审计写入或查询、持久化、Agent、OVH、生产服务、Stage075 P2--P4、上传、推送或应用重装。"
+      - "执行真实 parser、切块、摘要生成、provider/模型选择或下载、Embedding、索引写入、模型版本记录、成本估算、预算查找、队列、缓存、失败重试、外部 API、模型调用、模型 Token、审计写入或查询、持久化、Agent、OVH、生产服务、Stage075 P3--P4、上传、推送或应用重装。"
     phases:
       - phase_id: "IDS-STAGE075-P1"
         name: "Phase 1 · 外部 API 覆盖授权审计范围、输入输出与边界确认"
@@ -17918,19 +17923,50 @@ stages:
             rollback: "只回滚本 P1 的范围说明、静态合同、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 LOCAL_STAGE074_REVIEWED_LOCAL_EMBEDDING_FALLBACK_RUNTIME_DISABLED；不改变 Stage074 Review、冻结任务包、真实资料、manifest、evidence ledger、audit log、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE075-P2"
         name: "Phase 2 · 外部 API 覆盖授权审计实现、接入与最小可运行切片"
-        objective: "仅在 P2 独立 run 中实现策略继承、授权 chunk 控制、队列、缓存、成本估算或模型版本记录，并以真实任务包授权边界为准。"
-        status: "pending"
-        entry_authorized: false
+        objective: "只以五条固定、非业务、:control: 请求在内存中机械投影默认 denied 的策略继承、未授权 chunk 阻断、队列、缓存、失败重试、成本治理、零值成本、模型版本、十九字段覆盖审计及 owner 强制允许外发四字段前置；不读取真实资料，不选择 provider/模型，不执行外部 API 或模型运行时。"
+        status: "completed"
+        entry_authorized: true
         next_gate_id: "IDS-STAGE075-P3-GATE"
         gate:
           gate_id: "IDS-STAGE075-P2-GATE"
-          status: "locked"
+          status: "passed"
           next_gate_id: "IDS-STAGE075-P3-GATE"
           github_upload_allowed: false
+        stop_conditions:
+          - "任何真实资料访问、provider/模型选择/下载/调用、Token、队列、缓存、失败重试、成本、审计、索引、数据库、Agent、OVH、生产、上传或推送。"
+          - "需要真实资料但没有 fixture 或 owner 授权样本、可能改变原始资料、schema migration 无法回滚、测试失败原因不明、范围超出 Stage075 P2 或共享文件发生冲突。"
         tasks:
           - task_id: "IDS-V0_1-STAGE075-P2"
-            name: "实现外部 API 覆盖授权审计最小切片"
-            status: "pending"
+            name: "交付外部 API 覆盖授权审计纯内存控制切片"
+            objective: "将 P1 固定的三档策略、两跳继承、授权 chunk 阻断、队列/缓存/失败重试、成本、模型版本、十九字段审计和 owner 强制允许外发前四字段审计前置，投影为五条可测试、可回滚、非业务控制记录，不替代来源文档或业务事实。"
+            status: "completed"
+            estimated_hours: 4
+            total_hours_percent: "50.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE075-P1"
+            acceptance_ids:
+              - "ACC-STAGE-075"
+              - "ACC-STAGE075-P2-01"
+              - "ACC-STAGE075-P2-02"
+              - "ACC-STAGE075-P2-03"
+              - "ACC-STAGE075-P2-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage075_external_api_coverage_audit_slice"
+              - "Stage060--075 白箱回归、两个批次检查器、Stage005 治理回归和机器平面检查见 machine run"
+            test_results: "本 run 的聚焦切片、历史白箱回归、两个批次检查器、Stage005 治理回归和机器平面检查实际结果以 P2 machine run 为准；本 P2 不进入 Stage075 P3、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-075_外部API覆盖授权审计.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_PHASE2_EXTERNAL_API_COVERAGE_AUDIT_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage075_external_api_coverage_audit_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-21-stage075-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE074_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/local_embedding_fallback/stage074_local_embedding_fallback_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把五条 control 输入、内存投影、零值成本、provider/model/token/chunk_id 字段或本地测试误作真实外发、真实模型、Token、审计、索引、OVH、生产或上传能力，会绕开单一权威和业务线白箱人工复核。"
+            rollback: "只回滚本 P2 的范围说明、纯内存控制合同、模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PHASE1_EXTERNAL_API_COVERAGE_AUDIT_CONTRACT_RUNTIME_DISABLED；不改变 P1、Stage074 Review、冻结任务包、真实资料、manifest、evidence ledger、audit log、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE075-P3"
         name: "Phase 3 · 外部 API 覆盖授权审计专项验证与异常场景"
         objective: "仅在 P3 独立 run 中验证 denied、summary_only、full_text_allowed、预算暂停与调用审计记录。"

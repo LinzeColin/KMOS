@@ -119,6 +119,7 @@ class Stage075ExternalApiCoverageAuditPhase1Tests(unittest.TestCase):
         audit = self.contract["future_external_api_coverage_audit_contract"]
         self.assertEqual(19, audit["field_count"])
         self.assertEqual(audit["field_count"], len(audit["required_fields"]))
+        self.assertIn("chunk_id", audit["required_fields"])
         self.assertIn("owner_forced_egress_override_audit_ref", audit["required_fields"])
         self.assertFalse(audit["additional_fields_allowed"])
         self.assertTrue(audit["complete_before_future_provider_call"])
@@ -240,18 +241,29 @@ class Stage075ExternalApiCoverageAuditPhase1Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         }
-        self.assertEqual(
-            (
-                "IDS-STAGE075",
-                "IDS-V0_1-STAGE075-P1",
-                "IDS-V0_1-STAGE075-P1",
-                "IDS-STAGE075-P2-GATE",
-            ),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-STAGE075",
+                    "IDS-V0_1-STAGE075-P1",
+                    "IDS-V0_1-STAGE075-P1",
+                    "IDS-STAGE075-P2-GATE",
+                ),
+                (
+                    "IDS-STAGE075",
+                    "IDS-V0_1-STAGE075-P2",
+                    "IDS-V0_1-STAGE075-P2",
+                    "IDS-STAGE075-P3-GATE",
+                ),
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE075-P1", plan["task"])
+        self.assertIn(
+            plan["task"],
+            ("IDS-V0_1-STAGE075-P1", "IDS-V0_1-STAGE075-P2"),
+        )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -269,14 +281,20 @@ class Stage075ExternalApiCoverageAuditPhase1Tests(unittest.TestCase):
         self.assertFalse(run["runtime_actions"]["ovh_deployment_performed"])
         self.assertIn("EVT-IDS-V0_1-STAGE075-P1-20260821-001", event_ids)
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
-        for expected in (
-            'current_stage_id: "IDS-STAGE075"',
-            'current_phase_id: "IDS-STAGE075-P1"',
-            'current_task_id: "IDS-V0_1-STAGE075-P1"',
-            'next_gate_id: "IDS-STAGE075-P2-GATE"',
-        ):
-            with self.subTest(expected=expected):
-                self.assertIn(expected, roadmap_text)
+        self.assertTrue(
+            (
+                'current_stage_id: "IDS-STAGE075"' in roadmap_text
+                and 'current_phase_id: "IDS-STAGE075-P1"' in roadmap_text
+                and 'current_task_id: "IDS-V0_1-STAGE075-P1"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE075-P2-GATE"' in roadmap_text
+            )
+            or (
+                'current_stage_id: "IDS-STAGE075"' in roadmap_text
+                and 'current_phase_id: "IDS-STAGE075-P2"' in roadmap_text
+                and 'current_task_id: "IDS-V0_1-STAGE075-P2"' in roadmap_text
+                and 'next_gate_id: "IDS-STAGE075-P3-GATE"' in roadmap_text
+            )
+        )
 
 
 if __name__ == "__main__":

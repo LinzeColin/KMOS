@@ -70,7 +70,7 @@
       "external_api_audit_ref",
       "data_source_ref",
       "document_ref",
-      "chunk_ref",
+      "chunk_id",
       "effective_external_api_policy",
       "external_payload_mode",
       "policy_inheritance_reason",
