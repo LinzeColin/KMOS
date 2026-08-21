@@ -320,7 +320,8 @@ class Stage064ChunkIdentityVersionPhase2Tests(unittest.TestCase):
      "IDS-STAGE070", "IDS-STAGE071", "IDS-STAGE072", "IDS-STAGE073", "IDS-STAGE074",
             'IDS-STAGE075',
             'IDS-STAGE076',
-        ))
+
+            'IDS-STAGE077',))
         self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
             (
@@ -381,7 +382,8 @@ class Stage064ChunkIdentityVersionPhase2Tests(unittest.TestCase):
                     'IDS-V0_1-STAGE076-REVIEW',
                     'IDS-STAGE077-P1-GATE',
                 ),
-            ),
+
+                ('IDS-V0_1-STAGE077-P1', 'IDS-V0_1-STAGE077-P1', 'IDS-STAGE077-P2-GATE'),),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
@@ -391,7 +393,8 @@ class Stage064ChunkIdentityVersionPhase2Tests(unittest.TestCase):
      "IDS-STAGE070", "IDS-STAGE071", "IDS-STAGE072", "IDS-STAGE073", "IDS-STAGE074",
             'IDS-STAGE075',
             'IDS-STAGE076',
-        ))
+
+            'IDS-STAGE077',))
         self.assertIn(
             (plan["phase"], plan["task"]),
             (
@@ -446,7 +449,8 @@ class Stage064ChunkIdentityVersionPhase2Tests(unittest.TestCase):
                 ('IDS-V0_1-STAGE075-P1', 'IDS-V0_1-STAGE075-P1'), ('IDS-V0_1-STAGE075-P2', 'IDS-V0_1-STAGE075-P2'), ('IDS-V0_1-STAGE075-P3', 'IDS-V0_1-STAGE075-P3'), ('IDS-V0_1-STAGE075-P4', 'IDS-V0_1-STAGE075-P4'), ('IDS-V0_1-STAGE075-REVIEW', 'IDS-V0_1-STAGE075-REVIEW'),
                 ('IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P1'), ('IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P2'), ('IDS-V0_1-STAGE076-P3', 'IDS-V0_1-STAGE076-P3'),
                 ('IDS-V0_1-STAGE076-P4', 'IDS-V0_1-STAGE076-P4'), ('IDS-V0_1-STAGE076-REVIEW', 'IDS-V0_1-STAGE076-REVIEW'),
-            ),
+
+                ('IDS-V0_1-STAGE077-P1', 'IDS-V0_1-STAGE077-P1'),),
                 ("IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P1"),
         )
         self.assertTrue(

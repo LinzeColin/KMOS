@@ -202,25 +202,37 @@ class Stage076ReviewTests(unittest.TestCase):
             self.assertIn('current_phase_id: "IDS-STAGE076-REVIEW"', ROADMAP.read_text(encoding="utf-8"))
             self.assertIn('next_gate_id: "IDS-STAGE077-P1-GATE"', ROADMAP.read_text(encoding="utf-8"))
         else:
-            self.assertEqual(
-                (
-                    "IDS-STAGE076",
-                    "IDS-V0_1-STAGE076-P4",
-                    "IDS-V0_1-STAGE076-P4",
-                    "IDS-STAGE076-REVIEW-GATE",
-                ),
-                (
-                    "IDS-STAGE076",
-                    "IDS-V0_1-STAGE076-REVIEW",
-                    "IDS-V0_1-STAGE076-REVIEW",
-                    "IDS-STAGE077-P1-GATE",
-                ),
+            self.assertIn(
                 current,
+                (
+                    (
+                        "IDS-STAGE076",
+                        "IDS-V0_1-STAGE076-P4",
+                        "IDS-V0_1-STAGE076-P4",
+                        "IDS-STAGE076-REVIEW-GATE",
+                    ),
+                    (
+                        "IDS-STAGE076",
+                        "IDS-V0_1-STAGE076-REVIEW",
+                        "IDS-V0_1-STAGE076-REVIEW",
+                        "IDS-STAGE077-P1-GATE",
+                    ),
+                    (
+                        "IDS-STAGE077",
+                        "IDS-V0_1-STAGE077-P1",
+                        "IDS-V0_1-STAGE077-P1",
+                        "IDS-STAGE077-P2-GATE",
+                    ),
+                ),
             )
             self.assertTrue(P4_RUN.is_file())
-            self.assertEqual(
-                ("IDS-STAGE076", "IDS-V0_1-STAGE076-P4", "IDS-V0_1-STAGE076-P4"), ("IDS-STAGE076", "IDS-V0_1-STAGE076-REVIEW", "IDS-V0_1-STAGE076-REVIEW"), ("IDS-STAGE076", "IDS-V0_1-STAGE076-REVIEW", "IDS-V0_1-STAGE076-REVIEW"),
+            self.assertIn(
                 (plan["stage"], plan["phase"], plan["task"]),
+                (
+                    ("IDS-STAGE076", "IDS-V0_1-STAGE076-P4", "IDS-V0_1-STAGE076-P4"),
+                    ("IDS-STAGE076", "IDS-V0_1-STAGE076-REVIEW", "IDS-V0_1-STAGE076-REVIEW"),
+                    ("IDS-STAGE077", "IDS-V0_1-STAGE077-P1", "IDS-V0_1-STAGE077-P1"),
+                ),
             )
 
 

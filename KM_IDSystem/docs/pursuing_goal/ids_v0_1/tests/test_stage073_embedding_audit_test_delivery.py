@@ -293,7 +293,8 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
                     'IDS-V0_1-STAGE076-REVIEW',
                     'IDS-STAGE077-P1-GATE',
                 ),
-            ),
+
+                ('IDS-V0_1-STAGE077-P1', 'IDS-V0_1-STAGE077-P1', 'IDS-STAGE077-P2-GATE'),),
         )
         self.assertTrue(
             "IDS-V0_1-STAGE073-P4" in plan["now"]
@@ -312,6 +313,7 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
             or "IDS-V0_1-STAGE076-P3" in plan["now"]
             or "IDS-V0_1-STAGE076-P4" in plan["now"]
             or "IDS-V0_1-STAGE076-REVIEW" in plan["now"]
+            or "IDS-V0_1-STAGE077-P1" in plan["now"]
         )
         self.assertTrue(
             "IDS-V0_1-STAGE073-P4" in "\n".join(plan["scope"])
@@ -324,6 +326,7 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
             or "IDS-V0_1-STAGE076-P2" in "\n".join(plan["scope"])
             or "IDS-V0_1-STAGE076-P3" in "\n".join(plan["scope"])
             or "IDS-V0_1-STAGE076-P4" in "\n".join(plan["scope"])
+            or "IDS-V0_1-STAGE077-P1" in "\n".join(plan["scope"])
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue({"ACC-STAGE-073", "ACC-STAGE073-P4-01", "ACC-STAGE073-P4-02", "ACC-STAGE073-P4-03", "ACC-STAGE073-P4-04"}.issubset(acceptance_ids))

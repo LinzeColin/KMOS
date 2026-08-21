@@ -1,0 +1,192 @@
+{
+  "schema_version": "ids.stage077.background_index_build.phase1.v1",
+  "stage": "STAGE-077",
+  "phase": "IDS-STAGE077-P1",
+  "task_id": "IDS-V0_1-STAGE077-P1",
+  "acceptance_id": "ACC-STAGE-077",
+  "contract_state": "PHASE1_BACKGROUND_INDEX_BUILD_CONTRACT_RUNTIME_DISABLED",
+  "next_gate": "IDS-STAGE077-P2-GATE",
+  "source_authority": {
+    "authority": "FROZEN_STAGE077_TASKPACK_AND_STAGE076_REVIEWED_INDEX_VERSION_CONTRACTS_ONLY",
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false,
+    "authorized_fixture_access_performed": false
+  },
+  "predecessor_contract": {
+    "stage076_review_required": true,
+    "stage076_review_result": "PASS_REVIEWED_INDEX_VERSION_SCHEMA_RUNTIME_DISABLED",
+    "reviewed_index_version_schema_remains_authoritative": true,
+    "stage077_may_not_replace_predecessor_contract": true,
+    "actual_predecessor_runtime_artifact_read_performed": false
+  },
+  "background_build_input_output_contract": {
+    "future_trigger": "FUTURE_BULK_IMPORT_COMPLETED",
+    "future_required_input_fields": [
+      "source_import_ref",
+      "document_scope_ref",
+      "chunk_count",
+      "embedding_model_ref",
+      "index_kind",
+      "candidate_index_version_ref"
+    ],
+    "input_field_count": 6,
+    "future_required_output_fields": [
+      "candidate_index_version_ref",
+      "build_state",
+      "shadow_index_ref",
+      "active_service_continuity_asserted",
+      "smoke_test_status",
+      "switch_eligibility"
+    ],
+    "output_field_count": 6,
+    "all_values_are_control_labels_only": true,
+    "background_build_execution_allowed_in_phase1": false,
+    "actual_bulk_import_detected": false,
+    "actual_background_build_plan_created": false,
+    "actual_build_output_record_created": false
+  },
+  "background_build_lifecycle_contract": {
+    "declared_states": [
+      "PLANNED",
+      "BUILDING",
+      "SMOKE_TEST_PENDING",
+      "SMOKE_TEST_PASSED",
+      "SWITCH_READY",
+      "FAILED",
+      "ROLLED_BACK"
+    ],
+    "state_count": 7,
+    "new_candidate_required_after_each_bulk_import": true,
+    "candidate_must_not_overwrite_active_version": true,
+    "active_index_must_continue_serving_during_build": true,
+    "candidate_must_remain_isolated_before_switch": true,
+    "actual_lifecycle_transition_performed": false,
+    "actual_index_build_started": false,
+    "actual_shadow_index_created": false
+  },
+  "smoke_and_atomic_switch_contract": {
+    "required_conditions": [
+      "candidate_build_marked_complete",
+      "document_scope_declared",
+      "chunk_count_declared",
+      "embedding_model_declared",
+      "candidate_isolated_from_active_service",
+      "active_service_continuity_asserted"
+    ],
+    "condition_count": 6,
+    "passed_smoke_test_required_before_switch": true,
+    "failed_or_missing_smoke_test_blocks_switch": true,
+    "future_atomic_switch_required": true,
+    "active_pointer_must_remain_unchanged_on_failure": true,
+    "smoke_test_execution_allowed_in_phase1": false,
+    "active_pointer_switch_allowed_in_phase1": false,
+    "actual_smoke_test_performed": false,
+    "actual_active_pointer_read_performed": false,
+    "actual_active_pointer_write_performed": false,
+    "actual_atomic_switch_performed": false
+  },
+  "rollback_and_retention_contract": {
+    "previous_active_index_version_must_be_retained": true,
+    "future_rollback_target_must_be_previous_active_index_version": true,
+    "old_active_index_must_continue_serving_until_successful_switch": true,
+    "automatic_rollback_execution_allowed": false,
+    "actual_old_index_retention_record_created": false,
+    "actual_index_rollback_performed": false
+  },
+  "failure_and_stop_contract": {
+    "declared_failure_states": [
+      "BACKGROUND_BUILD_TRIGGER_NOT_AUTHORIZED",
+      "SOURCE_IMPORT_REF_MISSING",
+      "BUILDING_VERSION_EQUALS_ACTIVE_VERSION",
+      "SHADOW_INDEX_NOT_ISOLATED",
+      "BACKGROUND_BUILD_FAILED",
+      "SMOKE_TEST_FAILED",
+      "ACTIVE_POINTER_SWITCH_WITHOUT_PASSED_SMOKE_TEST",
+      "ROLLBACK_TARGET_NOT_RETAINED"
+    ],
+    "failure_state_count": 8,
+    "automatic_business_write_allowed": false,
+    "automatic_active_pointer_switch_allowed": false,
+    "actual_failure_record_created": false
+  },
+  "chinese_feedback_contract": {
+    "feedbacks": [
+      "后台索引构建合同已固定，尚未启动构建。",
+      "候选索引未通过冒烟测试，活动版本保持不变。",
+      "旧索引继续服务，等待业务线白箱人工处理。",
+      "回退只能指向保留的上一活动版本。"
+    ],
+    "feedback_count": 4,
+    "business_line_whitebox_human_review_required_for_future_exception": true,
+    "actual_user_feedback_emitted": false
+  },
+  "local_code": {
+    "static_contract_only": true,
+    "runtime_module_created": false,
+    "database_schema_created": false,
+    "background_worker_created": false,
+    "index_artifact_created": false
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "bulk_import_execution_performed": false,
+    "database_schema_migration_performed": false,
+    "database_connection_performed": false,
+    "background_build_execution_performed": false,
+    "index_build_execution_performed": false,
+    "shadow_index_build_performed": false,
+    "smoke_test_execution_performed": false,
+    "active_pointer_switch_performed": false,
+    "retrieval_query_performed": false,
+    "concurrent_retrieval_performed": false,
+    "index_rollback_execution_performed": false,
+    "persistent_state_write_performed": false,
+    "external_api_call_performed": false,
+    "provider_or_model_selected": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "stage_and_phase_boundary": {
+    "stage076_review_evidence_declared": true,
+    "stage077_started": true,
+    "stage077_entry_authorized": true,
+    "phase1_started": true,
+    "phase2_started": false,
+    "phase3_started": false,
+    "phase4_started": false,
+    "whole_stage_review_performed": false,
+    "stage078_started": false,
+    "github_upload_allowed": false,
+    "push_allowed": false
+  },
+  "protected_surface_boundary": {
+    "raw_source_change_allowed": false,
+    "manifest_change_allowed": false,
+    "evidence_ledger_change_allowed": false,
+    "audit_log_change_allowed": false,
+    "delivered_report_change_allowed": false,
+    "persistent_database_change_allowed": false,
+    "source_or_raw_data_cleanup_allowed": false
+  },
+  "rollback_contract": {
+    "return_to": "REVIEWED_INDEX_VERSION_SCHEMA_RUNTIME_DISABLED",
+    "revertable_artifacts": [
+      "Stage077 Phase 1 scope boundary",
+      "Stage077 background index build static contract",
+      "Stage077 focused tests",
+      "Stage077 governance projection"
+    ],
+    "preserve_stage076_review_evidence": true,
+    "source_or_raw_data_change_allowed": false,
+    "database_or_persistent_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

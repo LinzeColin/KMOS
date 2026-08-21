@@ -1616,6 +1616,7 @@ def evaluate_stage038_source_reverification(
                     "IDS-STAGE074",
                     "IDS-STAGE075",
                     "IDS-STAGE076",
+                    "IDS-STAGE077",
                 }
                 and (
                     (
@@ -2394,6 +2395,14 @@ def evaluate_stage038_source_reverification(
                         == "IDS-V0_1-STAGE076-REVIEW"
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE077-P1-GATE"
+                    )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE077"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE077-P1"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE077-P1"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE077-P2-GATE"
                     )
                 )
                 and source_gate.get("gate_id")
@@ -3615,6 +3624,8 @@ ALLOWED_CHANGED_PREFIXES = (
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage076_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE076_",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage077_",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE077_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE052_",
@@ -24418,6 +24429,50 @@ def evaluate_current_state_consistency(
         and upload_gate.get("push_allowed") is False
     )
 
+    stage077_phase1_handoff_current = (
+        current_stage_id == "IDS-STAGE077"
+        and roadmap_phase == "IDS-STAGE077-P1"
+        and roadmap_task == "IDS-V0_1-STAGE077-P1"
+        and roadmap.get("next_gate_id") == "IDS-STAGE077-P2-GATE"
+        and roadmap_stage_node.get("stage_id") == "IDS-STAGE077"
+        and roadmap_stage_node.get("task_id") == "IDS-V0_1-STAGE077"
+        and roadmap_stage_node.get("status") == "phase1_completed_local"
+        and roadmap_stage_node.get("next_gate_id") == "IDS-STAGE077-P2-GATE"
+        and roadmap_phase_node.get("status") == "completed"
+        and roadmap_phase_node.get("next_gate_id") == "IDS-STAGE077-P2-GATE"
+        and roadmap_task_node.get("status") == "completed"
+        and isinstance(roadmap_task_node.get("test_results"), str)
+        and bool(roadmap_task_node.get("test_results"))
+        and {
+            "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-077_后台索引构建.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE077_PHASE1_BACKGROUND_INDEX_BUILD_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage077_background_index_build_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage077_background_index_build_contract.py",
+            "KM_IDSystem/machine/runs/2026-08-21-stage077-p1-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE076_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage076_index_version_schema_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+        }.issubset(
+            {
+                item
+                for item in roadmap_task_node.get("evidence_refs", [])
+                if isinstance(item, str)
+            }
+        )
+        and any(
+            isinstance(candidate, dict)
+            and candidate.get("stage_id") == "IDS-STAGE076"
+            and candidate.get("status") == "completed_reviewed_local"
+            and candidate.get("next_gate_id") == "IDS-STAGE077-P1-GATE"
+            for candidate in roadmap_stages
+        )
+        and batch.get("status") == "stage070_completed_reviewed_local"
+        and decision.get("github_upload_allowed") is False
+        and decision.get("push_allowed") is False
+        and upload_gate.get("github_upload_allowed") is False
+        and upload_gate.get("push_allowed") is False
+    )
+
     stage074_phase1_handoff_current = (
         current_stage_id == "IDS-STAGE074"
         and roadmap_phase == "IDS-STAGE074-P1"
@@ -24932,6 +24987,7 @@ def evaluate_current_state_consistency(
                 or stage076_phase3_handoff_current
                 or stage076_phase4_handoff_current
                 or stage076_review_handoff_current
+                or stage077_phase1_handoff_current
                 or stage074_phase1_handoff_current
                 or stage074_phase2_handoff_current
                 or stage074_phase3_handoff_current
