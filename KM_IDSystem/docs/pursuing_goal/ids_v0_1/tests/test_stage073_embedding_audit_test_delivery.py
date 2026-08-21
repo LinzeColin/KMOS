@@ -301,7 +301,7 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
 
                 ('IDS-V0_1-STAGE080-P1', 'IDS-V0_1-STAGE080-P1', 'IDS-STAGE080-P2-GATE'),
                 ('IDS-V0_1-STAGE080-P2', 'IDS-V0_1-STAGE080-P2', 'IDS-STAGE080-P3-GATE'), ('IDS-V0_1-STAGE080-P3', 'IDS-V0_1-STAGE080-P3', 'IDS-STAGE080-P4-GATE'), ('IDS-V0_1-STAGE080-P4', 'IDS-V0_1-STAGE080-P4', 'IDS-STAGE080-REVIEW-GATE'), ('IDS-STAGE080-REVIEW', 'IDS-V0_1-STAGE080-REVIEW', 'IDS-STAGE081-P1-GATE'), ('IDS-STAGE081-P1', 'IDS-V0_1-STAGE081-P1', 'IDS-STAGE081-P2-GATE'), ('IDS-STAGE081-P2', 'IDS-V0_1-STAGE081-P2', 'IDS-STAGE081-P3-GATE'), ("IDS-STAGE081-P3", "IDS-V0_1-STAGE081-P3", "IDS-STAGE081-P4-GATE"), ("IDS-STAGE081-P4", "IDS-V0_1-STAGE081-P4", "IDS-STAGE081-REVIEW-GATE"), ("IDS-STAGE081-REVIEW", "IDS-V0_1-STAGE081-REVIEW", "IDS-STAGE082-P1-GATE"), ("IDS-STAGE082-P1", "IDS-V0_1-STAGE082-P1", "IDS-STAGE082-P2-GATE"),
-                ("IDS-STAGE082-P2", "IDS-V0_1-STAGE082-P2", "IDS-STAGE082-P3-GATE"), ("IDS-STAGE082-P3", "IDS-V0_1-STAGE082-P3", "IDS-STAGE082-P4-GATE")),
+                ("IDS-STAGE082-P2", "IDS-V0_1-STAGE082-P2", "IDS-STAGE082-P3-GATE"), ("IDS-STAGE082-P3", "IDS-V0_1-STAGE082-P3", "IDS-STAGE082-P4-GATE"), ("IDS-STAGE082-P4", "IDS-V0_1-STAGE082-P4", "IDS-STAGE082-REVIEW-GATE")),
         )
         self.assertTrue(
             "IDS-V0_1-STAGE073-P4" in plan["now"]
@@ -348,6 +348,7 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
             or "IDS-V0_1-STAGE082-P1" in plan["now"]
             or "IDS-V0_1-STAGE082-P2" in plan["now"]
             or "IDS-V0_1-STAGE082-P3" in plan["now"]
+            or "IDS-V0_1-STAGE082-P4" in plan["now"]
         )
         self.assertTrue(
             "IDS-V0_1-STAGE073-P4" in "\n".join(plan["scope"])
@@ -487,6 +488,7 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
             or 'next_gate_id: "IDS-STAGE082-P1-GATE"' in roadmap_text
             or 'next_gate_id: "IDS-STAGE082-P3-GATE"' in roadmap_text
             or 'next_gate_id: "IDS-STAGE082-P4-GATE"' in roadmap_text
+            or 'next_gate_id: "IDS-STAGE082-REVIEW-GATE"' in roadmap_text
         )
         self.assertIn("EVT-IDS-V0_1-STAGE073-P4-20260820-001", event_ids)
         self.assertTrue(RUN.is_file())

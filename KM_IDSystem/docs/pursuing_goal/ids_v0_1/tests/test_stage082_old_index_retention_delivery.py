@@ -7,53 +7,47 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-SCOPE = BASE / "STAGE079_PHASE4_ATOMIC_INDEX_SWITCH_DELIVERY_CLOSEOUT.md"
+SCOPE = BASE / "STAGE082_PHASE4_OLD_INDEX_RETENTION_DELIVERY_CLOSEOUT.md"
 CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage079_atomic_index_switch_delivery_contract.json"
+    / "stage082_old_index_retention_delivery_contract.json"
 )
-MODULE = BASE / "index_version_schema" / "stage079_atomic_index_switch_delivery.py"
+MODULE = BASE / "index_version_schema" / "stage082_old_index_retention_delivery.py"
 TASKPACK = (
     ROOT
     / "docs"
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-079_索引原子切换.md"
+    / "STAGE-082_旧索引保留策略.md"
 )
-PHASE1_SCOPE = BASE / "STAGE079_PHASE1_ATOMIC_INDEX_SWITCH_SCOPE_BOUNDARY.md"
+PHASE1_SCOPE = BASE / "STAGE082_PHASE1_OLD_INDEX_RETENTION_SCOPE_BOUNDARY.md"
 PHASE1_CONTRACT = (
-    BASE / "index_version_schema" / "stage079_atomic_index_switch_contract.json"
+    BASE / "index_version_schema" / "stage082_old_index_retention_contract.json"
 )
-PHASE2_SCOPE = BASE / "STAGE079_PHASE2_ATOMIC_INDEX_SWITCH_CONTROL_SLICE.md"
+PHASE2_SCOPE = BASE / "STAGE082_PHASE2_OLD_INDEX_RETENTION_CONTROL_SLICE.md"
 PHASE2_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage079_atomic_index_switch_slice_contract.json"
+    / "stage082_old_index_retention_slice_contract.json"
 )
 PHASE2_MODULE = (
-    BASE / "index_version_schema" / "stage079_atomic_index_switch_control_slice.py"
+    BASE / "index_version_schema" / "stage082_old_index_retention_control_slice.py"
 )
-PHASE3_SCOPE = BASE / "STAGE079_PHASE3_ATOMIC_INDEX_SWITCH_CONTROLLED_SCENARIOS.md"
+PHASE3_SCOPE = BASE / "STAGE082_PHASE3_OLD_INDEX_RETENTION_CONTROLLED_SCENARIOS.md"
 PHASE3_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage079_atomic_index_switch_scenarios_contract.json"
+    / "stage082_old_index_retention_scenarios_contract.json"
 )
 PHASE3_MODULE = (
-    BASE / "index_version_schema" / "stage079_atomic_index_switch_scenarios.py"
+    BASE / "index_version_schema" / "stage082_old_index_retention_scenarios.py"
 )
-PREDECESSOR_REVIEW = BASE / "STAGE078_STAGE_REVIEW.md"
+PREDECESSOR_REVIEW = BASE / "STAGE081_STAGE_REVIEW.md"
 PREDECESSOR_CONTRACT = (
-    BASE / "index_version_schema" / "stage078_index_smoke_test_contract.json"
+    BASE / "index_version_schema" / "stage081_shadow_index_scenarios_contract.json"
 )
-ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
-EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
-STATUS = ROOT / "machine" / "facts" / "status.json"
-PLAN = ROOT / "machine" / "facts" / "plan.json"
-ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-21-stage079-p4-local.json"
 
 
 def _load_module(path: Path, name: str):
@@ -65,16 +59,16 @@ def _load_module(path: Path, name: str):
     return module
 
 
-class Stage079AtomicIndexSwitchPhase4Tests(unittest.TestCase):
+class Stage082OldIndexRetentionPhase4Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
-        cls.module = _load_module(MODULE, "stage079_p4")
-        cls.phase3 = _load_module(PHASE3_MODULE, "stage079_p3_for_p4_test")
-        cls.phase2 = _load_module(PHASE2_MODULE, "stage079_p2_for_p4_test")
+        cls.module = _load_module(MODULE, "stage082_p4")
+        cls.phase3 = _load_module(PHASE3_MODULE, "stage082_p3_for_p4_test")
+        cls.phase2 = _load_module(PHASE2_MODULE, "stage082_p2_for_p4_test")
 
     def report(self):
-        return self.module.build_atomic_index_switch_phase4_delivery_report()
+        return self.module.build_old_index_retention_phase4_delivery_report()
 
     def test_control_artifacts_exist(self):
         for artifact in (
@@ -92,12 +86,6 @@ class Stage079AtomicIndexSwitchPhase4Tests(unittest.TestCase):
             PHASE3_MODULE,
             PREDECESSOR_REVIEW,
             PREDECESSOR_CONTRACT,
-            ROADMAP,
-            EVENTS,
-            STATUS,
-            PLAN,
-            ACCEPTANCE,
-            RUN,
         ):
             with self.subTest(artifact=artifact):
                 self.assertTrue(artifact.is_file())
@@ -105,18 +93,18 @@ class Stage079AtomicIndexSwitchPhase4Tests(unittest.TestCase):
     def test_contract_declares_only_control_delivery_evidence(self):
         contract = self.contract
         self.assertEqual(
-            "ids.stage079.atomic_index_switch.phase4.delivery.v1",
+            "ids.stage082.old_index_retention.phase4.delivery.v1",
             contract["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE079-P4", contract["task_id"])
+        self.assertEqual("IDS-V0_1-STAGE082-P4", contract["task_id"])
         self.assertEqual(
-            "PHASE4_ATOMIC_INDEX_SWITCH_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+            "PHASE4_OLD_INDEX_RETENTION_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
             contract["contract_state"],
         )
         self.assertTrue(contract["delivery_executable"])
         self.assertFalse(contract["execution_ready"])
-        self.assertEqual("IDS-STAGE079-P4-GATE", contract["entry_gate"])
-        self.assertEqual("IDS-STAGE079-REVIEW-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE082-P4-GATE", contract["entry_gate"])
+        self.assertEqual("IDS-STAGE082-REVIEW-GATE", contract["next_gate"])
         for field in (
             "second_authoritative_source_created",
             "source_body_or_path_allowed",
@@ -127,33 +115,39 @@ class Stage079AtomicIndexSwitchPhase4Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(contract["source_authority"][field])
         self.assertEqual(
-            (6, 26, 156, 5, 5),
-            (
-                contract["phase3_controlled_scenario_replay_contract"]["scenario_count"],
-                contract["phase3_controlled_scenario_replay_contract"]["scenario_field_count"],
-                contract["phase3_controlled_scenario_replay_contract"]["scenario_field_check_count"],
-                contract["phase3_controlled_scenario_replay_contract"]["operations_version_control_view_count"],
-                contract["phase3_controlled_scenario_replay_contract"]["report_snapshot_version_control_view_count"],
+            (6, 31, 186, 5, 5),
+            tuple(
+                contract["phase3_controlled_scenario_replay_contract"][field]
+                for field in (
+                    "scenario_count",
+                    "scenario_field_count",
+                    "scenario_field_check_count",
+                    "operations_version_control_view_count",
+                    "report_snapshot_version_control_view_count",
+                )
             ),
         )
         self.assertEqual(
-            (5, 7, 5, 5, 7, 9, 8, 205),
+            (5, 7, 5, 5, 6, 5, 9, 8, 10, 6, 305),
             tuple(
                 contract["phase2_control_slice_replay_contract"][field]
                 for field in (
                     "control_request_count",
                     "index_version_record_field_count",
-                    "candidate_build_projection_field_count",
+                    "building_and_shadow_projection_field_count",
                     "active_pointer_projection_field_count",
-                    "smoke_test_projection_field_count",
+                    "smoke_test_input_projection_field_count",
+                    "smoke_test_output_projection_field_count",
                     "switch_projection_field_count",
-                    "rollback_projection_field_count",
+                    "rollback_request_projection_field_count",
+                    "retention_policy_projection_field_count",
+                    "cleanup_eligibility_projection_field_count",
                     "phase2_control_field_check_count",
                 )
             ),
         )
         self.assertEqual(
-            (5, 10, 6, 9, 5, 8, 5, 8, 1, 9, 3, 8, 4),
+            (5, 10, 6, 9, 5, 8, 5, 10, 1, 13, 3, 8, 4),
             tuple(
                 contract["delivery_evidence_contract"][field]
                 for field in (
@@ -173,11 +167,41 @@ class Stage079AtomicIndexSwitchPhase4Tests(unittest.TestCase):
                 )
             ),
         )
-        self.assertEqual(13, contract["failure_and_stop_contract"]["failure_state_count"])
-        self.assertFalse(contract["stage_and_phase_boundary"]["whole_stage_review_performed"])
+        self.assertEqual(15, contract["failure_and_stop_contract"]["failure_state_count"])
+        self.assertTrue(contract["stage_and_phase_boundary"]["phase4_started"])
+        self.assertFalse(
+            contract["stage_and_phase_boundary"]["whole_stage_review_performed"]
+        )
         for field, value in contract["runtime_boundary"].items():
             with self.subTest(field=field):
                 self.assertFalse(value)
+
+    def test_predecessor_replay_preserves_exact_control_shapes(self):
+        phase2 = self.phase2.execute_old_index_retention_control_slice(
+            self.phase2.build_control_input()
+        )
+        phase3 = self.phase3.build_old_index_retention_phase3_report()
+        self.assertEqual(
+            (True, "COMPLETED_IN_MEMORY_OLD_INDEX_RETENTION_CONTROL_SLICE", 5, 5),
+            (
+                phase2["input_accepted"],
+                phase2["execution_state"],
+                phase2["expected_control_request_count"],
+                phase2["received_control_request_count"],
+            ),
+        )
+        self.assertEqual(
+            (305, 6, 31, 186, 5, 5),
+            (
+                phase3["phase2_control_record_field_check_count"],
+                phase3["scenario_count"],
+                phase3["scenario_field_count"],
+                phase3["scenario_field_check_count"],
+                phase3["operations_version_control_view_count"],
+                phase3["report_snapshot_version_control_view_count"],
+            ),
+        )
+        self.assertTrue(phase3["valid"], phase3)
 
     def test_delivery_evidence_reuses_p2_p3_without_runtime_writes(self):
         report = self.report()
@@ -190,7 +214,7 @@ class Stage079AtomicIndexSwitchPhase4Tests(unittest.TestCase):
         self.assertTrue(report["phase2_control_slice_reexecuted_in_memory_only"])
         self.assertTrue(report["delivery_evidence_metadata_only"])
         self.assertEqual(
-            (5, 10, 6, 9, 5, 8, 5, 8, 1, 9, 3, 8),
+            (5, 10, 6, 9, 5, 8, 5, 10, 1, 13, 3, 8),
             tuple(
                 report[field]
                 for field in (
@@ -221,7 +245,7 @@ class Stage079AtomicIndexSwitchPhase4Tests(unittest.TestCase):
                     "CONTROL_INDEX_MANIFEST_NOT_PERSISTED", item["manifest_state"]
                 )
                 self.assertFalse(item["actual_index_manifest_written"])
-                self.assertIn(":control:stage079-p2:", item["index_manifest_ref"])
+                self.assertIn(":control:stage082-p2:", item["index_manifest_ref"])
         for item in report["smoke_test_log_control_samples"]:
             with self.subTest(smoke=item["scenario_id"]):
                 self.assertEqual(set(self.module.SMOKE_TEST_LOG_FIELDS), set(item))
@@ -230,7 +254,7 @@ class Stage079AtomicIndexSwitchPhase4Tests(unittest.TestCase):
                     "CONTROL_SMOKE_TEST_LOG_NOT_PERSISTED", item["log_state"]
                 )
                 self.assertFalse(item["actual_smoke_test_log_written"])
-                self.assertIn(":control:stage079-p2:", item["smoke_test_log_ref"])
+                self.assertIn(":control:stage082-p2:", item["smoke_test_log_ref"])
         for item in report["switch_record_control_samples"]:
             with self.subTest(switch=item["control_scenario"]):
                 self.assertEqual(set(self.module.SWITCH_RECORD_FIELDS), set(item))
@@ -240,7 +264,18 @@ class Stage079AtomicIndexSwitchPhase4Tests(unittest.TestCase):
             with self.subTest(rollback=item["control_scenario"]):
                 self.assertEqual(set(self.module.ROLLBACK_PROOF_FIELDS), set(item))
                 self.assertEqual(
-                    "CONTROL_PREVIOUS_ACTIVE_RETAINED", item["retention_window_state"]
+                    1, item["minimum_retained_previous_active_version_count"]
+                )
+                self.assertEqual(
+                    "CONTROL_ROLLBACK_WINDOW_UNCONFIGURED",
+                    item["retention_window_state"],
+                )
+                self.assertEqual(
+                    "CONTROL_BLOCKED_UNCONFIGURED_ROLLBACK_WINDOW",
+                    item["rollback_eligibility"],
+                )
+                self.assertEqual(
+                    "CONTROL_ROLLBACK_PROOF_NOT_PERSISTED", item["rollback_state"]
                 )
                 self.assertFalse(item["rollback_applied"])
 
@@ -249,13 +284,27 @@ class Stage079AtomicIndexSwitchPhase4Tests(unittest.TestCase):
         retention = report["old_index_retention_projection"]
         self.assertEqual(set(self.module.OLD_INDEX_RETENTION_FIELDS), set(retention))
         self.assertEqual(5, retention["applies_to_control_scenario_count"])
-        self.assertTrue(retention["retained_previous_active_required"])
+        self.assertEqual(
+            1, retention["minimum_retained_previous_active_version_count"]
+        )
+        self.assertEqual(
+            "CONTROL_ADDITIONAL_RETENTION_QUANTITY_UNCONFIGURED",
+            retention["additional_retention_quantity_state"],
+        )
+        self.assertEqual(
+            "CONTROL_ROLLBACK_WINDOW_UNCONFIGURED",
+            retention["rollback_window_state"],
+        )
+        self.assertEqual(
+            "CONTROL_CLEANUP_BLOCKED_UNCONFIGURED_POLICY",
+            retention["cleanup_eligibility_state"],
+        )
         self.assertEqual(
             "CONTROL_SPACE_IMPACT_NOT_MEASURED_RUNTIME_DISABLED",
             retention["space_impact_state"],
         )
         self.assertFalse(retention["actual_space_impact_measurement_performed"])
-        self.assertFalse(retention["actual_index_deletion_performed"])
+        self.assertFalse(retention["actual_old_index_cleanup_performed"])
         self.assertTrue(retention["human_handling_required"])
         self.assertEqual(
             ("REBUILD", "PAUSE", "RECOVERY"),
@@ -268,11 +317,11 @@ class Stage079AtomicIndexSwitchPhase4Tests(unittest.TestCase):
                 )
                 self.assertFalse(item["actual_operation_performed"])
                 self.assertTrue(item["human_handling_required"])
-                self.assertIn(":control:stage079-p2:", item["target_ref"])
+                self.assertIn(":control:stage082-p2:", item["target_ref"])
         self.assertEqual(4, len(report["chinese_feedback"]))
 
     def test_invalid_predecessor_or_runtime_signal_fails_closed(self):
-        invalid = self.module.build_atomic_index_switch_phase4_delivery_report(
+        invalid = self.module.build_old_index_retention_phase4_delivery_report(
             phase3_report_provider=lambda: {"valid": False}
         )
         self.assertFalse(invalid["valid"])
@@ -281,25 +330,25 @@ class Stage079AtomicIndexSwitchPhase4Tests(unittest.TestCase):
 
         def malformed_phase2():
             result = copy.deepcopy(
-                self.phase2.execute_atomic_index_switch_control_slice(
+                self.phase2.execute_old_index_retention_control_slice(
                     self.phase2.build_control_input()
                 )
             )
-            result["index_version_control_records"][0].pop("index_kind")
+            result["retention_policy_control_projections"][0].pop("policy_state")
             return result
 
-        malformed = self.module.build_atomic_index_switch_phase4_delivery_report(
+        malformed = self.module.build_old_index_retention_phase4_delivery_report(
             phase2_report_provider=malformed_phase2
         )
         self.assertFalse(malformed["valid"])
         self.assertEqual(0, malformed["smoke_test_log_control_sample_count"])
 
         def phase3_runtime_signal():
-            result = copy.deepcopy(self.phase3.build_atomic_index_switch_phase3_report())
+            result = copy.deepcopy(self.phase3.build_old_index_retention_phase3_report())
             result["retrieval_query_performed"] = True
             return result
 
-        runtime_signal = self.module.build_atomic_index_switch_phase4_delivery_report(
+        runtime_signal = self.module.build_old_index_retention_phase4_delivery_report(
             phase3_report_provider=phase3_runtime_signal
         )
         self.assertFalse(runtime_signal["valid"])
@@ -312,96 +361,14 @@ class Stage079AtomicIndexSwitchPhase4Tests(unittest.TestCase):
         self.assertTrue(report["source_document_remains_authoritative"])
         self.assertTrue(report["business_line_whitebox_human_review_remains_authoritative"])
         self.assertFalse(report["delivery_control_metadata_can_replace_source_document"])
-        self.assertFalse(report["delivery_control_metadata_can_become_business_fact_authority"])
+        self.assertFalse(
+            report["delivery_control_metadata_can_become_business_fact_authority"]
+        )
         self.assertFalse(report["automatic_business_recommendation_allowed"])
         encoded = json.dumps(report, ensure_ascii=False)
         self.assertNotIn("/Users/", encoded)
         self.assertNotIn("http://", encoded)
         self.assertNotIn("https://", encoded)
-
-    def test_current_machine_and_governance_projection_preserves_phase4_evidence(self):
-        status = json.loads(STATUS.read_text(encoding="utf-8"))
-        plan = json.loads(PLAN.read_text(encoding="utf-8"))
-        acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
-        roadmap = ROADMAP.read_text(encoding="utf-8")
-        event_ids = {
-            json.loads(line)["event_id"]
-            for line in EVENTS.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        }
-        run = json.loads(RUN.read_text(encoding="utf-8"))
-        current_route = (status["stage"], status["phase"], status["task"], status["next_gate"])
-        self.assertIn(
-            current_route,
-            (
-                (
-                    "IDS-STAGE079",
-                    "IDS-V0_1-STAGE079-P4",
-                    "IDS-V0_1-STAGE079-P4",
-                    "IDS-STAGE079-REVIEW-GATE",
-                ),
-                (
-                    "IDS-STAGE079",
-                    "IDS-STAGE079-REVIEW",
-                    "IDS-V0_1-STAGE079-REVIEW",
-                    "IDS-STAGE080-P1-GATE",
-                ),
-
-                ('IDS-STAGE080', 'IDS-V0_1-STAGE080-P1', 'IDS-V0_1-STAGE080-P1', 'IDS-STAGE080-P2-GATE'),
-                ('IDS-STAGE080', 'IDS-V0_1-STAGE080-P2', 'IDS-V0_1-STAGE080-P2', 'IDS-STAGE080-P3-GATE'), ('IDS-STAGE080', 'IDS-V0_1-STAGE080-P3', 'IDS-V0_1-STAGE080-P3', 'IDS-STAGE080-P4-GATE'), ('IDS-STAGE080', 'IDS-V0_1-STAGE080-P4', 'IDS-V0_1-STAGE080-P4', 'IDS-STAGE080-REVIEW-GATE'), ('IDS-STAGE080', 'IDS-STAGE080-REVIEW', 'IDS-V0_1-STAGE080-REVIEW', 'IDS-STAGE081-P1-GATE'), ('IDS-STAGE081', 'IDS-STAGE081-P1', 'IDS-V0_1-STAGE081-P1', 'IDS-STAGE081-P2-GATE'), ('IDS-STAGE081', 'IDS-STAGE081-P2', 'IDS-V0_1-STAGE081-P2', 'IDS-STAGE081-P3-GATE'), ("IDS-STAGE081", "IDS-STAGE081-P3", "IDS-V0_1-STAGE081-P3", "IDS-STAGE081-P4-GATE"), ("IDS-STAGE081", "IDS-STAGE081-P4", "IDS-V0_1-STAGE081-P4", "IDS-STAGE081-REVIEW-GATE"), ("IDS-STAGE081", "IDS-STAGE081-REVIEW", "IDS-V0_1-STAGE081-REVIEW", "IDS-STAGE082-P1-GATE"), ("IDS-STAGE082", "IDS-STAGE082-P1", "IDS-V0_1-STAGE082-P1", "IDS-STAGE082-P2-GATE"),
-                ("IDS-STAGE082", "IDS-STAGE082-P2", "IDS-V0_1-STAGE082-P2", "IDS-STAGE082-P3-GATE"), ("IDS-STAGE082", "IDS-STAGE082-P3", "IDS-V0_1-STAGE082-P3", "IDS-STAGE082-P4-GATE"), ("IDS-STAGE082", "IDS-STAGE082-P4", "IDS-V0_1-STAGE082-P4", "IDS-STAGE082-REVIEW-GATE")),
-        )
-        self.assertFalse(status["runtime_enabled"])
-        self.assertFalse(status["push_allowed"])
-        self.assertIn(
-            plan["task"],
-            ("IDS-V0_1-STAGE079-P4", "IDS-V0_1-STAGE079-REVIEW",
-                'IDS-V0_1-STAGE080-P1',
-                'IDS-V0_1-STAGE080-P2',
-                'IDS-V0_1-STAGE080-P3', 'IDS-V0_1-STAGE080-P4', 'IDS-V0_1-STAGE080-REVIEW', 'IDS-V0_1-STAGE081-P1', 'IDS-V0_1-STAGE081-P2', 'IDS-V0_1-STAGE081-P3', 'IDS-V0_1-STAGE081-P4', 'IDS-V0_1-STAGE081-REVIEW', 'IDS-V0_1-STAGE082-P1',
-                'IDS-V0_1-STAGE082-P2',
-                'IDS-V0_1-STAGE082-P3', 'IDS-V0_1-STAGE082-P4'),
-        )
-        self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
-        acceptance_ids = {item["id"] for item in acceptance["items"]}
-        self.assertTrue(
-            {
-                "ACC-STAGE-079",
-                "ACC-STAGE079-P4-01",
-                "ACC-STAGE079-P4-02",
-                "ACC-STAGE079-P4-03",
-                "ACC-STAGE079-P4-04",
-            }.issubset(acceptance_ids)
-        )
-        self.assertEqual("IDS-V0_1-STAGE079-P4", run["task_id"])
-        self.assertEqual(
-            "PASS_ATOMIC_INDEX_SWITCH_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
-            run["result"],
-        )
-        self.assertEqual("IDS-STAGE079-REVIEW-GATE", run["next_gate"])
-        self.assertEqual(0, run["runtime_counts"]["actual_index_build_count"])
-        self.assertEqual(0, run["runtime_counts"]["actual_index_manifest_write_count"])
-        self.assertEqual(0, run["runtime_counts"]["actual_model_token_count"])
-        self.assertFalse(run["runtime_actions"]["ovh_deployment_performed"])
-        self.assertFalse(run["runtime_actions"]["push_performed"])
-        self.assertIn("EVT-IDS-V0_1-STAGE079-P4-20260821-001", event_ids)
-        self.assertIn('current_stage_id: "IDS-STAGE079"', roadmap)
-        expected_current_route = (
-            (
-                'current_phase_id: "IDS-STAGE079-P4"',
-                'current_task_id: "IDS-V0_1-STAGE079-P4"',
-                'next_gate_id: "IDS-STAGE079-REVIEW-GATE"',
-            )
-            if current_route[1] == "IDS-V0_1-STAGE079-P4"
-            else (
-                'current_phase_id: "IDS-STAGE079-REVIEW"',
-                'current_task_id: "IDS-V0_1-STAGE079-REVIEW"',
-                'next_gate_id: "IDS-STAGE080-P1-GATE"',
-            )
-        )
-        for phrase in expected_current_route:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, roadmap)
 
 
 if __name__ == "__main__":

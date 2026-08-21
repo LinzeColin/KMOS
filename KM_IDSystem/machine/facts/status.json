@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE082",
-  "phase": "IDS-STAGE082-P3",
-  "task": "IDS-V0_1-STAGE082-P3",
-  "real_progress": "Stage082 P3 已在内存中重放 P2 的五条固定、非业务控制引用为六条异常／可见性场景：候选构建未完成、影子冒烟失败、计划切换失败、回滚窗口未设值、旧活动版本连续服务、后台构建检索隔离投影及 Operations／报告快照版本可见性；未读取或写入真实资料、保留策略、指针、索引、Operations 或报告。",
-  "report_grade": "冻结 Stage082 任务包、Stage082 P1/P2 合同与 Stage081 Review/P1--P4 已审核影子索引控制工件构成唯一合同上下文；P3 只重放固定控制投影，不建立第二权威事实源，未读取真实资料、不连接数据库、不选择或调用模型。",
-  "business_verdict": "Stage082 P3 只证明五条固定控制引用被重放为六条失败关闭、旧活动版本连续服务、未设值回滚／清理关闭、并发检索隔离投影与 Operations／报告快照版本可见性场景；不等于实际构建、冒烟、切换、检索、回滚、清理、审批、Operations、报告、模型、Token、审计、OVH、生产服务或上传能力已启用。来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "STAGE082_P3_CONTROLLED_SCENARIOS_LOCAL_VALIDATED_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE082-P4",
+  "task": "IDS-V0_1-STAGE082-P4",
+  "real_progress": "Stage082 P4 已从 P2 的五条固定、非业务控制投影与 P3 的六条受控场景在内存中派生五条索引清单、六条冒烟测试日志、五条切换记录、五条回滚证明、一条旧索引保留／未测量空间影响投影、三条重建／暂停／恢复说明及四条中文反馈；未读取或写入真实资料、保留策略、指针、索引、Operations 或报告。",
+  "report_grade": "冻结 Stage082 任务包、Stage082 P1/P2/P3 合同与 Stage081 Review/P1--P4 已审核影子索引控制工件构成唯一合同上下文；P4 只派生 metadata-only 控制交付证据，不建立第二权威事实源，未读取真实资料、不连接数据库、不选择或调用模型。",
+  "business_verdict": "Stage082 P4 只证明固定控制投影可派生未写入的清单、日志、记录、证明、保留／空间影响投影、操作说明及中文反馈；最低保留一个上一活动版本，额外保留数量、回滚窗口、清理时点与业务线白箱批准未设值时回滚和清理保持关闭。不等于实际构建、冒烟、切换、检索、回滚、清理、审批、Operations、报告、模型、Token、审计、OVH、生产服务或上传能力已启用。来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "STAGE082_P4_DELIVERY_EVIDENCE_LOCAL_VALIDATED_RUNTIME_DISABLED",
   "rendered_at": "2026-08-22",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE082-P4-GATE",
+  "next_gate": "IDS-STAGE082-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

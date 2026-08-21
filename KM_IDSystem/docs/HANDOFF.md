@@ -9,15 +9,25 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage082 Phase 3 - 2026-08-22
+## Current Gate - Stage082 Phase 4 - 2026-08-22
 
-- 本节是唯一当前交接；下方 Stage082 P2/P1、Stage081 Review/P4/P3/P2/P1、Stage080 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其事实。
+- 本节是唯一当前交接；下方 Stage082 P3/P2/P1、Stage081 Review/P4/P3/P2/P1、Stage080 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE082-P4`：只以冻结 Stage082 任务包、Stage082 P1/P2/P3 合同与 Stage081 Review/P1--P4 已审核影子索引控制工件为唯一合同上下文，在内存中从 P2 五条固定、非业务、`reference-only` 控制引用及 P3 六条受控场景派生五条索引清单、六条冒烟测试日志、五条切换记录、五条回滚证明、一条旧索引保留／未测量空间影响投影、三条重建／暂停／恢复说明和四条中文反馈。全部交付形状只含不透明控制标签，不建立第二权威事实源，不写入真实索引、清单、日志、记录、Operations、报告、审计或业务事实。
+- 失败关闭边界：最低只保留一个上一活动版本；额外保留数量、回滚窗口、清理时点和业务线白箱批准任一未设值时，回滚与旧索引清理均保持关闭，空间影响未测量、旧索引未删除。重建、暂停和恢复只表达未来前置，候选、活动、上一活动和影子控制引用保持隔离，实际服务及活动指针均未变更。
+- 已验证：P4 聚焦 `8/8`、P1/P2/P3/P4 聚焦 `32/32`、Stage060--082 白箱 `1044/1044`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面由事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过；零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-22-stage082-p4-local.json`。根级 `lean_governance.py` 在当前稀疏工作树中不存在，未陈述为已执行。
+- 本 P4 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、证据账本、审计日志、Operations、报告、数据库、物理索引或业务结论；不执行实际保留策略／清单／冒烟测试日志／切换记录／回滚证明写入、空间测量、旧索引删除、重建、暂停、恢复、批量导入、数据库 schema 或连接、后台构建、索引／影子索引、实际冒烟、活动指针读写、原子切换、检索、并发检索、回退、Operations 写入、报告快照写入、模型 Token、Agent、OVH、生产、上传或推送。
+- 回滚只撤回本 P4 范围说明、交付合同、纯内存交付模块、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_OLD_INDEX_RETENTION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；保留 Stage082 P1/P2/P3、Stage081 Review/P1--P4、冻结任务包、真实资料、fixture、manifest、证据账本、审计日志、数据库、索引、GitHub、OVH 与应用状态。
+- 下一步仅可在新的独立 run 进入 `IDS-STAGE082-REVIEW-GATE`；Review 未进入。继续使用既有唯一开发 worktree `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`，不创建额外 worktree、branch 或 PR。本 run 不启动 Review、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage082 Phase 3 - 2026-08-22
+
+- 本节保留 Stage082 P3 历史交接；唯一当前交接位于上方 Stage082 P4，不重写其已验证事实。
 - 本轮完成 `IDS-V0_1-STAGE082-P3`：只以冻结 Stage082 任务包、Stage082 P1/P2 合同与 Stage081 Review/P1--P4 已审核影子索引控制工件为唯一合同上下文，在内存中重放五条固定、非业务、`reference-only` 控制引用为六条异常／可见性场景。候选构建未完成、影子冒烟失败、计划切换失败、回滚窗口未设值、旧活动版本连续服务、后台构建检索隔离以及 Operations／报告快照版本可见性均只是不透明控制标签，不建立第二权威事实源。
 - 失败关闭边界：候选、活动、上一活动和影子保持隔离；构建未完成、冒烟失败、切换失败或关键保留条件缺失均保持旧活动版本连续服务。最低只保留一个上一活动版本；额外保留数量、回滚窗口、清理时点和业务线白箱批准任一未设值时，回滚与旧索引清理均不得进入。
 - 已验证：P3 聚焦 `10/10`、P1/P2/P3 聚焦 `24/24`、Stage060--082 白箱 `1036/1036`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面由事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过；零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-22-stage082-p3-local.json`。根级 `lean_governance.py` 在当前稀疏工作树中不存在，未陈述为已执行。
 - 本 P3 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、证据账本、审计日志、Operations、报告、数据库、物理索引或业务结论；不执行实际保留策略写入、旧索引清理、空间测量、批量导入、数据库 schema 或连接、后台构建、索引／影子索引、实际冒烟、活动指针读写、原子切换、检索、并发检索、回退、Operations 写入、报告快照写入、模型 Token、Agent、OVH、生产、上传或推送。
 - 回滚只撤回本 P3 的范围说明、静态控制合同、纯内存场景、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_OLD_INDEX_RETENTION_CONTROL_SLICE_RUNTIME_DISABLED`；保留 Stage082 P1/P2、Stage081 Review/P1--P4、冻结任务包、真实资料、fixture、manifest、证据账本、审计日志、数据库、索引、GitHub、OVH 与应用状态。
-- 下一步仅可在新的独立 run 进入 `IDS-STAGE082-P4-GATE`；继续使用当前既有的唯一开发 worktree `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`，不创建额外 worktree、branch 或 PR。本 run 不启动 P4、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 `ACC-STAGE-168`。
+- P3 的后继已在上方 P4 独立 run 中完成；其当时的下一门禁为 `IDS-STAGE082-P4-GATE`。该历史交接继续只使用既有唯一开发 worktree `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`，不创建额外 worktree、branch 或 PR；全局上传继续延后至完整冻结任务包完成 `ACC-STAGE-168`。
 
 ## Superseded Gate - Stage082 Phase 2 - 2026-08-22
 
