@@ -2378,6 +2378,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE076-P4-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE076"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE076-P4"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE076-P4"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE076-REVIEW-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -24300,6 +24308,51 @@ def evaluate_current_state_consistency(
         and upload_gate.get("push_allowed") is False
     )
 
+    stage076_phase4_handoff_current = (
+        current_stage_id == "IDS-STAGE076"
+        and roadmap_phase == "IDS-STAGE076-P4"
+        and roadmap_task == "IDS-V0_1-STAGE076-P4"
+        and roadmap.get("next_gate_id") == "IDS-STAGE076-REVIEW-GATE"
+        and roadmap_stage_node.get("stage_id") == "IDS-STAGE076"
+        and roadmap_stage_node.get("task_id") == "IDS-V0_1-STAGE076"
+        and roadmap_stage_node.get("status") == "phase4_completed_local"
+        and roadmap_stage_node.get("next_gate_id") == "IDS-STAGE076-REVIEW-GATE"
+        and roadmap_phase_node.get("status") == "completed"
+        and roadmap_phase_node.get("next_gate_id") == "IDS-STAGE076-REVIEW-GATE"
+        and roadmap_task_node.get("status") == "completed"
+        and isinstance(roadmap_task_node.get("test_results"), str)
+        and bool(roadmap_task_node.get("test_results"))
+        and {
+            "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-076_索引版本Schema.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE076_PHASE4_INDEX_VERSION_SCHEMA_DELIVERY_CLOSEOUT.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage076_index_version_schema_delivery_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage076_index_version_schema_delivery.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage076_index_version_schema_delivery.py",
+            "KM_IDSystem/machine/runs/2026-08-21-stage076-p4-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+        }.issubset(
+            {
+                item
+                for item in roadmap_task_node.get("evidence_refs", [])
+                if isinstance(item, str)
+            }
+        )
+        and any(
+            isinstance(candidate, dict)
+            and candidate.get("stage_id") == "IDS-STAGE075"
+            and candidate.get("status") == "completed_reviewed_local"
+            and candidate.get("next_gate_id") == "IDS-STAGE076-P1-GATE"
+            for candidate in roadmap_stages
+        )
+        and batch.get("status") == "stage070_completed_reviewed_local"
+        and decision.get("github_upload_allowed") is False
+        and decision.get("push_allowed") is False
+        and upload_gate.get("github_upload_allowed") is False
+        and upload_gate.get("push_allowed") is False
+    )
+
     stage074_phase1_handoff_current = (
         current_stage_id == "IDS-STAGE074"
         and roadmap_phase == "IDS-STAGE074-P1"
@@ -24812,6 +24865,7 @@ def evaluate_current_state_consistency(
                 or stage076_phase1_handoff_current
                 or stage076_phase2_handoff_current
                 or stage076_phase3_handoff_current
+                or stage076_phase4_handoff_current
                 or stage074_phase1_handoff_current
                 or stage074_phase2_handoff_current
                 or stage074_phase3_handoff_current

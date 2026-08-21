@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage076-p4-local",
+    "date": "2026-08-21",
+    "summary": "完成 Stage076 P4 索引版本 Schema 控制版交付证据：只在内存中从 P2 五条固定、非业务、reference-only 控制投影与 P3 六条专项场景派生五条索引清单、六条冒烟记录、五条切换记录、五条回退证明、一条旧活动版本保留／空间影响投影、三条重建／暂停／恢复说明和四条中文反馈。所有样例均不写入实际清单、日志、索引、报告或持久状态，空间影响未测量，操作均要求业务线白箱人工处理。P4 8/8、Stage060--069 473/473、Stage070--076 315/315、Stage005 直接治理 valid=true，两个批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，机器平面 7 个中文文件及文档三道门通过；下一步仅可在新的独立 run 进入 Stage076 Review。"
+  },
+  {
     "version": "v0.1-stage076-p3-local",
     "date": "2026-08-21",
     "summary": "完成 Stage076 P3 索引版本 Schema 受控场景：只在内存中重放 P2 的五条固定、非业务、reference-only 控制投影，以六条场景覆盖构建失败、冒烟验证失败、切换失败、回退、旧活动版本持续服务、后台构建期间检索隔离，以及 Operations／报告快照版本可见性；未读取真实资料，未执行批量导入、数据库 schema、索引构建、切换、检索、回退、Operations 或报告写入、模型 Token、Agent、OVH、生产、上传或推送。P3 11/11、Stage060--069 473/473、Stage070--076 307/307、Stage005 直接治理 valid=true，两个批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；下一步仅可在新的独立 run 进入 Stage076 P4。"
