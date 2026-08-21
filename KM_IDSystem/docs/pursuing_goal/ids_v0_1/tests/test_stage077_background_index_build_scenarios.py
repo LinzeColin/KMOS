@@ -361,12 +361,23 @@ class Stage077BackgroundIndexBuildPhase3Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE077-P4",
                     "IDS-STAGE077-REVIEW-GATE",
                 ),
+                (
+                    "IDS-STAGE077",
+                    "IDS-V0_1-STAGE077-REVIEW",
+                    "IDS-V0_1-STAGE077-REVIEW",
+                    "IDS-STAGE078-P1-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertIn(
-            plan["task"], ("IDS-V0_1-STAGE077-P3", "IDS-V0_1-STAGE077-P4")
+            plan["task"],
+            (
+                "IDS-V0_1-STAGE077-P3",
+                "IDS-V0_1-STAGE077-P4",
+                "IDS-V0_1-STAGE077-REVIEW",
+            ),
         )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
@@ -403,14 +414,17 @@ class Stage077BackgroundIndexBuildPhase3Tests(unittest.TestCase):
         self.assertTrue(
             'current_phase_id: "IDS-STAGE077-P3"' in roadmap_text
             or 'current_phase_id: "IDS-STAGE077-P4"' in roadmap_text
+            or 'current_phase_id: "IDS-STAGE077-REVIEW"' in roadmap_text
         )
         self.assertTrue(
             'current_task_id: "IDS-V0_1-STAGE077-P3"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE077-P4"' in roadmap_text
+            or 'current_task_id: "IDS-V0_1-STAGE077-REVIEW"' in roadmap_text
         )
         self.assertTrue(
             'next_gate_id: "IDS-STAGE077-P4-GATE"' in roadmap_text
             or 'next_gate_id: "IDS-STAGE077-REVIEW-GATE"' in roadmap_text
+            or 'next_gate_id: "IDS-STAGE078-P1-GATE"' in roadmap_text
         )
 
 

@@ -240,7 +240,7 @@ class Stage076ReviewTests(unittest.TestCase):
                         "IDS-V0_1-STAGE077-P4",
                         "IDS-V0_1-STAGE077-P4",
                         "IDS-STAGE077-REVIEW-GATE",
-                    ),
+                    ), ('IDS-STAGE077', 'IDS-V0_1-STAGE077-REVIEW', 'IDS-V0_1-STAGE077-REVIEW', 'IDS-STAGE078-P1-GATE'),
                 ),
             )
             self.assertTrue(P4_RUN.is_file())
@@ -250,7 +250,7 @@ class Stage076ReviewTests(unittest.TestCase):
                     ("IDS-STAGE076", "IDS-V0_1-STAGE076-P4", "IDS-V0_1-STAGE076-P4"),
                     ("IDS-STAGE076", "IDS-V0_1-STAGE076-REVIEW", "IDS-V0_1-STAGE076-REVIEW"),
                     ("IDS-STAGE077", "IDS-V0_1-STAGE077-P1", "IDS-V0_1-STAGE077-P1"),
-                    ('IDS-STAGE077', 'IDS-V0_1-STAGE077-P2', 'IDS-V0_1-STAGE077-P2'), ('IDS-STAGE077', 'IDS-V0_1-STAGE077-P3', 'IDS-V0_1-STAGE077-P3'), ('IDS-STAGE077', 'IDS-V0_1-STAGE077-P4', 'IDS-V0_1-STAGE077-P4'),
+                    ('IDS-STAGE077', 'IDS-V0_1-STAGE077-P2', 'IDS-V0_1-STAGE077-P2'), ('IDS-STAGE077', 'IDS-V0_1-STAGE077-P3', 'IDS-V0_1-STAGE077-P3'), ('IDS-STAGE077', 'IDS-V0_1-STAGE077-P4', 'IDS-V0_1-STAGE077-P4'), ('IDS-STAGE077', 'IDS-V0_1-STAGE077-REVIEW', 'IDS-V0_1-STAGE077-REVIEW'),
                 ),
             )
 

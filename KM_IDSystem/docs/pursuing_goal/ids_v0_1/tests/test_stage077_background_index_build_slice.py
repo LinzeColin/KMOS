@@ -321,6 +321,12 @@ class Stage077BackgroundIndexBuildPhase2Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE077-P4",
                     "IDS-STAGE077-REVIEW-GATE",
                 ),
+                (
+                    "IDS-STAGE077",
+                    "IDS-V0_1-STAGE077-REVIEW",
+                    "IDS-V0_1-STAGE077-REVIEW",
+                    "IDS-STAGE078-P1-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -331,6 +337,7 @@ class Stage077BackgroundIndexBuildPhase2Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE077-P2",
                 "IDS-V0_1-STAGE077-P3",
                 "IDS-V0_1-STAGE077-P4",
+                "IDS-V0_1-STAGE077-REVIEW",
             ),
         )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
