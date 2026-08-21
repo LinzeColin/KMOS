@@ -2568,6 +2568,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE081-P2-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE081"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE081-P2"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE081-P2"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE081-P3-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -19960,6 +19968,56 @@ def evaluate_current_state_consistency(
         phases = current_stage.get("phases") if isinstance(current_stage, dict) else []
         phases = phases if isinstance(phases, list) else []
         current_phase_id = roadmap.get("current_phase_id")
+        phase_specs = {
+            "IDS-STAGE081-P1": {
+                "task_id": "IDS-V0_1-STAGE081-P1",
+                "next_gate_id": "IDS-STAGE081-P2-GATE",
+                "transition_key": "stage081_phase1_state",
+                "stage_statuses": {"phase1_completed_local"},
+                "gate_id": "IDS-STAGE081-P1-GATE",
+                "future_phase_ids": {
+                    "IDS-STAGE081-P2",
+                    "IDS-STAGE081-P3",
+                    "IDS-STAGE081-P4",
+                    "IDS-STAGE081-REVIEW",
+                },
+                "required_evidence": {
+                    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-081_影子索引合同.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE081_PHASE1_SHADOW_INDEX_SCOPE_BOUNDARY.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage081_shadow_index_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage081_shadow_index_contract.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE080_STAGE_REVIEW.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage080_index_rollback_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage080_index_rollback_delivery_contract.json",
+                },
+            },
+            "IDS-STAGE081-P2": {
+                "task_id": "IDS-V0_1-STAGE081-P2",
+                "next_gate_id": "IDS-STAGE081-P3-GATE",
+                "transition_key": "stage081_phase2_state",
+                "stage_statuses": {"phase2_completed_local"},
+                "gate_id": "IDS-STAGE081-P2-GATE",
+                "future_phase_ids": {
+                    "IDS-STAGE081-P3",
+                    "IDS-STAGE081-P4",
+                    "IDS-STAGE081-REVIEW",
+                },
+                "required_evidence": {
+                    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-081_影子索引合同.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE081_PHASE1_SHADOW_INDEX_SCOPE_BOUNDARY.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage081_shadow_index_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE081_PHASE2_SHADOW_INDEX_CONTROL_SLICE.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage081_shadow_index_slice_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage081_shadow_index_control_slice.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage081_shadow_index_slice.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE080_STAGE_REVIEW.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage080_index_rollback_slice_contract.json",
+                    "KM_IDSystem/machine/runs/2026-08-22-stage081-p2-local.json",
+                },
+            },
+        }
+        phase_spec = phase_specs.get(current_phase_id)
+        phase_spec = phase_spec if isinstance(phase_spec, dict) else {}
         phase = next(
             (
                 item
@@ -19975,7 +20033,7 @@ def evaluate_current_state_consistency(
                 item
                 for item in tasks
                 if isinstance(item, dict)
-                and item.get("task_id") == "IDS-V0_1-STAGE081-P1"
+                and item.get("task_id") == phase_spec.get("task_id")
             ),
             {},
         )
@@ -19983,56 +20041,45 @@ def evaluate_current_state_consistency(
         current_transition = (
             current_transition if isinstance(current_transition, dict) else {}
         )
-        required_evidence = {
-            "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-081_影子索引合同.md",
-            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE081_PHASE1_SHADOW_INDEX_SCOPE_BOUNDARY.md",
-            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage081_shadow_index_contract.json",
-            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage081_shadow_index_contract.py",
-            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE080_STAGE_REVIEW.md",
-            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage080_index_rollback_contract.json",
-            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage080_index_rollback_delivery_contract.json",
-        }
         stage081_exact = (
-            roadmap.get("current_task_id") == "IDS-V0_1-STAGE081-P1"
-            and roadmap.get("next_gate_id") == "IDS-STAGE081-P2-GATE"
-            and current_transition.get("stage081_phase1_state")
+            bool(phase_spec)
+            and roadmap.get("current_task_id") == phase_spec.get("task_id")
+            and roadmap.get("next_gate_id") == phase_spec.get("next_gate_id")
+            and current_transition.get(phase_spec.get("transition_key"))
             == {
                 "current_stage_id": "IDS-STAGE081",
-                "current_phase_id": "IDS-STAGE081-P1",
-                "current_task_id": "IDS-V0_1-STAGE081-P1",
-                "next_gate_id": "IDS-STAGE081-P2-GATE",
+                "current_phase_id": current_phase_id,
+                "current_task_id": phase_spec.get("task_id"),
+                "next_gate_id": phase_spec.get("next_gate_id"),
             }
-            and current_stage.get("status") == "phase1_completed_local"
+            and current_stage.get("status") in phase_spec.get("stage_statuses", set())
             and current_stage.get("entry_authorized") is True
-            and current_stage.get("next_gate_id") == "IDS-STAGE081-P2-GATE"
+            and current_stage.get("next_gate_id") == phase_spec.get("next_gate_id")
             and isinstance(current_stage.get("gate"), dict)
-            and current_stage["gate"].get("gate_id") == "IDS-STAGE081-P1-GATE"
+            and current_stage["gate"].get("gate_id") == phase_spec.get("gate_id")
             and current_stage["gate"].get("status") == "passed"
             and phase.get("status") == "completed"
             and phase.get("entry_authorized") is True
-            and phase.get("next_gate_id") == "IDS-STAGE081-P2-GATE"
+            and phase.get("next_gate_id") == phase_spec.get("next_gate_id")
             and isinstance(phase.get("gate"), dict)
-            and phase["gate"].get("gate_id") == "IDS-STAGE081-P1-GATE"
+            and phase["gate"].get("gate_id") == phase_spec.get("gate_id")
             and phase["gate"].get("status") == "passed"
             and task.get("status") == "completed"
             and isinstance(task.get("test_results"), str)
             and bool(task.get("test_results"))
-            and required_evidence.issubset(
+            and phase_spec.get("required_evidence", set()).issubset(
                 {item for item in task.get("evidence_refs", []) if isinstance(item, str)}
             )
         )
-        future_phase_ids = {
-            "IDS-STAGE081-P2",
-            "IDS-STAGE081-P3",
-            "IDS-STAGE081-P4",
-            "IDS-STAGE081-REVIEW",
-        }
         future_phases = [
             item
             for item in phases
-            if isinstance(item, dict) and item.get("phase_id") in future_phase_ids
+            if isinstance(item, dict)
+            and item.get("phase_id") in phase_spec.get("future_phase_ids", set())
         ]
-        future_phases_closed = len(future_phases) == len(future_phase_ids) and all(
+        future_phases_closed = len(future_phases) == len(
+            phase_spec.get("future_phase_ids", set())
+        ) and all(
             item.get("status") == "not_started"
             and item.get("entry_authorized") is False
             and isinstance(item.get("gate"), dict)
