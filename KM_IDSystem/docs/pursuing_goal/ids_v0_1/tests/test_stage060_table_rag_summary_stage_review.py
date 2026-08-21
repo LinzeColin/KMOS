@@ -940,6 +940,12 @@ class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
                 and status["phase"] == "IDS-STAGE082-P2"
                 and status["task"] == "IDS-V0_1-STAGE082-P2"
                 and status["next_gate"] == "IDS-STAGE082-P3-GATE"
+            )
+            or (
+                status["stage"] == "IDS-STAGE082"
+                and status["phase"] == "IDS-STAGE082-P3"
+                and status["task"] == "IDS-V0_1-STAGE082-P3"
+                and status["next_gate"] == "IDS-STAGE082-P4-GATE"
             ),
             status,
         )

@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE082"
-current_phase_id: "IDS-STAGE082-P2"
-current_task_id: "IDS-V0_1-STAGE082-P2"
-next_gate_id: "IDS-STAGE082-P3-GATE"
+current_phase_id: "IDS-STAGE082-P3"
+current_task_id: "IDS-V0_1-STAGE082-P3"
+next_gate_id: "IDS-STAGE082-P4-GATE"
 current_transition_history:
+  stage082_phase3_state:
+    current_stage_id: "IDS-STAGE082"
+    current_phase_id: "IDS-STAGE082-P3"
+    current_task_id: "IDS-V0_1-STAGE082-P3"
+    next_gate_id: "IDS-STAGE082-P4-GATE"
   stage082_phase2_state:
     current_stage_id: "IDS-STAGE082"
     current_phase_id: "IDS-STAGE082-P2"
@@ -1255,21 +1260,21 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-082"
     objective: "依据冻结 Stage082 任务包，先固化旧索引保留策略的索引版本、活动指针、构建中版本、影子索引、冒烟测试、失败禁止切换和回滚控制边界；实际保留数量、清理时点、回滚窗口与业务线白箱批准未设值即禁止后续旧索引清理。"
-    status: "phase2_completed_local"
+    status: "phase3_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE082-P3-GATE"
+    next_gate_id: "IDS-STAGE082-P4-GATE"
     gate:
-      gate_id: "IDS-STAGE082-P2-GATE"
+      gate_id: "IDS-STAGE082-P3-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE082-P3-GATE"
+      next_gate_id: "IDS-STAGE082-P4-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "冻结 Stage082 任务包、Stage081 Review、Stage081 P2 已审核控制合同与 Stage082 P1 静态合同保持为唯一合同上下文；P2 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
-      - "纯内存控制切片以五条固定、不含真实业务数据的引用投影 index_version、document scope、chunk_count=0、embedding model、构建、影子、冒烟、候选活动指针、切换、回滚与保留/清理资格；不执行任何实际构建、测试、切换、回滚或清理。"
-      - "最低保留一个上一活动版本；额外保留数量、具体清理时点、回滚窗口时长和业务线白箱批准均未设值，缺失任一项即禁止回滚和未来旧索引清理。真实资料、批量导入、数据库、物理索引、模型、Token、Agent、OVH、生产、上传与推送保持关闭。"
+      - "冻结 Stage082 任务包、Stage082 P1/P2 与 Stage081 Review/P1--P4 已审核控制工件保持为唯一合同上下文；P3 只重放五条固定、非业务、reference-only 的 P2 控制投影，不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、实际 Operations、报告、数据库或物理索引。"
+      - "六条专项场景显式验证构建未完成、影子冒烟失败、切换失败、回滚窗口未设值、旧活动版本连续服务、后台构建期间并发检索控制隔离以及 Operations／报告快照版本可见性；每条均为控制投影且有显式处置，静默丢弃为零。"
+      - "最低保留一个上一活动版本；额外保留数量、具体清理时点、回滚窗口时长和业务线白箱批准均未设值，缺失任一项即禁止回滚和旧索引清理。真实资料、批量导入、数据库、物理索引、模型、Token、Agent、OVH、生产、上传与推送保持关闭。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、测试、切换、查询或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
-      - "执行实际保留策略写入、旧索引清理、空间测量、批量导入、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、原子切换、检索、回退、Operations 写入、报告快照写入、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、上传、推送或 Stage082 P3。"
+      - "执行实际保留策略写入、旧索引清理、空间测量、批量导入、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、原子切换、检索、回退、Operations 写入、报告快照写入、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、上传、推送或 Stage082 P4。"
     phases:
       - phase_id: "IDS-STAGE082-P1"
         name: "Phase 1 · 旧索引保留范围、输入输出与边界确认"
@@ -1354,18 +1359,50 @@ stages:
             rollback: "只回滚本 P2 范围说明、静态控制合同、纯内存模块、聚焦用例、机器事实投影、治理路线和生成中文视图，恢复到已验证的 Stage082 P1 本地零运行时状态；不改变冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE082-P3"
         name: "Phase 3 · 旧索引保留策略专项验证与异常场景"
-        objective: "冻结任务包预留：验证构建、冒烟、切换、回滚、旧索引连续服务、并发检索隔离及 Operations／报告快照版本可见性；本 run 未进入。"
-        status: "not_started"
-        entry_authorized: false
+        objective: "只在内存中重放 P2 的五条固定控制引用，验证构建／冒烟／切换失败、未设值回滚窗口、旧活动版本连续服务、并发检索隔离及 Operations／报告快照版本可见性；不执行真实运行时操作。"
+        status: "completed"
+        entry_authorized: true
         next_gate_id: "IDS-STAGE082-P4-GATE"
         gate:
           gate_id: "IDS-STAGE082-P3-GATE"
-          status: "not_entered"
+          status: "passed"
           next_gate_id: "IDS-STAGE082-P4-GATE"
           github_upload_allowed: false
         stop_conditions:
-          - "未完成 P2 并在新的独立 run 获得授权前，不得执行专项验证、场景或运行时操作。"
-        tasks: []
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、测试、切换、查询或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、实际 Operations、报告、数据库或物理索引。"
+          - "执行实际保留策略写入、旧索引清理、空间测量、批量导入、后台构建、索引构建、影子索引、实际冒烟测试、活动指针读写、原子切换、检索、并发检索、回退、Operations 写入、报告快照写入、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、上传、推送或 Stage082 P4。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE082-P3"
+            name: "验证旧索引保留策略异常场景与版本可见性"
+            objective: "只重放 P2 五条固定控制投影为六条受控异常／可见性场景；验证失败关闭、旧活动版本连续服务、未设值回滚／清理关闭、检索隔离投影和 Operations／报告快照的未写入版本引用。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE082-P2"
+            acceptance_ids:
+              - "ACC-STAGE-082"
+              - "ACC-STAGE082-P3-01"
+              - "ACC-STAGE082-P3-02"
+              - "ACC-STAGE082-P3-03"
+              - "ACC-STAGE082-P3-04"
+            test_commands:
+              - "python3 -B -m unittest discover -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage082_old_index_retention_scenarios.py' -q"
+            test_results: "P3 聚焦 10/10、P1/P2/P3 聚焦 24/24、Stage060--082 白箱 1036/1036、Stage005 直接治理 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器事实重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查通过。根级精简治理入口在当前稀疏工作树中不存在，未陈述为已执行；所有结果仅证明纯内存控制场景、治理兼容与零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-082_旧索引保留策略.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE082_PHASE1_OLD_INDEX_RETENTION_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage082_old_index_retention_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE082_PHASE2_OLD_INDEX_RETENTION_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage082_old_index_retention_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage082_old_index_retention_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE082_PHASE3_OLD_INDEX_RETENTION_CONTROLLED_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage082_old_index_retention_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage082_old_index_retention_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage082_old_index_retention_scenarios.py"
+              - "KM_IDSystem/machine/runs/2026-08-22-stage082-p3-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE081_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage081_shadow_index_scenarios_contract.json"
+            risk: "若将六条控制场景、版本可见性或并发检索隔离投影误作真实运行、真实 Operations／报告、真实回滚／清理、OVH、生产或上传能力，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P3 范围说明、静态控制合同、纯内存场景模块、聚焦用例、机器事实投影、治理路线和生成中文视图，恢复到已验证的 Stage082 P2 本地零运行时状态；不改变冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE082-P4"
         name: "Phase 4 · 旧索引保留策略交付证据、回滚与中文反馈"
         objective: "冻结任务包预留：交付 index manifest、冒烟测试日志、切换记录、回滚证明、保留策略、空间影响与重建／暂停／恢复说明；本 run 未进入。"

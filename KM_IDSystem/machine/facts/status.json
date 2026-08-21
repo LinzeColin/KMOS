@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE082",
-  "phase": "IDS-STAGE082-P2",
-  "task": "IDS-V0_1-STAGE082-P2",
-  "real_progress": "Stage082 P2 已以五条固定、非业务、纯内存控制请求投影索引版本、候选后台构建、影子隔离、冒烟门、活动指针、未应用切换、未应用回滚、最低上一活动版本保留和旧索引清理资格；所有 chunk_count 为 0，额外保留数量、回滚窗口、清理时点和业务线白箱批准均未设值且清理失败关闭。没有读取或写入真实资料、保留策略、指针、索引、Operations 或报告。",
-  "report_grade": "冻结 Stage082 任务包、Stage082 P1 静态合同与 Stage081 Review/P1--P4 已审核影子索引控制工件构成唯一合同上下文；P2 只实现固定控制输入的纯内存投影，不建立第二权威事实源，未读取真实资料、不连接数据库、不选择或调用模型。",
-  "business_verdict": "Stage082 P2 只证明五条控制请求的字段形状、候选隔离、失败关闭、最低上一活动版本保留、未设值保留/回滚/清理参数阻断回滚与旧索引清理、业务线白箱人工处理边界和零运行时边界已本地验证，不等于额外保留数量、清理时点、回滚窗口、批量导入、索引构建、影子索引、冒烟测试、活动指针切换、检索、回滚、旧索引删除、审批、Operations、报告、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "STAGE082_P2_CONTROL_SLICE_LOCAL_VALIDATED_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE082-P3",
+  "task": "IDS-V0_1-STAGE082-P3",
+  "real_progress": "Stage082 P3 已在内存中重放 P2 的五条固定、非业务控制引用为六条异常／可见性场景：候选构建未完成、影子冒烟失败、计划切换失败、回滚窗口未设值、旧活动版本连续服务、后台构建检索隔离投影及 Operations／报告快照版本可见性；未读取或写入真实资料、保留策略、指针、索引、Operations 或报告。",
+  "report_grade": "冻结 Stage082 任务包、Stage082 P1/P2 合同与 Stage081 Review/P1--P4 已审核影子索引控制工件构成唯一合同上下文；P3 只重放固定控制投影，不建立第二权威事实源，未读取真实资料、不连接数据库、不选择或调用模型。",
+  "business_verdict": "Stage082 P3 只证明五条固定控制引用被重放为六条失败关闭、旧活动版本连续服务、未设值回滚／清理关闭、并发检索隔离投影与 Operations／报告快照版本可见性场景；不等于实际构建、冒烟、切换、检索、回滚、清理、审批、Operations、报告、模型、Token、审计、OVH、生产服务或上传能力已启用。来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "STAGE082_P3_CONTROLLED_SCENARIOS_LOCAL_VALIDATED_RUNTIME_DISABLED",
   "rendered_at": "2026-08-22",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE082-P3-GATE",
+  "next_gate": "IDS-STAGE082-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
