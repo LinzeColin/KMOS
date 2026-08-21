@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-21 · Stage076 index version Schema P1
+
+- 只固定 `fulltext`、`vector`、`hybrid` 三类未来索引版本，以及八字段版本记录、五字段活动指针、五字段构建中版本、影子候选隔离、构建中旧活动索引持续服务、六项切换前验证、失败关闭与上一活动版本回退保留；没有建立第二权威事实源，也没有读取真实资料、创建数据库 schema、构建/切换/查询/回退索引或启用运行时。
+- 仅将 Stage060--075 历史白箱及两个既有批次检查器精确扩展为承认 `Stage075 Review → Stage076 P1 → Stage076 P2 gate` 的合法零运行时后继；历史阶段事实、批次封存字段与全局上传锁均不改写。
+- 本地验证通过：Stage076 P1 `7/7`、Stage060--069 `473/473`、Stage070--075 `288/288`、Stage005 直接治理 `valid=true`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文文件且文档预算、无登记阻塞和单项目双平面检查通过。发现式全库测试在越过 P1 受控范围后主动终止，不计入本阶段验收。零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage076-p1-local.json`；下一步只能在新的独立 run 进入 `IDS-STAGE076-P2-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-21 · Stage075 external API coverage authorization audit Review
 
 - 只读机械复审冻结 Stage075 P1--P4 合同、P2/P3/P4 纯内存控制报告和 P4→P3 回滚：五条固定、非业务、`:control:` 请求的三档策略、两跳继承、document 收紧、预算暂停、十九字段审计、零值成本、失败关闭、未外发原因、八键进程内查询、owner 四字段前置与业务线白箱人工复核保持一致，发现数为零；没有建立第二权威事实源。

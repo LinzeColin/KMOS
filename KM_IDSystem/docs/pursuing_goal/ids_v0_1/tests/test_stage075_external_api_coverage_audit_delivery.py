@@ -246,15 +246,16 @@ class Stage075ExternalApiCoverageAuditPhase4Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE075-REVIEW",
                     "IDS-STAGE076-P1-GATE",
                 ),
+                ('IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P1', 'IDS-STAGE076-P2-GATE'),
             ),
         )
         self.assertIn(
             plan["task"],
-            ("IDS-V0_1-STAGE075-P4", "IDS-V0_1-STAGE075-REVIEW"),
+            ("IDS-V0_1-STAGE075-P4", "IDS-V0_1-STAGE075-REVIEW", 'IDS-V0_1-STAGE076-P1'),
         )
         self.assertIn(
             acceptance["task"],
-            ("IDS-V0_1-STAGE075-P4", "IDS-V0_1-STAGE075-REVIEW"),
+            ("IDS-V0_1-STAGE075-P4", "IDS-V0_1-STAGE075-REVIEW", 'IDS-V0_1-STAGE076-P1'),
         )
         self.assertTrue(
             {
