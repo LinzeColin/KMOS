@@ -368,6 +368,11 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                     "phase": "IDS-V0_1-STAGE079-P1",
                     "task": "IDS-V0_1-STAGE079-P1",
                     "next_gate": "IDS-STAGE079-P2-GATE",
+                }, {
+                    "stage": "IDS-STAGE079",
+                    "phase": "IDS-V0_1-STAGE079-P2",
+                    "task": "IDS-V0_1-STAGE079-P2",
+                    "next_gate": "IDS-STAGE079-P3-GATE",
                 },
             ),
         )
@@ -380,13 +385,16 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE078-P4",
                 "IDS-V0_1-STAGE078-REVIEW",
 
-                "IDS-V0_1-STAGE079-P1"),
+                "IDS-V0_1-STAGE079-P1",
+
+                "IDS-V0_1-STAGE079-P2"),
         )
         self.assertTrue(
             "IDS-STAGE078-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE078-REVIEW-GATE" in plan["stop_condition"]
             or "IDS-STAGE079-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE079-P2-GATE" in plan["stop_condition"]
+            or "IDS-STAGE079-P3-GATE" in plan["stop_condition"]
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -422,10 +430,19 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                 )
                 if status["phase"] == "IDS-STAGE078-REVIEW"
                 else (
-                    'current_phase_id: "IDS-STAGE079-P1"',
-                    'current_task_id: "IDS-V0_1-STAGE079-P1"',
-                    'next_gate_id: "IDS-STAGE079-P2-GATE"',
-                    'stage079_phase1_state:',
+                    (
+                        'current_phase_id: "IDS-STAGE079-P1"',
+                        'current_task_id: "IDS-V0_1-STAGE079-P1"',
+                        'next_gate_id: "IDS-STAGE079-P2-GATE"',
+                        'stage079_phase1_state:',
+                    )
+                    if status["phase"] == "IDS-V0_1-STAGE079-P1"
+                    else (
+                        'current_phase_id: "IDS-STAGE079-P2"',
+                        'current_task_id: "IDS-V0_1-STAGE079-P2"',
+                        'next_gate_id: "IDS-STAGE079-P3-GATE"',
+                        'stage079_phase2_state:',
+                    )
                 )
             )
         )

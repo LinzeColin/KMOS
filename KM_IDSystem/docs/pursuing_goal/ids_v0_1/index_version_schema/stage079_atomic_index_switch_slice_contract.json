@@ -1,0 +1,238 @@
+{
+  "schema_version": "ids.stage079.atomic_index_switch.phase2.v1",
+  "stage": "STAGE-079",
+  "phase": "IDS-STAGE079-P2",
+  "task_id": "IDS-V0_1-STAGE079-P2",
+  "acceptance_id": "ACC-STAGE-079",
+  "contract_state": "PHASE2_ATOMIC_INDEX_SWITCH_CONTROL_SLICE_RUNTIME_DISABLED",
+  "next_gate": "IDS-STAGE079-P3-GATE",
+  "slice_executable": true,
+  "execution_ready": "CONTROL_ONLY_IN_MEMORY_ATOMIC_INDEX_SWITCH_SLICE",
+  "source_authority": {
+    "authority": "FROZEN_STAGE079_TASKPACK_AND_STAGE079_PHASE1_AND_STAGE078_REVIEWED_INDEX_SMOKE_TEST_CONTRACTS_ONLY",
+    "frozen_taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-079_索引原子切换.md",
+    "phase1_scope_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE079_PHASE1_ATOMIC_INDEX_SWITCH_SCOPE_BOUNDARY.md",
+    "phase1_contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage079_atomic_index_switch_contract.json",
+    "predecessor_stage_review_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE078_STAGE_REVIEW.md",
+    "predecessor_phase1_contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage078_index_smoke_test_contract.json",
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false,
+    "authorized_fixture_access_performed": false
+  },
+  "phase1_reuse_contract": {
+    "index_version_field_count": 7,
+    "active_pointer_field_count": 5,
+    "building_and_shadow_field_count": 5,
+    "smoke_test_input_field_count": 6,
+    "smoke_test_output_field_count": 5,
+    "switch_record_field_count": 8,
+    "rollback_proof_field_count": 8,
+    "required_condition_count": 5,
+    "all_values_are_control_labels_only": true,
+    "phase1_static_contract_remains_authoritative": true
+  },
+  "reference_only_control_input_contract": {
+    "control_input_field": "atomic_index_switch_control_requests",
+    "control_request_count": 5,
+    "fixed_control_scenarios": [
+      "fulltext_smoke_passed_switch_candidate",
+      "vector_build_incomplete_preserves_active",
+      "hybrid_smoke_test_failure_blocks_switch",
+      "fulltext_switch_failure_preserves_active",
+      "hybrid_rollback_candidate_retains_previous"
+    ],
+    "input_fields": [
+      "control_scenario",
+      "source_import_ref",
+      "document_scope_ref",
+      "chunk_count",
+      "embedding_model_ref",
+      "index_kind",
+      "candidate_index_version_ref",
+      "active_index_version_ref",
+      "previous_active_index_version_ref",
+      "shadow_index_ref",
+      "planned_build_state",
+      "planned_smoke_test_status",
+      "planned_switch_outcome",
+      "planned_rollback_state"
+    ],
+    "input_field_count": 14,
+    "control_prefix": ":control:stage079-p2:",
+    "chunk_count_must_equal_zero": true,
+    "real_business_input_allowed": false,
+    "actual_input_request_count": 0
+  },
+  "control_projection_contract": {
+    "index_version_record_fields": [
+      "index_version",
+      "index_kind",
+      "lifecycle_state",
+      "document_scope_ref",
+      "chunk_count",
+      "embedding_model_ref",
+      "source_import_ref"
+    ],
+    "index_version_record_field_count": 7,
+    "candidate_build_fields": [
+      "candidate_index_version_ref",
+      "build_state",
+      "shadow_index_ref",
+      "active_service_continuity_asserted",
+      "candidate_isolated_from_active_service"
+    ],
+    "candidate_build_field_count": 5,
+    "active_pointer_fields": [
+      "index_kind",
+      "active_index_version_ref",
+      "previous_active_index_version_ref",
+      "pointer_state",
+      "switch_record_ref"
+    ],
+    "active_pointer_field_count": 5,
+    "smoke_test_fields": [
+      "control_scenario",
+      "smoke_test_ref",
+      "candidate_index_version_ref",
+      "active_index_version_ref",
+      "smoke_test_status",
+      "required_conditions",
+      "switch_eligible"
+    ],
+    "smoke_test_field_count": 7,
+    "switch_projection_fields": [
+      "control_scenario",
+      "switch_record_ref",
+      "index_kind",
+      "candidate_index_version_ref",
+      "active_index_version_ref",
+      "resulting_active_index_version_ref",
+      "switch_outcome",
+      "switch_eligible",
+      "switch_applied"
+    ],
+    "switch_projection_field_count": 9,
+    "rollback_projection_fields": [
+      "control_scenario",
+      "rollback_record_ref",
+      "index_kind",
+      "rollback_target_index_version_ref",
+      "previous_active_index_version_ref",
+      "retention_window_state",
+      "rollback_state",
+      "rollback_applied"
+    ],
+    "rollback_projection_field_count": 8,
+    "candidate_must_not_overwrite_active_version": true,
+    "shadow_must_remain_isolated": true,
+    "old_active_index_must_continue_serving": true,
+    "passed_smoke_test_only_creates_unapplied_future_switch_candidate": true,
+    "failed_or_missing_smoke_test_blocks_switch": true,
+    "switch_failure_keeps_active_pointer_unchanged": true,
+    "rollback_target_must_be_retained_previous_active_version": true,
+    "actual_active_pointer_write_allowed": false,
+    "actual_switch_or_rollback_allowed": false
+  },
+  "failure_and_stop_contract": {
+    "declared_failure_states": [
+      "CONTROL_INPUT_REJECTED",
+      "CANDIDATE_BUILD_NOT_COMPLETE",
+      "CANDIDATE_EQUALS_ACTIVE_VERSION",
+      "SHADOW_INDEX_NOT_ISOLATED",
+      "SMOKE_TEST_NOT_RUN",
+      "SMOKE_TEST_FAILED",
+      "SWITCH_FAILURE_ACTIVE_POINTER_UNCHANGED",
+      "ROLLBACK_TARGET_NOT_RETAINED",
+      "PHASE2_RUNTIME_ACTION_NOT_AUTHORIZED"
+    ],
+    "failure_state_count": 9,
+    "automatic_active_pointer_switch_allowed": false,
+    "automatic_rollback_allowed": false,
+    "automatic_business_write_allowed": false,
+    "actual_failure_record_created": false
+  },
+  "chinese_feedback_contract": {
+    "feedbacks": [
+      "原子切换控制切片已完成，未执行真实切换。",
+      "候选索引未满足切换条件，活动版本保持不变。",
+      "旧活动索引继续服务，等待业务线白箱人工处理。",
+      "回退候选只指向保留的上一活动版本。"
+    ],
+    "feedback_count": 4,
+    "business_line_whitebox_human_review_required_for_future_exception": true,
+    "actual_user_feedback_emitted": false
+  },
+  "local_code": {
+    "pure_memory_control_slice_module_created": true,
+    "runtime_module_created": false,
+    "database_schema_created": false,
+    "background_worker_created": false,
+    "index_artifact_created": false,
+    "smoke_test_runner_created": false,
+    "atomic_switch_runner_created": false,
+    "rollback_runner_created": false
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "bulk_import_execution_performed": false,
+    "database_schema_migration_performed": false,
+    "database_connection_performed": false,
+    "background_build_execution_performed": false,
+    "index_build_execution_performed": false,
+    "shadow_index_build_performed": false,
+    "smoke_test_execution_performed": false,
+    "active_pointer_read_performed": false,
+    "active_pointer_switch_performed": false,
+    "retrieval_query_performed": false,
+    "concurrent_retrieval_performed": false,
+    "index_rollback_execution_performed": false,
+    "persistent_state_write_performed": false,
+    "external_api_call_performed": false,
+    "provider_or_model_selected": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "stage_and_phase_boundary": {
+    "stage078_review_evidence_declared": true,
+    "stage079_phase1_completed": true,
+    "stage079_phase2_started": true,
+    "phase3_started": false,
+    "phase4_started": false,
+    "whole_stage_review_performed": false,
+    "stage080_started": false,
+    "github_upload_allowed": false,
+    "push_allowed": false
+  },
+  "protected_surface_boundary": {
+    "raw_source_change_allowed": false,
+    "manifest_change_allowed": false,
+    "evidence_ledger_change_allowed": false,
+    "audit_log_change_allowed": false,
+    "delivered_report_change_allowed": false,
+    "persistent_database_change_allowed": false,
+    "source_or_raw_data_cleanup_allowed": false
+  },
+  "rollback_contract": {
+    "return_to": "PHASE1_ATOMIC_INDEX_SWITCH_CONTRACT_RUNTIME_DISABLED",
+    "revertable_artifacts": [
+      "Stage079 Phase 2 control-slice scope boundary",
+      "Stage079 atomic index switch control-slice contract",
+      "Stage079 in-memory atomic index switch control-slice module",
+      "Stage079 focused control-slice tests",
+      "Stage079 governance projection"
+    ],
+    "preserve_phase1_contract": true,
+    "preserve_stage078_review_evidence": true,
+    "source_or_raw_data_change_allowed": false,
+    "database_or_persistent_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}
