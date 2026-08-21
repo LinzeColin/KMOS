@@ -335,26 +335,40 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
         self.assertNotIn("http://", encoded)
         self.assertNotIn("https://", encoded)
 
-    def test_current_machine_and_governance_projection_remains_phase3_only(self):
+    def test_phase3_history_remains_valid_when_phase4_is_current(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
-        self.assertEqual(
-            {
-                "stage": "IDS-STAGE078",
-                "phase": "IDS-V0_1-STAGE078-P3",
-                "task": "IDS-V0_1-STAGE078-P3",
-                "next_gate": "IDS-STAGE078-P4-GATE",
-            },
+        self.assertIn(
             {
                 key: status[key]
                 for key in ("stage", "phase", "task", "next_gate")
             },
+            (
+                {
+                    "stage": "IDS-STAGE078",
+                    "phase": "IDS-V0_1-STAGE078-P3",
+                    "task": "IDS-V0_1-STAGE078-P3",
+                    "next_gate": "IDS-STAGE078-P4-GATE",
+                },
+                {
+                    "stage": "IDS-STAGE078",
+                    "phase": "IDS-V0_1-STAGE078-P4",
+                    "task": "IDS-V0_1-STAGE078-P4",
+                    "next_gate": "IDS-STAGE078-REVIEW-GATE",
+                },
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE078-P3", plan["task"])
-        self.assertIn("IDS-STAGE078-P4-GATE", plan["stop_condition"])
+        self.assertIn(
+            plan["task"],
+            ("IDS-V0_1-STAGE078-P3", "IDS-V0_1-STAGE078-P4"),
+        )
+        self.assertTrue(
+            "IDS-STAGE078-P4-GATE" in plan["stop_condition"]
+            or "IDS-STAGE078-REVIEW-GATE" in plan["stop_condition"]
+        )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
             {
@@ -366,16 +380,32 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
             }.issubset(acceptance_ids)
         )
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
-        for phrase in (
-            'current_phase_id: "IDS-STAGE078-P3"',
-            'current_task_id: "IDS-V0_1-STAGE078-P3"',
-            'next_gate_id: "IDS-STAGE078-P4-GATE"',
-            'phase_id: "IDS-STAGE078-P4"',
-            'status: "not_started"',
-        ):
+        expected_phrases = (
+            (
+                'current_phase_id: "IDS-STAGE078-P3"',
+                'current_task_id: "IDS-V0_1-STAGE078-P3"',
+                'next_gate_id: "IDS-STAGE078-P4-GATE"',
+            )
+            if status["phase"] == "IDS-V0_1-STAGE078-P3"
+            else (
+                'current_phase_id: "IDS-STAGE078-P4"',
+                'current_task_id: "IDS-V0_1-STAGE078-P4"',
+                'next_gate_id: "IDS-STAGE078-REVIEW-GATE"',
+                'stage078_phase4_state:',
+            )
+        )
+        for phrase in expected_phrases:
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, roadmap_text)
-        self.assertNotIn("stage078_phase4_state", roadmap_text)
+        if status["phase"] == "IDS-V0_1-STAGE078-P4":
+            self.assertTrue(
+                {
+                    "ACC-STAGE078-P4-01",
+                    "ACC-STAGE078-P4-02",
+                    "ACC-STAGE078-P4-03",
+                    "ACC-STAGE078-P4-04",
+                }.issubset(acceptance_ids)
+            )
 
 
 if __name__ == "__main__":

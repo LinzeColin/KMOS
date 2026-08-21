@@ -212,6 +212,12 @@ class Stage078IndexSmokeTestPhase1Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE078-P3",
                     "IDS-STAGE078-P4-GATE",
                 ),
+                (
+                    "IDS-STAGE078",
+                    "IDS-V0_1-STAGE078-P4",
+                    "IDS-V0_1-STAGE078-P4",
+                    "IDS-STAGE078-REVIEW-GATE",
+                ),
             },
         )
         self.assertFalse(status["runtime_enabled"])
@@ -285,11 +291,17 @@ class Stage078IndexSmokeTestPhase1Tests(unittest.TestCase):
                 'current_task_id: "IDS-V0_1-STAGE078-P2"',
                 'next_gate_id: "IDS-STAGE078-P3-GATE"',
             )
-        else:
+        elif current_route[1] == "IDS-V0_1-STAGE078-P3":
             expected_roadmap_route = (
                 'current_phase_id: "IDS-STAGE078-P3"',
                 'current_task_id: "IDS-V0_1-STAGE078-P3"',
                 'next_gate_id: "IDS-STAGE078-P4-GATE"',
+            )
+        else:
+            expected_roadmap_route = (
+                'current_phase_id: "IDS-STAGE078-P4"',
+                'current_task_id: "IDS-V0_1-STAGE078-P4"',
+                'next_gate_id: "IDS-STAGE078-REVIEW-GATE"',
             )
         for phrase in expected_roadmap_route:
             with self.subTest(phrase=phrase):
