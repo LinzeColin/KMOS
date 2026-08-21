@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE080"
-current_phase_id: "IDS-STAGE080-REVIEW"
-current_task_id: "IDS-V0_1-STAGE080-REVIEW"
-next_gate_id: "IDS-STAGE081-P1-GATE"
+current_stage_id: "IDS-STAGE081"
+current_phase_id: "IDS-STAGE081-P1"
+current_task_id: "IDS-V0_1-STAGE081-P1"
+next_gate_id: "IDS-STAGE081-P2-GATE"
 current_transition_history:
+  stage081_phase1_state:
+    current_stage_id: "IDS-STAGE081"
+    current_phase_id: "IDS-STAGE081-P1"
+    current_task_id: "IDS-V0_1-STAGE081-P1"
+    next_gate_id: "IDS-STAGE081-P2-GATE"
   stage080_review_state:
     current_stage_id: "IDS-STAGE080"
     current_phase_id: "IDS-STAGE080-REVIEW"
@@ -1214,6 +1219,143 @@ current_transition_history:
 total_estimated_hours: 158
 completed_estimated_hours: 290
 stages:
+  - stage_id: "IDS-STAGE081"
+    name: "影子索引合同"
+    task_id: "IDS-V0_1-STAGE081"
+    acceptance_ids:
+      - "ACC-STAGE-081"
+    objective: "只定义未来索引版本、活动指针、构建中版本、影子索引、未来冒烟测试和回滚静态合同，确认未来候选与影子隔离、旧活动版本连续服务、未通过测试不得切换；不读取真实资料或启动 Stage081 P2。"
+    status: "phase1_completed_local"
+    entry_authorized: true
+    next_gate_id: "IDS-STAGE081-P2-GATE"
+    gate:
+      gate_id: "IDS-STAGE081-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE081-P2-GATE"
+      github_upload_allowed: false
+    pass_conditions:
+      - "冻结 Stage081 任务包、Stage080 Review/P1--P4 已审核索引回滚控制工件保持为唯一合同上下文；P1 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、Operations、报告、数据库或物理索引。"
+      - "静态固定未来索引版本／活动指针的 7/5 字段、构建中版本／影子索引／冒烟测试的 5/6/5 字段、回滚请求／证明的 8/8 字段、五项回滚条件与十类失败关闭；每次未来批量导入后候选与影子必须隔离，旧活动版本继续服务。"
+      - "构建未完成、影子不隔离、冒烟失败、缺失或未记录时禁止切换，活动指针保持不变，回滚只指向保留且仍在窗口内的上一活动版本；真实资料、模型、Token、Agent、OVH、生产和上传均保持关闭；只开放后续 Stage081 P2 门。"
+    stop_conditions:
+      - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、测试、切换、查询或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
+      - "执行实际索引版本／活动指针／构建／影子／冒烟／切换／回退记录写入、空间影响测量、旧索引删除、索引重建、暂停、恢复、真实批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、活动指针读写、原子切换、检索、并发检索、回退、Operations 写入、报告快照写入、provider/模型选择或调用、模型 Token、持久化、Agent、OVH、生产服务、Stage081 P2、批次复审、上传、推送或应用重装。"
+    phases:
+      - phase_id: "IDS-STAGE081-P1"
+        name: "Phase 1 · 影子索引合同范围、输入输出与边界确认"
+        objective: "只定义索引版本、活动指针、构建中版本、影子索引、未来冒烟测试、未来回滚、失败保持活动版本和回滚窗口静态合同；不启动任何后台任务、索引、测试、切换或回滚运行。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE081-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE081-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE081-P2-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取真实资料、执行批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、原子切换、检索、回退、模型调用、模型 Token、Agent、OVH、生产、上传、推送或 Stage081 P2。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE081-P1"
+            name: "定义影子索引静态工程合同"
+            objective: "固定未来索引版本、活动指针、构建／影子、冒烟、回滚窗口、失败关闭和旧活动版本连续服务边界；不创建真实索引、清单、日志、指针或持久化状态。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE080-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-081"
+              - "ACC-STAGE081-P1-01"
+              - "ACC-STAGE081-P1-02"
+              - "ACC-STAGE081-P1-03"
+              - "ACC-STAGE081-P1-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage081_shadow_index_contract"
+            test_results: "静态合同聚焦 6/6、Stage060--081 白箱 976/976、Stage005 直接治理 valid=true、Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器平面重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查通过。根级 lean_governance.py 在当前稀疏工作树中不存在，未陈述为已执行；所有结果只验证静态合同、治理投影、历史兼容与零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-081_影子索引合同.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE081_PHASE1_SHADOW_INDEX_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage081_shadow_index_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage081_shadow_index_contract.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE080_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage080_index_rollback_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage080_index_rollback_delivery_contract.json"
+            risk: "若把静态字段、未来影子索引规则、聚焦用例或中文状态误作真实后台任务、真实索引、真实清单、真实日志、真实回滚、OVH、生产或上传能力，会绕开单一权威和业务线白箱人工处理。"
+            rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PASS_REVIEWED_INDEX_ROLLBACK_RUNTIME_DISABLED；不改变 Stage080 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE081-P2"
+        name: "Phase 2 · 实现、接入与最小可运行切片"
+        objective: "未进入；仅保留冻结任务包中的后续门禁，不授权真实索引、资料、模型、Agent、OVH、生产或上传。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE081-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE081-P2-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE081-P3-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE081-P2"
+            name: "待进入：影子索引合同最小切片"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE081-P1"
+            acceptance_ids:
+              - "ACC-STAGE-081"
+      - phase_id: "IDS-STAGE081-P3"
+        name: "Phase 3 · 影子索引合同专项验证与异常场景"
+        objective: "未进入；仅保留冻结任务包中的后续门禁，不授权真实索引、资料、模型、Agent、OVH、生产或上传。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE081-P4-GATE"
+        gate:
+          gate_id: "IDS-STAGE081-P3-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE081-P4-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE081-P3"
+            name: "待进入：影子索引合同专项验证"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE081-P2"
+            acceptance_ids:
+              - "ACC-STAGE-081"
+      - phase_id: "IDS-STAGE081-P4"
+        name: "Phase 4 · 影子索引合同交付证据、回滚与中文反馈"
+        objective: "未进入；仅保留冻结任务包中的后续门禁，不授权真实索引、资料、模型、Agent、OVH、生产或上传。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE081-REVIEW-GATE"
+        gate:
+          gate_id: "IDS-STAGE081-P4-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE081-REVIEW-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE081-P4"
+            name: "待进入：影子索引合同交付证据"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE081-P3"
+            acceptance_ids:
+              - "ACC-STAGE-081"
+      - phase_id: "IDS-STAGE081-REVIEW"
+        name: "Stage Review · 影子索引合同整阶段机械复审"
+        objective: "未进入；仅保留冻结任务包中的后续门禁，不授权真实索引、资料、模型、Agent、OVH、生产或上传。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE082-P1-GATE"
+        gate:
+          gate_id: "IDS-STAGE081-REVIEW-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE082-P1-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE081-REVIEW"
+            name: "待进入：影子索引合同整阶段机械复审"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE081-P4"
+            acceptance_ids:
+              - "ACC-STAGE-081"
   - stage_id: "IDS-STAGE080"
     name: "索引回滚"
     task_id: "IDS-V0_1-STAGE080"
