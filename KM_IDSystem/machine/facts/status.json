@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE080",
-  "phase": "IDS-V0_1-STAGE080-P4",
-  "task": "IDS-V0_1-STAGE080-P4",
-  "real_progress": "Stage080 P4 已完成本地验收：仅由 P2 五条固定、非业务、纯内存索引回滚控制投影与 P3 六条专项场景派生五条索引清单、六条冒烟测试日志、五条切换记录、五条回滚证明、一条旧活动版本保留／未测量空间影响投影、三条操作说明和四条中文反馈。所有值均为控制标签，不读取或写入真实资料、清单、日志、指针、索引、Operations 或报告。",
-  "report_grade": "冻结 Stage080 任务包、Stage080 P1/P2/P3 和 Stage079 Review/P2 已审核原子切换控制工件构成唯一合同上下文；P4 只派生 metadata-only 内存报告，不建立第二权威事实源，未读取真实资料、不连接数据库、不选择或调用模型。",
-  "business_verdict": "Stage080 P4 的清单、日志、切换、回滚、保留、空间影响和操作说明均为未持久化的控制投影，不等于真实批量导入、索引构建、冒烟测试、活动指针切换、检索、回滚、审批、Operations、报告、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "PHASE4_INDEX_ROLLBACK_DELIVERY_EVIDENCE_LOCAL_VALIDATED_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE080-REVIEW",
+  "task": "IDS-V0_1-STAGE080-REVIEW",
+  "real_progress": "Stage080 P1--P4 已完成纯内存整阶段机械复审：固定 P1 的 7/5/5/6/5/8/8/5/9、P2 五条控制请求与七组投影／225 次字段检查、P3 六条场景／28 字段／168 次检查／五条控制视图／六条人工处理，以及 P4 的 5/6/5/5/1/3/4/13 交付形状。所有值均为控制标签，不读取或写入真实资料、清单、日志、指针、索引、Operations 或报告。",
+  "report_grade": "冻结 Stage080 任务包、P1--P4 合同、P2/P3/P4 控制报告与 Stage079 Review/P2 已审核原子切换控制工件构成唯一合同上下文；Review 只机械复核既有控制形状，不建立第二权威事实源，未读取真实资料、不连接数据库、不选择或调用模型。",
+  "business_verdict": "Stage080 Review 的结论只证明固定控制形状、失败关闭、P4→P3 本地回退、业务线白箱人工处理和零运行时边界一致，不等于真实批量导入、索引构建、冒烟测试、活动指针切换、检索、回滚、审批、Operations、报告、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "PASS_REVIEWED_INDEX_ROLLBACK_RUNTIME_DISABLED",
   "rendered_at": "2026-08-22",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE080-REVIEW-GATE",
+  "next_gate": "IDS-STAGE081-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
