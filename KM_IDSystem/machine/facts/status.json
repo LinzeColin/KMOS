@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE077",
-  "phase": "IDS-V0_1-STAGE077-REVIEW",
-  "task": "IDS-V0_1-STAGE077-REVIEW",
-  "real_progress": "Stage077 Review 只在内存中机械复审 P1--P4 合同、P2/P3/P4 控制报告和 P4→P3 回退边界，确认 6/6/7/6/8、五条固定控制请求、六条场景／26 字段／156 次字段检查、5/6/5/5/1/3/4/13 交付形状、旧活动版本保留、未测量空间影响和业务线白箱人工处理保持一致；未读取或写入真实资料、清单、日志、指针、索引、Operations 或报告。",
-  "report_grade": "冻结 Stage077 任务包、P1--P4 合同、P2/P3/P4 控制报告与 Stage076 Review 构成唯一合同上下文；本次只机械复审既有纯内存控制工件，不建立第二权威事实源，不读取真实资料、不连接数据库、不选择或调用模型。",
-  "business_verdict": "本 Review 只证明既有固定控制形状、失败关闭、保留与回退边界、中文反馈和业务线白箱人工处理在本地一致；不能证明任何真实资料、批量导入、数据库 schema、后台任务、物理索引、冒烟日志、切换记录、回退证明、空间测量、检索、真实界面或报告、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "BACKGROUND_INDEX_BUILD_STAGE_REVIEW_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE078",
+  "phase": "IDS-V0_1-STAGE078-P1",
+  "task": "IDS-V0_1-STAGE078-P1",
+  "real_progress": "Stage078 P1 已把新索引必须通过冒烟测试才可切换、失败保持活动版本、旧索引持续服务与上一活动版本可回退的冻结要求投影为静态合同；未读取或写入真实资料、清单、日志、指针、索引、Operations 或报告。",
+  "report_grade": "冻结 Stage078 任务包、Stage077 Review 与已复审后台索引构建合同构成唯一合同上下文；P1 的静态工程合同和机器事实投影已本地验证，不建立第二权威事实源，不读取真实资料、不连接数据库、不选择或调用模型。",
+  "business_verdict": "Stage078 P1 只定义未来冒烟测试、失败禁止切换、旧活动索引连续服务和回退保留的控制边界；其本地验证不证明任何真实资料、批量导入、数据库 schema、后台任务、物理索引、实际冒烟测试、切换记录、回退证明、检索、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "PASS_INDEX_SMOKE_TEST_CONTRACT_RUNTIME_DISABLED",
   "rendered_at": "2026-08-21",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE078-P1-GATE",
+  "next_gate": "IDS-STAGE078-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

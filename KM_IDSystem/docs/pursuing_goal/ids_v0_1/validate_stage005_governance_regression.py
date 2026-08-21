@@ -1617,6 +1617,7 @@ def evaluate_stage038_source_reverification(
                     "IDS-STAGE075",
                     "IDS-STAGE076",
                     "IDS-STAGE077",
+                    "IDS-STAGE078",
                 }
                 and (
                     (
@@ -2435,6 +2436,14 @@ def evaluate_stage038_source_reverification(
                         == "IDS-V0_1-STAGE077-REVIEW"
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE078-P1-GATE"
+                    )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE078"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE078-P1"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE078-P1"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE078-P2-GATE"
                     )
                 )
                 and source_gate.get("gate_id")
@@ -3658,6 +3667,8 @@ ALLOWED_CHANGED_PREFIXES = (
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE076_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage077_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE077_",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage078_",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE078_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE052_",
@@ -24719,6 +24730,60 @@ def evaluate_current_state_consistency(
         and upload_gate.get("github_upload_allowed") is False
         and upload_gate.get("push_allowed") is False
     )
+    stage078_phase1_roadmap_current = (
+        current_stage_id == "IDS-STAGE078"
+        and roadmap_phase == "IDS-STAGE078-P1"
+        and roadmap_task == "IDS-V0_1-STAGE078-P1"
+        and roadmap.get("next_gate_id") == "IDS-STAGE078-P2-GATE"
+        and isinstance(roadmap.get("current_transition_history"), dict)
+        and roadmap["current_transition_history"].get("stage078_phase1_state")
+        == {
+            "current_stage_id": "IDS-STAGE078",
+            "current_phase_id": "IDS-STAGE078-P1",
+            "current_task_id": "IDS-V0_1-STAGE078-P1",
+            "next_gate_id": "IDS-STAGE078-P2-GATE",
+        }
+        and roadmap_stage_node.get("stage_id") == "IDS-STAGE078"
+        and roadmap_stage_node.get("task_id") == "IDS-V0_1-STAGE078"
+        and roadmap_stage_node.get("status") == "phase1_completed_local"
+        and roadmap_stage_node.get("next_gate_id") == "IDS-STAGE078-P2-GATE"
+        and roadmap_phase_node.get("status") == "completed"
+        and roadmap_phase_node.get("next_gate_id") == "IDS-STAGE078-P2-GATE"
+        and roadmap_task_node.get("status") == "completed"
+        and isinstance(roadmap_task_node.get("test_results"), str)
+        and bool(roadmap_task_node.get("test_results"))
+        and {
+            "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-078_索引冒烟测试.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE078_PHASE1_INDEX_SMOKE_TEST_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage078_index_smoke_test_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage078_index_smoke_test_contract.py",
+            "KM_IDSystem/machine/runs/2026-08-21-stage078-p1-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE077_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage077_background_index_build_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+        }.issubset(
+            {
+                item
+                for item in roadmap_task_node.get("evidence_refs", [])
+                if isinstance(item, str)
+            }
+        )
+        and any(
+            isinstance(candidate, dict)
+            and candidate.get("stage_id") == "IDS-STAGE077"
+            and candidate.get("status") == "completed_reviewed_local"
+            and candidate.get("next_gate_id") == "IDS-STAGE078-P1-GATE"
+            for candidate in roadmap_stages
+        )
+    )
+    stage078_phase1_handoff_current = (
+        stage078_phase1_roadmap_current
+        and batch.get("status") == "stage070_completed_reviewed_local"
+        and decision.get("github_upload_allowed") is False
+        and decision.get("push_allowed") is False
+        and upload_gate.get("github_upload_allowed") is False
+        and upload_gate.get("push_allowed") is False
+    )
 
     stage074_phase1_handoff_current = (
         current_stage_id == "IDS-STAGE074"
@@ -24939,6 +25004,15 @@ def evaluate_current_state_consistency(
     )
     stage077_review_historical_batch_compatible = (
         stage077_review_roadmap_current
+        and (
+            historical_batch031_040_terminal_projection
+            or historical_batch041_050_review_projection
+            or historical_batch051_060_review_projection
+            or historical_batch061_070_review_projection
+        )
+    )
+    stage078_phase1_historical_batch_compatible = (
+        stage078_phase1_roadmap_current
         and (
             historical_batch031_040_terminal_projection
             or historical_batch041_050_review_projection
@@ -25235,8 +25309,13 @@ def evaluate_current_state_consistency(
         or stage077_phase4_roadmap_current
         or stage077_review_roadmap_current
     )
-    current_historical_batch_compatible = (
-        (
+    stage078_current_roadmap = stage078_phase1_roadmap_current
+    if stage078_current_roadmap:
+        current_historical_batch_compatible = (
+            stage078_phase1_historical_batch_compatible
+        )
+    elif stage077_current_roadmap:
+        current_historical_batch_compatible = (
             stage077_review_historical_batch_compatible
             if stage077_review_roadmap_current
             else stage077_phase4_historical_batch_compatible
@@ -25245,8 +25324,8 @@ def evaluate_current_state_consistency(
             if stage077_phase3_roadmap_current
             else stage077_phase2_historical_batch_compatible
         )
-        if stage077_current_roadmap
-        else (
+    else:
+        current_historical_batch_compatible = (
             (
                 stage075_phase1_historical_batch_compatible
                 or stage075_phase2_historical_batch_compatible
@@ -25257,7 +25336,6 @@ def evaluate_current_state_consistency(
             if stage075_current_roadmap
             else stage074_historical_batch_compatible
         )
-    )
 
     if not stage_node:
         return {
@@ -25293,10 +25371,12 @@ def evaluate_current_state_consistency(
                 or stage077_phase3_handoff_current
                 or stage077_phase4_handoff_current
                 or stage077_review_handoff_current
+                or stage078_phase1_handoff_current
                 or stage077_phase2_historical_batch_compatible
                 or stage077_phase3_historical_batch_compatible
                 or stage077_phase4_historical_batch_compatible
                 or stage077_review_historical_batch_compatible
+                or stage078_phase1_historical_batch_compatible
                 or stage074_phase1_handoff_current
                 or stage074_phase2_handoff_current
                 or stage074_phase3_handoff_current
@@ -25326,6 +25406,7 @@ def evaluate_current_state_consistency(
                 current_historical_batch_compatible
                 if (
                     stage077_current_roadmap
+                    or stage078_current_roadmap
                     or stage075_current_roadmap
                     or stage074_current_roadmap
                 )
@@ -25335,6 +25416,7 @@ def evaluate_current_state_consistency(
                 current_historical_batch_compatible
                 if (
                     stage077_current_roadmap
+                    or stage078_current_roadmap
                     or stage075_current_roadmap
                     or stage074_current_roadmap
                 )
@@ -25344,6 +25426,7 @@ def evaluate_current_state_consistency(
                 current_historical_batch_compatible
                 if (
                     stage077_current_roadmap
+                    or stage078_current_roadmap
                     or stage075_current_roadmap
                     or stage074_current_roadmap
                 )
@@ -25354,6 +25437,7 @@ def evaluate_current_state_consistency(
                 current_historical_batch_compatible
                 if (
                     stage077_current_roadmap
+                    or stage078_current_roadmap
                     or stage075_current_roadmap
                     or stage074_current_roadmap
                 )
@@ -25363,6 +25447,7 @@ def evaluate_current_state_consistency(
                 current_historical_batch_compatible
                 if (
                     stage077_current_roadmap
+                    or stage078_current_roadmap
                     or stage075_current_roadmap
                     or stage074_current_roadmap
                 )
@@ -25401,6 +25486,7 @@ def evaluate_current_state_consistency(
                 if (
                     (
                         stage077_current_roadmap
+                        or stage078_current_roadmap
                         or stage075_current_roadmap
                         or stage074_current_roadmap
                     )

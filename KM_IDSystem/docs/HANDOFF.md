@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage077 Review - 2026-08-21
+## Current Gate - Stage078 Phase 1 - 2026-08-21
 
-- 本节是唯一当前交接；下方 Stage077 P4/P3/P2/P1、Stage076 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其事实。
+- 本节是唯一当前交接；下方 Stage077 Review/P4/P3/P2/P1、Stage076 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE078-P1`：只固定未来索引版本、活动指针、构建中版本、影子索引、每次未来批量导入的候选构建、冒烟输入输出、失败禁止切换、旧活动版本连续服务和上一活动版本回退保留。冻结 Stage078 任务包、Stage077 Review 与已复审后台索引构建合同仍是唯一合同上下文；P1 不建立第二权威事实源，也不替代真实业务资料或业务线白箱人工处理。
+- 已验证：Stage078 P1 聚焦 `6/6`、Stage060--078 白箱 `847/847`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage078-p1-local.json`；这些结果只证明静态合同、治理投影、历史兼容与零运行时边界一致，不证明真实资料、后台构建、物理索引、冒烟、指针切换、检索、回退、模型、Token、Agent、OVH、生产或上传能力。
+- 本 P1 不读取、打开、复制、保留、外发、写入、查询或解析真实资料、原始元数据、manifest、证据账本、审计日志、报告、数据库、物理索引或业务结论；不执行批量导入、数据库 schema 或连接、后台构建、索引／影子索引、冒烟、活动指针读写、检索、并发检索、回退、provider／模型选择或调用、模型 Token、Agent、OVH、生产、上传或推送。
+- 回滚只撤回本 P1 的范围说明、静态合同、聚焦用例、历史合法后继兼容断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_REVIEWED_BACKGROUND_INDEX_BUILD_RUNTIME_DISABLED`；保留 Stage077 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 与应用状态。
+- 下一步仅可在新的独立 run 进入 `IDS-STAGE078-P2-GATE`；继续使用当前既有的唯一开发 worktree，不创建额外 worktree、branch 或 PR。本 run 不启动 P2、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage077 Review - 2026-08-21
+
+- 本节保留 Stage077 Review 历史交接；唯一当前交接位于上方 Stage078 P1，不重写 Review 已验证事实。
 - 本轮完成 `IDS-V0_1-STAGE077-REVIEW`：只在内存中机械复审冻结 P1--P4 合同、P2/P3/P4 控制报告、5/6/5/5/1/3/4/13 交付形状、旧活动版本保留／未测量空间影响、失败禁止切换、业务线白箱人工处理与 P4→P3 回退。来源文档与业务线白箱人工复核仍是唯一权威，Review 不替代业务事实或自动作出业务决策。
 - 已验证：Review 聚焦 `10/10`、Stage077 P1--Review 聚焦 `43/43`、Stage060--077 白箱 `841/841`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面已重渲染 `7` 个中文文件，文档三道门、无登记阻塞与单项目双平面检查通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage077-review-local.json`；这些结果只证明冻结控制工件、治理投影和零运行时边界一致，不证明真实资料、后台构建、物理索引、清单／日志写入、指针切换、检索、回退、模型、Token、Agent、OVH、生产或上传能力。
 - 本 Review 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、物理索引、实际清单、实际日志、证据账本、审计日志或业务结论；不执行批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、检索、并发检索、实际回退、Operations／报告快照写入、provider／模型选择或调用、模型 Token、Agent、OVH、生产、上传或推送。

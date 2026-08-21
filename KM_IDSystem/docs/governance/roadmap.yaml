@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE077"
-current_phase_id: "IDS-STAGE077-REVIEW"
-current_task_id: "IDS-V0_1-STAGE077-REVIEW"
-next_gate_id: "IDS-STAGE078-P1-GATE"
+current_stage_id: "IDS-STAGE078"
+current_phase_id: "IDS-STAGE078-P1"
+current_task_id: "IDS-V0_1-STAGE078-P1"
+next_gate_id: "IDS-STAGE078-P2-GATE"
 current_transition_history:
+  stage078_phase1_state:
+    current_stage_id: "IDS-STAGE078"
+    current_phase_id: "IDS-STAGE078-P1"
+    current_task_id: "IDS-V0_1-STAGE078-P1"
+    next_gate_id: "IDS-STAGE078-P2-GATE"
   stage077_review_state:
     current_stage_id: "IDS-STAGE077"
     current_phase_id: "IDS-STAGE077-REVIEW"
@@ -1139,6 +1144,93 @@ current_transition_history:
 total_estimated_hours: 158
 completed_estimated_hours: 290
 stages:
+  - stage_id: "IDS-STAGE078"
+    name: "索引冒烟测试"
+    task_id: "IDS-V0_1-STAGE078"
+    acceptance_ids:
+      - "ACC-STAGE-078"
+    objective: "只将冻结 Stage078 的新索引须通过冒烟测试才可成为活动版本要求投影为静态工程合同，固定索引版本、活动指针、构建中版本、影子索引、失败禁止切换、旧活动版本连续服务与回退保留边界；不读取、导入、构建、测试、切换、查询、回退或写入真实资料或索引。"
+    status: "phase1_completed_local"
+    entry_authorized: true
+    next_gate_id: "IDS-STAGE078-P2-GATE"
+    gate:
+      gate_id: "IDS-STAGE078-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE078-P2-GATE"
+      github_upload_allowed: false
+    pass_conditions:
+      - "冻结 Stage078 任务包、Stage077 Review 与已复审后台索引构建合同保持为唯一合同上下文；P1 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、Operations、报告、数据库或物理索引。"
+      - "未来索引版本、活动指针、构建中版本、影子索引、批量导入后候选构建、冒烟测试输入输出、失败禁止切换、旧活动索引持续服务与上一活动版本回退保留均以静态控制字段固定。"
+      - "未来冒烟测试未通过、缺失或未记录结果时活动指针保持不变；真实资料、模型、Token、Agent、OVH、生产和上传均保持关闭；P1 通过后只开放 Stage078 P2 门。"
+    stop_conditions:
+      - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、测试、切换、查询或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
+      - "执行实际索引清单／冒烟测试日志／切换记录／回退证明写入、空间影响测量、旧索引删除、索引重建、暂停、恢复、真实批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、活动指针读写、原子切换、检索、并发检索、回退、Operations 写入、报告快照写入、provider/模型选择或调用、模型 Token、持久化、Agent、OVH、生产服务、Stage078 P2、Stage079、批次复审、上传、推送或应用重装。"
+    phases:
+      - phase_id: "IDS-STAGE078-P1"
+        name: "Phase 1 · 索引冒烟测试范围、输入输出与边界确认"
+        objective: "只定义索引版本、活动指针、构建中版本、影子索引、未来冒烟测试、失败禁止切换、旧活动版本连续服务与回退保留静态合同；不启动任何后台任务、索引或测试运行。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE078-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE078-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE078-P2-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取真实资料、执行批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、检索、回退、模型调用、模型 Token、Agent、OVH、生产、上传或推送。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE078-P1"
+            name: "定义索引冒烟测试静态工程合同"
+            objective: "固定未来索引版本、活动指针、构建中版本、影子索引、批量导入后候选构建、冒烟测试输入输出、失败禁止切换、旧活动版本连续服务和上一活动版本回退保留；不产生真实索引、测试、日志或业务事实。"
+            status: "completed"
+            estimated_hours: 4
+            total_hours_percent: "25.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE077-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-078"
+              - "ACC-STAGE078-P1-01"
+              - "ACC-STAGE078-P1-02"
+              - "ACC-STAGE078-P1-03"
+              - "ACC-STAGE078-P1-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage078_index_smoke_test_contract"
+              - "Stage078 P1 与显式前序兼容回归命令将在本次 machine run 记录"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage078 P1 聚焦 6/6、Stage060--078 白箱 847/847、Stage005 直接治理 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器平面生成 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。P1 不进入 Stage078 P2、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-078_索引冒烟测试.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE078_PHASE1_INDEX_SMOKE_TEST_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage078_index_smoke_test_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage078_index_smoke_test_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-21-stage078-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE077_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage077_background_index_build_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把静态字段、未来冒烟测试规则、聚焦用例或中文状态误作真实后台任务、真实索引、真实检索、真实回退、OVH、生产或上传能力，会绕开单一权威和业务线白箱人工处理。"
+            rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PASS_REVIEWED_BACKGROUND_INDEX_BUILD_RUNTIME_DISABLED；不改变 Stage077 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE078-P2"
+        name: "Phase 2 · 索引冒烟测试实现、接入与最小可运行切片"
+        objective: "尚未开始；仅按冻结任务包在新的独立 run 中处理。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE078-P3-GATE"
+      - phase_id: "IDS-STAGE078-P3"
+        name: "Phase 3 · 索引冒烟测试专项验证与异常场景"
+        objective: "尚未开始；仅按冻结任务包在新的独立 run 中处理。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE078-P4-GATE"
+      - phase_id: "IDS-STAGE078-P4"
+        name: "Phase 4 · 索引冒烟测试交付证据、回滚与中文反馈"
+        objective: "尚未开始；仅按冻结任务包在新的独立 run 中处理。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE078-REVIEW-GATE"
   -
     stage_id: "S5"
     name: "项目迁移与三文件重建"

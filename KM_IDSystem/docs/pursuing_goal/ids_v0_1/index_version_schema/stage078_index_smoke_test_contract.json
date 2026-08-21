@@ -1,0 +1,214 @@
+{
+  "schema_version": "ids.stage078.index_smoke_test.phase1.v1",
+  "stage": "STAGE-078",
+  "phase": "IDS-STAGE078-P1",
+  "task_id": "IDS-V0_1-STAGE078-P1",
+  "acceptance_id": "ACC-STAGE-078",
+  "contract_state": "PHASE1_INDEX_SMOKE_TEST_CONTRACT_RUNTIME_DISABLED",
+  "next_gate": "IDS-STAGE078-P2-GATE",
+  "domain": "D13 · 索引版本与检索不中断",
+  "entrance": "IDS 系统运营入口",
+  "pursuing_goal": "仅定义未来新索引通过冒烟测试后才可成为活动版本的静态工程合同；不构建、测试、切换、查询或持久化任何索引。",
+  "source_authority": {
+    "authority": "FROZEN_STAGE078_TASKPACK_AND_STAGE077_REVIEWED_BACKGROUND_INDEX_BUILD_CONTRACTS_ONLY",
+    "frozen_taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-078_索引冒烟测试.md",
+    "predecessor_stage_review_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE077_STAGE_REVIEW.md",
+    "predecessor_phase1_contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage077_background_index_build_contract.json",
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false,
+    "authorized_fixture_access_performed": false
+  },
+  "predecessor_contract": {
+    "stage077_review_required": true,
+    "stage077_review_result": "PASS_REVIEWED_BACKGROUND_INDEX_BUILD_RUNTIME_DISABLED",
+    "reviewed_background_index_build_contract_remains_authoritative": true,
+    "stage078_may_not_replace_predecessor_contract": true,
+    "actual_predecessor_runtime_artifact_read_performed": false
+  },
+  "index_version_and_active_pointer_contract": {
+    "future_index_version_fields": [
+      "index_version",
+      "index_kind",
+      "lifecycle_state",
+      "document_scope_ref",
+      "chunk_count",
+      "embedding_model_ref",
+      "source_import_ref"
+    ],
+    "index_version_field_count": 7,
+    "future_active_pointer_fields": [
+      "index_kind",
+      "active_index_version_ref",
+      "previous_active_index_version_ref",
+      "pointer_state",
+      "switch_record_ref"
+    ],
+    "active_pointer_field_count": 5,
+    "one_active_version_per_index_kind_required": true,
+    "all_values_are_control_labels_only": true,
+    "active_pointer_read_allowed_in_phase1": false,
+    "active_pointer_write_allowed_in_phase1": false,
+    "actual_index_version_record_created": false,
+    "actual_active_pointer_read_performed": false,
+    "actual_active_pointer_write_performed": false
+  },
+  "building_version_and_shadow_index_contract": {
+    "future_required_fields": [
+      "building_index_version_ref",
+      "candidate_index_version_ref",
+      "shadow_index_ref",
+      "source_import_ref",
+      "build_state"
+    ],
+    "field_count": 5,
+    "new_candidate_required_after_each_bulk_import": true,
+    "candidate_must_not_overwrite_active_version": true,
+    "candidate_must_remain_isolated_before_smoke_test": true,
+    "old_active_index_must_continue_serving_during_build_and_smoke_test": true,
+    "background_build_execution_allowed_in_phase1": false,
+    "actual_bulk_import_detected": false,
+    "actual_background_build_started": false,
+    "actual_shadow_index_created": false
+  },
+  "smoke_test_contract": {
+    "future_required_input_fields": [
+      "candidate_index_version_ref",
+      "active_index_version_ref",
+      "document_scope_ref",
+      "chunk_count",
+      "embedding_model_ref",
+      "shadow_index_ref"
+    ],
+    "input_field_count": 6,
+    "future_required_output_fields": [
+      "smoke_test_ref",
+      "smoke_test_status",
+      "failure_reason_ref",
+      "tested_at_ref",
+      "switch_eligibility"
+    ],
+    "output_field_count": 5,
+    "passed_smoke_test_required_before_switch": true,
+    "failed_or_missing_smoke_test_blocks_switch": true,
+    "failed_smoke_test_must_not_replace_active_version": true,
+    "smoke_test_execution_allowed_in_phase1": false,
+    "actual_smoke_test_performed": false,
+    "actual_smoke_test_log_created": false
+  },
+  "future_switch_and_rollback_contract": {
+    "required_conditions": [
+      "candidate_build_marked_complete",
+      "candidate_isolated_from_active_service",
+      "active_service_continuity_asserted",
+      "passed_smoke_test_recorded",
+      "previous_active_index_version_retained"
+    ],
+    "condition_count": 5,
+    "future_atomic_switch_required": true,
+    "active_pointer_must_remain_unchanged_on_failure": true,
+    "previous_active_index_version_must_be_retained": true,
+    "future_rollback_target_must_be_previous_active_index_version": true,
+    "automatic_rollback_execution_allowed": false,
+    "active_pointer_switch_allowed_in_phase1": false,
+    "actual_atomic_switch_performed": false,
+    "actual_index_rollback_performed": false
+  },
+  "failure_and_stop_contract": {
+    "declared_failure_states": [
+      "SMOKE_TEST_INPUT_INCOMPLETE",
+      "BUILDING_VERSION_EQUALS_ACTIVE_VERSION",
+      "SHADOW_INDEX_NOT_ISOLATED",
+      "BACKGROUND_BUILD_NOT_COMPLETE",
+      "SMOKE_TEST_FAILED",
+      "SMOKE_TEST_RESULT_MISSING",
+      "ACTIVE_POINTER_SWITCH_WITHOUT_PASSED_SMOKE_TEST",
+      "ROLLBACK_TARGET_NOT_RETAINED",
+      "PHASE1_SMOKE_TEST_OR_SWITCH_NOT_AUTHORIZED"
+    ],
+    "failure_state_count": 9,
+    "automatic_business_write_allowed": false,
+    "automatic_active_pointer_switch_allowed": false,
+    "actual_failure_record_created": false
+  },
+  "chinese_feedback_contract": {
+    "feedbacks": [
+      "索引冒烟测试合同已固定，尚未执行测试。",
+      "候选索引未通过冒烟测试，活动版本保持不变。",
+      "旧索引继续服务，等待业务线白箱人工处理。",
+      "回退只能指向保留的上一活动版本。"
+    ],
+    "feedback_count": 4,
+    "business_line_whitebox_human_review_required_for_future_exception": true,
+    "actual_user_feedback_emitted": false
+  },
+  "local_code": {
+    "static_contract_only": true,
+    "runtime_module_created": false,
+    "database_schema_created": false,
+    "background_worker_created": false,
+    "index_artifact_created": false,
+    "smoke_test_runner_created": false
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "bulk_import_execution_performed": false,
+    "database_schema_migration_performed": false,
+    "database_connection_performed": false,
+    "background_build_execution_performed": false,
+    "index_build_execution_performed": false,
+    "shadow_index_build_performed": false,
+    "smoke_test_execution_performed": false,
+    "active_pointer_switch_performed": false,
+    "retrieval_query_performed": false,
+    "concurrent_retrieval_performed": false,
+    "index_rollback_execution_performed": false,
+    "persistent_state_write_performed": false,
+    "external_api_call_performed": false,
+    "provider_or_model_selected": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "stage_and_phase_boundary": {
+    "stage077_review_evidence_declared": true,
+    "stage078_started": true,
+    "stage078_entry_authorized": true,
+    "phase1_started": true,
+    "phase2_started": false,
+    "phase3_started": false,
+    "phase4_started": false,
+    "whole_stage_review_performed": false,
+    "stage079_started": false,
+    "github_upload_allowed": false,
+    "push_allowed": false
+  },
+  "protected_surface_boundary": {
+    "raw_source_change_allowed": false,
+    "manifest_change_allowed": false,
+    "evidence_ledger_change_allowed": false,
+    "audit_log_change_allowed": false,
+    "delivered_report_change_allowed": false,
+    "persistent_database_change_allowed": false,
+    "source_or_raw_data_cleanup_allowed": false
+  },
+  "rollback_contract": {
+    "return_to": "PASS_REVIEWED_BACKGROUND_INDEX_BUILD_RUNTIME_DISABLED",
+    "revertable_artifacts": [
+      "Stage078 Phase 1 scope boundary",
+      "Stage078 index smoke test static contract",
+      "Stage078 focused tests",
+      "Stage078 governance projection"
+    ],
+    "preserve_stage077_review_evidence": true,
+    "source_or_raw_data_change_allowed": false,
+    "database_or_persistent_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}
