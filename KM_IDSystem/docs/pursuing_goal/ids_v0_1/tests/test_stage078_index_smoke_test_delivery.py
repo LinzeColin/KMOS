@@ -315,18 +315,30 @@ class Stage078IndexSmokeTestPhase4Tests(unittest.TestCase):
             if line.strip()
         }
         run = json.loads(RUN.read_text(encoding="utf-8"))
-        self.assertEqual(
+        current_route = (status["stage"], status["phase"], status["task"], status["next_gate"])
+        self.assertIn(
+            current_route,
             (
-                "IDS-STAGE078",
-                "IDS-V0_1-STAGE078-P4",
-                "IDS-V0_1-STAGE078-P4",
-                "IDS-STAGE078-REVIEW-GATE",
+                (
+                    "IDS-STAGE078",
+                    "IDS-V0_1-STAGE078-P4",
+                    "IDS-V0_1-STAGE078-P4",
+                    "IDS-STAGE078-REVIEW-GATE",
+                ),
+                (
+                    "IDS-STAGE078",
+                    "IDS-STAGE078-REVIEW",
+                    "IDS-V0_1-STAGE078-REVIEW",
+                    "IDS-STAGE079-P1-GATE",
+                ),
             ),
-            (status["stage"], status["phase"], status["task"], status["next_gate"]),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE078-P4", plan["task"])
+        self.assertIn(
+            plan["task"],
+            ("IDS-V0_1-STAGE078-P4", "IDS-V0_1-STAGE078-REVIEW"),
+        )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -362,9 +374,22 @@ class Stage078IndexSmokeTestPhase4Tests(unittest.TestCase):
         self.assertFalse(run["runtime_actions"]["push_performed"])
         self.assertIn("EVT-IDS-V0_1-STAGE078-P4-20260821-001", event_ids)
         self.assertIn('current_stage_id: "IDS-STAGE078"', roadmap)
-        self.assertIn('current_phase_id: "IDS-STAGE078-P4"', roadmap)
-        self.assertIn('current_task_id: "IDS-V0_1-STAGE078-P4"', roadmap)
-        self.assertIn('next_gate_id: "IDS-STAGE078-REVIEW-GATE"', roadmap)
+        expected_current_route = (
+            (
+                'current_phase_id: "IDS-STAGE078-P4"',
+                'current_task_id: "IDS-V0_1-STAGE078-P4"',
+                'next_gate_id: "IDS-STAGE078-REVIEW-GATE"',
+            )
+            if current_route[1] == "IDS-V0_1-STAGE078-P4"
+            else (
+                'current_phase_id: "IDS-STAGE078-REVIEW"',
+                'current_task_id: "IDS-V0_1-STAGE078-REVIEW"',
+                'next_gate_id: "IDS-STAGE079-P1-GATE"',
+            )
+        )
+        for phrase in expected_current_route:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, roadmap)
 
 
 if __name__ == "__main__":

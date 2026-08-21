@@ -357,17 +357,28 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                     "task": "IDS-V0_1-STAGE078-P4",
                     "next_gate": "IDS-STAGE078-REVIEW-GATE",
                 },
+                {
+                    "stage": "IDS-STAGE078",
+                    "phase": "IDS-STAGE078-REVIEW",
+                    "task": "IDS-V0_1-STAGE078-REVIEW",
+                    "next_gate": "IDS-STAGE079-P1-GATE",
+                },
             ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertIn(
             plan["task"],
-            ("IDS-V0_1-STAGE078-P3", "IDS-V0_1-STAGE078-P4"),
+            (
+                "IDS-V0_1-STAGE078-P3",
+                "IDS-V0_1-STAGE078-P4",
+                "IDS-V0_1-STAGE078-REVIEW",
+            ),
         )
         self.assertTrue(
             "IDS-STAGE078-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE078-REVIEW-GATE" in plan["stop_condition"]
+            or "IDS-STAGE079-P1-GATE" in plan["stop_condition"]
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -393,11 +404,18 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                 'next_gate_id: "IDS-STAGE078-REVIEW-GATE"',
                 'stage078_phase4_state:',
             )
+            if status["phase"] == "IDS-V0_1-STAGE078-P4"
+            else (
+                'current_phase_id: "IDS-STAGE078-REVIEW"',
+                'current_task_id: "IDS-V0_1-STAGE078-REVIEW"',
+                'next_gate_id: "IDS-STAGE079-P1-GATE"',
+                'stage078_review_state:',
+            )
         )
         for phrase in expected_phrases:
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, roadmap_text)
-        if status["phase"] == "IDS-V0_1-STAGE078-P4":
+        if status["phase"] in {"IDS-V0_1-STAGE078-P4", "IDS-STAGE078-REVIEW"}:
             self.assertTrue(
                 {
                     "ACC-STAGE078-P4-01",

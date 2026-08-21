@@ -1,0 +1,68 @@
+{
+  "schema_version": "kmids.local-run.v1",
+  "run_id": "RUN-IDS-STAGE078-REVIEW-LOCAL-20260821-001",
+  "date": "2026-08-21",
+  "task_id": "IDS-V0_1-STAGE078-REVIEW",
+  "acceptance_ids": [
+    "ACC-STAGE-078",
+    "ACC-STAGE078-REVIEW-01",
+    "ACC-STAGE078-REVIEW-02",
+    "ACC-STAGE078-REVIEW-03",
+    "ACC-STAGE078-REVIEW-04"
+  ],
+  "scope": "只机械复审冻结 Stage078 P1--P4 合同、P2/P3/P4 纯内存控制报告和 P4→P3 控制回退；不读取真实资料、不启动 Stage079。",
+  "result": "PASS_REVIEWED_INDEX_SMOKE_TEST_RUNTIME_DISABLED",
+  "next_gate": "IDS-STAGE079-P1-GATE",
+  "runtime_counts": {
+    "actual_input_request_count": 0,
+    "actual_background_build_count": 0,
+    "actual_index_build_count": 0,
+    "actual_smoke_test_count": 0,
+    "actual_retrieval_query_count": 0,
+    "actual_index_rollback_count": 0,
+    "actual_index_manifest_count": 0,
+    "actual_smoke_test_log_count": 0,
+    "actual_switch_record_count": 0,
+    "actual_rollback_proof_count": 0,
+    "actual_model_token_count": 0,
+    "actual_agent_execution_count": 0,
+    "actual_ovh_deployment_count": 0
+  },
+  "runtime_flags": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "database_connection_performed": false,
+    "index_build_execution_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "stage079_started": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "validation": {
+    "second_authoritative_source_created": false,
+    "reviewed_phase_count": 4,
+    "review_invariant_count": 9,
+    "review_finding_count": 0,
+    "stage078_review_core_test_count": 10,
+    "stage078_p1_to_review_focused_test_count": 43,
+    "stage060_to_stage078_whitebox_test_count": 884,
+    "stage079_started": false
+  },
+  "rollback": {
+    "return_to": "PASS_INDEX_SMOKE_TEST_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+    "scope": "STAGE078_REVIEW_ARTIFACTS_AND_LOCAL_GOVERNANCE_ONLY",
+    "preserve_stage078_p1_to_p4": true,
+    "business_source_or_runtime_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  },
+  "evidence_refs": [
+    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-078_索引冒烟测试.md",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE078_STAGE_REVIEW.md",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage078_index_smoke_test_stage_review.py",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage078_index_smoke_test_stage_review.py"
+  ]
+}

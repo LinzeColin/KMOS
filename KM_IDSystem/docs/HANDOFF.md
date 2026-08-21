@@ -9,14 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage078 Phase 4 - 2026-08-21
+## Current Gate - Stage078 Review - 2026-08-21
 
-- 本节是唯一当前交接；下方 Stage078 P3/P2/P1、Stage077 Review/P4/P3/P2/P1、Stage076 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其事实。
-- 本轮完成 IDS-V0_1-STAGE078-P4：只在内存中复用 P2 的五条固定、非业务、reference-only 索引冒烟控制记录与 P3 的六条专项控制场景，派生五条索引清单、六条冒烟测试日志、五条切换记录、五条回退证明、一条旧活动版本保留／未测量空间影响投影、三条重建／暂停／恢复说明及四条中文反馈。所有引用保持不透明控制标签；冻结 Stage078 任务包、P1/P2/P3、Stage077 Review 与已复审后台索引构建合同仍是唯一合同上下文，P4 不建立第二权威事实源。
-- 已验证：Stage078 P4 聚焦 8/8、P1/P2/P3/P4 聚焦 33/33、Stage060--078 白箱 874/874、Stage005 直接治理 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器平面已生成 7 个中文文件，文档预算、无登记阻塞和单项目双平面检查通过。完整零运行时回执位于 KM_IDSystem/machine/runs/2026-08-21-stage078-p4-local.json；这些结果只证明控制交付形状、治理投影、历史兼容和零运行时边界一致，不证明真实资料、后台构建、物理索引、实际冒烟、清单／日志／记录写入、空间测量、指针切换、检索、回退、Operations、报告、模型、Token、Agent、OVH、生产或上传能力。
-- 本 P4 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、原始元数据、manifest、证据账本、审计日志、Operations、报告、数据库、物理索引或业务结论；不执行实际索引清单／冒烟测试日志／切换记录／回退证明写入、空间影响测量、旧索引删除、索引重建、暂停、恢复、批量导入、数据库 schema 或连接、后台构建、索引／影子索引、实际冒烟、活动指针读写、检索、并发检索、回退、Operations 写入、报告快照写入、provider／模型选择或调用、模型 Token、Agent、OVH、生产、上传或推送。
-- 回滚只撤回本 P4 的范围说明、交付合同、纯内存模块、聚焦用例、历史合法后继兼容断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 PASS_INDEX_SMOKE_TEST_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；保留 P1/P2/P3、Stage077 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 与应用状态。
-- 下一步仅可在新的独立 run 进入 IDS-STAGE078-REVIEW-GATE；继续使用当前既有的唯一开发 worktree，不创建额外 worktree、branch 或 PR。本 run 不启动 Review、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 ACC-STAGE-168。
+- 本节是唯一当前交接；下方 Stage078 P4/P3/P2/P1、Stage077 Review/P4/P3/P2/P1、Stage076 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE078-REVIEW`：只在内存中机械复审冻结 P1--P4 合同、P2/P3/P4 控制报告与 P4→P3 控制回退，确认 P1 的 `7/5/5/6/5/5/9`、P2 的五条固定控制请求及六组投影／`250` 次字段检查、P3 的六条场景／`26` 字段／`156` 次字段检查、P4 的 `5/6/5/5/1/3/4/13` 交付形状、失败禁止切换、旧活动版本连续服务、未测量空间影响、重建／暂停／恢复说明和业务线白箱人工处理一致。冻结 Stage078 任务包、P1--P4、Stage077 Review 与已复审后台索引构建合同仍是唯一合同上下文，Review 不建立第二权威事实源。
+- 已验证：Review 聚焦 `10/10`、Stage078 P1/P2/P3/P4/Review 聚焦 `43/43`、Stage060--078 白箱 `884/884`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面已生成 `7` 个中文文件，文档预算、无登记阻塞和单项目双平面检查通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage078-review-local.json`；这些结果只证明冻结控制工件、治理投影、历史兼容和零运行时边界一致，不证明真实资料、后台构建、物理索引、实际冒烟、清单／日志／记录写入、空间测量、指针切换、检索、回退、Operations、报告、模型、Token、Agent、OVH、生产或上传能力。
+- 本 Review 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、manifest、证据账本、审计日志、Operations、报告、数据库、物理索引或业务结论；不执行实际索引清单／冒烟测试日志／切换记录／回退证明写入、空间影响测量、旧索引删除、索引重建、暂停、恢复、批量导入、数据库 schema 或连接、后台构建、索引／影子索引、实际冒烟、活动指针读写、检索、并发检索、回退、Operations 写入、报告快照写入、provider／模型选择或调用、模型 Token、Agent、OVH、生产、上传或推送。
+- 回滚只撤回本 Review 的范围说明、纯内存复审模块、聚焦用例、历史合法后继兼容断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_INDEX_SMOKE_TEST_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；保留 Stage078 P1--P4、Stage077 Review、冻结任务包、真实资料、fixture、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 与应用状态。
+- 下一步仅可在新的独立 run 进入 `IDS-STAGE079-P1-GATE`；继续使用当前既有的唯一开发 worktree，不创建额外 worktree、branch 或 PR。本 run 不启动 Stage079、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage078 Phase 4 - 2026-08-21
+
+- 本节保留 Stage078 P4 历史交接；唯一当前交接位于上方 Stage078 Review，不重写 P4 已验证事实。
 
 ## Superseded Gate - Stage078 Phase 3 - 2026-08-21
 
