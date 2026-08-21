@@ -246,16 +246,16 @@ class Stage075ExternalApiCoverageAuditPhase4Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE075-REVIEW",
                     "IDS-STAGE076-P1-GATE",
                 ),
-                ('IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P1', 'IDS-STAGE076-P2-GATE'), ('IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P2', 'IDS-STAGE076-P3-GATE'),
+                ('IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P1', 'IDS-STAGE076-P2-GATE'), ('IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P2', 'IDS-STAGE076-P3-GATE'), ('IDS-V0_1-STAGE076-P3', 'IDS-V0_1-STAGE076-P3', 'IDS-STAGE076-P4-GATE'),
             ),
         )
         self.assertIn(
             plan["task"],
-            ("IDS-V0_1-STAGE075-P4", "IDS-V0_1-STAGE075-REVIEW", 'IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P2'),
+            ("IDS-V0_1-STAGE075-P4", "IDS-V0_1-STAGE075-REVIEW", 'IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P3'),
         )
         self.assertIn(
             acceptance["task"],
-            ("IDS-V0_1-STAGE075-P4", "IDS-V0_1-STAGE075-REVIEW", 'IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P2'),
+            ("IDS-V0_1-STAGE075-P4", "IDS-V0_1-STAGE075-REVIEW", 'IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P3'),
         )
         self.assertTrue(
             {
@@ -266,9 +266,18 @@ class Stage075ExternalApiCoverageAuditPhase4Tests(unittest.TestCase):
                 "ACC-STAGE075-P4-04",
             }.issubset({item["id"] for item in acceptance["items"]})
         )
-        self.assertIn('current_phase_id: "IDS-STAGE075-P4"', roadmap)
-        self.assertIn('current_task_id: "IDS-V0_1-STAGE075-P4"', roadmap)
-        self.assertIn('next_gate_id: "IDS-STAGE075-REVIEW-GATE"', roadmap)
+        self.assertTrue(
+            'current_phase_id: "IDS-STAGE075-P4"' in roadmap
+            or 'current_phase_id: "IDS-STAGE076-P3"' in roadmap
+        )
+        self.assertTrue(
+            'current_task_id: "IDS-V0_1-STAGE075-P4"' in roadmap
+            or 'current_task_id: "IDS-V0_1-STAGE076-P3"' in roadmap
+        )
+        self.assertTrue(
+            'next_gate_id: "IDS-STAGE075-REVIEW-GATE"' in roadmap
+            or 'next_gate_id: "IDS-STAGE076-P4-GATE"' in roadmap
+        )
         self.assertIn("EVT-IDS-V0_1-STAGE075-P4-20260821-001", event_ids)
         self.assertTrue(RUN.is_file())
 

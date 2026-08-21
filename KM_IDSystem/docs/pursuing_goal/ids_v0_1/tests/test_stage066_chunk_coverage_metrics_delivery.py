@@ -334,7 +334,7 @@ class Stage066ChunkCoverageMetricsPhase4Tests(unittest.TestCase):
                 ("IDS-STAGE074", "IDS-V0_1-STAGE074-P1", "IDS-V0_1-STAGE074-P1", "IDS-V0_1-STAGE074-P2"), ("IDS-STAGE074", "IDS-V0_1-STAGE074-P2", "IDS-V0_1-STAGE074-P2"), ("IDS-STAGE074", "IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P3"), ("IDS-STAGE074", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-P4"),
                 ("IDS-STAGE074", "IDS-V0_1-STAGE074-REVIEW", "IDS-V0_1-STAGE074-REVIEW"),
                 ('IDS-STAGE075', 'IDS-V0_1-STAGE075-P1', 'IDS-V0_1-STAGE075-P1'), ('IDS-STAGE075', 'IDS-V0_1-STAGE075-P2', 'IDS-V0_1-STAGE075-P2'), ('IDS-STAGE075', 'IDS-V0_1-STAGE075-P3', 'IDS-V0_1-STAGE075-P3'), ('IDS-STAGE075', 'IDS-V0_1-STAGE075-P4', 'IDS-V0_1-STAGE075-P4'), ('IDS-STAGE075', 'IDS-V0_1-STAGE075-REVIEW', 'IDS-V0_1-STAGE075-REVIEW'),
-                ('IDS-STAGE076', 'IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P1'), ('IDS-STAGE076', 'IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P2'),
+                ('IDS-STAGE076', 'IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P1'), ('IDS-STAGE076', 'IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P2'), ('IDS-STAGE076', 'IDS-V0_1-STAGE076-P3', 'IDS-V0_1-STAGE076-P3'),
             ),
                 ("IDS-STAGE073", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P1"),
         )
@@ -359,7 +359,7 @@ class Stage066ChunkCoverageMetricsPhase4Tests(unittest.TestCase):
                 "IDS-STAGE072-P2-GATE", "IDS-STAGE072-P3-GATE", "IDS-STAGE072-P4-GATE", "IDS-STAGE072-REVIEW-GATE", "IDS-STAGE073-P1-GATE", "IDS-STAGE073-P2-GATE", "IDS-STAGE073-P3-GATE", "IDS-STAGE073-P4-GATE", "IDS-STAGE073-REVIEW-GATE", "IDS-STAGE074-P1-GATE", "IDS-STAGE074-P2-GATE", "IDS-STAGE074-P3-GATE", "IDS-STAGE074-P4-GATE", "IDS-STAGE074-REVIEW-GATE", "IDS-STAGE075-P1-GATE",
                 'IDS-STAGE075-P2-GATE', 'IDS-STAGE075-P3-GATE', 'IDS-STAGE075-P4-GATE', 'IDS-STAGE075-REVIEW-GATE', 'IDS-STAGE076-P1-GATE',
                 'IDS-STAGE076-P2-GATE',
-            'IDS-STAGE076-P3-GATE',
+            'IDS-STAGE076-P3-GATE', 'IDS-STAGE076-P4-GATE',
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -376,7 +376,7 @@ class Stage066ChunkCoverageMetricsPhase4Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE070-P1","IDS-V0_1-STAGE070-P2","IDS-V0_1-STAGE070-P3", "IDS-V0_1-STAGE070-P4", "IDS-V0_1-STAGE070-REVIEW", "IDS-V0_1-STAGE071-P1", "IDS-V0_1-STAGE071-P2", "IDS-V0_1-STAGE071-P3", "IDS-V0_1-STAGE071-P4", "IDS-V0_1-STAGE071-REVIEW", "IDS-V0_1-STAGE072-P1", "IDS-V0_1-STAGE072-P2", "IDS-V0_1-STAGE072-P3", "IDS-V0_1-STAGE072-P4", "IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P2", "IDS-V0_1-STAGE073-P3", "IDS-V0_1-STAGE073-P4", "IDS-V0_1-STAGE073-REVIEW", "IDS-V0_1-STAGE074-P1", "IDS-V0_1-STAGE074-P2", "IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW",
                 'IDS-V0_1-STAGE075-P1', 'IDS-V0_1-STAGE075-P2', 'IDS-V0_1-STAGE075-P3', 'IDS-V0_1-STAGE075-P4', 'IDS-V0_1-STAGE075-REVIEW',
                 'IDS-V0_1-STAGE076-P1',
-            'IDS-V0_1-STAGE076-P2',
+            'IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P3',
             ),
         )
         self.assertTrue(
@@ -425,6 +425,7 @@ class Stage066ChunkCoverageMetricsPhase4Tests(unittest.TestCase):
             or 'current_phase_id: "IDS-STAGE066-REVIEW"' in ROADMAP.read_text(encoding="utf-8")
             or 'current_phase_id: "IDS-V0_1-STAGE067-P1"' in ROADMAP.read_text(encoding="utf-8")
             or 'current_phase_id: "IDS-V0_1-STAGE067-REVIEW"' in ROADMAP.read_text(encoding="utf-8")
+            or 'current_phase_id: "IDS-STAGE076-P3"' in ROADMAP.read_text(encoding="utf-8")
         )
         self.assertTrue(
             'status: "stage066_phase4_completed_review_pending"' in BATCH.read_text(encoding="utf-8")

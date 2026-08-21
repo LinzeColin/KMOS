@@ -282,7 +282,7 @@ class Stage076IndexVersionSchemaPhase2Tests(unittest.TestCase):
             )
         )
 
-    def test_governance_projection_is_phase2_and_preserves_p1(self):
+    def test_phase2_evidence_persists_with_phase3_successor(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
@@ -292,18 +292,29 @@ class Stage076IndexVersionSchemaPhase2Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         }
-        self.assertEqual(
-            (
-                "IDS-STAGE076",
-                "IDS-V0_1-STAGE076-P2",
-                "IDS-V0_1-STAGE076-P2",
-                "IDS-STAGE076-P3-GATE",
-            ),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-STAGE076",
+                    "IDS-V0_1-STAGE076-P2",
+                    "IDS-V0_1-STAGE076-P2",
+                    "IDS-STAGE076-P3-GATE",
+                ),
+                (
+                    "IDS-STAGE076",
+                    "IDS-V0_1-STAGE076-P3",
+                    "IDS-V0_1-STAGE076-P3",
+                    "IDS-STAGE076-P4-GATE",
+                ),
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE076-P2", plan["task"])
+        self.assertIn(
+            plan["task"],
+            ("IDS-V0_1-STAGE076-P2", "IDS-V0_1-STAGE076-P3"),
+        )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(

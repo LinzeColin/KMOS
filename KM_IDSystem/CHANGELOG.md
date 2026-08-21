@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-21 · Stage076 index version Schema P3
+
+- 只在内存中重放 P2 的五条固定、非业务、reference-only 索引版本控制投影，以六条受控场景覆盖构建失败、冒烟验证失败、切换失败、回退、旧活动版本持续服务、后台构建期间检索隔离，以及 Operations／报告快照版本可见性；没有建立第二权威事实源，也没有读取真实资料、创建数据库 schema、构建/切换/查询/回退索引、写入 Operations 或报告快照，或启用运行时。
+- 仅将 Stage060--075 历史白箱、Stage005 治理与两个既有批次检查器精确扩展为承认 `Stage076 P2 → P3 → P4 gate` 的合法零运行时后继；P2 历史证据、批次封存字段与全局上传锁均不改写。
+- 本地验证已通过：Stage076 P3 `11/11`、Stage060--069 `473/473`、Stage070--076 `307/307`、Stage005 直接治理 `valid=true`；两个批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage076-p3-local.json`；下一步只能在新的独立 run 进入 `IDS-STAGE076-P4-GATE`，全局上传锁继续关闭。
+
 ## 2026-08-21 · Stage076 index version Schema P2
 
 - 只在内存中执行五条固定、非业务、reference-only 控制请求：复用 `fulltext`、`vector`、`hybrid` 三类未来索引版本及 P1 的八字段版本记录、五字段构建中版本、五字段活动指针；候选保持隔离，构建中或验证失败时旧活动版本继续服务，切换失败不改变活动版本，回退候选只指向保留的上一活动版本。没有建立第二权威事实源，也没有读取真实资料、创建数据库 schema、构建/切换/查询/回退索引或启用运行时。
