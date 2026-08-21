@@ -1,0 +1,157 @@
+{
+  "schema_version": "ids.stage081.shadow_index.phase3.v1",
+  "stage_id": "IDS-STAGE081",
+  "phase_id": "IDS-STAGE081-P3",
+  "task_id": "IDS-V0_1-STAGE081-P3",
+  "contract_state": "PHASE3_SHADOW_INDEX_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+  "record_kind": "CONTROL_ONLY_IN_MEMORY_SHADOW_INDEX_SCENARIOS",
+  "scenario_executable": true,
+  "execution_ready": false,
+  "next_gate": "IDS-STAGE081-P4-GATE",
+  "source_authority": {
+    "source_document_remains_authoritative": true,
+    "control_scenario_can_replace_source_document": false,
+    "control_view_can_become_business_fact_authority": false,
+    "business_line_whitebox_human_approval_recorded": false,
+    "automatic_business_recommendation_allowed": false,
+    "authority_sources": [
+      "docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-081_影子索引合同.md",
+      "docs/pursuing_goal/ids_v0_1/STAGE081_PHASE1_SHADOW_INDEX_SCOPE.md",
+      "docs/pursuing_goal/ids_v0_1/index_version_schema/stage081_shadow_index_contract.json",
+      "docs/pursuing_goal/ids_v0_1/STAGE081_PHASE2_SHADOW_INDEX_CONTROL_SLICE.md",
+      "docs/pursuing_goal/ids_v0_1/index_version_schema/stage081_shadow_index_slice_contract.json",
+      "docs/pursuing_goal/ids_v0_1/index_version_schema/stage081_shadow_index_control_slice.py",
+      "docs/pursuing_goal/ids_v0_1/STAGE080_REVIEW.md",
+      "docs/pursuing_goal/ids_v0_1/index_version_schema/stage080_index_rollback_slice_contract.json"
+    ],
+    "new_business_fact_source_created": false
+  },
+  "phase2_replay_contract": {
+    "required_execution_state": "COMPLETED_IN_MEMORY_SHADOW_INDEX_CONTROL_SLICE",
+    "required_control_scenarios": [
+      "fulltext_shadow_smoke_passed_switch_candidate",
+      "vector_background_build_incomplete_preserves_active",
+      "hybrid_shadow_smoke_failure_blocks_switch",
+      "fulltext_atomic_switch_failure_preserves_active",
+      "hybrid_shadow_rollback_candidate_retains_previous"
+    ],
+    "required_control_request_count": 5,
+    "actual_input_request_count": 0,
+    "required_record_shapes": {
+      "index_version_control_records": 7,
+      "building_and_shadow_control_projections": 5,
+      "active_pointer_control_projections": 5,
+      "smoke_test_input_control_projections": 6,
+      "smoke_test_output_control_projections": 5,
+      "switch_control_projections": 9,
+      "rollback_request_control_projections": 8
+    },
+    "expected_phase2_field_check_count": 225,
+    "all_candidate_versions_are_isolated": true,
+    "all_old_active_versions_continue_serving": true,
+    "all_active_pointer_projections_unchanged": true,
+    "all_rollback_targets_reference_retained_previous_active": true
+  },
+  "scenario_result_contract": {
+    "scenario_field_count": 28,
+    "required_scenarios": [
+      "build_not_complete_old_active_continues",
+      "smoke_test_failure_blocks_switch",
+      "switch_failure_preserves_active",
+      "rollback_retains_previous_active",
+      "background_build_concurrent_retrieval_isolated",
+      "operations_and_report_snapshot_version_visibility"
+    ],
+    "required_outcomes": {
+      "build_not_complete_old_active_continues": "CONTROL_BUILD_NOT_COMPLETE_BLOCKED_OLD_ACTIVE_CONTINUES",
+      "smoke_test_failure_blocks_switch": "CONTROL_SHADOW_SMOKE_TEST_FAILURE_BLOCKS_SWITCH",
+      "switch_failure_preserves_active": "CONTROL_ATOMIC_SWITCH_FAILURE_ACTIVE_VERSION_UNCHANGED",
+      "rollback_retains_previous_active": "CONTROL_ROLLBACK_TARGET_IS_RETAINED_PREVIOUS_ACTIVE",
+      "background_build_concurrent_retrieval_isolated": "CONTROL_BACKGROUND_BUILD_ISOLATION_LEAVES_OLD_ACTIVE_FOR_RETRIEVAL",
+      "operations_and_report_snapshot_version_visibility": "CONTROL_VERSION_VISIBLE_IN_OPERATIONS_AND_REPORT_SNAPSHOT"
+    },
+    "silent_drop_allowed": false,
+    "human_handling_required": true
+  },
+  "control_views": {
+    "operations_version_control_view_count": 5,
+    "report_snapshot_version_control_view_count": 5,
+    "field_count": 6,
+    "operations_write_performed": false,
+    "report_snapshot_write_performed": false,
+    "only_opaque_control_references": true
+  },
+  "runtime_boundary": {
+    "actual_input_request_count": 0,
+    "actual_background_build_count": 0,
+    "actual_index_build_count": 0,
+    "actual_smoke_test_count": 0,
+    "actual_retrieval_query_count": 0,
+    "actual_concurrent_retrieval_count": 0,
+    "actual_index_rollback_count": 0,
+    "actual_operations_display_count": 0,
+    "actual_report_snapshot_count": 0,
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "bulk_import_execution_performed": false,
+    "database_schema_migration_performed": false,
+    "database_connection_performed": false,
+    "background_build_execution_performed": false,
+    "index_build_execution_performed": false,
+    "shadow_index_build_performed": false,
+    "smoke_test_execution_performed": false,
+    "active_pointer_read_performed": false,
+    "active_pointer_switch_performed": false,
+    "retrieval_query_performed": false,
+    "concurrent_retrieval_performed": false,
+    "index_rollback_execution_performed": false,
+    "persistent_state_write_performed": false,
+    "external_api_call_performed": false,
+    "provider_or_model_selected": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false,
+    "actual_operations_display_written": false,
+    "actual_report_snapshot_written": false
+  },
+  "stage_boundary": {
+    "stage080_review_evidence_declared": true,
+    "stage081_started": true,
+    "phase1_completed": true,
+    "phase2_completed": true,
+    "phase3_started": true,
+    "phase4_started": false,
+    "whole_stage_review_performed": false,
+    "stage082_started": false,
+    "github_upload_allowed": false,
+    "push_allowed": false
+  },
+  "rollback_contract": {
+    "fallback_result": "PASS_SHADOW_INDEX_CONTROL_SLICE_RUNTIME_DISABLED",
+    "rollback_scope": [
+      "STAGE081_PHASE3_SHADOW_INDEX_CONTROLLED_SCENARIOS.md",
+      "stage081_shadow_index_scenarios_contract.json",
+      "stage081_shadow_index_scenarios.py",
+      "test_stage081_shadow_index_scenarios.py",
+      "Stage081 P3 governance and machine facts"
+    ],
+    "preserve": [
+      "Stage081 P1/P2 artifacts",
+      "Stage080 review evidence",
+      "frozen taskpack",
+      "source documents and business facts"
+    ],
+    "raw_data_or_database_rollback_performed": false,
+    "github_or_ovh_rollback_performed": false
+  },
+  "chinese_feedback": [
+    "本次仅重放固定控制引用，未构建、查询、切换或持久化实际索引。",
+    "候选构建未完成、影子冒烟失败或切换失败均保持旧活动版本继续服务。",
+    "后台构建期间检索隔离只在控制投影中核验，未执行实际并发检索。",
+    "Operations 和报告快照仅显示不透明控制版本引用，仍需业务线白箱人工处理。"
+  ]
+}

@@ -300,7 +300,7 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
                     ('IDS-STAGE079-REVIEW', 'IDS-V0_1-STAGE079-REVIEW', 'IDS-STAGE080-P1-GATE'),
 
                 ('IDS-V0_1-STAGE080-P1', 'IDS-V0_1-STAGE080-P1', 'IDS-STAGE080-P2-GATE'),
-                ('IDS-V0_1-STAGE080-P2', 'IDS-V0_1-STAGE080-P2', 'IDS-STAGE080-P3-GATE'), ('IDS-V0_1-STAGE080-P3', 'IDS-V0_1-STAGE080-P3', 'IDS-STAGE080-P4-GATE'), ('IDS-V0_1-STAGE080-P4', 'IDS-V0_1-STAGE080-P4', 'IDS-STAGE080-REVIEW-GATE'), ('IDS-STAGE080-REVIEW', 'IDS-V0_1-STAGE080-REVIEW', 'IDS-STAGE081-P1-GATE'), ('IDS-STAGE081-P1', 'IDS-V0_1-STAGE081-P1', 'IDS-STAGE081-P2-GATE'), ('IDS-STAGE081-P2', 'IDS-V0_1-STAGE081-P2', 'IDS-STAGE081-P3-GATE')),
+                ('IDS-V0_1-STAGE080-P2', 'IDS-V0_1-STAGE080-P2', 'IDS-STAGE080-P3-GATE'), ('IDS-V0_1-STAGE080-P3', 'IDS-V0_1-STAGE080-P3', 'IDS-STAGE080-P4-GATE'), ('IDS-V0_1-STAGE080-P4', 'IDS-V0_1-STAGE080-P4', 'IDS-STAGE080-REVIEW-GATE'), ('IDS-STAGE080-REVIEW', 'IDS-V0_1-STAGE080-REVIEW', 'IDS-STAGE081-P1-GATE'), ('IDS-STAGE081-P1', 'IDS-V0_1-STAGE081-P1', 'IDS-STAGE081-P2-GATE'), ('IDS-STAGE081-P2', 'IDS-V0_1-STAGE081-P2', 'IDS-STAGE081-P3-GATE'), ("IDS-STAGE081-P3", "IDS-V0_1-STAGE081-P3", "IDS-STAGE081-P4-GATE")),
         )
         self.assertTrue(
             "IDS-V0_1-STAGE073-P4" in plan["now"]
@@ -341,6 +341,7 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
             or "IDS-V0_1-STAGE080-REVIEW" in plan["now"]
             or "IDS-V0_1-STAGE081-P1" in plan["now"]
             or "IDS-V0_1-STAGE081-P2" in plan["now"]
+            or "IDS-V0_1-STAGE081-P3" in plan["now"]
         )
         self.assertTrue(
             "IDS-V0_1-STAGE073-P4" in "\n".join(plan["scope"])
@@ -373,6 +374,7 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
             or "IDS-V0_1-STAGE080-P4" in "\n".join(plan["scope"])
             or "IDS-V0_1-STAGE081-P1" in "\n".join(plan["scope"])
             or "IDS-V0_1-STAGE081-P2" in "\n".join(plan["scope"])
+            or "IDS-V0_1-STAGE081-P3" in "\n".join(plan["scope"])
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue({"ACC-STAGE-073", "ACC-STAGE073-P4-01", "ACC-STAGE073-P4-02", "ACC-STAGE073-P4-03", "ACC-STAGE073-P4-04"}.issubset(acceptance_ids))
