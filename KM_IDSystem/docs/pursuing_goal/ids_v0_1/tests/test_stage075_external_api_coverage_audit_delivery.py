@@ -252,15 +252,20 @@ class Stage075ExternalApiCoverageAuditPhase4Tests(unittest.TestCase):
                     'IDS-V0_1-STAGE076-P4',
                     'IDS-STAGE076-REVIEW-GATE',
                 ),
+                (
+                    'IDS-V0_1-STAGE076-REVIEW',
+                    'IDS-V0_1-STAGE076-REVIEW',
+                    'IDS-STAGE077-P1-GATE',
+                ),
             ),
         )
         self.assertIn(
             plan["task"],
-            ("IDS-V0_1-STAGE075-P4", "IDS-V0_1-STAGE075-REVIEW", 'IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P3', 'IDS-V0_1-STAGE076-P4'),
+            ("IDS-V0_1-STAGE075-P4", "IDS-V0_1-STAGE075-REVIEW", 'IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P3', 'IDS-V0_1-STAGE076-P4', 'IDS-V0_1-STAGE076-REVIEW'),
         )
         self.assertIn(
             acceptance["task"],
-            ("IDS-V0_1-STAGE075-P4", "IDS-V0_1-STAGE075-REVIEW", 'IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P3', 'IDS-V0_1-STAGE076-P4'),
+            ("IDS-V0_1-STAGE075-P4", "IDS-V0_1-STAGE075-REVIEW", 'IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P3', 'IDS-V0_1-STAGE076-P4', 'IDS-V0_1-STAGE076-REVIEW'),
         )
         self.assertTrue(
             {
