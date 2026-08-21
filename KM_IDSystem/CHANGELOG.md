@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-21 · Stage078 索引冒烟测试 P3
+
+- 只在内存中重放 P2 的五条固定、非业务、reference-only 控制投影，并以六条显式观察覆盖候选构建未完成、冒烟失败、切换失败、回退候选、旧活动版本连续服务、并发检索隔离及 Operations／报告快照版本可见性；候选构建未完成仅表示 CONTROL_CANDIDATE_BUILD_NOT_COMPLETE，不被改写为真实索引构建失败，也不建立第二权威事实源。
+- 仅将 Stage060--077 历史白箱、Stage005 治理与两个既有批次检查器精确扩展为承认 Stage078 P2 → Stage078 P3 → Stage078 P4 gate 的合法零运行时后继；冻结任务包、P1/P2、Stage077 Review、业务事实与全局上传锁均未改写。
+- 本地验证通过：Stage078 P3 聚焦 11/11、P1/P2/P3 聚焦 25/25、Stage060--078 866/866、Stage005 直接治理 valid=true；两个批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，机器平面生成 7 个中文文件且文档预算、无登记阻塞、单项目双平面检查通过。零运行时回执位于 KM_IDSystem/machine/runs/2026-08-21-stage078-p3-local.json；下一步只能在新的独立 run 进入 IDS-STAGE078-P4-GATE，全局上传锁继续关闭。
+
 ## 2026-08-21 · Stage078 索引冒烟测试 P2
 
 - 只在内存中重放五条固定、非业务、reference-only 控制请求：记录索引版本、资料范围、零切块计数、模型引用、候选/活动/上一活动版本与影子引用，并固定候选构建、冒烟门、未应用的未来切换候选、失败禁止切换与回退候选；不建立第二权威事实源，也不创建真实构建、索引、冒烟、切换、检索、回退或业务事实。
