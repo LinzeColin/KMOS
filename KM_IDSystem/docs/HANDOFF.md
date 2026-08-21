@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage079 Phase 3 - 2026-08-21
+## Current Gate - Stage079 Phase 4 - 2026-08-21
 
-- 本节是唯一当前交接；下方 Stage079 P2/P1、Stage078 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其事实。
+- 本节是唯一当前交接；下方 Stage079 P3/P2/P1、Stage078 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE079-P4`：只在内存中复用 P2 的五条固定、非业务、reference-only 原子切换控制投影与 P3 的六条专项场景，派生五条控制版索引清单、六条冒烟测试日志、五条切换记录、五条回退证明、一条旧活动版本保留／未测量空间影响投影、三条重建／暂停／恢复说明和四条中文反馈。所有产物只含不透明控制引用；它们不是真实索引、manifest、日志、活动指针、检索、回退、Operations、报告、审计或业务事实，且不建立第二权威事实源。
+- 已验证：Stage079 P4 聚焦 `8/8`、P1/P2/P3/P4 聚焦 `33/33`、Stage060--079 白箱 `917/917`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。P4 零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage079-p4-local.json`；机器平面已重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。这些结果只证明纯内存控制交付、治理投影、历史兼容与零运行时边界一致，不证明真实资料、后台构建、物理索引、实际冒烟、清单／日志／记录写入、空间测量、指针切换、检索、回退、Operations、报告、模型、Agent、OVH、生产或上传能力。
+- 本 P4 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、证据账本、审计日志、Operations、报告、数据库、物理索引或业务结论；不执行批量导入、数据库 schema 或连接、后台构建、索引／影子索引、实际冒烟、实际清单／日志／切换／回退写入、空间测量、旧索引删除、重建、暂停、恢复、活动指针读写、原子切换、检索、并发检索、Operations 写入、报告快照写入、provider／模型选择或调用、模型 Token、Agent、OVH、生产、上传或推送。
+- 回滚只撤回本 P4 的范围说明、交付合同、纯内存交付模块、聚焦用例、历史合法后继兼容断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PHASE3_ATOMIC_INDEX_SWITCH_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；保留 Stage079 P1/P2/P3、Stage078 Review、冻结任务包、真实资料、fixture、manifest、证据账本、审计日志、数据库、索引、GitHub、OVH 与应用状态。
+- 下一步仅可在新的独立 run 进入 `IDS-STAGE079-REVIEW-GATE`；继续使用当前既有的唯一开发 worktree `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`，不创建额外 worktree、branch 或 PR。本 run 不启动 Review、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage079 Phase 3 - 2026-08-21
+
+- 本节保留 Stage079 P3 历史交接；唯一当前交接位于上方 Stage079 P4，不重写 P3 已验证事实。
 - 本轮完成 `IDS-V0_1-STAGE079-P3`：只在内存中重放 P2 五条固定、非业务、reference-only 原子切换控制投影，以六条专项观察覆盖候选构建未完成、冒烟失败、切换失败、回退候选、旧活动版本连续服务、后台构建期间并发检索控制隔离及 Operations／报告快照版本控制可见性；候选构建未完成严格限于 `CONTROL_CANDIDATE_BUILD_NOT_COMPLETE` 的失败关闭，不被改写为真实物理构建失败。冻结 Stage079 任务包、P1/P2 与 Stage078 Review/P1--P4 已审核控制工件仍是唯一合同上下文；P3 不建立第二权威事实源。
 - 已验证：Stage079 P3 聚焦 `11/11`、P1/P2/P3 聚焦 `25/25`、Stage060--079 白箱 `909/909`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面已生成 `7` 个中文文件，文档预算、无登记阻塞和单项目双平面检查通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage079-p3-local.json`；这些结果只证明纯内存控制场景、治理投影、历史兼容与零运行时边界一致，不证明真实资料、后台构建、物理索引、实际冒烟、清单／日志／记录写入、空间测量、指针切换、检索、回退、Operations、报告、模型、Agent、OVH、生产或上传能力。
 - 本 P3 不读取、打开、复制、保留、外发、写入、查询或解析真实资料、来源正文、原始元数据、manifest、证据账本、审计日志、Operations、报告、数据库、物理索引或业务结论；不执行实际索引清单／冒烟测试日志／切换记录／回退证明写入、空间影响测量、旧索引删除、索引重建、暂停、恢复、批量导入、数据库 schema 或连接、后台构建、索引／影子索引、实际冒烟、活动指针读写、原子切换、检索、并发检索、回退、Operations 写入、报告快照写入、provider／模型选择或调用、模型 Token、Agent、OVH、生产、上传或推送。

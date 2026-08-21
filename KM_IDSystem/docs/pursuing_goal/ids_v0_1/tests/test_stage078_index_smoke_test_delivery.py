@@ -332,7 +332,7 @@ class Stage078IndexSmokeTestPhase4Tests(unittest.TestCase):
                     "IDS-STAGE079-P1-GATE",
                 ),
 
-                ("IDS-STAGE079", "IDS-V0_1-STAGE079-P1", "IDS-V0_1-STAGE079-P1", "IDS-STAGE079-P2-GATE"), ("IDS-STAGE079", "IDS-V0_1-STAGE079-P2", "IDS-V0_1-STAGE079-P2", "IDS-STAGE079-P3-GATE"), ("IDS-STAGE079", "IDS-V0_1-STAGE079-P3", "IDS-V0_1-STAGE079-P3", "IDS-STAGE079-P4-GATE")),
+                ("IDS-STAGE079", "IDS-V0_1-STAGE079-P1", "IDS-V0_1-STAGE079-P1", "IDS-STAGE079-P2-GATE"), ("IDS-STAGE079", "IDS-V0_1-STAGE079-P2", "IDS-V0_1-STAGE079-P2", "IDS-STAGE079-P3-GATE"), ("IDS-STAGE079", "IDS-V0_1-STAGE079-P3", "IDS-V0_1-STAGE079-P3", "IDS-STAGE079-P4-GATE"), ("IDS-STAGE079", "IDS-V0_1-STAGE079-P4", "IDS-V0_1-STAGE079-P4", "IDS-STAGE079-REVIEW-GATE")),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
@@ -340,7 +340,7 @@ class Stage078IndexSmokeTestPhase4Tests(unittest.TestCase):
             plan["task"],
             ("IDS-V0_1-STAGE078-P4", "IDS-V0_1-STAGE078-REVIEW",
                 "IDS-V0_1-STAGE079-P1",
-                "IDS-V0_1-STAGE079-P2", "IDS-V0_1-STAGE079-P3"),
+                "IDS-V0_1-STAGE079-P2", "IDS-V0_1-STAGE079-P3", "IDS-V0_1-STAGE079-P4"),
         )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
