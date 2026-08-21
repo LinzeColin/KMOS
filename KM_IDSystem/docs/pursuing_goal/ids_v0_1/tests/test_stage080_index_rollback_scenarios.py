@@ -433,11 +433,17 @@ class Stage080IndexRollbackPhase3Tests(unittest.TestCase):
                 "task": "IDS-V0_1-STAGE082-P3",
                 "next_gate": "IDS-STAGE082-P4-GATE",
             },
-                              "IDS-STAGE082-P4": {
+            "IDS-STAGE082-P4": {
                 "stage": "IDS-STAGE082",
                 "phase": "IDS-STAGE082-P4",
                 "task": "IDS-V0_1-STAGE082-P4",
                 "next_gate": "IDS-STAGE082-REVIEW-GATE",
+            },
+            "IDS-STAGE082-REVIEW": {
+                "stage": "IDS-STAGE082",
+                "phase": "IDS-STAGE082-REVIEW",
+                "task": "IDS-V0_1-STAGE082-REVIEW",
+                "next_gate": "IDS-STAGE083-P1-GATE",
             }}
         self.assertIn(status["phase"], expected_states)
         self.assertEqual(
@@ -465,7 +471,7 @@ class Stage080IndexRollbackPhase3Tests(unittest.TestCase):
 
                                 "IDS-STAGE082-P3-GATE",
 
-                                "IDS-STAGE082-P4-GATE", "IDS-STAGE082-REVIEW-GATE")
+                                "IDS-STAGE082-P4-GATE", "IDS-STAGE082-REVIEW-GATE", "IDS-STAGE083-P1-GATE")
             )
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
@@ -582,11 +588,17 @@ class Stage080IndexRollbackPhase3Tests(unittest.TestCase):
                 'next_gate_id: "IDS-STAGE082-P4-GATE"',
                 'stage082_phase3_state:',
             ),
-                            "IDS-STAGE082-P4": (
+            "IDS-STAGE082-P4": (
                 'current_phase_id: "IDS-STAGE082-P4"',
                 'current_task_id: "IDS-V0_1-STAGE082-P4"',
                 'next_gate_id: "IDS-STAGE082-REVIEW-GATE"',
                 'stage082_phase4_state:',
+            ),
+            "IDS-STAGE082-REVIEW": (
+                'current_phase_id: "IDS-STAGE082-REVIEW"',
+                'current_task_id: "IDS-V0_1-STAGE082-REVIEW"',
+                'next_gate_id: "IDS-STAGE083-P1-GATE"',
+                'stage082_review_state:',
             )}
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         for phrase in route_phrases[status["phase"]]:

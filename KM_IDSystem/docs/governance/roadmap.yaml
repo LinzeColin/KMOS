@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE082"
-current_phase_id: "IDS-STAGE082-P4"
-current_task_id: "IDS-V0_1-STAGE082-P4"
-next_gate_id: "IDS-STAGE082-REVIEW-GATE"
+current_phase_id: "IDS-STAGE082-REVIEW"
+current_task_id: "IDS-V0_1-STAGE082-REVIEW"
+next_gate_id: "IDS-STAGE083-P1-GATE"
 current_transition_history:
+  stage082_review_state:
+    current_stage_id: "IDS-STAGE082"
+    current_phase_id: "IDS-STAGE082-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE082-REVIEW"
+    next_gate_id: "IDS-STAGE083-P1-GATE"
   stage082_phase4_state:
     current_stage_id: "IDS-STAGE082"
     current_phase_id: "IDS-STAGE082-P4"
@@ -1264,22 +1269,22 @@ stages:
     task_id: "IDS-V0_1-STAGE082"
     acceptance_ids:
       - "ACC-STAGE-082"
-    objective: "只从 P2 五条固定、非业务、纯内存控制投影与 P3 六条受控场景派生 metadata-only 旧索引保留清单、冒烟测试日志、切换记录、回滚证明、保留／空间影响投影、操作说明和中文反馈；不读取真实资料或写入真实索引。"
-    status: "phase4_completed_local"
+    objective: "只机械复审冻结 P1--P4 合同、P2/P3/P4 纯内存控制报告与 P4→P3 控制回退，确认固定形状、失败关闭、最低上一活动版本保留、未测量空间影响、重建／暂停／恢复说明和业务线白箱人工处理一致；不读取真实资料或启动 Stage083。"
+    status: "completed_reviewed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE082-REVIEW-GATE"
+    next_gate_id: "IDS-STAGE083-P1-GATE"
     gate:
-      gate_id: "IDS-STAGE082-P4-GATE"
+      gate_id: "IDS-STAGE082-REVIEW-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE082-REVIEW-GATE"
+      next_gate_id: "IDS-STAGE083-P1-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "冻结 Stage082 任务包、Stage082 P1/P2/P3 与 Stage081 Review/P1--P4 已审核控制工件保持为唯一合同上下文；P4 只从固定控制投影和场景派生 metadata-only 交付证据，不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、实际 Operations、报告、数据库或物理索引。"
-      - "P4 只在内存中派生五条索引清单、六条冒烟测试日志、五条切换记录、五条回滚证明、一条旧索引保留／未测量空间影响投影、三条操作说明和四条中文反馈；所有引用均为不透明控制标签，未写入真实清单、日志、记录、Operations 或报告。"
-      - "最低保留一个上一活动版本；额外保留数量、具体清理时点、回滚窗口与业务线白箱批准均未设值，回滚和旧索引清理保持关闭，空间影响未测量且未删除；重建、暂停和恢复只表达未来操作前置。真实资料、批量导入、数据库、物理索引、模型、Token、Agent、OVH、生产、上传与推送保持关闭；只开放后续 Stage082 Review 门。"
+      - "冻结 Stage082 任务包、P1--P4 合同、P2/P3/P4 纯内存控制报告与 Stage081 Review/P1--P4 已审核控制工件保持为唯一合同上下文；Review 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、实际 Operations、报告、数据库或物理索引。"
+      - "机械复审 P1 的 7/5/5/6/5/10/6 字段与 14 类失败关闭、P2 五条固定控制请求与九组投影／305 次字段检查、P3 六条场景／31 字段／186 次字段检查／五条 Operations 与五条报告快照控制视图／六条人工处理，以及 P4 的 5/6/5/5/1/3/4/15 交付形状。"
+      - "构建未完成或冒烟失败禁止切换、切换失败保持活动版本、最低保留上一活动版本、未设值保留／回滚／清理／白箱批准失败关闭、未测量空间影响、重建／暂停／恢复说明、业务线白箱人工处理、单一权威与 P4→P3 控制回退链保持；真实资料、模型、Token、Agent、OVH、生产和上传均保持关闭；只开放后续 Stage083 P1 门。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、测试、切换、查询或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
-      - "执行实际保留策略写入、旧索引清理、空间测量、批量导入、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、原子切换、检索、回退、Operations 写入、报告快照写入、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、上传、推送或 Stage082 Review。"
+      - "执行实际保留策略写入、旧索引清理、空间测量、批量导入、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、原子切换、检索、回退、Operations 写入、报告快照写入、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage083 P1、批次复审、上传或推送。"
     phases:
       - phase_id: "IDS-STAGE082-P1"
         name: "Phase 1 · 旧索引保留范围、输入输出与边界确认"
@@ -1460,18 +1465,54 @@ stages:
             rollback: "只回滚本 P4 说明、交付合同、纯内存交付模块、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 PASS_OLD_INDEX_RETENTION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；不改变 Stage082 P1/P2/P3、Stage081 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE082-REVIEW"
         name: "Stage Review · 旧索引保留策略整阶段机械复审"
-        objective: "冻结任务包后续预留：机械复审 P1--P4 合同、验证与交付边界；本 run 未进入。"
-        status: "not_started"
-        entry_authorized: false
+        objective: "只复审 Stage082 P1--P4 合同、P2/P3/P4 控制报告、固定形状、失败关闭、最低上一活动版本保留、未测量空间影响、操作说明、业务线白箱人工处理与 P4→P3 回退；不读取真实资料、不启动 Stage083。"
+        status: "completed"
+        entry_authorized: true
         next_gate_id: "IDS-STAGE083-P1-GATE"
         gate:
           gate_id: "IDS-STAGE082-REVIEW-GATE"
-          status: "not_entered"
+          status: "passed"
           next_gate_id: "IDS-STAGE083-P1-GATE"
           github_upload_allowed: false
         stop_conditions:
-          - "未完成 P4 并在新的独立 run 获得授权前，不得进入整阶段复审。"
-        tasks: []
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、测试、切换、查询或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
+          - "执行实际保留策略写入、旧索引清理、空间测量、批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、实际冒烟、活动指针读写、原子切换、检索、并发检索、回退、Operations 写入、报告快照写入、provider／模型选择或调用、模型 Token、持久化、Agent、OVH、生产、Stage083 P1、批次复审、上传、推送或应用重装。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE082-REVIEW"
+            name: "机械复审旧索引保留策略 P1--P4 控制证据"
+            objective: "只在内存中重放 P1--P4 合同和控制报告，确认固定形状、失败关闭、最低保留上一活动版本、未测量空间影响、业务线白箱人工处理、单一权威、零运行时与 P4→P3 回退一致；不将控制投影升级为真实索引或业务事实。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE082-P4"
+            acceptance_ids:
+              - "ACC-STAGE-082"
+              - "ACC-STAGE082-REVIEW-01"
+              - "ACC-STAGE082-REVIEW-02"
+              - "ACC-STAGE082-REVIEW-03"
+              - "ACC-STAGE082-REVIEW-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage082_old_index_retention_stage_review"
+            test_results: "Review 聚焦 11/11、P1--Review 聚焦 43/43 已通过；本 run 的更广本地回归记录在 Review receipt，所有结果只证明固定控制形状、治理兼容与零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-082_旧索引保留策略.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE082_PHASE1_OLD_INDEX_RETENTION_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage082_old_index_retention_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE082_PHASE2_OLD_INDEX_RETENTION_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage082_old_index_retention_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage082_old_index_retention_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE082_PHASE3_OLD_INDEX_RETENTION_CONTROLLED_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage082_old_index_retention_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage082_old_index_retention_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE082_PHASE4_OLD_INDEX_RETENTION_DELIVERY_CLOSEOUT.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage082_old_index_retention_delivery_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage082_old_index_retention_delivery.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE082_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage082_old_index_retention_stage_review.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage082_old_index_retention_stage_review.py"
+              - "KM_IDSystem/machine/runs/2026-08-22-stage082-p4-local.json"
+              - "KM_IDSystem/machine/runs/2026-08-22-stage082-review-local.json"
+            risk: "若把 P1--P4 控制合同、控制报告、固定形状、保留／空间影响投影或 Review 结论误作真实索引、真实清单、真实日志、真实切换、真实回滚、OVH、生产或上传能力，会绕开单一权威和业务线白箱人工处理。"
+            rollback: "只回滚本 Review 说明、纯内存复审模块、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 PASS_OLD_INDEX_RETENTION_DELIVERY_EVIDENCE_RUNTIME_DISABLED；不改变 Stage082 P1/P2/P3/P4、Stage081 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
   - stage_id: "IDS-STAGE081"
     name: "影子索引合同"
     task_id: "IDS-V0_1-STAGE081"
