@@ -372,6 +372,12 @@ class Stage080IndexRollbackPhase3Tests(unittest.TestCase):
                 "task": "IDS-V0_1-STAGE080-P3",
                 "next_gate": "IDS-STAGE080-P4-GATE",
             },
+            "IDS-V0_1-STAGE080-P4": {
+                "stage": "IDS-STAGE080",
+                "phase": "IDS-V0_1-STAGE080-P4",
+                "task": "IDS-V0_1-STAGE080-P4",
+                "next_gate": "IDS-STAGE080-REVIEW-GATE",
+            },
         }
         self.assertIn(status["phase"], expected_states)
         self.assertEqual(
@@ -394,6 +400,7 @@ class Stage080IndexRollbackPhase3Tests(unittest.TestCase):
                     "IDS-STAGE080-P2-GATE",
                     "IDS-STAGE080-P3-GATE",
                     "IDS-STAGE080-P4-GATE",
+                    "IDS-STAGE080-REVIEW-GATE",
                 )
             )
         )
@@ -449,6 +456,12 @@ class Stage080IndexRollbackPhase3Tests(unittest.TestCase):
                 'current_task_id: "IDS-V0_1-STAGE080-P3"',
                 'next_gate_id: "IDS-STAGE080-P4-GATE"',
                 "stage080_phase3_state:",
+            ),
+            "IDS-V0_1-STAGE080-P4": (
+                'current_phase_id: "IDS-STAGE080-P4"',
+                'current_task_id: "IDS-V0_1-STAGE080-P4"',
+                'next_gate_id: "IDS-STAGE080-REVIEW-GATE"',
+                "stage080_phase4_state:",
             ),
         }
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
