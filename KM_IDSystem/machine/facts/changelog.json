@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage078-p2-local",
+    "date": "2026-08-21",
+    "summary": "完成 Stage078 P2 索引冒烟测试纯内存控制切片：五条固定、非业务、reference-only 控制请求投影索引版本、资料范围、零切块计数、模型引用、候选构建、影子隔离、冒烟门、未应用的未来原子切换候选和回退候选；不建立第二权威事实源。Stage078 P2 聚焦 8/8、P1/P2 聚焦 14/14、Stage060--078 白箱 855/855、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器平面生成 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。未读取真实资料，未执行批量导入、数据库、后台构建、索引、实际冒烟、切换、检索、回退、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage078 P3。"
+  },
+  {
     "version": "v0.1-stage078-p1-local",
     "date": "2026-08-21",
     "summary": "完成 Stage078 P1 索引冒烟测试静态合同：固定未来索引版本、活动指针、构建中版本、影子索引、批量导入后候选构建、冒烟输入输出、失败禁止切换、旧活动版本持续服务和上一活动版本回退保留；不建立第二权威事实源。Stage078 P1 聚焦 6/6、Stage060--078 白箱 847/847、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；未读取真实资料，未执行批量导入、数据库、后台构建、索引、冒烟、切换、检索、回退、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage078 P2。"
