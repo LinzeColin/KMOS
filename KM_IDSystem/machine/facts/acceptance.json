@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE077",
-  "phase": "IDS-V0_1-STAGE077-P1",
-  "task": "IDS-V0_1-STAGE077-P1",
-  "next_gate": "IDS-STAGE077-P2-GATE",
+  "phase": "IDS-V0_1-STAGE077-P2",
+  "task": "IDS-V0_1-STAGE077-P2",
+  "next_gate": "IDS-STAGE077-P3-GATE",
   "items": [
     {
       "id": "ACC-STAGE-077",
-      "criteria": "Stage077 P1 已固定后台索引构建静态工程合同：未来批量导入触发、六字段控制输入输出、候选隔离、旧活动索引持续服务、冒烟测试门、原子切换条件与上一活动版本回退保留均已定义；Stage077 P2 尚未启动。",
-      "status": "P1 静态合同已完成"
+      "criteria": "Stage077 P1 已固定后台索引构建静态工程合同，Stage077 P2 已将其实现为五条固定、非业务、reference-only 的纯内存控制切片：索引版本、资料范围、零切块计数、模型引用、候选隔离、冒烟门、未来原子切换候选和上一活动版本回退候选均可被本地聚焦用例验证；Stage077 P3 尚未启动。",
+      "status": "P1/P2 本地控制切片已完成"
     },
     {
       "id": "ACC-STAGE077-P1-01",
@@ -26,7 +26,27 @@
     },
     {
       "id": "ACC-STAGE077-P1-04",
-      "criteria": "未执行真实资料访问、批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、检索、并发检索、回退、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage077 P2。",
+      "criteria": "P1 收尾时未执行真实资料访问、批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、检索、并发检索、回退、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；其下一门为 Stage077 P2。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE077-P2-01",
+      "criteria": "冻结 Stage077 任务包、Stage077 P1、Stage076 Review 与 Stage076 已复审索引版本合同保持为唯一合同上下文；P2 只接受五条固定、非业务、reference-only 控制输入，未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、manifest、证据账本、审计日志、报告或物理索引。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE077-P2-02",
+      "criteria": "五条控制输入复用三类索引版本和 Stage076 已复审字段形状；每条只记录不透明的 index_version、document_scope_ref、chunk_count=0、embedding_model_ref 与来源导入引用，候选版本与活动版本不同，影子候选与活动服务隔离，旧活动版本继续服务。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE077-P2-03",
+      "criteria": "冒烟门未完成或失败时阻断切换；通过候选只形成未来全有或全无切换控制投影，切换失败保持活动版本，回退候选只指向保留的上一活动版本；业务线白箱人工复核仍为未来例外前置。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE077-P2-04",
+      "criteria": "未执行真实资料访问、批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、检索、回退、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage077 P3。",
       "status": "已遵守"
     },
     {

@@ -414,7 +414,8 @@ class Stage070EmbeddingQueueCachePhase4Tests(unittest.TestCase):
                     'IDS-STAGE077-P1-GATE',
                 ),
 
-                ('IDS-V0_1-STAGE077-P1', 'IDS-V0_1-STAGE077-P1', 'IDS-STAGE077-P2-GATE'),),
+                ('IDS-V0_1-STAGE077-P1', 'IDS-V0_1-STAGE077-P1', 'IDS-STAGE077-P2-GATE'),
+                ('IDS-V0_1-STAGE077-P2', 'IDS-V0_1-STAGE077-P2', 'IDS-STAGE077-P3-GATE'),),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
@@ -444,7 +445,8 @@ class Stage070EmbeddingQueueCachePhase4Tests(unittest.TestCase):
                 ('IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P1'), ('IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P2'), ('IDS-V0_1-STAGE076-P3', 'IDS-V0_1-STAGE076-P3'),
                 ('IDS-V0_1-STAGE076-P4', 'IDS-V0_1-STAGE076-P4'), ('IDS-V0_1-STAGE076-REVIEW', 'IDS-V0_1-STAGE076-REVIEW'),
 
-                ('IDS-V0_1-STAGE077-P1', 'IDS-V0_1-STAGE077-P1'),),
+                ('IDS-V0_1-STAGE077-P1', 'IDS-V0_1-STAGE077-P1'),
+                ('IDS-V0_1-STAGE077-P2', 'IDS-V0_1-STAGE077-P2'),),
         )
         self.assertTrue(
             (

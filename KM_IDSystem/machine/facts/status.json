@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE077",
-  "phase": "IDS-V0_1-STAGE077-P1",
-  "task": "IDS-V0_1-STAGE077-P1",
-  "real_progress": "Stage077 P1 已固定后台索引构建静态合同：未来批量导入触发、六字段控制输入输出、候选构建隔离、旧活动索引持续服务、冒烟测试门、原子切换条件与上一活动版本回退保留均已定义；未读取或写入真实资料、构建计划、清单、日志、指针、索引、Operations 或报告。",
-  "report_grade": "冻结 Stage077 任务包与 Stage076 已复审索引版本合同构成唯一合同上下文；本次只定义后台索引构建的静态边界，不建立第二权威事实源，不读取真实资料、不连接数据库、不选择或调用模型。",
-  "business_verdict": "本 P1 只证明未来后台构建的控制字段、失败停止、旧活动索引持续服务、冒烟门、原子切换和业务线白箱人工处理边界在本地已定义；不能证明任何真实资料、批量导入、数据库 schema、后台任务、索引、冒烟日志、切换记录、回退证明、检索、真实界面或报告、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "BACKGROUND_INDEX_BUILD_CONTRACT_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE077-P2",
+  "task": "IDS-V0_1-STAGE077-P2",
+  "real_progress": "Stage077 P2 已将 P1 的后台索引构建合同投影为五条固定、非业务、reference-only 的纯内存控制请求：复用索引版本记录、候选构建与影子隔离、冒烟门、活动指针、未来原子切换候选和上一活动版本回退候选；未读取或写入真实资料、构建计划、清单、日志、指针、索引、Operations 或报告。",
+  "report_grade": "冻结 Stage077 任务包、Stage077 P1 与 Stage076 已复审索引版本合同构成唯一合同上下文；本次只执行纯内存控制投影，不建立第二权威事实源，不读取真实资料、不连接数据库、不选择或调用模型。",
+  "business_verdict": "本 P2 只证明五条固定控制输入、索引版本／资料范围／零切块计数／模型引用记录形状、候选隔离、冒烟失败关闭、未来原子切换意图、旧活动版本连续服务和回退候选边界在本地可执行、可测试、可撤回；不能证明任何真实资料、批量导入、数据库 schema、后台任务、物理索引、冒烟日志、切换记录、回退证明、检索、真实界面或报告、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "BACKGROUND_INDEX_BUILD_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-21",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE077-P2-GATE",
+  "next_gate": "IDS-STAGE077-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

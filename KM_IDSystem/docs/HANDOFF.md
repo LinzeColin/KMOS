@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage077 Phase 1 - 2026-08-21
+## Current Gate - Stage077 Phase 2 - 2026-08-21
 
-- 本节是唯一当前交接；下方 Stage076 Review/P4/P3/P2/P1、Stage075 Review/P4/P3/P2/P1、Stage074 Review/P1--P4、Stage073 Review/P1--P4、Stage072 Review/P1--P4、Stage071 Review/P1--P4、Stage070 Review/P1--P4 与更早章节均为历史证据，不重写其事实。
+- 本节是唯一当前交接；下方 Stage077 P1、Stage076 Review/P4/P3/P2/P1、Stage075 Review/P4/P3/P2/P1、Stage074 Review/P1--P4、Stage073 Review/P1--P4、Stage072 Review/P1--P4、Stage071 Review/P1--P4、Stage070 Review/P1--P4 与更早章节均为历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE077-P2`：只在内存中将 P1 的后台索引构建合同投影为五条固定、非业务、reference-only 控制请求，复用索引版本、候选构建、影子隔离、冒烟门、活动指针、未来原子切换候选与上一活动版本回退候选。来源文档与业务线白箱人工复核仍是唯一权威；本 P2 不替代真实资料、业务事实或业务线人工处理。
+- 已验证：Stage077 P2 聚焦 `8/8`、P1/P2 聚焦 `14/14`、Stage060--077 白箱 `812/812`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面已生成 `7` 个中文文件，文档三道门、无登记阻塞与单项目双平面检查均通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage077-p2-local.json`；这些结果只证明固定控制形状、治理投影和零运行时边界一致，不证明真实后台构建、物理索引、冒烟、活动指针切换、回退、检索、模型、Token、审计、OVH、生产或上传能力。
+- 本 P2 不读取、打开、复制、保留、外发、写入、查询或解析真实资料、来源正文、原始元数据、摘要、文本块、chunk、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、失败重试、审计或业务结论；不执行批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、切换、检索、并发检索、回退、Operations 写入、报告快照写入、模型 Token、Agent、OVH、生产、上传或推送。
+- 回滚只撤回本 P2 的范围说明、控制合同、纯内存模块、聚焦用例、历史合法后继兼容断言、两个批次检查器与 Stage005 的精确后继映射、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PHASE1_BACKGROUND_INDEX_BUILD_CONTRACT_RUNTIME_DISABLED`；保留 Stage077 P1、Stage076 Review、冻结任务包、真实资料、fixture、manifest、evidence ledger、audit log、数据库、索引、GitHub、OVH 和应用状态。
+- 下一步仅可在新的独立 run 进入 `IDS-STAGE077-P3-GATE`；继续使用当前既有的唯一开发 worktree，不创建额外 worktree、branch 或 PR。本 run 不启动 P3、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage077 Phase 1 - 2026-08-21
+
+- 本节保留 Stage077 P1 历史交接；唯一当前交接位于上方 Stage077 P2，不重写 P1 已验证事实。
 - 本轮完成 `IDS-V0_1-STAGE077-P1`：只固定未来后台索引构建的批量导入触发、六字段控制输入输出、候选索引版本与影子索引隔离、旧活动索引持续服务、冒烟验证门、失败禁止切换、原子切换条件与上一活动版本回退保留。Stage076 Review 与其已复审索引版本合同保持前序权威；本 P1 不替代来源文档、业务事实或业务线人工处理。
 - 已验证：Stage077 P1 聚焦 `6/6`、Stage060--077 白箱 `804/804`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面已生成 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。完整零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-21-stage077-p1-local.json`；这些结果只证明冻结静态合同、治理投影和零运行时边界一致，不证明真实资料、批量导入、数据库、索引、清单、日志、空间测量、检索、provider、模型、Token、成本、审计、OVH、生产或上传能力。
 - 本 P1 不读取、打开、复制、保留、外发、写入、查询或解析真实资料、来源正文、原始元数据、摘要、文本块、chunk、provider、模型、维度、时间、外发状态、金额、Token、预算、队列、缓存、失败重试、审计或业务结论；不执行批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、切换、检索、回退、Operations 写入、报告快照写入、模型 Token、Agent、OVH、生产、上传或推送。来源文档与业务线白箱人工复核仍是唯一权威。

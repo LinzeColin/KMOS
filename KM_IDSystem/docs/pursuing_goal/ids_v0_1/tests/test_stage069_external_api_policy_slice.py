@@ -372,7 +372,8 @@ class Stage069ExternalApiPolicyPhase2Tests(unittest.TestCase):
                     'IDS-STAGE077-P1-GATE',
                 ),
 
-                ('IDS-V0_1-STAGE077-P1', 'IDS-V0_1-STAGE077-P1', 'IDS-STAGE077-P2-GATE'),),
+                ('IDS-V0_1-STAGE077-P1', 'IDS-V0_1-STAGE077-P1', 'IDS-STAGE077-P2-GATE'),
+                ('IDS-V0_1-STAGE077-P2', 'IDS-V0_1-STAGE077-P2', 'IDS-STAGE077-P3-GATE'),),
         )
         self.assertIn(plan["stage"], ("IDS-STAGE069", "IDS-STAGE070", "IDS-STAGE071", "IDS-STAGE072", "IDS-STAGE073", "IDS-STAGE074",
             'IDS-STAGE075',
@@ -407,7 +408,8 @@ class Stage069ExternalApiPolicyPhase2Tests(unittest.TestCase):
                 ('IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P1'), ('IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P2'), ('IDS-V0_1-STAGE076-P3', 'IDS-V0_1-STAGE076-P3'),
                 ('IDS-V0_1-STAGE076-P4', 'IDS-V0_1-STAGE076-P4'), ('IDS-V0_1-STAGE076-REVIEW', 'IDS-V0_1-STAGE076-REVIEW'),
 
-                ('IDS-V0_1-STAGE077-P1', 'IDS-V0_1-STAGE077-P1'),),
+                ('IDS-V0_1-STAGE077-P1', 'IDS-V0_1-STAGE077-P1'),
+                ('IDS-V0_1-STAGE077-P2', 'IDS-V0_1-STAGE077-P2'),),
         )
         self.assertTrue(
             (

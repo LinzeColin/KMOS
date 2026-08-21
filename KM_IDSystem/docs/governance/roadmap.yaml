@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE077"
-current_phase_id: "IDS-STAGE077-P1"
-current_task_id: "IDS-V0_1-STAGE077-P1"
-next_gate_id: "IDS-STAGE077-P2-GATE"
+current_phase_id: "IDS-STAGE077-P2"
+current_task_id: "IDS-V0_1-STAGE077-P2"
+next_gate_id: "IDS-STAGE077-P3-GATE"
 current_transition_history:
+  stage077_phase2_state:
+    current_stage_id: "IDS-STAGE077"
+    current_phase_id: "IDS-STAGE077-P2"
+    current_task_id: "IDS-V0_1-STAGE077-P2"
+    next_gate_id: "IDS-STAGE077-P3-GATE"
   stage077_phase1_state:
     current_stage_id: "IDS-STAGE077"
     current_phase_id: "IDS-STAGE077-P1"
@@ -17905,22 +17910,22 @@ stages:
     task_id: "IDS-V0_1-STAGE077"
     acceptance_ids:
       - "ACC-STAGE-077"
-    objective: "只定义未来批量导入后的后台索引构建静态合同，确认候选版本、候选隔离、旧活动索引持续服务、冒烟测试门、原子切换条件和上一活动版本回退保留；不读取、导入、构建、切换、查询或回退真实资料或索引。"
-    status: "phase1_completed_local"
+    objective: "只以冻结 Stage077 任务包、Stage077 P1 和 Stage076 已复审索引版本合同，将候选后台构建、影子隔离、冒烟门、未来原子切换候选和回退候选实现为固定、非业务、reference-only 的纯内存控制切片；不读取、导入、构建、切换、查询或回退真实资料或索引。"
+    status: "phase2_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE077-P2-GATE"
+    next_gate_id: "IDS-STAGE077-P3-GATE"
     gate:
-      gate_id: "IDS-STAGE077-P1-GATE"
+      gate_id: "IDS-STAGE077-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE077-P2-GATE"
+      next_gate_id: "IDS-STAGE077-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "冻结 Stage077 任务包、Stage076 Review 和 Stage076 已复审索引版本合同保持为唯一合同上下文；P1 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
-      - "固定未来批量导入触发、六字段控制输入输出、候选隔离、旧活动索引持续服务、冒烟测试完整通过前禁止切换、失败保持活动版本以及上一活动版本回退保留。"
-      - "真实资料、批量导入、数据库、后台任务、索引构建、冒烟测试、切换、检索、模型、Token、Agent、OVH、生产和上传均保持关闭；只开放后续 Stage077 P2 门。"
+      - "冻结 Stage077 任务包、Stage077 P1、Stage076 Review 和 Stage076 已复审索引版本合同保持为唯一合同上下文；P2 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
+      - "五条固定、非业务、reference-only 控制输入复用索引版本字段形状，记录不透明的来源导入、资料范围、零切块计数和模型引用；候选隔离、旧活动版本连续服务、冒烟失败关闭、未来原子切换候选与上一活动版本回退候选均可在内存中验证。"
+      - "真实资料、批量导入、数据库、后台任务、物理索引、冒烟测试、切换、检索、模型、Token、Agent、OVH、生产和上传均保持关闭；只开放后续 Stage077 P3 门。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、切换、查询或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
-      - "执行真实批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、原子切换、检索、并发检索、回退、Operations 写入、报告快照写入、provider/模型选择或调用、模型 Token、持久化、Agent、OVH、生产服务、Stage077 P2、批次复审、上传、推送或应用重装。"
+      - "执行真实批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、原子切换、检索、并发检索、回退、Operations 写入、报告快照写入、provider/模型选择或调用、模型 Token、持久化、Agent、OVH、生产服务、Stage077 P3、批次复审、上传、推送或应用重装。"
     phases:
       - phase_id: "IDS-STAGE077-P1"
         name: "Phase 1 · 后台索引构建范围、输入输出与边界确认"
@@ -17971,22 +17976,54 @@ stages:
             rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 REVIEWED_INDEX_VERSION_SCHEMA_RUNTIME_DISABLED；不改变 Stage076 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE077-P2"
         name: "Phase 2 · 后台索引构建实现、接入与最小可运行切片"
-        objective: "冻结任务包后续 Phase，未启动。"
-        status: "not_started"
-        entry_authorized: false
+        objective: "只以 Stage077 P1 已固定的未来合同，将五条固定、非业务、reference-only 请求投影为索引版本、候选后台构建、影子隔离、冒烟门、活动指针、未来原子切换候选和回退候选；不连接数据库、不构建物理索引或读取真实资料。"
+        status: "completed"
+        entry_authorized: true
         next_gate_id: "IDS-STAGE077-P3-GATE"
         gate:
           gate_id: "IDS-STAGE077-P2-GATE"
-          status: "closed"
+          status: "passed"
           next_gate_id: "IDS-STAGE077-P3-GATE"
           github_upload_allowed: false
         stop_conditions:
-          - "尚未进入本 Phase；仅新的独立 run 且通过 P2 Gate 后可开始。"
+          - "读取真实资料、执行批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、原子切换、检索、回退、模型调用、模型 Token、Agent、OVH、生产、上传或推送。"
         tasks:
           - task_id: "IDS-V0_1-STAGE077-P2"
-            name: "冻结待执行：后台索引构建最小切片"
-            objective: "未启动。"
-            status: "not_started"
+            name: "实现后台索引构建纯内存控制切片"
+            objective: "以五条固定、非业务、reference-only 控制输入复用索引版本字段形状，投影候选后台构建、影子隔离、冒烟门、活动指针、未来原子切换候选和上一活动版本回退候选；不创建真实索引、数据库、清单、日志或业务事实。"
+            status: "completed"
+            estimated_hours: 8
+            total_hours_percent: "50.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE077-P1"
+            acceptance_ids:
+              - "ACC-STAGE-077"
+              - "ACC-STAGE077-P2-01"
+              - "ACC-STAGE077-P2-02"
+              - "ACC-STAGE077-P2-03"
+              - "ACC-STAGE077-P2-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage077_background_index_build_slice"
+              - "Stage077 P1/P2 与显式前序兼容回归命令记录在 machine run"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage077 P2 聚焦 8/8、P1/P2 聚焦 14/14、Stage060--077 白箱 812/812、Stage005 直接治理 valid=true、Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器平面生成 7 个中文文件，文档三道门、无登记阻塞与单项目双平面检查均通过。P2 不进入 Stage077 P3、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-077_后台索引构建.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE077_PHASE1_BACKGROUND_INDEX_BUILD_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage077_background_index_build_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE077_PHASE2_BACKGROUND_INDEX_BUILD_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage077_background_index_build_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage077_background_index_build_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage077_background_index_build_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-21-stage077-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE076_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage076_index_version_schema_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把固定控制输入、内存投影、候选版本、影子引用、冒烟门、未来切换候选或回退候选误作真实后台任务、真实索引、真实检索、真实回退、OVH、生产或上传能力，会绕开单一权威和业务线白箱人工处理。"
+            rollback: "只回滚本 P2 说明、控制合同、纯内存模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PHASE1_BACKGROUND_INDEX_BUILD_CONTRACT_RUNTIME_DISABLED；不改变 Stage077 P1、Stage076 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE077-P3"
         name: "Phase 3 · 后台索引构建专项验证与异常场景"
         objective: "冻结任务包后续 Phase，未启动。"
