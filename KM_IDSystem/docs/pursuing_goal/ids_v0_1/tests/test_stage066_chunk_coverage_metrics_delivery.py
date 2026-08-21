@@ -344,7 +344,7 @@ class Stage066ChunkCoverageMetricsPhase4Tests(unittest.TestCase):
                     ('IDS-STAGE079', 'IDS-STAGE079-REVIEW', 'IDS-V0_1-STAGE079-REVIEW'),
 
                 ('IDS-STAGE080', 'IDS-V0_1-STAGE080-P1', 'IDS-V0_1-STAGE080-P1'),
-                ('IDS-STAGE080', 'IDS-V0_1-STAGE080-P2', 'IDS-V0_1-STAGE080-P2')),
+                ('IDS-STAGE080', 'IDS-V0_1-STAGE080-P2', 'IDS-V0_1-STAGE080-P2'), ('IDS-STAGE080', 'IDS-V0_1-STAGE080-P3', 'IDS-V0_1-STAGE080-P3')),
                 ("IDS-STAGE073", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P1"),
         )
         self.assertIn(
@@ -379,7 +379,8 @@ class Stage066ChunkCoverageMetricsPhase4Tests(unittest.TestCase):
 
                 'IDS-STAGE080-P2-GATE',
 
-                'IDS-STAGE080-P3-GATE'),
+                'IDS-STAGE080-P3-GATE',
+                'IDS-STAGE080-P4-GATE'),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
@@ -404,7 +405,8 @@ class Stage066ChunkCoverageMetricsPhase4Tests(unittest.TestCase):
 
                 'IDS-V0_1-STAGE080-P1',
 
-                'IDS-V0_1-STAGE080-P2'),
+                'IDS-V0_1-STAGE080-P2',
+                'IDS-V0_1-STAGE080-P3'),
         )
         self.assertTrue(
             (

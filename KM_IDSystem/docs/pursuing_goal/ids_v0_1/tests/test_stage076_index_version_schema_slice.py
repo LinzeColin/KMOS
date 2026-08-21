@@ -334,7 +334,7 @@ class Stage076IndexVersionSchemaPhase2Tests(unittest.TestCase):
                     ('IDS-STAGE079', 'IDS-STAGE079-REVIEW', 'IDS-V0_1-STAGE079-REVIEW', 'IDS-STAGE080-P1-GATE'),
 
                 ('IDS-STAGE080', 'IDS-V0_1-STAGE080-P1', 'IDS-V0_1-STAGE080-P1', 'IDS-STAGE080-P2-GATE'),
-                ('IDS-STAGE080', 'IDS-V0_1-STAGE080-P2', 'IDS-V0_1-STAGE080-P2', 'IDS-STAGE080-P3-GATE')),
+                ('IDS-STAGE080', 'IDS-V0_1-STAGE080-P2', 'IDS-V0_1-STAGE080-P2', 'IDS-STAGE080-P3-GATE'), ('IDS-STAGE080', 'IDS-V0_1-STAGE080-P3', 'IDS-V0_1-STAGE080-P3', 'IDS-STAGE080-P4-GATE')),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
@@ -353,7 +353,8 @@ class Stage076IndexVersionSchemaPhase2Tests(unittest.TestCase):
 
                 'IDS-V0_1-STAGE080-P1',
 
-                'IDS-V0_1-STAGE080-P2'),
+                'IDS-V0_1-STAGE080-P2',
+                'IDS-V0_1-STAGE080-P3'),
         )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}

@@ -7,39 +7,31 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-SCOPE = BASE / "STAGE079_PHASE3_ATOMIC_INDEX_SWITCH_CONTROLLED_SCENARIOS.md"
+SCOPE = BASE / "STAGE080_PHASE3_INDEX_ROLLBACK_CONTROLLED_SCENARIOS.md"
 CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage079_atomic_index_switch_scenarios_contract.json"
+    / "stage080_index_rollback_scenarios_contract.json"
 )
-MODULE = (
-    BASE / "index_version_schema" / "stage079_atomic_index_switch_scenarios.py"
-)
+MODULE = BASE / "index_version_schema" / "stage080_index_rollback_scenarios.py"
 TASKPACK = (
     ROOT
     / "docs"
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-079_索引原子切换.md"
+    / "STAGE-080_索引回滚.md"
 )
-PHASE1_SCOPE = BASE / "STAGE079_PHASE1_ATOMIC_INDEX_SWITCH_SCOPE_BOUNDARY.md"
-PHASE1_CONTRACT = (
-    BASE / "index_version_schema" / "stage079_atomic_index_switch_contract.json"
+P1_SCOPE = BASE / "STAGE080_PHASE1_INDEX_ROLLBACK_SCOPE_BOUNDARY.md"
+P1_CONTRACT = BASE / "index_version_schema" / "stage080_index_rollback_contract.json"
+P2_SCOPE = BASE / "STAGE080_PHASE2_INDEX_ROLLBACK_CONTROL_SLICE.md"
+P2_CONTRACT = (
+    BASE / "index_version_schema" / "stage080_index_rollback_slice_contract.json"
 )
-PHASE2_SCOPE = BASE / "STAGE079_PHASE2_ATOMIC_INDEX_SWITCH_CONTROL_SLICE.md"
-PHASE2_CONTRACT = (
-    BASE
-    / "index_version_schema"
-    / "stage079_atomic_index_switch_slice_contract.json"
-)
-PHASE2_SLICE = (
-    BASE / "index_version_schema" / "stage079_atomic_index_switch_control_slice.py"
-)
-PREDECESSOR_REVIEW = BASE / "STAGE078_STAGE_REVIEW.md"
+P2_SLICE = BASE / "index_version_schema" / "stage080_index_rollback_control_slice.py"
+PREDECESSOR_REVIEW = BASE / "STAGE079_STAGE_REVIEW.md"
 PREDECESSOR_CONTRACT = (
-    BASE / "index_version_schema" / "stage078_index_smoke_test_contract.json"
+    BASE / "index_version_schema" / "stage079_atomic_index_switch_slice_contract.json"
 )
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
@@ -48,22 +40,22 @@ ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 
 
 def _load_module():
-    spec = importlib.util.spec_from_file_location("stage079_p3", MODULE)
+    spec = importlib.util.spec_from_file_location("stage080_p3", MODULE)
     if spec is None or spec.loader is None:
-        raise RuntimeError("unable to load Stage079 P3 controlled scenarios")
+        raise RuntimeError("unable to load Stage080 P3 controlled scenarios")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
+class Stage080IndexRollbackPhase3Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
         cls.module = _load_module()
 
     def _report(self):
-        return self.module.build_atomic_index_switch_phase3_report()
+        return self.module.build_index_rollback_phase3_report()
 
     def _phase2(self):
         return self.module._load_phase2_module()
@@ -74,11 +66,11 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
             CONTRACT,
             MODULE,
             TASKPACK,
-            PHASE1_SCOPE,
-            PHASE1_CONTRACT,
-            PHASE2_SCOPE,
-            PHASE2_CONTRACT,
-            PHASE2_SLICE,
+            P1_SCOPE,
+            P1_CONTRACT,
+            P2_SCOPE,
+            P2_CONTRACT,
+            P2_SLICE,
             PREDECESSOR_REVIEW,
             PREDECESSOR_CONTRACT,
         ):
@@ -87,17 +79,17 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
 
     def test_contract_declares_fixed_control_only_phase3_boundary(self):
         self.assertEqual(
-            "ids.stage079.atomic_index_switch.phase3.v1",
+            "ids.stage080.index_rollback.phase3.v1",
             self.contract["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE079-P3", self.contract["task_id"])
+        self.assertEqual("IDS-V0_1-STAGE080-P3", self.contract["task_id"])
         self.assertEqual(
-            "PHASE3_ATOMIC_INDEX_SWITCH_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+            "PHASE3_INDEX_ROLLBACK_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
             self.contract["contract_state"],
         )
         self.assertTrue(self.contract["scenario_executable"])
         self.assertFalse(self.contract["execution_ready"])
-        self.assertEqual("IDS-STAGE079-P4-GATE", self.contract["next_gate"])
+        self.assertEqual("IDS-STAGE080-P4-GATE", self.contract["next_gate"])
         authority = self.contract["source_authority"]
         for field in (
             "second_authoritative_source_created",
@@ -110,21 +102,13 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
                 self.assertFalse(authority[field])
         replay = self.contract["phase2_control_slice_replay_contract"]
         self.assertEqual(5, replay["control_request_count"])
-        self.assertEqual(205, replay["phase2_control_field_check_count"])
-        self.assertEqual(6, self.contract["controlled_scenario_contract"]["scenario_count"])
-        self.assertEqual(26, self.contract["controlled_scenario_contract"]["field_count"])
-        self.assertEqual(
-            5,
-            self.contract["control_view_projection_contract"][
-                "operations_view_projection_count"
-            ],
-        )
-        self.assertEqual(
-            5,
-            self.contract["control_view_projection_contract"][
-                "report_snapshot_projection_count"
-            ],
-        )
+        self.assertEqual(225, replay["phase2_control_field_check_count"])
+        scenarios = self.contract["controlled_scenario_contract"]
+        self.assertEqual(6, scenarios["scenario_count"])
+        self.assertEqual(28, scenarios["field_count"])
+        views = self.contract["control_view_projection_contract"]
+        self.assertEqual(5, views["operations_view_projection_count"])
+        self.assertEqual(5, views["report_snapshot_projection_count"])
         for field, value in self.contract["runtime_boundary"].items():
             with self.subTest(field=field):
                 self.assertFalse(value)
@@ -137,14 +121,14 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
         self.assertTrue(report["phase2_control_slice_reexecuted"])
         self.assertTrue(report["phase2_shape_preserved"])
         self.assertTrue(report["phase2_side_effect_free"])
-        self.assertEqual(205, report["phase2_control_record_field_check_count"])
+        self.assertEqual(225, report["phase2_control_record_field_check_count"])
         self.assertEqual(6, report["scenario_count"])
         self.assertEqual(6, report["passed_scenario_count"])
         self.assertEqual(6, report["explicit_disposition_count"])
         self.assertEqual(0, report["silent_drop_count"])
         self.assertEqual(6, report["human_handling_required_count"])
-        self.assertEqual(26, report["scenario_field_count"])
-        self.assertEqual(156, report["scenario_field_check_count"])
+        self.assertEqual(28, report["scenario_field_count"])
+        self.assertEqual(168, report["scenario_field_check_count"])
         self.assertEqual(5, report["operations_version_control_view_count"])
         self.assertEqual(5, report["report_snapshot_version_control_view_count"])
         self.assertTrue(report["control_views_preserved"])
@@ -173,16 +157,17 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
                 for field in (
                     "referenced_index_version_ref",
                     "referenced_active_pointer_ref",
-                    "referenced_candidate_build_ref",
+                    "referenced_candidate_index_version_ref",
+                    "referenced_shadow_index_ref",
                     "referenced_smoke_test_ref",
                     "referenced_switch_ref",
-                    "referenced_rollback_ref",
+                    "referenced_rollback_request_ref",
                     "referenced_operations_view_ref",
                     "referenced_report_snapshot_ref",
                     "active_version_before_ref",
                     "observed_active_version_after_ref",
                 ):
-                    self.assertIn(":control:stage079-p2:", scenario[field])
+                    self.assertIn(":control:stage080-p2:", scenario[field])
 
     def test_build_not_complete_and_smoke_failure_both_keep_old_active_version(self):
         scenarios = {
@@ -199,7 +184,7 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
             smoke_failure["phase2_control_scenario"],
         )
         self.assertEqual(
-            "CONTROL_CANDIDATE_BUILD_NOT_COMPLETE",
+            "CONTROL_BUILD_INCOMPLETE_REFERENCE_ONLY",
             build_not_complete["observed_build_state"],
         )
         self.assertEqual("NOT_RUN", build_not_complete["observed_smoke_test_status"])
@@ -235,11 +220,12 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
             switch_failure["observed_active_version_after_ref"],
         )
         self.assertEqual(
-            "CONTROL_ROLLBACK_TO_RETAINED_PREVIOUS_ACTIVE_PROJECTED",
-            rollback["observed_rollback_state"],
+            "CONTROL_ELIGIBLE_REFERENCE_ONLY",
+            rollback["observed_rollback_eligibility"],
         )
+        self.assertTrue(rollback["rollback_target_is_retained_previous_active"])
         self.assertEqual(
-            "CONTROL_CANDIDATE_BUILD_NOT_COMPLETE",
+            "CONTROL_BUILD_INCOMPLETE_REFERENCE_ONLY",
             concurrent["observed_build_state"],
         )
         self.assertTrue(concurrent["concurrent_retrieval_isolated"])
@@ -261,7 +247,7 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
                     "CONTROL_OPERATIONS_INDEX_VERSION_VISIBLE_NOT_WRITTEN",
                     view["view_state"],
                 )
-                self.assertIn(":control:stage079-p2:", view["operations_view_ref"])
+                self.assertIn(":control:stage080-p2:", view["operations_view_ref"])
         for view in report["report_snapshot_version_control_views"]:
             with self.subTest(view=view["control_scenario"]):
                 self.assertEqual(set(self.module.REPORT_SNAPSHOT_FIELDS), set(view))
@@ -269,12 +255,12 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
                     "CONTROL_REPORT_SNAPSHOT_INDEX_VERSION_VISIBLE_NOT_WRITTEN",
                     view["snapshot_state"],
                 )
-                self.assertIn(":control:stage079-p2:", view["report_snapshot_ref"])
+                self.assertIn(":control:stage080-p2:", view["report_snapshot_ref"])
         self.assertEqual(0, report["actual_operations_display_count"])
         self.assertEqual(0, report["actual_report_snapshot_count"])
 
     def test_invalid_or_malformed_phase2_fails_closed(self):
-        invalid = self.module.build_atomic_index_switch_phase3_report(
+        invalid = self.module.build_index_rollback_phase3_report(
             phase2_executor=lambda _control: {"input_accepted": False}
         )
         self.assertFalse(invalid["valid"])
@@ -287,14 +273,14 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
 
         def malformed(_control):
             result = copy.deepcopy(
-                phase2.execute_atomic_index_switch_control_slice(
+                phase2.execute_index_rollback_control_slice(
                     phase2.build_control_input()
                 )
             )
-            result["smoke_test_control_projections"][0].pop("smoke_test_ref")
+            result["smoke_test_output_control_projections"][0].pop("smoke_test_ref")
             return result
 
-        malformed_report = self.module.build_atomic_index_switch_phase3_report(
+        malformed_report = self.module.build_index_rollback_phase3_report(
             phase2_executor=malformed
         )
         self.assertFalse(malformed_report["valid"])
@@ -306,14 +292,14 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
 
         def runtime_signal(_control):
             result = copy.deepcopy(
-                phase2.execute_atomic_index_switch_control_slice(
+                phase2.execute_index_rollback_control_slice(
                     phase2.build_control_input()
                 )
             )
             result["retrieval_query_performed"] = True
             return result
 
-        report = self.module.build_atomic_index_switch_phase3_report(
+        report = self.module.build_index_rollback_phase3_report(
             phase2_executor=runtime_signal
         )
         self.assertFalse(report["valid"])
@@ -395,28 +381,30 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertIn(
-            plan["task"],
-            {state["task"] for state in expected_states.values()},
+            plan["task"], {state["task"] for state in expected_states.values()}
         )
         self.assertTrue(
-            any(gate in plan["stop_condition"] for gate in (
-                "IDS-STAGE079-P3-GATE",
-                "IDS-STAGE079-P4-GATE",
-                "IDS-STAGE079-REVIEW-GATE",
-                "IDS-STAGE080-P1-GATE",
-                "IDS-STAGE080-P2-GATE",
-                "IDS-STAGE080-P3-GATE",
-                "IDS-STAGE080-P4-GATE",
-            ))
+            any(
+                gate in plan["stop_condition"]
+                for gate in (
+                    "IDS-STAGE079-P3-GATE",
+                    "IDS-STAGE079-P4-GATE",
+                    "IDS-STAGE079-REVIEW-GATE",
+                    "IDS-STAGE080-P1-GATE",
+                    "IDS-STAGE080-P2-GATE",
+                    "IDS-STAGE080-P3-GATE",
+                    "IDS-STAGE080-P4-GATE",
+                )
+            )
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
             {
-                "ACC-STAGE-079",
-                "ACC-STAGE079-P3-01",
-                "ACC-STAGE079-P3-02",
-                "ACC-STAGE079-P3-03",
-                "ACC-STAGE079-P3-04",
+                "ACC-STAGE-080",
+                "ACC-STAGE080-P3-01",
+                "ACC-STAGE080-P3-02",
+                "ACC-STAGE080-P3-03",
+                "ACC-STAGE080-P3-04",
             }.issubset(acceptance_ids)
         )
         route_phrases = {
