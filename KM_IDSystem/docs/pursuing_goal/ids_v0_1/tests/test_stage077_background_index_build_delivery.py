@@ -7,46 +7,56 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-SCOPE = BASE / "STAGE076_PHASE4_INDEX_VERSION_SCHEMA_DELIVERY_CLOSEOUT.md"
+SCOPE = BASE / "STAGE077_PHASE4_BACKGROUND_INDEX_BUILD_DELIVERY_CLOSEOUT.md"
 CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage076_index_version_schema_delivery_contract.json"
+    / "stage077_background_index_build_delivery_contract.json"
 )
-MODULE = BASE / "index_version_schema" / "stage076_index_version_schema_delivery.py"
+MODULE = BASE / "index_version_schema" / "stage077_background_index_build_delivery.py"
 TASKPACK = (
     ROOT
     / "docs"
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-076_索引版本Schema.md"
+    / "STAGE-077_后台索引构建.md"
 )
-P3_SCOPE = BASE / "STAGE076_PHASE3_INDEX_VERSION_SCHEMA_CONTROLLED_SCENARIOS.md"
-P3_CONTRACT = (
+PHASE1_SCOPE = BASE / "STAGE077_PHASE1_BACKGROUND_INDEX_BUILD_SCOPE_BOUNDARY.md"
+PHASE1_CONTRACT = (
+    BASE / "index_version_schema" / "stage077_background_index_build_contract.json"
+)
+PHASE2_SCOPE = BASE / "STAGE077_PHASE2_BACKGROUND_INDEX_BUILD_CONTROL_SLICE.md"
+PHASE2_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage076_index_version_schema_scenarios_contract.json"
+    / "stage077_background_index_build_slice_contract.json"
 )
-P3_MODULE = BASE / "index_version_schema" / "stage076_index_version_schema_scenarios.py"
-P2_CONTRACT = (
+PHASE2_MODULE = (
+    BASE / "index_version_schema" / "stage077_background_index_build_slice.py"
+)
+PHASE3_SCOPE = BASE / "STAGE077_PHASE3_BACKGROUND_INDEX_BUILD_CONTROLLED_SCENARIOS.md"
+PHASE3_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage076_index_version_schema_slice_contract.json"
+    / "stage077_background_index_build_scenarios_contract.json"
 )
-P2_MODULE = BASE / "index_version_schema" / "stage076_index_version_schema_slice.py"
+PHASE3_MODULE = (
+    BASE / "index_version_schema" / "stage077_background_index_build_scenarios.py"
+)
+PREDECESSOR_REVIEW = BASE / "STAGE076_STAGE_REVIEW.md"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
-RUN = ROOT / "machine" / "runs" / "2026-08-21-stage076-p4-local.json"
+RUN = ROOT / "machine" / "runs" / "2026-08-21-stage077-p4-local.json"
 
 
 def _load_module():
-    spec = importlib.util.spec_from_file_location("stage076_p4", MODULE)
+    spec = importlib.util.spec_from_file_location("stage077_p4", MODULE)
     if spec is None or spec.loader is None:
-        raise RuntimeError("unable to load Stage076 P4 delivery module")
+        raise RuntimeError("unable to load Stage077 P4 delivery module")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -61,16 +71,16 @@ def _load_predecessor(path: Path, name: str):
     return module
 
 
-class Stage076IndexVersionSchemaPhase4Tests(unittest.TestCase):
+class Stage077BackgroundIndexBuildPhase4Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
         cls.module = _load_module()
-        cls.phase3 = _load_predecessor(P3_MODULE, "stage076_p3_for_p4_test")
-        cls.phase2 = _load_predecessor(P2_MODULE, "stage076_p2_for_p4_test")
+        cls.phase3 = _load_predecessor(PHASE3_MODULE, "stage077_p3_for_p4_test")
+        cls.phase2 = _load_predecessor(PHASE2_MODULE, "stage077_p2_for_p4_test")
 
     def report(self):
-        return self.module.build_index_version_schema_phase4_delivery_report()
+        return self.module.build_background_index_build_phase4_delivery_report()
 
     def test_control_artifacts_exist(self):
         for artifact in (
@@ -78,11 +88,15 @@ class Stage076IndexVersionSchemaPhase4Tests(unittest.TestCase):
             CONTRACT,
             MODULE,
             TASKPACK,
-            P3_SCOPE,
-            P3_CONTRACT,
-            P3_MODULE,
-            P2_CONTRACT,
-            P2_MODULE,
+            PHASE1_SCOPE,
+            PHASE1_CONTRACT,
+            PHASE2_SCOPE,
+            PHASE2_CONTRACT,
+            PHASE2_MODULE,
+            PHASE3_SCOPE,
+            PHASE3_CONTRACT,
+            PHASE3_MODULE,
+            PREDECESSOR_REVIEW,
             ROADMAP,
             EVENTS,
             STATUS,
@@ -96,18 +110,18 @@ class Stage076IndexVersionSchemaPhase4Tests(unittest.TestCase):
     def test_contract_declares_only_control_delivery_evidence(self):
         contract = self.contract
         self.assertEqual(
-            "ids.stage076.index_version_schema.phase4.delivery.v1",
+            "ids.stage077.background_index_build.phase4.delivery.v1",
             contract["schema_version"],
         )
-        self.assertEqual("IDS-V0_1-STAGE076-P4", contract["task_id"])
+        self.assertEqual("IDS-V0_1-STAGE077-P4", contract["task_id"])
         self.assertEqual(
-            "PHASE4_INDEX_VERSION_SCHEMA_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+            "PHASE4_BACKGROUND_INDEX_BUILD_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
             contract["contract_state"],
         )
         self.assertTrue(contract["delivery_executable"])
         self.assertFalse(contract["execution_ready"])
-        self.assertEqual("IDS-STAGE076-P4-GATE", contract["entry_gate"])
-        self.assertEqual("IDS-STAGE076-REVIEW-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE077-P4-GATE", contract["entry_gate"])
+        self.assertEqual("IDS-STAGE077-REVIEW-GATE", contract["next_gate"])
         for field in (
             "second_authoritative_source_created",
             "source_body_or_path_allowed",
@@ -127,6 +141,7 @@ class Stage076IndexVersionSchemaPhase4Tests(unittest.TestCase):
                 contract["phase3_controlled_scenario_replay_contract"]["report_snapshot_version_control_view_count"],
             ),
         )
+        self.assertEqual(255, contract["phase2_control_slice_replay_contract"]["phase2_control_field_check_count"])
         self.assertEqual(
             (5, 10, 6, 9, 5, 8, 5, 8, 1, 9, 3, 8, 4),
             (
@@ -190,7 +205,7 @@ class Stage076IndexVersionSchemaPhase4Tests(unittest.TestCase):
                     "CONTROL_INDEX_MANIFEST_NOT_PERSISTED", item["manifest_state"]
                 )
                 self.assertFalse(item["actual_index_manifest_written"])
-                self.assertIn(":control:stage076-p2:", item["index_manifest_ref"])
+                self.assertIn(":control:stage077-p2:", item["index_manifest_ref"])
         for item in report["smoke_test_log_control_samples"]:
             with self.subTest(smoke=item["scenario_id"]):
                 self.assertEqual(set(self.module.SMOKE_TEST_LOG_FIELDS), set(item))
@@ -199,7 +214,7 @@ class Stage076IndexVersionSchemaPhase4Tests(unittest.TestCase):
                     "CONTROL_SMOKE_TEST_LOG_NOT_PERSISTED", item["log_state"]
                 )
                 self.assertFalse(item["actual_smoke_test_log_written"])
-                self.assertIn(":control:stage076-p2:", item["smoke_test_log_ref"])
+                self.assertIn(":control:stage077-p2:", item["smoke_test_log_ref"])
         for item in report["switch_record_control_samples"]:
             with self.subTest(switch=item["control_scenario"]):
                 self.assertEqual(set(self.module.SWITCH_RECORD_FIELDS), set(item))
@@ -237,11 +252,11 @@ class Stage076IndexVersionSchemaPhase4Tests(unittest.TestCase):
                 )
                 self.assertFalse(item["actual_operation_performed"])
                 self.assertTrue(item["human_handling_required"])
-                self.assertIn(":control:stage076-p2:", item["target_ref"])
+                self.assertIn(":control:stage077-p2:", item["target_ref"])
         self.assertEqual(4, len(report["chinese_feedback"]))
 
     def test_invalid_predecessor_or_runtime_signal_fails_closed(self):
-        invalid = self.module.build_index_version_schema_phase4_delivery_report(
+        invalid = self.module.build_background_index_build_phase4_delivery_report(
             phase3_report_provider=lambda: {"valid": False}
         )
         self.assertFalse(invalid["valid"])
@@ -250,25 +265,27 @@ class Stage076IndexVersionSchemaPhase4Tests(unittest.TestCase):
 
         def malformed_phase2():
             result = copy.deepcopy(
-                self.phase2.execute_index_version_schema_control_slice(
+                self.phase2.execute_background_index_build_control_slice(
                     self.phase2.build_control_input()
                 )
             )
             result["index_version_control_records"][0].pop("index_kind")
             return result
 
-        malformed = self.module.build_index_version_schema_phase4_delivery_report(
+        malformed = self.module.build_background_index_build_phase4_delivery_report(
             phase2_report_provider=malformed_phase2
         )
         self.assertFalse(malformed["valid"])
         self.assertEqual(0, malformed["smoke_test_log_control_sample_count"])
 
         def phase3_runtime_signal():
-            result = copy.deepcopy(self.phase3.build_index_version_schema_phase3_report())
+            result = copy.deepcopy(
+                self.phase3.build_background_index_build_phase3_report()
+            )
             result["actual_retrieval_query_performed"] = True
             return result
 
-        runtime_signal = self.module.build_index_version_schema_phase4_delivery_report(
+        runtime_signal = self.module.build_background_index_build_phase4_delivery_report(
             phase3_report_provider=phase3_runtime_signal
         )
         self.assertFalse(runtime_signal["valid"])
@@ -299,55 +316,56 @@ class Stage076IndexVersionSchemaPhase4Tests(unittest.TestCase):
             if line.strip()
         }
         run = json.loads(RUN.read_text(encoding="utf-8"))
-        self.assertIn(
-            (status["stage"], status["phase"], status["task"], status["next_gate"]),
+        self.assertEqual(
             (
-                (
-                    "IDS-STAGE076",
-                    "IDS-V0_1-STAGE076-P4",
-                    "IDS-V0_1-STAGE076-P4",
-                    "IDS-STAGE076-REVIEW-GATE",
-                ),
-                (
-                    "IDS-STAGE076",
-                    "IDS-V0_1-STAGE076-REVIEW",
-                    "IDS-V0_1-STAGE076-REVIEW",
-                    "IDS-STAGE077-P1-GATE",
-                ),
-                ("IDS-STAGE077", "IDS-V0_1-STAGE077-P1", "IDS-V0_1-STAGE077-P1", "IDS-STAGE077-P2-GATE"),
-                ("IDS-STAGE077", "IDS-V0_1-STAGE077-P2", "IDS-V0_1-STAGE077-P2", "IDS-STAGE077-P3-GATE"), ("IDS-STAGE077", "IDS-V0_1-STAGE077-P3", "IDS-V0_1-STAGE077-P3", "IDS-STAGE077-P4-GATE"), ("IDS-STAGE077", "IDS-V0_1-STAGE077-P4", "IDS-V0_1-STAGE077-P4", "IDS-STAGE077-REVIEW-GATE"),
+                "IDS-STAGE077",
+                "IDS-V0_1-STAGE077-P4",
+                "IDS-V0_1-STAGE077-P4",
+                "IDS-STAGE077-REVIEW-GATE",
             ),
+            (status["stage"], status["phase"], status["task"], status["next_gate"]),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertIn(
-            plan["task"],
-            ("IDS-V0_1-STAGE076-P4", "IDS-V0_1-STAGE076-REVIEW",
-                'IDS-V0_1-STAGE077-P1', 'IDS-V0_1-STAGE077-P2', 'IDS-V0_1-STAGE077-P3', 'IDS-V0_1-STAGE077-P4',),
-        )
+        self.assertEqual("IDS-V0_1-STAGE077-P4", plan["task"])
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
             {
-                "ACC-STAGE076-P1-01",
-                "ACC-STAGE076-P2-01",
-                "ACC-STAGE076-P3-01",
-                "ACC-STAGE076-P4-01",
-                "ACC-STAGE076-P4-02",
-                "ACC-STAGE076-P4-03",
-                "ACC-STAGE076-P4-04",
+                "ACC-STAGE077-P1-01",
+                "ACC-STAGE077-P1-02",
+                "ACC-STAGE077-P1-03",
+                "ACC-STAGE077-P1-04",
+                "ACC-STAGE077-P2-01",
+                "ACC-STAGE077-P2-02",
+                "ACC-STAGE077-P2-03",
+                "ACC-STAGE077-P2-04",
+                "ACC-STAGE077-P3-01",
+                "ACC-STAGE077-P3-02",
+                "ACC-STAGE077-P3-03",
+                "ACC-STAGE077-P3-04",
+                "ACC-STAGE077-P4-01",
+                "ACC-STAGE077-P4-02",
+                "ACC-STAGE077-P4-03",
+                "ACC-STAGE077-P4-04",
             }.issubset(acceptance_ids)
         )
-        self.assertIn("EVT-IDS-V0_1-STAGE076-P4-20260821-001", event_ids)
-        self.assertEqual(self.module.PASS_RESULT, run["result"])
-        self.assertEqual("IDS-STAGE076-REVIEW-GATE", run["next_gate"])
-        self.assertEqual(0, run["runtime_counters"]["model_tokens"])
-        self.assertFalse(run["actions"]["ovh_deployment_performed"])
-        self.assertFalse(run["actions"]["push_performed"])
-        self.assertIn('current_stage_id: "IDS-STAGE076"', roadmap)
-        self.assertIn('current_phase_id: "IDS-STAGE076-P4"', roadmap)
-        self.assertIn('current_task_id: "IDS-V0_1-STAGE076-P4"', roadmap)
-        self.assertIn('next_gate_id: "IDS-STAGE076-REVIEW-GATE"', roadmap)
+        self.assertEqual("IDS-V0_1-STAGE077-P4", run["task_id"])
+        self.assertEqual(
+            "PASS_BACKGROUND_INDEX_BUILD_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+            run["result"],
+        )
+        self.assertEqual("IDS-STAGE077-REVIEW-GATE", run["next_gate"])
+        self.assertEqual(0, run["runtime_counts"]["actual_background_build_count"])
+        self.assertEqual(0, run["runtime_counts"]["actual_index_manifest_write_count"])
+        self.assertEqual(0, run["runtime_counts"]["actual_model_token_count"])
+        self.assertFalse(run["runtime_actions"]["ovh_deployment_performed"])
+        self.assertFalse(run["runtime_actions"]["push_performed"])
+        self.assertIn("EVT-IDS-V0_1-STAGE077-P4-20260821-001", event_ids)
+        self.assertIn('current_stage_id: "IDS-STAGE077"', roadmap)
+        self.assertIn('current_phase_id: "IDS-STAGE077-P4"', roadmap)
+        self.assertIn('current_task_id: "IDS-V0_1-STAGE077-P4"', roadmap)
+        self.assertIn('next_gate_id: "IDS-STAGE077-REVIEW-GATE"', roadmap)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage077-p4-local",
+    "date": "2026-08-21",
+    "summary": "完成 Stage077 P4 后台索引构建纯内存交付证据：只从 P2 五条固定、非业务、reference-only 控制记录和 P3 六条受控场景派生五条索引清单、六条冒烟测试日志、五条切换记录、五条回退证明、一条旧活动版本保留／未测量空间影响投影、三条重建／暂停／恢复说明和四条中文反馈；不建立第二权威事实源。Stage077 P1/P2/P3/P4 聚焦 33/33、Stage060--077 白箱 831/831、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。未读取真实资料、未写入实际清单／日志／切换／回退、未测量空间、未删除／构建／暂停／恢复索引、未执行模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage077 Review。"
+  },
+  {
     "version": "v0.1-stage077-p3-local",
     "date": "2026-08-21",
     "summary": "完成 Stage077 P3 后台索引构建受控异常场景：只在内存中重放 P2 五条固定、非业务、reference-only 控制投影，以六条显式场景核验构建未完成的失败关闭、冒烟失败、切换失败、回退候选、旧活动版本连续服务、零实际并发检索隔离及 Operations／报告快照控制版版本可见性；P2 不含物理构建失败，P3 不伪造真实构建失败。Stage077 P3 聚焦 11/11、P1/P2/P3 聚焦 25/25、Stage060--077 白箱 823/823、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器平面生成 7 个中文文件，文档三道门、无登记阻塞与单项目双平面检查通过。未读取真实资料、未执行批量导入、数据库、后台构建、物理索引、冒烟、切换、检索、并发检索、回退、Operations 或报告写入、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage077 P4。"

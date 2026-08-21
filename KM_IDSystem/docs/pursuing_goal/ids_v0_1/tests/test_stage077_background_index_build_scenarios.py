@@ -346,18 +346,28 @@ class Stage077BackgroundIndexBuildPhase3Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         }
-        self.assertEqual(
-            (
-                "IDS-STAGE077",
-                "IDS-V0_1-STAGE077-P3",
-                "IDS-V0_1-STAGE077-P3",
-                "IDS-STAGE077-P4-GATE",
-            ),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                (
+                    "IDS-STAGE077",
+                    "IDS-V0_1-STAGE077-P3",
+                    "IDS-V0_1-STAGE077-P3",
+                    "IDS-STAGE077-P4-GATE",
+                ),
+                (
+                    "IDS-STAGE077",
+                    "IDS-V0_1-STAGE077-P4",
+                    "IDS-V0_1-STAGE077-P4",
+                    "IDS-STAGE077-REVIEW-GATE",
+                ),
+            ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertEqual("IDS-V0_1-STAGE077-P3", plan["task"])
+        self.assertIn(
+            plan["task"], ("IDS-V0_1-STAGE077-P3", "IDS-V0_1-STAGE077-P4")
+        )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -390,9 +400,18 @@ class Stage077BackgroundIndexBuildPhase3Tests(unittest.TestCase):
         self.assertIn("EVT-IDS-V0_1-STAGE077-P3-20260821-001", event_ids)
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         self.assertIn('current_stage_id: "IDS-STAGE077"', roadmap_text)
-        self.assertIn('current_phase_id: "IDS-STAGE077-P3"', roadmap_text)
-        self.assertIn('current_task_id: "IDS-V0_1-STAGE077-P3"', roadmap_text)
-        self.assertIn('next_gate_id: "IDS-STAGE077-P4-GATE"', roadmap_text)
+        self.assertTrue(
+            'current_phase_id: "IDS-STAGE077-P3"' in roadmap_text
+            or 'current_phase_id: "IDS-STAGE077-P4"' in roadmap_text
+        )
+        self.assertTrue(
+            'current_task_id: "IDS-V0_1-STAGE077-P3"' in roadmap_text
+            or 'current_task_id: "IDS-V0_1-STAGE077-P4"' in roadmap_text
+        )
+        self.assertTrue(
+            'next_gate_id: "IDS-STAGE077-P4-GATE"' in roadmap_text
+            or 'next_gate_id: "IDS-STAGE077-REVIEW-GATE"' in roadmap_text
+        )
 
 
 if __name__ == "__main__":

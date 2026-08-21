@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE077",
-  "phase": "IDS-V0_1-STAGE077-P3",
-  "task": "IDS-V0_1-STAGE077-P3",
-  "real_progress": "Stage077 P3 只在内存中重放 P2 的五条固定、非业务、reference-only 后台索引构建控制投影，并以六条显式场景核验构建未完成的失败关闭、冒烟失败、切换失败、回退候选、旧活动版本持续服务、并发检索隔离以及 Operations／报告快照中的控制版版本可见性；未读取或写入真实资料、构建计划、清单、日志、指针、索引、Operations 或报告。",
-  "report_grade": "冻结 Stage077 任务包、Stage077 P1/P2 与 Stage076 已复审索引版本合同构成唯一合同上下文；本次只执行纯内存控制场景重放，不建立第二权威事实源，不读取真实资料、不连接数据库、不选择或调用模型。",
-  "business_verdict": "本 P3 只证明 P2 固定控制形状在构建未完成的失败关闭、冒烟失败关闭、切换失败保持活动版本、回退目标保留、旧活动版本连续服务、零实际并发检索与 Operations／报告快照控制版版本可见性方面可在本地重放、测试和撤回；P2 没有也未伪造物理索引构建失败。不能证明任何真实资料、批量导入、数据库 schema、后台任务、物理索引、冒烟日志、切换记录、回退证明、检索、真实界面或报告、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "BACKGROUND_INDEX_BUILD_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE077-P4",
+  "task": "IDS-V0_1-STAGE077-P4",
+  "real_progress": "Stage077 P4 只在内存中复用 P2 的五条固定、非业务、reference-only 后台索引构建控制投影与 P3 的六条专项场景，派生五条索引清单、六条冒烟测试日志、五条切换记录、五条回退证明、旧活动版本保留／未测量空间影响投影及重建／暂停／恢复说明；未读取或写入真实资料、清单、日志、指针、索引、Operations 或报告。",
+  "report_grade": "冻结 Stage077 任务包、Stage077 P1/P2/P3 与 Stage076 已复审索引版本合同构成唯一合同上下文；本次只执行纯内存交付证据投影，不建立第二权威事实源，不读取真实资料、不连接数据库、不选择或调用模型。",
+  "business_verdict": "本 P4 只证明既有固定控制形状可派生可测试、可撤回的交付证据、旧活动版本保留／未测量空间影响和未来重建／暂停／恢复前置；不能证明任何真实资料、批量导入、数据库 schema、后台任务、物理索引、冒烟日志、切换记录、回退证明、空间测量、检索、真实界面或报告、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "BACKGROUND_INDEX_BUILD_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-21",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE077-P4-GATE",
+  "next_gate": "IDS-STAGE077-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
