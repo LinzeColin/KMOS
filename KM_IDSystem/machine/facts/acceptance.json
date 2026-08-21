@@ -1,8 +1,8 @@
 {
   "stage": "IDS-STAGE082",
-  "phase": "IDS-STAGE082-P1",
-  "task": "IDS-V0_1-STAGE082-P1",
-  "next_gate": "IDS-STAGE082-P2-GATE",
+  "phase": "IDS-STAGE082-P2",
+  "task": "IDS-V0_1-STAGE082-P2",
+  "next_gate": "IDS-STAGE082-P3-GATE",
   "items": [
     {
       "id": "ACC-STAGE-082",
@@ -27,6 +27,26 @@
     {
       "id": "ACC-STAGE082-P1-04",
       "criteria": "P1 期间不执行真实资料访问、批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、原子切换、检索、并发检索、回退、旧索引清理、空间测量、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage082 P2。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE082-P2-01",
+      "criteria": "冻结 Stage082 任务包、Stage082 P1 与 Stage081 Review/P2 已审核影子索引控制工件保持为唯一合同上下文；P2 只接收五条固定、非业务、reference-only 控制请求，不建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE082-P2-02",
+      "criteria": "每条控制请求记录 index_version、document_scope_ref、chunk_count=0 与 embedding_model_ref，并投影索引版本记录、候选构建与影子、活动指针、冒烟输入输出、未应用切换、未应用回滚、保留策略和清理资格的 7/5/5/6/5/9/8/10/6 字段；候选、活动、上一活动和影子保持隔离，最低保留一个上一活动版本，旧活动版本在控制投影期间继续服务。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE082-P2-03",
+      "criteria": "候选构建未完成、影子不隔离、冒烟未执行、缺失或失败时未来切换候选关闭且活动指针投影保持不变；冒烟完整通过只产生未应用的未来切换候选，计划切换失败同样保持活动版本。额外保留数量、回滚窗口、清理时点或业务线白箱批准未设值时，回滚与旧索引清理均关闭。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE082-P2-04",
+      "criteria": "P2 不执行真实资料访问、批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、原子切换、检索、并发检索、回退、旧索引清理、空间测量、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；只有本地全量验收完成后才可在新 run 进入 Stage082 P3。",
       "status": "已遵守"
     },
     {
