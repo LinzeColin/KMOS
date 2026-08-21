@@ -2494,6 +2494,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE079-P3-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE079"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE079-P3"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE079-P3"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE079-P4-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -19936,6 +19944,37 @@ def evaluate_current_state_consistency(
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
                 },
             },
+            "IDS-STAGE079-P3": {
+                "task_id": "IDS-V0_1-STAGE079-P3",
+                "next_gate_id": "IDS-STAGE079-P4-GATE",
+                "transition_key": "stage079_phase3_state",
+                "stage_statuses": {
+                    "phase3_local_validation_in_progress",
+                    "phase3_completed_local",
+                },
+                "gate_id": "IDS-STAGE079-P3-GATE",
+                "future_phase_ids": {
+                    "IDS-STAGE079-P4",
+                    "IDS-STAGE079-REVIEW",
+                },
+                "required_evidence": {
+                    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-079_索引原子切换.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE079_PHASE1_ATOMIC_INDEX_SWITCH_SCOPE_BOUNDARY.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage079_atomic_index_switch_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE079_PHASE2_ATOMIC_INDEX_SWITCH_CONTROL_SLICE.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage079_atomic_index_switch_slice_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage079_atomic_index_switch_control_slice.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage079_atomic_index_switch_slice.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE079_PHASE3_ATOMIC_INDEX_SWITCH_CONTROLLED_SCENARIOS.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage079_atomic_index_switch_scenarios_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage079_atomic_index_switch_scenarios.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage079_atomic_index_switch_scenarios.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE078_STAGE_REVIEW.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage078_index_smoke_test_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage078_index_smoke_test_delivery_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml",
+                },
+            },
         }
         current_phase_id = roadmap.get("current_phase_id")
         phase_spec = phase_specs.get(current_phase_id)
@@ -19980,6 +20019,26 @@ def evaluate_current_state_consistency(
             ),
             {},
         )
+        phase2 = next(
+            (
+                item
+                for item in phases
+                if isinstance(item, dict)
+                and item.get("phase_id") == "IDS-STAGE079-P2"
+            ),
+            {},
+        )
+        phase2_tasks = phase2.get("tasks") if isinstance(phase2, dict) else []
+        phase2_tasks = phase2_tasks if isinstance(phase2_tasks, list) else []
+        phase2_task = next(
+            (
+                item
+                for item in phase2_tasks
+                if isinstance(item, dict)
+                and item.get("task_id") == "IDS-V0_1-STAGE079-P2"
+            ),
+            {},
+        )
         current_transition = roadmap.get("current_transition_history")
         current_transition = current_transition if isinstance(current_transition, dict) else {}
         future_phases = [
@@ -19997,6 +20056,18 @@ def evaluate_current_state_consistency(
                 and phase1["gate"].get("gate_id") == "IDS-STAGE079-P1-GATE"
                 and phase1["gate"].get("status") == "passed"
                 and phase1_task.get("status") == "completed"
+            )
+        )
+        phase2_preserved = (
+            current_phase_id in {"IDS-STAGE079-P1", "IDS-STAGE079-P2"}
+            or (
+                phase2.get("status") == "completed"
+                and phase2.get("entry_authorized") is True
+                and phase2.get("next_gate_id") == "IDS-STAGE079-P3-GATE"
+                and isinstance(phase2.get("gate"), dict)
+                and phase2["gate"].get("gate_id") == "IDS-STAGE079-P2-GATE"
+                and phase2["gate"].get("status") == "passed"
+                and phase2_task.get("status") == "completed"
             )
         )
         stage079_exact = (
@@ -20025,6 +20096,7 @@ def evaluate_current_state_consistency(
                 {item for item in task.get("evidence_refs", []) if isinstance(item, str)}
             )
             and phase1_preserved
+            and phase2_preserved
         )
         predecessor_review_preserved = any(
             isinstance(item, dict)

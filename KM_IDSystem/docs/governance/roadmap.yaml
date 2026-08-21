@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE079"
-current_phase_id: "IDS-STAGE079-P2"
-current_task_id: "IDS-V0_1-STAGE079-P2"
-next_gate_id: "IDS-STAGE079-P3-GATE"
+current_phase_id: "IDS-STAGE079-P3"
+current_task_id: "IDS-V0_1-STAGE079-P3"
+next_gate_id: "IDS-STAGE079-P4-GATE"
 current_transition_history:
+  stage079_phase3_state:
+    current_stage_id: "IDS-STAGE079"
+    current_phase_id: "IDS-STAGE079-P3"
+    current_task_id: "IDS-V0_1-STAGE079-P3"
+    next_gate_id: "IDS-STAGE079-P4-GATE"
   stage079_phase2_state:
     current_stage_id: "IDS-STAGE079"
     current_phase_id: "IDS-STAGE079-P2"
@@ -1180,13 +1185,13 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-079"
     objective: "只以五条固定、非业务、reference-only 控制请求实现未来活动索引原子切换的纯内存最小控制切片；记录不透明版本、资料范围、零切块计数、模型、候选/活动/上一活动版本与影子引用，保留失败关闭、旧活动版本连续服务和回退保留边界，不读取真实资料或启动实际切换。"
-    status: "phase2_completed_local"
+    status: "phase3_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE079-P3-GATE"
+    next_gate_id: "IDS-STAGE079-P4-GATE"
     gate:
-      gate_id: "IDS-STAGE079-P2-GATE"
+      gate_id: "IDS-STAGE079-P3-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE079-P3-GATE"
+      next_gate_id: "IDS-STAGE079-P4-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "冻结 Stage079 任务包、Stage079 P1、Stage078 Review 及其 P1--P4 已审核控制工件保持为唯一合同上下文；P2 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、Operations、报告、数据库或物理索引。"
@@ -1282,15 +1287,52 @@ stages:
             rollback: "只回滚本 P2 说明、控制合同、纯内存模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PHASE1_ATOMIC_INDEX_SWITCH_CONTRACT_RUNTIME_DISABLED；不改变 P1、Stage078 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE079-P3"
         name: "Phase 3 · 索引原子切换专项验证与异常场景"
-        objective: "冻结任务包范围内的后续专项验证阶段；本轮未进入。"
-        status: "not_started"
-        entry_authorized: false
+        objective: "只重放 P2 五条固定、非业务、reference-only 控制投影，机械验证候选构建未完成、冒烟失败、切换失败、回退候选、旧活动版本连续服务、后台构建期间并发检索控制隔离及 Operations／报告快照版本控制可见性；不读取真实资料或启动实际构建、检索、切换或回退。"
+        status: "completed"
+        entry_authorized: true
         next_gate_id: "IDS-STAGE079-P4-GATE"
         gate:
           gate_id: "IDS-STAGE079-P3-GATE"
-          status: "not_entered"
+          status: "passed"
           next_gate_id: "IDS-STAGE079-P4-GATE"
           github_upload_allowed: false
+        stop_conditions:
+          - "读取真实资料、执行批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、原子切换、检索、并发检索、回退、Operations 或报告快照写入、模型调用、模型 Token、Agent、OVH、生产、上传或推送。"
+          - "进入 Stage079 P4、整阶段复审、Stage080 或任何外部运行时。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE079-P3"
+            name: "验证索引原子切换异常、连续服务与控制可见性"
+            objective: "重放 P2 五条控制投影，以六条专项场景验证失败关闭、旧活动版本连续服务、并发检索控制隔离、Operations／报告快照控制可见性与业务线白箱人工处理前置；不创建真实索引、指针、清单、日志、界面、报告或持久化状态。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE079-P2"
+            acceptance_ids:
+              - "ACC-STAGE-079"
+              - "ACC-STAGE079-P3-01"
+              - "ACC-STAGE079-P3-02"
+              - "ACC-STAGE079-P3-03"
+              - "ACC-STAGE079-P3-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage079_atomic_index_switch_scenarios"
+            test_results: "P3 纯内存专项场景 11/11、P1/P2/P3 聚焦 25/25、Stage060--079 白箱 909/909 已通过；所有结果只验证固定控制形状、历史兼容与零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-079_索引原子切换.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE079_PHASE1_ATOMIC_INDEX_SWITCH_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage079_atomic_index_switch_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE079_PHASE2_ATOMIC_INDEX_SWITCH_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage079_atomic_index_switch_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage079_atomic_index_switch_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage079_atomic_index_switch_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE079_PHASE3_ATOMIC_INDEX_SWITCH_CONTROLLED_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage079_atomic_index_switch_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage079_atomic_index_switch_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage079_atomic_index_switch_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE078_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage078_index_smoke_test_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage078_index_smoke_test_delivery_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把 P2 控制投影、内存场景、控制展示或中文状态误作真实后台任务、真实索引、真实清单、真实日志、真实切换、真实回退、真实检索、真实界面、真实报告、OVH、生产或上传能力，会绕开单一权威和业务线白箱人工处理。"
+            rollback: "只回滚本 P3 说明、场景合同、纯内存模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PHASE2_ATOMIC_INDEX_SWITCH_CONTROL_SLICE_RUNTIME_DISABLED；不改变 P1/P2、Stage078 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE079-P4"
         name: "Phase 4 · 索引原子切换交付证据、回滚与中文反馈"
         objective: "冻结任务包范围内的后续交付证据阶段；本轮未进入。"
