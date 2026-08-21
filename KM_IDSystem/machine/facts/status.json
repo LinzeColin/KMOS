@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE079",
-  "phase": "IDS-V0_1-STAGE079-P4",
-  "task": "IDS-V0_1-STAGE079-P4",
-  "real_progress": "Stage079 P4 已从 P2 的五条固定、非业务、reference-only 原子切换控制投影与 P3 的六条专项场景派生五条索引清单、六条冒烟测试日志、五条切换记录、五条回退证明、一条旧活动版本保留／未测量空间影响投影、三条重建／暂停／恢复说明和四条中文反馈；所有引用仍是不透明控制标签，未读取或写入真实资料、清单、日志、指针、索引、Operations 或报告。",
-  "report_grade": "冻结 Stage079 任务包、Stage079 P1/P2/P3 和 Stage078 Review/P1--P4 已审核控制工件构成唯一合同上下文；P4 只在内存中派生 metadata-only 交付证据，不建立第二权威事实源，不读取真实资料、不连接数据库、不选择或调用模型。",
-  "business_verdict": "Stage079 P4 的索引清单、冒烟测试日志、切换记录、回退证明、保留策略、空间影响、操作说明和中文反馈均为纯内存控制投影，不等于真实索引、manifest、日志、活动指针切换、检索、回退、界面、报告、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "PHASE4_ATOMIC_INDEX_SWITCH_DELIVERY_EVIDENCE_LOCAL_VALIDATED_RUNTIME_DISABLED",
-  "rendered_at": "2026-08-21",
+  "phase": "IDS-STAGE079-REVIEW",
+  "task": "IDS-V0_1-STAGE079-REVIEW",
+  "real_progress": "Stage079 Review 已在内存中机械复审 P1--P4 合同、P2/P3/P4 控制报告与 P4→P3 回退边界；固定控制形状、失败关闭、旧活动版本连续服务、业务线白箱人工处理与零运行时边界一致，未读取或写入真实资料、清单、日志、指针、索引、Operations 或报告。",
+  "report_grade": "冻结 Stage079 任务包、Stage079 P1--P4 和 Stage078 Review/P1--P4 已审核控制工件构成唯一合同上下文；Review 只在内存中机械复审，未建立第二权威事实源，未读取真实资料、不连接数据库、不选择或调用模型。",
+  "business_verdict": "Stage079 Review 的结论只证明冻结控制合同、治理投影与零运行时边界一致，不等于真实索引、manifest、日志、活动指针切换、检索、回退、界面、报告、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "STAGE079_REVIEW_LOCAL_VALIDATED_RUNTIME_DISABLED",
+  "rendered_at": "2026-08-22",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE079-REVIEW-GATE",
+  "next_gate": "IDS-STAGE080-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

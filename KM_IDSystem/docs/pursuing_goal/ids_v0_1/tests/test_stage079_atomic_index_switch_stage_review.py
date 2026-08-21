@@ -12,7 +12,7 @@ TASKPACK = (
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-078_索引冒烟测试.md"
+    / "STAGE-079_索引原子切换.md"
 )
 NEXT_TASKPACK = (
     ROOT
@@ -20,28 +20,28 @@ NEXT_TASKPACK = (
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-079_索引原子切换.md"
+    / "STAGE-080_索引回滚.md"
 )
-REVIEW_DOCUMENT = BASE / "STAGE078_STAGE_REVIEW.md"
-MODULE = BASE / "index_version_schema" / "stage078_index_smoke_test_stage_review.py"
-P1_CONTRACT = BASE / "index_version_schema" / "stage078_index_smoke_test_contract.json"
-P2_CONTRACT = BASE / "index_version_schema" / "stage078_index_smoke_test_slice_contract.json"
-P3_CONTRACT = BASE / "index_version_schema" / "stage078_index_smoke_test_scenarios_contract.json"
-P4_CONTRACT = BASE / "index_version_schema" / "stage078_index_smoke_test_delivery_contract.json"
-P2_MODULE = BASE / "index_version_schema" / "stage078_index_smoke_test_slice.py"
-P3_MODULE = BASE / "index_version_schema" / "stage078_index_smoke_test_scenarios.py"
-P4_MODULE = BASE / "index_version_schema" / "stage078_index_smoke_test_delivery.py"
+REVIEW_DOCUMENT = BASE / "STAGE079_STAGE_REVIEW.md"
+MODULE = BASE / "index_version_schema" / "stage079_atomic_index_switch_stage_review.py"
+P1_CONTRACT = BASE / "index_version_schema" / "stage079_atomic_index_switch_contract.json"
+P2_CONTRACT = BASE / "index_version_schema" / "stage079_atomic_index_switch_slice_contract.json"
+P3_CONTRACT = BASE / "index_version_schema" / "stage079_atomic_index_switch_scenarios_contract.json"
+P4_CONTRACT = BASE / "index_version_schema" / "stage079_atomic_index_switch_delivery_contract.json"
+P2_MODULE = BASE / "index_version_schema" / "stage079_atomic_index_switch_control_slice.py"
+P3_MODULE = BASE / "index_version_schema" / "stage079_atomic_index_switch_scenarios.py"
+P4_MODULE = BASE / "index_version_schema" / "stage079_atomic_index_switch_delivery.py"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
-REVIEW_RUN = ROOT / "machine" / "runs" / "2026-08-21-stage078-review-local.json"
+REVIEW_RUN = ROOT / "machine" / "runs" / "2026-08-22-stage079-review-local.json"
 
 
-class Stage078ReviewTests(unittest.TestCase):
+class Stage079ReviewTests(unittest.TestCase):
     def _module(self):
-        spec = importlib.util.spec_from_file_location("stage078_review_test", MODULE)
+        spec = importlib.util.spec_from_file_location("stage079_review_test", MODULE)
         module = importlib.util.module_from_spec(spec)
         assert spec.loader is not None
         spec.loader.exec_module(module)
@@ -69,14 +69,14 @@ class Stage078ReviewTests(unittest.TestCase):
             self.assertTrue(path.is_file(), path)
 
     def test_phase_contracts_and_control_reports_pass(self):
-        report = self._module().build_index_smoke_test_stage078_review_report()
+        report = self._module().build_atomic_index_switch_stage079_review_report()
         self.assertTrue(report["review_valid"])
         self.assertEqual({"P1": True, "P2": True, "P3": True, "P4": True}, report["phase_results"])
-        self.assertEqual("PASS_REVIEWED_INDEX_SMOKE_TEST_RUNTIME_DISABLED", report["result"])
-        self.assertEqual("IDS-STAGE079-P1-GATE", report["next_gate"])
+        self.assertEqual("PASS_REVIEWED_ATOMIC_INDEX_SWITCH_RUNTIME_DISABLED", report["result"])
+        self.assertEqual("IDS-STAGE080-P1-GATE", report["next_gate"])
 
     def test_controlled_replay_has_exact_frozen_shapes(self):
-        report = self._module().build_index_smoke_test_stage078_review_report()
+        report = self._module().build_atomic_index_switch_stage079_review_report()
         self.assertEqual(
             {
                 "phase1_index_version_field_count": 7,
@@ -84,6 +84,8 @@ class Stage078ReviewTests(unittest.TestCase):
                 "phase1_building_version_field_count": 5,
                 "phase1_smoke_input_field_count": 6,
                 "phase1_smoke_output_field_count": 5,
+                "phase1_switch_record_field_count": 8,
+                "phase1_rollback_proof_field_count": 8,
                 "phase1_switch_condition_count": 5,
                 "phase1_failure_state_count": 9,
                 "phase2_control_request_count": 5,
@@ -93,8 +95,8 @@ class Stage078ReviewTests(unittest.TestCase):
                 "phase2_smoke_test_projection_count": 5,
                 "phase2_switch_projection_count": 5,
                 "phase2_rollback_projection_count": 5,
-                "phase2_control_field_check_count": 250,
-                "phase2_failure_state_count": 7,
+                "phase2_control_field_check_count": 205,
+                "phase2_failure_state_count": 9,
                 "phase3_scenario_count": 6,
                 "phase3_scenario_field_count": 26,
                 "phase3_scenario_field_check_count": 156,
@@ -116,7 +118,7 @@ class Stage078ReviewTests(unittest.TestCase):
 
     def test_authority_rollback_and_runtime_are_closed(self):
         module = self._module()
-        report = module.build_index_smoke_test_stage078_review_report()
+        report = module.build_atomic_index_switch_stage079_review_report()
         self.assertTrue(report["review_invariants"]["single_authority_boundary_preserved"])
         self.assertTrue(report["review_invariants"]["failure_stop_and_rollback_boundaries_preserved"])
         self.assertTrue(report["review_invariants"]["delivery_and_whitebox_boundaries_preserved"])
@@ -124,7 +126,7 @@ class Stage078ReviewTests(unittest.TestCase):
         self.assertFalse(report["second_authoritative_source_created"])
         self.assertFalse(report["source_body_or_path_allowed"])
         self.assertEqual(
-            "PASS_INDEX_SMOKE_TEST_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+            "PASS_ATOMIC_INDEX_SWITCH_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
             report["rollback"]["return_to"],
         )
         self.assertTrue(
@@ -137,44 +139,44 @@ class Stage078ReviewTests(unittest.TestCase):
         self.assertTrue(all(report[field] is False for field in module.REVIEW_RUNTIME_FALSE_FIELDS))
 
     def test_next_stage_stays_closed_except_for_gate(self):
-        report = self._module().build_index_smoke_test_stage078_review_report()
+        report = self._module().build_atomic_index_switch_stage079_review_report()
         self.assertTrue(report["review_invariants"]["next_stage_taskpack_available_but_not_started"])
-        self.assertTrue(report["review_invariants"]["stage079_gate_only_opens_after_review"])
-        self.assertFalse(report["stage079_started"])
+        self.assertTrue(report["review_invariants"]["stage080_gate_only_opens_after_review"])
+        self.assertFalse(report["stage080_started"])
         self.assertFalse(report["github_upload_allowed"])
         self.assertFalse(report["push_allowed"])
 
     def test_invalid_phase4_contract_fails_closed(self):
-        report = self._module().build_index_smoke_test_stage078_review_report(
+        report = self._module().build_atomic_index_switch_stage079_review_report(
             phase4_contract_provider=lambda: {"task_id": "tampered"}
         )
         self.assertFalse(report["review_valid"])
         self.assertFalse(report["phase_results"]["P4"])
-        self.assertEqual("IDS-STAGE078-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE079-REVIEW-GATE", report["next_gate"])
 
     def test_invalid_phase3_report_fails_closed(self):
-        report = self._module().build_index_smoke_test_stage078_review_report(
+        report = self._module().build_atomic_index_switch_stage079_review_report(
             phase3_report_provider=lambda: {"valid": False}
         )
         self.assertFalse(report["review_valid"])
         self.assertFalse(report["phase_results"]["P3"])
-        self.assertEqual("IDS-STAGE078-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE079-REVIEW-GATE", report["next_gate"])
 
     def test_invalid_phase2_report_fails_closed(self):
-        report = self._module().build_index_smoke_test_stage078_review_report(
+        report = self._module().build_atomic_index_switch_stage079_review_report(
             phase2_report_provider=lambda: {"input_accepted": False}
         )
         self.assertFalse(report["review_valid"])
         self.assertFalse(report["phase_results"]["P2"])
-        self.assertEqual("IDS-STAGE078-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE079-REVIEW-GATE", report["next_gate"])
 
     def test_invalid_phase1_contract_fails_closed(self):
-        report = self._module().build_index_smoke_test_stage078_review_report(
+        report = self._module().build_atomic_index_switch_stage079_review_report(
             phase1_contract_provider=lambda: {"task_id": "tampered"}
         )
         self.assertFalse(report["review_valid"])
         self.assertFalse(report["phase_results"]["P1"])
-        self.assertEqual("IDS-STAGE078-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE079-REVIEW-GATE", report["next_gate"])
 
     def test_governance_projection_records_stage_review_when_current(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
@@ -187,55 +189,37 @@ class Stage078ReviewTests(unittest.TestCase):
         }
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
         if current == (
-            "IDS-STAGE078",
-            "IDS-STAGE078-REVIEW",
-            "IDS-V0_1-STAGE078-REVIEW",
-            "IDS-STAGE079-P1-GATE",
+            "IDS-STAGE079",
+            "IDS-STAGE079-REVIEW",
+            "IDS-V0_1-STAGE079-REVIEW",
+            "IDS-STAGE080-P1-GATE",
         ):
             self.assertTrue(REVIEW_RUN.is_file())
             run = json.loads(REVIEW_RUN.read_text(encoding="utf-8"))
             acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-078"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE078-REVIEW-01"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE078-REVIEW-02"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE078-REVIEW-03"])
-            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE078-REVIEW-04"])
-            self.assertIn("EVT-IDS-V0_1-STAGE078-REVIEW-20260821-001", event_ids)
-            self.assertEqual("IDS-STAGE079-P1-GATE", run["next_gate"])
-            self.assertEqual("PASS_REVIEWED_INDEX_SMOKE_TEST_RUNTIME_DISABLED", run["result"])
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-079"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE079-REVIEW-01"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE079-REVIEW-02"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE079-REVIEW-03"])
+            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE079-REVIEW-04"])
+            self.assertIn("EVT-IDS-V0_1-STAGE079-REVIEW-20260822-001", event_ids)
+            self.assertEqual("IDS-STAGE080-P1-GATE", run["next_gate"])
+            self.assertEqual("PASS_REVIEWED_ATOMIC_INDEX_SWITCH_RUNTIME_DISABLED", run["result"])
             self.assertTrue(all(value == 0 for value in run["runtime_counts"].values()))
-            self.assertEqual("IDS-V0_1-STAGE078-REVIEW", plan["task"])
+            self.assertEqual("IDS-V0_1-STAGE079-REVIEW", plan["task"])
             roadmap_text = ROADMAP.read_text(encoding="utf-8")
-            self.assertIn('current_phase_id: "IDS-STAGE078-REVIEW"', roadmap_text)
-            self.assertIn('next_gate_id: "IDS-STAGE079-P1-GATE"', roadmap_text)
+            self.assertIn('current_phase_id: "IDS-STAGE079-REVIEW"', roadmap_text)
+            self.assertIn('next_gate_id: "IDS-STAGE080-P1-GATE"', roadmap_text)
         else:
             self.assertIn(
                 current,
                 (
                     (
-                        "IDS-STAGE078",
-                        "IDS-V0_1-STAGE078-P4",
-                        "IDS-V0_1-STAGE078-P4",
-                        "IDS-STAGE078-REVIEW-GATE",
-                    ),
-                    (
                         "IDS-STAGE079",
-                        "IDS-V0_1-STAGE079-P1",
-                        "IDS-STAGE079-P2-GATE",
+                        "IDS-V0_1-STAGE079-P4",
+                        "IDS-V0_1-STAGE079-P4",
+                        "IDS-STAGE079-REVIEW-GATE",
                     ),
-                    (
-                        "IDS-STAGE079",
-                        "IDS-V0_1-STAGE079-P2",
-                        "IDS-V0_1-STAGE079-P2",
-                        "IDS-STAGE079-P3-GATE",
-                    ),
-                    (
-                        "IDS-STAGE079",
-                        "IDS-V0_1-STAGE079-P3",
-                        "IDS-V0_1-STAGE079-P3",
-                        "IDS-STAGE079-P4-GATE",
-                    ), ("IDS-STAGE079", "IDS-V0_1-STAGE079-P4", "IDS-V0_1-STAGE079-P4", "IDS-STAGE079-REVIEW-GATE"),
-                    ('IDS-STAGE079', 'IDS-STAGE079-REVIEW', 'IDS-V0_1-STAGE079-REVIEW', 'IDS-STAGE080-P1-GATE'),
                 ),
             )
 

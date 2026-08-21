@@ -1,0 +1,71 @@
+{
+  "schema_version": "kmids.local-run.v1",
+  "run_id": "RUN-IDS-STAGE079-REVIEW-LOCAL-20260822-001",
+  "date": "2026-08-22",
+  "task_id": "IDS-V0_1-STAGE079-REVIEW",
+  "acceptance_ids": [
+    "ACC-STAGE-079",
+    "ACC-STAGE079-REVIEW-01",
+    "ACC-STAGE079-REVIEW-02",
+    "ACC-STAGE079-REVIEW-03",
+    "ACC-STAGE079-REVIEW-04"
+  ],
+  "scope": "只机械复审冻结 Stage079 P1--P4 合同、P2/P3/P4 纯内存控制报告和 P4→P3 控制回退；不读取真实资料、不启动 Stage080。",
+  "result": "PASS_REVIEWED_ATOMIC_INDEX_SWITCH_RUNTIME_DISABLED",
+  "next_gate": "IDS-STAGE080-P1-GATE",
+  "runtime_counts": {
+    "actual_input_request_count": 0,
+    "actual_background_build_count": 0,
+    "actual_index_build_count": 0,
+    "actual_smoke_test_count": 0,
+    "actual_retrieval_query_count": 0,
+    "actual_index_rollback_count": 0,
+    "actual_index_manifest_count": 0,
+    "actual_smoke_test_log_count": 0,
+    "actual_switch_record_count": 0,
+    "actual_rollback_proof_count": 0,
+    "actual_old_index_retention_record_count": 0,
+    "actual_operational_instruction_count": 0,
+    "actual_model_token_count": 0,
+    "actual_agent_execution_count": 0,
+    "actual_ovh_deployment_count": 0
+  },
+  "runtime_flags": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "database_connection_performed": false,
+    "index_build_execution_performed": false,
+    "active_pointer_switch_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "stage080_started": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "validation": {
+    "second_authoritative_source_created": false,
+    "reviewed_phase_count": 4,
+    "review_invariant_count": 9,
+    "review_finding_count": 0,
+    "stage079_review_core_test_count": 10,
+    "stage079_p1_to_review_focused_test_count": 43,
+    "stage060_to_stage079_whitebox_test_count": 927,
+    "stage080_started": false
+  },
+  "rollback": {
+    "return_to": "PASS_ATOMIC_INDEX_SWITCH_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+    "scope": "STAGE079_REVIEW_ARTIFACTS_AND_LOCAL_GOVERNANCE_ONLY",
+    "preserve_stage079_p1_to_p4": true,
+    "business_source_or_runtime_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  },
+  "evidence_refs": [
+    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-079_索引原子切换.md",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE079_STAGE_REVIEW.md",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage079_atomic_index_switch_stage_review.py",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage079_atomic_index_switch_stage_review.py"
+  ]
+}

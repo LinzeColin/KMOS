@@ -350,7 +350,10 @@ class Stage079AtomicIndexSwitchPhase4Tests(unittest.TestCase):
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertIn(plan["task"], ("IDS-V0_1-STAGE079-P4", "IDS-STAGE079-REVIEW"))
+        self.assertIn(
+            plan["task"],
+            ("IDS-V0_1-STAGE079-P4", "IDS-V0_1-STAGE079-REVIEW"),
+        )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(

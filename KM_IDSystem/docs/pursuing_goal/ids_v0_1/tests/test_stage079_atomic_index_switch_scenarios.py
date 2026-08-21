@@ -376,7 +376,10 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
-        self.assertIn(plan["task"], set(expected_states))
+        self.assertIn(
+            plan["task"],
+            {state["task"] for state in expected_states.values()},
+        )
         self.assertTrue(
             any(gate in plan["stop_condition"] for gate in (
                 "IDS-STAGE079-P3-GATE",
