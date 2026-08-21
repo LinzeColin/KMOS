@@ -9,7 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage081 Phase 4 - 2026-08-22
+## Current Gate - Stage081 Review - 2026-08-22
+
+- 本节是唯一当前交接；下方 Stage081 P4/P3/P2/P1、Stage080 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其事实。
+- 本轮完成 `IDS-V0_1-STAGE081-REVIEW`：只以冻结 Stage081 任务包、P1--P4 合同、P2/P3/P4 纯内存控制报告和 P4→P3 回退为唯一合同上下文，机械复审 P1 `7/5/5/6/5/8/8/5/10`、P2 五条固定控制请求与七组投影／225 次字段检查、P3 六条场景／28 字段／168 次字段检查／五条 Operations 与五条报告快照控制视图／六条人工处理，以及 P4 `5/6/5/5/1/3/4/13` 交付形状；候选隔离、失败关闭、旧活动版本连续服务、回滚目标、未测量空间影响、未来操作前置和业务线白箱人工处理保持为控制边界，不建立第二权威事实源。
+- 已验证：Review 聚焦 `10/10`、P1--Review 聚焦 `42/42`、Stage060--081 白箱 `1012/1012`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面由事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过；零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-22-stage081-review-local.json`。根级 `lean_governance.py` 在当前稀疏工作树中不存在，未陈述为已执行。
+- 本 Review 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、证据账本、审计日志、Operations、报告、数据库、物理索引或业务结论；不执行批量导入、数据库 schema 或连接、后台构建、索引／影子索引、实际冒烟、实际清单／日志／切换／回滚写入、空间测量、旧索引删除、重建、暂停、恢复、活动指针读写、检索、并发检索、模型 Token、Agent、OVH、生产、上传或推送。
+- 回滚只撤回本 Review 的范围说明、纯内存复审模块、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_SHADOW_INDEX_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；保留 Stage081 P1--P4、Stage080 Review/P1--P4、冻结任务包、真实资料、fixture、manifest、证据账本、审计日志、数据库、索引、GitHub、OVH 与应用状态。
+- 下一步仅可在新的独立 run 进入 `IDS-STAGE082-P1-GATE`；继续使用当前既有的唯一开发 worktree `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`，不创建额外 worktree、branch 或 PR。本 run 不启动 Stage082、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage081 Phase 4 - 2026-08-22
 
 - 本节是唯一当前交接；下方 Stage081 P3/P2/P1、Stage080 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其事实。
 - 本轮完成 `IDS-V0_1-STAGE081-P4`：只以冻结 Stage081 任务包、Stage081 P1/P2/P3 控制工件及 Stage080 Review/P1--P4 已审核索引回滚控制工件为唯一合同上下文，在内存中从 P2 五条固定、非业务、`reference-only` 控制投影和 P3 六条受控场景派生五条索引清单、六条冒烟测试日志、五条切换记录、五条回滚证明、一条旧活动版本保留／未测量空间影响投影、三条重建／暂停／恢复说明和四条中文反馈。所有清单、日志、记录、证明、说明和反馈均为未写入的控制投影；业务线白箱人工处理仍为未来前置，不建立第二权威事实源。
