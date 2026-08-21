@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE080",
-  "phase": "IDS-V0_1-STAGE080-P1",
-  "task": "IDS-V0_1-STAGE080-P1",
-  "real_progress": "Stage080 P1 已完成未来索引版本、活动指针、构建中版本、影子索引、冒烟测试、回滚窗口与旧活动版本连续服务的静态合同及本地验证：聚焦 6/6、Stage060--080 白箱 933/933、Stage005 直接治理 valid=true、Batch041-050 与 Batch051-060 均已通过。未读取或写入真实资料、清单、日志、指针、索引、Operations 或报告。",
-  "report_grade": "冻结 Stage080 任务包和 Stage079 Review/P1--P4 已审核原子切换控制工件构成唯一合同上下文；P1 只定义静态合同，未建立第二权威事实源，未读取真实资料、不连接数据库、不选择或调用模型。",
-  "business_verdict": "Stage080 P1 的版本、指针、构建、影子、冒烟与回滚窗口均为静态控制字段，不等于真实批量导入、索引构建、冒烟测试、活动指针切换、检索、回滚、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "PHASE1_INDEX_ROLLBACK_CONTRACT_LOCAL_VALIDATED_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE080-P2",
+  "task": "IDS-V0_1-STAGE080-P2",
+  "real_progress": "Stage080 P2 已完成五条固定、非业务、纯内存索引回滚控制请求的聚焦验证 8/8：记录索引版本、文档范围引用、零切块计数与嵌入模型引用，投影候选构建、影子隔离、冒烟输入输出、活动指针、未应用切换和未应用回滚资格；Stage060--080 白箱 941/941、Stage005 直接治理 valid=true 与两批次检查均已本地通过。未读取或写入真实资料、清单、日志、指针、索引、Operations 或报告。",
+  "report_grade": "冻结 Stage080 任务包、Stage080 P1 和 Stage079 Review/P2 已审核原子切换控制工件构成唯一合同上下文；P2 只运行固定控制标签的纯内存切片，未建立第二权威事实源，未读取真实资料、不连接数据库、不选择或调用模型。",
+  "business_verdict": "Stage080 P2 的版本、候选、影子、冒烟、指针、切换和回滚资格均为未应用的控制投影，不等于真实批量导入、索引构建、冒烟测试、活动指针切换、检索、回滚、审批、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "PHASE2_INDEX_ROLLBACK_CONTROL_SLICE_LOCAL_VALIDATED_RUNTIME_DISABLED",
   "rendered_at": "2026-08-22",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE080-P2-GATE",
+  "next_gate": "IDS-STAGE080-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

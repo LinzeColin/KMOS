@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE080"
-current_phase_id: "IDS-STAGE080-P1"
-current_task_id: "IDS-V0_1-STAGE080-P1"
-next_gate_id: "IDS-STAGE080-P2-GATE"
+current_phase_id: "IDS-STAGE080-P2"
+current_task_id: "IDS-V0_1-STAGE080-P2"
+next_gate_id: "IDS-STAGE080-P3-GATE"
 current_transition_history:
+  stage080_phase2_state:
+    current_stage_id: "IDS-STAGE080"
+    current_phase_id: "IDS-STAGE080-P2"
+    current_task_id: "IDS-V0_1-STAGE080-P2"
+    next_gate_id: "IDS-STAGE080-P3-GATE"
   stage080_phase1_state:
     current_stage_id: "IDS-STAGE080"
     current_phase_id: "IDS-STAGE080-P1"
@@ -1199,22 +1204,22 @@ stages:
     task_id: "IDS-V0_1-STAGE080"
     acceptance_ids:
       - "ACC-STAGE-080"
-    objective: "只定义未来索引版本、活动指针、构建中版本、影子索引、冒烟测试、回滚窗口与旧活动版本连续服务的静态工程合同；每次未来批量导入后建立隔离候选，新索引未通过测试不得切换；不读取真实资料或启动实际回滚。"
-    status: "phase1_completed_local"
+    objective: "只以固定、非业务、纯内存控制请求投影索引版本、候选构建、影子隔离、冒烟门、活动指针、未应用切换与未应用回滚资格；候选不得覆盖活动版本，失败保持旧活动版本连续服务；不读取真实资料或启动实际回滚。"
+    status: "phase2_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE080-P2-GATE"
+    next_gate_id: "IDS-STAGE080-P3-GATE"
     gate:
-      gate_id: "IDS-STAGE080-P1-GATE"
+      gate_id: "IDS-STAGE080-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE080-P2-GATE"
+      next_gate_id: "IDS-STAGE080-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "冻结 Stage080 任务包、Stage079 Review 与 P1--P4 已审核原子切换控制工件保持为唯一合同上下文；P1 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、Operations、报告、数据库或物理索引。"
-      - "静态合同固定 7 字段索引版本、5 字段活动指针、5 字段构建／影子、6/5 字段冒烟测试、8 字段未来回滚请求、8 字段未来回滚证明与五条回滚前置条件；所有字段只为控制标签。"
-      - "每次未来批量导入后的候选不得覆盖活动版本；旧活动版本在未来构建、冒烟、切换与回滚准备期间继续服务；冒烟失败、缺失或未记录时不得切换，回滚只指向保留且在窗口内的上一活动版本；真实资料、模型、Token、Agent、OVH、生产和上传均保持关闭。"
+      - "冻结 Stage080 任务包、Stage080 P1 与 Stage079 Review/P2 已审核原子切换控制工件保持为唯一合同上下文；P2 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、Operations、报告、数据库或物理索引。"
+      - "五条固定、非业务、reference-only 控制请求记录七字段索引版本、五字段构建／影子、五字段活动指针、六／五字段冒烟输入输出、九字段切换和八字段回滚请求；所有引用和零值只为控制标签。"
+      - "构建未完成或冒烟失败关闭切换，候选和影子保持隔离，活动指针投影始终保持原活动版本；回滚只投影保留且在窗口内的上一活动版本，业务线白箱审批只作控制标签而非实际审批；真实资料、模型、Token、Agent、OVH、生产和上传均保持关闭。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、测试、切换、查询或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
-      - "执行实际索引版本／活动指针／构建／影子／冒烟／切换／回退记录写入、空间影响测量、旧索引删除、索引重建、暂停、恢复、真实批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、活动指针读写、原子切换、检索、并发检索、回退、Operations 写入、报告快照写入、provider/模型选择或调用、模型 Token、持久化、Agent、OVH、生产服务、Stage080 P2、批次复审、上传、推送或应用重装。"
+      - "执行实际索引版本／活动指针／构建／影子／冒烟／切换／回退记录写入、空间影响测量、旧索引删除、索引重建、暂停、恢复、真实批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、活动指针读写、原子切换、检索、并发检索、回退、Operations 写入、报告快照写入、provider/模型选择或调用、模型 Token、持久化、Agent、OVH、生产服务、Stage080 P3、批次复审、上传、推送或应用重装。"
     phases:
       - phase_id: "IDS-STAGE080-P1"
         name: "Phase 1 · 索引回滚范围、输入输出与边界确认"
@@ -1258,15 +1263,47 @@ stages:
             rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PASS_REVIEWED_ATOMIC_INDEX_SWITCH_RUNTIME_DISABLED；不改变 Stage079 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE080-P2"
         name: "Phase 2 · 索引回滚实现、接入与最小可运行切片"
-        objective: "冻结任务包范围内的后续实现阶段；本轮未进入。"
-        status: "not_started"
-        entry_authorized: false
+        objective: "只实现五条固定、非业务、reference-only 的纯内存控制切片，投影索引版本、候选构建、影子隔离、冒烟门、活动指针、未应用切换和未应用回滚资格；不接入真实索引、数据库、业务资料或生产运行。"
+        status: "completed"
+        entry_authorized: true
         next_gate_id: "IDS-STAGE080-P3-GATE"
         gate:
           gate_id: "IDS-STAGE080-P2-GATE"
-          status: "not_entered"
+          status: "passed"
           next_gate_id: "IDS-STAGE080-P3-GATE"
           github_upload_allowed: false
+        stop_conditions:
+          - "读取真实资料、执行批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、原子切换、检索、回退、模型调用、模型 Token、Agent、OVH、生产、上传、推送或 Stage080 P3。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE080-P2"
+            name: "实现索引回滚纯内存控制切片"
+            objective: "用五条固定控制请求记录索引版本、文档范围引用、零切块计数和嵌入模型引用，并投影候选/活动/上一活动/影子引用、冒烟门、未应用切换与回滚资格；不建立真实运行或业务事实。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE080-P1"
+            acceptance_ids:
+              - "ACC-STAGE-080"
+              - "ACC-STAGE080-P2-01"
+              - "ACC-STAGE080-P2-02"
+              - "ACC-STAGE080-P2-03"
+              - "ACC-STAGE080-P2-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage080_index_rollback_slice"
+            test_results: "P2 聚焦 8/8、P1/P2 聚焦 14/14、Stage060--080 白箱 941/941、Stage005 直接治理 valid=true、两个既有批次检查、机器平面中文视图和双平面验证均已在本地完成；所有结果只验证控制投影、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-080_索引回滚.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE080_PHASE1_INDEX_ROLLBACK_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage080_index_rollback_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE080_PHASE2_INDEX_ROLLBACK_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage080_index_rollback_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage080_index_rollback_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage080_index_rollback_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE079_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage079_atomic_index_switch_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+              - "KM_IDSystem/machine/runs/2026-08-22-stage080-p2-local.json"
+            risk: "若把固定控制标签、内存投影、回滚资格或中文状态误作真实索引、真实审批、真实回滚、OVH、生产或上传能力，会绕开单一权威和业务线白箱人工处理。"
+            rollback: "只回滚本 P2 说明、控制合同、纯内存模块、聚焦用例、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 PHASE1_INDEX_ROLLBACK_CONTRACT_LOCAL_VALIDATED_RUNTIME_DISABLED；不改变 Stage080 P1、Stage079 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE080-P3"
         name: "Phase 3 · 索引回滚专项验证与异常场景"
         objective: "冻结任务包范围内的后续专项验证阶段；本轮未进入。"
