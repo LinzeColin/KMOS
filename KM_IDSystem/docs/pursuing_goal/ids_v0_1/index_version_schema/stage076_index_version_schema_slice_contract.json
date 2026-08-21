@@ -1,0 +1,218 @@
+{
+  "schema_version": "ids.stage076.index_version_schema.phase2.v1",
+  "stage": "STAGE-076",
+  "phase": "IDS-STAGE076-P2",
+  "task_id": "IDS-V0_1-STAGE076-P2",
+  "acceptance_id": "ACC-STAGE-076",
+  "contract_state": "PHASE2_INDEX_VERSION_SCHEMA_CONTROL_SLICE_RUNTIME_DISABLED",
+  "next_gate": "IDS-STAGE076-P3-GATE",
+  "slice_executable": true,
+  "execution_ready": false,
+  "pursuing_goal": "只以五条固定、非业务、reference-only 控制请求在内存中投影三类索引版本、构建中版本、影子候选、切换前验证、活动指针、原子切换候选和回退候选；不构建、切换、查询或持久化任何真实索引。",
+  "source_authority": {
+    "authority": "FROZEN_STAGE076_TASKPACK_PHASE1_CONTRACT_STAGE075_REVIEW_AND_PREDECESSOR_CONTROL_CONTRACTS_ONLY",
+    "frozen_taskpack_ref": "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-076_索引版本Schema.md",
+    "phase1_contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage076_index_version_schema_contract.json",
+    "predecessor_stage_review_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_STAGE_REVIEW.md",
+    "predecessor_phase1_contract_ref": "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_contract.json",
+    "second_authoritative_source_created": false,
+    "source_body_or_path_allowed": false,
+    "raw_metadata_content_access_allowed": false,
+    "live_source_read_performed": false,
+    "authorized_fixture_access_performed": false
+  },
+  "reference_only_index_version_input_control_contract": {
+    "control_request_count": 5,
+    "control_request_order": [
+      "fulltext_verified_switch_candidate",
+      "vector_building_keeps_active",
+      "hybrid_verification_failure_blocks_switch",
+      "fulltext_switch_failure_preserves_active",
+      "hybrid_rollback_candidate_retains_previous"
+    ],
+    "required_fields": [
+      "control_scenario",
+      "index_version",
+      "index_kind",
+      "lifecycle_state",
+      "document_scope_ref",
+      "chunk_count",
+      "embedding_model_ref",
+      "source_import_ref",
+      "created_at_ref",
+      "active_index_version_ref",
+      "previous_active_index_version_ref",
+      "planned_build_state",
+      "planned_verification_state",
+      "planned_switch_outcome",
+      "planned_rollback_state"
+    ],
+    "field_count": 15,
+    "supported_index_kinds": [
+      "fulltext",
+      "vector",
+      "hybrid"
+    ],
+    "control_chunk_count": 0,
+    "source_document_body_allowed": false,
+    "actual_document_scope_recorded": false,
+    "actual_chunk_count_recorded": false,
+    "actual_embedding_model_recorded": false
+  },
+  "phase1_schema_reuse_contract": {
+    "index_version_record_required_fields": [
+      "index_version",
+      "index_kind",
+      "lifecycle_state",
+      "document_scope_ref",
+      "chunk_count",
+      "embedding_model_ref",
+      "source_import_ref",
+      "created_at_ref"
+    ],
+    "index_version_record_field_count": 8,
+    "active_pointer_required_fields": [
+      "index_kind",
+      "active_index_version_ref",
+      "previous_active_index_version_ref",
+      "pointer_state",
+      "switch_record_ref"
+    ],
+    "active_pointer_field_count": 5,
+    "building_version_required_fields": [
+      "index_kind",
+      "building_index_version_ref",
+      "build_state",
+      "source_import_ref",
+      "shadow_index_ref"
+    ],
+    "building_version_field_count": 5,
+    "every_bulk_import_requires_new_index_version": true,
+    "building_version_must_not_equal_active_version": true,
+    "old_active_index_continues_serving_during_build": true,
+    "future_atomic_switch_required": true,
+    "old_index_retention_for_rollback_required": true
+  },
+  "control_projection_contract": {
+    "index_version_control_record_count": 5,
+    "building_version_control_record_count": 5,
+    "active_pointer_control_projection_count": 5,
+    "verification_control_projection_count": 5,
+    "switch_control_projection_count": 5,
+    "rollback_control_projection_count": 5,
+    "shadow_candidate_isolated_from_active_serving": true,
+    "candidate_must_not_serve_retrieval_before_future_switch": true,
+    "verification_required_conditions": [
+      "index_version_schema_complete",
+      "candidate_build_marked_complete",
+      "document_scope_declared",
+      "chunk_count_declared",
+      "embedding_model_declared",
+      "active_service_continuity_asserted"
+    ],
+    "verification_condition_count": 6,
+    "failed_or_pending_verification_blocks_switch": true,
+    "switch_projection_is_not_actual_pointer_write": true,
+    "rollback_projection_is_not_actual_rollback": true,
+    "business_line_whitebox_human_review_required_for_future_switch_exception": true
+  },
+  "failure_and_stop_contract": {
+    "control_failure_states": [
+      "CONTROL_BUILDING_NOT_STARTED",
+      "CONTROL_BUILD_FAILED_NOT_STARTED",
+      "CONTROL_BUILD_NOT_COMPLETE_SWITCH_BLOCKED",
+      "CONTROL_REQUIRED_CONDITION_FAILED_SWITCH_BLOCKED",
+      "CONTROL_SWITCH_BLOCKED_VERIFICATION_FAILED",
+      "CONTROL_SWITCH_FAILED_ACTIVE_UNCHANGED",
+      "CONTROL_ROLLBACK_TO_RETAINED_PREVIOUS_ACTIVE_PROJECTED"
+    ],
+    "failure_state_count": 7,
+    "automatic_business_write_allowed": false,
+    "automatic_active_pointer_switch_allowed": false,
+    "automatic_rollback_execution_allowed": false,
+    "actual_failure_record_created": false
+  },
+  "chinese_feedback_contract": {
+    "feedbacks": [
+      "索引版本控制切片已在内存中投影，未构建或持久化实际索引。",
+      "构建中版本不替换活动版本，旧活动版本继续服务。",
+      "候选验证未通过或未完成时，活动指针保持不变。",
+      "回退候选只指向保留的上一活动版本，需业务线白箱人工处理。"
+    ],
+    "feedback_count": 4,
+    "actual_user_feedback_emitted": false
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "raw_metadata_content_accessed": false,
+    "authorized_fixture_access_performed": false,
+    "actual_index_version_record_created": false,
+    "actual_document_scope_recorded": false,
+    "actual_chunk_count_recorded": false,
+    "actual_embedding_model_recorded": false,
+    "actual_bulk_import_detected": false,
+    "actual_index_build_started": false,
+    "actual_building_version_record_created": false,
+    "actual_shadow_index_created": false,
+    "actual_shadow_index_queried": false,
+    "actual_verification_run_performed": false,
+    "actual_verification_result_recorded": false,
+    "actual_active_pointer_read_performed": false,
+    "actual_active_pointer_write_performed": false,
+    "actual_switch_record_created": false,
+    "actual_retrieval_query_performed": false,
+    "actual_rollback_record_created": false,
+    "actual_rollback_execution_performed": false,
+    "database_schema_migration_performed": false,
+    "database_connection_performed": false,
+    "persistent_state_write_performed": false,
+    "provider_or_model_selected": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "external_api_call_performed": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "stage_and_phase_boundary": {
+    "stage075_review_evidence_read": true,
+    "stage076_phase1_evidence_read": true,
+    "stage076_started": true,
+    "stage076_entry_authorized": true,
+    "phase1_completed": true,
+    "phase2_started": true,
+    "phase3_started": false,
+    "phase4_started": false,
+    "whole_stage_review_performed": false,
+    "stage077_started": false,
+    "github_upload_allowed": false,
+    "push_allowed": false
+  },
+  "protected_surface_boundary": {
+    "raw_source_change_allowed": false,
+    "manifest_change_allowed": false,
+    "evidence_ledger_change_allowed": false,
+    "audit_log_change_allowed": false,
+    "delivered_report_change_allowed": false,
+    "persistent_database_change_allowed": false,
+    "source_or_raw_data_cleanup_allowed": false
+  },
+  "rollback_contract": {
+    "return_to": "PHASE1_INDEX_VERSION_SCHEMA_CONTRACT_RUNTIME_DISABLED",
+    "revertable_artifacts": [
+      "Stage076 Phase 2 control-slice scope boundary",
+      "Stage076 index version schema control-slice contract",
+      "Stage076 in-memory control-slice module",
+      "Stage076 focused control-slice tests",
+      "Stage076 governance projection"
+    ],
+    "future_rollback_target_must_be_previous_active_index_version": true,
+    "future_old_index_retention_required": true,
+    "preserve_phase1_contract": true,
+    "source_or_raw_data_change_allowed": false,
+    "database_or_persistent_state_change_allowed": false,
+    "github_or_ovh_change_allowed": false
+  }
+}

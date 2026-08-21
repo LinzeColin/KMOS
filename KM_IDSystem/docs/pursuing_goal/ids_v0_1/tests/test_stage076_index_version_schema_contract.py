@@ -230,6 +230,7 @@ class Stage076IndexVersionSchemaPhase1Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE076-P1",
                     "IDS-V0_1-STAGE076-P1",
                     "IDS-STAGE076-P2-GATE",
+                "IDS-STAGE076-P3-GATE",
                 ),
                 (
                     "IDS-STAGE076",

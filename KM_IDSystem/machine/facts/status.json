@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE076",
-  "phase": "IDS-V0_1-STAGE076-P1",
-  "task": "IDS-V0_1-STAGE076-P1",
-  "real_progress": "Stage076 P1 已将索引版本、活动指针、构建中版本、影子候选、切换前验证和回退边界固定为静态工程合同；尚未构建、切换、查询或持久化任何索引。",
-  "report_grade": "冻结 Stage076 任务包、Stage075 Review 与 Stage075 P1 静态合同构成唯一合同上下文；本次只定义可测试、可回滚的工程边界，不建立第二权威事实源，不读取真实资料、不连接数据库、不选择或调用模型。",
-  "business_verdict": "本 P1 只证明三类索引版本、未来活动指针、构建中版本、影子候选、切换前验证失败关闭和回退保留要求在本地静态一致；不能证明任何真实资料、批量导入、数据库 schema、索引、检索、并发服务、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "PHASE1_INDEX_VERSION_SCHEMA_CONTRACT_RUNTIME_DISABLED",
+  "phase": "IDS-V0_1-STAGE076-P2",
+  "task": "IDS-V0_1-STAGE076-P2",
+  "real_progress": "Stage076 P2 已将五条固定、非业务、reference-only 索引版本控制请求投影为内存中的版本记录、构建中版本、影子候选、切换前验证、活动指针、原子切换候选和回退候选；未构建、切换、查询或持久化任何实际索引。",
+  "report_grade": "冻结 Stage076 任务包、Stage076 P1 合同、Stage075 Review 与 Stage075 P1 静态合同构成唯一合同上下文；本次只运行可测试、可回滚的内存控制切片，不建立第二权威事实源，不读取真实资料、不连接数据库、不选择或调用模型。",
+  "business_verdict": "本 P2 只证明三类索引版本的五条固定控制投影、构建期间旧活动版本连续服务、验证失败或未完成阻断切换、切换失败保持活动版本和回退候选指向保留的上一活动版本在本地内存中一致；不能证明任何真实资料、批量导入、数据库 schema、索引、检索、并发服务、模型、Token、审计、OVH、生产服务或上传能力已启用；来源文档与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "PHASE2_INDEX_VERSION_SCHEMA_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-21",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE076-P2-GATE",
+  "next_gate": "IDS-STAGE076-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE076"
-current_phase_id: "IDS-STAGE076-P1"
-current_task_id: "IDS-V0_1-STAGE076-P1"
-next_gate_id: "IDS-STAGE076-P2-GATE"
+current_phase_id: "IDS-STAGE076-P2"
+current_task_id: "IDS-V0_1-STAGE076-P2"
+next_gate_id: "IDS-STAGE076-P3-GATE"
 current_transition_history:
+  stage076_phase2_state:
+    current_stage_id: "IDS-STAGE076"
+    current_phase_id: "IDS-STAGE076-P2"
+    current_task_id: "IDS-V0_1-STAGE076-P2"
+    next_gate_id: "IDS-STAGE076-P3-GATE"
   stage076_phase1_state:
     current_stage_id: "IDS-STAGE076"
     current_phase_id: "IDS-STAGE076-P1"
@@ -17880,22 +17885,22 @@ stages:
     task_id: "IDS-V0_1-STAGE076"
     acceptance_ids:
       - "ACC-STAGE-076"
-    objective: "只以冻结 Stage076 任务包、Stage075 Review 和 Stage075 P1 静态合同为唯一合同上下文，定义三类索引版本、活动指针、构建中版本、影子候选、切换前验证失败关闭和回退保留的静态工程边界；不读取、导入、构建、切换、查询或回退真实资料或索引。"
-    status: "phase1_completed_local"
+    objective: "只以冻结 Stage076 任务包、Stage076 P1 合同、Stage075 Review 和 Stage075 P1 静态合同为唯一合同上下文，以五条固定、非业务、reference-only 控制请求在内存中投影三类索引版本、构建中版本、影子候选、切换前验证、活动指针、原子切换候选和回退候选；不读取、导入、构建、切换、查询或回退真实资料或索引。"
+    status: "phase2_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE076-P2-GATE"
+    next_gate_id: "IDS-STAGE076-P3-GATE"
     gate:
-      gate_id: "IDS-STAGE076-P1-GATE"
+      gate_id: "IDS-STAGE076-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE076-P2-GATE"
+      next_gate_id: "IDS-STAGE076-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "冻结 Stage076 任务包、Stage075 Review 和 Stage075 P1 静态合同保持为唯一合同上下文；P1 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、报告或物理索引。"
-      - "三类索引版本、八字段未来版本记录、五字段活动指针、五字段构建中版本、影子候选、每次未来批量导入建立新版本、旧活动索引持续服务、切换前验证和回退保留边界已明确。"
-      - "候选未通过或缺失切换前验证结果时不得切换活动指针；未来回退只可指向保留的上一活动版本。"
+      - "冻结 Stage076 任务包、Stage076 P1 合同、Stage075 Review 和 Stage075 P1 静态合同保持为唯一合同上下文；P2 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、报告或物理索引。"
+      - "五条固定、非业务控制输入复用三类索引版本、八字段版本记录、五字段活动指针、五字段构建中版本、影子候选、每次未来批量导入建立新版本、旧活动索引持续服务、切换前验证和回退保留边界。"
+      - "候选未通过或缺失切换前验证结果时阻断切换；已通过候选只形成内存切换投影，切换失败保持活动版本，回退候选只指向保留的上一活动版本。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、切换、查询或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
-      - "执行真实批量导入、数据库 schema 或连接、索引构建、影子索引、切换前验证、活动指针读写、原子切换、检索、回退、provider/模型选择或调用、模型 Token、持久化、Agent、OVH、生产服务、Stage076 P2、上传、推送或应用重装。"
+      - "执行真实批量导入、数据库 schema 或连接、索引构建、影子索引、切换前验证、活动指针读写、原子切换、检索、回退、provider/模型选择或调用、模型 Token、持久化、Agent、OVH、生产服务、Stage076 P3、上传、推送或应用重装。"
     phases:
       - phase_id: "IDS-STAGE076-P1"
         name: "Phase 1 · 索引版本范围、输入输出与边界确认"
@@ -17944,6 +17949,56 @@ stages:
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
             risk: "若把静态字段、未来切换规则、聚焦用例或中文状态误作真实版本、真实索引、真实检索、真实回退、OVH、生产或上传能力，会绕开单一权威和业务线白箱人工处理。"
             rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 REVIEWED_EXTERNAL_API_COVERAGE_AUDIT_RUNTIME_DISABLED；不改变 Stage075 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE076-P2"
+        name: "Phase 2 · 索引版本 Schema 实现、接入与最小可运行切片"
+        objective: "只以五条固定、非业务、reference-only 控制请求在内存中投影三类索引版本、构建中版本、影子候选、切换前验证、活动指针、原子切换候选和回退候选；不读取真实资料，不连接数据库，不构建、切换、查询或持久化真实索引。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE076-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE076-P2-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE076-P3-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取真实资料、执行批量导入、数据库 schema 或连接、索引构建、切换前验证、活动指针读写、检索、回退、模型调用、模型 Token、Agent、OVH、生产、上传或推送。"
+          - "固定控制输入不匹配、构建中版本等于活动版本、验证失败或未完成仍允许切换、切换失败改变活动版本、回退候选不指向保留的上一活动版本、测试失败原因不明、范围超出 Stage076 P2 或共享文件发生冲突。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE076-P2"
+            name: "交付索引版本 Schema 纯内存控制切片"
+            objective: "将 P1 固定的三类索引版本、八字段版本记录、五字段活动指针、五字段构建中版本、影子候选、六项切换前验证、未来全有或全无切换和回退保留投影为五条可测试、可回滚、非业务控制记录，不替代来源文档或业务事实。"
+            status: "completed"
+            estimated_hours: 2
+            total_hours_percent: "50.00%"
+            dependencies:
+              - "IDS-V0_1-STAGE076-P1"
+            acceptance_ids:
+              - "ACC-STAGE-076"
+              - "ACC-STAGE076-P2-01"
+              - "ACC-STAGE076-P2-02"
+              - "ACC-STAGE076-P2-03"
+              - "ACC-STAGE076-P2-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage076_index_version_schema_slice"
+              - "Stage076 P1/P2 与显式前序兼容回归命令记录在 machine run"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage076 P2 聚焦 8/8、Stage060--069 历史白箱 473/473、Stage070--076 链路白箱 296/296、Stage005 valid=true、两个批次检查器与机器平面检查均通过；本 P2 不进入 Stage076 P3、OVH、生产或上传。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-076_索引版本Schema.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE076_PHASE2_INDEX_VERSION_SCHEMA_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage076_index_version_schema_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage076_index_version_schema_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage076_index_version_schema_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage076_index_version_schema_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-21-stage076-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE075_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/external_api_coverage_audit/stage075_external_api_coverage_audit_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把五条 control 输入、内存版本/构建/验证/指针/切换/回退投影或本地测试误作真实版本、真实索引、真实检索、真实回退、OVH、生产或上传能力，会绕开单一权威和业务线白箱人工处理。"
+            rollback: "只回滚本 P2 说明、纯内存控制合同、模块、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PHASE1_INDEX_VERSION_SCHEMA_CONTRACT_RUNTIME_DISABLED；不改变 P1、Stage075 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
   - stage_id: "IDS-STAGE075"
     name: "外部 API 覆盖授权审计"
     task_id: "IDS-V0_1-STAGE075"

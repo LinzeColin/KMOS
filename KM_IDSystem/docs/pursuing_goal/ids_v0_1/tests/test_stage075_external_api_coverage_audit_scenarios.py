@@ -289,7 +289,7 @@ class Stage075ExternalApiCoverageAuditScenarioTests(unittest.TestCase):
                     "IDS-V0_1-STAGE075-REVIEW",
                     "IDS-STAGE076-P1-GATE",
                 ),
-                ('IDS-STAGE076', 'IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P1', 'IDS-STAGE076-P2-GATE'),
+                ('IDS-STAGE076', 'IDS-V0_1-STAGE076-P1', 'IDS-V0_1-STAGE076-P1', 'IDS-STAGE076-P2-GATE'), ('IDS-STAGE076', 'IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P2', 'IDS-STAGE076-P3-GATE'),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -301,6 +301,7 @@ class Stage075ExternalApiCoverageAuditScenarioTests(unittest.TestCase):
                 "IDS-V0_1-STAGE075-P4",
                 "IDS-V0_1-STAGE075-REVIEW",
                 'IDS-V0_1-STAGE076-P1',
+            'IDS-V0_1-STAGE076-P2',
             ),
         )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))

@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE076",
-  "phase": "IDS-V0_1-STAGE076-P1",
-  "task": "IDS-V0_1-STAGE076-P1",
-  "next_gate": "IDS-STAGE076-P2-GATE",
+  "phase": "IDS-V0_1-STAGE076-P2",
+  "task": "IDS-V0_1-STAGE076-P2",
+  "next_gate": "IDS-STAGE076-P3-GATE",
   "items": [
     {
       "id": "ACC-STAGE-076",
-      "criteria": "Stage076 P1 已形成可测试、可回滚的索引版本静态工程合同：三类未来索引版本、活动指针、构建中版本、影子候选、切换前验证、失败禁止切换和回退保留边界明确；P2--P4 尚未启动。",
-      "status": "P1 静态合同已完成"
+      "criteria": "Stage076 P1 静态工程合同与 P2 纯内存控制切片已形成可测试、可回滚的索引版本工程证据：三类索引版本、活动指针、构建中版本、影子候选、切换前验证、失败禁止切换、切换失败保持活动版本和回退保留边界明确；P3--P4 尚未启动。",
+      "status": "P1 静态合同与 P2 控制切片已完成"
     },
     {
       "id": "ACC-STAGE076-P1-01",
@@ -27,6 +27,26 @@
     {
       "id": "ACC-STAGE076-P1-04",
       "criteria": "未执行真实资料访问、批量导入、数据库 schema 或连接、索引构建、影子索引、切换前验证、活动指针读写、检索、回退、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage076 P2。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE076-P2-01",
+      "criteria": "冻结 Stage076 任务包、Stage076 P1 合同、Stage075 Review 和 Stage075 P1 静态合同保持为唯一合同上下文；P2 只接受五条固定、非业务、reference-only 控制输入，未建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、manifest、证据账本、审计日志、报告或物理索引。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE076-P2-02",
+      "criteria": "五条控制输入复用三类索引版本、八字段版本记录、五字段构建中版本和五字段活动指针形状；document_scope_ref、chunk_count=0 与 embedding_model_ref 均为不透明控制标签，构建中候选与活动版本不同，旧活动版本继续服务。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE076-P2-03",
+      "criteria": "影子候选保持隔离；六项切换前验证未完成或失败时阻断切换；已通过候选只形成未来全有或全无切换控制投影，切换失败保持活动版本，回退候选只指向保留的上一活动版本；业务线白箱人工复核仍为未来例外前置。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE076-P2-04",
+      "criteria": "未执行真实资料访问、批量导入、数据库 schema 或连接、索引构建、影子索引、切换前验证、活动指针读写、检索、回退、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage076 P3。",
       "status": "已遵守"
     },
     {

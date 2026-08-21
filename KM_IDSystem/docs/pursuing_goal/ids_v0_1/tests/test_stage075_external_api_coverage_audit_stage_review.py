@@ -214,6 +214,12 @@ class Stage075ReviewTests(unittest.TestCase):
                     "IDS-V0_1-STAGE076-P1",
                     "IDS-STAGE076-P2-GATE",
                 ),
+                (
+                    "IDS-STAGE076",
+                    "IDS-V0_1-STAGE076-P2",
+                    "IDS-V0_1-STAGE076-P2",
+                    "IDS-STAGE076-P3-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -222,7 +228,7 @@ class Stage075ReviewTests(unittest.TestCase):
             (plan["stage"], plan["phase"], plan["task"]),
             (
                 ("IDS-STAGE075", "IDS-V0_1-STAGE075-REVIEW", "IDS-V0_1-STAGE075-REVIEW"),
-                ("IDS-STAGE076", "IDS-V0_1-STAGE076-P1", "IDS-V0_1-STAGE076-P1"),
+                ("IDS-STAGE076", "IDS-V0_1-STAGE076-P1", "IDS-V0_1-STAGE076-P1"), ("IDS-STAGE076", "IDS-V0_1-STAGE076-P2", "IDS-V0_1-STAGE076-P2"),
             ),
         )
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
@@ -241,6 +247,11 @@ class Stage075ReviewTests(unittest.TestCase):
                 'current_phase_id: "IDS-STAGE076-P1"' in roadmap
                 and 'current_task_id: "IDS-V0_1-STAGE076-P1"' in roadmap
                 and 'next_gate_id: "IDS-STAGE076-P2-GATE"' in roadmap
+            )
+            or (
+                'current_phase_id: "IDS-STAGE076-P2"' in roadmap
+                and 'current_task_id: "IDS-V0_1-STAGE076-P2"' in roadmap
+                and 'next_gate_id: "IDS-STAGE076-P3-GATE"' in roadmap
             )
         )
         self.assertIn("EVT-IDS-V0_1-STAGE075-REVIEW-20260821-001", event_ids)
