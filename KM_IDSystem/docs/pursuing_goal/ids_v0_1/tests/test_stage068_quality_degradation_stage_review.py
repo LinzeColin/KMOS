@@ -267,7 +267,7 @@ class Stage068QualityDegradationStageReviewTests(unittest.TestCase):
                     'IDS-STAGE077-P1-GATE',
                 ),
                 ('IDS-STAGE077', 'IDS-V0_1-STAGE077-P1', 'IDS-V0_1-STAGE077-P1', 'IDS-STAGE077-P2-GATE'),
-                ('IDS-STAGE077', 'IDS-V0_1-STAGE077-P2', 'IDS-V0_1-STAGE077-P2', 'IDS-STAGE077-P3-GATE')
+                ('IDS-STAGE077', 'IDS-V0_1-STAGE077-P2', 'IDS-V0_1-STAGE077-P2', 'IDS-STAGE077-P3-GATE'), ('IDS-STAGE077', 'IDS-V0_1-STAGE077-P3', 'IDS-V0_1-STAGE077-P3', 'IDS-STAGE077-P4-GATE')
             ),
         )
         self.assertIn(
@@ -301,7 +301,7 @@ class Stage068QualityDegradationStageReviewTests(unittest.TestCase):
                 ('IDS-V0_1-STAGE076-P4', 'IDS-V0_1-STAGE076-P4'), ('IDS-V0_1-STAGE076-REVIEW', 'IDS-V0_1-STAGE076-REVIEW'),
 
                 ('IDS-V0_1-STAGE077-P1', 'IDS-V0_1-STAGE077-P1'),
-                ('IDS-V0_1-STAGE077-P2', 'IDS-V0_1-STAGE077-P2'),),
+                ('IDS-V0_1-STAGE077-P2', 'IDS-V0_1-STAGE077-P2'), ('IDS-V0_1-STAGE077-P3', 'IDS-V0_1-STAGE077-P3'),),
                 ("IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P1"),
         )
         self.assertTrue(

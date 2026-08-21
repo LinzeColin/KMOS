@@ -222,13 +222,23 @@ class Stage077BackgroundIndexBuildPhase1Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE077-P2",
                     "IDS-STAGE077-P3-GATE",
                 ),
+                (
+                    "IDS-STAGE077",
+                    "IDS-V0_1-STAGE077-P3",
+                    "IDS-V0_1-STAGE077-P3",
+                    "IDS-STAGE077-P4-GATE",
+                ),
             ),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
         self.assertIn(
             plan["task"],
-            ("IDS-V0_1-STAGE077-P1", "IDS-V0_1-STAGE077-P2"),
+            (
+                "IDS-V0_1-STAGE077-P1",
+                "IDS-V0_1-STAGE077-P2",
+                "IDS-V0_1-STAGE077-P3",
+            ),
         )
         self.assertIn("不建立第二权威事实源", "\n".join(plan["scope"]))
         acceptance_ids = {item["id"] for item in acceptance["items"]}
