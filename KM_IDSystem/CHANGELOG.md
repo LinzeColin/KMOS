@@ -1,3 +1,9 @@
+## 2026-08-21 · Stage079 atomic index switch P1
+
+- 只固定未来索引版本、活动指针、候选构建、影子索引、冒烟测试、原子切换、失败保持活动版本与回退保留的静态合同；复用既有 7/5/5/6/5/8/8 控制字段与五条切换前置条件，不建立第二权威事实源。
+- 本地验证通过：Stage079 P1 聚焦 6/6、Stage060--079 白箱 890/890、Stage005 直接治理 valid=true、Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器平面生成 7 个中文文件，文档预算、无登记阻塞和单项目双平面检查通过。
+- 零运行时回执位于 KM_IDSystem/machine/runs/2026-08-21-stage079-p1-local.json。未读取真实资料，未执行批量导入、数据库、物理索引、实际冒烟、活动指针读写、原子切换、检索、回退、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 IDS-STAGE079-P2-GATE。
+
 # Changelog
 
 ## 2026-08-21 · Stage078 索引冒烟测试 Review

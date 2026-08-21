@@ -224,7 +224,8 @@ class Stage078IndexSmokeTestPhase1Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE078-REVIEW",
                     "IDS-STAGE079-P1-GATE",
                 ),
-            },
+
+                ("IDS-STAGE079", "IDS-V0_1-STAGE079-P1", "IDS-V0_1-STAGE079-P1", "IDS-STAGE079-P2-GATE")},
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])

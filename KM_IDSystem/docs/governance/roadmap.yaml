@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE078"
-current_phase_id: "IDS-STAGE078-REVIEW"
-current_task_id: "IDS-V0_1-STAGE078-REVIEW"
-next_gate_id: "IDS-STAGE079-P1-GATE"
+current_stage_id: "IDS-STAGE079"
+current_phase_id: "IDS-STAGE079-P1"
+current_task_id: "IDS-V0_1-STAGE079-P1"
+next_gate_id: "IDS-STAGE079-P2-GATE"
 current_transition_history:
+  stage079_phase1_state:
+    current_stage_id: "IDS-STAGE079"
+    current_phase_id: "IDS-STAGE079-P1"
+    current_task_id: "IDS-V0_1-STAGE079-P1"
+    next_gate_id: "IDS-STAGE079-P2-GATE"
   stage078_review_state:
     current_stage_id: "IDS-STAGE078"
     current_phase_id: "IDS-STAGE078-REVIEW"
@@ -1164,6 +1169,112 @@ current_transition_history:
 total_estimated_hours: 158
 completed_estimated_hours: 290
 stages:
+  - stage_id: "IDS-STAGE079"
+    name: "索引原子切换"
+    task_id: "IDS-V0_1-STAGE079"
+    acceptance_ids:
+      - "ACC-STAGE-079"
+    objective: "只定义未来活动索引原子切换、失败保持旧活动版本与回退保留的静态工程合同；复用已审核的索引版本、活动指针、候选构建、影子索引、冒烟测试、切换记录和回退证明控制字段，不读取真实资料或启动实际切换。"
+    status: "phase1_completed_local"
+    entry_authorized: true
+    next_gate_id: "IDS-STAGE079-P2-GATE"
+    gate:
+      gate_id: "IDS-STAGE079-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE079-P2-GATE"
+      github_upload_allowed: false
+    pass_conditions:
+      - "冻结 Stage079 任务包、Stage078 Review 及其 P1--P4 已审核控制工件保持为唯一合同上下文；P1 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、Operations、报告、数据库或物理索引。"
+      - "静态合同复用 7 字段索引版本、5 字段活动指针、5 字段构建／影子、6/5 字段冒烟测试、8 字段未来切换记录、8 字段未来回退证明和五条切换前置条件；所有字段只为控制标签。"
+      - "候选不得覆盖活动版本；旧活动版本在未来构建、冒烟和切换前继续服务；失败、缺失、切换失败或回退目标未保留时活动指针保持不变；真实资料、模型、Token、Agent、OVH、生产和上传均保持关闭。"
+    stop_conditions:
+      - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、测试、切换、查询或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
+      - "执行实际索引清单／冒烟测试日志／切换记录／回退证明写入、空间影响测量、旧索引删除、索引重建、暂停、恢复、真实批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、活动指针读写、原子切换、检索、并发检索、回退、Operations 写入、报告快照写入、provider/模型选择或调用、模型 Token、持久化、Agent、OVH、生产服务、Stage079 P2、批次复审、上传、推送或应用重装。"
+    phases:
+      - phase_id: "IDS-STAGE079-P1"
+        name: "Phase 1 · 索引原子切换范围、输入输出与边界确认"
+        objective: "只定义索引版本、活动指针、构建中版本、影子索引、未来冒烟测试、未来原子切换、失败保持活动版本和回退保留静态合同；不启动任何后台任务、索引、测试或切换运行。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE079-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE079-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE079-P2-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取真实资料、执行批量导入、数据库 schema 或连接、后台构建、索引构建、影子索引、冒烟测试、活动指针读写、原子切换、检索、回退、模型调用、模型 Token、Agent、OVH、生产、上传或推送。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE079-P1"
+            name: "定义索引原子切换静态工程合同"
+            objective: "固定未来索引版本、活动指针、构建／影子、冒烟、原子切换、失败关闭、旧活动版本连续服务和回退保留边界；不创建真实索引、清单、日志、指针或持久化状态。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE078-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-079"
+              - "ACC-STAGE079-P1-01"
+              - "ACC-STAGE079-P1-02"
+              - "ACC-STAGE079-P1-03"
+              - "ACC-STAGE079-P1-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage079_atomic_index_switch_contract"
+            test_results: "静态合同聚焦 6/6、Stage060--079 白箱 890/890、Stage005 直接治理 valid=true，以及 Batch041-050／Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。所有结果只验证静态合同与零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-079_索引原子切换.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE079_PHASE1_ATOMIC_INDEX_SWITCH_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage079_atomic_index_switch_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage079_atomic_index_switch_contract.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE078_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage078_index_smoke_test_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage078_index_smoke_test_delivery_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/BATCH061_070_UPLOAD_LOCK.yaml"
+            risk: "若把静态字段、未来切换或回退规则、聚焦用例或中文状态误作真实后台任务、真实索引、真实清单、真实日志、真实切换、真实回退、OVH、生产或上传能力，会绕开单一权威和业务线白箱人工处理。"
+            rollback: "只回滚本 P1 说明、静态合同、聚焦用例、machine run、事件、机器事实投影、治理路线和生成中文视图，恢复到 PASS_REVIEWED_INDEX_SMOKE_TEST_RUNTIME_DISABLED；不改变 Stage078 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE079-P2"
+        name: "Phase 2 · 索引原子切换实现、接入与最小可运行切片"
+        objective: "冻结任务包范围内的后续实现阶段；本轮未进入。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE079-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE079-P2-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE079-P3-GATE"
+          github_upload_allowed: false
+      - phase_id: "IDS-STAGE079-P3"
+        name: "Phase 3 · 索引原子切换专项验证与异常场景"
+        objective: "冻结任务包范围内的后续专项验证阶段；本轮未进入。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE079-P4-GATE"
+        gate:
+          gate_id: "IDS-STAGE079-P3-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE079-P4-GATE"
+          github_upload_allowed: false
+      - phase_id: "IDS-STAGE079-P4"
+        name: "Phase 4 · 索引原子切换交付证据、回滚与中文反馈"
+        objective: "冻结任务包范围内的后续交付证据阶段；本轮未进入。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE079-REVIEW-GATE"
+        gate:
+          gate_id: "IDS-STAGE079-P4-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE079-REVIEW-GATE"
+          github_upload_allowed: false
+      - phase_id: "IDS-STAGE079-REVIEW"
+        name: "Stage Review · 索引原子切换整阶段机械复审"
+        objective: "冻结任务包范围内的后续整阶段复审；本轮未进入。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE080-P1-GATE"
+        gate:
+          gate_id: "IDS-STAGE079-REVIEW-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE080-P1-GATE"
+          github_upload_allowed: false
   - stage_id: "IDS-STAGE078"
     name: "索引冒烟测试"
     task_id: "IDS-V0_1-STAGE078"

@@ -438,19 +438,22 @@ class Stage071EmbeddingCostGovernorPhase2Tests(unittest.TestCase):
                 ('IDS-STAGE076', 'IDS-V0_1-STAGE076-REVIEW', 'IDS-STAGE077-P1-GATE'),
                 ('IDS-STAGE077', 'IDS-V0_1-STAGE077-P1', 'IDS-STAGE077-P2-GATE'),
                 ('IDS-STAGE077', 'IDS-V0_1-STAGE077-P2', 'IDS-STAGE077-P3-GATE'), ('IDS-STAGE077', 'IDS-V0_1-STAGE077-P3', 'IDS-STAGE077-P4-GATE'), ('IDS-STAGE077', 'IDS-V0_1-STAGE077-P4', 'IDS-STAGE077-REVIEW-GATE'), ('IDS-STAGE077', 'IDS-V0_1-STAGE077-REVIEW', 'IDS-STAGE078-P1-GATE'),
-             ('IDS-STAGE078', 'IDS-V0_1-STAGE078-P1', 'IDS-STAGE078-P2-GATE'), ('IDS-STAGE078', 'IDS-V0_1-STAGE078-P2', 'IDS-STAGE078-P3-GATE'), ('IDS-STAGE078', 'IDS-V0_1-STAGE078-P3', 'IDS-STAGE078-P4-GATE'), ('IDS-STAGE078', 'IDS-V0_1-STAGE078-P4', 'IDS-STAGE078-REVIEW-GATE'), ('IDS-STAGE078', 'IDS-STAGE078-REVIEW', 'IDS-STAGE079-P1-GATE')),
+             ('IDS-STAGE078', 'IDS-V0_1-STAGE078-P1', 'IDS-STAGE078-P2-GATE'), ('IDS-STAGE078', 'IDS-V0_1-STAGE078-P2', 'IDS-STAGE078-P3-GATE'), ('IDS-STAGE078', 'IDS-V0_1-STAGE078-P3', 'IDS-STAGE078-P4-GATE'), ('IDS-STAGE078', 'IDS-V0_1-STAGE078-P4', 'IDS-STAGE078-REVIEW-GATE'), ('IDS-STAGE078', 'IDS-STAGE078-REVIEW', 'IDS-STAGE079-P1-GATE'),
+                ("IDS-STAGE079", "IDS-V0_1-STAGE079-P1", "IDS-STAGE079-P2-GATE")),
         )
         self.assertIn(plan["task"], ("IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P2", "IDS-V0_1-STAGE073-P3", "IDS-V0_1-STAGE073-P4", "IDS-V0_1-STAGE073-REVIEW", "IDS-V0_1-STAGE074-P1", "IDS-V0_1-STAGE074-P2", "IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW",
             'IDS-V0_1-STAGE075-P1', 'IDS-V0_1-STAGE075-P2', 'IDS-V0_1-STAGE075-P3', 'IDS-V0_1-STAGE075-P4', 'IDS-V0_1-STAGE075-REVIEW',
             'IDS-V0_1-STAGE076-P1',
         'IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P3', 'IDS-V0_1-STAGE076-P4', 'IDS-V0_1-STAGE076-REVIEW', 'IDS-V0_1-STAGE077-P1',
         'IDS-V0_1-STAGE076-P2', 'IDS-V0_1-STAGE076-P3', 'IDS-V0_1-STAGE076-P4', 'IDS-V0_1-STAGE076-REVIEW', 'IDS-V0_1-STAGE077-P2', 'IDS-V0_1-STAGE077-P3', 'IDS-V0_1-STAGE077-P4', "IDS-V0_1-STAGE077-REVIEW"
-        , "IDS-V0_1-STAGE078-P1", "IDS-V0_1-STAGE078-P2", "IDS-V0_1-STAGE078-P3", "IDS-V0_1-STAGE078-P4", "IDS-V0_1-STAGE078-REVIEW"))
+        , "IDS-V0_1-STAGE078-P1", "IDS-V0_1-STAGE078-P2", "IDS-V0_1-STAGE078-P3", "IDS-V0_1-STAGE078-P4", "IDS-V0_1-STAGE078-REVIEW",
+                                        "IDS-V0_1-STAGE079-P1"))
         self.assertTrue(
             (
 "IDS-STAGE073-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE073-P2-GATE" in plan["stop_condition"] or "IDS-STAGE073-P3-GATE" in plan["stop_condition"] or "IDS-STAGE073-P4-GATE" in plan["stop_condition"] or "IDS-STAGE073-REVIEW-GATE" in plan["stop_condition"] or "IDS-STAGE074-P1-GATE" in plan["stop_condition"] or "IDS-STAGE074-P2-GATE" in plan["stop_condition"] or "IDS-STAGE074-P3-GATE" in plan["stop_condition"] or "IDS-STAGE074-P4-GATE" in plan["stop_condition"] or "IDS-STAGE074-REVIEW-GATE" in plan["stop_condition"] or "IDS-STAGE075-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE075-P2-GATE" in plan["stop_condition"] or "IDS-STAGE075-P3-GATE" in plan["stop_condition"] or "IDS-STAGE075-P4-GATE" in plan["stop_condition"] or "IDS-STAGE075-REVIEW-GATE" in plan["stop_condition"] or "IDS-STAGE076-P1-GATE" in plan["stop_condition"] or "IDS-STAGE076-P2-GATE" in plan["stop_condition"] or "IDS-STAGE076-P3-GATE" in plan["stop_condition"] or "IDS-STAGE076-P4-GATE" in plan["stop_condition"] or "IDS-STAGE076-REVIEW-GATE" in plan["stop_condition"] or "IDS-STAGE077-P1-GATE" in plan["stop_condition"] or "IDS-STAGE077-P2-GATE" in plan["stop_condition"] or "IDS-STAGE077-P3-GATE" in plan["stop_condition"] or "IDS-STAGE077-P4-GATE" in plan["stop_condition"] or "IDS-STAGE077-REVIEW-GATE" in plan["stop_condition"] or "IDS-STAGE078-P1-GATE" in plan["stop_condition"] or "IDS-STAGE078-P2-GATE" in plan["stop_condition"] or "IDS-STAGE078-P3-GATE" in plan["stop_condition"] or "IDS-STAGE078-P4-GATE" in plan["stop_condition"] or "IDS-STAGE078-REVIEW-GATE" in plan["stop_condition"] or "IDS-STAGE079-P1-GATE" in plan["stop_condition"]
+            or "IDS-STAGE079-P2-GATE" in plan["stop_condition"]
             )
         )
         self.assertTrue(
