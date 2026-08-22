@@ -151,3 +151,7 @@ ssh ovh 'sudo /usr/local/bin/linze-r2-free-tier-guard.py'
 - **结论**：Stage085 P4 只能从 P3 的八个固定、非业务、`reference-only` 场景派生 metadata-only 交付证据，并把历史白箱的唯一合法当前态精确延长为 `Stage085 P3 → Stage085 P4 → Stage085 Review gate`。
   **为什么**：检索样例、trace、过滤结果、有效性报告、证据缺口、参数回退说明和中文反馈都只是控制形状；将其升格为真实检索记录、参数回滚、业务结论或生产可观察性会突破单一权威、零运行时和业务线白箱边界。P4→Review 必须是独立后继元组，不能把 Review gate 附加到 P3 元组。
   **代价**：一次 P4 纯内存交付、历史白箱兼容与双平面回归；P1/P2/P3/P4 聚焦 `33/33`、Stage060--085 白箱 `1179/1179`，未创建额外 worktree，未产生模型 Token、Agent、OVH、生产、上传或推送动作。
+
+- **结论**：Stage085 Review 只能机械复审冻结 P1--P4 纯内存控制工件，并将历史白箱的唯一合法当前态精确延长为 Stage085 P4 → Stage085 Review → Stage086 P1 gate。
+  **为什么**：Review 只证明合同和控制报告的内存重放保持一致；把它或下一门误作实际检索、数据库、业务事实或 Stage086 已启动，将突破单一权威、零运行时与业务线白箱边界。P4→Review→Stage086 P1 必须是独立合法后继，不能把 Stage086 入口附加到 P4。
+  **代价**：一次 Review 纯内存复审、精确历史后继兼容与双平面回归；P1--Review 聚焦 44/44、Stage060--085 白箱 1190/1190，未创建额外 worktree，未产生模型 Token、Agent、OVH、生产、上传或推送动作。

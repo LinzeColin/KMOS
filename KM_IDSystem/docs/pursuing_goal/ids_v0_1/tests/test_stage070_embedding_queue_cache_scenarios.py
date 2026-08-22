@@ -327,7 +327,7 @@ class Stage070EmbeddingQueueCachePhase3Tests(unittest.TestCase):
 
                 ('IDS-STAGE085-P2', 'IDS-STAGE085-P3-GATE'),
              ("IDS-STAGE085-P3", "IDS-STAGE085-P4-GATE"),
-             ("IDS-STAGE085-P4", "IDS-STAGE085-REVIEW-GATE")),
+             ("IDS-STAGE085-P4", "IDS-STAGE085-REVIEW-GATE"), ("IDS-STAGE085-REVIEW", "IDS-STAGE086-P1-GATE")),
         )
         self.assertIn(
             plan["phase"],
@@ -359,7 +359,7 @@ class Stage070EmbeddingQueueCachePhase3Tests(unittest.TestCase):
                     'IDS-STAGE084-REVIEW',
 
                 'IDS-STAGE085-P2',
-             "IDS-STAGE085-P3", "IDS-STAGE085-P4"),
+             "IDS-STAGE085-P3", "IDS-STAGE085-P4", "IDS-STAGE085-REVIEW"),
         )
         self.assertTrue(
             (
