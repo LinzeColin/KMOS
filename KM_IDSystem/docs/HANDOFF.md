@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage085 Review - 2026-08-22
+## Current Gate - Stage086 Phase 1 - 2026-08-22
 
-- 本节是唯一当前交接；下方 Stage085 P4/P3/P2/P1、Stage084 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
+- 本节是唯一当前交接；下方 Stage085 Review/P4/P3/P2/P1、Stage084 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
+- 本轮完成 IDS-V0_1-STAGE086-P1：只将冻结 Stage086 任务包和 Stage085 Review/P1--P4 已审核元数据过滤控制工件投影为静态工程合同。合同固定 query 11、六类 metadata filter 7、candidate 14、selected 10、active_index_version 7、关键词／向量／过滤匹配／资料质量／新鲜度／业务模块／混合 score 与排序策略 10、retrieval trace 11 个不透明控制字段，以及 25 类失败关闭；关键词与向量基线均必需，vector-only 与任一关键引用缺失均失败关闭。
+- 已验证：P1 聚焦 7/7、Stage060--086 静态与治理白箱 1197/1197、Stage005 直接治理 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器事实重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。该 1197 项是本阶段受控白箱范围，不宣称仓库级全量测试全绿；零运行时回执位于 KM_IDSystem/machine/runs/2026-08-22-stage086-p1-local.json。
+- 本 P1 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、证据账本、审计日志、报告、数据库、物理索引、检索参数或业务结论；不执行 PostgreSQL schema 或连接、FTS/BM25/pgvector、embedding、关键词／向量检索、元数据过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K、检索轨迹或证据账本读写、模型 Token、Agent、OVH、生产、上传或推送。
+- 回滚只撤回本 P1 的范围说明、静态合同、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 PASS_REVIEWED_METADATA_FILTER_RUNTIME_DISABLED；保留 Stage085 Review/P1--P4、冻结任务包、真实资料、fixture、manifest、证据账本、审计日志、数据库、索引、GitHub、OVH 与应用状态。
+- 下一步仅可在新的独立 run 进入 IDS-STAGE086-P2-GATE；继续使用既有唯一开发工作树 /Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1，不创建额外工作树、分支或合并请求。本 run 不启动 P2、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 ACC-STAGE-168。
+
+## Superseded Gate - Stage085 Review - 2026-08-22
+
+- 本节保留 Stage085 Review 历史交接；唯一当前交接位于上方 Stage086 P1，本节所述下一步为 Review 完成当时的历史状态，不重写其已验证事实。
 - 本轮完成 IDS-V0_1-STAGE085-REVIEW：只在内存中机械复审冻结 P1--P4 合同、P2/P3/P4 控制报告、固定形状、失败关闭、业务线白箱人工处理与 P4→P3 控制回退。P1 的 11/7/11/8/7/10 字段与 21 类失败关闭、P2 的 6 条控制请求／7 组投影／366 次字段检查／22 类失败关闭、P3 的 8 个 31 字段场景／248 次检查／8 条人工处理／14 类失败关闭，以及 P4 的 8/8/8/8/8/4 控制记录、572 次字段检查、4 条中文反馈与 18 类失败关闭均保持固定；任一合同或报告偏离即失败关闭。
 - 已验证：Review 聚焦 11/11、Stage085 P1--Review 聚焦 44/44、Stage060--085 白箱 1190/1190、Stage005 直接治理 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。零运行时回执位于 KM_IDSystem/machine/runs/2026-08-22-stage085-review-local.json；机器事实重渲染 7 个中文文件、文档预算、无登记阻塞与单项目双平面检查均通过。
 - 本 Review 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、证据账本、审计日志、数据库、物理索引、检索参数或业务结论；不执行 PostgreSQL schema 或连接、FTS/BM25/pgvector、embedding、关键词／向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K、检索样例／trace／过滤／有效性报告／证据缺口读写、参数写入或回滚、模型 Token、Agent、OVH、生产、上传或推送。

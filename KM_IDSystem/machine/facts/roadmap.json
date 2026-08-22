@@ -1,6 +1,12 @@
 {
   "stages": [
     {
+      "id": "IDS-STAGE086",
+      "name": "混合排序",
+      "gate": "Stage086 P1 静态合同已完成本地验收；下一步只能在新的独立 run 进入 Stage086 P2",
+      "status": "Stage086 P1 本地合同完成：query 11、六类 metadata filter 7、candidate 14、selected 10、active_index_version 7、关键词／向量／过滤匹配／资料质量／新鲜度／业务模块／混合 score 与排序策略 10、retrieval trace 11 个字段及 25 类失败关闭保持为不透明控制标签。关键词与向量基线均必需，vector-only 被拒绝；真实资料、PostgreSQL、FTS、BM25、pgvector、embedding、数据库、物理索引、查询、过滤、评分、排序、Top-K、trace、参数、模型、Token、Agent、OVH 与生产仍禁用。"
+    },
+    {
       "id": "IDS-STAGE085",
       "name": "元数据过滤",
       "gate": "Stage085 P1--P4 合同与纯内存控制报告已完成整阶段机械复审；下一步只能在新的独立 run 进入 Stage086 P1",

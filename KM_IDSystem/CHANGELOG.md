@@ -1,3 +1,9 @@
+## 2026-08-22 · Stage086 混合排序 P1
+
+- 完成冻结 Stage086 P1 静态工程合同：固定 query 11、六类 metadata filter 7、candidate 14、selected 10、active_index_version 7、关键词／向量／过滤匹配／资料质量／新鲜度／业务模块／混合 score 与排序策略 10、retrieval trace 11 个控制字段及 25 类失败关闭；关键词与向量基线均必需，vector-only 被拒绝。
+- 本地验证通过：P1 聚焦 7/7、Stage060--086 静态与治理白箱 1197/1197、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器事实重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。该白箱数字仅覆盖本阶段规定范围，不宣称仓库级测试全绿。
+- 未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、embedding、关键词或向量检索、过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K、trace、证据账本读写、模型 Token、Agent、OVH、生产、上传或推送；下一步只能在新的独立 run 进入 IDS-STAGE086-P2-GATE，继续使用既有唯一开发工作树。
+
 ## 2026-08-22 · Stage085 元数据过滤 Review
 
 - 完成冻结 Stage085 P1--P4 的纯内存机械复审：只重放合同、P2/P3/P4 控制报告、23 项固定形状、失败关闭、业务线白箱人工处理与 P4→P3 控制回退；通过后只打开 IDS-STAGE086-P1-GATE，Stage086 未启动。

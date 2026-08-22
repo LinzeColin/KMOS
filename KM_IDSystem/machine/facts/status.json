@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE085",
-  "phase": "IDS-STAGE085-REVIEW",
-  "task": "IDS-V0_1-STAGE085-REVIEW",
-  "real_progress": "Stage085 Review 已只在内存中机械复审 P1--P4 合同、P2/P3/P4 控制报告、固定形状、失败关闭、业务线白箱人工处理与 P4→P3 回退：P1 的 11/7/11/8/7/10 字段与 21 类失败关闭、P2 的 6 条控制请求／366 次字段检查、P3 的 8 个 31 字段场景／248 次场景检查／8 条人工处理，以及 P4 的 8/8/8/8/8/4/4 交付形状／572 次字段检查／18 类失败关闭均由白箱验收覆盖。",
-  "report_grade": "冻结 Stage085 任务包、Stage085 P1--P4 合同、P2/P3/P4 控制报告与 Stage084 Review 的已审核向量检索基线工件构成唯一合同上下文；Review 不建立第二权威事实源，只重放纯内存控制工件，真实资料、数据库、过滤、排序、选择、轨迹、证据账本、参数、embedding 和模型均未访问或调用。",
-  "business_verdict": "Stage085 Review 只证明元数据过滤的冻结控制工件、失败关闭、可回滚范围、检索不足／证据缺口显式记录与业务线白箱前置一致；不等于 PostgreSQL、FTS、BM25、pgvector、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、资料状态读取、元数据过滤、混合排序、Top-K、trace、参数写入或回滚、模型、Token、审计、OVH、生产服务或上传能力已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "STAGE085_REVIEW_LOCAL_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE086",
+  "phase": "IDS-STAGE086-P1",
+  "task": "IDS-V0_1-STAGE086-P1",
+  "real_progress": "Stage086 P1 已固定混合排序静态合同：query 11、六类 metadata filter 7、candidate 14、selected 10、active_index_version 7、关键词／向量／过滤匹配／资料质量／新鲜度／业务模块／混合 score 与排序策略 10、retrieval trace 11 个控制字段，以及 25 类失败关闭均由白箱验收覆盖。",
+  "report_grade": "冻结 Stage086 任务包、Stage085 Review 与 Stage085 P1--P4 已审核元数据过滤工件构成唯一合同上下文；P1 不建立第二权威事实源，只定义不透明控制引用，真实资料、数据库、过滤、评分、排序、选择、轨迹、证据账本、参数、embedding 和模型均未访问或调用。",
+  "business_verdict": "Stage086 P1 只证明混合排序的冻结静态合同、失败关闭、可回滚范围与业务线白箱前置一致；不等于 PostgreSQL、FTS、BM25、pgvector、embedding、关键词或向量检索、元数据过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K、trace、参数写入或回滚、模型、Token、审计、OVH、生产服务或上传能力已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "STAGE086_P1_LOCAL_RUNTIME_DISABLED",
   "rendered_at": "2026-08-22",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE086-P1-GATE",
+  "next_gate": "IDS-STAGE086-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
