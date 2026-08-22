@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE087",
-  "phase": "IDS-STAGE087-P4",
-  "task": "IDS-V0_1-STAGE087-P4",
-  "next_gate": "IDS-STAGE087-REVIEW-GATE",
+  "phase": "IDS-STAGE087-REVIEW",
+  "task": "IDS-V0_1-STAGE087-REVIEW",
+  "next_gate": "IDS-STAGE088-P1-GATE",
   "items": [
     {
       "id": "ACC-STAGE-087",
-      "criteria": "Stage087 检索轨迹：P1 已固定关键词检索、向量检索、metadata filtering、hybrid ranking、query、六类 filter、candidate chunks、selected chunks、score、active_index_version 与 retrieval trace 的静态工程合同；P2 已以六条固定、非业务、reference-only 控制请求在内存中投影 426 个控制检查点；P3 已将其重放为八类 31 字段场景，共 248 个场景检查点与八条业务线白箱人工处理要求；P4 已从 P3 场景派生 8 条检索样例、8 条 trace 日志、8 条过滤结果、8 条有效性测试报告、8 条检索不足／证据缺口记录、4 条参数回滚说明和 4 条中文反馈，共 572 个未持久化交付字段检查点。所有字段均为不透明控制标签，关键词与向量基线均必需，vector-only 不得单独决定未来结果；实际 PostgreSQL、FTS、BM25、pgvector、embedding、索引、查询、过滤、排序、trace 读写、参数与持久化均未执行。",
-      "status": "P1/P2/P3/P4 已完成本地验证"
+      "criteria": "Stage087 检索轨迹：P1 的 query、filter、candidate、selected、score、active_index_version 与 retrieval trace 固定为 9/7/10/10/7/7/14 静态形状及 21 类失败关闭；P2 已以六条固定、非业务、reference-only 控制请求投影 426 个控制检查点与 27 类失败关闭；P3 已重放八类 31 字段场景，共 248 个场景检查点与八条业务线白箱人工处理要求；P4 已派生 8/8/8/8/8/4/4 未持久化交付形状、4 条中文反馈与 572 个交付字段检查点。Review 已机械复审上述工件、单一权威、P4→P3 回退和零运行时边界。所有字段均为不透明控制标签，关键词与向量基线均必需，vector-only 不得单独决定未来结果；实际 PostgreSQL、FTS、BM25、pgvector、embedding、索引、查询、过滤、排序、trace 读写、参数与持久化均未执行。",
+      "status": "整阶段已复审"
     },
     {
       "id": "ACC-STAGE087-P1-01",
@@ -87,6 +87,26 @@
     {
       "id": "ACC-STAGE087-P4-04",
       "criteria": "P4 期间不执行真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K 选择、检索样例／trace／过滤／有效性报告／证据缺口读写、检索参数写入或回滚、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮本地验收完成后才可在新 run 进入 Stage087 Review。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE087-REVIEW-01",
+      "criteria": "冻结 Stage087 任务包、P1--P4 合同、P2/P3/P4 控制报告与 Stage086 Review/P1--P4 已审核控制工件保持为唯一合同上下文；Review 不建立第二权威事实源，不读取、打开、保留或写入业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库、物理索引或检索参数。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE087-REVIEW-02",
+      "criteria": "机械复审 P1 的 9/7/10/10/7/7/14 字段与 21 类失败关闭、P2 的 6 条固定控制请求与 8 组投影／426 次字段检查／27 类失败关闭、P3 的 8 类 31 字段场景／248 次字段检查／8 条人工处理，以及 P4 的 8/8/8/8/8/4/4 交付形状、572 次交付字段检查与 20 类失败关闭；任一合同、报告或控制形状漂移均失败关闭。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE087-REVIEW-03",
+      "criteria": "关键词与向量基线、vector-only 拒绝、六类过滤、活动索引版本、candidate／selected／score／trace／evidence ledger 引用链、Top-K／排序解释／有效性、旧索引版本轨迹、业务线白箱人工处理、单一权威与 P4→P3 控制回退保持；通过后只打开 Stage088 P1 gate，不启动 Stage088。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE087-REVIEW-04",
+      "criteria": "Review 期间不执行真实资料访问、检索样例／trace／过滤／有效性报告／证据缺口写入、参数写入或回滚、PostgreSQL、FTS、BM25、pgvector、embedding、查询、匹配、语义计算、过滤、评分、排序、Top-K、provider／模型、模型 Token、Agent、OVH、生产、Stage088、上传或推送；后续 Stage088 仍须在新的独立 run 进入。",
       "status": "已遵守"
     },
     {

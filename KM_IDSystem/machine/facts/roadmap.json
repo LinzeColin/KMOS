@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE087",
       "name": "检索轨迹",
-      "gate": "Stage087 P1 静态合同、P2 纯内存检索轨迹控制切片、P3 八类受控场景与 P4 metadata-only 交付证据已完成本地验证；下一步只能在新的独立 run 进入 Stage087 Review",
-      "status": "Stage087 当前完成 P1/P2/P3/P4：P1 已固定 query、六类 metadata filter、candidate chunks、selected chunks、score、active_index_version 与 retrieval trace 的 9/7/10/10/7/7/14 静态形状及 21 类失败关闭；P2 已以六条固定、非业务、reference-only 控制请求投影 426 个控制检查点；P3 已重放八个 31 字段场景，共 248 个场景检查点与八条业务线白箱人工处理要求；P4 已派生 8/8/8/8/8/4 未持久化交付形状、4 条中文反馈与 572 个交付字段检查点。关键词与向量基线均必需，vector-only 与非固定输入被拒绝。Review、真实资料、PostgreSQL、FTS、BM25、pgvector、embedding、数据库、索引、查询、过滤、排序、Top-K、trace 读写、证据账本、真实参数回滚、模型、Token、Agent、OVH、生产、上传与推送仍禁用。"
+      "gate": "Stage087 P1--P4 合同与纯内存控制报告已完成整阶段机械复审；下一步只能在新的独立 run 进入 Stage088 P1",
+      "status": "Stage087 整阶段 Review 已完成：P1 的 9/7/10/10/7/7/14 固定字段与 21 类失败关闭、P2 的 6 条固定请求／8 组投影／426 个字段检查／27 类失败关闭、P3 的 8 个 31 字段场景／248 个字段检查／8 条人工处理，以及 P4 的 8/8/8/8/8/4/4 交付形状／572 个字段检查／20 类失败关闭均已机械复审。关键词与向量基线、vector-only 拒绝、六维过滤、独立活动索引版本、candidate／selected／score／trace／证据账本引用链、Top-K／排序解释／有效性、旧索引版本轨迹与 P4→P3 回退保持不透明；真实资料、PostgreSQL、FTS、BM25、pgvector、embedding、数据库、物理索引、查询、过滤、排序、Top-K、trace、参数、模型、Token、Agent、OVH、生产、Stage088、上传与推送仍禁用。"
     },
     {
       "id": "IDS-STAGE086",
