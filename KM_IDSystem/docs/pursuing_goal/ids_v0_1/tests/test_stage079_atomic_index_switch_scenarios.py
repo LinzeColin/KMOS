@@ -548,6 +548,11 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
                 "phase": "IDS-STAGE086-P1",
                 "task": "IDS-V0_1-STAGE086-P1",
                 "next_gate": "IDS-STAGE086-P2-GATE",
+            }, 'IDS-STAGE086-P2': {
+                "stage": "IDS-STAGE086",
+                "phase": "IDS-STAGE086-P2",
+                "task": "IDS-V0_1-STAGE086-P2",
+                "next_gate": "IDS-STAGE086-P3-GATE",
             },
         }
         self.assertIn(status["phase"], expected_states)
@@ -581,6 +586,7 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
             or 'IDS-STAGE085-REVIEW-GATE' in plan['stop_condition']
             or 'IDS-STAGE086-P1-GATE' in plan['stop_condition']
             or 'IDS-STAGE086-P2-GATE' in plan['stop_condition']
+            or 'IDS-STAGE086-P3-GATE' in plan['stop_condition']
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -797,6 +803,12 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
                 'current_task_id: "IDS-V0_1-STAGE086-P1"',
                 'next_gate_id: "IDS-STAGE086-P2-GATE"',
                 'stage086_phase1_state:',
+            ),
+            "IDS-STAGE086-P2": (
+                'current_phase_id: "IDS-STAGE086-P2"',
+                'current_task_id: "IDS-V0_1-STAGE086-P2"',
+                'next_gate_id: "IDS-STAGE086-P3-GATE"',
+                'stage086_phase2_state:',
             ),
         }
         roadmap_text = ROADMAP.read_text(encoding="utf-8")

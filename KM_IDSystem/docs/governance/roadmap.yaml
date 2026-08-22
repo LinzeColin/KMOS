@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE086"
-current_phase_id: "IDS-STAGE086-P1"
-current_task_id: "IDS-V0_1-STAGE086-P1"
-next_gate_id: "IDS-STAGE086-P2-GATE"
+current_phase_id: "IDS-STAGE086-P2"
+current_task_id: "IDS-V0_1-STAGE086-P2"
+next_gate_id: "IDS-STAGE086-P3-GATE"
 current_transition_history:
+  stage086_phase2_state:
+    current_stage_id: "IDS-STAGE086"
+    current_phase_id: "IDS-STAGE086-P2"
+    current_task_id: "IDS-V0_1-STAGE086-P2"
+    next_gate_id: "IDS-STAGE086-P3-GATE"
   stage086_phase1_state:
     current_stage_id: "IDS-STAGE086"
     current_phase_id: "IDS-STAGE086-P1"
@@ -1350,21 +1355,21 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-086"
     objective: "依据冻结 Stage086 任务包完成混合排序的静态合同、受控实现、专项验证、metadata-only 交付证据与整阶段机械复审；关键词、向量、元数据、资料质量、新鲜度和业务模块得分均保持控制标签，真实运行时保持关闭。"
-    status: "phase1_completed_local"
+    status: "phase2_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE086-P2-GATE"
+    next_gate_id: "IDS-STAGE086-P3-GATE"
     gate:
-      gate_id: "IDS-STAGE086-P1-GATE"
+      gate_id: "IDS-STAGE086-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE086-P2-GATE"
+      next_gate_id: "IDS-STAGE086-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "冻结 Stage086 任务包与 Stage085 Review/P1--P4 已审核元数据过滤控制工件保持为唯一合同上下文；P1 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
-      - "P1 只固定 query、六类 metadata filter、candidate、selected、关键词／向量／过滤匹配／资料质量／新鲜度／业务模块／混合分数、排序策略、active_index_version 与 retrieval trace 的不透明控制字段；关键词和向量基线均必需，vector-only 与关键控制引用缺失失败关闭。"
-      - "PostgreSQL、FTS、BM25、pgvector、embedding、真实检索、过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K、trace、证据账本、模型、Token、Agent、OVH、生产、上传与推送保持关闭；只开放后续 Stage086 P2 门。"
+      - "冻结 Stage086 任务包、Stage085 Review/P1--P4 已审核元数据过滤控制工件与 Stage086 P1 静态合同保持为唯一合同上下文；P2 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
+      - "P2 只重放六条固定、非业务、reference-only 控制输入，各自投影 query、六类 metadata filter、active_index_version、candidate、关键词／向量／过滤匹配／资料质量／新鲜度／业务模块／混合 score、selected、retrieval trace 与 future integration 的不透明字段；关键词和向量基线均必需，vector-only 与非固定输入失败关闭。"
+      - "PostgreSQL、FTS、BM25、pgvector、embedding、真实检索、过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K、trace、证据账本、模型、Token、Agent、OVH、生产、上传与推送保持关闭；只开放后续 Stage086 P3 门。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、测试、查询、过滤、排序、追踪或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
-      - "执行 PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、元数据过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K 选择、检索轨迹或证据账本读写、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage086 P2、批次复审、上传或推送。"
+      - "执行 PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、元数据过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K 选择、检索轨迹或证据账本读写、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage086 P3、批次复审、上传或推送。"
     phases:
       - phase_id: "IDS-STAGE086-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -1406,19 +1411,45 @@ stages:
             rollback: "只回滚本 P1 范围说明、静态合同、聚焦用例、机器事实投影、治理路线和生成中文视图，恢复到 Stage085 Review 的本地零运行时状态；不改变冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE086-P2"
         name: "Phase 2 · 实现、接入与最小可运行切片"
-        objective: "未来受控阶段：实现 PostgreSQL FTS、pgvector、过滤器、混合排序或 trace 记录，并支持文档类型、年份、项目、设备、证据等级等过滤与证据账本衔接。"
-        status: "not_started"
-        entry_authorized: false
+        objective: "只以六条固定、非业务、reference-only 输入在内存中受控投影未来 PostgreSQL FTS／pgvector／过滤器／资料质量／新鲜度／业务模块／混合排序／trace 的接口形状，并覆盖文档类型、年份、项目、设备、资料状态、证据等级和证据账本引用；不执行真实运行时。"
+        status: "completed"
+        entry_authorized: true
         next_gate_id: "IDS-STAGE086-P3-GATE"
         gate:
           gate_id: "IDS-STAGE086-P2-GATE"
-          status: "not_entered"
+          status: "passed"
           next_gate_id: "IDS-STAGE086-P3-GATE"
           github_upload_allowed: false
+        stop_conditions:
+          - "读取真实资料、执行 PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、元数据过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K、检索轨迹或证据账本读写、模型调用、模型 Token、Agent、OVH、生产、上传、推送或 Stage086 P3。"
         tasks:
           - task_id: "IDS-V0_1-STAGE086-P2"
             name: "实现混合排序受控切片"
-            status: "not_started"
+            objective: "仅执行六条固定 reference-only 控制输入的纯内存投影：固定 query、filter、active_index_version、candidate、score、selected、trace 与 future-only 路线形状，验证引用链和失败关闭；不连接 PostgreSQL、不执行 pgvector 或真实检索。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE086-P1"
+            acceptance_ids:
+              - "ACC-STAGE-086"
+              - "ACC-STAGE086-P2-01"
+              - "ACC-STAGE086-P2-02"
+              - "ACC-STAGE086-P2-03"
+              - "ACC-STAGE086-P2-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage086_hybrid_ranking_slice"
+            test_results: "P2 聚焦纯内存控制切片与后续本地治理回归记录于 Stage086 P2 receipt；所有结果只证明固定控制投影、引用链、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-086_混合排序.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE086_PHASE2_HYBRID_RANKING_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage086_hybrid_ranking_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage086_hybrid_ranking_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage086_hybrid_ranking_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-22-stage086-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE086_PHASE1_HYBRID_RANKING_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage086_hybrid_ranking_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE085_STAGE_REVIEW.md"
+            risk: "若将固定控制输入、未来 PostgreSQL／pgvector 路线、候选、分数、选择、活动索引版本、轨迹或证据账本引用误作真实资料、真实检索、真实排序、真实证据账本、OVH、生产或上传能力，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P2 范围说明、纯内存合同、控制模块、聚焦用例、机器事实投影、治理路线和生成中文视图，恢复到 PASS_HYBRID_RANKING_CONTRACT_RUNTIME_DISABLED；不改变 P1、Stage085 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE086-P3"
         name: "Phase 3 · 混合排序专项验证与异常场景"
         objective: "未来受控阶段：验证关键词、材料牌号、设备型号、标准号、语义相似和过滤组合，以及 Top-K、排序解释、结果有效性和旧索引服务时的版本轨迹。"

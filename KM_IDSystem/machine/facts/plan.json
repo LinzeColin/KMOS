@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE086",
-  "phase": "IDS-STAGE086-P1",
-  "task": "IDS-V0_1-STAGE086-P1",
-  "now": "IDS-V0_1-STAGE086-P1 已固定关键词、向量、元数据过滤、资料质量、新鲜度、业务模块得分、混合排序和检索轨迹的静态控制合同；通过后仅开放 Stage086 P2 gate，P2 尚未启动。",
-  "owner": "既有唯一 KMOS 开发 worktree 已完成 Stage086 P1 本地治理验收；不创建额外 worktree、分支或合并请求，且不进入 Stage086 P2、OVH、生产或上传。",
-  "objective": "只以冻结 Stage086 任务包、Stage085 Review 与 Stage085 P1/P2/P3/P4 已审核元数据过滤工件为唯一合同上下文，固定 query、六类 metadata filter、candidate、selected、关键词／向量／过滤匹配／资料质量／新鲜度／业务模块／混合 score、排序策略、活动索引版本、检索轨迹、单一权威、失败关闭和业务线白箱前置；不读取、打开、解析、导入、构建、查询、过滤、评分、排序、追踪、写入或回滚真实资料、数据库、索引、embedding、证据账本、参数、模型、Token、审计或业务结论。",
+  "phase": "IDS-STAGE086-P2",
+  "task": "IDS-V0_1-STAGE086-P2",
+  "now": "IDS-V0_1-STAGE086-P2 已用六条固定、非业务、reference-only 输入完成纯内存混合排序控制切片：各投影 query、filter、active_index_version、candidate、hybrid score、selected、retrieval trace 与 future integration，当前只开放 Stage086 P3 gate，P3 尚未启动。",
+  "owner": "既有唯一 KMOS 开发 worktree 已完成 Stage086 P2 本地治理验收；不创建额外 worktree、分支或合并请求，且不进入 Stage086 P3、OVH、生产或上传。",
+  "objective": "只以冻结 Stage086 任务包、Stage086 P1 静态合同、Stage085 Review 与 Stage085 P1/P2/P3/P4 已审核元数据过滤工件为唯一合同上下文，重放六条固定控制输入以投影 query、六类 metadata filter、active_index_version、candidate、selected、关键词／向量／过滤匹配／资料质量／新鲜度／业务模块／混合 score、排序策略、检索轨迹与证据账本引用链、单一权威、失败关闭和业务线白箱前置；不读取、打开、解析、导入、构建、查询、过滤、评分、排序、追踪、写入或回滚真实资料、数据库、索引、embedding、证据账本、参数、模型、Token、审计或业务结论。",
   "scope": [
-    "以冻结 Stage086 任务包、Stage085 Review 与 Stage085 P1--P4 已审核控制工件为唯一合同上下文，不建立第二权威事实源",
-    "固定 query 11、六类 metadata filter 7、candidate 14、selected 10、active_index_version 7、关键词／向量／过滤匹配／资料质量／新鲜度／业务模块／混合 score 与排序策略 10、retrieval trace 11 个字段及 25 类失败关闭",
+    "以冻结 Stage086 任务包、Stage086 P1、Stage085 Review 与 Stage085 P1--P4 已审核控制工件为唯一合同上下文，不建立第二权威事实源",
+    "固定六条、每条 20 字段的 reference-only 控制输入，分别投影 query 11、filter 8、active_index_version 7、candidate 14、hybrid score 10、selected 10、retrieval trace 11 与 future integration 9 个字段，共 480 个控制字段检查",
     "关键词与向量基线、vector-only 拒绝、六类过滤、资料质量、新鲜度、业务模块、模型版本、向量维度、相似度度量、活动索引版本、排序策略、排序解释、证据账本引用、检索轨迹和所有控制引用任一偏离即失败关闭；自动查询、自动过滤、自动评分、自动排序、自动结果采纳、自动业务建议和自动参数回滚关闭",
-    "仅同步 IDS-V0_1-STAGE086-P1 的说明、静态合同、聚焦用例、machine run、机器事实、治理路线和生成中文视图；Stage085 Review/P1--P4 只作为既有证据，不改写其完成状态"
+    "仅同步 IDS-V0_1-STAGE086-P2 的说明、纯内存合同、控制模块、聚焦用例、machine run、机器事实、治理路线和生成中文视图；P1 与 Stage085 Review/P1--P4 只作为既有证据，不改写其完成状态"
   ],
   "non_goals": [
     "不打开、创建、复制、移动、删除、修改、检测、解析、评估、保留、总结、导入、构建、测试、查询、过滤、评分、排序、追踪、写入、重生成或回退真实业务源、原始元数据、授权 fixture、真实资料范围、向量、版本、索引、检索结果、模型、Token、队列、缓存、审计日志、成本记录、事实库、证据账本、数据库、参数、Operations 或报告",
     "不执行 PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K 选择、检索样例／trace／过滤／有效性报告／证据账本读写、检索参数写入或回滚、批量导入、活动指针读写、模型选择或下载、模型调用、外部 API、模型 Token、持久化、Agent、OVH、生产或上传",
-    "不启动 Stage086 P2、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
+    "不启动 Stage086 P3、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage086 P1 的说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线、中文视图和可撤回范围完成本地验证后，本 run 至此停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE086-P2-GATE，继续使用同一既有开发 worktree，不创建新的 worktree。任何真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K、检索样例／trace／过滤／有效性报告／证据账本读写、检索参数写入或回滚、批量导入、活动指针读写、模型选择或调用、Token、审计、持久化、Agent、OVH、生产、上传或 Stage086 P2 及后续动作都不属于本步骤。"
+  "stop_condition": "Stage086 P2 的说明、纯内存合同、控制模块、聚焦用例、machine run、机器事实投影、治理路线、中文视图和可撤回范围完成本地验证后，本 run 至此停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE086-P3-GATE，继续使用同一既有开发 worktree，不创建新的 worktree。任何真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K、检索样例／trace／过滤／有效性报告／证据账本读写、检索参数写入或回滚、批量导入、活动指针读写、模型选择或调用、Token、审计、持久化、Agent、OVH、生产、上传或 Stage086 P3 及后续动作都不属于本步骤。"
 }

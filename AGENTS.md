@@ -159,3 +159,7 @@ ssh ovh 'sudo /usr/local/bin/linze-r2-free-tier-guard.py'
 - **结论**：Stage086 P1 必须把 active_index_version 固定为独立静态记录形状，并让 candidate、selected 与 retrieval trace 直接保持同一版本引用；只在既有唯一开发 worktree 交付这一合同。
   **为什么**：任务包明确要求定义该记录，若只把版本放在 query 或候选引用中，selected 的可追溯性会留下缺口；静态字段和精确后继断言只能证明控制边界，不能升级为检索、排序或业务事实。
   **代价**：一次 P1 静态合同、历史合法后继和双平面回归；P1 聚焦 7/7、Stage060--086 受控白箱 1197/1197，未产生模型 Token、Agent、OVH、生产、上传或推送动作。
+
+- **结论**：Stage086 P2 只能以六条固定、非业务、reference-only 输入完成纯内存混合排序控制投影，并将历史白箱的合法当前态精确延长为 P2 → P3 gate。
+  **为什么**：query、六类过滤、活动索引版本、candidate、hybrid score、selected、trace 与 future route 都是不透明控制形状；vector-only 或任何非固定输入必须失败关闭，不能把控制投影升格为真实检索、排序或业务事实。
+  **代价**：对历史允许集逐形状补齐并完成 P1/P2 聚焦 15/15、Stage060--086 受控白箱 1205/1205；未创建额外 worktree，未产生模型 Token、Agent、OVH、生产、上传或推送动作。
