@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage083 Phase 4 - 2026-08-22
+## Current Gate - Stage083 Review - 2026-08-22
 
-- 本节是唯一当前交接；下方 Stage083 P3/P2/P1、Stage082 Review/P4/P3/P2/P1、Stage081 Review/P4/P3/P2/P1、Stage080 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其事实。
+- 本节是唯一当前交接；下方 Stage083 P4/P3/P2/P1、Stage082 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
+- 本轮完成 `IDS-V0_1-STAGE083-REVIEW`：只以冻结 Stage083 任务包、Stage083 P1--P4 合同、P2/P3/P4 纯内存控制报告、P4→P3 控制回退及 Stage082 Review 已审核工件为合同上下文，进行纯内存、失败关闭复审；没有读取业务资料、没有建立第二权威事实源，也没有启动 Stage084。
+- 已验证：Review 聚焦 `11/11`、Stage083 P1--Review `47/47`、Stage060--083 白箱 `1102/1102`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过；零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-22-stage083-review-local.json`。根级 `lean_governance.py` 在当前稀疏工作树中不存在，未陈述为已执行。
+- 本 Review 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、证据账本、审计日志、数据库、物理索引、检索参数或业务结论；不执行 PostgreSQL schema 或连接、FTS/BM25/pgvector、关键词／向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K、trace／证据账本读写、检索参数写入或回滚、模型 Token、Agent、OVH、生产、上传或推送。
+- 回滚只撤回本 Review 的范围说明、纯内存复审模块、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_KEYWORD_RETRIEVAL_BASELINE_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；保留 Stage083 P1--P4、Stage082 Review/P1--P4、冻结任务包、真实资料、fixture、manifest、证据账本、审计日志、数据库、索引、GitHub、OVH 与应用状态。
+- 下一步仅可在新的独立 run 进入 `IDS-STAGE084-P1-GATE`；继续使用既有唯一开发工作树 `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`，不创建额外工作树、分支或合并请求。本 run 不启动 Stage084、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage083 Phase 4 - 2026-08-22
+
+- 本节保留 Stage083 P4 历史交接；唯一当前交接位于上方 Stage083 Review，不重写其已验证事实。
 - 本轮完成 `IDS-V0_1-STAGE083-P4`：只以冻结 Stage083 任务包、Stage083 P1/P2/P3 与 Stage082 Review/P1--P4 已审核工件为唯一合同上下文，在内存中从 P3 八类固定、非业务、`reference-only` 场景派生八条检索样例、八条 trace 日志、八条过滤结果、八条有效性测试报告、八条检索不足或证据缺口记录、三条参数回滚说明和四条中文反馈。所有值继续是不透明控制标签；检索不足或证据缺口逐场景明确记录，自动补全、自动业务推荐与自动参数回滚均关闭，未来参数变更仍要求版本化参数、业务线白箱批准和可验证回退目标。
 - 已验证：P4 聚焦 `11/11`、P2 控制记录字段检查 `250` 次、P3 八场景各 `26` 字段共 `208` 次、P4 交付字段检查 `432` 次；Stage060--083 白箱 `1091/1091`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过；零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-22-stage083-p4-local.json`。根级 `lean_governance.py` 在当前稀疏工作树中不存在，未陈述为已执行。
 - 本 P4 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、证据账本、审计日志、数据库、物理索引、检索参数或业务结论；不执行 PostgreSQL schema 或连接、FTS/BM25/pgvector、关键词／向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K、trace／证据账本读写、检索参数写入或回滚、模型 Token、Agent、OVH、生产、上传或推送。

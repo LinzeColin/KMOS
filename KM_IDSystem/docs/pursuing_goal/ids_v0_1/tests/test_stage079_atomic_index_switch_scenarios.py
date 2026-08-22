@@ -483,6 +483,12 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
                 "task": "IDS-V0_1-STAGE083-P4",
                 "next_gate": "IDS-STAGE083-REVIEW-GATE",
             },
+            "IDS-STAGE083-REVIEW": {
+                "stage": "IDS-STAGE083",
+                "phase": "IDS-STAGE083-REVIEW",
+                "task": "IDS-V0_1-STAGE083-REVIEW",
+                "next_gate": "IDS-STAGE084-P1-GATE",
+            },
         }
         self.assertIn(status["phase"], expected_states)
         self.assertEqual(
@@ -509,7 +515,7 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
 
                                                                "IDS-STAGE082-P3-GATE",
 
-                                                               "IDS-STAGE082-P4-GATE", "IDS-STAGE082-REVIEW-GATE", "IDS-STAGE083-P1-GATE", "IDS-STAGE083-P2-GATE", "IDS-STAGE083-P3-GATE", "IDS-STAGE083-P4-GATE", "IDS-STAGE083-REVIEW-GATE"))
+                                                               "IDS-STAGE082-P4-GATE", "IDS-STAGE082-REVIEW-GATE", "IDS-STAGE083-P1-GATE", "IDS-STAGE083-P2-GATE", "IDS-STAGE083-P3-GATE", "IDS-STAGE083-P4-GATE", "IDS-STAGE083-REVIEW-GATE", "IDS-STAGE084-P1-GATE"))
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -660,6 +666,12 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
                 'current_task_id: "IDS-V0_1-STAGE083-P4"',
                 'next_gate_id: "IDS-STAGE083-REVIEW-GATE"',
                 'stage083_phase4_state:',
+            ),
+            "IDS-STAGE083-REVIEW": (
+                'current_phase_id: "IDS-STAGE083-REVIEW"',
+                'current_task_id: "IDS-V0_1-STAGE083-REVIEW"',
+                'next_gate_id: "IDS-STAGE084-P1-GATE"',
+                'stage083_review_state:',
             ),
         }
         roadmap_text = ROADMAP.read_text(encoding="utf-8")

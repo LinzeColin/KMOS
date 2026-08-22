@@ -2666,6 +2666,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE083-REVIEW-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE083"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE083-REVIEW"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE083-REVIEW"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE084-P1-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -20153,6 +20161,34 @@ def evaluate_current_state_consistency(
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage083_keyword_retrieval_baseline_delivery.py",
                     "KM_IDSystem/machine/runs/2026-08-22-stage083-p3-local.json",
                     "KM_IDSystem/machine/runs/2026-08-22-stage083-p4-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE082_STAGE_REVIEW.md",
+                },
+            },
+            "IDS-STAGE083-REVIEW": {
+                "task_id": "IDS-V0_1-STAGE083-REVIEW",
+                "next_gate_id": "IDS-STAGE084-P1-GATE",
+                "transition_key": "stage083_review_state",
+                "stage_statuses": {"completed_reviewed_local"},
+                "gate_id": "IDS-STAGE083-REVIEW-GATE",
+                "future_phase_ids": set(),
+                "required_evidence": {
+                    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-083_关键词检索基线.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE083_PHASE1_KEYWORD_RETRIEVAL_BASELINE_SCOPE_BOUNDARY.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage083_keyword_retrieval_baseline_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE083_PHASE2_KEYWORD_RETRIEVAL_BASELINE_CONTROL_SLICE.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage083_keyword_retrieval_baseline_slice_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage083_keyword_retrieval_baseline_control_slice.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE083_PHASE3_KEYWORD_RETRIEVAL_BASELINE_CONTROLLED_SCENARIOS.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage083_keyword_retrieval_baseline_scenarios_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage083_keyword_retrieval_baseline_scenarios.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE083_PHASE4_KEYWORD_RETRIEVAL_BASELINE_DELIVERY_EVIDENCE.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage083_keyword_retrieval_baseline_delivery_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage083_keyword_retrieval_baseline_delivery.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE083_STAGE_REVIEW.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage083_keyword_retrieval_baseline_stage_review.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage083_keyword_retrieval_baseline_stage_review.py",
+                    "KM_IDSystem/machine/runs/2026-08-22-stage083-p4-local.json",
+                    "KM_IDSystem/machine/runs/2026-08-22-stage083-review-local.json",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE082_STAGE_REVIEW.md",
                 },
             },
