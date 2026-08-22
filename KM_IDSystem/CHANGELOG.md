@@ -1,3 +1,9 @@
+## 2026-08-22 · Stage083 关键词检索基线 P2
+
+- 完成纯内存、`reference-only` 控制切片：五条固定、非业务请求分别覆盖文档类型、年份、项目、设备与证据等级过滤，并只投影关键词基线、candidate、keyword/vector/hybrid score、selected、retrieval trace、活动索引版本和证据账本引用；`vector-only` 与任一输入偏离均失败关闭。
+- 本地验证已通过：P2 聚焦 `8/8`、Stage060--083 白箱 `1070/1070`、Stage005 直接治理 `valid=true`、两个既有批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查通过。
+- 未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、关键词或向量检索、过滤、混合排序、Top-K、轨迹、证据账本读写、模型 Token、Agent、OVH、生产、上传或推送；下一步仅为新独立 run 的 `IDS-STAGE083-P3-GATE`。
+
 ## 2026-08-22 · Stage083 关键词检索基线 P1
 
 - 完成冻结 Stage083 P1 静态工程合同：固定 query `7`、五类 metadata filter `6`、candidate `8`、selected `7`、keyword/vector/hybrid score `7` 与 retrieval trace `8` 个控制字段；关键词检索基线不得只依赖向量相似度，候选、选择和轨迹必须关联 `active_index_version`、排序解释和证据账本引用。

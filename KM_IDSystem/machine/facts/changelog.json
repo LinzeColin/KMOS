@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage083-p2-local",
+    "date": "2026-08-22",
+    "summary": "完成 Stage083 关键词检索基线 P2 纯内存控制切片：只以五条固定、非业务、reference-only 请求投影关键词基线、文档类型／年份／项目／设备／证据等级过滤、candidate、keyword/vector/hybrid score、selected、retrieval trace、活动索引版本与证据账本引用；vector-only 和任何输入偏离均失败关闭，future PostgreSQL FTS／BM25、pgvector、过滤、混合排序与轨迹路由只声明未执行。P2 聚焦 8/8、Stage060--083 白箱 1070/1070、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器平面重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查通过。根级精简治理入口在当前稀疏工作树中不存在，未陈述为已执行。未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、关键词或向量检索、过滤、混合排序、Top-K、轨迹、证据账本读写、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage083 P3，继续使用既有唯一开发 worktree。"
+  },
+  {
     "version": "v0.1-stage083-p1-local",
     "date": "2026-08-22",
     "summary": "完成 Stage083 关键词检索基线 P1 静态工程合同：固定 query 的 7 字段、五类 metadata filter 的 6 字段、candidate 的 8 字段、selected 的 7 字段、keyword/vector/hybrid score 的 7 字段与 retrieval trace 的 8 字段，要求关键词检索基线存在且不得只依赖向量相似度，候选、选择和轨迹关联 active_index_version、排序解释与证据账本引用。P1 聚焦 7/7、Stage060--083 白箱 1062/1062、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、查询、过滤、混合排序、Top-K、轨迹、证据账本、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage083 P2，继续使用既有唯一开发 worktree。"

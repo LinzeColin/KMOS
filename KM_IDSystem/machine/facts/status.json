@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE083",
-  "phase": "IDS-STAGE083-P1",
-  "task": "IDS-V0_1-STAGE083-P1",
-  "real_progress": "Stage083 P1 已固定关键词检索基线静态工程合同：query、五类 metadata filter、candidate、selected、hybrid score、active_index_version 与 retrieval trace 只保持控制字段；关键词信号不得由向量相似度单独替代，候选、选择和轨迹必须关联活动索引版本及证据账本引用。没有读取或写入真实资料、查询、过滤、评分、排序、轨迹、数据库、索引、Operations 或报告。",
-  "report_grade": "冻结 Stage083 任务包与 Stage082 Review/P1--P4 已审核旧索引保留策略控制工件构成唯一合同上下文；P1 只定义未来 PostgreSQL full-text／BM25、pgvector 兼容、过滤、混合排序和轨迹边界，不建立第二权威事实源，未读取真实资料、不连接数据库、不选择或调用模型。",
-  "business_verdict": "Stage083 P1 只证明关键词基线不得只依赖向量相似度、五类过滤维度、候选／选择／分数／活动索引版本／检索轨迹的静态工程边界已本地合同化；不等于 PostgreSQL、FTS、BM25、pgvector、关键词查询、向量检索、过滤、混合排序、Top-K、轨迹、证据账本、模型、Token、审计、OVH、生产服务或上传能力已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "STAGE083_P1_LOCAL_CONTRACT_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE083-P2",
+  "task": "IDS-V0_1-STAGE083-P2",
+  "real_progress": "Stage083 P2 已在内存中完成五条固定、非业务、reference-only 控制请求投影：关键词基线、文档类型／年份／项目／设备／证据等级过滤、candidate、hybrid score、selected、retrieval trace 和证据账本引用均保持控制字段；候选与轨迹关联活动索引版本，vector-only 输入失败关闭。没有读取或写入真实资料、查询、过滤、评分、排序、轨迹、数据库、索引、Operations 或报告。",
+  "report_grade": "冻结 Stage083 任务包、Stage083 P1 与 Stage082 Review/P1--P4 已审核旧索引保留策略控制工件构成唯一合同上下文；P2 只创建纯内存控制适配器与 future PostgreSQL FTS／BM25、pgvector、过滤、混合排序和轨迹路由投影，不建立第二权威事实源，未读取真实资料、不连接数据库、不选择或调用模型。",
+  "business_verdict": "Stage083 P2 只证明五类过滤、候选／选择／分数／活动索引版本／检索轨迹／证据引用的固定控制投影与失败关闭已本地可测试；不等于 PostgreSQL、FTS、BM25、pgvector、关键词查询、向量检索、过滤、混合排序、Top-K、轨迹、证据账本、模型、Token、审计、OVH、生产服务或上传能力已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "STAGE083_P2_LOCAL_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-22",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE083-P2-GATE",
+  "next_gate": "IDS-STAGE083-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

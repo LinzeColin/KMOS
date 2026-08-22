@@ -1,13 +1,33 @@
 {
   "stage": "IDS-STAGE083",
-  "phase": "IDS-STAGE083-P1",
-  "task": "IDS-V0_1-STAGE083-P1",
-  "next_gate": "IDS-STAGE083-P2-GATE",
+  "phase": "IDS-STAGE083-P2",
+  "task": "IDS-V0_1-STAGE083-P2",
+  "next_gate": "IDS-STAGE083-P3-GATE",
   "items": [
     {
       "id": "ACC-STAGE-083",
-      "criteria": "Stage083 关键词检索基线：P1 已固定关键词检索、向量检索、元数据过滤、混合排序和检索轨迹的静态工程合同；query、filter、candidate、selected、score 与 active_index_version 仅为控制字段，关键词基线不得只依赖向量相似度。实际 PostgreSQL、FTS、BM25、pgvector、索引、查询、过滤、排序、轨迹和持久化均未执行。",
-      "status": "P1 静态合同已通过"
+      "criteria": "Stage083 关键词检索基线：P1 已固定关键词检索、向量检索、元数据过滤、混合排序和检索轨迹的静态工程合同；P2 已以五条固定、非业务、reference-only 控制请求投影 query、filter、candidate、selected、score、active_index_version、retrieval trace 与 evidence ledger 引用，关键词基线不得只依赖向量相似度。实际 PostgreSQL、FTS、BM25、pgvector、索引、查询、过滤、排序、轨迹和持久化均未执行。",
+      "status": "P2 纯内存控制切片已通过"
+    },
+    {
+      "id": "ACC-STAGE083-P2-01",
+      "criteria": "冻结 Stage083 任务包、Stage083 P1 与 Stage082 Review/P1--P4 已审核旧索引保留策略控制工件保持为唯一合同上下文；P2 只接收五条固定、非业务、reference-only 控制请求，不建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE083-P2-02",
+      "criteria": "五条控制请求分别覆盖文档类型、年份、项目、设备与证据等级过滤；每条投影 query、metadata filter、candidate、keyword/vector/hybrid score、selected、retrieval trace 与 future FTS／pgvector 路由，候选与轨迹关联活动索引版本，选择与轨迹关联证据账本引用。所有值仅为不透明控制标签。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE083-P2-03",
+      "criteria": "关键词基线对全部控制请求均为必需，vector-only 输入被拒绝；输入偏离、Top-K 声明、过滤维度、活动索引版本、候选关联、排序解释、证据账本引用或轨迹引用缺失时失败关闭，不生成任何控制投影。未来真实检索参数、资料范围、证据等级映射与结果采用仍须业务线白箱人工复核。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE083-P2-04",
+      "criteria": "P2 不执行真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、关键词或向量检索、元数据过滤、混合排序、Top-K 选择、检索轨迹或证据账本读写、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage083 P3。",
+      "status": "已遵守"
     },
     {
       "id": "ACC-STAGE083-P1-01",
