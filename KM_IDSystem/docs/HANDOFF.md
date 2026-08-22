@@ -9,7 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage088 Review - 2026-08-23
+## Current Gate - Stage089 Phase 1 - 2026-08-23
+
+- 本节是唯一当前交接；下方 Stage088 Review/P4/P3/P2/P1、Stage087 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
+- 本轮完成 IDS-V0_1-STAGE089-P1 的静态证据账本 Schema 合同：固定 evidence `10`、evidence relation `8`、evidence gap `5`、risk score `8`、revocation `7`、knowledge-base poisoning defense `8` 与 critical conclusion binding `7` 个不透明控制字段，定义 A/B/C/D/E 可信等级与 `23` 类失败关闭。关键结论必须关联 `evidence_id` 或 `evidence_gap`；低可信、冲突、过期、撤回或可疑投毒证据不得自动升格或采纳，业务线白箱人工复核仍是未来业务使用前置。
+- 已验证：P1 聚焦 `8/8`、Stage088 Review 与 Stage089 P1 关联聚焦 `19/19`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实已重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查均通过；零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-23-stage089-p1-local.json`。验证范围仅为冻结 Stage089 静态控制工件、前序兼容与本地治理，不宣称仓库级全量测试全绿。
+- 本 P1 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、evidence ledger、audit log、报告、数据库、物理索引或业务结论；不执行数据库 schema 或连接、检索证据捕获、风险评分、可信等级变更、撤回、投毒检测、隔离、恢复、报告状态更新、模型 Token、Agent、OVH、生产、上传或推送。
+- 回滚只撤回本 P1 的范围说明、静态合同、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_REVIEWED_RETRIEVAL_RESULT_VALIDITY_RUNTIME_DISABLED`；保留 Stage088 Review/P1--P4、冻结任务包、真实资料、manifest、evidence ledger、audit log、报告、数据库、索引、GitHub、OVH 与应用状态。
+- 下一步仅可在新的独立 run 进入 IDS-STAGE089-P2-GATE；Stage089 P2/P3/P4/Review 与 Stage090 尚未启动。继续使用既有唯一开发工作树 `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`，不创建额外工作树、分支或合并请求。本 run 不启动 P2、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 ACC-STAGE-168。
+
+## Superseded Gate - Stage088 Review - 2026-08-23
 
 - 本节是唯一当前交接；下方 Stage088 P4、P3、P2、P1、Stage087 Review/P4/P3/P2/P1、Stage086 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
 - 本轮完成 IDS-V0_1-STAGE088-REVIEW 的纯内存机械复审：只重放 P1 的 9/7/10/10/7/7/14/16 静态形状与 28 类失败关闭、P2 的 6 条固定请求／9 组投影／528 次字段检查／34 类失败关闭、P3 的 8 个 33 字段场景／264 次字段检查／8 条人工处理，以及 P4 的 8/8/8/8/8/4/4 交付形状／572 次字段检查／20 类失败关闭。结果有效性仍未评估，全部门禁仍待业务线白箱人工复核。

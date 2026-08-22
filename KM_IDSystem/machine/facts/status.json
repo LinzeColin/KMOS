@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE088",
-  "phase": "IDS-STAGE088-REVIEW",
-  "task": "IDS-V0_1-STAGE088-REVIEW",
-  "real_progress": "Stage088 P1--P4 已在纯内存中完成，并已机械复审 P1 的 9/7/10/10/7/7/14/16 与 28 类失败关闭、P2 的 6 条固定控制请求／9 组投影／528 次字段检查／34 类失败关闭、P3 的 8 个 33 字段场景／264 次字段检查／8 条人工处理，以及 P4 的 8/8/8/8/8/4/4 交付形状／572 次字段检查／20 类失败关闭。结果有效性仍未评估，业务线白箱人工复核仍是未来前置；没有持久化、实际检索或参数回滚。",
-  "report_grade": "冻结 Stage088 任务包、P1--P4 合同、P2/P3/P4 控制报告与 Stage087 Review/P1--P4 已审核检索轨迹控制工件构成唯一合同上下文；Review 只在本地纯内存层复审固定控制边界，不形成第二权威事实源。",
-  "business_verdict": "Stage088 Review 只证明冻结 P1--P4 控制工件的固定形状、失败关闭、单一权威、业务线白箱人工复核、回退与零运行时边界一致；不等于 PostgreSQL、FTS、BM25、pgvector、embedding、数据库、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K、trace 读写、结果有效性判定、旧索引服务、证据账本、真实参数回滚、模型、Token、审计、OVH、生产或 Stage089 已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "STAGE088_REVIEW_LOCAL_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE089",
+  "phase": "IDS-STAGE089-P1",
+  "task": "IDS-V0_1-STAGE089-P1",
+  "real_progress": "Stage089 P1 已固定 evidence_id、document_id、chunk_id、fact_id、report_id、source_type、evidence_grade、证据缺口、风险评分、撤回、知识库投毒防护和关键结论绑定的静态控制形状。A/B/C/D/E 可信等级完整；关键结论必须关联 evidence_id 或 evidence_gap，真实证据、风险、撤回、投毒与报告状态均未读取、创建、计算或持久化。",
+  "report_grade": "冻结 Stage089 任务包与 Stage088 Review/P1--P4 已审核检索结果有效性门禁控制工件构成唯一合同上下文；P1 只固定未来控制边界，不形成第二权威事实源。",
+  "business_verdict": "Stage089 P1 只证明证据账本 Schema 的静态字段、可信等级、证据缺口、风险、撤回、投毒防护和关键结论绑定边界已固定；不等于真实 evidence ledger、资料、数据库、检索证据捕获、风险计算、撤回执行、投毒检测、报告状态更新、模型、Token、审计、OVH 或生产已启用。来源文档、真实证据账本与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "STAGE089_P1_LOCAL_RUNTIME_DISABLED",
   "rendered_at": "2026-08-23",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE089-P1-GATE",
+  "next_gate": "IDS-STAGE089-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

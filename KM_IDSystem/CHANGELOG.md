@@ -1,3 +1,9 @@
+## 2026-08-23 · Stage089 证据账本 Schema P1
+
+- 完成冻结 Stage089 P1 静态工程合同：固定 evidence `10`、evidence relation `8`、evidence gap `5`、risk score `8`、revocation `7`、knowledge-base poisoning defense `8` 与 critical conclusion binding `7` 个不透明控制字段，以及 `23` 类失败关闭。A/B/C/D/E 可信等级完整；关键结论必须关联 `evidence_id` 或 `evidence_gap`，低可信、冲突、过期、撤回或可疑投毒证据不得自动升格或采纳，未来业务使用前仍须业务线白箱人工复核。
+- 本地验证通过：P1 聚焦 `8/8`、与 Stage088 Review 关联聚焦 `19/19`、Stage005 直接治理 `valid=true`，两个既有批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围仅为 Stage089 静态控制工件、前序兼容与治理，不宣称仓库级测试全绿。
+- 未建立第二权威事实源，未读取真实资料，未执行真实 evidence ledger、数据库、检索证据捕获、风险计算、可信等级变更、撤回、投毒检测、隔离、恢复、报告状态更新、模型 Token、Agent、OVH、生产、上传或推送；下一步只能在新的独立 run 进入 `IDS-STAGE089-P2-GATE`，继续使用既有唯一开发 worktree。
+
 ## 2026-08-23 · Stage088 检索结果有效性门禁 Review
 
 - 完成冻结 Stage088 P1--P4 的纯内存机械复审：固定复核 P1 `9/7/10/10/7/7/14/16` 字段与 `28` 类失败关闭、P2 `6` 条固定控制请求／`9` 组投影／`528` 次字段检查／`34` 类失败关闭、P3 `8` 个 `33` 字段场景／`264` 次字段检查／`8` 条人工处理，以及 P4 `8/8/8/8/8/4/4` 交付形状／`572` 次字段检查／`20` 类失败关闭；单一权威、业务线白箱人工处理、失败关闭、P4 交付控制回退与零运行时边界均保持。

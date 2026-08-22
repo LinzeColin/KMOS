@@ -1,6 +1,12 @@
 {
   "stages": [
     {
+      "id": "IDS-STAGE089",
+      "name": "证据账本 Schema",
+      "gate": "Stage089 P1 静态合同已完成本地验证；下一步只能在新的独立 run 进入 Stage089 P2",
+      "status": "Stage089 P1 已完成：evidence_id、document_id、chunk_id、fact_id、report_id、source_type、evidence_grade、证据缺口、风险评分、撤回、投毒防护和关键结论绑定均固定为不透明控制形状。A/B/C/D/E 可信等级完整；关键结论必须关联 evidence_id 或 evidence_gap，低可信、冲突、过期、撤回或可疑投毒证据不得自动升格或采纳。真实证据、数据库、检索证据捕获、风险计算、撤回、投毒、报告、模型、Token、Agent、OVH、生产、Stage089 P2、上传与推送仍禁用。"
+    },
+    {
       "id": "IDS-STAGE088",
       "name": "检索结果有效性门禁",
       "gate": "Stage088 P1--P4 冻结控制工件已完成整阶段机械复审；下一步只能在新的独立 run 进入 Stage089 P1",
