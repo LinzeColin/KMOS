@@ -137,7 +137,9 @@ class Stage074LocalEmbeddingFallbackPhase4Tests(unittest.TestCase):
                 ("IDS-STAGE082-P2", "IDS-V0_1-STAGE082-P2", "IDS-STAGE082-P3-GATE"), ("IDS-STAGE082-P3", "IDS-V0_1-STAGE082-P3", "IDS-STAGE082-P4-GATE"), ("IDS-STAGE082-P4", "IDS-V0_1-STAGE082-P4", "IDS-STAGE082-REVIEW-GATE"),
                 ("IDS-STAGE082-REVIEW", "IDS-V0_1-STAGE082-REVIEW", "IDS-STAGE083-P1-GATE"), ("IDS-STAGE083-P1", "IDS-V0_1-STAGE083-P1", "IDS-STAGE083-P2-GATE"), ("IDS-STAGE083-P2", "IDS-V0_1-STAGE083-P2", "IDS-STAGE083-P3-GATE"), ("IDS-STAGE083-P3", "IDS-V0_1-STAGE083-P3", "IDS-STAGE083-P4-GATE"), ("IDS-STAGE083-P4", "IDS-V0_1-STAGE083-P4", "IDS-STAGE083-REVIEW-GATE"), ("IDS-STAGE083-REVIEW", "IDS-V0_1-STAGE083-REVIEW", "IDS-STAGE084-P1-GATE"), ("IDS-STAGE084-P1", "IDS-V0_1-STAGE084-P1", "IDS-STAGE084-P2-GATE"), ("IDS-STAGE084-P2", "IDS-V0_1-STAGE084-P2", "IDS-STAGE084-P3-GATE"), ('IDS-STAGE084-P3', 'IDS-V0_1-STAGE084-P3', 'IDS-STAGE084-P4-GATE'), ('IDS-STAGE084-P4', 'IDS-V0_1-STAGE084-P4', 'IDS-STAGE084-REVIEW-GATE'),
                     ('IDS-STAGE084-REVIEW', 'IDS-V0_1-STAGE084-REVIEW', 'IDS-STAGE085-P1-GATE'),
-                ),
+
+                ('IDS-STAGE085-P1', 'IDS-V0_1-STAGE085-P1', 'IDS-STAGE085-P2-GATE'),
+            ),
         )
         self.assertIn(plan["task"], ("IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW",
             'IDS-V0_1-STAGE075-P1', 'IDS-V0_1-STAGE075-P2', 'IDS-V0_1-STAGE075-P3', 'IDS-V0_1-STAGE075-P4', 'IDS-V0_1-STAGE075-REVIEW',
@@ -155,7 +157,9 @@ class Stage074LocalEmbeddingFallbackPhase4Tests(unittest.TestCase):
                                         'IDS-V0_1-STAGE082-P2',
                                         'IDS-V0_1-STAGE082-P3', 'IDS-V0_1-STAGE082-P4', "IDS-V0_1-STAGE082-REVIEW", "IDS-V0_1-STAGE083-P1", "IDS-V0_1-STAGE083-P2", "IDS-V0_1-STAGE083-P3", "IDS-V0_1-STAGE083-P4", "IDS-V0_1-STAGE083-REVIEW", "IDS-V0_1-STAGE084-P1", 'IDS-V0_1-STAGE084-P2', 'IDS-V0_1-STAGE084-P3', 'IDS-V0_1-STAGE084-P4',
                                             'IDS-V0_1-STAGE084-REVIEW',
-                                        ))
+
+                                        'IDS-V0_1-STAGE085-P1',
+                                    ))
         self.assertIn(acceptance["task"], ("IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW",
             'IDS-V0_1-STAGE075-P1', 'IDS-V0_1-STAGE075-P2', 'IDS-V0_1-STAGE075-P3', 'IDS-V0_1-STAGE075-P4', 'IDS-V0_1-STAGE075-REVIEW',
             'IDS-V0_1-STAGE076-P1',
@@ -172,7 +176,9 @@ class Stage074LocalEmbeddingFallbackPhase4Tests(unittest.TestCase):
                                               'IDS-V0_1-STAGE082-P2',
                                               'IDS-V0_1-STAGE082-P3', 'IDS-V0_1-STAGE082-P4', "IDS-V0_1-STAGE082-REVIEW", "IDS-V0_1-STAGE083-P1", "IDS-V0_1-STAGE083-P2", "IDS-V0_1-STAGE083-P3", "IDS-V0_1-STAGE083-P4", "IDS-V0_1-STAGE083-REVIEW", "IDS-V0_1-STAGE084-P1", 'IDS-V0_1-STAGE084-P2', 'IDS-V0_1-STAGE084-P3', 'IDS-V0_1-STAGE084-P4',
                                                   'IDS-V0_1-STAGE084-REVIEW',
-                                              ))
+
+                                              'IDS-V0_1-STAGE085-P1',
+                                          ))
         self.assertTrue({"ACC-STAGE-074", "ACC-STAGE074-P4-01", "ACC-STAGE074-P4-02", "ACC-STAGE074-P4-03", "ACC-STAGE074-P4-04"}.issubset({x["id"] for x in acceptance["items"]}))
         self.assertTrue(
             'current_phase_id: "IDS-STAGE074-P4"' in roadmap

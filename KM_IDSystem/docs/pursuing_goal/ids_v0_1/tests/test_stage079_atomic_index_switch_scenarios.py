@@ -519,6 +519,12 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
                 "task": "IDS-V0_1-STAGE084-REVIEW",
                 "next_gate": "IDS-STAGE085-P1-GATE",
             },
+            "IDS-STAGE085-P1": {
+                "stage": "IDS-STAGE085",
+                "phase": "IDS-STAGE085-P1",
+                "task": "IDS-V0_1-STAGE085-P1",
+                "next_gate": "IDS-STAGE085-P2-GATE",
+            },
         }
         self.assertIn(status["phase"], expected_states)
         self.assertEqual(
@@ -545,7 +551,7 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
 
                                                                "IDS-STAGE082-P3-GATE",
 
-                                                               "IDS-STAGE082-P4-GATE", "IDS-STAGE082-REVIEW-GATE", "IDS-STAGE083-P1-GATE", "IDS-STAGE083-P2-GATE", "IDS-STAGE083-P3-GATE", "IDS-STAGE083-P4-GATE", "IDS-STAGE083-REVIEW-GATE", "IDS-STAGE084-P1-GATE", "IDS-STAGE084-P2-GATE", "IDS-STAGE084-P3-GATE", "IDS-STAGE084-P4-GATE", "IDS-STAGE084-REVIEW-GATE", "IDS-STAGE085-P1-GATE"))
+                                                               "IDS-STAGE082-P4-GATE", "IDS-STAGE082-REVIEW-GATE", "IDS-STAGE083-P1-GATE", "IDS-STAGE083-P2-GATE", "IDS-STAGE083-P3-GATE", "IDS-STAGE083-P4-GATE", "IDS-STAGE083-REVIEW-GATE", "IDS-STAGE084-P1-GATE", "IDS-STAGE084-P2-GATE", "IDS-STAGE084-P3-GATE", "IDS-STAGE084-P4-GATE", "IDS-STAGE084-REVIEW-GATE", "IDS-STAGE085-P1-GATE", "IDS-STAGE085-P2-GATE"))
             or 'IDS-STAGE084-P4-GATE' in plan['stop_condition']
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
@@ -733,6 +739,12 @@ class Stage079AtomicIndexSwitchPhase3Tests(unittest.TestCase):
                 'current_task_id: "IDS-V0_1-STAGE084-REVIEW"',
                 'next_gate_id: "IDS-STAGE085-P1-GATE"',
                 'stage084_review_state:',
+            ),
+            "IDS-STAGE085-P1": (
+                'current_phase_id: "IDS-STAGE085-P1"',
+                'current_task_id: "IDS-V0_1-STAGE085-P1"',
+                'next_gate_id: "IDS-STAGE085-P2-GATE"',
+                'stage085_phase1_state:',
             ),
         }
         roadmap_text = ROADMAP.read_text(encoding="utf-8")

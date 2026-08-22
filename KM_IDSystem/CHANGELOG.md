@@ -1,3 +1,9 @@
+## 2026-08-22 · Stage085 元数据过滤 P1
+
+- 完成冻结 Stage085 P1 静态工程合同：固定 query `11`、六类 metadata filter 与 filter state `7`、candidate `11`、selected `8`、keyword/vector/hybrid score `7` 与 retrieval trace `10` 个控制字段；关键词与向量基线均为必需，`vector-only`、缺失过滤引用、资料状态、模型／版本／维度／相似度度量、活动索引版本、排序解释、证据账本引用或轨迹均失败关闭。
+- 本地验证通过：P1 聚焦 `7/7`、Stage060--085 白箱 `1153/1153`、Stage005 直接治理 `valid=true`，两个既有批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。
+- 未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、embedding、关键词或向量检索、资料状态读取、过滤、混合排序、Top-K、trace、证据账本读写、模型 Token、Agent、OVH、生产、上传或推送；下一步只能在新的独立 run 进入 `IDS-STAGE085-P2-GATE`，继续使用既有唯一开发工作树。
+
 ## 2026-08-22 · Stage084 向量检索基线 Review
 
 - 完成冻结 Stage084 P1--P4 的纯内存机械复审：复核静态合同、P2 五条控制投影、P3 八类受控场景、P4 metadata-only 交付形状、P4→P3 控制回退、失败关闭、单一权威、显式证据缺口与业务线白箱人工处理；只将历史白箱的合法当前态精确延长为 `Stage084 Review → Stage085 P1 gate`。
