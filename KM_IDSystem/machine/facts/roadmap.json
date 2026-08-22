@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE087",
       "name": "检索轨迹",
-      "gate": "Stage087 P1 静态合同与 P2 纯内存检索轨迹控制切片已完成本地验证；下一步只能在新的独立 run 进入 Stage087 P3",
-      "status": "Stage087 当前完成 P1/P2：P1 已固定 query、六类 metadata filter、candidate chunks、selected chunks、score、active_index_version 与 retrieval trace 的 9/7/10/10/7/7/14 静态形状及 21 类失败关闭；P2 已以六条固定、非业务、reference-only 控制请求投影 query 9、filter 8、active_index_version 7、candidate chunks 10、score 7、selected chunks 10、retrieval trace 14 与 future integration 6 个字段，共 426 个控制检查点。关键词与向量基线均必需，vector-only 与非固定输入被拒绝。P3--Review、真实资料、PostgreSQL、FTS、BM25、pgvector、embedding、数据库、索引、查询、过滤、排序、Top-K、trace 读写、证据账本、模型、Token、Agent、OVH、生产、上传与推送仍禁用。"
+      "gate": "Stage087 P1 静态合同、P2 纯内存检索轨迹控制切片与 P3 八类受控场景已完成本地验证；下一步只能在新的独立 run 进入 Stage087 P4",
+      "status": "Stage087 当前完成 P1/P2/P3：P1 已固定 query、六类 metadata filter、candidate chunks、selected chunks、score、active_index_version 与 retrieval trace 的 9/7/10/10/7/7/14 静态形状及 21 类失败关闭；P2 已以六条固定、非业务、reference-only 控制请求投影 426 个控制检查点；P3 已重放八个 31 字段场景，共 248 个场景检查点与八条业务线白箱人工处理要求。关键词与向量基线均必需，vector-only 与非固定输入被拒绝。P4--Review、真实资料、PostgreSQL、FTS、BM25、pgvector、embedding、数据库、索引、查询、过滤、排序、Top-K、trace 读写、证据账本、模型、Token、Agent、OVH、生产、上传与推送仍禁用。"
     },
     {
       "id": "IDS-STAGE086",

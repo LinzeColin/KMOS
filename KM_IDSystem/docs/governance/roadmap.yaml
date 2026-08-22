@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE087"
-current_phase_id: "IDS-STAGE087-P2"
-current_task_id: "IDS-V0_1-STAGE087-P2"
-next_gate_id: "IDS-STAGE087-P3-GATE"
+current_phase_id: "IDS-STAGE087-P3"
+current_task_id: "IDS-V0_1-STAGE087-P3"
+next_gate_id: "IDS-STAGE087-P4-GATE"
 current_transition_history:
+  stage087_phase3_state:
+    current_stage_id: "IDS-STAGE087"
+    current_phase_id: "IDS-STAGE087-P3"
+    current_task_id: "IDS-V0_1-STAGE087-P3"
+    next_gate_id: "IDS-STAGE087-P4-GATE"
   stage087_phase2_state:
     current_stage_id: "IDS-STAGE087"
     current_phase_id: "IDS-STAGE087-P2"
@@ -1380,22 +1385,22 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-087"
     objective: "依据冻结 Stage087 任务包完成检索轨迹的静态合同、后续受控实现、专项验证、交付证据与整阶段机械复审；关键词、向量、元数据过滤、混合排序、候选、选择、评分、活动索引版本与轨迹均保持控制标签，真实运行时保持关闭。"
-    status: "phase2_completed_local"
+    status: "phase3_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE087-P3-GATE"
+    next_gate_id: "IDS-STAGE087-P4-GATE"
     gate:
-      gate_id: "IDS-STAGE087-P2-GATE"
+      gate_id: "IDS-STAGE087-P3-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE087-P3-GATE"
+      next_gate_id: "IDS-STAGE087-P4-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "冻结 Stage087 任务包、Stage086 Review/P1--P4 已审核混合排序控制工件与 Stage087 P1 静态合同保持为唯一合同上下文；P2 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
-      - "P2 只在内存中重放六条固定、非业务、reference-only 控制请求：每条输入 18 个不透明字段，投影 query 9、filter 8、active_index_version 7、candidate chunks 10、score 7、selected chunks 10、retrieval trace 14 与 future integration 6 个字段，共 426 个控制字段检查点。"
-      - "关键词与向量检索基线均必需，vector-only 与非固定输入被拒绝；六类过滤、活动索引版本、candidate／selected／score／trace 引用链、score explanation 与 evidence ledger 引用任一偏离即失败关闭。"
-      - "PostgreSQL、FTS、BM25、pgvector、embedding、真实检索、过滤、混合排序、Top-K、trace 或证据账本读写、参数写入／回滚、模型、Token、Agent、OVH、生产、Stage087 P3--Review、上传与推送保持关闭；只开放后续 Stage087 P3 门。"
+      - "冻结 Stage087 任务包、Stage086 Review/P1--P4 已审核混合排序控制工件与 Stage087 P1/P2 合同保持为唯一合同上下文；P3 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
+      - "P3 只在内存中重放 P2 六条固定、非业务、reference-only 控制请求及其 426 个控制字段检查点，形成关键词、材料牌号、设备型号、标准号、语义相似、六维过滤组合、Top-K／排序解释／结果有效性与旧索引服务版本轨迹八个受控场景；每场景 31 个字段，共 248 个场景检查点。"
+      - "关键词与向量检索基线、vector-only 拒绝、六类过滤、活动索引版本、candidate／selected／score／trace／evidence ledger 引用链、Top-K／排序解释／有效性与旧索引版本轨迹均只保持不透明控制引用；所有八场景均要求业务线白箱人工处理，任一偏离即失败关闭。"
+      - "PostgreSQL、FTS、BM25、pgvector、embedding、真实检索、过滤、混合排序、Top-K、trace 或证据账本读写、参数写入／回滚、模型、Token、Agent、OVH、生产、Stage087 P4--Review、上传与推送保持关闭；只开放后续 Stage087 P4 门。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、测试、查询、过滤、排序、追踪或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
-      - "执行 PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、元数据过滤、混合排序、Top-K 选择、检索轨迹或证据账本读写、检索参数写入或回滚、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage087 P3、批次复审、上传或推送。"
+      - "执行 PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K 选择、检索轨迹或证据账本读写、检索参数写入或回滚、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage087 P4、批次复审、上传或推送。"
     phases:
       - phase_id: "IDS-STAGE087-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -1481,19 +1486,55 @@ stages:
             rollback: "只回滚本 P2 范围说明、合同、纯内存控制模块、聚焦用例、机器事实投影、治理路线和生成中文视图，恢复到 Stage087 P1 静态合同状态；不改变冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE087-P3"
         name: "Phase 3 · 检索轨迹专项验证与异常场景"
-        objective: "未来受控阶段：验证未来实现对 query、filter、candidate、selected、score、active_index_version 与 trace 的受控行为；本轮不进入。"
-        status: "not_started"
-        entry_authorized: false
+        objective: "只在内存中重放 P2 的六条固定、非业务、reference-only 控制投影，验证关键词、材料牌号、设备型号、标准号、语义相似、六维过滤组合、Top-K、排序解释、结果有效性与旧索引服务时的版本轨迹；材料牌号、设备型号、标准号和语义相似只作场景类别，不读取或计算业务值。"
+        status: "completed"
+        entry_authorized: true
         next_gate_id: "IDS-STAGE087-P4-GATE"
         gate:
           gate_id: "IDS-STAGE087-P3-GATE"
-          status: "not_entered"
+          status: "passed"
           next_gate_id: "IDS-STAGE087-P4-GATE"
           github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、测试、查询、过滤、排序、追踪或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
+          - "执行 PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K 选择、检索轨迹或证据账本读写、检索参数写入或回滚、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage087 P4、批次复审、上传或推送。"
         tasks:
           - task_id: "IDS-V0_1-STAGE087-P3"
-            name: "未来受控验证检索轨迹"
-            status: "not_started"
+            name: "验证检索轨迹受控场景与版本轨迹"
+            objective: "只重放 P2 六条固定控制投影为八条非业务、reference-only 场景，核验关键词与向量基线、vector-only 拒绝、领域场景类别、六维过滤组合、独立活动索引版本、Top-K／排序解释／结果有效性与旧索引版本轨迹；不读取业务值或执行 embedding、真实检索。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE087-P2"
+              - "IDS-V0_1-STAGE086-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-087"
+              - "ACC-STAGE087-P3-01"
+              - "ACC-STAGE087-P3-02"
+              - "ACC-STAGE087-P3-03"
+              - "ACC-STAGE087-P3-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage087_retrieval_trace_controlled_scenarios"
+              - "Stage087 P1/P2/P3 关联聚焦回归、Stage005 与既有批次复核命令记录于 machine run"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "P3 聚焦受控场景与后续本地治理回归记录于 Stage087 P3 receipt；所有结果只证明固定控制重放、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-087_检索轨迹.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE087_PHASE3_RETRIEVAL_TRACE_CONTROLLED_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage087_retrieval_trace_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage087_retrieval_trace_controlled_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage087_retrieval_trace_controlled_scenarios.py"
+              - "KM_IDSystem/machine/runs/2026-08-23-stage087-p3-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE087_PHASE2_RETRIEVAL_TRACE_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage087_retrieval_trace_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage087_retrieval_trace_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE087_PHASE1_RETRIEVAL_TRACE_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage087_retrieval_trace_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE086_STAGE_REVIEW.md"
+            risk: "若将八条控制场景、材料牌号／设备型号／标准号／语义相似类别、六维过滤组合、独立活动索引版本、Top-K／排序解释／有效性或旧索引轨迹投影误作真实业务值、真实 PostgreSQL、embedding、真实检索、真实证据账本、OVH、生产或上传能力，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P3 范围说明、控制合同、纯内存场景模块、聚焦用例、machine run、事件、机器事实、治理路线和生成中文视图，恢复到 PASS_RETRIEVAL_TRACE_CONTROL_SLICE_RUNTIME_DISABLED；不改变冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE087-P4"
         name: "Phase 4 · 检索轨迹交付证据"
         objective: "未来受控阶段：形成可审计、可回滚的交付证据；本轮不进入。"

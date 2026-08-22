@@ -183,3 +183,7 @@ ssh ovh 'sudo /usr/local/bin/linze-r2-free-tier-guard.py'
 - **结论**：Stage087 P2 只能以六条固定、非业务、`reference-only` 输入完成纯内存检索轨迹控制切片，并将历史白箱的合法当前态精确延长为 `Stage087 P2 → Stage087 P3 gate`。
   **为什么**：query、六类过滤、active index、candidate/selected chunks、score、trace 与 future integration 都只是不可持久化的控制形状；`vector-only`、非固定输入或任一运行信号必须失败关闭，不能把它们升格为 PostgreSQL、检索、排序、证据账本或业务事实。
   **代价**：P1/P2 聚焦 `14/14`、Stage005 直接治理与两个既有批次检查器通过，机器平面重渲染 `7` 个中文文件并通过三项文档门禁；全程只使用既有唯一开发 worktree，未读取真实资料、未产生模型 Token、Agent、OVH、生产、上传或推送动作。
+
+- **结论**：Stage087 P3 只能把 P2 的六条固定、非业务、`reference-only` 控制投影重放为八个纯内存场景，并将唯一合法当前态精确延长为 `Stage087 P3 → Stage087 P4 gate`。
+  **为什么**：材料牌号、设备型号、标准号、语义相似、六维过滤、Top-K、排序解释、结果有效性和旧索引版本都只是场景类别或不透明控制引用；把它们升格为真实检索、业务事实、自动写入或自动索引切换会突破单一权威、零运行时与业务线白箱边界。
+  **代价**：P1/P2/P3 聚焦 `21/21`、Stage005 直接治理和两个既有批次检查器通过，机器平面重渲染 `7` 个中文文件并通过三项文档门禁；全程只使用既有唯一开发 worktree，未读取真实资料、未产生模型 Token、Agent、OVH、生产、上传或推送动作。

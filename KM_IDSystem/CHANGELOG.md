@@ -1,3 +1,9 @@
+## 2026-08-23 · Stage087 检索轨迹 P3
+
+- 完成冻结 Stage087 P3 纯内存受控场景：只重放 P2 六条固定、非业务、`reference-only` 控制投影及其 `426` 个源字段检查点，覆盖关键词、材料牌号、设备型号、标准号、语义相似、六维过滤组合、Top-K／排序解释／结果有效性和旧索引服务版本轨迹八类场景；每个场景 `31` 个不透明控制字段，共 `248` 个检查点与 `8` 条业务线白箱人工处理要求。
+- 本地验证通过：P1/P2/P3 聚焦 `21/21`、Stage005 直接治理 `valid=true`，两个既有批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围仅为 Stage087 固定合同与纯内存受控场景，不宣称仓库级测试全绿。
+- 未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、过滤、排序、Top-K、trace、证据账本读写、模型 Token、Agent、OVH、生产、上传或推送；下一步只能在新的独立 run 进入 `IDS-STAGE087-P4-GATE`，继续使用既有唯一开发 worktree。
+
 ## 2026-08-23 · Stage087 检索轨迹 P2
 
 - 完成冻结 Stage087 P2 纯内存受控切片：六条固定、非业务、`reference-only` 控制请求各含 `18` 个输入字段，覆盖关键词与向量基线、文档类型／年份／项目／设备／资料状态／证据等级六类过滤、candidate/selected chunks、score、active_index_version、trace 与 future integration；分别投影 query `9`、filter `8`、active index `7`、candidate chunk `10`、score `7`、selected chunk `10`、trace `14`、future integration `6` 个字段，共 `426` 个检查点与 `27` 类失败关闭，`vector-only` 和任何非固定输入均被拒绝。
