@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE088",
       "name": "检索结果有效性门禁",
-      "gate": "Stage088 P1 静态合同已完成本地验证；下一步只能在新的独立 run 进入 Stage088 P2",
-      "status": "Stage088 P1 已完成：query、六类 filter、candidate、selected、score、活动索引版本、检索轨迹与有效性门禁均固定为不透明控制形状。关键词与向量基线均必需，vector-only 或仅凭系统输出的有效性认定均失败关闭，业务使用前仍须业务线白箱人工复核。真实资料、PostgreSQL、FTS、BM25、pgvector、embedding、数据库、物理索引、查询、过滤、排序、Top-K、trace、有效性判定、证据账本、参数、模型、Token、Agent、OVH、生产、Stage089、上传与推送仍禁用。"
+      "gate": "Stage088 P3 纯内存受控场景已完成本地验证；下一步只能在新的独立 run 进入 Stage088 P4",
+      "status": "Stage088 P3 已完成：只重放 P2 六条固定、非业务、reference-only 控制投影为关键词、材料牌号、设备型号、标准号、语义相似、六维过滤组合、Top-K、排序解释、结果有效性和旧索引服务版本轨迹八类受控场景。每场景 33 个不透明控制字段，共 264 个检查点；P2 九组 528 个源字段检查点、关键词与向量基线、vector-only 拒绝、结果有效性未评估和待业务线白箱人工复核状态保持一致。真实资料、PostgreSQL、FTS、BM25、pgvector、embedding、数据库、物理索引、查询、过滤、排序、Top-K、trace、有效性判定、旧索引服务、证据账本、参数、模型、Token、Agent、OVH、生产、Stage089、上传与推送仍禁用。"
     },
     {
       "id": "IDS-STAGE087",
