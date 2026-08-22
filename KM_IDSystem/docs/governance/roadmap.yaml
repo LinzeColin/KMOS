@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE087"
-current_phase_id: "IDS-STAGE087-REVIEW"
-current_task_id: "IDS-V0_1-STAGE087-REVIEW"
-next_gate_id: "IDS-STAGE088-P1-GATE"
+current_stage_id: "IDS-STAGE088"
+current_phase_id: "IDS-STAGE088-P1"
+current_task_id: "IDS-V0_1-STAGE088-P1"
+next_gate_id: "IDS-STAGE088-P2-GATE"
 current_transition_history:
+  stage088_phase1_state:
+    current_stage_id: "IDS-STAGE088"
+    current_phase_id: "IDS-STAGE088-P1"
+    current_task_id: "IDS-V0_1-STAGE088-P1"
+    next_gate_id: "IDS-STAGE088-P2-GATE"
   stage087_review_state:
     current_stage_id: "IDS-STAGE087"
     current_phase_id: "IDS-STAGE087-REVIEW"
@@ -1389,6 +1394,136 @@ current_transition_history:
 total_estimated_hours: 158
 completed_estimated_hours: 290
 stages:
+  - stage_id: "IDS-STAGE088"
+    name: "检索结果有效性门禁"
+    task_id: "IDS-V0_1-STAGE088"
+    acceptance_ids:
+      - "ACC-STAGE-088"
+    objective: "依据冻结 Stage088 任务包完成检索结果有效性门禁的静态合同、后续受控实现、专项验证、交付证据与整阶段复审；关键词、向量、元数据过滤、混合排序、候选、选择、评分、活动索引版本、检索轨迹与有效性门禁均保持控制标签，真实运行时保持关闭。"
+    status: "phase1_completed_local"
+    entry_authorized: true
+    next_gate_id: "IDS-STAGE088-P2-GATE"
+    gate:
+      gate_id: "IDS-STAGE088-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE088-P2-GATE"
+      github_upload_allowed: false
+    pass_conditions:
+      - "冻结 Stage088 任务包与 Stage087 Review/P1--P4 已审核检索轨迹控制工件保持为唯一合同上下文；P1 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
+      - "P1 固定 query、六类 filter、candidate、selected、score、active_index_version、retrieval trace 与 validity gate 的静态形状；关键词与向量基线均必需，vector-only 与仅凭系统输出的有效性认定均失败关闭。"
+      - "活动索引版本、candidate／selected、过滤合同、Top-K、混合 score、排序解释、检索轨迹与 evidence ledger 引用必须形成同一不透明控制链；业务线白箱人工复核仍是未来业务使用前的必需关口。"
+      - "PostgreSQL、FTS、BM25、pgvector、embedding、真实检索、过滤、混合排序、Top-K、trace、有效性判定、证据账本、参数写入／回滚、模型、Token、Agent、OVH、生产、Stage089、上传与推送保持关闭；只开放后续 Stage088 P2 门。"
+    stop_conditions:
+      - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、测试、查询、过滤、排序、追踪、判定或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库、物理索引或检索参数。"
+      - "执行 PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K 选择、检索样例／trace／过滤／有效性报告／证据缺口读写、检索参数写入或回滚、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage088 P2、上传或推送。"
+    phases:
+      - phase_id: "IDS-STAGE088-P1"
+        name: "Phase 1 · 范围、输入输出与边界确认"
+        objective: "只定义关键词检索、向量检索、metadata filtering、hybrid ranking、retrieval trace、query、六类 filter、candidate、selected、score、active_index_version 与结果有效性门禁的静态合同；关键词与向量基线均为必需，向量相似度或系统输出不得单独决定未来结果有效性，不创建数据库、embedding 或执行检索。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE088-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE088-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE088-P2-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取真实资料、执行 PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、元数据过滤、混合排序、Top-K、检索轨迹、结果有效性判定或证据账本读写、模型调用、模型 Token、Agent、OVH、生产、上传、推送或 Stage088 P2。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE088-P1"
+            name: "固化检索结果有效性门禁静态合同"
+            objective: "以静态控制字段固定 query、文档类型／年份／项目／设备／资料状态／证据等级 filter、candidate、selected、score、active_index_version、retrieval trace 与 validity gate；关键词和向量检索基线均必需，vector-only 或仅凭系统输出的结果有效性认定被拒绝，不创建 PostgreSQL、FTS、BM25、pgvector、embedding、数据库、索引或真实检索。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE087-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-088"
+              - "ACC-STAGE088-P1-01"
+              - "ACC-STAGE088-P1-02"
+              - "ACC-STAGE088-P1-03"
+              - "ACC-STAGE088-P1-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage088_retrieval_result_validity_contract"
+              - "后续本地治理回归命令记录于 Stage088 P1 receipt"
+            test_results: "P1 聚焦静态合同与后续本地治理回归记录于 Stage088 P1 receipt；所有结果只证明静态合同、治理兼容和零运行时边界，不证明真实资料正确性、实际检索、业务有效性或生产能力。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-088_检索结果有效性门禁.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE088_PHASE1_RETRIEVAL_RESULT_VALIDITY_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage088_retrieval_result_validity_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage088_retrieval_result_validity_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-23-stage088-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE087_STAGE_REVIEW.md"
+            risk: "若将静态控制字段、candidate、selected、score、活动索引版本、检索轨迹或 validity gate 误作真实资料、真实检索、真实正确性、真实证据账本、OVH、生产或上传能力，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P1 范围说明、静态合同、聚焦用例、机器事实投影、治理路线和生成中文视图，恢复到 Stage087 Review 的本地零运行时状态；不改变冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE088-P2"
+        name: "Phase 2 · 实现、接入与最小可运行切片"
+        objective: "后续独立授权阶段才可处理冻结任务包列明的 PostgreSQL FTS、pgvector、过滤器、混合排序、trace 与证据账本衔接；当前未进入，不声明运行时能力。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE088-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE088-P2-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE088-P3-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "未获得新的独立授权、真实资料 fixture 或可回滚运行时条件前，任何实际实现、接入、数据库、索引、检索、过滤、排序、trace 或证据账本动作均不得开始。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE088-P2"
+            name: "待后续授权的最小可运行切片"
+            status: "not_started"
+      - phase_id: "IDS-STAGE088-P3"
+        name: "Phase 3 · 检索结果有效性门禁专项验证与异常场景"
+        objective: "后续独立授权阶段才可验证关键词、材料牌号、设备型号、标准号、语义相似、过滤组合、Top-K、排序解释、结果有效性与旧索引版本轨迹；当前未进入。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE088-P4-GATE"
+        gate:
+          gate_id: "IDS-STAGE088-P3-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE088-P4-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "未进入 Stage088 P3 前，不得读取真实资料、执行实际检索、过滤、排序、有效性验证或版本轨迹记录。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE088-P3"
+            name: "待后续授权的有效性门禁专项验证"
+            status: "not_started"
+      - phase_id: "IDS-STAGE088-P4"
+        name: "Phase 4 · 检索结果有效性门禁交付证据、回滚与中文反馈"
+        objective: "后续独立授权阶段才可形成冻结任务包列明的检索样例、trace、过滤结果、有效性测试报告、证据缺口与参数回滚说明；当前未进入。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE088-REVIEW-GATE"
+        gate:
+          gate_id: "IDS-STAGE088-P4-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE088-REVIEW-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "未进入 Stage088 P4 前，不得创建、写入或交付任何检索样例、trace、过滤结果、有效性报告、证据缺口或参数回滚记录。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE088-P4"
+            name: "待后续授权的交付证据与回滚说明"
+            status: "not_started"
+      - phase_id: "IDS-STAGE088-REVIEW"
+        name: "Stage Review · 检索结果有效性门禁整阶段复审"
+        objective: "仅在 P1--P4 均完成且获得新的独立授权后，才可复审冻结控制工件、失败关闭、业务线白箱人工处理与回退；当前未进入。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE089-P1-GATE"
+        gate:
+          gate_id: "IDS-STAGE088-REVIEW-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE089-P1-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "未进入 Stage088 Review 前，不得声称 Stage088、Stage089、运行时或生产能力已完成。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE088-REVIEW"
+            name: "待后续授权的整阶段机械复审"
+            status: "not_started"
   - stage_id: "IDS-STAGE087"
     name: "检索轨迹"
     task_id: "IDS-V0_1-STAGE087"
