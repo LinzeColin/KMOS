@@ -2896,6 +2896,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE089-P3-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE089"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE089-P3"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE089-P3"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE089-P4-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -20344,6 +20352,31 @@ def evaluate_current_state_consistency(
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage089_evidence_ledger_control_slice.py",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage089_evidence_ledger_control_slice.py",
                     "KM_IDSystem/machine/runs/2026-08-23-stage089-p2-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE089_PHASE1_EVIDENCE_LEDGER_SCHEMA_SCOPE_BOUNDARY.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage089_evidence_ledger_schema_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE088_STAGE_REVIEW.md",
+                },
+            },
+            "IDS-STAGE089-P3": {
+                "task_id": "IDS-V0_1-STAGE089-P3",
+                "next_gate_id": "IDS-STAGE089-P4-GATE",
+                "transition_key": "stage089_phase3_state",
+                "stage_statuses": {"phase3_completed_local"},
+                "gate_id": "IDS-STAGE089-P3-GATE",
+                "future_phase_ids": {
+                    "IDS-STAGE089-P4",
+                    "IDS-STAGE089-REVIEW",
+                },
+                "required_evidence": {
+                    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-089_证据账本Schema.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE089_PHASE3_EVIDENCE_LEDGER_CONTROLLED_SCENARIOS.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage089_evidence_ledger_scenarios_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage089_evidence_ledger_controlled_scenarios.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage089_evidence_ledger_controlled_scenarios.py",
+                    "KM_IDSystem/machine/runs/2026-08-23-stage089-p3-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE089_PHASE2_EVIDENCE_LEDGER_CONTROL_SLICE.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage089_evidence_ledger_control_slice_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage089_evidence_ledger_control_slice.py",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE089_PHASE1_EVIDENCE_LEDGER_SCHEMA_SCOPE_BOUNDARY.md",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage089_evidence_ledger_schema_contract.json",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE088_STAGE_REVIEW.md",

@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE089",
-  "phase": "IDS-STAGE089-P2",
-  "task": "IDS-V0_1-STAGE089-P2",
-  "real_progress": "Stage089 P2 已以六条固定、非业务、reference-only 控制输入投影 evidence schema、evidence relation、evidence gap、检索证据捕获、风险、撤回、投毒防护、关键结论绑定、降级和 future integration；每条投影仅在内存中存在，低可信、冲突、过期和撤回为降级候选，疑似投毒为隔离候选。",
-  "report_grade": "冻结 Stage089 任务包、Stage089 P1 静态合同与 Stage088 Review/P1--P4 已审核检索结果有效性门禁控制工件构成唯一合同上下文；P2 只投影固定控制引用，不形成第二权威事实源。",
-  "business_verdict": "Stage089 P2 只证明纯内存控制切片的固定投影、失败关闭、降级／隔离候选和业务线白箱人工复核边界；不等于真实 evidence ledger、资料、数据库、检索证据捕获、风险计算、撤回执行、投毒检测、报告状态更新、模型、Token、审计、OVH 或生产已启用。来源文档、真实证据账本与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "STAGE089_P2_LOCAL_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE089-P3",
+  "task": "IDS-V0_1-STAGE089-P3",
+  "real_progress": "Stage089 P3 已在内存中重放 P2 六条固定、非业务、reference-only 控制投影，形成无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料和低等级伪装高可信结论七个异常场景，共 224 个场景字段检查点；撤回只声明未来报告状态影响引用，所有场景均待业务线白箱人工处理。",
+  "report_grade": "冻结 Stage089 任务包、Stage089 P1 静态合同、Stage089 P2 纯内存控制切片与 Stage088 Review/P1--P4 已审核检索结果有效性门禁控制工件构成唯一合同上下文；P3 只重放固定控制引用，不形成第二权威事实源。",
+  "business_verdict": "Stage089 P3 只证明纯内存异常场景的固定重放、失败关闭、降级／隔离候选、撤回报告影响引用、低等级伪装拒绝和业务线白箱人工复核边界；不等于真实证据、OCR、版本、数据库、风险计算、撤回执行、投毒检测、报告状态更新、模型、Token、审计、OVH 或生产已启用。来源文档、真实证据账本与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "STAGE089_P3_LOCAL_RUNTIME_DISABLED",
   "rendered_at": "2026-08-23",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE089-P3-GATE",
+  "next_gate": "IDS-STAGE089-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

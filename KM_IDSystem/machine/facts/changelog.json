@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage089-p3-local",
+    "date": "2026-08-23",
+    "summary": "完成 Stage089 证据账本 Schema P3 纯内存异常场景验证：只重放 P2 六条固定、非业务、reference-only 控制投影，形成无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料及低等级伪装高可信结论七个场景，每场景 32 个字段、共 224 个场景字段检查点，并保留 P2 的 444 个源字段检查点。撤回只声明未来报告状态影响引用，不更新真实报告；低可信、冲突、旧版本和撤回均不得自动采纳，疑似投毒保持隔离候选，D 等级不得伪装支撑高可信结论。P3 聚焦 9/9；未建立第二权威事实源，未读取真实资料，未执行真实证据账本、数据库、OCR 或版本评估、冲突裁决、风险计算、撤回、投毒防护、报告状态更新、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 IDS-STAGE089-P4-GATE，继续使用既有唯一开发 worktree。"
+  },
+  {
     "version": "v0.1-stage089-p2-local",
     "date": "2026-08-23",
     "summary": "完成 Stage089 证据账本 Schema P2 纯内存受控最小切片：只接收六条固定、非业务、reference-only 的 24 字段控制请求，分别投影 evidence schema 10、relation 8、evidence gap 5、evidence capture 6、risk score 8、revocation 7、poisoning defense 8、critical conclusion binding 7、degradation 8 与 future integration 7 个字段，共 444 个控制检查点与 23 类失败关闭。低可信、冲突、过期和撤回证据均为降级候选，疑似投毒为隔离候选，A 等级仍待业务线白箱人工复核。P2 聚焦 9/9；未建立第二权威事实源，未读取真实资料，未执行真实证据账本、数据库、检索证据捕获、风险计算、撤回、投毒防护、报告状态更新、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 IDS-STAGE089-P3-GATE，继续使用既有唯一开发 worktree。"

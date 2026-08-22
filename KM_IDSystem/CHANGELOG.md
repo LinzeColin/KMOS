@@ -1,3 +1,9 @@
+## 2026-08-23 · Stage089 证据账本 Schema P3
+
+- 完成冻结 Stage089 P3 纯内存受控异常场景：只重放 P2 的 `6` 条固定、非业务、`reference-only` 控制投影，固定无内部证据、低 OCR、旧版本、冲突、撤回、疑似恶意证据及低等级伪装高可信结论 `7` 个场景，每场景 `32` 个不透明控制字段，共 `224` 个检查点，并保持 P2 的 `444` 个源控制检查点与 `15` 类 P3 失败关闭。
+- 撤回证据仅声明报告状态影响、绝不实际更新报告；低等级证据不得支撑高可信结论，所有场景均不被自动接受、均需业务线白箱人工复核。P3 聚焦 `9/9`、与 Stage089 P1/P2 及 Stage088 Review 关联聚焦 `37/37`；Stage005 与两个既有批次检查器已通过，不宣称仓库级测试全绿。
+- 未建立第二权威事实源，未读取真实资料，未执行真实 evidence ledger、OCR、版本识别、冲突判定、可信等级变更、撤回、投毒检测、隔离、恢复、报告状态更新、模型 Token、Agent、OVH、生产、上传或推送；下一步只能在新的独立 run 进入 `IDS-STAGE089-P4-GATE`，继续使用既有唯一开发 worktree。
+
 ## 2026-08-23 · Stage089 证据账本 Schema P2
 
 - 完成冻结 Stage089 P2 纯内存受控最小切片：只接收 `6` 条固定、非业务、`reference-only` 的 `24` 字段控制请求，分别投影 evidence schema `10`、relation `8`、evidence gap `5`、evidence capture `6`、risk score `8`、revocation `7`、poisoning defense `8`、critical conclusion binding `7`、degradation `8` 与 future integration `7` 个字段，共 `444` 个控制检查点与 `23` 类失败关闭。evidence 与 document、chunk、fact、query、answer、report 的引用链明确且不持久化。
