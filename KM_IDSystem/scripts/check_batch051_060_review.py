@@ -2369,6 +2369,20 @@ def _governance_checks(batch: Mapping[str, Any], roadmap: Mapping[str, Any]) -> 
                     "next_gate_id": "IDS-STAGE088-P2-GATE",
                 }
             )
+            or (
+                roadmap.get("current_stage_id") == "IDS-STAGE088"
+                and roadmap.get("current_phase_id") == "IDS-STAGE088-P2"
+                and roadmap.get("current_task_id") == "IDS-V0_1-STAGE088-P2"
+                and roadmap.get("next_gate_id") == "IDS-STAGE088-P3-GATE"
+                and isinstance(roadmap.get("current_transition_history"), dict)
+                and roadmap["current_transition_history"].get("stage088_phase2_state")
+                == {
+                    "current_stage_id": "IDS-STAGE088",
+                    "current_phase_id": "IDS-STAGE088-P2",
+                    "current_task_id": "IDS-V0_1-STAGE088-P2",
+                    "next_gate_id": "IDS-STAGE088-P3-GATE",
+                }
+            )
         ),
         "stage060_route_exact": (
             stage060.get("next_stage") == "STAGE-061"
@@ -3795,6 +3809,15 @@ def _projection_checks() -> dict[str, bool]:
             )
             or (
                 isinstance(status, dict)
+                and status.get("stage") == "IDS-STAGE088"
+                and status.get("phase") == "IDS-STAGE088-P2"
+                and status.get("task") == "IDS-V0_1-STAGE088-P2"
+                and status.get("next_gate") == "IDS-STAGE088-P3-GATE"
+                and status.get("runtime_enabled") is False
+                and status.get("push_allowed") is False
+            )
+            or (
+                isinstance(status, dict)
                 and status.get("stage") == "IDS-STAGE087"
                 and status.get("phase") == "IDS-STAGE087-P4"
                 and status.get("task") == "IDS-V0_1-STAGE087-P4"
@@ -4677,6 +4700,13 @@ def _projection_checks() -> dict[str, bool]:
                 and plan.get("phase") == "IDS-STAGE088-P1"
                 and plan.get("task") == "IDS-V0_1-STAGE088-P1"
                 and "IDS-STAGE088-P2-GATE" in str(plan.get("stop_condition", ""))
+            )
+            or (
+                isinstance(plan, dict)
+                and plan.get("stage") == "IDS-STAGE088"
+                and plan.get("phase") == "IDS-STAGE088-P2"
+                and plan.get("task") == "IDS-V0_1-STAGE088-P2"
+                and "IDS-STAGE088-P3-GATE" in str(plan.get("stop_condition", ""))
             )
         ),
         "roadmap_projection": (

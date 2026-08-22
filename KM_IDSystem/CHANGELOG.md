@@ -1,3 +1,9 @@
+## 2026-08-23 · Stage088 检索结果有效性门禁 P2
+
+- 完成冻结 Stage088 P2 纯内存控制切片：仅接收六条固定、非业务、`reference-only` 的 18 字段控制请求，分别投影 query `9`、filter `8`、active_index_version `7`、candidate `10`、score `7`、selected `10`、retrieval trace `14`、结果有效性门禁 `16` 与 future integration `7` 个字段，共 `528` 个字段检查点与 `34` 类失败关闭；关键词与向量基线均必需，`vector-only`、非固定输入、仅凭系统输出或控制链缺失均被拒绝，结果有效性保持未评估，业务使用前仍须业务线白箱人工复核。
+- 本地验证通过：P2 聚焦 `7/7`、与 Stage087 Review/P1 关联聚焦 `25/25`、Stage005 直接治理 `valid=true`，两个既有批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围仅为固定控制工件、前序兼容与本地治理，不宣称仓库级测试全绿。
+- 未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、embedding、关键词或向量检索、过滤、排序、Top-K、trace、结果有效性判定、证据账本读写、参数回滚、模型 Token、Agent、OVH、生产、上传或推送；下一步只能在新的独立 run 进入 `IDS-STAGE088-P3-GATE`，继续使用既有唯一开发 worktree。
+
 ## 2026-08-23 · Stage088 检索结果有效性门禁 P1
 
 - 完成冻结 Stage088 P1 静态工程合同：固定 query `9`、六类 metadata filter 与 filter state `7`、candidate `10`、selected `10`、score `7`、active_index_version `7`、retrieval trace `14` 与结果有效性门禁 `16` 个不透明控制字段及 `28` 类失败关闭；关键词与向量基线均必需，`vector-only` 或仅凭系统输出的有效性认定均被拒绝，业务使用前仍须业务线白箱人工复核。

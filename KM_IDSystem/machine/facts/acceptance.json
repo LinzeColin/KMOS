@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE088",
-  "phase": "IDS-STAGE088-P1",
-  "task": "IDS-V0_1-STAGE088-P1",
-  "next_gate": "IDS-STAGE088-P2-GATE",
+  "phase": "IDS-STAGE088-P2",
+  "task": "IDS-V0_1-STAGE088-P2",
+  "next_gate": "IDS-STAGE088-P3-GATE",
   "items": [
     {
       "id": "ACC-STAGE-088",
-      "criteria": "Stage088 检索结果有效性门禁：P1 已固定关键词检索、向量检索、六类元数据过滤、混合排序、检索轨迹与结果有效性门禁的静态控制关系，并固定 query、filter、candidate、selected、score、active_index_version、retrieval trace 与结果有效性门禁记录形状。所有字段均为不透明控制标签；关键词与向量基线均必需，vector-only 或仅凭系统输出不得单独决定未来结果有效性；实际 PostgreSQL、FTS、BM25、pgvector、embedding、索引、查询、过滤、排序、trace、有效性判定、参数与持久化均未执行。",
-      "status": "P1 已完成本地验证"
+      "criteria": "Stage088 检索结果有效性门禁：P1 已固定静态控制关系；P2 已以六条固定、非业务、reference-only 的 18 字段纯内存控制请求分别投影 query 9、filter 8、active_index_version 7、candidate 10、score 7、selected 10、retrieval trace 14、结果有效性门禁 16 与 future integration 7 个字段，共 528 个字段检查点。所有字段均为不透明控制标签；关键词与向量基线均必需，vector-only、非固定输入或仅凭系统输出均不得单独决定未来结果有效性；结果有效性未评估，业务使用前仍须业务线白箱人工复核；实际 PostgreSQL、FTS、BM25、pgvector、embedding、索引、查询、过滤、排序、trace、有效性判定、参数与持久化均未执行。",
+      "status": "P2 已完成本地验证"
     },
     {
       "id": "ACC-STAGE088-P1-01",
@@ -27,6 +27,26 @@
     {
       "id": "ACC-STAGE088-P1-04",
       "criteria": "P1 期间不执行真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、元数据过滤、混合排序、Top-K 选择、检索轨迹、结果有效性判定或证据账本读写、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage088 P2。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE088-P2-01",
+      "criteria": "冻结 Stage088 任务包、Stage088 P1 静态合同与 Stage087 Review/P1--P4 已审核检索轨迹控制工件保持为唯一合同上下文；P2 只执行六条固定、非业务、reference-only 的纯内存控制投影，不建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE088-P2-02",
+      "criteria": "六条固定控制请求各含 18 个不透明字段，并覆盖文档类型、年份、项目、设备、资料状态和证据等级；每条只投影 query 9、filter 8、active_index_version 7、candidate 10、score 7、selected 10、retrieval trace 14、结果有效性门禁 16 与 future integration 7 个字段，共 528 个控制检查点。candidate、selected、trace 与结果有效性门禁的活动索引版本、元数据过滤、关键词／向量基线、评分、排序策略、评分解释与证据账本引用链必须一致。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE088-P2-03",
+      "criteria": "关键词与向量基线必须同时声明，vector-only、非固定输入、请求 Top-K、六类过滤维度、活动索引版本、过滤合同、candidate／selected 引用、评分、排序策略、评分解释、证据账本引用、检索轨迹或结果有效性门禁引用任一缺失时必须失败关闭；仅凭系统输出不得接受结果，结果有效性保持未评估并等待业务线白箱人工复核；PostgreSQL full-text／BM25、pgvector、过滤、混合排序、轨迹与结果有效性门禁仅保留 future-only 路由。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE088-P2-04",
+      "criteria": "P2 期间不执行真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、元数据过滤、混合排序、Top-K 选择、检索轨迹、结果有效性判定或证据账本读写、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage088 P3。",
       "status": "已遵守"
     },
     {

@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE088",
-  "phase": "IDS-STAGE088-P1",
-  "task": "IDS-V0_1-STAGE088-P1",
-  "now": "IDS-V0_1-STAGE088-P1 已固定检索结果有效性门禁的静态合同，并通过 7 个聚焦用例、Stage087 Review 与 P1 关联聚焦 18 个用例及本地治理验证。query、filter、candidate、selected、score、active_index_version、retrieval trace 与结果有效性门禁只保留不透明控制引用；关键词与向量基线均必需，vector-only 或仅凭系统输出均不得视为有效结果。未执行任何实际检索或有效性判定。",
-  "owner": "仅使用既有唯一 KMOS 开发 worktree `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`；不创建额外 worktree、分支或合并请求，且不进入 Stage088 P2、OVH、生产或上传。",
-  "objective": "只以冻结 Stage088 任务包与 Stage087 Review/P1--P4 已审核检索轨迹控制工件为唯一合同上下文，固定未来检索结果有效性门禁的控制形状、失败关闭、业务线白箱人工复核与零运行时边界；不读取、打开、解析、导入、构建、查询、过滤、排序、追踪、判定、写入或回滚真实资料、数据库、索引、embedding、证据账本、参数、模型、Token、审计或业务结论。",
+  "phase": "IDS-STAGE088-P2",
+  "task": "IDS-V0_1-STAGE088-P2",
+  "now": "IDS-V0_1-STAGE088-P2 已将冻结 P1 静态合同投影为六条固定、非业务、reference-only 的纯内存控制请求，并通过 7 个聚焦用例。每条请求含 18 个控制字段，只投影 query、filter、active_index_version、candidate、score、selected、retrieval trace、结果有效性门禁与 future integration 九组控制形状，共 528 个字段检查点；结果有效性保持未评估，业务线白箱人工复核仍是未来前置。未执行任何实际检索、过滤、排序、证据账本访问或有效性判定。",
+  "owner": "仅使用既有唯一 KMOS 开发 worktree `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`；不创建额外 worktree、分支或合并请求，且不进入 Stage088 P3、OVH、生产或上传。",
+  "objective": "只以冻结 Stage088 任务包、P1 静态合同与 Stage087 Review/P1--P4 已审核检索轨迹控制工件为唯一合同上下文，固定六条纯内存控制输入、九组结果有效性门禁控制投影、失败关闭、业务线白箱人工复核与零运行时边界；不读取、打开、解析、导入、构建、查询、过滤、排序、追踪、判定、写入或回滚真实资料、数据库、索引、embedding、证据账本、参数、模型、Token、审计或业务结论。",
   "scope": [
-    "以冻结 Stage088 任务包与 Stage087 Review/P1--P4 已审核控制工件为唯一合同上下文，不建立第二权威事实源",
-    "只固定 query、六类 filter、candidate、selected、score、active_index_version、retrieval trace 与结果有效性门禁的静态形状；关键词和向量基线均必需，vector-only 与仅凭系统输出的有效性认定失败关闭",
-    "活动索引版本、candidate／selected、过滤合同、Top-K、混合 score、排序解释、检索轨迹与 evidence ledger 引用必须保持同一控制链；未来业务使用前必须经业务线白箱人工复核，自动查询、过滤、排序、结果采纳、业务建议、参数回滚与索引切换关闭",
-    "仅同步 IDS-V0_1-STAGE088-P1 的范围说明、静态合同、聚焦用例、machine run、机器事实、治理路线和生成中文视图；Stage087 Review/P1--P4 只作为既有证据，不改写其完成状态"
+    "以冻结 Stage088 任务包、P1 静态合同与 Stage087 Review/P1--P4 已审核控制工件为唯一合同上下文，不建立第二权威事实源",
+    "只接收六条固定、非业务、reference-only 的 18 字段纯内存控制请求；每条只投影 query、filter、active_index_version、candidate、score、selected、retrieval trace、结果有效性门禁与 future integration 九组控制形状，关键词和向量基线均必需，vector-only、非固定输入与仅凭系统输出均失败关闭",
+    "活动索引版本、candidate／selected、过滤合同、Top-K、混合 score、排序解释、检索轨迹、结果有效性门禁与 evidence ledger 引用必须保持同一控制链；结果有效性保持未评估，未来业务使用前必须经业务线白箱人工复核，自动查询、过滤、排序、结果采纳、业务建议、参数回滚与索引切换关闭",
+    "仅同步 IDS-V0_1-STAGE088-P2 的范围说明、纯内存合同、控制模块、聚焦用例、machine run、机器事实、治理路线和生成中文视图；Stage088 P1 与 Stage087 Review/P1--P4 只作为既有证据，不改写其完成状态"
   ],
   "non_goals": [
     "不打开、创建、复制、移动、删除、修改、检测、解析、评估、保留、总结、导入、构建、查询、过滤、评分、排序、追踪、判定、写入、重生成或回退真实业务源、原始元数据、授权 fixture、真实资料范围、向量、版本、索引、检索结果、有效性结论、模型、Token、队列、缓存、审计日志、成本记录、事实库、证据账本、数据库、参数、Operations 或报告",
     "不执行 PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K 选择、检索轨迹、结果有效性判定或证据账本读写、检索参数写入或回滚、批量导入、活动指针读写、模型选择或下载、模型调用、外部 API、模型 Token、持久化、Agent、OVH、生产或上传",
-    "不启动 Stage088 P2/P3/P4/Review、Stage089、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
+    "不启动 Stage088 P3/P4/Review、Stage089、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage088 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线、中文视图和可撤回范围完成本地验证后，本 run 至此停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE088-P2-GATE，继续使用同一既有开发 worktree，不创建新的 worktree。任何真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K、检索样例／trace／过滤／有效性报告／证据缺口读写、检索参数写入或回滚、批量导入、活动指针读写、模型选择或调用、Token、审计、持久化、Agent、OVH、生产、上传或 Stage088 P2 及后续动作都不属于本步骤。"
+  "stop_condition": "Stage088 P2 的范围说明、纯内存合同、控制模块、聚焦用例、machine run、机器事实投影、治理路线、中文视图和可撤回范围完成本地验证后，本 run 至此停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE088-P3-GATE，继续使用同一既有开发 worktree，不创建新的 worktree。任何真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K、检索样例／trace／过滤／有效性报告／证据缺口读写、检索参数写入或回滚、批量导入、活动指针读写、模型选择或调用、Token、审计、持久化、Agent、OVH、生产、上传或 Stage088 P3 及后续动作都不属于本步骤。"
 }
