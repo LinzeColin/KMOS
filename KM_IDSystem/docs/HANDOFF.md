@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage089 Phase 3 - 2026-08-23
+## Current Gate - Stage089 Phase 4 - 2026-08-23
 
-- 本节是唯一当前交接；下方 Stage089 P2/P1、Stage088 Review/P4/P3/P2/P1、Stage087 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
+- 本节是唯一当前交接；下方 Stage089 P3/P2/P1、Stage088 Review/P4/P3/P2/P1、Stage087 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
+- 本轮完成 IDS-V0_1-STAGE089-P4 的纯内存交付控制证据：只从 P3 的七个固定、非业务、reference-only 异常场景派生 7 条证据账本样例、7 条证据等级报告、7 条撤回影响、7 条回归、7 条不可作为结论依据类型、4 条降级和 2 条撤回／恢复说明，共 517 个交付字段检查点；P2 六条输入／444 个源检查点与 P3 七场景／224 个检查点保持一致。
+- 已验证：P4 聚焦 11/11，Stage089 P1/P2/P3/P4 与 Stage088 Review 关联聚焦 48/48，Stage005 直接治理 valid=true，Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器事实已重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查均通过。所有样例、报告、影响、回归和说明均只含不透明控制引用；撤回只声明报告影响且不更新报告，无内部证据、低 OCR、旧版本、冲突、撤回、恶意与低等级伪装均不可自动作为结论依据，所有处置仍需业务线白箱人工处理。
+- 本 P4 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、evidence ledger、audit log、报告、数据库、物理索引或业务结论；不执行数据库 schema 或连接、实际 OCR 或版本评估、冲突裁决、检索证据捕获、风险评分、可信等级变更、撤回、投毒检测、隔离、恢复、报告状态更新、模型 Token、Agent、OVH、生产、上传或推送。
+- 回滚只撤回本 P4 的范围说明、纯内存交付模块、聚焦用例、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 PASS_EVIDENCE_LEDGER_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；保留 Stage089 P1/P2/P3、Stage088 Review/P1--P4、冻结任务包、真实资料、manifest、evidence ledger、audit log、报告、数据库、索引、GitHub、OVH 与应用状态。
+- 下一步仅可在新的独立 run 进入 IDS-STAGE089-REVIEW-GATE；Stage089 Review 与 Stage090 尚未启动。继续使用既有唯一开发工作树 /Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1，不创建额外工作树、分支或合并请求。本 run 不启动 Review、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 ACC-STAGE-168。
+
+## Superseded Gate - Stage089 Phase 3 - 2026-08-23
+
+- 本节保留 Stage089 P3 历史交接；唯一当前交接位于上方 Stage089 P4，本节所述下一步为 P3 完成当时的历史状态，不重写其已验证事实。
 - 本轮完成 IDS-V0_1-STAGE089-P3 的纯内存证据账本异常场景验证：只重放 P2 的六条固定、非业务、reference-only 控制投影，形成无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料和低等级伪装高可信结论七个场景。每场景固定 32 个字段，共 224 个场景字段检查点；P2 六条输入、10 组投影与 444 个源字段检查点保持一致。
 - 已验证：P3 聚焦 9/9，Stage089 P1/P2/P3 与 Stage088 Review 关联聚焦 37/37，Stage005 直接治理 valid=true，Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。验证范围只覆盖冻结 P2 控制投影、固定异常场景、前序兼容和本地治理，不宣称仓库级全量测试全绿，也不证明真实证据、OCR、版本、风险、撤回、投毒防护、报告状态、业务结论或生产能力。
 - 无内部证据只保留证据缺口引用；低 OCR、旧版本、冲突和撤回只保留降级候选，恶意资料只保留隔离候选；撤回只声明未来报告状态影响引用，低等级证据伪装高可信结论固定拒绝。所有场景均待业务线白箱人工处理，不更新真实证据等级或报告状态。

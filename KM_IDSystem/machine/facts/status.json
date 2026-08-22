@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE089",
-  "phase": "IDS-STAGE089-P3",
-  "task": "IDS-V0_1-STAGE089-P3",
-  "real_progress": "Stage089 P3 已在内存中重放 P2 六条固定、非业务、reference-only 控制投影，形成无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料和低等级伪装高可信结论七个异常场景，共 224 个场景字段检查点；撤回只声明未来报告状态影响引用，所有场景均待业务线白箱人工处理。",
-  "report_grade": "冻结 Stage089 任务包、Stage089 P1 静态合同、Stage089 P2 纯内存控制切片与 Stage088 Review/P1--P4 已审核检索结果有效性门禁控制工件构成唯一合同上下文；P3 只重放固定控制引用，不形成第二权威事实源。",
-  "business_verdict": "Stage089 P3 只证明纯内存异常场景的固定重放、失败关闭、降级／隔离候选、撤回报告影响引用、低等级伪装拒绝和业务线白箱人工复核边界；不等于真实证据、OCR、版本、数据库、风险计算、撤回执行、投毒检测、报告状态更新、模型、Token、审计、OVH 或生产已启用。来源文档、真实证据账本与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "STAGE089_P3_LOCAL_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE089-P4",
+  "task": "IDS-V0_1-STAGE089-P4",
+  "real_progress": "Stage089 P4 已在内存中从 P3 七个固定、非业务、reference-only 异常场景派生 7 条证据账本样例、7 条证据等级报告、7 条撤回影响、7 条回归、7 条不可作为结论依据类型、4 条证据降级和 2 条撤回／恢复说明，共 517 个交付字段检查点；撤回只声明影响，所有交付仍待业务线白箱人工处理。",
+  "report_grade": "冻结 Stage089 任务包、Stage089 P1/P2/P3 控制合同与 Stage088 Review/P1--P4 已审核检索结果有效性门禁控制工件构成唯一合同上下文；P4 只派生固定控制引用，不形成第二权威事实源。",
+  "business_verdict": "Stage089 P4 只证明纯内存交付控制证据、失败关闭、不可作为结论依据类型、未来降级／撤回／恢复说明和业务线白箱人工复核边界；不等于真实证据账本、报告、OCR、版本、数据库、风险计算、可信等级变更、撤回、恢复、投毒检测、报告状态更新、模型、Token、审计、OVH 或生产已启用。来源文档、真实证据账本与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "STAGE089_P4_LOCAL_RUNTIME_DISABLED",
   "rendered_at": "2026-08-23",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE089-P4-GATE",
+  "next_gate": "IDS-STAGE089-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
