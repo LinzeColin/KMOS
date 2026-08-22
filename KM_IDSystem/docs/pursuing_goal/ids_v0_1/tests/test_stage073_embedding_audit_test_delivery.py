@@ -305,7 +305,7 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
                 ("IDS-STAGE082-REVIEW", "IDS-V0_1-STAGE082-REVIEW", "IDS-STAGE083-P1-GATE"), ("IDS-STAGE083-P1", "IDS-V0_1-STAGE083-P1", "IDS-STAGE083-P2-GATE"), ("IDS-STAGE083-P2", "IDS-V0_1-STAGE083-P2", "IDS-STAGE083-P3-GATE"), ("IDS-STAGE083-P3", "IDS-V0_1-STAGE083-P3", "IDS-STAGE083-P4-GATE"), ("IDS-STAGE083-P4", "IDS-V0_1-STAGE083-P4", "IDS-STAGE083-REVIEW-GATE"), ("IDS-STAGE083-REVIEW", "IDS-V0_1-STAGE083-REVIEW", "IDS-STAGE084-P1-GATE"), ("IDS-STAGE084-P1", "IDS-V0_1-STAGE084-P1", "IDS-STAGE084-P2-GATE"), ("IDS-STAGE084-P2", "IDS-V0_1-STAGE084-P2", "IDS-STAGE084-P3-GATE"), ('IDS-STAGE084-P3', 'IDS-V0_1-STAGE084-P3', 'IDS-STAGE084-P4-GATE'), ('IDS-STAGE084-P4', 'IDS-V0_1-STAGE084-P4', 'IDS-STAGE084-REVIEW-GATE'),
                     ('IDS-STAGE084-REVIEW', 'IDS-V0_1-STAGE084-REVIEW', 'IDS-STAGE085-P3-GATE'),
 
-                ('IDS-STAGE085-P2', 'IDS-V0_1-STAGE085-P2', 'IDS-STAGE085-P3-GATE'),
+                ('IDS-STAGE085-P2', 'IDS-V0_1-STAGE085-P2', 'IDS-STAGE085-P3-GATE'), ("IDS-STAGE085-P3", "IDS-V0_1-STAGE085-P3", "IDS-STAGE085-P4-GATE"),
             ),
         )
         self.assertTrue(
@@ -366,6 +366,7 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
             or 'IDS-V0_1-STAGE084-P4' in plan['now']
             or "IDS-V0_1-STAGE084-REVIEW" in plan["now"]
             or "IDS-V0_1-STAGE085-P2" in plan["now"]
+            or "IDS-V0_1-STAGE085-P3" in plan["now"]
         )
         self.assertTrue(
             "IDS-V0_1-STAGE073-P4" in "\n".join(plan["scope"])
@@ -402,6 +403,7 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
             or "IDS-V0_1-STAGE081-P4" in "\n".join(plan["scope"])
             or "IDS-V0_1-STAGE081-REVIEW" in "\n".join(plan["scope"])
             or "IDS-V0_1-STAGE085-P2" in "\n".join(plan["scope"])
+            or "IDS-V0_1-STAGE085-P3" in "\n".join(plan["scope"])
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue({"ACC-STAGE-073", "ACC-STAGE073-P4-01", "ACC-STAGE073-P4-02", "ACC-STAGE073-P4-03", "ACC-STAGE073-P4-04"}.issubset(acceptance_ids))
@@ -439,6 +441,7 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
             or 'current_phase_id: "IDS-STAGE084-P1"' in roadmap_text
             or 'current_phase_id: "IDS-STAGE084-P4"' in roadmap_text
             or 'current_phase_id: "IDS-STAGE085-P2"' in roadmap_text
+            or 'current_phase_id: "IDS-STAGE085-P3"' in roadmap_text
         )
         self.assertTrue(
             'current_task_id: "IDS-V0_1-STAGE073-P4"' in roadmap_text
@@ -477,6 +480,7 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
             or 'current_task_id: "IDS-V0_1-STAGE084-P1"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE084-P4"' in roadmap_text
             or 'current_task_id: "IDS-V0_1-STAGE085-P2"' in roadmap_text
+            or 'current_task_id: "IDS-V0_1-STAGE085-P3"' in roadmap_text
         )
         self.assertTrue(
             'next_gate_id: "IDS-STAGE073-REVIEW-GATE"' in roadmap_text
@@ -516,6 +520,7 @@ class Stage073EmbeddingAuditTestPhase4Tests(unittest.TestCase):
             or 'next_gate_id: "IDS-STAGE084-P2-GATE"' in roadmap_text
             or 'next_gate_id: "IDS-STAGE084-REVIEW-GATE"' in roadmap_text
             or 'next_gate_id: "IDS-STAGE085-P3-GATE"' in roadmap_text
+            or 'next_gate_id: "IDS-STAGE085-P4-GATE"' in roadmap_text
         )
         self.assertIn("EVT-IDS-V0_1-STAGE073-P4-20260820-001", event_ids)
         self.assertTrue(RUN.is_file())

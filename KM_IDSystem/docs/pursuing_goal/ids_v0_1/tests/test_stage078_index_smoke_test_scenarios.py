@@ -394,6 +394,7 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                 {"stage": "IDS-STAGE084", "phase": "IDS-STAGE084-REVIEW", "task": "IDS-V0_1-STAGE084-REVIEW", "next_gate": "IDS-STAGE085-P3-GATE"},
 
                 {'stage': 'IDS-STAGE085', 'phase': 'IDS-STAGE085-P2', 'task': 'IDS-V0_1-STAGE085-P2', 'next_gate': 'IDS-STAGE085-P3-GATE'},
+                {'stage': 'IDS-STAGE085', 'phase': 'IDS-STAGE085-P3', 'task': 'IDS-V0_1-STAGE085-P3', 'next_gate': 'IDS-STAGE085-P4-GATE'},
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -420,7 +421,7 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                     'IDS-V0_1-STAGE084-REVIEW',
 
                 'IDS-V0_1-STAGE085-P2',
-            ),
+             "IDS-V0_1-STAGE085-P3"),
         )
         self.assertTrue(
             "IDS-STAGE078-P4-GATE" in plan["stop_condition"]
@@ -455,6 +456,7 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
             or 'IDS-STAGE084-REVIEW-GATE' in plan['stop_condition']
             or 'IDS-STAGE085-P3-GATE' in plan['stop_condition']
             or 'IDS-STAGE085-P3-GATE' in plan['stop_condition']
+            or 'IDS-STAGE085-P4-GATE' in plan['stop_condition']
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -598,6 +600,13 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                 'current_task_id: "IDS-V0_1-STAGE085-P2"',
                 'next_gate_id: "IDS-STAGE085-P3-GATE"',
                 "stage085_phase1_state:",
+            )
+        if status["phase"] == "IDS-STAGE085-P3":
+            expected_phrases = (
+                'current_phase_id: "IDS-STAGE085-P3"',
+                'current_task_id: "IDS-V0_1-STAGE085-P3"',
+                'next_gate_id: "IDS-STAGE085-P4-GATE"',
+                "stage085_phase3_state:",
             )
         for phrase in expected_phrases:
             with self.subTest(phrase=phrase):
