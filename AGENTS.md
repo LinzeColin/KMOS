@@ -239,3 +239,7 @@ ssh ovh 'sudo /usr/local/bin/linze-r2-free-tier-guard.py'
 - **结论**：Stage090 P1 只能固定检索证据捕获的静态控制形状，并将唯一合法当前态精确延长为 Stage090 P1 → Stage090 P2 gate。
   **为什么**：检索 trace、query、answer、report、document、chunk、fact、evidence capture、evidence_id、evidence_gap、A/B/C/D/E、风险、撤回、投毒防护与关键结论绑定都只是不可持久化控制引用；将它们升格为真实检索、证据账本、回答、报告或业务结论会突破单一权威、零运行时与业务线白箱边界。
   **代价**：P1 聚焦 8/8、与 Stage089 Review/Stage088 Review 关联聚焦 32/32，Stage005、两个批次检查器与三项文档门禁通过；全程复用既有唯一开发 worktree，未读取真实资料、未产生模型 Token、Agent、OVH、生产、上传或推送动作。
+
+- **结论**：Stage090 P2 只能以六条固定、非业务、reference-only 输入完成纯内存检索证据捕获控制切片，并将唯一合法当前态精确延长为 Stage090 P2 → Stage090 P3 gate。
+  **为什么**：Stage090 只能绑定、不能重定义 Stage089 evidence schema；schema binding、检索捕获、账本捕获、document/chunk/fact/query/answer/report 关联、风险、撤回、投毒防护、关键结论绑定、降级与 future integration 都只是不可持久化控制投影。低可信、冲突、过期和撤回只能降级，疑似投毒只能隔离候选，A 等级仍须业务线白箱人工复核。
+  **代价**：P2 聚焦 9/9、与 Stage090 P1/Stage089 Review/Stage088 Review 关联聚焦 41/41，Stage005、两个批次检查器与三项文档门禁通过；全程复用既有唯一开发 worktree，未读取真实资料、未产生模型 Token、Agent、OVH、生产、上传或推送动作。

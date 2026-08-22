@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE090"
-current_phase_id: "IDS-STAGE090-P1"
-current_task_id: "IDS-V0_1-STAGE090-P1"
-next_gate_id: "IDS-STAGE090-P2-GATE"
+current_phase_id: "IDS-STAGE090-P2"
+current_task_id: "IDS-V0_1-STAGE090-P2"
+next_gate_id: "IDS-STAGE090-P3-GATE"
 current_transition_history:
+  stage090_phase2_state:
+    current_stage_id: "IDS-STAGE090"
+    current_phase_id: "IDS-STAGE090-P2"
+    current_task_id: "IDS-V0_1-STAGE090-P2"
+    next_gate_id: "IDS-STAGE090-P3-GATE"
   stage090_phase1_state:
     current_stage_id: "IDS-STAGE090"
     current_phase_id: "IDS-STAGE090-P1"
@@ -1450,21 +1455,21 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-090"
     objective: "依据冻结 Stage090 任务包完成从检索捕获证据的静态合同、后续受控实现、专项验证、交付证据与整阶段复审；检索、回答、报告、evidence、document、chunk、fact、可信等级、证据缺口、风险、撤回与投毒防护均保持控制标签，真实运行时保持关闭。"
-    status: "phase1_completed_local"
+    status: "phase2_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE090-P2-GATE"
+    next_gate_id: "IDS-STAGE090-P3-GATE"
     gate:
-      gate_id: "IDS-STAGE090-P1-GATE"
+      gate_id: "IDS-STAGE090-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE090-P2-GATE"
+      next_gate_id: "IDS-STAGE090-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "冻结 Stage090 任务包、Stage090 P1 静态检索证据捕获合同与 Stage089 Review/P1--P4 已复审证据账本控制工件保持为唯一合同上下文；P1 不建立第二权威事实源，不读取真实资料、检索结果、回答、报告、证据账本、审计日志、数据库或物理索引。"
-      - "P1 只固定检索证据捕获请求、未来证据账本捕获、evidence 与 document/chunk/fact/query/answer/report 关联、A/B/C/D/E 可信等级、关键结论 evidence_id/evidence_gap 绑定、降级、撤回和投毒防护的静态控制边界；业务使用前始终要求业务线白箱人工复核。"
-      - "仅在本地完成聚焦静态合同验证、精确历史后继兼容、机器事实投影、中文生成视图和回退范围核验；GitHub 上传与推送保持锁定。"
+      - "冻结 Stage090 任务包、Stage090 P1 静态合同与 Stage089 Review/前序 evidence schema 控制合同保持为唯一合同上下文；P2 不建立第二权威事实源，不读取真实资料、检索结果、回答、报告、证据账本、审计日志、数据库或物理索引。"
+      - "P2 只以六条固定、非业务、reference-only 输入绑定前序 evidence schema，并投影检索证据捕获、账本捕获、evidence 与 document/chunk/fact/query/answer/report 关联、风险、撤回、投毒防护、关键结论绑定与降级；业务使用前始终要求业务线白箱人工复核。"
+      - "仅在本地完成聚焦控制切片验证、精确历史后继兼容、机器事实投影、中文生成视图和回退范围核验；GitHub 上传与推送保持锁定。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、查询、评分、撤回、隔离、恢复、写入或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、真实证据账本、审计日志、回答、报告、数据库或物理索引。"
-      - "执行真实检索、数据库 schema 或连接、实际证据捕获、风险评分、可信等级变更、OCR 或版本评估、冲突裁决、撤回、投毒检测、隔离、恢复、报告状态更新、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage090 P2、上传或推送。"
+      - "执行真实检索、数据库 schema 或连接、实际证据捕获、风险评分、可信等级变更、OCR 或版本评估、冲突裁决、撤回、投毒检测、隔离、恢复、报告状态更新、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage090 P3、上传或推送。"
     phases:
       - phase_id: "IDS-STAGE090-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -1507,18 +1512,48 @@ stages:
             rollback: "只回滚本 P1 范围说明、静态合同、聚焦用例、机器事实投影、治理路线和生成中文视图，恢复到 Stage089 Review 的本地零运行时状态；不改变冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE090-P2"
         name: "Phase 2 · 实现、接入与最小可运行切片"
-        objective: "冻结任务包定义的后续受控实现范围：未来仅可在新 run 决定静态合同如何被受控实现；当前不读取资料、不创建真实检索、证据账本、数据库、报告或运行时能力。"
-        status: "not_started"
-        entry_authorized: false
+        objective: "只以六条固定、非业务、reference-only 控制输入在内存中绑定已审核 evidence schema，投影检索证据捕获、账本捕获、关联、风险、撤回、投毒防护、关键结论绑定、降级和未来运行路线；不读取资料、不创建真实检索、证据账本、数据库、报告或运行时能力。"
+        status: "completed"
+        entry_authorized: true
         next_gate_id: "IDS-STAGE090-P3-GATE"
         gate:
           gate_id: "IDS-STAGE090-P2-GATE"
-          status: "not_entered"
+          status: "passed"
           next_gate_id: "IDS-STAGE090-P3-GATE"
           github_upload_allowed: false
         stop_conditions:
-          - "未获得新 run 的明确授权前，不读取或处理真实资料、检索、证据、回答、报告、账本、数据库、索引、模型、Agent、OVH、生产、上传或推送。"
-        tasks: []
+          - "读取真实资料、检索、证据、回答、报告、账本、数据库或索引，或创建第二权威事实源、持久化、数据库 schema 或连接、真实检索或证据捕获、风险计算、可信等级变更、撤回、投毒处理、报告状态更新、模型调用、模型 Token、Agent、OVH、生产、上传、推送或 Stage090 P3。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE090-P2"
+            name: "检索证据捕获纯内存控制切片"
+            objective: "只以六条固定、非业务、reference-only 请求绑定 Stage089 前序 evidence schema，并精确投影 schema binding 6、检索捕获 10、账本捕获 9、关联 7、风险 8、撤回 7、投毒防护 8、关键结论绑定 7、降级 8 与未来运行路线 7 个字段；低可信、冲突、过期、撤回均为降级候选，疑似投毒为隔离候选，任何业务使用仍须白箱人工复核。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE090-P1"
+              - "IDS-V0_1-STAGE089-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-090"
+              - "ACC-STAGE090-P2-01"
+              - "ACC-STAGE090-P2-02"
+              - "ACC-STAGE090-P2-03"
+              - "ACC-STAGE090-P2-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage090_retrieval_evidence_capture_control_slice"
+              - "后续本地治理回归命令记录于 Stage090 P2 receipt"
+            test_results: "P2 聚焦控制切片 9/9；所有控制投影只在内存中存在。Stage090 P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦、Stage005 与两个既有批次检查器的本地治理回归均记录于 Stage090 P2 receipt；所有结果只证明控制引用、治理兼容和零运行时边界，不证明真实检索、证据、回答、报告、风险、撤回、投毒防护、业务结论或生产能力。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-090_从检索捕获证据.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE090_PHASE2_RETRIEVAL_EVIDENCE_CAPTURE_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage090_retrieval_evidence_capture_control_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage090_retrieval_evidence_capture_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage090_retrieval_evidence_capture_control_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-23-stage090-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE090_PHASE1_RETRIEVAL_EVIDENCE_CAPTURE_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage090_retrieval_evidence_capture_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE089_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage089_evidence_ledger_schema_contract.json"
+            risk: "若将固定控制引用、前序 schema binding、检索捕获、账本捕获、风险、撤回、投毒防护或降级误作真实资料、真实检索、真实证据账本、回答、报告、业务结论、OVH 或生产能力，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P2 范围说明、静态合同、纯内存控制切片、聚焦用例、机器事实投影、治理路线和生成中文视图，恢复到 Stage090 P1 的本地零运行时状态；不改变冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE090-P3"
         name: "Phase 3 · 从检索捕获证据专项验证与异常场景"
         objective: "冻结任务包定义的后续专项验证范围；当前不进入、不生成场景、不评估真实资料、检索、证据、回答、报告、风险、撤回或投毒防护。"

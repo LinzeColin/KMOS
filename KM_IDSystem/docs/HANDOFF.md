@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage090 Phase 1 - 2026-08-23
+## Current Gate - Stage090 Phase 2 - 2026-08-23
 
-- 本节是唯一当前交接；下方 Stage089 Review/P4/P3/P2/P1、Stage088 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
+- 本节是唯一当前交接；下方 Stage090 P1、Stage089 Review/P4/P3/P2/P1、Stage088 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
+- 本轮只完成 IDS-V0_1-STAGE090-P2 的纯内存检索证据捕获控制切片：六条固定、非业务、reference-only 请求各含 26 个不透明字段，绑定已审核 Stage089 evidence schema，并投影 schema binding 6、检索捕获 10、账本捕获 9、关联 7、风险 8、撤回 7、投毒防护 8、关键结论绑定 7、降级 8 与未来运行路线 7 个字段，共 462 个控制检查点与 25 类失败关闭。
+- 已验证：P2 聚焦 9/9，连同 Stage090 P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 41/41，Stage005 直接治理 valid=true，Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器事实已重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查均通过。这些结果只覆盖冻结控制切片、精确历史后继和本地治理，不宣称仓库级全量测试全绿或任何运行时、业务或生产能力。
+- 本 P2 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库、物理索引或业务结论；不执行数据库 schema 或连接、实际检索或证据捕获、风险评分、可信等级变更、撤回、恢复、投毒检测、报告状态更新、模型 Token、Agent、OVH、生产、上传或推送。
+- 回滚只撤回本 P2 的说明、静态合同、纯内存控制切片、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 PHASE1_RETRIEVAL_EVIDENCE_CAPTURE_CONTRACT_RUNTIME_DISABLED；保留 Stage090 P1、Stage089 Review/P1--P4、Stage088 Review/P1--P4、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 与应用状态。
+- 下一步仅可在新的独立 run 进入 IDS-STAGE090-P3-GATE；继续复用既有唯一开发工作树 /Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1，不创建额外工作树、分支或合并请求。本 run 不启动 P3、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 ACC-STAGE-168。
+
+## Superseded Gate - Stage090 Phase 1 - 2026-08-23
+
+- 本节保留 Stage090 P1 历史交接；唯一当前交接位于上方 Stage090 P2，下方 Stage089 Review/P4/P3/P2/P1、Stage088 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
 - 本轮只完成 IDS-V0_1-STAGE090-P1 的静态检索证据捕获合同：固定未来检索请求 10 字段、未来证据账本捕获 9 字段、evidence 与 document/chunk/fact/query/answer/report 关联 7 字段、A/B/C/D/E 可信等级与 12 类失败关闭。关键结论未来必须关联 evidence_id 或 evidence_gap；低可信、冲突、过期、撤回或疑似投毒均不得自动升格或采纳，业务使用前仍须业务线白箱人工复核。
 - 已验证：P1 聚焦 8/8，Stage089 Review 与 Stage088 Review 关联聚焦 32/32，Stage005 直接治理 valid=true，Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器事实已重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查均通过。这些结果只覆盖冻结静态合同、精确历史后继和本地治理，不宣称仓库级全量测试全绿或任何运行时、业务或生产能力。
 - 本 P1 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库、物理索引或业务结论；不执行数据库 schema 或连接、实际检索或证据捕获、风险评分、可信等级变更、撤回、恢复、投毒检测、报告状态更新、模型 Token、Agent、OVH、生产、上传或推送。

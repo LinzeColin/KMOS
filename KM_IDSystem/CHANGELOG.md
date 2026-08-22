@@ -1,3 +1,9 @@
+## 2026-08-23 · Stage090 从检索捕获证据 P2
+
+- 完成冻结 Stage090 P2 纯内存检索证据捕获控制切片：只接收 6 条固定、非业务、reference-only 的 26 字段控制请求，绑定 Stage089 前序 evidence schema，分别投影 schema binding 6、检索捕获 10、账本捕获 9、关联 7、风险 8、撤回 7、投毒防护 8、关键结论绑定 7、降级 8 与 future integration 7 个字段，共 462 个控制检查点与 25 类失败关闭。
+- 本地验证通过：P2 聚焦 9/9，与 Stage090 P1、Stage089 Review、Stage088 Review 关联聚焦 41/41，Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器事实重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围仅为 Stage090 P2 固定控制工件、前序兼容与治理，不宣称仓库级测试全绿。
+- 未建立第二权威事实源，未读取真实资料，未执行真实检索、evidence ledger、数据库、风险计算、可信等级变更、撤回、投毒防护、报告状态更新、模型 Token、Agent、OVH、生产、上传或推送；下一步只能在新的独立 run 进入 IDS-STAGE090-P3-GATE，继续使用既有唯一开发 worktree。
+
 ## 2026-08-23 · Stage090 从检索捕获证据 P1
 
 - 完成冻结 Stage090 P1 静态工程合同：固定未来检索证据捕获请求 10 字段、未来证据账本捕获 9 字段、evidence 与 document/chunk/fact/query/answer/report 关联 7 字段、A/B/C/D/E 可信等级与 12 类失败关闭。关键结论未来必须关联 evidence_id 或 evidence_gap。
