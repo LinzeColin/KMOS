@@ -453,7 +453,7 @@ class Stage071EmbeddingCostGovernorPhase2Tests(unittest.TestCase):
                 ('IDS-STAGE085', 'IDS-STAGE085-P2', 'IDS-STAGE085-P3-GATE'),
              ("IDS-STAGE085", "IDS-STAGE085-P3", "IDS-STAGE085-P4-GATE"),
              ("IDS-STAGE085", "IDS-STAGE085-P4", "IDS-STAGE085-REVIEW-GATE"), ("IDS-STAGE085", "IDS-STAGE085-REVIEW", "IDS-STAGE086-P1-GATE"), ("IDS-STAGE086", "IDS-STAGE086-P1", "IDS-STAGE086-P2-GATE"),
-                                                                                                                                               ("IDS-STAGE086", "IDS-STAGE086-P2", "IDS-STAGE086-P3-GATE"), ("IDS-STAGE086", "IDS-STAGE086-P3", "IDS-STAGE086-P4-GATE"), ("IDS-STAGE086", "IDS-STAGE086-P4", "IDS-STAGE086-REVIEW-GATE")),
+                                                                                                                                               ("IDS-STAGE086", "IDS-STAGE086-P2", "IDS-STAGE086-P3-GATE"), ("IDS-STAGE086", "IDS-STAGE086-P3", "IDS-STAGE086-P4-GATE"), ("IDS-STAGE086", "IDS-STAGE086-P4", "IDS-STAGE086-REVIEW-GATE"), ("IDS-STAGE086", "IDS-STAGE086-REVIEW", "IDS-STAGE087-P1-GATE")),
         )
         self.assertIn(plan["task"], ("IDS-V0_1-STAGE072-REVIEW", "IDS-V0_1-STAGE073-P1", "IDS-V0_1-STAGE073-P2", "IDS-V0_1-STAGE073-P3", "IDS-V0_1-STAGE073-P4", "IDS-V0_1-STAGE073-REVIEW", "IDS-V0_1-STAGE074-P1", "IDS-V0_1-STAGE074-P2", "IDS-V0_1-STAGE074-P3", "IDS-V0_1-STAGE074-P4", "IDS-V0_1-STAGE074-REVIEW",
             'IDS-V0_1-STAGE075-P1', 'IDS-V0_1-STAGE075-P2', 'IDS-V0_1-STAGE075-P3', 'IDS-V0_1-STAGE075-P4', 'IDS-V0_1-STAGE075-REVIEW',
@@ -473,7 +473,7 @@ class Stage071EmbeddingCostGovernorPhase2Tests(unittest.TestCase):
                                             'IDS-V0_1-STAGE084-REVIEW',
 
                                         'IDS-V0_1-STAGE085-P2',
-                                     "IDS-V0_1-STAGE085-P3", "IDS-V0_1-STAGE085-P4", "IDS-V0_1-STAGE085-REVIEW", "IDS-V0_1-STAGE086-P1", 'IDS-V0_1-STAGE086-P2', 'IDS-V0_1-STAGE086-P3', 'IDS-V0_1-STAGE086-P4'))
+                                     "IDS-V0_1-STAGE085-P3", "IDS-V0_1-STAGE085-P4", "IDS-V0_1-STAGE085-REVIEW", "IDS-V0_1-STAGE086-P1", 'IDS-V0_1-STAGE086-P2', 'IDS-V0_1-STAGE086-P3', 'IDS-V0_1-STAGE086-P4', 'IDS-V0_1-STAGE086-REVIEW'))
         self.assertTrue(
             (
 "IDS-STAGE073-P1-GATE" in plan["stop_condition"]
@@ -513,7 +513,7 @@ class Stage071EmbeddingCostGovernorPhase2Tests(unittest.TestCase):
             or 'IDS-STAGE086-P1-GATE' in plan['stop_condition']
             or 'IDS-STAGE086-P2-GATE' in plan['stop_condition']
             or 'IDS-STAGE086-P3-GATE' in plan['stop_condition']
-            or 'IDS-STAGE086-P4-GATE' in plan['stop_condition'] or 'IDS-STAGE086-REVIEW-GATE' in plan['stop_condition']
+            or 'IDS-STAGE086-P4-GATE' in plan['stop_condition'] or 'IDS-STAGE086-REVIEW-GATE' in plan['stop_condition'] or 'IDS-STAGE087-P1-GATE' in plan['stop_condition']
         )
         )
         self.assertTrue(

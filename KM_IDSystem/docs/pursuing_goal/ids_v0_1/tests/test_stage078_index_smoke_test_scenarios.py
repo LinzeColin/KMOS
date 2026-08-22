@@ -397,7 +397,7 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                 {'stage': 'IDS-STAGE085', 'phase': 'IDS-STAGE085-P3', 'task': 'IDS-V0_1-STAGE085-P3', 'next_gate': 'IDS-STAGE085-P4-GATE'},
                 {'stage': 'IDS-STAGE085', 'phase': 'IDS-STAGE085-P4', 'task': 'IDS-V0_1-STAGE085-P4', 'next_gate': 'IDS-STAGE085-REVIEW-GATE'},
                 {'stage': 'IDS-STAGE085', 'phase': 'IDS-STAGE085-REVIEW', 'task': 'IDS-V0_1-STAGE085-REVIEW', 'next_gate': 'IDS-STAGE086-P1-GATE'},
-                {'stage': 'IDS-STAGE086', 'phase': 'IDS-STAGE086-P1', 'task': 'IDS-V0_1-STAGE086-P1', 'next_gate': 'IDS-STAGE086-P2-GATE'}, {'stage': 'IDS-STAGE086', 'phase': 'IDS-STAGE086-P2', 'task': 'IDS-V0_1-STAGE086-P2', 'next_gate': 'IDS-STAGE086-P3-GATE'}, {'stage': 'IDS-STAGE086', 'phase': 'IDS-STAGE086-P3', 'task': 'IDS-V0_1-STAGE086-P3', 'next_gate': 'IDS-STAGE086-P4-GATE'}, {'stage': 'IDS-STAGE086', 'phase': 'IDS-STAGE086-P4', 'task': 'IDS-V0_1-STAGE086-P4', 'next_gate': 'IDS-STAGE086-REVIEW-GATE'},
+                {'stage': 'IDS-STAGE086', 'phase': 'IDS-STAGE086-P1', 'task': 'IDS-V0_1-STAGE086-P1', 'next_gate': 'IDS-STAGE086-P2-GATE'}, {'stage': 'IDS-STAGE086', 'phase': 'IDS-STAGE086-P2', 'task': 'IDS-V0_1-STAGE086-P2', 'next_gate': 'IDS-STAGE086-P3-GATE'}, {'stage': 'IDS-STAGE086', 'phase': 'IDS-STAGE086-P3', 'task': 'IDS-V0_1-STAGE086-P3', 'next_gate': 'IDS-STAGE086-P4-GATE'}, {'stage': 'IDS-STAGE086', 'phase': 'IDS-STAGE086-P4', 'task': 'IDS-V0_1-STAGE086-P4', 'next_gate': 'IDS-STAGE086-REVIEW-GATE'}, {'stage': 'IDS-STAGE086', 'phase': 'IDS-STAGE086-REVIEW', 'task': 'IDS-V0_1-STAGE086-REVIEW', 'next_gate': 'IDS-STAGE087-P1-GATE'},
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -424,7 +424,7 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                     'IDS-V0_1-STAGE084-REVIEW',
 
                 'IDS-V0_1-STAGE085-P2',
-             "IDS-V0_1-STAGE085-P3", "IDS-V0_1-STAGE085-P4", "IDS-V0_1-STAGE085-REVIEW", "IDS-V0_1-STAGE086-P1", 'IDS-V0_1-STAGE086-P2', 'IDS-V0_1-STAGE086-P3', 'IDS-V0_1-STAGE086-P4'),
+             "IDS-V0_1-STAGE085-P3", "IDS-V0_1-STAGE085-P4", "IDS-V0_1-STAGE085-REVIEW", "IDS-V0_1-STAGE086-P1", 'IDS-V0_1-STAGE086-P2', 'IDS-V0_1-STAGE086-P3', 'IDS-V0_1-STAGE086-P4', 'IDS-V0_1-STAGE086-REVIEW'),
         )
         self.assertTrue(
             "IDS-STAGE078-P4-GATE" in plan["stop_condition"]
@@ -464,7 +464,7 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
             or 'IDS-STAGE086-P1-GATE' in plan['stop_condition']
             or 'IDS-STAGE086-P2-GATE' in plan['stop_condition']
             or 'IDS-STAGE086-P3-GATE' in plan['stop_condition']
-            or 'IDS-STAGE086-P4-GATE' in plan['stop_condition'] or 'IDS-STAGE086-REVIEW-GATE' in plan['stop_condition']
+            or 'IDS-STAGE086-P4-GATE' in plan['stop_condition'] or 'IDS-STAGE086-REVIEW-GATE' in plan['stop_condition'] or 'IDS-STAGE087-P1-GATE' in plan['stop_condition']
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
