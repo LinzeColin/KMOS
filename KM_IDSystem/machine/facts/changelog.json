@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage083-p3-local",
+    "date": "2026-08-22",
+    "summary": "完成 Stage083 关键词检索基线 P3 纯内存受控场景：只重放 P2 的五条固定、非业务、reference-only 控制投影为关键词、材料牌号、设备型号、标准号、语义相似、五维过滤组合、Top-K／排序解释／结果有效性和旧索引版本轨迹八类场景；材料牌号、设备型号、标准号和语义相似均只作类别标签。P2 控制记录字段检查 250 次，P3 八个场景各 26 字段共 208 次，P3 聚焦 10/10、Stage060--083 白箱 1080/1080、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器平面重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查通过。未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、过滤、混合排序、Top-K、轨迹、证据账本读写、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage083 P4，继续使用既有唯一开发 worktree。"
+  },
+  {
     "version": "v0.1-stage083-p2-local",
     "date": "2026-08-22",
     "summary": "完成 Stage083 关键词检索基线 P2 纯内存控制切片：只以五条固定、非业务、reference-only 请求投影关键词基线、文档类型／年份／项目／设备／证据等级过滤、candidate、keyword/vector/hybrid score、selected、retrieval trace、活动索引版本与证据账本引用；vector-only 和任何输入偏离均失败关闭，future PostgreSQL FTS／BM25、pgvector、过滤、混合排序与轨迹路由只声明未执行。P2 聚焦 8/8、Stage060--083 白箱 1070/1070、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器平面重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查通过。根级精简治理入口在当前稀疏工作树中不存在，未陈述为已执行。未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、关键词或向量检索、过滤、混合排序、Top-K、轨迹、证据账本读写、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 Stage083 P3，继续使用既有唯一开发 worktree。"

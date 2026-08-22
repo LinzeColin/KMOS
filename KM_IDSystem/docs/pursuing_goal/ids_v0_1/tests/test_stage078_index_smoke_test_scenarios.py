@@ -387,7 +387,7 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                 {"stage": "IDS-STAGE082", "phase": "IDS-STAGE082-P2", "task": "IDS-V0_1-STAGE082-P2", "next_gate": "IDS-STAGE082-P3-GATE"}, {"stage": "IDS-STAGE082", "phase": "IDS-STAGE082-P3", "task": "IDS-V0_1-STAGE082-P3", "next_gate": "IDS-STAGE082-P4-GATE"}, {"stage": "IDS-STAGE082", "phase": "IDS-STAGE082-P4", "task": "IDS-V0_1-STAGE082-P4", "next_gate": "IDS-STAGE082-REVIEW-GATE"},
                 {"stage": "IDS-STAGE082", "phase": "IDS-STAGE082-REVIEW", "task": "IDS-V0_1-STAGE082-REVIEW", "next_gate": "IDS-STAGE083-P1-GATE"},
                 {"stage": "IDS-STAGE083", "phase": "IDS-STAGE083-P1", "task": "IDS-V0_1-STAGE083-P1", "next_gate": "IDS-STAGE083-P2-GATE"},
-                {"stage": "IDS-STAGE083", "phase": "IDS-STAGE083-P2", "task": "IDS-V0_1-STAGE083-P2", "next_gate": "IDS-STAGE083-P3-GATE"}),
+                {"stage": "IDS-STAGE083", "phase": "IDS-STAGE083-P2", "task": "IDS-V0_1-STAGE083-P2", "next_gate": "IDS-STAGE083-P3-GATE"}, {"stage": "IDS-STAGE083", "phase": "IDS-STAGE083-P3", "task": "IDS-V0_1-STAGE083-P3", "next_gate": "IDS-STAGE083-P4-GATE"}),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
@@ -409,7 +409,7 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                 'IDS-V0_1-STAGE080-P3',
                 'IDS-V0_1-STAGE080-P4', 'IDS-V0_1-STAGE080-REVIEW', 'IDS-V0_1-STAGE081-P1', 'IDS-V0_1-STAGE081-P2', 'IDS-V0_1-STAGE081-P3', 'IDS-V0_1-STAGE081-P4', 'IDS-V0_1-STAGE081-REVIEW', 'IDS-V0_1-STAGE082-P1',
                 'IDS-V0_1-STAGE082-P2',
-                'IDS-V0_1-STAGE082-P3', 'IDS-V0_1-STAGE082-P4', "IDS-V0_1-STAGE082-REVIEW", "IDS-V0_1-STAGE083-P1", "IDS-V0_1-STAGE083-P2"),
+                'IDS-V0_1-STAGE082-P3', 'IDS-V0_1-STAGE082-P4', "IDS-V0_1-STAGE082-REVIEW", "IDS-V0_1-STAGE083-P1", "IDS-V0_1-STAGE083-P2", "IDS-V0_1-STAGE083-P3"),
         )
         self.assertTrue(
             "IDS-STAGE078-P4-GATE" in plan["stop_condition"]
@@ -437,6 +437,7 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
             or "IDS-STAGE083-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE083-P2-GATE" in plan["stop_condition"]
             or "IDS-STAGE083-P3-GATE" in plan["stop_condition"]
+            or "IDS-STAGE083-P4-GATE" in plan["stop_condition"]
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -528,10 +529,19 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                                             )
                                             if status["phase"] == "IDS-STAGE081-REVIEW"
                                             else (
-                                                'current_phase_id: "IDS-STAGE079-P4"',
-                                                'current_task_id: "IDS-V0_1-STAGE079-P4"',
-                                                'next_gate_id: "IDS-STAGE079-REVIEW-GATE"',
-                                                'stage079_phase4_state:',
+                                                (
+                                                    'current_phase_id: "IDS-STAGE083-P3"',
+                                                    'current_task_id: "IDS-V0_1-STAGE083-P3"',
+                                                    'next_gate_id: "IDS-STAGE083-P4-GATE"',
+                                                    'stage083_phase3_state:',
+                                                )
+                                                if status["phase"] == "IDS-STAGE083-P3"
+                                                else (
+                                                    'current_phase_id: "IDS-STAGE079-P4"',
+                                                    'current_task_id: "IDS-V0_1-STAGE079-P4"',
+                                                    'next_gate_id: "IDS-STAGE079-REVIEW-GATE"',
+                                                    'stage079_phase4_state:',
+                                                )
                                             )
                                         )
                                     )
