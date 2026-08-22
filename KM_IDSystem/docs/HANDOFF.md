@@ -9,14 +9,23 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage086 Phase 3 - 2026-08-22
+## Current Gate - Stage086 Phase 4 - 2026-08-22
 
-- 本节是唯一当前交接；下方 Stage086 P2/P1、Stage085 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
+- 本节是唯一当前交接；下方 Stage086 P3/P2/P1、Stage085 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
+- 本轮完成 `IDS-V0_1-STAGE086-P4`：只在内存中从 P3 八个固定、非业务、`reference-only` 混合排序控制场景派生 8 条检索样例、8 条 trace 日志、8 条过滤结果、8 条有效性测试报告、8 条检索不足／证据缺口记录、4 条参数回滚说明和 4 条中文反馈，共 `572` 个交付字段检查点。关键词与向量基线、vector-only 拒绝、六维过滤、资料状态、活动索引版本、hybrid score、Top-K／排序解释、结果有效性、旧索引 trace 与证据账本引用均保持不透明控制标签；交付记录未持久化，不建立第二权威事实源。
+- 已验证：P1/P2/P3/P4 聚焦 `33/33`、Stage060--086 静态与治理白箱 `1223/1223`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实已重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-22-stage086-p4-local.json`；该白箱数字只覆盖规定的受控范围，不宣称仓库级全量测试全绿。
+- 本 P4 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、证据账本、审计日志、报告、数据库、物理索引、检索参数或业务结论；不执行 PostgreSQL schema 或连接、FTS/BM25/pgvector、embedding、关键词／向量检索、元数据过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K、检索轨迹或证据账本读写、参数回滚、模型 Token、Agent、OVH、生产、上传或推送。
+- 回滚只撤回本 P4 的范围说明、交付合同、纯内存交付模块、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_HYBRID_RANKING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；保留 Stage086 P1/P2/P3、Stage085 Review/P1--P4、冻结任务包、真实资料、fixture、manifest、证据账本、审计日志、数据库、索引、GitHub、OVH 与应用状态。
+- 下一步仅可在新的独立 run 进入 `IDS-STAGE086-REVIEW-GATE`；Review 尚未启动。继续使用既有唯一开发工作树 `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`，不创建额外工作树、分支或合并请求。本 run 不启动 Review、Stage087、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage086 Phase 3 - 2026-08-22
+
+- 本节保留 Stage086 P3 的历史交接；唯一当前交接位于上方 P4，本节所述下一步为 P3 完成当时的历史状态，不重写其已验证事实。
 - 本轮完成 `IDS-V0_1-STAGE086-P3`：只以冻结 Stage086 任务包、Stage086 P1/P2 合同、Stage085 Review/P1--P4 已审核元数据过滤控制工件为唯一合同上下文，在进程内重放 P2 六条固定、非业务、`reference-only` 控制投影。八个场景只验证关键词基线、材料牌号、设备型号、标准号、语义相似、六维过滤组合、Top-K／排序解释／结果有效性和旧索引服务版本轨迹；领域项、模型、版本、资料质量、新鲜度、业务模块、评分、过滤、候选、选择、活动索引版本、轨迹和证据账本均为不透明控制标签，不建立第二权威事实源。
 - 已验证：P1/P2/P3 聚焦 `22/22`、Stage060--086 静态与治理白箱 `1212/1212`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-22-stage086-p3-local.json`；该 1212 项只覆盖规定的受控白箱范围，不宣称仓库级全量测试全绿。
 - 本 P3 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、证据账本、审计日志、报告、数据库、物理索引、检索参数或业务结论；不执行 PostgreSQL schema 或连接、FTS/BM25/pgvector、embedding、关键词／向量检索、元数据过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K、检索轨迹或证据账本读写、模型 Token、Agent、OVH、生产、上传或推送。
 - 回滚只撤回本 P3 的范围说明、纯内存场景合同、场景模块、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_HYBRID_RANKING_CONTROL_SLICE_RUNTIME_DISABLED`；保留 Stage086 P1/P2、Stage085 Review/P1--P4、冻结任务包、真实资料、fixture、manifest、证据账本、审计日志、数据库、索引、GitHub、OVH 与应用状态。
-- 下一步仅可在新的独立 run 进入 `IDS-STAGE086-P4-GATE`；P4 尚未启动。继续使用既有唯一开发工作树 `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`，不创建额外工作树、分支或合并请求。本 run 不启动 P4、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 `ACC-STAGE-168`。
+- P3 完成当时下一步仅可在新的独立 run 进入 `IDS-STAGE086-P4-GATE`；P4 现已作为上方当前门禁完成。该 P3 run 使用既有唯一开发工作树 `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`，未创建额外工作树、分支或合并请求，未启动 OVH、生产或上传。
 
 ## Superseded Gate - Stage086 Phase 2 - 2026-08-22
 
