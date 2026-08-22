@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE088",
-  "phase": "IDS-STAGE088-P3",
-  "task": "IDS-V0_1-STAGE088-P3",
-  "real_progress": "Stage087 P1--P4 与整阶段 Review、Stage088 P1/P2 保持已审核前置；Stage088 P3 已在内存中重放 P2 六条固定、非业务、reference-only 控制投影，形成关键词、材料牌号、设备型号、标准号、语义相似、六维过滤组合、Top-K／排序解释／结果有效性与旧索引服务版本轨迹八个场景，并通过 8 个聚焦用例。每场景只保留 33 个不透明控制字段，共 264 个检查点；结果有效性未评估、待业务线白箱人工复核，未持久化、未执行实际检索或有效性判定。",
-  "report_grade": "冻结 Stage088 任务包、P1/P2 合同与 Stage087 Review/P1--P4 已审核检索轨迹控制工件构成唯一合同上下文；P3 只在本地纯内存层给出可测试、可回滚的失败关闭受控场景，不形成第二权威事实源。",
-  "business_verdict": "Stage088 P3 只证明 P2 控制形状、八类控制场景、失败关闭、单一权威、业务线白箱人工复核和零运行时边界一致；不等于 PostgreSQL、FTS、BM25、pgvector、embedding、数据库、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K、trace 读写、结果有效性判定、旧索引服务、证据账本、真实参数回滚、模型、Token、审计、OVH 或生产服务已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "STAGE088_PHASE3_LOCAL_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE088-P4",
+  "task": "IDS-V0_1-STAGE088-P4",
+  "real_progress": "Stage087 P1--P4 与整阶段 Review、Stage088 P1/P2/P3 保持已审核前置；Stage088 P4 只在内存中从 P3 的八个固定、非业务、reference-only 控制场景派生检索样例、trace 日志、过滤结果、有效性测试报告、检索不足／证据缺口、参数回滚说明和中文反馈，共 572 个交付字段检查点，并通过 11 个聚焦用例。结果有效性仍未评估，所有门禁仍待业务线白箱人工复核；没有持久化、实际检索或参数回滚。",
+  "report_grade": "冻结 Stage088 任务包、P1/P2/P3 合同与 Stage087 Review/P1--P4 已审核检索轨迹控制工件构成唯一合同上下文；P4 只在本地纯内存层给出可测试、可回滚、失败关闭的交付证据，不形成第二权威事实源。",
+  "business_verdict": "Stage088 P4 只证明八类 P3 控制场景可派生为固定交付形状、失败关闭、单一权威、业务线白箱人工复核和零运行时边界一致；不等于 PostgreSQL、FTS、BM25、pgvector、embedding、数据库、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K、trace 读写、结果有效性判定、旧索引服务、证据账本、真实参数回滚、模型、Token、审计、OVH 或生产服务已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "STAGE088_PHASE4_LOCAL_RUNTIME_DISABLED",
   "rendered_at": "2026-08-23",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE088-P4-GATE",
+  "next_gate": "IDS-STAGE088-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
