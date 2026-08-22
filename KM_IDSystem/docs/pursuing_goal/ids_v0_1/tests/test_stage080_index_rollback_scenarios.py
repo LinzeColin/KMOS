@@ -503,13 +503,13 @@ class Stage080IndexRollbackPhase3Tests(unittest.TestCase):
                 "stage": "IDS-STAGE084",
                 "phase": "IDS-STAGE084-REVIEW",
                 "task": "IDS-V0_1-STAGE084-REVIEW",
-                "next_gate": "IDS-STAGE085-P1-GATE",
+                "next_gate": "IDS-STAGE085-P3-GATE",
             },
-            "IDS-STAGE085-P1": {
+            "IDS-STAGE085-P2": {
                 "stage": "IDS-STAGE085",
-                "phase": "IDS-STAGE085-P1",
-                "task": "IDS-V0_1-STAGE085-P1",
-                "next_gate": "IDS-STAGE085-P2-GATE",
+                "phase": "IDS-STAGE085-P2",
+                "task": "IDS-V0_1-STAGE085-P2",
+                "next_gate": "IDS-STAGE085-P3-GATE",
             },
         }
         self.assertIn(status["phase"], expected_states)
@@ -541,8 +541,8 @@ class Stage080IndexRollbackPhase3Tests(unittest.TestCase):
                                 "IDS-STAGE082-P4-GATE", "IDS-STAGE082-REVIEW-GATE", "IDS-STAGE083-P1-GATE", "IDS-STAGE083-P2-GATE", "IDS-STAGE083-P3-GATE", "IDS-STAGE083-P4-GATE", "IDS-STAGE083-REVIEW-GATE", "IDS-STAGE084-P1-GATE", "IDS-STAGE084-P2-GATE", "IDS-STAGE084-P3-GATE", "IDS-STAGE084-P4-GATE", "IDS-STAGE084-REVIEW-GATE")
             )
             or 'IDS-STAGE084-P4-GATE' in plan['stop_condition']
-            or 'IDS-STAGE085-P1-GATE' in plan['stop_condition']
-            or 'IDS-STAGE085-P2-GATE' in plan['stop_condition']
+            or 'IDS-STAGE085-P3-GATE' in plan['stop_condition']
+            or 'IDS-STAGE085-P3-GATE' in plan['stop_condition']
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(
@@ -727,13 +727,13 @@ class Stage080IndexRollbackPhase3Tests(unittest.TestCase):
             "IDS-STAGE084-REVIEW": (
                 'current_phase_id: "IDS-STAGE084-REVIEW"',
                 'current_task_id: "IDS-V0_1-STAGE084-REVIEW"',
-                'next_gate_id: "IDS-STAGE085-P1-GATE"',
+                'next_gate_id: "IDS-STAGE085-P3-GATE"',
                 'stage084_review_state:',
             ),
-            "IDS-STAGE085-P1": (
-                'current_phase_id: "IDS-STAGE085-P1"',
-                'current_task_id: "IDS-V0_1-STAGE085-P1"',
-                'next_gate_id: "IDS-STAGE085-P2-GATE"',
+            "IDS-STAGE085-P2": (
+                'current_phase_id: "IDS-STAGE085-P2"',
+                'current_task_id: "IDS-V0_1-STAGE085-P2"',
+                'next_gate_id: "IDS-STAGE085-P3-GATE"',
                 'stage085_phase1_state:',
             ),
         }

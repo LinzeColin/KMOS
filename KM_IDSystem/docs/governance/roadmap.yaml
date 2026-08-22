@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE085"
-current_phase_id: "IDS-STAGE085-P1"
-current_task_id: "IDS-V0_1-STAGE085-P1"
-next_gate_id: "IDS-STAGE085-P2-GATE"
+current_phase_id: "IDS-STAGE085-P2"
+current_task_id: "IDS-V0_1-STAGE085-P2"
+next_gate_id: "IDS-STAGE085-P3-GATE"
 current_transition_history:
+  stage085_phase2_state:
+    current_stage_id: "IDS-STAGE085"
+    current_phase_id: "IDS-STAGE085-P2"
+    current_task_id: "IDS-V0_1-STAGE085-P2"
+    next_gate_id: "IDS-STAGE085-P3-GATE"
   stage085_phase1_state:
     current_stage_id: "IDS-STAGE085"
     current_phase_id: "IDS-STAGE085-P1"
@@ -1325,21 +1330,21 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-085"
     objective: "依据冻结 Stage085 任务包，完成元数据过滤的静态合同、纯内存控制切片、专项场景验证与 metadata-only 交付证据；关键词与向量基线均为必需，文档类型、年份、项目、设备、资料状态和证据等级六类过滤、候选、混合评分、选择结果、轨迹与证据引用均保持控制标签，真实运行时仍保持关闭。"
-    status: "phase1_completed_local"
+    status: "phase2_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE085-P2-GATE"
+    next_gate_id: "IDS-STAGE085-P3-GATE"
     gate:
-      gate_id: "IDS-STAGE085-P1-GATE"
+      gate_id: "IDS-STAGE085-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE085-P2-GATE"
+      next_gate_id: "IDS-STAGE085-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "冻结 Stage085 任务包、Stage084 Review 与 Stage084 P1--P4 已审核向量检索基线控制工件保持为唯一合同上下文；P1 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、报告、数据库、物理索引或检索参数。"
-      - "固定 query 的 11 字段、文档类型／年份／项目／设备／资料状态／证据等级六类 metadata filter 与 filter state 的 7 字段、candidate 的 11 字段、selected 的 8 字段、keyword/vector/hybrid score 的 7 字段与 retrieval trace 的 10 字段；模型／版本／维度／相似度度量、活动索引版本、排序解释与证据账本引用均为不透明控制标签。"
-      - "关键词基线与向量基线均为必需，向量相似度不得单独决定未来结果；六类过滤维度、资料状态、活动索引版本、过滤合同、排序解释、证据账本引用或轨迹引用缺失即失败关闭；真实 PostgreSQL、FTS、BM25、pgvector、embedding、检索、模型、Token、Agent、OVH、生产、上传与推送保持关闭；只开放后续 Stage085 P2 门。"
+      - "冻结 Stage085 任务包、Stage085 P1 与 Stage084 Review 的已审核向量检索基线控制工件保持为唯一合同上下文；P2 不建立第二权威事实源，不读取真实资料、原始元数据、manifest、证据账本、审计日志、报告、数据库、物理索引或检索参数。"
+      - "六条固定、非业务、reference-only 控制请求各含 20 个字段，并各投影 query 11、filter 8、candidate 11、hybrid score 7、selected 8、retrieval trace 10 与 future integration 6 个字段，共 366 个字段检查点；六类过滤、资料状态、模型／版本／维度／相似度度量、活动索引版本、过滤合同、排序解释与证据账本引用均为不透明控制标签。"
+      - "关键词基线与向量基线均为必需，向量相似度不得单独决定未来结果；六类过滤维度、资料状态、活动索引版本、过滤合同、排序解释、证据账本引用或轨迹引用缺失即失败关闭；PostgreSQL、FTS、BM25、pgvector、embedding、检索、模型、Token、Agent、OVH、生产、上传与推送保持关闭；只开放后续 Stage085 P3 门。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、测试、查询、过滤、排序、追踪或回退任何 IDS 业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。"
-      - "执行 PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、元数据过滤、混合排序、Top-K 选择、检索轨迹或证据账本读写、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage085 P2、批次复审、上传或推送。"
+      - "执行 PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、元数据过滤、混合排序、Top-K 选择、检索轨迹或证据账本读写、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage085 P3、批次复审、上传或推送。"
     phases:
       - phase_id: "IDS-STAGE085-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -1381,18 +1386,46 @@ stages:
             rollback: "只回滚本 P1 范围说明、静态合同、聚焦用例、机器事实投影、治理路线和生成中文视图，恢复到 Stage084 Review 的本地零运行时状态；不改变冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE085-P2"
         name: "Phase 2 · 实现、接入与最小可运行切片"
-        objective: "冻结任务包预留：实现 PostgreSQL FTS、pgvector、过滤器、混合排序或 trace 记录，支持六类过滤并把检索结果与证据账本衔接；本 run 未进入。"
-        status: "not_started"
-        entry_authorized: false
+        objective: "只以六条固定、非业务、reference-only 控制请求在内存中投影未来 PostgreSQL FTS／BM25、pgvector、六类过滤、混合排序、检索轨迹和证据账本引用形状；不执行数据库、索引、embedding、检索、过滤、排序、Top-K、轨迹或证据账本读写。"
+        status: "completed"
+        entry_authorized: true
         next_gate_id: "IDS-STAGE085-P3-GATE"
         gate:
           gate_id: "IDS-STAGE085-P2-GATE"
-          status: "not_entered"
+          status: "passed"
           next_gate_id: "IDS-STAGE085-P3-GATE"
           github_upload_allowed: false
         stop_conditions:
-          - "未完成 P1 并在新的独立 run 获得授权前，不得实施、接入或启用任何关键词、向量、过滤、排序或轨迹运行时能力。"
-        tasks: []
+          - "读取真实资料、执行 PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、元数据过滤、混合排序、Top-K、检索轨迹或证据账本读写、模型调用、模型 Token、Agent、OVH、生产、上传、推送或 Stage085 P3。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE085-P2"
+            name: "固化元数据过滤纯内存控制切片"
+            objective: "以六条固定、非业务、reference-only 控制请求投影 query、文档类型／年份／项目／设备／资料状态／证据等级 filter、candidate、selected、score、模型／版本／维度／相似度度量、active_index_version、retrieval trace 与 evidence ledger 引用；PostgreSQL FTS／BM25、pgvector、过滤、排序和 trace 只保留 future-only 路由。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE085-P1"
+              - "IDS-V0_1-STAGE084-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-085"
+              - "ACC-STAGE085-P2-01"
+              - "ACC-STAGE085-P2-02"
+              - "ACC-STAGE085-P2-03"
+              - "ACC-STAGE085-P2-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage085_metadata_filter_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage085_metadata_filter_slice"
+            test_results: "P1/P2 聚焦合同与控制切片、后续本地治理回归记录于 Stage085 P2 receipt；所有结果只证明纯内存控制、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-085_元数据过滤.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE085_PHASE2_METADATA_FILTER_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage085_metadata_filter_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage085_metadata_filter_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage085_metadata_filter_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-22-stage085-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE085_PHASE1_METADATA_FILTER_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage085_metadata_filter_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE084_STAGE_REVIEW.md"
+            risk: "若将六条控制请求、六类过滤、资料状态、模型／版本／维度／相似度度量、候选、分数、选择、活动索引版本、轨迹或证据账本引用误作真实 metadata、真实检索、真实证据账本、OVH、生产或上传能力，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P2 范围说明、控制合同、纯内存模块、聚焦用例、machine run、机器事实、治理路线和生成中文视图，恢复到 PASS_METADATA_FILTER_CONTRACT_RUNTIME_DISABLED；不改变 P1、Stage084 Review、冻结任务包、真实资料、manifest、证据账本、审计日志、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE085-P3"
         name: "Phase 3 · 元数据过滤专项验证与异常场景"
         objective: "冻结任务包预留：验证关键词、材料牌号、设备型号、标准号、语义相似、过滤组合、Top-K、排序解释、结果有效性与旧索引服务时的检索轨迹；本 run 未进入。"

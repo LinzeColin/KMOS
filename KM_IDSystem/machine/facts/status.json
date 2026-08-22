@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE085",
-  "phase": "IDS-STAGE085-P1",
-  "task": "IDS-V0_1-STAGE085-P1",
-  "real_progress": "Stage085 P1 已只在内存中固定元数据过滤静态合同：query 的 11 字段、文档类型／年份／项目／设备／资料状态／证据等级六类 metadata filter 与 filter state 的 7 字段、candidate 的 11 字段、selected 的 8 字段、keyword/vector/hybrid score 的 7 字段与 retrieval trace 的 10 字段均为不透明控制引用；关键词与向量基线、活动索引版本、过滤合同、排序解释和证据链均已声明，向量相似度不得单独决定未来结果。",
-  "report_grade": "冻结 Stage085 任务包、Stage084 Review 及其 P1--P4 已审核向量检索基线工件构成唯一合同上下文；P1 不建立第二权威事实源，只固定纯内存控制边界，真实资料、数据库、过滤执行、embedding 和模型均未访问或调用。",
-  "business_verdict": "Stage085 P1 只证明元数据过滤的静态合同、失败关闭、可回滚范围与业务线白箱前置一致；不等于 PostgreSQL、FTS、BM25、pgvector、embedding、关键词或向量检索、资料状态读取、元数据过滤、混合排序、Top-K、trace、参数写入或回滚、模型、Token、审计、OVH、生产服务或上传能力已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "STAGE085_PHASE1_LOCAL_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE085-P2",
+  "task": "IDS-V0_1-STAGE085-P2",
+  "real_progress": "Stage085 P2 已只在内存中完成六条固定、非业务、reference-only 元数据过滤控制请求：每条有 20 个输入字段，并投影 query 11、filter 8、candidate 11、hybrid score 7、selected 8、retrieval trace 10 与 future integration 6 个控制字段，共 366 个检查点；文档类型／年份／项目／设备／资料状态／证据等级六类过滤、关键词与向量基线、活动索引版本、过滤合同、排序解释和证据链均保持不透明引用，向量相似度不得单独决定未来结果。",
+  "report_grade": "冻结 Stage085 任务包、Stage085 P1 与 Stage084 Review 的已审核向量检索基线工件构成唯一合同上下文；P2 不建立第二权威事实源，只运行纯内存控制切片，真实资料、数据库、过滤执行、embedding 和模型均未访问或调用。",
+  "business_verdict": "Stage085 P2 只证明元数据过滤的纯内存控制形状、失败关闭、可回滚范围与业务线白箱前置一致；不等于 PostgreSQL、FTS、BM25、pgvector、embedding、关键词或向量检索、资料状态读取、元数据过滤、混合排序、Top-K、trace、参数写入或回滚、模型、Token、审计、OVH、生产服务或上传能力已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "STAGE085_PHASE2_LOCAL_RUNTIME_DISABLED",
   "rendered_at": "2026-08-22",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE085-P2-GATE",
+  "next_gate": "IDS-STAGE085-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
