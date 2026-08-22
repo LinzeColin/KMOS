@@ -240,7 +240,7 @@ class Stage069ExternalApiPolicyPhase3Tests(unittest.TestCase):
                                            "IDS-STAGE079",
                                            'IDS-STAGE080', "IDS-STAGE081", "IDS-STAGE082", "IDS-STAGE083", "IDS-STAGE084",
                                            'IDS-STAGE085', 'IDS-STAGE086'
-                                       ))
+                                       , "IDS-STAGE087"))
         self.assertIn(
             (status["phase"], status["task"], status["next_gate"]),
             (
@@ -304,7 +304,7 @@ class Stage069ExternalApiPolicyPhase3Tests(unittest.TestCase):
                     ("IDS-STAGE084-REVIEW", "IDS-V0_1-STAGE084-REVIEW", "IDS-STAGE085-P3-GATE"),
                 ("IDS-STAGE082-REVIEW", "IDS-V0_1-STAGE082-REVIEW", "IDS-STAGE083-P1-GATE"), ("IDS-STAGE083-P1", "IDS-V0_1-STAGE083-P1", "IDS-STAGE083-P2-GATE"), ("IDS-STAGE083-P2", "IDS-V0_1-STAGE083-P2", "IDS-STAGE083-P3-GATE"), ("IDS-STAGE083-P3", "IDS-V0_1-STAGE083-P3", "IDS-STAGE083-P4-GATE"), ("IDS-STAGE083-P4", "IDS-V0_1-STAGE083-P4", "IDS-STAGE083-REVIEW-GATE"), ("IDS-STAGE083-REVIEW", "IDS-V0_1-STAGE083-REVIEW", "IDS-STAGE084-P1-GATE"), ("IDS-STAGE084-P1", "IDS-V0_1-STAGE084-P1", "IDS-STAGE084-P2-GATE"), ("IDS-STAGE084-P2", "IDS-V0_1-STAGE084-P2", "IDS-STAGE084-P3-GATE"), ('IDS-STAGE084-P3', 'IDS-V0_1-STAGE084-P3', 'IDS-STAGE084-P4-GATE'), ('IDS-STAGE084-P4', 'IDS-V0_1-STAGE084-P4', 'IDS-STAGE084-REVIEW-GATE'),
                 ('IDS-STAGE085-P2', 'IDS-V0_1-STAGE085-P2', 'IDS-STAGE085-P3-GATE'), ("IDS-STAGE085-P3", "IDS-V0_1-STAGE085-P3", "IDS-STAGE085-P4-GATE"), ("IDS-STAGE085-P4", "IDS-V0_1-STAGE085-P4", "IDS-STAGE085-REVIEW-GATE"), ("IDS-STAGE085-REVIEW", "IDS-V0_1-STAGE085-REVIEW", "IDS-STAGE086-P1-GATE"), ("IDS-STAGE086-P1", "IDS-V0_1-STAGE086-P1", "IDS-STAGE086-P2-GATE"), ("IDS-STAGE086-P2", "IDS-V0_1-STAGE086-P2", "IDS-STAGE086-P3-GATE"), ("IDS-STAGE086-P3", "IDS-V0_1-STAGE086-P3", "IDS-STAGE086-P4-GATE"), ("IDS-STAGE086-P4", "IDS-V0_1-STAGE086-P4", "IDS-STAGE086-REVIEW-GATE"), ("IDS-STAGE086-REVIEW", "IDS-V0_1-STAGE086-REVIEW", "IDS-STAGE087-P1-GATE"),
-            ),
+             ("IDS-STAGE087-P1", "IDS-V0_1-STAGE087-P1", "IDS-STAGE087-P2-GATE")),
         )
         self.assertFalse(status["runtime_enabled"])
         self.assertFalse(status["push_allowed"])
@@ -316,7 +316,7 @@ class Stage069ExternalApiPolicyPhase3Tests(unittest.TestCase):
                                          "IDS-STAGE079",
                                          'IDS-STAGE080', 'IDS-STAGE081', 'IDS-STAGE082', 'IDS-STAGE083', "IDS-STAGE084",
                                          'IDS-STAGE085', 'IDS-STAGE086'
-                                     ))
+                                     , "IDS-STAGE087"))
         self.assertIn(
             (plan["phase"], plan["task"]),
             (
@@ -356,7 +356,8 @@ class Stage069ExternalApiPolicyPhase3Tests(unittest.TestCase):
                 ("IDS-STAGE083-P1", "IDS-V0_1-STAGE083-P1"), ("IDS-STAGE083-P2", "IDS-V0_1-STAGE083-P2"), ("IDS-STAGE083-P3", "IDS-V0_1-STAGE083-P3"), ("IDS-STAGE083-P4", "IDS-V0_1-STAGE083-P4"), ("IDS-STAGE083-REVIEW", "IDS-V0_1-STAGE083-REVIEW"), ("IDS-STAGE084-P1", "IDS-V0_1-STAGE084-P1"), ('IDS-STAGE084-P2', 'IDS-V0_1-STAGE084-P2'), ('IDS-STAGE084-P3', 'IDS-V0_1-STAGE084-P3'), ('IDS-STAGE084-P4', 'IDS-V0_1-STAGE084-P4'),
                 ('IDS-STAGE085-P2', 'IDS-V0_1-STAGE085-P2'), ("IDS-STAGE085-P3", "IDS-V0_1-STAGE085-P3"), ("IDS-STAGE085-P4", "IDS-V0_1-STAGE085-P4"), ("IDS-STAGE085-REVIEW", "IDS-V0_1-STAGE085-REVIEW"), ("IDS-STAGE086-P1", "IDS-V0_1-STAGE086-P1"),
                                                                                                                                                                                                             ("IDS-STAGE086-P2", "IDS-V0_1-STAGE086-P2"), ("IDS-STAGE086-P3", "IDS-V0_1-STAGE086-P3"), ("IDS-STAGE086-P4", "IDS-V0_1-STAGE086-P4"), ("IDS-STAGE086-REVIEW", "IDS-V0_1-STAGE086-REVIEW"),
-            ),
+
+            ("IDS-STAGE087-P1", "IDS-V0_1-STAGE087-P1"),),
         )
         self.assertTrue(
             (
