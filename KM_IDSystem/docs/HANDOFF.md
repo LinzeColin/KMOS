@@ -9,7 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage087 Phase 3 - 2026-08-23
+## Current Gate - Stage087 Phase 4 - 2026-08-23
+
+- 本节是唯一当前交接；下方 Stage087 P3/P2/P1、Stage086 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
+- 本轮完成 `IDS-V0_1-STAGE087-P4`：只在内存中从 P3 八个固定、非业务、`reference-only` 控制场景派生未持久化的检索样例、trace 日志、过滤结果、有效性测试报告、检索不足／证据缺口、参数回滚说明和中文反馈，各为 `8/8/8/8/8/4/4` 条，共 `572` 个交付字段检查点。所有 query、filter、candidate、selected、score、活动索引版本、trace 与证据引用均为不透明控制标签；八条场景保留业务线白箱人工处理，不建立第二权威事实源。
+- 已验证：Stage087 P1/P2/P3/P4 聚焦 `32/32`、Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实已重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查均通过；零运行时回执位于 `KM_IDSystem/machine/runs/2026-08-23-stage087-p4-local.json`。验证范围仅为 Stage087 固定合同、纯内存控制投影与治理，不宣称仓库级全量测试全绿。
+- 本 P4 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、证据账本、审计日志、报告、数据库、物理索引、检索参数或业务结论；不执行 PostgreSQL schema 或连接、FTS/BM25/pgvector、embedding、关键词／向量检索、元数据过滤、排序、Top-K、trace 或证据账本读写、实际参数回滚、模型 Token、Agent、OVH、生产、Review、Stage088、上传或推送。
+- 回滚只撤回本 P4 的范围说明、交付合同、纯内存交付模块、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_RETRIEVAL_TRACE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；保留 Stage087 P1/P2/P3、Stage086 Review/P1--P4、冻结任务包、真实资料、fixture、manifest、证据账本、审计日志、数据库、索引、GitHub、OVH 与应用状态。
+- 下一步仅可在新的独立 run 进入 `IDS-STAGE087-REVIEW-GATE`；Review 与 Stage088 尚未启动。继续使用既有唯一开发工作树 `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`，不创建额外工作树、分支或合并请求。本 run 不启动 Review、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage087 Phase 3 - 2026-08-23
 
 - 本节是唯一当前交接；下方 Stage087 P2/P1、Stage086 Review/P4/P3/P2/P1、Stage085 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
 - 本轮完成 `IDS-V0_1-STAGE087-P3`：只在内存中重放 P2 六条固定、非业务、`reference-only` 控制投影及其 `426` 个源字段检查点，形成关键词、材料牌号、设备型号、标准号、语义相似、六维过滤组合、Top-K／排序解释／结果有效性和旧索引服务版本轨迹八个受控场景。每场景固定 `31` 个不透明控制字段，共 `248` 个检查点；材料牌号、设备型号、标准号和语义相似只表示场景类别，八场景均要求业务线白箱人工处理，不建立第二权威事实源。

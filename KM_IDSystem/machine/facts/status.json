@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE087",
-  "phase": "IDS-STAGE087-P3",
-  "task": "IDS-V0_1-STAGE087-P3",
-  "real_progress": "Stage086 P1--P4 与整阶段 Review 保持已审核前置；Stage087 P1 静态合同与 P2 六条固定、非业务、reference-only 纯内存控制切片已完成。P3 已重放 P2 的 426 个控制字段检查点为关键词、材料牌号、设备型号、标准号、语义相似、六维过滤组合、Top-K／排序解释／结果有效性和旧索引服务版本轨迹八个场景，每场景 31 个字段，共 248 个场景检查点；八场景均要求业务线白箱人工处理。P4--Review 尚未启动。",
-  "report_grade": "冻结 Stage087 任务包、Stage086 Review/P1--P4 已审核控制工件与 Stage087 P1/P2 构成唯一合同上下文；P3 仅在本地纯内存层重放可测试、可回滚的控制场景和失败关闭，不形成第二权威事实源。",
-  "business_verdict": "Stage087 P3 只证明固定控制引用的八类场景、关键词与向量基线、vector-only 拒绝、六维过滤、活动索引版本、candidate／selected／score／trace／证据账本引用链、Top-K／排序解释／有效性与旧索引版本轨迹一致；不等于 PostgreSQL、FTS、BM25、pgvector、embedding、数据库、关键词或向量检索、元数据过滤、混合排序、Top-K、trace 读写、证据账本、模型、Token、审计、OVH、生产服务、P4 或上传能力已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "STAGE087_P3_LOCAL_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE087-P4",
+  "task": "IDS-V0_1-STAGE087-P4",
+  "real_progress": "Stage086 P1--P4 与整阶段 Review 保持已审核前置；Stage087 P1 静态合同、P2 六条固定控制请求与 P3 八个 31 字段受控场景已完成。P4 已只在内存中从 P3 的 426 个源字段检查点和 248 个场景检查点派生 8 条检索样例、8 条 trace 日志、8 条过滤结果、8 条有效性测试报告、8 条检索不足／证据缺口记录、4 条参数回滚说明和 4 条中文反馈，共 572 个交付字段检查点；全部记录均未持久化并要求业务线白箱人工处理。Review 尚未启动。",
+  "report_grade": "冻结 Stage087 任务包、Stage086 Review/P1--P4 已审核控制工件与 Stage087 P1/P2/P3 构成唯一合同上下文；P4 仅在本地纯内存层派生可测试、可回滚的控制交付证据和失败关闭，不形成第二权威事实源。",
+  "business_verdict": "Stage087 P4 只证明固定控制引用的未持久化样例、trace、过滤结果、有效性报告、证据缺口、参数回滚说明与中文反馈，及其关键词／向量基线、vector-only 拒绝、六维过滤、活动索引版本、candidate／selected／score／trace／证据账本引用链、Top-K／排序解释／有效性与旧索引版本轨迹一致；不等于 PostgreSQL、FTS、BM25、pgvector、embedding、数据库、关键词或向量检索、元数据过滤、混合排序、Top-K、trace 读写、证据账本、真实参数回滚、模型、Token、审计、OVH、生产服务、Review 或上传能力已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "STAGE087_P4_LOCAL_RUNTIME_DISABLED",
   "rendered_at": "2026-08-23",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE087-P4-GATE",
+  "next_gate": "IDS-STAGE087-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

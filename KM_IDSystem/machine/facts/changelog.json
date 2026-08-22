@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage087-p4-local",
+    "date": "2026-08-23",
+    "summary": "完成 Stage087 检索轨迹 P4 纯内存 metadata-only 交付证据：只从 P3 的八个固定、非业务、reference-only 受控场景派生 8 条检索样例、8 条 trace 日志、8 条过滤结果、8 条有效性测试报告、8 条检索不足／证据缺口记录、4 条参数回滚说明和 4 条中文反馈，共 572 个交付字段检查点；所有 query、filter、candidate、selected、score、活动索引版本、trace 与证据引用均保持不透明控制标签，交付记录未持久化。P1/P2/P3/P4 聚焦 32/32、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器事实重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围仅为 Stage087 固定合同、纯内存控制投影与治理，不宣称仓库级全量测试全绿。未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、embedding、关键词或向量检索、过滤、排序、Top-K、trace、证据账本读写、参数回滚、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 IDS-STAGE087-REVIEW-GATE，继续使用既有唯一开发 worktree。"
+  },
+  {
     "version": "v0.1-stage087-p3-local",
     "date": "2026-08-23",
     "summary": "完成 Stage087 检索轨迹 P3 纯内存受控场景：只重放 P2 六条固定、非业务、reference-only 控制投影及其 426 个源字段检查点，覆盖关键词、材料牌号、设备型号、标准号、语义相似、六维过滤组合、Top-K／排序解释／结果有效性和旧索引服务版本轨迹八类场景；每场景 31 个字段，共 248 个检查点与八条业务线白箱人工处理要求。P1/P2/P3 聚焦 21/21、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器事实重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查均通过，不宣称仓库级全量测试全绿。未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、embedding、关键词或向量检索、过滤、排序、Top-K、trace、证据账本读写、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 IDS-STAGE087-P4-GATE，继续使用既有唯一开发 worktree。"
