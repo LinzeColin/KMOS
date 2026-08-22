@@ -1,3 +1,9 @@
+## 2026-08-22 · Stage084 向量检索基线 P1
+
+- 完成冻结 Stage084 P1 静态工程合同：固定 query `11`、五类 metadata filter `6`、candidate `10`、selected `7`、keyword/vector/hybrid score `7` 与 retrieval trace `10` 个控制字段；关键词基线与向量检索基线均为必需，模型／版本／维度／相似度度量、活动索引版本、排序解释和证据账本引用缺失时失败关闭，`vector-only` 不得决定未来结果。
+- 本地静态验证通过：P1 聚焦 `7/7`、Stage060--084 白箱 `1109/1109`、Stage005 直接治理 `valid=true`，两个既有批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。
+- 未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、embedding、关键词或向量检索、过滤、混合排序、Top-K、trace、证据账本读写、模型 Token、Agent、OVH、生产、上传或推送；下一步只能在新的独立 run 进入 `IDS-STAGE084-P2-GATE`，继续使用既有唯一开发工作树。
+
 ## 2026-08-22 · Stage083 关键词检索基线 Review
 
 - 完成冻结 Stage083 P1--P4 的纯内存机械复审：复核 P1 静态字段合同、P2 五条固定控制投影、P3 八类控制场景、P4 八条未持久化交付形状、P4→P3 控制回退、失败关闭、单一权威与零运行时边界；仅把历史白箱的合法当前态精确延长为 `Stage083 Review → Stage084 P1 gate`。

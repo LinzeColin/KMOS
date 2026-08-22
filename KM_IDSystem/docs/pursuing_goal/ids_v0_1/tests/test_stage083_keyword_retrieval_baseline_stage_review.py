@@ -146,7 +146,19 @@ class Stage083ReviewTests(unittest.TestCase):
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         event_ids = {json.loads(line)["event_id"] for line in EVENTS.read_text(encoding="utf-8").splitlines() if line.strip()}
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
-        if current == ("IDS-STAGE083", "IDS-STAGE083-REVIEW", "IDS-V0_1-STAGE083-REVIEW", "IDS-STAGE084-P1-GATE"):
+        stage083_review_current = (
+            "IDS-STAGE083",
+            "IDS-STAGE083-REVIEW",
+            "IDS-V0_1-STAGE083-REVIEW",
+            "IDS-STAGE084-P1-GATE",
+        )
+        stage084_phase1_current = (
+            "IDS-STAGE084",
+            "IDS-STAGE084-P1",
+            "IDS-V0_1-STAGE084-P1",
+            "IDS-STAGE084-P2-GATE",
+        )
+        if current in (stage083_review_current, stage084_phase1_current):
             self.assertTrue(REVIEW_RUN.is_file())
             run = json.loads(REVIEW_RUN.read_text(encoding="utf-8"))
             acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
@@ -159,10 +171,19 @@ class Stage083ReviewTests(unittest.TestCase):
             self.assertEqual("IDS-STAGE084-P1-GATE", run["next_gate"])
             self.assertEqual("PASS_REVIEWED_KEYWORD_RETRIEVAL_BASELINE_RUNTIME_DISABLED", run["result"])
             self.assertTrue(all(value == 0 for value in run["runtime_counts"].values()))
-            self.assertEqual("IDS-V0_1-STAGE083-REVIEW", plan["task"])
+            self.assertEqual(
+                "IDS-V0_1-STAGE083-REVIEW"
+                if current == stage083_review_current
+                else "IDS-V0_1-STAGE084-P1",
+                plan["task"],
+            )
             roadmap_text = ROADMAP.read_text(encoding="utf-8")
+            self.assertIn('stage083_review_state:', roadmap_text)
             self.assertIn('current_phase_id: "IDS-STAGE083-REVIEW"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE084-P1-GATE"', roadmap_text)
+            if current == stage084_phase1_current:
+                self.assertIn('current_phase_id: "IDS-STAGE084-P1"', roadmap_text)
+                self.assertIn('next_gate_id: "IDS-STAGE084-P2-GATE"', roadmap_text)
         else:
             self.assertIn(
                 current,

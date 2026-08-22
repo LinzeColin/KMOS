@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE083",
-  "phase": "IDS-STAGE083-REVIEW",
-  "task": "IDS-V0_1-STAGE083-REVIEW",
-  "real_progress": "Stage083 已只在内存中机械复审 P1--P4 合同、P2/P3/P4 控制报告与 P4→P3 回退：P1 的 7/6/8/7/7/8 字段与 13 类失败关闭、P2 的五条控制请求／七组投影／250 次字段检查、P3 的八类 26 字段场景／208 次字段检查／八条人工处理，以及 P4 的 8/8/8/8/8/3/4 交付形状、432 次交付字段检查与 16 类失败关闭均保持一致。",
-  "report_grade": "冻结 Stage083 任务包、Stage083 P1/P2/P3/P4 与 Stage082 Review/P1--P4 已审核工件构成唯一合同上下文；Review 不建立第二权威事实源，只重放纯内存控制结论，真实资料、数据库和模型均未访问或调用。",
-  "business_verdict": "Stage083 Review 只证明关键词基线、vector-only 拒绝、五类过滤、活动索引版本／证据账本引用链、八类场景、metadata-only 交付、显式证据缺口、业务线白箱人工处理和 P4→P3 控制回退保持一致；不等于 PostgreSQL、FTS、BM25、pgvector、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、过滤、混合排序、Top-K、trace、参数写入或回滚、模型、Token、审计、OVH、生产服务或上传能力已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "STAGE083_REVIEWED_LOCAL_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE084",
+  "phase": "IDS-STAGE084-P1",
+  "task": "IDS-V0_1-STAGE084-P1",
+  "real_progress": "Stage084 P1 已只在内存中固定向量检索基线静态合同：query 的 11 字段、五类 metadata filter 的 6 字段、candidate 的 10 字段、selected 的 7 字段、keyword/vector/hybrid score 的 7 字段与 retrieval trace 的 10 字段均为不透明控制引用；模型／版本／维度／相似度度量、活动索引版本、关键词基线、过滤、混合排序和证据链均已声明，向量相似度不得单独决定未来结果。",
+  "report_grade": "冻结 Stage084 任务包、Stage083 Review 及其 P1--P4 已审核关键词检索基线工件构成唯一合同上下文；P1 不建立第二权威事实源，只固定纯内存控制边界，真实资料、数据库、embedding 和模型均未访问或调用。",
+  "business_verdict": "Stage084 P1 只证明向量检索基线的静态合同、失败关闭、可回滚范围与业务线白箱前置一致；不等于 PostgreSQL、FTS、BM25、pgvector、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、过滤、混合排序、Top-K、trace、参数写入或回滚、模型、Token、审计、OVH、生产服务或上传能力已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "STAGE084_PHASE1_LOCAL_RUNTIME_DISABLED",
   "rendered_at": "2026-08-22",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE084-P1-GATE",
+  "next_gate": "IDS-STAGE084-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
