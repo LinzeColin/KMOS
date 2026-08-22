@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage088 Phase 4 - 2026-08-23
+## Current Gate - Stage088 Review - 2026-08-23
 
-- 本节是唯一当前交接；下方 Stage088 P3、P2、P1、Stage087 Review/P4/P3/P2/P1、Stage086 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
+- 本节是唯一当前交接；下方 Stage088 P4、P3、P2、P1、Stage087 Review/P4/P3/P2/P1、Stage086 Review/P4/P3/P2/P1 与更早章节均为历史证据，不重写其已验证事实。
+- 本轮完成 IDS-V0_1-STAGE088-REVIEW 的纯内存机械复审：只重放 P1 的 9/7/10/10/7/7/14/16 静态形状与 28 类失败关闭、P2 的 6 条固定请求／9 组投影／528 次字段检查／34 类失败关闭、P3 的 8 个 33 字段场景／264 次字段检查／8 条人工处理，以及 P4 的 8/8/8/8/8/4/4 交付形状／572 次字段检查／20 类失败关闭。结果有效性仍未评估，全部门禁仍待业务线白箱人工复核。
+- 已验证：Review 聚焦 11/11、Stage087 Review 与 Stage088 P1/P2/P3/P4/Review 关联聚焦 55/55、Stage005 直接治理 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器事实已重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围仅为冻结 Stage088 控制工件、前序兼容与本地治理，不宣称仓库级全量测试全绿；零运行时回执位于 KM_IDSystem/machine/runs/2026-08-23-stage088-review-local.json。
+- 本 Review 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、证据账本、审计日志、报告、数据库、物理索引、检索参数或业务结论；不执行 PostgreSQL schema 或连接、FTS/BM25/pgvector、embedding、关键词／向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K、检索样例／trace／过滤／有效性报告／证据缺口读写、旧索引服务访问、结果有效性判定、实际参数回滚、模型 Token、Agent、OVH、生产、Stage089、上传或推送。
+- 回滚只撤回本 Review 的范围说明、纯内存复审模块、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 PASS_RETRIEVAL_RESULT_VALIDITY_DELIVERY_EVIDENCE_RUNTIME_DISABLED；保留 Stage088 P1/P2/P3/P4、Stage087 Review/P1/P2/P3/P4、冻结任务包、真实资料、fixture、manifest、证据账本、审计日志、数据库、索引、GitHub、OVH 与应用状态。
+- 下一步仅可在新的独立 run 进入 IDS-STAGE089-P1-GATE；Stage089 尚未启动。继续使用既有唯一开发工作树 /Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1，不创建额外工作树、分支或合并请求。本 run 不启动 Stage089、OVH、生产或上传；全局上传继续延后至完整冻结任务包完成 ACC-STAGE-168。
+
+## Superseded Gate - Stage088 Phase 4 - 2026-08-23
+
+- 本节保留 Stage088 P4 历史交接；唯一当前交接位于上方 Stage088 Review，本节所述下一步为 P4 完成当时的历史状态，不重写其已验证事实。
 - 本轮完成 IDS-V0_1-STAGE088-P4 的纯内存检索结果有效性门禁交付证据：只从 P3 的八个固定、非业务、reference-only 受控场景派生 8 条检索样例、8 条 trace 日志、8 条过滤结果、8 条有效性测试报告、8 条检索不足／证据缺口、4 条参数回滚说明和 4 条中文反馈，共 572 个交付字段检查点。P2 的六条／528 个检查点与 P3 的八场景／264 个检查点保持一致；结果有效性始终未评估，全部门禁仍待业务线白箱人工复核。
 - 已验证：P4 聚焦 11/11、Stage087 Review/P1/P2/P3/P4 关联聚焦 44/44、Stage005 直接治理 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器事实已重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查均通过；零运行时回执位于 KM_IDSystem/machine/runs/2026-08-23-stage088-p4-local.json。验证范围仅为冻结 Stage088 固定控制工件、前序兼容与本地治理，不宣称仓库级全量测试全绿。
 - 本 P4 不读取、打开、复制、保留、外发、写入、查询、删除或解析真实资料、来源正文、原始元数据、fixture、manifest、证据账本、审计日志、报告、数据库、物理索引、检索参数或业务结论；不执行 PostgreSQL schema 或连接、FTS/BM25/pgvector、embedding、关键词／向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K、检索样例／trace／过滤／有效性报告／证据缺口读写、旧索引服务访问、结果有效性判定、实际参数回滚、模型 Token、Agent、OVH、生产、Review、Stage089、上传或推送。

@@ -2459,6 +2459,20 @@ def _governance_checks(
                     "next_gate_id": "IDS-STAGE088-REVIEW-GATE",
                 }
             )
+            or (
+                roadmap.get("current_stage_id") == "IDS-STAGE088"
+                and roadmap.get("current_phase_id") == "IDS-STAGE088-REVIEW"
+                and roadmap.get("current_task_id") == "IDS-V0_1-STAGE088-REVIEW"
+                and roadmap.get("next_gate_id") == "IDS-STAGE089-P1-GATE"
+                and isinstance(roadmap.get("current_transition_history"), dict)
+                and roadmap["current_transition_history"].get("stage088_review_state")
+                == {
+                    "current_stage_id": "IDS-STAGE088",
+                    "current_phase_id": "IDS-STAGE088-REVIEW",
+                    "current_task_id": "IDS-V0_1-STAGE088-REVIEW",
+                    "next_gate_id": "IDS-STAGE089-P1-GATE",
+                }
+            )
         ),
         "roadmap_phase_and_task_evidence_exact": (
             isinstance(phase, dict)
@@ -4761,6 +4775,15 @@ def _projection_checks() -> dict[str, bool]:
             )
             or (
                 isinstance(status, dict)
+                and status.get("stage") == "IDS-STAGE088"
+                and status.get("phase") == "IDS-STAGE088-REVIEW"
+                and status.get("task") == "IDS-V0_1-STAGE088-REVIEW"
+                and status.get("next_gate") == "IDS-STAGE089-P1-GATE"
+                and status.get("runtime_enabled") is False
+                and status.get("push_allowed") is False
+            )
+            or (
+                isinstance(status, dict)
                 and status.get("stage") == "IDS-STAGE087"
                 and status.get("phase") == "IDS-STAGE087-P4"
                 and status.get("task") == "IDS-V0_1-STAGE087-P4"
@@ -5711,6 +5734,14 @@ def _projection_checks() -> dict[str, bool]:
                 and plan.get("phase") == "IDS-STAGE088-P4"
                 and plan.get("task") == "IDS-V0_1-STAGE088-P4"
                 and "IDS-STAGE088-REVIEW-GATE"
+                in str(plan.get("stop_condition", ""))
+            )
+            or (
+                isinstance(plan, dict)
+                and plan.get("stage") == "IDS-STAGE088"
+                and plan.get("phase") == "IDS-STAGE088-REVIEW"
+                and plan.get("task") == "IDS-V0_1-STAGE088-REVIEW"
+                and "IDS-STAGE089-P1-GATE"
                 in str(plan.get("stop_condition", ""))
             )
         ),
