@@ -1,3 +1,9 @@
+## 2026-08-22 · Stage084 向量检索基线 P3
+
+- 完成冻结 Stage084 P3 纯内存受控场景：只重放 P2 五条固定、非业务、`reference-only` 控制投影为关键词、材料牌号、设备型号、标准号、语义相似、五维过滤组合、Top-K／排序解释／结果有效性和旧索引版本轨迹八类场景；领域项只作场景类别，模型／版本／维度／相似度度量和所有引用保持不透明，`vector-only`、关键引用缺失、控制输出偏离或任一运行信号均失败关闭。
+- 本地验证通过：P2 控制记录字段检查 `290` 次，P3 八场景各 `31` 字段共 `248` 次；P1/P2/P3 聚焦 `22/22`、Stage060--084 白箱 `1124/1124`、Stage005 直接治理 `valid=true`，两个既有批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。
+- 未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、embedding、关键词或向量检索、过滤、混合排序、Top-K、trace、证据账本读写、模型 Token、Agent、OVH、生产、上传或推送；下一步只能在新的独立 run 进入 `IDS-STAGE084-P4-GATE`，继续使用既有唯一开发工作树。
+
 ## 2026-08-22 · Stage084 向量检索基线 P2
 
 - 完成冻结 Stage084 P2 纯内存控制切片：五条固定、非业务、reference-only 控制请求各含 19 个输入字段，并投影 query 11、filter 7、candidate 10、hybrid score 7、selected 7、retrieval trace 10 与 future integration 6 个字段；关键词与向量基线、模型／版本／维度／相似度度量、五类过滤、活动索引版本、排序解释和证据账本引用均保持不透明控制标签，vector-only 或关键引用缺失失败关闭。
