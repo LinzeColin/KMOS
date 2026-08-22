@@ -12,7 +12,7 @@ TASKPACK = (
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-083_关键词检索基线.md"
+    / "STAGE-084_向量检索基线.md"
 )
 NEXT_TASKPACK = (
     ROOT
@@ -20,28 +20,28 @@ NEXT_TASKPACK = (
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-084_向量检索基线.md"
+    / "STAGE-085_元数据过滤.md"
 )
-REVIEW_DOCUMENT = BASE / "STAGE083_STAGE_REVIEW.md"
-MODULE = BASE / "index_version_schema" / "stage083_keyword_retrieval_baseline_stage_review.py"
-P1_CONTRACT = BASE / "index_version_schema" / "stage083_keyword_retrieval_baseline_contract.json"
-P2_CONTRACT = BASE / "index_version_schema" / "stage083_keyword_retrieval_baseline_slice_contract.json"
-P3_CONTRACT = BASE / "index_version_schema" / "stage083_keyword_retrieval_baseline_scenarios_contract.json"
-P4_CONTRACT = BASE / "index_version_schema" / "stage083_keyword_retrieval_baseline_delivery_contract.json"
-P2_MODULE = BASE / "index_version_schema" / "stage083_keyword_retrieval_baseline_control_slice.py"
-P3_MODULE = BASE / "index_version_schema" / "stage083_keyword_retrieval_baseline_scenarios.py"
-P4_MODULE = BASE / "index_version_schema" / "stage083_keyword_retrieval_baseline_delivery.py"
+REVIEW_DOCUMENT = BASE / "STAGE084_STAGE_REVIEW.md"
+MODULE = BASE / "index_version_schema" / "stage084_vector_retrieval_baseline_stage_review.py"
+P1_CONTRACT = BASE / "index_version_schema" / "stage084_vector_retrieval_baseline_contract.json"
+P2_CONTRACT = BASE / "index_version_schema" / "stage084_vector_retrieval_baseline_slice_contract.json"
+P3_CONTRACT = BASE / "index_version_schema" / "stage084_vector_retrieval_baseline_scenarios_contract.json"
+P4_CONTRACT = BASE / "index_version_schema" / "stage084_vector_retrieval_baseline_delivery_contract.json"
+P2_MODULE = BASE / "index_version_schema" / "stage084_vector_retrieval_baseline_control_slice.py"
+P3_MODULE = BASE / "index_version_schema" / "stage084_vector_retrieval_baseline_scenarios.py"
+P4_MODULE = BASE / "index_version_schema" / "stage084_vector_retrieval_baseline_delivery.py"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
-REVIEW_RUN = ROOT / "machine" / "runs" / "2026-08-22-stage083-review-local.json"
+REVIEW_RUN = ROOT / "machine" / "runs" / "2026-08-22-stage084-review-local.json"
 
 
-class Stage083ReviewTests(unittest.TestCase):
+class Stage084ReviewTests(unittest.TestCase):
     def _module(self):
-        spec = importlib.util.spec_from_file_location("stage083_review_test", MODULE)
+        spec = importlib.util.spec_from_file_location("stage084_review_test", MODULE)
         module = importlib.util.module_from_spec(spec)
         assert spec.loader is not None
         spec.loader.exec_module(module)
@@ -69,76 +69,76 @@ class Stage083ReviewTests(unittest.TestCase):
             self.assertTrue(path.is_file(), path)
 
     def test_phase_contracts_and_control_reports_pass(self):
-        report = self._module().build_keyword_retrieval_stage083_review_report()
+        report = self._module().build_vector_retrieval_stage084_review_report()
         self.assertTrue(report["review_valid"])
         self.assertEqual({"P1": True, "P2": True, "P3": True, "P4": True}, report["phase_results"])
-        self.assertEqual("PASS_REVIEWED_KEYWORD_RETRIEVAL_BASELINE_RUNTIME_DISABLED", report["result"])
-        self.assertEqual("IDS-STAGE084-P1-GATE", report["next_gate"])
+        self.assertEqual("PASS_REVIEWED_VECTOR_RETRIEVAL_BASELINE_RUNTIME_DISABLED", report["result"])
+        self.assertEqual("IDS-STAGE085-P1-GATE", report["next_gate"])
 
     def test_controlled_replay_has_exact_frozen_shapes(self):
-        report = self._module().build_keyword_retrieval_stage083_review_report()
+        report = self._module().build_vector_retrieval_stage084_review_report()
         self.assertEqual(self._module().EXPECTED_CONTROLLED_REPLAY, report["controlled_replay"])
 
     def test_authority_rollback_and_runtime_are_closed(self):
         module = self._module()
-        report = module.build_keyword_retrieval_stage083_review_report()
+        report = module.build_vector_retrieval_stage084_review_report()
         self.assertTrue(report["review_invariants"]["single_authority_boundary_preserved"])
         self.assertTrue(report["review_invariants"]["failure_stop_and_rollback_boundaries_preserved"])
         self.assertTrue(report["review_invariants"]["delivery_and_whitebox_boundaries_preserved"])
         self.assertTrue(report["review_invariants"]["runtime_actions_disabled"])
         self.assertFalse(report["second_authoritative_source_created"])
         self.assertFalse(report["source_body_or_path_allowed"])
-        self.assertEqual("PASS_KEYWORD_RETRIEVAL_BASELINE_DELIVERY_EVIDENCE_RUNTIME_DISABLED", report["rollback"]["return_to"])
+        self.assertEqual("PASS_VECTOR_RETRIEVAL_BASELINE_DELIVERY_EVIDENCE_RUNTIME_DISABLED", report["rollback"]["return_to"])
         self.assertTrue(all(value == 0 for key, value in report.items() if key.startswith("actual_") and key.endswith("_count")))
         self.assertTrue(all(report[field] is False for field in module.REVIEW_RUNTIME_FALSE_FIELDS))
 
     def test_next_stage_stays_closed_except_for_gate(self):
-        report = self._module().build_keyword_retrieval_stage083_review_report()
+        report = self._module().build_vector_retrieval_stage084_review_report()
         self.assertTrue(report["review_invariants"]["next_stage_taskpack_available_but_not_started"])
-        self.assertTrue(report["review_invariants"]["stage084_gate_only_opens_after_review"])
-        self.assertFalse(report["stage084_started"])
+        self.assertTrue(report["review_invariants"]["stage085_gate_only_opens_after_review"])
+        self.assertFalse(report["stage085_started"])
         self.assertFalse(report["github_upload_allowed"])
         self.assertFalse(report["push_allowed"])
 
     def test_invalid_phase4_contract_fails_closed(self):
-        report = self._module().build_keyword_retrieval_stage083_review_report(
+        report = self._module().build_vector_retrieval_stage084_review_report(
             phase4_contract_provider=lambda: {"task_id": "tampered"}
         )
         self.assertFalse(report["review_valid"])
         self.assertFalse(report["phase_results"]["P4"])
-        self.assertEqual("IDS-STAGE083-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE084-REVIEW-GATE", report["next_gate"])
 
     def test_invalid_phase4_report_fails_closed(self):
-        report = self._module().build_keyword_retrieval_stage083_review_report(
+        report = self._module().build_vector_retrieval_stage084_review_report(
             phase4_report_provider=lambda: {"valid": False}
         )
         self.assertFalse(report["review_valid"])
         self.assertFalse(report["phase_results"]["P4"])
-        self.assertEqual("IDS-STAGE083-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE084-REVIEW-GATE", report["next_gate"])
 
     def test_invalid_phase3_report_fails_closed(self):
-        report = self._module().build_keyword_retrieval_stage083_review_report(
+        report = self._module().build_vector_retrieval_stage084_review_report(
             phase3_report_provider=lambda: {"valid": False}
         )
         self.assertFalse(report["review_valid"])
         self.assertFalse(report["phase_results"]["P3"])
-        self.assertEqual("IDS-STAGE083-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE084-REVIEW-GATE", report["next_gate"])
 
     def test_invalid_phase2_report_fails_closed(self):
-        report = self._module().build_keyword_retrieval_stage083_review_report(
+        report = self._module().build_vector_retrieval_stage084_review_report(
             phase2_report_provider=lambda: {"input_accepted": False}
         )
         self.assertFalse(report["review_valid"])
         self.assertFalse(report["phase_results"]["P2"])
-        self.assertEqual("IDS-STAGE083-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE084-REVIEW-GATE", report["next_gate"])
 
     def test_invalid_phase1_contract_fails_closed(self):
-        report = self._module().build_keyword_retrieval_stage083_review_report(
+        report = self._module().build_vector_retrieval_stage084_review_report(
             phase1_contract_provider=lambda: {"task_id": "tampered"}
         )
         self.assertFalse(report["review_valid"])
         self.assertFalse(report["phase_results"]["P1"])
-        self.assertEqual("IDS-STAGE083-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE084-REVIEW-GATE", report["next_gate"])
 
     def test_governance_projection_records_stage_review_when_current(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
@@ -146,55 +146,53 @@ class Stage083ReviewTests(unittest.TestCase):
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         event_ids = {json.loads(line)["event_id"] for line in EVENTS.read_text(encoding="utf-8").splitlines() if line.strip()}
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
-        stage083_review_current = (
-            "IDS-STAGE083",
-            "IDS-STAGE083-REVIEW",
-            "IDS-V0_1-STAGE083-REVIEW",
-            "IDS-STAGE084-P1-GATE",
-        )
-        stage084_phase1_current = (
+        stage084_review_current = (
             "IDS-STAGE084",
-            "IDS-STAGE084-P1",
-            "IDS-V0_1-STAGE084-P1",
-            "IDS-STAGE084-P2-GATE",
+            "IDS-STAGE084-REVIEW",
+            "IDS-V0_1-STAGE084-REVIEW",
+            "IDS-STAGE085-P1-GATE",
         )
-        if current in (stage083_review_current, stage084_phase1_current):
+        stage085_phase1_current = (
+            "IDS-STAGE085",
+            "IDS-STAGE085-P1",
+            "IDS-V0_1-STAGE085-P1",
+            "IDS-STAGE085-P2-GATE",
+        )
+        if current in (stage084_review_current, stage085_phase1_current):
             self.assertTrue(REVIEW_RUN.is_file())
             run = json.loads(REVIEW_RUN.read_text(encoding="utf-8"))
             acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-083"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE083-REVIEW-01"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE083-REVIEW-02"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE083-REVIEW-03"])
-            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE083-REVIEW-04"])
-            self.assertIn("EVT-IDS-V0_1-STAGE083-REVIEW-20260822-001", event_ids)
-            self.assertEqual("IDS-STAGE084-P1-GATE", run["next_gate"])
-            self.assertEqual("PASS_REVIEWED_KEYWORD_RETRIEVAL_BASELINE_RUNTIME_DISABLED", run["result"])
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-084"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE084-REVIEW-01"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE084-REVIEW-02"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE084-REVIEW-03"])
+            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE084-REVIEW-04"])
+            self.assertIn("EVT-IDS-V0_1-STAGE084-REVIEW-20260822-001", event_ids)
+            self.assertEqual("IDS-STAGE085-P1-GATE", run["next_gate"])
+            self.assertEqual("PASS_REVIEWED_VECTOR_RETRIEVAL_BASELINE_RUNTIME_DISABLED", run["result"])
             self.assertTrue(all(value == 0 for value in run["runtime_counts"].values()))
             self.assertEqual(
-                "IDS-V0_1-STAGE083-REVIEW"
-                if current == stage083_review_current
-                else "IDS-V0_1-STAGE084-P1",
+                "IDS-V0_1-STAGE084-REVIEW"
+                if current == stage084_review_current
+                else "IDS-V0_1-STAGE085-P1",
                 plan["task"],
             )
             roadmap_text = ROADMAP.read_text(encoding="utf-8")
-            self.assertIn('stage083_review_state:', roadmap_text)
-            self.assertIn('current_phase_id: "IDS-STAGE083-REVIEW"', roadmap_text)
-            self.assertIn('next_gate_id: "IDS-STAGE084-P1-GATE"', roadmap_text)
-            if current == stage084_phase1_current:
-                self.assertIn('current_phase_id: "IDS-STAGE084-P1"', roadmap_text)
-                self.assertIn('next_gate_id: "IDS-STAGE084-P2-GATE"', roadmap_text)
+            self.assertIn("stage084_review_state:", roadmap_text)
+            self.assertIn('current_phase_id: "IDS-STAGE084-REVIEW"', roadmap_text)
+            self.assertIn('next_gate_id: "IDS-STAGE085-P1-GATE"', roadmap_text)
+            if current == stage085_phase1_current:
+                self.assertIn('current_phase_id: "IDS-STAGE085-P1"', roadmap_text)
+                self.assertIn('next_gate_id: "IDS-STAGE085-P2-GATE"', roadmap_text)
         else:
             self.assertIn(
                 current,
                 (
-                    ("IDS-STAGE083", "IDS-STAGE083-P4", "IDS-V0_1-STAGE083-P4", "IDS-STAGE083-REVIEW-GATE"),
                     ("IDS-STAGE084", "IDS-STAGE084-P1", "IDS-V0_1-STAGE084-P1", "IDS-STAGE084-P2-GATE"),
                     ("IDS-STAGE084", "IDS-STAGE084-P2", "IDS-V0_1-STAGE084-P2", "IDS-STAGE084-P3-GATE"),
                     ("IDS-STAGE084", "IDS-STAGE084-P3", "IDS-V0_1-STAGE084-P3", "IDS-STAGE084-P4-GATE"),
                     ("IDS-STAGE084", "IDS-STAGE084-P4", "IDS-V0_1-STAGE084-P4", "IDS-STAGE084-REVIEW-GATE"),
-
-                    ("IDS-STAGE084", "IDS-STAGE084-REVIEW", "IDS-V0_1-STAGE084-REVIEW", "IDS-STAGE085-P1-GATE"),
+                    stage084_review_current,
                 ),
             )
 
