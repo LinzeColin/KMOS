@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE084",
-  "phase": "IDS-STAGE084-P3",
-  "task": "IDS-V0_1-STAGE084-P3",
-  "next_gate": "IDS-STAGE084-P4-GATE",
+  "phase": "IDS-STAGE084-P4",
+  "task": "IDS-V0_1-STAGE084-P4",
+  "next_gate": "IDS-STAGE084-REVIEW-GATE",
   "items": [
     {
       "id": "ACC-STAGE-084",
-      "criteria": "Stage084 向量检索基线：P1 已固定向量检索、关键词检索基线、元数据过滤、混合排序和检索轨迹的静态工程合同；P2 已以五条固定、非业务、reference-only 控制请求投影 query、filter、candidate、selected、score、模型／版本／维度／相似度度量、active_index_version、retrieval trace 与 evidence ledger 引用；P3 已重放关键词、材料牌号、设备型号、标准号、语义相似、五维过滤组合、Top-K／排序解释／结果有效性和旧索引版本轨迹八类控制场景。向量相似度不得单独决定未来结果，领域项不携带业务值。实际 PostgreSQL、FTS、BM25、pgvector、embedding、索引、查询、过滤、排序、trace、参数写入／回滚和持久化均未执行。",
-      "status": "P3 已完成"
+      "criteria": "Stage084 向量检索基线：P1 已固定向量检索、关键词检索基线、元数据过滤、混合排序和检索轨迹的静态工程合同；P2 已以五条固定、非业务、reference-only 控制请求投影 query、filter、candidate、selected、score、模型／版本／维度／相似度度量、active_index_version、retrieval trace 与 evidence ledger 引用；P3 已重放关键词、材料牌号、设备型号、标准号、语义相似、五维过滤组合、Top-K／排序解释／结果有效性和旧索引版本轨迹八类控制场景；P4 已派生 metadata-only 检索样例、trace 日志、过滤结果、有效性测试报告、检索不足／证据缺口记录、参数回滚说明与中文反馈。向量相似度不得单独决定未来结果，领域项不携带业务值。实际 PostgreSQL、FTS、BM25、pgvector、embedding、索引、查询、过滤、排序、trace、参数写入／回滚和持久化均未执行。",
+      "status": "P4 已完成"
     },
     {
       "id": "ACC-STAGE084-P1-01",
@@ -67,6 +67,26 @@
     {
       "id": "ACC-STAGE084-P3-04",
       "criteria": "P3 不执行真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K 选择、检索轨迹或证据账本读写、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage084 P4。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE084-P4-01",
+      "criteria": "冻结 Stage084 任务包、Stage084 P1/P2/P3 与 Stage083 Review/P1--P4 已审核关键词检索基线工件保持为唯一合同上下文；P4 只从八类固定、非业务、reference-only P3 场景派生 metadata-only 交付证据，不建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库、物理索引或检索参数。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE084-P4-02",
+      "criteria": "P4 交付八条检索样例、八条 trace 日志、八条过滤结果、八条有效性测试报告、八条检索不足或证据缺口记录、四条参数回滚说明和四条中文反馈；P3 的五条控制请求、290 次字段检查、八个 31 字段场景和 248 次场景字段检查完整，P4 572 次交付字段检查全部保持不透明控制标签，未写入实际样例、trace、过滤、报告、缺口记录或参数。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE084-P4-03",
+      "criteria": "向量模型／版本／维度／相似度度量、活动索引版本与证据引用贯穿 P4 控制记录；vector-only、关键引用缺失、控制输出偏离或任一运行信号均失败关闭。检索不足或证据缺口逐场景显式处置，自动补全、自动业务推荐和自动参数回滚均关闭；未来参数变更必须具备版本化参数、业务线白箱批准和可验证回退目标。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE084-P4-04",
+      "criteria": "P4 不执行真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K 选择、检索样例／trace／过滤／有效性报告／证据账本读写、检索参数写入或回滚、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage084 Review。",
       "status": "已遵守"
     },
     {

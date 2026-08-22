@@ -995,7 +995,7 @@ class Stage060TableRagSummaryStageReviewTests(unittest.TestCase):
                 and status["task"] == "IDS-V0_1-STAGE084-P1"
                 and status["next_gate"] == "IDS-STAGE084-P2-GATE"
             )
-            or (status['stage'] == 'IDS-STAGE084' and status['phase'] == 'IDS-STAGE084-P2' and status['task'] == 'IDS-V0_1-STAGE084-P2' and status['next_gate'] == 'IDS-STAGE084-P3-GATE') or (status['stage'] == 'IDS-STAGE084' and status['phase'] == 'IDS-STAGE084-P3' and status['task'] == 'IDS-V0_1-STAGE084-P3' and status['next_gate'] == 'IDS-STAGE084-P4-GATE'),
+            or (status['stage'] == 'IDS-STAGE084' and status['phase'] == 'IDS-STAGE084-P2' and status['task'] == 'IDS-V0_1-STAGE084-P2' and status['next_gate'] == 'IDS-STAGE084-P3-GATE') or (status['stage'] == 'IDS-STAGE084' and status['phase'] == 'IDS-STAGE084-P3' and status['task'] == 'IDS-V0_1-STAGE084-P3' and status['next_gate'] == 'IDS-STAGE084-P4-GATE', 'IDS-STAGE084-REVIEW-GATE'),
             status,
         )
         self.assertFalse(status["runtime_enabled"])

@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE084",
       "name": "向量检索基线",
-      "gate": "Stage084 P1 静态工程合同、P2 纯内存控制切片与 P3 八类受控场景已本地通过；下一步只能在新的独立 run 进入 Stage084 P4",
-      "status": "Stage084 P3 已重放五条固定、非业务、reference-only P2 控制投影，覆盖关键词、材料牌号、设备型号、标准号、语义相似、五维 metadata filter 组合、Top-K／排序解释／结果有效性和旧索引版本轨迹；材料牌号、设备型号、标准号和语义相似只为场景类别，模型／版本／维度／相似度度量只为控制标签，关键词与向量检索基线均为必需，向量相似度不得单独决定结果。future PostgreSQL、FTS、BM25、pgvector、embedding、数据库、物理索引、真实查询、过滤、排序、Top-K、轨迹、证据账本、模型、Token、Agent、OVH 与生产仍禁用。"
+      "gate": "Stage084 P1 静态工程合同、P2 纯内存控制切片、P3 八类受控场景与 P4 metadata-only 交付证据已本地通过；下一步只能在新的独立 run 进入 Stage084 Review",
+      "status": "Stage084 P4 已从 P3 八个固定、非业务、reference-only 场景派生检索样例、trace 日志、过滤结果、有效性测试报告、检索不足／证据缺口记录、四条参数回滚说明和四条中文反馈；模型／版本／维度／相似度度量、活动索引版本与证据引用均保持控制标签，自动补全、自动业务建议和自动参数回滚关闭。future PostgreSQL、FTS、BM25、pgvector、embedding、数据库、物理索引、真实查询、过滤、排序、Top-K、轨迹、证据账本、模型、Token、Agent、OVH 与生产仍禁用。"
     },
     {
       "id": "IDS-STAGE083",
