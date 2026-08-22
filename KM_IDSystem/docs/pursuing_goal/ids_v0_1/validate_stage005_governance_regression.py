@@ -2773,6 +2773,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE086-P3-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE086"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE086-P3"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE086-P3"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE086-P4-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -20217,6 +20225,29 @@ def evaluate_current_state_consistency(
                     "KM_IDSystem/machine/runs/2026-08-22-stage086-p2-local.json",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE086_PHASE1_HYBRID_RANKING_SCOPE_BOUNDARY.md",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage086_hybrid_ranking_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE085_STAGE_REVIEW.md",
+                },
+            },
+            "IDS-STAGE086-P3": {
+                "task_id": "IDS-V0_1-STAGE086-P3",
+                "next_gate_id": "IDS-STAGE086-P4-GATE",
+                "transition_key": "stage086_phase3_state",
+                "stage_statuses": {"phase3_completed_local"},
+                "gate_id": "IDS-STAGE086-P3-GATE",
+                "future_phase_ids": {
+                    "IDS-STAGE086-P4",
+                    "IDS-STAGE086-REVIEW",
+                },
+                "required_evidence": {
+                    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-086_混合排序.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE086_PHASE3_HYBRID_RANKING_CONTROLLED_SCENARIOS.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage086_hybrid_ranking_scenarios_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage086_hybrid_ranking_controlled_scenarios.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage086_hybrid_ranking_controlled_scenarios.py",
+                    "KM_IDSystem/machine/runs/2026-08-22-stage086-p3-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE086_PHASE2_HYBRID_RANKING_CONTROL_SLICE.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage086_hybrid_ranking_slice_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage086_hybrid_ranking_control_slice.py",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE085_STAGE_REVIEW.md",
                 },
             },

@@ -1,3 +1,9 @@
+## 2026-08-22 · Stage086 混合排序 P3
+
+- 完成冻结 Stage086 P3 纯内存受控场景：只重放 P2 的六条固定、非业务、`reference-only` 控制投影，覆盖关键词基线、材料牌号、设备型号、标准号、语义相似、六维过滤组合、Top-K／排序解释／结果有效性与旧索引服务版本轨迹八类场景；每个场景 31 个控制字段，共 248 个检查点，P2 的 480 个控制字段检查保持完整。材料牌号、设备型号、标准号和语义相似只作类别，所有评分、版本、活动索引、候选、选择、轨迹与证据引用保持不透明。
+- 本地验证通过：P1/P2/P3 聚焦 22/22、Stage060--086 静态与治理白箱 1212/1212、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器事实重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。该白箱数字仅覆盖本阶段规定范围，不宣称仓库级测试全绿。
+- 未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、embedding、关键词或向量检索、过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K、trace、证据账本读写、模型 Token、Agent、OVH、生产、上传或推送；下一步只能在新的独立 run 进入 IDS-STAGE086-P4-GATE，继续使用既有唯一开发 worktree。
+
 ## 2026-08-22 · Stage086 混合排序 P2
 
 - 完成冻结 Stage086 P2 纯内存受控切片：六条固定、非业务、reference-only 控制请求各含 20 个字段，分别投影 query 11、filter 8、active_index_version 7、candidate 14、hybrid score 10、selected 10、retrieval trace 11 与 future integration 9 个字段，共 480 个控制字段检查点；关键词与向量基线均声明，vector-only 和任何非固定输入均失败关闭。

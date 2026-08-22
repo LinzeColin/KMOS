@@ -163,3 +163,7 @@ ssh ovh 'sudo /usr/local/bin/linze-r2-free-tier-guard.py'
 - **结论**：Stage086 P2 只能以六条固定、非业务、reference-only 输入完成纯内存混合排序控制投影，并将历史白箱的合法当前态精确延长为 P2 → P3 gate。
   **为什么**：query、六类过滤、活动索引版本、candidate、hybrid score、selected、trace 与 future route 都是不透明控制形状；vector-only 或任何非固定输入必须失败关闭，不能把控制投影升格为真实检索、排序或业务事实。
   **代价**：对历史允许集逐形状补齐并完成 P1/P2 聚焦 15/15、Stage060--086 受控白箱 1205/1205；未创建额外 worktree，未产生模型 Token、Agent、OVH、生产、上传或推送动作。
+
+- **结论**：Stage086 P3 只能精确重放 P2 六条固定、非业务、`reference-only` 控制投影为八类混合排序受控场景，历史白箱只追加 P3 → P4 gate 的合法后继。
+  **为什么**：材料牌号、设备型号、标准号、语义相似、六维过滤、Top-K、排序解释、结果有效性和旧索引版本均仅是控制类别或不透明引用；宽松匹配会掩盖越过 P4 的非法推进，实际检索或排序则会突破单一权威与零运行时边界。
+  **代价**：P1/P2/P3 聚焦 22/22、Stage060--086 受控白箱 1212/1212；全程只使用既有唯一开发 worktree，未读取真实资料、未消耗模型 Token、未执行 Agent、OVH、生产、上传或推送。

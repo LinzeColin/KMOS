@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE086",
-  "phase": "IDS-STAGE086-P2",
-  "task": "IDS-V0_1-STAGE086-P2",
-  "real_progress": "Stage086 P2 已完成混合排序纯内存受控切片：六条固定、非业务、reference-only 输入各投影 query 11、filter 8、active_index_version 7、candidate 14、hybrid score 10、selected 10、retrieval trace 11 与 future integration 9 个控制字段，共 480 个控制检查点；vector-only 与非固定输入失败关闭。",
-  "report_grade": "冻结 Stage086 任务包、Stage086 P1、Stage085 Review 与 Stage085 P1--P4 已审核元数据过滤工件构成唯一合同上下文；P2 不建立第二权威事实源，只投影不透明控制引用，真实资料、数据库、过滤、评分、排序、选择、轨迹、证据账本、参数、embedding 和模型均未访问或调用。",
-  "business_verdict": "Stage086 P2 只证明六条固定控制输入、字段形状、引用链、失败关闭、可回滚范围与业务线白箱前置一致；不等于 PostgreSQL、FTS、BM25、pgvector、embedding、关键词或向量检索、元数据过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K、trace、参数写入或回滚、模型、Token、审计、OVH、生产服务或上传能力已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "STAGE086_P2_LOCAL_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE086-P3",
+  "task": "IDS-V0_1-STAGE086-P3",
+  "real_progress": "Stage086 P3 已完成混合排序纯内存受控场景验证：只重放 P2 六条固定、非业务、reference-only 控制投影，P2 保持 480 个字段检查点；八个 P3 场景各 31 个字段，共 248 个场景检查点，覆盖关键词、材料牌号、设备型号、标准号、语义相似、六维过滤组合、Top-K／排序解释／结果有效性和旧索引版本轨迹。",
+  "report_grade": "冻结 Stage086 任务包、Stage086 P1/P2、Stage085 Review 与 Stage085 P1--P4 已审核元数据过滤工件构成唯一合同上下文；P3 不建立第二权威事实源，只重放不透明控制引用，真实资料、数据库、过滤、评分、排序、选择、轨迹、证据账本、参数、embedding 和模型均未访问或调用。",
+  "business_verdict": "Stage086 P3 只证明六条固定控制投影、八类场景、独立活动索引版本链、五类评分输入引用、失败关闭、可回滚范围与业务线白箱前置一致；不等于 PostgreSQL、FTS、BM25、pgvector、embedding、关键词或向量检索、元数据过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K、trace、参数写入或回滚、模型、Token、审计、OVH、生产服务或上传能力已启用。来源文档、证据账本与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "STAGE086_P3_LOCAL_RUNTIME_DISABLED",
   "rendered_at": "2026-08-22",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE086-P3-GATE",
+  "next_gate": "IDS-STAGE086-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

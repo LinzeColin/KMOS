@@ -6,8 +6,8 @@
   "items": [
     {
       "id": "ACC-STAGE-086",
-      "criteria": "Stage086 混合排序：P1 已固定静态工程合同，P2 已以六条固定、非业务、reference-only 控制请求各投影 query 11、filter 8、active_index_version 7、candidate 14、hybrid score 10、selected 10、retrieval trace 11 与 future integration 9 个字段，共 480 个控制检查点；关键词、向量、元数据过滤、资料质量、新鲜度、业务模块、混合分数、排序策略、活动索引版本、候选、选择、轨迹与证据账本均保持不透明控制标签，实际 PostgreSQL、FTS、BM25、pgvector、embedding、索引、查询、过滤、评分、排序、trace、参数写入／回滚和持久化均未执行。",
-      "status": "P2 已完成"
+      "criteria": "Stage086 混合排序：P1 已固定静态工程合同，P2 已以六条固定、非业务、reference-only 控制请求各投影 query 11、filter 8、active_index_version 7、candidate 14、hybrid score 10、selected 10、retrieval trace 11 与 future integration 9 个字段，共 480 个控制检查点；P3 已将这些控制投影重放为关键词、材料牌号、设备型号、标准号、语义相似、六维过滤组合、Top-K／排序解释／结果有效性与旧索引版本轨迹八类 31 字段场景，共 248 个场景检查点。关键词、向量、元数据过滤、资料质量、新鲜度、业务模块、混合分数、排序策略、独立活动索引版本、候选、选择、轨迹与证据账本均保持不透明控制标签，实际 PostgreSQL、FTS、BM25、pgvector、embedding、索引、查询、过滤、评分、排序、trace、参数写入／回滚和持久化均未执行。",
+      "status": "P3 已完成"
     },
     {
       "id": "ACC-STAGE086-P1-01",
@@ -47,6 +47,26 @@
     {
       "id": "ACC-STAGE086-P2-04",
       "criteria": "P2 期间不执行真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、元数据过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K 选择、检索轨迹或证据账本读写、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage086 P3。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE086-P3-01",
+      "criteria": "冻结 Stage086 任务包、Stage086 P1/P2 与 Stage085 Review/P1--P4 已审核元数据过滤工件保持为唯一合同上下文；P3 只重放 P2 的六条固定、非业务、reference-only 控制投影，不建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE086-P3-02",
+      "criteria": "八类场景覆盖关键词、材料牌号、设备型号、标准号、语义相似、六维过滤组合、Top-K／排序解释／结果有效性和旧索引版本轨迹；材料牌号、设备型号、标准号和语义相似只表示场景类别，资料质量、新鲜度、业务模块、模型／版本／维度／相似度度量与所有引用均为不透明控制标签，未读取、匹配或计算真实业务值。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE086-P3-03",
+      "criteria": "P2 输出结构、关键词与向量基线、vector-only 拒绝、六类过滤维度、资料状态、独立活动索引版本记录、candidate／selected／trace 版本链、资料质量／新鲜度／业务模块五类评分输入、排序解释、证据账本引用链、模型／版本／维度／相似度度量与旧索引版本轨迹必须完整；P2 输出偏离、字段缺失、非固定控制标签或任一运行信号均失败关闭，全部场景仍需业务线白箱人工处理。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE086-P3-04",
+      "criteria": "P3 不执行真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、资料质量／新鲜度／业务模块评分、混合排序、Top-K 选择、检索轨迹或证据账本读写、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage086 P4。",
       "status": "已遵守"
     },
     {
