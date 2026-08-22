@@ -2806,6 +2806,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE087-P2-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE087"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE087-P2"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE087-P2"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE087-P3-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -20210,27 +20218,54 @@ def evaluate_current_state_consistency(
         phases = current_stage.get("phases") if isinstance(current_stage, dict) else []
         phases = phases if isinstance(phases, list) else []
         current_phase_id = roadmap.get("current_phase_id")
-        phase_spec = {
-            "task_id": "IDS-V0_1-STAGE087-P1",
-            "next_gate_id": "IDS-STAGE087-P2-GATE",
-            "transition_key": "stage087_phase1_state",
-            "stage_statuses": {"phase1_completed_local"},
-            "gate_id": "IDS-STAGE087-P1-GATE",
-            "future_phase_ids": {
-                "IDS-STAGE087-P2",
-                "IDS-STAGE087-P3",
-                "IDS-STAGE087-P4",
-                "IDS-STAGE087-REVIEW",
+        phase_specs = {
+            "IDS-STAGE087-P1": {
+                "task_id": "IDS-V0_1-STAGE087-P1",
+                "next_gate_id": "IDS-STAGE087-P2-GATE",
+                "transition_key": "stage087_phase1_state",
+                "stage_statuses": {"phase1_completed_local"},
+                "gate_id": "IDS-STAGE087-P1-GATE",
+                "future_phase_ids": {
+                    "IDS-STAGE087-P2",
+                    "IDS-STAGE087-P3",
+                    "IDS-STAGE087-P4",
+                    "IDS-STAGE087-REVIEW",
+                },
+                "required_evidence": {
+                    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-087_检索轨迹.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE087_PHASE1_RETRIEVAL_TRACE_SCOPE_BOUNDARY.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage087_retrieval_trace_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage087_retrieval_trace_contract.py",
+                    "KM_IDSystem/machine/runs/2026-08-23-stage087-p1-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE086_STAGE_REVIEW.md",
+                },
             },
-            "required_evidence": {
-                "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-087_检索轨迹.md",
-                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE087_PHASE1_RETRIEVAL_TRACE_SCOPE_BOUNDARY.md",
-                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage087_retrieval_trace_contract.json",
-                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage087_retrieval_trace_contract.py",
-                "KM_IDSystem/machine/runs/2026-08-23-stage087-p1-local.json",
-                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE086_STAGE_REVIEW.md",
+            "IDS-STAGE087-P2": {
+                "task_id": "IDS-V0_1-STAGE087-P2",
+                "next_gate_id": "IDS-STAGE087-P3-GATE",
+                "transition_key": "stage087_phase2_state",
+                "stage_statuses": {"phase2_completed_local"},
+                "gate_id": "IDS-STAGE087-P2-GATE",
+                "future_phase_ids": {
+                    "IDS-STAGE087-P3",
+                    "IDS-STAGE087-P4",
+                    "IDS-STAGE087-REVIEW",
+                },
+                "required_evidence": {
+                    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-087_检索轨迹.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE087_PHASE2_RETRIEVAL_TRACE_CONTROL_SLICE.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage087_retrieval_trace_slice_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage087_retrieval_trace_control_slice.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage087_retrieval_trace_slice.py",
+                    "KM_IDSystem/machine/runs/2026-08-23-stage087-p2-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE087_PHASE1_RETRIEVAL_TRACE_SCOPE_BOUNDARY.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage087_retrieval_trace_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE086_STAGE_REVIEW.md",
+                },
             },
         }
+        phase_spec = phase_specs.get(current_phase_id)
+        phase_spec = phase_spec if isinstance(phase_spec, dict) else {}
         phase = next(
             (
                 item
@@ -20255,7 +20290,7 @@ def evaluate_current_state_consistency(
             current_transition if isinstance(current_transition, dict) else {}
         )
         stage087_exact = (
-            current_phase_id == "IDS-STAGE087-P1"
+            bool(phase_spec)
             and roadmap.get("current_task_id") == phase_spec.get("task_id")
             and roadmap.get("next_gate_id") == phase_spec.get("next_gate_id")
             and current_transition.get(phase_spec.get("transition_key"))

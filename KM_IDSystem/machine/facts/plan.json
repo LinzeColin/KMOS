@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE087",
-  "phase": "IDS-STAGE087-P1",
-  "task": "IDS-V0_1-STAGE087-P1",
-  "now": "IDS-V0_1-STAGE087-P1 只固定检索轨迹静态工程合同：query 9、文档类型／年份／项目／设备／资料状态／证据等级六类 metadata filter 与 filter state 7、candidate chunks 10、selected chunks 10、score 7、active_index_version 7、retrieval trace 14 个不透明控制字段及 21 类失败关闭；关键词与向量基线均必需，vector-only 被拒绝，P2--Review 尚未启动。",
-  "owner": "仅使用既有唯一 KMOS 开发 worktree `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`；不创建额外 worktree、分支或合并请求，且不进入 P2、OVH、生产或上传。",
-  "objective": "只以冻结 Stage087 任务包与 Stage086 Review/P1--P4 已审核控制工件为唯一合同上下文，定义关键词检索、向量检索、metadata filtering、hybrid ranking、candidate chunks、selected chunks、score、active_index_version 与 retrieval trace 的静态控制形状、引用链和失败关闭；不读取、打开、解析、导入、构建、查询、过滤、排序、追踪、写入或回滚真实资料、数据库、索引、embedding、证据账本、参数、模型、Token、审计或业务结论。",
+  "phase": "IDS-STAGE087-P2",
+  "task": "IDS-V0_1-STAGE087-P2",
+  "now": "IDS-V0_1-STAGE087-P2 只以六条固定、非业务、reference-only 控制请求在内存中投影 query 9、六类 metadata filter 8、active_index_version 7、candidate chunks 10、score 7、selected chunks 10、retrieval trace 14 与 future integration 6 个不透明控制字段，共 426 个检查点；关键词与向量基线均必需，vector-only 与非固定输入被拒绝，P3--Review 尚未启动。",
+  "owner": "仅使用既有唯一 KMOS 开发 worktree `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`；不创建额外 worktree、分支或合并请求，且不进入 P3、OVH、生产或上传。",
+  "objective": "只以冻结 Stage087 任务包、Stage086 Review/P1--P4 已审核控制工件与 Stage087 P1 静态合同为唯一合同上下文，重放固定控制输入并投影未来关键词检索、向量检索、metadata filtering、hybrid ranking、candidate chunks、selected chunks、score、active_index_version 与 retrieval trace 的控制形状、引用链和失败关闭；不读取、打开、解析、导入、构建、查询、过滤、排序、追踪、写入或回滚真实资料、数据库、索引、embedding、证据账本、参数、模型、Token、审计或业务结论。",
   "scope": [
-    "以冻结 Stage087 任务包与 Stage086 Review/P1--P4 已审核控制工件为唯一合同上下文，不建立第二权威事实源",
-    "固定 query 9、文档类型／年份／项目／设备／资料状态／证据等级六类 metadata filter 与 filter state 7、candidate chunks 10、selected chunks 10、score 7、active_index_version 7、retrieval trace 14 个不透明控制字段与 21 类失败关闭",
-    "关键词与向量检索基线、vector-only 拒绝、六类过滤、资料状态、candidate／selected／active_index_version 一致性、score explanation、证据账本引用与 retrieval trace 任一偏离即失败关闭；自动查询、自动过滤、自动排序、自动结果采纳、自动补全、自动业务建议、自动参数回滚和自动索引切换关闭",
-    "仅同步 IDS-V0_1-STAGE087-P1 的范围说明、静态合同、聚焦用例、精确历史后继断言、machine run、机器事实、治理路线和生成中文视图；Stage086 Review/P1--P4 只作为既有证据，不改写其完成状态"
+    "以冻结 Stage087 任务包、Stage086 Review/P1--P4 已审核控制工件与 Stage087 P1 静态合同为唯一合同上下文，不建立第二权威事实源",
+    "固定六条非业务、reference-only 输入，每条 18 个字段，投影 query 9、filter 8、active_index_version 7、candidate chunks 10、score 7、selected chunks 10、retrieval trace 14 与 future integration 6 个不透明控制字段，共 426 个检查点与 27 类失败关闭",
+    "关键词与向量检索基线、vector-only 拒绝、六类过滤、活动索引版本、candidate／selected／score／trace 一致性、score explanation、证据账本引用与未来路线任一偏离即失败关闭；自动查询、自动过滤、自动排序、自动结果采纳、自动补全、自动业务建议、自动参数回滚和自动索引切换关闭",
+    "仅同步 IDS-V0_1-STAGE087-P2 的范围说明、合同、纯内存模块、聚焦用例、精确历史后继断言、machine run、机器事实、治理路线和生成中文视图；Stage087 P1 与 Stage086 Review/P1--P4 只作为既有证据，不改写其完成状态"
   ],
   "non_goals": [
-    "不打开、创建、复制、移动、删除、修改、检测、解析、评估、保留、总结、导入、构建、测试、查询、过滤、评分、排序、追踪、写入、重生成或回退真实业务源、原始元数据、授权 fixture、真实资料范围、向量、版本、索引、检索结果、模型、Token、队列、缓存、审计日志、成本记录、事实库、证据账本、数据库、参数、Operations 或报告",
+    "不打开、创建、复制、移动、删除、修改、检测、解析、评估、保留、总结、导入、构建、查询、过滤、评分、排序、追踪、写入、重生成或回退真实业务源、原始元数据、授权 fixture、真实资料范围、向量、版本、索引、检索结果、模型、Token、队列、缓存、审计日志、成本记录、事实库、证据账本、数据库、参数、Operations 或报告",
     "不执行 PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K 选择、检索轨迹或证据账本读写、检索参数写入或回滚、批量导入、活动指针读写、模型选择或下载、模型调用、外部 API、模型 Token、持久化、Agent、OVH、生产或上传",
-    "不启动 Stage087 P2/P3/P4/Review、Stage088、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
+    "不启动 Stage087 P3/P4/Review、Stage088、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage087 P1 的范围说明、静态合同、聚焦用例、精确历史后继断言、machine run、机器事实投影、治理路线、中文视图和可撤回范围完成本地验证后，本 run 至此停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE087-P2-GATE，继续使用同一既有开发 worktree，不创建新的 worktree。任何真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K、检索轨迹或证据账本读写、检索参数写入或回滚、批量导入、活动指针读写、模型选择或调用、Token、审计、持久化、Agent、OVH、生产、上传或 Stage087 P2 及后续动作都不属于本步骤。"
+  "stop_condition": "Stage087 P2 的范围说明、合同、纯内存控制模块、聚焦用例、精确历史后继断言、machine run、机器事实投影、治理路线、中文视图和可撤回范围完成本地验证后，本 run 至此停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE087-P3-GATE，继续使用同一既有开发 worktree，不创建新的 worktree。任何真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、材料牌号／设备型号／标准号匹配、语义计算、元数据过滤、混合排序、Top-K、检索轨迹或证据账本读写、检索参数写入或回滚、批量导入、活动指针读写、模型选择或调用、Token、审计、持久化、Agent、OVH、生产、上传或 Stage087 P3 及后续动作都不属于本步骤。"
 }

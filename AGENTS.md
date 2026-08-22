@@ -179,3 +179,7 @@ ssh ovh 'sudo /usr/local/bin/linze-r2-free-tier-guard.py'
 - **结论**：Stage087 P1 只能固定关键词／向量检索基线、六类过滤、candidate/selected chunks、score、活动索引版本和检索轨迹的静态控制合同，并将历史白箱精确延长为 `Stage087 P1 → Stage087 P2 gate`。
   **为什么**：这些字段与历史后继只证明可追溯的工程边界；把它们升格为 PostgreSQL、索引、embedding、检索、排序、业务事实或 P2 已启动会突破单一权威、零运行时与业务线白箱边界。
   **代价**：一次受限历史后继兼容、机器术语表补齐与双平面回归；P1 `7/7`、Stage060--087 `1241/1241`，全程只使用既有唯一开发 worktree，未产生模型 Token、Agent、OVH、生产、上传或推送动作。
+
+- **结论**：Stage087 P2 只能以六条固定、非业务、`reference-only` 输入完成纯内存检索轨迹控制切片，并将历史白箱的合法当前态精确延长为 `Stage087 P2 → Stage087 P3 gate`。
+  **为什么**：query、六类过滤、active index、candidate/selected chunks、score、trace 与 future integration 都只是不可持久化的控制形状；`vector-only`、非固定输入或任一运行信号必须失败关闭，不能把它们升格为 PostgreSQL、检索、排序、证据账本或业务事实。
+  **代价**：P1/P2 聚焦 `14/14`、Stage005 直接治理与两个既有批次检查器通过，机器平面重渲染 `7` 个中文文件并通过三项文档门禁；全程只使用既有唯一开发 worktree，未读取真实资料、未产生模型 Token、Agent、OVH、生产、上传或推送动作。
