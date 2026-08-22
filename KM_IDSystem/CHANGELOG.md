@@ -1,3 +1,9 @@
+## 2026-08-23 · Stage089 证据账本 Schema P2
+
+- 完成冻结 Stage089 P2 纯内存受控最小切片：只接收 `6` 条固定、非业务、`reference-only` 的 `24` 字段控制请求，分别投影 evidence schema `10`、relation `8`、evidence gap `5`、evidence capture `6`、risk score `8`、revocation `7`、poisoning defense `8`、critical conclusion binding `7`、degradation `8` 与 future integration `7` 个字段，共 `444` 个控制检查点与 `23` 类失败关闭。evidence 与 document、chunk、fact、query、answer、report 的引用链明确且不持久化。
+- 低可信、冲突、过期和撤回证据固定为降级候选，疑似投毒固定为隔离候选；A 等级仍须业务线白箱人工复核，任何非固定输入均失败关闭。P2 聚焦 `9/9`、与 Stage089 P1 和 Stage088 Review 关联聚焦 `28/28`，Stage005、两个既有批次检查器、文档预算、无登记阻塞与双平面检查均通过；不宣称仓库级测试全绿。
+- 未建立第二权威事实源，未读取真实资料，未执行真实 evidence ledger、数据库、检索证据捕获、风险计算、可信等级变更、撤回、投毒检测、隔离、恢复、报告状态更新、模型 Token、Agent、OVH、生产、上传或推送；下一步只能在新的独立 run 进入 `IDS-STAGE089-P3-GATE`，继续使用既有唯一开发 worktree。
+
 ## 2026-08-23 · Stage089 证据账本 Schema P1
 
 - 完成冻结 Stage089 P1 静态工程合同：固定 evidence `10`、evidence relation `8`、evidence gap `5`、risk score `8`、revocation `7`、knowledge-base poisoning defense `8` 与 critical conclusion binding `7` 个不透明控制字段，以及 `23` 类失败关闭。A/B/C/D/E 可信等级完整；关键结论必须关联 `evidence_id` 或 `evidence_gap`，低可信、冲突、过期、撤回或可疑投毒证据不得自动升格或采纳，未来业务使用前仍须业务线白箱人工复核。

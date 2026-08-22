@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage089-p2-local",
+    "date": "2026-08-23",
+    "summary": "完成 Stage089 证据账本 Schema P2 纯内存受控最小切片：只接收六条固定、非业务、reference-only 的 24 字段控制请求，分别投影 evidence schema 10、relation 8、evidence gap 5、evidence capture 6、risk score 8、revocation 7、poisoning defense 8、critical conclusion binding 7、degradation 8 与 future integration 7 个字段，共 444 个控制检查点与 23 类失败关闭。低可信、冲突、过期和撤回证据均为降级候选，疑似投毒为隔离候选，A 等级仍待业务线白箱人工复核。P2 聚焦 9/9；未建立第二权威事实源，未读取真实资料，未执行真实证据账本、数据库、检索证据捕获、风险计算、撤回、投毒防护、报告状态更新、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 IDS-STAGE089-P3-GATE，继续使用既有唯一开发 worktree。"
+  },
+  {
     "version": "v0.1-stage089-p1-local",
     "date": "2026-08-23",
     "summary": "完成 Stage089 证据账本 Schema P1 静态合同：固定 evidence_id、document_id、chunk_id、fact_id、report_id、source_type、evidence_grade、证据缺口、风险评分、撤回、知识库投毒防护和关键结论绑定的控制记录。A/B/C/D/E 可信等级完整；关键结论必须关联 evidence_id 或 evidence_gap，低可信、冲突、过期、撤回或可疑投毒证据不得自动升格或采纳。P1 聚焦 8/8、与 Stage088 Review 关联聚焦 19/19，Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器事实重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查均通过。未建立第二权威事实源，未读取真实资料，未执行真实证据账本、数据库、检索证据捕获、风险计算、撤回、投毒防护、报告状态更新、模型 Token、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 IDS-STAGE089-P2-GATE，继续使用既有唯一开发 worktree。"

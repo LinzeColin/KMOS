@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE089",
-  "phase": "IDS-STAGE089-P1",
-  "task": "IDS-V0_1-STAGE089-P1",
-  "real_progress": "Stage089 P1 已固定 evidence_id、document_id、chunk_id、fact_id、report_id、source_type、evidence_grade、证据缺口、风险评分、撤回、知识库投毒防护和关键结论绑定的静态控制形状。A/B/C/D/E 可信等级完整；关键结论必须关联 evidence_id 或 evidence_gap，真实证据、风险、撤回、投毒与报告状态均未读取、创建、计算或持久化。",
-  "report_grade": "冻结 Stage089 任务包与 Stage088 Review/P1--P4 已审核检索结果有效性门禁控制工件构成唯一合同上下文；P1 只固定未来控制边界，不形成第二权威事实源。",
-  "business_verdict": "Stage089 P1 只证明证据账本 Schema 的静态字段、可信等级、证据缺口、风险、撤回、投毒防护和关键结论绑定边界已固定；不等于真实 evidence ledger、资料、数据库、检索证据捕获、风险计算、撤回执行、投毒检测、报告状态更新、模型、Token、审计、OVH 或生产已启用。来源文档、真实证据账本与业务线白箱人工复核仍是唯一权威。",
-  "evidence_status": "STAGE089_P1_LOCAL_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE089-P2",
+  "task": "IDS-V0_1-STAGE089-P2",
+  "real_progress": "Stage089 P2 已以六条固定、非业务、reference-only 控制输入投影 evidence schema、evidence relation、evidence gap、检索证据捕获、风险、撤回、投毒防护、关键结论绑定、降级和 future integration；每条投影仅在内存中存在，低可信、冲突、过期和撤回为降级候选，疑似投毒为隔离候选。",
+  "report_grade": "冻结 Stage089 任务包、Stage089 P1 静态合同与 Stage088 Review/P1--P4 已审核检索结果有效性门禁控制工件构成唯一合同上下文；P2 只投影固定控制引用，不形成第二权威事实源。",
+  "business_verdict": "Stage089 P2 只证明纯内存控制切片的固定投影、失败关闭、降级／隔离候选和业务线白箱人工复核边界；不等于真实 evidence ledger、资料、数据库、检索证据捕获、风险计算、撤回执行、投毒检测、报告状态更新、模型、Token、审计、OVH 或生产已启用。来源文档、真实证据账本与业务线白箱人工复核仍是唯一权威。",
+  "evidence_status": "STAGE089_P2_LOCAL_RUNTIME_DISABLED",
   "rendered_at": "2026-08-23",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE089-P2-GATE",
+  "next_gate": "IDS-STAGE089-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

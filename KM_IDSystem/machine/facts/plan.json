@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE089",
-  "phase": "IDS-STAGE089-P1",
-  "task": "IDS-V0_1-STAGE089-P1",
-  "now": "IDS-V0_1-STAGE089-P1 已完成静态工程合同：evidence_id、document_id、chunk_id、fact_id、report_id、source_type、evidence_grade、证据缺口、风险评分、撤回、知识库投毒防护和关键结论绑定均为不透明控制字段；A/B/C/D/E 可信等级完整，关键结论必须关联 evidence_id 或 evidence_gap，低可信、冲突、过期、撤回或可疑投毒证据不得自动升格或采纳。",
-  "owner": "仅使用既有唯一 KMOS 开发 worktree `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`；不创建额外 worktree、分支或合并请求，且不进入 Stage089 P2、OVH、生产或上传。",
-  "objective": "只以冻结 Stage089 任务包与 Stage088 Review/P1--P4 已审核检索结果有效性门禁控制工件为唯一合同上下文，固定证据账本、证据缺口、风险、可信等级、撤回、投毒防护和关键结论绑定的静态形状与失败关闭；不读取、打开、解析、导入、构建、查询、评分、撤回、隔离、恢复、写入或回滚真实资料、真实证据账本、数据库、报告、模型、Token、审计或业务结论。",
+  "phase": "IDS-STAGE089-P2",
+  "task": "IDS-V0_1-STAGE089-P2",
+  "now": "IDS-V0_1-STAGE089-P2 已完成纯内存受控最小切片：六条固定、非业务、reference-only 控制请求各投影 evidence schema、evidence relation、evidence gap、证据捕获、风险、撤回、投毒防护、关键结论绑定、降级与 future integration，共 444 个控制字段检查点；低可信、冲突、过期、撤回与疑似投毒均不得自动采纳。",
+  "owner": "仅使用既有唯一 KMOS 开发 worktree `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1`；不创建额外 worktree、分支或合并请求，且不进入 Stage089 P3、OVH、生产或上传。",
+  "objective": "只以冻结 Stage089 任务包、Stage089 P1 静态合同与 Stage088 Review/P1--P4 已审核检索结果有效性门禁控制工件为唯一合同上下文，执行固定控制输入的纯内存投影；不读取、打开、解析、导入、构建、查询、评分、撤回、隔离、恢复、写入或回滚真实资料、真实证据账本、数据库、报告、模型、Token、审计或业务结论。",
   "scope": [
     "以冻结 Stage089 任务包与 Stage088 Review/P1--P4 已审核控制工件为唯一合同上下文，不建立第二权威事实源",
-    "只固定 evidence、relation、evidence gap、risk score、revocation、poisoning defense 与 critical conclusion binding 的未来控制字段，不读取或生成真实业务结果",
-    "A/B/C/D/E 可信等级、低可信／冲突／过期／撤回降级、可疑投毒隔离和业务线白箱人工复核均为控制边界；自动证据采纳、自动风险计算、自动升格、自动撤回、自动报告状态更新和自动业务决策关闭",
-    "仅同步 IDS-V0_1-STAGE089-P1 的范围说明、静态合同、聚焦用例、machine run、机器事实、治理路线和生成中文视图；Stage088 Review/P1--P4 只作为既有证据，不改写其完成状态"
+    "只以六条固定、非业务、reference-only 控制输入投影 evidence、relation、evidence gap、capture、risk、revocation、poisoning defense、critical conclusion binding、degradation 与 future integration，不读取或生成真实业务结果",
+    "A/B/C/D/E 控制等级、低可信／冲突／过期／撤回降级候选、可疑投毒隔离候选和业务线白箱人工复核均为控制边界；自动证据采纳、自动风险计算、自动升格、自动撤回、自动报告状态更新和自动业务决策关闭",
+    "仅同步 IDS-V0_1-STAGE089-P2 的范围说明、纯内存控制切片、聚焦用例、machine run、机器事实、治理路线和生成中文视图；Stage089 P1 与 Stage088 Review/P1--P4 只作为既有证据，不改写其完成状态"
   ],
   "non_goals": [
     "不打开、创建、复制、移动、删除、修改、检测、解析、评估、保留、总结、导入、构建、查询、评分、撤回、隔离、恢复、判定、写入、重生成或回退真实业务源、原始元数据、授权 fixture、真实资料范围、真实证据、风险结论、撤回记录、审计日志、事实库、证据账本、数据库、参数、Operations 或报告",
     "不执行数据库 schema 或连接、实际证据捕获、风险计算、可信等级变更、撤回处理、投毒检测、隔离、恢复、报告状态更新、批量导入、模型选择或下载、模型调用、外部 API、模型 Token、持久化、Agent、OVH、生产或上传",
-    "不启动 Stage089 P2、P3、P4、Review、Stage090、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
+    "不启动 Stage089 P3、P4、Review、Stage090、批次复审、上传、合并、OVH 部署、生产激活或应用重装"
   ],
-  "stop_condition": "Stage089 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线、中文视图和可撤回范围完成本地验证后，本 run 至此停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE089-P2-GATE，继续使用同一既有开发 worktree，不创建新的 worktree。任何真实资料或证据账本访问、数据库 schema 或连接、实际证据捕获、风险计算、可信等级变更、撤回、投毒检测、隔离、恢复、报告状态更新、模型选择或调用、Token、审计、持久化、Agent、OVH、生产、上传或 Stage089 P2 及后续动作都不属于本步骤。"
+  "stop_condition": "Stage089 P2 的范围说明、纯内存控制切片、聚焦用例、machine run、机器事实投影、治理路线、中文视图和可撤回范围完成本地验证后，本 run 至此停止；下一轮仅允许在新的独立 run 进入 IDS-STAGE089-P3-GATE，继续使用同一既有开发 worktree，不创建新的 worktree。任何真实资料或证据账本访问、数据库 schema 或连接、实际证据捕获、风险计算、可信等级变更、撤回、投毒检测、隔离、恢复、报告状态更新、模型选择或调用、Token、审计、持久化、Agent、OVH、生产、上传或 Stage089 P3 及后续动作都不属于本步骤。"
 }

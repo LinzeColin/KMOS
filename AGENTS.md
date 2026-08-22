@@ -219,3 +219,7 @@ ssh ovh 'sudo /usr/local/bin/linze-r2-free-tier-guard.py'
 - **结论**：Stage089 P1 只能固定证据账本 Schema 的静态控制形状，并将唯一合法当前态精确延长为 `Stage089 P1 → Stage089 P2 gate`。
   **为什么**：evidence、document、chunk、fact、query、answer、report、source type、A/B/C/D/E 可信等级、证据缺口、风险、撤回、投毒防护和关键结论绑定都只是不可持久化的控制引用；关键结论必须关联 evidence_id 或 evidence_gap，低可信、冲突、过期、撤回或可疑投毒证据不得自动升格、采纳或形成业务结论。
   **代价**：P1 聚焦 `8/8`、与 Stage088 Review 关联聚焦 `19/19`、Stage005 与两个既有批次检查器通过，机器平面重渲染 `7` 个中文文件并通过三项文档门禁；全程只使用既有唯一开发 worktree，未读取真实资料、未产生模型 Token、Agent、OVH、生产、上传或推送动作。
+
+- **结论**：Stage089 P2 只能以六条固定、非业务、`reference-only` 输入完成纯内存证据账本受控最小切片，并将唯一合法当前态精确延长为 `Stage089 P2 → Stage089 P3 gate`。
+  **为什么**：evidence schema、document/chunk/fact/query/answer/report 关联、evidence gap、证据捕获、风险、撤回、投毒防护、关键结论绑定、降级与 future integration 都只是不可持久化控制投影；低可信、冲突、过期和撤回只能降级，疑似投毒只能保留隔离候选，A 等级仍须业务线白箱人工复核，不能把投影升格为真实账本、风险、撤回、处置或业务结论。
+  **代价**：P2 聚焦 `9/9`、与 Stage089 P1 和 Stage088 Review 的关联聚焦 `28/28`、Stage005 与两个既有批次检查器通过，机器平面重渲染 `7` 个中文文件并通过三项文档门禁；全程只使用既有唯一开发 worktree，未读取真实资料、未产生模型 Token、Agent、OVH、生产、上传或推送动作。
