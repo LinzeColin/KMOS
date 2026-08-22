@@ -389,6 +389,7 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                 {"stage": "IDS-STAGE083", "phase": "IDS-STAGE083-P1", "task": "IDS-V0_1-STAGE083-P1", "next_gate": "IDS-STAGE083-P2-GATE"},
                 {"stage": "IDS-STAGE083", "phase": "IDS-STAGE083-P2", "task": "IDS-V0_1-STAGE083-P2", "next_gate": "IDS-STAGE083-P3-GATE"}, {"stage": "IDS-STAGE083", "phase": "IDS-STAGE083-P3", "task": "IDS-V0_1-STAGE083-P3", "next_gate": "IDS-STAGE083-P4-GATE"}, {"stage": "IDS-STAGE083", "phase": "IDS-STAGE083-P4", "task": "IDS-V0_1-STAGE083-P4", "next_gate": "IDS-STAGE083-REVIEW-GATE"}, {"stage": "IDS-STAGE083", "phase": "IDS-STAGE083-REVIEW", "task": "IDS-V0_1-STAGE083-REVIEW", "next_gate": "IDS-STAGE084-P1-GATE"},
                 {"stage": "IDS-STAGE084", "phase": "IDS-STAGE084-P1", "task": "IDS-V0_1-STAGE084-P1", "next_gate": "IDS-STAGE084-P2-GATE"},
+                {'stage': 'IDS-STAGE084', 'phase': 'IDS-STAGE084-P2', 'task': 'IDS-V0_1-STAGE084-P2', 'next_gate': 'IDS-STAGE084-P3-GATE'}
             ),
         )
         self.assertFalse(status["runtime_enabled"])
@@ -411,7 +412,7 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
                 'IDS-V0_1-STAGE080-P3',
                 'IDS-V0_1-STAGE080-P4', 'IDS-V0_1-STAGE080-REVIEW', 'IDS-V0_1-STAGE081-P1', 'IDS-V0_1-STAGE081-P2', 'IDS-V0_1-STAGE081-P3', 'IDS-V0_1-STAGE081-P4', 'IDS-V0_1-STAGE081-REVIEW', 'IDS-V0_1-STAGE082-P1',
                 'IDS-V0_1-STAGE082-P2',
-                'IDS-V0_1-STAGE082-P3', 'IDS-V0_1-STAGE082-P4', "IDS-V0_1-STAGE082-REVIEW", "IDS-V0_1-STAGE083-P1", "IDS-V0_1-STAGE083-P2", "IDS-V0_1-STAGE083-P3", "IDS-V0_1-STAGE083-P4", "IDS-V0_1-STAGE083-REVIEW", "IDS-V0_1-STAGE084-P1"),
+                'IDS-V0_1-STAGE082-P3', 'IDS-V0_1-STAGE082-P4', "IDS-V0_1-STAGE082-REVIEW", "IDS-V0_1-STAGE083-P1", "IDS-V0_1-STAGE083-P2", "IDS-V0_1-STAGE083-P3", "IDS-V0_1-STAGE083-P4", "IDS-V0_1-STAGE083-REVIEW", "IDS-V0_1-STAGE084-P1", 'IDS-V0_1-STAGE084-P2'),
         )
         self.assertTrue(
             "IDS-STAGE078-P4-GATE" in plan["stop_condition"]
@@ -442,6 +443,7 @@ class Stage078IndexSmokeTestPhase3Tests(unittest.TestCase):
             or "IDS-STAGE083-P4-GATE" in plan["stop_condition"]
             or "IDS-STAGE083-REVIEW-GATE" in plan["stop_condition"] or "IDS-STAGE084-P1-GATE" in plan["stop_condition"]
             or "IDS-STAGE084-P2-GATE" in plan["stop_condition"]
+            or 'IDS-STAGE084-P3-GATE' in plan['stop_condition']
         )
         acceptance_ids = {item["id"] for item in acceptance["items"]}
         self.assertTrue(

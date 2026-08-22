@@ -1,3 +1,9 @@
+## 2026-08-22 · Stage084 向量检索基线 P2
+
+- 完成冻结 Stage084 P2 纯内存控制切片：五条固定、非业务、reference-only 控制请求各含 19 个输入字段，并投影 query 11、filter 7、candidate 10、hybrid score 7、selected 7、retrieval trace 10 与 future integration 6 个字段；关键词与向量基线、模型／版本／维度／相似度度量、五类过滤、活动索引版本、排序解释和证据账本引用均保持不透明控制标签，vector-only 或关键引用缺失失败关闭。
+- 本地验证通过：P1/P2 聚焦 15/15、Stage060--084 白箱 1117/1117、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器事实重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查通过。
+- 未建立第二权威事实源，未读取真实资料，未执行 PostgreSQL、FTS、BM25、pgvector、数据库、索引、embedding、关键词或向量检索、过滤、混合排序、Top-K、trace、证据账本读写、模型 Token、Agent、OVH、生产、上传或推送；下一步只能在新的独立 run 进入 IDS-STAGE084-P3-GATE，继续使用既有唯一开发工作树。
+
 ## 2026-08-22 · Stage084 向量检索基线 P1
 
 - 完成冻结 Stage084 P1 静态工程合同：固定 query `11`、五类 metadata filter `6`、candidate `10`、selected `7`、keyword/vector/hybrid score `7` 与 retrieval trace `10` 个控制字段；关键词基线与向量检索基线均为必需，模型／版本／维度／相似度度量、活动索引版本、排序解释和证据账本引用缺失时失败关闭，`vector-only` 不得决定未来结果。

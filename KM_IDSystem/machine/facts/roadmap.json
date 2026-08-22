@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE084",
       "name": "向量检索基线",
-      "gate": "Stage084 P1 静态工程合同已本地通过；下一步只能在新的独立 run 进入 Stage084 P2",
-      "status": "Stage084 P1 已固定 query、五类 metadata filter、candidate、selected、keyword/vector/hybrid score、embedding 模型／版本／维度／相似度度量、active_index_version 与 retrieval trace 的控制字段；关键词基线与向量基线均为必需，向量相似度不得单独决定结果。真实 PostgreSQL、FTS、BM25、pgvector、embedding、数据库、物理索引、查询、过滤、排序、Top-K、轨迹、证据账本、模型、Token、Agent、OVH 与生产仍禁用。"
+      "gate": "Stage084 P2 纯内存控制切片已本地通过；下一步只能在新的独立 run 进入 Stage084 P3",
+      "status": "Stage084 P2 已以五条固定、非业务、reference-only 控制请求投影 query、五类 metadata filter、candidate、selected、keyword/vector/hybrid score、embedding 模型／版本／维度／相似度度量、active_index_version 与 retrieval trace 的控制字段；关键词基线与向量基线均为必需，向量相似度不得单独决定结果。真实 PostgreSQL、FTS、BM25、pgvector、embedding、数据库、物理索引、查询、过滤、排序、Top-K、轨迹、证据账本、模型、Token、Agent、OVH 与生产仍禁用。"
     },
     {
       "id": "IDS-STAGE083",

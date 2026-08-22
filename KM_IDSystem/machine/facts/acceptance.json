@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE084",
-  "phase": "IDS-STAGE084-P1",
-  "task": "IDS-V0_1-STAGE084-P1",
-  "next_gate": "IDS-STAGE084-P2-GATE",
+  "phase": "IDS-STAGE084-P2",
+  "task": "IDS-V0_1-STAGE084-P2",
+  "next_gate": "IDS-STAGE084-P3-GATE",
   "items": [
     {
       "id": "ACC-STAGE-084",
-      "criteria": "Stage084 向量检索基线：P1 已固定向量检索、关键词检索基线、元数据过滤、混合排序和检索轨迹的静态工程合同；query、filter、candidate、selected、score 与 active_index_version 均只使用不透明控制引用，向量相似度不得单独决定未来结果。实际 PostgreSQL、FTS、BM25、pgvector、embedding、索引、查询、过滤、排序、trace、参数写入／回滚和持久化均未执行。",
-      "status": "P1 已完成"
+      "criteria": "Stage084 向量检索基线：P1 已固定向量检索、关键词检索基线、元数据过滤、混合排序和检索轨迹的静态工程合同；P2 已以五条固定、非业务、reference-only 控制请求投影 query、filter、candidate、selected、score、模型／版本／维度／相似度度量、active_index_version、retrieval trace 与 evidence ledger 引用，向量相似度不得单独决定未来结果。实际 PostgreSQL、FTS、BM25、pgvector、embedding、索引、查询、过滤、排序、trace、参数写入／回滚和持久化均未执行。",
+      "status": "P2 已完成"
     },
     {
       "id": "ACC-STAGE084-P1-01",
@@ -27,6 +27,26 @@
     {
       "id": "ACC-STAGE084-P1-04",
       "criteria": "P1 期间不执行真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、元数据过滤、混合排序、Top-K 选择、检索轨迹或证据账本读写、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage084 P2。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE084-P2-01",
+      "criteria": "冻结 Stage084 任务包、Stage084 P1、Stage083 Review 与 Stage083 已审核 P1--P4 关键词检索基线工件保持为唯一合同上下文；P2 只处理固定控制输入，不建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、manifest、证据账本、审计日志、报告、数据库或物理索引。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE084-P2-02",
+      "criteria": "五条固定、非业务、reference-only 控制请求各含 19 个输入字段，并各投影 query 11、filter 7、candidate 10、hybrid score 7、selected 7、retrieval trace 10 与 future integration 6 个字段；关键词与向量基线、模型／版本／维度／相似度度量、五类过滤、活动索引版本、排序解释和证据账本引用均保持不透明控制标签。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE084-P2-03",
+      "criteria": "非固定输入、vector-only、模型／版本／维度／相似度度量、五类过滤、活动索引版本、排序解释、证据账本引用或轨迹引用缺失均失败关闭，不产生候选、选择、轨迹或持久化记录；future PostgreSQL FTS／BM25、pgvector、过滤、混合排序与轨迹路由只声明为未执行边界。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE084-P2-04",
+      "criteria": "P2 期间不执行真实资料访问、PostgreSQL schema 或连接、FTS/BM25/pgvector 索引构建、embedding、关键词或向量检索、元数据过滤、混合排序、Top-K 选择、检索轨迹或证据账本读写、provider/模型选择或下载、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage084 P3。",
       "status": "已遵守"
     },
     {

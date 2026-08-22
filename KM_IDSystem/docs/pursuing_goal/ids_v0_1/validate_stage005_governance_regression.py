@@ -2683,6 +2683,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE084-P2-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE084"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE084-P2"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE084-P2"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE084-P3-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -20100,6 +20108,29 @@ def evaluate_current_state_consistency(
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage084_vector_retrieval_baseline_contract.json",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage084_vector_retrieval_baseline_contract.py",
                     "KM_IDSystem/machine/runs/2026-08-22-stage084-p1-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE083_STAGE_REVIEW.md",
+                },
+            },
+            "IDS-STAGE084-P2": {
+                "task_id": "IDS-V0_1-STAGE084-P2",
+                "next_gate_id": "IDS-STAGE084-P3-GATE",
+                "transition_key": "stage084_phase2_state",
+                "stage_statuses": {"phase2_completed_local"},
+                "gate_id": "IDS-STAGE084-P2-GATE",
+                "future_phase_ids": {
+                    "IDS-STAGE084-P3",
+                    "IDS-STAGE084-P4",
+                    "IDS-STAGE084-REVIEW",
+                },
+                "required_evidence": {
+                    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-084_向量检索基线.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE084_PHASE2_VECTOR_RETRIEVAL_BASELINE_CONTROL_SLICE.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage084_vector_retrieval_baseline_slice_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage084_vector_retrieval_baseline_control_slice.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage084_vector_retrieval_baseline_slice.py",
+                    "KM_IDSystem/machine/runs/2026-08-22-stage084-p2-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE084_PHASE1_VECTOR_RETRIEVAL_BASELINE_SCOPE_BOUNDARY.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage084_vector_retrieval_baseline_contract.json",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE083_STAGE_REVIEW.md",
                 },
             },
