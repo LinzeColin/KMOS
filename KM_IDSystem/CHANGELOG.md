@@ -1,3 +1,9 @@
+## 2026-08-23 · Stage090 从检索捕获证据 P1
+
+- 完成冻结 Stage090 P1 静态工程合同：固定未来检索证据捕获请求 10 字段、未来证据账本捕获 9 字段、evidence 与 document/chunk/fact/query/answer/report 关联 7 字段、A/B/C/D/E 可信等级与 12 类失败关闭。关键结论未来必须关联 evidence_id 或 evidence_gap。
+- 本地验证通过：P1 聚焦 8/8、与 Stage089 Review/Stage088 Review 关联聚焦 32/32、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；只证明静态控制工件、精确历史后继和本地治理一致，不宣称仓库级全量测试全绿。
+- 未建立第二权威事实源，未读取真实资料，未执行真实检索、证据账本、回答、报告、数据库、风险、可信等级变更、撤回、投毒防护、模型 Token、Agent、OVH、生产、上传或推送；下一步只能在新的独立 run 进入 IDS-STAGE090-P2-GATE，继续使用既有唯一开发 worktree。
+
 ## 2026-08-23 · Stage089 证据账本 Schema Review
 
 - 完成冻结 Stage089 P1--P4 的纯内存机械复审：固定复核 P1 `10/8/5/8/7/8/7` 与 `23` 类失败关闭、P2 `6/24/10/444` 与 `23`、P3 `7/32/224/7` 与 `15`，以及 P4 `7/7/7/7/7/4/2`、`517` 个交付检查点、`4` 条中文反馈与 `18` 类失败关闭。

@@ -256,3 +256,7 @@
 - **结论**：Stage089 Review 必须把 P1--P4 的固定控制形状、失败关闭、P4→P3 控制回退、单一权威、业务线白箱人工处理与零运行时边界绑定为同一失败关闭结论，并把唯一合法当前态精确延长为 `Stage089 Review → Stage090 P1 gate`。
   **为什么**：Review 通过只证明冻结的纯内存控制工件一致；把证据账本样例、等级报告、撤回影响、降级／恢复说明或复审结论升级为真实证据、真实账本、报告、撤回、恢复、业务结论或 Stage090 已启动，会突破单一权威与白箱人工控制。
   **代价**：Review 聚焦 13/13、Stage088 Review 与 Stage089 P1--Review 关联聚焦 61/61，Stage005 与两个既有批次检查器通过；全程复用既有唯一开发 worktree，未读取真实资料、未产生模型 Token、Agent、OVH、生产、上传或推送动作。
+
+- **结论**：Stage090 P1 只能固定检索证据捕获的静态控制形状，并将唯一合法当前态精确延长为 Stage090 P1 → Stage090 P2 gate。
+  **为什么**：检索 trace、query、answer、report、document、chunk、fact、evidence capture、evidence_id、evidence_gap、A/B/C/D/E、风险、撤回、投毒防护与关键结论绑定都只是不可持久化控制引用；将它们升格为真实检索、证据账本、回答、报告或业务结论会突破单一权威、零运行时与业务线白箱边界。
+  **代价**：P1 聚焦 8/8、与 Stage089 Review/Stage088 Review 关联聚焦 32/32，Stage005、两个批次检查器与三项文档门禁通过；全程复用既有唯一开发 worktree，未读取真实资料、未产生模型 Token、Agent、OVH、生产、上传或推送动作。
