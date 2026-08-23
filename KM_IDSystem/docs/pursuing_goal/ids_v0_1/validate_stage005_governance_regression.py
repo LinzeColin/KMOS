@@ -2970,6 +2970,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE091-P2-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE091"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE091-P2"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE091-P2"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE091-P3-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -20382,29 +20390,59 @@ def evaluate_current_state_consistency(
         phases = current_stage.get("phases") if isinstance(current_stage, dict) else []
         phases = phases if isinstance(phases, list) else []
         current_phase_id = roadmap.get("current_phase_id")
-        phase_spec = {
-            "task_id": "IDS-V0_1-STAGE091-P1",
-            "next_gate_id": "IDS-STAGE091-P2-GATE",
-            "transition_key": "stage091_phase1_state",
-            "stage_statuses": {"phase1_completed_local"},
-            "gate_id": "IDS-STAGE091-P1-GATE",
-            "future_phase_ids": {
-                "IDS-STAGE091-P2",
-                "IDS-STAGE091-P3",
-                "IDS-STAGE091-P4",
-                "IDS-STAGE091-REVIEW",
+        phase_specs = {
+            "IDS-STAGE091-P1": {
+                "task_id": "IDS-V0_1-STAGE091-P1",
+                "next_gate_id": "IDS-STAGE091-P2-GATE",
+                "transition_key": "stage091_phase1_state",
+                "stage_statuses": {"phase1_completed_local"},
+                "gate_id": "IDS-STAGE091-P1-GATE",
+                "future_phase_ids": {
+                    "IDS-STAGE091-P2",
+                    "IDS-STAGE091-P3",
+                    "IDS-STAGE091-P4",
+                    "IDS-STAGE091-REVIEW",
+                },
+                "required_evidence": {
+                    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-091_证据缺口处理.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_PHASE1_EVIDENCE_GAP_HANDLING_SCOPE_BOUNDARY.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage091_evidence_gap_handling_contract.py",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage091-p1-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE090_STAGE_REVIEW.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage090_retrieval_evidence_capture_stage_review_contract.json",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage090-review-local.json",
+                },
             },
-            "required_evidence": {
-                "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-091_证据缺口处理.md",
-                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_PHASE1_EVIDENCE_GAP_HANDLING_SCOPE_BOUNDARY.md",
-                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_contract.json",
-                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage091_evidence_gap_handling_contract.py",
-                "KM_IDSystem/machine/runs/2026-08-24-stage091-p1-local.json",
-                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE090_STAGE_REVIEW.md",
-                "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage090_retrieval_evidence_capture_stage_review_contract.json",
-                "KM_IDSystem/machine/runs/2026-08-24-stage090-review-local.json",
+            "IDS-STAGE091-P2": {
+                "task_id": "IDS-V0_1-STAGE091-P2",
+                "next_gate_id": "IDS-STAGE091-P3-GATE",
+                "transition_key": "stage091_phase2_state",
+                "stage_statuses": {"phase2_completed_local"},
+                "gate_id": "IDS-STAGE091-P2-GATE",
+                "future_phase_ids": {
+                    "IDS-STAGE091-P3",
+                    "IDS-STAGE091-P4",
+                    "IDS-STAGE091-REVIEW",
+                },
+                "required_evidence": {
+                    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-091_证据缺口处理.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_PHASE2_EVIDENCE_GAP_HANDLING_CONTROL_SLICE.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_control_slice.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_control_slice_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage091_evidence_gap_handling_control_slice.py",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage091-p2-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_PHASE1_EVIDENCE_GAP_HANDLING_SCOPE_BOUNDARY.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_contract.json",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage091-p1-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE090_STAGE_REVIEW.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage090_retrieval_evidence_capture_stage_review_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage090_retrieval_evidence_capture_control_slice_contract.json",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage090-review-local.json",
+                },
             },
         }
+        phase_spec = phase_specs.get(current_phase_id, {})
         phase = next(
             (
                 item
@@ -20429,13 +20467,13 @@ def evaluate_current_state_consistency(
             current_transition if isinstance(current_transition, dict) else {}
         )
         stage091_exact = (
-            current_phase_id == "IDS-STAGE091-P1"
+            current_phase_id in phase_specs
             and roadmap.get("current_task_id") == phase_spec.get("task_id")
             and roadmap.get("next_gate_id") == phase_spec.get("next_gate_id")
             and current_transition.get(phase_spec.get("transition_key"))
             == {
                 "current_stage_id": "IDS-STAGE091",
-                "current_phase_id": "IDS-STAGE091-P1",
+                "current_phase_id": current_phase_id,
                 "current_task_id": phase_spec.get("task_id"),
                 "next_gate_id": phase_spec.get("next_gate_id"),
             }

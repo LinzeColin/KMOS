@@ -1,3 +1,9 @@
+## 2026-08-24 · Stage091 证据缺口处理 P2
+
+- 完成冻结 Stage091 P2 纯内存受控最小切片：只接收 `6` 条固定、非业务、reference-only 的 `27` 字段控制请求，绑定 Stage091 P1 evidence gap 合同与已复审 Stage090 检索证据捕获控制链，并投影 evidence gap schema binding `6`、evidence gap relation `7`、检索证据捕获 binding `10`、风险 `9`、撤回 `8`、投毒防护 `8`、关键结论 binding `7`、降级 `10`、报告状态影响 `6` 与 future integration `7` 个字段，共 `468` 个控制检查点与 `25` 类失败关闭。
+- 本地验证通过：P2 聚焦 `9/9`，连同 Stage091 P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `94/94`，Stage005 直接治理 `valid=true`，两个既有批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。验证范围只覆盖冻结控制工件、精确历史后继与本地治理。
+- 资料不足场景只以 evidence_gap 控制引用绑定关键结论；低可信、冲突、过期与撤回保持降级候选，疑似投毒保持隔离候选，业务使用继续等待白箱人工复核。真实资料、检索、证据账本、回答、报告、数据库、风险、撤回、恢复、投毒、报告状态、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围。下一步只能在新的独立 run 进入 `IDS-STAGE091-P3-GATE`，继续使用既有唯一开发 worktree；本 P2 保持本地提交。
+
 ## 2026-08-24 · Stage091 证据缺口处理 P1
 
 - 完成冻结 Stage091 P1 静态工程合同：固定内部资料不足时以 `evidence_gap` 表达的未来 `12` 字段引用形状、evidence gap 与 document/chunk/fact/query/answer/report 的 `7` 字段关联、A/B/C/D/E 可信等级、关键结论 `evidence_id`／`evidence_gap` 约束与 `12` 类失败关闭。证据缺口保持为控制标签，不能伪装成内部经验、已取得证据或业务结论。

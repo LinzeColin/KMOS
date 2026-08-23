@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE091",
-  "phase": "IDS-STAGE091-P1",
-  "task": "IDS-V0_1-STAGE091-P1",
-  "next_gate": "IDS-STAGE091-P2-GATE",
+  "phase": "IDS-STAGE091-P2",
+  "task": "IDS-V0_1-STAGE091-P2",
+  "next_gate": "IDS-STAGE091-P3-GATE",
   "items": [
     {
       "id": "ACC-STAGE-091",
-      "criteria": "Stage091 证据缺口处理：P1 静态合同已本地完成，固定内部资料不足时以 evidence_gap 表达的未来引用形状、关键结论 evidence_id/evidence_gap 约束、A/B/C/D/E 可信等级与失败关闭；真实证据缺口、证据账本、风险、撤回、投毒、报告状态和业务结论保持后续授权边界。",
-      "status": "P1 本地完成"
+      "criteria": "Stage091 证据缺口处理：P1 静态合同与 P2 六条固定 reference-only 受控最小切片已本地完成，固定内部资料不足时以 evidence_gap 表达的未来引用、关键结论 evidence_id/evidence_gap 约束、A/B/C/D/E、风险、撤回、投毒和报告状态影响的控制边界；真实证据缺口、证据账本、风险、撤回、投毒、报告状态和业务结论保持后续授权边界。",
+      "status": "P2 本地完成"
     },
     {
       "id": "ACC-STAGE091-P1-01",
@@ -27,6 +27,26 @@
     {
       "id": "ACC-STAGE091-P1-04",
       "criteria": "P1 期间不执行真实资料或证据账本访问、数据库 schema 或连接、实际证据缺口识别或关闭、实际检索或证据捕获、风险计算、可信等级变更、撤回、投毒处理、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮本地验收完成后才可在新 run 进入 Stage091 P2。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE091-P2-01",
+      "criteria": "冻结 Stage091 任务包、Stage091 P1 静态合同与已复审 Stage090 从检索捕获证据控制工件保持为唯一合同上下文；P2 只处理六条固定、非业务、reference-only 的纯内存控制输入，只绑定前序控制引用，不建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、manifest、检索结果、证据账本、审计日志、回答、报告、数据库或物理索引。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE091-P2-02",
+      "criteria": "六条固定控制请求各含 27 个不透明字段，并投影 evidence gap schema binding 6、evidence gap relation 7、检索证据捕获 binding 10、风险 9、撤回 8、投毒防护 8、关键结论 binding 7、降级 10、报告状态影响 6 与 future integration 7 个字段，共 468 个控制检查点；evidence gap 与 document、chunk、fact、query、answer、report 的 7 字段引用链必须一致。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE091-P2-03",
+      "criteria": "资料不足场景只以 evidence_gap 控制引用绑定关键结论，其他场景保持 evidence_id/evidence_gap 控制引用；低可信、冲突、过期和撤回保持降级候选，疑似投毒保持隔离候选，报告状态影响只保留未来引用，全部业务使用继续等待业务线白箱人工复核。任何非固定输入、前序合同或引用链缺失、低等级伪装为高等级或自动业务采纳均失败关闭。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE091-P2-04",
+      "criteria": "P2 期间不执行真实资料、检索、回答、报告或证据账本访问、数据库 schema 或连接、实际证据缺口识别或关闭、实际证据捕获、风险计算、可信等级变更、撤回、投毒检测、隔离、恢复、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage091 P3。",
       "status": "已遵守"
     },
     {

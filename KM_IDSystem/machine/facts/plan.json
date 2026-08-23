@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE091",
-  "phase": "IDS-STAGE091-P1",
-  "task": "IDS-V0_1-STAGE091-P1",
-  "now": "IDS-V0_1-STAGE091-P1 已完成静态证据缺口处理合同：固定 evidence_gap 的 12 字段未来引用形状、7 字段关联、A/B/C/D/E 可信等级、关键结论 evidence_id/evidence_gap 约束与 12 类失败关闭。",
+  "phase": "IDS-STAGE091-P2",
+  "task": "IDS-V0_1-STAGE091-P2",
+  "now": "IDS-V0_1-STAGE091-P2 已完成纯内存证据缺口处理受控最小切片：六条固定 reference-only 控制请求、27 字段输入、10 组投影、每条 78 字段／共 468 个字段检查与 25 类失败关闭。",
   "owner": "KMOS 开发负责人；本阶段使用唯一既有开发工作树、单一分支与本地验证节奏。",
-  "objective": "以冻结 Stage091 任务包、Stage091 P1 静态合同与 Stage090 Review 已复审从检索捕获证据控制工件为唯一控制上下文，固定证据缺口、关键结论关联、A/B/C/D/E 可信等级、失败关闭、未来风险／撤回／投毒防护与业务线白箱人工处理边界；真实业务资料和运行时保持受保护状态。",
+  "objective": "以冻结 Stage091 任务包、Stage091 P1 静态合同与已复审 Stage090 从检索捕获证据控制工件为唯一控制上下文，实现六条固定、非业务、reference-only 的纯内存 evidence gap 受控切片，固定 evidence gap／关键结论／检索证据捕获／风险／撤回／投毒／报告状态影响的未来引用与业务线白箱人工处理边界；真实业务资料和运行时保持受保护状态。",
   "scope": [
-    "冻结 Stage091 任务包、Stage091 P1 静态合同与 Stage090 Review 控制工件构成唯一控制上下文，业务事实权威保持单一",
-    "固定 evidence_gap、关键结论、query、answer、report、document、chunk、fact、缺口原因、所需证据类型、缺口状态与处理状态的 12 字段未来引用形状及 7 字段关联",
-    "内部资料不足未来必须以 evidence_gap 表达，关键结论未来必须关联 evidence_id 或 evidence_gap；A/B/C/D/E、低等级伪装拒绝、降级与业务线白箱人工复核保持一致",
-    "同步 IDS-V0_1-STAGE091-P1 的范围说明、静态合同、聚焦用例、machine run、机器事实、治理路线和生成中文视图；Stage090 Review 保持既有完成状态"
+    "冻结 Stage091 任务包、Stage091 P1 静态合同与 Stage090 Review／P2 控制工件构成唯一控制上下文，业务事实权威保持单一",
+    "六条固定控制请求各含 evidence gap、关键结论、query、answer、report、document、chunk、fact、缺口原因、所需证据类型、状态、风险、撤回、投毒和报告状态影响等 27 个引用字段",
+    "投影 evidence gap schema 绑定、7 字段关联、检索证据捕获绑定、风险、撤回、投毒、关键结论、降级、报告状态影响和未来路由共 10 组；资料不足场景只用 evidence_gap 绑定关键结论，其他场景保持 evidence_id/evidence_gap 控制引用",
+    "低可信、冲突、过期、撤回保持降级候选，疑似投毒保持隔离候选，全部业务使用保持白箱人工复核；同步 IDS-V0_1-STAGE091-P2 的范围说明、切片、合同、聚焦用例、machine run、机器事实、治理路线和生成中文视图"
   ],
   "non_goals": [
     "真实业务源、原始元数据、授权 fixture、检索结果、证据账本、审计日志、回答、报告、数据库、参数和业务结论由受保护边界管理",
     "数据库 schema 或连接、实际证据缺口识别或关闭、实际检索或证据捕获、OCR 或版本评估、冲突裁决、风险计算、可信等级变更、撤回、恢复、投毒处置、报告状态更新、模型、Token、Agent、OVH、生产与上传由后续授权阶段管理",
-    "Stage091 P2--Review、批次复审、合并、OVH 部署、生产激活与应用重装由后续阶段管理"
+    "Stage091 P3--Review、批次复审、合并、OVH 部署、生产激活与应用重装由后续阶段管理"
   ],
-  "stop_condition": "Stage091 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线、中文视图和可撤回范围完成本地验证后，本 run 完成；下一轮在新的独立 run 进入 IDS-STAGE091-P2-GATE，继续使用同一既有开发 worktree。真实资料、检索、回答、报告、证据账本、数据库、OCR、版本、冲突裁决、风险、撤回、恢复、投毒、报告状态、模型、Token、审计、持久化、Agent、OVH、生产、上传和 Stage091 P2--Review 动作保持在后续阶段。"
+  "stop_condition": "Stage091 P2 的范围说明、纯内存控制切片、聚焦用例、machine run、机器事实投影、治理路线、中文视图和可撤回范围完成本地验证后，本 run 完成；下一轮在新的独立 run 进入 IDS-STAGE091-P3-GATE，继续使用同一既有开发 worktree。真实资料、检索、回答、报告、证据账本、数据库、OCR、版本、冲突裁决、风险、撤回、恢复、投毒、报告状态、模型、Token、审计、持久化、Agent、OVH、生产、上传和 Stage091 P3--Review 动作保持在后续阶段。"
 }
