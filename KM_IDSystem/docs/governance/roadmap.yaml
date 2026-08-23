@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE090"
-current_phase_id: "IDS-STAGE090-REVIEW"
-current_task_id: "IDS-V0_1-STAGE090-REVIEW"
-next_gate_id: "IDS-STAGE091-P1-GATE"
+current_stage_id: "IDS-STAGE091"
+current_phase_id: "IDS-STAGE091-P1"
+current_task_id: "IDS-V0_1-STAGE091-P1"
+next_gate_id: "IDS-STAGE091-P2-GATE"
 current_transition_history:
+  stage091_phase1_state:
+    current_stage_id: "IDS-STAGE091"
+    current_phase_id: "IDS-STAGE091-P1"
+    current_task_id: "IDS-V0_1-STAGE091-P1"
+    next_gate_id: "IDS-STAGE091-P2-GATE"
   stage090_review_state:
     current_stage_id: "IDS-STAGE090"
     current_phase_id: "IDS-STAGE090-REVIEW"
@@ -1464,6 +1469,126 @@ current_transition_history:
 total_estimated_hours: 158
 completed_estimated_hours: 290
 stages:
+  - stage_id: "IDS-STAGE091"
+    name: "证据缺口处理"
+    task_id: "IDS-V0_1-STAGE091"
+    acceptance_ids:
+      - "ACC-STAGE-091"
+    objective: "依据冻结 Stage091 任务包完成内部资料不足时以 evidence_gap 表达的证据缺口处理合同、后续受控切片、专项验证、交付证据与整阶段复审；证据缺口、风险评分、可信等级、撤回、知识库投毒防护与报告状态保持控制边界，真实运行时保持关闭。"
+    status: "phase1_completed_local"
+    entry_authorized: true
+    next_gate_id: "IDS-STAGE091-P2-GATE"
+    gate:
+      gate_id: "IDS-STAGE091-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE091-P2-GATE"
+      github_upload_allowed: false
+    pass_conditions:
+      - "冻结 Stage091 任务包、Stage091 P1 静态合同与 Stage090 Review 已复审从检索捕获证据控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。"
+      - "内部资料不足未来以 evidence_gap 表达；关键结论未来必须关联 evidence_id 或 evidence_gap；evidence gap 与 document、chunk、fact、query、answer、report 的未来引用形状以及 A/B/C/D/E 可信等级完整。"
+      - "低可信、冲突、过期、撤回和疑似投毒证据的降级、撤回、恢复、风险评分、报告状态影响与业务使用保持后续授权和业务线白箱人工复核前置。"
+      - "本地完成 P1 聚焦用例、精确历史后继兼容、机器事实投影、中文生成视图和回退范围核验；真实资料、检索、证据账本、数据库、模型、Token、Agent、OVH、生产、Stage091 P2--Review、上传与推送保持关闭。"
+    stop_conditions:
+      - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、查询、评分、撤回、隔离、恢复、写入或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、真实证据账本、审计日志、回答、报告、数据库或物理索引。"
+      - "执行真实检索、数据库 schema 或连接、实际证据缺口识别或关闭、实际证据捕获、风险评分、可信等级变更、OCR 或版本评估、冲突裁决、撤回、投毒检测、隔离、恢复、报告状态更新、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage091 P2--Review、上传或推送。"
+    phases:
+      - phase_id: "IDS-STAGE091-P1"
+        name: "Phase 1 · 范围、输入输出与边界确认"
+        objective: "只定义 Evidence Ledger、evidence gap、风险评分、可信等级、撤回与知识库投毒防护的静态边界，固定关键结论 evidence_id/evidence_gap 关联、evidence gap 引用形状与 A/B/C/D/E 可信等级；不创建真实资料、内部经验、检索、证据、账本、回答、报告、数据库、索引或运行模块。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE091-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE091-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE091-P2-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取真实资料、检索结果、回答、报告或真实证据账本，执行数据库 schema 或连接、实际证据缺口识别或关闭、实际检索或证据捕获、风险评分、可信等级变更、撤回、投毒处理、报告状态更新、模型调用、模型 Token、Agent、OVH、生产、上传、推送或 Stage091 P2。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE091-P1"
+            name: "固定证据缺口处理静态工程合同"
+            objective: "只固定 evidence_gap、关键结论、query、answer、report、document、chunk、fact、缺口原因、所需证据类型、缺口状态与处理状态的未来不透明控制引用；内部资料不足时关键结论未来必须关联 evidence_gap，evidence gap 不能伪装成内部经验，A/B/C/D/E 可信等级完整且未来业务使用须白箱人工复核。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE090-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-091"
+              - "ACC-STAGE091-P1-01"
+              - "ACC-STAGE091-P1-02"
+              - "ACC-STAGE091-P1-03"
+              - "ACC-STAGE091-P1-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage091_evidence_gap_handling_contract"
+              - "后续本地治理回归命令记录于 Stage091 P1 receipt"
+            test_results: "P1 聚焦静态合同 8/8；Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦、Stage005 与两个既有批次检查器的本地治理回归均记录于 Stage091 P1 receipt；所有结果只证明控制引用、治理兼容和零运行时边界，不证明真实资料、检索、证据、回答、报告、风险、撤回、投毒防护、业务结论或生产能力。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-091_证据缺口处理.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_PHASE1_EVIDENCE_GAP_HANDLING_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage091_evidence_gap_handling_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-24-stage091-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE090_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage090_retrieval_evidence_capture_stage_review_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-24-stage090-review-local.json"
+            risk: "若将证据缺口、关键结论关联、可信等级、风险、撤回或知识库投毒防护的静态控制引用误作真实内部经验、真实证据账本、真实资料、业务结论、OVH 或生产能力，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P1 范围说明、静态合同、聚焦用例、机器事实投影、治理路线和生成中文视图，恢复到 Stage090 Review 的本地零运行时状态；不改变冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE091-P2"
+        name: "Phase 2 · 实现、接入与最小可运行切片"
+        objective: "后续仅在授权后实现证据 schema、检索证据捕获、风险评分、撤回或知识库投毒防护的受控切片，并关联 evidence 与 document、chunk、fact、query、answer、report。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE091-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE091-P2-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE091-P3-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "Stage091 P2 仅可在独立后续 run 进入；真实资料、检索、证据账本、数据库、业务结论、模型、Token、Agent、OVH、生产、上传与推送继续保持关闭。"
+        tasks: []
+      - phase_id: "IDS-STAGE091-P3"
+        name: "Phase 3 · 证据缺口处理专项验证与异常场景"
+        objective: "后续仅在授权后验证无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装高可信结论场景。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE091-P4-GATE"
+        gate:
+          gate_id: "IDS-STAGE091-P3-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE091-P4-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "Stage091 P3 仅可在独立后续 run 进入；真实资料、检索、证据账本、数据库、业务结论、模型、Token、Agent、OVH、生产、上传与推送继续保持关闭。"
+        tasks: []
+      - phase_id: "IDS-STAGE091-P4"
+        name: "Phase 4 · 证据缺口处理交付证据、回滚与中文反馈"
+        objective: "后续仅在授权后交付 evidence ledger 样例、证据等级报告、撤回影响清单、回归测试、不可作为结论依据类型与降级、撤回、恢复说明。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE091-REVIEW-GATE"
+        gate:
+          gate_id: "IDS-STAGE091-P4-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE091-REVIEW-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "Stage091 P4 仅可在独立后续 run 进入；真实资料、检索、证据账本、数据库、业务结论、模型、Token、Agent、OVH、生产、上传与推送继续保持关闭。"
+        tasks: []
+      - phase_id: "IDS-STAGE091-REVIEW"
+        name: "Stage Review · 整阶段机械复审"
+        objective: "后续仅在授权后机械复审 Stage091 P1--P4 的控制工件、失败关闭、白箱人工处理与回退路径。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE092-P1-GATE"
+        gate:
+          gate_id: "IDS-STAGE091-REVIEW-GATE"
+          status: "not_entered"
+          next_gate_id: "IDS-STAGE092-P1-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "Stage091 Review 仅可在独立后续 run 进入；真实资料、检索、证据账本、数据库、业务结论、模型、Token、Agent、OVH、生产、上传与推送继续保持关闭。"
+        tasks: []
   - stage_id: "IDS-STAGE090"
     name: "从检索捕获证据"
     task_id: "IDS-V0_1-STAGE090"
@@ -1482,10 +1607,10 @@ stages:
       - "冻结 Stage090 任务包、P1--P4 合同、P2/P3/P4 纯内存控制输出与 Stage089 Review/前序 evidence schema 合同构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。"
       - "机械复审 P1 的 10/9/7/5 静态形状与 12 类失败关闭、P2 的 6 条 26 字段控制请求／10 组投影／462 次字段检查／25 类失败关闭、P3 的 7 类 32 字段场景／224 次字段检查／7 条人工处理／15 类失败关闭，以及 P4 的 7/7/7/7/7/4/2 交付形状／4 条中文反馈／517 次字段检查／18 类失败关闭。"
       - "撤回影响保持仅声明不应用，不可作为结论依据类型、未来降级／撤回／恢复前置、业务线白箱人工处理、单一权威和 P4→P3 回退路径保持；自动结论、自动证据采纳、自动撤回／恢复和自动报告状态更新保持关闭。"
-      - "本地完成聚焦复审、精确历史后继兼容、机器事实投影、中文生成视图和回退范围核验；真实检索、证据账本、数据库、模型、Token、Agent、OVH、生产、Stage091、上传与推送保持关闭。"
+      - "本地完成聚焦复审、精确历史后继兼容、机器事实投影、中文生成视图和回退范围核验；真实检索、证据账本、数据库、模型、Token、Agent、OVH、生产、Stage091 P2--Review、上传与推送保持关闭。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、查询、评分、撤回、隔离、恢复、写入或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、真实证据账本、审计日志、回答、报告、数据库或物理索引。"
-      - "执行真实检索、数据库 schema 或连接、实际证据捕获、风险评分、可信等级变更、OCR 或版本评估、冲突裁决、撤回、投毒检测、隔离、恢复、报告状态更新、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage091、上传或推送。"
+      - "执行真实检索、数据库 schema 或连接、实际证据捕获、风险评分、可信等级变更、OCR 或版本评估、冲突裁决、撤回、投毒检测、隔离、恢复、报告状态更新、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage091 P2--Review、上传或推送。"
     phases:
       - phase_id: "IDS-STAGE090-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"

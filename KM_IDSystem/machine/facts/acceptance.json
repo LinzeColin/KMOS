@@ -1,9 +1,34 @@
 {
-  "stage": "IDS-STAGE090",
-  "phase": "IDS-STAGE090-REVIEW",
-  "task": "IDS-V0_1-STAGE090-REVIEW",
-  "next_gate": "IDS-STAGE091-P1-GATE",
+  "stage": "IDS-STAGE091",
+  "phase": "IDS-STAGE091-P1",
+  "task": "IDS-V0_1-STAGE091-P1",
+  "next_gate": "IDS-STAGE091-P2-GATE",
   "items": [
+    {
+      "id": "ACC-STAGE-091",
+      "criteria": "Stage091 证据缺口处理：P1 静态合同已本地完成，固定内部资料不足时以 evidence_gap 表达的未来引用形状、关键结论 evidence_id/evidence_gap 约束、A/B/C/D/E 可信等级与失败关闭；真实证据缺口、证据账本、风险、撤回、投毒、报告状态和业务结论保持后续授权边界。",
+      "status": "P1 本地完成"
+    },
+    {
+      "id": "ACC-STAGE091-P1-01",
+      "criteria": "冻结 Stage091 任务包与 Stage090 Review 已复审从检索捕获证据控制工件保持为唯一合同上下文；P1 只定义静态工程合同，不建立第二权威事实源，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE091-P1-02",
+      "criteria": "evidence_gap、关键结论、query、answer、report、document、chunk、fact、缺口原因、所需证据类型、缺口状态与处理状态固定为 12 个未来不透明控制字段，并保持 evidence gap 与 document、chunk、fact、query、answer、report 的 7 字段关联；关键结论未来必须关联 evidence_id 或 evidence_gap，A/B/C/D/E 可信等级完整。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE091-P1-03",
+      "criteria": "内部资料不足未来必须关联 evidence_gap；evidence gap 不能伪装成内部经验，系统输出不能替代证据缺口。低可信、冲突、过期、撤回与疑似投毒证据保持降级或人工处理前置，低等级伪装为高等级、关键结论同时缺 evidence_id 和 evidence_gap 或缺口引用不完整时进入失败关闭。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE091-P1-04",
+      "criteria": "P1 期间不执行真实资料或证据账本访问、数据库 schema 或连接、实际证据缺口识别或关闭、实际检索或证据捕获、风险计算、可信等级变更、撤回、投毒处理、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮本地验收完成后才可在新 run 进入 Stage091 P2。",
+      "status": "已遵守"
+    },
     {
       "id": "ACC-STAGE-090",
       "criteria": "Stage090 从检索捕获证据：P1 静态合同、P2 六条固定控制切片、P3 七个纯内存异常场景、P4 交付控制证据与整阶段机械复审均已本地完成；前序 schema binding、检索证据捕获、账本捕获、回答、报告、风险、可信等级、撤回、恢复、投毒与业务结论保持控制边界。",

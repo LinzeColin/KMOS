@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage090 Review - 2026-08-24
+## Current Gate - Stage091 Phase 1 - 2026-08-24
 
-- 本节是唯一当前交接；下方 Stage090 P4/P3/P2/P1、Stage089 Review/P4/P3/P2/P1、Stage088 Review/P4/P3/P2/P1 与更早章节保留已验证的历史事实。
+- 本节是唯一当前交接；下方 Stage090 Review/P4/P3/P2/P1、Stage089 Review/P4/P3/P2/P1、Stage088 Review/P4/P3/P2/P1 与更早章节保留已验证的历史事实。
+- 本轮完成 IDS-V0_1-STAGE091-P1 静态证据缺口处理合同：固定内部资料不足时以 `evidence_gap` 表达的 `12` 字段未来引用形状、evidence gap 与 document/chunk/fact/query/answer/report 的 `7` 字段关联、A/B/C/D/E 可信等级、关键结论 `evidence_id_ref`／`evidence_gap_ref` 约束与 `12` 类失败关闭。证据缺口只表示资料不足与待人工处理，不能伪装成内部经验、已取得证据或业务结论。
+- 已验证：P1 聚焦 `8/8`；连同 Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `85/85`；Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实已重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围只覆盖本地控制工件、精确历史后继和本地治理，不代表仓库级全量测试、真实检索、业务结论或生产能力。
+- 本 P1 只处理不透明控制引用、固定未来形状、失败关闭、未来说明与白箱人工处理要求。真实资料、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库与物理索引保持受保护状态；实际缺口识别或关闭、检索、证据捕获、OCR 评估、版本比较、冲突裁决、风险评分、可信等级变更、撤回、恢复、投毒处置、报告状态更新、模型、Agent、OVH 与生产保持后续授权范围。
+- 回滚只撤回本 P1 的说明、静态合同、聚焦用例、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_REVIEWED_RETRIEVAL_EVIDENCE_CAPTURE_RUNTIME_DISABLED`；Stage090 Review/P1--P4、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、报告、数据库、索引、GitHub、OVH 与应用状态保持原状。
+- 下一步只能在新的独立 run 进入 `IDS-STAGE091-P2-GATE`；继续复用既有唯一开发工作树，不创建额外 worktree、分支或合并请求。用户授权的分支恢复检查点已在本 P1 完成前推送，正式全局上传仍等待完整冻结任务包完成与 `ACC-STAGE-168`；本 P1 完成本地提交不再执行推送。
+
+## Superseded Gate - Stage090 Review - 2026-08-24
+
+- 本节保留 Stage090 Review 历史交接；唯一当前交接位于上方 Stage091 P1，下方 Stage090 P4/P3/P2/P1、Stage089 Review/P4/P3/P2/P1、Stage088 Review/P4/P3/P2/P1 与更早章节保留已验证的历史事实。
 - 本轮完成 IDS-V0_1-STAGE090-REVIEW 纯内存机械复审：复核 P1 的 10/9/7/5 静态形状与 12 类失败关闭、P2 的 6 条 26 字段控制请求／10 组投影／462 个字段检查／25 类失败关闭、P3 的 7 个 32 字段场景／224 个字段检查／7 条业务线白箱人工处理／15 类失败关闭，以及 P4 的 7/7/7/7/7/4/2 交付形状／4 条中文反馈／517 个字段检查／18 类失败关闭。撤回影响保持仅声明不应用；不可作为结论依据类型、未来降级／撤回／恢复、单一权威和 P4→P3 回退保持一致。
 - 已验证：Review 聚焦 14/14；连同 Stage090 P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 77/77；Stage005 直接治理 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器事实已重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围只覆盖本地控制工件、精确历史后继和本地治理，不代表仓库级全量测试、真实检索、业务结论或生产能力。
 - 本 Review 只处理不透明控制引用、固定控制形状、失败关闭、未来说明与白箱处理要求。真实资料、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库与物理索引保持受保护状态；检索、证据捕获、OCR 评估、版本比较、冲突裁决、风险评分、可信等级变更、撤回、恢复、投毒处置、报告状态更新、模型、Agent、OVH 与生产保持后续授权范围。

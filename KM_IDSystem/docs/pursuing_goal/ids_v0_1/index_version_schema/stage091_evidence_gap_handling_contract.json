@@ -206,6 +206,12 @@
     "github_upload_performed": false,
     "push_performed": false
   },
+  "version_control_boundary": {
+    "formal_global_upload_allowed": false,
+    "formal_global_upload_performed": false,
+    "user_authorized_branch_checkpoint_preceded_phase_completion": true,
+    "phase_completion_push_performed": false
+  },
   "stage_and_phase_boundary": {
     "stage090_review_evidence_declared": true,
     "stage091_started": true,
