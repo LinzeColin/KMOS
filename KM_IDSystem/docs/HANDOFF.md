@@ -9,14 +9,14 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage091 Phase 2 - 2026-08-24
+## Current Gate - Stage091 Phase 3 - 2026-08-24
 
-- 本节是唯一当前交接；下方 Stage090 Review/P4/P3/P2/P1、Stage089 Review/P4/P3/P2/P1、Stage088 Review/P4/P3/P2/P1 与更早章节保留已验证的历史事实。
-- 本轮完成 IDS-V0_1-STAGE091-P2 纯内存证据缺口处理受控最小切片：六条固定、非业务、reference-only 控制请求各含 `27` 字段，绑定 Stage091 P1 evidence gap 合同与已复审 Stage090 检索证据捕获控制链，投影 evidence gap schema binding `6`、evidence gap relation `7`、检索证据捕获 binding `10`、风险 `9`、撤回 `8`、投毒防护 `8`、关键结论 binding `7`、降级 `10`、报告状态影响 `6` 与 future integration `7` 个字段，共 `468` 个控制检查点与 `25` 类失败关闭。
-- 已验证：P2 聚焦 `9/9`；连同 Stage091 P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `94/94`；Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实已重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围只覆盖本地控制工件、精确历史后继和本地治理，不代表仓库级全量测试、真实检索、业务结论或生产能力。
-- 本 P2 只处理固定控制引用、前序绑定、失败关闭、降级候选、未来说明与白箱人工处理要求。资料不足场景只以 evidence_gap 控制引用绑定关键结论；真实资料、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库与物理索引保持受保护状态；实际缺口识别或关闭、检索、证据捕获、OCR 评估、版本比较、冲突裁决、风险评分、可信等级变更、撤回、恢复、投毒处置、报告状态更新、模型、Agent、OVH 与生产保持后续授权范围。
-- 回滚只撤回本 P2 的说明、纯内存控制切片、聚焦用例、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PHASE1_EVIDENCE_GAP_HANDLING_CONTRACT_RUNTIME_DISABLED`；Stage091 P1、Stage090 Review/P1--P4、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、报告、数据库、索引、GitHub、OVH 与应用状态保持原状。
-- 下一步只能在新的独立 run 进入 `IDS-STAGE091-P3-GATE`；继续复用既有唯一开发工作树，不创建额外 worktree、分支或合并请求。用户授权的恢复分支 `codex/kmids-stage071-p1` 保留为恢复点；正式全局上传、合并到 `main`、发布与生产仍等待完整冻结任务包完成与 `ACC-STAGE-168`。
+- 本节是唯一当前交接；下方 Stage091 P2、Stage090 Review/P4/P3/P2/P1、Stage089 Review/P4/P3/P2/P1、Stage088 Review/P4/P3/P2/P1 与更早章节保留已验证的历史事实。
+- 本轮完成 IDS-V0_1-STAGE091-P3 纯内存证据缺口处理异常场景验证：重放 P2 六条固定、非业务、reference-only 控制投影，覆盖无内部证据、低 OCR、旧版本、冲突资料、撤回资料、恶意资料与低等级伪装高可信结论七类场景。P2 的 `27` 字段输入、`10` 组投影、每条 `78` 字段／共 `468` 个控制检查点完整保留；P3 每条场景固定 `32` 个控制字段，共 `224` 个场景字段检查点与 `15` 类失败关闭。撤回只声明未来报告状态影响引用，低等级不能进入高可信结论，全部场景要求业务线白箱人工处理。
+- 已验证：P3 聚焦 `11/11`；连同 Stage091 P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `105/105`；Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实已重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围只覆盖本地控制工件、精确历史后继和本地治理，不代表仓库级全量测试、真实检索、业务结论或生产能力。
+- 本 P3 只处理固定控制引用、异常场景状态、失败关闭、未来说明与白箱人工处理要求。资料不足场景只以 evidence_gap 控制引用绑定关键结论；真实资料、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库与物理索引保持受保护状态；实际缺口识别或关闭、检索、证据捕获、OCR 评估、版本比较、冲突裁决、风险评分、可信等级变更、撤回、恢复、投毒处置、报告状态更新、模型、Agent、OVH 与生产保持后续授权范围。
+- 回滚只撤回本 P3 的说明、纯内存异常场景模块、聚焦用例、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PHASE2_EVIDENCE_GAP_HANDLING_CONTROL_SLICE_RUNTIME_DISABLED`；Stage091 P1/P2、Stage090 Review/P1--P4、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、报告、数据库、索引、GitHub、OVH 与应用状态保持原状。
+- 下一步只能在新的独立 run 进入 `IDS-STAGE091-P4-GATE`；继续复用既有唯一开发工作树，不创建额外 worktree、分支或合并请求。用户授权的恢复分支 `codex/kmids-stage071-p1` 保留为恢复点；正式全局上传、合并到 `main`、发布与生产仍等待完整冻结任务包完成与 `ACC-STAGE-168`。
 
 ## Superseded Gate - Stage090 Review - 2026-08-24
 

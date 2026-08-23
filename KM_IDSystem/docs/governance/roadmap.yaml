@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE091"
-current_phase_id: "IDS-STAGE091-P2"
-current_task_id: "IDS-V0_1-STAGE091-P2"
-next_gate_id: "IDS-STAGE091-P3-GATE"
+current_phase_id: "IDS-STAGE091-P3"
+current_task_id: "IDS-V0_1-STAGE091-P3"
+next_gate_id: "IDS-STAGE091-P4-GATE"
 current_transition_history:
+  stage091_phase3_state:
+    current_stage_id: "IDS-STAGE091"
+    current_phase_id: "IDS-STAGE091-P3"
+    current_task_id: "IDS-V0_1-STAGE091-P3"
+    next_gate_id: "IDS-STAGE091-P4-GATE"
   stage091_phase2_state:
     current_stage_id: "IDS-STAGE091"
     current_phase_id: "IDS-STAGE091-P2"
@@ -1480,22 +1485,22 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-091"
     objective: "依据冻结 Stage091 任务包完成内部资料不足时以 evidence_gap 表达的证据缺口处理合同、后续受控切片、专项验证、交付证据与整阶段复审；证据缺口、风险评分、可信等级、撤回、知识库投毒防护与报告状态保持控制边界，真实运行时保持关闭。"
-    status: "phase2_completed_local"
+    status: "phase3_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE091-P3-GATE"
+    next_gate_id: "IDS-STAGE091-P4-GATE"
     gate:
-      gate_id: "IDS-STAGE091-P2-GATE"
+      gate_id: "IDS-STAGE091-P3-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE091-P3-GATE"
+      next_gate_id: "IDS-STAGE091-P4-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "冻结 Stage091 任务包、Stage091 P1 静态合同与 Stage090 Review 已复审从检索捕获证据控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。"
       - "内部资料不足未来以 evidence_gap 表达；关键结论未来必须关联 evidence_id 或 evidence_gap；evidence gap 与 document、chunk、fact、query、answer、report 的未来引用形状以及 A/B/C/D/E 可信等级完整。"
       - "低可信、冲突、过期、撤回和疑似投毒证据的降级、撤回、恢复、风险评分、报告状态影响与业务使用保持后续授权和业务线白箱人工复核前置。"
-      - "本地完成 P2 六条固定 reference-only 控制输入、27 字段输入形状、10 组投影、每条 78 字段／共 468 个字段检查、失败关闭、前序兼容、机器事实投影、中文生成视图和回退范围核验；真实资料、检索、证据账本、数据库、模型、Token、Agent、OVH、生产、Stage091 P3--Review、上传与推送保持关闭。"
+      - "本地完成 P3 对 P2 六条固定 reference-only 控制输入、27 字段输入形状、10 组投影、每条 78 字段／共 468 个字段检查的纯内存重放，形成无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料和低等级伪装高可信结论七条场景、每条 32 字段／共 224 个场景字段检查、撤回报告状态影响引用、失败关闭、前序兼容、机器事实投影、中文生成视图和回退范围核验；真实资料、检索、证据账本、数据库、模型、Token、Agent、OVH、生产、Stage091 P4--Review 与正式上传保持关闭。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、查询、评分、撤回、隔离、恢复、写入或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、真实证据账本、审计日志、回答、报告、数据库或物理索引。"
-      - "执行真实检索、数据库 schema 或连接、实际证据缺口识别或关闭、实际证据捕获、风险评分、可信等级变更、OCR 或版本评估、冲突裁决、撤回、投毒检测、隔离、恢复、报告状态更新、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage091 P3--Review、上传或推送。"
+      - "执行真实检索、数据库 schema 或连接、实际证据缺口识别或关闭、实际证据捕获、风险评分、可信等级变更、OCR 或版本评估、冲突裁决、撤回、投毒检测、隔离、恢复、报告状态更新、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage091 P4--Review 或正式上传。"
     phases:
       - phase_id: "IDS-STAGE091-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -1588,18 +1593,57 @@ stages:
             rollback: "只回滚本 P2 范围说明、纯内存控制切片、聚焦用例、机器事实投影、治理路线和生成中文视图，恢复到 Stage091 P1 的本地零运行时状态；不改变冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE091-P3"
         name: "Phase 3 · 证据缺口处理专项验证与异常场景"
-        objective: "后续仅在授权后验证无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装高可信结论场景。"
-        status: "not_started"
-        entry_authorized: false
+        objective: "只在内存中重放 Stage091 P2 六条固定、非业务、reference-only 控制投影，验证无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装高可信结论七类异常场景；撤回只声明未来报告状态影响引用，业务线白箱人工处理保持前置。"
+        status: "completed"
+        entry_authorized: true
         next_gate_id: "IDS-STAGE091-P4-GATE"
         gate:
           gate_id: "IDS-STAGE091-P3-GATE"
-          status: "not_entered"
+          status: "passed"
           next_gate_id: "IDS-STAGE091-P4-GATE"
           github_upload_allowed: false
         stop_conditions:
-          - "Stage091 P3 仅可在独立后续 run 进入；真实资料、检索、证据账本、数据库、业务结论、模型、Token、Agent、OVH、生产、上传与推送继续保持关闭。"
-        tasks: []
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、查询、评分、撤回、隔离、恢复、写入或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、真实证据账本、审计日志、回答、报告、数据库或物理索引。"
+          - "执行真实检索、数据库 schema 或连接、实际证据缺口识别或关闭、实际证据捕获、风险评分、可信等级变更、OCR 或版本评估、冲突裁决、撤回、投毒检测、隔离、恢复、报告状态更新、provider/模型调用、模型 Token、持久化、Agent、OVH、生产、Stage091 P4--Review 或正式上传。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE091-P3"
+            name: "验证证据缺口处理异常场景"
+            objective: "只重放 P2 六条固定控制投影，形成无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料及低等级伪装高可信结论七条纯内存场景；资料不足只保留 evidence_gap，撤回只声明报告状态影响引用，低等级不能进入高可信结论，全部场景保持业务线白箱人工处理。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE091-P2"
+              - "IDS-V0_1-STAGE091-P1"
+              - "IDS-V0_1-STAGE090-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-091"
+              - "ACC-STAGE091-P3-01"
+              - "ACC-STAGE091-P3-02"
+              - "ACC-STAGE091-P3-03"
+              - "ACC-STAGE091-P3-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage091_evidence_gap_handling_controlled_scenarios"
+              - "后续本地治理回归命令记录于 Stage091 P3 receipt"
+            test_results: "P3 聚焦异常场景测试、Stage091 P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦、Stage005 与两个既有批次检查器的本地治理回归均记录于 Stage091 P3 receipt；所有结果只证明固定控制引用、失败关闭、治理兼容和零运行时边界，不证明真实资料、检索、证据、回答、报告、OCR、版本、风险、撤回、投毒防护、业务结论或生产能力。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-091_证据缺口处理.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_PHASE3_EVIDENCE_GAP_HANDLING_CONTROLLED_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_controlled_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_controlled_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage091_evidence_gap_handling_controlled_scenarios.py"
+              - "KM_IDSystem/machine/runs/2026-08-24-stage091-p3-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_PHASE2_EVIDENCE_GAP_HANDLING_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_control_slice_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-24-stage091-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_PHASE1_EVIDENCE_GAP_HANDLING_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-24-stage091-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE090_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage090_retrieval_evidence_capture_stage_review_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage090_retrieval_evidence_capture_control_slice_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-24-stage090-review-local.json"
+            risk: "若将异常场景、降级、撤回报告状态影响引用或高可信拒绝状态误作真实证据账本、真实 OCR／版本／风险、真实报告更新、业务结论、OVH 或生产能力，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P3 范围说明、纯内存场景模块、聚焦用例、机器事实投影、治理路线和生成中文视图，恢复到 Stage091 P2 的本地零运行时状态；不改变冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE091-P4"
         name: "Phase 4 · 证据缺口处理交付证据、回滚与中文反馈"
         objective: "后续仅在授权后交付 evidence ledger 样例、证据等级报告、撤回影响清单、回归测试、不可作为结论依据类型与降级、撤回、恢复说明。"

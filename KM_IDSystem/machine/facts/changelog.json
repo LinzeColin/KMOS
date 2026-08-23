@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage091-p3-local",
+    "date": "2026-08-24",
+    "summary": "完成 Stage091 证据缺口处理 P3 纯内存异常场景验证：重放 P2 六条固定、非业务、reference-only 控制投影，形成无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料及低等级伪装高可信结论七个场景，每场景 32 个字段、共 224 个场景字段检查点，并保持 P2 的 468 个源控制字段检查点与 15 类失败关闭。撤回只声明未来报告状态影响引用，D 等级不得进入高可信结论，全部场景保持业务线白箱人工处理。真实资料、检索、证据账本、OCR、版本、数据库、风险、撤回、投毒、报告状态、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围；下一步只能在新的独立 run 进入 IDS-STAGE091-P4-GATE，继续使用既有唯一开发 worktree。"
+  },
+  {
     "version": "v0.1-stage091-p2-local",
     "date": "2026-08-24",
     "summary": "完成 Stage091 证据缺口处理 P2 纯内存受控最小切片：只接收 6 条固定、非业务、reference-only 的 27 字段控制请求，绑定 Stage091 P1 evidence gap 合同与已复审 Stage090 检索证据捕获控制链，并投影 evidence gap schema binding 6、evidence gap relation 7、检索证据捕获 binding 10、风险 9、撤回 8、投毒防护 8、关键结论 binding 7、降级 10、报告状态影响 6 与 future integration 7 个字段，共 468 个控制检查点与 25 类失败关闭。资料不足场景只以 evidence_gap 绑定关键结论，低可信、冲突、过期和撤回保持降级候选，疑似投毒保持隔离候选，全部业务使用保持白箱人工复核。真实资料、检索、证据账本、回答、报告、数据库、风险、撤回、恢复、投毒、报告状态、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围；下一步只能在新的独立 run 进入 IDS-STAGE091-P3-GATE，继续使用既有唯一开发 worktree。"

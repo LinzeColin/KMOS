@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE091",
-  "phase": "IDS-STAGE091-P2",
-  "task": "IDS-V0_1-STAGE091-P2",
-  "real_progress": "Stage091 P2 已实现六条固定、非业务、reference-only 控制请求及 evidence gap schema 绑定、7 字段关联、检索证据捕获绑定、风险、撤回、投毒防护、关键结论绑定、降级、报告状态影响和未来路由共 10 组纯内存投影；每条 27 个输入字段、78 个投影字段，共 468 个控制字段检查。所有值保持控制标签，实际缺口识别、资料补充、检索、证据捕获、风险、撤回、投毒防护和报告状态处理保持关闭。",
+  "phase": "IDS-STAGE091-P3",
+  "task": "IDS-V0_1-STAGE091-P3",
+  "real_progress": "Stage091 P3 已重放 P2 六条固定、非业务、reference-only 控制投影，完成无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装高可信结论七个纯内存场景；每条 32 个场景字段，共 224 个场景字段检查，并保持 P2 的 468 个控制字段检查、撤回报告状态影响引用与业务线白箱人工处理。实际缺口识别、OCR／版本评估、检索、证据捕获、风险、撤回、投毒防护和报告状态处理保持关闭。",
   "report_grade": "冻结 Stage091 任务包、Stage091 P1 静态合同与已复审 Stage090 从检索捕获证据控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "Stage091 P2 证明固定控制输入、前序绑定、资料不足 evidence_gap、失败关闭、降级候选、回退路径和治理边界一致；真实资料、检索、证据账本、OCR、版本、风险、撤回、恢复、投毒、报告状态、模型、Token、审计、OVH 与生产仍在后续授权范围。",
-  "evidence_status": "STAGE091_P2_EVIDENCE_GAP_HANDLING_CONTROL_SLICE_RUNTIME_DISABLED",
+  "business_verdict": "Stage091 P3 证明七类固定异常控制场景、资料不足 evidence_gap、撤回报告状态影响引用、低等级伪装高可信拒绝、失败关闭、回退路径和治理边界一致；真实资料、检索、证据账本、OCR、版本、风险、撤回、恢复、投毒、报告状态、模型、Token、审计、OVH 与生产仍在后续授权范围。",
+  "evidence_status": "STAGE091_P3_EVIDENCE_GAP_HANDLING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-24",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE091-P3-GATE",
+  "next_gate": "IDS-STAGE091-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

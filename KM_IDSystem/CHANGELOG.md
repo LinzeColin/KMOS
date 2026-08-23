@@ -1,3 +1,9 @@
+## 2026-08-24 · Stage091 证据缺口处理 P3
+
+- 完成冻结 Stage091 P3 纯内存异常场景验证：重放 P2 的 `6` 条固定、非业务、reference-only 控制投影，形成无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装高可信结论 `7` 个场景。P2 的 `468` 个源字段检查点保持完整；P3 每条场景 `32` 个字段，共 `224` 个检查点与 `15` 类失败关闭。撤回只保留未来报告状态影响引用，D 等级进入高可信结论拒绝状态。
+- 本地验证通过：P3 聚焦 `11/11`，连同 Stage091 P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `105/105`，Stage005 直接治理 `valid=true`，两个既有批次检查器均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围只覆盖冻结控制工件、精确历史后继与本地治理。
+- 业务事实继续由来源文档、真实证据账本与业务线白箱人工复核裁定；真实资料、检索、证据账本、OCR、版本、风险、撤回、投毒、报告状态、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围。下一步只能在新的独立 run 进入 `IDS-STAGE091-P4-GATE`，继续使用既有唯一开发 worktree；本 P3 保持本地提交。
+
 ## 2026-08-24 · Stage091 证据缺口处理 P2
 
 - 完成冻结 Stage091 P2 纯内存受控最小切片：只接收 `6` 条固定、非业务、reference-only 的 `27` 字段控制请求，绑定 Stage091 P1 evidence gap 合同与已复审 Stage090 检索证据捕获控制链，并投影 evidence gap schema binding `6`、evidence gap relation `7`、检索证据捕获 binding `10`、风险 `9`、撤回 `8`、投毒防护 `8`、关键结论 binding `7`、降级 `10`、报告状态影响 `6` 与 future integration `7` 个字段，共 `468` 个控制检查点与 `25` 类失败关闭。
