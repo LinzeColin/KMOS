@@ -9,6 +9,13 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
+## Suspended Checkpoint - Stage090 Review Preparation - 2026-08-24
+
+- 休眠前已将同一既有开发分支推送至 GitHub，包含 Stage090 P3、P4 与 Review 准备检查点；未创建额外工作树、分支或合并请求。
+- Review 的范围说明、静态合同、纯内存复审模块和 14 条聚焦用例已保存；聚焦用例通过。机器事实、治理路线、事件、中文视图和正式回执仍保持 P4 已完成状态，因此当前正式门禁仍为 `IDS-STAGE090-REVIEW-GATE`。
+- 恢复时只完成本 Review 的剩余治理投影、回执、事件、生成视图和精确关联验证；通过后才将下一门禁切换为 `IDS-STAGE091-P1-GATE`。真实资料、运行时、模型、Agent、OVH、生产和业务结论继续不在本检查点范围。
+- 回滚本检查点只撤回 Review 准备工件和本节交接，恢复到 P4 已完成的本地控制状态；Stage090 P1--P4、前序阶段和受保护业务面保持原状。
+
 ## Current Gate - Stage090 Phase 4 - 2026-08-24
 
 - 本节是唯一当前交接；下方 Stage090 P3/P2/P1、Stage089 Review/P4/P3/P2/P1、Stage088 Review/P4/P3/P2/P1 与更早章节保留已验证的历史事实。
