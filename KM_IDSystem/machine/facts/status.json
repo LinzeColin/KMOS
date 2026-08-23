@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE090",
-  "phase": "IDS-STAGE090-P3",
-  "task": "IDS-V0_1-STAGE090-P3",
-  "real_progress": "Stage090 P3 已在内存中重放 P2 六条固定、非业务、reference-only 控制投影，形成无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装高可信结论七个异常场景；P2 保持 462 个源字段检查点，P3 形成 224 个场景字段检查点。",
-  "report_grade": "冻结 Stage090 任务包、Stage090 P1/P2 控制工件与 Stage089 Review/前序 evidence schema 合同构成唯一合同上下文；P3 重放固定控制引用，业务事实继续由来源文档、真实证据账本与业务线白箱人工复核裁定。",
-  "business_verdict": "Stage090 P3 证明纯内存异常场景的固定重放、降级或隔离候选、撤回报告影响引用、低等级伪装拒绝和业务线白箱人工处理边界；真实资料、检索、证据账本、OCR、版本、风险、撤回、投毒、报告状态、模型、Token、审计、OVH 与生产保持在后续授权范围。",
-  "evidence_status": "STAGE090_P3_RETRIEVAL_EVIDENCE_CAPTURE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE090-P4",
+  "task": "IDS-V0_1-STAGE090-P4",
+  "real_progress": "Stage090 P4 已从 P3 七条固定、非业务、reference-only 控制场景派生 evidence ledger 样例、证据等级报告、撤回影响、回归、不可作为结论依据类型、降级说明和撤回／恢复说明；P2 保持 462 个源字段检查点，P3 保持 224 个场景字段检查点，P4 形成 517 个交付字段检查点。",
+  "report_grade": "冻结 Stage090 任务包、Stage090 P1/P2/P3 控制工件与 Stage089 Review/前序 evidence schema 合同构成唯一合同上下文；P4 交付记录保持不透明控制引用，业务事实继续由来源文档、真实证据账本与业务线白箱人工复核裁定。",
+  "business_verdict": "Stage090 P4 证明纯内存交付控制形状、撤回报告影响引用、不可作为结论依据类型、未来降级／撤回／恢复说明和业务线白箱人工处理边界；真实资料、检索、证据账本、OCR、版本、风险、撤回、恢复、投毒、报告状态、模型、Token、审计、OVH 与生产保持在后续授权范围。",
+  "evidence_status": "STAGE090_P4_RETRIEVAL_EVIDENCE_CAPTURE_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-24",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE090-P4-GATE",
+  "next_gate": "IDS-STAGE090-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

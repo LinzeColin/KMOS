@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE090",
-  "phase": "IDS-STAGE090-P3",
-  "task": "IDS-V0_1-STAGE090-P3",
-  "next_gate": "IDS-STAGE090-P4-GATE",
+  "phase": "IDS-STAGE090-P4",
+  "task": "IDS-V0_1-STAGE090-P4",
+  "next_gate": "IDS-STAGE090-REVIEW-GATE",
   "items": [
     {
       "id": "ACC-STAGE-090",
-      "criteria": "Stage090 从检索捕获证据：P1 静态合同、P2 六条固定控制切片与 P3 七个纯内存异常场景均已本地完成；前序 schema binding、检索证据捕获、账本捕获、回答、报告、风险、可信等级、撤回、投毒与业务结论保持控制边界。",
-      "status": "P3 本地完成"
+      "criteria": "Stage090 从检索捕获证据：P1 静态合同、P2 六条固定控制切片、P3 七个纯内存异常场景与 P4 交付控制证据均已本地完成；前序 schema binding、检索证据捕获、账本捕获、回答、报告、风险、可信等级、撤回、恢复、投毒与业务结论保持控制边界。",
+      "status": "P4 本地完成"
     },
     {
       "id": "ACC-STAGE090-P2-01",
@@ -27,6 +27,26 @@
     {
       "id": "ACC-STAGE090-P2-04",
       "criteria": "P2 期间不执行真实资料、检索、回答、报告或证据账本访问、数据库 schema 或连接、实际证据捕获、风险计算、可信等级变更、撤回、投毒检测、隔离、恢复、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage090 P3。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE090-P4-01",
+      "criteria": "冻结 Stage090 任务包、Stage090 P1/P2/P3 控制工件与 Stage089 Review/前序 evidence schema 合同保持为唯一合同上下文；P4 只从七条固定、非业务、reference-only 场景派生交付控制记录，业务资料、原始元数据、manifest、检索结果、证据账本、报告、审计日志、数据库与物理索引继续由受保护边界管理。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE090-P4-02",
+      "criteria": "P4 固定交付 7 条 evidence ledger 样例、7 条证据等级报告、7 条撤回影响、7 条回归、7 条不可作为结论依据类型、4 条降级和 2 条撤回／恢复说明，共 517 个交付字段检查点；P2 的六条、十组投影、462 个字段检查点与 P3 的七场景、224 个字段检查点保持一致。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE090-P4-03",
+      "criteria": "撤回影响清单只声明 control-only 报告影响且不更新报告；无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装均明确不可自动作为结论依据。降级、撤回与恢复保留未来授权和业务线白箱人工处理前置，引用丢失、P3 偏离、交付形状偏离或运行信号出现时进入失败关闭。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE090-P4-04",
+      "criteria": "P4 期间真实资料、检索、回答、报告、证据账本、数据库、OCR、版本评估、冲突裁决、风险计算、可信等级变更、撤回、恢复、投毒处置、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产、上传与推送保持在后续授权范围；本轮全量本地验收完成后在新 run 进入 Stage090 Review。",
       "status": "已遵守"
     },
     {
