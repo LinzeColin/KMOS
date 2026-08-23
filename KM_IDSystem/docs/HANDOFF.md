@@ -9,21 +9,23 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Suspended Checkpoint - Stage090 Review Preparation - 2026-08-24
+## Current Gate - Stage090 Review - 2026-08-24
 
-- 休眠前已将同一既有开发分支推送至 GitHub，包含 Stage090 P3、P4 与 Review 准备检查点；未创建额外工作树、分支或合并请求。
-- Review 的范围说明、静态合同、纯内存复审模块和 14 条聚焦用例已保存；聚焦用例通过。机器事实、治理路线、事件、中文视图和正式回执仍保持 P4 已完成状态，因此当前正式门禁仍为 `IDS-STAGE090-REVIEW-GATE`。
-- 恢复时只完成本 Review 的剩余治理投影、回执、事件、生成视图和精确关联验证；通过后才将下一门禁切换为 `IDS-STAGE091-P1-GATE`。真实资料、运行时、模型、Agent、OVH、生产和业务结论继续不在本检查点范围。
-- 回滚本检查点只撤回 Review 准备工件和本节交接，恢复到 P4 已完成的本地控制状态；Stage090 P1--P4、前序阶段和受保护业务面保持原状。
+- 本节是唯一当前交接；下方 Stage090 P4/P3/P2/P1、Stage089 Review/P4/P3/P2/P1、Stage088 Review/P4/P3/P2/P1 与更早章节保留已验证的历史事实。
+- 本轮完成 IDS-V0_1-STAGE090-REVIEW 纯内存机械复审：复核 P1 的 10/9/7/5 静态形状与 12 类失败关闭、P2 的 6 条 26 字段控制请求／10 组投影／462 个字段检查／25 类失败关闭、P3 的 7 个 32 字段场景／224 个字段检查／7 条业务线白箱人工处理／15 类失败关闭，以及 P4 的 7/7/7/7/7/4/2 交付形状／4 条中文反馈／517 个字段检查／18 类失败关闭。撤回影响保持仅声明不应用；不可作为结论依据类型、未来降级／撤回／恢复、单一权威和 P4→P3 回退保持一致。
+- 已验证：Review 聚焦 14/14；连同 Stage090 P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 77/77；Stage005 直接治理 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器事实已重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围只覆盖本地控制工件、精确历史后继和本地治理，不代表仓库级全量测试、真实检索、业务结论或生产能力。
+- 本 Review 只处理不透明控制引用、固定控制形状、失败关闭、未来说明与白箱处理要求。真实资料、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库与物理索引保持受保护状态；检索、证据捕获、OCR 评估、版本比较、冲突裁决、风险评分、可信等级变更、撤回、恢复、投毒处置、报告状态更新、模型、Agent、OVH 与生产保持后续授权范围。
+- 回滚只撤回本 Review 的说明、静态合同、纯内存复审模块、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 PASS_RETRIEVAL_EVIDENCE_CAPTURE_DELIVERY_EVIDENCE_RUNTIME_DISABLED；Stage090 P1/P2/P3/P4、Stage089 Review、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、报告、数据库、索引、GitHub、OVH 与应用状态保持原状。
+- 下一步只能在新的独立 run 进入 IDS-STAGE091-P1-GATE；继续复用既有唯一开发工作树，不创建额外工作树、分支或合并请求。本 Review 未执行额外 GitHub 动作；完整冻结任务包的正式全局上传仍等待 ACC-STAGE-168。
 
-## Current Gate - Stage090 Phase 4 - 2026-08-24
+## Superseded Gate - Stage090 Phase 4 - 2026-08-24
 
-- 本节是唯一当前交接；下方 Stage090 P3/P2/P1、Stage089 Review/P4/P3/P2/P1、Stage088 Review/P4/P3/P2/P1 与更早章节保留已验证的历史事实。
+- 本节保留 Stage090 P4 历史交接；唯一当前交接位于上方 Stage090 Review，下方 Stage090 P3/P2/P1、Stage089 Review/P4/P3/P2/P1、Stage088 Review/P4/P3/P2/P1 与更早章节均为历史证据。
 - 本轮完成 IDS-V0_1-STAGE090-P4 纯内存交付控制验证：只从 P3 七条固定、非业务、reference-only 异常场景派生 evidence ledger 样例、证据等级报告、撤回影响、回归、不可作为结论依据类型、降级说明和撤回／恢复说明。P2 的 26 字段、10 组投影、462 个源字段检查点与 P3 的七条场景、每条 32 字段、224 个场景字段检查点完整保留；P4 固定交付 7/7/7/7/7/4/2 条控制记录，共 517 个交付字段检查点与 18 类失败关闭。撤回只声明未来报告状态影响引用，所有交付记录保持业务线白箱人工处理。
 - 已验证：P4 聚焦 11/11；连同 Stage090 P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 63/63；Stage005 直接治理 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器事实重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围只覆盖冻结控制工件、精确历史后继与本地治理，不代表仓库级全量测试、真实检索、业务结论或生产能力。
 - 本 P4 只处理不透明控制引用、固定交付形状、未来说明与白箱处理要求。真实资料、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库与物理索引保持受保护状态；检索、证据捕获、OCR 评估、版本比较、冲突裁决、风险评分、可信等级变更、撤回、恢复、投毒处置、报告状态更新、模型、Agent、OVH 与生产保持后续授权范围。
 - 回滚只撤回本 P4 的说明、静态合同、纯内存交付模块、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 PASS_RETRIEVAL_EVIDENCE_CAPTURE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；Stage090 P1/P2/P3、Stage089 Review、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、报告、数据库、索引、GitHub、OVH 与应用状态保持原状。
-- 下一步只能在新的独立 run 进入 IDS-STAGE090-REVIEW-GATE；继续复用既有唯一开发工作树，不创建额外工作树、分支或合并请求。P4 保持本地提交，全局上传继续等待完整冻结任务包完成 ACC-STAGE-168。
+- P4 完成当时下一步为新的独立 run 进入 IDS-STAGE090-REVIEW-GATE；Review 现已作为上方当前门禁完成。该 P4 run 复用既有唯一开发工作树，未创建额外工作树、分支或合并请求。
 
 ## Superseded Gate - Stage090 Phase 3 - 2026-08-24
 
