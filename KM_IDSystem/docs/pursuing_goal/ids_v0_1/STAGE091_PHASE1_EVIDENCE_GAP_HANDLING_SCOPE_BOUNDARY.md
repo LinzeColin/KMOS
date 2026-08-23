@@ -25,7 +25,7 @@
 - 不实现或启动真实资料缺口识别、真实 evidence_gap 创建、检索、检索证据捕获、evidence ledger、数据库 schema 或连接、风险评分、可信等级变更、撤回处理、投毒检测、隔离、恢复、报告状态更新或审计写入。
 - 不读取真实资料、检索结果、回答或报告，不执行批量导入，不选择 provider 或模型，不消耗模型 Token，不调用外部 API，不执行 Agent。
 - 不创建持久化 evidence gap、evidence、document、chunk、fact、query、answer、report、风险、撤回、投毒、审计、缓存、队列、Operations 或已交付报告。
-- 不启动 Stage091 P2、P3、P4、整阶段复审、Stage092、OVH、生产或正式全局上传。用户授权的分支恢复检查点发生在本 P1 完成前，用于保存当前工作；它不是生产部署、业务运行或正式全局上传。
+- 不启动 Stage091 P2、P3、P4、整阶段复审、Stage092、OVH、生产或正式全局上传。用户授权的恢复分支 `codex/kmids-stage071-p1` 在本 P1 完成前后同步，只保存开发历史；正式全局上传、合并到 `main`、发布与生产保持后续门禁。
 
 ## 验收与停止
 

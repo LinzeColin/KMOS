@@ -87,7 +87,10 @@
     "formal_global_upload_allowed": false,
     "formal_global_upload_performed": false,
     "user_authorized_branch_checkpoint_preceded_phase_completion": true,
-    "phase_completion_push_performed": false
+    "user_authorized_branch_recovery_sync_after_phase_completion": true,
+    "branch_recovery_ref": "codex/kmids-stage071-p1",
+    "branch_recovery_is_formal_global_upload": false,
+    "formal_phase_completion_push_performed": false
   },
   "validation": {
     "second_authoritative_source_created": false,

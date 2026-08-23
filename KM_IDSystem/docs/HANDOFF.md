@@ -16,7 +16,7 @@
 - 已验证：P1 聚焦 `8/8`；连同 Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `85/85`；Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实已重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围只覆盖本地控制工件、精确历史后继和本地治理，不代表仓库级全量测试、真实检索、业务结论或生产能力。
 - 本 P1 只处理不透明控制引用、固定未来形状、失败关闭、未来说明与白箱人工处理要求。真实资料、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库与物理索引保持受保护状态；实际缺口识别或关闭、检索、证据捕获、OCR 评估、版本比较、冲突裁决、风险评分、可信等级变更、撤回、恢复、投毒处置、报告状态更新、模型、Agent、OVH 与生产保持后续授权范围。
 - 回滚只撤回本 P1 的说明、静态合同、聚焦用例、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_REVIEWED_RETRIEVAL_EVIDENCE_CAPTURE_RUNTIME_DISABLED`；Stage090 Review/P1--P4、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、报告、数据库、索引、GitHub、OVH 与应用状态保持原状。
-- 下一步只能在新的独立 run 进入 `IDS-STAGE091-P2-GATE`；继续复用既有唯一开发工作树，不创建额外 worktree、分支或合并请求。用户授权的分支恢复检查点已在本 P1 完成前推送，正式全局上传仍等待完整冻结任务包完成与 `ACC-STAGE-168`；本 P1 完成本地提交不再执行推送。
+- 下一步只能在新的独立 run 进入 `IDS-STAGE091-P2-GATE`；继续复用既有唯一开发工作树，不创建额外 worktree、分支或合并请求。用户授权的恢复分支 `codex/kmids-stage071-p1` 已在 P1 完成前后同步，用于保存开发历史；正式全局上传、合并到 `main`、发布与生产仍等待完整冻结任务包完成与 `ACC-STAGE-168`。
 
 ## Superseded Gate - Stage090 Review - 2026-08-24
 
