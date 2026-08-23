@@ -8,10 +8,10 @@ covered_categories:
   - "collection"
   - "receivable_aging"
   - "journal"
-raw_assets: 86
+raw_assets: 108
 raw_with_staging_edges: 13
 raw_deferred_all_sheets: 0
-raw_not_yet_extracted: 73
+raw_not_yet_extracted: 95
 staging_tables:
   - "_staging.bank_journal"
   - "_staging.collection"
@@ -445,6 +445,116 @@ nodes:
     domain: "KMFA"
     batch: "20260809"
     size_bytes: 2065
+    status: "not_yet_extracted"
+  - asset: "raw:ceb501eab013"
+    domain: "其他"
+    batch: "2026-08-17"
+    size_bytes: 4226931
+    status: "not_yet_extracted"
+  - asset: "raw:093e0d11a68f"
+    domain: "其他"
+    batch: "2026-08-18"
+    size_bytes: 4381081
+    status: "not_yet_extracted"
+  - asset: "raw:4cf966180dd0"
+    domain: "其他"
+    batch: "2026-08-18"
+    size_bytes: 53078
+    status: "not_yet_extracted"
+  - asset: "raw:c8cf028f8dee"
+    domain: "其他"
+    batch: "2026-08-18"
+    size_bytes: 4380796
+    status: "not_yet_extracted"
+  - asset: "raw:02159fd1c2d2"
+    domain: "其他"
+    batch: "2026-08-18"
+    size_bytes: 4380206
+    status: "not_yet_extracted"
+  - asset: "raw:64dc8d9fec2d"
+    domain: "其他"
+    batch: "2026-08-18"
+    size_bytes: 4380122
+    status: "not_yet_extracted"
+  - asset: "raw:ce59141f7bce"
+    domain: "其他"
+    batch: "2026-08-18"
+    size_bytes: 4380011
+    status: "not_yet_extracted"
+  - asset: "raw:ba3611a1018f"
+    domain: "其他"
+    batch: "2026-08-18"
+    size_bytes: 4379957
+    status: "not_yet_extracted"
+  - asset: "raw:87853cffc515"
+    domain: "其他"
+    batch: "2026-08-18"
+    size_bytes: 4379467
+    status: "not_yet_extracted"
+  - asset: "raw:7f5f30f2eeea"
+    domain: "其他"
+    batch: "2026-08-18"
+    size_bytes: 4379227
+    status: "not_yet_extracted"
+  - asset: "raw:14cb2b320390"
+    domain: "其他"
+    batch: "2026-08-18"
+    size_bytes: 4379158
+    status: "not_yet_extracted"
+  - asset: "raw:9fac10642c7e"
+    domain: "其他"
+    batch: "2026-08-19"
+    size_bytes: 4378827
+    status: "not_yet_extracted"
+  - asset: "raw:b4f8e2c86984"
+    domain: "其他"
+    batch: "2026-08-19"
+    size_bytes: 4378614
+    status: "not_yet_extracted"
+  - asset: "raw:558b564d788d"
+    domain: "其他"
+    batch: "2026-08-19"
+    size_bytes: 4378415
+    status: "not_yet_extracted"
+  - asset: "raw:2481138a0ccd"
+    domain: "其他"
+    batch: "2026-08-19"
+    size_bytes: 4377183
+    status: "not_yet_extracted"
+  - asset: "raw:dac0319eab3a"
+    domain: "其他"
+    batch: "2026-08-19"
+    size_bytes: 4377087
+    status: "not_yet_extracted"
+  - asset: "raw:90bff8c4eb17"
+    domain: "其他"
+    batch: "2026-08-19"
+    size_bytes: 4377076
+    status: "not_yet_extracted"
+  - asset: "raw:bfc40bd30751"
+    domain: "其他"
+    batch: "2026-08-19"
+    size_bytes: 4376824
+    status: "not_yet_extracted"
+  - asset: "raw:387d52294174"
+    domain: "其他"
+    batch: "2026-08-19"
+    size_bytes: 4373400
+    status: "not_yet_extracted"
+  - asset: "raw:4d65826c1f2c"
+    domain: "其他"
+    batch: "2026-08-19"
+    size_bytes: 5918311
+    status: "not_yet_extracted"
+  - asset: "raw:68d317028bd8"
+    domain: "其他"
+    batch: "2026-08-19"
+    size_bytes: 92698
+    status: "not_yet_extracted"
+  - asset: "raw:2659f36a235b"
+    domain: "其他"
+    batch: "2026-08-23"
+    size_bytes: 151581
     status: "not_yet_extracted"
 edges:
   - from: "raw:cc3963bcdfa0"
