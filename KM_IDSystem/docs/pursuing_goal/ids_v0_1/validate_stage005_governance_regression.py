@@ -3012,6 +3012,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE092-P2-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE092"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE092-P2"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE092-P2"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE092-P3-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -20444,6 +20452,32 @@ def evaluate_current_state_consistency(
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE092_PHASE1_EVIDENCE_RISK_SCORING_SCOPE_BOUNDARY.md",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage092_evidence_risk_scoring_contract.json",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage092_evidence_risk_scoring_contract.py",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage092-p1-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_STAGE_REVIEW.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_stage_review_contract.json",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage091-review-local.json",
+                },
+            },
+            "IDS-STAGE092-P2": {
+                "task_id": "IDS-V0_1-STAGE092-P2",
+                "next_gate_id": "IDS-STAGE092-P3-GATE",
+                "transition_key": "stage092_phase2_state",
+                "stage_statuses": {"phase2_completed_local"},
+                "gate_id": "IDS-STAGE092-P2-GATE",
+                "future_phase_ids": {
+                    "IDS-STAGE092-P3",
+                    "IDS-STAGE092-P4",
+                    "IDS-STAGE092-REVIEW",
+                },
+                "required_evidence": {
+                    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-092_证据风险评分.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE092_PHASE2_EVIDENCE_RISK_SCORING_CONTROL_SLICE.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage092_evidence_risk_scoring_control_slice.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage092_evidence_risk_scoring_control_slice_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage092_evidence_risk_scoring_control_slice.py",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage092-p2-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE092_PHASE1_EVIDENCE_RISK_SCORING_SCOPE_BOUNDARY.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage092_evidence_risk_scoring_contract.json",
                     "KM_IDSystem/machine/runs/2026-08-24-stage092-p1-local.json",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_STAGE_REVIEW.md",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_stage_review_contract.json",

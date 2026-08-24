@@ -298,14 +298,22 @@ class Stage092EvidenceRiskScoringPhase1Tests(unittest.TestCase):
             self.assertIn('current_phase_id: "IDS-STAGE092-P1"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE092-P2-GATE"', roadmap_text)
         else:
-            self.assertEqual(
-                (
-                    "IDS-STAGE091",
-                    "IDS-STAGE091-REVIEW",
-                    "IDS-V0_1-STAGE091-REVIEW",
-                    "IDS-STAGE092-P1-GATE",
-                ),
+            self.assertIn(
                 current,
+                (
+                    (
+                        "IDS-STAGE092",
+                        "IDS-STAGE092-P2",
+                        "IDS-V0_1-STAGE092-P2",
+                        "IDS-STAGE092-P3-GATE",
+                    ),
+                    (
+                        "IDS-STAGE091",
+                        "IDS-STAGE091-REVIEW",
+                        "IDS-V0_1-STAGE091-REVIEW",
+                        "IDS-STAGE092-P1-GATE",
+                    ),
+                ),
             )
 
 

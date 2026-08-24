@@ -9,15 +9,20 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage092 Phase 1 - 2026-08-24
+## Current Gate - Stage092 Phase 2 - 2026-08-24
 
-- 本节是唯一当前交接；下方 Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review/P4/P3/P2/P1、Stage088 Review/P4/P3/P2/P1 与更早章节保留已验证的历史事实。
-- 本轮完成 `IDS-V0_1-STAGE092-P1` 静态证据风险评分合同：固定 `20` 个未来风险字段、`10` 个关联字段、来源／OCR 置信度／版本／复核状态／冲突状态 `5` 个风险输入、A/B/C/D/E 与 `14` 类失败关闭。关键结论未来必须关联 `evidence_id_ref` 或 `evidence_gap_ref`；风险评分、可信等级、撤回或投毒状态不能替代该关联。
-- 冻结任务包没有给出风险权重、阈值和业务判定公式。本 P1 将三者明确记录为业务线白箱 owner 的后续前置，不自行生成风险分值、等级、阈值或自动处置；所有字段均为控制引用，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。
-- 已验证：P1 聚焦 `9/9`；连同 Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `139/139`；Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围覆盖本地静态控制工件、精确历史后继和本地治理。
-- 本 P1 运行计数均为 `0`、运行标志均为 `false`：真实资料、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库和物理索引保持受保护状态；来源、OCR、版本、复核、冲突、风险计算、可信等级变更、撤回、恢复、投毒处置、报告状态更新、模型、模型 Token、Agent、OVH、生产和正式上传保持后续授权范围。
-- 回滚只撤回本 P1 的说明、静态合同、聚焦用例、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_REVIEWED_EVIDENCE_GAP_HANDLING_RUNTIME_DISABLED`；Stage091 Review/P1--P4、冻结任务包、真实资料、证据账本、GitHub、OVH 与应用状态保持原状。
-- 下一步只能在新的独立 run 进入 `IDS-STAGE092-P2-GATE`；Stage092 P2--Review 和 Stage093 保持未启动。继续复用既有唯一开发工作树，不创建额外 worktree、分支或合并请求。本 P1 的合同执行不包含 GitHub 推送；正式全局上传、合并到 `main`、发布与生产继续等待完整冻结任务包完成与 `ACC-STAGE-168`。现有分支的恢复检查点只在用户另行明确授权时单独推送，且不改变本阶段或运行范围。
+- 本节是唯一当前交接；下方 Stage092 P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review/P4/P3/P2/P1、Stage088 Review/P4/P3/P2/P1 与更早章节保留已验证的历史事实。
+- 本轮完成 `IDS-V0_1-STAGE092-P2` 纯内存证据风险评分受控最小切片：只接受 `6` 条固定、非业务、`reference-only` 的 `27` 字段控制请求，绑定 Stage092 P1 风险合同与 Stage091 Review 控制链，投影风险 schema、`10` 字段关联、检索证据捕获、来源／OCR／版本／复核／冲突 `5` 类风险输入、风险路由、撤回、投毒、关键结论、降级、报告状态影响与未来路线共 `11` 组、每条 `97` 字段、合计 `582` 个控制检查点与 `28` 类失败关闭。
+- 冻结任务包没有给出风险权重、阈值和业务判定公式。本 P2 只按固定控制场景路由，不自行生成风险分值、等级、阈值或自动处置；风险评估状态和所有输入均为控制引用，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。
+- 已验证：P2 聚焦 `9/9`；连同 Stage092 P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `148/148`；Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查均通过。验证范围覆盖固定控制输入、纯内存投影、精确历史后继和本地治理。
+- 本 P2 运行计数均为 `0`、运行标志均为 `false`：真实资料、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库和物理索引保持受保护状态；来源、OCR、版本、复核、冲突、风险计算、可信等级变更、撤回、恢复、投毒处置、报告状态更新、模型、模型 Token、Agent、OVH、生产和正式上传保持后续授权范围。
+- 回滚只撤回本 P2 的说明、纯内存控制切片、合同、聚焦用例、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PHASE1_EVIDENCE_RISK_SCORING_CONTRACT_RUNTIME_DISABLED`；Stage092 P1、Stage091 Review/P1--P4、冻结任务包、真实资料、证据账本、GitHub、OVH 与应用状态保持原状。
+- 下一步只能在新的独立 run 进入 `IDS-STAGE092-P3-GATE`；Stage092 P3--Review 和 Stage093 保持未启动。继续复用既有唯一开发工作树，不创建额外 worktree、分支或合并请求。本 P2 的合同执行不包含 GitHub 推送；正式全局上传、合并到 `main`、发布与生产继续等待完整冻结任务包完成与 `ACC-STAGE-168`。现有分支的恢复检查点只在用户另行明确授权时单独推送，且不改变本阶段或运行范围。
+
+## Superseded Gate - Stage092 Phase 1 - 2026-08-24
+
+- 本节保留 Stage092 P1 历史交接；唯一当前交接位于上方 Stage092 P2。P1 已固定 `20` 个未来风险字段、`10` 个关联字段、来源／OCR 置信度／版本／复核状态／冲突状态 `5` 个风险输入、A/B/C/D/E 与 `14` 类失败关闭；风险权重、阈值和业务判定公式保持业务线白箱 owner 的后续前置。
+- P1 的本地验证为聚焦 `9/9` 与精确历史关联聚焦 `139/139`；真实资料、风险分值、证据账本、数据库、模型 Token、Agent、OVH、生产与正式上传保持后续授权范围。P1 完成当时下一步为 `IDS-STAGE092-P2-GATE`，现 P2 已作为上方当前门禁完成。
 
 ## Superseded Gate - Stage091 Review - 2026-08-24
 

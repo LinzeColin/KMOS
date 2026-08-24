@@ -1,3 +1,9 @@
+## 2026-08-24 · Stage092 证据风险评分 P2
+
+- 完成冻结 Stage092 P2 纯内存受控最小切片：六条固定、非业务、`reference-only` 的 `27` 字段控制请求，分别投影风险 schema 绑定 `8`、风险关联 `10`、检索证据捕获 `11`、五类风险输入 `6`、风险路由 `12`、撤回 `8`、投毒防护 `8`、关键结论 binding `7`、降级 `12`、报告状态影响 `8` 与 future integration `7` 个字段，共 `582` 个控制检查点与 `28` 类失败关闭。
+- 本地验证通过：P2 聚焦 `9/9`，与 Stage092 P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `148/148`，Stage005 直接治理 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查均通过。范围覆盖固定控制输入、纯内存投影、精确历史后继与本地治理。
+- 真实资料、来源、OCR、版本、复核、冲突、风险计算、证据账本、报告、数据库、模型 Token、Agent、OVH、生产、Stage092 P3--Review、Stage093 与正式全局上传保持后续授权范围。风险权重、阈值和业务判定公式继续等待业务线白箱 owner；下一步只能在新的独立 run 进入 `IDS-STAGE092-P3-GATE`。
+
 ## 2026-08-24 · Stage092 证据风险评分 P1
 
 - 完成冻结 Stage092 P1 静态工程合同：固定 `20` 个未来风险字段、`10` 个关联字段、来源／OCR 置信度／版本／复核状态／冲突状态 `5` 个风险输入、A/B/C/D/E、关键结论 `evidence_id/evidence_gap` 约束与 `14` 类失败关闭。风险权重、阈值和业务判定公式保持业务线白箱 owner 的后续前置。
