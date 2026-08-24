@@ -533,6 +533,12 @@ class Stage093EvidenceGradeControlSliceTests(unittest.TestCase):
                         "IDS-V0_1-STAGE096-REVIEW",
                         "IDS-STAGE097-P1-GATE",
                     ),
+                    (
+                        "IDS-STAGE097",
+                        "IDS-STAGE097-P1",
+                        "IDS-V0_1-STAGE097-P1",
+                        "IDS-STAGE097-P2-GATE",
+                    ),
                     stage093_phase1_current,
                     stage093_phase3_current,
                     stage093_phase4_current,

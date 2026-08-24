@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE096"
-current_phase_id: "IDS-STAGE096-REVIEW"
-current_task_id: "IDS-V0_1-STAGE096-REVIEW"
-next_gate_id: "IDS-STAGE097-P1-GATE"
+current_stage_id: "IDS-STAGE097"
+current_phase_id: "IDS-STAGE097-P1"
+current_task_id: "IDS-V0_1-STAGE097-P1"
+next_gate_id: "IDS-STAGE097-P2-GATE"
 current_transition_history:
+  stage097_phase1_state:
+    current_stage_id: "IDS-STAGE097"
+    current_phase_id: "IDS-STAGE097-P1"
+    current_task_id: "IDS-V0_1-STAGE097-P1"
+    next_gate_id: "IDS-STAGE097-P2-GATE"
   stage096_review_state:
     current_stage_id: "IDS-STAGE096"
     current_phase_id: "IDS-STAGE096-REVIEW"
@@ -1614,6 +1619,70 @@ current_transition_history:
 total_estimated_hours: 158
 completed_estimated_hours: 290
 stages:
+  - stage_id: "IDS-STAGE097"
+    name: "回答合同"
+    task_id: "IDS-V0_1-STAGE097"
+    acceptance_ids:
+      - "ACC-STAGE-097"
+    objective: "依据冻结 Stage097 任务包固定回答结构、提示词版本引用、内部依据、外部增强、无内部依据策略、来源类型、引用结构、模型输出权限和人工确认门禁；检索文档保持 evidence 身份，业务线白箱 owner 前置和零运行时边界保持一致。"
+    status: "phase1_completed_local"
+    entry_authorized: true
+    next_gate_id: "IDS-STAGE097-P2-GATE"
+    gate:
+      gate_id: "IDS-STAGE097-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE097-P2-GATE"
+      github_upload_allowed: false
+    pass_conditions:
+      - "冻结 Stage097 任务包与 Stage096 Review 已复审知识库投毒防护控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。"
+      - "P1 只固定回答结构、提示词版本引用、内部依据、外部增强、无内部依据、来源类型、引用结构、输出分类、人工确认门禁和模型输出权限的 11 个未来控制引用；字段值不保存真实查询、提示词、回答、资料、模型配置或业务结论。"
+      - "检索文档、内部依据和外部增强永远只是 evidence，不能覆盖 IDS 规则或成为系统指令；外部增强不得伪装为内部依据，资料不足只以 evidence gap 控制引用表达。"
+      - "高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认与后续授权前置；P2 只开放下一门禁。"
+    stop_conditions:
+      - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、查询、执行、分类、生成、确认、发布、写回或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、提示词、回答、真实证据账本、审计日志、报告、数据库或物理索引。"
+      - "执行实际 RAG 回答、提示词、provider 或模型调用、模型 Token、来源类型绑定、引用生成、模型输出分类、人工确认、合同承诺、生产写回、数据库 schema 或连接、持久化、Agent、OVH、生产、正式全局上传或 Stage097 P2。"
+    phases:
+      - phase_id: "IDS-STAGE097-P1"
+        name: "Phase 1 · 范围、输入输出与边界确认"
+        objective: "只定义回答结构、提示词版本引用、内部依据、外部增强、无内部依据策略、来源类型、引用结构、模型输出权限和人工确认门禁；检索文档永远只是 evidence，实际回答和运行时继续保持后续授权范围。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE097-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE097-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE097-P2-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取真实资料、检索结果、提示词、回答、报告或真实证据账本，执行实际提示词、模型调用、模型 Token、来源类型绑定、引用生成、模型输出分类、人工确认、合同承诺、生产写回、数据库 schema 或连接、Agent、OVH、生产、上传、推送或 Stage097 P2。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE097-P1"
+            name: "固定回答合同静态边界"
+            objective: "只定义 11 个未来回答控制引用、三类来源类型、检索文档 evidence 边界、三类高风险输出人工确认门禁、失败关闭、业务线白箱 owner 前置与零运行时边界。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE096-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-097"
+              - "ACC-STAGE097-P1-01"
+              - "ACC-STAGE097-P1-02"
+              - "ACC-STAGE097-P1-03"
+              - "ACC-STAGE097-P1-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage097_answer_contract"
+              - "后续本地治理回归命令记录于 Stage097 P1 receipt"
+            test_results: "Stage097 P1 聚焦用例、Stage096 Review 与精确历史关联链，以及 Stage005 与两个既有批次检查器的本地治理回归记录于 Stage097 P1 receipt；结果只证明冻结回答合同、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-097_回答合同.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE097_PHASE1_ANSWER_CONTRACT_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage097_answer_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage097_answer_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage097-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE096_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage096_knowledge_base_poisoning_defense_stage_review_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage096-review-local.json"
+            risk: "若将静态回答合同、来源类型、引用结构、人工确认门禁或聚焦用例通过误作真实提示词、真实检索、真实回答、模型输出、合同承诺、生产写回、OVH 或生产能力，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage096 Review 的本地零运行时状态；不改变 Stage096 Review、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
   - stage_id: "IDS-STAGE096"
     name: "知识库投毒防护"
     task_id: "IDS-V0_1-STAGE096"

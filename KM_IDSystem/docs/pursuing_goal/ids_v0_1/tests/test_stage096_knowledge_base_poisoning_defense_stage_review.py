@@ -284,9 +284,15 @@ class Stage096ReviewTests(unittest.TestCase):
             "IDS-V0_1-STAGE096-REVIEW",
             "IDS-STAGE097-P1-GATE",
         )
+        stage097_phase1_current = (
+            "IDS-STAGE097",
+            "IDS-STAGE097-P1",
+            "IDS-V0_1-STAGE097-P1",
+            "IDS-STAGE097-P2-GATE",
+        )
         self.assertEqual(status["task"], plan["task"])
-        self.assertIn(current, (phase4_current, review_current))
-        if current == review_current:
+        self.assertIn(current, (phase4_current, review_current, stage097_phase1_current))
+        if current in (review_current, stage097_phase1_current):
             self.assertTrue(REVIEW_RUN.is_file())
             run = json.loads(REVIEW_RUN.read_text(encoding="utf-8"))
             acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}

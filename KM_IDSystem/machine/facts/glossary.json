@@ -2259,6 +2259,11 @@
       "说明": "仅表示未来 PostgreSQL FTS／BM25、pgvector、过滤、混合排序与轨迹路由的集成边界；Stage084 P2 不执行任何连接、索引、embedding 或检索。"
     },
     {
+      "英文": "main",
+      "中文": "主分支",
+      "说明": "Git 仓库的正式主分支；Stage097 P1 只将其作为后续正式合并目标的术语登记，本地验证继续在既有开发分支完成。"
+    },
+    {
       "英文": "PASS_RETRIEVAL_RESULT_VALIDITY_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
       "中文": "检索结果有效性交付证据已通过且运行时关闭",
       "说明": "Stage088 P4 的纯内存交付控制结果；只表示固定控制工件可回退到该状态，不表示真实检索、结果有效性、参数回滚或生产能力已执行。"

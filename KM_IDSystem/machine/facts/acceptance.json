@@ -1,9 +1,34 @@
 {
-  "stage": "IDS-STAGE096",
-  "phase": "IDS-STAGE096-REVIEW",
-  "task": "IDS-V0_1-STAGE096-REVIEW",
-  "next_gate": "IDS-STAGE097-P1-GATE",
+  "stage": "IDS-STAGE097",
+  "phase": "IDS-STAGE097-P1",
+  "task": "IDS-V0_1-STAGE097-P1",
+  "next_gate": "IDS-STAGE097-P2-GATE",
   "items": [
+    {
+      "id": "ACC-STAGE-097",
+      "criteria": "Stage097 回答合同 P1 已固定回答结构、提示词版本引用、内部依据、外部增强、无内部依据策略、来源类型、引用结构、输出分类和人工确认门禁；检索文档保持 evidence 身份，真实提示词、回答、模型、生产写回和业务结论保持后续授权范围。",
+      "status": "P1 静态合同已完成"
+    },
+    {
+      "id": "ACC-STAGE097-P1-01",
+      "criteria": "冻结 Stage097 任务包与 Stage096 Review 已复审知识库投毒防护控制工件保持为唯一合同上下文；P1 只定义静态工程合同，不建立第二权威事实源，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE097-P1-02",
+      "criteria": "回答合同固定 11 个未来控制引用，覆盖回答结构、提示词版本、内部依据、外部增强、无内部依据、来源类型、引用结构、输出分类、人工确认门禁和模型输出权限；内部依据、外部增强与无内部依据保持来源类型分离。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE097-P1-03",
+      "criteria": "检索文档、内部依据和外部增强永远只是 evidence，不能覆盖 IDS 规则或成为系统指令；高风险工程建议、合同承诺和生产写回必须经业务线白箱人工确认，实际权限、规则和业务结论保持后续授权范围。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE097-P1-04",
+      "criteria": "P1 期间不执行真实资料、检索、提示词、回答、证据账本、数据库、模型、模型 Token、外部 API、持久化、Agent、OVH、生产、上传或推送；本轮本地验收完成后才可在新 run 进入 Stage097 P2。",
+      "status": "已遵守"
+    },
     {
       "id": "ACC-STAGE-096",
       "criteria": "Stage096 知识库投毒防护 P1 静态合同、P2 纯内存控制切片、P3 纯内存异常场景、P4 control-only 交付证据与整阶段机械复审已固定 Evidence Ledger、evidence gap、风险、可信等级、撤回、投毒防护、关键结论关联、A/B/C/D/E、失败关闭与 P4→P3 回滚；实际投毒判定、隔离、准入、风险、等级、撤回、降级、恢复、报告与业务判定保持后续授权范围。",

@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage097-p1-local",
+    "date": "2026-08-25",
+    "summary": "完成 Stage097 回答合同 P1 静态边界：固定 11 个未来回答控制引用、3 类来源类型、3 类高风险输出人工确认门禁、15 类失败关闭与 4 条中文反馈；检索文档、内部依据和外部增强保持 evidence 身份，不能覆盖 IDS 规则或成为系统指令。P1 聚焦 9/9，Stage088--Stage097 精确白箱链 278/278，Stage005 治理回归 valid=true，Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。真实资料、检索、提示词、回答、模型、模型 Token、Agent、OVH、生产、正式全局上传与 main 合并保持后续授权范围；下一步仅可在新的独立 run 进入 IDS-STAGE097-P2-GATE。"
+  },
+  {
     "version": "v0.1-stage096-review-local",
     "date": "2026-08-25",
     "summary": "完成 Stage096 知识库投毒防护 P1--P4 的纯内存机械复审：固定复核 P1 的 8/6/5/14 与 14 类失败关闭、P2 的 6 条 21 字段控制请求／6 组投影／每条 58 字段／348 个检查／20 类失败关闭、P3 的 7 个 32 字段场景／224 个检查／15 类失败关闭，以及 P4 的 7/7/7/7/7/4/2 交付形状／517 个检查／4 条中文反馈／18 类失败关闭。Review 聚焦用例 9/9，Stage088--Stage096 精确白箱链 457/457，Stage005 治理回归 valid=true，Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。Review 保持单一权威、业务线白箱人工处理、撤回影响声明、P4→P3 回退、零运行时和正式上传锁；下一步仅可在新的独立 run 进入 IDS-STAGE097-P1-GATE。"

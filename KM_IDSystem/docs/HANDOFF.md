@@ -9,13 +9,20 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage096 Review accepted locally - 2026-08-25
+## Current Gate - Stage097 P1 accepted locally - 2026-08-25
 
-- `IDS-V0_1-STAGE096-REVIEW` 已在纯内存中完成 P1--P4 的机械复审；当前状态保持 `IDS-STAGE096 / IDS-STAGE096-REVIEW / IDS-V0_1-STAGE096-REVIEW / IDS-STAGE097-P1-GATE`。本阶段没有进入 Stage097，下一步只可在新的独立 run 进入 `IDS-STAGE097-P1-GATE`。
+- `IDS-V0_1-STAGE097-P1` 已固定回答结构、提示词版本引用、内部依据、外部增强、无内部依据策略、来源类型、引用结构、模型输出权限和人工确认门禁；当前状态为 `IDS-STAGE097 / IDS-STAGE097-P1 / IDS-V0_1-STAGE097-P1 / IDS-STAGE097-P2-GATE`。P2 仅可在新的独立 run 进入。
+- 已验证：P1 聚焦用例 `9/9`，Stage088--Stage096 历史关联链 `269/269`，含 Stage097 P1 的精确白箱链 `278/278`；`Stage005` 治理回归为 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞和单项目双平面检查通过。
+- 25 个历史白箱用例已将唯一合法后继扩展为 `IDS-STAGE097 / IDS-STAGE097-P1 / IDS-V0_1-STAGE097-P1 / IDS-STAGE097-P2-GATE`；Stage096 P1/P3/P4/Review 的历史测试持续读取 Review 收据，验证前序结果、门禁和全零运行计数。
+- `machine/runs/2026-08-25-stage097-p1-local.json`、Stage097 静态合同与事件记录 P1 的单一控制上下文、零运行时和本地验收；正式上传、push、`main`、release、OVH 与生产保持后续授权范围。本 run 继续使用既有唯一开发 worktree 与分支。
+- 回滚只撤回本 P1 的范围说明、静态合同、聚焦用例、历史后继断言、machine run、机器事实投影、治理路线和生成中文视图，恢复到 `PASS_REVIEWED_KNOWLEDGE_BASE_POISONING_DEFENSE_RUNTIME_DISABLED`；Stage096 Review、冻结任务包、受保护资料、真实证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
+
+## Superseded Gate - Stage096 Review accepted locally - 2026-08-25
+
+- 本节保留 Stage096 Review 的已验证历史；唯一当前交接位于上方 Stage097 P1。
+- `IDS-V0_1-STAGE096-REVIEW` 已在纯内存中完成 P1--P4 的机械复审；当时状态为 `IDS-STAGE096 / IDS-STAGE096-REVIEW / IDS-V0_1-STAGE096-REVIEW / IDS-STAGE097-P1-GATE`。
 - 已验证：Review 聚焦用例 `9/9`；Stage088 `44/44`、Stage089 `50/50`、Stage090--096 `363/363`，合计精确白箱链 `457/457`。`Stage005` 治理回归为 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器平面已重渲染 `7` 个中文文件，文档预算、无登记阻塞和单项目双平面检查通过。
-- 24 个历史白箱用例已将唯一合法后继扩展为 `IDS-STAGE096 / IDS-STAGE096-REVIEW / IDS-V0_1-STAGE096-REVIEW / IDS-STAGE097-P1-GATE`。Stage096 P1/P3/P4 的历史测试在 Review 当前态读取 Review 收据，持续验证结果、下一门禁和全零运行计数。
-- `machine/runs/2026-08-25-stage096-review-local.json` 已记录完整链、治理、中文视图和最终本地验收；`repository_wide_green_claimed=false`、正式上传、push、`main`、release、OVH 与生产保持关闭。此前 `40923452` 是既有隔离分支恢复检查点；本次 Review 完成只建立同一分支上的本地提交。
-- 回滚只撤回本 Review 的范围说明、纯内存复审模块、合同、聚焦用例、历史后继断言、machine run、机器事实投影、治理路线和生成中文视图，恢复到 `PASS_KNOWLEDGE_BASE_POISONING_DEFENSE_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；Stage096 P1--P4、Stage095 Review、冻结任务包、受保护资料、真实证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
+- `machine/runs/2026-08-25-stage096-review-local.json` 已记录完整链、治理、中文视图和最终本地验收；此前 `40923452` 是既有隔离分支恢复检查点。
 
 ## Superseded Gate - Stage096 Phase 4 - 2026-08-24
 
