@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE098",
-  "phase": "IDS-STAGE098-P4",
-  "task": "IDS-V0_1-STAGE098-P4",
-  "real_progress": "Stage098 P4 已从 P3 的 6 条、每条 31 字段、共 186 个 reference-only 异常场景派生回答样例、负向结果、prompt/version 记录、可复现日志与输出权限各 6 条，以及 prompt 回滚和模型配置回退各 1 条，共 444 个纯内存交付字段检查点。",
-  "report_grade": "冻结 Stage098 任务包、Stage098 P1/P2/P3 与已复审 Stage097 回答合同控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "P4 保持检索文档 evidence 身份、evidence_gap、来源类型分离、提示注入拒绝和三类高风险输出业务线白箱人工确认；prompt、model provider／version、temperature 和 retrieval context 仅以控制引用记录，最终结论未发布。真实提示词、模型、Token、Agent、OVH 与生产保持后续授权范围。",
-  "evidence_status": "STAGE098_PROMPT_VERSIONING_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE098-REVIEW",
+  "task": "IDS-V0_1-STAGE098-REVIEW",
+  "real_progress": "Stage098 Review 已纯内存机械复核 P1 的 5/3/16、P2 的 6×23/4/41/246、P3 的 6×31＝186 与 P4 的 6/6/6/6/6/2、17/12/14/15/12/12、444 个交付检查点、16 类失败关闭和四条中文反馈。",
+  "report_grade": "冻结 Stage098 任务包、Stage098 P1/P2/P3/P4 与已复审 Stage097 回答合同控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+  "business_verdict": "复审保持检索文档 evidence 身份、evidence_gap、来源类型分离、提示注入拒绝和三类高风险输出业务线白箱人工确认；Prompt、模型 provider／version、temperature 和 retrieval context 仅保留控制引用，最终结论保持未发布。真实提示词、模型、模型 Token、Agent、OVH 与生产维持后续授权范围。",
+  "evidence_status": "STAGE098_PROMPT_VERSIONING_REVIEW_RUNTIME_DISABLED",
   "rendered_at": "2026-08-25",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE098-REVIEW-GATE",
+  "next_gate": "IDS-STAGE099-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

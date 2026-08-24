@@ -319,6 +319,12 @@ class Stage097AnswerContractPhase1Tests(unittest.TestCase):
                     "IDS-V0_1-STAGE098-P4",
                     "IDS-STAGE098-REVIEW-GATE",
                 ),
+                (
+                    "IDS-STAGE098",
+                    "IDS-STAGE098-REVIEW",
+                    "IDS-V0_1-STAGE098-REVIEW",
+                    "IDS-STAGE099-P1-GATE",
+                ),
             ),
         )
         if current in (phase1_current, phase2_current):

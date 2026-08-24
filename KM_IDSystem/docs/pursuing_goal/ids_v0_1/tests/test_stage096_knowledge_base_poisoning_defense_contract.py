@@ -306,6 +306,12 @@ class Stage096KnowledgeBasePoisoningDefensePhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE098-P4",
             "IDS-STAGE098-REVIEW-GATE",
         )
+        stage098_review_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-REVIEW",
+            "IDS-V0_1-STAGE098-REVIEW",
+            "IDS-STAGE099-P1-GATE",
+        )
         if current == stage096_phase1_current:
             self.assertTrue(RECEIPT.is_file())
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
@@ -359,6 +365,7 @@ class Stage096KnowledgeBasePoisoningDefensePhase1Tests(unittest.TestCase):
             stage098_phase2_current,
             stage098_phase3_current,
             stage098_phase4_current,
+            stage098_review_current,
         ):
             self.assertTrue(REVIEW_RECEIPT.is_file())
             review_receipt = json.loads(REVIEW_RECEIPT.read_text(encoding="utf-8"))

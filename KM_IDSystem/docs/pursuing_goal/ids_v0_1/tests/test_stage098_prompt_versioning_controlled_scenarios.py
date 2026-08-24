@@ -382,7 +382,13 @@ class Stage098PromptVersioningPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE098-P4",
             "IDS-STAGE098-REVIEW-GATE",
         )
-        self.assertIn(current, (phase3_current, phase4_current))
+        review_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-REVIEW",
+            "IDS-V0_1-STAGE098-REVIEW",
+            "IDS-STAGE099-P1-GATE",
+        )
+        self.assertIn(current, (phase3_current, phase4_current, review_current))
         expected = {
             phase3_current: (
                 "IDS-V0_1-STAGE098-P3",
@@ -393,6 +399,11 @@ class Stage098PromptVersioningPhase3Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE098-P4",
                 "STAGE098_PROMPT_VERSIONING_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
                 "P4 交付证据已完成",
+            ),
+            review_current: (
+                "IDS-V0_1-STAGE098-REVIEW",
+                "STAGE098_PROMPT_VERSIONING_REVIEW_RUNTIME_DISABLED",
+                "整阶段已复审",
             ),
         }[current]
         self.assertEqual(expected[0], plan["task"])
@@ -433,6 +444,14 @@ class Stage098PromptVersioningPhase3Tests(unittest.TestCase):
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, roadmap_text)
+        if current == review_current:
+            for phrase in (
+                "stage098_review_state:",
+                'current_phase_id: "IDS-STAGE098-REVIEW"',
+                'next_gate_id: "IDS-STAGE099-P1-GATE"',
+            ):
+                with self.subTest(phrase=phrase):
+                    self.assertIn(phrase, roadmap_text)
 
 
 if __name__ == "__main__":

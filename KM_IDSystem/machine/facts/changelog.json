@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage098-review-local",
+    "date": "2026-08-25",
+    "summary": "完成 Stage098 Prompt 版本化整阶段纯内存机械复审：固定复核 P1 的 5/3/16、P2 的 6×23/4/41/246、P3 的 6×31＝186/5/6/15 与 P4 的 6/6/6/6/6/2、17/12/14/15/12/12、444、4、16 控制形状，并同时复核 P2 冻结合同的单一权威边界。历史白箱将 Stage098 Review 作为独立合法四元组，完整保留 P1--P4 历史状态。已通过 Stage098 聚焦 50/50、Stage038 源复核 8/8、Stage088--Stage098 Review 精确白箱链 387/387、Stage005 valid=true、Batch041-050 与 Batch051-060 本地审阅、7 个中文视图、文档预算、无登记阻塞与单项目双平面检查。真实资料、提示词、查询、检索、回答、日志、模型、模型 Token、Agent、OVH、生产与正式全局上传均未执行；下一步仅保留 IDS-STAGE099-P1-GATE，Review 不新增远端推送。"
+  },
+  {
     "version": "v0.1-stage098-p4-local",
     "date": "2026-08-25",
     "summary": "完成 Stage098 Prompt 版本化 P4 纯内存交付证据：从 P3 六条、每条 31 字段非业务 reference-only 场景派生回答样例、负向结果、prompt/version 记录、可复现日志和模型输出权限边界各 6 条，以及 prompt 回滚和模型配置回退各 1 条，字段形状为 17/12/14/15/12/12，共 444 个交付字段检查点、16 类失败关闭与 4 条中文反馈。模型 provider、模型版本、temperature 与检索上下文保持不透明控制引用；检索文档保持 evidence 身份，三类高风险输出保持业务线白箱人工确认，最终结论未发布。已通过 P4 聚焦 11/11、P1--P4 聚焦 41/41、Stage038 源复核 8/8、Stage088--Stage098 P4 精确白箱链 336/336、Stage005 valid=true、Batch041-050 与 Batch051-060 本地审阅。真实资料、提示词、查询、检索、回答、模型、模型 Token、Agent、OVH、生产、正式全局上传与 main 合并保持后续授权范围；下一步仅可在新的独立 run 进入 IDS-STAGE098-REVIEW-GATE。"

@@ -274,13 +274,23 @@ class Stage098PromptVersioningPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE098-P4",
             "IDS-STAGE098-REVIEW-GATE",
         )
-        self.assertIn(current, (phase1_current, phase2_current, phase3_current, phase4_current))
+        review_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-REVIEW",
+            "IDS-V0_1-STAGE098-REVIEW",
+            "IDS-STAGE099-P1-GATE",
+        )
+        self.assertIn(
+            current,
+            (phase1_current, phase2_current, phase3_current, phase4_current, review_current),
+        )
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
         expected_stage_status = {
             phase1_current: "P1 静态合同已完成",
             phase2_current: "P2 受控最小切片已完成",
             phase3_current: "P3 专项验证已完成",
             phase4_current: "P4 交付证据已完成",
+            review_current: "整阶段已复审",
         }[current]
         self.assertEqual(expected_stage_status, acceptance_by_id["ACC-STAGE-098"])
         for acceptance_id in (
@@ -319,6 +329,14 @@ class Stage098PromptVersioningPhase1Tests(unittest.TestCase):
                 "stage098_phase3_state:",
                 'current_phase_id: "IDS-STAGE098-P3"',
                 'next_gate_id: "IDS-STAGE098-P4-GATE"',
+            ):
+                with self.subTest(phrase=phrase):
+                    self.assertIn(phrase, roadmap_text)
+        if current == review_current:
+            for phrase in (
+                "stage098_review_state:",
+                'current_phase_id: "IDS-STAGE098-REVIEW"',
+                'next_gate_id: "IDS-STAGE099-P1-GATE"',
             ):
                 with self.subTest(phrase=phrase):
                     self.assertIn(phrase, roadmap_text)

@@ -43,6 +43,7 @@ PREDECESSOR_CONTRACT = (
     / "stage097_answer_contract_stage_review_contract.json"
 )
 RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage098-p4-local.json"
+REVIEW_RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage098-review-local.json"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
@@ -352,20 +353,35 @@ class Stage098PromptVersioningPhase4DeliveryTests(unittest.TestCase):
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
-        expected_current = (
+        phase4_current = (
             "IDS-STAGE098",
             "IDS-STAGE098-P4",
             "IDS-V0_1-STAGE098-P4",
             "IDS-STAGE098-REVIEW-GATE",
         )
-        self.assertEqual(expected_current, current)
-        self.assertEqual("IDS-V0_1-STAGE098-P4", plan["task"])
-        self.assertEqual(
-            "STAGE098_PROMPT_VERSIONING_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
-            status["evidence_status"],
+        review_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-REVIEW",
+            "IDS-V0_1-STAGE098-REVIEW",
+            "IDS-STAGE099-P1-GATE",
         )
+        self.assertIn(current, (phase4_current, review_current))
+        expected = {
+            phase4_current: (
+                "IDS-V0_1-STAGE098-P4",
+                "STAGE098_PROMPT_VERSIONING_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+                "P4 交付证据已完成",
+            ),
+            review_current: (
+                "IDS-V0_1-STAGE098-REVIEW",
+                "STAGE098_PROMPT_VERSIONING_REVIEW_RUNTIME_DISABLED",
+                "整阶段已复审",
+            ),
+        }[current]
+        self.assertEqual(expected[0], plan["task"])
+        self.assertEqual(expected[1], status["evidence_status"])
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-        self.assertEqual("P4 交付证据已完成", acceptance_by_id["ACC-STAGE-098"])
+        self.assertEqual(expected[2], acceptance_by_id["ACC-STAGE-098"])
         for acceptance_id in (
             "ACC-STAGE098-P4-01",
             "ACC-STAGE098-P4-02",
@@ -385,6 +401,24 @@ class Stage098PromptVersioningPhase4DeliveryTests(unittest.TestCase):
         self.assertEqual(self.module.PASS_RESULT, receipt["result"])
         self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
         self.assertTrue(receipt["verification"]["final_validation_recorded"])
+        if current == review_current:
+            self.assertTrue(REVIEW_RECEIPT.is_file())
+            review_receipt = json.loads(REVIEW_RECEIPT.read_text(encoding="utf-8"))
+            self.assertEqual("IDS-STAGE098-REVIEW", review_receipt["phase"])
+            self.assertEqual("IDS-STAGE099-P1-GATE", review_receipt["next_gate"])
+            self.assertEqual(
+                "PASS_REVIEWED_PROMPT_VERSIONING_RUNTIME_DISABLED",
+                review_receipt["result"],
+            )
+            self.assertTrue(
+                all(value == 0 for value in review_receipt["runtime_counts"].values())
+            )
+            self.assertTrue(
+                all(value is False for value in review_receipt["runtime_flags"].values())
+            )
+            self.assertFalse(review_receipt["stage099_started"])
+            self.assertTrue(review_receipt["validation"]["final_validation_recorded"])
+            self.assertIn("EVT-IDS-V0_1-STAGE098-REVIEW-20260825-001", event_ids)
 
 
 if __name__ == "__main__":

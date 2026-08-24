@@ -9,7 +9,15 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage098 P4 accepted locally - 2026-08-25
+## Current Gate - Stage098 Review accepted locally - 2026-08-25
+
+- `IDS-V0_1-STAGE098-REVIEW` 已完成；唯一当前状态为 `IDS-STAGE098 / IDS-STAGE098-REVIEW / IDS-V0_1-STAGE098-REVIEW / IDS-STAGE099-P1-GATE`。Stage099 仅保留 P1 门禁投影，未进入其任何任务。
+- Review 机械重放 P1 的 `5/3/16`、P2 的 `6×23／4／41／246`、P3 的 `6×31＝186／5／6／15` 与 P4 的 `6/6/6/6/6/2`、`17/12/14/15/12/12`、`444`、`4`、`16` 固定控制形状；P2 冻结合同的单一权威断言与控制报告同时复核。历史白箱已将 Review 作为独立合法四元组，P1--P4 历史路径保持可回放。
+- 已验证：Stage098 聚焦 `50/50`，Stage038 源复核 `8/8`，Stage088--Stage098 Review 精确白箱链 `387/387`，Stage005 治理回归 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞和单项目双平面检查通过。
+- 检索文档继续是 evidence，IDS 规则保持优先级；无内部依据保持 `evidence_gap`，外部增强保持底层来源类型分离；高风险工程建议、合同承诺和生产写回均需业务线白箱人工确认，最终结论保持未发布。Review 回执记录全零运行计数与全 false 运行标志；真实资料、提示词、查询、检索、回答、审计、模型、模型 Token、Agent、OVH、生产、正式全局上传、`main` 与 release 保持后续授权范围。
+- P4 的既有远端检查点 `3398adfa` 保持不变；本 Review 仅建立本地提交，不新增远端推送。回滚只撤回本 Review 的说明、纯内存复审模块、合同、聚焦用例、历史后继状态断言、机器事实、治理路线、中文视图、本地回执、事件和本交接，恢复到 `PASS_PROMPT_VERSIONING_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；Stage098 P1--P4、Stage097 Review、冻结任务包、受保护资料、GitHub `main`／release、OVH 与应用状态保持原状。
+
+## Superseded Gate - Stage098 P4 accepted locally - 2026-08-25
 
 - `IDS-V0_1-STAGE098-P4` 已完成；当前状态为 `IDS-STAGE098 / IDS-STAGE098-P4 / IDS-V0_1-STAGE098-P4 / IDS-STAGE098-REVIEW-GATE`。后续只可在新的独立 run 进入 Stage098 Review，继续复用既有唯一开发 worktree 与分支。
 - P4 从 P3 的 `6` 条、每条 `31` 字段、共 `186` 个纯内存异常场景检查点派生回答样例、负向结果、Prompt 版本记录、可复现日志和模型输出权限边界各 `6` 条，以及 Prompt 回滚和模型配置回退各 `1` 条；字段形状为 `17/12/14/15/12/12`，共 `444` 个交付字段检查点、`16` 类失败关闭与四条中文反馈。

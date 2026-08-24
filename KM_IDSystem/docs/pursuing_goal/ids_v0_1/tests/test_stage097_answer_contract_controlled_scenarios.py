@@ -416,6 +416,12 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE098-P4",
             "IDS-STAGE098-REVIEW-GATE",
         )
+        stage098_review_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-REVIEW",
+            "IDS-V0_1-STAGE098-REVIEW",
+            "IDS-STAGE099-P1-GATE",
+        )
         self.assertIn(
             current,
             (
@@ -426,6 +432,7 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
                 stage098_phase2_current,
                 stage098_phase3_current,
                 stage098_phase4_current,
+                stage098_review_current,
             ),
         )
         self.assertEqual(status["task"], plan["task"])
@@ -498,7 +505,7 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
             self.assertIn("stage098_phase1_state:", roadmap_text)
             self.assertIn("stage098_phase2_state:", roadmap_text)
             self.assertIn("stage098_phase3_state:", roadmap_text)
-        else:
+        elif current == stage098_phase4_current:
             self.assertEqual(
                 "STAGE098_PROMPT_VERSIONING_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
                 status["evidence_status"],
@@ -509,6 +516,18 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
             self.assertIn("stage098_phase2_state:", roadmap_text)
             self.assertIn("stage098_phase3_state:", roadmap_text)
             self.assertIn("stage098_phase4_state:", roadmap_text)
+        else:
+            self.assertEqual(
+                "STAGE098_PROMPT_VERSIONING_REVIEW_RUNTIME_DISABLED",
+                status["evidence_status"],
+            )
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
+            self.assertIn("stage097_review_state:", roadmap_text)
+            self.assertIn("stage098_phase1_state:", roadmap_text)
+            self.assertIn("stage098_phase2_state:", roadmap_text)
+            self.assertIn("stage098_phase3_state:", roadmap_text)
+            self.assertIn("stage098_phase4_state:", roadmap_text)
+            self.assertIn("stage098_review_state:", roadmap_text)
 
 
 if __name__ == "__main__":

@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE098",
-  "phase": "IDS-STAGE098-P4",
-  "task": "IDS-V0_1-STAGE098-P4",
-  "next_gate": "IDS-STAGE098-REVIEW-GATE",
+  "phase": "IDS-STAGE098-REVIEW",
+  "task": "IDS-V0_1-STAGE098-REVIEW",
+  "next_gate": "IDS-STAGE099-P1-GATE",
   "items": [
     {
       "id": "ACC-STAGE-098",
-      "criteria": "Stage098 Prompt 版本化 P4 已形成可执行、可测试、可回滚的纯内存交付证据控制工件：回答样例、负向结果、prompt/version 记录、可复现日志、输出权限、prompt 回滚与模型配置回退说明、失败关闭、回退路径和零运行时边界明确；真实提示词、配置、检索、模型调用、审计与业务结论保持后续授权范围。",
-      "status": "P4 交付证据已完成"
+      "criteria": "Stage098 Prompt 版本化 P1--P4 已完成可执行、可测试、可回滚的纯内存机械复审：固定控制形状、回答与来源边界、提示注入防护、输出权限、失败关闭、P4→P3 回退路径与零运行时边界保持一致；真实提示词、配置、检索、模型调用、审计与业务结论保持后续授权范围。",
+      "status": "整阶段已复审"
     },
     {
       "id": "ACC-STAGE098-P1-01",
@@ -87,6 +87,26 @@
     {
       "id": "ACC-STAGE098-P4-04",
       "criteria": "P4 期间不执行真实资料、查询、检索、提示词、回答、日志、证据账本、数据库、模型、模型 Token、外部 API、持久化、Agent、OVH、生产、上传或推送；本轮本地验收完成后才可在新 run 进入 Stage098 Review。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE098-REVIEW-01",
+      "criteria": "冻结 Stage098 任务包、Stage098 P1/P2/P3/P4 与 Stage097 Review 已复审回答合同控制工件保持为唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE098-REVIEW-02",
+      "criteria": "复审精确重放 P1 的五个未来控制引用、三类高风险输出与十六类失败关闭，P2 的 6×23/4/41/246 控制形状，P3 的 6×31＝186 场景形状，以及 P4 的 6/6/6/6/6/2、17/12/14/15/12/12、444 个交付检查点、十六类失败关闭与四条中文反馈。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE098-REVIEW-03",
+      "criteria": "检索文档保持 evidence 身份且 IDS 规则保持优先级；evidence_gap 保持独立来源类型；提示注入保持拒绝或白箱前置；高风险工程建议、合同承诺与生产写回保持业务线白箱人工确认；P4→P3 回退保持版本化与人工确认前置。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE098-REVIEW-04",
+      "criteria": "Review 的真实资料、查询、检索、提示词、回答、日志、证据账本、数据库、模型、模型 Token、外部 API、持久化、Agent、OVH、生产、上传与推送保持未执行；Stage099 只开放为下一独立 run 的 P1 门禁。",
       "status": "已遵守"
     },
     {
