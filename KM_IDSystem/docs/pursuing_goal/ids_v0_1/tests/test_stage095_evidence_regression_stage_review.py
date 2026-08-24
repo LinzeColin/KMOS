@@ -304,6 +304,12 @@ class Stage095ReviewTests(unittest.TestCase):
             "IDS-V0_1-STAGE095-REVIEW",
             "IDS-STAGE096-P1-GATE",
         )
+        stage096_phase1_current = (
+            "IDS-STAGE096",
+            "IDS-STAGE096-P1",
+            "IDS-V0_1-STAGE096-P1",
+            "IDS-STAGE096-P2-GATE",
+        )
         if current == review_current:
             self.assertTrue(REVIEW_RUN.is_file())
             run = json.loads(REVIEW_RUN.read_text(encoding="utf-8"))
@@ -325,8 +331,9 @@ class Stage095ReviewTests(unittest.TestCase):
             self.assertIn('current_phase_id: "IDS-STAGE095-REVIEW"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE096-P1-GATE"', roadmap_text)
         else:
-            self.assertEqual(phase4_current, current)
-            self.assertTrue(P4_RUN.is_file())
+            self.assertIn(current, (phase4_current, stage096_phase1_current))
+            if current == phase4_current:
+                self.assertTrue(P4_RUN.is_file())
 
 
 if __name__ == "__main__":

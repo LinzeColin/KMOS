@@ -1,6 +1,12 @@
 {
   "stages": [
     {
+      "id": "IDS-STAGE096",
+      "name": "知识库投毒防护",
+      "gate": "Stage096 P1 静态合同已完成；下一步只能在新的独立 run 进入 Stage096 P2",
+      "status": "Stage096 P1 已固定 Evidence Ledger、证据缺口、风险评分、可信等级、撤回和投毒防护的 8 个未来控制引用，关键结论保持 evidence_id 或 evidence_gap 约束，A/B/C/D/E 保持已复审等级标签；投毒判定、隔离、高可信准入、风险、等级、撤回、报告、模型、Token、Agent、OVH、生产与正式上传保持后续授权范围。"
+    },
+    {
       "id": "IDS-STAGE095",
       "name": "证据回归测试",
       "gate": "Stage095 P1--P4 纯内存证据回归控制工件已完成整阶段机械复审；下一步只能在新的独立 run 进入 Stage096 P1",

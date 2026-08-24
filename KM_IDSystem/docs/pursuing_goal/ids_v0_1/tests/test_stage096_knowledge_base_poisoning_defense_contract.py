@@ -5,24 +5,28 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-SCOPE = BASE / "STAGE095_PHASE1_EVIDENCE_REGRESSION_SCOPE_BOUNDARY.md"
-CONTRACT = BASE / "index_version_schema" / "stage095_evidence_regression_contract.json"
+SCOPE = BASE / "STAGE096_PHASE1_KNOWLEDGE_BASE_POISONING_DEFENSE_SCOPE_BOUNDARY.md"
+CONTRACT = (
+    BASE
+    / "index_version_schema"
+    / "stage096_knowledge_base_poisoning_defense_contract.json"
+)
 TASKPACK = (
     ROOT
     / "docs"
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-095_证据回归测试.md"
+    / "STAGE-096_知识库投毒防护.md"
 )
-PREDECESSOR_REVIEW = BASE / "STAGE094_STAGE_REVIEW.md"
+PREDECESSOR_REVIEW = BASE / "STAGE095_STAGE_REVIEW.md"
 PREDECESSOR_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage094_evidence_revocation_stage_review_contract.json"
+    / "stage095_evidence_regression_stage_review_contract.json"
 )
-PREDECESSOR_RECEIPT = ROOT / "machine" / "runs" / "2026-08-24-stage094-review-local.json"
-RECEIPT = ROOT / "machine" / "runs" / "2026-08-24-stage095-p1-local.json"
+PREDECESSOR_RECEIPT = ROOT / "machine" / "runs" / "2026-08-24-stage095-review-local.json"
+RECEIPT = ROOT / "machine" / "runs" / "2026-08-24-stage096-p1-local.json"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
@@ -30,7 +34,7 @@ EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 
 
-class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
+class Stage096KnowledgeBasePoisoningDefensePhase1Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
@@ -51,22 +55,22 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
     def test_identity_and_single_authority_boundary_are_explicit(self):
         contract = self.contract
         self.assertEqual(
-            "ids.stage095.evidence_regression_contract.phase1.v1",
+            "ids.stage096.knowledge_base_poisoning_defense_contract.phase1.v1",
             contract["schema_version"],
         )
-        self.assertEqual("STAGE-095", contract["stage"])
-        self.assertEqual("IDS-STAGE095-P1", contract["phase"])
-        self.assertEqual("IDS-V0_1-STAGE095-P1", contract["task_id"])
-        self.assertEqual("ACC-STAGE-095", contract["acceptance_id"])
+        self.assertEqual("STAGE-096", contract["stage"])
+        self.assertEqual("IDS-STAGE096-P1", contract["phase"])
+        self.assertEqual("IDS-V0_1-STAGE096-P1", contract["task_id"])
+        self.assertEqual("ACC-STAGE-096", contract["acceptance_id"])
         self.assertEqual(
-            "PHASE1_EVIDENCE_REGRESSION_CONTRACT_RUNTIME_DISABLED",
+            "PHASE1_KNOWLEDGE_BASE_POISONING_DEFENSE_CONTRACT_RUNTIME_DISABLED",
             contract["contract_state"],
         )
-        self.assertEqual("IDS-STAGE095-P1-GATE", contract["entry_gate"])
-        self.assertEqual("IDS-STAGE095-P2-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE096-P1-GATE", contract["entry_gate"])
+        self.assertEqual("IDS-STAGE096-P2-GATE", contract["next_gate"])
         source = contract["source_authority"]
         self.assertEqual(
-            "FROZEN_STAGE095_TASKPACK_AND_STAGE094_REVIEWED_EVIDENCE_REVOCATION_CONTROL_ARTIFACTS_ONLY",
+            "FROZEN_STAGE096_TASKPACK_AND_STAGE095_REVIEWED_EVIDENCE_REGRESSION_CONTROL_ARTIFACTS_ONLY",
             source["authority"],
         )
         reference_fields = {
@@ -82,17 +86,12 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
                     self.assertFalse(value)
 
     def test_static_shape_grade_reference_and_predecessor_are_fixed(self):
-        shape = self.contract["evidence_regression_contract"]
+        shape = self.contract["knowledge_base_poisoning_defense_contract"]
         self.assertEqual(
-            shape["evidence_regression_field_count"],
-            len(shape["future_evidence_regression_fields"]),
+            shape["knowledge_base_poisoning_defense_field_count"],
+            len(shape["future_knowledge_base_poisoning_defense_fields"]),
         )
-        self.assertEqual(14, shape["evidence_regression_field_count"])
-        self.assertEqual(
-            shape["evidence_regression_relation_field_count"],
-            len(shape["future_evidence_regression_relation_fields"]),
-        )
-        self.assertEqual(14, shape["evidence_regression_relation_field_count"])
+        self.assertEqual(8, shape["knowledge_base_poisoning_defense_field_count"])
         self.assertEqual(
             {
                 "evidence_ledger",
@@ -112,18 +111,21 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
         self.assertFalse(grade_reference["grade_assignment_defined"])
         self.assertFalse(grade_reference["grade_threshold_defined"])
         self.assertEqual(
-            "7/7/7/7/7/4/2",
-            self.predecessor["reviewed_phase_contract"]["phase4_delivery_shape"],
+            "14/14/6/5",
+            self.predecessor["reviewed_phase_contract"]["phase1_static_shape"],
         )
 
     def test_conclusion_binding_and_control_only_boundary_are_complete(self):
-        shape = self.contract["evidence_regression_contract"]
+        shape = self.contract["knowledge_base_poisoning_defense_contract"]
         for field in (
             "critical_conclusion_requires_evidence_id_or_evidence_gap",
             "critical_conclusion_may_not_omit_evidence_id_and_evidence_gap",
-            "evidence_regression_may_not_replace_evidence_id_or_evidence_gap",
+            "poisoning_defense_may_not_replace_evidence_id_or_evidence_gap",
             "internal_material_insufficiency_requires_evidence_gap",
             "evidence_gap_may_not_be_presented_as_internal_experience",
+            "unreviewed_or_suspected_evidence_requires_future_whitebox_review",
+            "low_trust_conflict_expired_or_revoked_evidence_requires_future_degradation_control",
+            "high_trust_evidence_layer_admission_requires_future_whitebox_review",
             "business_line_whitebox_human_review_required_before_business_use",
             "all_values_are_control_labels_only",
         ):
@@ -137,7 +139,7 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
     def test_future_runtime_prerequisites_are_defined_without_runtime(self):
         prerequisite = self.contract["future_runtime_prerequisite_contract"]
         authorized = {
-            "business_line_owner_regression_rule_approval_is_future_authorized_work_only",
+            "business_line_owner_poisoning_defense_rule_approval_is_future_authorized_work_only",
             "evidence_ledger_capture_is_future_authorized_work_only",
             "evidence_gap_detection_or_resolution_is_future_authorized_work_only",
             "risk_scoring_runtime_is_future_authorized_work_only",
@@ -158,11 +160,11 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
         for state in (
             "EVIDENCE_ID_AND_GAP_BOTH_MISSING",
             "EVIDENCE_GRADE_LABEL_SET_INVALID",
-            "REGRESSION_CASE_EXECUTED_WITHOUT_AUTHORIZATION",
-            "RISK_OR_GRADE_RUNTIME_EXECUTED",
-            "REVOCATION_OR_REPORT_STATUS_RUNTIME_EXECUTED",
+            "UNREVIEWED_OR_SUSPECTED_EVIDENCE_AUTO_ACCEPTED",
+            "HIGH_TRUST_LAYER_ADMISSION_WITHOUT_WHITEBOX_REVIEW",
+            "POISONING_DEFENSE_RUNTIME_EXECUTED",
             "SECOND_AUTHORITY_CREATED",
-            "STAGE095_PHASE2_NOT_AUTHORIZED",
+            "STAGE096_PHASE2_NOT_AUTHORIZED",
         ):
             with self.subTest(state=state):
                 self.assertIn(state, failures["declared_failure_states"])
@@ -180,9 +182,9 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
     def test_stage_boundary_scope_and_next_gate_are_explicit(self):
         boundary = self.contract["stage_and_phase_boundary"]
         for field in (
-            "stage094_review_evidence_declared",
-            "stage095_started",
-            "stage095_entry_authorized",
+            "stage095_review_evidence_declared",
+            "stage096_started",
+            "stage096_entry_authorized",
             "phase1_started",
         ):
             with self.subTest(field=field):
@@ -192,7 +194,7 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
             "phase3_started",
             "phase4_started",
             "whole_stage_review_performed",
-            "stage096_started",
+            "stage097_started",
             "github_upload_allowed",
             "push_allowed",
         ):
@@ -202,11 +204,11 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
         for phrase in (
             "不建立第二权威事实源",
             "Evidence Ledger、证据缺口、风险评分、可信等级、撤回和知识库投毒防护",
-            "关键结论未来必须关联至少一个 evidence_id_ref 或 evidence_gap_ref",
+            "关键结论未来必须关联至少一个 `evidence_id_ref` 或 `evidence_gap_ref`",
             "A/B/C/D/E",
             "业务线白箱 owner",
             "业务线白箱人工复核",
-            "IDS-STAGE095-P2-GATE",
+            "IDS-STAGE096-P2-GATE",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
@@ -214,11 +216,11 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
     def test_rollback_preserves_predecessor_and_runtime_is_not_authorized(self):
         rollback = self.contract["rollback_contract"]
         self.assertEqual(
-            "PASS_REVIEWED_EVIDENCE_REVOCATION_RUNTIME_DISABLED",
+            "PASS_REVIEWED_EVIDENCE_REGRESSION_RUNTIME_DISABLED",
             rollback["return_to"],
         )
-        self.assertTrue(rollback["preserve_stage094_review_evidence"])
-        self.assertTrue(rollback["preserve_stage094_phase1_to_phase4_evidence"])
+        self.assertTrue(rollback["preserve_stage095_review_evidence"])
+        self.assertTrue(rollback["preserve_stage095_phase1_to_phase4_evidence"])
         for field in (
             "source_or_raw_data_change_allowed",
             "database_or_persistent_state_change_allowed",
@@ -237,78 +239,42 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
             if line.strip()
         }
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
-        stage095_phase1_current = (
-            "IDS-STAGE095",
-            "IDS-STAGE095-P1",
-            "IDS-V0_1-STAGE095-P1",
-            "IDS-STAGE095-P2-GATE",
-        )
-        stage095_phase2_current = (
-            "IDS-STAGE095",
-            "IDS-STAGE095-P2",
-            "IDS-V0_1-STAGE095-P2",
-            "IDS-STAGE095-P3-GATE",
-        )
-        stage095_phase3_current = (
-            "IDS-STAGE095",
-            "IDS-STAGE095-P3",
-            "IDS-V0_1-STAGE095-P3",
-            "IDS-STAGE095-P4-GATE",
-        )
-        stage095_phase4_current = (
-            "IDS-STAGE095",
-            "IDS-STAGE095-P4",
-            "IDS-V0_1-STAGE095-P4",
-            "IDS-STAGE095-REVIEW-GATE",
-        )
         stage096_phase1_current = (
             "IDS-STAGE096",
             "IDS-STAGE096-P1",
             "IDS-V0_1-STAGE096-P1",
             "IDS-STAGE096-P2-GATE",
         )
-        if current == stage095_phase1_current:
+        if current == stage096_phase1_current:
             self.assertTrue(RECEIPT.is_file())
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
             acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-            self.assertEqual("P1 静态合同已完成", acceptance_by_id["ACC-STAGE-095"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE095-P1-01"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE095-P1-02"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE095-P1-03"])
-            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE095-P1-04"])
-            self.assertIn("EVT-IDS-V0_1-STAGE095-P1-20260824-001", event_ids)
-            self.assertEqual("IDS-STAGE095-P2-GATE", receipt["next_gate"])
+            self.assertEqual("P1 静态合同已完成", acceptance_by_id["ACC-STAGE-096"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE096-P1-01"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE096-P1-02"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE096-P1-03"])
+            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE096-P1-04"])
+            self.assertIn("EVT-IDS-V0_1-STAGE096-P1-20260824-001", event_ids)
+            self.assertEqual("IDS-STAGE096-P2-GATE", receipt["next_gate"])
             self.assertEqual(
-                "PASS_EVIDENCE_REGRESSION_CONTRACT_RUNTIME_DISABLED",
+                "PASS_KNOWLEDGE_BASE_POISONING_DEFENSE_CONTRACT_RUNTIME_DISABLED",
                 receipt["result"],
             )
             self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
-            self.assertEqual("IDS-V0_1-STAGE095-P1", plan["task"])
+            self.assertEqual("IDS-V0_1-STAGE096-P1", plan["task"])
             roadmap_text = ROADMAP.read_text(encoding="utf-8")
-            self.assertIn("stage095_phase1_state:", roadmap_text)
-            self.assertIn('current_phase_id: "IDS-STAGE095-P1"', roadmap_text)
-            self.assertIn('next_gate_id: "IDS-STAGE095-P2-GATE"', roadmap_text)
+            self.assertIn("stage096_phase1_state:", roadmap_text)
+            self.assertIn('current_phase_id: "IDS-STAGE096-P1"', roadmap_text)
+            self.assertIn('next_gate_id: "IDS-STAGE096-P2-GATE"', roadmap_text)
         else:
-            self.assertIn(
-                current,
+            self.assertEqual(
                 (
-                    stage095_phase2_current,
-                    stage095_phase3_current,
-                    stage095_phase4_current,
-                    (
-                        "IDS-STAGE095",
-                        "IDS-STAGE095-REVIEW",
-                        "IDS-V0_1-STAGE095-REVIEW",
-                        "IDS-STAGE096-P1-GATE",
-                    ),
-                    stage096_phase1_current,
-                    (
-                        "IDS-STAGE094",
-                        "IDS-STAGE094-REVIEW",
-                        "IDS-V0_1-STAGE094-REVIEW",
-                        "IDS-STAGE095-P1-GATE",
-                    ),
+                    "IDS-STAGE095",
+                    "IDS-STAGE095-REVIEW",
+                    "IDS-V0_1-STAGE095-REVIEW",
+                    "IDS-STAGE096-P1-GATE",
                 ),
+                current,
             )
 
 
