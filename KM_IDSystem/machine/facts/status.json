@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE097",
-  "phase": "IDS-STAGE097-P4",
-  "task": "IDS-V0_1-STAGE097-P4",
-  "real_progress": "Stage097 P4 已从 P3 六条固定控制场景派生回答样例、负向结果、prompt/version 记录、可复现日志和输出权限各六条，以及 prompt 回滚与模型配置回退各一条，共 384 个纯内存交付字段检查点。",
-  "report_grade": "冻结 Stage097 任务包、Stage097 P1/P2/P3 控制工件与已复审 Stage096 知识库投毒防护控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "Stage097 P4 仅交付固定、非业务、reference-only 控制记录：检索文档保持 evidence 身份，无内部依据保持 evidence gap，高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认与最终结论未发布；prompt 回滚和模型配置回退仅提供未来控制说明。真实查询、检索、提示词、模型、Token、Agent、OVH 与生产保持后续授权范围。",
-  "evidence_status": "STAGE097_ANSWER_CONTRACT_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE097-REVIEW",
+  "task": "IDS-V0_1-STAGE097-REVIEW",
+  "real_progress": "Stage097 Review 已机械复核 P1 的 11/3/15、P2 的 6×20／4／35／210、P3 的 6×28＝168 与 P4 的 6/6/6/6/6/2／384 固定控制形状、失败关闭、中文反馈和 P4→P3 回退链。",
+  "report_grade": "冻结 Stage097 任务包、Stage097 P1--P4 控制工件与已复审 Stage096 知识库投毒防护控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+  "business_verdict": "Review 仅复核固定、非业务、reference-only 控制记录：检索文档保持 evidence 身份，无内部依据保持 evidence_gap，外部增强展示保持来源类型分离，高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，最终结论保持未发布。真实查询、检索、提示词、模型、Token、Agent、OVH 与生产保持后续授权范围。",
+  "evidence_status": "STAGE097_ANSWER_CONTRACT_REVIEW_RUNTIME_DISABLED",
   "rendered_at": "2026-08-25",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE097-REVIEW-GATE",
+  "next_gate": "IDS-STAGE098-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

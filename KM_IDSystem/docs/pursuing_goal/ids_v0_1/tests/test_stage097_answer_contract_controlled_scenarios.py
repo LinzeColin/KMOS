@@ -386,7 +386,13 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE097-P4",
             "IDS-STAGE097-REVIEW-GATE",
         )
-        self.assertIn(current, (phase3_current, phase4_current))
+        review_current = (
+            "IDS-STAGE097",
+            "IDS-STAGE097-REVIEW",
+            "IDS-V0_1-STAGE097-REVIEW",
+            "IDS-STAGE098-P1-GATE",
+        )
+        self.assertIn(current, (phase3_current, phase4_current, review_current))
         self.assertEqual(status["task"], plan["task"])
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
@@ -416,13 +422,20 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
                 receipt["result"],
             )
             self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
-        else:
+        elif current == phase4_current:
             self.assertEqual(
                 "STAGE097_ANSWER_CONTRACT_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
                 status["evidence_status"],
             )
             self.assertEqual("P4 交付证据已完成", acceptance_by_id["ACC-STAGE-097"])
             self.assertIn("stage097_phase4_state:", roadmap_text)
+        else:
+            self.assertEqual(
+                "STAGE097_ANSWER_CONTRACT_REVIEW_RUNTIME_DISABLED",
+                status["evidence_status"],
+            )
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
+            self.assertIn("stage097_review_state:", roadmap_text)
 
 
 if __name__ == "__main__":

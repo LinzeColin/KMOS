@@ -386,34 +386,38 @@ class Stage097AnswerContractPhase2Tests(unittest.TestCase):
             "IDS-V0_1-STAGE097-P4",
             "IDS-STAGE097-REVIEW-GATE",
         )
-        self.assertIn(current, (phase2_current, phase3_current, phase4_current))
-        expected_task = (
-            "IDS-V0_1-STAGE097-P2"
-            if current == phase2_current
-            else (
-                "IDS-V0_1-STAGE097-P3"
-                if current == phase3_current
-                else "IDS-V0_1-STAGE097-P4"
-            )
+        review_current = (
+            "IDS-STAGE097",
+            "IDS-STAGE097-REVIEW",
+            "IDS-V0_1-STAGE097-REVIEW",
+            "IDS-STAGE098-P1-GATE",
         )
-        expected_evidence_status = (
-            "STAGE097_ANSWER_CONTRACT_CONTROL_SLICE_RUNTIME_DISABLED"
-            if current == phase2_current
-            else (
-                "STAGE097_ANSWER_CONTRACT_CONTROLLED_SCENARIOS_RUNTIME_DISABLED"
-                if current == phase3_current
-                else "STAGE097_ANSWER_CONTRACT_DELIVERY_EVIDENCE_RUNTIME_DISABLED"
-            )
+        self.assertIn(
+            current,
+            (phase2_current, phase3_current, phase4_current, review_current),
         )
-        expected_acceptance_status = (
-            "P2 受控最小切片已完成"
-            if current == phase2_current
-            else (
-                "P3 异常场景验证已完成"
-                if current == phase3_current
-                else "P4 交付证据已完成"
-            )
-        )
+        expected_task, expected_evidence_status, expected_acceptance_status = {
+            phase2_current: (
+                "IDS-V0_1-STAGE097-P2",
+                "STAGE097_ANSWER_CONTRACT_CONTROL_SLICE_RUNTIME_DISABLED",
+                "P2 受控最小切片已完成",
+            ),
+            phase3_current: (
+                "IDS-V0_1-STAGE097-P3",
+                "STAGE097_ANSWER_CONTRACT_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+                "P3 异常场景验证已完成",
+            ),
+            phase4_current: (
+                "IDS-V0_1-STAGE097-P4",
+                "STAGE097_ANSWER_CONTRACT_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+                "P4 交付证据已完成",
+            ),
+            review_current: (
+                "IDS-V0_1-STAGE097-REVIEW",
+                "STAGE097_ANSWER_CONTRACT_REVIEW_RUNTIME_DISABLED",
+                "整阶段已复审",
+            ),
+        }[current]
         self.assertEqual(expected_task, plan["task"])
         self.assertEqual(
             expected_evidence_status,
@@ -450,6 +454,10 @@ class Stage097AnswerContractPhase2Tests(unittest.TestCase):
             self.assertIn("stage097_phase4_state:", roadmap_text)
             self.assertIn('current_phase_id: "IDS-STAGE097-P4"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE097-REVIEW-GATE"', roadmap_text)
+        else:
+            self.assertIn("stage097_review_state:", roadmap_text)
+            self.assertIn('current_phase_id: "IDS-STAGE097-REVIEW"', roadmap_text)
+            self.assertIn('next_gate_id: "IDS-STAGE098-P1-GATE"', roadmap_text)
 
 
 if __name__ == "__main__":

@@ -308,6 +308,12 @@ class Stage096ReviewTests(unittest.TestCase):
             "IDS-V0_1-STAGE097-P4",
             "IDS-STAGE097-REVIEW-GATE",
         )
+        stage097_review_current = (
+            "IDS-STAGE097",
+            "IDS-STAGE097-REVIEW",
+            "IDS-V0_1-STAGE097-REVIEW",
+            "IDS-STAGE098-P1-GATE",
+        )
         self.assertEqual(status["task"], plan["task"])
         self.assertIn(
             current,
@@ -318,6 +324,7 @@ class Stage096ReviewTests(unittest.TestCase):
                 stage097_phase2_current,
                 stage097_phase3_current,
                 stage097_phase4_current,
+                stage097_review_current,
             ),
         )
         if current in (
@@ -326,6 +333,7 @@ class Stage096ReviewTests(unittest.TestCase):
             stage097_phase2_current,
             stage097_phase3_current,
             stage097_phase4_current,
+            stage097_review_current,
         ):
             self.assertTrue(REVIEW_RUN.is_file())
             run = json.loads(REVIEW_RUN.read_text(encoding="utf-8"))

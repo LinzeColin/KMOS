@@ -411,6 +411,12 @@ class Stage091ReviewTests(unittest.TestCase):
                         "IDS-STAGE097-REVIEW-GATE",
                     ),
                     (
+                        "IDS-STAGE097",
+                        "IDS-STAGE097-REVIEW",
+                        "IDS-V0_1-STAGE097-REVIEW",
+                        "IDS-STAGE098-P1-GATE",
+                    ),
+                    (
                         "IDS-STAGE091",
                         "IDS-STAGE091-P1",
                         "IDS-V0_1-STAGE091-P1",

@@ -331,31 +331,21 @@ class Stage097AnswerContractPhase4DeliveryTests(unittest.TestCase):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
-        self.assertEqual(
-            (
-                "IDS-STAGE097",
-                "IDS-STAGE097-P4",
-                "IDS-V0_1-STAGE097-P4",
-                "IDS-STAGE097-REVIEW-GATE",
-            ),
-            current,
+        phase4_current = (
+            "IDS-STAGE097",
+            "IDS-STAGE097-P4",
+            "IDS-V0_1-STAGE097-P4",
+            "IDS-STAGE097-REVIEW-GATE",
         )
-        self.assertEqual("IDS-V0_1-STAGE097-P4", plan["task"])
-        self.assertEqual(
-            "STAGE097_ANSWER_CONTRACT_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
-            status["evidence_status"],
+        review_current = (
+            "IDS-STAGE097",
+            "IDS-STAGE097-REVIEW",
+            "IDS-V0_1-STAGE097-REVIEW",
+            "IDS-STAGE098-P1-GATE",
         )
+        self.assertIn(current, (phase4_current, review_current))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-        self.assertEqual("P4 交付证据已完成", acceptance_by_id["ACC-STAGE-097"])
-        for acceptance_id in (
-            "ACC-STAGE097-P4-01",
-            "ACC-STAGE097-P4-02",
-            "ACC-STAGE097-P4-03",
-        ):
-            with self.subTest(acceptance_id=acceptance_id):
-                self.assertEqual("已通过", acceptance_by_id[acceptance_id])
-        self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE097-P4-04"])
         event_ids = {
             json.loads(line)["event_id"]
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
@@ -366,6 +356,28 @@ class Stage097AnswerContractPhase4DeliveryTests(unittest.TestCase):
         self.assertEqual(self.module.NEXT_GATE, receipt["next_gate"])
         self.assertEqual(self.module.PASS_RESULT, receipt["result"])
         self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
+        if current == phase4_current:
+            self.assertEqual("IDS-V0_1-STAGE097-P4", plan["task"])
+            self.assertEqual(
+                "STAGE097_ANSWER_CONTRACT_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+                status["evidence_status"],
+            )
+            self.assertEqual("P4 交付证据已完成", acceptance_by_id["ACC-STAGE-097"])
+            for acceptance_id in (
+                "ACC-STAGE097-P4-01",
+                "ACC-STAGE097-P4-02",
+                "ACC-STAGE097-P4-03",
+            ):
+                with self.subTest(acceptance_id=acceptance_id):
+                    self.assertEqual("已通过", acceptance_by_id[acceptance_id])
+            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE097-P4-04"])
+        else:
+            self.assertEqual("IDS-V0_1-STAGE097-REVIEW", plan["task"])
+            self.assertEqual(
+                "STAGE097_ANSWER_CONTRACT_REVIEW_RUNTIME_DISABLED",
+                status["evidence_status"],
+            )
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         self.assertIn("stage097_phase4_state:", roadmap_text)
         self.assertIn('current_phase_id: "IDS-STAGE097-P4"', roadmap_text)

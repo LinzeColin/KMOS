@@ -546,7 +546,13 @@ class Stage096KnowledgeBasePoisoningDefenseControlSliceTests(unittest.TestCase):
                         "IDS-STAGE097-P4",
                         "IDS-V0_1-STAGE097-P4",
                         "IDS-STAGE097-REVIEW-GATE",
-                    ), 
+                    ),
+                    (
+                        "IDS-STAGE097",
+                        "IDS-STAGE097-REVIEW",
+                        "IDS-V0_1-STAGE097-REVIEW",
+                        "IDS-STAGE098-P1-GATE",
+                    ),
                 ),
             )
 
