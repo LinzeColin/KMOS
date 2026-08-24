@@ -371,7 +371,16 @@ class Stage098PromptVersioningPhase4DeliveryTests(unittest.TestCase):
             "IDS-V0_1-STAGE099-P1",
             "IDS-STAGE099-P2-GATE",
         )
-        self.assertIn(current, (phase4_current, review_current, stage099_phase1_current))
+        stage099_phase2_current = (
+            "IDS-STAGE099",
+            "IDS-STAGE099-P2",
+            "IDS-V0_1-STAGE099-P2",
+            "IDS-STAGE099-P3-GATE",
+        )
+        self.assertIn(
+            current,
+            (phase4_current, review_current, stage099_phase1_current, stage099_phase2_current),
+        )
         expected = {
             phase4_current: (
                 "IDS-V0_1-STAGE098-P4",
@@ -386,6 +395,11 @@ class Stage098PromptVersioningPhase4DeliveryTests(unittest.TestCase):
             stage099_phase1_current: (
                 "IDS-V0_1-STAGE099-P1",
                 "STAGE099_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_SEPARATION_RUNTIME_DISABLED",
+                "整阶段已复审",
+            ),
+            stage099_phase2_current: (
+                "IDS-V0_1-STAGE099-P2",
+                "STAGE099_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_CONTROL_SLICE_RUNTIME_DISABLED",
                 "整阶段已复审",
             ),
         }[current]
@@ -412,7 +426,7 @@ class Stage098PromptVersioningPhase4DeliveryTests(unittest.TestCase):
         self.assertEqual(self.module.PASS_RESULT, receipt["result"])
         self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
         self.assertTrue(receipt["verification"]["final_validation_recorded"])
-        if current in (review_current, stage099_phase1_current):
+        if current in (review_current, stage099_phase1_current, stage099_phase2_current):
             self.assertTrue(REVIEW_RECEIPT.is_file())
             review_receipt = json.loads(REVIEW_RECEIPT.read_text(encoding="utf-8"))
             self.assertEqual("IDS-STAGE098-REVIEW", review_receipt["phase"])

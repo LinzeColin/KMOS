@@ -394,9 +394,21 @@ class Stage098PromptVersioningPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE099-P1",
             "IDS-STAGE099-P2-GATE",
         )
+        stage099_phase2_current = (
+            "IDS-STAGE099",
+            "IDS-STAGE099-P2",
+            "IDS-V0_1-STAGE099-P2",
+            "IDS-STAGE099-P3-GATE",
+        )
         self.assertIn(
             current,
-            (phase3_current, phase4_current, review_current, stage099_phase1_current),
+            (
+                phase3_current,
+                phase4_current,
+                review_current,
+                stage099_phase1_current,
+                stage099_phase2_current,
+            ),
         )
         expected = {
             phase3_current: (
@@ -417,6 +429,11 @@ class Stage098PromptVersioningPhase3Tests(unittest.TestCase):
             stage099_phase1_current: (
                 "IDS-V0_1-STAGE099-P1",
                 "STAGE099_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_SEPARATION_RUNTIME_DISABLED",
+                "整阶段已复审",
+            ),
+            stage099_phase2_current: (
+                "IDS-V0_1-STAGE099-P2",
+                "STAGE099_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_CONTROL_SLICE_RUNTIME_DISABLED",
                 "整阶段已复审",
             ),
         }[current]

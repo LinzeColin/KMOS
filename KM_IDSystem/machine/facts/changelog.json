@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage099-p2-local",
+    "date": "2026-08-25",
+    "summary": "完成 Stage099 内部依据与外部增强分离 P2 纯内存受控最小切片：固定六条、每条十九字段的 reference-only 控制请求，投影回答合同与 Prompt 绑定、查询／索引／版本／所选 evidence 记录、来源类型与外部增强意见展示、提示注入与输出权限四组控制记录，每条三十五字段、共二百一十个检查点。query、index_version、prompt_version、model_version 与 selected_evidence 保持未来记录形状；internal_evidence、external_public_reference、model_reasoning 与 evidence_gap 保持四类底层来源类型，external_augmentation_opinion 仅作为展示层组合标签。已通过 P2 聚焦 10/10、Stage088--Stage099 精确历史白箱链 573/573、Stage005 治理回归 valid=true、Batch041-050 与 Batch051-060 本地审阅、7 个中文视图、文档预算与无登记阻塞。运行计数均为 0、运行标志均为 false；下一步仅可在新的独立 run 进入 IDS-STAGE099-P3-GATE。"
+  },
+  {
     "version": "v0.1-stage099-p1-local",
     "date": "2026-08-25",
     "summary": "完成 Stage099 内部依据与外部增强分离 P1 静态合同：固定回答结构、prompt 版本、内部依据、外部增强、evidence_gap、source_type、模型输出权限与人工确认门禁八个未来控制引用；内部依据、外部公开参考、模型推理与 evidence_gap 保持四类底层来源类型，外部增强意见仅作为未来展示层组合标签，不能取代底层来源类型、内部依据或 evidence_gap。Stage099 聚焦 8/8、Stage088--Stage099 精确历史白箱链 563/563、Stage005 治理回归 valid=true，两个既有批次守门均保持全局上传锁定，七份中文视图、文档预算与无登记阻塞均通过。真实资料、提示词、查询、检索、回答、模型、模型 Token、Agent、OVH、生产、正式全局上传与 main 合并保持后续授权范围；下一步仅可在新的独立 run 进入 IDS-STAGE099-P2-GATE。"

@@ -2329,6 +2329,16 @@
       "说明": "Stage097 P2 的底层来源类型；当前仅在 reference-only 控制记录中保留引用形状，不选择模型、不调用模型、不消费模型 Token。"
     },
     {
+      "英文": "selected_evidence",
+      "中文": "所选证据",
+      "说明": "Stage099 P2 的未来记录引用字段；当前纯内存控制请求保留其引用形状，业务线白箱流程在后续授权范围内选择真实证据。"
+    },
+    {
+      "英文": "external_augmentation_opinion",
+      "中文": "外部增强意见",
+      "说明": "Stage099 P2 的展示层标签；它由 external_public_reference 与 model_reasoning 组成，并持续保留四类底层 source_type。"
+    },
+    {
       "英文": "prompt",
       "中文": "提示词",
       "说明": "Stage097 P4 仅记录提示词版本、回退和模型配置回退的未来控制引用；当前不读取、执行、回退或持久化任何真实提示词或模型配置。"
