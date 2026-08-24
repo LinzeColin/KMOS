@@ -344,6 +344,12 @@ class Stage095EvidenceRegressionPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE095-P3",
             "IDS-STAGE095-P4-GATE",
         )
+        stage095_phase4_current = (
+            "IDS-STAGE095",
+            "IDS-STAGE095-P4",
+            "IDS-V0_1-STAGE095-P4",
+            "IDS-STAGE095-REVIEW-GATE",
+        )
         self.assertEqual(status["task"], plan["task"])
         if current == stage095_phase3_current:
             self.assertTrue(RECEIPT.is_file())
@@ -362,7 +368,14 @@ class Stage095EvidenceRegressionPhase3Tests(unittest.TestCase):
             )
             self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
             self.assertIn("stage095_phase3_state:", ROADMAP.read_text(encoding="utf-8"))
-        self.assertIn(current, (stage095_phase2_current, stage095_phase3_current))
+        self.assertIn(
+            current,
+            (
+                stage095_phase2_current,
+                stage095_phase3_current,
+                stage095_phase4_current,
+            ),
+        )
 
 
 if __name__ == "__main__":

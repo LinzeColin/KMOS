@@ -147,6 +147,10 @@ class Batch051060ReviewGateTests(unittest.TestCase):
             "ACC-STAGE095-P3-01" in text
             and "RUN-IDS-STAGE095-P3-LOCAL-20260824-001" in text
         )
+        stage095_phase4_visible = (
+            "ACC-STAGE095-P4-01" in text
+            and "RUN-IDS-STAGE095-P4-LOCAL-20260824-001" in text
+        )
         self.assertTrue(
             predecessor_visible
             or successor_visible
@@ -162,7 +166,8 @@ class Batch051060ReviewGateTests(unittest.TestCase):
             or stage064_phase2_visible
             or stage065_phase1_visible
             or stage095_phase2_visible
-            or stage095_phase3_visible,
+            or stage095_phase3_visible
+            or stage095_phase4_visible,
             text,
         )
 
