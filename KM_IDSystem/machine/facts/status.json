@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE094",
-  "phase": "IDS-STAGE094-P4",
-  "task": "IDS-V0_1-STAGE094-P4",
-  "real_progress": "Stage094 P4 已完成纯内存证据撤回交付证据：从 P3 七类固定异常场景派生 evidence ledger 样例、证据等级报告、撤回影响、回归、不可作为结论依据类型、降级说明和撤回／恢复说明 7/7/7/7/7/4/2 条控制记录，共 517 个字段检查点、4 条中文反馈与 18 类失败关闭。",
+  "phase": "IDS-STAGE094-REVIEW",
+  "task": "IDS-V0_1-STAGE094-REVIEW",
+  "real_progress": "Stage094 Review 已完成对 P1 18/14/6/5、P2 6×29／11／105／630、P3 7×32＝224 与 P4 7/7/7/7/7/4/2／517／4 的纯内存机械复审；固定控制形状、失败关闭、单一权威、撤回规则 owner 前置、业务线白箱人工处理与 P4→P3 回退保持一致。",
   "report_grade": "冻结 Stage094 任务包、Stage094 P1/P2/P3 控制工件与已复审 Stage093 证据可信等级控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "Stage094 P4 只交付进程内 control-only 记录：无内部证据保持 evidence_gap，低 OCR、旧版本、冲突与撤回保持降级，疑似恶意资料保持隔离，D 等级不得伪装高可信结论；撤回影响只声明未来报告状态复核，降级、撤回和恢复保持业务线白箱 owner 前置。真实证据、撤回、报告、数据库、模型、Token、Agent、OVH 与生产保持后续授权范围。",
-  "evidence_status": "STAGE094_EVIDENCE_REVOCATION_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+  "business_verdict": "Stage094 Review 只完成证据撤回控制工件的机械复审：无内部证据保持 evidence_gap，低 OCR、旧版本、冲突与撤回保持降级说明，疑似恶意资料保持隔离说明，D 等级不得伪装支撑高可信结论；撤回影响只声明未来报告状态复核，撤回规则、降级、恢复和业务判定保持业务线白箱 owner 的后续前置。真实证据、撤回、报告、数据库、模型、Token、Agent、OVH 与生产保持后续授权范围。",
+  "evidence_status": "STAGE094_EVIDENCE_REVOCATION_REVIEW_RUNTIME_DISABLED",
   "rendered_at": "2026-08-24",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE094-REVIEW-GATE",
+  "next_gate": "IDS-STAGE095-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

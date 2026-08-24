@@ -380,6 +380,12 @@ class Stage092EvidenceRiskScoringPhase1Tests(unittest.TestCase):
                         "IDS-STAGE094-REVIEW-GATE",
                     ),
                     (
+                        "IDS-STAGE094",
+                        "IDS-STAGE094-REVIEW",
+                        "IDS-V0_1-STAGE094-REVIEW",
+                        "IDS-STAGE095-P1-GATE",
+                    ),
+                    (
                         "IDS-STAGE091",
                         "IDS-STAGE091-REVIEW",
                         "IDS-V0_1-STAGE091-REVIEW",

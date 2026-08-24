@@ -480,6 +480,12 @@ class Stage094EvidenceRevocationControlSliceTests(unittest.TestCase):
             "IDS-V0_1-STAGE094-P4",
             "IDS-STAGE094-REVIEW-GATE",
         )
+        stage094_review_current = (
+            "IDS-STAGE094",
+            "IDS-STAGE094-REVIEW",
+            "IDS-V0_1-STAGE094-REVIEW",
+            "IDS-STAGE095-P1-GATE",
+        )
         if current == stage094_phase2_current:
             self.assertTrue(P1_RECEIPT.is_file())
             self.assertTrue(RECEIPT.is_file())
@@ -514,6 +520,7 @@ class Stage094EvidenceRevocationControlSliceTests(unittest.TestCase):
                     stage094_phase1_current,
                     stage094_phase3_current,
                     stage094_phase4_current,
+                    stage094_review_current,
                 ),
             )
 
