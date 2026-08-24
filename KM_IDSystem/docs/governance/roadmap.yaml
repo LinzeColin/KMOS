@@ -4,13 +4,13 @@ project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE095"
 current_phase_id: "IDS-STAGE095-P3"
 current_task_id: "IDS-V0_1-STAGE095-P3"
-next_gate_id: "IDS-STAGE095-P3-GATE"
+next_gate_id: "IDS-STAGE095-P4-GATE"
 current_transition_history:
   stage095_phase3_state:
     current_stage_id: "IDS-STAGE095"
     current_phase_id: "IDS-STAGE095-P3"
     current_task_id: "IDS-V0_1-STAGE095-P3"
-    next_gate_id: "IDS-STAGE095-P3-GATE"
+    next_gate_id: "IDS-STAGE095-P4-GATE"
   stage095_phase2_state:
     current_stage_id: "IDS-STAGE095"
     current_phase_id: "IDS-STAGE095-P2"
@@ -1585,12 +1585,12 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-095"
     objective: "依据冻结 Stage095 任务包固定证据回归测试的未来控制引用；Evidence Ledger、证据缺口、风险评分、可信等级、撤回和知识库投毒防护保持单一权威、业务线白箱 owner 前置和零运行时边界。"
-    status: "phase3_in_progress_local"
+    status: "phase3_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE095-P3-GATE"
+    next_gate_id: "IDS-STAGE095-P4-GATE"
     gate:
       gate_id: "IDS-STAGE095-P3-GATE"
-      status: "in_progress"
+      status: "passed"
       next_gate_id: "IDS-STAGE095-P4-GATE"
       github_upload_allowed: false
     pass_conditions:
@@ -1694,7 +1694,7 @@ stages:
       - phase_id: "IDS-STAGE095-P3"
         name: "Phase 3 · 证据回归测试专项验证与异常场景"
         objective: "只在内存中重放 P2 的六条固定控制投影，验证无内部证据、低 OCR、旧版本、冲突资料、撤回资料、恶意资料及低等级伪装高可信结论七类异常场景；全部业务处置保持业务线白箱 owner 后续前置。"
-        status: "in_progress"
+        status: "completed"
         entry_authorized: true
         next_gate_id: "IDS-STAGE095-P4-GATE"
         gate:
@@ -1708,7 +1708,7 @@ stages:
           - task_id: "IDS-V0_1-STAGE095-P3"
             name: "验证证据回归异常场景"
             objective: "重放 P2 固定 6 条 21 字段控制请求和 6 组、每条 58 字段投影，形成无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装高可信结论拒绝 7 个场景，每场景 32 字段、共 224 个检查点；撤回报告影响只声明，全部场景保持业务线白箱人工处理。"
-            status: "in_progress"
+            status: "completed"
             dependencies:
               - "IDS-V0_1-STAGE095-P2"
               - "IDS-V0_1-STAGE095-P1"
@@ -1722,7 +1722,7 @@ stages:
             test_commands:
               - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage095_evidence_regression_controlled_scenarios"
               - "后续本地治理回归命令记录于 Stage095 P3 receipt"
-            test_results: "P3 聚焦用例已在本地通过；P2/P1、历史精确关联链、Stage005、两个既有批次检查器、机器事实投影与 Stage095 P3 receipt 仍待本阶段完成时统一执行和记录。"
+            test_results: "Stage095 P3 聚焦用例、P2/P1、Stage094 Review/P4/P3/P2/P1、Stage093 Review/P4/P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦，以及 Stage005 与两个既有批次检查器的本地治理回归记录于 Stage095 P3 receipt；结果只证明冻结控制引用、纯内存异常场景、失败关闭、治理兼容和零运行时边界。"
             evidence_refs:
               - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-095_证据回归测试.md"
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE095_PHASE3_EVIDENCE_REGRESSION_CONTROLLED_SCENARIOS.md"
