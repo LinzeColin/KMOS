@@ -15,7 +15,7 @@
 - P2 固定 `6` 条、每条 `19` 字段的非业务 `reference-only` 控制请求，形成回答合同与 Prompt 绑定、查询／索引／版本／所选 evidence 记录、来源类型与外部增强意见展示、提示注入与输出权限四组投影；每条 `35` 字段，共 `210` 个检查点。`query`、`index_version`、`prompt_version`、`model_version` 与 `selected_evidence` 保持未来记录形状。
 - `internal_evidence`、`external_public_reference`、`model_reasoning` 与 `evidence_gap` 保持四类底层来源类型；`external_augmentation_opinion` 作为展示层组合标签保留底层来源类型。检索文档保持 evidence 身份，IDS 规则保持优先级；高风险工程建议、合同承诺和生产写回继续由业务线白箱人工确认。
 - 已验证：P2 聚焦 `10/10`，Stage088--Stage099 精确历史白箱链 `573/573`，Stage005 治理回归 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器平面重渲染 `7` 个中文文件，文档预算与无登记阻塞均通过。
-- P2 回执记录全零运行计数与全 false 运行标志；真实资料、提示词、查询、检索、回答、审计、模型、模型 Token、Agent、OVH、生产、正式全局上传、`main` 与 release 由后续授权范围承接。本轮复用既有隔离分支与唯一开发 worktree。
+- P2 回执记录全零运行计数与全 false 运行标志；用户授权的既有隔离分支进度推送已记录为恢复检查点，正式全局上传、`main` 与 release 继续由后续授权范围承接。本轮复用既有隔离分支与唯一开发 worktree。
 - 回滚只撤回本 P2 的范围说明、纯内存控制切片、合同、聚焦用例、历史后继状态断言、机器事实、治理路线、中文视图、本地回执、事件和本交接，恢复到 `PHASE1_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_SEPARATION_RUNTIME_DISABLED`；Stage099 P1、Stage098 Review、Stage098 P1--P4、冻结任务包、受保护资料、GitHub `main`／release、OVH 与应用状态保持原状。
 
 ## Superseded Gate - Stage098 Review accepted locally - 2026-08-25

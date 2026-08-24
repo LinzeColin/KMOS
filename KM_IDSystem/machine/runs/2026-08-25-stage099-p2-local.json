@@ -83,6 +83,15 @@
     "push_performed": false,
     "stage099_phase2_runtime_executed": false
   },
+  "recovery_checkpoint": {
+    "user_authorized_isolated_branch_push_recorded": true,
+    "separate_from_phase_runtime": true,
+    "p2_push_performed": true,
+    "target_branch": "codex/kmids-stage071-p1",
+    "formal_global_upload_performed": false,
+    "main_merge_performed": false,
+    "ovh_or_production_change_performed": false
+  },
   "validation": {
     "second_authoritative_source_created": false,
     "source_document_remains_authoritative": true,

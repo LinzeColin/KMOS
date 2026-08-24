@@ -466,6 +466,18 @@ class Stage099InternalEvidenceExternalAugmentationPhase2Tests(unittest.TestCase)
             )
             self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
             self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
+            checkpoint = receipt["recovery_checkpoint"]
+            self.assertTrue(checkpoint["user_authorized_isolated_branch_push_recorded"])
+            self.assertTrue(checkpoint["separate_from_phase_runtime"])
+            self.assertTrue(checkpoint["p2_push_performed"])
+            self.assertEqual("codex/kmids-stage071-p1", checkpoint["target_branch"])
+            for field in (
+                "formal_global_upload_performed",
+                "main_merge_performed",
+                "ovh_or_production_change_performed",
+            ):
+                with self.subTest(field=field):
+                    self.assertFalse(checkpoint[field])
             roadmap_text = ROADMAP.read_text(encoding="utf-8")
             for phrase in (
                 "stage099_phase1_state:",
