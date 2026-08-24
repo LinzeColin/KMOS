@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE092",
-  "phase": "IDS-STAGE092-P1",
-  "task": "IDS-V0_1-STAGE092-P1",
-  "next_gate": "IDS-STAGE092-P2-GATE",
+  "phase": "IDS-STAGE092-P3",
+  "task": "IDS-V0_1-STAGE092-P3",
+  "next_gate": "IDS-STAGE092-P4-GATE",
   "items": [
     {
       "id": "ACC-STAGE-092",
-      "criteria": "Stage092 证据风险评分：P1 静态合同与 P2 六条固定、非业务、reference-only 的纯内存控制切片已绑定来源、OCR 置信度、版本、复核状态和冲突状态五类未来风险输入、evidence ledger、evidence gap、风险、可信等级、撤回、知识库投毒防护与关键结论的控制边界；实际风险计算和业务判定保持后续授权范围。",
-      "status": "P2 受控最小切片已完成"
+      "criteria": "Stage092 证据风险评分：P1 静态合同、P2 六条固定、非业务、reference-only 的纯内存控制切片与 P3 七类异常场景验证已绑定来源、OCR 置信度、版本、复核状态和冲突状态五类未来风险输入、evidence ledger、evidence gap、风险、可信等级、撤回、知识库投毒防护与关键结论的控制边界；实际风险计算和业务判定保持后续授权范围。",
+      "status": "P3 异常场景验证已完成"
     },
     {
       "id": "ACC-STAGE092-P1-01",
@@ -47,6 +47,26 @@
     {
       "id": "ACC-STAGE092-P2-04",
       "criteria": "P2 期间不执行真实资料、检索、回答、报告或证据账本访问、数据库 schema 或连接、实际来源、OCR、版本、复核或冲突评估、实际风险计算、可信等级变更、撤回、投毒检测、隔离、恢复、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage092 P3。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE092-P3-01",
+      "criteria": "冻结 Stage092 任务包、Stage092 P1/P2 控制工件与已复审 Stage091 证据缺口处理控制工件保持为唯一合同上下文；P3 只重放六条固定、非业务、reference-only 控制投影，不建立第二权威事实源，未读取、打开、保留或写入业务资料、原始元数据、manifest、检索结果、证据账本、审计日志、回答、报告、数据库或物理索引。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE092-P3-02",
+      "criteria": "七个纯内存场景覆盖无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装高可信结论；每场景固定 32 个控制字段，共 224 个场景字段检查点，P2 的六条、十一组投影、582 个字段检查点与 evidence／document／chunk／fact／query／answer／report 关联保持一致。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE092-P3-03",
+      "criteria": "无内部证据保持 evidence_gap 且不伪装 evidence_id；低 OCR、旧版本、冲突与撤回维持降级候选，疑似恶意资料维持隔离候选；撤回只声明未来报告状态影响引用，不更新真实报告；D 等级证据不得伪装支撑高可信结论。P2 输出偏离、关键引用缺失、控制引用透明化或运行信号出现时失败关闭，全部场景要求业务线白箱人工处理。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE092-P3-04",
+      "criteria": "P3 期间不执行真实资料、检索、回答、报告或证据账本访问、数据库 schema 或连接、实际来源、OCR、版本、复核或冲突评估、实际风险计算、可信等级变更、撤回、投毒检测、隔离、恢复、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产或正式上传；本轮全量本地验收完成后才可在新 run 进入 Stage092 P4。",
       "status": "已遵守"
     },
     {

@@ -402,6 +402,12 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
             "IDS-V0_1-STAGE092-P2",
             "IDS-STAGE092-P3-GATE",
         )
+        stage092_phase3_current = (
+            "IDS-STAGE092",
+            "IDS-STAGE092-P3",
+            "IDS-V0_1-STAGE092-P3",
+            "IDS-STAGE092-P4-GATE",
+        )
         stage092_phase1_current = (
             "IDS-STAGE092",
             "IDS-STAGE092-P1",
@@ -437,7 +443,14 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
             self.assertIn('current_phase_id: "IDS-STAGE092-P2"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE092-P3-GATE"', roadmap_text)
         else:
-            self.assertIn(current, (stage092_phase1_current, stage091_review_current))
+            self.assertIn(
+                current,
+                (
+                    stage092_phase3_current,
+                    stage092_phase1_current,
+                    stage091_review_current,
+                ),
+            )
 
 
 if __name__ == "__main__":
