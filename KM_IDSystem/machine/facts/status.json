@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE098",
-  "phase": "IDS-STAGE098-P1",
-  "task": "IDS-V0_1-STAGE098-P1",
-  "real_progress": "Stage098 P1 已固定 prompt_version、model_provider、model_version、temperature 与 retrieval_context 的五个未来控制引用，并继承 Stage097 回答合同的资料身份、来源类型和输出权限门禁。",
+  "phase": "IDS-STAGE098-P2",
+  "task": "IDS-V0_1-STAGE098-P2",
+  "real_progress": "Stage098 P2 已将 P1 的五个未来版本化控制引用与 Stage097 Review 已复审回答合同投影为 6 条、23 字段、reference-only 控制请求和 4 组、每条 41 字段、共 246 个纯内存控制检查点。",
   "report_grade": "冻结 Stage098 任务包与已复审 Stage097 回答合同控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "P1 只固定非业务、reference-only 版本化控制引用：检索文档保持 evidence 身份，内部依据、外部增强与 evidence_gap 保持来源类型分离，高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，最终结论保持未发布。真实提示词、模型、Token、Agent、OVH 与生产保持后续授权范围。",
-  "evidence_status": "STAGE098_PROMPT_VERSIONING_CONTRACT_RUNTIME_DISABLED",
+  "business_verdict": "P2 只投影非业务、reference-only 的版本化与回答合同控制标签：检索文档保持 evidence 身份，外部公开参考与模型推理在展示层共同表达外部增强意见且底层来源类型保持分离；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，最终结论保持未发布。真实提示词、模型、Token、Agent、OVH 与生产保持后续授权范围。",
+  "evidence_status": "STAGE098_PROMPT_VERSIONING_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-25",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE098-P2-GATE",
+  "next_gate": "IDS-STAGE098-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

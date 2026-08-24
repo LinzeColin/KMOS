@@ -249,17 +249,26 @@ class Stage098PromptVersioningPhase1Tests(unittest.TestCase):
             if line.strip()
         }
         self.assertEqual(status["task"], plan["task"])
-        self.assertEqual(
-            (
-                "IDS-STAGE098",
-                "IDS-STAGE098-P1",
-                "IDS-V0_1-STAGE098-P1",
-                "IDS-STAGE098-P2-GATE",
-            ),
-            (status["stage"], status["phase"], status["task"], status["next_gate"]),
+        current = (status["stage"], status["phase"], status["task"], status["next_gate"])
+        phase1_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P1",
+            "IDS-V0_1-STAGE098-P1",
+            "IDS-STAGE098-P2-GATE",
         )
+        phase2_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P2",
+            "IDS-V0_1-STAGE098-P2",
+            "IDS-STAGE098-P3-GATE",
+        )
+        self.assertIn(current, (phase1_current, phase2_current))
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-        self.assertEqual("P1 静态合同已完成", acceptance_by_id["ACC-STAGE-098"])
+        expected_stage_status = {
+            phase1_current: "P1 静态合同已完成",
+            phase2_current: "P2 受控最小切片已完成",
+        }[current]
+        self.assertEqual(expected_stage_status, acceptance_by_id["ACC-STAGE-098"])
         for acceptance_id in (
             "ACC-STAGE098-P1-01",
             "ACC-STAGE098-P1-02",
@@ -283,6 +292,14 @@ class Stage098PromptVersioningPhase1Tests(unittest.TestCase):
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, roadmap_text)
+        if current == phase2_current:
+            for phrase in (
+                "stage098_phase2_state:",
+                'current_phase_id: "IDS-STAGE098-P2"',
+                'next_gate_id: "IDS-STAGE098-P3-GATE"',
+            ):
+                with self.subTest(phrase=phrase):
+                    self.assertIn(phrase, roadmap_text)
 
 
 if __name__ == "__main__":

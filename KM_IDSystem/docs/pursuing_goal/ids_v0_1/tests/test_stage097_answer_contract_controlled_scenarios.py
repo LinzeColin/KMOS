@@ -398,9 +398,21 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE098-P1",
             "IDS-STAGE098-P2-GATE",
         )
+        stage098_phase2_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P2",
+            "IDS-V0_1-STAGE098-P2",
+            "IDS-STAGE098-P3-GATE",
+        )
         self.assertIn(
             current,
-            (phase3_current, phase4_current, review_current, stage098_phase1_current),
+            (
+                phase3_current,
+                phase4_current,
+                review_current,
+                stage098_phase1_current,
+                stage098_phase2_current,
+            ),
         )
         self.assertEqual(status["task"], plan["task"])
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
@@ -445,7 +457,7 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
             )
             self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
             self.assertIn("stage097_review_state:", roadmap_text)
-        else:
+        elif current == stage098_phase1_current:
             self.assertEqual(
                 "STAGE098_PROMPT_VERSIONING_CONTRACT_RUNTIME_DISABLED",
                 status["evidence_status"],
@@ -453,6 +465,15 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
             self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
             self.assertIn("stage097_review_state:", roadmap_text)
             self.assertIn("stage098_phase1_state:", roadmap_text)
+        else:
+            self.assertEqual(
+                "STAGE098_PROMPT_VERSIONING_CONTROL_SLICE_RUNTIME_DISABLED",
+                status["evidence_status"],
+            )
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
+            self.assertIn("stage097_review_state:", roadmap_text)
+            self.assertIn("stage098_phase1_state:", roadmap_text)
+            self.assertIn("stage098_phase2_state:", roadmap_text)
 
 
 if __name__ == "__main__":

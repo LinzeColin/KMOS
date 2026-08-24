@@ -423,6 +423,12 @@ class Stage096KnowledgeBasePoisoningDefensePhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE098-P1",
             "IDS-STAGE098-P2-GATE",
         )
+        stage098_phase2_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P2",
+            "IDS-V0_1-STAGE098-P2",
+            "IDS-STAGE098-P3-GATE",
+        )
         self.assertEqual(status["task"], plan["task"])
         if current == phase3_current:
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
@@ -444,12 +450,14 @@ class Stage096KnowledgeBasePoisoningDefensePhase3Tests(unittest.TestCase):
         if current in (
             review_current,
             stage098_phase1_current,
+            stage098_phase2_current,
             stage097_phase1_current,
             stage097_phase2_current,
             stage097_phase3_current,
             stage097_phase4_current,
             stage097_review_current,
             stage098_phase1_current,
+            stage098_phase2_current,
         ):
             review_receipt = json.loads(REVIEW_RECEIPT.read_text(encoding="utf-8"))
             self.assertEqual("IDS-STAGE097-P1-GATE", review_receipt["next_gate"])
@@ -468,12 +476,14 @@ class Stage096KnowledgeBasePoisoningDefensePhase3Tests(unittest.TestCase):
                 phase4_current,
                 review_current,
                 stage098_phase1_current,
+                stage098_phase2_current,
                 stage097_phase1_current,
                 stage097_phase2_current,
                 stage097_phase3_current,
                 stage097_phase4_current,
                 stage097_review_current,
                 stage098_phase1_current,
+                stage098_phase2_current,
             ),
         )
 

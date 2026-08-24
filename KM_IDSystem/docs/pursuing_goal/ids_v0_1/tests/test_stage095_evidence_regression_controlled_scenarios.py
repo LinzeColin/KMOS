@@ -416,6 +416,12 @@ class Stage095EvidenceRegressionPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE098-P1",
             "IDS-STAGE098-P2-GATE",
         )
+        stage098_phase2_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P2",
+            "IDS-V0_1-STAGE098-P2",
+            "IDS-STAGE098-P3-GATE",
+        )
         self.assertEqual(status["task"], plan["task"])
         if current == stage095_phase3_current:
             self.assertTrue(RECEIPT.is_file())
@@ -457,6 +463,7 @@ class Stage095EvidenceRegressionPhase3Tests(unittest.TestCase):
                     stage097_phase4_current,
                     stage097_review_current,
                     stage098_phase1_current,
+                    stage098_phase2_current,
             ),
         )
 

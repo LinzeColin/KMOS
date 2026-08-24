@@ -1,3 +1,9 @@
+## 2026-08-25 · Stage098 Prompt 版本化 P2
+
+- 完成冻结 Stage098 P2 纯内存受控最小切片：固定 `6` 条、`23` 字段的非业务 `reference-only` 控制请求，承接 P1 的 `prompt_version`、`model_provider`、`model_version`、`temperature` 与 `retrieval_context` 引用，形成回答合同绑定、版本与所选 evidence 记录、来源类型与外部增强展示、提示注入与输出权限共 `4` 组投影、每条 `41` 字段、共 `246` 个检查点、`15` 类失败关闭与 `4` 条中文反馈。
+- 本地验证通过：P1/P2 聚焦 `19/19`，Stage038 源复核 `8/8`，Stage088--Stage098 P2 精确白箱链 `326/326`，Stage005 治理回归 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。
+- 本 P2 只记录纯内存控制切片与本地治理投影；真实资料、提示词、查询、检索、回答、模型、模型 Token、Agent、OVH、生产、正式全局上传与 `main` 合并保持后续授权范围。下一步只在新的独立 run 进入 `IDS-STAGE098-P3-GATE`。
+
 ## 2026-08-25 · Stage098 Prompt 版本化 P1
 
 - 完成冻结 Stage098 P1 静态合同：固定 `prompt_version`、`model_provider`、`model_version`、`temperature` 与 `retrieval_context` 五个未来控制引用，继承 Stage097 的回答结构、资料 evidence 身份、来源类型分离、`evidence_gap` 语义和高风险输出业务线白箱人工确认门禁。
