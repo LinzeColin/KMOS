@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage093 Phase 4 - 2026-08-24
+## Current Gate - Stage093 Review - 2026-08-24
 
-- 本节是唯一当前交接；下方 Stage093 P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 保留已验证的历史事实。
+- 本节是唯一当前交接；下方 Stage093 P4/P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 保留已验证的历史事实。
+- 本轮完成 `IDS-V0_1-STAGE093-REVIEW` 的纯内存机械复审：固定复核 P1 `14/10/5` 与 `14` 类失败关闭、P2 `6×27／11／100／600` 与 `27` 类失败关闭、P3 `7×32＝224` 与 `16` 类失败关闭、P4 `7/7/7/7/7/4/2／517／4` 与 `18` 类失败关闭；单一权威、可信等级规则 owner 前置、业务线白箱人工处理、撤回只声明、低等级伪装高可信拒绝、机器事实投影与 P4→P3 回退保持一致。
+- 已验证：Review 聚焦 `14/14`；连同 Stage093 P4/P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `235/235`；Stage005 直接治理 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实已重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过；验证范围只覆盖冻结控制工件、精确历史后继和本地治理。
+- 本 Review 的运行计数均为 `0`、运行标志均为 `false`：真实资料、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库、物理索引、实际等级分配／变更、撤回／恢复、投毒处置、模型、模型 Token、Agent、OVH 与生产保持后续授权范围。
+- 回滚只撤回本 Review 的说明、纯内存复审模块、合同、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_EVIDENCE_GRADE_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；Stage093 P1--P4、Stage092 Review/P1--P4、冻结任务包、真实资料、证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
+- 下一步只能在新的独立 run 进入 `IDS-STAGE094-P1-GATE`；Stage094 保持未启动。继续复用既有唯一开发工作树与分支，不创建额外 worktree、分支或合并请求。用户已授权本 run 的既有隔离分支恢复备份推送；正式全局上传、合并到 `main`、发布与生产继续等待完整冻结任务包完成与 `ACC-STAGE-168`。
+
+## Superseded Gate - Stage093 Phase 4 - 2026-08-24
+
+- 本节保留 Stage093 P4 历史交接；唯一当前交接位于上方 Stage093 Review。
 - 本轮完成 `IDS-V0_1-STAGE093-P4` 纯内存可信等级交付控制验证：从 P3 的 `7` 个固定、非业务、`reference-only` 异常场景派生 evidence ledger 样例、证据等级报告、撤回影响、回归、不可作为结论依据类型各 `7` 条，降级 `4` 条与撤回／恢复 `2` 条，共 `517` 个交付字段检查点、`4` 条中文反馈与 `18` 类失败关闭；P2 的 `6×27／11／100／600` 源控制检查与 P3 的 `7×32＝224` 场景检查保持一致。
 - 冻结 Stage093 任务包、Stage093 P1/P2/P3 合同与 Stage092 Review 已复审控制工件构成唯一控制上下文。来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威；可信等级分配规则、阈值和业务判定保持业务线白箱 owner 的后续前置。无内部证据保留 `evidence_gap`，低 OCR、旧版本、冲突与撤回保持降级说明，恶意资料保持隔离说明，低等级不得伪装支撑高可信结论，撤回影响只声明未来报告状态复核，全部交付记录保持人工复核前置。
 - 已验证：P4 聚焦 `11/11`；连同 P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `221/221`；Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实已重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过；验证范围只覆盖固定控制工件、精确历史后继和本地治理。
@@ -21,13 +30,13 @@
 
 ## Superseded Gate - Stage093 Phase 3 - 2026-08-24
 
-- 本节保留 Stage093 P3 历史交接；唯一当前交接位于上方 Stage093 P4。
+- 本节保留 Stage093 P3 历史交接；唯一当前交接位于上方 Stage093 Review。
 - 本轮完成 `IDS-V0_1-STAGE093-P3` 纯内存可信等级异常场景控制验证：重放 P2 的 `6` 条、非业务、`reference-only` 的 `27` 字段控制请求、`11` 组投影、每条 `100` 字段、共 `600` 个源控制检查点，固定无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装高可信结论 `7` 个场景，每场景 `32` 字段、共 `224` 个场景检查点与 `16` 类失败关闭。
 - 冻结 Stage093 任务包、Stage093 P1/P2 合同与 Stage092 Review 已复审控制工件构成唯一控制上下文。来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威；可信等级分配规则、阈值和业务判定保持业务线白箱 owner 的后续前置。无内部证据保留 `evidence_gap`，低 OCR、旧版本、冲突与撤回保持降级，恶意资料保持隔离，低等级不得伪装支撑高可信结论，全部场景保持人工复核前置。
 - 已验证：P3 聚焦 `10/10`；连同 P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `210/210`；Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实已重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过；验证范围只覆盖固定控制工件、精确历史后继和本地治理。
 - 本 P3 运行计数均为 `0`、运行标志均为 `false`：真实资料、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库和物理索引保持受保护状态；来源、OCR、版本、复核、冲突、风险计算、可信等级分配或变更、撤回、恢复、投毒处置、报告状态更新、模型、模型 Token、Agent、OVH、生产和正式上传继续留在后续授权范围。
 - 回滚只撤回本 P3 的说明、纯内存场景模块、合同、聚焦用例、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PHASE2_EVIDENCE_GRADE_CONTROL_SLICE_RUNTIME_DISABLED`；Stage093 P1/P2、Stage092 Review/P1--P4、冻结任务包、真实资料、证据账本、GitHub、OVH 与应用状态保持原状。
-- P3 完成当时下一步为新的独立 run 进入 `IDS-STAGE093-P4-GATE`；P4 已作为上方当前门禁完成，Review 保持未启动。P3 继续保留同一唯一开发工作树、分支与本地恢复提交边界。
+- P3 完成当时下一步为新的独立 run 进入 `IDS-STAGE093-P4-GATE`；P4 与 Review 已作为上方历史和当前门禁完成。P3 继续保留同一唯一开发工作树、分支与本地恢复提交边界。
 
 ## Superseded Gate - Stage093 Phase 2 - 2026-08-24
 
