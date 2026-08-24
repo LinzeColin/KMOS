@@ -3036,6 +3036,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE092-REVIEW-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE092"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE092-REVIEW"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE092-REVIEW"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE093-P1-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -20541,6 +20549,37 @@ def evaluate_current_state_consistency(
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage092_evidence_risk_scoring_delivery.py",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage092_evidence_risk_scoring_delivery_contract.json",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage092_evidence_risk_scoring_delivery.py",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage092-p4-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE092_PHASE3_EVIDENCE_RISK_SCORING_CONTROLLED_SCENARIOS.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage092_evidence_risk_scoring_controlled_scenarios_contract.json",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage092-p3-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE092_PHASE2_EVIDENCE_RISK_SCORING_CONTROL_SLICE.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage092_evidence_risk_scoring_control_slice_contract.json",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage092-p2-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE092_PHASE1_EVIDENCE_RISK_SCORING_SCOPE_BOUNDARY.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage092_evidence_risk_scoring_contract.json",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage092-p1-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_STAGE_REVIEW.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_stage_review_contract.json",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage091-review-local.json",
+                },
+            },
+            "IDS-STAGE092-REVIEW": {
+                "task_id": "IDS-V0_1-STAGE092-REVIEW",
+                "next_gate_id": "IDS-STAGE093-P1-GATE",
+                "transition_key": "stage092_review_state",
+                "stage_statuses": {"completed_reviewed_local"},
+                "gate_id": "IDS-STAGE092-REVIEW-GATE",
+                "future_phase_ids": set(),
+                "required_evidence": {
+                    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-092_证据风险评分.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE092_STAGE_REVIEW.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage092_evidence_risk_scoring_stage_review.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage092_evidence_risk_scoring_stage_review_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage092_evidence_risk_scoring_stage_review.py",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage092-review-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE092_PHASE4_EVIDENCE_RISK_SCORING_DELIVERY_EVIDENCE.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage092_evidence_risk_scoring_delivery_contract.json",
                     "KM_IDSystem/machine/runs/2026-08-24-stage092-p4-local.json",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE092_PHASE3_EVIDENCE_RISK_SCORING_CONTROLLED_SCENARIOS.md",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage092_evidence_risk_scoring_controlled_scenarios_contract.json",
