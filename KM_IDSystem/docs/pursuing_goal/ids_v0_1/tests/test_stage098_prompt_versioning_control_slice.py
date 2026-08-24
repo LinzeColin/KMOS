@@ -360,7 +360,7 @@ class Stage098PromptVersioningPhase2Tests(unittest.TestCase):
             with self.subTest(state=state):
                 self.assertIn(state, failures["declared_failure_states"])
 
-    def test_scope_rollback_and_successor_governance_keep_phase3_gate_explicit(self):
+    def test_scope_rollback_and_successor_governance_keep_successor_gate_explicit(self):
         text = SCOPE.read_text(encoding="utf-8")
         for phrase in (
             "不建立第二权威事实源",
@@ -400,22 +400,36 @@ class Stage098PromptVersioningPhase2Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         }
-        self.assertEqual(
-            (
-                "IDS-STAGE098",
-                "IDS-STAGE098-P2",
+        current = (status["stage"], status["phase"], status["task"], status["next_gate"])
+        phase2_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P2",
+            "IDS-V0_1-STAGE098-P2",
+            "IDS-STAGE098-P3-GATE",
+        )
+        phase3_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P3",
+            "IDS-V0_1-STAGE098-P3",
+            "IDS-STAGE098-P4-GATE",
+        )
+        self.assertIn(current, (phase2_current, phase3_current))
+        expected = {
+            phase2_current: (
                 "IDS-V0_1-STAGE098-P2",
-                "IDS-STAGE098-P3-GATE",
+                "STAGE098_PROMPT_VERSIONING_CONTROL_SLICE_RUNTIME_DISABLED",
+                "P2 受控最小切片已完成",
             ),
-            (status["stage"], status["phase"], status["task"], status["next_gate"]),
-        )
-        self.assertEqual("IDS-V0_1-STAGE098-P2", plan["task"])
-        self.assertEqual(
-            "STAGE098_PROMPT_VERSIONING_CONTROL_SLICE_RUNTIME_DISABLED",
-            status["evidence_status"],
-        )
+            phase3_current: (
+                "IDS-V0_1-STAGE098-P3",
+                "STAGE098_PROMPT_VERSIONING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+                "P3 专项验证已完成",
+            ),
+        }[current]
+        self.assertEqual(expected[0], plan["task"])
+        self.assertEqual(expected[1], status["evidence_status"])
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-        self.assertEqual("P2 受控最小切片已完成", acceptance_by_id["ACC-STAGE-098"])
+        self.assertEqual(expected[2], acceptance_by_id["ACC-STAGE-098"])
         for acceptance_id in (
             "ACC-STAGE098-P2-01",
             "ACC-STAGE098-P2-02",
@@ -438,6 +452,10 @@ class Stage098PromptVersioningPhase2Tests(unittest.TestCase):
         self.assertIn("stage098_phase2_state:", roadmap_text)
         self.assertIn('current_phase_id: "IDS-STAGE098-P2"', roadmap_text)
         self.assertIn('next_gate_id: "IDS-STAGE098-P3-GATE"', roadmap_text)
+        if current == phase3_current:
+            self.assertIn("stage098_phase3_state:", roadmap_text)
+            self.assertIn('current_phase_id: "IDS-STAGE098-P3"', roadmap_text)
+            self.assertIn('next_gate_id: "IDS-STAGE098-P4-GATE"', roadmap_text)
 
 
 if __name__ == "__main__":

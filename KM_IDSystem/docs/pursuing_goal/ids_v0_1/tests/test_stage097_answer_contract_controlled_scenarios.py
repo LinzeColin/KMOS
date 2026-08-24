@@ -404,6 +404,12 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE098-P2",
             "IDS-STAGE098-P3-GATE",
         )
+        stage098_phase3_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P3",
+            "IDS-V0_1-STAGE098-P3",
+            "IDS-STAGE098-P4-GATE",
+        )
         self.assertIn(
             current,
             (
@@ -412,6 +418,7 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
                 review_current,
                 stage098_phase1_current,
                 stage098_phase2_current,
+                stage098_phase3_current,
             ),
         )
         self.assertEqual(status["task"], plan["task"])
@@ -465,7 +472,7 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
             self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
             self.assertIn("stage097_review_state:", roadmap_text)
             self.assertIn("stage098_phase1_state:", roadmap_text)
-        else:
+        elif current == stage098_phase2_current:
             self.assertEqual(
                 "STAGE098_PROMPT_VERSIONING_CONTROL_SLICE_RUNTIME_DISABLED",
                 status["evidence_status"],
@@ -474,6 +481,16 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
             self.assertIn("stage097_review_state:", roadmap_text)
             self.assertIn("stage098_phase1_state:", roadmap_text)
             self.assertIn("stage098_phase2_state:", roadmap_text)
+        else:
+            self.assertEqual(
+                "STAGE098_PROMPT_VERSIONING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+                status["evidence_status"],
+            )
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
+            self.assertIn("stage097_review_state:", roadmap_text)
+            self.assertIn("stage098_phase1_state:", roadmap_text)
+            self.assertIn("stage098_phase2_state:", roadmap_text)
+            self.assertIn("stage098_phase3_state:", roadmap_text)
 
 
 if __name__ == "__main__":

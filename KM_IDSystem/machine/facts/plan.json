@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE098",
-  "phase": "IDS-STAGE098-P2",
-  "task": "IDS-V0_1-STAGE098-P2",
-  "now": "IDS-V0_1-STAGE098-P2 已完成纯内存 Prompt 版本化受控最小切片：6 条、23 字段、reference-only 控制请求投影为 4 组、每条 41 字段、共 246 个控制检查点，记录未来查询／索引／版本／所选 evidence 形状并保持来源类型、提示注入与输出权限门禁。",
+  "phase": "IDS-STAGE098-P3",
+  "task": "IDS-V0_1-STAGE098-P3",
+  "now": "IDS-V0_1-STAGE098-P3 已完成纯内存 Prompt 版本化异常场景验证：严格重放 P2 的 6/23/4/41/246 控制投影，形成 6 条、每条 31 字段、共 186 个场景检查点、5 个控制视图与 6 条未来人工处理要求。",
   "owner": "KMOS 开发负责人；本阶段使用唯一既有开发工作树、单一分支与本地验证节奏。",
-  "objective": "以冻结 Stage098 任务包、Stage098 P1 静态合同与已复审 Stage097 回答合同控制工件为唯一控制上下文，完成 Prompt 版本化 P2 的纯内存受控最小切片，保持资料身份、来源类型分离、evidence_gap、提示注入防护、高风险输出业务线白箱确认与零运行时边界。",
+  "objective": "以冻结 Stage098 任务包、Stage098 P1/P2 与已复审 Stage097 回答合同控制工件为唯一控制上下文，完成 Prompt 版本化 P3 的纯内存异常场景验证，保持资料身份、来源类型分离、evidence_gap、提示注入防护、高风险输出业务线白箱确认与零运行时边界。",
   "scope": [
-    "冻结 Stage098 任务包与 Stage097 Review 已复审控制工件构成唯一控制上下文，业务事实权威保持单一",
-    "只投影固定、非业务、reference-only 控制请求与控制输出，不读取或创建真实提示词、provider、模型、temperature、retrieval_context、evidence、回答、日志或业务资料",
-    "记录查询、索引版本、Prompt 版本、模型 provider／版本、temperature、检索上下文与所选 evidence 的未来引用形状，保持检索文档 evidence 边界、evidence_gap、外部增强来源类型与三类高风险输出业务线白箱人工确认",
-    "Stage098 P3 仅保留下一门禁声明，phase3_started 保持 false"
+    "冻结 Stage098 任务包、Stage098 P1/P2 与 Stage097 Review 已复审控制工件构成唯一控制上下文，业务事实权威保持单一",
+    "只重放 P2 的固定、非业务、reference-only 控制投影，不读取或创建真实提示词、provider、模型、temperature、retrieval_context、evidence、回答、日志或业务资料",
+    "形成六条异常场景，验证检索文档 evidence 边界、IDS 规则优先级、evidence_gap、外部增强来源类型与三类高风险输出业务线白箱人工确认",
+    "Stage098 P4 仅保留下一门禁声明，phase4_started 保持 false"
   ],
   "non_goals": [
     "真实业务源、原始元数据、授权 fixture、检索结果、证据账本、提示词正文、回答、报告、数据库、参数和业务结论由受保护边界管理",
     "真实查询、版本治理、来源类型绑定、提示词执行、模型选择或调用、temperature 配置、retrieval_context 绑定、引用生成、回答发布、人工确认、合同承诺、生产写回、prompt 回滚、模型配置回退、模型 Token、Agent、OVH 与生产由后续授权阶段管理",
-    "Stage098 P3、合并、正式全局上传、OVH 部署、生产激活与应用重装由后续阶段管理"
+    "Stage098 P4、合并、正式全局上传、OVH 部署、生产激活与应用重装由后续阶段管理"
   ],
-  "stop_condition": "完成 Stage098 P2 的范围说明、纯内存控制切片、合同、聚焦用例、machine run、机器事实投影、治理路线和中文视图的本地验证后，本 run 完成；下一轮在新的独立 run 才可进入 IDS-STAGE098-P3-GATE，继续使用同一既有开发 worktree。真实资料、提示词正文、provider、模型、temperature、retrieval_context、查询、检索、回答、报告、证据账本、数据库、来源、Token、审计、持久化、Agent、OVH、生产与正式上传保持后续授权范围。"
+  "stop_condition": "完成 Stage098 P3 的范围说明、纯内存异常场景模块、合同、聚焦用例、machine run、机器事实投影、治理路线和中文视图的本地验证后，本 run 完成；下一轮在新的独立 run 才可进入 IDS-STAGE098-P4-GATE，继续使用同一既有开发 worktree。真实资料、提示词正文、provider、模型、temperature、retrieval_context、查询、检索、回答、报告、证据账本、数据库、来源、Token、审计、持久化、Agent、OVH、生产与正式上传保持后续授权范围。"
 }

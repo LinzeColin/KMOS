@@ -342,10 +342,22 @@ class Stage097AnswerContractReviewTests(unittest.TestCase):
             "IDS-V0_1-STAGE098-P2",
             "IDS-STAGE098-P3-GATE",
         )
+        stage098_phase3_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P3",
+            "IDS-V0_1-STAGE098-P3",
+            "IDS-STAGE098-P4-GATE",
+        )
         self.assertEqual(status["task"], plan["task"])
         self.assertIn(
             current,
-            (phase4_current, review_current, stage098_phase1_current, stage098_phase2_current),
+            (
+                phase4_current,
+                review_current,
+                stage098_phase1_current,
+                stage098_phase2_current,
+                stage098_phase3_current,
+            ),
         )
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
         if current == phase4_current:
@@ -383,7 +395,7 @@ class Stage097AnswerContractReviewTests(unittest.TestCase):
             self.assertIn("stage098_phase1_state:", roadmap_text)
             self.assertIn('current_phase_id: "IDS-STAGE098-P1"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE098-P2-GATE"', roadmap_text)
-        else:
+        elif current == stage098_phase2_current:
             self.assertTrue(REVIEW_RUN.is_file())
             receipt = json.loads(REVIEW_RUN.read_text(encoding="utf-8"))
             self.assertEqual(self.module.PASS_RESULT, receipt["result"])
@@ -396,6 +408,20 @@ class Stage097AnswerContractReviewTests(unittest.TestCase):
             self.assertIn("stage098_phase2_state:", roadmap_text)
             self.assertIn('current_phase_id: "IDS-STAGE098-P2"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE098-P3-GATE"', roadmap_text)
+        else:
+            self.assertTrue(REVIEW_RUN.is_file())
+            receipt = json.loads(REVIEW_RUN.read_text(encoding="utf-8"))
+            self.assertEqual(self.module.PASS_RESULT, receipt["result"])
+            self.assertEqual(self.module.NEXT_GATE, receipt["next_gate"])
+            self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
+            roadmap_text = ROADMAP.read_text(encoding="utf-8")
+            self.assertIn("stage097_review_state:", roadmap_text)
+            self.assertIn("stage098_phase1_state:", roadmap_text)
+            self.assertIn("stage098_phase2_state:", roadmap_text)
+            self.assertIn("stage098_phase3_state:", roadmap_text)
+            self.assertIn('current_phase_id: "IDS-STAGE098-P3"', roadmap_text)
+            self.assertIn('next_gate_id: "IDS-STAGE098-P4-GATE"', roadmap_text)
 
 
 if __name__ == "__main__":

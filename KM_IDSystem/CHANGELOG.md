@@ -1,3 +1,10 @@
+## 2026-08-25 · Stage098 Prompt 版本化 P3
+
+- 完成冻结 Stage098 P3 纯内存异常场景验证：严格重放 P2 的 `6/23/4/41/246` 固定 `reference-only` 控制投影，形成 `6` 条、每条 `31` 字段、共 `186` 个场景检查点、`5` 个控制视图、`6` 条未来人工处理要求、`15` 类失败关闭与 `4` 条中文反馈。
+- 检索文档保持 evidence 身份且 IDS 规则保持优先级；无内部依据保持 `evidence_gap` 且不伪装为内部经验；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，最终结论未发布。
+- 本地验证通过：P1/P2/P3 聚焦 `30/30`，Stage038 源复核 `8/8`，Stage088--Stage098 P3 精确白箱链 `336/336`，Stage005 治理回归 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。
+- 本 P3 只记录纯内存异常场景和本地治理投影；真实资料、提示词、查询、检索、回答、模型、模型 Token、Agent、OVH、生产、正式全局上传与 `main` 合并保持后续授权范围。下一步只在新的独立 run 进入 `IDS-STAGE098-P4-GATE`。
+
 ## 2026-08-25 · Stage098 Prompt 版本化 P2
 
 - 完成冻结 Stage098 P2 纯内存受控最小切片：固定 `6` 条、`23` 字段的非业务 `reference-only` 控制请求，承接 P1 的 `prompt_version`、`model_provider`、`model_version`、`temperature` 与 `retrieval_context` 引用，形成回答合同绑定、版本与所选 evidence 记录、来源类型与外部增强展示、提示注入与输出权限共 `4` 组投影、每条 `41` 字段、共 `246` 个检查点、`15` 类失败关闭与 `4` 条中文反馈。
