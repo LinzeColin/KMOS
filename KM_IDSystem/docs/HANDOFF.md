@@ -9,7 +9,15 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage096 Phase 4 - 2026-08-24
+## Current Gate - Stage096 Review checkpoint - 2026-08-25
+
+- 当前唯一工作门禁为 `IDS-STAGE096-REVIEW-GATE`。本地已建立 Review 的纯内存机械复审模块、冻结合同、中文范围说明与聚焦用例；它们复核 Stage096 P1--P4 的固定形状、失败关闭、单一权威、业务线白箱人工处理、P4→P3 回退和零运行时边界。
+- 已验证：`python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage096_knowledge_base_poisoning_defense_stage_review` 为 `9/9`。该验证只读取版本化控制工件，运行计数与运行标志保持全零／`false`。
+- 本检查点已包含此前本地完成的 Stage096 P4 提交和上述 Review 工件，并按 owner 本轮明示授权推送到既有隔离分支 `codex/kmids-stage071-p1`，用于休眠期间的可恢复续作；它不改变 `main`、release、OVH 或生产状态。
+- 续作范围为 Review 的机器事实、治理路线、历史白箱后继、局部收据、中文生成视图与完整关联验证；Stage097 只在 Review 验收完成后开放 `IDS-STAGE097-P1-GATE`。
+- 回滚范围为本 Review 检查点新增的模块、合同、说明、聚焦用例、后续治理投影和收据，恢复到 Stage096 P4 已验证状态；Stage096 P1--P4、Stage095 Review、冻结任务包、受保护资料、真实证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
+
+## Superseded Gate - Stage096 Phase 4 - 2026-08-24
 
 - 本节是唯一当前交接；下方 Stage096 P3/P2/P1、Stage095 Review/P4/P3/P2/P1 与更早阶段保留已验证的历史事实。
 - 本轮完成 `IDS-V0_1-STAGE096-P4` 的知识库投毒防护纯内存交付证据：从 P3 的 `7` 个固定、非业务、`reference-only` 场景派生 evidence ledger 样例、证据等级报告、撤回影响、回归与不可作为结论依据类型各 `7` 条，证据降级说明 `4` 条、撤回／恢复说明 `2` 条；固定字段形状 `14/13/13/14/11/10/11`，共 `517` 个交付字段检查点、`18` 类失败关闭与 `4` 条中文反馈。
