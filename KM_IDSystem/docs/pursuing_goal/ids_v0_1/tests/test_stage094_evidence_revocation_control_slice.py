@@ -468,6 +468,12 @@ class Stage094EvidenceRevocationControlSliceTests(unittest.TestCase):
             "IDS-V0_1-STAGE094-P1",
             "IDS-STAGE094-P2-GATE",
         )
+        stage094_phase3_current = (
+            "IDS-STAGE094",
+            "IDS-STAGE094-P3",
+            "IDS-V0_1-STAGE094-P3",
+            "IDS-STAGE094-P4-GATE",
+        )
         if current == stage094_phase2_current:
             self.assertTrue(P1_RECEIPT.is_file())
             self.assertTrue(RECEIPT.is_file())
@@ -496,7 +502,7 @@ class Stage094EvidenceRevocationControlSliceTests(unittest.TestCase):
             self.assertIn('current_phase_id: "IDS-STAGE094-P2"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE094-P3-GATE"', roadmap_text)
         else:
-            self.assertEqual(current, stage094_phase1_current)
+            self.assertIn(current, (stage094_phase1_current, stage094_phase3_current))
 
 
 if __name__ == "__main__":
