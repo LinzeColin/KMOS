@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE099",
-  "phase": "IDS-STAGE099-P3",
-  "task": "IDS-V0_1-STAGE099-P3",
-  "next_gate": "IDS-STAGE099-P4-GATE",
+  "phase": "IDS-STAGE099-P4",
+  "task": "IDS-V0_1-STAGE099-P4",
+  "next_gate": "IDS-STAGE099-REVIEW-GATE",
   "items": [
   {
     "id": "ACC-STAGE-099",
-    "criteria": "Stage099 内部依据与外部增强分离已形成可执行、可测试、可回滚的纯内存异常场景合同：P2 控制投影、提示词优先级、evidence_gap 来源身份、底层 source_type 分离、external_augmentation_opinion 展示、输出权限、人工处理门禁和零运行时边界保持一致。",
-    "status": "P3 专项验证与异常场景已完成"
+    "criteria": "Stage099 内部依据与外部增强分离已形成可执行、可测试、可回滚的纯内存交付证据合同：P3 控制场景、提示词优先级、evidence_gap 来源身份、底层 source_type 分离、external_augmentation_opinion 展示、回答样例、负向结果、版本记录、日志、输出权限、回退说明和零运行时边界保持一致。",
+    "status": "P4 交付证据、回滚与中文反馈已完成"
     },
     {
       "id": "ACC-STAGE099-P1-01",
@@ -67,6 +67,26 @@
   {
     "id": "ACC-STAGE099-P3-04",
     "criteria": "P3 保持真实资料、查询、检索、提示词、回答、证据账本、数据库、模型、模型 Token、外部 API、持久化、Agent、OVH、生产、上传与推送的后续授权边界；本轮本地验收完成后才可在新 run 进入 Stage099 P4。",
+    "status": "已遵守"
+  },
+  {
+    "id": "ACC-STAGE099-P4-01",
+    "criteria": "冻结 Stage099 任务包、Stage099 P1/P2/P3 与 Stage098 Review 已复审 Prompt 版本化控制工件保持为唯一控制上下文；P4 只从六条固定、非业务、reference-only P3 场景派生交付记录，来源文档与业务线白箱人工复核继续承担业务事实权威。",
+    "status": "已通过"
+  },
+  {
+    "id": "ACC-STAGE099-P4-02",
+    "criteria": "P4 固定回答样例、负向测试结果、prompt/version 记录、可复现日志和模型输出权限边界各六条，以及 prompt 回滚和模型配置回退说明两条，字段形状为 14/12/11/11/12/12，共三百八十四个交付字段检查点。",
+    "status": "已通过"
+  },
+  {
+    "id": "ACC-STAGE099-P4-03",
+    "criteria": "检索文档保持 evidence 身份且 IDS 规则保持优先级；无内部依据保持 evidence_gap，external_augmentation_opinion 保留底层来源类型；高风险工程建议、合同承诺和生产写回保持业务线白箱人工处理、人工确认未记录和最终结论未发布。",
+    "status": "已通过"
+  },
+  {
+    "id": "ACC-STAGE099-P4-04",
+    "criteria": "P4 保持真实资料、查询、检索、提示词、模型配置、回答、真实日志、证据账本、数据库、模型、模型 Token、外部 API、持久化、Agent、OVH、生产、上传与推送的后续授权边界；本轮本地验收完成后才可在新 run 进入 Stage099 Review。",
     "status": "已遵守"
   },
     {

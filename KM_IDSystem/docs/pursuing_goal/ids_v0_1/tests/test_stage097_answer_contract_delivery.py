@@ -391,6 +391,13 @@ class Stage097AnswerContractPhase4DeliveryTests(unittest.TestCase):
             "IDS-V0_1-STAGE099-P3",
             "IDS-STAGE099-P4-GATE",
         )
+
+        stage099_phase4_current = (
+            "IDS-STAGE099",
+            "IDS-STAGE099-P4",
+            "IDS-V0_1-STAGE099-P4",
+            "IDS-STAGE099-REVIEW-GATE",
+        )
         self.assertIn(
             current,
             (
@@ -404,6 +411,7 @@ class Stage097AnswerContractPhase4DeliveryTests(unittest.TestCase):
                 stage099_phase1_current,
                 stage099_phase2_current,
                 stage099_phase3_current,
+                stage099_phase4_current,
             ),
         )
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))

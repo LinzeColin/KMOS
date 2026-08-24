@@ -606,6 +606,12 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
                         "IDS-V0_1-STAGE099-P3",
                         "IDS-STAGE099-P4-GATE",
                     ),
+                    (
+                        "IDS-STAGE099",
+                        "IDS-STAGE099-P4",
+                        "IDS-V0_1-STAGE099-P4",
+                        "IDS-STAGE099-REVIEW-GATE",
+                    ),
                     stage092_phase4_current,
                     stage092_review_current,
                     stage093_phase1_current,

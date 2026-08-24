@@ -318,6 +318,13 @@ class Stage098PromptVersioningReviewTests(unittest.TestCase):
             "IDS-V0_1-STAGE099-P3",
             "IDS-STAGE099-P4-GATE",
         )
+
+        stage099_phase4_current = (
+            "IDS-STAGE099",
+            "IDS-STAGE099-P4",
+            "IDS-V0_1-STAGE099-P4",
+            "IDS-STAGE099-REVIEW-GATE",
+        )
         self.assertEqual(status["task"], plan["task"])
         self.assertIn(
             current,
@@ -327,6 +334,7 @@ class Stage098PromptVersioningReviewTests(unittest.TestCase):
                 stage099_phase1_current,
                 stage099_phase2_current,
                 stage099_phase3_current,
+                stage099_phase4_current,
             ),
         )
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
