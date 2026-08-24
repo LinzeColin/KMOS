@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE093",
-  "phase": "IDS-STAGE093-P1",
-  "task": "IDS-V0_1-STAGE093-P1",
-  "next_gate": "IDS-STAGE093-P2-GATE",
+  "phase": "IDS-STAGE093-P2",
+  "task": "IDS-V0_1-STAGE093-P2",
+  "next_gate": "IDS-STAGE093-P3-GATE",
   "items": [
     {
       "id": "ACC-STAGE-093",
-      "criteria": "Stage093 证据可信等级 A/B/C/D/E：P1 已固定 evidence ledger、evidence gap、风险、撤回、知识库投毒防护、关键结论关联和 A/B/C/D/E 的静态控制边界；实际可信等级分配、风险计算、撤回和业务判定保持后续授权范围。",
-      "status": "P1 静态合同已完成"
+      "criteria": "Stage093 证据可信等级 A/B/C/D/E：P1 静态边界与 P2 纯内存控制切片已固定 evidence ledger、evidence gap、风险、撤回、知识库投毒防护、关键结论关联和 A/B/C/D/E；实际可信等级分配、风险计算、撤回和业务判定保持后续授权范围。",
+      "status": "P2 受控最小切片已完成"
     },
     {
       "id": "ACC-STAGE093-P1-01",
@@ -27,6 +27,26 @@
     {
       "id": "ACC-STAGE093-P1-04",
       "criteria": "P1 期间不执行真实资料或证据账本访问、风险计算、可信等级变更、撤回、投毒处理、报告状态更新、数据库、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮本地验收完成后才可在新 run 进入 Stage093 P2。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE093-P2-01",
+      "criteria": "冻结 Stage093 任务包、Stage093 P1 静态合同与已复审 Stage092 证据风险评分控制工件保持为唯一合同上下文；P2 只处理六条固定、非业务、reference-only 的纯内存控制输入，只绑定前序控制引用，不建立第二权威事实源，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE093-P2-02",
+      "criteria": "六条固定控制请求各含 27 个不透明字段，并投影可信等级 schema binding 8、可信等级关联 10、检索证据捕获 binding 11、五类风险引用 6、可信等级分配 14、撤回 8、投毒防护 8、关键结论 binding 7、降级 12、报告状态影响 8 与 future integration 8 个字段，共 600 个控制检查点；可信等级与 document、chunk、fact、query、answer、report 的 10 字段引用链保持一致。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE093-P2-03",
+      "criteria": "资料不足场景只以 evidence_gap 控制引用绑定关键结论，其他场景保持 evidence_id/evidence_gap 控制引用；低可信、冲突、过期和撤回保持降级候选，疑似投毒保持隔离候选，报告状态影响只保留未来引用，可信等级分配规则、阈值和业务判定继续等待业务线白箱 owner。固定输入之外的内容、前序合同或引用链缺失、低等级伪装为高等级或自动业务采纳均保持失败关闭。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE093-P2-04",
+      "criteria": "P2 期间不执行真实资料、检索、回答、报告或证据账本访问、数据库 schema 或连接、实际来源、OCR、版本、复核或冲突评估、实际风险计算、可信等级分配或变更、撤回、投毒检测、隔离、恢复、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage093 P3。",
       "status": "已遵守"
     },
     {

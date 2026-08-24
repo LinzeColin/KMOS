@@ -1,3 +1,9 @@
+## 2026-08-24 · Stage093 证据可信等级 A/B/C/D/E P2
+
+- 完成冻结 Stage093 P2 纯内存受控最小切片：固定 `6` 条、非业务、`reference-only` 的 `27` 字段控制请求，投影可信等级 schema binding `8`、可信等级关联 `10`、检索证据捕获 `11`、五类风险引用 `6`、可信等级分配 `14`、撤回 `8`、投毒防护 `8`、关键结论 binding `7`、降级 `12`、报告状态影响 `8` 与 future integration `8` 个字段，共 `600` 个控制检查点与 `27` 类失败关闭。
+- 本地验证通过：P2 聚焦 `9/9`，连同 Stage093 P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `200/200`；Stage005 直接治理 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。中文视图、文档预算、无登记阻塞与双平面门在同一 P2 本地验收回执中记录。
+- 真实资料、真实证据等级、风险计算、撤回、投毒处置、报告状态更新、数据库、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围。下一步只能在新的独立 run 进入 `IDS-STAGE093-P3-GATE`；本 P2 保持本地恢复提交。
+
 ## 2026-08-24 · Stage093 证据可信等级 A/B/C/D/E P1
 
 - 完成冻结 Stage093 P1 静态可信等级合同：固定 `14` 个未来可信等级字段、`10` 个未来关联字段、A/B/C/D/E 五个控制标签、关键结论 `evidence_id`／`evidence_gap` 关联与 `14` 类失败关闭；等级分配规则、阈值和业务判定保持业务线白箱 owner 的后续前置。

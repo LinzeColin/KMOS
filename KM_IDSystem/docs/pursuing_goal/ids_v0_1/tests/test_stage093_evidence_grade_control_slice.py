@@ -7,22 +7,20 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-SCOPE = BASE / "STAGE092_PHASE2_EVIDENCE_RISK_SCORING_CONTROL_SLICE.md"
+SCOPE = BASE / "STAGE093_PHASE2_EVIDENCE_GRADE_CONTROL_SLICE.md"
 CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage092_evidence_risk_scoring_control_slice_contract.json"
+    / "stage093_evidence_grade_control_slice_contract.json"
 )
-MODULE = (
-    BASE / "index_version_schema" / "stage092_evidence_risk_scoring_control_slice.py"
-)
-P1_SCOPE = BASE / "STAGE092_PHASE1_EVIDENCE_RISK_SCORING_SCOPE_BOUNDARY.md"
-P1_CONTRACT = BASE / "index_version_schema" / "stage092_evidence_risk_scoring_contract.json"
-PREDECESSOR_REVIEW = BASE / "STAGE091_STAGE_REVIEW.md"
+MODULE = BASE / "index_version_schema" / "stage093_evidence_grade_control_slice.py"
+P1_SCOPE = BASE / "STAGE093_PHASE1_EVIDENCE_GRADE_SCOPE_BOUNDARY.md"
+P1_CONTRACT = BASE / "index_version_schema" / "stage093_evidence_grade_contract.json"
+PREDECESSOR_REVIEW = BASE / "STAGE092_STAGE_REVIEW.md"
 PREDECESSOR_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage091_evidence_gap_handling_stage_review_contract.json"
+    / "stage092_evidence_risk_scoring_stage_review_contract.json"
 )
 TASKPACK = (
     ROOT
@@ -30,10 +28,10 @@ TASKPACK = (
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-092_证据风险评分.md"
+    / "STAGE-093_证据可信等级A_B_C_D_E.md"
 )
-P1_RECEIPT = ROOT / "machine" / "runs" / "2026-08-24-stage092-p1-local.json"
-RECEIPT = ROOT / "machine" / "runs" / "2026-08-24-stage092-p2-local.json"
+P1_RECEIPT = ROOT / "machine" / "runs" / "2026-08-24-stage093-p1-local.json"
+RECEIPT = ROOT / "machine" / "runs" / "2026-08-24-stage093-p2-local.json"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
@@ -43,7 +41,7 @@ ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 
 def load_module():
     spec = importlib.util.spec_from_file_location(
-        "stage092_evidence_risk_scoring_control_slice", MODULE
+        "stage093_evidence_grade_control_slice", MODULE
     )
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
@@ -51,16 +49,14 @@ def load_module():
     return module
 
 
-class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
+class Stage093EvidenceGradeControlSliceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
         cls.p1_contract = json.loads(P1_CONTRACT.read_text(encoding="utf-8"))
         cls.module = load_module()
         cls.control_input = cls.module.build_control_input()
-        cls.result = cls.module.execute_evidence_risk_scoring_control_slice(
-            cls.control_input
-        )
+        cls.result = cls.module.execute_evidence_grade_control_slice(cls.control_input)
 
     def test_scope_contract_module_taskpack_and_predecessors_exist(self):
         for artifact in (
@@ -79,49 +75,47 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
     def test_identity_authority_predecessor_and_phase_boundary_are_explicit(self):
         contract = self.contract
         self.assertEqual(
-            "ids.stage092.evidence_risk_scoring.phase2.v1",
-            contract["schema_version"],
+            "ids.stage093.evidence_grade.phase2.v1", contract["schema_version"]
         )
-        self.assertEqual("STAGE-092", contract["stage"])
-        self.assertEqual("IDS-STAGE092-P2", contract["phase"])
-        self.assertEqual("IDS-V0_1-STAGE092-P2", contract["task_id"])
+        self.assertEqual("STAGE-093", contract["stage"])
+        self.assertEqual("IDS-STAGE093-P2", contract["phase"])
+        self.assertEqual("IDS-V0_1-STAGE093-P2", contract["task_id"])
         self.assertEqual(
-            "PHASE2_EVIDENCE_RISK_SCORING_CONTROL_SLICE_RUNTIME_DISABLED",
+            "PHASE2_EVIDENCE_GRADE_CONTROL_SLICE_RUNTIME_DISABLED",
             contract["contract_state"],
         )
-        self.assertEqual("IDS-STAGE092-P3-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE093-P3-GATE", contract["next_gate"])
         source = contract["source_authority"]
         self.assertEqual(
-            "FROZEN_STAGE092_TASKPACK_AND_STAGE092_PHASE1_STAGE091_REVIEWED_EVIDENCE_GAP_HANDLING_CONTROL_ARTIFACTS_ONLY",
+            "FROZEN_STAGE093_TASKPACK_AND_STAGE093_PHASE1_STAGE092_REVIEWED_EVIDENCE_RISK_SCORING_CONTROL_ARTIFACTS_ONLY",
             source["authority"],
         )
-        for field in (
-            "second_authoritative_source_created",
-            "source_body_or_path_allowed",
-            "raw_metadata_content_access_allowed",
-            "live_source_read_performed",
-            "authorized_fixture_access_performed",
-            "retrieval_result_access_performed",
-            "evidence_ledger_access_performed",
-            "answer_or_report_access_performed",
-            "audit_log_access_performed",
-        ):
-            with self.subTest(field=field):
-                self.assertFalse(source[field])
+        for field, value in source.items():
+            if field not in {
+                "authority",
+                "frozen_taskpack_ref",
+                "stage093_phase1_scope_ref",
+                "stage093_phase1_contract_ref",
+                "stage092_review_ref",
+                "stage092_review_contract_ref",
+                "stage092_review_receipt_ref",
+            }:
+                with self.subTest(field=field):
+                    self.assertFalse(value)
         predecessor = contract["predecessor_contract"]
         for field in (
-            "stage091_review_required",
-            "stage092_phase1_required",
-            "stage092_phase2_may_not_replace_predecessor_contracts",
+            "stage092_review_required",
+            "stage093_phase1_required",
+            "stage093_phase2_may_not_replace_predecessor_contracts",
         ):
             with self.subTest(field=field):
                 self.assertTrue(predecessor[field])
         self.assertFalse(predecessor["actual_predecessor_runtime_artifact_read_performed"])
         boundary = contract["stage_and_phase_boundary"]
         for field in (
-            "stage091_review_evidence_declared",
-            "stage092_started",
-            "stage092_entry_authorized",
+            "stage092_review_evidence_declared",
+            "stage093_started",
+            "stage093_entry_authorized",
             "phase1_completed",
             "phase2_started",
             "phase2_completed",
@@ -132,7 +126,7 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
             "phase3_started",
             "phase4_started",
             "whole_stage_review_performed",
-            "stage093_started",
+            "stage094_started",
             "github_upload_allowed",
             "push_allowed",
         ):
@@ -143,12 +137,10 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
     def test_fixed_control_input_is_exact_nonbusiness_and_reference_only(self):
         contract_input = self.contract["reference_only_control_input_contract"]
         self.assertEqual(
-            self.module.CONTROL_FIELDS,
-            tuple(contract_input["control_fields"]),
+            self.module.CONTROL_FIELDS, tuple(contract_input["control_fields"])
         )
         self.assertEqual(
-            self.module.INPUT_FIELDS,
-            tuple(contract_input["input_fields"]),
+            self.module.INPUT_FIELDS, tuple(contract_input["input_fields"])
         )
         self.assertEqual(
             len(self.module.INPUT_FIELDS), contract_input["input_field_count"]
@@ -195,16 +187,26 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
         self.assertIsNone(requests[0]["evidence_id_ref"])
         self.assertTrue(all(item["evidence_id_ref"] for item in requests[1:]))
 
-    def test_exact_projection_shapes_and_field_total_are_preserved(self):
+    def test_exact_projection_shapes_and_phase1_shape_are_preserved(self):
         projections = self.contract["control_projection_contract"]
         self.assertTrue(self.result["input_accepted"])
         self.assertEqual(
-            "CONTROL_EVIDENCE_RISK_SCORING_PROJECTIONS_DECLARED_NOT_CALCULATED",
+            "CONTROL_EVIDENCE_GRADE_PROJECTIONS_DECLARED",
             self.result["execution_state"],
         )
         self.assertIsNone(self.result["failure_state"])
         self.assertEqual(6, self.result["control_input_count"])
         self.assertEqual(11, projections["control_projection_group_count"])
+        self.assertEqual(
+            self.p1_contract["evidence_grade_contract"]["future_evidence_grade_fields"],
+            list(self.module.EVIDENCE_GRADE_ASSIGNMENT_FIELDS),
+        )
+        self.assertEqual(
+            self.p1_contract["evidence_grade_contract"][
+                "future_evidence_grade_relation_fields"
+            ],
+            list(self.module.EVIDENCE_GRADE_RELATION_FIELDS),
+        )
         total = 0
         for prefix, fields in self.module.PROJECTION_FIELDS:
             with self.subTest(prefix=prefix):
@@ -219,54 +221,54 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
                 total += len(fields)
                 for record in records:
                     self.assertEqual(set(fields), set(record))
-        self.assertEqual(97, total)
+        self.assertEqual(100, total)
         self.assertEqual(
             total, projections["control_projection_field_total_per_request"]
         )
         self.assertEqual(6 * total, projections["control_projection_field_total"])
 
-    def test_risk_relation_factor_capture_and_conclusion_chain_are_exact(self):
+    def test_binding_capture_risk_assignment_and_conclusion_chain_are_exact(self):
         requests = self.control_input[self.module.CONTROL_FIELDS[0]]
         for index, request in enumerate(requests):
             with self.subTest(scenario=request["control_scenario"]):
-                schema = self.result["risk_schema_binding_control_projections"][index]
-                relation = self.result["evidence_risk_relation_control_projections"][
+                schema = self.result["evidence_grade_schema_binding_control_projections"][
+                    index
+                ]
+                relation = self.result["evidence_grade_relation_control_projections"][
                     index
                 ]
                 capture = self.result[
                     "retrieval_evidence_capture_binding_control_projections"
                 ][index]
-                factors = self.result["risk_factor_binding_control_projections"][index]
-                risk = self.result["risk_score_control_projections"][index]
+                risk = self.result["risk_reference_binding_control_projections"][index]
+                assignment = self.result[
+                    "evidence_grade_assignment_control_projections"
+                ][index]
                 conclusion = self.result[
                     "critical_conclusion_binding_control_projections"
                 ][index]
                 self.assertEqual(
-                    self.module.PHASE1_EVIDENCE_RISK_CONTRACT_CONTROL_REF,
-                    schema["phase1_evidence_risk_contract_ref"],
+                    self.module.PHASE1_EVIDENCE_GRADE_CONTRACT_CONTROL_REF,
+                    schema["phase1_evidence_grade_contract_ref"],
                 )
                 self.assertEqual(
-                    self.module.STAGE091_REVIEW_CONTROL_REF,
-                    schema["stage091_review_control_ref"],
+                    self.module.STAGE092_REVIEW_CONTROL_REF,
+                    schema["stage092_review_control_ref"],
                 )
                 self.assertEqual(
-                    "CONTROL_PHASE1_EVIDENCE_RISK_SHAPE_BOUND_NOT_REDEFINED",
+                    "CONTROL_PHASE1_EVIDENCE_GRADE_SHAPE_BOUND",
                     schema["schema_binding_state"],
                 )
-                for field in self.module.EVIDENCE_RISK_RELATION_FIELDS:
+                for field in self.module.EVIDENCE_GRADE_RELATION_FIELDS:
                     self.assertEqual(request[field], relation[field])
                 for field in self.module.RETRIEVAL_EVIDENCE_CAPTURE_BINDING_FIELDS:
                     self.assertEqual(request[field], capture[field])
-                for field in self.module.RISK_FACTOR_BINDING_FIELDS:
-                    self.assertEqual(request[field], factors[field])
-                self.assertEqual(request["risk_score_ref"], risk["risk_score_ref"])
+                for field in self.module.RISK_REFERENCE_BINDING_FIELDS:
+                    self.assertEqual(request[field], risk[field])
+                for field in self.module.EVIDENCE_GRADE_ASSIGNMENT_FIELDS:
+                    self.assertEqual(request[field], assignment[field])
                 self.assertEqual(
-                    "CONTROL_OWNER_APPROVED_RULE_REQUIRED_NOT_CALCULATED",
-                    risk["owner_formula_state"],
-                )
-                self.assertEqual(
-                    request["critical_conclusion_ref"],
-                    conclusion["critical_conclusion_ref"],
+                    request["critical_conclusion_ref"], conclusion["critical_conclusion_ref"]
                 )
                 self.assertEqual(request["evidence_id_ref"], conclusion["evidence_id_ref"])
                 self.assertEqual(request["evidence_gap_ref"], conclusion["evidence_gap_ref"])
@@ -275,29 +277,29 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
                     or conclusion["evidence_gap_ref"] is not None
                 )
 
-    def test_degradation_and_quarantine_scenarios_stay_in_whitebox_control_states(self):
+    def test_degradation_and_quarantine_stay_in_whitebox_control_states(self):
         expected = {
-            "internal_material_insufficient_risk_pending_whitebox_review_reference_only": (
+            "internal_material_insufficient_grade_pending_whitebox_review_reference_only": (
                 "CONTROL_EVIDENCE_GAP_PENDING_HUMAN_WHITEBOX_REVIEW",
                 "CONTROL_REPORT_STATUS_REFERENCE_PENDING_EVIDENCE_GAP_REVIEW",
             ),
-            "low_trust_evidence_degraded_reference_only": (
+            "low_trust_evidence_grade_degraded_reference_only": (
                 "CONTROL_DEGRADED_LOW_TRUST_NOT_ACCEPTED",
                 "CONTROL_REPORT_STATUS_REFERENCE_DEGRADED_LOW_TRUST",
             ),
-            "conflict_evidence_degraded_reference_only": (
+            "conflict_evidence_grade_degraded_reference_only": (
                 "CONTROL_DEGRADED_CONFLICT_NOT_ACCEPTED",
                 "CONTROL_REPORT_STATUS_REFERENCE_DEGRADED_CONFLICT",
             ),
-            "expired_evidence_degraded_reference_only": (
+            "expired_evidence_grade_degraded_reference_only": (
                 "CONTROL_DEGRADED_EXPIRED_NOT_ACCEPTED",
                 "CONTROL_REPORT_STATUS_REFERENCE_DEGRADED_EXPIRED",
             ),
-            "revoked_evidence_degraded_reference_only": (
+            "revoked_evidence_grade_degraded_reference_only": (
                 "CONTROL_DEGRADED_REVOKED_NOT_ACCEPTED",
                 "CONTROL_REPORT_STATUS_REFERENCE_DEGRADED_REVOKED",
             ),
-            "suspected_poisoning_evidence_quarantined_reference_only": (
+            "suspected_poisoning_grade_quarantined_reference_only": (
                 "CONTROL_QUARANTINED_SUSPECTED_POISONING_NOT_ACCEPTED",
                 "CONTROL_REPORT_STATUS_REFERENCE_QUARANTINED_SUSPECTED_POISONING",
             ),
@@ -314,23 +316,25 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
                     request["control_scenario"]
                 ]
                 self.assertEqual(expected_degradation, degradation["degradation_state"])
-                self.assertEqual(expected_impact, impact["report_status_impact_state"])
+                self.assertEqual(
+                    expected_impact, impact["report_status_impact_state"]
+                )
                 self.assertEqual(
                     "CONTROL_HUMAN_WHITEBOX_REVIEW_REQUIRED",
                     poison_defense["human_whitebox_review_state"],
                 )
                 self.assertEqual(
-                    "CONTROL_POISONING_DEFENSE_REFERENCE_NOT_EXECUTED",
+                    "CONTROL_POISONING_DEFENSE_ROUTE_DECLARED",
                     poison_defense["defense_state"],
                 )
 
-    def test_nonfixed_control_input_fails_closed_without_projections(self):
+    def test_nonfixed_control_input_keeps_empty_projections(self):
         invalid_input = copy.deepcopy(self.control_input)
         invalid_input[self.module.CONTROL_FIELDS[0]][1]["evidence_grade_label"] = "A"
-        rejected = self.module.execute_evidence_risk_scoring_control_slice(invalid_input)
+        rejected = self.module.execute_evidence_grade_control_slice(invalid_input)
         self.assertFalse(rejected["input_accepted"])
         self.assertEqual(
-            "REJECTED_IN_MEMORY_EVIDENCE_RISK_SCORING_CONTROL_SLICE",
+            "REJECTED_IN_MEMORY_EVIDENCE_GRADE_CONTROL_SLICE",
             rejected["execution_state"],
         )
         self.assertEqual("CONTROL_INPUT_MISMATCH", rejected["failure_state"])
@@ -348,34 +352,47 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
         for field, value in self.result["runtime_boundary"].items():
             with self.subTest(field=field):
                 self.assertFalse(value)
-        for field, value in self.contract["runtime_boundary"].items():
-            with self.subTest(contract_field=field):
-                self.assertFalse(value)
+        for section in ("runtime_boundary", "protected_surface_boundary"):
+            for field, value in self.contract[section].items():
+                with self.subTest(section=section, field=field):
+                    self.assertFalse(value)
+        failures = self.contract["failure_and_stop_contract"]
+        self.assertEqual(
+            failures["failure_state_count"], len(failures["declared_failure_states"])
+        )
+        for state in (
+            "EVIDENCE_GRADE_ASSIGNMENT_RULE_UNAUTHORIZED",
+            "LOW_GRADE_EVIDENCE_MASQUERADING_AS_HIGH_GRADE",
+            "REVOKED_EVIDENCE_NOT_DEGRADED",
+            "SUSPECTED_POISONING_EVIDENCE_NOT_QUARANTINED",
+        ):
+            with self.subTest(state=state):
+                self.assertIn(state, failures["declared_failure_states"])
 
     def test_scope_rollback_and_current_governance_keep_the_next_gate_explicit(self):
         text = SCOPE.read_text(encoding="utf-8")
         for phrase in (
             "不建立第二权威事实源",
             "reference-only",
-            "风险权重、阈值和业务判定公式",
-            "资料不足场景允许关键结论只关联 `evidence_gap_ref`",
-            "低可信、冲突、过期和撤回场景固定为降级候选",
-            "疑似投毒场景固定为隔离候选",
+            "14` 个未来可信等级字段",
+            "100` 个字段",
+            "低可信、冲突、过期和撤回场景保持降级候选",
+            "疑似投毒场景保持隔离候选",
             "业务线白箱人工复核",
             "模型 Token",
-            "IDS-STAGE092-P3-GATE",
+            "IDS-STAGE093-P3-GATE",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
         rollback = self.contract["rollback_contract"]
         self.assertEqual(
-            "PHASE1_EVIDENCE_RISK_SCORING_CONTRACT_RUNTIME_DISABLED",
+            "PHASE1_EVIDENCE_GRADE_CONTRACT_RUNTIME_DISABLED",
             rollback["return_to"],
         )
         for field in (
-            "preserve_stage092_phase1_evidence",
-            "preserve_stage091_review_evidence",
-            "preserve_stage091_phase1_to_phase4_evidence",
+            "preserve_stage093_phase1_evidence",
+            "preserve_stage092_review_evidence",
+            "preserve_stage092_phase1_to_phase4_evidence",
         ):
             with self.subTest(field=field):
                 self.assertTrue(rollback[field])
@@ -396,29 +413,11 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
             if line.strip()
         }
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
-        stage092_phase2_current = (
-            "IDS-STAGE092",
-            "IDS-STAGE092-P2",
-            "IDS-V0_1-STAGE092-P2",
-            "IDS-STAGE092-P3-GATE",
-        )
-        stage092_phase3_current = (
-            "IDS-STAGE092",
-            "IDS-STAGE092-P3",
-            "IDS-V0_1-STAGE092-P3",
-            "IDS-STAGE092-P4-GATE",
-        )
-        stage092_phase4_current = (
-            "IDS-STAGE092",
-            "IDS-STAGE092-P4",
-            "IDS-V0_1-STAGE092-P4",
-            "IDS-STAGE092-REVIEW-GATE",
-        )
-        stage092_review_current = (
-            "IDS-STAGE092",
-            "IDS-STAGE092-REVIEW",
-            "IDS-V0_1-STAGE092-REVIEW",
-            "IDS-STAGE093-P1-GATE",
+        stage093_phase2_current = (
+            "IDS-STAGE093",
+            "IDS-STAGE093-P2",
+            "IDS-V0_1-STAGE093-P2",
+            "IDS-STAGE093-P3-GATE",
         )
         stage093_phase1_current = (
             "IDS-STAGE093",
@@ -426,56 +425,54 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
             "IDS-V0_1-STAGE093-P1",
             "IDS-STAGE093-P2-GATE",
         )
-        stage092_phase1_current = (
-            "IDS-STAGE092",
-            "IDS-STAGE092-P1",
-            "IDS-V0_1-STAGE092-P1",
-            "IDS-STAGE092-P2-GATE",
+        stage093_phase3_current = (
+            "IDS-STAGE093",
+            "IDS-STAGE093-P3",
+            "IDS-V0_1-STAGE093-P3",
+            "IDS-STAGE093-P4-GATE",
         )
-        stage091_review_current = (
-            "IDS-STAGE091",
-            "IDS-STAGE091-REVIEW",
-            "IDS-V0_1-STAGE091-REVIEW",
-            "IDS-STAGE092-P1-GATE",
+        stage093_phase4_current = (
+            "IDS-STAGE093",
+            "IDS-STAGE093-P4",
+            "IDS-V0_1-STAGE093-P4",
+            "IDS-STAGE093-REVIEW-GATE",
         )
-        if current == stage092_phase2_current:
+        stage093_review_current = (
+            "IDS-STAGE093",
+            "IDS-STAGE093-REVIEW",
+            "IDS-V0_1-STAGE093-REVIEW",
+            "IDS-STAGE094-P1-GATE",
+        )
+        if current == stage093_phase2_current:
             self.assertTrue(P1_RECEIPT.is_file())
             self.assertTrue(RECEIPT.is_file())
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
             acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-            self.assertEqual("P2 受控最小切片已完成", acceptance_by_id["ACC-STAGE-092"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE092-P2-01"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE092-P2-02"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE092-P2-03"])
-            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE092-P2-04"])
-            self.assertIn("EVT-IDS-V0_1-STAGE092-P2-20260824-001", event_ids)
-            self.assertEqual("IDS-STAGE092-P3-GATE", receipt["next_gate"])
+            self.assertEqual("P2 受控最小切片已完成", acceptance_by_id["ACC-STAGE-093"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE093-P2-01"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE093-P2-02"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE093-P2-03"])
+            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE093-P2-04"])
+            self.assertIn("EVT-IDS-V0_1-STAGE093-P2-20260824-001", event_ids)
+            self.assertEqual("IDS-STAGE093-P3-GATE", receipt["next_gate"])
             self.assertEqual(
-                "PASS_EVIDENCE_RISK_SCORING_CONTROL_SLICE_RUNTIME_DISABLED",
+                "PASS_EVIDENCE_GRADE_CONTROL_SLICE_RUNTIME_DISABLED",
                 receipt["result"],
             )
             self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
-            self.assertEqual("IDS-V0_1-STAGE092-P2", plan["task"])
+            self.assertEqual("IDS-V0_1-STAGE093-P2", plan["task"])
             roadmap_text = ROADMAP.read_text(encoding="utf-8")
-            self.assertIn("stage092_phase2_state:", roadmap_text)
-            self.assertIn('current_phase_id: "IDS-STAGE092-P2"', roadmap_text)
-            self.assertIn('next_gate_id: "IDS-STAGE092-P3-GATE"', roadmap_text)
+            self.assertIn("stage093_phase2_state:", roadmap_text)
+            self.assertIn('current_phase_id: "IDS-STAGE093-P2"', roadmap_text)
+            self.assertIn('next_gate_id: "IDS-STAGE093-P3-GATE"', roadmap_text)
         else:
             self.assertIn(
                 current,
                 (
-                    stage092_phase4_current,
-                    stage092_review_current,
                     stage093_phase1_current,
-                    (
-                        "IDS-STAGE093",
-                        "IDS-STAGE093-P2",
-                        "IDS-V0_1-STAGE093-P2",
-                        "IDS-STAGE093-P3-GATE",
-                    ),
-                    stage092_phase3_current,
-                    stage092_phase1_current,
-                    stage091_review_current,
+                    stage093_phase3_current,
+                    stage093_phase4_current,
+                    stage093_review_current,
                 ),
             )
 

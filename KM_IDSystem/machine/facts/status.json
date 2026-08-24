@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE093",
-  "phase": "IDS-STAGE093-P1",
-  "task": "IDS-V0_1-STAGE093-P1",
-  "real_progress": "Stage093 P1 已固定 14 个未来可信等级字段、10 个未来关联字段、A/B/C/D/E 五个控制标签与 14 类失败关闭；全部为静态控制合同，未读取、计算、分配或变更真实证据等级。",
+  "phase": "IDS-STAGE093-P2",
+  "task": "IDS-V0_1-STAGE093-P2",
+  "real_progress": "Stage093 P2 已完成六条固定、非业务、reference-only 的 27 字段可信等级控制请求，投影 11 组控制引用、每条 100 个字段、共 600 个控制检查点与 27 类失败关闭；所有对象只存在于函数返回值。",
   "report_grade": "冻结 Stage093 任务包与已复审 Stage092 证据风险评分控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "Stage093 P1 只完成可信等级静态边界：关键结论未来必须关联 evidence_id 或 evidence_gap，等级分配公式、阈值和业务判定保持业务线白箱 owner 的后续前置，低可信、冲突、过期、撤回或投毒疑似状态不能自动采纳；真实证据、风险、撤回、报告、数据库、模型、Token、Agent、OVH 与生产保持后续授权范围。",
-  "evidence_status": "STAGE093_EVIDENCE_GRADE_CONTRACT_RUNTIME_DISABLED",
+  "business_verdict": "Stage093 P2 只完成可信等级受控最小切片：关键结论保持 evidence_id 或 evidence_gap 关联，可信等级分配公式、阈值和业务判定保持业务线白箱 owner 的后续前置，低可信、冲突、过期、撤回或投毒疑似状态保持人工复核；真实证据、风险、撤回、报告、数据库、模型、Token、Agent、OVH 与生产保持后续授权范围。",
+  "evidence_status": "STAGE093_EVIDENCE_GRADE_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-24",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE093-P2-GATE",
+  "next_gate": "IDS-STAGE093-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
