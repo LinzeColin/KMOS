@@ -406,8 +406,11 @@ def render_05(facts: Path, runs_dir: Path):
     )
     current_runs = [
         run for run in runs
-        if current_run_marker
-        and current_run_marker in str(run.get("run_id", "")).strip("`")
+        if str(run.get("stage", "")).strip("`") == current_stage
+        or (
+            current_run_marker
+            and current_run_marker in str(run.get("run_id", "")).strip("`")
+        )
     ]
     recent_runs = (current_runs[-run_limit:] if current_stage else runs[-run_limit:]) if run_limit else []
     run_rows = [

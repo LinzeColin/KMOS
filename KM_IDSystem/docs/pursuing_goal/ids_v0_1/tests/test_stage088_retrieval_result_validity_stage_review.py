@@ -190,6 +190,12 @@ class Stage088ReviewTests(unittest.TestCase):
             "IDS-V0_1-STAGE095-P1",
             "IDS-STAGE095-P2-GATE",
         )
+        stage095_phase2_current = (
+            "IDS-STAGE095",
+            "IDS-STAGE095-P2",
+            "IDS-V0_1-STAGE095-P2",
+            "IDS-STAGE095-P3-GATE",
+        )
         stage088_review_current = (
             "IDS-STAGE088",
             "IDS-STAGE088-REVIEW",
@@ -222,6 +228,7 @@ class Stage088ReviewTests(unittest.TestCase):
                 current,
                 (
                     stage095_phase1_current,
+                    stage095_phase2_current,
                     (
                         "IDS-STAGE088",
                         "IDS-STAGE088-P1",

@@ -246,6 +246,12 @@ class Stage093EvidenceGradePhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE095-P1",
             "IDS-STAGE095-P2-GATE",
         )
+        stage095_phase2_current = (
+            "IDS-STAGE095",
+            "IDS-STAGE095-P2",
+            "IDS-V0_1-STAGE095-P2",
+            "IDS-STAGE095-P3-GATE",
+        )
         stage093_phase1_current = (
             "IDS-STAGE093",
             "IDS-STAGE093-P1",
@@ -277,6 +283,7 @@ class Stage093EvidenceGradePhase1Tests(unittest.TestCase):
                 current,
                 (
                     stage095_phase1_current,
+                    stage095_phase2_current,
                     (
                         "IDS-STAGE092",
                         "IDS-STAGE092-REVIEW",

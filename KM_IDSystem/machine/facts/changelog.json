@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage095-p2-local",
+    "date": "2026-08-24",
+    "summary": "完成 Stage095 证据回归测试 P2 纯内存控制切片：6 条 reference-only 请求、21 个输入字段、6 组投影、每条 58 个字段、348 个控制检查点、20 类失败关闭与 4 条中文反馈。关键结论继续关联 evidence_id 或 evidence_gap；低 OCR、旧版本、冲突与撤回保持降级候选，疑似恶意资料保持隔离候选。P2/P1 聚焦各 9/9，Stage088--Stage095 P1/P2 关联链 375/375，Stage005 valid=true，两个批次检查器通过，批次投影门禁 13/13 通过。所有实际运行计数为 0，真实资料、检索、证据账本、风险、等级、撤回、投毒、报告、模型 Token、Agent、OVH、生产与正式上传保持后续授权范围。"
+  },
+  {
     "version": "v0.1-stage095-p1-local",
     "date": "2026-08-24",
     "summary": "完成 Stage095 证据回归测试 P1 静态控制合同：固定 Evidence Ledger、证据缺口、风险评分、可信等级、撤回和知识库投毒防护的 14 个未来字段、14 个关联字段、6 个控制定义、5 个继承自 Stage094 Review 的 A/B/C/D/E 等级标签、14 类失败关闭与 4 条中文反馈。关键结论只以 evidence_id 或 evidence_gap 关联，回归规则、风险公式、等级分配、阈值、撤回条件、投毒处置和业务判定保持业务线白箱 owner 后续前置。P1 聚焦 9/9、Stage088--Stage094 历史关联链 357/357、含 Stage095 P1 的完整关联链 366/366，Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，机器事实重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。真实资料、证据账本、检索、实际回归、风险计算、可信等级变更、撤回、投毒、报告状态、数据库、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围；下一步仅可在新的独立 run 进入 IDS-STAGE095-P2-GATE。"

@@ -262,6 +262,12 @@ class Stage094EvidenceRevocationPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE095-P1",
             "IDS-STAGE095-P2-GATE",
         )
+        stage095_phase2_current = (
+            "IDS-STAGE095",
+            "IDS-STAGE095-P2",
+            "IDS-V0_1-STAGE095-P2",
+            "IDS-STAGE095-P3-GATE",
+        )
         stage094_phase1_current = (
             "IDS-STAGE094",
             "IDS-STAGE094-P1",
@@ -294,6 +300,7 @@ class Stage094EvidenceRevocationPhase1Tests(unittest.TestCase):
                 current,
                 (
                     stage095_phase1_current,
+                    stage095_phase2_current,
                     (
                         "IDS-STAGE093",
                         "IDS-STAGE093-REVIEW",

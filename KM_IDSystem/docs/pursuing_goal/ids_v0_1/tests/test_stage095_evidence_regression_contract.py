@@ -243,6 +243,12 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE095-P1",
             "IDS-STAGE095-P2-GATE",
         )
+        stage095_phase2_current = (
+            "IDS-STAGE095",
+            "IDS-STAGE095-P2",
+            "IDS-V0_1-STAGE095-P2",
+            "IDS-STAGE095-P3-GATE",
+        )
         if current == stage095_phase1_current:
             self.assertTrue(RECEIPT.is_file())
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
@@ -265,13 +271,16 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
             self.assertIn('current_phase_id: "IDS-STAGE095-P1"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE095-P2-GATE"', roadmap_text)
         else:
-            self.assertEqual(
+            self.assertIn(
                 current,
                 (
-                    "IDS-STAGE094",
-                    "IDS-STAGE094-REVIEW",
-                    "IDS-V0_1-STAGE094-REVIEW",
-                    "IDS-STAGE095-P1-GATE",
+                    stage095_phase2_current,
+                    (
+                        "IDS-STAGE094",
+                        "IDS-STAGE094-REVIEW",
+                        "IDS-V0_1-STAGE094-REVIEW",
+                        "IDS-STAGE095-P1-GATE",
+                    ),
                 ),
             )
 
