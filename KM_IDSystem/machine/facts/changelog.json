@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage097-p4-local",
+    "date": "2026-08-25",
+    "summary": "完成 Stage097 回答合同 P4 纯内存交付证据：从 P3 六条、每条 28 字段非业务 reference-only 场景派生回答样例、负向测试结果、prompt/version 记录、可复现日志和输出权限各 6 条，以及 prompt 回滚和模型配置回退各 1 条，字段形状为 14/12/11/11/12/12，共 384 个交付检查点、16 类失败关闭与 4 条中文反馈。检索文档保持 evidence 身份且 IDS 规则保持优先级；无内部依据继续为 evidence_gap；三类高风险输出保持业务线白箱人工确认与最终结论未发布；prompt 回滚与模型配置回退保持版本化、可验证目标。P4 聚焦 10/10，Stage088--Stage097 P1--P3 历史白箱链 298/298，Stage005 治理回归 valid=true，Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，本地回执与治理事件结构可解析。真实资料、查询、检索、提示词、回答、日志、模型和模型配置、模型 Token、Agent、OVH、生产、正式全局上传与 main 合并保持后续授权范围；下一步仅可在新的独立 run 进入 IDS-STAGE097-REVIEW-GATE。"
+  },
+  {
     "version": "v0.1-stage097-p3-local",
     "date": "2026-08-25",
     "summary": "完成 Stage097 回答合同 P3 纯内存异常场景验证：重放 P2 的 6 条固定、20 字段非业务 reference-only 控制请求，形成 6 个、每个 28 字段的受控场景，共 168 个场景检查点、5 个控制视图、6 条业务线白箱人工处理要求、3 类高风险输出分类、15 类失败关闭与 4 条中文反馈。检索文档保持 evidence 身份且 IDS 规则保持优先级；无内部依据保持 evidence_gap；高风险工程建议、合同承诺和生产写回保持人工确认与最终结论未发布。P3 聚焦 10/10，Stage088--Stage097 P1--P3 精确白箱链 298/298，Stage005 治理回归 valid=true，Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，机器事实重渲染 7 个中文文件且文档预算、无登记阻塞与单项目双平面检查均通过。真实资料、查询、检索、提示词、回答、模型、模型 Token、Agent、OVH、生产、正式全局上传与 main 合并保持后续授权范围；下一步仅可在新的独立 run 进入 IDS-STAGE097-P4-GATE。"
