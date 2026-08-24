@@ -290,6 +290,12 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
                     stage095_phase3_current,
                     stage095_phase4_current,
                     (
+                        "IDS-STAGE095",
+                        "IDS-STAGE095-REVIEW",
+                        "IDS-V0_1-STAGE095-REVIEW",
+                        "IDS-STAGE096-P1-GATE",
+                    ),
+                    (
                         "IDS-STAGE094",
                         "IDS-STAGE094-REVIEW",
                         "IDS-V0_1-STAGE094-REVIEW",
