@@ -9,6 +9,13 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
+## Paused Checkpoint - Stage094 Phase 3 Preparation - 2026-08-24
+
+- 当前正式门禁保持 `IDS-STAGE094-P2-GATE`；本检查点保存 P3 的纯内存场景实现，供同一工作树和分支在恢复后继续完成 P3 治理投影、历史后继断言、完整回归、回执、事件与渲染。
+- 已保存的 P3 工件为 `STAGE094_PHASE3_EVIDENCE_REVOCATION_CONTROLLED_SCENARIOS.md`、`stage094_evidence_revocation_controlled_scenarios.py`、其合同 JSON 与聚焦用例。它们只从 P2 的固定 `6` 个非业务控制投影派生 `7` 个、每个 `32` 字段的异常场景，覆盖证据缺口、低 OCR、旧版本、冲突、撤回报告影响、恶意资料隔离与 D 级证据伪装高可信结论拒绝。
+- 已验证 P3 聚焦命令 `python3 -B -m unittest -q KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage094_evidence_revocation_controlled_scenarios.py` 为 `9/9`；验证时 Stage094 机器事实仍保持 P2，所有场景只在内存中运行。
+- 恢复入口：继续使用 `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1` 和 `codex/kmids-stage071-p1`，先完成 P3 的冻结治理与完整验收，再进入新的独立 run 的 `IDS-STAGE094-P4-GATE`。
+
 ## Current Gate - Stage094 Phase 2 - 2026-08-24
 
 - 本节是唯一当前交接；下方 Stage094 P1、Stage093 Review/P4/P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 保留已验证的历史事实。
