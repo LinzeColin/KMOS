@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE097",
-  "phase": "IDS-STAGE097-P2",
-  "task": "IDS-V0_1-STAGE097-P2",
-  "real_progress": "Stage097 P2 已完成回答合同纯内存受控最小切片：固定查询、索引版本、提示词版本、模型版本和所选 evidence 的 reference-only 记录形状，保持来源类型分离、外部增强展示、提示注入防护和输出权限门禁。",
-  "report_grade": "冻结 Stage097 任务包、Stage097 P1 静态回答合同与已复审 Stage096 知识库投毒防护控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "Stage097 P2 仅投影固定、非业务、reference-only 控制记录：外部公开参考与模型推理在展示层形成外部增强，底层来源类型保持分离；检索文档保持 evidence 身份，提示注入保持拒绝或白箱复核前置，高风险工程建议、合同承诺和生产写回保持人工确认。真实查询、检索、提示词、模型、Token、Agent、OVH 与生产保持后续授权范围。",
-  "evidence_status": "STAGE097_ANSWER_CONTRACT_CONTROL_SLICE_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE097-P3",
+  "task": "IDS-V0_1-STAGE097-P3",
+  "real_progress": "Stage097 P3 已完成回答合同纯内存异常场景验证：重放 P2 的六条固定控制投影，形成六条、每条 28 字段、共 168 个场景检查点，以及五个控制视图和六条业务线白箱人工处理要求。",
+  "report_grade": "冻结 Stage097 任务包、Stage097 P1/P2 控制工件与已复审 Stage096 知识库投毒防护控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+  "business_verdict": "Stage097 P3 仅验证固定、非业务、reference-only 异常场景：检索文档不能覆盖 IDS 规则，无内部依据保持 evidence gap，外部增强展示保持来源类型分离；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，最终结论未发布。真实查询、检索、提示词、模型、Token、Agent、OVH 与生产保持后续授权范围。",
+  "evidence_status": "STAGE097_ANSWER_CONTRACT_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-25",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE097-P3-GATE",
+  "next_gate": "IDS-STAGE097-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

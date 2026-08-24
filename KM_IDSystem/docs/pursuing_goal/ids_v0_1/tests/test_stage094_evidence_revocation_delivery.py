@@ -483,6 +483,12 @@ class Stage094EvidenceRevocationPhase4Tests(unittest.TestCase):
                         "IDS-V0_1-STAGE097-P2",
                         "IDS-STAGE097-P3-GATE",
                     ),
+                    (
+                        "IDS-STAGE097",
+                        "IDS-STAGE097-P3",
+                        "IDS-V0_1-STAGE097-P3",
+                        "IDS-STAGE097-P4-GATE",
+                    ),
                     p3_current,
                     review_current,
                 ),

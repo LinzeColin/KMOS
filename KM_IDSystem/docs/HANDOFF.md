@@ -9,18 +9,25 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage097 P2 accepted locally - 2026-08-25
+## Current Gate - Stage097 P3 accepted locally - 2026-08-25
 
-- `IDS-V0_1-STAGE097-P2` 已完成回答合同的纯内存受控最小切片；当前状态为 `IDS-STAGE097 / IDS-STAGE097-P2 / IDS-V0_1-STAGE097-P2 / IDS-STAGE097-P3-GATE`。P3 仅可在新的独立 run 进入。
+- `IDS-V0_1-STAGE097-P3` 已完成回答合同的纯内存异常场景验证；当前状态为 `IDS-STAGE097 / IDS-STAGE097-P3 / IDS-V0_1-STAGE097-P3 / IDS-STAGE097-P4-GATE`。P4 仅可在新的独立 run 进入。
+- P3 重放 P2 的 `6` 条、`20` 字段非业务 `reference-only` 控制请求，形成 `6` 个、每个 `28` 字段的受控场景，共 `168` 个场景检查点、`5` 个控制视图、`6` 条未来业务线白箱人工处理要求、`3` 类高风险输出分类、`15` 类失败关闭与 `4` 条中文反馈。
+- 已验证：P3 聚焦用例 `10/10`，Stage088--Stage097 P1--P3 精确白箱链 `298/298`；`Stage005` 治理回归为 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞和单项目双平面检查通过。
+- 检索文档保持 evidence 身份，IDS 规则保持优先级；无内部依据保持 `evidence_gap`；外部增强展示保持 `internal_evidence`、`external_public_reference`、`model_reasoning` 与 `evidence_gap` 的来源类型分离；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，最终结论保持未发布。
+- `machine/runs/2026-08-25-stage097-p3-local.json`、P3 场景模块、合同与事件记录同一控制上下文、全零运行时和本地验收；正式上传、push、`main`、release、OVH 与生产保持后续授权范围。本 run 继续使用既有唯一开发 worktree 与分支。
+- 回滚只撤回本 P3 的范围说明、纯内存异常场景模块、合同、聚焦用例、历史后继断言、machine run、机器事实投影、治理路线和生成中文视图，恢复到 `PASS_ANSWER_CONTRACT_CONTROL_SLICE_RUNTIME_DISABLED`；Stage097 P1/P2、Stage096 Review、冻结任务包、受保护资料、真实证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
+
+## Superseded Gate - Stage097 P2 accepted locally - 2026-08-25
+
+- 本节保留 P2 的已验证历史；唯一当前交接位于上方 Stage097 P3。
+- `IDS-V0_1-STAGE097-P2` 完成时的状态为 `IDS-STAGE097 / IDS-STAGE097-P2 / IDS-V0_1-STAGE097-P2 / IDS-STAGE097-P3-GATE`。
 - P2 固定 `6` 条、`20` 字段的非业务 `reference-only` 控制请求，记录查询、索引版本、提示词版本、模型版本和所选 evidence 的未来引用形状，投影回答合同绑定、版本与所选 evidence 记录、来源类型与外部增强展示、提示注入与输出权限共 `4` 组、每条 `35` 字段、共 `210` 个控制检查点。
 - 已验证：P2 聚焦用例 `10/10`，Stage088--Stage097 P1 的历史关联链 `278/278`，含 Stage097 P2 的精确白箱链 `288/288`；`Stage005` 治理回归为 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞和单项目双平面检查通过。
-- 外部公开参考与模型推理在展示层形成外部增强，底层保持 `internal_evidence`、`external_public_reference`、`model_reasoning` 和 `evidence_gap` 分离；检索文档保持 evidence 身份，IDS 规则保持优先级，提示注入保持拒绝或业务线白箱复核前置；高风险工程建议、合同承诺和生产写回保持人工确认，最终结论保持未发布。
-- `machine/runs/2026-08-25-stage097-p2-local.json`、P2 控制切片、合同与事件记录单一控制上下文、全零运行时和本地验收；正式上传、push、`main`、release、OVH 与生产保持后续授权范围。本 run 继续使用既有唯一开发 worktree 与分支。
-- 回滚只撤回本 P2 的范围说明、纯内存控制切片、合同、聚焦用例、历史后继断言、machine run、机器事实投影、治理路线和生成中文视图，恢复到 `PHASE1_ANSWER_CONTRACT_RUNTIME_DISABLED`；Stage097 P1、Stage096 Review、冻结任务包、受保护资料、真实证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
 
 ## Superseded Gate - Stage097 P1 accepted locally - 2026-08-25
 
-- 本节保留 P1 的已验证历史；唯一当前交接位于上方 Stage097 P2。
+- 本节保留 P1 的已验证历史；唯一当前交接位于上方 Stage097 P3。
 - `IDS-V0_1-STAGE097-P1` 固定回答结构、提示词版本引用、内部依据、外部增强、无内部依据策略、来源类型、引用结构、模型输出权限和人工确认门禁；当时状态为 `IDS-STAGE097 / IDS-STAGE097-P1 / IDS-V0_1-STAGE097-P1 / IDS-STAGE097-P2-GATE`。
 - P1 聚焦用例 `9/9`，历史关联链 `269/269`，含 P1 的精确白箱链 `278/278`；P2 在上方作为唯一当前门禁完成。P1 继续作为 P2 的前序静态合同与回退点。
 

@@ -268,8 +268,17 @@ class Stage097AnswerContractPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE097-P2",
             "IDS-STAGE097-P3-GATE",
         )
+        phase3_current = (
+            "IDS-STAGE097",
+            "IDS-STAGE097-P3",
+            "IDS-V0_1-STAGE097-P3",
+            "IDS-STAGE097-P4-GATE",
+        )
         self.assertEqual(status["task"], plan["task"])
-        self.assertIn(current, (predecessor_current, phase1_current, phase2_current))
+        self.assertIn(
+            current,
+            (predecessor_current, phase1_current, phase2_current, phase3_current),
+        )
         if current in (phase1_current, phase2_current):
             self.assertTrue(RECEIPT.is_file())
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
