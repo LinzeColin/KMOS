@@ -16,8 +16,8 @@
 - 冻结 Stage093 任务包、Stage093 P1/P2/P3 合同与 Stage092 Review 已复审控制工件构成唯一控制上下文。来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威；可信等级分配规则、阈值和业务判定保持业务线白箱 owner 的后续前置。无内部证据保留 `evidence_gap`，低 OCR、旧版本、冲突与撤回保持降级说明，恶意资料保持隔离说明，低等级不得伪装支撑高可信结论，撤回影响只声明未来报告状态复核，全部交付记录保持人工复核前置。
 - 已验证：P4 聚焦 `11/11`；连同 P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `221/221`；Stage005 直接治理 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实已重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过；验证范围只覆盖固定控制工件、精确历史后继和本地治理。
 - 本 P4 运行计数均为 `0`、运行标志均为 `false`：真实资料、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库和物理索引保持受保护状态；来源、OCR、版本、复核、冲突、风险计算、可信等级分配或变更、撤回、恢复、投毒处置、报告状态更新、模型、模型 Token、Agent、OVH、生产和正式上传继续留在后续授权范围。
-- 回滚只撤回本 P4 的说明、纯内存交付模块、合同、聚焦用例、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_EVIDENCE_GRADE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；Stage093 P1/P2/P3、Stage092 Review/P1--P4、冻结任务包、真实资料、证据账本、GitHub、OVH 与应用状态保持原状。
-- 下一步只能在新的独立 run 进入 `IDS-STAGE093-REVIEW-GATE`；Stage093 Review 与 Stage094 保持未启动。继续复用既有唯一开发工作树，不创建额外 worktree、分支或合并请求。P4 控制运行以本地恢复提交为边界；Owner 授权的 GitHub 恢复备份仅在验证完成后推送到既有隔离开发分支，正式全局上传、合并到 `main`、发布与生产继续等待完整冻结任务包完成与 `ACC-STAGE-168`。
+- 回滚只撤回本 P4 的说明、纯内存交付模块、合同、聚焦用例、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_EVIDENCE_GRADE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；Stage093 P1/P2/P3、Stage092 Review/P1--P4、冻结任务包、真实资料、证据账本、GitHub `main`／release、OVH 与应用状态保持原状，既有隔离开发分支保留 P4 恢复备份提交。
+- 下一步只能在新的独立 run 进入 `IDS-STAGE093-REVIEW-GATE`；Stage093 Review 与 Stage094 保持未启动。继续复用既有唯一开发工作树，不创建额外 worktree、分支或合并请求。P4 控制运行以本地恢复提交为边界；Owner 授权的 GitHub 恢复备份已在验证完成后推送到既有隔离开发分支，正式全局上传、合并到 `main`、发布与生产继续等待完整冻结任务包完成与 `ACC-STAGE-168`。
 
 ## Superseded Gate - Stage093 Phase 3 - 2026-08-24
 
