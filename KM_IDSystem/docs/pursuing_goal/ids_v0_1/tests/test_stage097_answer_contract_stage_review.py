@@ -368,9 +368,15 @@ class Stage097AnswerContractReviewTests(unittest.TestCase):
         )
         stage099_phase2_current = (
             "IDS-STAGE099",
-            "IDS-STAGE099-P2",
-            "IDS-V0_1-STAGE099-P2",
-            "IDS-STAGE099-P3-GATE",
+           "IDS-STAGE099-P2",
+           "IDS-V0_1-STAGE099-P2",
+           "IDS-STAGE099-P3-GATE",
+       )
+        stage099_phase3_current = (
+            "IDS-STAGE099",
+            "IDS-STAGE099-P3",
+            "IDS-V0_1-STAGE099-P3",
+            "IDS-STAGE099-P4-GATE",
         )
         self.assertEqual(status["task"], plan["task"])
         self.assertIn(
@@ -385,6 +391,7 @@ class Stage097AnswerContractReviewTests(unittest.TestCase):
                 stage098_review_current,
                 stage099_phase1_current,
                 stage099_phase2_current,
+                stage099_phase3_current,
             ),
         )
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}

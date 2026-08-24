@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE099",
       "name": "内部依据与外部增强分离",
-      "gate": "Stage099 P2 内部依据与外部增强分离纯内存受控最小切片已完成；下一步只能在新的独立 run 进入 Stage099 P3",
-      "status": "已固定六条、每条十九字段的 reference-only 控制请求，以及回答合同与 Prompt 绑定、查询／索引／版本／所选 evidence 记录、来源类型与 external_augmentation_opinion 展示、提示注入与输出权限四组控制记录。检索文档保持 evidence 身份且 IDS 规则保持优先级；四类底层 source_type 与三类高风险输出业务线白箱人工确认保持一致，真实提示词、资料、查询、检索、回答、模型 Token、Agent、OVH 与生产保持后续授权范围。"
+      "gate": "Stage099 P3 内部依据与外部增强分离专项验证与异常场景已完成；下一步只能在新的独立 run 进入 Stage099 P4",
+      "status": "已重放 P2 的六条固定 reference-only 控制投影，形成每条二十八字段、共一百六十八个专项场景检查点、五个控制视图与六条人工处理要求。检索文档保持 evidence 身份且文档内提示词不能覆盖 IDS 规则；evidence_gap 与四类底层 source_type 保持分离，三类高风险输出进入业务线白箱人工处理，真实提示词、资料、查询、检索、回答、模型 Token、Agent、OVH 与生产保持后续授权范围。"
     },
     {
       "id": "IDS-STAGE098",

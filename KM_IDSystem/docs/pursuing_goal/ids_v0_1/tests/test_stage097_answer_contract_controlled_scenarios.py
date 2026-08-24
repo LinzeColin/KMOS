@@ -434,6 +434,12 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE099-P2",
             "IDS-STAGE099-P3-GATE",
         )
+        stage099_phase3_current = (
+            "IDS-STAGE099",
+            "IDS-STAGE099-P3",
+            "IDS-V0_1-STAGE099-P3",
+            "IDS-STAGE099-P4-GATE",
+        )
         self.assertIn(
             current,
             (
@@ -447,6 +453,7 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
                 stage098_review_current,
                 stage099_phase1_current,
                 stage099_phase2_current,
+                stage099_phase3_current,
             ),
         )
         self.assertEqual(status["task"], plan["task"])
@@ -569,6 +576,21 @@ class Stage097AnswerContractPhase3Tests(unittest.TestCase):
             self.assertIn("stage098_review_state:", roadmap_text)
             self.assertIn("stage099_phase1_state:", roadmap_text)
             self.assertIn("stage099_phase2_state:", roadmap_text)
+        elif current == stage099_phase3_current:
+            self.assertEqual(
+                "STAGE099_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+                status["evidence_status"],
+            )
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
+            self.assertIn("stage097_review_state:", roadmap_text)
+            self.assertIn("stage098_phase1_state:", roadmap_text)
+            self.assertIn("stage098_phase2_state:", roadmap_text)
+            self.assertIn("stage098_phase3_state:", roadmap_text)
+            self.assertIn("stage098_phase4_state:", roadmap_text)
+            self.assertIn("stage098_review_state:", roadmap_text)
+            self.assertIn("stage099_phase1_state:", roadmap_text)
+            self.assertIn("stage099_phase2_state:", roadmap_text)
+            self.assertIn("stage099_phase3_state:", roadmap_text)
 
 
 if __name__ == "__main__":

@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE099",
-  "phase": "IDS-STAGE099-P2",
-  "task": "IDS-V0_1-STAGE099-P2",
-  "real_progress": "Stage099 P2 已固定六条、每条十九字段的 reference-only 控制请求，并投影回答合同与 Prompt 绑定、查询／索引／版本／所选 evidence 记录、来源类型与外部增强意见展示、提示注入与输出权限四组控制记录。",
-  "report_grade": "冻结 Stage099 任务包、Stage099 P1 静态合同与已复审 Stage098 Prompt 版本化控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "内部依据、外部公开参考、模型推理与 evidence_gap 保持四类底层来源类型；external_augmentation_opinion 仅在控制展示层组合外部公开参考与模型推理。检索文档保持 evidence 身份且 IDS 规则保持优先级，高风险工程建议、合同承诺与生产写回保持业务线白箱人工确认门禁，最终结论保持未发布。",
-  "evidence_status": "STAGE099_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_CONTROL_SLICE_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE099-P3",
+  "task": "IDS-V0_1-STAGE099-P3",
+  "real_progress": "Stage099 P3 已重放六条固定 reference-only 控制投影，形成每条二十八字段、共一百六十八个专项场景检查点、五个控制视图与六条业务线白箱人工处理要求。",
+  "report_grade": "冻结 Stage099 任务包、Stage099 P1/P2 控制工件与已复审 Stage098 Prompt 版本化控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+  "business_verdict": "检索文档保持 evidence 身份，文档内提示词不能覆盖 IDS 规则；无内部依据保持 evidence_gap 与独立来源类型。高风险工程建议、合同承诺与生产写回进入业务线白箱人工处理，最终结论保持未发布。",
+  "evidence_status": "STAGE099_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-25",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE099-P3-GATE",
+  "next_gate": "IDS-STAGE099-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

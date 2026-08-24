@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage099-p3-local",
+    "date": "2026-08-25",
+    "summary": "完成 Stage099 内部依据与外部增强分离 P3 纯内存专项验证与异常场景：重放 P2 的 6 条、每条 19 字段控制输入和 4 组、每条 35 字段、共 210 个前序检查点，形成 6 条、每条 28 字段、共 168 个场景检查点、5 个控制视图、6 条业务线白箱人工处理要求与 15 类失败关闭。检索文档保持 evidence 身份并保持 IDS 规则优先；evidence_gap 保持独立来源类型；高风险工程建议、合同承诺和生产写回保持人工确认与最终结论未发布。P3 聚焦 10/10、P1--P3 聚焦 28/28、Stage088--Stage099 精确白箱链 583/583、Stage005 治理回归 valid=true，两个既有批次守门均保持全局上传锁定。运行计数均为 0、运行标志均为 false；下一步仅可在新的独立 run 进入 IDS-STAGE099-P4-GATE。"
+  },
+  {
     "version": "v0.1-stage099-p2-local",
     "date": "2026-08-25",
     "summary": "完成 Stage099 内部依据与外部增强分离 P2 纯内存受控最小切片：固定六条、每条十九字段的 reference-only 控制请求，投影回答合同与 Prompt 绑定、查询／索引／版本／所选 evidence 记录、来源类型与外部增强意见展示、提示注入与输出权限四组控制记录，每条三十五字段、共二百一十个检查点。query、index_version、prompt_version、model_version 与 selected_evidence 保持未来记录形状；internal_evidence、external_public_reference、model_reasoning 与 evidence_gap 保持四类底层来源类型，external_augmentation_opinion 仅作为展示层组合标签。已通过 P2 聚焦 10/10、Stage088--Stage099 精确历史白箱链 573/573、Stage005 治理回归 valid=true、Batch041-050 与 Batch051-060 本地审阅、7 个中文视图、文档预算与无登记阻塞。运行计数均为 0、运行标志均为 false；用户授权的既有隔离分支进度推送记录为恢复检查点，正式全局上传继续保持锁定；下一步仅可在新的独立 run 进入 IDS-STAGE099-P3-GATE。"
