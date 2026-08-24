@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE093",
-  "phase": "IDS-STAGE093-P3",
-  "task": "IDS-V0_1-STAGE093-P3",
-  "next_gate": "IDS-STAGE093-P4-GATE",
+  "phase": "IDS-STAGE093-P4",
+  "task": "IDS-V0_1-STAGE093-P4",
+  "next_gate": "IDS-STAGE093-REVIEW-GATE",
   "items": [
     {
       "id": "ACC-STAGE-093",
-      "criteria": "Stage093 证据可信等级 A/B/C/D/E：P1 静态边界、P2 纯内存控制切片与 P3 七类异常场景已固定 evidence ledger、evidence gap、风险、撤回、知识库投毒防护、关键结论关联和 A/B/C/D/E；实际可信等级分配、风险计算、撤回和业务判定保持后续授权范围。",
-      "status": "P3 专项验证已完成"
+      "criteria": "Stage093 证据可信等级 A/B/C/D/E：P1 静态边界、P2 纯内存控制切片、P3 七类异常场景与 P4 control-only 交付证据已固定 evidence ledger、evidence gap、风险、撤回、知识库投毒防护、关键结论关联和 A/B/C/D/E；实际可信等级分配、风险计算、撤回、恢复和业务判定保持后续授权范围。",
+      "status": "P4 交付控制已完成"
     },
     {
       "id": "ACC-STAGE093-P1-01",
@@ -67,6 +67,26 @@
     {
       "id": "ACC-STAGE093-P3-04",
       "criteria": "P3 期间不执行真实资料、检索、回答、报告或证据账本访问、数据库 schema 或连接、实际来源、OCR、版本、复核或冲突评估、实际风险计算、可信等级分配或变更、撤回、投毒检测、隔离、恢复、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage093 P4。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE093-P4-01",
+      "criteria": "冻结 Stage093 任务包、Stage093 P1/P2/P3 控制工件与已复审 Stage092 证据风险评分控制工件保持为唯一合同上下文；P4 只派生 control-only 交付记录，不建立第二权威事实源，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE093-P4-02",
+      "criteria": "P4 固定派生 evidence ledger 样例、证据等级报告、撤回影响、回归、不可作为结论依据类型、降级说明和撤回／恢复说明的 7/7/7/7/7/4/2 条控制记录，共 517 个字段检查；所有引用保持 P2／P4 不透明控制前缀。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE093-P4-03",
+      "criteria": "无内部证据保持 evidence_gap；低 OCR、旧版本、冲突与撤回保持降级说明，疑似恶意资料保持隔离说明，低等级不得伪装支撑高可信结论；撤回影响只声明未来报告状态复核，不更新真实报告，降级、撤回与恢复继续要求业务线白箱人工审批。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE093-P4-04",
+      "criteria": "P4 期间不写入真实 evidence ledger、报告或审计日志，不执行真实资料、检索、数据库、风险计算、可信等级变更、撤回、恢复、投毒处置、模型 Token、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage093 Review。",
       "status": "已遵守"
     },
     {
