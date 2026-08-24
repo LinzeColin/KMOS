@@ -456,6 +456,12 @@ class Stage094EvidenceRevocationControlSliceTests(unittest.TestCase):
             if line.strip()
         }
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
+        stage095_phase1_current = (
+            "IDS-STAGE095",
+            "IDS-STAGE095-P1",
+            "IDS-V0_1-STAGE095-P1",
+            "IDS-STAGE095-P2-GATE",
+        )
         stage094_phase2_current = (
             "IDS-STAGE094",
             "IDS-STAGE094-P2",
@@ -517,6 +523,7 @@ class Stage094EvidenceRevocationControlSliceTests(unittest.TestCase):
             self.assertIn(
                 current,
                 (
+                    stage095_phase1_current,
                     stage094_phase1_current,
                     stage094_phase3_current,
                     stage094_phase4_current,

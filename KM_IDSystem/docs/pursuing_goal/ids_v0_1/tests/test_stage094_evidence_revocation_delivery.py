@@ -369,6 +369,12 @@ class Stage094EvidenceRevocationPhase4Tests(unittest.TestCase):
             if line.strip()
         }
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
+        stage095_phase1_current = (
+            "IDS-STAGE095",
+            "IDS-STAGE095-P1",
+            "IDS-V0_1-STAGE095-P1",
+            "IDS-STAGE095-P2-GATE",
+        )
         p3_current = (
             "IDS-STAGE094",
             "IDS-STAGE094-P3",
@@ -404,7 +410,7 @@ class Stage094EvidenceRevocationPhase4Tests(unittest.TestCase):
             self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
             self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
         else:
-            self.assertIn(current, (p3_current, review_current))
+            self.assertIn(current, (stage095_phase1_current, p3_current, review_current))
 
 
 if __name__ == "__main__":

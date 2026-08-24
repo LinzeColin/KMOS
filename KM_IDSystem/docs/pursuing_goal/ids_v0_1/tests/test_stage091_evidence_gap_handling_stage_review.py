@@ -291,6 +291,12 @@ class Stage091ReviewTests(unittest.TestCase):
             if line.strip()
         }
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
+        stage095_phase1_current = (
+            "IDS-STAGE095",
+            "IDS-STAGE095-P1",
+            "IDS-V0_1-STAGE095-P1",
+            "IDS-STAGE095-P2-GATE",
+        )
         stage091_review_current = (
             "IDS-STAGE091",
             "IDS-STAGE091-REVIEW",
@@ -322,6 +328,7 @@ class Stage091ReviewTests(unittest.TestCase):
             self.assertIn(
                 current,
                 (
+                    stage095_phase1_current,
                     (
                         "IDS-STAGE091",
                         "IDS-STAGE091-P1",

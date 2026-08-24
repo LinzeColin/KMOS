@@ -270,6 +270,12 @@ class Stage092EvidenceRiskScoringPhase1Tests(unittest.TestCase):
             if line.strip()
         }
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
+        stage095_phase1_current = (
+            "IDS-STAGE095",
+            "IDS-STAGE095-P1",
+            "IDS-V0_1-STAGE095-P1",
+            "IDS-STAGE095-P2-GATE",
+        )
         stage092_phase1_current = (
             "IDS-STAGE092",
             "IDS-STAGE092-P1",
@@ -301,6 +307,7 @@ class Stage092EvidenceRiskScoringPhase1Tests(unittest.TestCase):
             self.assertIn(
                 current,
                 (
+                    stage095_phase1_current,
                     (
                         "IDS-STAGE092",
                         "IDS-STAGE092-P2",
