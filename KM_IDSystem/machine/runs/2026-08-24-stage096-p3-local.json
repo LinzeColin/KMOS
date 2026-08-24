@@ -16,7 +16,7 @@
   ],
   "entry_gate": "IDS-STAGE096-P3-GATE",
   "next_gate": "IDS-STAGE096-P4-GATE",
-  "result": "PENDING_FINAL_LOCAL_VALIDATION",
+  "result": "PASS_KNOWLEDGE_BASE_POISONING_DEFENSE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "source_authority": "FROZEN_STAGE096_TASKPACK_AND_STAGE096_PHASE1_PHASE2_STAGE095_REVIEWED_CONTROL_ARTIFACTS_ONLY",
   "phase2_control_shape": {
     "control_request_count": 6,
@@ -37,13 +37,20 @@
   },
   "verification": {
     "focused_controlled_scenarios_test_command": "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage096_knowledge_base_poisoning_defense_controlled_scenarios",
-    "focused_controlled_scenarios_test_result": "PENDING_FINAL_LOCAL_VALIDATION",
-    "phase2_and_phase1_focused_test_result": "PENDING_FINAL_LOCAL_VALIDATION",
-    "full_linked_test_chain_result": "PENDING_FINAL_LOCAL_VALIDATION",
-    "stage005_governance_regression_result": "PENDING_FINAL_LOCAL_VALIDATION",
-    "batch041_050_review_result": "PENDING_FINAL_LOCAL_VALIDATION",
-    "batch051_060_review_result": "PENDING_FINAL_LOCAL_VALIDATION",
-    "human_projection_and_document_gates_result": "PENDING_FINAL_LOCAL_VALIDATION"
+    "focused_controlled_scenarios_test_result": "9/9 passed",
+    "phase2_and_phase1_focused_test_result": "18/18 passed",
+    "full_linked_test_chain_result": "436/436 passed",
+    "stage005_governance_regression_result": "valid=true",
+    "batch041_050_review_result": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+    "batch051_060_review_result": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+    "human_projection_and_document_gates_result": "7 个中文文件已渲染；文档预算、无登记阻塞与单项目双平面检查均通过"
+  },
+  "recovery_checkpoint": {
+    "user_authorized_isolated_branch_push_recorded": true,
+    "separate_from_phase_runtime": true,
+    "formal_global_upload_performed": false,
+    "main_merge_performed": false,
+    "ovh_or_production_change_performed": false
   },
   "runtime_counts": {
     "business_source_reads": 0,
@@ -96,7 +103,7 @@
     "stage095_review_preserved": true,
     "stage096_phase1_completed": true,
     "stage096_phase2_completed": true,
-    "stage096_phase3_completed": false,
+    "stage096_phase3_completed": true,
     "stage096_phase4_started": false,
     "stage096_review_started": false,
     "stage097_started": false,

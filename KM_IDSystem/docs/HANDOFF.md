@@ -9,11 +9,20 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage096 Phase 2 - 2026-08-24
+## Current Gate - Stage096 Phase 3 - 2026-08-24
 
-- 本节是唯一当前交接；下方 Stage096 P1、Stage095 Review/P4/P3/P2/P1 与更早阶段保留已验证的历史事实。
-- 休眠恢复检查点：`IDS-STAGE096-P3` 已形成范围说明、纯内存异常场景模块、合同、聚焦用例和本地回执共 `5` 个未验收工件；聚焦用例已通过 `9/9`。当前机器事实、路线、验收、事件与生成视图仍保持 P2，P3 尚未成为当前阶段结论。恢复后从 P3 治理投影、全链验证和本地验收提交继续；不得跳入 P4。
-- 用户本次明确授权将该恢复检查点推送至既有隔离分支。该推送只保全 P3 在制工件，不改变 `main`、正式全局上传、OVH、生产或零运行时边界。
+- 本节是唯一当前交接；下方 Stage096 P2/P1、Stage095 Review/P4/P3/P2/P1 与更早阶段保留已验证的历史事实。
+- 本轮完成 `IDS-V0_1-STAGE096-P3` 的知识库投毒防护纯内存专项验证：严格重放 P2 的 `6` 条固定、非业务、`reference-only` 控制投影，覆盖无内部证据、低 OCR、旧版本、冲突、撤回资料、恶意资料和低等级伪装高可信结论 `7` 个场景；每场景 `32` 个字段，共 `224` 个场景检查点、`15` 类失败关闭与 `4` 条中文反馈。
+- 已验证：P3 聚焦 `9/9`、P2/P1 聚焦 `18/18`、Stage088--Stage096 完整关联链 `436/436`；Stage005 直接治理 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器事实渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。验证范围只覆盖冻结控制工件、精确历史后继与本地治理。
+- 无内部证据保持 `evidence_gap`，低 OCR、旧版本、冲突和撤回资料保持降级候选，疑似恶意资料保持隔离候选；撤回报告影响只声明不应用，D 等级不得支撑高可信结论。投毒判定、隔离、高可信准入、风险公式、可信等级、撤回条件和业务判定继续由业务线白箱 owner 前置。
+- 本 P3 运行计数均为 `0`、运行标志均为 `false`：真实资料、原始元数据、fixture、检索、证据账本、实际投毒检测或隔离、风险计算、可信等级变更、撤回、降级、恢复、报告更新、数据库、模型、模型 Token、Agent、OVH 与生产保持后续授权范围。此前用户授权的隔离分支恢复检查点单独记录，不构成正式全局上传、`main` 合并或生产动作。
+- 回滚只撤回本 P3 的范围说明、纯内存场景模块、合同、聚焦用例、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PHASE2_KNOWLEDGE_BASE_POISONING_DEFENSE_CONTROL_SLICE_RUNTIME_DISABLED`；Stage096 P1/P2、Stage095 Review/P1--P4、冻结任务包、真实资料、证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
+- 下一步只在新的独立 run 进入 `IDS-STAGE096-P4-GATE`；Stage096 P4/Review、Stage097、正式全局上传、`main` 合并、OVH 与生产继续等待。继续复用唯一开发 worktree 与分支，本 P3 只建立本地提交，不再推送远端。
+
+## Superseded Gate - Stage096 Phase 2 - 2026-08-24
+
+- 本节保留 Stage096 P2 的已验证历史；唯一当前交接位于上方 Stage096 Phase 3。下方 Stage096 P1、Stage095 Review/P4/P3/P2/P1 与更早阶段保持已验证事实。
+- P2 后的 P3 纯内存工件曾按用户明确授权保全到既有隔离分支；该恢复检查点不触发 `main` 合并、正式全局上传、OVH 或生产。P3 已在上方作为唯一当前门禁完成。
 - 本轮完成 `IDS-V0_1-STAGE096-P2` 的知识库投毒防护纯内存控制切片：固定 `6` 条非业务、`reference-only` 的 `21` 字段控制请求，投影 schema binding、evidence relation、检索证据捕获、风险与可信等级、撤回与投毒防护、关键结论与报告影响 `6` 组、每条 `58` 字段，共 `348` 个控制检查点、`20` 类失败关闭与 `4` 条中文反馈；evidence 与 document、chunk、fact、query、answer、report 的未来关联及 `evidence_id`／`evidence_gap` 关键结论约束保持一致。
 - 已验证：P2 聚焦 `9/9`，含 P1 的历史关联链 `418/418`，含 P2 的完整关联链 `427/427`；Stage005 直接治理 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器事实渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。验证范围只覆盖冻结控制工件、精确历史后继与本地治理。
 - 低 OCR、旧版本、冲突与撤回资料保持降级候选，疑似恶意资料保持隔离候选；投毒判定、隔离、高可信准入、风险公式、等级分配、阈值、撤回条件和业务判定继续由业务线白箱 owner 前置。P2 保持单一冻结事实源与 reference-only 控制投影。

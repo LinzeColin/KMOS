@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE096",
-  "phase": "IDS-STAGE096-P2",
-  "task": "IDS-V0_1-STAGE096-P2",
-  "real_progress": "Stage096 P2 已完成知识库投毒防护纯内存控制切片：固定 6 条 reference-only 控制请求、21 个输入字段、6 组投影、每条 58 个字段与 348 个控制检查点，关键结论保持 evidence_id 或 evidence_gap 约束。",
-  "report_grade": "冻结 Stage096 任务包与已复审 Stage095 证据回归控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "Stage096 P2 只投影固定、非业务、reference-only 的知识库投毒防护控制关联：投毒判定、隔离、高可信准入、风险计算、可信等级变更、撤回和报告状态更新保持业务线白箱 owner 的后续授权前置。真实证据、报告、数据库、模型、Token、Agent、OVH 与生产保持后续授权范围。",
-  "evidence_status": "STAGE096_KNOWLEDGE_BASE_POISONING_DEFENSE_CONTROL_SLICE_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE096-P3",
+  "task": "IDS-V0_1-STAGE096-P3",
+  "real_progress": "Stage096 P3 已完成知识库投毒防护纯内存专项验证：严格重放 P2 的 6 条 reference-only 控制投影，覆盖无内部证据、低 OCR、旧版本、冲突、撤回资料、恶意资料及低等级伪装高可信结论 7 个固定场景；每场景 32 个字段，共 224 个场景检查点。",
+  "report_grade": "冻结 Stage096 任务包、Stage096 P1/P2 合同与已复审 Stage095 证据回归控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+  "business_verdict": "Stage096 P3 只重放固定、非业务、reference-only 的控制投影：无内部证据保持 evidence_gap，低 OCR、旧版本、冲突和撤回保持降级候选，疑似恶意资料保持隔离候选，撤回报告影响只声明不应用，低等级不得支撑高可信结论。投毒判定、隔离、高可信准入、风险计算、可信等级变更、撤回和报告状态更新保持业务线白箱 owner 的后续授权前置；真实证据、报告、数据库、模型、Token、Agent、OVH 与生产保持后续授权范围。",
+  "evidence_status": "STAGE096_KNOWLEDGE_BASE_POISONING_DEFENSE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-24",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE096-P3-GATE",
+  "next_gate": "IDS-STAGE096-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE096",
-  "phase": "IDS-STAGE096-P2",
-  "task": "IDS-V0_1-STAGE096-P2",
-  "next_gate": "IDS-STAGE096-P3-GATE",
+  "phase": "IDS-STAGE096-P3",
+  "task": "IDS-V0_1-STAGE096-P3",
+  "next_gate": "IDS-STAGE096-P4-GATE",
   "items": [
     {
       "id": "ACC-STAGE-096",
-      "criteria": "Stage096 知识库投毒防护 P1 静态合同与 P2 纯内存控制切片已固定 Evidence Ledger、evidence gap、风险、可信等级、撤回、投毒防护、关键结论关联、A/B/C/D/E、失败关闭与回滚；实际投毒判定、隔离、准入、风险、等级、撤回、报告与业务判定保持后续授权范围。",
-      "status": "P2 受控最小切片已完成"
+      "criteria": "Stage096 知识库投毒防护 P1 静态合同、P2 纯内存控制切片与 P3 纯内存异常场景已固定 Evidence Ledger、evidence gap、风险、可信等级、撤回、投毒防护、关键结论关联、A/B/C/D/E、失败关闭与回滚；实际投毒判定、隔离、准入、风险、等级、撤回、报告与业务判定保持后续授权范围。",
+      "status": "P3 受控场景已完成"
     },
     {
       "id": "ACC-STAGE096-P1-01",
@@ -47,6 +47,26 @@
     {
       "id": "ACC-STAGE096-P2-04",
       "criteria": "P2 期间不执行真实资料、检索、回答、报告或证据账本访问、数据库 schema 或连接、实际来源、OCR、版本、复核或冲突评估、实际风险计算、可信等级变更、撤回、降级、恢复、投毒检测、隔离、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮本地验收完成后才可在新 run 进入 Stage096 P3。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE096-P3-01",
+      "criteria": "冻结 Stage096 任务包、Stage096 P1/P2 控制工件与 Stage095 Review 已复审证据回归控制工件保持为唯一合同上下文；P3 只重放固定、非业务、reference-only 控制投影，不建立第二权威事实源，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE096-P3-02",
+      "criteria": "七个纯内存场景覆盖无内部证据、低 OCR、旧版本、冲突、撤回资料报告状态影响、恶意资料隔离与低等级伪装高可信结论拒绝；每场景固定 32 个控制字段，共 224 个场景字段检查点，P2 的六条、六组投影、348 个字段检查点与 evidence／document／chunk／fact／query／answer／report 关联保持一致。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE096-P3-03",
+      "criteria": "无内部证据保持 evidence_gap 且不伪装 evidence_id；低 OCR、旧版本、冲突和撤回保持降级候选，疑似恶意资料保持隔离候选；撤回只声明未来报告状态影响，不更新真实报告；D 等级证据不得伪装支撑高可信结论。P2 输出偏离、关键引用缺失、控制引用透明化、等级规则越权或运行信号出现时失败关闭，全部场景要求业务线白箱人工处理。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE096-P3-04",
+      "criteria": "P3 期间不执行真实资料、检索、回答、报告或证据账本访问、数据库 schema 或连接、实际来源、OCR、版本、复核或冲突评估、实际风险计算、可信等级变更、撤回、降级、恢复、投毒检测、隔离、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产或正式全局上传；本轮本地验收完成后才可在新 run 进入 Stage096 P4。",
       "status": "已遵守"
     },
     {

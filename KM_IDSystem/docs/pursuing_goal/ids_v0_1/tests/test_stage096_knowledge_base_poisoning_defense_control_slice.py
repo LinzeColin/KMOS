@@ -496,14 +496,22 @@ class Stage096KnowledgeBasePoisoningDefenseControlSliceTests(unittest.TestCase):
             self.assertIn('current_phase_id: "IDS-STAGE096-P2"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE096-P3-GATE"', roadmap_text)
         else:
-            self.assertEqual(
-                (
-                    "IDS-STAGE096",
-                    "IDS-STAGE096-P1",
-                    "IDS-V0_1-STAGE096-P1",
-                    "IDS-STAGE096-P2-GATE",
-                ),
+            self.assertIn(
                 current,
+                (
+                    (
+                        "IDS-STAGE096",
+                        "IDS-STAGE096-P1",
+                        "IDS-V0_1-STAGE096-P1",
+                        "IDS-STAGE096-P2-GATE",
+                    ),
+                    (
+                        "IDS-STAGE096",
+                        "IDS-STAGE096-P3",
+                        "IDS-V0_1-STAGE096-P3",
+                        "IDS-STAGE096-P4-GATE",
+                    ),
+                ),
             )
 
 
