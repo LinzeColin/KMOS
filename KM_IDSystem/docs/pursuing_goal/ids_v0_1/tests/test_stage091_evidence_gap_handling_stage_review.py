@@ -13,7 +13,7 @@ TASKPACK = (
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-090_从检索捕获证据.md"
+    / "STAGE-091_证据缺口处理.md"
 )
 NEXT_TASKPACK = (
     ROOT
@@ -21,52 +21,48 @@ NEXT_TASKPACK = (
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-091_证据缺口处理.md"
+    / "STAGE-092_证据风险评分.md"
 )
-REVIEW_DOCUMENT = BASE / "STAGE090_STAGE_REVIEW.md"
+REVIEW_DOCUMENT = BASE / "STAGE091_STAGE_REVIEW.md"
 CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage090_retrieval_evidence_capture_stage_review_contract.json"
+    / "stage091_evidence_gap_handling_stage_review_contract.json"
 )
 MODULE = (
     BASE
     / "index_version_schema"
-    / "stage090_retrieval_evidence_capture_stage_review.py"
+    / "stage091_evidence_gap_handling_stage_review.py"
 )
-P1_CONTRACT = BASE / "index_version_schema" / "stage090_retrieval_evidence_capture_contract.json"
+P1_CONTRACT = BASE / "index_version_schema" / "stage091_evidence_gap_handling_contract.json"
 P2_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage090_retrieval_evidence_capture_control_slice_contract.json"
+    / "stage091_evidence_gap_handling_control_slice_contract.json"
 )
 P3_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage090_retrieval_evidence_capture_scenarios_contract.json"
+    / "stage091_evidence_gap_handling_controlled_scenarios_contract.json"
 )
 P4_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage090_retrieval_evidence_capture_delivery_contract.json"
+    / "stage091_evidence_gap_handling_delivery_contract.json"
 )
-P2_MODULE = (
-    BASE / "index_version_schema" / "stage090_retrieval_evidence_capture_control_slice.py"
-)
+P2_MODULE = BASE / "index_version_schema" / "stage091_evidence_gap_handling_control_slice.py"
 P3_MODULE = (
     BASE
     / "index_version_schema"
-    / "stage090_retrieval_evidence_capture_controlled_scenarios.py"
+    / "stage091_evidence_gap_handling_controlled_scenarios.py"
 )
-P4_MODULE = (
-    BASE / "index_version_schema" / "stage090_retrieval_evidence_capture_delivery.py"
-)
+P4_MODULE = BASE / "index_version_schema" / "stage091_evidence_gap_handling_delivery.py"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
-REVIEW_RUN = ROOT / "machine" / "runs" / "2026-08-24-stage090-review-local.json"
+REVIEW_RUN = ROOT / "machine" / "runs" / "2026-08-24-stage091-review-local.json"
 
 
 def load_module(name, path):
@@ -77,12 +73,12 @@ def load_module(name, path):
     return module
 
 
-class Stage090ReviewTests(unittest.TestCase):
+class Stage091ReviewTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
-        cls.module = load_module("stage090_review_test", MODULE)
-        cls.report = cls.module.build_retrieval_evidence_capture_stage090_review_report()
+        cls.module = load_module("stage091_review_test", MODULE)
+        cls.report = cls.module.build_evidence_gap_handling_stage091_review_report()
 
     def test_required_phase_artifacts_exist(self):
         for path in (
@@ -106,12 +102,12 @@ class Stage090ReviewTests(unittest.TestCase):
         ):
             with self.subTest(path=path):
                 self.assertTrue(path.is_file())
-        self.assertEqual("IDS-STAGE090-REVIEW", self.contract["phase"])
-        self.assertEqual("IDS-V0_1-STAGE090-REVIEW", self.contract["task_id"])
-        self.assertEqual("IDS-STAGE090-REVIEW-GATE", self.contract["entry_gate"])
-        self.assertEqual("IDS-STAGE091-P1-GATE", self.contract["next_gate"])
+        self.assertEqual("IDS-STAGE091-REVIEW", self.contract["phase"])
+        self.assertEqual("IDS-V0_1-STAGE091-REVIEW", self.contract["task_id"])
+        self.assertEqual("IDS-STAGE091-REVIEW-GATE", self.contract["entry_gate"])
+        self.assertEqual("IDS-STAGE092-P1-GATE", self.contract["next_gate"])
 
-    def test_contract_keeps_single_authority_runtime_and_stage091_closed(self):
+    def test_contract_keeps_single_authority_runtime_and_stage092_closed(self):
         authority = self.contract["source_authority"]
         for field in (
             "review_can_replace_source_document",
@@ -128,8 +124,8 @@ class Stage090ReviewTests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertFalse(authority[field])
         replay = self.contract["reviewed_phase_contract"]
-        self.assertEqual("10/9/7/5", replay["phase1_static_shape"])
-        self.assertEqual(462, replay["phase2_control_field_check_count"])
+        self.assertEqual("12/7/5", replay["phase1_static_shape"])
+        self.assertEqual(468, replay["phase2_control_field_check_count"])
         self.assertEqual(224, replay["phase3_scenario_field_check_count"])
         self.assertEqual("7/7/7/7/7/4/2", replay["phase4_delivery_shape"])
         self.assertEqual(517, replay["phase4_delivery_field_check_count"])
@@ -143,19 +139,19 @@ class Stage090ReviewTests(unittest.TestCase):
         )
         boundary = self.contract["stage_and_phase_boundary"]
         for field in (
-            "stage089_review_evidence_declared",
-            "stage090_started",
+            "stage090_review_evidence_declared",
+            "stage091_started",
             "phase1_completed",
             "phase2_completed",
             "phase3_completed",
             "phase4_completed",
-            "stage090_review_started",
+            "stage091_review_started",
         ):
             with self.subTest(field=field):
                 self.assertTrue(boundary[field])
         for field in (
             "whole_stage_review_performed",
-            "stage091_started",
+            "stage092_started",
             "github_upload_allowed",
             "push_allowed",
         ):
@@ -186,7 +182,7 @@ class Stage090ReviewTests(unittest.TestCase):
         self.assertFalse(report["second_authoritative_source_created"])
         self.assertFalse(report["source_body_or_path_allowed"])
         self.assertEqual(
-            "PASS_RETRIEVAL_EVIDENCE_CAPTURE_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+            "PASS_EVIDENCE_GAP_HANDLING_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
             report["rollback"]["return_to"],
         )
         self.assertTrue(
@@ -205,16 +201,16 @@ class Stage090ReviewTests(unittest.TestCase):
         self.assertTrue(
             report["review_invariants"]["next_stage_taskpack_available_but_not_started"]
         )
-        self.assertTrue(report["review_invariants"]["stage091_gate_only_opens_after_review"])
-        self.assertTrue(report["stage090_started"])
-        self.assertTrue(report["stage090_review_started"])
+        self.assertTrue(report["review_invariants"]["stage092_gate_only_opens_after_review"])
+        self.assertTrue(report["stage091_started"])
+        self.assertTrue(report["stage091_review_started"])
         self.assertFalse(report["whole_stage_review_performed"])
-        self.assertFalse(report["stage091_started"])
+        self.assertFalse(report["stage092_started"])
         self.assertFalse(report["github_upload_allowed"])
         self.assertFalse(report["push_allowed"])
 
     def test_invalid_phase4_contract_fails_closed(self):
-        report = self.module.build_retrieval_evidence_capture_stage090_review_report(
+        report = self.module.build_evidence_gap_handling_stage091_review_report(
             phase4_contract_provider=lambda: {"task_id": "tampered"}
         )
         self.assertFalse(report["review_valid"])
@@ -222,7 +218,7 @@ class Stage090ReviewTests(unittest.TestCase):
         self.assertEqual(self.module.REVIEW_GATE, report["next_gate"])
 
     def test_invalid_phase4_report_fails_closed(self):
-        report = self.module.build_retrieval_evidence_capture_stage090_review_report(
+        report = self.module.build_evidence_gap_handling_stage091_review_report(
             phase4_report_provider=lambda: {"valid": False}
         )
         self.assertFalse(report["review_valid"])
@@ -230,7 +226,7 @@ class Stage090ReviewTests(unittest.TestCase):
         self.assertEqual(self.module.REVIEW_GATE, report["next_gate"])
 
     def test_invalid_phase3_report_fails_closed(self):
-        report = self.module.build_retrieval_evidence_capture_stage090_review_report(
+        report = self.module.build_evidence_gap_handling_stage091_review_report(
             phase3_report_provider=lambda: {"valid": False}
         )
         self.assertFalse(report["review_valid"])
@@ -238,7 +234,7 @@ class Stage090ReviewTests(unittest.TestCase):
         self.assertEqual(self.module.REVIEW_GATE, report["next_gate"])
 
     def test_invalid_phase2_report_fails_closed(self):
-        report = self.module.build_retrieval_evidence_capture_stage090_review_report(
+        report = self.module.build_evidence_gap_handling_stage091_review_report(
             phase2_report_provider=lambda: {"input_accepted": False}
         )
         self.assertFalse(report["review_valid"])
@@ -246,7 +242,7 @@ class Stage090ReviewTests(unittest.TestCase):
         self.assertEqual(self.module.REVIEW_GATE, report["next_gate"])
 
     def test_invalid_phase1_contract_fails_closed(self):
-        report = self.module.build_retrieval_evidence_capture_stage090_review_report(
+        report = self.module.build_evidence_gap_handling_stage091_review_report(
             phase1_contract_provider=lambda: {"task_id": "tampered"}
         )
         self.assertFalse(report["review_valid"])
@@ -261,7 +257,7 @@ class Stage090ReviewTests(unittest.TestCase):
             altered["runtime_boundary"]["model_token_consumption_performed"] = True
             return altered
 
-        report = self.module.build_retrieval_evidence_capture_stage090_review_report(
+        report = self.module.build_evidence_gap_handling_stage091_review_report(
             phase4_report_provider=runtime_signal
         )
         self.assertFalse(report["review_valid"])
@@ -278,7 +274,7 @@ class Stage090ReviewTests(unittest.TestCase):
                     record["report_status_impact_state"] = "CONTROL_REPORT_STATUS_APPLIED"
             return altered
 
-        report = self.module.build_retrieval_evidence_capture_stage090_review_report(
+        report = self.module.build_evidence_gap_handling_stage091_review_report(
             phase4_report_provider=revocation_drift
         )
         self.assertFalse(report["review_valid"])
@@ -295,43 +291,37 @@ class Stage090ReviewTests(unittest.TestCase):
             if line.strip()
         }
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
-        stage090_review_current = (
-            "IDS-STAGE090",
-            "IDS-STAGE090-REVIEW",
-            "IDS-V0_1-STAGE090-REVIEW",
-            "IDS-STAGE091-P1-GATE",
+        stage091_review_current = (
+            "IDS-STAGE091",
+            "IDS-STAGE091-REVIEW",
+            "IDS-V0_1-STAGE091-REVIEW",
+            "IDS-STAGE092-P1-GATE",
         )
-        if current == stage090_review_current:
+        if current == stage091_review_current:
             self.assertTrue(REVIEW_RUN.is_file())
             run = json.loads(REVIEW_RUN.read_text(encoding="utf-8"))
             acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-090"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE090-REVIEW-01"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE090-REVIEW-02"])
-            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE090-REVIEW-03"])
-            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE090-REVIEW-04"])
-            self.assertIn("EVT-IDS-V0_1-STAGE090-REVIEW-20260824-001", event_ids)
-            self.assertEqual("IDS-STAGE091-P1-GATE", run["next_gate"])
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-091"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE091-REVIEW-01"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE091-REVIEW-02"])
+            self.assertEqual("已通过", acceptance_by_id["ACC-STAGE091-REVIEW-03"])
+            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE091-REVIEW-04"])
+            self.assertIn("EVT-IDS-V0_1-STAGE091-REVIEW-20260824-001", event_ids)
+            self.assertEqual("IDS-STAGE092-P1-GATE", run["next_gate"])
             self.assertEqual(
-                "PASS_REVIEWED_RETRIEVAL_EVIDENCE_CAPTURE_RUNTIME_DISABLED",
+                "PASS_REVIEWED_EVIDENCE_GAP_HANDLING_RUNTIME_DISABLED",
                 run["result"],
             )
             self.assertTrue(all(value == 0 for value in run["runtime_counts"].values()))
-            self.assertEqual("IDS-V0_1-STAGE090-REVIEW", plan["task"])
+            self.assertEqual("IDS-V0_1-STAGE091-REVIEW", plan["task"])
             roadmap_text = ROADMAP.read_text(encoding="utf-8")
-            self.assertIn("stage090_review_state:", roadmap_text)
-            self.assertIn('current_phase_id: "IDS-STAGE090-REVIEW"', roadmap_text)
-            self.assertIn('next_gate_id: "IDS-STAGE091-P1-GATE"', roadmap_text)
+            self.assertIn("stage091_review_state:", roadmap_text)
+            self.assertIn('current_phase_id: "IDS-STAGE091-REVIEW"', roadmap_text)
+            self.assertIn('next_gate_id: "IDS-STAGE092-P1-GATE"', roadmap_text)
         else:
             self.assertIn(
                 current,
                 (
-                    (
-                        "IDS-STAGE090",
-                        "IDS-STAGE090-P4",
-                        "IDS-V0_1-STAGE090-P4",
-                        "IDS-STAGE090-REVIEW-GATE",
-                    ),
                     (
                         "IDS-STAGE091",
                         "IDS-STAGE091-P1",
@@ -355,12 +345,6 @@ class Stage090ReviewTests(unittest.TestCase):
                         "IDS-STAGE091-P4",
                         "IDS-V0_1-STAGE091-P4",
                         "IDS-STAGE091-REVIEW-GATE",
-                    ),
-                    (
-                        "IDS-STAGE091",
-                        "IDS-STAGE091-REVIEW",
-                        "IDS-V0_1-STAGE091-REVIEW",
-                        "IDS-STAGE092-P1-GATE",
                     ),
                 ),
             )
