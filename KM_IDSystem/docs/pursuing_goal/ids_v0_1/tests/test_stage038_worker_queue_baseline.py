@@ -336,21 +336,12 @@ class Stage038WorkerQueueBaselinePhase1Tests(unittest.TestCase):
         self.assertIs(False, current_batch["decision"]["github_upload_allowed"])
         self.assertIs(False, current_batch["upload_gate"]["push_allowed"])
 
-        self.assertIn(
-            roadmap["current_stage_id"],
-            {
-                "IDS-STAGE038",
-                "IDS-STAGE039",
-                "IDS-STAGE040",
-                "IDS-STAGE041",
-                "IDS-STAGE042",
-                "IDS-STAGE043",
-                "IDS-STAGE044",
-                "IDS-STAGE045",
-                "IDS-STAGE046",
-                "IDS-STAGE047",
-            },
-        )
+        roadmap_stage_ids = {
+            item.get("stage_id")
+            for item in roadmap.get("stages", [])
+            if isinstance(item, dict) and isinstance(item.get("stage_id"), str)
+        }
+        self.assertIn(roadmap["current_stage_id"], roadmap_stage_ids)
         self.assertTrue(
             roadmap["next_gate_id"].startswith("IDS-STAGE")
             or roadmap["next_gate_id"]

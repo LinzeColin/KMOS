@@ -1,3 +1,9 @@
+## 2026-08-25 · Stage098 Prompt 版本化 P1
+
+- 完成冻结 Stage098 P1 静态合同：固定 `prompt_version`、`model_provider`、`model_version`、`temperature` 与 `retrieval_context` 五个未来控制引用，继承 Stage097 的回答结构、资料 evidence 身份、来源类型分离、`evidence_gap` 语义和高风险输出业务线白箱人工确认门禁。
+- 本地验证通过：P1 聚焦 `9/9`，Stage038 源复核 `8/8`，Stage088--Stage097 Review 精确白箱链 `317/317`，Stage005 治理回归 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查通过。
+- 本 P1 只记录静态控制合同与本地治理投影；真实资料、提示词正文、provider、模型、temperature、retrieval_context、检索、回答、审计、模型 Token、Agent、OVH、生产、正式全局上传与 `main` 合并保持后续授权范围。下一步只在新的独立 run 进入 `IDS-STAGE098-P2-GATE`。
+
 ## 2026-08-25 · Stage097 回答合同 Review
 
 - 完成冻结 Stage097 P1--P4 的纯内存机械复审：固定复核 P1 `11/3/15`、P2 `6×20／4／35／210`、P3 `6×28＝168` 与 P4 `6/6/6/6/6/2／384`，保持失败关闭、四条中文反馈、单一权威、来源类型分离、提示注入防护、业务线白箱人工处理和 P4→P3 回退。

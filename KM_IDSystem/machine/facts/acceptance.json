@@ -1,9 +1,34 @@
 {
-  "stage": "IDS-STAGE097",
-  "phase": "IDS-STAGE097-REVIEW",
-  "task": "IDS-V0_1-STAGE097-REVIEW",
-  "next_gate": "IDS-STAGE098-P1-GATE",
+  "stage": "IDS-STAGE098",
+  "phase": "IDS-STAGE098-P1",
+  "task": "IDS-V0_1-STAGE098-P1",
+  "next_gate": "IDS-STAGE098-P2-GATE",
   "items": [
+    {
+      "id": "ACC-STAGE-098",
+      "criteria": "Stage098 Prompt 版本化 P1 已形成可执行、可测试、可回滚的静态工程合同：五项未来配置引用、回答与资料边界、失败关闭、业务线白箱人工确认、回退路径和零运行时边界明确；真实提示词、配置、检索、模型调用、审计与业务结论保持后续授权范围。",
+      "status": "P1 静态合同已完成"
+    },
+    {
+      "id": "ACC-STAGE098-P1-01",
+      "criteria": "冻结 Stage098 任务包与 Stage097 Review 已复审回答合同控制工件保持为唯一合同上下文；P1 只定义静态工程合同，不建立第二权威事实源，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE098-P1-02",
+      "criteria": "Prompt 版本化合同固定 prompt_version、model_provider、model_version、temperature 与 retrieval_context 五个未来控制引用；RAG 回答结构、内部依据、外部增强、无内部依据策略、来源类型分离和资料 evidence 身份继承 Stage097 回答合同。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE098-P1-03",
+      "criteria": "检索文档保持 evidence 身份且 IDS 规则保持优先级；高风险工程建议、合同承诺和生产写回继续要求业务线白箱人工确认，实际模型输出分类、最终结论和生产写回保持未执行。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE098-P1-04",
+      "criteria": "P1 期间真实资料、提示词正文、provider、模型、temperature、retrieval_context、查询、检索、回答、证据账本、审计、数据库、模型 Token、外部 API、持久化、Agent、OVH、生产、上传或推送保持未执行；本轮本地验收完成后才可在新 run 进入 Stage098 P2。",
+      "status": "已遵守"
+    },
     {
       "id": "ACC-STAGE-097",
       "criteria": "Stage097 回答合同 P1--P4 的固定控制工件已完成纯内存机械复审：回答合同、控制切片、异常场景、交付证据、失败关闭、中文反馈、业务线白箱人工确认与 P4→P3 回退保持一致；真实查询、提示词、回答、模型、生产写回和业务结论保持后续授权范围。",

@@ -1,10 +1,16 @@
 {
   "stages": [
     {
+      "id": "IDS-STAGE098",
+      "name": "Prompt 版本化",
+      "gate": "Stage098 P1 静态控制合同已完成；下一步只能在新的独立 run 进入 Stage098 P2",
+      "status": "已固定 prompt_version、model_provider、model_version、temperature 与 retrieval_context 五个未来控制引用，并继承 Stage097 回答合同的资料身份、来源类型与业务线白箱人工确认门禁。真实提示词、provider、模型、检索上下文、回答、Token、Agent、OVH 与生产保持后续授权范围。"
+    },
+    {
       "id": "IDS-STAGE097",
       "name": "回答合同",
-      "gate": "Stage097 P1--P4 回答合同控制工件已完成机械复审；下一步只能在新的独立 run 进入 Stage098 P1",
-      "status": "已机械复核 P1 的 11/3/15、P2 的 6×20／4／35／210、P3 的 6×28＝168 与 P4 的 6/6/6/6/6/2／384 固定形状、失败关闭、中文反馈和 P4→P3 回退。检索文档保持 evidence 身份，无内部依据保持 evidence_gap，外部增强展示保留底层来源类型；三类高风险输出保持业务线白箱人工确认且最终结论未发布。Stage098 只保留入口声明，真实查询、检索、提示词、模型、Token、Agent、OVH 与生产保持后续授权范围。"
+      "gate": "Stage097 P1--P4 回答合同控制工件已完成机械复审；Stage098 P1 已独立完成，后续入口为 Stage098 P2",
+      "status": "已机械复核 P1 的 11/3/15、P2 的 6×20／4／35／210、P3 的 6×28＝168 与 P4 的 6/6/6/6/6/2／384 固定形状、失败关闭、中文反馈和 P4→P3 回退。检索文档保持 evidence 身份，无内部依据保持 evidence_gap，外部增强展示保留底层来源类型；三类高风险输出保持业务线白箱人工确认且最终结论未发布。Stage098 P1 已固定五项未来版本化配置引用，真实查询、检索、提示词、模型、Token、Agent、OVH 与生产保持后续授权范围。"
     },
     {
       "id": "IDS-STAGE096",

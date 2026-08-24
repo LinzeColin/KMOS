@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE097"
-current_phase_id: "IDS-STAGE097-REVIEW"
-current_task_id: "IDS-V0_1-STAGE097-REVIEW"
-next_gate_id: "IDS-STAGE098-P1-GATE"
+current_stage_id: "IDS-STAGE098"
+current_phase_id: "IDS-STAGE098-P1"
+current_task_id: "IDS-V0_1-STAGE098-P1"
+next_gate_id: "IDS-STAGE098-P2-GATE"
 current_transition_history:
+  stage098_phase1_state:
+    current_stage_id: "IDS-STAGE098"
+    current_phase_id: "IDS-STAGE098-P1"
+    current_task_id: "IDS-V0_1-STAGE098-P1"
+    next_gate_id: "IDS-STAGE098-P2-GATE"
   stage097_review_state:
     current_stage_id: "IDS-STAGE097"
     current_phase_id: "IDS-STAGE097-REVIEW"
@@ -1639,6 +1644,81 @@ current_transition_history:
 total_estimated_hours: 158
 completed_estimated_hours: 290
 stages:
+  - stage_id: "IDS-STAGE098"
+    name: "Prompt 版本化"
+    task_id: "IDS-V0_1-STAGE098"
+    acceptance_ids:
+      - "ACC-STAGE-098"
+    objective: "依据冻结 Stage098 任务包完成 Prompt 版本化受控最小切片，固定 prompt_version、model_provider、model_version、temperature 与 retrieval_context 的未来控制引用，并继承 Stage097 回答合同的资料身份、来源类型和业务线白箱门禁，保持零运行时边界。"
+    status: "phase1_completed_local"
+    entry_authorized: true
+    next_gate_id: "IDS-STAGE098-P2-GATE"
+    gate:
+      gate_id: "IDS-STAGE098-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE098-P2-GATE"
+      github_upload_allowed: false
+    pass_conditions:
+      - "冻结 Stage098 任务包与 Stage097 Review 已复审回答合同控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。"
+      - "P1 固定 prompt_version、model_provider、model_version、temperature 与 retrieval_context 五个未来控制引用；字段不保存提示词正文、模型配置、检索上下文或业务事实。"
+      - "RAG 回答结构、内部依据、外部增强、evidence_gap、来源类型分离与检索文档 evidence 身份继承 Stage097 回答合同；IDS 规则保持优先级。"
+      - "高风险工程建议、合同承诺和生产写回继续要求业务线白箱人工确认；实际模型输出分类、最终结论与生产写回保持未执行。"
+    stop_conditions:
+      - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、查询、执行、分类、生成、确认、发布、写回或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、提示词正文、回答、真实证据账本、审计日志、报告、数据库或物理索引。"
+      - "执行实际 RAG 回答、提示词、provider 或模型调用、模型 Token、temperature 配置、retrieval_context 绑定、来源类型绑定、引用生成、模型输出分类、人工确认、合同承诺、生产写回、数据库 schema 或连接、持久化、Agent、OVH、生产、正式全局上传或 Stage098 P2。"
+    phases:
+      - phase_id: "IDS-STAGE098-P1"
+        name: "Phase 1 · 范围、输入输出与边界确认"
+        objective: "只定义 RAG 回答结构继承、prompt 版本、内部依据、外部增强、无内部依据策略和模型输出权限，确认检索文档永远只是 evidence，并定义模型输出分类和人工确认门禁。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE098-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE098-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE098-P2-GATE"
+          github_upload_allowed: false
+        pass_conditions:
+          - "静态合同固定五个未来版本化配置引用，且每个字段只承载控制标签。"
+          - "检索文档保持 evidence 身份，来源类型分离、evidence_gap 和高风险输出业务线白箱人工确认保持一致。"
+          - "真实资料、提示词正文、模型配置、检索、模型 Token、Agent、OVH、生产、持久化与上传保持未执行。"
+        stop_conditions:
+          - "任何真实提示词、provider、模型、temperature、retrieval_context、查询、回答、资料或审计记录被创建、读取、绑定、执行或持久化。"
+          - "任何 Stage098 P2、P3、P4、整阶段复审、Stage099、OVH、生产或正式全局上传被启动。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE098-P1"
+            name: "固定 Prompt 版本化范围与未来配置引用"
+            objective: "将冻结任务包与 Stage097 Review 控制证据投影为零运行时静态合同，固定五项未来配置引用、回答与来源边界、输出权限、失败关闭和回退路径。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE097-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-098"
+              - "ACC-STAGE098-P1-01"
+              - "ACC-STAGE098-P1-02"
+              - "ACC-STAGE098-P1-03"
+              - "ACC-STAGE098-P1-04"
+            test_results: "Stage098 P1 聚焦静态合同白箱用例、Stage088--Stage098 精确历史白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage098 P1 receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-098_Prompt版本化.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE098_PHASE1_PROMPT_VERSIONING_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage098_prompt_versioning_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage098_prompt_versioning_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage098-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE097_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage097_answer_contract_stage_review_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage097-review-local.json"
+            risk: "若将静态版本化引用或聚焦用例误作真实 prompt、模型配置、检索上下文、回答、审计或业务结论，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage097 Review 的本地零运行时状态；不改变 Stage097 P1--P4、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
+    next_phase_projection:
+      phase_id: "IDS-STAGE098-P2"
+      name: "Phase 2 · 实现、接入与最小可运行切片"
+      entry_gate: "IDS-STAGE098-P2-GATE"
+      status: "not_started"
+      phase2_started: false
+      entry_authorized: true
+      github_upload_allowed: false
+      push_allowed: false
   - stage_id: "IDS-STAGE097"
     name: "回答合同"
     task_id: "IDS-V0_1-STAGE097"
@@ -1928,9 +2008,11 @@ stages:
       taskpack_ref: "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-098_Prompt版本化.md"
       acceptance_id: "ACC-STAGE-098"
       entry_gate: "IDS-STAGE098-P1-GATE"
-      status: "not_started"
-      stage098_started: false
-      phase1_started: false
+      status: "phase1_completed_local"
+      stage098_started: true
+      phase1_started: true
+      phase1_completed: true
+      next_gate_id: "IDS-STAGE098-P2-GATE"
       entry_authorized: true
       github_upload_allowed: false
       push_allowed: false

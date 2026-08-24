@@ -9,9 +9,17 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage097 Review accepted locally - 2026-08-25
+## Current Gate - Stage098 P1 accepted locally - 2026-08-25
 
-- `IDS-V0_1-STAGE097-REVIEW` 已完成回答合同 P1--P4 的纯内存机械复审；当前状态为 `IDS-STAGE097 / IDS-STAGE097-REVIEW / IDS-V0_1-STAGE097-REVIEW / IDS-STAGE098-P1-GATE`。Stage098 P1 只在新的独立 run 进入。
+- `IDS-V0_1-STAGE098-P1` 已完成；当前状态为 `IDS-STAGE098 / IDS-STAGE098-P1 / IDS-V0_1-STAGE098-P1 / IDS-STAGE098-P2-GATE`。后续只可在新的独立 run 进入 P2，继续复用既有唯一开发 worktree 与分支。
+- P1 固定 `prompt_version`、`model_provider`、`model_version`、`temperature` 与 `retrieval_context` 五个未来控制引用；检索文档保持 evidence 身份，内部依据、外部增强和 `evidence_gap` 保持来源类型分离，高风险工程建议、合同承诺和生产写回继续要求业务线白箱人工确认。
+- 已验证：P1 聚焦 `9/9`，Stage038 源复核 `8/8`，Stage088--Stage097 Review 精确白箱链 `317/317`，Stage005 治理回归为 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞和单项目双平面检查通过。
+- `machine/runs/2026-08-25-stage098-p1-local.json` 记录全零运行计数和全 false 运行标志。真实资料、提示词正文、provider、模型、temperature、retrieval_context、查询、检索、回答、审计、模型 Token、Agent、OVH、生产、正式全局上传、`main` 和 release 保持后续授权范围。
+- 回滚只撤回本 P1 的范围说明、静态合同、聚焦用例、后继状态断言、机器事实、治理投影、中文视图、回执、事件和本交接，恢复到 `PASS_REVIEWED_ANSWER_CONTRACT_RUNTIME_DISABLED`；Stage097 Review、冻结任务包、受保护资料、GitHub `main`／release、OVH 与应用状态保持原状。
+
+## Superseded Gate - Stage097 Review accepted locally - 2026-08-25
+
+- `IDS-V0_1-STAGE097-REVIEW` 是已保留的前序回答合同复审；其完成时状态为 `IDS-STAGE097 / IDS-STAGE097-REVIEW / IDS-V0_1-STAGE097-REVIEW / IDS-STAGE098-P1-GATE`，当前 Stage098 P1 已承接该门禁。
 - Review 固定复核 P1 的 `11/3/15`、P2 的 `6×20／4／35／210`、P3 的 `6×28＝168` 与 P4 的 `6/6/6/6/6/2／384`，保持失败关闭、四条中文反馈、来源类型分离、提示注入防护、业务线白箱人工处理和 P4→P3 回退。
 - 已验证：Review 聚焦用例 `9/9`，Stage088--Stage097 P1--P4 精确白箱链 `298/298`；`Stage005` 治理回归为 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞和单项目双平面检查通过。
 - 检索文档保持 evidence 身份且 IDS 规则保持优先级；无内部依据保持 `evidence_gap`；外部增强展示保持 `internal_evidence`、`external_public_reference`、`model_reasoning` 与 `evidence_gap` 的来源类型分离；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，最终结论保持未发布。

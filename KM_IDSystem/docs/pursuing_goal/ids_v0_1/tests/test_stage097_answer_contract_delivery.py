@@ -343,7 +343,13 @@ class Stage097AnswerContractPhase4DeliveryTests(unittest.TestCase):
             "IDS-V0_1-STAGE097-REVIEW",
             "IDS-STAGE098-P1-GATE",
         )
-        self.assertIn(current, (phase4_current, review_current))
+        stage098_phase1_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P1",
+            "IDS-V0_1-STAGE098-P1",
+            "IDS-STAGE098-P2-GATE",
+        )
+        self.assertIn(current, (phase4_current, review_current, stage098_phase1_current))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
         event_ids = {
@@ -371,10 +377,17 @@ class Stage097AnswerContractPhase4DeliveryTests(unittest.TestCase):
                 with self.subTest(acceptance_id=acceptance_id):
                     self.assertEqual("已通过", acceptance_by_id[acceptance_id])
             self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE097-P4-04"])
-        else:
+        elif current == review_current:
             self.assertEqual("IDS-V0_1-STAGE097-REVIEW", plan["task"])
             self.assertEqual(
                 "STAGE097_ANSWER_CONTRACT_REVIEW_RUNTIME_DISABLED",
+                status["evidence_status"],
+            )
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
+        else:
+            self.assertEqual("IDS-V0_1-STAGE098-P1", plan["task"])
+            self.assertEqual(
+                "STAGE098_PROMPT_VERSIONING_CONTRACT_RUNTIME_DISABLED",
                 status["evidence_status"],
             )
             self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
@@ -382,6 +395,10 @@ class Stage097AnswerContractPhase4DeliveryTests(unittest.TestCase):
         self.assertIn("stage097_phase4_state:", roadmap_text)
         self.assertIn('current_phase_id: "IDS-STAGE097-P4"', roadmap_text)
         self.assertIn('next_gate_id: "IDS-STAGE097-REVIEW-GATE"', roadmap_text)
+        if current == stage098_phase1_current:
+            self.assertIn("stage098_phase1_state:", roadmap_text)
+            self.assertIn('current_phase_id: "IDS-STAGE098-P1"', roadmap_text)
+            self.assertIn('next_gate_id: "IDS-STAGE098-P2-GATE"', roadmap_text)
 
 
 if __name__ == "__main__":
