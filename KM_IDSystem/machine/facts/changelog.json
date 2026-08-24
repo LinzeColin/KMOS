@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage094-p4-local",
+    "date": "2026-08-24",
+    "summary": "完成 Stage094 证据撤回 P4 纯内存交付控制验证：从 P3 七个固定、非业务、reference-only 控制场景派生 7 条 evidence ledger 样例、7 条证据等级报告、7 条撤回影响、7 条回归、7 条不可作为结论依据类型、4 条降级说明与 2 条撤回／恢复说明，字段形状为 14/13/13/14/11/10/11，共 517 个交付字段检查点、18 类失败关闭与 4 条中文反馈。P4 聚焦 11/11、精确历史后继链 164/164，Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。真实资料、证据账本、风险计算、可信等级变更、撤回、降级、恢复、投毒处置、报告状态、数据库、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围；下一步仅可在新的独立 run 进入 IDS-STAGE094-REVIEW-GATE。"
+  },
+  {
     "version": "v0.1-stage094-p3-local",
     "date": "2026-08-24",
     "summary": "完成 Stage094 证据撤回 P3 纯内存专项验证：重放 P2 六条固定、非业务、reference-only 的 29 字段控制请求、11 组投影、每条 105 字段与 630 个源控制检查点，形成无内部证据、低 OCR、旧版本、冲突、撤回资料报告状态影响、恶意资料隔离和 D 等级伪装高可信结论拒绝七个场景，每场景 32 字段、共 224 个场景字段检查点与 15 类失败关闭。P3 聚焦 9/9、精确历史关联链 235/235、含 Stage094 P3/P2/P1 的完整关联链 262/262，Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。真实资料、证据账本、风险计算、可信等级变更、撤回、降级、恢复、投毒处置、报告状态、数据库、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围；下一步仅可在新的独立 run 进入 IDS-STAGE094-P4-GATE。"

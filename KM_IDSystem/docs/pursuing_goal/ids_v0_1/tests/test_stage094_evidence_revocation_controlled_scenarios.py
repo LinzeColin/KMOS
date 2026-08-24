@@ -338,6 +338,12 @@ class Stage094EvidenceRevocationPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE094-P2",
             "IDS-STAGE094-P3-GATE",
         )
+        p4_current = (
+            "IDS-STAGE094",
+            "IDS-STAGE094-P4",
+            "IDS-V0_1-STAGE094-P4",
+            "IDS-STAGE094-REVIEW-GATE",
+        )
         self.assertEqual(status["task"], plan["task"])
         if current == p3_current:
             self.assertTrue(RECEIPT.is_file())
@@ -358,7 +364,7 @@ class Stage094EvidenceRevocationPhase3Tests(unittest.TestCase):
             self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
             self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
         else:
-            self.assertEqual(current, p2_current)
+            self.assertIn(current, (p2_current, p4_current))
 
 
 if __name__ == "__main__":

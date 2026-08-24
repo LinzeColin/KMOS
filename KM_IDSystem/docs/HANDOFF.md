@@ -9,7 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage094 Phase 3 - 2026-08-24
+## Current Gate - Stage094 Phase 4 - 2026-08-24
+
+- 本节是唯一当前交接；下方 Stage094 P3/P2/P1、Stage093 Review/P4/P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 保留已验证的历史事实。
+- 本轮完成 `IDS-V0_1-STAGE094-P4` 的证据撤回纯内存交付控制：仅从 P3 的 `7` 个固定、非业务、`reference-only` 场景派生 evidence ledger 样例、证据等级报告、撤回影响、回归与不可作为结论依据类型各 `7` 条，证据降级说明 `4` 条、撤回／恢复说明 `2` 条；固定字段形状 `14/13/13/14/11/10/11`，合计 `517` 个交付检查点、`18` 类失败关闭与 `4` 条中文反馈。业务结论、降级、撤回、恢复和报告状态仍由业务线白箱人工复核裁定。
+- 已验证：P4 聚焦 `11/11`、精确历史后继链 `164/164`，Stage088--Stage094 的 P1--P4 与既有 Review 工件关联链 `343/343`；Stage005 直接治理 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。Stage005 的 Stage038 源复核路由已扩展至当前合法的 P4→Review 后继，并保持其历史不变量。
+- 本 P4 运行计数均为 `0`、运行标志均为 `false`：真实资料、原始元数据、fixture、manifest、检索、证据账本、回答、报告、数据库、物理索引、风险计算、可信等级变更、撤回、降级、恢复、投毒处置、模型、模型 Token、Agent、OVH 与生产保持后续授权范围。
+- 回滚只撤回本 P4 的说明、纯内存交付模块、合同、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_EVIDENCE_REVOCATION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；Stage094 P1/P2/P3、Stage093 Review、冻结任务包、真实资料、证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
+- 下一步只能在新的独立 run 进入 `IDS-STAGE094-REVIEW-GATE`；Stage094 Review、Stage095、正式全局上传、合并到 `main`、发布与生产继续等待完整冻结任务包完成与 `ACC-STAGE-168`。继续复用既有唯一开发工作树与分支；本 run 只建立本地提交，不推送远端。
+
+## Superseded Gate - Stage094 Phase 3 - 2026-08-24
 
 - 本节是唯一当前交接；下方 Stage094 P2/P1、Stage093 Review/P4/P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 保留已验证的历史事实。
 - 本轮完成 `IDS-V0_1-STAGE094-P3` 的证据撤回纯内存专项验证：严格重放 P2 的 `6` 条非业务、`reference-only`、`29` 字段控制请求与 `11` 组、每条 `105` 字段、共 `630` 个源控制检查点；固定无内部证据、低 OCR、旧版本、冲突、撤回资料报告状态影响、恶意资料隔离和 D 等级伪装高可信结论拒绝 `7` 个场景，每场景 `32` 字段、共 `224` 个场景检查点、`15` 类失败关闭与 `4` 条中文反馈。关键结论继续绑定 `evidence_id` 或 `evidence_gap`，撤回报告影响只声明未来人工复核。
