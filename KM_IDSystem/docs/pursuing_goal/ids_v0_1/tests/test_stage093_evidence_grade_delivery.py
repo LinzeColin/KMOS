@@ -375,12 +375,18 @@ class Stage093EvidenceGradePhase4DeliveryTests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         }
-        self.assertEqual(
-            ("IDS-STAGE093", "IDS-STAGE093-REVIEW", "IDS-V0_1-STAGE093-REVIEW"),
+        self.assertIn(
             (status["stage"], status["phase"], status["task"]),
+            (
+                ("IDS-STAGE093", "IDS-STAGE093-REVIEW", "IDS-V0_1-STAGE093-REVIEW"),
+                ("IDS-STAGE094", "IDS-STAGE094-P1", "IDS-V0_1-STAGE094-P1"),
+            ),
         )
-        self.assertEqual("IDS-STAGE094-P1-GATE", status["next_gate"])
-        self.assertEqual("IDS-V0_1-STAGE093-REVIEW", plan["task"])
+        self.assertIn(
+            status["next_gate"],
+            ("IDS-STAGE094-P1-GATE", "IDS-STAGE094-P2-GATE"),
+        )
+        self.assertEqual(status["task"], plan["task"])
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
         self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-093"])
         self.assertEqual("已通过", acceptance_by_id["ACC-STAGE093-P4-01"])

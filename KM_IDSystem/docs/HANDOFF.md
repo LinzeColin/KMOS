@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage093 Review - 2026-08-24
+## Current Gate - Stage094 Phase 1 - 2026-08-24
 
-- 本节是唯一当前交接；下方 Stage093 P4/P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 保留已验证的历史事实。
+- 本节是唯一当前交接；下方 Stage093 Review/P4/P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 保留已验证的历史事实。
+- 本轮完成 `IDS-V0_1-STAGE094-P1` 的证据撤回静态控制合同：固定 `18` 个未来控制字段、`14` 个未来关联字段、`6` 个控制定义、`5` 个继承自 Stage093 Review 的 A/B/C/D/E 等级标签、`16` 类失败关闭状态和 `4` 条中文反馈。Evidence Ledger、证据缺口、风险评分、撤回、降级、恢复、报告影响与知识库投毒防护均保持未来不透明引用；每项关键结论要求 `evidence_id` 或 `evidence_gap`，业务线白箱 owner 保持前置。
+- 已验证：P1 聚焦 `9/9`，加上 Stage093 Review/P4/P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的完整精确关联链 `244/244`；Stage005 直接治理 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过；验证范围覆盖冻结控制工件、精确历史后继与本地治理。
+- 本 P1 运行计数均为 `0`、运行标志均为 `false`：真实资料、原始元数据、fixture、manifest、检索、证据账本、回答、报告、数据库、物理索引、风险计算、可信等级变更、撤回、恢复、投毒处置、模型、模型 Token、Agent、OVH 与生产保持后续授权范围。
+- 回滚只撤回本 P1 的说明、静态合同、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_EVIDENCE_GRADE_STAGE_REVIEW_RUNTIME_DISABLED`；Stage093 P1--Review、冻结任务包、真实资料、证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
+- 下一步只能在新的独立 run 进入 `IDS-STAGE094-P2-GATE`；Stage094 P2/P3/P4/Review、Stage095、正式全局上传、合并到 `main`、发布与生产继续等待完整冻结任务包完成与 `ACC-STAGE-168`。继续复用既有唯一开发工作树与分支，本轮只建立本地提交，不推送远端。
+
+## Superseded Gate - Stage093 Review - 2026-08-24
+
+- 本节保留 Stage093 Review 的已验证历史；唯一当前交接位于上方 Stage094 Phase 1。下方 Stage093 P4/P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 保留已验证的历史事实。
 - 本轮完成 `IDS-V0_1-STAGE093-REVIEW` 的纯内存机械复审：固定复核 P1 `14/10/5` 与 `14` 类失败关闭、P2 `6×27／11／100／600` 与 `27` 类失败关闭、P3 `7×32＝224` 与 `16` 类失败关闭、P4 `7/7/7/7/7/4/2／517／4` 与 `18` 类失败关闭；单一权威、可信等级规则 owner 前置、业务线白箱人工处理、撤回只声明、低等级伪装高可信拒绝、机器事实投影与 P4→P3 回退保持一致。
 - 已验证：Review 聚焦 `14/14`；连同 Stage093 P4/P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确关联聚焦 `235/235`；Stage005 直接治理 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实已重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过；验证范围只覆盖冻结控制工件、精确历史后继和本地治理。
 - 本 Review 的运行计数均为 `0`、运行标志均为 `false`：真实资料、原始元数据、fixture、manifest、检索结果、evidence ledger、audit log、回答、报告、数据库、物理索引、实际等级分配／变更、撤回／恢复、投毒处置、模型、模型 Token、Agent、OVH 与生产保持后续授权范围。

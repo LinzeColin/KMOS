@@ -312,13 +312,21 @@ class Stage093ReviewTests(unittest.TestCase):
             self.assertIn('current_phase_id: "IDS-STAGE093-REVIEW"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE094-P1-GATE"', roadmap_text)
         else:
-            self.assertEqual(
+            self.assertIn(
                 current,
                 (
-                    "IDS-STAGE093",
-                    "IDS-STAGE093-P4",
-                    "IDS-V0_1-STAGE093-P4",
-                    "IDS-STAGE093-REVIEW-GATE",
+                    (
+                        "IDS-STAGE093",
+                        "IDS-STAGE093-P4",
+                        "IDS-V0_1-STAGE093-P4",
+                        "IDS-STAGE093-REVIEW-GATE",
+                    ),
+                    (
+                        "IDS-STAGE094",
+                        "IDS-STAGE094-P1",
+                        "IDS-V0_1-STAGE094-P1",
+                        "IDS-STAGE094-P2-GATE",
+                    ),
                 ),
             )
 

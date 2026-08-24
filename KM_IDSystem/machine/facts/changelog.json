@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage094-p1-local",
+    "date": "2026-08-24",
+    "summary": "完成 Stage094 证据撤回 P1 静态控制合同：固定 18 个未来控制字段、14 个未来关联字段、6 个控制定义、5 个继承自 Stage093 Review 的 A/B/C/D/E 等级标签、16 类失败关闭状态与 4 条中文反馈。关键结论只以 evidence_id 或 evidence_gap 关联；Evidence Ledger、证据缺口、风险评分、撤回、降级、恢复、报告影响与知识库投毒防护保持未来不透明引用，业务线白箱 owner 保持前置。P1 聚焦 9/9、完整精确关联链 244/244、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，机器事实重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。真实资料、证据账本、风险计算、可信等级变更、撤回、恢复、投毒处置、报告状态、数据库、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围；下一步仅可在新的独立 run 进入 IDS-STAGE094-P2-GATE。"
+  },
+  {
     "version": "v0.1-stage093-review-local",
     "date": "2026-08-24",
     "summary": "完成 Stage093 证据可信等级 A/B/C/D/E Review 纯内存机械复审：固定复核 P1 14/10/5、P2 6×27／11／100／600、P3 7×32＝224 与 P4 7/7/7/7/7/4/2／517／4，分别保持 14/27/16/18 类失败关闭；单一权威、可信等级规则 owner 前置、业务线白箱人工处理、撤回只声明、低等级伪装高可信拒绝与 P4→P3 回退保持一致。Review 聚焦 14/14、精确历史关联聚焦 235/235、Stage005 直接治理 valid=true，两个既有批次检查器均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，机器事实重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。真实资料、真实证据等级、风险、可信等级变更、撤回、恢复、投毒、报告状态、数据库、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围；下一步仅可在新的独立 run 进入 IDS-STAGE094-P1-GATE。"
