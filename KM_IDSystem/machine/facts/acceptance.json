@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE091",
-  "phase": "IDS-STAGE091-P3",
-  "task": "IDS-V0_1-STAGE091-P3",
-  "next_gate": "IDS-STAGE091-P4-GATE",
+  "phase": "IDS-STAGE091-P4",
+  "task": "IDS-V0_1-STAGE091-P4",
+  "next_gate": "IDS-STAGE091-REVIEW-GATE",
   "items": [
     {
       "id": "ACC-STAGE-091",
-      "criteria": "Stage091 证据缺口处理：P1 静态合同、P2 六条固定 reference-only 受控最小切片与 P3 七类异常场景验证已本地完成，固定内部资料不足时以 evidence_gap 表达的未来引用、关键结论 evidence_id/evidence_gap 约束、A/B/C/D/E、风险、撤回、投毒和报告状态影响的控制边界；真实证据缺口、证据账本、风险、撤回、投毒、报告状态和业务结论保持后续授权边界。",
-      "status": "P3 本地完成"
+      "criteria": "Stage091 证据缺口处理：P1 静态合同、P2 六条固定 reference-only 受控最小切片、P3 七类异常场景验证与 P4 交付控制证据已本地完成，固定内部资料不足时以 evidence_gap 表达的未来引用、关键结论 evidence_id/evidence_gap 约束、A/B/C/D/E、风险、撤回、投毒、报告状态影响、不可作为结论依据类型与降级／撤回／恢复说明的控制边界；真实证据缺口、证据账本、风险、撤回、投毒、报告状态和业务结论保持后续授权边界。",
+      "status": "P4 本地完成"
     },
     {
       "id": "ACC-STAGE091-P1-01",
@@ -67,6 +67,26 @@
     {
       "id": "ACC-STAGE091-P3-04",
       "criteria": "P3 期间不执行真实资料、检索、回答、报告或证据账本访问、数据库 schema 或连接、实际证据缺口识别或关闭、实际 OCR 或版本评估、冲突裁决、风险计算、可信等级变更、撤回、投毒检测、隔离、恢复、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产或正式上传；本轮全量本地验收完成后才可在新 run 进入 Stage091 P4。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE091-P4-01",
+      "criteria": "冻结 Stage091 任务包、Stage091 P1/P2/P3 控制工件与已复审 Stage090 从检索捕获证据控制工件保持为唯一合同上下文；P4 只从七条固定、非业务、reference-only 场景派生交付控制记录，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE091-P4-02",
+      "criteria": "P4 固定交付 7 条 evidence ledger 样例、7 条证据等级报告、7 条撤回影响、7 条回归、7 条不可作为结论依据类型、4 条降级和 2 条撤回／恢复说明，共 517 个交付字段检查点；P2 的六条、十组投影、468 个字段检查点与 P3 的七场景、224 个字段检查点保持一致。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE091-P4-03",
+      "criteria": "无内部证据样例保持空 evidence_id/evidence_gap 路由；撤回影响清单只声明 control-only 报告影响且不更新报告；低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装均不能自动作为结论依据。降级、撤回与恢复保留未来授权和业务线白箱人工处理前置，引用丢失、P3 偏离、交付形状偏离或运行信号出现时进入失败关闭。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE091-P4-04",
+      "criteria": "P4 期间真实资料、检索、回答、报告、证据账本、数据库、OCR、版本评估、冲突裁决、风险计算、可信等级变更、撤回、恢复、投毒处置、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产、上传与推送保持在后续授权范围；本轮全量本地验收完成后在新 run 进入 Stage091 Review。",
       "status": "已遵守"
     },
     {

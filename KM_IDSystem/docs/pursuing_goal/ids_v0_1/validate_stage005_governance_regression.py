@@ -2986,6 +2986,14 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE091-P4-GATE"
                     )
+                    or (
+                        roadmap.get("current_stage_id") == "IDS-STAGE091"
+                        and roadmap.get("current_phase_id") == "IDS-STAGE091-P4"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE091-P4"
+                        and roadmap.get("next_gate_id")
+                        == "IDS-STAGE091-REVIEW-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -20476,6 +20484,36 @@ def evaluate_current_state_consistency(
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE090_STAGE_REVIEW.md",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage090_retrieval_evidence_capture_stage_review_contract.json",
                     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage090_retrieval_evidence_capture_control_slice_contract.json",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage090-review-local.json",
+                },
+            },
+            "IDS-STAGE091-P4": {
+                "task_id": "IDS-V0_1-STAGE091-P4",
+                "next_gate_id": "IDS-STAGE091-REVIEW-GATE",
+                "transition_key": "stage091_phase4_state",
+                "stage_statuses": {"phase4_completed_local"},
+                "gate_id": "IDS-STAGE091-P4-GATE",
+                "future_phase_ids": {"IDS-STAGE091-REVIEW"},
+                "required_evidence": {
+                    "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-091_证据缺口处理.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_PHASE4_EVIDENCE_GAP_HANDLING_DELIVERY_EVIDENCE.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_delivery.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_delivery_contract.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage091_evidence_gap_handling_delivery.py",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage091-p4-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_PHASE3_EVIDENCE_GAP_HANDLING_CONTROLLED_SCENARIOS.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_controlled_scenarios.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_controlled_scenarios_contract.json",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage091-p3-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_PHASE2_EVIDENCE_GAP_HANDLING_CONTROL_SLICE.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_control_slice.py",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_control_slice_contract.json",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage091-p2-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE091_PHASE1_EVIDENCE_GAP_HANDLING_SCOPE_BOUNDARY.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage091_evidence_gap_handling_contract.json",
+                    "KM_IDSystem/machine/runs/2026-08-24-stage091-p1-local.json",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE090_STAGE_REVIEW.md",
+                    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage090_retrieval_evidence_capture_stage_review_contract.json",
                     "KM_IDSystem/machine/runs/2026-08-24-stage090-review-local.json",
                 },
             },
