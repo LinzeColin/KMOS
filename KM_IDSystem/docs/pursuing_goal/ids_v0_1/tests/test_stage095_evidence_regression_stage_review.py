@@ -340,6 +340,12 @@ class Stage095ReviewTests(unittest.TestCase):
             "IDS-V0_1-STAGE097-P1",
             "IDS-STAGE097-P2-GATE",
         )
+        stage097_phase2_current = (
+            "IDS-STAGE097",
+            "IDS-STAGE097-P2",
+            "IDS-V0_1-STAGE097-P2",
+            "IDS-STAGE097-P3-GATE",
+        )
         if current == review_current:
             self.assertTrue(REVIEW_RUN.is_file())
             run = json.loads(REVIEW_RUN.read_text(encoding="utf-8"))
@@ -371,6 +377,7 @@ class Stage095ReviewTests(unittest.TestCase):
                     stage096_phase4_current,
                     stage096_review_current,
                     stage097_phase1_current,
+                    stage097_phase2_current,
                 ),
             )
             if current == phase4_current:

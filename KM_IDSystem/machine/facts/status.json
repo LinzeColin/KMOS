@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE097",
-  "phase": "IDS-STAGE097-P1",
-  "task": "IDS-V0_1-STAGE097-P1",
-  "real_progress": "Stage097 P1 已固定回答结构、提示词版本引用、内部依据、外部增强、无内部依据策略、来源类型、引用结构、输出分类和人工确认门禁；检索文档保持 evidence 身份，单一权威与零运行时边界保持一致。",
-  "report_grade": "冻结 Stage097 任务包与已复审 Stage096 知识库投毒防护控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "Stage097 P1 只定义静态回答合同：内部依据、外部增强和无内部依据保持来源类型分离，检索文档不能覆盖 IDS 规则或成为系统指令；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认前置。真实提示词、查询、回答、证据、模型、Token、Agent、OVH 与生产保持后续授权范围。",
-  "evidence_status": "STAGE097_ANSWER_CONTRACT_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE097-P2",
+  "task": "IDS-V0_1-STAGE097-P2",
+  "real_progress": "Stage097 P2 已完成回答合同纯内存受控最小切片：固定查询、索引版本、提示词版本、模型版本和所选 evidence 的 reference-only 记录形状，保持来源类型分离、外部增强展示、提示注入防护和输出权限门禁。",
+  "report_grade": "冻结 Stage097 任务包、Stage097 P1 静态回答合同与已复审 Stage096 知识库投毒防护控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+  "business_verdict": "Stage097 P2 仅投影固定、非业务、reference-only 控制记录：外部公开参考与模型推理在展示层形成外部增强，底层来源类型保持分离；检索文档保持 evidence 身份，提示注入保持拒绝或白箱复核前置，高风险工程建议、合同承诺和生产写回保持人工确认。真实查询、检索、提示词、模型、Token、Agent、OVH 与生产保持后续授权范围。",
+  "evidence_status": "STAGE097_ANSWER_CONTRACT_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-25",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE097-P2-GATE",
+  "next_gate": "IDS-STAGE097-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

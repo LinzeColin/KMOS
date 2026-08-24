@@ -393,6 +393,12 @@ class Stage096KnowledgeBasePoisoningDefensePhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE097-P1",
             "IDS-STAGE097-P2-GATE",
         )
+        stage097_phase2_current = (
+            "IDS-STAGE097",
+            "IDS-STAGE097-P2",
+            "IDS-V0_1-STAGE097-P2",
+            "IDS-STAGE097-P3-GATE",
+        )
         self.assertEqual(status["task"], plan["task"])
         if current == phase3_current:
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
@@ -411,7 +417,11 @@ class Stage096KnowledgeBasePoisoningDefensePhase3Tests(unittest.TestCase):
             self.assertEqual(self.module.PASS_RESULT, receipt["result"])
             self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
             self.assertIn("stage096_phase3_state:", ROADMAP.read_text(encoding="utf-8"))
-        if current in (review_current, stage097_phase1_current):
+        if current in (
+            review_current,
+            stage097_phase1_current,
+            stage097_phase2_current,
+        ):
             review_receipt = json.loads(REVIEW_RECEIPT.read_text(encoding="utf-8"))
             self.assertEqual("IDS-STAGE097-P1-GATE", review_receipt["next_gate"])
             self.assertEqual(
@@ -429,6 +439,7 @@ class Stage096KnowledgeBasePoisoningDefensePhase3Tests(unittest.TestCase):
                 phase4_current,
                 review_current,
                 stage097_phase1_current,
+                stage097_phase2_current,
             ),
         )
 

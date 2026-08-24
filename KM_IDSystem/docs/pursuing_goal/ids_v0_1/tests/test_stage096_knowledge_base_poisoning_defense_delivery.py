@@ -323,6 +323,12 @@ class Stage096KnowledgeBasePoisoningDefensePhase4Tests(unittest.TestCase):
             "IDS-V0_1-STAGE097-P1",
             "IDS-STAGE097-P2-GATE",
         )
+        stage097_phase2_current = (
+            "IDS-STAGE097",
+            "IDS-STAGE097-P2",
+            "IDS-V0_1-STAGE097-P2",
+            "IDS-STAGE097-P3-GATE",
+        )
         legal_history = (
             (
                 "IDS-STAGE096",
@@ -345,6 +351,7 @@ class Stage096KnowledgeBasePoisoningDefensePhase4Tests(unittest.TestCase):
             phase4_current,
             review_current,
             stage097_phase1_current,
+            stage097_phase2_current,
         )
         self.assertEqual(status["task"], plan["task"])
         self.assertIn(current, legal_history)
