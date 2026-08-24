@@ -1,9 +1,34 @@
 {
-  "stage": "IDS-STAGE092",
-  "phase": "IDS-STAGE092-REVIEW",
-  "task": "IDS-V0_1-STAGE092-REVIEW",
-  "next_gate": "IDS-STAGE093-P1-GATE",
+  "stage": "IDS-STAGE093",
+  "phase": "IDS-STAGE093-P1",
+  "task": "IDS-V0_1-STAGE093-P1",
+  "next_gate": "IDS-STAGE093-P2-GATE",
   "items": [
+    {
+      "id": "ACC-STAGE-093",
+      "criteria": "Stage093 证据可信等级 A/B/C/D/E：P1 已固定 evidence ledger、evidence gap、风险、撤回、知识库投毒防护、关键结论关联和 A/B/C/D/E 的静态控制边界；实际可信等级分配、风险计算、撤回和业务判定保持后续授权范围。",
+      "status": "P1 静态合同已完成"
+    },
+    {
+      "id": "ACC-STAGE093-P1-01",
+      "criteria": "冻结 Stage093 任务包与 Stage092 Review 已复审证据风险评分控制工件保持为唯一合同上下文；P1 只定义静态工程合同，不建立第二权威事实源，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE093-P1-02",
+      "criteria": "可信等级引用固定为 14 个未来字段和 10 个未来关联字段，A/B/C/D/E 完整；关键结论未来必须关联 evidence_id 或 evidence_gap，可信等级不能替代该关联。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE093-P1-03",
+      "criteria": "可信等级分配规则、阈值和业务判定保持业务线白箱 owner 的后续前置；低等级伪装高可信、撤回或投毒疑似自动采纳、关键引用缺失、未经授权的等级规则或阈值均失败关闭。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE093-P1-04",
+      "criteria": "P1 期间不执行真实资料或证据账本访问、风险计算、可信等级变更、撤回、投毒处理、报告状态更新、数据库、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮本地验收完成后才可在新 run 进入 Stage093 P2。",
+      "status": "已遵守"
+    },
     {
       "id": "ACC-STAGE-092",
       "criteria": "Stage092 证据风险评分：P1 静态合同、P2 六条固定受控切片、P3 七类异常场景、P4 control-only 交付证据与整阶段机械复审已复核来源、OCR 置信度、版本、复核状态和冲突状态五类未来风险输入、evidence ledger、evidence gap、风险、可信等级、撤回、知识库投毒防护与关键结论的控制边界；实际风险计算和业务判定保持后续授权范围。",

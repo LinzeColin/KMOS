@@ -1,6 +1,12 @@
 {
   "stages": [
     {
+      "id": "IDS-STAGE093",
+      "name": "证据可信等级 A/B/C/D/E",
+      "gate": "Stage093 P1 静态可信等级合同已完成；下一步只能在新的独立 run 进入 Stage093 P2",
+      "status": "Stage093 P1 已完成：14 个未来可信等级字段、10 个未来关联字段、A/B/C/D/E 五个控制标签、关键结论 evidence_id/evidence_gap 关联与 14 类失败关闭已经固定。等级分配规则、阈值、风险、撤回、投毒防护和报告状态更新保持业务线白箱 owner 后续前置；真实资料、真实证据等级、数据库、模型、Token、Agent、OVH、生产、Stage093 P2 与正式上传保持关闭。"
+    },
+    {
       "id": "IDS-STAGE092",
       "name": "证据风险评分",
       "gate": "Stage092 P1--P4 纯内存证据风险评分控制工件已完成整阶段机械复审；下一步只能在新的独立 run 进入 Stage093 P1",

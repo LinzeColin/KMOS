@@ -420,6 +420,12 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
             "IDS-V0_1-STAGE092-REVIEW",
             "IDS-STAGE093-P1-GATE",
         )
+        stage093_phase1_current = (
+            "IDS-STAGE093",
+            "IDS-STAGE093-P1",
+            "IDS-V0_1-STAGE093-P1",
+            "IDS-STAGE093-P2-GATE",
+        )
         stage092_phase1_current = (
             "IDS-STAGE092",
             "IDS-STAGE092-P1",
@@ -460,6 +466,7 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
                 (
                     stage092_phase4_current,
                     stage092_review_current,
+                    stage093_phase1_current,
                     stage092_phase3_current,
                     stage092_phase1_current,
                     stage091_review_current,
