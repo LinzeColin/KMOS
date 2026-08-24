@@ -373,6 +373,12 @@ class Stage097AnswerContractPhase4DeliveryTests(unittest.TestCase):
             "IDS-V0_1-STAGE098-REVIEW",
             "IDS-STAGE099-P1-GATE",
         )
+        stage099_phase1_current = (
+            "IDS-STAGE099",
+            "IDS-STAGE099-P1",
+            "IDS-V0_1-STAGE099-P1",
+            "IDS-STAGE099-P2-GATE",
+        )
         self.assertIn(
             current,
             (
@@ -383,6 +389,7 @@ class Stage097AnswerContractPhase4DeliveryTests(unittest.TestCase):
                 stage098_phase3_current,
                 stage098_phase4_current,
                 stage098_review_current,
+                stage099_phase1_current,
             ),
         )
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
@@ -447,10 +454,17 @@ class Stage097AnswerContractPhase4DeliveryTests(unittest.TestCase):
                 status["evidence_status"],
             )
             self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
-        else:
+        elif current == stage098_review_current:
             self.assertEqual("IDS-V0_1-STAGE098-REVIEW", plan["task"])
             self.assertEqual(
                 "STAGE098_PROMPT_VERSIONING_REVIEW_RUNTIME_DISABLED",
+                status["evidence_status"],
+            )
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
+        elif current == stage099_phase1_current:
+            self.assertEqual("IDS-V0_1-STAGE099-P1", plan["task"])
+            self.assertEqual(
+                "STAGE099_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_SEPARATION_RUNTIME_DISABLED",
                 status["evidence_status"],
             )
             self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-097"])
@@ -480,7 +494,7 @@ class Stage097AnswerContractPhase4DeliveryTests(unittest.TestCase):
             self.assertIn("stage098_phase4_state:", roadmap_text)
             self.assertIn('current_phase_id: "IDS-STAGE098-P4"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE098-REVIEW-GATE"', roadmap_text)
-        else:
+        elif current == stage098_review_current:
             self.assertIn("stage098_phase1_state:", roadmap_text)
             self.assertIn("stage098_phase2_state:", roadmap_text)
             self.assertIn("stage098_phase3_state:", roadmap_text)
@@ -488,6 +502,15 @@ class Stage097AnswerContractPhase4DeliveryTests(unittest.TestCase):
             self.assertIn("stage098_review_state:", roadmap_text)
             self.assertIn('current_phase_id: "IDS-STAGE098-REVIEW"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE099-P1-GATE"', roadmap_text)
+        elif current == stage099_phase1_current:
+            self.assertIn("stage098_phase1_state:", roadmap_text)
+            self.assertIn("stage098_phase2_state:", roadmap_text)
+            self.assertIn("stage098_phase3_state:", roadmap_text)
+            self.assertIn("stage098_phase4_state:", roadmap_text)
+            self.assertIn("stage098_review_state:", roadmap_text)
+            self.assertIn("stage099_phase1_state:", roadmap_text)
+            self.assertIn('current_phase_id: "IDS-STAGE099-P1"', roadmap_text)
+            self.assertIn('next_gate_id: "IDS-STAGE099-P2-GATE"', roadmap_text)
 
 
 if __name__ == "__main__":

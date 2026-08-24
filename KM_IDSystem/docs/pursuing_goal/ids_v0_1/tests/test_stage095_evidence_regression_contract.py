@@ -351,6 +351,12 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE098-REVIEW",
             "IDS-STAGE099-P1-GATE",
         )
+        stage099_phase1_current = (
+            "IDS-STAGE099",
+            "IDS-STAGE099-P1",
+            "IDS-V0_1-STAGE099-P1",
+            "IDS-STAGE099-P2-GATE",
+        )
         if current == stage095_phase1_current:
             self.assertTrue(RECEIPT.is_file())
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
@@ -400,6 +406,7 @@ class Stage095EvidenceRegressionPhase1Tests(unittest.TestCase):
                     stage098_phase3_current,
                     stage098_phase4_current,
                     stage098_review_current,
+                    stage099_phase1_current,
                     (
                         "IDS-STAGE094",
                         "IDS-STAGE094-REVIEW",
