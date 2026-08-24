@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE092",
-  "phase": "IDS-STAGE092-P3",
-  "task": "IDS-V0_1-STAGE092-P3",
-  "real_progress": "Stage092 P3 已重放 P2 六条固定、非业务、reference-only 控制投影，完成无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装高可信结论七个纯内存场景；每场景 32 个字段、共 224 个场景字段检查，并保持 P2 的 582 个源控制字段检查、撤回报告状态影响引用与业务线白箱人工处理。",
-  "report_grade": "冻结 Stage092 任务包、Stage092 P1/P2 控制工件与已复审 Stage091 证据缺口处理控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "Stage092 P3 证明七类固定异常控制场景、资料不足 evidence_gap、撤回报告状态影响引用、低等级伪装高可信拒绝、失败关闭、回退路径和治理边界一致；风险权重、阈值和业务判定公式继续等待业务线白箱 owner，真实来源、OCR、版本、复核、冲突、风险分值、证据账本、报告、数据库、模型、Token、Agent、OVH 与生产保持后续授权范围。",
-  "evidence_status": "STAGE092_PHASE3_EVIDENCE_RISK_SCORING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE092-P4",
+  "task": "IDS-V0_1-STAGE092-P4",
+  "real_progress": "Stage092 P4 已从 P3 七类固定、非业务、reference-only 异常场景派生 evidence ledger 样例、证据等级报告、撤回影响、回归记录、不可作为结论依据类型、降级／撤回／恢复说明与中文反馈；固定交付形状为 7/7/7/7/7/4/2，共 517 个交付字段检查。",
+  "report_grade": "冻结 Stage092 任务包、Stage092 P1/P2/P3 控制工件与已复审 Stage091 证据缺口处理控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+  "business_verdict": "Stage092 P4 证明固定交付控制记录、撤回影响仅声明、不可作为结论依据类型、降级／撤回／恢复说明、失败关闭、回退路径和治理边界一致；风险权重、阈值和业务判定公式继续等待业务线白箱 owner，真实来源、OCR、版本、复核、冲突、风险分值、证据账本、报告、数据库、模型、Token、Agent、OVH 与生产保持后续授权范围。",
+  "evidence_status": "STAGE092_PHASE4_EVIDENCE_RISK_SCORING_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-24",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE092-P4-GATE",
+  "next_gate": "IDS-STAGE092-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

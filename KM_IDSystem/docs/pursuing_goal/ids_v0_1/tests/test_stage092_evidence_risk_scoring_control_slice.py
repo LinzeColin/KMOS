@@ -408,6 +408,12 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
             "IDS-V0_1-STAGE092-P3",
             "IDS-STAGE092-P4-GATE",
         )
+        stage092_phase4_current = (
+            "IDS-STAGE092",
+            "IDS-STAGE092-P4",
+            "IDS-V0_1-STAGE092-P4",
+            "IDS-STAGE092-REVIEW-GATE",
+        )
         stage092_phase1_current = (
             "IDS-STAGE092",
             "IDS-STAGE092-P1",
@@ -446,6 +452,7 @@ class Stage092EvidenceRiskScoringControlSliceTests(unittest.TestCase):
             self.assertIn(
                 current,
                 (
+                    stage092_phase4_current,
                     stage092_phase3_current,
                     stage092_phase1_current,
                     stage091_review_current,
