@@ -3,8 +3,8 @@
     {
       "id": "IDS-STAGE096",
       "name": "知识库投毒防护",
-      "gate": "Stage096 P1 静态合同已完成；下一步只能在新的独立 run 进入 Stage096 P2",
-      "status": "Stage096 P1 已固定 Evidence Ledger、证据缺口、风险评分、可信等级、撤回和投毒防护的 8 个未来控制引用，关键结论保持 evidence_id 或 evidence_gap 约束，A/B/C/D/E 保持已复审等级标签；投毒判定、隔离、高可信准入、风险、等级、撤回、报告、模型、Token、Agent、OVH、生产与正式上传保持后续授权范围。"
+      "gate": "Stage096 P2 纯内存控制切片已完成；下一步只能在新的独立 run 进入 Stage096 P3",
+      "status": "Stage096 P2 已固定 6 条 reference-only 控制请求、21 个输入字段、6 组投影、每条 58 个字段与 348 个控制检查点；evidence 与 document、chunk、fact、query、answer、report 关联、降级或隔离候选、关键结论 evidence_id/evidence_gap 约束与 A/B/C/D/E 保持不透明，投毒判定、隔离、高可信准入、风险、等级、撤回、报告、模型、Token、Agent、OVH、生产与正式上传保持后续授权范围。"
     },
     {
       "id": "IDS-STAGE095",

@@ -3283,6 +3283,25 @@ def evaluate_stage038_source_reverification(
                 and stage_review.get("task_id") == "IDS-V0_1-STAGE038-REVIEW"
                 and stage_review.get("status") == "completed"
             )
+            or (
+                roadmap.get("current_stage_id") == "IDS-STAGE096"
+                and roadmap.get("current_phase_id") == "IDS-STAGE096-P2"
+                and roadmap.get("current_task_id") == "IDS-V0_1-STAGE096-P2"
+                and roadmap.get("next_gate_id") == "IDS-STAGE096-P3-GATE"
+                and source_gate.get("gate_id")
+                == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
+                and source_gate.get("status") == "passed"
+                and source_gate.get("task_id")
+                == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY"
+                and source_gate.get("phase2_entry_authorized") is True
+                and phase2.get("entry_authorized") is True
+                and phase2.get("status") == "passed_with_local_evidence"
+                and phase3.get("status") == "passed_with_local_evidence"
+                and phase4.get("status") == "passed_with_local_evidence"
+                and stage_review.get("review_id") == "IDS-STAGE038-REVIEW"
+                and stage_review.get("task_id") == "IDS-V0_1-STAGE038-REVIEW"
+                and stage_review.get("status") == "completed"
+            )
         ),
         "no_mixed_yaml_state": not any(
             token in batch_text or token in roadmap_text
@@ -20676,6 +20695,159 @@ def evaluate_current_state_consistency(
     upload_gate = upload_gate if isinstance(upload_gate, dict) else {}
     decision = batch.get("decision")
     decision = decision if isinstance(decision, dict) else {}
+    if (
+        current_stage_id == "IDS-STAGE096"
+        and roadmap.get("current_phase_id") == "IDS-STAGE096-P2"
+    ):
+        roadmap_stages = roadmap.get("stages")
+        roadmap_stages = roadmap_stages if isinstance(roadmap_stages, list) else []
+        current_stage = next(
+            (
+                item
+                for item in roadmap_stages
+                if isinstance(item, dict) and item.get("stage_id") == "IDS-STAGE096"
+            ),
+            {},
+        )
+        phases = current_stage.get("phases") if isinstance(current_stage, dict) else []
+        phases = phases if isinstance(phases, list) else []
+        phase1 = next(
+            (
+                item
+                for item in phases
+                if isinstance(item, dict) and item.get("phase_id") == "IDS-STAGE096-P1"
+            ),
+            {},
+        )
+        phase2 = next(
+            (
+                item
+                for item in phases
+                if isinstance(item, dict) and item.get("phase_id") == "IDS-STAGE096-P2"
+            ),
+            {},
+        )
+        phase2_tasks = phase2.get("tasks") if isinstance(phase2, dict) else []
+        phase2_tasks = phase2_tasks if isinstance(phase2_tasks, list) else []
+        phase2_task = next(
+            (
+                item
+                for item in phase2_tasks
+                if isinstance(item, dict)
+                and item.get("task_id") == "IDS-V0_1-STAGE096-P2"
+            ),
+            {},
+        )
+        current_transition = roadmap.get("current_transition_history")
+        current_transition = (
+            current_transition if isinstance(current_transition, dict) else {}
+        )
+        phase2_required_evidence = {
+            "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-096_知识库投毒防护.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE096_PHASE2_KNOWLEDGE_BASE_POISONING_DEFENSE_CONTROL_SLICE.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage096_knowledge_base_poisoning_defense_control_slice.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage096_knowledge_base_poisoning_defense_control_slice_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage096_knowledge_base_poisoning_defense_control_slice.py",
+            "KM_IDSystem/machine/runs/2026-08-24-stage096-p2-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE096_PHASE1_KNOWLEDGE_BASE_POISONING_DEFENSE_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage096_knowledge_base_poisoning_defense_contract.json",
+            "KM_IDSystem/machine/runs/2026-08-24-stage096-p1-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE095_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage095_evidence_regression_stage_review_contract.json",
+            "KM_IDSystem/machine/runs/2026-08-24-stage095-review-local.json",
+        }
+        stage096_phase1_preserved = (
+            current_transition.get("stage096_phase1_state")
+            == {
+                "current_stage_id": "IDS-STAGE096",
+                "current_phase_id": "IDS-STAGE096-P1",
+                "current_task_id": "IDS-V0_1-STAGE096-P1",
+                "next_gate_id": "IDS-STAGE096-P2-GATE",
+            }
+            and phase1.get("status") == "completed"
+            and phase1.get("next_gate_id") == "IDS-STAGE096-P2-GATE"
+            and isinstance(phase1.get("gate"), dict)
+            and phase1["gate"].get("gate_id") == "IDS-STAGE096-P1-GATE"
+            and phase1["gate"].get("status") == "passed"
+        )
+        stage096_phase2_exact = (
+            roadmap.get("current_task_id") == "IDS-V0_1-STAGE096-P2"
+            and roadmap.get("next_gate_id") == "IDS-STAGE096-P3-GATE"
+            and current_transition.get("stage095_review_state")
+            == {
+                "current_stage_id": "IDS-STAGE095",
+                "current_phase_id": "IDS-STAGE095-REVIEW",
+                "current_task_id": "IDS-V0_1-STAGE095-REVIEW",
+                "next_gate_id": "IDS-STAGE096-P1-GATE",
+            }
+            and current_transition.get("stage096_phase2_state")
+            == {
+                "current_stage_id": "IDS-STAGE096",
+                "current_phase_id": "IDS-STAGE096-P2",
+                "current_task_id": "IDS-V0_1-STAGE096-P2",
+                "next_gate_id": "IDS-STAGE096-P3-GATE",
+            }
+            and stage096_phase1_preserved
+            and current_stage.get("status") == "phase2_completed_local"
+            and current_stage.get("entry_authorized") is True
+            and current_stage.get("next_gate_id") == "IDS-STAGE096-P3-GATE"
+            and isinstance(current_stage.get("gate"), dict)
+            and current_stage["gate"].get("gate_id") == "IDS-STAGE096-P2-GATE"
+            and current_stage["gate"].get("status") == "passed"
+            and current_stage["gate"].get("next_gate_id") == "IDS-STAGE096-P3-GATE"
+            and current_stage["gate"].get("github_upload_allowed") is False
+            and phase2.get("status") == "completed"
+            and phase2.get("entry_authorized") is True
+            and phase2.get("next_gate_id") == "IDS-STAGE096-P3-GATE"
+            and isinstance(phase2.get("gate"), dict)
+            and phase2["gate"].get("gate_id") == "IDS-STAGE096-P2-GATE"
+            and phase2["gate"].get("status") == "passed"
+            and phase2["gate"].get("next_gate_id") == "IDS-STAGE096-P3-GATE"
+            and phase2["gate"].get("github_upload_allowed") is False
+            and phase2_task.get("status") == "completed"
+            and phase2_task.get("dependencies") == ["IDS-V0_1-STAGE096-P1"]
+            and isinstance(phase2_task.get("test_results"), str)
+            and bool(phase2_task.get("test_results"))
+            and phase2_required_evidence.issubset(
+                {
+                    item
+                    for item in phase2_task.get("evidence_refs", [])
+                    if isinstance(item, str)
+                }
+            )
+        )
+        stage095_review_preserved = any(
+            isinstance(item, dict)
+            and item.get("stage_id") == "IDS-STAGE095"
+            and item.get("status") == "completed_reviewed_local"
+            and item.get("next_gate_id") == "IDS-STAGE096-P1-GATE"
+            for item in roadmap_stages
+        )
+        future_phases_closed = all(
+            isinstance(item, dict)
+            and item.get("phase_id") in {"IDS-STAGE096-P1", "IDS-STAGE096-P2"}
+            for item in phases
+        )
+        locks_closed = (
+            batch.get("status") == "stage070_completed_reviewed_local"
+            and decision.get("github_upload_allowed") is False
+            and decision.get("push_allowed") is False
+            and upload_gate.get("github_upload_allowed") is False
+            and upload_gate.get("push_allowed") is False
+        )
+        return {
+            "yaml_documents_parsed": bool(batch) and bool(roadmap),
+            "current_stage_node_resolved": stage096_phase2_exact,
+            "current_phase_allowed": stage096_phase2_exact,
+            "current_task_allowed": stage096_phase2_exact,
+            "next_gate_allowed": stage096_phase2_exact,
+            "batch_top_status_matches_stage": locks_closed,
+            "current_state_decision_upload_locked": locks_closed,
+            "current_state_push_locked_structurally": locks_closed,
+            "current_state_stage095_review_preserved": stage095_review_preserved,
+            "current_state_stage096_phase1_preserved": stage096_phase1_preserved,
+            "current_state_future_phases_not_entered": future_phases_closed,
+        }
     if current_stage_id == "IDS-STAGE096":
         roadmap_stages = roadmap.get("stages")
         roadmap_stages = roadmap_stages if isinstance(roadmap_stages, list) else []

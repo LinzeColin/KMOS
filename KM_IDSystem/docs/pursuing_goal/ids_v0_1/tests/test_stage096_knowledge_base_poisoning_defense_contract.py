@@ -266,6 +266,13 @@ class Stage096KnowledgeBasePoisoningDefensePhase1Tests(unittest.TestCase):
             self.assertIn("stage096_phase1_state:", roadmap_text)
             self.assertIn('current_phase_id: "IDS-STAGE096-P1"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE096-P2-GATE"', roadmap_text)
+        elif current == (
+            "IDS-STAGE096",
+            "IDS-STAGE096-P2",
+            "IDS-V0_1-STAGE096-P2",
+            "IDS-STAGE096-P3-GATE",
+        ):
+            self.assertTrue(RECEIPT.is_file())
         else:
             self.assertEqual(
                 (

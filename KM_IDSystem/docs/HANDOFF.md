@@ -9,15 +9,22 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage096 Phase 1 - 2026-08-24
+## Current Gate - Stage096 Phase 2 - 2026-08-24
 
-- 本节是唯一当前交接；下方 Stage095 Review/P4/P3/P2/P1 与更早阶段保留已验证的历史事实。
-- 本轮完成 `IDS-V0_1-STAGE096-P1` 的知识库投毒防护静态控制合同：固定 Evidence Ledger、证据缺口、风险评分、可信等级、撤回和投毒防护的 `8` 个未来控制引用、`6` 个控制定义、已复审的 `A/B/C/D/E` 标签、`14` 类失败关闭与 `4` 条中文反馈；关键结论只以 `evidence_id` 或 `evidence_gap` 关联。
-- 已验证：P1 聚焦 `9/9`，Stage088--Stage095 精确历史关联链 `409/409`，含 P1 的完整关联链 `418/418`，Stage005 直接治理 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器事实渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。验证范围覆盖冻结控制工件、精确历史后继与本地治理。
-- 投毒判定、隔离、高可信准入、风险公式、等级分配、阈值、撤回条件和业务判定继续由业务线白箱 owner 前置；P1 保持单一冻结事实源和 reference-only 控制投影。
-- 本 P1 运行计数均为 `0`、运行标志均为 `false`：真实资料、原始元数据、fixture、检索、证据账本、实际投毒检测或隔离、风险计算、可信等级变更、撤回、报告更新、数据库、模型、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围。
-- 回滚只撤回本 P1 的范围说明、静态合同、聚焦用例、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_REVIEWED_EVIDENCE_REGRESSION_RUNTIME_DISABLED`；Stage095 Review/P1--P4、冻结任务包、真实资料、证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
-- 下一步只在新的独立 run 进入 `IDS-STAGE096-P2-GATE`；Stage096 P2--Review、正式全局上传、合并到 `main`、OVH 与生产继续等待完整冻结任务包完成与 `ACC-STAGE-168`。本轮继续复用唯一开发 worktree 与分支。
+- 本节是唯一当前交接；下方 Stage096 P1、Stage095 Review/P4/P3/P2/P1 与更早阶段保留已验证的历史事实。
+- 本轮完成 `IDS-V0_1-STAGE096-P2` 的知识库投毒防护纯内存控制切片：固定 `6` 条非业务、`reference-only` 的 `21` 字段控制请求，投影 schema binding、evidence relation、检索证据捕获、风险与可信等级、撤回与投毒防护、关键结论与报告影响 `6` 组、每条 `58` 字段，共 `348` 个控制检查点、`20` 类失败关闭与 `4` 条中文反馈；evidence 与 document、chunk、fact、query、answer、report 的未来关联及 `evidence_id`／`evidence_gap` 关键结论约束保持一致。
+- 已验证：P2 聚焦 `9/9`，含 P1 的历史关联链 `418/418`，含 P2 的完整关联链 `427/427`；Stage005 直接治理 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器事实渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。验证范围只覆盖冻结控制工件、精确历史后继与本地治理。
+- 低 OCR、旧版本、冲突与撤回资料保持降级候选，疑似恶意资料保持隔离候选；投毒判定、隔离、高可信准入、风险公式、等级分配、阈值、撤回条件和业务判定继续由业务线白箱 owner 前置。P2 保持单一冻结事实源与 reference-only 控制投影。
+- 本 P2 运行计数均为 `0`、运行标志均为 `false`：真实资料、原始元数据、fixture、检索、证据账本、实际投毒检测或隔离、风险计算、可信等级变更、撤回、报告更新、数据库、模型、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围。
+- 回滚只撤回本 P2 的范围说明、纯内存控制切片、合同、聚焦用例、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PHASE1_KNOWLEDGE_BASE_POISONING_DEFENSE_CONTRACT_RUNTIME_DISABLED`；Stage096 P1、Stage095 Review/P1--P4、冻结任务包、真实资料、证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
+- 用户已授权把本 P2 的本地恢复提交推送至既有隔离分支；该检查点不触发正式全局上传、`main` 合并、OVH 或生产。下一步只在新的独立 run 进入 `IDS-STAGE096-P3-GATE`；Stage096 P3/P4/Review 与 `ACC-STAGE-168` 继续等待。本轮继续复用唯一开发 worktree 与分支。
+
+## Superseded Gate - Stage096 Phase 1 - 2026-08-24
+
+- 本节保留 Stage096 P1 的已验证历史；唯一当前交接位于上方 Stage096 Phase 2。下方 Stage095 Review/P4/P3/P2/P1 与更早阶段保持已验证事实。
+- P1 固定 Evidence Ledger、证据缺口、风险评分、可信等级、撤回和投毒防护的 `8` 个未来控制引用、`6` 个控制定义、已复审的 `A/B/C/D/E` 标签、`14` 类失败关闭与 `4` 条中文反馈；关键结论只以 `evidence_id` 或 `evidence_gap` 关联。
+- P1 本地验证为聚焦 `9/9`、Stage088--Stage095 精确历史关联链 `409/409`、含 P1 的完整关联链 `418/418`，并已通过 Stage005、Batch041-050、Batch051-060、七个中文生成视图、文档预算、无登记阻塞和单项目双平面检查。P2 已在上方作为唯一当前门禁完成。
+- P1 的业务线白箱 owner 前置、单一冻结事实源、全零运行时、回滚到 `PASS_REVIEWED_EVIDENCE_REGRESSION_RUNTIME_DISABLED` 和真实资料／证据账本／GitHub `main`／OVH 边界保持不变。
 
 ## Superseded Gate - Stage095 Review - 2026-08-24
 

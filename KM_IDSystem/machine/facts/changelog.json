@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage096-p2-local",
+    "date": "2026-08-24",
+    "summary": "完成 Stage096 知识库投毒防护 P2 纯内存受控最小切片：固定 6 条非业务、reference-only 控制请求、21 个输入字段、6 组投影、每条 58 个字段、共 348 个控制检查点、20 类失败关闭与 4 条中文反馈；保持 evidence 与 document、chunk、fact、query、answer、report 的未来关联、关键结论 evidence_id/evidence_gap 约束、低 OCR/旧版本/冲突/撤回降级候选、疑似恶意资料隔离候选与业务线白箱人工复核。P2 聚焦 9/9，含 P1 的历史关联链 418/418、含 P2 的完整关联链 427/427，Stage005 valid=true，Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器事实渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。真实资料、证据账本、检索、实际投毒检测或隔离、风险计算、可信等级变更、撤回、报告状态、数据库、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围；下一步仅可在新的独立 run 进入 IDS-STAGE096-P3-GATE。"
+  },
+  {
     "version": "v0.1-stage096-p1-local",
     "date": "2026-08-24",
     "summary": "完成 Stage096 知识库投毒防护 P1 静态控制合同：固定 Evidence Ledger、证据缺口、风险评分、可信等级、撤回和投毒防护的 8 个未来控制引用、6 个控制定义、5 个已复审 A/B/C/D/E 等级标签、14 类失败关闭与 4 条中文反馈。关键结论只以 evidence_id 或 evidence_gap 关联，投毒判定、隔离、高可信准入、风险公式、等级分配、阈值、撤回条件和业务判定保持业务线白箱 owner 后续前置。P1 聚焦 9/9、Stage088--Stage095 历史关联链 409/409、含 P1 的完整关联链 418/418，Stage005 valid=true，Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；机器事实渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。真实资料、证据账本、检索、实际投毒检测或隔离、风险计算、可信等级变更、撤回、报告状态、数据库、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围；下一步仅可在新的独立 run 进入 IDS-STAGE096-P2-GATE。"

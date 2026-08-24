@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE096",
-  "phase": "IDS-STAGE096-P1",
-  "task": "IDS-V0_1-STAGE096-P1",
-  "next_gate": "IDS-STAGE096-P2-GATE",
+  "phase": "IDS-STAGE096-P2",
+  "task": "IDS-V0_1-STAGE096-P2",
+  "next_gate": "IDS-STAGE096-P3-GATE",
   "items": [
     {
       "id": "ACC-STAGE-096",
-      "criteria": "Stage096 知识库投毒防护 P1 静态边界已固定 Evidence Ledger、evidence gap、风险、可信等级、撤回、投毒防护、关键结论关联、A/B/C/D/E、失败关闭与回滚；实际投毒判定、隔离、准入、风险、等级、撤回、报告与业务判定保持后续授权范围。",
-      "status": "P1 静态合同已完成"
+      "criteria": "Stage096 知识库投毒防护 P1 静态合同与 P2 纯内存控制切片已固定 Evidence Ledger、evidence gap、风险、可信等级、撤回、投毒防护、关键结论关联、A/B/C/D/E、失败关闭与回滚；实际投毒判定、隔离、准入、风险、等级、撤回、报告与业务判定保持后续授权范围。",
+      "status": "P2 受控最小切片已完成"
     },
     {
       "id": "ACC-STAGE096-P1-01",
@@ -27,6 +27,26 @@
     {
       "id": "ACC-STAGE096-P1-04",
       "criteria": "P1 期间不执行真实资料或证据账本访问、检索、风险计算、可信等级变更、撤回、投毒检测、隔离、高可信准入、报告状态更新、数据库、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮本地验收完成后才可在新 run 进入 Stage096 P2。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE096-P2-01",
+      "criteria": "冻结 Stage096 任务包、Stage096 P1 静态合同与 Stage095 Review 已复审证据回归控制工件保持为唯一合同上下文；P2 只处理六条固定、非业务、reference-only 的纯内存控制输入，只绑定前序控制引用，不建立第二权威事实源，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE096-P2-02",
+      "criteria": "六条固定控制请求各含 21 个不透明字段，并投影知识库投毒防护 schema binding 8、关联 14、检索证据捕获 binding 10、风险与可信等级 8、撤回与投毒防护 8、关键结论与报告影响 10 个字段，共 348 个控制检查点；evidence 与 document、chunk、fact、query、answer、report 的 14 字段引用链保持一致。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE096-P2-03",
+      "criteria": "资料不足场景只以 evidence_gap 控制引用绑定关键结论，其他场景保持 evidence_id 控制引用；低 OCR、旧版本、冲突和撤回保持降级候选，疑似投毒保持隔离候选，报告状态影响只保留 future reference，风险公式、阈值、等级分配、撤回规则、降级条件、恢复条件和业务判定继续等待业务线白箱 owner。固定输入之外的内容、前序合同或引用链缺失、自动业务采纳、自动撤回、自动降级或自动报告更新均保持失败关闭。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE096-P2-04",
+      "criteria": "P2 期间不执行真实资料、检索、回答、报告或证据账本访问、数据库 schema 或连接、实际来源、OCR、版本、复核或冲突评估、实际风险计算、可信等级变更、撤回、降级、恢复、投毒检测、隔离、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮本地验收完成后才可在新 run 进入 Stage096 P3。",
       "status": "已遵守"
     },
     {
