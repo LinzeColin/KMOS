@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE093",
-  "phase": "IDS-STAGE093-P2",
-  "task": "IDS-V0_1-STAGE093-P2",
-  "real_progress": "Stage093 P2 已完成六条固定、非业务、reference-only 的 27 字段可信等级控制请求，投影 11 组控制引用、每条 100 个字段、共 600 个控制检查点与 27 类失败关闭；所有对象只存在于函数返回值。",
+  "phase": "IDS-STAGE093-P3",
+  "task": "IDS-V0_1-STAGE093-P3",
+  "real_progress": "Stage093 P3 已完成对 P2 六条固定、非业务、reference-only 可信等级控制投影的纯内存专项验证：无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装高可信结论共 7 个场景，每场景 32 个字段、共 224 个场景字段检查点；P2 的 600 个源控制检查点保持引用一致。",
   "report_grade": "冻结 Stage093 任务包与已复审 Stage092 证据风险评分控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "Stage093 P2 只完成可信等级受控最小切片：关键结论保持 evidence_id 或 evidence_gap 关联，可信等级分配公式、阈值和业务判定保持业务线白箱 owner 的后续前置，低可信、冲突、过期、撤回或投毒疑似状态保持人工复核；真实证据、风险、撤回、报告、数据库、模型、Token、Agent、OVH 与生产保持后续授权范围。",
-  "evidence_status": "STAGE093_EVIDENCE_GRADE_CONTROL_SLICE_RUNTIME_DISABLED",
+  "business_verdict": "Stage093 P3 只完成可信等级异常场景控制验证：关键结论保持 evidence_id 或 evidence_gap 关联，无内部证据保持缺口，低 OCR、旧版本、冲突与撤回保持降级候选，恶意资料保持隔离候选，低等级不得伪装支撑高可信结论；可信等级分配公式、阈值和业务判定保持业务线白箱 owner 的后续前置，真实证据、风险、撤回、报告、数据库、模型、Token、Agent、OVH 与生产保持后续授权范围。",
+  "evidence_status": "STAGE093_EVIDENCE_GRADE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-24",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE093-P3-GATE",
+  "next_gate": "IDS-STAGE093-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

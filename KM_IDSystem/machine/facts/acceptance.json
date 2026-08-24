@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE093",
-  "phase": "IDS-STAGE093-P2",
-  "task": "IDS-V0_1-STAGE093-P2",
-  "next_gate": "IDS-STAGE093-P3-GATE",
+  "phase": "IDS-STAGE093-P3",
+  "task": "IDS-V0_1-STAGE093-P3",
+  "next_gate": "IDS-STAGE093-P4-GATE",
   "items": [
     {
       "id": "ACC-STAGE-093",
-      "criteria": "Stage093 证据可信等级 A/B/C/D/E：P1 静态边界与 P2 纯内存控制切片已固定 evidence ledger、evidence gap、风险、撤回、知识库投毒防护、关键结论关联和 A/B/C/D/E；实际可信等级分配、风险计算、撤回和业务判定保持后续授权范围。",
-      "status": "P2 受控最小切片已完成"
+      "criteria": "Stage093 证据可信等级 A/B/C/D/E：P1 静态边界、P2 纯内存控制切片与 P3 七类异常场景已固定 evidence ledger、evidence gap、风险、撤回、知识库投毒防护、关键结论关联和 A/B/C/D/E；实际可信等级分配、风险计算、撤回和业务判定保持后续授权范围。",
+      "status": "P3 专项验证已完成"
     },
     {
       "id": "ACC-STAGE093-P1-01",
@@ -47,6 +47,26 @@
     {
       "id": "ACC-STAGE093-P2-04",
       "criteria": "P2 期间不执行真实资料、检索、回答、报告或证据账本访问、数据库 schema 或连接、实际来源、OCR、版本、复核或冲突评估、实际风险计算、可信等级分配或变更、撤回、投毒检测、隔离、恢复、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage093 P3。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE093-P3-01",
+      "criteria": "冻结 Stage093 任务包、Stage093 P1/P2 控制工件与已复审 Stage092 证据风险评分控制工件保持为唯一合同上下文；P3 只重放六条固定、非业务、reference-only 控制投影，不建立第二权威事实源，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE093-P3-02",
+      "criteria": "七个纯内存场景覆盖无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装高可信结论；每场景固定 32 个控制字段，共 224 个场景字段检查点，P2 的六条、十一组投影、600 个字段检查点与 evidence／document／chunk／fact／query／answer／report 关联保持一致。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE093-P3-03",
+      "criteria": "无内部证据保持 evidence_gap 且不伪装 evidence_id；低 OCR、旧版本、冲突与撤回维持降级候选，疑似恶意资料维持隔离候选；撤回只声明未来报告状态影响引用，不更新真实报告；D 等级证据不得伪装支撑高可信结论。P2 输出偏离、关键引用缺失、控制引用透明化、等级规则越权或运行信号出现时失败关闭，全部场景要求业务线白箱人工处理。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE093-P3-04",
+      "criteria": "P3 期间不执行真实资料、检索、回答、报告或证据账本访问、数据库 schema 或连接、实际来源、OCR、版本、复核或冲突评估、实际风险计算、可信等级分配或变更、撤回、投毒检测、隔离、恢复、报告状态更新、外部 API、模型 Token、持久化、Agent、OVH、生产、上传或推送；本轮全量本地验收完成后才可在新 run 进入 Stage093 P4。",
       "status": "已遵守"
     },
     {

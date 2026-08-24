@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE093"
-current_phase_id: "IDS-STAGE093-P2"
-current_task_id: "IDS-V0_1-STAGE093-P2"
-next_gate_id: "IDS-STAGE093-P3-GATE"
+current_phase_id: "IDS-STAGE093-P3"
+current_task_id: "IDS-V0_1-STAGE093-P3"
+next_gate_id: "IDS-STAGE093-P4-GATE"
 current_transition_history:
+  stage093_phase3_state:
+    current_stage_id: "IDS-STAGE093"
+    current_phase_id: "IDS-STAGE093-P3"
+    current_task_id: "IDS-V0_1-STAGE093-P3"
+    next_gate_id: "IDS-STAGE093-P4-GATE"
   stage093_phase2_state:
     current_stage_id: "IDS-STAGE093"
     current_phase_id: "IDS-STAGE093-P2"
@@ -1530,22 +1535,22 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-093"
     objective: "依据冻结 Stage093 任务包建立 A/B/C/D/E、evidence ledger、evidence gap、风险、撤回、知识库投毒防护与关键结论关联的可信等级控制链；等级分配规则、阈值和业务判定保持业务线白箱 owner 的后续前置，真实运行时保持关闭。"
-    status: "phase2_completed_local"
+    status: "phase3_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE093-P3-GATE"
+    next_gate_id: "IDS-STAGE093-P4-GATE"
     gate:
-      gate_id: "IDS-STAGE093-P2-GATE"
+      gate_id: "IDS-STAGE093-P3-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE093-P3-GATE"
+      next_gate_id: "IDS-STAGE093-P4-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "冻结 Stage093 任务包与 Stage092 Review 已复审控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。"
-      - "P1 的 14 个未来可信等级字段、10 个未来关联字段、A/B/C/D/E 与关键结论 evidence_id/evidence_gap 约束保持；P2 以六条固定、非业务、reference-only 的 27 字段控制请求投影 11 组、每条 100 字段、共 600 个控制检查点与 27 类失败关闭。"
-      - "可信等级分配规则、阈值、风险、撤回、投毒防护、报告状态更新和业务判定保持业务线白箱 owner 的后续前置；低可信、冲突、过期、撤回或投毒疑似状态保持人工复核前置。"
-      - "P1/P2 的合同、纯内存切片、聚焦用例、machine run、机器事实、治理路线和中文视图保持一致；真实资料、真实证据等级、数据库、模型、Token、Agent、OVH、生产和正式上传保持关闭。"
+      - "P1 的 14 个未来可信等级字段、10 个未来关联字段、A/B/C/D/E 与关键结论 evidence_id/evidence_gap 约束保持；P2 的六条固定、非业务、reference-only 的 27 字段控制请求／11 组投影／每条 100 字段／600 个控制检查点保持；P3 固定无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料与低等级伪装高可信结论 7 个场景、每场景 32 字段、共 224 个场景字段检查点与 16 类失败关闭。"
+      - "可信等级分配规则、阈值、风险、撤回、投毒防护、报告状态更新和业务判定保持业务线白箱 owner 的后续前置；无内部证据保持 evidence_gap，低 OCR、旧版本、冲突与撤回保持降级候选，恶意资料保持隔离候选，低等级不得伪装高可信结论，全部场景保持人工复核前置。"
+      - "P1/P2/P3 的合同、纯内存切片或场景、聚焦用例、machine run、机器事实、治理路线和中文视图保持一致；真实资料、真实证据等级、数据库、模型、Token、Agent、OVH、生产和正式上传保持关闭。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、查询、评分、分配、撤回、隔离、恢复、写入或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、真实证据账本、审计日志、回答、报告、数据库或物理索引。"
-      - "执行真实风险评分、可信等级分配或变更、撤回、知识库投毒防护、报告状态更新、数据库 schema 或连接、provider 或模型调用、模型 Token、持久化、Agent、OVH、生产、Stage093 P3 或正式上传。"
+      - "执行真实风险评分、可信等级分配或变更、撤回、知识库投毒防护、报告状态更新、数据库 schema 或连接、provider 或模型调用、模型 Token、持久化、Agent、OVH、生产、Stage093 P4 或正式上传。"
     phases:
       - phase_id: "IDS-STAGE093-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -1634,6 +1639,55 @@ stages:
               - "KM_IDSystem/machine/runs/2026-08-24-stage092-review-local.json"
             risk: "若将固定控制引用、纯内存投影、等级标签、风险、撤回或投毒防护说明误作真实证据、自动等级、自动业务结论、OVH 或生产能力，会绕开单一权威与业务线白箱人工处理。"
             rollback: "只回滚本 P2 的范围说明、纯内存控制切片、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage093 P1 的本地零运行时状态；不改变冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE093-P3"
+        name: "Phase 3 · 证据可信等级专项验证与异常场景"
+        objective: "只重放 P2 的固定控制引用，验证无内部证据、低 OCR、旧版本、冲突、撤回和恶意资料，以及低等级不能伪装高可信结论；可信等级分配规则、阈值、风险权重与业务判定继续保持业务线白箱 owner 前置。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE093-P4-GATE"
+        gate:
+          gate_id: "IDS-STAGE093-P3-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE093-P4-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取真实资料、检索结果、回答、报告或真实证据账本，执行来源、OCR、版本、复核、冲突或风险评估、数据库 schema 或连接、实际风险计算、可信等级分配或变更、撤回、投毒处理、报告状态更新、模型调用、模型 Token、Agent、OVH、生产、上传、推送或 Stage093 P4。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE093-P3"
+            name: "验证证据可信等级异常场景"
+            objective: "只重放 P2 六条固定、非业务、reference-only 控制投影，形成无内部证据、低 OCR、旧版本、冲突、撤回、恶意资料和低等级伪装高可信结论七个纯内存场景；撤回只声明报告状态影响引用，全部场景继续要求业务线白箱人工处理。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE093-P2"
+              - "IDS-V0_1-STAGE092-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-093"
+              - "ACC-STAGE093-P3-01"
+              - "ACC-STAGE093-P3-02"
+              - "ACC-STAGE093-P3-03"
+              - "ACC-STAGE093-P3-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage093_evidence_grade_controlled_scenarios"
+              - "后续本地治理回归命令记录于 Stage093 P3 receipt"
+            test_results: "Stage093 P3 聚焦用例与 Stage093 P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review、Stage088 Review 的精确关联聚焦，以及 Stage005 与两个既有批次检查器的本地治理回归记录于 Stage093 P3 receipt；结果只证明固定控制场景、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-093_证据可信等级A_B_C_D_E.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE093_PHASE3_EVIDENCE_GRADE_CONTROLLED_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage093_evidence_grade_controlled_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage093_evidence_grade_controlled_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage093_evidence_grade_controlled_scenarios.py"
+              - "KM_IDSystem/machine/runs/2026-08-24-stage093-p3-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE093_PHASE2_EVIDENCE_GRADE_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage093_evidence_grade_control_slice_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-24-stage093-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE093_PHASE1_EVIDENCE_GRADE_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage093_evidence_grade_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-24-stage093-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE092_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage092_evidence_risk_scoring_stage_review_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-24-stage092-review-local.json"
+            risk: "若将七类控制场景、降级、撤回报告状态影响引用、隔离或低等级高可信拒绝状态误作真实证据等级、真实证据、自动业务结论、OVH 或生产能力，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P3 的范围说明、纯内存场景模块、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage093 P2 的本地零运行时状态；不改变冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
   - stage_id: "IDS-STAGE092"
     name: "证据风险评分"
     task_id: "IDS-V0_1-STAGE092"
