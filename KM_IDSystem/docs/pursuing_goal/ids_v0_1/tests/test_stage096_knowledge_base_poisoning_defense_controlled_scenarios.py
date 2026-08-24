@@ -49,6 +49,7 @@ TASKPACK = (
 )
 P2_RECEIPT = ROOT / "machine" / "runs" / "2026-08-24-stage096-p2-local.json"
 RECEIPT = ROOT / "machine" / "runs" / "2026-08-24-stage096-p3-local.json"
+REVIEW_RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage096-review-local.json"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
@@ -341,7 +342,16 @@ class Stage096KnowledgeBasePoisoningDefensePhase3Tests(unittest.TestCase):
         self.assertEqual([], failed["scenario_results"])
 
     def test_predecessor_p2_record_remains_immutable_before_or_after_p3(self):
-        for path in (P2_RECEIPT, RECEIPT, STATUS, PLAN, ACCEPTANCE, EVENTS, ROADMAP):
+        for path in (
+            P2_RECEIPT,
+            RECEIPT,
+            REVIEW_RECEIPT,
+            STATUS,
+            PLAN,
+            ACCEPTANCE,
+            EVENTS,
+            ROADMAP,
+        ):
             with self.subTest(path=path):
                 self.assertTrue(path.is_file())
         status = json.loads(STATUS.read_text(encoding="utf-8"))
@@ -371,6 +381,12 @@ class Stage096KnowledgeBasePoisoningDefensePhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE096-P4",
             "IDS-STAGE096-REVIEW-GATE",
         )
+        review_current = (
+            "IDS-STAGE096",
+            "IDS-STAGE096-REVIEW",
+            "IDS-V0_1-STAGE096-REVIEW",
+            "IDS-STAGE097-P1-GATE",
+        )
         self.assertEqual(status["task"], plan["task"])
         if current == phase3_current:
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
@@ -389,7 +405,20 @@ class Stage096KnowledgeBasePoisoningDefensePhase3Tests(unittest.TestCase):
             self.assertEqual(self.module.PASS_RESULT, receipt["result"])
             self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
             self.assertIn("stage096_phase3_state:", ROADMAP.read_text(encoding="utf-8"))
-        self.assertIn(current, (phase2_current, phase3_current, phase4_current))
+        if current == review_current:
+            review_receipt = json.loads(REVIEW_RECEIPT.read_text(encoding="utf-8"))
+            self.assertEqual("IDS-STAGE097-P1-GATE", review_receipt["next_gate"])
+            self.assertEqual(
+                "PASS_REVIEWED_KNOWLEDGE_BASE_POISONING_DEFENSE_RUNTIME_DISABLED",
+                review_receipt["result"],
+            )
+            self.assertTrue(
+                all(value == 0 for value in review_receipt["runtime_counts"].values())
+            )
+        self.assertIn(
+            current,
+            (phase2_current, phase3_current, phase4_current, review_current),
+        )
 
 
 if __name__ == "__main__":

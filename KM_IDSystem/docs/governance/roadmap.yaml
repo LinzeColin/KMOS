@@ -1865,7 +1865,7 @@ stages:
               - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
               - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
               - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
-            test_results: "Stage096 Review 聚焦用例、P1--P4 与 Stage095 Review 的精确历史关联、Stage005、两个既有批次检查器和中文机器视图的本地治理验收记录于 Stage096 Review receipt；结果只证明冻结控制工件一致、失败关闭、治理兼容和零运行时边界。"
+            test_results: "Stage096 Review 聚焦用例 9/9，Stage088--Stage096 精确白箱链 457/457，Stage005 治理回归 valid=true，Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED；中文机器视图重渲染、文档预算、无登记阻塞与单项目双平面检查的本地结果记录于 Stage096 Review receipt。结果只证明冻结控制工件一致、失败关闭、治理兼容和零运行时边界。"
             evidence_refs:
               - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-096_知识库投毒防护.md"
               - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE096_STAGE_REVIEW.md"

@@ -303,6 +303,18 @@ class Stage096ReviewTests(unittest.TestCase):
             self.assertEqual("IDS-STAGE097-P1-GATE", run["next_gate"])
             self.assertEqual(self.module.PASS_RESULT, run["result"])
             self.assertTrue(all(value == 0 for value in run["runtime_counts"].values()))
+            validation = run["validation"]
+            self.assertEqual(9, validation["stage096_review_focused_test_count"])
+            self.assertEqual(448, validation["inherited_successor_test_count"])
+            self.assertEqual(
+                457,
+                validation["precise_stage088_to_stage096_review_chain_test_count"],
+            )
+            self.assertTrue(validation["full_whitebox_validation_recorded"])
+            self.assertTrue(validation["final_validation_recorded"])
+            self.assertFalse(validation["repository_wide_green_claimed"])
+            self.assertFalse(validation["github_upload_allowed"])
+            self.assertFalse(validation["push_allowed"])
             roadmap_text = ROADMAP.read_text(encoding="utf-8")
             self.assertIn("stage096_review_state:", roadmap_text)
             self.assertIn('current_phase_id: "IDS-STAGE096-REVIEW"', roadmap_text)

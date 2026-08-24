@@ -9,18 +9,17 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage096 Review integration checkpoint - 2026-08-25
+## Current Gate - Stage096 Review accepted locally - 2026-08-25
 
-- 当前唯一工作门禁为 `IDS-STAGE096-REVIEW-GATE`。本地已建立 Review 的纯内存机械复审模块、冻结合同、中文范围说明、聚焦用例、机器事实和治理路线；它们复核 Stage096 P1--P4 的固定形状、失败关闭、单一权威、业务线白箱人工处理、P4→P3 回退和零运行时边界。
-- 已验证：`python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage096_knowledge_base_poisoning_defense_stage_review` 为 `9/9`。该验证只读取版本化控制工件，运行计数与运行标志保持全零／`false`。
-- 已定位未完成项：`python3 -B -m unittest discover -q -s KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests -p 'test_stage09*.py'` 运行 `363` 项，`22` 项失败。失败共同原因是历史白箱用例尚未列入唯一合法后继四元组 `IDS-STAGE096 / IDS-STAGE096-REVIEW / IDS-V0_1-STAGE096-REVIEW / IDS-STAGE097-P1-GATE`；Review 本身的控制合同没有失败。`machine/runs/2026-08-25-stage096-review-local.json` 因此保持 `full_whitebox_validation_recorded=false` 和 `final_validation_recorded=false`，本阶段尚未验收完成。
-- 根据 owner 本轮明示授权，本交接与当前未完成 Review 集成工件将作为可恢复快照推送到既有隔离分支 `codex/kmids-stage071-p1`；它不改变 `main`、release、OVH 或生产状态，也不构成正式全局上传。
-- 续作只完成这个 Review phase：按现有失败清单在历史测试中精确加入上述合法后继，复跑 Stage088--Stage096 关联链、Stage005、两个既有批次检查器和中文机器视图，再把收据的最终验证字段写为实际结果；Stage097 只在 Review 验收完成后开放 `IDS-STAGE097-P1-GATE`。
-- 回滚范围为本 Review 检查点新增的模块、合同、说明、聚焦用例、后续治理投影和收据，恢复到 Stage096 P4 已验证状态；Stage096 P1--P4、Stage095 Review、冻结任务包、受保护资料、真实证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
+- `IDS-V0_1-STAGE096-REVIEW` 已在纯内存中完成 P1--P4 的机械复审；当前状态保持 `IDS-STAGE096 / IDS-STAGE096-REVIEW / IDS-V0_1-STAGE096-REVIEW / IDS-STAGE097-P1-GATE`。本阶段没有进入 Stage097，下一步只可在新的独立 run 进入 `IDS-STAGE097-P1-GATE`。
+- 已验证：Review 聚焦用例 `9/9`；Stage088 `44/44`、Stage089 `50/50`、Stage090--096 `363/363`，合计精确白箱链 `457/457`。`Stage005` 治理回归为 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器平面已重渲染 `7` 个中文文件，文档预算、无登记阻塞和单项目双平面检查通过。
+- 24 个历史白箱用例已将唯一合法后继扩展为 `IDS-STAGE096 / IDS-STAGE096-REVIEW / IDS-V0_1-STAGE096-REVIEW / IDS-STAGE097-P1-GATE`。Stage096 P1/P3/P4 的历史测试在 Review 当前态读取 Review 收据，持续验证结果、下一门禁和全零运行计数。
+- `machine/runs/2026-08-25-stage096-review-local.json` 已记录完整链、治理、中文视图和最终本地验收；`repository_wide_green_claimed=false`、正式上传、push、`main`、release、OVH 与生产保持关闭。此前 `40923452` 是既有隔离分支恢复检查点；本次 Review 完成只建立同一分支上的本地提交。
+- 回滚只撤回本 Review 的范围说明、纯内存复审模块、合同、聚焦用例、历史后继断言、machine run、机器事实投影、治理路线和生成中文视图，恢复到 `PASS_KNOWLEDGE_BASE_POISONING_DEFENSE_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；Stage096 P1--P4、Stage095 Review、冻结任务包、受保护资料、真实证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
 
 ## Superseded Gate - Stage096 Phase 4 - 2026-08-24
 
-- 本节保留 Stage096 P4 的已验证历史；唯一当前交接位于上方 Stage096 Review integration checkpoint。下方 Stage096 P3/P2/P1、Stage095 Review/P4/P3/P2/P1 与更早阶段保留已验证的历史事实。
+- 本节保留 Stage096 P4 的已验证历史；唯一当前交接位于上方已本地验收的 Stage096 Review。下方 Stage096 P3/P2/P1、Stage095 Review/P4/P3/P2/P1 与更早阶段保留已验证的历史事实。
 - 本轮完成 `IDS-V0_1-STAGE096-P4` 的知识库投毒防护纯内存交付证据：从 P3 的 `7` 个固定、非业务、`reference-only` 场景派生 evidence ledger 样例、证据等级报告、撤回影响、回归与不可作为结论依据类型各 `7` 条，证据降级说明 `4` 条、撤回／恢复说明 `2` 条；固定字段形状 `14/13/13/14/11/10/11`，共 `517` 个交付字段检查点、`18` 类失败关闭与 `4` 条中文反馈。
 - 已验证：P4 聚焦 `12/12`、P3/P2/P1 聚焦 `27/27`、Stage088--Stage096 完整关联链 `448/448`；Stage005 直接治理 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过，结果已写入同一 P4 收据。
 - 无内部证据、低 OCR、旧版本、冲突、撤回资料、恶意资料及低等级伪装高可信结论均保持人工白箱处置前置；撤回影响保持声明语义。投毒判定、隔离、高可信准入、风险公式、可信等级、撤回条件、降级、恢复和业务判定继续由业务线 owner 裁定。

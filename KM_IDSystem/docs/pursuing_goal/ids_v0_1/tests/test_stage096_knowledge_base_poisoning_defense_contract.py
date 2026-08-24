@@ -27,6 +27,7 @@ PREDECESSOR_CONTRACT = (
 )
 PREDECESSOR_RECEIPT = ROOT / "machine" / "runs" / "2026-08-24-stage095-review-local.json"
 RECEIPT = ROOT / "machine" / "runs" / "2026-08-24-stage096-p1-local.json"
+REVIEW_RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage096-review-local.json"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
@@ -245,6 +246,12 @@ class Stage096KnowledgeBasePoisoningDefensePhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE096-P1",
             "IDS-STAGE096-P2-GATE",
         )
+        stage096_review_current = (
+            "IDS-STAGE096",
+            "IDS-STAGE096-REVIEW",
+            "IDS-V0_1-STAGE096-REVIEW",
+            "IDS-STAGE097-P1-GATE",
+        )
         if current == stage096_phase1_current:
             self.assertTrue(RECEIPT.is_file())
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
@@ -287,6 +294,17 @@ class Stage096KnowledgeBasePoisoningDefensePhase1Tests(unittest.TestCase):
             ),
         ):
             self.assertTrue(RECEIPT.is_file())
+        elif current == stage096_review_current:
+            self.assertTrue(REVIEW_RECEIPT.is_file())
+            review_receipt = json.loads(REVIEW_RECEIPT.read_text(encoding="utf-8"))
+            self.assertEqual("IDS-STAGE097-P1-GATE", review_receipt["next_gate"])
+            self.assertEqual(
+                "PASS_REVIEWED_KNOWLEDGE_BASE_POISONING_DEFENSE_RUNTIME_DISABLED",
+                review_receipt["result"],
+            )
+            self.assertTrue(
+                all(value == 0 for value in review_receipt["runtime_counts"].values())
+            )
         else:
             self.assertEqual(
                 (

@@ -35,6 +35,7 @@ P3_MODULE = (
     / "stage096_knowledge_base_poisoning_defense_controlled_scenarios.py"
 )
 RECEIPT = ROOT / "machine" / "runs" / "2026-08-24-stage096-p4-local.json"
+REVIEW_RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage096-review-local.json"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
@@ -310,6 +311,12 @@ class Stage096KnowledgeBasePoisoningDefensePhase4Tests(unittest.TestCase):
             "IDS-V0_1-STAGE096-P4",
             "IDS-STAGE096-REVIEW-GATE",
         )
+        review_current = (
+            "IDS-STAGE096",
+            "IDS-STAGE096-REVIEW",
+            "IDS-V0_1-STAGE096-REVIEW",
+            "IDS-STAGE097-P1-GATE",
+        )
         legal_history = (
             (
                 "IDS-STAGE096",
@@ -330,6 +337,7 @@ class Stage096KnowledgeBasePoisoningDefensePhase4Tests(unittest.TestCase):
                 "IDS-STAGE096-P4-GATE",
             ),
             phase4_current,
+            review_current,
         )
         self.assertEqual(status["task"], plan["task"])
         self.assertIn(current, legal_history)
@@ -357,6 +365,17 @@ class Stage096KnowledgeBasePoisoningDefensePhase4Tests(unittest.TestCase):
             self.assertEqual(self.module.PASS_RESULT, receipt["result"])
             self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
             self.assertIn("stage096_phase4_state:", ROADMAP.read_text(encoding="utf-8"))
+        elif current == review_current:
+            self.assertTrue(REVIEW_RECEIPT.is_file())
+            review_receipt = json.loads(REVIEW_RECEIPT.read_text(encoding="utf-8"))
+            self.assertEqual("IDS-STAGE097-P1-GATE", review_receipt["next_gate"])
+            self.assertEqual(
+                "PASS_REVIEWED_KNOWLEDGE_BASE_POISONING_DEFENSE_RUNTIME_DISABLED",
+                review_receipt["result"],
+            )
+            self.assertTrue(
+                all(value == 0 for value in review_receipt["runtime_counts"].values())
+            )
 
 
 if __name__ == "__main__":
