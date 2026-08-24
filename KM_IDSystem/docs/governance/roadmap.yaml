@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE096"
-current_phase_id: "IDS-STAGE096-P4"
-current_task_id: "IDS-V0_1-STAGE096-P4"
-next_gate_id: "IDS-STAGE096-REVIEW-GATE"
+current_phase_id: "IDS-STAGE096-REVIEW"
+current_task_id: "IDS-V0_1-STAGE096-REVIEW"
+next_gate_id: "IDS-STAGE097-P1-GATE"
 current_transition_history:
+  stage096_review_state:
+    current_stage_id: "IDS-STAGE096"
+    current_phase_id: "IDS-STAGE096-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE096-REVIEW"
+    next_gate_id: "IDS-STAGE097-P1-GATE"
   stage096_phase4_state:
     current_stage_id: "IDS-STAGE096"
     current_phase_id: "IDS-STAGE096-P4"
@@ -1615,22 +1620,22 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-096"
     objective: "依据冻结 Stage096 任务包固定知识库投毒防护的未来控制引用；Evidence Ledger、证据缺口、风险评分、可信等级、撤回和投毒防护保持单一权威、业务线白箱 owner 前置和零运行时边界。"
-    status: "phase4_completed_local"
+    status: "completed_reviewed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE096-REVIEW-GATE"
+    next_gate_id: "IDS-STAGE097-P1-GATE"
     gate:
-      gate_id: "IDS-STAGE096-P4-GATE"
+      gate_id: "IDS-STAGE096-REVIEW-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE096-REVIEW-GATE"
+      next_gate_id: "IDS-STAGE097-P1-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "冻结 Stage096 任务包、Stage096 P1/P2/P3 合同与 Stage095 Review 已复审证据回归控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。"
       - "P4 只从 P3 的 7 个固定、非业务、reference-only 场景派生 evidence ledger 样例、证据等级报告、撤回影响清单、回归记录、不可作为结论依据类型、证据降级和撤回／恢复说明，所有引用保持 P2／P4 不透明控制前缀。"
       - "无内部证据保持 evidence_gap；低 OCR、旧版本、冲突和撤回保持降级说明，疑似恶意资料保持隔离说明；撤回报告影响只声明，D 等级不得伪装支撑高可信结论。"
-      - "P4 保持 7/7/7/7/7/4/2、517 个字段检查点、18 类失败关闭、单一权威、机器事实投影与中文生成视图；Stage096 Review 只开放下一门禁。"
+      - "P1--P4 的 8/6/5/14、6×21／6／58／348、7×32＝224 与 7/7/7/7/7/4/2／517 固定形状、失败关闭、单一权威、业务线白箱人工处理、P4→P3 回退、机器事实投影与中文生成视图已完成 Review；Stage097 只开放下一门禁。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、查询、执行、评分、分配、撤回、降级、恢复、写入或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、真实证据账本、审计日志、回答、报告、数据库或物理索引。"
-      - "执行实际投毒检测、隔离、高可信准入、风险评分、可信等级分配或变更、撤回、降级、恢复、报告状态更新、数据库 schema 或连接、provider 或模型调用、模型 Token、持久化、Agent、OVH、生产、正式全局上传或 Stage096 Review。"
+      - "执行实际投毒检测、隔离、高可信准入、风险评分、可信等级分配或变更、撤回、降级、恢复、报告状态更新、数据库 schema 或连接、provider 或模型调用、模型 Token、持久化、Agent、OVH、生产、正式全局上传或 Stage097 P1。"
     phases:
       - phase_id: "IDS-STAGE096-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -1823,6 +1828,59 @@ stages:
               - "KM_IDSystem/machine/runs/2026-08-24-stage095-review-local.json"
             risk: "若将交付控制记录、降级或隔离说明、撤回报告影响声明、中文反馈或回退说明误作真实 evidence、真实报告状态更新、真实投毒判断、自动业务结论、OVH 或生产能力，会绕开单一权威与业务线白箱人工处理。"
             rollback: "只回滚本 P4 的范围说明、纯内存交付模块、合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 PASS_KNOWLEDGE_BASE_POISONING_DEFENSE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；不改变 Stage096 P1/P2/P3、Stage095 Review、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE096-REVIEW"
+        name: "Stage Review · 知识库投毒防护整阶段机械复审"
+        objective: "只在内存中机械复审冻结 Stage096 P1--P4 的固定控制工件、失败关闭、单一权威、业务线白箱人工处理、P4→P3 回退与零运行时边界；Stage097 只开放下一门禁。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE097-P1-GATE"
+        gate:
+          gate_id: "IDS-STAGE096-REVIEW-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE097-P1-GATE"
+          github_upload_allowed: false
+        stop_conditions:
+          - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、查询、评分、分配、撤回、降级、恢复、写入或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、真实证据账本、审计日志、回答、报告、数据库或物理索引。"
+          - "执行实际投毒检测、隔离、高可信准入、风险评分、可信等级分配或变更、撤回、降级、恢复、报告状态更新、数据库 schema 或连接、provider 或模型调用、模型 Token、持久化、Agent、OVH、生产、正式全局上传或 Stage097 P1。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE096-REVIEW"
+            name: "复审知识库投毒防护 P1--P4 控制工件"
+            objective: "固定复核 P1 的 8/6/5/14、P2 的 6×21／6／58／348、P3 的 7×32＝224 与 P4 的 7/7/7/7/7/4/2／517；保持 14/20/15/18 类失败关闭、单一权威、业务线白箱人工处理、P4→P3 回退和零运行时。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE096-P1"
+              - "IDS-V0_1-STAGE096-P2"
+              - "IDS-V0_1-STAGE096-P3"
+              - "IDS-V0_1-STAGE096-P4"
+              - "IDS-V0_1-STAGE095-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-096"
+              - "ACC-STAGE096-REVIEW-01"
+              - "ACC-STAGE096-REVIEW-02"
+              - "ACC-STAGE096-REVIEW-03"
+              - "ACC-STAGE096-REVIEW-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage096_knowledge_base_poisoning_defense_stage_review"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage096 Review 聚焦用例、P1--P4 与 Stage095 Review 的精确历史关联、Stage005、两个既有批次检查器和中文机器视图的本地治理验收记录于 Stage096 Review receipt；结果只证明冻结控制工件一致、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-096_知识库投毒防护.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE096_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage096_knowledge_base_poisoning_defense_stage_review.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage096_knowledge_base_poisoning_defense_stage_review_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage096_knowledge_base_poisoning_defense_stage_review.py"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage096-review-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE096_PHASE4_KNOWLEDGE_BASE_POISONING_DEFENSE_DELIVERY_EVIDENCE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage096_knowledge_base_poisoning_defense_delivery_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-24-stage096-p4-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE095_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage095_evidence_regression_stage_review_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-24-stage095-review-local.json"
+            risk: "若将 Review 控制报告、固定场景、交付记录或回退说明误作真实投毒判断、隔离、准入、风险、可信等级、撤回、降级、恢复、报告状态、OVH 或生产能力，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 Review 的范围说明、纯内存复审模块、合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 PASS_KNOWLEDGE_BASE_POISONING_DEFENSE_DELIVERY_EVIDENCE_RUNTIME_DISABLED；保留 Stage096 P1--P4、Stage095 Review、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 与应用状态。"
   - stage_id: "IDS-STAGE095"
     name: "证据回归测试"
     task_id: "IDS-V0_1-STAGE095"
