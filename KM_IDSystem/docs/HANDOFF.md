@@ -9,9 +9,19 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage096 Phase 3 - 2026-08-24
+## Current Gate - Stage096 Phase 4 - 2026-08-24
 
-- 本节是唯一当前交接；下方 Stage096 P2/P1、Stage095 Review/P4/P3/P2/P1 与更早阶段保留已验证的历史事实。
+- 本节是唯一当前交接；下方 Stage096 P3/P2/P1、Stage095 Review/P4/P3/P2/P1 与更早阶段保留已验证的历史事实。
+- 本轮完成 `IDS-V0_1-STAGE096-P4` 的知识库投毒防护纯内存交付证据：从 P3 的 `7` 个固定、非业务、`reference-only` 场景派生 evidence ledger 样例、证据等级报告、撤回影响、回归与不可作为结论依据类型各 `7` 条，证据降级说明 `4` 条、撤回／恢复说明 `2` 条；固定字段形状 `14/13/13/14/11/10/11`，共 `517` 个交付字段检查点、`18` 类失败关闭与 `4` 条中文反馈。
+- 已验证：P4 聚焦 `12/12`、P3/P2/P1 聚焦 `27/27`、Stage088--Stage096 完整关联链 `448/448`；Stage005 直接治理 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实重渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过，结果已写入同一 P4 收据。
+- 无内部证据、低 OCR、旧版本、冲突、撤回资料、恶意资料及低等级伪装高可信结论均保持人工白箱处置前置；撤回影响保持声明语义。投毒判定、隔离、高可信准入、风险公式、可信等级、撤回条件、降级、恢复和业务判定继续由业务线 owner 裁定。
+- 本 P4 运行计数均为 `0`、运行标志均为 `false`：真实资料、原始元数据、fixture、检索、证据账本、实际投毒检测或隔离、风险计算、可信等级变更、撤回、降级、恢复、报告更新、数据库、模型、模型 Token、Agent、OVH 与生产保持后续授权范围。此前用户授权的隔离分支恢复检查点单独记录，本 P4 保持本地提交边界。
+- 回滚只撤回本 P4 的范围说明、纯内存交付模块、合同、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PASS_KNOWLEDGE_BASE_POISONING_DEFENSE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；Stage096 P1/P2/P3、Stage095 Review/P1--P4、冻结任务包、真实资料、证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
+- 下一步只在新的独立 run 进入 `IDS-STAGE096-REVIEW-GATE`；Stage096 Review、Stage097、正式全局上传、`main` 合并、OVH 与生产继续等待。继续复用唯一开发 worktree 与分支，本 P4 不推送远端。
+
+## Superseded Gate - Stage096 Phase 3 - 2026-08-24
+
+- 本节保留 Stage096 P3 的已验证历史；唯一当前交接位于上方 Stage096 Phase 4。
 - 本轮完成 `IDS-V0_1-STAGE096-P3` 的知识库投毒防护纯内存专项验证：严格重放 P2 的 `6` 条固定、非业务、`reference-only` 控制投影，覆盖无内部证据、低 OCR、旧版本、冲突、撤回资料、恶意资料和低等级伪装高可信结论 `7` 个场景；每场景 `32` 个字段，共 `224` 个场景检查点、`15` 类失败关闭与 `4` 条中文反馈。
 - 已验证：P3 聚焦 `9/9`、P2/P1 聚焦 `18/18`、Stage088--Stage096 完整关联链 `436/436`；Stage005 直接治理 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器事实渲染 `7` 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。验证范围只覆盖冻结控制工件、精确历史后继与本地治理。
 - 无内部证据保持 `evidence_gap`，低 OCR、旧版本、冲突和撤回资料保持降级候选，疑似恶意资料保持隔离候选；撤回报告影响只声明不应用，D 等级不得支撑高可信结论。投毒判定、隔离、高可信准入、风险公式、可信等级、撤回条件和业务判定继续由业务线白箱 owner 前置。
