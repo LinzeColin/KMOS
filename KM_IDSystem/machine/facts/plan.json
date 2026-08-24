@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE094",
-  "phase": "IDS-STAGE094-P1",
-  "task": "IDS-V0_1-STAGE094-P1",
-  "now": "IDS-V0_1-STAGE094-P1 已完成静态证据撤回合同：固定 18 个未来撤回字段、14 个未来关联字段、Evidence Ledger、证据缺口、风险评分、A/B/C/D/E、撤回、降级、恢复、报告影响、投毒防护、关键结论 evidence_id/evidence_gap 约束和失败关闭。",
+  "phase": "IDS-STAGE094-P2",
+  "task": "IDS-V0_1-STAGE094-P2",
+  "now": "IDS-V0_1-STAGE094-P2 已完成纯内存证据撤回受控最小切片：六条固定、非业务、reference-only 控制请求各含 29 个字段，投影 11 组、每条 105 字段、总计 630 个控制检查点；关键结论 evidence_id/evidence_gap 关联、降级、隔离、报告影响、恢复和失败关闭保持一致。",
   "owner": "KMOS 开发负责人；本阶段使用唯一既有开发工作树、单一分支与本地验证节奏。",
-  "objective": "以冻结 Stage094 任务包与已复审 Stage093 证据可信等级控制工件为唯一控制上下文，固定资料撤回、降级或冲突时的未来证据引用、失败关闭、A/B/C/D/E 继承、业务线白箱 owner 前置与回退范围；真实业务资料和运行时保持受保护状态。",
+  "objective": "以冻结 Stage094 任务包、Stage094 P1 静态合同与已复审 Stage093 证据可信等级控制工件为唯一控制上下文，完成固定、非业务、reference-only 的纯内存证据撤回控制投影，保持关联、降级、隔离、失败关闭、A/B/C/D/E 继承、业务线白箱 owner 前置与回退范围；真实业务资料和运行时保持受保护状态。",
   "scope": [
-    "冻结 Stage094 任务包与 Stage093 Review 已复审控制工件构成唯一控制上下文，业务事实权威保持单一",
-    "固定 Evidence Ledger、证据缺口、风险评分、可信等级、撤回、降级、恢复、报告影响和投毒防护的未来不透明引用，以及关键结论 evidence_id/evidence_gap 约束",
-    "保留 A/B/C/D/E 既有定义，撤回规则、降级条件、恢复条件、风险公式、阈值和业务判定的业务线白箱 owner 后续前置",
-    "同步 IDS-V0_1-STAGE094-P1 的范围说明、静态合同、聚焦用例、machine run、机器事实、治理路线和生成中文视图"
+    "冻结 Stage094 任务包、Stage094 P1 静态合同与 Stage093 Review 已复审控制工件构成唯一控制上下文，业务事实权威保持单一",
+    "固定六条、非业务、reference-only 的 29 字段控制请求，以及 schema、关联、检索证据捕获、风险、可信等级、撤回、投毒、关键结论、降级、报告影响和 future integration 的 11 组纯内存投影",
+    "保持 evidence 与 document、chunk、fact、query、answer、report 的 14 字段关联，关键结论 evidence_id/evidence_gap 约束，低可信、冲突、过期、撤回降级候选和疑似投毒隔离候选",
+    "同步 IDS-V0_1-STAGE094-P2 的范围说明、纯内存控制切片、合同、聚焦用例、machine run、机器事实、治理路线和生成中文视图"
   ],
   "non_goals": [
     "真实业务源、原始元数据、授权 fixture、检索结果、证据账本、审计日志、回答、报告、数据库、参数和业务结论由受保护边界管理",
     "真实来源、OCR、版本、复核、冲突和风险评估、风险计算、可信等级分配或变更、撤回、降级、恢复、投毒处置、报告状态更新、模型、Token、Agent、OVH 与生产由后续授权阶段管理",
-    "Stage094 P2--Review、Stage095、批次复审、合并、OVH 部署、生产激活与应用重装由后续阶段管理"
+    "Stage094 P3--Review、Stage095、批次复审、合并、OVH 部署、生产激活与应用重装由后续阶段管理"
   ],
-  "stop_condition": "Stage094 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线和中文视图完成本地验证后，本 run 完成；下一轮在新的独立 run 仅可进入 IDS-STAGE094-P2-GATE，继续使用同一既有开发 worktree。真实资料、检索、回答、报告、证据账本、数据库、来源、OCR、版本、复核、冲突、风险计算、可信等级分配或变更、撤回、降级、恢复、投毒、报告状态、模型、Token、审计、持久化、Agent、OVH、生产与正式上传保持后续授权范围。"
+  "stop_condition": "Stage094 P2 的范围说明、纯内存控制切片、合同、聚焦用例、machine run、机器事实投影、治理路线和中文视图完成本地验证后，本 run 完成；下一轮在新的独立 run 仅可进入 IDS-STAGE094-P3-GATE，继续使用同一既有开发 worktree。真实资料、检索、回答、报告、证据账本、数据库、来源、OCR、版本、复核、冲突、风险计算、可信等级分配或变更、撤回、降级、恢复、投毒、报告状态、模型、Token、审计、持久化、Agent、OVH、生产与正式上传保持后续授权范围。"
 }

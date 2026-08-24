@@ -9,7 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage094 Phase 1 - 2026-08-24
+## Current Gate - Stage094 Phase 2 - 2026-08-24
+
+- 本节是唯一当前交接；下方 Stage094 P1、Stage093 Review/P4/P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 保留已验证的历史事实。
+- 本轮完成 `IDS-V0_1-STAGE094-P2` 的证据撤回纯内存受控最小切片：固定 `6` 条非业务、`reference-only` 的 `29` 字段控制请求，投影 Evidence Ledger、关联、检索证据捕获、风险、可信等级、撤回、投毒、关键结论、降级、报告影响和 future integration 共 `11` 组、每条 `105` 字段、合计 `630` 个控制检查点、`30` 类失败关闭与 `4` 条中文反馈。关键结论继续保持 `evidence_id` 或 `evidence_gap` 控制关联；低可信、冲突、过期和撤回保持降级候选，疑似投毒保持隔离候选，恢复和报告影响保持 future reference，业务使用继续等待白箱人工复核。
+- 已验证：P2 与 P1 聚焦各 `9/9`，Stage093 Review/P4/P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 的精确历史关联链 `235/235`，含 Stage094 P1/P2 的完整关联链 `253/253`；Stage005 直接治理 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器事实已重渲染 `7` 个中文文件。
+- 本 P2 运行计数均为 `0`、运行标志均为 `false`：真实资料、原始元数据、fixture、manifest、检索、证据账本、回答、报告、数据库、物理索引、风险计算、可信等级变更、撤回、降级、恢复、投毒处置、模型、模型 Token、Agent、OVH 与生产保持后续授权范围。
+- 回滚只撤回本 P2 的说明、纯内存控制切片、合同、聚焦用例、精确历史后继断言、machine run、事件、机器事实、治理路线、生成中文视图与本交接，恢复到 `PHASE1_EVIDENCE_REVOCATION_CONTRACT_RUNTIME_DISABLED`；Stage094 P1、Stage093 Review、冻结任务包、真实资料、证据账本、GitHub `main`／release、OVH 与应用状态保持原状。
+- 下一步只能在新的独立 run 进入 `IDS-STAGE094-P3-GATE`；Stage094 P3/P4/Review、Stage095、正式全局上传、合并到 `main`、发布与生产继续等待完整冻结任务包完成与 `ACC-STAGE-168`。继续复用既有唯一开发工作树与分支；本 P2 本地提交后，按用户本轮单独授权向该既有隔离分支建立远端恢复检查点，不创建额外 worktree、分支或合并请求。
+
+## Superseded Gate - Stage094 Phase 1 - 2026-08-24
 
 - 本节是唯一当前交接；下方 Stage093 Review/P4/P3/P2/P1、Stage092 Review/P4/P3/P2/P1、Stage091 Review/P4/P3/P2/P1、Stage090 Review/P4/P3/P2/P1、Stage089 Review 与 Stage088 Review 保留已验证的历史事实。
 - 本轮完成 `IDS-V0_1-STAGE094-P1` 的证据撤回静态控制合同：固定 `18` 个未来控制字段、`14` 个未来关联字段、`6` 个控制定义、`5` 个继承自 Stage093 Review 的 A/B/C/D/E 等级标签、`16` 类失败关闭状态和 `4` 条中文反馈。Evidence Ledger、证据缺口、风险评分、撤回、降级、恢复、报告影响与知识库投毒防护均保持未来不透明引用；每项关键结论要求 `evidence_id` 或 `evidence_gap`，业务线白箱 owner 保持前置。

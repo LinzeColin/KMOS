@@ -284,13 +284,21 @@ class Stage094EvidenceRevocationPhase1Tests(unittest.TestCase):
             self.assertIn('current_phase_id: "IDS-STAGE094-P1"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE094-P2-GATE"', roadmap_text)
         else:
-            self.assertEqual(
+            self.assertIn(
                 current,
                 (
-                    "IDS-STAGE093",
-                    "IDS-STAGE093-REVIEW",
-                    "IDS-V0_1-STAGE093-REVIEW",
-                    "IDS-STAGE094-P1-GATE",
+                    (
+                        "IDS-STAGE093",
+                        "IDS-STAGE093-REVIEW",
+                        "IDS-V0_1-STAGE093-REVIEW",
+                        "IDS-STAGE094-P1-GATE",
+                    ),
+                    (
+                        "IDS-STAGE094",
+                        "IDS-STAGE094-P2",
+                        "IDS-V0_1-STAGE094-P2",
+                        "IDS-STAGE094-P3-GATE",
+                    ),
                 ),
             )
 
