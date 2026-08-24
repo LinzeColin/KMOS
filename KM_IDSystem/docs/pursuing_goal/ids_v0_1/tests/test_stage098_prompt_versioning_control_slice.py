@@ -413,7 +413,13 @@ class Stage098PromptVersioningPhase2Tests(unittest.TestCase):
             "IDS-V0_1-STAGE098-P3",
             "IDS-STAGE098-P4-GATE",
         )
-        self.assertIn(current, (phase2_current, phase3_current))
+        phase4_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P4",
+            "IDS-V0_1-STAGE098-P4",
+            "IDS-STAGE098-REVIEW-GATE",
+        )
+        self.assertIn(current, (phase2_current, phase3_current, phase4_current))
         expected = {
             phase2_current: (
                 "IDS-V0_1-STAGE098-P2",
@@ -424,6 +430,11 @@ class Stage098PromptVersioningPhase2Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE098-P3",
                 "STAGE098_PROMPT_VERSIONING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
                 "P3 专项验证已完成",
+            ),
+            phase4_current: (
+                "IDS-V0_1-STAGE098-P4",
+                "STAGE098_PROMPT_VERSIONING_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+                "P4 交付证据已完成",
             ),
         }[current]
         self.assertEqual(expected[0], plan["task"])

@@ -410,6 +410,12 @@ class Stage097AnswerContractPhase2Tests(unittest.TestCase):
             "IDS-V0_1-STAGE098-P3",
             "IDS-STAGE098-P4-GATE",
         )
+        stage098_phase4_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P4",
+            "IDS-V0_1-STAGE098-P4",
+            "IDS-STAGE098-REVIEW-GATE",
+        )
         self.assertIn(
             current,
             (
@@ -420,6 +426,7 @@ class Stage097AnswerContractPhase2Tests(unittest.TestCase):
                 stage098_phase1_current,
                 stage098_phase2_current,
                 stage098_phase3_current,
+                stage098_phase4_current,
             ),
         )
         expected_task, expected_evidence_status, expected_acceptance_status = {
@@ -456,6 +463,11 @@ class Stage097AnswerContractPhase2Tests(unittest.TestCase):
             stage098_phase3_current: (
                 "IDS-V0_1-STAGE098-P3",
                 "STAGE098_PROMPT_VERSIONING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+                "整阶段已复审",
+            ),
+            stage098_phase4_current: (
+                "IDS-V0_1-STAGE098-P4",
+                "STAGE098_PROMPT_VERSIONING_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
                 "整阶段已复审",
             ),
         }[current]

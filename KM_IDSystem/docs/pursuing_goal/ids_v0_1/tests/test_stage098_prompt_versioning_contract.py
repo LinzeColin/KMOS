@@ -268,12 +268,19 @@ class Stage098PromptVersioningPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE098-P3",
             "IDS-STAGE098-P4-GATE",
         )
-        self.assertIn(current, (phase1_current, phase2_current, phase3_current))
+        phase4_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P4",
+            "IDS-V0_1-STAGE098-P4",
+            "IDS-STAGE098-REVIEW-GATE",
+        )
+        self.assertIn(current, (phase1_current, phase2_current, phase3_current, phase4_current))
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
         expected_stage_status = {
             phase1_current: "P1 静态合同已完成",
             phase2_current: "P2 受控最小切片已完成",
             phase3_current: "P3 专项验证已完成",
+            phase4_current: "P4 交付证据已完成",
         }[current]
         self.assertEqual(expected_stage_status, acceptance_by_id["ACC-STAGE-098"])
         for acceptance_id in (

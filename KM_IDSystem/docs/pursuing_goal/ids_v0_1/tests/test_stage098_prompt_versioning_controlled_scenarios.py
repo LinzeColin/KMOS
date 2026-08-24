@@ -369,22 +369,36 @@ class Stage098PromptVersioningPhase3Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         }
-        self.assertEqual(
-            (
-                "IDS-STAGE098",
-                "IDS-STAGE098-P3",
+        current = (status["stage"], status["phase"], status["task"], status["next_gate"])
+        phase3_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P3",
+            "IDS-V0_1-STAGE098-P3",
+            "IDS-STAGE098-P4-GATE",
+        )
+        phase4_current = (
+            "IDS-STAGE098",
+            "IDS-STAGE098-P4",
+            "IDS-V0_1-STAGE098-P4",
+            "IDS-STAGE098-REVIEW-GATE",
+        )
+        self.assertIn(current, (phase3_current, phase4_current))
+        expected = {
+            phase3_current: (
                 "IDS-V0_1-STAGE098-P3",
-                "IDS-STAGE098-P4-GATE",
+                "STAGE098_PROMPT_VERSIONING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+                "P3 专项验证已完成",
             ),
-            (status["stage"], status["phase"], status["task"], status["next_gate"]),
-        )
-        self.assertEqual("IDS-V0_1-STAGE098-P3", plan["task"])
-        self.assertEqual(
-            "STAGE098_PROMPT_VERSIONING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
-            status["evidence_status"],
-        )
+            phase4_current: (
+                "IDS-V0_1-STAGE098-P4",
+                "STAGE098_PROMPT_VERSIONING_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+                "P4 交付证据已完成",
+            ),
+        }[current]
+        self.assertEqual(expected[0], plan["task"])
+        self.assertEqual(expected[1], status["evidence_status"])
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-        self.assertEqual("P3 专项验证已完成", acceptance_by_id["ACC-STAGE-098"])
+        self.assertEqual(expected[2], acceptance_by_id["ACC-STAGE-098"])
         for acceptance_id in (
             "ACC-STAGE098-P3-01",
             "ACC-STAGE098-P3-02",

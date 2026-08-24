@@ -9,7 +9,15 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage098 P3 accepted locally - 2026-08-25
+## Current Gate - Stage098 P4 accepted locally - 2026-08-25
+
+- `IDS-V0_1-STAGE098-P4` 已完成；当前状态为 `IDS-STAGE098 / IDS-STAGE098-P4 / IDS-V0_1-STAGE098-P4 / IDS-STAGE098-REVIEW-GATE`。后续只可在新的独立 run 进入 Stage098 Review，继续复用既有唯一开发 worktree 与分支。
+- P4 从 P3 的 `6` 条、每条 `31` 字段、共 `186` 个纯内存异常场景检查点派生回答样例、负向结果、Prompt 版本记录、可复现日志和模型输出权限边界各 `6` 条，以及 Prompt 回滚和模型配置回退各 `1` 条；字段形状为 `17/12/14/15/12/12`，共 `444` 个交付字段检查点、`16` 类失败关闭与四条中文反馈。
+- 已验证：P4 聚焦 `11/11`，P1--P4 聚焦 `41/41`，Stage038 源复核 `8/8`，Stage088--Stage098 P4 精确白箱链 `336/336`，Stage005 治理回归为 `valid=true`，Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`；机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞和单项目双平面检查通过。
+- 检索文档保持 evidence 身份且 IDS 规则保持优先级；无内部依据保持 `evidence_gap` 且不伪装为内部经验；模型 provider、模型版本、temperature 与检索上下文保持不透明控制引用；高风险工程建议、合同承诺和生产写回均保持业务线白箱人工确认，最终结论保持未发布。`machine/runs/2026-08-25-stage098-p4-local.json` 记录全零运行计数和全 false 运行标志；真实资料、提示词、查询、检索、回答、审计、模型、模型 Token、Agent、OVH、生产、正式全局上传、`main` 和 release 保持后续授权范围。
+- 回滚只撤回本 P4 的范围说明、纯内存交付模块、合同、聚焦用例、历史后继状态断言、机器事实、治理路线、中文视图、本地回执、事件和本交接，恢复到 `PASS_PROMPT_VERSIONING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；Stage098 P1/P2/P3、Stage097 Review、冻结任务包、受保护资料、GitHub `main`／release、OVH 与应用状态保持原状。
+
+## Superseded Gate - Stage098 P3 accepted locally - 2026-08-25
 
 - `IDS-V0_1-STAGE098-P3` 已完成；当前状态为 `IDS-STAGE098 / IDS-STAGE098-P3 / IDS-V0_1-STAGE098-P3 / IDS-STAGE098-P4-GATE`。后续只可在新的独立 run 进入 P4，继续复用既有唯一开发 worktree 与分支。
 - P3 严格重放 P2 的 `6` 条、每条 `23` 字段、`4` 组、每条 `41` 字段、共 `246` 个 source control 检查点，形成 `6` 条、每条 `31` 字段、共 `186` 个纯内存异常场景检查点、`5` 个控制视图、`6` 条未来人工处理要求、`15` 类失败关闭与四条中文反馈。
