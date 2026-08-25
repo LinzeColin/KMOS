@@ -359,6 +359,12 @@ class Stage105ReportEvidenceBindingPhase2Tests(unittest.TestCase):
             "IDS-V0_1-STAGE105-P4",
             "IDS-STAGE105-REVIEW-GATE",
         )
+        review_current = (
+            "IDS-STAGE105",
+            "IDS-STAGE105-REVIEW",
+            "IDS-V0_1-STAGE105-REVIEW",
+            "IDS-STAGE106-P1-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -369,7 +375,13 @@ class Stage105ReportEvidenceBindingPhase2Tests(unittest.TestCase):
         )
         self.assertIn(
             current,
-            {phase1_current, phase2_current, phase3_current, phase4_current},
+            {
+                phase1_current,
+                phase2_current,
+                phase3_current,
+                phase4_current,
+                review_current,
+            },
         )
         if current == phase2_current:
             self.assertTrue(is_current_projection)
@@ -378,7 +390,7 @@ class Stage105ReportEvidenceBindingPhase2Tests(unittest.TestCase):
                 status["evidence_status"],
             )
             self.assertIn("IDS-STAGE105-P3-GATE", plan["stop_condition"])
-        elif current in {phase3_current, phase4_current}:
+        elif current in {phase3_current, phase4_current, review_current}:
             self.assertTrue(is_current_projection)
         else:
             self.assertFalse(is_current_projection)

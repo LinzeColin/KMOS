@@ -497,6 +497,12 @@ class Stage102DocumentPromptInjectionDefensePhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE105-P4",
             "IDS-STAGE105-REVIEW-GATE",
         )
+        stage105_review_current = (
+            "IDS-STAGE105",
+            "IDS-STAGE105-REVIEW",
+            "IDS-V0_1-STAGE105-REVIEW",
+            "IDS-STAGE106-P1-GATE",
+        )
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
         self.assertIn(
             current,
@@ -518,6 +524,7 @@ class Stage102DocumentPromptInjectionDefensePhase3Tests(unittest.TestCase):
                 stage105_phase2_current,
                 stage105_phase3_current,
                 stage105_phase4_current,
+                stage105_review_current,
             },
         )
         self.assertTrue(
