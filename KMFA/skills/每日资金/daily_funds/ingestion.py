@@ -2357,12 +2357,28 @@ class GitSparseWriter:
     def _assert_sparse_checkout_scope(repo: Path) -> None:
         """The clone may materialize only the owner-approved sparse path."""
 
-        for path in repo.rglob("*"):
-            relative = path.relative_to(repo)
-            if relative.parts and relative.parts[0] == ".git":
-                continue
-            if path.is_symlink() or (path.is_file() and not relative.is_relative_to(SPARSE_PATH)):
-                raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
+        def reject_unreadable_path(_error: OSError) -> None:
+            raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
+
+        # ``Path.rglob`` enters ``.git`` before the loop can skip it.  A sparse
+        # clone can carry a large object database there, so audit validation
+        # spent its whole recovery window enumerating Git internals rather than
+        # proving the deliberately tiny checked-out working tree.  Prune the
+        # repository metadata at the directory walker and validate every
+        # materialized worktree path fail-closed.
+        for current, directories, files in os.walk(
+            repo,
+            topdown=True,
+            onerror=reject_unreadable_path,
+            followlinks=False,
+        ):
+            directories[:] = [name for name in directories if name != ".git"]
+            current_path = Path(current)
+            for name in (*directories, *files):
+                path = current_path / name
+                relative = path.relative_to(repo)
+                if path.is_symlink() or (path.is_file() and not relative.is_relative_to(SPARSE_PATH)):
+                    raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
 
     def _assert_staged_scope(self, repo: Path, *, env: Mapping[str, str]) -> None:
         expected_prefix = f"{SPARSE_PATH.as_posix()}/"
