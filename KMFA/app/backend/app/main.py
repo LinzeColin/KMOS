@@ -2524,6 +2524,31 @@ DAILY_FUNDS_HISTORY_PROBE_CURSOR_TRANSCRIPTS = {
 DAILY_FUNDS_HISTORY_PROBE_RECORD_LIST_SHAPES = {
     "NOT_OBSERVED", "NO_DIRECT_LIST", "UNRECOGNIZED_DIRECT_LIST",
 }
+DAILY_FUNDS_RECOVERY_REQUEST_SCHEMA = "kmfa.daily_funds.recovery_request.v1"
+DAILY_FUNDS_RECOVERY_SESSION_SCHEMA = "kmfa.daily_funds.recovery_session.v1"
+DAILY_FUNDS_RECOVERY_REQUEST_FILE = "daily_funds_recovery_request.json"
+DAILY_FUNDS_RECOVERY_SESSION_FILE = "daily_funds_recovery_session.json"
+DAILY_FUNDS_RECOVERY_ACTOR = "kmfa_private_owner_ui"
+DAILY_FUNDS_RECOVERY_ENDPOINT_HEADER = "X-KMFA-Daily-Funds-Recovery"
+DAILY_FUNDS_RECOVERY_ENDPOINT_VALUE = "v1"
+DAILY_FUNDS_RECOVERY_LIVE_STATES = {"REQUESTED", "RUNNING", "WAITING"}
+DAILY_FUNDS_RECOVERY_TERMINAL_STATES = {"SUCCEEDED", "FAILED", "EXPIRED"}
+DAILY_FUNDS_RECOVERY_STEPS = ("RAW_ARCHIVE_AUDIT", "RAW_COVERAGE_REPAIR", "RAW_FACT_REPLAY")
+DAILY_FUNDS_RECOVERY_MACHINE_CODES = {
+    "DAILY_FUNDS_RECOVERY_NOT_REQUESTED",
+    "DAILY_FUNDS_RECOVERY_QUEUED",
+    "DAILY_FUNDS_RECOVERY_RUNNING",
+    "DAILY_FUNDS_RECOVERY_WAITING_FOR_LOCK",
+    "DAILY_FUNDS_RECOVERY_PUBLISHED",
+    "DAILY_FUNDS_RECOVERY_PUBLISHED_NEEDS_REVIEW",
+    "DAILY_FUNDS_RECOVERY_AUDIT_FAILED",
+    "DAILY_FUNDS_RECOVERY_COVERAGE_FAILED",
+    "DAILY_FUNDS_RECOVERY_NO_COMPLETE_PAIR",
+    "DAILY_FUNDS_RECOVERY_REPLAY_FAILED",
+    "DAILY_FUNDS_RECOVERY_CONFIG_INVALID",
+    "DAILY_FUNDS_RECOVERY_EXPIRED",
+    "DAILY_FUNDS_RECOVERY_UNHANDLED",
+}
 DAILY_FUNDS_ALLOWED_RANGES = {"1d": 1, "7d": 7, "30d": 30, "90d": 90, "180d": 180, "360d": 360}
 DAILY_FUNDS_HUMAN_STATUSES = {"已更新", "处理中", "需处理"}
 DAILY_FUNDS_HARD_THRESHOLD_FEN = 60_000_000
@@ -4576,6 +4601,22 @@ def _daily_funds_history_probe_error(*, status_code: int, detail: str) -> JSONRe
     return response
 
 
+def _daily_funds_recovery_response(payload: dict[str, Any], *, status_code: int = 200) -> JSONResponse:
+    """Mark the fixed values-free recovery state as an app-origin reply."""
+
+    response = _daily_funds_auth_response(payload, status_code=status_code)
+    response.headers[DAILY_FUNDS_RECOVERY_ENDPOINT_HEADER] = DAILY_FUNDS_RECOVERY_ENDPOINT_VALUE
+    return response
+
+
+def _daily_funds_recovery_error(*, status_code: int, detail: str) -> JSONResponse:
+    """Return a finite error from the fixed recovery control route."""
+
+    response = _daily_funds_auth_response({"detail": detail}, status_code=status_code)
+    response.headers[DAILY_FUNDS_RECOVERY_ENDPOINT_HEADER] = DAILY_FUNDS_RECOVERY_ENDPOINT_VALUE
+    return response
+
+
 @app.get("/ops/api/daily-funds/auth-session")
 def daily_funds_auth_session():
     """Read only the short-lived owner-facing device authorization state."""
@@ -4919,6 +4960,211 @@ async def start_daily_funds_history_probe(request: Request):
         "continuation_state": "NOT_STARTED",
         "cursor_transcript": "NOT_STARTED",
         "record_list_shape": "NOT_OBSERVED",
+    }, status_code=202)
+
+
+def _daily_funds_recovery_control_path(name: str) -> Path:
+    if name not in {DAILY_FUNDS_RECOVERY_REQUEST_FILE, DAILY_FUNDS_RECOVERY_SESSION_FILE}:
+        raise ValueError("daily funds recovery control filename invalid")
+    root = DAILY_FUNDS_CONTROL_DIR.resolve()
+    target = (root / name).resolve()
+    if target.parent != root:
+        raise ValueError("daily funds recovery control path invalid")
+    return target
+
+
+def _daily_funds_recovery_read_object(name: str) -> dict[str, Any] | None:
+    try:
+        target = _daily_funds_recovery_control_path(name)
+    except (OSError, ValueError):
+        return None
+    if target.is_symlink() or not target.is_file():
+        return None
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _daily_funds_recovery_completed_steps(value: object) -> tuple[str, ...] | None:
+    if not isinstance(value, list) or any(not isinstance(step, str) for step in value):
+        return None
+    completed = tuple(value)
+    return completed if completed == DAILY_FUNDS_RECOVERY_STEPS[:len(completed)] else None
+
+
+def _daily_funds_recovery_read_request(now: datetime) -> dict[str, Any] | None:
+    payload = _daily_funds_recovery_read_object(DAILY_FUNDS_RECOVERY_REQUEST_FILE)
+    if not isinstance(payload, dict) or set(payload) != {
+        "schema_version", "request_id", "action", "actor", "requested_at", "expires_at",
+    }:
+        return None
+    request_id = payload.get("request_id")
+    requested_at = _daily_funds_auth_timestamp(payload.get("requested_at"))
+    expires_at = _daily_funds_auth_timestamp(payload.get("expires_at"))
+    if (
+        payload.get("schema_version") != DAILY_FUNDS_RECOVERY_REQUEST_SCHEMA
+        or not isinstance(request_id, str)
+        or re.fullmatch(r"[0-9a-f]{64}", request_id) is None
+        or payload.get("action") != "RECOVER"
+        or payload.get("actor") != DAILY_FUNDS_RECOVERY_ACTOR
+        or requested_at is None
+        or expires_at is None
+        or requested_at > now + timedelta(minutes=2)
+        or requested_at < now - timedelta(hours=1)
+        or expires_at <= requested_at
+        or (expires_at - requested_at).total_seconds() > 55 * 60
+    ):
+        return None
+    return {
+        "request_id": request_id,
+        "requested_at": requested_at,
+        "expires_at": expires_at,
+        "expired": expires_at.astimezone(timezone.utc) <= now.astimezone(timezone.utc),
+    }
+
+
+def _daily_funds_recovery_read_session(now: datetime) -> dict[str, Any] | None:
+    payload = _daily_funds_recovery_read_object(DAILY_FUNDS_RECOVERY_SESSION_FILE)
+    if not isinstance(payload, dict) or set(payload) != {
+        "schema_version", "request_id", "state", "machine_code", "created_at", "updated_at", "expires_at",
+        "completed_steps", "active_step",
+    }:
+        return None
+    request_id = payload.get("request_id")
+    state = payload.get("state")
+    created_at = _daily_funds_auth_timestamp(payload.get("created_at"))
+    updated_at = _daily_funds_auth_timestamp(payload.get("updated_at"))
+    expires_at = _daily_funds_auth_timestamp(payload.get("expires_at"))
+    completed_steps = _daily_funds_recovery_completed_steps(payload.get("completed_steps"))
+    active_step = payload.get("active_step")
+    if completed_steps is None:
+        return None
+    next_step = "NONE" if len(completed_steps) == len(DAILY_FUNDS_RECOVERY_STEPS) else DAILY_FUNDS_RECOVERY_STEPS[len(completed_steps)]
+    if (
+        payload.get("schema_version") != DAILY_FUNDS_RECOVERY_SESSION_SCHEMA
+        or not isinstance(request_id, str)
+        or re.fullmatch(r"[0-9a-f]{64}", request_id) is None
+        or state not in DAILY_FUNDS_RECOVERY_LIVE_STATES | DAILY_FUNDS_RECOVERY_TERMINAL_STATES
+        or payload.get("machine_code") not in DAILY_FUNDS_RECOVERY_MACHINE_CODES
+        or created_at is None
+        or updated_at is None
+        or expires_at is None
+        or expires_at <= created_at
+        or (expires_at - created_at).total_seconds() > 55 * 60
+        or active_step != next_step
+    ):
+        return None
+    if state in DAILY_FUNDS_RECOVERY_LIVE_STATES and expires_at.astimezone(timezone.utc) <= now.astimezone(timezone.utc):
+        return {
+            "state": "EXPIRED",
+            "machine_code": "DAILY_FUNDS_RECOVERY_EXPIRED",
+            "updated_at": _daily_funds_auth_iso(now),
+            "expires_at": _daily_funds_auth_iso(expires_at),
+            "completed_steps": list(completed_steps),
+            "active_step": next_step,
+        }
+    return {
+        "state": state,
+        "machine_code": payload["machine_code"],
+        "updated_at": _daily_funds_auth_iso(updated_at),
+        "expires_at": _daily_funds_auth_iso(expires_at),
+        "completed_steps": list(completed_steps),
+        "active_step": active_step,
+    }
+
+
+def _daily_funds_recovery_write_request(payload: dict[str, Any]) -> None:
+    DAILY_FUNDS_CONTROL_DIR.mkdir(parents=True, exist_ok=True)
+    target = _daily_funds_recovery_control_path(DAILY_FUNDS_RECOVERY_REQUEST_FILE)
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=DAILY_FUNDS_CONTROL_DIR, delete=False) as handle:
+        json.dump(payload, handle, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        handle.write("\n")
+        temporary = Path(handle.name)
+    try:
+        os.replace(temporary, target)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+@app.get("/ops/api/daily-funds/recovery")
+def daily_funds_recovery():
+    """Return only fixed recovery state; raw sources and values stay private."""
+
+    now = datetime.now(timezone.utc)
+    session = _daily_funds_recovery_read_session(now)
+    if session is not None:
+        return _daily_funds_recovery_response(session)
+    pending = _daily_funds_recovery_read_request(now)
+    if pending is not None and not pending["expired"]:
+        return _daily_funds_recovery_response({
+            "state": "REQUESTED",
+            "machine_code": "DAILY_FUNDS_RECOVERY_QUEUED",
+            "updated_at": _daily_funds_auth_iso(now),
+            "expires_at": _daily_funds_auth_iso(pending["expires_at"]),
+            "completed_steps": [],
+            "active_step": "RAW_ARCHIVE_AUDIT",
+        })
+    return _daily_funds_recovery_response({
+        "state": "NOT_REQUESTED",
+        "machine_code": "DAILY_FUNDS_RECOVERY_NOT_REQUESTED",
+        "updated_at": _daily_funds_auth_iso(now),
+        "expires_at": None,
+        "completed_steps": [],
+        "active_step": "NONE",
+    })
+
+
+@app.post("/ops/api/daily-funds/recovery")
+async def start_daily_funds_recovery(request: Request):
+    """Queue the only permitted recovery chain; this route accepts no input."""
+
+    if not _daily_funds_auth_same_origin(request):
+        return _daily_funds_recovery_error(
+            status_code=403,
+            detail="daily_funds_recovery_same_origin_required",
+        )
+    if request.headers.get("content-length", "").strip() not in {"", "0"} or request.headers.get("transfer-encoding", "").strip():
+        return _daily_funds_recovery_error(
+            status_code=422,
+            detail="daily_funds_recovery_body_forbidden",
+        )
+    now = datetime.now(timezone.utc)
+    existing = _daily_funds_recovery_read_session(now)
+    pending = _daily_funds_recovery_read_request(now)
+    if (
+        (existing is not None and existing["state"] in DAILY_FUNDS_RECOVERY_LIVE_STATES)
+        or (pending is not None and not pending["expired"])
+    ):
+        return _daily_funds_recovery_error(
+            status_code=409,
+            detail="daily_funds_recovery_already_pending",
+        )
+    expires_at = now + timedelta(minutes=50)
+    payload = {
+        "schema_version": DAILY_FUNDS_RECOVERY_REQUEST_SCHEMA,
+        "request_id": secrets.token_hex(32),
+        "action": "RECOVER",
+        "actor": DAILY_FUNDS_RECOVERY_ACTOR,
+        "requested_at": _daily_funds_auth_iso(now),
+        "expires_at": _daily_funds_auth_iso(expires_at),
+    }
+    try:
+        _daily_funds_recovery_write_request(payload)
+    except OSError:
+        return _daily_funds_recovery_error(
+            status_code=503,
+            detail="daily_funds_recovery_control_unavailable",
+        )
+    return _daily_funds_recovery_response({
+        "state": "REQUESTED",
+        "machine_code": "DAILY_FUNDS_RECOVERY_QUEUED",
+        "updated_at": _daily_funds_auth_iso(now),
+        "expires_at": _daily_funds_auth_iso(expires_at),
+        "completed_steps": [],
+        "active_step": "RAW_ARCHIVE_AUDIT",
     }, status_code=202)
 
 

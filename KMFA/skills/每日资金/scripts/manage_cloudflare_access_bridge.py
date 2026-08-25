@@ -30,8 +30,12 @@ from daily_funds.access_bridge import (  # noqa: E402
     policy_payload,
     probe_poll_state,
     probe_start_poll_state,
+    recovery_poll_state,
+    recovery_start_poll_state,
     resolve_bridge_target,
     service_token_payload,
+    summarize_recovery_start_response,
+    summarize_recovery_response,
     summarize_probe_start_response,
     summarize_probe_response,
     validate_success_response,
@@ -179,6 +183,26 @@ def main(argv: list[str] | None = None) -> int:
     start_poll = subparsers.add_parser("probe-start-poll-state")
     start_poll.add_argument("--receipt", required=True)
 
+    recovery_summary = subparsers.add_parser("summarize-recovery")
+    recovery_summary.add_argument("--response", required=True)
+    recovery_summary.add_argument("--headers", required=True)
+    recovery_summary.add_argument("--http-status", required=True)
+    recovery_summary.add_argument("--curl-exit", required=True)
+    recovery_summary.add_argument("--output")
+
+    recovery_start_summary = subparsers.add_parser("summarize-recovery-start")
+    recovery_start_summary.add_argument("--response", required=True)
+    recovery_start_summary.add_argument("--headers", required=True)
+    recovery_start_summary.add_argument("--http-status", required=True)
+    recovery_start_summary.add_argument("--curl-exit", required=True)
+    recovery_start_summary.add_argument("--output")
+
+    recovery_poll = subparsers.add_parser("recovery-poll-state")
+    recovery_poll.add_argument("--receipt", required=True)
+
+    recovery_start_poll = subparsers.add_parser("recovery-start-poll-state")
+    recovery_start_poll.add_argument("--receipt", required=True)
+
     owned = subparsers.add_parser("write-owned-resource-env")
     owned.add_argument("--service-tokens", required=True)
     owned.add_argument("--policies", required=True)
@@ -249,6 +273,32 @@ def main(argv: list[str] | None = None) -> int:
             print(probe_poll_state(args.receipt))
         elif args.command == "probe-start-poll-state":
             print(probe_start_poll_state(args.receipt))
+        elif args.command == "summarize-recovery":
+            receipt = summarize_recovery_response(
+                args.response,
+                response_headers_path=args.headers,
+                http_status=args.http_status,
+                curl_exit=args.curl_exit,
+            )
+            if args.output:
+                write_private_json(_private_output(parser, args), receipt)
+            else:
+                print(json.dumps(receipt, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
+        elif args.command == "summarize-recovery-start":
+            receipt = summarize_recovery_start_response(
+                args.response,
+                response_headers_path=args.headers,
+                http_status=args.http_status,
+                curl_exit=args.curl_exit,
+            )
+            if args.output:
+                write_private_json(_private_output(parser, args), receipt)
+            else:
+                print(json.dumps(receipt, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
+        elif args.command == "recovery-poll-state":
+            print(recovery_poll_state(args.receipt))
+        elif args.command == "recovery-start-poll-state":
+            print(recovery_start_poll_state(args.receipt))
         elif args.command == "write-owned-resource-env":
             _write_owned_resource_material(
                 _private_output(parser, args),

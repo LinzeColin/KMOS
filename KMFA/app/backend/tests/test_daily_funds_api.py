@@ -555,6 +555,104 @@ def test_daily_funds_history_probe_marks_a_real_control_volume_failure(tmp_path,
     assert response.json() == {"detail": "daily_funds_history_probe_control_unavailable"}
 
 
+def test_daily_funds_recovery_is_a_fixed_access_api_and_never_returns_raw_results(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    control = tmp_path / "control"
+    _write_projection(publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_CONTROL_DIR", control)
+
+    initial = client.get("/ops/api/daily-funds/recovery")
+    assert initial.status_code == 200
+    assert initial.headers["x-kmfa-daily-funds-recovery"] == "v1"
+    assert initial.json()["state"] == "NOT_REQUESTED"
+    assert initial.json()["machine_code"] == "DAILY_FUNDS_RECOVERY_NOT_REQUESTED"
+    denied = client.post("/ops/api/daily-funds/recovery")
+    assert denied.status_code == 403
+    assert denied.headers["x-kmfa-daily-funds-recovery"] == "v1"
+    body_rejected = client.post(
+        "/ops/api/daily-funds/recovery",
+        headers=_same_origin_headers(),
+        json={"command": "must-not-cross-the-control-volume"},
+    )
+    assert body_rejected.status_code == 422
+    assert not (control / "daily_funds_recovery_request.json").exists()
+
+    started = client.post("/ops/api/daily-funds/recovery", headers=_same_origin_headers())
+    assert started.status_code == 202
+    assert started.headers["x-kmfa-daily-funds-recovery"] == "v1"
+    assert started.json() == {
+        "state": "REQUESTED",
+        "machine_code": "DAILY_FUNDS_RECOVERY_QUEUED",
+        "updated_at": started.json()["updated_at"],
+        "expires_at": started.json()["expires_at"],
+        "completed_steps": [],
+        "active_step": "RAW_ARCHIVE_AUDIT",
+    }
+    request = json.loads((control / "daily_funds_recovery_request.json").read_text(encoding="utf-8"))
+    assert set(request) == {"schema_version", "request_id", "action", "actor", "requested_at", "expires_at"}
+    assert request["schema_version"] == "kmfa.daily_funds.recovery_request.v1"
+    assert request["action"] == "RECOVER"
+    assert not {"command", "group", "sender", "cursor", "amount"}.intersection(request)
+
+    now = datetime.now(timezone.utc)
+    raw_sentinel = "recovery-private-raw-result-must-not-escape"
+    (control / "daily_funds_recovery_session.json").write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.recovery_session.v1",
+        "request_id": request["request_id"],
+        "state": "SUCCEEDED",
+        "machine_code": "DAILY_FUNDS_RECOVERY_PUBLISHED",
+        "created_at": now.isoformat().replace("+00:00", "Z"),
+        "updated_at": now.isoformat().replace("+00:00", "Z"),
+        "expires_at": (now + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+        "completed_steps": ["RAW_ARCHIVE_AUDIT", "RAW_COVERAGE_REPAIR", "RAW_FACT_REPLAY"],
+        "active_step": "NONE",
+        "private_raw": raw_sentinel,
+    }), encoding="utf-8")
+    malformed = client.get("/ops/api/daily-funds/recovery")
+    assert malformed.status_code == 200
+    assert malformed.json()["state"] == "REQUESTED"
+    assert raw_sentinel not in malformed.text
+
+    (control / "daily_funds_recovery_session.json").write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.recovery_session.v1",
+        "request_id": request["request_id"],
+        "state": "SUCCEEDED",
+        "machine_code": "DAILY_FUNDS_RECOVERY_PUBLISHED",
+        "created_at": now.isoformat().replace("+00:00", "Z"),
+        "updated_at": now.isoformat().replace("+00:00", "Z"),
+        "expires_at": (now + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+        "completed_steps": ["RAW_ARCHIVE_AUDIT", "RAW_COVERAGE_REPAIR", "RAW_FACT_REPLAY"],
+        "active_step": "NONE",
+    }), encoding="utf-8")
+    completed = client.get("/ops/api/daily-funds/recovery")
+    assert completed.status_code == 200
+    assert completed.headers["x-kmfa-daily-funds-recovery"] == "v1"
+    assert completed.json() == {
+        "state": "SUCCEEDED",
+        "machine_code": "DAILY_FUNDS_RECOVERY_PUBLISHED",
+        "updated_at": completed.json()["updated_at"],
+        "expires_at": completed.json()["expires_at"],
+        "completed_steps": ["RAW_ARCHIVE_AUDIT", "RAW_COVERAGE_REPAIR", "RAW_FACT_REPLAY"],
+        "active_step": "NONE",
+    }
+
+
+def test_daily_funds_recovery_marks_a_real_control_volume_failure(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    control_file = tmp_path / "control-file"
+    _write_projection(publication)
+    control_file.write_text("not-a-directory\n", encoding="utf-8")
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_CONTROL_DIR", control_file)
+
+    response = client.post("/ops/api/daily-funds/recovery", headers=_same_origin_headers())
+
+    assert response.status_code == 503
+    assert response.headers["x-kmfa-daily-funds-recovery"] == "v1"
+    assert response.json() == {"detail": "daily_funds_recovery_control_unavailable"}
+
+
 def test_private_daily_funds_projection_range_and_no_raw_leak(tmp_path, monkeypatch):
     publication = tmp_path / "publication"
     control = tmp_path / "control"
