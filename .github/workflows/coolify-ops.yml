@@ -2396,7 +2396,25 @@ jobs:
               payload = payload.get("deployments", payload.get("items"))
           if not isinstance(payload, list):
               fail("ACTIVE_DEPLOYMENTS_RESPONSE_INVALID")
-          if payload:
+          terminal_statuses = {
+              "finished",
+              "success",
+              "successful",
+              "completed",
+              "failed",
+              "error",
+              "cancelled",
+              "canceled",
+              "cancelled_by_user",
+              "cancelled-by-user",
+          }
+          active_records = [
+              record
+              for record in payload
+              if not isinstance(record, dict)
+              or str(record.get("status") or "").strip().lower() not in terminal_statuses
+          ]
+          if active_records:
               fail("DEPLOYMENT_ALREADY_ACTIVE")
           print("daily_funds_force_rebuild_active_deployments=NONE")
           PY
