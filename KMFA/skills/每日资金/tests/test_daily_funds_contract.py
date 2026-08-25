@@ -73,6 +73,7 @@ from daily_funds.r2_guard import R2FreeTierGuard, R2GuardError
 from daily_funds.reconcile import AccountReconciliation, ReconciliationError, ReconciliationReport, account_key_hash, reconcile
 from daily_funds.runtime import AttachmentCapabilityInspection, DailyFundsRuntime, TimedFacts
 from daily_funds.state import RuntimeState, StatusWriter
+from daily_funds.startup import raw_archive_audit_required
 
 UTC = timezone.utc
 
@@ -4315,6 +4316,44 @@ def test_capability_scope_does_not_reuse_an_orphaned_success_receipt(tmp_path: P
     ) == {}
 
 
+def test_startup_raw_archive_audit_gate_requires_a_complete_current_parser_scope(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    state = RuntimeState(config.state_dir)
+    digest = "a" * 64
+
+    assert raw_archive_audit_required(config) is True
+
+    state.record_capability_evidence(
+        attachment_sha256=digest,
+        family=ACCOUNT_FAMILY,
+        suffix=".csv",
+        declared_mime="text/csv",
+        magic="TEXT",
+        parser_version=PARSER_VERSION,
+        outcome="SUPPORTED",
+        code="PARSER_OPEN_OK",
+    )
+    state.replace_capability_scope(
+        parser_version=PARSER_VERSION,
+        attachments=((digest, ACCOUNT_FAMILY),),
+    )
+
+    # A supported scope without its parser-open receipt remains incomplete.
+    assert raw_archive_audit_required(config) is True
+
+    state.record_parser_evidence(
+        attachment_sha256=digest,
+        family=ACCOUNT_FAMILY,
+        suffix=".csv",
+        declared_mime="text/csv",
+        magic="TEXT",
+        parser_version=PARSER_VERSION,
+    )
+
+    assert state.has_complete_capability_scope(parser_version=PARSER_VERSION) is True
+    assert raw_archive_audit_required(config) is False
+
+
 @pytest.mark.parametrize(("internal_code", "expected_code"), (
     ("SOURCE_MISSING", "RAW_ARCHIVE_AUDIT_SOURCE_MISSING"),
     ("GIT_AUDIT_TRANSPORT_RETRYABLE", "RAW_ARCHIVE_AUDIT_TRANSPORT_UNAVAILABLE"),
@@ -4786,10 +4825,12 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_nonblocking_backfill_ca
     assert "run_history_probe_broker.py >/dev/null 2>&1" in entrypoint
     assert "HISTORY_PROBE_BROKER_PID" in entrypoint
     assert "STARTUP_RAW_ARCHIVE_RETRY_DELAY_SECONDS=800" in entrypoint
+    assert "startup_raw_archive_audit_required.py >/dev/null 2>&1" in entrypoint
     assert "run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1" in entrypoint
     assert 'if [ "$RAW_ARCHIVE_AUDIT_RC" -eq 75 ]; then' in entrypoint
     assert 'sleep "$STARTUP_RAW_ARCHIVE_RETRY_DELAY_SECONDS"' in entrypoint
     assert "RAW_ARCHIVE_AUDIT_PID" in entrypoint
+    assert 'if [ -n "$RAW_ARCHIVE_AUDIT_PID" ]; then' in entrypoint
     assert "run_auth_broker.py" not in cron
     assert "run_history_probe_broker.py" not in cron
     wrapper_text = (ROOT / "scripts" / "run_cron_job.sh").read_text(encoding="utf-8")

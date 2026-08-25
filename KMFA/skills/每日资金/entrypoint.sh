@@ -99,10 +99,11 @@ CRON_PID=$!
 printf '%s\n' "$CRON_PID" > "$CRON_PID_FILE"
 
 # A parser version change must re-open already-acquired private raw evidence
-# before the next daily 05:20 audit.  This background job has the same bounded,
-# values-free contract as the scheduled audit: it never calls DWS, moves a
-# publication pointer, or touches D1/R2/OCI.  Running after cron starts keeps
-# scheduler readiness independent from a slow private-Git readback.
+# before the next daily 05:20 audit.  A restart with an already complete
+# current-version capability scope must not duplicate that full read or force
+# an explicitly requested recovery to wait behind the same work.  The gate
+# fails closed: missing configuration or journal evidence starts the normal
+# bounded audit.
 #
 # A rolling deployment can overlap a prior container's final sparse-Git read.
 # The worker deliberately returns 75 for that *specific* lease collision, but
@@ -111,21 +112,28 @@ printf '%s\n' "$CRON_PID" > "$CRON_PID_FILE"
 # once after the maximum 13-minute lease plus a small scheduling margin.  Do
 # not retry any source, integrity, parser, or credential failure.
 STARTUP_RAW_ARCHIVE_RETRY_DELAY_SECONDS=800
-(
-  set +e
-  python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1
-  RAW_ARCHIVE_AUDIT_RC=$?
-  if [ "$RAW_ARCHIVE_AUDIT_RC" -eq 75 ]; then
-    sleep "$STARTUP_RAW_ARCHIVE_RETRY_DELAY_SECONDS"
-    python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1 || true
-  fi
-  exit 0
-) &
-RAW_ARCHIVE_AUDIT_PID=$!
+RAW_ARCHIVE_AUDIT_PID=""
+if python3 /opt/daily-funds/scripts/startup_raw_archive_audit_required.py >/dev/null 2>&1; then
+  (
+    set +e
+    python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1
+    RAW_ARCHIVE_AUDIT_RC=$?
+    if [ "$RAW_ARCHIVE_AUDIT_RC" -eq 75 ]; then
+      sleep "$STARTUP_RAW_ARCHIVE_RETRY_DELAY_SECONDS"
+      python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1 || true
+    fi
+    exit 0
+  ) &
+  RAW_ARCHIVE_AUDIT_PID=$!
+fi
 
 shutdown() {
-  kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$RAW_ARCHIVE_AUDIT_PID" 2>/dev/null || true
-  wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$RAW_ARCHIVE_AUDIT_PID" 2>/dev/null || true
+  kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" 2>/dev/null || true
+  wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" 2>/dev/null || true
+  if [ -n "$RAW_ARCHIVE_AUDIT_PID" ]; then
+    kill -TERM "$RAW_ARCHIVE_AUDIT_PID" 2>/dev/null || true
+    wait "$RAW_ARCHIVE_AUDIT_PID" 2>/dev/null || true
+  fi
   rm -f "$CRON_PID_FILE"
   exit 0
 }
