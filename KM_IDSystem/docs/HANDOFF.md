@@ -6,7 +6,7 @@
 - P1 固定 `24` 个未来报告控制引用，关键结论未来关联 `evidence_id` 或 `evidence_gap`；固定引用来源与页码、索引版本、生成时间、`data/index/evidence/model snapshot` 五项快照、外部增强章节、业务线白箱人工确认、报告快照、影响分析、质量评分、导出审计、模板限制、重新生成、撤回与 PDF 引用来源。
 - 已验证：P1 聚焦 `7/7`，Stage104 Review 与 Stage105 P1 显式兼容 `49/49`，Stage088--Stage105 精确白箱链 `822/822`，Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文视图，文档预算、无登记阻塞与双平面检查均通过。
 - 来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威；外部增强保留 `external_public_reference` 与 `model_reasoning` 的底层来源类型，不能写成内部项目依据或替代 `evidence_gap`。人工确认未记录，最终结论未发布。
-- 回执记录运行计数为 `0`、运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`。用户明确授权的远端恢复检查点固定在 `codex/kmids-stage071-p1@2d2e7a75a`；本 P1 不新增远端写入，`main`、release、OVH 与生产保持后续门禁。
+- 回执记录运行计数为 `0`、运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`。用户在暂停前明确授权的远端恢复检查点已将已验收 P1 同步至 `codex/kmids-stage071-p1@57582137b8b9ecec1787a677029a680232a2707a`；此次仅同步既有开发分支，`main`、release、OVH 与生产保持后续门禁。
 - 回滚只撤回本 P1 的范围说明、静态合同、聚焦用例、历史治理投影、machine run、机器事实、生成中文视图、事件、变更日志和本交接，返回 `PASS_REVIEWED_RAG_NEGATIVE_TEST_RUNTIME_DISABLED`；Stage104 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。
 - 下一步：只在新的独立 run 进入 `IDS-STAGE105-P2-GATE`，继续复用唯一既有开发 worktree 与分支。
 
