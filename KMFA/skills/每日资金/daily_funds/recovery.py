@@ -8,10 +8,12 @@ command nor any source, date, financial, storage, or credential input.
 
 from __future__ import annotations
 
+import fcntl
 import json
+import os
 import re
 import time
-import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -19,7 +21,7 @@ from typing import Any, Mapping
 
 from .config import ConfigError, DailyFundsConfig
 from .runtime import DailyFundsRuntime
-from .state import RuntimeState, atomic_json_write, iso_now
+from .state import atomic_json_write, iso_now
 
 UTC = timezone.utc
 
@@ -57,7 +59,10 @@ _HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
 # audit and remains independent from the short-lived Access credential used to
 # enqueue it.
 RECOVERY_MAX_SECONDS = 6 * 60 * 60
-_RECOVERY_LEASE_SECONDS = RECOVERY_MAX_SECONDS
+
+
+class RecoveryProcessLockHeld(Exception):
+    """The one recovery worker already owns the automatically released lock."""
 
 
 @dataclass(frozen=True)
@@ -95,7 +100,6 @@ class DailyFundsRecoveryBroker:
 
     def __init__(self, config: DailyFundsConfig | None = None, *, poll_seconds: float = 0.5):
         self.config = config or DailyFundsConfig.from_env()
-        self.state = RuntimeState(self.config.state_dir)
         self.poll_seconds = max(0.1, min(float(poll_seconds), 5.0))
 
     @property
@@ -111,6 +115,37 @@ class DailyFundsRecoveryBroker:
         if target.parent != root:
             raise ValueError("invalid recovery control path")
         return target
+
+    @contextmanager
+    def _recovery_process_lock(self):
+        """Serialize recovery in the worker-only state volume.
+
+        A private archive audit can run for hours.  Its coordination lock must
+        disappear with a replaced daily-funds container, so a new deployment
+        can resume the fixed request without waiting for a stale durable lease.
+        """
+
+        self.config.state_dir.mkdir(parents=True, exist_ok=True)
+        descriptor = os.open(
+            self.config.state_dir / "daily_funds_recovery.lock",
+            os.O_CREAT | os.O_RDWR,
+            0o600,
+        )
+        locked = False
+        try:
+            os.fchmod(descriptor, 0o600)
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise RecoveryProcessLockHeld from exc
+            locked = True
+            yield
+        finally:
+            try:
+                if locked:
+                    fcntl.flock(descriptor, fcntl.LOCK_UN)
+            finally:
+                os.close(descriptor)
 
     def _read_object(self, name: str) -> dict[str, Any] | None:
         target = self._path(name)
@@ -302,8 +337,66 @@ class DailyFundsRecoveryBroker:
             self._delete_request_if_matching(request.request_id)
             return
 
-        holder = uuid.uuid4().hex
-        if not self.state.acquire_lease("daily_funds_recovery_lock", holder, ttl_seconds=_RECOVERY_LEASE_SECONDS):
+        terminal = False
+        try:
+            with self._recovery_process_lock():
+                runtime = DailyFundsRuntime(self.config)
+                replay_result: object = None
+                for step in STEPS[len(completed):]:
+                    if datetime.now(UTC) >= request.expires_at:
+                        self._write_session(
+                            request,
+                            state="EXPIRED",
+                            machine_code="DAILY_FUNDS_RECOVERY_EXPIRED",
+                            completed_steps=completed,
+                            active_step=step,
+                        )
+                        terminal = True
+                        return
+                    self._write_session(
+                        request,
+                        state="RUNNING",
+                        machine_code="DAILY_FUNDS_RECOVERY_RUNNING",
+                        completed_steps=completed,
+                        active_step=step,
+                    )
+                    result = self._run_step(runtime, step)
+                    if step == "RAW_FACT_REPLAY":
+                        replay_result = result
+                    if self._is_lock_held(result):
+                        self._write_session(
+                            request,
+                            state="WAITING",
+                            machine_code="DAILY_FUNDS_RECOVERY_WAITING_FOR_LOCK",
+                            completed_steps=completed,
+                            active_step=step,
+                        )
+                        return
+                    if not self._is_ok(result, self._success_codes(step)):
+                        self._write_session(
+                            request,
+                            state="FAILED",
+                            machine_code=self._failure_code(step, result),
+                            completed_steps=completed,
+                            active_step=step,
+                        )
+                        terminal = True
+                        return
+                    completed = (*completed, step)
+                final_code = (
+                    "DAILY_FUNDS_RECOVERY_PUBLISHED_NEEDS_REVIEW"
+                    if self._result_code(replay_result) == "RAW_FACT_REPLAY_PUBLISHED_NEEDS_REVIEW"
+                    else "DAILY_FUNDS_RECOVERY_PUBLISHED"
+                )
+                self._write_session(
+                    request,
+                    state="SUCCEEDED",
+                    machine_code=final_code,
+                    completed_steps=completed,
+                    active_step="NONE",
+                )
+                terminal = True
+        except RecoveryProcessLockHeld:
             self._write_session(
                 request,
                 state="WAITING",
@@ -311,66 +404,6 @@ class DailyFundsRecoveryBroker:
                 completed_steps=completed,
                 active_step=self._next_step(completed),
             )
-            return
-
-        terminal = False
-        try:
-            runtime = DailyFundsRuntime(self.config)
-            replay_result: object = None
-            for step in STEPS[len(completed):]:
-                if datetime.now(UTC) >= request.expires_at:
-                    self._write_session(
-                        request,
-                        state="EXPIRED",
-                        machine_code="DAILY_FUNDS_RECOVERY_EXPIRED",
-                        completed_steps=completed,
-                        active_step=step,
-                    )
-                    terminal = True
-                    return
-                self._write_session(
-                    request,
-                    state="RUNNING",
-                    machine_code="DAILY_FUNDS_RECOVERY_RUNNING",
-                    completed_steps=completed,
-                    active_step=step,
-                )
-                result = self._run_step(runtime, step)
-                if step == "RAW_FACT_REPLAY":
-                    replay_result = result
-                if self._is_lock_held(result):
-                    self._write_session(
-                        request,
-                        state="WAITING",
-                        machine_code="DAILY_FUNDS_RECOVERY_WAITING_FOR_LOCK",
-                        completed_steps=completed,
-                        active_step=step,
-                    )
-                    return
-                if not self._is_ok(result, self._success_codes(step)):
-                    self._write_session(
-                        request,
-                        state="FAILED",
-                        machine_code=self._failure_code(step, result),
-                        completed_steps=completed,
-                        active_step=step,
-                    )
-                    terminal = True
-                    return
-                completed = (*completed, step)
-            final_code = (
-                "DAILY_FUNDS_RECOVERY_PUBLISHED_NEEDS_REVIEW"
-                if self._result_code(replay_result) == "RAW_FACT_REPLAY_PUBLISHED_NEEDS_REVIEW"
-                else "DAILY_FUNDS_RECOVERY_PUBLISHED"
-            )
-            self._write_session(
-                request,
-                state="SUCCEEDED",
-                machine_code=final_code,
-                completed_steps=completed,
-                active_step="NONE",
-            )
-            terminal = True
         except ConfigError:
             self._write_session(
                 request,
@@ -390,7 +423,6 @@ class DailyFundsRecoveryBroker:
             )
             terminal = True
         finally:
-            self.state.release_lease("daily_funds_recovery_lock", holder)
             if terminal:
                 self._delete_request_if_matching(request.request_id)
 
