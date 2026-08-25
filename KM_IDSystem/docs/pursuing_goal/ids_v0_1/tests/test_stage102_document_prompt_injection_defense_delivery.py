@@ -388,6 +388,12 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
             "IDS-V0_1-STAGE102-P4",
             "IDS-STAGE102-REVIEW-GATE",
         )
+        review_current = (
+            "IDS-STAGE102",
+            "IDS-STAGE102-REVIEW",
+            "IDS-V0_1-STAGE102-REVIEW",
+            "IDS-STAGE103-P1-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -407,6 +413,30 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
             self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
             acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
             self.assertEqual("P1/P2/P3/P4 控制工件已完成", acceptance_by_id["ACC-STAGE-102"])
+            for acceptance_id in (
+                "ACC-STAGE102-P4-01",
+                "ACC-STAGE102-P4-02",
+                "ACC-STAGE102-P4-03",
+            ):
+                with self.subTest(acceptance_id=acceptance_id):
+                    self.assertEqual("已通过", acceptance_by_id[acceptance_id])
+            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE102-P4-04"])
+            event_ids = {
+                json.loads(line)["event_id"]
+                for line in EVENTS.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            }
+            self.assertIn("EVT-IDS-V0_1-STAGE102-P4-20260825-001", event_ids)
+        elif current == review_current:
+            self.assertTrue(is_current_projection)
+            self.assertTrue(RECEIPT.is_file())
+            receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
+            self.assertEqual(self.module.PASS_RESULT, receipt["result"])
+            self.assertEqual("IDS-STAGE102-REVIEW-GATE", receipt["next_gate"])
+            self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
+            self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
+            acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-102"])
             for acceptance_id in (
                 "ACC-STAGE102-P4-01",
                 "ACC-STAGE102-P4-02",

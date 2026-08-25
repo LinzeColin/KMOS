@@ -1,20 +1,20 @@
 {
   "stage": "IDS-STAGE102",
-  "phase": "IDS-STAGE102-P4",
-  "task": "IDS-V0_1-STAGE102-P4",
-  "now": "IDS-V0_1-STAGE102-P4 已完成固定文档内提示注入防护交付证据与本地治理投影；下一独立 run 才可进入 Stage102 Review。",
+  "phase": "IDS-STAGE102-REVIEW",
+  "task": "IDS-V0_1-STAGE102-REVIEW",
+  "now": "IDS-V0_1-STAGE102-REVIEW 已机械复审 P1--P4 的固定控制形状、文档 evidence 边界、IDS 规则优先、来源类型、输出权限、业务线白箱人工处理、失败关闭和 P4→P3 回退；下一独立 run 才可进入 Stage103 P1。",
   "owner": "KMOS 开发负责人；本阶段使用唯一既有开发工作树、单一分支与本地验证节奏。",
-  "objective": "以冻结 Stage102 任务包、Stage102 P1/P2/P3 控制工件与 Stage101 Review 已复审 RAG 可复现工件为唯一控制上下文，只从 P3 七条固定、非业务、reference-only 场景派生回答样例、负向测试结果、prompt/version、可复现日志、输出权限边界与 prompt 回滚、模型配置回退说明，保持单一权威、业务线白箱人工处理、失败关闭和可恢复回退路径。",
+  "objective": "以冻结 Stage102 任务包、Stage102 P1/P2/P3/P4 控制工件与 Stage101 Review 已复审 RAG 可复现工件为唯一控制上下文，机械复审文档 evidence、潜在指令、IDS 规则、八元控制引用、来源类型、输出权限、业务线白箱人工处理、失败关闭及 P4→P3 回退。",
   "scope": [
-    "承接 P3 的 7 条、每条 34 字段、共 238 个专项场景检查点及 P2 的 7×28、四组、每条 50 字段、共 350 个前序控制检查点，仅保留不透明控制引用",
-    "派生回答样例、负向测试结果、prompt/version 记录、可复现日志和模型输出权限边界各 7 条，以及 prompt 回滚和模型配置回退说明 2 条；字段形状为 17/12/14/17/12/12，共 528 个交付字段检查点",
-    "保持文档内潜在指令拒绝、IDS 规则优先、evidence_gap 语义、底层来源类型、三类高风险业务线白箱人工处理与最终结论未发布；未来模型推理候选、实际调用、回答发布、日志写入和回退保持零运行时边界",
-    "将 Stage102 Review 投影为下一独立门禁"
+    "机械重放 P1 的 17/7/4/5/25/4、P2 的 7×28/4/50/350、P3 的 7×34=238/5/7/27 与 P4 的 7/7/7/7/7/2、17/12/14/17/12/12、528 个交付字段检查点",
+    "复核 query、index_version、prompt_version、model_version、selected_evidence、document_evidence、document_instruction_candidate 与 IDS rule 的八元控制引用",
+    "保持文档内潜在指令拒绝、IDS 规则优先、evidence_gap 语义、底层来源类型、三类高风险业务线白箱人工处理、最终结论未发布与 P4→P3 回退；实际调用、回答发布、日志写入和回退保持零运行时边界",
+    "将 Stage103 P1 投影为未启动的下一独立门禁"
   ],
   "non_goals": [
     "真实业务源、原始元数据、授权 fixture、检索结果、文档正文、证据账本、Prompt 正文、回答、报告、数据库、参数和业务结论继续由受保护边界管理",
     "真实文档指令识别或处理、查询、索引读取或切换、来源类型绑定、外部增强展示、Prompt 执行、模型选择或调用、引用生成、模型输出分类、回答发布、人工确认、合同承诺、生产写回、prompt 回滚、模型配置回退、模型 Token、Agent、OVH 与生产继续由后续授权阶段管理",
-    "Stage102 Review、合并、正式全局上传、OVH 部署、生产激活与应用重装继续由后续阶段管理"
+    "Stage103 P1、合并、正式全局上传、OVH 部署、生产激活与应用重装继续由后续阶段管理"
   ],
-  "stop_condition": "本 run 在 Stage102 P4 的本地验证与可恢复提交完成后结束；下一独立 run 才可进入 IDS-STAGE102-REVIEW-GATE，继续使用同一既有开发 worktree。真实资料、文档正文、Prompt 正文、模型配置、provider、模型、查询、检索、回答、日志、报告、证据账本、数据库、来源绑定、外部增强展示、模型 Token、审计、持久化、Agent、OVH、生产与正式上传保持后续授权范围。"
+  "stop_condition": "本 run 在 Stage102 Review 的本地验证与可恢复提交完成后结束；下一独立 run 才可进入 IDS-STAGE103-P1-GATE，继续使用同一既有开发 worktree。真实资料、文档正文、Prompt 正文、模型配置、provider、模型、查询、检索、回答、日志、报告、证据账本、数据库、来源绑定、外部增强展示、模型 Token、审计、持久化、Agent、OVH、生产与正式上传保持后续授权范围。"
 }
