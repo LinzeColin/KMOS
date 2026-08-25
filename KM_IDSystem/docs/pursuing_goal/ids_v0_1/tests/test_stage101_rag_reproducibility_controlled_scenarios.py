@@ -432,6 +432,12 @@ class Stage101RagReproducibilityPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE102-P3",
             "IDS-STAGE102-P4-GATE",
         )
+        successor_phase4_current = (
+            "IDS-STAGE102",
+            "IDS-STAGE102-P4",
+            "IDS-V0_1-STAGE102-P4",
+            "IDS-STAGE102-REVIEW-GATE",
+        )
         legacy_projections = {phase1_current, phase2_current}
         if current in {
             phase4_current,
@@ -439,6 +445,7 @@ class Stage101RagReproducibilityPhase3Tests(unittest.TestCase):
             successor_current,
             successor_phase2_current,
             successor_phase3_current,
+            successor_phase4_current,
         }:
             legacy_projections.add(phase3_current)
         if current in {
@@ -446,14 +453,26 @@ class Stage101RagReproducibilityPhase3Tests(unittest.TestCase):
             successor_current,
             successor_phase2_current,
             successor_phase3_current,
+            successor_phase4_current,
         }:
             legacy_projections.add(phase4_current)
         if current in {
             successor_current,
             successor_phase2_current,
             successor_phase3_current,
+            successor_phase4_current,
         }:
             legacy_projections.add(review_current)
+        if current in {
+            successor_phase2_current,
+            successor_phase3_current,
+            successor_phase4_current,
+        }:
+            legacy_projections.add(successor_current)
+        if current in {successor_phase3_current, successor_phase4_current}:
+            legacy_projections.add(successor_phase2_current)
+        if current == successor_phase4_current:
+            legacy_projections.add(successor_phase3_current)
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -508,6 +527,7 @@ class Stage101RagReproducibilityPhase3Tests(unittest.TestCase):
             successor_current,
             successor_phase2_current,
             successor_phase3_current,
+            successor_phase4_current,
         }:
             self.assertTrue(is_current_projection)
         else:

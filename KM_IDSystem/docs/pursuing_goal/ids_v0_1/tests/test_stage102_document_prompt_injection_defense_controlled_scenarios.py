@@ -401,11 +401,14 @@ class Stage102DocumentPromptInjectionDefensePhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE102-P3",
             "IDS-STAGE102-P4-GATE",
         )
-        current = (status["stage"], status["phase"], status["task"], status["next_gate"])
-        self.assertEqual(
-            phase3_current,
-            current,
+        phase4_current = (
+            "IDS-STAGE102",
+            "IDS-STAGE102-P4",
+            "IDS-V0_1-STAGE102-P4",
+            "IDS-STAGE102-REVIEW-GATE",
         )
+        current = (status["stage"], status["phase"], status["task"], status["next_gate"])
+        self.assertIn(current, {phase3_current, phase4_current})
         self.assertTrue(
             assert_legacy_or_current_projection(
                 self,
