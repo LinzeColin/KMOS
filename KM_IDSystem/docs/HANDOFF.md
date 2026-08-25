@@ -1,5 +1,13 @@
 # IDS / Industrial Data System Handoff
 
+## Current Checkpoint - Stage106 P4 in progress - 2026-08-26
+
+- `IDS-V0_1-STAGE106-P4` 已从已验收的 P3 门禁进入，当前仅完成 metadata-only 范围说明、纯内存交付执行器和静态合同；P4 聚焦用例、机器事实、路线投影、回执与本地验收仍待同一 P4 run 完成。
+- 当前在制结构固定从 P3 的 `5` 条专项场景派生六组未来交付控制记录：报告样例、报告快照、报告质量评分、影响分析、模板限制与业务线白箱人工确认各 `5` 条，以及重新生成与撤回说明 `2` 条；合同定义总计 `388` 个非业务交付检查点、`17` 类失败关闭和 `4` 条中文反馈。
+- 已完成的结构性运行仅使用纯内存固定引用；真实报告、PDF、快照、评分、影响分析、审计、数据库、模型、模型 Token、Agent、OVH 与生产保持未触发。P4 没有进入 `IDS-STAGE106-REVIEW-GATE`。
+- 本次用户授权的恢复检查点将同步既有开发分支 `codex/kmids-stage071-p1`，用于在休眠后恢复同一在制 P4；它不改变 `main`、release、正式全局上传、OVH 或生产状态。
+- 恢复后继续在唯一既有 worktree 完成 P4 聚焦用例、治理投影、回执和本地验收；完成 P4 后停止在 `IDS-STAGE106-REVIEW-GATE`，由新的独立 run 进入 Review。
+
 ## Current Gate - Stage106 P3 accepted locally - 2026-08-26
 
 - `IDS-V0_1-STAGE106-P3` 已完成本地验收；当前治理状态为 `IDS-STAGE106 / IDS-STAGE106-P3 / IDS-V0_1-STAGE106-P3 / IDS-STAGE106-P4-GATE`。P4 只可由新的独立 run 进入。
