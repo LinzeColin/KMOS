@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage105-p3-local",
+    "date": "2026-08-26",
+    "summary": "完成 Stage105 报告证据绑定 P3 纯内存专项异常场景验证：机械重放 P2 的 5 条、每条 26 字段、4 组、每条 66 字段、共 330 个非业务 reference-only 前序控制检查点，形成 5 条、每条 34 字段、共 170 个场景检查点、5 个控制视图与 5 条业务线白箱处理记录。关键结论保持 evidence_id 或 evidence_gap 严格二选一；资料撤回、证据降级与索引版本变化保持未来报告状态影响控制，外部增强保留 external_public_reference 与 model_reasoning 的底层来源类型，不能成为内部项目依据、不能替代或关闭 evidence_gap。已通过 P1/P2/P3 聚焦 23/23、Stage088--Stage105 精确白箱链 838/838、Stage005 直接治理校验 valid=true、Batch041-050、Batch051-060、7 个机器生成中文视图、文档预算、无登记阻塞与双平面检查。运行计数均为 0、运行标志均为 false；开发分支保留恢复检查点，main、release、正式全局上传、OVH 与生产保持后续门禁，下一步仅可在新的独立 run 进入 IDS-STAGE105-P4-GATE。"
+  },
+  {
     "version": "v0.1-stage105-p1-local",
     "date": "2026-08-26",
     "summary": "完成 Stage105 报告证据绑定 P1 静态合同：固定 24 个未来报告控制引用、data/index/evidence/model 五项生成快照、外部增强章节与业务线白箱人工确认项、报告快照/影响分析/质量评分/导出审计/模板限制/重新生成与撤回控制引用；关键结论未来关联 evidence_id 或 evidence_gap，PDF 未来显示引用来源。已通过 P1 聚焦 7/7、Stage104 Review 与 Stage105 P1 显式兼容 49/49、Stage088--Stage105 精确白箱链 822/822、Stage005 直接治理校验 valid=true、Batch041-050、Batch051-060、7 个机器生成中文视图、文档预算、无登记阻塞与双平面检查。运行计数均为 0、运行标志均为 false；用户明确授权的远端恢复检查点固定在 `codex/kmids-stage071-p1@2d2e7a75a`，P1 本身没有新增远端写入，main、release、OVH 与生产保持后续门禁，下一步仅可在新的独立 run 进入 IDS-STAGE105-P2-GATE。"

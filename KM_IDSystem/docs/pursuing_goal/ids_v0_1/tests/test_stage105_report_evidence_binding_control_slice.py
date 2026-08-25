@@ -347,6 +347,12 @@ class Stage105ReportEvidenceBindingPhase2Tests(unittest.TestCase):
             "IDS-V0_1-STAGE105-P2",
             "IDS-STAGE105-P3-GATE",
         )
+        phase3_current = (
+            "IDS-STAGE105",
+            "IDS-STAGE105-P3",
+            "IDS-V0_1-STAGE105-P3",
+            "IDS-STAGE105-P4-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -355,7 +361,7 @@ class Stage105ReportEvidenceBindingPhase2Tests(unittest.TestCase):
             plan,
             ROADMAP,
         )
-        self.assertIn(current, {phase1_current, phase2_current})
+        self.assertIn(current, {phase1_current, phase2_current, phase3_current})
         if current == phase2_current:
             self.assertTrue(is_current_projection)
             self.assertEqual(
@@ -363,6 +369,8 @@ class Stage105ReportEvidenceBindingPhase2Tests(unittest.TestCase):
                 status["evidence_status"],
             )
             self.assertIn("IDS-STAGE105-P3-GATE", plan["stop_condition"])
+        elif current == phase3_current:
+            self.assertTrue(is_current_projection)
         else:
             self.assertFalse(is_current_projection)
 
@@ -370,6 +378,8 @@ class Stage105ReportEvidenceBindingPhase2Tests(unittest.TestCase):
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
         if current == phase2_current:
             self.assertEqual("P2 受控最小切片已完成", acceptance_by_id["ACC-STAGE-105"])
+        elif current == phase3_current:
+            self.assertEqual("P3 专项异常场景已完成", acceptance_by_id["ACC-STAGE-105"])
         for acceptance_id in (
             "ACC-STAGE105-P2-01",
             "ACC-STAGE105-P2-02",

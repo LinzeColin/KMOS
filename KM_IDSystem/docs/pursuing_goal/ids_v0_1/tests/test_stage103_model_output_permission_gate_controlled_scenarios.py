@@ -467,6 +467,12 @@ class Stage103ModelOutputPermissionGatePhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE105-P2",
             "IDS-STAGE105-P3-GATE",
         )
+        stage105_phase3_current = (
+            "IDS-STAGE105",
+            "IDS-STAGE105-P3",
+            "IDS-V0_1-STAGE105-P3",
+            "IDS-STAGE105-P4-GATE",
+        )
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
         is_current_projection = assert_legacy_or_current_projection(
             self,
@@ -505,6 +511,7 @@ class Stage103ModelOutputPermissionGatePhase3Tests(unittest.TestCase):
             stage104_review_current,
             stage105_phase1_current,
             stage105_phase2_current,
+            stage105_phase3_current,
         }:
             if current in {
                 stage104_phase1_current,

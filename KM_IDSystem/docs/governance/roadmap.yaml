@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE105"
-current_phase_id: "IDS-STAGE105-P2"
-current_task_id: "IDS-V0_1-STAGE105-P2"
-next_gate_id: "IDS-STAGE105-P3-GATE"
+current_phase_id: "IDS-STAGE105-P3"
+current_task_id: "IDS-V0_1-STAGE105-P3"
+next_gate_id: "IDS-STAGE105-P4-GATE"
 current_transition_history:
+  stage105_phase3_state:
+    current_stage_id: "IDS-STAGE105"
+    current_phase_id: "IDS-STAGE105-P3"
+    current_task_id: "IDS-V0_1-STAGE105-P3"
+    next_gate_id: "IDS-STAGE105-P4-GATE"
   stage105_phase2_state:
     current_stage_id: "IDS-STAGE105"
     current_phase_id: "IDS-STAGE105-P2"
@@ -1830,22 +1835,23 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-105"
     objective: "依据冻结 Stage105 任务包完成报告证据绑定的 P1 静态边界、后续 P2 受控最小切片、P3 专项验证、P4 交付证据与整阶段复审；报告关键结论未来关联 evidence_id 或 evidence_gap、引用来源、索引版本和生成时间，业务事实继续由来源文档、真实证据账本与业务线白箱人工复核承担权威。"
-    status: "phase2_completed_local"
+    status: "phase3_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE105-P3-GATE"
+    next_gate_id: "IDS-STAGE105-P4-GATE"
     gate:
-      gate_id: "IDS-STAGE105-P2-GATE"
+      gate_id: "IDS-STAGE105-P3-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE105-P3-GATE"
+      next_gate_id: "IDS-STAGE105-P4-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "冻结 Stage105 任务包与 Stage104 Review 已复审 RAG 负向测试控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。"
       - "P1 静态合同固定关键结论的 evidence_id/evidence_gap、引用来源、索引版本、生成时间、PDF 引用来源、data/index/evidence/model snapshot、外部增强章节、人工确认项、报告快照、影响分析、质量评分和报告生命周期控制引用。"
       - "P2 以五条固定、非业务、reference-only 控制请求将报告章节证据绑定、五项快照、报告生命周期、外部增强与业务线白箱门禁投影为纯内存控制结构。"
+      - "P3 机械重放 P2 的五条固定控制投影，验证关键结论严格关联 evidence_id 或 evidence_gap，资料撤回、证据降级和索引版本变化保持报告状态影响控制，外部增强不成为内部项目依据。"
       - "真实报告、PDF、引用、快照、审计、数据库、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、生成、导出、发布、撤回、写入或评估任何真实报告、PDF、业务资料、原始元数据、真实证据账本、审计日志、数据库、物理索引或业务结论。"
-      - "执行报告生成、PDF 渲染、引用生成、快照保存、外部增强展示、人工确认、报告状态更新、质量评分、导出审计、重新生成、撤回、模型调用、模型 Token、Agent、OVH、生产、正式全局上传或 P3 以后阶段。"
+      - "执行报告生成、PDF 渲染、引用生成、快照保存、外部增强展示、人工确认、报告状态更新、质量评分、导出审计、重新生成、撤回、模型调用、模型 Token、Agent、OVH、生产、正式全局上传或 P4 以后阶段。"
     phases:
       - phase_id: "IDS-STAGE105-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -1949,26 +1955,55 @@ stages:
       - phase_id: "IDS-STAGE105-P3"
         name: "Phase 3 · 报告证据绑定专项验证与异常场景"
         objective: "在后续独立 run 中验证关键结论 evidence_id/evidence_gap、资料撤回、证据降级、索引变化和外部增强来源类型边界。"
-        status: "not_started"
+        status: "completed"
         entry_authorized: true
         next_gate_id: "IDS-STAGE105-P4-GATE"
         gate:
           gate_id: "IDS-STAGE105-P3-GATE"
-          status: "pending"
+          status: "passed"
           next_gate_id: "IDS-STAGE105-P4-GATE"
           github_upload_allowed: false
         tasks:
           - task_id: "IDS-V0_1-STAGE105-P3"
             name: "验证报告证据绑定专项异常场景"
-            status: "not_started"
+            status: "completed"
             dependencies:
               - "IDS-V0_1-STAGE105-P1"
               - "IDS-V0_1-STAGE105-P2"
+            acceptance_ids:
+              - "ACC-STAGE-105"
+              - "ACC-STAGE105-P3-01"
+              - "ACC-STAGE105-P3-02"
+              - "ACC-STAGE105-P3-03"
+              - "ACC-STAGE105-P3-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage105_report_evidence_binding_controlled_scenarios"
+              - "Stage104 Review、Stage105 P1/P2/P3 显式兼容回归命令记录在 machine run"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage105 P3 聚焦白箱、Stage104 Review 与 Stage105 P1/P2/P3 显式兼容、Stage088--Stage105 精确白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage105 P3 receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-105_报告证据绑定.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE105_PHASE3_REPORT_EVIDENCE_BINDING_CONTROLLED_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage105_report_evidence_binding_controlled_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage105_report_evidence_binding_controlled_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage105_report_evidence_binding_controlled_scenarios.py"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage105-p3-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE105_PHASE2_REPORT_EVIDENCE_BINDING_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage105_report_evidence_binding_control_slice_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage105-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE104_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage104_rag_negative_testing_stage_review_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage104-review-local.json"
+            risk: "若将资料撤回、证据降级、索引变化、外部增强或白箱门禁的纯内存控制场景误作真实报告、证据、业务结论、人工确认或生产动作，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P3 的范围说明、纯内存场景模块、合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage105 P2 的本地零运行时状态；不改变 P1/P2、Stage104 Review、冻结任务包、真实资料、证据账本、已交付报告、审计日志、数据库、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE105-P4"
         name: "Phase 4 · 报告证据绑定交付证据、回滚与中文反馈"
         objective: "在后续独立 run 中交付报告样例、快照、质量评分、影响分析、模板限制、人工确认、重新生成与撤回的受控交付证据。"
         status: "not_started"
-        entry_authorized: false
+        entry_authorized: true
         next_gate_id: "IDS-STAGE105-REVIEW-GATE"
         gate:
           gate_id: "IDS-STAGE105-P4-GATE"
@@ -2268,13 +2303,15 @@ stages:
       taskpack_ref: "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-105_报告证据绑定.md"
       acceptance_id: "ACC-STAGE-105"
       entry_gate: "IDS-STAGE105-P1-GATE"
-      status: "phase2_completed_local"
+      status: "phase3_completed_local"
       stage105_started: true
       phase1_started: true
       phase1_completed: true
       phase2_started: true
       phase2_completed: true
-      next_gate_id: "IDS-STAGE105-P3-GATE"
+      phase3_started: true
+      phase3_completed: true
+      next_gate_id: "IDS-STAGE105-P4-GATE"
       entry_authorized: true
       github_upload_allowed: false
       push_allowed: false
